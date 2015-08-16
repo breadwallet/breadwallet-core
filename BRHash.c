@@ -50,9 +50,8 @@ static void BRSHA1Compress(unsigned *r, unsigned *x)
     r[0] += a, r[1] += b, r[2] += c, r[3] += d, r[4] += e;
 }
 
-BRUInt160 BRSHA1(const void *data, size_t len)
+void BRSHA1(const void *data, size_t len, unsigned char *md)
 {
-    BRUInt160 md;
     unsigned i, x[80], buf[] = { 0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0 }; // initial buffer values
     
     for (i = 0; i < len; i += 64) { // process data in 64 byte blocks
@@ -66,8 +65,7 @@ BRUInt160 BRSHA1(const void *data, size_t len)
     if (len - i >= 56) BRSHA1Compress(buf, x), memset(x, 0, sizeof(*x)*16); // length goes to next block
     *(unsigned long long *)&x[14] = BRBE64((unsigned long long)len*8); // append length in bits
     BRSHA1Compress(buf, x); // finalize
-    for (i = 0; i < 5; i++) md.u32[i] = BRBE32(buf[i]); // write to md
-    return md;
+    for (i = 0; i < 5; i++) ((unsigned *)md)[i] = BRBE32(buf[i]); // write to md
 }
 
 // bitwise right rotation
@@ -110,9 +108,8 @@ static void BRSHA256Compress(unsigned *r, unsigned *x)
     r[0] += a, r[1] += b, r[2] += c, r[3] += d, r[4] += e, r[5] += f, r[6] += g, r[7] += h;
 }
 
-BRUInt256 BRSHA256(const void *data, size_t len)
+void BRSHA256(const void *data, size_t len, unsigned char *md)
 {
-    BRUInt256 md;
     size_t i;
     unsigned x[16], buf[] = { 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
                               0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19 }; // initial buffer values
@@ -128,15 +125,15 @@ BRUInt256 BRSHA256(const void *data, size_t len)
     if (len - i >= 56) BRSHA256Compress(buf, x), memset(x, 0, 64); // length goes to next block
     *(unsigned long long *)&x[14] = BRBE64((unsigned long long)len*8); // append length in bits
     BRSHA256Compress(buf, x); // finalize
-    for (i = 0; i < 8; i++) md.u32[i] = BRBE32(buf[i]); // write to md
-    return md;
+    for (i = 0; i < 8; i++) ((unsigned *)md)[i] = BRBE32(buf[i]); // write to md
 }
 
-BRUInt256 BRSHA256_2(const void *data, size_t len)
+void BRSHA256_2(const void *data, size_t len, unsigned char *md)
 {
-    BRUInt256 md = BRSHA256(data, len);
+    unsigned char t[32];
     
-    return BRSHA256(&md, sizeof(md));
+    BRSHA256(data, len, t);
+    BRSHA256(t, sizeof(t), md);
 }
 
 // bitwise right rotation
@@ -184,9 +181,8 @@ static void BRSHA512Compress(unsigned long long *r, unsigned long long *x)
     r[0] += a, r[1] += b, r[2] += c, r[3] += d, r[4] += e, r[5] += f, r[6] += g, r[7] += h;
 }
 
-BRUInt512 BRSHA512(const void *data, size_t len)
+void BRSHA512(const void *data, size_t len, unsigned char *md)
 {
-    BRUInt512 md;
     size_t i;
     unsigned long long x[16], buf[] = { 0x6a09e667f3bcc908, 0xbb67ae8584caa73b, 0x3c6ef372fe94f82b, 0xa54ff53a5f1d36f1,
                                         0x510e527fade682d1, 0x9b05688c2b3e6c1f, 0x1f83d9abfb41bd6b, 0x5be0cd19137e2179};
@@ -202,8 +198,7 @@ BRUInt512 BRSHA512(const void *data, size_t len)
     if (len - i >= 112) BRSHA512Compress(buf, x), memset(x, 0, 128); // length goes to next block
     x[14] = 0, x[15] = BRBE64((unsigned long long)len*8); // append length in bits
     BRSHA512Compress(buf, x); // finalize
-    for (i = 0; i < 8; i++) md.u64[i] = BRBE64(buf[i]); // write to md
-    return md;
+    for (i = 0; i < 8; i++) ((unsigned long long *)md)[i] = BRBE64(buf[i]); // write to md
 }
 
 // basic ripemd functions
@@ -265,9 +260,8 @@ static void BRRMDcompress(unsigned *r, unsigned *x)
 }
 
 // ripemd-160 hash function: http://homes.esat.kuleuven.be/~bosselae/ripemd160.html
-BRUInt160 BRRMD160(const void *data, size_t len)
+void BRRMD160(const void *data, size_t len, unsigned char *md)
 {
-    BRUInt160 md;
     size_t i;
     unsigned x[16], buf[] = { 0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0 }; // initial buffer values
     
@@ -282,13 +276,34 @@ BRUInt160 BRRMD160(const void *data, size_t len)
     if (len - i >= 56) BRRMDcompress(buf, x), memset(x, 0, 64); // length goes to next block
     *(unsigned long long *)&x[14] = BRLE64((unsigned long long)len*8); // append length in bits
     BRRMDcompress(buf, x); // finalize
-    for (i = 0; i < 5; i++) md.u32[i] = BRLE32(buf[i]); // write to md
-    return md;
+    for (i = 0; i < 5; i++) ((unsigned *)md)[i] = BRLE32(buf[i]); // write to md
 }
 
-BRUInt160 BRHash160(const void *data, size_t len)
+void BRHash160(const void *data, size_t len, unsigned char *md)
 {
-    BRUInt256 md = BRSHA256(data, len);
+    unsigned char t[32];
     
-    return BRRMD160(&md, sizeof(md));
+    BRSHA256(data, len, t);
+    BRRMD160(t, sizeof(t), md);
+}
+
+void BRHMAC(void (*hash)(const void *, size_t, unsigned char *), size_t mdlen, const void *key, size_t klen,
+            const void *data, size_t dlen, unsigned char *md)
+{
+    int blen = (mdlen > 32) ? 128 : 64;
+    unsigned char k[mdlen], kipad[blen + dlen], kopad[blen + mdlen];
+    
+    if (klen > blen) hash(key, klen, k), key = k, klen = sizeof(k);
+    memset(kipad, 0, blen);
+    memcpy(kipad, key, klen);
+    for (int i = 0; i < blen/sizeof(unsigned long long); i++) ((unsigned long long *)kipad)[i] ^= 0x3636363636363636;
+    memset(kopad, 0, blen);
+    memcpy(kopad, key, klen);
+    for (int i = 0; i < blen/sizeof(unsigned long long); i++) ((unsigned long long *)kopad)[i] ^= 0x5c5c5c5c5c5c5c5c;
+    memcpy(kipad + blen, data, dlen);
+    hash(kipad, sizeof(kipad), kopad + blen);
+    hash(kopad, sizeof(kopad), md);
+    memset(k, 0, sizeof(k));
+    memset(kipad, 0, blen);
+    memset(kopad, 0, blen);
 }

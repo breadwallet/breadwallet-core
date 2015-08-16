@@ -159,7 +159,7 @@ static BRUInt256 BRMerkleBlockRootR(BRMerkleBlock *block, size_t *hashIdx, size_
     if (*flagIdx/8 >= block->flagsLen || *hashIdx >= block->hashesLen) return BRUINT256_ZERO;
     
     char flag = (block->flags[*flagIdx/8] & (1 << (*flagIdx % 8)));
-    BRUInt256 hashes[2];
+    BRUInt256 hashes[2], md;
     
     (*flagIdx)++;
     if (! flag || depth == (int)(ceil(log2(block->totalTransactions)))) return block->hashes[(*hashIdx)++]; // leaf
@@ -167,7 +167,8 @@ static BRUInt256 BRMerkleBlockRootR(BRMerkleBlock *block, size_t *hashIdx, size_
     hashes[0] = BRMerkleBlockRootR(block, hashIdx, flagIdx, depth + 1); // left branch
     hashes[1] = BRMerkleBlockRootR(block, hashIdx, flagIdx, depth + 1); // right branch
     if (br_uint256_is_zero(hashes[1])) hashes[1] = hashes[0]; // if right branch is missing, duplicate left branch
-    return BRSHA256_2(hashes, sizeof(hashes));
+    BRSHA256_2(hashes, sizeof(hashes), md.u8);
+    return md;
 }
 
 // true if merkle tree and timestamp are valid, and proof-of-work matches the stated difficulty target
@@ -281,7 +282,7 @@ int BRMerkleBlockDeserialize(BRMerkleBlock *block, const char *buf, size_t len)
     *(unsigned *)(header + off) = BRLE32(block->target);
     off += sizeof(unsigned);
     *(unsigned *)(header + off) = BRLE32(block->nonce);
-    block->blockHash = BRSHA256_2(header, sizeof(header));
+    BRSHA256_2(header, sizeof(header), block->blockHash.u8);
     
     block->height = BR_BLOCK_UNKNOWN_HEIGHT;
     return 1;

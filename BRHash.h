@@ -111,17 +111,20 @@ typedef union _BRUInt128 {
 #define BRUINT160_ZERO ((BRUInt160) { .u32 = { 0, 0, 0, 0, 0 } })
 #define BRUINT128_ZERO ((BRUInt128) { .u64 = { 0, 0 } })
 
-BRUInt160 BRSHA1(const void *data, size_t len);
+void BRSHA1(const void *data, size_t len, unsigned char *md);
 
-BRUInt256 BRSHA256(const void *data, size_t len);
+void BRSHA256(const void *data, size_t len, unsigned char *md);
 
-BRUInt256 BRSHA256_2(const void *data, size_t len);
+void BRSHA256_2(const void *data, size_t len, unsigned char *md);
 
-BRUInt512 BRSHA512(const void *data, size_t len);
+void BRSHA512(const void *data, size_t len, unsigned char *md);
 
 // ripemd-160 hash function: http://homes.esat.kuleuven.be/~bosselae/ripemd160.html
-BRUInt160 BRRMD160(const void *data, size_t len);
+void BRRMD160(const void *data, size_t len, unsigned char *md);
 
-BRUInt160 BRHash160(const void *data, size_t len);
+void BRHash160(const void *data, size_t len, unsigned char *md);
+
+void BRHMAC(void (*hash)(const void *, size_t, unsigned char *), size_t mdlen, const void *key, size_t klen,
+            const void *data, size_t dlen, unsigned char *md);
 
 #endif // BRHash_h
