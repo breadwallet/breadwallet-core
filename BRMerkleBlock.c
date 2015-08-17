@@ -23,6 +23,7 @@
 //  THE SOFTWARE.
 
 #include "BRMerkleBlock.h"
+#include "BRHash.h"
 #include <limits.h>
 #include <string.h>
 #include <math.h>
@@ -38,15 +39,15 @@ unsigned long long BRVarInt(const char *buf, size_t len, size_t *intLen)
     switch (h) {
         case VAR_INT16_HEADER:
             if (intLen) *intLen = sizeof(h) + sizeof(short);
-            return (sizeof(h) + sizeof(short) <= len) ? BRLE16(*(const unsigned short *)(buf + sizeof(h))) : 0;
+            return (sizeof(h) + sizeof(short) <= len) ? le16(*(const unsigned short *)(buf + sizeof(h))) : 0;
             
         case VAR_INT32_HEADER:
             if (intLen) *intLen = sizeof(h) + sizeof(int);
-            return (sizeof(h) + sizeof(int) <= len) ? BRLE32(*(const unsigned *)(buf + sizeof(h))) : 0;
+            return (sizeof(h) + sizeof(int) <= len) ? le32(*(const unsigned *)(buf + sizeof(h))) : 0;
             
         case VAR_INT64_HEADER:
             if (intLen) *intLen = sizeof(h) + sizeof(long long);
-            return (sizeof(h) + sizeof(long long) <= len) ? BRLE64(*(const unsigned long long *)(buf + sizeof(h))) : 0;
+            return (sizeof(h) + sizeof(long long) <= len) ? le64(*(const unsigned long long *)(buf + sizeof(h))) : 0;
             
         default:
             if (intLen) *intLen = sizeof(h);
@@ -72,19 +73,19 @@ size_t BRSetVarInt(unsigned long long i, char *buf, size_t len)
     else if (i <= USHRT_MAX) {
         if (sizeof(unsigned char) + sizeof(unsigned short) > len) return 0;
         *(unsigned char *)buf = VAR_INT16_HEADER;
-        *(unsigned short *)(buf + sizeof(unsigned char)) = BRLE16((unsigned short)i);
+        *(unsigned short *)(buf + sizeof(unsigned char)) = le16((unsigned short)i);
         return sizeof(unsigned char) + sizeof(unsigned short);
     }
     else if (i <= UINT_MAX) {
         if (sizeof(unsigned char) + sizeof(unsigned) > len) return 0;
         *(unsigned char *)buf = VAR_INT32_HEADER;
-        *(unsigned *)(buf + sizeof(unsigned char)) = BRLE32((unsigned)i);
+        *(unsigned *)(buf + sizeof(unsigned char)) = le32((unsigned)i);
         return sizeof(unsigned char) + sizeof(unsigned);
     }
     else {
         if (sizeof(unsigned char) + sizeof(unsigned long long) > len) return 0;
         *(unsigned char *)buf = VAR_INT64_HEADER;
-        *(unsigned long long *)(buf + sizeof(unsigned char)) = BRLE64(i);
+        *(unsigned long long *)(buf + sizeof(unsigned char)) = le64(i);
         return sizeof(unsigned char) + sizeof(unsigned long long);
     }
 }
@@ -120,7 +121,7 @@ size_t BRSetVarInt(unsigned long long i, char *buf, size_t len)
 // flag bits (little endian): 00001011 [merkleRoot = 1, m1 = 1, tx1 = 0, tx2 = 1, m2 = 0, byte padding = 000]
 // hashes: [tx1, tx2, m2]
 
-static size_t BRMerkleBlockTxHashesR(BRMerkleBlock *block, BRUInt256 *txHashes, size_t count, size_t *idx,
+static size_t BRMerkleBlockTxHashesR(BRMerkleBlock *block, UInt256 *txHashes, size_t count, size_t *idx,
                                      size_t *hashIdx, size_t *flagIdx, int depth)
 {
     if (*flagIdx/8 >= block->flagsLen || *hashIdx >= block->hashesLen) return 0;
@@ -144,9 +145,9 @@ static size_t BRMerkleBlockTxHashesR(BRMerkleBlock *block, BRUInt256 *txHashes, 
     return *idx;
 }
 
-// populates txHashes with the matched tx hashes in the block, returns number of hashes written, or total number if
-// txHashes is NULL
-size_t BRMerkleBlockTxHashes(BRMerkleBlock *block, BRUInt256 *txHashes, size_t count)
+// populates txHashes with the matched tx hashes in the block, returns number of hashes written, or total number of
+// matched hashes in the block if txHashes is NULL
+size_t BRMerkleBlockTxHashes(BRMerkleBlock *block, UInt256 *txHashes, size_t count)
 {
     size_t idx = 0, hashIdx = 0, flagIdx = 0;
 
@@ -154,35 +155,37 @@ size_t BRMerkleBlockTxHashes(BRMerkleBlock *block, BRUInt256 *txHashes, size_t c
 }
 
 // recursively walks the merkle tree to calculate the merkle root
-static BRUInt256 BRMerkleBlockRootR(BRMerkleBlock *block, size_t *hashIdx, size_t *flagIdx, int depth)
+static UInt256 BRMerkleBlockRootR(BRMerkleBlock *block, size_t *hashIdx, size_t *flagIdx, int depth)
 {
-    if (*flagIdx/8 >= block->flagsLen || *hashIdx >= block->hashesLen) return BRUINT256_ZERO;
+    if (*flagIdx/8 >= block->flagsLen || *hashIdx >= block->hashesLen) return UINT256_ZERO;
     
     char flag = (block->flags[*flagIdx/8] & (1 << (*flagIdx % 8)));
-    BRUInt256 hashes[2], md;
+    UInt256 hashes[2], md;
     
     (*flagIdx)++;
     if (! flag || depth == (int)(ceil(log2(block->totalTransactions)))) return block->hashes[(*hashIdx)++]; // leaf
 
     hashes[0] = BRMerkleBlockRootR(block, hashIdx, flagIdx, depth + 1); // left branch
     hashes[1] = BRMerkleBlockRootR(block, hashIdx, flagIdx, depth + 1); // right branch
-    if (br_uint256_is_zero(hashes[1])) hashes[1] = hashes[0]; // if right branch is missing, duplicate left branch
+    if (uint256_is_zero(hashes[1])) hashes[1] = hashes[0]; // if right branch is missing, duplicate left branch
     BRSHA256_2(hashes, sizeof(hashes), md.u8);
     return md;
 }
 
 // true if merkle tree and timestamp are valid, and proof-of-work matches the stated difficulty target
 // NOTE: This only checks if the block difficulty matches the difficulty target in the header. It does not check if the
-// target is correct for the block's height in the chain. Use br_merkleblock_verify_difficulty for that.
+// target is correct for the block's height in the chain. Use BRMerkleBlockVerifyDifficulty() for that.
 int BRMerkleBlockIsValid(BRMerkleBlock *block, unsigned currentTime)
 {
+    // target is in "compact" format, where the most significant byte is the size of resulting value in bytes, the next
+    // bit is the sign, and the remaining 23bits is the value after having been right shifted by (size - 3)*8 bits
     static const unsigned maxsize = MAX_PROOF_OF_WORK >> 24, maxtarget = MAX_PROOF_OF_WORK & 0x00ffffffu;
     const unsigned size = block->target >> 24, target = block->target & 0x00ffffffu;
     size_t hashIdx = 0, flagIdx = 0;
-    BRUInt256 merkleRoot = BRMerkleBlockRootR(block, &hashIdx, &flagIdx, 0), t = BRUINT256_ZERO;
+    UInt256 merkleRoot = BRMerkleBlockRootR(block, &hashIdx, &flagIdx, 0), t = UINT256_ZERO;
     
     // check if merkle root is correct
-    if (block->totalTransactions > 0 && ! br_uint256_eq(merkleRoot, block->merkleRoot)) return 0;
+    if (block->totalTransactions > 0 && ! uint256_eq(merkleRoot, block->merkleRoot)) return 0;
     
     // check if timestamp is too far in future
     if (block->timestamp > currentTime + MAX_TIME_DRIFT) return 0;
@@ -190,12 +193,12 @@ int BRMerkleBlockIsValid(BRMerkleBlock *block, unsigned currentTime)
     // check if proof-of-work target is out of range
     if (target == 0 || target & 0x00800000u || size > maxsize || (size == maxsize && target > maxtarget)) return 0;
     
-    if (size > 3) *(unsigned *)&t.u8[size - 3] = BRLE32(target);
-    else t.u32[0] = BRLE32(target >> (3 - size)*8);
+    if (size > 3) *(unsigned *)&t.u8[size - 3] = le32(target);
+    else t.u32[0] = le32(target >> (3 - size)*8);
     
     for (int i = sizeof(t)/sizeof(unsigned) - 1; i >= 0; i--) { // check proof-of-work
-        if (BRLE32(block->blockHash.u32[i]) < BRLE32(t.u32[i])) break;
-        if (BRLE32(block->blockHash.u32[i]) > BRLE32(t.u32[i])) return 0;
+        if (le32(block->blockHash.u32[i]) < le32(t.u32[i])) break;
+        if (le32(block->blockHash.u32[i]) > le32(t.u32[i])) return 0;
     }
     
     return 1;
@@ -207,31 +210,31 @@ size_t BRMerkleBlockSerialize(BRMerkleBlock *block, char *buf, size_t len)
     size_t off = 0, l = 80;
     
     if (block->totalTransactions > 0) {
-        l += sizeof(unsigned) + BRVarIntSize(block->hashesLen) + block->hashesLen*sizeof(BRUInt256) +
+        l += sizeof(unsigned) + BRVarIntSize(block->hashesLen) + block->hashesLen*sizeof(UInt256) +
              BRVarIntSize(block->flagsLen) + block->flagsLen;
     }
 
     if (! buf) return l;
     if (len < l) return 0;
-    *(unsigned *)(buf + off) = BRLE32(block->version);
+    *(unsigned *)(buf + off) = le32(block->version);
     off += sizeof(unsigned);
-    *(BRUInt256 *)(buf + off) = block->prevBlock;
-    off += sizeof(BRUInt256);
-    *(BRUInt256 *)(buf + off) = block->merkleRoot;
-    off += sizeof(BRUInt256);
-    *(unsigned *)(buf + off) = BRLE32(block->timestamp);
+    *(UInt256 *)(buf + off) = block->prevBlock;
+    off += sizeof(UInt256);
+    *(UInt256 *)(buf + off) = block->merkleRoot;
+    off += sizeof(UInt256);
+    *(unsigned *)(buf + off) = le32(block->timestamp);
     off += sizeof(unsigned);
-    *(unsigned *)(buf + off) = BRLE32(block->target);
+    *(unsigned *)(buf + off) = le32(block->target);
     off += sizeof(unsigned);
-    *(unsigned *)(buf + off) = BRLE32(block->nonce);
+    *(unsigned *)(buf + off) = le32(block->nonce);
     off += sizeof(unsigned);
 
     if (block->totalTransactions > 0) {
-        *(unsigned *)(buf + off) = BRLE32(block->totalTransactions);
+        *(unsigned *)(buf + off) = le32(block->totalTransactions);
         off += sizeof(unsigned);
         off += BRSetVarInt(block->hashesLen, buf + off, len - off);
-        memcpy(buf + off, block->hashes, block->hashesLen*sizeof(BRUInt256));
-        off += block->hashesLen*sizeof(BRUInt256);
+        memcpy(buf + off, block->hashes, block->hashesLen*sizeof(UInt256));
+        off += block->hashesLen*sizeof(UInt256);
         memcpy(buf + off, block->flags, block->flagsLen);
         off += block->flagsLen;
     }
@@ -247,52 +250,62 @@ int BRMerkleBlockDeserialize(BRMerkleBlock *block, const char *buf, size_t len)
     size_t off = 0, l = 0;
     char header[80];
     
-    block->version = BRLE32(*(const unsigned *)(buf + off));
+    block->version = le32(*(const unsigned *)(buf + off));
     off += sizeof(unsigned);
-    block->prevBlock = *(const BRUInt256 *)(buf + off);
-    off += sizeof(BRUInt256);
-    block->merkleRoot = *(const BRUInt256 *)(buf + off);
-    off += sizeof(BRUInt256);
-    block->timestamp = BRLE32(*(const unsigned *)(buf + off));
+    block->prevBlock = *(const UInt256 *)(buf + off);
+    off += sizeof(UInt256);
+    block->merkleRoot = *(const UInt256 *)(buf + off);
+    off += sizeof(UInt256);
+    block->timestamp = le32(*(const unsigned *)(buf + off));
     off += sizeof(unsigned);
-    block->target = BRLE32(*(const unsigned *)(buf + off));
+    block->target = le32(*(const unsigned *)(buf + off));
     off += sizeof(unsigned);
-    block->nonce = BRLE32(*(const unsigned *)(buf + off));
+    block->nonce = le32(*(const unsigned *)(buf + off));
     off += sizeof(unsigned);
     
-    block->totalTransactions = (off + sizeof(unsigned) <= len) ? BRLE32(*(const unsigned *)(buf + off)) : 0;
+    block->totalTransactions = (off + sizeof(unsigned) <= len) ? le32(*(const unsigned *)(buf + off)) : 0;
     off += sizeof(unsigned);
     block->hashesLen = (size_t)BRVarInt(buf + off, len - off, &l);
     off += l;
-    block->hashes = (off + block->hashesLen*sizeof(BRUInt256) <= len) ? (BRUInt256 *)(buf + off) : NULL;
-    off += block->hashesLen*sizeof(BRUInt256);
+    block->hashes = (off + block->hashesLen*sizeof(UInt256) <= len) ? (UInt256 *)(buf + off) : NULL;
+    off += block->hashesLen*sizeof(UInt256);
     block->flagsLen = (size_t)BRVarInt(buf + off, len - off, &l);
     off += l;
     block->flags = (off + block->flagsLen <= len) ? buf + off : NULL;
     
     off = 0;
-    *(unsigned *)(header + off) = BRLE32(block->version);
+    *(unsigned *)(header + off) = le32(block->version);
     off += sizeof(unsigned);
-    *(BRUInt256 *)(header + off) = block->prevBlock;
-    off += sizeof(BRUInt256);
-    *(BRUInt256 *)(header + off) = block->merkleRoot;
-    off += sizeof(BRUInt256);
-    *(unsigned *)(header + off) = BRLE32(block->timestamp);
+    *(UInt256 *)(header + off) = block->prevBlock;
+    off += sizeof(UInt256);
+    *(UInt256 *)(header + off) = block->merkleRoot;
+    off += sizeof(UInt256);
+    *(unsigned *)(header + off) = le32(block->timestamp);
     off += sizeof(unsigned);
-    *(unsigned *)(header + off) = BRLE32(block->target);
+    *(unsigned *)(header + off) = le32(block->target);
     off += sizeof(unsigned);
-    *(unsigned *)(header + off) = BRLE32(block->nonce);
+    *(unsigned *)(header + off) = le32(block->nonce);
     BRSHA256_2(header, sizeof(header), block->blockHash.u8);
     
-    block->height = BR_BLOCK_UNKNOWN_HEIGHT;
+    block->height = BLOCK_UNKNOWN_HEIGHT;
     return 1;
 }
 
+// copies merkle tree data to given buffers and points block to the copies
+// (use this to remove references to buf data left by BRMerkleBlockDeserialize())
+inline void BRMerkleBlockCopyTree(BRMerkleBlock *block, UInt256 *hashes, char *flags)
+{
+    memcpy(hashes, block->hashes, block->hashesLen);
+    block->hashes = hashes;
+    memcpy(flags, block->flags, block->flagsLen);
+    block->flags = flags;
+}
+
 // true if the given tx hash is known to be included in the block
-int BRMerkleBlockContainsTxHash(BRMerkleBlock *block, BRUInt256 txHash)
+int BRMerkleBlockContainsTxHash(BRMerkleBlock *block, UInt256 txHash)
 {
     for (size_t i = 0; i < block->hashesLen; i++) {
-        if (br_uint256_eq(block->hashes[i], txHash)) return 1;
+        if (uint256_eq(block->hashes[i], txHash)) return 1;
     }
     
     return 0;
@@ -310,17 +323,18 @@ int BRMerkleBlockContainsTxHash(BRMerkleBlock *block, BRUInt256 txHash)
 // intuitively named MAX_PROOF_OF_WORK... since larger values are less difficult.
 int BRMerkleBlockVerifyDifficulty(BRMerkleBlock *block, BRMerkleBlock *previous, unsigned transitionTime)
 {
-    if (! br_uint256_eq(block->prevBlock, previous->blockHash) || block->height != previous->height + 1) return 0;
-    if ((block->height % BR_BLOCK_DIFFICULTY_INTERVAL) == 0 && transitionTime == 0) return 0;
+    if (! uint256_eq(block->prevBlock, previous->blockHash) || block->height != previous->height + 1) return 0;
+    if ((block->height % BLOCK_DIFFICULTY_INTERVAL) == 0 && transitionTime == 0) return 0;
     
 #if BITCOIN_TESTNET
     //TODO: implement testnet difficulty rule check
     return 1; // don't worry about difficulty on testnet for now
 #endif
     
-    if ((block->height % BR_BLOCK_DIFFICULTY_INTERVAL) != 0) return (block->target == previous->target) ? 1 : 0;
+    if ((block->height % BLOCK_DIFFICULTY_INTERVAL) != 0) return (block->target == previous->target) ? 1 : 0;
     
-    // target is in "compact" format, explained in isValid:
+    // target is in "compact" format, where the most significant byte is the size of resulting value in bytes, the next
+    // bit is the sign, and the remaining 23bits is the value after having been right shifted by (size - 3)*8 bits
     static const unsigned maxsize = MAX_PROOF_OF_WORK >> 24, maxtarget = MAX_PROOF_OF_WORK & 0x00ffffffu;
     int timespan = (int)((long long)previous->timestamp - (long long)transitionTime), size = previous->target >> 24;
     unsigned long long target = previous->target & 0x00ffffffu;
@@ -352,6 +366,6 @@ inline unsigned BRMerkleBlockHash(BRMerkleBlock *block)
 // true if block is equal to otherBlock
 inline int BRMerkleBlockEqual(BRMerkleBlock *block, BRMerkleBlock *otherBlock)
 {
-    return br_uint256_eq(block->blockHash, otherBlock->blockHash);
+    return uint256_eq(block->blockHash, otherBlock->blockHash);
 }
 
