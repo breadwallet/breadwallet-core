@@ -24,6 +24,7 @@
 //
 
 #include "BRHash.h"
+#include <stdlib.h>
 #include <string.h>
 
 // bitwise left rotation
@@ -212,36 +213,33 @@ void BRSHA512(const void *data, size_t len, void *md)
 #define rmd(a, b, c, d, e, f, g, h, i, j) ((a) = rol32((f) + (b) + le32(c) + (d), (e)) + (g), (f) = (g), (g) = (h),\
                                            (h) = rol32((i), 10), (i) = (j), (j) = (a))
 
-// ripemd left line
-static const unsigned rl1[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }, // round 1, id
-                      rl2[] = { 7, 4, 13, 1, 10, 6, 15, 3, 12, 0, 9, 5, 2, 14, 11, 8 }, // round 2, rho
-                      rl3[] = { 3, 10, 14, 4, 9, 15, 8, 1, 2, 7, 0, 6, 13, 11, 5, 12 }, // round 3, rho^2
-                      rl4[] = { 1, 9, 11, 10, 0, 8, 12, 4, 13, 3, 7, 15, 14, 5, 6, 2 }, // round 4, rho^3
-                      rl5[] = { 4, 0, 5, 9, 7, 12, 2, 10, 14, 1, 3, 8, 11, 6, 15, 13 }; // round 5, rho^4
-
-// ripemd right line
-static const unsigned rr1[] = { 5, 14, 7, 0, 9, 2, 11, 4, 13, 6, 15, 8, 1, 10, 3, 12 }, // round 1, pi
-                      rr2[] = { 6, 11, 3, 7, 0, 13, 5, 10, 14, 15, 8, 12, 4, 9, 1, 2 }, // round 2, rho pi
-                      rr3[] = { 15, 5, 1, 3, 7, 14, 6, 9, 11, 8, 12, 2, 10, 0, 4, 13 }, // round 3, rho^2 pi
-                      rr4[] = { 8, 6, 4, 1, 3, 11, 15, 0, 5, 12, 2, 13, 9, 7, 10, 14 }, // round 4, rho^3 pi
-                      rr5[] = { 12, 15, 10, 4, 1, 5, 8, 7, 6, 2, 13, 14, 0, 3, 9, 11 }; // round 5, rho^4 pi
-
-// ripemd left line shifts
-static const unsigned sl1[] = { 11, 14, 15, 12, 5, 8, 7, 9, 11, 13, 14, 15, 6, 7, 9, 8 }, // round 1
-                      sl2[] = { 7, 6, 8, 13, 11, 9, 7, 15, 7, 12, 15, 9, 11, 7, 13, 12 }, // round 2
-                      sl3[] = { 11, 13, 6, 7, 14, 9, 13, 15, 14, 8, 13, 6, 5, 12, 7, 5 }, // round 3
-                      sl4[] = { 11, 12, 14, 15, 14, 15, 9, 8, 9, 14, 5, 6, 8, 6, 5, 12 }, // round 4
-                      sl5[] = { 9, 15, 5, 11, 6, 8, 13, 12, 5, 12, 13, 14, 11, 8, 5, 6 }; // round 5
-
-// ripemd right line shifts
-static const unsigned sr1[] = { 8, 9, 9, 11, 13, 15, 15, 5, 7, 7, 8, 11, 14, 14, 12, 6 }, // round 1
-                      sr2[] = { 9, 13, 15, 7, 12, 8, 9, 11, 7, 7, 12, 7, 6, 15, 13, 11 }, // round 2
-                      sr3[] = { 9, 7, 15, 11, 8, 6, 6, 14, 12, 13, 5, 14, 13, 13, 7, 5 }, // round 3
-                      sr4[] = { 15, 5, 8, 11, 14, 14, 6, 14, 6, 9, 12, 9, 12, 5, 15, 8 }, // round 4
-                      sr5[] = { 8, 5, 12, 9, 12, 5, 14, 6, 8, 13, 6, 5, 15, 13, 11, 11 }; // round 5
-
 static void BRRMDcompress(unsigned *r, unsigned *x)
 {
+    // left line
+    static const unsigned rl1[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }, // round 1, id
+                          rl2[] = { 7, 4, 13, 1, 10, 6, 15, 3, 12, 0, 9, 5, 2, 14, 11, 8 }, // round 2, rho
+                          rl3[] = { 3, 10, 14, 4, 9, 15, 8, 1, 2, 7, 0, 6, 13, 11, 5, 12 }, // round 3, rho^2
+                          rl4[] = { 1, 9, 11, 10, 0, 8, 12, 4, 13, 3, 7, 15, 14, 5, 6, 2 }, // round 4, rho^3
+                          rl5[] = { 4, 0, 5, 9, 7, 12, 2, 10, 14, 1, 3, 8, 11, 6, 15, 13 }; // round 5, rho^4
+    // right line
+    static const unsigned rr1[] = { 5, 14, 7, 0, 9, 2, 11, 4, 13, 6, 15, 8, 1, 10, 3, 12 }, // round 1, pi
+                          rr2[] = { 6, 11, 3, 7, 0, 13, 5, 10, 14, 15, 8, 12, 4, 9, 1, 2 }, // round 2, rho pi
+                          rr3[] = { 15, 5, 1, 3, 7, 14, 6, 9, 11, 8, 12, 2, 10, 0, 4, 13 }, // round 3, rho^2 pi
+                          rr4[] = { 8, 6, 4, 1, 3, 11, 15, 0, 5, 12, 2, 13, 9, 7, 10, 14 }, // round 4, rho^3 pi
+                          rr5[] = { 12, 15, 10, 4, 1, 5, 8, 7, 6, 2, 13, 14, 0, 3, 9, 11 }; // round 5, rho^4 pi
+    // left line shifts
+    static const unsigned sl1[] = { 11, 14, 15, 12, 5, 8, 7, 9, 11, 13, 14, 15, 6, 7, 9, 8 }, // round 1
+                          sl2[] = { 7, 6, 8, 13, 11, 9, 7, 15, 7, 12, 15, 9, 11, 7, 13, 12 }, // round 2
+                          sl3[] = { 11, 13, 6, 7, 14, 9, 13, 15, 14, 8, 13, 6, 5, 12, 7, 5 }, // round 3
+                          sl4[] = { 11, 12, 14, 15, 14, 15, 9, 8, 9, 14, 5, 6, 8, 6, 5, 12 }, // round 4
+                          sl5[] = { 9, 15, 5, 11, 6, 8, 13, 12, 5, 12, 13, 14, 11, 8, 5, 6 }; // round 5
+    // right line shifts
+    static const unsigned sr1[] = { 8, 9, 9, 11, 13, 15, 15, 5, 7, 7, 8, 11, 14, 14, 12, 6 }, // round 1
+                          sr2[] = { 9, 13, 15, 7, 12, 8, 9, 11, 7, 7, 12, 7, 6, 15, 13, 11 }, // round 2
+                          sr3[] = { 9, 7, 15, 11, 8, 6, 6, 14, 12, 13, 5, 14, 13, 13, 7, 5 }, // round 3
+                          sr4[] = { 15, 5, 8, 11, 14, 14, 6, 14, 6, 9, 12, 9, 12, 5, 15, 8 }, // round 4
+                          sr5[] = { 8, 5, 12, 9, 12, 5, 14, 6, 8, 13, 6, 5, 15, 13, 11, 11 }; // round 5
+
     unsigned al = r[0], bl = r[1], cl = r[2], dl = r[3], el = r[4], ar = al, br = bl, cr = cl, dr = dl, er = el, i, t;
     
     for (i = 0; i < 16; i++) rmd(t, f(bl, cl, dl), x[rl1[i]], 0x00000000, sl1[i], al, el, dl, cl, bl); // round 1 left
@@ -306,6 +304,7 @@ void BRHMAC(void (*hash)(const void *, size_t, void *), int hlen, const void *ke
     memcpy(kipad + blen, data, dlen);
     hash(kipad, sizeof(kipad), kopad + blen);
     hash(kopad, sizeof(kopad), md);
+    
     memset(k, 0, sizeof(k));
     memset(kipad, 0, blen);
     memset(kopad, 0, blen);
@@ -338,4 +337,91 @@ void BRPBKDF2(void (*hash)(const void *, size_t, void *), int hlen, const void *
         // dk = T1 || T2 || ... || Tdklen/hlen
         memcpy((char *)dk + i*hlen, T, (i*hlen + hlen <= dklen) ? hlen : dklen % hlen);
     }
+    
+    memset(s, 0, sizeof(s));
+    memset(U, 0, sizeof(U));
+    memset(T, 0, sizeof(T));
+}
+
+// salsa20/8 stream cypher: http://cr.yp.to/snuffle.html
+static void salsa20_8(unsigned b[16])
+{
+    unsigned x00 = b[0], x01 = b[1], x02 = b[2], x03 = b[3], x04 = b[4], x05 = b[5], x06 = b[6], x07 = b[7],
+    x08 = b[8], x09 = b[9], x10 = b[10], x11 = b[11], x12 = b[12], x13 = b[13], x14 = b[14], x15 = b[15];
+    
+    for (int i = 0; i < 8; i += 2) {
+        // operate on columns
+        x04 ^= rol32(x00 + x12, 7), x08 ^= rol32(x04 + x00, 9), x12 ^= rol32(x08 + x04, 13), x00 ^= rol32(x12 + x08,18);
+        x09 ^= rol32(x05 + x01, 7), x13 ^= rol32(x09 + x05, 9), x01 ^= rol32(x13 + x09, 13), x05 ^= rol32(x01 + x13,18);
+        x14 ^= rol32(x10 + x06, 7), x02 ^= rol32(x14 + x10, 9), x06 ^= rol32(x02 + x14, 13), x10 ^= rol32(x06 + x02,18);
+        x03 ^= rol32(x15 + x11, 7), x07 ^= rol32(x03 + x15, 9), x11 ^= rol32(x07 + x03, 13), x15 ^= rol32(x11 + x07,18);
+        
+        // operate on rows
+        x01 ^= rol32(x00 + x03, 7), x02 ^= rol32(x01 + x00, 9), x03 ^= rol32(x02 + x01, 13), x00 ^= rol32(x03 + x02,18);
+        x06 ^= rol32(x05 + x04, 7), x07 ^= rol32(x06 + x05, 9), x04 ^= rol32(x07 + x06, 13), x05 ^= rol32(x04 + x07,18);
+        x11 ^= rol32(x10 + x09, 7), x08 ^= rol32(x11 + x10, 9), x09 ^= rol32(x08 + x11, 13), x10 ^= rol32(x09 + x08,18);
+        x12 ^= rol32(x15 + x14, 7), x13 ^= rol32(x12 + x15, 9), x14 ^= rol32(x13 + x12, 13), x15 ^= rol32(x14 + x13,18);
+    }
+    
+    b[0] += x00, b[1] += x01, b[2] += x02, b[3] += x03, b[4] += x04, b[5] += x05, b[6] += x06, b[7] += x07;
+    b[8] += x08, b[9] += x09, b[10] += x10, b[11] += x11, b[12] += x12, b[13] += x13, b[14] += x14, b[15] += x15;
+}
+
+static void blockmix_salsa8(unsigned long long *dest, const unsigned long long *src, unsigned long long *b, int r)
+{
+    memcpy(b, &src[(2*r - 1)*8], 64);
+    
+    for (int i = 0; i < 2*r; i += 2) {
+        for (int j = 0; j < 8; j++) b[j] ^= src[i*8 + j];
+        salsa20_8((unsigned *)b);
+        memcpy(&dest[i*4], b, 64);
+        for (int j = 0; j < 8; j++) b[j] ^= src[i*8 + 8 + j];
+        salsa20_8((unsigned *)b);
+        memcpy(&dest[i*4 + r*8], b, 64);
+    }
+}
+
+// scrypt key derivation: http://www.tarsnap.com/scrypt.html
+void BRScrypt(const void *pw, size_t pwlen, const void *salt, size_t slen, long n, int r, int p, void *dk, size_t dklen)
+{
+    unsigned long long x[16*r], y[16*r], z[8], *v = malloc(128*r*n), m;
+    unsigned b[32*r*p];
+    
+    BRPBKDF2(BRSHA256, 32, pw, pwlen, salt, slen, 1, b, sizeof(b));
+    
+    for (int i = 0; i < p; i++) {
+        for (int j = 0; j < 32*r; j++) {
+            ((unsigned *)x)[j] = le32(b[i*32*r + j]);
+        }
+        
+        for (long j = 0; j < n; j += 2) {
+            memcpy(&v[j*(16*r)], x, 128*r);
+            blockmix_salsa8(y, x, z, r);
+            memcpy(&v[(j + 1)*(16*r)], y, 128*r);
+            blockmix_salsa8(x, y, z, r);
+        }
+        
+        for (long j = 0; j < n; j += 2) {
+            m = le64(x[(2*r - 1)*8]) & (n - 1);
+            for (int k = 0; k < 16*r; k++) x[k] ^= v[m*(16*r) + k];
+            blockmix_salsa8(y, x, z, r);
+            m = le64(y[(2*r - 1)*8]) & (n - 1);
+            for (int k = 0; k < 16*r; k++) y[k] ^= v[m*(16*r) + k];
+            blockmix_salsa8(x, y, z, r);
+        }
+        
+        for (int j = 0; j < 32*r; j++) {
+            b[i*32*r + j] = le32(((unsigned *)x)[j]);
+        }
+    }
+    
+    BRPBKDF2(BRSHA256, 32, pw, pwlen, b, sizeof(b), 1, dk, dklen);
+    
+    memset(b, 0, sizeof(b));
+    memset(x, 0, sizeof(x));
+    memset(y, 0, sizeof(y));
+    memset(z, 0, sizeof(z));
+    memset(v, 0, 128*r*n);
+    free(v);
+    memset(&m, 0, sizeof(m));
 }

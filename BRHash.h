@@ -74,7 +74,6 @@ void BRPBKDF2(void (*hash)(const void *, size_t, void *), int hlen, const void *
               const void *salt, size_t slen, unsigned rounds, void *dk, size_t dklen);
 
 // scrypt key derivation: http://www.tarsnap.com/scrypt.html
-void BRScrypt(const void *pw, size_t pwlen, const void *salt, size_t slen, long n, int r, int p,
-              void *dk, size_t dklen);
+void BRScrypt(const void *pw, size_t pwlen, const void *salt, size_t slen, long n, int r, int p, void *dk,size_t dklen);
 
 #endif // BRHash_h
