@@ -54,27 +54,27 @@
 #define le64(x) (x)
 #endif
 
-void BRSHA1(const void *data, size_t len, unsigned char *md);
+void BRSHA1(const void *data, size_t len, void *md);
 
-void BRSHA256(const void *data, size_t len, unsigned char *md);
+void BRSHA256(const void *data, size_t len, void *md);
 
-void BRSHA256_2(const void *data, size_t len, unsigned char *md);
+void BRSHA256_2(const void *data, size_t len, void *md);
 
-void BRSHA512(const void *data, size_t len, unsigned char *md);
+void BRSHA512(const void *data, size_t len, void *md);
 
 // ripemd-160 hash function: http://homes.esat.kuleuven.be/~bosselae/ripemd160.html
-void BRRMD160(const void *data, size_t len, unsigned char *md);
+void BRRMD160(const void *data, size_t len, void *md);
 
-void BRHash160(const void *data, size_t len, unsigned char *md);
+void BRHash160(const void *data, size_t len, void *md);
 
-void BRHMAC(void (*hash)(const void *, size_t, unsigned char *), int hlen, const void *key, size_t klen,
-            const void *data, size_t dlen, unsigned char *md);
+void BRHMAC(void (*hash)(const void *, size_t, void *), int hlen, const void *key, size_t klen,
+            const void *data, size_t dlen, void *md);
 
-void BRPBKDF2(void (*hash)(const void *, size_t, unsigned char *), int hlen, const void *pw, size_t pwlen,
-              const void *salt, size_t slen, unsigned rounds, unsigned char *dk, size_t dklen);
+void BRPBKDF2(void (*hash)(const void *, size_t, void *), int hlen, const void *pw, size_t pwlen,
+              const void *salt, size_t slen, unsigned rounds, void *dk, size_t dklen);
 
 // scrypt key derivation: http://www.tarsnap.com/scrypt.html
 void BRScrypt(const void *pw, size_t pwlen, const void *salt, size_t slen, long n, int r, int p,
-              unsigned char *dk, size_t dklen);
+              void *dk, size_t dklen);
 
 #endif // BRHash_h

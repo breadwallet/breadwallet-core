@@ -168,7 +168,7 @@ static UInt256 BRMerkleBlockRootR(BRMerkleBlock *block, size_t *hashIdx, size_t 
     hashes[0] = BRMerkleBlockRootR(block, hashIdx, flagIdx, depth + 1); // left branch
     hashes[1] = BRMerkleBlockRootR(block, hashIdx, flagIdx, depth + 1); // right branch
     if (uint256_is_zero(hashes[1])) hashes[1] = hashes[0]; // if right branch is missing, duplicate left branch
-    BRSHA256_2(hashes, sizeof(hashes), md.u8);
+    BRSHA256_2(hashes, sizeof(hashes), &md);
     return md;
 }
 
@@ -285,7 +285,7 @@ int BRMerkleBlockDeserialize(BRMerkleBlock *block, const char *buf, size_t len)
     *(unsigned *)(header + off) = le32(block->target);
     off += sizeof(unsigned);
     *(unsigned *)(header + off) = le32(block->nonce);
-    BRSHA256_2(header, sizeof(header), block->blockHash.u8);
+    BRSHA256_2(header, sizeof(header), &block->blockHash);
     
     block->height = BLOCK_UNKNOWN_HEIGHT;
     return 1;

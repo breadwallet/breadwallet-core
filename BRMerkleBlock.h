@@ -63,7 +63,7 @@ size_t BRMerkleBlockSerialize(BRMerkleBlock *block, char *buf, size_t len);
 int BRMerkleBlockDeserialize(BRMerkleBlock *block, const char *buf, size_t len);
 
 // copies merkle tree data to given buffers and points block to the copies
-// (use this to remove references to buf data left by BRMerkleBlockDeserialize)
+// (use this to remove references to buf data left by BRMerkleBlockDeserialize())
 void BRMerkleBlockCopyTree(BRMerkleBlock *block, UInt256 *hashes, char *flags);
 
 // true if the given tx hash is known to be included in the block
