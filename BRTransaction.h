@@ -31,40 +31,40 @@
 
 typedef struct {
     UInt256 txHash;
-    unsigned index;
-    const char *script;
+    uint32_t index;
+    const uint8_t *script;
     size_t scriptLen;
-    const char *signature;
+    const uint8_t *signature;
     size_t sigLen;
-    unsigned sequence;
+    uint32_t sequence;
 } BRTxInput;
 
 typedef struct {
-    unsigned long long amount;
-    const char *script;
+    uint64_t amount;
+    const uint8_t *script;
     size_t scriptLen;
 } BRTxOutput;
 
 typedef struct {
-    unsigned version;
-    unsigned long inCount;
+    uint32_t version;
+    size_t inCount;
     BRTxInput *inputs;
-    unsigned long outCount;
+    size_t outCount;
     BRTxOutput *outputs;
-    unsigned lockTime;
+    uint32_t lockTime;
     UInt256 txHash;
-    unsigned blockHeight;
-    unsigned timestamp; // time interval since unix epoch
+    uint32_t blockHeight;
+    uint32_t timestamp; // time interval since unix epoch
 } BRTransaction;
 
-//XXX need to decided on allocation scheme, either pass in all buffers, or pass in allocator and add a free function
+size_t BRTransactionSerialize(BRTransaction *tx, uint8_t *buf, size_t len);
 
-size_t BRTransactionSerialize(BRTransaction *tx, char *buf, size_t len);
-
-int BRTransactionDeserialize(BRTransaction *tx, const char *buf, size_t len);
+BRTransaction *BRTransactionDeserialize(void *(*alloc)(size_t), const uint8_t *buf, size_t len);
 
 void BRTransactionShuffleOutputs(BRTransaction *tx);
 
-void BRTransactionSign(BRTransaction *tx, const char **privKeys, unsigned long count);
+void BRTransactionSign(BRTransaction *tx, const char **privKeys, size_t count);
+
+void BRTransactionFree(BRTransaction *tx, void (*free)(void *));
 
 #endif // BRTransaction_h

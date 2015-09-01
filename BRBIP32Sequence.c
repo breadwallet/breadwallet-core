@@ -48,9 +48,9 @@
 // - In case parse256(IL) >= n or ki = 0, the resulting key is invalid, and one should proceed with the next value for i
 //   (Note: this has probability lower than 1 in 2^127.)
 //
-static void CKDpriv(UInt256 *k, UInt256 *c, unsigned i)
+static void CKDpriv(UInt256 *k, UInt256 *c, uint32_t i)
 {
-    unsigned char buf[sizeof(BRPubKey) + sizeof(i)];
+    uint8_t buf[sizeof(BRPubKey) + sizeof(i)];
     UInt512 I;
     
     if (i & BIP32_HARD) {
@@ -59,7 +59,7 @@ static void CKDpriv(UInt256 *k, UInt256 *c, unsigned i)
     }
     else secp256k1_point_mul(buf, NULL, *k, 1);
     
-    *(unsigned *)&buf[sizeof(BRPubKey)] = be32(i);
+    *(uint32_t *)&buf[sizeof(BRPubKey)] = be32(i);
     
     BRHMAC(&I, BRSHA512, sizeof(UInt512), c, sizeof(*c), buf, sizeof(buf)); // I = HMAC-SHA512(c, k|P(k) || i)
     
@@ -88,12 +88,12 @@ static void CKDpub(BRPubKey *K, UInt256 *c, uint32_t i)
 {
     if (i & BIP32_HARD) return; // can't derive private child key from public parent key
     
-    unsigned char buf[sizeof(*K) + sizeof(i)];
+    uint8_t buf[sizeof(*K) + sizeof(i)];
     UInt512 I;
     BRPubKey pIL;
     
     *(BRPubKey *)buf = *K;
-    *(unsigned *)&buf[sizeof(*K)] = be32(i);
+    *(uint32_t *)&buf[sizeof(*K)] = be32(i);
     
     BRHMAC(&I, BRSHA512, sizeof(UInt512), c, sizeof(*c), buf, sizeof(buf)); // I = HMAC-SHA512(c, P(K) || i)
     
@@ -131,19 +131,19 @@ BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen)
     return mpk;
 }
 
-BRPubKey BRBIP32PubKey(BRMasterPubKey mpk, int internal, unsigned index)
+BRPubKey BRBIP32PubKey(BRMasterPubKey mpk, int internal, uint32_t index)
 {
     BRPubKey pubKey;
     
     return pubKey;
 }
 
-void BRBIP32PrivKey(UInt256 *key, const void *seed, size_t seedlen, int internal, unsigned index)
+void BRBIP32PrivKey(UInt256 *key, const void *seed, size_t seedlen, int internal, uint32_t index)
 {
 
 }
 
-void BRBIP32PrivKeyList(UInt256 *keys, unsigned count, const void *seed, size_t seedlen, int internal,
+void BRBIP32PrivKeyList(UInt256 *keys, size_t count, const void *seed, size_t seedlen, int internal,
                         const unsigned *indexes)
 {
     

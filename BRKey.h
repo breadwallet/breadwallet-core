@@ -29,7 +29,7 @@
 #include "BRTypes.h"
 
 typedef struct {
-    unsigned char u8[33];
+    uint8_t u8[33];
 } BRPubKey;
 
 #define BR_PUBKEY_NONE ((BRPubKey)\

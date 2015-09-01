@@ -33,7 +33,7 @@
 // https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki
 
 typedef struct {
-    unsigned fingerPrint;
+    uint32_t fingerPrint;
     UInt256 chainCode;
     BRPubKey pubKey;
 } BRMasterPubKey;
@@ -41,10 +41,10 @@ typedef struct {
 #define BR_MASTER_PUBKEY_NONE ((BRMasterPubKey) { 0, UINT256_ZERO, BR_PUBKEY_NONE })
 
 BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen);
-BRPubKey BRBIP32PubKey(BRMasterPubKey mpk, int internal, unsigned index);
-void BRBIP32PrivKey(UInt256 *key, const void *seed, size_t seedLen, int internal, unsigned index);
-void BRBIP32PrivKeyList(UInt256 *keys, unsigned count, const void *seed, size_t seedLen, int internal,
-                        const unsigned *indexes);
+BRPubKey BRBIP32PubKey(BRMasterPubKey mpk, int internal, uint32_t index);
+void BRBIP32PrivKey(UInt256 *key, const void *seed, size_t seedLen, int internal, uint32_t index);
+void BRBIP32PrivKeyList(UInt256 *keys, size_t count, const void *seed, size_t seedLen, int internal,
+                        const uint32_t *indexes);
 
 size_t BRBIP32SerializeMasterPrivKey(char *s, size_t len, const void *seed, size_t seedLen);
 size_t BRBIP32SerializeMasterPubKey(char *s, size_t len, BRMasterPubKey mpk);

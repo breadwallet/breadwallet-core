@@ -32,22 +32,22 @@
 #define VAR_INT32_HEADER 0xfe
 #define VAR_INT64_HEADER 0xff
 
-unsigned long long BRVarInt(const char *buf, size_t len, size_t *intLen)
+uint64_t BRVarInt(const uint8_t *buf, size_t len, size_t *intLen)
 {
-    unsigned char h = (sizeof(char) <= len) ? *(const unsigned char *)buf : 0;
+    uint8_t h = (sizeof(uint8_t) <= len) ? *(const uint8_t *)buf : 0;
     
     switch (h) {
         case VAR_INT16_HEADER:
-            if (intLen) *intLen = sizeof(h) + sizeof(short);
-            return (sizeof(h) + sizeof(short) <= len) ? le16(*(const unsigned short *)(buf + sizeof(h))) : 0;
+            if (intLen) *intLen = sizeof(h) + sizeof(uint16_t);
+            return (sizeof(h) + sizeof(uint16_t) <= len) ? le16(*(const uint16_t *)(buf + sizeof(h))) : 0;
             
         case VAR_INT32_HEADER:
-            if (intLen) *intLen = sizeof(h) + sizeof(int);
-            return (sizeof(h) + sizeof(int) <= len) ? le32(*(const unsigned *)(buf + sizeof(h))) : 0;
+            if (intLen) *intLen = sizeof(h) + sizeof(uint32_t);
+            return (sizeof(h) + sizeof(uint32_t) <= len) ? le32(*(const uint32_t *)(buf + sizeof(h))) : 0;
             
         case VAR_INT64_HEADER:
-            if (intLen) *intLen = sizeof(h) + sizeof(long long);
-            return (sizeof(h) + sizeof(long long) <= len) ? le64(*(const unsigned long long *)(buf + sizeof(h))) : 0;
+            if (intLen) *intLen = sizeof(h) + sizeof(uint64_t);
+            return (sizeof(h) + sizeof(uint64_t) <= len) ? le64(*(const uint64_t *)(buf + sizeof(h))) : 0;
             
         default:
             if (intLen) *intLen = sizeof(h);
@@ -55,38 +55,38 @@ unsigned long long BRVarInt(const char *buf, size_t len, size_t *intLen)
     }
 }
 
-size_t BRVarIntSize(unsigned long long i)
+size_t BRVarIntSize(uint64_t i)
 {
-    if (i < VAR_INT16_HEADER) return sizeof(unsigned char);
-    else if (i <= USHRT_MAX) return sizeof(unsigned char) + sizeof(unsigned short);
-    else if (i <= UINT_MAX) return sizeof(unsigned char) + sizeof(unsigned);
-    else return sizeof(unsigned char) + sizeof(unsigned long long);
+    if (i < VAR_INT16_HEADER) return sizeof(uint8_t);
+    else if (i <= USHRT_MAX) return sizeof(uint8_t) + sizeof(uint16_t);
+    else if (i <= UINT_MAX) return sizeof(uint8_t) + sizeof(uint32_t);
+    else return sizeof(uint8_t) + sizeof(uint64_t);
 }
 
-size_t BRSetVarInt(unsigned long long i, char *buf, size_t len)
+size_t BRSetVarInt(uint64_t i, uint8_t *buf, size_t len)
 {
     if (i < VAR_INT16_HEADER) {
-        if (sizeof(unsigned char) > len) return 0;
-        *(unsigned char *)buf = (unsigned char)i;
-        return sizeof(unsigned char);
+        if (sizeof(uint8_t) > len) return 0;
+        *buf = (uint8_t)i;
+        return sizeof(uint8_t);
     }
-    else if (i <= USHRT_MAX) {
-        if (sizeof(unsigned char) + sizeof(unsigned short) > len) return 0;
-        *(unsigned char *)buf = VAR_INT16_HEADER;
-        *(unsigned short *)(buf + sizeof(unsigned char)) = le16((unsigned short)i);
-        return sizeof(unsigned char) + sizeof(unsigned short);
+    else if (i <= UINT16_MAX) {
+        if (sizeof(uint8_t) + sizeof(uint16_t) > len) return 0;
+        *buf = VAR_INT16_HEADER;
+        *(uint16_t *)(buf + sizeof(uint8_t)) = le16((uint16_t)i);
+        return sizeof(uint8_t) + sizeof(uint16_t);
     }
-    else if (i <= UINT_MAX) {
-        if (sizeof(unsigned char) + sizeof(unsigned) > len) return 0;
-        *(unsigned char *)buf = VAR_INT32_HEADER;
-        *(unsigned *)(buf + sizeof(unsigned char)) = le32((unsigned)i);
-        return sizeof(unsigned char) + sizeof(unsigned);
+    else if (i <= UINT32_MAX) {
+        if (sizeof(uint8_t) + sizeof(uint32_t) > len) return 0;
+        *buf = VAR_INT32_HEADER;
+        *(uint32_t *)(buf + sizeof(uint8_t)) = le32((uint32_t)i);
+        return sizeof(uint8_t) + sizeof(uint32_t);
     }
     else {
-        if (sizeof(unsigned char) + sizeof(unsigned long long) > len) return 0;
-        *(unsigned char *)buf = VAR_INT64_HEADER;
-        *(unsigned long long *)(buf + sizeof(unsigned char)) = le64(i);
-        return sizeof(unsigned char) + sizeof(unsigned long long);
+        if (sizeof(uint8_t) + sizeof(uint64_t) > len) return 0;
+        *buf = VAR_INT64_HEADER;
+        *(uint64_t *)(buf + sizeof(uint8_t)) = le64(i);
+        return sizeof(uint8_t) + sizeof(uint64_t);
     }
 }
 
@@ -126,7 +126,7 @@ static size_t BRMerkleBlockTxHashesR(BRMerkleBlock *block, UInt256 *txHashes, si
 {
     if (*flagIdx/8 >= block->flagsLen || *hashIdx >= block->hashesLen) return 0;
     
-    char flag = (block->flags[*flagIdx/8] & (1 << (*flagIdx % 8)));
+    uint8_t flag = (block->flags[*flagIdx/8] & (1 << (*flagIdx % 8)));
     
     (*flagIdx)++;
     
@@ -159,7 +159,7 @@ static UInt256 BRMerkleBlockRootR(BRMerkleBlock *block, size_t *hashIdx, size_t 
 {
     if (*flagIdx/8 >= block->flagsLen || *hashIdx >= block->hashesLen) return UINT256_ZERO;
     
-    char flag = (block->flags[*flagIdx/8] & (1 << (*flagIdx % 8)));
+    uint8_t flag = (block->flags[*flagIdx/8] & (1 << (*flagIdx % 8)));
     UInt256 hashes[2], md;
     
     (*flagIdx)++;
@@ -179,8 +179,8 @@ int BRMerkleBlockIsValid(BRMerkleBlock *block, unsigned currentTime)
 {
     // target is in "compact" format, where the most significant byte is the size of resulting value in bytes, the next
     // bit is the sign, and the remaining 23bits is the value after having been right shifted by (size - 3)*8 bits
-    static const unsigned maxsize = MAX_PROOF_OF_WORK >> 24, maxtarget = MAX_PROOF_OF_WORK & 0x00ffffffu;
-    const unsigned size = block->target >> 24, target = block->target & 0x00ffffffu;
+    static const uint32_t maxsize = MAX_PROOF_OF_WORK >> 24, maxtarget = MAX_PROOF_OF_WORK & 0x00ffffffu;
+    const uint32_t size = block->target >> 24, target = block->target & 0x00ffffffu;
     size_t hashIdx = 0, flagIdx = 0;
     UInt256 merkleRoot = BRMerkleBlockRootR(block, &hashIdx, &flagIdx, 0), t = UINT256_ZERO;
     
@@ -193,10 +193,10 @@ int BRMerkleBlockIsValid(BRMerkleBlock *block, unsigned currentTime)
     // check if proof-of-work target is out of range
     if (target == 0 || target & 0x00800000u || size > maxsize || (size == maxsize && target > maxtarget)) return 0;
     
-    if (size > 3) *(unsigned *)&t.u8[size - 3] = le32(target);
+    if (size > 3) *(uint32_t *)&t.u8[size - 3] = le32(target);
     else t.u32[0] = le32(target >> (3 - size)*8);
     
-    for (int i = sizeof(t)/sizeof(unsigned) - 1; i >= 0; i--) { // check proof-of-work
+    for (int i = sizeof(t)/sizeof(uint32_t) - 1; i >= 0; i--) { // check proof-of-work
         if (le32(block->blockHash.u32[i]) < le32(t.u32[i])) break;
         if (le32(block->blockHash.u32[i]) > le32(t.u32[i])) return 0;
     }
@@ -205,33 +205,33 @@ int BRMerkleBlockIsValid(BRMerkleBlock *block, unsigned currentTime)
 }
 
 // returns number of bytes written to buf, or total size needed if buf is NULL
-size_t BRMerkleBlockSerialize(BRMerkleBlock *block, char *buf, size_t len)
+size_t BRMerkleBlockSerialize(BRMerkleBlock *block, uint8_t *buf, size_t len)
 {
     size_t off = 0, l = 80;
     
     if (block->totalTransactions > 0) {
-        l += sizeof(unsigned) + BRVarIntSize(block->hashesLen) + block->hashesLen*sizeof(UInt256) +
+        l += sizeof(uint32_t) + BRVarIntSize(block->hashesLen) + block->hashesLen*sizeof(UInt256) +
              BRVarIntSize(block->flagsLen) + block->flagsLen;
     }
 
     if (! buf) return l;
     if (len < l) return 0;
-    *(unsigned *)(buf + off) = le32(block->version);
-    off += sizeof(unsigned);
+    *(uint32_t *)(buf + off) = le32(block->version);
+    off += sizeof(uint32_t);
     *(UInt256 *)(buf + off) = block->prevBlock;
     off += sizeof(UInt256);
     *(UInt256 *)(buf + off) = block->merkleRoot;
     off += sizeof(UInt256);
-    *(unsigned *)(buf + off) = le32(block->timestamp);
-    off += sizeof(unsigned);
-    *(unsigned *)(buf + off) = le32(block->target);
-    off += sizeof(unsigned);
-    *(unsigned *)(buf + off) = le32(block->nonce);
-    off += sizeof(unsigned);
+    *(uint32_t *)(buf + off) = le32(block->timestamp);
+    off += sizeof(uint32_t);
+    *(uint32_t *)(buf + off) = le32(block->target);
+    off += sizeof(uint32_t);
+    *(uint32_t *)(buf + off) = le32(block->nonce);
+    off += sizeof(uint32_t);
 
     if (block->totalTransactions > 0) {
-        *(unsigned *)(buf + off) = le32(block->totalTransactions);
-        off += sizeof(unsigned);
+        *(uint32_t *)(buf + off) = le32(block->totalTransactions);
+        off += sizeof(uint32_t);
         off += BRSetVarInt(block->hashesLen, buf + off, len - off);
         memcpy(buf + off, block->hashes, block->hashesLen*sizeof(UInt256));
         off += block->hashesLen*sizeof(UInt256);
@@ -243,62 +243,60 @@ size_t BRMerkleBlockSerialize(BRMerkleBlock *block, char *buf, size_t len)
 }
 
 // buf can contain either a serialized merkleblock or header, returns true on success, keeps a reference to buf data
-int BRMerkleBlockDeserialize(BRMerkleBlock *block, const char *buf, size_t len)
+BRMerkleBlock *BRMerkleBlockDeserialize(void *(*alloc)(size_t), const uint8_t *buf, size_t len)
 {
-    if (len < 80) return 0;
+    if (len < 80) return NULL;
     
+    BRMerkleBlock *block = alloc(sizeof(BRMerkleBlock));
     size_t off = 0, l = 0;
-    char header[80];
+    uint8_t header[80];
     
-    block->version = le32(*(const unsigned *)(buf + off));
-    off += sizeof(unsigned);
+    if (! block) return NULL;
+    block->version = le32(*(const uint32_t *)(buf + off));
+    off += sizeof(uint32_t);
     block->prevBlock = *(const UInt256 *)(buf + off);
     off += sizeof(UInt256);
     block->merkleRoot = *(const UInt256 *)(buf + off);
     off += sizeof(UInt256);
-    block->timestamp = le32(*(const unsigned *)(buf + off));
-    off += sizeof(unsigned);
-    block->target = le32(*(const unsigned *)(buf + off));
-    off += sizeof(unsigned);
-    block->nonce = le32(*(const unsigned *)(buf + off));
-    off += sizeof(unsigned);
+    block->timestamp = le32(*(const uint32_t *)(buf + off));
+    off += sizeof(uint32_t);
+    block->target = le32(*(const uint32_t *)(buf + off));
+    off += sizeof(uint32_t);
+    block->nonce = le32(*(const uint32_t *)(buf + off));
+    off += sizeof(uint32_t);
     
-    block->totalTransactions = (off + sizeof(unsigned) <= len) ? le32(*(const unsigned *)(buf + off)) : 0;
-    off += sizeof(unsigned);
+    block->totalTransactions = (off + sizeof(uint32_t) <= len) ? le32(*(const uint32_t *)(buf + off)) : 0;
+    off += sizeof(uint32_t);
     block->hashesLen = (size_t)BRVarInt(buf + off, len - off, &l);
     off += l;
-    block->hashes = (off + block->hashesLen*sizeof(UInt256) <= len) ? (UInt256 *)(buf + off) : NULL;
-    off += block->hashesLen*sizeof(UInt256);
+    //block->hashes = (off + block->hashesLen*sizeof(UInt256) <= len) ? (UInt256 *)(buf + off) : NULL;
+    l = block->hashesLen*sizeof(UInt256);
+    block->hashes = (off + l <= len) ? alloc(l) : NULL;
+    if (block->hashes) memcpy(block->hashes, buf + off, l);
+    off += l;
     block->flagsLen = (size_t)BRVarInt(buf + off, len - off, &l);
     off += l;
-    block->flags = (off + block->flagsLen <= len) ? buf + off : NULL;
+    //block->flags = (off + block->flagsLen <= len) ? buf + off : NULL;
+    l = block->flagsLen;
+    block->flags = (off + l <= len) ? alloc(l) : NULL;
+    if (block->flags) memcpy(block->flags, buf + off, l);
     
     off = 0;
-    *(unsigned *)(header + off) = le32(block->version);
-    off += sizeof(unsigned);
+    *(uint32_t *)(header + off) = le32(block->version);
+    off += sizeof(uint32_t);
     *(UInt256 *)(header + off) = block->prevBlock;
     off += sizeof(UInt256);
     *(UInt256 *)(header + off) = block->merkleRoot;
     off += sizeof(UInt256);
-    *(unsigned *)(header + off) = le32(block->timestamp);
-    off += sizeof(unsigned);
-    *(unsigned *)(header + off) = le32(block->target);
-    off += sizeof(unsigned);
-    *(unsigned *)(header + off) = le32(block->nonce);
+    *(uint32_t *)(header + off) = le32(block->timestamp);
+    off += sizeof(uint32_t);
+    *(uint32_t *)(header + off) = le32(block->target);
+    off += sizeof(uint32_t);
+    *(uint32_t *)(header + off) = le32(block->nonce);
     BRSHA256_2(&block->blockHash, header, sizeof(header));
     
     block->height = BLOCK_UNKNOWN_HEIGHT;
-    return 1;
-}
-
-// copies merkle tree data to given buffers and points block to the copies
-// (use this to remove references to buf data left by BRMerkleBlockDeserialize())
-inline void BRMerkleBlockCopyTree(BRMerkleBlock *block, UInt256 *hashes, char *flags)
-{
-    memcpy(hashes, block->hashes, block->hashesLen);
-    block->hashes = hashes;
-    memcpy(flags, block->flags, block->flagsLen);
-    block->flags = flags;
+    return block;
 }
 
 // true if the given tx hash is known to be included in the block
@@ -321,7 +319,7 @@ int BRMerkleBlockContainsTxHash(BRMerkleBlock *block, UInt256 txHash)
 // targeted time between transitions (14*24*60*60 seconds). If the new difficulty is more than 4x or less than 1/4 of
 // the previous difficulty, the change is limited to either 4x or 1/4. There is also a minimum difficulty value
 // intuitively named MAX_PROOF_OF_WORK... since larger values are less difficult.
-int BRMerkleBlockVerifyDifficulty(BRMerkleBlock *block, BRMerkleBlock *previous, unsigned transitionTime)
+int BRMerkleBlockVerifyDifficulty(BRMerkleBlock *block, BRMerkleBlock *previous, uint32_t transitionTime)
 {
     if (! uint256_eq(block->prevBlock, previous->blockHash) || block->height != previous->height + 1) return 0;
     if ((block->height % BLOCK_DIFFICULTY_INTERVAL) == 0 && transitionTime == 0) return 0;
@@ -335,9 +333,9 @@ int BRMerkleBlockVerifyDifficulty(BRMerkleBlock *block, BRMerkleBlock *previous,
     
     // target is in "compact" format, where the most significant byte is the size of resulting value in bytes, the next
     // bit is the sign, and the remaining 23bits is the value after having been right shifted by (size - 3)*8 bits
-    static const unsigned maxsize = MAX_PROOF_OF_WORK >> 24, maxtarget = MAX_PROOF_OF_WORK & 0x00ffffffu;
-    int timespan = (int)((long long)previous->timestamp - (long long)transitionTime), size = previous->target >> 24;
-    unsigned long long target = previous->target & 0x00ffffffu;
+    static const uint32_t maxsize = MAX_PROOF_OF_WORK >> 24, maxtarget = MAX_PROOF_OF_WORK & 0x00ffffffu;
+    int timespan = (int)((int64_t)previous->timestamp - (int64_t)transitionTime), size = previous->target >> 24;
+    uint64_t target = previous->target & 0x00ffffffu;
     
     // limit difficulty transition to -75% or +400%
     if (timespan < TARGET_TIMESPAN/4) timespan = TARGET_TIMESPAN/4;
@@ -354,7 +352,7 @@ int BRMerkleBlockVerifyDifficulty(BRMerkleBlock *block, BRMerkleBlock *previous,
     // limit to MAX_PROOF_OF_WORK
     if (size > maxsize || (size == maxsize && target > maxtarget)) target = maxtarget, size = maxsize;
     
-    return (block->target == ((unsigned)target | size << 24)) ? 1 : 0;
+    return (block->target == ((uint32_t)target | size << 24)) ? 1 : 0;
 }
 
 // returns a hash value suitable for including block in a hashtable
@@ -369,3 +367,10 @@ inline int BRMerkleBlockEqual(BRMerkleBlock *block, BRMerkleBlock *otherBlock)
     return uint256_eq(block->blockHash, otherBlock->blockHash);
 }
 
+// frees memory allocated by BRMerkleBlockDeserialize
+void BRMerkleBlockFree(BRMerkleBlock *block, void (*free)(void *))
+{
+    if (block->hashes) free(block->hashes);
+    if (block->flags) free(block->flags);
+    free(block);
+}

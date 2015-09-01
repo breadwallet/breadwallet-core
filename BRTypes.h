@@ -25,31 +25,33 @@
 #ifndef BRTypes_h
 #define BRTypes_h
 
+#include <stdint.h>
+
 typedef union {
-    unsigned char u8[128/8];
-    unsigned short u16[128/16];
-    unsigned int u32[128/32];
-    unsigned long long u64[128/64];
+    uint8_t u8[128/8];
+    uint16_t u16[128/16];
+    uint32_t u32[128/32];
+    uint64_t u64[128/64];
 } UInt128;
 
 typedef union {
-    unsigned char u8[160/8];
-    unsigned short u16[160/16];
-    unsigned int u32[160/32];
+    uint8_t u8[160/8];
+    uint16_t u16[160/16];
+    uint32_t u32[160/32];
 } UInt160;
 
 typedef union {
-    unsigned char u8[256/8];
-    unsigned short u16[256/16];
-    unsigned int u32[256/32];
-    unsigned long long u64[256/64];
+    uint8_t u8[256/8];
+    uint16_t u16[256/16];
+    uint32_t u32[256/32];
+    uint64_t u64[256/64];
 } UInt256;
 
 typedef union {
-    unsigned char u8[512/8];
-    unsigned short u16[512/16];
-    unsigned int u32[512/32];
-    unsigned long long u64[512/64];
+    uint8_t u8[512/8];
+    uint16_t u16[512/16];
+    uint32_t u32[512/32];
+    uint64_t u64[512/64];
 } UInt512;
 
 static inline int uint128_eq(UInt128 a, UInt128 b)

@@ -26,6 +26,7 @@
 #include "BRMerkleBlock.h"
 #include "BRTypes.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -33,7 +34,7 @@ int BRHashTests()
 {
     // test sha1
     
-    unsigned char md[64];
+    uint8_t md[64];
     char *s;
     
     s = "Free online SHA1 Calculator, type text here...";
@@ -203,25 +204,25 @@ int BRMerkleBlockTests()
     "\xca\x04\x21\x27\xbf\xaf\x9f\x44\xeb\xce\x29\xcb\x29\xc6\xdf\x9d\x05\xb4\x7f\x35\xb2\xed\xff\x4f\x00\x64\xb5\x78"
     "\xab\x74\x1f\xa7\x82\x76\x22\x26\x51\x20\x9f\xe1\xa2\xc4\xc0\xfa\x1c\x58\x51\x0a\xec\x8b\x09\x0d\xd1\xeb\x1f\x82"
     "\xf9\xd2\x61\xb8\x27\x3b\x52\x5b\x02\xff\x1a";
-    BRMerkleBlock b;
+    BRMerkleBlock *b;
     
-    BRMerkleBlockDeserialize(&b, block, sizeof(block));
+    b = BRMerkleBlockDeserialize(malloc, (uint8_t *)block, sizeof(block));
     
-    if (! uint256_eq(b.blockHash,
+    if (! uint256_eq(b->blockHash,
                        uint256_reverse(*(UInt256 *)"\x00\x00\x00\x00\x00\x00\x80\xb6\x6c\x91\x1b\xd5\xba\x14\xa7"
                                           "\x42\x60\x05\x73\x11\xea\xeb\x19\x82\x80\x2f\x70\x10\xf1\xa9\xf0\x90")))
         return 0;
     
-    if (! BRMerkleBlockIsValid(&b, (unsigned)time(NULL))) return 0;
+    if (! BRMerkleBlockIsValid(b, (uint32_t)time(NULL))) return 0;
     
-    if (! BRMerkleBlockContainsTxHash(&b, *(UInt256 *)"\x4c\x30\xb6\x3c\xfc\xdc\x2d\x35\xe3\x32\x94\x21\xb9\x80\x5e"
+    if (! BRMerkleBlockContainsTxHash(b, *(UInt256 *)"\x4c\x30\xb6\x3c\xfc\xdc\x2d\x35\xe3\x32\x94\x21\xb9\x80\x5e"
                                       "\xf0\xc6\x56\x5d\x35\x38\x1c\xa8\x57\x76\x2e\xa0\xb3\xa5\xa1\x28\xbb")) return 0;
     
-    if (BRMerkleBlockTxHashes(&b, NULL, 0) != 4) return 0;
+    if (BRMerkleBlockTxHashes(b, NULL, 0) != 4) return 0;
     
-    UInt256 txHashes[BRMerkleBlockTxHashes(&b, NULL, 0)];
+    UInt256 txHashes[BRMerkleBlockTxHashes(b, NULL, 0)];
     
-    BRMerkleBlockTxHashes(&b, txHashes, 4);
+    BRMerkleBlockTxHashes(b, txHashes, 4);
     
     if (! uint256_eq(txHashes[0], *(UInt256 *)"\x4c\x30\xb6\x3c\xfc\xdc\x2d\x35\xe3\x32\x94\x21\xb9\x80\x5e\xf0\xc6"
                      "\x56\x5d\x35\x38\x1c\xa8\x57\x76\x2e\xa0\xb3\xa5\xa1\x28\xbb")) return 0;
@@ -239,6 +240,7 @@ int BRMerkleBlockTests()
 
     //TODO:XXXX test BRMerkleBlockVerifyDifficulty()
     
+    BRMerkleBlockFree(b, free);
     return 1;
 }
 

@@ -66,10 +66,10 @@ void BRRMD160(void *md, const void *data, size_t len);
 
 void BRHash160(void *md, const void *data, size_t len);
 
-void BRHMAC(void *md, void (*hash)(void *, const void *, size_t), int hlen, const void *key, size_t klen,
+void BRHMAC(void *md, void (*hash)(void *, const void *, size_t), size_t hlen, const void *key, size_t klen,
             const void *data, size_t dlen);
 
-void BRPBKDF2(void *dk, size_t dklen, void (*hash)(void *, const void *, size_t), int hlen,
+void BRPBKDF2(void *dk, size_t dklen, void (*hash)(void *, const void *, size_t), size_t hlen,
               const void *pw, size_t pwlen, const void *salt, size_t slen, unsigned rounds);
 
 #endif // BRHash_h
