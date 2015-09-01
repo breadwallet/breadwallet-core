@@ -21,7 +21,6 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
-//
 
 #include "BRHash.h"
 #include <stdlib.h>
@@ -51,7 +50,7 @@ static void BRSHA1Compress(unsigned *r, unsigned *x)
     r[0] += a, r[1] += b, r[2] += c, r[3] += d, r[4] += e;
 }
 
-void BRSHA1(const void *data, size_t len, void *md)
+void BRSHA1(void *md, const void *data, size_t len)
 {
     unsigned i, x[80], buf[] = { 0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0 }; // initial buffer values
     
@@ -109,7 +108,7 @@ static void BRSHA256Compress(unsigned *r, unsigned *x)
     r[0] += a, r[1] += b, r[2] += c, r[3] += d, r[4] += e, r[5] += f, r[6] += g, r[7] += h;
 }
 
-void BRSHA256(const void *data, size_t len, void *md)
+void BRSHA256(void *md, const void *data, size_t len)
 {
     size_t i;
     unsigned x[16], buf[] = { 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
@@ -129,12 +128,12 @@ void BRSHA256(const void *data, size_t len, void *md)
     for (i = 0; i < 8; i++) ((unsigned *)md)[i] = be32(buf[i]); // write to md
 }
 
-void BRSHA256_2(const void *data, size_t len, void *md)
+void BRSHA256_2(void *md, const void *data, size_t len)
 {
     unsigned char t[32];
     
-    BRSHA256(data, len, t);
-    BRSHA256(t, sizeof(t), md);
+    BRSHA256(t, data, len);
+    BRSHA256(md, t, sizeof(t));
 }
 
 // bitwise right rotation
@@ -182,7 +181,7 @@ static void BRSHA512Compress(unsigned long long *r, unsigned long long *x)
     r[0] += a, r[1] += b, r[2] += c, r[3] += d, r[4] += e, r[5] += f, r[6] += g, r[7] += h;
 }
 
-void BRSHA512(const void *data, size_t len, void *md)
+void BRSHA512(void *md, const void *data, size_t len)
 {
     size_t i;
     unsigned long long x[16], buf[] = { 0x6a09e667f3bcc908, 0xbb67ae8584caa73b, 0x3c6ef372fe94f82b, 0xa54ff53a5f1d36f1,
@@ -258,7 +257,7 @@ static void BRRMDcompress(unsigned *r, unsigned *x)
 }
 
 // ripemd-160 hash function: http://homes.esat.kuleuven.be/~bosselae/ripemd160.html
-void BRRMD160(const void *data, size_t len, void *md)
+void BRRMD160(void *md, const void *data, size_t len)
 {
     size_t i;
     unsigned x[16], buf[] = { 0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0 }; // initial buffer values
@@ -277,24 +276,24 @@ void BRRMD160(const void *data, size_t len, void *md)
     for (i = 0; i < 5; i++) ((unsigned *)md)[i] = le32(buf[i]); // write to md
 }
 
-void BRHash160(const void *data, size_t len, void *md)
+void BRHash160(void *md, const void *data, size_t len)
 {
     unsigned char t[32];
     
-    BRSHA256(data, len, t);
-    BRRMD160(t, sizeof(t), md);
+    BRSHA256(t, data, len);
+    BRRMD160(md, t, sizeof(t));
 }
 
 // HMAC(key, data) = hash((key xor opad) || hash((key xor ipad) || data))
 // opad = 0x5c5c5c...5c5c
 // ipad = 0x363636...3636
-void BRHMAC(void (*hash)(const void *, size_t, void *), int hlen, const void *key, size_t klen,
-            const void *data, size_t dlen, void *md)
+void BRHMAC(void *md, void (*hash)(void *, const void *, size_t), int hlen, const void *key, size_t klen,
+            const void *data, size_t dlen)
 {
     int blen = (hlen > 32) ? 128 : 64;
     unsigned char k[hlen], kipad[blen + dlen], kopad[blen + hlen];
     
-    if (klen > blen) hash(key, klen, k), key = k, klen = sizeof(k);
+    if (klen > blen) hash(k, key, klen), key = k, klen = sizeof(k);
     memset(kipad, 0, blen);
     memcpy(kipad, key, klen);
     for (int i = 0; i < blen/8; i++) ((unsigned long long *)kipad)[i] ^= 0x3636363636363636;
@@ -302,8 +301,8 @@ void BRHMAC(void (*hash)(const void *, size_t, void *), int hlen, const void *ke
     memcpy(kopad, key, klen);
     for (int i = 0; i < blen/8; i++) ((unsigned long long *)kopad)[i] ^= 0x5c5c5c5c5c5c5c5c;
     memcpy(kipad + blen, data, dlen);
-    hash(kipad, sizeof(kipad), kopad + blen);
-    hash(kopad, sizeof(kopad), md);
+    hash(kopad + blen, kipad, sizeof(kipad));
+    hash(md, kopad, sizeof(kopad));
     
     memset(k, 0, sizeof(k));
     memset(kipad, 0, blen);
@@ -316,8 +315,8 @@ void BRHMAC(void (*hash)(const void *, size_t, void *), int hlen, const void *ke
 // U2 = hmac_hash(pw, U1)
 // ...
 // Urounds = hmac_hash(pw, Urounds-1)
-void BRPBKDF2(void (*hash)(const void *, size_t, void *), int hlen, const void *pw, size_t pwlen,
-              const void *salt, size_t slen, unsigned rounds, void *dk, size_t dklen)
+void BRPBKDF2(void *dk, size_t dklen, void (*hash)(void *, const void *, size_t), int hlen,
+              const void *pw, size_t pwlen, const void *salt, size_t slen, unsigned rounds)
 {
     unsigned char s[slen + sizeof(unsigned)], U[hlen], T[hlen];
     unsigned i, r, j;
@@ -326,11 +325,11 @@ void BRPBKDF2(void (*hash)(const void *, size_t, void *), int hlen, const void *
     
     for (i = 0; i < (dklen + hlen - 1)/hlen; i++) {
         *(unsigned *)(s + slen) = be32(i + 1);
-        BRHMAC(hash, hlen, pw, pwlen, s, sizeof(s), U); // U1 = hmac_hash(pw, salt || be32(i))
+        BRHMAC(U, hash, hlen, pw, pwlen, s, sizeof(s)); // U1 = hmac_hash(pw, salt || be32(i))
         memcpy(T, U, sizeof(U));
         
         for (r = 1; r < rounds; r++) {
-            BRHMAC(hash, hlen, pw, pwlen, U, sizeof(U), U); // Urounds = hmac_hash(pw, Urounds-1)
+            BRHMAC(U, hash, hlen, pw, pwlen, U, sizeof(U)); // Urounds = hmac_hash(pw, Urounds-1)
             for (j = 0; j < hlen/4; j++) ((unsigned *)T)[j] ^= ((unsigned *)U)[j]; // Ti = U1 ^ U2 ^ ... Urounds
         }
         
@@ -341,87 +340,4 @@ void BRPBKDF2(void (*hash)(const void *, size_t, void *), int hlen, const void *
     memset(s, 0, sizeof(s));
     memset(U, 0, sizeof(U));
     memset(T, 0, sizeof(T));
-}
-
-// salsa20/8 stream cypher: http://cr.yp.to/snuffle.html
-static void salsa20_8(unsigned b[16])
-{
-    unsigned x00 = b[0], x01 = b[1], x02 = b[2], x03 = b[3], x04 = b[4], x05 = b[5], x06 = b[6], x07 = b[7],
-    x08 = b[8], x09 = b[9], x10 = b[10], x11 = b[11], x12 = b[12], x13 = b[13], x14 = b[14], x15 = b[15];
-    
-    for (int i = 0; i < 8; i += 2) {
-        // operate on columns
-        x04 ^= rol32(x00 + x12, 7), x08 ^= rol32(x04 + x00, 9), x12 ^= rol32(x08 + x04, 13), x00 ^= rol32(x12 + x08,18);
-        x09 ^= rol32(x05 + x01, 7), x13 ^= rol32(x09 + x05, 9), x01 ^= rol32(x13 + x09, 13), x05 ^= rol32(x01 + x13,18);
-        x14 ^= rol32(x10 + x06, 7), x02 ^= rol32(x14 + x10, 9), x06 ^= rol32(x02 + x14, 13), x10 ^= rol32(x06 + x02,18);
-        x03 ^= rol32(x15 + x11, 7), x07 ^= rol32(x03 + x15, 9), x11 ^= rol32(x07 + x03, 13), x15 ^= rol32(x11 + x07,18);
-        
-        // operate on rows
-        x01 ^= rol32(x00 + x03, 7), x02 ^= rol32(x01 + x00, 9), x03 ^= rol32(x02 + x01, 13), x00 ^= rol32(x03 + x02,18);
-        x06 ^= rol32(x05 + x04, 7), x07 ^= rol32(x06 + x05, 9), x04 ^= rol32(x07 + x06, 13), x05 ^= rol32(x04 + x07,18);
-        x11 ^= rol32(x10 + x09, 7), x08 ^= rol32(x11 + x10, 9), x09 ^= rol32(x08 + x11, 13), x10 ^= rol32(x09 + x08,18);
-        x12 ^= rol32(x15 + x14, 7), x13 ^= rol32(x12 + x15, 9), x14 ^= rol32(x13 + x12, 13), x15 ^= rol32(x14 + x13,18);
-    }
-    
-    b[0] += x00, b[1] += x01, b[2] += x02, b[3] += x03, b[4] += x04, b[5] += x05, b[6] += x06, b[7] += x07;
-    b[8] += x08, b[9] += x09, b[10] += x10, b[11] += x11, b[12] += x12, b[13] += x13, b[14] += x14, b[15] += x15;
-}
-
-static void blockmix_salsa8(unsigned long long *dest, const unsigned long long *src, unsigned long long *b, int r)
-{
-    memcpy(b, &src[(2*r - 1)*8], 64);
-    
-    for (int i = 0; i < 2*r; i += 2) {
-        for (int j = 0; j < 8; j++) b[j] ^= src[i*8 + j];
-        salsa20_8((unsigned *)b);
-        memcpy(&dest[i*4], b, 64);
-        for (int j = 0; j < 8; j++) b[j] ^= src[i*8 + 8 + j];
-        salsa20_8((unsigned *)b);
-        memcpy(&dest[i*4 + r*8], b, 64);
-    }
-}
-
-// scrypt key derivation: http://www.tarsnap.com/scrypt.html
-void BRScrypt(const void *pw, size_t pwlen, const void *salt, size_t slen, long n, int r, int p, void *dk, size_t dklen)
-{
-    unsigned long long x[16*r], y[16*r], z[8], *v = malloc(128*r*n), m;
-    unsigned b[32*r*p];
-    
-    BRPBKDF2(BRSHA256, 32, pw, pwlen, salt, slen, 1, b, sizeof(b));
-    
-    for (int i = 0; i < p; i++) {
-        for (int j = 0; j < 32*r; j++) {
-            ((unsigned *)x)[j] = le32(b[i*32*r + j]);
-        }
-        
-        for (long j = 0; j < n; j += 2) {
-            memcpy(&v[j*(16*r)], x, 128*r);
-            blockmix_salsa8(y, x, z, r);
-            memcpy(&v[(j + 1)*(16*r)], y, 128*r);
-            blockmix_salsa8(x, y, z, r);
-        }
-        
-        for (long j = 0; j < n; j += 2) {
-            m = le64(x[(2*r - 1)*8]) & (n - 1);
-            for (int k = 0; k < 16*r; k++) x[k] ^= v[m*(16*r) + k];
-            blockmix_salsa8(y, x, z, r);
-            m = le64(y[(2*r - 1)*8]) & (n - 1);
-            for (int k = 0; k < 16*r; k++) y[k] ^= v[m*(16*r) + k];
-            blockmix_salsa8(x, y, z, r);
-        }
-        
-        for (int j = 0; j < 32*r; j++) {
-            b[i*32*r + j] = le32(((unsigned *)x)[j]);
-        }
-    }
-    
-    BRPBKDF2(BRSHA256, 32, pw, pwlen, b, sizeof(b), 1, dk, dklen);
-    
-    memset(b, 0, sizeof(b));
-    memset(x, 0, sizeof(x));
-    memset(y, 0, sizeof(y));
-    memset(z, 0, sizeof(z));
-    memset(v, 0, 128*r*n);
-    free(v);
-    memset(&m, 0, sizeof(m));
 }

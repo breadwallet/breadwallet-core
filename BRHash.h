@@ -21,7 +21,6 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
-//
 
 #ifndef BRHash_h
 #define BRHash_h
@@ -54,26 +53,23 @@
 #define le64(x) (x)
 #endif
 
-void BRSHA1(const void *data, size_t len, void *md);
+void BRSHA1(void *md, const void *data, size_t len);
 
-void BRSHA256(const void *data, size_t len, void *md);
+void BRSHA256(void *md, const void *data, size_t len);
 
-void BRSHA256_2(const void *data, size_t len, void *md);
+void BRSHA256_2(void *md, const void *data, size_t len);
 
-void BRSHA512(const void *data, size_t len, void *md);
+void BRSHA512(void *md, const void *data, size_t len);
 
 // ripemd-160 hash function: http://homes.esat.kuleuven.be/~bosselae/ripemd160.html
-void BRRMD160(const void *data, size_t len, void *md);
+void BRRMD160(void *md, const void *data, size_t len);
 
-void BRHash160(const void *data, size_t len, void *md);
+void BRHash160(void *md, const void *data, size_t len);
 
-void BRHMAC(void (*hash)(const void *, size_t, void *), int hlen, const void *key, size_t klen,
-            const void *data, size_t dlen, void *md);
+void BRHMAC(void *md, void (*hash)(void *, const void *, size_t), int hlen, const void *key, size_t klen,
+            const void *data, size_t dlen);
 
-void BRPBKDF2(void (*hash)(const void *, size_t, void *), int hlen, const void *pw, size_t pwlen,
-              const void *salt, size_t slen, unsigned rounds, void *dk, size_t dklen);
-
-// scrypt key derivation: http://www.tarsnap.com/scrypt.html
-void BRScrypt(const void *pw, size_t pwlen, const void *salt, size_t slen, long n, int r, int p, void *dk,size_t dklen);
+void BRPBKDF2(void *dk, size_t dklen, void (*hash)(void *, const void *, size_t), int hlen,
+              const void *pw, size_t pwlen, const void *salt, size_t slen, unsigned rounds);
 
 #endif // BRHash_h
