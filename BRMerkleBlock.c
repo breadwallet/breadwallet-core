@@ -270,7 +270,7 @@ static UInt256 BRMerkleBlockRootR(BRMerkleBlock *block, size_t *hashIdx, size_t 
 
     hashes[0] = BRMerkleBlockRootR(block, hashIdx, flagIdx, depth + 1); // left branch
     hashes[1] = BRMerkleBlockRootR(block, hashIdx, flagIdx, depth + 1); // right branch
-    if (uint256_is_zero(hashes[1])) hashes[1] = hashes[0]; // if right branch is missing, duplicate left branch
+    if (UInt256IsZero(hashes[1])) hashes[1] = hashes[0]; // if right branch is missing, duplicate left branch
     BRSHA256_2(&md, hashes, sizeof(hashes));
     return md;
 }
@@ -288,7 +288,7 @@ int BRMerkleBlockIsValid(BRMerkleBlock *block, unsigned currentTime)
     UInt256 merkleRoot = BRMerkleBlockRootR(block, &hashIdx, &flagIdx, 0), t = UINT256_ZERO;
     
     // check if merkle root is correct
-    if (block->totalTransactions > 0 && ! uint256_eq(merkleRoot, block->merkleRoot)) return 0;
+    if (block->totalTransactions > 0 && ! UInt256Eq(merkleRoot, block->merkleRoot)) return 0;
     
     // check if timestamp is too far in future
     if (block->timestamp > currentTime + MAX_TIME_DRIFT) return 0;
@@ -311,7 +311,7 @@ int BRMerkleBlockIsValid(BRMerkleBlock *block, unsigned currentTime)
 int BRMerkleBlockContainsTxHash(BRMerkleBlock *block, UInt256 txHash)
 {
     for (size_t i = 0; i < block->hashesLen; i++) {
-        if (uint256_eq(block->hashes[i], txHash)) return 1;
+        if (UInt256Eq(block->hashes[i], txHash)) return 1;
     }
     
     return 0;
@@ -329,7 +329,7 @@ int BRMerkleBlockContainsTxHash(BRMerkleBlock *block, UInt256 txHash)
 // intuitively named MAX_PROOF_OF_WORK... since larger values are less difficult.
 int BRMerkleBlockVerifyDifficulty(BRMerkleBlock *block, BRMerkleBlock *previous, uint32_t transitionTime)
 {
-    if (! uint256_eq(block->prevBlock, previous->blockHash) || block->height != previous->height + 1) return 0;
+    if (! UInt256Eq(block->prevBlock, previous->blockHash) || block->height != previous->height + 1) return 0;
     if ((block->height % BLOCK_DIFFICULTY_INTERVAL) == 0 && transitionTime == 0) return 0;
     
 #if BITCOIN_TESTNET
@@ -372,7 +372,7 @@ inline unsigned BRMerkleBlockHash(BRMerkleBlock *block)
 // true if block is equal to otherBlock
 inline int BRMerkleBlockEqual(BRMerkleBlock *block, BRMerkleBlock *otherBlock)
 {
-    return uint256_eq(block->blockHash, otherBlock->blockHash);
+    return UInt256Eq(block->blockHash, otherBlock->blockHash);
 }
 
 // frees memory allocated by BRMerkleBlockDeserialize

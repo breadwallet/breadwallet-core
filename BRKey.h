@@ -32,14 +32,14 @@ typedef struct {
     uint8_t u8[33];
 } BRPubKey; // this is only for compressed pubKeys
 
+#define BR_PUBKEY_NONE ((BRPubKey)\
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 })
+
 typedef struct {
     UInt256 secret;
     uint8_t pubKey[65];
     int compressed;
 } BRKey;
-
-#define BR_PUBKEY_NONE ((BRPubKey)\
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 })
 
 UInt256 secp256k1_mod_add(UInt256 a, UInt256 b); // add 256bit big endian ints (mod secp256k1 order)
 UInt256 secp256k1_mod_mul(UInt256 a, UInt256 b); // multiply 256bit big endian ints (mod secp256k1 order)

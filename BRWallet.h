@@ -47,7 +47,7 @@ typedef struct {
 
 static inline int BRUTXOEq(BRUTXO a, BRUTXO b)
 {
-    return (uint256_eq(a.hash, b.hash) && a.n == b.n);
+    return (UInt256Eq(a.hash, b.hash) && a.n == b.n);
 }
 
 typedef struct {
