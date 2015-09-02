@@ -47,6 +47,15 @@ typedef struct {
     uint32_t height;
 } BRMerkleBlock;
 
+// returns a newly allocated BRMerkleBlock struct that must be freed by calling BRMerkleBlockFree()
+BRMerkleBlock *BRMerkleBlockCreate(void *(*alloc)(size_t));
+
+// buf can contain either a serialized merkleblock or header, result must be freed by calling BRMerkleBlockFree()
+BRMerkleBlock *BRMerkleBlockDeserialize(void *(*alloc)(size_t), const uint8_t *buf, size_t len);
+
+// returns number of bytes written to buf, or total size needed if buf is NULL
+size_t BRMerkleBlockSerialize(BRMerkleBlock *block, uint8_t *buf, size_t len);
+
 // populates txHashes with the matched tx hashes in the block, returns number of tx hashes written, or total number of
 // matched hashes in the block if txHashes is NULL
 size_t BRMerkleBlockTxHashes(BRMerkleBlock *block, UInt256 *txHashes, size_t count);
@@ -55,12 +64,6 @@ size_t BRMerkleBlockTxHashes(BRMerkleBlock *block, UInt256 *txHashes, size_t cou
 // NOTE: This only checks if the block difficulty matches the difficulty target in the header. It does not check if the
 // target is correct for the block's height in the chain. Use BRMerkleBlockVerifyDifficulty() for that.
 int BRMerkleBlockIsValid(BRMerkleBlock *block, uint32_t currentTime);
-
-// returns number of bytes written to buf, or total size needed if buf is NULL
-size_t BRMerkleBlockSerialize(BRMerkleBlock *block, uint8_t *buf, size_t len);
-
-// buf can contain either a serialized merkleblock or header, returns true on success (keeps references to buf data)
-BRMerkleBlock *BRMerkleBlockDeserialize(void *(*alloc)(size_t), const uint8_t *buf, size_t len);
 
 // copies merkle tree data to given buffers and points block to the copies
 // (use this to remove references to buf data left by BRMerkleBlockDeserialize())
@@ -79,7 +82,7 @@ unsigned BRMerkleBlockHash(BRMerkleBlock *block);
 // true if block is equal to otherBlock
 int BRMerkleBlockEqual(BRMerkleBlock *block, BRMerkleBlock *otherBlock);
 
-// frees memory allocated by BRMerkleBlockDeserialize
+// frees memory allocated for block
 void BRMerkleBlockFree(BRMerkleBlock *block, void (*free)(void *));
 
 #endif // BRMerkleBlock_h

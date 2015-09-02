@@ -58,8 +58,8 @@ uint64_t BRVarInt(const uint8_t *buf, size_t len, size_t *intLen)
 size_t BRVarIntSize(uint64_t i)
 {
     if (i < VAR_INT16_HEADER) return sizeof(uint8_t);
-    else if (i <= USHRT_MAX) return sizeof(uint8_t) + sizeof(uint16_t);
-    else if (i <= UINT_MAX) return sizeof(uint8_t) + sizeof(uint32_t);
+    else if (i <= UINT16_MAX) return sizeof(uint8_t) + sizeof(uint16_t);
+    else if (i <= UINT32_MAX) return sizeof(uint8_t) + sizeof(uint32_t);
     else return sizeof(uint8_t) + sizeof(uint64_t);
 }
 
@@ -120,6 +120,109 @@ size_t BRSetVarInt(uint64_t i, uint8_t *buf, size_t len)
 //
 // flag bits (little endian): 00001011 [merkleRoot = 1, m1 = 1, tx1 = 0, tx2 = 1, m2 = 0, byte padding = 000]
 // hashes: [tx1, tx2, m2]
+
+// returns a newly allocated BRMerkleBlock struct that must be freed by calling BRMerkleBlockFree()
+BRMerkleBlock *BRMerkleBlockCreate(void *(*alloc)(size_t))
+{
+    BRMerkleBlock *block = alloc(sizeof(BRMerkleBlock));
+    
+    if (! block) return NULL;
+    memset(block, 0, sizeof(BRMerkleBlock));
+    return block;
+}
+
+// buf can contain either a serialized merkleblock or header, result must be freed by calling BRMerkleBlockFree()
+BRMerkleBlock *BRMerkleBlockDeserialize(void *(*alloc)(size_t), const uint8_t *buf, size_t len)
+{
+    if (len < 80) return NULL;
+    
+    BRMerkleBlock *block = alloc(sizeof(BRMerkleBlock));
+    size_t off = 0, l = 0;
+    uint8_t header[80];
+    
+    if (! block) return NULL;
+    block->version = le32(*(const uint32_t *)(buf + off));
+    off += sizeof(uint32_t);
+    block->prevBlock = *(const UInt256 *)(buf + off);
+    off += sizeof(UInt256);
+    block->merkleRoot = *(const UInt256 *)(buf + off);
+    off += sizeof(UInt256);
+    block->timestamp = le32(*(const uint32_t *)(buf + off));
+    off += sizeof(uint32_t);
+    block->target = le32(*(const uint32_t *)(buf + off));
+    off += sizeof(uint32_t);
+    block->nonce = le32(*(const uint32_t *)(buf + off));
+    off += sizeof(uint32_t);
+    
+    block->totalTransactions = (off + sizeof(uint32_t) <= len) ? le32(*(const uint32_t *)(buf + off)) : 0;
+    off += sizeof(uint32_t);
+    block->hashesLen = (size_t)BRVarInt(buf + off, len - off, &l);
+    off += l;
+    l = block->hashesLen*sizeof(UInt256);
+    block->hashes = (off + l <= len) ? alloc(l) : NULL;
+    if (block->hashes) memcpy(block->hashes, buf + off, l);
+    off += l;
+    block->flagsLen = (size_t)BRVarInt(buf + off, len - off, &l);
+    off += l;
+    l = block->flagsLen;
+    block->flags = (off + l <= len) ? alloc(l) : NULL;
+    if (block->flags) memcpy(block->flags, buf + off, l);
+    
+    off = 0;
+    *(uint32_t *)(header + off) = le32(block->version);
+    off += sizeof(uint32_t);
+    *(UInt256 *)(header + off) = block->prevBlock;
+    off += sizeof(UInt256);
+    *(UInt256 *)(header + off) = block->merkleRoot;
+    off += sizeof(UInt256);
+    *(uint32_t *)(header + off) = le32(block->timestamp);
+    off += sizeof(uint32_t);
+    *(uint32_t *)(header + off) = le32(block->target);
+    off += sizeof(uint32_t);
+    *(uint32_t *)(header + off) = le32(block->nonce);
+    BRSHA256_2(&block->blockHash, header, sizeof(header));
+    
+    block->height = BLOCK_UNKNOWN_HEIGHT;
+    return block;
+}
+
+// returns number of bytes written to buf, or total size needed if buf is NULL
+size_t BRMerkleBlockSerialize(BRMerkleBlock *block, uint8_t *buf, size_t len)
+{
+    size_t off = 0, l = 80;
+    
+    if (block->totalTransactions > 0) {
+        l += sizeof(uint32_t) + BRVarIntSize(block->hashesLen) + block->hashesLen*sizeof(UInt256) +
+        BRVarIntSize(block->flagsLen) + block->flagsLen;
+    }
+    
+    if (! buf) return l;
+    if (len < l) return 0;
+    *(uint32_t *)(buf + off) = le32(block->version);
+    off += sizeof(uint32_t);
+    *(UInt256 *)(buf + off) = block->prevBlock;
+    off += sizeof(UInt256);
+    *(UInt256 *)(buf + off) = block->merkleRoot;
+    off += sizeof(UInt256);
+    *(uint32_t *)(buf + off) = le32(block->timestamp);
+    off += sizeof(uint32_t);
+    *(uint32_t *)(buf + off) = le32(block->target);
+    off += sizeof(uint32_t);
+    *(uint32_t *)(buf + off) = le32(block->nonce);
+    off += sizeof(uint32_t);
+    
+    if (block->totalTransactions > 0) {
+        *(uint32_t *)(buf + off) = le32(block->totalTransactions);
+        off += sizeof(uint32_t);
+        off += BRSetVarInt(block->hashesLen, buf + off, len - off);
+        if (block->hashes) memcpy(buf + off, block->hashes, block->hashesLen*sizeof(UInt256));
+        off += block->hashesLen*sizeof(UInt256);
+        if (block->flags) memcpy(buf + off, block->flags, block->flagsLen);
+        off += block->flagsLen;
+    }
+    
+    return l;
+}
 
 static size_t BRMerkleBlockTxHashesR(BRMerkleBlock *block, UInt256 *txHashes, size_t count, size_t *idx,
                                      size_t *hashIdx, size_t *flagIdx, int depth)
@@ -202,101 +305,6 @@ int BRMerkleBlockIsValid(BRMerkleBlock *block, unsigned currentTime)
     }
     
     return 1;
-}
-
-// returns number of bytes written to buf, or total size needed if buf is NULL
-size_t BRMerkleBlockSerialize(BRMerkleBlock *block, uint8_t *buf, size_t len)
-{
-    size_t off = 0, l = 80;
-    
-    if (block->totalTransactions > 0) {
-        l += sizeof(uint32_t) + BRVarIntSize(block->hashesLen) + block->hashesLen*sizeof(UInt256) +
-             BRVarIntSize(block->flagsLen) + block->flagsLen;
-    }
-
-    if (! buf) return l;
-    if (len < l) return 0;
-    *(uint32_t *)(buf + off) = le32(block->version);
-    off += sizeof(uint32_t);
-    *(UInt256 *)(buf + off) = block->prevBlock;
-    off += sizeof(UInt256);
-    *(UInt256 *)(buf + off) = block->merkleRoot;
-    off += sizeof(UInt256);
-    *(uint32_t *)(buf + off) = le32(block->timestamp);
-    off += sizeof(uint32_t);
-    *(uint32_t *)(buf + off) = le32(block->target);
-    off += sizeof(uint32_t);
-    *(uint32_t *)(buf + off) = le32(block->nonce);
-    off += sizeof(uint32_t);
-
-    if (block->totalTransactions > 0) {
-        *(uint32_t *)(buf + off) = le32(block->totalTransactions);
-        off += sizeof(uint32_t);
-        off += BRSetVarInt(block->hashesLen, buf + off, len - off);
-        memcpy(buf + off, block->hashes, block->hashesLen*sizeof(UInt256));
-        off += block->hashesLen*sizeof(UInt256);
-        memcpy(buf + off, block->flags, block->flagsLen);
-        off += block->flagsLen;
-    }
-    
-    return l;
-}
-
-// buf can contain either a serialized merkleblock or header, returns true on success, keeps a reference to buf data
-BRMerkleBlock *BRMerkleBlockDeserialize(void *(*alloc)(size_t), const uint8_t *buf, size_t len)
-{
-    if (len < 80) return NULL;
-    
-    BRMerkleBlock *block = alloc(sizeof(BRMerkleBlock));
-    size_t off = 0, l = 0;
-    uint8_t header[80];
-    
-    if (! block) return NULL;
-    block->version = le32(*(const uint32_t *)(buf + off));
-    off += sizeof(uint32_t);
-    block->prevBlock = *(const UInt256 *)(buf + off);
-    off += sizeof(UInt256);
-    block->merkleRoot = *(const UInt256 *)(buf + off);
-    off += sizeof(UInt256);
-    block->timestamp = le32(*(const uint32_t *)(buf + off));
-    off += sizeof(uint32_t);
-    block->target = le32(*(const uint32_t *)(buf + off));
-    off += sizeof(uint32_t);
-    block->nonce = le32(*(const uint32_t *)(buf + off));
-    off += sizeof(uint32_t);
-    
-    block->totalTransactions = (off + sizeof(uint32_t) <= len) ? le32(*(const uint32_t *)(buf + off)) : 0;
-    off += sizeof(uint32_t);
-    block->hashesLen = (size_t)BRVarInt(buf + off, len - off, &l);
-    off += l;
-    //block->hashes = (off + block->hashesLen*sizeof(UInt256) <= len) ? (UInt256 *)(buf + off) : NULL;
-    l = block->hashesLen*sizeof(UInt256);
-    block->hashes = (off + l <= len) ? alloc(l) : NULL;
-    if (block->hashes) memcpy(block->hashes, buf + off, l);
-    off += l;
-    block->flagsLen = (size_t)BRVarInt(buf + off, len - off, &l);
-    off += l;
-    //block->flags = (off + block->flagsLen <= len) ? buf + off : NULL;
-    l = block->flagsLen;
-    block->flags = (off + l <= len) ? alloc(l) : NULL;
-    if (block->flags) memcpy(block->flags, buf + off, l);
-    
-    off = 0;
-    *(uint32_t *)(header + off) = le32(block->version);
-    off += sizeof(uint32_t);
-    *(UInt256 *)(header + off) = block->prevBlock;
-    off += sizeof(UInt256);
-    *(UInt256 *)(header + off) = block->merkleRoot;
-    off += sizeof(UInt256);
-    *(uint32_t *)(header + off) = le32(block->timestamp);
-    off += sizeof(uint32_t);
-    *(uint32_t *)(header + off) = le32(block->target);
-    off += sizeof(uint32_t);
-    *(uint32_t *)(header + off) = le32(block->nonce);
-    BRSHA256_2(&block->blockHash, header, sizeof(header));
-    
-    block->height = BLOCK_UNKNOWN_HEIGHT;
-    return block;
 }
 
 // true if the given tx hash is known to be included in the block

@@ -122,34 +122,49 @@ int secp256k1_point_mul(void *r, const void *p, UInt256 i, int compressed)
     return size;
 }
 
-size_t BRKeyPrivKey(char *privKey, size_t len, UInt256 secret, int compressed)
+void BRKeySetSecret(BRKey *key, UInt256 secret, int compressed)
+{
+    
+}
+
+void BRKeySetPrivKey(BRKey *key, const char *privKey)
+{
+    
+}
+
+void BRKeySetPubKey(BRKey *key, BRPubKey pubKey)
+{
+    
+}
+
+size_t BRKeyPrivKey(BRKey *key, char *privKey, size_t len)
 {
     return 0;
 }
 
-size_t BRKeyPubKey(void *pubKey, size_t len, const char *privKey)
+size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t len)
 {
     return 0;
 }
 
-size_t BRKeyAddress(char *address, size_t addrLen, const void *pubKey)
-{
-    return 0;
-}
-
-UInt160 BRKeyHash160(const void *pubKey)
+UInt160 BRKeyHash160(BRKey *key)
 {
     UInt160 hash;
     
     return hash;
 }
 
-size_t BRKeySign(void *sig, size_t len, const char *privKey, UInt256 md)
+size_t BRKeyAddress(BRKey *key, char *address, size_t addrLen)
 {
     return 0;
 }
 
-int BRKeyVerify(const void *pubKey, const void *sig, size_t sigLen)
+size_t BRKeySign(BRKey *key, void *sig, size_t len, UInt256 md)
+{
+    return 0;
+}
+
+int BRKeyVerify(BRKey *key, UInt256 md, const void *sig, size_t sigLen)
 {
     return 0;
 }

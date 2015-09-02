@@ -131,4 +131,10 @@ uint64_t BRWalletFeeForTxSize(BRWallet *wallet, size_t size);
 // frees memory allocated by BRWalletCreate
 void BRWalletFree(BRWallet *wallet, void (*free)(void *));
 
+// returns the given amount in local currency units, price is local currency units per bitcoin
+uint64_t BRLocalAmount(uint64_t amount, double price);
+
+// returns the given local currency amount in satoshis, price is local currency units per bitcoin
+uint64_t BRBitcoinAmount(uint64_t localAmount, double price);
+
 #endif // BRWallet_h

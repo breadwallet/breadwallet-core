@@ -30,7 +30,13 @@
 
 typedef struct {
     uint8_t u8[33];
-} BRPubKey;
+} BRPubKey; // this is only for compressed pubKeys
+
+typedef struct {
+    UInt256 secret;
+    uint8_t pubKey[65];
+    int compressed;
+} BRKey;
 
 #define BR_PUBKEY_NONE ((BRPubKey)\
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 })
@@ -40,16 +46,22 @@ UInt256 secp256k1_mod_mul(UInt256 a, UInt256 b); // multiply 256bit big endian i
 int secp256k1_point_add(void *r, const void *a, const void *b, int compressed); // add secp256k1 ec-points
 int secp256k1_point_mul(void *r, const void *p, UInt256 i, int compressed);// multiply ec-point by 256bit big endian int
 
-size_t BRKeyPrivKey(char *privKey, size_t len, UInt256 secret, int compressed);
+void BRKeySetSecret(BRKey *key, UInt256 secret, int compressed);
 
-size_t BRKeyPubKey(void *pubKey, size_t len, const char *privKey);
+void BRKeySetPrivKey(BRKey *key, const char *privKey);
 
-size_t BRKeyAddress(char *address, size_t addrLen, const void *pubKey);
+void BRKeySetPubKey(BRKey *key, BRPubKey pubKey);
 
-UInt160 BRKeyHash160(const void *pubKey);
+size_t BRKeyPrivKey(BRKey *key, char *privKey, size_t len);
 
-size_t BRKeySign(void *sig, size_t len, const char *privKey, UInt256 md);
+size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t len);
 
-int BRKeyVerify(const void *pubKey, const void *sig, size_t len);
+UInt160 BRKeyHash160(BRKey *key);
+
+size_t BRKeyAddress(BRKey *key, char *address, size_t addrLen);
+
+size_t BRKeySign(BRKey *key, void *sig, size_t len, UInt256 md);
+
+int BRKeyVerify(BRKey *key, UInt256 md, const void *sig, size_t len);
 
 #endif // BRKey_h

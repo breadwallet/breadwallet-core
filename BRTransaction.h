@@ -57,13 +57,20 @@ typedef struct {
     uint32_t timestamp; // time interval since unix epoch
 } BRTransaction;
 
-size_t BRTransactionSerialize(BRTransaction *tx, uint8_t *buf, size_t len);
+// creates an empty transaction
+BRTransaction *BRTransactionCreate(void *(*alloc)(size_t));
 
 BRTransaction *BRTransactionDeserialize(void *(*alloc)(size_t), const uint8_t *buf, size_t len);
 
+size_t BRTransactionSerialize(BRTransaction *tx, uint8_t *buf, size_t len);
+
+int BRTransactionAddInput(BRTransaction *tx, void *(*realloc)(void *, size_t), BRTxInput *input);
+
+int BRTransactionAddOutput(BRTransaction *tx, void *(*realloc)(void *, size_t), BRTxOutput *output);
+
 void BRTransactionShuffleOutputs(BRTransaction *tx);
 
-void BRTransactionSign(BRTransaction *tx, const char **privKeys, size_t count);
+void BRTransactionSign(BRTransaction *tx, void *(*alloc)(size_t), const char **privKeys, size_t count);
 
 void BRTransactionFree(BRTransaction *tx, void (*free)(void *));
 

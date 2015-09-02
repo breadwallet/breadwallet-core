@@ -113,21 +113,21 @@ BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen)
     
     BRMasterPubKey mpk;
     UInt512 I;
+    BRKey key;
+    UInt256 secret, chain;
     
     BRHMAC(&I, BRSHA512, 64, BIP32_SEED_KEY, strlen(BIP32_SEED_KEY), seed, seedLen);
     
-    UInt256 secret = *(UInt256 *)&I, chain = *(UInt256 *)&I.u8[sizeof(UInt256)];
-    char privKey[53];
-    BRPubKey pubKey;
+    secret = *(UInt256 *)&I;
+    chain = *(UInt256 *)&I.u8[sizeof(UInt256)];
+
+    BRKeySetSecret(&key, secret, 1);
+    mpk.fingerPrint = BRKeyHash160(&key).u32[0];
     
-    BRKeyPrivKey(privKey, sizeof(privKey), secret, 1);
-    BRKeyPubKey(&pubKey, sizeof(pubKey), privKey);
-    mpk.fingerPrint = BRKeyHash160(&pubKey).u32[0];
-    
-    CKDpriv(&secret, &chain, 0 | BIP32_HARD); // account 0H
+    CKDpriv(&key.secret, &chain, 0 | BIP32_HARD); // account 0H
     
     mpk.chainCode = chain;
-    mpk.pubKey = pubKey;    
+    if (! BRKeyPubKey(&key, &mpk.pubKey, sizeof(mpk.pubKey))) return BR_MASTER_PUBKEY_NONE;
     return mpk;
 }
 
