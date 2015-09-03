@@ -57,21 +57,28 @@ typedef struct {
     uint32_t timestamp; // time interval since unix epoch
 } BRTransaction;
 
-// creates an empty transaction
+// returns a newly allocated empty transaction that must be freed by calling BRTransactionFree()
 BRTransaction *BRTransactionCreate(void *(*alloc)(size_t));
 
+// buf must contain a serialized tx, result must be freed by calling BRTransactionFree()
 BRTransaction *BRTransactionDeserialize(void *(*alloc)(size_t), const uint8_t *buf, size_t len);
 
+// returns number of bytes written to buf, or total size needed if buf is NULL
 size_t BRTransactionSerialize(BRTransaction *tx, uint8_t *buf, size_t len);
 
+// adds an input to tx
 int BRTransactionAddInput(BRTransaction *tx, void *(*realloc)(void *, size_t), BRTxInput *input);
 
+// adds an output to tx
 int BRTransactionAddOutput(BRTransaction *tx, void *(*realloc)(void *, size_t), BRTxOutput *output);
 
+// shuffles order of tx outputs
 void BRTransactionShuffleOutputs(BRTransaction *tx);
 
-void BRTransactionSign(BRTransaction *tx, void *(*alloc)(size_t), const char **privKeys, size_t count);
+// adds signatures to any inputs with NULL signatures that can be signed with any privKeys
+void BRTransactionSign(BRTransaction *tx, void *(*alloc)(size_t), const char *privKeys[], size_t count);
 
+// frees memory allocated for tx
 void BRTransactionFree(BRTransaction *tx, void (*free)(void *));
 
 #endif // BRTransaction_h

@@ -128,7 +128,7 @@ uint64_t BRWalletBalanceAfterTx(BRWallet *wallet, BRTransaction *tx);
 // fee that will be added for a transaction of the given size in bytes
 uint64_t BRWalletFeeForTxSize(BRWallet *wallet, size_t size);
 
-// frees memory allocated by BRWalletCreate
+// frees memory allocated for wallet
 void BRWalletFree(BRWallet *wallet, void (*free)(void *));
 
 // returns the given amount in local currency units, price is local currency units per bitcoin

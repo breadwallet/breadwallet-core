@@ -50,7 +50,7 @@ typedef struct {
 // returns a newly allocated BRMerkleBlock struct that must be freed by calling BRMerkleBlockFree()
 BRMerkleBlock *BRMerkleBlockCreate(void *(*alloc)(size_t));
 
-// buf can contain either a serialized merkleblock or header, result must be freed by calling BRMerkleBlockFree()
+// buf must contain either a serialized merkleblock or header, result must be freed by calling BRMerkleBlockFree()
 BRMerkleBlock *BRMerkleBlockDeserialize(void *(*alloc)(size_t), const uint8_t *buf, size_t len);
 
 // returns number of bytes written to buf, or total size needed if buf is NULL

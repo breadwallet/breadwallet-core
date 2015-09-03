@@ -28,6 +28,11 @@
 #include <stddef.h>
 #include "BRTypes.h"
 
+UInt256 secp256k1_mod_add(UInt256 a, UInt256 b); // add 256bit big endian ints (mod secp256k1 order)
+UInt256 secp256k1_mod_mul(UInt256 a, UInt256 b); // multiply 256bit big endian ints (mod secp256k1 order)
+int secp256k1_point_add(void *r, const void *a, const void *b, int compressed); // add secp256k1 ec-points
+int secp256k1_point_mul(void *r, const void *p, UInt256 i, int compressed);// multiply ec-point by 256bit big endian int
+
 typedef struct {
     uint8_t u8[33];
 } BRPubKey; // this is only for compressed pubKeys
@@ -40,11 +45,6 @@ typedef struct {
     uint8_t pubKey[65];
     int compressed;
 } BRKey;
-
-UInt256 secp256k1_mod_add(UInt256 a, UInt256 b); // add 256bit big endian ints (mod secp256k1 order)
-UInt256 secp256k1_mod_mul(UInt256 a, UInt256 b); // multiply 256bit big endian ints (mod secp256k1 order)
-int secp256k1_point_add(void *r, const void *a, const void *b, int compressed); // add secp256k1 ec-points
-int secp256k1_point_mul(void *r, const void *p, UInt256 i, int compressed);// multiply ec-point by 256bit big endian int
 
 void BRKeySetSecret(BRKey *key, UInt256 secret, int compressed);
 
