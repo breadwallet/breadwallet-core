@@ -65,10 +65,6 @@ size_t BRMerkleBlockTxHashes(BRMerkleBlock *block, UInt256 *txHashes, size_t cou
 // target is correct for the block's height in the chain. Use BRMerkleBlockVerifyDifficulty() for that.
 int BRMerkleBlockIsValid(BRMerkleBlock *block, uint32_t currentTime);
 
-// copies merkle tree data to given buffers and points block to the copies
-// (use this to remove references to buf data left by BRMerkleBlockDeserialize())
-void BRMerkleBlockCopyTree(BRMerkleBlock *block, UInt256 *hashes, uint8_t *flags);
-
 // true if the given tx hash is known to be included in the block
 int BRMerkleBlockContainsTxHash(BRMerkleBlock *block, UInt256 txHash);
 

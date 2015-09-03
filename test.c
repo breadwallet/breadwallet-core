@@ -24,6 +24,7 @@
 
 #include "BRHash.h"
 #include "BRMerkleBlock.h"
+#include "BRPeer.h"
 #include "BRTypes.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -242,6 +243,13 @@ int BRMerkleBlockTests()
     
     BRMerkleBlockFree(b, free);
     return 1;
+}
+
+int BRPeerTests()
+{
+    BRPeer peer = { UINT128_ZERO, 0, 0, 0 };
+    
+    return peer.port;
 }
 
 int main(int argc, const char *argv[]) {

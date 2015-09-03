@@ -1,8 +1,9 @@
 //
-//  BRWallet.c
+//  BRPeer.c
+//  breadwallet-core
 //
-//  Created by Aaron Voisine on 9/1/15.
-//  Copyright (c) 2015 breadwallet LLC
+//  Created by Aaron Voisine on 9/2/15.
+//  Copyright (c) 2015 breadwallet LLC.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -22,13 +23,24 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include "BRWallet.h"
+#include "BRPeer.h"
 
-struct BRWalletContext {
-    BRMasterPubKey masterPubKey;
-    uint64_t *balanceHistory;
-    void *(*seed)(const char *authPrompt, uint64_t amount, size_t *seedLen); // called during transaction signing
-    void (*addTx)(BRTransaction *tx); // called when a transaction is registered to the wallet
-    void (*updateTx)(UInt256 txHash, uint32_t blockHeight, uint32_t timestamp); // called when a transaction is updated
-    void (*deleteTx)(UInt256 txHash); // called when a transaction is removed from the wallet
+struct BRPeerContext {
+    BRPeerStatus status;
+    uint32_t version;
+    uint64_t nonce;
+    const char *useragent;
+    uint32_t earliestKeyTime;
+    uint32_t lastblock;
+    double pingTime;
+    int needsFilterUpdate;
+    uint32_t currentBlockHeight;
+    void (*connected)(BRPeer *);
+    void (*disconnected)(BRPeer *, BRPeerError);
+    void (*relayedPeers)(BRPeer *, BRPeer **, size_t);
+    void (*relayedTx)(BRPeer *, BRTransaction *);
+    void (*hasTx)(BRPeer *, UInt256);
+    void (*rejectedTx)(BRPeer *, UInt256, uint8_t);
+    void (*relayedBlock)(BRPeer *, BRMerkleBlock *);
+    BRTransaction *(*reqeustedTx)(BRPeer *, UInt256);
 };

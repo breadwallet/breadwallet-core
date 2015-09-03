@@ -27,6 +27,7 @@
 #include <limits.h>
 #include <string.h>
 #include <math.h>
+#include <stdlib.h>
 
 #define VAR_INT16_HEADER 0xfd
 #define VAR_INT32_HEADER 0xfe
@@ -124,6 +125,8 @@ size_t BRSetVarInt(uint64_t i, uint8_t *buf, size_t len)
 // returns a newly allocated BRMerkleBlock struct that must be freed by calling BRMerkleBlockFree()
 BRMerkleBlock *BRMerkleBlockCreate(void *(*alloc)(size_t))
 {
+    if (! alloc) alloc = malloc;
+
     BRMerkleBlock *block = alloc(sizeof(BRMerkleBlock));
     
     if (! block) return NULL;
