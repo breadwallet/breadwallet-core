@@ -25,8 +25,8 @@
 #ifndef BRKey_h
 #define BRKey_h
 
-#include <stddef.h>
 #include "BRTypes.h"
+#include <stddef.h>
 
 UInt256 secp256k1_mod_add(UInt256 a, UInt256 b); // add 256bit big endian ints (mod secp256k1 order)
 UInt256 secp256k1_mod_mul(UInt256 a, UInt256 b); // multiply 256bit big endian ints (mod secp256k1 order)

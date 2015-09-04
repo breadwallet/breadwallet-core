@@ -247,7 +247,7 @@ int BRMerkleBlockTests()
 
 int BRPeerTests()
 {
-    BRPeer peer = { UINT128_ZERO, 0, 0, 0 };
+    BRPeer peer = { UINT128_ZERO, 0, 0, 0, 0, NULL };
     
     return peer.port;
 }

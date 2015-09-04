@@ -23,3 +23,38 @@
 //  THE SOFTWARE.
 
 #include "BRPeerManager.h"
+#include "BRPeer.h"
+#include "BRBloomFilter.h"
+#include "BRMerkleBlock.h"
+#include "BRWallet.h"
+
+struct BRPeerManagerContext {
+    BRPeer *peers;
+    size_t peersCount;
+    BRPeer *connectedPeers;
+    size_t connectedCount;
+    BRPeer *misbehavinPeers;
+    size_t misbehavinCount;
+    BRPeer downloadPeer;
+    uint32_t tweak;
+    uint32_t syncStartHeight;
+    uint32_t filterUpdateHeight;
+    BRBloomFilter *bloomFilter;
+    double fpRate;
+    int connectFailures;
+    uint32_t earliestKeyTime;
+    uint32_t lastRelayTime;
+    BRMerkleBlock *blocks;
+    size_t blocksCount;
+    BRMerkleBlock *orphans;
+    size_t orphansCount;
+    BRMerkleBlock *checkpoints;
+    size_t checkpointsCount;
+    BRMerkleBlock *lastBlock;
+    BRMerkleBlock *lastOrphan;
+    struct { UInt256 txHash; BRPeer *peers; size_t count; } *txRelays;
+    size_t relayCount;
+    BRTransaction *publishedTx;
+    void (*publishedCallback)();
+    size_t publishedCount;
+};

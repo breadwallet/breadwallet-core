@@ -25,4 +25,51 @@
 #ifndef BRPeerManager_h
 #define BRPeerManager_h
 
+#include "BRWallet.h"
+#include "BRTransaction.h"
+#include <stddef.h>
+
+typedef enum {
+    BRPeerManagerErrorNone = 0,
+    BRPeerManagerErrorTxNotSigned,
+    BRPeerManagerErrorNotConnected,
+    BRPeerManagerErrorTimedOut = 1001,
+    BRPeerManagerErrorDoubleSpend
+} BRPeerManagerError;
+
+typedef struct {
+    int connected;
+    struct BRPeerManagerContext *context;
+} BRPeerManager;
+
+// returns a newly allocated BRPeerManager struct that must be freed by calling BRPeerManagerFree()
+BRPeerManager *BRPeerManagerCreate(void *(*alloc)(size_t), BRWallet *wallet);
+
+// connect to bitcoin peer-to-peer network
+void BRPeerManagerConnect(BRPeerManager *manager);
+
+// rescan blockchain for potentially missing transactions
+void BRPeerManagerRescan(BRPeerManager *manager);
+
+// current proof-of-work verified best block height
+uint32_t BRPeerManagerLastBlockHeight(BRPeerManager *manager);
+
+// the (unverified) best block height reported by connected peers
+uint32_t BRPeerManagerEstimatedBlockHeight(BRPeerManager *manager);
+
+// current network sync progress from 0 to 1
+double BRPeerManagerSyncProgress(BRPeerManager *manager);
+
+// returns the number of currently connected peers
+size_t BRPeerManagerPeerCount(BRPeerManager *manager);
+
+// publishes tx to bitcoin network
+void BRPeerManagerPublishTx(BRTransaction *tx, void (*callback)(BRPeerManagerError error, void *info), void *info);
+
+// number of connected peers that have relayed the transaction
+size_t BRPeerMangaerRelayCount(UInt256 txHash);
+
+// frees memory allocated for manager
+void BRPeerManagerFree(BRPeerManager *manager, void (*free)(void *));
+
 #endif // BRPeerManager_h

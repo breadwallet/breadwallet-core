@@ -29,6 +29,8 @@
 #include "BRTypes.h"
 #include "BRTransaction.h"
 #include "BRBIP32Sequence.h"
+#include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 
 typedef struct {
