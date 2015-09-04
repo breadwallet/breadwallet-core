@@ -123,11 +123,9 @@ size_t BRSetVarInt(uint64_t i, uint8_t *buf, size_t len)
 // hashes: [tx1, tx2, m2]
 
 // returns a newly allocated BRMerkleBlock struct that must be freed by calling BRMerkleBlockFree()
-BRMerkleBlock *BRMerkleBlockCreate(void *(*alloc)(size_t))
+BRMerkleBlock *BRMerkleBlockCreate()
 {
-    if (! alloc) alloc = malloc;
-
-    BRMerkleBlock *block = alloc(sizeof(BRMerkleBlock));
+    BRMerkleBlock *block = malloc(sizeof(BRMerkleBlock));
     
     if (! block) return NULL;
     memset(block, 0, sizeof(BRMerkleBlock));
@@ -135,11 +133,11 @@ BRMerkleBlock *BRMerkleBlockCreate(void *(*alloc)(size_t))
 }
 
 // buf can contain either a serialized merkleblock or header, result must be freed by calling BRMerkleBlockFree()
-BRMerkleBlock *BRMerkleBlockDeserialize(void *(*alloc)(size_t), const uint8_t *buf, size_t len)
+BRMerkleBlock *BRMerkleBlockDeserialize(const uint8_t *buf, size_t len)
 {
     if (len < 80) return NULL;
     
-    BRMerkleBlock *block = alloc(sizeof(BRMerkleBlock));
+    BRMerkleBlock *block = malloc(sizeof(BRMerkleBlock));
     size_t off = 0, l = 0;
     uint8_t header[80];
     
@@ -162,13 +160,13 @@ BRMerkleBlock *BRMerkleBlockDeserialize(void *(*alloc)(size_t), const uint8_t *b
     block->hashesLen = (size_t)BRVarInt(buf + off, len - off, &l);
     off += l;
     l = block->hashesLen*sizeof(UInt256);
-    block->hashes = (off + l <= len) ? alloc(l) : NULL;
+    block->hashes = (off + l <= len) ? malloc(l) : NULL;
     if (block->hashes) memcpy(block->hashes, buf + off, l);
     off += l;
     block->flagsLen = (size_t)BRVarInt(buf + off, len - off, &l);
     off += l;
     l = block->flagsLen;
-    block->flags = (off + l <= len) ? alloc(l) : NULL;
+    block->flags = (off + l <= len) ? malloc(l) : NULL;
     if (block->flags) memcpy(block->flags, buf + off, l);
     
     off = 0;
@@ -367,7 +365,7 @@ int BRMerkleBlockVerifyDifficulty(BRMerkleBlock *block, BRMerkleBlock *previous,
 }
 
 // frees memory allocated by BRMerkleBlockDeserialize
-void BRMerkleBlockFree(BRMerkleBlock *block, void (*free)(void *))
+void BRMerkleBlockFree(BRMerkleBlock *block)
 {
     if (block->hashes) free(block->hashes);
     if (block->flags) free(block->flags);

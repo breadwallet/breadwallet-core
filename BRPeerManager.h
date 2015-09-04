@@ -27,6 +27,8 @@
 
 #include "BRWallet.h"
 #include "BRTransaction.h"
+#include "BRMerkleBlock.h"
+#include "BRPeer.h"
 #include <stddef.h>
 
 typedef enum {
@@ -38,20 +40,23 @@ typedef enum {
     BRPeerManagerErrorNoPeersFound
 } BRPeerManagerError;
 
-typedef struct {
-    int connected;
-    struct BRPeerManagerContext *context;
-} BRPeerManager;
+typedef struct _BRPeerManager BRPeerManager;
 
 // returns a newly allocated BRPeerManager struct that must be freed by calling BRPeerManagerFree()
-BRPeerManager *BRPeerManagerCreate(void *(*alloc)(size_t), BRWallet *wallet, uint32_t earliestKeyTime);
+BRPeerManager *BRPeerManagerCreate(BRWallet *wallet, uint32_t earlistKeyTime, BRMerkleBlock *blocks, size_t blockCount);
 
 void BRPeerManagerSetCallbacks(BRPeerManager *manager,
                                void (*syncStarted)(BRPeerManager *manager, void *info),
                                void (*syncSucceded)(BRPeerManager *manager, void *info),
                                void (*syncFailed)(BRPeerManager *manager, BRPeerManagerError error, void *info),
                                void (*txStatusUpdate)(BRPeerManager *manager, void *info),
+                               void (*saveBlocks)(BRPeerManager *manager, BRMerkleBlock *blocks, size_t count,
+                                                  void *info),
+                               void (*savePeers)(BRPeerManager *manager, BRPeer *peers, size_t count, void *info),
                                void *info);
+
+// true if currently connected to at least one peer
+int BRPeerMangerIsConnected(BRPeerManager *manager);
 
 // connect to bitcoin peer-to-peer network
 void BRPeerManagerConnect(BRPeerManager *manager);
@@ -78,6 +83,6 @@ void BRPeerManagerPublishTx(BRTransaction *tx, void (*callback)(BRPeerManagerErr
 size_t BRPeerMangaerRelayCount(UInt256 txHash);
 
 // frees memory allocated for manager
-void BRPeerManagerFree(BRPeerManager *manager, void (*free)(void *));
+void BRPeerManagerFree(BRPeerManager *manager);
 
 #endif // BRPeerManager_h

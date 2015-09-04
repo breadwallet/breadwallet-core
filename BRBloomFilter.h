@@ -51,11 +51,10 @@ typedef struct {
 static const BRBloomFilter BR_BLOOM_FULL_MATCH = { (uint8_t *)"\xFF", 1, 0, 0, 0, BR_BLOOM_UPDATE_NONE };
 
 // returns a newly allocated BRBloomFilter struct that must be freed by calling BRBloomFilterFree()
-BRBloomFilter *BRBloomFilterCreate(void *(*alloc)(size_t), double falsePositiveRate, size_t elemCount, uint32_t tweak,
-                                   uint8_t flags);
+BRBloomFilter *BRBloomFilterCreate(double falsePositiveRate, size_t elemCount, uint32_t tweak, uint8_t flags);
 
 // buf must contain a serialized filter, result must be freed by calling BRBloomFilterFree()
-BRBloomFilter *BRBloomFilterDeserialize(void *(*alloc)(size_t), const uint8_t *buf, size_t len);
+BRBloomFilter *BRBloomFilterDeserialize(const uint8_t *buf, size_t len);
 
 // returns number of bytes written to buf, or total size needed if buf is NULL
 size_t BRBloomFilterSerialize(BRBloomFilter *filter, uint8_t *buf, size_t len);
@@ -67,6 +66,6 @@ int BRBloomFilterContainsData(BRBloomFilter *filter, const uint8_t *data, size_t
 void BRBloomFilterInsertData(BRBloomFilter *filter, const uint8_t *data, size_t len);
 
 // frees memory allocated for filter
-void BRBloomFilterFree(BRBloomFilter *filter, void (*free)(void *));
+void BRBloomFilterFree(BRBloomFilter *filter);
 
 #endif // BRBloomFilter_h

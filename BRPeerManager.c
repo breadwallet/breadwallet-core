@@ -31,6 +31,7 @@
 struct BRPeerManagerContext {
     BRWallet *wallet;
     uint32_t earliestKeyTime;
+    int connected;
     BRPeer *peers;
     size_t peersCount;
     BRPeer *connectedPeers;

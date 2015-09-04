@@ -55,9 +55,6 @@
 #define BR_MSG_HEADERS     "headers"
 #define BR_MSG_GETADDR     "getaddr"
 #define BR_MSG_MEMPOOL     "mempool"
-#define BR_MSG_CHECKORDER  "checkorder"
-#define BR_MSG_SUBMITORDER "submitorder"
-#define BR_MSG_REPLY       "reply"
 #define BR_MSG_PING        "ping"
 #define BR_MSG_PONG        "pong"
 #define BR_MSG_FILTERLOAD  "filterload"
@@ -88,7 +85,7 @@ typedef struct {
 } BRPeer;
 
 // call this before other BRPeer functions, set earliestKeyTime to wallet creation time to speed up initial sync
-void BRPeerCreateContext(BRPeer *peer, void *(*alloc)(size_t), uint32_t earliestKeyTime);
+void BRPeerCreateContext(BRPeer *peer, uint32_t earliestKeyTime);
 
 void BRPeerSetCallbacks(BRPeer *peer,
                         void (*connected)(BRPeer *peer, void *info),
@@ -124,10 +121,10 @@ void BRPeerSendGetblocks(BRPeer *peer, UInt256 *locators, size_t count, UInt256 
 void BRPeerSendInv(BRPeer *peer, UInt256 *txHashes, size_t count);
 void BRPeerSendGetdata(BRPeer *peer, UInt256 *txHashes, size_t txCount, UInt256 *blockHashes, size_t blockCount);
 void BRPeerSendGetaddr(BRPeer *peer);
-void BRPeerSendPing(BRPeer *peer, void (*pong)(BRPeer *peer, int success, void *info), void *info);
+void BRPeerSendPing(BRPeer *peer, void (*pongCallback)(BRPeer *peer, int success, void *info), void *info);
 void BRPeerRerequestBlocks(BRPeer *peer, UInt256 fromBlock); // useful to get additional tx after a bloom filter update
 
 // frees memory allocated for peer after calling BRPeerCreateContext()
-void BRPeerFreeContext(BRPeer *peer, void (*free)(void *));
+void BRPeerFreeContext(BRPeer *peer);
 
 #endif // BRPeer_h

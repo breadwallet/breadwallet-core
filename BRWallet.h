@@ -52,21 +52,36 @@ static inline int BRUTXOEq(BRUTXO a, BRUTXO b)
     return (UInt256Eq(a.hash, b.hash) && a.n == b.n);
 }
 
-typedef struct {
-    uint64_t balance; // current wallet balance excluding transactions known to be invalid
-    BRUTXO *utxos; // unspent outputs
-    size_t utxoCount;
-    BRTransaction *transactions; // transactions sorted by date, most recent first
-    size_t txCount;
-    uint64_t totalSent; // the total amount spent from the wallet (excluding change)
-    uint64_t totalReceived; // the total amount received by the wallet (excluding change)
-    uint64_t feePerKb; // fee per kb of transaction size to use when creating a transaction
-    struct BRWalletContext *context;
-} BRWallet;
+typedef struct _BRWallet BRWallet;
 
 // allocate and populate a wallet
-BRWallet *BRWalletCreate(void *(*alloc)(size_t), BRTransaction *transactions, size_t txCount, BRMasterPubKey mpk,
+BRWallet *BRWalletCreate(BRTransaction *transactions, size_t txCount, BRMasterPubKey mpk,
                          void *(*seed)(const char *, uint64_t, size_t *));
+
+void BRWalletSetPersistenceCallbacks(BRWallet *wallet,
+                                     void (*addTx)(BRWallet *wallet, BRTransaction *tx, void *info),
+                                     void (*updateTx)(BRWallet *wallet, UInt256 txHash, uint32_t blockHeight,
+                                                      uint32_t timestamp, void *info),
+                                     void (*deleteTx)(BRWallet *wallet, UInt256 txHash, void *info),
+                                     void *info);
+
+// current wallet balance, not including transactions known to be invalid
+uint64_t BRWalletBalance(BRWallet *wallet);
+
+// list of all unspent outputs
+const BRUTXO *BRWalletUTXOs(BRWallet *wallet, size_t *count);
+
+// all transactions registered in the wallet
+const BRTransaction *BRWalletTransactions(BRWallet *wallet, size_t *count);
+
+// total amount spent from the wallet (exluding change)
+uint64_t BRWalletTotalSent(BRWallet *wallet);
+
+// total amount received by the wallet (exluding change)
+uint64_t BRWalletTotalReceived(BRWallet *wallet);
+
+// fee-per-kb of transaction size to use when creating a transaction
+void BRWalletSetFeePerKb(BRWallet *wallet, uint64_t feePerKb);
 
 // returns the first unused external address
 BRAddress BRWalletReceiveAddress(BRWallet *wallet);
@@ -83,8 +98,9 @@ int BRWalletContainsAddress(BRWallet *wallet, BRAddress addr);
 // true if the address was previously used as an input or output in any wallet transaction
 int BRWalletAddressIsUsed(BRWallet *wallet, BRAddress addr);
 
-// returns an unsigned transaction that sends the specified amount from the wallet to the given address
-BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, void *(*alloc)(size_t), uint64_t amount, BRAddress addr);
+// returns an unsigned transaction that sends the specified amount from the wallet to the given address, result must be
+// freed using BRTransactionFree()
+BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, BRAddress addr);
 
 // sign any inputs in the given transaction that can be signed using private keys from the wallet
 int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *authPrompt);
@@ -99,7 +115,7 @@ int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx);
 void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash);
 
 // returns the transaction with the given hash if it's been registered in the wallet
-BRTransaction *BRWalletTransactionForHash(BRWallet *wallet, UInt256 txHash);
+const BRTransaction *BRWalletTransactionForHash(BRWallet *wallet, UInt256 txHash);
 
 // true if no previous wallet transaction spends any of the given transaction's inputs, and no input tx is invalid
 int BRWalletTransactionIsValid(BRWallet *wallet, BRTransaction *tx);
@@ -126,7 +142,7 @@ uint64_t BRWalletBalanceAfterTx(BRWallet *wallet, BRTransaction *tx);
 uint64_t BRWalletFeeForTxSize(BRWallet *wallet, size_t size);
 
 // frees memory allocated for wallet
-void BRWalletFree(BRWallet *wallet, void (*free)(void *));
+void BRWalletFree(BRWallet *wallet);
 
 // returns the given amount in local currency units, price is local currency units per bitcoin
 uint64_t BRLocalAmount(uint64_t amount, double price);

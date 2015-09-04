@@ -48,10 +48,10 @@ typedef struct {
 } BRMerkleBlock;
 
 // returns a newly allocated BRMerkleBlock struct that must be freed by calling BRMerkleBlockFree()
-BRMerkleBlock *BRMerkleBlockCreate(void *(*alloc)(size_t));
+BRMerkleBlock *BRMerkleBlockCreate();
 
 // buf must contain either a serialized merkleblock or header, result must be freed by calling BRMerkleBlockFree()
-BRMerkleBlock *BRMerkleBlockDeserialize(void *(*alloc)(size_t), const uint8_t *buf, size_t len);
+BRMerkleBlock *BRMerkleBlockDeserialize(const uint8_t *buf, size_t len);
 
 // returns number of bytes written to buf, or total size needed if buf is NULL
 size_t BRMerkleBlockSerialize(BRMerkleBlock *block, uint8_t *buf, size_t len);
@@ -73,6 +73,6 @@ int BRMerkleBlockContainsTxHash(BRMerkleBlock *block, UInt256 txHash);
 int BRMerkleBlockVerifyDifficulty(BRMerkleBlock *block, BRMerkleBlock *previous, uint32_t transitionTime);
 
 // frees memory allocated for block
-void BRMerkleBlockFree(BRMerkleBlock *block, void (*free)(void *));
+void BRMerkleBlockFree(BRMerkleBlock *block);
 
 #endif // BRMerkleBlock_h

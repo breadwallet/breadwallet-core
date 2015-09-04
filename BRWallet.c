@@ -24,7 +24,16 @@
 
 #include "BRWallet.h"
 
-struct BRWalletContext {
+
+struct _BRWallet {
+    uint64_t balance; // current wallet balance excluding transactions known to be invalid
+    BRUTXO *utxos; // unspent outputs
+    size_t utxoCount;
+    BRTransaction *transactions; // transactions sorted by date, most recent first
+    size_t txCount;
+    uint64_t totalSent; // total amount spent from the wallet (excluding change)
+    uint64_t totalReceived; // total amount received by the wallet (excluding change)
+    uint64_t feePerKb; // fee-per-kb of transaction size to use when creating a transaction
     BRMasterPubKey masterPubKey;
     uint64_t *balanceHistory;
     void *(*seed)(const char *authPrompt, uint64_t amount, size_t *seedLen); // called during transaction signing
