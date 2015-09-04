@@ -29,6 +29,8 @@
 #include "BRWallet.h"
 
 struct BRPeerManagerContext {
+    BRWallet *wallet;
+    uint32_t earliestKeyTime;
     BRPeer *peers;
     size_t peersCount;
     BRPeer *connectedPeers;
@@ -42,7 +44,6 @@ struct BRPeerManagerContext {
     BRBloomFilter *bloomFilter;
     double fpRate;
     int connectFailures;
-    uint32_t earliestKeyTime;
     uint32_t lastRelayTime;
     BRMerkleBlock *blocks;
     size_t blocksCount;
@@ -55,6 +56,12 @@ struct BRPeerManagerContext {
     struct { UInt256 txHash; BRPeer *peers; size_t count; } *txRelays;
     size_t relayCount;
     BRTransaction *publishedTx;
-    void (*publishedCallback)();
+    void (*publishedCallback)(BRPeerManagerError error, void *info);
+    void *publishedInfo;
     size_t publishedCount;
+    void (*syncStarted)(BRPeerManager *manager, void *info);
+    void (*syncSucceded)(BRPeerManager *manager, void *info);
+    void (*syncFailed)(BRPeerManager *manager, BRPeerManagerError error, void *info);
+    void (*txStatusUpdate)(BRPeerManager *manager, void *info);
+    void *callbackInfo;
 };

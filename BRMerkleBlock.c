@@ -366,18 +366,6 @@ int BRMerkleBlockVerifyDifficulty(BRMerkleBlock *block, BRMerkleBlock *previous,
     return (block->target == ((uint32_t)target | size << 24)) ? 1 : 0;
 }
 
-// returns a hash value suitable for including block in a hashtable
-inline unsigned BRMerkleBlockHash(BRMerkleBlock *block)
-{
-    return block->blockHash.u32[0];
-}
-
-// true if block is equal to otherBlock
-inline int BRMerkleBlockEqual(BRMerkleBlock *block, BRMerkleBlock *otherBlock)
-{
-    return UInt256Eq(block->blockHash, otherBlock->blockHash);
-}
-
 // frees memory allocated by BRMerkleBlockDeserialize
 void BRMerkleBlockFree(BRMerkleBlock *block, void (*free)(void *))
 {

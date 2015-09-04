@@ -72,12 +72,6 @@ int BRMerkleBlockContainsTxHash(BRMerkleBlock *block, UInt256 txHash);
 // height is not a multiple of BLOCK_DIFFICULTY_INTERVAL.
 int BRMerkleBlockVerifyDifficulty(BRMerkleBlock *block, BRMerkleBlock *previous, uint32_t transitionTime);
 
-// returns a hash value suitable for including block in a hashtable
-unsigned BRMerkleBlockHash(BRMerkleBlock *block);
-
-// true if block is equal to otherBlock
-int BRMerkleBlockEqual(BRMerkleBlock *block, BRMerkleBlock *otherBlock);
-
 // frees memory allocated for block
 void BRMerkleBlockFree(BRMerkleBlock *block, void (*free)(void *));
 

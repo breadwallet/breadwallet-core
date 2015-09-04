@@ -34,7 +34,8 @@ typedef enum {
     BRPeerManagerErrorTxNotSigned,
     BRPeerManagerErrorNotConnected,
     BRPeerManagerErrorTimedOut = 1001,
-    BRPeerManagerErrorDoubleSpend
+    BRPeerManagerErrorDoubleSpend,
+    BRPeerManagerErrorNoPeersFound
 } BRPeerManagerError;
 
 typedef struct {
@@ -43,7 +44,14 @@ typedef struct {
 } BRPeerManager;
 
 // returns a newly allocated BRPeerManager struct that must be freed by calling BRPeerManagerFree()
-BRPeerManager *BRPeerManagerCreate(void *(*alloc)(size_t), BRWallet *wallet);
+BRPeerManager *BRPeerManagerCreate(void *(*alloc)(size_t), BRWallet *wallet, uint32_t earliestKeyTime);
+
+void BRPeerManagerSetCallbacks(BRPeerManager *manager,
+                               void (*syncStarted)(BRPeerManager *manager, void *info),
+                               void (*syncSucceded)(BRPeerManager *manager, void *info),
+                               void (*syncFailed)(BRPeerManager *manager, BRPeerManagerError error, void *info),
+                               void (*txStatusUpdate)(BRPeerManager *manager, void *info),
+                               void *info);
 
 // connect to bitcoin peer-to-peer network
 void BRPeerManagerConnect(BRPeerManager *manager);
