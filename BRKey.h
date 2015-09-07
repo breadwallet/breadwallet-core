@@ -37,7 +37,7 @@ typedef struct {
     uint8_t u8[33];
 } BRPubKey; // this is only for compressed pubKeys
 
-#define BR_PUBKEY_NONE ((BRPubKey)\
+#define PUBKEY_NONE ((BRPubKey)\
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 })
 
 typedef struct {

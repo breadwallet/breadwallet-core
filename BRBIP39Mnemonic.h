@@ -1,9 +1,8 @@
 //
-//  BRPeer.c
-//  breadwallet-core
+//  BRBIP39Mnemonic.h
 //
-//  Created by Aaron Voisine on 9/2/15.
-//  Copyright (c) 2015 breadwallet LLC.
+//  Created by Aaron Voisine on 9/7/15.
+//  Copyright (c) 2015 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -23,26 +22,21 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include "BRPeer.h"
+#ifndef BRBIP39Mnemonic_h
+#define BRBIP39Mnemonic_h
 
-struct BRPeerContext {
-    BRPeerStatus status;
-    uint32_t version;
-    uint64_t nonce;
-    const char *useragent;
-    uint32_t earliestKeyTime;
-    uint32_t lastblock;
-    double pingTime;
-    int needsFilterUpdate;
-    uint32_t currentBlockHeight;
-    void (*connected)(BRPeer *peer, void *info);
-    void (*disconnected)(BRPeer *peer, BRPeerError, void *info);
-    void (*relayedPeers)(BRPeer *peer, BRPeer **peers, size_t count, void *info);
-    void (*relayedTx)(BRPeer *peer, BRTransaction *tx, void *info);
-    void (*hasTx)(BRPeer *peer, UInt256 txHash, void *info);
-    void (*rejectedTx)(BRPeer *peer, UInt256 txHash, uint8_t code, void *info);
-    void (*relayedBlock)(BRPeer *peer, BRMerkleBlock *block, void *info);
-    const BRTransaction *(*reqeustedTx)(BRPeer *peer, UInt256 txHash, void *info);
-    int (*networkIsReachable)(BRPeer *peer, void *info);
-    void *info;
-};
+#include <stddef.h>
+
+// BIP39 is method for generating a deterministic wallet seed from a mnemonic phrase
+// https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki
+
+#define BIP39_CREATION_TIME (1388534400.0 - NSTimeIntervalSince1970)
+
+size_t BRBIP39Encode(char *phrase, size_t plen, const char *wordlist[], const void *data, size_t dlen);
+size_t BRBIP39Decode(void *data, size_t dlen, const char *wordlist[], const char *phrase);
+int BRBIP39PhraseIsValid(const char *wordlist[], const char *phrase);
+
+// phrase and passphrase must be unicode NFKD normalized, key must hold 64 bytes
+void BIP39DeriveKey(void *key, const char *phrase, const char *passphrase);
+
+#endif // BRBIP39Mnemonic_h

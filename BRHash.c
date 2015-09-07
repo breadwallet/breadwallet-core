@@ -64,7 +64,7 @@ void BRSHA1(void *md, const void *data, size_t len)
     
     memset((uint8_t *)x + (len - i), 0, 64 - (len - i)); // clear remainder of x
     ((uint8_t *)x)[len - i] = 0x80; // append padding
-    if (len - i >= 56) BRSHA1Compress(buf, x), memset(x, 0, sizeof(*x)*16); // length goes to next block
+    if (len - i >= 56) BRSHA1Compress(buf, x), memset(x, 0, 64); // length goes to next block
     *(uint64_t *)&x[14] = be64((uint64_t)len*8); // append length in bits
     BRSHA1Compress(buf, x); // finalize
     for (i = 0; i < 5; i++) ((uint32_t *)md)[i] = be32(buf[i]); // write to md
@@ -294,16 +294,16 @@ void BRHash160(void *md, const void *data, size_t len)
 void BRHMAC(void *md, void (*hash)(void *, const void *, size_t), size_t hlen, const void *key, size_t klen,
             const void *data, size_t dlen)
 {
-    size_t blen = (hlen > 32) ? 128 : 64;
+    size_t i, blen = (hlen > 32) ? 128 : 64;
     uint8_t k[hlen], kipad[blen + dlen], kopad[blen + hlen];
     
     if (klen > blen) hash(k, key, klen), key = k, klen = sizeof(k);
     memset(kipad, 0, blen);
     memcpy(kipad, key, klen);
-    for (size_t i = 0; i < blen/8; i++) ((uint64_t *)kipad)[i] ^= 0x3636363636363636;
+    for (i = 0; i < blen/8; i++) ((uint64_t *)kipad)[i] ^= 0x3636363636363636;
     memset(kopad, 0, blen);
     memcpy(kopad, key, klen);
-    for (size_t i = 0; i < blen/8; i++) ((uint64_t *)kopad)[i] ^= 0x5c5c5c5c5c5c5c5c;
+    for (i = 0; i < blen/8; i++) ((uint64_t *)kopad)[i] ^= 0x5c5c5c5c5c5c5c5c;
     memcpy(kipad + blen, data, dlen);
     hash(kopad + blen, kipad, sizeof(kipad));
     hash(md, kopad, sizeof(kopad));
@@ -314,7 +314,7 @@ void BRHMAC(void *md, void (*hash)(void *, const void *, size_t), size_t hlen, c
 }
 
 // dk = T1 || T2 || ... || Tdklen/hlen
-// Ti = U1 ^ U2 ^ ... ^ Urounds
+// Ti = U1 xor U2 xor ... xor Urounds
 // U1 = hmac_hash(pw, salt || be32(i))
 // U2 = hmac_hash(pw, U1)
 // ...
@@ -323,7 +323,7 @@ void BRPBKDF2(void *dk, size_t dklen, void (*hash)(void *, const void *, size_t)
               const void *pw, size_t pwlen, const void *salt, size_t slen, unsigned rounds)
 {
     uint8_t s[slen + sizeof(uint32_t)], U[hlen], T[hlen];
-    uint32_t i, r, j;
+    uint32_t i, j;
     
     memcpy(s, salt, slen);
     
@@ -332,9 +332,9 @@ void BRPBKDF2(void *dk, size_t dklen, void (*hash)(void *, const void *, size_t)
         BRHMAC(U, hash, hlen, pw, pwlen, s, sizeof(s)); // U1 = hmac_hash(pw, salt || be32(i))
         memcpy(T, U, sizeof(U));
         
-        for (r = 1; r < rounds; r++) {
+        for (unsigned r = 1; r < rounds; r++) {
             BRHMAC(U, hash, hlen, pw, pwlen, U, sizeof(U)); // Urounds = hmac_hash(pw, Urounds-1)
-            for (j = 0; j < hlen/4; j++) ((uint32_t *)T)[j] ^= ((uint32_t *)U)[j]; // Ti = U1 ^ U2 ^ ... Urounds
+            for (j = 0; j < hlen/4; j++) ((uint32_t *)T)[j] ^= ((uint32_t *)U)[j]; // Ti = U1 xor U2 xor ... xor Urounds
         }
         
         // dk = T1 || T2 || ... || Tdklen/hlen

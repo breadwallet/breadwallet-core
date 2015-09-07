@@ -109,7 +109,7 @@ static void CKDpub(BRPubKey *K, UInt256 *c, uint32_t i)
 
 BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen)
 {
-    if (! seed) return BR_MASTER_PUBKEY_NONE;
+    if (! seed) return MASTER_PUBKEY_NONE;
     
     BRMasterPubKey mpk;
     UInt512 I;
@@ -126,7 +126,7 @@ BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen)
     
     mpk.chainCode = chain;
     BRKeySetSecret(&key, secret, 1);
-    if (! BRKeyPubKey(&key, &mpk.pubKey, sizeof(mpk.pubKey))) return BR_MASTER_PUBKEY_NONE;
+    if (! BRKeyPubKey(&key, &mpk.pubKey, sizeof(mpk.pubKey))) return MASTER_PUBKEY_NONE;
     return mpk;
 }
 

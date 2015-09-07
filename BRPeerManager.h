@@ -43,7 +43,8 @@ typedef enum {
 typedef struct _BRPeerManager BRPeerManager;
 
 // returns a newly allocated BRPeerManager struct that must be freed by calling BRPeerManagerFree()
-BRPeerManager *BRPeerManagerCreate(BRWallet *wallet, uint32_t earlistKeyTime, BRMerkleBlock *blocks, size_t blockCount);
+BRPeerManager *BRPeerManagerCreate(BRWallet *wallet, uint32_t earliestKeyTime, BRMerkleBlock *blocks,
+                                   size_t blocksCount, BRPeer *peers, size_t peersCount);
 
 void BRPeerManagerSetCallbacks(BRPeerManager *manager,
                                void (*syncStarted)(BRPeerManager *manager, void *info),
@@ -53,6 +54,7 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager,
                                void (*saveBlocks)(BRPeerManager *manager, BRMerkleBlock *blocks, size_t count,
                                                   void *info),
                                void (*savePeers)(BRPeerManager *manager, BRPeer *peers, size_t count, void *info),
+                               int (*networkIsReachable)(BRPeerManager *manager, void *info),
                                void *info);
 
 // true if currently connected to at least one peer

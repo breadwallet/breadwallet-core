@@ -31,38 +31,38 @@
 #include "BRMerkleBlock.h"
 #include <stdint.h>
 
-#if BR_TESTNET
-#define BR_STANDARD_PORT 18333
+#if TESTNET
+#define STANDARD_PORT 18333
 #else
-#define BR_STANDARD_PORT 8333
+#define STANDARD_PORT 8333
 #endif
 
-#define BR_SERVICES_NODE_NETWORK 1 // services value indicating a node carries full blocks, not just headers
+#define SERVICES_NODE_NETWORK 1 // services value indicating a node carries full blocks, not just headers
 
-#define BR_USER_AGENT    "/breadwallet:0.6/"
+#define USER_AGENT    "/breadwallet:0.6/"
 
 // explanation of message types at: https://en.bitcoin.it/wiki/Protocol_specification
-#define BR_MSG_VERSION     "version"
-#define BR_MSG_VERACK      "verack"
-#define BR_MSG_ADDR        "addr"
-#define BR_MSG_INV         "inv"
-#define BR_MSG_GETDATA     "getdata"
-#define BR_MSG_NOTFOUND    "notfound"
-#define BR_MSG_GETBLOCKS   "getblocks"
-#define BR_MSG_GETHEADERS  "getheaders"
-#define BR_MSG_TX          "tx"
-#define BR_MSG_BLOCK       "block"
-#define BR_MSG_HEADERS     "headers"
-#define BR_MSG_GETADDR     "getaddr"
-#define BR_MSG_MEMPOOL     "mempool"
-#define BR_MSG_PING        "ping"
-#define BR_MSG_PONG        "pong"
-#define BR_MSG_FILTERLOAD  "filterload"
-#define BR_MSG_FILTERADD   "filteradd"
-#define BR_MSG_FILTERCLEAR "filterclear"
-#define BR_MSG_MERKLEBLOCK "merkleblock"
-#define BR_MSG_ALERT       "alert"
-#define BR_MSG_REJECT      "reject" //described in BIP61: https://github.com/bitcoin/bips/blob/master/bip-0061.mediawiki
+#define MSG_VERSION     "version"
+#define MSG_VERACK      "verack"
+#define MSG_ADDR        "addr"
+#define MSG_INV         "inv"
+#define MSG_GETDATA     "getdata"
+#define MSG_NOTFOUND    "notfound"
+#define MSG_GETBLOCKS   "getblocks"
+#define MSG_GETHEADERS  "getheaders"
+#define MSG_TX          "tx"
+#define MSG_BLOCK       "block"
+#define MSG_HEADERS     "headers"
+#define MSG_GETADDR     "getaddr"
+#define MSG_MEMPOOL     "mempool"
+#define MSG_PING        "ping"
+#define MSG_PONG        "pong"
+#define MSG_FILTERLOAD  "filterload"
+#define MSG_FILTERADD   "filteradd"
+#define MSG_FILTERCLEAR "filterclear"
+#define MSG_MERKLEBLOCK "merkleblock"
+#define MSG_ALERT       "alert"
+#define MSG_REJECT      "reject" //described in BIP61: https://github.com/bitcoin/bips/blob/master/bip-0061.mediawiki
 
 typedef enum {
     BRPeerStatusDisconnected = 0,
@@ -95,7 +95,8 @@ void BRPeerSetCallbacks(BRPeer *peer,
                         void (*hasTx)(BRPeer *peer, UInt256 txHash, void *info),
                         void (*rejectedTx)(BRPeer *peer, UInt256 txHash, uint8_t code, void *info),
                         void (*relayedBlock)(BRPeer *peer, BRMerkleBlock *block, void *info),
-                        BRTransaction *(*reqeustedTx)(BRPeer *peer, UInt256 txHash, void *info),
+                        const BRTransaction *(*reqeustedTx)(BRPeer *peer, UInt256 txHash, void *info),
+                        int (*networkIsReachable)(BRPeer *peer, void *info),
                         void *info);
 
 BRPeerStatus BRPeerGetStatus(BRPeer *peer); // current connection status

@@ -38,7 +38,7 @@ typedef struct {
     BRPubKey pubKey;
 } BRMasterPubKey;
 
-#define BR_MASTER_PUBKEY_NONE ((BRMasterPubKey) { 0, UINT256_ZERO, BR_PUBKEY_NONE })
+#define MASTER_PUBKEY_NONE ((BRMasterPubKey) { 0, UINT256_ZERO, PUBKEY_NONE })
 
 BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen);
 BRPubKey BRBIP32PubKey(BRMasterPubKey mpk, int internal, uint32_t index);

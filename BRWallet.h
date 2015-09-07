@@ -37,7 +37,7 @@ typedef struct {
     char c[36];
 } BRAddress;
 
-static inline int BRAddressEq(BRAddress a, BRAddress b)
+inline static int BRAddressEq(BRAddress a, BRAddress b)
 {
     return (strncmp(a.c, b.c, sizeof(BRAddress)) == 0);
 }
@@ -47,7 +47,7 @@ typedef struct {
     uint32_t n;
 } BRUTXO;
 
-static inline int BRUTXOEq(BRUTXO a, BRUTXO b)
+inline static int BRUTXOEq(BRUTXO a, BRUTXO b)
 {
     return (UInt256Eq(a.hash, b.hash) && a.n == b.n);
 }
@@ -55,15 +55,15 @@ static inline int BRUTXOEq(BRUTXO a, BRUTXO b)
 typedef struct _BRWallet BRWallet;
 
 // allocate and populate a wallet
-BRWallet *BRWalletCreate(BRTransaction *transactions, size_t txCount, BRMasterPubKey mpk,
+BRWallet *BRWalletCreate(BRTransaction *transactions, size_t transactionsCount, BRMasterPubKey mpk,
                          void *(*seed)(const char *, uint64_t, size_t *));
 
-void BRWalletSetPersistenceCallbacks(BRWallet *wallet,
-                                     void (*addTx)(BRWallet *wallet, BRTransaction *tx, void *info),
-                                     void (*updateTx)(BRWallet *wallet, UInt256 txHash, uint32_t blockHeight,
-                                                      uint32_t timestamp, void *info),
-                                     void (*deleteTx)(BRWallet *wallet, UInt256 txHash, void *info),
-                                     void *info);
+void BRWalletSetCallbacks(BRWallet *wallet,
+                          void (*addTx)(BRWallet *wallet, BRTransaction *tx, void *info),
+                          void (*updateTx)(BRWallet *wallet, UInt256 txHash, uint32_t blockHeight, uint32_t timestamp,
+                                           void *info),
+                          void (*deleteTx)(BRWallet *wallet, UInt256 txHash, void *info),
+                          void *info);
 
 // current wallet balance, not including transactions known to be invalid
 uint64_t BRWalletBalance(BRWallet *wallet);
