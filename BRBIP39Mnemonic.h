@@ -30,10 +30,16 @@
 // BIP39 is method for generating a deterministic wallet seed from a mnemonic phrase
 // https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki
 
-#define BIP39_CREATION_TIME (1388534400.0 - NSTimeIntervalSince1970)
+#define BIP39_CREATION_TIME  1388534400 // oldest possible BIP39 phrase creation time, seconds after unix epoch
+#define BIP38_WORDLIST_COUNT 2048       // number of words in a BIP39 wordlist
 
+// returns number of bytes written to phrase including NULL terminator, or size needed if phrase is NULL
 size_t BRBIP39Encode(char *phrase, size_t plen, const char *wordlist[], const void *data, size_t dlen);
+
+// returns number of bytes written to data, or size needed if data is NULL
 size_t BRBIP39Decode(void *data, size_t dlen, const char *wordlist[], const char *phrase);
+
+// verifies that all phrase words are contained in wordlist and checksum is valid
 int BRBIP39PhraseIsValid(const char *wordlist[], const char *phrase);
 
 // phrase and passphrase must be unicode NFKD normalized, key must hold 64 bytes
