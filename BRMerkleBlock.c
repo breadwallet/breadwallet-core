@@ -155,7 +155,7 @@ BRMerkleBlock *BRMerkleBlockDeserialize(const uint8_t *buf, size_t len)
     block->nonce = le32(*(const uint32_t *)(buf + off));
     off += sizeof(uint32_t);
     
-    block->totalTransactions = (off + sizeof(uint32_t) <= len) ? le32(*(const uint32_t *)(buf + off)) : 0;
+    block->totalTx = (off + sizeof(uint32_t) <= len) ? le32(*(const uint32_t *)(buf + off)) : 0;
     off += sizeof(uint32_t);
     block->hashesLen = (size_t)BRVarInt(buf + off, len - off, &l);
     off += l;
@@ -187,12 +187,12 @@ BRMerkleBlock *BRMerkleBlockDeserialize(const uint8_t *buf, size_t len)
     return block;
 }
 
-// returns number of bytes written to buf, or total size needed if buf is NULL
+// returns number of bytes written to buf, or total len needed if buf is NULL
 size_t BRMerkleBlockSerialize(BRMerkleBlock *block, uint8_t *buf, size_t len)
 {
     size_t off = 0, l = 80;
     
-    if (block->totalTransactions > 0) {
+    if (block->totalTx > 0) {
         l += sizeof(uint32_t) + BRVarIntSize(block->hashesLen) + block->hashesLen*sizeof(UInt256) +
         BRVarIntSize(block->flagsLen) + block->flagsLen;
     }
@@ -212,8 +212,8 @@ size_t BRMerkleBlockSerialize(BRMerkleBlock *block, uint8_t *buf, size_t len)
     *(uint32_t *)(buf + off) = le32(block->nonce);
     off += sizeof(uint32_t);
     
-    if (block->totalTransactions > 0) {
-        *(uint32_t *)(buf + off) = le32(block->totalTransactions);
+    if (block->totalTx > 0) {
+        *(uint32_t *)(buf + off) = le32(block->totalTx);
         off += sizeof(uint32_t);
         off += BRSetVarInt(block->hashesLen, buf + off, len - off);
         if (block->hashes) memcpy(buf + off, block->hashes, block->hashesLen*sizeof(UInt256));
@@ -234,7 +234,7 @@ static size_t BRMerkleBlockTxHashesR(BRMerkleBlock *block, UInt256 *txHashes, si
     
     (*flagIdx)++;
     
-    if (! flag || depth == (int)(ceil(log2(block->totalTransactions)))) {
+    if (! flag || depth == (int)(ceil(log2(block->totalTx)))) {
         if (flag && *idx < count) {
             if (txHashes) txHashes[*idx] = block->hashes[*hashIdx]; // leaf
             (*idx)++;
@@ -267,7 +267,7 @@ static UInt256 BRMerkleBlockRootR(BRMerkleBlock *block, size_t *hashIdx, size_t 
     UInt256 hashes[2], md;
     
     (*flagIdx)++;
-    if (! flag || depth == (int)(ceil(log2(block->totalTransactions)))) return block->hashes[(*hashIdx)++]; // leaf
+    if (! flag || depth == (int)(ceil(log2(block->totalTx)))) return block->hashes[(*hashIdx)++]; // leaf
 
     hashes[0] = BRMerkleBlockRootR(block, hashIdx, flagIdx, depth + 1); // left branch
     hashes[1] = BRMerkleBlockRootR(block, hashIdx, flagIdx, depth + 1); // right branch
@@ -289,7 +289,7 @@ int BRMerkleBlockIsValid(BRMerkleBlock *block, unsigned currentTime)
     UInt256 merkleRoot = BRMerkleBlockRootR(block, &hashIdx, &flagIdx, 0), t = UINT256_ZERO;
     
     // check if merkle root is correct
-    if (block->totalTransactions > 0 && ! UInt256Eq(merkleRoot, block->merkleRoot)) return 0;
+    if (block->totalTx > 0 && ! UInt256Eq(merkleRoot, block->merkleRoot)) return 0;
     
     // check if timestamp is too far in future
     if (block->timestamp > currentTime + MAX_TIME_DRIFT) return 0;

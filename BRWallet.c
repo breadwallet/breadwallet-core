@@ -37,7 +37,7 @@ struct _BRWallet {
     BRMasterPubKey masterPubKey;
     uint64_t *balanceHistory;
     void *(*seed)(const char *authPrompt, uint64_t amount, size_t *seedLen); // called during transaction signing
-    void (*addTx)(BRTransaction *tx); // called when a transaction is registered to the wallet
-    void (*updateTx)(UInt256 txHash, uint32_t blockHeight, uint32_t timestamp); // called when a transaction is updated
-    void (*deleteTx)(UInt256 txHash); // called when a transaction is removed from the wallet
+    void (*txAdded)(BRTransaction *tx); // called when a transaction is registered to the wallet
+    void (*txUpdated)(UInt256 txHash, uint32_t blockHeight, uint32_t timestamp); // called when a transaction is updated
+    void (*txDeleted)(UInt256 txHash); // called when a transaction is removed from the wallet
 };

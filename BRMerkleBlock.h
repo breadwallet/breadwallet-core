@@ -39,7 +39,7 @@ typedef struct {
     uint32_t timestamp; // time interval since unix epoch
     uint32_t target;
     uint32_t nonce;
-    uint32_t totalTransactions;
+    uint32_t totalTx;
     UInt256 *hashes;
     size_t hashesLen;
     uint8_t *flags;
@@ -53,7 +53,7 @@ BRMerkleBlock *BRMerkleBlockCreate();
 // buf must contain either a serialized merkleblock or header, result must be freed by calling BRMerkleBlockFree()
 BRMerkleBlock *BRMerkleBlockDeserialize(const uint8_t *buf, size_t len);
 
-// returns number of bytes written to buf, or total size needed if buf is NULL
+// returns number of bytes written to buf, or total len needed if buf is NULL
 size_t BRMerkleBlockSerialize(BRMerkleBlock *block, uint8_t *buf, size_t len);
 
 // populates txHashes with the matched tx hashes in the block, returns number of tx hashes written, or total number of

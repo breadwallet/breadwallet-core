@@ -56,7 +56,7 @@ BRBloomFilter *BRBloomFilterCreate(double falsePositiveRate, size_t elemCount, u
 // buf must contain a serialized filter, result must be freed by calling BRBloomFilterFree()
 BRBloomFilter *BRBloomFilterDeserialize(const uint8_t *buf, size_t len);
 
-// returns number of bytes written to buf, or total size needed if buf is NULL
+// returns number of bytes written to buf, or total len needed if buf is NULL
 size_t BRBloomFilterSerialize(BRBloomFilter *filter, uint8_t *buf, size_t len);
 
 // true if data is matched by filter

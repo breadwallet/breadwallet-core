@@ -29,8 +29,6 @@
 #include "BRTypes.h"
 #include "BRTransaction.h"
 #include "BRBIP32Sequence.h"
-#include <stddef.h>
-#include <stdint.h>
 #include <string.h>
 
 typedef struct {
@@ -55,14 +53,14 @@ inline static int BRUTXOEq(BRUTXO a, BRUTXO b)
 typedef struct _BRWallet BRWallet;
 
 // allocate and populate a wallet
-BRWallet *BRWalletCreate(BRTransaction *transactions, size_t transactionsCount, BRMasterPubKey mpk,
+BRWallet *BRWalletCreate(BRTransaction *transactions, size_t txCount, BRMasterPubKey mpk,
                          void *(*seed)(const char *, uint64_t, size_t *));
 
 void BRWalletSetCallbacks(BRWallet *wallet,
-                          void (*addTx)(BRWallet *wallet, BRTransaction *tx, void *info),
-                          void (*updateTx)(BRWallet *wallet, UInt256 txHash, uint32_t blockHeight, uint32_t timestamp,
-                                           void *info),
-                          void (*deleteTx)(BRWallet *wallet, UInt256 txHash, void *info),
+                          void (*txAdded)(BRWallet *wallet, BRTransaction *tx, void *info),
+                          void (*txUpdated)(BRWallet *wallet, UInt256 txHash, uint32_t blockHeight, uint32_t timestamp,
+                                            void *info),
+                          void (*txDeleted)(BRWallet *wallet, UInt256 txHash, void *info),
                           void *info);
 
 // current wallet balance, not including transactions known to be invalid
