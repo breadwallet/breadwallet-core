@@ -1,6 +1,5 @@
 //
 //  BRWallet.h
-//  breadwallet-core
 //
 //  Created by Aaron Voisine on 9/1/15.
 //  Copyright (c) 2015 breadwallet LLC
@@ -53,8 +52,8 @@ inline static int BRUTXOEq(BRUTXO a, BRUTXO b)
 typedef struct _BRWallet BRWallet;
 
 // allocate and populate a wallet
-BRWallet *BRWalletCreate(BRTransaction *transactions, size_t txCount, BRMasterPubKey mpk,
-                         void *(*seed)(const char *, uint64_t, size_t *));
+BRWallet *BRWalletNew(BRTransaction *transactions, size_t txCount, BRMasterPubKey mpk,
+                      void *(*seed)(const char *, uint64_t, size_t *));
 
 void BRWalletSetCallbacks(BRWallet *wallet,
                           void (*txAdded)(BRWallet *wallet, BRTransaction *tx, void *info),

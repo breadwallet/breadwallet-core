@@ -51,7 +51,7 @@ typedef struct {
 static const BRBloomFilter BLOOM_FULL_MATCH = { (uint8_t *)"\xFF", 1, 0, 0, 0, BLOOM_UPDATE_NONE };
 
 // returns a newly allocated BRBloomFilter struct that must be freed by calling BRBloomFilterFree()
-BRBloomFilter *BRBloomFilterCreate(double falsePositiveRate, size_t elemCount, uint32_t tweak, uint8_t flags);
+BRBloomFilter *BRBloomFilterNew(double falsePositiveRate, size_t elemCount, uint32_t tweak, uint8_t flags);
 
 // buf must contain a serialized filter, result must be freed by calling BRBloomFilterFree()
 BRBloomFilter *BRBloomFilterDeserialize(const uint8_t *buf, size_t len);

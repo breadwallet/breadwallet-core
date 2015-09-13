@@ -1,6 +1,5 @@
 //
 //  BRPeer.h
-//  breadwallet-core
 //
 //  Created by Aaron Voisine on 9/2/15.
 //  Copyright (c) 2015 breadwallet LLC.
@@ -85,7 +84,7 @@ typedef struct {
 } BRPeer;
 
 // call this before other BRPeer functions, set earliestKeyTime to wallet creation time to speed up initial sync
-void BRPeerCreateContext(BRPeer *peer, uint32_t earliestKeyTime);
+void BRPeerNewContext(BRPeer *peer, uint32_t earliestKeyTime);
 
 void BRPeerSetCallbacks(BRPeer *peer,
                         void (*connected)(BRPeer *peer, void *info),

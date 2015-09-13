@@ -1,6 +1,5 @@
 //
 //  BRTransaction.h
-//  breadwallet-core
 //
 //  Created by Aaron Voisine on 8/31/15.
 //  Copyright (c) 2015 breadwallet LLC
@@ -46,25 +45,25 @@ typedef struct {
 } BRTxOutput;
 
 typedef struct {
+    UInt256 txHash;
     uint32_t version;
     size_t inCount;
     BRTxInput *inputs;
     size_t outCount;
     BRTxOutput *outputs;
     uint32_t lockTime;
-    UInt256 txHash;
     uint32_t blockHeight;
     uint32_t timestamp; // time interval since unix epoch
 } BRTransaction;
 
 // returns a newly allocated empty transaction that must be freed by calling BRTransactionFree()
-BRTransaction *BRTransactionCreate();
+BRTransaction *BRTransactionNew();
 
 // buf must contain a serialized tx, result must be freed by calling BRTransactionFree()
 BRTransaction *BRTransactionDeserialize(const uint8_t *buf, size_t len);
 
 // returns number of bytes written to buf, or total len needed if buf is NULL
-size_t BRTransactionSerialize(BRTransaction *tx, uint8_t *buf, size_t len);
+size_t BRTransactionSerialize(const BRTransaction *tx, uint8_t *buf, size_t len);
 
 // adds an input to tx
 int BRTransactionAddInput(BRTransaction *tx, BRTxInput *input);
@@ -77,6 +76,18 @@ void BRTransactionShuffleOutputs(BRTransaction *tx);
 
 // adds signatures to any inputs with NULL signatures that can be signed with any privKeys
 void BRTransactionSign(BRTransaction *tx, const char *privKeys[], size_t count);
+
+// returns a hash value for tx suitable for use in a hashtable
+inline static long BRTransactionHash(const BRTransaction *tx)
+{
+    return *(long *)&tx->txHash;
+}
+
+// true if tx and otherTx have equal txHash values
+inline static int BRMerkleBlockEq(const BRTransaction *tx, const BRTransaction *otherTx)
+{
+    return UInt256Eq(tx->txHash, otherTx->txHash);
+}
 
 // frees memory allocated for tx
 void BRTransactionFree(BRTransaction *tx);
