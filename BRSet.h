@@ -29,13 +29,23 @@
 
 typedef struct _BRSet BRSet;
 
-BRSet *BRSetNew(long (*hash)(const void *), int (*eq)(const void *, const void *), size_t capacity);
+BRSet *BRSetNew(size_t (*hash)(const void *), int (*eq)(const void *, const void *), size_t capacity);
 
-BRSet *BRSetAdd(BRSet *set, const void *item);
+size_t BRSetCount(BRSet *set);
+
+void BRSetAdd(BRSet *set, void *item);
+
+void BRSetRemove(BRSet *set, const void *item);
+
+void BRSetClear(BRSet *set);
+
+int BRSetContains(BRSet *set, const void *item);
 
 void *BRSetGet(BRSet *set, const void *item);
 
-int BRSetContains(BRSet *set, const void *item);
+void *BRSetFirst(BRSet *set);
+
+void *BRSetNext(BRSet *set, const void *item);
 
 void BRSetUnion(BRSet *set, const BRSet *otherSet);
 

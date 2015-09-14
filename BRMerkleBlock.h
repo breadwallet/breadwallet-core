@@ -73,9 +73,9 @@ int BRMerkleBlockContainsTxHash(const BRMerkleBlock *block, UInt256 txHash);
 int BRMerkleBlockVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBlock *previous, uint32_t transitionTime);
 
 // returns a hash value for block suitable for use in a hashtable
-inline static long BRMerkleBlockHash(const BRMerkleBlock *block)
+inline static size_t BRMerkleBlockHash(const BRMerkleBlock *block)
 {
-    return *(long *)&block->blockHash;
+    return *(size_t *)&block->blockHash;
 }
 
 // true if block and otherBlock have equal blockHash values

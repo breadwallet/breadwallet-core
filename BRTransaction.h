@@ -78,13 +78,13 @@ void BRTransactionShuffleOutputs(BRTransaction *tx);
 void BRTransactionSign(BRTransaction *tx, const char *privKeys[], size_t count);
 
 // returns a hash value for tx suitable for use in a hashtable
-inline static long BRTransactionHash(const BRTransaction *tx)
+inline static size_t BRTransactionHash(const BRTransaction *tx)
 {
-    return *(long *)&tx->txHash;
+    return *(size_t *)&tx->txHash;
 }
 
 // true if tx and otherTx have equal txHash values
-inline static int BRMerkleBlockEq(const BRTransaction *tx, const BRTransaction *otherTx)
+inline static int BRTransactionEq(const BRTransaction *tx, const BRTransaction *otherTx)
 {
     return UInt256Eq(tx->txHash, otherTx->txHash);
 }
