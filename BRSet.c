@@ -39,8 +39,8 @@ static const size_t tableSizes[] = { // starting with 1, multiply by 3/2, round 
 
 struct _BRSet {
     void **table; // hashtable
-    size_t sizeIdx; // index into tableSizes[]
-    size_t count; // number of items in set
+    size_t size; // number of buckets in table
+    size_t itemCount; // number of items in set
     size_t (*hash)(const void *); // hash function
     int (*eq)(const void *, const void *); // equality function
 };
@@ -50,9 +50,13 @@ void BRSetInit(BRSet *set, size_t (*hash)(const void *), int (*eq)(const void *,
     size_t i = 0;
     
     while (i < TABLE_SIZES_LEN && tableSizes[i] < capacity) i++;
-    if (i + 1 < TABLE_SIZES_LEN) set->table = calloc(tableSizes[i + 1], sizeof(void *));
-    set->sizeIdx = i + 1;
-    set->count = 0;
+
+    if (i + 1 < TABLE_SIZES_LEN) {
+        set->table = calloc(tableSizes[i + 1], sizeof(void *));
+        set->size = tableSizes[i + 1];
+    }
+    
+    set->itemCount = 0;
     set->hash = hash;
     set->eq = eq;
 }
@@ -77,13 +81,13 @@ static void BRSetGrow(BRSet *set, size_t capacity)
     BRSetUnion(&newSet, set);
     free(set->table);
     set->table = newSet.table;
-    set->sizeIdx = newSet.sizeIdx;
+    set->size = newSet.size;
 }
 
 // adds given item to set or replaces an equivalent existing item
 void BRSetAdd(BRSet *set, void *item)
 {
-    size_t size = tableSizes[set->sizeIdx];
+    size_t size = set->size;
     size_t i = set->hash(item) % size;
     void *t = set->table[i];
 
@@ -92,15 +96,15 @@ void BRSetAdd(BRSet *set, void *item)
         t = set->table[i];
     }
 
-    if (! t) set->count++;
+    if (! t) set->itemCount++;
     set->table[i] = item;
-    if (set->count > ((size + 2)/3)*2) BRSetGrow(set, size);
+    if (set->itemCount > ((size + 2)/3)*2) BRSetGrow(set, size);
 }
 
 // removes given item from set
 void BRSetRemove(BRSet *set, const void *item)
 {
-    size_t size = tableSizes[set->sizeIdx];
+    size_t size = set->size;
     size_t i = set->hash(item) % size;
     void *t = set->table[i];
 
@@ -110,13 +114,13 @@ void BRSetRemove(BRSet *set, const void *item)
     }
     
     if (t) {
-        set->count--;
+        set->itemCount--;
         set->table[i] = NULL;
         i = (i + 1) % size;
         t = set->table[i];
         
         while (t) { // hashtable cleanup
-            set->count--;
+            set->itemCount--;
             set->table[i] = NULL;
             BRSetAdd(set, t);
             i = (i + 1) % size;
@@ -128,14 +132,14 @@ void BRSetRemove(BRSet *set, const void *item)
 // removes all items from set
 void BRSetClear(BRSet *set)
 {
-    memset(set->table, 0, tableSizes[set->sizeIdx]);
-    set->count = 0;
+    memset(set->table, 0, set->size);
+    set->itemCount = 0;
 }
 
 // returns the number of items in set
 inline size_t BRSetCount(BRSet *set)
 {
-    return set->count;
+    return set->itemCount;
 }
 
 // true if item is contained in set
@@ -147,32 +151,32 @@ int BRSetContains(BRSet *set, const void *item)
 // returns member item from set equivalent to given item
 void *BRSetGet(BRSet *set, const void *item)
 {
-    size_t size = tableSizes[set->sizeIdx];
+    size_t size = set->size;
     size_t i = set->hash(item) % size;
-    void *t = set->table[i];
+    void *r = set->table[i];
 
-    while (t != item && t && ! set->eq(t, item)) {
+    while (r != item && r && ! set->eq(r, item)) {
         i = (i + 1) % size;
-        t = set->table[i];
+        r = set->table[i];
     }
     
-    return t;
+    return r;
 }
 
 // returns an initial random item from set for use when iterating
 void *BRSetFirst(BRSet *set)
 {
-    size_t size = tableSizes[set->sizeIdx];
+    size_t i = 0, size = set->size;
     void *r = NULL;
 
-    for (size_t i = 0; ! r && i < size; i++) r = set->table[i];
+    while (! r && i < size) r = set->table[i++];
     return r;
 }
 
 // returns the next item after given item when iterating
 void *BRSetNext(BRSet *set, const void *item)
 {
-    size_t size = tableSizes[set->sizeIdx];
+    size_t size = set->size;
     size_t i = set->hash(item) % size;
     void *t = set->table[i], *r = NULL;
     
@@ -181,20 +185,21 @@ void *BRSetNext(BRSet *set, const void *item)
         t = set->table[i];
     }
     
-    for (i++; ! r && i < size; i++) r = set->table[i];
+    i++;
+    while (! r && i < size) r = set->table[i++];
     return r;
 }
 
 // adds or replaces items from otherSet into set
 void BRSetUnion(BRSet *set, const BRSet *otherSet)
 {
-    size_t size = tableSizes[otherSet->sizeIdx];
+    size_t i = 0, size = otherSet->size;
     void *t;
     
-    if (otherSet->count > ((tableSizes[set->sizeIdx] + 2)/3)*2) BRSetGrow(set, otherSet->count);
+    if (otherSet->itemCount > ((set->size + 2)/3)*2) BRSetGrow(set, otherSet->itemCount);
     
-    for (size_t i = 0; i < size; i++) {
-        t = otherSet->table[i];
+    while (i < size) {
+        t = otherSet->table[i++];
         if (t) BRSetAdd(set, t);
     }
 }
@@ -202,11 +207,11 @@ void BRSetUnion(BRSet *set, const BRSet *otherSet)
 // removes items contained in otherSet from set
 void BRSetMinus(BRSet *set, const BRSet *otherSet)
 {
-    size_t size = tableSizes[otherSet->sizeIdx];
+    size_t i = 0, size = otherSet->size;
     void *t;
     
-    for (size_t i = 0; i < size; i++) {
-        t = otherSet->table[i];
+    while (i < size) {
+        t = otherSet->table[i++];
         if (t) BRSetRemove(set, t);
     }
 }
