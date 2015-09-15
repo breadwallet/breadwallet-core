@@ -52,10 +52,10 @@ int BRSetContains(BRSet *set, const void *item);
 // returns member item from set equivalent to given item
 void *BRSetGet(BRSet *set, const void *item);
 
-// returns an initial random item from set for use when iterating
+// returns an initial random item from set for use when iterating, or NULL if set is empty
 void *BRSetFirst(BRSet *set);
 
-// returns the next item after given item when iterating
+// returns the next item after given item when iterating, or NULL if no more items are available
 void *BRSetNext(BRSet *set, const void *item);
 
 // adds or replaces items from otherSet into set

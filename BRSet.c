@@ -163,7 +163,7 @@ void *BRSetGet(BRSet *set, const void *item)
     return r;
 }
 
-// returns an initial random item from set for use when iterating
+// returns an initial random item from set for use when iterating, or NULL if set is empty
 void *BRSetFirst(BRSet *set)
 {
     size_t i = 0, size = set->size;
@@ -173,7 +173,7 @@ void *BRSetFirst(BRSet *set)
     return r;
 }
 
-// returns the next item after given item when iterating
+// returns the next item after given item when iterating, or NULL if no more items are available
 void *BRSetNext(BRSet *set, const void *item)
 {
     size_t size = set->size;
