@@ -29,28 +29,42 @@
 
 typedef struct _BRSet BRSet;
 
+// retruns a newly allocated empty set that must be freed by calling BRSetFree(), hash is a function that returns a hash
+// value for a given set item, eq is a function that tests if two item elements are equal, capacity is the expected
+// number of items the set will hold
 BRSet *BRSetNew(size_t (*hash)(const void *), int (*eq)(const void *, const void *), size_t capacity);
 
-size_t BRSetCount(BRSet *set);
-
+// adds given item to set or replaces an equivalent existing item
 void BRSetAdd(BRSet *set, void *item);
 
+// removes given item from set
 void BRSetRemove(BRSet *set, const void *item);
 
+// removes all items from set
 void BRSetClear(BRSet *set);
 
+// returns the number of items in set
+size_t BRSetCount(BRSet *set);
+
+// true if item is contained in set
 int BRSetContains(BRSet *set, const void *item);
 
+// returns member item from set equivalent to given item
 void *BRSetGet(BRSet *set, const void *item);
 
+// returns an initial random item from set for use when iterating
 void *BRSetFirst(BRSet *set);
 
+// returns the next item after given item when iterating
 void *BRSetNext(BRSet *set, const void *item);
 
+// adds or replaces items from otherSet into set
 void BRSetUnion(BRSet *set, const BRSet *otherSet);
 
+// removes items contained in otherSet from set
 void BRSetMinus(BRSet *set, const BRSet *otherSet);
 
+// frees memory allocated for set
 void BRSetFree(BRSet *set);
 
 #endif // BRSet_h

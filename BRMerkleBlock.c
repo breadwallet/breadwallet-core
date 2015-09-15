@@ -139,7 +139,6 @@ BRMerkleBlock *BRMerkleBlockDeserialize(const uint8_t *buf, size_t len)
     size_t off = 0, l = 0;
     uint8_t header[80];
     
-    if (! block) return NULL;
     block->version = le32(*(const uint32_t *)(buf + off));
     off += sizeof(uint32_t);
     block->prevBlock = *(const UInt256 *)(buf + off);
