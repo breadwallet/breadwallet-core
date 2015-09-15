@@ -35,6 +35,8 @@ static const size_t tableSizes[] = { // starting with 1, multiply by 3/2, round 
     1159736527, 1739604799, 2609407319, 3914111041
 };
 
+#define TABLE_SIZES_LEN (sizeof(tableSizes)/sizeof(*tableSizes))
+
 struct _BRSet {
     void **table; // hash table
     size_t sizeIdx; // index into tableSizes[]
@@ -47,8 +49,8 @@ void BRSetInit(BRSet *set, size_t (*hash)(const void *), int (*eq)(const void *,
 {
     size_t i = 0;
     
-    while (i < sizeof(tableSizes)/sizeof(*tableSizes) && tableSizes[i] < capacity) i++;
-    if (i + 1 < sizeof(tableSizes)/sizeof(*tableSizes)) set->table = calloc(tableSizes[i + 1], sizeof(void *));
+    while (i < TABLE_SIZES_LEN && tableSizes[i] < capacity) i++;
+    if (i + 1 < TABLE_SIZES_LEN) set->table = calloc(tableSizes[i + 1], sizeof(void *));
     set->sizeIdx = i + 1;
     set->hash = hash;
     set->eq = eq;
@@ -62,7 +64,7 @@ BRSet *BRSetNew(size_t (*hash)(const void *), int (*eq)(const void *, const void
     return set;
 }
 
-void BRSetGrow(BRSet *set, size_t capacity)
+static void BRSetGrow(BRSet *set, size_t capacity)
 {
     BRSet newSet;
     
@@ -101,11 +103,16 @@ void BRSetRemove(BRSet *set, const void *item)
         while (set->table[i] && ! set->eq(set->table[i], item)) i = (i + 1) % size;
 
         if (set->table[i]) {
-            t = set->table[(i + 1) % size];
-            if (t) BRSetRemove(set, t);
             set->count--;
             set->table[i] = NULL;
-            if (t) BRSetAdd(set, t);
+            i = (i + 1) % size;
+            
+            while ((t = set->table[i])) { // hashtable cleanup
+                set->count--;
+                set->table[i] = NULL;
+                BRSetAdd(set, t);
+                i = (i + 1) % size;
+            }
         }
     }
 }
@@ -128,7 +135,6 @@ void *BRSetGet(BRSet *set, const void *item)
     void *r = NULL;
     
     if (set->table) {
-        // this could end up in an infinte loop if the table is full of deleted entries
         while (set->table[i] && ! set->eq(set->table[i], item)) i = (i + 1) % size;
         r = set->table[i];
     }
