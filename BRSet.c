@@ -26,40 +26,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define C1 0xcc9e2d51
-#define C2 0x1b873593
-
-// bitwise left rotation
-#define rol32(a, b) (((a) << (b)) | ((a) >> (32 - (b))))
-
-#define fmix32(h) (h ^= h >> 16, h *= 0x85ebca6b, h ^= h >> 13, h *= 0xc2b2ae35, h ^= h >> 16)
-
-// murmurHash3 (x86_32): https://code.google.com/p/smhasher/
-uint32_t BRMurmur3_32(const void *data, size_t len, uint32_t seed)
-{
-    uint32_t h = seed, k = 0;
-    size_t i, count = len/4;
-    
-    for (i = 0; i < count; i++) {
-        k = ((uint32_t *)data)[i]*C1;//le32(((uint32_t *)data)[i])*C1;
-        k = rol32(k, 15)*C2;
-        h ^= k;
-        h = rol32(h, 13)*5 + 0xe6546b64;
-    }
-    
-    k = 0;
-    
-    switch (len & 3) {
-        case 3: k ^= ((uint8_t *)data)[i*4 + 2] << 16; // fall through
-        case 2: k ^= ((uint8_t *)data)[i*4 + 1] << 8; // fall through
-        case 1: k ^= ((uint8_t *)data)[i*4], k *= C1, h ^= rol32(k, 15)*C2;
-    }
-    
-    h ^= len;
-    fmix32(h);
-    return h;
-}
-
 // linear probed hashtable for good cache performance, maximum load factor is 2/3
 
 static const size_t tableSizes[] = { // starting with 1, multiply by 3/2, round up and find next largest prime
@@ -85,19 +51,19 @@ void BRSetInit(BRSet *set, size_t (*hash)(const void *), int (*eq)(const void *,
     
     while (i < TABLE_SIZES_LEN && tableSizes[i] < capacity) i++;
 
-    if (i + 1 < TABLE_SIZES_LEN) {
+    if (i + 1 < TABLE_SIZES_LEN) { // use next larger table size to keep load factor below 2/3 at capacity
         set->table = calloc(tableSizes[i + 1], sizeof(void *));
         set->size = tableSizes[i + 1];
     }
     
     set->itemCount = 0;
-    set->hash = (hash) ? hash : BRPairHash;
-    set->eq = (eq) ? eq : BRPairEq;
+    set->hash = hash;
+    set->eq = eq;
 }
 
 // retruns a newly allocated empty set that must be freed by calling BRSetFree(), hash is a function that returns a hash
-// value for a given set item, eq is a function that tests if two item elements are equal, capacity is the expected
-// number of items the set will hold
+// value for a given set item, eq is a function that tests if two set items are equal, capacity is the maximum estimated
+// number of items the set will need to hold
 BRSet *BRSetNew(size_t (*hash)(const void *), int (*eq)(const void *, const void *), size_t capacity)
 {
     BRSet *set = malloc(sizeof(BRSet));
@@ -116,6 +82,7 @@ static void BRSetGrow(BRSet *set, size_t capacity)
     free(set->table);
     set->table = newSet.table;
     set->size = newSet.size;
+    set->itemCount = newSet.itemCount;
 }
 
 // adds given item to set or replaces an equivalent existing item
@@ -125,14 +92,14 @@ void BRSetAdd(BRSet *set, void *item)
     size_t i = set->hash(item) % size;
     void *t = set->table[i];
 
-    while (t && t != item && ! set->eq(t, item)) {
+    while (t && t != item && ! set->eq(t, item)) { // probe for empty bucket
         i = (i + 1) % size;
         t = set->table[i];
     }
 
     if (! t) set->itemCount++;
     set->table[i] = item;
-    if (set->itemCount > ((size + 2)/3)*2) BRSetGrow(set, size);
+    if (set->itemCount > ((size + 2)/3)*2) BRSetGrow(set, size); // limit load factor to 2/3
 }
 
 // removes given item from set
@@ -142,7 +109,7 @@ void BRSetRemove(BRSet *set, const void *item)
     size_t i = set->hash(item) % size;
     void *t = set->table[i];
 
-    while (t != item && t && ! set->eq(t, item)) {
+    while (t != item && t && ! set->eq(t, item)) { // probe for item
         i = (i + 1) % size;
         t = set->table[i];
     }
@@ -187,14 +154,14 @@ void *BRSetGet(BRSet *set, const void *item)
 {
     size_t size = set->size;
     size_t i = set->hash(item) % size;
-    void *r = set->table[i];
+    void *t = set->table[i];
 
-    while (r != item && r && ! set->eq(r, item)) {
+    while (t != item && t && ! set->eq(t, item)) { // probe for item
         i = (i + 1) % size;
-        r = set->table[i];
+        t = set->table[i];
     }
     
-    return r;
+    return t;
 }
 
 // returns an initial random item from set for use when iterating, or NULL if set is empty
@@ -214,7 +181,7 @@ void *BRSetNext(BRSet *set, const void *item)
     size_t i = set->hash(item) % size;
     void *t = set->table[i], *r = NULL;
     
-    while (t != item && t && ! set->eq(t, item)) {
+    while (t != item && t && ! set->eq(t, item)) { // probe for item
         i = (i + 1) % size;
         t = set->table[i];
     }

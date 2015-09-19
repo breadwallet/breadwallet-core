@@ -53,9 +53,9 @@ typedef struct {
 
 #define BR_ADDRESS_NONE ((BRAddress) { "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0" })
 
-BRAddress BRAddressSetScriptPubKey(const uint8_t *script, size_t len);
+BRAddress BRAddressFromScriptPubKey(const uint8_t *script, size_t len);
 
-BRAddress BRAddressSetScriptSig(const uint8_t *script, size_t len);
+BRAddress BRAddressFromScriptSig(const uint8_t *script, size_t len);
 
 size_t BRAddressScriptPubKey(uint8_t *script, size_t len, const char *addr);
 

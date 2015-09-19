@@ -89,7 +89,7 @@ void BRPeerNewContext(BRPeer *peer, uint32_t earliestKeyTime);
 void BRPeerSetCallbacks(BRPeer *peer,
                         void (*connected)(BRPeer *peer, void *info),
                         void (*disconnected)(BRPeer *peer, BRPeerError error, void *info),
-                        void (*relayedPeers)(BRPeer *peer, BRPeer **peers, size_t count, void *info),
+                        void (*relayedPeers)(BRPeer *peer, BRPeer *peers[], size_t count, void *info),
                         void (*relayedTx)(BRPeer *peer, BRTransaction *tx, void *info),
                         void (*hasTx)(BRPeer *peer, UInt256 txHash, void *info),
                         void (*rejectedTx)(BRPeer *peer, UInt256 txHash, uint8_t code, void *info),

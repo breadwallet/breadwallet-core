@@ -24,7 +24,7 @@
 
 #include "BRAddress.h"
 
-size_t BRScriptElements(const uint8_t **elems, size_t elemsCount, const uint8_t *script, size_t len)
+size_t BRScriptElements(const uint8_t *elems[], size_t elemsCount, const uint8_t *script, size_t len)
 {
     size_t off = 0, i = 0, l;
     
@@ -100,12 +100,57 @@ const uint8_t *BRScriptData(const uint8_t *elem, size_t *len)
     return (*len > 0) ? elem : NULL;
 }
 
-BRAddress BRAddressSetScriptPubKey(const uint8_t *script, size_t len)
+// NOTE: It's important here to be permissive with scriptSig (spends) and strict with scriptPubKey (receives). If we
+// miss a receive transaction, only that transaction's funds are missed, however if we accept a receive transaction that
+// we are unable to correctly sign later, then the entire wallet balance after that point would become stuck with the
+// current coin selection code
+
+BRAddress BRAddressFromScriptPubKey(const uint8_t *script, size_t len)
 {
-    return BR_ADDRESS_NONE;
+    if (! script || len == 0) return BR_ADDRESS_NONE;
+    
+    BRAddress address;
+    uint8_t data[21];
+    size_t l = BRScriptElements(NULL, 0, script, len);
+    const uint8_t *elem[l], *d;
+    
+    data[0] = BITCOIN_PUBKEY_ADDRESS;
+#if BITCOIN_TESTNET
+    data[0] = BITCOIN_PUBKEY_ADDRESS_TEST;
+#endif
+
+    BRScriptElements(elem, l, script, len);
+    
+    if (l == 5 && *elem[0] == OP_DUP && *elem[1] == OP_HASH160 && *elem[2] == 20 && *elem[3] == OP_EQUALVERIFY &&
+        *elem[4] == OP_CHECKSIG) {
+        // pay-to-pubkey-hash scriptPubKey
+        d = BRScriptData(elem[2], &l);
+        if (! d || l != 20) return BR_ADDRESS_NONE;
+        memcpy(&data[1], d, 20);
+    }
+    else if (l == 3 && *elem[0] == OP_HASH160 && *elem[1] == 20 && *elem[2] == OP_EQUAL) {
+        // pay-to-script-hash scriptPubKey
+        data[0] = BITCOIN_SCRIPT_ADDRESS;
+#if BITCOIN_TESTNET
+        data[0] = BITCOIN_SCRIPT_ADDRESS_TEST;
+#endif
+        d = BRScriptData(elem[1], &l);
+        if (! d || l != 20) return BR_ADDRESS_NONE;
+        memcpy(&data[1], d, 20);
+    }
+    else if (l == 2 && (*elem[0] == 65 || *elem[0] == 33) && *elem[1] == OP_CHECKSIG) {
+        // pay-to-pubkey scriptPubKey
+        d = BRScriptData(elem[0], &l);
+        if (! d || (l != 65 && l != 33)) return BR_ADDRESS_NONE;
+        BRHash160(&data[1], d, l);
+    }
+    else return BR_ADDRESS_NONE; // unknown script type
+    
+    BRBase58CheckEncode(address.s, sizeof(address), data, sizeof(data));
+    return address;
 }
 
-BRAddress BRAddressSetScriptSig(const uint8_t *script, size_t len)
+BRAddress BRAddressFromScriptSig(const uint8_t *script, size_t len)
 {
     return BR_ADDRESS_NONE;
 }
