@@ -54,7 +54,7 @@ size_t BRKeySetBIP38ItermediateCode(BRKey *key, const char *code, const uint8_t 
 
 // returns true if the "confirmation code" confirms that the given bitcoin address depends on the specified passphrase,
 // passphrase must be unicode NFC normalized
-int BRKeyBIP38Confirm(const char *confcode, const char *address, const char *passphrase);
+int BRKeyBIP38Confirm(const char *confcode, const char *addr, const char *passphrase);
 
 // encrypts key with passphrase, returns number of bytes written to bip38Key including NULL terminator, or total
 // bip38KeyLen needed if bip38Key is NULL, passphrase must be unicode NFC normalized

@@ -31,22 +31,19 @@
 #include <string.h>
 
 typedef struct {
-    char c[36];
-} BRAddress;
-
-inline static int BRAddressEq(BRAddress a, BRAddress b)
-{
-    return (strncmp(a.c, b.c, sizeof(BRAddress)) == 0);
-}
-
-typedef struct {
     UInt256 hash;
     uint32_t n;
 } BRUTXO;
 
-inline static int BRUTXOEq(BRUTXO a, BRUTXO b)
+inline static int BRUTXOEq(const void *a, const void *b)
 {
-    return (UInt256Eq(a.hash, b.hash) && a.n == b.n);
+    return (UInt256Eq(((const BRUTXO *)a)->hash, ((const BRUTXO *)b)->hash) &&
+            ((const BRUTXO *)a)->n == ((const BRUTXO *)b)->n);
+}
+
+inline static size_t BRUTXOHash(const void *utxo)
+{
+    return (((const BRUTXO *)utxo)->hash.u32[0] ^ ((const BRUTXO *)utxo)->n)*0x01000193;
 }
 
 typedef struct _BRWallet BRWallet;
@@ -81,23 +78,23 @@ uint64_t BRWalletTotalReceived(BRWallet *wallet);
 void BRWalletSetFeePerKb(BRWallet *wallet, uint64_t feePerKb);
 
 // returns the first unused external address
-BRAddress BRWalletReceiveAddress(BRWallet *wallet);
+const char *BRWalletReceiveAddress(BRWallet *wallet);
 
 // returns the first unused internal address
-BRAddress BRWalletChangeAddress(BRWallet *wallet);
+const char *BRWalletChangeAddress(BRWallet *wallet);
 
 // true if the given txHash is registered in the wallet
 int BRWalletContainsTxHash(BRWallet *wallet, UInt256 txHash);
 
 // true if the address is controlled by the wallet
-int BRWalletContainsAddress(BRWallet *wallet, BRAddress addr);
+int BRWalletContainsAddress(BRWallet *wallet, const char *addr);
 
 // true if the address was previously used as an input or output in any wallet transaction
-int BRWalletAddressIsUsed(BRWallet *wallet, BRAddress addr);
+int BRWalletAddressIsUsed(BRWallet *wallet, const char *addr);
 
 // returns an unsigned transaction that sends the specified amount from the wallet to the given address, result must be
 // freed using BRTransactionFree()
-BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, BRAddress addr);
+BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, const char *addr);
 
 // sign any inputs in the given transaction that can be signed using private keys from the wallet
 int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *authPrompt);

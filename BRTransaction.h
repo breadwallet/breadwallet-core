@@ -63,7 +63,7 @@ BRTransaction *BRTransactionNew();
 BRTransaction *BRTransactionDeserialize(const uint8_t *buf, size_t len);
 
 // returns number of bytes written to buf, or total len needed if buf is NULL
-size_t BRTransactionSerialize(const BRTransaction *tx, uint8_t *buf, size_t len);
+size_t BRTransactionSerialize(BRTransaction *tx, uint8_t *buf, size_t len);
 
 // adds an input to tx
 int BRTransactionAddInput(BRTransaction *tx, BRTxInput *input);
@@ -78,15 +78,15 @@ void BRTransactionShuffleOutputs(BRTransaction *tx);
 void BRTransactionSign(BRTransaction *tx, const char *privKeys[], size_t count);
 
 // returns a hash value for tx suitable for use in a hashtable
-inline static size_t BRTransactionHash(const BRTransaction *tx)
+inline static size_t BRTransactionHash(const void *tx)
 {
-    return *(size_t *)&tx->txHash;
+    return *(size_t *)&((BRTransaction *)tx)->txHash;
 }
 
 // true if tx and otherTx have equal txHash values
-inline static int BRTransactionEq(const BRTransaction *tx, const BRTransaction *otherTx)
+inline static int BRTransactionEq(const void *tx, const void *otherTx)
 {
-    return UInt256Eq(tx->txHash, otherTx->txHash);
+    return UInt256Eq(((BRTransaction *)tx)->txHash, ((BRTransaction *)otherTx)->txHash);
 }
 
 // frees memory allocated for tx

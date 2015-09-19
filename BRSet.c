@@ -26,6 +26,40 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define C1 0xcc9e2d51
+#define C2 0x1b873593
+
+// bitwise left rotation
+#define rol32(a, b) (((a) << (b)) | ((a) >> (32 - (b))))
+
+#define fmix32(h) (h ^= h >> 16, h *= 0x85ebca6b, h ^= h >> 13, h *= 0xc2b2ae35, h ^= h >> 16)
+
+// murmurHash3 (x86_32): https://code.google.com/p/smhasher/
+uint32_t BRMurmur3_32(const void *data, size_t len, uint32_t seed)
+{
+    uint32_t h = seed, k = 0;
+    size_t i, count = len/4;
+    
+    for (i = 0; i < count; i++) {
+        k = ((uint32_t *)data)[i]*C1;//le32(((uint32_t *)data)[i])*C1;
+        k = rol32(k, 15)*C2;
+        h ^= k;
+        h = rol32(h, 13)*5 + 0xe6546b64;
+    }
+    
+    k = 0;
+    
+    switch (len & 3) {
+        case 3: k ^= ((uint8_t *)data)[i*4 + 2] << 16; // fall through
+        case 2: k ^= ((uint8_t *)data)[i*4 + 1] << 8; // fall through
+        case 1: k ^= ((uint8_t *)data)[i*4], k *= C1, h ^= rol32(k, 15)*C2;
+    }
+    
+    h ^= len;
+    fmix32(h);
+    return h;
+}
+
 // linear probed hashtable for good cache performance, maximum load factor is 2/3
 
 static const size_t tableSizes[] = { // starting with 1, multiply by 3/2, round up and find next largest prime
@@ -57,8 +91,8 @@ void BRSetInit(BRSet *set, size_t (*hash)(const void *), int (*eq)(const void *,
     }
     
     set->itemCount = 0;
-    set->hash = hash;
-    set->eq = eq;
+    set->hash = (hash) ? hash : BRPairHash;
+    set->eq = (eq) ? eq : BRPairEq;
 }
 
 // retruns a newly allocated empty set that must be freed by calling BRSetFree(), hash is a function that returns a hash

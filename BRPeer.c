@@ -41,7 +41,7 @@ struct BRPeerContext {
     void (*hasTx)(BRPeer *peer, UInt256 txHash, void *info);
     void (*rejectedTx)(BRPeer *peer, UInt256 txHash, uint8_t code, void *info);
     void (*relayedBlock)(BRPeer *peer, BRMerkleBlock *block, void *info);
-    const BRTransaction *(*reqeustedTx)(BRPeer *peer, UInt256 txHash, void *info);
+    BRTransaction *(*reqeustedTx)(BRPeer *peer, UInt256 txHash, void *info);
     int (*networkIsReachable)(BRPeer *peer, void *info);
     void *info;
 };

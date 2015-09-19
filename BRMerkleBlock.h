@@ -54,7 +54,7 @@ BRMerkleBlock *BRMerkleBlockNew();
 BRMerkleBlock *BRMerkleBlockDeserialize(const uint8_t *buf, size_t len);
 
 // returns number of bytes written to buf, or total len needed if buf is NULL
-size_t BRMerkleBlockSerialize(const BRMerkleBlock *block, uint8_t *buf, size_t len);
+size_t BRMerkleBlockSerialize(BRMerkleBlock *block, uint8_t *buf, size_t len);
 
 // populates txHashes with the matched tx hashes in the block, returns number of tx hashes written, or total number of
 // matched hashes in the block if txHashes is NULL
@@ -63,25 +63,25 @@ size_t BRMerkleBlockTxHashes(BRMerkleBlock *block, UInt256 *txHashes, size_t cou
 // true if merkle tree and timestamp are valid, and proof-of-work matches the stated difficulty target
 // NOTE: This only checks if the block difficulty matches the difficulty target in the header. It does not check if the
 // target is correct for the block's height in the chain. Use BRMerkleBlockVerifyDifficulty() for that.
-int BRMerkleBlockIsValid(const BRMerkleBlock *block, uint32_t currentTime);
+int BRMerkleBlockIsValid(BRMerkleBlock *block, uint32_t currentTime);
 
 // true if the given tx hash is known to be included in the block
-int BRMerkleBlockContainsTxHash(const BRMerkleBlock *block, UInt256 txHash);
+int BRMerkleBlockContainsTxHash(BRMerkleBlock *block, UInt256 txHash);
 
 // Verifies the block difficulty target is correct for the block's position in the chain. Transition time may be 0 if
 // height is not a multiple of BLOCK_DIFFICULTY_INTERVAL.
-int BRMerkleBlockVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBlock *previous, uint32_t transitionTime);
+int BRMerkleBlockVerifyDifficulty(BRMerkleBlock *block, BRMerkleBlock *previous, uint32_t transitionTime);
 
 // returns a hash value for block suitable for use in a hashtable
-inline static size_t BRMerkleBlockHash(const BRMerkleBlock *block)
+inline static size_t BRMerkleBlockHash(const void *block)
 {
-    return *(size_t *)&block->blockHash;
+    return *(size_t *)&((const BRMerkleBlock *)block)->blockHash;
 }
 
 // true if block and otherBlock have equal blockHash values
-inline static int BRMerkleBlockEq(const BRMerkleBlock *block, const BRMerkleBlock *otherBlock)
+inline static int BRMerkleBlockEq(const void *block, const void *otherBlock)
 {
-    return UInt256Eq(block->blockHash, otherBlock->blockHash);
+    return UInt256Eq(((const BRMerkleBlock *)block)->blockHash, ((const BRMerkleBlock *)otherBlock)->blockHash);
 }
 
 // frees memory allocated for block

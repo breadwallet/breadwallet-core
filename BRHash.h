@@ -53,6 +53,8 @@
 #define le64(x) (x)
 #endif
 
+#define RMD160_DIGEST_LENGTH (160/8)
+
 void BRSHA1(void *md, const void *data, size_t len);
 
 void BRSHA256(void *md, const void *data, size_t len);
@@ -71,5 +73,8 @@ void BRHMAC(void *md, void (*hash)(void *, const void *, size_t), size_t hlen, c
 
 void BRPBKDF2(void *dk, size_t dklen, void (*hash)(void *, const void *, size_t), size_t hlen,
               const void *pw, size_t pwlen, const void *salt, size_t slen, unsigned rounds);
+
+// murmurHash3 (x86_32): https://code.google.com/p/smhasher/
+uint32_t BRMurmur3_32(const void *data, size_t len, uint32_t seed);
 
 #endif // BRHash_h

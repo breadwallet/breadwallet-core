@@ -154,7 +154,7 @@ UInt160 BRKeyHash160(BRKey *key)
     return hash;
 }
 
-size_t BRKeyAddress(BRKey *key, char *address, size_t addrLen)
+size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen)
 {
     return 0;
 }

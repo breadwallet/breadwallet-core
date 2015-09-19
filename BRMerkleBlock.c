@@ -185,7 +185,7 @@ BRMerkleBlock *BRMerkleBlockDeserialize(const uint8_t *buf, size_t len)
 }
 
 // returns number of bytes written to buf, or total len needed if buf is NULL
-size_t BRMerkleBlockSerialize(const BRMerkleBlock *block, uint8_t *buf, size_t len)
+size_t BRMerkleBlockSerialize(BRMerkleBlock *block, uint8_t *buf, size_t len)
 {
     size_t off = 0, l = 80;
     
@@ -256,7 +256,7 @@ size_t BRMerkleBlockTxHashes(BRMerkleBlock *block, UInt256 *txHashes, size_t cou
 }
 
 // recursively walks the merkle tree to calculate the merkle root
-static UInt256 BRMerkleBlockRootR(const BRMerkleBlock *block, size_t *hashIdx, size_t *flagIdx, int depth)
+static UInt256 BRMerkleBlockRootR(BRMerkleBlock *block, size_t *hashIdx, size_t *flagIdx, int depth)
 {
     if (*flagIdx/8 >= block->flagsLen || *hashIdx >= block->hashesLen) return UINT256_ZERO;
     
@@ -276,7 +276,7 @@ static UInt256 BRMerkleBlockRootR(const BRMerkleBlock *block, size_t *hashIdx, s
 // true if merkle tree and timestamp are valid, and proof-of-work matches the stated difficulty target
 // NOTE: This only checks if the block difficulty matches the difficulty target in the header. It does not check if the
 // target is correct for the block's height in the chain. Use BRMerkleBlockVerifyDifficulty() for that.
-int BRMerkleBlockIsValid(const BRMerkleBlock *block, unsigned currentTime)
+int BRMerkleBlockIsValid(BRMerkleBlock *block, unsigned currentTime)
 {
     // target is in "compact" format, where the most significant byte is the size of resulting value in bytes, the next
     // bit is the sign, and the remaining 23bits is the value after having been right shifted by (size - 3)*8 bits
@@ -306,7 +306,7 @@ int BRMerkleBlockIsValid(const BRMerkleBlock *block, unsigned currentTime)
 }
 
 // true if the given tx hash is known to be included in the block
-int BRMerkleBlockContainsTxHash(const BRMerkleBlock *block, UInt256 txHash)
+int BRMerkleBlockContainsTxHash(BRMerkleBlock *block, UInt256 txHash)
 {
     for (size_t i = 0; i < block->hashesLen; i++) {
         if (UInt256Eq(block->hashes[i], txHash)) return 1;
@@ -325,7 +325,7 @@ int BRMerkleBlockContainsTxHash(const BRMerkleBlock *block, UInt256 txHash)
 // targeted time between transitions (14*24*60*60 seconds). If the new difficulty is more than 4x or less than 1/4 of
 // the previous difficulty, the change is limited to either 4x or 1/4. There is also a minimum difficulty value
 // intuitively named MAX_PROOF_OF_WORK... since larger values are less difficult.
-int BRMerkleBlockVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBlock *previous, uint32_t transitionTime)
+int BRMerkleBlockVerifyDifficulty(BRMerkleBlock *block, BRMerkleBlock *previous, uint32_t transitionTime)
 {
     if (! UInt256Eq(block->prevBlock, previous->blockHash) || block->height != previous->height + 1) return 0;
     if ((block->height % BLOCK_DIFFICULTY_INTERVAL) == 0 && transitionTime == 0) return 0;

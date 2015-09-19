@@ -58,7 +58,7 @@ size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t len);
 
 UInt160 BRKeyHash160(BRKey *key);
 
-size_t BRKeyAddress(BRKey *key, char *address, size_t addrLen);
+size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen);
 
 size_t BRKeySign(BRKey *key, void *sig, size_t len, UInt256 md);
 

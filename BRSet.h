@@ -25,7 +25,7 @@
 #ifndef BRSet_h
 #define BRSet_h
 
-#include <stddef.h>
+#include <string.h>
 
 typedef struct _BRSet BRSet;
 
