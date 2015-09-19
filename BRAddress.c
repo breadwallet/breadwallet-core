@@ -152,7 +152,46 @@ BRAddress BRAddressFromScriptPubKey(const uint8_t *script, size_t len)
 
 BRAddress BRAddressFromScriptSig(const uint8_t *script, size_t len)
 {
-    return BR_ADDRESS_NONE;
+    if (! script || len == 0) return BR_ADDRESS_NONE;
+    
+    BRAddress address;
+    uint8_t data[21];
+    size_t l = BRScriptElements(NULL, 0, script, len);
+    const uint8_t *elem[l], *d;
+
+    data[0] = BITCOIN_PUBKEY_ADDRESS;
+#if BITCOIN_TESTNET
+    data[0] = BITCOIN_PUBKEY_ADDRESS_TEST;
+#endif
+    
+    BRScriptElements(elem, l, script, len);
+    
+    if (l >= 2 && *elem[l - 2] <= OP_PUSHDATA4 && *elem[l - 2] > 0 && (*elem[l - 1] == 65 || *elem[l - 1] == 33)) {
+        // pay-to-pubkey-hash scriptSig
+        d = BRScriptData(elem[l - 1], &l);
+        if (! d || (l != 65 && l != 33)) return BR_ADDRESS_NONE;
+        BRHash160(&data[1], d, l);
+    }
+    else if (l >= 2 && *elem[l - 2] <= OP_PUSHDATA4 && *elem[l - 2] > 0 && *elem[l - 1] <= OP_PUSHDATA4 &&
+             *elem[l - 1] > 0) {
+        // pay-to-script-hash scriptSig
+        data[0] = BITCOIN_SCRIPT_ADDRESS;
+#if BITCOIN_TESTNET
+        data[0] = BITCOIN_SCRIPT_ADDRESS_TEST;
+#endif
+        d = BRScriptData(elem[l - 1], &l);
+        if (! d) return BR_ADDRESS_NONE;
+        BRHash160(&data[1], d, l);
+    }
+    else if (l >= 1 && *elem[l - 1] <= OP_PUSHDATA4 && *elem[l - 1] > 0) {
+        // pay-to-pubkey scriptSig
+        // TODO: implement Peter Wullie's pubKey recovery from signature
+        return BR_ADDRESS_NONE;
+    }
+    else return BR_ADDRESS_NONE; // unknown script type
+    
+    BRBase58CheckEncode(address.s, sizeof(address), data, sizeof(data));
+    return address;
 }
 
 size_t BRAddressScriptPubKey(uint8_t *script, size_t len, const char *addr)
