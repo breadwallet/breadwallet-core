@@ -31,16 +31,18 @@
 typedef struct {
     UInt256 txHash;
     uint32_t index;
-    const uint8_t *script;
+    char *address;
+    uint8_t *script;
     size_t scriptLen;
-    const uint8_t *signature;
+    uint8_t *signature;
     size_t sigLen;
     uint32_t sequence;
 } BRTxInput;
 
 typedef struct {
+    char *address;
     uint64_t amount;
-    const uint8_t *script;
+    uint8_t *script;
     size_t scriptLen;
 } BRTxOutput;
 

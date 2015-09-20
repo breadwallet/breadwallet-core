@@ -49,7 +49,7 @@ inline static size_t BRUTXOHash(const void *utxo)
 typedef struct _BRWallet BRWallet;
 
 // allocate and populate a wallet
-BRWallet *BRWalletNew(BRTransaction *transactions, size_t txCount, BRMasterPubKey mpk,
+BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk,
                       void *(*seed)(const char *, uint64_t, size_t *));
 
 void BRWalletSetCallbacks(BRWallet *wallet,
@@ -65,8 +65,8 @@ uint64_t BRWalletBalance(BRWallet *wallet);
 // list of all unspent outputs
 const BRUTXO *BRWalletUTXOs(BRWallet *wallet, size_t *count);
 
-// all transactions registered in the wallet
-const BRTransaction *BRWalletTransactions(BRWallet *wallet, size_t *count);
+// all transactions registered in the wallet, sorted by date, most recent first
+const BRTransaction **BRWalletTransactions(BRWallet *wallet, size_t *count);
 
 // total amount spent from the wallet (exluding change)
 uint64_t BRWalletTotalSent(BRWallet *wallet);
@@ -135,7 +135,7 @@ uint64_t BRWalletBalanceAfterTx(BRWallet *wallet, BRTransaction *tx);
 // fee that will be added for a transaction of the given size in bytes
 uint64_t BRWalletFeeForTxSize(BRWallet *wallet, size_t size);
 
-// frees memory allocated for wallet
+// frees memory allocated for wallet, also calls BRTransactionFree() for all registered transactions
 void BRWalletFree(BRWallet *wallet);
 
 // returns the given amount in local currency units, price is local currency units per bitcoin
