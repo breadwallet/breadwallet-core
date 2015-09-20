@@ -37,21 +37,21 @@ size_t BRScriptElements(const uint8_t *elems[], size_t elemsCount, const uint8_t
         switch (script[off]) {
             case OP_PUSHDATA1:
                 off++;
-                if (off + sizeof(uint8_t) > len) return i;
+                if (off + sizeof(uint8_t) > len) return 0;
                 l = script[off];
                 off += sizeof(uint8_t);
                 break;
                 
             case OP_PUSHDATA2:
                 off++;
-                if (off + sizeof(uint16_t) > len) return i;
+                if (off + sizeof(uint16_t) > len) return 0;
                 l = le16(*(uint16_t *)&script[off]);
                 off += sizeof(uint16_t);
                 break;
                 
             case OP_PUSHDATA4:
                 off++;
-                if (off + sizeof(uint32_t) > len) return i;
+                if (off + sizeof(uint32_t) > len) return 0;
                 l = le32(*(uint32_t *)&script[off]);
                 off += sizeof(uint32_t);
                 break;
@@ -62,12 +62,12 @@ size_t BRScriptElements(const uint8_t *elems[], size_t elemsCount, const uint8_t
                 break;
         }
         
-        if (off + l > len) return i;
+        if (off + l > len) return 0;
         off += l;
         i++;
     }
         
-    return i;
+    return (off == len) ? i : 0;
 }
 
 const uint8_t *BRScriptData(const uint8_t *elem, size_t *len)
@@ -196,5 +196,37 @@ BRAddress BRAddressFromScriptSig(const uint8_t *script, size_t len)
 
 size_t BRAddressScriptPubKey(uint8_t *script, size_t len, const char *addr)
 {
-    return 0;
+    static uint8_t pubkeyAddress = BITCOIN_PUBKEY_ADDRESS, scriptAddress = BITCOIN_SCRIPT_ADDRESS;
+    uint8_t data[21];
+    
+    if (BRBase58CheckDecode(data, sizeof(data), addr) != sizeof(data)) return 0;
+    
+#if BITCOIN_TESTNET
+    pubkeyAddress = BITCOIN_PUBKEY_ADDRESS_TEST;
+    scriptAddress = BITCOIN_SCRIPT_ADDRESS_TEST;
+#endif
+    
+    if (data[0] == pubkeyAddress) {
+        if (script && 25 <= len) {
+            script[0] = OP_DUP;
+            script[1] = OP_HASH160;
+            script[2] = 20;
+            memcpy(&script[3], &data[1], 20);
+            script[23] = OP_EQUALVERIFY;
+            script[24] = OP_CHECKSIG;
+        }
+
+        return (! script || 25 <= len) ? 25 : 0;
+    }
+    else if (data[0] == scriptAddress) {
+        if (script && 23 <= len) {
+            script[0] = OP_HASH160;
+            script[1] = 20;
+            memcpy(&script[2], &data[1], 20);
+            script[22] = OP_EQUAL;
+        }
+        
+        return (! script || 23 <= len) ? 23 : 0;
+    }
+    else return 0;
 }

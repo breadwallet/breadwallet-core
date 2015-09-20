@@ -61,10 +61,10 @@ size_t BRAddressScriptPubKey(uint8_t *script, size_t len, const char *addr);
 
 inline static UInt160 BRAddressHash160(const char *addr)
 {
-    uint8_t d[21];
+    uint8_t data[21];
     
-    if (BRBase58CheckDecode(d, sizeof(d), addr) != sizeof(d)) return UINT160_ZERO;
-    return *(UInt160 *)&d[1];
+    if (BRBase58CheckDecode(data, sizeof(data), addr) != sizeof(data)) return UINT160_ZERO;
+    return *(UInt160 *)&data[1];
 }
 
 inline static int BRAddressEq(const void *a, const void *b)
