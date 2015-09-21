@@ -53,6 +53,7 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
                       void *(*seed)(const char *, uint64_t, size_t *));
 
 void BRWalletSetCallbacks(BRWallet *wallet,
+                          void (*balanceChanged)(BRWallet *wallet, uint64_t balance, void *info),
                           void (*txAdded)(BRWallet *wallet, BRTransaction *tx, void *info),
                           void (*txUpdated)(BRWallet *wallet, UInt256 txHash, uint32_t blockHeight, uint32_t timestamp,
                                             void *info),

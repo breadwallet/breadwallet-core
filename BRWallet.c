@@ -40,11 +40,20 @@ struct _BRWallet {
     BRSet *usedAddresses;
     BRSet *allAddresses;
     void *(*seed)(const char *authPrompt, uint64_t amount, size_t *seedLen); // called during tx signing
+    void (*balanceChanged)(BRWallet *wallet, uint64_t balance, void *info);
     void (*txAdded)(BRWallet *wallet, BRTransaction *tx, void *info);
     void (*txUpdated)(BRWallet *wallet, UInt256 txHash, uint32_t blockHeight, uint32_t timestamp, void *info);
     void (*txDeleted)(BRWallet *wallet, UInt256 txHash, void *info);
     void *info;
 };
+
+static void BRWalletSortTransactions(BRWallet *wallet)
+{
+}
+
+static void BRWalletUpdateBalance(BRWallet *wallet)
+{
+}
 
 // allocate and populate a wallet
 BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk,
@@ -74,16 +83,21 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
         }
     }
     
+    BRWalletSortTransactions(wallet);
+    wallet->balance = UINT64_MAX; // trigger balanceChanged callback even if balance is zero
+    BRWalletUpdateBalance(wallet);
     return wallet;
 }
 
 void BRWalletSetCallbacks(BRWallet *wallet,
+                          void (*balanceChanged)(BRWallet *wallet, uint64_t balance, void *info),
                           void (*txAdded)(BRWallet *wallet, BRTransaction *tx, void *info),
                           void (*txUpdated)(BRWallet *wallet, UInt256 txHash, uint32_t blockHeight, uint32_t timestamp,
                                             void *info),
                           void (*txDeleted)(BRWallet *wallet, UInt256 txHash, void *info),
                           void *info)
 {
+    wallet->balanceChanged = balanceChanged;
     wallet->txAdded = txAdded;
     wallet->txUpdated = txUpdated;
     wallet->txDeleted = txDeleted;
