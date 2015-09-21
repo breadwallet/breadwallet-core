@@ -23,3 +23,37 @@
 //  THE SOFTWARE.
 
 #include "BRBloomFilter.h"
+
+// returns a newly allocated BRBloomFilter struct that must be freed by calling BRBloomFilterFree()
+BRBloomFilter *BRBloomFilterNew(double falsePositiveRate, size_t elemCount, uint32_t tweak, uint8_t flags)
+{
+    return NULL;
+}
+
+// buf must contain a serialized filter, result must be freed by calling BRBloomFilterFree()
+BRBloomFilter *BRBloomFilterDeserialize(const uint8_t *buf, size_t len)
+{
+    return NULL;
+}
+
+// returns number of bytes written to buf, or total len needed if buf is NULL
+size_t BRBloomFilterSerialize(BRBloomFilter *filter, uint8_t *buf, size_t len)
+{
+    return 0;
+}
+
+// true if data is matched by filter
+int BRBloomFilterContainsData(BRBloomFilter *filter, const uint8_t *data, size_t len)
+{
+    return 0;
+}
+
+// add data to filter
+void BRBloomFilterInsertData(BRBloomFilter *filter, const uint8_t *data, size_t len)
+{
+}
+
+// frees memory allocated for filter
+void BRBloomFilterFree(BRBloomFilter *filter)
+{
+}

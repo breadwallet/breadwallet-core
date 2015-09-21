@@ -23,3 +23,46 @@
 //  THE SOFTWARE.
 
 #include "BRTransaction.h"
+
+// returns a newly allocated empty transaction that must be freed by calling BRTransactionFree()
+BRTransaction *BRTransactionNew()
+{
+    return NULL;
+}
+
+// buf must contain a serialized tx, result must be freed by calling BRTransactionFree()
+BRTransaction *BRTransactionDeserialize(const uint8_t *buf, size_t len)
+{
+    return NULL;
+}
+
+// returns number of bytes written to buf, or total len needed if buf is NULL
+size_t BRTransactionSerialize(BRTransaction *tx, uint8_t *buf, size_t len)
+{
+    return 0;
+}
+
+// adds an input to tx
+void BRTransactionAddInput(BRTransaction *tx, BRTxInput *input)
+{
+}
+
+// adds an output to tx
+void BRTransactionAddOutput(BRTransaction *tx, BRTxOutput *output)
+{
+}
+
+// shuffles order of tx outputs
+void BRTransactionShuffleOutputs(BRTransaction *tx)
+{
+}
+
+// adds signatures to any inputs with NULL signatures that can be signed with any privKeys
+void BRTransactionSign(BRTransaction *tx, const char *privKeys[], size_t count)
+{
+}
+
+// frees memory allocated for tx
+void BRTransactionFree(BRTransaction *tx)
+{
+}

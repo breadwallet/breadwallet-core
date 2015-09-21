@@ -45,3 +45,116 @@ struct BRPeerContext {
     int (*networkIsReachable)(BRPeer *peer, void *info);
     void *info;
 };
+
+// call this before other BRPeer functions, set earliestKeyTime to wallet creation time to speed up initial sync
+void BRPeerNewContext(BRPeer *peer, uint32_t earliestKeyTime)
+{
+}
+
+void BRPeerSetCallbacks(BRPeer *peer,
+                        void (*connected)(BRPeer *peer, void *info),
+                        void (*disconnected)(BRPeer *peer, BRPeerError error, void *info),
+                        void (*relayedPeers)(BRPeer *peer, BRPeer *peers[], size_t count, void *info),
+                        void (*relayedTx)(BRPeer *peer, BRTransaction *tx, void *info),
+                        void (*hasTx)(BRPeer *peer, UInt256 txHash, void *info),
+                        void (*rejectedTx)(BRPeer *peer, UInt256 txHash, uint8_t code, void *info),
+                        void (*relayedBlock)(BRPeer *peer, BRMerkleBlock *block, void *info),
+                        BRTransaction *(*reqeustedTx)(BRPeer *peer, UInt256 txHash, void *info),
+                        int (*networkIsReachable)(BRPeer *peer, void *info),
+                        void *info)
+{
+}
+
+// current connection status
+BRPeerStatus BRPeerGetStatus(BRPeer *peer)
+{
+    return 0;
+}
+
+void BRPeerConnect(BRPeer *peer)
+{
+}
+
+void BRPeerDisconnect(BRPeer *peer)
+{
+}
+
+// call this when wallet addresses need to be added to bloom filter
+void BRPeerNeedsFilterUpdate(BRPeer *peer)
+{
+}
+
+// call this when local block height changes (helps detect tarpit nodes)
+void BRPeerSetCurrentBlockHeight(BRPeer *peer, uint32_t currentBlockHeight)
+{
+}
+
+// connected peer version number
+uint32_t BRPeerVersion(BRPeer *peer)
+{
+    return 0;
+}
+
+// connected peer user agent string
+const char *BRPeerUserAgent(BRPeer *peer)
+{
+    return NULL;
+}
+
+// best block height reported by connected peer
+uint32_t BRPeerLastBlock(BRPeer *peer)
+{
+    return 0;
+}
+
+// ping time for connected peer
+double BRPeerPingTime(BRPeer *peer)
+{
+    return 0;
+}
+
+void BRPeerSendMessage(BRPeer *peer, const uint8_t *message, size_t len, const char *type)
+{
+}
+
+void BRPeerSendFilterload(BRPeer *peer, const uint8_t *filter, size_t len)
+{
+}
+
+void BRPeerSendMempool(BRPeer *peer)
+{
+}
+
+void BRPeerSendGetheaders(BRPeer *peer, UInt256 *locators, size_t count, UInt256 hashStop)
+{
+}
+
+void BRPeerSendGetblocks(BRPeer *peer, UInt256 *locators, size_t count, UInt256 hashStop)
+{
+}
+
+void BRPeerSendInv(BRPeer *peer, UInt256 *txHashes, size_t count)
+{
+}
+
+void BRPeerSendGetdata(BRPeer *peer, UInt256 *txHashes, size_t txCount, UInt256 *blockHashes, size_t blockCount)
+{
+}
+
+void BRPeerSendGetaddr(BRPeer *peer)
+{
+}
+
+void BRPeerSendPing(BRPeer *peer, void (*pongCallback)(BRPeer *peer, int success, void *info), void *info)
+{
+}
+
+// useful to get additional tx after a bloom filter update
+void BRPeerRerequestBlocks(BRPeer *peer, UInt256 fromBlock)
+{
+}
+
+// frees memory allocated for peer after calling BRPeerCreateContext()
+void BRPeerFreeContext(BRPeer *peer)
+{
+}

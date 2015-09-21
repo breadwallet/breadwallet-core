@@ -124,17 +124,14 @@ int secp256k1_point_mul(void *r, const void *p, UInt256 i, int compressed)
 
 void BRKeySetSecret(BRKey *key, UInt256 secret, int compressed)
 {
-    
 }
 
 void BRKeySetPrivKey(BRKey *key, const char *privKey)
 {
-    
 }
 
 void BRKeySetPubKey(BRKey *key, BRPubKey pubKey)
 {
-    
 }
 
 size_t BRKeyPrivKey(BRKey *key, char *privKey, size_t len)

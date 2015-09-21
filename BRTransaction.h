@@ -68,10 +68,10 @@ BRTransaction *BRTransactionDeserialize(const uint8_t *buf, size_t len);
 size_t BRTransactionSerialize(BRTransaction *tx, uint8_t *buf, size_t len);
 
 // adds an input to tx
-int BRTransactionAddInput(BRTransaction *tx, BRTxInput *input);
+void BRTransactionAddInput(BRTransaction *tx, BRTxInput *input);
 
 // adds an output to tx
-int BRTransactionAddOutput(BRTransaction *tx, BRTxOutput *output);
+void BRTransactionAddOutput(BRTransaction *tx, BRTxOutput *output);
 
 // shuffles order of tx outputs
 void BRTransactionShuffleOutputs(BRTransaction *tx);

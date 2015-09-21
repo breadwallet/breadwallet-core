@@ -66,3 +66,79 @@ struct BRPeerManagerContext {
     void (*txStatusUpdate)(BRPeerManager *manager, void *info);
     void *callbackInfo;
 };
+
+// returns a newly allocated BRPeerManager struct that must be freed by calling BRPeerManagerFree()
+BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMerkleBlock *blocks,
+                                size_t blocksCount, BRPeer *peers, size_t peersCount)
+{
+    return NULL;
+}
+
+void BRPeerManagerSetCallbacks(BRPeerManager *manager,
+                               void (*syncStarted)(BRPeerManager *manager, void *info),
+                               void (*syncSucceded)(BRPeerManager *manager, void *info),
+                               void (*syncFailed)(BRPeerManager *manager, BRPeerManagerError error, void *info),
+                               void (*txStatusUpdate)(BRPeerManager *manager, void *info),
+                               void (*saveBlocks)(BRPeerManager *manager, BRMerkleBlock *blocks, size_t count,
+                                                  void *info),
+                               void (*savePeers)(BRPeerManager *manager, BRPeer *peers, size_t count, void *info),
+                               int (*networkIsReachable)(BRPeerManager *manager, void *info),
+                               void *info)
+{
+}
+
+// true if currently connected to at least one peer
+int BRPeerMangerIsConnected(BRPeerManager *manager)
+{
+    return 0;
+}
+
+// connect to bitcoin peer-to-peer network
+void BRPeerManagerConnect(BRPeerManager *manager)
+{
+}
+
+// rescan blockchain for potentially missing transactions
+void BRPeerManagerRescan(BRPeerManager *manager)
+{
+}
+
+// current proof-of-work verified best block height
+uint32_t BRPeerManagerLastBlockHeight(BRPeerManager *manager)
+{
+    return 0;
+}
+
+// the (unverified) best block height reported by connected peers
+uint32_t BRPeerManagerEstimatedBlockHeight(BRPeerManager *manager)
+{
+    return 0;
+}
+
+// current network sync progress from 0 to 1
+double BRPeerManagerSyncProgress(BRPeerManager *manager)
+{
+    return 0;
+}
+
+// returns the number of currently connected peers
+size_t BRPeerManagerPeerCount(BRPeerManager *manager)
+{
+    return 0;
+}
+
+// publishes tx to bitcoin network
+void BRPeerManagerPublishTx(BRTransaction *tx, void (*callback)(BRPeerManagerError error, void *info), void *info)
+{
+}
+
+// number of connected peers that have relayed the transaction
+size_t BRPeerMangaerRelayCount(UInt256 txHash)
+{
+    return 0;
+}
+
+// frees memory allocated for manager
+void BRPeerManagerFree(BRPeerManager *manager)
+{
+}

@@ -23,3 +23,26 @@
 //  THE SOFTWARE.
 
 #include "BRBIP39Mnemonic.h"
+
+// returns number of bytes written to phrase including NULL terminator, or size needed if phrase is NULL
+size_t BRBIP39Encode(char *phrase, size_t plen, const char *wordlist[], const uint8_t *data, size_t dlen)
+{
+    return 0;
+}
+
+// returns number of bytes written to data, or size needed if data is NULL
+size_t BRBIP39Decode(uint8_t *data, size_t dlen, const char *wordlist[], const char *phrase)
+{
+    return 0;
+}
+
+// verifies that all phrase words are contained in wordlist and checksum is valid
+int BRBIP39PhraseIsValid(const char *wordlist[], const char *phrase)
+{
+    return 0;
+}
+
+// phrase and passphrase must be unicode NFKD normalized, key must hold 64 bytes
+void BIP39DeriveKey(uint8_t *key, const char *phrase, const char *passphrase)
+{
+}

@@ -153,9 +153,8 @@ inline static UInt256 UInt256Reverse(UInt256 u)
     array_count(array) += (count);\
 } while (0)
 
-#define array_rm(array, idx) do {\
-    memmove((array) + (idx), (array) + (idx) + 1, (--array_count(array) - (idx))*sizeof(*(array)));\
-} while (0)
+#define array_rm(array, idx)\
+    memmove((array) + (idx), (array) + (idx) + 1, (--array_count(array) - (idx))*sizeof(*(array)))
 
 #define array_rm_all(array) do {\
     array_count(array) = 0;\
