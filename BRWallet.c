@@ -59,7 +59,7 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
     array_init(wallet->balanceHistory, txCount + 100);
     wallet->allTx = BRSetNew(BRTransactionHash, BRTransactionEq, txCount + 100);
     wallet->usedAddresses = BRSetNew(BRAddressHash, BRAddressEq, txCount*4 + 100);
-    wallet->allAddresses = BRSetNew(BRAddressHash, BRAddressEq, txCount + 300);
+    wallet->allAddresses = BRSetNew(BRAddressHash, BRAddressEq, txCount + 200 + 100);
     wallet->seed = seed;
 
     for (size_t i = 0; i < txCount; i++) {

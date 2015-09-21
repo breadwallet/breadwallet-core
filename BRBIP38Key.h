@@ -49,12 +49,7 @@ size_t BRKeyBIP38ItermediateCodeLS(char *code, size_t codeLen, uint32_t lot, uin
 // compressed indicates if compressed pubKey format should be used for the bitcoin address, confcode will be set to the
 // "confirmation code", returns number of bytes written to confcode including NULL terminator, or total confcodeLen
 // needed if confcode is NULL
-size_t BRKeySetBIP38ItermediateCode(BRKey *key, const char *code, const uint8_t *seedb, int compressed, char *confcode,
-                                    size_t confcodeLen);
-
-// returns true if the "confirmation code" confirms that the given bitcoin address depends on the specified passphrase,
-// passphrase must be unicode NFC normalized
-int BRKeyBIP38Confirm(const char *confcode, const char *addr, const char *passphrase);
+size_t BRKeySetBIP38ItermediateCode(BRKey *key, const char *code, const uint8_t *seedb, int compressed);
 
 // encrypts key with passphrase, returns number of bytes written to bip38Key including NULL terminator, or total
 // bip38KeyLen needed if bip38Key is NULL, passphrase must be unicode NFC normalized

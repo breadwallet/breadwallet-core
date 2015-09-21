@@ -23,6 +23,7 @@
 //  THE SOFTWARE.
 
 #include "BRBloomFilter.h"
+#include "BRHash.h"
 
 // returns a newly allocated BRBloomFilter struct that must be freed by calling BRBloomFilterFree()
 BRBloomFilter *BRBloomFilterNew(double falsePositiveRate, size_t elemCount, uint32_t tweak, uint8_t flags)

@@ -43,7 +43,7 @@ inline static int BRUTXOEq(const void *a, const void *b)
 
 inline static size_t BRUTXOHash(const void *utxo)
 {
-    return (((const BRUTXO *)utxo)->hash.u32[0] ^ ((const BRUTXO *)utxo)->n)*0x01000193;
+    return (((const BRUTXO *)utxo)->hash.u32[0] ^ ((const BRUTXO *)utxo)->n)*0x01000193; // (hash xor n)*FNV_PRIME
 }
 
 typedef struct _BRWallet BRWallet;
