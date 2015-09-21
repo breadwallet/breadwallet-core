@@ -65,7 +65,7 @@ uint64_t BRWalletBalance(BRWallet *wallet);
 // list of all unspent outputs
 BRUTXO *BRWalletUTXOs(BRWallet *wallet, size_t *count);
 
-// all transactions registered in the wallet, sorted by date, old first
+// all transactions registered in the wallet, sorted by date, oldest first
 BRTransaction **BRWalletTransactions(BRWallet *wallet, size_t *count);
 
 // total amount spent from the wallet (exluding change)

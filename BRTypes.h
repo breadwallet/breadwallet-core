@@ -113,16 +113,18 @@ inline static UInt256 UInt256Reverse(UInt256 u)
 
 // growable arrays with type checking
 
-#define array_init(array, capacity) (\
-    (array) = (void *)((size_t *)malloc((capacity)*sizeof(*(array)) + sizeof(size_t)*2) + 2),\
-    array_capacity(array) = (capacity),\
-    array_count(array) = 0)
+#define array_init(array, capacity) do {\
+    (array) = (void *)((size_t *)malloc((capacity)*sizeof(*(array)) + sizeof(size_t)*2) + 2);\
+    array_capacity(array) = (capacity);\
+    array_count(array) = 0;\
+} while (0)
 
 #define array_capacity(array) (((size_t *)(array))[-2])
 
-#define array_set_capacity(array, capacity) (\
-    array_capacity(array) = (capacity),\
-    (array) = (void *)((size_t *)realloc((size_t *)(array) - 2, (capacity)*sizeof(*(array)) + sizeof(size_t)*2) + 2))
+#define array_set_capacity(array, capacity) do {\
+    array_capacity(array) = (capacity);\
+    (array) = (void *)((size_t *)realloc((size_t *)(array) - 2, (capacity)*sizeof(*(array)) + sizeof(size_t)*2) + 2);\
+} while (0)
 
 #define array_count(array) (((size_t *)(array))[-1])
 
@@ -151,11 +153,14 @@ inline static UInt256 UInt256Reverse(UInt256 u)
     array_count(array) += (count);\
 } while (0)
 
-#define array_rm(array, idx) (\
-    memmove((array) + (idx), (array) + (idx) + 1, (--array_count(array) - (idx))*sizeof(*(array))))
+#define array_rm(array, idx) do {\
+    memmove((array) + (idx), (array) + (idx) + 1, (--array_count(array) - (idx))*sizeof(*(array)));\
+} while (0)
 
-#define array_rm_all(array) (array_count(array) = 0)
+#define array_rm_all(array) do {\
+    array_count(array) = 0;\
+} while (0)
 
-#define array_free(array) (free((size_t *)(array) - 2))
+#define array_free(array) free((size_t *)(array) - 2)
 
 #endif // BRTypes_h
