@@ -27,6 +27,8 @@
 
 #include <stdint.h>
 
+// large integers
+
 typedef union {
     uint8_t u8[128/8];
     uint16_t u16[128/16];
@@ -108,5 +110,52 @@ inline static UInt256 UInt256Reverse(UInt256 u)
 #define UINT160_ZERO ((UInt160) { .u32 = { 0, 0, 0, 0, 0 } })
 #define UINT256_ZERO ((UInt256) { .u64 = { 0, 0, 0, 0 } })
 #define UINT512_ZERO ((UInt512) { .u64 = { 0, 0, 0, 0, 0, 0, 0, 0 } })
+
+// growable arrays with type checking
+
+#define array_init(array, capacity) (\
+    (array) = (void *)((size_t *)malloc((capacity)*sizeof(*(array)) + sizeof(size_t)*2) + 2),\
+    array_capacity(array) = (capacity),\
+    array_count(array) = 0)
+
+#define array_capacity(array) (((size_t *)(array))[-2])
+
+#define array_set_capacity(array, capacity) (\
+    array_capacity(array) = (capacity),\
+    (array) = (void *)((size_t *)realloc((size_t *)(array) - 2, (capacity)*sizeof(*(array)) + sizeof(size_t)*2) + 2))
+
+#define array_count(array) (((size_t *)(array))[-1])
+
+#define array_set_count(array, count) do {\
+    if ((count) > array_capacity(array))\
+        array_set_capacity(array, count);\
+    if ((count) > array_count(array))\
+        memset((array) + array_count(array), 0, ((count) - array_count(array))*sizeof(*(array)));\
+    array_count(array) = (count);\
+} while (0)
+
+#define array_first(array) ((array_count(array) > 0) ? (array)[0] : NULL)
+
+#define array_last(array) ((array_count(array) > 0) ? (array)[array_count(array) - 1] : NULL)
+
+#define array_add(array, item) do {\
+    if (array_count(array) + 1 > array_capacity(array))\
+        array_set_capacity(array, array_capacity(array)*3/2);\
+    (array)[array_count(array)++] = (item);\
+} while (0)
+
+#define array_add_array(array, other_array, count) do {\
+    if (array_count(array) + (count) > array_capacity(array))\
+        array_set_capacity(array, (array_count(array) + (count))*3/2);\
+    memcpy((array) + array_count(array), (other_array), sizeof(*(other_array))*(count));\
+    array_count(array) += (count);\
+} while (0)
+
+#define array_rm(array, idx) (\
+    memmove((array) + (idx), (array) + (idx) + 1, (--array_count(array) - (idx))*sizeof(*(array))))
+
+#define array_rm_all(array) (array_count(array) = 0)
+
+#define array_free(array) (free((size_t *)(array) - 2))
 
 #endif // BRTypes_h

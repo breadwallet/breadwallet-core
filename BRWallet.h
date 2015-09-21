@@ -63,10 +63,10 @@ void BRWalletSetCallbacks(BRWallet *wallet,
 uint64_t BRWalletBalance(BRWallet *wallet);
 
 // list of all unspent outputs
-const BRUTXO *BRWalletUTXOs(BRWallet *wallet, size_t *count);
+BRUTXO *BRWalletUTXOs(BRWallet *wallet, size_t *count);
 
-// all transactions registered in the wallet, sorted by date, most recent first
-const BRTransaction **BRWalletTransactions(BRWallet *wallet, size_t *count);
+// all transactions registered in the wallet, sorted by date, old first
+BRTransaction **BRWalletTransactions(BRWallet *wallet, size_t *count);
 
 // total amount spent from the wallet (exluding change)
 uint64_t BRWalletTotalSent(BRWallet *wallet);

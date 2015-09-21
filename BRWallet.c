@@ -30,9 +30,7 @@
 struct _BRWallet {
     uint64_t balance; // current wallet balance excluding transactions known to be invalid
     BRUTXO *utxos; // unspent outputs
-    size_t utxoCount;
-    const BRTransaction **transactions; // transactions sorted by date, most recent first
-    size_t txCount;
+    BRTransaction **transactions; // transactions sorted by date, oldest first
     uint64_t totalSent; // total amount spent from the wallet (excluding change)
     uint64_t totalReceived; // total amount received by the wallet (excluding change)
     uint64_t feePerKb; // fee-per-kb of transaction size to use when creating a transaction
@@ -53,17 +51,16 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
                       void *(*seed)(const char *, uint64_t, size_t *))
 {
     BRWallet *wallet = calloc(1, sizeof(BRWallet));
-    uint8_t *arr = malloc(sizeof(size_t) + sizeof(BRTransaction *)*(txCount + 100));
-    
-    *(size_t *)arr = sizeof(size_t) + sizeof(BRTransaction *)*(txCount + 100);
-    memcpy(arr + sizeof(size_t), transactions, sizeof(*transactions)*txCount);
-    wallet->transactions = (const BRTransaction **)(arr + sizeof(size_t));
-    wallet->txCount = txCount;
+
+    array_init(wallet->utxos, 100);
+    array_init(wallet->transactions, txCount + 100);
+    array_add_array(wallet->transactions, transactions, txCount);
     wallet->masterPubKey = mpk;
-    wallet->seed = seed;
+    array_init(wallet->balanceHistory, txCount + 100);
     wallet->allTx = BRSetNew(BRTransactionHash, BRTransactionEq, txCount + 100);
     wallet->usedAddresses = BRSetNew(BRAddressHash, BRAddressEq, txCount*4 + 100);
     wallet->allAddresses = BRSetNew(BRAddressHash, BRAddressEq, txCount + 300);
+    wallet->seed = seed;
 
     for (size_t i = 0; i < txCount; i++) {
         BRSetAdd(wallet->allTx, transactions[i]);
@@ -100,16 +97,16 @@ inline uint64_t BRWalletBalance(BRWallet *wallet)
 }
 
 // list of all unspent outputs
-inline const BRUTXO *BRWalletUTXOs(BRWallet *wallet, size_t *count)
+inline BRUTXO *BRWalletUTXOs(BRWallet *wallet, size_t *count)
 {
-    *count = wallet->utxoCount;
+    *count = array_count(wallet->utxos);
     return wallet->utxos;
 }
 
 // all transactions registered in the wallet, sorted by date, most recent first
-inline const BRTransaction **BRWalletTransactions(BRWallet *wallet, size_t *count)
+inline BRTransaction **BRWalletTransactions(BRWallet *wallet, size_t *count)
 {
-    *count = wallet->txCount;
+    *count = array_count(wallet->transactions);
     return wallet->transactions;
 }
 
@@ -247,6 +244,14 @@ uint64_t BRWalletFeeForTxSize(BRWallet *wallet, size_t size)
 // frees memory allocated for wallet, also calls BRTransactionFree() for all registered transactions
 void BRWalletFree(BRWallet *wallet)
 {
+    BRSetFree(wallet->allAddresses);
+    BRSetFree(wallet->usedAddresses);
+    BRSetFree(wallet->allTx);
+    array_free(wallet->balanceHistory);
+    for (size_t i = 0; i < array_count(wallet->transactions); i++) BRTransactionFree(wallet->transactions[i]);
+    array_free(wallet->transactions);
+    array_free(wallet->utxos);
+    free(wallet);
 }
 
 // returns the given amount in local currency units, price is local currency units per bitcoin
