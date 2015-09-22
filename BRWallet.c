@@ -35,10 +35,12 @@ struct _BRWallet {
     uint64_t totalReceived; // total amount received by the wallet (excluding change)
     uint64_t feePerKb; // fee-per-kb of transaction size to use when creating a transaction
     BRMasterPubKey masterPubKey;
-    uint64_t *balanceHistory;
+    BRAddress *internalChain;
+    BRAddress *externalChain;
+    uint64_t *balanceHist;
     BRSet *allTx;
-    BRSet *usedAddresses;
-    BRSet *allAddresses;
+    BRSet *usedAddrs;
+    BRSet *allAddrs;
     void *(*seed)(const char *authPrompt, uint64_t amount, size_t *seedLen); // called during tx signing
     void (*balanceChanged)(BRWallet *wallet, uint64_t balance, void *info);
     void (*txAdded)(BRWallet *wallet, BRTransaction *tx, void *info);
@@ -47,8 +49,71 @@ struct _BRWallet {
     void *info;
 };
 
+// dirty dirty hack to sneak context data into qsort() and bsearch() comparator callbacks, since input scripts are
+// not used in already signed transactions, we can hijack the first script pointer for our own nafarious purposes
+inline static void *BRWalletTxContext(BRTransaction *tx)
+{
+    return (tx->inputs[0].scriptLen == 0) ? tx->inputs[0].script : NULL;
+}
+
+inline static void BRWalletTxSetContext(BRTransaction *tx, void *info)
+{
+    if (tx->inputs[0].script && tx->inputs[0].script != info) free(tx->inputs[0].script);
+    tx->inputs[0].script = info;
+    tx->inputs[0].scriptLen = 0;
+}
+
+// chain position of first tx output address that appears in chain
+inline static size_t BRWalletTxChainIdx(BRTransaction *tx, BRAddress *chain) {
+    for (size_t i = 0; i < tx->outCount; i++) {
+        for (size_t j = 0; j < array_count(chain); j++) {
+            if (BRAddressEq(tx->outputs[i].address, &chain[j])) return j;
+        }
+    }
+    
+    return SIZE_MAX;
+}
+
+inline static int BRWalletTxIsAscending(BRWallet *wallet, BRTransaction *tx1, BRTransaction *tx2)
+{
+    if (! tx1 || ! tx2) return 0;
+    if (tx1->blockHeight > tx2->blockHeight) return ! 0;
+    if (tx1->blockHeight < tx2->blockHeight) return 0;
+    
+    for (size_t i = 0; i < tx1->inCount; i++) {
+        if (UInt256Eq(tx1->inputs[i].txHash, tx2->txHash)) return ! 0;
+    }
+    
+    for (size_t i = 0; i < tx2->inCount; i++) {
+        if (UInt256Eq(tx2->inputs[i].txHash, tx1->txHash)) return 0;
+    }
+
+    for (size_t i = 0; i < tx1->inCount; i++) {
+        if (BRWalletTxIsAscending(wallet, BRSetGet(wallet->allTx, &(tx1->inputs[i].txHash)), tx2)) return ! 0;
+    }
+
+    return 0;
+}
+
+inline static int BRWalletTxCompare(const void *tx1, const void *tx2)
+{
+    BRWallet *wallet = BRWalletTxContext((BRTransaction *)tx1);
+
+    if (BRWalletTxIsAscending(wallet, (BRTransaction *)tx1, (BRTransaction *)tx2)) return 1;
+    if (BRWalletTxIsAscending(wallet, (BRTransaction *)tx2, (BRTransaction *)tx1)) return -1;
+    
+    size_t i = BRWalletTxChainIdx((BRTransaction *)tx1, wallet->internalChain);
+    size_t j = BRWalletTxChainIdx((BRTransaction *)tx2,
+                                  (i == SIZE_MAX) ? wallet->externalChain : wallet->internalChain);
+
+    if (i == SIZE_MAX && j != SIZE_MAX) i = BRWalletTxChainIdx((BRTransaction *)tx1, wallet->externalChain);
+    if (i == SIZE_MAX || j == SIZE_MAX || i == j) return 0;
+    return (i > j) ? 1 : -1;
+}
+
 static void BRWalletSortTransactions(BRWallet *wallet)
 {
+    qsort(wallet->transactions, array_count(wallet->transactions), sizeof(*(wallet->transactions)), BRWalletTxCompare);
 }
 
 static void BRWalletUpdateBalance(BRWallet *wallet)
@@ -65,21 +130,26 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
     array_init(wallet->transactions, txCount + 100);
     array_add_array(wallet->transactions, transactions, txCount);
     wallet->masterPubKey = mpk;
-    array_init(wallet->balanceHistory, txCount + 100);
+    array_init(wallet->balanceHist, txCount + 100);
     wallet->allTx = BRSetNew(BRTransactionHash, BRTransactionEq, txCount + 100);
-    wallet->usedAddresses = BRSetNew(BRAddressHash, BRAddressEq, txCount*4 + 100);
-    wallet->allAddresses = BRSetNew(BRAddressHash, BRAddressEq, txCount + 200 + 100);
+    wallet->usedAddrs = BRSetNew(BRAddressHash, BRAddressEq, txCount*4 + 100);
+    wallet->allAddrs = BRSetNew(BRAddressHash, BRAddressEq, txCount + 200 + 100);
     wallet->seed = seed;
 
     for (size_t i = 0; i < txCount; i++) {
+        // dirty dirty hack to sneak context data into qsort() and bsearch() comparator callbacks, since input scripts
+        // are not used in signed transactions, we hijack the first script pointer for our own nafarious purposes
+        transactions[i]->inputs[0].script = (void *)wallet;
+        transactions[i]->inputs[0].scriptLen = 0;
+        
         BRSetAdd(wallet->allTx, transactions[i]);
         
         for (size_t j = 0; j < transactions[i]->inCount; j++) {
-            BRSetAdd(wallet->usedAddresses, transactions[i]->inputs[j].address);
+            BRSetAdd(wallet->usedAddrs, transactions[i]->inputs[j].address);
         }
         
         for (size_t j = 0; j < transactions[i]->outCount; j++) {
-            BRSetAdd(wallet->usedAddresses, transactions[i]->outputs[j].address);
+            BRSetAdd(wallet->usedAddrs, transactions[i]->outputs[j].address);
         }
     }
     
@@ -258,11 +328,16 @@ uint64_t BRWalletFeeForTxSize(BRWallet *wallet, size_t size)
 // frees memory allocated for wallet, also calls BRTransactionFree() for all registered transactions
 void BRWalletFree(BRWallet *wallet)
 {
-    BRSetFree(wallet->allAddresses);
-    BRSetFree(wallet->usedAddresses);
+    BRSetFree(wallet->allAddrs);
+    BRSetFree(wallet->usedAddrs);
     BRSetFree(wallet->allTx);
-    array_free(wallet->balanceHistory);
-    for (size_t i = 0; i < array_count(wallet->transactions); i++) BRTransactionFree(wallet->transactions[i]);
+    array_free(wallet->balanceHist);
+
+    for (size_t i = 0; i < array_count(wallet->transactions); i++) {
+        BRWalletTxSetContext(wallet->transactions[i], NULL);
+        BRTransactionFree(wallet->transactions[i]);
+    }
+
     array_free(wallet->transactions);
     array_free(wallet->utxos);
     free(wallet);
