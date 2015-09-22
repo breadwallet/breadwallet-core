@@ -49,10 +49,10 @@ struct _BRWallet {
     void *info;
 };
 
-// dirty dirty hack to sneak context data into qsort() and bsearch() comparator callbacks, since input scripts are
-// not used in already signed transactions, we can hijack the first script pointer for our own nafarious purposes
 inline static void *BRWalletTxContext(BRTransaction *tx)
 {
+    // dirty dirty hack to sneak context data into qsort() and bsearch() comparator callbacks, since input scripts are
+    // not used in already signed transactions, we can hijack the first script pointer for our own nafarious purposes
     return (tx->inputs[0].scriptLen == 0) ? tx->inputs[0].script : NULL;
 }
 
@@ -137,11 +137,7 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
     wallet->seed = seed;
 
     for (size_t i = 0; i < txCount; i++) {
-        // dirty dirty hack to sneak context data into qsort() and bsearch() comparator callbacks, since input scripts
-        // are not used in signed transactions, we hijack the first script pointer for our own nafarious purposes
-        transactions[i]->inputs[0].script = (void *)wallet;
-        transactions[i]->inputs[0].scriptLen = 0;
-        
+        BRWalletTxSetContext(transactions[i], wallet);
         BRSetAdd(wallet->allTx, transactions[i]);
         
         for (size_t j = 0; j < transactions[i]->inCount; j++) {
