@@ -53,11 +53,11 @@ typedef struct {
 
 #define BR_ADDRESS_NONE ((BRAddress) { "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0" })
 
-BRAddress BRAddressFromScriptPubKey(const uint8_t *script, size_t len);
+size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *script, size_t scriptLen);
 
-BRAddress BRAddressFromScriptSig(const uint8_t *script, size_t len);
+size_t BRAddressFromScriptSig(char *addr, size_t addrLen, const uint8_t *script, size_t scriptLen);
 
-size_t BRAddressScriptPubKey(uint8_t *script, size_t len, const char *addr);
+size_t BRAddressScriptPubKey(uint8_t *script, size_t scriptLen, const char *addr);
 
 inline static UInt160 BRAddressHash160(const char *addr)
 {

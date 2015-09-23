@@ -40,6 +40,8 @@ struct _BRWallet {
     BRAddress *externalChain;
     uint64_t *balanceHist;
     BRSet *allTx;
+    BRSet *invalidTx;
+    BRSet *spentOutputs;
     BRSet *usedAddrs;
     BRSet *allAddrs;
     void *(*seed)(const char *authPrompt, uint64_t amount, size_t *seedLen); // called during tx signing
@@ -72,8 +74,7 @@ inline static BRAddress *BRWalletUnusedAddrs(BRWallet *wallet, uint32_t gapLimit
     pthread_mutex_lock(&wallet->lock);
 
     chain = (internal) ? wallet->internalChain : wallet->externalChain;
-    count = (uint32_t)array_count(chain);
-    i = count - 1;
+    i = count = (uint32_t)array_count(chain);
 
     // keep only the trailing contiguous block of addresses with no transactions
     while (i > 0 && ! BRSetContains(wallet->usedAddrs, &chain[i - 1])) i--;
@@ -171,11 +172,11 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
 {
     BRWallet *wallet = calloc(1, sizeof(BRWallet));
 
-    array_init(wallet->utxos, 100);
-    array_init(wallet->transactions, txCount + 100);
+    array_new(wallet->utxos, 100);
+    array_new(wallet->transactions, txCount + 100);
     array_add_array(wallet->transactions, transactions, txCount);
     wallet->masterPubKey = mpk;
-    array_init(wallet->balanceHist, txCount + 100);
+    array_new(wallet->balanceHist, txCount + 100);
     wallet->allTx = BRSetNew(BRTransactionHash, BRTransactionEq, txCount + 100);
     wallet->usedAddrs = BRSetNew(BRAddressHash, BRAddressEq, txCount*4 + 100);
     wallet->allAddrs = BRSetNew(BRAddressHash, BRAddressEq, txCount + 200 + 100);

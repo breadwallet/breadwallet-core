@@ -49,6 +49,9 @@ size_t BRSetCount(BRSet *set);
 // true if item is contained in set
 int BRSetContains(BRSet *set, const void *item);
 
+// true if any items in otherSet are contained in set
+int BRSetIntersects(BRSet *set, BRSet *otherSet);
+
 // returns member item from set equivalent to given item
 void *BRSetGet(BRSet *set, const void *item);
 
@@ -59,10 +62,13 @@ void *BRSetFirst(BRSet *set);
 void *BRSetNext(BRSet *set, const void *item);
 
 // adds or replaces items from otherSet into set
-void BRSetUnion(BRSet *set, const BRSet *otherSet);
+void BRSetUnion(BRSet *set, BRSet *otherSet);
 
 // removes items contained in otherSet from set
-void BRSetMinus(BRSet *set, const BRSet *otherSet);
+void BRSetMinus(BRSet *set, BRSet *otherSet);
+
+// removes items not contained in otherSet from set
+void BRSetIntersect(BRSet *set, BRSet *otherSet);
 
 // frees memory allocated for set
 void BRSetFree(BRSet *set);

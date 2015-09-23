@@ -144,9 +144,23 @@ inline size_t BRSetCount(BRSet *set)
 }
 
 // true if item is contained in set
-int BRSetContains(BRSet *set, const void *item)
+inline int BRSetContains(BRSet *set, const void *item)
 {
     return (BRSetGet(set, item) != NULL);
+}
+
+// true if any items in otherSet are contained in set
+int BRSetIntersects(BRSet *set, BRSet *otherSet)
+{
+    size_t i = 0, size = otherSet->size;
+    void *t;
+    
+    while (i < size) {
+        t = otherSet->table[i++];
+        if (t && BRSetGet(set, t) != NULL) return ! 0;
+    }
+    
+    return 0;
 }
 
 // returns member item from set equivalent to given item
@@ -192,7 +206,7 @@ void *BRSetNext(BRSet *set, const void *item)
 }
 
 // adds or replaces items from otherSet into set
-void BRSetUnion(BRSet *set, const BRSet *otherSet)
+void BRSetUnion(BRSet *set, BRSet *otherSet)
 {
     size_t i = 0, size = otherSet->size;
     void *t;
@@ -206,7 +220,7 @@ void BRSetUnion(BRSet *set, const BRSet *otherSet)
 }
 
 // removes items contained in otherSet from set
-void BRSetMinus(BRSet *set, const BRSet *otherSet)
+void BRSetMinus(BRSet *set, BRSet *otherSet)
 {
     size_t i = 0, size = otherSet->size;
     void *t;
@@ -214,6 +228,26 @@ void BRSetMinus(BRSet *set, const BRSet *otherSet)
     while (i < size) {
         t = otherSet->table[i++];
         if (t) BRSetRemove(set, t);
+    }
+}
+
+// removes items not contained in otherSet from set
+void BRSetIntersect(BRSet *set, BRSet *otherSet)
+{
+    size_t i = 0, size = set->size;
+    void *t;
+    BRSet oset = *otherSet;
+    
+    oset.hash = set->hash;
+    oset.eq = set->eq;
+    
+    while (i < size) {
+        t = set->table[i];
+
+        if (t && ! BRSetContains(&oset, t)) {
+            BRSetRemove(set, t);
+        }
+        else i++;
     }
 }
 

@@ -28,6 +28,14 @@
 #include "BRTypes.h"
 #include <stddef.h>
 
+#define TX_FEE_PER_KB        1000ULL     // standard tx fee per kb of tx size, rounded up to nearest kb
+#define TX_MIN_OUTPUT_AMOUNT (TX_FEE_PER_KB*3*(34 + 148)/1000) // no txout can be below this amount (or it won't relay)
+#define TX_MAX_SIZE          100000      // no tx can be larger than this size in bytes
+#define TX_FREE_MAX_SIZE     1000        // tx must not be larger than this size in bytes without a fee
+#define TX_FREE_MIN_PRIORITY 57600000ULL // tx must not have a priority below this value without a fee
+#define TX_UNCONFIRMED       INT32_MAX   // block height indicating transaction is unconfirmed
+#define TX_MAX_LOCK_HEIGHT   500000000u  // a lockTime below this value is a block height, otherwise a timestamp
+
 typedef struct {
     UInt256 txHash;
     uint32_t index;
