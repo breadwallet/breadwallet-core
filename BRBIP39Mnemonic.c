@@ -42,7 +42,8 @@ int BRBIP39PhraseIsValid(const char *wordlist[], const char *phrase)
     return 0;
 }
 
-// phrase and passphrase must be unicode NFKD normalized, key must hold 64 bytes
+// key must hold 64 bytes, phrase and passphrase must be unicode NFKD normalized
+// http://www.unicode.org/reports/tr15/#Norm_Forms
 void BIP39DeriveKey(uint8_t *key, const char *phrase, const char *passphrase)
 {
 }

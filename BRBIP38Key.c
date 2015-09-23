@@ -238,7 +238,7 @@ static void scrypt(void *dk, size_t dklen, const void *pw, size_t pwlen, const v
 }
 
 // decrypts a BIP38 key using the given passphrase, returns false if passphrase is incorrect, passphrase must be unicode
-// NFC normalized
+// NFC normalized: http://www.unicode.org/reports/tr15/#Norm_Forms
 int BRKeySetBIP38Key(BRKey *key, const char *bip38Key, const char *passphrase)
 {
     return 0;
@@ -262,12 +262,9 @@ size_t BRKeyBIP38ItermediateCodeLS(char *code, size_t codeLen, uint32_t lot, uin
 }
 
 // generates a BIP38 key from an "intermediate code" and 24 bytes of cryptographically random data (seedb),
-// compressed indicates if compressed pubKey format should be used for the bitcoin address, confcode will be set to the
-// "confirmation code", returns number of bytes written to confcode including NULL terminator, or total confcodeLen
-// needed if confcode is NULL
-size_t BRKeySetBIP38ItermediateCode(BRKey *key, const char *code, const uint8_t *seedb, int compressed)
+// compressed indicates if compressed pubKey format should be used for the bitcoin address
+void BRKeySetBIP38ItermediateCode(BRKey *key, const char *code, const uint8_t *seedb, int compressed)
 {
-    return 0;
 }
 
 // encrypts key with passphrase, returns number of bytes written to bip38Key including NULL terminator, or total

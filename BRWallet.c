@@ -26,6 +26,7 @@
 #include "BRSet.h"
 #include "BRAddress.h"
 #include <stdlib.h>
+#include <pthread.h>
 
 struct _BRWallet {
     uint64_t balance; // current wallet balance excluding transactions known to be invalid
@@ -47,7 +48,51 @@ struct _BRWallet {
     void (*txUpdated)(BRWallet *wallet, UInt256 txHash, uint32_t blockHeight, uint32_t timestamp, void *info);
     void (*txDeleted)(BRWallet *wallet, UInt256 txHash, void *info);
     void *info;
+    pthread_mutex_t lock;
 };
+
+// Wallets are composed of chains of addresses. Each chain is traversed until a gap of a certain number of addresses is
+// found that haven't been used in any transactions. This function returns an array of <gapLimit> unused addresses
+// following the last used address in the chain. The internal chain is used for change addresses and the external chain
+// for receive addresses.
+inline static BRAddress *BRWalletUnusedAddrs(BRWallet *wallet, uint32_t gapLimit, int internal)
+{
+    BRAddress *chain = (internal) ? wallet->internalChain : wallet->externalChain;
+    uint32_t count = (uint32_t)array_count(chain), i = count;
+    
+    // keep only the trailing contiguous block of addresses with no transactions
+    while (i > 0 && ! BRSetContains(wallet->usedAddrs, &chain[i - 1])) i--;
+    if (count - i >= gapLimit) return &chain[i];
+    
+    if (i == 0 && gapLimit > 1) { // get receive address and change address first to avoid blocking
+        BRWalletReceiveAddress(wallet);
+        BRWalletChangeAddress(wallet);
+    }
+    
+    pthread_mutex_lock(&wallet->lock);
+
+    chain = (internal) ? wallet->internalChain : wallet->externalChain;
+    count = (uint32_t)array_count(chain);
+    i = count - 1;
+
+    // keep only the trailing contiguous block of addresses with no transactions
+    while (i > 0 && ! BRSetContains(wallet->usedAddrs, &chain[i - 1])) i--;
+
+    while (count - i < gapLimit) { // generate new addresses up to gapLimit
+        BRKey key;
+        BRAddress addr = BR_ADDRESS_NONE;
+
+        BRKeySetPubKey(&key, BRBIP32PubKey(wallet->masterPubKey, internal, count));
+        if (BRKeyAddress(&key, addr.s, sizeof(addr)) == 0) break;
+        if (BRAddressEq(&addr, &BR_ADDRESS_NONE)) break;
+        array_add(chain, addr);
+        BRSetAdd(wallet->allAddrs, &chain[count]);
+        count++;
+    }
+    
+    pthread_mutex_unlock(&wallet->lock);
+    return (count - i >= gapLimit) ? &chain[i] : NULL;
+}
 
 inline static void *BRWalletTxContext(BRTransaction *tx)
 {
@@ -97,21 +142,21 @@ inline static int BRWalletTxIsAscending(BRWallet *wallet, BRTransaction *tx1, BR
 
 inline static int BRWalletTxCompare(const void *tx1, const void *tx2)
 {
-    BRWallet *wallet = BRWalletTxContext((BRTransaction *)tx1);
+    BRWallet *wallet = BRWalletTxContext(*(BRTransaction **)tx1);
 
-    if (BRWalletTxIsAscending(wallet, (BRTransaction *)tx1, (BRTransaction *)tx2)) return 1;
-    if (BRWalletTxIsAscending(wallet, (BRTransaction *)tx2, (BRTransaction *)tx1)) return -1;
+    if (BRWalletTxIsAscending(wallet, *(BRTransaction **)tx1, *(BRTransaction **)tx2)) return 1;
+    if (BRWalletTxIsAscending(wallet, *(BRTransaction **)tx2, *(BRTransaction **)tx1)) return -1;
     
-    size_t i = BRWalletTxChainIdx((BRTransaction *)tx1, wallet->internalChain);
-    size_t j = BRWalletTxChainIdx((BRTransaction *)tx2,
+    size_t i = BRWalletTxChainIdx(*(BRTransaction **)tx1, wallet->internalChain);
+    size_t j = BRWalletTxChainIdx(*(BRTransaction **)tx2,
                                   (i == SIZE_MAX) ? wallet->externalChain : wallet->internalChain);
 
-    if (i == SIZE_MAX && j != SIZE_MAX) i = BRWalletTxChainIdx((BRTransaction *)tx1, wallet->externalChain);
+    if (i == SIZE_MAX && j != SIZE_MAX) i = BRWalletTxChainIdx(*(BRTransaction **)tx1, wallet->externalChain);
     if (i == SIZE_MAX || j == SIZE_MAX || i == j) return 0;
     return (i > j) ? 1 : -1;
 }
 
-static void BRWalletSortTransactions(BRWallet *wallet)
+inline static void BRWalletSortTransactions(BRWallet *wallet)
 {
     qsort(wallet->transactions, array_count(wallet->transactions), sizeof(*(wallet->transactions)), BRWalletTxCompare);
 }

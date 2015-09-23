@@ -42,7 +42,8 @@ size_t BRBIP39Decode(uint8_t *data, size_t dlen, const char *wordlist[], const c
 // verifies that all phrase words are contained in wordlist and checksum is valid
 int BRBIP39PhraseIsValid(const char *wordlist[], const char *phrase);
 
-// phrase and passphrase must be unicode NFKD normalized, key must hold 64 bytes
+// key must hold 64 bytes, phrase and passphrase must be unicode NFKD normalized
+// http://www.unicode.org/reports/tr15/#Norm_Forms
 void BIP39DeriveKey(uint8_t *key, const char *phrase, const char *passphrase);
 
 #endif // BRBIP39Mnemonic_h
