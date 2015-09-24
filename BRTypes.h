@@ -145,7 +145,7 @@ inline static UInt256 UInt256Reverse(UInt256 u)
 
 #define array_add(array, item) do {\
     if (array_count(array) + 1 > array_capacity(array))\
-        array_set_capacity(array, array_capacity(array)*3/2);\
+        array_set_capacity(array, (array_capacity(array) + 1)*3/2);\
     (array)[array_count(array)++] = (item);\
 } while (0)
 
@@ -158,7 +158,7 @@ inline static UInt256 UInt256Reverse(UInt256 u)
 
 #define array_insert(array, idx, item) do {\
     if (array_count(array) + 1 > array_capacity(array))\
-        array_set_capacity(array, array_capacity(array)*3/2);\
+        array_set_capacity(array, (array_capacity(array) + 1)*3/2);\
     memmove((array) + (idx) + 1, (array) + (idx), (array_count(array)++ - (idx))*sizeof(*(array)));\
     (array)[(idx)] = (item);\
 } while (0)

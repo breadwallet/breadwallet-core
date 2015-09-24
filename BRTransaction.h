@@ -39,7 +39,7 @@
 typedef struct {
     UInt256 txHash;
     uint32_t index;
-    char *address;
+    char address[36];
     uint8_t *script;
     size_t scriptLen;
     uint8_t *signature;
@@ -48,7 +48,7 @@ typedef struct {
 } BRTxInput;
 
 typedef struct {
-    char *address;
+    char address[36];
     uint64_t amount;
     uint8_t *script;
     size_t scriptLen;

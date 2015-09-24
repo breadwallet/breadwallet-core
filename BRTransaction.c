@@ -27,7 +27,11 @@
 // returns a newly allocated empty transaction that must be freed by calling BRTransactionFree()
 BRTransaction *BRTransactionNew()
 {
-    return NULL;
+    BRTransaction *tx = calloc(1, sizeof(BRTransaction));
+
+    array_new(tx->inputs, 1);
+    array_new(tx->outputs, 2);
+    return tx;
 }
 
 // buf must contain a serialized tx, result must be freed by calling BRTransactionFree()
@@ -45,11 +49,15 @@ size_t BRTransactionSerialize(BRTransaction *tx, uint8_t *buf, size_t len)
 // adds an input to tx
 void BRTransactionAddInput(BRTransaction *tx, BRTxInput *input)
 {
+    array_add(tx->inputs, *input);
+    tx->inCount = array_count(tx->inputs);
 }
 
 // adds an output to tx
 void BRTransactionAddOutput(BRTransaction *tx, BRTxOutput *output)
 {
+    array_add(tx->outputs, *output);
+    tx->outCount = array_count(tx->outputs);
 }
 
 // shuffles order of tx outputs
@@ -65,4 +73,16 @@ void BRTransactionSign(BRTransaction *tx, const char *privKeys[], size_t count)
 // frees memory allocated for tx
 void BRTransactionFree(BRTransaction *tx)
 {
+    for (size_t i = 0; i < tx->inCount; i++) {
+        if (tx->inputs[i].script) array_free(tx->inputs[i].script);
+        if (tx->inputs[i].signature) array_free(tx->inputs[i].signature);
+    }
+
+    for (size_t i = 0; i < tx->outCount; i++) {
+        if (tx->outputs[i].script) array_free(tx->outputs[i].script);
+    }
+
+    array_free(tx->outputs);
+    array_free(tx->inputs);
+    free(tx);
 }

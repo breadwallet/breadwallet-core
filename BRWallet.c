@@ -104,7 +104,7 @@ inline static void *BRWalletTxContext(BRTransaction *tx)
 
 inline static void BRWalletTxSetContext(BRTransaction *tx, void *info)
 {
-    if (tx->inputs[0].script && tx->inputs[0].script != info) free(tx->inputs[0].script);
+    if (tx->inputs[0].scriptLen > 0) array_free(tx->inputs[0].script);
     tx->inputs[0].script = info;
     tx->inputs[0].scriptLen = 0;
 }
