@@ -164,6 +164,67 @@ inline static void BRWalletSortTransactions(BRWallet *wallet)
 
 static void BRWalletUpdateBalance(BRWallet *wallet)
 {
+    uint64_t balance = 0, prevBalance = 0;
+    BRSet *spent = BRSetNew(BRUTXOHash, BRUTXOEq, array_count(wallet->utxos));
+    
+    array_clear(wallet->utxos);
+    array_clear(wallet->balanceHist);
+    BRSetClear(wallet->spentOutputs);
+    BRSetClear(wallet->invalidTx);
+    wallet->totalSent = 0;
+    wallet->totalReceived = 0;
+
+    for (size_t i = 0; i < array_count(wallet->transactions); i++) {
+        BRSetClear(spent);
+        
+        for (size_t j = 0; j < wallet->transactions[i]->inCount; j++) {
+            BRSetAdd(spent, &wallet->transactions[i]->inputs[j]);
+        }
+
+        // check if any inputs are invalid or already spent
+        if (wallet->transactions[i]->blockHeight == TX_UNCONFIRMED &&
+            (BRSetIntersects(spent, wallet->spentOutputs) || BRSetIntersects(spent, wallet->invalidTx))) {
+            BRSetAdd(wallet->invalidTx, wallet->transactions[i]);
+            continue;
+        }
+        
+        BRSetUnion(wallet->spentOutputs, spent);
+
+        //TODO: don't add outputs below TX_MIN_OUTPUT_AMOUNT
+        //TODO: don't add coin generation outputs < 100 blocks deep, or non-final lockTime > 1 block/10min in future
+        //NOTE: balance/UTXOs will then need to be recalculated when last block changes
+        for (size_t j = 0; j < wallet->transactions[i]->outCount; j++) {
+            if (BRSetContains(wallet->allAddrs, wallet->transactions[i]->outputs[j].address)) {
+                array_add(wallet->utxos, ((BRUTXO) { wallet->transactions[i]->txHash, (uint32_t)j }));
+                balance += wallet->transactions[i]->outputs[j].amount;
+            }
+        }
+
+        // transaction ordering is not guaranteed, so check the entire UTXO set against the entire spent output set
+        BRSetClear(spent);
+        for (size_t j = 0; j < array_count(wallet->utxos); j++) BRSetAdd(spent, &wallet->utxos[j]);
+        BRSetIntersect(spent, wallet->spentOutputs);
+
+        for (size_t j = 0; j < array_count(wallet->utxos);) { // remove any spent outputs from UTXO set
+            if (BRSetContains(spent, &wallet->utxos[j])) {
+                BRTransaction *tx = BRSetGet(wallet->allTx, &wallet->utxos[j].hash);
+
+                balance -= tx->outputs[wallet->utxos[j].n].amount;
+                array_rm(wallet->utxos, j);
+            }
+            else j++;
+        }
+
+        if (prevBalance < balance) wallet->totalReceived += balance - prevBalance;
+        if (balance < prevBalance) wallet->totalSent += prevBalance - balance;
+        array_add(wallet->balanceHist, balance);
+        prevBalance = balance;
+    }
+
+    if (balance != wallet->balance) {
+        wallet->balance = balance;
+        if (wallet->balanceChanged) wallet->balanceChanged(wallet, balance, wallet->info);
+    }
 }
 
 // allocate and populate a wallet
