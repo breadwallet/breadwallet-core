@@ -153,7 +153,17 @@ size_t BRBIP32SerializeMasterPrivKey(char *s, size_t len, const void *seed, size
     return 0;
 }
 
+size_t BRBIP32DeserializeMasterPrivKey(void *seed, size_t seedLen, const char *s)
+{
+    return 0;
+}
+
 size_t BRBIP32SerializeMasterPubKey(char *s, size_t len, BRMasterPubKey mpk)
 {
     return 0;
+}
+
+BRMasterPubKey BRBIP32DeserializeMasterPubKey(const char *s)
+{
+    return MASTER_PUBKEY_NONE;
 }
