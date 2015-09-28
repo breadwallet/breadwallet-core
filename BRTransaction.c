@@ -127,8 +127,9 @@ int BRTransactionIsSigned(BRTransaction *tx)
 int BRTransactionSign(BRTransaction *tx, const char *privKeys[], size_t count)
 {
     BRKey keys[count];
-    BRAddress addrs[count];
-    size_t i, j;
+    BRAddress addrs[count], a;
+    BRTxInput *in;
+    size_t i, j, len;
     
     for (i = 0, j = 0; i < count; i++) {
         if (BRKeySetPrivKey(&keys[j], privKeys[i]) && BRKeyAddress(&keys[j], addrs[j].s, sizeof(addrs[j]))) j++;
@@ -136,47 +137,34 @@ int BRTransactionSign(BRTransaction *tx, const char *privKeys[], size_t count)
     
     count = j;
 
-    for (i = 0; i < tx->inCount; i++) {
-        BRTxInput *in = &tx->inputs[i];
-        BRAddress a = BR_ADDRESS_NONE;
-        
+    for (i = 0, j = 0; i < tx->inCount; i++) {
+        in = &tx->inputs[i];
         if (! BRAddressFromScriptPubKey(a.s, sizeof(a), in->script, in->scriptLen)) continue;
+        while (j < count && ! BRAddressEq(&addrs[j], &a)) j++;
+        if (j >= count) continue;
 
-        for (j = 0; j < count; j++) {
-            if (! BRAddressEq(&addrs[j], &a)) continue;
-            
-            size_t len, elemsCount = BRScriptElements(NULL, 0, in->script, in->scriptLen);
-            const uint8_t *elems[elemsCount];
-            uint8_t sig[72], data[BRTransactionData(tx, NULL, 0, i)];
-            UInt256 hash = UINT256_ZERO;
-            
-            BRScriptElements(elems, elemsCount, in->script, in->scriptLen);
-            BRTransactionData(tx, data, sizeof(data), i);
-            BRSHA256_2(&hash, data, sizeof(data));
-            if (in->signature) array_free(in->signature);
-            in->sigLen = 0;
-            array_new(in->signature, 74);
-            array_add(in->signature, SIGHASH_ALL);
-            len = BRKeySign(&keys[j], sig, sizeof(sig), hash);
-            
-            if (sig > 0) {
-                array_add(in->signature, len);
-                array_add_array(in->signature, sig, len);
-            
-                if (elemsCount >= 2 && *elems[elemsCount - 2] == OP_EQUALVERIFY) { // pay-to-pubkey-hash scriptSig
-                    uint8_t pubKey[BRKeyPubKey(&keys[j], NULL, 0)];
-                
-                    BRKeyPubKey(&keys[j], pubKey, sizeof(pubKey));
-                    array_add(in->signature, sizeof(pubKey));
-                    array_add_array(in->signature, pubKey, sizeof(pubKey));
-                }
-                
-                in->sigLen = array_count(in->signature);
-            }
-            else array_free(in->signature);
-            
-            break;
+        const uint8_t *elems[BRScriptElements(NULL, 0, in->script, in->scriptLen)];
+        uint8_t data[BRTransactionData(tx, NULL, 0, i)], sig[OP_PUSHDATA1 - 1], pubKey[65];
+        UInt256 hash = UINT256_ZERO;
+        
+        len = BRTransactionData(tx, data, sizeof(data), i);
+        BRSHA256_2(&hash, data, len);
+        len = BRKeySign(&keys[j], sig, sizeof(sig) - 1, hash);
+        if (len == 0) continue;
+        sig[len++] = SIGHASH_ALL;
+        if (in->signature) array_free(in->signature);
+        array_new(in->signature, 1 + len + 34);
+        array_add(in->signature, len);
+        array_add_array(in->signature, sig, len);
+        len = BRScriptElements(elems, sizeof(elems)/sizeof(*elems), in->script, in->scriptLen);
+        
+        if (len >= 2 && *elems[len - 2] == OP_EQUALVERIFY) { // pay-to-pubkey-hash scriptSig
+            len = BRKeyPubKey(&keys[j], pubKey, sizeof(pubKey));
+            array_add(in->signature, len);
+            array_add_array(in->signature, pubKey, len);
         }
+        
+        in->sigLen = array_count(in->signature);
     }
     
     for (i = 0; i < count; i++) BRKeyClean(&keys[i]);
@@ -184,8 +172,8 @@ int BRTransactionSign(BRTransaction *tx, const char *privKeys[], size_t count)
     
     uint8_t data[BRTransactionData(tx, NULL, 0, SIZE_MAX)];
     
-    BRTransactionData(tx, data, sizeof(data), SIZE_MAX);
-    BRSHA256_2(&tx->txHash, data, sizeof(data));
+    len = BRTransactionData(tx, data, sizeof(data), SIZE_MAX);
+    BRSHA256_2(&tx->txHash, data, len);
     return ! 0;
 }
 

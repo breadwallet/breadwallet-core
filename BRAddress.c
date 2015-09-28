@@ -137,7 +137,7 @@ size_t BRScriptPushData(uint8_t *script, size_t scriptLen, const uint8_t *data, 
     }
     
     if (script && scriptLen >= len) memcpy(script + len - dataLen, data, dataLen);
-    return len;
+    return (! script || scriptLen >= len) ? len : 0;
 }
 
 // NOTE: It's important here to be permissive with scriptSig (spends) and strict with scriptPubKey (receives). If we
