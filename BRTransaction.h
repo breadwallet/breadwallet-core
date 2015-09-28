@@ -26,7 +26,6 @@
 #define BRTransaction_h
 
 #include "BRTypes.h"
-#include <stddef.h>
 
 #define TX_FEE_PER_KB        1000ULL     // standard tx fee per kb of tx size, rounded up to nearest kb
 #define TX_MIN_OUTPUT_AMOUNT (TX_FEE_PER_KB*3*(34 + 148)/1000) // no txout can be below this amount (or it won't relay)
@@ -35,6 +34,11 @@
 #define TX_FREE_MIN_PRIORITY 57600000ULL // tx must not have a priority below this value without a fee
 #define TX_UNCONFIRMED       INT32_MAX   // block height indicating transaction is unconfirmed
 #define TX_MAX_LOCK_HEIGHT   500000000u  // a lockTime below this value is a block height, otherwise a timestamp
+
+#define BR_RAND_MAX RAND_MAX
+
+// returns a random number less than upperBound, for non-cryptographic use only
+uint32_t BRRand(uint32_t upperBound);
 
 typedef struct {
     UInt256 txHash;

@@ -23,6 +23,25 @@
 //  THE SOFTWARE.
 
 #include "BRTransaction.h"
+#include <time.h>
+#include <unistd.h>
+
+// returns a random number less than upperBound, for non-cryptographic use only
+uint32_t BRRand(uint32_t upperBound)
+{
+    static int first = 1;
+    uint32_t r;
+    
+    if (first) srand(((unsigned)time(NULL) ^ getpid())*0x01000193); // seed = (time xor pid)*FNV_PRIME
+    first = 0;
+    if (upperBound == 0 || upperBound > BR_RAND_MAX) upperBound = BR_RAND_MAX;
+    
+    do { // to avoid modulo bias, find a rand value not less than 0x100000000 % upperBound
+        r = rand();
+    } while (r < ((0xffffffff - upperBound*2) + 1) % upperBound); // ((0x100000000 - x*2) % x) == (0x100000000 % x)
+
+    return r % upperBound;
+}
 
 // returns a newly allocated empty transaction that must be freed by calling BRTransactionFree()
 BRTransaction *BRTransactionNew()
@@ -63,6 +82,15 @@ void BRTransactionAddOutput(BRTransaction *tx, BRTxOutput *output)
 // shuffles order of tx outputs
 void BRTransactionShuffleOutputs(BRTransaction *tx)
 {
+    for (uint32_t i = 0; i + 1 < tx->outCount; i++) { // fischer-yates shuffle
+        uint32_t j = i + BRRand((uint32_t)tx->outCount - i);
+        BRTxOutput t;
+        
+        if (j == i) continue;
+        t = tx->outputs[i];
+        tx->outputs[i] = tx->outputs[j];
+        tx->outputs[j] = t;
+    }
 }
 
 // adds signatures to any inputs with NULL signatures that can be signed with any privKeys

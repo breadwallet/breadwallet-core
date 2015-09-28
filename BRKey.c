@@ -36,7 +36,7 @@
 //static secp256k1_context_t *_ctx = NULL;
 
 // add 256bit big endian ints (mod secp256k1 order)
-UInt256 secp256k1_mod_add(UInt256 a, UInt256 b)
+UInt256 BRSecp256k1ModAdd(UInt256 a, UInt256 b)
 {
 //    secp256k1_scalar_t as, bs, rs;
     UInt256 r;
@@ -52,7 +52,7 @@ UInt256 secp256k1_mod_add(UInt256 a, UInt256 b)
 }
 
 // multiply 256bit big endian ints (mod secp256k1 order)
-UInt256 secp256k1_mod_mul(UInt256 a, UInt256 b)
+UInt256 BRSecp256k1ModMul(UInt256 a, UInt256 b)
 {
 //    secp256k1_scalar_t as, bs, rs;
     UInt256 r;
@@ -68,7 +68,7 @@ UInt256 secp256k1_mod_mul(UInt256 a, UInt256 b)
 }
 
 // add secp256k1 ec-points
-int secp256k1_point_add(void *r, const void *a, const void *b, int compressed)
+int BRSecp256k1PointAdd(void *r, const void *a, const void *b, int compressed)
 {
 //    secp256k1_ge_t ap, bp, rp;
 //    secp256k1_gej_t aj, rj;
@@ -89,7 +89,7 @@ int secp256k1_point_add(void *r, const void *a, const void *b, int compressed)
 }
 
 // multiply ec-point by 256bit big endian int
-int secp256k1_point_mul(void *r, const void *p, UInt256 i, int compressed)
+int BRSecp256k1PointMul(void *r, const void *p, UInt256 i, int compressed)
 {
 //    static dispatch_once_t onceToken = 0;
 //    
