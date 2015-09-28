@@ -179,6 +179,7 @@ int BRTransactionSign(BRTransaction *tx, const char *privKeys[], size_t count)
         }
     }
     
+    for (i = 0; i < count; i++) BRKeyClean(&keys[i]);
     if (! BRTransactionIsSigned(tx)) return 0;
     
     uint8_t data[BRTransactionData(tx, NULL, 0, SIZE_MAX)];

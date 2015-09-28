@@ -100,6 +100,46 @@ const uint8_t *BRScriptData(const uint8_t *elem, size_t *len)
     return (*len > 0) ? elem : NULL;
 }
 
+size_t BRScriptPushData(uint8_t *script, size_t scriptLen, const uint8_t *data, size_t dataLen)
+{
+    size_t len;
+
+    if (dataLen == 0) {
+        len = dataLen;
+    }
+    else if (dataLen < OP_PUSHDATA1) {
+        len = 1 + dataLen;
+        if (script && scriptLen >= len) script[0] = dataLen;
+    }
+    else if (dataLen < UINT8_MAX) {
+        len = 1 + sizeof(uint8_t) + dataLen;
+        
+        if (script && scriptLen >= len) {
+            script[0] = OP_PUSHDATA1;
+            script[1] = dataLen;
+        }
+    }
+    else if (dataLen < UINT16_MAX) {
+        len = 1 + sizeof(uint16_t) + dataLen;
+        
+        if (script && scriptLen >= len) {
+            script[0] = OP_PUSHDATA2;
+            *(uint16_t *)&script[1] = le16((uint16_t)dataLen);
+        }
+    }
+    else {
+        len = 1 + sizeof(uint32_t) + dataLen;
+        
+        if (script && scriptLen >= len) {
+            script[0] = OP_PUSHDATA4;
+            *(uint32_t *)&script[1] = le32((uint32_t)dataLen);
+        }
+    }
+    
+    if (script && scriptLen >= len) memcpy(script + len - dataLen, data, dataLen);
+    return len;
+}
+
 // NOTE: It's important here to be permissive with scriptSig (spends) and strict with scriptPubKey (receives). If we
 // miss a receive transaction, only that transaction's funds are missed, however if we accept a receive transaction that
 // we are unable to correctly sign later, then the entire wallet balance after that point would become stuck with the

@@ -49,6 +49,7 @@
 
 size_t BRScriptElements(const uint8_t *elems[], size_t elemsCount, const uint8_t *script, size_t len);
 const uint8_t *BRScriptData(const uint8_t *elem, size_t *len);
+size_t BRScriptPushData(uint8_t *script, size_t scriptLen, const uint8_t *data, size_t dataLen);
 
 typedef struct {
     char s[36];
