@@ -26,7 +26,7 @@
 #define BRKey_h
 
 #include "BRTypes.h"
-#include <stddef.h>
+#include <string.h>
 
 UInt256 BRSecp256k1ModAdd(UInt256 a, UInt256 b); // add 256bit big endian ints (mod secp256k1 order)
 UInt256 BRSecp256k1ModMul(UInt256 a, UInt256 b); // multiply 256bit big endian ints (mod secp256k1 order)
@@ -46,11 +46,13 @@ typedef struct {
     int compressed;
 } BRKey;
 
-void BRKeySetSecret(BRKey *key, UInt256 secret, int compressed);
+int BRKeySetSecret(BRKey *key, UInt256 secret, int compressed);
 
-void BRKeySetPrivKey(BRKey *key, const char *privKey);
+int BRKeySetPrivKey(BRKey *key, const char *privKey);
 
-void BRKeySetPubKey(BRKey *key, BRPubKey pubKey);
+int BRKeySetPubKey(BRKey *key, BRPubKey pubKey);
+
+int BRKeyIsValid(BRKey *key);
 
 size_t BRKeyPrivKey(BRKey *key, char *privKey, size_t len);
 
@@ -63,5 +65,7 @@ size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen);
 size_t BRKeySign(BRKey *key, void *sig, size_t len, UInt256 md);
 
 int BRKeyVerify(BRKey *key, UInt256 md, const void *sig, size_t len);
+
+void BRKeyClean(BRKey *key);
 
 #endif // BRKey_h

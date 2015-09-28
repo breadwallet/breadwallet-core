@@ -88,8 +88,17 @@ void BRTransactionAddOutput(BRTransaction *tx, BRTxOutput *output);
 // shuffles order of tx outputs
 void BRTransactionShuffleOutputs(BRTransaction *tx);
 
-// adds signatures to any inputs with NULL signatures that can be signed with any privKeys
-void BRTransactionSign(BRTransaction *tx, const char *privKeys[], size_t count);
+// size in bytes if signed, or estimated size assuming compact pubkey sigs
+size_t BRTransactionSize(BRTransaction *tx);
+
+// minimum transaction fee needed for tx to relay across the bitcoin network
+uint64_t BRTransactionStandardFee(BRTransaction *tx);
+
+// checks if all signatures exist, but does not verify them
+int BRTransactionIsSigned(BRTransaction *tx);
+
+// adds signatures to any inputs with NULL signatures that can be signed with any privKeys, returns true if tx is signed
+int BRTransactionSign(BRTransaction *tx, const char *privKeys[], size_t count);
 
 // returns a hash value for tx suitable for use in a hashtable
 inline static size_t BRTransactionHash(const void *tx)

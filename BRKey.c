@@ -23,6 +23,7 @@
 //  THE SOFTWARE.
 
 #include "BRKey.h"
+#include <string.h>
 
 //#define HAVE_CONFIG_H 1
 //#define DETERMINISTIC 1
@@ -122,16 +123,24 @@ int BRSecp256k1PointMul(void *r, const void *p, UInt256 i, int compressed)
     return size;
 }
 
-void BRKeySetSecret(BRKey *key, UInt256 secret, int compressed)
+int BRKeySetSecret(BRKey *key, UInt256 secret, int compressed)
 {
+    return 0;
 }
 
-void BRKeySetPrivKey(BRKey *key, const char *privKey)
+int BRKeySetPrivKey(BRKey *key, const char *privKey)
 {
+    return 0;
 }
 
-void BRKeySetPubKey(BRKey *key, BRPubKey pubKey)
+int BRKeySetPubKey(BRKey *key, BRPubKey pubKey)
 {
+    return 0;
+}
+
+int BRKeyIsValid(BRKey *key)
+{
+    return 0;
 }
 
 size_t BRKeyPrivKey(BRKey *key, char *privKey, size_t len)
@@ -164,4 +173,9 @@ size_t BRKeySign(BRKey *key, void *sig, size_t len, UInt256 md)
 int BRKeyVerify(BRKey *key, UInt256 md, const void *sig, size_t sigLen)
 {
     return 0;
+}
+
+void BRKeyClean(BRKey *key)
+{
+    memset(key, 0, sizeof(*key));
 }

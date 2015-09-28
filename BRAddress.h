@@ -47,6 +47,9 @@
 #define OP_HASH160     0xa9
 #define OP_CHECKSIG    0xac
 
+size_t BRScriptElements(const uint8_t *elems[], size_t elemsCount, const uint8_t *script, size_t len);
+const uint8_t *BRScriptData(const uint8_t *elem, size_t *len);
+
 typedef struct {
     char s[36];
 } BRAddress;

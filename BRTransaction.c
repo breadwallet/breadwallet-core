@@ -23,13 +23,20 @@
 //  THE SOFTWARE.
 
 #include "BRTransaction.h"
+#include "BRKey.h"
+#include "BRAddress.h"
 #include <time.h>
 #include <unistd.h>
+
+#define TX_VERSION    0x00000001u
+#define TX_LOCKTIME   0x00000000u
+#define TXIN_SEQUENCE UINT32_MAX
+#define SIGHASH_ALL   0x00000001u
 
 // returns a random number less than upperBound, for non-cryptographic use only
 uint32_t BRRand(uint32_t upperBound)
 {
-    static int first = 1;
+    static int first = ! 0;
     uint32_t r;
     
     if (first) srand(((unsigned)time(NULL) ^ getpid())*0x01000193); // seed = (time xor pid)*FNV_PRIME
@@ -41,6 +48,11 @@ uint32_t BRRand(uint32_t upperBound)
     } while (r < ((0xffffffff - upperBound*2) + 1) % upperBound); // ((0x100000000 - x*2) % x) == (0x100000000 % x)
 
     return r % upperBound;
+}
+
+static size_t BRTransactionData(BRTransaction *tx, uint8_t *data, size_t len, size_t subscriptIdx)
+{
+    return 0;
 }
 
 // returns a newly allocated empty transaction that must be freed by calling BRTransactionFree()
@@ -62,7 +74,7 @@ BRTransaction *BRTransactionDeserialize(const uint8_t *buf, size_t len)
 // returns number of bytes written to buf, or total len needed if buf is NULL
 size_t BRTransactionSerialize(BRTransaction *tx, uint8_t *buf, size_t len)
 {
-    return 0;
+    return BRTransactionData(tx, buf, len, SIZE_MAX);
 }
 
 // adds an input to tx
@@ -93,9 +105,87 @@ void BRTransactionShuffleOutputs(BRTransaction *tx)
     }
 }
 
-// adds signatures to any inputs with NULL signatures that can be signed with any privKeys
-void BRTransactionSign(BRTransaction *tx, const char *privKeys[], size_t count)
+// size in bytes if signed, or estimated size assuming compact pubkey sigs
+size_t BRTransactionSize(BRTransaction *tx)
 {
+    return 0;
+}
+
+// minimum transaction fee needed for tx to relay across the bitcoin network
+uint64_t BRTransactionStandardFee(BRTransaction *tx)
+{
+    return 0;
+}
+
+// checks if all signatures exist, but does not verify them
+int BRTransactionIsSigned(BRTransaction *tx)
+{
+    return 0;
+}
+
+// adds signatures to any inputs with NULL signatures that can be signed with any privKeys, returns true if tx is signed
+int BRTransactionSign(BRTransaction *tx, const char *privKeys[], size_t count)
+{
+    BRKey keys[count];
+    BRAddress addrs[count];
+    size_t i, j;
+    
+    for (i = 0, j = 0; i < count; i++) {
+        if (BRKeySetPrivKey(&keys[j], privKeys[i]) && BRKeyAddress(&keys[j], addrs[j].s, sizeof(addrs[j]))) j++;
+    }
+    
+    count = j;
+
+    for (i = 0; i < tx->inCount; i++) {
+        BRTxInput *in = &tx->inputs[i];
+        BRAddress a = BR_ADDRESS_NONE;
+        
+        if (! BRAddressFromScriptPubKey(a.s, sizeof(a), in->script, in->scriptLen)) continue;
+
+        for (j = 0; j < count; j++) {
+            if (! BRAddressEq(&addrs[j], &a)) continue;
+            
+            size_t len, elemsCount = BRScriptElements(NULL, 0, in->script, in->scriptLen);
+            const uint8_t *elems[elemsCount];
+            uint8_t sig[72], data[BRTransactionData(tx, NULL, 0, i)];
+            UInt256 hash = UINT256_ZERO;
+            
+            BRScriptElements(elems, elemsCount, in->script, in->scriptLen);
+            BRTransactionData(tx, data, sizeof(data), i);
+            BRSHA256_2(&hash, data, sizeof(data));
+            if (in->signature) array_free(in->signature);
+            in->sigLen = 0;
+            array_new(in->signature, 74);
+            array_add(in->signature, SIGHASH_ALL);
+            len = BRKeySign(&keys[j], sig, sizeof(sig), hash);
+            
+            if (sig > 0) {
+                array_add(in->signature, len);
+                array_add_array(in->signature, sig, len);
+            
+                if (elemsCount >= 2 && *elems[elemsCount - 2] == OP_EQUALVERIFY) { // pay-to-pubkey-hash scriptSig
+                    uint8_t pubKey[BRKeyPubKey(&keys[j], NULL, 0)];
+                
+                    BRKeyPubKey(&keys[j], pubKey, sizeof(pubKey));
+                    array_add(in->signature, sizeof(pubKey));
+                    array_add_array(in->signature, pubKey, sizeof(pubKey));
+                }
+                
+                in->sigLen = array_count(in->signature);
+            }
+            else array_free(in->signature);
+            
+            break;
+        }
+    }
+    
+    if (! BRTransactionIsSigned(tx)) return 0;
+    
+    uint8_t data[BRTransactionData(tx, NULL, 0, SIZE_MAX)];
+    
+    BRTransactionData(tx, data, sizeof(data), SIZE_MAX);
+    BRSHA256_2(&tx->txHash, data, sizeof(data));
+    return ! 0;
 }
 
 // frees memory allocated for tx
