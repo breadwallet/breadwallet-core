@@ -24,6 +24,70 @@
 
 #include "BRAddress.h"
 
+#define VAR_INT16_HEADER 0xfd
+#define VAR_INT32_HEADER 0xfe
+#define VAR_INT64_HEADER 0xff
+
+uint64_t BRVarInt(const uint8_t *buf, size_t len, size_t *intLen)
+{
+    uint8_t h = (sizeof(uint8_t) <= len) ? *(const uint8_t *)buf : 0;
+    
+    switch (h) {
+        case VAR_INT16_HEADER:
+            if (intLen) *intLen = sizeof(h) + sizeof(uint16_t);
+            return (sizeof(h) + sizeof(uint16_t) <= len) ? le16(*(const uint16_t *)(buf + sizeof(h))) : 0;
+            
+        case VAR_INT32_HEADER:
+            if (intLen) *intLen = sizeof(h) + sizeof(uint32_t);
+            return (sizeof(h) + sizeof(uint32_t) <= len) ? le32(*(const uint32_t *)(buf + sizeof(h))) : 0;
+            
+        case VAR_INT64_HEADER:
+            if (intLen) *intLen = sizeof(h) + sizeof(uint64_t);
+            return (sizeof(h) + sizeof(uint64_t) <= len) ? le64(*(const uint64_t *)(buf + sizeof(h))) : 0;
+            
+        default:
+            if (intLen) *intLen = sizeof(h);
+            return h;
+    }
+}
+
+size_t BRVarIntSet(uint8_t *buf, size_t len, uint64_t i)
+{
+    if (i < VAR_INT16_HEADER) {
+        if (buf && sizeof(uint8_t) <= len) *buf = (uint8_t)i;
+        return (! buf || sizeof(uint8_t) <= len) ? sizeof(uint8_t) : 0;
+    }
+    else if (i <= UINT16_MAX) {
+        if (buf && sizeof(uint8_t) + sizeof(uint16_t) <= len) {
+            *buf = VAR_INT16_HEADER;
+            *(uint16_t *)(buf + sizeof(uint8_t)) = le16((uint16_t)i);
+        }
+        
+        return (! buf || sizeof(uint8_t) + sizeof(uint16_t) <= len) ? sizeof(uint8_t) + sizeof(uint16_t) : 0;
+    }
+    else if (i <= UINT32_MAX) {
+        if (buf && sizeof(uint8_t) + sizeof(uint32_t) <= len) {
+            *buf = VAR_INT32_HEADER;
+            *(uint32_t *)(buf + sizeof(uint8_t)) = le32((uint32_t)i);
+        }
+        
+        return (! buf || sizeof(uint8_t) + sizeof(uint32_t) <= len) ? sizeof(uint8_t) + sizeof(uint32_t) : 0;
+    }
+    else {
+        if (buf && sizeof(uint8_t) + sizeof(uint64_t) <= len) {
+            *buf = VAR_INT64_HEADER;
+            *(uint64_t *)(buf + sizeof(uint8_t)) = le64(i);
+        }
+        
+        return (! buf || sizeof(uint8_t) + sizeof(uint64_t) <= len) ? sizeof(uint8_t) + sizeof(uint64_t) : 0;
+    }
+}
+
+inline size_t BRVarIntSize(uint64_t i)
+{
+    return BRVarIntSet(NULL, 0, i);
+}
+
 size_t BRScriptElements(const uint8_t *elems[], size_t elemsCount, const uint8_t *script, size_t len)
 {
     size_t off = 0, i = 0, l;

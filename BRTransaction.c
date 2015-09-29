@@ -52,7 +52,55 @@ uint32_t BRRand(uint32_t upperBound)
 
 static size_t BRTransactionData(BRTransaction *tx, uint8_t *data, size_t len, size_t subscriptIdx)
 {
-    return 0;
+    size_t off = 0;
+
+    if (data && off + sizeof(uint32_t) <= len) *(uint32_t *)&data[off] = le32(tx->version);
+    off += sizeof(uint32_t);
+    off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), tx->inCount);
+
+    for (size_t i = 0; i < tx->inCount; i++) {
+        if (data && off + sizeof(UInt256) <= len) memcpy(&data[off], &tx->inputs[i].txHash, sizeof(UInt256));
+        off += sizeof(UInt256);
+        if (data && off + sizeof(uint32_t) <= len) *(uint32_t *)&data[off] = le32(tx->inputs[i].index);
+        off += sizeof(uint32_t);
+
+        if (tx->inputs[i].signature && tx->inputs[i].sigLen > 0 && subscriptIdx < tx->inCount) {
+            off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), tx->inputs[i].sigLen);
+            if (off + tx->inputs[i].sigLen <= len) memcpy(&data[off], tx->inputs[i].signature, tx->inputs[i].sigLen);
+            off += tx->inputs[i].sigLen;
+        }
+        else if (subscriptIdx == i && tx->inputs[i].script && tx->inputs[i].scriptLen > 0) {
+            //TODO: to fully match the reference implementation, OP_CODESEPARATOR related checksig logic should go here
+            off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), tx->inputs[i].scriptLen);
+            if (off + tx->inputs[i].scriptLen <= len) memcpy(&data[off], tx->inputs[i].script, tx->inputs[i].scriptLen);
+            off += tx->inputs[i].scriptLen;
+
+        }
+        else off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), 0);
+        
+        if (data && off + sizeof(uint32_t) <= len) *(uint32_t *)&data[off] = le32(tx->inputs[i].sequence);
+        off += sizeof(uint32_t);
+    }
+    
+    off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), tx->outCount);
+    
+    for (size_t i = 0; i < tx->outCount; i++) {
+        if (data && off + sizeof(uint64_t) <= len) *(uint64_t *)&data[off] = le64(tx->outputs[i].amount);
+        off += sizeof(uint64_t);
+        off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), tx->outputs[i].scriptLen);
+        if (off + tx->outputs[i].scriptLen <= len) memcpy(&data[off], tx->outputs[i].script, tx->outputs[i].scriptLen);
+        off += tx->outputs[i].scriptLen;
+    }
+    
+    if (data && off + sizeof(uint32_t) <= len) *(uint32_t *)&data[off] = le32(tx->lockTime);
+    off += sizeof(uint32_t);
+
+    if (subscriptIdx < tx->inCount) {
+        if (data && off + sizeof(uint32_t) <= len) *(uint32_t *)&data[off] = le32(SIGHASH_ALL);
+        off += sizeof(uint32_t);
+    }
+
+    return (! data || off <= len) ? off : 0;
 }
 
 // returns a newly allocated empty transaction that must be freed by calling BRTransactionFree()
@@ -108,39 +156,47 @@ void BRTransactionShuffleOutputs(BRTransaction *tx)
 // size in bytes if signed, or estimated size assuming compact pubkey sigs
 size_t BRTransactionSize(BRTransaction *tx)
 {
-    return 0;
+    static const size_t sigSize = 149; // signature size using a compact pubkey
+//    static const size_t sigSize = 181; // signature size using a non-compact pubkey
+    
+    if (! UInt256IsZero(tx->txHash)) return BRTransactionData(tx, NULL, 0, SIZE_MAX);
+    return 8 + BRVarIntSize(tx->inCount) + tx->inCount*sigSize + BRVarIntSize(tx->outCount) + tx->outCount*34;
 }
 
 // minimum transaction fee needed for tx to relay across the bitcoin network
-uint64_t BRTransactionStandardFee(BRTransaction *tx)
+inline uint64_t BRTransactionStandardFee(BRTransaction *tx)
 {
-    return 0;
+    return ((BRTransactionSize(tx) + 999)/1000)*TX_FEE_PER_KB;
 }
 
 // checks if all signatures exist, but does not verify them
 int BRTransactionIsSigned(BRTransaction *tx)
 {
-    return 0;
+    for (size_t i = 0; i < tx->inCount; i++) {
+        if (! tx->inputs[i].signature || tx->inputs[i].sigLen == 0) return 0;
+    }
+
+    return ! 0;
 }
 
 // adds signatures to any inputs with NULL signatures that can be signed with any privKeys, returns true if tx is signed
 int BRTransactionSign(BRTransaction *tx, const char *privKeys[], size_t count)
 {
     BRKey keys[count];
-    BRAddress addrs[count], a;
+    BRAddress addrs[count], address;
     BRTxInput *in;
     size_t i, j, len;
     
     for (i = 0, j = 0; i < count; i++) {
-        if (BRKeySetPrivKey(&keys[j], privKeys[i]) && BRKeyAddress(&keys[j], addrs[j].s, sizeof(addrs[j]))) j++;
+        if (BRKeySetPrivKey(&keys[j], privKeys[i]) && BRKeyAddress(&keys[j], addrs[j].s, sizeof(addrs[j])) > 0) j++;
     }
     
     count = j;
 
     for (i = 0, j = 0; i < tx->inCount; i++) {
         in = &tx->inputs[i];
-        if (! BRAddressFromScriptPubKey(a.s, sizeof(a), in->script, in->scriptLen)) continue;
-        while (j < count && ! BRAddressEq(&addrs[j], &a)) j++;
+        if (! BRAddressFromScriptPubKey(address.s, sizeof(address), in->script, in->scriptLen)) continue;
+        while (j < count && ! BRAddressEq(&addrs[j], &address)) j++;
         if (j >= count) continue;
 
         const uint8_t *elems[BRScriptElements(NULL, 0, in->script, in->scriptLen)];

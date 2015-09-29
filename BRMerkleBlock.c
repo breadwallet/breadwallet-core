@@ -24,72 +24,11 @@
 
 #include "BRMerkleBlock.h"
 #include "BRHash.h"
+#include "BRAddress.h"
 #include <limits.h>
 #include <string.h>
 #include <math.h>
 #include <stdlib.h>
-
-#define VAR_INT16_HEADER 0xfd
-#define VAR_INT32_HEADER 0xfe
-#define VAR_INT64_HEADER 0xff
-
-uint64_t BRVarInt(const uint8_t *buf, size_t len, size_t *intLen)
-{
-    uint8_t h = (sizeof(uint8_t) <= len) ? *(const uint8_t *)buf : 0;
-    
-    switch (h) {
-        case VAR_INT16_HEADER:
-            if (intLen) *intLen = sizeof(h) + sizeof(uint16_t);
-            return (sizeof(h) + sizeof(uint16_t) <= len) ? le16(*(const uint16_t *)(buf + sizeof(h))) : 0;
-            
-        case VAR_INT32_HEADER:
-            if (intLen) *intLen = sizeof(h) + sizeof(uint32_t);
-            return (sizeof(h) + sizeof(uint32_t) <= len) ? le32(*(const uint32_t *)(buf + sizeof(h))) : 0;
-            
-        case VAR_INT64_HEADER:
-            if (intLen) *intLen = sizeof(h) + sizeof(uint64_t);
-            return (sizeof(h) + sizeof(uint64_t) <= len) ? le64(*(const uint64_t *)(buf + sizeof(h))) : 0;
-            
-        default:
-            if (intLen) *intLen = sizeof(h);
-            return h;
-    }
-}
-
-size_t BRVarIntSize(uint64_t i)
-{
-    if (i < VAR_INT16_HEADER) return sizeof(uint8_t);
-    else if (i <= UINT16_MAX) return sizeof(uint8_t) + sizeof(uint16_t);
-    else if (i <= UINT32_MAX) return sizeof(uint8_t) + sizeof(uint32_t);
-    else return sizeof(uint8_t) + sizeof(uint64_t);
-}
-
-size_t BRSetVarInt(uint64_t i, uint8_t *buf, size_t len)
-{
-    if (i < VAR_INT16_HEADER) {
-        if (sizeof(uint8_t) > len) return 0;
-        *buf = (uint8_t)i;
-        return sizeof(uint8_t);
-    }
-    else if (i <= UINT16_MAX) {
-        if (sizeof(uint8_t) + sizeof(uint16_t) > len) return 0;
-        *buf = VAR_INT16_HEADER;
-        *(uint16_t *)(buf + sizeof(uint8_t)) = le16((uint16_t)i);
-        return sizeof(uint8_t) + sizeof(uint16_t);
-    }
-    else if (i <= UINT32_MAX) {
-        if (sizeof(uint8_t) + sizeof(uint32_t) > len) return 0;
-        *buf = VAR_INT32_HEADER;
-        *(uint32_t *)(buf + sizeof(uint8_t)) = le32((uint32_t)i);
-        return sizeof(uint8_t) + sizeof(uint32_t);
-    }
-    else {
-        if (sizeof(uint8_t) + sizeof(uint64_t) > len) return 0;
-        *buf = VAR_INT64_HEADER;
-        *(uint64_t *)(buf + sizeof(uint8_t)) = le64(i);
-        return sizeof(uint8_t) + sizeof(uint64_t);
-    }
-}
 
 #define MAX_TIME_DRIFT    (2*60*60)     // the furthest in the future a block is allowed to be timestamped
 #define MAX_PROOF_OF_WORK 0x1d00ffffu   // highest value for difficulty target (higher values are less difficult)
@@ -191,7 +130,7 @@ size_t BRMerkleBlockSerialize(BRMerkleBlock *block, uint8_t *buf, size_t len)
     
     if (block->totalTx > 0) {
         l += sizeof(uint32_t) + BRVarIntSize(block->hashesLen) + block->hashesLen*sizeof(UInt256) +
-        BRVarIntSize(block->flagsLen) + block->flagsLen;
+             BRVarIntSize(block->flagsLen) + block->flagsLen;
     }
     
     if (! buf) return l;
@@ -212,7 +151,7 @@ size_t BRMerkleBlockSerialize(BRMerkleBlock *block, uint8_t *buf, size_t len)
     if (block->totalTx > 0) {
         *(uint32_t *)(buf + off) = le32(block->totalTx);
         off += sizeof(uint32_t);
-        off += BRSetVarInt(block->hashesLen, buf + off, len - off);
+        off += BRVarIntSet(buf + off, len - off, block->hashesLen);
         if (block->hashes) memcpy(buf + off, block->hashes, block->hashesLen*sizeof(UInt256));
         off += block->hashesLen*sizeof(UInt256);
         if (block->flags) memcpy(buf + off, block->flags, block->flagsLen);

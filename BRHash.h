@@ -27,32 +27,6 @@
 
 #include <stddef.h>
 
-#if !defined(__BIG_ENDIAN__) && !defined(__LITTLE_ENDIAN__)
-#error endianess is unkown
-#endif
-
-#if __BIG_ENDIAN__
-#define be16(x) (x)
-#define le16(x) ((((x) & 0xff00) << 8) | (((x) & 0xff0000) >> 8))
-#define be32(x) (x)
-#define le32(x) ((((x) & 0xff) << 24) | (((x) & 0xff00) << 8) | (((x) & 0xff0000) >> 8) | (((x) & 0xff000000) >> 24))
-#define be64(x) (x)
-#define le64(x) ((((x) & 0x00000000000000ffULL) << 56) | (((x) & 0xff00000000000000ULL) >> 56) |\
-                 (((x) & 0x000000000000ff00ULL) << 40) | (((x) & 0x00ff000000000000ULL) >> 40) |\
-                 (((x) & 0x0000000000ff0000ULL) << 24) | (((x) & 0x0000ff0000000000ULL) >> 24) |\
-                 (((x) & 0x00000000ff000000ULL) << 8)  | (((x) & 0x000000ff00000000ULL) >> 8))
-#else
-#define be16(x) ((((x) & 0xff00) << 8) | (((x) & 0xff0000) >> 8))
-#define le16(x) (x)
-#define be32(x) ((((x) & 0xff) << 24) | (((x) & 0xff00) << 8) | (((x) & 0xff0000) >> 8) | (((x) & 0xff000000) >> 24))
-#define le32(x) (x)
-#define be64(x) ((((x) & 0x00000000000000ffULL) << 56) | (((x) & 0xff00000000000000ULL) >> 56) |\
-                 (((x) & 0x000000000000ff00ULL) << 40) | (((x) & 0x00ff000000000000ULL) >> 40) |\
-                 (((x) & 0x0000000000ff0000ULL) << 24) | (((x) & 0x0000ff0000000000ULL) >> 24) |\
-                 (((x) & 0x00000000ff000000ULL) << 8)  | (((x) & 0x000000ff00000000ULL) >> 8))
-#define le64(x) (x)
-#endif
-
 #define RMD160_DIGEST_LENGTH (160/8)
 
 void BRSHA1(void *md, const void *data, size_t len);
