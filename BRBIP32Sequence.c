@@ -57,13 +57,13 @@ static void CKDpriv(UInt256 *k, UInt256 *c, uint32_t i)
         buf[0] = 0;
         *(UInt256 *)&buf[1] = *k;
     }
-    else secp256k1_point_mul(buf, NULL, *k, 1);
+    else BRSecp256k1PointMul(buf, NULL, *k, 1);
     
     *(uint32_t *)&buf[sizeof(BRPubKey)] = be32(i);
     
     BRHMAC(&I, BRSHA512, sizeof(UInt512), c, sizeof(*c), buf, sizeof(buf)); // I = HMAC-SHA512(c, k|P(k) || i)
     
-    *k = secp256k1_mod_add(*(UInt256 *)&I, *k); // k = IL + k (mod n)
+    *k = BRSecp256k1ModAdd(*(UInt256 *)&I, *k); // k = IL + k (mod n)
     *c = *(UInt256 *)&I.u8[sizeof(UInt256)]; // c = IR
     
     memset(buf, 0, sizeof(buf));
@@ -99,8 +99,8 @@ static void CKDpub(BRPubKey *K, UInt256 *c, uint32_t i)
     
     *c = *(UInt256 *)&I.u8[sizeof(UInt256)]; // c = IR
     
-    secp256k1_point_mul(&pIL, NULL, *(UInt256 *)&I, 1);
-    secp256k1_point_add(K, &pIL, K, 1); // K = P(IL) + K
+    BRSecp256k1PointMul(&pIL, NULL, *(UInt256 *)&I, 1);
+    BRSecp256k1PointAdd(K, &pIL, K, 1); // K = P(IL) + K
     
     memset(buf, 0, sizeof(buf));
     memset(&I, 0, sizeof(I));

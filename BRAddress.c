@@ -299,7 +299,7 @@ size_t BRAddressScriptPubKey(uint8_t *script, size_t len, const char *addr)
     static uint8_t pubkeyAddress = BITCOIN_PUBKEY_ADDRESS, scriptAddress = BITCOIN_SCRIPT_ADDRESS;
     uint8_t data[21];
     
-    if (BRBase58CheckDecode(data, sizeof(data), addr) != sizeof(data)) return 0;
+    if (BRBase58CheckDecode(data, sizeof(data), addr) != 21) return 0;
     
 #if BITCOIN_TESTNET
     pubkeyAddress = BITCOIN_PUBKEY_ADDRESS_TEST;
@@ -335,7 +335,7 @@ int BRAddressIsValid(const char *addr)
 {
     uint8_t data[21];
     
-    if (BRBase58CheckDecode(data, sizeof(data), addr) != sizeof(data)) return 0;
+    if (BRBase58CheckDecode(data, sizeof(data), addr) != 21) return 0;
     
 #if BITCOIN_TESTNET
     return (data[0] == BITCOIN_PUBKEY_ADDRESS_TEST || data[0] == BITCOIN_SCRIPT_ADDRESS_TEST);

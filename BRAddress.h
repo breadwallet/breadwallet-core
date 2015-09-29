@@ -72,7 +72,7 @@ inline static UInt160 BRAddressHash160(const char *addr)
 {
     uint8_t data[21];
     
-    if (BRBase58CheckDecode(data, sizeof(data), addr) != sizeof(data)) return UINT160_ZERO;
+    if (BRBase58CheckDecode(data, sizeof(data), addr) != 21) return UINT160_ZERO;
     return *(UInt160 *)&data[1];
 }
 
