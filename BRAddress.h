@@ -66,6 +66,8 @@ size_t BRAddressFromScriptSig(char *addr, size_t addrLen, const uint8_t *script,
 
 size_t BRAddressScriptPubKey(uint8_t *script, size_t scriptLen, const char *addr);
 
+int BRAddressIsValid(const char *addr);
+
 inline static UInt160 BRAddressHash160(const char *addr)
 {
     uint8_t data[21];

@@ -23,6 +23,7 @@
 //  THE SOFTWARE.
 
 #include "BRKey.h"
+#include "BRAddress.h"
 #include <string.h>
 
 //#define HAVE_CONFIG_H 1
@@ -123,19 +124,51 @@ int BRSecp256k1PointMul(void *r, const void *p, UInt256 i, int compressed)
     return size;
 }
 
+int BRPrivKeyIsValid(const char *privKey)
+{
+    uint8_t data[34];
+    size_t len = BRBase58CheckDecode(data, sizeof(data), privKey);
+    uint8_t version = data[0];
+    
+    memset(data, 0, sizeof(data));
+    
+    if (len == 33 || len == 34) { // wallet import format: https://en.bitcoin.it/wiki/Wallet_import_format
+#if BITCOIN_TESTNET
+        return (version == BITCOIN_PRIVKEY_TEST);
+#else
+        return (version == BITCOIN_PRIVKEY);
+#endif
+    }
+    else if ((len == 30 || len == 22) && privKey[0] == 'S') { // mini private key format
+        UInt256 hash = UINT256_ZERO;
+        char s[strlen(privKey) + 2];
+        
+        strncpy(s, privKey, sizeof(s));
+        s[strlen(s)] = '?';
+        BRSHA256(&hash, s, strlen(s));
+        memset(s, 0, sizeof(s));
+        return (hash.u8[0] == 0);
+    }
+    else return (strspn(privKey, "0123456789ABCDEFabcdef")/2 == 32); // hex encoded key
+}
+
 int BRKeySetSecret(BRKey *key, UInt256 secret, int compressed)
 {
-    return 0;
+    BRKeyClean(key);
+    key->secret = secret;
+    secret = UINT256_ZERO;
+    key->compressed = compressed;
+    return BRKeyIsValid(key);
 }
 
 int BRKeySetPrivKey(BRKey *key, const char *privKey)
 {
-    return 0;
+    return BRKeyIsValid(key);
 }
 
 int BRKeySetPubKey(BRKey *key, BRPubKey pubKey)
 {
-    return 0;
+    return BRKeyIsValid(key);
 }
 
 int BRKeyIsValid(BRKey *key)

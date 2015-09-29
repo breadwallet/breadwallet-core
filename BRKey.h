@@ -40,6 +40,8 @@ typedef struct {
 #define PUBKEY_NONE ((BRPubKey)\
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 })
 
+int BRPrivKeyIsValid(const char *privKey);
+
 typedef struct {
     UInt256 secret;
     uint8_t pubKey[65];

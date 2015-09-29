@@ -24,8 +24,22 @@
 
 #include "BRBIP38Key.h"
 #include "BRHash.h"
+#include "BRBase58.h"
 #include <stdlib.h>
 #include <string.h>
+
+#define BIP38_NOEC_PREFIX      0x0142
+#define BIP38_EC_PREFIX        0x0143
+#define BIP38_NOEC_FLAG        (0x80 | 0x40)
+#define BIP38_COMPRESSED_FLAG  0x20
+#define BIP38_LOTSEQUENCE_FLAG 0x04
+#define BIP38_INVALID_FLAG     (0x10 | 0x08 | 0x02 | 0x01)
+#define BIP38_SCRYPT_N         16384
+#define BIP38_SCRYPT_R         8
+#define BIP38_SCRYPT_P         8
+#define BIP38_SCRYPT_EC_N      1024
+#define BIP38_SCRYPT_EC_R      1
+#define BIP38_SCRYPT_EC_P      1
 
 // BIP38 is a method for encrypting private keys with a passphrase
 // https://github.com/bitcoin/bips/blob/master/bip-0038.mediawiki
@@ -143,13 +157,6 @@ static void AES256ECBDecrypt(const void *key, void *buf)
     for (i = 0; i < 4; i++) ((uint32_t *)x)[i] ^= ((uint32_t *)k)[i]; // final add round key
 }
 
-#define BIP38_SCRYPT_N    16384
-#define BIP38_SCRYPT_R    8
-#define BIP38_SCRYPT_P    8
-#define BIP38_SCRYPT_EC_N 1024
-#define BIP38_SCRYPT_EC_R 1
-#define BIP38_SCRYPT_EC_P 1
-
 // bitwise left rotation, this will typically be compiled into a single instruction
 #define rotl(a, b) (((a) << (b)) | ((a) >> (32 - (b))))
 
@@ -235,6 +242,25 @@ static void scrypt(void *dk, size_t dklen, const void *pw, size_t pwlen, const v
     memset(v, 0, 128*r*n);
     free(v);
     memset(&m, 0, sizeof(m));
+}
+
+int BRBIP38KeyIsValid(const char *bip38Key)
+{
+    uint8_t data[39];
+    
+    if (BRBase58CheckDecode(data, sizeof(data), bip38Key) != 39) return 0; // invalid length
+    
+    uint16_t prefix = be16(*(uint16_t *)data);
+    uint8_t flag = data[2];
+    
+    if (prefix == BIP38_NOEC_PREFIX) { // non EC multiplied key
+        return ((flag & BIP38_NOEC_FLAG) == BIP38_NOEC_FLAG && (flag & BIP38_LOTSEQUENCE_FLAG) == 0 &&
+                (flag & BIP38_INVALID_FLAG) == 0);
+    }
+    else if (prefix == BIP38_EC_PREFIX) { // EC multiplied key
+        return ((flag & BIP38_NOEC_FLAG) == 0 && (flag & BIP38_INVALID_FLAG) == 0);
+    }
+    else return 0; // invalid prefix
 }
 
 // decrypts a BIP38 key using the given passphrase, returns false if passphrase is incorrect, passphrase must be unicode
