@@ -59,37 +59,41 @@ static size_t BRTransactionData(BRTransaction *tx, uint8_t *data, size_t len, si
     off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), tx->inCount);
 
     for (size_t i = 0; i < tx->inCount; i++) {
-        if (data && off + sizeof(UInt256) <= len) memcpy(&data[off], &tx->inputs[i].txHash, sizeof(UInt256));
+        BRTxInput *in = &tx->inputs[i];
+        
+        if (data && off + sizeof(UInt256) <= len) memcpy(&data[off], &in->txHash, sizeof(UInt256));
         off += sizeof(UInt256);
-        if (data && off + sizeof(uint32_t) <= len) *(uint32_t *)&data[off] = le32(tx->inputs[i].index);
+        if (data && off + sizeof(uint32_t) <= len) *(uint32_t *)&data[off] = le32(in->index);
         off += sizeof(uint32_t);
 
-        if (tx->inputs[i].signature && tx->inputs[i].sigLen > 0 && subscriptIdx < tx->inCount) {
-            off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), tx->inputs[i].sigLen);
-            if (off + tx->inputs[i].sigLen <= len) memcpy(&data[off], tx->inputs[i].signature, tx->inputs[i].sigLen);
-            off += tx->inputs[i].sigLen;
+        if (in->signature && in->sigLen > 0 && subscriptIdx < tx->inCount) {
+            off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), in->sigLen);
+            if (off + in->sigLen <= len) memcpy(&data[off], in->signature, in->sigLen);
+            off += in->sigLen;
         }
-        else if (subscriptIdx == i && tx->inputs[i].script && tx->inputs[i].scriptLen > 0) {
+        else if (subscriptIdx == i && in->script && in->scriptLen > 0) {
             //TODO: to fully match the reference implementation, OP_CODESEPARATOR related checksig logic should go here
-            off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), tx->inputs[i].scriptLen);
-            if (off + tx->inputs[i].scriptLen <= len) memcpy(&data[off], tx->inputs[i].script, tx->inputs[i].scriptLen);
-            off += tx->inputs[i].scriptLen;
+            off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), in->scriptLen);
+            if (off + in->scriptLen <= len) memcpy(&data[off], in->script, in->scriptLen);
+            off += in->scriptLen;
 
         }
         else off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), 0);
         
-        if (data && off + sizeof(uint32_t) <= len) *(uint32_t *)&data[off] = le32(tx->inputs[i].sequence);
+        if (data && off + sizeof(uint32_t) <= len) *(uint32_t *)&data[off] = le32(in->sequence);
         off += sizeof(uint32_t);
     }
     
     off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), tx->outCount);
     
     for (size_t i = 0; i < tx->outCount; i++) {
-        if (data && off + sizeof(uint64_t) <= len) *(uint64_t *)&data[off] = le64(tx->outputs[i].amount);
+        BRTxOutput *out = &tx->outputs[i];
+        
+        if (data && off + sizeof(uint64_t) <= len) *(uint64_t *)&data[off] = le64(out->amount);
         off += sizeof(uint64_t);
-        off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), tx->outputs[i].scriptLen);
-        if (off + tx->outputs[i].scriptLen <= len) memcpy(&data[off], tx->outputs[i].script, tx->outputs[i].scriptLen);
-        off += tx->outputs[i].scriptLen;
+        off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), out->scriptLen);
+        if (off + out->scriptLen <= len) memcpy(&data[off], out->script, out->scriptLen);
+        off += out->scriptLen;
     }
     
     if (data && off + sizeof(uint32_t) <= len) *(uint32_t *)&data[off] = le32(tx->lockTime);
@@ -184,7 +188,6 @@ int BRTransactionSign(BRTransaction *tx, const char *privKeys[], size_t count)
 {
     BRKey keys[count];
     BRAddress addrs[count], address;
-    BRTxInput *in;
     size_t i, j, len;
     
     for (i = 0, j = 0; i < count; i++) {
@@ -194,7 +197,8 @@ int BRTransactionSign(BRTransaction *tx, const char *privKeys[], size_t count)
     count = j;
 
     for (i = 0, j = 0; i < tx->inCount; i++) {
-        in = &tx->inputs[i];
+        BRTxInput *in = &tx->inputs[i];
+        
         if (! BRAddressFromScriptPubKey(address.s, sizeof(address), in->script, in->scriptLen)) continue;
         while (j < count && ! BRAddressEq(&addrs[j], &address)) j++;
         if (j >= count) continue;
