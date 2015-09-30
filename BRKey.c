@@ -24,7 +24,7 @@
 
 #include "BRKey.h"
 #include "BRAddress.h"
-#include <string.h>
+#include <stdio.h>
 
 //#define HAVE_CONFIG_H 1
 //#define DETERMINISTIC 1
@@ -163,6 +163,43 @@ int BRKeySetSecret(BRKey *key, UInt256 secret, int compressed)
 
 int BRKeySetPrivKey(BRKey *key, const char *privKey)
 {
+    size_t len = strlen(privKey);
+    
+    // mini private key format
+    if ((len == 30 || len == 22) && privKey[0] == 'S') {
+        if (! BRPrivKeyIsValid(privKey)) return 0;
+        BRSHA256(&key->secret, privKey, strlen(privKey));
+        key->compressed = 0;
+    }
+    else {
+        uint8_t data[34];
+        size_t len = BRBase58CheckDecode(data, sizeof(data), privKey);
+        uint8_t version = BITCOIN_PRIVKEY;
+
+#if BITCOIN_TESTNET
+        version = BITCOIN_PRIVKEY_TEST;
+#endif
+
+        if (len == 0 || len == 28) len = BRBase58Decode(data, sizeof(data), privKey);
+
+        if (len < sizeof(UInt256) || len > sizeof(UInt256) + 2) { // treat as hex string
+            for (len = 0; privKey[len*2] && privKey[len*2 + 1] && len < sizeof(data); len++) {
+                if (sscanf(&privKey[len*2], "%2hhx", &data[len]) != 1) break;
+            }
+        }
+
+        if ((len == sizeof(UInt256) + 1 || len == sizeof(UInt256) + 2) && data[0] == version) {
+            key->secret = *(UInt256 *)&data[1];
+            key->compressed = (len == sizeof(UInt256) + 2);
+        }
+        else if (len == sizeof(UInt256)) {
+            key->secret = *(UInt256 *)data;
+            key->compressed = 0;
+        }
+
+        memset(data, 0, sizeof(data));
+    }
+
     return BRKeyIsValid(key);
 }
 
