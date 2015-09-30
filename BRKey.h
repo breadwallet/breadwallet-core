@@ -54,8 +54,6 @@ int BRKeySetPrivKey(BRKey *key, const char *privKey);
 
 int BRKeySetPubKey(BRKey *key, BRPubKey pubKey);
 
-int BRKeyIsValid(BRKey *key);
-
 size_t BRKeyPrivKey(BRKey *key, char *privKey, size_t len);
 
 size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t len);

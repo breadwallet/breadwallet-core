@@ -158,7 +158,8 @@ int BRKeySetSecret(BRKey *key, UInt256 secret, int compressed)
     key->secret = secret;
     secret = UINT256_ZERO;
     key->compressed = compressed;
-    return BRKeyIsValid(key);
+//    return secp256k1_ec_seckey_verify(_ctx, (const unsigned char *)&key->secret);
+    return 0;
 }
 
 int BRKeySetPrivKey(BRKey *key, const char *privKey)
@@ -200,48 +201,90 @@ int BRKeySetPrivKey(BRKey *key, const char *privKey)
         memset(data, 0, sizeof(data));
     }
 
-    return BRKeyIsValid(key);
+//    return secp256k1_ec_seckey_verify(_ctx, (const unsigned char *)&key->secret);
+    return 0;
 }
 
 int BRKeySetPubKey(BRKey *key, BRPubKey pubKey)
 {
-    return BRKeyIsValid(key);
-}
-
-int BRKeyIsValid(BRKey *key)
-{
+    BRKeyClean(key);
+    *(BRPubKey *)&key->pubKey = pubKey;
+    key->compressed = ! 0;
+//   return secp256k1_ec_pubkey_verify(_ctx, (const unsigned char *)&self->pubKey, (int)sizeof(key->pubKey));
     return 0;
 }
 
 size_t BRKeyPrivKey(BRKey *key, char *privKey, size_t len)
 {
-    return 0;
+    uint8_t data[34];
+
+//    if (! secp256k1_ec_seckey_verify(_ctx, (const unsigned char *)&key->secret)) return 0;
+    data[0] = BITCOIN_PRIVKEY;
+#if BITCOIN_TESTNET
+    data[0] = BITCOIN_PRIVKEY_TEST;
+#endif
+
+    *(UInt256 *)&data[1] = key->secret;
+    if (key->compressed) data[33] = 0x01;
+    len = BRBase58CheckEncode(privKey, len, data, (key->compressed) ? 34 : 33);
+    memset(data, 0, sizeof(data));
+    return len;
 }
 
 size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t len)
 {
-    return 0;
+    static uint8_t empty[65]; // static vars initialize to zero
+    size_t size = (key->compressed) ? 33 : 65;
+
+    if (memcmp(key->pubKey, empty, size) == 0) {
+//        secp256k1_ec_pubkey_create(_ctx, key->pubKey, &size, (const unsigned char *)&key->secret, key->compressed);
+    }
+
+    if (pubKey && len >= size) memcpy(pubKey, key->pubKey, size);
+    return (! pubKey || len >= size) ? size : 0;
 }
 
 UInt160 BRKeyHash160(BRKey *key)
 {
-    UInt160 hash;
-    
+    uint8_t pubKey[65];
+    size_t len = BRKeyPubKey(key, pubKey, sizeof(pubKey));
+    UInt160 hash = UINT160_ZERO;
+
+    if (len > 0) BRHash160(&hash, pubKey, len);
     return hash;
 }
 
 size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen)
 {
-    return 0;
+    uint8_t data[21];
+
+    data[0] = BITCOIN_PUBKEY_ADDRESS;
+#if BITCOIN_TESTNET
+    data[0] = BITCOIN_PUBKEY_ADDRESS_TEST;
+#endif
+    *(UInt160 *)&data[1] = BRKeyHash160(key);
+    if (UInt160IsZero(*(UInt160 *)&data[1])) return 0;
+    return BRBase58CheckEncode(addr, addrLen, data, sizeof(data));
 }
 
 size_t BRKeySign(BRKey *key, void *sig, size_t len, UInt256 md)
 {
-    return 0;
+    if (UInt256IsZero(key->secret)) return 0;
+    
+//    secp256k1_ecdsa_sign(_ctx, (const unsigned char *)&md, sig, &len, (const unsigned char *)&key->secret,
+//                         secp256k1_nonce_function_rfc6979, NULL);
+    return len;
 }
 
 int BRKeyVerify(BRKey *key, UInt256 md, const void *sig, size_t sigLen)
 {
+    uint8_t pubKey[65];
+    size_t len = BRKeyPubKey(key, pubKey, sizeof(pubKey));
+
+    if (len == 0) return 0;
+    
+    // success is 1, all other values are fail
+//    return (secp256k1_ecdsa_verify(_ctx, (const unsigned char *)&md, sig, (int)sigLen, pubKey, (int)len) == 1) ? 1 : 0;
     return 0;
 }
 
