@@ -30,13 +30,13 @@
 // returns number of bytes written to phrase including NULL terminator, or size needed if phrase is NULL
 size_t BRBIP39Encode(char *phrase, size_t phraseLen, const char *wordList[], const uint8_t *data, size_t dataLen)
 {
-    if (! data || (dataLen % 4) != 0) return 0; // data length must be a multiple of 32 bits
-    
     uint32_t x;
     uint8_t buf[dataLen + 32];
     const char *word;
     size_t len = 0;
 
+    if (! data || (dataLen % 4) != 0) return 0; // data length must be a multiple of 32 bits
+    
     memcpy(buf, data, dataLen);
     BRSHA256(&buf[dataLen], data, dataLen); // append SHA256 checksum
 
