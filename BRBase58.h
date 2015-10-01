@@ -31,15 +31,15 @@
 // base58 and base58check encoding: https://en.bitcoin.it/wiki/Base58Check_encoding
 
 // returns the number of characters written to s including NULL terminator, or total slen needed if s is NULL
-size_t BRBase58Encode(char *s, size_t slen, const uint8_t *data, size_t dlen);
+size_t BRBase58Encode(char *s, size_t sLen, const uint8_t *data, size_t dataLen);
 
 // returns the number of bytes written to data, or total dlen needed if data is NULL
-size_t BRBase58Decode(uint8_t *data, size_t dlen, const char *s);
+size_t BRBase58Decode(uint8_t *data, size_t dataLen, const char *s);
 
 // returns the number of characters written to s including NULL terminator, or total slen needed if s is NULL
-size_t BRBase58CheckEncode(char *s, size_t slen, const uint8_t *data, size_t dlen);
+size_t BRBase58CheckEncode(char *s, size_t sLen, const uint8_t *data, size_t dataLen);
 
 // returns the number of bytes written to data, or total dlen needed if data is NULL
-size_t BRBase58CheckDecode(uint8_t *data, size_t dlen, const char *s);
+size_t BRBase58CheckDecode(uint8_t *data, size_t dataLen, const char *s);
 
 #endif // BRBase58_h

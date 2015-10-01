@@ -42,11 +42,11 @@ void BRRMD160(void *md, const void *data, size_t len);
 
 void BRHash160(void *md, const void *data, size_t len);
 
-void BRHMAC(void *md, void (*hash)(void *, const void *, size_t), size_t hlen, const void *key, size_t klen,
-            const void *data, size_t dlen);
+void BRHMAC(void *md, void (*hash)(void *, const void *, size_t), size_t hlen, const void *key, size_t keyLen,
+            const void *data, size_t dataLen);
 
-void BRPBKDF2(void *dk, size_t dklen, void (*hash)(void *, const void *, size_t), size_t hlen,
-              const void *pw, size_t pwlen, const void *salt, size_t slen, unsigned rounds);
+void BRPBKDF2(void *dk, size_t dkLen, void (*hash)(void *, const void *, size_t), size_t hashLen,
+              const void *pw, size_t pwLen, const void *salt, size_t saltLen, unsigned rounds);
 
 // murmurHash3 (x86_32): https://code.google.com/p/smhasher/
 uint32_t BRMurmur3_32(const void *data, size_t len, uint32_t seed);

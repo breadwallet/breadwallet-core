@@ -32,17 +32,17 @@
 static const char base58chars[] = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 // returns the number of characters written to s including NULL terminator, or total slen needed if s is NULL
-size_t BRBase58Encode(char *s, size_t slen, const uint8_t *data, size_t dlen)
+size_t BRBase58Encode(char *s, size_t sLen, const uint8_t *data, size_t dataLen)
 {
     size_t i, len, zcount = 0;
     
-    while (zcount < dlen && data[zcount] == 0) zcount++; // count leading zeroes
+    while (zcount < dataLen && data[zcount] == 0) zcount++; // count leading zeroes
 
-    uint8_t buf[(dlen - zcount)*138/100 + 1]; // log(256)/log(58), rounded up
+    uint8_t buf[(dataLen - zcount)*138/100 + 1]; // log(256)/log(58), rounded up
     
     memset(buf, 0, sizeof(buf));
     
-    for (i = zcount; i < dlen; i++) {
+    for (i = zcount; i < dataLen; i++) {
         uint32_t carry = data[i];
         
         for (size_t j = sizeof(buf); j > 0; j--) {
@@ -58,18 +58,18 @@ size_t BRBase58Encode(char *s, size_t slen, const uint8_t *data, size_t dlen)
     while (i < sizeof(buf) && buf[i] == 0) i++; // skip leading zeroes
     len = (zcount + sizeof(buf) - i) + 1;
 
-    if (s && slen >= len) {
+    if (s && sLen >= len) {
         while (zcount-- > 0) *(s++) = base58chars[0];
         while (i < sizeof(buf)) *(s++) = base58chars[buf[i++]];
         *s = '\0';
     }
     
     memset(buf, 0, sizeof(buf));
-    return (! s || slen >= len) ? len : 0;
+    return (! s || sLen >= len) ? len : 0;
 }
 
 // returns the number of bytes written to data, or total dlen needed if data is NULL
-size_t BRBase58Decode(uint8_t *data, size_t dlen, const char *s)
+size_t BRBase58Decode(uint8_t *data, size_t dataLen, const char *s)
 {
     size_t i = 0, len, zcount = 0;
     
@@ -128,30 +128,30 @@ size_t BRBase58Decode(uint8_t *data, size_t dlen, const char *s)
     while (i < sizeof(buf) && buf[i] == 0) i++; // skip leading zeroes
     len = zcount + sizeof(buf) - i;
 
-    if (data && dlen >= len) {
+    if (data && dataLen >= len) {
         if (zcount > 0) memset(data, 0, zcount);
         memcpy(data + zcount, &buf[i], sizeof(buf) - i);
     }
 
     memset(buf, 0, sizeof(buf));
-    return (! data || dlen >= len) ? len : 0;
+    return (! data || dataLen >= len) ? len : 0;
 }
 
 // returns the number of characters written to s including NULL terminator, or total slen needed if s is NULL
-size_t BRBase58CheckEncode(char *s, size_t slen, const uint8_t *data, size_t dlen)
+size_t BRBase58CheckEncode(char *s, size_t sLen, const uint8_t *data, size_t dataLen)
 {
     size_t len;
-    uint8_t buf[dlen + 256/8];
+    uint8_t buf[dataLen + 256/8];
 
-    memcpy(buf, data, dlen);
-    BRSHA256_2(&buf[dlen], data, dlen);
-    len = BRBase58Encode(s, slen, buf, dlen + 4);
+    memcpy(buf, data, dataLen);
+    BRSHA256_2(&buf[dataLen], data, dataLen);
+    len = BRBase58Encode(s, sLen, buf, dataLen + 4);
     memset(buf, 0, sizeof(buf));
     return len;
 }
 
 // returns the number of bytes written to data, or total dlen needed if data is NULL
-size_t BRBase58CheckDecode(uint8_t *data, size_t dlen, const char *s)
+size_t BRBase58CheckDecode(uint8_t *data, size_t dataLen, const char *s)
 {
     uint8_t buf[strlen(s)*733/1000 + 1], md[256/8];
     size_t len = BRBase58Decode(buf, sizeof(buf), s);
@@ -160,10 +160,10 @@ size_t BRBase58CheckDecode(uint8_t *data, size_t dlen, const char *s)
         len -= 4;
         BRSHA256_2(md, buf, len);
         if (*(uint32_t *)&buf[len] != *(uint32_t *)md) len = 0; // verify checksum
-        if (data && dlen >= len) memcpy(data, buf, len);
+        if (data && dataLen >= len) memcpy(data, buf, len);
     }
     else len = 0;
     
     memset(buf, 0, sizeof(buf));
-    return (! data || dlen >= len) ? len : 0;
+    return (! data || dataLen >= len) ? len : 0;
 }

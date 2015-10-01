@@ -31,16 +31,16 @@
 // https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki
 
 #define BIP39_CREATION_TIME  1388534400 // oldest possible BIP39 phrase creation time, seconds after unix epoch
-#define BIP38_WORDLIST_COUNT 2048       // number of words in a BIP39 wordlist
+#define BIP39_WORDLIST_COUNT 2048       // number of words in a BIP39 wordlist
 
 // returns number of bytes written to phrase including NULL terminator, or size needed if phrase is NULL
-size_t BRBIP39Encode(char *phrase, size_t plen, const char *wordlist[], const uint8_t *data, size_t dlen);
+size_t BRBIP39Encode(char *phrase, size_t phraseLen, const char *wordList[], const uint8_t *data, size_t dataLen);
 
 // returns number of bytes written to data, or size needed if data is NULL
-size_t BRBIP39Decode(uint8_t *data, size_t dlen, const char *wordlist[], const char *phrase);
+size_t BRBIP39Decode(uint8_t *data, size_t dataLen, const char *wordList[], const char *phrase);
 
 // verifies that all phrase words are contained in wordlist and checksum is valid
-int BRBIP39PhraseIsValid(const char *wordlist[], const char *phrase);
+int BRBIP39PhraseIsValid(const char *wordList[], const char *phrase);
 
 // key must hold 64 bytes, phrase and passphrase must be unicode NFKD normalized
 // http://www.unicode.org/reports/tr15/#Norm_Forms

@@ -46,9 +46,9 @@ void BRBIP32PrivKey(UInt256 *key, const void *seed, size_t seedLen, int internal
 void BRBIP32PrivKeyList(UInt256 *keys, size_t count, const void *seed, size_t seedLen, int internal,
                         const uint32_t *indexes);
 
-size_t BRBIP32SerializeMasterPrivKey(char *s, size_t len, const void *seed, size_t seedLen);
+size_t BRBIP32SerializeMasterPrivKey(char *s, size_t sLen, const void *seed, size_t seedLen);
 size_t BRBIP32DeserializeMasterPrivKey(void *seed, size_t seedLen, const char *s);
-size_t BRBIP32SerializeMasterPubKey(char *s, size_t len, BRMasterPubKey mpk);
+size_t BRBIP32SerializeMasterPubKey(char *s, size_t sLen, BRMasterPubKey mpk);
 BRMasterPubKey BRBIP32DeserializeMasterPubKey(const char *s);
 
 #endif // BRBIP32Sequence_h
