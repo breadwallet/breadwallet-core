@@ -35,7 +35,9 @@
 #define TX_UNCONFIRMED       INT32_MAX   // block height indicating transaction is unconfirmed
 #define TX_MAX_LOCK_HEIGHT   500000000u  // a lockTime below this value is a block height, otherwise a timestamp
 
-#define BR_RAND_MAX RAND_MAX
+#define TXIN_SEQUENCE        UINT32_MAX  // sequence number for a finalized tx input
+
+#define BR_RAND_MAX          RAND_MAX
 
 // returns a random number less than upperBound, for non-cryptographic use only
 uint32_t BRRand(uint32_t upperBound);
@@ -87,10 +89,11 @@ BRTransaction *BRTransactionDeserialize(const uint8_t *buf, size_t len);
 size_t BRTransactionSerialize(BRTransaction *tx, uint8_t *buf, size_t len);
 
 // adds an input to tx
-void BRTransactionAddInput(BRTransaction *tx, BRTxInput *input);
+void BRTransactionAddInput(BRTransaction *tx, UInt256 txHash, uint32_t index, uint8_t *script, size_t scriptLen,
+                           uint8_t *signature, size_t sigLen, uint32_t sequence);
 
 // adds an output to tx
-void BRTransactionAddOutput(BRTransaction *tx, BRTxOutput *output);
+void BRTransactionAddOutput(BRTransaction *tx, uint64_t amount, uint8_t *script, size_t scriptLen);
 
 // shuffles order of tx outputs
 void BRTransactionShuffleOutputs(BRTransaction *tx);

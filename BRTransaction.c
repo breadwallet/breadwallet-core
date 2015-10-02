@@ -30,7 +30,6 @@
 
 #define TX_VERSION    0x00000001u
 #define TX_LOCKTIME   0x00000000u
-#define TXIN_SEQUENCE UINT32_MAX
 #define SIGHASH_ALL   0x00000001u
 
 // returns a random number less than upperBound, for non-cryptographic use only
@@ -74,7 +73,7 @@ void BRTxInputSetSignature(BRTxInput *input, const uint8_t *signature, size_t si
     if (input->signature) array_free(signature);
     array_new(input->signature, sigLen);
     array_add_array(input->signature, signature, sigLen);
-    BRAddressFromScriptSig(input->address, sizeof(input->address), signature, sigLen);
+    if (! input->address[0]) BRAddressFromScriptSig(input->address, sizeof(input->address), signature, sigLen);
 }
 
 void BRTxOutputSetAddress(BRTxOutput *output, const char *address)
@@ -176,16 +175,24 @@ size_t BRTransactionSerialize(BRTransaction *tx, uint8_t *buf, size_t len)
 }
 
 // adds an input to tx
-void BRTransactionAddInput(BRTransaction *tx, BRTxInput *input)
+void BRTransactionAddInput(BRTransaction *tx, UInt256 txHash, uint32_t index, uint8_t *script, size_t scriptLen,
+                           uint8_t *signature, size_t sigLen, uint32_t sequence)
 {
-    array_add(tx->inputs, *input);
+    BRTxInput input = { txHash, index, "", NULL, 0, NULL, 0, sequence };
+
+    if (script) BRTxInputSetScript(&input, script, scriptLen);
+    if (signature) BRTxInputSetSignature(&input, signature, sigLen);
+    array_add(tx->inputs, input);
     tx->inCount = array_count(tx->inputs);
 }
 
 // adds an output to tx
-void BRTransactionAddOutput(BRTransaction *tx, BRTxOutput *output)
+void BRTransactionAddOutput(BRTransaction *tx, uint64_t amount, uint8_t *script, size_t scriptLen)
 {
-    array_add(tx->outputs, *output);
+    BRTxOutput output = { "", amount, NULL, 0 };
+    
+    BRTxOutputSetScript(&output, script, scriptLen);
+    array_add(tx->outputs, output);
     tx->outCount = array_count(tx->outputs);
 }
 

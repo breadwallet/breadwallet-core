@@ -360,7 +360,50 @@ BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, cons
 // BRTransactionFree()
 BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, BRTxOutput *outputs, size_t count)
 {
-    return NULL;
+    uint64_t amount = 0, balance = 0, feeAmount = 0;
+    BRTransaction *tx, *transaction = BRTransactionNew();
+    size_t i, cpfpSize = 0;
+    BRUTXO *o;
+    
+    for (i = 0; i < count; i++) {
+        BRTransactionAddOutput(transaction, outputs[i].amount, outputs[i].script, outputs[i].scriptLen);
+        amount += outputs[i].amount;
+    }
+    
+    //TODO: make sure transaction is less than TX_MAX_SIZE
+    //TODO: use up all UTXOs for all used addresses to avoid leaving funds in addresses whose public key is revealed
+    //TODO: avoid combining addresses in a single transaction when possible to reduce information leakage
+    //TODO: use any UTXOs received from output addresses to mitigate an attacker double spending and requesting a refund
+    for (i = 0; i < array_count(wallet->utxos); i++) {
+        o = &wallet->utxos[i];
+        tx = BRSetGet(wallet->allTx, o);
+        if (! tx) continue;
+
+        BRTransactionAddInput(transaction, tx->txHash, o->n, tx->outputs[o->n].script, tx->outputs[o->n].scriptLen,
+                              NULL, 0, TXIN_SEQUENCE);
+        balance += tx->outputs[o->n].amount;
+        
+        if (tx->blockHeight == TX_UNCONFIRMED && BRWalletAmountSentByTx(wallet, tx) == 0) {
+            cpfpSize += BRTransactionSize(tx); // size of unconfirmed, non-change inputs for child-pays-for-parent fee
+        }
+
+        feeAmount = BRWalletFeeForTxSize(wallet, BRTransactionSize(transaction) + 34 + cpfpSize); // add a change output
+        if (balance == amount + feeAmount || balance >= amount + feeAmount + TX_MIN_OUTPUT_AMOUNT) break;
+    }
+    
+    if (balance < amount + feeAmount) { // insufficient funds
+        BRTransactionFree(transaction);
+        transaction = NULL;
+    }
+    else if (balance - (amount + feeAmount) >= TX_MIN_OUTPUT_AMOUNT) {
+        uint8_t script[BRAddressScriptPubKey(NULL, 0, BRWalletChangeAddress(wallet))];
+        size_t scriptLen = BRAddressScriptPubKey(script, sizeof(script), BRWalletChangeAddress(wallet));
+    
+        BRTransactionAddOutput(transaction, balance - (amount + feeAmount), script, scriptLen);
+        BRTransactionShuffleOutputs(transaction);
+    }
+    
+    return transaction;
 }
 
 // sign any inputs in the given transaction that can be signed using private keys from the wallet
