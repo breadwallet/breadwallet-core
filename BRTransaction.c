@@ -50,6 +50,52 @@ uint32_t BRRand(uint32_t upperBound)
     return r % upperBound;
 }
 
+void BRTxInputSetAddress(BRTxInput *input, const char *address)
+{
+    strncpy(input->address, address, sizeof(input->address));
+    if (input->script) array_free(input->script);
+    input->scriptLen = BRAddressScriptPubKey(NULL, 0, address);
+    array_new(input->script, input->scriptLen);
+    array_set_count(input->script, input->scriptLen);
+    BRAddressScriptPubKey(input->script, input->scriptLen, address);
+}
+
+void BRTxInputSetScript(BRTxInput *input, const uint8_t *script, size_t scriptLen)
+{
+    if (input->script) array_free(input->script);
+    array_new(input->script, scriptLen);
+    array_add_array(input->script, script, scriptLen);
+    input->address[0] = '\0';
+    BRAddressFromScriptPubKey(input->address, sizeof(input->address), script, scriptLen);
+}
+
+void BRTxInputSetSignature(BRTxInput *input, const uint8_t *signature, size_t sigLen)
+{
+    if (input->signature) array_free(signature);
+    array_new(input->signature, sigLen);
+    array_add_array(input->signature, signature, sigLen);
+    BRAddressFromScriptSig(input->address, sizeof(input->address), signature, sigLen);
+}
+
+void BRTxOutputSetAddress(BRTxOutput *output, const char *address)
+{
+    strncpy(output->address, address, sizeof(output->address));
+    if (output->script) array_free(output->script);
+    output->scriptLen = BRAddressScriptPubKey(NULL, 0, address);
+    array_new(output->script, output->scriptLen);
+    array_set_count(output->script, output->scriptLen);
+    BRAddressScriptPubKey(output->script, output->scriptLen, address);
+}
+
+void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scriptLen)
+{
+    if (output->script) array_free(output->script);
+    array_new(output->script, scriptLen);
+    array_add_array(output->script, script, scriptLen);
+    output->address[0] = '\0';
+    BRAddressFromScriptPubKey(output->address, sizeof(output->address), script, scriptLen);
+}
+
 static size_t BRTransactionData(BRTransaction *tx, uint8_t *data, size_t len, size_t subscriptIdx)
 {
     size_t off = 0;

@@ -97,6 +97,10 @@ int BRWalletAddressIsUsed(BRWallet *wallet, const char *addr);
 // freed using BRTransactionFree()
 BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, const char *addr);
 
+// returns an unsigned transaction that satisifes the given transaction outputs, result must be freed using
+// BRTransactionFree()
+BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, BRTxOutput *outputs, size_t count);
+
 // sign any inputs in the given transaction that can be signed using private keys from the wallet
 int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *authPrompt);
 

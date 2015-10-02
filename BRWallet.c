@@ -98,7 +98,7 @@ inline static BRAddress *BRWalletUnusedAddrs(BRWallet *wallet, uint32_t gapLimit
 inline static void *BRWalletTxContext(BRTransaction *tx)
 {
     // dirty dirty hack to sneak context data into qsort() and bsearch() comparator callbacks, since input scripts are
-    // not used in already signed transactions, we can hijack the first script pointer for our own nafarious purposes
+    // not used in already signed transactions, we hijack the first script pointer for our own nafarious purposes
     return (tx->inputs[0].scriptLen == 0) ? tx->inputs[0].script : NULL;
 }
 
@@ -318,36 +318,47 @@ void BRWalletSetFeePerKb(BRWallet *wallet, uint64_t feePerKb)
 // returns the first unused external address
 const char *BRWalletReceiveAddress(BRWallet *wallet)
 {
-    return NULL;
+    return BRWalletUnusedAddrs(wallet, 1, 0)->s;
 }
 
 // returns the first unused internal address
 const char *BRWalletChangeAddress(BRWallet *wallet)
 {
-    return NULL;
+    return BRWalletUnusedAddrs(wallet, 1, 1)->s;
 }
 
 // true if the given txHash is registered in the wallet
 int BRWalletContainsTxHash(BRWallet *wallet, UInt256 txHash)
 {
-    return 0;
+    return BRSetContains(wallet->allTx, &txHash);
 }
 
 // true if the address is controlled by the wallet
 int BRWalletContainsAddress(BRWallet *wallet, const char *addr)
 {
-    return 0;
+    return BRSetContains(wallet->allAddrs, addr);
 }
 
 // true if the address was previously used as an input or output in any wallet transaction
 int BRWalletAddressIsUsed(BRWallet *wallet, const char *addr)
 {
-    return 0;
+    return BRSetContains(wallet->usedAddrs, addr);
 }
 
 // returns an unsigned transaction that sends the specified amount from the wallet to the given address, result must be
 // freed using BRTransactionFree()
 BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, const char *addr)
+{
+    BRTxOutput o;
+    
+    o.amount = amount;
+    BRTxOutputSetAddress(&o, addr);
+    return BRWalletCreateTxForOutputs(wallet, &o, 1);
+}
+
+// returns an unsigned transaction that satisifes the given transaction outputs, result must be freed using
+// BRTransactionFree()
+BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, BRTxOutput *outputs, size_t count)
 {
     return NULL;
 }

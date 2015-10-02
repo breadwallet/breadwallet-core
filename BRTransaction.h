@@ -51,12 +51,19 @@ typedef struct {
     uint32_t sequence;
 } BRTxInput;
 
+void BRTxInputSetAddress(BRTxInput *input, const char *address);
+void BRTxInputSetScript(BRTxInput *input, const uint8_t *script, size_t scriptLen);
+void BRTxInputSetSignature(BRTxInput *input, const uint8_t *signature, size_t sigLen);
+
 typedef struct {
     char address[36];
     uint64_t amount;
     uint8_t *script;
     size_t scriptLen;
 } BRTxOutput;
+
+void BRTxOutputSetAddress(BRTxOutput *output, const char *address);
+void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scriptLen);
 
 typedef struct {
     UInt256 txHash;
