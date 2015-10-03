@@ -237,14 +237,13 @@ int BRTransactionIsSigned(BRTransaction *tx)
 }
 
 // adds signatures to any inputs with NULL signatures that can be signed with any privKeys, returns true if tx is signed
-int BRTransactionSign(BRTransaction *tx, const char *privKeys[], size_t count)
+int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t count)
 {
-    BRKey keys[count];
     BRAddress addrs[count], address;
     size_t i, j, len;
     
     for (i = 0, j = 0; i < count; i++) {
-        if (BRKeySetPrivKey(&keys[j], privKeys[i]) && BRKeyAddress(&keys[j], addrs[j].s, sizeof(addrs[j])) > 0) j++;
+        if (BRKeyAddress(&keys[j], addrs[j].s, sizeof(addrs[j])) > 0) j++;
     }
     
     count = j;

@@ -82,8 +82,10 @@ inline static BRAddress *BRWalletUnusedAddrs(BRWallet *wallet, uint32_t gapLimit
     while (count - i < gapLimit) { // generate new addresses up to gapLimit
         BRKey key;
         BRAddress addr = BR_ADDRESS_NONE;
+        uint8_t pubKey[BRBIP32PubKey(NULL, 0, wallet->masterPubKey, internal, count)];
+        size_t len = BRBIP32PubKey(pubKey, sizeof(pubKey), wallet->masterPubKey, internal, count);
 
-        BRKeySetPubKey(&key, BRBIP32PubKey(wallet->masterPubKey, internal, count));
+        BRKeySetPubKey(&key, pubKey, len);
         if (BRKeyAddress(&key, addr.s, sizeof(addr)) == 0) break;
         if (BRAddressEq(&addr, &BR_ADDRESS_NONE)) break;
         array_add(chain, addr);
@@ -396,8 +398,9 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, BRTxOutput *outputs,
         transaction = NULL;
     }
     else if (balance - (amount + feeAmount) >= TX_MIN_OUTPUT_AMOUNT) {
-        uint8_t script[BRAddressScriptPubKey(NULL, 0, BRWalletChangeAddress(wallet))];
-        size_t scriptLen = BRAddressScriptPubKey(script, sizeof(script), BRWalletChangeAddress(wallet));
+        const char *address = BRWalletChangeAddress(wallet);
+        uint8_t script[BRAddressScriptPubKey(NULL, 0, address)];
+        size_t scriptLen = BRAddressScriptPubKey(script, sizeof(script), address);
     
         BRTransactionAddOutput(transaction, balance - (amount + feeAmount), script, scriptLen);
         BRTransactionShuffleOutputs(transaction);
@@ -409,7 +412,35 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, BRTxOutput *outputs,
 // sign any inputs in the given transaction that can be signed using private keys from the wallet
 int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *authPrompt)
 {
-    return 0;
+    int64_t amount = BRWalletAmountSentByTx(wallet, tx) - BRWalletAmountReceivedFromTx(wallet, tx);
+    unsigned internalIdx[tx->inCount], externalIdx[tx->inCount];
+    size_t internalCount = 0, externalCount = 0, seedLen = 0;
+    int r = 0;
+    
+    for (size_t i = 0; i < tx->inCount; i++) {
+        for (unsigned j = 0; j < array_count(wallet->internalChain); j++) {
+            if (BRAddressEq(tx->inputs[i].address, &wallet->internalChain[j])) internalIdx[internalCount++] = j;
+        }
+
+        for (unsigned j = 0; j < array_count(wallet->externalChain); j++) {
+            if (BRAddressEq(tx->inputs[i].address, &wallet->externalChain[j])) externalIdx[externalCount++] = j;
+        }
+
+    }
+
+    BRKey keys[internalCount + externalCount];
+    void *seed = wallet->seed(authPrompt, (amount > 0) ? amount : 0, &seedLen);
+    
+    if (seed) {
+        BRBIP32PrivKeyList(keys, internalCount, seed, seedLen, 1, internalIdx);
+        BRBIP32PrivKeyList(&keys[internalCount], externalCount, seed, seedLen, 0, externalIdx);
+        seed = NULL;
+        r = BRTransactionSign(tx, keys, internalCount + externalCount);
+        for (size_t i = 0; i < internalCount + externalCount; i++) BRKeyClean(&keys[i]);
+    }
+    else r = ! 0; // user canceled authentication
+    
+    return r;
 }
 
 // true if the given transaction is associated with the wallet (even if it hasn't been registered)
@@ -493,7 +524,7 @@ uint64_t BRWalletAmountSentByTx(BRWallet *wallet, BRTransaction *tx)
     return amount;
 }
 
-// returns the fee for the given transaction if all its inputs are from wallet transactions, ULLONG_MAX otherwise
+// returns the fee for the given transaction if all its inputs are from wallet transactions, UINT64_MAX otherwise
 uint64_t BRWalletFeeForTx(BRWallet *wallet, BRTransaction *tx)
 {
     uint64_t amount = 0;

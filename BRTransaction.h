@@ -26,6 +26,7 @@
 #define BRTransaction_h
 
 #include "BRTypes.h"
+#include "BRKey.h"
 
 #define TX_FEE_PER_KB        1000ULL     // standard tx fee per kb of tx size, rounded up to nearest kb
 #define TX_MIN_OUTPUT_AMOUNT (TX_FEE_PER_KB*3*(34 + 148)/1000) // no txout can be below this amount (or it won't relay)
@@ -108,7 +109,7 @@ uint64_t BRTransactionStandardFee(BRTransaction *tx);
 int BRTransactionIsSigned(BRTransaction *tx);
 
 // adds signatures to any inputs with NULL signatures that can be signed with any privKeys, returns true if tx is signed
-int BRTransactionSign(BRTransaction *tx, const char *privKeys[], size_t count);
+int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t count);
 
 // returns a hash value for tx suitable for use in a hashtable
 inline static size_t BRTransactionHash(const void *tx)

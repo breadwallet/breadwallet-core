@@ -25,7 +25,6 @@
 #ifndef BRAddress_h
 #define BRAddress_h
 
-#include "BRTypes.h"
 #include "BRBase58.h"
 #include "BRHash.h"
 #include <string.h>
@@ -34,8 +33,6 @@
 #define BITCOIN_SCRIPT_ADDRESS      5
 #define BITCOIN_PUBKEY_ADDRESS_TEST 111
 #define BITCOIN_SCRIPT_ADDRESS_TEST 196
-#define BITCOIN_PRIVKEY             128
-#define BITCOIN_PRIVKEY_TEST        239
 
 // bitcoin script opcodes: https://en.bitcoin.it/wiki/Script#Constants
 #define OP_PUSHDATA1   0x4c
@@ -68,13 +65,7 @@ size_t BRAddressScriptPubKey(uint8_t *script, size_t scriptLen, const char *addr
 
 int BRAddressIsValid(const char *addr);
 
-inline static UInt160 BRAddressHash160(const char *addr)
-{
-    uint8_t data[21];
-    
-    if (BRBase58CheckDecode(data, sizeof(data), addr) != 21) return UINT160_ZERO;
-    return *(UInt160 *)&data[1];
-}
+int BRAddressHash160(void *md, const char *addr);
 
 inline static int BRAddressEq(const void *a, const void *b)
 {

@@ -24,12 +24,20 @@
 
 #include "BRBIP32Sequence.h"
 #include "BRHash.h"
+#include "BRBase58.h"
 #include <strings.h>
 
 #define BIP32_HARD     0x80000000u
 #define BIP32_SEED_KEY "Bitcoin seed"
 #define BIP32_XPRV     "\x04\x88\xAD\xE4"
 #define BIP32_XPUB     "\x04\x88\xB2\x1E"
+
+typedef struct {
+    uint8_t u8[33];
+} BRPubKey;
+
+#define PUBKEY_NONE ((BRPubKey)\
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 })
 
 // BIP32 is a scheme for deriving chains of addresses from a seed value
 // https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki
@@ -126,7 +134,7 @@ BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen)
     
     CKDpriv(&secret, &chain, 0 | BIP32_HARD); // account 0H
     
-    mpk.chainCode = chain;
+    *(UInt256 *)mpk.chainCode = chain;
     BRKeySetSecret(&key, secret, 1);
     secret = chain = UINT256_ZERO;
     if (! BRKeyPubKey(&key, &mpk.pubKey, sizeof(mpk.pubKey))) mpk = MASTER_PUBKEY_NONE;
@@ -134,27 +142,31 @@ BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen)
     return mpk;
 }
 
-BRPubKey BRBIP32PubKey(BRMasterPubKey mpk, int internal, uint32_t index)
+size_t BRBIP32PubKey(uint8_t *pubKey, size_t pubKeyLen, BRMasterPubKey mpk, int internal, uint32_t index)
 {
-    UInt256 chain = mpk.chainCode;
-    BRPubKey pubKey = mpk.pubKey;
+    UInt256 chain = *(UInt256 *)mpk.chainCode;
 
-    CKDpub(&pubKey, &chain, internal ? 1 : 0); // internal or external chain
-    CKDpub(&pubKey, &chain, index); // index'th key in chain
+    if (! pubKey) return sizeof(BRPubKey);
+    if (pubKeyLen < sizeof(BRPubKey)) return 0;
+
+    *(BRPubKey *)pubKey = *(BRPubKey *)mpk.pubKey;
+
+    CKDpub((BRPubKey *)pubKey, &chain, internal ? 1 : 0); // internal or external chain
+    CKDpub((BRPubKey *)pubKey, &chain, index); // index'th key in chain
     chain = UINT256_ZERO;
-    return pubKey;
+    return sizeof(BRPubKey);
 }
 
-void BRBIP32PrivKey(UInt256 *key, const void *seed, size_t seedlen, int internal, uint32_t index)
+void BRBIP32PrivKey(BRKey *key, const void *seed, size_t seedlen, int internal, uint32_t index)
 {
     return BRBIP32PrivKeyList(key, 1, seed, seedlen, internal, &index);
 }
 
-void BRBIP32PrivKeyList(UInt256 *keys, size_t count, const void *seed, size_t seedLen, int internal,
+void BRBIP32PrivKeyList(BRKey keys[], size_t count, const void *seed, size_t seedLen, int internal,
                         const unsigned *indexes)
 {
     UInt512 I;
-    UInt256 secret, chain, c;
+    UInt256 secret, chain, s, c;
     
     if (! keys || count == 0 || ! seed || ! indexes) return;
     
@@ -165,14 +177,15 @@ void BRBIP32PrivKeyList(UInt256 *keys, size_t count, const void *seed, size_t se
 
     CKDpriv(&secret, &chain, 0 | BIP32_HARD); // account 0H
     CKDpriv(&secret, &chain, internal ? 1 : 0); // internal or external chain
-    secret = UINT256_ZERO;
     
     for (size_t i = 0; i < count; i++) {
+        s = secret;
         c = chain;
-        CKDpriv(&keys[i], &c, indexes[i]); // index'th key in chain
+        CKDpriv(&s, &c, indexes[i]); // index'th key in chain
+        BRKeySetSecret(&keys[i], s, 1);
     }
     
-    c = chain = UINT256_ZERO;
+    secret = chain = c = s = UINT256_ZERO;
 }
 
 size_t BRBIP32SerializeMasterPrivKey(char *s, size_t sLen, const void *seed, size_t slen)

@@ -26,6 +26,9 @@
 #include "BRAddress.h"
 #include <stdio.h>
 
+#define BITCOIN_PRIVKEY      128
+#define BITCOIN_PRIVKEY_TEST 239
+
 //#define HAVE_CONFIG_H 1
 //#define DETERMINISTIC 1
 //
@@ -205,11 +208,11 @@ int BRKeySetPrivKey(BRKey *key, const char *privKey)
     return 0;
 }
 
-int BRKeySetPubKey(BRKey *key, BRPubKey pubKey)
+int BRKeySetPubKey(BRKey *key, const uint8_t *pubKey, size_t len)
 {
     BRKeyClean(key);
-    *(BRPubKey *)&key->pubKey = pubKey;
-    key->compressed = ! 0;
+    memcpy(key->pubKey, pubKey, len);
+    key->compressed = (len <= 33);
 //   return secp256k1_ec_pubkey_verify(_ctx, (const unsigned char *)&self->pubKey, (int)sizeof(key->pubKey));
     return 0;
 }

@@ -131,7 +131,7 @@ uint64_t BRWalletAmountReceivedFromTx(BRWallet *wallet, BRTransaction *tx);
 // retuns the amount sent from the wallet by the trasaction (total wallet outputs consumed, change and fee included)
 uint64_t BRWalletAmountSentByTx(BRWallet *wallet, BRTransaction *tx);
 
-// returns the fee for the given transaction if all its inputs are from wallet transactions, ULLONG_MAX otherwise
+// returns the fee for the given transaction if all its inputs are from wallet transactions, UINT64_MAX otherwise
 uint64_t BRWalletFeeForTx(BRWallet *wallet, BRTransaction *tx);
 
 // historical wallet balance after the given transaction, or current balance if transaction is not registered in wallet

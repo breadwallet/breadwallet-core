@@ -34,16 +34,17 @@
 
 typedef struct {
     uint32_t fingerPrint;
-    UInt256 chainCode;
-    BRPubKey pubKey;
+    uint64_t chainCode[4];
+    uint8_t pubKey[33];
 } BRMasterPubKey;
 
-#define MASTER_PUBKEY_NONE ((BRMasterPubKey) { 0, UINT256_ZERO, PUBKEY_NONE })
+#define MASTER_PUBKEY_NONE ((BRMasterPubKey) { 0, { 0, 0, 0, 0 }, \
+    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } })
 
 BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen);
-BRPubKey BRBIP32PubKey(BRMasterPubKey mpk, int internal, uint32_t index);
-void BRBIP32PrivKey(UInt256 *key, const void *seed, size_t seedLen, int internal, uint32_t index);
-void BRBIP32PrivKeyList(UInt256 *keys, size_t count, const void *seed, size_t seedLen, int internal,
+size_t BRBIP32PubKey(uint8_t *pubKey, size_t pubKeyLen, BRMasterPubKey mpk, int internal, uint32_t index);
+void BRBIP32PrivKey(BRKey *key, const void *seed, size_t seedLen, int internal, uint32_t index);
+void BRBIP32PrivKeyList(BRKey keys[], size_t count, const void *seed, size_t seedLen, int internal,
                         const uint32_t *indexes);
 
 size_t BRBIP32SerializeMasterPrivKey(char *s, size_t sLen, const void *seed, size_t seedLen);

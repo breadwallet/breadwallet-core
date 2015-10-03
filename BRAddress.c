@@ -23,6 +23,7 @@
 //  THE SOFTWARE.
 
 #include "BRAddress.h"
+#include "BRTypes.h"
 
 #define VAR_INT16_HEADER 0xfd
 #define VAR_INT32_HEADER 0xfe
@@ -342,4 +343,13 @@ int BRAddressIsValid(const char *addr)
 #endif
 
     return (data[0] == BITCOIN_PUBKEY_ADDRESS || data[0] == BITCOIN_SCRIPT_ADDRESS);
+}
+
+int BRAddressHash160(void *md, const char *addr)
+{
+    uint8_t data[21];
+    
+    if (BRBase58CheckDecode(data, sizeof(data), addr) != 21) return 0;
+    memcpy(md, &data[1], 20);
+    return ! 0;
 }
