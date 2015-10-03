@@ -129,13 +129,13 @@ BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen)
     chain = *(UInt256 *)&I.u8[sizeof(UInt256)];
     I = UINT512_ZERO;
     
-    BRKeySetSecret(&key, secret, 1);
+    BRKeySetSecret(&key, &secret, 1);
     mpk.fingerPrint = BRKeyHash160(&key).u32[0];
     
     CKDpriv(&secret, &chain, 0 | BIP32_HARD); // account 0H
     
-    *(UInt256 *)mpk.chainCode = chain;
-    BRKeySetSecret(&key, secret, 1);
+    mpk.chainCode = chain;
+    BRKeySetSecret(&key, &secret, 1);
     secret = chain = UINT256_ZERO;
     if (! BRKeyPubKey(&key, &mpk.pubKey, sizeof(mpk.pubKey))) mpk = MASTER_PUBKEY_NONE;
     BRKeyClean(&key);
@@ -144,7 +144,7 @@ BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen)
 
 size_t BRBIP32PubKey(uint8_t *pubKey, size_t pubKeyLen, BRMasterPubKey mpk, int internal, uint32_t index)
 {
-    UInt256 chain = *(UInt256 *)mpk.chainCode;
+    UInt256 chain = mpk.chainCode;
 
     if (! pubKey) return sizeof(BRPubKey);
     if (pubKeyLen < sizeof(BRPubKey)) return 0;
@@ -182,7 +182,7 @@ void BRBIP32PrivKeyList(BRKey keys[], size_t count, const void *seed, size_t see
         s = secret;
         c = chain;
         CKDpriv(&s, &c, indexes[i]); // index'th key in chain
-        BRKeySetSecret(&keys[i], s, 1);
+        BRKeySetSecret(&keys[i], &s, 1);
     }
     
     secret = chain = c = s = UINT256_ZERO;

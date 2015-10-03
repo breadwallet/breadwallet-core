@@ -40,7 +40,7 @@ typedef struct {
     int compressed;
 } BRKey;
 
-int BRKeySetSecret(BRKey *key, UInt256 secret, int compressed);
+int BRKeySetSecret(BRKey *key, const UInt256 *secret, int compressed);
 
 int BRKeySetPrivKey(BRKey *key, const char *privKey);
 

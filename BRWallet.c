@@ -425,7 +425,6 @@ int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *aut
         for (unsigned j = 0; j < array_count(wallet->externalChain); j++) {
             if (BRAddressEq(tx->inputs[i].address, &wallet->externalChain[j])) externalIdx[externalCount++] = j;
         }
-
     }
 
     BRKey keys[internalCount + externalCount];

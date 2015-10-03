@@ -34,11 +34,11 @@
 
 typedef struct {
     uint32_t fingerPrint;
-    uint64_t chainCode[4];
+    UInt256 chainCode;
     uint8_t pubKey[33];
 } BRMasterPubKey;
 
-#define MASTER_PUBKEY_NONE ((BRMasterPubKey) { 0, { 0, 0, 0, 0 }, \
+#define MASTER_PUBKEY_NONE ((BRMasterPubKey) { 0, UINT256_ZERO, \
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } })
 
 BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen);

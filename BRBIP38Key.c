@@ -25,6 +25,7 @@
 #include "BRBIP38Key.h"
 #include "BRHash.h"
 #include "BRBase58.h"
+#include "BRTypes.h"
 #include <stdlib.h>
 #include <string.h>
 
