@@ -415,6 +415,17 @@ int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *aut
 // true if the given transaction is associated with the wallet (even if it hasn't been registered)
 int BRWalletContainsTransaction(BRWallet *wallet, BRTransaction *tx)
 {
+    for (size_t i = 0; i < tx->outCount; i++) {
+        if (BRSetContains(wallet->allAddrs, tx->outputs[i].address)) return ! 0;
+    }
+
+    for (size_t i = 0; i < tx->inCount; i++) {
+        BRTransaction *t = BRSetGet(wallet->allTx, &tx->inputs[i].txHash);
+        uint32_t n = tx->inputs[i].index;
+        
+        if (t && n < t->outCount && BRSetContains(wallet->allAddrs, t->outputs[n].address)) return ! 0;
+    }
+    
     return 0;
 }
 
@@ -432,7 +443,7 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
 // returns the transaction with the given hash if it's been registered in the wallet
 const BRTransaction *BRWalletTransactionForHash(BRWallet *wallet, UInt256 txHash)
 {
-    return NULL;
+    return BRSetGet(wallet->allTx, &txHash);
 }
 
 // true if no previous wallet transaction spends any of the given transaction's inputs, and no input tx is invalid
@@ -455,31 +466,70 @@ void BRWalletUpdateTransaction(BRWallet *wallet, UInt256 txHash, uint32_t blockH
 // returns the amount received by the wallet from the transaction (total outputs to change and/or receive addresses)
 uint64_t BRWalletAmountReceivedFromTx(BRWallet *wallet, BRTransaction *tx)
 {
-    return 0;
+    uint64_t amount = 0;
+    
+    //TODO: don't include outputs below TX_MIN_OUTPUT_AMOUNT
+    for (size_t i = 0; i < tx->outCount; i++) {
+        if (BRSetContains(wallet->allAddrs, tx->outputs[i].address)) amount += tx->outputs[i].amount;
+    }
+    
+    return amount;
 }
 
 // retuns the amount sent from the wallet by the trasaction (total wallet outputs consumed, change and fee included)
 uint64_t BRWalletAmountSentByTx(BRWallet *wallet, BRTransaction *tx)
 {
-    return 0;
+    uint64_t amount = 0;
+    
+    for (size_t i = 0; i < tx->inCount; i++) {
+        BRTransaction *t = BRSetGet(wallet->allTx, &tx->inputs[i].txHash);
+        uint32_t n = tx->inputs[i].index;
+        
+        if (t && n < t->outCount && BRSetContains(wallet->allAddrs, t->outputs[n].address)) {
+            amount += t->outputs[n].amount;
+        }
+    }
+    
+    return amount;
 }
 
 // returns the fee for the given transaction if all its inputs are from wallet transactions, ULLONG_MAX otherwise
 uint64_t BRWalletFeeForTx(BRWallet *wallet, BRTransaction *tx)
 {
-    return 0;
+    uint64_t amount = 0;
+    
+    for (size_t i = 0; i < tx->inCount; i++) {
+        BRTransaction *t = BRSetGet(wallet->allTx, &tx->inputs[i].txHash);
+        uint32_t n = tx->inputs[i].index;
+        
+        if (! t || n > t->outCount) return UINT64_MAX;
+        amount += t->outputs[n].amount;
+    }
+    
+    for (size_t i = 0; i < tx->outCount; i++) {
+        amount -= tx->outputs[i].amount;
+    }
+    
+    return amount;
 }
 
 // historical wallet balance after the given transaction, or current balance if transaction is not registered in wallet
 uint64_t BRWalletBalanceAfterTx(BRWallet *wallet, BRTransaction *tx)
 {
-    return 0;
+    for (size_t i = 0; i < array_count(wallet->transactions); i++) {
+        if (BRTransactionEq(tx, wallet->transactions[i])) return wallet->balanceHist[i];
+    }
+
+    return wallet->balance;
 }
 
 // fee that will be added for a transaction of the given size in bytes
 uint64_t BRWalletFeeForTxSize(BRWallet *wallet, size_t size)
 {
-    return 0;
+    uint64_t standardFee = ((size + 999)/1000)*TX_FEE_PER_KB, // standard fee based on tx size rounded up to nearest kb
+             fee = (((size*wallet->feePerKb/1000) + 99)/100)*100; // fee using feePerKb, rounded up to 100 satoshi
+    
+    return (fee > standardFee) ? fee : standardFee;
 }
 
 // frees memory allocated for wallet, also calls BRTransactionFree() for all registered transactions
