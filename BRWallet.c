@@ -486,7 +486,6 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
     UInt256 *hashes = NULL;
 
     if (! tx) return;
-    
     array_new(hashes, 0);
     
     for (size_t i = array_count(wallet->transactions); i > 0; i--) { // find depedent transactions
@@ -496,7 +495,7 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
         if (BRTransactionEq(tx, t)) continue;
 
         for (size_t j = 0; j < tx->inCount; j++) {
-            if (! UInt256Eq(tx->inputs[i].txHash, t->txHash)) continue;
+            if (! UInt256Eq(tx->inputs[j].txHash, t->txHash)) continue;
             array_add(hashes, t->txHash);
             break;
         }
@@ -506,6 +505,7 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
         BRWalletRemoveTransaction(wallet, hashes[i]);
     }
     
+    array_free(hashes);
     BRSetRemove(wallet->allTx, tx);
     
     for (size_t i = array_count(wallet->transactions); i > 0; i--) {
@@ -527,18 +527,56 @@ const BRTransaction *BRWalletTransactionForHash(BRWallet *wallet, UInt256 txHash
 // true if no previous wallet transaction spends any of the given transaction's inputs, and no input tx is invalid
 int BRWalletTransactionIsValid(BRWallet *wallet, BRTransaction *tx)
 {
-    return 0;
+    //TODO: XXX attempted double spends should cause conflicted tx to remain unverified until they're confirmed
+    //TODO: XXX conflicted tx with the same wallet outputs should be presented as the same tx to the user
+    if (tx->blockHeight != TX_UNCONFIRMED) return ! 0;
+    if (BRSetContains(wallet->allTx, tx)) return (! BRSetContains(wallet->invalidTx, tx));
+    
+    for (size_t i = 0; i < tx->inCount; i++) {
+        BRTransaction *t = BRSetGet(wallet->allTx, &tx->inputs[i].txHash);
+
+        if ((t && ! BRWalletTransactionIsValid(wallet, t)) ||
+            BRSetContains(wallet->spentOutputs, &tx->inputs[i])) return 0;
+    }
+
+    return ! 0;
 }
 
 // returns true if transaction won't be valid by blockHeight + 1 or within the next 10 minutes
 int BRWalletTransactionIsPostdated(BRWallet *wallet, BRTransaction *tx, uint32_t blockHeight)
 {
+    if (tx->blockHeight != TX_UNCONFIRMED) return 0; // confirmed transactions are not postdated
+    
+    // TODO: XXX consider marking any unconfirmed transaction with a non-final sequence number as postdated
+    // TODO: XXX notify that transactions with dust outputs are unlikely to confirm
+    for (size_t i = 0; i < tx->inCount; i++) { // check if any inputs are known to be postdated
+        BRTransaction *t = BRSetGet(wallet->allTx, &tx->inputs[i].txHash);
+
+        if (t && BRWalletTransactionIsPostdated(wallet, t, blockHeight)) return ! 0;
+    }
+    
+    if (tx->lockTime <= blockHeight + 1) return 0;
+    if (tx->lockTime >= TX_MAX_LOCK_HEIGHT && tx->lockTime < time(NULL) + 10*60) return 0;
+    
+    for (size_t i = 0; i < tx->inCount; i++) { // lockTime is ignored if all sequence numbers are final
+        if (tx->inputs[i].sequence != TXIN_SEQUENCE) return ! 0;
+    }
+    
     return 0;
 }
 
 // set the block height and timestamp for the given transaction
 void BRWalletUpdateTransaction(BRWallet *wallet, UInt256 txHash, uint32_t blockHeight, uint32_t timestamp)
 {
+    BRTransaction *tx = BRSetGet(wallet->allTx, &txHash);
+    
+    if (tx && (tx->blockHeight != blockHeight || tx->timestamp != timestamp)) {
+        tx->blockHeight = blockHeight;
+        tx->timestamp = timestamp;
+        BRWalletSortTransactions(wallet);
+        BRWalletUpdateBalance(wallet);
+        if (wallet->txUpdated) wallet->txUpdated(wallet, txHash, blockHeight, timestamp, wallet->info);
+    }
 }
 
 // returns the amount received by the wallet from the transaction (total outputs to change and/or receive addresses)
