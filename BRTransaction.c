@@ -183,10 +183,10 @@ BRTransaction *BRTransactionDeserialize(const uint8_t *buf, size_t len)
         off += sizeof(UInt256);
         input->index = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)&buf[off]) : 0;
         off += sizeof(uint32_t);
-        input->scriptLen = BRVarInt(&buf[off], (off <= len ? len - off : 0), &l);
+        input->sigLen = BRVarInt(&buf[off], (off <= len ? len - off : 0), &l);
         off += l;
-        if (off + input->scriptLen <= len) BRTxInputSetScript(input, &buf[off], input->scriptLen);
-        off += input->scriptLen;
+        if (off + input->sigLen <= len) BRTxInputSetSignature(input, &buf[off], input->sigLen);
+        off += input->sigLen;
         input->sequence = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)&buf[off]) : 0;
         off += sizeof(uint32_t);
     }

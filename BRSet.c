@@ -28,7 +28,7 @@
 
 // linear probed hashtable for good cache performance, maximum load factor is 2/3
 
-static const size_t tableSizes[] = { // starting with 1, multiply by 3/2, round up and find next largest prime
+static const size_t tableSizes[] = { // starting with 1, multiply by 3/2, round up, then find next largest prime
     1, 3, 7, 13, 23, 37, 59, 97, 149, 227, 347, 523, 787, 1187, 1783, 2677, 4019, 6037, 9059, 13591,
     20389, 30593, 45887, 68863, 103307, 154981, 232487, 348739, 523129, 784697, 1177067, 1765609,
     2648419, 3972643, 5958971, 8938469, 13407707, 20111563, 30167359, 45251077, 67876637, 101814991,

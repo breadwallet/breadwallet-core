@@ -246,16 +246,12 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
     wallet->seed = seed;
 
     for (size_t i = 0; i < txCount; i++) {
-        BRWalletTxSetContext(transactions[i], wallet);
-        BRSetAdd(wallet->allTx, transactions[i]);
-        
-        for (size_t j = 0; j < transactions[i]->inCount; j++) {
-            BRSetAdd(wallet->usedAddrs, transactions[i]->inputs[j].address);
-        }
-        
-        for (size_t j = 0; j < transactions[i]->outCount; j++) {
-            BRSetAdd(wallet->usedAddrs, transactions[i]->outputs[j].address);
-        }
+        BRTransaction *tx = transactions[i];
+
+        BRWalletTxSetContext(tx, wallet);
+        BRSetAdd(wallet->allTx, tx);
+        for (size_t j = 0; j < tx->inCount; j++) BRSetAdd(wallet->usedAddrs, tx->inputs[j].address);
+        for (size_t j = 0; j < tx->outCount; j++) BRSetAdd(wallet->usedAddrs, tx->outputs[j].address);
     }
     
     BRWalletSortTransactions(wallet);
@@ -462,12 +458,64 @@ int BRWalletContainsTransaction(BRWallet *wallet, BRTransaction *tx)
 // adds a transaction to the wallet, or returns false if it isn't associated with the wallet
 int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx)
 {
-    return 0;
+    if (BRSetContains(wallet->allTx, tx)) return ! 0;
+    if (! BRWalletContainsTransaction(wallet, tx)) return 0;
+    
+    //TODO: verify signatures when possible
+    //TODO: handle tx replacement with input sequence numbers (now replacements appear invalid until confirmation)
+    
+    BRWalletTxSetContext(tx, wallet);
+    BRSetAdd(wallet->allTx, tx);
+    array_add(wallet->transactions, tx);
+    for (size_t i = 0; i < tx->inCount; i++) BRSetAdd(wallet->usedAddrs, tx->inputs[i].address);
+    for (size_t i = 0; i < tx->outCount; i++) BRSetAdd(wallet->usedAddrs, tx->outputs[i].address);
+    BRWalletUpdateBalance(wallet);
+    
+    // when a wallet address is used in a transaction, generate a new address to replace it
+    BRWalletUnusedAddrs(wallet, SEQUENCE_GAP_LIMIT_EXTERNAL, 0);
+    BRWalletUnusedAddrs(wallet, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
+    
+    if (wallet->txAdded) wallet->txAdded(wallet, tx, wallet->info);
+    return ! 0;
 }
 
 // removes a transaction from the wallet along with any transactions that depend on its outputs
 void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
 {
+    BRTransaction *tx = BRSetGet(wallet->allTx, &txHash);
+    UInt256 *hashes = NULL;
+
+    if (! tx) return;
+    
+    array_new(hashes, 0);
+    
+    for (size_t i = array_count(wallet->transactions); i > 0; i--) { // find depedent transactions
+        BRTransaction *t = wallet->transactions[i - 1];
+
+        if (t->blockHeight < tx->blockHeight) break;
+        if (BRTransactionEq(tx, t)) continue;
+
+        for (size_t j = 0; j < tx->inCount; j++) {
+            if (! UInt256Eq(tx->inputs[i].txHash, t->txHash)) continue;
+            array_add(hashes, t->txHash);
+            break;
+        }
+    }
+
+    for (size_t i = 0; i < array_count(hashes); i++) {
+        BRWalletRemoveTransaction(wallet, hashes[i]);
+    }
+    
+    BRSetRemove(wallet->allTx, tx);
+    
+    for (size_t i = array_count(wallet->transactions); i > 0; i--) {
+        if (! BRTransactionEq(wallet->transactions[i - 1], tx)) continue;
+        array_rm(wallet->transactions, i - 1);
+        break;
+    }
+    
+    BRWalletUpdateBalance(wallet);
+    if (wallet->txDeleted) wallet->txDeleted(wallet, txHash, wallet->info);
 }
 
 // returns the transaction with the given hash if it's been registered in the wallet

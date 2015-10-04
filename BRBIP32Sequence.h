@@ -32,6 +32,9 @@
 // BIP32 is a scheme for deriving chains of addresses from a seed value
 // https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki
 
+#define SEQUENCE_GAP_LIMIT_EXTERNAL 10
+#define SEQUENCE_GAP_LIMIT_INTERNAL 5
+
 typedef struct {
     uint32_t fingerPrint;
     UInt256 chainCode;
