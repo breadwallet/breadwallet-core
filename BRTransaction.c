@@ -167,7 +167,60 @@ BRTransaction *BRTransactionNew()
 // buf must contain a serialized tx, result must be freed by calling BRTransactionFree()
 BRTransaction *BRTransactionDeserialize(const uint8_t *buf, size_t len)
 {
-    return NULL;
+    size_t off = 0, l = 0;
+    BRTransaction *tx = BRTransactionNew();
+
+    tx->version = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)&buf[off]) : 0;
+    off += sizeof(uint32_t);
+    tx->inCount = BRVarInt(&buf[off], (off <= len ? len - off : 0), &l);
+    off += l;
+    array_set_count(tx->inputs, tx->inCount);
+    
+    for (size_t i = 0; i < tx->inCount; i++) {
+        BRTxInput *input = &tx->inputs[i];
+
+        input->txHash = (off + sizeof(UInt256) <= len) ? *(UInt256 *)&buf[off] : UINT256_ZERO;
+        off += sizeof(UInt256);
+        input->index = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)&buf[off]) : 0;
+        off += sizeof(uint32_t);
+        input->scriptLen = BRVarInt(&buf[off], (off <= len ? len - off : 0), &l);
+        off += l;
+        if (off + input->scriptLen <= len) BRTxInputSetScript(input, &buf[off], input->scriptLen);
+        off += input->scriptLen;
+        input->sequence = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)&buf[off]) : 0;
+        off += sizeof(uint32_t);
+    }
+
+    tx->outCount = BRVarInt(&buf[off], (off <= len ? len - off : 0), &l);
+    off += l;
+    array_set_count(tx->outputs, tx->outCount);
+    
+    for (size_t i = 0; i < tx->outCount; i++) {
+        BRTxOutput *output = &tx->outputs[i];
+
+        output->amount = (off + sizeof(uint64_t) <= len) ? le64(*(uint64_t *)&buf[off]) : 0;
+        off += sizeof(uint64_t);
+        output->scriptLen = BRVarInt(&buf[off], (off <= len ? len - off : 0), &l);
+        off += l;
+        if (off + output->scriptLen <= len) BRTxOutputSetScript(output, &buf[off], output->scriptLen);
+        off += output->scriptLen;
+    }
+    
+    tx->lockTime = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)&buf[off]) : 0;
+    off += sizeof(uint32_t);
+
+    if (tx->inCount > 0) {
+        uint8_t data[BRTransactionData(tx, NULL, 0, SIZE_MAX)];
+    
+        l = BRTransactionData(tx, data, sizeof(data), SIZE_MAX);
+        BRSHA256_2(&tx->txHash, data, l);
+    }
+    else {
+        BRTransactionFree(tx);
+        tx = NULL;
+    }
+    
+    return tx;
 }
 
 // returns number of bytes written to buf, or total len needed if buf is NULL

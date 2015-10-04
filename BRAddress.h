@@ -43,18 +43,18 @@
 #define OP_HASH160     0xa9
 #define OP_CHECKSIG    0xac
 
-typedef struct {
-    char s[36];
-} BRAddress;
-
-#define BR_ADDRESS_NONE ((BRAddress) { "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0" })
-
 uint64_t BRVarInt(const uint8_t *buf, size_t len, size_t *intLen);
 size_t BRVarIntSet(uint8_t *buf, size_t len, uint64_t i);
 size_t BRVarIntSize(uint64_t i);
 size_t BRScriptElements(const uint8_t *elems[], size_t elemsCount, const uint8_t *script, size_t len);
 const uint8_t *BRScriptData(const uint8_t *elem, size_t *len);
 size_t BRScriptPushData(uint8_t *script, size_t scriptLen, const uint8_t *data, size_t dataLen);
+
+typedef struct {
+    char s[36];
+} BRAddress;
+
+#define BR_ADDRESS_NONE ((BRAddress) { "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0" })
 
 size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *script, size_t scriptLen);
 
@@ -68,7 +68,7 @@ int BRAddressHash160(void *md, const char *addr);
 
 inline static int BRAddressEq(const void *a, const void *b)
 {
-    return (strncmp(a, b, 36) == 0);
+    return (strncmp(a, b, sizeof(BRAddress)) == 0);
 }
 
 inline static size_t BRAddressHash(const void *addr)
