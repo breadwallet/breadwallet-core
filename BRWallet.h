@@ -26,6 +26,7 @@
 #define BRWallet_h
 
 #include "BRTypes.h"
+#include "BRAddress.h"
 #include "BRTransaction.h"
 #include "BRBIP32Sequence.h"
 #include <string.h>
@@ -55,19 +56,20 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
 void BRWalletSetCallbacks(BRWallet *wallet,
                           void (*balanceChanged)(BRWallet *wallet, uint64_t balance, void *info),
                           void (*txAdded)(BRWallet *wallet, BRTransaction *tx, void *info),
-                          void (*txUpdated)(BRWallet *wallet, UInt256 txHash, uint32_t blockHeight, uint32_t timestamp,
-                                            void *info),
+                          void (*txUpdated)(BRWallet *wallet, const UInt256 txHashes[], size_t count,
+                                            uint32_t blockHeight, uint32_t timestamp, void *info),
                           void (*txDeleted)(BRWallet *wallet, UInt256 txHash, void *info),
                           void *info);
 
 // current wallet balance, not including transactions known to be invalid
 uint64_t BRWalletBalance(BRWallet *wallet);
 
-// list of all unspent outputs
-BRUTXO *BRWalletUTXOs(BRWallet *wallet, size_t *count);
+// writes unspent outputs to utxos, returns the number of outputs written, or total number available if utxos is NULL
+size_t BRWalletUTXOs(BRWallet *wallet, BRUTXO utxos[], size_t count);
 
-// all transactions registered in the wallet, sorted by date, oldest first
-BRTransaction **BRWalletTransactions(BRWallet *wallet, size_t *count);
+// writes transactions registered in the wallet, sorted by date, oldest first, to the given transactions array, returns
+// the number of transactions written, or total number available if transactions is NULL
+size_t BRWalletTransactions(BRWallet *wallet, BRTransaction *transactions[], size_t count);
 
 // total amount spent from the wallet (exluding change)
 uint64_t BRWalletTotalSent(BRWallet *wallet);
@@ -79,10 +81,10 @@ uint64_t BRWalletTotalReceived(BRWallet *wallet);
 void BRWalletSetFeePerKb(BRWallet *wallet, uint64_t feePerKb);
 
 // returns the first unused external address
-const char *BRWalletReceiveAddress(BRWallet *wallet);
+BRAddress BRWalletReceiveAddress(BRWallet *wallet);
 
 // returns the first unused internal address
-const char *BRWalletChangeAddress(BRWallet *wallet);
+BRAddress BRWalletChangeAddress(BRWallet *wallet);
 
 // true if the given txHash is registered in the wallet
 int BRWalletContainsTxHash(BRWallet *wallet, UInt256 txHash);
@@ -99,13 +101,13 @@ BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, cons
 
 // returns an unsigned transaction that satisifes the given transaction outputs, result must be freed using
 // BRTransactionFree()
-BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, BRTxOutput *outputs, size_t count);
+BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput *outputs, size_t count);
 
 // sign any inputs in the given transaction that can be signed using private keys from the wallet
 int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *authPrompt);
 
 // true if the given transaction is associated with the wallet (even if it hasn't been registered)
-int BRWalletContainsTransaction(BRWallet *wallet, BRTransaction *tx);
+int BRWalletContainsTransaction(BRWallet *wallet, const BRTransaction *tx);
 
 // adds a transaction to the wallet, or returns false if it isn't associated with the wallet
 int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx);
@@ -117,25 +119,26 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash);
 const BRTransaction *BRWalletTransactionForHash(BRWallet *wallet, UInt256 txHash);
 
 // true if no previous wallet transaction spends any of the given transaction's inputs, and no input tx is invalid
-int BRWalletTransactionIsValid(BRWallet *wallet, BRTransaction *tx);
+int BRWalletTransactionIsValid(BRWallet *wallet, const BRTransaction *tx);
 
 // returns true if transaction won't be valid by blockHeight + 1 or within the next 10 minutes
-int BRWalletTransactionIsPostdated(BRWallet *wallet, BRTransaction *tx, uint32_t blockHeight);
+int BRWalletTransactionIsPostdated(BRWallet *wallet, const BRTransaction *tx, uint32_t blockHeight);
 
-// set the block height and timestamp for the given transaction
-void BRWalletUpdateTransaction(BRWallet *wallet, UInt256 txHash, uint32_t blockHeight, uint32_t timestamp);
+// set the block height and timestamp for the given transactions
+void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHash[], size_t count, uint32_t blockHeight,
+                                uint32_t timestamp);
 
 // returns the amount received by the wallet from the transaction (total outputs to change and/or receive addresses)
-uint64_t BRWalletAmountReceivedFromTx(BRWallet *wallet, BRTransaction *tx);
+uint64_t BRWalletAmountReceivedFromTx(BRWallet *wallet, const BRTransaction *tx);
 
 // retuns the amount sent from the wallet by the trasaction (total wallet outputs consumed, change and fee included)
-uint64_t BRWalletAmountSentByTx(BRWallet *wallet, BRTransaction *tx);
+uint64_t BRWalletAmountSentByTx(BRWallet *wallet, const BRTransaction *tx);
 
 // returns the fee for the given transaction if all its inputs are from wallet transactions, UINT64_MAX otherwise
-uint64_t BRWalletFeeForTx(BRWallet *wallet, BRTransaction *tx);
+uint64_t BRWalletFeeForTx(BRWallet *wallet, const BRTransaction *tx);
 
 // historical wallet balance after the given transaction, or current balance if transaction is not registered in wallet
-uint64_t BRWalletBalanceAfterTx(BRWallet *wallet, BRTransaction *tx);
+uint64_t BRWalletBalanceAfterTx(BRWallet *wallet, const BRTransaction *tx);
 
 // fee that will be added for a transaction of the given size in bytes
 uint64_t BRWalletFeeForTxSize(BRWallet *wallet, size_t size);

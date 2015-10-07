@@ -155,8 +155,8 @@ inline static UInt256 UInt256Reverse(UInt256 u)
 #define array_capacity(array) (((size_t *)(array))[-2])
 
 #define array_set_capacity(array, capacity) do {\
-    array_capacity(array) = (capacity);\
     (array) = (void *)((size_t *)realloc((size_t *)(array) - 2, (capacity)*sizeof(*(array)) + sizeof(size_t)*2) + 2);\
+    array_capacity(array) = (capacity);\
 } while (0)
 
 #define array_count(array) (((size_t *)(array))[-1])
