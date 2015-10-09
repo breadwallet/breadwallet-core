@@ -149,8 +149,8 @@ int BRPrivKeyIsValid(const char *privKey)
         char s[strlen(privKey) + 2];
         
         strncpy(s, privKey, sizeof(s));
-        s[strlen(s)] = '?';
-        BRSHA256(&hash, s, strlen(s));
+        s[sizeof(s) - 2] = '?';
+        BRSHA256(&hash, s, sizeof(s) - 1);
         memset(s, 0, sizeof(s));
         return (hash.u8[0] == 0);
     }

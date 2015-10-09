@@ -36,12 +36,12 @@ struct BRPeerContext {
     uint32_t currentBlockHeight;
     void (*connected)(BRPeer *peer, void *info);
     void (*disconnected)(BRPeer *peer, BRPeerError, void *info);
-    void (*relayedPeers)(BRPeer *peer, BRPeer *peers[], size_t count, void *info);
-    void (*relayedTx)(BRPeer *peer, BRTransaction *tx, void *info);
+    void (*relayedPeers)(BRPeer *peer, const BRPeer peers[], size_t count, void *info);
+    void (*relayedTx)(BRPeer *peer, const BRTransaction *tx, void *info);
     void (*hasTx)(BRPeer *peer, UInt256 txHash, void *info);
     void (*rejectedTx)(BRPeer *peer, UInt256 txHash, uint8_t code, void *info);
-    void (*relayedBlock)(BRPeer *peer, BRMerkleBlock *block, void *info);
-    BRTransaction *(*reqeustedTx)(BRPeer *peer, UInt256 txHash, void *info);
+    void (*relayedBlock)(BRPeer *peer, const BRMerkleBlock *block, void *info);
+    const BRTransaction *(*reqeustedTx)(BRPeer *peer, UInt256 txHash, void *info);
     int (*networkIsReachable)(BRPeer *peer, void *info);
     void *info;
 };
@@ -54,12 +54,12 @@ void BRPeerNewContext(BRPeer *peer, uint32_t earliestKeyTime)
 void BRPeerSetCallbacks(BRPeer *peer,
                         void (*connected)(BRPeer *peer, void *info),
                         void (*disconnected)(BRPeer *peer, BRPeerError error, void *info),
-                        void (*relayedPeers)(BRPeer *peer, BRPeer *peers[], size_t count, void *info),
-                        void (*relayedTx)(BRPeer *peer, BRTransaction *tx, void *info),
+                        void (*relayedPeers)(BRPeer *peer, const BRPeer peers[], size_t count, void *info),
+                        void (*relayedTx)(BRPeer *peer, const BRTransaction *tx, void *info),
                         void (*hasTx)(BRPeer *peer, UInt256 txHash, void *info),
                         void (*rejectedTx)(BRPeer *peer, UInt256 txHash, uint8_t code, void *info),
-                        void (*relayedBlock)(BRPeer *peer, BRMerkleBlock *block, void *info),
-                        BRTransaction *(*reqeustedTx)(BRPeer *peer, UInt256 txHash, void *info),
+                        void (*relayedBlock)(BRPeer *peer, const BRMerkleBlock *block, void *info),
+                        const BRTransaction *(*reqeustedTx)(BRPeer *peer, UInt256 txHash, void *info),
                         int (*networkIsReachable)(BRPeer *peer, void *info),
                         void *info)
 {
@@ -125,19 +125,20 @@ void BRPeerSendMempool(BRPeer *peer)
 {
 }
 
-void BRPeerSendGetheaders(BRPeer *peer, UInt256 *locators, size_t count, UInt256 hashStop)
+void BRPeerSendGetheaders(BRPeer *peer, const UInt256 locators[], size_t count, UInt256 hashStop)
 {
 }
 
-void BRPeerSendGetblocks(BRPeer *peer, UInt256 *locators, size_t count, UInt256 hashStop)
+void BRPeerSendGetblocks(BRPeer *peer, const UInt256 locators[], size_t count, UInt256 hashStop)
 {
 }
 
-void BRPeerSendInv(BRPeer *peer, UInt256 *txHashes, size_t count)
+void BRPeerSendInv(BRPeer *peer, const UInt256 txHashes[], size_t count)
 {
 }
 
-void BRPeerSendGetdata(BRPeer *peer, UInt256 *txHashes, size_t txCount, UInt256 *blockHashes, size_t blockCount)
+void BRPeerSendGetdata(BRPeer *peer, const UInt256 txHashes[], size_t txCount, const UInt256 blockHashes[],
+                       size_t blockCount)
 {
 }
 

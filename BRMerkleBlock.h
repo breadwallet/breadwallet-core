@@ -70,12 +70,12 @@ int BRMerkleBlockContainsTxHash(BRMerkleBlock *block, UInt256 txHash);
 
 // Verifies the block difficulty target is correct for the block's position in the chain. Transition time may be 0 if
 // height is not a multiple of BLOCK_DIFFICULTY_INTERVAL.
-int BRMerkleBlockVerifyDifficulty(BRMerkleBlock *block, BRMerkleBlock *previous, uint32_t transitionTime);
+int BRMerkleBlockVerifyDifficulty(BRMerkleBlock *block, const BRMerkleBlock *previous, uint32_t transitionTime);
 
 // returns a hash value for block suitable for use in a hashtable
 inline static size_t BRMerkleBlockHash(const void *block)
 {
-    return *(size_t *)&((const BRMerkleBlock *)block)->blockHash;
+    return *(const size_t *)&((const BRMerkleBlock *)block)->blockHash;
 }
 
 // true if block and otherBlock have equal blockHash values

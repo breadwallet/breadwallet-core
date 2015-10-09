@@ -89,12 +89,12 @@ void BRPeerNewContext(BRPeer *peer, uint32_t earliestKeyTime);
 void BRPeerSetCallbacks(BRPeer *peer,
                         void (*connected)(BRPeer *peer, void *info),
                         void (*disconnected)(BRPeer *peer, BRPeerError error, void *info),
-                        void (*relayedPeers)(BRPeer *peer, BRPeer *peers[], size_t count, void *info),
-                        void (*relayedTx)(BRPeer *peer, BRTransaction *tx, void *info),
+                        void (*relayedPeers)(BRPeer *peer, const BRPeer peers[], size_t count, void *info),
+                        void (*relayedTx)(BRPeer *peer, const BRTransaction *tx, void *info),
                         void (*hasTx)(BRPeer *peer, UInt256 txHash, void *info),
                         void (*rejectedTx)(BRPeer *peer, UInt256 txHash, uint8_t code, void *info),
-                        void (*relayedBlock)(BRPeer *peer, BRMerkleBlock *block, void *info),
-                        BRTransaction *(*reqeustedTx)(BRPeer *peer, UInt256 txHash, void *info),
+                        void (*relayedBlock)(BRPeer *peer, const BRMerkleBlock *block, void *info),
+                        const BRTransaction *(*reqeustedTx)(BRPeer *peer, UInt256 txHash, void *info),
                         int (*networkIsReachable)(BRPeer *peer, void *info),
                         void *info);
 
@@ -116,10 +116,11 @@ double BRPeerPingTime(BRPeer *peer); // ping time for connected peer
 void BRPeerSendMessage(BRPeer *peer, const uint8_t *message, size_t len, const char *type);
 void BRPeerSendFilterload(BRPeer *peer, const uint8_t *filter, size_t len);
 void BRPeerSendMempool(BRPeer *peer);
-void BRPeerSendGetheaders(BRPeer *peer, UInt256 *locators, size_t count, UInt256 hashStop);
-void BRPeerSendGetblocks(BRPeer *peer, UInt256 *locators, size_t count, UInt256 hashStop);
-void BRPeerSendInv(BRPeer *peer, UInt256 *txHashes, size_t count);
-void BRPeerSendGetdata(BRPeer *peer, UInt256 *txHashes, size_t txCount, UInt256 *blockHashes, size_t blockCount);
+void BRPeerSendGetheaders(BRPeer *peer, const UInt256 locators[], size_t count, UInt256 hashStop);
+void BRPeerSendGetblocks(BRPeer *peer, const UInt256 locators[], size_t count, UInt256 hashStop);
+void BRPeerSendInv(BRPeer *peer, const UInt256 txHashes[], size_t count);
+void BRPeerSendGetdata(BRPeer *peer, const UInt256 txHashes[], size_t txCount, const UInt256 blockHashes[],
+                       size_t blockCount);
 void BRPeerSendGetaddr(BRPeer *peer);
 void BRPeerSendPing(BRPeer *peer, void (*pongCallback)(BRPeer *peer, int success, void *info), void *info);
 void BRPeerRerequestBlocks(BRPeer *peer, UInt256 fromBlock); // useful to get additional tx after a bloom filter update

@@ -90,11 +90,11 @@ BRTransaction *BRTransactionDeserialize(const uint8_t *buf, size_t len);
 size_t BRTransactionSerialize(BRTransaction *tx, uint8_t *buf, size_t len);
 
 // adds an input to tx
-void BRTransactionAddInput(BRTransaction *tx, UInt256 txHash, uint32_t index, uint8_t *script, size_t scriptLen,
-                           uint8_t *signature, size_t sigLen, uint32_t sequence);
+void BRTransactionAddInput(BRTransaction *tx, UInt256 txHash, uint32_t index, const uint8_t *script, size_t scriptLen,
+                           const uint8_t *signature, size_t sigLen, uint32_t sequence);
 
 // adds an output to tx
-void BRTransactionAddOutput(BRTransaction *tx, uint64_t amount, uint8_t *script, size_t scriptLen);
+void BRTransactionAddOutput(BRTransaction *tx, uint64_t amount, const uint8_t *script, size_t scriptLen);
 
 // shuffles order of tx outputs
 void BRTransactionShuffleOutputs(BRTransaction *tx);
@@ -114,13 +114,13 @@ int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t count);
 // returns a hash value for tx suitable for use in a hashtable
 inline static size_t BRTransactionHash(const void *tx)
 {
-    return *(size_t *)&((BRTransaction *)tx)->txHash;
+    return *(const size_t *)&((const BRTransaction *)tx)->txHash;
 }
 
 // true if tx and otherTx have equal txHash values
 inline static int BRTransactionEq(const void *tx, const void *otherTx)
 {
-    return UInt256Eq(((BRTransaction *)tx)->txHash, ((BRTransaction *)otherTx)->txHash);
+    return UInt256Eq(((const BRTransaction *)tx)->txHash, ((const BRTransaction *)otherTx)->txHash);
 }
 
 // frees memory allocated for tx

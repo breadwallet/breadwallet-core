@@ -53,7 +53,8 @@ uint32_t BRRand(uint32_t upperBound)
 
 void BRTxInputSetAddress(BRTxInput *input, const char *address)
 {
-    strncpy(input->address, address, sizeof(input->address));
+    memset(input->address, 0, sizeof(input->address));
+    strncpy(input->address, address, sizeof(input->address) - 1);
     if (input->script) array_free(input->script);
     input->scriptLen = BRAddressScriptPubKey(NULL, 0, address);
     array_new(input->script, input->scriptLen);
@@ -80,6 +81,7 @@ void BRTxInputSetSignature(BRTxInput *input, const uint8_t *signature, size_t si
 
 void BRTxOutputSetAddress(BRTxOutput *output, const char *address)
 {
+    memset(output->address, 0, sizeof(output->address));
     strncpy(output->address, address, sizeof(output->address));
     if (output->script) array_free(output->script);
     output->scriptLen = BRAddressScriptPubKey(NULL, 0, address);
@@ -230,8 +232,8 @@ size_t BRTransactionSerialize(BRTransaction *tx, uint8_t *buf, size_t len)
 }
 
 // adds an input to tx
-void BRTransactionAddInput(BRTransaction *tx, UInt256 txHash, uint32_t index, uint8_t *script, size_t scriptLen,
-                           uint8_t *signature, size_t sigLen, uint32_t sequence)
+void BRTransactionAddInput(BRTransaction *tx, UInt256 txHash, uint32_t index, const uint8_t *script, size_t scriptLen,
+                           const uint8_t *signature, size_t sigLen, uint32_t sequence)
 {
     BRTxInput input = { txHash, index, "", NULL, 0, NULL, 0, sequence };
 
@@ -242,7 +244,7 @@ void BRTransactionAddInput(BRTransaction *tx, UInt256 txHash, uint32_t index, ui
 }
 
 // adds an output to tx
-void BRTransactionAddOutput(BRTransaction *tx, uint64_t amount, uint8_t *script, size_t scriptLen)
+void BRTransactionAddOutput(BRTransaction *tx, uint64_t amount, const uint8_t *script, size_t scriptLen)
 {
     BRTxOutput output = { "", amount, NULL, 0 };
     

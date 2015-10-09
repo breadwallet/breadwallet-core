@@ -68,8 +68,8 @@ struct BRPeerManagerContext {
 };
 
 // returns a newly allocated BRPeerManager struct that must be freed by calling BRPeerManagerFree()
-BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMerkleBlock *blocks,
-                                size_t blocksCount, BRPeer *peers, size_t peersCount)
+BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, const BRMerkleBlock blocks[],
+                                size_t blocksCount, const BRPeer peers[], size_t peersCount)
 {
     return NULL;
 }
@@ -79,9 +79,10 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager,
                                void (*syncSucceded)(BRPeerManager *manager, void *info),
                                void (*syncFailed)(BRPeerManager *manager, BRPeerManagerError error, void *info),
                                void (*txStatusUpdate)(BRPeerManager *manager, void *info),
-                               void (*saveBlocks)(BRPeerManager *manager, BRMerkleBlock *blocks, size_t count,
+                               void (*saveBlocks)(BRPeerManager *manager, const BRMerkleBlock blocks[], size_t count,
                                                   void *info),
-                               void (*savePeers)(BRPeerManager *manager, BRPeer *peers, size_t count, void *info),
+                               void (*savePeers)(BRPeerManager *manager, const BRPeer peers[], size_t count,
+                                                 void *info),
                                int (*networkIsReachable)(BRPeerManager *manager, void *info),
                                void *info)
 {
