@@ -514,26 +514,36 @@ int BRWalletContainsTransaction(BRWallet *wallet, const BRTransaction *tx)
 // adds a transaction to the wallet, or returns false if it isn't associated with the wallet
 int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx)
 {
+    int added = 0;
+    
     if (BRWalletTransactionForHash(wallet, tx->txHash) != NULL) return ! 0;
     if (! BRWalletContainsTransaction(wallet, tx)) return 0;
     
     //TODO: verify signatures when possible
     //TODO: handle tx replacement with input sequence numbers (now replacements appear invalid until confirmation)
     
-    BRWalletTxSetContext(tx, wallet);
     pthread_rwlock_wrlock(&wallet->lock);
-    BRSetAdd(wallet->allTx, tx);
-    array_add(wallet->transactions, tx);
-    for (size_t i = 0; i < tx->inCount; i++) BRSetAdd(wallet->usedAddrs, tx->inputs[i].address);
-    for (size_t i = 0; i < tx->outCount; i++) BRSetAdd(wallet->usedAddrs, tx->outputs[i].address);
-    BRWalletUpdateBalance(wallet);
+
+    if (! BRSetContains(wallet->allTx, tx)) {
+        BRWalletTxSetContext(tx, wallet);
+        BRSetAdd(wallet->allTx, tx);
+        array_add(wallet->transactions, tx);
+        for (size_t i = 0; i < tx->inCount; i++) BRSetAdd(wallet->usedAddrs, tx->inputs[i].address);
+        for (size_t i = 0; i < tx->outCount; i++) BRSetAdd(wallet->usedAddrs, tx->outputs[i].address);
+        BRWalletUpdateBalance(wallet);
+        added = 1;
+    }
+    
     pthread_rwlock_unlock(&wallet->lock);
-    
-    // when a wallet address is used in a transaction, generate a new address to replace it
-    BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, 0);
-    BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
-    
-    if (wallet->txAdded) wallet->txAdded(wallet, tx, wallet->info);
+
+    if (added) {
+        // when a wallet address is used in a transaction, generate a new address to replace it
+        BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, 0);
+        BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
+        
+        if (wallet->txAdded) wallet->txAdded(wallet, tx, wallet->info);
+    }
+
     return ! 0;
 }
 
@@ -646,8 +656,8 @@ int BRWalletTransactionIsPostdated(BRWallet *wallet, const BRTransaction *tx, ui
             if (t && BRWalletTransactionIsPostdated(wallet, t, blockHeight)) r = ! 0;
         }
     
-        if ((tx->lockTime < TX_MAX_LOCK_HEIGHT || tx->lockTime >= time(NULL) + 10*60) &&
-            tx->lockTime > blockHeight + 1) {
+        if ((tx->lockTime > blockHeight + 1 && tx->lockTime < TX_MAX_LOCK_HEIGHT) ||
+            (tx->lockTime >= TX_MAX_LOCK_HEIGHT && tx->lockTime >= time(NULL) + 10*60)) {
             for (size_t i = 0; i < tx->inCount; i++) { // lockTime is ignored if all sequence numbers are final
                 if (tx->inputs[i].sequence != TXIN_SEQUENCE) r = ! 0;
             }
