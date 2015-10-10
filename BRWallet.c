@@ -57,7 +57,7 @@ struct _BRWallet {
 inline static void *BRWalletTxContext(BRTransaction *tx)
 {
     // dirty dirty hack to sneak context data into qsort() and bsearch() comparator callbacks, since input scripts are
-    // not used in already signed transactions, we hijack the first script pointer for our own nafarious purposes
+    // not used in already signed transactions, we hijack the first script pointer for our own nefarious purposes
     return (tx->inputs[0].scriptLen == 0) ? tx->inputs[0].script : NULL;
 }
 
@@ -70,9 +70,9 @@ inline static void BRWalletTxSetContext(BRTransaction *tx, void *info)
 
 // chain position of first tx output address that appears in chain
 inline static size_t BRWalletTxChainIdx(BRTransaction *tx, BRAddress *chain) {
-    for (size_t i = 0; i < tx->outCount; i++) {
-        for (size_t j = 0; j < array_count(chain); j++) {
-            if (BRAddressEq(tx->outputs[i].address, &chain[j])) return j;
+    for (size_t i = array_count(chain); i > 0; i--) {
+        for (size_t j = 0; i < tx->outCount; j++) {
+            if (BRAddressEq(tx->outputs[j].address, &chain[i - 1])) return i - 1;
         }
     }
     
@@ -103,14 +103,12 @@ inline static int BRWalletTxIsAscending(BRWallet *wallet, BRTransaction *tx1, BR
 inline static int BRWalletTxCompare(const void *tx1, const void *tx2)
 {
     BRWallet *wallet = BRWalletTxContext(*(BRTransaction **)tx1);
+    size_t i, j;
 
     if (BRWalletTxIsAscending(wallet, *(BRTransaction **)tx1, *(BRTransaction **)tx2)) return 1;
     if (BRWalletTxIsAscending(wallet, *(BRTransaction **)tx2, *(BRTransaction **)tx1)) return -1;
-    
-    size_t i = BRWalletTxChainIdx(*(BRTransaction **)tx1, wallet->internalChain);
-    size_t j = BRWalletTxChainIdx(*(BRTransaction **)tx2,
-                                  (i == SIZE_MAX) ? wallet->externalChain : wallet->internalChain);
-
+    i = BRWalletTxChainIdx(*(BRTransaction **)tx1, wallet->internalChain);
+    j = BRWalletTxChainIdx(*(BRTransaction **)tx2, (i == SIZE_MAX) ? wallet->externalChain : wallet->internalChain);
     if (i == SIZE_MAX && j != SIZE_MAX) i = BRWalletTxChainIdx(*(BRTransaction **)tx1, wallet->externalChain);
     if (i == SIZE_MAX || j == SIZE_MAX || i == j) return 0;
     return (i > j) ? 1 : -1;
@@ -124,7 +122,7 @@ inline static void BRWalletSortTransactions(BRWallet *wallet)
 static void BRWalletUpdateBalance(BRWallet *wallet)
 {
     uint64_t balance = 0, prevBalance = 0;
-    BRSet *spent = BRSetNew(BRUTXOHash, BRUTXOEq, array_count(wallet->utxos));
+    BRTransaction *tx, *t;
     
     array_clear(wallet->utxos);
     array_clear(wallet->balanceHist);
@@ -134,46 +132,43 @@ static void BRWalletUpdateBalance(BRWallet *wallet)
     wallet->totalReceived = 0;
 
     for (size_t i = 0; i < array_count(wallet->transactions); i++) {
-        BRSetClear(spent);
-        
-        for (size_t j = 0; j < wallet->transactions[i]->inCount; j++) {
-            BRSetAdd(spent, &wallet->transactions[i]->inputs[j]);
-        }
+        tx = wallet->transactions[i];
 
         // check if any inputs are invalid or already spent
-        if (wallet->transactions[i]->blockHeight == TX_UNCONFIRMED &&
-            (BRSetIntersects(spent, wallet->spentOutputs) || BRSetIntersects(spent, wallet->invalidTx))) {
-            BRSetAdd(wallet->invalidTx, wallet->transactions[i]);
-            continue;
+        if (tx->blockHeight == TX_UNCONFIRMED) {
+            for (size_t j = 0; j < tx->inCount; j++) {
+                if (BRSetContains(wallet->spentOutputs, &tx->inputs[j]) ||
+                    BRSetContains(wallet->invalidTx, &tx->inputs[j].txHash)) {
+                    BRSetAdd(wallet->invalidTx, tx);
+                }
+            }
+            
+            if (BRSetContains(wallet->invalidTx, tx)) continue;
         }
-        
-        BRSetUnion(wallet->spentOutputs, spent);
+
+        for (size_t j = 0; j < tx->inCount; j++) {
+            BRSetAdd(wallet->spentOutputs, &tx->inputs[j]);
+        }
 
         //TODO: don't add outputs below TX_MIN_OUTPUT_AMOUNT
         //TODO: don't add coin generation outputs < 100 blocks deep, or non-final lockTime > 1 block/10min in future
         //NOTE: balance/UTXOs will then need to be recalculated when last block changes
-        for (size_t j = 0; j < wallet->transactions[i]->outCount; j++) {
-            if (BRSetContains(wallet->allAddrs, wallet->transactions[i]->outputs[j].address)) {
-                array_add(wallet->utxos, ((BRUTXO) { wallet->transactions[i]->txHash, (uint32_t)j }));
-                balance += wallet->transactions[i]->outputs[j].amount;
+        for (size_t j = 0; j < tx->outCount; j++) {
+            if (BRSetContains(wallet->allAddrs, tx->outputs[j].address)) {
+                array_add(wallet->utxos, ((BRUTXO) { tx->txHash, (uint32_t)j }));
+                balance += tx->outputs[j].amount;
             }
         }
 
         // transaction ordering is not guaranteed, so check the entire UTXO set against the entire spent output set
-        BRSetClear(spent);
-        for (size_t j = 0; j < array_count(wallet->utxos); j++) BRSetAdd(spent, &wallet->utxos[j]);
-        BRSetIntersect(spent, wallet->spentOutputs);
-
-        for (size_t j = 0; j < array_count(wallet->utxos);) { // remove any spent outputs from UTXO set
-            if (BRSetContains(spent, &wallet->utxos[j])) {
-                BRTransaction *tx = BRSetGet(wallet->allTx, &wallet->utxos[j].hash);
-
-                balance -= tx->outputs[wallet->utxos[j].n].amount;
+        for (size_t j = 0; j < array_count(wallet->utxos); j++) {
+            while (j < array_count(wallet->utxos) && BRSetContains(wallet->spentOutputs, &wallet->utxos[j])) {
+                t = BRSetGet(wallet->allTx, &wallet->utxos[j].hash);
+                balance -= t->outputs[wallet->utxos[j].n].amount;
                 array_rm(wallet->utxos, j);
             }
-            else j++;
         }
-
+        
         if (prevBalance < balance) wallet->totalReceived += balance - prevBalance;
         if (balance < prevBalance) wallet->totalSent += prevBalance - balance;
         array_add(wallet->balanceHist, balance);
@@ -191,6 +186,7 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
                       void *(*seed)(const char *, uint64_t, size_t *))
 {
     BRWallet *wallet = calloc(1, sizeof(BRWallet));
+    BRTransaction *tx;
 
     array_new(wallet->utxos, 100);
     array_new(wallet->transactions, txCount + 100);
@@ -205,8 +201,7 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
     pthread_rwlock_init(&wallet->lock, NULL);
 
     for (size_t i = 0; i < txCount; i++) {
-        BRTransaction *tx = transactions[i];
-
+        tx = transactions[i];
         BRWalletTxSetContext(tx, wallet);
         BRSetAdd(wallet->allTx, tx);
         for (size_t j = 0; j < tx->inCount; j++) BRSetAdd(wallet->usedAddrs, tx->inputs[j].address);
@@ -550,7 +545,7 @@ int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx)
 // removes a transaction from the wallet along with any transactions that depend on its outputs
 void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
 {
-    BRTransaction *tx = BRSetGet(wallet->allTx, &txHash);
+    BRTransaction *tx = BRSetGet(wallet->allTx, &txHash), *t;
     UInt256 *hashes = NULL;
 
     if (! tx) return;
@@ -560,8 +555,7 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
 
     if (tx) {
         for (size_t i = array_count(wallet->transactions); i > 0; i--) { // find depedent transactions
-            BRTransaction *t = wallet->transactions[i - 1];
-
+            t = wallet->transactions[i - 1];
             if (t->blockHeight < tx->blockHeight) break;
             if (BRTransactionEq(tx, t)) continue;
             
@@ -615,6 +609,7 @@ const BRTransaction *BRWalletTransactionForHash(BRWallet *wallet, UInt256 txHash
 // true if no previous wallet transaction spends any of the given transaction's inputs, and no input tx is invalid
 int BRWalletTransactionIsValid(BRWallet *wallet, const BRTransaction *tx)
 {
+    BRTransaction *t;
     int r = ! 0;
     
     //TODO: XXX attempted double spends should cause conflicted tx to remain unverified until they're confirmed
@@ -625,8 +620,7 @@ int BRWalletTransactionIsValid(BRWallet *wallet, const BRTransaction *tx)
 
         if (! BRSetContains(wallet->allTx, tx)) {
             for (size_t i = 0; r && i < tx->inCount; i++) {
-                BRTransaction *t = BRSetGet(wallet->allTx, &tx->inputs[i].txHash);
-                
+                t = BRSetGet(wallet->allTx, &tx->inputs[i].txHash);
                 if ((t && ! BRWalletTransactionIsValid(wallet, t)) ||
                     BRSetContains(wallet->spentOutputs, &tx->inputs[i])) r = 0;
             }
@@ -642,6 +636,7 @@ int BRWalletTransactionIsValid(BRWallet *wallet, const BRTransaction *tx)
 // returns true if transaction won't be valid by blockHeight + 1 or within the next 10 minutes
 int BRWalletTransactionIsPostdated(BRWallet *wallet, const BRTransaction *tx, uint32_t blockHeight)
 {
+    BRTransaction *t;
     int r = 0;
 
     // TODO: XXX consider marking any unconfirmed transaction with a non-final sequence number as postdated
@@ -651,8 +646,7 @@ int BRWalletTransactionIsPostdated(BRWallet *wallet, const BRTransaction *tx, ui
         pthread_rwlock_rdlock(&wallet->lock);
         
         for (size_t i = 0; ! r && i < tx->inCount; i++) { // check if any inputs are known to be postdated
-            BRTransaction *t = BRSetGet(wallet->allTx, &tx->inputs[i].txHash);
-
+            t = BRSetGet(wallet->allTx, &tx->inputs[i].txHash);
             if (t && BRWalletTransactionIsPostdated(wallet, t, blockHeight)) r = ! 0;
         }
     
@@ -673,13 +667,13 @@ int BRWalletTransactionIsPostdated(BRWallet *wallet, const BRTransaction *tx, ui
 void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHashes[], size_t count, uint32_t blockHeight,
                                 uint32_t timestamp)
 {
+    BRTransaction *tx;
     int update = 0, sort = 0;
     
     pthread_rwlock_rdlock(&wallet->lock);
     
     for (size_t i = 0; i < count; i++) {
-        BRTransaction *tx = BRSetGet(wallet->allTx, &txHashes[i]);
-        
+        tx = BRSetGet(wallet->allTx, &txHashes[i]);
         if (! tx || (tx->blockHeight == blockHeight && tx->timestamp == timestamp)) continue;
         tx->timestamp = timestamp;
         update = 1;
