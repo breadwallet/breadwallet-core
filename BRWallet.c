@@ -163,12 +163,11 @@ static void BRWalletUpdateBalance(BRWallet *wallet)
         }
 
         // transaction ordering is not guaranteed, so check the entire UTXO set against the entire spent output set
-        for (size_t j = 0; j < array_count(wallet->utxos); j++) {
-            while (j < array_count(wallet->utxos) && BRSetContains(wallet->spentOutputs, &wallet->utxos[j])) {
-                t = BRSetGet(wallet->allTx, &wallet->utxos[j].hash);
-                balance -= t->outputs[wallet->utxos[j].n].amount;
-                array_rm(wallet->utxos, j);
-            }
+        for (size_t j = array_count(wallet->utxos); j > 0; j--) {
+            if (! BRSetContains(wallet->spentOutputs, &wallet->utxos[j - 1])) continue;
+            t = BRSetGet(wallet->allTx, &wallet->utxos[j - 1].hash);
+            balance -= t->outputs[wallet->utxos[j - 1].n].amount;
+            array_rm(wallet->utxos, j - 1);
         }
         
         if (prevBalance < balance) wallet->totalReceived += balance - prevBalance;

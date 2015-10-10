@@ -114,7 +114,13 @@ inline static UInt256 UInt256Reverse(UInt256 u)
 
 // integer endian swapping
 
-#if __BIG_ENDIAN__
+#ifdef BSD
+#include <sys/endian.h>
+#elif ! defined(__APPLE__) && ! defined(_WIN32)
+#include <endian.h>
+#endif
+
+#if __BIG_ENDIAN__ || (_BYTE_ORDER == _BIG_ENDIAN) || (__BYTE_ORDER == __BIG_ENDIAN)
 
 #define be16(x) (x)
 #define le16(x) ((((x) & 0xff00) << 8) | (((x) & 0xff0000) >> 8))
@@ -126,7 +132,7 @@ inline static UInt256 UInt256Reverse(UInt256 u)
                  (((x) & 0x0000000000ff0000ULL) << 24) | (((x) & 0x0000ff0000000000ULL) >> 24) |\
                  (((x) & 0x00000000ff000000ULL) << 8)  | (((x) & 0x000000ff00000000ULL) >> 8))
 
-#elif __LITTLE_ENDIAN__
+#else
 
 #define be16(x) ((((x) & 0xff00) << 8) | (((x) & 0xff0000) >> 8))
 #define le16(x) (x)
@@ -137,10 +143,6 @@ inline static UInt256 UInt256Reverse(UInt256 u)
                  (((x) & 0x0000000000ff0000ULL) << 24) | (((x) & 0x0000ff0000000000ULL) >> 24) |\
                  (((x) & 0x00000000ff000000ULL) << 8)  | (((x) & 0x000000ff00000000ULL) >> 8))
 #define le64(x) (x)
-
-#else
-
-#error host endianess is unkown
 
 #endif
 

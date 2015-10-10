@@ -257,7 +257,7 @@ UInt160 BRKeyHash160(BRKey *key)
     return hash;
 }
 
-size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen)
+size_t BRKeyAddress(BRKey *key, char *addr, size_t len)
 {
     uint8_t data[21];
 
@@ -267,7 +267,7 @@ size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen)
 #endif
     *(UInt160 *)&data[1] = BRKeyHash160(key);
     if (UInt160IsZero(*(UInt160 *)&data[1])) return 0;
-    return BRBase58CheckEncode(addr, addrLen, data, sizeof(data));
+    return BRBase58CheckEncode(addr, len, data, sizeof(data));
 }
 
 size_t BRKeySign(BRKey *key, void *sig, size_t len, UInt256 md)
