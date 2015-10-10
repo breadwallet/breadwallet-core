@@ -114,9 +114,12 @@ inline static UInt256 UInt256Reverse(UInt256 u)
 
 // integer endian swapping
 
-#ifdef BSD
+#ifdef __unix__
+#include <sys/param.h>
+#endif
+#if defined(BSD) && ! defined(__APPLE__)
 #include <sys/endian.h>
-#elif ! defined(__APPLE__) && ! defined(_WIN32)
+#elifdef __linux__
 #include <endian.h>
 #endif
 
