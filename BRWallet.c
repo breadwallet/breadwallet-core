@@ -71,7 +71,7 @@ inline static void BRWalletTxSetContext(BRTransaction *tx, void *info)
 // chain position of first tx output address that appears in chain
 inline static size_t BRWalletTxChainIdx(BRTransaction *tx, BRAddress *chain) {
     for (size_t i = array_count(chain); i > 0; i--) {
-        for (size_t j = 0; i < tx->outCount; j++) {
+        for (size_t j = 0; j < tx->outCount; j++) {
             if (BRAddressEq(tx->outputs[j].address, &chain[i - 1])) return i - 1;
         }
     }
@@ -146,10 +146,12 @@ static void BRWalletUpdateBalance(BRWallet *wallet)
             if (BRSetContains(wallet->invalidTx, tx)) continue;
         }
 
+        // add inputs to spent output set
         for (size_t j = 0; j < tx->inCount; j++) {
             BRSetAdd(wallet->spentOutputs, &tx->inputs[j]);
         }
 
+        // add outputs to UTXO set
         //TODO: don't add outputs below TX_MIN_OUTPUT_AMOUNT
         //TODO: don't add coin generation outputs < 100 blocks deep, or non-final lockTime > 1 block/10min in future
         //NOTE: balance/UTXOs will then need to be recalculated when last block changes
