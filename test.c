@@ -30,6 +30,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <arpa/inet.h>
+
+int BRTypesTests()
+{
+    // test endianess
+    
+    if (htonl(1234) != be32(1234)) return 0;
+    if (htons(1234) != be16(1234)) return 0;
+
+    return 1;
+}
 
 int BRHashTests()
 {
@@ -253,6 +264,7 @@ int BRPeerTests()
 }
 
 int main(int argc, const char *argv[]) {
+    printf("BRTypesTests...       %s\n", (BRTypesTests()) ? "success" : "FAIL");
     printf("BRHashTests...        %s\n", (BRHashTests()) ? "success" : "FAIL");
     printf("BRMerkleBlockTests... %s\n", (BRMerkleBlockTests()) ? "success" : "FAIL");
     return 0;
