@@ -114,16 +114,7 @@ inline static UInt256 UInt256Reverse(UInt256 u)
 
 // integer endian swapping
 
-#ifdef __unix__
-#include <sys/param.h>
-#endif
-#if defined(BSD) && ! defined(__APPLE__)
-#include <sys/endian.h>
-#elifdef __linux__
-#include <endian.h>
-#endif
-
-#if __BIG_ENDIAN__ || (_BYTE_ORDER == _BIG_ENDIAN) || (__BYTE_ORDER == __BIG_ENDIAN)
+#if __BIG_ENDIAN__ || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 
 #define be16(x) (x)
 #define le16(x) ((((x) & 0xff00) << 8) | (((x) & 0xff0000) >> 8))
