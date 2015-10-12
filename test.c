@@ -36,9 +36,20 @@ int BRTypesTests()
 {
     // test endianess
     
-    if (htonl(1234) != be32(1234)) return 0;
-    if (htons(1234) != be16(1234)) return 0;
-
+    union {
+        uint8_t u8[8];
+        uint16_t u16;
+        uint32_t u32;
+        uint64_t u64;
+    } x = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
+    
+    if (be16(x.u16) != 0x0102) return 0;
+    if (le16(x.u16) != 0x0201) return 0;
+    if (be32(x.u32) != 0x01020304) return 0;
+    if (le32(x.u32) != 0x04030201) return 0;
+    if (be64(x.u64) != 0x0102030405060708) return 0;
+    if (le64(x.u64) != 0x0807060504030201) return 0;
+    
     return 1;
 }
 
