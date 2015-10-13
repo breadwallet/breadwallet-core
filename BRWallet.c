@@ -395,7 +395,7 @@ BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, cons
 
 // returns an unsigned transaction that satisifes the given transaction outputs, result must be freed using
 // BRTransactionFree()
-BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput *outputs, size_t count)
+BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput outputs[], size_t count)
 {
     uint64_t amount = 0, balance = 0, feeAmount = 0;
     BRTransaction *tx, *transaction = BRTransactionNew();
