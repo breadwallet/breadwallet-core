@@ -159,7 +159,7 @@ size_t BRBIP32PubKey(uint8_t *pubKey, size_t pubKeyLen, BRMasterPubKey mpk, int 
 
 void BRBIP32PrivKey(BRKey *key, const void *seed, size_t seedlen, int internal, uint32_t index)
 {
-    return BRBIP32PrivKeyList(key, 1, seed, seedlen, internal, &index);
+    BRBIP32PrivKeyList(key, 1, seed, seedlen, internal, &index);
 }
 
 void BRBIP32PrivKeyList(BRKey keys[], size_t count, const void *seed, size_t seedLen, int internal,
