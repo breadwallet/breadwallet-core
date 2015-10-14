@@ -279,8 +279,7 @@ int BRKeyVerify(BRKey *key, UInt256 md, const void *sig, size_t sigLen)
     int r = 0;
     
     if (len > 0 && secp256k1_ec_pubkey_parse(_ctx, &pk, key->pubKey, len)) {
-        // success is 1, all other values are fail
-        if (secp256k1_ecdsa_verify(_ctx, sig, md.u8, &pk) == 1) r = ! 0;
+        if (secp256k1_ecdsa_verify(_ctx, sig, md.u8, &pk) == 1) r = ! 0; // success is 1, all other values are fail
     }
     
     return r;

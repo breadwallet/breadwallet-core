@@ -28,7 +28,7 @@
 #include "BRTypes.h"
 #include "BRKey.h"
 
-#define TX_FEE_PER_KB        1000ULL     // standard tx fee per kb of tx size, rounded up to nearest kb
+#define TX_FEE_PER_KB        5000ULL     // standard tx fee per kb of tx size, rounded up to nearest kb
 #define TX_MIN_OUTPUT_AMOUNT (TX_FEE_PER_KB*3*(34 + 148)/1000) // no txout can be below this amount (or it won't relay)
 #define TX_MAX_SIZE          100000      // no tx can be larger than this size in bytes
 #define TX_FREE_MAX_SIZE     1000        // tx must not be larger than this size in bytes without a fee

@@ -28,6 +28,8 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+#define DEFAULT_FEE_PER_KB (TX_FEE_PER_KB*1000 + 190/191) // default fee-per-kb to match standard fee on 191 byte tx
+
 struct _BRWallet {
     uint64_t balance; // current wallet balance excluding transactions known to be invalid
     BRUTXO *utxos; // unspent outputs
@@ -192,6 +194,7 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
     array_new(wallet->utxos, 100);
     array_new(wallet->transactions, txCount + 100);
     array_add_array(wallet->transactions, transactions, txCount);
+    wallet->feePerKb = DEFAULT_FEE_PER_KB;
     wallet->masterPubKey = mpk;
     array_new(wallet->balanceHist, txCount + 100);
     wallet->allTx = BRSetNew(BRTransactionHash, BRTransactionEq, txCount + 100);
@@ -786,6 +789,12 @@ uint64_t BRWalletFeeForTxSize(BRWallet *wallet, size_t size)
              fee = (((size*wallet->feePerKb/1000) + 99)/100)*100; // fee using feePerKb, rounded up to 100 satoshi
     
     return (fee > standardFee) ? fee : standardFee;
+}
+
+// outputs below this amount are uneconomical due to fees
+uint64_t BRWalletMinOutputAmount(BRWallet *wallet)
+{
+    
 }
 
 // frees memory allocated for wallet, also calls BRTransactionFree() for all registered transactions
