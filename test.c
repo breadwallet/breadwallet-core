@@ -229,7 +229,7 @@ int BRMerkleBlockTests()
     "\xf9\xd2\x61\xb8\x27\x3b\x52\x5b\x02\xff\x1a";
     BRMerkleBlock *b;
     
-    b = BRMerkleBlockDeserialize((uint8_t *)block, sizeof(block));
+    b = BRMerkleBlockParse((uint8_t *)block, sizeof(block));
     
     if (! UInt256Eq(b->blockHash,
                        UInt256Reverse(*(UInt256 *)"\x00\x00\x00\x00\x00\x00\x80\xb6\x6c\x91\x1b\xd5\xba\x14\xa7"

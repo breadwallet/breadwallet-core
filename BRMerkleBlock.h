@@ -51,7 +51,7 @@ typedef struct {
 BRMerkleBlock *BRMerkleBlockNew();
 
 // buf must contain either a serialized merkleblock or header, result must be freed by calling BRMerkleBlockFree()
-BRMerkleBlock *BRMerkleBlockDeserialize(const uint8_t *buf, size_t len);
+BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t len);
 
 // returns number of bytes written to buf, or total len needed if buf is NULL
 size_t BRMerkleBlockSerialize(BRMerkleBlock *block, uint8_t *buf, size_t len);

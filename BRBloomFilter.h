@@ -54,7 +54,7 @@ static const BRBloomFilter BRBloomFilterFullMatch = { (uint8_t *)"\xFF", 1, 0, 0
 BRBloomFilter *BRBloomFilterNew(double falsePositiveRate, size_t elemCount, uint32_t tweak, uint8_t flags);
 
 // buf must contain a serialized filter, result must be freed by calling BRBloomFilterFree()
-BRBloomFilter *BRBloomFilterDeserialize(const uint8_t *buf, size_t len);
+BRBloomFilter *BRBloomFilterParse(const uint8_t *buf, size_t len);
 
 // returns number of bytes written to buf, or total len needed if buf is NULL
 size_t BRBloomFilterSerialize(BRBloomFilter *filter, uint8_t *buf, size_t len);

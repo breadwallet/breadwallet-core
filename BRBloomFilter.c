@@ -32,7 +32,7 @@ BRBloomFilter *BRBloomFilterNew(double falsePositiveRate, size_t elemCount, uint
 }
 
 // buf must contain a serialized filter, result must be freed by calling BRBloomFilterFree()
-BRBloomFilter *BRBloomFilterDeserialize(const uint8_t *buf, size_t len)
+BRBloomFilter *BRBloomFilterParse(const uint8_t *buf, size_t len)
 {
     return NULL;
 }

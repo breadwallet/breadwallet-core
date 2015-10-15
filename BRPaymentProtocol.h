@@ -43,7 +43,7 @@ typedef struct {
 } BRPaymentProtocolDetails;
 
 // buf must contain a serialized details struct, result must be freed by calling BRPayementProtocolDetailsFree()
-BRPaymentProtocolDetails *BRPaymentProtocolDetailsDeserialize(const uint8_t *buf, size_t len);
+BRPaymentProtocolDetails *BRPaymentProtocolDetailsParse(const uint8_t *buf, size_t len);
 
 // writes serialized details struct to buf, returns number of bytes written, or total len needed if buf is NULL
 size_t BRPaymentProtocolDetailsSerialize(BRPaymentProtocolDetails *details, uint8_t *buf, size_t len);
@@ -62,7 +62,7 @@ typedef struct {
 } BRPaymentProtocolRequest;
 
 // buf must contain a serialized request struct, result must be freed by calling BRPaymentProtocolRequestFree()
-BRPaymentProtocolRequest *BRPaymentProtocolRequestDeserialize(const uint8_t *buf, size_t len);
+BRPaymentProtocolRequest *BRPaymentProtocolRequestParse(const uint8_t *buf, size_t len);
 
 // writes serialized request struct to buf, returns number of bytes written, or total len needed if buf is NULL
 size_t BRPaymentProtocolRrequestSerialize(BRPaymentProtocolRequest *request, uint8_t *buf, size_t len);
@@ -89,7 +89,7 @@ typedef struct {
 } BRPaymentProtocolPayment;
 
 // buf must contain a serialized payment struct, result must be freed by calling BRPayementProtocolPaymentFree()
-BRPaymentProtocolPayment *BRPaymentProtocolPaymentDeserialize(const uint8_t *buf, size_t len);
+BRPaymentProtocolPayment *BRPaymentProtocolPaymentParse(const uint8_t *buf, size_t len);
 
 // writes serialized payment struct to buf, returns number of bytes written, or total len needed if buf is NULL
 size_t BRPaymentProtocolPaymentSerialize(BRPaymentProtocolPayment *payment, uint8_t *buf, size_t len);
@@ -103,7 +103,7 @@ typedef struct {
 } BRPaymentProtocolACK;
 
 // buf must contain a serialized ACK struct, result must be freed by calling BRPayementProtocolACKFree()
-BRPaymentProtocolPayment *BRPaymentProtocolACKDeserialize(const uint8_t *buf, size_t len);
+BRPaymentProtocolPayment *BRPaymentProtocolACKParse(const uint8_t *buf, size_t len);
 
 // writes serialized ACK struct to buf, returns number of bytes written, or total len needed if buf is NULL
 size_t BRPaymentProtocolACKSerialize(BRPaymentProtocolPayment *payment, uint8_t *buf, size_t len);

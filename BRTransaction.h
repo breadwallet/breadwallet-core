@@ -84,7 +84,7 @@ typedef struct {
 BRTransaction *BRTransactionNew();
 
 // buf must contain a serialized tx, result must be freed by calling BRTransactionFree()
-BRTransaction *BRTransactionDeserialize(const uint8_t *buf, size_t len);
+BRTransaction *BRTransactionParse(const uint8_t *buf, size_t len);
 
 // returns number of bytes written to buf, or total len needed if buf is NULL
 size_t BRTransactionSerialize(BRTransaction *tx, uint8_t *buf, size_t len);

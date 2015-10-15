@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-#define DEFAULT_FEE_PER_KB (TX_FEE_PER_KB*1000 + 190/191) // default fee-per-kb to match standard fee on 191 byte tx
+#define DEFAULT_FEE_PER_KB ((TX_FEE_PER_KB*1000 + 190)/191) // default fee-per-kb to match standard fee on 191 byte tx
 
 struct _BRWallet {
     uint64_t balance; // current wallet balance excluding transactions known to be invalid
@@ -794,7 +794,7 @@ uint64_t BRWalletFeeForTxSize(BRWallet *wallet, size_t size)
 // outputs below this amount are uneconomical due to fees
 uint64_t BRWalletMinOutputAmount(BRWallet *wallet)
 {
-    
+    return wallet->feePerKb*3*(34 + 148)/1000;
 }
 
 // frees memory allocated for wallet, also calls BRTransactionFree() for all registered transactions

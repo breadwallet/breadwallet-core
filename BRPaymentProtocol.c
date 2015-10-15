@@ -25,7 +25,7 @@
 #include "BRPaymentProtocol.h"
 
 // buf must contain a serialized details struct, result must be freed by calling BRPayementProtocolDetailsFree()
-BRPaymentProtocolDetails *BRPaymentProtocolDetailsDeserialize(const uint8_t *buf, size_t len)
+BRPaymentProtocolDetails *BRPaymentProtocolDetailsParse(const uint8_t *buf, size_t len)
 {
     return NULL;
 }
@@ -42,7 +42,7 @@ void BRPayementProtocolDetailsFree(BRPaymentProtocolDetails *details)
 }
 
 // buf must contain a serialized request struct, result must be freed by calling BRPaymentProtocolRequestFree()
-BRPaymentProtocolRequest *BRPaymentProtocolRequestDeserialize(const uint8_t *buf, size_t len)
+BRPaymentProtocolRequest *BRPaymentProtocolRequestParse(const uint8_t *buf, size_t len)
 {
     return NULL;
 }
@@ -73,7 +73,7 @@ void BRPayementProtocolRequestFree(BRPaymentProtocolRequest *request)
 }
 
 // buf must contain a serialized payment struct, result must be freed by calling BRPayementProtocolPaymentFree()
-BRPaymentProtocolPayment *BRPaymentProtocolPaymentDeserialize(const uint8_t *buf, size_t len)
+BRPaymentProtocolPayment *BRPaymentProtocolPaymentParse(const uint8_t *buf, size_t len)
 {
     return NULL;
 }
@@ -90,7 +90,7 @@ void BRPayementProtocolPaymentFree(BRPaymentProtocolPayment *payment)
 }
 
 // buf must contain a serialized ACK struct, result must be freed by calling BRPayementProtocolACKFree()
-BRPaymentProtocolPayment *BRPaymentProtocolACKDeserialize(const uint8_t *buf, size_t len)
+BRPaymentProtocolPayment *BRPaymentProtocolACKParse(const uint8_t *buf, size_t len)
 {
     return NULL;
 }

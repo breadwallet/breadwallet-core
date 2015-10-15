@@ -70,7 +70,7 @@ BRMerkleBlock *BRMerkleBlockNew()
 }
 
 // buf can contain either a serialized merkleblock or header, result must be freed by calling BRMerkleBlockFree()
-BRMerkleBlock *BRMerkleBlockDeserialize(const uint8_t *buf, size_t len)
+BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t len)
 {
     if (len < 80) return NULL;
     
@@ -300,7 +300,7 @@ int BRMerkleBlockVerifyDifficulty(BRMerkleBlock *block, const BRMerkleBlock *pre
     return (block->target == ((uint32_t)target | size << 24));
 }
 
-// frees memory allocated by BRMerkleBlockDeserialize
+// frees memory allocated by BRMerkleBlockParse
 void BRMerkleBlockFree(BRMerkleBlock *block)
 {
     if (block->hashes) free(block->hashes);
