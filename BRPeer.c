@@ -40,6 +40,8 @@ struct BRPeerContext {
     void (*relayedTx)(BRPeer *peer, const BRTransaction *tx, void *info);
     void (*hasTx)(BRPeer *peer, UInt256 txHash, void *info);
     void (*rejectedTx)(BRPeer *peer, UInt256 txHash, uint8_t code, void *info);
+    void (*notfound)(BRPeer *peer, const UInt256 txHashes[], size_t txCount, const UInt256 blockHashes[],
+                     size_t blockCount, void *info);
     void (*relayedBlock)(BRPeer *peer, const BRMerkleBlock *block, void *info);
     const BRTransaction *(*reqeustedTx)(BRPeer *peer, UInt256 txHash, void *info);
     int (*networkIsReachable)(BRPeer *peer, void *info);
@@ -59,6 +61,8 @@ void BRPeerSetCallbacks(BRPeer *peer,
                         void (*hasTx)(BRPeer *peer, UInt256 txHash, void *info),
                         void (*rejectedTx)(BRPeer *peer, UInt256 txHash, uint8_t code, void *info),
                         void (*relayedBlock)(BRPeer *peer, const BRMerkleBlock *block, void *info),
+                        void (*notfound)(BRPeer *peer, const UInt256 txHashes[], size_t txCount,
+                                         const UInt256 blockHashes[], size_t blockCount, void *info),
                         const BRTransaction *(*reqeustedTx)(BRPeer *peer, UInt256 txHash, void *info),
                         int (*networkIsReachable)(BRPeer *peer, void *info),
                         void *info)
