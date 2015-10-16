@@ -142,6 +142,8 @@ static void BRWalletUpdateBalance(BRWallet *wallet)
                 if (BRSetContains(wallet->spentOutputs, &tx->inputs[j]) ||
                     BRSetContains(wallet->invalidTx, &tx->inputs[j].txHash)) {
                     BRSetAdd(wallet->invalidTx, tx);
+                    array_add(wallet->balanceHist, balance);
+                    break;
                 }
             }
             
