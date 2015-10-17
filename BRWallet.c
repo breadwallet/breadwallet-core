@@ -188,7 +188,7 @@ static void BRWalletUpdateBalance(BRWallet *wallet)
 
 // allocate and populate a wallet
 BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk,
-                      void *(*seed)(const char *, uint64_t, size_t *))
+                      const void *(*seed)(const char *, uint64_t, size_t *))
 {
     BRWallet *wallet = calloc(1, sizeof(BRWallet));
     BRTransaction *tx;
@@ -476,7 +476,7 @@ int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *aut
     pthread_rwlock_unlock(&wallet->lock);
 
     BRKey keys[internalCount + externalCount];
-    void *seed = wallet->seed(authPrompt, (amount > 0) ? amount : 0, &seedLen);
+    const void *seed = wallet->seed(authPrompt, (amount > 0) ? amount : 0, &seedLen);
     
     if (seed) {
         BRBIP32PrivKeyList(keys, internalCount, seed, seedLen, 1, internalIdx);
