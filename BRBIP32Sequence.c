@@ -163,7 +163,7 @@ void BRBIP32PrivKey(BRKey *key, const void *seed, size_t seedlen, int internal, 
 }
 
 void BRBIP32PrivKeyList(BRKey keys[], size_t count, const void *seed, size_t seedLen, int internal,
-                        const unsigned *indexes)
+                        const uint32_t indexes[])
 {
     UInt512 I;
     UInt256 secret, chain, s, c;

@@ -116,6 +116,7 @@ inline static UInt256 UInt256Reverse(UInt256 u)
 
 #if __BIG_ENDIAN__ || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 
+#define WORDS_BIGENDIAN 1
 #define be16(x) (x)
 #define le16(x) ((((x) & 0xff) << 8) | (((x) & 0xff00) >> 8))
 #define be32(x) (x)
@@ -194,6 +195,11 @@ inline static UInt256 UInt256Reverse(UInt256 u)
 #define array_rm(array, idx) do {\
     memmove((array) + (idx), (array) + (idx) + 1, (--array_count(array) - (idx))*sizeof(*(array)));\
 } while (0)
+
+#define array_rm_last(array) do {\
+    if (array_count(array) > 0)\
+        array_count(array)--;\
+} while(0)
 
 #define array_clear(array) do {\
     array_count(array) = 0;\

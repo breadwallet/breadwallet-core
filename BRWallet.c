@@ -46,7 +46,7 @@ struct _BRWallet {
     BRSet *spentOutputs;
     BRSet *usedAddrs;
     BRSet *allAddrs;
-    void *(*seed)(const char *authPrompt, uint64_t amount, size_t *seedLen); // called during tx signing
+    const void *(*seed)(const char *authPrompt, uint64_t amount, size_t *seedLen); // called during tx signing
     void (*balanceChanged)(BRWallet *wallet, uint64_t balance, void *info);
     void (*txAdded)(BRWallet *wallet, BRTransaction *tx, void *info);
     void (*txUpdated)(BRWallet *wallet, const UInt256 txHashes[], size_t count, uint32_t blockHeight,
@@ -66,8 +66,8 @@ inline static void *BRWalletTxContext(BRTransaction *tx)
 inline static void BRWalletTxSetContext(BRTransaction *tx, void *info)
 {
     if (tx->inputs[0].scriptLen > 0) array_free(tx->inputs[0].script);
-    tx->inputs[0].script = info;
     tx->inputs[0].scriptLen = 0;
+    tx->inputs[0].script = info;
 }
 
 // chain position of first tx output address that appears in chain
@@ -457,18 +457,18 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
 int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *authPrompt)
 {
     int64_t amount = BRWalletAmountSentByTx(wallet, tx) - BRWalletAmountReceivedFromTx(wallet, tx);
-    unsigned internalIdx[tx->inCount], externalIdx[tx->inCount];
+    uint32_t internalIdx[tx->inCount], externalIdx[tx->inCount];
     size_t internalCount = 0, externalCount = 0, seedLen = 0;
     int r = 0;
     
     pthread_rwlock_rdlock(&wallet->lock);
     
     for (size_t i = 0; i < tx->inCount; i++) {
-        for (unsigned j = 0; j < array_count(wallet->internalChain); j++) {
+        for (uint32_t j = 0; j < array_count(wallet->internalChain); j++) {
             if (BRAddressEq(tx->inputs[i].address, &wallet->internalChain[j])) internalIdx[internalCount++] = j;
         }
 
-        for (unsigned j = 0; j < array_count(wallet->externalChain); j++) {
+        for (uint32_t j = 0; j < array_count(wallet->externalChain); j++) {
             if (BRAddressEq(tx->inputs[i].address, &wallet->externalChain[j])) externalIdx[externalCount++] = j;
         }
     }
@@ -701,7 +701,6 @@ void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHashes[], size
     }
 
     pthread_rwlock_unlock(&wallet->lock);
-    
     if (update && wallet->txUpdated) wallet->txUpdated(wallet, txHashes, count, blockHeight, timestamp, wallet->info);
 }
 

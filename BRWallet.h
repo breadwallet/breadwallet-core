@@ -51,7 +51,7 @@ typedef struct _BRWallet BRWallet;
 
 // allocate and populate a wallet
 BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk,
-                      void *(*seed)(const char *, uint64_t, size_t *));
+                      const void *(*seed)(const char *, uint64_t, size_t *));
 
 void BRWalletSetCallbacks(BRWallet *wallet,
                           void (*balanceChanged)(BRWallet *wallet, uint64_t balance, void *info),
