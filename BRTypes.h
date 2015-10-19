@@ -112,7 +112,7 @@ inline static UInt256 UInt256Reverse(UInt256 u)
 #define UINT256_ZERO ((UInt256) { .u64 = { 0, 0, 0, 0 } })
 #define UINT512_ZERO ((UInt512) { .u64 = { 0, 0, 0, 0, 0, 0, 0, 0 } })
 
-// integer endian swapping
+// integer endian swapping (detects endianess with predefined macros in clang and gcc, and msvc is always little endian)
 
 #if __BIG_ENDIAN__ || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 

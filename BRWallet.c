@@ -112,8 +112,8 @@ inline static int BRWalletTxCompare(const void *tx1, const void *tx2)
     i = BRWalletTxChainIdx(*(BRTransaction **)tx1, wallet->internalChain);
     j = BRWalletTxChainIdx(*(BRTransaction **)tx2, (i == SIZE_MAX) ? wallet->externalChain : wallet->internalChain);
     if (i == SIZE_MAX && j != SIZE_MAX) i = BRWalletTxChainIdx(*(BRTransaction **)tx1, wallet->externalChain);
-    if (i == SIZE_MAX || j == SIZE_MAX || i == j) return 0;
-    return (i > j) ? 1 : -1;
+    if (i != SIZE_MAX && j != SIZE_MAX && i != j) return (i > j) ? 1 : -1;
+    return (tx1 > tx2) ? 1 : -1; // compare pointers of equivalent objects for stable sort
 }
 
 inline static void BRWalletSortTransactions(BRWallet *wallet)
