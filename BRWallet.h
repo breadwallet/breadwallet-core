@@ -50,16 +50,15 @@ inline static size_t BRUTXOHash(const void *utxo)
 typedef struct _BRWallet BRWallet;
 
 // allocate and populate a wallet
-BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk,
-                      const void *(*seed)(const char *, uint64_t, size_t *));
+BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk, void *info,
+                      const void *(*seed)(void *info, const char *authPrompt, uint64_t amount, size_t *seedLen));
 
-void BRWalletSetCallbacks(BRWallet *wallet,
-                          void (*balanceChanged)(BRWallet *wallet, uint64_t balance, void *info),
-                          void (*txAdded)(BRWallet *wallet, BRTransaction *tx, void *info),
-                          void (*txUpdated)(BRWallet *wallet, const UInt256 txHashes[], size_t count,
-                                            uint32_t blockHeight, uint32_t timestamp, void *info),
-                          void (*txDeleted)(BRWallet *wallet, UInt256 txHash, void *info),
-                          void *info);
+void BRWalletSetCallbacks(BRWallet *wallet, void *info,
+                          void (*balanceChanged)(void *info, uint64_t balance),
+                          void (*txAdded)(void *info, BRTransaction *tx),
+                          void (*txUpdated)(void *info, const UInt256 txHashes[], size_t count,
+                                            uint32_t blockHeight, uint32_t timestamp),
+                          void (*txDeleted)(void *info, UInt256 txHash));
 
 // Wallets are composed of chains of addresses. Each chain is traversed until a gap of a certain number of addresses is
 // found that haven't been used in any transactions. This function returns an array of <gapLimit> unused addresses

@@ -46,17 +46,14 @@ typedef struct _BRPeerManager BRPeerManager;
 BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, const BRMerkleBlock blocks[],
                                 size_t blocksCount, const BRPeer peers[], size_t peersCount);
 
-void BRPeerManagerSetCallbacks(BRPeerManager *manager,
-                               void (*syncStarted)(BRPeerManager *manager, void *info),
-                               void (*syncSucceded)(BRPeerManager *manager, void *info),
-                               void (*syncFailed)(BRPeerManager *manager, BRPeerManagerError error, void *info),
-                               void (*txStatusUpdate)(BRPeerManager *manager, void *info),
-                               void (*saveBlocks)(BRPeerManager *manager, const BRMerkleBlock blocks[], size_t count,
-                                                  void *info),
-                               void (*savePeers)(BRPeerManager *manager, const BRPeer peers[], size_t count,
-                                                 void *info),
-                               int (*networkIsReachable)(BRPeerManager *manager, void *info),
-                               void *info);
+void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
+                               void (*syncStarted)(void *info),
+                               void (*syncSucceded)(void *info),
+                               void (*syncFailed)(void *info, BRPeerManagerError error),
+                               void (*txStatusUpdate)(void *info),
+                               void (*saveBlocks)(void *info, const BRMerkleBlock blocks[], size_t count),
+                               void (*savePeers)(void *info, const BRPeer peers[], size_t count),
+                               int (*networkIsReachable)(void *info));
 
 // true if currently connected to at least one peer
 int BRPeerMangerIsConnected(BRPeerManager *manager);
@@ -80,7 +77,7 @@ double BRPeerManagerSyncProgress(BRPeerManager *manager);
 size_t BRPeerManagerPeerCount(BRPeerManager *manager);
 
 // publishes tx to bitcoin network
-void BRPeerManagerPublishTx(BRTransaction *tx, void (*callback)(BRPeerManagerError error, void *info), void *info);
+void BRPeerManagerPublishTx(BRTransaction *tx, void *info, void (*callback)(void *info, BRPeerManagerError error));
 
 // number of connected peers that have relayed the transaction
 size_t BRPeerMangaerRelayCount(UInt256 txHash);

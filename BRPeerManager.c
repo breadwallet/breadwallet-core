@@ -57,14 +57,14 @@ struct BRPeerManagerContext {
     struct { UInt256 txHash; BRPeer *peers; size_t count; } *txRelays;
     size_t relayCount;
     BRTransaction *publishedTx;
-    void (*publishedCallback)(BRPeerManagerError error, void *info);
     void *publishedInfo;
+    void (*publishedCallback)(void *info, BRPeerManagerError error);
     size_t publishedCount;
-    void (*syncStarted)(BRPeerManager *manager, void *info);
-    void (*syncSucceded)(BRPeerManager *manager, void *info);
-    void (*syncFailed)(BRPeerManager *manager, BRPeerManagerError error, void *info);
-    void (*txStatusUpdate)(BRPeerManager *manager, void *info);
     void *callbackInfo;
+    void (*syncStarted)(void *info);
+    void (*syncSucceded)(void *info);
+    void (*syncFailed)(void *info, BRPeerManagerError error);
+    void (*txStatusUpdate)(void *info);
 };
 
 // returns a newly allocated BRPeerManager struct that must be freed by calling BRPeerManagerFree()
@@ -74,17 +74,14 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, cons
     return NULL;
 }
 
-void BRPeerManagerSetCallbacks(BRPeerManager *manager,
-                               void (*syncStarted)(BRPeerManager *manager, void *info),
-                               void (*syncSucceded)(BRPeerManager *manager, void *info),
-                               void (*syncFailed)(BRPeerManager *manager, BRPeerManagerError error, void *info),
-                               void (*txStatusUpdate)(BRPeerManager *manager, void *info),
-                               void (*saveBlocks)(BRPeerManager *manager, const BRMerkleBlock blocks[], size_t count,
-                                                  void *info),
-                               void (*savePeers)(BRPeerManager *manager, const BRPeer peers[], size_t count,
-                                                 void *info),
-                               int (*networkIsReachable)(BRPeerManager *manager, void *info),
-                               void *info)
+void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
+                               void (*syncStarted)(void *info),
+                               void (*syncSucceded)(void *info),
+                               void (*syncFailed)(void *info, BRPeerManagerError error),
+                               void (*txStatusUpdate)(void *info),
+                               void (*saveBlocks)(void *info, const BRMerkleBlock blocks[], size_t count),
+                               void (*savePeers)(void *info, const BRPeer peers[], size_t count),
+                               int (*networkIsReachable)(void *info))
 {
 }
 
@@ -129,7 +126,7 @@ size_t BRPeerManagerPeerCount(BRPeerManager *manager)
 }
 
 // publishes tx to bitcoin network
-void BRPeerManagerPublishTx(BRTransaction *tx, void (*callback)(BRPeerManagerError error, void *info), void *info)
+void BRPeerManagerPublishTx(BRTransaction *tx, void *info, void (*callback)(void *info, BRPeerManagerError error))
 {
 }
 

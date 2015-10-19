@@ -34,18 +34,18 @@ struct BRPeerContext {
     double pingTime;
     int needsFilterUpdate;
     uint32_t currentBlockHeight;
-    void (*connected)(BRPeer *peer, void *info);
-    void (*disconnected)(BRPeer *peer, BRPeerError, void *info);
-    void (*relayedPeers)(BRPeer *peer, const BRPeer peers[], size_t count, void *info);
-    void (*relayedTx)(BRPeer *peer, const BRTransaction *tx, void *info);
-    void (*hasTx)(BRPeer *peer, UInt256 txHash, void *info);
-    void (*rejectedTx)(BRPeer *peer, UInt256 txHash, uint8_t code, void *info);
-    void (*notfound)(BRPeer *peer, const UInt256 txHashes[], size_t txCount, const UInt256 blockHashes[],
-                     size_t blockCount, void *info);
-    void (*relayedBlock)(BRPeer *peer, const BRMerkleBlock *block, void *info);
-    const BRTransaction *(*reqeustedTx)(BRPeer *peer, UInt256 txHash, void *info);
-    int (*networkIsReachable)(BRPeer *peer, void *info);
     void *info;
+    void (*connected)(void *info);
+    void (*disconnected)(void *info, BRPeerError);
+    void (*relayedPeers)(void *info, const BRPeer peers[], size_t count);
+    void (*relayedTx)(void *info, const BRTransaction *tx);
+    void (*hasTx)(void *info, UInt256 txHash);
+    void (*rejectedTx)(void *info, UInt256 txHash, uint8_t code);
+    void (*notfound)(void *info, const UInt256 txHashes[], size_t txCount, const UInt256 blockHashes[],
+                     size_t blockCount);
+    void (*relayedBlock)(void *info, const BRMerkleBlock *block);
+    const BRTransaction *(*reqeustedTx)(void *info, UInt256 txHash);
+    int (*networkIsReachable)(void *info);
 };
 
 // call this before other BRPeer functions, set earliestKeyTime to wallet creation time to speed up initial sync
@@ -53,19 +53,18 @@ void BRPeerNewContext(BRPeer *peer, uint32_t earliestKeyTime)
 {
 }
 
-void BRPeerSetCallbacks(BRPeer *peer,
-                        void (*connected)(BRPeer *peer, void *info),
-                        void (*disconnected)(BRPeer *peer, BRPeerError error, void *info),
-                        void (*relayedPeers)(BRPeer *peer, const BRPeer peers[], size_t count, void *info),
-                        void (*relayedTx)(BRPeer *peer, const BRTransaction *tx, void *info),
-                        void (*hasTx)(BRPeer *peer, UInt256 txHash, void *info),
-                        void (*rejectedTx)(BRPeer *peer, UInt256 txHash, uint8_t code, void *info),
-                        void (*relayedBlock)(BRPeer *peer, const BRMerkleBlock *block, void *info),
-                        void (*notfound)(BRPeer *peer, const UInt256 txHashes[], size_t txCount,
-                                         const UInt256 blockHashes[], size_t blockCount, void *info),
-                        const BRTransaction *(*reqeustedTx)(BRPeer *peer, UInt256 txHash, void *info),
-                        int (*networkIsReachable)(BRPeer *peer, void *info),
-                        void *info)
+void BRPeerSetCallbacks(BRPeer *peer, void *info,
+                        void (*connected)(void *info),
+                        void (*disconnected)(void *info, BRPeerError error),
+                        void (*relayedPeers)(void *info, const BRPeer peers[], size_t count),
+                        void (*relayedTx)(void *info, const BRTransaction *tx),
+                        void (*hasTx)(void *info, UInt256 txHash),
+                        void (*rejectedTx)(void *info, UInt256 txHash, uint8_t code),
+                        void (*relayedBlock)(void *info, const BRMerkleBlock *block),
+                        void (*notfound)(void *info, const UInt256 txHashes[], size_t txCount,
+                                         const UInt256 blockHashes[], size_t blockCount),
+                        const BRTransaction *(*reqeustedTx)(void *info, UInt256 txHash),
+                        int (*networkIsReachable)(void *info))
 {
 }
 
@@ -150,7 +149,7 @@ void BRPeerSendGetaddr(BRPeer *peer)
 {
 }
 
-void BRPeerSendPing(BRPeer *peer, void (*pongCallback)(BRPeer *peer, int success, void *info), void *info)
+void BRPeerSendPing(BRPeer *peer, void *info, void (*pongCallback)(void *info, int success))
 {
 }
 

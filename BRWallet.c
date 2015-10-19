@@ -46,13 +46,13 @@ struct _BRWallet {
     BRSet *spentOutputs;
     BRSet *usedAddrs;
     BRSet *allAddrs;
-    const void *(*seed)(const char *authPrompt, uint64_t amount, size_t *seedLen); // called during tx signing
-    void (*balanceChanged)(BRWallet *wallet, uint64_t balance, void *info);
-    void (*txAdded)(BRWallet *wallet, BRTransaction *tx, void *info);
-    void (*txUpdated)(BRWallet *wallet, const UInt256 txHashes[], size_t count, uint32_t blockHeight,
-                      uint32_t timestamp, void *info);
-    void (*txDeleted)(BRWallet *wallet, UInt256 txHash, void *info);
-    void *info;
+    void *seedInfo;
+    const void *(*seed)(void *info, const char *authPrompt, uint64_t amount, size_t *seedLen);
+    void *callbackInfo;
+    void (*balanceChanged)(void *info, uint64_t balance);
+    void (*txAdded)(void *info, BRTransaction *tx);
+    void (*txUpdated)(void *info, const UInt256 txHashes[], size_t count, uint32_t blockHeight, uint32_t timestamp);
+    void (*txDeleted)(void *info, UInt256 txHash);
     pthread_rwlock_t lock;
 };
 
@@ -113,7 +113,7 @@ inline static int BRWalletTxCompare(const void *tx1, const void *tx2)
     j = BRWalletTxChainIdx(*(BRTransaction **)tx2, (i == SIZE_MAX) ? wallet->externalChain : wallet->internalChain);
     if (i == SIZE_MAX && j != SIZE_MAX) i = BRWalletTxChainIdx(*(BRTransaction **)tx1, wallet->externalChain);
     if (i != SIZE_MAX && j != SIZE_MAX && i != j) return (i > j) ? 1 : -1;
-    return (tx1 > tx2) ? 1 : -1; // compare pointers of equivalent objects for stable sort
+    return 0;
 }
 
 inline static void BRWalletSortTransactions(BRWallet *wallet)
@@ -182,13 +182,13 @@ static void BRWalletUpdateBalance(BRWallet *wallet)
 
     if (balance != wallet->balance) {
         wallet->balance = balance;
-        if (wallet->balanceChanged) wallet->balanceChanged(wallet, balance, wallet->info);
+        if (wallet->balanceChanged) wallet->balanceChanged(wallet->callbackInfo, balance);
     }
 }
 
 // allocate and populate a wallet
-BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk,
-                      const void *(*seed)(const char *, uint64_t, size_t *))
+BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk, void *info,
+                      const void *(*seed)(void *info, const char *authPrompt, uint64_t amount, size_t *seedLen))
 {
     BRWallet *wallet = calloc(1, sizeof(BRWallet));
     BRTransaction *tx;
@@ -202,6 +202,7 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
     wallet->allTx = BRSetNew(BRTransactionHash, BRTransactionEq, txCount + 100);
     wallet->usedAddrs = BRSetNew(BRAddressHash, BRAddressEq, txCount*4 + 100);
     wallet->allAddrs = BRSetNew(BRAddressHash, BRAddressEq, txCount + 200 + 100);
+    wallet->seedInfo = info;
     wallet->seed = seed;
     wallet->lock = (pthread_rwlock_t)PTHREAD_RWLOCK_INITIALIZER;
     pthread_rwlock_init(&wallet->lock, NULL);
@@ -220,19 +221,18 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
     return wallet;
 }
 
-void BRWalletSetCallbacks(BRWallet *wallet,
-                          void (*balanceChanged)(BRWallet *wallet, uint64_t balance, void *info),
-                          void (*txAdded)(BRWallet *wallet, BRTransaction *tx, void *info),
-                          void (*txUpdated)(BRWallet *wallet, const UInt256 txHash[], size_t count,
-                                            uint32_t blockHeight, uint32_t timestamp, void *info),
-                          void (*txDeleted)(BRWallet *wallet, UInt256 txHash, void *info),
-                          void *info)
+void BRWalletSetCallbacks(BRWallet *wallet, void *info,
+                          void (*balanceChanged)(void *info, uint64_t balance),
+                          void (*txAdded)(void *info, BRTransaction *tx),
+                          void (*txUpdated)(void *info, const UInt256 txHash[], size_t count, uint32_t blockHeight,
+                                            uint32_t timestamp),
+                          void (*txDeleted)(void *info, UInt256 txHash))
 {
+    wallet->callbackInfo = info;
     wallet->balanceChanged = balanceChanged;
     wallet->txAdded = txAdded;
     wallet->txUpdated = txUpdated;
     wallet->txDeleted = txDeleted;
-    wallet->info = info;
 }
 
 // Wallets are composed of chains of addresses. Each chain is traversed until a gap of a certain number of addresses is
@@ -476,7 +476,7 @@ int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *aut
     pthread_rwlock_unlock(&wallet->lock);
 
     BRKey keys[internalCount + externalCount];
-    const void *seed = wallet->seed(authPrompt, (amount > 0) ? amount : 0, &seedLen);
+    const void *seed = wallet->seed(wallet->seedInfo, authPrompt, (amount > 0) ? amount : 0, &seedLen);
     
     if (seed) {
         BRBIP32PrivKeyList(keys, internalCount, seed, seedLen, 1, internalIdx);
@@ -542,7 +542,7 @@ int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx)
         BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, 0);
         BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
         
-        if (wallet->txAdded) wallet->txAdded(wallet, tx, wallet->info);
+        if (wallet->txAdded) wallet->txAdded(wallet->callbackInfo, tx);
     }
 
     return ! 0;
@@ -595,7 +595,7 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
         pthread_rwlock_unlock(&wallet->lock);
         BRWalletTxSetContext(tx, NULL);
         BRTransactionFree(tx);
-        if (wallet->txDeleted) wallet->txDeleted(wallet, txHash, wallet->info);
+        if (wallet->txDeleted) wallet->txDeleted(wallet->callbackInfo, txHash);
     }
     
     array_free(hashes);
@@ -701,7 +701,7 @@ void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHashes[], size
     }
 
     pthread_rwlock_unlock(&wallet->lock);
-    if (update && wallet->txUpdated) wallet->txUpdated(wallet, txHashes, count, blockHeight, timestamp, wallet->info);
+    if (update && wallet->txUpdated) wallet->txUpdated(wallet->callbackInfo, txHashes, count, blockHeight, timestamp);
 }
 
 // returns the amount received by the wallet from the transaction (total outputs to change and/or receive addresses)
