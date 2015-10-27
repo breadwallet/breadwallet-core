@@ -25,7 +25,7 @@
 
 #include "BRSort.h"
 
-// stable array sort
+// stable array sort, comparator must return less than 0 if a < b, 0 if a == b, and greater than 0 if a > b
 void BRSort(void *array, size_t count, size_t elemWidth, void *info,
             int (*comparator)(void *info, const void *a, const void *b))
 {

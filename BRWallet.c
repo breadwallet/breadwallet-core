@@ -23,6 +23,7 @@
 //  THE SOFTWARE.
 
 #include "BRWallet.h"
+#include "BRSort.h"
 #include "BRSet.h"
 #include "BRAddress.h"
 #include <stdlib.h>
@@ -56,20 +57,6 @@ struct _BRWallet {
     pthread_rwlock_t lock;
 };
 
-inline static void *BRWalletTxContext(BRTransaction *tx)
-{
-    // dirty dirty hack to sneak context data into qsort() and bsearch() comparator callbacks, since input scripts are
-    // not used in already signed transactions, we hijack the first script pointer for our own nefarious purposes
-    return (tx->inputs[0].scriptLen == 0) ? tx->inputs[0].script : NULL;
-}
-
-inline static void BRWalletTxSetContext(BRTransaction *tx, void *info)
-{
-    if (tx->inputs[0].scriptLen > 0) array_free(tx->inputs[0].script);
-    tx->inputs[0].scriptLen = 0;
-    tx->inputs[0].script = info;
-}
-
 // chain position of first tx output address that appears in chain
 inline static size_t BRWalletTxChainIdx(BRTransaction *tx, BRAddress *chain) {
     for (size_t i = array_count(chain); i > 0; i--) {
@@ -102,9 +89,9 @@ inline static int BRWalletTxIsAscending(BRWallet *wallet, BRTransaction *tx1, BR
     return 0;
 }
 
-inline static int BRWalletTxCompare(const void *tx1, const void *tx2)
+inline static int BRWalletTxCompare(void *info, const void *tx1, const void *tx2)
 {
-    BRWallet *wallet = BRWalletTxContext(*(BRTransaction **)tx1);
+    BRWallet *wallet = info;
     size_t i, j;
 
     if (BRWalletTxIsAscending(wallet, *(BRTransaction **)tx1, *(BRTransaction **)tx2)) return 1;
@@ -118,7 +105,8 @@ inline static int BRWalletTxCompare(const void *tx1, const void *tx2)
 
 inline static void BRWalletSortTransactions(BRWallet *wallet)
 {
-    qsort(wallet->transactions, array_count(wallet->transactions), sizeof(*(wallet->transactions)), BRWalletTxCompare);
+    BRSort(wallet->transactions, array_count(wallet->transactions), sizeof(*(wallet->transactions)), wallet,
+           BRWalletTxCompare);
 }
 
 static void BRWalletUpdateBalance(BRWallet *wallet)
@@ -209,7 +197,6 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
 
     for (size_t i = 0; i < txCount; i++) {
         tx = transactions[i];
-        BRWalletTxSetContext(tx, wallet);
         BRSetAdd(wallet->allTx, tx);
         for (size_t j = 0; j < tx->inCount; j++) BRSetAdd(wallet->usedAddrs, tx->inputs[j].address);
         for (size_t j = 0; j < tx->outCount; j++) BRSetAdd(wallet->usedAddrs, tx->outputs[j].address);
@@ -526,7 +513,6 @@ int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx)
     pthread_rwlock_wrlock(&wallet->lock);
 
     if (! BRSetContains(wallet->allTx, tx)) {
-        BRWalletTxSetContext(tx, wallet);
         BRSetAdd(wallet->allTx, tx);
         array_add(wallet->transactions, tx);
         for (size_t i = 0; i < tx->inCount; i++) BRSetAdd(wallet->usedAddrs, tx->inputs[i].address);
@@ -593,7 +579,6 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
     
         BRWalletUpdateBalance(wallet);
         pthread_rwlock_unlock(&wallet->lock);
-        BRWalletTxSetContext(tx, NULL);
         BRTransactionFree(tx);
         if (wallet->txDeleted) wallet->txDeleted(wallet->callbackInfo, txHash);
     }
@@ -807,7 +792,6 @@ void BRWalletFree(BRWallet *wallet)
     array_free(wallet->balanceHist);
 
     for (size_t i = 0; i < array_count(wallet->transactions); i++) {
-        BRWalletTxSetContext(wallet->transactions[i], NULL);
         BRTransactionFree(wallet->transactions[i]);
     }
 

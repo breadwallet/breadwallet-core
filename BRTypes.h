@@ -27,6 +27,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 // large integers
 
@@ -153,6 +154,8 @@ inline static UInt256 UInt256Reverse(UInt256 u)
 
 #define array_set_capacity(array, capacity) do {\
     (array) = (void *)((size_t *)realloc((size_t *)(array) - 2, (capacity)*sizeof(*(array)) + sizeof(size_t)*2) + 2);\
+    if ((capacity) > array_capacity(array))\
+        memset((array) + array_capacity(array), 0, ((capacity) - array_capacity(array))*sizeof(*(array)));\
     array_capacity(array) = (capacity);\
 } while (0)
 
@@ -161,8 +164,6 @@ inline static UInt256 UInt256Reverse(UInt256 u)
 #define array_set_count(array, count) do {\
     if ((count) > array_capacity(array))\
         array_set_capacity(array, count);\
-    if ((count) > array_count(array))\
-        memset((array) + array_count(array), 0, ((count) - array_count(array))*sizeof(*(array)));\
     array_count(array) = (count);\
 } while (0)
 
@@ -181,7 +182,7 @@ inline static UInt256 UInt256Reverse(UInt256 u)
 #define array_add_array(array, other_array, count) do {\
     if (array_count(array) + (count) > array_capacity(array))\
         array_set_capacity(array, (array_count(array) + (count))*3/2);\
-    memcpy((array) + array_count(array), (other_array), sizeof(*(other_array))*(count));\
+    memcpy((array) + array_count(array), (other_array), sizeof(*(array))*(count));\
     array_count(array) += (count);\
 } while (0)
 

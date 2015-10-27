@@ -42,14 +42,14 @@ typedef struct {
     size_t merchDataLen;
 } BRPaymentProtocolDetails;
 
-// buf must contain a serialized details struct, result must be freed by calling BRPayementProtocolDetailsFree()
+// buf must contain a serialized details struct, result must be freed by calling BRPaymentProtocolDetailsFree()
 BRPaymentProtocolDetails *BRPaymentProtocolDetailsParse(const uint8_t *buf, size_t len);
 
 // writes serialized details struct to buf, returns number of bytes written, or total len needed if buf is NULL
 size_t BRPaymentProtocolDetailsSerialize(BRPaymentProtocolDetails *details, uint8_t *buf, size_t len);
 
 // frees memory allocated for details struct
-void BRPayementProtocolDetailsFree(BRPaymentProtocolDetails *details);
+void BRPaymentProtocolDetailsFree(BRPaymentProtocolDetails *details);
 
 typedef struct {
     uint32_t version; // default is 1
@@ -76,7 +76,7 @@ size_t BRPaymentProtocolRequestCert(BRPaymentProtocolRequest *request, uint8_t *
 size_t BRPaymentProtocolRequestDigest(BRPaymentProtocolRequest *request, uint8_t *md, size_t mdLen);
 
 // frees memory allocated for request struct
-void BRPayementProtocolRequestFree(BRPaymentProtocolRequest *request);
+void BRPaymentProtocolRequestFree(BRPaymentProtocolRequest *request);
 
 typedef struct {
     uint8_t *merchantData; // from request->details->merchantData, optional
@@ -88,27 +88,27 @@ typedef struct {
     char *memo; // human-readable message for the merchant, optional
 } BRPaymentProtocolPayment;
 
-// buf must contain a serialized payment struct, result must be freed by calling BRPayementProtocolPaymentFree()
+// buf must contain a serialized payment struct, result must be freed by calling BRPaymentProtocolPaymentFree()
 BRPaymentProtocolPayment *BRPaymentProtocolPaymentParse(const uint8_t *buf, size_t len);
 
 // writes serialized payment struct to buf, returns number of bytes written, or total len needed if buf is NULL
 size_t BRPaymentProtocolPaymentSerialize(BRPaymentProtocolPayment *payment, uint8_t *buf, size_t len);
 
 // frees memory allocated for payment struct
-void BRPayementProtocolPaymentFree(BRPaymentProtocolPayment *payment);
+void BRPaymentProtocolPaymentFree(BRPaymentProtocolPayment *payment);
 
 typedef struct {
     BRPaymentProtocolPayment *payment; // payment message that triggered this ack, required
     char *memo; // human-readable message for customer, optional
 } BRPaymentProtocolACK;
 
-// buf must contain a serialized ACK struct, result must be freed by calling BRPayementProtocolACKFree()
+// buf must contain a serialized ACK struct, result must be freed by calling BRPaymentProtocolACKFree()
 BRPaymentProtocolPayment *BRPaymentProtocolACKParse(const uint8_t *buf, size_t len);
 
 // writes serialized ACK struct to buf, returns number of bytes written, or total len needed if buf is NULL
 size_t BRPaymentProtocolACKSerialize(BRPaymentProtocolPayment *payment, uint8_t *buf, size_t len);
 
 // frees memory allocated for ACK struct
-void BRPayementProtocolACKFree(BRPaymentProtocolPayment *payment);
+void BRPaymentProtocolACKFree(BRPaymentProtocolPayment *payment);
 
 #endif // BRPaymentProtocol_h

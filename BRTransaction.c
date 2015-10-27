@@ -93,10 +93,14 @@ void BRTxOutputSetAddress(BRTxOutput *output, const char *address)
 void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scriptLen)
 {
     if (output->script) array_free(output->script);
-    array_new(output->script, scriptLen);
-    array_add_array(output->script, script, scriptLen);
+    output->script = NULL;
     output->address[0] = '\0';
-    BRAddressFromScriptPubKey(output->address, sizeof(output->address), script, scriptLen);
+
+    if (script) {
+        array_new(output->script, scriptLen);
+        array_add_array(output->script, script, scriptLen);
+        BRAddressFromScriptPubKey(output->address, sizeof(output->address), script, scriptLen);
+    }
 }
 
 static size_t BRTransactionData(BRTransaction *tx, uint8_t *data, size_t len, size_t subscriptIdx)
