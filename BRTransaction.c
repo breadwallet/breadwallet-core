@@ -173,6 +173,8 @@ BRTransaction *BRTransactionNew()
 // buf must contain a serialized tx, result must be freed by calling BRTransactionFree()
 BRTransaction *BRTransactionParse(const uint8_t *buf, size_t len)
 {
+    if (! buf) return NULL;
+
     size_t off = 0, l = 0;
     BRTransaction *tx = BRTransactionNew();
 

@@ -39,7 +39,7 @@ static uint64_t ProtoBufVarInt(const uint8_t *buf, size_t len, size_t *off)
     uint8_t b = 0x80;
     size_t i = 0;
     
-    while ((b & 0x80) && *off < len) {
+    while ((b & 0x80) && buf && *off < len) {
         b = buf[(*off)++];
         varInt += (uint64_t)(b & 0x7f) << 7*i++;
     }
@@ -65,7 +65,7 @@ static const uint8_t *ProtoBufLenDelim(const uint8_t *buf, size_t *len, size_t *
     const uint8_t *data = NULL;
     size_t dataLen = ProtoBufVarInt(buf, *len, off);
     
-    if (*off + dataLen <= *len) data = buf + *off;
+    if (buf && *off + dataLen <= *len) data = buf + *off;
     *off += dataLen;
     *len = dataLen;
     return data;
@@ -411,7 +411,7 @@ size_t BRPaymentProtocolRequestCert(BRPaymentProtocolRequest *request, uint8_t *
 // the total bytes needed if md is NULL
 size_t BRPaymentProtocolRequestDigest(BRPaymentProtocolRequest *request, uint8_t *md, size_t mdLen)
 {
-    request->sigLen = 0;
+    request->sigLen = 0; // set signature to 0 bytes, a signature can't sign itself
     
     uint8_t buf[BRPaymentProtocolRequestSerialize(request, NULL, 0)];
     size_t len = BRPaymentProtocolRequestSerialize(request, buf, sizeof(buf));
@@ -424,6 +424,7 @@ size_t BRPaymentProtocolRequestDigest(BRPaymentProtocolRequest *request, uint8_t
         if (160/8 <= mdLen) BRSHA1(md, buf, len);
         len = 160/8;
     }
+    else len = 0;
     
     if (request->signature) request->sigLen = array_count(request->signature);
     return (! md || len <= mdLen) ? len : 0;
@@ -439,36 +440,165 @@ void BRPaymentProtocolRequestFree(BRPaymentProtocolRequest *request)
     free(request);
 }
 
+// returns a newly allocated BRPaymentProtocolPayment struct that must be freed with BRPaymentProtocolPaymentFree()
+BRPaymentProtocolPayment *BRPaymentProtocolPaymentNew(const uint8_t *merchantData, size_t merchDataLen,
+                                                      const BRTransaction *transactions[], size_t txCount,
+                                                      const uint64_t refundToAmounts[],
+                                                      const BRAddress refundToAddresses[], size_t refundToCount,
+                                                      const char *memo)
+{
+    BRPaymentProtocolPayment *payment = calloc(1, sizeof(BRPaymentProtocolPayment));
+    
+    if (merchantData) {
+        array_new(payment->merchantData, merchDataLen);
+        array_add_array(payment->merchantData, merchantData, merchDataLen);
+        payment->merchDataLen = merchDataLen;
+    }
+    
+    if (transactions) {
+        array_new(payment->transactions, txCount);
+        array_add_array(payment->transactions, transactions, txCount);
+        payment->txCount = txCount;
+    }
+    
+    if (refundToAddresses) {
+        array_new(payment->refundTo, refundToCount);
+        
+        for (size_t i = 0; i < refundToCount; i++) {
+            BRTxOutput output = { "", 0, NULL, 0 };
+            
+            BRTxOutputSetAddress(&output, refundToAddresses[i].s);
+            if (refundToAmounts) output.amount = refundToAmounts[i];
+            array_add(payment->refundTo, output);
+        }
+        
+        payment->refundToCount = refundToCount;
+    }
+    
+    if (memo) {
+        array_new(payment->memo, strlen(memo) + 1);
+        array_add_array(payment->memo, memo, strlen(memo) + 1);
+    }
+    
+    return payment;
+}
+
 // buf must contain a serialized payment struct, result must be freed by calling BRPaymentProtocolPaymentFree()
 BRPaymentProtocolPayment *BRPaymentProtocolPaymentParse(const uint8_t *buf, size_t len)
 {
-    return NULL;
+    BRPaymentProtocolPayment *payment = calloc(1, sizeof(BRPaymentProtocolPayment));
+    size_t off = 0;
+    
+    array_new(payment->transactions, 1);
+    array_new(payment->refundTo, 1);
+    
+    while (off < len) {
+        BRTransaction *tx = NULL;
+        BRTxOutput output = { "", 0, NULL, 0 };
+        uint64_t i = 0;
+        const uint8_t *data = NULL;
+        size_t dataLen = len;
+        
+        switch (ProtoBufField(&i, &data, buf, &dataLen, &off)) {
+            case payment_transactions: tx = BRTransactionParse(data, dataLen); break;
+            case payment_refund_to: BRPaymentProtocolOutputParse(&output, data, dataLen); break;
+            case payment_memo: ProtoBufString(&payment->memo, data, dataLen); break;
+            case payment_merchant_data: payment->merchDataLen = ProtoBufBytes(&payment->merchantData, data, dataLen);
+            default: break;
+        }
+        
+        if (tx) array_add(payment->transactions, tx);
+        if (output.script) array_add(payment->refundTo, output);
+    }
+    
+    payment->txCount = array_count(payment->transactions);
+    payment->refundToCount = array_count(payment->refundTo);
+    
+    return payment;
 }
 
 // writes serialized payment struct to buf, returns number of bytes written, or total len needed if buf is NULL
 size_t BRPaymentProtocolPaymentSerialize(BRPaymentProtocolPayment *payment, uint8_t *buf, size_t len)
 {
-    return 0;
+    size_t off = 0;
+
+    if (payment->merchantData) {
+        ProtoBufSetBytes(buf, len, payment->merchantData, payment->merchDataLen, payment_merchant_data, &off);
+    }
+
+    for (size_t i = 0; i < payment->txCount; i++) {
+        uint8_t txBuf[BRTransactionSerialize(payment->transactions[i], NULL, 0)];
+        size_t txLen = BRTransactionSerialize(payment->transactions[i], txBuf, sizeof(txBuf));
+
+        ProtoBufSetBytes(buf, len, txBuf, txLen, payment_transactions, &off);
+    }
+
+    for (size_t i = 0; i < payment->refundToCount; i++) {
+        uint8_t outputBuf[BRPaymentProtocolOutputSerialize(&payment->refundTo[i], NULL, 0)];
+        size_t outputLen = BRPaymentProtocolOutputSerialize(&payment->refundTo[i], outputBuf, sizeof(outputBuf));
+        
+        ProtoBufSetBytes(buf, len, outputBuf, outputLen, payment_refund_to, &off);
+    }
+
+    if (payment->memo) ProtoBufSetString(buf, len, payment->memo, payment_memo, &off);
+
+    return (! buf || off <= len) ? off : 0;
 }
 
-// frees memory allocated for payment struct
+// frees memory allocated for payment struct (does not call BRTransactionFree() on transactions)
 void BRPaymentProtocolPaymentFree(BRPaymentProtocolPayment *payment)
 {
+    if (payment->merchantData) array_free(payment->merchantData);
+    if (payment->transactions) array_free(payment->transactions);
 }
 
 // buf must contain a serialized ACK struct, result must be freed by calling BRPaymentProtocolACKFree()
-BRPaymentProtocolPayment *BRPaymentProtocolACKParse(const uint8_t *buf, size_t len)
+BRPaymentProtocolACK *BRPaymentProtocolACKParse(const uint8_t *buf, size_t len)
 {
-    return NULL;
+    BRPaymentProtocolACK *ack = calloc(1, sizeof(BRPaymentProtocolACK));
+    size_t off = 0;
+    
+    while (off < len) {
+        uint64_t i = 0;
+        const uint8_t *data = NULL;
+        size_t dataLen = len;
+        
+        switch (ProtoBufField(&i, &data, buf, &dataLen, &off)) {
+            case ack_payment: ack->payment = BRPaymentProtocolPaymentParse(data, dataLen); break;
+            case ack_memo: ProtoBufString(&ack->memo, data, dataLen); break;
+            default: break;
+        }
+    }
+    
+    if (! ack->payment) { // required
+        BRPaymentProtocolACKFree(ack);
+        ack = NULL;
+    }
+    
+    return ack;
 }
 
 // writes serialized ACK struct to buf, returns number of bytes written, or total len needed if buf is NULL
-size_t BRPaymentProtocolACKSerialize(BRPaymentProtocolPayment *payment, uint8_t *buf, size_t len)
+size_t BRPaymentProtocolACKSerialize(BRPaymentProtocolACK *ack, uint8_t *buf, size_t len)
 {
-    return 0;
+    size_t off = 0;
+    
+    if (ack->payment) {
+        uint8_t paymentBuf[BRPaymentProtocolPaymentSerialize(ack->payment, NULL, 0)];
+        size_t paymentLen = BRPaymentProtocolPaymentSerialize(ack->payment, paymentBuf, sizeof(paymentBuf));
+        
+        ProtoBufSetBytes(buf, len, paymentBuf, paymentLen, ack_payment, &off);
+    }
+    
+    if (ack->memo) ProtoBufSetString(buf, len, ack->memo, ack_memo, &off);
+    
+    return (! buf || off <= len) ? off : 0;
 }
 
 // frees memory allocated for ACK struct
-void BRPaymentProtocolACKFree(BRPaymentProtocolPayment *payment)
+void BRPaymentProtocolACKFree(BRPaymentProtocolACK *ack)
 {
+    if (ack->payment) BRPaymentProtocolPaymentFree(ack->payment);
+    if (ack->memo) array_free(ack->memo);
+    free(ack);
 }
