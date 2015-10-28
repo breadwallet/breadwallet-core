@@ -185,39 +185,76 @@ typedef enum {
     ack_memo = 2
 } ack_key;
 
+static void BRPaymentProtocolOutputParse(BRTxOutput *output, const uint8_t *buf, size_t len)
+{
+    size_t off = 0;
+    
+    output->amount = UINT64_MAX;
+    
+    while (off < len) {
+        uint64_t i = 0;
+        const uint8_t *data = NULL;
+        size_t dataLen = len;
+        
+        switch (ProtoBufField(&i, &data, buf, &dataLen, &off)) {
+            case output_amount: output->amount = i; break;
+            case output_script: BRTxOutputSetScript(output, data, dataLen); break;
+            default: break;
+        }
+    }
+    
+    if (! output->script) {
+        array_new(output->script, 0);
+        proto_buf_set_default(output->script, output_script);
+    }
+    
+    if (output->amount == UINT64_MAX) {
+        output->amount = 0;
+        proto_buf_set_default(output->script, output_amount);
+    }
+}
+
+static size_t BRPaymentProtocolOutputSerialize(BRTxOutput *output, uint8_t *buf, size_t len)
+{
+    size_t off = 0;
+    
+    if (output->script && ! proto_buf_is_default(output->script, output_amount)) {
+        ProtoBufSetInt(buf, len, output->amount, output_amount, &off);
+    }
+    
+    if (output->script && ! proto_buf_is_default(output->script, output_script)) {
+        ProtoBufSetBytes(buf, len, output->script, output->scriptLen, output_script, &off);
+    }
+    
+    return (! buf || off <= len) ? off : 0;
+}
+
 // buf must contain a serialized details struct, result must be freed by calling BRPaymentProtocolDetailsFree()
 BRPaymentProtocolDetails *BRPaymentProtocolDetailsParse(const uint8_t *buf, size_t len)
 {
     BRPaymentProtocolDetails *details = calloc(1, sizeof(BRPaymentProtocolDetails));
-    BRTxOutput *output;
     size_t off = 0;
 
     array_new(details->outputs, 1);
     
     while (off < len) {
-        uint64_t i = 0, amount = UINT64_MAX;
-        const uint8_t *data = NULL, *script = NULL;
-        size_t o = 0, dlen = len, slen = 0;
+        BRTxOutput output = { "", 0, NULL, 0 };
+        uint64_t i = 0;
+        const uint8_t *data = NULL;
+        size_t dataLen = len;
 
-        switch (ProtoBufField(&i, &data, buf, &dlen, &off)) {
-            case details_network: ProtoBufString(&details->network, data, dlen); break;
-            case details_outputs: while (o < dlen) slen = dlen, ProtoBufField(&amount, &script, data, &slen, &o); break;
+        switch (ProtoBufField(&i, &data, buf, &dataLen, &off)) {
+            case details_network: ProtoBufString(&details->network, data, dataLen); break;
+            case details_outputs: BRPaymentProtocolOutputParse(&output, data, dataLen); break;
             case details_time: details->time = i; break;
             case details_expires: details->expires = i; break;
-            case details_memo: ProtoBufString(&details->memo, data, dlen); break;
-            case details_payment_url: ProtoBufString(&details->paymentURL, data, dlen); break;
-            case details_merchant_data: details->merchDataLen = ProtoBufBytes(&details->merchantData,data, dlen); break;
+            case details_memo: ProtoBufString(&details->memo, data, dataLen); break;
+            case details_payment_url: ProtoBufString(&details->paymentURL, data, dataLen); break;
+            case details_merchant_data: details->merchDataLen = ProtoBufBytes(&details->merchantData, data, dataLen);
             default: break;
         }
 
-        if (script) {
-            array_set_count(details->outputs, details->outputsCount + 1);
-            output = &details->outputs[details->outputsCount];
-            BRTxOutputSetScript(output, script, slen);
-            output->amount = (amount == UINT64_MAX) ? 0 : amount;
-            if (amount == UINT64_MAX) proto_buf_set_default(output->script, output_amount);
-            details->outputsCount++;
-        }
+        if (output.script) array_add(details->outputs, output);
     }
     
     if (! details->network) {
@@ -225,7 +262,9 @@ BRPaymentProtocolDetails *BRPaymentProtocolDetailsParse(const uint8_t *buf, size
         proto_buf_set_default(details->network, details_network);
     }
     
-    if (array_count(details->outputs) == 0) { // one or more outputs required
+    details->outputsCount = array_count(details->outputs);
+    
+    if (details->outputsCount == 0) { // one or more outputs required
         BRPaymentProtocolDetailsFree(details);
         details = NULL;
     }
@@ -243,16 +282,10 @@ size_t BRPaymentProtocolDetailsSerialize(BRPaymentProtocolDetails *details, uint
     }
     
     for (size_t i = 0; i < details->outputsCount; i++) {
-        BRTxOutput *output = &details->outputs[i];
-        uint8_t outBuf[10 + sizeof(output->amount)*8/7 + 1 + 10 + output->scriptLen];
-        size_t outLen = 0;
+        uint8_t outputBuf[BRPaymentProtocolOutputSerialize(&details->outputs[i], NULL, 0)];
+        size_t outputLen = BRPaymentProtocolOutputSerialize(&details->outputs[i], outputBuf, sizeof(outputBuf));
 
-        if (! proto_buf_is_default(output->script, output_amount)) {
-            ProtoBufSetInt(outBuf, sizeof(outBuf), output->amount, output_amount, &outLen);
-        }
-        
-        ProtoBufSetBytes(outBuf, sizeof(outBuf), output->script, output->scriptLen, output_script, &outLen);
-        ProtoBufSetBytes(buf, len, outBuf, outLen, details_outputs, &off);
+        ProtoBufSetBytes(buf, len, outputBuf, outputLen, details_outputs, &off);
     }
 
     if (details->time > 0) ProtoBufSetInt(buf, len, details->time, details_time, &off);
