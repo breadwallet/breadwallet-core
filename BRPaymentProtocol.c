@@ -45,6 +45,19 @@ static uint64_t ProtoBufVarInt(const uint8_t *buf, size_t len, size_t *off)
     return (b & 0x80) ? 0 : varInt;
 }
 
+static void ProtoBufSetVarInt(uint8_t *buf, size_t len, uint64_t i, size_t *off)
+{
+    uint8_t b;
+    
+    do {
+        b = i & 0x7f;
+        i >>= 7;
+        if (i > 0) b |= 0x80;
+        if (buf && *off + 1 <= len) buf[*off] = b;
+        (*off)++;
+    } while (i > 0);
+}
+
 static const uint8_t *ProtoBufLenDelim(const uint8_t *buf, size_t *len, size_t *off)
 {
     const uint8_t *data = NULL;
@@ -54,6 +67,13 @@ static const uint8_t *ProtoBufLenDelim(const uint8_t *buf, size_t *len, size_t *
     *off += dataLen;
     *len = dataLen;
     return data;
+}
+
+static void ProtoBufSetLenDelim(uint8_t *buf, size_t len, const void *data, size_t dataLen, size_t *off)
+{
+    ProtoBufSetVarInt(buf, len, dataLen, off);
+    if (buf && *off + dataLen <= len) memcpy(buf + *off, data, dataLen);
+    *off += dataLen;
 }
 
 // sets either i or data depending on field type, and returns field key
@@ -74,7 +94,7 @@ static uint64_t ProtoBufField(uint64_t *i, const uint8_t **data, const uint8_t *
     return key >> 3;
 }
 
-static inline void ProtoBufString(char **str, const void *data, size_t len)
+static void ProtoBufString(char **str, const void *data, size_t len)
 {
     if (data) {
         if (! *str) array_new(*str, len + 1);
@@ -84,7 +104,15 @@ static inline void ProtoBufString(char **str, const void *data, size_t len)
     }
 }
 
-static inline size_t ProtoBufBytes(uint8_t **bytes, const void *data, size_t len)
+static void ProtoBufSetString(uint8_t *buf, size_t len, const char *str, uint64_t key, size_t *off)
+{
+    size_t strLen = strlen(str);
+    
+    ProtoBufSetVarInt(buf, len, (key << 3) | PROTOBUF_LENDELIM, off);
+    ProtoBufSetLenDelim(buf, len, str, strLen, off);
+}
+
+static size_t ProtoBufBytes(uint8_t **bytes, const void *data, size_t len)
 {
     if (data) {
         if (! *bytes) array_new(*bytes, len);
@@ -95,16 +123,28 @@ static inline size_t ProtoBufBytes(uint8_t **bytes, const void *data, size_t len
     return (*bytes) ? array_count(*bytes) : 0;
 }
 
+static void ProtoBufSetBytes(uint8_t *buf, size_t len, const uint8_t *bytes, size_t bytesLen, uint64_t key, size_t *off)
+{
+    ProtoBufSetVarInt(buf, len, (key << 3) | PROTOBUF_LENDELIM, off);
+    ProtoBufSetLenDelim(buf, len, bytes, bytesLen, off);
+}
+
+static void ProtoBufSetInt(uint8_t *buf, size_t len, uint64_t i, uint64_t key, size_t *off)
+{
+    ProtoBufSetVarInt(buf, len, (key << 3) | PROTOBUF_VARINT, off);
+    ProtoBufSetVarInt(buf, len, i, off);
+}
+
+#define proto_buf_is_default(array, key) (\
+    ((key) < (array_capacity(array) - array_count(array))*sizeof(*(array))) ?\
+        ((uint8_t *)&(array)[array_count(array)])[(key)] : 0\
+)
+
 #define proto_buf_set_default(array, key) do {\
     if ((array_capacity(array) - array_count(array))*sizeof(*(array)) <= (key))\
         array_set_capacity((array), array_count(array) + 1 + ((key) + 1)/sizeof(*(array)));\
     ((uint8_t *)&(array)[array_count(array)])[(key)] = 1;\
 } while(0)
-
-#define proto_buf_is_default(array, key) (\
-    ((key) < (array_capacity(array) - array_count(array))*sizeof(*(array))) ?\
-    ((uint8_t *)&(array)[array_count(array)])[(key)] : 0\
-)
 
 typedef enum {
     output_amount = 1,
@@ -156,17 +196,17 @@ BRPaymentProtocolDetails *BRPaymentProtocolDetailsParse(const uint8_t *buf, size
     
     while (off < len) {
         uint64_t i = 0, amount = UINT64_MAX;
-        const uint8_t *d = NULL, *script = NULL;
+        const uint8_t *data = NULL, *script = NULL;
         size_t o = 0, dlen = len, slen = 0;
 
-        switch (ProtoBufField(&i, &d, buf, &dlen, &off)) {
-            case details_network: ProtoBufString(&details->network, d, dlen); break;
-            case details_outputs: while (o < dlen) slen = dlen, ProtoBufField(&amount, &script, d, &slen, &o); break;
+        switch (ProtoBufField(&i, &data, buf, &dlen, &off)) {
+            case details_network: ProtoBufString(&details->network, data, dlen); break;
+            case details_outputs: while (o < dlen) slen = dlen, ProtoBufField(&amount, &script, data, &slen, &o); break;
             case details_time: details->time = i; break;
             case details_expires: details->expires = i; break;
-            case details_memo: ProtoBufString(&details->memo, d, dlen); break;
-            case details_payment_url: ProtoBufString(&details->paymentURL, d, dlen); break;
-            case details_merchant_data: details->merchDataLen = ProtoBufBytes(&details->merchantData, d, dlen); break;
+            case details_memo: ProtoBufString(&details->memo, data, dlen); break;
+            case details_payment_url: ProtoBufString(&details->paymentURL, data, dlen); break;
+            case details_merchant_data: details->merchDataLen = ProtoBufBytes(&details->merchantData,data, dlen); break;
             default: break;
         }
 
@@ -181,7 +221,7 @@ BRPaymentProtocolDetails *BRPaymentProtocolDetailsParse(const uint8_t *buf, size
     }
     
     if (! details->network) {
-        ProtoBufString(&details->network, "main", 4);
+        ProtoBufString(&details->network, "main", strlen("main"));
         proto_buf_set_default(details->network, details_network);
     }
     
@@ -196,7 +236,33 @@ BRPaymentProtocolDetails *BRPaymentProtocolDetailsParse(const uint8_t *buf, size
 // writes serialized details struct to buf, returns number of bytes written, or total len needed if buf is NULL
 size_t BRPaymentProtocolDetailsSerialize(BRPaymentProtocolDetails *details, uint8_t *buf, size_t len)
 {
-    return 0;
+    size_t off = 0;
+    
+    if (details->network && ! proto_buf_is_default(details->network, details_network)) {
+        ProtoBufSetString(buf, len, details->network, details_network, &off);
+    }
+    
+    for (size_t i = 0; i < details->outputsCount; i++) {
+        BRTxOutput *output = &details->outputs[i];
+        uint8_t outBuf[10 + sizeof(output->amount)*8/7 + 1 + 10 + output->scriptLen];
+        size_t outLen = 0;
+
+        if (! proto_buf_is_default(output->script, output_amount)) {
+            ProtoBufSetInt(outBuf, sizeof(outBuf), output->amount, output_amount, &outLen);
+        }
+        
+        ProtoBufSetBytes(outBuf, sizeof(outBuf), output->script, output->scriptLen, output_script, &outLen);
+        ProtoBufSetBytes(buf, len, outBuf, outLen, details_outputs, &off);
+    }
+
+    if (details->time > 0) ProtoBufSetInt(buf, len, details->time, details_time, &off);
+    if (details->expires > 0) ProtoBufSetInt(buf, len, details->expires, details_expires, &off);
+    if (details->memo) ProtoBufSetString(buf, len, details->memo, details_memo, &off);
+    if (details->paymentURL) ProtoBufSetString(buf, len, details->paymentURL, details_payment_url, &off);
+    if (details->merchantData) ProtoBufSetBytes(buf, len, details->merchantData, details->merchDataLen,
+                                                details_merchant_data, &off);
+
+    return (! buf || off <= len) ? off : 0;
 }
 
 // frees memory allocated for details struct
