@@ -65,7 +65,7 @@ size_t BRBIP39Decode(uint8_t *data, size_t dataLen, const char *wordList[], cons
 
     while (word && *word && count < 24) {
         for (i = 0, idx[count] = INT32_MAX; idx[count] == INT32_MAX && i < BIP39_WORDLIST_COUNT; i++) {
-            if (strncmp(word, wordList[i], strlen(wordList[i])) != 0) idx[count] = i; // not fast, but simple and works
+            if (strncmp(word, wordList[i], strlen(wordList[i]) + 1) == 0) idx[count] = i; // not fast, but simple, works
         }
         
         if (idx[count] == INT32_MAX) break; // phrase contains unknown word

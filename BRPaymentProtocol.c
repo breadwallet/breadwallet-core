@@ -23,6 +23,8 @@
 //  THE SOFTWARE.
 
 #include "BRPaymentProtocol.h"
+#include "BRHash.h"
+#include <string.h>
 
 // BIP70 payment protocol: https://github.com/bitcoin/bips/blob/master/bip-0070.mediawiki
 
@@ -386,14 +388,45 @@ size_t BRPaymentProtocolRequestSerialize(BRPaymentProtocolRequest *request, uint
 // the total certLen needed if cert is NULL, returns 0 if index of out-of-bounds
 size_t BRPaymentProtocolRequestCert(BRPaymentProtocolRequest *request, uint8_t *cert, size_t certLen, size_t index)
 {
-    return 0;
+    size_t off = 0;
+    
+    while (request->pkiData && off < request->pkiLen) {
+        uint64_t i = 0;
+        const uint8_t *data = NULL;
+        size_t dataLen = request->pkiLen;
+        
+        if (ProtoBufField(&i, &data, request->pkiData, &dataLen, &off) == certificates_cert && data) {
+            if (index == 0) {
+                if (cert && dataLen <= certLen) memcpy(cert, data, dataLen);
+                break;
+            }
+            else index--;
+        }
+    }
+    
+    return (! cert || off <= certLen) ? off : 0;
 }
 
 // writes the hash of the request to md needed to sign or verify the request, returns the number of bytes written, or
 // the total bytes needed if md is NULL
 size_t BRPaymentProtocolRequestDigest(BRPaymentProtocolRequest *request, uint8_t *md, size_t mdLen)
 {
-    return 0;
+    request->sigLen = 0;
+    
+    uint8_t buf[BRPaymentProtocolRequestSerialize(request, NULL, 0)];
+    size_t len = BRPaymentProtocolRequestSerialize(request, buf, sizeof(buf));
+    
+    if (request->pkiType && strncmp(request->pkiType, "x509+sha256", strlen("x509+sha256") + 1) == 0) {
+        if (256/8 <= mdLen) BRSHA256(md, buf, len);
+        len = 256/8;
+    }
+    else if (request->pkiType && strncmp(request->pkiType, "x509+sha1", strlen("x509+sha1") + 1) == 0) {
+        if (160/8 <= mdLen) BRSHA1(md, buf, len);
+        len = 160/8;
+    }
+    
+    if (request->signature) request->sigLen = array_count(request->signature);
+    return (! md || len <= mdLen) ? len : 0;
 }
 
 // frees memory allocated for request struct
