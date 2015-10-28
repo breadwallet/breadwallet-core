@@ -65,7 +65,7 @@ typedef struct {
 BRPaymentProtocolRequest *BRPaymentProtocolRequestParse(const uint8_t *buf, size_t len);
 
 // writes serialized request struct to buf, returns number of bytes written, or total len needed if buf is NULL
-size_t BRPaymentProtocolRrequestSerialize(BRPaymentProtocolRequest *request, uint8_t *buf, size_t len);
+size_t BRPaymentProtocolRequestSerialize(BRPaymentProtocolRequest *request, uint8_t *buf, size_t len);
 
 // writes the DER encoded certificate corresponding to index to cert, returns the number of bytes written to cert, or
 // the total certLen needed if cert is NULL, returns 0 if index of out-of-bounds

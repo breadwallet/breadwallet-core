@@ -303,11 +303,11 @@ void BRPaymentProtocolDetailsFree(BRPaymentProtocolDetails *details)
 {
     if (details->network) free(details->network);
 
-    for (size_t i = 0; i < array_count(details->outputs); i++) {
+    for (size_t i = 0; i < details->outputsCount; i++) {
         BRTxOutputSetScript(&details->outputs[i], NULL, 0);
     }
     
-    array_free(details->outputs);
+    if (details->outputs) array_free(details->outputs);
     if (details->memo) free(details->memo);
     if (details->paymentURL) free(details->paymentURL);
     if (details->merchantData) free(details->merchantData);
@@ -317,13 +317,69 @@ void BRPaymentProtocolDetailsFree(BRPaymentProtocolDetails *details)
 // buf must contain a serialized request struct, result must be freed by calling BRPaymentProtocolRequestFree()
 BRPaymentProtocolRequest *BRPaymentProtocolRequestParse(const uint8_t *buf, size_t len)
 {
-    return NULL;
+    BRPaymentProtocolRequest *request = calloc(1, sizeof(BRPaymentProtocolRequest));
+    size_t off = 0;
+    
+    request->version = UINT32_MAX;
+    
+    while (off < len) {
+        uint64_t i = 0;
+        const uint8_t *data = NULL;
+        size_t dataLen = len;
+        
+        switch (ProtoBufField(&i, &data, buf, &dataLen, &off)) {
+            case request_version: request->version = (uint32_t)i; break;
+            case request_pki_type: ProtoBufString(&request->pkiType, data, dataLen); break;
+            case request_pki_data: request->pkiLen = ProtoBufBytes(&request->pkiData, data, dataLen); break;
+            case request_details: request->details = BRPaymentProtocolDetailsParse(data, dataLen); break;
+            case request_signature: request->sigLen = ProtoBufBytes(&request->signature, data, dataLen); break;
+            default: break;
+        }
+    }
+    
+    if (! request->pkiType) {
+        ProtoBufString(&request->pkiType, "none", strlen("none"));
+        proto_buf_set_default(request->pkiType, request_pki_type);
+    }
+    
+    if (request->version == UINT32_MAX) {
+        request->version = 1;
+        proto_buf_set_default(request->pkiType, request_version);
+    }
+    
+    if (! request->details) { // required
+        BRPaymentProtocolRequestFree(request);
+        request = NULL;
+    }
+
+    return request;
 }
 
 // writes serialized request struct to buf, returns number of bytes written, or total len needed if buf is NULL
-size_t BRPaymentProtocolRrequestSerialize(BRPaymentProtocolRequest *request, uint8_t *buf, size_t len)
+size_t BRPaymentProtocolRequestSerialize(BRPaymentProtocolRequest *request, uint8_t *buf, size_t len)
 {
-    return 0;
+    size_t off = 0;
+
+    if (request->pkiType && ! proto_buf_is_default(request->pkiType, request_version)) {
+        ProtoBufSetInt(buf, len, request->version, request_version, &off);
+    }
+    
+    if (request->pkiType && ! proto_buf_is_default(request->pkiType, request_pki_type)) {
+        ProtoBufSetString(buf, len, request->pkiType, request_pki_type, &off);
+    }
+    
+    if (request->pkiData) ProtoBufSetBytes(buf, len, request->pkiData, request->pkiLen, request_pki_data, &off);
+
+    if (request->details) {
+        uint8_t detailsBuf[BRPaymentProtocolDetailsSerialize(request->details, NULL, 0)];
+        size_t detailsLen = BRPaymentProtocolDetailsSerialize(request->details, detailsBuf, sizeof(detailsBuf));
+
+        ProtoBufSetBytes(buf, len, detailsBuf, detailsLen, request_details, &off);
+    }
+    
+    if (request->signature) ProtoBufSetBytes(buf, len, request->signature, request->sigLen, request_signature, &off);
+
+    return (! buf || off <= len) ? off : 0;
 }
 
 // writes the DER encoded certificate corresponding to index to cert, returns the number of bytes written to cert, or
@@ -343,6 +399,11 @@ size_t BRPaymentProtocolRequestDigest(BRPaymentProtocolRequest *request, uint8_t
 // frees memory allocated for request struct
 void BRPaymentProtocolRequestFree(BRPaymentProtocolRequest *request)
 {
+    if (request->pkiType) array_free(request->pkiType);
+    if (request->pkiData) array_free(request->pkiData);
+    if (request->details) BRPaymentProtocolDetailsFree(request->details);
+    if (request->signature) array_free(request->signature);
+    free(request);
 }
 
 // buf must contain a serialized payment struct, result must be freed by calling BRPaymentProtocolPaymentFree()
