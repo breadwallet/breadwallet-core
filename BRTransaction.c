@@ -30,9 +30,9 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#define TX_VERSION    0x00000001u
-#define TX_LOCKTIME   0x00000000u
-#define SIGHASH_ALL   0x00000001u
+#define TX_VERSION  0x00000001u
+#define TX_LOCKTIME 0x00000000u
+#define SIGHASH_ALL 0x00000001u
 
 // returns a random number less than upperBound, for non-cryptographic use only
 uint32_t BRRand(uint32_t upperBound)

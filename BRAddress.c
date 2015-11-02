@@ -32,32 +32,41 @@
 
 uint64_t BRVarInt(const uint8_t *buf, size_t len, size_t *intLen)
 {
+    uint64_t r = 0;
     uint8_t h = (sizeof(uint8_t) <= len) ? *(const uint8_t *)buf : 0;
     
     switch (h) {
         case VAR_INT16_HEADER:
             if (intLen) *intLen = sizeof(h) + sizeof(uint16_t);
-            return (sizeof(h) + sizeof(uint16_t) <= len) ? le16(*(const uint16_t *)(buf + sizeof(h))) : 0;
+            r = (sizeof(h) + sizeof(uint16_t) <= len) ? le16(*(const uint16_t *)(buf + sizeof(h))) : 0;
+            break;
             
         case VAR_INT32_HEADER:
             if (intLen) *intLen = sizeof(h) + sizeof(uint32_t);
-            return (sizeof(h) + sizeof(uint32_t) <= len) ? le32(*(const uint32_t *)(buf + sizeof(h))) : 0;
+            r = (sizeof(h) + sizeof(uint32_t) <= len) ? le32(*(const uint32_t *)(buf + sizeof(h))) : 0;
+            break;
             
         case VAR_INT64_HEADER:
             if (intLen) *intLen = sizeof(h) + sizeof(uint64_t);
-            return (sizeof(h) + sizeof(uint64_t) <= len) ? le64(*(const uint64_t *)(buf + sizeof(h))) : 0;
+            r = (sizeof(h) + sizeof(uint64_t) <= len) ? le64(*(const uint64_t *)(buf + sizeof(h))) : 0;
+            break;
             
         default:
             if (intLen) *intLen = sizeof(h);
-            return h;
+            r = h;
+            break;
     }
+    
+    return r;
 }
 
 size_t BRVarIntSet(uint8_t *buf, size_t len, uint64_t i)
 {
+    size_t r = 0;
+    
     if (i < VAR_INT16_HEADER) {
         if (buf && sizeof(uint8_t) <= len) *buf = (uint8_t)i;
-        return (! buf || sizeof(uint8_t) <= len) ? sizeof(uint8_t) : 0;
+        r = (! buf || sizeof(uint8_t) <= len) ? sizeof(uint8_t) : 0;
     }
     else if (i <= UINT16_MAX) {
         if (buf && sizeof(uint8_t) + sizeof(uint16_t) <= len) {
@@ -65,7 +74,7 @@ size_t BRVarIntSet(uint8_t *buf, size_t len, uint64_t i)
             *(uint16_t *)(buf + sizeof(uint8_t)) = le16((uint16_t)i);
         }
         
-        return (! buf || sizeof(uint8_t) + sizeof(uint16_t) <= len) ? sizeof(uint8_t) + sizeof(uint16_t) : 0;
+        r = (! buf || sizeof(uint8_t) + sizeof(uint16_t) <= len) ? sizeof(uint8_t) + sizeof(uint16_t) : 0;
     }
     else if (i <= UINT32_MAX) {
         if (buf && sizeof(uint8_t) + sizeof(uint32_t) <= len) {
@@ -73,7 +82,7 @@ size_t BRVarIntSet(uint8_t *buf, size_t len, uint64_t i)
             *(uint32_t *)(buf + sizeof(uint8_t)) = le32((uint32_t)i);
         }
         
-        return (! buf || sizeof(uint8_t) + sizeof(uint32_t) <= len) ? sizeof(uint8_t) + sizeof(uint32_t) : 0;
+        r = (! buf || sizeof(uint8_t) + sizeof(uint32_t) <= len) ? sizeof(uint8_t) + sizeof(uint32_t) : 0;
     }
     else {
         if (buf && sizeof(uint8_t) + sizeof(uint64_t) <= len) {
@@ -81,8 +90,10 @@ size_t BRVarIntSet(uint8_t *buf, size_t len, uint64_t i)
             *(uint64_t *)(buf + sizeof(uint8_t)) = le64(i);
         }
         
-        return (! buf || sizeof(uint8_t) + sizeof(uint64_t) <= len) ? sizeof(uint8_t) + sizeof(uint64_t) : 0;
+        r = (! buf || sizeof(uint8_t) + sizeof(uint64_t) <= len) ? sizeof(uint8_t) + sizeof(uint64_t) : 0;
     }
+    
+    return r;
 }
 
 inline size_t BRVarIntSize(uint64_t i)
@@ -92,33 +103,27 @@ inline size_t BRVarIntSize(uint64_t i)
 
 size_t BRScriptElements(const uint8_t *elems[], size_t elemsCount, const uint8_t *script, size_t len)
 {
-    size_t off = 0, i = 0, l;
+    size_t off = 0, i = 0, l = 0;
     
     while (off < len) {
-        if (elems) {
-            if (i >= elemsCount) return 0;
-            elems[i] = &script[off];
-        }
+        if (elems && i < elemsCount) elems[i] = &script[off];
         
         switch (script[off]) {
             case OP_PUSHDATA1:
                 off++;
-                if (off + sizeof(uint8_t) > len) return 0;
-                l = script[off];
+                if (off + sizeof(uint8_t) <= len) l = script[off];
                 off += sizeof(uint8_t);
                 break;
                 
             case OP_PUSHDATA2:
                 off++;
-                if (off + sizeof(uint16_t) > len) return 0;
-                l = le16(*(uint16_t *)&script[off]);
+                if (off + sizeof(uint16_t) <= len) l = le16(*(uint16_t *)&script[off]);
                 off += sizeof(uint16_t);
                 break;
                 
             case OP_PUSHDATA4:
                 off++;
-                if (off + sizeof(uint32_t) > len) return 0;
-                l = le32(*(uint32_t *)&script[off]);
+                if (off + sizeof(uint32_t) <= len) l = le32(*(uint32_t *)&script[off]);
                 off += sizeof(uint32_t);
                 break;
                 
@@ -128,7 +133,6 @@ size_t BRScriptElements(const uint8_t *elems[], size_t elemsCount, const uint8_t
                 break;
         }
         
-        if (off + l > len) return 0;
         off += l;
         i++;
     }
@@ -216,22 +220,20 @@ size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *scri
     if (! script || scriptLen == 0) return 0;
     
     uint8_t data[21];
-    size_t l = BRScriptElements(NULL, 0, script, scriptLen);
-    const uint8_t *elem[l], *d;
+    const uint8_t *elem[BRScriptElements(NULL, 0, script, scriptLen)], *d = NULL;
+    size_t l = BRScriptElements(elem, sizeof(elem), script, scriptLen);
     
     data[0] = BITCOIN_PUBKEY_ADDRESS;
 #if BITCOIN_TESTNET
     data[0] = BITCOIN_PUBKEY_ADDRESS_TEST;
 #endif
-
-    BRScriptElements(elem, l, script, scriptLen);
     
     if (l == 5 && *elem[0] == OP_DUP && *elem[1] == OP_HASH160 && *elem[2] == 20 && *elem[3] == OP_EQUALVERIFY &&
         *elem[4] == OP_CHECKSIG) {
         // pay-to-pubkey-hash scriptPubKey
         d = BRScriptData(elem[2], &l);
-        if (! d || l != 20) return 0;
-        memcpy(&data[1], d, 20);
+        if (l != 20) d = NULL;
+        if (d) memcpy(&data[1], d, 20);
     }
     else if (l == 3 && *elem[0] == OP_HASH160 && *elem[1] == 20 && *elem[2] == OP_EQUAL) {
         // pay-to-script-hash scriptPubKey
@@ -240,18 +242,17 @@ size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *scri
         data[0] = BITCOIN_SCRIPT_ADDRESS_TEST;
 #endif
         d = BRScriptData(elem[1], &l);
-        if (! d || l != 20) return 0;
-        memcpy(&data[1], d, 20);
+        if (l != 20) d = NULL;
+        if (d) memcpy(&data[1], d, 20);
     }
     else if (l == 2 && (*elem[0] == 65 || *elem[0] == 33) && *elem[1] == OP_CHECKSIG) {
         // pay-to-pubkey scriptPubKey
         d = BRScriptData(elem[0], &l);
-        if (! d || (l != 65 && l != 33)) return 0;
-        BRHash160(&data[1], d, l);
+        if (l != 65 && l != 33) d = NULL;
+        if (d) BRHash160(&data[1], d, l);
     }
-    else return 0; // unknown script type
     
-    return BRBase58CheckEncode(addr, addrLen, data, sizeof(data));
+    return (d) ? BRBase58CheckEncode(addr, addrLen, data, sizeof(data)) : 0;
 }
 
 size_t BRAddressFromScriptSig(char *addr, size_t addrLen, const uint8_t *script, size_t scriptLen)
@@ -259,21 +260,19 @@ size_t BRAddressFromScriptSig(char *addr, size_t addrLen, const uint8_t *script,
     if (! script || scriptLen == 0) return 0;
     
     uint8_t data[21];
-    size_t l = BRScriptElements(NULL, 0, script, scriptLen);
-    const uint8_t *elem[l], *d;
+    const uint8_t *elem[BRScriptElements(NULL, 0, script, scriptLen)], *d = NULL;
+    size_t l = BRScriptElements(elem, sizeof(elem), script, scriptLen);
 
     data[0] = BITCOIN_PUBKEY_ADDRESS;
 #if BITCOIN_TESTNET
     data[0] = BITCOIN_PUBKEY_ADDRESS_TEST;
 #endif
     
-    BRScriptElements(elem, l, script, scriptLen);
-    
     if (l >= 2 && *elem[l - 2] <= OP_PUSHDATA4 && *elem[l - 2] > 0 && (*elem[l - 1] == 65 || *elem[l - 1] == 33)) {
         // pay-to-pubkey-hash scriptSig
         d = BRScriptData(elem[l - 1], &l);
-        if (! d || (l != 65 && l != 33)) return 0;
-        BRHash160(&data[1], d, l);
+        if (l != 65 && l != 33) d = NULL;
+        if (d) BRHash160(&data[1], d, l);
     }
     else if (l >= 2 && *elem[l - 2] <= OP_PUSHDATA4 && *elem[l - 2] > 0 && *elem[l - 1] <= OP_PUSHDATA4 &&
              *elem[l - 1] > 0) {
@@ -283,74 +282,77 @@ size_t BRAddressFromScriptSig(char *addr, size_t addrLen, const uint8_t *script,
         data[0] = BITCOIN_SCRIPT_ADDRESS_TEST;
 #endif
         d = BRScriptData(elem[l - 1], &l);
-        if (! d) return 0;
-        BRHash160(&data[1], d, l);
+        if (d) BRHash160(&data[1], d, l);
     }
     else if (l >= 1 && *elem[l - 1] <= OP_PUSHDATA4 && *elem[l - 1] > 0) {
         // pay-to-pubkey scriptSig
         // TODO: implement Peter Wullie's pubKey recovery from signature
-        return 0;
     }
-    else return 0; // unknown script type
     
-    return BRBase58CheckEncode(addr, addrLen, data, sizeof(data));
+    return (d) ? BRBase58CheckEncode(addr, addrLen, data, sizeof(data)) : 0;
 }
 
 size_t BRAddressScriptPubKey(uint8_t *script, size_t len, const char *addr)
 {
     static uint8_t pubkeyAddress = BITCOIN_PUBKEY_ADDRESS, scriptAddress = BITCOIN_SCRIPT_ADDRESS;
     uint8_t data[21];
-    
-    if (BRBase58CheckDecode(data, sizeof(data), addr) != 21) return 0;
+    size_t r = 0;
     
 #if BITCOIN_TESTNET
     pubkeyAddress = BITCOIN_PUBKEY_ADDRESS_TEST;
     scriptAddress = BITCOIN_SCRIPT_ADDRESS_TEST;
 #endif
     
-    if (data[0] == pubkeyAddress) {
-        if (script && 25 <= len) {
-            script[0] = OP_DUP;
-            script[1] = OP_HASH160;
-            script[2] = 20;
-            memcpy(&script[3], &data[1], 20);
-            script[23] = OP_EQUALVERIFY;
-            script[24] = OP_CHECKSIG;
+    if (BRBase58CheckDecode(data, sizeof(data), addr) == 21) {
+        if (data[0] == pubkeyAddress) {
+            if (script && 25 <= len) {
+                script[0] = OP_DUP;
+                script[1] = OP_HASH160;
+                script[2] = 20;
+                memcpy(&script[3], &data[1], 20);
+                script[23] = OP_EQUALVERIFY;
+                script[24] = OP_CHECKSIG;
+            }
+            
+            r = (! script || 25 <= len) ? 25 : 0;
         }
+        else if (data[0] == scriptAddress) {
+            if (script && 23 <= len) {
+                script[0] = OP_HASH160;
+                script[1] = 20;
+                memcpy(&script[2], &data[1], 20);
+                script[22] = OP_EQUAL;
+            }
+            
+            r = (! script || 23 <= len) ? 23 : 0;
+        }
+    }
 
-        return (! script || 25 <= len) ? 25 : 0;
-    }
-    else if (data[0] == scriptAddress) {
-        if (script && 23 <= len) {
-            script[0] = OP_HASH160;
-            script[1] = 20;
-            memcpy(&script[2], &data[1], 20);
-            script[22] = OP_EQUAL;
-        }
-        
-        return (! script || 23 <= len) ? 23 : 0;
-    }
-    else return 0;
+    return r;
 }
 
 int BRAddressIsValid(const char *addr)
 {
     uint8_t data[21];
+    int r = 0;
     
-    if (BRBase58CheckDecode(data, sizeof(data), addr) != 21) return 0;
+    if (BRBase58CheckDecode(data, sizeof(data), addr) == 21) {
+        r = (data[0] == BITCOIN_PUBKEY_ADDRESS || data[0] == BITCOIN_SCRIPT_ADDRESS);
     
 #if BITCOIN_TESTNET
-    return (data[0] == BITCOIN_PUBKEY_ADDRESS_TEST || data[0] == BITCOIN_SCRIPT_ADDRESS_TEST);
+        r = (data[0] == BITCOIN_PUBKEY_ADDRESS_TEST || data[0] == BITCOIN_SCRIPT_ADDRESS_TEST);
 #endif
-
-    return (data[0] == BITCOIN_PUBKEY_ADDRESS || data[0] == BITCOIN_SCRIPT_ADDRESS);
+    }
+    
+    return r;
 }
 
 int BRAddressHash160(void *md, const char *addr)
 {
     uint8_t data[21];
+    int r = 0;
     
-    if (BRBase58CheckDecode(data, sizeof(data), addr) != 21) return 0;
-    memcpy(md, &data[1], 20);
-    return ! 0;
+    r = (BRBase58CheckDecode(data, sizeof(data), addr) == 21);
+    if (r) memcpy(md, &data[1], 20);
+    return r;
 }
