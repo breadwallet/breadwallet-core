@@ -114,9 +114,9 @@ typedef struct {
 BRPaymentProtocolACK *BRPaymentProtocolACKParse(const uint8_t *buf, size_t len);
 
 // writes serialized ACK struct to buf, returns number of bytes written, or total len needed if buf is NULL
-size_t BRPaymentProtocolACKSerialize(BRPaymentProtocolACK *payment, uint8_t *buf, size_t len);
+size_t BRPaymentProtocolACKSerialize(BRPaymentProtocolACK *ack, uint8_t *buf, size_t len);
 
 // frees memory allocated for ACK struct
-void BRPaymentProtocolACKFree(BRPaymentProtocolACK *payment);
+void BRPaymentProtocolACKFree(BRPaymentProtocolACK *ack);
 
 #endif // BRPaymentProtocol_h

@@ -303,16 +303,16 @@ size_t BRPaymentProtocolDetailsSerialize(BRPaymentProtocolDetails *details, uint
 // frees memory allocated for details struct
 void BRPaymentProtocolDetailsFree(BRPaymentProtocolDetails *details)
 {
-    if (details->network) free(details->network);
+    if (details->network) array_free(details->network);
 
     for (size_t i = 0; i < details->outputsCount; i++) {
         BRTxOutputSetScript(&details->outputs[i], NULL, 0);
     }
     
     if (details->outputs) array_free(details->outputs);
-    if (details->memo) free(details->memo);
-    if (details->paymentURL) free(details->paymentURL);
-    if (details->merchantData) free(details->merchantData);
+    if (details->memo) array_free(details->memo);
+    if (details->paymentURL) array_free(details->paymentURL);
+    if (details->merchantData) array_free(details->merchantData);
     free(details);
 }
 
@@ -388,7 +388,7 @@ size_t BRPaymentProtocolRequestSerialize(BRPaymentProtocolRequest *request, uint
 // the total certLen needed if cert is NULL, returns 0 if index of out-of-bounds
 size_t BRPaymentProtocolRequestCert(BRPaymentProtocolRequest *request, uint8_t *cert, size_t certLen, size_t index)
 {
-    size_t off = 0;
+    size_t off = 0, len = 0;
     
     while (request->pkiData && off < request->pkiLen) {
         uint64_t i = 0;
@@ -397,14 +397,15 @@ size_t BRPaymentProtocolRequestCert(BRPaymentProtocolRequest *request, uint8_t *
         
         if (ProtoBufField(&i, &data, request->pkiData, &dataLen, &off) == certificates_cert && data) {
             if (index == 0) {
-                if (cert && dataLen <= certLen) memcpy(cert, data, dataLen);
+                len = dataLen;
+                if (cert && len <= certLen) memcpy(cert, data, len);
                 break;
             }
             else index--;
         }
     }
     
-    return (! cert || off <= certLen) ? off : 0;
+    return (index == 0 && (! cert || len <= certLen)) ? len : 0;
 }
 
 // writes the hash of the request to md needed to sign or verify the request, returns the number of bytes written, or

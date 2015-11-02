@@ -152,7 +152,7 @@ int BRPrivKeyIsValid(const char *privKey)
         memset(s, 0, sizeof(s));
         return (hash.u8[0] == 0);
     }
-    else return (strspn(privKey, "0123456789ABCDEFabcdef")/2 == 32); // hex encoded key
+    else return (strspn(privKey, "0123456789ABCDEFabcdef") == 64); // hex encoded key
 }
 
 int BRKeySetSecret(BRKey *key, const UInt256 *secret, int compressed)
@@ -237,7 +237,8 @@ size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t len)
     secp256k1_pubkey pk;
 
     if (memcmp(key->pubKey, empty, size) == 0 && secp256k1_ec_pubkey_create(_ctx, &pk, key->secret.u8)) {
-        secp256k1_ec_pubkey_serialize(_ctx, key->pubKey, &size, &pk, (key->compressed ? SECP256K1_EC_COMPRESSED : 0));
+        secp256k1_ec_pubkey_serialize(_ctx, key->pubKey, &size, &pk,
+                                      (key->compressed ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED));
     }
 
     if (pubKey && len >= size) memcpy(pubKey, key->pubKey, size);
@@ -268,7 +269,13 @@ size_t BRKeyAddress(BRKey *key, char *addr, size_t len)
 
 size_t BRKeySign(BRKey *key, void *sig, size_t len, UInt256 md)
 {
-    secp256k1_ecdsa_sign(_ctx, sig, md.u8, key->secret.u8, secp256k1_nonce_function_rfc6979, NULL);
+    secp256k1_ecdsa_signature s;
+    
+    if (secp256k1_ecdsa_sign(_ctx, &s, md.u8, key->secret.u8, secp256k1_nonce_function_rfc6979, NULL)) {
+        if (! secp256k1_ecdsa_signature_serialize_der(_ctx, sig, &len, &s)) len = 0;
+    }
+    else len = 0;
+    
     return len;
 }
 
@@ -276,10 +283,12 @@ int BRKeyVerify(BRKey *key, UInt256 md, const void *sig, size_t sigLen)
 {
     size_t len = BRKeyPubKey(key, NULL, 0);
     secp256k1_pubkey pk;
+    secp256k1_ecdsa_signature s;
     int r = 0;
     
-    if (len > 0 && secp256k1_ec_pubkey_parse(_ctx, &pk, key->pubKey, len)) {
-        if (secp256k1_ecdsa_verify(_ctx, sig, md.u8, &pk) == 1) r = ! 0; // success is 1, all other values are fail
+    if (len > 0 && secp256k1_ec_pubkey_parse(_ctx, &pk, key->pubKey, len) &&
+        secp256k1_ecdsa_signature_parse_der(_ctx, &s, sig, sigLen)) {
+        if (secp256k1_ecdsa_verify(_ctx, &s, md.u8, &pk) == 1) r = ! 0; // success is 1, all other values are fail
     }
     
     return r;
