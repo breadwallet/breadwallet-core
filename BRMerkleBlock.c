@@ -241,14 +241,14 @@ int BRMerkleBlockIsValid(BRMerkleBlock *block, unsigned currentTime)
         if (le32(block->blockHash.u32[i]) > le32(t.u32[i])) return 0;
     }
     
-    return ! 0;
+    return 1;
 }
 
 // true if the given tx hash is known to be included in the block
 int BRMerkleBlockContainsTxHash(BRMerkleBlock *block, UInt256 txHash)
 {
     for (size_t i = 0; i < block->hashesLen; i++) {
-        if (UInt256Eq(block->hashes[i], txHash)) return ! 0;
+        if (UInt256Eq(block->hashes[i], txHash)) return 1;
     }
     
     return 0;
@@ -271,7 +271,7 @@ int BRMerkleBlockVerifyDifficulty(BRMerkleBlock *block, const BRMerkleBlock *pre
     
 #if BITCOIN_TESTNET
     //TODO: implement testnet difficulty rule check
-    return ! 0; // don't worry about difficulty on testnet for now
+    return 1; // don't worry about difficulty on testnet for now
 #endif
     
     if ((block->height % BLOCK_DIFFICULTY_INTERVAL) != 0) return (block->target == previous->target) ? 1 : 0;

@@ -157,7 +157,7 @@ int BRSetIntersects(BRSet *set, const BRSet *otherSet)
     
     while (i < size) {
         t = otherSet->table[i++];
-        if (t && BRSetGet(set, t) != NULL) return ! 0;
+        if (t && BRSetGet(set, t) != NULL) return 1;
     }
     
     return 0;

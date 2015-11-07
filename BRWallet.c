@@ -23,7 +23,6 @@
 //  THE SOFTWARE.
 
 #include "BRWallet.h"
-#include "BRSort.h"
 #include "BRSet.h"
 #include "BRAddress.h"
 #include <stdlib.h>
@@ -71,11 +70,11 @@ inline static size_t BRWalletTxChainIdx(BRTransaction *tx, BRAddress *chain) {
 inline static int BRWalletTxIsAscending(BRWallet *wallet, BRTransaction *tx1, BRTransaction *tx2)
 {
     if (! tx1 || ! tx2) return 0;
-    if (tx1->blockHeight > tx2->blockHeight) return ! 0;
+    if (tx1->blockHeight > tx2->blockHeight) return 1;
     if (tx1->blockHeight < tx2->blockHeight) return 0;
     
     for (size_t i = 0; i < tx1->inCount; i++) {
-        if (UInt256Eq(tx1->inputs[i].txHash, tx2->txHash)) return ! 0;
+        if (UInt256Eq(tx1->inputs[i].txHash, tx2->txHash)) return 1;
     }
     
     for (size_t i = 0; i < tx2->inCount; i++) {
@@ -83,7 +82,7 @@ inline static int BRWalletTxIsAscending(BRWallet *wallet, BRTransaction *tx1, BR
     }
 
     for (size_t i = 0; i < tx1->inCount; i++) {
-        if (BRWalletTxIsAscending(wallet, BRSetGet(wallet->allTx, &(tx1->inputs[i].txHash)), tx2)) return ! 0;
+        if (BRWalletTxIsAscending(wallet, BRSetGet(wallet->allTx, &(tx1->inputs[i].txHash)), tx2)) return 1;
     }
 
     return 0;
@@ -103,10 +102,19 @@ inline static int BRWalletTxCompare(void *info, const void *tx1, const void *tx2
     return 0;
 }
 
-inline static void BRWalletSortTransactions(BRWallet *wallet)
+// inserts a transaction into wallet->transactions, keeping it sorted by date, oldest first
+inline static void BRWalletInsertTransaction(BRWallet *wallet, BRTransaction *tx)
 {
-    BRSort(wallet->transactions, array_count(wallet->transactions), sizeof(*(wallet->transactions)), wallet,
-           BRWalletTxCompare);
+    size_t i = array_count(wallet->transactions) + 1;
+    
+    array_set_count(wallet->transactions, i);
+    
+    while (i > 0 && BRWalletTxCompare(wallet, wallet->transactions[i - 1], tx) > 0) {
+        wallet->transactions[i] = wallet->transactions[i - 1];
+        i--;
+    }
+    
+    wallet->transactions[i] = tx;
 }
 
 static void BRWalletUpdateBalance(BRWallet *wallet)
@@ -183,7 +191,6 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
 
     array_new(wallet->utxos, 100);
     array_new(wallet->transactions, txCount + 100);
-    array_add_array(wallet->transactions, transactions, txCount);
     wallet->feePerKb = DEFAULT_FEE_PER_KB;
     wallet->masterPubKey = mpk;
     array_new(wallet->balanceHist, txCount + 100);
@@ -198,11 +205,11 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
     for (size_t i = 0; i < txCount; i++) {
         tx = transactions[i];
         BRSetAdd(wallet->allTx, tx);
+        BRWalletInsertTransaction(wallet, tx);
         for (size_t j = 0; j < tx->inCount; j++) BRSetAdd(wallet->usedAddrs, tx->inputs[j].address);
         for (size_t j = 0; j < tx->outCount; j++) BRSetAdd(wallet->usedAddrs, tx->outputs[j].address);
     }
     
-    BRWalletSortTransactions(wallet);
     wallet->balance = UINT64_MAX; // this forces a balanceChanged callback even if balance is zero
     BRWalletUpdateBalance(wallet);
     return wallet;
@@ -473,7 +480,7 @@ int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *aut
         r = BRTransactionSign(tx, keys, internalCount + externalCount);
         for (size_t i = 0; i < internalCount + externalCount; i++) BRKeyClean(&keys[i]);
     }
-    else r = ! 0; // user canceled authentication
+    else r = 1; // user canceled authentication
     
     return r;
 }
@@ -486,14 +493,14 @@ int BRWalletContainsTransaction(BRWallet *wallet, const BRTransaction *tx)
     pthread_rwlock_rdlock(&wallet->lock);
     
     for (size_t i = 0; ! r && i < tx->outCount; i++) {
-        if (BRSetContains(wallet->allAddrs, tx->outputs[i].address)) r = ! 0;
+        if (BRSetContains(wallet->allAddrs, tx->outputs[i].address)) r = 1;
     }
 
     for (size_t i = 0; ! r && i < tx->inCount; i++) {
         BRTransaction *t = BRSetGet(wallet->allTx, &tx->inputs[i].txHash);
         uint32_t n = tx->inputs[i].index;
         
-        if (t && n < t->outCount && BRSetContains(wallet->allAddrs, t->outputs[n].address)) r = ! 0;
+        if (t && n < t->outCount && BRSetContains(wallet->allAddrs, t->outputs[n].address)) r = 1;
     }
     
     pthread_rwlock_unlock(&wallet->lock);
@@ -505,7 +512,7 @@ int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx)
 {
     int added = 0;
     
-    if (BRWalletTransactionForHash(wallet, tx->txHash) != NULL) return ! 0;
+    if (BRWalletTransactionForHash(wallet, tx->txHash) != NULL) return 1;
     if (! BRWalletContainsTransaction(wallet, tx)) return 0;
     
     //TODO: verify signatures when possible
@@ -515,7 +522,7 @@ int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx)
 
     if (! BRSetContains(wallet->allTx, tx)) {
         BRSetAdd(wallet->allTx, tx);
-        array_add(wallet->transactions, tx);
+        BRWalletInsertTransaction(wallet, tx);
         for (size_t i = 0; i < tx->inCount; i++) BRSetAdd(wallet->usedAddrs, tx->inputs[i].address);
         for (size_t i = 0; i < tx->outCount; i++) BRSetAdd(wallet->usedAddrs, tx->outputs[i].address);
         BRWalletUpdateBalance(wallet);
@@ -532,7 +539,7 @@ int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx)
         if (wallet->txAdded) wallet->txAdded(wallet->callbackInfo, tx);
     }
 
-    return ! 0;
+    return 1;
 }
 
 // removes a transaction from the wallet along with any transactions that depend on its outputs
@@ -602,7 +609,7 @@ const BRTransaction *BRWalletTransactionForHash(BRWallet *wallet, UInt256 txHash
 int BRWalletTransactionIsValid(BRWallet *wallet, const BRTransaction *tx)
 {
     BRTransaction *t;
-    int r = ! 0;
+    int r = 1;
     
     //TODO: XXX attempted double spends should cause conflicted tx to remain unverified until they're confirmed
     //TODO: XXX conflicted tx with the same wallet outputs should be presented as the same tx to the user
@@ -639,13 +646,13 @@ int BRWalletTransactionIsPostdated(BRWallet *wallet, const BRTransaction *tx, ui
         
         for (size_t i = 0; ! r && i < tx->inCount; i++) { // check if any inputs are known to be postdated
             t = BRSetGet(wallet->allTx, &tx->inputs[i].txHash);
-            if (t && BRWalletTransactionIsPostdated(wallet, t, blockHeight)) r = ! 0;
+            if (t && BRWalletTransactionIsPostdated(wallet, t, blockHeight)) r = 1;
         }
     
         if ((tx->lockTime > blockHeight + 1 && tx->lockTime < TX_MAX_LOCK_HEIGHT) ||
             (tx->lockTime >= TX_MAX_LOCK_HEIGHT && tx->lockTime >= time(NULL) + 10*60)) {
             for (size_t i = 0; i < tx->inCount; i++) { // lockTime is ignored if all sequence numbers are final
-                if (tx->inputs[i].sequence != TXIN_SEQUENCE) r = ! 0;
+                if (tx->inputs[i].sequence != TXIN_SEQUENCE) r = 1;
             }
         }
         
@@ -660,7 +667,7 @@ void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHashes[], size
                                 uint32_t timestamp)
 {
     BRTransaction *tx;
-    int update = 0, sort = 0;
+    int update = 0;
     
     pthread_rwlock_rdlock(&wallet->lock);
     
@@ -668,24 +675,10 @@ void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHashes[], size
         tx = BRSetGet(wallet->allTx, &txHashes[i]);
         if (! tx || (tx->blockHeight == blockHeight && tx->timestamp == timestamp)) continue;
         tx->timestamp = timestamp;
+        tx->blockHeight = blockHeight;
         update = 1;
-        
-        if (tx->blockHeight != blockHeight) {
-            if (! sort) {
-                pthread_rwlock_unlock(&wallet->lock);
-                pthread_rwlock_wrlock(&wallet->lock);
-                sort = 1;
-            }
-
-            tx->blockHeight = blockHeight;
-        }
     }
     
-    if (sort) {
-        BRWalletSortTransactions(wallet);
-        BRWalletUpdateBalance(wallet);
-    }
-
     pthread_rwlock_unlock(&wallet->lock);
     if (update && wallet->txUpdated) wallet->txUpdated(wallet->callbackInfo, txHashes, count, blockHeight, timestamp);
 }

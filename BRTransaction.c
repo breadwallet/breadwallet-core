@@ -37,7 +37,7 @@
 // returns a random number less than upperBound, for non-cryptographic use only
 uint32_t BRRand(uint32_t upperBound)
 {
-    static int first = ! 0;
+    static int first = 1;
     uint32_t r;
     
     if (first) srand(((unsigned)time(NULL) ^ getpid())*0x01000193); // seed = (time xor pid)*FNV_PRIME
@@ -298,7 +298,7 @@ int BRTransactionIsSigned(BRTransaction *tx)
         if (! tx->inputs[i].signature || tx->inputs[i].sigLen == 0) return 0;
     }
 
-    return ! 0;
+    return 1;
 }
 
 // adds signatures to any inputs with NULL signatures that can be signed with any privKeys, returns true if tx is signed
@@ -351,7 +351,7 @@ int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t count)
     
     len = BRTransactionData(tx, data, sizeof(data), SIZE_MAX);
     BRSHA256_2(&tx->txHash, data, len);
-    return ! 0;
+    return 1;
 }
 
 // frees memory allocated for tx
