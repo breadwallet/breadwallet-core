@@ -36,17 +36,14 @@ typedef struct {
     pthread_cond_t writerGate;
 } BRRWLock;
 
-#define BR_RW_LOCK_INITIALIZER ((BRRWLock) {\
-    0, 0, 0,\
-    (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER,\
-    (pthread_cond_t)PTHREAD_COND_INITIALIZER,\
-    (pthread_cond_t)PTHREAD_COND_INITIALIZER\
-})
-
 inline static int BRRWLockInit(BRRWLock *lock)
 {
     int r = 0;
     
+    *lock = (BRRWLock) { 0, 0, 0,
+                         (pthread_mutex_t)PTHREAD_MUTEX_INITIALIZER,
+                         (pthread_cond_t)PTHREAD_COND_INITIALIZER,
+                         (pthread_cond_t)PTHREAD_COND_INITIALIZER };
     if (! r) r = pthread_mutex_init(&lock->mutex, NULL);
     if (! r) r = pthread_cond_init(&lock->readerGate, NULL);
     if (! r) r = pthread_cond_init(&lock->writerGate, NULL);

@@ -199,7 +199,6 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
     wallet->allAddrs = BRSetNew(BRAddressHash, BRAddressEq, txCount + 200 + 100);
     wallet->seedInfo = info;
     wallet->seed = seed;
-    wallet->lock = BR_RW_LOCK_INITIALIZER;
     BRRWLockInit(&wallet->lock);
 
     for (size_t i = 0; i < txCount; i++) {

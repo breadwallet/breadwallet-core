@@ -300,4 +300,3 @@ size_t BRKeyBIP38Key(BRKey *key, char *bip38Key, size_t bip38KeyLen, const char 
 {
     return 0;
 }
-
