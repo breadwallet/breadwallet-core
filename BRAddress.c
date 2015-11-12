@@ -96,7 +96,7 @@ size_t BRVarIntSet(uint8_t *buf, size_t len, uint64_t i)
     return r;
 }
 
-inline size_t BRVarIntSize(uint64_t i)
+size_t BRVarIntSize(uint64_t i)
 {
     return BRVarIntSet(NULL, 0, i);
 }

@@ -138,13 +138,13 @@ void BRSetClear(BRSet *set)
 }
 
 // returns the number of items in set
-inline size_t BRSetCount(BRSet *set)
+size_t BRSetCount(BRSet *set)
 {
     return set->itemCount;
 }
 
 // true if item is contained in set
-inline int BRSetContains(BRSet *set, const void *item)
+int BRSetContains(BRSet *set, const void *item)
 {
     return (BRSetGet(set, item) != NULL);
 }

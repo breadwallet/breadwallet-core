@@ -286,7 +286,7 @@ size_t BRTransactionSize(BRTransaction *tx)
 }
 
 // minimum transaction fee needed for tx to relay across the bitcoin network
-inline uint64_t BRTransactionStandardFee(BRTransaction *tx)
+uint64_t BRTransactionStandardFee(BRTransaction *tx)
 {
     return ((BRTransactionSize(tx) + 999)/1000)*TX_FEE_PER_KB;
 }
