@@ -50,7 +50,7 @@ inline static int BRRWLockInit(BRRWLock *lock)
     return r;
 }
 
-inline static int BRRWLockReadLock(BRRWLock *lock)
+inline static int BRRWLockRead(BRRWLock *lock)
 {
     int r = pthread_mutex_lock(&lock->mutex);
     
@@ -63,7 +63,7 @@ inline static int BRRWLockReadLock(BRRWLock *lock)
     return r;
 }
 
-inline static int BRRWLockWriteLock(BRRWLock *lock)
+inline static int BRRWLockWrite(BRRWLock *lock)
 {
     int r = pthread_mutex_lock(&lock->mutex);
     

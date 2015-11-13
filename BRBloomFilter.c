@@ -46,7 +46,7 @@ BRBloomFilter *BRBloomFilterNew(double falsePositiveRate, size_t elemCount, uint
                      (-1.0/pow(M_LN2, 2))*elemCount*log(falsePositiveRate)/8.0;
     if (filter->length > BLOOM_MAX_FILTER_LENGTH) filter->length = BLOOM_MAX_FILTER_LENGTH;
     if (filter->length < 1) filter->length = 1;
-    filter->filter = calloc(filter->length, sizeof(uint8_t));
+    filter->filter = calloc(1, filter->length);
     filter->hashFuncs = ((filter->length*8.0)/elemCount)*M_LN2;
     if (filter->hashFuncs > BLOOM_MAX_HASH_FUNCS) filter->hashFuncs = BLOOM_MAX_HASH_FUNCS;
     filter->tweak = tweak;
@@ -68,10 +68,9 @@ BRBloomFilter *BRBloomFilterParse(const uint8_t *buf, size_t len)
     
     filter->length = BRVarInt(buf + off, len - off, &l);
     off += l;
-    l = filter->length;
-    filter->filter = (off + l <= len) ? calloc(l, sizeof(uint8_t)) : NULL;
-    if (filter->filter) memcpy(filter->filter, buf + off, l);
-    off += l;
+    filter->filter = (off + filter->length <= len) ? malloc(filter->length) : NULL;
+    if (filter->filter) memcpy(filter->filter, buf + off, filter->length);
+    off += filter->length;
     filter->hashFuncs = (off + sizeof(uint32_t) <= len) ? le32(*(const uint32_t *)(buf + off)) : 0;
     off += sizeof(uint32_t);
     filter->tweak = (off + sizeof(uint32_t) <= len) ? le32(*(const uint32_t *)(buf + off)) : 0;

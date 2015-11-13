@@ -202,6 +202,11 @@ inline static UInt256 UInt256Reverse(UInt256 u)
         array_count(array)--;\
 } while(0)
 
+#define array_rm_range(array, idx, len) do {\
+    memmove((array) + (idx), (array) + (idx) + (len), (array_count(array) - ((idx) + (len)))*sizeof(*(array)));\
+    array_count(array) -= (len);\
+} while(0)
+
 #define array_clear(array) do {\
     array_count(array) = 0;\
 } while (0)

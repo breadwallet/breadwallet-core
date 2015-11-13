@@ -23,9 +23,37 @@
 //  THE SOFTWARE.
 
 #include "BRPeer.h"
+#include "BRRWLock.h"
+#include "BRTypes.h"
+#include "BRSet.h"
+#include <float.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+
+#define HEADER_LENGTH      24
+#define MAX_MSG_LENGTH     0x02000000u
+#define MAX_GETDATA_HASHES 50000
+#define ENABLED_SERVICES   0     // we don't provide full blocks to remote nodes
+#define PROTOCOL_VERSION   70002
+#define MIN_PROTO_VERSION  70002 // peers earlier than this protocol version not supported (need v0.9 txFee relay rules)
+#define LOCAL_HOST         0x7f000001u
+#define CONNECT_TIMEOUT    3.0
+
+typedef enum {
+    inv_error = 0,
+    inv_tx,
+    inv_block,
+    inv_merkleblock
+} inv_type;
 
 struct BRPeerContext {
     BRPeerStatus status;
+    int waitingForNetwork;
     uint32_t version;
     uint64_t nonce;
     const char *useragent;
@@ -34,6 +62,11 @@ struct BRPeerContext {
     double pingTime;
     int needsFilterUpdate;
     uint32_t currentBlockHeight;
+    uint8_t *msgHeader, *msgPayload, *outBuffer;
+    int sentVerack, gotVerack, sentGetaddr, sentFilter, sentGetdata, sentMempool, sentGetblocks;
+    UInt256 *knownBlockHashes;
+    BRSet *knownTxHashes, *currentBlockTxHashes;
+    int socketFd;
     void *info;
     void (*connected)(void *info);
     void (*disconnected)(void *info, BRPeerError);
@@ -46,11 +79,14 @@ struct BRPeerContext {
     void (*relayedBlock)(void *info, const BRMerkleBlock *block);
     const BRTransaction *(*reqeustedTx)(void *info, UInt256 txHash);
     int (*networkIsReachable)(void *info);
+    BRRWLock lock;
 };
 
 // call this before other BRPeer functions, set earliestKeyTime to wallet creation time to speed up initial sync
 void BRPeerNewContext(BRPeer *peer, uint32_t earliestKeyTime)
 {
+    peer->context = calloc(1, sizeof(struct BRPeerContext));
+    peer->context->earliestKeyTime = earliestKeyTime;
 }
 
 void BRPeerSetCallbacks(BRPeer *peer, void *info,
@@ -66,16 +102,58 @@ void BRPeerSetCallbacks(BRPeer *peer, void *info,
                         const BRTransaction *(*reqeustedTx)(void *info, UInt256 txHash),
                         int (*networkIsReachable)(void *info))
 {
+    struct BRPeerContext *ctx = peer->context;
+    
+    ctx->info = info;
+    ctx->connected = connected;
+    ctx->disconnected = disconnected;
+    ctx->relayedPeers = relayedPeers;
+    ctx->relayedTx = relayedTx;
+    ctx->hasTx = hasTx;
+    ctx->rejectedTx = rejectedTx;
+    ctx->relayedBlock = relayedBlock;
+    ctx->notfound = notfound;
+    ctx->reqeustedTx = reqeustedTx;
+    ctx->networkIsReachable = networkIsReachable;
 }
 
 // current connection status
 BRPeerStatus BRPeerGetStatus(BRPeer *peer)
 {
-    return 0;
+    return peer->context->status;
 }
 
 void BRPeerConnect(BRPeer *peer)
 {
+    struct BRPeerContext *ctx = peer->context;
+
+    BRRWLockWrite(&ctx->lock);
+    
+    if (ctx->status != BRPeerStatusDisconnected && ! ctx->waitingForNetwork) {
+        BRRWLockUnlock(&ctx->lock);
+        return;
+    }
+    
+    ctx->status = BRPeerStatusConnecting;
+    ctx->pingTime = DBL_MAX;
+    
+    if (! ctx->networkIsReachable(ctx->info)) { // delay connect until network is reachable
+        ctx->waitingForNetwork = 1;
+        BRRWLockUnlock(&ctx->lock);
+        return;
+    }
+    
+    ctx->waitingForNetwork = 0;
+    array_new(ctx->msgHeader, HEADER_LENGTH);
+    array_new(ctx->msgPayload, 1000);
+    array_new(ctx->outBuffer, 1000);
+    array_new(ctx->knownBlockHashes, MAX_GETDATA_HASHES);
+    ctx->knownTxHashes = BRSetNew(BRTransactionHash, BRTransactionEq, 100);
+    ctx->currentBlockTxHashes = BRSetNew(BRTransactionHash, BRTransactionEq, 100);
+
+    // XXXX do connect things and stuff
+
+    BRRWLockUnlock(&ctx->lock);
 }
 
 void BRPeerDisconnect(BRPeer *peer)

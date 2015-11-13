@@ -83,7 +83,7 @@ int BRPeerMangerIsConnected(BRPeerManager *manager)
     return 0;
 }
 
-// connect to bitcoin peer-to-peer network
+// connect to bitcoin peer-to-peer network (also call this whenever networkIsReachable() status changes)
 void BRPeerManagerConnect(BRPeerManager *manager)
 {
 }

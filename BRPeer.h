@@ -30,7 +30,7 @@
 #include "BRMerkleBlock.h"
 #include <stdint.h>
 
-#if TESTNET
+#if BITCOIN_TESTNET
 #define STANDARD_PORT 18333
 #else
 #define STANDARD_PORT 8333
@@ -38,7 +38,8 @@
 
 #define SERVICES_NODE_NETWORK 1 // services value indicating a node carries full blocks, not just headers
 
-#define USER_AGENT    "/breadwallet:0.6/"
+#define BR_VERSION "0.6"
+#define USER_AGENT "/breadwallet:" BR_VERSION "/"
 
 // explanation of message types at: https://en.bitcoin.it/wiki/Protocol_specification
 #define MSG_VERSION     "version"

@@ -58,7 +58,7 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
 // true if currently connected to at least one peer
 int BRPeerMangerIsConnected(BRPeerManager *manager);
 
-// connect to bitcoin peer-to-peer network
+// connect to bitcoin peer-to-peer network (also call this whenever networkIsReachable() status changes)
 void BRPeerManagerConnect(BRPeerManager *manager);
 
 // rescan blockchain for potentially missing transactions
