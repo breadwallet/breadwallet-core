@@ -96,6 +96,7 @@ size_t BRBloomFilterSerialize(BRBloomFilter *filter, uint8_t *buf, size_t len)
     if (len < l) return 0;
     off += BRVarIntSet(buf + off, len - off, filter->length);
     memcpy(buf + off, filter->filter, filter->length);
+    off += filter->length;
     *(uint32_t *)(buf + off) = le32(filter->hashFuncs);
     off += sizeof(uint32_t);
     *(uint32_t *)(buf + off) = le32(filter->tweak);

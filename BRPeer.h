@@ -115,7 +115,7 @@ const char *BRPeerUserAgent(BRPeer *peer); // connected peer user agent string
 uint32_t BRPeerLastBlock(BRPeer *peer); // best block height reported by connected peer
 double BRPeerPingTime(BRPeer *peer); // ping time for connected peer
 
-void BRPeerSendMessage(BRPeer *peer, const uint8_t *message, size_t len, const char *type);
+void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char *type);
 void BRPeerSendFilterload(BRPeer *peer, const uint8_t *filter, size_t len);
 void BRPeerSendMempool(BRPeer *peer);
 void BRPeerSendGetheaders(BRPeer *peer, const UInt256 locators[], size_t count, UInt256 hashStop);

@@ -190,20 +190,24 @@ void BRBIP32PrivKeyList(BRKey keys[], size_t count, const void *seed, size_t see
 
 size_t BRBIP32SerializeMasterPrivKey(char *s, size_t sLen, const void *seed, size_t slen)
 {
+    //TODO: XXX implement
     return 0;
 }
 
 size_t BRBIP32ParseMasterPrivKey(void *seed, size_t seedLen, const char *s)
 {
+    //TODO: XXX implement
     return 0;
 }
 
 size_t BRBIP32SerializeMasterPubKey(char *s, size_t sLen, BRMasterPubKey mpk)
 {
+    //TODO: XXX implement
     return 0;
 }
 
 BRMasterPubKey BRBIP32ParseMasterPubKey(const char *s)
 {
+    //TODO: XXX implement
     return MASTER_PUBKEY_NONE;
 }

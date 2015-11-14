@@ -23,6 +23,7 @@
 //  THE SOFTWARE.
 
 #include "BRPeer.h"
+#include "BRMerkleBlock.h"
 #include "BRRWLock.h"
 #include "BRTypes.h"
 #include "BRSet.h"
@@ -66,6 +67,7 @@ struct BRPeerContext {
     int sentVerack, gotVerack, sentGetaddr, sentFilter, sentGetdata, sentMempool, sentGetblocks;
     UInt256 *knownBlockHashes;
     BRSet *knownTxHashes, *currentBlockTxHashes;
+    BRMerkleBlock *currentBlock;
     int socketFd;
     void *info;
     void (*connected)(void *info);
@@ -81,6 +83,92 @@ struct BRPeerContext {
     int (*networkIsReachable)(void *info);
     BRRWLock lock;
 };
+
+static void BRPeerLog(BRPeer *peer, const char *format, ...)
+{
+}
+
+static void BRPeerAcceptVersionMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+{
+}
+
+static void BRPeerAcceptVerackMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+{
+}
+
+static void BRPeerAcceptAddrMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+{
+}
+
+static void BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+{
+}
+
+static void BRPeerAcceptTxMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+{
+}
+
+static void BRPeerAcceptHeadersMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+{
+}
+
+static void BRPeerAcceptGetaddrMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+{
+}
+
+static void BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+{
+}
+
+static void BRPeerAcceptNotfoundMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+{
+}
+
+static void BRPeerAcceptPingMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+{
+}
+
+static void BRPeerAcceptPongMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+{
+}
+
+static void BRPeerAcceptMerkleblockMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+{
+}
+
+static void BRPeerAcceptRejectMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+{
+}
+
+static void BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char *type)
+{
+    struct BRPeerContext *ctx = peer->context;
+    
+    if (ctx->currentBlock && strncmp(MSG_TX, type, 12) != 0) { // if we receive non-tx message, merkleblock is done
+        UInt256 h = ctx->currentBlock->blockHash;
+
+        BRPeerLog(peer, "incomplete merkleblock %llX%llX%llX%llX, expected %u more tx, got %s",
+                  h.u64[0], h.u64[1], h.u64[2], h.u64[3], BRSetCount(ctx->currentBlockTxHashes), type);
+        ctx->currentBlock = NULL;
+        BRSetClear(ctx->currentBlockTxHashes);
+        return;
+    }
+    
+    if (strncmp(MSG_VERSION, type, 12) == 0) BRPeerAcceptVersionMessage(peer, msg, len);
+    else if (strncmp(MSG_VERACK, type, 12) == 0) BRPeerAcceptVerackMessage(peer, msg, len);
+    else if (strncmp(MSG_ADDR, type, 12) == 0) BRPeerAcceptAddrMessage(peer, msg, len);
+    else if (strncmp(MSG_INV, type, 12) == 0) BRPeerAcceptInvMessage(peer, msg, len);
+    else if (strncmp(MSG_TX, type, 12) == 0) BRPeerAcceptTxMessage(peer, msg, len);
+    else if (strncmp(MSG_HEADERS, type, 12) == 0) BRPeerAcceptHeadersMessage(peer, msg, len);
+    else if (strncmp(MSG_GETADDR, type, 12) == 0) BRPeerAcceptGetaddrMessage(peer, msg, len);
+    else if (strncmp(MSG_GETDATA, type, 12) == 0) BRPeerAcceptGetdataMessage(peer, msg, len);
+    else if (strncmp(MSG_NOTFOUND, type, 12) == 0) BRPeerAcceptNotfoundMessage(peer, msg, len);
+    else if (strncmp(MSG_PING, type, 12) == 0) BRPeerAcceptPingMessage(peer, msg, len);
+    else if (strncmp(MSG_PONG, type, 12) == 0) BRPeerAcceptPongMessage(peer, msg, len);
+    else if (strncmp(MSG_MERKLEBLOCK, type, 12) == 0) BRPeerAcceptMerkleblockMessage(peer, msg, len);
+    else if (strncmp(MSG_REJECT, type, 12) == 0) BRPeerAcceptRejectMessage(peer, msg, len);
+    else BRPeerLog(peer, "dropping %s, length %u, not implemented", type, len);
+}
 
 // call this before other BRPeer functions, set earliestKeyTime to wallet creation time to speed up initial sync
 void BRPeerNewContext(BRPeer *peer, uint32_t earliestKeyTime)
@@ -120,7 +208,7 @@ void BRPeerSetCallbacks(BRPeer *peer, void *info,
 // current connection status
 BRPeerStatus BRPeerGetStatus(BRPeer *peer)
 {
-    return peer->context->status;
+    return (peer->context) ? peer->context->status : BRPeerStatusDisconnected;
 }
 
 void BRPeerConnect(BRPeer *peer)
@@ -147,7 +235,7 @@ void BRPeerConnect(BRPeer *peer)
     array_new(ctx->msgHeader, HEADER_LENGTH);
     array_new(ctx->msgPayload, 1000);
     array_new(ctx->outBuffer, 1000);
-    array_new(ctx->knownBlockHashes, MAX_GETDATA_HASHES);
+    array_new(ctx->knownBlockHashes, 10);
     ctx->knownTxHashes = BRSetNew(BRTransactionHash, BRTransactionEq, 100);
     ctx->currentBlockTxHashes = BRSetNew(BRTransactionHash, BRTransactionEq, 100);
 
@@ -163,38 +251,40 @@ void BRPeerDisconnect(BRPeer *peer)
 // call this when wallet addresses need to be added to bloom filter
 void BRPeerNeedsFilterUpdate(BRPeer *peer)
 {
+    if (peer->context) peer->context->needsFilterUpdate = 1;
 }
 
 // call this when local block height changes (helps detect tarpit nodes)
 void BRPeerSetCurrentBlockHeight(BRPeer *peer, uint32_t currentBlockHeight)
 {
+    if (peer->context) peer->context->currentBlockHeight = currentBlockHeight;
 }
 
 // connected peer version number
 uint32_t BRPeerVersion(BRPeer *peer)
 {
-    return 0;
+    return (peer->context) ? peer->context->version : 0;
 }
 
 // connected peer user agent string
 const char *BRPeerUserAgent(BRPeer *peer)
 {
-    return NULL;
+    return (peer->context) ? peer->context->useragent : NULL;
 }
 
 // best block height reported by connected peer
 uint32_t BRPeerLastBlock(BRPeer *peer)
 {
-    return 0;
+    return (peer->context) ? peer->context->lastblock : 0;
 }
 
 // ping time for connected peer
 double BRPeerPingTime(BRPeer *peer)
 {
-    return 0;
+    return (peer->context) ? peer->context->pingTime : DBL_MAX;
 }
 
-void BRPeerSendMessage(BRPeer *peer, const uint8_t *message, size_t len, const char *type)
+void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char *type)
 {
 }
 
@@ -239,4 +329,17 @@ void BRPeerRerequestBlocks(BRPeer *peer, UInt256 fromBlock)
 // frees memory allocated for peer after calling BRPeerCreateContext()
 void BRPeerFreeContext(BRPeer *peer)
 {
+    struct BRPeerContext *ctx = peer->context;
+    
+    if (ctx) {
+        if (ctx->msgHeader) array_free(ctx->msgHeader);
+        if (ctx->msgPayload) array_free(ctx->msgPayload);
+        if (ctx->outBuffer) array_free(ctx->outBuffer);
+        if (ctx->knownBlockHashes) array_free(ctx->knownBlockHashes);
+        if (ctx->knownTxHashes) BRSetFree(ctx->knownTxHashes);
+        if (ctx->currentBlockTxHashes) BRSetFree(ctx->currentBlockTxHashes);
+        BRRWLockDestroy(&ctx->lock);
+        free(ctx);
+        peer->context = NULL;
+    }
 }
