@@ -25,10 +25,10 @@
 #ifndef BRWallet_h
 #define BRWallet_h
 
-#include "BRTypes.h"
 #include "BRTransaction.h"
 #include "BRAddress.h"
 #include "BRBIP32Sequence.h"
+#include "BRInt.h"
 #include <string.h>
 
 typedef struct {

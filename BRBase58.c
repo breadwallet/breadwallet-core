@@ -32,9 +32,9 @@
 static const char base58chars[] = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 // returns the number of characters written to s including NULL terminator, or total slen needed if s is NULL
-size_t BRBase58Encode(char *s, size_t sLen, const uint8_t *data, size_t dataLen)
+size_t BRBase58Encode(char *str, size_t strLen, const uint8_t *data, size_t dataLen)
 {
-    size_t i, len, zcount = 0;
+    size_t i, j, len, zcount = 0;
     
     while (zcount < dataLen && data[zcount] == 0) zcount++; // count leading zeroes
 
@@ -45,7 +45,7 @@ size_t BRBase58Encode(char *s, size_t sLen, const uint8_t *data, size_t dataLen)
     for (i = zcount; i < dataLen; i++) {
         uint32_t carry = data[i];
         
-        for (size_t j = sizeof(buf); j > 0; j--) {
+        for (j = sizeof(buf); j > 0; j--) {
             carry += (uint32_t)buf[j - 1] << 8;
             buf[j - 1] = carry % 58;
             carry /= 58;
@@ -58,29 +58,29 @@ size_t BRBase58Encode(char *s, size_t sLen, const uint8_t *data, size_t dataLen)
     while (i < sizeof(buf) && buf[i] == 0) i++; // skip leading zeroes
     len = (zcount + sizeof(buf) - i) + 1;
 
-    if (s && sLen >= len) {
-        while (zcount-- > 0) *(s++) = base58chars[0];
-        while (i < sizeof(buf)) *(s++) = base58chars[buf[i++]];
-        *s = '\0';
+    if (str && strLen >= len) {
+        while (zcount-- > 0) *(str++) = base58chars[0];
+        while (i < sizeof(buf)) *(str++) = base58chars[buf[i++]];
+        *str = '\0';
     }
     
     memset(buf, 0, sizeof(buf));
-    return (! s || sLen >= len) ? len : 0;
+    return (! str || strLen >= len) ? len : 0;
 }
 
 // returns the number of bytes written to data, or total dlen needed if data is NULL
-size_t BRBase58Decode(uint8_t *data, size_t dataLen, const char *s)
+size_t BRBase58Decode(uint8_t *data, size_t dataLen, const char *str)
 {
-    size_t i = 0, len, zcount = 0;
+    size_t i = 0, j, len, zcount = 0;
     
-    while (*s == base58chars[0]) s++, zcount++; // count leading zeroes
+    while (*str == base58chars[0]) str++, zcount++; // count leading zeroes
     
-    uint8_t buf[strlen(s)*733/1000 + 1]; // log(58)/log(256), rounded up
+    uint8_t buf[strlen(str)*733/1000 + 1]; // log(58)/log(256), rounded up
     
     memset(buf, 0, sizeof(buf));
     
-    while (*s) {
-        uint32_t carry = *(s++);
+    while (*str) {
+        uint32_t carry = *(str++);
         
         switch (carry) {
             case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
@@ -116,7 +116,7 @@ size_t BRBase58Decode(uint8_t *data, size_t dataLen, const char *s)
         
         if (carry >= 58) break; // invalid base58 digit
         
-        for (size_t j = sizeof(buf); j > 0; j--) {
+        for (j = sizeof(buf); j > 0; j--) {
             carry += (uint32_t)buf[j - 1]*58;
             buf[j - 1] = carry & 0xff;
             carry >>= 8;
@@ -138,23 +138,23 @@ size_t BRBase58Decode(uint8_t *data, size_t dataLen, const char *s)
 }
 
 // returns the number of characters written to s including NULL terminator, or total slen needed if s is NULL
-size_t BRBase58CheckEncode(char *s, size_t sLen, const uint8_t *data, size_t dataLen)
+size_t BRBase58CheckEncode(char *str, size_t strLen, const uint8_t *data, size_t dataLen)
 {
     size_t len;
     uint8_t buf[dataLen + 256/8];
 
     memcpy(buf, data, dataLen);
     BRSHA256_2(&buf[dataLen], data, dataLen);
-    len = BRBase58Encode(s, sLen, buf, dataLen + 4);
+    len = BRBase58Encode(str, strLen, buf, dataLen + 4);
     memset(buf, 0, sizeof(buf));
     return len;
 }
 
 // returns the number of bytes written to data, or total dlen needed if data is NULL
-size_t BRBase58CheckDecode(uint8_t *data, size_t dataLen, const char *s)
+size_t BRBase58CheckDecode(uint8_t *data, size_t dataLen, const char *str)
 {
-    uint8_t buf[strlen(s)*733/1000 + 1], md[256/8];
-    size_t len = BRBase58Decode(buf, sizeof(buf), s);
+    uint8_t buf[strlen(str)*733/1000 + 1], md[256/8];
+    size_t len = BRBase58Decode(buf, sizeof(buf), str);
     
     if (len >= 4) {
         len -= 4;

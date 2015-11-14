@@ -25,7 +25,7 @@
 #include "BRBloomFilter.h"
 #include "BRHash.h"
 #include "BRAddress.h"
-#include "BRTypes.h"
+#include "BRInt.h"
 #include <float.h>
 #include <math.h>
 #include <stdlib.h>

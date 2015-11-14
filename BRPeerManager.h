@@ -25,10 +25,10 @@
 #ifndef BRPeerManager_h
 #define BRPeerManager_h
 
-#include "BRWallet.h"
-#include "BRTransaction.h"
-#include "BRMerkleBlock.h"
 #include "BRPeer.h"
+#include "BRMerkleBlock.h"
+#include "BRTransaction.h"
+#include "BRWallet.h"
 #include <stddef.h>
 
 typedef enum {

@@ -26,7 +26,7 @@
 #define BRBIP32Sequence_h
 
 #include "BRKey.h"
-#include "BRTypes.h"
+#include "BRInt.h"
 #include <stddef.h>
 
 // BIP32 is a scheme for deriving chains of addresses from a seed value

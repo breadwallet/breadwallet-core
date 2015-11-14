@@ -25,7 +25,7 @@
 #include "BRTransaction.h"
 #include "BRKey.h"
 #include "BRAddress.h"
-#include "BRTypes.h"
+#include "BRArray.h"
 #include <time.h>
 #include <unistd.h>
 #include <stdlib.h>

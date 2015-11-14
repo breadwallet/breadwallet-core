@@ -25,7 +25,6 @@
 #include "BRKey.h"
 #include "BRAddress.h"
 #include "BRBase58.h"
-#include "BRTypes.h"
 #include <stdio.h>
 
 #define BITCOIN_PRIVKEY      128

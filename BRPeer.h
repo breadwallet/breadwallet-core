@@ -25,9 +25,9 @@
 #ifndef BRPeer_h
 #define BRPeer_h
 
-#include "BRTypes.h"
 #include "BRTransaction.h"
 #include "BRMerkleBlock.h"
+#include "BRInt.h"
 #include <stdint.h>
 
 #if BITCOIN_TESTNET

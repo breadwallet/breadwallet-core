@@ -25,7 +25,7 @@
 #ifndef BRMerkleBlock_h
 #define BRMerkleBlock_h
 
-#include "BRTypes.h"
+#include "BRInt.h"
 #include <stddef.h>
 
 #define BLOCK_DIFFICULTY_INTERVAL 2016    // number of blocks between difficulty target adjustments

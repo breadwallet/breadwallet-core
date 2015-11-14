@@ -26,6 +26,7 @@
 #include "BRSet.h"
 #include "BRAddress.h"
 #include "BRRWLock.h"
+#include "BRArray.h"
 #include <stdlib.h>
 
 #define DEFAULT_FEE_PER_KB ((TX_FEE_PER_KB*1000 + 190)/191) // default fee-per-kb to match standard fee on 191 byte tx

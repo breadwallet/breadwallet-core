@@ -26,7 +26,7 @@
 #include "BRMerkleBlock.h"
 #include "BRPeer.h"
 #include "BRPaymentProtocol.h"
-#include "BRTypes.h"
+#include "BRInt.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

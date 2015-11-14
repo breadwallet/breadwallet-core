@@ -24,7 +24,7 @@
 
 #include "BRBIP39Mnemonic.h"
 #include "BRHash.h"
-#include "BRTypes.h"
+#include "BRInt.h"
 #include <string.h>
 
 // returns number of bytes written to phrase including NULL terminator, or size needed if phrase is NULL

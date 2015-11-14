@@ -25,8 +25,8 @@
 #ifndef BRTransaction_h
 #define BRTransaction_h
 
-#include "BRTypes.h"
 #include "BRKey.h"
+#include "BRInt.h"
 
 #define TX_FEE_PER_KB        5000ULL     // standard tx fee per kb of tx size, rounded up to nearest kb
 #define TX_MIN_OUTPUT_AMOUNT (TX_FEE_PER_KB*3*(34 + 148)/1000) // no txout can be below this amount (or it won't relay)

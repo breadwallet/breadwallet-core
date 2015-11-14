@@ -24,26 +24,34 @@
 
 #include "BRPeer.h"
 #include "BRMerkleBlock.h"
-#include "BRRWLock.h"
-#include "BRTypes.h"
 #include "BRSet.h"
+#include "BRRWLock.h"
+#include "BRArray.h"
 #include <float.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <arpa/inet.h>
+#include <errno.h>
 
 #define HEADER_LENGTH      24
-#define MAX_MSG_LENGTH     0x02000000u
+#define MAX_MSG_LENGTH     0x02000000
 #define MAX_GETDATA_HASHES 50000
 #define ENABLED_SERVICES   0     // we don't provide full blocks to remote nodes
 #define PROTOCOL_VERSION   70002
 #define MIN_PROTO_VERSION  70002 // peers earlier than this protocol version not supported (need v0.9 txFee relay rules)
-#define LOCAL_HOST         0x7f000001u
+#define LOCAL_HOST         0x7f000001
 #define CONNECT_TIMEOUT    3.0
+
+#define peer_log(peer, ...)\
+    printf("%s:%u " _va_first(__VA_ARGS__, NULL) "\n", (peer)->context->host, (peer)->port, _va_rest(__VA_ARGS__, NULL))
+#define _va_first(first, ...) first
+#define _va_rest(first, ...) __VA_ARGS__
 
 typedef enum {
     inv_error = 0,
@@ -53,6 +61,7 @@ typedef enum {
 } inv_type;
 
 struct BRPeerContext {
+    char host[INET6_ADDRSTRLEN];
     BRPeerStatus status;
     int waitingForNetwork;
     uint32_t version;
@@ -83,10 +92,6 @@ struct BRPeerContext {
     int (*networkIsReachable)(void *info);
     BRRWLock lock;
 };
-
-static void BRPeerLog(BRPeer *peer, const char *format, ...)
-{
-}
 
 static void BRPeerAcceptVersionMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
@@ -143,12 +148,12 @@ static void BRPeerAcceptRejectMessage(BRPeer *peer, const uint8_t *msg, size_t l
 static void BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char *type)
 {
     struct BRPeerContext *ctx = peer->context;
+    UInt256 h;
     
     if (ctx->currentBlock && strncmp(MSG_TX, type, 12) != 0) { // if we receive non-tx message, merkleblock is done
-        UInt256 h = ctx->currentBlock->blockHash;
-
-        BRPeerLog(peer, "incomplete merkleblock %llX%llX%llX%llX, expected %u more tx, got %s",
-                  h.u64[0], h.u64[1], h.u64[2], h.u64[3], BRSetCount(ctx->currentBlockTxHashes), type);
+        h = ctx->currentBlock->blockHash;
+        peer_log(peer, "incomplete merkleblock %llX%llX%llX%llX, expected %zu more tx, got %s",
+                 h.u64[0], h.u64[1], h.u64[2], h.u64[3], BRSetCount(ctx->currentBlockTxHashes), type);
         ctx->currentBlock = NULL;
         BRSetClear(ctx->currentBlockTxHashes);
         return;
@@ -167,14 +172,21 @@ static void BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t len, co
     else if (strncmp(MSG_PONG, type, 12) == 0) BRPeerAcceptPongMessage(peer, msg, len);
     else if (strncmp(MSG_MERKLEBLOCK, type, 12) == 0) BRPeerAcceptMerkleblockMessage(peer, msg, len);
     else if (strncmp(MSG_REJECT, type, 12) == 0) BRPeerAcceptRejectMessage(peer, msg, len);
-    else BRPeerLog(peer, "dropping %s, length %u, not implemented", type, len);
+    else peer_log(peer, "dropping %s, length %zu, not implemented", type, len);
 }
 
 // call this before other BRPeer functions, set earliestKeyTime to wallet creation time to speed up initial sync
 void BRPeerNewContext(BRPeer *peer, uint32_t earliestKeyTime)
 {
-    peer->context = calloc(1, sizeof(struct BRPeerContext));
-    peer->context->earliestKeyTime = earliestKeyTime;
+    struct BRPeerContext *ctx = calloc(1, sizeof(struct BRPeerContext));
+
+    peer->context = ctx;
+    ctx->earliestKeyTime = earliestKeyTime;
+    
+    if (peer->address.u64[0] == 0 && peer->address.u16[4] == 0xffff) {
+        inet_ntop(AF_INET, &peer->address.u32[3], ctx->host, sizeof(ctx->host));
+    }
+    else inet_ntop(AF_INET6, &peer->address, ctx->host, sizeof(ctx->host));
 }
 
 void BRPeerSetCallbacks(BRPeer *peer, void *info,
@@ -217,29 +229,34 @@ void BRPeerConnect(BRPeer *peer)
 
     BRRWLockWrite(&ctx->lock);
     
-    if (ctx->status != BRPeerStatusDisconnected && ! ctx->waitingForNetwork) {
-        BRRWLockUnlock(&ctx->lock);
-        return;
-    }
+    if (ctx->status == BRPeerStatusDisconnected || ctx->waitingForNetwork) {
+        ctx->status = BRPeerStatusConnecting;
+        ctx->pingTime = DBL_MAX;
     
-    ctx->status = BRPeerStatusConnecting;
-    ctx->pingTime = DBL_MAX;
-    
-    if (! ctx->networkIsReachable(ctx->info)) { // delay connect until network is reachable
-        ctx->waitingForNetwork = 1;
-        BRRWLockUnlock(&ctx->lock);
-        return;
-    }
-    
-    ctx->waitingForNetwork = 0;
-    array_new(ctx->msgHeader, HEADER_LENGTH);
-    array_new(ctx->msgPayload, 1000);
-    array_new(ctx->outBuffer, 1000);
-    array_new(ctx->knownBlockHashes, 10);
-    ctx->knownTxHashes = BRSetNew(BRTransactionHash, BRTransactionEq, 100);
-    ctx->currentBlockTxHashes = BRSetNew(BRTransactionHash, BRTransactionEq, 100);
+        if (! ctx->networkIsReachable(ctx->info)) {
+            ctx->waitingForNetwork = 1; // delay connect until network is reachable
+        }
+        else {
+            ctx->waitingForNetwork = 0;
+            array_new(ctx->msgHeader, HEADER_LENGTH);
+            array_new(ctx->msgPayload, 1000);
+            array_new(ctx->outBuffer, 1000);
+            array_new(ctx->knownBlockHashes, 10);
+            ctx->knownTxHashes = BRSetNew(BRTransactionHash, BRTransactionEq, 100);
+            ctx->currentBlockTxHashes = BRSetNew(BRTransactionHash, BRTransactionEq, 100);
+            
+            struct sockaddr_in serv_addr;
+            
+            memset(&serv_addr, 0, sizeof(serv_addr));
+            serv_addr.sin_family = AF_INET;
+            serv_addr.sin_addr.s_addr = peer->address.u32[3]; // already network byte order
+            serv_addr.sin_port = htons(peer->port);
 
-    // XXXX do connect things and stuff
+            ctx->socketFd = socket(AF_INET, SOCK_STREAM, 0);
+            
+            // XXXX do connect things and stuff
+        }
+    }
 
     BRRWLockUnlock(&ctx->lock);
 }

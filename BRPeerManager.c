@@ -23,10 +23,7 @@
 //  THE SOFTWARE.
 
 #include "BRPeerManager.h"
-#include "BRPeer.h"
 #include "BRBloomFilter.h"
-#include "BRMerkleBlock.h"
-#include "BRWallet.h"
 
 struct BRPeerManagerContext {
     BRWallet *wallet;

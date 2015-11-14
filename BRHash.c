@@ -23,7 +23,7 @@
 //  THE SOFTWARE.
 
 #include "BRHash.h"
-#include "BRTypes.h"
+#include "BRInt.h"
 #include <stdlib.h>
 #include <string.h>
 
