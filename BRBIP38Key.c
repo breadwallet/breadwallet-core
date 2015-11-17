@@ -200,13 +200,13 @@ static void blockmix_salsa8(uint64_t *dest, const uint64_t *src, uint64_t *b, in
 }
 
 // scrypt key derivation: http://www.tarsnap.com/scrypt.html
-static void scrypt(void *dk, size_t dklen, const void *pw, size_t pwlen, const void *salt, size_t slen,
+static void scrypt(void *dk, size_t dklen, const void *pw, size_t pwlen, const void *salt, size_t saltlen,
                    long n, int r, int p)
 {
     uint64_t x[16*r], y[16*r], z[8], *v = malloc(128*r*n), m;
     uint32_t b[32*r*p];
     
-    BRPBKDF2(b, sizeof(b), BRSHA256, 32, pw, pwlen, salt, slen, 1);
+    BRPBKDF2(b, sizeof(b), BRSHA256, 32, pw, pwlen, salt, saltlen, 1);
     
     for (int i = 0; i < p; i++) {
         for (long j = 0; j < 32*r; j++) {
@@ -243,6 +243,45 @@ static void scrypt(void *dk, size_t dklen, const void *pw, size_t pwlen, const v
     memset(v, 0, 128*r*n);
     free(v);
     memset(&m, 0, sizeof(m));
+}
+
+static UInt256 BRBIP38DerivePassfactor(uint8_t flag, uint64_t entropy, const char *passphrase)
+{
+    size_t len = strlen(passphrase);
+    UInt256 prefactor, passfactor;
+    
+    scrypt(&prefactor, sizeof(prefactor), passphrase, len, &entropy, (flag & BIP38_LOTSEQUENCE_FLAG) ? 4 : 8,
+           BIP38_SCRYPT_N, BIP38_SCRYPT_R, BIP38_SCRYPT_P);
+    
+    if (flag & BIP38_LOTSEQUENCE_FLAG) { // passfactor = SHA256(SHA256(prefactor + entropy))
+        uint8_t d[sizeof(prefactor) + sizeof(entropy)];
+
+        memcpy(d, &prefactor, sizeof(prefactor));
+        memcpy(&d[sizeof(prefactor)], &entropy, sizeof(entropy));
+        BRSHA256_2(&passfactor, d, sizeof(d));
+        memset(d, 0, sizeof(d));
+    }
+    else passfactor = prefactor;
+    
+    len = 0;
+    entropy = 0;
+    prefactor = UINT256_ZERO;
+    return passfactor;
+}
+
+static UInt512 BRBIP38DeriveKey(const uint8_t passpoint[33], uint32_t addresshash, uint64_t entropy)
+{
+    UInt512 dk;
+    uint8_t salt[sizeof(addresshash) + sizeof(entropy)];
+    
+    *(uint32_t *)salt = addresshash;
+    *(uint64_t *)(salt + sizeof(addresshash)) = entropy; // salt = addresshash + entropy
+    
+    scrypt(&dk, sizeof(dk), passpoint, 33, salt, sizeof(salt), BIP38_SCRYPT_EC_N, BIP38_SCRYPT_EC_R, BIP38_SCRYPT_EC_P);
+    memset(salt, 0, sizeof(salt));
+    addresshash = 0;
+    entropy = 0;
+    return dk;
 }
 
 int BRBIP38KeyIsValid(const char *bip38Key)

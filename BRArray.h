@@ -31,7 +31,7 @@
 // growable arrays with type checking
 
 #define array_new(array, capacity) do {\
-    (array) = (void *)((size_t *)malloc((capacity)*sizeof(*(array)) + sizeof(size_t)*2) + 2);\
+    (array) = (void *)((size_t *)calloc(1, (capacity)*sizeof(*(array)) + sizeof(size_t)*2) + 2);\
     array_capacity(array) = (capacity);\
     array_count(array) = 0;\
 } while (0)

@@ -73,7 +73,7 @@ void BRTxInputSetScript(BRTxInput *input, const uint8_t *script, size_t scriptLe
 
 void BRTxInputSetSignature(BRTxInput *input, const uint8_t *signature, size_t sigLen)
 {
-    if (input->signature) array_free(signature);
+    if (input->signature) array_free(input->signature);
     array_new(input->signature, sigLen);
     array_add_array(input->signature, signature, sigLen);
     if (! input->address[0]) BRAddressFromScriptSig(input->address, sizeof(input->address), signature, sigLen);
@@ -123,13 +123,13 @@ static size_t BRTransactionData(BRTransaction *tx, uint8_t *data, size_t len, si
 
         if (in->signature && in->sigLen > 0 && subscriptIdx < tx->inCount) {
             off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), in->sigLen);
-            if (off + in->sigLen <= len) memcpy(&data[off], in->signature, in->sigLen);
+            if (data && off + in->sigLen <= len) memcpy(&data[off], in->signature, in->sigLen);
             off += in->sigLen;
         }
         else if (subscriptIdx == i && in->script && in->scriptLen > 0) {
             //TODO: to fully match the reference implementation, OP_CODESEPARATOR related checksig logic should go here
             off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), in->scriptLen);
-            if (off + in->scriptLen <= len) memcpy(&data[off], in->script, in->scriptLen);
+            if (data && off + in->scriptLen <= len) memcpy(&data[off], in->script, in->scriptLen);
             off += in->scriptLen;
 
         }
@@ -147,7 +147,7 @@ static size_t BRTransactionData(BRTransaction *tx, uint8_t *data, size_t len, si
         if (data && off + sizeof(uint64_t) <= len) *(uint64_t *)&data[off] = le64(out->amount);
         off += sizeof(uint64_t);
         off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), out->scriptLen);
-        if (off + out->scriptLen <= len) memcpy(&data[off], out->script, out->scriptLen);
+        if (data && off + out->scriptLen <= len) memcpy(&data[off], out->script, out->scriptLen);
         off += out->scriptLen;
     }
     
@@ -217,7 +217,6 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t len)
     }
     
     tx->lockTime = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)&buf[off]) : 0;
-    off += sizeof(uint32_t);
 
     if (tx->inCount > 0) {
         uint8_t data[BRTransactionData(tx, NULL, 0, SIZE_MAX)];
