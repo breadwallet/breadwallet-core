@@ -77,7 +77,7 @@ struct BRPeerContext {
     UInt256 *knownBlockHashes;
     BRSet *knownTxHashes, *currentBlockTxHashes;
     BRMerkleBlock *currentBlock;
-    int socketFd;
+    int socket;
     void *info;
     void (*connected)(void *info);
     void (*disconnected)(void *info, BRPeerError);
@@ -252,7 +252,7 @@ void BRPeerConnect(BRPeer *peer)
             serv_addr.sin_addr.s_addr = peer->address.u32[3]; // already network byte order
             serv_addr.sin_port = htons(peer->port);
 
-            ctx->socketFd = socket(AF_INET, SOCK_STREAM, 0);
+            ctx->socket = socket(AF_INET, SOCK_STREAM, 0);
             
             // XXXX do connect things and stuff
         }

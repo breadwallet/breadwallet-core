@@ -217,6 +217,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t len)
     }
     
     tx->lockTime = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)&buf[off]) : 0;
+    off += sizeof(uint32_t);
 
     if (tx->inCount > 0) {
         uint8_t data[BRTransactionData(tx, NULL, 0, SIZE_MAX)];

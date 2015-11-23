@@ -27,13 +27,14 @@
 #include "BRPeer.h"
 #include "BRPaymentProtocol.h"
 #include "BRInt.h"
+#include "BRList.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <arpa/inet.h>
 
-int BRTypesTests()
+int BRIntsTests()
 {
     // test endianess
     
@@ -52,6 +53,49 @@ int BRTypesTests()
     if (be64(x.u64) != 0x0102030405060708) r = 0;
     if (le64(x.u64) != 0x0807060504030201) r = 0;
     
+    return r;
+}
+
+inline static int compare_ints(void *info, void *a, void *b)
+{
+    if (*(int *)a < *(int *)b) return -1;
+    if (*(int *)a > *(int *)b) return 1;
+    return 0;
+}
+
+int BRListTests()
+{
+    // test singly linked list
+
+    int r = 1;
+    int *head = NULL, *item = NULL;
+    
+    list_new(head, 1);                   // 1
+    if (! head || *head != 1) r = 0;
+    list_insert_head(head, 2);           // 2->1
+    if (! head || *head != 2) r = 0;
+    list_insert_after(head, 3);          // 2->3->1
+    item = list_next(head);
+    if (! item || *item != 3) r = 0;
+    list_sort(head, NULL, compare_ints); // 1->2->3
+
+    for (item = head; item; item = list_next(item)) {
+        printf("%i->", *item);           // "1->2->3->"
+    }
+
+    if (! head || *head != 1) r = 0;
+    item = list_next(head);
+    if (! item || *item != 2) r = 0;
+    item = list_next_next(head);
+    if (! item || *item != 3) r = 0;
+    item = list_next(head);
+    list_rm_after(item);                 // 1->2
+    item = list_next(item);
+    if (item) r = 0;
+    list_rm_head(head);                  // 2
+    item = list_next(head);
+    if (item) r = 0;
+    list_free(head);
     return r;
 }
 
@@ -601,12 +645,26 @@ int BRPaymentProtocolTests()
     if (req->details->expires == 0 || req->details->expires >= time(NULL)) r = 0; // check that request is expired
     
     if (req) BRPaymentProtocolRequestFree(req);
+    
+    const char buf9[] = "jfkdlasjfalk;sjfal;jflsadjfla;s";
+    
+    req = BRPaymentProtocolRequestParse((const uint8_t *)buf9, sizeof(buf9) - 1);
+    
+    if (req) {
+        uint8_t buf0[BRPaymentProtocolRequestSerialize(req, NULL, 0)];
+
+        len = BRPaymentProtocolRequestSerialize(req, buf0, sizeof(buf0));
+        if (len > 0) r = 0; // test garbage input
+    }
+    
     return r;
 }
 
 int main(int argc, const char *argv[]) {
-    printf("BRTypesTests...           ");
-    printf("%s\n", (BRTypesTests()) ? "success" : "FAIL");
+    printf("BRIntsTests...            ");
+    printf("%s\n", (BRIntsTests()) ? "success" : "FAIL");
+    printf("BRListTests...            ");
+    printf("%s\n", (BRListTests()) ? "success" : "FAIL");
     printf("BRHashTests...            ");
     printf("%s\n", (BRHashTests()) ? "success" : "FAIL");
     printf("BRMerkleBlockTests...     ");

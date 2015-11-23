@@ -53,9 +53,7 @@
     array_count(array) = (count);\
 } while (0)
 
-#define array_first(array) ((array_count(array) > 0) ? (array)[0] : NULL)
-
-#define array_last(array) ((array_count(array) > 0) ? (array)[array_count(array) - 1] : NULL)
+#define array_last(array) ((array)[array_count(array) - 1])
 
 #define array_idx(array, item) (&(item) - (array))
 
