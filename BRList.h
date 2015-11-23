@@ -51,7 +51,7 @@
 //
 // note:
 // a head pointer initialized to NULL is equivalent to an empty linked list
-// list_insert_head() can be used without needing to call list_new() first
+// list_insert_head() can be used on it without needing to call list_new() first
 
 #define list_new(head, value) do {\
     (head) = calloc(1, sizeof(*(head)) + sizeof(void *));\
