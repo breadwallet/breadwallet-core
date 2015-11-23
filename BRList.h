@@ -27,7 +27,7 @@
 
 #include <stdlib.h>
 
-// singly linked list with type checking
+// singly-linked list with type checking
 //
 // example:
 //
@@ -48,6 +48,10 @@
 // list_rm_after(item);            // 1->2
 // list_rm_head(head);             // 2
 // list_free(head);                // free any remaining items
+//
+// note:
+// a head pointer initialized to NULL is equivalent to an empty linked list
+// list_insert_head() can be used without needing to call list_new() first
 
 #define list_new(head, value) do {\
     (head) = calloc(1, sizeof(*(head)) + sizeof(void *));\

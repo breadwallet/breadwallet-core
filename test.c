@@ -650,12 +650,10 @@ int BRPaymentProtocolTests()
     
     req = BRPaymentProtocolRequestParse((const uint8_t *)buf9, sizeof(buf9) - 1);
     
-    if (req) {
-        uint8_t buf0[BRPaymentProtocolRequestSerialize(req, NULL, 0)];
+    uint8_t buf0[(req) ? BRPaymentProtocolRequestSerialize(req, NULL, 0) : 0];
 
-        len = BRPaymentProtocolRequestSerialize(req, buf0, sizeof(buf0));
-        if (len > 0) r = 0; // test garbage input
-    }
+    len = (req) ? BRPaymentProtocolRequestSerialize(req, buf0, sizeof(buf0)) : 0;
+    if (len > 0) r = 0; // test garbage input
     
     return r;
 }
