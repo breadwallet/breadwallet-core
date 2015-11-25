@@ -38,7 +38,7 @@
 // list_new(head, 1);              // 1
 // list_insert_head(head, 2);      // 2->1
 // list_insert_after(head, 3);     // 2->3->1
-// list_sort(head, NULL, compare); // 1->2->3
+// list_sort(head, NULL, compare); // 1->2->3 (stable merge sort)
 //
 // for (item = head; item; item = list_next(item)) {
 //     printf("%i, ", *item);      // 1, 2, 3,
@@ -64,34 +64,34 @@
 
 #define _list_next(item, item_sz) (*((void **)((char *)(item) + (item_sz))))
 
-#define list_insert_after(item, value) do {\
-    void *_tmp = (item), *_nxt = list_next(item);\
-    list_new(item, value);\
-    list_next(item) = _nxt;\
-    _nxt = (item);\
-    (item) = _tmp;\
-    list_next(item) = _nxt;\
-} while(0)
-
 #define list_insert_head(head, value) do {\
-    void *_tmp = (head);\
+    void *_list_itm = (head);\
     list_new(head, value);\
-    list_next(head) = _tmp;\
+    list_next(head) = _list_itm;\
 } while(0)
 
-#define list_rm_after(item) do {\
-    void *_tmp = (item), *_nxt = NULL;\
-    (item) = list_next(item);\
-    if (item)\
-        _nxt = list_next(item), free(item);\
-    (item) = _tmp;\
-    list_next(item) = _nxt;\
+#define list_insert_after(item, value) do {\
+    void *_list_itm = (item), *_list_nxt = list_next(item);\
+    list_new(item, value);\
+    list_next(item) = _list_nxt;\
+    _list_nxt = (item);\
+    (item) = _list_itm;\
+    list_next(item) = _list_nxt;\
 } while(0)
 
 #define list_rm_head(head) do {\
-    void *_tmp = (head);\
+    void *_list_itm = (head);\
     (head) = list_next(head);\
-    free(_tmp);\
+    free(_list_itm);\
+} while(0)
+
+#define list_rm_after(item) do {\
+    void *_list_itm = (item), *_list_nxt = NULL;\
+    (item) = list_next(item);\
+    if (item)\
+        _list_nxt = list_next(item), free(item);\
+    (item) = _list_itm;\
+    list_next(item) = _list_nxt;\
 } while(0)
 
 #define list_free(head) do {\

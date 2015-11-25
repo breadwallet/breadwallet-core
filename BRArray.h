@@ -77,6 +77,14 @@
     (array)[(idx)] = (item);\
 } while (0)
 
+#define array_insert_array(array, idx, other_array, count) do {\
+    if (array_count(array) + (count) > array_capacity(array))\
+        array_set_capacity(array, (array_count(array) + (count))*3/2;\
+    memmove((array) + (idx) + (count), (array) + (idx), (array_count(array) - (idx))*sizeof(*(array)));\
+    memcpy((array) + (idx), (other_array), sizeof(*(array))*(count));\
+    array_count(array) += (count);\
+} while (0)
+
 #define array_rm(array, idx) do {\
     memmove((array) + (idx), (array) + (idx) + 1, (--array_count(array) - (idx))*sizeof(*(array)));\
 } while (0)

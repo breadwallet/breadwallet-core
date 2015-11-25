@@ -65,7 +65,7 @@ inline static int compare_ints(void *info, void *a, void *b)
 
 int BRListTests()
 {
-    // test singly linked list
+    // test singly-linked list
 
     int r = 1;
     int *head = NULL, *item = NULL;
