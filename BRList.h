@@ -58,7 +58,7 @@
     *(head) = (value);\
 } while(0)
 
-#define list_next(item) (*((void **)(item) - 1))
+#define list_next(item) (((void **)(item))[-1])
 
 #define list_insert_head(head, value) do {\
     void *_list_tmp = (head);\
@@ -77,13 +77,13 @@
 #define list_rm_head(head) do {\
     void *_list_tmp = (head);\
     (head) = list_next(_list_tmp);\
-    free((void **)_list_tmp - 1);\
+    free(&list_next(_list_tmp));\
 } while(0)
 
 #define list_rm_after(item) do {\
     void *_list_tmp = list_next(item);\
     if (_list_tmp)\
-        list_next(item) = list_next(_list_tmp), free((void **)_list_tmp - 1);\
+        list_next(item) = list_next(_list_tmp), free(&list_next(_list_tmp));\
 } while(0)
 
 #define list_free(head) do {\
