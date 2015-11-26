@@ -69,12 +69,11 @@
 } while(0)
 
 #define list_insert_after(item, value) do {\
-    void *_list_item = (item), *_list_next = list_next(item);\
+    void *_list_item = (item);\
     list_new(item, value);\
-    list_next(item) = _list_next;\
-    _list_next = (item);\
+    list_next(item) = list_next(_list_item);\
+    list_next(_list_item) = (item);\
     (item) = _list_item;\
-    list_next(item) = _list_next;\
 } while(0)
 
 #define list_rm_head(head) do {\
