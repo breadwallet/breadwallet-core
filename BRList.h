@@ -63,29 +63,29 @@
 #define list_next_next(item) list_next(list_next(item))
 
 #define list_insert_head(head, value) do {\
-    void *_list_item = (head);\
+    void *_list_tmp = (head);\
     list_new(head, value);\
-    list_next(head) = _list_item;\
+    list_next(head) = _list_tmp;\
 } while(0)
 
 #define list_insert_after(item, value) do {\
-    void *_list_item = (item);\
+    void *_list_tmp = (item);\
     list_new(item, value);\
-    list_next(item) = list_next(_list_item);\
-    list_next(_list_item) = (item);\
-    (item) = _list_item;\
+    list_next(item) = list_next(_list_tmp);\
+    list_next(_list_tmp) = (item);\
+    (item) = _list_tmp;\
 } while(0)
 
 #define list_rm_head(head) do {\
-    void *_list_item = (head);\
-    (head) = list_next(head);\
-    free((void **)_list_item - 1);\
+    void *_list_tmp = (head);\
+    (head) = list_next(_list_tmp);\
+    free((void **)_list_tmp - 1);\
 } while(0)
 
 #define list_rm_after(item) do {\
-    void *_list_next = list_next(item);\
-    if (_list_next)\
-        list_next(item) = list_next(_list_next), free((void **)_list_next - 1);\
+    void *_list_tmp = list_next(item);\
+    if (_list_tmp)\
+        list_next(item) = list_next(_list_tmp), free((void **)_list_tmp - 1);\
 } while(0)
 
 #define list_free(head) do {\
