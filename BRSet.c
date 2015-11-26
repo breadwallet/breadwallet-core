@@ -45,7 +45,7 @@ struct _BRSet {
     int (*eq)(const void *, const void *); // equality function
 };
 
-void BRSetInit(BRSet *set, size_t (*hash)(const void *), int (*eq)(const void *, const void *), size_t capacity)
+static void BRSetInit(BRSet *set, size_t (*hash)(const void *), int (*eq)(const void *, const void *), size_t capacity)
 {
     size_t i = 0;
     

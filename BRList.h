@@ -54,44 +54,39 @@
 // list_insert_head() can be used on it without needing to call list_new() first
 
 #define list_new(head, value) do {\
-    (head) = calloc(1, sizeof(*(head)) + sizeof(void *));\
+    (head) = (void *)((void **)calloc(1, sizeof(void **) + sizeof(*(head))) + 1);\
     *(head) = (value);\
 } while(0)
 
-#define list_next(item) _list_next(item, sizeof(*(item)))
+#define list_next(item) (*((void **)(item) - 1))
 
-#define list_next_next(item) _list_next(_list_next(item, sizeof(*(item))), sizeof(*(item)))
-
-#define _list_next(item, item_sz) (*((void **)((char *)(item) + (item_sz))))
+#define list_next_next(item) list_next(list_next(item))
 
 #define list_insert_head(head, value) do {\
-    void *_list_itm = (head);\
+    void *_list_item = (head);\
     list_new(head, value);\
-    list_next(head) = _list_itm;\
+    list_next(head) = _list_item;\
 } while(0)
 
 #define list_insert_after(item, value) do {\
-    void *_list_itm = (item), *_list_nxt = list_next(item);\
+    void *_list_item = (item), *_list_next = list_next(item);\
     list_new(item, value);\
-    list_next(item) = _list_nxt;\
-    _list_nxt = (item);\
-    (item) = _list_itm;\
-    list_next(item) = _list_nxt;\
+    list_next(item) = _list_next;\
+    _list_next = (item);\
+    (item) = _list_item;\
+    list_next(item) = _list_next;\
 } while(0)
 
 #define list_rm_head(head) do {\
-    void *_list_itm = (head);\
+    void *_list_item = (head);\
     (head) = list_next(head);\
-    free(_list_itm);\
+    free((void **)_list_item - 1);\
 } while(0)
 
 #define list_rm_after(item) do {\
-    void *_list_itm = (item), *_list_nxt = NULL;\
-    (item) = list_next(item);\
-    if (item)\
-        _list_nxt = list_next(item), free(item);\
-    (item) = _list_itm;\
-    list_next(item) = _list_nxt;\
+    void *_list_next = list_next(item);\
+    if (_list_next)\
+        list_next(item) = list_next(_list_next), free((void **)_list_next - 1);\
 } while(0)
 
 #define list_free(head) do {\
@@ -100,41 +95,41 @@
 } while(0)
 
 #define list_sort(head, info, comparator) do {\
-    (head) = _list_sort((head), (info), (comparator), sizeof(*(head)));\
+    (head) = _list_sort(head, info, comparator);\
 } while(0)
 
-inline static void *_list_sort(void *head, void *info, int (*comparator)(void *info, void *a, void *b), size_t item_sz)
+inline static void *_list_sort(void *head, void *info, int (*comparator)(void *info, void *a, void *b))
 {
-    if (! head || ! _list_next(head, item_sz)) return head;
+    if (! head || ! list_next(head)) return head;
 
-    char node[item_sz + sizeof(void *)];
-    void *item = node, *middle = head, *end = head, *split;
+    void *node[1];
+    void *item = node + 1, *middle = head, *end = head, *split;
     
-    while (_list_next(end, item_sz) && _list_next(_list_next(end, item_sz), item_sz)) {
-        middle = _list_next(middle, item_sz);
-        end = _list_next(_list_next(end, item_sz), item_sz);
+    while (list_next(end) && list_next_next(end)) {
+        middle = list_next(middle);
+        end = list_next_next(end);
     }
 
-    split = _list_next(middle, item_sz);
-    _list_next(middle, item_sz) = NULL;
-    head = _list_sort(head, info, comparator, item_sz);
-    split = _list_sort(split, info, comparator, item_sz);
+    split = list_next(middle);
+    list_next(middle) = NULL;
+    list_sort(head, info, comparator);
+    list_sort(split, info, comparator);
     
     while (head && split) {
         if (comparator(info, head, split) <= 0) {
-            _list_next(item, item_sz) = head;
-            head = _list_next(head, item_sz);
+            list_next(item) = head;
+            head = list_next(head);
         }
         else {
-            _list_next(item, item_sz) = split;
-            split = _list_next(split, item_sz);
+            list_next(item) = split;
+            split = list_next(split);
         }
         
-        item = _list_next(item, item_sz);
+        item = list_next(item);
     }
     
-    _list_next(item, item_sz) = (head) ? head : split;
-    return _list_next(node, item_sz);
+    list_next(item) = (head) ? head : split;
+    return node[0];
 }
 
 #endif // BRList_h
