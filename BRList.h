@@ -60,8 +60,6 @@
 
 #define list_next(item) (*((void **)(item) - 1))
 
-#define list_next_next(item) list_next(list_next(item))
-
 #define list_insert_head(head, value) do {\
     void *_list_tmp = (head);\
     list_new(head, value);\
@@ -104,9 +102,9 @@ inline static void *_list_sort(void *head, void *info, int (*comparator)(void *i
     void *node[1];
     void *item = node + 1, *middle = head, *end = head, *split;
     
-    while (list_next(end) && list_next_next(end)) {
+    while (list_next(end) && list_next(list_next(end))) {
         middle = list_next(middle);
-        end = list_next_next(end);
+        end = list_next(list_next(end));
     }
 
     split = list_next(middle);

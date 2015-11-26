@@ -86,7 +86,7 @@ int BRListTests()
     if (! head || *head != 1) r = 0;
     item = list_next(head);
     if (! item || *item != 2) r = 0;
-    item = list_next_next(head);
+    item = list_next(list_next(head));
     if (! item || *item != 3) r = 0;
     item = list_next(head);
     list_rm_after(item);                 // 1->2
