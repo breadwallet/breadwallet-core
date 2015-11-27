@@ -65,6 +65,7 @@ void BRTxInputSetAddress(BRTxInput *input, const char *address)
 void BRTxInputSetScript(BRTxInput *input, const uint8_t *script, size_t scriptLen)
 {
     if (input->script) array_free(input->script);
+    input->scriptLen = scriptLen;
     array_new(input->script, scriptLen);
     array_add_array(input->script, script, scriptLen);
     input->address[0] = '\0';
@@ -308,15 +309,16 @@ int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t count)
     size_t i, j, len;
     
     for (i = 0, j = 0; i < count; i++) {
-        if (BRKeyAddress(&keys[j], addrs[j].s, sizeof(addrs[j])) > 0) j++;
+        if (BRKeyAddress(&keys[i], addrs[j].s, sizeof(addrs[j])) > 0) j++;
     }
     
     count = j;
 
-    for (i = 0, j = 0; i < tx->inCount; i++) {
+    for (i = 0; i < tx->inCount; i++) {
         BRTxInput *in = &tx->inputs[i];
         
         if (! BRAddressFromScriptPubKey(address.s, sizeof(address), in->script, in->scriptLen)) continue;
+        j = 0;
         while (j < count && ! BRAddressEq(&addrs[j], &address)) j++;
         if (j >= count) continue;
 
@@ -327,7 +329,7 @@ int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t count)
         len = BRTransactionData(tx, data, sizeof(data), i);
         BRSHA256_2(&hash, data, len);
         len = BRKeySign(&keys[j], sig, sizeof(sig) - 1, hash);
-        if (len == 0) continue;
+        if (len == 0 || len >= OP_PUSHDATA1) continue;
         sig[len++] = SIGHASH_ALL;
         if (in->signature) array_free(in->signature);
         array_new(in->signature, 1 + len + 34);
@@ -337,6 +339,7 @@ int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t count)
         
         if (len >= 2 && *elems[len - 2] == OP_EQUALVERIFY) { // pay-to-pubkey-hash scriptSig
             len = BRKeyPubKey(&keys[j], pubKey, sizeof(pubKey));
+            if (len == 0 || len >= OP_PUSHDATA1) continue;
             array_add(in->signature, len);
             array_add_array(in->signature, pubKey, len);
         }
@@ -344,7 +347,6 @@ int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t count)
         in->sigLen = array_count(in->signature);
     }
     
-    for (i = 0; i < count; i++) BRKeyClean(&keys[i]);
     if (! BRTransactionIsSigned(tx)) return 0;
     
     uint8_t data[BRTransactionData(tx, NULL, 0, SIZE_MAX)];

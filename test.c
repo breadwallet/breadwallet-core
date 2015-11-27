@@ -24,6 +24,7 @@
 
 #include "BRHash.h"
 #include "BRMerkleBlock.h"
+#include "BRAddress.h"
 #include "BRPeer.h"
 #include "BRPaymentProtocol.h"
 #include "BRInt.h"
@@ -255,6 +256,98 @@ int BRHashTests()
     if (! UInt160Eq(*(UInt160 *)"\x0b\xdc\x9d\x2d\x25\x6b\x3e\xe9\xda\xae\x34\x7b\xe6\xf4\xdc\x83\x5a\x46\x7f\xfe",
                     *(UInt160 *)md)) r = 0;
 
+    return r;
+}
+
+int BRAddressTests()
+{
+    int r = 1;
+    UInt256 secret = *(UInt256 *)"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x01";
+    BRKey k;
+    BRAddress addr, addr2;
+    
+    BRKeySetSecret(&k, &secret, 1);
+    if (! BRKeyAddress(&k, addr.s, sizeof(addr))) r = 0;
+
+    uint8_t script[BRAddressScriptPubKey(NULL, 0, addr.s)];
+    size_t scriptLen = BRAddressScriptPubKey(script, sizeof(script), addr.s);
+    
+    BRAddressFromScriptPubKey(addr2.s, sizeof(addr2), script, scriptLen);
+    if (! BRAddressEq(&addr, &addr2)) r = 0;
+    
+    // TODO: test BRAddressFromScriptSig()
+    
+    return r;
+}
+
+int BRTransactionTests()
+{
+    int r = 1;
+    UInt256 secret = *(UInt256 *)"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x01";
+    BRKey k;
+    BRAddress address;
+    
+    BRKeySetSecret(&k, &secret, 1);
+    BRKeyAddress(&k, address.s, sizeof(address));
+
+    uint8_t script[BRAddressScriptPubKey(NULL, 0, address.s)];
+    size_t scriptLen = BRAddressScriptPubKey(script, sizeof(script), address.s);
+    BRTransaction *tx = BRTransactionNew();
+    
+    BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddOutput(tx, 100000000, script, scriptLen);
+    BRTransactionAddOutput(tx, 4900000000, script, scriptLen);
+    BRTransactionSign(tx, &k, 1);
+    if (! BRTransactionIsSigned(tx)) r = 0;
+
+    uint8_t buf[BRTransactionSerialize(tx, NULL, 0)];
+    size_t len = BRTransactionSerialize(tx, buf, sizeof(buf));
+
+    if (tx) BRTransactionFree(tx);
+    tx = BRTransactionParse(buf, len);
+
+    uint8_t buf2[BRTransactionSerialize(tx, NULL, 0)];
+    size_t len2 = BRTransactionSerialize(tx, buf2, sizeof(buf2));
+    
+    if (len != len2 || memcmp(buf, buf2, len) != 0) r = 0;
+    if (tx) BRTransactionFree(tx);
+    
+    tx = BRTransactionNew();
+    BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
+    BRTransactionAddOutput(tx, 1000000, script, scriptLen);
+    BRTransactionSign(tx, &k, 1);
+    if (! BRTransactionIsSigned(tx)) r = 0;
+
+    uint8_t buf3[BRTransactionSerialize(tx, NULL, 0)];
+    size_t len3 = BRTransactionSerialize(tx, buf3, sizeof(buf3));
+    
+    if (tx) BRTransactionFree(tx);
+    tx = BRTransactionParse(buf3, len3);
+    
+    uint8_t buf4[BRTransactionSerialize(tx, NULL, 0)];
+    size_t len4 = BRTransactionSerialize(tx, buf4, sizeof(buf4));
+    
+    if (len3 != len4 || memcmp(buf3, buf4, len3) != 0) r = 0;
+    if (tx) BRTransactionFree(tx);
+    
     return r;
 }
 
@@ -665,6 +758,10 @@ int main(int argc, const char *argv[]) {
     printf("%s\n", (BRListTests()) ? "success" : "FAIL");
     printf("BRHashTests...            ");
     printf("%s\n", (BRHashTests()) ? "success" : "FAIL");
+    printf("BRAddressTests...         ");
+    printf("%s\n", (BRAddressTests()) ? "success" : "FAIL");
+    printf("BRTransactionTests...     ");
+    printf("%s\n", (BRTransactionTests()) ? "success" : "FAIL");
     printf("BRMerkleBlockTests...     ");
     printf("%s\n", (BRMerkleBlockTests()) ? "success" : "FAIL");
     printf("BRPaymentProtocolTests... ");
