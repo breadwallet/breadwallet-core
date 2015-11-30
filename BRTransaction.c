@@ -106,7 +106,7 @@ void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scrip
     }
 }
 
-static size_t BRTransactionData(BRTransaction *tx, uint8_t *data, size_t len, size_t subscriptIdx)
+static size_t BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t len, size_t subscriptIdx)
 {
     size_t off = 0;
 
@@ -277,7 +277,7 @@ void BRTransactionShuffleOutputs(BRTransaction *tx)
 }
 
 // size in bytes if signed, or estimated size assuming compact pubkey sigs
-size_t BRTransactionSize(BRTransaction *tx)
+size_t BRTransactionSize(const BRTransaction *tx)
 {
     static const size_t sigSize = 149; // signature size using a compact pubkey
 //    static const size_t sigSize = 181; // signature size using a non-compact pubkey

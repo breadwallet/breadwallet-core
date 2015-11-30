@@ -632,15 +632,46 @@ int BRWalletTransactionIsValid(BRWallet *wallet, const BRTransaction *tx)
     return r;
 }
 
+// returns true if all sequence numbers are final (otherwise transaction can be replaced-by-fee), if no outputs are
+// dust, transaction size is not over TX_MAX_SIZE, timestamp is greater than 0, and no inputs are known to be unverfied
+int BRWalletTransactionIsVerified(BRWallet *wallet, const BRTransaction *tx)
+{
+    BRTransaction *t;
+    int r = 1;
+
+    if (tx->blockHeight == TX_UNCONFIRMED) { // only unconfirmed transactions can be unverified
+        if (tx->timestamp == 0) r = 0; // a timestamp of 0 indicates transaction is to remain unverified
+        if (r && BRTransactionSize(tx) > TX_MAX_SIZE) r = 0; // check transaction size is under TX_MAX_SIZE
+        
+        for (size_t i = 0; r && i < tx->inCount; i++) { // check that all sequence numbers are final
+            if (tx->inputs[i].sequence != TXIN_SEQUENCE) r = 0;
+        }
+        
+        for (size_t i = 0; r && i < tx->outCount; i++) { // check that no outputs are dust
+            if (tx->outputs[i].amount < TX_MIN_OUTPUT_AMOUNT) r = 0;
+        }
+        
+        if (r) { // check if any inputs are known to be unverified
+            BRRWLockRead(&wallet->lock);
+        
+            for (size_t i = 0; r && i < tx->inCount; i++) {
+                t = BRSetGet(wallet->allTx, &tx->inputs[i].txHash);
+                if (t && ! BRWalletTransactionIsVerified(wallet, t, blockHeight)) r = 0;
+            }
+            
+            BRRWLockUnlock(&wallet->lock);
+        }
+    }
+    
+    return r;
+}
+
 // returns true if transaction won't be valid by blockHeight + 1 or within the next 10 minutes
 int BRWalletTransactionIsPostdated(BRWallet *wallet, const BRTransaction *tx, uint32_t blockHeight)
 {
     BRTransaction *t;
     int r = 0;
 
-    // TODO: XXX consider marking any unconfirmed transaction with a non-final sequence number as postdated
-    // TODO: XXX notify that transactions with dust outputs are unlikely to confirm
-    
     if (tx->blockHeight == TX_UNCONFIRMED) { // only unconfirmed transactions can be postdated
         BRRWLockRead(&wallet->lock);
         
@@ -662,7 +693,8 @@ int BRWalletTransactionIsPostdated(BRWallet *wallet, const BRTransaction *tx, ui
     return r;
 }
 
-// set the block height and timestamp for the given transactions
+// set the block heights and timestamps for the given transactions, use a height of TX_UNCONFIRMED and timestamp of 0 to
+// indicate a transaction and it's dependents should remain marked as unverified (not 0-conf safe)
 void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHashes[], size_t count, uint32_t blockHeight,
                                 uint32_t timestamp)
 {
