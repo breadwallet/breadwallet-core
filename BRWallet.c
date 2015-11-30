@@ -408,17 +408,33 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
     
     BRRWLockRead(&wallet->lock);
     
-    //TODO: make sure transaction is less than TX_MAX_SIZE
     //TODO: use up all UTXOs for all used addresses to avoid leaving funds in addresses whose public key is revealed
     //TODO: avoid combining addresses in a single transaction when possible to reduce information leakage
     //TODO: use any UTXOs received from output addresses to mitigate an attacker double spending and requesting a refund
-    for (i = 0; i < array_count(wallet->utxos); i++) {
+    for (i = 0; count > 0 && i < array_count(wallet->utxos); i++) {
         o = &wallet->utxos[i];
         tx = BRSetGet(wallet->allTx, o);
         if (! tx) continue;
 
         BRTransactionAddInput(transaction, tx->txHash, o->n, tx->outputs[o->n].script, tx->outputs[o->n].scriptLen,
                               NULL, 0, TXIN_SEQUENCE);
+        
+        if (BRTransactionSize(transaction) + 34 > TX_MAX_SIZE) { // transaction size-in-bytes too large
+            BRTransactionFree(transaction);
+        
+            if (outputs[count - 1].amount > amount + feeAmount + TX_MIN_OUTPUT_AMOUNT - balance) {
+                BRTxOutput newOutputs[count];
+                
+                memcpy(newOutputs, outputs, sizeof(*outputs)*count);
+                newOutputs[count - 1].amount -= amount + feeAmount - balance;
+                transaction = BRWalletCreateTxForOutputs(wallet, newOutputs, count);
+            }
+            else transaction = BRWalletCreateTxForOutputs(wallet, outputs, count - 1);
+
+            balance = amount = feeAmount = 0;
+            break;
+        }
+        
         balance += tx->outputs[o->n].amount;
         
         if (tx->blockHeight == TX_UNCONFIRMED && BRWalletAmountSentByTx(wallet, tx) == 0) {

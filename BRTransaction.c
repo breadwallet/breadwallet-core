@@ -53,42 +53,62 @@ uint32_t BRRand(uint32_t upperBound)
 
 void BRTxInputSetAddress(BRTxInput *input, const char *address)
 {
-    memset(input->address, 0, sizeof(input->address));
-    strncpy(input->address, address, sizeof(input->address) - 1);
     if (input->script) array_free(input->script);
-    input->scriptLen = BRAddressScriptPubKey(NULL, 0, address);
-    array_new(input->script, input->scriptLen);
-    array_set_count(input->script, input->scriptLen);
-    BRAddressScriptPubKey(input->script, input->scriptLen, address);
+    input->script = NULL;
+    input->scriptLen = 0;
+    memset(input->address, 0, sizeof(input->address));
+
+    if (address) {
+        strncpy(input->address, address, sizeof(input->address) - 1);
+        input->scriptLen = BRAddressScriptPubKey(NULL, 0, address);
+        array_new(input->script, input->scriptLen);
+        array_set_count(input->script, input->scriptLen);
+        BRAddressScriptPubKey(input->script, input->scriptLen, address);
+    }
 }
 
 void BRTxInputSetScript(BRTxInput *input, const uint8_t *script, size_t scriptLen)
 {
     if (input->script) array_free(input->script);
-    input->scriptLen = scriptLen;
-    array_new(input->script, scriptLen);
-    array_add_array(input->script, script, scriptLen);
-    input->address[0] = '\0';
-    BRAddressFromScriptPubKey(input->address, sizeof(input->address), script, scriptLen);
+    input->script = NULL;
+    input->scriptLen = 0;
+    memset(input->address, 0, sizeof(input->address));
+    
+    if (script) {
+        input->scriptLen = scriptLen;
+        array_new(input->script, scriptLen);
+        array_add_array(input->script, script, scriptLen);
+        BRAddressFromScriptPubKey(input->address, sizeof(input->address), script, scriptLen);
+    }
 }
 
 void BRTxInputSetSignature(BRTxInput *input, const uint8_t *signature, size_t sigLen)
 {
     if (input->signature) array_free(input->signature);
-    array_new(input->signature, sigLen);
-    array_add_array(input->signature, signature, sigLen);
-    if (! input->address[0]) BRAddressFromScriptSig(input->address, sizeof(input->address), signature, sigLen);
+    input->signature = NULL;
+    input->sigLen = 0;
+    
+    if (signature) {
+        array_new(input->signature, sigLen);
+        array_add_array(input->signature, signature, sigLen);
+        if (! input->address[0]) BRAddressFromScriptSig(input->address, sizeof(input->address), signature, sigLen);
+    }
 }
 
 void BRTxOutputSetAddress(BRTxOutput *output, const char *address)
 {
-    memset(output->address, 0, sizeof(output->address));
-    strncpy(output->address, address, sizeof(output->address));
     if (output->script) array_free(output->script);
-    output->scriptLen = BRAddressScriptPubKey(NULL, 0, address);
-    array_new(output->script, output->scriptLen);
-    array_set_count(output->script, output->scriptLen);
-    BRAddressScriptPubKey(output->script, output->scriptLen, address);
+    output->script = NULL;
+    output->scriptLen = 0;
+    memset(output->address, 0, sizeof(output->address));
+
+    if (address) {
+        strncpy(output->address, address, sizeof(output->address));
+        output->scriptLen = BRAddressScriptPubKey(NULL, 0, address);
+        array_new(output->script, output->scriptLen);
+        array_set_count(output->script, output->scriptLen);
+        BRAddressScriptPubKey(output->script, output->scriptLen, address);
+    }
 }
 
 void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scriptLen)
@@ -96,7 +116,7 @@ void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scrip
     if (output->script) array_free(output->script);
     output->script = NULL;
     output->scriptLen = 0;
-    output->address[0] = '\0';
+    memset(output->address, 0, sizeof(output->address));
 
     if (script) {
         array_new(output->script, scriptLen);
