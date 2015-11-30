@@ -672,7 +672,7 @@ int BRWalletTransactionIsVerified(BRWallet *wallet, const BRTransaction *tx)
         
             for (size_t i = 0; r && i < tx->inCount; i++) {
                 t = BRSetGet(wallet->allTx, &tx->inputs[i].txHash);
-                if (t && ! BRWalletTransactionIsVerified(wallet, t, blockHeight)) r = 0;
+                if (t && ! BRWalletTransactionIsVerified(wallet, t)) r = 0;
             }
             
             BRRWLockUnlock(&wallet->lock);
