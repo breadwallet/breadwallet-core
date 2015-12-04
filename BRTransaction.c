@@ -89,6 +89,7 @@ void BRTxInputSetSignature(BRTxInput *input, const uint8_t *signature, size_t si
     input->sigLen = 0;
     
     if (signature) {
+        input->sigLen = sigLen;
         array_new(input->signature, sigLen);
         array_add_array(input->signature, signature, sigLen);
         if (! input->address[0]) BRAddressFromScriptSig(input->address, sizeof(input->address), signature, sigLen);
@@ -119,9 +120,9 @@ void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scrip
     memset(output->address, 0, sizeof(output->address));
 
     if (script) {
+        output->scriptLen = scriptLen;
         array_new(output->script, scriptLen);
         array_add_array(output->script, script, scriptLen);
-        output->scriptLen = scriptLen;
         BRAddressFromScriptPubKey(output->address, sizeof(output->address), script, scriptLen);
     }
 }

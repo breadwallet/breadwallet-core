@@ -26,6 +26,7 @@
 #define BRHash_h
 
 #include <stddef.h>
+#include <stdint.h>
 
 #define RMD160_DIGEST_LENGTH (160/8)
 
