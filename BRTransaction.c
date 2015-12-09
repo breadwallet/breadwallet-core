@@ -300,11 +300,9 @@ void BRTransactionShuffleOutputs(BRTransaction *tx)
 // size in bytes if signed, or estimated size assuming compact pubkey sigs
 size_t BRTransactionSize(const BRTransaction *tx)
 {
-    static const size_t sigSize = 149; // signature size using a compact pubkey
-//    static const size_t sigSize = 181; // signature size using a non-compact pubkey
-    
     if (! UInt256IsZero(tx->txHash)) return BRTransactionData(tx, NULL, 0, SIZE_MAX);
-    return 8 + BRVarIntSize(tx->inCount) + tx->inCount*sigSize + BRVarIntSize(tx->outCount) + tx->outCount*34;
+    return 8 + BRVarIntSize(tx->inCount) + tx->inCount*TX_INPUT_SIZE + BRVarIntSize(tx->outCount) +
+           tx->outCount*TX_OUTPUT_SIZE;
 }
 
 // minimum transaction fee needed for tx to relay across the bitcoin network

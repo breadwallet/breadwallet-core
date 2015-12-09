@@ -410,7 +410,8 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
     
     //TODO: use up all UTXOs for all used addresses to avoid leaving funds in addresses whose public key is revealed
     //TODO: avoid combining addresses in a single transaction when possible to reduce information leakage
-    //TODO: use any UTXOs received from output addresses to mitigate an attacker double spending and requesting a refund
+    //TODO: use up UTXOs received from any of the output scripts that this transaction sends funds to, to mitigate an
+    //      attacker double spending and requesting a refund
     for (i = 0; count > 0 && i < array_count(wallet->utxos); i++) {
         o = &wallet->utxos[i];
         tx = BRSetGet(wallet->allTx, o);
@@ -419,17 +420,22 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
         BRTransactionAddInput(transaction, tx->txHash, o->n, tx->outputs[o->n].script, tx->outputs[o->n].scriptLen,
                               NULL, 0, TXIN_SEQUENCE);
         
-        if (BRTransactionSize(transaction) + 34 > TX_MAX_SIZE) { // transaction size-in-bytes too large
+        if (BRTransactionSize(transaction) + TX_OUTPUT_SIZE > TX_MAX_SIZE) { // transaction size-in-bytes too large
             BRTransactionFree(transaction);
+            transaction = NULL;
+        
+            // check for sufficient total funds before building a smaller transaction
+            if (wallet->balance < amount + BRWalletFeeForTxSize(wallet, 10 + array_count(wallet->utxos)*TX_INPUT_SIZE +
+                                                                (count + 1)*TX_OUTPUT_SIZE + cpfpSize)) break;
         
             if (outputs[count - 1].amount > amount + feeAmount + TX_MIN_OUTPUT_AMOUNT - balance) {
                 BRTxOutput newOutputs[count];
                 
                 memcpy(newOutputs, outputs, sizeof(*outputs)*count);
-                newOutputs[count - 1].amount -= amount + feeAmount - balance;
+                newOutputs[count - 1].amount -= amount + feeAmount - balance; // reduce last output amount
                 transaction = BRWalletCreateTxForOutputs(wallet, newOutputs, count);
             }
-            else transaction = BRWalletCreateTxForOutputs(wallet, outputs, count - 1);
+            else transaction = BRWalletCreateTxForOutputs(wallet, outputs, count - 1); // remove last output
 
             balance = amount = feeAmount = 0;
             break;
@@ -448,11 +454,11 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
     
     BRRWLockUnlock(&wallet->lock);
     
-    if (balance < amount + feeAmount) { // insufficient funds
+    if (transaction && balance < amount + feeAmount) { // insufficient funds
         BRTransactionFree(transaction);
         transaction = NULL;
     }
-    else if (balance - (amount + feeAmount) >= TX_MIN_OUTPUT_AMOUNT) { // add change output
+    else if (transaction && balance - (amount + feeAmount) >= TX_MIN_OUTPUT_AMOUNT) { // add change output
         BRAddress addr = BRWalletChangeAddress(wallet);
         uint8_t script[BRAddressScriptPubKey(NULL, 0, addr.s)];
         size_t scriptLen = BRAddressScriptPubKey(script, sizeof(script), addr.s);
