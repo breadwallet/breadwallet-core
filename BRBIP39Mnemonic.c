@@ -26,7 +26,6 @@
 #include "BRHash.h"
 #include "BRInt.h"
 #include <string.h>
-#include <stdio.h>
 
 // returns number of bytes written to phrase including NULL terminator, or size needed if phrase is NULL
 size_t BRBIP39Encode(char *phrase, size_t phraseLen, const char *wordList[], const uint8_t *data, size_t dataLen)
