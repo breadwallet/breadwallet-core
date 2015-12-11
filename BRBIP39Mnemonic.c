@@ -26,6 +26,7 @@
 #include "BRHash.h"
 #include "BRInt.h"
 #include <string.h>
+#include <stdio.h>
 
 // returns number of bytes written to phrase including NULL terminator, or size needed if phrase is NULL
 size_t BRBIP39Encode(char *phrase, size_t phraseLen, const char *wordList[], const uint8_t *data, size_t dataLen)
@@ -52,7 +53,7 @@ size_t BRBIP39Encode(char *phrase, size_t phraseLen, const char *wordList[], con
     word = NULL;
     x = 0;
     memset(buf, 0, sizeof(buf));
-    return (! phrase || len <= phraseLen) ? len : 0;
+    return (! phrase || len + 1 <= phraseLen) ? len + 1 : 0;
 }
 
 // returns number of bytes written to data, or size needed if data is NULL
@@ -64,34 +65,43 @@ size_t BRBIP39Decode(uint8_t *data, size_t dataLen, const char *wordList[], cons
     size_t r = 0;
 
     while (word && *word && count < 24) {
-        for (i = 0, idx[count] = INT32_MAX; idx[count] == INT32_MAX && i < BIP39_WORDLIST_COUNT; i++) {
-            if (strncmp(word, wordList[i], strlen(wordList[i]) + 1) == 0) idx[count] = i; // not fast, but simple, works
+        for (i = 0, idx[count] = INT32_MAX; i < BIP39_WORDLIST_COUNT; i++) { // not fast, but simple and works
+            if (strncmp(word, wordList[i], strlen(wordList[i])) != 0 ||
+                (word[strlen(wordList[i])] != ' ' && word[strlen(wordList[i])] != '\0')) continue;
+            idx[count] = i;
+            break;
         }
         
         if (idx[count] == INT32_MAX) break; // phrase contains unknown word
         count++;
-        r = count*4/3;
         word = strchr(word, ' ');
         if (word) word++;
     }
 
-    if ((count % 3) != 0 || (word && *word)) r = 0; // phrase has wrong number of words
-    if (data && dataLen < r) r = 0; // not enough space to write to data
+    if ((count % 3) == 0 && (! word || *word == '\0')) { // check that phrase has correct number of words
+        uint8_t buf[(count*11 + 7)/8];
 
-    for (i = 0; i < (count*11 + 7)/8; i++) {
-        x = idx[i*8/11];
-        y = (i*8/11 + 1 < count) ? idx[i*8/11 + 1] : 0;
-        b = ((x*BIP39_WORDLIST_COUNT + y) >> ((i*8/11 + 2)*11 - (i + 1)*8)) & 0xff;
-        if (data && i < r) data[i] = b;
-    }
+        for (i = 0; i < (count*11 + 7)/8; i++) {
+            x = idx[i*8/11];
+            y = (i*8/11 + 1 < count) ? idx[i*8/11 + 1] : 0;
+            b = ((x*BIP39_WORDLIST_COUNT + y) >> ((i*8/11 + 2)*11 - (i + 1)*8)) & 0xff;
+            buf[i] = b;
+        }
     
-    BRSHA256(hash, data, count*4/3);
-    if (b >> (8 - count/3) != (hash[0] >> (8 - count/3))) r = 0; // bad checksum
+        BRSHA256(hash, buf, count*4/3);
+
+        if (b >> (8 - count/3) == (hash[0] >> (8 - count/3))) { // verify checksum
+            r = count*4/3;
+            if (data && r <= dataLen) memcpy(data, buf, r);
+        }
+        
+        memset(buf, 0, sizeof(buf));
+    }
 
     b = 0;
     x = y = 0;
     memset(idx, 0, sizeof(idx));
-    return r;
+    return (! data || r <= dataLen) ? r : 0;
 }
 
 // verifies that all phrase words are contained in wordlist and checksum is valid

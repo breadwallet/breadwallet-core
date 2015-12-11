@@ -2362,6 +2362,106 @@ int BRBIP39Tests()
                     "\x8e\xad\x3e\x3e\x9e\xfa\x37\x08\xe5\x34\x95\x53\x1f\x09\xa6\x98\x75\x99\xd1\x82\x64\xc1\xe1\xc9"
                     "\x2f\x2c\xf1\x41\x63\x0c\x7a\x3c\x4a\xb7\xc8\x1b\x2f\x00\x16\x98\xe7\x46\x3b\x04")) r = 0;
 
+    UInt128 entropy2 = *(UInt128 *)"\x7f\x7f\x7f\x7f\x7f\x7f\x7f\x7f\x7f\x7f\x7f\x7f\x7f\x7f\x7f\x7f";
+    char phrase2[BRBIP39Encode(NULL, 0, bip39words, entropy2.u8, sizeof(entropy2))];
+    size_t len2 = BRBIP39Encode(phrase2, sizeof(phrase2), bip39words, entropy2.u8, sizeof(entropy2));
+    
+    if (strncmp(phrase2, "legal winner thank year wave sausage worth useful legal winner thank yellow", len2)) r = 0;
+
+    BRBIP39Decode(entropy.u8, sizeof(entropy), bip39words, phrase2);
+    if (! UInt128Eq(entropy2, entropy)) r = 0;
+    
+    BRBIP39DeriveKey(key.u8, phrase2, "TREZOR");
+    if (! UInt512Eq(key, *(UInt512 *)"\x2e\x89\x05\x81\x9b\x87\x23\xfe\x2c\x1d\x16\x18\x60\xe5\xee\x18\x30\x31\x8d\xbf"
+                    "\x49\xa8\x3b\xd4\x51\xcf\xb8\x44\x0c\x28\xbd\x6f\xa4\x57\xfe\x12\x96\x10\x65\x59\xa3\xc8\x09\x37"
+                    "\xa1\xc1\x06\x9b\xe3\xa3\xa5\xbd\x38\x1e\xe6\x26\x0e\x8d\x97\x39\xfc\xe1\xf6\x07")) r = 0;
+
+    UInt128 entropy3 = *(UInt128 *)"\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80";
+    char phrase3[BRBIP39Encode(NULL, 0, bip39words, entropy3.u8, sizeof(entropy3))];
+    size_t len3 = BRBIP39Encode(phrase3, sizeof(phrase3), bip39words, entropy3.u8, sizeof(entropy3));
+    
+    if (strncmp(phrase3, "letter advice cage absurd amount doctor acoustic avoid letter advice cage above",
+                len3)) r = 0;
+    
+    BRBIP39Decode(entropy.u8, sizeof(entropy), bip39words, phrase3);
+    if (! UInt128Eq(entropy3, entropy)) r = 0;
+    
+    BRBIP39DeriveKey(key.u8, phrase3, "TREZOR");
+    if (! UInt512Eq(key, *(UInt512 *)"\xd7\x1d\xe8\x56\xf8\x1a\x8a\xcc\x65\xe6\xfc\x85\x1a\x38\xd4\xd7\xec\x21\x6f\xd0"
+                    "\x79\x6d\x0a\x68\x27\xa3\xad\x6e\xd5\x51\x1a\x30\xfa\x28\x0f\x12\xeb\x2e\x47\xed\x2a\xc0\x3b\x5c"
+                    "\x46\x2a\x03\x58\xd1\x8d\x69\xfe\x4f\x98\x5e\xc8\x17\x78\xc1\xb3\x70\xb6\x52\xa8")) r = 0;
+
+    UInt128 entropy4 = *(UInt128 *)"\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff";
+    char phrase4[BRBIP39Encode(NULL, 0, bip39words, entropy4.u8, sizeof(entropy4))];
+    size_t len4 = BRBIP39Encode(phrase4, sizeof(phrase4), bip39words, entropy4.u8, sizeof(entropy4));
+    
+    if (strncmp(phrase4, "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong", len4)) r = 0;
+    
+    BRBIP39Decode(entropy.u8, sizeof(entropy), bip39words, phrase4);
+    if (! UInt128Eq(entropy4, entropy)) r = 0;
+    
+    BRBIP39DeriveKey(key.u8, phrase4, "TREZOR");
+    if (! UInt512Eq(key, *(UInt512 *)"\xac\x27\x49\x54\x80\x22\x52\x22\x07\x9d\x7b\xe1\x81\x58\x37\x51\xe8\x6f\x57\x10"
+                    "\x27\xb0\x49\x7b\x5b\x5d\x11\x21\x8e\x0a\x8a\x13\x33\x25\x72\x91\x7f\x0f\x8e\x5a\x58\x96\x20\xc6"
+                    "\xf1\x5b\x11\xc6\x1d\xee\x32\x76\x51\xa1\x4c\x34\xe1\x82\x31\x05\x2e\x48\xc0\x69")) r = 0;
+
+    UInt128 entropy5 = *(UInt128 *)"\x77\xc2\xb0\x07\x16\xce\xc7\x21\x38\x39\x15\x9e\x40\x4d\xb5\x0d";
+    char phrase5[BRBIP39Encode(NULL, 0, bip39words, entropy5.u8, sizeof(entropy5))];
+    size_t len5 = BRBIP39Encode(phrase5, sizeof(phrase5), bip39words, entropy5.u8, sizeof(entropy5));
+    
+    if (strncmp(phrase5, "jelly better achieve collect unaware mountain thought cargo oxygen act hood bridge",
+                len5)) r = 0;
+    
+    BRBIP39Decode(entropy.u8, sizeof(entropy), bip39words, phrase5);
+    if (! UInt128Eq(entropy5, entropy)) r = 0;
+    
+    BRBIP39DeriveKey(key.u8, phrase5, "TREZOR");
+    if (! UInt512Eq(key, *(UInt512 *)"\xb5\xb6\xd0\x12\x7d\xb1\xa9\xd2\x22\x6a\xf0\xc3\x34\x60\x31\xd7\x7a\xf3\x1e\x91"
+                    "\x8d\xba\x64\x28\x7a\x1b\x44\xb8\xeb\xf6\x3c\xdd\x52\x67\x6f\x67\x2a\x29\x0a\xae\x50\x24\x72\xcf"
+                    "\x2d\x60\x2c\x05\x1f\x3e\x6f\x18\x05\x5e\x84\xe4\xc4\x38\x97\xfc\x4e\x51\xa6\xff")) r = 0;
+
+    UInt128 entropy6 = *(UInt128 *)"\x04\x60\xef\x47\x58\x56\x04\xc5\x66\x06\x18\xdb\x2e\x6a\x7e\x7f";
+    char phrase6[BRBIP39Encode(NULL, 0, bip39words, entropy6.u8, sizeof(entropy6))];
+    size_t len6 = BRBIP39Encode(phrase6, sizeof(phrase6), bip39words, entropy6.u8, sizeof(entropy6));
+    
+    if (strncmp(phrase6, "afford alter spike radar gate glance object seek swamp infant panel yellow", len6)) r = 0;
+    
+    BRBIP39Decode(entropy.u8, sizeof(entropy), bip39words, phrase6);
+    if (! UInt128Eq(entropy6, entropy)) r = 0;
+    
+    BRBIP39DeriveKey(key.u8, phrase6, "TREZOR");
+    if (! UInt512Eq(key, *(UInt512 *)"\x65\xf9\x3a\x9f\x36\xb6\xc8\x5c\xbe\x63\x4f\xfc\x1f\x99\xf2\xb8\x2c\xbb\x10\xb3"
+                    "\x1e\xdc\x7f\x08\x7b\x4f\x6c\xb9\xe9\x76\xe9\xfa\xf7\x6f\xf4\x1f\x8f\x27\xc9\x9a\xfd\xf3\x8f\x7a"
+                    "\x30\x3b\xa1\x13\x6e\xe4\x8a\x4c\x1e\x7f\xcd\x3d\xba\x7a\xa8\x76\x11\x3a\x36\xe4")) r = 0;
+
+    UInt128 entropy7 = *(UInt128 *)"\xea\xeb\xab\xb2\x38\x33\x51\xfd\x31\xd7\x03\x84\x0b\x32\xe9\xe2";
+    char phrase7[BRBIP39Encode(NULL, 0, bip39words, entropy7.u8, sizeof(entropy7))];
+    size_t len7 = BRBIP39Encode(phrase7, sizeof(phrase7), bip39words, entropy7.u8, sizeof(entropy7));
+    
+    if (strncmp(phrase7, "turtle front uncle idea crush write shrug there lottery flower risk shell", len7)) r = 0;
+    
+    BRBIP39Decode(entropy.u8, sizeof(entropy), bip39words, phrase7);
+    if (! UInt128Eq(entropy7, entropy)) r = 0;
+    
+    BRBIP39DeriveKey(key.u8, phrase7, "TREZOR");
+    if (! UInt512Eq(key, *(UInt512 *)"\xbd\xfb\x76\xa0\x75\x9f\x30\x1b\x0b\x89\x9a\x1e\x39\x85\x22\x7e\x53\xb3\xf5\x1e"
+                    "\x67\xe3\xf2\xa6\x53\x63\xca\xed\xf3\xe3\x2f\xde\x42\xa6\x6c\x40\x4f\x18\xd7\xb0\x58\x18\xc9\x5e"
+                    "\xf3\xca\x1e\x51\x46\x64\x68\x56\xc4\x61\xc0\x73\x16\x94\x67\x51\x16\x80\x87\x6c")) r = 0;
+
+    UInt128 entropy8 = *(UInt128 *)"\x18\xab\x19\xa9\xf5\x4a\x92\x74\xf0\x3e\x52\x09\xa2\xac\x8a\x91";
+    char phrase8[BRBIP39Encode(NULL, 0, bip39words, entropy8.u8, sizeof(entropy8))];
+    size_t len8 = BRBIP39Encode(phrase8, sizeof(phrase8), bip39words, entropy8.u8, sizeof(entropy8));
+    
+    if (strncmp(phrase8, "board flee heavy tunnel powder denial science ski answer betray cargo cat", len8)) r = 0;
+    
+    BRBIP39Decode(entropy.u8, sizeof(entropy), bip39words, phrase8);
+    if (! UInt128Eq(entropy8, entropy)) r = 0;
+    
+    BRBIP39DeriveKey(key.u8, phrase8, "TREZOR");
+    if (! UInt512Eq(key, *(UInt512 *)"\x6e\xff\x1b\xb2\x15\x62\x91\x85\x09\xc7\x3c\xb9\x90\x26\x0d\xb0\x7c\x0c\xe3\x4f"
+                    "\xf0\xe3\xcc\x4a\x8c\xb3\x27\x61\x29\xfb\xcb\x30\x0b\xdd\xfe\x00\x58\x31\x35\x0e\xfd\x63\x39\x09"
+                    "\xf4\x76\xc4\x5c\x88\x25\x32\x76\xd9\xfd\x0d\xf6\xef\x48\x60\x9e\x8b\xb7\xdc\xa8")) r = 0;
+
     return r;
 }
 
