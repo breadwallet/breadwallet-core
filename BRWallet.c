@@ -106,9 +106,9 @@ inline static int BRWalletTxCompare(void *info, const void *tx1, const void *tx2
 // inserts a transaction into wallet->transactions, keeping wallet->transactions sorted by date, oldest first
 inline static void BRWalletInsertTransaction(BRWallet *wallet, BRTransaction *tx)
 {
-    size_t i = array_count(wallet->transactions) + 1;
+    size_t i = array_count(wallet->transactions);
     
-    array_set_count(wallet->transactions, i);
+    array_set_count(wallet->transactions, i + 1);
     
     while (i > 0 && BRWalletTxCompare(wallet, wallet->transactions[i - 1], tx) > 0) {
         wallet->transactions[i] = wallet->transactions[i - 1];
@@ -194,8 +194,12 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
     array_new(wallet->transactions, txCount + 100);
     wallet->feePerKb = DEFAULT_FEE_PER_KB;
     wallet->masterPubKey = mpk;
+    array_new(wallet->internalChain, txCount/2 + 100);
+    array_new(wallet->externalChain, txCount/2 + 100);
     array_new(wallet->balanceHist, txCount + 100);
     wallet->allTx = BRSetNew(BRTransactionHash, BRTransactionEq, txCount + 100);
+    wallet->invalidTx = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
+    wallet->spentOutputs = BRSetNew(BRUTXOHash, BRUTXOEq, txCount + 100);
     wallet->usedAddrs = BRSetNew(BRAddressHash, BRAddressEq, txCount*4 + 100);
     wallet->allAddrs = BRSetNew(BRAddressHash, BRAddressEq, txCount + 200 + 100);
     wallet->seedInfo = info;

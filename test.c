@@ -24,6 +24,7 @@
 
 #include "BRHash.h"
 #include "BRMerkleBlock.h"
+#include "BRWallet.h"
 #include "BRAddress.h"
 #include "BRBIP39Mnemonic.h"
 #include "BRBIP39WordsEn.H"
@@ -486,6 +487,49 @@ int BRTransactionTests()
     return r;
 }
 
+const void *wallet_seed(void *info, const char *authprompt, uint64_t amount, size_t *seedLen)
+{
+    *seedLen = 0;
+    return "";
+}
+
+//TODO: test standard free transaction no change
+//TODO: test free transaction who's inputs are too new to hit min free priority
+//TODO: test transaction with change below min allowable output
+//TODO: test gap limit with gaps in address chain less than the limit
+//TODO: test removing a transaction that other transansactions depend on
+//TODO: test tx ordering for multiple tx with same block height
+//TODO: port all applicable tests from bitcoinj and bitcoincore
+
+int BRWalletTests()
+{
+    int r = 1;
+    size_t seedLen = 0;
+    const void *seed = wallet_seed(NULL, NULL, 0, &seedLen);
+    BRMasterPubKey mpk = BRBIP32MasterPubKey(seed, seedLen);
+    BRWallet *w = BRWalletNew(NULL, 0, mpk, NULL, wallet_seed);
+    const UInt256 secret = { .u64 = { 0, 0, 0, be64(1) } };
+    BRKey k;
+    BRAddress addr, recvAddr = BRWalletReceiveAddress(w);
+    
+    BRKeySetSecret(&k, &secret, 1);
+    BRKeyAddress(&k, addr.s, sizeof(addr));
+    
+    uint8_t inScript[BRAddressScriptPubKey(NULL, 0, addr.s)];
+    size_t inScriptLen = BRAddressScriptPubKey(inScript, sizeof(inScript), addr.s);
+    uint8_t outScript[BRAddressScriptPubKey(NULL, 0, recvAddr.s)];
+    size_t outScriptLen = BRAddressScriptPubKey(outScript, sizeof(outScript), recvAddr.s);
+    BRTransaction *tx = BRTransactionNew();
+    
+    BRTransactionAddInput(tx, UINT256_ZERO, 0, inScript, inScriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddOutput(tx, SATOSHIS, outScript, outScriptLen);
+    BRTransactionSign(tx, &k, 1);
+    BRWalletRegisterTransaction(w, tx);
+    if (BRWalletBalance(w) != SATOSHIS) r = 0;
+    
+    return r;
+}
+
 int BRMerkleBlockTests()
 {
     int r = 1;
@@ -899,6 +943,8 @@ int main(int argc, const char *argv[]) {
     printf("%s\n", (BRBIP39Tests()) ? "success" : "FAIL");
     printf("BRTransactionTests...     ");
     printf("%s\n", (BRTransactionTests()) ? "success" : "FAIL");
+    printf("BRWalletTests...          ");
+    printf("%s\n", (BRWalletTests()) ? "success" : "FAIL");
     printf("BRMerkleBlockTests...     ");
     printf("%s\n", (BRMerkleBlockTests()) ? "success" : "FAIL");
     printf("BRPaymentProtocolTests... ");

@@ -40,6 +40,9 @@
 
 #define TXIN_SEQUENCE        UINT32_MAX  // sequence number for a finalized tx input
 
+#define SATOSHIS             100000000
+#define MAX_MONEY            (21000000LL*SATOSHIS)
+
 #define BR_RAND_MAX          RAND_MAX
 
 // returns a random number less than upperBound, for non-cryptographic use only
