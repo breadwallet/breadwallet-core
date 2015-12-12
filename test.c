@@ -527,6 +527,16 @@ int BRWalletTests()
     BRWalletRegisterTransaction(w, tx);
     if (BRWalletBalance(w) != SATOSHIS) r = 0;
     
+    tx = BRWalletCreateTransaction(w, SATOSHIS/2, addr.s);
+    if (! tx) r = 0;
+
+    if (tx) BRWalletSignTransaction(w, tx, NULL);
+    if (tx && ! BRTransactionIsSigned(tx)) r = 0;
+    
+    if (tx) BRWalletRegisterTransaction(w, tx);
+    if (tx && BRWalletBalance(w) + BRWalletFeeForTx(w, tx) != SATOSHIS/2) r = 0;
+
+    BRWalletFree(w);
     return r;
 }
 
