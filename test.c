@@ -508,7 +508,7 @@ int BRWalletTests()
     const void *seed = wallet_seed(NULL, NULL, 0, &seedLen);
     BRMasterPubKey mpk = BRBIP32MasterPubKey(seed, seedLen);
     BRWallet *w = BRWalletNew(NULL, 0, mpk, NULL, wallet_seed);
-    const UInt256 secret = { .u64 = { 0, 0, 0, be64(1) } };
+    const UInt256 secret = *(UInt256 *)"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x01";
     BRKey k;
     BRAddress addr, recvAddr = BRWalletReceiveAddress(w);
     
