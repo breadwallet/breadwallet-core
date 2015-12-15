@@ -30,8 +30,9 @@
 #include <float.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <string.h>
+#include <pthread.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -91,6 +92,7 @@ struct BRPeerContext {
     const BRTransaction *(*reqeustedTx)(void *info, UInt256 txHash);
     int (*networkIsReachable)(void *info);
     BRRWLock lock;
+    pthread_t thread;
 };
 
 static void BRPeerAcceptVersionMessage(BRPeer *peer, const uint8_t *msg, size_t len)
@@ -242,6 +244,37 @@ BRPeerStatus BRPeerGetStatus(BRPeer *peer)
     return (peer->context) ? peer->context->status : BRPeerStatusDisconnected;
 }
 
+static void *BRPeerThreadRoutine(void *peer)
+{
+    struct BRPeerContext *ctx = ((BRPeer *)peer)->context;
+    struct sockaddr_in serv_addr;
+    
+    memset(&serv_addr, 0, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = ((BRPeer *)peer)->address.u32[3]; // already network byte order
+    serv_addr.sin_port = htons(((BRPeer *)peer)->port);
+    
+    // setsockopt SO_KEEPALIVE, SO_NOSIGPIPE?
+    // In iOS, using sockets directly using POSIX functions does not automatically activate the device’s
+    // cellular modem or on-demand VPN
+
+    if (connect(ctx->socket, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+        BRPeerFreeContext(peer); // connect error
+    }
+    else {
+        if (ctx->connected) ctx->connected(ctx->info);
+    
+        // n = write(ctx->socket, buf, bufLen);
+        // if (n < 0) peer_log(peer, "ERROR writing to socket");
+        // n = read(ctx->socket, buf, bufLen);
+        // if (n < 0) peer_log(peer, "ERROR reading from socket");
+        
+        BRPeerDisconnect(peer);
+    }
+    
+    return NULL;
+}
+
 void BRPeerConnect(BRPeer *peer)
 {
     struct BRPeerContext *ctx = peer->context;
@@ -265,37 +298,23 @@ void BRPeerConnect(BRPeer *peer)
             array_new(ctx->knownBlockHashes, 10);
             ctx->knownTxHashes = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
             ctx->currentBlockTxHashes = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
-            
-            struct sockaddr_in serv_addr;
-            
-            memset(&serv_addr, 0, sizeof(serv_addr));
-            serv_addr.sin_family = AF_INET;
-            serv_addr.sin_addr.s_addr = peer->address.u32[3]; // already network byte order
-            serv_addr.sin_port = htons(peer->port);
             ctx->socket = socket(AF_INET, SOCK_STREAM, 0);
             BRRWLockUnlock(&ctx->lock);
-
-            // setsockopt SO_KEEPALIVE?
-            // In iOS, using sockets directly using POSIX functions does not automatically activate the device’s
-            // cellular modem or on-demand VPN
-
-            if (ctx->socket < 0) {
-                BRPeerFreeContext(peer); // error creating socket
+        
+            if (ctx->socket >= 0) {
+                BRPeerFreeContext(peer);
             }
-            else if (fork() == 0) {
-                if (connect(ctx->socket, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-                    BRPeerFreeContext(peer); // connect error
-                }
-                else {
-//                   n = write(ctx->socket, buf, bufLen);
-//                   if (n < 0) peer_log(peer, "ERROR writing to socket");
-//                   n = read(ctx->socket, buf, bufLen);
-//                   if (n < 0) peer_log(peer, "ERROR reading from socket");
+            else {
+                pthread_attr_t attr;
+        
+                pthread_attr_init(&attr);
+                pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-                    BRPeerDisconnect(peer);
+                if (pthread_create(&ctx->thread, &attr, BRPeerThreadRoutine, peer) != 0) {
+                    BRPeerFreeContext(peer);
                 }
                 
-                exit(0);
+                pthread_attr_destroy(&attr);
             }
         }
     }
