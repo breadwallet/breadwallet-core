@@ -41,7 +41,7 @@ typedef struct {
     uint8_t pubKey[33];
 } BRMasterPubKey;
 
-#define MASTER_PUBKEY_NONE ((BRMasterPubKey) { 0, UINT256_ZERO, \
+#define BR_MASTER_PUBKEY_NONE ((BRMasterPubKey) { 0, UINT256_ZERO, \
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } })
 
 BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen);

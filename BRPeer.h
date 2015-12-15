@@ -84,8 +84,7 @@ typedef struct {
     struct BRPeerContext *context;
 } BRPeer;
 
-// call this before other BRPeer functions, set earliestKeyTime to wallet creation time to speed up initial sync
-void BRPeerNewContext(BRPeer *peer, uint32_t earliestKeyTime);
+#define BR_PEER_NONE ((BRPeer) { UINT128_ZERO, 0, 0, 0, 0, NULL })
 
 void BRPeerSetCallbacks(BRPeer *peer, void *info,
                         void (*connected)(void *info),
@@ -104,11 +103,14 @@ BRPeerStatus BRPeerGetStatus(BRPeer *peer); // current connection status
 void BRPeerConnect(BRPeer *peer);
 void BRPeerDisconnect(BRPeer *peer);
 
-// call this when wallet addresses need to be added to bloom filter
-void BRPeerNeedsFilterUpdate(BRPeer *peer);
+// set earliestKeyTime to wallet creation time in order to speed up initial sync
+void BRPeerSetEarliestKeyTime(BRPeer *peer, uint32_t earliestKeyTime);
 
 // call this when local block height changes (helps detect tarpit nodes)
 void BRPeerSetCurrentBlockHeight(BRPeer *peer, uint32_t currentBlockHeight);
+
+// call this when wallet addresses need to be added to bloom filter
+void BRPeerSetNeedsFilterUpdate(BRPeer *peer);
 
 uint32_t BRPeerVersion(BRPeer *peer); // connected peer version number
 const char *BRPeerUserAgent(BRPeer *peer); // connected peer user agent string
@@ -126,8 +128,5 @@ void BRPeerSendGetdata(BRPeer *peer, const UInt256 txHashes[], size_t txCount, c
 void BRPeerSendGetaddr(BRPeer *peer);
 void BRPeerSendPing(BRPeer *peer, void *info, void (*pongCallback)(void *info, int success));
 void BRPeerRerequestBlocks(BRPeer *peer, UInt256 fromBlock); // useful to get additional tx after a bloom filter update
-
-// frees memory allocated for peer after calling BRPeerCreateContext()
-void BRPeerFreeContext(BRPeer *peer);
 
 #endif // BRPeer_h

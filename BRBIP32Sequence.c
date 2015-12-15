@@ -36,7 +36,7 @@ typedef struct {
     uint8_t u8[33];
 } BRPubKey;
 
-#define PUBKEY_NONE ((BRPubKey)\
+#define BR_PUBKEY_NONE ((BRPubKey)\
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 })
 
 // BIP32 is a scheme for deriving chains of addresses from a seed value
@@ -110,7 +110,7 @@ static void CKDpub(BRPubKey *K, UInt256 *c, uint32_t i)
     BRSecp256k1PointMul(&pIL, NULL, *(UInt256 *)&I, 1);
     BRSecp256k1PointAdd(K, &pIL, K, 1); // K = P(IL) + K
     
-    pIL = PUBKEY_NONE;
+    pIL = BR_PUBKEY_NONE;
     I = UINT512_ZERO;
     memset(buf, 0, sizeof(buf));
 }
@@ -122,7 +122,7 @@ BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen)
     UInt256 secret, chain;
     BRKey key;
 
-    if (! seed) return MASTER_PUBKEY_NONE;
+    if (! seed) return BR_MASTER_PUBKEY_NONE;
     
     BRHMAC(&I, BRSHA512, 64, BIP32_SEED_KEY, strlen(BIP32_SEED_KEY), seed, seedLen);
     secret = *(UInt256 *)&I;
@@ -137,7 +137,7 @@ BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen)
     mpk.chainCode = chain;
     BRKeySetSecret(&key, &secret, 1);
     secret = chain = UINT256_ZERO;
-    if (! BRKeyPubKey(&key, &mpk.pubKey, sizeof(mpk.pubKey))) mpk = MASTER_PUBKEY_NONE;
+    if (! BRKeyPubKey(&key, &mpk.pubKey, sizeof(mpk.pubKey))) mpk = BR_MASTER_PUBKEY_NONE;
     BRKeyClean(&key);
     return mpk;
 }
@@ -209,5 +209,5 @@ size_t BRBIP32SerializeMasterPubKey(char *s, size_t sLen, BRMasterPubKey mpk)
 BRMasterPubKey BRBIP32ParseMasterPubKey(const char *s)
 {
     //TODO: XXX implement
-    return MASTER_PUBKEY_NONE;
+    return BR_MASTER_PUBKEY_NONE;
 }

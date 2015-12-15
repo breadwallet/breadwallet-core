@@ -175,18 +175,36 @@ static void BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t len, co
     else peer_log(peer, "dropping %s, length %zu, not implemented", type, len);
 }
 
-// call this before other BRPeer functions, set earliestKeyTime to wallet creation time to speed up initial sync
-void BRPeerNewContext(BRPeer *peer, uint32_t earliestKeyTime)
+struct BRPeerContext *BRPeerNewContext(BRPeer *peer)
 {
     struct BRPeerContext *ctx = calloc(1, sizeof(struct BRPeerContext));
-
-    peer->context = ctx;
-    ctx->earliestKeyTime = earliestKeyTime;
     
     if (peer->address.u64[0] == 0 && peer->address.u16[4] == 0xffff) {
         inet_ntop(AF_INET, &peer->address.u32[3], ctx->host, sizeof(ctx->host));
     }
     else inet_ntop(AF_INET6, &peer->address, ctx->host, sizeof(ctx->host));
+
+    BRRWLockInit(&ctx->lock);
+    peer->context = ctx;
+    return ctx;
+}
+
+// frees memory allocated for peer after calling BRPeerCreateContext()
+void BRPeerFreeContext(BRPeer *peer)
+{
+    struct BRPeerContext *ctx = peer->context;
+    
+    if (ctx) {
+        peer->context = NULL;
+        if (ctx->msgHeader) array_free(ctx->msgHeader);
+        if (ctx->msgPayload) array_free(ctx->msgPayload);
+        if (ctx->outBuffer) array_free(ctx->outBuffer);
+        if (ctx->knownBlockHashes) array_free(ctx->knownBlockHashes);
+        if (ctx->knownTxHashes) BRSetFree(ctx->knownTxHashes);
+        if (ctx->currentBlockTxHashes) BRSetFree(ctx->currentBlockTxHashes);
+        BRRWLockDestroy(&ctx->lock);
+        free(ctx);
+    }
 }
 
 void BRPeerSetCallbacks(BRPeer *peer, void *info,
@@ -204,6 +222,7 @@ void BRPeerSetCallbacks(BRPeer *peer, void *info,
 {
     struct BRPeerContext *ctx = peer->context;
     
+    if (! ctx) ctx = BRPeerNewContext(peer);
     ctx->info = info;
     ctx->connected = connected;
     ctx->disconnected = disconnected;
@@ -227,6 +246,7 @@ void BRPeerConnect(BRPeer *peer)
 {
     struct BRPeerContext *ctx = peer->context;
 
+    if (! ctx) ctx = BRPeerNewContext(peer);
     BRRWLockWrite(&ctx->lock);
     
     if (ctx->status == BRPeerStatusDisconnected || ctx->waitingForNetwork) {
@@ -235,6 +255,7 @@ void BRPeerConnect(BRPeer *peer)
     
         if (! ctx->networkIsReachable(ctx->info)) {
             ctx->waitingForNetwork = 1; // delay connect until network is reachable
+            BRRWLockUnlock(&ctx->lock);
         }
         else {
             ctx->waitingForNetwork = 0;
@@ -242,8 +263,8 @@ void BRPeerConnect(BRPeer *peer)
             array_new(ctx->msgPayload, 1000);
             array_new(ctx->outBuffer, 1000);
             array_new(ctx->knownBlockHashes, 10);
-            ctx->knownTxHashes = BRSetNew(BRTransactionHash, BRTransactionEq, 100);
-            ctx->currentBlockTxHashes = BRSetNew(BRTransactionHash, BRTransactionEq, 100);
+            ctx->knownTxHashes = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
+            ctx->currentBlockTxHashes = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
             
             struct sockaddr_in serv_addr;
             
@@ -251,30 +272,65 @@ void BRPeerConnect(BRPeer *peer)
             serv_addr.sin_family = AF_INET;
             serv_addr.sin_addr.s_addr = peer->address.u32[3]; // already network byte order
             serv_addr.sin_port = htons(peer->port);
-
             ctx->socket = socket(AF_INET, SOCK_STREAM, 0);
-            
-            // XXXX do connect things and stuff
+            BRRWLockUnlock(&ctx->lock);
+
+            // setsockopt SO_KEEPALIVE?
+            // In iOS, using sockets directly using POSIX functions does not automatically activate the device’s
+            // cellular modem or on-demand VPN
+
+            if (ctx->socket < 0) {
+                BRPeerFreeContext(peer); // error creating socket
+            }
+            else if (fork() == 0) {
+                if (connect(ctx->socket, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+                    BRPeerFreeContext(peer); // connect error
+                }
+                else {
+//                   n = write(ctx->socket, buf, bufLen);
+//                   if (n < 0) peer_log(peer, "ERROR writing to socket");
+//                   n = read(ctx->socket, buf, bufLen);
+//                   if (n < 0) peer_log(peer, "ERROR reading from socket");
+
+                    BRPeerDisconnect(peer);
+                }
+                
+                exit(0);
+            }
         }
     }
-
-    BRRWLockUnlock(&ctx->lock);
 }
 
 void BRPeerDisconnect(BRPeer *peer)
 {
+    struct BRPeerContext *ctx = peer->context;
+    
+    BRRWLockWrite(&ctx->lock);
+    
+    close(ctx->socket);
+    
+    BRRWLockUnlock(&ctx->lock);
+    BRPeerFreeContext(peer);
 }
 
-// call this when wallet addresses need to be added to bloom filter
-void BRPeerNeedsFilterUpdate(BRPeer *peer)
+// set earliestKeyTime to wallet creation time in order to speed up initial sync
+void BRPeerSetEarliestKeyTime(BRPeer *peer, uint32_t earliestKeyTime)
 {
-    if (peer->context) peer->context->needsFilterUpdate = 1;
+    if (! peer->context) BRPeerNewContext(peer);
+    peer->context->earliestKeyTime = earliestKeyTime;
 }
 
 // call this when local block height changes (helps detect tarpit nodes)
 void BRPeerSetCurrentBlockHeight(BRPeer *peer, uint32_t currentBlockHeight)
 {
-    if (peer->context) peer->context->currentBlockHeight = currentBlockHeight;
+    if (! peer->context) BRPeerNewContext(peer);
+    peer->context->currentBlockHeight = currentBlockHeight;
+}
+
+// call this when wallet addresses need to be added to bloom filter
+void BRPeerSetNeedsFilterUpdate(BRPeer *peer)
+{
+    if (peer->context) peer->context->needsFilterUpdate = 1;
 }
 
 // connected peer version number
@@ -341,22 +397,4 @@ void BRPeerSendPing(BRPeer *peer, void *info, void (*pongCallback)(void *info, i
 // useful to get additional tx after a bloom filter update
 void BRPeerRerequestBlocks(BRPeer *peer, UInt256 fromBlock)
 {
-}
-
-// frees memory allocated for peer after calling BRPeerCreateContext()
-void BRPeerFreeContext(BRPeer *peer)
-{
-    struct BRPeerContext *ctx = peer->context;
-    
-    if (ctx) {
-        if (ctx->msgHeader) array_free(ctx->msgHeader);
-        if (ctx->msgPayload) array_free(ctx->msgPayload);
-        if (ctx->outBuffer) array_free(ctx->outBuffer);
-        if (ctx->knownBlockHashes) array_free(ctx->knownBlockHashes);
-        if (ctx->knownTxHashes) BRSetFree(ctx->knownTxHashes);
-        if (ctx->currentBlockTxHashes) BRSetFree(ctx->currentBlockTxHashes);
-        BRRWLockDestroy(&ctx->lock);
-        free(ctx);
-        peer->context = NULL;
-    }
 }
