@@ -259,7 +259,7 @@ static int BRPeerSocketConnect(BRPeer *peer, double timeout)
     struct timeval tv;
     fd_set fds;
     socklen_t socklen;
-    int error, arg, r = 0;
+    int arg, error = 0, r = 0;
 
     BRRWLockWrite(&ctx->lock);
     arg = fcntl(ctx->socket, F_GETFL, NULL);
@@ -270,28 +270,18 @@ static int BRPeerSocketConnect(BRPeer *peer, double timeout)
         serv_addr.sin_addr.s_addr = peer->address.u32[3]; // already network byte order
         serv_addr.sin_port = htons(peer->port);
 
-        if (connect(ctx->socket, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-            if (errno != EINPROGRESS) {
-                peer_log(peer, "connect error: %s", strerror(errno));
-            }
-            else {
-                tv.tv_sec = timeout;
-                tv.tv_usec = (long)(timeout*1000000) % 1000000;
-                FD_ZERO(&fds);
-                FD_SET(ctx->socket, &fds);
+        if (connect(ctx->socket, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0 && errno == EINPROGRESS) {
+            tv.tv_sec = timeout;
+            tv.tv_usec = (long)(timeout*1000000) % 1000000;
+            FD_ZERO(&fds);
+            FD_SET(ctx->socket, &fds);
                 
-                if (select(ctx->socket + 1, NULL, &fds, NULL, &tv) == 0) {
-                    peer_log(peer, "connect error: timed out");
-                }
-                else if (getsockopt(ctx->socket, SOL_SOCKET, SO_ERROR, &error, &socklen) < 0 || error) {
-                    peer_log(peer, "connect error: %s", strerror((error) ? error : errno));
-                }
-                else { // success!
-                    ctx->status = BRPeerStatusConnected;
-                    peer_log(peer, "connected");
-                    if (ctx->connected) ctx->connected(ctx->info);
-                    r = 1;
-                }
+            if (select(ctx->socket + 1, NULL, &fds, NULL, &tv) > 0 &&
+                getsockopt(ctx->socket, SOL_SOCKET, SO_ERROR, &error, &socklen) >= 0 && ! error) {
+                ctx->status = BRPeerStatusConnected;
+                peer_log(peer, "connected");
+                if (ctx->connected) ctx->connected(ctx->info);
+                r = 1;
             }
         }
         
@@ -299,7 +289,12 @@ static int BRPeerSocketConnect(BRPeer *peer, double timeout)
     }
 
     BRRWLockUnlock(&ctx->lock);
-    if (! r) BRPeerDisconnect(peer);
+
+    if (! r) {
+        peer_log(peer, "connect error: %s", (error || errno) ? strerror((error) ? error : errno) : "timed out");
+        BRPeerDisconnect(peer);
+    }
+    
     return r;
 }
 
