@@ -252,51 +252,45 @@ BRPeerStatus BRPeerGetStatus(BRPeer *peer)
     return (peer->context) ? peer->context->status : BRPeerStatusDisconnected;
 }
 
-static int BRPeerSocketConnect(BRPeer *peer, double timeout)
+static int BRPeerOpenSocket(BRPeer *peer, double timeout)
 {
-    struct BRPeerContext *ctx = ((BRPeer *)peer)->context;
     struct sockaddr_in serv_addr;
     struct timeval tv;
     fd_set fds;
     socklen_t socklen;
-    int arg, count, error = 0, r = 0;
+    int socket = peer->context->socket;
+    int arg, count, error = 0, r = 1;
 
-    BRRWLockWrite(&ctx->lock);
-    arg = fcntl(ctx->socket, F_GETFL, NULL);
+    arg = fcntl(socket, F_GETFL, NULL);
+    if (arg < 0 || fcntl(socket, F_SETFL, arg | O_NONBLOCK) < 0) r = 0; // temporarily set the socket non-blocking
+    if (! r) error = errno;
 
-    if (arg >= 0 && fcntl(ctx->socket, F_SETFL, arg | O_NONBLOCK) >= 0) { // temporarily set the socket non-blocking
+    if (r) {
         memset(&serv_addr, 0, sizeof(serv_addr));
         serv_addr.sin_family = AF_INET;
         serv_addr.sin_addr.s_addr = peer->address.u32[3]; // already network byte order
         serv_addr.sin_port = htons(peer->port);
+        if (connect(socket, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) error = errno;
 
-        if (connect(ctx->socket, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0 && errno == EINPROGRESS) {
+        if (error == EINPROGRESS) {
+            error = 0;
             tv.tv_sec = timeout;
             tv.tv_usec = (long)(timeout*1000000) % 1000000;
             FD_ZERO(&fds);
-            FD_SET(ctx->socket, &fds);
-            
-            count = select(ctx->socket + 1, NULL, &fds, NULL, &tv);
-            if (count == 0) error = ETIMEDOUT;
-            
-            if (count > 0 && getsockopt(ctx->socket, SOL_SOCKET, SO_ERROR, &error, &socklen) >= 0 && ! error) {
-                ctx->status = BRPeerStatusConnected;
-                peer_log(peer, "connected");
-                if (ctx->connected) ctx->connected(ctx->info);
-                r = 1;
+            FD_SET(socket, &fds);
+            count = select(socket + 1, NULL, &fds, NULL, &tv);
+
+            if (count <= 0 || getsockopt(socket, SOL_SOCKET, SO_ERROR, &error, &socklen) < 0 || error) {
+                if (count == 0) error = ETIMEDOUT;
+                if (count < 0 || ! error) error = errno;
+                r = 0;
             }
         }
-        
-        fcntl(ctx->socket, F_SETFL, arg); // restore socket non-blocking status
+
+        fcntl(socket, F_SETFL, arg); // restore socket non-blocking status
     }
 
-    BRRWLockUnlock(&ctx->lock);
-
-    if (! r) {
-        peer_log(peer, "connect error: %s", strerror((error) ? error : errno));
-        BRPeerDisconnect(peer);
-    }
-    
+    if (! r) peer_log(peer, "connect error: %s", strerror(error));
     return r;
 }
 
@@ -304,14 +298,21 @@ static void *BRPeerThreadRoutine(void *peer)
 {
     struct BRPeerContext *ctx = ((BRPeer *)peer)->context;
 
-    if (BRPeerSocketConnect(peer, CONNECT_TIMEOUT)) {
+    BRRWLockWrite(&ctx->lock);
 
+    if (BRPeerOpenSocket(peer, CONNECT_TIMEOUT)) {
+        ctx->status = BRPeerStatusConnected;
+        peer_log((BRPeer *)peer, "connected");
+        BRRWLockUnlock(&ctx->lock);
+        BRRWLockRead(&ctx->lock);
+        if (ctx->connected) ctx->connected(ctx->info);
+        
         // n = read(ctx->socket, buf, bufLen);
         // if (n < 0) peer_log(peer, "ERROR reading from socket");
-    
-        BRPeerDisconnect(peer);
     }
-    
+
+    BRRWLockUnlock(&ctx->lock);
+    BRPeerDisconnect(peer);
     return NULL; // detached threads don't need to return a value
 }
 
@@ -371,13 +372,14 @@ void BRPeerDisconnect(BRPeer *peer)
 {
     struct BRPeerContext *ctx = peer->context;
 
-    BRRWLockRead(&ctx->lock);
     // call shutdown() to causes the reader thread to exit before calling close() to release the socket descriptor,
     // otherwise the descriptor can get immediately re-used, and any subsequent writes will result in file corruption
+    BRRWLockRead(&ctx->lock);
     if (ctx->socket >= 0) shutdown(ctx->socket, SHUT_RDWR);
     BRRWLockUnlock(&ctx->lock);
     BRRWLockWrite(&ctx->lock); // this will block until all read locks are released
     if (ctx->socket >= 0) close(ctx->socket);
+    ctx->socket = -1;
     BRRWLockUnlock(&ctx->lock);
     BRPeerFreeContext(peer);
 }
