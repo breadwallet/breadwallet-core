@@ -162,7 +162,8 @@ static void BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t len, co
     if (ctx->currentBlock && strncmp(MSG_TX, type, 12) != 0) { // if we receive non-tx message, merkleblock is done
         h = ctx->currentBlock->blockHash;
         peer_log(peer, "incomplete merkleblock %llX%llX%llX%llX, expected %zu more tx, got %s",
-                 h.u64[0], h.u64[1], h.u64[2], h.u64[3], BRSetCount(ctx->currentBlockTxHashes), type);
+                 be64(h.u64[0]), be64(h.u64[1]), be64(h.u64[2]), be64(h.u64[3]), BRSetCount(ctx->currentBlockTxHashes),
+                 type);
         ctx->currentBlock = NULL;
         BRSetClear(ctx->currentBlockTxHashes);
         return;
@@ -184,6 +185,125 @@ static void BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t len, co
     else peer_log(peer, "dropping %s, length %zu, not implemented", type, len);
 }
 
+static int BRPeerOpenSocket(BRPeer *peer, double timeout)
+{
+    struct sockaddr_in serv_addr;
+    struct timeval tv;
+    fd_set fds;
+    socklen_t socklen;
+    int socket = peer->context->socket;
+    int arg, count, error = 0, r = 1;
+
+    arg = fcntl(socket, F_GETFL, NULL);
+    if (arg < 0 || fcntl(socket, F_SETFL, arg | O_NONBLOCK) < 0) r = 0; // temporarily set the socket non-blocking
+    if (! r) error = errno;
+
+    if (r) {
+        memset(&serv_addr, 0, sizeof(serv_addr));
+        serv_addr.sin_family = AF_INET;
+        serv_addr.sin_addr.s_addr = peer->address.u32[3]; // already network byte order
+        serv_addr.sin_port = htons(peer->port);
+        if (connect(socket, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) error = errno;
+
+        if (error == EINPROGRESS) {
+            error = 0;
+            tv.tv_sec = timeout;
+            tv.tv_usec = (long)(timeout*1000000) % 1000000;
+            FD_ZERO(&fds);
+            FD_SET(socket, &fds);
+            count = select(socket + 1, NULL, &fds, NULL, &tv);
+
+            if (count <= 0 || getsockopt(socket, SOL_SOCKET, SO_ERROR, &error, &socklen) < 0 || error) {
+                if (count == 0) error = ETIMEDOUT;
+                if (count < 0 || ! error) error = errno;
+                r = 0;
+            }
+        }
+
+        fcntl(socket, F_SETFL, arg); // restore socket non-blocking status
+    }
+
+    if (! r) peer_log(peer, "connect error: %s", strerror(error));
+    return r;
+}
+
+static void *BRPeerThreadRoutine(void *peer)
+{
+    struct BRPeerContext *ctx = ((BRPeer *)peer)->context;
+
+    BRRWLockWrite(&ctx->lock);
+
+    if (BRPeerOpenSocket(peer, CONNECT_TIMEOUT)) {
+        ctx->status = BRPeerStatusConnected;
+        peer_log((BRPeer *)peer, "connected");
+        BRRWLockUnlock(&ctx->lock);
+        BRRWLockRead(&ctx->lock);
+        if (ctx->connected) ctx->connected(ctx->info);
+        
+        uint8_t header[HEADER_LENGTH];
+        size_t len = 0;
+        ssize_t n = 0;
+        
+        while (n >= 0) {
+            while (n >= 0 && len < HEADER_LENGTH) {
+                n = read(ctx->socket, header + len, sizeof(header) - len);
+                if (n >= 0) len += n;
+                
+                while (len >= sizeof(uint32_t) && *(uint32_t *)header != le32(MAGIC_NUMBER)) {
+                    memmove(header, header + 1, --len); // consume one byte at a time until we find the magic number
+                }
+            }
+        
+            if (n < 0) {
+                peer_log((BRPeer *)peer, "%s", strerror(errno));
+            }
+            else if (header[15] != 0) { // verify header type field is NULL terminated
+                peer_log((BRPeer *)peer, "malformed message header: type not NULL terminated");
+            }
+            else if (len == HEADER_LENGTH) {
+                const char *type = (const char *)(header + 4);
+                uint32_t msgLen = le32(*(uint32_t *)(header + 16));
+                uint32_t checksum = *(uint32_t *)(header + 20);
+                
+                if (msgLen > MAX_MSG_LENGTH) { // check message length
+                    peer_log((BRPeer *)peer, "error reading %s, message length %u is too long", type, msgLen);
+                }
+                else {
+                    uint8_t payload[msgLen];
+                    UInt256 hash;
+                    
+                    n = 0;
+                    len = 0;
+                    
+                    while (n >= 0 && len < msgLen) {
+                        n = read(ctx->socket, payload + len, sizeof(payload) - len);
+                        if (n >= 0) len += n;
+                    }
+                    
+                    if (n < 0) {
+                        peer_log((BRPeer *)peer, "%s", strerror(errno));
+                    }
+                    else if (len == msgLen) {
+                        BRSHA256_2(&hash, payload, msgLen);
+                        
+                        if (hash.u32[0] != checksum) { // verify checksum
+                            peer_log((BRPeer *)peer, "error reading %s, invalid checksum %x, expected %x, payload "
+                                     "length:%u, SHA256_2:%llX%llX%llX%llX", type, be32(hash.u32[0]), be32(checksum),
+                                     msgLen, be64(hash.u64[0]), be64(hash.u64[1]), be64(hash.u64[2]),
+                                     be64(hash.u64[3]));
+                        }
+                        else BRPeerAcceptMessage(peer, payload, msgLen, type);
+                    }
+                }
+            }
+        }
+    }
+
+    BRRWLockUnlock(&ctx->lock);
+    BRPeerDisconnect(peer);
+    return NULL; // detached threads don't need to return a value
+}
+
 struct BRPeerContext *BRPeerNewContext(BRPeer *peer)
 {
     struct BRPeerContext *ctx = calloc(1, sizeof(struct BRPeerContext));
@@ -192,7 +312,7 @@ struct BRPeerContext *BRPeerNewContext(BRPeer *peer)
         inet_ntop(AF_INET, &peer->address.u32[3], ctx->host, sizeof(ctx->host));
     }
     else inet_ntop(AF_INET6, &peer->address, ctx->host, sizeof(ctx->host));
-
+    
     ctx->socket = -1;
     BRRWLockInit(&ctx->lock);
     peer->context = ctx;
@@ -252,75 +372,11 @@ BRPeerStatus BRPeerGetStatus(BRPeer *peer)
     return (peer->context) ? peer->context->status : BRPeerStatusDisconnected;
 }
 
-static int BRPeerOpenSocket(BRPeer *peer, double timeout)
-{
-    struct sockaddr_in serv_addr;
-    struct timeval tv;
-    fd_set fds;
-    socklen_t socklen;
-    int socket = peer->context->socket;
-    int arg, count, error = 0, r = 1;
-
-    arg = fcntl(socket, F_GETFL, NULL);
-    if (arg < 0 || fcntl(socket, F_SETFL, arg | O_NONBLOCK) < 0) r = 0; // temporarily set the socket non-blocking
-    if (! r) error = errno;
-
-    if (r) {
-        memset(&serv_addr, 0, sizeof(serv_addr));
-        serv_addr.sin_family = AF_INET;
-        serv_addr.sin_addr.s_addr = peer->address.u32[3]; // already network byte order
-        serv_addr.sin_port = htons(peer->port);
-        if (connect(socket, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) error = errno;
-
-        if (error == EINPROGRESS) {
-            error = 0;
-            tv.tv_sec = timeout;
-            tv.tv_usec = (long)(timeout*1000000) % 1000000;
-            FD_ZERO(&fds);
-            FD_SET(socket, &fds);
-            count = select(socket + 1, NULL, &fds, NULL, &tv);
-
-            if (count <= 0 || getsockopt(socket, SOL_SOCKET, SO_ERROR, &error, &socklen) < 0 || error) {
-                if (count == 0) error = ETIMEDOUT;
-                if (count < 0 || ! error) error = errno;
-                r = 0;
-            }
-        }
-
-        fcntl(socket, F_SETFL, arg); // restore socket non-blocking status
-    }
-
-    if (! r) peer_log(peer, "connect error: %s", strerror(error));
-    return r;
-}
-
-static void *BRPeerThreadRoutine(void *peer)
-{
-    struct BRPeerContext *ctx = ((BRPeer *)peer)->context;
-
-    BRRWLockWrite(&ctx->lock);
-
-    if (BRPeerOpenSocket(peer, CONNECT_TIMEOUT)) {
-        ctx->status = BRPeerStatusConnected;
-        peer_log((BRPeer *)peer, "connected");
-        BRRWLockUnlock(&ctx->lock);
-        BRRWLockRead(&ctx->lock);
-        if (ctx->connected) ctx->connected(ctx->info);
-        
-        // n = read(ctx->socket, buf, bufLen);
-        // if (n < 0) peer_log(peer, "ERROR reading from socket");
-    }
-
-    BRRWLockUnlock(&ctx->lock);
-    BRPeerDisconnect(peer);
-    return NULL; // detached threads don't need to return a value
-}
-
 void BRPeerConnect(BRPeer *peer)
 {
     struct BRPeerContext *ctx = peer->context;
     pthread_attr_t attr;
-    int opt = 1;
+    int on = 1;
     
     if (! ctx) ctx = BRPeerNewContext(peer);
     BRRWLockWrite(&ctx->lock);
@@ -344,8 +400,8 @@ void BRPeerConnect(BRPeer *peer)
             ctx->socket = socket(AF_INET, SOCK_STREAM, 0);
 
             if (ctx->socket >= 0) {
-                setsockopt(ctx->socket, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof(opt));
-                setsockopt(ctx->socket, SOL_SOCKET, SO_NOSIGPIPE, &opt, sizeof(opt));
+                setsockopt(ctx->socket, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on));
+                setsockopt(ctx->socket, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
             }
             
             BRRWLockUnlock(&ctx->lock);
@@ -355,10 +411,11 @@ void BRPeerConnect(BRPeer *peer)
                 BRRWLockUnlock(&ctx->lock);
                 BRPeerFreeContext(peer);
             }
-            else if (pthread_attr_setstacksize(&attr, 128*4096) != 0 || // set stack size since there's no standard
-                     // set thread as detached so it will free resourced immediately on exit without waiting for join
+            else if (pthread_attr_setstacksize(&attr, 512*1024) != 0 || // set stack size since there's no standard
+                     // set thread as detached so it will free resources immediately on exit without waiting for join
                      pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0 ||
                      pthread_create(&ctx->thread, &attr, BRPeerThreadRoutine, peer) != 0) {
+                peer_log(peer, "error creating thread");
                 BRRWLockUnlock(&ctx->lock);
                 BRPeerFreeContext(peer);
                 pthread_attr_destroy(&attr);

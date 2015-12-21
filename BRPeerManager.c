@@ -45,7 +45,8 @@ struct BRPeerManagerContext {
     BRMerkleBlock *checkpoints;
     BRMerkleBlock *lastBlock;
     BRMerkleBlock *lastOrphan;
-    struct { UInt256 txHash; BRPeer *peers; size_t count; } *txRelays;
+    UInt256 *nonFpTx;
+    struct { UInt256 txHash; BRPeer *peers; } *txRelays;
     BRTransaction **publishedTx;
     void *publishedInfo;
     void (*publishedCallback)(void *info, BRPeerManagerError error);
