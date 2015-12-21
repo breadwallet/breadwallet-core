@@ -118,6 +118,7 @@ uint32_t BRPeerLastBlock(BRPeer *peer); // best block height reported by connect
 double BRPeerPingTime(BRPeer *peer); // ping time for connected peer
 
 void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char *type);
+void BRPeerSendVersionMessage(BRPeer *peer);
 void BRPeerSendFilterload(BRPeer *peer, const uint8_t *filter, size_t len);
 void BRPeerSendMempool(BRPeer *peer);
 void BRPeerSendGetheaders(BRPeer *peer, const UInt256 locators[], size_t count, UInt256 hashStop);

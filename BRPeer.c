@@ -24,10 +24,12 @@
 
 #include "BRPeer.h"
 #include "BRMerkleBlock.h"
+#include "BRAddress.h"
 #include "BRSet.h"
 #include "BRRWLock.h"
 #include "BRArray.h"
 #include "BRHash.h"
+#include "BRInt.h"
 #include <float.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -53,7 +55,7 @@
 #define ENABLED_SERVICES   0     // we don't provide full blocks to remote nodes
 #define PROTOCOL_VERSION   70002
 #define MIN_PROTO_VERSION  70002 // peers earlier than this protocol version not supported (need v0.9 txFee relay rules)
-#define LOCAL_HOST         0x7f000001
+#define LOCAL_HOST         ((UInt128) { .u32 = { 0, 0, be32(0xffff), be32(0x7f000001) } })
 #define CONNECT_TIMEOUT    3.0
 
 #define peer_log(peer, ...)\
@@ -220,6 +222,7 @@ static int BRPeerOpenSocket(BRPeer *peer, double timeout)
             }
         }
 
+        if (r) peer_log(peer, "socket connected");
         fcntl(socket, F_SETFL, arg); // restore socket non-blocking status
     }
 
@@ -234,11 +237,9 @@ static void *BRPeerThreadRoutine(void *peer)
     BRRWLockWrite(&ctx->lock);
 
     if (BRPeerOpenSocket(peer, CONNECT_TIMEOUT)) {
-        ctx->status = BRPeerStatusConnected;
-        peer_log((BRPeer *)peer, "connected");
         BRRWLockUnlock(&ctx->lock);
+        BRPeerSendVersionMessage(peer);
         BRRWLockRead(&ctx->lock);
-        if (ctx->connected) ctx->connected(ctx->info);
         
         uint8_t header[HEADER_LENGTH];
         size_t len = 0;
@@ -511,6 +512,48 @@ void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char 
     BRRWLockRead(&ctx->lock); // we only need a read lock on the peer to write to the socket
     if (ctx->socket >= 0) write(ctx->socket, buf, HEADER_LENGTH + len);
     BRRWLockUnlock(&ctx->lock);
+}
+
+void BRPeerSendVersionMessage(BRPeer *peer)
+{
+    struct BRPeerContext *ctx = peer->context;
+    size_t off = 0, userAgentLen = strlen(USER_AGENT);
+    uint8_t msg[80 + BRVarIntSize(userAgentLen) + userAgentLen + 5];
+    
+    *(uint32_t *)(msg + off) = le32(PROTOCOL_VERSION); // version
+    off += sizeof(uint32_t);
+    *(uint64_t *)(msg + off) = le64(ENABLED_SERVICES); // services
+    off += sizeof(uint64_t);
+    *(uint64_t *)(msg + off) = le64(time(NULL)); // timestamp
+    off += sizeof(uint64_t);
+    *(uint64_t *)(msg + off) = le64(peer->services); // services of remote peer
+    off += sizeof(uint64_t);
+    *(UInt128 *)(msg + off) = peer->address; // IPv6 address of remote peer
+    off += sizeof(UInt128);
+    *(uint16_t *)(msg + off) = be16(peer->port); // port of remote peer
+    off += sizeof(uint16_t);
+    *(uint64_t *)(msg + off) = le64(ENABLED_SERVICES); // services
+    off += sizeof(uint64_t);
+    *(UInt128 *)(msg + off) = LOCAL_HOST; // IPv4 mapped IPv6 header
+    off += sizeof(UInt128);
+    *(uint16_t *)(msg + off) = be16(STANDARD_PORT);
+    off += sizeof(uint16_t);
+    ctx->nonce = ((uint64_t)BRRand(0) << 32) | (uint64_t)BRRand(0); // random nonce
+    *(uint64_t *)(msg + off) = le64(ctx->nonce);
+    off += sizeof(uint64_t);
+    off += BRVarIntSet(msg + off, sizeof(msg) - off, userAgentLen);
+    strncpy((char *)(msg + off), USER_AGENT, userAgentLen); // user agent string
+    off += userAgentLen;
+    *(uint32_t *)(msg + off) = le32(0); // last block received
+    off += sizeof(uint32_t);
+    msg[off++] = 0; // relay transactions (no for SPV bloom filter mode)
+    BRPeerSendMessage(peer, msg, sizeof(msg), MSG_VERSION);
+}
+
+void BRPeerSendVerackMessage(BRPeer *peer)
+{
+    BRPeerSendMessage(peer, NULL, 0, MSG_VERACK);
+    peer->context->sentVerack = 1;
 }
 
 void BRPeerSendFilterload(BRPeer *peer, const uint8_t *filter, size_t len)
