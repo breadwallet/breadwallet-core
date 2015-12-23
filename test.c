@@ -493,13 +493,13 @@ const void *wallet_seed(void *info, const char *authprompt, uint64_t amount, siz
     return "";
 }
 
-//TODO: test standard free transaction no change
-//TODO: test free transaction who's inputs are too new to hit min free priority
-//TODO: test transaction with change below min allowable output
-//TODO: test gap limit with gaps in address chain less than the limit
-//TODO: test removing a transaction that other transansactions depend on
-//TODO: test tx ordering for multiple tx with same block height
-//TODO: port all applicable tests from bitcoinj and bitcoincore
+// TODO: test standard free transaction no change
+// TODO: test free transaction who's inputs are too new to hit min free priority
+// TODO: test transaction with change below min allowable output
+// TODO: test gap limit with gaps in address chain less than the limit
+// TODO: test removing a transaction that other transansactions depend on
+// TODO: test tx ordering for multiple tx with same block height
+// TODO: port all applicable tests from bitcoinj and bitcoincore
 
 int BRWalletTests()
 {
@@ -588,9 +588,9 @@ int BRMerkleBlockTests()
     if (! UInt256Eq(txHashes[3], *(UInt256 *)"\xc9\xab\x65\x84\x48\xc1\x0b\x69\x21\xb7\xa4\xce\x30\x21\xeb\x22\xed"
                     "\x6b\xb6\xa7\xfd\xe1\xe5\xbc\xc4\xb1\xdb\x66\x15\xc6\xab\xc5")) r = 0;
     
-    //TODO: test a block with an odd number of tree rows both at the tx level and merkle node level
+    // TODO: test a block with an odd number of tree rows both at the tx level and merkle node level
 
-    //TODO:XXXX test BRMerkleBlockVerifyDifficulty()
+    // TODO: XXX test BRMerkleBlockVerifyDifficulty()
     
     if (b) BRMerkleBlockFree(b);
     return r;

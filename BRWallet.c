@@ -153,9 +153,9 @@ static void BRWalletUpdateBalance(BRWallet *wallet)
         }
 
         // add outputs to UTXO set
-        //TODO: don't add outputs below TX_MIN_OUTPUT_AMOUNT
-        //TODO: don't add coin generation outputs < 100 blocks deep, or non-final lockTime > 1 block/10min in future
-        //NOTE: balance/UTXOs will then need to be recalculated when last block changes
+        // TODO: don't add outputs below TX_MIN_OUTPUT_AMOUNT
+        // TODO: don't add coin generation outputs < 100 blocks deep, or non-final lockTime > 1 block/10min in future
+        // NOTE: balance/UTXOs will then need to be recalculated when last block changes
         for (size_t j = 0; j < tx->outCount; j++) {
             if (BRSetContains(wallet->allAddrs, tx->outputs[j].address)) {
                 array_add(wallet->utxos, ((BRUTXO) { tx->txHash, (uint32_t)j }));
@@ -412,10 +412,10 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
     
     BRRWLockRead(&wallet->lock);
     
-    //TODO: use up all UTXOs for all used addresses to avoid leaving funds in addresses whose public key is revealed
-    //TODO: avoid combining addresses in a single transaction when possible to reduce information leakage
-    //TODO: use up UTXOs received from any of the output scripts that this transaction sends funds to, to mitigate an
-    //      attacker double spending and requesting a refund
+    // TODO: use up all UTXOs for all used addresses to avoid leaving funds in addresses whose public key is revealed
+    // TODO: avoid combining addresses in a single transaction when possible to reduce information leakage
+    // TODO: use up UTXOs received from any of the output scripts that this transaction sends funds to, to mitigate an
+    //       attacker double spending and requesting a refund
     for (i = 0; count > 0 && i < array_count(wallet->utxos); i++) {
         o = &wallet->utxos[i];
         tx = BRSetGet(wallet->allTx, o);
@@ -541,8 +541,8 @@ int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx)
     if (BRWalletTransactionForHash(wallet, tx->txHash) != NULL) return 1;
     if (! BRWalletContainsTransaction(wallet, tx)) return 0;
     
-    //TODO: verify signatures when possible
-    //TODO: handle tx replacement with input sequence numbers (now replacements appear invalid until confirmation)
+    // TODO: verify signatures when possible
+    // TODO: handle tx replacement with input sequence numbers (now replacements appear invalid until confirmation)
     
     BRRWLockWrite(&wallet->lock);
 
@@ -637,8 +637,8 @@ int BRWalletTransactionIsValid(BRWallet *wallet, const BRTransaction *tx)
     BRTransaction *t;
     int r = 1;
     
-    //TODO: XXX attempted double spends should cause conflicted tx to remain unverified until they're confirmed
-    //TODO: XXX conflicted tx with the same wallet outputs should be presented as the same tx to the user
+    // TODO: XXX attempted double spends should cause conflicted tx to remain unverified until they're confirmed
+    // TODO: XXX conflicted tx with the same wallet outputs should be presented as the same tx to the user
 
     if (tx->blockHeight == TX_UNCONFIRMED) { // only unconfirmed transactions can be invalid
         BRRWLockRead(&wallet->lock);
@@ -748,7 +748,7 @@ uint64_t BRWalletAmountReceivedFromTx(BRWallet *wallet, const BRTransaction *tx)
     
     BRRWLockRead(&wallet->lock);
     
-    //TODO: don't include outputs below TX_MIN_OUTPUT_AMOUNT
+    // TODO: don't include outputs below TX_MIN_OUTPUT_AMOUNT
     for (size_t i = 0; i < tx->outCount; i++) {
         if (BRSetContains(wallet->allAddrs, tx->outputs[i].address)) amount += tx->outputs[i].amount;
     }

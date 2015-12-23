@@ -70,16 +70,11 @@ typedef enum {
     BRPeerStatusConnected
 } BRPeerStatus;
 
-typedef enum {
-    BRPeerErrorNone = 0,
-    BRPeerErrorTimeout = 1001
-} BRPeerError;
-
 typedef struct {
     UInt128 address; // IPv6 address of peer
     uint16_t port; // port number for peer connection
     uint64_t services; // bitcoin network services supported by peer
-    uint32_t timestamp; // last seen time
+    uint64_t timestamp; // timestamp reported by peer
     uint8_t flags; // scratch variable
     struct BRPeerContext *context;
 } BRPeer;
@@ -88,7 +83,7 @@ typedef struct {
 
 void BRPeerSetCallbacks(BRPeer *peer, void *info,
                         void (*connected)(void *info),
-                        void (*disconnected)(void *info, BRPeerError error),
+                        void (*disconnected)(void *info, int error),
                         void (*relayedPeers)(void *info, const BRPeer peers[], size_t count),
                         void (*relayedTx)(void *info, const BRTransaction *tx),
                         void (*hasTx)(void *info, UInt256 txHash),
@@ -106,7 +101,7 @@ void BRPeerDisconnect(BRPeer *peer);
 // set earliestKeyTime to wallet creation time in order to speed up initial sync
 void BRPeerSetEarliestKeyTime(BRPeer *peer, uint32_t earliestKeyTime);
 
-// call this when local block height changes (helps detect tarpit nodes)
+// call this when local best block height changes (helps detect tarpit nodes)
 void BRPeerSetCurrentBlockHeight(BRPeer *peer, uint32_t currentBlockHeight);
 
 // call this when wallet addresses need to be added to bloom filter
@@ -119,6 +114,7 @@ double BRPeerPingTime(BRPeer *peer); // ping time for connected peer
 
 void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char *type);
 void BRPeerSendVersionMessage(BRPeer *peer);
+void BRPeerSendVerackMessage(BRPeer *peer);
 void BRPeerSendFilterload(BRPeer *peer, const uint8_t *filter, size_t len);
 void BRPeerSendMempool(BRPeer *peer);
 void BRPeerSendGetheaders(BRPeer *peer, const UInt256 locators[], size_t count, UInt256 hashStop);

@@ -215,7 +215,7 @@ static UInt256 BRMerkleBlockRootR(BRMerkleBlock *block, size_t *hashIdx, size_t 
 // true if merkle tree and timestamp are valid, and proof-of-work matches the stated difficulty target
 // NOTE: This only checks if the block difficulty matches the difficulty target in the header. It does not check if the
 // target is correct for the block's height in the chain. Use BRMerkleBlockVerifyDifficulty() for that.
-int BRMerkleBlockIsValid(BRMerkleBlock *block, unsigned currentTime)
+int BRMerkleBlockIsValid(BRMerkleBlock *block, uint32_t currentTime)
 {
     // target is in "compact" format, where the most significant byte is the size of resulting value in bytes, the next
     // bit is the sign, and the remaining 23bits is the value after having been right shifted by (size - 3)*8 bits
@@ -270,7 +270,7 @@ int BRMerkleBlockVerifyDifficulty(BRMerkleBlock *block, const BRMerkleBlock *pre
     if ((block->height % BLOCK_DIFFICULTY_INTERVAL) == 0 && transitionTime == 0) return 0;
     
 #if BITCOIN_TESTNET
-    //TODO: implement testnet difficulty rule check
+    // TODO: implement testnet difficulty rule check
     return 1; // don't worry about difficulty on testnet for now
 #endif
     

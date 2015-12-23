@@ -149,7 +149,7 @@ static size_t BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t l
             off += in->sigLen;
         }
         else if (subscriptIdx == i && in->script && in->scriptLen > 0) {
-            //TODO: to fully match the reference implementation, OP_CODESEPARATOR related checksig logic should go here
+            // TODO: to fully match the reference implementation, OP_CODESEPARATOR related checksig logic should go here
             off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), in->scriptLen);
             if (data && off + in->scriptLen <= len) memcpy(&data[off], in->script, in->scriptLen);
             off += in->scriptLen;
