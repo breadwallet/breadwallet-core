@@ -940,7 +940,8 @@ int BRPaymentProtocolTests()
     return r;
 }
 
-int main(int argc, const char *argv[]) {
+int main(int argc, const char *argv[])
+{
     printf("BRIntsTests...            ");
     printf("%s\n", (BRIntsTests()) ? "success" : "FAIL");
     printf("BRListTests...            ");

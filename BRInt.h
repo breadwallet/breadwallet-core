@@ -111,6 +111,49 @@ inline static UInt256 UInt256Reverse(UInt256 u)
 #define UINT256_ZERO ((UInt256) { .u64 = { 0, 0, 0, 0 } })
 #define UINT512_ZERO ((UInt512) { .u64 = { 0, 0, 0, 0, 0, 0, 0, 0 } })
 
+#define uint256_hex_str(u) ((const char[]) {\
+    _hex_char((u).u8[ 0] >> 4), _hex_char((u).u8[ 0] & 0xf), _hex_char((u).u8[ 1] >> 4), _hex_char((u).u8[ 1] & 0xf),\
+    _hex_char((u).u8[ 2] >> 4), _hex_char((u).u8[ 2] & 0xf), _hex_char((u).u8[ 3] >> 4), _hex_char((u).u8[ 3] & 0xf),\
+    _hex_char((u).u8[ 4] >> 4), _hex_char((u).u8[ 4] & 0xf), _hex_char((u).u8[ 5] >> 4), _hex_char((u).u8[ 5] & 0xf),\
+    _hex_char((u).u8[ 6] >> 4), _hex_char((u).u8[ 6] & 0xf), _hex_char((u).u8[ 7] >> 4), _hex_char((u).u8[ 7] & 0xf),\
+    _hex_char((u).u8[ 8] >> 4), _hex_char((u).u8[ 8] & 0xf), _hex_char((u).u8[ 9] >> 4), _hex_char((u).u8[ 9] & 0xf),\
+    _hex_char((u).u8[10] >> 4), _hex_char((u).u8[10] & 0xf), _hex_char((u).u8[11] >> 4), _hex_char((u).u8[11] & 0xf),\
+    _hex_char((u).u8[12] >> 4), _hex_char((u).u8[12] & 0xf), _hex_char((u).u8[13] >> 4), _hex_char((u).u8[13] & 0xf),\
+    _hex_char((u).u8[14] >> 4), _hex_char((u).u8[14] & 0xf), _hex_char((u).u8[15] >> 4), _hex_char((u).u8[15] & 0xf),\
+    _hex_char((u).u8[16] >> 4), _hex_char((u).u8[16] & 0xf), _hex_char((u).u8[17] >> 4), _hex_char((u).u8[17] & 0xf),\
+    _hex_char((u).u8[18] >> 4), _hex_char((u).u8[18] & 0xf), _hex_char((u).u8[19] >> 4), _hex_char((u).u8[19] & 0xf),\
+    _hex_char((u).u8[20] >> 4), _hex_char((u).u8[20] & 0xf), _hex_char((u).u8[21] >> 4), _hex_char((u).u8[21] & 0xf),\
+    _hex_char((u).u8[22] >> 4), _hex_char((u).u8[22] & 0xf), _hex_char((u).u8[23] >> 4), _hex_char((u).u8[23] & 0xf),\
+    _hex_char((u).u8[24] >> 4), _hex_char((u).u8[24] & 0xf), _hex_char((u).u8[25] >> 4), _hex_char((u).u8[25] & 0xf),\
+    _hex_char((u).u8[26] >> 4), _hex_char((u).u8[26] & 0xf), _hex_char((u).u8[27] >> 4), _hex_char((u).u8[27] & 0xf),\
+    _hex_char((u).u8[28] >> 4), _hex_char((u).u8[28] & 0xf), _hex_char((u).u8[29] >> 4), _hex_char((u).u8[29] & 0xf),\
+    _hex_char((u).u8[30] >> 4), _hex_char((u).u8[30] & 0xf), _hex_char((u).u8[31] >> 4), _hex_char((u).u8[31] & 0xf),\
+    '\0' })
+
+#define uint256_hex_decode(s) ((UInt256) { .u8 = {\
+    (_hex_val((s)[ 0]) << 4) | _hex_val((s)[ 1]), (_hex_val((s)[ 2]) << 4) | _hex_val((s)[ 3]),\
+    (_hex_val((s)[ 4]) << 4) | _hex_val((s)[ 5]), (_hex_val((s)[ 6]) << 4) | _hex_val((s)[ 7]),\
+    (_hex_val((s)[ 8]) << 4) | _hex_val((s)[ 9]), (_hex_val((s)[10]) << 4) | _hex_val((s)[11]),\
+    (_hex_val((s)[12]) << 4) | _hex_val((s)[13]), (_hex_val((s)[14]) << 4) | _hex_val((s)[15]),\
+    (_hex_val((s)[16]) << 4) | _hex_val((s)[17]), (_hex_val((s)[18]) << 4) | _hex_val((s)[19]),\
+    (_hex_val((s)[20]) << 4) | _hex_val((s)[21]), (_hex_val((s)[22]) << 4) | _hex_val((s)[23]),\
+    (_hex_val((s)[24]) << 4) | _hex_val((s)[25]), (_hex_val((s)[26]) << 4) | _hex_val((s)[27]),\
+    (_hex_val((s)[28]) << 4) | _hex_val((s)[29]), (_hex_val((s)[30]) << 4) | _hex_val((s)[31]),\
+    (_hex_val((s)[32]) << 4) | _hex_val((s)[33]), (_hex_val((s)[34]) << 4) | _hex_val((s)[35]),\
+    (_hex_val((s)[36]) << 4) | _hex_val((s)[37]), (_hex_val((s)[38]) << 4) | _hex_val((s)[39]),\
+    (_hex_val((s)[40]) << 4) | _hex_val((s)[41]), (_hex_val((s)[42]) << 4) | _hex_val((s)[43]),\
+    (_hex_val((s)[44]) << 4) | _hex_val((s)[45]), (_hex_val((s)[46]) << 4) | _hex_val((s)[47]),\
+    (_hex_val((s)[48]) << 4) | _hex_val((s)[49]), (_hex_val((s)[50]) << 4) | _hex_val((s)[51]),\
+    (_hex_val((s)[52]) << 4) | _hex_val((s)[53]), (_hex_val((s)[54]) << 4) | _hex_val((s)[55]),\
+    (_hex_val((s)[56]) << 4) | _hex_val((s)[57]), (_hex_val((s)[58]) << 4) | _hex_val((s)[59]),\
+    (_hex_val((s)[60]) << 4) | _hex_val((s)[61]), (_hex_val((s)[62]) << 4) | _hex_val((s)[63]) } })
+
+#define _hex_val(c) (((c) >= '0' && (c) <= '9') ? (c) - '0' :\
+                     ((c) >= 'A' && (c) <= 'F') ? (c) - 'A' :\
+                     ((c) >= 'a' && (c) <= 'f') ? (c) - 'a' : -1)
+
+#define _hex_char(u) ((u) + (((u) <= 9) ? '0' : (((u) <= 0xf) ? 'a' - 10 : '?')))
+
 // integer endian swapping (detects endianess with predefined macros in clang and gcc, and msvc is always little endian)
 
 #if __BIG_ENDIAN__ || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)

@@ -36,7 +36,7 @@
 #define TX_FREE_MAX_SIZE     1000        // tx must not be larger than this size in bytes without a fee
 #define TX_FREE_MIN_PRIORITY 57600000ULL // tx must not have a priority below this value without a fee
 #define TX_UNCONFIRMED       INT32_MAX   // block height indicating transaction is unconfirmed
-#define TX_MAX_LOCK_HEIGHT   500000000u  // a lockTime below this value is a block height, otherwise a timestamp
+#define TX_MAX_LOCK_HEIGHT   500000000   // a lockTime below this value is a block height, otherwise a timestamp
 
 #define TXIN_SEQUENCE        UINT32_MAX  // sequence number for a finalized tx input
 

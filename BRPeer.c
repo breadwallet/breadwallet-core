@@ -385,10 +385,11 @@ static int BRPeerOpenSocket(BRPeer *peer, double timeout)
 static void *BRPeerThreadRoutine(void *peer)
 {
     struct BRPeerContext *ctx = ((BRPeer *)peer)->context;
-    int error = 0;
-    
-    BRRWLockWrite(&ctx->lock);
+    int blocked = 0, error = 0;
 
+    blocked = BRBlockSigpipe();
+    BRRWLockWrite(&ctx->lock);
+    
     if (BRPeerOpenSocket(peer, CONNECT_TIMEOUT)) {
         ctx->startTime = (double)clock()/CLOCKS_PER_SEC;
         // TODO: XXX start handshake timeout
@@ -459,6 +460,7 @@ static void *BRPeerThreadRoutine(void *peer)
     }
 
     BRRWLockUnlock(&ctx->lock);
+    if (blocked) BRUnblockSigpipe();
     BRPeerErrorDisconnect(peer, error);
     return NULL; // detached threads don't need to return a value
 }
@@ -522,12 +524,7 @@ void BRPeerConnect(BRPeer *peer)
             ctx->knownTxHashes = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
             ctx->currentBlockTxHashes = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
             ctx->socket = socket(AF_INET, SOCK_STREAM, 0);
-
-            if (ctx->socket >= 0) {
-                setsockopt(ctx->socket, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on));
-                setsockopt(ctx->socket, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
-            }
-            
+            if (ctx->socket >= 0) setsockopt(ctx->socket, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on));
             BRRWLockUnlock(&ctx->lock);
             BRRWLockRead(&ctx->lock);
 
@@ -620,10 +617,12 @@ void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char 
         peer_log(peer, "sending %s", type);
         
         struct BRPeerContext *ctx = peer->context;
+        int error = 0;
         
         BRRWLockRead(&ctx->lock); // we only need a read lock on the peer to write to the socket
-        if (ctx->socket >= 0) write(ctx->socket, buf, HEADER_LENGTH + len);
+        if (ctx->socket >= 0 && write(ctx->socket, buf, HEADER_LENGTH + len) < 0) error = errno;
         BRRWLockUnlock(&ctx->lock);
+        if (error) BRPeerErrorDisconnect(peer, error);
     }
 }
 

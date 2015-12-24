@@ -29,6 +29,7 @@
 #include "BRMerkleBlock.h"
 #include "BRInt.h"
 #include <stdint.h>
+#include <signal.h>
 
 #if BITCOIN_TESTNET
 #define STANDARD_PORT 18333
@@ -125,5 +126,32 @@ void BRPeerSendGetdata(BRPeer *peer, const UInt256 txHashes[], size_t txCount, c
 void BRPeerSendGetaddr(BRPeer *peer);
 void BRPeerSendPing(BRPeer *peer, void *info, void (*pongCallback)(void *info, int success));
 void BRPeerRerequestBlocks(BRPeer *peer, UInt256 fromBlock); // useful to get additional tx after a bloom filter update
+
+// block sigpipe on current thread if sigpipe not already pending and not already blocked, returns true if blocked
+inline static int BRBlockSigpipe()
+{
+    sigset_t sigpipe, pending, orig;
+    
+    sigemptyset(&sigpipe);
+    sigaddset(&sigpipe, SIGPIPE);
+    sigemptyset(&pending);
+    sigpending(&pending);
+    return (! sigismember(&pending, SIGPIPE) && pthread_sigmask(SIG_BLOCK, &sigpipe, &orig) == 0 &&
+            ! sigismember(&orig, SIGPIPE));
+}
+
+// clear sigpipe if pending, and unblock on current thread (only call if BRBlockSigpipe() returned true)
+inline static void BRUnblockSigpipe()
+{
+    sigset_t sigpipe, pending;
+    
+    sigemptyset(&sigpipe);
+    sigaddset(&sigpipe, SIGPIPE);
+    sigemptyset(&pending);
+    sigpending(&pending);
+    if (sigismember(&pending, SIGPIPE)) sigwait(&sigpipe, NULL); // sigtimedwait() is unimplemented on iOS
+    pthread_sigmask(SIG_UNBLOCK, &sigpipe, NULL);
+}
+
 
 #endif // BRPeer_h
