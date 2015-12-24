@@ -311,13 +311,13 @@ static int BRPeerAcceptRejectMessage(BRPeer *peer, const uint8_t *msg, size_t le
 static int BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char *type)
 {
     struct BRPeerContext *ctx = peer->context;
-    UInt256 h;
+    UInt256 hash;
     int r = 1;
     
     if (ctx->currentBlock && strncmp(MSG_TX, type, 12) != 0) { // if we receive non-tx message, merkleblock is done
-        h = ctx->currentBlock->blockHash;
-        peer_log(peer, "incomplete merkleblock %llX%llX%llX%llX, expected %zu more tx, got %s", be64(h.u64[0]),
-                 be64(h.u64[1]), be64(h.u64[2]), be64(h.u64[3]), BRSetCount(ctx->currentBlockTxHashes), type);
+        hash = ctx->currentBlock->blockHash;
+        peer_log(peer, "incomplete merkleblock %s, expected %zu more tx, got %s", uint256_hex_str(hash),
+                 BRSetCount(ctx->currentBlockTxHashes), type);
         ctx->currentBlock = NULL;
         BRSetClear(ctx->currentBlockTxHashes);
     }
@@ -385,9 +385,8 @@ static int BRPeerOpenSocket(BRPeer *peer, double timeout)
 static void *BRPeerThreadRoutine(void *peer)
 {
     struct BRPeerContext *ctx = ((BRPeer *)peer)->context;
-    int blocked = 0, error = 0;
+    int error = 0;
 
-    blocked = BRBlockSigpipe();
     BRRWLockWrite(&ctx->lock);
     
     if (BRPeerOpenSocket(peer, CONNECT_TIMEOUT)) {
@@ -447,9 +446,8 @@ static void *BRPeerThreadRoutine(void *peer)
                         
                         if (hash.u32[0] != checksum) { // verify checksum
                             peer_log((BRPeer *)peer, "error reading %s, invalid checksum %x, expected %x, payload "
-                                     "length:%u, SHA256_2:%llX%llX%llX%llX", type, be32(hash.u32[0]), be32(checksum),
-                                     msgLen, be64(hash.u64[0]), be64(hash.u64[1]), be64(hash.u64[2]),
-                                     be64(hash.u64[3]));
+                                     "length:%u, SHA256_2:%s", type, be32(hash.u32[0]), be32(checksum), msgLen,
+                                     uint256_hex_str(hash));
                             error = EPROTO;
                         }
                         else if (! BRPeerAcceptMessage(peer, payload, msgLen, type)) error = EPROTO;
@@ -460,7 +458,6 @@ static void *BRPeerThreadRoutine(void *peer)
     }
 
     BRRWLockUnlock(&ctx->lock);
-    if (blocked) BRUnblockSigpipe();
     BRPeerErrorDisconnect(peer, error);
     return NULL; // detached threads don't need to return a value
 }
@@ -525,6 +522,9 @@ void BRPeerConnect(BRPeer *peer)
             ctx->currentBlockTxHashes = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
             ctx->socket = socket(AF_INET, SOCK_STREAM, 0);
             if (ctx->socket >= 0) setsockopt(ctx->socket, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on));
+#ifdef SO_NOSIGPIPE
+            if (ctx->socket >= 0) setsockopt(ctx->socket, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
+#endif
             BRRWLockUnlock(&ctx->lock);
             BRRWLockRead(&ctx->lock);
 
@@ -595,6 +595,10 @@ double BRPeerPingTime(BRPeer *peer)
     return (peer->context) ? peer->context->pingTime : DBL_MAX;
 }
 
+#ifndef MSG_NOSIGNAL
+#define MSG_NOSIGNAL 0
+#endif
+
 void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char *type)
 {
     if (len > MAX_MSG_LENGTH) {
@@ -620,7 +624,7 @@ void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char 
         int error = 0;
         
         BRRWLockRead(&ctx->lock); // we only need a read lock on the peer to write to the socket
-        if (ctx->socket >= 0 && write(ctx->socket, buf, HEADER_LENGTH + len) < 0) error = errno;
+        if (ctx->socket >= 0 && send(ctx->socket, buf, HEADER_LENGTH + len, MSG_NOSIGNAL) < 0) error = errno;
         BRRWLockUnlock(&ctx->lock);
         if (error) BRPeerErrorDisconnect(peer, error);
     }
