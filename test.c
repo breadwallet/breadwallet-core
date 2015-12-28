@@ -36,6 +36,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 #include <arpa/inet.h>
 
 int BRIntsTests()
@@ -960,5 +961,22 @@ int main(int argc, const char *argv[])
     printf("%s\n", (BRMerkleBlockTests()) ? "success" : "FAIL");
     printf("BRPaymentProtocolTests... ");
     printf("%s\n", (BRPaymentProtocolTests()) ? "success" : "FAIL");
+    
+    BRPeer peer = BR_PEER_NONE;
+    int r = 0;
+
+    peer.address.u16[4] = 0xffff;
+    peer.address.u8[12] = 98;
+    peer.address.u8[13] = 166;
+    peer.address.u8[14] = 154;
+    peer.address.u8[15] = 223;
+    peer.port = STANDARD_PORT;
+        
+    BRPeerConnect(&peer);
+    
+    while (r == 0 && BRPeerConnectStatus(&peer) != BRPeerStatusDisconnected) r = sleep(1);
+    
+    if (r != 0) printf("sleep got a signal");
+    
     return 0;
 }

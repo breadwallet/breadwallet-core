@@ -94,7 +94,7 @@ void BRPeerSetCallbacks(BRPeer *peer, void *info,
                         const BRTransaction *(*reqeustedTx)(void *info, UInt256 txHash),
                         int (*networkIsReachable)(void *info));
 
-BRPeerStatus BRPeerGetStatus(BRPeer *peer); // current connection status
+BRPeerStatus BRPeerConnectStatus(BRPeer *peer); // current connection status
 void BRPeerConnect(BRPeer *peer);
 void BRPeerDisconnect(BRPeer *peer);
 

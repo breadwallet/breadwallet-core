@@ -155,7 +155,7 @@ static void BRPeerErrorDisconnect(BRPeer *peer, int error)
     BRRWLockRead(&ctx->lock);
     if (ctx->socket >= 0) shutdown(ctx->socket, SHUT_RDWR);
     BRRWLockUnlock(&ctx->lock);
-    BRRWLockWrite(&ctx->lock); // this will block until all read locks are released
+    BRRWLockWrite(&ctx->lock); // this will block until all socket writes are done
     if (ctx->socket >= 0) close(ctx->socket);
     ctx->socket = -1;
     BRRWLockUnlock(&ctx->lock);
@@ -170,6 +170,9 @@ static int BRPeerAcceptVersionMessage(BRPeer *peer, const uint8_t *msg, size_t l
     struct BRPeerContext *ctx = peer->context;
     int r = 1;
     size_t off = 0, strLen = 0, l = 0;
+    uint64_t recvServices, fromServices, nonce;
+    UInt128 recvAddr, fromAddr;
+    uint16_t recvPort, fromPort;
     
     if (len < 85) {
         peer_log(peer, "malformed version message, length is %zu, should be > 84", len);
@@ -187,6 +190,20 @@ static int BRPeerAcceptVersionMessage(BRPeer *peer, const uint8_t *msg, size_t l
             peer->services = le64(*(uint64_t *)(msg + off));
             off += sizeof(uint64_t);
             peer->timestamp = le64(*(uint64_t *)(msg + off));
+            off += sizeof(uint64_t);
+            recvServices = le64(*(uint64_t *)(msg + off));
+            off += sizeof(uint64_t);
+            recvAddr = *(UInt128 *)(msg + off);
+            off += sizeof(UInt128);
+            recvPort = be16(*(uint16_t *)(msg + off));
+            off += sizeof(uint16_t);
+            fromServices = le64(*(uint64_t *)(msg + off));
+            off += sizeof(uint64_t);
+            fromAddr = *(UInt128 *)(msg + off);
+            off += sizeof(UInt128);
+            fromPort = be16(*(uint16_t *)(msg + off));
+            off += sizeof(uint16_t);
+            nonce = le64(*(uint64_t *)(msg + off));
             off += sizeof(uint64_t);
             strLen = BRVarInt(msg + off, len - off, &l);
             off += l;
@@ -316,13 +333,13 @@ static int BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t len, con
     
     if (ctx->currentBlock && strncmp(MSG_TX, type, 12) != 0) { // if we receive non-tx message, merkleblock is done
         hash = ctx->currentBlock->blockHash;
-        peer_log(peer, "incomplete merkleblock %s, expected %zu more tx, got %s", uint256_hex_str(hash),
-                 BRSetCount(ctx->currentBlockTxHashes), type);
         ctx->currentBlock = NULL;
         BRSetClear(ctx->currentBlockTxHashes);
+        peer_log(peer, "incomplete merkleblock %s, expected %zu more tx, got %s", uint256_hex_str(hash),
+                 BRSetCount(ctx->currentBlockTxHashes), type);
+        r = 0;
     }
-    
-    if (strncmp(MSG_VERSION, type, 12) == 0) r = BRPeerAcceptVersionMessage(peer, msg, len);
+    else if (strncmp(MSG_VERSION, type, 12) == 0) r = BRPeerAcceptVersionMessage(peer, msg, len);
     else if (strncmp(MSG_VERACK, type, 12) == 0) r = BRPeerAcceptVerackMessage(peer, msg, len);
     else if (strncmp(MSG_ADDR, type, 12) == 0) r = BRPeerAcceptAddrMessage(peer, msg, len);
     else if (strncmp(MSG_INV, type, 12) == 0) r = BRPeerAcceptInvMessage(peer, msg, len);
@@ -336,6 +353,7 @@ static int BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t len, con
     else if (strncmp(MSG_MERKLEBLOCK, type, 12) == 0) r = BRPeerAcceptMerkleblockMessage(peer, msg, len);
     else if (strncmp(MSG_REJECT, type, 12) == 0) r = BRPeerAcceptRejectMessage(peer, msg, len);
     else peer_log(peer, "dropping %s, length %zu, not implemented", type, len);
+
     return r;
 }
 
@@ -401,6 +419,9 @@ static void *BRPeerThreadRoutine(void *peer)
         ssize_t n = 0;
         
         while (! error && n >= 0) {
+            n = 0;
+            len = 0;
+
             while (n >= 0 && len < HEADER_LENGTH) {
                 n = read(ctx->socket, header + len, sizeof(header) - len);
                 if (n >= 0) len += n;
@@ -412,6 +433,7 @@ static void *BRPeerThreadRoutine(void *peer)
         
             if (n < 0) {
                 peer_log((BRPeer *)peer, "%s", strerror(errno));
+                error = errno;
             }
             else if (header[15] != 0) { // verify header type field is NULL terminated
                 peer_log((BRPeer *)peer, "malformed message header: type not NULL terminated");
@@ -440,6 +462,7 @@ static void *BRPeerThreadRoutine(void *peer)
                     
                     if (n < 0) {
                         peer_log((BRPeer *)peer, "%s", strerror(errno));
+                        error = errno;
                     }
                     else if (len == msgLen) {
                         BRSHA256_2(&hash, payload, msgLen);
@@ -492,7 +515,7 @@ void BRPeerSetCallbacks(BRPeer *peer, void *info,
 }
 
 // current connection status
-BRPeerStatus BRPeerGetStatus(BRPeer *peer)
+BRPeerStatus BRPeerConnectStatus(BRPeer *peer)
 {
     return (peer->context) ? peer->context->status : BRPeerStatusDisconnected;
 }
@@ -510,7 +533,7 @@ void BRPeerConnect(BRPeer *peer)
         ctx->status = BRPeerStatusConnecting;
         ctx->pingTime = DBL_MAX;
     
-        if (! ctx->networkIsReachable(ctx->info)) { // delay connect until network is reachable
+        if (ctx->networkIsReachable && ! ctx->networkIsReachable(ctx->info)) { // delay until network is reachable
             ctx->waitingForNetwork = 1;
             BRRWLockUnlock(&ctx->lock);
         }
@@ -522,7 +545,7 @@ void BRPeerConnect(BRPeer *peer)
             ctx->currentBlockTxHashes = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
             ctx->socket = socket(AF_INET, SOCK_STREAM, 0);
             if (ctx->socket >= 0) setsockopt(ctx->socket, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on));
-#ifdef SO_NOSIGPIPE
+#ifdef SO_NOSIGPIPE // BSD based systems have a SO_NOSIGPIPE socket option to supress SIGPIPE signals
             if (ctx->socket >= 0) setsockopt(ctx->socket, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
 #endif
             BRRWLockUnlock(&ctx->lock);
@@ -595,8 +618,8 @@ double BRPeerPingTime(BRPeer *peer)
     return (peer->context) ? peer->context->pingTime : DBL_MAX;
 }
 
-#ifndef MSG_NOSIGNAL
-#define MSG_NOSIGNAL 0
+#ifndef MSG_NOSIGNAL   // linux based systems have a MSG_NOSIGNAL send flag, useful for supressing SIGPIPE signals
+#define MSG_NOSIGNAL 0 // set to 0 if undefined (BSD has the SO_NOSIGPIPE sockopt, and windows has no signals at all)
 #endif
 
 void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char *type)

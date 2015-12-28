@@ -145,6 +145,8 @@ int BRPeerMangerIsConnected(BRPeerManager *manager)
 // connect to bitcoin peer-to-peer network (also call this whenever networkIsReachable() status changes)
 void BRPeerManagerConnect(BRPeerManager *manager)
 {
+#if ! defined(MSG_NOSIGNAL) && ! defined(SO_NOSIGPIPE)
+#endif
 }
 
 // rescan blockchain for potentially missing transactions
