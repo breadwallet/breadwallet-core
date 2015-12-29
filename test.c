@@ -488,10 +488,30 @@ int BRTransactionTests()
     return r;
 }
 
-const void *wallet_seed(void *info, const char *authprompt, uint64_t amount, size_t *seedLen)
+static const void *walletSeed(void *info, const char *authprompt, uint64_t amount, size_t *seedLen)
 {
     *seedLen = 0;
     return "";
+}
+
+static void walletBalanceChanged(void *info, uint64_t balance)
+{
+    printf("\nbalance changed %llu", balance);
+}
+
+static void walletTxAdded(void *info, BRTransaction *tx)
+{
+    printf("\ntx added: %s", uint256_hex_encode(tx->txHash));
+}
+
+static void walletTxUpdated(void *info, const UInt256 txHash[], size_t count, uint32_t blockHeight, uint32_t timestamp)
+{
+    for (size_t i = 0; i < count; i++) printf("\ntx updated: %s", uint256_hex_encode(txHash[i]));
+}
+
+static void walletTxDeleted(void *info, UInt256 txHash)
+{
+    printf("\ntx deleted: %s", uint256_hex_encode(txHash));
 }
 
 // TODO: test standard free transaction no change
@@ -506,13 +526,14 @@ int BRWalletTests()
 {
     int r = 1;
     size_t seedLen = 0;
-    const void *seed = wallet_seed(NULL, NULL, 0, &seedLen);
+    const void *seed = walletSeed(NULL, NULL, 0, &seedLen);
     BRMasterPubKey mpk = BRBIP32MasterPubKey(seed, seedLen);
-    BRWallet *w = BRWalletNew(NULL, 0, mpk, NULL, wallet_seed);
+    BRWallet *w = BRWalletNew(NULL, 0, mpk, NULL, walletSeed);
     const UInt256 secret = *(UInt256 *)"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x01";
     BRKey k;
     BRAddress addr, recvAddr = BRWalletReceiveAddress(w);
     
+    BRWalletSetCallbacks(w, NULL, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
     BRKeySetSecret(&k, &secret, 1);
     BRKeyAddress(&k, addr.s, sizeof(addr));
     
@@ -536,7 +557,8 @@ int BRWalletTests()
     
     if (tx) BRWalletRegisterTransaction(w, tx);
     if (tx && BRWalletBalance(w) + BRWalletFeeForTx(w, tx) != SATOSHIS/2) r = 0;
-
+    printf("\n");
+    
     BRWalletFree(w);
     return r;
 }
@@ -962,21 +984,21 @@ int main(int argc, const char *argv[])
     printf("BRPaymentProtocolTests... ");
     printf("%s\n", (BRPaymentProtocolTests()) ? "success" : "FAIL");
     
-    BRPeer peer = BR_PEER_NONE;
-    int r = 0;
-
-    peer.address.u16[4] = 0xffff;
-    peer.address.u8[12] = 98;
-    peer.address.u8[13] = 166;
-    peer.address.u8[14] = 154;
-    peer.address.u8[15] = 223;
-    peer.port = STANDARD_PORT;
-        
-    BRPeerConnect(&peer);
-    
-    while (r == 0 && BRPeerConnectStatus(&peer) != BRPeerStatusDisconnected) r = sleep(1);
-    
-    if (r != 0) printf("sleep got a signal");
+//    BRPeer peer = BR_PEER_NONE;
+//    int r = 0;
+//
+//    peer.address.u16[4] = 0xffff;
+//    peer.address.u8[12] = 98;
+//    peer.address.u8[13] = 166;
+//    peer.address.u8[14] = 154;
+//    peer.address.u8[15] = 223;
+//    peer.port = STANDARD_PORT;
+//        
+//    BRPeerConnect(&peer);
+//    
+//    while (r == 0 && BRPeerConnectStatus(&peer) != BRPeerStatusDisconnected) r = sleep(1);
+//    
+//    if (r != 0) printf("sleep got a signal");
     
     return 0;
 }
