@@ -267,7 +267,7 @@ int BRHashTests()
 int BRAddressTests()
 {
     int r = 1;
-    UInt256 secret = *(UInt256 *)"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x01";
+    UInt256 secret = uint256_hex_decode("0000000000000000000000000000000000000000000000000000000000000001");
     BRKey k;
     BRAddress addr, addr2;
     
@@ -420,7 +420,7 @@ int BRBIP39Tests()
 int BRTransactionTests()
 {
     int r = 1;
-    UInt256 secret = *(UInt256 *)"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x01";
+    UInt256 secret = uint256_hex_decode("0000000000000000000000000000000000000000000000000000000000000001");
     BRKey k;
     BRAddress address;
     
@@ -529,7 +529,7 @@ int BRWalletTests()
     const void *seed = walletSeed(NULL, NULL, 0, &seedLen);
     BRMasterPubKey mpk = BRBIP32MasterPubKey(seed, seedLen);
     BRWallet *w = BRWalletNew(NULL, 0, mpk, NULL, walletSeed);
-    const UInt256 secret = *(UInt256 *)"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x01";
+    const UInt256 secret = uint256_hex_decode("0000000000000000000000000000000000000000000000000000000000000001");
     BRKey k;
     BRAddress addr, recvAddr = BRWalletReceiveAddress(w);
     
@@ -585,13 +585,12 @@ int BRMerkleBlockTests()
     b = BRMerkleBlockParse((uint8_t *)block, sizeof(block) - 1);
     
     if (! UInt256Eq(b->blockHash,
-                    UInt256Reverse(*(UInt256 *)"\x00\x00\x00\x00\x00\x00\x80\xb6\x6c\x91\x1b\xd5\xba\x14\xa7"
-                                   "\x42\x60\x05\x73\x11\xea\xeb\x19\x82\x80\x2f\x70\x10\xf1\xa9\xf0\x90"))) r = 0;
-    
+        UInt256Reverse(uint256_hex_decode("00000000000080b66c911bd5ba14a74260057311eaeb1982802f7010f1a9f090")))) r = 0;
+
     if (! BRMerkleBlockIsValid(b, (uint32_t)time(NULL))) r = 0;
     
-    if (! BRMerkleBlockContainsTxHash(b, *(UInt256 *)"\x4c\x30\xb6\x3c\xfc\xdc\x2d\x35\xe3\x32\x94\x21\xb9\x80\x5e"
-                                      "\xf0\xc6\x56\x5d\x35\x38\x1c\xa8\x57\x76\x2e\xa0\xb3\xa5\xa1\x28\xbb")) r = 0;
+    if (! BRMerkleBlockContainsTxHash(b,
+        uint256_hex_decode("4c30b63cfcdc2d35e3329421b9805ef0c6565d35381ca857762ea0b3a5a128bb"))) r = 0;
     
     if (BRMerkleBlockTxHashes(b, NULL, 0) != 4) r = 0;
     
@@ -599,17 +598,17 @@ int BRMerkleBlockTests()
     
     BRMerkleBlockTxHashes(b, txHashes, 4);
     
-    if (! UInt256Eq(txHashes[0], *(UInt256 *)"\x4c\x30\xb6\x3c\xfc\xdc\x2d\x35\xe3\x32\x94\x21\xb9\x80\x5e\xf0\xc6"
-                    "\x56\x5d\x35\x38\x1c\xa8\x57\x76\x2e\xa0\xb3\xa5\xa1\x28\xbb")) r = 0;
+    if (! UInt256Eq(txHashes[0],
+                    uint256_hex_decode("4c30b63cfcdc2d35e3329421b9805ef0c6565d35381ca857762ea0b3a5a128bb"))) r = 0;
     
-    if (! UInt256Eq(txHashes[1], *(UInt256 *)"\xca\x50\x65\xff\x96\x17\xcb\xcb\xa4\x5e\xb2\x37\x26\xdf\x64\x98\xa9"
-                    "\xb9\xca\xfe\xd4\xf5\x4c\xba\xb9\xd2\x27\xb0\x03\x5d\xde\xfb")) r = 0;
+    if (! UInt256Eq(txHashes[1],
+                    uint256_hex_decode("ca5065ff9617cbcba45eb23726df6498a9b9cafed4f54cbab9d227b0035ddefb"))) r = 0;
     
-    if (! UInt256Eq(txHashes[2], *(UInt256 *)"\xbb\x15\xac\x1d\x57\xd0\x18\x2a\xae\xe6\x1c\x74\x74\x3a\x9c\x4f\x78"
-                    "\x58\x95\xe5\x63\x90\x9b\xaf\xec\x45\xc9\xa2\xb0\xff\x31\x81")) r = 0;
+    if (! UInt256Eq(txHashes[2],
+                    uint256_hex_decode("bb15ac1d57d0182aaee61c74743a9c4f785895e563909bafec45c9a2b0ff3181"))) r = 0;
     
-    if (! UInt256Eq(txHashes[3], *(UInt256 *)"\xc9\xab\x65\x84\x48\xc1\x0b\x69\x21\xb7\xa4\xce\x30\x21\xeb\x22\xed"
-                    "\x6b\xb6\xa7\xfd\xe1\xe5\xbc\xc4\xb1\xdb\x66\x15\xc6\xab\xc5")) r = 0;
+    if (! UInt256Eq(txHashes[3],
+                    uint256_hex_decode("c9ab658448c10b6921b7a4ce3021eb22ed6bb6a7fde1e5bcc4b1db6615c6abc5"))) r = 0;
     
     // TODO: test a block with an odd number of tree rows both at the tx level and merkle node level
 

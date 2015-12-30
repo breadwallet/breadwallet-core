@@ -108,7 +108,7 @@ void BRPeerSetCurrentBlockHeight(BRPeer *peer, uint32_t currentBlockHeight);
 void BRPeerSetNeedsFilterUpdate(BRPeer *peer);
 
 uint32_t BRPeerVersion(BRPeer *peer); // connected peer version number
-const char *BRPeerUserAgent(BRPeer *peer); // connected peer user agent string
+size_t BRPeerUserAgent(BRPeer *peer, char *useragent, size_t len); // connected peer user agent string
 uint32_t BRPeerLastBlock(BRPeer *peer); // best block height reported by connected peer
 double BRPeerPingTime(BRPeer *peer); // ping time for connected peer
 
