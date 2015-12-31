@@ -55,7 +55,7 @@
 
 #define array_last(array) ((array)[array_count(array) - 1])
 
-#define array_idx(array, item) (&(item) - (array))
+#define array_idx(array, item) ((item) - (array))
 
 #define array_add(array, item) do {\
     if (array_count(array) + 1 > array_capacity(array))\

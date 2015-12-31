@@ -121,7 +121,7 @@ struct BRPeerContext {
     void (*notfound)(void *info, const UInt256 txHashes[], size_t txCount, const UInt256 blockHashes[],
                      size_t blockCount);
     void (*relayedBlock)(void *info, const BRMerkleBlock *block);
-    const BRTransaction *(*reqeustedTx)(void *info, UInt256 txHash);
+    const BRTransaction *(*requestedTx)(void *info, UInt256 txHash);
     int (*networkIsReachable)(void *info);
     BRRWLock lock;
     pthread_t thread;
@@ -183,6 +183,7 @@ static void BRPeerErrorDisconnect(BRPeer *peer, int error)
         if (ctx->socket >= 0) close(ctx->socket);
         ctx->socket = -1;
         BRRWLockUnlock(&ctx->lock);
+        peer_log(peer, "disconnected");
         if (ctx->disconnected) ctx->disconnected(peer, error);
         BRPeerFreeContext(peer);
     }
@@ -517,7 +518,7 @@ void BRPeerSetCallbacks(BRPeer *peer, void *info,
                         void (*relayedBlock)(void *info, const BRMerkleBlock *block),
                         void (*notfound)(void *info, const UInt256 txHashes[], size_t txCount,
                                          const UInt256 blockHashes[], size_t blockCount),
-                        const BRTransaction *(*reqeustedTx)(void *info, UInt256 txHash),
+                        const BRTransaction *(*requestedTx)(void *info, UInt256 txHash),
                         int (*networkIsReachable)(void *info))
 {
     struct BRPeerContext *ctx = peer->context;
@@ -534,7 +535,7 @@ void BRPeerSetCallbacks(BRPeer *peer, void *info,
         ctx->rejectedTx = rejectedTx;
         ctx->relayedBlock = relayedBlock;
         ctx->notfound = notfound;
-        ctx->reqeustedTx = reqeustedTx;
+        ctx->requestedTx = requestedTx;
         ctx->networkIsReachable = networkIsReachable;
     }
 }
@@ -689,7 +690,10 @@ void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char 
             BRRWLockUnlock(&ctx->lock);
         }
         
-        if (error) BRPeerErrorDisconnect(peer, error);
+        if (error) {
+            peer_log(peer, "%s", strerror(error));
+            BRPeerErrorDisconnect(peer, error);
+        }
     }
 }
 

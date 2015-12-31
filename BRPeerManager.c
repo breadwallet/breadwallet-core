@@ -24,7 +24,10 @@
 
 #include "BRPeerManager.h"
 #include "BRBloomFilter.h"
+#include "BRArray.h"
 #include "BRInt.h"
+#include <stdlib.h>
+#include <errno.h>
 
 #define PROTOCOL_TIMEOUT     20.0
 #define MAX_CONNECT_FAILURES 20 // notify user of network problems after this many connect failures in a row
@@ -86,14 +89,14 @@ static const char *dns_seeds[] = {
 
 #endif
 
-struct BRPeerManagerContext {
+struct _BRPeerManager {
     BRWallet *wallet;
     uint32_t earliestKeyTime;
     int connected;
     BRPeer *peers;
     BRPeer *connectedPeers;
     BRPeer *misbehavinPeers;
-    BRPeer downloadPeer;
+    BRPeer *downloadPeer;
     uint32_t tweak;
     uint32_t syncStartHeight;
     uint32_t filterUpdateHeight;
@@ -110,13 +113,123 @@ struct BRPeerManagerContext {
     struct { UInt256 txHash; BRPeer *peers; } *txRelays;
     BRTransaction **publishedTx;
     void *publishedInfo;
-    void (*publishedCallback)(void *info, BRPeerManagerError error);
+    void (*publishedCallback)(void *info, int error);
     void *callbackInfo;
     void (*syncStarted)(void *info);
     void (*syncSucceded)(void *info);
-    void (*syncFailed)(void *info, BRPeerManagerError error);
+    void (*syncFailed)(void *info, int error);
     void (*txStatusUpdate)(void *info);
 };
+
+typedef struct {
+    BRPeer *peer;
+    BRPeerManager *manager;
+} BRPeerInfo;
+
+static void BRPeerManagerPeerMisbehavin(BRPeerManager *manager, BRPeer *peer)
+{
+}
+
+static void BRPeerManagerSyncStopped(BRPeerManager *manager)
+{
+}
+
+static void peerConnected(void *info)
+{
+    BRPeer *peer = ((BRPeerInfo *)info)->peer;
+    BRPeerManager *manager = ((BRPeerInfo *)info)->manager;
+}
+
+static void peerDisconnected(void *info, int error)
+{
+    BRPeer *peer = ((BRPeerInfo *)info)->peer;
+    BRPeerManager *manager = ((BRPeerInfo *)info)->manager;
+    
+    if (error == EPROTO) { // if it's protocol error, the peer isn't following standard policy
+        BRPeerManagerPeerMisbehavin(manager, peer);
+    }
+    else if (error) { // timeout or some non-protocol related network error
+        for (size_t i = array_count(manager->peers); i > 0; i--) {
+            if (BRPeerEq(&manager->peers[i - 1], peer)) array_rm(manager->peers, i - 1);
+        }
+        
+        manager->connectFailures++;
+    }
+    
+    for (size_t i = array_count(manager->txRelays); i > 0; i--) {
+        for (size_t j = array_count(manager->txRelays[i - 1].peers); j > 0; j--) {
+            if (BRPeerEq(&manager->txRelays[i - 1].peers[j - 1], peer)) array_rm(manager->txRelays[i - 1].peers, j - 1);
+        }
+    }
+
+    if (BRPeerEq(manager->downloadPeer, peer)) { // download peer disconnected
+        manager->connected = 0;
+        manager->downloadPeer = NULL;
+        if (manager->connectFailures > MAX_CONNECT_FAILURES) manager->connectFailures = MAX_CONNECT_FAILURES;
+    }
+
+    if (! manager->connected && manager->connectFailures == MAX_CONNECT_FAILURES) {
+        BRPeerManagerSyncStopped(manager);
+        
+        // clear out stored peers so we get a fresh list from DNS on next connect attempt
+        array_clear(manager->misbehavinPeers);
+        array_clear(manager->peers);
+        // XXX delete stored peers
+
+        if (manager->syncFailed) manager->syncFailed(manager->callbackInfo, error);
+    }
+    else if (manager->connectFailures < MAX_CONNECT_FAILURES) {
+        BRPeerManagerConnect(manager); // try connecting to another peer
+    }
+    
+    if (manager->txStatusUpdate) manager->txStatusUpdate(manager->callbackInfo);
+    free(info);
+}
+
+static void peerRelayedPeers(void *info, const BRPeer peers[], size_t count)
+{
+    BRPeer *peer = ((BRPeerInfo *)info)->peer;
+    BRPeerManager *manager = ((BRPeerInfo *)info)->manager;
+}
+
+static void peerRelayedTx(void *info, const BRTransaction *tx)
+{
+    BRPeer *peer = ((BRPeerInfo *)info)->peer;
+    BRPeerManager *manager = ((BRPeerInfo *)info)->manager;
+}
+
+static void peerHasTx(void *info, UInt256 txHash)
+{
+    BRPeer *peer = ((BRPeerInfo *)info)->peer;
+    BRPeerManager *manager = ((BRPeerInfo *)info)->manager;
+}
+
+static void peerRejectedTx(void *info, UInt256 txHash, uint8_t code)
+{
+    BRPeer *peer = ((BRPeerInfo *)info)->peer;
+    BRPeerManager *manager = ((BRPeerInfo *)info)->manager;
+}
+
+static void peerRelayedBlock(void *info, const BRMerkleBlock *block)
+{
+    BRPeer *peer = ((BRPeerInfo *)info)->peer;
+    BRPeerManager *manager = ((BRPeerInfo *)info)->manager;
+}
+
+static void peerDataNotfound(void *info, const UInt256 txHashes[], size_t txCount,
+                             const UInt256 blockHashes[], size_t blockCount)
+{
+    BRPeer *peer = ((BRPeerInfo *)info)->peer;
+    BRPeerManager *manager = ((BRPeerInfo *)info)->manager;
+}
+
+static const BRTransaction *peerRequestedTx(void *info, UInt256 txHash)
+{
+    BRPeer *peer = ((BRPeerInfo *)info)->peer;
+    BRPeerManager *manager = ((BRPeerInfo *)info)->manager;
+
+    return NULL;
+}
 
 // returns a newly allocated BRPeerManager struct that must be freed by calling BRPeerManagerFree()
 BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, const BRMerkleBlock blocks[],
@@ -128,7 +241,7 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, cons
 void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*syncStarted)(void *info),
                                void (*syncSucceded)(void *info),
-                               void (*syncFailed)(void *info, BRPeerManagerError error),
+                               void (*syncFailed)(void *info, int error),
                                void (*txStatusUpdate)(void *info),
                                void (*saveBlocks)(void *info, const BRMerkleBlock blocks[], size_t count),
                                void (*savePeers)(void *info, const BRPeer peers[], size_t count),
@@ -179,12 +292,13 @@ size_t BRPeerManagerPeerCount(BRPeerManager *manager)
 }
 
 // publishes tx to bitcoin network
-void BRPeerManagerPublishTx(BRTransaction *tx, void *info, void (*callback)(void *info, BRPeerManagerError error))
+void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *info,
+                            void (*callback)(void *info, int error))
 {
 }
 
 // number of connected peers that have relayed the transaction
-size_t BRPeerMangaerRelayCount(UInt256 txHash)
+size_t BRPeerMangaerRelayCount(BRPeerManager *manager, UInt256 txHash)
 {
     return 0;
 }

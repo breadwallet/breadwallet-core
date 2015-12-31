@@ -31,15 +31,6 @@
 #include "BRWallet.h"
 #include <stddef.h>
 
-typedef enum {
-    BRPeerManagerErrorNone = 0,
-    BRPeerManagerErrorTxNotSigned,
-    BRPeerManagerErrorNotConnected,
-    BRPeerManagerErrorTimedOut = 1001,
-    BRPeerManagerErrorDoubleSpend,
-    BRPeerManagerErrorNoPeersFound
-} BRPeerManagerError;
-
 typedef struct _BRPeerManager BRPeerManager;
 
 // returns a newly allocated BRPeerManager struct that must be freed by calling BRPeerManagerFree()
@@ -49,7 +40,7 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, cons
 void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*syncStarted)(void *info),
                                void (*syncSucceded)(void *info),
-                               void (*syncFailed)(void *info, BRPeerManagerError error),
+                               void (*syncFailed)(void *info, int error),
                                void (*txStatusUpdate)(void *info),
                                void (*saveBlocks)(void *info, const BRMerkleBlock blocks[], size_t count),
                                void (*savePeers)(void *info, const BRPeer peers[], size_t count),
@@ -77,10 +68,11 @@ double BRPeerManagerSyncProgress(BRPeerManager *manager);
 size_t BRPeerManagerPeerCount(BRPeerManager *manager);
 
 // publishes tx to bitcoin network
-void BRPeerManagerPublishTx(BRTransaction *tx, void *info, void (*callback)(void *info, BRPeerManagerError error));
+void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *info,
+                            void (*callback)(void *info, int error));
 
 // number of connected peers that have relayed the transaction
-size_t BRPeerMangaerRelayCount(UInt256 txHash);
+size_t BRPeerMangaerRelayCount(BRPeerManager *manager, UInt256 txHash);
 
 // frees memory allocated for manager
 void BRPeerManagerFree(BRPeerManager *manager);

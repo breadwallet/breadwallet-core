@@ -91,7 +91,7 @@ void BRPeerSetCallbacks(BRPeer *peer, void *info,
                         void (*relayedBlock)(void *info, const BRMerkleBlock *block),
                         void (*notfound)(void *info, const UInt256 txHashes[], size_t txCount,
                                          const UInt256 blockHashes[], size_t blockCount),
-                        const BRTransaction *(*reqeustedTx)(void *info, UInt256 txHash),
+                        const BRTransaction *(*requestedTx)(void *info, UInt256 txHash),
                         int (*networkIsReachable)(void *info));
 
 BRPeerStatus BRPeerConnectStatus(BRPeer *peer); // current connection status
@@ -125,5 +125,15 @@ void BRPeerSendGetdata(BRPeer *peer, const UInt256 txHashes[], size_t txCount, c
 void BRPeerSendGetaddr(BRPeer *peer);
 void BRPeerSendPing(BRPeer *peer, void *info, void (*pongCallback)(void *info, int success));
 void BRPeerRerequestBlocks(BRPeer *peer, UInt256 fromBlock); // useful to get additional tx after a bloom filter update
+
+inline static int BRPeerEq(const void *a, const void *b)
+{
+    return (UInt128Eq(((BRPeer *)a)->address, ((BRPeer *)b)->address) && ((BRPeer *)a)->port == ((BRPeer *)b)->port);
+}
+
+inline static size_t BRPeerHash(const void *peer)
+{
+    return (((BRPeer *)peer)->address.u32[3] ^ ((BRPeer *)peer)->port)*0x01000193; // (address xor port)*FNV_PRIME
+}
 
 #endif // BRPeer_h
