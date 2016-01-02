@@ -34,11 +34,11 @@ typedef struct _BRSet BRSet;
 // number of items the set will need to hold
 BRSet *BRSetNew(size_t (*hash)(const void *), int (*eq)(const void *, const void *), size_t capacity);
 
-// adds given item to set or replaces an equivalent existing item
-void BRSetAdd(BRSet *set, void *item);
+// adds given item to set or replaces an equivalent existing item, returns item replaced if any
+void *BRSetAdd(BRSet *set, void *item);
 
-// removes given item from set
-void BRSetRemove(BRSet *set, const void *item);
+// removes item equivalent to given item from set, returns item removed if any
+void *BRSetRemove(BRSet *set, const void *item);
 
 // removes all items from set
 void BRSetClear(BRSet *set);
@@ -60,6 +60,12 @@ void *BRSetFirst(BRSet *set);
 
 // returns the next item after given item when iterating, or NULL if no more items are available
 void *BRSetNext(BRSet *set, const void *item);
+
+// writes up to count items from set to allItems, allItems must be large enough to hold itemSize*count bytes
+void BRSetAll(BRSet *set, void *allItems, size_t itemSize, size_t count);
+
+// calls map() with each item in set
+void BRSetMap(BRSet *set, void *info, void (*map)(void *info, void *item));
 
 // adds or replaces items from otherSet into set
 void BRSetUnion(BRSet *set, const BRSet *otherSet);

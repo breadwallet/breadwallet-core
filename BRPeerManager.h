@@ -42,6 +42,7 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*syncSucceded)(void *info),
                                void (*syncFailed)(void *info, int error),
                                void (*txStatusUpdate)(void *info),
+                               void (*txRejected)(void *info, int rescanRecommended),
                                void (*saveBlocks)(void *info, const BRMerkleBlock blocks[], size_t count),
                                void (*savePeers)(void *info, const BRPeer peers[], size_t count),
                                int (*networkIsReachable)(void *info));

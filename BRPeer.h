@@ -64,6 +64,11 @@
 #define MSG_ALERT       "alert"
 #define MSG_REJECT      "reject" //described in BIP61: https://github.com/bitcoin/bips/blob/master/bip-0061.mediawiki
 
+#define peer_log(peer, ...)\
+    printf("%s:%u " _va_first(__VA_ARGS__, NULL) "\n", (peer)->context->host, (peer)->port, _va_rest(__VA_ARGS__, NULL))
+#define _va_first(first, ...) first
+#define _va_rest(first, ...) __VA_ARGS__
+
 typedef enum {
     BRPeerStatusDisconnected = 0,
     BRPeerStatusConnecting,

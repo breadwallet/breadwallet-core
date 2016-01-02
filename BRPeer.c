@@ -58,11 +58,6 @@
 #define LOCAL_HOST         ((UInt128) { .u32 = { 0, 0, be32(0xffff), be32(0x7f000001) } })
 #define CONNECT_TIMEOUT    3.0
 
-#define peer_log(peer, ...)\
-    printf("%s:%u " _va_first(__VA_ARGS__, NULL) "\n", (peer)->context->host, (peer)->port, _va_rest(__VA_ARGS__, NULL))
-#define _va_first(first, ...) first
-#define _va_rest(first, ...) __VA_ARGS__
-
 // the standard blockchain download protocol works as follows (for SPV mode):
 // - local peer sends getblocks
 // - remote peer reponds with inv containing up to 500 block hashes
@@ -167,6 +162,7 @@ static void BRPeerDidConnect(BRPeer *peer)
     if (ctx && ctx->status == BRPeerStatusConnecting && ctx->sentVerack && ctx->gotVerack) {
         peer_log(peer, "handshake completed");
         ctx->status = BRPeerStatusConnected;
+        peer_log(peer, "connected with lastblock: %u", ctx->lastblock);
         if (ctx->connected) ctx->connected(ctx->info);
     }
 }

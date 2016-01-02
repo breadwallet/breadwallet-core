@@ -85,8 +85,8 @@ static void BRSetGrow(BRSet *set, size_t capacity)
     set->itemCount = newSet.itemCount;
 }
 
-// adds given item to set or replaces an equivalent existing item
-void BRSetAdd(BRSet *set, void *item)
+// adds given item to set or replaces an equivalent existing item, returns item replaced if any
+void *BRSetAdd(BRSet *set, void *item)
 {
     size_t size = set->size;
     size_t i = set->hash(item) % size;
@@ -100,21 +100,22 @@ void BRSetAdd(BRSet *set, void *item)
     if (! t) set->itemCount++;
     set->table[i] = item;
     if (set->itemCount > ((size + 2)/3)*2) BRSetGrow(set, size); // limit load factor to 2/3
+    return t;
 }
 
-// removes given item from set
-void BRSetRemove(BRSet *set, const void *item)
+// removes item equivalent to given item from set, returns item removed if any
+void *BRSetRemove(BRSet *set, const void *item)
 {
     size_t size = set->size;
     size_t i = set->hash(item) % size;
-    void *t = set->table[i];
+    void *r = set->table[i], *t;
 
-    while (t != item && t && ! set->eq(t, item)) { // probe for item
+    while (r != item && r && ! set->eq(r, item)) { // probe for item
         i = (i + 1) % size;
-        t = set->table[i];
+        r = set->table[i];
     }
     
-    if (t) {
+    if (r) {
         set->itemCount--;
         set->table[i] = NULL;
         i = (i + 1) % size;
@@ -128,6 +129,8 @@ void BRSetRemove(BRSet *set, const void *item)
             t = set->table[i];
         }
     }
+    
+    return r;
 }
 
 // removes all items from set
@@ -203,6 +206,30 @@ void *BRSetNext(BRSet *set, const void *item)
     i++;
     while (! r && i < size) r = set->table[i++];
     return r;
+}
+
+// writes up to count items from set to allItems, allItems must be large enough to hold itemSize*count bytes
+void BRSetAll(BRSet *set, void *allItems, size_t itemSize, size_t count)
+{
+    size_t i = 0, j = 0, size = set->size;
+    void *t;
+    
+    while (i < size && j < count) {
+        t = set->table[i++];
+        if (t) memcpy((uint8_t *)allItems + itemSize*j++, t, itemSize);
+    }
+}
+
+// calls map() with each item in set
+void BRSetMap(BRSet *set, void *info, void (*map)(void *info, void *item))
+{
+    size_t i = 0, size = set->size;
+    void *t;
+    
+    while (i < size) {
+        t = set->table[i++];
+        if (t) map(info, t);
+    }
 }
 
 // adds or replaces items from otherSet into set

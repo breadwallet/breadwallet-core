@@ -221,35 +221,35 @@ size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *scri
     
     uint8_t data[21];
     const uint8_t *elem[BRScriptElements(NULL, 0, script, scriptLen)], *d = NULL;
-    size_t l = BRScriptElements(elem, sizeof(elem), script, scriptLen);
+    size_t len = BRScriptElements(elem, sizeof(elem), script, scriptLen);
     
     data[0] = BITCOIN_PUBKEY_ADDRESS;
 #if BITCOIN_TESTNET
     data[0] = BITCOIN_PUBKEY_ADDRESS_TEST;
 #endif
     
-    if (l == 5 && *elem[0] == OP_DUP && *elem[1] == OP_HASH160 && *elem[2] == 20 && *elem[3] == OP_EQUALVERIFY &&
+    if (len == 5 && *elem[0] == OP_DUP && *elem[1] == OP_HASH160 && *elem[2] == 20 && *elem[3] == OP_EQUALVERIFY &&
         *elem[4] == OP_CHECKSIG) {
         // pay-to-pubkey-hash scriptPubKey
-        d = BRScriptData(elem[2], &l);
-        if (l != 20) d = NULL;
+        d = BRScriptData(elem[2], &len);
+        if (len != 20) d = NULL;
         if (d) memcpy(&data[1], d, 20);
     }
-    else if (l == 3 && *elem[0] == OP_HASH160 && *elem[1] == 20 && *elem[2] == OP_EQUAL) {
+    else if (len == 3 && *elem[0] == OP_HASH160 && *elem[1] == 20 && *elem[2] == OP_EQUAL) {
         // pay-to-script-hash scriptPubKey
         data[0] = BITCOIN_SCRIPT_ADDRESS;
 #if BITCOIN_TESTNET
         data[0] = BITCOIN_SCRIPT_ADDRESS_TEST;
 #endif
-        d = BRScriptData(elem[1], &l);
-        if (l != 20) d = NULL;
+        d = BRScriptData(elem[1], &len);
+        if (len != 20) d = NULL;
         if (d) memcpy(&data[1], d, 20);
     }
-    else if (l == 2 && (*elem[0] == 65 || *elem[0] == 33) && *elem[1] == OP_CHECKSIG) {
+    else if (len == 2 && (*elem[0] == 65 || *elem[0] == 33) && *elem[1] == OP_CHECKSIG) {
         // pay-to-pubkey scriptPubKey
-        d = BRScriptData(elem[0], &l);
-        if (l != 65 && l != 33) d = NULL;
-        if (d) BRHash160(&data[1], d, l);
+        d = BRScriptData(elem[0], &len);
+        if (len != 65 && len != 33) d = NULL;
+        if (d) BRHash160(&data[1], d, len);
     }
     
     return (d) ? BRBase58CheckEncode(addr, addrLen, data, sizeof(data)) : 0;
