@@ -47,6 +47,9 @@ typedef struct {
     uint32_t height;
 } BRMerkleBlock;
 
+#define BR_MERKLE_BLOCK_NONE\
+    ((BRMerkleBlock) { UINT256_ZERO, 0, UINT256_ZERO, UINT256_ZERO, 0, 0, 0, 0, NULL, 0, NULL, 0, 0 })
+
 // returns a newly allocated BRMerkleBlock struct that must be freed by calling BRMerkleBlockFree()
 BRMerkleBlock *BRMerkleBlockNew();
 

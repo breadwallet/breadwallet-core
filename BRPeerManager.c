@@ -40,7 +40,7 @@
 
 #if BITCOIN_TESTNET
 
-static const struct { uint32_t height; const char *hash; uint32_t timestamp; uint32_t target; } checkpoint_array[] = {
+static const struct { uint32_t height; const char *hash; uint32_t timestamp; uint32_t target; }checkpoint_array[] = {
     {      0, "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943", 1296688602, 0x1d00ffff },
     {  20160, "000000001cf5440e7c9ae69f655759b17a32aad141896defd55bb895b7cfc44e", 1345001466, 0x1c4d1756 },
     {  40320, "000000008011f56b8c92ff27fb502df5723171c5374673670ef0eee3696aee6d", 1355980158, 0x1d00ffff },
@@ -93,6 +93,30 @@ static const char *dns_seeds[] = {
 
 #endif
 
+// returns a hash value for a block's prevBlock value suitable for use in a hashtable
+inline static size_t BRPrevBlockHash(const void *block)
+{
+    return *(const size_t *)&((const BRMerkleBlock *)block)->prevBlock;
+}
+
+// true if block and otherBlock have equal prevBlock values
+inline static int BRPrevBlockEq(const void *block, const void *otherBlock)
+{
+    return UInt256Eq(((const BRMerkleBlock *)block)->prevBlock, ((const BRMerkleBlock *)otherBlock)->prevBlock);
+}
+
+// returns a hash value for a block's height value suitable for use in a hashtable
+inline static size_t BRBlockHeightHash(const void *block)
+{
+    return (size_t)((const BRMerkleBlock *)block)->height;
+}
+
+// true if block and otherBlock have equal height values
+inline static int BRBlockHeightEq(const void *block, const void *otherBlock)
+{
+    return (((const BRMerkleBlock *)block)->height == ((const BRMerkleBlock *)otherBlock)->height);
+}
+
 struct _BRPeerManager {
     BRWallet *wallet;
     uint32_t earliestKeyTime;
@@ -113,10 +137,11 @@ struct _BRPeerManager {
     BRSet *checkpoints;
     BRMerkleBlock *lastBlock;
     BRMerkleBlock *lastOrphan;
+    BRMerkleBlock *allBlocks;
     UInt256 *nonFpTx;
     struct { UInt256 txHash; BRPeer *peers; } *txRelays;
-    BRSet *publishedTx;
-    void *publishedInfo;
+    BRTransaction **publishedTx;
+    void **publishedInfo;
     void (*publishedCallback)(void *info, int error);
     void *callbackInfo;
     void (*syncStarted)(void *info);
@@ -147,7 +172,11 @@ static void BRPeerManagerSyncStopped(BRPeerManager *manager)
 static void BRPeerManagerAddTxToPublishList(BRPeerManager *manager, BRTransaction *tx)
 {
     if (tx && tx->blockHeight == TX_UNCONFIRMED) {
-        BRSetAdd(manager->publishedTx, tx);
+        for (size_t i = 0; i < array_count(manager->publishedTx); i++) {
+            if (BRTransactionEq(manager->publishedTx[i], tx)) return; // XXX prefer not to return before function end
+        }
+        
+        array_add(manager->publishedTx, tx);
 
         for (size_t i = 0; i < tx->inCount; i++) {
             BRPeerManagerAddTxToPublishList(manager, BRWalletTransactionForHash(manager->wallet, tx->inputs[i].txHash));
@@ -179,7 +208,6 @@ static void BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
         BRBloomFilter *filter = BRBloomFilterNew(manager->fpRate, addrsCount + utxosCount + 100, manager->tweak,
                                                  BLOOM_UPDATE_ALL);
         
-    
         for (size_t i = 0; i < addrsCount; i++) { // add addresses to watch for tx receiveing money to the wallet
             UInt160 hash = UINT160_ZERO;
             
@@ -218,7 +246,22 @@ static void BRPeerManagerLoadMempools(BRPeerManager *manager)
 
 static size_t BRPeerManagerBlockLocators(BRPeerManager *manager, UInt256 locators[], size_t count)
 {
-    return 0;
+    // append 10 most recent block hashes, decending, then continue appending, doubling the step back each time,
+    // finishing with the genesis block (top, -1, -2, -3, -4, -5, -6, -7, -8, -9, -11, -15, -23, -39, -71, -135, ..., 0)
+    BRMerkleBlock *block = manager->lastBlock;
+    int32_t step = 1, i = 0, j;
+    
+    while (block && block->height > 0) {
+        if (locators && i < count) locators[i] = block->blockHash;
+        if (++i >= 10) step *= 2;
+        
+        for (j = 0; block && j < step; j++) {
+            block = BRSetGet(manager->blocks, &block->prevBlock);
+        }
+    }
+
+    if (locators && i < count) locators[i] = GENESIS_BLOCK_HASH;
+    return ++i;
 }
 
 static void peerConnectedMempoolDone(void *info, int success)
@@ -261,10 +304,12 @@ static void peerConnected(void *info)
         BRTransaction *unconfirmed[BRWalletUnconfirmedTx(manager->wallet, NULL, 0)];
         size_t unconfirmedCount = BRWalletUnconfirmedTx(manager->wallet, unconfirmed,
                                                         sizeof(unconfirmed)/sizeof(*unconfirmed));
-        size_t txHashesCount = BRSetCount(manager->publishedTx);
+        size_t txHashesCount = array_count(manager->publishedTx); // XXX clean this up
         UInt256 txHashes[txHashesCount];
         
-        BRSetAll(manager->publishedTx, txHashes, sizeof(*txHashes), txHashesCount);
+        for (size_t i = 0; i < txHashesCount; i++) {
+            txHashes[i] = manager->publishedTx[i]->txHash;
+        }
 
         for (size_t i = 0; i < unconfirmedCount; i++) {
             if (BRWalletAmountSentByTx(manager->wallet, unconfirmed[i]) > 0 &&
@@ -417,7 +462,39 @@ static const BRTransaction *peerRequestedTx(void *info, UInt256 txHash)
 BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, const BRMerkleBlock blocks[],
                                 size_t blocksCount, const BRPeer peers[], size_t peersCount)
 {
-    return NULL;
+    BRPeerManager *manager = calloc(1, sizeof(BRPeerManager));
+    
+    manager->wallet = wallet;
+    manager->earliestKeyTime = earliestKeyTime;
+    array_new(manager->peers, peersCount);
+    if (peers) array_add_array(manager->peers, peers, peersCount);
+    array_new(manager->connectedPeers, PEER_MAX_CONNECTIONS);
+    array_new(manager->misbehavinPeers, 10);
+    manager->tweak = BRRand(BR_RAND_MAX);
+    array_new(manager->allBlocks, blocksCount + 10);
+    manager->blocks = BRSetNew(BRMerkleBlockHash, BRMerkleBlockEq, blocksCount);
+    manager->orphans = BRSetNew(BRPrevBlockHash, BRPrevBlockEq, 10); // orphans are indexed by prevBlock
+    manager->checkpoints = BRSetNew(BRBlockHeightHash, BRBlockHeightEq, 20); // checkpoints are indexed by height
+
+    for (size_t i = 0; i < CHECKPOINT_COUNT; i++) {
+        BRMerkleBlock block = BR_MERKLE_BLOCK_NONE;
+        
+        block.height = checkpoint_array[i].height;
+        block.blockHash = UInt256Reverse(uint256_hex_decode(checkpoint_array[i].hash));
+        block.timestamp = checkpoint_array[i].timestamp;
+        block.target = checkpoint_array[i].target;
+        array_add(manager->allBlocks, block);
+        BRSetAdd(manager->checkpoints, &array_last(manager->allBlocks));
+    }
+
+    if (blocks) array_add_array(manager->allBlocks, blocks, blocksCount);
+    for (size_t i = 0; i < array_count(manager->allBlocks); i++) BRSetAdd(manager->blocks, &manager->allBlocks[i]);
+    array_new(manager->nonFpTx, 10);
+    array_new(manager->txRelays, 10);
+    array_new(manager->publishedTx, 10);
+    array_new(manager->publishedInfo, 10);
+    BRRWLockInit(&manager->lock);
+    return manager;
 }
 
 void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
@@ -444,7 +521,7 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
 // true if currently connected to at least one peer
 int BRPeerMangerIsConnected(BRPeerManager *manager)
 {
-    return 0;
+    return manager->connected;
 }
 
 // connect to bitcoin peer-to-peer network (also call this whenever networkIsReachable() status changes)
@@ -462,7 +539,7 @@ void BRPeerManagerRescan(BRPeerManager *manager)
 // current proof-of-work verified best block height
 uint32_t BRPeerManagerLastBlockHeight(BRPeerManager *manager)
 {
-    return 0;
+    return manager->lastBlock->height;
 }
 
 // the (unverified) best block height reported by connected peers
@@ -498,4 +575,18 @@ size_t BRPeerMangaerRelayCount(BRPeerManager *manager, UInt256 txHash)
 // frees memory allocated for manager
 void BRPeerManagerFree(BRPeerManager *manager)
 {
+    array_free(manager->peers);
+    array_free(manager->connectedPeers);
+    array_free(manager->misbehavinPeers);
+    array_free(manager->allBlocks);
+    BRSetFree(manager->blocks);
+    BRSetFree(manager->orphans);
+    BRSetFree(manager->checkpoints);
+    array_free(manager->nonFpTx);
+    array_free(manager->txRelays);
+    array_free(manager->publishedTx);
+    array_free(manager->publishedInfo);
+    BRRWLockDestroy(&manager->lock);
+    free(manager);
+
 }

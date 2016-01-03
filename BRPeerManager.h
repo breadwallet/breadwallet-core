@@ -31,6 +31,8 @@
 #include "BRWallet.h"
 #include <stddef.h>
 
+#define PEER_MAX_CONNECTIONS 3
+
 typedef struct _BRPeerManager BRPeerManager;
 
 // returns a newly allocated BRPeerManager struct that must be freed by calling BRPeerManagerFree()
