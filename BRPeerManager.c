@@ -40,7 +40,7 @@
 
 #if BITCOIN_TESTNET
 
-static const struct { uint32_t height; const char *hash; uint32_t timestamp; uint32_t target; }checkpoint_array[] = {
+static const struct { uint32_t height; const char *hash; uint32_t timestamp; uint32_t target; } checkpoint_array[] = {
     {      0, "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943", 1296688602, 0x1d00ffff },
     {  20160, "000000001cf5440e7c9ae69f655759b17a32aad141896defd55bb895b7cfc44e", 1345001466, 0x1c4d1756 },
     {  40320, "000000008011f56b8c92ff27fb502df5723171c5374673670ef0eee3696aee6d", 1355980158, 0x1d00ffff },
@@ -131,16 +131,16 @@ struct _BRPeerManager {
     BRBloomFilter *bloomFilter;
     double fpRate;
     int connectFailures;
-    uint32_t lastRelayTime;
+    double lastRelayTime;
     BRSet *blocks;
     BRSet *orphans;
     BRSet *checkpoints;
     BRMerkleBlock *lastBlock;
     BRMerkleBlock *lastOrphan;
-    BRMerkleBlock *allBlocks;
     UInt256 *nonFpTx;
     struct { UInt256 txHash; BRPeer *peers; } *txRelays;
     BRTransaction **publishedTx;
+    UInt256 *publishedHash;
     void **publishedInfo;
     void (*publishedCallback)(void *info, int error);
     void *callbackInfo;
@@ -172,11 +172,12 @@ static void BRPeerManagerSyncStopped(BRPeerManager *manager)
 static void BRPeerManagerAddTxToPublishList(BRPeerManager *manager, BRTransaction *tx)
 {
     if (tx && tx->blockHeight == TX_UNCONFIRMED) {
-        for (size_t i = 0; i < array_count(manager->publishedTx); i++) {
-            if (BRTransactionEq(manager->publishedTx[i], tx)) return; // XXX prefer not to return before function end
+        for (size_t i = array_count(manager->publishedTx); i > 0; i--) {
+            if (BRTransactionEq(manager->publishedTx[i - 1], tx)) return;
         }
         
         array_add(manager->publishedTx, tx);
+        array_add(manager->publishedHash, tx->txHash);
 
         for (size_t i = 0; i < tx->inCount; i++) {
             BRPeerManagerAddTxToPublishList(manager, BRWalletTransactionForHash(manager->wallet, tx->inputs[i].txHash));
@@ -195,10 +196,9 @@ static void BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
         BRWalletUnusedAddrs(manager->wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL + 100, 0);
         BRWalletUnusedAddrs(manager->wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL + 100, 1);
 
-        // BUG: XXX mem leak?
         BRSetClear(manager->orphans); // clear out orphans that may have been received on an old filter
         manager->lastOrphan = NULL;
-        manager->filterUpdateHeight = BRPeerManagerLastBlockHeight(manager);
+        manager->filterUpdateHeight = manager->lastBlock->height;
         manager->fpRate = BLOOM_REDUCED_FALSEPOSITIVE_RATE;
 
         BRAddress addrs[BRWalletAllAddrs(manager->wallet, NULL, 0)];
@@ -232,6 +232,7 @@ static void BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
 
     uint8_t data[BRBloomFilterSerialize(filter, NULL, 0)];
     size_t len = BRBloomFilterSerialize(filter, data, sizeof(data));
+    
     BRPeerSendFilterload(peer, data, len);
 }
 
@@ -296,7 +297,7 @@ static void peerConnected(void *info)
     // drop peers that don't carry full blocks, or aren't synced yet
     // TODO: XXXX does this work with 0.11 pruned nodes?
     if (! (peer->services & SERVICES_NODE_NETWORK) ||
-        BRPeerLastBlock(peer) + 10 < BRPeerManagerLastBlockHeight(manager)) {
+        BRPeerLastBlock(peer) + 10 < manager->lastBlock->height) {
         BRPeerDisconnect(peer);
     }
     else {
@@ -304,12 +305,6 @@ static void peerConnected(void *info)
         BRTransaction *unconfirmed[BRWalletUnconfirmedTx(manager->wallet, NULL, 0)];
         size_t unconfirmedCount = BRWalletUnconfirmedTx(manager->wallet, unconfirmed,
                                                         sizeof(unconfirmed)/sizeof(*unconfirmed));
-        size_t txHashesCount = array_count(manager->publishedTx); // XXX clean this up
-        UInt256 txHashes[txHashesCount];
-        
-        for (size_t i = 0; i < txHashesCount; i++) {
-            txHashes[i] = manager->publishedTx[i]->txHash;
-        }
 
         for (size_t i = 0; i < unconfirmedCount; i++) {
             if (BRWalletAmountSentByTx(manager->wallet, unconfirmed[i]) > 0 &&
@@ -320,11 +315,11 @@ static void peerConnected(void *info)
     
         // check if we should stick with the existing download peer
         if (manager->connected && (BRPeerLastBlock(manager->downloadPeer) >= BRPeerLastBlock(peer) ||
-                                   BRPeerManagerLastBlockHeight(manager) >= BRPeerLastBlock(peer))) {
+                                   manager->lastBlock->height >= BRPeerLastBlock(peer))) {
             // only load bloom filter if we're done syncing
-            if (BRPeerManagerLastBlockHeight(manager) >= BRPeerLastBlock(peer)) {
+            if (manager->lastBlock->height >= BRPeerLastBlock(peer)) {
                 BRPeerManagerLoadBloomFilter(manager, peer);
-                BRPeerSendInv(peer, txHashes, txHashesCount); // publish pending transactions
+                BRPeerSendInv(peer, manager->publishedHash, array_count(manager->publishedHash)); // publish pending tx
                 BRPeerSendPing(peer, info, peerConnectedFilterloadDone);
             }
         }
@@ -346,14 +341,14 @@ static void peerConnected(void *info)
             manager->bloomFilter = NULL; // make sure the bloom filter is updated with any newly generated addresses
             if (filter) BRBloomFilterFree(filter);
             BRPeerManagerLoadBloomFilter(manager, peer);
-            BRPeerSetCurrentBlockHeight(peer, BRPeerManagerLastBlockHeight(manager));
-            BRPeerSendInv(peer, txHashes, txHashesCount); // publish unconfirmed tx
+            BRPeerSetCurrentBlockHeight(peer, manager->lastBlock->height);
+            BRPeerSendInv(peer, manager->publishedHash, array_count(manager->publishedHash)); // publish pending tx
 
-            if (BRPeerManagerLastBlockHeight(manager) < BRPeerLastBlock(peer)) { // start blockchain sync
+            if (manager->lastBlock->height < BRPeerLastBlock(peer)) { // start blockchain sync
                 UInt256 locators[BRPeerManagerBlockLocators(manager, NULL, 0)];
                 size_t count = BRPeerManagerBlockLocators(manager, locators, sizeof(locators)/sizeof(*locators));
             
-                manager->lastRelayTime = 0;
+                manager->lastRelayTime = now;
                 // TODO: XXX implement sync stall timer
 
                 // request just block headers up to a week before earliestKeyTime, and then merkleblocks after that
@@ -459,8 +454,8 @@ static const BRTransaction *peerRequestedTx(void *info, UInt256 txHash)
 }
 
 // returns a newly allocated BRPeerManager struct that must be freed by calling BRPeerManagerFree()
-BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, const BRMerkleBlock blocks[],
-                                size_t blocksCount, const BRPeer peers[], size_t peersCount)
+BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMerkleBlock *blocks[], size_t blocksCount,
+                                const BRPeer peers[], size_t peersCount)
 {
     BRPeerManager *manager = calloc(1, sizeof(BRPeerManager));
     
@@ -471,27 +466,26 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, cons
     array_new(manager->connectedPeers, PEER_MAX_CONNECTIONS);
     array_new(manager->misbehavinPeers, 10);
     manager->tweak = BRRand(BR_RAND_MAX);
-    array_new(manager->allBlocks, blocksCount + 10);
     manager->blocks = BRSetNew(BRMerkleBlockHash, BRMerkleBlockEq, blocksCount);
     manager->orphans = BRSetNew(BRPrevBlockHash, BRPrevBlockEq, 10); // orphans are indexed by prevBlock
     manager->checkpoints = BRSetNew(BRBlockHeightHash, BRBlockHeightEq, 20); // checkpoints are indexed by height
 
     for (size_t i = 0; i < CHECKPOINT_COUNT; i++) {
-        BRMerkleBlock block = BR_MERKLE_BLOCK_NONE;
+        BRMerkleBlock *block = BRMerkleBlockNew();
         
-        block.height = checkpoint_array[i].height;
-        block.blockHash = UInt256Reverse(uint256_hex_decode(checkpoint_array[i].hash));
-        block.timestamp = checkpoint_array[i].timestamp;
-        block.target = checkpoint_array[i].target;
-        array_add(manager->allBlocks, block);
-        BRSetAdd(manager->checkpoints, &array_last(manager->allBlocks));
+        block->height = checkpoint_array[i].height;
+        block->blockHash = UInt256Reverse(uint256_hex_decode(checkpoint_array[i].hash));
+        block->timestamp = checkpoint_array[i].timestamp;
+        block->target = checkpoint_array[i].target;
+        BRSetAdd(manager->checkpoints, block);
+        BRSetAdd(manager->blocks, block);
     }
 
-    if (blocks) array_add_array(manager->allBlocks, blocks, blocksCount);
-    for (size_t i = 0; i < array_count(manager->allBlocks); i++) BRSetAdd(manager->blocks, &manager->allBlocks[i]);
+    for (size_t i = 0; i < blocksCount; i++) BRSetAdd(manager->blocks, blocks[i]);
     array_new(manager->nonFpTx, 10);
     array_new(manager->txRelays, 10);
     array_new(manager->publishedTx, 10);
+    array_new(manager->publishedHash, 10);
     array_new(manager->publishedInfo, 10);
     BRRWLockInit(&manager->lock);
     return manager;
@@ -572,21 +566,28 @@ size_t BRPeerMangaerRelayCount(BRPeerManager *manager, UInt256 txHash)
     return 0;
 }
 
+void BRPeerManagerFreeBlock(BRPeerManager *manager, BRMerkleBlock *block)
+{
+    BRMerkleBlockFree(block);
+}
+
 // frees memory allocated for manager
 void BRPeerManagerFree(BRPeerManager *manager)
 {
+    BRRWLockWrite(&manager->lock);
     array_free(manager->peers);
     array_free(manager->connectedPeers);
     array_free(manager->misbehavinPeers);
-    array_free(manager->allBlocks);
+    BRSetMap(manager->blocks, manager, (void (*)(void *, void *))BRPeerManagerFree);
     BRSetFree(manager->blocks);
     BRSetFree(manager->orphans);
     BRSetFree(manager->checkpoints);
     array_free(manager->nonFpTx);
     array_free(manager->txRelays);
     array_free(manager->publishedTx);
+    array_free(manager->publishedHash);
     array_free(manager->publishedInfo);
+    BRRWLockUnlock(&manager->lock);
     BRRWLockDestroy(&manager->lock);
     free(manager);
-
 }

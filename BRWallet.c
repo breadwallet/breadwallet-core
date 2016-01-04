@@ -520,12 +520,12 @@ int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *aut
     BRRWLockRead(&wallet->lock);
     
     for (size_t i = 0; i < tx->inCount; i++) {
-        for (uint32_t j = 0; j < array_count(wallet->internalChain); j++) {
-            if (BRAddressEq(tx->inputs[i].address, &wallet->internalChain[j])) internalIdx[internalCount++] = j;
+        for (uint32_t j = (uint32_t)array_count(wallet->internalChain); j > 0; j--) {
+            if (BRAddressEq(tx->inputs[i].address, &wallet->internalChain[j - 1])) internalIdx[internalCount++] = j - 1;
         }
 
-        for (uint32_t j = 0; j < array_count(wallet->externalChain); j++) {
-            if (BRAddressEq(tx->inputs[i].address, &wallet->externalChain[j])) externalIdx[externalCount++] = j;
+        for (uint32_t j = (uint32_t)array_count(wallet->externalChain); j > 0; j--) {
+            if (BRAddressEq(tx->inputs[i].address, &wallet->externalChain[j - 1])) externalIdx[externalCount++] = j - 1;
         }
     }
 
@@ -610,11 +610,12 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
     UInt256 *hashes = NULL;
 
     if (! tx) return;
-    array_new(hashes, 0);
     BRRWLockWrite(&wallet->lock);
     tx = BRSetGet(wallet->allTx, &txHash);
 
     if (tx) {
+        array_new(hashes, 0);
+
         for (size_t i = array_count(wallet->transactions); i > 0; i--) { // find depedent transactions
             t = wallet->transactions[i - 1];
             if (t->blockHeight < tx->blockHeight) break;
@@ -626,33 +627,34 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
                 break;
             }
         }
-    }
-
-    if (array_count(hashes) > 0) {
-        BRRWLockUnlock(&wallet->lock);
-
-        for (size_t i = 0; i < array_count(hashes); i++) {
-            BRWalletRemoveTransaction(wallet, hashes[i]);
+        
+        if (array_count(hashes) > 0) {
+            BRRWLockUnlock(&wallet->lock);
+            
+            for (size_t i = array_count(hashes); i > 0; i--) {
+                BRWalletRemoveTransaction(wallet, hashes[i - 1]);
+            }
+            
+            BRWalletRemoveTransaction(wallet, txHash);
+        }
+        else {
+            BRSetRemove(wallet->allTx, tx);
+            
+            for (size_t i = array_count(wallet->transactions); i > 0; i--) {
+                if (! BRTransactionEq(wallet->transactions[i - 1], tx)) continue;
+                array_rm(wallet->transactions, i - 1);
+                break;
+            }
+    
+            BRWalletUpdateBalance(wallet);
+            BRRWLockUnlock(&wallet->lock);
+            BRTransactionFree(tx);
+            if (wallet->txDeleted) wallet->txDeleted(wallet->callbackInfo, txHash);
         }
         
-        BRWalletRemoveTransaction(wallet, txHash);
+        array_free(hashes);
     }
-    else if (tx) {
-        BRSetRemove(wallet->allTx, tx);
-    
-        for (size_t i = array_count(wallet->transactions); i > 0; i--) {
-            if (! BRTransactionEq(wallet->transactions[i - 1], tx)) continue;
-            array_rm(wallet->transactions, i - 1);
-            break;
-        }
-    
-        BRWalletUpdateBalance(wallet);
-        BRRWLockUnlock(&wallet->lock);
-        BRTransactionFree(tx);
-        if (wallet->txDeleted) wallet->txDeleted(wallet->callbackInfo, txHash);
-    }
-    
-    array_free(hashes);
+    else BRRWLockUnlock(&wallet->lock);
 }
 
 // returns the transaction with the given hash if it's been registered in the wallet
@@ -845,9 +847,9 @@ uint64_t BRWalletBalanceAfterTx(BRWallet *wallet, const BRTransaction *tx)
     
     BRRWLockRead(&wallet->lock);
     
-    for (size_t i = 0; i < array_count(wallet->transactions); i++) {
-        if (! BRTransactionEq(tx, wallet->transactions[i])) continue;
-        balance = wallet->balanceHist[i];
+    for (size_t i = array_count(wallet->transactions); i > 0; i--) {
+        if (! BRTransactionEq(tx, wallet->transactions[i - 1])) continue;
+        balance = wallet->balanceHist[i - 1];
         break;
     }
 
@@ -879,8 +881,8 @@ void BRWalletFree(BRWallet *wallet)
     BRSetFree(wallet->allTx);
     array_free(wallet->balanceHist);
 
-    for (size_t i = 0; i < array_count(wallet->transactions); i++) {
-        BRTransactionFree(wallet->transactions[i]);
+    for (size_t i = array_count(wallet->transactions); i > 0; i--) {
+        BRTransactionFree(wallet->transactions[i - 1]);
     }
 
     array_free(wallet->transactions);

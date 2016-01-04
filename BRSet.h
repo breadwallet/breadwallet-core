@@ -61,8 +61,8 @@ void *BRSetFirst(BRSet *set);
 // returns the next item after given item when iterating, or NULL if no more items are available
 void *BRSetNext(BRSet *set, const void *item);
 
-// writes up to count items from set to allItems, allItems must be large enough to hold itemSize*count bytes
-void BRSetAll(BRSet *set, void *allItems, size_t itemSize, size_t count);
+// writes up to count items from set to allItems, returns number of items written
+size_t BRSetAll(BRSet *set, void *allItems[], size_t count);
 
 // calls map() with each item in set
 void BRSetMap(BRSet *set, void *info, void (*map)(void *info, void *item));

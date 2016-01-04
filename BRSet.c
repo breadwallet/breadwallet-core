@@ -208,16 +208,18 @@ void *BRSetNext(BRSet *set, const void *item)
     return r;
 }
 
-// writes up to count items from set to allItems, allItems must be large enough to hold itemSize*count bytes
-void BRSetAll(BRSet *set, void *allItems, size_t itemSize, size_t count)
+// writes up to count items from set to allItems, returns the number of items written
+size_t BRSetAll(BRSet *set, void *allItems[], size_t count)
 {
     size_t i = 0, j = 0, size = set->size;
     void *t;
     
     while (i < size && j < count) {
         t = set->table[i++];
-        if (t) memcpy((uint8_t *)allItems + itemSize*j++, t, itemSize);
+        if (t) allItems[j++] = t;
     }
+    
+    return j;
 }
 
 // calls map() with each item in set
