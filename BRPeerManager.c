@@ -30,7 +30,10 @@
 #include "BRRWLock.h"
 #include <stdlib.h>
 #include <time.h>
+#include <float.h>
+#include <math.h>
 #include <errno.h>
+#include <netdb.h>
 
 #define PROTOCOL_TIMEOUT     20.0
 #define MAX_CONNECT_FAILURES 20 // notify user of network problems after this many connect failures in a row
@@ -265,6 +268,11 @@ static size_t BRPeerManagerBlockLocators(BRPeerManager *manager, UInt256 locator
     return ++i;
 }
 
+static void BRPeerManagerFindPeers(BRPeerManager *manager)
+{
+    
+}
+
 static void peerConnectedMempoolDone(void *info, int success)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
@@ -453,6 +461,13 @@ static const BRTransaction *peerRequestedTx(void *info, UInt256 txHash)
     return NULL;
 }
 
+static int peerNetworkIsReachable(void *info)
+{
+    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+
+    return (manager->networkIsReachable) ? manager->networkIsReachable(manager->callbackInfo) : 1;
+}
+
 // returns a newly allocated BRPeerManager struct that must be freed by calling BRPeerManagerFree()
 BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMerkleBlock *blocks[], size_t blocksCount,
                                 const BRPeer peers[], size_t peersCount)
@@ -522,7 +537,65 @@ int BRPeerMangerIsConnected(BRPeerManager *manager)
 void BRPeerManagerConnect(BRPeerManager *manager)
 {
 #if ! defined(MSG_NOSIGNAL) && ! defined(SO_NOSIGPIPE)
+    // TODO: XXX disable SIGPIPE for process
 #endif
+
+    if (manager->connectFailures >= MAX_CONNECT_FAILURES) manager->connectFailures = 0; // this is a manual retry
+    
+    if (BRPeerManagerSyncProgress(manager) < 1.0 - DBL_EPSILON) {
+        if (manager->syncStartHeight == 0) manager->syncStartHeight = manager->lastBlock->height;
+        if (manager->syncStarted) manager->syncStarted(manager->callbackInfo);
+
+        for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
+            if (BRPeerConnectStatus(&manager->connectedPeers[i - 1]) == BRPeerStatusDisconnected) {
+                array_rm(manager->connectedPeers, i - 1);
+            }
+        }
+    
+        if (array_count(manager->connectedPeers) < PEER_MAX_CONNECTIONS) {
+            time_t now = time(NULL);
+            BRPeer *peers;
+
+            if (array_count(manager->peers) < PEER_MAX_CONNECTIONS ||
+                manager->peers[PEER_MAX_CONNECTIONS - 1].timestamp + 3*24*60*60 < now) {
+                BRPeerManagerFindPeers(manager);
+            }
+            
+            array_new(peers, 100);
+            array_add_array(peers, manager->peers,
+                            (array_count(manager->peers) < 100) ? array_count(manager->peers) : 100);
+
+            while (array_count(peers) > 0 && array_count(manager->connectedPeers) < PEER_MAX_CONNECTIONS) {
+                // pick a random peer biased towards peers with more recent timestamps
+                BRPeer *p = &peers[(size_t)pow(BRRand((uint32_t)array_count(peers)), 2)/array_count(peers)];
+                BRPeerCallbackInfo *info;
+        
+                for (size_t i = array_count(manager->connectedPeers); p && i > 0; i--) {
+                    if (! BRPeerEq(&p, &manager->connectedPeers[i - 1])) continue;
+                    array_rm(peers, array_idx(peers, p)); // already in connectedPeers
+                    p = NULL;
+                }
+                
+                if (p) {
+                    array_add(manager->connectedPeers, *p);
+                    array_rm(peers, array_idx(peers, p));
+                    info = calloc(1, sizeof(*info));
+                    info->manager = manager;
+                    info->peer = &array_last(manager->connectedPeers);
+                    BRPeerSetCallbacks(info->peer, info, peerConnected, peerDisconnected, peerRelayedPeers,
+                                       peerRelayedTx, peerHasTx, peerRejectedTx, peerRelayedBlock, peerDataNotfound,
+                                       peerRequestedTx, peerNetworkIsReachable);
+                    BRPeerSetEarliestKeyTime(info->peer, manager->earliestKeyTime);
+                    BRPeerConnect(info->peer);
+                }
+            }
+
+            if (array_count(manager->connectedPeers) == 0) {
+                BRPeerManagerSyncStopped(manager);
+                if (manager->syncFailed) manager->syncFailed(manager->callbackInfo, ENETUNREACH);
+            }
+        }
+    }
 }
 
 // rescan blockchain for potentially missing transactions
