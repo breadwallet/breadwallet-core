@@ -122,24 +122,13 @@ inline static int BRBlockHeightEq(const void *block, const void *otherBlock)
 
 struct _BRPeerManager {
     BRWallet *wallet;
-    uint32_t earliestKeyTime;
-    int connected;
-    BRPeer *peers;
-    BRPeer *connectedPeers;
-    BRPeer *misbehavinPeers;
-    BRPeer *downloadPeer;
-    uint32_t tweak;
-    uint32_t syncStartHeight;
-    uint32_t filterUpdateHeight;
+    int connected, connectFailures;
+    BRPeer *peers, *misbehavinPeers, *downloadPeer, **connectedPeers;
+    uint32_t tweak, earliestKeyTime, syncStartHeight, filterUpdateHeight;
     BRBloomFilter *bloomFilter;
-    double fpRate;
-    int connectFailures;
-    double lastRelayTime;
-    BRSet *blocks;
-    BRSet *orphans;
-    BRSet *checkpoints;
-    BRMerkleBlock *lastBlock;
-    BRMerkleBlock *lastOrphan;
+    double fpRate, lastRelayTime;
+    BRSet *blocks, *orphans, *checkpoints;
+    BRMerkleBlock *lastBlock, *lastOrphan;
     UInt256 *nonFpTx;
     struct { UInt256 txHash; BRPeer *peers; } *txRelays;
     BRTransaction **publishedTx;
@@ -152,7 +141,7 @@ struct _BRPeerManager {
     void (*syncFailed)(void *info, int error);
     void (*txStatusUpdate)(void *info);
     void (*txRejected)(void *info, int rescanRecommended);
-    void (*saveBlocks)(void *info, const BRMerkleBlock blocks[], size_t count);
+    void (*saveBlocks)(void *info, BRMerkleBlock *blocks[], size_t count);
     void (*savePeers)(void *info, const BRPeer peers[], size_t count);
     int (*networkIsReachable)(void *info);
     BRRWLock lock;
@@ -270,7 +259,6 @@ static size_t BRPeerManagerBlockLocators(BRPeerManager *manager, UInt256 locator
 
 static void BRPeerManagerFindPeers(BRPeerManager *manager)
 {
-    
 }
 
 static void peerConnectedMempoolDone(void *info, int success)
@@ -336,7 +324,7 @@ static void peerConnected(void *info)
             // BUG: XXX a malicious peer can report a higher lastblock to make us select them as the download peer, if
             // two peers agree on lastblock, use one of those two instead
             for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
-                BRPeer *p = &manager->connectedPeers[i];
+                BRPeer *p = manager->connectedPeers[i - 1];
 
                 if ((BRPeerPingTime(p) < BRPeerPingTime(peer) && BRPeerLastBlock(p) >= BRPeerLastBlock(peer)) ||
                     BRPeerLastBlock(p) > BRPeerLastBlock(peer)) peer = p;
@@ -422,7 +410,7 @@ static void peerRelayedPeers(void *info, const BRPeer peers[], size_t count)
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
 }
 
-static void peerRelayedTx(void *info, const BRTransaction *tx)
+static void peerRelayedTx(void *info, BRTransaction *tx)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
@@ -440,7 +428,7 @@ static void peerRejectedTx(void *info, UInt256 txHash, uint8_t code)
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
 }
 
-static void peerRelayedBlock(void *info, const BRMerkleBlock *block)
+static void peerRelayedBlock(void *info, BRMerkleBlock *block)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
@@ -476,11 +464,11 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
     
     manager->wallet = wallet;
     manager->earliestKeyTime = earliestKeyTime;
+    manager->tweak = BRRand(BR_RAND_MAX);
     array_new(manager->peers, peersCount);
     if (peers) array_add_array(manager->peers, peers, peersCount);
-    array_new(manager->connectedPeers, PEER_MAX_CONNECTIONS);
     array_new(manager->misbehavinPeers, 10);
-    manager->tweak = BRRand(BR_RAND_MAX);
+    array_new(manager->connectedPeers, PEER_MAX_CONNECTIONS);
     manager->blocks = BRSetNew(BRMerkleBlockHash, BRMerkleBlockEq, blocksCount);
     manager->orphans = BRSetNew(BRPrevBlockHash, BRPrevBlockEq, 10); // orphans are indexed by prevBlock
     manager->checkpoints = BRSetNew(BRBlockHeightHash, BRBlockHeightEq, 20); // checkpoints are indexed by height
@@ -512,7 +500,7 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*syncFailed)(void *info, int error),
                                void (*txStatusUpdate)(void *info),
                                void (*txRejected)(void *info, int rescanRecommended),
-                               void (*saveBlocks)(void *info, const BRMerkleBlock blocks[], size_t count),
+                               void (*saveBlocks)(void *info, BRMerkleBlock *blocks[], size_t count),
                                void (*savePeers)(void *info, const BRPeer peers[], size_t count),
                                int (*networkIsReachable)(void *info))
 {
@@ -547,8 +535,11 @@ void BRPeerManagerConnect(BRPeerManager *manager)
         if (manager->syncStarted) manager->syncStarted(manager->callbackInfo);
 
         for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
-            if (BRPeerConnectStatus(&manager->connectedPeers[i - 1]) == BRPeerStatusDisconnected) {
+            BRPeer *p = manager->connectedPeers[i - 1];
+
+            if (BRPeerConnectStatus(p) == BRPeerStatusDisconnected) {
                 array_rm(manager->connectedPeers, i - 1);
+                BRPeerFree(p);
             }
         }
     
@@ -567,21 +558,22 @@ void BRPeerManagerConnect(BRPeerManager *manager)
 
             while (array_count(peers) > 0 && array_count(manager->connectedPeers) < PEER_MAX_CONNECTIONS) {
                 // pick a random peer biased towards peers with more recent timestamps
-                BRPeer *p = &peers[(size_t)pow(BRRand((uint32_t)array_count(peers)), 2)/array_count(peers)];
+                size_t i = pow(BRRand((uint32_t)array_count(peers)), 2)/array_count(peers);
                 BRPeerCallbackInfo *info;
         
-                for (size_t i = array_count(manager->connectedPeers); p && i > 0; i--) {
-                    if (! BRPeerEq(&p, &manager->connectedPeers[i - 1])) continue;
-                    array_rm(peers, array_idx(peers, p)); // already in connectedPeers
-                    p = NULL;
+                for (size_t j = array_count(manager->connectedPeers); i != SIZE_MAX && j > 0; j--) {
+                    if (! BRPeerEq(&peers[i], manager->connectedPeers[j - 1])) continue;
+                    array_rm(peers, i); // already in connectedPeers
+                    i = SIZE_MAX;
                 }
                 
-                if (p) {
-                    array_add(manager->connectedPeers, *p);
-                    array_rm(peers, array_idx(peers, p));
+                if (i != SIZE_MAX) {
                     info = calloc(1, sizeof(*info));
                     info->manager = manager;
-                    info->peer = &array_last(manager->connectedPeers);
+                    info->peer = BRPeerNew();
+                    *info->peer = peers[i];
+                    array_rm(peers, i);
+                    array_add(manager->connectedPeers, info->peer);
                     BRPeerSetCallbacks(info->peer, info, peerConnected, peerDisconnected, peerRelayedPeers,
                                        peerRelayedTx, peerHasTx, peerRejectedTx, peerRelayedBlock, peerDataNotfound,
                                        peerRequestedTx, peerNetworkIsReachable);
@@ -639,7 +631,7 @@ size_t BRPeerMangaerRelayCount(BRPeerManager *manager, UInt256 txHash)
     return 0;
 }
 
-void BRPeerManagerFreeBlock(BRPeerManager *manager, BRMerkleBlock *block)
+void setMapFreeBlock(void *info, void *block)
 {
     BRMerkleBlockFree(block);
 }
@@ -649,9 +641,10 @@ void BRPeerManagerFree(BRPeerManager *manager)
 {
     BRRWLockWrite(&manager->lock);
     array_free(manager->peers);
-    array_free(manager->connectedPeers);
     array_free(manager->misbehavinPeers);
-    BRSetMap(manager->blocks, manager, (void (*)(void *, void *))BRPeerManagerFree);
+    for (size_t i = array_count(manager->connectedPeers); i > 0; i--) BRPeerFree(manager->connectedPeers[i - 1]);
+    array_free(manager->connectedPeers);
+    BRSetMap(manager->blocks, NULL, setMapFreeBlock);
     BRSetFree(manager->blocks);
     BRSetFree(manager->orphans);
     BRSetFree(manager->checkpoints);

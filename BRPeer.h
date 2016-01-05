@@ -65,7 +65,7 @@
 #define MSG_REJECT      "reject" //described in BIP61: https://github.com/bitcoin/bips/blob/master/bip-0061.mediawiki
 
 #define peer_log(peer, ...)\
-    printf("%s:%u " _va_first(__VA_ARGS__, NULL) "\n", (peer)->context->host, (peer)->port, _va_rest(__VA_ARGS__, NULL))
+    printf("%s:%u " _va_first(__VA_ARGS__, NULL) "\n", BRPeerHost(peer), (peer)->port, _va_rest(__VA_ARGS__, NULL))
 #define _va_first(first, ...) first
 #define _va_rest(first, ...) __VA_ARGS__
 
@@ -81,27 +81,24 @@ typedef struct {
     uint64_t services; // bitcoin network services supported by peer
     uint64_t timestamp; // timestamp reported by peer
     uint8_t flags; // scratch variable
-    struct BRPeerContext *context;
 } BRPeer;
 
-#define BR_PEER_NONE ((BRPeer) { UINT128_ZERO, 0, 0, 0, 0, NULL })
+#define BR_PEER_NONE ((BRPeer) { UINT128_ZERO, 0, 0, 0, 0 })
+
+BRPeer *BRPeerNew(); // returns a newly allocated BRPeer struct that must be freed by calling BRPeerFree()
 
 void BRPeerSetCallbacks(BRPeer *peer, void *info,
                         void (*connected)(void *info),
                         void (*disconnected)(void *info, int error),
                         void (*relayedPeers)(void *info, const BRPeer peers[], size_t count),
-                        void (*relayedTx)(void *info, const BRTransaction *tx),
+                        void (*relayedTx)(void *info, BRTransaction *tx),
                         void (*hasTx)(void *info, UInt256 txHash),
                         void (*rejectedTx)(void *info, UInt256 txHash, uint8_t code),
-                        void (*relayedBlock)(void *info, const BRMerkleBlock *block),
+                        void (*relayedBlock)(void *info, BRMerkleBlock *block),
                         void (*notfound)(void *info, const UInt256 txHashes[], size_t txCount,
                                          const UInt256 blockHashes[], size_t blockCount),
                         const BRTransaction *(*requestedTx)(void *info, UInt256 txHash),
                         int (*networkIsReachable)(void *info));
-
-BRPeerStatus BRPeerConnectStatus(BRPeer *peer); // current connection status
-void BRPeerConnect(BRPeer *peer);
-void BRPeerDisconnect(BRPeer *peer);
 
 // set earliestKeyTime to wallet creation time in order to speed up initial sync
 void BRPeerSetEarliestKeyTime(BRPeer *peer, uint32_t earliestKeyTime);
@@ -109,9 +106,14 @@ void BRPeerSetEarliestKeyTime(BRPeer *peer, uint32_t earliestKeyTime);
 // call this when local best block height changes (helps detect tarpit nodes)
 void BRPeerSetCurrentBlockHeight(BRPeer *peer, uint32_t currentBlockHeight);
 
+BRPeerStatus BRPeerConnectStatus(BRPeer *peer); // current connection status
+void BRPeerConnect(BRPeer *peer);
+void BRPeerDisconnect(BRPeer *peer);
+
 // call this when wallet addresses need to be added to bloom filter
 void BRPeerSetNeedsFilterUpdate(BRPeer *peer);
 
+const char *BRPeerHost(BRPeer *peer);
 uint32_t BRPeerVersion(BRPeer *peer); // connected peer version number
 const char *BRPeerUserAgent(BRPeer *peer); // connected peer user agent string
 uint32_t BRPeerLastBlock(BRPeer *peer); // best block height reported by connected peer
@@ -131,14 +133,18 @@ void BRPeerSendGetaddr(BRPeer *peer);
 void BRPeerSendPing(BRPeer *peer, void *info, void (*pongCallback)(void *info, int success));
 void BRPeerRerequestBlocks(BRPeer *peer, UInt256 fromBlock); // useful to get additional tx after a bloom filter update
 
+// returns a hash value for peer suitable for use in a hashtable
+inline static size_t BRPeerHash(const void *peer)
+{
+    return (((BRPeer *)peer)->address.u32[3] ^ ((BRPeer *)peer)->port)*0x01000193; // (address xor port)*FNV_PRIME
+}
+
+// true if a and b have the same address and port
 inline static int BRPeerEq(const void *a, const void *b)
 {
     return (UInt128Eq(((BRPeer *)a)->address, ((BRPeer *)b)->address) && ((BRPeer *)a)->port == ((BRPeer *)b)->port);
 }
 
-inline static size_t BRPeerHash(const void *peer)
-{
-    return (((BRPeer *)peer)->address.u32[3] ^ ((BRPeer *)peer)->port)*0x01000193; // (address xor port)*FNV_PRIME
-}
+void BRPeerFree(BRPeer *peer); // frees memory allocated for peer
 
 #endif // BRPeer_h
