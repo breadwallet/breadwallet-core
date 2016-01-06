@@ -361,11 +361,10 @@ static int BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t len, con
 
 static int BRPeerOpenSocket(BRPeer *peer, double timeout)
 {
-
     struct sockaddr addr;
     struct timeval tv;
     fd_set fds;
-    socklen_t socklen;
+    socklen_t addrLen, optLen;
     int socket = ((BRPeerContext *)peer)->socket;
     int arg = 0, count, error = 0, r = 1;
 
@@ -383,24 +382,27 @@ static int BRPeerOpenSocket(BRPeer *peer, double timeout)
             ((struct sockaddr_in *)&addr)->sin_family = AF_INET;
             ((struct sockaddr_in *)&addr)->sin_addr.s_addr = peer->address.u32[3]; // already in network byte order
             ((struct sockaddr_in *)&addr)->sin_port = htons(peer->port);
+            addrLen = sizeof(struct sockaddr_in);
         }
         else {
             ((struct sockaddr_in6 *)&addr)->sin6_family = AF_INET6;
             ((struct sockaddr_in6 *)&addr)->sin6_addr = *(struct in6_addr *)&peer->address;
             ((struct sockaddr_in6 *)&addr)->sin6_port = htons(peer->port);
+            addrLen = sizeof(struct sockaddr_in6);
         }
 
-        if (connect(socket, &addr, sizeof(addr)) < 0) error = errno;
+        if (connect(socket, &addr, addrLen) < 0) error = errno;
 
         if (error == EINPROGRESS) {
             error = 0;
+            optLen = sizeof(error);
             tv.tv_sec = timeout;
             tv.tv_usec = (long)(timeout*1000000) % 1000000;
             FD_ZERO(&fds);
             FD_SET(socket, &fds);
             count = select(socket + 1, NULL, &fds, NULL, &tv);
 
-            if (count <= 0 || getsockopt(socket, SOL_SOCKET, SO_ERROR, &error, &socklen) < 0 || error) {
+            if (count <= 0 || getsockopt(socket, SOL_SOCKET, SO_ERROR, &error, &optLen) < 0 || error) {
                 if (count == 0) error = ETIMEDOUT;
                 if (count < 0 || ! error) error = errno;
                 r = 0;
