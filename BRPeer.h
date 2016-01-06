@@ -62,7 +62,7 @@
 #define MSG_FILTERCLEAR "filterclear"
 #define MSG_MERKLEBLOCK "merkleblock"
 #define MSG_ALERT       "alert"
-#define MSG_REJECT      "reject" //described in BIP61: https://github.com/bitcoin/bips/blob/master/bip-0061.mediawiki
+#define MSG_REJECT      "reject" // described in BIP61: https://github.com/bitcoin/bips/blob/master/bip-0061.mediawiki
 
 #define peer_log(peer, ...)\
     printf("%s:%u " _va_first(__VA_ARGS__, NULL) "\n", BRPeerHost(peer), (peer)->port, _va_rest(__VA_ARGS__, NULL))

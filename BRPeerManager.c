@@ -41,6 +41,9 @@
 #define GENESIS_BLOCK_HASH   (UInt256Reverse(uint256_hex_decode(checkpoint_array[0].hash)))
 #define PEER_FLAG_SYNCED     0x01
 
+#define str(x) _str(x)
+#define _str(x) #x
+
 #if BITCOIN_TESTNET
 
 static const struct { uint32_t height; const char *hash; uint32_t timestamp; uint32_t target; } checkpoint_array[] = {
@@ -96,6 +99,14 @@ static const char *dns_seeds[] = {
 
 #endif
 
+// comparator for sorting peers by timestamp, most recent first
+inline static int BRPeerTimestampCompare(const void *peer, const void *otherPeer)
+{
+    if (((BRPeer *)peer)->timestamp < ((BRPeer *)otherPeer)->timestamp) return 1;
+    if (((BRPeer *)peer)->timestamp > ((BRPeer *)otherPeer)->timestamp) return -1;
+    return 0;
+}
+
 // returns a hash value for a block's prevBlock value suitable for use in a hashtable
 inline static size_t BRPrevBlockHash(const void *block)
 {
@@ -123,7 +134,7 @@ inline static int BRBlockHeightEq(const void *block, const void *otherBlock)
 struct _BRPeerManager {
     BRWallet *wallet;
     int connected, connectFailures;
-    BRPeer *peers, *misbehavinPeers, *downloadPeer, **connectedPeers;
+    BRPeer *peers, *downloadPeer, **connectedPeers;
     uint32_t tweak, earliestKeyTime, syncStartHeight, filterUpdateHeight;
     BRBloomFilter *bloomFilter;
     double fpRate, lastRelayTime;
@@ -257,6 +268,7 @@ static size_t BRPeerManagerBlockLocators(BRPeerManager *manager, UInt256 locator
     return ++i;
 }
 
+// DNS peer discovery
 static void BRPeerManagerFindPeers(BRPeerManager *manager)
 {
 }
@@ -391,7 +403,6 @@ static void peerDisconnected(void *info, int error)
         BRPeerManagerSyncStopped(manager);
         
         // clear out stored peers so we get a fresh list from DNS on next connect attempt
-        array_clear(manager->misbehavinPeers);
         array_clear(manager->peers);
         if (manager->savePeers) manager->savePeers(manager->callbackInfo, NULL, 0);
         if (manager->syncFailed) manager->syncFailed(manager->callbackInfo, error);
@@ -467,7 +478,7 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
     manager->tweak = BRRand(BR_RAND_MAX);
     array_new(manager->peers, peersCount);
     if (peers) array_add_array(manager->peers, peers, peersCount);
-    array_new(manager->misbehavinPeers, 10);
+    qsort(manager->peers, array_count(manager->peers), sizeof(*manager->peers), BRPeerTimestampCompare);
     array_new(manager->connectedPeers, PEER_MAX_CONNECTIONS);
     manager->blocks = BRSetNew(BRMerkleBlockHash, BRMerkleBlockEq, blocksCount);
     manager->orphans = BRSetNew(BRPrevBlockHash, BRPrevBlockEq, 10); // orphans are indexed by prevBlock
@@ -641,7 +652,6 @@ void BRPeerManagerFree(BRPeerManager *manager)
 {
     BRRWLockWrite(&manager->lock);
     array_free(manager->peers);
-    array_free(manager->misbehavinPeers);
     for (size_t i = array_count(manager->connectedPeers); i > 0; i--) BRPeerFree(manager->connectedPeers[i - 1]);
     array_free(manager->connectedPeers);
     BRSetMap(manager->blocks, NULL, setMapFreeBlock);

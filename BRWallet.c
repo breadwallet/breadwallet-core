@@ -424,7 +424,7 @@ int BRWalletAddressIsUsed(BRWallet *wallet, const char *addr)
 // freed using BRTransactionFree()
 BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, const char *addr)
 {
-    BRTxOutput o;
+    BRTxOutput o = BR_TX_OUTPUT_NONE;
     
     o.amount = amount;
     BRTxOutputSetAddress(&o, addr);
@@ -435,8 +435,8 @@ BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, cons
 // BRTransactionFree()
 BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput outputs[], size_t count)
 {
-    uint64_t amount = 0, balance = 0, feeAmount = 0;
     BRTransaction *tx, *transaction = BRTransactionNew();
+    uint64_t amount = 0, balance = 0, feeAmount = BRTransactionSize(transaction) + 34;
     size_t i, cpfpSize = 0;
     BRUTXO *o;
     
@@ -451,7 +451,7 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
     // TODO: avoid combining addresses in a single transaction when possible to reduce information leakage
     // TODO: use up UTXOs received from any of the output scripts that this transaction sends funds to, to mitigate an
     //       attacker double spending and requesting a refund
-    for (i = 0; count > 0 && i < array_count(wallet->utxos); i++) {
+    for (i = 0; i < array_count(wallet->utxos); i++) {
         o = &wallet->utxos[i];
         tx = BRSetGet(wallet->allTx, o);
         if (! tx) continue;
@@ -493,7 +493,7 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
     
     BRRWLockUnlock(&wallet->lock);
     
-    if (transaction && balance < amount + feeAmount) { // insufficient funds
+    if (transaction && (count < 1 || balance < amount + feeAmount)) { // no outputs/insufficient funds
         BRTransactionFree(transaction);
         transaction = NULL;
     }

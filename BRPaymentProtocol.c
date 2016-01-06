@@ -241,7 +241,7 @@ BRPaymentProtocolDetails *BRPaymentProtocolDetailsParse(const uint8_t *buf, size
     array_new(details->outputs, 1);
     
     while (off < len) {
-        BRTxOutput output = { "", 0, NULL, 0 };
+        BRTxOutput output = BR_TX_OUTPUT_NONE;
         uint64_t i = 0;
         const uint8_t *data = NULL;
         size_t dataLen = len;
@@ -467,7 +467,7 @@ BRPaymentProtocolPayment *BRPaymentProtocolPaymentNew(const uint8_t *merchantDat
         array_new(payment->refundTo, refundToCount);
         
         for (size_t i = 0; i < refundToCount; i++) {
-            BRTxOutput output = { "", 0, NULL, 0 };
+            BRTxOutput output = BR_TX_OUTPUT_NONE;
             
             BRTxOutputSetAddress(&output, refundToAddresses[i].s);
             if (refundToAmounts) output.amount = refundToAmounts[i];
@@ -496,7 +496,7 @@ BRPaymentProtocolPayment *BRPaymentProtocolPaymentParse(const uint8_t *buf, size
     
     while (off < len) {
         BRTransaction *tx = NULL;
-        BRTxOutput output = { "", 0, NULL, 0 };
+        BRTxOutput output = BR_TX_OUTPUT_NONE;
         uint64_t i = 0;
         const uint8_t *data = NULL;
         size_t dataLen = len;

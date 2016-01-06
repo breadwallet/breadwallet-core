@@ -123,6 +123,7 @@ typedef struct {
     pthread_t thread;
 } BRPeerContext;
 
+// returns a newly allocated BRPeer struct that must be freed by calling BRPeerFree()
 BRPeer *BRPeerNew()
 {
     BRPeerContext *ctx = calloc(1, sizeof(BRPeerContext));
@@ -327,7 +328,7 @@ static int BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t len, con
     UInt256 hash;
     int r = 1;
     
-    if (ctx->currentBlock && strncmp(MSG_TX, type, 12) != 0) { // if we get a non-tx message, merkleblock is done
+    if (ctx->currentBlock && strncmp(MSG_TX, type, 12) != 0) { // if we receive a non-tx message, merkleblock is done
         hash = ctx->currentBlock->blockHash;
         ctx->currentBlock = NULL;
         BRSetClear(ctx->currentBlockTxHashes);

@@ -532,22 +532,32 @@ int BRWalletTests()
     const UInt256 secret = uint256_hex_decode("0000000000000000000000000000000000000000000000000000000000000001");
     BRKey k;
     BRAddress addr, recvAddr = BRWalletReceiveAddress(w);
+    BRTransaction *tx;
     
     BRWalletSetCallbacks(w, NULL, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
     BRKeySetSecret(&k, &secret, 1);
     BRKeyAddress(&k, addr.s, sizeof(addr));
     
+    tx = BRWalletCreateTransaction(w, 0, addr.s);
+    if (tx) r = 0;
+    
+    tx = BRWalletCreateTransaction(w, SATOSHIS, addr.s);
+    if (tx) r = 0;
+    
     uint8_t inScript[BRAddressScriptPubKey(NULL, 0, addr.s)];
     size_t inScriptLen = BRAddressScriptPubKey(inScript, sizeof(inScript), addr.s);
     uint8_t outScript[BRAddressScriptPubKey(NULL, 0, recvAddr.s)];
     size_t outScriptLen = BRAddressScriptPubKey(outScript, sizeof(outScript), recvAddr.s);
-    BRTransaction *tx = BRTransactionNew();
     
+    tx = BRTransactionNew();
     BRTransactionAddInput(tx, UINT256_ZERO, 0, inScript, inScriptLen, NULL, 0, TXIN_SEQUENCE);
     BRTransactionAddOutput(tx, SATOSHIS, outScript, outScriptLen);
     BRTransactionSign(tx, &k, 1);
     BRWalletRegisterTransaction(w, tx);
     if (BRWalletBalance(w) != SATOSHIS) r = 0;
+
+    tx = BRWalletCreateTransaction(w, SATOSHIS*2, addr.s);
+    if (tx) r = 0;
     
     tx = BRWalletCreateTransaction(w, SATOSHIS/2, addr.s);
     if (! tx) r = 0;
