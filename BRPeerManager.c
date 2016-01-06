@@ -268,6 +268,34 @@ static size_t BRPeerManagerBlockLocators(BRPeerManager *manager, UInt256 locator
     return ++i;
 }
 
+// returns a UINT128_ZERO terminated array of addresses for hostname that must be freed, or NULL on lookup failure
+static UInt128 *addressLookup(const char *hostname)
+{
+    struct addrinfo *servinfo, *p;
+    UInt128 *addrList = NULL;
+    size_t count = 0, i = 0;
+    
+    if (getaddrinfo(hostname, NULL, NULL, &servinfo) == 0) {
+        for (p = servinfo; p != NULL; p = p->ai_next) count++;
+        if (count > 0) addrList = calloc(count + 1, sizeof(*addrList));
+        
+        for (p = servinfo; p != NULL; p = p->ai_next) {
+            if (p->ai_family == AF_INET) {
+                addrList[i].u32[2] = be32(0xffff);
+                addrList[i].u32[3] = ((struct sockaddr_in *)p->ai_addr)->sin_addr.s_addr;
+                i++;
+            }
+//            else if (p->ai_family == AF_INET6) {
+//                addrList[i++] = *(UInt128 *)&((struct sockaddr_in6 *)p->ai_addr)->sin6_addr;
+//            }
+        }
+        
+        freeaddrinfo(servinfo);
+    }
+    
+    return addrList;
+}
+
 // DNS peer discovery
 static void BRPeerManagerFindPeers(BRPeerManager *manager)
 {

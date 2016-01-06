@@ -123,6 +123,11 @@ typedef struct {
     pthread_t thread;
 } BRPeerContext;
 
+inline static int BRPeerIsIPv4(BRPeer *peer)
+{
+    return (peer->address.u64[0] == 0 && peer->address.u32[2] == be32(0xffff));
+}
+
 // returns a newly allocated BRPeer struct that must be freed by calling BRPeerFree()
 BRPeer *BRPeerNew()
 {
@@ -356,7 +361,8 @@ static int BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t len, con
 
 static int BRPeerOpenSocket(BRPeer *peer, double timeout)
 {
-    struct sockaddr_in serv_addr;
+
+    struct sockaddr addr;
     struct timeval tv;
     fd_set fds;
     socklen_t socklen;
@@ -371,11 +377,20 @@ static int BRPeerOpenSocket(BRPeer *peer, double timeout)
     else r = 0;
 
     if (r) {
-        memset(&serv_addr, 0, sizeof(serv_addr));
-        serv_addr.sin_family = AF_INET;
-        serv_addr.sin_addr.s_addr = peer->address.u32[3]; // already in network byte order
-        serv_addr.sin_port = htons(peer->port);
-        if (connect(socket, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) error = errno;
+        memset(&addr, 0, sizeof(addr));
+        
+        if (BRPeerIsIPv4(peer)) {
+            ((struct sockaddr_in *)&addr)->sin_family = AF_INET;
+            ((struct sockaddr_in *)&addr)->sin_addr.s_addr = peer->address.u32[3]; // already in network byte order
+            ((struct sockaddr_in *)&addr)->sin_port = htons(peer->port);
+        }
+        else {
+            ((struct sockaddr_in6 *)&addr)->sin6_family = AF_INET6;
+            ((struct sockaddr_in6 *)&addr)->sin6_addr = *(struct in6_addr *)&peer->address;
+            ((struct sockaddr_in6 *)&addr)->sin6_port = htons(peer->port);
+        }
+
+        if (connect(socket, &addr, sizeof(addr)) < 0) error = errno;
 
         if (error == EINPROGRESS) {
             error = 0;
@@ -400,9 +415,10 @@ static int BRPeerOpenSocket(BRPeer *peer, double timeout)
     return r;
 }
 
-static void *BRPeerThreadRoutine(void *peer)
+static void *BRPeerThreadRoutine(void *arg)
 {
-    BRPeerContext *ctx = (BRPeerContext *)peer;
+    BRPeer *peer = arg;
+    BRPeerContext *ctx = arg;
     int error = 0;
 
     if (BRPeerOpenSocket(peer, CONNECT_TIMEOUT)) {
@@ -429,10 +445,10 @@ static void *BRPeerThreadRoutine(void *peer)
             }
             
             if (error) {
-                peer_log((BRPeer *)peer, "%s", strerror(error));
+                peer_log(peer, "%s", strerror(error));
             }
             else if (header[15] != 0) { // verify header type field is NULL terminated
-                peer_log((BRPeer *)peer, "malformed message header: type not NULL terminated");
+                peer_log(peer, "malformed message header: type not NULL terminated");
                 error = EPROTO;
             }
             else if (len == HEADER_LENGTH) {
@@ -441,7 +457,7 @@ static void *BRPeerThreadRoutine(void *peer)
                 uint32_t checksum = *(uint32_t *)(header + 20);
                 
                 if (msgLen > MAX_MSG_LENGTH) { // check message length
-                    peer_log((BRPeer *)peer, "error reading %s, message length %u is too long", type, msgLen);
+                    peer_log(peer, "error reading %s, message length %u is too long", type, msgLen);
                     error = EPROTO;
                 }
                 else {
@@ -459,15 +475,15 @@ static void *BRPeerThreadRoutine(void *peer)
                     }
                     
                     if (error) {
-                        peer_log((BRPeer *)peer, "%s", strerror(error));
+                        peer_log(peer, "%s", strerror(error));
                     }
                     else if (len == msgLen) {
                         BRSHA256_2(&hash, payload, msgLen);
                         
                         if (hash.u32[0] != checksum) { // verify checksum
-                            peer_log((BRPeer *)peer, "error reading %s, invalid checksum %x, expected %x, "
-                                     "payload length:%u, SHA256_2:%s", type, be32(hash.u32[0]), be32(checksum),
-                                     msgLen, uint256_hex_encode(hash));
+                            peer_log(peer, "error reading %s, invalid checksum %x, expected %x, payload length:%u, "
+                                     "SHA256_2:%s", type, be32(hash.u32[0]), be32(checksum), msgLen,
+                                     uint256_hex_encode(hash));
                             error = EPROTO;
                         }
                         else if (! BRPeerAcceptMessage(peer, payload, msgLen, type)) error = EPROTO;
@@ -547,7 +563,7 @@ void BRPeerConnect(BRPeer *peer)
             array_new(ctx->useragent, 40);
             ctx->knownTxHashes = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
             ctx->currentBlockTxHashes = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
-            ctx->socket = socket(AF_INET, SOCK_STREAM, 0);
+            ctx->socket = socket((BRPeerIsIPv4(peer) ? PF_INET : PF_INET6), SOCK_STREAM, 0);
             
             if (ctx->socket >= 0) {
                 tv.tv_sec = 1; // one second timeout for send/receive, so thread doesn't block for too long
@@ -591,7 +607,7 @@ const char *BRPeerHost(BRPeer *peer)
     BRPeerContext *ctx = (BRPeerContext *)peer;
 
     if (ctx->host[0] == '\0') {
-        if (peer->address.u64[0] == 0 && peer->address.u16[4] == 0xffff) {
+        if (BRPeerIsIPv4(peer)) {
             inet_ntop(AF_INET, &peer->address.u32[3], ctx->host, sizeof(ctx->host));
         }
         else inet_ntop(AF_INET6, &peer->address, ctx->host, sizeof(ctx->host));

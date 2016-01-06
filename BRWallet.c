@@ -436,7 +436,7 @@ BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, cons
 BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput outputs[], size_t count)
 {
     BRTransaction *tx, *transaction = BRTransactionNew();
-    uint64_t amount = 0, balance = 0, feeAmount = BRTransactionSize(transaction) + 34;
+    uint64_t amount = 0, balance = 0, feeAmount = BRWalletFeeForTxSize(wallet, BRTransactionSize(transaction) + 34);
     size_t i, cpfpSize = 0;
     BRUTXO *o;
     
