@@ -207,8 +207,8 @@ static void BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
         size_t addrsCount = BRWalletAllAddrs(manager->wallet, addrs, sizeof(addrs)/sizeof(*addrs));
         BRUTXO utxos[BRWalletUTXOs(manager->wallet, NULL, 0)];
         size_t utxosCount = BRWalletUTXOs(manager->wallet, utxos, sizeof(utxos)/sizeof(*utxos));
-        BRBloomFilter *filter = BRBloomFilterNew(manager->fpRate, addrsCount + utxosCount + 100, manager->tweak,
-                                                 BLOOM_UPDATE_ALL);
+
+        filter = BRBloomFilterNew(manager->fpRate, addrsCount + utxosCount + 100, manager->tweak, BLOOM_UPDATE_ALL);
         
         for (size_t i = 0; i < addrsCount; i++) { // add addresses to watch for tx receiveing money to the wallet
             UInt160 hash = UINT160_ZERO;
@@ -323,6 +323,8 @@ static void BRPeerManagerFindPeers(BRPeerManager *manager)
             free(addrList);
         }
     }
+    
+    qsort(manager->peers, array_count(manager->peers), sizeof(*manager->peers), BRPeerTimestampCompare);
 }
 
 static void peerConnectedMempoolDone(void *info, int success)
@@ -471,6 +473,8 @@ static void peerRelayedPeers(void *info, const BRPeer peers[], size_t count)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+
+    qsort(manager->peers, array_count(manager->peers), sizeof(*manager->peers), BRPeerTimestampCompare);
 }
 
 static void peerRelayedTx(void *info, BRTransaction *tx)
@@ -545,9 +549,14 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
         block->target = checkpoint_array[i].target;
         BRSetAdd(manager->checkpoints, block);
         BRSetAdd(manager->blocks, block);
+        if (! manager->lastBlock || block->height > manager->lastBlock->height) manager->lastBlock = block;
     }
 
-    for (size_t i = 0; i < blocksCount; i++) BRSetAdd(manager->blocks, blocks[i]);
+    for (size_t i = 0; i < blocksCount; i++) {
+        BRSetAdd(manager->blocks, blocks[i]);
+        if (! manager->lastBlock || blocks[i]->height > manager->lastBlock->height) manager->lastBlock = blocks[i];
+    }
+    
     array_new(manager->nonFpTx, 10);
     array_new(manager->txRelays, 10);
     array_new(manager->publishedTx, 10);
@@ -596,59 +605,60 @@ void BRPeerManagerConnect(BRPeerManager *manager)
     if (BRPeerManagerSyncProgress(manager) < 1.0 - DBL_EPSILON) {
         if (manager->syncStartHeight == 0) manager->syncStartHeight = manager->lastBlock->height;
         if (manager->syncStarted) manager->syncStarted(manager->callbackInfo);
-
-        for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
-            BRPeer *p = manager->connectedPeers[i - 1];
-
-            if (BRPeerConnectStatus(p) == BRPeerStatusDisconnected) {
-                array_rm(manager->connectedPeers, i - 1);
-                BRPeerFree(p);
-            }
-        }
+    }
     
-        if (array_count(manager->connectedPeers) < PEER_MAX_CONNECTIONS) {
-            time_t now = time(NULL);
-            BRPeer *peers;
+    for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
+        BRPeer *p = manager->connectedPeers[i - 1];
 
-            if (array_count(manager->peers) < PEER_MAX_CONNECTIONS ||
-                manager->peers[PEER_MAX_CONNECTIONS - 1].timestamp + 3*24*60*60 < now) {
-                BRPeerManagerFindPeers(manager);
+        if (BRPeerConnectStatus(p) == BRPeerStatusDisconnected) {
+            array_rm(manager->connectedPeers, i - 1);
+            BRPeerFree(p);
+        }
+        else if (BRPeerConnectStatus(p) == BRPeerStatusConnecting) BRPeerConnect(p);
+    }
+    
+    if (array_count(manager->connectedPeers) < PEER_MAX_CONNECTIONS) {
+        time_t now = time(NULL);
+        BRPeer *peers;
+
+        if (array_count(manager->peers) < PEER_MAX_CONNECTIONS ||
+            manager->peers[PEER_MAX_CONNECTIONS - 1].timestamp + 3*24*60*60 < now) {
+            BRPeerManagerFindPeers(manager);
+        }
+        
+        array_new(peers, 100);
+        array_add_array(peers, manager->peers,
+                        (array_count(manager->peers) < 100) ? array_count(manager->peers) : 100);
+
+        while (array_count(peers) > 0 && array_count(manager->connectedPeers) < PEER_MAX_CONNECTIONS) {
+            // pick a random peer biased towards peers with more recent timestamps
+            size_t i = pow(BRRand((uint32_t)array_count(peers)), 2)/array_count(peers);
+            BRPeerCallbackInfo *info;
+        
+            for (size_t j = array_count(manager->connectedPeers); i != SIZE_MAX && j > 0; j--) {
+                if (! BRPeerEq(&peers[i], manager->connectedPeers[j - 1])) continue;
+                array_rm(peers, i); // already in connectedPeers
+                i = SIZE_MAX;
             }
             
-            array_new(peers, 100);
-            array_add_array(peers, manager->peers,
-                            (array_count(manager->peers) < 100) ? array_count(manager->peers) : 100);
-
-            while (array_count(peers) > 0 && array_count(manager->connectedPeers) < PEER_MAX_CONNECTIONS) {
-                // pick a random peer biased towards peers with more recent timestamps
-                size_t i = pow(BRRand((uint32_t)array_count(peers)), 2)/array_count(peers);
-                BRPeerCallbackInfo *info;
-        
-                for (size_t j = array_count(manager->connectedPeers); i != SIZE_MAX && j > 0; j--) {
-                    if (! BRPeerEq(&peers[i], manager->connectedPeers[j - 1])) continue;
-                    array_rm(peers, i); // already in connectedPeers
-                    i = SIZE_MAX;
-                }
-                
-                if (i != SIZE_MAX) {
-                    info = calloc(1, sizeof(*info));
-                    info->manager = manager;
-                    info->peer = BRPeerNew();
-                    *info->peer = peers[i];
-                    array_rm(peers, i);
-                    array_add(manager->connectedPeers, info->peer);
-                    BRPeerSetCallbacks(info->peer, info, peerConnected, peerDisconnected, peerRelayedPeers,
-                                       peerRelayedTx, peerHasTx, peerRejectedTx, peerRelayedBlock, peerDataNotfound,
-                                       peerRequestedTx, peerNetworkIsReachable);
-                    BRPeerSetEarliestKeyTime(info->peer, manager->earliestKeyTime);
-                    BRPeerConnect(info->peer);
-                }
+            if (i != SIZE_MAX) {
+                info = calloc(1, sizeof(*info));
+                info->manager = manager;
+                info->peer = BRPeerNew();
+                *info->peer = peers[i];
+                array_rm(peers, i);
+                array_add(manager->connectedPeers, info->peer);
+                BRPeerSetCallbacks(info->peer, info, peerConnected, peerDisconnected, peerRelayedPeers,
+                                   peerRelayedTx, peerHasTx, peerRejectedTx, peerRelayedBlock, peerDataNotfound,
+                                   peerRequestedTx, peerNetworkIsReachable);
+                BRPeerSetEarliestKeyTime(info->peer, manager->earliestKeyTime);
+                BRPeerConnect(info->peer);
             }
+        }
 
-            if (array_count(manager->connectedPeers) == 0) {
-                BRPeerManagerSyncStopped(manager);
-                if (manager->syncFailed) manager->syncFailed(manager->callbackInfo, ENETUNREACH);
-            }
+        if (array_count(manager->connectedPeers) == 0) {
+            BRPeerManagerSyncStopped(manager);
+            if (manager->syncFailed) manager->syncFailed(manager->callbackInfo, ENETUNREACH);
         }
     }
 }
@@ -679,7 +689,14 @@ double BRPeerManagerSyncProgress(BRPeerManager *manager)
 // returns the number of currently connected peers
 size_t BRPeerManagerPeerCount(BRPeerManager *manager)
 {
-    return 0;
+    size_t count = 0;
+    
+    for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
+        if (BRPeerConnectStatus(manager->connectedPeers[i - 1]) == BRPeerStatusConnected ||
+            BRPeerConnectStatus(manager->connectedPeers[i - 1]) == BRPeerStatusConnecting) count++;
+    }
+    
+    return count;
 }
 
 // publishes tx to bitcoin network

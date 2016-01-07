@@ -994,21 +994,15 @@ int main(int argc, const char *argv[])
     printf("BRPaymentProtocolTests... ");
     printf("%s\n", (BRPaymentProtocolTests()) ? "success" : "FAIL");
     
-//    BRPeer peer = BR_PEER_NONE;
+//    BRWallet *wallet = BRWalletNew(NULL, 0, BR_MASTER_PUBKEY_NONE, NULL, NULL);
+//    BRPeerManager *manager = BRPeerManagerNew(wallet, 0, NULL, 0, NULL, 0);
 //    int r = 0;
-//
-//    peer.address.u16[4] = 0xffff;
-//    peer.address.u8[12] = 98;
-//    peer.address.u8[13] = 166;
-//    peer.address.u8[14] = 154;
-//    peer.address.u8[15] = 223;
-//    peer.port = STANDARD_PORT;
-//        
-//    BRPeerConnect(&peer);
 //    
-//    while (r == 0 && BRPeerConnectStatus(&peer) != BRPeerStatusDisconnected) r = sleep(1);
-//    
+//    BRPeerManagerConnect(manager);
+//    while (r == 0 && BRPeerManagerPeerCount(manager) > 0) r = sleep(1);
 //    if (r != 0) printf("sleep got a signal");
+//    BRPeerManagerFree(manager);
+//    BRWalletFree(wallet);
     
     return 0;
 }
