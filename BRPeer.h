@@ -85,7 +85,8 @@ typedef struct {
 
 #define BR_PEER_NONE ((BRPeer) { UINT128_ZERO, 0, 0, 0, 0 })
 
-BRPeer *BRPeerNew(); // returns a newly allocated BRPeer struct that must be freed by calling BRPeerFree()
+// returns a newly allocated BRPeer struct that must be freed by calling BRPeerFree()
+BRPeer *BRPeerNew();
 
 void BRPeerSetCallbacks(BRPeer *peer, void *info,
                         void (*connected)(void *info),
@@ -106,19 +107,34 @@ void BRPeerSetEarliestKeyTime(BRPeer *peer, uint32_t earliestKeyTime);
 // call this when local best block height changes (helps detect tarpit nodes)
 void BRPeerSetCurrentBlockHeight(BRPeer *peer, uint32_t currentBlockHeight);
 
-BRPeerStatus BRPeerConnectStatus(BRPeer *peer); // current connection status
+// current connection status
+BRPeerStatus BRPeerConnectStatus(BRPeer *peer);
+
+// open connection to peer
 void BRPeerConnect(BRPeer *peer);
+
+// close connection to peer
 void BRPeerDisconnect(BRPeer *peer);
 
 // call this when wallet addresses need to be added to bloom filter
 void BRPeerSetNeedsFilterUpdate(BRPeer *peer);
 
+// display name of peer address
 const char *BRPeerHost(BRPeer *peer);
-uint32_t BRPeerVersion(BRPeer *peer); // connected peer version number
-const char *BRPeerUserAgent(BRPeer *peer); // connected peer user agent string
-uint32_t BRPeerLastBlock(BRPeer *peer); // best block height reported by connected peer
-double BRPeerPingTime(BRPeer *peer); // ping time for connected peer
 
+// connected peer version number
+uint32_t BRPeerVersion(BRPeer *peer);
+
+// connected peer user agent string
+const char *BRPeerUserAgent(BRPeer *peer);
+
+// best block height reported by connected peer
+uint32_t BRPeerLastBlock(BRPeer *peer);
+
+// average ping time for connected peer
+double BRPeerPingTime(BRPeer *peer);
+
+// sends a bitcoin protocol message to peer
 void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char *type);
 void BRPeerSendVersionMessage(BRPeer *peer);
 void BRPeerSendVerackMessage(BRPeer *peer);
@@ -131,7 +147,9 @@ void BRPeerSendGetdata(BRPeer *peer, const UInt256 txHashes[], size_t txCount, c
                        size_t blockCount);
 void BRPeerSendGetaddr(BRPeer *peer);
 void BRPeerSendPing(BRPeer *peer, void *info, void (*pongCallback)(void *info, int success));
-void BRPeerRerequestBlocks(BRPeer *peer, UInt256 fromBlock); // useful to get additional tx after a bloom filter update
+
+// useful to get additional tx after a bloom filter update
+void BRPeerRerequestBlocks(BRPeer *peer, UInt256 fromBlock);
 
 // returns a hash value for peer suitable for use in a hashtable
 inline static size_t BRPeerHash(const void *peer)
@@ -145,6 +163,7 @@ inline static int BRPeerEq(const void *a, const void *b)
     return (UInt128Eq(((BRPeer *)a)->address, ((BRPeer *)b)->address) && ((BRPeer *)a)->port == ((BRPeer *)b)->port);
 }
 
-void BRPeerFree(BRPeer *peer); // frees memory allocated for peer
+// frees memory allocated for peer
+void BRPeerFree(BRPeer *peer);
 
 #endif // BRPeer_h

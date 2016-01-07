@@ -603,6 +603,7 @@ void BRPeerSetNeedsFilterUpdate(BRPeer *peer)
     ((BRPeerContext *)peer)->needsFilterUpdate = 1;
 }
 
+// display name of peer address
 const char *BRPeerHost(BRPeer *peer)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
@@ -635,7 +636,7 @@ uint32_t BRPeerLastBlock(BRPeer *peer)
     return ((BRPeerContext *)peer)->lastblock;
 }
 
-// ping time for connected peer
+// average ping time for connected peer
 double BRPeerPingTime(BRPeer *peer)
 {
     return ((BRPeerContext *)peer)->pingTime;
@@ -645,6 +646,7 @@ double BRPeerPingTime(BRPeer *peer)
 #define MSG_NOSIGNAL 0 // set to 0 if undefined (BSD has the SO_NOSIGPIPE sockopt, and windows has no signals at all)
 #endif
 
+// sends a bitcoin protocol message to peer
 void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char *type)
 {
     if (len > MAX_MSG_LENGTH) {
