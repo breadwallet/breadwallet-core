@@ -34,15 +34,14 @@
 #include <math.h>
 #include <errno.h>
 #include <netdb.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 
 #define PROTOCOL_TIMEOUT     20.0
 #define MAX_CONNECT_FAILURES 20 // notify user of network problems after this many connect failures in a row
 #define CHECKPOINT_COUNT     (sizeof(checkpoint_array)/sizeof(*checkpoint_array))
 #define GENESIS_BLOCK_HASH   (UInt256Reverse(uint256_hex_decode(checkpoint_array[0].hash)))
 #define PEER_FLAG_SYNCED     0x01
-
-#define str(x) _str(x)
-#define _str(x) #x
 
 #if BITCOIN_TESTNET
 
@@ -268,7 +267,7 @@ static size_t BRPeerManagerBlockLocators(BRPeerManager *manager, UInt256 locator
     return ++i;
 }
 
-// returns a UINT128_ZERO terminated array of addresses for hostname that must be freed, or NULL on lookup failure
+// returns a UINT128_ZERO terminated array of addresses for hostname that must be freed, or NULL if lookup failed
 static UInt128 *addressLookup(const char *hostname)
 {
     struct addrinfo *servinfo, *p;
@@ -299,6 +298,31 @@ static UInt128 *addressLookup(const char *hostname)
 // DNS peer discovery
 static void BRPeerManagerFindPeers(BRPeerManager *manager)
 {
+    pthread_t threads[sizeof(dns_seeds)/sizeof(*dns_seeds)];
+    int errors[sizeof(dns_seeds)/sizeof(*dns_seeds)];
+    time_t now = time(NULL), age;
+    UInt128 *addr, *addrList;
+    
+    for (size_t i = 1; i < sizeof(dns_seeds)/sizeof(*dns_seeds); i++) {
+        errors[i] = pthread_create(&threads[i], NULL, (void *(*)(void *))addressLookup, (void *)dns_seeds[i]);
+    }
+
+    for (addr = addrList = addressLookup(dns_seeds[0]); addr && ! UInt128IsZero(*addr); addr++) {
+        array_add(manager->peers, ((BRPeer) { *addr, STANDARD_PORT, SERVICES_NODE_NETWORK, now, 0 }));
+    }
+
+    if (addrList) free(addrList);
+
+    for (size_t i = 1; i < sizeof(dns_seeds)/sizeof(*dns_seeds); i++) {
+        if (errors[i] == 0 && pthread_join(threads[i], (void **)&addrList) == 0) {
+            for (addr = addrList; ! UInt128IsZero(*addr); addr++) {
+                age = 3*24*60*60 + BRRand(4*24*60*60); // add between 3 and 7 days
+                array_add(manager->peers, ((BRPeer) { *addr, STANDARD_PORT, SERVICES_NODE_NETWORK, now - age, 0 }));
+            }
+            
+            free(addrList);
+        }
+    }
 }
 
 static void peerConnectedMempoolDone(void *info, int success)

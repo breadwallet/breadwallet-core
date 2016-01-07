@@ -29,6 +29,7 @@
 #include "BRBIP39Mnemonic.h"
 #include "BRBIP39WordsEn.H"
 #include "BRPeer.h"
+#include "BRPeerManager.h"
 #include "BRPaymentProtocol.h"
 #include "BRInt.h"
 #include "BRList.h"

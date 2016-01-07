@@ -37,12 +37,11 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <arpa/inet.h>
 #include <errno.h>
+#include <netdb.h>
+#include <sys/socket.h>
+#include <netinet/in.h>	
+#include <arpa/inet.h>
 
 #if BITCOIN_TESTNET
 #define MAGIC_NUMBER 0x0709110b
@@ -380,7 +379,7 @@ static int BRPeerOpenSocket(BRPeer *peer, double timeout)
         
         if (BRPeerIsIPv4(peer)) {
             ((struct sockaddr_in *)&addr)->sin_family = AF_INET;
-            ((struct sockaddr_in *)&addr)->sin_addr.s_addr = peer->address.u32[3]; // already in network byte order
+            ((struct sockaddr_in *)&addr)->sin_addr = *(struct in_addr *)&peer->address.u32[3];
             ((struct sockaddr_in *)&addr)->sin_port = htons(peer->port);
             addrLen = sizeof(struct sockaddr_in);
         }
