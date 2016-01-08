@@ -98,7 +98,7 @@ inline static int BRWalletTxCompare(void *info, const void *tx1, const void *tx2
     if (BRWalletTxIsAscending(wallet, (BRTransaction *)tx2, (BRTransaction *)tx1)) return -1;
     i = BRWalletTxChainIdx((BRTransaction *)tx1, wallet->internalChain);
     j = BRWalletTxChainIdx((BRTransaction *)tx2, (i == SIZE_MAX) ? wallet->externalChain : wallet->internalChain);
-    if (i == SIZE_MAX && j != SIZE_MAX) i = BRWalletTxChainIdx(*(BRTransaction **)tx1, wallet->externalChain);
+    if (i == SIZE_MAX && j != SIZE_MAX) i = BRWalletTxChainIdx((BRTransaction *)tx1, wallet->externalChain);
     if (i != SIZE_MAX && j != SIZE_MAX && i != j) return (i > j) ? 1 : -1;
     return 0;
 }
@@ -208,6 +208,7 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
 
     for (size_t i = 0; i < txCount; i++) {
         tx = transactions[i];
+        if (! BRTransactionIsSigned(tx)) continue;
         BRSetAdd(wallet->allTx, tx);
         BRWalletInsertTransaction(wallet, tx);
         for (size_t j = 0; j < tx->inCount; j++) BRSetAdd(wallet->usedAddrs, tx->inputs[j].address);
@@ -574,7 +575,7 @@ int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx)
     int added = 0;
     
     if (BRWalletTransactionForHash(wallet, tx->txHash) != NULL) return 1;
-    if (! BRWalletContainsTransaction(wallet, tx)) return 0;
+    if (! BRTransactionIsSigned(tx) || ! BRWalletContainsTransaction(wallet, tx)) return 0;
     
     // TODO: verify signatures when possible
     // TODO: handle tx replacement with input sequence numbers (now replacements appear invalid until confirmation)

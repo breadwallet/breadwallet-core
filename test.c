@@ -553,6 +553,9 @@ int BRWalletTests()
     tx = BRTransactionNew();
     BRTransactionAddInput(tx, UINT256_ZERO, 0, inScript, inScriptLen, NULL, 0, TXIN_SEQUENCE);
     BRTransactionAddOutput(tx, SATOSHIS, outScript, outScriptLen);
+    BRWalletRegisterTransaction(w, tx); // test adding unsigned tx
+    if (BRWalletBalance(w) != 0) r = 0;
+
     BRTransactionSign(tx, &k, 1);
     BRWalletRegisterTransaction(w, tx);
     if (BRWalletBalance(w) != SATOSHIS) r = 0;
