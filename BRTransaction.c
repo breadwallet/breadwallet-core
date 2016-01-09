@@ -325,14 +325,12 @@ int BRTransactionIsSigned(BRTransaction *tx)
 int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t count)
 {
     BRAddress addrs[count], address;
-    size_t i, j, len;
+    size_t i, j;
     
-    for (i = 0, j = 0; i < count; i++) {
-        if (BRKeyAddress(&keys[i], addrs[j].s, sizeof(addrs[j])) > 0) j++;
+    for (i = 0; i < count; i++) {
+        if (! BRKeyAddress(&keys[i], addrs[i].s, sizeof(addrs[i]))) addrs[i] = BR_ADDRESS_NONE;
     }
     
-    count = j;
-
     for (i = 0; i < tx->inCount; i++) {
         BRTxInput *in = &tx->inputs[i];
         
@@ -342,10 +340,10 @@ int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t count)
         if (j >= count) continue;
 
         const uint8_t *elems[BRScriptElements(NULL, 0, in->script, in->scriptLen)];
-        uint8_t data[BRTransactionData(tx, NULL, 0, i)], sig[OP_PUSHDATA1 - 1], pubKey[65];
+        uint8_t sig[OP_PUSHDATA1 - 1], pubKey[65], data[BRTransactionData(tx, NULL, 0, i)];
+        size_t len = BRTransactionData(tx, data, sizeof(data), i);
         UInt256 hash = UINT256_ZERO;
-        
-        len = BRTransactionData(tx, data, sizeof(data), i);
+
         BRSHA256_2(&hash, data, len);
         len = BRKeySign(&keys[j], sig, sizeof(sig) - 1, hash);
         if (len == 0 || len >= OP_PUSHDATA1) continue;
@@ -369,8 +367,8 @@ int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t count)
     if (! BRTransactionIsSigned(tx)) return 0;
     
     uint8_t data[BRTransactionData(tx, NULL, 0, SIZE_MAX)];
-    
-    len = BRTransactionData(tx, data, sizeof(data), SIZE_MAX);
+    size_t len = BRTransactionData(tx, data, sizeof(data), SIZE_MAX);
+
     BRSHA256_2(&tx->txHash, data, len);
     return 1;
 }

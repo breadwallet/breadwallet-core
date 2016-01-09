@@ -102,8 +102,8 @@ typedef struct {
     uint32_t version, lastblock, earliestKeyTime, currentBlockHeight;
     double startTime, pingTime;
     int sentVerack, gotVerack, sentGetaddr, sentFilter, sentGetdata, sentMempool, sentGetblocks;
-    UInt256 *knownBlockHashes;
-    BRSet *knownTxHashes, *currentBlockTxHashes;
+    UInt256 *knownBlockHashes, *knownTxHashes;
+    BRSet *knownTxHashSet, *currentBlockTxHashSet;
     BRMerkleBlock *currentBlock;
     int socket;
     void *info;
@@ -116,6 +116,8 @@ typedef struct {
     void (*notfound)(void *info, const UInt256 txHashes[], size_t txCount, const UInt256 blockHashes[],
                      size_t blockCount);
     void (*relayedBlock)(void *info, BRMerkleBlock *block);
+    void **pongInfo;
+    void (**pongCallback)(void *info, int success); // yes, that's right, a pointer to a function pointer
     const BRTransaction *(*requestedTx)(void *info, UInt256 txHash);
     int (*networkIsReachable)(void *info);
     BRRWLock lock;
@@ -335,9 +337,9 @@ static int BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t len, con
     if (ctx->currentBlock && strncmp(MSG_TX, type, 12) != 0) { // if we receive a non-tx message, merkleblock is done
         hash = ctx->currentBlock->blockHash;
         ctx->currentBlock = NULL;
-        BRSetClear(ctx->currentBlockTxHashes);
+        BRSetClear(ctx->currentBlockTxHashSet);
         peer_log(peer, "incomplete merkleblock %s, expected %zu more tx, got %s", uint256_hex_encode(hash),
-                 BRSetCount(ctx->currentBlockTxHashes), type);
+                 BRSetCount(ctx->currentBlockTxHashSet), type);
         r = 0;
     }
     else if (strncmp(MSG_VERSION, type, 12) == 0) r = BRPeerAcceptVersionMessage(peer, msg, len);
@@ -562,8 +564,11 @@ void BRPeerConnect(BRPeer *peer)
             ctx->waitingForNetwork = 0;
             array_new(ctx->knownBlockHashes, 10);
             array_new(ctx->useragent, 40);
-            ctx->knownTxHashes = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
-            ctx->currentBlockTxHashes = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
+            array_new(ctx->knownTxHashes, 10);
+            ctx->knownTxHashSet = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
+            ctx->currentBlockTxHashSet = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
+            array_new(ctx->pongInfo, 5);
+            array_new(ctx->pongCallback, 5);
             ctx->socket = socket((BRPeerIsIPv4(peer) ? PF_INET : PF_INET6), SOCK_STREAM, 0);
             
             if (ctx->socket >= 0) {
@@ -737,40 +742,165 @@ void BRPeerSendVerackMessage(BRPeer *peer)
 
 void BRPeerSendFilterload(BRPeer *peer, const uint8_t *filter, size_t len)
 {
+    ((BRPeerContext *)peer)->sentFilter = 1;
+    BRPeerSendMessage(peer, filter, len, MSG_FILTERLOAD);
 }
 
 void BRPeerSendMempool(BRPeer *peer)
 {
+    ((BRPeerContext *)peer)->sentMempool = 1;
+    BRPeerSendMessage(peer, NULL, 0, MSG_MEMPOOL);
+}
+
+void BRPeerSendAddr(BRPeer *peer)
+{
+    uint8_t msg[BRVarIntSize(0)];
+    size_t len = BRVarIntSet(msg, sizeof(msg), 0);
+    
+    //TODO: send peer addresses we know about
+    BRPeerSendMessage(peer, msg, len, MSG_ADDR);
 }
 
 void BRPeerSendGetheaders(BRPeer *peer, const UInt256 locators[], size_t count, UInt256 hashStop)
 {
+    size_t off = 0, len = sizeof(uint32_t) + BRVarIntSize(count) + sizeof(*locators)*count + sizeof(hashStop);
+    uint8_t msg[len];
+    
+    if (off + sizeof(uint32_t) <= len) *(uint32_t *)(msg + off) = be32(PROTOCOL_VERSION);
+    off += sizeof(uint32_t);
+    if (off + BRVarIntSize(count) <= len) off += BRVarIntSet(msg + off, len - off, count);
+
+    for (size_t i = 0; i < count; i++) {
+        if (off + sizeof(*locators) <= len) *(UInt256 *)(msg + off) = locators[i];
+        off += sizeof(*locators);
+    }
+
+    if (off + sizeof(hashStop) <= len) *(UInt256 *)(msg + off) = hashStop;
+    off += sizeof(hashStop);
+
+    if (off <= len && count > 0) {
+        peer_log(peer, "calling getheaders with locators: [%s, %s]", uint256_hex_encode(locators[0]),
+                 uint256_hex_encode(locators[count - 1]));
+        BRPeerSendMessage(peer, msg, off, MSG_GETHEADERS);
+    }
 }
 
 void BRPeerSendGetblocks(BRPeer *peer, const UInt256 locators[], size_t count, UInt256 hashStop)
 {
+    size_t off = 0, len = sizeof(uint32_t) + BRVarIntSize(count) + sizeof(*locators)*count + sizeof(hashStop);
+    uint8_t msg[len];
+    
+    if (off + sizeof(uint32_t) <= len) *(uint32_t *)(msg + off) = be32(PROTOCOL_VERSION);
+    off += sizeof(uint32_t);
+    if (off + BRVarIntSize(count) <= len) off += BRVarIntSet(msg + off, len - off, count);
+    
+    for (size_t i = 0; i < count; i++) {
+        if (off + sizeof(*locators) <= len) *(UInt256 *)(msg + off) = locators[i];
+        off += sizeof(*locators);
+    }
+    
+    if (off + sizeof(hashStop) <= len) *(UInt256 *)(msg + off) = hashStop;
+    off += sizeof(hashStop);
+    
+    if (off <= len && count > 0) {
+        peer_log(peer, "calling getheaders with locators: [%s, %s]", uint256_hex_encode(locators[0]),
+                 uint256_hex_encode(locators[count - 1]));
+        BRPeerSendMessage(peer, msg, off, MSG_GETBLOCKS);
+    }
 }
 
 void BRPeerSendInv(BRPeer *peer, const UInt256 txHashes[], size_t count)
 {
+    BRPeerContext *ctx = (BRPeerContext *)peer;
+    size_t hashesCount = array_count(ctx->knownTxHashes);
+
+    for (size_t i = 0; i < count; i++) {
+        if (! BRSetContains(ctx->knownTxHashSet, &txHashes[i])) array_add(ctx->knownTxHashes, txHashes[i]);
+    }
+    
+    count = array_count(ctx->knownTxHashes) - hashesCount;
+
+    if (count > 0) {
+        size_t off = 0, len = BRVarIntSize(count) + (sizeof(uint32_t) + sizeof(*txHashes))*count;
+        uint8_t msg[len];
+        
+        if (off + BRVarIntSize(count) <= len) off += BRVarIntSet(msg + off, len - off, count);
+        
+        for (size_t i = 0; i < count; i++) {
+            if (off + sizeof(uint32_t) <= len) *(uint32_t *)(msg + off) = be32(inv_tx);
+            off += sizeof(uint32_t);
+            if (off + sizeof(*txHashes) <= len) *(UInt256 *)(msg + off) = ctx->knownTxHashes[hashesCount + i];
+            off += sizeof(*txHashes);
+            BRSetAdd(ctx->knownTxHashSet, &ctx->knownTxHashes[hashesCount + i]);
+        }
+
+        if (off <= len) BRPeerSendMessage(peer, msg, off, MSG_INV);
+    }
 }
 
 void BRPeerSendGetdata(BRPeer *peer, const UInt256 txHashes[], size_t txCount, const UInt256 blockHashes[],
                        size_t blockCount)
 {
+    size_t off = 0, count = txCount + blockCount;
+    
+    if (count > MAX_GETDATA_HASHES) { // limit total hash count to MAX_GETDATA_HASHES
+        peer_log(peer, "couldn't send getdata, %zu is too many items, max is %d", count, MAX_GETDATA_HASHES);
+    }
+    else if (count > 0) {
+        size_t len = BRVarIntSize(count) + (sizeof(uint32_t) + sizeof(UInt256))*(count);
+        uint8_t msg[len];
+
+        if (off + BRVarIntSize(count) <= len) off += BRVarIntSet(msg + off, len - off, count);
+        
+        for (size_t i = 0; i < txCount; i++) {
+            if (off + sizeof(uint32_t) <= len) *(uint32_t *)(msg + off) = be32(inv_tx);
+            off += sizeof(uint32_t);
+            if (off + sizeof(*txHashes) <= len) *(UInt256 *)(msg + off) = txHashes[i];
+            off += sizeof(*txHashes);
+        }
+        
+        for (size_t i = 0; i < blockCount; i++) {
+            if (off + sizeof(uint32_t) <= len) *(uint32_t *)(msg + off) = be32(inv_merkleblock);
+            off += sizeof(uint32_t);
+            if (off + sizeof(*blockHashes) <= len) *(UInt256 *)(msg + off) = blockHashes[i];
+            off += sizeof(*blockHashes);
+        }
+        
+        ((BRPeerContext *)peer)->sentGetdata = 1;
+        BRPeerSendMessage(peer, msg, off, MSG_GETDATA);
+    }
 }
 
 void BRPeerSendGetaddr(BRPeer *peer)
 {
+    ((BRPeerContext *)peer)->sentGetaddr = 1;
+    BRPeerSendMessage(peer, NULL, 0, MSG_GETADDR);
 }
 
 void BRPeerSendPing(BRPeer *peer, void *info, void (*pongCallback)(void *info, int success))
 {
+    BRPeerContext *ctx = (BRPeerContext *)peer;
+    uint64_t msg = be64(ctx->nonce);
+    
+    ctx->startTime = (double)clock()/CLOCKS_PER_SEC;
+    array_add(ctx->pongInfo, info);
+    array_add(ctx->pongCallback, pongCallback);
+    BRPeerSendMessage(peer, (uint8_t *)&msg, sizeof(msg), MSG_PING);
 }
 
 // useful to get additional tx after a bloom filter update
 void BRPeerRerequestBlocks(BRPeer *peer, UInt256 fromBlock)
 {
+    BRPeerContext *ctx = (BRPeerContext *)peer;
+    size_t i = array_count(ctx->knownBlockHashes);
+    
+    while (i > 0 && ! UInt256Eq(ctx->knownBlockHashes[i - 1], fromBlock)) i--;
+   
+    if (i > 0) {
+        array_rm_range(ctx->knownBlockHashes, 0, i - 1);
+        peer_log(peer, "re-requesting %zu blocks", array_count(ctx->knownBlockHashes));
+        BRPeerSendGetdata(peer, NULL, 0, ctx->knownBlockHashes, array_count(ctx->knownBlockHashes));
+    }
 }
 
 void BRPeerFree(BRPeer *peer)
@@ -780,8 +910,11 @@ void BRPeerFree(BRPeer *peer)
     BRRWLockWrite(&ctx->lock);
     if (ctx->useragent) array_free(ctx->useragent);
     if (ctx->knownBlockHashes) array_free(ctx->knownBlockHashes);
-    if (ctx->knownTxHashes) BRSetFree(ctx->knownTxHashes);
-    if (ctx->currentBlockTxHashes) BRSetFree(ctx->currentBlockTxHashes);
+    if (ctx->knownTxHashes) array_free(ctx->knownTxHashes);
+    if (ctx->knownTxHashSet) BRSetFree(ctx->knownTxHashSet);
+    if (ctx->currentBlockTxHashSet) BRSetFree(ctx->currentBlockTxHashSet);
+    if (ctx->pongInfo) array_free(ctx->pongInfo);
+    if (ctx->pongCallback) array_free(ctx->pongCallback);
     BRRWLockUnlock(&ctx->lock);
     BRRWLockDestroy(&ctx->lock);
     free(ctx);

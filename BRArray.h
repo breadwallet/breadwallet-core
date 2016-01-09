@@ -50,6 +50,8 @@
 #define array_set_count(array, count) do {\
     if ((count) > array_capacity(array))\
         array_set_capacity(array, count);\
+    if ((count) < array_count(array))\
+        memset((array) + (count), 0, (array_count(array) - (count))*sizeof(*(array)));\
     array_count(array) = (count);\
 } while (0)
 
@@ -87,19 +89,22 @@
 
 #define array_rm(array, idx) do {\
     memmove((array) + (idx), (array) + (idx) + 1, (--array_count(array) - (idx))*sizeof(*(array)));\
+    memset((array) + array_count(array), 0, sizeof(*(array)));\
 } while (0)
 
 #define array_rm_last(array) do {\
     if (array_count(array) > 0)\
-        array_count(array)--;\
+        memset((array) + --array_count(array), 0, sizeof(*(array)));\
 } while(0)
 
 #define array_rm_range(array, idx, len) do {\
     memmove((array) + (idx), (array) + (idx) + (len), (array_count(array) - ((idx) + (len)))*sizeof(*(array)));\
     array_count(array) -= (len);\
+    memset((array) + array_count(array), 0, (len)*sizeof(*(array)));\
 } while(0)
 
 #define array_clear(array) do {\
+    memset((array), 0, array_count(array)*sizeof(*(array)));\
     array_count(array) = 0;\
 } while (0)
 

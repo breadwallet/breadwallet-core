@@ -422,11 +422,12 @@ int BRTransactionTests()
 {
     int r = 1;
     UInt256 secret = uint256_hex_decode("0000000000000000000000000000000000000000000000000000000000000001");
-    BRKey k;
+    BRKey k[2];
     BRAddress address;
     
-    BRKeySetSecret(&k, &secret, 1);
-    BRKeyAddress(&k, address.s, sizeof(address));
+    memset(&k[0], 0, sizeof(k[0])); // test with array keys where first key is empty/invalid
+    BRKeySetSecret(&k[1], &secret, 1);
+    BRKeyAddress(&k[1], address.s, sizeof(address));
 
     uint8_t script[BRAddressScriptPubKey(NULL, 0, address.s)];
     size_t scriptLen = BRAddressScriptPubKey(script, sizeof(script), address.s);
@@ -435,7 +436,7 @@ int BRTransactionTests()
     BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
     BRTransactionAddOutput(tx, 100000000, script, scriptLen);
     BRTransactionAddOutput(tx, 4900000000, script, scriptLen);
-    BRTransactionSign(tx, &k, 1);
+    BRTransactionSign(tx, k, 2);
     if (! BRTransactionIsSigned(tx)) r = 0;
 
     uint8_t buf[BRTransactionSerialize(tx, NULL, 0)];
@@ -471,7 +472,7 @@ int BRTransactionTests()
     BRTransactionAddOutput(tx, 1000000, script, scriptLen);
     BRTransactionAddOutput(tx, 1000000, script, scriptLen);
     BRTransactionAddOutput(tx, 1000000, script, scriptLen);
-    BRTransactionSign(tx, &k, 1);
+    BRTransactionSign(tx, k, 2);
     if (! BRTransactionIsSigned(tx)) r = 0;
 
     uint8_t buf3[BRTransactionSerialize(tx, NULL, 0)];
