@@ -38,8 +38,8 @@ typedef struct {
 
 inline static int BRUTXOEq(const void *a, const void *b)
 {
-    return (UInt256Eq(((const BRUTXO *)a)->hash, ((const BRUTXO *)b)->hash) &&
-            ((const BRUTXO *)a)->n == ((const BRUTXO *)b)->n);
+    return (a == b || (UInt256Eq(((const BRUTXO *)a)->hash, ((const BRUTXO *)b)->hash) &&
+                       ((const BRUTXO *)a)->n == ((const BRUTXO *)b)->n));
 }
 
 inline static size_t BRUTXOHash(const void *utxo)

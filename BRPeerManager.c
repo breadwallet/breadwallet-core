@@ -357,7 +357,7 @@ static void peerConnected(void *info)
     manager->connectFailures = 0;
     
     // drop peers that don't carry full blocks, or aren't synced yet
-    // TODO: XXXX does this work with 0.11 pruned nodes?
+    // TODO: XXX does this work with 0.11 pruned nodes?
     if (! (peer->services & SERVICES_NODE_NETWORK) ||
         BRPeerLastBlock(peer) + 10 < manager->lastBlock->height) {
         BRPeerDisconnect(peer);

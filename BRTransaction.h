@@ -128,7 +128,7 @@ inline static size_t BRTransactionHash(const void *tx)
 // true if tx and otherTx have equal txHash values
 inline static int BRTransactionEq(const void *tx, const void *otherTx)
 {
-    return UInt256Eq(((const BRTransaction *)tx)->txHash, ((const BRTransaction *)otherTx)->txHash);
+    return (tx == otherTx || UInt256Eq(((const BRTransaction *)tx)->txHash, ((const BRTransaction *)otherTx)->txHash));
 }
 
 // frees memory allocated for tx

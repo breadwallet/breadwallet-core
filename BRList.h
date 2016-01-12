@@ -32,7 +32,7 @@
 // example:
 //
 // int *head, *item;               // linked list of ints
-// int (*compare)(void *info, void *a, void *b); // assign this to a comparator function
+// int (*compare)(void *info, const void *a, const void *b); // assign this to a comparator function
 // ...
 //
 // list_new(head, 1);              // 1
@@ -95,7 +95,7 @@
     (head) = _list_sort(head, info, comparator);\
 } while(0)
 
-inline static void *_list_sort(void *head, void *info, int (*comparator)(void *info, void *a, void *b))
+inline static void *_list_sort(void *head, void *info, int (*comparator)(void *info, const void *a, const void *b))
 {
     if (! head || ! list_next(head)) return head;
 

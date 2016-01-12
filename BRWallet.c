@@ -157,6 +157,8 @@ static void BRWalletUpdateBalance(BRWallet *wallet)
         // TODO: don't add coin generation outputs < 100 blocks deep, or non-final lockTime > 1 block/10min in future
         // NOTE: balance/UTXOs will then need to be recalculated when last block changes
         for (size_t j = 0; j < tx->outCount; j++) {
+            BRSetAdd(wallet->usedAddrs, tx->outputs[j].address);
+            
             if (BRSetContains(wallet->allAddrs, tx->outputs[j].address)) {
                 array_add(wallet->utxos, ((BRUTXO) { tx->txHash, (uint32_t)j }));
                 balance += tx->outputs[j].amount;
@@ -211,7 +213,6 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
         if (! BRTransactionIsSigned(tx)) continue;
         BRSetAdd(wallet->allTx, tx);
         BRWalletInsertTransaction(wallet, tx);
-        for (size_t j = 0; j < tx->inCount; j++) BRSetAdd(wallet->usedAddrs, tx->inputs[j].address);
         for (size_t j = 0; j < tx->outCount; j++) BRSetAdd(wallet->usedAddrs, tx->outputs[j].address);
     }
     
@@ -242,38 +243,45 @@ void BRWalletSetCallbacks(BRWallet *wallet, void *info,
 // external chain for receive addresses. addrs may be NULL to only generate addresses for BRWalletContainsAddress()
 void BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimit, int internal)
 {
-    BRAddress **chain;
-    uint32_t count, i;
+    BRAddress *chain;
+    uint32_t i, count, startCount;
 
     BRRWLockRead(&wallet->lock);
-    chain = (internal) ? &wallet->internalChain : &wallet->externalChain;
-    i = count = (uint32_t)array_count(*chain);
+    chain = (internal) ? wallet->internalChain : wallet->externalChain;
+    i = count = startCount = (uint32_t)array_count(chain);
     
     // keep only the trailing contiguous block of addresses with no transactions
-    while (i > 0 && ! BRSetContains(wallet->usedAddrs, &(*chain)[i - 1])) i--;
+    while (i > 0 && ! BRSetContains(wallet->usedAddrs, &chain[i - 1])) i--;
     
-    if (count - i < gapLimit) {
+    if (i + gapLimit > count) {
         BRRWLockUnlock(&wallet->lock);
         BRRWLockWrite(&wallet->lock);
-        chain = (internal) ? &wallet->internalChain : &wallet->externalChain;
-        count = (uint32_t)array_count(*chain);
+        chain = (internal) ? wallet->internalChain : wallet->externalChain;
+        count = startCount = (uint32_t)array_count(chain);
     }
     
-    while (count - i < gapLimit) { // generate new addresses up to gapLimit
+    while (i + gapLimit > count) { // generate new addresses up to gapLimit
         BRKey key;
-        BRAddress a = BR_ADDRESS_NONE;
+        BRAddress address = BR_ADDRESS_NONE;
         uint8_t pubKey[BRBIP32PubKey(NULL, 0, wallet->masterPubKey, internal, count)];
         size_t len = BRBIP32PubKey(pubKey, sizeof(pubKey), wallet->masterPubKey, internal, count);
         
         BRKeySetPubKey(&key, pubKey, len);
-        if (BRKeyAddress(&key, a.s, sizeof(a)) == 0) break;
-        if (BRAddressEq(&a, &BR_ADDRESS_NONE)) break;
-        array_add(*chain, a);
-        BRSetAdd(wallet->allAddrs, &(*chain)[count]);
+        if (! BRKeyAddress(&key, address.s, sizeof(address)) || BRAddressEq(&address, &BR_ADDRESS_NONE)) break;
+        array_add(chain, address);
         count++;
     }
     
-    if (addrs && count - i >= gapLimit) memcpy(addrs, &(*chain)[i], gapLimit*sizeof(*addrs));
+    // check if chain was moved to a new memory location
+    if (chain != (internal ? wallet->internalChain : wallet->externalChain)) {
+        if (internal) wallet->internalChain = chain;
+        if (! internal) wallet->externalChain = chain;
+        BRSetClear(wallet->allAddrs);
+        startCount = 0;
+    }
+
+    if (addrs && i + gapLimit <= count) memcpy(addrs, &chain[i], gapLimit*sizeof(*addrs));
+    for (i = startCount; i < count; i++) BRSetAdd(wallet->allAddrs, &chain[i]);
     BRRWLockUnlock(&wallet->lock);
 }
 
@@ -410,7 +418,7 @@ int BRWalletContainsAddress(BRWallet *wallet, const char *addr)
     return r;
 }
 
-// true if the address was previously used as an input or output in any wallet transaction
+// true if the address was previously used as an output in any wallet transaction
 int BRWalletAddressIsUsed(BRWallet *wallet, const char *addr)
 {
     int r;
@@ -585,8 +593,6 @@ int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx)
     if (! BRSetContains(wallet->allTx, tx)) {
         BRSetAdd(wallet->allTx, tx);
         BRWalletInsertTransaction(wallet, tx);
-        for (size_t i = 0; i < tx->inCount; i++) BRSetAdd(wallet->usedAddrs, tx->inputs[i].address);
-        for (size_t i = 0; i < tx->outCount; i++) BRSetAdd(wallet->usedAddrs, tx->outputs[i].address);
         BRWalletUpdateBalance(wallet);
         added = 1;
     }
@@ -622,8 +628,8 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
             if (t->blockHeight < tx->blockHeight) break;
             if (BRTransactionEq(tx, t)) continue;
             
-            for (size_t j = 0; j < tx->inCount; j++) {
-                if (! UInt256Eq(tx->inputs[j].txHash, t->txHash)) continue;
+            for (size_t j = 0; j < t->inCount; j++) {
+                if (! UInt256Eq(t->inputs[j].txHash, txHash)) continue;
                 array_add(hashes, t->txHash);
                 break;
             }
@@ -640,13 +646,15 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
         }
         else {
             BRSetRemove(wallet->allTx, tx);
+            BRSetRemove(wallet->invalidTx, tx);
+            for (size_t i = 0; i < tx->outCount; i++) BRSetRemove(wallet->usedAddrs, tx->outputs[i].address);
             
             for (size_t i = array_count(wallet->transactions); i > 0; i--) {
                 if (! BRTransactionEq(wallet->transactions[i - 1], tx)) continue;
                 array_rm(wallet->transactions, i - 1);
                 break;
             }
-    
+            
             BRWalletUpdateBalance(wallet);
             BRRWLockUnlock(&wallet->lock);
             BRTransactionFree(tx);

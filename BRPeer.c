@@ -812,13 +812,23 @@ void BRPeerSendGetblocks(BRPeer *peer, const UInt256 locators[], size_t count, U
 void BRPeerSendInv(BRPeer *peer, const UInt256 txHashes[], size_t count)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
-    size_t hashesCount = array_count(ctx->knownTxHashes);
+    UInt256 *knownTxHashes = ctx->knownTxHashes;
+    size_t i, j, hashesCount = array_count(knownTxHashes);
 
-    for (size_t i = 0; i < count; i++) {
-        if (! BRSetContains(ctx->knownTxHashSet, &txHashes[i])) array_add(ctx->knownTxHashes, txHashes[i]);
+    for (i = 0; i < count; i++) {
+        if (! BRSetContains(ctx->knownTxHashSet, &txHashes[i])) {
+            array_add(knownTxHashes, txHashes[i]);
+
+            if (ctx->knownTxHashes != knownTxHashes) {
+                ctx->knownTxHashes = knownTxHashes;
+                BRSetClear(ctx->knownTxHashSet);
+                for (j = array_count(knownTxHashes); j > 0; j--) BRSetAdd(ctx->knownTxHashSet, &knownTxHashes[j - 1]);
+            }
+            else BRSetAdd(ctx->knownTxHashSet, &array_last(knownTxHashes));
+        }
     }
     
-    count = array_count(ctx->knownTxHashes) - hashesCount;
+    count = array_count(knownTxHashes) - hashesCount;
 
     if (count > 0) {
         size_t off = 0, len = BRVarIntSize(count) + (sizeof(uint32_t) + sizeof(*txHashes))*count;
@@ -826,12 +836,11 @@ void BRPeerSendInv(BRPeer *peer, const UInt256 txHashes[], size_t count)
         
         if (off + BRVarIntSize(count) <= len) off += BRVarIntSet(msg + off, len - off, count);
         
-        for (size_t i = 0; i < count; i++) {
+        for (i = 0; i < count; i++) {
             if (off + sizeof(uint32_t) <= len) *(uint32_t *)(msg + off) = be32(inv_tx);
             off += sizeof(uint32_t);
-            if (off + sizeof(*txHashes) <= len) *(UInt256 *)(msg + off) = ctx->knownTxHashes[hashesCount + i];
+            if (off + sizeof(*txHashes) <= len) *(UInt256 *)(msg + off) = knownTxHashes[hashesCount + i];
             off += sizeof(*txHashes);
-            BRSetAdd(ctx->knownTxHashSet, &ctx->knownTxHashes[hashesCount + i]);
         }
 
         if (off <= len) BRPeerSendMessage(peer, msg, off, MSG_INV);
