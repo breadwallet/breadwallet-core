@@ -85,6 +85,7 @@ int BRListTests()
     item = list_next(head);
     if (! item || *item != 3) r = 0, fprintf(stderr, "***FAILED*** %s: list_insert_after() test\n", __func__);
     list_sort(head, NULL, compare_ints); // 1->2->3
+    printf("\n");
 
     for (item = head; item; item = list_next(item)) {
         printf("%i->", *item);           // "1->2->3->"
@@ -104,6 +105,103 @@ int BRListTests()
     if (item) r = 0, fprintf(stderr, "***FAILED*** %s: list_rm_head() test\n", __func__);
     list_free(head);
     if (head) r = 0, fprintf(stderr, "***FAILED*** %s: list_free() test\n", __func__);
+    
+    printf("\n                          ");
+    return r;
+}
+
+int BRBase58Tests()
+{
+    int r = 1;
+    char *s;
+    
+    // test bad input
+    s = "#&$@*^(*#!^";
+    
+    uint8_t buf1[BRBase58Decode(NULL, 0, s)];
+    size_t len1 = BRBase58Decode(buf1, sizeof(buf1), s);
+
+    if (len1 != 0) r = 0, fprintf(stderr, "***FAILED*** %s: Base58Decode() test 1\n", __func__);
+
+    uint8_t buf2[BRBase58Decode(NULL, 0, "")];
+    size_t len2 = BRBase58Decode(buf2, sizeof(buf2), "");
+    
+    if (len2 != 0) r = 0, fprintf(stderr, "***FAILED*** %s: Base58Decode() test 2\n", __func__);
+    
+    s = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+    
+    uint8_t buf3[BRBase58Decode(NULL, 0, s)];
+    size_t len3 = BRBase58Decode(buf3, sizeof(buf3), s);
+    char str3[BRBase58Encode(NULL, 0, buf3, len3)];
+    
+    BRBase58Encode(str3, sizeof(str3), buf3, len3);
+    if (strcmp(str3, s) != 0) r = 0, fprintf(stderr, "***FAILED*** %s: Base58Decode() test 3\n", __func__);
+
+    s = "1111111111111111111111111111111111111111111111111111111111111111111";
+
+    uint8_t buf4[BRBase58Decode(NULL, 0, s)];
+    size_t len4 = BRBase58Decode(buf4, sizeof(buf4), s);
+    char str4[BRBase58Encode(NULL, 0, buf4, len4)];
+    
+    BRBase58Encode(str4, sizeof(str4), buf4, len4);
+    if (strcmp(str4, s) != 0) r = 0, fprintf(stderr, "***FAILED*** %s: Base58Decode() test 4\n", __func__);
+
+    s = "z";
+    
+    uint8_t buf5[BRBase58Decode(NULL, 0, s)];
+    size_t len5 = BRBase58Decode(buf5, sizeof(buf5), s);
+    char str5[BRBase58Encode(NULL, 0, buf5, len5)];
+    
+    BRBase58Encode(str5, sizeof(str5), buf5, len5);
+    if (strcmp(str5, s) != 0) r = 0, fprintf(stderr, "***FAILED*** %s: Base58Decode() test 5\n", __func__);
+
+    char str6[BRBase58CheckEncode(NULL, 0, NULL, 0)];
+    size_t len6 = BRBase58CheckEncode(str6, sizeof(str6), NULL, 0);
+    uint8_t buf6[BRBase58CheckDecode(NULL, 0, str6)];
+    
+    len6 = BRBase58CheckDecode(buf6, sizeof(buf6), str6);
+    if (len6 != 0) r = 0, fprintf(stderr, "***FAILED*** %s: BRBase58CheckDecode() test 1\n", __func__);
+
+    char str7[BRBase58CheckEncode(NULL, 0, (const uint8_t *)"", 0)];
+    size_t len7 = BRBase58CheckEncode(str7, sizeof(str7), (const uint8_t *)"", 0);
+    uint8_t buf7[BRBase58CheckDecode(NULL, 0, str7)];
+    
+    len7 = BRBase58CheckDecode(buf7, sizeof(buf7), str7);
+    if (len7 != 0) r = 0, fprintf(stderr, "***FAILED*** %s: BRBase58CheckDecode() test 2\n", __func__);
+    
+    s = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
+    
+    char str8[BRBase58CheckEncode(NULL, 0, (uint8_t *)s, 21)];
+    size_t len8 = BRBase58CheckEncode(str8, sizeof(str8), (uint8_t *)s, 21);
+    uint8_t buf8[BRBase58CheckDecode(NULL, 0, str8)];
+    
+    len8 = BRBase58CheckDecode(buf8, sizeof(buf8), str8);
+    printf("\n%s", str8);
+    if (len8 != 21 || memcmp(s, buf8, len8) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRBase58CheckDecode() test 3\n", __func__);
+
+    s = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01";
+    
+    char str9[BRBase58CheckEncode(NULL, 0, (uint8_t *)s, 21)];
+    size_t len9 = BRBase58CheckEncode(str9, sizeof(str9), (uint8_t *)s, 21);
+    uint8_t buf9[BRBase58CheckDecode(NULL, 0, str9)];
+    
+    len9 = BRBase58CheckDecode(buf9, sizeof(buf9), str9);
+    printf("\n%s", str9);
+    if (len9 != 21 || memcmp(s, buf9, len9) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRBase58CheckDecode() test 4\n", __func__);
+
+    s = "\x05\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF";
+    
+    char str0[BRBase58CheckEncode(NULL, 0, (uint8_t *)s, 21)];
+    size_t len0 = BRBase58CheckEncode(str0, sizeof(str0), (uint8_t *)s, 21);
+    uint8_t buf0[BRBase58CheckDecode(NULL, 0, str0)];
+    
+    len0 = BRBase58CheckDecode(buf0, sizeof(buf0), str0);
+    printf("\n%s", str0);
+    if (len0 != 21 || memcmp(s, buf0, len0) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRBase58CheckDecode() test 5\n", __func__);
+
     return r;
 }
 
@@ -484,7 +582,7 @@ int BRBIP32SequenceTests()
     // TODO: XXX test BRBIP32SerializeMasterPrivKey()
     // TODO: XXX test BRBIP32SerializeMasterPubKey()
 
-    printf("\n");
+    printf("\n                          ");
     return r;
 }
 
@@ -573,21 +671,25 @@ static const void *walletSeed(void *info, const char *authprompt, uint64_t amoun
 static void walletBalanceChanged(void *info, uint64_t balance)
 {
     printf("\nbalance changed %llu", balance);
+    BRWalletUnusedAddrs(info, NULL, (uint32_t)BRWalletAllAddrs(info, NULL, 0) + 1, 1); // trigger write lock
 }
 
 static void walletTxAdded(void *info, BRTransaction *tx)
 {
     printf("\ntx added: %s", uint256_hex_encode(tx->txHash));
+    BRWalletUnusedAddrs(info, NULL, (uint32_t)BRWalletAllAddrs(info, NULL, 0) + 1, 1); // trigger write lock`
 }
 
 static void walletTxUpdated(void *info, const UInt256 txHash[], size_t count, uint32_t blockHeight, uint32_t timestamp)
 {
     for (size_t i = 0; i < count; i++) printf("\ntx updated: %s", uint256_hex_encode(txHash[i]));
+    BRWalletUnusedAddrs(info, NULL, (uint32_t)BRWalletAllAddrs(info, NULL, 0) + 1, 1); // trigger write lock
 }
 
 static void walletTxDeleted(void *info, UInt256 txHash)
 {
     printf("\ntx deleted: %s", uint256_hex_encode(txHash));
+    BRWalletUnusedAddrs(info, NULL, (uint32_t)BRWalletAllAddrs(info, NULL, 0) + 1, 1); // trigger write lock
 }
 
 // TODO: test standard free transaction no change
@@ -610,7 +712,7 @@ int BRWalletTests()
     BRAddress addr, recvAddr = BRWalletReceiveAddress(w);
     BRTransaction *tx;
     
-    BRWalletSetCallbacks(w, NULL, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
+    BRWalletSetCallbacks(w, w, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
     BRKeySetSecret(&k, &secret, 1);
     BRKeyAddress(&k, addr.s, sizeof(addr));
     
@@ -660,7 +762,7 @@ int BRWalletTests()
     if (! BRAddressEq(BRWalletReceiveAddress(w).s, recvAddr.s)) // verify used addresses are correctly tracked
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletReceiveAddress() test\n", __func__);
     
-    printf("\n");
+    printf("\n                          ");
     BRWalletFree(w);
     return r;
 }
@@ -1078,6 +1180,7 @@ int BRPaymentProtocolTests()
     if (len > 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPaymentProtocolRequestParse/Serialize() test 3\n", __func__);
     
+    printf("\n                          ");
     return r;
 }
 
@@ -1089,6 +1192,8 @@ int main(int argc, const char *argv[])
     printf("%s\n", (BRIntsTests()) ? "success" : (r = 0, "***FAIL***"));
     printf("BRListTests...            ");
     printf("%s\n", (BRListTests()) ? "success" : (r = 0, "***FAIL***"));
+    printf("BRBase58Tests...          ");
+    printf("%s\n", (BRBase58Tests()) ? "success" : (r = 0, "***FAIL***"));
     printf("BRHashTests...            ");
     printf("%s\n", (BRHashTests()) ? "success" : (r = 0, "***FAIL***"));
     printf("BRAddressTests...         ");

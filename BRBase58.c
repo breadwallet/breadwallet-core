@@ -31,7 +31,7 @@
 
 static const char base58chars[] = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
-// returns the number of characters written to s including NULL terminator, or total slen needed if s is NULL
+// returns the number of characters written to str including NULL terminator, or total strLen needed if str is NULL
 size_t BRBase58Encode(char *str, size_t strLen, const uint8_t *data, size_t dataLen)
 {
     size_t i, j, len, zcount = 0;
@@ -68,7 +68,7 @@ size_t BRBase58Encode(char *str, size_t strLen, const uint8_t *data, size_t data
     return (! str || strLen >= len) ? len : 0;
 }
 
-// returns the number of bytes written to data, or total dlen needed if data is NULL
+// returns the number of bytes written to data, or total dataLen needed if data is NULL
 size_t BRBase58Decode(uint8_t *data, size_t dataLen, const char *str)
 {
     size_t i = 0, j, len, zcount = 0;
@@ -137,7 +137,7 @@ size_t BRBase58Decode(uint8_t *data, size_t dataLen, const char *str)
     return (! data || dataLen >= len) ? len : 0;
 }
 
-// returns the number of characters written to s including NULL terminator, or total slen needed if s is NULL
+// returns the number of characters written to str including NULL terminator, or total strLen needed if str is NULL
 size_t BRBase58CheckEncode(char *str, size_t strLen, const uint8_t *data, size_t dataLen)
 {
     size_t len;
@@ -150,7 +150,7 @@ size_t BRBase58CheckEncode(char *str, size_t strLen, const uint8_t *data, size_t
     return len;
 }
 
-// returns the number of bytes written to data, or total dlen needed if data is NULL
+// returns the number of bytes written to data, or total dataLen needed if data is NULL
 size_t BRBase58CheckDecode(uint8_t *data, size_t dataLen, const char *str)
 {
     uint8_t buf[strlen(str)*733/1000 + 1], md[256/8];
