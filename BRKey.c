@@ -87,17 +87,18 @@ size_t BRSecp256k1PointAdd(void *r, const void *a, const void *b, int compressed
     secp256k1_gej aj, rj;
     size_t size = 0;
     
-    if (! secp256k1_eckey_pubkey_parse(&ap, a, 33)) return 0;
-    if (! secp256k1_eckey_pubkey_parse(&bp, b, 33)) return 0;
-    secp256k1_gej_set_ge(&aj, &ap);
-    secp256k1_ge_clear(&ap);
-    secp256k1_gej_add_ge(&rj, &aj, &bp);
-    secp256k1_gej_clear(&aj);
-    secp256k1_ge_clear(&bp);
-    secp256k1_ge_set_gej(&rp, &rj);
-    secp256k1_gej_clear(&rj);
-    secp256k1_eckey_pubkey_serialize(&rp, r, &size, compressed);
-    secp256k1_ge_clear(&rp);
+    if (secp256k1_eckey_pubkey_parse(&ap, a, 33) && secp256k1_eckey_pubkey_parse(&bp, b, 33)) {
+        secp256k1_gej_set_ge(&aj, &ap);
+        secp256k1_ge_clear(&ap);
+        secp256k1_gej_add_ge(&rj, &aj, &bp);
+        secp256k1_gej_clear(&aj);
+        secp256k1_ge_clear(&bp);
+        secp256k1_ge_set_gej(&rp, &rj);
+        secp256k1_gej_clear(&rj);
+        secp256k1_eckey_pubkey_serialize(&rp, r, &size, compressed);
+        secp256k1_ge_clear(&rp);
+    }
+    
     return size;
 }
 
@@ -110,24 +111,30 @@ size_t BRSecp256k1PointMul(void *r, const void *p, UInt256 i, int compressed)
     size_t size = 0;
 
     if (! _ctx) _ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
-    
-    secp256k1_scalar_set_b32(&is, i.u8, NULL);
-    
-    if (p) {
-        if (! secp256k1_eckey_pubkey_parse(&pp, p, 33)) return 0;
+
+    if (! p) {
+        secp256k1_scalar_set_b32(&is, i.u8, NULL);
+        secp256k1_ecmult_gen(&_ctx->ecmult_gen_ctx, &rj, &is);
+        secp256k1_scalar_clear(&is);
+        secp256k1_ge_set_gej(&rp, &rj);
+        secp256k1_gej_clear(&rj);
+        secp256k1_eckey_pubkey_serialize(&rp, r, &size, compressed);
+        secp256k1_ge_clear(&rp);
+    }
+    else if (secp256k1_eckey_pubkey_parse(&pp, p, 33)) {
         secp256k1_gej_set_ge(&pj, &pp);
         secp256k1_ge_clear(&pp);
+        secp256k1_scalar_set_b32(&is, i.u8, NULL);
         secp256k1_scalar_clear(&zs);
         secp256k1_ecmult(&_ctx->ecmult_ctx, &rj, &pj, &is, &zs);
         secp256k1_gej_clear(&pj);
+        secp256k1_scalar_clear(&is);
+        secp256k1_ge_set_gej(&rp, &rj);
+        secp256k1_gej_clear(&rj);
+        secp256k1_eckey_pubkey_serialize(&rp, r, &size, compressed);
+        secp256k1_ge_clear(&rp);
     }
-    else secp256k1_ecmult_gen(&_ctx->ecmult_gen_ctx, &rj, &is);
-    
-    secp256k1_scalar_clear(&is);
-    secp256k1_ge_set_gej(&rp, &rj);
-    secp256k1_gej_clear(&rj);
-    secp256k1_eckey_pubkey_serialize(&rp, r, &size, compressed);
-    secp256k1_ge_clear(&rp);
+
     return size;
 }
 
@@ -245,8 +252,8 @@ size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t len)
                                       (key->compressed ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED));
     }
 
-    if (pubKey && len >= size) memcpy(pubKey, key->pubKey, size);
-    return (! pubKey || len >= size) ? size : 0;
+    if (pubKey && size <= len) memcpy(pubKey, key->pubKey, size);
+    return (! pubKey || size <= len) ? size : 0;
 }
 
 UInt160 BRKeyHash160(BRKey *key)

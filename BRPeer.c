@@ -819,7 +819,7 @@ void BRPeerSendInv(BRPeer *peer, const UInt256 txHashes[], size_t count)
         if (! BRSetContains(ctx->knownTxHashSet, &txHashes[i])) {
             array_add(knownTxHashes, txHashes[i]);
 
-            if (ctx->knownTxHashes != knownTxHashes) {
+            if (ctx->knownTxHashes != knownTxHashes) { // check if knownTxHashes was moved to a new memory location
                 ctx->knownTxHashes = knownTxHashes;
                 BRSetClear(ctx->knownTxHashSet);
                 for (j = array_count(knownTxHashes); j > 0; j--) BRSetAdd(ctx->knownTxHashSet, &knownTxHashes[j - 1]);
