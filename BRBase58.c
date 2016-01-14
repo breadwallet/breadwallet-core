@@ -153,7 +153,7 @@ size_t BRBase58CheckEncode(char *str, size_t strLen, const uint8_t *data, size_t
 // returns the number of bytes written to data, or total dataLen needed if data is NULL
 size_t BRBase58CheckDecode(uint8_t *data, size_t dataLen, const char *str)
 {
-    uint8_t buf[strlen(str)*733/1000 + 1], md[256/8];
+    uint8_t buf[strlen(str)], md[256/8];
     size_t len = BRBase58Decode(buf, sizeof(buf), str);
     
     if (len >= 4) {

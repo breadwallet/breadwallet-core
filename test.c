@@ -115,8 +115,7 @@ int BRBase58Tests()
     int r = 1;
     char *s;
     
-    // test bad input
-    s = "#&$@*^(*#!^";
+    s = "#&$@*^(*#!^"; // test bad input
     
     uint8_t buf1[BRBase58Decode(NULL, 0, s)];
     size_t len1 = BRBase58Decode(buf1, sizeof(buf1), s);
@@ -146,8 +145,8 @@ int BRBase58Tests()
     BRBase58Encode(str4, sizeof(str4), buf4, len4);
     if (strcmp(str4, s) != 0) r = 0, fprintf(stderr, "***FAILED*** %s: Base58Decode() test 4\n", __func__);
 
-    s = "z";
-    
+    s = "111111111111111111111111111111111111111111111111111111111111111111z";
+
     uint8_t buf5[BRBase58Decode(NULL, 0, s)];
     size_t len5 = BRBase58Decode(buf5, sizeof(buf5), s);
     char str5[BRBase58Encode(NULL, 0, buf5, len5)];
@@ -155,51 +154,64 @@ int BRBase58Tests()
     BRBase58Encode(str5, sizeof(str5), buf5, len5);
     if (strcmp(str5, s) != 0) r = 0, fprintf(stderr, "***FAILED*** %s: Base58Decode() test 5\n", __func__);
 
-    char str6[BRBase58CheckEncode(NULL, 0, NULL, 0)];
-    size_t len6 = BRBase58CheckEncode(str6, sizeof(str6), NULL, 0);
-    uint8_t buf6[BRBase58CheckDecode(NULL, 0, str6)];
+    s = "z";
     
-    len6 = BRBase58CheckDecode(buf6, sizeof(buf6), str6);
-    if (len6 != 0) r = 0, fprintf(stderr, "***FAILED*** %s: BRBase58CheckDecode() test 1\n", __func__);
+    uint8_t buf6[BRBase58Decode(NULL, 0, s)];
+    size_t len6 = BRBase58Decode(buf6, sizeof(buf6), s);
+    char str6[BRBase58Encode(NULL, 0, buf6, len6)];
+    
+    BRBase58Encode(str6, sizeof(str6), buf6, len6);
+    if (strcmp(str6, s) != 0) r = 0, fprintf(stderr, "***FAILED*** %s: Base58Decode() test 6\n", __func__);
 
-    char str7[BRBase58CheckEncode(NULL, 0, (const uint8_t *)"", 0)];
-    size_t len7 = BRBase58CheckEncode(str7, sizeof(str7), (const uint8_t *)"", 0);
-    uint8_t buf7[BRBase58CheckDecode(NULL, 0, str7)];
+    s = NULL;
     
-    len7 = BRBase58CheckDecode(buf7, sizeof(buf7), str7);
-    if (len7 != 0) r = 0, fprintf(stderr, "***FAILED*** %s: BRBase58CheckDecode() test 2\n", __func__);
+    char s1[BRBase58CheckEncode(NULL, 0, (uint8_t *)s, 0)];
+    size_t l1 = BRBase58CheckEncode(s1, sizeof(s1), (uint8_t *)s, 0);
+    uint8_t b1[BRBase58CheckDecode(NULL, 0, s1)];
+    
+    l1 = BRBase58CheckDecode(b1, sizeof(b1), s1);
+    if (l1 != 0) r = 0, fprintf(stderr, "***FAILED*** %s: BRBase58CheckDecode() test 1\n", __func__);
+
+    s = "";
+
+    char s2[BRBase58CheckEncode(NULL, 0, (uint8_t *)s, 0)];
+    size_t l2 = BRBase58CheckEncode(s2, sizeof(s2), (uint8_t *)s, 0);
+    uint8_t b2[BRBase58CheckDecode(NULL, 0, s2)];
+    
+    l2 = BRBase58CheckDecode(b2, sizeof(b2), s2);
+    if (l2 != 0) r = 0, fprintf(stderr, "***FAILED*** %s: BRBase58CheckDecode() test 2\n", __func__);
     
     s = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
     
-    char str8[BRBase58CheckEncode(NULL, 0, (uint8_t *)s, 21)];
-    size_t len8 = BRBase58CheckEncode(str8, sizeof(str8), (uint8_t *)s, 21);
-    uint8_t buf8[BRBase58CheckDecode(NULL, 0, str8)];
+    char s3[BRBase58CheckEncode(NULL, 0, (uint8_t *)s, 21)];
+    size_t l3 = BRBase58CheckEncode(s3, sizeof(s3), (uint8_t *)s, 21);
+    uint8_t b3[BRBase58CheckDecode(NULL, 0, s3)];
     
-    len8 = BRBase58CheckDecode(buf8, sizeof(buf8), str8);
-    printf("\n%s", str8);
-    if (len8 != 21 || memcmp(s, buf8, len8) != 0)
+    l3 = BRBase58CheckDecode(b3, sizeof(b3), s3);
+    printf("\n%s", s3);
+    if (l3 != 21 || memcmp(s, b3, l3) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRBase58CheckDecode() test 3\n", __func__);
 
     s = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01";
     
-    char str9[BRBase58CheckEncode(NULL, 0, (uint8_t *)s, 21)];
-    size_t len9 = BRBase58CheckEncode(str9, sizeof(str9), (uint8_t *)s, 21);
-    uint8_t buf9[BRBase58CheckDecode(NULL, 0, str9)];
+    char s4[BRBase58CheckEncode(NULL, 0, (uint8_t *)s, 21)];
+    size_t l4 = BRBase58CheckEncode(s4, sizeof(s4), (uint8_t *)s, 21);
+    uint8_t b4[BRBase58CheckDecode(NULL, 0, s4)];
     
-    len9 = BRBase58CheckDecode(buf9, sizeof(buf9), str9);
-    printf("\n%s", str9);
-    if (len9 != 21 || memcmp(s, buf9, len9) != 0)
+    l4 = BRBase58CheckDecode(b4, sizeof(b4), s4);
+    printf("\n%s", s4);
+    if (l4 != 21 || memcmp(s, b4, l4) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRBase58CheckDecode() test 4\n", __func__);
 
     s = "\x05\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF";
     
-    char str0[BRBase58CheckEncode(NULL, 0, (uint8_t *)s, 21)];
-    size_t len0 = BRBase58CheckEncode(str0, sizeof(str0), (uint8_t *)s, 21);
-    uint8_t buf0[BRBase58CheckDecode(NULL, 0, str0)];
+    char s5[BRBase58CheckEncode(NULL, 0, (uint8_t *)s, 21)];
+    size_t l5 = BRBase58CheckEncode(s5, sizeof(s5), (uint8_t *)s, 21);
+    uint8_t b5[BRBase58CheckDecode(NULL, 0, s5)];
     
-    len0 = BRBase58CheckDecode(buf0, sizeof(buf0), str0);
-    printf("\n%s", str0);
-    if (len0 != 21 || memcmp(s, buf0, len0) != 0)
+    l5 = BRBase58CheckDecode(b5, sizeof(b5), s5);
+    printf("\n%s", s5);
+    if (l5 != 21 || memcmp(s, b5, l5) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRBase58CheckDecode() test 5\n", __func__);
 
     return r;
