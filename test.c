@@ -23,6 +23,7 @@
 //  THE SOFTWARE.
 
 #include "BRHash.h"
+#include "BRBloomFilter.h"
 #include "BRMerkleBlock.h"
 #include "BRWallet.h"
 #include "BRAddress.h"
@@ -946,6 +947,81 @@ int BRWalletTests()
     return r;
 }
 
+int BRBloomFilterTests()
+{
+    int r = 1;
+    BRBloomFilter *f = BRBloomFilterNew(0.01, 3, 0, BLOOM_UPDATE_ALL);
+    char data1[] = "\x99\x10\x8a\xd8\xed\x9b\xb6\x27\x4d\x39\x80\xba\xb5\xa8\x5c\x04\x8f\x09\x50\xc8";
+
+    BRBloomFilterInsertData(f, (uint8_t *)data1, sizeof(data1) - 1);
+    if (! BRBloomFilterContainsData(f, (uint8_t *)data1, sizeof(data1) - 1))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRBloomFilterContainsData() test 1\n", __func__);
+
+    // one bit difference
+    char data2[] = "\x19\x10\x8a\xd8\xed\x9b\xb6\x27\x4d\x39\x80\xba\xb5\xa8\x5c\x04\x8f\x09\x50\xc8";
+    
+    if (BRBloomFilterContainsData(f, (uint8_t *)data2, sizeof(data2) - 1))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRBloomFilterContainsData() test 2\n", __func__);
+    
+    char data3[] = "\xb5\xa2\xc7\x86\xd9\xef\x46\x58\x28\x7c\xed\x59\x14\xb3\x7a\x1b\x4a\xa3\x2e\xee";
+
+    BRBloomFilterInsertData(f, (uint8_t *)data3, sizeof(data3) - 1);
+    if (! BRBloomFilterContainsData(f, (uint8_t *)data3, sizeof(data3) - 1))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRBloomFilterContainsData() test 3\n", __func__);
+
+    char data4[] = "\xb9\x30\x06\x70\xb4\xc5\x36\x6e\x95\xb2\x69\x9e\x8b\x18\xbc\x75\xe5\xf7\x29\xc5";
+    
+    BRBloomFilterInsertData(f, (uint8_t *)data4, sizeof(data4) - 1);
+    if (! BRBloomFilterContainsData(f, (uint8_t *)data4, sizeof(data4) - 1))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRBloomFilterContainsData() test 4\n", __func__);
+
+    // check against satoshi client output
+    uint8_t buf1[BRBloomFilterSerialize(f, NULL, 0)];
+    size_t len1 = BRBloomFilterSerialize(f, buf1, sizeof(buf1));
+    char d1[] = "\x03\x61\x4e\x9b\x05\x00\x00\x00\x00\x00\x00\x00\x01";
+    
+    if (len1 != sizeof(d1) - 1 || memcmp(buf1, d1, len1) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRBloomFilterSerialize() test 1\n", __func__);
+    
+    BRBloomFilterFree(f);
+    f = BRBloomFilterNew(0.01, 3, 2147483649, BLOOM_UPDATE_P2PUBKEY_ONLY);
+
+    char data5[] = "\x99\x10\x8a\xd8\xed\x9b\xb6\x27\x4d\x39\x80\xba\xb5\xa8\x5c\x04\x8f\x09\x50\xc8";
+    
+    BRBloomFilterInsertData(f, (uint8_t *)data5, sizeof(data5) - 1);
+    if (! BRBloomFilterContainsData(f, (uint8_t *)data5, sizeof(data5) - 1))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRBloomFilterContainsData() test 5\n", __func__);
+
+    // one bit difference
+    char data6[] = "\x19\x10\x8a\xd8\xed\x9b\xb6\x27\x4d\x39\x80\xba\xb5\xa8\x5c\x04\x8f\x09\x50\xc8";
+    
+    if (BRBloomFilterContainsData(f, (uint8_t *)data6, sizeof(data6) - 1))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRBloomFilterContainsData() test 6\n", __func__);
+
+    char data7[] = "\xb5\xa2\xc7\x86\xd9\xef\x46\x58\x28\x7c\xed\x59\x14\xb3\x7a\x1b\x4a\xa3\x2e\xee";
+    
+    BRBloomFilterInsertData(f, (uint8_t *)data7, sizeof(data7) - 1);
+    if (! BRBloomFilterContainsData(f, (uint8_t *)data7, sizeof(data7) - 1))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRBloomFilterContainsData() test 7\n", __func__);
+
+    char data8[] = "\xb9\x30\x06\x70\xb4\xc5\x36\x6e\x95\xb2\x69\x9e\x8b\x18\xbc\x75\xe5\xf7\x29\xc5";
+    
+    BRBloomFilterInsertData(f, (uint8_t *)data8, sizeof(data8) - 1);
+    if (! BRBloomFilterContainsData(f, (uint8_t *)data8, sizeof(data8) - 1))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRBloomFilterContainsData() test 8\n", __func__);
+
+    // check against satoshi client output
+    uint8_t buf2[BRBloomFilterSerialize(f, NULL, 0)];
+    size_t len2 = BRBloomFilterSerialize(f, buf2, sizeof(buf2));
+    char d2[] = "\x03\xce\x42\x99\x05\x00\x00\x00\x01\x00\x00\x80\x02";
+    
+    if (len2 != sizeof(d2) - 1 || memcmp(buf2, d2, len2) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRBloomFilterSerialize() test 2\n", __func__);
+    
+    BRBloomFilterFree(f);    
+    return r;
+}
+
 int BRMerkleBlockTests()
 {
     int r = 1;
@@ -1387,6 +1463,8 @@ int main(int argc, const char *argv[])
     printf("%s\n", (BRTransactionTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRWalletTests...          ");
     printf("%s\n", (BRWalletTests()) ? "success" : (fail++, "***FAIL***"));
+    printf("BRBloomFilterTests...     ");
+    printf("%s\n", (BRBloomFilterTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRMerkleBlockTests...     ");
     printf("%s\n", (BRMerkleBlockTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRPaymentProtocolTests... ");
