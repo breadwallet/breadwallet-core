@@ -188,7 +188,6 @@ int BRBase58Tests()
     uint8_t b3[BRBase58CheckDecode(NULL, 0, s3)];
     
     l3 = BRBase58CheckDecode(b3, sizeof(b3), s3);
-    printf("\n%s", s3);
     if (l3 != 21 || memcmp(s, b3, l3) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRBase58CheckDecode() test 3\n", __func__);
 
@@ -199,7 +198,6 @@ int BRBase58Tests()
     uint8_t b4[BRBase58CheckDecode(NULL, 0, s4)];
     
     l4 = BRBase58CheckDecode(b4, sizeof(b4), s4);
-    printf("\n%s", s4);
     if (l4 != 21 || memcmp(s, b4, l4) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRBase58CheckDecode() test 4\n", __func__);
 
@@ -210,7 +208,6 @@ int BRBase58Tests()
     uint8_t b5[BRBase58CheckDecode(NULL, 0, s5)];
     
     l5 = BRBase58CheckDecode(b5, sizeof(b5), s5);
-    printf("\n%s", s5);
     if (l5 != 21 || memcmp(s, b5, l5) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRBase58CheckDecode() test 5\n", __func__);
 
@@ -379,6 +376,180 @@ int BRHashTests()
     if (! UInt160Eq(*(UInt160 *)"\x0b\xdc\x9d\x2d\x25\x6b\x3e\xe9\xda\xae\x34\x7b\xe6\xf4\xdc\x83\x5a\x46\x7f\xfe",
                     *(UInt160 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRRMD160() test 6\n", __func__);
 
+    return r;
+}
+
+int BRKeyTests()
+{
+    int r = 1;
+    BRKey key;
+    BRAddress addr;
+    char *msg;
+    UInt256 md;
+    uint8_t sig[72];
+    size_t len;
+
+    if (BRPrivKeyIsValid("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRz"))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRPrivKeyIsValid() test 0\n", __func__);
+
+    // mini private key format
+    if (! BRPrivKeyIsValid("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy"))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRPrivKeyIsValid() test 1\n", __func__);
+
+    BRKeySetPrivKey(&key, "S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy");
+    BRKeyAddress(&key, addr.s, sizeof(addr));
+    printf("\nprivKey:S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy = %s", addr.s);
+    if (! BRAddressEq(&addr, "1CciesT23BNionJeXrbxmjc7ywfiyM4oLW"))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetPrivKey() test 1\n", __func__);
+
+    // old mini private key format
+    if (! BRPrivKeyIsValid("SzavMBLoXU6kDrqtUVmffv"))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRPrivKeyIsValid() test 2\n", __func__);
+
+    BRKeySetPrivKey(&key, "SzavMBLoXU6kDrqtUVmffv");
+    BRKeyAddress(&key, addr.s, sizeof(addr));
+    printf("\nprivKey:SzavMBLoXU6kDrqtUVmffv = %s", addr.s);
+    if (! BRAddressEq(&addr, "1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj"))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetPrivKey() test 2\n", __func__);
+
+    // uncompressed private key
+    if (! BRPrivKeyIsValid("5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF"))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRPrivKeyIsValid() test 3\n", __func__);
+    
+    BRKeySetPrivKey(&key, "5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF");
+    BRKeyAddress(&key, addr.s, sizeof(addr));
+    printf("\nprivKey:5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF = %s", addr.s);
+    if (! BRAddressEq(&addr, "1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj"))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetPrivKey() test 3\n", __func__);
+    
+    // uncompressed private key export
+    char privKey1[BRKeyPrivKey(&key, NULL, 0)];
+    
+    BRKeyPrivKey(&key, privKey1, sizeof(privKey1));
+    printf("\nprivKey = %s", privKey1);
+    if (strcmp(privKey1, "5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF") != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 1\n", __func__);
+    
+    // compressed private key
+    if (! BRPrivKeyIsValid("KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL"))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRPrivKeyIsValid() test 4\n", __func__);
+    
+    BRKeySetPrivKey(&key, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
+    BRKeyAddress(&key, addr.s, sizeof(addr));
+    printf("\nprivKey:KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL = %s", addr.s);
+    if (! BRAddressEq(&addr, "1JMsC6fCtYWkTjPPdDrYX3we2aBrewuEM3"))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetPrivKey() test 4\n", __func__);
+    
+    // compressed private key export
+    char privKey2[BRKeyPrivKey(&key, NULL, 0)];
+    
+    BRKeyPrivKey(&key, privKey2, sizeof(privKey2));
+    printf("\nprivKey = %s", privKey2);
+    if (strcmp(privKey2, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL") != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 2\n", __func__);
+
+    // signing
+    BRKeySetSecret(&key, &uint256_hex_decode("0000000000000000000000000000000000000000000000000000000000000001"), 1);
+    msg = "Everything should be made as simple as possible, but not simpler.";
+    BRSHA256(&md, msg, strlen(msg));
+    len = BRKeySign(&key, sig, sizeof(sig), md);
+    
+    char sig1[] = "\x30\x44\x02\x20\x33\xa6\x9c\xd2\x06\x54\x32\xa3\x0f\x3d\x1c\xe4\xeb\x0d\x59\xb8\xab\x58\xc7\x4f\x27"
+    "\xc4\x1a\x7f\xdb\x56\x96\xad\x4e\x61\x08\xc9\x02\x20\x6f\x80\x79\x82\x86\x6f\x78\x5d\x3f\x64\x18\xd2\x41\x63\xdd"
+    "\xae\x11\x7b\x7d\xb4\xd5\xfd\xf0\x07\x1d\xe0\x69\xfa\x54\x34\x22\x62";
+
+    if (len != sizeof(sig1) - 1 || memcmp(sig, sig1, len) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySign() test 1\n", __func__);
+
+    if (! BRKeyVerify(&key, md, sig, len)) r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyVerify() test 1\n", __func__);
+
+    BRKeySetSecret(&key, &uint256_hex_decode("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364140"), 1);
+    msg = "Equations are more important to me, because politics is for the present, but an equation is something for "
+    "eternity.";
+    BRSHA256(&md, msg, strlen(msg));
+    len = BRKeySign(&key, sig, sizeof(sig), md);
+    
+    char sig2[] = "\x30\x44\x02\x20\x54\xc4\xa3\x3c\x64\x23\xd6\x89\x37\x8f\x16\x0a\x7f\xf8\xb6\x13\x30\x44\x4a\xbb\x58"
+    "\xfb\x47\x0f\x96\xea\x16\xd9\x9d\x4a\x2f\xed\x02\x20\x07\x08\x23\x04\x41\x0e\xfa\x6b\x29\x43\x11\x1b\x6a\x4e\x0a"
+    "\xaa\x7b\x7d\xb5\x5a\x07\xe9\x86\x1d\x1f\xb3\xcb\x1f\x42\x10\x44\xa5";
+
+    if (len != sizeof(sig2) - 1 || memcmp(sig, sig2, len) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySign() test 2\n", __func__);
+    
+    if (! BRKeyVerify(&key, md, sig, len)) r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyVerify() test 2\n", __func__);
+
+    BRKeySetSecret(&key, &uint256_hex_decode("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364140"), 1);
+    msg = "Not only is the Universe stranger than we think, it is stranger than we can think.";
+    BRSHA256(&md, msg, strlen(msg));
+    len = BRKeySign(&key, sig, sizeof(sig), md);
+    
+    char sig3[] = "\x30\x45\x02\x21\x00\xff\x46\x6a\x9f\x1b\x7b\x27\x3e\x2f\x4c\x3f\xfe\x03\x2e\xb2\xe8\x14\x12\x1e\xd1"
+    "\x8e\xf8\x46\x65\xd0\xf5\x15\x36\x0d\xab\x3d\xd0\x02\x20\x6f\xc9\x5f\x51\x32\xe5\xec\xfd\xc8\xe5\xe6\xe6\x16\xcc"
+    "\x77\x15\x14\x55\xd4\x6e\xd4\x8f\x55\x89\xb7\xdb\x77\x71\xa3\x32\xb2\x83";
+    
+    if (len != sizeof(sig3) - 1 || memcmp(sig, sig3, len) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySign() test 3\n", __func__);
+    
+    if (! BRKeyVerify(&key, md, sig, len)) r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyVerify() test 3\n", __func__);
+
+    BRKeySetSecret(&key, &uint256_hex_decode("0000000000000000000000000000000000000000000000000000000000000001"), 1);
+    msg = "How wonderful that we have met with a paradox. Now we have some hope of making progress.";
+    BRSHA256(&md, msg, strlen(msg));
+    len = BRKeySign(&key, sig, sizeof(sig), md);
+    
+    char sig4[] = "\x30\x45\x02\x21\x00\xc0\xda\xfe\xc8\x25\x1f\x1d\x50\x10\x28\x9d\x21\x02\x32\x22\x0b\x03\x20\x2c\xba"
+    "\x34\xec\x11\xfe\xc5\x8b\x3e\x93\xa8\x5b\x91\xd3\x02\x20\x75\xaf\xdc\x06\xb7\xd6\x32\x2a\x59\x09\x55\xbf\x26\x4e"
+    "\x7a\xaa\x15\x58\x47\xf6\x14\xd8\x00\x78\xa9\x02\x92\xfe\x20\x50\x64\xd3";
+    
+    if (len != sizeof(sig4) - 1 || memcmp(sig, sig4, len) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySign() test 4\n", __func__);
+    
+    if (! BRKeyVerify(&key, md, sig, len)) r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyVerify() test 4\n", __func__);
+
+    BRKeySetSecret(&key, &uint256_hex_decode("69ec59eaa1f4f2e36b639716b7c30ca86d9a5375c7b38d8918bd9c0ebc80ba64"), 1);
+    msg = "Computer science is no more about computers than astronomy is about telescopes.";
+    BRSHA256(&md, msg, strlen(msg));
+    len = BRKeySign(&key, sig, sizeof(sig), md);
+    
+    char sig5[] = "\x30\x44\x02\x20\x71\x86\x36\x35\x71\xd6\x5e\x08\x4e\x7f\x02\xb0\xb7\x7c\x3e\xc4\x4f\xb1\xb2\x57\xde"
+    "\xe2\x62\x74\xc3\x8c\x92\x89\x86\xfe\xa4\x5d\x02\x20\x0d\xe0\xb3\x8e\x06\x80\x7e\x46\xbd\xa1\xf1\xe2\x93\xf4\xf6"
+    "\x32\x3e\x85\x4c\x86\xd5\x8a\xbd\xd0\x0c\x46\xc1\x64\x41\x08\x5d\xf6";
+    
+    if (len != sizeof(sig5) - 1 || memcmp(sig, sig5, len) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySign() test 5\n", __func__);
+    
+    if (! BRKeyVerify(&key, md, sig, len)) r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyVerify() test 5\n", __func__);
+
+    BRKeySetSecret(&key, &uint256_hex_decode("00000000000000000000000000007246174ab1e92e9149c6e446fe194d072637"), 1);
+    msg = "...if you aren't, at any given time, scandalized by code you wrote five or even three years ago, you're not"
+    " learning anywhere near enough";
+    BRSHA256(&md, msg, strlen(msg));
+    len = BRKeySign(&key, sig, sizeof(sig), md);
+    
+    char sig6[] = "\x30\x45\x02\x21\x00\xfb\xfe\x50\x76\xa1\x58\x60\xba\x8e\xd0\x0e\x75\xe9\xbd\x22\xe0\x5d\x23\x0f\x02"
+    "\xa9\x36\xb6\x53\xeb\x55\xb6\x1c\x99\xdd\xa4\x87\x02\x20\x0e\x68\x88\x0e\xbb\x00\x50\xfe\x43\x12\xb1\xb1\xeb\x08"
+    "\x99\xe1\xb8\x2d\xa8\x9b\xaa\x5b\x89\x5f\x61\x26\x19\xed\xf3\x4c\xbd\x37";
+    
+    if (len != sizeof(sig6) - 1 || memcmp(sig, sig6, len) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySign() test 6\n", __func__);
+    
+    if (! BRKeyVerify(&key, md, sig, len)) r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyVerify() test 6\n", __func__);
+
+    BRKeySetSecret(&key, &uint256_hex_decode("000000000000000000000000000000000000000000056916d0f9b31dc9b637f3"), 1);
+    msg = "The question of whether computers can think is like the question of whether submarines can swim.";
+    BRSHA256(&md, msg, strlen(msg));
+    len = BRKeySign(&key, sig, sizeof(sig), md);
+    
+    char sig7[] = "\x30\x45\x02\x21\x00\xcd\xe1\x30\x2d\x83\xf8\xdd\x83\x5d\x89\xae\xf8\x03\xc7\x4a\x11\x9f\x56\x1f\xba"
+    "\xef\x3e\xb9\x12\x9e\x45\xf3\x0d\xe8\x6a\xbb\xf9\x02\x20\x06\xce\x64\x3f\x50\x49\xee\x1f\x27\x89\x04\x67\xb7\x7a"
+    "\x6a\x8e\x11\xec\x46\x61\xcc\x38\xcd\x8b\xad\xf9\x01\x15\xfb\xd0\x3c\xef";
+    
+    if (len != sizeof(sig7) - 1 || memcmp(sig, sig7, len) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySign() test 7\n", __func__);
+    
+    if (! BRKeyVerify(&key, md, sig, len)) r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyVerify() test 7\n", __func__);
+
+    printf("\n                          ");
     return r;
 }
 
@@ -683,25 +854,21 @@ static const void *walletSeed(void *info, const char *authprompt, uint64_t amoun
 static void walletBalanceChanged(void *info, uint64_t balance)
 {
     printf("\nbalance changed %llu", balance);
-    BRWalletUnusedAddrs(info, NULL, (uint32_t)BRWalletAllAddrs(info, NULL, 0) + 1, 1); // trigger write lock
 }
 
 static void walletTxAdded(void *info, BRTransaction *tx)
 {
     printf("\ntx added: %s", uint256_hex_encode(tx->txHash));
-    BRWalletUnusedAddrs(info, NULL, (uint32_t)BRWalletAllAddrs(info, NULL, 0) + 1, 1); // trigger write lock`
 }
 
 static void walletTxUpdated(void *info, const UInt256 txHash[], size_t count, uint32_t blockHeight, uint32_t timestamp)
 {
     for (size_t i = 0; i < count; i++) printf("\ntx updated: %s", uint256_hex_encode(txHash[i]));
-    BRWalletUnusedAddrs(info, NULL, (uint32_t)BRWalletAllAddrs(info, NULL, 0) + 1, 1); // trigger write lock
 }
 
 static void walletTxDeleted(void *info, UInt256 txHash)
 {
     printf("\ntx deleted: %s", uint256_hex_encode(txHash));
-    BRWalletUnusedAddrs(info, NULL, (uint32_t)BRWalletAllAddrs(info, NULL, 0) + 1, 1); // trigger write lock
 }
 
 // TODO: test standard free transaction no change
@@ -1198,30 +1365,32 @@ int BRPaymentProtocolTests()
 
 int main(int argc, const char *argv[])
 {
-    int r = 1;
+    int fail = 0;
     
     printf("BRIntsTests...            ");
-    printf("%s\n", (BRIntsTests()) ? "success" : (r = 0, "***FAIL***"));
+    printf("%s\n", (BRIntsTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRListTests...            ");
-    printf("%s\n", (BRListTests()) ? "success" : (r = 0, "***FAIL***"));
+    printf("%s\n", (BRListTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRBase58Tests...          ");
-    printf("%s\n", (BRBase58Tests()) ? "success" : (r = 0, "***FAIL***"));
+    printf("%s\n", (BRBase58Tests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRHashTests...            ");
-    printf("%s\n", (BRHashTests()) ? "success" : (r = 0, "***FAIL***"));
+    printf("%s\n", (BRHashTests()) ? "success" : (fail++, "***FAIL***"));
+    printf("BRKeyTests...             ");
+    printf("%s\n", (BRKeyTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRAddressTests...         ");
-    printf("%s\n", (BRAddressTests()) ? "success" : (r = 0, "***FAIL***"));
+    printf("%s\n", (BRAddressTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRBIP39MnemonicTests...   ");
-    printf("%s\n", (BRBIP39MnemonicTests()) ? "success" : (r = 0, "***FAIL***"));
+    printf("%s\n", (BRBIP39MnemonicTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRBIP32SequenceTests...   ");
-    printf("%s\n", (BRBIP32SequenceTests()) ? "success" : (r = 0, "***FAIL***"));
+    printf("%s\n", (BRBIP32SequenceTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRTransactionTests...     ");
-    printf("%s\n", (BRTransactionTests()) ? "success" : (r = 0, "***FAIL***"));
+    printf("%s\n", (BRTransactionTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRWalletTests...          ");
-    printf("%s\n", (BRWalletTests()) ? "success" : (r = 0, "***FAIL***"));
+    printf("%s\n", (BRWalletTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRMerkleBlockTests...     ");
-    printf("%s\n", (BRMerkleBlockTests()) ? "success" : (r = 0, "***FAIL***"));
+    printf("%s\n", (BRMerkleBlockTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRPaymentProtocolTests... ");
-    printf("%s\n", (BRPaymentProtocolTests()) ? "success" : (r = 0, "***FAIL***"));
+    printf("%s\n", (BRPaymentProtocolTests()) ? "success" : (fail++, "***FAIL***"));
     
 //    BRWallet *wallet = BRWalletNew(NULL, 0, BR_MASTER_PUBKEY_NONE, NULL, NULL);
 //    BRPeerManager *manager = BRPeerManagerNew(wallet, 0, NULL, 0, NULL, 0);
@@ -1233,5 +1402,7 @@ int main(int argc, const char *argv[])
 //    BRPeerManagerFree(manager);
 //    BRWalletFree(wallet);
     
-    return ! r;
+    if (fail > 0) printf("\n%d TEST FUNCTION(S) ***FAILED***\n", fail);
+    else printf("\nALL TESTS PASSED\n");
+    return (fail == 0) ? 0 : 1;
 }

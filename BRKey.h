@@ -60,4 +60,6 @@ int BRKeyVerify(BRKey *key, UInt256 md, const void *sig, size_t len);
 
 void BRKeyClean(BRKey *key);
 
+// TODO: XXX implement compact signing/pubkey recovery
+
 #endif // BRKey_h
