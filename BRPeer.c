@@ -160,8 +160,21 @@ static void BRPeerErrorDisconnect(BRPeer *peer, int error)
     if (ctx->socket >= 0) {
         shutdown(ctx->socket, SHUT_RDWR);
         BRRWLockWrite(&ctx->lock); // block until all socket writes are done
+        ctx->status = BRPeerStatusDisconnected;
         if (ctx->socket >= 0) close(ctx->socket);
         ctx->socket = -1;
+        
+        while (array_count(ctx->pongCallback) > 0) {
+            void (*pongCallback)(void *, int) = array_last(ctx->pongCallback);
+            void *pongInfo = array_last(ctx->pongInfo);
+
+            array_rm_last(ctx->pongCallback);
+            array_rm_last(ctx->pongInfo);
+            BRRWLockUnlock(&ctx->lock);
+            if (pongCallback) pongCallback(pongInfo, 0);
+            BRRWLockWrite(&ctx->lock);
+        }
+        
         BRRWLockUnlock(&ctx->lock);
         peer_log(peer, "disconnected");
         if (ctx->disconnected) ctx->disconnected(peer, error);
@@ -304,12 +317,56 @@ static int BRPeerAcceptPingMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
     int r = 1;
     
+    if (len < sizeof(uint64_t)) {
+        peer_log(peer, "malformed ping message, length is %zu, should be %zu", len, sizeof(uint64_t));
+        r = 0;
+    }
+    else {
+        peer_log(peer, "got ping");
+        BRPeerSendMessage(peer, msg, len, MSG_PONG);
+    }
+
     return r;
 }
 
 static int BRPeerAcceptPongMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
+    BRPeerContext *ctx = (BRPeerContext *)peer;
     int r = 1;
+    
+    if (len < sizeof(uint64_t)) {
+        peer_log(peer, "malformed pong message, length is %zu, should be %zu", len, sizeof(uint64_t));
+        r = 0;
+    }
+    else if (le64(*(uint64_t *)msg) != ctx->nonce) {
+        peer_log(peer, "pong message contained wrong nonce: %llu, expected: %llu", le64(*(uint64_t *)msg), ctx->nonce);
+        r = 0;
+
+    }
+    else if (array_count(ctx->pongCallback) == 0) {
+        peer_log(peer, "got unexpected pong");
+        r = 0;
+    }
+    else {
+        if (ctx->startTime > 1) {
+            double pingTime = (double)clock()/CLOCKS_PER_SEC - ctx->startTime;
+
+            // 50% low pass filter on current ping time
+            ctx->pingTime = ctx->pingTime*0.5 + pingTime*0.5;
+            ctx->startTime = 0;
+            peer_log(peer, "got pong in %fs", pingTime);
+        }
+        else peer_log(peer, "got pong");
+
+        if (array_count(ctx->pongCallback) > 0) {
+            void (*pongCallback)(void *, int) = array_last(ctx->pongCallback);
+            void *pongInfo = array_last(ctx->pongInfo);
+
+            array_rm_last(ctx->pongCallback);
+            array_rm_last(ctx->pongInfo);
+            if (pongCallback) pongCallback(pongInfo, 1);
+        }
+    }
     
     return r;
 }
@@ -889,7 +946,7 @@ void BRPeerSendGetaddr(BRPeer *peer)
 void BRPeerSendPing(BRPeer *peer, void *info, void (*pongCallback)(void *info, int success))
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
-    uint64_t msg = be64(ctx->nonce);
+    uint64_t msg = le64(ctx->nonce);
     
     ctx->startTime = (double)clock()/CLOCKS_PER_SEC;
     array_add(ctx->pongInfo, info);
