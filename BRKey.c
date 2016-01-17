@@ -26,6 +26,7 @@
 #include "BRAddress.h"
 #include "BRBase58.h"
 #include <stdio.h>
+#include <pthread.h>
 
 #define BITCOIN_PRIVKEY      128
 #define BITCOIN_PRIVKEY_TEST 239
@@ -47,6 +48,12 @@
 #pragma GCC diagnostic pop
 
 static secp256k1_context *_ctx = NULL;
+static pthread_once_t _ctx_once = PTHREAD_ONCE_INIT;
+
+void _ctx_init()
+{
+    _ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+}
 
 // add 256bit big endian ints (mod secp256k1 order)
 UInt256 BRSecp256k1ModAdd(UInt256 a, UInt256 b)
@@ -110,8 +117,8 @@ size_t BRSecp256k1PointMul(void *r, const void *p, UInt256 i, int compressed)
     secp256k1_ge rp, pp;
     size_t size = 0;
 
-    if (! _ctx) _ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
-
+    pthread_once(&_ctx_once, _ctx_init);
+    
     if (! p) {
         secp256k1_scalar_set_b32(&is, i.u8, NULL);
         secp256k1_ecmult_gen(&_ctx->ecmult_gen_ctx, &rj, &is);
@@ -170,7 +177,7 @@ int BRPrivKeyIsValid(const char *privKey)
 
 int BRKeySetSecret(BRKey *key, const UInt256 *secret, int compressed)
 {
-    if (! _ctx) _ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+    pthread_once(&_ctx_once, _ctx_init);
     BRKeyClean(key);
     key->secret = *secret;
     key->compressed = compressed;
@@ -219,7 +226,7 @@ int BRKeySetPubKey(BRKey *key, const uint8_t *pubKey, size_t len)
 {
     secp256k1_pubkey pk;
     
-    if (! _ctx) _ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+    pthread_once(&_ctx_once, _ctx_init);
     BRKeyClean(key);
     memcpy(key->pubKey, pubKey, len);
     key->compressed = (len <= 33);

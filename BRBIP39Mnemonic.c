@@ -111,6 +111,7 @@ int BRBIP39PhraseIsValid(const char *wordList[], const char *phrase)
 
 // key must hold 64 bytes (512 bits), phrase and passphrase must be unicode NFKD normalized
 // http://www.unicode.org/reports/tr15/#Norm_Forms
+// BUG: does not currently support passphrases containing NULL characters
 void BRBIP39DeriveKey(uint8_t *key, const char *phrase, const char *passphrase)
 {
     char salt[strlen("mnemonic") + (passphrase ? strlen(passphrase) : 0) + 1];

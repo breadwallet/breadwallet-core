@@ -403,45 +403,49 @@ static int BRPeerAcceptPongMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 
 static int BRPeerAcceptMerkleblockMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
-    BRPeerContext *ctx = (BRPeerContext *)peer;
-    int r = 1;
-    
     // Bitcoin nodes don't support querying arbitrary transactions, only transactions not yet accepted in a block. After
     // a merkleblock message, the remote node is expected to send tx messages for the tx referenced in the block. When a
     // non-tx message is received we should have all the tx in the merkleblock.
     BRMerkleBlock *block = BRMerkleBlockParse(msg, len);
-   
+    BRPeerContext *ctx = (BRPeerContext *)peer;
+    int r = 1;
+  
     if (! block) {
         peer_log(peer, "malformed merkleblock message with length: %zu", len);
         r = 0;
     }
     else if (! BRMerkleBlockIsValid(block, (uint32_t)time(NULL))) {
         peer_log(peer, "invalid merkleblock: %s", uint256_hex_encode(block->blockHash));
+        BRMerkleBlockFree(block);
         r = 0;
     }
     else if (! ctx->sentFilter && ! ctx->sentGetdata) {
         peer_log(peer, "got merkleblock message before loading a filter");
+        BRMerkleBlockFree(block);
         r = 0;
     }
+    else {
+        UInt256 txHashes[BRMerkleBlockTxHashes(block, NULL, 0)];
+        size_t count = BRMerkleBlockTxHashes(block, txHashes, sizeof(txHashes)/sizeof(*txHashes));
 
-    
-//    NSMutableOrderedSet *txHashes = [NSMutableOrderedSet orderedSetWithArray:block.txHashes];
-//    
-//    [txHashes minusOrderedSet:self.knownTxHashes];
-//    
-//    if (txHashes.count > 0) { // wait til we get all the tx messages before processing the block
-//        self.currentBlock = block;
-//        self.currentBlockTxHashes = txHashes;
-//    }
-//    else {
-//        dispatch_async(self.delegateQueue, ^{
-//            [self.delegate peer:self relayedBlock:block];
-//        });
-//    }
+        for (size_t i = count; i > 0; i--) { // reverse order for more efficient removal as tx arrive
+            if (BRSetContains(ctx->knownTxHashSet, &txHashes[i - 1])) continue;
+            array_add(ctx->currentBlockTxHashes, txHashes[i - 1]);
+        }
+
+        if (array_count(ctx->currentBlockTxHashes) > 0) { // wait til we get all tx messages before processing the block
+            ctx->currentBlock = block;
+        }
+        else if (ctx->relayedBlock) {
+            ctx->relayedBlock(ctx->info, block);
+        }
+        else BRMerkleBlockFree(block);
+    }
     
     return r;
 }
 
+// described in BIP61: https://github.com/bitcoin/bips/blob/master/bip-0061.mediawiki
 static int BRPeerAcceptRejectMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
     int r = 1;
