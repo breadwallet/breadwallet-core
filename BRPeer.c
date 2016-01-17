@@ -102,9 +102,9 @@ typedef struct {
     uint32_t version, lastblock, earliestKeyTime, currentBlockHeight;
     double startTime, pingTime;
     int sentVerack, gotVerack, sentGetaddr, sentFilter, sentGetdata, sentMempool, sentGetblocks;
-    UInt256 *knownBlockHashes, *knownTxHashes;
-    BRSet *knownTxHashSet, *currentBlockTxHashSet;
     BRMerkleBlock *currentBlock;
+    UInt256 *currentBlockTxHashes, *knownBlockHashes, *knownTxHashes;
+    BRSet *knownTxHashSet;
     int socket;
     void *info;
     void (*connected)(void *info);
@@ -280,7 +280,37 @@ static int BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 
 static int BRPeerAcceptTxMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
+    BRPeerContext *ctx = (BRPeerContext *)peer;
+    BRTransaction *tx = BRTransactionParse(msg, len);
     int r = 1;
+
+    if (! tx) {
+        peer_log(peer, "malformed tx message with length: %zu", len);
+        r = 0;
+    }
+    else if (! ctx->sentFilter && ! ctx->sentGetdata) {
+        peer_log(peer, "got tx message before loading filter");
+        r = 0;
+    }
+    else {
+        peer_log(peer, "got tx: %s", uint256_hex_encode(tx->txHash));
+        if (ctx->relayedTx) ctx->relayedTx(ctx->info, tx);
+
+        if (ctx->currentBlock) { // we're collecting tx messages for a merkleblock
+            for (size_t i = array_count(ctx->currentBlockTxHashes); i > 0; i--) {
+                if (! UInt256Eq(tx->txHash, ctx->currentBlockTxHashes[i - 1])) continue;
+                array_rm(ctx->currentBlockTxHashes, i - 1);
+                break;
+            }
+        
+            if (array_count(ctx->currentBlockTxHashes) == 0) { // we received the entire block including all matched tx
+                BRMerkleBlock *block = ctx->currentBlock;
+            
+                ctx->currentBlock = NULL;
+                if (ctx->relayedBlock) ctx->relayedBlock(ctx->info, block);
+            }
+        }
+    }
     
     return r;
 }
@@ -373,7 +403,41 @@ static int BRPeerAcceptPongMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 
 static int BRPeerAcceptMerkleblockMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
+    BRPeerContext *ctx = (BRPeerContext *)peer;
     int r = 1;
+    
+    // Bitcoin nodes don't support querying arbitrary transactions, only transactions not yet accepted in a block. After
+    // a merkleblock message, the remote node is expected to send tx messages for the tx referenced in the block. When a
+    // non-tx message is received we should have all the tx in the merkleblock.
+    BRMerkleBlock *block = BRMerkleBlockParse(msg, len);
+   
+    if (! block) {
+        peer_log(peer, "malformed merkleblock message with length: %zu", len);
+        r = 0;
+    }
+    else if (! BRMerkleBlockIsValid(block, (uint32_t)time(NULL))) {
+        peer_log(peer, "invalid merkleblock: %s", uint256_hex_encode(block->blockHash));
+        r = 0;
+    }
+    else if (! ctx->sentFilter && ! ctx->sentGetdata) {
+        peer_log(peer, "got merkleblock message before loading a filter");
+        r = 0;
+    }
+
+    
+//    NSMutableOrderedSet *txHashes = [NSMutableOrderedSet orderedSetWithArray:block.txHashes];
+//    
+//    [txHashes minusOrderedSet:self.knownTxHashes];
+//    
+//    if (txHashes.count > 0) { // wait til we get all the tx messages before processing the block
+//        self.currentBlock = block;
+//        self.currentBlockTxHashes = txHashes;
+//    }
+//    else {
+//        dispatch_async(self.delegateQueue, ^{
+//            [self.delegate peer:self relayedBlock:block];
+//        });
+//    }
     
     return r;
 }
@@ -388,15 +452,13 @@ static int BRPeerAcceptRejectMessage(BRPeer *peer, const uint8_t *msg, size_t le
 static int BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char *type)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
-    UInt256 hash;
     int r = 1;
     
     if (ctx->currentBlock && strncmp(MSG_TX, type, 12) != 0) { // if we receive a non-tx message, merkleblock is done
-        hash = ctx->currentBlock->blockHash;
+        peer_log(peer, "incomplete merkleblock %s, expected %zu more tx, got %s",
+                 uint256_hex_encode(ctx->currentBlock->blockHash), array_count(ctx->currentBlockTxHashes), type);
+        array_clear(ctx->currentBlockTxHashes);
         ctx->currentBlock = NULL;
-        BRSetClear(ctx->currentBlockTxHashSet);
-        peer_log(peer, "incomplete merkleblock %s, expected %zu more tx, got %s", uint256_hex_encode(hash),
-                 BRSetCount(ctx->currentBlockTxHashSet), type);
         r = 0;
     }
     else if (strncmp(MSG_VERSION, type, 12) == 0) r = BRPeerAcceptVersionMessage(peer, msg, len);
@@ -619,11 +681,11 @@ void BRPeerConnect(BRPeer *peer)
         }
         else {
             ctx->waitingForNetwork = 0;
-            array_new(ctx->knownBlockHashes, 10);
             array_new(ctx->useragent, 40);
+            array_new(ctx->knownBlockHashes, 10);
+            array_new(ctx->currentBlockTxHashes, 10);
             array_new(ctx->knownTxHashes, 10);
             ctx->knownTxHashSet = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
-            ctx->currentBlockTxHashSet = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
             array_new(ctx->pongInfo, 5);
             array_new(ctx->pongCallback, 5);
             ctx->socket = socket((BRPeerIsIPv4(peer) ? PF_INET : PF_INET6), SOCK_STREAM, 0);
@@ -975,10 +1037,10 @@ void BRPeerFree(BRPeer *peer)
     
     BRRWLockWrite(&ctx->lock);
     if (ctx->useragent) array_free(ctx->useragent);
+    if (ctx->currentBlockTxHashes) array_free(ctx->currentBlockTxHashes);
     if (ctx->knownBlockHashes) array_free(ctx->knownBlockHashes);
     if (ctx->knownTxHashes) array_free(ctx->knownTxHashes);
     if (ctx->knownTxHashSet) BRSetFree(ctx->knownTxHashSet);
-    if (ctx->currentBlockTxHashSet) BRSetFree(ctx->currentBlockTxHashSet);
     if (ctx->pongInfo) array_free(ctx->pongInfo);
     if (ctx->pongCallback) array_free(ctx->pongCallback);
     BRRWLockUnlock(&ctx->lock);
