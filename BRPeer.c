@@ -338,7 +338,33 @@ static int BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t l
 
 static int BRPeerAcceptNotfoundMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
+    BRPeerContext *ctx = (BRPeerContext *)peer;
+    size_t off = 0, count = BRVarInt(msg, len, &off);
     int r = 1;
+
+    if (off == 0 || off + count*36 > len) {
+        peer_log(peer, "malformed notfound message, length is %zu, should be %zu for %zu items", len,
+                 BRVarIntSize(count) + count*36, count);
+        r = 0;
+    }
+    else {
+        UInt256 txHashes[count], blockHashes[count];
+        size_t txCount = 0, blockCount = 0;
+        
+        peer_log(peer, "got notfound with %zu items", count);
+        
+        for (size_t i = 0; i < count; i++) {
+            switch (le32(*(uint32_t *)(msg + off))) {
+                case inv_tx: txHashes[txCount++] = *(UInt256 *)(msg + off + sizeof(uint32_t)); break;
+                case inv_merkleblock: // drop through
+                case inv_block: blockHashes[blockCount++] = *(UInt256 *)(msg + off + sizeof(uint32_t)); break;
+            }
+            
+            off += 36;
+        }
+        
+        if (ctx->notfound) ctx->notfound(ctx->info, txHashes, txCount, blockHashes, blockCount);
+    }
     
     return r;
 }
