@@ -98,7 +98,7 @@ void BRPeerSetCallbacks(BRPeer *peer, void *info,
                         void (*relayedBlock)(void *info, BRMerkleBlock *block),
                         void (*notfound)(void *info, const UInt256 txHashes[], size_t txCount,
                                          const UInt256 blockHashes[], size_t blockCount),
-                        const BRTransaction *(*requestedTx)(void *info, UInt256 txHash),
+                        BRTransaction *(*requestedTx)(void *info, UInt256 txHash),
                         int (*networkIsReachable)(void *info));
 
 // set earliestKeyTime to wallet creation time in order to speed up initial sync
@@ -110,7 +110,7 @@ void BRPeerSetCurrentBlockHeight(BRPeer *peer, uint32_t currentBlockHeight);
 // current connection status
 BRPeerStatus BRPeerConnectStatus(BRPeer *peer);
 
-// open connection to peer
+// open connection to peer and perform handshake
 void BRPeerConnect(BRPeer *peer);
 
 // close connection to peer
@@ -136,8 +136,6 @@ double BRPeerPingTime(BRPeer *peer);
 
 // sends a bitcoin protocol message to peer
 void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char *type);
-void BRPeerSendVersionMessage(BRPeer *peer);
-void BRPeerSendVerackMessage(BRPeer *peer);
 void BRPeerSendFilterload(BRPeer *peer, const uint8_t *filter, size_t len);
 void BRPeerSendMempool(BRPeer *peer);
 void BRPeerSendGetheaders(BRPeer *peer, const UInt256 locators[], size_t count, UInt256 hashStop);

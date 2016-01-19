@@ -118,11 +118,15 @@ typedef struct {
     void (*relayedBlock)(void *info, BRMerkleBlock *block);
     void **pongInfo;
     void (**pongCallback)(void *info, int success); // yes, that's right, a pointer to a function pointer
-    const BRTransaction *(*requestedTx)(void *info, UInt256 txHash);
+    BRTransaction *(*requestedTx)(void *info, UInt256 txHash);
     int (*networkIsReachable)(void *info);
     BRRWLock lock;
     pthread_t thread;
 } BRPeerContext;
+
+static void BRPeerSendVersionMessage(BRPeer *peer);
+static void BRPeerSendVerackMessage(BRPeer *peer);
+static void BRPeerSendAddr(BRPeer *peer);
 
 inline static int BRPeerIsIPv4(BRPeer *peer)
 {
@@ -324,15 +328,68 @@ static int BRPeerAcceptHeadersMessage(BRPeer *peer, const uint8_t *msg, size_t l
 
 static int BRPeerAcceptGetaddrMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
-    int r = 1;
-    
-    return r;
+    peer_log(peer, "got getaddr");
+    BRPeerSendAddr(peer);
+    return 1;
 }
 
 static int BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
+    BRPeerContext *ctx = (BRPeerContext *)peer;
+    size_t off = 0, count = BRVarInt(msg, len, &off);
     int r = 1;
     
+    if (off == 0 || off + 36*count > len) {
+        peer_log(peer, "malformed getdata message, length is %zu, should %zu for %zu items", len,
+                 BRVarIntSize(count) + 36*count, count);
+        r = 0;
+    }
+    else if (count > MAX_GETDATA_HASHES) {
+        peer_log(peer, "dropping getdata message, %zu is too many items, max is %u", count, MAX_GETDATA_HASHES);
+        r = 0;
+    }
+    else {
+        uint8_t notfound[36*count];
+        size_t notfoundCount = 0;
+        BRTransaction *tx = NULL;
+        
+        peer_log(peer, "got getdata with %zu items", count);
+        
+        for (size_t i = 0; i < count; i++) {
+            UInt256 hash = *(UInt256 *)(msg + off + sizeof(uint32_t));
+            
+            switch (le32(*(uint32_t *)(msg + off))) {
+                case inv_tx:
+                    if (ctx->requestedTx) tx = ctx->requestedTx(ctx->info, hash);
+
+                    if (tx) {
+                        uint8_t buf[BRTransactionSerialize(tx, NULL, 0)];
+                        size_t bufLen = BRTransactionSerialize(tx, buf, sizeof(buf));
+                        
+                        BRPeerSendMessage(peer, buf, bufLen, MSG_TX);
+                        break;
+                    }
+                    
+                    // fall through
+                default:
+                    *(uint32_t *)(notfound + 36*notfoundCount) = *(uint32_t *)(msg + off);
+                    *(UInt256 *)(notfound + 36*notfoundCount + sizeof(uint32_t)) = hash;
+                    notfoundCount++;
+                    break;
+            }
+            
+            off += 36;
+        }
+
+        if (notfoundCount > 0) {
+            uint8_t buf[BRVarIntSize(notfoundCount) + 36*notfoundCount];
+        
+            BRVarIntSet(buf, sizeof(buf), notfoundCount);
+            memcpy(buf + BRVarIntSize(notfoundCount), notfound, 36*notfoundCount);
+            BRPeerSendMessage(peer, buf, sizeof(buf), MSG_NOTFOUND);
+        }
+    }
+
     return r;
 }
 
@@ -342,9 +399,9 @@ static int BRPeerAcceptNotfoundMessage(BRPeer *peer, const uint8_t *msg, size_t 
     size_t off = 0, count = BRVarInt(msg, len, &off);
     int r = 1;
 
-    if (off == 0 || off + count*36 > len) {
+    if (off == 0 || off + 36*count > len) {
         peer_log(peer, "malformed notfound message, length is %zu, should be %zu for %zu items", len,
-                 BRVarIntSize(count) + count*36, count);
+                 BRVarIntSize(count) + 36*count, count);
         r = 0;
     }
     else {
@@ -702,7 +759,7 @@ void BRPeerSetCallbacks(BRPeer *peer, void *info,
                         void (*relayedBlock)(void *info, BRMerkleBlock *block),
                         void (*notfound)(void *info, const UInt256 txHashes[], size_t txCount,
                                          const UInt256 blockHashes[], size_t blockCount),
-                        const BRTransaction *(*requestedTx)(void *info, UInt256 txHash),
+                        BRTransaction *(*requestedTx)(void *info, UInt256 txHash),
                         int (*networkIsReachable)(void *info))
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
@@ -738,6 +795,7 @@ BRPeerStatus BRPeerConnectStatus(BRPeer *peer)
     return ((BRPeerContext *)peer)->status;
 }
 
+// open connection to peer and perform handshake
 void BRPeerConnect(BRPeer *peer)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
@@ -789,6 +847,7 @@ void BRPeerConnect(BRPeer *peer)
     }
 }
 
+// close connection to peer
 void BRPeerDisconnect(BRPeer *peer)
 {
     BRPeerErrorDisconnect(peer, 0); // disconnect with no error
@@ -890,7 +949,7 @@ void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char 
     }
 }
 
-void BRPeerSendVersionMessage(BRPeer *peer)
+static void BRPeerSendVersionMessage(BRPeer *peer)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     size_t off = 0, userAgentLen = strlen(USER_AGENT);
@@ -926,10 +985,19 @@ void BRPeerSendVersionMessage(BRPeer *peer)
     BRPeerSendMessage(peer, msg, sizeof(msg), MSG_VERSION);
 }
 
-void BRPeerSendVerackMessage(BRPeer *peer)
+static void BRPeerSendVerackMessage(BRPeer *peer)
 {
     BRPeerSendMessage(peer, NULL, 0, MSG_VERACK);
     ((BRPeerContext *)peer)->sentVerack = 1;
+}
+
+static void BRPeerSendAddr(BRPeer *peer)
+{
+    uint8_t msg[BRVarIntSize(0)];
+    size_t len = BRVarIntSet(msg, sizeof(msg), 0);
+    
+    //TODO: send peer addresses we know about
+    BRPeerSendMessage(peer, msg, len, MSG_ADDR);
 }
 
 void BRPeerSendFilterload(BRPeer *peer, const uint8_t *filter, size_t len)
@@ -942,15 +1010,6 @@ void BRPeerSendMempool(BRPeer *peer)
 {
     ((BRPeerContext *)peer)->sentMempool = 1;
     BRPeerSendMessage(peer, NULL, 0, MSG_MEMPOOL);
-}
-
-void BRPeerSendAddr(BRPeer *peer)
-{
-    uint8_t msg[BRVarIntSize(0)];
-    size_t len = BRVarIntSet(msg, sizeof(msg), 0);
-    
-    //TODO: send peer addresses we know about
-    BRPeerSendMessage(peer, msg, len, MSG_ADDR);
 }
 
 void BRPeerSendGetheaders(BRPeer *peer, const UInt256 locators[], size_t count, UInt256 hashStop)
