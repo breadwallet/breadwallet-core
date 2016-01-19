@@ -92,18 +92,19 @@ size_t BRBloomFilterSerialize(BRBloomFilter *filter, uint8_t *buf, size_t len)
     size_t off = 0,
            l = BRVarIntSize(filter->length) + filter->length + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint8_t);
     
-    if (! buf) return l;
-    if (len < l) return 0;
-    off += BRVarIntSet(buf + off, len - off, filter->length);
-    memcpy(buf + off, filter->filter, filter->length);
-    off += filter->length;
-    *(uint32_t *)(buf + off) = le32(filter->hashFuncs);
-    off += sizeof(uint32_t);
-    *(uint32_t *)(buf + off) = le32(filter->tweak);
-    off += sizeof(uint32_t);
-    buf[off] = filter->flags;
-    off += sizeof(uint8_t);
-    return l;
+    if (buf && l <= len) {
+        off += BRVarIntSet(buf + off, len - off, filter->length);
+        memcpy(buf + off, filter->filter, filter->length);
+        off += filter->length;
+        *(uint32_t *)(buf + off) = le32(filter->hashFuncs);
+        off += sizeof(uint32_t);
+        *(uint32_t *)(buf + off) = le32(filter->tweak);
+        off += sizeof(uint32_t);
+        buf[off] = filter->flags;
+        off += sizeof(uint8_t);
+    }
+    
+    return (! buf || l <= len) ? l : 0;
 }
 
 // true if data is matched by filter

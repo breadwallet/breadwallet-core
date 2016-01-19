@@ -58,14 +58,14 @@ size_t BRBase58Encode(char *str, size_t strLen, const uint8_t *data, size_t data
     while (i < sizeof(buf) && buf[i] == 0) i++; // skip leading zeroes
     len = (zcount + sizeof(buf) - i) + 1;
 
-    if (str && strLen >= len) {
+    if (str && len <= strLen) {
         while (zcount-- > 0) *(str++) = base58chars[0];
         while (i < sizeof(buf)) *(str++) = base58chars[buf[i++]];
         *str = '\0';
     }
     
     memset(buf, 0, sizeof(buf));
-    return (! str || strLen >= len) ? len : 0;
+    return (! str || len <= strLen) ? len : 0;
 }
 
 // returns the number of bytes written to data, or total dataLen needed if data is NULL
@@ -128,13 +128,13 @@ size_t BRBase58Decode(uint8_t *data, size_t dataLen, const char *str)
     while (i < sizeof(buf) && buf[i] == 0) i++; // skip leading zeroes
     len = zcount + sizeof(buf) - i;
 
-    if (data && dataLen >= len) {
+    if (data && len <= dataLen) {
         if (zcount > 0) memset(data, 0, zcount);
         memcpy(data + zcount, &buf[i], sizeof(buf) - i);
     }
 
     memset(buf, 0, sizeof(buf));
-    return (! data || dataLen >= len) ? len : 0;
+    return (! data || len <= dataLen) ? len : 0;
 }
 
 // returns the number of characters written to str including NULL terminator, or total strLen needed if str is NULL
@@ -160,10 +160,10 @@ size_t BRBase58CheckDecode(uint8_t *data, size_t dataLen, const char *str)
         len -= 4;
         BRSHA256_2(md, buf, len);
         if (*(uint32_t *)&buf[len] != *(uint32_t *)md) len = 0; // verify checksum
-        if (data && dataLen >= len) memcpy(data, buf, len);
+        if (data && len <= dataLen) memcpy(data, buf, len);
     }
     else len = 0;
     
     memset(buf, 0, sizeof(buf));
-    return (! data || dataLen >= len) ? len : 0;
+    return (! data || len <= dataLen) ? len : 0;
 }

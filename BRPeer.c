@@ -190,8 +190,8 @@ static int BRPeerAcceptVersionMessage(BRPeer *peer, const uint8_t *msg, size_t l
     uint16_t recvPort, fromPort;
     int r = 1;
     
-    if (len < 85) {
-        peer_log(peer, "malformed version message, length is %zu, should be > 84", len);
+    if (85 > len) {
+        peer_log(peer, "malformed version message, length is %zu, should be >= 85", len);
         r = 0;
     }
     else {
@@ -224,7 +224,7 @@ static int BRPeerAcceptVersionMessage(BRPeer *peer, const uint8_t *msg, size_t l
             strLen = BRVarInt(msg + off, len - off, &l);
             off += l;
 
-            if (len < off + strLen + sizeof(uint32_t)) {
+            if (off + strLen + sizeof(uint32_t) > len) {
                 peer_log(peer, "malformed version message, length is %zu, should be %zu", len,
                          off + strLen + sizeof(uint32_t));
                 r = 0;
@@ -347,7 +347,7 @@ static int BRPeerAcceptPingMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
     int r = 1;
     
-    if (len < sizeof(uint64_t)) {
+    if (sizeof(uint64_t) > len) {
         peer_log(peer, "malformed ping message, length is %zu, should be %zu", len, sizeof(uint64_t));
         r = 0;
     }
@@ -364,7 +364,7 @@ static int BRPeerAcceptPongMessage(BRPeer *peer, const uint8_t *msg, size_t len)
     BRPeerContext *ctx = (BRPeerContext *)peer;
     int r = 1;
     
-    if (len < sizeof(uint64_t)) {
+    if (sizeof(uint64_t) > len) {
         peer_log(peer, "malformed pong message, length is %zu, should be %zu", len, sizeof(uint64_t));
         r = 0;
     }
@@ -406,8 +406,8 @@ static int BRPeerAcceptMerkleblockMessage(BRPeer *peer, const uint8_t *msg, size
     // Bitcoin nodes don't support querying arbitrary transactions, only transactions not yet accepted in a block. After
     // a merkleblock message, the remote node is expected to send tx messages for the tx referenced in the block. When a
     // non-tx message is received we should have all the tx in the merkleblock.
-    BRMerkleBlock *block = BRMerkleBlockParse(msg, len);
     BRPeerContext *ctx = (BRPeerContext *)peer;
+    BRMerkleBlock *block = BRMerkleBlockParse(msg, len);
     int r = 1;
   
     if (! block) {
@@ -448,8 +448,51 @@ static int BRPeerAcceptMerkleblockMessage(BRPeer *peer, const uint8_t *msg, size
 // described in BIP61: https://github.com/bitcoin/bips/blob/master/bip-0061.mediawiki
 static int BRPeerAcceptRejectMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
+    BRPeerContext *ctx = (BRPeerContext *)peer;
+    size_t off = 0, strLen = BRVarInt(msg, len, &off);
     int r = 1;
     
+    if (off + strLen + sizeof(uint8_t) > len) {
+        peer_log(peer, "malformed reject message, length is %zu, should be >= %zu", len,
+                 off + strLen + sizeof(uint8_t));
+        r = 0;
+    }
+    else {
+        char type[strLen + 1];
+        uint8_t code;
+        size_t l = 0, hashLen = 0;
+
+        strncpy(type, (const char *)(msg + off), strLen);
+        type[strLen] = '\0';
+        off += strLen;
+        code = msg[off++];
+        strLen = BRVarInt(msg + off, len - off, &l);
+        off += l;
+        if (strncmp(type, MSG_TX, sizeof(type)) == 0) hashLen = sizeof(UInt256);
+        
+        if (off + strLen + hashLen > len) {
+            peer_log(peer, "malformed reject message, length is %zu, should be >= %zu", len, off + strLen + hashLen);
+            r = 0;
+        }
+        else {
+            char reason[strLen + 1];
+            UInt256 txHash = UINT256_ZERO;
+            
+            strncpy(reason, (const char *)(msg + off), strLen);
+            reason[strLen] = '\0';
+            off += strLen;
+            if (hashLen == sizeof(UInt256)) txHash = *(UInt256 *)(msg + off);
+            off += hashLen;
+
+            if (! UInt256IsZero(txHash)) {
+                peer_log(peer, "rejected %s code: 0x%x reason: \"%s\" txid: %s", type, code, reason,
+                         uint256_hex_encode(txHash));
+                if (ctx->rejectedTx) ctx->rejectedTx(ctx->info, txHash, code);
+            }
+            else peer_log(peer, "rejected %s code: 0x%x reason: \"%s\"", type, code, reason);
+        }
+    }
+
     return r;
 }
 
@@ -565,7 +608,7 @@ static void *BRPeerThreadRoutine(void *arg)
                 if (! error && ctx->status == BRPeerStatusConnecting &&
                     (double)clock()/CLOCKS_PER_SEC > ctx->startTime + CONNECT_TIMEOUT) error = ETIMEDOUT;
                     
-                while (len >= sizeof(uint32_t) && *(uint32_t *)header != le32(MAGIC_NUMBER)) {
+                while (sizeof(uint32_t) <= len && *(uint32_t *)header != le32(MAGIC_NUMBER)) {
                     memmove(header, header + 1, --len); // consume one byte at a time until we find the magic number
                 }
             }
