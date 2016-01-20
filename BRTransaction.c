@@ -290,10 +290,11 @@ void BRTransactionShuffleOutputs(BRTransaction *tx)
         uint32_t j = i + BRRand((uint32_t)tx->outCount - i);
         BRTxOutput t;
         
-        if (j == i) continue;
-        t = tx->outputs[i];
-        tx->outputs[i] = tx->outputs[j];
-        tx->outputs[j] = t;
+        if (j != i) {
+            t = tx->outputs[i];
+            tx->outputs[i] = tx->outputs[j];
+            tx->outputs[j] = t;
+        }
     }
 }
 

@@ -102,6 +102,7 @@ typedef struct {
     uint32_t version, lastblock, earliestKeyTime, currentBlockHeight;
     double startTime, pingTime;
     int sentVerack, gotVerack, sentGetaddr, sentFilter, sentGetdata, sentMempool, sentGetblocks;
+    UInt256 lastBlockHash;
     BRMerkleBlock *currentBlock;
     UInt256 *currentBlockTxHashes, *knownBlockHashes, *knownTxHashes;
     BRSet *knownTxHashSet;
@@ -277,7 +278,92 @@ static int BRPeerAcceptAddrMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 
 static int BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
+    BRPeerContext *ctx = (BRPeerContext *)peer;
+    size_t off = 0, count = BRVarInt(msg, len, &off);
     int r = 1;
+    
+    if (off == 0 || off + count*36 > len) {
+        peer_log(peer, "malformed inv message, length is %zu, should be %zu for %zu items", len,
+                 BRVarIntSize(count) + 36*count, count);
+        r = 0;
+    }
+    else if (count > MAX_GETDATA_HASHES) {
+        peer_log(peer, "droping inv message, %zu is too many items, max is %d", count, MAX_GETDATA_HASHES);
+        r = 0;
+    }
+    else {
+        UInt256 *transactions[count], *blocks[count];
+        size_t i, j, k, txCount = 0, blockCount = 0;
+        
+        peer_log(peer, "got inv with %zu items", count);
+
+        for (i = 0; i < count; i++) {
+            switch (le32(*(uint32_t *)(msg + off))) {
+                case inv_tx: transactions[txCount++] = (UInt256 *)(msg + off + sizeof(uint32_t)); break;
+                case inv_merkleblock: // fall through
+                case inv_block: blocks[blockCount++] = (UInt256 *)(msg + off + sizeof(uint32_t)); break;
+                default: break;
+            }
+
+            off += 36;
+        }
+
+        if (txCount > 0 && ! ctx->sentFilter && ! ctx->sentMempool && ! ctx->sentGetblocks) {
+            peer_log(peer, "got inv message before laoding a filter");
+            r = 0;
+        }
+        else if (txCount > 10000) { // sanity check
+            peer_log(peer, "too many transactions, disconnecting");
+            r = 0;
+        }
+        else if (ctx->currentBlockHeight > 0 && blockCount > 2 && blockCount < 500 &&
+                 ctx->currentBlockHeight + array_count(ctx->knownBlockHashes) + blockCount < ctx->lastblock) {
+            peer_log(peer, "non-standard inv, %zu is fewer block hashes than expected", blockCount);
+            r = 0;
+        }
+
+        if (blockCount == 1 && ! UInt256Eq(ctx->lastBlockHash, *blocks[0])) blockCount = 0;
+        if (blockCount == 1) ctx->lastBlockHash = *blocks[0];
+
+        UInt256 blockHashes[blockCount], txHashes[txCount], *knownTxHashes = ctx->knownTxHashes;
+
+        for (i = 0; i < blockCount; i++) {
+            blockHashes[i] = *blocks[i];
+            // remember blockHashes in case we need to re-request them with an updated bloom filter
+            array_add(ctx->knownBlockHashes, blockHashes[i]);
+        }
+        
+        while (array_count(ctx->knownBlockHashes) > MAX_GETDATA_HASHES) {
+            array_rm_range(ctx->knownBlockHashes, 0, array_count(ctx->knownBlockHashes)/3);
+        }
+        
+        if (ctx->needsFilterUpdate) blockCount = 0;
+        
+        for (i = 0, j = 0; i < txCount; i++) {
+            if (BRSetContains(ctx->knownTxHashSet, transactions[i])) continue; // skip transactions we already have
+            txHashes[j++] = *transactions[i];
+            array_add(knownTxHashes, *transactions[i]);
+            
+            if (ctx->knownTxHashes != knownTxHashes) { // check if knownTxHashes was moved to a new memory location
+                ctx->knownTxHashes = knownTxHashes;
+                BRSetClear(ctx->knownTxHashSet);
+                for (k = array_count(knownTxHashes); k > 0; k--) BRSetAdd(ctx->knownTxHashSet, &knownTxHashes[k - 1]);
+            }
+            else BRSetAdd(ctx->knownTxHashSet, &array_last(knownTxHashes));
+            
+            if (ctx->hasTx) ctx->hasTx(ctx->info, *transactions[i]);
+        }
+        
+        txCount = j;
+        if (txCount > 0 || blockCount > 0) BRPeerSendGetdata(peer, txHashes, txCount, blockHashes, blockCount);
+    
+        // to improve chain download performance, if we received 500 block hashes, we request the next 500 block hashes
+        if (blockCount >= 500) {
+            UInt256 locators[] = { blockHashes[0], blockHashes[blockCount - 1] };
+            
+            BRPeerSendGetblocks(peer, locators, sizeof(locators)/sizeof(*locators), UINT256_ZERO);
+        }
+    }
     
     return r;
 }
@@ -286,6 +372,7 @@ static int BRPeerAcceptTxMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     BRTransaction *tx = BRTransactionParse(msg, len);
+    UInt256 txHash;
     int r = 1;
 
     if (! tx) {
@@ -294,15 +381,21 @@ static int BRPeerAcceptTxMessage(BRPeer *peer, const uint8_t *msg, size_t len)
     }
     else if (! ctx->sentFilter && ! ctx->sentGetdata) {
         peer_log(peer, "got tx message before loading filter");
+        BRTransactionFree(tx);
         r = 0;
     }
     else {
-        peer_log(peer, "got tx: %s", uint256_hex_encode(tx->txHash));
-        if (ctx->relayedTx) ctx->relayedTx(ctx->info, tx);
+        txHash = tx->txHash;
+        peer_log(peer, "got tx: %s", uint256_hex_encode(txHash));
+
+        if (ctx->relayedTx) {
+            ctx->relayedTx(ctx->info, tx);
+        }
+        else BRTransactionFree(tx);
 
         if (ctx->currentBlock) { // we're collecting tx messages for a merkleblock
             for (size_t i = array_count(ctx->currentBlockTxHashes); i > 0; i--) {
-                if (! UInt256Eq(tx->txHash, ctx->currentBlockTxHashes[i - 1])) continue;
+                if (! UInt256Eq(txHash, ctx->currentBlockTxHashes[i - 1])) continue;
                 array_rm(ctx->currentBlockTxHashes, i - 1);
                 break;
             }
