@@ -321,7 +321,62 @@ static int BRPeerAcceptTxMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 
 static int BRPeerAcceptHeadersMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
+    BRPeerContext *ctx = (BRPeerContext *)peer;
+    size_t off = 0, count = BRVarInt(msg, len, &off);
     int r = 1;
+
+    if (off == 0 || off + 81*count > len) {
+        peer_log(peer, "malformed headers message, length is %zu, should be %zu for %zu items", len,
+                 BRVarIntSize(count) + 81*count, count);
+        r = 0;
+    }
+    else {
+        peer_log(peer, "got %zu headers", count);
+    
+        // To improve chain download performance, if this message contains 2000 headers then request the next 2000
+        // headers immediately, and switch to requesting blocks when we receive a header newer than earliestKeyTime
+        uint32_t timestamp = (count > 0) ? le32(*(uint32_t *)(msg + off + 81*(count - 1) + 68)) : 0;
+    
+        if (count >= 2000 || (timestamp > 0 && timestamp + 7*24*60*60 + BLOCK_MAX_TIME_DRIFT >= ctx->earliestKeyTime)) {
+            size_t last = 0;
+            time_t now = time(NULL);
+            UInt256 locators[2];
+            
+            BRSHA256_2(&locators[0], msg + off, 80);
+            BRSHA256_2(&locators[1], msg + off + 81*(count - 1), 80);
+
+            if (timestamp > 0 && timestamp + 7*24*60*60 + BLOCK_MAX_TIME_DRIFT >= ctx->earliestKeyTime) {
+                // request blocks for the remainder of the chain
+                timestamp = (++last < count) ? le32(*(uint32_t *)(msg + off + 81*last + 68)) : 0;
+
+                while (timestamp > 0 && timestamp + 7*24*60*60 + BLOCK_MAX_TIME_DRIFT < ctx->earliestKeyTime) {
+                    timestamp = (++last < count) ? le32(*(uint32_t *)(msg + off + 81*last + 68)) : 0;
+                }
+                
+                BRSHA256_2(&locators[1], msg + off + 81*(last - 1), 80);
+                BRPeerSendGetblocks(peer, locators, 2, UINT256_ZERO);
+            }
+            else BRPeerSendGetheaders(peer, locators, 2, UINT256_ZERO);
+
+            for (size_t i = 0; r && i < count; i++) {
+                BRMerkleBlock *block = BRMerkleBlockParse(msg + off + 81*i, 81);
+                
+                if (! BRMerkleBlockIsValid(block, (uint32_t)now)) {
+                    peer_log(peer, "invalid block header: %s", uint256_hex_encode(block->blockHash));
+                    BRMerkleBlockFree(block);
+                    r = 0;
+                }
+                else if (ctx->relayedBlock) {
+                    ctx->relayedBlock(ctx->info, block);
+                }
+                else BRMerkleBlockFree(block);
+            }
+        }
+        else {
+            peer_log(peer, "non-standard headers message, %zu is fewer headers than expected", count);
+            r = 0;
+        }
+    }
     
     return r;
 }
@@ -349,16 +404,17 @@ static int BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t l
         r = 0;
     }
     else {
-        uint8_t notfound[36*count];
+        const uint8_t *notfound[count];
         size_t notfoundCount = 0;
         BRTransaction *tx = NULL;
         
         peer_log(peer, "got getdata with %zu items", count);
         
         for (size_t i = 0; i < count; i++) {
+            inv_type type = le32(*(uint32_t *)(msg + off));
             UInt256 hash = *(UInt256 *)(msg + off + sizeof(uint32_t));
             
-            switch (le32(*(uint32_t *)(msg + off))) {
+            switch (type) {
                 case inv_tx:
                     if (ctx->requestedTx) tx = ctx->requestedTx(ctx->info, hash);
 
@@ -372,9 +428,7 @@ static int BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t l
                     
                     // fall through
                 default:
-                    *(uint32_t *)(notfound + 36*notfoundCount) = *(uint32_t *)(msg + off);
-                    *(UInt256 *)(notfound + 36*notfoundCount + sizeof(uint32_t)) = hash;
-                    notfoundCount++;
+                    notfound[notfoundCount++] = msg + off;
                     break;
             }
             
@@ -383,9 +437,13 @@ static int BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t l
 
         if (notfoundCount > 0) {
             uint8_t buf[BRVarIntSize(notfoundCount) + 36*notfoundCount];
-        
-            BRVarIntSet(buf, sizeof(buf), notfoundCount);
-            memcpy(buf + BRVarIntSize(notfoundCount), notfound, 36*notfoundCount);
+            size_t o = BRVarIntSet(buf, sizeof(buf), notfoundCount);
+
+            for (size_t i = 0; o + 36 <= sizeof(buf) && i < notfoundCount; i++) {
+                memcpy(buf + o, notfound[i], 36);
+                o += 36;
+            }
+            
             BRPeerSendMessage(peer, buf, sizeof(buf), MSG_NOTFOUND);
         }
     }

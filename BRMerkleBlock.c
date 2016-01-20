@@ -30,7 +30,6 @@
 #include <math.h>
 #include <stdlib.h>
 
-#define MAX_TIME_DRIFT    (2*60*60)     // the furthest in the future a block is allowed to be timestamped
 #define MAX_PROOF_OF_WORK 0x1d00ffff    // highest value for difficulty target (higher values are less difficult)
 #define TARGET_TIMESPAN   (14*24*60*60) // the targeted timespan between difficulty target adjustments
 
@@ -234,7 +233,7 @@ int BRMerkleBlockIsValid(BRMerkleBlock *block, uint32_t currentTime)
     if (block->totalTx > 0 && ! UInt256Eq(merkleRoot, block->merkleRoot)) r = 0;
     
     // check if timestamp is too far in future
-    if (block->timestamp > currentTime + MAX_TIME_DRIFT) r = 0;
+    if (block->timestamp > currentTime + BLOCK_MAX_TIME_DRIFT) r = 0;
     
     // check if proof-of-work target is out of range
     if (target == 0 || target & 0x00800000 || size > maxsize || (size == maxsize && target > maxtarget)) r = 0;
