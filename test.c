@@ -66,8 +66,8 @@ int BRIntsTests()
 
 inline static int compare_ints(void *info, const void *a, const void *b)
 {
-    if (*(const int *)a < *(const int *)b) return -1;
-    if (*(const int *)a > *(const int *)b) return 1;
+    if (*(int *)a < *(int *)b) return -1;
+    if (*(int *)a > *(int *)b) return 1;
     return 0;
 }
 

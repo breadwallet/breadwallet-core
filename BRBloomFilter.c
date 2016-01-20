@@ -71,9 +71,9 @@ BRBloomFilter *BRBloomFilterParse(const uint8_t *buf, size_t len)
     filter->filter = (off + filter->length <= len) ? malloc(filter->length) : NULL;
     if (filter->filter) memcpy(filter->filter, buf + off, filter->length);
     off += filter->length;
-    filter->hashFuncs = (off + sizeof(uint32_t) <= len) ? le32(*(const uint32_t *)(buf + off)) : 0;
+    filter->hashFuncs = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)(buf + off)) : 0;
     off += sizeof(uint32_t);
-    filter->tweak = (off + sizeof(uint32_t) <= len) ? le32(*(const uint32_t *)(buf + off)) : 0;
+    filter->tweak = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)(buf + off)) : 0;
     off += sizeof(uint32_t);
     filter->flags = (off + sizeof(uint8_t) <= len) ? buf[off] : 0;
     off += sizeof(uint8_t);

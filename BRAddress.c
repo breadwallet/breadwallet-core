@@ -33,22 +33,22 @@
 uint64_t BRVarInt(const uint8_t *buf, size_t len, size_t *intLen)
 {
     uint64_t r = 0;
-    uint8_t h = (sizeof(uint8_t) <= len) ? *(const uint8_t *)buf : 0;
+    uint8_t h = (sizeof(uint8_t) <= len) ? *(uint8_t *)buf : 0;
     
     switch (h) {
         case VAR_INT16_HEADER:
             if (intLen) *intLen = sizeof(h) + sizeof(uint16_t);
-            r = (sizeof(h) + sizeof(uint16_t) <= len) ? le16(*(const uint16_t *)(buf + sizeof(h))) : 0;
+            r = (sizeof(h) + sizeof(uint16_t) <= len) ? le16(*(uint16_t *)(buf + sizeof(h))) : 0;
             break;
             
         case VAR_INT32_HEADER:
             if (intLen) *intLen = sizeof(h) + sizeof(uint32_t);
-            r = (sizeof(h) + sizeof(uint32_t) <= len) ? le32(*(const uint32_t *)(buf + sizeof(h))) : 0;
+            r = (sizeof(h) + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)(buf + sizeof(h))) : 0;
             break;
             
         case VAR_INT64_HEADER:
             if (intLen) *intLen = sizeof(h) + sizeof(uint64_t);
-            r = (sizeof(h) + sizeof(uint64_t) <= len) ? le64(*(const uint64_t *)(buf + sizeof(h))) : 0;
+            r = (sizeof(h) + sizeof(uint64_t) <= len) ? le64(*(uint64_t *)(buf + sizeof(h))) : 0;
             break;
             
         default:

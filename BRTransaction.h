@@ -122,13 +122,13 @@ int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t count);
 // returns a hash value for tx suitable for use in a hashtable
 inline static size_t BRTransactionHash(const void *tx)
 {
-    return *(const size_t *)&((const BRTransaction *)tx)->txHash;
+    return *(size_t *)&((BRTransaction *)tx)->txHash;
 }
 
 // true if tx and otherTx have equal txHash values
 inline static int BRTransactionEq(const void *tx, const void *otherTx)
 {
-    return (tx == otherTx || UInt256Eq(((const BRTransaction *)tx)->txHash, ((const BRTransaction *)otherTx)->txHash));
+    return (tx == otherTx || UInt256Eq(((BRTransaction *)tx)->txHash, ((BRTransaction *)otherTx)->txHash));
 }
 
 // frees memory allocated for tx

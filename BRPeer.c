@@ -269,10 +269,50 @@ static int BRPeerAcceptVerackMessage(BRPeer *peer, const uint8_t *msg, size_t le
     return r;
 }
 
+// TODO: relay addresses
 static int BRPeerAcceptAddrMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
+    BRPeerContext *ctx = (BRPeerContext *)peer;
+    size_t off = 0, count = BRVarInt(msg, len, &off);
     int r = 1;
     
+    if (off == 0 || off + count*30 > len) {
+        peer_log(peer, "malformed addr message, length is %zu, should be %zu for %zu addresses", len,
+                 BRVarIntSize(count) + 30*count, count);
+        r = 0;
+    }
+    else if (count > 1000) {
+        peer_log(peer, "dropping addr message, %zu is too many addresses, max is 1000", count);
+    }
+    else if (ctx->sentGetaddr) { // simple anti-tarpitting tactic, don't accept unsolicited addresses
+        BRPeer peers[count], p;
+        size_t peersCount = 0;
+        time_t now = time(NULL);
+        
+        peer_log(peer, "got addr with %zu addresses", count);
+
+        for (size_t i = 0; i < count; i++) {
+            p.timestamp = le32(*(uint32_t *)(msg + off));
+            off += sizeof(uint32_t);
+            p.services = le64(*(uint64_t *)(msg + off));
+            off += sizeof(uint64_t);
+            p.address = *(UInt128 *)(msg + off);
+            off += sizeof(UInt128);
+            p.port = be16(*(uint16_t *)(msg + off));
+            off += sizeof(uint16_t);
+
+            if (! (p.services & SERVICES_NODE_NETWORK)) continue; // skip peers that don't carry full blocks
+            if (! BRPeerIsIPv4(&p)) continue; // ignore IPv6 for now
+        
+            // if address time is more than 10 min in the future or unknown, set to 5 days old
+            if (p.timestamp > now + 10*60 || p.timestamp == 0) p.timestamp = now - 5*24*60*60;
+            p.timestamp -= 2*60*60; // subtract two hours
+            peers[peersCount++] = p; // add it to the list
+        }
+
+        if (peersCount > 0 && ctx->relayedPeers) ctx->relayedPeers(ctx->info, peers, peersCount);
+    }
+
     return r;
 }
 
@@ -288,8 +328,7 @@ static int BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t len)
         r = 0;
     }
     else if (count > MAX_GETDATA_HASHES) {
-        peer_log(peer, "droping inv message, %zu is too many items, max is %d", count, MAX_GETDATA_HASHES);
-        r = 0;
+        peer_log(peer, "dropping inv message, %zu is too many items, max is %d", count, MAX_GETDATA_HASHES);
     }
     else {
         UInt256 *transactions[count], *blocks[count];
@@ -342,7 +381,7 @@ static int BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t len)
         for (i = 0, j = 0; i < txCount; i++) {
             if (BRSetContains(ctx->knownTxHashSet, transactions[i])) continue; // skip transactions we already have
             txHashes[j++] = *transactions[i];
-            array_add(knownTxHashes, *transactions[i]);
+            array_add(knownTxHashes, txHashes[j - 1]);
             
             if (ctx->knownTxHashes != knownTxHashes) { // check if knownTxHashes was moved to a new memory location
                 ctx->knownTxHashes = knownTxHashes;
@@ -351,7 +390,7 @@ static int BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t len)
             }
             else BRSetAdd(ctx->knownTxHashSet, &array_last(knownTxHashes));
             
-            if (ctx->hasTx) ctx->hasTx(ctx->info, *transactions[i]);
+            if (ctx->hasTx) ctx->hasTx(ctx->info, txHashes[j - 1]);
         }
         
         txCount = j;
@@ -494,7 +533,6 @@ static int BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t l
     }
     else if (count > MAX_GETDATA_HASHES) {
         peer_log(peer, "dropping getdata message, %zu is too many items, max is %u", count, MAX_GETDATA_HASHES);
-        r = 0;
     }
     else {
         const uint8_t *notfound[count];

@@ -74,20 +74,20 @@ BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t len)
     uint8_t header[80];
     
     if (block) {
-        block->version = le32(*(const uint32_t *)(buf + off));
+        block->version = le32(*(uint32_t *)(buf + off));
         off += sizeof(uint32_t);
-        block->prevBlock = *(const UInt256 *)(buf + off);
+        block->prevBlock = *(UInt256 *)(buf + off);
         off += sizeof(UInt256);
-        block->merkleRoot = *(const UInt256 *)(buf + off);
+        block->merkleRoot = *(UInt256 *)(buf + off);
         off += sizeof(UInt256);
-        block->timestamp = le32(*(const uint32_t *)(buf + off));
+        block->timestamp = le32(*(uint32_t *)(buf + off));
         off += sizeof(uint32_t);
-        block->target = le32(*(const uint32_t *)(buf + off));
+        block->target = le32(*(uint32_t *)(buf + off));
         off += sizeof(uint32_t);
-        block->nonce = le32(*(const uint32_t *)(buf + off));
+        block->nonce = le32(*(uint32_t *)(buf + off));
         off += sizeof(uint32_t);
         
-        block->totalTx = (off + sizeof(uint32_t) <= len) ? le32(*(const uint32_t *)(buf + off)) : 0;
+        block->totalTx = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)(buf + off)) : 0;
         off += sizeof(uint32_t);
         block->hashesLen = (size_t)BRVarInt(buf + off, len - off, &l);
         off += l;

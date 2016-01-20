@@ -109,25 +109,25 @@ inline static int BRPeerTimestampCompare(const void *peer, const void *otherPeer
 // returns a hash value for a block's prevBlock value suitable for use in a hashtable
 inline static size_t BRPrevBlockHash(const void *block)
 {
-    return *(const size_t *)&((const BRMerkleBlock *)block)->prevBlock;
+    return *(size_t *)&((BRMerkleBlock *)block)->prevBlock;
 }
 
 // true if block and otherBlock have equal prevBlock values
 inline static int BRPrevBlockEq(const void *block, const void *otherBlock)
 {
-    return UInt256Eq(((const BRMerkleBlock *)block)->prevBlock, ((const BRMerkleBlock *)otherBlock)->prevBlock);
+    return UInt256Eq(((BRMerkleBlock *)block)->prevBlock, ((BRMerkleBlock *)otherBlock)->prevBlock);
 }
 
 // returns a hash value for a block's height value suitable for use in a hashtable
 inline static size_t BRBlockHeightHash(const void *block)
 {
-    return (size_t)((const BRMerkleBlock *)block)->height;
+    return (size_t)((BRMerkleBlock *)block)->height;
 }
 
 // true if block and otherBlock have equal height values
 inline static int BRBlockHeightEq(const void *block, const void *otherBlock)
 {
-    return (((const BRMerkleBlock *)block)->height == ((const BRMerkleBlock *)otherBlock)->height);
+    return (((BRMerkleBlock *)block)->height == ((BRMerkleBlock *)otherBlock)->height);
 }
 
 struct _BRPeerManager {
@@ -508,7 +508,7 @@ static void peerDataNotfound(void *info, const UInt256 txHashes[], size_t txCoun
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
 }
 
-static const BRTransaction *peerRequestedTx(void *info, UInt256 txHash)
+static BRTransaction *peerRequestedTx(void *info, UInt256 txHash)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
