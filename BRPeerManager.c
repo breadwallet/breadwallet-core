@@ -243,8 +243,61 @@ static void BRPeerManagerRmUnrelayedTx(BRPeerManager *manager)
 {
 }
 
+static void loadMempoolsMempoolDone(void *info, int success)
+{
+    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
+    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+
+    free(info);
+    
+    if (success) {
+        peer->flags &= PEER_FLAG_SYNCED;
+        BRPeerSendGetaddr(peer); // request a list of other bitcoin peers
+        BRPeerManagerRmUnrelayedTx(manager);
+    }
+
+    if (peer == manager->downloadPeer) {
+        BRPeerManagerSyncStopped(manager);
+        if (manager->syncSucceded) manager->syncSucceded(manager->callbackInfo);
+    }
+}
+
+static void loadMempoolsInvDone(void *info, int success)
+{
+    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
+    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+
+    if (success) {
+        BRPeerSendMempool(peer);
+        BRPeerSendPing(peer, info, loadMempoolsMempoolDone);
+    }
+    else {
+        free(info);
+        
+        if (peer == manager->downloadPeer) {
+            BRPeerManagerSyncStopped(manager);
+            if (manager->syncSucceded) manager->syncSucceded(manager->callbackInfo);
+        }
+    }
+}
+
 static void BRPeerManagerLoadMempools(BRPeerManager *manager)
 {
+    // after syncing, load filters and get mempools from other peers
+    for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
+        BRPeer *peer = manager->connectedPeers[i - 1];
+        BRPeerCallbackInfo *info = calloc(1, sizeof(*info));
+        
+        info->manager = manager;
+        info->peer = peer;
+        
+        if (peer != manager->downloadPeer || manager->fpRate > BLOOM_REDUCED_FALSEPOSITIVE_RATE*5.0) {
+            BRPeerManagerLoadBloomFilter(manager, peer);
+        }
+
+        BRPeerSendInv(peer, manager->publishedHash, array_count(manager->publishedHash)); // publish unconfirmed tx
+        BRPeerSendPing(peer, info, loadMempoolsInvDone);
+    }
 }
 
 static size_t BRPeerManagerBlockLocators(BRPeerManager *manager, UInt256 locators[], size_t count)
@@ -343,8 +396,10 @@ static void peerConnectedFilterloadDone(void *info, int success)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
 
-    BRPeerSendMempool(peer);
-    BRPeerSendPing(peer, info, peerConnectedMempoolDone);
+    if (success) {
+        BRPeerSendMempool(peer);
+        BRPeerSendPing(peer, info, peerConnectedMempoolDone);
+    }
 }
 
 static void peerConnected(void *info)
@@ -596,10 +651,6 @@ int BRPeerMangerIsConnected(BRPeerManager *manager)
 // connect to bitcoin peer-to-peer network (also call this whenever networkIsReachable() status changes)
 void BRPeerManagerConnect(BRPeerManager *manager)
 {
-#if ! defined(MSG_NOSIGNAL) && ! defined(SO_NOSIGPIPE)
-    // TODO: XXX disable SIGPIPE for process
-#endif
-
     if (manager->connectFailures >= MAX_CONNECT_FAILURES) manager->connectFailures = 0; // this is a manual retry
     
     if (BRPeerManagerSyncProgress(manager) < 1.0 - DBL_EPSILON) {
