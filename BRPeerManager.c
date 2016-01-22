@@ -29,6 +29,7 @@
 #include "BRInt.h"
 #include "BRRWLock.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include <time.h>
 #include <float.h>
 #include <math.h>
@@ -136,7 +137,7 @@ struct _BRPeerManager {
     BRPeer *peers, *downloadPeer, **connectedPeers;
     uint32_t tweak, earliestKeyTime, syncStartHeight, filterUpdateHeight;
     BRBloomFilter *bloomFilter;
-    double fpRate, lastRelayTime;
+    double fpRate;
     BRSet *blocks, *orphans, *checkpoints;
     BRMerkleBlock *lastBlock, *lastOrphan;
     UInt256 *nonFpTx;
@@ -465,8 +466,7 @@ static void peerConnected(void *info)
                 UInt256 locators[BRPeerManagerBlockLocators(manager, NULL, 0)];
                 size_t count = BRPeerManagerBlockLocators(manager, locators, sizeof(locators)/sizeof(*locators));
             
-                manager->lastRelayTime = now;
-                // TODO: XXX implement sync stall timer
+                BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT); // schedule sync timeout
 
                 // request just block headers up to a week before earliestKeyTime, and then merkleblocks after that
                 // BUG: XXX headers can timeout on slow connections (each message is over 160k)
@@ -502,7 +502,7 @@ static void peerDisconnected(void *info, int error)
         }
     }
 
-    if (BRPeerEq(manager->downloadPeer, peer)) { // download peer disconnected
+    if (peer == manager->downloadPeer) { // download peer disconnected
         manager->connected = 0;
         manager->downloadPeer = NULL;
         if (manager->connectFailures > MAX_CONNECT_FAILURES) manager->connectFailures = MAX_CONNECT_FAILURES;
@@ -536,24 +536,48 @@ static void peerRelayedTx(void *info, BRTransaction *tx)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+    int syncing = (manager->lastBlock->height < BRPeerLastBlock(manager->downloadPeer));
+    
+    peer_log(peer, "relayed tx: %s", uint256_hex_encode(tx->txHash));
+    
+    if (syncing && peer == manager->downloadPeer && BRWalletContainsTransaction(manager->wallet, tx)) {
+        BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT); // reschedule sync timeout
+    }
 }
 
 static void peerHasTx(void *info, UInt256 txHash)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+    BRTransaction *tx = BRWalletTransactionForHash(manager->wallet, txHash);
+    int syncing = (manager->lastBlock->height < BRPeerLastBlock(manager->downloadPeer));
+    
+    peer_log(peer, "has tx: %s", uint256_hex_encode(txHash));
+
+    if (syncing && peer == manager->downloadPeer && BRWalletContainsTransaction(manager->wallet, tx)) {
+        BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT); // reschedule sync timeout
+    }
 }
 
 static void peerRejectedTx(void *info, UInt256 txHash, uint8_t code)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+    
+    peer_log(peer, "rejected tx: %s", uint256_hex_encode(txHash));
 }
 
 static void peerRelayedBlock(void *info, BRMerkleBlock *block)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+    int syncing = (manager->lastBlock->height < BRPeerLastBlock(manager->downloadPeer));
+
+    peer_log(peer, "relayed block: %s", uint256_hex_encode(block->blockHash));
+    
+    if (syncing && peer == manager->downloadPeer) {
+        BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT); // reschedule sync timeout
+    }
 }
 
 static void peerDataNotfound(void *info, const UInt256 txHashes[], size_t txCount,
@@ -661,7 +685,7 @@ void BRPeerManagerConnect(BRPeerManager *manager)
     for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
         BRPeer *p = manager->connectedPeers[i - 1];
 
-        if (BRPeerConnectStatus(p) == BRPeerStatusDisconnected) {
+        if (BRPeerConnectStatus(p) == BRPeerStatusDisconnected) { // BUG: exec-bad-access p == NULL ?
             array_rm(manager->connectedPeers, i - 1);
             BRPeerFree(p);
         }

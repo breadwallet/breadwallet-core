@@ -107,6 +107,9 @@ void BRPeerSetEarliestKeyTime(BRPeer *peer, uint32_t earliestKeyTime);
 // call this when local best block height changes (helps detect tarpit nodes)
 void BRPeerSetCurrentBlockHeight(BRPeer *peer, uint32_t currentBlockHeight);
 
+// call this to (re)schedule a disconnect in the given number of seconds, or 0 to cancel (useful for sync timeout)
+void BRPeerScheduleDisconnect(BRPeer *peer, double seconds);
+
 // current connection status
 BRPeerStatus BRPeerConnectStatus(BRPeer *peer);
 

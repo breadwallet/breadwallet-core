@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <netdb.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <netinet/in.h>	
 #include <arpa/inet.h>
 
@@ -100,7 +101,7 @@ typedef struct {
     uint64_t nonce;
     char *useragent;
     uint32_t version, lastblock, earliestKeyTime, currentBlockHeight;
-    double startTime, pingTime;
+    double startTime, pingTime, disconnectTime;
     int sentVerack, gotVerack, sentGetaddr, sentFilter, sentGetdata, sentMempool, sentGetblocks;
     UInt256 lastBlockHash;
     BRMerkleBlock *currentBlock;
@@ -150,6 +151,7 @@ static void BRPeerDidConnect(BRPeer *peer)
     
     if (ctx->status == BRPeerStatusConnecting && ctx->sentVerack && ctx->gotVerack) {
         peer_log(peer, "handshake completed");
+        ctx->disconnectTime = DBL_MAX;
         ctx->status = BRPeerStatusConnected;
         peer_log(peer, "connected with lastblock: %u", ctx->lastblock);
         if (ctx->connected) ctx->connected(ctx->info);
@@ -182,7 +184,7 @@ static void BRPeerErrorDisconnect(BRPeer *peer, int error)
         
         BRRWLockUnlock(&ctx->lock);
         peer_log(peer, "disconnected");
-        if (ctx->disconnected) ctx->disconnected(peer, error);
+        if (ctx->disconnected) ctx->disconnected(ctx->info, error);
     }
 }
 
@@ -253,13 +255,15 @@ static int BRPeerAcceptVersionMessage(BRPeer *peer, const uint8_t *msg, size_t l
 static int BRPeerAcceptVerackMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
+    struct timeval tv;
     int r = 1;
     
     if (ctx->gotVerack) {
         peer_log(peer, "got unexpected verack");
     }
     else {
-        ctx->pingTime = (double)clock()/CLOCKS_PER_SEC - ctx->startTime; // use verack time as initial ping time
+        gettimeofday(&tv, NULL);
+        ctx->pingTime = tv.tv_sec + (double)tv.tv_usec/1000000 - ctx->startTime; // use verack time as initial ping time
         ctx->startTime = 0;
         peer_log(peer, "got verack in %fs", ctx->pingTime);
         ctx->gotVerack = 1;
@@ -634,6 +638,8 @@ static int BRPeerAcceptPingMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 static int BRPeerAcceptPongMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
+    struct timeval tv;
+    double pingTime;
     int r = 1;
     
     if (sizeof(uint64_t) > len) {
@@ -651,7 +657,8 @@ static int BRPeerAcceptPongMessage(BRPeer *peer, const uint8_t *msg, size_t len)
     }
     else {
         if (ctx->startTime > 1) {
-            double pingTime = (double)clock()/CLOCKS_PER_SEC - ctx->startTime;
+            gettimeofday(&tv, NULL);
+            pingTime = tv.tv_sec + (double)tv.tv_usec/1000000 - ctx->startTime;
 
             // 50% low pass filter on current ping time
             ctx->pingTime = ctx->pingTime*0.5 + pingTime*0.5;
@@ -863,11 +870,13 @@ static void *BRPeerThreadRoutine(void *arg)
     int error = 0;
 
     if (BRPeerOpenSocket(peer, CONNECT_TIMEOUT)) {
+        struct timeval tv;
         uint8_t header[HEADER_LENGTH];
         size_t len = 0;
         ssize_t n = 0;
 
-        ctx->startTime = (double)clock()/CLOCKS_PER_SEC;
+        gettimeofday(&tv, NULL);
+        ctx->startTime = tv.tv_sec + (double)tv.tv_usec/1000000;
         BRPeerSendVersionMessage(peer);
         
         while (! error && ctx->socket >= 0) {
@@ -877,9 +886,9 @@ static void *BRPeerThreadRoutine(void *arg)
                 n = read(ctx->socket, header + len, sizeof(header) - len);
                 if (n >= 0) len += n;
                 if (n < 0 && errno != EWOULDBLOCK) error = errno;
-                if (! error && ctx->status == BRPeerStatusConnecting &&
-                    (double)clock()/CLOCKS_PER_SEC > ctx->startTime + CONNECT_TIMEOUT) error = ETIMEDOUT;
-                    
+                gettimeofday(&tv, NULL);
+                if (! error && tv.tv_sec + (double)tv.tv_usec/1000000 > ctx->disconnectTime) error = ETIMEDOUT;
+                
                 while (sizeof(uint32_t) <= len && *(uint32_t *)header != le32(MAGIC_NUMBER)) {
                     memmove(header, header + 1, --len); // consume one byte at a time until we find the magic number
                 }
@@ -911,8 +920,8 @@ static void *BRPeerThreadRoutine(void *arg)
                         n = read(ctx->socket, payload + len, sizeof(payload) - len);
                         if (n >= 0) len += n;
                         if (n < 0 && errno != EWOULDBLOCK) error = errno;
-                        if (! error && ctx->status == BRPeerStatusConnecting &&
-                            (double)clock()/CLOCKS_PER_SEC > ctx->startTime + CONNECT_TIMEOUT) error = ETIMEDOUT;
+                        gettimeofday(&tv, NULL);
+                        if (! error && tv.tv_sec + (double)tv.tv_usec/1000000 > ctx->disconnectTime) error = ETIMEDOUT;
                     }
                     
                     if (error) {
@@ -978,6 +987,16 @@ void BRPeerSetCurrentBlockHeight(BRPeer *peer, uint32_t currentBlockHeight)
     ((BRPeerContext *)peer)->currentBlockHeight = currentBlockHeight;
 }
 
+// call this to (re)schedule a disconnect in the given number of seconds, or 0 to cancel (useful for sync timeout)
+void BRPeerScheduleDisconnect(BRPeer *peer, double seconds)
+{
+    BRPeerContext *ctx = ((BRPeerContext *)peer);
+    struct timeval tv;
+
+    gettimeofday(&tv, NULL);
+    ctx->disconnectTime = (seconds > DBL_EPSILON) ? tv.tv_sec + (double)tv.tv_usec/1000000 + seconds : DBL_MAX;
+}
+
 // current connection status
 BRPeerStatus BRPeerConnectStatus(BRPeer *peer)
 {
@@ -1001,6 +1020,8 @@ void BRPeerConnect(BRPeer *peer)
         }
         else {
             ctx->waitingForNetwork = 0;
+            gettimeofday(&tv, NULL);
+            ctx->disconnectTime = tv.tv_sec + (double)tv.tv_usec/1000000 + CONNECT_TIMEOUT;
             array_new(ctx->useragent, 40);
             array_new(ctx->knownBlockHashes, 10);
             array_new(ctx->currentBlockTxHashes, 10);
@@ -1102,6 +1123,7 @@ void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char 
         uint8_t buf[HEADER_LENGTH + len], hash[32];
         size_t off = 0;
         ssize_t n = 0;
+        struct timeval tv;
         int error = 0;
         
         *(uint32_t *)(buf + off) = le32(MAGIC_NUMBER);
@@ -1124,8 +1146,8 @@ void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char 
                 n = send(ctx->socket, buf + len, sizeof(buf) - len, MSG_NOSIGNAL);
                 if (n >= 0) len += n;
                 if (n < 0 && errno != EWOULDBLOCK) error = errno;
-                if (! error && ctx->status == BRPeerStatusConnecting &&
-                    (double)clock()/CLOCKS_PER_SEC > ctx->startTime + CONNECT_TIMEOUT) error = ETIMEDOUT;
+                gettimeofday(&tv, NULL);
+                if (! error && tv.tv_sec + (double)tv.tv_usec/1000000 > ctx->disconnectTime) error = ETIMEDOUT;
             }
             
             BRRWLockUnlock(&ctx->lock);
@@ -1243,7 +1265,7 @@ void BRPeerSendGetblocks(BRPeer *peer, const UInt256 locators[], size_t count, U
     off += sizeof(hashStop);
     
     if (off <= len && count > 0) {
-        peer_log(peer, "calling getheaders with locators: [%s, %s]", uint256_hex_encode(locators[0]),
+        peer_log(peer, "calling getblocks with locators: [%s, %s]", uint256_hex_encode(locators[0]),
                  uint256_hex_encode(locators[count - 1]));
         BRPeerSendMessage(peer, msg, off, MSG_GETBLOCKS);
     }
@@ -1330,8 +1352,10 @@ void BRPeerSendPing(BRPeer *peer, void *info, void (*pongCallback)(void *info, i
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     uint64_t msg = le64(ctx->nonce);
+    struct timeval tv;
     
-    ctx->startTime = (double)clock()/CLOCKS_PER_SEC;
+    gettimeofday(&tv, NULL);
+    ctx->startTime = tv.tv_sec + (double)tv.tv_usec/1000000;
     array_add(ctx->pongInfo, info);
     array_add(ctx->pongCallback, pongCallback);
     BRPeerSendMessage(peer, (uint8_t *)&msg, sizeof(msg), MSG_PING);

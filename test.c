@@ -22,6 +22,8 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#define BITCOIN_TESTNET 1
+
 #include "BRHash.h"
 #include "BRBloomFilter.h"
 #include "BRMerkleBlock.h"
@@ -1470,17 +1472,18 @@ int main(int argc, const char *argv[])
     printf("BRPaymentProtocolTests... ");
     printf("%s\n", (BRPaymentProtocolTests()) ? "success" : (fail++, "***FAIL***"));
     
-//    BRWallet *wallet = BRWalletNew(NULL, 0, BR_MASTER_PUBKEY_NONE, NULL, NULL);
-//    BRPeerManager *manager = BRPeerManagerNew(wallet, 0, NULL, 0, NULL, 0);
-//    int r = 0;
-//    
-//    BRPeerManagerConnect(manager);
-//    while (r == 0 && BRPeerManagerPeerCount(manager) > 0) r = sleep(1);
-//    if (r != 0) printf("sleep got a signal");
-//    BRPeerManagerFree(manager);
-//    BRWalletFree(wallet);
-    
     if (fail > 0) printf("\n%d TEST FUNCTION(S) ***FAILED***\n", fail);
     else printf("\nALL TESTS PASSED\n");
+
+    BRWallet *wallet = BRWalletNew(NULL, 0, BR_MASTER_PUBKEY_NONE, NULL, NULL);
+    BRPeerManager *manager = BRPeerManagerNew(wallet, 0, NULL, 0, NULL, 0);
+    int r = 0;
+
+    BRPeerManagerConnect(manager);
+    while (r == 0 && BRPeerManagerPeerCount(manager) > 0) r = sleep(1);
+    if (r != 0) printf("sleep got a signal");
+    BRPeerManagerFree(manager);
+    BRWalletFree(wallet);
+
     return (fail == 0) ? 0 : 1;
 }
