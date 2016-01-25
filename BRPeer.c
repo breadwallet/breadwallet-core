@@ -171,7 +171,7 @@ static void BRPeerErrorDisconnect(BRPeer *peer, int error)
         if (ctx->socket >= 0) close(ctx->socket);
         ctx->socket = -1;
         
-        while (array_count(ctx->pongCallback) > 0) {
+        while (array_count(ctx->pongCallback) > 0) { // BUG: XXX exec-bad-access pongCallback == NULL
             void (*pongCallback)(void *, int) = array_last(ctx->pongCallback);
             void *pongInfo = array_last(ctx->pongInfo);
 

@@ -369,12 +369,12 @@ static void BRPeerManagerFindPeers(BRPeerManager *manager)
 
     for (size_t i = 1; i < sizeof(dns_seeds)/sizeof(*dns_seeds); i++) {
         if (errors[i] == 0 && pthread_join(threads[i], (void **)&addrList) == 0) {
-            for (addr = addrList; ! UInt128IsZero(*addr); addr++) {
+            for (addr = addrList; addr && ! UInt128IsZero(*addr); addr++) {
                 age = 3*24*60*60 + BRRand(4*24*60*60); // add between 3 and 7 days
                 array_add(manager->peers, ((BRPeer) { *addr, STANDARD_PORT, SERVICES_NODE_NETWORK, now - age, 0 }));
             }
             
-            free(addrList);
+            if (addrList) free(addrList);
         }
     }
     
@@ -685,7 +685,7 @@ void BRPeerManagerConnect(BRPeerManager *manager)
     for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
         BRPeer *p = manager->connectedPeers[i - 1];
 
-        if (BRPeerConnectStatus(p) == BRPeerStatusDisconnected) { // BUG: exec-bad-access p == NULL ?
+        if (BRPeerConnectStatus(p) == BRPeerStatusDisconnected) { // BUG: XXX exec-bad-access p == NULL
             array_rm(manager->connectedPeers, i - 1);
             BRPeerFree(p);
         }

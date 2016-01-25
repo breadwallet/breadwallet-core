@@ -1441,7 +1441,7 @@ int BRPaymentProtocolTests()
     return r;
 }
 
-int main(int argc, const char *argv[])
+int BRRunTests(void)
 {
     int fail = 0;
     
@@ -1475,15 +1475,22 @@ int main(int argc, const char *argv[])
     if (fail > 0) printf("\n%d TEST FUNCTION(S) ***FAILED***\n", fail);
     else printf("\nALL TESTS PASSED\n");
 
-    BRWallet *wallet = BRWalletNew(NULL, 0, BR_MASTER_PUBKEY_NONE, NULL, NULL);
-    BRPeerManager *manager = BRPeerManagerNew(wallet, 0, NULL, 0, NULL, 0);
-    int r = 0;
+//    BRWallet *wallet = BRWalletNew(NULL, 0, BR_MASTER_PUBKEY_NONE, NULL, NULL);
+//    BRPeerManager *manager = BRPeerManagerNew(wallet, 0, NULL, 0, NULL, 0);
+//    int r = 0;
+//
+//    BRPeerManagerConnect(manager);
+//    while (r == 0 && BRPeerManagerPeerCount(manager) > 0) r = sleep(1);
+//    if (r != 0) printf("sleep got a signal");
+//    BRPeerManagerFree(manager);
+//    BRWalletFree(wallet);
 
-    BRPeerManagerConnect(manager);
-    while (r == 0 && BRPeerManagerPeerCount(manager) > 0) r = sleep(1);
-    if (r != 0) printf("sleep got a signal");
-    BRPeerManagerFree(manager);
-    BRWalletFree(wallet);
-
-    return (fail == 0) ? 0 : 1;
+    return fail;
 }
+
+#ifndef BITCOIN_TEST_NO_MAIN
+int main(int argc, const char *argv[])
+{
+    return (BRRunTests() == 0) ? 0 : 1;
+}
+#endif
