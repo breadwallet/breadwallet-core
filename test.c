@@ -921,6 +921,15 @@ int BRWalletTests()
     if (BRWalletBalance(w) != SATOSHIS)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletRegisterTransaction() test 2\n", __func__);
 
+    BRWalletFree(w);
+    tx = BRTransactionNew();
+    BRTransactionAddInput(tx, UINT256_ZERO, 0, inScript, inScriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddOutput(tx, SATOSHIS, outScript, outScriptLen);
+    BRTransactionSign(tx, &k, 1);
+    w = BRWalletNew(&tx, 1, mpk, NULL, walletSeed);
+    if (BRWalletBalance(w) != SATOSHIS)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletNew() test\n", __func__);
+
     UInt256 hash = tx->txHash;
 
     tx = BRWalletCreateTransaction(w, SATOSHIS*2, addr.s);
@@ -946,6 +955,7 @@ int BRWalletTests()
     
     printf("\n                          ");
     BRWalletFree(w);
+    
     return r;
 }
 
@@ -1441,7 +1451,7 @@ int BRPaymentProtocolTests()
     return r;
 }
 
-int BRRunTests(void)
+int BRRunTests()
 {
     int fail = 0;
     
