@@ -122,7 +122,7 @@ typedef struct {
     void (**pongCallback)(void *info, int success); // yes, that's right, a pointer to a function pointer
     BRTransaction *(*requestedTx)(void *info, UInt256 txHash);
     int (*networkIsReachable)(void *info);
-    BRRWLock lock;
+//    BRRWLock lock;
     pthread_t thread;
 } BRPeerContext;
 
@@ -141,7 +141,7 @@ BRPeer *BRPeerNew()
     BRPeerContext *ctx = calloc(1, sizeof(BRPeerContext));
 
     ctx->socket = -1;
-    BRRWLockInit(&ctx->lock);
+//    BRRWLockInit(&ctx->lock);
     return &ctx->peer;
 }
 
@@ -166,7 +166,7 @@ static void BRPeerErrorDisconnect(BRPeer *peer, int error)
     // otherwise the descriptor can get immediately re-used, and any subsequent writes will result in file corruption
     if (ctx->socket >= 0) {
         shutdown(ctx->socket, SHUT_RDWR);
-        BRRWLockWrite(&ctx->lock); // block until all socket writes are done
+//        BRRWLockWrite(&ctx->lock); // block until all socket writes are done
         ctx->status = BRPeerStatusDisconnected;
         if (ctx->socket >= 0) close(ctx->socket);
         ctx->socket = -1;
@@ -177,12 +177,12 @@ static void BRPeerErrorDisconnect(BRPeer *peer, int error)
 
             array_rm_last(ctx->pongCallback);
             array_rm_last(ctx->pongInfo);
-            BRRWLockUnlock(&ctx->lock);
+//            BRRWLockUnlock(&ctx->lock);
             if (pongCallback) pongCallback(pongInfo, 0);
-            BRRWLockWrite(&ctx->lock);
+//            BRRWLockWrite(&ctx->lock);
         }
         
-        BRRWLockUnlock(&ctx->lock);
+//        BRRWLockUnlock(&ctx->lock);
         peer_log(peer, "disconnected");
         if (ctx->disconnected) ctx->disconnected(ctx->info, error);
     }
@@ -943,7 +943,7 @@ static void *BRPeerThreadRoutine(void *arg)
         }
     }
 
-    BRPeerErrorDisconnect(peer, error);
+    BRPeerErrorDisconnect(peer, error); // BUG: XXX if BRPeerAcceptMessage disconnected, this will be called twice
     return NULL; // detached threads don't need to return a value
 }
 
@@ -1139,7 +1139,7 @@ void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char 
         peer_log(peer, "sending %s", type);
         
         if (ctx->socket >= 0) {
-            BRRWLockRead(&ctx->lock); // obtain a read lock on peer to write to the socket
+//            BRRWLockRead(&ctx->lock); // obtain a read lock on peer to write to the socket
             len = 0;
             
             while (! error && len < sizeof(buf)) {
@@ -1150,7 +1150,7 @@ void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char 
                 if (! error && tv.tv_sec + (double)tv.tv_usec/1000000 > ctx->disconnectTime) error = ETIMEDOUT;
             }
             
-            BRRWLockUnlock(&ctx->lock);
+//            BRRWLockUnlock(&ctx->lock);
         }
         
         if (error) {
@@ -1380,7 +1380,7 @@ void BRPeerFree(BRPeer *peer)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     
-    BRRWLockWrite(&ctx->lock);
+//    BRRWLockWrite(&ctx->lock);
     if (ctx->useragent) array_free(ctx->useragent);
     if (ctx->currentBlockTxHashes) array_free(ctx->currentBlockTxHashes);
     if (ctx->knownBlockHashes) array_free(ctx->knownBlockHashes);
@@ -1388,7 +1388,7 @@ void BRPeerFree(BRPeer *peer)
     if (ctx->knownTxHashSet) BRSetFree(ctx->knownTxHashSet);
     if (ctx->pongInfo) array_free(ctx->pongInfo);
     if (ctx->pongCallback) array_free(ctx->pongCallback);
-    BRRWLockUnlock(&ctx->lock);
-    BRRWLockDestroy(&ctx->lock);
+//    BRRWLockUnlock(&ctx->lock);
+//    BRRWLockDestroy(&ctx->lock);
     free(ctx);
 }

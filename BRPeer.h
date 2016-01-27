@@ -85,6 +85,8 @@ typedef struct {
 
 #define BR_PEER_NONE ((BRPeer) { UINT128_ZERO, 0, 0, 0, 0 })
 
+// NOTE: BRPeer functions are not thread-safe
+
 // returns a newly allocated BRPeer struct that must be freed by calling BRPeerFree()
 BRPeer *BRPeerNew();
 

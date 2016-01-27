@@ -250,17 +250,20 @@ static void loadMempoolsMempoolDone(void *info, int success)
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
 
     free(info);
+    BRRWLockWrite(&manager->lock);
     
     if (success) {
-        peer->flags &= PEER_FLAG_SYNCED;
+        peer->flags |= PEER_FLAG_SYNCED;
         BRPeerSendGetaddr(peer); // request a list of other bitcoin peers
         BRPeerManagerRmUnrelayedTx(manager);
     }
 
     if (peer == manager->downloadPeer) {
         BRPeerManagerSyncStopped(manager);
+        BRRWLockUnlock(&manager->lock);
         if (manager->syncSucceded) manager->syncSucceded(manager->callbackInfo);
     }
+    else BRRWLockUnlock(&manager->lock);
 }
 
 static void loadMempoolsInvDone(void *info, int success)
@@ -268,17 +271,22 @@ static void loadMempoolsInvDone(void *info, int success)
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
 
+    BRRWLockWrite(&manager->lock);
+    
     if (success) {
         BRPeerSendMempool(peer);
         BRPeerSendPing(peer, info, loadMempoolsMempoolDone);
+        BRRWLockUnlock(&manager->lock);
     }
     else {
         free(info);
         
         if (peer == manager->downloadPeer) {
             BRPeerManagerSyncStopped(manager);
+            BRRWLockUnlock(&manager->lock);
             if (manager->syncSucceded) manager->syncSucceded(manager->callbackInfo);
         }
+        else BRRWLockUnlock(&manager->lock);
     }
 }
 
@@ -372,6 +380,7 @@ static void BRPeerManagerFindPeers(BRPeerManager *manager)
             for (addr = addrList; addr && ! UInt128IsZero(*addr); addr++) {
                 age = 3*24*60*60 + BRRand(4*24*60*60); // add between 3 and 7 days
                 array_add(manager->peers, ((BRPeer) { *addr, STANDARD_PORT, SERVICES_NODE_NETWORK, now - age, 0 }));
+                // BUG: XXX ^ double free when two peerDisconnected threads are calling BRPeerManagerConnect
             }
             
             if (addrList) free(addrList);
@@ -387,19 +396,24 @@ static void peerConnectedMempoolDone(void *info, int success)
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
 
     if (success) {
+        BRRWLockWrite(&manager->lock);
         peer->flags |= PEER_FLAG_SYNCED;
         BRPeerSendGetaddr(peer); // request a list of other bitcoin peers
         BRPeerManagerRmUnrelayedTx(manager);
+        BRRWLockUnlock(&manager->lock);
     }
 }
 
 static void peerConnectedFilterloadDone(void *info, int success)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
-
+    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+    
     if (success) {
+        BRRWLockWrite(&manager->lock);
         BRPeerSendMempool(peer);
         BRPeerSendPing(peer, info, peerConnectedMempoolDone);
+        BRRWLockUnlock(&manager->lock);
     }
 }
 
@@ -409,6 +423,7 @@ static void peerConnected(void *info)
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
     time_t now = time(NULL);
     
+    BRRWLockWrite(&manager->lock);
     if (peer->timestamp > now + 2*60*60 || peer->timestamp < now - 2*60*60) peer->timestamp = now; // sanity check
     manager->connectFailures = 0;
     
@@ -416,6 +431,7 @@ static void peerConnected(void *info)
     // TODO: XXX does this work with 0.11 pruned nodes?
     if (! (peer->services & SERVICES_NODE_NETWORK) ||
         BRPeerLastBlock(peer) + 10 < manager->lastBlock->height) {
+        BRRWLockUnlock(&manager->lock);
         BRPeerDisconnect(peer);
     }
     else {
@@ -477,6 +493,8 @@ static void peerConnected(void *info)
             }
             else BRPeerManagerLoadMempools(manager); // we're already synced
         }
+        
+        BRRWLockUnlock(&manager->lock);
     }
 }
 
@@ -484,6 +502,8 @@ static void peerDisconnected(void *info, int error)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+    
+    BRRWLockWrite(&manager->lock);
     
     if (error == EPROTO) { // if it's protocol error, the peer isn't following standard policy
         BRPeerManagerPeerMisbehavin(manager, peer);
@@ -513,12 +533,15 @@ static void peerDisconnected(void *info, int error)
         
         // clear out stored peers so we get a fresh list from DNS on next connect attempt
         array_clear(manager->peers);
+        BRRWLockUnlock(&manager->lock);
         if (manager->savePeers) manager->savePeers(manager->callbackInfo, NULL, 0);
         if (manager->syncFailed) manager->syncFailed(manager->callbackInfo, error);
     }
     else if (manager->connectFailures < MAX_CONNECT_FAILURES) {
+        BRRWLockUnlock(&manager->lock);
         BRPeerManagerConnect(manager); // try connecting to another peer
     }
+    else BRRWLockUnlock(&manager->lock);
     
     if (manager->txStatusUpdate) manager->txStatusUpdate(manager->callbackInfo);
     free(info);
@@ -526,23 +549,29 @@ static void peerDisconnected(void *info, int error)
 
 static void peerRelayedPeers(void *info, const BRPeer peers[], size_t count)
 {
-    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
+//    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
 
+    BRRWLockWrite(&manager->lock);
     qsort(manager->peers, array_count(manager->peers), sizeof(*manager->peers), BRPeerTimestampCompare);
+    BRRWLockUnlock(&manager->lock);
 }
 
 static void peerRelayedTx(void *info, BRTransaction *tx)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
-    int syncing = (manager->lastBlock->height < BRPeerLastBlock(manager->downloadPeer));
+    int syncing;
     
+    BRRWLockWrite(&manager->lock);
+    syncing = (manager->lastBlock->height < BRPeerLastBlock(manager->downloadPeer));
     peer_log(peer, "relayed tx: %s", uint256_hex_encode(tx->txHash));
     
     if (syncing && peer == manager->downloadPeer && BRWalletContainsTransaction(manager->wallet, tx)) {
         BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT); // reschedule sync timeout
     }
+    
+    BRRWLockUnlock(&manager->lock);
 }
 
 static void peerHasTx(void *info, UInt256 txHash)
@@ -550,48 +579,65 @@ static void peerHasTx(void *info, UInt256 txHash)
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
     BRTransaction *tx = BRWalletTransactionForHash(manager->wallet, txHash);
-    int syncing = (manager->lastBlock->height < BRPeerLastBlock(manager->downloadPeer));
+    int syncing;
     
+    BRRWLockWrite(&manager->lock);
+    syncing = (manager->lastBlock->height < BRPeerLastBlock(manager->downloadPeer));
     peer_log(peer, "has tx: %s", uint256_hex_encode(txHash));
 
     if (syncing && peer == manager->downloadPeer && BRWalletContainsTransaction(manager->wallet, tx)) {
         BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT); // reschedule sync timeout
     }
+    
+    BRRWLockUnlock(&manager->lock);
 }
 
 static void peerRejectedTx(void *info, UInt256 txHash, uint8_t code)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
-    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
-    
+//    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+//
+//    BRRWLockWrite(&manager->lock);
     peer_log(peer, "rejected tx: %s", uint256_hex_encode(txHash));
+//    BRRWLockUnlock(&manager->lock);
 }
 
 static void peerRelayedBlock(void *info, BRMerkleBlock *block)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
-    int syncing = (manager->lastBlock->height < BRPeerLastBlock(manager->downloadPeer));
-
+    int syncing;
+    
+    BRRWLockWrite(&manager->lock);
+    syncing = (manager->lastBlock->height < BRPeerLastBlock(manager->downloadPeer));
     peer_log(peer, "relayed block: %s", uint256_hex_encode(block->blockHash));
     
     if (syncing && peer == manager->downloadPeer) {
         BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT); // reschedule sync timeout
     }
+    
+    BRRWLockUnlock(&manager->lock);
 }
 
 static void peerDataNotfound(void *info, const UInt256 txHashes[], size_t txCount,
                              const UInt256 blockHashes[], size_t blockCount)
 {
-    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
-    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+//    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
+//    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+//
+//    BRRWLockWrite(&manager->lock);
+//
+//    BRRWLockUnlock(&manager->lock);
 }
 
 static BRTransaction *peerRequestedTx(void *info, UInt256 txHash)
 {
-    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
-    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
-
+//    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
+//    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+//
+//    BRRWLockWrite(&manager->lock);
+//
+//    BRRWLockUnlock(&manager->lock);
     return NULL;
 }
 
@@ -645,6 +691,7 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
     return manager;
 }
 
+// not thread-safe, set callbacks once before calling BRPeerManagerConnect()
 void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*syncStarted)(void *info),
                                void (*syncSucceded)(void *info),
@@ -669,15 +716,21 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
 // true if currently connected to at least one peer
 int BRPeerMangerIsConnected(BRPeerManager *manager)
 {
-    return manager->connected;
+    int connected;
+    
+    BRRWLockRead(&manager->lock);
+    connected = manager->connected;
+    BRRWLockUnlock(&manager->lock);
+    return connected;
 }
 
 // connect to bitcoin peer-to-peer network (also call this whenever networkIsReachable() status changes)
 void BRPeerManagerConnect(BRPeerManager *manager)
 {
+    BRRWLockWrite(&manager->lock);
     if (manager->connectFailures >= MAX_CONNECT_FAILURES) manager->connectFailures = 0; // this is a manual retry
     
-    if (BRPeerManagerSyncProgress(manager) < 1.0 - DBL_EPSILON) {
+    if (BRPeerManagerSyncProgress(manager) + DBL_EPSILON < 1.0) {
         if (manager->syncStartHeight == 0) manager->syncStartHeight = manager->lastBlock->height;
         if (manager->syncStarted) manager->syncStarted(manager->callbackInfo);
     }
@@ -736,6 +789,8 @@ void BRPeerManagerConnect(BRPeerManager *manager)
             if (manager->syncFailed) manager->syncFailed(manager->callbackInfo, ENETUNREACH);
         }
     }
+    
+    BRRWLockUnlock(&manager->lock);
 }
 
 // rescan blockchain for potentially missing transactions
@@ -746,7 +801,12 @@ void BRPeerManagerRescan(BRPeerManager *manager)
 // current proof-of-work verified best block height
 uint32_t BRPeerManagerLastBlockHeight(BRPeerManager *manager)
 {
-    return manager->lastBlock->height;
+    uint32_t height;
+    
+    BRRWLockRead(&manager->lock);
+    height = manager->lastBlock->height;
+    BRRWLockUnlock(&manager->lock);
+    return height;
 }
 
 // the (unverified) best block height reported by connected peers
@@ -766,11 +826,14 @@ size_t BRPeerManagerPeerCount(BRPeerManager *manager)
 {
     size_t count = 0;
     
+    BRRWLockRead(&manager->lock);
+    
     for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
         if (BRPeerConnectStatus(manager->connectedPeers[i - 1]) == BRPeerStatusConnected ||
             BRPeerConnectStatus(manager->connectedPeers[i - 1]) == BRPeerStatusConnecting) count++;
     }
     
+    BRRWLockUnlock(&manager->lock);
     return count;
 }
 

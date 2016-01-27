@@ -39,6 +39,7 @@ typedef struct _BRPeerManager BRPeerManager;
 BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMerkleBlock *blocks[], size_t blocksCount,
                                 const BRPeer peers[], size_t peersCount);
 
+// not thread-safe, set callbacks once before calling BRPeerManagerConnect()
 void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*syncStarted)(void *info),
                                void (*syncSucceded)(void *info),

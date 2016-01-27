@@ -52,6 +52,7 @@ typedef struct _BRWallet BRWallet;
 BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk, void *info,
                       const void *(*seed)(void *info, const char *authPrompt, uint64_t amount, size_t *seedLen));
 
+// not thread-safe, set callbacks once after BRWalletNew(), before calling other BRWallet functions
 void BRWalletSetCallbacks(BRWallet *wallet, void *info,
                           void (*balanceChanged)(void *info, uint64_t balance),
                           void (*txAdded)(void *info, BRTransaction *tx),

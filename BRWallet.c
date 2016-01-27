@@ -224,6 +224,7 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
     return wallet;
 }
 
+// not thread-safe, set callbacks once after BRWalletNew(), before calling other BRWallet functions
 void BRWalletSetCallbacks(BRWallet *wallet, void *info,
                           void (*balanceChanged)(void *info, uint64_t balance),
                           void (*txAdded)(void *info, BRTransaction *tx),
