@@ -185,6 +185,7 @@ static void BRPeerErrorDisconnect(BRPeer *peer, int error)
 //        BRRWLockUnlock(&ctx->lock);
         peer_log(peer, "disconnected");
         if (ctx->disconnected) ctx->disconnected(ctx->info, error);
+        // BUG: XXX exec_bad_access (ctx points to garbage) called from BRPeerThreadRoutine
     }
 }
 

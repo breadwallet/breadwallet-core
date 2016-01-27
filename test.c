@@ -800,6 +800,9 @@ int BRTransactionTests()
     if (tx) BRTransactionFree(tx);
     tx = BRTransactionParse(buf, len);
 
+    if (! BRTransactionIsSigned(tx))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionParse() test 1\n", __func__);
+
     uint8_t buf2[BRTransactionSerialize(tx, NULL, 0)];
     size_t len2 = BRTransactionSerialize(tx, buf2, sizeof(buf2));
     
@@ -837,7 +840,9 @@ int BRTransactionTests()
     
     if (tx) BRTransactionFree(tx);
     tx = BRTransactionParse(buf3, len3);
-    
+    if (! BRTransactionIsSigned(tx))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionParse() test 2\n", __func__);
+
     uint8_t buf4[BRTransactionSerialize(tx, NULL, 0)];
     size_t len4 = BRTransactionSerialize(tx, buf4, sizeof(buf4));
     
