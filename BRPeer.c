@@ -122,7 +122,6 @@ typedef struct {
     void (**pongCallback)(void *info, int success); // yes, that's right, a pointer to a function pointer
     BRTransaction *(*requestedTx)(void *info, UInt256 txHash);
     int (*networkIsReachable)(void *info);
-//    BRRWLock lock;
     pthread_t thread;
 } BRPeerContext;
 
@@ -141,7 +140,6 @@ BRPeer *BRPeerNew()
     BRPeerContext *ctx = calloc(1, sizeof(BRPeerContext));
 
     ctx->socket = -1;
-//    BRRWLockInit(&ctx->lock);
     return &ctx->peer;
 }
 
@@ -155,37 +153,6 @@ static void BRPeerDidConnect(BRPeer *peer)
         ctx->status = BRPeerStatusConnected;
         peer_log(peer, "connected with lastblock: %u", ctx->lastblock);
         if (ctx->connected) ctx->connected(ctx->info);
-    }
-}
-
-static void BRPeerErrorDisconnect(BRPeer *peer, int error)
-{
-    BRPeerContext *ctx = (BRPeerContext *)peer;
-    
-    // call shutdown() to causes the reader thread to exit before calling close() which releases the socket descriptor,
-    // otherwise the descriptor can get immediately re-used, and any subsequent writes will result in file corruption
-    if (ctx->socket >= 0) {
-        shutdown(ctx->socket, SHUT_RDWR);
-//        BRRWLockWrite(&ctx->lock); // block until all socket writes are done
-        ctx->status = BRPeerStatusDisconnected;
-        if (ctx->socket >= 0) close(ctx->socket);
-        ctx->socket = -1;
-        
-        while (array_count(ctx->pongCallback) > 0) { // BUG: XXX exec-bad-access pongCallback == NULL
-            void (*pongCallback)(void *, int) = array_last(ctx->pongCallback);
-            void *pongInfo = array_last(ctx->pongInfo);
-
-            array_rm_last(ctx->pongCallback);
-            array_rm_last(ctx->pongInfo);
-//            BRRWLockUnlock(&ctx->lock);
-            if (pongCallback) pongCallback(pongInfo, 0);
-//            BRRWLockWrite(&ctx->lock);
-        }
-        
-//        BRRWLockUnlock(&ctx->lock);
-        peer_log(peer, "disconnected");
-        if (ctx->disconnected) ctx->disconnected(ctx->info, error);
-        // BUG: XXX exec_bad_access (ctx points to garbage) called from BRPeerThreadRoutine
     }
 }
 
@@ -864,7 +831,7 @@ static int BRPeerOpenSocket(BRPeer *peer, double timeout)
     return r;
 }
 
-static void *BRPeerThreadRoutine(void *arg)
+static void *peerThreadRoutine(void *arg)
 {
     BRPeer *peer = arg;
     BRPeerContext *ctx = arg;
@@ -943,8 +910,22 @@ static void *BRPeerThreadRoutine(void *arg)
             }
         }
     }
-
-    BRPeerErrorDisconnect(peer, error); // BUG: XXX if BRPeerAcceptMessage disconnected, this will be called twice
+    
+    ctx->status = BRPeerStatusDisconnected;
+    if (ctx->socket >= 0) close(ctx->socket);
+    ctx->socket = -1;
+        
+    while (array_count(ctx->pongCallback) > 0) {
+        void (*pongCallback)(void *, int) = array_last(ctx->pongCallback);
+        void *pongInfo = array_last(ctx->pongInfo);
+            
+        array_rm_last(ctx->pongCallback);
+        array_rm_last(ctx->pongInfo);
+        if (pongCallback) pongCallback(pongInfo, 0);
+    }
+    
+    peer_log(peer, "disconnected");
+    if (ctx->disconnected) ctx->disconnected(ctx->info, error);
     return NULL; // detached threads don't need to return a value
 }
 
@@ -1049,7 +1030,7 @@ void BRPeerConnect(BRPeer *peer)
             else if (pthread_attr_setstacksize(&attr, 512*1024) != 0 || // set stack size (there's no standard)
                      // set thread detached so it'll free resources immediately on exit without waiting for join
                      pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0 ||
-                     pthread_create(&ctx->thread, &attr, BRPeerThreadRoutine, peer) != 0) {
+                     pthread_create(&ctx->thread, &attr, peerThreadRoutine, peer) != 0) {
                 peer_log(peer, "error creating thread");
                 ctx->status = BRPeerStatusDisconnected;
                 pthread_attr_destroy(&attr);
@@ -1061,7 +1042,7 @@ void BRPeerConnect(BRPeer *peer)
 // close connection to peer
 void BRPeerDisconnect(BRPeer *peer)
 {
-    BRPeerErrorDisconnect(peer, 0); // disconnect with no error
+    shutdown(((BRPeerContext *)peer)->socket, SHUT_RDWR);
 }
 
 // call this when wallet addresses need to be added to bloom filter
@@ -1140,7 +1121,6 @@ void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char 
         peer_log(peer, "sending %s", type);
         
         if (ctx->socket >= 0) {
-//            BRRWLockRead(&ctx->lock); // obtain a read lock on peer to write to the socket
             len = 0;
             
             while (! error && len < sizeof(buf)) {
@@ -1150,13 +1130,11 @@ void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char 
                 gettimeofday(&tv, NULL);
                 if (! error && tv.tv_sec + (double)tv.tv_usec/1000000 > ctx->disconnectTime) error = ETIMEDOUT;
             }
-            
-//            BRRWLockUnlock(&ctx->lock);
         }
         
         if (error) {
             peer_log(peer, "%s", strerror(error));
-            BRPeerErrorDisconnect(peer, error);
+            if (ctx->socket >= 0) shutdown(ctx->socket, SHUT_RDWR);
         }
     }
 }
@@ -1381,7 +1359,6 @@ void BRPeerFree(BRPeer *peer)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     
-//    BRRWLockWrite(&ctx->lock);
     if (ctx->useragent) array_free(ctx->useragent);
     if (ctx->currentBlockTxHashes) array_free(ctx->currentBlockTxHashes);
     if (ctx->knownBlockHashes) array_free(ctx->knownBlockHashes);
@@ -1389,7 +1366,5 @@ void BRPeerFree(BRPeer *peer)
     if (ctx->knownTxHashSet) BRSetFree(ctx->knownTxHashSet);
     if (ctx->pongInfo) array_free(ctx->pongInfo);
     if (ctx->pongCallback) array_free(ctx->pongCallback);
-//    BRRWLockUnlock(&ctx->lock);
-//    BRRWLockDestroy(&ctx->lock);
     free(ctx);
 }

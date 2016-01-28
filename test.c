@@ -921,10 +921,16 @@ int BRWalletTests()
     if (BRWalletBalance(w) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletRegisterTransaction() test 1\n", __func__);
 
+    if (BRWalletTransactions(w, NULL, 0) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletTransactions() test 1\n", __func__);
+
     BRTransactionSign(tx, &k, 1);
     BRWalletRegisterTransaction(w, tx);
     if (BRWalletBalance(w) != SATOSHIS)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletRegisterTransaction() test 2\n", __func__);
+
+    if (BRWalletTransactions(w, NULL, 0) != 1)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletTransactions() test 2\n", __func__);
 
     BRWalletFree(w);
     tx = BRTransactionNew();
@@ -951,8 +957,11 @@ int BRWalletTests()
     if (tx && BRWalletBalance(w) + BRWalletFeeForTx(w, tx) != SATOSHIS/2)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletRegisterTransaction() test 3\n", __func__);
     
+    if (BRWalletTransactions(w, NULL, 0) != 2)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletTransactions() test 3\n", __func__);
+    
     BRWalletRemoveTransaction(w, hash); // removing first tx should recursively remove second, leaving none
-    if (BRWalletTransactions(w, NULL, 0) > 0)
+    if (BRWalletTransactions(w, NULL, 0) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletRemoveTransaction() test\n", __func__);
 
     if (! BRAddressEq(BRWalletReceiveAddress(w).s, recvAddr.s)) // verify used addresses are correctly tracked
