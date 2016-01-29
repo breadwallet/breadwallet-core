@@ -119,7 +119,7 @@ typedef struct {
                      size_t blockCount);
     void (*relayedBlock)(void *info, BRMerkleBlock *block);
     void **pongInfo;
-    void (**pongCallback)(void *info, int success); // yes, that's right, a pointer to a function pointer
+    void (**pongCallback)(void *info, int success);
     BRTransaction *(*requestedTx)(void *info, UInt256 txHash);
     int (*networkIsReachable)(void *info);
     pthread_t thread;
@@ -847,7 +847,7 @@ static void *peerThreadRoutine(void *arg)
         ctx->startTime = tv.tv_sec + (double)tv.tv_usec/1000000;
         BRPeerSendVersionMessage(peer);
         
-        while (! error && ctx->socket >= 0) {
+        while (! error) {
             len = 0;
 
             while (! error && len < HEADER_LENGTH) {
@@ -912,7 +912,7 @@ static void *peerThreadRoutine(void *arg)
     }
     
     ctx->status = BRPeerStatusDisconnected;
-    if (ctx->socket >= 0) close(ctx->socket);
+    close(ctx->socket);
     ctx->socket = -1;
         
     while (array_count(ctx->pongCallback) > 0) {

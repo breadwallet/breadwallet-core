@@ -1512,6 +1512,8 @@ int BRRunTests()
     return (fail == 0);
 }
 
+#include <errno.h>
+
 #ifndef BITCOIN_TEST_NO_MAIN
 int main(int argc, const char *argv[])
 {
