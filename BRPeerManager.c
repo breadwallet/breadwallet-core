@@ -141,6 +141,7 @@ typedef struct {
     BRPeer *peers;
 } BRTxPeerList;
 
+// true if peer is contained in the list of peers associated with txHash
 static int BRTxPeerListHasPeer(const BRTxPeerList *list, UInt256 txHash, const BRPeer *peer)
 {
     for (size_t i = array_count(list); i > 0; i--) {
@@ -156,6 +157,7 @@ static int BRTxPeerListHasPeer(const BRTxPeerList *list, UInt256 txHash, const B
     return 0;
 }
 
+// adds peer to the list of peers associated with txHash and returns the new memory location for list
 static BRTxPeerList *BRTxPeerListAddPeer(BRTxPeerList *list, UInt256 txHash, const BRPeer *peer)
 {
     for (size_t i = array_count(list); i > 0; i--) {
@@ -174,15 +176,14 @@ static BRTxPeerList *BRTxPeerListAddPeer(BRTxPeerList *list, UInt256 txHash, con
     return list;
 }
 
+// removes peer from the list of peers associated with txHash
 static void BRTxPeerListRemovePeer(BRTxPeerList *list, UInt256 txHash, const BRPeer *peer)
 {
     for (size_t i = array_count(list); i > 0; i--) {
         if (! UInt256Eq(list[i - 1].txHash, txHash)) continue;
         
         for (size_t j = array_count(list[i - 1].peers); j > 0; j--) {
-            if (! BRPeerEq(&list[i - 1].peers[j - 1], peer)) continue;
-            array_rm(list[i - 1].peers, j - 1);
-            break;
+            if (BRPeerEq(&list[i - 1].peers[j - 1], peer)) array_rm(list[i - 1].peers, j - 1);
         }
         
         break;
@@ -727,7 +728,7 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
         block->target = checkpoint_array[i].target;
         BRSetAdd(manager->checkpoints, block);
         BRSetAdd(manager->blocks, block);
-        if (! manager->lastBlock || block->height > manager->lastBlock->height) manager->lastBlock = block;
+        if (i == 0 || block->timestamp + 7*24*60*60 < manager->earliestKeyTime) manager->lastBlock = block;
     }
 
     for (size_t i = 0; i < blocksCount; i++) {
@@ -848,9 +849,36 @@ void BRPeerManagerConnect(BRPeerManager *manager)
     BRRWLockUnlock(&manager->lock);
 }
 
-// rescan blockchain for potentially missing transactions
+// rescans blocks and transactions after earliestKeyTime (a new random download peer is also selected due to the
+// possibility that a malicious node might lie by omitting transactions that match the bloom filter)
 void BRPeerManagerRescan(BRPeerManager *manager)
 {
+    BRRWLockWrite(&manager->lock);
+    
+    if (manager->connected) {
+        // start the chain download from the most recent checkpoint that's at least a week older than earliestKeyTime
+        for (size_t i = CHECKPOINT_COUNT; i > 0; i--) {
+            if (i - 1 == 0 || checkpoint_array[i - 1].timestamp + 7*24*60*60 < manager->earliestKeyTime) {
+                UInt256 hash = UInt256Reverse(uint256_hex_decode(checkpoint_array[i - 1].hash));
+
+                manager->lastBlock = BRSetGet(manager->blocks, &hash);
+                break;
+            }
+        }
+        
+        if (manager->downloadPeer) { // disconnect the current download peer so a new random one will be selected
+            for (size_t i = array_count(manager->peers); i > 0; i--) {
+                if (BRPeerEq(&manager->peers[i - 1], manager->downloadPeer)) array_rm(manager->peers, i - 1);
+            }
+            
+            BRPeerDisconnect(manager->downloadPeer);
+        }
+
+        manager->syncStartHeight = manager->lastBlock->height;
+        BRRWLockUnlock(&manager->lock);
+        BRPeerManagerConnect(manager);
+    }
+    else BRRWLockUnlock(&manager->lock);
 }
 
 // current proof-of-work verified best block height
@@ -912,7 +940,7 @@ size_t BRPeerManagerPeerCount(BRPeerManager *manager)
     return count;
 }
 
-void publixhTxInvDone(void *info, int success)
+void publishTxInvDone(void *info, int success)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
@@ -969,7 +997,7 @@ void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *inf
             pongInfo = calloc(1, sizeof(pongInfo));
             pongInfo->peer = peer;
             pongInfo->manager = manager;
-            BRPeerSendPing(peer, pongInfo, publixhTxInvDone);
+            BRPeerSendPing(peer, pongInfo, publishTxInvDone);
         }
 
         BRRWLockUnlock(&manager->lock);

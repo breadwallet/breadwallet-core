@@ -40,6 +40,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <time.h>
 #include <unistd.h>
 #include <arpa/inet.h>
@@ -904,10 +905,10 @@ int BRWalletTests()
     BRKeyAddress(&k, addr.s, sizeof(addr));
     
     tx = BRWalletCreateTransaction(w, 0, addr.s);
-    if (tx) r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletCreateTransaction() test 1\n", __func__);
+    if (tx) r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletCreateTransaction() test 0\n", __func__);
     
     tx = BRWalletCreateTransaction(w, SATOSHIS, addr.s);
-    if (tx) r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletCreateTransaction() test 2\n", __func__);
+    if (tx) r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletCreateTransaction() test 1\n", __func__);
     
     uint8_t inScript[BRAddressScriptPubKey(NULL, 0, addr.s)];
     size_t inScriptLen = BRAddressScriptPubKey(inScript, sizeof(inScript), addr.s);
@@ -932,6 +933,10 @@ int BRWalletTests()
     if (BRWalletTransactions(w, NULL, 0) != 1)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletTransactions() test 2\n", __func__);
 
+    BRWalletRegisterTransaction(w, tx); // test adding same tx twice
+    if (BRWalletBalance(w) != SATOSHIS)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletRegisterTransaction() test 3\n", __func__);
+
     BRWalletFree(w);
     tx = BRTransactionNew();
     BRTransactionAddInput(tx, UINT256_ZERO, 0, inScript, inScriptLen, NULL, 0, TXIN_SEQUENCE);
@@ -944,10 +949,10 @@ int BRWalletTests()
     UInt256 hash = tx->txHash;
 
     tx = BRWalletCreateTransaction(w, SATOSHIS*2, addr.s);
-    if (tx) r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletCreateTransaction() test 2\n", __func__);
+    if (tx) r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletCreateTransaction() test 3\n", __func__);
     
     tx = BRWalletCreateTransaction(w, SATOSHIS/2, addr.s);
-    if (! tx) r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletCreateTransaction() test 3\n", __func__);
+    if (! tx) r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletCreateTransaction() test 4\n", __func__);
 
     if (tx) BRWalletSignTransaction(w, tx, NULL);
     if (tx && ! BRTransactionIsSigned(tx))
@@ -955,7 +960,7 @@ int BRWalletTests()
     
     if (tx) BRWalletRegisterTransaction(w, tx);
     if (tx && BRWalletBalance(w) + BRWalletFeeForTx(w, tx) != SATOSHIS/2)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletRegisterTransaction() test 3\n", __func__);
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletRegisterTransaction() test 4\n", __func__);
     
     if (BRWalletTransactions(w, NULL, 0) != 2)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletTransactions() test 3\n", __func__);
@@ -1499,20 +1504,18 @@ int BRRunTests()
     if (fail > 0) printf("\n%d TEST FUNCTION(S) ***FAILED***\n", fail);
     else printf("\nALL TESTS PASSED\n");
 
-    BRWallet *wallet = BRWalletNew(NULL, 0, BR_MASTER_PUBKEY_NONE, NULL, NULL);
-    BRPeerManager *manager = BRPeerManagerNew(wallet, 0, NULL, 0, NULL, 0);
-    int r = 0;
-
-    BRPeerManagerConnect(manager);
-    while (r == 0 && BRPeerManagerPeerCount(manager) > 0) r = sleep(1);
-    if (r != 0) printf("sleep got a signal");
-    BRPeerManagerFree(manager);
-    BRWalletFree(wallet);
+//    BRWallet *wallet = BRWalletNew(NULL, 0, BR_MASTER_PUBKEY_NONE, NULL, NULL);
+//    BRPeerManager *manager = BRPeerManagerNew(wallet, 0, NULL, 0, NULL, 0);
+//    int r = 0;
+//
+//    BRPeerManagerConnect(manager);
+//    while (r == 0 && BRPeerManagerPeerCount(manager) > 0) r = sleep(1);
+//    if (r != 0) printf("sleep got a signal");
+//    BRPeerManagerFree(manager);
+//    BRWalletFree(wallet);
 
     return (fail == 0);
 }
-
-#include <errno.h>
 
 #ifndef BITCOIN_TEST_NO_MAIN
 int main(int argc, const char *argv[])

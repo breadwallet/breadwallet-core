@@ -56,7 +56,8 @@ int BRPeerMangerIsConnected(BRPeerManager *manager);
 // connect to bitcoin peer-to-peer network (also call this whenever networkIsReachable() status changes)
 void BRPeerManagerConnect(BRPeerManager *manager);
 
-// rescan blockchain for potentially missing transactions
+// rescans blocks and transactions after earliestKeyTime (a new random download peer is also selected due to the
+// possibility that a malicious node might lie by omitting transactions that match the bloom filter)
 void BRPeerManagerRescan(BRPeerManager *manager);
 
 // current proof-of-work verified best block height

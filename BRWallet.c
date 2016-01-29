@@ -189,38 +189,35 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
     BRWallet *wallet = NULL;
     BRTransaction *tx;
 
-    if (memcmp(&mpk, &BR_MASTER_PUBKEY_NONE, sizeof(mpk)) != 0) {
-        wallet = calloc(1, sizeof(BRWallet));
-        array_new(wallet->utxos, 100);
-        array_new(wallet->transactions, txCount + 100);
-        wallet->feePerKb = DEFAULT_FEE_PER_KB;
-        wallet->masterPubKey = mpk;
-        array_new(wallet->internalChain, txCount/2 + 100);
-        array_new(wallet->externalChain, txCount/2 + 100);
-        array_new(wallet->balanceHist, txCount + 100);
-        wallet->allTx = BRSetNew(BRTransactionHash, BRTransactionEq, txCount + 100);
-        wallet->invalidTx = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
-        wallet->spentOutputs = BRSetNew(BRUTXOHash, BRUTXOEq, txCount + 100);
-        wallet->usedAddrs = BRSetNew(BRAddressHash, BRAddressEq, txCount*4 + 100);
-        wallet->allAddrs = BRSetNew(BRAddressHash, BRAddressEq, txCount + 200 + 100);
-        wallet->seedInfo = info;
-        wallet->seed = seed;
-        BRRWLockInit(&wallet->lock);
+    wallet = calloc(1, sizeof(BRWallet));
+    array_new(wallet->utxos, 100);
+    array_new(wallet->transactions, txCount + 100);
+    wallet->feePerKb = DEFAULT_FEE_PER_KB;
+    wallet->masterPubKey = mpk;
+    array_new(wallet->internalChain, txCount/2 + 100);
+    array_new(wallet->externalChain, txCount/2 + 100);
+    array_new(wallet->balanceHist, txCount + 100);
+    wallet->allTx = BRSetNew(BRTransactionHash, BRTransactionEq, txCount + 100);
+    wallet->invalidTx = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
+    wallet->spentOutputs = BRSetNew(BRUTXOHash, BRUTXOEq, txCount + 100);
+    wallet->usedAddrs = BRSetNew(BRAddressHash, BRAddressEq, txCount*4 + 100);
+    wallet->allAddrs = BRSetNew(BRAddressHash, BRAddressEq, txCount + 200 + 100);
+    wallet->seedInfo = info;
+    wallet->seed = seed;
+    BRRWLockInit(&wallet->lock);
 
-        for (size_t i = 0; i < txCount; i++) {
-            tx = transactions[i];
-            if (! BRTransactionIsSigned(tx) || BRSetContains(wallet->allTx, tx)) continue;
-            BRSetAdd(wallet->allTx, tx);
-            BRWalletInsertTransaction(wallet, tx);
-            for (size_t j = 0; j < tx->outCount; j++) BRSetAdd(wallet->usedAddrs, tx->outputs[j].address);
-        }
-        
-        BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, 0);
-        BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
-        BRWalletUpdateBalance(wallet);
-        if (wallet->balanceChanged) wallet->balanceChanged(wallet->callbackInfo, wallet->balance);
+    for (size_t i = 0; i < txCount; i++) {
+        tx = transactions[i];
+        if (! BRTransactionIsSigned(tx) || BRSetContains(wallet->allTx, tx)) continue;
+        BRSetAdd(wallet->allTx, tx);
+        BRWalletInsertTransaction(wallet, tx);
+        for (size_t j = 0; j < tx->outCount; j++) BRSetAdd(wallet->usedAddrs, tx->outputs[j].address);
     }
     
+    BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, 0);
+    BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
+    BRWalletUpdateBalance(wallet);
+    if (wallet->balanceChanged) wallet->balanceChanged(wallet->callbackInfo, wallet->balance);
     return wallet;
 }
 
