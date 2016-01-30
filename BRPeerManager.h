@@ -72,7 +72,7 @@ double BRPeerManagerSyncProgress(BRPeerManager *manager);
 // returns the number of currently connected peers
 size_t BRPeerManagerPeerCount(BRPeerManager *manager);
 
-// publishes tx to bitcoin network
+// publishes tx to bitcoin network (do not call BRTransactionFree() on tx afterward)
 void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *info,
                             void (*callback)(void *info, int error));
 

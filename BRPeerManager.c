@@ -134,6 +134,7 @@ inline static int BRBlockHeightEq(const void *block, const void *otherBlock)
 typedef struct {
     BRPeer *peer;
     BRPeerManager *manager;
+    UInt256 hash;
 } BRPeerCallbackInfo;
 
 typedef struct {
@@ -190,6 +191,12 @@ static void BRTxPeerListRemovePeer(BRTxPeerList *list, UInt256 txHash, const BRP
     }
 }
 
+typedef struct {
+    BRTransaction *tx;
+    void *info;
+    void (*callback)(void *info, int error);
+} BRPublishedTx;
+
 struct _BRPeerManager {
     BRWallet *wallet;
     int connected, connectFailures;
@@ -201,11 +208,9 @@ struct _BRPeerManager {
     BRMerkleBlock *lastBlock, *lastOrphan;
     UInt256 *nonFpTx;
     BRTxPeerList *txRelays, *txRequests;
-    BRTransaction **publishedTx;
+    BRPublishedTx *publishedTx;
     UInt256 *publishedTxHash;
-    void **publishedTxInfo;
-    void (**publishedTxCallback)(void *info, int error);
-    void *callbackInfo;
+    void *info;
     void (*syncStarted)(void *info);
     void (*syncSucceded)(void *info);
     void (*syncFailed)(void *info, int error);
@@ -226,18 +231,20 @@ static void BRPeerManagerSyncStopped(BRPeerManager *manager)
 }
 
 // adds transaction to list of tx to be published, along with any unconfirmed inputs
-static void BRPeerManagerAddTxToPublishList(BRPeerManager *manager, BRTransaction *tx)
+static void BRPeerManagerAddTxToPublishList(BRPeerManager *manager, BRTransaction *tx, void *info,
+                                            void (*callback)(void *, int))
 {
     if (tx && tx->blockHeight == TX_UNCONFIRMED) {
         for (size_t i = array_count(manager->publishedTx); i > 0; i--) {
-            if (BRTransactionEq(manager->publishedTx[i - 1], tx)) return;
+            if (BRTransactionEq(manager->publishedTx[i - 1].tx, tx)) return;
         }
         
-        array_add(manager->publishedTx, tx);
+        array_add(manager->publishedTx, ((BRPublishedTx) { tx, info, callback }));
         array_add(manager->publishedTxHash, tx->txHash);
 
         for (size_t i = 0; i < tx->inCount; i++) {
-            BRPeerManagerAddTxToPublishList(manager, BRWalletTransactionForHash(manager->wallet, tx->inputs[i].txHash));
+            BRPeerManagerAddTxToPublishList(manager, BRWalletTransactionForHash(manager->wallet, tx->inputs[i].txHash),
+                                            NULL, NULL);
         }
     }
 }
@@ -315,7 +322,7 @@ static void loadMempoolsMempoolDone(void *info, int success)
     if (peer == manager->downloadPeer) {
         BRPeerManagerSyncStopped(manager);
         BRRWLockUnlock(&manager->lock);
-        if (manager->syncSucceded) manager->syncSucceded(manager->callbackInfo);
+        if (manager->syncSucceded) manager->syncSucceded(manager->info);
     }
     else BRRWLockUnlock(&manager->lock);
 }
@@ -338,7 +345,7 @@ static void loadMempoolsInvDone(void *info, int success)
         if (peer == manager->downloadPeer) {
             BRPeerManagerSyncStopped(manager);
             BRRWLockUnlock(&manager->lock);
-            if (manager->syncSucceded) manager->syncSucceded(manager->callbackInfo);
+            if (manager->syncSucceded) manager->syncSucceded(manager->info);
         }
         else BRRWLockUnlock(&manager->lock);
     }
@@ -350,9 +357,9 @@ static void BRPeerManagerLoadMempools(BRPeerManager *manager)
     for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
         BRPeer *peer = manager->connectedPeers[i - 1];
         BRPeerCallbackInfo *info = calloc(1, sizeof(*info));
-        
-        info->manager = manager;
+
         info->peer = peer;
+        info->manager = manager;
         
         if (peer != manager->downloadPeer || manager->fpRate > BLOOM_REDUCED_FALSEPOSITIVE_RATE*5.0) {
             BRPeerManagerLoadBloomFilter(manager, peer);
@@ -496,7 +503,8 @@ static void peerConnected(void *info)
         for (size_t i = 0; i < unconfirmedCount; i++) {
             if (BRWalletAmountSentByTx(manager->wallet, unconfirmed[i]) > 0 &&
                 BRWalletTransactionIsValid(manager->wallet, unconfirmed[i])) {
-                BRPeerManagerAddTxToPublishList(manager, unconfirmed[i]); // add unconfirmed valid send tx to mempool
+                // add unconfirmed valid send tx to mempool
+                BRPeerManagerAddTxToPublishList(manager, unconfirmed[i], NULL, NULL);
             }
         }
     
@@ -557,6 +565,7 @@ static void peerDisconnected(void *info, int error)
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
     
+    free(info);
     BRRWLockWrite(&manager->lock);
     
     if (error == EPROTO) { // if it's protocol error, the peer isn't following standard policy
@@ -588,8 +597,8 @@ static void peerDisconnected(void *info, int error)
         // clear out stored peers so we get a fresh list from DNS on next connect attempt
         array_clear(manager->peers);
         BRRWLockUnlock(&manager->lock);
-        if (manager->savePeers) manager->savePeers(manager->callbackInfo, NULL, 0);
-        if (manager->syncFailed) manager->syncFailed(manager->callbackInfo, error);
+        if (manager->savePeers) manager->savePeers(manager->info, NULL, 0);
+        if (manager->syncFailed) manager->syncFailed(manager->info, error);
     }
     else if (manager->connectFailures < MAX_CONNECT_FAILURES) {
         BRRWLockUnlock(&manager->lock);
@@ -597,8 +606,7 @@ static void peerDisconnected(void *info, int error)
     }
     else BRRWLockUnlock(&manager->lock);
     
-    if (manager->txStatusUpdate) manager->txStatusUpdate(manager->callbackInfo);
-    free(info);
+    if (manager->txStatusUpdate) manager->txStatusUpdate(manager->info);
 }
 
 static void peerRelayedPeers(void *info, const BRPeer peers[], size_t count)
@@ -684,29 +692,83 @@ static void peerDataNotfound(void *info, const UInt256 txHashes[], size_t txCoun
 //    BRRWLockUnlock(&manager->lock);
 }
 
+static void peerRequestedTxPingDone(void *info, int success)
+{
+    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
+    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+    UInt256 txHash = ((BRPeerCallbackInfo *)info)->hash;
+
+    free(info);
+    BRRWLockWrite(&manager->lock);
+
+    // check if peer will relay the transaction back
+    if (success && ! BRTxPeerListHasPeer(manager->txRequests, txHash, peer)) {
+        BRTxPeerListAddPeer(manager->txRequests, txHash, peer);
+        BRPeerSendGetdata(peer, &txHash, 1, NULL, 0);
+    }
+    
+    BRRWLockUnlock(&manager->lock);
+}
+
 static BRTransaction *peerRequestedTx(void *info, UInt256 txHash)
 {
-//    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
-//    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
-//
-//    BRRWLockWrite(&manager->lock);
-//
-//    BRRWLockUnlock(&manager->lock);
-    return NULL;
+    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
+    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+    BRPeerCallbackInfo *pingInfo;
+    BRTransaction *tx = NULL;
+    void *txInfo = NULL;
+    void (*txCallback)(void *, int) = NULL;
+    int error = 0;
+
+    BRRWLockWrite(&manager->lock);
+
+    for (size_t i = array_count(manager->publishedTx); i > 0; i--) {
+        if (! UInt256Eq(manager->publishedTxHash[i - 1], txHash)) continue;
+        tx = manager->publishedTx[i - 1].tx;
+        txInfo = manager->publishedTx[i - 1].info;
+        txCallback = manager->publishedTx[i - 1].callback;
+        manager->publishedTx[i - 1].info = NULL;
+        manager->publishedTx[i - 1].callback = NULL;
+        
+        if (tx && ! BRWalletTransactionIsValid(manager->wallet, tx)) {
+            error = EINVAL;
+            array_rm(manager->publishedTx, i - 1);
+            array_rm(manager->publishedTxHash, i - 1);
+            if (! BRWalletTransactionForHash(manager->wallet, txHash)) BRTransactionFree(tx), tx = NULL;
+        }
+        
+        break;
+    }
+
+    if (tx && ! error) {
+        BRTxPeerListAddPeer(manager->txRelays, txHash, peer);
+        array_add(manager->nonFpTx, txHash); // okay if txHash is added more than once
+        BRWalletRegisterTransaction(manager->wallet, tx);
+    }
+    
+    // TODO: XXX cancel pending tx timeout
+    if (txCallback) txCallback(txInfo, error);
+    pingInfo = calloc(1, sizeof(*pingInfo));
+    pingInfo->peer = peer;
+    pingInfo->manager = manager;
+    pingInfo->hash = txHash;
+    BRPeerSendPing(peer, pingInfo, peerRequestedTxPingDone);
+    BRRWLockUnlock(&manager->lock);
+    return tx;
 }
 
 static int peerNetworkIsReachable(void *info)
 {
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
 
-    return (manager->networkIsReachable) ? manager->networkIsReachable(manager->callbackInfo) : 1;
+    return (manager->networkIsReachable) ? manager->networkIsReachable(manager->info) : 1;
 }
 
 // returns a newly allocated BRPeerManager struct that must be freed by calling BRPeerManagerFree()
 BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMerkleBlock *blocks[], size_t blocksCount,
                                 const BRPeer peers[], size_t peersCount)
 {
-    BRPeerManager *manager = calloc(1, sizeof(BRPeerManager));
+    BRPeerManager *manager = calloc(1, sizeof(*manager));
     
     manager->wallet = wallet;
     manager->earliestKeyTime = earliestKeyTime;
@@ -741,8 +803,6 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
     array_new(manager->txRequests, 10);
     array_new(manager->publishedTx, 10);
     array_new(manager->publishedTxHash, 10);
-    array_new(manager->publishedTxInfo, 10);
-    array_new(manager->publishedTxCallback, 10);
     BRRWLockInit(&manager->lock);
     return manager;
 }
@@ -758,7 +818,7 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*savePeers)(void *info, const BRPeer peers[], size_t count),
                                int (*networkIsReachable)(void *info))
 {
-    manager->callbackInfo = info;
+    manager->info = info;
     manager->syncStarted = syncStarted;
     manager->syncSucceded = syncSucceded;
     manager->syncFailed = syncFailed;
@@ -788,7 +848,7 @@ void BRPeerManagerConnect(BRPeerManager *manager)
     
     if (BRPeerManagerSyncProgress(manager) + DBL_EPSILON < 1.0) {
         if (manager->syncStartHeight == 0) manager->syncStartHeight = manager->lastBlock->height;
-        if (manager->syncStarted) manager->syncStarted(manager->callbackInfo);
+        if (manager->syncStarted) manager->syncStarted(manager->info);
     }
     
     for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
@@ -842,7 +902,7 @@ void BRPeerManagerConnect(BRPeerManager *manager)
 
         if (array_count(manager->connectedPeers) == 0) {
             BRPeerManagerSyncStopped(manager);
-            if (manager->syncFailed) manager->syncFailed(manager->callbackInfo, ENETUNREACH);
+            if (manager->syncFailed) manager->syncFailed(manager->info, ENETUNREACH);
         }
     }
     
@@ -964,7 +1024,7 @@ void publishTxInvDone(void *info, int success)
     free(info);
 }
 
-// publishes tx to bitcoin network
+// publishes tx to bitcoin network (do not call BRTransactionFree() on tx afterward)
 void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *info,
                             void (*callback)(void *info, int error))
 {
@@ -979,25 +1039,20 @@ void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *inf
         if (callback) callback(info, ENOTCONN); // not connected to bitcoin network
     }
     else {
-        BRPeerManagerAddTxToPublishList(manager, tx);
-
-        if (callback) {
-            array_add(manager->publishedTxCallback, callback);
-            array_add(manager->publishedTxInfo, info);
-        }
+        BRPeerManagerAddTxToPublishList(manager, tx, info, callback);
 
         for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
             BRPeer *peer = manager->connectedPeers[i - 1];
-            BRPeerCallbackInfo *pongInfo;
+            BRPeerCallbackInfo *pingInfo;
 
             // instead of publishing to all peers, leave out downloadPeer to see if tx propogates and gets relayed back
             // TODO: XXX connect to a random peer with an empty or fake bloom filter just for publishing
             if (peer == manager->downloadPeer && array_count(manager->connectedPeers) > 1) continue;
             BRPeerSendInv(peer, manager->publishedTxHash, array_count(manager->publishedTxHash));
-            pongInfo = calloc(1, sizeof(pongInfo));
-            pongInfo->peer = peer;
-            pongInfo->manager = manager;
-            BRPeerSendPing(peer, pongInfo, publishTxInvDone);
+            pingInfo = calloc(1, sizeof(*pingInfo));
+            pingInfo->peer = peer;
+            pingInfo->manager = manager;
+            BRPeerSendPing(peer, pingInfo, publishTxInvDone);
         }
 
         BRRWLockUnlock(&manager->lock);
@@ -1041,8 +1096,6 @@ void BRPeerManagerFree(BRPeerManager *manager)
     array_free(manager->txRelays);
     array_free(manager->publishedTx);
     array_free(manager->publishedTxHash);
-    array_free(manager->publishedTxInfo);
-    array_free(manager->publishedTxCallback);
     BRRWLockUnlock(&manager->lock);
     BRRWLockDestroy(&manager->lock);
     free(manager);
