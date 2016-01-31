@@ -26,7 +26,6 @@
 #include "BRMerkleBlock.h"
 #include "BRAddress.h"
 #include "BRSet.h"
-#include "BRRWLock.h"
 #include "BRArray.h"
 #include "BRHash.h"
 #include "BRInt.h"

@@ -158,23 +158,24 @@ static int BRTxPeerListHasPeer(const BRTxPeerList *list, UInt256 txHash, const B
     return 0;
 }
 
-// adds peer to the list of peers associated with txHash and returns the new memory location for list
-static BRTxPeerList *BRTxPeerListAddPeer(BRTxPeerList *list, UInt256 txHash, const BRPeer *peer)
+// adds peer to the list of peers associated with txHash and returns the new total number of peers
+static size_t BRTxPeerListAddPeer(BRTxPeerList **list, UInt256 txHash, const BRPeer *peer)
 {
-    for (size_t i = array_count(list); i > 0; i--) {
-        if (! UInt256Eq(list[i - 1].txHash, txHash)) continue;
+    for (size_t i = array_count(*list); i > 0; i--) {
+        if (! UInt256Eq((*list)[i - 1].txHash, txHash)) continue;
         
-        for (size_t j = array_count(list[i - 1].peers); j > 0; j--) {
-            if (BRPeerEq(&list[i - 1].peers[j - 1], peer)) return list;
+        for (size_t j = array_count((*list)[i - 1].peers); j > 0; j--) {
+            if (BRPeerEq(&(*list)[i - 1].peers[j - 1], peer)) return array_count((*list)[i - 1].peers);
         }
         
-        array_add(list[i - 1].peers, *peer);
-        return list;
+        array_add((*list)[i - 1].peers, *peer);
+        return array_count((*list)[i - 1].peers);
     }
 
-    array_add(list, ((BRTxPeerList) { txHash, NULL }));
-    array_new(array_last(list).peers, PEER_MAX_CONNECTIONS);
-    return list;
+    array_add(*list, ((BRTxPeerList) { txHash, NULL }));
+    array_new(array_last(*list).peers, PEER_MAX_CONNECTIONS);
+    array_add(array_last(*list).peers, *peer);
+    return 1;
 }
 
 // removes peer from the list of peers associated with txHash
@@ -641,17 +642,50 @@ static void peerHasTx(void *info, UInt256 txHash)
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
     BRTransaction *tx = BRWalletTransactionForHash(manager->wallet, txHash);
+    void *txInfo = NULL;
+    void (*txCallback)(void *, int) = NULL;
     int syncing;
+    size_t relayCount = 0;
     
     BRRWLockWrite(&manager->lock);
     syncing = (manager->lastBlock->height < BRPeerLastBlock(manager->downloadPeer));
     peer_log(peer, "has tx: %s", uint256_hex_encode(txHash));
 
-    if (syncing && peer == manager->downloadPeer && BRWalletContainsTransaction(manager->wallet, tx)) {
-        BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT); // reschedule sync timeout
+    for (size_t i = array_count(manager->publishedTx); i > 0; i--) { // see if tx is in list of published tx
+        if (! UInt256Eq(manager->publishedTxHash[i - 1], txHash)) continue;
+        if (! tx) tx = manager->publishedTx[i - 1].tx;
+        txInfo = manager->publishedTx[i - 1].info;
+        txCallback = manager->publishedTx[i - 1].callback;
+        manager->publishedTx[i - 1].info = NULL;
+        manager->publishedTx[i - 1].callback = NULL;
+        relayCount = BRTxPeerListAddPeer(&manager->txRelays, txHash, peer);
+        break;
+    }
+    
+    if (tx) {
+        BRWalletRegisterTransaction(manager->wallet, tx);
+
+        if (syncing && peer == manager->downloadPeer && BRWalletContainsTransaction(manager->wallet, tx)) {
+            BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT); // reschedule sync timeout
+        }
+        
+        // keep track of how many peers have or relay a tx, this indicates how likely the tx is to confirm
+        // (we only need to track this after syncing is complete)
+        if (! syncing) relayCount = BRTxPeerListAddPeer(&manager->txRelays, txHash, peer);
+
+        // set timestamp when tx is verified
+        if (tx->blockHeight == TX_UNCONFIRMED && relayCount >= PEER_MAX_CONNECTIONS) {
+            BRWalletUpdateTransactions(manager->wallet, &txHash, 1, TX_UNCONFIRMED, (uint32_t)time(NULL));
+        }
+
+        array_add(manager->nonFpTx, txHash);
+        BRTxPeerListRemovePeer(manager->txRequests, txHash, peer);
     }
     
     BRRWLockUnlock(&manager->lock);
+
+    // TODO: XXX cancel pending tx timeout
+    if (txCallback) txCallback(txInfo, 0);
 }
 
 static void peerRejectedTx(void *info, UInt256 txHash, uint8_t code)
@@ -703,7 +737,7 @@ static void peerRequestedTxPingDone(void *info, int success)
 
     // check if peer will relay the transaction back
     if (success && ! BRTxPeerListHasPeer(manager->txRequests, txHash, peer)) {
-        BRTxPeerListAddPeer(manager->txRequests, txHash, peer);
+        BRTxPeerListAddPeer(&manager->txRequests, txHash, peer);
         BRPeerSendGetdata(peer, &txHash, 1, NULL, 0);
     }
     
@@ -741,19 +775,20 @@ static BRTransaction *peerRequestedTx(void *info, UInt256 txHash)
     }
 
     if (tx && ! error) {
-        BRTxPeerListAddPeer(manager->txRelays, txHash, peer);
+        BRTxPeerListAddPeer(&manager->txRelays, txHash, peer);
         array_add(manager->nonFpTx, txHash); // okay if txHash is added more than once
         BRWalletRegisterTransaction(manager->wallet, tx);
     }
     
-    // TODO: XXX cancel pending tx timeout
-    if (txCallback) txCallback(txInfo, error);
     pingInfo = calloc(1, sizeof(*pingInfo));
     pingInfo->peer = peer;
     pingInfo->manager = manager;
     pingInfo->hash = txHash;
     BRPeerSendPing(peer, pingInfo, peerRequestedTxPingDone);
     BRRWLockUnlock(&manager->lock);
+
+    // TODO: XXX cancel pending tx timeout
+    if (txCallback) txCallback(txInfo, error);
     return tx;
 }
 
@@ -1013,7 +1048,7 @@ void publishTxInvDone(void *info, int success)
 
             if (! BRTxPeerListHasPeer(manager->txRelays, txHash, peer) &&
                 ! BRTxPeerListHasPeer(manager->txRequests, txHash, peer)) {
-                manager->txRequests = BRTxPeerListAddPeer(manager->txRequests, txHash, peer);
+                BRTxPeerListAddPeer(&manager->txRequests, txHash, peer);
                 BRPeerSendGetdata(peer, &txHash, 1, NULL, 0);
             }
         }
