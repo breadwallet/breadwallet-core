@@ -149,7 +149,7 @@ inline static UInt256 UInt256Reverse(UInt256 u)
 
 #define _hexc(u) (((u) & 0x0f) + ((((u) & 0x0f) <= 9) ? '0' : 'a' - 0x0a))
 #define _hexu(c) (((c) >= '0' && (c) <= '9') ? (c) - '0' : ((c) >= 'a' && (c) <= 'f') ? (c) - ('a' - 0x0a) :\
-                  ((c) >= 'A' && (c) <= 'F') ? (c) - ('A' - 0x0a) : -1)
+                  ((c) >= 'A' && (c) <= 'F') ? (c) - ('A' - 0x0a) : 0)
 
 // integer endian swapping (detects endianess with predefined macros in clang and gcc, and msvc is always little endian)
 

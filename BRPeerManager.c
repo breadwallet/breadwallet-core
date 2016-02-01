@@ -1117,6 +1117,11 @@ void publishTxInvDone(void *info, int success)
     free(info);
 }
 
+void publishTxTimeout(void *info)
+{
+    
+}
+
 // publishes tx to bitcoin network (do not call BRTransactionFree() on tx afterward)
 void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *info,
                             void (*callback)(void *info, int error))
@@ -1125,10 +1130,12 @@ void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *inf
     
     if (! BRTransactionIsSigned(tx)) {
         pthread_mutex_unlock(&manager->lock);
+        BRTransactionFree(tx);
         if (callback) callback(info, EINVAL); // transaction not signed
     }
     else if (! manager->connected && manager->connectFailures >= MAX_CONNECT_FAILURES) {
         pthread_mutex_unlock(&manager->lock);
+        BRTransactionFree(tx);
         if (callback) callback(info, ENOTCONN); // not connected to bitcoin network
     }
     else {
@@ -1141,6 +1148,7 @@ void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *inf
             // instead of publishing to all peers, leave out downloadPeer to see if tx propogates and gets relayed back
             // TODO: XXX connect to a random peer with an empty or fake bloom filter just for publishing
             if (peer == manager->downloadPeer && array_count(manager->connectedPeers) > 1) continue;
+                        
             BRPeerSendInv(peer, manager->publishedTxHash, array_count(manager->publishedTxHash));
             pingInfo = calloc(1, sizeof(*pingInfo));
             pingInfo->peer = peer;
