@@ -117,10 +117,10 @@ typedef struct {
     void (*notfound)(void *info, const UInt256 txHashes[], size_t txCount, const UInt256 blockHashes[],
                      size_t blockCount);
     void (*relayedBlock)(void *info, BRMerkleBlock *block);
-    void **pongInfo;
-    void (**pongCallback)(void *info, int success);
     BRTransaction *(*requestedTx)(void *info, UInt256 txHash);
     int (*networkIsReachable)(void *info);
+    void **pongInfo;
+    void (**pongCallback)(void *info, int success);
     pthread_t thread;
 } BRPeerContext;
 
@@ -779,14 +779,10 @@ static int BRPeerOpenSocket(BRPeer *peer, double timeout)
     fd_set fds;
     socklen_t addrLen, optLen;
     int socket = ((BRPeerContext *)peer)->socket;
-    int arg = 0, count, error = 0, r = 1;
+    int count, error = 0, r = 1, arg = fcntl(socket, F_GETFL, NULL);
 
-    if (socket >= 0) {
-        arg = fcntl(socket, F_GETFL, NULL);
-        if (arg < 0 || fcntl(socket, F_SETFL, arg | O_NONBLOCK) < 0) r = 0; // temporarily set the socket non-blocking
-        if (! r) error = errno;
-    }
-    else r = 0;
+    if (arg < 0 || fcntl(socket, F_SETFL, arg | O_NONBLOCK) < 0) r = 0; // temporarily set the socket non-blocking
+    if (! r) error = errno;
 
     if (r) {
         memset(&addr, 0, sizeof(addr));
@@ -1130,6 +1126,7 @@ void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char 
                 if (! error && tv.tv_sec + (double)tv.tv_usec/1000000 > ctx->disconnectTime) error = ETIMEDOUT;
             }
         }
+        else error = ENOTCONN;
         
         if (error) {
             peer_log(peer, "%s", strerror(error));
