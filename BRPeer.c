@@ -648,11 +648,11 @@ static int BRPeerAcceptPongMessage(BRPeer *peer, const uint8_t *msg, size_t len)
         else peer_log(peer, "got pong");
 
         if (array_count(ctx->pongCallback) > 0) {
-            void (*pongCallback)(void *, int) = array_last(ctx->pongCallback);
-            void *pongInfo = array_last(ctx->pongInfo);
+            void (*pongCallback)(void *, int) = ctx->pongCallback[0];
+            void *pongInfo = ctx->pongInfo[0];
 
-            array_rm_last(ctx->pongCallback);
-            array_rm_last(ctx->pongInfo);
+            array_rm(ctx->pongCallback, 0);
+            array_rm(ctx->pongInfo, 0);
             if (pongCallback) pongCallback(pongInfo, 1);
         }
     }
@@ -795,9 +795,8 @@ static void BRPeerFireScheduledCallbacks(BRPeer *peer, double time)
         if (ctx->scheduleTimes[i - 1] > time) continue;
         info = ctx->scheduleInfo[i - 1];
         callback = ctx->scheduleCallback[i - 1];
-        array_rm(ctx->scheduleTimes, i - 1);
-        array_rm(ctx->scheduleInfo, i - 1);
-        array_rm(ctx->scheduleCallback, i - 1);
+        ctx->scheduleCallback[i - 1] = NULL;
+        ctx->scheduleTimes[i - 1] = DBL_MAX;
         if (callback) callback(info);
     }
 }
@@ -1012,7 +1011,7 @@ void BRPeerScheduleDisconnect(BRPeer *peer, double seconds)
     struct timeval tv;
 
     gettimeofday(&tv, NULL);
-    ctx->disconnectTime = (seconds < 0) ? tv.tv_sec + (double)tv.tv_usec/1000000 + seconds : DBL_MAX;
+    ctx->disconnectTime = (seconds < 0) ? DBL_MAX : tv.tv_sec + (double)tv.tv_usec/1000000 + seconds;
 }
 
 // call this to (re)schedule a callback to happen after the given number of seconds, or < 0 seconds to cancel,
@@ -1027,15 +1026,14 @@ void BRPeerScheduleCallback(BRPeer *peer, double seconds, void *info, void (*cal
     for (size_t i = array_count(ctx->scheduleInfo); i > 0; i--) {
         if (ctx->scheduleInfo[i - 1] != info) continue;
 
-        if (seconds < 0) {
-            array_rm(ctx->scheduleTimes, i - 1);
-            array_rm(ctx->scheduleCallback, i - 1);
-            array_rm(ctx->scheduleInfo, i - 1);
+        if (seconds >= 0) {
+            ctx->scheduleCallback[i - 1] = callback;
+            ctx->scheduleTimes[i - 1] = tv.tv_sec + (double)tv.tv_usec/1000000 + seconds;
+            seconds = -1;
         }
         else {
-            ctx->scheduleTimes[i - 1] = tv.tv_sec + (double)tv.tv_usec/1000000 + seconds;
-            ctx->scheduleCallback[i - 1] = callback;
-            seconds = -1;
+            ctx->scheduleCallback[i - 1] = NULL;
+            ctx->scheduleTimes[i - 1] = DBL_MAX;
         }
     }
     

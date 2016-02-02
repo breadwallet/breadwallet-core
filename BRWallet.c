@@ -547,7 +547,7 @@ int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *aut
     return r;
 }
 
-// non-threadsafe version of BRWalletContainsTransaction
+// non-threadsafe version of BRWalletContainsTransaction()
 int BRWalletContainsTx(BRWallet *wallet, const BRTransaction *tx)
 {
     int r = 0;
@@ -569,7 +569,7 @@ int BRWalletContainsTx(BRWallet *wallet, const BRTransaction *tx)
 // true if the given transaction is associated with the wallet (even if it hasn't been registered)
 int BRWalletContainsTransaction(BRWallet *wallet, const BRTransaction *tx)
 {
-    int r = 0;
+    int r;
     
     pthread_mutex_lock(&wallet->lock);
     r = BRWalletContainsTx(wallet, tx);
@@ -580,8 +580,7 @@ int BRWalletContainsTransaction(BRWallet *wallet, const BRTransaction *tx)
 // adds a transaction to the wallet, or returns false if it isn't associated with the wallet
 int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx)
 {
-    int added = 0;
-    int r = 1;
+    int added = 0, r = 1;
     
     if (BRTransactionIsSigned(tx)) {
         pthread_mutex_lock(&wallet->lock);

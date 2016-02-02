@@ -687,8 +687,6 @@ static void peerRelayedTx(void *info, BRTransaction *tx)
     }
     
     pthread_mutex_unlock(&manager->lock);
-    
-    // TODO: XXX cancel pending tx timeout
     if (txCallback) txCallback(txInfo, 0);
 }
 
@@ -738,8 +736,6 @@ static void peerHasTx(void *info, UInt256 txHash)
     }
     
     pthread_mutex_unlock(&manager->lock);
-
-    // TODO: XXX cancel pending tx timeout
     if (txCallback) txCallback(txInfo, 0);
 }
 
@@ -841,8 +837,6 @@ static BRTransaction *peerRequestedTx(void *info, UInt256 txHash)
     pingInfo->hash = txHash;
     BRPeerSendPing(peer, pingInfo, peerRequestedTxPingDone);
     pthread_mutex_unlock(&manager->lock);
-
-    // TODO: XXX cancel pending tx timeout
     if (txCallback) txCallback(txInfo, error);
     return tx;
 }
@@ -1098,6 +1092,8 @@ void publishTxInvDone(void *info, int success)
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
 
+    free(info);
+    
     if (success) {
         pthread_mutex_lock(&manager->lock);
 
@@ -1113,13 +1109,34 @@ void publishTxInvDone(void *info, int success)
 
         pthread_mutex_unlock(&manager->lock);
     }
-
-    free(info);
 }
 
 void publishTxTimeout(void *info)
 {
+    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
+    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+    UInt256 txHash = ((BRPeerCallbackInfo *)info)->hash;
+    void *txInfo = NULL;
+    void (*txCallback)(void *, int) = NULL;
+
+    free(info);
+    pthread_mutex_lock(&manager->lock);
     
+    for (size_t i = array_count(manager->publishedTx); i > 0; i--) { // see if txHash is in list of published tx
+        if (! UInt256Eq(manager->publishedTxHash[i - 1], txHash)) continue;
+        txInfo = manager->publishedTx[i - 1].info;
+        txCallback = manager->publishedTx[i - 1].callback;
+
+        if (txCallback) {
+            peer_log(peer, "transaction canceled, network timeout");
+            BRTransactionFree(manager->publishedTx[i - 1].tx);
+            array_rm(manager->publishedTxHash, i - 1);
+            array_rm(manager->publishedTx, i - 1);
+        }
+    }
+    
+    pthread_mutex_unlock(&manager->lock);
+    if (txCallback) txCallback(txInfo, ETIMEDOUT);
 }
 
 // publishes tx to bitcoin network (do not call BRTransactionFree() on tx afterward)
@@ -1143,11 +1160,19 @@ void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *inf
 
         for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
             BRPeer *peer = manager->connectedPeers[i - 1];
-            BRPeerCallbackInfo *pingInfo;
+            BRPeerCallbackInfo *pingInfo, *timeoutInfo;
 
-            // instead of publishing to all peers, leave out downloadPeer to see if tx propogates and gets relayed back
-            // TODO: XXX connect to a random peer with an empty or fake bloom filter just for publishing
-            if (peer == manager->downloadPeer && array_count(manager->connectedPeers) > 1) continue;
+            if (peer == manager->downloadPeer) {
+                timeoutInfo = calloc(1, sizeof(*timeoutInfo));
+                timeoutInfo->peer = peer;
+                timeoutInfo->manager = manager;
+                timeoutInfo->hash = tx->txHash;
+                BRPeerScheduleCallback(peer, PROTOCOL_TIMEOUT, timeoutInfo, publishTxTimeout);
+
+                // instead of publishing to all peers, leave out downloadPeer to see if tx propogates/gets relayed back
+                // TODO: XXX connect to a random peer with an empty or fake bloom filter just for publishing
+                if (array_count(manager->connectedPeers) > 1) continue;
+            }
                         
             BRPeerSendInv(peer, manager->publishedTxHash, array_count(manager->publishedTxHash));
             pingInfo = calloc(1, sizeof(*pingInfo));
