@@ -135,26 +135,6 @@ inline static int BRPeerIsIPv4(BRPeer *peer)
     return (peer->address.u64[0] == 0 && peer->address.u32[2] == be32(0xffff));
 }
 
-// returns a newly allocated BRPeer struct that must be freed by calling BRPeerFree()
-BRPeer *BRPeerNew()
-{
-    BRPeerContext *ctx = calloc(1, sizeof(BRPeerContext));
-
-    array_new(ctx->useragent, 40);
-    array_new(ctx->knownBlockHashes, 10);
-    array_new(ctx->currentBlockTxHashes, 10);
-    array_new(ctx->knownTxHashes, 10);
-    ctx->knownTxHashSet = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
-    array_new(ctx->pongInfo, 3);
-    array_new(ctx->pongCallback, 3);
-    array_new(ctx->scheduleTimes, 3);
-    array_new(ctx->scheduleInfo, 3);
-    array_new(ctx->scheduleCallback, 3);
-    ctx->pingTime = DBL_MAX;
-    ctx->socket = -1;
-    return &ctx->peer;
-}
-
 static void BRPeerDidConnect(BRPeer *peer)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
@@ -962,6 +942,26 @@ static void *peerThreadRoutine(void *arg)
     
     if (ctx->disconnected) ctx->disconnected(ctx->info, error);
     return NULL; // detached threads don't need to return a value
+}
+
+// returns a newly allocated BRPeer struct that must be freed by calling BRPeerFree()
+BRPeer *BRPeerNew()
+{
+    BRPeerContext *ctx = calloc(1, sizeof(BRPeerContext));
+    
+    array_new(ctx->useragent, 40);
+    array_new(ctx->knownBlockHashes, 10);
+    array_new(ctx->currentBlockTxHashes, 10);
+    array_new(ctx->knownTxHashes, 10);
+    ctx->knownTxHashSet = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
+    array_new(ctx->pongInfo, 3);
+    array_new(ctx->pongCallback, 3);
+    array_new(ctx->scheduleTimes, 3);
+    array_new(ctx->scheduleInfo, 3);
+    array_new(ctx->scheduleCallback, 3);
+    ctx->pingTime = DBL_MAX;
+    ctx->socket = -1;
+    return &ctx->peer;
 }
 
 void BRPeerSetCallbacks(BRPeer *peer, void *info,

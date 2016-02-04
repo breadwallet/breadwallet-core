@@ -200,7 +200,7 @@ inline static int BRBlockHeightEq(const void *block, const void *otherBlock)
 
 struct _BRPeerManager {
     BRWallet *wallet;
-    int connected, connectFailures;
+    int connected, connectFailures, misbehavinCount;
     BRPeer *peers, *downloadPeer, **connectedPeers;
     uint32_t tweak, earliestKeyTime, syncStartHeight, filterUpdateHeight;
     BRBloomFilter *bloomFilter;
@@ -225,10 +225,22 @@ struct _BRPeerManager {
 
 static void BRPeerManagerPeerMisbehavin(BRPeerManager *manager, BRPeer *peer)
 {
+    for (size_t i = array_count(manager->peers); i > 0; i--) {
+        if (BRPeerEq(&manager->peers[i - 1], peer)) array_rm(manager->peers, i - 1);
+    }
+
+    if (++manager->misbehavinCount >= 10) { // clear out stored peers so we get a fresh list from DNS for next connect
+        manager->misbehavinCount = 0;
+        array_clear(manager->peers);
+    }
+
+    BRPeerDisconnect(peer);
 }
 
 static void BRPeerManagerSyncStopped(BRPeerManager *manager)
 {
+    manager->syncStartHeight = 0;
+    BRPeerScheduleDisconnect(manager->downloadPeer, -1);
 }
 
 // adds transaction to list of tx to be published, along with any unconfirmed inputs
@@ -615,12 +627,31 @@ static void peerDisconnected(void *info, int error)
 
 static void peerRelayedPeers(void *info, const BRPeer peers[], size_t count)
 {
-//    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
+    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+    time_t now = time(NULL);
 
     pthread_mutex_lock(&manager->lock);
+    peer_log(peer, "relayed %zu peer(s)", count);
+
+    array_add_array(manager->peers, peers, count);
     qsort(manager->peers, array_count(manager->peers), sizeof(*manager->peers), BRPeerTimestampCompare);
+
+    // limit total to 2500 peers
+    if (array_count(manager->peers) > 2500) array_set_count(manager->peers, 2500);
+    count = array_count(manager->peers);
+    
+    // remove peers more than 3 hours old, or until there are only 1000 left
+    while (count > 1000 && manager->peers[count - 1].timestamp + 3*60*60 < now) count--;
+    array_set_count(manager->peers, count);
+    
+    BRPeer save[count];
+
+    for (size_t i = 0; i < count; i++) save[i] = manager->peers[i];
     pthread_mutex_unlock(&manager->lock);
+    
+    // peer relaying is complete when we receive <1000
+    if (count > 1 && count < 1000 && manager->savePeers) manager->savePeers(manager->info, save, count);
 }
 
 static void peerRelayedTx(void *info, BRTransaction *tx)
@@ -1087,7 +1118,7 @@ size_t BRPeerManagerPeerCount(BRPeerManager *manager)
     return count;
 }
 
-void publishTxInvDone(void *info, int success)
+static void publishTxInvDone(void *info, int success)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
@@ -1111,7 +1142,7 @@ void publishTxInvDone(void *info, int success)
     }
 }
 
-void publishTxTimeout(void *info)
+static void publishTxTimeout(void *info)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
@@ -1202,7 +1233,7 @@ size_t BRPeerMangaerRelayCount(BRPeerManager *manager, UInt256 txHash)
     return count;
 }
 
-void setMapFreeBlock(void *info, void *block)
+static void setMapFreeBlock(void *info, void *block)
 {
     BRMerkleBlockFree(block);
 }

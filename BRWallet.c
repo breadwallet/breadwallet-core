@@ -548,7 +548,7 @@ int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *aut
 }
 
 // non-threadsafe version of BRWalletContainsTransaction()
-int BRWalletContainsTx(BRWallet *wallet, const BRTransaction *tx)
+static int BRWalletContainsTx(BRWallet *wallet, const BRTransaction *tx)
 {
     int r = 0;
     
