@@ -38,11 +38,12 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#define PROTOCOL_TIMEOUT     20.0
-#define MAX_CONNECT_FAILURES 20 // notify user of network problems after this many connect failures in a row
-#define CHECKPOINT_COUNT     (sizeof(checkpoint_array)/sizeof(*checkpoint_array))
-#define GENESIS_BLOCK_HASH   (UInt256Reverse(uint256_hex_decode(checkpoint_array[0].hash)))
-#define PEER_FLAG_SYNCED     0x01
+#define PROTOCOL_TIMEOUT      20.0
+#define MAX_CONNECT_FAILURES  20 // notify user of network problems after this many connect failures in a row
+#define CHECKPOINT_COUNT      (sizeof(checkpoint_array)/sizeof(*checkpoint_array))
+#define GENESIS_BLOCK_HASH    (UInt256Reverse(uint256_hex_decode(checkpoint_array[0].hash)))
+#define PEER_FLAG_SYNCED      0x01
+#define PEER_FLAG_NEEDSUPDATE 0x02
 
 #if BITCOIN_TESTNET
 
@@ -202,7 +203,7 @@ struct _BRPeerManager {
     BRWallet *wallet;
     int connected, connectFailures, misbehavinCount;
     BRPeer *peers, *downloadPeer, **connectedPeers;
-    uint32_t tweak, earliestKeyTime, syncStartHeight, filterUpdateHeight;
+    uint32_t tweak, earliestKeyTime, syncStartHeight, filterUpdateHeight, estimatedHeight;
     BRBloomFilter *bloomFilter;
     double fpRate;
     BRSet *blocks, *orphans, *checkpoints;
@@ -240,7 +241,7 @@ static void BRPeerManagerPeerMisbehavin(BRPeerManager *manager, BRPeer *peer)
 static void BRPeerManagerSyncStopped(BRPeerManager *manager)
 {
     manager->syncStartHeight = 0;
-    BRPeerScheduleDisconnect(manager->downloadPeer, -1);
+    if (manager->downloadPeer) BRPeerScheduleDisconnect(manager->downloadPeer, -1);
 }
 
 // adds transaction to list of tx to be published, along with any unconfirmed inputs
@@ -260,6 +261,26 @@ static void BRPeerManagerAddTxToPublishList(BRPeerManager *manager, BRTransactio
                                             NULL, NULL);
         }
     }
+}
+
+static size_t BRPeerManagerBlockLocators(BRPeerManager *manager, UInt256 locators[], size_t count)
+{
+    // append 10 most recent block hashes, decending, then continue appending, doubling the step back each time,
+    // finishing with the genesis block (top, -1, -2, -3, -4, -5, -6, -7, -8, -9, -11, -15, -23, -39, -71, -135, ..., 0)
+    BRMerkleBlock *block = manager->lastBlock;
+    int32_t step = 1, i = 0, j;
+    
+    while (block && block->height > 0) {
+        if (locators && i < count) locators[i] = block->blockHash;
+        if (++i >= 10) step *= 2;
+        
+        for (j = 0; block && j < step; j++) {
+            block = BRSetGet(manager->blocks, &block->prevBlock);
+        }
+    }
+    
+    if (locators && i < count) locators[i] = GENESIS_BLOCK_HASH;
+    return ++i;
 }
 
 static void BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
@@ -313,8 +334,97 @@ static void BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
     BRPeerSendFilterload(peer, data, len);
 }
 
+static void updateFilterRerequestDone(void *info, int success)
+{
+    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
+    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+    
+    free(info);
+    
+    if (success && (peer->flags & PEER_FLAG_NEEDSUPDATE) == 0) {
+        UInt256 locators[BRPeerManagerBlockLocators(manager, NULL, 0)];
+        size_t count = BRPeerManagerBlockLocators(manager, locators, sizeof(locators)/sizeof(*locators));
+
+        BRPeerSendGetblocks(peer, locators, count, UINT256_ZERO);
+    }
+}
+
+static void updateFilterLoadDone(void *info, int success)
+{
+    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
+    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+    BRPeerCallbackInfo *peerInfo;
+
+    free(info);
+    
+    if (success) {
+        pthread_mutex_lock(&manager->lock);
+        BRPeerSetNeedsFilterUpdate(peer, 0);
+        peer->flags &= ~PEER_FLAG_NEEDSUPDATE;
+        
+        if (manager->lastBlock->height < manager->estimatedHeight) { // if syncing, rerequest blocks
+            peerInfo = calloc(1, sizeof(*peerInfo));
+            peerInfo->peer = peer;
+            peerInfo->manager = manager;
+            BRPeerRerequestBlocks(manager->downloadPeer, manager->lastBlock->blockHash);
+            BRPeerSendPing(manager->downloadPeer, peerInfo, updateFilterRerequestDone);
+        }
+        else BRPeerSendMempool(peer); // if not syncing, request mempool
+        
+        pthread_mutex_unlock(&manager->lock);
+    }
+}
+
+static void updateFilterPingDone(void *info, int success)
+{
+    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
+    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+    BRPeerCallbackInfo *peerInfo;
+    
+    if (success) {
+        pthread_mutex_lock(&manager->lock);
+        peer_log(peer, "updating filter with newly created wallet addresses");
+        if (manager->bloomFilter) BRBloomFilterFree(manager->bloomFilter);
+        manager->bloomFilter = NULL;
+
+        if (manager->lastBlock->height < manager->estimatedHeight) { // if we're syncing, only update download peer
+            if (manager->downloadPeer) {
+                BRPeerManagerLoadBloomFilter(manager, manager->downloadPeer);
+                BRPeerSendPing(manager->downloadPeer, info, updateFilterLoadDone); // wait for pong so filter is loaded
+            }
+            else free(info);
+        }
+        else {
+            free(info);
+            
+            for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
+                peerInfo = calloc(1, sizeof(*peerInfo));
+                peerInfo->peer = manager->connectedPeers[i - 1];
+                peerInfo->manager = manager;
+                BRPeerManagerLoadBloomFilter(manager, peerInfo->peer);
+                BRPeerSendPing(peerInfo->peer, info, updateFilterLoadDone); // wait for pong so filter is loaded
+            }
+        }
+
+         pthread_mutex_unlock(&manager->lock);
+    }
+    else free(info);
+}
+
 static void BRPeerManagerUpdateFilter(BRPeerManager *manager)
 {
+    BRPeerCallbackInfo *info;
+
+    if (manager->downloadPeer && ! (manager->downloadPeer->flags & PEER_FLAG_NEEDSUPDATE)) {
+        BRPeerSetNeedsFilterUpdate(manager->downloadPeer, 1);
+        manager->downloadPeer->flags |= PEER_FLAG_NEEDSUPDATE;
+        peer_log(manager->downloadPeer, "filter update needed, waiting for pong");
+        info = calloc(1, sizeof(*info));
+        info->peer = manager->downloadPeer;
+        info->manager = manager;
+        // wait for pong so we're sure to include any tx already sent by the peer in the updated filter
+        BRPeerSendPing(manager->downloadPeer, info, updateFilterPingDone);
+    }
 }
 
 // unconfirmed transactions that aren't in the mempools of any of connected peers have likely dropped off the network
@@ -385,26 +495,6 @@ static void BRPeerManagerLoadMempools(BRPeerManager *manager)
         BRPeerSendInv(peer, manager->publishedTxHash, array_count(manager->publishedTxHash)); // publish unconfirmed tx
         BRPeerSendPing(peer, info, loadMempoolsInvDone);
     }
-}
-
-static size_t BRPeerManagerBlockLocators(BRPeerManager *manager, UInt256 locators[], size_t count)
-{
-    // append 10 most recent block hashes, decending, then continue appending, doubling the step back each time,
-    // finishing with the genesis block (top, -1, -2, -3, -4, -5, -6, -7, -8, -9, -11, -15, -23, -39, -71, -135, ..., 0)
-    BRMerkleBlock *block = manager->lastBlock;
-    int32_t step = 1, i = 0, j;
-    
-    while (block && block->height > 0) {
-        if (locators && i < count) locators[i] = block->blockHash;
-        if (++i >= 10) step *= 2;
-        
-        for (j = 0; block && j < step; j++) {
-            block = BRSetGet(manager->blocks, &block->prevBlock);
-        }
-    }
-
-    if (locators && i < count) locators[i] = GENESIS_BLOCK_HASH;
-    return ++i;
 }
 
 // returns a UINT128_ZERO terminated array of addresses for hostname that must be freed, or NULL if lookup failed
@@ -511,7 +601,6 @@ static void peerConnected(void *info)
         BRPeerDisconnect(peer);
     }
     else {
-        BRBloomFilter *filter;
         BRTransaction *unconfirmed[BRWalletUnconfirmedTx(manager->wallet, NULL, 0)];
         size_t unconfirmedCount = BRWalletUnconfirmedTx(manager->wallet, unconfirmed,
                                                         sizeof(unconfirmed)/sizeof(*unconfirmed));
@@ -525,8 +614,8 @@ static void peerConnected(void *info)
         }
     
         // check if we should stick with the existing download peer
-        if (manager->connected && (BRPeerLastBlock(manager->downloadPeer) >= BRPeerLastBlock(peer) ||
-                                   manager->lastBlock->height >= BRPeerLastBlock(peer))) {
+        if (manager->downloadPeer && (BRPeerLastBlock(manager->downloadPeer) >= BRPeerLastBlock(peer) ||
+                                      manager->lastBlock->height >= BRPeerLastBlock(peer))) {
             // only load bloom filter if we're done syncing
             if (manager->lastBlock->height >= BRPeerLastBlock(peer)) {
                 BRPeerManagerLoadBloomFilter(manager, peer);
@@ -549,9 +638,9 @@ static void peerConnected(void *info)
             if (manager->downloadPeer) BRPeerDisconnect(manager->downloadPeer);
             manager->downloadPeer = peer;
             manager->connected = 1;
-            filter = manager->bloomFilter;
+            manager->estimatedHeight = BRPeerLastBlock(peer);
+            if (manager->bloomFilter) BRBloomFilterFree(manager->bloomFilter);
             manager->bloomFilter = NULL; // make sure the bloom filter is updated with any newly generated addresses
-            if (filter) BRBloomFilterFree(filter);
             BRPeerManagerLoadBloomFilter(manager, peer);
             BRPeerSetCurrentBlockHeight(peer, manager->lastBlock->height);
             BRPeerSendInv(peer, manager->publishedTxHash, array_count(manager->publishedTxHash)); // publish pending tx
@@ -664,7 +753,7 @@ static void peerRelayedTx(void *info, BRTransaction *tx)
     size_t relayCount = 0;
     
     pthread_mutex_lock(&manager->lock);
-    syncing = (manager->lastBlock->height < BRPeerLastBlock(manager->downloadPeer));
+    syncing = (manager->lastBlock->height < manager->estimatedHeight);
     peer_log(peer, "relayed tx: %s", uint256_hex_encode(tx->txHash));
     
     for (size_t i = array_count(manager->publishedTx); i > 0; i--) { // see if tx is in list of published tx
@@ -732,7 +821,7 @@ static void peerHasTx(void *info, UInt256 txHash)
     size_t relayCount = 0;
     
     pthread_mutex_lock(&manager->lock);
-    syncing = (manager->lastBlock->height < BRPeerLastBlock(manager->downloadPeer));
+    syncing = (manager->lastBlock->height < manager->estimatedHeight);
     peer_log(peer, "has tx: %s", uint256_hex_encode(txHash));
 
     for (size_t i = array_count(manager->publishedTx); i > 0; i--) { // see if tx is in list of published tx
@@ -784,13 +873,11 @@ static void peerRelayedBlock(void *info, BRMerkleBlock *block)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
-    int syncing;
     
     pthread_mutex_lock(&manager->lock);
-    syncing = (manager->lastBlock->height < BRPeerLastBlock(manager->downloadPeer));
     peer_log(peer, "relayed block: %s", uint256_hex_encode(block->blockHash));
     
-    if (syncing && peer == manager->downloadPeer) {
+    if (manager->lastBlock->height < manager->estimatedHeight && peer == manager->downloadPeer) {
         BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT); // reschedule sync timeout
     }
     
@@ -961,7 +1048,7 @@ void BRPeerManagerConnect(BRPeerManager *manager)
     pthread_mutex_lock(&manager->lock);
     if (manager->connectFailures >= MAX_CONNECT_FAILURES) manager->connectFailures = 0; // this is a manual retry
     
-    if (! manager->downloadPeer || manager->lastBlock->height < BRPeerLastBlock(manager->downloadPeer)) {
+    if (! manager->downloadPeer || manager->lastBlock->height < manager->estimatedHeight) {
         if (manager->syncStartHeight == 0) manager->syncStartHeight = manager->lastBlock->height;
         pthread_mutex_unlock(&manager->lock);
         if (manager->syncStarted) manager->syncStarted(manager->info);
@@ -1076,8 +1163,8 @@ uint32_t BRPeerManagerEstimatedBlockHeight(BRPeerManager *manager)
     uint32_t height;
 
     pthread_mutex_lock(&manager->lock);
-    height = (manager->downloadPeer && BRPeerLastBlock(manager->downloadPeer) > manager->lastBlock->height) ?
-             BRPeerLastBlock(manager->downloadPeer) : manager->lastBlock->height;
+    height = (manager->lastBlock->height < manager->estimatedHeight) ? manager->estimatedHeight :
+             manager->lastBlock->height;
     pthread_mutex_unlock(&manager->lock);
     return height;
 }
@@ -1085,16 +1172,16 @@ uint32_t BRPeerManagerEstimatedBlockHeight(BRPeerManager *manager)
 // current network sync progress from 0 to 1
 double BRPeerManagerSyncProgress(BRPeerManager *manager)
 {
-    double progress;
+    double progress = 0;
     
     pthread_mutex_lock(&manager->lock);
-
-    if (! manager->downloadPeer) {
-        progress = (manager->syncStartHeight == manager->lastBlock->height) ? 0.05 : 0.0;
+    
+    if (! manager->downloadPeer && manager->syncStartHeight == manager->lastBlock->height) {
+        progress = 0.05;
     }
-    else if (manager->lastBlock->height < BRPeerLastBlock(manager->downloadPeer)) {
+    else if (manager->lastBlock->height < manager->estimatedHeight) {
         progress = 0.1 + 0.9*(manager->lastBlock->height - manager->syncStartHeight)/
-                   (BRPeerLastBlock(manager->downloadPeer) - manager->syncStartHeight);
+                   (manager->estimatedHeight - manager->syncStartHeight);
     }
     else progress = 1.0;
 
@@ -1144,6 +1231,8 @@ static void publishTxInvDone(void *info, int success)
 
 static void publishTxTimeout(void *info)
 {
+    if (! info) return;
+    
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
     UInt256 txHash = ((BRPeerCallbackInfo *)info)->hash;
@@ -1216,7 +1305,7 @@ void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *inf
     }
 }
 
-// number of connected peers that have relayed the transaction
+// number of connected peers that have relayed the given unconfirmed transaction
 size_t BRPeerMangaerRelayCount(BRPeerManager *manager, UInt256 txHash)
 {
     size_t count = 0;

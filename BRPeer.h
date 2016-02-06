@@ -125,8 +125,8 @@ void BRPeerConnect(BRPeer *peer);
 // close connection to peer
 void BRPeerDisconnect(BRPeer *peer);
 
-// call this when wallet addresses need to be added to bloom filter
-void BRPeerSetNeedsFilterUpdate(BRPeer *peer);
+// set this to true when wallet addresses need to be added to bloom filter
+void BRPeerSetNeedsFilterUpdate(BRPeer *peer, int needsFilterUpdate);
 
 // display name of peer address
 const char *BRPeerHost(BRPeer *peer);

@@ -76,7 +76,7 @@ size_t BRPeerManagerPeerCount(BRPeerManager *manager);
 void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *info,
                             void (*callback)(void *info, int error));
 
-// number of connected peers that have relayed the transaction
+// number of connected peers that have relayed the given unconfirmed transaction
 size_t BRPeerMangaerRelayCount(BRPeerManager *manager, UInt256 txHash);
 
 // frees memory allocated for manager

@@ -772,7 +772,7 @@ static void BRPeerFireScheduledCallbacks(BRPeer *peer, double time)
     void (*callback)(void *);
     
     for (size_t i = array_count(ctx->scheduleTimes); i > 0; i--) {
-        if (ctx->scheduleTimes[i - 1] > time) continue;
+        if (ctx->scheduleTimes[i - 1] > time || ctx->scheduleTimes[i - 1] < 1) continue;
         info = ctx->scheduleInfo[i - 1];
         callback = ctx->scheduleCallback[i - 1];
         ctx->scheduleCallback[i - 1] = NULL;
@@ -1103,9 +1103,9 @@ void BRPeerDisconnect(BRPeer *peer)
 }
 
 // call this when wallet addresses need to be added to bloom filter
-void BRPeerSetNeedsFilterUpdate(BRPeer *peer)
+void BRPeerSetNeedsFilterUpdate(BRPeer *peer, int needsFilterUpdate)
 {
-    ((BRPeerContext *)peer)->needsFilterUpdate = 1;
+    ((BRPeerContext *)peer)->needsFilterUpdate = needsFilterUpdate;
 }
 
 // display name of peer address
