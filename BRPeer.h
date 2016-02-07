@@ -64,6 +64,12 @@
 #define MSG_ALERT       "alert"
 #define MSG_REJECT      "reject" // described in BIP61: https://github.com/bitcoin/bips/blob/master/bip-0061.mediawiki
 
+#define REJECT_INVALID     0x10 // transaction is invalid for some reason (invalid signature, output value > input, etc)
+#define REJECT_SPENT       0x12 // an input is already spent
+#define REJECT_NONSTANDARD 0x40 // not mined/relayed because it is "non-standard" (type or version unknown by server)
+#define REJECT_DUST        0x41 // one or more output amounts are below the 'dust' threshold
+#define REJECT_LOWFEE      0x42 // transaction does not have enough fee/priority to be relayed or mined
+
 #define peer_log(peer, ...)\
     printf("%s:%u " _va_first(__VA_ARGS__, NULL) "\n", BRPeerHost(peer), (peer)->port, _va_rest(__VA_ARGS__, NULL))
 #define _va_first(first, ...) first

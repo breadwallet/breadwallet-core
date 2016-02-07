@@ -163,18 +163,22 @@ static size_t BRTxPeerListAddPeer(BRTxPeerList **list, UInt256 txHash, const BRP
     return 1;
 }
 
-// removes peer from the list of peers associated with txHash
-static void BRTxPeerListRemovePeer(BRTxPeerList *list, UInt256 txHash, const BRPeer *peer)
+// removes peer from the list of peers associated with txHash, returns true if peer was found
+static int BRTxPeerListRemovePeer(BRTxPeerList *list, UInt256 txHash, const BRPeer *peer)
 {
     for (size_t i = array_count(list); i > 0; i--) {
         if (! UInt256Eq(list[i - 1].txHash, txHash)) continue;
         
         for (size_t j = array_count(list[i - 1].peers); j > 0; j--) {
-            if (BRPeerEq(&list[i - 1].peers[j - 1], peer)) array_rm(list[i - 1].peers, j - 1);
+            if (! BRPeerEq(&list[i - 1].peers[j - 1], peer)) continue;
+            array_rm(list[i - 1].peers, j - 1);
+            return 1;
         }
         
         break;
     }
+    
+    return 0;
 }
 
 // comparator for sorting peers by timestamp, most recent first
@@ -469,7 +473,7 @@ static void BRPeerManagerRmUnrelayedTx(BRPeerManager *manager)
 
         for (size_t i = 0; i < txCount; i++) {
             if (BRTxPeerListCount(manager->txRelays, tx[i]->txHash) == 0 &&
-                BRTxPeerListCount(manager->txRequests, tx[i]->txHash)) {
+                BRTxPeerListCount(manager->txRequests, tx[i]->txHash) == 0) {
                 // if this is for a transaction we sent, and it wasn't already known to be invalid, notify user
                 if (! rescan && BRWalletAmountSentByTx(manager->wallet, tx[i]) > 0 &&
                     BRWalletTransactionIsValid(manager->wallet, tx[i])) {
@@ -878,13 +882,14 @@ static void peerHasTx(void *info, UInt256 txHash)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
-    BRTransaction *tx = BRWalletTransactionForHash(manager->wallet, txHash);
+    BRTransaction *tx;
     void *txInfo = NULL;
     void (*txCallback)(void *, int) = NULL;
     int syncing;
     size_t relayCount = 0;
     
     pthread_mutex_lock(&manager->lock);
+    tx = BRWalletTransactionForHash(manager->wallet, txHash);
     syncing = (manager->lastBlock->height < manager->estimatedHeight);
     peer_log(peer, "has tx: %s", uint256_hex_encode(txHash));
 
@@ -926,11 +931,35 @@ static void peerHasTx(void *info, UInt256 txHash)
 static void peerRejectedTx(void *info, UInt256 txHash, uint8_t code)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
-//    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
-//
-//    BRRWLockWrite(&manager->lock);
+    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+    BRTransaction *tx, *t;
+
+    pthread_mutex_lock(&manager->lock);
     peer_log(peer, "rejected tx: %s", uint256_hex_encode(txHash));
-//    BRRWLockUnlock(&manager->lock);
+    tx = BRWalletTransactionForHash(manager->wallet, txHash);
+    BRTxPeerListRemovePeer(manager->txRequests, txHash, peer);
+
+    if (tx) {
+        if (BRTxPeerListRemovePeer(manager->txRelays, txHash, peer) && tx->blockHeight == TX_UNCONFIRMED) {
+            // set timestamp 0 to mark tx as unverified
+            BRWalletUpdateTransactions(manager->wallet, &txHash, 1, TX_UNCONFIRMED, 0);
+        }
+
+        // if we get rejected for any reason other than double-spend, the peer is likely misconfigured
+        if (code != REJECT_SPENT && BRWalletAmountSentByTx(manager->wallet, tx) > 0) {
+            for (size_t i = 0; i < tx->inCount; i++) { // check that all inputs are confirmed before dropping peer
+                t = BRWalletTransactionForHash(manager->wallet, tx->inputs[i].txHash);
+                if (! t || t->blockHeight != TX_UNCONFIRMED) continue;
+                tx = NULL;
+                break;
+            }
+            
+            if (tx) BRPeerManagerPeerMisbehavin(manager, peer);
+        }
+    }
+
+    pthread_mutex_unlock(&manager->lock);
+    if (manager->txStatusUpdate) manager->txStatusUpdate(manager->info);
 }
 
 static void peerRelayedBlock(void *info, BRMerkleBlock *block)
