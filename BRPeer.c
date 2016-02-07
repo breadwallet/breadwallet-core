@@ -922,22 +922,24 @@ static void *peerThreadRoutine(void *arg)
     ctx->socket = -1;
     peer_log(peer, "disconnected");
     
-    while (array_count(ctx->pongCallback) > 0) {
-        void (*pongCallback)(void *, int) = array_last(ctx->pongCallback);
-        void *pongInfo = array_last(ctx->pongInfo);
+    while (array_count(ctx->pongCallback) > 0 || array_count(ctx->scheduleCallback) > 0) {
+        while (array_count(ctx->pongCallback) > 0) {
+            void (*pongCallback)(void *, int) = ctx->pongCallback[0];
+            void *pongInfo = ctx->pongInfo[0];
             
-        array_rm_last(ctx->pongCallback);
-        array_rm_last(ctx->pongInfo);
-        if (pongCallback) pongCallback(pongInfo, 0);
-    }
+            array_rm(ctx->pongCallback, 0);
+            array_rm(ctx->pongInfo, 0);
+            if (pongCallback) pongCallback(pongInfo, 0);
+        }
     
-    while (array_count(ctx->scheduleCallback) > 0) {
-        void (*scheduleCallback)(void *) = array_last(ctx->scheduleCallback);
-        void *scheduleInfo = array_last(ctx->scheduleInfo);
-        
-        array_rm_last(ctx->scheduleCallback);
-        array_rm_last(ctx->scheduleInfo);
-        if (scheduleCallback) scheduleCallback(scheduleInfo);
+        while (array_count(ctx->scheduleCallback) > 0) {
+            void (*scheduleCallback)(void *) = ctx->scheduleCallback[0];
+            void *scheduleInfo = ctx->scheduleInfo[0];
+            
+            array_rm(ctx->scheduleCallback, 0);
+            array_rm(ctx->scheduleInfo, 0);
+            if (scheduleCallback) scheduleCallback(scheduleInfo);
+        }
     }
     
     if (ctx->disconnected) ctx->disconnected(ctx->info, error);

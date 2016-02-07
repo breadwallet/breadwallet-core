@@ -133,6 +133,16 @@ static int BRTxPeerListHasPeer(const BRTxPeerList *list, UInt256 txHash, const B
     return 0;
 }
 
+// number of peers associated with txHash
+static size_t BRTxPeerListCount(const BRTxPeerList *list, UInt256 txHash)
+{
+    for (size_t i = array_count(list); i > 0; i--) {
+        if (UInt256Eq(list[i - 1].txHash, txHash)) return array_count(list[i - 1].peers);
+    }
+    
+    return 0;
+}
+
 // adds peer to the list of peers associated with txHash and returns the new total number of peers
 static size_t BRTxPeerListAddPeer(BRTxPeerList **list, UInt256 txHash, const BRPeer *peer)
 {
@@ -341,11 +351,17 @@ static void updateFilterRerequestDone(void *info, int success)
     
     free(info);
     
-    if (success && (peer->flags & PEER_FLAG_NEEDSUPDATE) == 0) {
-        UInt256 locators[BRPeerManagerBlockLocators(manager, NULL, 0)];
-        size_t count = BRPeerManagerBlockLocators(manager, locators, sizeof(locators)/sizeof(*locators));
+    if (success) {
+        pthread_mutex_lock(&manager->lock);
 
-        BRPeerSendGetblocks(peer, locators, count, UINT256_ZERO);
+        if ((peer->flags & PEER_FLAG_NEEDSUPDATE) == 0) {
+            UInt256 locators[BRPeerManagerBlockLocators(manager, NULL, 0)];
+            size_t count = BRPeerManagerBlockLocators(manager, locators, sizeof(locators)/sizeof(*locators));
+            
+            BRPeerSendGetblocks(peer, locators, count, UINT256_ZERO);
+        }
+
+        pthread_mutex_unlock(&manager->lock);
     }
 }
 
@@ -415,7 +431,7 @@ static void BRPeerManagerUpdateFilter(BRPeerManager *manager)
 {
     BRPeerCallbackInfo *info;
 
-    if (manager->downloadPeer && ! (manager->downloadPeer->flags & PEER_FLAG_NEEDSUPDATE)) {
+    if (manager->downloadPeer && (manager->downloadPeer->flags & PEER_FLAG_NEEDSUPDATE) == 0) {
         BRPeerSetNeedsFilterUpdate(manager->downloadPeer, 1);
         manager->downloadPeer->flags |= PEER_FLAG_NEEDSUPDATE;
         peer_log(manager->downloadPeer, "filter update needed, waiting for pong");
@@ -430,6 +446,54 @@ static void BRPeerManagerUpdateFilter(BRPeerManager *manager)
 // unconfirmed transactions that aren't in the mempools of any of connected peers have likely dropped off the network
 static void BRPeerManagerRmUnrelayedTx(BRPeerManager *manager)
 {
+    int rescan = 0, notify = 0;
+    size_t count = 0;
+    BRPeer *peer;
+
+    pthread_mutex_lock(&manager->lock);
+    
+    for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
+        peer = manager->connectedPeers[i - 1];
+        if (BRPeerConnectStatus(peer) == BRPeerStatusConnected ||
+            BRPeerConnectStatus(peer) == BRPeerStatusConnecting) count++;
+        if ((peer->flags & PEER_FLAG_SYNCED) != 0) continue;
+        count = 0;
+        break;
+    }
+
+    // don't remove transactions until we're connected to PEER_MAX_CONNECTION peers, and all peers have finished
+    // relaying their mempools
+    if (count >= PEER_MAX_CONNECTIONS) {
+        BRTransaction *tx[BRWalletUnconfirmedTx(manager->wallet, NULL, 0)], *t;
+        size_t txCount = BRWalletUnconfirmedTx(manager->wallet, tx, sizeof(tx)/sizeof(*tx));
+
+        for (size_t i = 0; i < txCount; i++) {
+            if (BRTxPeerListCount(manager->txRelays, tx[i]->txHash) == 0 &&
+                BRTxPeerListCount(manager->txRequests, tx[i]->txHash)) {
+                // if this is for a transaction we sent, and it wasn't already known to be invalid, notify user
+                if (! rescan && BRWalletAmountSentByTx(manager->wallet, tx[i]) > 0 &&
+                    BRWalletTransactionIsValid(manager->wallet, tx[i])) {
+                    rescan = notify = 1;
+
+                    for (size_t j = 0; j < tx[i]->inCount; j++) { // only recommend a rescan if all inputs are confirmed
+                        t = BRWalletTransactionForHash(manager->wallet, tx[i]->inputs[j].txHash);
+                        if (t && t->blockHeight != TX_UNCONFIRMED) continue;
+                        rescan = 0;
+                        break;
+                    }
+                }
+
+                BRWalletRemoveTransaction(manager->wallet, tx[i]->txHash);
+            }
+            else if (BRTxPeerListCount(manager->txRelays, tx[i]->txHash) < PEER_MAX_CONNECTIONS) {
+                // set timestamp 0 to mark as unverified
+                BRWalletUpdateTransactions(manager->wallet, &tx[i]->txHash, 1, TX_UNCONFIRMED, 0);
+            }
+        }
+    }
+
+    pthread_mutex_unlock(&manager->lock);
+    if (notify && manager->txRejected) manager->txRejected(manager->info, rescan);
 }
 
 static void loadMempoolsMempoolDone(void *info, int success)
