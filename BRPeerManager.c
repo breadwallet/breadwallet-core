@@ -980,12 +980,17 @@ static void peerRelayedBlock(void *info, BRMerkleBlock *block)
 static void peerDataNotfound(void *info, const UInt256 txHashes[], size_t txCount,
                              const UInt256 blockHashes[], size_t blockCount)
 {
-//    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
-//    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
-//
-//    BRRWLockWrite(&manager->lock);
-//
-//    BRRWLockUnlock(&manager->lock);
+    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
+    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+
+    pthread_mutex_lock(&manager->lock);
+
+    for (size_t i = 0; i < txCount; i++) {
+        BRTxPeerListRemovePeer(manager->txRelays, txHashes[i], peer);
+        BRTxPeerListRemovePeer(manager->txRequests, txHashes[i], peer);
+    }
+
+    pthread_mutex_unlock(&manager->lock);
 }
 
 static void peerRequestedTxPingDone(void *info, int success)
