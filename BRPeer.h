@@ -30,6 +30,10 @@
 #include "BRInt.h"
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if BITCOIN_TESTNET
 #define STANDARD_PORT 18333
 #else
@@ -71,9 +75,16 @@
 #define REJECT_LOWFEE      0x42 // transaction does not have enough fee/priority to be relayed or mined
 
 #define peer_log(peer, ...)\
-    printf("%s:%u " _va_first(__VA_ARGS__, NULL) "\n", BRPeerHost(peer), (peer)->port, _va_rest(__VA_ARGS__, NULL))
+    _peer_log("%s:%u " _va_first(__VA_ARGS__, NULL) "\n", BRPeerHost(peer), (peer)->port, _va_rest(__VA_ARGS__, NULL))
 #define _va_first(first, ...) first
 #define _va_rest(first, ...) __VA_ARGS__
+#if defined(TARGET_OS_MAC)
+#define _peer_log(...) NSLog(__VA_ARGS__)
+#elif defined(ANDROID)
+#define _peer_log(...) __android_log_print(ANDROID_LOG_INFO, __VA_ARGS__)
+#else
+#define _peer_log(...) printf(__VA_ARGS__)
+#endif
 
 typedef enum {
     BRPeerStatusDisconnected = 0,
@@ -180,5 +191,9 @@ inline static int BRPeerEq(const void *a, const void *b)
 
 // frees memory allocated for peer
 void BRPeerFree(BRPeer *peer);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BRPeer_h

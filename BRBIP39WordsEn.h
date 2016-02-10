@@ -27,6 +27,10 @@
 
 #include "BRBIP39Mnemonic.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static const char *BRBIP39WordsEn[BIP39_WORDLIST_COUNT] = {
     "abandon",
     "ability",
@@ -2077,5 +2081,9 @@ static const char *BRBIP39WordsEn[BIP39_WORDLIST_COUNT] = {
     "zone",
     "zoo"
 };
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BRBIP39WordsEn_h

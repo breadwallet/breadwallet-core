@@ -31,6 +31,10 @@
 #include "BRWallet.h"
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define PEER_MAX_CONNECTIONS 3
 
 typedef struct _BRPeerManager BRPeerManager;
@@ -81,5 +85,9 @@ size_t BRPeerMangaerRelayCount(BRPeerManager *manager, UInt256 txHash);
 
 // frees memory allocated for manager
 void BRPeerManagerFree(BRPeerManager *manager);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BRPeerManager_h

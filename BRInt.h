@@ -27,6 +27,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // large integers
 
 typedef union {
@@ -178,6 +182,10 @@ inline static UInt256 UInt256Reverse(UInt256 u)
                  (((x) & 0x00000000ff000000ULL) << 8)  | (((x) & 0x000000ff00000000ULL) >> 8))
 #define le64(x) (x)
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif // BRInt_h

@@ -28,6 +28,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // growable arrays with type checking
 
 #define array_new(array, capacity) do {\
@@ -117,5 +121,9 @@
 } while (0)
 
 #define array_free(array) free((size_t *)(array) - 2)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BRArray_h

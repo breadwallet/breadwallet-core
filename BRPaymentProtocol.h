@@ -29,6 +29,10 @@
 #include "BRAddress.h"
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // BIP70 payment protocol: https://github.com/bitcoin/bips/blob/master/bip-0070.mediawiki
 
 typedef struct {
@@ -118,5 +122,9 @@ size_t BRPaymentProtocolACKSerialize(BRPaymentProtocolACK *ack, uint8_t *buf, si
 
 // frees memory allocated for ACK struct
 void BRPaymentProtocolACKFree(BRPaymentProtocolACK *ack);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BRPaymentProtocol_h

@@ -28,6 +28,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // BIP39 is method for generating a deterministic wallet seed from a mnemonic phrase
 // https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki
 
@@ -47,5 +51,9 @@ int BRBIP39PhraseIsValid(const char *wordList[], const char *phrase);
 // http://www.unicode.org/reports/tr15/#Norm_Forms
 // BUG: does not currently support passphrases containing NULL characters
 void BRBIP39DeriveKey(uint8_t *key, const char *phrase, const char *passphrase);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BRBIP39Mnemonic_h

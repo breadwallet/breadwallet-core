@@ -27,6 +27,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // bloom filters are explained in BIP37: https://github.com/bitcoin/bips/blob/master/bip-0037.mediawiki
 
 #define BLOOM_DEFAULT_FALSEPOSITIVE_RATE 0.0005 // use 0.00005 for less data, 0.001 for good anonymity
@@ -67,5 +71,9 @@ void BRBloomFilterInsertData(BRBloomFilter *filter, const uint8_t *data, size_t 
 
 // frees memory allocated for filter
 void BRBloomFilterFree(BRBloomFilter *filter);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BRBloomFilter_h

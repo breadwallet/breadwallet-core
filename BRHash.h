@@ -28,6 +28,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define RMD160_DIGEST_LENGTH (160/8)
 
 void BRSHA1(void *md, const void *data, size_t len);
@@ -51,5 +55,9 @@ void BRPBKDF2(void *dk, size_t dkLen, void (*hash)(void *, const void *, size_t)
 
 // murmurHash3 (x86_32): https://code.google.com/p/smhasher/
 uint32_t BRMurmur3_32(const void *data, size_t len, uint32_t seed);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BRHash_h

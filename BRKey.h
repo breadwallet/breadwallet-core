@@ -27,6 +27,10 @@
 
 #include "BRInt.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 UInt256 BRSecp256k1ModAdd(UInt256 a, UInt256 b); // add 256bit big endian ints (mod secp256k1 order)
 UInt256 BRSecp256k1ModMul(UInt256 a, UInt256 b); // multiply 256bit big endian ints (mod secp256k1 order)
 size_t BRSecp256k1PointAdd(void *r, const void *a, const void *b, int compressed); // add secp256k1 ec-points
@@ -61,5 +65,9 @@ int BRKeyVerify(BRKey *key, UInt256 md, const void *sig, size_t len);
 void BRKeyClean(BRKey *key);
 
 // TODO: XXX implement compact signing/pubkey recovery
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BRKey_h

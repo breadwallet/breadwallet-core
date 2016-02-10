@@ -27,6 +27,10 @@
 
 #include "BRKey.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // BIP38 is a method for encrypting private keys with a passphrase
 // https://github.com/bitcoin/bips/blob/master/bip-0038.mediawiki
 
@@ -54,5 +58,9 @@ void BRKeySetBIP38ItermediateCode(BRKey *key, const char *code, const uint8_t *s
 // encrypts key with passphrase, returns number of bytes written to bip38Key including NULL terminator, or total
 // bip38KeyLen needed if bip38Key is NULL, passphrase must be unicode NFC normalized
 size_t BRKeyBIP38Key(BRKey *key, char *bip38Key, size_t bip38KeyLen, const char *passphrase);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BRBIP38Key_h

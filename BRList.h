@@ -27,6 +27,10 @@
 
 #include <stdlib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // singly-linked list with type checking
 //
 // example:
@@ -128,5 +132,9 @@ inline static void *_list_sort(void *head, void *info, int (*comparator)(void *i
     list_next(item) = (head) ? head : split;
     return node[0];
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BRList_h

@@ -31,6 +31,10 @@
 #include "BRInt.h"
 #include <string.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
     UInt256 hash;
     uint32_t n;
@@ -169,5 +173,9 @@ int64_t BRLocalAmount(int64_t amount, double price);
 
 // returns the given local currency amount in satoshis, price is local currency units per bitcoin
 int64_t BRBitcoinAmount(int64_t localAmount, double price);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BRWallet_h

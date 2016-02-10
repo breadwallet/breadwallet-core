@@ -27,6 +27,10 @@
 
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct _BRSet BRSet;
 
 // retruns a newly allocated empty set that must be freed by calling BRSetFree(), hash is a function that returns a hash
@@ -78,5 +82,9 @@ void BRSetIntersect(BRSet *set, const BRSet *otherSet);
 
 // frees memory allocated for set
 void BRSetFree(BRSet *set);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BRSet_h

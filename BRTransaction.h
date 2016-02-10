@@ -28,6 +28,10 @@
 #include "BRKey.h"
 #include "BRInt.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define TX_FEE_PER_KB        5000ULL     // standard tx fee per kb of tx size, rounded up to nearest kb
 #define TX_OUTPUT_SIZE       34          // estimated size for a typical transaction output
 #define TX_INPUT_SIZE        148         // estimated size for a typical compact pubkey transaction input
@@ -133,5 +137,9 @@ inline static int BRTransactionEq(const void *tx, const void *otherTx)
 
 // frees memory allocated for tx
 void BRTransactionFree(BRTransaction *tx);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BRTransaction_h

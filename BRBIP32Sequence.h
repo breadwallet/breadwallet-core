@@ -29,6 +29,10 @@
 #include "BRInt.h"
 #include <stddef.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // BIP32 is a scheme for deriving chains of addresses from a seed value
 // https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki
 
@@ -54,5 +58,9 @@ size_t BRBIP32SerializeMasterPrivKey(char *s, size_t sLen, const void *seed, siz
 size_t BRBIP32ParseMasterPrivKey(void *seed, size_t seedLen, const char *s);
 size_t BRBIP32SerializeMasterPubKey(char *s, size_t sLen, BRMasterPubKey mpk);
 BRMasterPubKey BRBIP32ParseMasterPubKey(const char *s);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BRBIP32Sequence_h

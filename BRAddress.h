@@ -28,6 +28,10 @@
 #include "BRHash.h"
 #include <string.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define BITCOIN_PUBKEY_ADDRESS      0
 #define BITCOIN_SCRIPT_ADDRESS      5
 #define BITCOIN_PUBKEY_ADDRESS_TEST 111
@@ -75,5 +79,9 @@ inline static size_t BRAddressHash(const void *addr)
 {
     return BRMurmur3_32(addr, strlen(addr), 0);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // BRAddress_h
