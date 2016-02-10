@@ -28,7 +28,6 @@
 #include "BRArray.h"
 #include "BRInt.h"
 #include <stdlib.h>
-#include <stdio.h>
 #include <time.h>
 #include <float.h>
 #include <math.h>

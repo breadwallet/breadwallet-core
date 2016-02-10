@@ -34,6 +34,7 @@
     _peer_log("%s:%u " _va_first(__VA_ARGS__, NULL) "\n", BRPeerHost(peer), (peer)->port, _va_rest(__VA_ARGS__, NULL))
 #define _va_first(first, ...) first
 #define _va_rest(first, ...) __VA_ARGS__
+
 #if defined(TARGET_OS_MAC)
 #include <Foundation/Foundation.h>
 #define _peer_log(...) NSLog(__VA_ARGS__)
@@ -41,6 +42,7 @@
 #include <android/log.h>
 #define _peer_log(...) __android_log_print(ANDROID_LOG_INFO, __VA_ARGS__)
 #else
+#include <stdio.h>
 #define _peer_log(...) printf(__VA_ARGS__)
 #endif
 

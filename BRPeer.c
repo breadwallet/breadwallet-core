@@ -31,7 +31,6 @@
 #include "BRInt.h"
 #include <float.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
