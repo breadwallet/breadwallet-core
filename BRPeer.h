@@ -30,6 +30,20 @@
 #include "BRInt.h"
 #include <stdint.h>
 
+#define peer_log(peer, ...)\
+    _peer_log("%s:%u " _va_first(__VA_ARGS__, NULL) "\n", BRPeerHost(peer), (peer)->port, _va_rest(__VA_ARGS__, NULL))
+#define _va_first(first, ...) first
+#define _va_rest(first, ...) __VA_ARGS__
+#if defined(TARGET_OS_MAC)
+#include <Foundation/Foundation.h>
+#define _peer_log(...) NSLog(__VA_ARGS__)
+#elif defined(ANDROID)
+#include <android/log.h>
+#define _peer_log(...) __android_log_print(ANDROID_LOG_INFO, __VA_ARGS__)
+#else
+#define _peer_log(...) printf(__VA_ARGS__)
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -73,18 +87,6 @@ extern "C" {
 #define REJECT_NONSTANDARD 0x40 // not mined/relayed because it is "non-standard" (type or version unknown by server)
 #define REJECT_DUST        0x41 // one or more output amounts are below the 'dust' threshold
 #define REJECT_LOWFEE      0x42 // transaction does not have enough fee/priority to be relayed or mined
-
-#define peer_log(peer, ...)\
-    _peer_log("%s:%u " _va_first(__VA_ARGS__, NULL) "\n", BRPeerHost(peer), (peer)->port, _va_rest(__VA_ARGS__, NULL))
-#define _va_first(first, ...) first
-#define _va_rest(first, ...) __VA_ARGS__
-#if defined(TARGET_OS_MAC)
-#define _peer_log(...) NSLog(__VA_ARGS__)
-#elif defined(ANDROID)
-#define _peer_log(...) __android_log_print(ANDROID_LOG_INFO, __VA_ARGS__)
-#else
-#define _peer_log(...) printf(__VA_ARGS__)
-#endif
 
 typedef enum {
     BRPeerStatusDisconnected = 0,
