@@ -804,7 +804,22 @@ void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHashes[], size
 // marks all transactions confirmed after blockHeight as unconfirmed (useful for chain re-orgs)
 void BRWalletSetTxUnconfirmedAfter(BRWallet *wallet, uint32_t blockHeight)
 {
+    size_t i, count;
     
+    pthread_mutex_lock(&wallet->lock);
+    count = i = array_count(wallet->transactions);
+    while (i > 0 && wallet->transactions[i - 1]->blockHeight > blockHeight) i--;
+    count -= i;
+
+    UInt256 hashes[count];
+
+    for (size_t j = 0; j < count; j++) {
+        wallet->transactions[i + j]->blockHeight = TX_UNCONFIRMED;
+        hashes[j] = wallet->transactions[i + j]->txHash;
+    }
+
+    pthread_mutex_unlock(&wallet->lock);
+    if (count > 0 && wallet->txUpdated) wallet->txUpdated(wallet->callbackInfo, hashes, count, TX_UNCONFIRMED, 0);
 }
 
 // returns the amount received by the wallet from the transaction (total outputs to change and/or receive addresses)
