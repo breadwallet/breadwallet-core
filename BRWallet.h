@@ -144,8 +144,11 @@ int BRWalletTransactionIsPostdated(BRWallet *wallet, const BRTransaction *tx, ui
 
 // set the block heights and timestamps for the given transactions, use a height of TX_UNCONFIRMED and timestamp of 0 to
 // indicate a transaction and it's dependents should remain marked as unverified (not 0-conf safe)
-void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHash[], size_t count, uint32_t blockHeight,
+void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHashes[], size_t count, uint32_t blockHeight,
                                 uint32_t timestamp);
+    
+// marks all transactions confirmed after blockHeight as unconfirmed (useful for chain re-orgs)
+void BRWalletSetTxUnconfirmedAfter(BRWallet *wallet, uint32_t blockHeight);
 
 // returns the amount received by the wallet from the transaction (total outputs to change and/or receive addresses)
 uint64_t BRWalletAmountReceivedFromTx(BRWallet *wallet, const BRTransaction *tx);

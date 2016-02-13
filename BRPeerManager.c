@@ -203,7 +203,7 @@ inline static int BRPrevBlockEq(const void *block, const void *otherBlock)
 // returns a hash value for a block's height value suitable for use in a hashtable
 inline static size_t BRBlockHeightHash(const void *block)
 {
-    return (size_t)((BRMerkleBlock *)block)->height;
+    return (size_t)((BRMerkleBlock *)block)->height*0x01000193; // height*FNV_PRIME
 }
 
 // true if block and otherBlock have equal height values
@@ -221,7 +221,6 @@ struct _BRPeerManager {
     double fpRate;
     BRSet *blocks, *orphans, *checkpoints;
     BRMerkleBlock *lastBlock, *lastOrphan;
-    UInt256 *nonFpTx;
     BRTxPeerList *txRelays, *txRequests;
     BRPublishedTx *publishedTx;
     UInt256 *publishedTxHash;
@@ -254,7 +253,7 @@ static void BRPeerManagerPeerMisbehavin(BRPeerManager *manager, BRPeer *peer)
 static void BRPeerManagerSyncStopped(BRPeerManager *manager)
 {
     manager->syncStartHeight = 0;
-    if (manager->downloadPeer) BRPeerScheduleDisconnect(manager->downloadPeer, -1);
+    if (manager->downloadPeer) BRPeerScheduleDisconnect(manager->downloadPeer, -1); // cancel sync timeout
 }
 
 // adds transaction to list of tx to be published, along with any unconfirmed inputs
@@ -446,6 +445,31 @@ static void BRPeerManagerUpdateFilter(BRPeerManager *manager)
     }
 }
 
+static void BRPeerManagerUpdateTx(BRPeerManager *manager, const UInt256 txHashes[], size_t count,
+                                  uint32_t blockHeight, uint32_t timestamp)
+{
+    if (blockHeight != TX_UNCONFIRMED) { // remove confirmed tx from publish list and relay counts
+        for (size_t i = 0; i < count; i++) {
+            for (size_t j = array_count(manager->publishedTx); j > 0; j--) {
+                BRTransaction *tx = manager->publishedTx[j - 1].tx;
+                
+                if (! UInt256Eq(txHashes[i], tx->txHash)) continue;
+                array_rm(manager->publishedTx, j - 1);
+                array_rm(manager->publishedTxHash, j - 1);
+                if (! BRWalletTransactionForHash(manager->wallet, tx->txHash)) BRTransactionFree(tx);
+            }
+            
+            for (size_t j = array_count(manager->txRelays); j > 0; j--) {
+                if (! UInt256Eq(txHashes[i], manager->txRelays[j - 1].txHash)) continue;
+                array_free(manager->txRelays[j - 1].peers);
+                array_rm(manager->txRelays, j - 1);
+            }
+        }
+    }
+    
+    BRWalletUpdateTransactions(manager->wallet, txHashes, count, blockHeight, timestamp);
+}
+
 // unconfirmed transactions that aren't in the mempools of any of connected peers have likely dropped off the network
 static void BRPeerManagerRmUnrelayedTx(BRPeerManager *manager)
 {
@@ -490,7 +514,7 @@ static void BRPeerManagerRmUnrelayedTx(BRPeerManager *manager)
             }
             else if (BRTxPeerListCount(manager->txRelays, tx[i]->txHash) < PEER_MAX_CONNECTIONS) {
                 // set timestamp 0 to mark as unverified
-                BRWalletUpdateTransactions(manager->wallet, &tx[i]->txHash, 1, TX_UNCONFIRMED, 0);
+                BRPeerManagerUpdateTx(manager, &tx[i]->txHash, 1, TX_UNCONFIRMED, 0);
             }
         }
     }
@@ -736,6 +760,7 @@ static void peerDisconnected(void *info, int error)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+    BRTxPeerList *peerList;
     
     free(info);
     pthread_mutex_lock(&manager->lock);
@@ -752,8 +777,10 @@ static void peerDisconnected(void *info, int error)
     }
     
     for (size_t i = array_count(manager->txRelays); i > 0; i--) {
-        for (size_t j = array_count(manager->txRelays[i - 1].peers); j > 0; j--) {
-            if (BRPeerEq(&manager->txRelays[i - 1].peers[j - 1], peer)) array_rm(manager->txRelays[i - 1].peers, j - 1);
+        peerList = &manager->txRelays[i - 1];
+
+        for (size_t j = array_count(peerList->peers); j > 0; j--) {
+            if (BRPeerEq(&peerList->peers[j - 1], peer)) array_rm(peerList->peers, j - 1);
         }
     }
 
@@ -846,7 +873,6 @@ static void peerRelayedTx(void *info, BRTransaction *tx)
         // (we only need to track this after syncing is complete)
         if (! syncing) relayCount = BRTxPeerListAddPeer(&manager->txRelays, tx->txHash, peer);
         
-        array_add(manager->nonFpTx, tx->txHash);
         BRTxPeerListRemovePeer(manager->txRequests, tx->txHash, peer);
         
         if (manager->bloomFilter != NULL) { // check if bloom filter is already being updated
@@ -861,7 +887,8 @@ static void peerRelayedTx(void *info, BRTransaction *tx)
             for (size_t i = 0; i < SEQUENCE_GAP_LIMIT_EXTERNAL + SEQUENCE_GAP_LIMIT_INTERNAL; i++) {
                 if (! BRAddressHash160(&hash, addrs[i].s) ||
                     BRBloomFilterContainsData(manager->bloomFilter, hash.u8, sizeof(hash))) continue;
-                manager->bloomFilter = NULL;
+                if (manager->bloomFilter) BRBloomFilterFree(manager->bloomFilter);
+                manager->bloomFilter = NULL; // reset bloom filter so it's recreated with new wallet addresses
                 BRPeerManagerUpdateFilter(manager);
                 break;
             }
@@ -870,7 +897,7 @@ static void peerRelayedTx(void *info, BRTransaction *tx)
     
     // set timestamp when tx is verified
     if (relayCount >= PEER_MAX_CONNECTIONS && tx->blockHeight == TX_UNCONFIRMED) {
-        BRWalletUpdateTransactions(manager->wallet, &tx->txHash, 1, TX_UNCONFIRMED, (uint32_t)time(NULL));
+        BRPeerManagerUpdateTx(manager, &tx->txHash, 1, TX_UNCONFIRMED, (uint32_t)time(NULL));
     }
     
     pthread_mutex_unlock(&manager->lock);
@@ -916,10 +943,9 @@ static void peerHasTx(void *info, UInt256 txHash)
 
         // set timestamp when tx is verified
         if (relayCount >= PEER_MAX_CONNECTIONS && tx->blockHeight == TX_UNCONFIRMED) {
-            BRWalletUpdateTransactions(manager->wallet, &txHash, 1, TX_UNCONFIRMED, (uint32_t)time(NULL));
+            BRPeerManagerUpdateTx(manager, &txHash, 1, TX_UNCONFIRMED, (uint32_t)time(NULL));
         }
 
-        array_add(manager->nonFpTx, txHash);
         BRTxPeerListRemovePeer(manager->txRequests, txHash, peer);
     }
     
@@ -941,7 +967,7 @@ static void peerRejectedTx(void *info, UInt256 txHash, uint8_t code)
     if (tx) {
         if (BRTxPeerListRemovePeer(manager->txRelays, txHash, peer) && tx->blockHeight == TX_UNCONFIRMED) {
             // set timestamp 0 to mark tx as unverified
-            BRWalletUpdateTransactions(manager->wallet, &txHash, 1, TX_UNCONFIRMED, 0);
+            BRPeerManagerUpdateTx(manager, &txHash, 1, TX_UNCONFIRMED, 0);
         }
 
         // if we get rejected for any reason other than double-spend, the peer is likely misconfigured
@@ -961,19 +987,240 @@ static void peerRejectedTx(void *info, UInt256 txHash, uint8_t code)
     if (manager->txStatusUpdate) manager->txStatusUpdate(manager->info);
 }
 
+static int BRPeerManagerVerifyBlock(BRPeerManager *manager, BRMerkleBlock *block, BRMerkleBlock *prev, BRPeer *peer)
+{
+    uint32_t transitionTime = 0;
+    int r = 1;
+
+    block->height = prev->height + 1;
+    
+    // check if we hit a difficulty transition, and find previous transition time
+    if ((block->height % BLOCK_DIFFICULTY_INTERVAL) == 0) {
+        BRMerkleBlock *b = block;
+        UInt256 prevBlock;
+
+        for (uint32_t i = 0; b && i < BLOCK_DIFFICULTY_INTERVAL; i++) {
+            b = BRSetGet(manager->blocks, &b->prevBlock);
+        }
+
+        if (b) {
+            transitionTime = b->timestamp;
+            prevBlock = b->prevBlock;
+        }
+        
+        while (b) { // free up some memory
+            b = BRSetRemove(manager->blocks, &prevBlock);
+
+            if (b) {
+                prevBlock = b->prevBlock;
+                BRMerkleBlockFree(b);
+            }
+        }
+    }
+
+    // verify block difficulty
+    if (! BRMerkleBlockVerifyDifficulty(block, prev, transitionTime)) {
+        peer_log(peer, "relayed block with invalid difficulty target %x, blockHash: %s", block->target,
+                 uint256_hex_encode(block->blockHash));
+        r = 0;
+    }
+    else {
+        BRMerkleBlock *checkpoint = BRSetGet(manager->checkpoints, block);
+
+        // verify blockchain checkpoints
+        if (checkpoint && ! BRMerkleBlockEq(block, checkpoint)) {
+            peer_log(peer, "relayed a block that differs from the checkpoint at height %u, blockHash: %s, expected: %s",
+                     block->height, uint256_hex_encode(block->blockHash), uint256_hex_encode(checkpoint->blockHash));
+            r = 0;
+        }
+    }
+
+    return r;
+}
+
 static void peerRelayedBlock(void *info, BRMerkleBlock *block)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+    UInt256 txHashes[BRMerkleBlockTxHashes(block, NULL, 0)];
+    size_t txCount = BRMerkleBlockTxHashes(block, txHashes, sizeof(txHashes)/sizeof(*txHashes));
+    size_t i, fpCount = 0, saveCount = 0;
+    BRMerkleBlock orphan, *b, *b2, *prev, *next = NULL;
+    uint32_t txTime = 0;
     
     pthread_mutex_lock(&manager->lock);
     peer_log(peer, "relayed block: %s", uint256_hex_encode(block->blockHash));
+    prev = BRSetGet(manager->blocks, &block->prevBlock);
+    if (prev) txTime = block->timestamp/2 + prev->timestamp/2;
     
-    if (manager->lastBlock->height < manager->estimatedHeight && peer == manager->downloadPeer) {
-        BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT); // reschedule sync timeout
+    // track the observed bloom filter false positive rate using a low pass filter to smooth out variance
+    if (peer == manager->downloadPeer && block->totalTx > 0) {
+        for (i = 0; i < txCount; i++) { // wallet tx are not false-positives
+            if (! BRWalletTransactionForHash(manager->wallet, txHashes[i])) fpCount++;
+        }
+        
+        // 1% low pass filter, also weights each block by total transactions, using 800 tx per block as typical
+        manager->fpRate = manager->fpRate*(1.0 - 0.01*block->totalTx/800) + 0.01*fpCount/800;
+        
+        // false positive rate sanity check
+        if (BRPeerConnectStatus(peer) == BRPeerStatusConnected &&
+            manager->fpRate > BLOOM_DEFAULT_FALSEPOSITIVE_RATE*10.0) {
+            peer_log(peer, "bloom filter false positive rate %f too high after %u blocks, disconnecting...",
+                     manager->fpRate, manager->lastBlock->height + 1 - manager->filterUpdateHeight);
+            manager->tweak = BRRand(0); // new random filter tweak in case we matched satoshidice or something
+            BRPeerDisconnect(peer);
+        }
+        else if (manager->lastBlock->height + 500 < BRPeerLastBlock(peer) &&
+                 manager->fpRate > BLOOM_REDUCED_FALSEPOSITIVE_RATE*10.0) {
+            BRPeerManagerUpdateFilter(manager); // rebuild bloom filter when it starts to degrade
+        }
+    }
+
+    // ignore block headers that are newer than one week before earliestKeyTime (it's a header if it has 0 totalTx)
+    if (block->totalTx == 0 && block->timestamp + 7*24*60*60 > manager->earliestKeyTime + 2*60*60) {
+        BRMerkleBlockFree(block);
+        block = NULL;
+    }
+    else if (manager->bloomFilter == NULL) { // ingore potentially incomplete blocks when a filter update is pending
+        BRMerkleBlockFree(block);
+        block = NULL;
+
+        if (peer == manager->downloadPeer && manager->lastBlock->height < manager->estimatedHeight) {
+            BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT); // reschedule sync timeout
+        }
+    }
+    else if (! prev) { // block is an orphan
+        peer_log(peer, "relayed orphan block %s, previous %s, last block is %s, height %u",
+                 uint256_hex_encode(block->blockHash), uint256_hex_encode(block->prevBlock),
+                 uint256_hex_encode(manager->lastBlock->blockHash), manager->lastBlock->height);
+        
+        if (block->timestamp + 7*24*60*60 >= time(NULL)) { // ignore orphans older than one week ago
+            // call getblocks, unless we already did with the previous block, or we're still syncing
+            if (manager->lastBlock->height >= BRPeerLastBlock(peer) &&
+                ! UInt256Eq(manager->lastOrphan->blockHash, block->prevBlock)) {
+                UInt256 locators[BRPeerManagerBlockLocators(manager, NULL, 0)];
+                size_t locatorsCount = BRPeerManagerBlockLocators(manager, locators,
+                                                                  sizeof(locators)/sizeof(*locators));
+                
+                peer_log(peer, "calling getblocks");
+                BRPeerSendGetblocks(peer, locators, locatorsCount, UINT256_ZERO);
+            }
+            
+            BRSetAdd(manager->orphans, block);
+            manager->lastOrphan = block;
+        }
+    }
+    else if (! BRPeerManagerVerifyBlock(manager, block, prev, peer)) { // block is invalid
+        BRMerkleBlockFree(block);
+        block = NULL;
+        BRPeerManagerPeerMisbehavin(manager, peer);
+    }
+    else if (UInt256Eq(block->prevBlock, manager->lastBlock->blockHash)) { // new block extends main chain
+        if ((block->height % 500) == 0 || txCount > 0 || block->height > BRPeerLastBlock(peer)) {
+            peer_log(peer, "adding block #%u, false positive rate: %f", block->height, manager->fpRate);
+        }
+        
+        BRSetAdd(manager->blocks, block);
+        manager->lastBlock = block;
+        BRPeerManagerUpdateTx(manager, txHashes, txCount, block->height, txTime);
+        if (manager->downloadPeer) BRPeerSetCurrentBlockHeight(manager->downloadPeer, block->height);
+            
+        if (manager->lastBlock->height < manager->estimatedHeight && peer == manager->downloadPeer) {
+            BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT); // reschedule sync timeout
+        }
+        
+        if ((block->height % BLOCK_DIFFICULTY_INTERVAL) == 0) saveCount = 1; // save transition block immediately
+    }
+    else if (BRSetContains(manager->blocks, block)) { // we already have the block (or at least the header)
+        if ((block->height % 500) == 0 || txCount > 0 || block->height > BRPeerLastBlock(peer)) {
+            peer_log(peer, "relayed existing block #%u", block->height);
+        }
+        
+        b = BRSetAdd(manager->blocks, block);
+        if (b != block) BRMerkleBlockFree(b); // BUG: XXX could also be in orphans, lastBlock, lastOrphan
+        b = manager->lastBlock;
+        
+        while (b && b->height > block->height) b = BRSetGet(manager->blocks, &b->prevBlock); // is block in main chain?
+        
+        if (BRMerkleBlockEq(b, block)) { // if it's not on a fork, set block heights for its transactions
+            BRPeerManagerUpdateTx(manager, txHashes, txCount, block->height, txTime);
+            if (block->height == manager->lastBlock->height) manager->lastBlock = block;
+        }
+    }
+    else if (manager->lastBlock->height < BRPeerLastBlock(peer) &&
+             block->height > manager->lastBlock->height + 1) { // special case, new block mined durring rescan
+        peer_log(peer, "marking new block #%u as orphan until rescan completes", block->height);
+        BRSetAdd(manager->orphans, block); // mark as orphan til we're caught up
+        manager->lastOrphan = block;
+    }
+    else if (block->height <= checkpoint_array[CHECKPOINT_COUNT - 1].height) { // fork is older than last checkpoint
+        peer_log(peer, "ignoring block on fork older than most recent checkpoint, block #%u, hash: %s",
+                 block->height, uint256_hex_encode(block->blockHash));
+        BRMerkleBlockFree(block);
+        block = NULL;
+    }
+    else { // new block is on a fork
+        peer_log(peer, "chain fork reached height %u", block->height);
+        b = BRSetAdd(manager->blocks, block);
+        if (b != block) BRMerkleBlockFree(b); // BUG: XXX could also be in orphans, lastBlock, lastOrphan
+
+        if (block->height > manager->lastBlock->height) { // check if fork is now longer than main chain
+            b = block;
+            b2 = manager->lastBlock;
+            
+            while (b && b2 && ! BRMerkleBlockEq(b, b2)) { // walk back to where the fork joins the main chain
+                b = BRSetGet(manager->blocks, &b->prevBlock);
+                if (b && b->height < b2->height) b2 = BRSetGet(manager->blocks, &b2->prevBlock);
+            }
+            
+            peer_log(peer, "reorganizing chain from height %u, new height is %u", b->height, block->height);
+        
+            BRWalletSetTxUnconfirmedAfter(manager->wallet, b->height); // mark tx after the join point as unconfirmed
+
+            b = block;
+        
+            while (b && b2 && b->height > b2->height) { // set transaction heights for new main chain
+                UInt256 hashes[BRMerkleBlockTxHashes(b, NULL, 0)];
+                size_t count = BRMerkleBlockTxHashes(b, hashes, sizeof(hashes)/sizeof(*hashes));
+                uint32_t height = b->height, timestamp = b->timestamp;
+                
+                b = BRSetGet(manager->blocks, &b->prevBlock);
+                if (b) timestamp = timestamp/2 + b->timestamp/2;
+                BRWalletUpdateTransactions(manager->wallet, hashes, count, height, timestamp);
+            }
+        
+            manager->lastBlock = block;
+        }
+    }
+   
+    if (block) {
+        if (block == manager->lastBlock && block->height == manager->estimatedHeight) { // chain download is complete
+            saveCount = (block->height % BLOCK_DIFFICULTY_INTERVAL) + BLOCK_DIFFICULTY_INTERVAL + 1;
+            BRPeerManagerLoadMempools(manager);
+        }
+        
+        if (block->height > manager->estimatedHeight) manager->estimatedHeight = block->height;
+        
+        // check if the next block was received as an orphan
+        orphan.prevBlock = block->blockHash;
+        next = BRSetRemove(manager->orphans, &orphan);
+    }
+    
+    BRMerkleBlock *saveBlocks[saveCount];
+    
+    for (i = 0, b = block; b && i < saveCount; i++) {
+        saveBlocks[i] = b;
+        b = BRSetGet(manager->blocks, &b->prevBlock);
     }
     
     pthread_mutex_unlock(&manager->lock);
+    if (i > 0 && manager->saveBlocks) manager->saveBlocks(manager->info, saveBlocks, i);
+    
+    if (block && block->height >= BRPeerLastBlock(peer) && manager->txStatusUpdate) {
+        manager->txStatusUpdate(manager->info); // notify that transaction confirmations may have changed
+    }
+    
+    if (next) peerRelayedBlock(info, next);
 }
 
 static void peerDataNotfound(void *info, const UInt256 txHashes[], size_t txCount,
@@ -1034,7 +1281,11 @@ static BRTransaction *peerRequestedTx(void *info, UInt256 txHash)
             error = EINVAL;
             array_rm(manager->publishedTx, i - 1);
             array_rm(manager->publishedTxHash, i - 1);
-            if (! BRWalletTransactionForHash(manager->wallet, txHash)) BRTransactionFree(tx), tx = NULL;
+
+            if (! BRWalletTransactionForHash(manager->wallet, txHash)) {
+                BRTransactionFree(tx);
+                tx = NULL;
+            }
         }
         
         break;
@@ -1042,7 +1293,6 @@ static BRTransaction *peerRequestedTx(void *info, UInt256 txHash)
 
     if (tx && ! error) {
         BRTxPeerListAddPeer(&manager->txRelays, txHash, peer);
-        array_add(manager->nonFpTx, txHash); // okay if txHash is added more than once
         BRWalletRegisterTransaction(manager->wallet, tx);
     }
     
@@ -1071,7 +1321,7 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
     
     manager->wallet = wallet;
     manager->earliestKeyTime = earliestKeyTime;
-    manager->tweak = BRRand(BR_RAND_MAX);
+    manager->tweak = BRRand(0);
     array_new(manager->peers, peersCount);
     if (peers) array_add_array(manager->peers, peers, peersCount);
     qsort(manager->peers, array_count(manager->peers), sizeof(*manager->peers), BRPeerTimestampCompare);
@@ -1097,7 +1347,6 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
         if (! manager->lastBlock || blocks[i]->height > manager->lastBlock->height) manager->lastBlock = blocks[i];
     }
     
-    array_new(manager->nonFpTx, 10);
     array_new(manager->txRelays, 10);
     array_new(manager->txRequests, 10);
     array_new(manager->publishedTx, 10);
@@ -1107,6 +1356,8 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
 }
 
 // not thread-safe, set callbacks once before calling BRPeerManagerConnect()
+// if saveBlocks() or savePeers() fire with count of 0 or greater than 1, it is safe to delete any blocks/peers not
+// containted in the list, otherwise add the single block/peer to the persistent store without removing previous items
 void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*syncStarted)(void *info),
                                void (*syncSucceded)(void *info),
@@ -1269,11 +1520,14 @@ uint32_t BRPeerManagerEstimatedBlockHeight(BRPeerManager *manager)
 // current network sync progress from 0 to 1
 double BRPeerManagerSyncProgress(BRPeerManager *manager)
 {
-    double progress = 0;
+    double progress;
     
     pthread_mutex_lock(&manager->lock);
     
-    if (! manager->downloadPeer && manager->syncStartHeight == manager->lastBlock->height) {
+    if (! manager->downloadPeer && manager->syncStartHeight == 0) {
+        progress = 0.0;
+    }
+    else if (manager->lastBlock->height == manager->syncStartHeight) {
         progress = 0.05;
     }
     else if (manager->lastBlock->height < manager->estimatedHeight) {
@@ -1435,7 +1689,6 @@ void BRPeerManagerFree(BRPeerManager *manager)
     BRSetFree(manager->blocks);
     BRSetFree(manager->orphans);
     BRSetFree(manager->checkpoints);
-    array_free(manager->nonFpTx);
     for (size_t i = array_count(manager->txRelays); i > 0; i--) free(manager->txRelays[i - 1].peers);
     array_free(manager->txRelays);
     for (size_t i = array_count(manager->txRequests); i > 0; i--) free(manager->txRelays[i - 1].peers);

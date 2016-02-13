@@ -44,6 +44,8 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
                                 const BRPeer peers[], size_t peersCount);
 
 // not thread-safe, set callbacks once before calling BRPeerManagerConnect()
+// if saveBlocks() or savePeers() fire with count of 0 or greater than 1, it is safe to delete any blocks/peers not
+// containted in the list, otherwise add the single block/peer to the persistent store without removing previous items
 void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*syncStarted)(void *info),
                                void (*syncSucceded)(void *info),
@@ -59,6 +61,9 @@ int BRPeerMangerIsConnected(BRPeerManager *manager);
 
 // connect to bitcoin peer-to-peer network (also call this whenever networkIsReachable() status changes)
 void BRPeerManagerConnect(BRPeerManager *manager);
+
+// disconnect from bitcoin peer-to-peer network (may cause syncFailed(), saveBlocks() or savePeers() callbacks to fire)
+void BRPeerManagerDisconnect(BRPeerManager *manager);
 
 // rescans blocks and transactions after earliestKeyTime (a new random download peer is also selected due to the
 // possibility that a malicious node might lie by omitting transactions that match the bloom filter)
@@ -83,7 +88,7 @@ void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *inf
 // number of connected peers that have relayed the given unconfirmed transaction
 size_t BRPeerMangaerRelayCount(BRPeerManager *manager, UInt256 txHash);
 
-// frees memory allocated for manager
+// frees memory allocated for manager (call BRPeerManagerDisconnect() first if connected)
 void BRPeerManagerFree(BRPeerManager *manager);
 
 #ifdef __cplusplus
