@@ -50,7 +50,7 @@
 static secp256k1_context *_ctx = NULL;
 static pthread_once_t _ctx_once = PTHREAD_ONCE_INIT;
 
-void _ctx_init()
+static void _ctx_init()
 {
     _ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
 }

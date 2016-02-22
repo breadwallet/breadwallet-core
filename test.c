@@ -22,7 +22,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#define BITCOIN_TESTNET 1
+//#define BITCOIN_TESTNET 1
 
 #include "BRHash.h"
 #include "BRBloomFilter.h"
@@ -36,6 +36,7 @@
 #include "BRPeerManager.h"
 #include "BRPaymentProtocol.h"
 #include "BRInt.h"
+#include "BRArray.h"
 #include "BRList.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,6 +65,48 @@ int BRIntsTests()
     if (be64(x.u64) != 0x0102030405060708) r = 0, fprintf(stderr, "***FAILED*** %s: be64() test\n", __func__);
     if (le64(x.u64) != 0x0807060504030201) r = 0, fprintf(stderr, "***FAILED*** %s: le64() test\n", __func__);
     
+    return r;
+}
+
+int BRArrayTests()
+{
+    int r = 1;
+    int *a = NULL, b[] = { 1, 2, 3 }, c[] = { 3, 2 };
+    
+    array_new(a, 0);          // [ ]
+    if (array_count(a) != 0) r = 0, fprintf(stderr, "***FAILED*** %s: array_new() test\n", __func__);
+
+    array_add(a, 0);          // [ 0 ]
+    if (array_count(a) != 1 || a[0] != 0) r = 0, fprintf(stderr, "***FAILED*** %s: array_add() test\n", __func__);
+
+    array_add_array(a, b, 3); // [ 0, 1, 2, 3 ]
+    if (array_count(a) != 4 || a[3] != 3) r = 0, fprintf(stderr, "***FAILED*** %s: array_add_array() test\n", __func__);
+
+    array_insert(a, 0, 1);    // [ 1, 0, 1, 2, 3 ]
+    if (array_count(a) != 5 || a[0] != 1) r = 0, fprintf(stderr, "***FAILED*** %s: array_insert() test\n", __func__);
+
+    array_insert_array(a, 0, c, 2); // [ 3, 2, 1, 0, 1, 2, 3 ]
+    if (array_count(a) != 7 || a[0] != 3)
+        r = 0, fprintf(stderr, "***FAILED*** %s: array_insert_array() test\n", __func__);
+    
+    for (size_t i = 0; i < array_count(a); i++) {
+        printf("%i, ", a[i]); // 3, 2, 1, 0, 1, 2, 3,
+    }
+    
+    array_rm(a, 0);           // [ 2, 1, 0, 1, 2, 3 ]
+    if (array_count(a) != 6 || a[0] != 2) r = 0, fprintf(stderr, "***FAILED*** %s: array_rm() test\n", __func__);
+
+    array_rm_last(a);         // [ 2, 1, 0, 1, 2 ]
+    if (array_count(a) != 5 || a[4] != 2) r = 0, fprintf(stderr, "***FAILED*** %s: array_rm_last() test\n", __func__);
+    
+    array_rm_range(a, 0, 2);  // [ 0, 1, 2 ]
+    if (array_count(a) != 3 || a[0] != 0) r = 0, fprintf(stderr, "***FAILED*** %s: array_rm_range() test\n", __func__);
+
+    array_clear(a);           // [ ]
+    if (array_count(a) != 0) r = 0, fprintf(stderr, "***FAILED*** %s: array_clear() test\n", __func__);
+    
+    array_free(a);
+    printf("\n");
     return r;
 }
 
@@ -780,7 +823,7 @@ int BRTransactionTests()
     BRKey k[2];
     BRAddress address;
     
-    memset(&k[0], 0, sizeof(k[0])); // test with array keys where first key is empty/invalid
+    memset(&k[0], 0, sizeof(k[0])); // test with array of keys where first key is empty/invalid
     BRKeySetSecret(&k[1], &secret, 1);
     BRKeyAddress(&k[1], address.s, sizeof(address));
 
@@ -1476,6 +1519,8 @@ int BRRunTests()
     
     printf("BRIntsTests...            ");
     printf("%s\n", (BRIntsTests()) ? "success" : (fail++, "***FAIL***"));
+    printf("BRArrayTests...           ");
+    printf("%s\n", (BRArrayTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRListTests...            ");
     printf("%s\n", (BRListTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRBase58Tests...          ");
@@ -1503,9 +1548,15 @@ int BRRunTests()
     
     if (fail > 0) printf("\n%d TEST FUNCTION(S) ***FAILED***\n", fail);
     else printf("\nALL TESTS PASSED\n");
-
-//    BRWallet *wallet = BRWalletNew(NULL, 0, BR_MASTER_PUBKEY_NONE, NULL, NULL);
-//    BRPeerManager *manager = BRPeerManagerNew(wallet, 0, NULL, 0, NULL, 0);
+    
+//    UInt512 seed = UINT512_ZERO;
+//    BRMasterPubKey mpk = BR_MASTER_PUBKEY_NONE;
+//    
+//    BRBIP39DeriveKey(seed.u8, "video tiger report bid suspect taxi mail argue naive layer metal surface", NULL);
+//    mpk = BRBIP32MasterPubKey(&seed, sizeof(seed));
+//
+//    BRWallet *wallet = BRWalletNew(NULL, 0, mpk, NULL, NULL);
+//    BRPeerManager *manager = BRPeerManagerNew(wallet, BIP39_CREATION_TIME, NULL, 0, NULL, 0);
 //    int r = 0;
 //
 //    BRPeerManagerConnect(manager);

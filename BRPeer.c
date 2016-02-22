@@ -351,7 +351,7 @@ static int BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t len)
                 BRSetClear(ctx->knownTxHashSet);
                 for (k = array_count(knownTxHashes); k > 0; k--) BRSetAdd(ctx->knownTxHashSet, &knownTxHashes[k - 1]);
             }
-            else BRSetAdd(ctx->knownTxHashSet, &array_last(knownTxHashes));
+            else BRSetAdd(ctx->knownTxHashSet, &knownTxHashes[array_count(knownTxHashes) - 1]);
             
             if (ctx->hasTx) ctx->hasTx(ctx->info, txHashes[j - 1]);
         }
@@ -1324,7 +1324,7 @@ void BRPeerSendInv(BRPeer *peer, const UInt256 txHashes[], size_t count)
                 BRSetClear(ctx->knownTxHashSet);
                 for (j = array_count(knownTxHashes); j > 0; j--) BRSetAdd(ctx->knownTxHashSet, &knownTxHashes[j - 1]);
             }
-            else BRSetAdd(ctx->knownTxHashSet, &array_last(knownTxHashes));
+            else BRSetAdd(ctx->knownTxHashSet, &knownTxHashes[array_count(knownTxHashes) - 1]);
         }
     }
     

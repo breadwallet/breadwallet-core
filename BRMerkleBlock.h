@@ -76,7 +76,7 @@ int BRMerkleBlockIsValid(BRMerkleBlock *block, uint32_t currentTime);
 // true if the given tx hash is known to be included in the block
 int BRMerkleBlockContainsTxHash(BRMerkleBlock *block, UInt256 txHash);
 
-// Verifies the block difficulty target is correct for the block's position in the chain. Transition time may be 0 if
+// Verifies the block difficulty target is correct for the block's position in the chain. transitionTime may be 0 if
 // height is not a multiple of BLOCK_DIFFICULTY_INTERVAL.
 int BRMerkleBlockVerifyDifficulty(BRMerkleBlock *block, const BRMerkleBlock *previous, uint32_t transitionTime);
 

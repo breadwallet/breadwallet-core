@@ -157,8 +157,8 @@ static size_t BRTxPeerListAddPeer(BRTxPeerList **list, UInt256 txHash, const BRP
     }
 
     array_add(*list, ((BRTxPeerList) { txHash, NULL }));
-    array_new(array_last(*list).peers, PEER_MAX_CONNECTIONS);
-    array_add(array_last(*list).peers, *peer);
+    array_new((*list)[array_count(*list) - 1].peers, PEER_MAX_CONNECTIONS);
+    array_add((*list)[array_count(*list) - 1].peers, *peer);
     return 1;
 }
 
@@ -1049,7 +1049,6 @@ static void peerRelayedBlock(void *info, BRMerkleBlock *block)
     uint32_t txTime = 0;
     
     pthread_mutex_lock(&manager->lock);
-    peer_log(peer, "relayed block: %s", uint256_hex_encode(block->blockHash));
     prev = BRSetGet(manager->blocks, &block->prevBlock);
     if (prev) txTime = block->timestamp/2 + prev->timestamp/2;
     

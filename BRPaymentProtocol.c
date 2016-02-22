@@ -102,7 +102,7 @@ static void ProtoBufString(char **str, const void *data, size_t len)
     if (data) {
         if (! *str) array_new(*str, len + 1);
         array_clear(*str);
-        array_add_array(*str, data, len);
+        array_add_array(*str, (const char *)data, len);
         array_add(*str, '\0');
     }
 }
@@ -120,7 +120,7 @@ static size_t ProtoBufBytes(uint8_t **bytes, const void *data, size_t len)
     if (data) {
         if (! *bytes) array_new(*bytes, len);
         array_clear(*bytes);
-        array_add_array(*bytes, data, len);
+        array_add_array(*bytes, (const uint8_t *)data, len);
     }
     
     return (*bytes) ? array_count(*bytes) : 0;
@@ -444,7 +444,7 @@ void BRPaymentProtocolRequestFree(BRPaymentProtocolRequest *request)
 
 // returns a newly allocated BRPaymentProtocolPayment struct that must be freed with BRPaymentProtocolPaymentFree()
 BRPaymentProtocolPayment *BRPaymentProtocolPaymentNew(const uint8_t *merchantData, size_t merchDataLen,
-                                                      const BRTransaction *transactions[], size_t txCount,
+                                                      BRTransaction *transactions[], size_t txCount,
                                                       const uint64_t refundToAmounts[],
                                                       const BRAddress refundToAddresses[], size_t refundToCount,
                                                       const char *memo)

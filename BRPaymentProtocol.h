@@ -95,7 +95,7 @@ typedef struct {
 
 // returns a newly allocated BRPaymentProtocolPayment struct that must be freed with BRPaymentProtocolPaymentFree()
 BRPaymentProtocolPayment *BRPaymentProtocolPaymentNew(const uint8_t *merchantData, size_t merchDataLen,
-                                                      const BRTransaction *transactions[], size_t txCount,
+                                                      BRTransaction *transactions[], size_t txCount,
                                                       const uint64_t refundToAmounts[],
                                                       const BRAddress refundToAddresses[], size_t refundToCount,
                                                       const char *memo);
