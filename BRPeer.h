@@ -40,7 +40,7 @@
 #define _peer_log(...) NSLog(__VA_ARGS__)
 #elif defined(ANDROID)
 #include <android/log.h>
-#define _peer_log(...) __android_log_print(ANDROID_LOG_INFO, __func__, __VA_ARGS__)
+#define _peer_log(...) __android_log_print(ANDROID_LOG_INFO, "bread" , __VA_ARGS__)
 #else
 #include <stdio.h>
 #define _peer_log(...) printf(__VA_ARGS__)
