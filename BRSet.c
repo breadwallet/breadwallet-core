@@ -136,7 +136,7 @@ void *BRSetRemove(BRSet *set, const void *item)
 // removes all items from set
 void BRSetClear(BRSet *set)
 {
-    memset(set->table, 0, set->size);
+    memset(set->table, 0, set->size*sizeof(*set->table));
     set->itemCount = 0;
 }
 
