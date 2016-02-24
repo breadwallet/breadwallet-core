@@ -73,40 +73,41 @@ int BRArrayTests()
     int r = 1;
     int *a = NULL, b[] = { 1, 2, 3 }, c[] = { 3, 2 };
     
-    array_new(a, 0);          // [ ]
+    array_new(a, 0);                // [ ]
     if (array_count(a) != 0) r = 0, fprintf(stderr, "***FAILED*** %s: array_new() test\n", __func__);
 
-    array_add(a, 0);          // [ 0 ]
+    array_add(a, 0);                // [ 0 ]
     if (array_count(a) != 1 || a[0] != 0) r = 0, fprintf(stderr, "***FAILED*** %s: array_add() test\n", __func__);
 
-    array_add_array(a, b, 3); // [ 0, 1, 2, 3 ]
+    array_add_array(a, b, 3);       // [ 0, 1, 2, 3 ]
     if (array_count(a) != 4 || a[3] != 3) r = 0, fprintf(stderr, "***FAILED*** %s: array_add_array() test\n", __func__);
 
-    array_insert(a, 0, 1);    // [ 1, 0, 1, 2, 3 ]
+    array_insert(a, 0, 1);          // [ 1, 0, 1, 2, 3 ]
     if (array_count(a) != 5 || a[0] != 1) r = 0, fprintf(stderr, "***FAILED*** %s: array_insert() test\n", __func__);
 
     array_insert_array(a, 0, c, 2); // [ 3, 2, 1, 0, 1, 2, 3 ]
     if (array_count(a) != 7 || a[0] != 3)
         r = 0, fprintf(stderr, "***FAILED*** %s: array_insert_array() test\n", __func__);
-    
+
+    array_rm_range(a, 0, 4);        // [ 1, 2, 3 ]
+    if (array_count(a) != 3 || a[0] != 1) r = 0, fprintf(stderr, "***FAILED*** %s: array_rm_range() test\n", __func__);
+    printf("\n");
+
     for (size_t i = 0; i < array_count(a); i++) {
-        printf("%i, ", a[i]); // 3, 2, 1, 0, 1, 2, 3,
+        printf("%i, ", a[i]);       // 1, 2, 3,
     }
     
-    array_rm(a, 0);           // [ 2, 1, 0, 1, 2, 3 ]
-    if (array_count(a) != 6 || a[0] != 2) r = 0, fprintf(stderr, "***FAILED*** %s: array_rm() test\n", __func__);
+    array_rm(a, 0);                 // [ 2, 3 ]
+    if (array_count(a) != 2 || a[0] != 2) r = 0, fprintf(stderr, "***FAILED*** %s: array_rm() test\n", __func__);
 
-    array_rm_last(a);         // [ 2, 1, 0, 1, 2 ]
-    if (array_count(a) != 5 || a[4] != 2) r = 0, fprintf(stderr, "***FAILED*** %s: array_rm_last() test\n", __func__);
+    array_rm_last(a);               // [ 2 ]
+    if (array_count(a) != 1 || a[0] != 2) r = 0, fprintf(stderr, "***FAILED*** %s: array_rm_last() test\n", __func__);
     
-    array_rm_range(a, 0, 2);  // [ 0, 1, 2 ]
-    if (array_count(a) != 3 || a[0] != 0) r = 0, fprintf(stderr, "***FAILED*** %s: array_rm_range() test\n", __func__);
-
-    array_clear(a);           // [ ]
+    array_clear(a);                 // [ ]
     if (array_count(a) != 0) r = 0, fprintf(stderr, "***FAILED*** %s: array_clear() test\n", __func__);
     
     array_free(a);
-    printf("\n");
+    printf("\n                          ");
     return r;
 }
 
@@ -1549,21 +1550,21 @@ int BRRunTests()
     if (fail > 0) printf("\n%d TEST FUNCTION(S) ***FAILED***\n", fail);
     else printf("\nALL TESTS PASSED\n");
     
-//    UInt512 seed = UINT512_ZERO;
-//    BRMasterPubKey mpk = BR_MASTER_PUBKEY_NONE;
-//    
-//    BRBIP39DeriveKey(seed.u8, "video tiger report bid suspect taxi mail argue naive layer metal surface", NULL);
-//    mpk = BRBIP32MasterPubKey(&seed, sizeof(seed));
-//
-//    BRWallet *wallet = BRWalletNew(NULL, 0, mpk, NULL, NULL);
-//    BRPeerManager *manager = BRPeerManagerNew(wallet, BIP39_CREATION_TIME, NULL, 0, NULL, 0);
-//    int r = 0;
-//
-//    BRPeerManagerConnect(manager);
-//    while (r == 0 && BRPeerManagerPeerCount(manager) > 0) r = sleep(1);
-//    if (r != 0) printf("sleep got a signal");
-//    BRPeerManagerFree(manager);
-//    BRWalletFree(wallet);
+    UInt512 seed = UINT512_ZERO;
+    BRMasterPubKey mpk = BR_MASTER_PUBKEY_NONE;
+    
+    BRBIP39DeriveKey(seed.u8, "video tiger report bid suspect taxi mail argue naive layer metal surface", NULL);
+    mpk = BRBIP32MasterPubKey(&seed, sizeof(seed));
+
+    BRWallet *wallet = BRWalletNew(NULL, 0, mpk, NULL, NULL);
+    BRPeerManager *manager = BRPeerManagerNew(wallet, BIP39_CREATION_TIME, NULL, 0, NULL, 0);
+    int r = 0;
+
+    BRPeerManagerConnect(manager);
+    while (r == 0 && BRPeerManagerPeerCount(manager) > 0) r = sleep(1);
+    if (r != 0) printf("sleep got a signal");
+    BRPeerManagerFree(manager);
+    BRWalletFree(wallet);
 
     return (fail == 0);
 }

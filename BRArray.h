@@ -62,8 +62,6 @@ extern "C" {
     array_count(array) = _array_cnt;\
 } while (0)
 
-#define array_idx(array, item) ((item) - (array))
-
 #define array_add(array, item) do {\
     if (array_count(array) + 1 > array_capacity(array))\
         array_set_capacity(array, (array_capacity(array) + 1)*3/2);\
@@ -92,8 +90,8 @@ extern "C" {
     size_t _array_idx = (idx), _array_cnt = (count), _array_i = array_count(array) + _array_cnt, _array_j = 0;\
     if (_array_i > array_capacity(array))\
         array_set_capacity(array, _array_i*3/2);\
-    while (_array_i > _array_idx + _array_cnt)\
-        (array)[_array_i - 1] = (array)[(_array_i - 1) - _array_cnt], _array_i--;\
+    while (_array_i-- > _array_idx + _array_cnt)\
+        (array)[_array_i] = (array)[_array_i - _array_cnt];\
     while (_array_j < _array_cnt)\
         (array)[_array_idx + _array_j] = (other_array)[_array_j], _array_j++;\
     array_count(array) += _array_cnt;\
