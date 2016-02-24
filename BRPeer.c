@@ -955,11 +955,11 @@ BRPeer *BRPeerNew()
     array_new(ctx->currentBlockTxHashes, 10);
     array_new(ctx->knownTxHashes, 10);
     ctx->knownTxHashSet = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
-    array_new(ctx->pongInfo, 3);
-    array_new(ctx->pongCallback, 3);
-    array_new(ctx->scheduleTimes, 3);
-    array_new(ctx->scheduleInfo, 3);
-    array_new(ctx->scheduleCallback, 3);
+    array_new(ctx->pongInfo, 10);
+    array_new(ctx->pongCallback, 10);
+    array_new(ctx->scheduleTimes, 10);
+    array_new(ctx->scheduleInfo, 10);
+    array_new(ctx->scheduleCallback, 10);
     ctx->pingTime = DBL_MAX;
     ctx->socket = -1;
     return &ctx->peer;

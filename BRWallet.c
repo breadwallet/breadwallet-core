@@ -939,11 +939,13 @@ void BRWalletFree(BRWallet *wallet)
 // returns the given amount in local currency units (pennies, pence, etc...), price is local currency units per bitcoin
 int64_t BRLocalAmount(int64_t amount, double price)
 {
+    // TODO: XXX implement
     return 0;
 }
 
 // returns the given local currency amount in satoshis, price is local currency units per bitcoin
 int64_t BRBitcoinAmount(int64_t localAmount, double price)
 {
+    // TODO: XXX implement
     return 0;
 }

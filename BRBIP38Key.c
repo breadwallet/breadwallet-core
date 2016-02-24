@@ -307,6 +307,7 @@ int BRBIP38KeyIsValid(const char *bip38Key)
 // NFC normalized: http://www.unicode.org/reports/tr15/#Norm_Forms
 int BRKeySetBIP38Key(BRKey *key, const char *bip38Key, const char *passphrase)
 {
+    // TODO: XXX implement
     return 0;
 }
 
@@ -315,6 +316,7 @@ int BRKeySetBIP38Key(BRKey *key, const char *bip38Key, const char *passphrase)
 // NFC normalized
 size_t BRKeyBIP38ItermediateCode(char *code, size_t codeLen, uint64_t salt, const char *passphrase)
 {
+    // TODO: XXX implement
     return 0;
 }
 
@@ -324,6 +326,7 @@ size_t BRKeyBIP38ItermediateCode(char *code, size_t codeLen, uint64_t salt, cons
 size_t BRKeyBIP38ItermediateCodeLS(char *code, size_t codeLen, uint32_t lot, uint16_t sequence, uint32_t salt,
                                    const char *passphrase)
 {
+    // TODO: XXX implement
     return 0;
 }
 
@@ -331,11 +334,13 @@ size_t BRKeyBIP38ItermediateCodeLS(char *code, size_t codeLen, uint32_t lot, uin
 // compressed indicates if compressed pubKey format should be used for the bitcoin address
 void BRKeySetBIP38ItermediateCode(BRKey *key, const char *code, const uint8_t *seedb, int compressed)
 {
+    // TODO: XXX implement
 }
 
 // encrypts key with passphrase, returns number of bytes written to bip38Key including NULL terminator, or total
 // bip38KeyLen needed if bip38Key is NULL, passphrase must be unicode NFC normalized
 size_t BRKeyBIP38Key(BRKey *key, char *bip38Key, size_t bip38KeyLen, const char *passphrase)
 {
+    // TODO: XXX implement
     return 0;
 }
