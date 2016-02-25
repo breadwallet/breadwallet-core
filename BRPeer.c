@@ -1063,9 +1063,11 @@ void BRPeerConnect(BRPeer *peer)
         ctx->status = BRPeerStatusConnecting;
     
         if (ctx->networkIsReachable && ! ctx->networkIsReachable(ctx->info)) { // delay until network is reachable
+            if (! ctx->waitingForNetwork) peer_log(peer, "waiting for network reachability");
             ctx->waitingForNetwork = 1;
         }
         else {
+            peer_log(peer, "connecting");
             ctx->waitingForNetwork = 0;
             gettimeofday(&tv, NULL);
             ctx->disconnectTime = tv.tv_sec + (double)tv.tv_usec/1000000 + CONNECT_TIMEOUT;
@@ -1083,6 +1085,7 @@ void BRPeerConnect(BRPeer *peer)
             }
             
             if (ctx->socket < 0 || pthread_attr_init(&attr) != 0) {
+                peer_log(peer, "error creating socket");
                 ctx->status = BRPeerStatusDisconnected;
             }
             else if (pthread_attr_setstacksize(&attr, 512*1024) != 0 || // set stack size (there's no standard)
