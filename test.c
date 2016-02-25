@@ -1019,6 +1019,20 @@ int BRWalletTests()
     printf("\n                          ");
     BRWalletFree(w);
     
+    int64_t amt;
+    
+    amt = BRBitcoinAmount(50000, 50000);
+    if (amt != SATOSHIS) r = 0, fprintf(stderr, "***FAILED*** %s: BRBitcoinAmount() test 1\n", __func__);
+
+    amt = BRBitcoinAmount(-50000, 50000);
+    if (amt != -SATOSHIS) r = 0, fprintf(stderr, "***FAILED*** %s: BRBitcoinAmount() test 2\n", __func__);
+    
+    amt = BRLocalAmount(SATOSHIS, 50000);
+    if (amt != 50000) r = 0, fprintf(stderr, "***FAILED*** %s: BRLocalAmount() test 1\n", __func__);
+
+    amt = BRLocalAmount(-SATOSHIS, 50000);
+    if (amt != -50000) r = 0, fprintf(stderr, "***FAILED*** %s: BRLocalAmount() test 2\n", __func__);
+    
     return r;
 }
 
@@ -1550,21 +1564,21 @@ int BRRunTests()
     if (fail > 0) printf("\n%d TEST FUNCTION(S) ***FAILED***\n", fail);
     else printf("\nALL TESTS PASSED\n");
     
-    UInt512 seed = UINT512_ZERO;
-    BRMasterPubKey mpk = BR_MASTER_PUBKEY_NONE;
-    
-    BRBIP39DeriveKey(seed.u8, "video tiger report bid suspect taxi mail argue naive layer metal surface", NULL);
-    mpk = BRBIP32MasterPubKey(&seed, sizeof(seed));
-
-    BRWallet *wallet = BRWalletNew(NULL, 0, mpk, NULL, NULL);
-    BRPeerManager *manager = BRPeerManagerNew(wallet, BIP39_CREATION_TIME, NULL, 0, NULL, 0);
-    int r = 0;
-
-    BRPeerManagerConnect(manager);
-    while (r == 0 && BRPeerManagerPeerCount(manager) > 0) r = sleep(1);
-    if (r != 0) printf("sleep got a signal");
-    BRPeerManagerFree(manager);
-    BRWalletFree(wallet);
+//    UInt512 seed = UINT512_ZERO;
+//    BRMasterPubKey mpk = BR_MASTER_PUBKEY_NONE;
+//    
+//    BRBIP39DeriveKey(seed.u8, "video tiger report bid suspect taxi mail argue naive layer metal surface", NULL);
+//    mpk = BRBIP32MasterPubKey(&seed, sizeof(seed));
+//
+//    BRWallet *wallet = BRWalletNew(NULL, 0, mpk, NULL, NULL);
+//    BRPeerManager *manager = BRPeerManagerNew(wallet, BIP39_CREATION_TIME, NULL, 0, NULL, 0);
+//    int r = 0;
+//
+//    BRPeerManagerConnect(manager);
+//    while (r == 0 && BRPeerManagerPeerCount(manager) > 0) r = sleep(1);
+//    if (r != 0) printf("sleep got a signal");
+//    BRPeerManagerFree(manager);
+//    BRWalletFree(wallet);
 
     return (fail == 0);
 }

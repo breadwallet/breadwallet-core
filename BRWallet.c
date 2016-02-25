@@ -26,6 +26,7 @@
 #include "BRSet.h"
 #include "BRAddress.h"
 #include "BRArray.h"
+#include <float.h>
 #include <stdlib.h>
 #include <pthread.h>
 
@@ -939,13 +940,31 @@ void BRWalletFree(BRWallet *wallet)
 // returns the given amount in local currency units (pennies, pence, etc...), price is local currency units per bitcoin
 int64_t BRLocalAmount(int64_t amount, double price)
 {
-    // TODO: XXX implement
-    return 0;
+    int64_t localAmount = llabs(amount)*(price/SATOSHIS);
+    
+    // if amount is not 0, but is too small to be represented in local currency, return minimum non-zero localAmount
+    if (localAmount == 0 && amount != 0) localAmount = 1;
+    return (amount < 0) ? -localAmount : localAmount;
 }
 
 // returns the given local currency amount in satoshis, price is local currency units per bitcoin
 int64_t BRBitcoinAmount(int64_t localAmount, double price)
 {
-    // TODO: XXX implement
-    return 0;
+    int overflowbits = 0;
+    int64_t p = 10, min, max, amount = 0;
+
+    if (localAmount != 0 && price > 0) {
+        while (llabs(localAmount) + 1 > INT64_MAX/SATOSHIS) localAmount /= 2, overflowbits++; // will we overflow int64?
+        min = llabs(localAmount)*SATOSHIS/price; // minimum amount that safely matches localAmount
+        max = (llabs(localAmount) + 1)*SATOSHIS/price - 1; // maximum amount that safely matches localAmount
+        amount = (min + max)/2; // average min and max
+        while (overflowbits > 0) localAmount *= 2, min *= 2, max *= 2, amount *= 2, overflowbits--;
+        
+        if (amount >= MAX_MONEY) return (localAmount < 0) ? -MAX_MONEY : MAX_MONEY;
+        while ((amount/p)*p >= min && p <= INT64_MAX/10) p *= 10; // lowest decimal precision matching localAmount
+        p /= 10;
+        amount = (amount/p)*p;
+    }
+    
+    return (localAmount < 0) ? -amount : amount;
 }

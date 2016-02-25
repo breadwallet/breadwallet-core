@@ -1355,8 +1355,8 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
 }
 
 // not thread-safe, set callbacks once before calling BRPeerManagerConnect()
-// if saveBlocks() or savePeers() fire with count of 0 or greater than 1, it is safe to delete any blocks/peers not
-// containted in the list, otherwise add the single block/peer to the persistent store without removing previous items
+// if saveBlocks() or savePeers() fire with a single block/peer, add it to the persistent store without removing any
+// previous items, otherwise if 0 or more than 1 item is given, it is safe to delete any blocks/peers not in the list
 void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*syncStarted)(void *info),
                                void (*syncSucceded)(void *info),
