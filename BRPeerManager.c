@@ -29,8 +29,6 @@
 #include "BRInt.h"
 #include <stdlib.h>
 #include <time.h>
-#include <float.h>
-#include <math.h>
 #include <pthread.h>
 #include <errno.h>
 #include <netdb.h>
@@ -534,7 +532,6 @@ static void loadMempoolsMempoolDone(void *info, int success)
     if (success) {
         peer->flags |= PEER_FLAG_SYNCED;
         BRPeerSendGetaddr(peer); // request a list of other bitcoin peers
-        BRPeerManagerRmUnrelayedTx(manager);
     }
 
     if (peer == manager->downloadPeer) {
@@ -543,6 +540,8 @@ static void loadMempoolsMempoolDone(void *info, int success)
         if (manager->syncSucceded) manager->syncSucceded(manager->info);
     }
     else pthread_mutex_unlock(&manager->lock);
+    
+    if (success) BRPeerManagerRmUnrelayedTx(manager);
 }
 
 static void loadMempoolsInvDone(void *info, int success)
@@ -657,8 +656,8 @@ static void peerConnectedMempoolDone(void *info, int success)
         pthread_mutex_lock(&manager->lock);
         peer->flags |= PEER_FLAG_SYNCED;
         BRPeerSendGetaddr(peer); // request a list of other bitcoin peers
-        BRPeerManagerRmUnrelayedTx(manager);
         pthread_mutex_unlock(&manager->lock);
+        BRPeerManagerRmUnrelayedTx(manager);
     }
 }
 
@@ -1426,9 +1425,10 @@ void BRPeerManagerConnect(BRPeerManager *manager)
                         (array_count(manager->peers) < 100) ? array_count(manager->peers) : 100);
 
         while (array_count(peers) > 0 && array_count(manager->connectedPeers) < PEER_MAX_CONNECTIONS) {
-            // pick a random peer biased towards peers with more recent timestamps
-            size_t i = pow(BRRand((uint32_t)array_count(peers)), 2)/array_count(peers);
+            size_t i = BRRand((uint32_t)array_count(peers)); // index of random peer
             BRPeerCallbackInfo *info;
+            
+            i = i*i/array_count(peers); // bias random peer selection toward peers with more recent timestamp
         
             for (size_t j = array_count(manager->connectedPeers); i != SIZE_MAX && j > 0; j--) {
                 if (! BRPeerEq(&peers[i], manager->connectedPeers[j - 1])) continue;
@@ -1526,12 +1526,12 @@ double BRPeerManagerSyncProgress(BRPeerManager *manager)
     if (! manager->downloadPeer && manager->syncStartHeight == 0) {
         progress = 0.0;
     }
-    else if (manager->lastBlock->height == manager->syncStartHeight) {
-        progress = 0.05;
-    }
     else if (manager->lastBlock->height < manager->estimatedHeight) {
-        progress = 0.1 + 0.9*(manager->lastBlock->height - manager->syncStartHeight)/
-                   (manager->estimatedHeight - manager->syncStartHeight);
+        if (manager->lastBlock->height > manager->syncStartHeight) {
+            progress = 0.1 + 0.9*(manager->lastBlock->height - manager->syncStartHeight)/
+                       (manager->estimatedHeight - manager->syncStartHeight);
+        }
+        else progress = 0.05;
     }
     else progress = 1.0;
 

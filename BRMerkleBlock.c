@@ -25,13 +25,19 @@
 #include "BRMerkleBlock.h"
 #include "BRHash.h"
 #include "BRAddress.h"
-#include <limits.h>
 #include <string.h>
-#include <math.h>
 #include <stdlib.h>
 
 #define MAX_PROOF_OF_WORK 0x1d00ffff    // highest value for difficulty target (higher values are less difficult)
 #define TARGET_TIMESPAN   (14*24*60*60) // the targeted timespan between difficulty target adjustments
+
+inline static int ceil_log2(int x)
+{
+    int r = (x & (x - 1)) ? 1 : 0;
+    
+    while ((x >>= 1) != 0) r++;
+    return r;
+}
 
 // from https://en.bitcoin.it/wiki/Protocol_specification#Merkle_Trees
 // Merkle trees are binary trees of hashes. Merkle trees in bitcoin use a double SHA-256, the SHA-256 hash of the
@@ -69,7 +75,7 @@ BRMerkleBlock *BRMerkleBlockNew()
 // buf can contain either a serialized merkleblock or header, result must be freed by calling BRMerkleBlockFree()
 BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t len)
 {
-    BRMerkleBlock *block = (buf && 80 <= len) ? malloc(sizeof(BRMerkleBlock)) : NULL;
+    BRMerkleBlock *block = (buf && 80 <= len) ? BRMerkleBlockNew() : NULL;
     size_t off = 0, l = 0;
     uint8_t header[80];
     
@@ -89,13 +95,13 @@ BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t len)
         
         block->totalTx = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)(buf + off)) : 0;
         off += sizeof(uint32_t);
-        block->hashesLen = (size_t)BRVarInt(buf + off, len - off, &l);
+        block->hashesLen = (size_t)BRVarInt(buf + off, (off <= len ? len - off : 0), &l);
         off += l;
         l = block->hashesLen*sizeof(UInt256);
         block->hashes = (off + l <= len) ? malloc(l) : NULL;
         if (block->hashes) memcpy(block->hashes, buf + off, l);
         off += l;
-        block->flagsLen = (size_t)BRVarInt(buf + off, len - off, &l);
+        block->flagsLen = (size_t)BRVarInt(buf + off, (off <= len ? len - off : 0), &l);
         off += l;
         l = block->flagsLen;
         block->flags = (off + l <= len) ? malloc(l) : NULL;
@@ -168,7 +174,7 @@ static size_t BRMerkleBlockTxHashesR(BRMerkleBlock *block, UInt256 *txHashes, si
         flag = (block->flags[*flagIdx/8] & (1 << (*flagIdx % 8)));
         (*flagIdx)++;
     
-        if (! flag || depth == (int)(ceil(log2(block->totalTx)))) {
+        if (! flag || depth == ceil_log2(block->totalTx)) {
             if (flag && *idx < count) {
                 if (txHashes) txHashes[*idx] = block->hashes[*hashIdx]; // leaf
                 (*idx)++;
@@ -204,7 +210,7 @@ static UInt256 BRMerkleBlockRootR(BRMerkleBlock *block, size_t *hashIdx, size_t 
         flag = (block->flags[*flagIdx/8] & (1 << (*flagIdx % 8)));
         (*flagIdx)++;
 
-        if (flag && depth != (int)(ceil(log2(block->totalTx)))) {
+        if (flag && depth != ceil_log2(block->totalTx)) {
             hashes[0] = BRMerkleBlockRootR(block, hashIdx, flagIdx, depth + 1); // left branch
             hashes[1] = BRMerkleBlockRootR(block, hashIdx, flagIdx, depth + 1); // right branch
             if (UInt256IsZero(hashes[1])) hashes[1] = hashes[0]; // if right branch is missing, duplicate left branch

@@ -171,7 +171,7 @@ uint64_t BRWalletMinOutputAmount(BRWallet *wallet);
 // frees memory allocated for wallet, also calls BRTransactionFree() for all registered transactions
 void BRWalletFree(BRWallet *wallet);
 
-// returns the given amount in local currency units (pennies, pence, etc...), price is local currency units per bitcoin
+// returns the given amount (satoshis) in local currency units (i.e. pennies), price is local currency units per bitcoin
 int64_t BRLocalAmount(int64_t amount, double price);
 
 // returns the given local currency amount in satoshis, price is local currency units per bitcoin

@@ -103,7 +103,7 @@ inline static int BRWalletTxCompare(BRWallet *wallet, const BRTransaction *tx1, 
     return 0;
 }
 
-// inserts tx into wallet->transactions, keeping wallet->transactions sorted by date, oldest first
+// inserts tx into wallet->transactions, keeping wallet->transactions sorted by date, oldest first (insertion sort)
 inline static void BRWalletInsertTx(BRWallet *wallet, BRTransaction *tx)
 {
     size_t i = array_count(wallet->transactions);
@@ -937,7 +937,7 @@ void BRWalletFree(BRWallet *wallet)
     free(wallet);
 }
 
-// returns the given amount in local currency units (pennies, pence, etc...), price is local currency units per bitcoin
+// returns the given amount (satoshis) in local currency units (i.e. pennies), price is local currency units per bitcoin
 int64_t BRLocalAmount(int64_t amount, double price)
 {
     int64_t localAmount = llabs(amount)*(price/SATOSHIS);

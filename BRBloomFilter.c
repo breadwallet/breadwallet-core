@@ -66,7 +66,7 @@ BRBloomFilter *BRBloomFilterParse(const uint8_t *buf, size_t len)
     BRBloomFilter *filter = calloc(1, sizeof(BRBloomFilter));
     size_t off = 0, l = 0;
     
-    filter->length = BRVarInt(buf + off, len - off, &l);
+    filter->length = BRVarInt(buf + off, (off <= len ? len - off : 0), &l);
     off += l;
     filter->filter = (off + filter->length <= len) ? malloc(filter->length) : NULL;
     if (filter->filter) memcpy(filter->filter, buf + off, filter->length);

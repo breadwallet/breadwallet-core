@@ -187,7 +187,7 @@ static int BRPeerAcceptVersionMessage(BRPeer *peer, const uint8_t *msg, size_t l
             off += sizeof(uint16_t);
             nonce = le64(*(uint64_t *)(msg + off));
             off += sizeof(uint64_t);
-            strLen = BRVarInt(msg + off, len - off, &l);
+            strLen = BRVarInt(msg + off, (off <= len ? len - off : 0), &l);
             off += l;
 
             if (off + strLen + sizeof(uint32_t) > len) {
@@ -704,7 +704,7 @@ static int BRPeerAcceptRejectMessage(BRPeer *peer, const uint8_t *msg, size_t le
         type[strLen] = '\0';
         off += strLen;
         code = msg[off++];
-        strLen = BRVarInt(msg + off, len - off, &l);
+        strLen = BRVarInt(msg + off, (off <= len ? len - off : 0), &l);
         off += l;
         if (strncmp(type, MSG_TX, sizeof(type)) == 0) hashLen = sizeof(UInt256);
         
