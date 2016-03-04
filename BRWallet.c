@@ -269,7 +269,7 @@ void BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimit,
     
     if (chain == (internal ? wallet->internalChain : wallet->externalChain)) { // was chain moved to a new mem location?
         for (i = startCount; i < count; i++) {
-            BRSetAdd(wallet->allAddrs, &chain[count]);
+            BRSetAdd(wallet->allAddrs, &chain[i]);
         }
     }
     else {
