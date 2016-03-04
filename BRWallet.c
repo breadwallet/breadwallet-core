@@ -28,6 +28,7 @@
 #include "BRArray.h"
 #include <float.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <pthread.h>
 
 #define DEFAULT_FEE_PER_KB ((TX_FEE_PER_KB*1000 + 190)/191) // default fee-per-kb to match standard fee on 191 byte tx
@@ -243,11 +244,11 @@ void BRWalletSetCallbacks(BRWallet *wallet, void *info,
 void BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimit, int internal)
 {
     BRAddress *chain;
-    uint32_t i, count, startCount;
+    size_t i, count;
 
     pthread_mutex_lock(&wallet->lock);
     chain = (internal) ? wallet->internalChain : wallet->externalChain;
-    i = count = startCount = (uint32_t)array_count(chain);
+    i = count = array_count(chain);
     
     // keep only the trailing contiguous block of addresses with no transactions
     while (i > 0 && ! BRSetContains(wallet->usedAddrs, &chain[i - 1])) i--;
@@ -256,23 +257,31 @@ void BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimit,
         BRKey key;
         BRAddress address = BR_ADDRESS_NONE;
         uint8_t pubKey[BRBIP32PubKey(NULL, 0, wallet->masterPubKey, internal, count)];
-        size_t len = BRBIP32PubKey(pubKey, sizeof(pubKey), wallet->masterPubKey, internal, count);
+        size_t len = BRBIP32PubKey(pubKey, sizeof(pubKey), wallet->masterPubKey, internal, (uint32_t)count);
         
         BRKeySetPubKey(&key, pubKey, len);
         if (! BRKeyAddress(&key, address.s, sizeof(address)) || BRAddressEq(&address, &BR_ADDRESS_NONE)) break;
         array_add(chain, address);
+        BRSetAdd(wallet->allAddrs, &chain[count]);
         count++;
     }
+
+    if (addrs && i + gapLimit <= count) memcpy(addrs, &chain[i], gapLimit*sizeof(*addrs));
     
     if (chain != (internal ? wallet->internalChain : wallet->externalChain)) { // was chain moved to a new mem location?
         if (internal) wallet->internalChain = chain;
         if (! internal) wallet->externalChain = chain;
         BRSetClear(wallet->allAddrs);
-        startCount = 0;
+
+        for (i = array_count(wallet->internalChain); i > 0; i--) {
+            BRSetAdd(wallet->allAddrs, &wallet->internalChain[i - 1]);
+        }
+        
+        for (i = array_count(wallet->externalChain); i > 0; i--) {
+            BRSetAdd(wallet->allAddrs, &wallet->externalChain[i - 1]);
+        }
     }
 
-    if (addrs && i + gapLimit <= count) memcpy(addrs, &chain[i], gapLimit*sizeof(*addrs));
-    for (i = startCount; i < count; i++) BRSetAdd(wallet->allAddrs, &chain[i]);
     pthread_mutex_unlock(&wallet->lock);
 }
 
