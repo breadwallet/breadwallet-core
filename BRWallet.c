@@ -244,11 +244,11 @@ void BRWalletSetCallbacks(BRWallet *wallet, void *info,
 void BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimit, int internal)
 {
     BRAddress *chain;
-    size_t i, count;
+    size_t i, count, startCount;
 
     pthread_mutex_lock(&wallet->lock);
     chain = (internal) ? wallet->internalChain : wallet->externalChain;
-    i = count = array_count(chain);
+    i = count = startCount = array_count(chain);
     
     // keep only the trailing contiguous block of addresses with no transactions
     while (i > 0 && ! BRSetContains(wallet->usedAddrs, &chain[i - 1])) i--;
@@ -262,16 +262,20 @@ void BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimit,
         BRKeySetPubKey(&key, pubKey, len);
         if (! BRKeyAddress(&key, address.s, sizeof(address)) || BRAddressEq(&address, &BR_ADDRESS_NONE)) break;
         array_add(chain, address);
-        BRSetAdd(wallet->allAddrs, &chain[count]);
         count++;
     }
 
     if (addrs && i + gapLimit <= count) memcpy(addrs, &chain[i], gapLimit*sizeof(*addrs));
     
-    if (chain != (internal ? wallet->internalChain : wallet->externalChain)) { // was chain moved to a new mem location?
+    if (chain == (internal ? wallet->internalChain : wallet->externalChain)) { // was chain moved to a new mem location?
+        for (i = startCount; i < count; i++) {
+            BRSetAdd(wallet->allAddrs, &chain[count]);
+        }
+    }
+    else {
         if (internal) wallet->internalChain = chain;
         if (! internal) wallet->externalChain = chain;
-        BRSetClear(wallet->allAddrs);
+        BRSetClear(wallet->allAddrs); // clear and rebuild allAddrs
 
         for (i = array_count(wallet->internalChain); i > 0; i--) {
             BRSetAdd(wallet->allAddrs, &wallet->internalChain[i - 1]);
