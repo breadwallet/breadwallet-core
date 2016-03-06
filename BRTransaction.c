@@ -29,6 +29,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #define TX_VERSION  0x00000001u
 #define TX_LOCKTIME 0x00000000u

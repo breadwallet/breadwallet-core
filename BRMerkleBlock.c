@@ -27,6 +27,7 @@
 #include "BRAddress.h"
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #define MAX_PROOF_OF_WORK 0x1d00ffff    // highest value for difficulty target (higher values are less difficult)
 #define TARGET_TIMESPAN   (14*24*60*60) // the targeted timespan between difficulty target adjustments
@@ -260,10 +261,8 @@ int BRMerkleBlockContainsTxHash(BRMerkleBlock *block, UInt256 txHash)
 {
     int r = 0;
     
-    for (size_t i = 0; i < block->hashesLen; i++) {
-        if (! UInt256Eq(block->hashes[i], txHash)) continue;
-        r = 1;
-        break;
+    for (size_t i = 0; ! r && i < block->hashesLen; i++) {
+        if (UInt256Eq(block->hashes[i], txHash)) r = 1;
     }
     
     return r;

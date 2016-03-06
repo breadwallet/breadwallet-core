@@ -32,8 +32,6 @@
 extern "C" {
 #endif
 
-#define RMD160_DIGEST_LENGTH (160/8)
-
 void BRSHA1(void *md, const void *data, size_t len);
 
 void BRSHA256(void *md, const void *data, size_t len);

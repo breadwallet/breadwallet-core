@@ -26,6 +26,7 @@
 #include "BRHash.h"
 #include "BRArray.h"
 #include <string.h>
+#include <stdint.h>
 
 // BIP70 payment protocol: https://github.com/bitcoin/bips/blob/master/bip-0070.mediawiki
 

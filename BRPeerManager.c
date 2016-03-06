@@ -28,6 +28,7 @@
 #include "BRArray.h"
 #include "BRInt.h"
 #include <stdlib.h>
+#include <stdint.h>
 #include <time.h>
 #include <pthread.h>
 #include <errno.h>
@@ -87,7 +88,8 @@ static const struct { uint32_t height; const char *hash; uint32_t timestamp; uin
     { 322560, "000000000000000002df2dd9d4fe0578392e519610e341dd09025469f101cfa1", 1411680080, 0x181fb893 },
     { 342720, "00000000000000000f9cfece8494800d3dcbf9583232825da640c8703bcd27e7", 1423496415, 0x1818bb87 },
     { 362880, "000000000000000014898b8e6538392702ffb9450f904c80ebf9d82b519a77d5", 1435475246, 0x1816418e },
-    { 383040, "00000000000000000a974fa1a3f84055ad5ef0b2f96328bc96310ce83da801c9", 1447236692, 0x1810b289 }
+    { 383040, "00000000000000000a974fa1a3f84055ad5ef0b2f96328bc96310ce83da801c9", 1447236692, 0x1810b289 },
+//    { 403200, "", 0, 0 }
 };
 
 static const char *dns_seeds[] = {
