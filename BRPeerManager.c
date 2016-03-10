@@ -574,36 +574,6 @@ static void BRPeerManagerPublishPendingTx(BRPeerManager *manager, BRPeer *peer)
     BRPeerSendInv(peer, manager->publishedTxHash, array_count(manager->publishedTxHash));
 }
 
-//static void publishTxTimeout(void *info)
-//{
-//    if (! info) return;
-//
-//    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
-//    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
-//    UInt256 txHash = ((BRPeerCallbackInfo *)info)->hash;
-//    void *txInfo = NULL;
-//    void (*txCallback)(void *, int) = NULL;
-//
-//    free(info);
-//    pthread_mutex_lock(&manager->lock);
-//
-//    for (size_t i = array_count(manager->publishedTx); i > 0; i--) { // see if txHash is in list of published tx
-//        if (! UInt256Eq(manager->publishedTxHash[i - 1], txHash)) continue;
-//        txInfo = manager->publishedTx[i - 1].info;
-//        txCallback = manager->publishedTx[i - 1].callback;
-//
-//        if (txCallback) {
-//            peer_log(peer, "transaction canceled, network timeout");
-//            BRTransactionFree(manager->publishedTx[i - 1].tx);
-//            array_rm(manager->publishedTxHash, i - 1);
-//            array_rm(manager->publishedTx, i - 1);
-//        }
-//    }
-//
-//    pthread_mutex_unlock(&manager->lock);
-//    if (txCallback) txCallback(txInfo, ETIMEDOUT);
-//}
-
 static void loadMempoolsMempoolDone(void *info, int success)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
@@ -892,13 +862,14 @@ static void peerDisconnected(void *info, int error)
     
     if (txError) {
         for (size_t i = array_count(manager->publishedTx); i > 0; i--) {
-            if (manager->publishedTx[i - 1].callback != NULL) {
-                txInfo[txCount] = manager->publishedTx[i - 1].info;
-                txCallback[txCount] = manager->publishedTx[i - 1].callback;
-                manager->publishedTx[i - 1].info = NULL;
-                manager->publishedTx[i - 1].callback = NULL;
-                txCount++;
-            }
+            if (manager->publishedTx[i - 1].callback == NULL) continue;
+            peer_log(peer, "transaction canceled: %s", strerror(txError));
+            txInfo[txCount] = manager->publishedTx[i - 1].info;
+            txCallback[txCount] = manager->publishedTx[i - 1].callback;
+            txCount++;
+            BRTransactionFree(manager->publishedTx[i - 1].tx);
+            array_rm(manager->publishedTxHash, i - 1);
+            array_rm(manager->publishedTx, i - 1);
         }
     }
     
