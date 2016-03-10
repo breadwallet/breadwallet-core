@@ -117,7 +117,9 @@ BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, cons
 // BRTransactionFree()
 BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput outputs[], size_t count);
 
-// sign any inputs in the given transaction that can be signed using private keys from the wallet
+// sign any inputs in the given transaction that can be signed using private keys from the wallet, returns 1 if all
+// inputs were signed, -1 if the wallet seed callback returned NULL indicating the user declined to authorize signing,
+// or 0 if there was an error or not all inputs were able to be signed
 int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *authPrompt);
 
 // true if the given transaction is associated with the wallet (even if it hasn't been registered)

@@ -133,10 +133,6 @@ void BRPeerSetCurrentBlockHeight(BRPeer *peer, uint32_t currentBlockHeight);
 // call this to (re)schedule a disconnect in the given number of seconds, or < 0 to cancel (useful for sync timeout)
 void BRPeerScheduleDisconnect(BRPeer *peer, double seconds);
 
-// call this to (re)schedule a callback to happen after the given number of seconds, or < 0 seconds to cancel,
-// pending callbacks will fire early if peer disconnects
-void BRPeerScheduleCallback(BRPeer *peer, double seconds, void *info, void (*callback)(void *info));
-
 // current connection status
 BRPeerStatus BRPeerConnectStatus(BRPeer *peer);
 

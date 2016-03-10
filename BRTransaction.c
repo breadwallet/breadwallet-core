@@ -369,13 +369,14 @@ int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t count)
         in->sigLen = array_count(in->signature);
     }
     
-    if (! BRTransactionIsSigned(tx)) return 0;
-    
-    uint8_t data[BRTransactionData(tx, NULL, 0, SIZE_MAX)];
-    size_t len = BRTransactionData(tx, data, sizeof(data), SIZE_MAX);
+    if (BRTransactionIsSigned(tx)) {
+        uint8_t data[BRTransactionData(tx, NULL, 0, SIZE_MAX)];
+        size_t len = BRTransactionData(tx, data, sizeof(data), SIZE_MAX);
 
-    BRSHA256_2(&tx->txHash, data, len);
-    return 1;
+        BRSHA256_2(&tx->txHash, data, len);
+        return 1;
+    }
+    else return 0;
 }
 
 // frees memory allocated for tx

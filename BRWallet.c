@@ -524,7 +524,9 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
     return transaction;
 }
 
-// sign any inputs in the given transaction that can be signed using private keys from the wallet
+// sign any inputs in the given transaction that can be signed using private keys from the wallet, returns 1 if all
+// inputs were signed, -1 if the wallet seed callback returned NULL indicating the user declined to authorize signing,
+// or 0 if there was an error or not all inputs were able to be signed
 int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *authPrompt)
 {
     int64_t amount = BRWalletAmountSentByTx(wallet, tx) - BRWalletAmountReceivedFromTx(wallet, tx);
@@ -556,7 +558,7 @@ int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *aut
         r = BRTransactionSign(tx, keys, internalCount + externalCount);
         for (size_t i = 0; i < internalCount + externalCount; i++) BRKeyClean(&keys[i]);
     }
-    else r = 1; // user canceled authentication
+    else r = -1; // user canceled authentication
     
     return r;
 }

@@ -99,7 +99,7 @@ typedef struct {
     uint64_t nonce;
     char *useragent;
     uint32_t version, lastblock, earliestKeyTime, currentBlockHeight;
-    double startTime, pingTime, disconnectTime, *scheduleTimes;
+    double startTime, pingTime, disconnectTime;
     int sentVerack, gotVerack, sentGetaddr, sentFilter, sentGetdata, sentMempool, sentGetblocks;
     UInt256 lastBlockHash;
     BRMerkleBlock *currentBlock;
@@ -120,8 +120,6 @@ typedef struct {
     int (*networkIsReachable)(void *info);
     void **pongInfo;
     void (**pongCallback)(void *info, int success);
-    void **scheduleInfo;
-    void (**scheduleCallback)(void *info);
     pthread_t thread;
 } BRPeerContext;
 
@@ -764,22 +762,6 @@ static int BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t len, con
     return r;
 }
 
-static void BRPeerFireScheduledCallbacks(BRPeer *peer, double time)
-{
-    BRPeerContext *ctx = (BRPeerContext *)peer;
-    void *info;
-    void (*callback)(void *);
-    
-    for (size_t i = array_count(ctx->scheduleTimes); i > 0; i--) {
-        if (ctx->scheduleTimes[i - 1] > time || ctx->scheduleTimes[i - 1] < 1) continue;
-        info = ctx->scheduleInfo[i - 1];
-        callback = ctx->scheduleCallback[i - 1];
-        ctx->scheduleCallback[i - 1] = NULL;
-        ctx->scheduleTimes[i - 1] = DBL_MAX;
-        if (callback) callback(info);
-    }
-}
-
 static int BRPeerOpenSocket(BRPeer *peer, double timeout)
 {
     struct sockaddr addr;
@@ -859,7 +841,6 @@ static void *peerThreadRoutine(void *arg)
                 if (n < 0 && errno != EWOULDBLOCK) error = errno;
                 gettimeofday(&tv, NULL);
                 if (! error && tv.tv_sec + (double)tv.tv_usec/1000000 >= ctx->disconnectTime) error = ETIMEDOUT;
-                BRPeerFireScheduledCallbacks(peer, tv.tv_sec + (double)tv.tv_usec/1000000);
                 
                 while (sizeof(uint32_t) <= len && *(uint32_t *)header != le32(MAGIC_NUMBER)) {
                     memmove(header, header + 1, --len); // consume one byte at a time until we find the magic number
@@ -894,7 +875,6 @@ static void *peerThreadRoutine(void *arg)
                         if (n < 0 && errno != EWOULDBLOCK) error = errno;
                         gettimeofday(&tv, NULL);
                         if (! error && tv.tv_sec + (double)tv.tv_usec/1000000 >= ctx->disconnectTime) error = ETIMEDOUT;
-                        BRPeerFireScheduledCallbacks(peer, tv.tv_sec + (double)tv.tv_usec/1000000);
                     }
                     
                     if (error) {
@@ -921,24 +901,13 @@ static void *peerThreadRoutine(void *arg)
     ctx->socket = -1;
     peer_log(peer, "disconnected");
     
-    while (array_count(ctx->pongCallback) > 0 || array_count(ctx->scheduleCallback) > 0) {
-        while (array_count(ctx->pongCallback) > 0) {
-            void (*pongCallback)(void *, int) = ctx->pongCallback[0];
-            void *pongInfo = ctx->pongInfo[0];
-            
-            array_rm(ctx->pongCallback, 0);
-            array_rm(ctx->pongInfo, 0);
-            if (pongCallback) pongCallback(pongInfo, 0);
-        }
-    
-        while (array_count(ctx->scheduleCallback) > 0) {
-            void (*scheduleCallback)(void *) = ctx->scheduleCallback[0];
-            void *scheduleInfo = ctx->scheduleInfo[0];
-            
-            array_rm(ctx->scheduleCallback, 0);
-            array_rm(ctx->scheduleInfo, 0);
-            if (scheduleCallback) scheduleCallback(scheduleInfo);
-        }
+    while (array_count(ctx->pongCallback) > 0) {
+        void (*pongCallback)(void *, int) = ctx->pongCallback[0];
+        void *pongInfo = ctx->pongInfo[0];
+        
+        array_rm(ctx->pongCallback, 0);
+        array_rm(ctx->pongInfo, 0);
+        if (pongCallback) pongCallback(pongInfo, 0);
     }
     
     if (ctx->disconnected) ctx->disconnected(ctx->info, error);
@@ -957,9 +926,6 @@ BRPeer *BRPeerNew()
     ctx->knownTxHashSet = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
     array_new(ctx->pongInfo, 10);
     array_new(ctx->pongCallback, 10);
-    array_new(ctx->scheduleTimes, 10);
-    array_new(ctx->scheduleInfo, 10);
-    array_new(ctx->scheduleCallback, 10);
     ctx->pingTime = DBL_MAX;
     ctx->socket = -1;
     return &ctx->peer;
@@ -1013,36 +979,6 @@ void BRPeerScheduleDisconnect(BRPeer *peer, double seconds)
 
     gettimeofday(&tv, NULL);
     ctx->disconnectTime = (seconds < 0) ? DBL_MAX : tv.tv_sec + (double)tv.tv_usec/1000000 + seconds;
-}
-
-// call this to (re)schedule a callback to happen after the given number of seconds, or < 0 seconds to cancel,
-// pending callbacks will fire early if peer disconnects
-void BRPeerScheduleCallback(BRPeer *peer, double seconds, void *info, void (*callback)(void *info))
-{
-    BRPeerContext *ctx = ((BRPeerContext *)peer);
-    struct timeval tv;
-    
-    gettimeofday(&tv, NULL);
-    
-    for (size_t i = array_count(ctx->scheduleInfo); i > 0; i--) {
-        if (ctx->scheduleInfo[i - 1] != info) continue;
-
-        if (seconds >= 0) {
-            ctx->scheduleCallback[i - 1] = callback;
-            ctx->scheduleTimes[i - 1] = tv.tv_sec + (double)tv.tv_usec/1000000 + seconds;
-            seconds = -1;
-        }
-        else {
-            ctx->scheduleCallback[i - 1] = NULL;
-            ctx->scheduleTimes[i - 1] = DBL_MAX;
-        }
-    }
-    
-    if (seconds >= 0) {
-        array_add(ctx->scheduleInfo, info);
-        array_add(ctx->scheduleCallback, callback);
-        array_add(ctx->scheduleTimes, tv.tv_sec + (double)tv.tv_usec/1000000 + seconds);
-    }
 }
 
 // current connection status
@@ -1103,7 +1039,9 @@ void BRPeerConnect(BRPeer *peer)
 // close connection to peer
 void BRPeerDisconnect(BRPeer *peer)
 {
-    if (shutdown(((BRPeerContext *)peer)->socket, SHUT_RDWR) < 0) peer_log(peer, "%s", strerror(errno));
+    BRPeerContext *ctx = (BRPeerContext *)peer;
+
+    if (ctx->socket >= 0 && shutdown(ctx->socket, SHUT_RDWR) < 0) peer_log(peer, "%s", strerror(errno));
 }
 
 // call this when wallet addresses need to be added to bloom filter
@@ -1428,8 +1366,5 @@ void BRPeerFree(BRPeer *peer)
     if (ctx->knownTxHashSet) BRSetFree(ctx->knownTxHashSet);
     if (ctx->pongInfo) array_free(ctx->pongInfo);
     if (ctx->pongCallback) array_free(ctx->pongCallback);
-    if (ctx->scheduleTimes) array_free(ctx->scheduleTimes);
-    if (ctx->scheduleInfo) array_free(ctx->scheduleInfo);
-    if (ctx->scheduleCallback) array_free(ctx->scheduleCallback);
     free(ctx);
 }
