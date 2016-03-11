@@ -550,8 +550,13 @@ int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *aut
 
     BRKey keys[internalCount + externalCount];
     const void *seed = wallet->seed(wallet->seedInfo, authPrompt, (amount > 0) ? amount : 0, &seedLen);
-    
+
     if (seed) {
+#if DEBUG
+        BRMasterPubKey mpk = BRBIP32MasterPubKey(seed, seedLen);
+        
+        if (memcmp(&mpk, &wallet->masterPubKey, sizeof(mpk)) != 0) return 0; // verify seed matches master pubkey
+#endif
         BRBIP32PrivKeyList(keys, internalCount, seed, seedLen, 1, internalIdx);
         BRBIP32PrivKeyList(&keys[internalCount], externalCount, seed, seedLen, 0, externalIdx);
         seed = NULL;
