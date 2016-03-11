@@ -22,8 +22,6 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-//#define BITCOIN_TESTNET 1
-
 #include "BRHash.h"
 #include "BRBloomFilter.h"
 #include "BRMerkleBlock.h"
@@ -458,8 +456,13 @@ int BRKeyTests()
     BRKeySetPrivKey(&key, "S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy");
     BRKeyAddress(&key, addr.s, sizeof(addr));
     printf("privKey:S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy = %s\n", addr.s);
+#if BITCOIN_TESTNET
+    if (! BRAddressEq(&addr, "ms8fwvXzrCoyatnGFRaLbepSqwGRxVJQF1"))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetPrivKey() test 1\n", __func__);
+#else
     if (! BRAddressEq(&addr, "1CciesT23BNionJeXrbxmjc7ywfiyM4oLW"))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetPrivKey() test 1\n", __func__);
+#endif
 
     // old mini private key format
     if (! BRPrivKeyIsValid("SzavMBLoXU6kDrqtUVmffv"))
@@ -468,9 +471,15 @@ int BRKeyTests()
     BRKeySetPrivKey(&key, "SzavMBLoXU6kDrqtUVmffv");
     BRKeyAddress(&key, addr.s, sizeof(addr));
     printf("privKey:SzavMBLoXU6kDrqtUVmffv = %s\n", addr.s);
+#if BITCOIN_TESTNET
+    if (! BRAddressEq(&addr, "mrhzp5mstA4Midx85EeCjuaUAAGANMFmRP"))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetPrivKey() test 2\n", __func__);
+#else
     if (! BRAddressEq(&addr, "1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj"))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetPrivKey() test 2\n", __func__);
+#endif
 
+#if ! BITCOIN_TESTNET
     // uncompressed private key
     if (! BRPrivKeyIsValid("5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF"))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPrivKeyIsValid() test 3\n", __func__);
@@ -480,7 +489,7 @@ int BRKeyTests()
     printf("privKey:5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF = %s\n", addr.s);
     if (! BRAddressEq(&addr, "1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj"))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetPrivKey() test 3\n", __func__);
-    
+
     // uncompressed private key export
     char privKey1[BRKeyPrivKey(&key, NULL, 0)];
     
@@ -506,7 +515,8 @@ int BRKeyTests()
     printf("privKey = %s\n", privKey2);
     if (strcmp(privKey2, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL") != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 2\n", __func__);
-
+#endif
+    
     // signing
     BRKeySetSecret(&key, &uint256_hex_decode("0000000000000000000000000000000000000000000000000000000000000001"), 1);
     msg = "Everything should be made as simple as possible, but not simpler.";
