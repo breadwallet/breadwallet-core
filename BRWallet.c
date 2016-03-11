@@ -553,6 +553,7 @@ int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *aut
 
     if (seed) {
 #if DEBUG
+#pragma message "debug build, not recommended for release"
         BRMasterPubKey mpk = BRBIP32MasterPubKey(seed, seedLen);
         
         if (memcmp(&mpk, &wallet->masterPubKey, sizeof(mpk)) != 0) return 0; // verify seed matches master pubkey
