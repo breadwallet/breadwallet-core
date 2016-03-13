@@ -195,6 +195,7 @@ BRTransaction *BRTransactionNew()
 
     array_new(tx->inputs, 1);
     array_new(tx->outputs, 2);
+    tx->blockHeight = TX_UNCONFIRMED;
     return tx;
 }
 

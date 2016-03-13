@@ -43,7 +43,6 @@
 #include <time.h>
 #include <unistd.h>
 #include <arpa/inet.h>
-#include <assert.h>
 
 #ifdef __ANDROID__
 #include <android/log.h>
@@ -1704,18 +1703,6 @@ int BRRunTests()
 #ifndef BITCOIN_TEST_NO_MAIN
 int main(int argc, const char *argv[])
 {
-#ifdef DEBUG
-    printf("DEBUG = %d\n", DEBUG);
-#else
-    printf("DEBUG not defined\n");
-#endif
-
-#ifdef NDEBUG
-    printf("NDEBUG = %d\n", NDEBUG);
-#else
-    printf("NDEBUG not defined\n");
-#endif
-
     return (BRRunTests()) ? 0 : 1;
 }
 #endif
