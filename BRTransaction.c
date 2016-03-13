@@ -193,8 +193,10 @@ BRTransaction *BRTransactionNew()
 {
     BRTransaction *tx = calloc(1, sizeof(BRTransaction));
 
+    tx->version = TX_VERSION;
     array_new(tx->inputs, 1);
     array_new(tx->outputs, 2);
+    tx->lockTime = TX_LOCKTIME;
     tx->blockHeight = TX_UNCONFIRMED;
     return tx;
 }
