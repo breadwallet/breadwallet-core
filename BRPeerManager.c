@@ -312,8 +312,8 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
         // every time a new wallet address is added, the bloom filter has to be rebuilt, and each address is only used
         // for one transaction, so here we generate some spare addresses to avoid rebuilding the filter each time a
         // wallet transaction is encountered during the chain sync
-        BRWalletUnusedAddrs(manager->wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL + 100, 0); // BUG: XXXX deadlock
-        BRWalletUnusedAddrs(manager->wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL + 100, 1); // BUG: XXXX deadlock
+        BRWalletUnusedAddrs(manager->wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL + 100, 0);
+        BRWalletUnusedAddrs(manager->wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL + 100, 1);
 
         BRSetClear(manager->orphans); // clear out orphans that may have been received on an old filter
         manager->lastOrphan = NULL;
@@ -965,7 +965,7 @@ static void _peerRelayedTx(void *info, BRTransaction *tx)
 
             // the transaction likely consumed one or more wallet addresses, so check that at least the next <gap limit>
             // unused addresses are still matched by the bloom filter
-            BRWalletUnusedAddrs(manager->wallet, addrs, SEQUENCE_GAP_LIMIT_EXTERNAL, 0); // BUG: XXXX deadlock
+            BRWalletUnusedAddrs(manager->wallet, addrs, SEQUENCE_GAP_LIMIT_EXTERNAL, 0);
             BRWalletUnusedAddrs(manager->wallet, addrs + SEQUENCE_GAP_LIMIT_EXTERNAL, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
 
             for (size_t i = 0; i < SEQUENCE_GAP_LIMIT_EXTERNAL + SEQUENCE_GAP_LIMIT_INTERNAL; i++) {

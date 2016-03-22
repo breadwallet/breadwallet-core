@@ -1080,6 +1080,7 @@ int BRWalletTests()
     BRTransactionAddInput(tx, UINT256_ZERO, 0, inScript, inScriptLen, NULL, 0, TXIN_SEQUENCE);
     BRTransactionAddOutput(tx, SATOSHIS, outScript, outScriptLen);
     BRTransactionSign(tx, &k, 1);
+    tx->timestamp = 1;
     w = BRWalletNew(&tx, 1, mpk, NULL, walletSeed);
     if (BRWalletBalance(w) != SATOSHIS)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletNew() test\n", __func__);
@@ -1096,12 +1097,24 @@ int BRWalletTests()
     if (tx && ! BRTransactionIsSigned(tx))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletSignTransaction() test\n", __func__);
     
-    if (tx) BRWalletRegisterTransaction(w, tx);
+    if (tx) tx->timestamp = 1, BRWalletRegisterTransaction(w, tx);
     if (tx && BRWalletBalance(w) + BRWalletFeeForTx(w, tx) != SATOSHIS/2)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletRegisterTransaction() test 4\n", __func__);
     
     if (BRWalletTransactions(w, NULL, 0) != 2)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletTransactions() test 3\n", __func__);
+    
+    if (tx && BRWalletTransactionForHash(w, tx->txHash) != tx)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletTransactionForHash() test\n", __func__);
+
+    if (tx && ! BRWalletTransactionIsValid(w, tx))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletTransactionIsValid() test\n", __func__);
+
+    if (tx && ! BRWalletTransactionIsVerified(w, tx))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletTransactionIsVerified() test\n", __func__);
+
+    if (tx && BRWalletTransactionIsPostdated(w, tx, 0))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletTransactionIsPostdated() test\n", __func__);
     
     BRWalletRemoveTransaction(w, hash); // removing first tx should recursively remove second, leaving none
     if (BRWalletTransactions(w, NULL, 0) != 0)
