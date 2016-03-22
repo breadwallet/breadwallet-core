@@ -56,7 +56,7 @@ typedef struct {
 // - In case parse256(IL) >= n or ki = 0, the resulting key is invalid, and one should proceed with the next value for i
 //   (Note: this has probability lower than 1 in 2^127.)
 //
-static void CKDpriv(UInt256 *k, UInt256 *c, uint32_t i)
+static void _CKDpriv(UInt256 *k, UInt256 *c, uint32_t i)
 {
     uint8_t buf[sizeof(BRPubKey) + sizeof(i)];
     UInt512 I;
@@ -92,7 +92,7 @@ static void CKDpriv(UInt256 *k, UInt256 *c, uint32_t i)
 // - In case parse256(IL) >= n or Ki is the point at infinity, the resulting key is invalid, and one should proceed with
 //   the next value for i.
 //
-static void CKDpub(BRPubKey *K, UInt256 *c, uint32_t i)
+static void _CKDpub(BRPubKey *K, UInt256 *c, uint32_t i)
 {
     uint8_t buf[sizeof(*K) + sizeof(i)];
     UInt512 I;
@@ -131,7 +131,7 @@ BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen)
         BRKeySetSecret(&key, &secret, 1);
         mpk.fingerPrint = BRKeyHash160(&key).u32[0];
         
-        CKDpriv(&secret, &chain, 0 | BIP32_HARD); // account 0H
+        _CKDpriv(&secret, &chain, 0 | BIP32_HARD); // account 0H
     
         mpk.chainCode = chain;
         BRKeySetSecret(&key, &secret, 1);
@@ -150,8 +150,8 @@ size_t BRBIP32PubKey(uint8_t *pubKey, size_t pubKeyLen, BRMasterPubKey mpk, int 
     if (pubKey && sizeof(BRPubKey) <= pubKeyLen) {
         *(BRPubKey *)pubKey = *(BRPubKey *)mpk.pubKey;
 
-        CKDpub((BRPubKey *)pubKey, &chain, internal ? 1 : 0); // internal or external chain
-        CKDpub((BRPubKey *)pubKey, &chain, index); // index'th key in chain
+        _CKDpub((BRPubKey *)pubKey, &chain, internal ? 1 : 0); // internal or external chain
+        _CKDpub((BRPubKey *)pubKey, &chain, index); // index'th key in chain
         chain = UINT256_ZERO;
     }
     
@@ -175,13 +175,13 @@ void BRBIP32PrivKeyList(BRKey keys[], size_t count, const void *seed, size_t see
         chain = *(UInt256 *)&I.u8[sizeof(UInt256)];
         I = UINT512_ZERO;
 
-        CKDpriv(&secret, &chain, 0 | BIP32_HARD); // account 0H
-        CKDpriv(&secret, &chain, internal ? 1 : 0); // internal or external chain
+        _CKDpriv(&secret, &chain, 0 | BIP32_HARD); // account 0H
+        _CKDpriv(&secret, &chain, internal ? 1 : 0); // internal or external chain
     
         for (size_t i = 0; i < count; i++) {
             s = secret;
             c = chain;
-            CKDpriv(&s, &c, indexes[i]); // index'th key in chain
+            _CKDpriv(&s, &c, indexes[i]); // index'th key in chain
             BRKeySetSecret(&keys[i], &s, 1);
         }
         

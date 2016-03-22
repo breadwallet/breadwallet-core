@@ -31,7 +31,7 @@
 extern "C" {
 #endif
 
-typedef struct _BRSet BRSet;
+typedef struct BRSetStruct BRSet;
 
 // retruns a newly allocated empty set that must be freed by calling BRSetFree(), hash is a function that returns a hash
 // value for a given set item, eq is a function that tests if two set items are equal, capacity is the maximum estimated

@@ -26,13 +26,13 @@
 #include "BRHash.h"
 #include "BRAddress.h"
 #include "BRInt.h"
+#include <stdlib.h>
 #include <float.h>
 #include <math.h>
-#include <stdlib.h>
 
 #define BLOOM_MAX_HASH_FUNCS 50
 
-inline static uint32_t BRBloomFilterHash(BRBloomFilter *filter, const uint8_t *data, size_t len, uint32_t hashNum)
+inline static uint32_t _BRBloomFilterHash(BRBloomFilter *filter, const uint8_t *data, size_t len, uint32_t hashNum)
 {
     return BRMurmur3_32(data, len, hashNum*0xfba4c795 + filter->tweak) % (filter->length*8);
 }
@@ -113,7 +113,7 @@ int BRBloomFilterContainsData(BRBloomFilter *filter, const uint8_t *data, size_t
     uint32_t i, idx;
     
     for (i = 0; i < filter->hashFuncs; i++) {
-        idx = BRBloomFilterHash(filter, data, len, i);
+        idx = _BRBloomFilterHash(filter, data, len, i);
         if (! (filter->filter[idx >> 3] & (1 << (7 & idx)))) return 0;
     }
     
@@ -126,7 +126,7 @@ void BRBloomFilterInsertData(BRBloomFilter *filter, const uint8_t *data, size_t 
     uint32_t i, idx;
     
     for (i = 0; i < filter->hashFuncs; i++) {
-        idx = BRBloomFilterHash(filter, data, len, i);
+        idx = _BRBloomFilterHash(filter, data, len, i);
         filter->filter[idx >> 3] |= (1 << (7 & idx));
     }
     

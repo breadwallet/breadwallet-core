@@ -29,6 +29,7 @@
 #include "BRMerkleBlock.h"
 #include "BRAddress.h"
 #include "BRInt.h"
+#include <stddef.h>
 #include <stdint.h>
 
 #define peer_log(peer, ...)\
@@ -184,10 +185,10 @@ inline static size_t BRPeerHash(const void *peer)
 }
 
 // true if a and b have the same address and port
-inline static int BRPeerEq(const void *a, const void *b)
+inline static int BRPeerEq(const void *peer, const void *otherPeer)
 {
-    return (a == b ||
-            (UInt128Eq(((BRPeer *)a)->address, ((BRPeer *)b)->address) && ((BRPeer *)a)->port == ((BRPeer *)b)->port));
+    return (peer == otherPeer || (UInt128Eq(((BRPeer *)peer)->address, ((BRPeer *)otherPeer)->address) &&
+                                  ((BRPeer *)peer)->port == ((BRPeer *)otherPeer)->port));
 }
 
 // frees memory allocated for peer

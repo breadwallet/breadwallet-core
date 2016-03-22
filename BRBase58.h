@@ -26,6 +26,7 @@
 #ifndef BRBase58_h
 #define BRBase58_h
 
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus

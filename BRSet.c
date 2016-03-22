@@ -37,7 +37,7 @@ static const size_t tableSizes[] = { // starting with 1, multiply by 3/2, round 
 
 #define TABLE_SIZES_LEN (sizeof(tableSizes)/sizeof(*tableSizes))
 
-struct _BRSet {
+struct BRSetStruct {
     void **table; // hashtable
     size_t size; // number of buckets in table
     size_t itemCount; // number of items in set
@@ -45,7 +45,7 @@ struct _BRSet {
     int (*eq)(const void *, const void *); // equality function
 };
 
-static void BRSetInit(BRSet *set, size_t (*hash)(const void *), int (*eq)(const void *, const void *), size_t capacity)
+static void _BRSetInit(BRSet *set, size_t (*hash)(const void *), int (*eq)(const void *, const void *), size_t capacity)
 {
     size_t i = 0;
     
@@ -68,16 +68,16 @@ BRSet *BRSetNew(size_t (*hash)(const void *), int (*eq)(const void *, const void
 {
     BRSet *set = malloc(sizeof(BRSet));
     
-    BRSetInit(set, hash, eq, capacity);
+    _BRSetInit(set, hash, eq, capacity);
     return set;
 }
 
 // rebuilds hashtable to hold up to capacity items
-static void BRSetGrow(BRSet *set, size_t capacity)
+static void _BRSetGrow(BRSet *set, size_t capacity)
 {
     BRSet newSet;
     
-    BRSetInit(&newSet, set->hash, set->eq, capacity);
+    _BRSetInit(&newSet, set->hash, set->eq, capacity);
     BRSetUnion(&newSet, set);
     free(set->table);
     set->table = newSet.table;
@@ -99,7 +99,7 @@ void *BRSetAdd(BRSet *set, void *item)
 
     if (! t) set->itemCount++;
     set->table[i] = item;
-    if (set->itemCount > ((size + 2)/3)*2) BRSetGrow(set, size); // limit load factor to 2/3
+    if (set->itemCount > ((size + 2)/3)*2) _BRSetGrow(set, size); // limit load factor to 2/3
     return t;
 }
 
@@ -240,7 +240,7 @@ void BRSetUnion(BRSet *set, const BRSet *otherSet)
     size_t i = 0, size = otherSet->size;
     void *t;
     
-    if (otherSet->itemCount > ((set->size + 2)/3)*2) BRSetGrow(set, otherSet->itemCount);
+    if (otherSet->itemCount > ((set->size + 2)/3)*2) _BRSetGrow(set, otherSet->itemCount);
     
     while (i < size) {
         t = otherSet->table[i++];

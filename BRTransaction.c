@@ -26,10 +26,11 @@
 #include "BRKey.h"
 #include "BRAddress.h"
 #include "BRArray.h"
-#include <time.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <limits.h>
+#include <time.h>
+#include <unistd.h>
 
 #define TX_VERSION  0x00000001u
 #define TX_LOCKTIME 0x00000000u
@@ -131,7 +132,7 @@ void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scrip
 // Writes the binary transaction data that needs to be hashed and signed with the private key for the tx input at
 // subscriptIdx. A subscriptIdx of SIZE_MAX will return the entire signed transaction. Returns number of bytes written,
 // or total len needed if data is NULL.
-static size_t BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t len, size_t subscriptIdx)
+static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t len, size_t subscriptIdx)
 {
     size_t off = 0;
 
@@ -249,9 +250,9 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t len)
     off += sizeof(uint32_t);
 
     if (tx->inCount > 0) {
-        uint8_t data[BRTransactionData(tx, NULL, 0, SIZE_MAX)];
+        uint8_t data[_BRTransactionData(tx, NULL, 0, SIZE_MAX)];
     
-        l = BRTransactionData(tx, data, sizeof(data), SIZE_MAX);
+        l = _BRTransactionData(tx, data, sizeof(data), SIZE_MAX);
         BRSHA256_2(&tx->txHash, data, l);
     }
     else {
@@ -265,7 +266,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t len)
 // returns number of bytes written to buf, or total len needed if buf is NULL
 size_t BRTransactionSerialize(BRTransaction *tx, uint8_t *buf, size_t len)
 {
-    return BRTransactionData(tx, buf, len, SIZE_MAX);
+    return _BRTransactionData(tx, buf, len, SIZE_MAX);
 }
 
 // adds an input to tx
@@ -308,7 +309,7 @@ void BRTransactionShuffleOutputs(BRTransaction *tx)
 // size in bytes if signed, or estimated size assuming compact pubkey sigs
 size_t BRTransactionSize(const BRTransaction *tx)
 {
-    if (! UInt256IsZero(tx->txHash)) return BRTransactionData(tx, NULL, 0, SIZE_MAX);
+    if (! UInt256IsZero(tx->txHash)) return _BRTransactionData(tx, NULL, 0, SIZE_MAX);
     return 8 + BRVarIntSize(tx->inCount) + tx->inCount*TX_INPUT_SIZE + BRVarIntSize(tx->outCount) +
            tx->outCount*TX_OUTPUT_SIZE;
 }
@@ -348,8 +349,8 @@ int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t count)
         if (j >= count) continue;
 
         const uint8_t *elems[BRScriptElements(NULL, 0, in->script, in->scriptLen)];
-        uint8_t sig[OP_PUSHDATA1 - 1], pubKey[65], data[BRTransactionData(tx, NULL, 0, i)];
-        size_t len = BRTransactionData(tx, data, sizeof(data), i);
+        uint8_t sig[OP_PUSHDATA1 - 1], pubKey[65], data[_BRTransactionData(tx, NULL, 0, i)];
+        size_t len = _BRTransactionData(tx, data, sizeof(data), i);
         UInt256 hash = UINT256_ZERO;
 
         BRSHA256_2(&hash, data, len);
@@ -373,8 +374,8 @@ int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t count)
     }
     
     if (BRTransactionIsSigned(tx)) {
-        uint8_t data[BRTransactionData(tx, NULL, 0, SIZE_MAX)];
-        size_t len = BRTransactionData(tx, data, sizeof(data), SIZE_MAX);
+        uint8_t data[_BRTransactionData(tx, NULL, 0, SIZE_MAX)];
+        size_t len = _BRTransactionData(tx, data, sizeof(data), SIZE_MAX);
 
         BRSHA256_2(&tx->txHash, data, len);
         return 1;

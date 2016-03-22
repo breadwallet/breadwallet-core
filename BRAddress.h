@@ -74,9 +74,9 @@ int BRAddressIsValid(const char *addr);
 
 int BRAddressHash160(void *md, const char *addr);
 
-inline static int BRAddressEq(const void *a, const void *b)
+inline static int BRAddressEq(const void *addr, const void *otherAddr)
 {
-    return (a == b || strncmp(a, b, sizeof(BRAddress)) == 0);
+    return (addr == otherAddr || strncmp(addr, otherAddr, sizeof(BRAddress)) == 0);
 }
 
 inline static size_t BRAddressHash(const void *addr)

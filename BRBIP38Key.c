@@ -85,7 +85,7 @@ static const uint8_t sboxi[256] = {
 
 #define xt(x) (((x) << 1) ^ ((((x) >> 7) & 1)*0x1b))
 
-static void AES256ECBEncrypt(const void *key, void *buf)
+static void _AES256ECBEncrypt(const void *key, void *buf)
 {
     size_t i, j;
     uint8_t *x = buf, k[32], r = 1, a, b, c, d, e;
@@ -117,7 +117,7 @@ static void AES256ECBEncrypt(const void *key, void *buf)
     for (i = 0; i < 4; i++) ((uint32_t *)x)[i] ^= ((uint32_t *)k)[i]; // final add round key
 }
 
-static void AES256ECBDecrypt(const void *key, void *buf)
+static void _AES256ECBDecrypt(const void *key, void *buf)
 {
     size_t i, j;
     uint8_t *x = buf, k[32], r = 1, a, b, c, d, e, f, g, h;
@@ -162,7 +162,7 @@ static void AES256ECBDecrypt(const void *key, void *buf)
 #define rotl(a, b) (((a) << (b)) | ((a) >> (32 - (b))))
 
 // salsa20/8 stream cypher: http://cr.yp.to/snuffle.html
-static void salsa20_8(uint32_t b[16])
+static void _salsa20_8(uint32_t b[16])
 {
     uint32_t x00 = b[0], x01 = b[1], x02 = b[2], x03 = b[3], x04 = b[4], x05 = b[5], x06 = b[6], x07 = b[7],
     x08 = b[8], x09 = b[9], x10 = b[10], x11 = b[11], x12 = b[12], x13 = b[13], x14 = b[14], x15 = b[15];
@@ -185,16 +185,16 @@ static void salsa20_8(uint32_t b[16])
     b[8] += x08, b[9] += x09, b[10] += x10, b[11] += x11, b[12] += x12, b[13] += x13, b[14] += x14, b[15] += x15;
 }
 
-static void blockmix_salsa8(uint64_t *dest, const uint64_t *src, uint64_t *b, int r)
+static void _blockmix_salsa8(uint64_t *dest, const uint64_t *src, uint64_t *b, int r)
 {
     memcpy(b, &src[(2*r - 1)*8], 64);
     
     for (int i = 0; i < 2*r; i += 2) {
         for (int j = 0; j < 8; j++) b[j] ^= src[i*8 + j];
-        salsa20_8((uint32_t *)b);
+        _salsa20_8((uint32_t *)b);
         memcpy(&dest[i*4], b, 64);
         for (int j = 0; j < 8; j++) b[j] ^= src[i*8 + 8 + j];
-        salsa20_8((uint32_t *)b);
+        _salsa20_8((uint32_t *)b);
         memcpy(&dest[i*4 + r*8], b, 64);
     }
 }
@@ -215,18 +215,18 @@ static void scrypt(void *dk, size_t dklen, const void *pw, size_t pwlen, const v
         
         for (long j = 0; j < n; j += 2) {
             memcpy(&v[j*(16*r)], x, 128*r);
-            blockmix_salsa8(y, x, z, r);
+            _blockmix_salsa8(y, x, z, r);
             memcpy(&v[(j + 1)*(16*r)], y, 128*r);
-            blockmix_salsa8(x, y, z, r);
+            _blockmix_salsa8(x, y, z, r);
         }
         
         for (long j = 0; j < n; j += 2) {
             m = le64(x[(2*r - 1)*8]) & (n - 1);
             for (long k = 0; k < 16*r; k++) x[k] ^= v[m*(16*r) + k];
-            blockmix_salsa8(y, x, z, r);
+            _blockmix_salsa8(y, x, z, r);
             m = le64(y[(2*r - 1)*8]) & (n - 1);
             for (long k = 0; k < 16*r; k++) y[k] ^= v[m*(16*r) + k];
-            blockmix_salsa8(x, y, z, r);
+            _blockmix_salsa8(x, y, z, r);
         }
         
         for (long j = 0; j < 32*r; j++) {
@@ -245,7 +245,7 @@ static void scrypt(void *dk, size_t dklen, const void *pw, size_t pwlen, const v
     memset(&m, 0, sizeof(m));
 }
 
-static UInt256 BRBIP38DerivePassfactor(uint8_t flag, uint64_t entropy, const char *passphrase)
+static UInt256 _BRBIP38DerivePassfactor(uint8_t flag, uint64_t entropy, const char *passphrase)
 {
     size_t len = strlen(passphrase);
     UInt256 prefactor, passfactor;
@@ -269,7 +269,7 @@ static UInt256 BRBIP38DerivePassfactor(uint8_t flag, uint64_t entropy, const cha
     return passfactor;
 }
 
-static UInt512 BRBIP38DeriveKey(const uint8_t passpoint[33], uint32_t addresshash, uint64_t entropy)
+static UInt512 _BRBIP38DeriveKey(const uint8_t passpoint[33], uint32_t addresshash, uint64_t entropy)
 {
     UInt512 dk;
     uint8_t salt[sizeof(addresshash) + sizeof(entropy)];

@@ -40,9 +40,10 @@ typedef struct {
     uint32_t n;
 } BRUTXO;
 
-inline static int BRUTXOEq(const void *a, const void *b)
+inline static int BRUTXOEq(const void *utxo, const void *otherUtxo)
 {
-    return (a == b || (UInt256Eq(((BRUTXO *)a)->hash, ((BRUTXO *)b)->hash) && ((BRUTXO *)a)->n == ((BRUTXO *)b)->n));
+    return (utxo == otherUtxo || (UInt256Eq(((BRUTXO *)utxo)->hash, ((BRUTXO *)otherUtxo)->hash) &&
+                                  ((BRUTXO *)utxo)->n == ((BRUTXO *)otherUtxo)->n));
 }
 
 inline static size_t BRUTXOHash(const void *utxo)
@@ -50,7 +51,7 @@ inline static size_t BRUTXOHash(const void *utxo)
     return (((BRUTXO *)utxo)->hash.u32[0] ^ ((BRUTXO *)utxo)->n)*0x01000193; // (hash xor n)*FNV_PRIME
 }
 
-typedef struct _BRWallet BRWallet;
+typedef struct BRWalletStruct BRWallet;
 
 // allocate and populate a wallet
 BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk, void *info,

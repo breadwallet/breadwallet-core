@@ -25,6 +25,7 @@
 #ifndef BRBloomFilter_h
 #define BRBloomFilter_h
 
+#include <stddef.h>
 #include <stdint.h>
 
 #ifdef __cplusplus

@@ -25,14 +25,15 @@
 #include "BRMerkleBlock.h"
 #include "BRHash.h"
 #include "BRAddress.h"
-#include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <limits.h>
+#include <string.h>
 
 #define MAX_PROOF_OF_WORK 0x1d00ffff    // highest value for difficulty target (higher values are less difficult)
 #define TARGET_TIMESPAN   (14*24*60*60) // the targeted timespan between difficulty target adjustments
 
-inline static int ceil_log2(int x)
+inline static int _ceil_log2(int x)
 {
     int r = (x & (x - 1)) ? 1 : 0;
     
@@ -166,8 +167,8 @@ size_t BRMerkleBlockSerialize(BRMerkleBlock *block, uint8_t *buf, size_t len)
     return (! buf || l <= len) ? l : 0;
 }
 
-static size_t BRMerkleBlockTxHashesR(BRMerkleBlock *block, UInt256 *txHashes, size_t count, size_t *idx,
-                                     size_t *hashIdx, size_t *flagIdx, int depth)
+static size_t _BRMerkleBlockTxHashesR(BRMerkleBlock *block, UInt256 *txHashes, size_t count, size_t *idx,
+                                      size_t *hashIdx, size_t *flagIdx, int depth)
 {
     uint8_t flag;
     
@@ -175,7 +176,7 @@ static size_t BRMerkleBlockTxHashesR(BRMerkleBlock *block, UInt256 *txHashes, si
         flag = (block->flags[*flagIdx/8] & (1 << (*flagIdx % 8)));
         (*flagIdx)++;
     
-        if (! flag || depth == ceil_log2(block->totalTx)) {
+        if (! flag || depth == _ceil_log2(block->totalTx)) {
             if (flag && *idx < count) {
                 if (txHashes) txHashes[*idx] = block->hashes[*hashIdx]; // leaf
                 (*idx)++;
@@ -184,8 +185,8 @@ static size_t BRMerkleBlockTxHashesR(BRMerkleBlock *block, UInt256 *txHashes, si
             (*hashIdx)++;
         }
         else {
-            BRMerkleBlockTxHashesR(block, txHashes, count, idx, hashIdx, flagIdx, depth + 1); // left branch
-            BRMerkleBlockTxHashesR(block, txHashes, count, idx, hashIdx, flagIdx, depth + 1); // right branch
+            _BRMerkleBlockTxHashesR(block, txHashes, count, idx, hashIdx, flagIdx, depth + 1); // left branch
+            _BRMerkleBlockTxHashesR(block, txHashes, count, idx, hashIdx, flagIdx, depth + 1); // right branch
         }
     }
 
@@ -198,11 +199,11 @@ size_t BRMerkleBlockTxHashes(BRMerkleBlock *block, UInt256 *txHashes, size_t cou
 {
     size_t idx = 0, hashIdx = 0, flagIdx = 0;
 
-    return BRMerkleBlockTxHashesR(block, txHashes, (txHashes) ? count : SIZE_MAX, &idx, &hashIdx, &flagIdx, 0);
+    return _BRMerkleBlockTxHashesR(block, txHashes, (txHashes) ? count : SIZE_MAX, &idx, &hashIdx, &flagIdx, 0);
 }
 
 // recursively walks the merkle tree to calculate the merkle root
-static UInt256 BRMerkleBlockRootR(BRMerkleBlock *block, size_t *hashIdx, size_t *flagIdx, int depth)
+static UInt256 _BRMerkleBlockRootR(BRMerkleBlock *block, size_t *hashIdx, size_t *flagIdx, int depth)
 {
     uint8_t flag;
     UInt256 hashes[2], md = UINT256_ZERO;
@@ -211,9 +212,9 @@ static UInt256 BRMerkleBlockRootR(BRMerkleBlock *block, size_t *hashIdx, size_t 
         flag = (block->flags[*flagIdx/8] & (1 << (*flagIdx % 8)));
         (*flagIdx)++;
 
-        if (flag && depth != ceil_log2(block->totalTx)) {
-            hashes[0] = BRMerkleBlockRootR(block, hashIdx, flagIdx, depth + 1); // left branch
-            hashes[1] = BRMerkleBlockRootR(block, hashIdx, flagIdx, depth + 1); // right branch
+        if (flag && depth != _ceil_log2(block->totalTx)) {
+            hashes[0] = _BRMerkleBlockRootR(block, hashIdx, flagIdx, depth + 1); // left branch
+            hashes[1] = _BRMerkleBlockRootR(block, hashIdx, flagIdx, depth + 1); // right branch
             if (UInt256IsZero(hashes[1])) hashes[1] = hashes[0]; // if right branch is missing, duplicate left branch
             BRSHA256_2(&md, hashes, sizeof(hashes));
         }
@@ -233,7 +234,7 @@ int BRMerkleBlockIsValid(BRMerkleBlock *block, uint32_t currentTime)
     static const uint32_t maxsize = MAX_PROOF_OF_WORK >> 24, maxtarget = MAX_PROOF_OF_WORK & 0x00ffffff;
     const uint32_t size = block->target >> 24, target = block->target & 0x00ffffff;
     size_t hashIdx = 0, flagIdx = 0;
-    UInt256 merkleRoot = BRMerkleBlockRootR(block, &hashIdx, &flagIdx, 0), t = UINT256_ZERO;
+    UInt256 merkleRoot = _BRMerkleBlockRootR(block, &hashIdx, &flagIdx, 0), t = UINT256_ZERO;
     int r = 1;
     
     // check if merkle root is correct

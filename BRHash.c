@@ -38,7 +38,7 @@
 // basic sha1 operation
 #define sha1(x, y, z) (t = rol32(a, 5) + (x) + e + (y) + (z), e = d, d = c, c = rol32(b, 30), b = a, a = t)
 
-static void BRSHA1Compress(uint32_t *r, uint32_t *x)
+static void _BRSHA1Compress(uint32_t *r, uint32_t *x)
 {
     size_t i = 0;
     uint32_t a = r[0], b = r[1], c = r[2], d = r[3], e = r[4], t;
@@ -61,14 +61,14 @@ void BRSHA1(void *md, const void *data, size_t len)
     for (i = 0; i < len; i += 64) { // process data in 64 byte blocks
         memcpy(x, (const uint8_t *)data + i, (i + 64 < len) ? 64 : len - i);
         if (i + 64 > len) break;
-        BRSHA1Compress(buf, x);
+        _BRSHA1Compress(buf, x);
     }
     
     memset((uint8_t *)x + (len - i), 0, 64 - (len - i)); // clear remainder of x
     ((uint8_t *)x)[len - i] = 0x80; // append padding
-    if (len - i >= 56) BRSHA1Compress(buf, x), memset(x, 0, 64); // length goes to next block
+    if (len - i >= 56) _BRSHA1Compress(buf, x), memset(x, 0, 64); // length goes to next block
     *(uint64_t *)&x[14] = be64((uint64_t)len*8); // append length in bits
-    BRSHA1Compress(buf, x); // finalize
+    _BRSHA1Compress(buf, x); // finalize
     for (i = 0; i < 5; i++) ((uint32_t *)md)[i] = be32(buf[i]); // write to md
     memset(x, 0, sizeof(x));
     memset(buf, 0, sizeof(buf));
@@ -87,7 +87,7 @@ void BRSHA1(void *md, const void *data, size_t len)
 #define s2(x) (ror32((x), 7) ^ ror32((x), 18) ^ ((x) >> 3))
 #define s3(x) (ror32((x), 17) ^ ror32((x), 19) ^ ((x) >> 10))
 
-static void BRSHA256Compress(uint32_t *r, uint32_t *x)
+static void _BRSHA256Compress(uint32_t *r, uint32_t *x)
 {
     static const uint32_t k[] = {
         0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
@@ -126,14 +126,14 @@ void BRSHA256(void *md, const void *data, size_t len)
     for (i = 0; i < len; i += 64) { // process data in 64 byte blocks
         memcpy(x, (const uint8_t *)data + i, (i + 64 < len) ? 64 : len - i);
         if (i + 64 > len) break;
-        BRSHA256Compress(buf, x);
+        _BRSHA256Compress(buf, x);
     }
     
     memset((uint8_t *)x + (len - i), 0, 64 - (len - i)); // clear remainder of x
     ((uint8_t *)x)[len - i] = 0x80; // append padding
-    if (len - i >= 56) BRSHA256Compress(buf, x), memset(x, 0, 64); // length goes to next block
+    if (len - i >= 56) _BRSHA256Compress(buf, x), memset(x, 0, 64); // length goes to next block
     *(uint64_t *)&x[14] = be64((uint64_t)len*8); // append length in bits
-    BRSHA256Compress(buf, x); // finalize
+    _BRSHA256Compress(buf, x); // finalize
     for (i = 0; i < 8; i++) ((uint32_t *)md)[i] = be32(buf[i]); // write to md
     memset(x, 0, sizeof(x));
     memset(buf, 0, sizeof(buf));
@@ -156,7 +156,7 @@ void BRSHA256_2(void *md, const void *data, size_t len)
 #define S2(x) (ror64((x), 1) ^ ror64((x), 8) ^ ((x) >> 7))
 #define S3(x) (ror64((x), 19) ^ ror64((x), 61) ^ ((x) >> 6))
 
-static void BRSHA512Compress(uint64_t *r, uint64_t *x)
+static void _BRSHA512Compress(uint64_t *r, uint64_t *x)
 {
     static const uint64_t k[] = {
         0x428a2f98d728ae22, 0x7137449123ef65cd, 0xb5c0fbcfec4d3b2f, 0xe9b5dba58189dbbc, 0x3956c25bf348b538,
@@ -203,14 +203,14 @@ void BRSHA512(void *md, const void *data, size_t len)
     for (i = 0; i < len; i += 128) { // process data in 128 byte blocks
         memcpy(x, (const uint8_t *)data + i, (i + 128 < len) ? 128 : len - i);
         if (i + 128 > len) break;
-        BRSHA512Compress(buf, x);
+        _BRSHA512Compress(buf, x);
     }
     
     memset((uint8_t *)x + (len - i), 0, 128 - (len - i)); // clear remainder of x
     ((uint8_t *)x)[len - i] = 0x80; // append padding
-    if (len - i >= 112) BRSHA512Compress(buf, x), memset(x, 0, 128); // length goes to next block
+    if (len - i >= 112) _BRSHA512Compress(buf, x), memset(x, 0, 128); // length goes to next block
     x[14] = 0, x[15] = be64((uint64_t)len*8); // append length in bits
-    BRSHA512Compress(buf, x); // finalize
+    _BRSHA512Compress(buf, x); // finalize
     for (i = 0; i < 8; i++) ((uint64_t *)md)[i] = be64(buf[i]); // write to md
     memset(x, 0, sizeof(x));
     memset(buf, 0, sizeof(buf));
@@ -227,7 +227,7 @@ void BRSHA512(void *md, const void *data, size_t len)
 #define rmd(a, b, c, d, e, f, g, h, i, j) ((a) = rol32((f) + (b) + le32(c) + (d), (e)) + (g), (f) = (g), (g) = (h),\
                                            (h) = rol32((i), 10), (i) = (j), (j) = (a))
 
-static void BRRMDcompress(uint32_t *r, uint32_t *x)
+static void _BRRMDcompress(uint32_t *r, uint32_t *x)
 {
     // left line
     static const uint32_t rl1[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }, // round 1, id
@@ -282,14 +282,14 @@ void BRRMD160(void *md, const void *data, size_t len)
     for (i = 0; i <= len; i += 64) { // process data in 64 byte blocks
         memcpy(x, (const uint8_t *)data + i, (i + 64 < len) ? 64 : len - i);
         if (i + 64 > len) break;
-        BRRMDcompress(buf, x);
+        _BRRMDcompress(buf, x);
     }
     
     memset((uint8_t *)x + (len - i), 0, 64 - (len - i)); // clear remainder of x
     ((uint8_t *)x)[len - i] = 0x80; // append padding
-    if (len - i >= 56) BRRMDcompress(buf, x), memset(x, 0, 64); // length goes to next block
+    if (len - i >= 56) _BRRMDcompress(buf, x), memset(x, 0, 64); // length goes to next block
     *(uint64_t *)&x[14] = le64((uint64_t)len*8); // append length in bits
-    BRRMDcompress(buf, x); // finalize
+    _BRRMDcompress(buf, x); // finalize
     for (i = 0; i < 5; i++) ((uint32_t *)md)[i] = le32(buf[i]); // write to md
     memset(x, 0, sizeof(x));
     memset(buf, 0, sizeof(buf));

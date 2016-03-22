@@ -29,8 +29,8 @@
 #include "BRArray.h"
 #include "BRHash.h"
 #include "BRInt.h"
-#include <float.h>
 #include <stdlib.h>
+#include <float.h>
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -123,16 +123,16 @@ typedef struct {
     pthread_t thread;
 } BRPeerContext;
 
-static void BRPeerSendVersionMessage(BRPeer *peer);
-static void BRPeerSendVerackMessage(BRPeer *peer);
-static void BRPeerSendAddr(BRPeer *peer);
+void BRPeerSendVersionMessage(BRPeer *peer);
+void BRPeerSendVerackMessage(BRPeer *peer);
+void BRPeerSendAddr(BRPeer *peer);
 
-inline static int BRPeerIsIPv4(BRPeer *peer)
+inline static int _BRPeerIsIPv4(BRPeer *peer)
 {
     return (peer->address.u64[0] == 0 && peer->address.u32[2] == be32(0xffff));
 }
 
-static void BRPeerDidConnect(BRPeer *peer)
+static void _BRPeerDidConnect(BRPeer *peer)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     
@@ -145,7 +145,7 @@ static void BRPeerDidConnect(BRPeer *peer)
     }
 }
 
-static int BRPeerAcceptVersionMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+static int _BRPeerAcceptVersionMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     size_t off = 0, strLen = 0, l = 0;
@@ -209,7 +209,7 @@ static int BRPeerAcceptVersionMessage(BRPeer *peer, const uint8_t *msg, size_t l
     return r;
 }
 
-static int BRPeerAcceptVerackMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+static int _BRPeerAcceptVerackMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     struct timeval tv;
@@ -224,14 +224,14 @@ static int BRPeerAcceptVerackMessage(BRPeer *peer, const uint8_t *msg, size_t le
         ctx->startTime = 0;
         peer_log(peer, "got verack in %fs", ctx->pingTime);
         ctx->gotVerack = 1;
-        BRPeerDidConnect(peer);
+        _BRPeerDidConnect(peer);
     }
     
     return r;
 }
 
 // TODO: relay addresses
-static int BRPeerAcceptAddrMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+static int _BRPeerAcceptAddrMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     size_t off = 0, count = BRVarInt(msg, len, &off);
@@ -263,7 +263,7 @@ static int BRPeerAcceptAddrMessage(BRPeer *peer, const uint8_t *msg, size_t len)
             off += sizeof(uint16_t);
 
             if (! (p.services & SERVICES_NODE_NETWORK)) continue; // skip peers that don't carry full blocks
-            if (! BRPeerIsIPv4(&p)) continue; // ignore IPv6 for now
+            if (! _BRPeerIsIPv4(&p)) continue; // ignore IPv6 for now
         
             // if address time is more than 10 min in the future or unknown, set to 5 days old
             if (p.timestamp > now + 10*60 || p.timestamp == 0) p.timestamp = now - 5*24*60*60;
@@ -277,7 +277,7 @@ static int BRPeerAcceptAddrMessage(BRPeer *peer, const uint8_t *msg, size_t len)
     return r;
 }
 
-static int BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+static int _BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     size_t off = 0, count = BRVarInt(msg, len, &off);
@@ -368,7 +368,7 @@ static int BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t len)
     return r;
 }
 
-static int BRPeerAcceptTxMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+static int _BRPeerAcceptTxMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     BRTransaction *tx = BRTransactionParse(msg, len);
@@ -412,7 +412,7 @@ static int BRPeerAcceptTxMessage(BRPeer *peer, const uint8_t *msg, size_t len)
     return r;
 }
 
-static int BRPeerAcceptHeadersMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+static int _BRPeerAcceptHeadersMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     size_t off = 0, count = BRVarInt(msg, len, &off);
@@ -474,14 +474,14 @@ static int BRPeerAcceptHeadersMessage(BRPeer *peer, const uint8_t *msg, size_t l
     return r;
 }
 
-static int BRPeerAcceptGetaddrMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+static int _BRPeerAcceptGetaddrMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
     peer_log(peer, "got getaddr");
     BRPeerSendAddr(peer);
     return 1;
 }
 
-static int BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+static int _BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     size_t off = 0, count = BRVarInt(msg, len, &off);
@@ -543,7 +543,7 @@ static int BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t l
     return r;
 }
 
-static int BRPeerAcceptNotfoundMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+static int _BRPeerAcceptNotfoundMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     size_t off = 0, count = BRVarInt(msg, len, &off);
@@ -576,7 +576,7 @@ static int BRPeerAcceptNotfoundMessage(BRPeer *peer, const uint8_t *msg, size_t 
     return r;
 }
 
-static int BRPeerAcceptPingMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+static int _BRPeerAcceptPingMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
     int r = 1;
     
@@ -592,7 +592,7 @@ static int BRPeerAcceptPingMessage(BRPeer *peer, const uint8_t *msg, size_t len)
     return r;
 }
 
-static int BRPeerAcceptPongMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+static int _BRPeerAcceptPongMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     struct timeval tv;
@@ -637,7 +637,7 @@ static int BRPeerAcceptPongMessage(BRPeer *peer, const uint8_t *msg, size_t len)
     return r;
 }
 
-static int BRPeerAcceptMerkleblockMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+static int _BRPeerAcceptMerkleblockMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
     // Bitcoin nodes don't support querying arbitrary transactions, only transactions not yet accepted in a block. After
     // a merkleblock message, the remote node is expected to send tx messages for the tx referenced in the block. When a
@@ -682,7 +682,7 @@ static int BRPeerAcceptMerkleblockMessage(BRPeer *peer, const uint8_t *msg, size
 }
 
 // described in BIP61: https://github.com/bitcoin/bips/blob/master/bip-0061.mediawiki
-static int BRPeerAcceptRejectMessage(BRPeer *peer, const uint8_t *msg, size_t len)
+static int _BRPeerAcceptRejectMessage(BRPeer *peer, const uint8_t *msg, size_t len)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     size_t off = 0, strLen = BRVarInt(msg, len, &off);
@@ -732,7 +732,7 @@ static int BRPeerAcceptRejectMessage(BRPeer *peer, const uint8_t *msg, size_t le
     return r;
 }
 
-static int BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char *type)
+static int _BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char *type)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     int r = 1;
@@ -744,25 +744,25 @@ static int BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t len, con
         ctx->currentBlock = NULL;
         r = 0;
     }
-    else if (strncmp(MSG_VERSION, type, 12) == 0) r = BRPeerAcceptVersionMessage(peer, msg, len);
-    else if (strncmp(MSG_VERACK, type, 12) == 0) r = BRPeerAcceptVerackMessage(peer, msg, len);
-    else if (strncmp(MSG_ADDR, type, 12) == 0) r = BRPeerAcceptAddrMessage(peer, msg, len);
-    else if (strncmp(MSG_INV, type, 12) == 0) r = BRPeerAcceptInvMessage(peer, msg, len);
-    else if (strncmp(MSG_TX, type, 12) == 0) r = BRPeerAcceptTxMessage(peer, msg, len);
-    else if (strncmp(MSG_HEADERS, type, 12) == 0) r = BRPeerAcceptHeadersMessage(peer, msg, len);
-    else if (strncmp(MSG_GETADDR, type, 12) == 0) r = BRPeerAcceptGetaddrMessage(peer, msg, len);
-    else if (strncmp(MSG_GETDATA, type, 12) == 0) r = BRPeerAcceptGetdataMessage(peer, msg, len);
-    else if (strncmp(MSG_NOTFOUND, type, 12) == 0) r = BRPeerAcceptNotfoundMessage(peer, msg, len);
-    else if (strncmp(MSG_PING, type, 12) == 0) r = BRPeerAcceptPingMessage(peer, msg, len);
-    else if (strncmp(MSG_PONG, type, 12) == 0) r = BRPeerAcceptPongMessage(peer, msg, len);
-    else if (strncmp(MSG_MERKLEBLOCK, type, 12) == 0) r = BRPeerAcceptMerkleblockMessage(peer, msg, len);
-    else if (strncmp(MSG_REJECT, type, 12) == 0) r = BRPeerAcceptRejectMessage(peer, msg, len);
+    else if (strncmp(MSG_VERSION, type, 12) == 0) r = _BRPeerAcceptVersionMessage(peer, msg, len);
+    else if (strncmp(MSG_VERACK, type, 12) == 0) r = _BRPeerAcceptVerackMessage(peer, msg, len);
+    else if (strncmp(MSG_ADDR, type, 12) == 0) r = _BRPeerAcceptAddrMessage(peer, msg, len);
+    else if (strncmp(MSG_INV, type, 12) == 0) r = _BRPeerAcceptInvMessage(peer, msg, len);
+    else if (strncmp(MSG_TX, type, 12) == 0) r = _BRPeerAcceptTxMessage(peer, msg, len);
+    else if (strncmp(MSG_HEADERS, type, 12) == 0) r = _BRPeerAcceptHeadersMessage(peer, msg, len);
+    else if (strncmp(MSG_GETADDR, type, 12) == 0) r = _BRPeerAcceptGetaddrMessage(peer, msg, len);
+    else if (strncmp(MSG_GETDATA, type, 12) == 0) r = _BRPeerAcceptGetdataMessage(peer, msg, len);
+    else if (strncmp(MSG_NOTFOUND, type, 12) == 0) r = _BRPeerAcceptNotfoundMessage(peer, msg, len);
+    else if (strncmp(MSG_PING, type, 12) == 0) r = _BRPeerAcceptPingMessage(peer, msg, len);
+    else if (strncmp(MSG_PONG, type, 12) == 0) r = _BRPeerAcceptPongMessage(peer, msg, len);
+    else if (strncmp(MSG_MERKLEBLOCK, type, 12) == 0) r = _BRPeerAcceptMerkleblockMessage(peer, msg, len);
+    else if (strncmp(MSG_REJECT, type, 12) == 0) r = _BRPeerAcceptRejectMessage(peer, msg, len);
     else peer_log(peer, "dropping %s, length %zu, not implemented", type, len);
 
     return r;
 }
 
-static int BRPeerOpenSocket(BRPeer *peer, double timeout)
+static int _BRPeerOpenSocket(BRPeer *peer, double timeout)
 {
     struct sockaddr addr;
     struct timeval tv;
@@ -777,7 +777,7 @@ static int BRPeerOpenSocket(BRPeer *peer, double timeout)
     if (r) {
         memset(&addr, 0, sizeof(addr));
         
-        if (BRPeerIsIPv4(peer)) {
+        if (_BRPeerIsIPv4(peer)) {
             ((struct sockaddr_in *)&addr)->sin_family = AF_INET;
             ((struct sockaddr_in *)&addr)->sin_addr = *(struct in_addr *)&peer->address.u32[3];
             ((struct sockaddr_in *)&addr)->sin_port = htons(peer->port);
@@ -816,13 +816,13 @@ static int BRPeerOpenSocket(BRPeer *peer, double timeout)
     return r;
 }
 
-static void *peerThreadRoutine(void *arg)
+static void *_peerThreadRoutine(void *arg)
 {
     BRPeer *peer = arg;
     BRPeerContext *ctx = arg;
     int error = 0;
 
-    if (BRPeerOpenSocket(peer, CONNECT_TIMEOUT)) {
+    if (_BRPeerOpenSocket(peer, CONNECT_TIMEOUT)) {
         struct timeval tv;
         uint8_t header[HEADER_LENGTH];
         size_t len = 0;
@@ -889,7 +889,7 @@ static void *peerThreadRoutine(void *arg)
                                      uint256_hex_encode(hash));
                             error = EPROTO;
                         }
-                        else if (! BRPeerAcceptMessage(peer, payload, msgLen, type)) error = EPROTO;
+                        else if (! _BRPeerAcceptMessage(peer, payload, msgLen, type)) error = EPROTO;
                     }
                 }
             }
@@ -1007,7 +1007,7 @@ void BRPeerConnect(BRPeer *peer)
             ctx->waitingForNetwork = 0;
             gettimeofday(&tv, NULL);
             ctx->disconnectTime = tv.tv_sec + (double)tv.tv_usec/1000000 + CONNECT_TIMEOUT;
-            ctx->socket = socket((BRPeerIsIPv4(peer) ? PF_INET : PF_INET6), SOCK_STREAM, 0);
+            ctx->socket = socket((_BRPeerIsIPv4(peer) ? PF_INET : PF_INET6), SOCK_STREAM, 0);
             
             if (ctx->socket >= 0) {
                 tv.tv_sec = 1; // one second timeout for send/receive, so thread doesn't block for too long
@@ -1027,7 +1027,7 @@ void BRPeerConnect(BRPeer *peer)
             else if (pthread_attr_setstacksize(&attr, 512*1024) != 0 || // set stack size (there's no standard)
                      // set thread detached so it'll free resources immediately on exit without waiting for join
                      pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0 ||
-                     pthread_create(&ctx->thread, &attr, peerThreadRoutine, peer) != 0) {
+                     pthread_create(&ctx->thread, &attr, _peerThreadRoutine, peer) != 0) {
                 peer_log(peer, "error creating thread");
                 ctx->status = BRPeerStatusDisconnected;
                 pthread_attr_destroy(&attr);
@@ -1056,7 +1056,7 @@ const char *BRPeerHost(BRPeer *peer)
     BRPeerContext *ctx = (BRPeerContext *)peer;
 
     if (ctx->host[0] == '\0') {
-        if (BRPeerIsIPv4(peer)) {
+        if (_BRPeerIsIPv4(peer)) {
             inet_ntop(AF_INET, &peer->address.u32[3], ctx->host, sizeof(ctx->host));
         }
         else inet_ntop(AF_INET6, &peer->address, ctx->host, sizeof(ctx->host));
@@ -1139,7 +1139,7 @@ void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char 
     }
 }
 
-static void BRPeerSendVersionMessage(BRPeer *peer)
+void BRPeerSendVersionMessage(BRPeer *peer)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     size_t off = 0, userAgentLen = strlen(USER_AGENT);
@@ -1175,13 +1175,13 @@ static void BRPeerSendVersionMessage(BRPeer *peer)
     BRPeerSendMessage(peer, msg, sizeof(msg), MSG_VERSION);
 }
 
-static void BRPeerSendVerackMessage(BRPeer *peer)
+void BRPeerSendVerackMessage(BRPeer *peer)
 {
     BRPeerSendMessage(peer, NULL, 0, MSG_VERACK);
     ((BRPeerContext *)peer)->sentVerack = 1;
 }
 
-static void BRPeerSendAddr(BRPeer *peer)
+void BRPeerSendAddr(BRPeer *peer)
 {
     uint8_t msg[BRVarIntSize(0)];
     size_t len = BRVarIntSet(msg, sizeof(msg), 0);

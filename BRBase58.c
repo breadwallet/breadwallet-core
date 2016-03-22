@@ -25,8 +25,8 @@
 
 #include "BRBase58.h"
 #include "BRHash.h"
-#include <string.h>
 #include <stdint.h>
+#include <string.h>
 
 // base58 and base58check encoding: https://en.bitcoin.it/wiki/Base58Check_encoding
 

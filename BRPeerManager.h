@@ -37,7 +37,7 @@ extern "C" {
 
 #define PEER_MAX_CONNECTIONS 3
 
-typedef struct _BRPeerManager BRPeerManager;
+typedef struct BRPeerManagerStruct BRPeerManager;
 
 // returns a newly allocated BRPeerManager struct that must be freed by calling BRPeerManagerFree()
 BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMerkleBlock *blocks[], size_t blocksCount,
