@@ -39,6 +39,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 #include <errno.h>
 #include <time.h>
 #include <unistd.h>
@@ -998,7 +999,7 @@ static const void *walletSeed(void *info, const char *authprompt, uint64_t amoun
 
 static void walletBalanceChanged(void *info, uint64_t balance)
 {
-    printf("balance changed %llu\n", balance);
+    printf("balance changed %"PRIu64"\n", balance);
 }
 
 static void walletTxAdded(void *info, BRTransaction *tx)
@@ -1651,6 +1652,11 @@ void syncFailed(void *info, int code)
     printf("sync failed with code: %d\n", code);
 }
 
+void txStatusUpdate(void *info)
+{
+    printf("transaction status updated\n");
+}
+
 int BRRunTests()
 {
     int fail = 0;
@@ -1703,7 +1709,8 @@ int BRRunTests()
 //    BRPeerManager *manager = BRPeerManagerNew(wallet, (uint32_t)time(NULL), NULL, 0, NULL, 0);
 //    int r = 0;
 //
-//    BRPeerManagerSetCallbacks(manager, NULL, syncStarted, syncSucceeded, syncFailed, NULL, NULL, NULL, NULL, NULL);
+//    BRPeerManagerSetCallbacks(manager, NULL, syncStarted, syncSucceeded, syncFailed, txStatusUpdate, NULL, NULL, NULL,
+//                              NULL);
 //    BRPeerManagerConnect(manager);
 //    while (r == 0 && BRPeerManagerPeerCount(manager) > 0) r = sleep(1);
 //    if (r != 0) printf("sleep got a signal\n");

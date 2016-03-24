@@ -85,10 +85,10 @@ void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scrip
 typedef struct {
     UInt256 txHash;
     uint32_t version;
-    size_t inCount;
     BRTxInput *inputs;
-    size_t outCount;
+    size_t inCount;
     BRTxOutput *outputs;
+    size_t outCount;
     uint32_t lockTime;
     uint32_t blockHeight;
     uint32_t timestamp; // time interval since unix epoch

@@ -31,6 +31,7 @@
 #include "BRInt.h"
 #include <stdlib.h>
 #include <float.h>
+#include <inttypes.h>
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -140,7 +141,7 @@ static void _BRPeerDidConnect(BRPeer *peer)
         peer_log(peer, "handshake completed");
         ctx->disconnectTime = DBL_MAX;
         ctx->status = BRPeerStatusConnected;
-        peer_log(peer, "connected with lastblock: %u", ctx->lastblock);
+        peer_log(peer, "connected with lastblock: %"PRIu32, ctx->lastblock);
         if (ctx->connected) ctx->connected(ctx->info);
     }
 }
@@ -163,7 +164,7 @@ static int _BRPeerAcceptVersionMessage(BRPeer *peer, const uint8_t *msg, size_t 
         off += sizeof(uint32_t);
     
         if (ctx->version < MIN_PROTO_VERSION) {
-            peer_log(peer, "protocol version %u not supported", ctx->version);
+            peer_log(peer, "protocol version %"PRIu32" not supported", ctx->version);
             r = 0;
         }
         else {
@@ -200,7 +201,7 @@ static int _BRPeerAcceptVersionMessage(BRPeer *peer, const uint8_t *msg, size_t 
                 off += strLen;
                 ctx->lastblock = le32(*(uint32_t *)(msg + off));
                 off += sizeof(uint32_t);
-                peer_log(peer, "got version %u, useragent:\"%s\"", ctx->version, ctx->useragent);
+                peer_log(peer, "got version %"PRIu32", useragent:\"%s\"", ctx->version, ctx->useragent);
                 BRPeerSendVerackMessage(peer);
             }
         }
@@ -309,7 +310,7 @@ static int _BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t len)
         }
 
         if (txCount > 0 && ! ctx->sentFilter && ! ctx->sentMempool && ! ctx->sentGetblocks) {
-            peer_log(peer, "got inv message before laoding a filter");
+            peer_log(peer, "got inv message before loading a filter");
             r = 0;
         }
         else if (txCount > 10000) { // sanity check
@@ -322,7 +323,7 @@ static int _BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t len)
             r = 0;
         }
 
-        if (blockCount == 1 && ! UInt256Eq(ctx->lastBlockHash, *blocks[0])) blockCount = 0;
+        if (blockCount == 1 && UInt256Eq(ctx->lastBlockHash, *blocks[0])) blockCount = 0;
         if (blockCount == 1) ctx->lastBlockHash = *blocks[0];
 
         UInt256 blockHashes[blockCount], txHashes[txCount], *knownTxHashes = ctx->knownTxHashes;
@@ -493,7 +494,7 @@ static int _BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t 
         r = 0;
     }
     else if (count > MAX_GETDATA_HASHES) {
-        peer_log(peer, "dropping getdata message, %zu is too many items, max is %u", count, MAX_GETDATA_HASHES);
+        peer_log(peer, "dropping getdata message, %zu is too many items, max is %d", count, MAX_GETDATA_HASHES);
     }
     else {
         const uint8_t *notfound[count];
@@ -604,7 +605,8 @@ static int _BRPeerAcceptPongMessage(BRPeer *peer, const uint8_t *msg, size_t len
         r = 0;
     }
     else if (le64(*(uint64_t *)msg) != ctx->nonce) {
-        peer_log(peer, "pong message contained wrong nonce: %llu, expected: %llu", le64(*(uint64_t *)msg), ctx->nonce);
+        peer_log(peer, "pong message contained wrong nonce: %"PRIu64", expected: %"PRIu64, le64(*(uint64_t *)msg),
+                 ctx->nonce);
         r = 0;
 
     }
@@ -762,17 +764,17 @@ static int _BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t len, co
     return r;
 }
 
-static int _BRPeerOpenSocket(BRPeer *peer, double timeout)
+static int _BRPeerOpenSocket(BRPeer *peer, double timeout, int *error)
 {
     struct sockaddr addr;
     struct timeval tv;
     fd_set fds;
     socklen_t addrLen, optLen;
     int socket = ((BRPeerContext *)peer)->socket;
-    int count, error = 0, r = 1, arg = fcntl(socket, F_GETFL, NULL);
+    int count, err = 0, r = 1, arg = fcntl(socket, F_GETFL, NULL);
 
     if (arg < 0 || fcntl(socket, F_SETFL, arg | O_NONBLOCK) < 0) r = 0; // temporarily set the socket non-blocking
-    if (! r) error = errno;
+    if (! r) err = errno;
 
     if (r) {
         memset(&addr, 0, sizeof(addr));
@@ -790,20 +792,20 @@ static int _BRPeerOpenSocket(BRPeer *peer, double timeout)
             addrLen = sizeof(struct sockaddr_in6);
         }
 
-        if (connect(socket, &addr, addrLen) < 0) error = errno;
+        if (connect(socket, &addr, addrLen) < 0) err = errno;
 
-        if (error == EINPROGRESS) {
-            error = 0;
-            optLen = sizeof(error);
+        if (err == EINPROGRESS) {
+            err = 0;
+            optLen = sizeof(err);
             tv.tv_sec = timeout;
             tv.tv_usec = (long)(timeout*1000000) % 1000000;
             FD_ZERO(&fds);
             FD_SET(socket, &fds);
             count = select(socket + 1, NULL, &fds, NULL, &tv);
 
-            if (count <= 0 || getsockopt(socket, SOL_SOCKET, SO_ERROR, &error, &optLen) < 0 || error) {
-                if (count == 0) error = ETIMEDOUT;
-                if (count < 0 || ! error) error = errno;
+            if (count <= 0 || getsockopt(socket, SOL_SOCKET, SO_ERROR, &err, &optLen) < 0 || err) {
+                if (count == 0) err = ETIMEDOUT;
+                if (count < 0 || ! err) err = errno;
                 r = 0;
             }
         }
@@ -812,7 +814,8 @@ static int _BRPeerOpenSocket(BRPeer *peer, double timeout)
         fcntl(socket, F_SETFL, arg); // restore socket non-blocking status
     }
 
-    if (! r && error) peer_log(peer, "connect error: %s", strerror(error));
+    if (! r && err) peer_log(peer, "connect error: %s", strerror(err));
+    if (error && err) *error = err;
     return r;
 }
 
@@ -822,7 +825,7 @@ static void *_peerThreadRoutine(void *arg)
     BRPeerContext *ctx = arg;
     int error = 0;
 
-    if (_BRPeerOpenSocket(peer, CONNECT_TIMEOUT)) {
+    if (_BRPeerOpenSocket(peer, CONNECT_TIMEOUT, &error)) {
         struct timeval tv;
         uint8_t header[HEADER_LENGTH];
         size_t len = 0;
@@ -860,7 +863,7 @@ static void *_peerThreadRoutine(void *arg)
                 uint32_t checksum = *(uint32_t *)(header + 20);
                 
                 if (msgLen > MAX_MSG_LENGTH) { // check message length
-                    peer_log(peer, "error reading %s, message length %u is too long", type, msgLen);
+                    peer_log(peer, "error reading %s, message length %"PRIu32" is too long", type, msgLen);
                     error = EPROTO;
                 }
                 else {
@@ -884,8 +887,8 @@ static void *_peerThreadRoutine(void *arg)
                         BRSHA256_2(&hash, payload, msgLen);
                         
                         if (hash.u32[0] != checksum) { // verify checksum
-                            peer_log(peer, "error reading %s, invalid checksum %x, expected %x, payload length:%u, "
-                                     "SHA256_2:%s", type, be32(hash.u32[0]), be32(checksum), msgLen,
+                            peer_log(peer, "error reading %s, invalid checksum %x, expected %x, payload length:%"PRIu32
+                                     ", SHA256_2:%s", type, be32(hash.u32[0]), be32(checksum), msgLen,
                                      uint256_hex_encode(hash));
                             error = EPROTO;
                         }
@@ -909,7 +912,8 @@ static void *_peerThreadRoutine(void *arg)
         array_rm(ctx->pongInfo, 0);
         if (pongCallback) pongCallback(pongInfo, 0);
     }
-    
+
+    // BUG: XXXX don't call disconnected if we never successfully connected
     if (ctx->disconnected) ctx->disconnected(ctx->info, error);
     return NULL; // detached threads don't need to return a value
 }
