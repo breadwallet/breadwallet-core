@@ -430,7 +430,7 @@ static void _updateFilterPingDone(void *info, int success)
                 peerInfo->peer = manager->connectedPeers[i - 1];
                 peerInfo->manager = manager;
                 _BRPeerManagerLoadBloomFilter(manager, peerInfo->peer);
-                BRPeerSendPing(peerInfo->peer, info, _updateFilterLoadDone); // wait for pong so filter is loaded
+                BRPeerSendPing(peerInfo->peer, peerInfo, _updateFilterLoadDone); // wait for pong so filter is loaded
             }
         }
 
@@ -1551,6 +1551,8 @@ void BRPeerManagerConnect(BRPeerManager *manager)
             }
         }
 
+        array_free(peers);
+
         if (array_count(manager->connectedPeers) == 0) {
             _BRPeerManagerSyncStopped(manager);
             pthread_mutex_unlock(&manager->lock);
@@ -1586,7 +1588,7 @@ void BRPeerManagerRescan(BRPeerManager *manager)
             BRPeerDisconnect(manager->downloadPeer);
         }
 
-        manager->syncStartHeight = manager->lastBlock->height;
+        manager->syncStartHeight = 0;
         pthread_mutex_unlock(&manager->lock);
         BRPeerManagerConnect(manager);
     }
@@ -1740,7 +1742,7 @@ void BRPeerManagerFree(BRPeerManager *manager)
     BRSetFree(manager->checkpoints);
     for (size_t i = array_count(manager->txRelays); i > 0; i--) free(manager->txRelays[i - 1].peers);
     array_free(manager->txRelays);
-    for (size_t i = array_count(manager->txRequests); i > 0; i--) free(manager->txRelays[i - 1].peers);
+    for (size_t i = array_count(manager->txRequests); i > 0; i--) free(manager->txRequests[i - 1].peers);
     array_free(manager->txRequests);
     array_free(manager->publishedTx);
     array_free(manager->publishedTxHash);

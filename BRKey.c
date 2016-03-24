@@ -114,7 +114,7 @@ size_t BRSecp256k1PointAdd(void *r, const void *a, const void *b, int compressed
 size_t BRSecp256k1PointMul(void *r, const void *p, UInt256 i, int compressed)
 {
     secp256k1_scalar is;
-    secp256k1_gej rj;
+    secp256k1_gej rj = SECP256K1_GEJ_CONST_INFINITY;
     secp256k1_ge rp, pp;
     size_t size = 0;
     

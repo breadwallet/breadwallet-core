@@ -138,7 +138,7 @@ size_t BRScriptElements(const uint8_t *elems[], size_t elemsCount, const uint8_t
         i++;
     }
         
-    return (off == len) ? i : 0;
+    return ((! elems || i <= elemsCount) && off == len) ? i : 0;
 }
 
 const uint8_t *BRScriptData(const uint8_t *elem, size_t *len)
@@ -222,35 +222,35 @@ size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *scri
     
     uint8_t data[21];
     const uint8_t *elem[BRScriptElements(NULL, 0, script, scriptLen)], *d = NULL;
-    size_t len = BRScriptElements(elem, sizeof(elem), script, scriptLen);
+    size_t count = BRScriptElements(elem, sizeof(elem), script, scriptLen), l = 0;
     
     data[0] = BITCOIN_PUBKEY_ADDRESS;
 #if BITCOIN_TESTNET
     data[0] = BITCOIN_PUBKEY_ADDRESS_TEST;
 #endif
     
-    if (len == 5 && *elem[0] == OP_DUP && *elem[1] == OP_HASH160 && *elem[2] == 20 && *elem[3] == OP_EQUALVERIFY &&
+    if (count == 5 && *elem[0] == OP_DUP && *elem[1] == OP_HASH160 && *elem[2] == 20 && *elem[3] == OP_EQUALVERIFY &&
         *elem[4] == OP_CHECKSIG) {
         // pay-to-pubkey-hash scriptPubKey
-        d = BRScriptData(elem[2], &len);
-        if (len != 20) d = NULL;
+        d = BRScriptData(elem[2], &l);
+        if (l != 20) d = NULL;
         if (d) memcpy(&data[1], d, 20);
     }
-    else if (len == 3 && *elem[0] == OP_HASH160 && *elem[1] == 20 && *elem[2] == OP_EQUAL) {
+    else if (count == 3 && *elem[0] == OP_HASH160 && *elem[1] == 20 && *elem[2] == OP_EQUAL) {
         // pay-to-script-hash scriptPubKey
         data[0] = BITCOIN_SCRIPT_ADDRESS;
 #if BITCOIN_TESTNET
         data[0] = BITCOIN_SCRIPT_ADDRESS_TEST;
 #endif
-        d = BRScriptData(elem[1], &len);
-        if (len != 20) d = NULL;
+        d = BRScriptData(elem[1], &l);
+        if (l != 20) d = NULL;
         if (d) memcpy(&data[1], d, 20);
     }
-    else if (len == 2 && (*elem[0] == 65 || *elem[0] == 33) && *elem[1] == OP_CHECKSIG) {
+    else if (count == 2 && (*elem[0] == 65 || *elem[0] == 33) && *elem[1] == OP_CHECKSIG) {
         // pay-to-pubkey scriptPubKey
-        d = BRScriptData(elem[0], &len);
-        if (len != 65 && len != 33) d = NULL;
-        if (d) BRHash160(&data[1], d, len);
+        d = BRScriptData(elem[0], &l);
+        if (l != 65 && l != 33) d = NULL;
+        if (d) BRHash160(&data[1], d, l);
     }
     
     return (d) ? BRBase58CheckEncode(addr, addrLen, data, sizeof(data)) : 0;
@@ -262,31 +262,29 @@ size_t BRAddressFromScriptSig(char *addr, size_t addrLen, const uint8_t *script,
     
     uint8_t data[21];
     const uint8_t *elem[BRScriptElements(NULL, 0, script, scriptLen)], *d = NULL;
-    size_t l = BRScriptElements(elem, sizeof(elem), script, scriptLen);
+    size_t count = BRScriptElements(elem, sizeof(elem), script, scriptLen), l = 0;
 
     data[0] = BITCOIN_PUBKEY_ADDRESS;
 #if BITCOIN_TESTNET
     data[0] = BITCOIN_PUBKEY_ADDRESS_TEST;
 #endif
     
-    if (l >= 2 && *elem[l - 2] <= OP_PUSHDATA4 && *elem[l - 2] > 0 && (*elem[l - 1] == 65 || *elem[l - 1] == 33)) {
-        // pay-to-pubkey-hash scriptSig
-        d = BRScriptData(elem[l - 1], &l);
+    if (count >= 2 && *elem[count - 2] <= OP_PUSHDATA4 && *elem[count - 2] > 0 &&
+        (*elem[count - 1] == 65 || *elem[count - 1] == 33)) { // pay-to-pubkey-hash scriptSig
+        d = BRScriptData(elem[count - 1], &l);
         if (l != 65 && l != 33) d = NULL;
         if (d) BRHash160(&data[1], d, l);
     }
-    else if (l >= 2 && *elem[l - 2] <= OP_PUSHDATA4 && *elem[l - 2] > 0 && *elem[l - 1] <= OP_PUSHDATA4 &&
-             *elem[l - 1] > 0) {
-        // pay-to-script-hash scriptSig
+    else if (count >= 2 && *elem[count - 2] <= OP_PUSHDATA4 && *elem[count - 2] > 0 &&
+             *elem[count - 1] <= OP_PUSHDATA4 && *elem[count - 1] > 0) { // pay-to-script-hash scriptSig
         data[0] = BITCOIN_SCRIPT_ADDRESS;
 #if BITCOIN_TESTNET
         data[0] = BITCOIN_SCRIPT_ADDRESS_TEST;
 #endif
-        d = BRScriptData(elem[l - 1], &l);
+        d = BRScriptData(elem[count - 1], &l);
         if (d) BRHash160(&data[1], d, l);
     }
-    else if (l >= 1 && *elem[l - 1] <= OP_PUSHDATA4 && *elem[l - 1] > 0) {
-        // pay-to-pubkey scriptSig
+    else if (count >= 1 && *elem[count - 1] <= OP_PUSHDATA4 && *elem[count - 1] > 0) { // pay-to-pubkey scriptSig
         // TODO: implement Peter Wullie's pubKey recovery from signature
     }
     
