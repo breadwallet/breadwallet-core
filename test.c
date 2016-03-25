@@ -72,6 +72,13 @@ int BRIntsTests()
     if (be64(x.u64) != 0x0102030405060708) r = 0, fprintf(stderr, "***FAILED*** %s: be64() test\n", __func__);
     if (le64(x.u64) != 0x0807060504030201) r = 0, fprintf(stderr, "***FAILED*** %s: le64() test\n", __func__);
     
+    printf("\n");
+#if WORDS_BIGENDIAN
+    printf("big endian\n");
+#else
+    printf("little endian\n");
+#endif
+    printf("                          ");
     return r;
 }
 
