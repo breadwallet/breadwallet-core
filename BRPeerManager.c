@@ -31,6 +31,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <limits.h>
+#include <assert.h>
 #include <time.h>
 #include <pthread.h>
 #include <errno.h>
@@ -1083,8 +1084,6 @@ static int _BRPeerManagerVerifyBlock(BRPeerManager *manager, BRMerkleBlock *bloc
 {
     uint32_t transitionTime = 0;
     int r = 1;
-
-    block->height = prev->height + 1;
     
     // check if we hit a difficulty transition, and find previous transition time
     if ((block->height % BLOCK_DIFFICULTY_INTERVAL) == 0) {
@@ -1143,7 +1142,11 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
     
     pthread_mutex_lock(&manager->lock);
     prev = BRSetGet(manager->blocks, &block->prevBlock);
-    if (prev) txTime = block->timestamp/2 + prev->timestamp/2;
+
+    if (prev) {
+        txTime = block->timestamp/2 + prev->timestamp/2;
+        block->height = prev->height + 1;
+    }
     
     // track the observed bloom filter false positive rate using a low pass filter to smooth out variance
     if (peer == manager->downloadPeer && block->totalTx > 0) {
@@ -1214,6 +1217,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
         
         BRSetAdd(manager->blocks, block);
         manager->lastBlock = block;
+        assert(manager->lastBlock->height != BLOCK_UNKNOWN_HEIGHT);
         _BRPeerManagerUpdateTx(manager, txHashes, txCount, block->height, txTime);
         if (manager->downloadPeer) BRPeerSetCurrentBlockHeight(manager->downloadPeer, block->height);
             
@@ -1237,6 +1241,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
         if (BRMerkleBlockEq(b, block)) { // if it's not on a fork, set block heights for its transactions
             _BRPeerManagerUpdateTx(manager, txHashes, txCount, block->height, txTime);
             if (block->height == manager->lastBlock->height) manager->lastBlock = block;
+            assert(manager->lastBlock->height != BLOCK_UNKNOWN_HEIGHT);
         }
     }
     else if (manager->lastBlock->height < BRPeerLastBlock(peer) &&
@@ -1282,6 +1287,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
             }
         
             manager->lastBlock = block;
+            assert(manager->lastBlock->height != BLOCK_UNKNOWN_HEIGHT);
         }
     }
    
@@ -1437,11 +1443,13 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
         BRSetAdd(manager->checkpoints, block);
         BRSetAdd(manager->blocks, block);
         if (i == 0 || block->timestamp + 7*24*60*60 < manager->earliestKeyTime) manager->lastBlock = block;
+        assert(manager->lastBlock->height != BLOCK_UNKNOWN_HEIGHT);
     }
 
     for (size_t i = 0; i < blocksCount; i++) {
         BRSetAdd(manager->blocks, blocks[i]);
         if (! manager->lastBlock || blocks[i]->height > manager->lastBlock->height) manager->lastBlock = blocks[i];
+        assert(manager->lastBlock->height != BLOCK_UNKNOWN_HEIGHT);
     }
     
     array_new(manager->txRelays, 10);
@@ -1576,6 +1584,7 @@ void BRPeerManagerRescan(BRPeerManager *manager)
                 UInt256 hash = UInt256Reverse(uint256_hex_decode(checkpoint_array[i - 1].hash));
 
                 manager->lastBlock = BRSetGet(manager->blocks, &hash);
+                assert(manager->lastBlock->height != BLOCK_UNKNOWN_HEIGHT);
                 break;
             }
         }
