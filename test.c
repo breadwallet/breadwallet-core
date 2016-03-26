@@ -1644,6 +1644,20 @@ int BRPaymentProtocolTests()
     return r;
 }
 
+void BRPeerAcceptMessageTest(BRPeer *peer, const uint8_t *msg, size_t len, const char *type);
+
+int BRPeerTests()
+{
+    // TODO: XXXX test for stack overflow
+    
+    int r = 1;
+    BRPeer *p = BRPeerNew();
+    const char msg[] = "my message";
+    
+    BRPeerAcceptMessageTest(p, (const uint8_t *)msg, sizeof(msg) - 1, "inv");
+    return r;
+}
+
 void syncStarted(void *info)
 {
     printf("sync started\n");

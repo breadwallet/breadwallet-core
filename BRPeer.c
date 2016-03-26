@@ -827,7 +827,7 @@ static void *_peerThreadRoutine(void *arg)
 
     if (_BRPeerOpenSocket(peer, CONNECT_TIMEOUT, &error)) {
         struct timeval tv;
-        uint8_t header[HEADER_LENGTH];
+        uint8_t header[HEADER_LENGTH], *payload = malloc(MAX_MSG_LENGTH);
         size_t len = 0;
         ssize_t n = 0;
 
@@ -861,19 +861,17 @@ static void *_peerThreadRoutine(void *arg)
                 const char *type = (const char *)(header + 4);
                 uint32_t msgLen = le32(*(uint32_t *)(header + 16));
                 uint32_t checksum = *(uint32_t *)(header + 20);
+                UInt256 hash;
                 
                 if (msgLen > MAX_MSG_LENGTH) { // check message length
                     peer_log(peer, "error reading %s, message length %"PRIu32" is too long", type, msgLen);
                     error = EPROTO;
                 }
                 else {
-                    uint8_t payload[msgLen];
-                    UInt256 hash;
-                    
                     len = 0;
                     
                     while (! error && len < msgLen) {
-                        n = read(ctx->socket, payload + len, sizeof(payload) - len);
+                        n = read(ctx->socket, payload + len, msgLen - len);
                         if (n >= 0) len += n;
                         if (n < 0 && errno != EWOULDBLOCK) error = errno;
                         gettimeofday(&tv, NULL);
@@ -897,6 +895,8 @@ static void *_peerThreadRoutine(void *arg)
                 }
             }
         }
+        
+        free(payload);
     }
     
     ctx->status = BRPeerStatusDisconnected;
@@ -1371,4 +1371,9 @@ void BRPeerFree(BRPeer *peer)
     if (ctx->pongInfo) array_free(ctx->pongInfo);
     if (ctx->pongCallback) array_free(ctx->pongCallback);
     free(ctx);
+}
+
+void BRPeerAcceptMessageTest(BRPeer *peer, const uint8_t *msg, size_t len, const char *type)
+{
+    _BRPeerAcceptMessage(peer, msg, len, type);
 }
