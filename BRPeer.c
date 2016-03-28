@@ -49,7 +49,8 @@
 #define MAGIC_NUMBER 0xd9b4bef9
 #endif
 #define HEADER_LENGTH      24
-#define MAX_MSG_LENGTH     0x02000000
+//#define MAX_MSG_LENGTH     0x02000000
+#define MAX_MSG_LENGTH     0x0200000 // we don't need more than 2Mb for any SPV protocol message
 #define MAX_GETDATA_HASHES 50000
 #define ENABLED_SERVICES   0     // we don't provide full blocks to remote nodes
 #define PROTOCOL_VERSION   70002
@@ -555,8 +556,11 @@ static int _BRPeerAcceptNotfoundMessage(BRPeer *peer, const uint8_t *msg, size_t
                  BRVarIntSize(count) + 36*count, count);
         r = 0;
     }
+    else if (count > MAX_GETDATA_HASHES) {
+        peer_log(peer, "dropping notfound message, %zu is too many items, max is %d", count, MAX_GETDATA_HASHES);
+    }
     else {
-        UInt256 txHashes[count], blockHashes[count];
+        UInt256 txHashes[count], blockHashes[count]; // BUG: XXXX stack overflow vulnerability
         size_t txCount = 0, blockCount = 0;
         
         peer_log(peer, "got notfound with %zu items", count);
@@ -696,7 +700,7 @@ static int _BRPeerAcceptRejectMessage(BRPeer *peer, const uint8_t *msg, size_t l
         r = 0;
     }
     else {
-        char type[strLen + 1];
+        char type[strLen + 1]; // BUG: XXXX stack overflow vulnerability
         uint8_t code;
         size_t l = 0, hashLen = 0;
 
@@ -713,7 +717,7 @@ static int _BRPeerAcceptRejectMessage(BRPeer *peer, const uint8_t *msg, size_t l
             r = 0;
         }
         else {
-            char reason[strLen + 1];
+            char reason[strLen + 1]; // BUG: XXXX stack overflow vulnerability
             UInt256 txHash = UINT256_ZERO;
             
             strncpy(reason, (const char *)(msg + off), strLen);

@@ -31,7 +31,6 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <limits.h>
-#include <assert.h>
 #include <time.h>
 #include <pthread.h>
 #include <errno.h>
@@ -1444,9 +1443,14 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
     }
 
     for (size_t i = 0; i < blocksCount; i++) {
-        BRSetAdd(manager->blocks, blocks[i]);
-        if (! manager->lastBlock || blocks[i]->height > manager->lastBlock->height) manager->lastBlock = blocks[i];
-        assert(manager->lastBlock->height != BLOCK_UNKNOWN_HEIGHT);
+        if (manager->lastBlock->height != BLOCK_UNKNOWN_HEIGHT) {
+            BRSetAdd(manager->blocks, blocks[i]);
+            if (! manager->lastBlock || blocks[i]->height > manager->lastBlock->height) manager->lastBlock = blocks[i];
+        }
+        else { // block has no height set - block height must be saved/restored along with serialized block data
+            BRPeerManagerFree(manager);
+            return NULL;
+        }
     }
     
     array_new(manager->txRelays, 10);

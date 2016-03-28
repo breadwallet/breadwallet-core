@@ -31,6 +31,7 @@
 #include <limits.h>
 #include <float.h>
 #include <pthread.h>
+//#include <assert.h>
 
 #define DEFAULT_FEE_PER_KB ((TX_FEE_PER_KB*1000 + 190)/191) // default fee-per-kb to match standard fee on 191 byte tx
 
@@ -583,12 +584,13 @@ int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *aut
     const void *seed = wallet->seed(wallet->seedInfo, authPrompt, (amount > 0) ? amount : 0, &seedLen);
 
     if (seed) {
-#if DEBUG
-#pragma message "debug build, not recommended for release"
-        BRMasterPubKey mpk = BRBIP32MasterPubKey(seed, seedLen);
-        
-        if (memcmp(&mpk, &wallet->masterPubKey, sizeof(mpk)) != 0) return 0; // verify seed matches master pubkey
-#endif
+//#if DEBUG
+//#pragma message "debug build, not recommended for release"
+//        BRMasterPubKey mpk;
+//        
+//        // verify seed matches master pubkey
+//        assert((mpk = BRBIP32MasterPubKey(seed, seedLen), (memcmp(&mpk, &wallet->masterPubKey, sizeof(mpk)) != 0)));
+//#endif
         BRBIP32PrivKeyList(keys, internalCount, seed, seedLen, 1, internalIdx);
         BRBIP32PrivKeyList(&keys[internalCount], externalCount, seed, seedLen, 0, externalIdx);
         seed = NULL;
