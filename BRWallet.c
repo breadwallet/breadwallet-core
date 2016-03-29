@@ -224,7 +224,13 @@ static void _BRWalletUpdateBalance(BRWallet *wallet)
     wallet->balance = balance;
 }
 
-// allocate and populate a wallet
+// allocates and populates a wallet
+// info is void pointer that will be passed along with calls to seed
+// void *seed(void *, const char *, uint64_t, size_t *) is called each time a transaction is signed
+//   - authPrompt must be displayed to the user
+//   - amount is the net funds sent from the wallet by the transaction being signed
+//   - returns a pointer to the wallet seed and sets seedLen if the user is authenticated and authorizes the transaction
+//   - returns NULL if the user can not be authenticated or declines the transaction
 BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk, void *info,
                       const void *(*seed)(void *info, const char *authPrompt, uint64_t amount, size_t *seedLen))
 {
