@@ -998,12 +998,6 @@ int BRTransactionTests()
     return r;
 }
 
-static const void *walletSeed(void *info, const char *authprompt, uint64_t amount, size_t *seedLen)
-{
-    *seedLen = 0;
-    return "";
-}
-
 static void walletBalanceChanged(void *info, uint64_t balance)
 {
     printf("balance changed %"PRIu64"\n", balance);
@@ -1035,10 +1029,8 @@ static void walletTxDeleted(void *info, UInt256 txHash)
 int BRWalletTests()
 {
     int r = 1;
-    size_t seedLen = 0;
-    const void *seed = walletSeed(NULL, NULL, 0, &seedLen);
-    BRMasterPubKey mpk = BRBIP32MasterPubKey(seed, seedLen);
-    BRWallet *w = BRWalletNew(NULL, 0, mpk, NULL, walletSeed);
+    BRMasterPubKey mpk = BRBIP32MasterPubKey("", 0);
+    BRWallet *w = BRWalletNew(NULL, 0, mpk);
     const UInt256 secret = uint256_hex_decode("0000000000000000000000000000000000000000000000000000000000000001");
     BRKey k;
     BRAddress addr, recvAddr = BRWalletReceiveAddress(w);
@@ -1089,7 +1081,7 @@ int BRWalletTests()
     BRTransactionAddOutput(tx, SATOSHIS, outScript, outScriptLen);
     BRTransactionSign(tx, &k, 1);
     tx->timestamp = 1;
-    w = BRWalletNew(&tx, 1, mpk, NULL, walletSeed);
+    w = BRWalletNew(&tx, 1, mpk);
     if (BRWalletBalance(w) != SATOSHIS)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletNew() test\n", __func__);
 
@@ -1101,7 +1093,7 @@ int BRWalletTests()
     tx = BRWalletCreateTransaction(w, SATOSHIS/2, addr.s);
     if (! tx) r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletCreateTransaction() test 4\n", __func__);
 
-    if (tx) BRWalletSignTransaction(w, tx, NULL);
+    if (tx) BRWalletSignTransaction(w, tx, "", 0);
     if (tx && ! BRTransactionIsSigned(tx))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletSignTransaction() test\n", __func__);
     
@@ -1721,7 +1713,7 @@ int BRRunTests()
     BRBIP39DeriveKey(seed.u8, "video tiger report bid suspect taxi mail argue naive layer metal surface", NULL);
     mpk = BRBIP32MasterPubKey(&seed, sizeof(seed));
 
-    BRWallet *wallet = BRWalletNew(NULL, 0, mpk, NULL, NULL);
+    BRWallet *wallet = BRWalletNew(NULL, 0, mpk);
     
     BRWalletSetCallbacks(wallet, NULL, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
     printf("wallet created with first receive address: %s\n", BRWalletReceiveAddress(wallet).s);

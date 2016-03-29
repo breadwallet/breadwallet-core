@@ -51,9 +51,6 @@ struct BRWalletStruct {
     BRSet *spentOutputs;
     BRSet *usedAddrs;
     BRSet *allAddrs;
-    void *seedInfo;
-    void *(*seed)(void *info, const char *authPrompt, uint64_t amount, size_t *seedLen);
-    void (*wipeSeed)(void *info, void *seed, size_t seedLen);
     void *callbackInfo;
     void (*balanceChanged)(void *info, uint64_t balance);
     void (*txAdded)(void *info, BRTransaction *tx);
@@ -226,16 +223,7 @@ static void _BRWalletUpdateBalance(BRWallet *wallet)
 }
 
 // allocates and populates a BRWallet struct which must be freed by calling BRWalletFree()
-// info is void pointer that will be passed along with calls to seed
-// void *seed(void *, const char *, uint64_t, size_t *) is called each time a transaction is signed
-//   - authPrompt must be displayed to the user
-//   - amount is the net funds sent from the wallet by the transaction being signed
-//   - must set seedLen and return a pointer to the wallet seed if user is authenticated and authorizes the transaction
-//   - must return NULL if the user can not be authenticated or declines the transaction
-// void wipeSeed(void *, void *, size_t) is called after a transaction is signed so the seed can be wiped from memory
-BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk, void *info,
-                      void *(*seed)(void *info, const char *authPrompt, uint64_t amount, size_t *seedLen),
-                      void (*wipeSeed)(void *info, void *seed, size_t seedLen))
+BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk)
 {
     BRWallet *wallet = NULL;
     BRTransaction *tx;
@@ -253,9 +241,6 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
     wallet->spentOutputs = BRSetNew(BRUTXOHash, BRUTXOEq, txCount + 100);
     wallet->usedAddrs = BRSetNew(BRAddressHash, BRAddressEq, txCount*4 + 100);
     wallet->allAddrs = BRSetNew(BRAddressHash, BRAddressEq, txCount + 200 + 100);
-    wallet->seedInfo = info;
-    wallet->seed = seed;
-    wallet->wipeSeed = wipeSeed;
     pthread_mutex_init(&wallet->lock, NULL);
 
     for (size_t i = 0; i < txCount; i++) {
@@ -294,10 +279,11 @@ void BRWalletSetCallbacks(BRWallet *wallet, void *info,
     wallet->txDeleted = txDeleted;
 }
 
-// Wallets are composed of chains of addresses. Each chain is traversed until a gap of a certain number of addresses is
-// found that haven't been used in any transactions. This function writes to addrs an array of <gapLimit> unused
-// addresses following the last used address in the chain. The internal chain is used for change addresses and the
-// external chain for receive addresses. addrs may be NULL to only generate addresses for BRWalletContainsAddress()
+// wallets are composed of chains of addresses
+// each chain is traversed until a gap of a number of addresses is found that haven't been used in any transactions
+// this function writes to addrs an array of <gapLimit> unused addresses following the last used address in the chain
+// the internal chain is used for change addresses and the external chain for receive addresses
+// addrs may be NULL to only generate addresses for BRWalletContainsAddress()
 void BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimit, int internal)
 {
     BRAddress *chain;
@@ -367,8 +353,8 @@ size_t BRWalletUTXOs(BRWallet *wallet, BRUTXO *utxos, size_t count)
     return count;
 }
 
-// writes transactions registered in the wallet, sorted by date, oldest first, to the given transactions array, returns
-// the number of transactions written, or total number available if transactions is NULL
+// writes transactions registered in the wallet, sorted by date, oldest first, to the given transactions array
+// returns the number of transactions written, or total number available if transactions is NULL
 size_t BRWalletTransactions(BRWallet *wallet, BRTransaction *transactions[], size_t count)
 {
     pthread_mutex_lock(&wallet->lock);
@@ -378,7 +364,7 @@ size_t BRWalletTransactions(BRWallet *wallet, BRTransaction *transactions[], siz
     return count;
 }
 
-// writes transactions registered in the wallet but not yet confirmed in a block, to the given transactions array,
+// writes transactions registered in the wallet but not yet confirmed in a block, to the given transactions array
 // returns the number of transactions written, or total number available if transactions is NULL
 size_t BRWalletUnconfirmedTx(BRWallet *wallet, BRTransaction *transactions[], size_t count)
 {
@@ -441,8 +427,8 @@ BRAddress BRWalletChangeAddress(BRWallet *wallet)
     return addr;
 }
 
-// writes all addresses previously genereated with BRWalletUnusedAddrs() to addrs, returns the number addresses written,
-// or total number available if addrs is NULL
+// writes all addresses previously genereated with BRWalletUnusedAddrs() to addrs
+// returns the number addresses written, or total number available if addrs is NULL
 size_t BRWalletAllAddrs(BRWallet *wallet, BRAddress addrs[], size_t count)
 {
     size_t internalCount = 0, externalCount = 0;
@@ -481,8 +467,8 @@ int BRWalletAddressIsUsed(BRWallet *wallet, const char *addr)
     return r;
 }
 
-// returns an unsigned transaction that sends the specified amount from the wallet to the given address, result must be
-// freed using BRTransactionFree()
+// returns an unsigned transaction that sends the specified amount from the wallet to the given address
+// result must be freed using BRTransactionFree()
 BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, const char *addr)
 {
     BRTxOutput o = BR_TX_OUTPUT_NONE;
@@ -492,8 +478,8 @@ BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, cons
     return BRWalletCreateTxForOutputs(wallet, &o, 1);
 }
 
-// returns an unsigned transaction that satisifes the given transaction outputs, result must be freed using
-// BRTransactionFree()
+// returns an unsigned transaction that satisifes the given transaction outputs
+// result must be freed using BRTransactionFree()
 BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput outputs[], size_t count)
 {
     BRTransaction *tx, *transaction = BRTransactionNew();
@@ -572,12 +558,11 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
     return transaction;
 }
 
-// sign any inputs in the given transaction that can be signed using private keys from the wallet, returns 1 if all
-// inputs were signed, -1 if the wallet seed callback returned NULL indicating the user declined to authorize signing,
-// or 0 if there was an error or not all inputs were able to be signed
-int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *authPrompt)
+// signs any inputs in tx that can be signed using private keys from the wallet
+// seed is the master private key (wallet seed) corresponding to the master public key given when the wallet was created
+// returns true if all inputs were signed, or false if there was an error or not all inputs were able to be signed
+int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const void *seed, size_t seedLen)
 {
-    int64_t amount = BRWalletAmountSentByTx(wallet, tx) - BRWalletAmountReceivedFromTx(wallet, tx);
     uint32_t internalIdx[tx->inCount], externalIdx[tx->inCount];
     size_t internalCount = 0, externalCount = 0;
     int r = 0;
@@ -597,8 +582,6 @@ int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *aut
     pthread_mutex_unlock(&wallet->lock);
 
     BRKey keys[internalCount + externalCount];
-    size_t seedLen = 0;
-    void *seed = wallet->seed(wallet->seedInfo, authPrompt, (amount > 0) ? amount : 0, &seedLen);
 
     if (seed) {
 //#if DEBUG
@@ -610,7 +593,7 @@ int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *aut
 //#endif
         BRBIP32PrivKeyList(keys, internalCount, seed, seedLen, 1, internalIdx);
         BRBIP32PrivKeyList(&keys[internalCount], externalCount, seed, seedLen, 0, externalIdx);
-        if (wallet->wipeSeed) wallet->wipeSeed(wallet->seedInfo, seed, seedLen);
+        // TODO: XXX wipe seed callback
         seed = NULL;
         r = BRTransactionSign(tx, keys, internalCount + externalCount);
         for (size_t i = 0; i < internalCount + externalCount; i++) BRKeyClean(&keys[i]);
@@ -820,8 +803,8 @@ int BRWalletTransactionIsPostdated(BRWallet *wallet, const BRTransaction *tx, ui
     return r;
 }
 
-// set the block heights and timestamps for the given transactions, use a height of TX_UNCONFIRMED and timestamp of 0 to
-// indicate a transaction and it's dependents should remain marked as unverified (not 0-conf safe)
+// set the block heights and timestamps for the given transactions
+// use height TX_UNCONFIRMED and timestamp 0 to indicate a tx should remain marked as unverified (not 0-conf safe)
 void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHashes[], size_t count, uint32_t blockHeight,
                                 uint32_t timestamp)
 {
@@ -993,7 +976,8 @@ void BRWalletFree(BRWallet *wallet)
     free(wallet);
 }
 
-// returns the given amount (satoshis) in local currency units (i.e. pennies), price is local currency units per bitcoin
+// returns the given amount (satoshis) in local currency units (i.e. pennies)
+// price is local currency units per bitcoin
 int64_t BRLocalAmount(int64_t amount, double price)
 {
     int64_t localAmount = llabs(amount)*(price/SATOSHIS);
@@ -1003,7 +987,8 @@ int64_t BRLocalAmount(int64_t amount, double price)
     return (amount < 0) ? -localAmount : localAmount;
 }
 
-// returns the given local currency amount in satoshis, price is local currency units per bitcoin
+// returns the given local currency amount in satoshis
+// price is local currency units per bitcoin
 int64_t BRBitcoinAmount(int64_t localAmount, double price)
 {
     int overflowbits = 0;
