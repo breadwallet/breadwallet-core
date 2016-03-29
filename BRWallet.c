@@ -264,6 +264,12 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
 }
 
 // not thread-safe, set callbacks once after BRWalletNew(), before calling other BRWallet functions
+// info is a void pointer that will be passed along with each callback call
+// void balanceChanged(void *, uint64_t) - called when the wallet balance changes
+// void txAdded(void *, BRTransaction *) - called when transaction is added to the wallet
+// void txUpdated(void *, const UInt256[], size_t, uint32_t, uint32_t)
+//     - called when the blockHeight or timestamp of previously added transactions are updated
+// void txDeleted(void *, UInt256) - called when a previously added transaction is removed from the wallet
 void BRWalletSetCallbacks(BRWallet *wallet, void *info,
                           void (*balanceChanged)(void *info, uint64_t balance),
                           void (*txAdded)(void *info, BRTransaction *tx),

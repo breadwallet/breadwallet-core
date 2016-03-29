@@ -939,6 +939,17 @@ BRPeer *BRPeerNew()
     return &ctx->peer;
 }
 
+// info is a void pointer that will be passed along with each callback call
+// void connected(void *) - called when peer handshake completes successfully
+// void disconnected(void *, int) - called when peer connection is closed, error is an errno.h code
+// void relayedPeers(void *, const BRPeer[], size_t) - called when an "addr" message is received from peer
+// void relayedTx(void *, BRTransaction *) - called when a "tx" message is received from peer
+// void hasTx(void *, UInt256 txHash) - called when an "inv" message with an already-known tx hash is received from peer
+// void rejectedTx(void *, UInt256 txHash, uint8_t) - called when a "reject" message is received from peer
+// void relayedBlock(void *, BRMerkleBlock *) - called when a "merkleblock" or "headers" message is received from peer
+// void notfound(void *, const UInt256[], size_t, const UInt256[], size_t) - called when "notfound" message is received
+// BRTransaction *requestedTx(void *, UInt256) - called when "getdata" message with a tx hash is received from peer
+// int networkIsReachable(void *) - must return true when networking is available, false otherwise
 void BRPeerSetCallbacks(BRPeer *peer, void *info,
                         void (*connected)(void *info),
                         void (*disconnected)(void *info, int error),

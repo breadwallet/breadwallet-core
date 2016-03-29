@@ -1462,8 +1462,19 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
 }
 
 // not thread-safe, set callbacks once before calling BRPeerManagerConnect()
-// if saveBlocks() or savePeers() fire with a single block/peer, add it to the persistent store without removing any
-// previous items, otherwise if 0 or more than 1 item is given, it is safe to delete any blocks/peers not in the list
+// info is a void pointer that will be passed along with each callback call
+// void syncStarted(void *) - called when blockchain syncing starts
+// void syncSucceded(void *) - called when blockchain syncing completes successfully
+// void syncFiled(void *, int) - called when blockchain syncing fails, error is an errno.h code
+// void txStatusUpdate(void *) - called when transaction status may have changed such as when a new block arrives
+// void txRejected(void *, int) - called when a wallet transaction fails to confirm and drops off the bitcoin network
+// void saveBlocks(void *, BRMerkleBlock *[], size_t) - called when blocks should be saved to the persistent store
+//   - if count is 1, save the given block without removing any previously saved blocks
+//   - if count is 0 or more than 1, save the given blocks and delete any previously saved blocks not given
+// void savePeers(void *, const BRPeer[], size_t) - called when peers should be saved to the persistent store
+//   - if count is 1, save the given peer without removing any previous saved peers
+//   - if count is 0 or more than 1, save the given peers and delete any previously saved peers not given
+// int networkIsReachable(void *) - must return true when networking is available, false otherwise
 void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*syncStarted)(void *info),
                                void (*syncSucceded)(void *info),
