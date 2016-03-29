@@ -52,7 +52,8 @@ struct BRWalletStruct {
     BRSet *usedAddrs;
     BRSet *allAddrs;
     void *seedInfo;
-    const void *(*seed)(void *info, const char *authPrompt, uint64_t amount, size_t *seedLen);
+    void *(*seed)(void *info, const char *authPrompt, uint64_t amount, size_t *seedLen);
+    void (*wipeSeed)(void *info, void *seed, size_t seedLen);
     void *callbackInfo;
     void (*balanceChanged)(void *info, uint64_t balance);
     void (*txAdded)(void *info, BRTransaction *tx);
@@ -224,15 +225,17 @@ static void _BRWalletUpdateBalance(BRWallet *wallet)
     wallet->balance = balance;
 }
 
-// allocates and populates a wallet
+// allocates and populates a BRWallet struct which must be freed by calling BRWalletFree()
 // info is void pointer that will be passed along with calls to seed
 // void *seed(void *, const char *, uint64_t, size_t *) is called each time a transaction is signed
 //   - authPrompt must be displayed to the user
 //   - amount is the net funds sent from the wallet by the transaction being signed
-//   - returns a pointer to the wallet seed and sets seedLen if the user is authenticated and authorizes the transaction
-//   - returns NULL if the user can not be authenticated or declines the transaction
+//   - must set seedLen and return a pointer to the wallet seed if user is authenticated and authorizes the transaction
+//   - must return NULL if the user can not be authenticated or declines the transaction
+// void wipeSeed(void *, void *, size_t) is called after a transaction is signed so the seed can be wiped from memory
 BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk, void *info,
-                      const void *(*seed)(void *info, const char *authPrompt, uint64_t amount, size_t *seedLen))
+                      void *(*seed)(void *info, const char *authPrompt, uint64_t amount, size_t *seedLen),
+                      void (*wipeSeed)(void *info, void *seed, size_t seedLen))
 {
     BRWallet *wallet = NULL;
     BRTransaction *tx;
@@ -252,6 +255,7 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
     wallet->allAddrs = BRSetNew(BRAddressHash, BRAddressEq, txCount + 200 + 100);
     wallet->seedInfo = info;
     wallet->seed = seed;
+    wallet->wipeSeed = wipeSeed;
     pthread_mutex_init(&wallet->lock, NULL);
 
     for (size_t i = 0; i < txCount; i++) {
@@ -274,7 +278,7 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
 // void balanceChanged(void *, uint64_t) - called when the wallet balance changes
 // void txAdded(void *, BRTransaction *) - called when transaction is added to the wallet
 // void txUpdated(void *, const UInt256[], size_t, uint32_t, uint32_t)
-//     - called when the blockHeight or timestamp of previously added transactions are updated
+//   - called when the blockHeight or timestamp of previously added transactions are updated
 // void txDeleted(void *, UInt256) - called when a previously added transaction is removed from the wallet
 void BRWalletSetCallbacks(BRWallet *wallet, void *info,
                           void (*balanceChanged)(void *info, uint64_t balance),
@@ -575,7 +579,7 @@ int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *aut
 {
     int64_t amount = BRWalletAmountSentByTx(wallet, tx) - BRWalletAmountReceivedFromTx(wallet, tx);
     uint32_t internalIdx[tx->inCount], externalIdx[tx->inCount];
-    size_t internalCount = 0, externalCount = 0, seedLen = 0;
+    size_t internalCount = 0, externalCount = 0;
     int r = 0;
     
     pthread_mutex_lock(&wallet->lock);
@@ -593,7 +597,8 @@ int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *aut
     pthread_mutex_unlock(&wallet->lock);
 
     BRKey keys[internalCount + externalCount];
-    const void *seed = wallet->seed(wallet->seedInfo, authPrompt, (amount > 0) ? amount : 0, &seedLen);
+    size_t seedLen = 0;
+    void *seed = wallet->seed(wallet->seedInfo, authPrompt, (amount > 0) ? amount : 0, &seedLen);
 
     if (seed) {
 //#if DEBUG
@@ -605,6 +610,7 @@ int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const char *aut
 //#endif
         BRBIP32PrivKeyList(keys, internalCount, seed, seedLen, 1, internalIdx);
         BRBIP32PrivKeyList(&keys[internalCount], externalCount, seed, seedLen, 0, externalIdx);
+        if (wallet->wipeSeed) wallet->wipeSeed(wallet->seedInfo, seed, seedLen);
         seed = NULL;
         r = BRTransactionSign(tx, keys, internalCount + externalCount);
         for (size_t i = 0; i < internalCount + externalCount; i++) BRKeyClean(&keys[i]);

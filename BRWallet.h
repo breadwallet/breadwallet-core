@@ -53,22 +53,24 @@ inline static size_t BRUTXOHash(const void *utxo)
 
 typedef struct BRWalletStruct BRWallet;
 
-// allocates and populates a wallet
+// allocates and populates a BRWallet struct that must be freed by calling BRWalletFree()
 // info is void pointer that will be passed along with calls to seed
 // void *seed(void *, const char *, uint64_t, size_t *) is called each time a transaction is signed
 //   - authPrompt must be displayed to the user
 //   - amount is the net funds sent from the wallet by the transaction being signed
-//   - returns a pointer to the wallet seed and sets seedLen if the user is authenticated and authorizes the transaction
-//   - returns NULL if the user can not be authenticated or declines the transaction
+//   - must set seedLen and return a pointer to the wallet seed if user is authenticated and authorizes the transaction
+//   - must return NULL if the user can not be authenticated or declines the transaction
+// void wipeSeed(void *, void *, size_t) is called after a transaction is signed so the seed can be wiped from memory
 BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk, void *info,
-                      const void *(*seed)(void *info, const char *authPrompt, uint64_t amount, size_t *seedLen));
+                      void *(*seed)(void *info, const char *authPrompt, uint64_t amount, size_t *seedLen),
+                      void (*wipeSeed)(void *info, void *seed, size_t seedLen));
 
 // not thread-safe, set callbacks once after BRWalletNew(), before calling other BRWallet functions
 // info is a void pointer that will be passed along with each callback call
 // void balanceChanged(void *, uint64_t) - called when the wallet balance changes
 // void txAdded(void *, BRTransaction *) - called when transaction is added to the wallet
 // void txUpdated(void *, const UInt256[], size_t, uint32_t, uint32_t)
-//     - called when the blockHeight or timestamp of previously added transactions are updated
+//   - called when the blockHeight or timestamp of previously added transactions are updated
 // void txDeleted(void *, UInt256) - called when a previously added transaction is removed from the wallet
 void BRWalletSetCallbacks(BRWallet *wallet, void *info,
                           void (*balanceChanged)(void *info, uint64_t balance),
