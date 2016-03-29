@@ -1447,9 +1447,9 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
             BRSetAdd(manager->blocks, blocks[i]);
             if (! manager->lastBlock || blocks[i]->height > manager->lastBlock->height) manager->lastBlock = blocks[i];
         }
-        else { // block has no height set - block height must be saved/restored along with serialized block data
+        else { // block has no height set
             BRPeerManagerFree(manager);
-            return NULL;
+            return NULL; // block height must be saved/restored along with serialized block data
         }
     }
     

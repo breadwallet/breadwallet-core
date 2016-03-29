@@ -62,7 +62,7 @@ BRMerkleBlock *BRMerkleBlockNew();
 // buf must contain either a serialized merkleblock or header, result must be freed by calling BRMerkleBlockFree()
 BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t len);
 
-// returns number of bytes written to buf, or total len needed if buf is NULL
+// returns number of bytes written to buf, or total len needed if buf is NULL (BRMerkleBlock.height is not serialized)
 size_t BRMerkleBlockSerialize(BRMerkleBlock *block, uint8_t *buf, size_t len);
 
 // populates txHashes with the matched tx hashes in the block, returns number of tx hashes written, or total number of

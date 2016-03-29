@@ -101,6 +101,7 @@ BRTransaction *BRTransactionNew();
 BRTransaction *BRTransactionParse(const uint8_t *buf, size_t len);
 
 // returns number of bytes written to buf, or total len needed if buf is NULL
+// (blockHeight and timestamp are not serialized)
 size_t BRTransactionSerialize(BRTransaction *tx, uint8_t *buf, size_t len);
 
 // adds an input to tx
