@@ -66,7 +66,7 @@ UInt160 BRKeyHash160(BRKey *key);
 // writes the bitcoin address for key to addr and returns the number of bytes written, or len needed if addr is NULL
 size_t BRKeyAddress(BRKey *key, char *addr, size_t len);
 
-// signs md with key and writes signature to sig, returns the number of bytes written, or len needed if sig is NULL
+// signs md with key and writes signature to sig and returns the number of bytes written, or len needed if sig is NULL
 size_t BRKeySign(BRKey *key, void *sig, size_t len, UInt256 md);
 
 // returns true if the signature for md is verified to have been made by key
@@ -79,8 +79,8 @@ void BRKeyClean(BRKey *key);
 // to verify a compact signature, recover a public key from the signature and verify that it matches the signer's pubkey
 size_t BRKeyCompactSign(BRKey *key, void *compactSig, size_t sigLen, UInt256 md);
 
-// writes the public key recovered from compactSig to pubKey and returns number of bytes written, or pkLen needed if
-// pubKey is NULL
+// writes the public key recovered from compactSig to pubKey
+// returns number of bytes written, or pkLen needed if pubKey is NULL
 size_t BRPubKeyRecover(uint8_t *pubKey, size_t pkLen, const void *compactSig, size_t sigLen, UInt256 md);
 
 #ifdef __cplusplus

@@ -343,7 +343,7 @@ uint64_t BRWalletBalance(BRWallet *wallet)
     return balance;
 }
 
-// writes unspent outputs to utxos, returns the number of outputs written, or total number available if utxos is NULL
+// writes unspent outputs to utxos and returns the number of outputs written, or total number available if utxos is NULL
 size_t BRWalletUTXOs(BRWallet *wallet, BRUTXO *utxos, size_t count)
 {
     pthread_mutex_lock(&wallet->lock);

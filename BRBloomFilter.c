@@ -37,7 +37,7 @@ inline static uint32_t _BRBloomFilterHash(BRBloomFilter *filter, const uint8_t *
     return BRMurmur3_32(data, len, hashNum*0xfba4c795 + filter->tweak) % (filter->length*8);
 }
 
-// returns a newly allocated BRBloomFilter struct that must be freed by calling BRBloomFilterFree()
+// returns a newly allocated bloom filter struct that must be freed by calling BRBloomFilterFree()
 BRBloomFilter *BRBloomFilterNew(double falsePositiveRate, size_t elemCount, uint32_t tweak, uint8_t flags)
 {
     BRBloomFilter *filter = calloc(1, sizeof(BRBloomFilter));
@@ -60,7 +60,8 @@ BRBloomFilter *BRBloomFilterNew(double falsePositiveRate, size_t elemCount, uint
     return filter;
 }
 
-// buf must contain a serialized filter, result must be freed by calling BRBloomFilterFree()
+// buf must contain a serialized filter
+// returns a bloom filter struct that must be freed by calling BRBloomFilterFree()
 BRBloomFilter *BRBloomFilterParse(const uint8_t *buf, size_t len)
 {
     BRBloomFilter *filter = calloc(1, sizeof(BRBloomFilter));

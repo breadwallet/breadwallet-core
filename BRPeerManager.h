@@ -46,7 +46,7 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
 // not thread-safe, set callbacks once before calling BRPeerManagerConnect()
 // info is a void pointer that will be passed along with each callback call
 // void syncStarted(void *) - called when blockchain syncing starts
-// void syncSucceded(void *) - called when blockchain syncing completes successfully
+// void syncSucceeded(void *) - called when blockchain syncing completes successfully
 // void syncFailed(void *, int) - called when blockchain syncing fails, error is an errno.h code
 // void txStatusUpdate(void *) - called when transaction status may have changed such as when a new block arrives
 // void txRejected(void *, int) - called when a wallet transaction fails to confirm and drops off the bitcoin network
@@ -59,7 +59,7 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
 // int networkIsReachable(void *) - must return true when networking is available, false otherwise
 void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*syncStarted)(void *info),
-                               void (*syncSucceded)(void *info),
+                               void (*syncSucceeded)(void *info),
                                void (*syncFailed)(void *info, int error),
                                void (*txStatusUpdate)(void *info),
                                void (*txRejected)(void *info, int rescanRecommended),

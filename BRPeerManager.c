@@ -228,7 +228,7 @@ struct BRPeerManagerStruct {
     UInt256 *publishedTxHash;
     void *info;
     void (*syncStarted)(void *info);
-    void (*syncSucceded)(void *info);
+    void (*syncSucceeded)(void *info);
     void (*syncFailed)(void *info, int error);
     void (*txStatusUpdate)(void *info);
     void (*txRejected)(void *info, int rescanRecommended);
@@ -592,7 +592,7 @@ static void _loadMempoolsMempoolDone(void *info, int success)
     if (peer == manager->downloadPeer) {
         _BRPeerManagerSyncStopped(manager);
         pthread_mutex_unlock(&manager->lock);
-        if (manager->syncSucceded) manager->syncSucceded(manager->info);
+        if (manager->syncSucceeded) manager->syncSucceeded(manager->info);
     }
     else pthread_mutex_unlock(&manager->lock);
 }
@@ -615,7 +615,7 @@ static void _loadMempoolsFilterLoadDone(void *info, int success)
         if (peer == manager->downloadPeer) {
             _BRPeerManagerSyncStopped(manager);
             pthread_mutex_unlock(&manager->lock);
-            if (manager->syncSucceded) manager->syncSucceded(manager->info);
+            if (manager->syncSucceeded) manager->syncSucceeded(manager->info);
         }
         else pthread_mutex_unlock(&manager->lock);
     }
@@ -1099,10 +1099,11 @@ static int _BRPeerManagerVerifyBlock(BRPeerManager *manager, BRMerkleBlock *bloc
         }
         
         while (b) { // free up some memory
-            b = BRSetRemove(manager->blocks, &prevBlock);
+            b = BRSetGet(manager->blocks, &prevBlock);
+            if (b) prevBlock = b->prevBlock;
 
-            if (b) {
-                prevBlock = b->prevBlock;
+            if (b && (b->height % BLOCK_DIFFICULTY_INTERVAL) != 0) {
+                BRSetRemove(manager->blocks, b);
                 BRMerkleBlockFree(b);
             }
         }
@@ -1464,7 +1465,7 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
 // not thread-safe, set callbacks once before calling BRPeerManagerConnect()
 // info is a void pointer that will be passed along with each callback call
 // void syncStarted(void *) - called when blockchain syncing starts
-// void syncSucceded(void *) - called when blockchain syncing completes successfully
+// void syncSucceeded(void *) - called when blockchain syncing completes successfully
 // void syncFailed(void *, int) - called when blockchain syncing fails, error is an errno.h code
 // void txStatusUpdate(void *) - called when transaction status may have changed such as when a new block arrives
 // void txRejected(void *, int) - called when a wallet transaction fails to confirm and drops off the bitcoin network
@@ -1477,7 +1478,7 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
 // int networkIsReachable(void *) - must return true when networking is available, false otherwise
 void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*syncStarted)(void *info),
-                               void (*syncSucceded)(void *info),
+                               void (*syncSucceeded)(void *info),
                                void (*syncFailed)(void *info, int error),
                                void (*txStatusUpdate)(void *info),
                                void (*txRejected)(void *info, int rescanRecommended),
@@ -1487,7 +1488,7 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
 {
     manager->info = info;
     manager->syncStarted = syncStarted;
-    manager->syncSucceded = syncSucceded;
+    manager->syncSucceeded = syncSucceeded;
     manager->syncFailed = syncFailed;
     manager->txStatusUpdate = txStatusUpdate;
     manager->txRejected = txRejected;

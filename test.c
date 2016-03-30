@@ -1657,7 +1657,7 @@ void syncStarted(void *info)
 
 void syncSucceeded(void *info)
 {
-    printf("sync succeeded\n");
+    printf("sync succeeded\n");    
 }
 
 void syncFailed(void *info, int code)
@@ -1714,16 +1714,16 @@ int BRRunTests()
     mpk = BRBIP32MasterPubKey(&seed, sizeof(seed));
 
     BRWallet *wallet = BRWalletNew(NULL, 0, mpk);
-    
+
     BRWalletSetCallbacks(wallet, NULL, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
     printf("wallet created with first receive address: %s\n", BRWalletReceiveAddress(wallet).s);
-
+    
 //    BRPeerManager *manager = BRPeerManagerNew(wallet, BIP39_CREATION_TIME, NULL, 0, NULL, 0);
     BRPeerManager *manager = BRPeerManagerNew(wallet, (uint32_t)time(NULL), NULL, 0, NULL, 0);
     int r = 0;
 
-    BRPeerManagerSetCallbacks(manager, NULL, syncStarted, syncSucceeded, syncFailed, txStatusUpdate, NULL, NULL, NULL,
-                              NULL);
+    BRPeerManagerSetCallbacks(manager, manager, syncStarted, syncSucceeded, syncFailed, txStatusUpdate, NULL, NULL,
+                              NULL, NULL);
     BRPeerManagerConnect(manager);
     while (r == 0 && BRPeerManagerPeerCount(manager) > 0) r = sleep(1);
     if (r != 0) printf("sleep got a signal\n");

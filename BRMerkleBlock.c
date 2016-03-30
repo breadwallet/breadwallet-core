@@ -68,13 +68,14 @@ inline static int _ceil_log2(int x)
 // flag bits (little endian): 00001011 [merkleRoot = 1, m1 = 1, tx1 = 0, tx2 = 1, m2 = 0, byte padding = 000]
 // hashes: [tx1, tx2, m2]
 
-// returns a newly allocated BRMerkleBlock struct that must be freed by calling BRMerkleBlockFree()
+// returns a newly allocated merkle block struct that must be freed by calling BRMerkleBlockFree()
 BRMerkleBlock *BRMerkleBlockNew()
 {
     return calloc(1, sizeof(BRMerkleBlock));
 }
 
-// buf can contain either a serialized merkleblock or header, result must be freed by calling BRMerkleBlockFree()
+// buf must contain either a serialized merkleblock or header
+// returns a merkle block struct that must be freed by calling BRMerkleBlockFree()
 BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t len)
 {
     BRMerkleBlock *block = (buf && 80 <= len) ? BRMerkleBlockNew() : NULL;
@@ -193,8 +194,8 @@ static size_t _BRMerkleBlockTxHashesR(BRMerkleBlock *block, UInt256 *txHashes, s
     return *idx;
 }
 
-// populates txHashes with the matched tx hashes in the block, returns number of hashes written, or total number of
-// matched hashes in the block if txHashes is NULL
+// populates txHashes with the matched tx hashes in the block
+// returns number of hashes written, or total number of matched hashes in the block if txHashes is NULL
 size_t BRMerkleBlockTxHashes(BRMerkleBlock *block, UInt256 *txHashes, size_t count)
 {
     size_t idx = 0, hashIdx = 0, flagIdx = 0;
@@ -225,8 +226,8 @@ static UInt256 _BRMerkleBlockRootR(BRMerkleBlock *block, size_t *hashIdx, size_t
 }
 
 // true if merkle tree and timestamp are valid, and proof-of-work matches the stated difficulty target
-// NOTE: This only checks if the block difficulty matches the difficulty target in the header. It does not check if the
-// target is correct for the block's height in the chain. Use BRMerkleBlockVerifyDifficulty() for that.
+// NOTE: this only checks if the block difficulty matches the difficulty target in the header, it does not check if the
+// target is correct for the block's height in the chain - use BRMerkleBlockVerifyDifficulty() for that
 int BRMerkleBlockIsValid(BRMerkleBlock *block, uint32_t currentTime)
 {
     // target is in "compact" format, where the most significant byte is the size of resulting value in bytes, the next
@@ -269,8 +270,8 @@ int BRMerkleBlockContainsTxHash(BRMerkleBlock *block, UInt256 txHash)
     return r;
 }
 
-// Verifies the block difficulty target is correct for the block's position in the chain. transitionTime may be 0 if
-// height is not a multiple of BLOCK_DIFFICULTY_INTERVAL.
+// verifies the block difficulty target is correct for the block's position in the chain
+// transitionTime may be 0 if height is not a multiple of BLOCK_DIFFICULTY_INTERVAL
 //
 // The difficulty target algorithm works as follows:
 // The target must be the same as in the previous block unless the block's height is a multiple of 2016. Every 2016

@@ -296,7 +296,7 @@ size_t BRKeyAddress(BRKey *key, char *addr, size_t len)
     return len;
 }
 
-// signs md with key and writes signature to sig, returns the number of bytes written, or len needed if sig is NULL
+// signs md with key and writes signature to sig and returns the number of bytes written, or len needed if sig is NULL
 size_t BRKeySign(BRKey *key, void *sig, size_t len, UInt256 md)
 {
     secp256k1_ecdsa_signature s;
@@ -352,8 +352,8 @@ size_t BRKeyCompactSign(BRKey *key, void *compactSig, size_t sigLen, UInt256 md)
     return r;
 }
 
-// writes the public key recovered from compactSig to pubKey and returns number of bytes written, or pkLen needed if
-// pubKey is NULL
+// writes the public key recovered from compactSig to pubKey
+// returns number of bytes written, or pkLen needed if pubKey is NULL
 size_t BRPubKeyRecover(uint8_t *pubKey, size_t pkLen, const void *compactSig, size_t sigLen, UInt256 md)
 {
     size_t len = pkLen, r = 0;

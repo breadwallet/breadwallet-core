@@ -202,7 +202,8 @@ BRTransaction *BRTransactionNew()
     return tx;
 }
 
-// buf must contain a serialized tx, result must be freed by calling BRTransactionFree()
+// buf must contain a serialized tx
+// retruns a transaction that must be freed by calling BRTransactionFree()
 BRTransaction *BRTransactionParse(const uint8_t *buf, size_t len)
 {
     if (! buf) return NULL;
@@ -331,7 +332,8 @@ int BRTransactionIsSigned(BRTransaction *tx)
     return 1;
 }
 
-// adds signatures to any inputs with NULL signatures that can be signed with any privKeys, returns true if tx is signed
+// adds signatures to any inputs with NULL signatures that can be signed with any privKeys
+// returns true if tx is signed
 int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t count)
 {
     BRAddress addrs[count], address;

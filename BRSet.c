@@ -61,9 +61,10 @@ static void _BRSetInit(BRSet *set, size_t (*hash)(const void *), int (*eq)(const
     set->eq = eq;
 }
 
-// retruns a newly allocated empty set that must be freed by calling BRSetFree(), hash is a function that returns a hash
-// value for a given set item, eq is a function that tests if two set items are equal, capacity is the maximum estimated
-// number of items the set will need to hold
+// retruns a newly allocated empty set that must be freed by calling BRSetFree()
+// hash is a function that returns a hash value for a given set item
+// eq is a function that tests if two set items are equal
+// capacity is the maximum estimated number of items the set will need to hold
 BRSet *BRSetNew(size_t (*hash)(const void *), int (*eq)(const void *, const void *), size_t capacity)
 {
     BRSet *set = malloc(sizeof(BRSet));
@@ -85,7 +86,7 @@ static void _BRSetGrow(BRSet *set, size_t capacity)
     set->itemCount = newSet.itemCount;
 }
 
-// adds given item to set or replaces an equivalent existing item, returns item replaced if any
+// adds given item to set or replaces an equivalent existing item and returns item replaced if any
 void *BRSetAdd(BRSet *set, void *item)
 {
     size_t size = set->size;
@@ -103,7 +104,7 @@ void *BRSetAdd(BRSet *set, void *item)
     return t;
 }
 
-// removes item equivalent to given item from set, returns item removed if any
+// removes item equivalent to given item from set and returns item removed if any
 void *BRSetRemove(BRSet *set, const void *item)
 {
     size_t size = set->size;
@@ -208,7 +209,7 @@ void *BRSetNext(BRSet *set, const void *item)
     return r;
 }
 
-// writes up to count items from set to allItems, returns the number of items written
+// writes up to count items from set to allItems and returns the number of items written
 size_t BRSetAll(BRSet *set, void *allItems[], size_t count)
 {
     size_t i = 0, j = 0, size = set->size;

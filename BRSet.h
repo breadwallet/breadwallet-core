@@ -33,15 +33,16 @@ extern "C" {
 
 typedef struct BRSetStruct BRSet;
 
-// retruns a newly allocated empty set that must be freed by calling BRSetFree(), hash is a function that returns a hash
-// value for a given set item, eq is a function that tests if two set items are equal, capacity is the maximum estimated
-// number of items the set will need to hold
+// retruns a newly allocated empty set that must be freed by calling BRSetFree()
+// hash is a function that returns a hash value for a given set item
+// eq is a function that tests if two set items are equal
+// capacity is the maximum estimated number of items the set will need to hold
 BRSet *BRSetNew(size_t (*hash)(const void *), int (*eq)(const void *, const void *), size_t capacity);
 
-// adds given item to set or replaces an equivalent existing item, returns item replaced if any
+// adds given item to set or replaces an equivalent existing item and returns item replaced if any
 void *BRSetAdd(BRSet *set, void *item);
 
-// removes item equivalent to given item from set, returns item removed if any
+// removes item equivalent to given item from set and returns item removed if any
 void *BRSetRemove(BRSet *set, const void *item);
 
 // removes all items from set
@@ -65,7 +66,7 @@ void *BRSetFirst(BRSet *set);
 // returns the next item after given item when iterating, or NULL if no more items are available
 void *BRSetNext(BRSet *set, const void *item);
 
-// writes up to count items from set to allItems, returns number of items written
+// writes up to count items from set to allItems and returns number of items written
 size_t BRSetAll(BRSet *set, void *allItems[], size_t count);
 
 // calls map() with each item in set

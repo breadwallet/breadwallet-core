@@ -51,7 +51,7 @@ extern "C" {
 
 #define BR_RAND_MAX          RAND_MAX
 
-// returns a random number less than upperBound, for non-cryptographic use only
+// returns a random number less than upperBound (for non-cryptographic use only)
 uint32_t BRRand(uint32_t upperBound);
 
 typedef struct {
@@ -97,7 +97,8 @@ typedef struct {
 // returns a newly allocated empty transaction that must be freed by calling BRTransactionFree()
 BRTransaction *BRTransactionNew();
 
-// buf must contain a serialized tx, result must be freed by calling BRTransactionFree()
+// buf must contain a serialized tx
+// retruns a transaction that must be freed by calling BRTransactionFree()
 BRTransaction *BRTransactionParse(const uint8_t *buf, size_t len);
 
 // returns number of bytes written to buf, or total len needed if buf is NULL
@@ -123,7 +124,8 @@ uint64_t BRTransactionStandardFee(BRTransaction *tx);
 // checks if all signatures exist, but does not verify them
 int BRTransactionIsSigned(BRTransaction *tx);
 
-// adds signatures to any inputs with NULL signatures that can be signed with any privKeys, returns true if tx is signed
+// adds signatures to any inputs with NULL signatures that can be signed with any privKeys
+// returns true if tx is signed
 int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t count);
 
 // returns a hash value for tx suitable for use in a hashtable

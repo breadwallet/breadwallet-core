@@ -233,7 +233,8 @@ static size_t _BRPaymentProtocolOutputSerialize(BRTxOutput *output, uint8_t *buf
     return (! buf || off <= len) ? off : 0;
 }
 
-// buf must contain a serialized details struct, result must be freed by calling BRPaymentProtocolDetailsFree()
+// buf must contain a serialized details struct
+// returns a details struct that must be freed by calling BRPaymentProtocolDetailsFree()
 BRPaymentProtocolDetails *BRPaymentProtocolDetailsParse(const uint8_t *buf, size_t len)
 {
     BRPaymentProtocolDetails *details = calloc(1, sizeof(BRPaymentProtocolDetails));
@@ -276,7 +277,7 @@ BRPaymentProtocolDetails *BRPaymentProtocolDetailsParse(const uint8_t *buf, size
     return details;
 }
 
-// writes serialized details struct to buf, returns number of bytes written, or total len needed if buf is NULL
+// writes serialized details struct to buf and returns number of bytes written, or total len needed if buf is NULL
 size_t BRPaymentProtocolDetailsSerialize(BRPaymentProtocolDetails *details, uint8_t *buf, size_t len)
 {
     size_t off = 0;
@@ -318,7 +319,8 @@ void BRPaymentProtocolDetailsFree(BRPaymentProtocolDetails *details)
     free(details);
 }
 
-// buf must contain a serialized request struct, result must be freed by calling BRPaymentProtocolRequestFree()
+// buf must contain a serialized request struct
+// returns a request struct that must be freed by calling BRPaymentProtocolRequestFree()
 BRPaymentProtocolRequest *BRPaymentProtocolRequestParse(const uint8_t *buf, size_t len)
 {
     BRPaymentProtocolRequest *request = calloc(1, sizeof(BRPaymentProtocolRequest));
@@ -359,7 +361,7 @@ BRPaymentProtocolRequest *BRPaymentProtocolRequestParse(const uint8_t *buf, size
     return request;
 }
 
-// writes serialized request struct to buf, returns number of bytes written, or total len needed if buf is NULL
+// writes serialized request struct to buf and returns number of bytes written, or total len needed if buf is NULL
 size_t BRPaymentProtocolRequestSerialize(BRPaymentProtocolRequest *request, uint8_t *buf, size_t len)
 {
     size_t off = 0;
@@ -386,8 +388,9 @@ size_t BRPaymentProtocolRequestSerialize(BRPaymentProtocolRequest *request, uint
     return (! buf || off <= len) ? off : 0;
 }
 
-// writes the DER encoded certificate corresponding to index to cert, returns the number of bytes written to cert, or
-// the total certLen needed if cert is NULL, returns 0 if index of out-of-bounds
+// writes the DER encoded certificate corresponding to index to cert
+// returns the number of bytes written to cert, or the total certLen needed if cert is NULL
+// returns 0 if index of out-of-bounds
 size_t BRPaymentProtocolRequestCert(BRPaymentProtocolRequest *request, uint8_t *cert, size_t certLen, size_t index)
 {
     size_t off = 0, len = 0;
@@ -410,8 +413,8 @@ size_t BRPaymentProtocolRequestCert(BRPaymentProtocolRequest *request, uint8_t *
     return (index == 0 && (! cert || len <= certLen)) ? len : 0;
 }
 
-// writes the hash of the request to md needed to sign or verify the request, returns the number of bytes written, or
-// the total bytes needed if md is NULL
+// writes the hash of the request to md needed to sign or verify the request
+// returns the number of bytes written, or the total bytes needed if md is NULL
 size_t BRPaymentProtocolRequestDigest(BRPaymentProtocolRequest *request, uint8_t *md, size_t mdLen)
 {
     request->sigLen = 0; // set signature to 0 bytes, a signature can't sign itself
@@ -443,7 +446,7 @@ void BRPaymentProtocolRequestFree(BRPaymentProtocolRequest *request)
     free(request);
 }
 
-// returns a newly allocated BRPaymentProtocolPayment struct that must be freed with BRPaymentProtocolPaymentFree()
+// returns a newly allocated payment struct that must be freed with BRPaymentProtocolPaymentFree()
 BRPaymentProtocolPayment *BRPaymentProtocolPaymentNew(const uint8_t *merchantData, size_t merchDataLen,
                                                       BRTransaction *transactions[], size_t txCount,
                                                       const uint64_t refundToAmounts[],
@@ -486,7 +489,8 @@ BRPaymentProtocolPayment *BRPaymentProtocolPaymentNew(const uint8_t *merchantDat
     return payment;
 }
 
-// buf must contain a serialized payment struct, result must be freed by calling BRPaymentProtocolPaymentFree()
+// buf must contain a serialized payment struct
+// returns a payment struct that must be freed by calling BRPaymentProtocolPaymentFree()
 BRPaymentProtocolPayment *BRPaymentProtocolPaymentParse(const uint8_t *buf, size_t len)
 {
     BRPaymentProtocolPayment *payment = calloc(1, sizeof(BRPaymentProtocolPayment));
@@ -555,7 +559,8 @@ void BRPaymentProtocolPaymentFree(BRPaymentProtocolPayment *payment)
     if (payment->transactions) array_free(payment->transactions);
 }
 
-// buf must contain a serialized ACK struct, result must be freed by calling BRPaymentProtocolACKFree()
+// buf must contain a serialized ACK struct
+// returns a ACK struct that must be freed by calling BRPaymentProtocolACKFree()
 BRPaymentProtocolACK *BRPaymentProtocolACKParse(const uint8_t *buf, size_t len)
 {
     BRPaymentProtocolACK *ack = calloc(1, sizeof(BRPaymentProtocolACK));
@@ -581,7 +586,7 @@ BRPaymentProtocolACK *BRPaymentProtocolACKParse(const uint8_t *buf, size_t len)
     return ack;
 }
 
-// writes serialized ACK struct to buf, returns number of bytes written, or total len needed if buf is NULL
+// writes serialized ACK struct to buf and returns number of bytes written, or total len needed if buf is NULL
 size_t BRPaymentProtocolACKSerialize(BRPaymentProtocolACK *ack, uint8_t *buf, size_t len)
 {
     size_t off = 0;
