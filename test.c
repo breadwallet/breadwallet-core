@@ -1657,7 +1657,7 @@ void syncStarted(void *info)
 
 void syncSucceeded(void *info)
 {
-    printf("sync succeeded\n");    
+    printf("sync succeeded\n");
 }
 
 void syncFailed(void *info, int code)
@@ -1715,7 +1715,7 @@ int BRRunTests()
 
     BRWallet *wallet = BRWalletNew(NULL, 0, mpk);
 
-    BRWalletSetCallbacks(wallet, NULL, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
+    BRWalletSetCallbacks(wallet, wallet, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
     printf("wallet created with first receive address: %s\n", BRWalletReceiveAddress(wallet).s);
     
 //    BRPeerManager *manager = BRPeerManagerNew(wallet, BIP39_CREATION_TIME, NULL, 0, NULL, 0);

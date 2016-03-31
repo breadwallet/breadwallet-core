@@ -1138,7 +1138,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
     size_t txCount = BRMerkleBlockTxHashes(block, txHashes, sizeof(txHashes)/sizeof(*txHashes));
     size_t i, fpCount = 0, saveCount = 0;
     BRMerkleBlock orphan, *b, *b2, *prev, *next = NULL;
-    uint32_t txTime = 0;
+    uint32_t txTime = 0, lastHeight;
     
     pthread_mutex_lock(&manager->lock);
     prev = BRSetGet(manager->blocks, &block->prevBlock);
@@ -1220,27 +1220,32 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
         _BRPeerManagerUpdateTx(manager, txHashes, txCount, block->height, txTime);
         if (manager->downloadPeer) BRPeerSetCurrentBlockHeight(manager->downloadPeer, block->height);
             
-        if (manager->lastBlock->height < manager->estimatedHeight && peer == manager->downloadPeer) {
+        if (block->height < manager->estimatedHeight && peer == manager->downloadPeer) {
             BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT); // reschedule sync timeout
         }
         
         if ((block->height % BLOCK_DIFFICULTY_INTERVAL) == 0) saveCount = 1; // save transition block immediately
+        
+        if (block->height == manager->estimatedHeight) { // chain download is complete
+            saveCount = (block->height % BLOCK_DIFFICULTY_INTERVAL) + BLOCK_DIFFICULTY_INTERVAL + 1;
+            _BRPeerManagerLoadMempools(manager);
+        }
     }
     else if (BRSetContains(manager->blocks, block)) { // we already have the block (or at least the header)
         if ((block->height % 500) == 0 || txCount > 0 || block->height > BRPeerLastBlock(peer)) {
             peer_log(peer, "relayed existing block #%"PRIu32, block->height);
         }
         
-        b = BRSetAdd(manager->blocks, block);
-        if (b != block) BRMerkleBlockFree(b); // BUG: XXX could also be in orphans, lastBlock, lastOrphan
         b = manager->lastBlock;
-        
         while (b && b->height > block->height) b = BRSetGet(manager->blocks, &b->prevBlock); // is block in main chain?
         
         if (BRMerkleBlockEq(b, block)) { // if it's not on a fork, set block heights for its transactions
             _BRPeerManagerUpdateTx(manager, txHashes, txCount, block->height, txTime);
             if (block->height == manager->lastBlock->height) manager->lastBlock = block;
         }
+        
+        b = BRSetAdd(manager->blocks, block);
+        if (b != block) BRMerkleBlockFree(b); // BUG: XXXX could also be in orphans, or lastOrphan
     }
     else if (manager->lastBlock->height < BRPeerLastBlock(peer) &&
              block->height > manager->lastBlock->height + 1) { // special case, new block mined durring rescan
@@ -1256,8 +1261,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
     }
     else { // new block is on a fork
         peer_log(peer, "chain fork reached height %"PRIu32, block->height);
-        b = BRSetAdd(manager->blocks, block);
-        if (b != block) BRMerkleBlockFree(b); // BUG: XXX could also be in orphans, lastBlock, lastOrphan
+        BRSetAdd(manager->blocks, block);
 
         if (block->height > manager->lastBlock->height) { // check if fork is now longer than main chain
             b = block;
@@ -1285,15 +1289,15 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
             }
         
             manager->lastBlock = block;
+            
+            if (block->height == manager->estimatedHeight) { // chain download is complete
+                saveCount = (block->height % BLOCK_DIFFICULTY_INTERVAL) + BLOCK_DIFFICULTY_INTERVAL + 1;
+                _BRPeerManagerLoadMempools(manager);
+            }
         }
     }
    
     if (block && block->height != BLOCK_UNKNOWN_HEIGHT) {
-        if (block == manager->lastBlock && block->height == manager->estimatedHeight) { // chain download is complete
-            saveCount = (block->height % BLOCK_DIFFICULTY_INTERVAL) + BLOCK_DIFFICULTY_INTERVAL + 1;
-            _BRPeerManagerLoadMempools(manager);
-        }
-        
         if (block->height > manager->estimatedHeight) manager->estimatedHeight = block->height;
         
         // check if the next block was received as an orphan

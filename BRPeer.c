@@ -827,7 +827,7 @@ static void *_peerThreadRoutine(void *arg)
 {
     BRPeer *peer = arg;
     BRPeerContext *ctx = arg;
-    int error = 0;
+    int socket, error = 0;
 
     if (_BRPeerOpenSocket(peer, CONNECT_TIMEOUT, &error)) {
         struct timeval tv;
@@ -841,9 +841,10 @@ static void *_peerThreadRoutine(void *arg)
         
         while (! error) {
             len = 0;
-
-            while (! error && len < HEADER_LENGTH) {
-                n = read(ctx->socket, header + len, sizeof(header) - len);
+            socket = ctx->socket;
+            
+            while (socket >= 0 && ! error && len < HEADER_LENGTH) {
+                n = read(socket, header + len, sizeof(header) - len);
                 if (n >= 0) len += n;
                 if (n < 0 && errno != EWOULDBLOCK) error = errno;
                 gettimeofday(&tv, NULL);
@@ -852,6 +853,8 @@ static void *_peerThreadRoutine(void *arg)
                 while (sizeof(uint32_t) <= len && *(uint32_t *)header != le32(MAGIC_NUMBER)) {
                     memmove(header, header + 1, --len); // consume one byte at a time until we find the magic number
                 }
+                
+                socket = ctx->socket;
             }
             
             if (error) {
@@ -873,13 +876,15 @@ static void *_peerThreadRoutine(void *arg)
                 }
                 else {
                     len = 0;
+                    socket = ctx->socket;
                     
-                    while (! error && len < msgLen) {
-                        n = read(ctx->socket, payload + len, msgLen - len);
+                    while (socket >= 0 && ! error && len < msgLen) {
+                        n = read(socket, payload + len, msgLen - len);
                         if (n >= 0) len += n;
                         if (n < 0 && errno != EWOULDBLOCK) error = errno;
                         gettimeofday(&tv, NULL);
                         if (! error && tv.tv_sec + (double)tv.tv_usec/1000000 >= ctx->disconnectTime) error = ETIMEDOUT;
+                        socket = ctx->socket;
                     }
                     
                     if (error) {
@@ -903,9 +908,10 @@ static void *_peerThreadRoutine(void *arg)
         free(payload);
     }
     
-    ctx->status = BRPeerStatusDisconnected;
-    close(ctx->socket);
+    socket = ctx->socket;
     ctx->socket = -1;
+    ctx->status = BRPeerStatusDisconnected;
+    if (socket >= 0) close(socket);
     peer_log(peer, "disconnected");
     
     while (array_count(ctx->pongCallback) > 0) {
@@ -1059,8 +1065,12 @@ void BRPeerConnect(BRPeer *peer)
 void BRPeerDisconnect(BRPeer *peer)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
+    int socket = ctx->socket;
 
-    if (ctx->socket >= 0 && shutdown(ctx->socket, SHUT_RDWR) < 0) peer_log(peer, "%s", strerror(errno));
+    if (socket >= 0) {
+        if (shutdown(socket, SHUT_RDWR) < 0) peer_log(peer, "%s", strerror(errno));
+        close(socket);
+    }
 }
 
 // call this when wallet addresses need to be added to bloom filter
@@ -1124,7 +1134,7 @@ void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char 
         size_t off = 0;
         ssize_t n = 0;
         struct timeval tv;
-        int error = 0;
+        int socket, error = 0;
         
         *(uint32_t *)(buf + off) = le32(MAGIC_NUMBER);
         off += sizeof(uint32_t);
@@ -1137,23 +1147,22 @@ void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char 
         off += sizeof(uint32_t);
         memcpy(buf + off, msg, len);
         peer_log(peer, "sending %s", type);
+        len = 0;
+        socket = ctx->socket;
+        if (socket < 0) error = ENOTCONN;
         
-        if (ctx->socket >= 0) {
-            len = 0;
-            
-            while (! error && len < sizeof(buf)) {
-                n = send(ctx->socket, buf + len, sizeof(buf) - len, MSG_NOSIGNAL);
-                if (n >= 0) len += n;
-                if (n < 0 && errno != EWOULDBLOCK) error = errno;
-                gettimeofday(&tv, NULL);
-                if (! error && tv.tv_sec + (double)tv.tv_usec/1000000 >= ctx->disconnectTime) error = ETIMEDOUT;
-            }
+        while (socket >= 0 && ! error && len < sizeof(buf)) {
+            n = send(socket, buf + len, sizeof(buf) - len, MSG_NOSIGNAL);
+            if (n >= 0) len += n;
+            if (n < 0 && errno != EWOULDBLOCK) error = errno;
+            gettimeofday(&tv, NULL);
+            if (! error && tv.tv_sec + (double)tv.tv_usec/1000000 >= ctx->disconnectTime) error = ETIMEDOUT;
+            socket = ctx->socket;
         }
-        else error = ENOTCONN;
         
         if (error) {
             peer_log(peer, "%s", strerror(error));
-            if (ctx->socket >= 0 && shutdown(ctx->socket, SHUT_RDWR) < 0) peer_log(peer, "%s", strerror(errno));
+            BRPeerDisconnect(peer);
         }
     }
 }
