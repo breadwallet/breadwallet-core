@@ -33,14 +33,14 @@ size_t BRBIP39Encode(char *phrase, size_t phraseLen, const char *wordList[], con
     uint32_t x;
     uint8_t buf[dataLen + 32];
     const char *word;
-    size_t len = 0;
+    size_t i, len = 0;
 
     if (! data || (dataLen % 4) != 0) return 0; // data length must be a multiple of 32 bits
     
     memcpy(buf, data, dataLen);
     BRSHA256(&buf[dataLen], data, dataLen); // append SHA256 checksum
 
-    for (size_t i = 0; i < dataLen*3/4; i++) {
+    for (i = 0; i < dataLen*3/4; i++) {
         x = be32(*(uint32_t *)&buf[i*11/8]);
         word = wordList[(x >> (32 - (11 + ((i*11) % 8)))) % BIP39_WORDLIST_COUNT];
         if (i > 0 && phrase && len < phraseLen) phrase[len] = ' ';

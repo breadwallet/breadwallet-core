@@ -134,13 +134,13 @@ void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scrip
 // or total len needed if data is NULL.
 static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t len, size_t subscriptIdx)
 {
-    size_t off = 0;
+    size_t i, off = 0;
 
     if (data && off + sizeof(uint32_t) <= len) *(uint32_t *)&data[off] = le32(tx->version);
     off += sizeof(uint32_t);
     off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), tx->inCount);
 
-    for (size_t i = 0; i < tx->inCount; i++) {
+    for (i = 0; i < tx->inCount; i++) {
         BRTxInput *in = &tx->inputs[i];
         
         if (data && off + sizeof(UInt256) <= len) memcpy(&data[off], &in->txHash, sizeof(UInt256));
@@ -168,7 +168,7 @@ static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t 
     
     off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), tx->outCount);
     
-    for (size_t i = 0; i < tx->outCount; i++) {
+    for (i = 0; i < tx->outCount; i++) {
         BRTxOutput *out = &tx->outputs[i];
         
         if (data && off + sizeof(uint64_t) <= len) *(uint64_t *)&data[off] = le64(out->amount);
@@ -208,7 +208,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t len)
 {
     if (! buf) return NULL;
 
-    size_t off = 0, l = 0;
+    size_t i, off = 0, l = 0;
     BRTransaction *tx = BRTransactionNew();
 
     tx->version = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)&buf[off]) : 0;
@@ -217,7 +217,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t len)
     off += l;
     array_set_count(tx->inputs, tx->inCount);
     
-    for (size_t i = 0; i < tx->inCount; i++) {
+    for (i = 0; i < tx->inCount; i++) {
         BRTxInput *input = &tx->inputs[i];
 
         input->txHash = (off + sizeof(UInt256) <= len) ? *(UInt256 *)&buf[off] : UINT256_ZERO;
@@ -236,7 +236,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t len)
     off += l;
     array_set_count(tx->outputs, tx->outCount);
     
-    for (size_t i = 0; i < tx->outCount; i++) {
+    for (i = 0; i < tx->outCount; i++) {
         BRTxOutput *output = &tx->outputs[i];
 
         output->amount = (off + sizeof(uint64_t) <= len) ? le64(*(uint64_t *)&buf[off]) : 0;
