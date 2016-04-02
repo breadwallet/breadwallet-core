@@ -36,6 +36,7 @@
 #include "BRInt.h"
 #include "BRArray.h"
 #include "BRList.h"
+#include "BRSet.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -126,7 +127,7 @@ int BRArrayTests()
     return r;
 }
 
-inline static int compare_ints(void *info, const void *a, const void *b)
+inline static int compare_int(void *info, const void *a, const void *b)
 {
     if (*(int *)a < *(int *)b) return -1;
     if (*(int *)a > *(int *)b) return 1;
@@ -147,7 +148,7 @@ int BRListTests()
     list_insert_after(head, 3);          // 2->3->1
     item = list_next(head);
     if (! item || *item != 3) r = 0, fprintf(stderr, "***FAILED*** %s: list_insert_after() test\n", __func__);
-    list_sort(head, NULL, compare_ints); // 1->2->3
+    list_sort(head, NULL, compare_int); // 1->2->3
     printf("\n");
 
     for (item = head; item; item = list_next(item)) {
@@ -171,6 +172,50 @@ int BRListTests()
     if (head) r = 0, fprintf(stderr, "***FAILED*** %s: list_free() test\n", __func__);
     
     printf("                          ");
+    return r;
+}
+
+inline static size_t hash_int(const void *i)
+{
+    return *(int *)i*0x01000193; // i*FNV_PRIME
+}
+
+inline static int eq_int(const void *a, const void *b)
+{
+    return (*(int *)a == *(int *)b);
+}
+
+int BRSetTests()
+{
+    int r = 1;
+    int i, x[1000];
+    BRSet *s = BRSetNew(hash_int, eq_int, 0);
+    
+    for (i = 0; i < 1000; i++) {
+        x[i] = i;
+        BRSetAdd(s, x + i);
+    }
+    
+    if (BRSetCount(s) != 1000) r = 0, fprintf(stderr, "***FAILED*** %s: BRSetAdd() test\n", __func__);
+    
+    for (i = 999; i >= 0; i--) {
+        if (*(int *)BRSetGet(s, &i) != i) r = 0, fprintf(stderr, "***FAILED*** %s: BRSetGet() test %d\n", __func__, i);
+    }
+    
+    for (i = 0; i < 500; i++) {
+        if (*(int *)BRSetRemove(s, &i) != i)
+            r = 0, fprintf(stderr, "***FAILED*** %s: BRSetRemove() test %d\n", __func__, i);
+    }
+
+    if (BRSetCount(s) != 500) r = 0, fprintf(stderr, "***FAILED*** %s: BRSetCount() test 1\n", __func__);
+
+    for (i = 999; i >= 500; i--) {
+        if (*(int *)BRSetRemove(s, &i) != i)
+            r = 0, fprintf(stderr, "***FAILED*** %s: BRSetRemove() test %d\n", __func__, i);
+    }
+
+    if (BRSetCount(s) != 0) r = 0, fprintf(stderr, "***FAILED*** %s: BRSetCount() test 2\n", __func__);
+    
     return r;
 }
 
@@ -1680,6 +1725,8 @@ int BRRunTests()
     printf("%s\n", (BRArrayTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRListTests...            ");
     printf("%s\n", (BRListTests()) ? "success" : (fail++, "***FAIL***"));
+    printf("BRSetTests...             ");
+    printf("%s\n", (BRSetTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRBase58Tests...          ");
     printf("%s\n", (BRBase58Tests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRHashTests...            ");
@@ -1706,7 +1753,7 @@ int BRRunTests()
     
     if (fail > 0) printf("%d TEST FUNCTION(S) ***FAILED***\n", fail);
     else printf("ALL TESTS PASSED\n");
-    
+        
     UInt512 seed = UINT512_ZERO;
     BRMasterPubKey mpk = BR_MASTER_PUBKEY_NONE;
     

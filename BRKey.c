@@ -138,7 +138,7 @@ size_t BRSecp256k1PointMul(void *r, const void *p, UInt256 i, int compressed)
     return size;
 }
 
-// returns true of privKey is a valid private key
+// returns true if privKey is a valid private key
 int BRPrivKeyIsValid(const char *privKey)
 {
     uint8_t data[34];

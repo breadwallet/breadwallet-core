@@ -1068,6 +1068,7 @@ void BRPeerDisconnect(BRPeer *peer)
     int socket = ctx->socket;
 
     if (socket >= 0) {
+        ctx->socket = -1;
         if (shutdown(socket, SHUT_RDWR) < 0) peer_log(peer, "%s", strerror(errno));
         close(socket);
     }

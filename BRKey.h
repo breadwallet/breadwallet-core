@@ -36,7 +36,7 @@ UInt256 BRSecp256k1ModMul(UInt256 a, UInt256 b); // multiply 256bit big endian i
 size_t BRSecp256k1PointAdd(void *r, const void *a, const void *b, int compressed); // add secp256k1 ec-points
 size_t BRSecp256k1PointMul(void *r, const void *p, UInt256 i, int compressed); // multiply ec-point by 256bit BE int
 
-// returns true of privKey is a valid private key
+// returns true if privKey is a valid private key
 int BRPrivKeyIsValid(const char *privKey);
 
 typedef struct {

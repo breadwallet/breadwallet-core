@@ -129,9 +129,9 @@ void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scrip
     }
 }
 
-// Writes the binary transaction data that needs to be hashed and signed with the private key for the tx input at
-// subscriptIdx. A subscriptIdx of SIZE_MAX will return the entire signed transaction. Returns number of bytes written,
-// or total len needed if data is NULL.
+// writes the binary transaction data that needs to be hashed and signed for the tx input at subscriptIdx
+// a subscriptIdx of SIZE_MAX will return the entire signed transaction
+// returns number of bytes written, or total len needed if data is NULL
 static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t len, size_t subscriptIdx)
 {
     size_t i, off = 0;

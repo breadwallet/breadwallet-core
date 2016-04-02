@@ -135,7 +135,7 @@ int BRWalletContainsTransaction(BRWallet *wallet, const BRTransaction *tx);
 // adds a transaction to the wallet, or returns false if it isn't associated with the wallet
 int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx);
 
-// removes a transaction from the wallet along with any transactions that depend on its outputs
+// removes a tx from the wallet and calls BRTransactionFree() on it, along with any tx that depend on its outputs
 void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash);
 
 // returns the transaction with the given hash if it's been registered in the wallet
@@ -180,7 +180,7 @@ uint64_t BRWalletMinOutputAmount(BRWallet *wallet);
 // maximum amount that can be sent from the wallet to a single address after fees
 uint64_t BRWalletMaxOutputAmount(BRWallet *wallet);
 
-// frees memory allocated for wallet, also calls BRTransactionFree() for all registered transactions
+// frees memory allocated for wallet, and calls BRTransactionFree() for all registered transactions
 void BRWalletFree(BRWallet *wallet);
 
 // returns the given amount (satoshis) in local currency units (i.e. pennies)

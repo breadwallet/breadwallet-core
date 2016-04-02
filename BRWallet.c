@@ -562,7 +562,7 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
         // fee amount after adding a change output
         feeAmount = _txFee(wallet->feePerKb, BRTransactionSize(transaction) + TX_OUTPUT_SIZE + cpfpSize);
 
-        // increase fee to round off balance to 100 satoshi
+        // increase fee to round off remaining wallet balance to nearest 100 satoshi
         if (wallet->balance > amount + feeAmount) feeAmount += (wallet->balance - (amount + feeAmount)) % 100;
         
         if (balance == amount + feeAmount || balance >= amount + feeAmount + TX_MIN_OUTPUT_AMOUNT) break;
@@ -674,7 +674,7 @@ int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx)
     return r;
 }
 
-// removes a transaction from the wallet along with any transactions that depend on its outputs
+// removes a tx from the wallet and calls BRTransactionFree() on it, along with any tx that depend on its outputs
 void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
 {
     BRTransaction *tx, *t;
@@ -1005,7 +1005,7 @@ uint64_t BRWalletMaxOutputAmount(BRWallet *wallet)
     return (amount > fee) ? amount - fee : 0;
 }
 
-// frees memory allocated for wallet, also calls BRTransactionFree() for all registered transactions
+// frees memory allocated for wallet, and calls BRTransactionFree() for all registered transactions
 void BRWalletFree(BRWallet *wallet)
 {
     pthread_mutex_lock(&wallet->lock);
