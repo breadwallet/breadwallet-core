@@ -174,8 +174,11 @@ uint64_t BRWalletBalanceAfterTx(BRWallet *wallet, const BRTransaction *tx);
 // fee that will be added for a transaction of the given size in bytes
 uint64_t BRWalletFeeForTxSize(BRWallet *wallet, size_t size);
 
-// outputs below this amount are uneconomical due to fees
+// outputs below this amount are uneconomical due to fees (TX_MIN_OUTPUT_AMOUNT is the absolute minimum output amount)
 uint64_t BRWalletMinOutputAmount(BRWallet *wallet);
+
+// maximum amount that can be sent from the wallet to a single address after fees
+uint64_t BRWalletMaxOutputAmount(BRWallet *wallet);
 
 // frees memory allocated for wallet, also calls BRTransactionFree() for all registered transactions
 void BRWalletFree(BRWallet *wallet);
