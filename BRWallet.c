@@ -515,7 +515,7 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
     }
     
     pthread_mutex_lock(&wallet->lock);
-    feeAmount = _txFee(wallet->feePerKb, BRTransactionSize(transaction) + 34);
+    feeAmount = _txFee(wallet->feePerKb, BRTransactionSize(transaction) + TX_OUTPUT_SIZE);
     
     // TODO: use up all UTXOs for all used addresses to avoid leaving funds in addresses whose public key is revealed
     // TODO: avoid combining addresses in a single transaction when possible to reduce information leakage
@@ -556,12 +556,15 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
         
         balance += tx->outputs[o->n].amount;
         
-        if (tx->blockHeight == TX_UNCONFIRMED && ! _BRWalletTxIsSend(wallet, tx)) {
-            cpfpSize += BRTransactionSize(tx); // size of unconfirmed, non-change inputs for child-pays-for-parent fee
-        }
+        // size of unconfirmed, non-change inputs for child-pays-for-parent fee
+        if (tx->blockHeight == TX_UNCONFIRMED && ! _BRWalletTxIsSend(wallet, tx)) cpfpSize += BRTransactionSize(tx);
 
-        feeAmount = _txFee(wallet->feePerKb, BRTransactionSize(transaction) + 34 + cpfpSize); // add a change output
-        if (wallet->balance > amount) feeAmount += (wallet->balance - amount) % 100; // round off balance to 100 satoshi
+        // fee amount after adding a change output
+        feeAmount = _txFee(wallet->feePerKb, BRTransactionSize(transaction) + TX_OUTPUT_SIZE + cpfpSize);
+
+        // increase fee to round off balance to 100 satoshi
+        if (wallet->balance > amount + feeAmount) feeAmount += (wallet->balance - (amount + feeAmount)) % 100;
+        
         if (balance == amount + feeAmount || balance >= amount + feeAmount + TX_MIN_OUTPUT_AMOUNT) break;
     }
     
@@ -990,14 +993,15 @@ uint64_t BRWalletMaxOutputAmount(BRWallet *wallet)
         if (! tx || o->n >= tx->outCount) continue;
         inCount++;
         amount += tx->outputs[o->n].amount;
-        txSize += TX_INPUT_SIZE;
+        
+        // size of unconfirmed, non-change inputs for child-pays-for-parent fee
         if (tx->blockHeight == TX_UNCONFIRMED && ! _BRWalletTxIsSend(wallet, tx)) cpfpSize += BRTransactionSize(tx);
     }
 
+    txSize = 8 + BRVarIntSize(inCount) + TX_INPUT_SIZE*inCount + BRVarIntSize(2) + TX_OUTPUT_SIZE*2;
+    fee = _txFee(wallet->feePerKb, txSize + cpfpSize);
     pthread_mutex_unlock(&wallet->lock);
     
-    txSize = 8 + BRVarIntSize(inCount) + inCount*TX_INPUT_SIZE + BRVarIntSize(1) + TX_OUTPUT_SIZE;
-    fee = BRWalletFeeForTxSize(wallet, txSize + cpfpSize);
     return (amount > fee) ? amount - fee : 0;
 }
 
