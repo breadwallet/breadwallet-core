@@ -513,7 +513,7 @@ static int _BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t 
                     if (ctx->requestedTx) tx = ctx->requestedTx(ctx->info, hash);
 
                     if (tx) {
-                        uint8_t buf[BRTransactionSerialize(tx, NULL, 0)];
+                        uint8_t buf[BRTransactionSerialize(tx, NULL, 0)]; // BUG: XXXX stack overflow vulnerabiliy
                         size_t bufLen = BRTransactionSerialize(tx, buf, sizeof(buf));
                         
                         BRPeerSendMessage(peer, buf, bufLen, MSG_TX);

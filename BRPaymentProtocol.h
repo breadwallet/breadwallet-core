@@ -76,7 +76,7 @@ size_t BRPaymentProtocolRequestSerialize(BRPaymentProtocolRequest *request, uint
 
 // writes the DER encoded certificate corresponding to index to cert
 // returns the number of bytes written to cert, or the total certLen needed if cert is NULL
-// returns 0 if index of out-of-bounds
+// returns 0 if index is out-of-bounds
 size_t BRPaymentProtocolRequestCert(BRPaymentProtocolRequest *request, uint8_t *cert, size_t certLen, size_t index);
 
 // writes the hash of the request to md needed to sign or verify the request

@@ -75,27 +75,45 @@ static const uint8_t *_ProtoBufLenDelim(const uint8_t *buf, size_t *len, size_t 
 
 static void _ProtoBufSetLenDelim(uint8_t *buf, size_t len, const void *data, size_t dataLen, size_t *off)
 {
-    _ProtoBufSetVarInt(buf, len, dataLen, off);
-    if (buf && *off + dataLen <= len) memcpy(buf + *off, data, dataLen);
-    *off += dataLen;
+    if (data) {
+        _ProtoBufSetVarInt(buf, len, dataLen, off);
+        if (buf && *off + dataLen <= len) memcpy(buf + *off, data, dataLen);
+        *off += dataLen;
+    }
+}
+
+// the following fixed int functions are not used by payment protocol, and only work for parsing/serializing unknown
+// fields - the values returned or set are unconverted raw byte values
+static uint64_t _ProtoBufFixed(const uint8_t *buf, size_t len, size_t *off, size_t size)
+{
+    uint64_t i = 0;
+    
+    if (buf && *off + size <= len && size <= sizeof(i)) memcpy(&i, buf + *off, size);
+    *off += size;
+    return i;
+}
+
+static void _ProtoBufSetFixed(uint8_t *buf, size_t len, uint64_t i, size_t *off, size_t size)
+{
+    if (buf && *off + size <= len && size <= sizeof(i)) memcpy(buf + *off, &i, size);
+    *off += size;
 }
 
 // sets either i or data depending on field type, and returns field key
 static uint64_t _ProtoBufField(uint64_t *i, const uint8_t **data, const uint8_t *buf, size_t *len, size_t *off)
 {
-    uint64_t key = _ProtoBufVarInt(buf, *len, off);
-    uint64_t varInt = 0;
+    uint64_t varInt = 0, fixedInt = 0, key = _ProtoBufVarInt(buf, *len, off);
     const uint8_t *lenDelim = NULL;
     
     switch (key & 0x07) {
         case PROTOBUF_VARINT: varInt = _ProtoBufVarInt(buf, *len, off); if (i) *i = varInt; break;
-        case PROTOBUF_64BIT: *off += sizeof(uint64_t); break; // not used by payment protocol
+        case PROTOBUF_64BIT: fixedInt = _ProtoBufFixed(buf, *len, off, sizeof(uint64_t)); if (i) *i = fixedInt; break;
         case PROTOBUF_LENDELIM: lenDelim = _ProtoBufLenDelim(buf, len, off); if (data) *data = lenDelim; break;
-        case PROTOBUF_32BIT: *off += sizeof(uint32_t); break; // not used by payment protocol
+        case PROTOBUF_32BIT: fixedInt = _ProtoBufFixed(buf, *len, off, sizeof(uint32_t)); if (i) *i = fixedInt; break;
         default: break;
     }
     
-    return key >> 3;
+    return key;
 }
 
 static void _ProtoBufString(char **str, const void *data, size_t len)
@@ -110,7 +128,7 @@ static void _ProtoBufString(char **str, const void *data, size_t len)
 
 static void _ProtoBufSetString(uint8_t *buf, size_t len, const char *str, uint64_t key, size_t *off)
 {
-    size_t strLen = strlen(str);
+    size_t strLen = (str) ? strlen(str) : 0;
     
     _ProtoBufSetVarInt(buf, len, (key << 3) | PROTOBUF_LENDELIM, off);
     _ProtoBufSetLenDelim(buf, len, str, strLen, off);
@@ -127,7 +145,7 @@ static size_t _ProtoBufBytes(uint8_t **bytes, const void *data, size_t len)
     return (*bytes) ? array_count(*bytes) : 0;
 }
 
-static void _ProtoBufSetBytes(uint8_t *buf, size_t len, const uint8_t *bytes, size_t bytesLen, uint64_t key, size_t *off)
+static void _ProtoBufSetBytes(uint8_t *buf, size_t len, const uint8_t *bytes, size_t bytesLen, uint64_t key,size_t *off)
 {
     _ProtoBufSetVarInt(buf, len, (key << 3) | PROTOBUF_LENDELIM, off);
     _ProtoBufSetLenDelim(buf, len, bytes, bytesLen, off);
@@ -139,20 +157,63 @@ static void _ProtoBufSetInt(uint8_t *buf, size_t len, uint64_t i, uint64_t key, 
     _ProtoBufSetVarInt(buf, len, i, off);
 }
 
-#define proto_buf_is_default(array, key) (\
+static void _ProtoBufUnknown(uint8_t **unknown, uint64_t key, uint64_t i, const void *data, size_t len)
+{
+    uint8_t buf[10 + ((key & 0x07) == PROTOBUF_LENDELIM ? len : 0)]; // BUG: XXXX stack overflow vulnerability
+    size_t off = 0, o = 0, l;
+    uint64_t k;
+    
+    _ProtoBufSetVarInt(buf, sizeof(buf), key, &off);
+    
+    switch (key & 0x07) {
+        case PROTOBUF_VARINT: _ProtoBufSetVarInt(buf, sizeof(buf), i, &off); break;
+        case PROTOBUF_64BIT: _ProtoBufSetFixed(buf, sizeof(buf), i, &off, sizeof(uint64_t)); break;
+        case PROTOBUF_LENDELIM: _ProtoBufSetLenDelim(buf, sizeof(buf), data, len, &off); break;
+        case PROTOBUF_32BIT: _ProtoBufSetFixed(buf, sizeof(buf), i, &off, sizeof(uint32_t)); break;
+        default: break;
+    }
+    
+    len = off;
+    off = 0;
+    if (! *unknown) array_new(*unknown, len);
+    
+    while (off < array_count(*unknown)) {
+        l = array_count(*unknown);
+        o = off;
+        k = _ProtoBufField(NULL, NULL, *unknown, &l, &off);
+        if (k == key) array_rm_range(*unknown, o, off - o);
+        if (k >= key) break;
+    }
+    
+    array_insert_array(*unknown, o, buf, len);
+}
+
+#define _protobuf_is_default(array, key) (\
     ((key) < (array_capacity(array) - array_count(array))*sizeof(*(array))) ?\
         ((uint8_t *)&(array)[array_count(array)])[(key)] : 0\
 )
 
-#define proto_buf_set_default(array, key) do {\
+#define _protobuf_set_default(array, key) do {\
     if ((array_capacity(array) - array_count(array))*sizeof(*(array)) <= (key))\
-        array_set_capacity((array), array_count(array) + 1 + ((key) + 1)/sizeof(*(array)));\
+        array_set_capacity((array), array_count(array) + 1 + (key)/sizeof(*(array)));\
     ((uint8_t *)&(array)[array_count(array)])[(key)] = 1;\
+} while(0)
+
+#define _protobuf_unknown(array, key) (\
+    ((key) + sizeof(uint8_t *) - 1 < (array_capacity(array) - array_count(array))*sizeof(*(array))) ?\
+        *(uint8_t **)(((uint8_t *)&(array)[array_count(array)]) + (key)) : NULL\
+)
+
+#define _protobuf_set_unknown(array, key, unknown) do {\
+    if ((array_capacity(array) - array_count(array))*sizeof(*(array)) <= (key) + sizeof(uint8_t *) - 1)\
+        array_set_capacity((array), array_count(array) + 1 + ((key) + sizeof(uint8_t *) - 1)/sizeof(*(array)));\
+    *(uint8_t **)(((uint8_t *)&(array)[array_count(array)]) + (key)) = (unknown);\
 } while(0)
 
 typedef enum {
     output_amount = 1,
-    output_script = 2
+    output_script = 2,
+    output_unknown = 3,
 } output_key;
 
 typedef enum {
@@ -162,7 +223,8 @@ typedef enum {
     details_expires = 4,
     details_memo = 5,
     details_payment_url = 6,
-    details_merchant_data = 7
+    details_merch_data = 7,
+    details_unknown = 8,
 } details_key;
 
 typedef enum {
@@ -170,64 +232,78 @@ typedef enum {
     request_pki_type = 2,
     request_pki_data = 3,
     request_details = 4,
-    request_signature = 5
+    request_signature = 5,
+    request_unknown = 6
 } request_key;
 
 typedef enum {
-    certificates_cert = 1
+    certificates_cert = 1,
+    certificates_unknown = 2
 } certificates_key;
 
 typedef enum {
-    payment_merchant_data = 1,
+    payment_merch_data = 1,
     payment_transactions = 2,
     payment_refund_to = 3,
-    payment_memo = 4
+    payment_memo = 4,
+    payment_unknown = 5
 } payment_key;
 
 typedef enum {
     ack_payment = 1,
-    ack_memo = 2
+    ack_memo = 2,
+    ack_unknown = 3
 } ack_key;
 
 static void _BRPaymentProtocolOutputParse(BRTxOutput *output, const uint8_t *buf, size_t len)
 {
     size_t off = 0;
+    uint8_t *unknown = NULL;
     
     output->amount = UINT64_MAX;
     
     while (off < len) {
-        uint64_t i = 0;
         const uint8_t *data = NULL;
         size_t dataLen = len;
+        uint64_t i = 0, key = _ProtoBufField(&i, &data, buf, &dataLen, &off);
         
-        switch (_ProtoBufField(&i, &data, buf, &dataLen, &off)) {
+        switch (key >> 3) {
             case output_amount: output->amount = i; break;
             case output_script: BRTxOutputSetScript(output, data, dataLen); break;
-            default: break;
+            default: _ProtoBufUnknown(&unknown, key, i, data, dataLen); break;
         }
     }
     
     if (! output->script) {
         array_new(output->script, 0);
-        proto_buf_set_default(output->script, output_script);
+        _protobuf_set_default(output->script, output_script);
     }
     
     if (output->amount == UINT64_MAX) {
         output->amount = 0;
-        proto_buf_set_default(output->script, output_amount);
+        _protobuf_set_default(output->script, output_amount);
     }
+    
+    if (unknown) _protobuf_set_unknown(output->script, output_unknown, unknown);
 }
 
 static size_t _BRPaymentProtocolOutputSerialize(BRTxOutput *output, uint8_t *buf, size_t len)
 {
     size_t off = 0;
     
-    if (output->script && ! proto_buf_is_default(output->script, output_amount)) {
+    if (output->script && ! _protobuf_is_default(output->script, output_amount)) {
         _ProtoBufSetInt(buf, len, output->amount, output_amount, &off);
     }
     
-    if (output->script && ! proto_buf_is_default(output->script, output_script)) {
+    if (output->script && ! _protobuf_is_default(output->script, output_script)) {
         _ProtoBufSetBytes(buf, len, output->script, output->scriptLen, output_script, &off);
+    }
+    
+    if (output->script && _protobuf_unknown(output->script, output_unknown)) {
+        uint8_t *unknown = _protobuf_unknown(output->script, output_unknown);
+ 
+        if (buf && off + array_count(unknown) <= len) memcpy(buf + off, unknown, array_count(unknown));
+        off += array_count(unknown);
     }
     
     return (! buf || off <= len) ? off : 0;
@@ -239,24 +315,25 @@ BRPaymentProtocolDetails *BRPaymentProtocolDetailsParse(const uint8_t *buf, size
 {
     BRPaymentProtocolDetails *details = calloc(1, sizeof(BRPaymentProtocolDetails));
     size_t off = 0;
+    uint8_t *unknown = NULL;
 
     array_new(details->outputs, 1);
     
     while (off < len) {
         BRTxOutput output = BR_TX_OUTPUT_NONE;
-        uint64_t i = 0;
         const uint8_t *data = NULL;
-        size_t dataLen = len;
+        size_t dLen = len;
+        uint64_t i = 0, key = _ProtoBufField(&i, &data, buf, &dLen, &off);
 
-        switch (_ProtoBufField(&i, &data, buf, &dataLen, &off)) {
-            case details_network: _ProtoBufString(&details->network, data, dataLen); break;
-            case details_outputs: _BRPaymentProtocolOutputParse(&output, data, dataLen); break;
+        switch (key >> 3) {
+            case details_network: _ProtoBufString(&details->network, data, dLen); break;
+            case details_outputs: _BRPaymentProtocolOutputParse(&output, data, dLen); break;
             case details_time: details->time = i; break;
             case details_expires: details->expires = i; break;
-            case details_memo: _ProtoBufString(&details->memo, data, dataLen); break;
-            case details_payment_url: _ProtoBufString(&details->paymentURL, data, dataLen); break;
-            case details_merchant_data: details->merchDataLen = _ProtoBufBytes(&details->merchantData, data, dataLen);
-            default: break;
+            case details_memo: _ProtoBufString(&details->memo, data, dLen); break;
+            case details_payment_url: _ProtoBufString(&details->paymentURL, data, dLen); break;
+            case details_merch_data: details->merchDataLen = _ProtoBufBytes(&details->merchantData, data, dLen); break;
+            default: _ProtoBufUnknown(&unknown, key, i, data, dLen); break;
         }
 
         if (output.script) array_add(details->outputs, output);
@@ -264,10 +341,12 @@ BRPaymentProtocolDetails *BRPaymentProtocolDetailsParse(const uint8_t *buf, size
     
     if (! details->network) {
         _ProtoBufString(&details->network, "main", strlen("main"));
-        proto_buf_set_default(details->network, details_network);
+        _protobuf_set_default(details->network, details_network);
     }
     
     details->outputsCount = array_count(details->outputs);
+    
+    if (unknown) _protobuf_set_unknown(details->network, details_unknown, unknown);
     
     if (details->outputsCount == 0) { // one or more outputs required
         BRPaymentProtocolDetailsFree(details);
@@ -282,12 +361,12 @@ size_t BRPaymentProtocolDetailsSerialize(BRPaymentProtocolDetails *details, uint
 {
     size_t off = 0;
     
-    if (details->network && ! proto_buf_is_default(details->network, details_network)) {
+    if (details->network && ! _protobuf_is_default(details->network, details_network)) {
         _ProtoBufSetString(buf, len, details->network, details_network, &off);
     }
     
     for (size_t i = 0; i < details->outputsCount; i++) {
-        uint8_t outputBuf[_BRPaymentProtocolOutputSerialize(&details->outputs[i], NULL, 0)];
+        uint8_t outputBuf[_BRPaymentProtocolOutputSerialize(&details->outputs[i], NULL, 0)]; // BUG: XXXX stack overflow
         size_t outputLen = _BRPaymentProtocolOutputSerialize(&details->outputs[i], outputBuf, sizeof(outputBuf));
 
         _ProtoBufSetBytes(buf, len, outputBuf, outputLen, details_outputs, &off);
@@ -298,17 +377,32 @@ size_t BRPaymentProtocolDetailsSerialize(BRPaymentProtocolDetails *details, uint
     if (details->memo) _ProtoBufSetString(buf, len, details->memo, details_memo, &off);
     if (details->paymentURL) _ProtoBufSetString(buf, len, details->paymentURL, details_payment_url, &off);
     if (details->merchantData) _ProtoBufSetBytes(buf, len, details->merchantData, details->merchDataLen,
-                                                 details_merchant_data, &off);
+                                                 details_merch_data, &off);
 
+    if (details->network && _protobuf_unknown(details->network, details_unknown)) {
+        uint8_t *unknown = _protobuf_unknown(details->network, details_unknown);
+        
+        if (buf && off + array_count(unknown) <= len) memcpy(buf + off, unknown, array_count(unknown));
+        off += array_count(unknown);
+    }
+    
     return (! buf || off <= len) ? off : 0;
 }
 
 // frees memory allocated for details struct
 void BRPaymentProtocolDetailsFree(BRPaymentProtocolDetails *details)
 {
+    if (details->network && _protobuf_unknown(details->network, details_unknown)) {
+        array_free(_protobuf_unknown(details->network, details_unknown));
+    }
+
     if (details->network) array_free(details->network);
 
     for (size_t i = 0; i < details->outputsCount; i++) {
+        if (details->outputs[i].script && _protobuf_unknown(details->outputs[i].script, output_unknown)) {
+            array_free(_protobuf_unknown(details->outputs[i].script, output_unknown));
+        }
+        
         BRTxOutputSetScript(&details->outputs[i], NULL, 0);
     }
     
@@ -325,33 +419,36 @@ BRPaymentProtocolRequest *BRPaymentProtocolRequestParse(const uint8_t *buf, size
 {
     BRPaymentProtocolRequest *request = calloc(1, sizeof(BRPaymentProtocolRequest));
     size_t off = 0;
+    uint8_t *unknown = NULL;
     
     request->version = UINT32_MAX;
     
     while (off < len) {
-        uint64_t i = 0;
         const uint8_t *data = NULL;
         size_t dataLen = len;
+        uint64_t i = 0, key = _ProtoBufField(&i, &data, buf, &dataLen, &off);
         
-        switch (_ProtoBufField(&i, &data, buf, &dataLen, &off)) {
+        switch (key >> 3) {
             case request_version: request->version = (uint32_t)i; break;
             case request_pki_type: _ProtoBufString(&request->pkiType, data, dataLen); break;
             case request_pki_data: request->pkiLen = _ProtoBufBytes(&request->pkiData, data, dataLen); break;
             case request_details: request->details = BRPaymentProtocolDetailsParse(data, dataLen); break;
             case request_signature: request->sigLen = _ProtoBufBytes(&request->signature, data, dataLen); break;
-            default: break;
+            default: _ProtoBufUnknown(&unknown, key, i, data, dataLen); break;
         }
     }
     
     if (! request->pkiType) {
         _ProtoBufString(&request->pkiType, "none", strlen("none"));
-        proto_buf_set_default(request->pkiType, request_pki_type);
+        _protobuf_set_default(request->pkiType, request_pki_type);
     }
     
     if (request->version == UINT32_MAX) {
         request->version = 1;
-        proto_buf_set_default(request->pkiType, request_version);
+        _protobuf_set_default(request->pkiType, request_version);
     }
+    
+    if (unknown) _protobuf_set_unknown(request->pkiType, request_unknown, unknown);
     
     if (! request->details) { // required
         BRPaymentProtocolRequestFree(request);
@@ -366,18 +463,18 @@ size_t BRPaymentProtocolRequestSerialize(BRPaymentProtocolRequest *request, uint
 {
     size_t off = 0;
 
-    if (request->pkiType && ! proto_buf_is_default(request->pkiType, request_version)) {
+    if (request->pkiType && ! _protobuf_is_default(request->pkiType, request_version)) {
         _ProtoBufSetInt(buf, len, request->version, request_version, &off);
     }
     
-    if (request->pkiType && ! proto_buf_is_default(request->pkiType, request_pki_type)) {
+    if (request->pkiType && ! _protobuf_is_default(request->pkiType, request_pki_type)) {
         _ProtoBufSetString(buf, len, request->pkiType, request_pki_type, &off);
     }
     
     if (request->pkiData) _ProtoBufSetBytes(buf, len, request->pkiData, request->pkiLen, request_pki_data, &off);
 
     if (request->details) {
-        uint8_t detailsBuf[BRPaymentProtocolDetailsSerialize(request->details, NULL, 0)];
+        uint8_t detailsBuf[BRPaymentProtocolDetailsSerialize(request->details, NULL, 0)]; // BUG: XXXX stack overflow
         size_t detailsLen = BRPaymentProtocolDetailsSerialize(request->details, detailsBuf, sizeof(detailsBuf));
 
         _ProtoBufSetBytes(buf, len, detailsBuf, detailsLen, request_details, &off);
@@ -385,22 +482,29 @@ size_t BRPaymentProtocolRequestSerialize(BRPaymentProtocolRequest *request, uint
     
     if (request->signature) _ProtoBufSetBytes(buf, len, request->signature, request->sigLen, request_signature, &off);
 
+    if (request->pkiType && _protobuf_unknown(request->pkiType, request_unknown)) {
+        uint8_t *unknown = _protobuf_unknown(request->pkiType, request_unknown);
+        
+        if (buf && off + array_count(unknown) <= len) memcpy(buf + off, unknown, array_count(unknown));
+        off += array_count(unknown);
+    }
+
     return (! buf || off <= len) ? off : 0;
 }
 
 // writes the DER encoded certificate corresponding to index to cert
 // returns the number of bytes written to cert, or the total certLen needed if cert is NULL
-// returns 0 if index of out-of-bounds
+// returns 0 if index is out-of-bounds
 size_t BRPaymentProtocolRequestCert(BRPaymentProtocolRequest *request, uint8_t *cert, size_t certLen, size_t index)
 {
     size_t off = 0, len = 0;
     
     while (request->pkiData && off < request->pkiLen) {
-        uint64_t i = 0;
         const uint8_t *data = NULL;
         size_t dataLen = request->pkiLen;
+        uint64_t i = 0, key = _ProtoBufField(&i, &data, request->pkiData, &dataLen, &off);
         
-        if (_ProtoBufField(&i, &data, request->pkiData, &dataLen, &off) == certificates_cert && data) {
+        if ((key >> 3) == certificates_cert && data) {
             if (index == 0) {
                 len = dataLen;
                 if (cert && len <= certLen) memcpy(cert, data, len);
@@ -419,7 +523,7 @@ size_t BRPaymentProtocolRequestDigest(BRPaymentProtocolRequest *request, uint8_t
 {
     request->sigLen = 0; // set signature to 0 bytes, a signature can't sign itself
     
-    uint8_t buf[BRPaymentProtocolRequestSerialize(request, NULL, 0)];
+    uint8_t buf[BRPaymentProtocolRequestSerialize(request, NULL, 0)]; // BUG: XXXX stack overflow
     size_t len = BRPaymentProtocolRequestSerialize(request, buf, sizeof(buf));
     
     if (request->pkiType && strncmp(request->pkiType, "x509+sha256", strlen("x509+sha256") + 1) == 0) {
@@ -439,6 +543,10 @@ size_t BRPaymentProtocolRequestDigest(BRPaymentProtocolRequest *request, uint8_t
 // frees memory allocated for request struct
 void BRPaymentProtocolRequestFree(BRPaymentProtocolRequest *request)
 {
+    if (request->pkiType && _protobuf_unknown(request->pkiType, request_unknown)) {
+        array_free(_protobuf_unknown(request->pkiType, request_unknown));
+    }
+
     if (request->pkiType) array_free(request->pkiType);
     if (request->pkiData) array_free(request->pkiData);
     if (request->details) BRPaymentProtocolDetailsFree(request->details);
@@ -495,6 +603,7 @@ BRPaymentProtocolPayment *BRPaymentProtocolPaymentParse(const uint8_t *buf, size
 {
     BRPaymentProtocolPayment *payment = calloc(1, sizeof(BRPaymentProtocolPayment));
     size_t off = 0;
+    uint8_t *unknown = NULL;
     
     array_new(payment->transactions, 1);
     array_new(payment->refundTo, 1);
@@ -502,16 +611,16 @@ BRPaymentProtocolPayment *BRPaymentProtocolPaymentParse(const uint8_t *buf, size
     while (off < len) {
         BRTransaction *tx = NULL;
         BRTxOutput output = BR_TX_OUTPUT_NONE;
-        uint64_t i = 0;
         const uint8_t *data = NULL;
-        size_t dataLen = len;
+        size_t dLen = len;
+        uint64_t i = 0, key = _ProtoBufField(&i, &data, buf, &dLen, &off);
         
-        switch (_ProtoBufField(&i, &data, buf, &dataLen, &off)) {
-            case payment_transactions: tx = BRTransactionParse(data, dataLen); break;
-            case payment_refund_to: _BRPaymentProtocolOutputParse(&output, data, dataLen); break;
-            case payment_memo: _ProtoBufString(&payment->memo, data, dataLen); break;
-            case payment_merchant_data: payment->merchDataLen = _ProtoBufBytes(&payment->merchantData, data, dataLen);
-            default: break;
+        switch (key >> 3) {
+            case payment_transactions: tx = BRTransactionParse(data, dLen); break;
+            case payment_refund_to: _BRPaymentProtocolOutputParse(&output, data, dLen); break;
+            case payment_memo: _ProtoBufString(&payment->memo, data, dLen); break;
+            case payment_merch_data: payment->merchDataLen = _ProtoBufBytes(&payment->merchantData, data, dLen); break;
+            default: _ProtoBufUnknown(&unknown, key, i, data, dLen); break;
         }
         
         if (tx) array_add(payment->transactions, tx);
@@ -520,6 +629,8 @@ BRPaymentProtocolPayment *BRPaymentProtocolPaymentParse(const uint8_t *buf, size
     
     payment->txCount = array_count(payment->transactions);
     payment->refundToCount = array_count(payment->refundTo);
+    
+    if (unknown) _protobuf_set_unknown(payment->transactions, payment_unknown, unknown);
     
     return payment;
 }
@@ -530,11 +641,11 @@ size_t BRPaymentProtocolPaymentSerialize(BRPaymentProtocolPayment *payment, uint
     size_t off = 0;
 
     if (payment->merchantData) {
-        _ProtoBufSetBytes(buf, len, payment->merchantData, payment->merchDataLen, payment_merchant_data, &off);
+        _ProtoBufSetBytes(buf, len, payment->merchantData, payment->merchDataLen, payment_merch_data, &off);
     }
 
     for (size_t i = 0; i < payment->txCount; i++) {
-        uint8_t txBuf[BRTransactionSerialize(payment->transactions[i], NULL, 0)];
+        uint8_t txBuf[BRTransactionSerialize(payment->transactions[i], NULL, 0)]; // BUG: XXXX stack overflow
         size_t txLen = BRTransactionSerialize(payment->transactions[i], txBuf, sizeof(txBuf));
 
         _ProtoBufSetBytes(buf, len, txBuf, txLen, payment_transactions, &off);
@@ -549,6 +660,13 @@ size_t BRPaymentProtocolPaymentSerialize(BRPaymentProtocolPayment *payment, uint
 
     if (payment->memo) _ProtoBufSetString(buf, len, payment->memo, payment_memo, &off);
 
+    if (payment->transactions && _protobuf_unknown(payment->transactions, payment_unknown)) {
+        uint8_t *unknown = _protobuf_unknown(payment->transactions, payment_unknown);
+        
+        if (buf && off + array_count(unknown) <= len) memcpy(buf + off, unknown, array_count(unknown));
+        off += array_count(unknown);
+    }
+    
     return (! buf || off <= len) ? off : 0;
 }
 
@@ -556,27 +674,46 @@ size_t BRPaymentProtocolPaymentSerialize(BRPaymentProtocolPayment *payment, uint
 void BRPaymentProtocolPaymentFree(BRPaymentProtocolPayment *payment)
 {
     if (payment->merchantData) array_free(payment->merchantData);
+    
+    if (payment->transactions && _protobuf_unknown(payment->transactions, payment_unknown)) {
+        array_free(_protobuf_unknown(payment->transactions, payment_unknown));
+    }
+
     if (payment->transactions) array_free(payment->transactions);
+    
+    for (size_t i = 0; i < payment->refundToCount; i++) {
+        if (payment->refundTo[i].script && _protobuf_unknown(payment->refundTo[i].script, output_unknown)) {
+            array_free(_protobuf_unknown(payment->refundTo[i].script, output_unknown));
+        }
+        
+        BRTxOutputSetScript(&payment->refundTo[i], NULL, 0);
+    }
+
+    if (payment->refundTo) array_free(payment->refundTo);
+    if (payment->memo) array_free(payment->memo);
 }
 
 // buf must contain a serialized ACK struct
 // returns a ACK struct that must be freed by calling BRPaymentProtocolACKFree()
 BRPaymentProtocolACK *BRPaymentProtocolACKParse(const uint8_t *buf, size_t len)
 {
-    BRPaymentProtocolACK *ack = calloc(1, sizeof(BRPaymentProtocolACK));
+    BRPaymentProtocolACK *ack = calloc(1, sizeof(BRPaymentProtocolACK) + sizeof(uint8_t *));
     size_t off = 0;
+    uint8_t *unknown = NULL;
     
     while (off < len) {
-        uint64_t i = 0;
         const uint8_t *data = NULL;
         size_t dataLen = len;
+        uint64_t i = 0, key = _ProtoBufField(&i, &data, buf, &dataLen, &off);
         
-        switch (_ProtoBufField(&i, &data, buf, &dataLen, &off)) {
+        switch (key >> 3) {
             case ack_payment: ack->payment = BRPaymentProtocolPaymentParse(data, dataLen); break;
             case ack_memo: _ProtoBufString(&ack->memo, data, dataLen); break;
-            default: break;
+            default: _ProtoBufUnknown(&unknown, key, i, data, dataLen); break;
         }
     }
+    
+    if (unknown) *(uint8_t **)(ack + 1) = unknown;
     
     if (! ack->payment) { // required
         BRPaymentProtocolACKFree(ack);
@@ -590,15 +727,21 @@ BRPaymentProtocolACK *BRPaymentProtocolACKParse(const uint8_t *buf, size_t len)
 size_t BRPaymentProtocolACKSerialize(BRPaymentProtocolACK *ack, uint8_t *buf, size_t len)
 {
     size_t off = 0;
+    uint8_t *unknown = *(uint8_t **)(ack + 1);
     
     if (ack->payment) {
-        uint8_t paymentBuf[BRPaymentProtocolPaymentSerialize(ack->payment, NULL, 0)];
+        uint8_t paymentBuf[BRPaymentProtocolPaymentSerialize(ack->payment, NULL, 0)]; // BUG: XXXX stack overflow
         size_t paymentLen = BRPaymentProtocolPaymentSerialize(ack->payment, paymentBuf, sizeof(paymentBuf));
         
         _ProtoBufSetBytes(buf, len, paymentBuf, paymentLen, ack_payment, &off);
     }
     
     if (ack->memo) _ProtoBufSetString(buf, len, ack->memo, ack_memo, &off);
+
+    if (unknown) {
+        if (buf && off + array_count(unknown) <= len) memcpy(buf + off, unknown, array_count(unknown));
+        off += array_count(unknown);
+    }
     
     return (! buf || off <= len) ? off : 0;
 }
@@ -606,7 +749,10 @@ size_t BRPaymentProtocolACKSerialize(BRPaymentProtocolACK *ack, uint8_t *buf, si
 // frees memory allocated for ACK struct
 void BRPaymentProtocolACKFree(BRPaymentProtocolACK *ack)
 {
+    uint8_t *unknown = *(uint8_t **)(ack + 1);
+    
     if (ack->payment) BRPaymentProtocolPaymentFree(ack->payment);
     if (ack->memo) array_free(ack->memo);
+    if (unknown) array_free(unknown);
     free(ack);
 }

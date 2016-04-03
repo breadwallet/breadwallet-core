@@ -1025,7 +1025,7 @@ void BRWalletFree(BRWallet *wallet)
     free(wallet);
 }
 
-// returns the given amount (satoshis) in local currency units (i.e. pennies)
+// returns the given amount (in satoshis) in local currency units (i.e. pennies, pence)
 // price is local currency units per bitcoin
 int64_t BRLocalAmount(int64_t amount, double price)
 {
@@ -1037,18 +1037,18 @@ int64_t BRLocalAmount(int64_t amount, double price)
 }
 
 // returns the given local currency amount in satoshis
-// price is local currency units per bitcoin
+// price is local currency units (i.e. pennies, pence) per bitcoin
 int64_t BRBitcoinAmount(int64_t localAmount, double price)
 {
     int overflowbits = 0;
-    int64_t p = 10, min, max, amount = 0;
+    int64_t p = 10, min, max, amount = 0, lamt = llabs(localAmount);
 
-    if (localAmount != 0 && price > 0) {
-        while (llabs(localAmount) + 1 > INT64_MAX/SATOSHIS) localAmount /= 2, overflowbits++; // will we overflow int64?
-        min = llabs(localAmount)*SATOSHIS/price; // minimum amount that safely matches localAmount
-        max = (llabs(localAmount) + 1)*SATOSHIS/price - 1; // maximum amount that safely matches localAmount
+    if (lamt != 0 && price > 0) {
+        while (lamt + 1 > INT64_MAX/SATOSHIS) lamt /= 2, overflowbits++; // make sure we won't overflow an int64_t
+        min = lamt*SATOSHIS/price; // minimum amount that safely matches localAmount
+        max = (lamt + 1)*SATOSHIS/price - 1; // maximum amount that safely matches localAmount
         amount = (min + max)/2; // average min and max
-        while (overflowbits > 0) localAmount *= 2, min *= 2, max *= 2, amount *= 2, overflowbits--;
+        while (overflowbits > 0) lamt *= 2, min *= 2, max *= 2, amount *= 2, overflowbits--;
         
         if (amount >= MAX_MONEY) return (localAmount < 0) ? -MAX_MONEY : MAX_MONEY;
         while ((amount/p)*p >= min && p <= INT64_MAX/10) p *= 10; // lowest decimal precision matching localAmount
