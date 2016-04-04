@@ -310,7 +310,7 @@ static int _BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t len)
             off += 36;
         }
 
-        if (txCount > 0 && ! ctx->sentFilter && ! ctx->sentMempool && ! ctx->sentGetblocks) {
+        if (! ctx->sentFilter && ! ctx->sentMempool && ! ctx->sentGetblocks) {
             peer_log(peer, "got inv message before loading a filter");
             r = 0;
         }
@@ -323,47 +323,51 @@ static int _BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t len)
             peer_log(peer, "non-standard inv, %zu is fewer block hashes than expected", blockCount);
             r = 0;
         }
+        else {
+            if (blockCount == 1 && UInt256Eq(ctx->lastBlockHash, *blocks[0])) blockCount = 0;
+            if (blockCount == 1) ctx->lastBlockHash = *blocks[0];
 
-        if (blockCount == 1 && UInt256Eq(ctx->lastBlockHash, *blocks[0])) blockCount = 0;
-        if (blockCount == 1) ctx->lastBlockHash = *blocks[0];
+            UInt256 blockHashes[blockCount], txHashes[txCount], *knownTxHashes = ctx->knownTxHashes;
 
-        UInt256 blockHashes[blockCount], txHashes[txCount], *knownTxHashes = ctx->knownTxHashes;
-
-        for (i = 0; i < blockCount; i++) {
-            blockHashes[i] = *blocks[i];
-            // remember blockHashes in case we need to re-request them with an updated bloom filter
-            array_add(ctx->knownBlockHashes, blockHashes[i]);
-        }
-        
-        while (array_count(ctx->knownBlockHashes) > MAX_GETDATA_HASHES) {
-            array_rm_range(ctx->knownBlockHashes, 0, array_count(ctx->knownBlockHashes)/3);
-        }
-        
-        if (ctx->needsFilterUpdate) blockCount = 0;
-        
-        for (i = 0, j = 0; i < txCount; i++) {
-            if (BRSetContains(ctx->knownTxHashSet, transactions[i])) continue; // skip transactions we already have
-            txHashes[j++] = *transactions[i];
-            array_add(knownTxHashes, txHashes[j - 1]);
-            
-            if (ctx->knownTxHashes != knownTxHashes) { // check if knownTxHashes was moved to a new memory location
-                ctx->knownTxHashes = knownTxHashes;
-                BRSetClear(ctx->knownTxHashSet);
-                for (k = array_count(knownTxHashes); k > 0; k--) BRSetAdd(ctx->knownTxHashSet, &knownTxHashes[k - 1]);
+            for (i = 0; i < blockCount; i++) {
+                blockHashes[i] = *blocks[i];
+                // remember blockHashes in case we need to re-request them with an updated bloom filter
+                array_add(ctx->knownBlockHashes, blockHashes[i]);
             }
-            else BRSetAdd(ctx->knownTxHashSet, &knownTxHashes[array_count(knownTxHashes) - 1]);
-            
-            if (ctx->hasTx) ctx->hasTx(ctx->info, txHashes[j - 1]);
-        }
         
-        txCount = j;
-        if (txCount > 0 || blockCount > 0) BRPeerSendGetdata(peer, txHashes, txCount, blockHashes, blockCount);
-    
-        // to improve chain download performance, if we received 500 block hashes, we request the next 500 block hashes
-        if (blockCount >= 500) {
-            UInt256 locators[] = { blockHashes[blockCount - 1], blockHashes[0] };
+            while (array_count(ctx->knownBlockHashes) > MAX_GETDATA_HASHES) {
+                array_rm_range(ctx->knownBlockHashes, 0, array_count(ctx->knownBlockHashes)/3);
+            }
+        
+            if (ctx->needsFilterUpdate) blockCount = 0;
+        
+            for (i = 0, j = 0; i < txCount; i++) {
+                if (BRSetContains(ctx->knownTxHashSet, transactions[i])) continue; // skip transactions we already have
+                txHashes[j++] = *transactions[i];
+                array_add(knownTxHashes, txHashes[j - 1]);
             
-            BRPeerSendGetblocks(peer, locators, 2, UINT256_ZERO);
+                if (ctx->knownTxHashes != knownTxHashes) { // check if knownTxHashes was moved to a new memory location
+                    ctx->knownTxHashes = knownTxHashes;
+                    BRSetClear(ctx->knownTxHashSet);
+
+                    for (k = array_count(knownTxHashes); k > 0; k--) {
+                        BRSetAdd(ctx->knownTxHashSet, &knownTxHashes[k - 1]);
+                    }
+                }
+                else BRSetAdd(ctx->knownTxHashSet, &knownTxHashes[array_count(knownTxHashes) - 1]);
+            
+                if (ctx->hasTx) ctx->hasTx(ctx->info, txHashes[j - 1]);
+            }
+            
+            txCount = j;
+            if (txCount > 0 || blockCount > 0) BRPeerSendGetdata(peer, txHashes, txCount, blockHashes, blockCount);
+    
+            // to improve chain download performance, if we received 500 block hashes, request the next 500 block hashes
+            if (blockCount >= 500) {
+                UInt256 locators[] = { blockHashes[blockCount - 1], blockHashes[0] };
+            
+                BRPeerSendGetblocks(peer, locators, 2, UINT256_ZERO);
+            }
         }
     }
     
