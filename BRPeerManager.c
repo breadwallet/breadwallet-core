@@ -216,7 +216,7 @@ inline static int _BRBlockHeightEq(const void *block, const void *otherBlock)
 
 struct BRPeerManagerStruct {
     BRWallet *wallet;
-    int connected, connectFailures, misbehavinCount;
+    int isConnected, connectFailureCount, misbehavinCount;
     BRPeer *peers, *downloadPeer, **connectedPeers;
     uint32_t tweak, earliestKeyTime, syncStartHeight, filterUpdateHeight, estimatedHeight;
     BRBloomFilter *bloomFilter;
@@ -485,7 +485,7 @@ static void _requestUnrelayedTxGetdataDone(void *info, int success)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
-    int rescan = 0, notify = 0;
+    int shouldRescan = 0, willNotify = 0;
     size_t count = 0;
 
     free(info);
@@ -511,14 +511,14 @@ static void _requestUnrelayedTxGetdataDone(void *info, int success)
             if (_BRTxPeerListCount(manager->txRelays, tx[i]->txHash) == 0 &&
                 _BRTxPeerListCount(manager->txRequests, tx[i]->txHash) == 0) {
                 // if this is for a transaction we sent, and it wasn't already known to be invalid, notify user
-                if (! rescan && BRWalletAmountSentByTx(manager->wallet, tx[i]) > 0 &&
+                if (! shouldRescan && BRWalletAmountSentByTx(manager->wallet, tx[i]) > 0 &&
                     BRWalletTransactionIsValid(manager->wallet, tx[i])) {
-                    rescan = notify = 1;
+                    shouldRescan = willNotify = 1;
 
                     for (size_t j = 0; j < tx[i]->inCount; j++) { // only recommend a rescan if all inputs are confirmed
                         t = BRWalletTransactionForHash(manager->wallet, tx[i]->inputs[j].txHash);
                         if (t && t->blockHeight != TX_UNCONFIRMED) continue;
-                        rescan = 0;
+                        shouldRescan = 0;
                         break;
                     }
                 }
@@ -533,7 +533,7 @@ static void _requestUnrelayedTxGetdataDone(void *info, int success)
     }
 
     pthread_mutex_unlock(&manager->lock);
-    if (notify && manager->txRejected) manager->txRejected(manager->info, rescan);
+    if (willNotify && manager->txRejected) manager->txRejected(manager->info, shouldRescan);
 }
 
 static void _BRPeerManagerRequestUnrelayedTx(BRPeerManager *manager, BRPeer *peer)
@@ -737,7 +737,7 @@ static void _peerConnected(void *info)
     
     pthread_mutex_lock(&manager->lock);
     if (peer->timestamp > now + 2*60*60 || peer->timestamp < now - 2*60*60) peer->timestamp = now; // sanity check
-    manager->connectFailures = 0;
+    manager->connectFailureCount = 0;
     
     // drop peers that don't carry full blocks, or aren't synced yet
     // TODO: XXX does this work with 0.11 pruned nodes?
@@ -780,7 +780,7 @@ static void _peerConnected(void *info)
 
             if (manager->downloadPeer) BRPeerDisconnect(manager->downloadPeer);
             manager->downloadPeer = peer;
-            manager->connected = 1;
+            manager->isConnected = 1;
             manager->estimatedHeight = BRPeerLastBlock(peer);
             if (manager->bloomFilter) BRBloomFilterFree(manager->bloomFilter);
             manager->bloomFilter = NULL; // make sure the bloom filter is updated with any newly generated addresses
@@ -830,7 +830,7 @@ static void _peerDisconnected(void *info, int error)
             if (BRPeerEq(&manager->peers[i - 1], peer)) array_rm(manager->peers, i - 1);
         }
         
-        manager->connectFailures++;
+        manager->connectFailureCount++;
         isSyncing = (manager->lastBlock->height < manager->estimatedHeight);
         
         // if it's a timeout and there's pending tx publish callbacks, the tx publish timed out
@@ -848,12 +848,12 @@ static void _peerDisconnected(void *info, int error)
     }
 
     if (peer == manager->downloadPeer) { // download peer disconnected
-        manager->connected = 0;
+        manager->isConnected = 0;
         manager->downloadPeer = NULL;
-        if (manager->connectFailures > MAX_CONNECT_FAILURES) manager->connectFailures = MAX_CONNECT_FAILURES;
+        if (manager->connectFailureCount > MAX_CONNECT_FAILURES) manager->connectFailureCount = MAX_CONNECT_FAILURES;
     }
 
-    if (! manager->connected && manager->connectFailures == MAX_CONNECT_FAILURES) {
+    if (! manager->isConnected && manager->connectFailureCount == MAX_CONNECT_FAILURES) {
         _BRPeerManagerSyncStopped(manager);
         
         // clear out stored peers so we get a fresh list from DNS on next connect attempt
@@ -861,7 +861,7 @@ static void _peerDisconnected(void *info, int error)
         txError = ENOTCONN; // trigger any pending tx publish callbacks
         willSave = 1;
     }
-    else if (manager->connectFailures < MAX_CONNECT_FAILURES) willReconnect = 1;
+    else if (manager->connectFailureCount < MAX_CONNECT_FAILURES) willReconnect = 1;
     
     if (txError) {
         for (size_t i = array_count(manager->publishedTx); i > 0; i--) {
@@ -1508,19 +1508,19 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
 // true if currently connected to at least one peer
 int BRPeerMangerIsConnected(BRPeerManager *manager)
 {
-    int connected;
+    int isConnected;
     
     pthread_mutex_lock(&manager->lock);
-    connected = manager->connected;
+    isConnected = manager->isConnected;
     pthread_mutex_unlock(&manager->lock);
-    return connected;
+    return isConnected;
 }
 
 // connect to bitcoin peer-to-peer network (also call this whenever networkIsReachable() status changes)
 void BRPeerManagerConnect(BRPeerManager *manager)
 {
     pthread_mutex_lock(&manager->lock);
-    if (manager->connectFailures >= MAX_CONNECT_FAILURES) manager->connectFailures = 0; // this is a manual retry
+    if (manager->connectFailureCount >= MAX_CONNECT_FAILURES) manager->connectFailureCount = 0; //this is a manual retry
     
     if ((! manager->downloadPeer || manager->lastBlock->height < manager->estimatedHeight) &&
         manager->syncStartHeight == 0) {
@@ -1598,7 +1598,7 @@ void BRPeerManagerRescan(BRPeerManager *manager)
 {
     pthread_mutex_lock(&manager->lock);
     
-    if (manager->connected) {
+    if (manager->isConnected) {
         // start the chain download from the most recent checkpoint that's at least a week older than earliestKeyTime
         for (size_t i = CHECKPOINT_COUNT; i > 0; i--) {
             if (i - 1 == 0 || checkpoint_array[i - 1].timestamp + 7*24*60*60 < manager->earliestKeyTime) {
@@ -1708,7 +1708,7 @@ void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *inf
         BRTransactionFree(tx);
         if (callback) callback(info, EINVAL); // transaction not signed
     }
-    else if (! manager->connected && manager->connectFailures >= MAX_CONNECT_FAILURES) {
+    else if (! manager->isConnected && manager->connectFailureCount >= MAX_CONNECT_FAILURES) {
         pthread_mutex_unlock(&manager->lock);
         BRTransactionFree(tx);
         if (callback) callback(info, ENOTCONN); // not connected to bitcoin network

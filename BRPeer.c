@@ -310,7 +310,7 @@ static int _BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t len)
             off += 36;
         }
 
-        if (! ctx->sentFilter && ! ctx->sentMempool && ! ctx->sentGetblocks) {
+        if (txCount > 0 && ! ctx->sentFilter && ! ctx->sentMempool && ! ctx->sentGetblocks) {
             peer_log(peer, "got inv message before loading a filter");
             r = 0;
         }
@@ -324,6 +324,7 @@ static int _BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t len)
             r = 0;
         }
         else {
+            if (! ctx->sentFilter && ! ctx->sentGetblocks) blockCount = 0;
             if (blockCount == 1 && UInt256Eq(ctx->lastBlockHash, *blocks[0])) blockCount = 0;
             if (blockCount == 1) ctx->lastBlockHash = *blocks[0];
 

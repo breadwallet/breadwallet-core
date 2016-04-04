@@ -638,7 +638,7 @@ int BRWalletContainsTransaction(BRWallet *wallet, const BRTransaction *tx)
 // adds a transaction to the wallet, or returns false if it isn't associated with the wallet
 int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx)
 {
-    int added = 0, r = 1;
+    int wasAdded = 0, r = 1;
     
     if (BRTransactionIsSigned(tx)) {
         pthread_mutex_lock(&wallet->lock);
@@ -651,7 +651,7 @@ int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx)
                 BRSetAdd(wallet->allTx, tx);
                 _BRWalletInsertTx(wallet, tx);
                 _BRWalletUpdateBalance(wallet);
-                added = 1;
+                wasAdded = 1;
             }
             else { // keep track of unconfirmed non-wallet tx for invalid tx checks and child-pays-for-parent fees
                 if (tx->blockHeight == TX_UNCONFIRMED) BRSetAdd(wallet->allTx, tx);
@@ -663,7 +663,7 @@ int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx)
     }
     else r = 0;
 
-    if (added) {
+    if (wasAdded) {
         // when a wallet address is used in a transaction, generate a new address to replace it
         BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, 0);
         BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
