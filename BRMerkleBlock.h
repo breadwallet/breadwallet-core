@@ -47,7 +47,7 @@ typedef struct {
     uint32_t nonce;
     uint32_t totalTx;
     UInt256 *hashes;
-    size_t hashesLen;
+    size_t hashesCount;
     uint8_t *flags;
     size_t flagsLen;
     uint32_t height;

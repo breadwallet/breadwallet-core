@@ -321,9 +321,9 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
         manager->filterUpdateHeight = manager->lastBlock->height;
         manager->fpRate = BLOOM_REDUCED_FALSEPOSITIVE_RATE;
 
-        BRAddress addrs[BRWalletAllAddrs(manager->wallet, NULL, 0)];
+        BRAddress addrs[BRWalletAllAddrs(manager->wallet, NULL, 0)]; // BUG: XXXX stack overflow vulnerability
         size_t addrsCount = BRWalletAllAddrs(manager->wallet, addrs, sizeof(addrs)/sizeof(*addrs));
-        BRUTXO utxos[BRWalletUTXOs(manager->wallet, NULL, 0)];
+        BRUTXO utxos[BRWalletUTXOs(manager->wallet, NULL, 0)]; // BUG: XXXX stack overflow vulnerability
         size_t utxosCount = BRWalletUTXOs(manager->wallet, utxos, sizeof(utxos)/sizeof(*utxos));
 
         filter = BRBloomFilterNew(manager->fpRate, addrsCount + utxosCount + 100, manager->tweak, BLOOM_UPDATE_ALL);
@@ -504,7 +504,7 @@ static void _requestUnrelayedTxGetdataDone(void *info, int success)
     // don't remove transactions until we're connected to PEER_MAX_CONNECTION peers, and all peers have finished
     // relaying their mempools
     if (count >= PEER_MAX_CONNECTIONS) {
-        BRTransaction *tx[BRWalletUnconfirmedTx(manager->wallet, NULL, 0)], *t;
+        BRTransaction *t, *tx[BRWalletUnconfirmedTx(manager->wallet, NULL, 0)]; //BUG: XXXX stack overflow vulnerability
         size_t txCount = BRWalletUnconfirmedTx(manager->wallet, tx, sizeof(tx)/sizeof(*tx));
 
         for (size_t i = 0; i < txCount; i++) {
@@ -746,7 +746,7 @@ static void _peerConnected(void *info)
         BRPeerDisconnect(peer);
     }
     else {
-        BRTransaction *unconfirmed[BRWalletUnconfirmedTx(manager->wallet, NULL, 0)];
+        BRTransaction *unconfirmed[BRWalletUnconfirmedTx(manager->wallet, NULL, 0)]; // BUG: XXXX stack overflow
         size_t unconfirmedCount = BRWalletUnconfirmedTx(manager->wallet, unconfirmed,
                                                         sizeof(unconfirmed)/sizeof(*unconfirmed));
 
@@ -1142,7 +1142,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
-    UInt256 txHashes[BRMerkleBlockTxHashes(block, NULL, 0)];
+    UInt256 txHashes[BRMerkleBlockTxHashes(block, NULL, 0)]; // BUG: XXXX stack overflow vulnerability
     size_t txCount = BRMerkleBlockTxHashes(block, txHashes, sizeof(txHashes)/sizeof(*txHashes));
     size_t i, fpCount = 0, saveCount = 0;
     BRMerkleBlock orphan, *b, *b2, *prev, *next = NULL;
@@ -1300,7 +1300,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
             b = block;
         
             while (b && b2 && b->height > b2->height) { // set transaction heights for new main chain
-                UInt256 hashes[BRMerkleBlockTxHashes(b, NULL, 0)];
+                UInt256 hashes[BRMerkleBlockTxHashes(b, NULL, 0)]; // BUG: XXXX stack overflow vulnerability
                 size_t count = BRMerkleBlockTxHashes(b, hashes, sizeof(hashes)/sizeof(*hashes));
                 uint32_t height = b->height, timestamp = b->timestamp;
                 

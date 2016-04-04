@@ -97,9 +97,9 @@ BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t len)
         
         block->totalTx = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)(buf + off)) : 0;
         off += sizeof(uint32_t);
-        block->hashesLen = (size_t)BRVarInt(buf + off, (off <= len ? len - off : 0), &l);
+        block->hashesCount = (size_t)BRVarInt(buf + off, (off <= len ? len - off : 0), &l);
         off += l;
-        l = block->hashesLen*sizeof(UInt256);
+        l = block->hashesCount*sizeof(UInt256);
         block->hashes = (off + l <= len) ? malloc(l) : NULL;
         if (block->hashes) memcpy(block->hashes, buf + off, l);
         off += l;
@@ -122,7 +122,7 @@ size_t BRMerkleBlockSerialize(BRMerkleBlock *block, uint8_t *buf, size_t len)
     size_t off = 0, l = 80;
     
     if (block->totalTx > 0) {
-        l += sizeof(uint32_t) + BRVarIntSize(block->hashesLen) + block->hashesLen*sizeof(UInt256) +
+        l += sizeof(uint32_t) + BRVarIntSize(block->hashesCount) + block->hashesCount*sizeof(UInt256) +
              BRVarIntSize(block->flagsLen) + block->flagsLen;
     }
     
@@ -143,9 +143,9 @@ size_t BRMerkleBlockSerialize(BRMerkleBlock *block, uint8_t *buf, size_t len)
         if (block->totalTx > 0) {
             *(uint32_t *)(buf + off) = le32(block->totalTx);
             off += sizeof(uint32_t);
-            off += BRVarIntSet(buf + off, len - off, block->hashesLen);
-            if (block->hashes) memcpy(buf + off, block->hashes, block->hashesLen*sizeof(UInt256));
-            off += block->hashesLen*sizeof(UInt256);
+            off += BRVarIntSet(buf + off, len - off, block->hashesCount);
+            if (block->hashes) memcpy(buf + off, block->hashes, block->hashesCount*sizeof(UInt256));
+            off += block->hashesCount*sizeof(UInt256);
             if (block->flags) memcpy(buf + off, block->flags, block->flagsLen);
             off += block->flagsLen;
         }
@@ -159,7 +159,7 @@ static size_t _BRMerkleBlockTxHashesR(BRMerkleBlock *block, UInt256 *txHashes, s
 {
     uint8_t flag;
     
-    if (*flagIdx/8 < block->flagsLen && *hashIdx < block->hashesLen) {
+    if (*flagIdx/8 < block->flagsLen && *hashIdx < block->hashesCount) {
         flag = (block->flags[*flagIdx/8] & (1 << (*flagIdx % 8)));
         (*flagIdx)++;
     
@@ -195,7 +195,7 @@ static UInt256 _BRMerkleBlockRootR(BRMerkleBlock *block, size_t *hashIdx, size_t
     uint8_t flag;
     UInt256 hashes[2], md = UINT256_ZERO;
 
-    if (*flagIdx/8 < block->flagsLen && *hashIdx < block->hashesLen) {
+    if (*flagIdx/8 < block->flagsLen && *hashIdx < block->hashesCount) {
         flag = (block->flags[*flagIdx/8] & (1 << (*flagIdx % 8)));
         (*flagIdx)++;
 
@@ -249,7 +249,7 @@ int BRMerkleBlockContainsTxHash(BRMerkleBlock *block, UInt256 txHash)
 {
     int r = 0;
     
-    for (size_t i = 0; ! r && i < block->hashesLen; i++) {
+    for (size_t i = 0; ! r && i < block->hashesCount; i++) {
         if (UInt256Eq(block->hashes[i], txHash)) r = 1;
     }
     

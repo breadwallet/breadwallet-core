@@ -535,7 +535,7 @@ static int _BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t 
         }
 
         if (notfoundCount > 0) {
-            uint8_t buf[BRVarIntSize(notfoundCount) + 36*notfoundCount];
+            uint8_t buf[BRVarIntSize(notfoundCount) + 36*notfoundCount]; // BUG: XXXX stack overflow vulnerability
             size_t o = BRVarIntSet(buf, sizeof(buf), notfoundCount);
 
             for (size_t i = 0; o + 36 <= sizeof(buf) && i < notfoundCount; i++) {
@@ -672,7 +672,7 @@ static int _BRPeerAcceptMerkleblockMessage(BRPeer *peer, const uint8_t *msg, siz
         r = 0;
     }
     else {
-        UInt256 txHashes[BRMerkleBlockTxHashes(block, NULL, 0)];
+        UInt256 txHashes[BRMerkleBlockTxHashes(block, NULL, 0)]; // BUG: XXXX stack overflow vulnerability
         size_t count = BRMerkleBlockTxHashes(block, txHashes, sizeof(txHashes)/sizeof(*txHashes));
 
         for (size_t i = count; i > 0; i--) { // reverse order for more efficient removal as tx arrive
