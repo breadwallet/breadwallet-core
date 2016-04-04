@@ -218,7 +218,7 @@ struct BRPeerManagerStruct {
     BRWallet *wallet;
     int isConnected, connectFailureCount, misbehavinCount;
     BRPeer *peers, *downloadPeer, **connectedPeers;
-    uint32_t tweak, earliestKeyTime, syncStartHeight, filterUpdateHeight, estimatedHeight;
+    uint32_t tweak, averageTotalTx, earliestKeyTime, syncStartHeight, filterUpdateHeight, estimatedHeight;
     BRBloomFilter *bloomFilter;
     double fpRate;
     BRSet *blocks, *orphans, *checkpoints;
@@ -1158,8 +1158,11 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
             if (! BRWalletTransactionForHash(manager->wallet, txHashes[i])) fpCount++;
         }
         
-        // 1% low pass filter, also weights each block by total transactions, using 800 tx per block as typical
-        manager->fpRate = manager->fpRate*(1.0 - 0.01*block->totalTx/800) + 0.01*fpCount/800;
+        if (manager->averageTotalTx == 0) manager->averageTotalTx = block->totalTx;
+        
+        // 1% low pass filter, also weights each block by total transactions, compared to the avarage
+        manager->fpRate = manager->fpRate*(1.0 - 0.01*block->totalTx/manager->averageTotalTx) +
+                          0.01*fpCount/manager->averageTotalTx;
         
         // false positive rate sanity check
         if (BRPeerConnectStatus(peer) == BRPeerStatusConnected &&

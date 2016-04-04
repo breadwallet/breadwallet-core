@@ -80,7 +80,6 @@ BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t len)
 {
     BRMerkleBlock *block = (buf && 80 <= len) ? BRMerkleBlockNew() : NULL;
     size_t off = 0, l = 0;
-    uint8_t header[80];
     
     if (block) {
         block->version = le32(*(uint32_t *)(buf + off));
@@ -110,20 +109,7 @@ BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t len)
         block->flags = (off + l <= len) ? malloc(l) : NULL;
         if (block->flags) memcpy(block->flags, buf + off, l);
     
-        off = 0;
-        *(uint32_t *)(header + off) = le32(block->version);
-        off += sizeof(uint32_t);
-        *(UInt256 *)(header + off) = block->prevBlock;
-        off += sizeof(UInt256);
-        *(UInt256 *)(header + off) = block->merkleRoot;
-        off += sizeof(UInt256);
-        *(uint32_t *)(header + off) = le32(block->timestamp);
-        off += sizeof(uint32_t);
-        *(uint32_t *)(header + off) = le32(block->target);
-        off += sizeof(uint32_t);
-        *(uint32_t *)(header + off) = le32(block->nonce);
-        BRSHA256_2(&block->blockHash, header, sizeof(header));
-    
+        BRSHA256_2(&block->blockHash, buf, 80);
         block->height = BLOCK_UNKNOWN_HEIGHT;
     }
     

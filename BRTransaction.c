@@ -250,11 +250,8 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t len)
     tx->lockTime = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)&buf[off]) : 0;
     off += sizeof(uint32_t);
 
-    if (tx->inCount > 0) {
-        uint8_t data[_BRTransactionData(tx, NULL, 0, SIZE_MAX)];
-    
-        l = _BRTransactionData(tx, data, sizeof(data), SIZE_MAX);
-        BRSHA256_2(&tx->txHash, data, l);
+    if (tx->inCount > 0 && off <= len) {
+        BRSHA256_2(&tx->txHash, buf, off);
     }
     else {
         BRTransactionFree(tx);
