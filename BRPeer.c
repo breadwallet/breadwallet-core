@@ -844,7 +844,7 @@ static void *_peerThreadRoutine(void *arg)
         ctx->startTime = tv.tv_sec + (double)tv.tv_usec/1000000;
         BRPeerSendVersionMessage(peer);
         
-        while (! error) {
+        while (ctx->socket >= 0 && ! error) {
             len = 0;
             socket = ctx->socket;
             
