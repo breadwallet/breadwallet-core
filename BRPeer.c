@@ -928,7 +928,6 @@ static void *_peerThreadRoutine(void *arg)
         if (pongCallback) pongCallback(pongInfo, 0);
     }
 
-    // BUG: XXXX don't call disconnected if we never successfully connected
     if (ctx->disconnected) ctx->disconnected(ctx->info, error);
     return NULL; // detached threads don't need to return a value
 }

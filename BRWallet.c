@@ -654,6 +654,7 @@ int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx)
                 wasAdded = 1;
             }
             else { // keep track of unconfirmed non-wallet tx for invalid tx checks and child-pays-for-parent fees
+                   // BUG: limit total non-wallet unconfirmed tx to avoid memory exhaustion attack
                 if (tx->blockHeight == TX_UNCONFIRMED) BRSetAdd(wallet->allTx, tx);
                 r = 0;
             }

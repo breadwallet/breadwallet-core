@@ -949,8 +949,12 @@ static void _peerRelayedTx(void *info, BRTransaction *tx)
     if (! isSyncing || BRWalletContainsTransaction(manager->wallet, tx)) {
         isWalletTx = BRWalletRegisterTransaction(manager->wallet, tx);
     }
+    else {
+        BRTransactionFree(tx);
+        tx = NULL;
+    }
     
-    if (isWalletTx) {
+    if (tx && isWalletTx) {
         if (isSyncing && peer == manager->downloadPeer && BRWalletContainsTransaction(manager->wallet, tx)) {
             BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT); // reschedule sync timeout
         }
@@ -986,7 +990,7 @@ static void _peerRelayedTx(void *info, BRTransaction *tx)
     }
     
     // set timestamp when tx is verified
-    if (relayCount >= PEER_MAX_CONNECTIONS && tx->blockHeight == TX_UNCONFIRMED) {
+    if (tx && relayCount >= PEER_MAX_CONNECTIONS && tx->blockHeight == TX_UNCONFIRMED) {
         _BRPeerManagerUpdateTx(manager, &tx->txHash, 1, TX_UNCONFIRMED, (uint32_t)time(NULL));
     }
     
@@ -1197,7 +1201,11 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
                  uint256_hex_encode(block->blockHash), uint256_hex_encode(block->prevBlock),
                  uint256_hex_encode(manager->lastBlock->blockHash), manager->lastBlock->height);
         
-        if (block->timestamp + 7*24*60*60 >= time(NULL)) { // ignore orphans older than one week ago
+        if (block->timestamp + 7*24*60*60 < time(NULL)) { // ignore orphans older than one week ago
+            BRMerkleBlockFree(block);
+            block = NULL;
+        }
+        else {
             // call getblocks, unless we already did with the previous block, or we're still syncing
             if (manager->lastBlock->height >= BRPeerLastBlock(peer) &&
                 ! UInt256Eq(manager->lastOrphan->blockHash, block->prevBlock)) {
@@ -1209,7 +1217,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
                 BRPeerSendGetblocks(peer, locators, locatorsCount, UINT256_ZERO);
             }
             
-            BRSetAdd(manager->orphans, block);
+            BRSetAdd(manager->orphans, block); // BUG: limit total orphans to avoid memory exhaustion attack
             manager->lastOrphan = block;
         }
     }
@@ -1253,7 +1261,12 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
         }
         
         b = BRSetAdd(manager->blocks, block);
-        if (b != block) BRMerkleBlockFree(b); // BUG: XXXX could also be in orphans, or lastOrphan
+
+        if (b != block) {
+            if (BRSetGet(manager->orphans, b) == b) BRSetRemove(manager->orphans, b);
+            if (manager->lastOrphan == b) manager->lastOrphan = NULL;
+            BRMerkleBlockFree(b);
+        }
     }
     else if (manager->lastBlock->height < BRPeerLastBlock(peer) &&
              block->height > manager->lastBlock->height + 1) { // special case, new block mined durring rescan
