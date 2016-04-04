@@ -923,7 +923,7 @@ static void _peerRelayedTx(void *info, BRTransaction *tx)
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
     void *txInfo = NULL;
     void (*txCallback)(void *, int) = NULL;
-    int syncing, pendingCallbacks = 0;
+    int syncing, walletTx = 0, pendingCallbacks = 0;
     size_t relayCount = 0;
     
     pthread_mutex_lock(&manager->lock);
@@ -946,7 +946,11 @@ static void _peerRelayedTx(void *info, BRTransaction *tx)
         BRPeerScheduleDisconnect(peer, -1); // cancel publish tx timeout
     }
 
-    if (BRWalletRegisterTransaction(manager->wallet, tx)) {
+    if (! syncing || BRWalletContainsTransaction(manager->wallet, tx)) {
+        walletTx = BRWalletRegisterTransaction(manager->wallet, tx);
+    }
+    
+    if (walletTx) {
         if (syncing && peer == manager->downloadPeer && BRWalletContainsTransaction(manager->wallet, tx)) {
             BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT); // reschedule sync timeout
         }
