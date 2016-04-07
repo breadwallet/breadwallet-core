@@ -112,7 +112,7 @@ typedef struct {
 // NOTE: BRPeer functions are not thread-safe
 
 // returns a newly allocated BRPeer struct that must be freed by calling BRPeerFree()
-BRPeer *BRPeerNew();
+BRPeer *BRPeerNew(void);
 
 // info is a void pointer that will be passed along with each callback call
 // void connected(void *) - called when peer handshake completes successfully
@@ -144,9 +144,6 @@ void BRPeerSetEarliestKeyTime(BRPeer *peer, uint32_t earliestKeyTime);
 // call this when local best block height changes (helps detect tarpit nodes)
 void BRPeerSetCurrentBlockHeight(BRPeer *peer, uint32_t currentBlockHeight);
 
-// call this to (re)schedule a disconnect in the given number of seconds, or < 0 to cancel (useful for sync timeout)
-void BRPeerScheduleDisconnect(BRPeer *peer, double seconds);
-
 // current connection status
 BRPeerStatus BRPeerConnectStatus(BRPeer *peer);
 
@@ -155,6 +152,9 @@ void BRPeerConnect(BRPeer *peer);
 
 // close connection to peer
 void BRPeerDisconnect(BRPeer *peer);
+
+// call this to (re)schedule a disconnect in the given number of seconds, or < 0 to cancel (useful for sync timeout)
+void BRPeerScheduleDisconnect(BRPeer *peer, double seconds);
 
 // set this to true when wallet addresses need to be added to bloom filter
 void BRPeerSetNeedsFilterUpdate(BRPeer *peer, int needsFilterUpdate);

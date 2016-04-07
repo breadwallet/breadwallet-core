@@ -933,7 +933,7 @@ static void *_peerThreadRoutine(void *arg)
 }
 
 // returns a newly allocated BRPeer struct that must be freed by calling BRPeerFree()
-BRPeer *BRPeerNew()
+BRPeer *BRPeerNew(void)
 {
     BRPeerContext *ctx = calloc(1, sizeof(BRPeerContext));
     
@@ -998,16 +998,6 @@ void BRPeerSetEarliestKeyTime(BRPeer *peer, uint32_t earliestKeyTime)
 void BRPeerSetCurrentBlockHeight(BRPeer *peer, uint32_t currentBlockHeight)
 {
     ((BRPeerContext *)peer)->currentBlockHeight = currentBlockHeight;
-}
-
-// call this to (re)schedule a disconnect in the given number of seconds, or 0 to cancel (useful for sync timeout)
-void BRPeerScheduleDisconnect(BRPeer *peer, double seconds)
-{
-    BRPeerContext *ctx = ((BRPeerContext *)peer);
-    struct timeval tv;
-
-    gettimeofday(&tv, NULL);
-    ctx->disconnectTime = (seconds < 0) ? DBL_MAX : tv.tv_sec + (double)tv.tv_usec/1000000 + seconds;
 }
 
 // current connection status
@@ -1076,6 +1066,16 @@ void BRPeerDisconnect(BRPeer *peer)
         if (shutdown(socket, SHUT_RDWR) < 0) peer_log(peer, "%s", strerror(errno));
         close(socket);
     }
+}
+
+// call this to (re)schedule a disconnect in the given number of seconds, or 0 to cancel (useful for sync timeout)
+void BRPeerScheduleDisconnect(BRPeer *peer, double seconds)
+{
+    BRPeerContext *ctx = ((BRPeerContext *)peer);
+    struct timeval tv;
+    
+    gettimeofday(&tv, NULL);
+    ctx->disconnectTime = (seconds < 0) ? DBL_MAX : tv.tv_sec + (double)tv.tv_usec/1000000 + seconds;
 }
 
 // call this when wallet addresses need to be added to bloom filter

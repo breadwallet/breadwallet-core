@@ -54,10 +54,10 @@ void BRBIP32PrivKey(BRKey *key, const void *seed, size_t seedLen, int internal, 
 void BRBIP32PrivKeyList(BRKey keys[], size_t count, const void *seed, size_t seedLen, int internal,
                         const uint32_t indexes[]);
 
-size_t BRBIP32SerializeMasterPrivKey(char *s, size_t sLen, const void *seed, size_t seedLen);
-size_t BRBIP32ParseMasterPrivKey(void *seed, size_t seedLen, const char *s);
-size_t BRBIP32SerializeMasterPubKey(char *s, size_t sLen, BRMasterPubKey mpk);
-BRMasterPubKey BRBIP32ParseMasterPubKey(const char *s);
+size_t BRBIP32SerializeMasterPrivKey(char *str, size_t strLen, const void *seed, size_t seedLen);
+size_t BRBIP32ParseMasterPrivKey(void *seed, size_t seedLen, const char *str);
+size_t BRBIP32SerializeMasterPubKey(char *str, size_t strLen, BRMasterPubKey mpk);
+BRMasterPubKey BRBIP32ParseMasterPubKey(const char *str);
 
 #ifdef __cplusplus
 }

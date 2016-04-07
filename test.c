@@ -1652,9 +1652,9 @@ int BRPaymentProtocolTests()
     i = 0;
     
     do {
-        uint8_t buf8[BRPaymentProtocolRequestCert(req, NULL, 0, i)];
+        uint8_t buf9[BRPaymentProtocolRequestCert(req, NULL, 0, i)];
         
-        len = BRPaymentProtocolRequestCert(req, buf8, sizeof(buf8), i);
+        len = BRPaymentProtocolRequestCert(req, buf9, sizeof(buf9), i);
         if (len > 0) i++;
     } while (len > 0);
     
@@ -1705,9 +1705,9 @@ void syncSucceeded(void *info)
     printf("sync succeeded\n");
 }
 
-void syncFailed(void *info, int code)
+void syncFailed(void *info, int error)
 {
-    printf("sync failed with code: %d\n", code);
+    printf("sync failed: %s\n", strerror(error));
 }
 
 void txStatusUpdate(void *info)
@@ -1772,7 +1772,7 @@ int BRRunTests()
 
     BRPeerManagerSetCallbacks(manager, manager, syncStarted, syncSucceeded, syncFailed, txStatusUpdate, NULL, NULL,
                               NULL, NULL);
-    BRPeerManagerConnect(manager);
+//    BRPeerManagerConnect(manager);
     while (r == 0 && BRPeerManagerPeerCount(manager) > 0) r = sleep(1);
     if (r != 0) printf("sleep got a signal\n");
     BRPeerManagerFree(manager);

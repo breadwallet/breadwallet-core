@@ -1737,16 +1737,16 @@ void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *inf
 
         for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
             BRPeer *peer = manager->connectedPeers[i - 1];
-            BRPeerCallbackInfo *info;
+            BRPeerCallbackInfo *peerInfo;
 
             // instead of publishing to all peers, leave out downloadPeer to see if tx propogates/gets relayed back
             // TODO: XXX connect to a random peer with an empty or fake bloom filter just for publishing
             if (peer != manager->downloadPeer || array_count(manager->connectedPeers) == 1) {
                 _BRPeerManagerPublishPendingTx(manager, peer);
-                info = calloc(1, sizeof(*info));
-                info->peer = peer;
-                info->manager = manager;
-                BRPeerSendPing(peer, info, _publishTxInvDone);
+                peerInfo = calloc(1, sizeof(*peerInfo));
+                peerInfo->peer = peer;
+                peerInfo->manager = manager;
+                BRPeerSendPing(peer, peerInfo, _publishTxInvDone);
             }
         }
 

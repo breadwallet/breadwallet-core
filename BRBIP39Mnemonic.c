@@ -64,7 +64,7 @@ size_t BRBIP39Decode(uint8_t *data, size_t dataLen, const char *wordList[], cons
     size_t r = 0;
 
     while (word && *word && count < 24) {
-        for (i = 0, idx[count] = INT32_MAX; i < BIP39_WORDLIST_COUNT; i++) { // not fast, but simple and works
+        for (i = 0, idx[count] = INT32_MAX; i < BIP39_WORDLIST_COUNT; i++) { // not fast, but simple and correct
             if (strncmp(word, wordList[i], strlen(wordList[i])) != 0 ||
                 (word[strlen(wordList[i])] != ' ' && word[strlen(wordList[i])] != '\0')) continue;
             idx[count] = i;
@@ -109,16 +109,16 @@ int BRBIP39PhraseIsValid(const char *wordList[], const char *phrase)
     return (BRBIP39Decode(NULL, 0, wordList, phrase) > 0);
 }
 
-// key must hold 64 bytes (512 bits), phrase and passphrase must be unicode NFKD normalized
+// key64 must hold 64 bytes (512 bits), phrase and passphrase must be unicode NFKD normalized
 // http://www.unicode.org/reports/tr15/#Norm_Forms
 // BUG: does not currently support passphrases containing NULL characters
-void BRBIP39DeriveKey(uint8_t *key, const char *phrase, const char *passphrase)
+void BRBIP39DeriveKey(uint8_t *key64, const char *phrase, const char *passphrase)
 {
     char salt[strlen("mnemonic") + (passphrase ? strlen(passphrase) : 0) + 1];
 
     if (phrase) {
         strcpy(salt, "mnemonic");
         if (passphrase) strcpy(salt + strlen("mnemonic"), passphrase);
-        BRPBKDF2(key, 64, BRSHA512, 64, phrase, strlen(phrase), salt, strlen(salt), 2048);
+        BRPBKDF2(key64, 64, BRSHA512, 64, phrase, strlen(phrase), salt, strlen(salt), 2048);
     }
 }

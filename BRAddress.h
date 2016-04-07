@@ -72,7 +72,7 @@ size_t BRAddressScriptPubKey(uint8_t *script, size_t scriptLen, const char *addr
 
 int BRAddressIsValid(const char *addr);
 
-int BRAddressHash160(void *md, const char *addr);
+int BRAddressHash160(void *md20, const char *addr);
 
 inline static int BRAddressEq(const void *addr, const void *otherAddr)
 {

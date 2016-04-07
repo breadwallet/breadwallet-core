@@ -27,10 +27,10 @@
 #include "BRInt.h"
 #include <stdint.h>
 
-#define VAR_INT16_HEADER 0xfd
-#define VAR_INT32_HEADER 0xfe
-#define VAR_INT64_HEADER 0xff
-#define MAX_SCRIPT_LEN   0x100 // scripts over this size will not be parsed for an address
+#define VAR_INT16_HEADER  0xfd
+#define VAR_INT32_HEADER  0xfe
+#define VAR_INT64_HEADER  0xff
+#define MAX_SCRIPT_LENGTH 0x100 // scripts over this size will not be parsed for an address
 
 uint64_t BRVarInt(const uint8_t *buf, size_t len, size_t *intLen)
 {
@@ -219,7 +219,7 @@ size_t BRScriptPushData(uint8_t *script, size_t scriptLen, const uint8_t *data, 
 
 size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *script, size_t scriptLen)
 {
-    if (! script || scriptLen == 0 || scriptLen > MAX_SCRIPT_LEN) return 0;
+    if (! script || scriptLen == 0 || scriptLen > MAX_SCRIPT_LENGTH) return 0;
     
     uint8_t data[21];
     const uint8_t *elem[BRScriptElements(NULL, 0, script, scriptLen)], *d = NULL;
@@ -259,7 +259,7 @@ size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *scri
 
 size_t BRAddressFromScriptSig(char *addr, size_t addrLen, const uint8_t *script, size_t scriptLen)
 {
-    if (! script || scriptLen == 0 || scriptLen > MAX_SCRIPT_LEN) return 0;
+    if (! script || scriptLen == 0 || scriptLen > MAX_SCRIPT_LENGTH) return 0;
     
     uint8_t data[21];
     const uint8_t *elem[BRScriptElements(NULL, 0, script, scriptLen)], *d = NULL;
@@ -347,12 +347,12 @@ int BRAddressIsValid(const char *addr)
     return r;
 }
 
-int BRAddressHash160(void *md, const char *addr)
+int BRAddressHash160(void *md20, const char *addr)
 {
     uint8_t data[21];
     int r = 0;
     
     r = (BRBase58CheckDecode(data, sizeof(data), addr) == 21);
-    if (r) memcpy(md, &data[1], 20);
+    if (r) memcpy(md20, &data[1], 20);
     return r;
 }

@@ -32,18 +32,18 @@
 extern "C" {
 #endif
 
-void BRSHA1(void *md, const void *data, size_t len);
+void BRSHA1(void *md20, const void *data, size_t len);
 
-void BRSHA256(void *md, const void *data, size_t len);
+void BRSHA256(void *md32, const void *data, size_t len);
 
-void BRSHA256_2(void *md, const void *data, size_t len);
+void BRSHA256_2(void *md32, const void *data, size_t len);
 
-void BRSHA512(void *md, const void *data, size_t len);
+void BRSHA512(void *md64, const void *data, size_t len);
 
 // ripemd-160 hash function: http://homes.esat.kuleuven.be/~bosselae/ripemd160.html
-void BRRMD160(void *md, const void *data, size_t len);
+void BRRMD160(void *md20, const void *data, size_t len);
 
-void BRHash160(void *md, const void *data, size_t len);
+void BRHash160(void *md20, const void *data, size_t len);
 
 void BRHMAC(void *md, void (*hash)(void *, const void *, size_t), size_t hashLen, const void *key, size_t keyLen,
             const void *data, size_t dataLen);

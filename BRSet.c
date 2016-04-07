@@ -67,7 +67,7 @@ static void _BRSetInit(BRSet *set, size_t (*hash)(const void *), int (*eq)(const
 // capacity is the maximum estimated number of items the set will need to hold
 BRSet *BRSetNew(size_t (*hash)(const void *), int (*eq)(const void *, const void *), size_t capacity)
 {
-    BRSet *set = malloc(sizeof(BRSet));
+    BRSet *set = calloc(1, sizeof(BRSet));
     
     _BRSetInit(set, hash, eq, capacity);
     return set;

@@ -190,7 +190,7 @@ static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t 
 }
 
 // returns a newly allocated empty transaction that must be freed by calling BRTransactionFree()
-BRTransaction *BRTransactionNew()
+BRTransaction *BRTransactionNew(void)
 {
     BRTransaction *tx = calloc(1, sizeof(BRTransaction));
 

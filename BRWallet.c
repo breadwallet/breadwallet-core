@@ -35,21 +35,13 @@
 #define DEFAULT_FEE_PER_KB ((TX_FEE_PER_KB*1000 + 190)/191) // default fee-per-kb to match standard fee on 191 byte tx
 
 struct BRWalletStruct {
-    uint64_t balance; // current wallet balance excluding transactions known to be invalid
-    BRUTXO *utxos; // unspent outputs
-    BRTransaction **transactions; // transactions sorted by date, oldest first
-    uint64_t totalSent; // total amount spent from the wallet (excluding change)
-    uint64_t totalReceived; // total amount received by the wallet (excluding change)
-    uint64_t feePerKb; // fee-per-kb of transaction size to use when creating a transaction
+    uint64_t balance;
+    BRUTXO *utxos;
+    BRTransaction **transactions;
+    uint64_t totalSent, totalReceived, feePerKb, *balanceHist;
     BRMasterPubKey masterPubKey;
-    BRAddress *internalChain;
-    BRAddress *externalChain;
-    uint64_t *balanceHist;
-    BRSet *allTx;
-    BRSet *invalidTx;
-    BRSet *spentOutputs;
-    BRSet *usedAddrs;
-    BRSet *allAddrs;
+    BRAddress *internalChain, *externalChain;
+    BRSet *allTx, *invalidTx, *spentOutputs, *usedAddrs, *allAddrs;
     void *callbackInfo;
     void (*balanceChanged)(void *info, uint64_t balance);
     void (*txAdded)(void *info, BRTransaction *tx);
@@ -61,7 +53,7 @@ struct BRWalletStruct {
 inline static uint64_t _txFee(uint64_t feePerKb, size_t size)
 {
     uint64_t standardFee = ((size + 999)/1000)*TX_FEE_PER_KB, // standard fee based on tx size rounded up to nearest kb
-             fee = (((size*feePerKb/1000) + 99)/100)*100; // fee using feePerKb, rounded up to 100 satoshi
+             fee = (((size*feePerKb/1000) + 99)/100)*100; // fee using feePerKb, rounded up to nearest 100 satoshi
     
     return (fee > standardFee) ? fee : standardFee;
 }

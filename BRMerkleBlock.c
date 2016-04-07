@@ -69,7 +69,7 @@ inline static int _ceil_log2(int x)
 // hashes: [tx1, tx2, m2]
 
 // returns a newly allocated merkle block struct that must be freed by calling BRMerkleBlockFree()
-BRMerkleBlock *BRMerkleBlockNew()
+BRMerkleBlock *BRMerkleBlockNew(void)
 {
     return calloc(1, sizeof(BRMerkleBlock));
 }
