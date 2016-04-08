@@ -25,7 +25,7 @@
 #include "BRBIP32Sequence.h"
 #include "BRHash.h"
 #include "BRBase58.h"
-#include <strings.h>
+#include <string.h>
 
 #define BIP32_HARD     0x80000000
 #define BIP32_SEED_KEY "Bitcoin seed"
@@ -195,7 +195,7 @@ size_t BRBIP32SerializeMasterPrivKey(char *str, size_t strLen, const void *seed,
     return 0;
 }
 
-size_t BRBIP32ParseMasterPrivKey(void *seed, size_t seedLen, const char *s)
+size_t BRBIP32ParseMasterPrivKey(void *seed, size_t seedLen, const char *str)
 {
     // TODO: XXX implement
     return 0;
