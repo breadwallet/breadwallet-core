@@ -85,7 +85,8 @@ extern "C" {
 #define MSG_FILTERCLEAR "filterclear"
 #define MSG_MERKLEBLOCK "merkleblock"
 #define MSG_ALERT       "alert"
-#define MSG_REJECT      "reject" // described in BIP61: https://github.com/bitcoin/bips/blob/master/bip-0061.mediawiki
+#define MSG_REJECT      "reject"   // described in BIP61: https://github.com/bitcoin/bips/blob/master/bip-0061.mediawiki
+#define MSG_FEEFILTER   "feefilter"// described in BIP133 https://github.com/bitcoin/bips/blob/master/bip-0133.mediawiki
 
 #define REJECT_INVALID     0x10 // transaction is invalid for some reason (invalid signature, output value > input, etc)
 #define REJECT_SPENT       0x12 // an input is already spent

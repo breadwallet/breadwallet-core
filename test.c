@@ -1772,7 +1772,7 @@ int BRRunTests()
 
     BRPeerManagerSetCallbacks(manager, manager, syncStarted, syncSucceeded, syncFailed, txStatusUpdate, NULL, NULL,
                               NULL, NULL);
-//    BRPeerManagerConnect(manager);
+    BRPeerManagerConnect(manager);
     while (r == 0 && BRPeerManagerPeerCount(manager) > 0) r = sleep(1);
     if (r != 0) printf("sleep got a signal\n");
     BRPeerManagerFree(manager);

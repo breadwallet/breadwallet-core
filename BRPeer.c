@@ -49,8 +49,7 @@
 #define MAGIC_NUMBER 0xd9b4bef9
 #endif
 #define HEADER_LENGTH      24
-//#define MAX_MSG_LENGTH     0x02000000
-#define MAX_MSG_LENGTH     0x0200000 // we don't need more than 2Mb for any SPV protocol message
+#define MAX_MSG_LENGTH     0x02000000
 #define MAX_GETDATA_HASHES 50000
 #define ENABLED_SERVICES   0     // we don't provide full blocks to remote nodes
 #define PROTOCOL_VERSION   70002
@@ -743,6 +742,8 @@ static int _BRPeerAcceptRejectMessage(BRPeer *peer, const uint8_t *msg, size_t l
     return r;
 }
 
+// TODO: implement BIP133 feefilter
+
 static int _BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t len, const char *type)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
@@ -836,8 +837,8 @@ static void *_peerThreadRoutine(void *arg)
 
     if (_BRPeerOpenSocket(peer, CONNECT_TIMEOUT, &error)) {
         struct timeval tv;
-        uint8_t header[HEADER_LENGTH], *payload = malloc(MAX_MSG_LENGTH);
-        size_t len = 0;
+        uint8_t header[HEADER_LENGTH], *payload = malloc(0x1000);
+        size_t len = 0, payloadLen = 0x1000;
         ssize_t n = 0;
 
         gettimeofday(&tv, NULL);
@@ -880,6 +881,7 @@ static void *_peerThreadRoutine(void *arg)
                     error = EPROTO;
                 }
                 else {
+                    if (msgLen > payloadLen) payload = realloc(payload, (payloadLen = msgLen));
                     len = 0;
                     socket = ctx->socket;
                     
