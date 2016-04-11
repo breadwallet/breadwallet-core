@@ -1760,7 +1760,9 @@ int BRRunTests()
 #ifndef BITCOIN_TEST_NO_MAIN
 int main(int argc, const char *argv[])
 {
-    int err = 0, r = BRRunTests();
+    int r = BRRunTests();
+
+    int err = 0;
     UInt512 seed = UINT512_ZERO;
     BRMasterPubKey mpk = BR_MASTER_PUBKEY_NONE;
     BRWallet *wallet;

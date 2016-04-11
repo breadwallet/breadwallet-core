@@ -1013,7 +1013,7 @@ void BRPeerConnect(BRPeer *peer)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     struct timeval tv;
-    int on = 1;
+    int error = 0, on = 1;
     pthread_attr_t attr;
 
     if (ctx->status == BRPeerStatusDisconnected || ctx->waitingForNetwork) {
@@ -1031,6 +1031,7 @@ void BRPeerConnect(BRPeer *peer)
             ctx->socket = socket((_BRPeerIsIPv4(peer) ? PF_INET : PF_INET6), SOCK_STREAM, 0);
             
             if (ctx->socket < 0) {
+                error = errno;
                 peer_log(peer, "error creating socket");
                 ctx->status = BRPeerStatusDisconnected;
             }
@@ -1045,22 +1046,22 @@ void BRPeerConnect(BRPeer *peer)
 #endif
 
                 if (pthread_attr_init(&attr) != 0) {
+                    error = ENOMEM;
                     peer_log(peer, "error creating thread");
-                    ctx->status = BRPeerStatusDisconnected;                    
+                    ctx->status = BRPeerStatusDisconnected;
                 }
                 else if (pthread_attr_setstacksize(&attr, 512*1024) != 0 || // set stack size (there's no standard)
                          // set thread detached so it'll free resources immediately on exit without waiting for join
                          pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0 ||
                          pthread_create(&ctx->thread, &attr, _peerThreadRoutine, peer) != 0) {
+                    error = EAGAIN;
                     peer_log(peer, "error creating thread");
                     ctx->status = BRPeerStatusDisconnected;
                     pthread_attr_destroy(&attr);
                 }
             }
             
-            if (ctx->status == BRPeerStatusDisconnected && ctx->disconnected) {
-                ctx->disconnected(ctx->info, (errno) ? errno : EAGAIN);
-            }
+            if (ctx->status == BRPeerStatusDisconnected && ctx->disconnected) ctx->disconnected(ctx->info, error);
         }
     }
 }
