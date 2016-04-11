@@ -1030,7 +1030,11 @@ void BRPeerConnect(BRPeer *peer)
             ctx->disconnectTime = tv.tv_sec + (double)tv.tv_usec/1000000 + CONNECT_TIMEOUT;
             ctx->socket = socket((_BRPeerIsIPv4(peer) ? PF_INET : PF_INET6), SOCK_STREAM, 0);
             
-            if (ctx->socket >= 0) {
+            if (ctx->socket < 0) {
+                peer_log(peer, "error creating socket");
+                ctx->status = BRPeerStatusDisconnected;
+            }
+            else {
                 tv.tv_sec = 1; // one second timeout for send/receive, so thread doesn't block for too long
                 tv.tv_usec = 0;
                 setsockopt(ctx->socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
@@ -1039,19 +1043,23 @@ void BRPeerConnect(BRPeer *peer)
 #ifdef SO_NOSIGPIPE // BSD based systems have a SO_NOSIGPIPE socket option to supress SIGPIPE signals
                 setsockopt(ctx->socket, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
 #endif
+
+                if (pthread_attr_init(&attr) != 0) {
+                    peer_log(peer, "error creating thread");
+                    ctx->status = BRPeerStatusDisconnected;                    
+                }
+                else if (pthread_attr_setstacksize(&attr, 512*1024) != 0 || // set stack size (there's no standard)
+                         // set thread detached so it'll free resources immediately on exit without waiting for join
+                         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0 ||
+                         pthread_create(&ctx->thread, &attr, _peerThreadRoutine, peer) != 0) {
+                    peer_log(peer, "error creating thread");
+                    ctx->status = BRPeerStatusDisconnected;
+                    pthread_attr_destroy(&attr);
+                }
             }
             
-            if (ctx->socket < 0 || pthread_attr_init(&attr) != 0) {
-                peer_log(peer, "error creating socket");
-                ctx->status = BRPeerStatusDisconnected;
-            }
-            else if (pthread_attr_setstacksize(&attr, 512*1024) != 0 || // set stack size (there's no standard)
-                     // set thread detached so it'll free resources immediately on exit without waiting for join
-                     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0 ||
-                     pthread_create(&ctx->thread, &attr, _peerThreadRoutine, peer) != 0) {
-                peer_log(peer, "error creating thread");
-                ctx->status = BRPeerStatusDisconnected;
-                pthread_attr_destroy(&attr);
+            if (ctx->status == BRPeerStatusDisconnected && ctx->disconnected) {
+                ctx->disconnected(ctx->info, (errno) ? errno : EAGAIN);
             }
         }
     }

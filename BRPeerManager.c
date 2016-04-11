@@ -876,6 +876,13 @@ static void _peerDisconnected(void *info, int error)
         }
     }
     
+    for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
+        if (manager->connectedPeers[i - 1] != peer) continue;
+        array_rm(manager->connectedPeers, i - 1);
+        break;
+    }
+
+    BRPeerFree(peer);
     pthread_mutex_unlock(&manager->lock);
     
     for (size_t i = 0; i < txCount; i++) {
@@ -1524,7 +1531,7 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
 }
 
 // true if currently connected to at least one peer
-int BRPeerMangerIsConnected(BRPeerManager *manager)
+int BRPeerManagerIsConnected(BRPeerManager *manager)
 {
     int isConnected;
     
@@ -1551,11 +1558,7 @@ void BRPeerManagerConnect(BRPeerManager *manager)
     for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
         BRPeer *p = manager->connectedPeers[i - 1];
 
-        if (BRPeerConnectStatus(p) == BRPeerStatusDisconnected) {
-            array_rm(manager->connectedPeers, i - 1);
-            BRPeerFree(p);
-        }
-        else if (BRPeerConnectStatus(p) == BRPeerStatusConnecting) BRPeerConnect(p);
+        if (BRPeerConnectStatus(p) == BRPeerStatusConnecting) BRPeerConnect(p);
     }
     
     if (array_count(manager->connectedPeers) < PEER_MAX_CONNECTIONS) {
@@ -1608,6 +1611,22 @@ void BRPeerManagerConnect(BRPeerManager *manager)
         else pthread_mutex_unlock(&manager->lock);
     }
     else pthread_mutex_unlock(&manager->lock);
+}
+
+void BRPeerManagerDisconnect(BRPeerManager *manager)
+{
+    struct timespec ts;
+    pthread_mutex_lock(&manager->lock);
+    
+    for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
+        manager->connectFailureCount = MAX_CONNECT_FAILURES; // prevent futher automatic reconnect attempts
+        BRPeerDisconnect(manager->connectedPeers[i - 1]);
+    }
+    
+    pthread_mutex_unlock(&manager->lock);
+    ts.tv_sec = 0;
+    ts.tv_nsec = 1;
+    while (BRPeerManagerIsConnected(manager)) nanosleep(&ts, NULL); // pthread_yield() isn't POSIX standard :(
 }
 
 // rescans blocks and transactions after earliestKeyTime (a new random download peer is also selected due to the
@@ -1755,7 +1774,7 @@ void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *inf
 }
 
 // number of connected peers that have relayed the given unconfirmed transaction
-size_t BRPeerMangaerRelayCount(BRPeerManager *manager, UInt256 txHash)
+size_t BRPeerManagerRelayCount(BRPeerManager *manager, UInt256 txHash)
 {
     size_t count = 0;
 

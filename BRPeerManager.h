@@ -68,7 +68,7 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                int (*networkIsReachable)(void *info));
 
 // true if currently connected to at least one peer
-int BRPeerMangerIsConnected(BRPeerManager *manager);
+int BRPeerManagerIsConnected(BRPeerManager *manager);
 
 // connect to bitcoin peer-to-peer network (also call this whenever networkIsReachable() status changes)
 void BRPeerManagerConnect(BRPeerManager *manager);
@@ -97,7 +97,7 @@ void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *inf
                             void (*callback)(void *info, int error));
 
 // number of connected peers that have relayed the given unconfirmed transaction
-size_t BRPeerMangaerRelayCount(BRPeerManager *manager, UInt256 txHash);
+size_t BRPeerManagerRelayCount(BRPeerManager *manager, UInt256 txHash);
 
 // frees memory allocated for manager (call BRPeerManagerDisconnect() first if connected)
 void BRPeerManagerFree(BRPeerManager *manager);
