@@ -257,6 +257,7 @@ int BRMerkleBlockContainsTxHash(BRMerkleBlock *block, UInt256 txHash)
 }
 
 // verifies the block difficulty target is correct for the block's position in the chain
+// transitionTime is the timestamp of the block at the previous difficulty transition
 // transitionTime may be 0 if height is not a multiple of BLOCK_DIFFICULTY_INTERVAL
 //
 // The difficulty target algorithm works as follows:
@@ -271,14 +272,14 @@ int BRMerkleBlockVerifyDifficulty(BRMerkleBlock *block, const BRMerkleBlock *pre
     int r = 1;
     
     if (! UInt256Eq(block->prevBlock, previous->blockHash) || block->height != previous->height + 1) r = 0;
-    if ((block->height % BLOCK_DIFFICULTY_INTERVAL) == 0 && transitionTime == 0) r = 0;
+    if (r && (block->height % BLOCK_DIFFICULTY_INTERVAL) == 0 && transitionTime == 0) r = 0;
     
 #if BITCOIN_TESTNET
     // TODO: implement testnet difficulty rule check
     return r; // don't worry about difficulty on testnet for now
 #endif
     
-    if ((block->height % BLOCK_DIFFICULTY_INTERVAL) == 0) {
+    if (r && (block->height % BLOCK_DIFFICULTY_INTERVAL) == 0) {
         // target is in "compact" format, where the most significant byte is the size of resulting value in bytes, next
         // bit is the sign, and the remaining 23bits is the value after having been right shifted by (size - 3)*8 bits
         static const uint32_t maxsize = MAX_PROOF_OF_WORK >> 24, maxtarget = MAX_PROOF_OF_WORK & 0x00ffffff;
@@ -302,7 +303,7 @@ int BRMerkleBlockVerifyDifficulty(BRMerkleBlock *block, const BRMerkleBlock *pre
     
         if (block->target != ((uint32_t)target | size << 24)) r = 0;
     }
-    else if (block->target != previous->target) r = 0;
+    else if (r && block->target != previous->target) r = 0;
     
     return r;
 }

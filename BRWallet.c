@@ -965,9 +965,9 @@ uint64_t BRWalletMinOutputAmount(BRWallet *wallet)
     uint64_t amount;
     
     pthread_mutex_lock(&wallet->lock);
-    amount = wallet->feePerKb*3*(34 + 148)/1000;
+    amount = wallet->feePerKb*TX_INPUT_SIZE/1000;
     pthread_mutex_unlock(&wallet->lock);
-    return amount;
+    return (amount > TX_MIN_OUTPUT_AMOUNT) ? amount : TX_MIN_OUTPUT_AMOUNT;
 }
 
 // maximum amount that can be sent from the wallet to a single address after fees

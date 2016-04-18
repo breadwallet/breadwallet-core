@@ -485,7 +485,7 @@ static void _requestUnrelayedTxGetdataDone(void *info, int success)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
-    int shouldRescan = 0, willNotify = 0;
+    int isPublishing, shouldRescan = 0, willNotify = 0;
     size_t count = 0;
 
     free(info);
@@ -508,7 +508,14 @@ static void _requestUnrelayedTxGetdataDone(void *info, int success)
         size_t txCount = BRWalletUnconfirmedTx(manager->wallet, tx, sizeof(tx)/sizeof(*tx));
 
         for (size_t i = 0; i < txCount; i++) {
-            if (_BRTxPeerListCount(manager->txRelays, tx[i]->txHash) == 0 &&
+            isPublishing = 0;
+            
+            for (size_t j = array_count(manager->publishedTx); ! isPublishing && j > 0; j--) {
+                if (BRTransactionEq(manager->publishedTx[j - 1].tx, tx[i]) &&
+                    manager->publishedTx[j - 1].callback != NULL) isPublishing = 1;
+            }
+            
+            if (! isPublishing && _BRTxPeerListCount(manager->txRelays, tx[i]->txHash) == 0 &&
                 _BRTxPeerListCount(manager->txRequests, tx[i]->txHash) == 0) {
                 // if this is for a transaction we sent, and it wasn't already known to be invalid, notify user
                 if (! shouldRescan && BRWalletAmountSentByTx(manager->wallet, tx[i]) > 0 &&
@@ -525,7 +532,7 @@ static void _requestUnrelayedTxGetdataDone(void *info, int success)
 
                 BRWalletRemoveTransaction(manager->wallet, tx[i]->txHash);
             }
-            else if (_BRTxPeerListCount(manager->txRelays, tx[i]->txHash) < PEER_MAX_CONNECTIONS) {
+            else if (! isPublishing && _BRTxPeerListCount(manager->txRelays, tx[i]->txHash) < PEER_MAX_CONNECTIONS) {
                 // set timestamp 0 to mark as unverified
                 _BRPeerManagerUpdateTx(manager, &tx[i]->txHash, 1, TX_UNCONFIRMED, 0);
             }
@@ -1367,28 +1374,28 @@ static void _peerDataNotfound(void *info, const UInt256 txHashes[], size_t txCou
     pthread_mutex_unlock(&manager->lock);
 }
 
-static void _peerRequestedTxPingDone(void *info, int success)
-{
-    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
-    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
-    UInt256 txHash = ((BRPeerCallbackInfo *)info)->hash;
-
-    free(info);
-    pthread_mutex_lock(&manager->lock);
-
-    if (success && ! _BRTxPeerListHasPeer(manager->txRequests, txHash, peer)) {
-        _BRTxPeerListAddPeer(&manager->txRequests, txHash, peer);
-        BRPeerSendGetdata(peer, &txHash, 1, NULL, 0); // check if peer will relay the transaction back
-    }
-    
-    pthread_mutex_unlock(&manager->lock);
-}
+//static void _peerRequestedTxPingDone(void *info, int success)
+//{
+//    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
+//    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+//    UInt256 txHash = ((BRPeerCallbackInfo *)info)->hash;
+//
+//    free(info);
+//    pthread_mutex_lock(&manager->lock);
+//
+//    if (success && ! _BRTxPeerListHasPeer(manager->txRequests, txHash, peer)) {
+//        _BRTxPeerListAddPeer(&manager->txRequests, txHash, peer);
+//        BRPeerSendGetdata(peer, &txHash, 1, NULL, 0); // check if peer will relay the transaction back
+//    }
+//    
+//    pthread_mutex_unlock(&manager->lock);
+//}
 
 static BRTransaction *_peerRequestedTx(void *info, UInt256 txHash)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
-    BRPeerCallbackInfo *pingInfo;
+//    BRPeerCallbackInfo *pingInfo;
     BRTransaction *tx = NULL;
     void *txInfo = NULL;
     void (*txCallback)(void *, int) = NULL;
@@ -1429,11 +1436,11 @@ static BRTransaction *_peerRequestedTx(void *info, UInt256 txHash)
         BRWalletRegisterTransaction(manager->wallet, tx);
     }
     
-    pingInfo = calloc(1, sizeof(*pingInfo));
-    pingInfo->peer = peer;
-    pingInfo->manager = manager;
-    pingInfo->hash = txHash;
-    BRPeerSendPing(peer, pingInfo, _peerRequestedTxPingDone);
+//    pingInfo = calloc(1, sizeof(*pingInfo));
+//    pingInfo->peer = peer;
+//    pingInfo->manager = manager;
+//    pingInfo->hash = txHash;
+//    BRPeerSendPing(peer, pingInfo, _peerRequestedTxPingDone);
     pthread_mutex_unlock(&manager->lock);
     if (txCallback) txCallback(txInfo, error);
     return tx;

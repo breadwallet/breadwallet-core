@@ -139,12 +139,13 @@ void BRSHA256(void *md32, const void *data, size_t len)
     memset(buf, 0, sizeof(buf));
 }
 
-void BRSHA256_2(void *md, const void *data, size_t len)
+// double-sha-256 = sha-256(sha-256(x))
+void BRSHA256_2(void *md32, const void *data, size_t len)
 {
     uint8_t t[32];
     
     BRSHA256(t, data, len);
-    BRSHA256(md, t, sizeof(t));
+    BRSHA256(md32, t, sizeof(t));
 }
 
 // bitwise right rotation
@@ -295,12 +296,13 @@ void BRRMD160(void *md20, const void *data, size_t len)
     memset(buf, 0, sizeof(buf));
 }
 
-void BRHash160(void *md, const void *data, size_t len)
+// bitcoin hash-160 = ripemd-160(sha-256(x))
+void BRHash160(void *md20, const void *data, size_t len)
 {
     uint8_t t[32];
     
     BRSHA256(t, data, len);
-    BRRMD160(md, t, sizeof(t));
+    BRRMD160(md20, t, sizeof(t));
 }
 
 // HMAC(key, data) = hash((key xor opad) || hash((key xor ipad) || data))

@@ -36,6 +36,7 @@ void BRSHA1(void *md20, const void *data, size_t len);
 
 void BRSHA256(void *md32, const void *data, size_t len);
 
+// double-sha-256 = sha-256(sha-256(x))
 void BRSHA256_2(void *md32, const void *data, size_t len);
 
 void BRSHA512(void *md64, const void *data, size_t len);
@@ -43,6 +44,7 @@ void BRSHA512(void *md64, const void *data, size_t len);
 // ripemd-160 hash function: http://homes.esat.kuleuven.be/~bosselae/ripemd160.html
 void BRRMD160(void *md20, const void *data, size_t len);
 
+// bitcoin hash-160 = ripemd-160(sha-256(x))
 void BRHash160(void *md20, const void *data, size_t len);
 
 void BRHMAC(void *md, void (*hash)(void *, const void *, size_t), size_t hashLen, const void *key, size_t keyLen,
