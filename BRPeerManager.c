@@ -91,7 +91,7 @@ static const struct { uint32_t height; const char *hash; uint32_t timestamp; uin
     { 342720, "00000000000000000f9cfece8494800d3dcbf9583232825da640c8703bcd27e7", 1423496415, 0x1818bb87 },
     { 362880, "000000000000000014898b8e6538392702ffb9450f904c80ebf9d82b519a77d5", 1435475246, 0x1816418e },
     { 383040, "00000000000000000a974fa1a3f84055ad5ef0b2f96328bc96310ce83da801c9", 1447236692, 0x1810b289 },
-//    { 403200, "", 0, 0 }
+    { 403200, "000000000000000000c4272a5c68b4f55e5af734e88ceab09abf73e9ac3b6d01", 1458292068, 0x1806A4C3 }
 };
 
 static const char *dns_seeds[] = {
@@ -503,7 +503,7 @@ static void _requestUnrelayedTxGetdataDone(void *info, int success)
     // don't remove transactions until we're connected to PEER_MAX_CONNECTION peers, and all peers have finished
     // relaying their mempools
     if (count >= PEER_MAX_CONNECTIONS) {
-        BRTransaction *tx[BRWalletUnconfirmedTx(manager->wallet, NULL, 0)]; //BUG: XXXX stack overflow vulnerability
+        BRTransaction *tx[BRWalletUnconfirmedTx(manager->wallet, NULL, 0)]; // BUG: XXXX stack overflow vulnerability
         size_t txCount = BRWalletUnconfirmedTx(manager->wallet, tx, sizeof(tx)/sizeof(*tx));
 
         for (size_t i = 0; i < txCount; i++) {
