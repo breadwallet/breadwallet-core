@@ -1058,7 +1058,7 @@ static void walletTxUpdated(void *info, const UInt256 txHash[], size_t count, ui
     for (size_t i = 0; i < count; i++) printf("tx updated: %s\n", uint256_hex_encode(txHash[i]));
 }
 
-static void walletTxDeleted(void *info, UInt256 txHash)
+static void walletTxDeleted(void *info, UInt256 txHash, int notifyUser, int recommendRescan)
 {
     printf("tx deleted: %s\n", uint256_hex_encode(txHash));
 }
@@ -1778,8 +1778,7 @@ int main(int argc, const char *argv[])
 
     manager = BRPeerManagerNew(wallet, BIP39_CREATION_TIME, NULL, 0, NULL, 0);
     //manager = BRPeerManagerNew(wallet, (uint32_t)time(NULL), NULL, 0, NULL, 0);
-    BRPeerManagerSetCallbacks(manager, manager, syncStarted, syncSucceeded, syncFailed, txStatusUpdate, NULL, NULL,
-                              NULL, NULL);
+    BRPeerManagerSetCallbacks(manager, manager, syncStarted, syncSucceeded, syncFailed, txStatusUpdate, NULL,NULL,NULL);
 
     BRPeerManagerConnect(manager);
     while (err == 0 && BRPeerManagerPeerCount(manager) > 0) err = sleep(1);
