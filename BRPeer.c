@@ -1251,19 +1251,19 @@ void BRPeerSendGetheaders(BRPeer *peer, const UInt256 locators[], size_t count, 
     size_t i, off = 0, len = sizeof(uint32_t) + BRVarIntSize(count) + sizeof(*locators)*count + sizeof(hashStop);
     uint8_t msg[len];
     
-    if (off + sizeof(uint32_t) <= len) *(uint32_t *)(msg + off) = le32(PROTOCOL_VERSION);
+    *(uint32_t *)(msg + off) = le32(PROTOCOL_VERSION);
     off += sizeof(uint32_t);
-    if (off + BRVarIntSize(count) <= len) off += BRVarIntSet(msg + off, len - off, count);
+    off += BRVarIntSet(msg + off, len - off, count);
 
     for (i = 0; i < count; i++) {
-        if (off + sizeof(*locators) <= len) *(UInt256 *)(msg + off) = locators[i];
+        *(UInt256 *)(msg + off) = locators[i];
         off += sizeof(*locators);
     }
 
-    if (off + sizeof(hashStop) <= len) *(UInt256 *)(msg + off) = hashStop;
+    *(UInt256 *)(msg + off) = hashStop;
     off += sizeof(hashStop);
 
-    if (off <= len && count > 0) {
+    if (count > 0) {
         peer_log(peer, "calling getheaders with %zu locators: [%s,%s %s]", count, uint256_hex_encode(locators[0]),
                  (count > 2 ? " ...," : ""), (count > 1 ? uint256_hex_encode(locators[count - 1]) : ""));
         BRPeerSendMessage(peer, msg, off, MSG_GETHEADERS);
@@ -1275,19 +1275,19 @@ void BRPeerSendGetblocks(BRPeer *peer, const UInt256 locators[], size_t count, U
     size_t i, off = 0, len = sizeof(uint32_t) + BRVarIntSize(count) + sizeof(*locators)*count + sizeof(hashStop);
     uint8_t msg[len];
     
-    if (off + sizeof(uint32_t) <= len) *(uint32_t *)(msg + off) = le32(PROTOCOL_VERSION);
+    *(uint32_t *)(msg + off) = le32(PROTOCOL_VERSION);
     off += sizeof(uint32_t);
-    if (off + BRVarIntSize(count) <= len) off += BRVarIntSet(msg + off, len - off, count);
+    off += BRVarIntSet(msg + off, len - off, count);
     
     for (i = 0; i < count; i++) {
-        if (off + sizeof(*locators) <= len) *(UInt256 *)(msg + off) = locators[i];
+        *(UInt256 *)(msg + off) = locators[i];
         off += sizeof(*locators);
     }
     
-    if (off + sizeof(hashStop) <= len) *(UInt256 *)(msg + off) = hashStop;
+    *(UInt256 *)(msg + off) = hashStop;
     off += sizeof(hashStop);
     
-    if (off <= len && count > 0) {
+    if (count > 0) {
         peer_log(peer, "calling getblocks with %zu locators: [%s,%s %s]", count, uint256_hex_encode(locators[0]),
                  (count > 2 ? " ...," : ""), (count > 1 ? uint256_hex_encode(locators[count - 1]) : ""));
         BRPeerSendMessage(peer, msg, off, MSG_GETBLOCKS);
@@ -1319,16 +1319,16 @@ void BRPeerSendInv(BRPeer *peer, const UInt256 txHashes[], size_t count)
         size_t off = 0, len = BRVarIntSize(count) + (sizeof(uint32_t) + sizeof(*txHashes))*count;
         uint8_t msg[len];
         
-        if (off + BRVarIntSize(count) <= len) off += BRVarIntSet(msg + off, len - off, count);
+        off += BRVarIntSet(msg + off, len - off, count);
         
         for (i = 0; i < count; i++) {
-            if (off + sizeof(uint32_t) <= len) *(uint32_t *)(msg + off) = le32(inv_tx);
+            *(uint32_t *)(msg + off) = le32(inv_tx);
             off += sizeof(uint32_t);
-            if (off + sizeof(*txHashes) <= len) *(UInt256 *)(msg + off) = knownTxHashes[hashesCount + i];
+            *(UInt256 *)(msg + off) = knownTxHashes[hashesCount + i];
             off += sizeof(*txHashes);
         }
 
-        if (off <= len) BRPeerSendMessage(peer, msg, off, MSG_INV);
+        BRPeerSendMessage(peer, msg, off, MSG_INV);
     }
 }
 
@@ -1344,19 +1344,19 @@ void BRPeerSendGetdata(BRPeer *peer, const UInt256 txHashes[], size_t txCount, c
         size_t len = BRVarIntSize(count) + (sizeof(uint32_t) + sizeof(UInt256))*(count);
         uint8_t msg[len];
 
-        if (off + BRVarIntSize(count) <= len) off += BRVarIntSet(msg + off, len - off, count);
+        off += BRVarIntSet(msg + off, len - off, count);
         
         for (i = 0; i < txCount; i++) {
-            if (off + sizeof(uint32_t) <= len) *(uint32_t *)(msg + off) = le32(inv_tx);
+            *(uint32_t *)(msg + off) = le32(inv_tx);
             off += sizeof(uint32_t);
-            if (off + sizeof(*txHashes) <= len) *(UInt256 *)(msg + off) = txHashes[i];
+            *(UInt256 *)(msg + off) = txHashes[i];
             off += sizeof(*txHashes);
         }
         
         for (i = 0; i < blockCount; i++) {
-            if (off + sizeof(uint32_t) <= len) *(uint32_t *)(msg + off) = le32(inv_merkleblock);
+            *(uint32_t *)(msg + off) = le32(inv_merkleblock);
             off += sizeof(uint32_t);
-            if (off + sizeof(*blockHashes) <= len) *(UInt256 *)(msg + off) = blockHashes[i];
+            *(UInt256 *)(msg + off) = blockHashes[i];
             off += sizeof(*blockHashes);
         }
         
