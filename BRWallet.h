@@ -62,13 +62,13 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
 // void txAdded(void *, BRTransaction *) - called when transaction is added to the wallet
 // void txUpdated(void *, const UInt256[], size_t, uint32_t, uint32_t)
 //   - called when the blockHeight or timestamp of previously added transactions are updated
-// void txDeleted(void *, UInt256) - called when a previously added transaction is removed from the wallet
+// void txDeleted(void *, UInt256, int, int) - called when a previously added transaction is removed from the wallet
 void BRWalletSetCallbacks(BRWallet *wallet, void *info,
                           void (*balanceChanged)(void *info, uint64_t balance),
                           void (*txAdded)(void *info, BRTransaction *tx),
                           void (*txUpdated)(void *info, const UInt256 txHashes[], size_t count,
                                             uint32_t blockHeight, uint32_t timestamp),
-                          void (*txDeleted)(void *info, UInt256 txHash));
+                          void (*txDeleted)(void *info, UInt256 txHash, int notifyUser, int recommendRescan));
 
 // wallets are composed of chains of addresses
 // each chain is traversed until a gap of a number of addresses is found that haven't been used in any transactions

@@ -49,7 +49,6 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
 // void syncSucceeded(void *) - called when blockchain syncing completes successfully
 // void syncFailed(void *, int) - called when blockchain syncing fails, error is an errno.h code
 // void txStatusUpdate(void *) - called when transaction status may have changed such as when a new block arrives
-// void txRejected(void *, int) - called when a wallet transaction fails to confirm and drops off the bitcoin network
 // void saveBlocks(void *, BRMerkleBlock *[], size_t) - called when blocks should be saved to the persistent store
 //   - if count is 1, save the given block without removing any previously saved blocks
 //   - if count is 0 or more than 1, save the given blocks and delete any previously saved blocks not given
@@ -62,7 +61,6 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*syncSucceeded)(void *info),
                                void (*syncFailed)(void *info, int error),
                                void (*txStatusUpdate)(void *info),
-                               void (*txRejected)(void *info, int rescanRecommended),
                                void (*saveBlocks)(void *info, BRMerkleBlock *blocks[], size_t count),
                                void (*savePeers)(void *info, const BRPeer peers[], size_t count),
                                int (*networkIsReachable)(void *info));

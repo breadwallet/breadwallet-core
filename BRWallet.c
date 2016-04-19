@@ -46,7 +46,7 @@ struct BRWalletStruct {
     void (*balanceChanged)(void *info, uint64_t balance);
     void (*txAdded)(void *info, BRTransaction *tx);
     void (*txUpdated)(void *info, const UInt256 txHashes[], size_t count, uint32_t blockHeight, uint32_t timestamp);
-    void (*txDeleted)(void *info, UInt256 txHash);
+    void (*txDeleted)(void *info, UInt256 txHash, int notifyUser, int recommendRescan);
     pthread_mutex_t lock;
 };
 
@@ -256,12 +256,13 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
 // void txUpdated(void *, const UInt256[], size_t, uint32_t, uint32_t)
 //   - called when the blockHeight or timestamp of previously added transactions are updated
 // void txDeleted(void *, UInt256) - called when a previously added transaction is removed from the wallet
+// NOTE: if a transaction is deleted, and BRWalletAmountSentByTx() is greater than 0, recommend the user do a rescan
 void BRWalletSetCallbacks(BRWallet *wallet, void *info,
                           void (*balanceChanged)(void *info, uint64_t balance),
                           void (*txAdded)(void *info, BRTransaction *tx),
                           void (*txUpdated)(void *info, const UInt256 txHash[], size_t count, uint32_t blockHeight,
                                             uint32_t timestamp),
-                          void (*txDeleted)(void *info, UInt256 txHash))
+                          void (*txDeleted)(void *info, UInt256 txHash, int notifyUser, int recommendRescan))
 {
     wallet->callbackInfo = info;
     wallet->balanceChanged = balanceChanged;
@@ -672,6 +673,7 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
 {
     BRTransaction *tx, *t;
     UInt256 *hashes = NULL;
+    int notifyUser = 0, recommendRescan = 0;
 
     pthread_mutex_lock(&wallet->lock);
     tx = BRSetGet(wallet->allTx, &txHash);
@@ -713,9 +715,22 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
             
             _BRWalletUpdateBalance(wallet);
             pthread_mutex_unlock(&wallet->lock);
+            
+            // if this is for a transaction we sent, and it wasn't already known to be invalid, notify user
+            if (BRWalletAmountSentByTx(wallet, tx) > 0 && BRWalletTransactionIsValid(wallet, tx)) {
+                recommendRescan = notifyUser = 1;
+                
+                for (size_t i = 0; i < tx->inCount; i++) { // only recommend a rescan if all inputs are confirmed
+                    t = BRWalletTransactionForHash(wallet, tx->inputs[i].txHash);
+                    if (t && t->blockHeight != TX_UNCONFIRMED) continue;
+                    recommendRescan = 0;
+                    break;
+                }
+            }
+
             BRTransactionFree(tx);
             if (wallet->balanceChanged) wallet->balanceChanged(wallet->callbackInfo, wallet->balance);
-            if (wallet->txDeleted) wallet->txDeleted(wallet->callbackInfo, txHash);
+            if (wallet->txDeleted) wallet->txDeleted(wallet->callbackInfo, txHash, notifyUser, recommendRescan);
         }
         
         array_free(hashes);

@@ -231,7 +231,6 @@ struct BRPeerManagerStruct {
     void (*syncSucceeded)(void *info);
     void (*syncFailed)(void *info, int error);
     void (*txStatusUpdate)(void *info);
-    void (*txRejected)(void *info, int rescanRecommended);
     void (*saveBlocks)(void *info, BRMerkleBlock *blocks[], size_t count);
     void (*savePeers)(void *info, const BRPeer peers[], size_t count);
     int (*networkIsReachable)(void *info);
@@ -485,7 +484,7 @@ static void _requestUnrelayedTxGetdataDone(void *info, int success)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
-    int isPublishing, shouldRescan = 0, willNotify = 0;
+    int isPublishing;
     size_t count = 0;
 
     free(info);
@@ -504,7 +503,7 @@ static void _requestUnrelayedTxGetdataDone(void *info, int success)
     // don't remove transactions until we're connected to PEER_MAX_CONNECTION peers, and all peers have finished
     // relaying their mempools
     if (count >= PEER_MAX_CONNECTIONS) {
-        BRTransaction *t, *tx[BRWalletUnconfirmedTx(manager->wallet, NULL, 0)]; //BUG: XXXX stack overflow vulnerability
+        BRTransaction *tx[BRWalletUnconfirmedTx(manager->wallet, NULL, 0)]; //BUG: XXXX stack overflow vulnerability
         size_t txCount = BRWalletUnconfirmedTx(manager->wallet, tx, sizeof(tx)/sizeof(*tx));
 
         for (size_t i = 0; i < txCount; i++) {
@@ -517,19 +516,6 @@ static void _requestUnrelayedTxGetdataDone(void *info, int success)
             
             if (! isPublishing && _BRTxPeerListCount(manager->txRelays, tx[i]->txHash) == 0 &&
                 _BRTxPeerListCount(manager->txRequests, tx[i]->txHash) == 0) {
-                // if this is for a transaction we sent, and it wasn't already known to be invalid, notify user
-                if (! shouldRescan && BRWalletAmountSentByTx(manager->wallet, tx[i]) > 0 &&
-                    BRWalletTransactionIsValid(manager->wallet, tx[i])) {
-                    shouldRescan = willNotify = 1;
-
-                    for (size_t j = 0; j < tx[i]->inCount; j++) { // only recommend a rescan if all inputs are confirmed
-                        t = BRWalletTransactionForHash(manager->wallet, tx[i]->inputs[j].txHash);
-                        if (t && t->blockHeight != TX_UNCONFIRMED) continue;
-                        shouldRescan = 0;
-                        break;
-                    }
-                }
-
                 BRWalletRemoveTransaction(manager->wallet, tx[i]->txHash);
             }
             else if (! isPublishing && _BRTxPeerListCount(manager->txRelays, tx[i]->txHash) < PEER_MAX_CONNECTIONS) {
@@ -540,7 +526,6 @@ static void _requestUnrelayedTxGetdataDone(void *info, int success)
     }
 
     pthread_mutex_unlock(&manager->lock);
-    if (willNotify && manager->txRejected) manager->txRejected(manager->info, shouldRescan);
 }
 
 static void _BRPeerManagerRequestUnrelayedTx(BRPeerManager *manager, BRPeer *peer)
@@ -1508,7 +1493,6 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
 // void syncSucceeded(void *) - called when blockchain syncing completes successfully
 // void syncFailed(void *, int) - called when blockchain syncing fails, error is an errno.h code
 // void txStatusUpdate(void *) - called when transaction status may have changed such as when a new block arrives
-// void txRejected(void *, int) - called when a wallet transaction fails to confirm and drops off the bitcoin network
 // void saveBlocks(void *, BRMerkleBlock *[], size_t) - called when blocks should be saved to the persistent store
 //   - if count is 1, save the given block without removing any previously saved blocks
 //   - if count is 0 or more than 1, save the given blocks and delete any previously saved blocks not given
@@ -1521,7 +1505,6 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*syncSucceeded)(void *info),
                                void (*syncFailed)(void *info, int error),
                                void (*txStatusUpdate)(void *info),
-                               void (*txRejected)(void *info, int rescanRecommended),
                                void (*saveBlocks)(void *info, BRMerkleBlock *blocks[], size_t count),
                                void (*savePeers)(void *info, const BRPeer peers[], size_t count),
                                int (*networkIsReachable)(void *info))
