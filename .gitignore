@@ -34,3 +34,5 @@
 # IDE files
 *.xcworkspace
 *.xcodeproj
+
+.idea/
