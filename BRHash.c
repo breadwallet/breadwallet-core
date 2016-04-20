@@ -117,6 +117,27 @@ static void _BRSHA256Compress(uint32_t *r, uint32_t *x)
     memset(w, 0, sizeof(w));
 }
 
+void BRSHA224(void *md28, const void *data, size_t len) {
+    size_t i;
+    uint32_t x[16], buf[] = {0xc1059ed8, 0x367cd507, 0x3070dd17, 0xf70e5939, 0xffc00b31, 0x68581511,
+                             0x64f98fa7, 0xbefa4fa4}; // initial buffer values
+
+    for (i = 0; i < len; i += 64) { // process data in 64 byte blocks
+        memcpy(x, (const uint8_t *)data + i, (i + 64 < len) ? 64 : len - i);
+        if (i + 64 > len) break;
+        _BRSHA256Compress(buf, x);
+    }
+
+    memset((uint8_t *)x + (len - i), 0, 64 - (len - i)); // clear remainder of x
+    ((uint8_t *)x)[len - i] = 0x80; // append padding
+    if (len - i >= 56) _BRSHA256Compress(buf, x), memset(x, 0, 64); // length goes to next block
+    *(uint64_t *)&x[14] = be64((uint64_t)len*8); // append length in bits
+    _BRSHA256Compress(buf, x); // finalize
+    for (i = 0; i < 7; i++) ((uint32_t *)md28)[i] = be32(buf[i]); // write to md
+    memset(x, 0, sizeof(x));
+    memset(buf, 0, sizeof(buf));
+}
+
 void BRSHA256(void *md32, const void *data, size_t len)
 {
     size_t i;

@@ -36,6 +36,8 @@ void BRSHA1(void *md20, const void *data, size_t len);
 
 void BRSHA256(void *md32, const void *data, size_t len);
 
+void BRSHA224(void *md28, const void *data, size_t len);
+
 // double-sha-256 = sha-256(sha-256(x))
 void BRSHA256_2(void *md32, const void *data, size_t len);
 
