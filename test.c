@@ -980,25 +980,38 @@ int BRTransactionTests()
     BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
     BRTransactionAddOutput(tx, 100000000, script, scriptLen);
     BRTransactionAddOutput(tx, 4900000000, script, scriptLen);
+    
+    uint8_t buf[BRTransactionSerialize(tx, NULL, 0)]; // test serializing/parsing unsigned tx
+    size_t len = BRTransactionSerialize(tx, buf, sizeof(buf));
+    
+    if (len == 0) r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionSerialize() test 0\n", __func__);
+    BRTransactionFree(tx);
+    tx = BRTransactionParse(buf, len);
+    
+    if (! tx || tx->inCount != 1 || tx->outCount != 2)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionParse() test 0\n", __func__);
+    if (! tx) return r;
+    
     BRTransactionSign(tx, k, 2);
     if (! BRTransactionIsSigned(tx))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionSign() test 1\n", __func__);
 
-    uint8_t buf[BRTransactionSerialize(tx, NULL, 0)];
-    size_t len = BRTransactionSerialize(tx, buf, sizeof(buf));
-
-    if (tx) BRTransactionFree(tx);
-    tx = BRTransactionParse(buf, len);
-
-    if (! BRTransactionIsSigned(tx))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionParse() test 1\n", __func__);
-
     uint8_t buf2[BRTransactionSerialize(tx, NULL, 0)];
     size_t len2 = BRTransactionSerialize(tx, buf2, sizeof(buf2));
+
+    BRTransactionFree(tx);
+    tx = BRTransactionParse(buf2, len2);
+
+    if (! tx || ! BRTransactionIsSigned(tx))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionParse() test 1\n", __func__);
+    if (! tx) return r;
     
-    if (len != len2 || memcmp(buf, buf2, len) != 0)
+    uint8_t buf3[BRTransactionSerialize(tx, NULL, 0)];
+    size_t len3 = BRTransactionSerialize(tx, buf3, sizeof(buf3));
+    
+    if (len2 != len3 || memcmp(buf2, buf3, len2) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionSerialize() test 1\n", __func__);
-    if (tx) BRTransactionFree(tx);
+    BRTransactionFree(tx);
     
     tx = BRTransactionNew();
     BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
@@ -1025,20 +1038,21 @@ int BRTransactionTests()
     if (! BRTransactionIsSigned(tx))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionSign() test 2\n", __func__);
 
-    uint8_t buf3[BRTransactionSerialize(tx, NULL, 0)];
-    size_t len3 = BRTransactionSerialize(tx, buf3, sizeof(buf3));
-    
-    if (tx) BRTransactionFree(tx);
-    tx = BRTransactionParse(buf3, len3);
-    if (! BRTransactionIsSigned(tx))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionParse() test 2\n", __func__);
-
     uint8_t buf4[BRTransactionSerialize(tx, NULL, 0)];
     size_t len4 = BRTransactionSerialize(tx, buf4, sizeof(buf4));
     
-    if (len3 != len4 || memcmp(buf3, buf4, len3) != 0)
+    BRTransactionFree(tx);
+    tx = BRTransactionParse(buf4, len4);
+    if (! tx || ! BRTransactionIsSigned(tx))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionParse() test 2\n", __func__);
+    if (! tx) return r;
+
+    uint8_t buf5[BRTransactionSerialize(tx, NULL, 0)];
+    size_t len5 = BRTransactionSerialize(tx, buf5, sizeof(buf5));
+    
+    if (len4 != len5 || memcmp(buf4, buf5, len4) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionSerialize() test 2\n", __func__);
-    if (tx) BRTransactionFree(tx);
+    BRTransactionFree(tx);
     
     return r;
 }

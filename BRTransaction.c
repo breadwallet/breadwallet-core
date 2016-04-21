@@ -90,7 +90,7 @@ void BRTxInputSetSignature(BRTxInput *input, const uint8_t *signature, size_t si
     input->signature = NULL;
     input->sigLen = 0;
     
-    if (signature) {
+    if (signature && sigLen > 0) {
         input->sigLen = sigLen;
         array_new(input->signature, sigLen);
         array_add_array(input->signature, signature, sigLen);
@@ -153,7 +153,7 @@ static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t 
             if (data && off + in->sigLen <= len) memcpy(&data[off], in->signature, in->sigLen);
             off += in->sigLen;
         }
-        else if (subscriptIdx == i && in->script && in->scriptLen > 0) {
+        else if ((subscriptIdx == i || subscriptIdx == SIZE_MAX) && in->script && in->scriptLen > 0) {
             // TODO: to fully match the reference implementation, OP_CODESEPARATOR related checksig logic should go here
             off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), in->scriptLen);
             if (data && off + in->scriptLen <= len) memcpy(&data[off], in->script, in->scriptLen);
@@ -208,7 +208,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t len)
 {
     if (! buf) return NULL;
 
-    size_t i, off = 0, l = 0;
+    size_t i, off = 0, sLen = 0, l = 0;
     BRTransaction *tx = BRTransactionNew();
 
     tx->version = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)&buf[off]) : 0;
@@ -224,10 +224,15 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t len)
         off += sizeof(UInt256);
         input->index = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)&buf[off]) : 0;
         off += sizeof(uint32_t);
-        input->sigLen = BRVarInt(&buf[off], (off <= len ? len - off : 0), &l);
+        sLen = BRVarInt(&buf[off], (off <= len ? len - off : 0), &l);
         off += l;
-        if (off + input->sigLen <= len) BRTxInputSetSignature(input, &buf[off], input->sigLen);
-        off += input->sigLen;
+        
+        if (off + sLen <= len && BRAddressFromScriptPubKey(NULL, 0, &buf[off], sLen) > 0) {
+            BRTxInputSetScript(input, &buf[off], sLen);
+        }
+        else if (off + sLen <= len) BRTxInputSetSignature(input, &buf[off], sLen);
+
+        off += sLen;
         input->sequence = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)&buf[off]) : 0;
         off += sizeof(uint32_t);
     }
@@ -241,22 +246,20 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t len)
 
         output->amount = (off + sizeof(uint64_t) <= len) ? le64(*(uint64_t *)&buf[off]) : 0;
         off += sizeof(uint64_t);
-        output->scriptLen = BRVarInt(&buf[off], (off <= len ? len - off : 0), &l);
+        sLen = BRVarInt(&buf[off], (off <= len ? len - off : 0), &l);
         off += l;
-        if (off + output->scriptLen <= len) BRTxOutputSetScript(output, &buf[off], output->scriptLen);
-        off += output->scriptLen;
+        if (off + sLen <= len) BRTxOutputSetScript(output, &buf[off], sLen);
+        off += sLen;
     }
     
     tx->lockTime = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)&buf[off]) : 0;
     off += sizeof(uint32_t);
 
-    if (tx->inCount > 0 && off <= len) {
-        BRSHA256_2(&tx->txHash, buf, off);
-    }
-    else {
+    if (tx->inCount == 0 || off > len) {
         BRTransactionFree(tx);
         tx = NULL;
     }
+    else BRSHA256_2(&tx->txHash, buf, off);
     
     return tx;
 }
