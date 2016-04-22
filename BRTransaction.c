@@ -208,6 +208,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t len)
 {
     if (! buf) return NULL;
 
+    int isSigned = 1;
     size_t i, off = 0, sLen = 0, l = 0;
     BRTransaction *tx = BRTransactionNew();
 
@@ -229,6 +230,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t len)
         
         if (off + sLen <= len && BRAddressFromScriptPubKey(NULL, 0, &buf[off], sLen) > 0) {
             BRTxInputSetScript(input, &buf[off], sLen);
+            isSigned = 0;
         }
         else if (off + sLen <= len) BRTxInputSetSignature(input, &buf[off], sLen);
 
@@ -259,7 +261,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t len)
         BRTransactionFree(tx);
         tx = NULL;
     }
-    else BRSHA256_2(&tx->txHash, buf, off);
+    else if (isSigned) BRSHA256_2(&tx->txHash, buf, off);
     
     return tx;
 }
@@ -326,7 +328,7 @@ uint64_t BRTransactionStandardFee(BRTransaction *tx)
 int BRTransactionIsSigned(BRTransaction *tx)
 {
     for (size_t i = 0; i < tx->inCount; i++) {
-        if (! tx->inputs[i].signature || tx->inputs[i].sigLen == 0) return 0;
+        if (! tx->inputs[i].signature) return 0;
     }
 
     return 1;

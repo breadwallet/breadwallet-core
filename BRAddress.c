@@ -176,10 +176,7 @@ size_t BRScriptPushData(uint8_t *script, size_t scriptLen, const uint8_t *data, 
 {
     size_t len;
 
-    if (dataLen == 0) {
-        len = dataLen;
-    }
-    else if (dataLen < OP_PUSHDATA1) {
+    if (dataLen < OP_PUSHDATA1) {
         len = 1 + dataLen;
         if (script && len <= scriptLen) script[0] = dataLen;
     }
