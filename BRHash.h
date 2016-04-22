@@ -41,6 +41,8 @@ void BRSHA224(void *md28, const void *data, size_t len);
 // double-sha-256 = sha-256(sha-256(x))
 void BRSHA256_2(void *md32, const void *data, size_t len);
 
+void BRSHA384(void *md48, const void *data, size_t len);
+
 void BRSHA512(void *md64, const void *data, size_t len);
 
 // ripemd-160 hash function: http://homes.esat.kuleuven.be/~bosselae/ripemd160.html

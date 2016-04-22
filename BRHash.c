@@ -119,8 +119,8 @@ static void _BRSHA256Compress(uint32_t *r, uint32_t *x)
 
 void BRSHA224(void *md28, const void *data, size_t len) {
     size_t i;
-    uint32_t x[16], buf[] = {0xc1059ed8, 0x367cd507, 0x3070dd17, 0xf70e5939, 0xffc00b31, 0x68581511,
-                             0x64f98fa7, 0xbefa4fa4}; // initial buffer values
+    uint32_t x[16], buf[] = { 0xc1059ed8, 0x367cd507, 0x3070dd17, 0xf70e5939, 0xffc00b31, 0x68581511,
+                              0x64f98fa7, 0xbefa4fa4 }; // initial buffer values
 
     for (i = 0; i < len; i += 64) { // process data in 64 byte blocks
         memcpy(x, (const uint8_t *)data + i, (i + 64 < len) ? 64 : len - i);
@@ -214,6 +214,29 @@ static void _BRSHA512Compress(uint64_t *r, uint64_t *x)
     r[0] += a, r[1] += b, r[2] += c, r[3] += d, r[4] += e, r[5] += f, r[6] += g, r[7] += h;
     a = b = c = d = e = f = g = h = t1 = t2 = 0;
     memset(w, 0, sizeof(w));
+}
+
+
+void BRSHA384(void *md48, const void *data, size_t len)
+{
+    size_t i;
+    uint64_t x[16], buf[] = { 0xcbbb9d5dc1059ed8, 0x629a292a367cd507, 0x9159015a3070dd17, 0x152fecd8f70e5939,
+                              0x67332667ffc00b31, 0x8eb44a8768581511, 0xdb0c2e0d64f98fa7, 0x47b5481dbefa4fa4 };
+    
+    for (i = 0; i < len; i += 128) { // process data in 128 byte blocks
+        memcpy(x, (const uint8_t *)data + i, (i + 128 < len) ? 128 : len - i);
+        if (i + 128 > len) break;
+        _BRSHA512Compress(buf, x);
+    }
+    
+    memset((uint8_t *)x + (len - i), 0, 128 - (len - i)); // clear remainder of x
+    ((uint8_t *)x)[len - i] = 0x80; // append padding
+    if (len - i >= 112) _BRSHA512Compress(buf, x), memset(x, 0, 128); // length goes to next block
+    x[14] = 0, x[15] = be64((uint64_t)len*8); // append length in bits
+    _BRSHA512Compress(buf, x); // finalize
+    for (i = 0; i < 6; i++) ((uint64_t *)md48)[i] = be64(buf[i]); // write to md
+    memset(x, 0, sizeof(x));
+    memset(buf, 0, sizeof(buf));
 }
 
 void BRSHA512(void *md64, const void *data, size_t len)
