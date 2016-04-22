@@ -90,7 +90,7 @@ void BRTxInputSetSignature(BRTxInput *input, const uint8_t *signature, size_t si
     input->signature = NULL;
     input->sigLen = 0;
     
-    if (signature && sigLen > 0) {
+    if (signature) {
         input->sigLen = sigLen;
         array_new(input->signature, sigLen);
         array_add_array(input->signature, signature, sigLen);
@@ -148,12 +148,12 @@ static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t 
         if (data && off + sizeof(uint32_t) <= len) *(uint32_t *)&data[off] = le32(in->index);
         off += sizeof(uint32_t);
 
-        if (subscriptIdx == SIZE_MAX && in->signature && in->sigLen > 0) {
+        if (subscriptIdx == SIZE_MAX && in->signature) {
             off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), in->sigLen);
             if (data && off + in->sigLen <= len) memcpy(&data[off], in->signature, in->sigLen);
             off += in->sigLen;
         }
-        else if ((subscriptIdx == i || subscriptIdx == SIZE_MAX) && in->script && in->scriptLen > 0) {
+        else if ((subscriptIdx == i || subscriptIdx == SIZE_MAX) && in->script) {
             // TODO: to fully match the reference implementation, OP_CODESEPARATOR related checksig logic should go here
             off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), in->scriptLen);
             if (data && off + in->scriptLen <= len) memcpy(&data[off], in->script, in->scriptLen);
