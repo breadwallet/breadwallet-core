@@ -534,12 +534,14 @@ static int _BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t 
         }
 
         if (notfound) {
-            uint8_t *buf = malloc(BRVarIntSize(array_count(notfound)) + 36*array_count(notfound));
-            size_t o = BRVarIntSet(buf, sizeof(buf), array_count(notfound));
-
+            size_t bufLen = BRVarIntSize(array_count(notfound)) + 36*array_count(notfound), o = 0;
+            uint8_t *buf = malloc(bufLen);
+            
+            o += BRVarIntSet(&buf[o], bufLen - o, array_count(notfound));
             memcpy(&buf[o], notfound, 36*array_count(notfound));
+            o += 36*array_count(notfound);
             array_free(notfound);
-            BRPeerSendMessage(peer, buf, o + 36*array_count(notfound), MSG_NOTFOUND);
+            BRPeerSendMessage(peer, buf, o, MSG_NOTFOUND);
             free(buf);
         }
     }
