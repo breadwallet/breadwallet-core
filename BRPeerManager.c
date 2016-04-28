@@ -320,11 +320,13 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
         manager->filterUpdateHeight = manager->lastBlock->height;
         manager->fpRate = BLOOM_REDUCED_FALSEPOSITIVE_RATE;
 
-        BRAddress addrs[BRWalletAllAddrs(manager->wallet, NULL, 0)]; // BUG: XXXX stack overflow vulnerability
-        size_t addrsCount = BRWalletAllAddrs(manager->wallet, addrs, sizeof(addrs)/sizeof(*addrs));
-        BRUTXO utxos[BRWalletUTXOs(manager->wallet, NULL, 0)]; // BUG: XXXX stack overflow vulnerability
-        size_t utxosCount = BRWalletUTXOs(manager->wallet, utxos, sizeof(utxos)/sizeof(*utxos));
+        size_t addrsCount = BRWalletAllAddrs(manager->wallet, NULL, 0);
+        BRAddress *addrs = malloc(sizeof(BRAddress)*addrsCount);
+        size_t utxosCount = BRWalletUTXOs(manager->wallet, NULL, 0);
+        BRUTXO *utxos = malloc(sizeof(BRUTXO)*utxosCount);
 
+        addrsCount = BRWalletAllAddrs(manager->wallet, addrs, addrsCount);
+        utxosCount = BRWalletUTXOs(manager->wallet, utxos, utxosCount);
         filter = BRBloomFilterNew(manager->fpRate, addrsCount + utxosCount + 100, manager->tweak, BLOOM_UPDATE_ALL);
         
         for (size_t i = 0; i < addrsCount; i++) { // add addresses to watch for tx receiveing money to the wallet
@@ -337,6 +339,8 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
             }
         }
 
+        free(addrs);
+        
         for (size_t i = 0; i < utxosCount; i++) { // add UTXOs to watch for tx sending money from the wallet
             uint8_t o[sizeof(UInt256) + sizeof(uint32_t)];
 
@@ -345,8 +349,9 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
             if (! BRBloomFilterContainsData(filter, o, sizeof(o))) BRBloomFilterInsertData(filter, o, sizeof(o));
         }
     
-        // TODO: XXX if already synced, recursively add inputs of unconfirmed receives
+        free(utxos);
         manager->bloomFilter = filter;
+        // TODO: XXX if already synced, recursively add inputs of unconfirmed receives
     }
 
     uint8_t data[BRBloomFilterSerialize(filter, NULL, 0)];
@@ -503,8 +508,10 @@ static void _requestUnrelayedTxGetdataDone(void *info, int success)
     // don't remove transactions until we're connected to PEER_MAX_CONNECTION peers, and all peers have finished
     // relaying their mempools
     if (count >= PEER_MAX_CONNECTIONS) {
-        BRTransaction *tx[BRWalletUnconfirmedTx(manager->wallet, NULL, 0)]; // BUG: XXXX stack overflow vulnerability
-        size_t txCount = BRWalletUnconfirmedTx(manager->wallet, tx, sizeof(tx)/sizeof(*tx));
+        size_t txCount = BRWalletUnconfirmedTx(manager->wallet, NULL, 0);
+        BRTransaction *tx[(txCount < 10000) ? txCount : 10000];
+        
+        txCount = BRWalletUnconfirmedTx(manager->wallet, tx, sizeof(tx)/sizeof(*tx));
 
         for (size_t i = 0; i < txCount; i++) {
             isPublishing = 0;
@@ -738,14 +745,15 @@ static void _peerConnected(void *info)
         BRPeerDisconnect(peer);
     }
     else {
-        BRTransaction *unconfirmed[BRWalletUnconfirmedTx(manager->wallet, NULL, 0)]; // BUG: XXXX stack overflow
-        size_t unconfirmedCount = BRWalletUnconfirmedTx(manager->wallet, unconfirmed,
-                                                        sizeof(unconfirmed)/sizeof(*unconfirmed));
+        size_t txCount = BRWalletUnconfirmedTx(manager->wallet, NULL, 0);
+        BRTransaction *tx[txCount < 10000 ? txCount : 10000];
 
-        for (size_t i = 0; i < unconfirmedCount; i++) { // add unconfirmed valid send tx to mempool
-            if (BRWalletAmountSentByTx(manager->wallet, unconfirmed[i]) > 0 &&
-                BRWalletTransactionIsValid(manager->wallet, unconfirmed[i])) {
-                _BRPeerManagerAddTxToPublishList(manager, unconfirmed[i], NULL, NULL);
+        txCount = BRWalletUnconfirmedTx(manager->wallet, tx, sizeof(tx)/sizeof(*tx));
+
+        for (size_t i = 0; i < txCount; i++) { // add unconfirmed valid send tx to mempool
+            if (BRWalletAmountSentByTx(manager->wallet, tx[i]) > 0 &&
+                BRWalletTransactionIsValid(manager->wallet, tx[i])) {
+                _BRPeerManagerAddTxToPublishList(manager, tx[i], NULL, NULL);
             }
         }
     
@@ -1141,12 +1149,14 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
-    UInt256 txHashes[BRMerkleBlockTxHashes(block, NULL, 0)]; // BUG: XXXX stack overflow vulnerability
-    size_t txCount = BRMerkleBlockTxHashes(block, txHashes, sizeof(txHashes)/sizeof(*txHashes));
+    size_t txCount = BRMerkleBlockTxHashes(block, NULL, 0);
+    UInt256 _txHashes[(sizeof(UInt256)*txCount <= MAX_STACK) ? txCount : 0],
+            *txHashes = (sizeof(UInt256)*txCount <= MAX_STACK) ? _txHashes : malloc(sizeof(UInt256)*txCount);
     size_t i, fpCount = 0, saveCount = 0;
     BRMerkleBlock orphan, *b, *b2, *prev, *next = NULL;
     uint32_t txTime = 0;
     
+    txCount = BRMerkleBlockTxHashes(block, txHashes, txCount);
     pthread_mutex_lock(&manager->lock);
     prev = BRSetGet(manager->blocks, &block->prevBlock);
 
@@ -1299,13 +1309,19 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
             b = block;
         
             while (b && b2 && b->height > b2->height) { // set transaction heights for new main chain
-                UInt256 hashes[BRMerkleBlockTxHashes(b, NULL, 0)]; // BUG: XXXX stack overflow vulnerability
-                size_t count = BRMerkleBlockTxHashes(b, hashes, sizeof(hashes)/sizeof(*hashes));
+                size_t count = BRMerkleBlockTxHashes(b, NULL, 0);
                 uint32_t height = b->height, timestamp = b->timestamp;
                 
+                if (count > txCount) {
+                    txHashes = (txHashes != _txHashes) ? realloc(txHashes, sizeof(*txHashes)*count) :
+                               malloc(sizeof(*txHashes)*count);
+                    txCount = count;
+                }
+                
+                count = BRMerkleBlockTxHashes(b, txHashes, count);
                 b = BRSetGet(manager->blocks, &b->prevBlock);
                 if (b) timestamp = timestamp/2 + b->timestamp/2;
-                BRWalletUpdateTransactions(manager->wallet, hashes, count, height, timestamp);
+                BRWalletUpdateTransactions(manager->wallet, txHashes, count, height, timestamp);
             }
         
             manager->lastBlock = block;
@@ -1316,6 +1332,8 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
             }
         }
     }
+   
+    if (txHashes != _txHashes) free(txHashes);
    
     if (block && block->height != BLOCK_UNKNOWN_HEIGHT) {
         if (block->height > manager->estimatedHeight) manager->estimatedHeight = block->height;

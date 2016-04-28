@@ -502,8 +502,7 @@ static int _BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t 
         peer_log(peer, "dropping getdata message, %zu is too many items, max is %d", count, MAX_GETDATA_HASHES);
     }
     else {
-        const uint8_t *notfound[count];
-        size_t notfoundCount = 0;
+        struct inv_item { uint8_t item[36]; } *notfound = NULL;
         BRTransaction *tx = NULL;
         
         peer_log(peer, "got getdata with %zu items", count);
@@ -516,8 +515,8 @@ static int _BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t 
                 case inv_tx:
                     if (ctx->requestedTx) tx = ctx->requestedTx(ctx->info, hash);
 
-                    if (tx) {
-                        uint8_t buf[BRTransactionSerialize(tx, NULL, 0)]; // BUG: XXXX stack overflow vulnerabiliy
+                    if (tx && BRTransactionSize(tx) < TX_MAX_SIZE) {
+                        uint8_t buf[BRTransactionSerialize(tx, NULL, 0)];
                         size_t bufLen = BRTransactionSerialize(tx, buf, sizeof(buf));
                         
                         BRPeerSendMessage(peer, buf, bufLen, MSG_TX);
@@ -526,23 +525,22 @@ static int _BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t 
                     
                     // fall through
                 default:
-                    notfound[notfoundCount++] = msg + off;
+                    if (! notfound) array_new(notfound, 1);
+                    array_add(notfound, *(struct inv_item *)&msg[off]);
                     break;
             }
             
             off += 36;
         }
 
-        if (notfoundCount > 0) {
-            uint8_t buf[BRVarIntSize(notfoundCount) + 36*notfoundCount]; // BUG: XXXX stack overflow vulnerability
-            size_t o = BRVarIntSet(buf, sizeof(buf), notfoundCount);
+        if (notfound) {
+            uint8_t *buf = malloc(BRVarIntSize(array_count(notfound)) + 36*array_count(notfound));
+            size_t o = BRVarIntSet(buf, sizeof(buf), array_count(notfound));
 
-            for (size_t i = 0; o + 36 <= sizeof(buf) && i < notfoundCount; i++) {
-                memcpy(buf + o, notfound[i], 36);
-                o += 36;
-            }
-            
-            BRPeerSendMessage(peer, buf, sizeof(buf), MSG_NOTFOUND);
+            memcpy(&buf[o], notfound, 36*array_count(notfound));
+            array_free(notfound);
+            BRPeerSendMessage(peer, buf, o + 36*array_count(notfound), MSG_NOTFOUND);
+            free(buf);
         }
     }
 
@@ -564,22 +562,28 @@ static int _BRPeerAcceptNotfoundMessage(BRPeer *peer, const uint8_t *msg, size_t
         peer_log(peer, "dropping notfound message, %zu is too many items, max is %d", count, MAX_GETDATA_HASHES);
     }
     else {
-        UInt256 txHashes[count], blockHashes[count]; // BUG: XXXX stack overflow vulnerability
-        size_t txCount = 0, blockCount = 0;
+        UInt256 *txHashes, *blockHashes;
         
         peer_log(peer, "got notfound with %zu items", count);
+        array_new(txHashes, 1);
+        array_new(blockHashes, 1);
         
         for (size_t i = 0; i < count; i++) {
             switch (le32(*(uint32_t *)(msg + off))) {
-                case inv_tx: txHashes[txCount++] = *(UInt256 *)(msg + off + sizeof(uint32_t)); break;
+                case inv_tx: array_add(txHashes, *(UInt256 *)(msg + off + sizeof(uint32_t))); break;
                 case inv_merkleblock: // drop through
-                case inv_block: blockHashes[blockCount++] = *(UInt256 *)(msg + off + sizeof(uint32_t)); break;
+                case inv_block: array_add(blockHashes, *(UInt256 *)(msg + off + sizeof(uint32_t))); break;
             }
             
             off += 36;
         }
         
-        if (ctx->notfound) ctx->notfound(ctx->info, txHashes, txCount, blockHashes, blockCount);
+        if (ctx->notfound) {
+            ctx->notfound(ctx->info, txHashes, array_count(txHashes), blockHashes, array_count(blockHashes));
+        }
+        
+        array_free(txHashes);
+        array_free(blockHashes);
     }
     
     return r;
@@ -663,22 +667,31 @@ static int _BRPeerAcceptMerkleblockMessage(BRPeer *peer, const uint8_t *msg, siz
     else if (! BRMerkleBlockIsValid(block, (uint32_t)time(NULL))) {
         peer_log(peer, "invalid merkleblock: %s", uint256_hex_encode(block->blockHash));
         BRMerkleBlockFree(block);
+        block = NULL;
         r = 0;
     }
     else if (! ctx->sentFilter && ! ctx->sentGetdata) {
         peer_log(peer, "got merkleblock message before loading a filter");
         BRMerkleBlockFree(block);
+        block = NULL;
         r = 0;
     }
     else {
-        UInt256 txHashes[BRMerkleBlockTxHashes(block, NULL, 0)]; // BUG: XXXX stack overflow vulnerability
-        size_t count = BRMerkleBlockTxHashes(block, txHashes, sizeof(txHashes)/sizeof(*txHashes));
+        size_t count = BRMerkleBlockTxHashes(block, NULL, 0);
+        UInt256 _hashes[(sizeof(UInt256)*count <= MAX_STACK) ? count : 0],
+                *hashes = (sizeof(UInt256)*count <= MAX_STACK) ? _hashes : malloc(count*sizeof(UInt256));
+        
+        count = BRMerkleBlockTxHashes(block, hashes, count);
 
         for (size_t i = count; i > 0; i--) { // reverse order for more efficient removal as tx arrive
-            if (BRSetContains(ctx->knownTxHashSet, &txHashes[i - 1])) continue;
-            array_add(ctx->currentBlockTxHashes, txHashes[i - 1]);
+            if (BRSetContains(ctx->knownTxHashSet, &hashes[i - 1])) continue;
+            array_add(ctx->currentBlockTxHashes, hashes[i - 1]);
         }
 
+        if (hashes != _hashes) free(hashes);
+    }
+
+    if (block) {
         if (array_count(ctx->currentBlockTxHashes) > 0) { // wait til we get all tx messages before processing the block
             ctx->currentBlock = block;
         }
@@ -687,7 +700,7 @@ static int _BRPeerAcceptMerkleblockMessage(BRPeer *peer, const uint8_t *msg, siz
         }
         else BRMerkleBlockFree(block);
     }
-    
+
     return r;
 }
 
@@ -704,12 +717,12 @@ static int _BRPeerAcceptRejectMessage(BRPeer *peer, const uint8_t *msg, size_t l
         r = 0;
     }
     else {
-        char type[strLen + 1]; // BUG: XXXX stack overflow vulnerability
+        char type[(strLen < 0x1000) ? strLen + 1 : 0x1000];
         uint8_t code;
         size_t l = 0, hashLen = 0;
 
-        strncpy(type, (const char *)(msg + off), strLen);
-        type[strLen] = '\0';
+        strncpy(type, (const char *)(msg + off), sizeof(type) - 1);
+        type[sizeof(type) - 1] = '\0';
         off += strLen;
         code = msg[off++];
         strLen = BRVarInt(msg + off, (off <= len ? len - off : 0), &l);
@@ -721,11 +734,11 @@ static int _BRPeerAcceptRejectMessage(BRPeer *peer, const uint8_t *msg, size_t l
             r = 0;
         }
         else {
-            char reason[strLen + 1]; // BUG: XXXX stack overflow vulnerability
+            char reason[(strLen < 0x1000) ? strLen + 1 : 0x1000];
             UInt256 txHash = UINT256_ZERO;
             
-            strncpy(reason, (const char *)(msg + off), strLen);
-            reason[strLen] = '\0';
+            strncpy(reason, (const char *)(msg + off), sizeof(reason) - 1);
+            reason[sizeof(reason) - 1] = '\0';
             off += strLen;
             if (hashLen == sizeof(UInt256)) txHash = *(UInt256 *)(msg + off);
             off += hashLen;

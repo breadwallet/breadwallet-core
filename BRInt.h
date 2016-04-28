@@ -31,6 +31,8 @@
 extern "C" {
 #endif
 
+#define MAX_STACK 0x20000 // maximum buffer size to allocate on the stack, 128k
+
 // large integers
 
 typedef union {
