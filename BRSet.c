@@ -142,19 +142,19 @@ void BRSetClear(BRSet *set)
 }
 
 // returns the number of items in set
-size_t BRSetCount(BRSet *set)
+size_t BRSetCount(const BRSet *set)
 {
     return set->itemCount;
 }
 
 // true if item is contained in set
-int BRSetContains(BRSet *set, const void *item)
+int BRSetContains(const BRSet *set, const void *item)
 {
     return (BRSetGet(set, item) != NULL);
 }
 
 // true if any items in otherSet are contained in set
-int BRSetIntersects(BRSet *set, const BRSet *otherSet)
+int BRSetIntersects(const BRSet *set, const BRSet *otherSet)
 {
     size_t i = 0, size = otherSet->size;
     void *t;
@@ -168,7 +168,7 @@ int BRSetIntersects(BRSet *set, const BRSet *otherSet)
 }
 
 // returns member item from set equivalent to given item
-void *BRSetGet(BRSet *set, const void *item)
+void *BRSetGet(const BRSet *set, const void *item)
 {
     size_t size = set->size;
     size_t i = set->hash(item) % size;
@@ -183,7 +183,7 @@ void *BRSetGet(BRSet *set, const void *item)
 }
 
 // returns an initial random item from set for use when iterating, or NULL if set is empty
-void *BRSetFirst(BRSet *set)
+void *BRSetFirst(const BRSet *set)
 {
     size_t i = 0, size = set->size;
     void *r = NULL;
@@ -193,7 +193,7 @@ void *BRSetFirst(BRSet *set)
 }
 
 // returns the next item after given item when iterating, or NULL if no more items are available
-void *BRSetNext(BRSet *set, const void *item)
+void *BRSetNext(const BRSet *set, const void *item)
 {
     size_t size = set->size;
     size_t i = set->hash(item) % size;
@@ -210,7 +210,7 @@ void *BRSetNext(BRSet *set, const void *item)
 }
 
 // writes up to count items from set to allItems and returns the number of items written
-size_t BRSetAll(BRSet *set, void *allItems[], size_t count)
+size_t BRSetAll(const BRSet *set, void *allItems[], size_t count)
 {
     size_t i = 0, j = 0, size = set->size;
     void *t;
@@ -224,7 +224,7 @@ size_t BRSetAll(BRSet *set, void *allItems[], size_t count)
 }
 
 // calls map() with each item in set
-void BRSetMap(BRSet *set, void *info, void (*map)(void *info, void *item))
+void BRSetMap(const BRSet *set, void *info, void (*map)(void *info, void *item))
 {
     size_t i = 0, size = set->size;
     void *t;

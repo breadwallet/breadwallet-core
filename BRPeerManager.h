@@ -61,8 +61,8 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*syncSucceeded)(void *info),
                                void (*syncFailed)(void *info, int error),
                                void (*txStatusUpdate)(void *info),
-                               void (*saveBlocks)(void *info, BRMerkleBlock *blocks[], size_t count),
-                               void (*savePeers)(void *info, const BRPeer peers[], size_t count),
+                               void (*saveBlocks)(void *info, BRMerkleBlock *blocks[], size_t blocksCount),
+                               void (*savePeers)(void *info, const BRPeer peers[], size_t peersCount),
                                int (*networkIsReachable)(void *info));
 
 // true if currently connected to at least one peer

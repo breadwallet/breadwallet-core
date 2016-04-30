@@ -1020,6 +1020,10 @@ void BRWalletFree(BRWallet *wallet)
     BRSetFree(wallet->allAddrs);
     BRSetFree(wallet->usedAddrs);
     BRSetFree(wallet->allTx);
+    BRSetFree(wallet->invalidTx);
+    BRSetFree(wallet->spentOutputs);
+    array_free(wallet->internalChain);
+    array_free(wallet->externalChain);
     array_free(wallet->balanceHist);
 
     for (size_t i = array_count(wallet->transactions); i > 0; i--) {

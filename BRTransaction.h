@@ -99,11 +99,11 @@ BRTransaction *BRTransactionNew(void);
 
 // buf must contain a serialized tx
 // retruns a transaction that must be freed by calling BRTransactionFree()
-BRTransaction *BRTransactionParse(const uint8_t *buf, size_t len);
+BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen);
 
 // returns number of bytes written to buf, or total len needed if buf is NULL
 // (blockHeight and timestamp are not serialized)
-size_t BRTransactionSerialize(BRTransaction *tx, uint8_t *buf, size_t len);
+size_t BRTransactionSerialize(BRTransaction *tx, uint8_t *buf, size_t bufLen);
 
 // adds an input to tx
 void BRTransactionAddInput(BRTransaction *tx, UInt256 txHash, uint32_t index, const uint8_t *script, size_t scriptLen,
@@ -119,14 +119,14 @@ void BRTransactionShuffleOutputs(BRTransaction *tx);
 size_t BRTransactionSize(const BRTransaction *tx);
 
 // minimum transaction fee needed for tx to relay across the bitcoin network
-uint64_t BRTransactionStandardFee(BRTransaction *tx);
+uint64_t BRTransactionStandardFee(const BRTransaction *tx);
 
 // checks if all signatures exist, but does not verify them
-int BRTransactionIsSigned(BRTransaction *tx);
+int BRTransactionIsSigned(const BRTransaction *tx);
 
 // adds signatures to any inputs with NULL signatures that can be signed with any privKeys
 // returns true if tx is signed
-int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t count);
+int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t keysCount);
 
 // returns a hash value for tx suitable for use in a hashtable
 inline static size_t BRTransactionHash(const void *tx)

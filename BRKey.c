@@ -219,19 +219,19 @@ int BRKeySetPrivKey(BRKey *key, const char *privKey)
 }
 
 // assigns pubKey to key and returns true on success
-int BRKeySetPubKey(BRKey *key, const uint8_t *pubKey, size_t len)
+int BRKeySetPubKey(BRKey *key, const uint8_t *pubKey, size_t pkLen)
 {
     secp256k1_pubkey pk;
     
     pthread_once(&_ctx_once, _ctx_init);
     BRKeyClean(key);
-    memcpy(key->pubKey, pubKey, len);
-    key->compressed = (len <= 33);
-    return secp256k1_ec_pubkey_parse(_ctx, &pk, key->pubKey, len);
+    memcpy(key->pubKey, pubKey, pkLen);
+    key->compressed = (pkLen <= 33);
+    return secp256k1_ec_pubkey_parse(_ctx, &pk, key->pubKey, pkLen);
 }
 
-// writes the private key to privKey and returns the number of bytes writen, or len needed if privKey is NULL
-size_t BRKeyPrivKey(BRKey *key, char *privKey, size_t len)
+// writes the private key to privKey and returns the number of bytes writen, or pkLen needed if privKey is NULL
+size_t BRKeyPrivKey(BRKey *key, char *privKey, size_t pkLen)
 {
     uint8_t data[34];
 
@@ -243,16 +243,16 @@ size_t BRKeyPrivKey(BRKey *key, char *privKey, size_t len)
         
         *(UInt256 *)&data[1] = key->secret;
         if (key->compressed) data[33] = 0x01;
-        len = BRBase58CheckEncode(privKey, len, data, (key->compressed) ? 34 : 33);
+        pkLen = BRBase58CheckEncode(privKey, pkLen, data, (key->compressed) ? 34 : 33);
         memset(data, 0, sizeof(data));
     }
-    else len = 0;
+    else pkLen = 0;
     
-    return len;
+    return pkLen;
 }
 
-// writes the public key to pubKey and returns the number of bytes written, or len needed if pubKey is NULL
-size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t len)
+// writes the public key to pubKey and returns the number of bytes written, or pkLen needed if pubKey is NULL
+size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t pkLen)
 {
     static uint8_t empty[65]; // static vars initialize to zero
     size_t size = (key->compressed) ? 33 : 65;
@@ -263,8 +263,8 @@ size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t len)
                                       (key->compressed ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED));
     }
 
-    if (pubKey && size <= len) memcpy(pubKey, key->pubKey, size);
-    return (! pubKey || size <= len) ? size : 0;
+    if (pubKey && size <= pkLen) memcpy(pubKey, key->pubKey, size);
+    return (! pubKey || size <= pkLen) ? size : 0;
 }
 
 // returns the ripemd160 hash of the sha256 hash of the public key
@@ -277,8 +277,9 @@ UInt160 BRKeyHash160(BRKey *key)
     return hash;
 }
 
-// writes the bitcoin address for key to addr and returns the number of bytes written, or len needed if addr is NULL
-size_t BRKeyAddress(BRKey *key, char *addr, size_t len)
+// writes the pay-to-pubkey-hash bitcoin address for key to addr
+// returns the number of bytes written, or addrLen needed if addr is NULL
+size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen)
 {
     uint8_t data[21];
 
@@ -289,24 +290,24 @@ size_t BRKeyAddress(BRKey *key, char *addr, size_t len)
     *(UInt160 *)&data[1] = BRKeyHash160(key);
 
     if (! UInt160IsZero(*(UInt160 *)&data[1])) {
-        len = BRBase58CheckEncode(addr, len, data, sizeof(data));
+        addrLen = BRBase58CheckEncode(addr, addrLen, data, sizeof(data));
     }
-    else len = 0;
+    else addrLen = 0;
     
-    return len;
+    return addrLen;
 }
 
-// signs md with key and writes signature to sig and returns the number of bytes written, or len needed if sig is NULL
-size_t BRKeySign(BRKey *key, void *sig, size_t len, UInt256 md)
+// signs md with key and writes signature to sig and returns the number of bytes written or sigLen needed if sig is NULL
+size_t BRKeySign(BRKey *key, void *sig, size_t sigLen, UInt256 md)
 {
     secp256k1_ecdsa_signature s;
     
     if (secp256k1_ecdsa_sign(_ctx, &s, md.u8, key->secret.u8, secp256k1_nonce_function_rfc6979, NULL)) {
-        if (! secp256k1_ecdsa_signature_serialize_der(_ctx, sig, &len, &s)) len = 0;
+        if (! secp256k1_ecdsa_signature_serialize_der(_ctx, sig, &sigLen, &s)) sigLen = 0;
     }
-    else len = 0;
+    else sigLen = 0;
     
-    return len;
+    return sigLen;
 }
 
 // returns true if the signature for md is verified to have been made by key
@@ -352,12 +353,12 @@ size_t BRKeyCompactSign(BRKey *key, void *compactSig, size_t sigLen, UInt256 md)
     return r;
 }
 
-// writes the public key recovered from compactSig to pubKey
-// returns number of bytes written, or pkLen needed if pubKey is NULL
-size_t BRPubKeyRecover(uint8_t *pubKey, size_t pkLen, const void *compactSig, size_t sigLen, UInt256 md)
+// assigns pubKey recovered from compactSig to key and returns true on success
+int BRKeyRecoverPubKey(BRKey *key, const void *compactSig, size_t sigLen, UInt256 md)
 {
-    size_t len = pkLen, r = 0;
-    int compressed = 0, recid = 0;
+    int r = 0, compressed = 0, recid = 0;
+    uint8_t pubKey[65];
+    size_t len = sizeof(pubKey);
     secp256k1_ecdsa_recoverable_signature s;
     secp256k1_pubkey pk;
     
@@ -365,14 +366,12 @@ size_t BRPubKeyRecover(uint8_t *pubKey, size_t pkLen, const void *compactSig, si
         if (((uint8_t *)compactSig)[0] - 27 >= 4) compressed = 1;
         recid = (((uint8_t *)compactSig)[0] - 27) % 4;
         
-        if (pubKey && len >= (compressed ? 33 : 65) &&
-            secp256k1_ecdsa_recoverable_signature_parse_compact(_ctx, &s, (const uint8_t *)compactSig + 1, recid) &&
+        if (secp256k1_ecdsa_recoverable_signature_parse_compact(_ctx, &s, (const uint8_t *)compactSig + 1, recid) &&
             secp256k1_ecdsa_recover(_ctx, &pk, &s, md.u8) &&
             secp256k1_ec_pubkey_serialize(_ctx, pubKey, &len, &pk,
                                           (compressed ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED))) {
-            r = len;
+            r = BRKeySetPubKey(key, pubKey, len);
         }
-        else if (! pubKey) r = (compressed) ? 33 : 65;
     }
 
     return r;

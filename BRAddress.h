@@ -42,6 +42,7 @@ extern "C" {
 #define BITCOIN_SCRIPT_ADDRESS_TEST 196
 
 // bitcoin script opcodes: https://en.bitcoin.it/wiki/Script#Constants
+#define OP_0           0x00
 #define OP_PUSHDATA1   0x4c
 #define OP_PUSHDATA2   0x4d
 #define OP_PUSHDATA4   0x4e
@@ -51,11 +52,11 @@ extern "C" {
 #define OP_HASH160     0xa9
 #define OP_CHECKSIG    0xac
 
-uint64_t BRVarInt(const uint8_t *buf, size_t len, size_t *intLen);
-size_t BRVarIntSet(uint8_t *buf, size_t len, uint64_t i);
+uint64_t BRVarInt(const uint8_t *buf, size_t bufLen, size_t *intLen);
+size_t BRVarIntSet(uint8_t *buf, size_t bufLen, uint64_t i);
 size_t BRVarIntSize(uint64_t i);
-size_t BRScriptElements(const uint8_t *elems[], size_t elemsCount, const uint8_t *script, size_t len);
-const uint8_t *BRScriptData(const uint8_t *elem, size_t *len);
+size_t BRScriptElements(const uint8_t *elems[], size_t elemsCount, const uint8_t *script, size_t scriptLen);
+const uint8_t *BRScriptData(const uint8_t *elem, size_t *dataLen);
 size_t BRScriptPushData(uint8_t *script, size_t scriptLen, const uint8_t *data, size_t dataLen);
 
 typedef struct {

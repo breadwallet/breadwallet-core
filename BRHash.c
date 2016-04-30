@@ -141,8 +141,8 @@ void BRSHA224(void *md28, const void *data, size_t len) {
 void BRSHA256(void *md32, const void *data, size_t len)
 {
     size_t i;
-    uint32_t x[16], buf[] = { 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-                              0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19 }; // initial buffer values
+    uint32_t x[16], buf[] = { 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c,
+                              0x1f83d9ab, 0x5be0cd19 }; // initial buffer values
     
     for (i = 0; i < len; i += 64) { // process data in 64 byte blocks
         memcpy(x, (const uint8_t *)data + i, (i + 64 < len) ? 64 : len - i);

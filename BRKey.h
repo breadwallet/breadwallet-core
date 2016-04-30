@@ -52,25 +52,26 @@ int BRKeySetSecret(BRKey *key, const UInt256 *secret, int compressed);
 int BRKeySetPrivKey(BRKey *key, const char *privKey);
 
 // assigns pubKey to key and returns true on success
-int BRKeySetPubKey(BRKey *key, const uint8_t *pubKey, size_t len);
+int BRKeySetPubKey(BRKey *key, const uint8_t *pubKey, size_t pklen);
 
-// writes the private key to privKey and returns the number of bytes writen, or len needed if privKey is NULL
-size_t BRKeyPrivKey(BRKey *key, char *privKey, size_t len);
+// writes the private key to privKey and returns the number of bytes writen, or pkLen needed if privKey is NULL
+size_t BRKeyPrivKey(BRKey *key, char *privKey, size_t pklen);
 
-// writes the public key to pubKey and returns the number of bytes written, or len needed if pubKey is NULL
-size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t len);
+// writes the public key to pubKey and returns the number of bytes written, or pkLen needed if pubKey is NULL
+size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t pklen);
 
-// returns the ripemd160 hash of the sha256 hash of the public key
+// returns the ripemd160 hash of the sha256 hash of the public key, or UINT160_ZERO on error
 UInt160 BRKeyHash160(BRKey *key);
 
-// writes the bitcoin address for key to addr and returns the number of bytes written, or len needed if addr is NULL
-size_t BRKeyAddress(BRKey *key, char *addr, size_t len);
+// writes the pay-to-pubkey-hash bitcoin address for key to addr
+// returns the number of bytes written, or addrLen needed if addr is NULL
+size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen);
 
-// signs md with key and writes signature to sig and returns the number of bytes written, or len needed if sig is NULL
-size_t BRKeySign(BRKey *key, void *sig, size_t len, UInt256 md);
+// signs md with key and writes signature to sig and returns the number of bytes written or sigLen needed if sig is NULL
+size_t BRKeySign(BRKey *key, void *sig, size_t sigLen, UInt256 md);
 
 // returns true if the signature for md is verified to have been made by key
-int BRKeyVerify(BRKey *key, UInt256 md, const void *sig, size_t len);
+int BRKeyVerify(BRKey *key, UInt256 md, const void *sig, size_t sigLen);
 
 // wipes key material from key
 void BRKeyClean(BRKey *key);
@@ -79,9 +80,8 @@ void BRKeyClean(BRKey *key);
 // to verify a compact signature, recover a public key from the signature and verify that it matches the signer's pubkey
 size_t BRKeyCompactSign(BRKey *key, void *compactSig, size_t sigLen, UInt256 md);
 
-// writes the public key recovered from compactSig to pubKey
-// returns number of bytes written, or pkLen needed if pubKey is NULL
-size_t BRPubKeyRecover(uint8_t *pubKey, size_t pkLen, const void *compactSig, size_t sigLen, UInt256 md);
+// assigns pubKey recovered from compactSig to key and returns true on success
+int BRKeyRecoverPubKey(BRKey *key, const void *compactSig, size_t sigLen, UInt256 md);
 
 #ifdef __cplusplus
 }

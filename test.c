@@ -491,7 +491,7 @@ int BRHashTests()
 int BRKeyTests()
 {
     int r = 1;
-    BRKey key;
+    BRKey key, key2;
     BRAddress addr;
     char *msg;
     UInt256 md;
@@ -683,7 +683,8 @@ int BRKeyTests()
     msg = "foo";
     BRSHA256(&md, msg, strlen(msg));
     sigLen = BRKeyCompactSign(&key, sig, sizeof(sig), md);
-    pkLen = BRPubKeyRecover(pubKey, sizeof(pubKey), sig, sigLen, md);
+    BRKeyRecoverPubKey(&key2, sig, sigLen, md);
+    pkLen = BRKeyPubKey(&key2, pubKey, sizeof(pubKey));
     
     uint8_t pubKey1[BRKeyPubKey(&key, NULL, 0)];
     size_t pkLen1 = BRKeyPubKey(&key, pubKey1, sizeof(pubKey1));
@@ -695,7 +696,8 @@ int BRKeyTests()
     msg = "foo";
     BRSHA256(&md, msg, strlen(msg));
     sigLen = BRKeyCompactSign(&key, sig, sizeof(sig), md);
-    pkLen = BRPubKeyRecover(pubKey, sizeof(pubKey), sig, sigLen, md);
+    BRKeyRecoverPubKey(&key2, sig, sigLen, md);
+    pkLen = BRKeyPubKey(&key2, pubKey, sizeof(pubKey));
     
     uint8_t pubKey2[BRKeyPubKey(&key, NULL, 0)];
     size_t pkLen2 = BRKeyPubKey(&key, pubKey2, sizeof(pubKey2));
@@ -709,10 +711,10 @@ int BRKeyTests()
     BRSHA256_2(&md, msg, strlen(msg));
     sigLen = BRBase58Decode(sig, sizeof(sig),
                            "3kq9e842BzkMfbPSbhKVwGZgspDSkz4YfqjdBYQPWDzqd77gPgR1zq4XG7KtAL5DZTcfFFs2iph4urNyXeBkXsEYY");
+    BRKeyRecoverPubKey(&key2, sig, sigLen, md);
+    uint8_t pubKey3[BRKeyPubKey(&key2, NULL, 0)];
+    size_t pkLen3 = BRKeyPubKey(&key2, pubKey3, sizeof(pubKey3));
     
-    uint8_t pubKey3[BRPubKeyRecover(NULL, 0, sig, sigLen, md)];
-    size_t pkLen3 = BRPubKeyRecover(pubKey3, sizeof(pubKey3), sig, sigLen, md);
-
     if (pkLen3 != pkLen || memcmp(pubKey, pubKey3, pkLen) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPubKeyRecover() test 1\n", __func__);
 
@@ -722,8 +724,9 @@ int BRKeyTests()
     sigLen = BRBase58Decode(sig, sizeof(sig),
                            "3qECEYmb6x4X22sH98Aer68SdfrLwtqvb5Ncv7EqKmzbxeYYJ1hU9irP6R5PeCctCPYo5KQiWFgoJ3H5MkuX18gHu");
     
-    uint8_t pubKey4[BRPubKeyRecover(NULL, 0, sig, sigLen, md)];
-    size_t pkLen4 = BRPubKeyRecover(pubKey4, sizeof(pubKey4), sig, sigLen, md);
+    BRKeyRecoverPubKey(&key2, sig, sigLen, md);
+    uint8_t pubKey4[BRKeyPubKey(&key2, NULL, 0)];
+    size_t pkLen4 = BRKeyPubKey(&key2, pubKey4, sizeof(pubKey4));
     
     if (pkLen4 != pkLen || memcmp(pubKey, pubKey4, pkLen) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPubKeyRecover() test 2\n", __func__);
@@ -734,8 +737,9 @@ int BRKeyTests()
     sigLen = BRBase58Decode(sig, sizeof(sig),
                            "3oHQhxq5eW8dnp7DquTCbA5tECoNx7ubyiubw4kiFm7wXJF916SZVykFzb8rB1K6dEu7mLspBWbBEJyYk79jAosVR");
     
-    uint8_t pubKey5[BRPubKeyRecover(NULL, 0, sig, sigLen, md)];
-    size_t pkLen5 = BRPubKeyRecover(pubKey5, sizeof(pubKey5), sig, sigLen, md);
+    BRKeyRecoverPubKey(&key2, sig, sigLen, md);
+    uint8_t pubKey5[BRKeyPubKey(&key2, NULL, 0)];
+    size_t pkLen5 = BRKeyPubKey(&key2, pubKey5, sizeof(pubKey5));
     
     if (pkLen5 != pkLen || memcmp(pubKey, pubKey5, pkLen) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPubKeyRecover() test 3\n", __func__);

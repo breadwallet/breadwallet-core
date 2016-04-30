@@ -319,13 +319,13 @@ size_t BRTransactionSize(const BRTransaction *tx)
 }
 
 // minimum transaction fee needed for tx to relay across the bitcoin network
-uint64_t BRTransactionStandardFee(BRTransaction *tx)
+uint64_t BRTransactionStandardFee(const BRTransaction *tx)
 {
     return ((BRTransactionSize(tx) + 999)/1000)*TX_FEE_PER_KB;
 }
 
 // checks if all signatures exist, but does not verify them
-int BRTransactionIsSigned(BRTransaction *tx)
+int BRTransactionIsSigned(const BRTransaction *tx)
 {
     for (size_t i = 0; i < tx->inCount; i++) {
         if (! tx->inputs[i].signature) return 0;

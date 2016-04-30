@@ -61,27 +61,27 @@ BRMerkleBlock *BRMerkleBlockNew(void);
 
 // buf must contain either a serialized merkleblock or header
 // returns a merkle block struct that must be freed by calling BRMerkleBlockFree()
-BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t len);
+BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t bufLen);
 
 // returns number of bytes written to buf, or total len needed if buf is NULL (BRMerkleBlock.height is not serialized)
-size_t BRMerkleBlockSerialize(BRMerkleBlock *block, uint8_t *buf, size_t len);
+size_t BRMerkleBlockSerialize(const BRMerkleBlock *block, uint8_t *buf, size_t bufLen);
 
 // populates txHashes with the matched tx hashes in the block
 // returns number of tx hashes written, or total number of matched hashes in the block if txHashes is NULL
-size_t BRMerkleBlockTxHashes(BRMerkleBlock *block, UInt256 *txHashes, size_t count);
+size_t BRMerkleBlockTxHashes(const BRMerkleBlock *block, UInt256 *txHashes, size_t hashesCount);
 
 // true if merkle tree and timestamp are valid, and proof-of-work matches the stated difficulty target
 // NOTE: this only checks if the block difficulty matches the difficulty target in the header, it does not check if the
 // target is correct for the block's height in the chain - use BRMerkleBlockVerifyDifficulty() for that
-int BRMerkleBlockIsValid(BRMerkleBlock *block, uint32_t currentTime);
+int BRMerkleBlockIsValid(const BRMerkleBlock *block, uint32_t currentTime);
 
 // true if the given tx hash is known to be included in the block
-int BRMerkleBlockContainsTxHash(BRMerkleBlock *block, UInt256 txHash);
+int BRMerkleBlockContainsTxHash(const BRMerkleBlock *block, UInt256 txHash);
 
 // verifies the block difficulty target is correct for the block's position in the chain
 // transitionTime is the timestamp of the block at the previous difficulty transition
 // transitionTime may be 0 if height is not a multiple of BLOCK_DIFFICULTY_INTERVAL
-int BRMerkleBlockVerifyDifficulty(BRMerkleBlock *block, const BRMerkleBlock *previous, uint32_t transitionTime);
+int BRMerkleBlockVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBlock *previous, uint32_t transitionTime);
 
 // returns a hash value for block suitable for use in a hashtable
 inline static size_t BRMerkleBlockHash(const void *block)

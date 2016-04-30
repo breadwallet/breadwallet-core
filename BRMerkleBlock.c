@@ -67,6 +67,9 @@ inline static int _ceil_log2(int x)
 //
 // flag bits (little endian): 00001011 [merkleRoot = 1, m1 = 1, tx1 = 0, tx2 = 1, m2 = 0, byte padding = 000]
 // hashes: [tx1, tx2, m2]
+//
+// NOTE: this merkle tree design has a security vulnerability (CVE-2012-2459), which can be defended against by
+// considering the merkle root invalid if there are duplicate hashes in any rows with an even number of elements
 
 // returns a newly allocated merkle block struct that must be freed by calling BRMerkleBlockFree()
 BRMerkleBlock *BRMerkleBlockNew(void)
@@ -76,10 +79,10 @@ BRMerkleBlock *BRMerkleBlockNew(void)
 
 // buf must contain either a serialized merkleblock or header
 // returns a merkle block struct that must be freed by calling BRMerkleBlockFree()
-BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t len)
+BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t bufLen)
 {
-    BRMerkleBlock *block = (buf && 80 <= len) ? BRMerkleBlockNew() : NULL;
-    size_t off = 0, l = 0;
+    BRMerkleBlock *block = (buf && 80 <= bufLen) ? BRMerkleBlockNew() : NULL;
+    size_t off = 0, len = 0;
     
     if (block) {
         block->version = le32(*(uint32_t *)(buf + off));
@@ -95,19 +98,19 @@ BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t len)
         block->nonce = le32(*(uint32_t *)(buf + off));
         off += sizeof(uint32_t);
         
-        block->totalTx = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)(buf + off)) : 0;
+        block->totalTx = (off + sizeof(uint32_t) <= bufLen) ? le32(*(uint32_t *)(buf + off)) : 0;
         off += sizeof(uint32_t);
-        block->hashesCount = (size_t)BRVarInt(buf + off, (off <= len ? len - off : 0), &l);
-        off += l;
-        l = block->hashesCount*sizeof(UInt256);
-        block->hashes = (off + l <= len) ? malloc(l) : NULL;
-        if (block->hashes) memcpy(block->hashes, buf + off, l);
-        off += l;
-        block->flagsLen = (size_t)BRVarInt(buf + off, (off <= len ? len - off : 0), &l);
-        off += l;
-        l = block->flagsLen;
-        block->flags = (off + l <= len) ? malloc(l) : NULL;
-        if (block->flags) memcpy(block->flags, buf + off, l);
+        block->hashesCount = (size_t)BRVarInt(buf + off, (off <= bufLen ? bufLen - off : 0), &len);
+        off += len;
+        len = block->hashesCount*sizeof(UInt256);
+        block->hashes = (off + len <= bufLen) ? malloc(len) : NULL;
+        if (block->hashes) memcpy(block->hashes, buf + off, len);
+        off += len;
+        block->flagsLen = (size_t)BRVarInt(buf + off, (off <= bufLen ? bufLen - off : 0), &len);
+        off += len;
+        len = block->flagsLen;
+        block->flags = (off + len <= bufLen) ? malloc(len) : NULL;
+        if (block->flags) memcpy(block->flags, buf + off, len);
     
         BRSHA256_2(&block->blockHash, buf, 80);
         block->height = BLOCK_UNKNOWN_HEIGHT;
@@ -117,16 +120,16 @@ BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t len)
 }
 
 // returns number of bytes written to buf, or total len needed if buf is NULL (BRMerkleBlock.height is not serialized)
-size_t BRMerkleBlockSerialize(BRMerkleBlock *block, uint8_t *buf, size_t len)
+size_t BRMerkleBlockSerialize(const BRMerkleBlock *block, uint8_t *buf, size_t bufLen)
 {
-    size_t off = 0, l = 80;
+    size_t off = 0, len = 80;
     
     if (block->totalTx > 0) {
-        l += sizeof(uint32_t) + BRVarIntSize(block->hashesCount) + block->hashesCount*sizeof(UInt256) +
-             BRVarIntSize(block->flagsLen) + block->flagsLen;
+        len += sizeof(uint32_t) + BRVarIntSize(block->hashesCount) + block->hashesCount*sizeof(UInt256) +
+               BRVarIntSize(block->flagsLen) + block->flagsLen;
     }
     
-    if (buf && l <= len) {
+    if (buf && len <= bufLen) {
         *(uint32_t *)(buf + off) = le32(block->version);
         off += sizeof(uint32_t);
         *(UInt256 *)(buf + off) = block->prevBlock;
@@ -143,7 +146,7 @@ size_t BRMerkleBlockSerialize(BRMerkleBlock *block, uint8_t *buf, size_t len)
         if (block->totalTx > 0) {
             *(uint32_t *)(buf + off) = le32(block->totalTx);
             off += sizeof(uint32_t);
-            off += BRVarIntSet(buf + off, len - off, block->hashesCount);
+            off += BRVarIntSet(buf + off, bufLen - off, block->hashesCount);
             if (block->hashes) memcpy(buf + off, block->hashes, block->hashesCount*sizeof(UInt256));
             off += block->hashesCount*sizeof(UInt256);
             if (block->flags) memcpy(buf + off, block->flags, block->flagsLen);
@@ -151,10 +154,10 @@ size_t BRMerkleBlockSerialize(BRMerkleBlock *block, uint8_t *buf, size_t len)
         }
     }
     
-    return (! buf || l <= len) ? l : 0;
+    return (! buf || len <= bufLen) ? len : 0;
 }
 
-static size_t _BRMerkleBlockTxHashesR(BRMerkleBlock *block, UInt256 *txHashes, size_t count, size_t *idx,
+static size_t _BRMerkleBlockTxHashesR(const BRMerkleBlock *block, UInt256 *txHashes, size_t hashesCount, size_t *idx,
                                       size_t *hashIdx, size_t *flagIdx, int depth)
 {
     uint8_t flag;
@@ -164,7 +167,7 @@ static size_t _BRMerkleBlockTxHashesR(BRMerkleBlock *block, UInt256 *txHashes, s
         (*flagIdx)++;
     
         if (! flag || depth == _ceil_log2(block->totalTx)) {
-            if (flag && *idx < count) {
+            if (flag && *idx < hashesCount) {
                 if (txHashes) txHashes[*idx] = block->hashes[*hashIdx]; // leaf
                 (*idx)++;
             }
@@ -172,8 +175,8 @@ static size_t _BRMerkleBlockTxHashesR(BRMerkleBlock *block, UInt256 *txHashes, s
             (*hashIdx)++;
         }
         else {
-            _BRMerkleBlockTxHashesR(block, txHashes, count, idx, hashIdx, flagIdx, depth + 1); // left branch
-            _BRMerkleBlockTxHashesR(block, txHashes, count, idx, hashIdx, flagIdx, depth + 1); // right branch
+            _BRMerkleBlockTxHashesR(block, txHashes, hashesCount, idx, hashIdx, flagIdx, depth + 1); // left branch
+            _BRMerkleBlockTxHashesR(block, txHashes, hashesCount, idx, hashIdx, flagIdx, depth + 1); // right branch
         }
     }
 
@@ -182,15 +185,17 @@ static size_t _BRMerkleBlockTxHashesR(BRMerkleBlock *block, UInt256 *txHashes, s
 
 // populates txHashes with the matched tx hashes in the block
 // returns number of hashes written, or total number of matched hashes in the block if txHashes is NULL
-size_t BRMerkleBlockTxHashes(BRMerkleBlock *block, UInt256 *txHashes, size_t count)
+size_t BRMerkleBlockTxHashes(const BRMerkleBlock *block, UInt256 *txHashes, size_t hashesCount)
 {
     size_t idx = 0, hashIdx = 0, flagIdx = 0;
 
-    return _BRMerkleBlockTxHashesR(block, txHashes, (txHashes) ? count : SIZE_MAX, &idx, &hashIdx, &flagIdx, 0);
+    return _BRMerkleBlockTxHashesR(block, txHashes, (txHashes) ? hashesCount : SIZE_MAX, &idx, &hashIdx, &flagIdx, 0);
 }
 
 // recursively walks the merkle tree to calculate the merkle root
-static UInt256 _BRMerkleBlockRootR(BRMerkleBlock *block, size_t *hashIdx, size_t *flagIdx, int depth)
+// NOTE: this merkle tree design has a security vulnerability (CVE-2012-2459), which can be defended against by
+// considering the merkle root invalid if there are duplicate hashes in any rows with an even number of elements
+static UInt256 _BRMerkleBlockRootR(const BRMerkleBlock *block, size_t *hashIdx, size_t *flagIdx, int depth)
 {
     uint8_t flag;
     UInt256 hashes[2], md = UINT256_ZERO;
@@ -202,8 +207,12 @@ static UInt256 _BRMerkleBlockRootR(BRMerkleBlock *block, size_t *hashIdx, size_t
         if (flag && depth != _ceil_log2(block->totalTx)) {
             hashes[0] = _BRMerkleBlockRootR(block, hashIdx, flagIdx, depth + 1); // left branch
             hashes[1] = _BRMerkleBlockRootR(block, hashIdx, flagIdx, depth + 1); // right branch
-            if (UInt256IsZero(hashes[1])) hashes[1] = hashes[0]; // if right branch is missing, duplicate left branch
-            BRSHA256_2(&md, hashes, sizeof(hashes));
+
+            if (! UInt256Eq(hashes[0], hashes[1])) {
+                if (UInt256IsZero(hashes[1])) hashes[1] = hashes[0]; // if right branch is missing, dup left branch
+                BRSHA256_2(&md, hashes, sizeof(hashes));
+            }
+            else *hashIdx = SIZE_MAX; // defend against (CVE-2012-2459)
         }
         else md = block->hashes[(*hashIdx)++]; // leaf
     }
@@ -214,7 +223,7 @@ static UInt256 _BRMerkleBlockRootR(BRMerkleBlock *block, size_t *hashIdx, size_t
 // true if merkle tree and timestamp are valid, and proof-of-work matches the stated difficulty target
 // NOTE: this only checks if the block difficulty matches the difficulty target in the header, it does not check if the
 // target is correct for the block's height in the chain - use BRMerkleBlockVerifyDifficulty() for that
-int BRMerkleBlockIsValid(BRMerkleBlock *block, uint32_t currentTime)
+int BRMerkleBlockIsValid(const BRMerkleBlock *block, uint32_t currentTime)
 {
     // target is in "compact" format, where the most significant byte is the size of resulting value in bytes, the next
     // bit is the sign, and the remaining 23bits is the value after having been right shifted by (size - 3)*8 bits
@@ -245,7 +254,7 @@ int BRMerkleBlockIsValid(BRMerkleBlock *block, uint32_t currentTime)
 }
 
 // true if the given tx hash is known to be included in the block
-int BRMerkleBlockContainsTxHash(BRMerkleBlock *block, UInt256 txHash)
+int BRMerkleBlockContainsTxHash(const BRMerkleBlock *block, UInt256 txHash)
 {
     int r = 0;
     
@@ -267,7 +276,7 @@ int BRMerkleBlockContainsTxHash(BRMerkleBlock *block, UInt256 txHash)
 // targeted time between transitions (14*24*60*60 seconds). If the new difficulty is more than 4x or less than 1/4 of
 // the previous difficulty, the change is limited to either 4x or 1/4. There is also a minimum difficulty value
 // intuitively named MAX_PROOF_OF_WORK... since larger values are less difficult.
-int BRMerkleBlockVerifyDifficulty(BRMerkleBlock *block, const BRMerkleBlock *previous, uint32_t transitionTime)
+int BRMerkleBlockVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBlock *previous, uint32_t transitionTime)
 {
     int r = 1;
     

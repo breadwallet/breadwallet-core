@@ -32,9 +32,10 @@
 
 #define BLOOM_MAX_HASH_FUNCS 50
 
-inline static uint32_t _BRBloomFilterHash(BRBloomFilter *filter, const uint8_t *data, size_t len, uint32_t hashNum)
+inline static uint32_t _BRBloomFilterHash(const BRBloomFilter *filter, const uint8_t *data, size_t dataLen,
+                                          uint32_t hashNum)
 {
-    return BRMurmur3_32(data, len, hashNum*0xfba4c795 + filter->tweak) % (filter->length*8);
+    return BRMurmur3_32(data, dataLen, hashNum*0xfba4c795 + filter->tweak) % (filter->length*8);
 }
 
 // returns a newly allocated bloom filter struct that must be freed by calling BRBloomFilterFree()
@@ -62,22 +63,22 @@ BRBloomFilter *BRBloomFilterNew(double falsePositiveRate, size_t elemCount, uint
 
 // buf must contain a serialized filter
 // returns a bloom filter struct that must be freed by calling BRBloomFilterFree()
-BRBloomFilter *BRBloomFilterParse(const uint8_t *buf, size_t len)
+BRBloomFilter *BRBloomFilterParse(const uint8_t *buf, size_t bufLen)
 {
     BRBloomFilter *filter = calloc(1, sizeof(BRBloomFilter));
-    size_t off = 0, l = 0;
+    size_t off = 0, len = 0;
     
-    filter->length = BRVarInt(buf + off, (off <= len ? len - off : 0), &l);
-    off += l;
-    filter->filter = (filter->length <= BLOOM_MAX_FILTER_LENGTH && off + filter->length <= len) ?
+    filter->length = BRVarInt(buf + off, (off <= bufLen ? bufLen - off : 0), &len);
+    off += len;
+    filter->filter = (filter->length <= BLOOM_MAX_FILTER_LENGTH && off + filter->length <= bufLen) ?
                      malloc(filter->length) : NULL;
     if (filter->filter) memcpy(filter->filter, buf + off, filter->length);
     off += filter->length;
-    filter->hashFuncs = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)(buf + off)) : 0;
+    filter->hashFuncs = (off + sizeof(uint32_t) <= bufLen) ? le32(*(uint32_t *)(buf + off)) : 0;
     off += sizeof(uint32_t);
-    filter->tweak = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)(buf + off)) : 0;
+    filter->tweak = (off + sizeof(uint32_t) <= bufLen) ? le32(*(uint32_t *)(buf + off)) : 0;
     off += sizeof(uint32_t);
-    filter->flags = (off + sizeof(uint8_t) <= len) ? buf[off] : 0;
+    filter->flags = (off + sizeof(uint8_t) <= bufLen) ? buf[off] : 0;
     off += sizeof(uint8_t);
     
     if (! filter->filter) {
@@ -89,13 +90,13 @@ BRBloomFilter *BRBloomFilterParse(const uint8_t *buf, size_t len)
 }
 
 // returns number of bytes written to buf, or total len needed if buf is NULL
-size_t BRBloomFilterSerialize(BRBloomFilter *filter, uint8_t *buf, size_t len)
+size_t BRBloomFilterSerialize(const BRBloomFilter *filter, uint8_t *buf, size_t bufLen)
 {
     size_t off = 0,
-           l = BRVarIntSize(filter->length) + filter->length + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint8_t);
+           len = BRVarIntSize(filter->length) + filter->length + sizeof(uint32_t) + sizeof(uint32_t) + sizeof(uint8_t);
     
-    if (buf && l <= len) {
-        off += BRVarIntSet(buf + off, len - off, filter->length);
+    if (buf && len <= bufLen) {
+        off += BRVarIntSet(buf + off, bufLen - off, filter->length);
         memcpy(buf + off, filter->filter, filter->length);
         off += filter->length;
         *(uint32_t *)(buf + off) = le32(filter->hashFuncs);
@@ -106,16 +107,16 @@ size_t BRBloomFilterSerialize(BRBloomFilter *filter, uint8_t *buf, size_t len)
         off += sizeof(uint8_t);
     }
     
-    return (! buf || l <= len) ? l : 0;
+    return (! buf || len <= bufLen) ? len : 0;
 }
 
 // true if data is matched by filter
-int BRBloomFilterContainsData(BRBloomFilter *filter, const uint8_t *data, size_t len)
+int BRBloomFilterContainsData(const BRBloomFilter *filter, const uint8_t *data, size_t dataLen)
 {
     uint32_t i, idx;
     
     for (i = 0; i < filter->hashFuncs; i++) {
-        idx = _BRBloomFilterHash(filter, data, len, i);
+        idx = _BRBloomFilterHash(filter, data, dataLen, i);
         if (! (filter->filter[idx >> 3] & (1 << (7 & idx)))) return 0;
     }
     
@@ -123,12 +124,12 @@ int BRBloomFilterContainsData(BRBloomFilter *filter, const uint8_t *data, size_t
 }
 
 // add data to filter
-void BRBloomFilterInsertData(BRBloomFilter *filter, const uint8_t *data, size_t len)
+void BRBloomFilterInsertData(BRBloomFilter *filter, const uint8_t *data, size_t dataLen)
 {
     uint32_t i, idx;
     
     for (i = 0; i < filter->hashFuncs; i++) {
-        idx = _BRBloomFilterHash(filter, data, len, i);
+        idx = _BRBloomFilterHash(filter, data, dataLen, i);
         filter->filter[idx >> 3] |= (1 << (7 & idx));
     }
     
