@@ -280,6 +280,7 @@ void BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimit,
 {
     BRAddress *addrChain;
     size_t i, j, count, startCount;
+    uint32_t chain = (internal) ? SEQUENCE_INTERNAL_CHAIN : SEQUENCE_EXTERNAL_CHAIN;
 
     pthread_mutex_lock(&wallet->lock);
     addrChain = (internal) ? wallet->internalChain : wallet->externalChain;
@@ -291,8 +292,8 @@ void BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimit,
     while (i + gapLimit > count) { // generate new addresses up to gapLimit
         BRKey key;
         BRAddress address = BR_ADDRESS_NONE;
-        uint8_t pubKey[BRBIP32PubKey(NULL, 0, wallet->masterPubKey, internal, count)];
-        size_t len = BRBIP32PubKey(pubKey, sizeof(pubKey), wallet->masterPubKey, internal, (uint32_t)count);
+        uint8_t pubKey[BRBIP32PubKey(NULL, 0, wallet->masterPubKey, chain, count)];
+        size_t len = BRBIP32PubKey(pubKey, sizeof(pubKey), wallet->masterPubKey, chain, (uint32_t)count);
         
         BRKeySetPubKey(&key, pubKey, len);
         if (! BRKeyAddress(&key, address.s, sizeof(address)) || BRAddressEq(&address, &BR_ADDRESS_NONE)) break;
