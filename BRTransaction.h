@@ -103,7 +103,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen);
 
 // returns number of bytes written to buf, or total len needed if buf is NULL
 // (blockHeight and timestamp are not serialized)
-size_t BRTransactionSerialize(BRTransaction *tx, uint8_t *buf, size_t bufLen);
+size_t BRTransactionSerialize(const BRTransaction *tx, uint8_t *buf, size_t bufLen);
 
 // adds an input to tx
 void BRTransactionAddInput(BRTransaction *tx, UInt256 txHash, uint32_t index, const uint8_t *script, size_t scriptLen,
@@ -124,7 +124,7 @@ uint64_t BRTransactionStandardFee(const BRTransaction *tx);
 // checks if all signatures exist, but does not verify them
 int BRTransactionIsSigned(const BRTransaction *tx);
 
-// adds signatures to any inputs with NULL signatures that can be signed with any privKeys
+// adds signatures to any inputs with NULL signatures that can be signed with any keys
 // returns true if tx is signed
 int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t keysCount);
 

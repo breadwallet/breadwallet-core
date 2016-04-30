@@ -48,15 +48,33 @@ typedef struct {
 #define BR_MASTER_PUBKEY_NONE ((BRMasterPubKey) { 0, UINT256_ZERO, \
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } })
 
+// returns the master public key for the default BIP32 wallet layout - derivation path N(m/0H)
 BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen);
+
+// writes the public key for path N(m/0H/chain/index) to pubKey
+// returns number of bytes written, or pubKeyLen needed if pubKey is NULL
 size_t BRBIP32PubKey(uint8_t *pubKey, size_t pubKeyLen, BRMasterPubKey mpk, int internal, uint32_t index);
+
+// sets the private key for path m/0H/chain/index to key
 void BRBIP32PrivKey(BRKey *key, const void *seed, size_t seedLen, int internal, uint32_t index);
-void BRBIP32PrivKeyList(BRKey keys[], size_t count, const void *seed, size_t seedLen, int internal,
+
+// sets the private key for path m/0H/chain/index to each element in keys
+void BRBIP32PrivKeyList(BRKey keys[], size_t keysCount, const void *seed, size_t seedLen, int internal,
                         const uint32_t indexes[]);
 
+// writes the base58check encoded serialized master private key (xprv) to str
+// returns number of bytes written including NULL terminator, or strLen needed if str is NULL
 size_t BRBIP32SerializeMasterPrivKey(char *str, size_t strLen, const void *seed, size_t seedLen);
+
+// writes a master private key to seed given a base58check encoded serialized master private key (xprv)
+// returns number of bytes written, or seedLen needed if seed is NULL
 size_t BRBIP32ParseMasterPrivKey(void *seed, size_t seedLen, const char *str);
+
+// writes the base58check encoded serialized master public key (xpub) to str
+// returns number of bytes written including NULL terminator, or strLen needed if str is NULL
 size_t BRBIP32SerializeMasterPubKey(char *str, size_t strLen, BRMasterPubKey mpk);
+
+// returns a master public key give a base58check encoded serialized master public key (xpub)
 BRMasterPubKey BRBIP32ParseMasterPubKey(const char *str);
 
 #ifdef __cplusplus

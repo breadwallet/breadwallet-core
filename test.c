@@ -714,7 +714,7 @@ int BRKeyTests()
     BRKeyRecoverPubKey(&key2, sig, sigLen, md);
     uint8_t pubKey3[BRKeyPubKey(&key2, NULL, 0)];
     size_t pkLen3 = BRKeyPubKey(&key2, pubKey3, sizeof(pubKey3));
-    
+
     if (pkLen3 != pkLen || memcmp(pubKey, pubKey3, pkLen) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPubKeyRecover() test 1\n", __func__);
 
@@ -971,7 +971,7 @@ int BRTransactionTests()
     int r = 1;
     UInt256 secret = uint256_hex_decode("0000000000000000000000000000000000000000000000000000000000000001");
     BRKey k[2];
-    BRAddress address;
+    BRAddress address, addr;
     
     memset(&k[0], 0, sizeof(k[0])); // test with array of keys where first key is empty/invalid
     BRKeySetSecret(&k[1], &secret, 1);
@@ -997,7 +997,8 @@ int BRTransactionTests()
     if (! tx) return r;
     
     BRTransactionSign(tx, k, 2);
-    if (! BRTransactionIsSigned(tx))
+    BRAddressFromScriptSig(addr.s, sizeof(addr), tx->inputs[0].signature, tx->inputs[0].sigLen);
+    if (! BRTransactionIsSigned(tx) || ! BRAddressEq(&address, &addr))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionSign() test 1\n", __func__);
 
     uint8_t buf2[BRTransactionSerialize(tx, NULL, 0)];
@@ -1039,7 +1040,9 @@ int BRTransactionTests()
     BRTransactionAddOutput(tx, 1000000, script, scriptLen);
     BRTransactionAddOutput(tx, 1000000, script, scriptLen);
     BRTransactionSign(tx, k, 2);
-    if (! BRTransactionIsSigned(tx))
+    BRAddressFromScriptSig(addr.s, sizeof(addr), tx->inputs[tx->inCount - 1].signature,
+                           tx->inputs[tx->inCount - 1].sigLen);
+    if (! BRTransactionIsSigned(tx) || ! BRAddressEq(&address, &addr))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionSign() test 2\n", __func__);
 
     uint8_t buf4[BRTransactionSerialize(tx, NULL, 0)];
@@ -1339,6 +1342,8 @@ int BRMerkleBlockTests()
 
     // TODO: XXX test BRMerkleBlockVerifyDifficulty()
     
+    // TODO: test (CVE-2012-2459) vulnerability
+
     if (b) BRMerkleBlockFree(b);
     return r;
 }

@@ -115,6 +115,8 @@ static void _CKDpub(BRPubKey *K, UInt256 *c, uint32_t i)
     }
 }
 
+// writes the base58check encoded serialized master private key (xprv) to str
+// returns number of bytes written including NULL terminator, or strLen needed if str is NULL
 BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen)
 {
     BRMasterPubKey mpk = BR_MASTER_PUBKEY_NONE;
@@ -131,18 +133,20 @@ BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen)
         BRKeySetSecret(&key, &secret, 1);
         mpk.fingerPrint = BRKeyHash160(&key).u32[0];
         
-        _CKDpriv(&secret, &chain, 0 | BIP32_HARD); // account 0H
+        _CKDpriv(&secret, &chain, 0 | BIP32_HARD); // path m/0H
     
         mpk.chainCode = chain;
         BRKeySetSecret(&key, &secret, 1);
         secret = chain = UINT256_ZERO;
-        BRKeyPubKey(&key, &mpk.pubKey, sizeof(mpk.pubKey));
+        BRKeyPubKey(&key, &mpk.pubKey, sizeof(mpk.pubKey)); // path N(m/0H)
         BRKeyClean(&key);
     }
     
     return mpk;
 }
 
+// writes the public key for path N(m/0H/chain/index) to pubKey
+// returns number of bytes written, or pubKeyLen needed if pubKey is NULL
 size_t BRBIP32PubKey(uint8_t *pubKey, size_t pubKeyLen, BRMasterPubKey mpk, int internal, uint32_t index)
 {
     UInt256 chain = mpk.chainCode;
@@ -158,18 +162,20 @@ size_t BRBIP32PubKey(uint8_t *pubKey, size_t pubKeyLen, BRMasterPubKey mpk, int 
     return (! pubKey || sizeof(BRPubKey) <= pubKeyLen) ? sizeof(BRPubKey) : 0;
 }
 
+// sets the private key for path m/0H/chain/index to key
 void BRBIP32PrivKey(BRKey *key, const void *seed, size_t seedlen, int internal, uint32_t index)
 {
     BRBIP32PrivKeyList(key, 1, seed, seedlen, internal, &index);
 }
 
-void BRBIP32PrivKeyList(BRKey keys[], size_t count, const void *seed, size_t seedLen, int internal,
+// sets the private key for path m/0H/chain/index to each element in keys
+void BRBIP32PrivKeyList(BRKey keys[], size_t keysCount, const void *seed, size_t seedLen, int internal,
                         const uint32_t indexes[])
 {
     UInt512 I;
     UInt256 secret, chain, s, c;
     
-    if (keys && count > 0 && seed && indexes) {
+    if (keys && keysCount > 0 && seed && indexes) {
         BRHMAC(&I, BRSHA512, 64, BIP32_SEED_KEY, strlen(BIP32_SEED_KEY), seed, seedLen);
         secret = *(UInt256 *)&I;
         chain = *(UInt256 *)&I.u8[sizeof(UInt256)];
@@ -178,7 +184,7 @@ void BRBIP32PrivKeyList(BRKey keys[], size_t count, const void *seed, size_t see
         _CKDpriv(&secret, &chain, 0 | BIP32_HARD); // account 0H
         _CKDpriv(&secret, &chain, internal ? 1 : 0); // internal or external chain
     
-        for (size_t i = 0; i < count; i++) {
+        for (size_t i = 0; i < keysCount; i++) {
             s = secret;
             c = chain;
             _CKDpriv(&s, &c, indexes[i]); // index'th key in chain
@@ -189,24 +195,31 @@ void BRBIP32PrivKeyList(BRKey keys[], size_t count, const void *seed, size_t see
     }
 }
 
+// writes the base58check encoded serialized master private key (xprv) to str
+// returns number of bytes written including NULL terminator, or strLen needed if str is NULL
 size_t BRBIP32SerializeMasterPrivKey(char *str, size_t strLen, const void *seed, size_t slen)
 {
     // TODO: XXX implement
     return 0;
 }
 
+// writes a master private key to seed given a base58check encoded serialized master private key (xprv)
+// returns number of bytes written, or seedLen needed if seed is NULL
 size_t BRBIP32ParseMasterPrivKey(void *seed, size_t seedLen, const char *str)
 {
     // TODO: XXX implement
     return 0;
 }
 
+// writes the base58check encoded serialized master public key (xpub) to str
+// returns number of bytes written including NULL terminator, or strLen needed if str is NULL
 size_t BRBIP32SerializeMasterPubKey(char *str, size_t strLen, BRMasterPubKey mpk)
 {
     // TODO: XXX implement
     return 0;
 }
 
+// returns a master public key give a base58check encoded serialized master public key (xpub)
 BRMasterPubKey BRBIP32ParseMasterPubKey(const char *str)
 {
     // TODO: XXX implement
