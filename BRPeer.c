@@ -86,10 +86,10 @@
 // - after filterload is sent, getdata is sent to re-request recent blocks that may contain new tx matching the filter
 
 typedef enum {
-    inv_error = 0,
+    inv_undefined = 0,
     inv_tx = 1,
     inv_block = 2,
-    inv_merkleblock = 3
+    inv_filtered_block = 3
 } inv_type;
 
 typedef struct {
@@ -572,7 +572,7 @@ static int _BRPeerAcceptNotfoundMessage(BRPeer *peer, const uint8_t *msg, size_t
         for (size_t i = 0; i < count; i++) {
             switch (le32(*(uint32_t *)(msg + off))) {
                 case inv_tx: array_add(txHashes, *(UInt256 *)(msg + off + sizeof(uint32_t))); break;
-                case inv_merkleblock: // drop through
+                case inv_filtered_block: // drop through
                 case inv_block: array_add(blockHashes, *(UInt256 *)(msg + off + sizeof(uint32_t))); break;
             }
             
@@ -1371,7 +1371,7 @@ void BRPeerSendGetdata(BRPeer *peer, const UInt256 txHashes[], size_t txCount, c
         }
         
         for (i = 0; i < blockCount; i++) {
-            *(uint32_t *)(msg + off) = le32(inv_merkleblock);
+            *(uint32_t *)(msg + off) = le32(inv_filtered_block);
             off += sizeof(uint32_t);
             *(UInt256 *)(msg + off) = blockHashes[i];
             off += sizeof(*blockHashes);

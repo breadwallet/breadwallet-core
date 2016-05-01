@@ -926,13 +926,13 @@ int BRBIP32SequenceTests()
 
     printf("\n");
 
-    BRBIP32PrivKey(&key, &seed, sizeof(seed), 1, 2 | 0x80000000);
+    BRBIP32PrivKey(&key, &seed, sizeof(seed), SEQUENCE_INTERNAL_CHAIN, 2 | 0x80000000);
     printf("000102030405060708090a0b0c0d0e0f/0H/1/2H prv = %s\n", uint256_hex_encode(key.secret));
     if (! UInt256Eq(key.secret, uint256_hex_decode("cbce0d719ecf7431d88e6a89fa1483e02e35092af60c042b1df2ff59fa424dca")))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRBIP32PrivKey() test 1\n", __func__);
     
     // test for correct zero padding of private keys
-    BRBIP32PrivKey(&key, &seed, sizeof(seed), 0, 97);
+    BRBIP32PrivKey(&key, &seed, sizeof(seed), SEQUENCE_EXTERNAL_CHAIN, 97);
     printf("000102030405060708090a0b0c0d0e0f/0H/0/97 prv = %s\n", uint256_hex_encode(key.secret));
     if (! UInt256Eq(key.secret, uint256_hex_decode("00136c1ad038f9a00871895322a487ed14f1cdc4d22ad351cfa1a0d235975dd7")))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRBIP32PrivKey() test 2\n", __func__);
@@ -951,7 +951,7 @@ int BRBIP32SequenceTests()
 
     uint8_t pubKey[33];
 
-    BRBIP32PubKey(pubKey, sizeof(pubKey), mpk, 0, 0);
+    BRBIP32PubKey(pubKey, sizeof(pubKey), mpk, SEQUENCE_EXTERNAL_CHAIN, 0);
     printf("000102030405060708090a0b0c0d0e0f/0H/0/0 pub = %02x%s\n", pubKey[0],
            uint256_hex_encode(*(UInt256 *)&pubKey[1]));
     if (pubKey[0] != 0x02 ||
@@ -1343,7 +1343,7 @@ int BRMerkleBlockTests()
     // TODO: XXX test BRMerkleBlockVerifyDifficulty()
     
     // TODO: test (CVE-2012-2459) vulnerability
-
+    
     if (b) BRMerkleBlockFree(b);
     return r;
 }

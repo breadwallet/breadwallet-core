@@ -59,11 +59,11 @@ inline static uint64_t _txFee(uint64_t feePerKb, size_t size)
 }
 
 // chain position of first tx output address that appears in chain
-inline static size_t _txChainIdx(const BRTransaction *tx, const BRAddress *chain)
+inline static size_t _txChainIdx(const BRTransaction *tx, const BRAddress *addrChain)
 {
-    for (size_t i = array_count(chain); i > 0; i--) {
+    for (size_t i = array_count(addrChain); i > 0; i--) {
         for (size_t j = 0; j < tx->outCount; j++) {
-            if (BRAddressEq(tx->outputs[j].address, &chain[i - 1])) return i - 1;
+            if (BRAddressEq(tx->outputs[j].address, &addrChain[i - 1])) return i - 1;
         }
     }
     
@@ -307,7 +307,7 @@ void BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimit,
         }
     }
     
-    // was addrChain moved to a new mem location?
+    // was addrChain moved to a new memory location?
     if (addrChain == (internal ? wallet->internalChain : wallet->externalChain)) {
         for (i = startCount; i < count; i++) {
             BRSetAdd(wallet->allAddrs, &addrChain[i]);
@@ -607,8 +607,8 @@ int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const void *see
     BRKey keys[internalCount + externalCount];
 
     if (seed) {
-        BRBIP32PrivKeyList(keys, internalCount, seed, seedLen, 1, internalIdx);
-        BRBIP32PrivKeyList(&keys[internalCount], externalCount, seed, seedLen, 0, externalIdx);
+        BRBIP32PrivKeyList(keys, internalCount, seed, seedLen, SEQUENCE_INTERNAL_CHAIN, internalIdx);
+        BRBIP32PrivKeyList(&keys[internalCount], externalCount, seed, seedLen, SEQUENCE_EXTERNAL_CHAIN, externalIdx);
         // TODO: XXX wipe seed callback
         seed = NULL;
         r = BRTransactionSign(tx, keys, internalCount + externalCount);

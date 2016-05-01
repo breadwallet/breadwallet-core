@@ -32,9 +32,12 @@
 #include <time.h>
 #include <unistd.h>
 
-#define TX_VERSION  0x00000001
-#define TX_LOCKTIME 0x00000000
-#define SIGHASH_ALL 0x00000001
+#define TX_VERSION           0x00000001
+#define TX_LOCKTIME          0x00000000
+#define SIGHASH_ALL          0x01 // default, sign all of the outputs
+#define SIGHASH_NONE         0x02 // sign none of the outputs, I don't care where the bitcoins go
+#define SIGHASH_SINGLE       0x03 // sign one of the outputs, I don't care where the other outputs go
+#define SIGHASH_ANYONECANPAY 0x80 // let other people add inputs, I don't care where the rest of the bitcoins come from
 
 // returns a random number less than upperBound, for non-cryptographic use only
 uint32_t BRRand(uint32_t upperBound)
@@ -98,6 +101,22 @@ void BRTxInputSetSignature(BRTxInput *input, const uint8_t *signature, size_t si
     }
 }
 
+static size_t _BRTxInputData(const BRTxInput *input, uint8_t *data, size_t dataLen)
+{
+    size_t off = 0;
+    
+    if (data && off + sizeof(UInt256) <= dataLen) memcpy(&data[off], &input->txHash, sizeof(UInt256)); // previous out
+    off += sizeof(UInt256);
+    if (data && off + sizeof(uint32_t) <= dataLen) *(uint32_t *)&data[off] = le32(input->index);
+    off += sizeof(uint32_t);
+    off += BRVarIntSet((data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0), input->sigLen);
+    if (data && off + input->sigLen <= dataLen) memcpy(&data[off], input->signature, input->sigLen); // scriptSig
+    off += input->sigLen;
+    if (data && off + sizeof(uint32_t) <= dataLen) *(uint32_t *)&data[off] = le32(input->sequence); // sequence
+    off += sizeof(uint32_t);
+    return (! data || off <= dataLen) ? off : 0;
+}
+
 void BRTxOutputSetAddress(BRTxOutput *output, const char *address)
 {
     if (output->script) array_free(output->script);
@@ -129,64 +148,88 @@ void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scrip
     }
 }
 
-// writes the binary transaction data that needs to be hashed and signed for the tx input at subscriptIdx
-// a subscriptIdx of SIZE_MAX will return the entire signed transaction
-// returns number of bytes written, or total len needed if data is NULL
-static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t len, size_t subscriptIdx)
+static size_t _BRTransactionOutputData(const BRTransaction *tx, uint8_t *data, size_t dataLen, size_t index)
 {
+    BRTxOutput *output;
     size_t i, off = 0;
-
-    if (data && off + sizeof(uint32_t) <= len) *(uint32_t *)&data[off] = le32(tx->version);
-    off += sizeof(uint32_t);
-    off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), tx->inCount);
-
-    for (i = 0; i < tx->inCount; i++) {
-        BRTxInput *input = &tx->inputs[i];
-        
-        if (data && off + sizeof(UInt256) <= len) memcpy(&data[off], &input->txHash, sizeof(UInt256));
-        off += sizeof(UInt256);
-        if (data && off + sizeof(uint32_t) <= len) *(uint32_t *)&data[off] = le32(input->index);
-        off += sizeof(uint32_t);
-
-        if (subscriptIdx == SIZE_MAX && input->signature) {
-            off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), input->sigLen);
-            if (data && off + input->sigLen <= len) memcpy(&data[off], input->signature, input->sigLen);
-            off += input->sigLen;
-        }
-        else if ((subscriptIdx == i || subscriptIdx == SIZE_MAX) && input->script) {
-            // TODO: to fully match the reference implementation, OP_CODESEPARATOR related checksig logic should go here
-            off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), input->scriptLen);
-            if (data && off + input->scriptLen <= len) memcpy(&data[off], input->script, input->scriptLen);
-            off += input->scriptLen;
-
-        }
-        else off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), 0);
-        
-        if (data && off + sizeof(uint32_t) <= len) *(uint32_t *)&data[off] = le32(input->sequence);
-        off += sizeof(uint32_t);
-    }
     
-    off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), tx->outCount);
-    
-    for (i = 0; i < tx->outCount; i++) {
-        BRTxOutput *output = &tx->outputs[i];
-        
-        if (data && off + sizeof(uint64_t) <= len) *(uint64_t *)&data[off] = le64(output->amount);
+    for (i = (index == SIZE_MAX ? 0 : index); i < tx->outCount && (index == SIZE_MAX || index == i); i++) {
+        output = &tx->outputs[i];
+        if (data && off + sizeof(uint64_t) <= dataLen) *(uint64_t *)&data[off] = le64(output->amount);
         off += sizeof(uint64_t);
-        off += BRVarIntSet((data ? &data[off] : NULL), (off <= len ? len - off : 0), output->scriptLen);
-        if (data && off + output->scriptLen <= len) memcpy(&data[off], output->script, output->scriptLen);
+        off += BRVarIntSet((data ? &data[off] : NULL), dataLen - off, output->scriptLen);
+        if (data && off + output->scriptLen <= dataLen) memcpy(&data[off], output->script, output->scriptLen);
         off += output->scriptLen;
     }
     
-    if (data && off + sizeof(uint32_t) <= len) *(uint32_t *)&data[off] = le32(tx->lockTime);
-    off += sizeof(uint32_t);
+    return (! data || off <= dataLen) ? off : 0;
+}
 
-    if (subscriptIdx < tx->inCount) {
-        if (data && off + sizeof(uint32_t) <= len) *(uint32_t *)&data[off] = le32(SIGHASH_ALL);
+// writes the data that needs to be hashed and signed for the tx input at index
+// an index of SIZE_MAX will write the entire signed transaction
+// returns number of bytes written, or total len needed if data is NULL
+static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t dataLen, size_t index, int hashType)
+{
+    BRTxInput input;
+    int anyoneCanPay = (hashType & SIGHASH_ANYONECANPAY), sigHash = (hashType & 0x1f);
+    size_t i, off = 0;
+    
+    if (anyoneCanPay && index >= tx->inCount) return 0;
+    if (data && off + sizeof(uint32_t) <= dataLen) *(uint32_t *)&data[off] = le32(tx->version); // tx version
+    off += sizeof(uint32_t);
+    
+    if (! anyoneCanPay) {
+        off += BRVarIntSet((data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0), tx->inCount);
+        
+        for (i = 0; i < tx->inCount; i++) { // inputs
+            input = tx->inputs[i];
+            
+            if (index == i || (index == SIZE_MAX && ! input.signature)) {
+                input.signature = input.script; // TODO: handle OP_CODESEPARATOR
+                input.sigLen = input.scriptLen;
+            }
+            else if (index != SIZE_MAX) {
+                input.sigLen = 0;
+                if (sigHash == SIGHASH_NONE || sigHash == SIGHASH_SINGLE) input.sequence = 0;
+            }
+            
+            off += _BRTxInputData(&input, (data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0));
+        }
+    }
+    else {
+        off += BRVarIntSet((data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0), 1);
+        input = tx->inputs[index];
+        input.signature = input.script; // TODO: handle OP_CODESEPARATOR
+        input.sigLen = input.scriptLen;
+        off += _BRTxInputData(&input, (data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0));
+    }
+    
+    if (sigHash != SIGHASH_SINGLE && sigHash != SIGHASH_NONE) { // SIGHASH_ALL outputs
+        off += BRVarIntSet((data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0), tx->outCount);
+        off += _BRTransactionOutputData(tx, (data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0), SIZE_MAX);
+    }
+    else if (sigHash == SIGHASH_SINGLE && index < tx->outCount) { // SIGHASH_SINGLE outputs
+        off += BRVarIntSet((data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0), index + 1);
+        
+        for (i = 0; i < index; i++)  {
+            if (data && off + sizeof(uint64_t) <= dataLen) *(uint64_t *)&data[off] = le64(-1);
+            off += sizeof(uint64_t);
+            off += BRVarIntSet((data ? &data[off] : NULL), dataLen - off, 0);
+        }
+        
+        off += _BRTransactionOutputData(tx, (data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0), index);
+    }
+    else off += BRVarIntSet((data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0), 0); //SIGHASH_NONE outputs
+    
+    if (data && off + sizeof(uint32_t) <= dataLen) *(uint32_t *)&data[off] = le32(tx->lockTime); // locktime
+    off += sizeof(uint32_t);
+    
+    if (index != SIZE_MAX) {
+        if (data && off + sizeof(uint32_t) <= dataLen) *(uint32_t *)&data[off] = le32(hashType); // hash type
         off += sizeof(uint32_t);
     }
-
-    return (! data || off <= len) ? off : 0;
+    
+    return (! data || off <= dataLen) ? off : 0;
 }
 
 // returns a newly allocated empty transaction that must be freed by calling BRTransactionFree()
@@ -204,60 +247,60 @@ BRTransaction *BRTransactionNew(void)
 
 // buf must contain a serialized tx
 // retruns a transaction that must be freed by calling BRTransactionFree()
-BRTransaction *BRTransactionParse(const uint8_t *buf, size_t len)
+BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
 {
     if (! buf) return NULL;
-
+    
     int isSigned = 1;
-    size_t i, off = 0, sLen = 0, l = 0;
+    size_t i, off = 0, sLen = 0, len = 0;
     BRTransaction *tx = BRTransactionNew();
-
-    tx->version = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)&buf[off]) : 0;
+    BRTxInput *input;
+    BRTxOutput *output;
+    
+    tx->version = (off + sizeof(uint32_t) <= bufLen) ? le32(*(uint32_t *)&buf[off]) : 0;
     off += sizeof(uint32_t);
-    tx->inCount = BRVarInt(&buf[off], (off <= len ? len - off : 0), &l);
-    off += l;
+    tx->inCount = BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
+    off += len;
     array_set_count(tx->inputs, tx->inCount);
     
-    for (i = 0; i < tx->inCount; i++) {
-        BRTxInput *input = &tx->inputs[i];
-
-        input->txHash = (off + sizeof(UInt256) <= len) ? *(UInt256 *)&buf[off] : UINT256_ZERO;
+    for (i = 0; off <= bufLen && i < tx->inCount; i++) {
+        input = &tx->inputs[i];
+        input->txHash = (off + sizeof(UInt256) <= bufLen) ? *(UInt256 *)&buf[off] : UINT256_ZERO;
         off += sizeof(UInt256);
-        input->index = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)&buf[off]) : 0;
+        input->index = (off + sizeof(uint32_t) <= bufLen) ? le32(*(uint32_t *)&buf[off]) : 0;
         off += sizeof(uint32_t);
-        sLen = BRVarInt(&buf[off], (off <= len ? len - off : 0), &l);
-        off += l;
+        sLen = BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
+        off += len;
         
-        if (off + sLen <= len && BRAddressFromScriptPubKey(NULL, 0, &buf[off], sLen) > 0) {
+        if (off + sLen <= bufLen && BRAddressFromScriptPubKey(NULL, 0, &buf[off], sLen) > 0) {
             BRTxInputSetScript(input, &buf[off], sLen);
             isSigned = 0;
         }
-        else if (off + sLen <= len) BRTxInputSetSignature(input, &buf[off], sLen);
-
+        else if (off + sLen <= bufLen) BRTxInputSetSignature(input, &buf[off], sLen);
+        
         off += sLen;
-        input->sequence = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)&buf[off]) : 0;
+        input->sequence = (off + sizeof(uint32_t) <= bufLen) ? le32(*(uint32_t *)&buf[off]) : 0;
         off += sizeof(uint32_t);
     }
-
-    tx->outCount = BRVarInt(&buf[off], (off <= len ? len - off : 0), &l);
-    off += l;
+    
+    tx->outCount = BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
+    off += len;
     array_set_count(tx->outputs, tx->outCount);
     
-    for (i = 0; i < tx->outCount; i++) {
-        BRTxOutput *output = &tx->outputs[i];
-
-        output->amount = (off + sizeof(uint64_t) <= len) ? le64(*(uint64_t *)&buf[off]) : 0;
+    for (i = 0; off <= bufLen && i < tx->outCount; i++) {
+        output = &tx->outputs[i];
+        output->amount = (off + sizeof(uint64_t) <= bufLen) ? le64(*(uint64_t *)&buf[off]) : 0;
         off += sizeof(uint64_t);
-        sLen = BRVarInt(&buf[off], (off <= len ? len - off : 0), &l);
-        off += l;
-        if (off + sLen <= len) BRTxOutputSetScript(output, &buf[off], sLen);
+        sLen = BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
+        off += len;
+        if (off + sLen <= bufLen) BRTxOutputSetScript(output, &buf[off], sLen);
         off += sLen;
     }
     
-    tx->lockTime = (off + sizeof(uint32_t) <= len) ? le32(*(uint32_t *)&buf[off]) : 0;
+    tx->lockTime = (off + sizeof(uint32_t) <= bufLen) ? le32(*(uint32_t *)&buf[off]) : 0;
     off += sizeof(uint32_t);
-
-    if (tx->inCount == 0 || off > len) {
+    
+    if (tx->inCount == 0 || off > bufLen) {
         BRTransactionFree(tx);
         tx = NULL;
     }
@@ -265,12 +308,11 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t len)
     
     return tx;
 }
-
 // returns number of bytes written to buf, or total len needed if buf is NULL
 // (blockHeight and timestamp are not serialized)
-size_t BRTransactionSerialize(const BRTransaction *tx, uint8_t *buf, size_t len)
+size_t BRTransactionSerialize(const BRTransaction *tx, uint8_t *buf, size_t bufLen)
 {
-    return _BRTransactionData(tx, buf, len, SIZE_MAX);
+    return _BRTransactionData(tx, buf, bufLen, SIZE_MAX, SIGHASH_ALL);
 }
 
 // adds an input to tx
@@ -313,9 +355,23 @@ void BRTransactionShuffleOutputs(BRTransaction *tx)
 // size in bytes if signed, or estimated size assuming compact pubkey sigs
 size_t BRTransactionSize(const BRTransaction *tx)
 {
-    if (! UInt256IsZero(tx->txHash)) return _BRTransactionData(tx, NULL, 0, SIZE_MAX);
-    return 8 + BRVarIntSize(tx->inCount) + tx->inCount*TX_INPUT_SIZE + BRVarIntSize(tx->outCount) +
-           tx->outCount*TX_OUTPUT_SIZE;
+    BRTxInput *input;
+    size_t size = 8 + BRVarIntSize(tx->inCount) + BRVarIntSize(tx->outCount);
+    
+    for (size_t i = 0; i < tx->inCount; i++) {
+        input = &tx->inputs[i];
+        
+        if (input->signature) {
+            size += input->sigLen;
+        }
+        else size += TX_INPUT_SIZE;
+    }
+    
+    for (size_t i = 0; i < tx->outCount; i++) {
+        size += tx->outputs[i].scriptLen;
+    }
+    
+    return size;
 }
 
 // minimum transaction fee needed for tx to relay across the bitcoin network
@@ -334,7 +390,7 @@ int BRTransactionIsSigned(const BRTransaction *tx)
     return 1;
 }
 
-// adds signatures to any inputs with NULL signatures that can be signed with any privKeys
+// adds signatures to any inputs with NULL signatures that can be signed with any keys
 // returns true if tx is signed
 int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t keysCount)
 {
@@ -352,36 +408,35 @@ int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t keysCount)
         j = 0;
         while (j < keysCount && ! BRAddressEq(&addrs[j], &address)) j++;
         if (j >= keysCount) continue;
-
+        
         const uint8_t *elems[BRScriptElements(NULL, 0, input->script, input->scriptLen)];
-        uint8_t sig[OP_PUSHDATA1 - 1], pubKey[65], data[_BRTransactionData(tx, NULL, 0, i)];
-        size_t len = _BRTransactionData(tx, data, sizeof(data), i);
-        UInt256 hash = UINT256_ZERO;
-
-        BRSHA256_2(&hash, data, len);
-        len = BRKeySign(&keys[j], sig, sizeof(sig) - 1, hash);
-        if (len == 0 || len >= OP_PUSHDATA1) continue;
-        sig[len++] = SIGHASH_ALL;
-        if (input->signature) array_free(input->signature);
-        array_new(input->signature, 1 + len + 34);
-        array_add(input->signature, len);
-        array_add_array(input->signature, sig, len);
-        len = BRScriptElements(elems, sizeof(elems)/sizeof(*elems), input->script, input->scriptLen);
+        size_t elemsCount = BRScriptElements(elems, sizeof(elems)/sizeof(*elems), input->script, input->scriptLen);
+        uint8_t data[_BRTransactionData(tx, NULL, 0, i, SIGHASH_ALL)];
+        size_t dataLen = _BRTransactionData(tx, data, sizeof(data), i, SIGHASH_ALL);
+        uint8_t sig[73], pubKey[65], script[1 + sizeof(sig) + 1 + sizeof(pubKey)];
+        size_t sigLen, pkLen, scriptLen;
+        UInt256 md = UINT256_ZERO;
         
-        if (len >= 2 && *elems[len - 2] == OP_EQUALVERIFY) { // pay-to-pubkey-hash scriptSig
-            len = BRKeyPubKey(&keys[j], pubKey, sizeof(pubKey));
-            if (len == 0 || len >= OP_PUSHDATA1) continue;
-            array_add(input->signature, len);
-            array_add_array(input->signature, pubKey, len);
+        BRSHA256_2(&md, data, dataLen);
+        sigLen = BRKeySign(&keys[j], sig, sizeof(sig) - 1, md);
+        sig[sigLen++] = SIGHASH_ALL;
+        pkLen = BRKeyPubKey(&keys[j], pubKey, sizeof(pubKey));
+        
+        if (elemsCount >= 2 && *elems[elemsCount - 2] == OP_EQUALVERIFY) { // pay-to-pubkey-hash
+            scriptLen = BRScriptPushData(script, sizeof(script), sig, sigLen);
+            scriptLen += BRScriptPushData(&script[scriptLen], sizeof(script) - scriptLen, pubKey, pkLen);
+            BRTxInputSetSignature(input, script, scriptLen);
         }
-        
-        input->sigLen = array_count(input->signature);
+        else { // pay-to-pubkey
+            scriptLen = BRScriptPushData(script, sizeof(script), sig, sigLen);
+            BRTxInputSetSignature(input, script, scriptLen);
+        }
     }
     
     if (BRTransactionIsSigned(tx)) {
-        uint8_t data[_BRTransactionData(tx, NULL, 0, SIZE_MAX)];
-        size_t len = _BRTransactionData(tx, data, sizeof(data), SIZE_MAX);
-
+        uint8_t data[_BRTransactionData(tx, NULL, 0, SIZE_MAX, 0)];
+        size_t len = _BRTransactionData(tx, data, sizeof(data), SIZE_MAX, 0);
+        
         BRSHA256_2(&tx->txHash, data, len);
         return 1;
     }
