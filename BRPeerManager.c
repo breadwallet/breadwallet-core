@@ -330,10 +330,15 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
         BRAddress *addrs = malloc(sizeof(BRAddress)*addrsCount);
         size_t utxosCount = BRWalletUTXOs(manager->wallet, NULL, 0);
         BRUTXO *utxos = malloc(sizeof(BRUTXO)*utxosCount);
+        uint32_t blockHeight = (manager->lastBlock->height > 100) ? manager->lastBlock->height - 100 : 0;
+        size_t txCount = BRWalletTxUnconfirmedBefore(manager->wallet, NULL, 0, blockHeight);
+        BRTransaction **transactions = malloc(sizeof(BRTransaction *)*txCount);
 
         addrsCount = BRWalletAllAddrs(manager->wallet, addrs, addrsCount);
         utxosCount = BRWalletUTXOs(manager->wallet, utxos, utxosCount);
-        filter = BRBloomFilterNew(manager->fpRate, addrsCount + utxosCount + 100, manager->tweak, BLOOM_UPDATE_ALL);
+        txCount = BRWalletTxUnconfirmedBefore(manager->wallet, transactions, txCount, blockHeight);
+        filter = BRBloomFilterNew(manager->fpRate, addrsCount + utxosCount + txCount + 100, manager->tweak,
+                                  BLOOM_UPDATE_ALL);
         
         for (size_t i = 0; i < addrsCount; i++) { // add addresses to watch for tx receiveing money to the wallet
             UInt160 hash = UINT160_ZERO;
@@ -356,6 +361,23 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
         }
     
         free(utxos);
+        
+        for (size_t i = 0; i < txCount; i++) { // also add TXOs spent within the last 100 blocks
+            for (size_t j = 0; j < transactions[i]->inCount; j++) {
+                BRTxInput *input = &transactions[i]->inputs[j];
+                BRTransaction *tx = BRWalletTransactionForHash(manager->wallet, input->txHash);
+                uint8_t o[sizeof(UInt256) + sizeof(uint32_t)];
+
+                if (tx && input->index < tx->outCount &&
+                    BRWalletContainsAddress(manager->wallet, tx->outputs[input->index].address)) {
+                    *(UInt256 *)o = input->txHash;
+                    *(uint32_t *)(o + sizeof(UInt256)) = le32(input->index);
+                    if (! BRBloomFilterContainsData(filter, o, sizeof(o))) BRBloomFilterInsertData(filter, o,sizeof(o));
+                }
+            }
+        }
+        
+        free(transactions);
         manager->bloomFilter = filter;
         // TODO: XXX if already synced, recursively add inputs of unconfirmed receives
     }
@@ -514,10 +536,10 @@ static void _requestUnrelayedTxGetdataDone(void *info, int success)
     // don't remove transactions until we're connected to PEER_MAX_CONNECTION peers, and all peers have finished
     // relaying their mempools
     if (count >= PEER_MAX_CONNECTIONS) {
-        size_t txCount = BRWalletUnconfirmedTx(manager->wallet, NULL, 0);
+        size_t txCount = BRWalletTxUnconfirmedBefore(manager->wallet, NULL, 0, TX_UNCONFIRMED);
         BRTransaction *tx[(txCount < 10000) ? txCount : 10000];
         
-        txCount = BRWalletUnconfirmedTx(manager->wallet, tx, sizeof(tx)/sizeof(*tx));
+        txCount = BRWalletTxUnconfirmedBefore(manager->wallet, tx, sizeof(tx)/sizeof(*tx), TX_UNCONFIRMED);
 
         for (size_t i = 0; i < txCount; i++) {
             isPublishing = 0;
@@ -751,10 +773,10 @@ static void _peerConnected(void *info)
         BRPeerDisconnect(peer);
     }
     else {
-        size_t txCount = BRWalletUnconfirmedTx(manager->wallet, NULL, 0);
+        size_t txCount = BRWalletTxUnconfirmedBefore(manager->wallet, NULL, 0, TX_UNCONFIRMED);
         BRTransaction *tx[txCount < 10000 ? txCount : 10000];
 
-        txCount = BRWalletUnconfirmedTx(manager->wallet, tx, sizeof(tx)/sizeof(*tx));
+        txCount = BRWalletTxUnconfirmedBefore(manager->wallet, tx, sizeof(tx)/sizeof(*tx), TX_UNCONFIRMED);
 
         for (size_t i = 0; i < txCount; i++) { // add unconfirmed valid send tx to mempool
             if (BRWalletAmountSentByTx(manager->wallet, tx[i]) > 0 &&

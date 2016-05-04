@@ -370,9 +370,9 @@ size_t BRWalletTransactions(BRWallet *wallet, BRTransaction *transactions[], siz
     return count;
 }
 
-// writes transactions registered in the wallet but not yet confirmed in a block, to the given transactions array
+// writes transactions registered in the wallet, but unconfirmed prior to blockHeight, to the given transactions array
 // returns the number of transactions written, or total number available if transactions is NULL
-size_t BRWalletUnconfirmedTx(BRWallet *wallet, BRTransaction *transactions[], size_t count)
+size_t BRWalletTxUnconfirmedBefore(BRWallet *wallet, BRTransaction *transactions[], size_t count, uint32_t blockHeight)
 {
     size_t total, n = 0;
     
