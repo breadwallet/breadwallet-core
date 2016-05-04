@@ -378,7 +378,7 @@ size_t BRWalletTxUnconfirmedBefore(BRWallet *wallet, BRTransaction *transactions
     
     pthread_mutex_lock(&wallet->lock);
     total = array_count(wallet->transactions);
-    while (n < total && wallet->transactions[(total - n) - 1]->blockHeight == TX_UNCONFIRMED) n++;
+    while (n < total && wallet->transactions[(total - n) - 1]->blockHeight >= blockHeight) n++;
     if (! transactions || n < count) count = n;
 
     for (size_t i = 0; transactions && i < count; i++) {
