@@ -26,6 +26,7 @@
 #include "BRAddress.h"
 #include "BRBase58.h"
 #include <stdio.h>
+#include <string.h>
 #include <pthread.h>
 
 #define BITCOIN_PRIVKEY      128
@@ -56,7 +57,7 @@ static void _ctx_init()
     _ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
 }
 
-// add 256bit big endian ints (mod secp256k1 order)
+// adds 256bit big endian ints (mod secp256k1 order)
 UInt256 BRSecp256k1ModAdd(UInt256 a, UInt256 b)
 {
     secp256k1_scalar as, bs, rs;
@@ -72,7 +73,7 @@ UInt256 BRSecp256k1ModAdd(UInt256 a, UInt256 b)
     return r;
 }
 
-// multiply 256bit big endian ints (mod secp256k1 order)
+// multiplies 256bit big endian ints (mod secp256k1 order)
 UInt256 BRSecp256k1ModMul(UInt256 a, UInt256 b)
 {
     secp256k1_scalar as, bs, rs;
@@ -88,14 +89,16 @@ UInt256 BRSecp256k1ModMul(UInt256 a, UInt256 b)
     return r;
 }
 
-// add secp256k1 ec-points
-size_t BRSecp256k1PointAdd(void *r, const void *a, const void *b, int compressed)
+// adds secp256k1 ec-points and writes the result to r
+// returns number of bytes written or total rLen needed if r is NULL
+size_t BRSecp256k1PointAdd(void *r, size_t rLen, BRECPoint a, BRECPoint b, int compressed)
 {
     secp256k1_ge ap, bp, rp;
     secp256k1_gej aj, rj;
     size_t size = 0;
     
-    if (secp256k1_eckey_pubkey_parse(&ap, a, 33) && secp256k1_eckey_pubkey_parse(&bp, b, 33)) {
+    if (((compressed && rLen >= 33) || rLen >= 65) && secp256k1_eckey_pubkey_parse(&ap, a.p, sizeof(a)) &&
+        secp256k1_eckey_pubkey_parse(&bp, b.p, sizeof(b))) {
         secp256k1_gej_set_ge(&aj, &ap);
         secp256k1_ge_clear(&ap);
         secp256k1_gej_add_ge(&rj, &aj, &bp);
@@ -110,8 +113,9 @@ size_t BRSecp256k1PointAdd(void *r, const void *a, const void *b, int compressed
     return size;
 }
 
-// multiply ec-point by 256bit BE int
-size_t BRSecp256k1PointMul(void *r, const void *p, UInt256 i, int compressed)
+// multiplies secp256k1 ec-point by 256bit big endian int and writes result to r
+// returns number of bytes written or total rLen needed if r is NULL
+size_t BRSecp256k1PointMul(void *r, size_t rLen, BRECPoint p, UInt256 i, int compressed)
 {
     secp256k1_scalar is;
     secp256k1_gej rj = SECP256K1_GEJ_CONST_INFINITY;
@@ -120,11 +124,11 @@ size_t BRSecp256k1PointMul(void *r, const void *p, UInt256 i, int compressed)
     
     secp256k1_scalar_set_b32(&is, i.u8, NULL);
     
-    if (! p) {
+    if (BRECPointIsZero(p)) {
         pthread_once(&_ctx_once, _ctx_init);
         secp256k1_ecmult_gen(&_ctx->ecmult_gen_ctx, &rj, &is);
     }
-    else if (secp256k1_eckey_pubkey_parse(&pp, p, 33)) {
+    else if (secp256k1_eckey_pubkey_parse(&pp, p.p, sizeof(p))) {
         secp256k1_ecmult_const(&rj, &pp, &is);
         secp256k1_ge_clear(&pp);
     }

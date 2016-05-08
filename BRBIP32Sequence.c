@@ -32,13 +32,6 @@
 #define BIP32_XPRV     "\x04\x88\xAD\xE4"
 #define BIP32_XPUB     "\x04\x88\xB2\x1E"
 
-typedef struct {
-    uint8_t u8[33];
-} BRPubKey;
-
-#define BR_PUBKEY_NONE ((BRPubKey)\
-    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 })
-
 // BIP32 is a scheme for deriving chains of addresses from a seed value
 // https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki
 
@@ -58,16 +51,16 @@ typedef struct {
 //
 static void _CKDpriv(UInt256 *k, UInt256 *c, uint32_t i)
 {
-    uint8_t buf[sizeof(BRPubKey) + sizeof(i)];
+    uint8_t buf[sizeof(BRECPoint) + sizeof(i)];
     UInt512 I;
     
     if (i & BIP32_HARD) {
         buf[0] = 0;
         *(UInt256 *)&buf[1] = *k;
     }
-    else BRSecp256k1PointMul(buf, NULL, *k, 1);
+    else BRSecp256k1PointMul(buf, sizeof(buf), BR_ECPOINT_ZERO, *k, 1);
     
-    *(uint32_t *)&buf[sizeof(BRPubKey)] = be32(i);
+    *(uint32_t *)&buf[sizeof(BRECPoint)] = be32(i);
     
     BRHMAC(&I, BRSHA512, sizeof(UInt512), c, sizeof(*c), buf, sizeof(buf)); // I = HMAC-SHA512(c, k|P(k) || i)
     
@@ -92,24 +85,24 @@ static void _CKDpriv(UInt256 *k, UInt256 *c, uint32_t i)
 // - In case parse256(IL) >= n or Ki is the point at infinity, the resulting key is invalid, and one should proceed with
 //   the next value for i.
 //
-static void _CKDpub(BRPubKey *K, UInt256 *c, uint32_t i)
+static void _CKDpub(BRECPoint *K, UInt256 *c, uint32_t i)
 {
     uint8_t buf[sizeof(*K) + sizeof(i)];
     UInt512 I;
-    BRPubKey pIL;
+    BRECPoint pIL;
 
     if ((i & BIP32_HARD) != BIP32_HARD) { // can't derive private child key from public parent key
-        *(BRPubKey *)buf = *K;
+        *(BRECPoint *)buf = *K;
         *(uint32_t *)&buf[sizeof(*K)] = be32(i);
     
         BRHMAC(&I, BRSHA512, sizeof(UInt512), c, sizeof(*c), buf, sizeof(buf)); // I = HMAC-SHA512(c, P(K) || i)
         
         *c = *(UInt256 *)&I.u8[sizeof(UInt256)]; // c = IR
         
-        BRSecp256k1PointMul(&pIL, NULL, *(UInt256 *)&I, 1);
-        BRSecp256k1PointAdd(K, &pIL, K, 1); // K = P(IL) + K
+        BRSecp256k1PointMul(&pIL, sizeof(pIL), BR_ECPOINT_ZERO, *(UInt256 *)&I, 1);
+        BRSecp256k1PointAdd(K, sizeof(*K), pIL, *K, 1); // K = P(IL) + K
         
-        pIL = BR_PUBKEY_NONE;
+        pIL = BR_ECPOINT_ZERO;
         I = UINT512_ZERO;
         memset(buf, 0, sizeof(buf));
     }
@@ -151,15 +144,15 @@ size_t BRBIP32PubKey(uint8_t *pubKey, size_t pubKeyLen, BRMasterPubKey mpk, uint
 {
     UInt256 chainCode = mpk.chainCode;
 
-    if (pubKey && sizeof(BRPubKey) <= pubKeyLen) {
-        *(BRPubKey *)pubKey = *(BRPubKey *)mpk.pubKey;
+    if (pubKey && sizeof(BRECPoint) <= pubKeyLen) {
+        *(BRECPoint *)pubKey = *(BRECPoint *)mpk.pubKey;
 
-        _CKDpub((BRPubKey *)pubKey, &chainCode, chain); // path N(m/0H/chain)
-        _CKDpub((BRPubKey *)pubKey, &chainCode, index); // index'th key in chain
+        _CKDpub((BRECPoint *)pubKey, &chainCode, chain); // path N(m/0H/chain)
+        _CKDpub((BRECPoint *)pubKey, &chainCode, index); // index'th key in chain
         chainCode = UINT256_ZERO;
     }
     
-    return (! pubKey || sizeof(BRPubKey) <= pubKeyLen) ? sizeof(BRPubKey) : 0;
+    return (! pubKey || sizeof(BRECPoint) <= pubKeyLen) ? sizeof(BRECPoint) : 0;
 }
 
 // sets the private key for path m/0H/chain/index to key

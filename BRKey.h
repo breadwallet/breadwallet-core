@@ -31,10 +31,34 @@
 extern "C" {
 #endif
 
-UInt256 BRSecp256k1ModAdd(UInt256 a, UInt256 b); // add 256bit big endian ints (mod secp256k1 order)
-UInt256 BRSecp256k1ModMul(UInt256 a, UInt256 b); // multiply 256bit big endian ints (mod secp256k1 order)
-size_t BRSecp256k1PointAdd(void *r, const void *a, const void *b, int compressed); // add secp256k1 ec-points
-size_t BRSecp256k1PointMul(void *r, const void *p, UInt256 i, int compressed); // multiply ec-point by 256bit BE int
+typedef struct {
+    uint8_t p[33];
+} BRECPoint;
+    
+#define BR_ECPOINT_ZERO \
+    ((BRECPoint) { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 })
+    
+static inline int BRECPointIsZero(BRECPoint p)
+{
+    return ((p.p[0] | p.p[1] | p.p[2] | p.p[3] | p.p[4] | p.p[5] | p.p[6] | p.p[7] | p.p[8] | p.p[9] | p.p[10] |
+             p.p[11] | p.p[12] | p.p[13] | p.p[14] | p.p[15] | p.p[16] | p.p[17] | p.p[18] | p.p[19] | p.p[20] |
+             p.p[21] | p.p[22] | p.p[23] | p.p[24] | p.p[25] | p.p[26] | p.p[27] | p.p[28] | p.p[29] | p.p[30] |
+             p.p[31] | p.p[32]) == 0);
+}
+
+// adds 256bit big endian ints (mod secp256k1 order)
+UInt256 BRSecp256k1ModAdd(UInt256 a, UInt256 b);
+
+// multiplies 256bit big endian ints (mod secp256k1 order)
+UInt256 BRSecp256k1ModMul(UInt256 a, UInt256 b);
+
+// adds secp256k1 ec-points and writes the result to r
+// returns number of bytes written or total rLen needed if r is NULL
+size_t BRSecp256k1PointAdd(void *r, size_t rLen, BRECPoint a, BRECPoint b, int compressed);
+
+// multiplies secp256k1 ec-point by 256bit big endian int and writes result to r
+// returns number of bytes written or total rLen needed if r is NULL
+size_t BRSecp256k1PointMul(void *r, size_t rLen, BRECPoint p, UInt256 i, int compressed);
 
 // returns true if privKey is a valid private key
 int BRPrivKeyIsValid(const char *privKey);

@@ -157,9 +157,10 @@ inline static UInt256 UInt256Reverse(UInt256 u)
 #define _hexu(c) (((c) >= '0' && (c) <= '9') ? (c) - '0' : ((c) >= 'a' && (c) <= 'f') ? (c) - ('a' - 0x0a) :\
                   ((c) >= 'A' && (c) <= 'F') ? (c) - ('A' - 0x0a) : 0)
 
-// integer endian swapping (detects endianess with predefined macros in clang and gcc, and msvc is always little endian)
+// integer endian swapping (detects endianess with predefined macros in clang and gcc)
 
-#if __BIG_ENDIAN__ || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+#if __BIG_ENDIAN__ || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) ||\
+    __ARMEB__ || __THUMBEB__ || __AARCH64EB__ || __MIPSEB__
 
 #define WORDS_BIGENDIAN 1
 #define be16(x) (x)
