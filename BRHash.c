@@ -40,7 +40,7 @@
 
 static void _BRSHA1Compress(uint32_t *r, uint32_t *x)
 {
-    size_t i = 0;
+    int i = 0;
     uint32_t a = r[0], b = r[1], c = r[2], d = r[3], e = r[4], t;
     
     for (; i < 16; i++) sha1(f1(b, c, d), 0x5a827999, (x[i] = be32(x[i])));
@@ -53,6 +53,7 @@ static void _BRSHA1Compress(uint32_t *r, uint32_t *x)
     a = b = c = d = e = t = 0;
 }
 
+// sha-1 - not recommended for cryptographic use
 void BRSHA1(void *md20, const void *data, size_t len)
 {
     size_t i;
@@ -100,7 +101,7 @@ static void _BRSHA256Compress(uint32_t *r, uint32_t *x)
         0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
     };
     
-    size_t i;
+    int i;
     uint32_t a = r[0], b = r[1], c = r[2], d = r[3], e = r[4], f = r[5], g = r[6], h = r[7], t1, t2, w[64];
     
     for (i = 0; i < 16; i++) w[i] = be32(x[i]);
@@ -199,7 +200,7 @@ static void _BRSHA512Compress(uint64_t *r, uint64_t *x)
         0x431d67c49c100d4c, 0x4cc5d4becb3e42b6, 0x597f299cfc657e2a, 0x5fcb6fab3ad6faec, 0x6c44198c4a475817
     };
     
-    size_t i;
+    int i;
     uint64_t a = r[0], b = r[1], c = r[2], d = r[3], e = r[4], f = r[5], g = r[6], h = r[7], t1, t2, w[80];
     
     for (i = 0; i < 16; i++) w[i] = be64(x[i]);
@@ -272,34 +273,34 @@ void BRSHA512(void *md64, const void *data, size_t len)
 #define rmd(a, b, c, d, e, f, g, h, i, j) ((a) = rol32((f) + (b) + le32(c) + (d), (e)) + (g), (f) = (g), (g) = (h),\
                                            (h) = rol32((i), 10), (i) = (j), (j) = (a))
 
-static void _BRRMDcompress(uint32_t *r, uint32_t *x)
+static void _BRRMDCompress(uint32_t *r, uint32_t *x)
 {
     // left line
-    static const uint32_t rl1[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }, // round 1, id
-                          rl2[] = { 7, 4, 13, 1, 10, 6, 15, 3, 12, 0, 9, 5, 2, 14, 11, 8 }, // round 2, rho
-                          rl3[] = { 3, 10, 14, 4, 9, 15, 8, 1, 2, 7, 0, 6, 13, 11, 5, 12 }, // round 3, rho^2
-                          rl4[] = { 1, 9, 11, 10, 0, 8, 12, 4, 13, 3, 7, 15, 14, 5, 6, 2 }, // round 4, rho^3
-                          rl5[] = { 4, 0, 5, 9, 7, 12, 2, 10, 14, 1, 3, 8, 11, 6, 15, 13 }; // round 5, rho^4
+    static const int rl1[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }, // round 1, id
+                     rl2[] = { 7, 4, 13, 1, 10, 6, 15, 3, 12, 0, 9, 5, 2, 14, 11, 8 }, // round 2, rho
+                     rl3[] = { 3, 10, 14, 4, 9, 15, 8, 1, 2, 7, 0, 6, 13, 11, 5, 12 }, // round 3, rho^2
+                     rl4[] = { 1, 9, 11, 10, 0, 8, 12, 4, 13, 3, 7, 15, 14, 5, 6, 2 }, // round 4, rho^3
+                     rl5[] = { 4, 0, 5, 9, 7, 12, 2, 10, 14, 1, 3, 8, 11, 6, 15, 13 }; // round 5, rho^4
     // right line
-    static const uint32_t rr1[] = { 5, 14, 7, 0, 9, 2, 11, 4, 13, 6, 15, 8, 1, 10, 3, 12 }, // round 1, pi
-                          rr2[] = { 6, 11, 3, 7, 0, 13, 5, 10, 14, 15, 8, 12, 4, 9, 1, 2 }, // round 2, rho pi
-                          rr3[] = { 15, 5, 1, 3, 7, 14, 6, 9, 11, 8, 12, 2, 10, 0, 4, 13 }, // round 3, rho^2 pi
-                          rr4[] = { 8, 6, 4, 1, 3, 11, 15, 0, 5, 12, 2, 13, 9, 7, 10, 14 }, // round 4, rho^3 pi
-                          rr5[] = { 12, 15, 10, 4, 1, 5, 8, 7, 6, 2, 13, 14, 0, 3, 9, 11 }; // round 5, rho^4 pi
+    static const int rr1[] = { 5, 14, 7, 0, 9, 2, 11, 4, 13, 6, 15, 8, 1, 10, 3, 12 }, // round 1, pi
+                     rr2[] = { 6, 11, 3, 7, 0, 13, 5, 10, 14, 15, 8, 12, 4, 9, 1, 2 }, // round 2, rho pi
+                     rr3[] = { 15, 5, 1, 3, 7, 14, 6, 9, 11, 8, 12, 2, 10, 0, 4, 13 }, // round 3, rho^2 pi
+                     rr4[] = { 8, 6, 4, 1, 3, 11, 15, 0, 5, 12, 2, 13, 9, 7, 10, 14 }, // round 4, rho^3 pi
+                     rr5[] = { 12, 15, 10, 4, 1, 5, 8, 7, 6, 2, 13, 14, 0, 3, 9, 11 }; // round 5, rho^4 pi
     // left line shifts
-    static const uint32_t sl1[] = { 11, 14, 15, 12, 5, 8, 7, 9, 11, 13, 14, 15, 6, 7, 9, 8 }, // round 1
-                          sl2[] = { 7, 6, 8, 13, 11, 9, 7, 15, 7, 12, 15, 9, 11, 7, 13, 12 }, // round 2
-                          sl3[] = { 11, 13, 6, 7, 14, 9, 13, 15, 14, 8, 13, 6, 5, 12, 7, 5 }, // round 3
-                          sl4[] = { 11, 12, 14, 15, 14, 15, 9, 8, 9, 14, 5, 6, 8, 6, 5, 12 }, // round 4
-                          sl5[] = { 9, 15, 5, 11, 6, 8, 13, 12, 5, 12, 13, 14, 11, 8, 5, 6 }; // round 5
+    static const int sl1[] = { 11, 14, 15, 12, 5, 8, 7, 9, 11, 13, 14, 15, 6, 7, 9, 8 }, // round 1
+                     sl2[] = { 7, 6, 8, 13, 11, 9, 7, 15, 7, 12, 15, 9, 11, 7, 13, 12 }, // round 2
+                     sl3[] = { 11, 13, 6, 7, 14, 9, 13, 15, 14, 8, 13, 6, 5, 12, 7, 5 }, // round 3
+                     sl4[] = { 11, 12, 14, 15, 14, 15, 9, 8, 9, 14, 5, 6, 8, 6, 5, 12 }, // round 4
+                     sl5[] = { 9, 15, 5, 11, 6, 8, 13, 12, 5, 12, 13, 14, 11, 8, 5, 6 }; // round 5
     // right line shifts
-    static const uint32_t sr1[] = { 8, 9, 9, 11, 13, 15, 15, 5, 7, 7, 8, 11, 14, 14, 12, 6 }, // round 1
-                          sr2[] = { 9, 13, 15, 7, 12, 8, 9, 11, 7, 7, 12, 7, 6, 15, 13, 11 }, // round 2
-                          sr3[] = { 9, 7, 15, 11, 8, 6, 6, 14, 12, 13, 5, 14, 13, 13, 7, 5 }, // round 3
-                          sr4[] = { 15, 5, 8, 11, 14, 14, 6, 14, 6, 9, 12, 9, 12, 5, 15, 8 }, // round 4
-                          sr5[] = { 8, 5, 12, 9, 12, 5, 14, 6, 8, 13, 6, 5, 15, 13, 11, 11 }; // round 5
+    static const int sr1[] = { 8, 9, 9, 11, 13, 15, 15, 5, 7, 7, 8, 11, 14, 14, 12, 6 }, // round 1
+                     sr2[] = { 9, 13, 15, 7, 12, 8, 9, 11, 7, 7, 12, 7, 6, 15, 13, 11 }, // round 2
+                     sr3[] = { 9, 7, 15, 11, 8, 6, 6, 14, 12, 13, 5, 14, 13, 13, 7, 5 }, // round 3
+                     sr4[] = { 15, 5, 8, 11, 14, 14, 6, 14, 6, 9, 12, 9, 12, 5, 15, 8 }, // round 4
+                     sr5[] = { 8, 5, 12, 9, 12, 5, 14, 6, 8, 13, 6, 5, 15, 13, 11, 11 }; // round 5
 
-    size_t i;
+    int i;
     uint32_t al = r[0], bl = r[1], cl = r[2], dl = r[3], el = r[4], ar = al, br = bl, cr = cl, dr = dl, er = el, t;
     
     for (i = 0; i < 16; i++) rmd(t, f(bl, cl, dl), x[rl1[i]], 0x00000000, sl1[i], al, el, dl, cl, bl); // round 1 left
@@ -318,7 +319,7 @@ static void _BRRMDcompress(uint32_t *r, uint32_t *x)
     al = bl = cl = dl = el = ar = br = cr = dr = er = t = 0;
 }
 
-// ripemd-160 hash function: http://homes.esat.kuleuven.be/~bosselae/ripemd160.html
+// ripemd-160: http://homes.esat.kuleuven.be/~bosselae/ripemd160.html
 void BRRMD160(void *md20, const void *data, size_t len)
 {
     size_t i;
@@ -327,14 +328,14 @@ void BRRMD160(void *md20, const void *data, size_t len)
     for (i = 0; i <= len; i += 64) { // process data in 64 byte blocks
         memcpy(x, (const uint8_t *)data + i, (i + 64 < len) ? 64 : len - i);
         if (i + 64 > len) break;
-        _BRRMDcompress(buf, x);
+        _BRRMDCompress(buf, x);
     }
     
     memset((uint8_t *)x + (len - i), 0, 64 - (len - i)); // clear remainder of x
     ((uint8_t *)x)[len - i] = 0x80; // append padding
-    if (len - i >= 56) _BRRMDcompress(buf, x), memset(x, 0, 64); // length goes to next block
+    if (len - i >= 56) _BRRMDCompress(buf, x), memset(x, 0, 64); // length goes to next block
     *(uint64_t *)&x[14] = le64((uint64_t)len*8); // append length in bits
-    _BRRMDcompress(buf, x); // finalize
+    _BRRMDCompress(buf, x); // finalize
     for (i = 0; i < 5; i++) ((uint32_t *)md20)[i] = le32(buf[i]); // write to md
     memset(x, 0, sizeof(x));
     memset(buf, 0, sizeof(buf));
@@ -347,6 +348,65 @@ void BRHash160(void *md20, const void *data, size_t len)
     
     BRSHA256(t, data, len);
     BRRMD160(md20, t, sizeof(t));
+}
+
+// basic md5 functions
+#define F(x, y, z) ((z) ^ ((x) & ((y) ^ (z))))
+#define G(x, y, z) ((y) ^ ((z) & ((x) ^ (y))))
+#define H(x, y, z) ((x) ^ (y) ^ (z))
+#define I(x, y, z) ((y) ^ ((x) | ~(z)))
+
+// basic md5 operation
+#define md5(f, a, b, c, d, x, k, s, t) ((a) += f((b), (c), (d)) + le32(x) + (k), (a) = rol32(a, s), (a) += (b),\
+                                        (t) = (d), (d) = (c), (c) = (b), (b) = (a), (a) = (t))
+
+static void _BRMD5Compress(uint32_t *r, uint32_t *x)
+{
+    static const uint32_t k[] = {
+        0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
+        0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be, 0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821,
+        0xf61e2562, 0xc040b340, 0x265e5a51, 0xe9b6c7aa, 0xd62f105d, 0x02441453, 0xd8a1e681, 0xe7d3fbc8,
+        0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed, 0xa9e3e905, 0xfcefa3f8, 0x676f02d9, 0x8d2a4c8a,
+        0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c, 0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70,
+        0x289b7ec6, 0xeaa127fa, 0xd4ef3085, 0x04881d05, 0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665,
+        0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039, 0x655b59c3, 0x8f0ccc92, 0xffeff47d, 0x85845dd1,
+        0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1, 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
+    };
+
+    static const int s[] = { 7, 12, 17, 22, 5, 9, 14, 20, 4, 11, 16, 23, 6, 10, 15, 21 };
+    
+    int i = 0;
+    uint32_t a = r[0], b = r[1], c = r[2], d = r[3], t;
+    
+    for (; i < 16; i++) md5(F, a, b, c, d, x[i], k[i], s[i % 4], t);
+    for (; i < 32; i++) md5(G, a, b, c, d, x[(5*i + 1) % 16], k[i], s[4 + (i % 4)], t);
+    for (; i < 48; i++) md5(H, a, b, c, d, x[(3*i + 5) % 16], k[i], s[8 + (i % 4)], t);
+    for (; i < 64; i++) md5(I, a, b, c, d, x[(7*i) % 16], k[i], s[12 + (i % 4)], t);
+    
+    r[0] += a, r[1] += b, r[2] += c, r[3] += d;
+    a = b = c = d = t = 0;
+}
+
+// md5 - for non-cyptographic use only
+void BRMD5(void *md16, const void *data, size_t len)
+{
+    size_t i;
+    uint32_t x[16], buf[] = { 0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476 }; // initial buffer values
+    
+    for (i = 0; i <= len; i += 64) { // process data in 64 byte blocks
+        memcpy(x, (const uint8_t *)data + i, (i + 64 < len) ? 64 : len - i);
+        if (i + 64 > len) break;
+        _BRMD5Compress(buf, x);
+    }
+    
+    memset((uint8_t *)x + (len - i), 0, 64 - (len - i)); // clear remainder of x
+    ((uint8_t *)x)[len - i] = 0x80; // append padding
+    if (len - i >= 56) _BRMD5Compress(buf, x), memset(x, 0, 64); // length goes to next block
+    *(uint64_t *)&x[14] = le64((uint64_t)len*8); // append length in bits
+    _BRMD5Compress(buf, x); // finalize
+    for (i = 0; i < 4; i++) ((uint32_t *)md16)[i] = le32(buf[i]); // write to md
+    memset(x, 0, sizeof(x));
+    memset(buf, 0, sizeof(buf));
 }
 
 // HMAC(key, data) = hash((key xor opad) || hash((key xor ipad) || data))
@@ -411,9 +471,9 @@ void BRPBKDF2(void *dk, size_t dkLen, void (*hash)(void *, const void *, size_t)
 #define C2 0x1b873593
 
 // basic mumurHash3 operation
-#define fmix32(h) (h ^= h >> 16, h *= 0x85ebca6b, h ^= h >> 13, h *= 0xc2b2ae35, h ^= h >> 16)
+#define fmix32(h) ((h) ^= (h) >> 16, (h) *= 0x85ebca6b, (h) ^= (h) >> 13, (h) *= 0xc2b2ae35, (h) ^= (h) >> 16)
 
-// murmurHash3 (x86_32): https://code.google.com/p/smhasher/
+// murmurHash3 (x86_32): https://code.google.com/p/smhasher/ - for non-cryptographic use only
 uint32_t BRMurmur3_32(const void *data, size_t len, uint32_t seed)
 {
     uint32_t h = seed, k = 0;

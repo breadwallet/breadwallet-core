@@ -32,6 +32,7 @@
 extern "C" {
 #endif
 
+// sha-1 - not recommended for cryptographic use
 void BRSHA1(void *md20, const void *data, size_t len);
 
 void BRSHA256(void *md32, const void *data, size_t len);
@@ -45,11 +46,14 @@ void BRSHA384(void *md48, const void *data, size_t len);
 
 void BRSHA512(void *md64, const void *data, size_t len);
 
-// ripemd-160 hash function: http://homes.esat.kuleuven.be/~bosselae/ripemd160.html
+// ripemd-160: http://homes.esat.kuleuven.be/~bosselae/ripemd160.html
 void BRRMD160(void *md20, const void *data, size_t len);
 
 // bitcoin hash-160 = ripemd-160(sha-256(x))
 void BRHash160(void *md20, const void *data, size_t len);
+
+// md5 - for non-cryptographic use only
+void BRMD5(void *md16, const void *data, size_t len);
 
 void BRHMAC(void *md, void (*hash)(void *, const void *, size_t), size_t hashLen, const void *key, size_t keyLen,
             const void *data, size_t dataLen);
@@ -57,7 +61,7 @@ void BRHMAC(void *md, void (*hash)(void *, const void *, size_t), size_t hashLen
 void BRPBKDF2(void *dk, size_t dkLen, void (*hash)(void *, const void *, size_t), size_t hashLen,
               const void *pw, size_t pwLen, const void *salt, size_t saltLen, unsigned rounds);
 
-// murmurHash3 (x86_32): https://code.google.com/p/smhasher/
+// murmurHash3 (x86_32): https://code.google.com/p/smhasher/ - for non cryptographic use only
 uint32_t BRMurmur3_32(const void *data, size_t len, uint32_t seed);
 
 #ifdef __cplusplus

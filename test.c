@@ -485,6 +485,40 @@ int BRHashTests()
     if (! UInt160Eq(*(UInt160 *)"\x0b\xdc\x9d\x2d\x25\x6b\x3e\xe9\xda\xae\x34\x7b\xe6\xf4\xdc\x83\x5a\x46\x7f\xfe",
                     *(UInt160 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRRMD160() test 6\n", __func__);
 
+    // test md5
+    
+    s = "Free online MD5 Calculator, type text here...";
+    BRMD5(md, s, strlen(s));
+    if (! UInt128Eq(*(UInt128 *)"\x0b\x3b\x20\xea\xf1\x69\x64\x62\xf5\x0d\x1a\x3b\xbd\xd3\x0c\xef",
+                    *(UInt128 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRMD5() test 1\n", __func__);
+    
+    s = "this is some text to test the md5 implementation with more than 64bytes of data since it's internal digest "
+          "buffer is 64bytes in size";
+    BRMD5(md, s, strlen(s));
+    if (! UInt128Eq(*(UInt128 *)"\x56\xa1\x61\xf2\x41\x50\xc6\x2d\x78\x57\xb7\xf3\x54\x92\x7e\xbe",
+                    *(UInt128 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRMD5() test 2\n", __func__);
+    
+    s = "123456789012345678901234567890123456789012345678901234567890";
+    BRMD5(md, s, strlen(s));
+    if (! UInt128Eq(*(UInt128 *)"\xc5\xb5\x49\x37\x7c\x82\x6c\xc3\x71\x24\x18\xb0\x64\xfc\x41\x7e",
+                    *(UInt128 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRMD5() test 3\n", __func__);
+    
+    // a message exactly 64bytes long (internal buffer size)
+    s = "1234567890123456789012345678901234567890123456789012345678901234";
+    BRMD5(md, s, strlen(s));
+    if (! UInt128Eq(*(UInt128 *)"\xeb\x6c\x41\x79\xc0\xa7\xc8\x2c\xc2\x82\x8c\x1e\x63\x38\xe1\x65",
+                    *(UInt128 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRMD5() test 4\n", __func__);
+    
+    s = ""; // empty
+    BRMD5(md, s, strlen(s));
+    if (! UInt128Eq(*(UInt128 *)"\xd4\x1d\x8c\xd9\x8f\x00\xb2\x04\xe9\x80\x09\x98\xec\xf8\x42\x7e",
+                    *(UInt128 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRMD5() test 5\n", __func__);
+    
+    s = "a";
+    BRMD5(md, s, strlen(s));
+    if (! UInt128Eq(*(UInt128 *)"\x0c\xc1\x75\xb9\xc0\xf1\xb6\xa8\x31\xc3\x99\xe2\x69\x77\x26\x61",
+                    *(UInt128 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRMD5() test 6\n", __func__);
+    
     return r;
 }
 
