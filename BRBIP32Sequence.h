@@ -79,6 +79,9 @@ size_t BRBIP32SerializeMasterPubKey(char *str, size_t strLen, BRMasterPubKey mpk
 // returns a master public key give a base58check encoded serialized master public key (xpub)
 BRMasterPubKey BRBIP32ParseMasterPubKey(const char *str);
 
+// key used for authenticated API calls, i.e. bitauth: https://github.com/bitpay/bitauth - path m/1H/0
+void BRBIP32APIAuthKey(BRKey *key, const void *seed, size_t seedLen);
+
 #ifdef __cplusplus
 }
 #endif

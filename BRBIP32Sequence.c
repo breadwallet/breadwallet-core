@@ -218,3 +218,23 @@ BRMasterPubKey BRBIP32ParseMasterPubKey(const char *str)
     // TODO: XXX implement
     return BR_MASTER_PUBKEY_NONE;
 }
+
+// key used for authenticated API calls, i.e. bitauth: https://github.com/bitpay/bitauth - path m/1H/0
+void BRBIP32APIAuthKey(BRKey *key, const void *seed, size_t seedLen)
+{
+    UInt512 I;
+    UInt256 secret, chainCode;
+    
+    if (key && seed) {
+        BRHMAC(&I, BRSHA512, 64, BIP32_SEED_KEY, strlen(BIP32_SEED_KEY), seed, seedLen);
+        secret = *(UInt256 *)&I;
+        chainCode = *(UInt256 *)&I.u8[sizeof(UInt256)];
+        I = UINT512_ZERO;
+
+        _CKDpriv(&secret, &chainCode, 1 | BIP32_HARD); // path m/1H
+        _CKDpriv(&secret, &chainCode, 0); // path m/1H/0
+        
+        BRKeySetSecret(key, &secret, 1);
+        secret = chainCode = UINT256_ZERO;
+    }
+}
