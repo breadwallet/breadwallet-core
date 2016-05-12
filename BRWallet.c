@@ -41,7 +41,7 @@ struct BRWalletStruct {
     uint64_t totalSent, totalReceived, feePerKb, *balanceHist;
     BRMasterPubKey masterPubKey;
     BRAddress *internalChain, *externalChain;
-    BRSet *allTx, *invalidTx, *spentOutputs, *usedAddrs, *allAddrs;
+    BRSet *allTx, *invalidTx, *pendingTx, *spentOutputs, *usedAddrs, *allAddrs;
     void *callbackInfo;
     void (*balanceChanged)(void *info, uint64_t balance);
     void (*txAdded)(void *info, BRTransaction *tx);
@@ -158,6 +158,7 @@ static void _BRWalletUpdateBalance(BRWallet *wallet)
     array_clear(wallet->balanceHist);
     BRSetClear(wallet->spentOutputs);
     BRSetClear(wallet->invalidTx);
+    BRSetClear(wallet->pendingTx);
     wallet->totalSent = 0;
     wallet->totalReceived = 0;
 
@@ -229,6 +230,7 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
     array_new(wallet->balanceHist, txCount + 100);
     wallet->allTx = BRSetNew(BRTransactionHash, BRTransactionEq, txCount + 100);
     wallet->invalidTx = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
+    wallet->pendingTx = BRSetNew(BRTransactionHash, BRTransactionEq, 10);
     wallet->spentOutputs = BRSetNew(BRUTXOHash, BRUTXOEq, txCount + 100);
     wallet->usedAddrs = BRSetNew(BRAddressHash, BRAddressEq, txCount + 100);
     wallet->allAddrs = BRSetNew(BRAddressHash, BRAddressEq, txCount + 100);
@@ -707,6 +709,7 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
         else {
             BRSetRemove(wallet->allTx, tx);
             BRSetRemove(wallet->invalidTx, tx);
+            BRSetRemove(wallet->pendingTx, tx);
             for (size_t i = 0; i < tx->outCount; i++) BRSetRemove(wallet->usedAddrs, tx->outputs[i].address);
             
             for (size_t i = array_count(wallet->transactions); i > 0; i--) {
@@ -751,7 +754,7 @@ BRTransaction *BRWalletTransactionForHash(BRWallet *wallet, UInt256 txHash)
     return tx;
 }
 
-// true if no previous wallet transaction spends any of the given transaction's inputs, and no input tx is invalid
+// true if no previous wallet transaction spends any of the given transaction's inputs, and no inputs are invalid
 int BRWalletTransactionIsValid(BRWallet *wallet, const BRTransaction *tx)
 {
     BRTransaction *t;
@@ -781,53 +784,45 @@ int BRWalletTransactionIsValid(BRWallet *wallet, const BRTransaction *tx)
     return r;
 }
 
-// returns true if all sequence numbers are final (otherwise transaction can be replaced-by-fee), if no outputs are
-// dust, transaction size is not over TX_MAX_SIZE, timestamp is greater than 0, and no inputs are known to be unverfied
-int BRWalletTransactionIsVerified(BRWallet *wallet, const BRTransaction *tx)
+// true if tx cannot be immediately spent (i.e. if it or an input tx can be replaced-by-fee)
+int BRWalletTransactionIsPending(BRWallet *wallet, const BRTransaction *tx)
 {
     BRTransaction *t;
-    int r = 1;
-
-    if (tx->blockHeight == TX_UNCONFIRMED) { // only unconfirmed transactions can be unverified
-        if (tx->timestamp == 0) r = 0; // a timestamp of 0 indicates transaction is to remain unverified
-        if (r && BRTransactionSize(tx) > TX_MAX_SIZE) r = 0; // check transaction size is under TX_MAX_SIZE
+    int r = 0;
+    
+    if (tx->blockHeight == TX_UNCONFIRMED) { // only unconfirmed transactions can be postdated
+        if (BRTransactionSize(tx) > TX_MAX_SIZE) r = 1; // check transaction size is under TX_MAX_SIZE
         
-        for (size_t i = 0; r && i < tx->inCount; i++) { // check that all sequence numbers are final
-            if (tx->inputs[i].sequence != TXIN_SEQUENCE) r = 0;
+        for (size_t i = 0; ! r && i < tx->inCount; i++) { // check that all sequence numbers are final (not RBF)
+            if (tx->inputs[i].sequence != TXIN_SEQUENCE) r = 1;
         }
         
-        for (size_t i = 0; r && i < tx->outCount; i++) { // check that no outputs are dust
-            if (tx->outputs[i].amount < TX_MIN_OUTPUT_AMOUNT) r = 0;
+        for (size_t i = 0; ! r && i < tx->outCount; i++) { // check that no outputs are dust
+            if (tx->outputs[i].amount < TX_MIN_OUTPUT_AMOUNT) r = 1;
         }
         
-        if (r) { // check if any inputs are known to be unverified
-            for (size_t i = 0; r && i < tx->inCount; i++) {
-                t = BRWalletTransactionForHash(wallet, tx->inputs[i].txHash);
-                if (t && ! BRWalletTransactionIsVerified(wallet, t)) r = 0;
-            }
+        for (size_t i = 0; ! r && i < tx->inCount; i++) { // check if any inputs are known to be pending
+            t = BRWalletTransactionForHash(wallet, tx->inputs[i].txHash);
+            if (t && BRWalletTransactionIsPending(wallet, t)) r = 1;
         }
     }
     
     return r;
 }
 
-// returns true if transaction won't be valid by blockHeight + 1 or within the next 10 minutes
-int BRWalletTransactionIsPostdated(BRWallet *wallet, const BRTransaction *tx, uint32_t blockHeight)
+// true if tx is considered 0-conf safe (valid and not pending, timestamp is greater than 0, and no unverified inputs)
+int BRWalletTransactionIsVerified(BRWallet *wallet, const BRTransaction *tx)
 {
     BRTransaction *t;
-    int r = 0;
+    int r = 1;
 
-    if (tx->blockHeight == TX_UNCONFIRMED) { // only unconfirmed transactions can be postdated
-        for (size_t i = 0; ! r && i < tx->inCount; i++) { // check if any inputs are known to be postdated
+    if (tx->blockHeight == TX_UNCONFIRMED) { // only unconfirmed transactions can be unverified
+        if (tx->timestamp == 0 || ! BRWalletTransactionIsValid(wallet, tx) ||
+            BRWalletTransactionIsPending(wallet, tx)) r = 0;
+            
+        for (size_t i = 0; r && i < tx->inCount; i++) { // check if any inputs are known to be unverified
             t = BRWalletTransactionForHash(wallet, tx->inputs[i].txHash);
-            if (t && BRWalletTransactionIsPostdated(wallet, t, blockHeight)) r = 1;
-        }
-    
-        if ((tx->lockTime > blockHeight + 1 && tx->lockTime < TX_MAX_LOCK_HEIGHT) ||
-            (tx->lockTime >= TX_MAX_LOCK_HEIGHT && tx->lockTime >= time(NULL) + 10*60)) {
-            for (size_t i = 0; i < tx->inCount; i++) { // lockTime is ignored if all sequence numbers are final
-                if (tx->inputs[i].sequence != TXIN_SEQUENCE) r = 1;
-            }
+            if (t && ! BRWalletTransactionIsVerified(wallet, t)) r = 0;
         }
     }
     
@@ -1023,6 +1018,7 @@ void BRWalletFree(BRWallet *wallet)
     BRSetFree(wallet->usedAddrs);
     BRSetFree(wallet->allTx);
     BRSetFree(wallet->invalidTx);
+    BRSetFree(wallet->pendingTx);
     BRSetFree(wallet->spentOutputs);
     array_free(wallet->internalChain);
     array_free(wallet->externalChain);

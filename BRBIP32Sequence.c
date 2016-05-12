@@ -118,7 +118,7 @@ BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen)
     BRKey key;
 
     if (seed) {
-        BRHMAC(&I, BRSHA512, 64, BIP32_SEED_KEY, strlen(BIP32_SEED_KEY), seed, seedLen);
+        BRHMAC(&I, BRSHA512, sizeof(UInt512), BIP32_SEED_KEY, strlen(BIP32_SEED_KEY), seed, seedLen);
         secret = *(UInt256 *)&I;
         chain = *(UInt256 *)&I.u8[sizeof(UInt256)];
         I = UINT512_ZERO;
@@ -169,7 +169,7 @@ void BRBIP32PrivKeyList(BRKey keys[], size_t keysCount, const void *seed, size_t
     UInt256 secret, chainCode, s, c;
     
     if (keys && keysCount > 0 && seed && indexes) {
-        BRHMAC(&I, BRSHA512, 64, BIP32_SEED_KEY, strlen(BIP32_SEED_KEY), seed, seedLen);
+        BRHMAC(&I, BRSHA512, sizeof(UInt512), BIP32_SEED_KEY, strlen(BIP32_SEED_KEY), seed, seedLen);
         secret = *(UInt256 *)&I;
         chainCode = *(UInt256 *)&I.u8[sizeof(UInt256)];
         I = UINT512_ZERO;
@@ -226,7 +226,7 @@ void BRBIP32APIAuthKey(BRKey *key, const void *seed, size_t seedLen)
     UInt256 secret, chainCode;
     
     if (key && seed) {
-        BRHMAC(&I, BRSHA512, 64, BIP32_SEED_KEY, strlen(BIP32_SEED_KEY), seed, seedLen);
+        BRHMAC(&I, BRSHA512, sizeof(UInt512), BIP32_SEED_KEY, strlen(BIP32_SEED_KEY), seed, seedLen);
         secret = *(UInt256 *)&I;
         chainCode = *(UInt256 *)&I.u8[sizeof(UInt256)];
         I = UINT512_ZERO;

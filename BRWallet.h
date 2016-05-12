@@ -141,15 +141,14 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash);
 // returns the transaction with the given hash if it's been registered in the wallet
 BRTransaction *BRWalletTransactionForHash(BRWallet *wallet, UInt256 txHash);
 
-// true if no previous wallet transaction spends any of the given transaction's inputs, and no input tx is invalid
+// true if no previous wallet transaction spends any of the given transaction's inputs, and no inputs are invalid
 int BRWalletTransactionIsValid(BRWallet *wallet, const BRTransaction *tx);
 
-// returns true if all sequence numbers are final (otherwise transaction can be replaced-by-fee), if no outputs are
-// dust, transaction size is not over TX_MAX_SIZE, timestamp is greater than 0, and no inputs are known to be unverfied
-int BRWalletTransactionIsVerified(BRWallet *wallet, const BRTransaction *tx);
+// true if transaction cannot be immediately spent (i.e. if it or an input tx can be replaced-by-fee)
+int BRWalletTransactionIsPending(BRWallet *wallet, const BRTransaction *tx);
 
-// returns true if transaction won't be valid by blockHeight + 1 or within the next 10 minutes
-int BRWalletTransactionIsPostdated(BRWallet *wallet, const BRTransaction *tx, uint32_t blockHeight);
+// true if tx is considered 0-conf safe (valid and not pending, timestamp is greater than 0, and no unverified inputs)
+int BRWalletTransactionIsVerified(BRWallet *wallet, const BRTransaction *tx);
 
 // set the block heights and timestamps for the given transactions
 // use height TX_UNCONFIRMED and timestamp 0 to indicate a tx should remain marked as unverified (not 0-conf safe)
