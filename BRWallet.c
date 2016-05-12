@@ -151,7 +151,9 @@ static int _BRWalletTxIsSend(BRWallet *wallet, BRTransaction *tx)
 
 static void _BRWalletUpdateBalance(BRWallet *wallet)
 {
+    int isInvalid, isPending;
     uint64_t balance = 0, prevBalance = 0;
+    size_t i, j;
     BRTransaction *tx, *t;
     
     array_clear(wallet->utxos);
@@ -162,33 +164,53 @@ static void _BRWalletUpdateBalance(BRWallet *wallet)
     wallet->totalSent = 0;
     wallet->totalReceived = 0;
 
-    for (size_t i = 0; i < array_count(wallet->transactions); i++) {
+    for (i = 0; i < array_count(wallet->transactions); i++) {
         tx = wallet->transactions[i];
 
         // check if any inputs are invalid or already spent
         if (tx->blockHeight == TX_UNCONFIRMED) {
-            for (size_t j = 0; j < tx->inCount; j++) {
+            for (j = 0, isInvalid = 0; ! isInvalid && j < tx->inCount; j++) {
                 if (BRSetContains(wallet->spentOutputs, &tx->inputs[j]) ||
-                    BRSetContains(wallet->invalidTx, &tx->inputs[j].txHash)) {
-                    BRSetAdd(wallet->invalidTx, tx);
-                    array_add(wallet->balanceHist, balance);
-                    break;
-                }
+                    BRSetContains(wallet->invalidTx, &tx->inputs[j].txHash)) isInvalid = 1;
             }
-            
-            if (BRSetContains(wallet->invalidTx, tx)) continue;
+        
+            if (isInvalid) {
+                BRSetAdd(wallet->invalidTx, tx);
+                array_add(wallet->balanceHist, balance);
+                continue;
+            }
         }
 
         // add inputs to spent output set
-        for (size_t j = 0; j < tx->inCount; j++) {
+        for (j = 0; j < tx->inCount; j++) {
             BRSetAdd(wallet->spentOutputs, &tx->inputs[j]);
+        }
+
+        // check if tx is pending
+        if (tx->blockHeight == TX_UNCONFIRMED) {
+            isPending = (BRTransactionSize(tx) > TX_MAX_SIZE) ? 1 : 0; // check tx size is under TX_MAX_SIZE
+            
+            for (j = 0; ! isPending && j < tx->outCount; j++) {
+                if (tx->outputs[j].amount < TX_MIN_OUTPUT_AMOUNT) isPending = 1; // check that no outputs are dust
+            }
+
+            for (j = 0; ! isPending && j < tx->inCount; j++) {
+                if (tx->inputs[j].sequence != TXIN_SEQUENCE) isPending = 1; // check if sequence numbers are final
+                if (BRSetContains(wallet->pendingTx, &tx->inputs[j].txHash)) isPending = 1; // check for pending inputs
+            }
+            
+            if (isPending) {
+                BRSetAdd(wallet->pendingTx, tx);
+                array_add(wallet->balanceHist, balance);
+                continue;
+            }
         }
 
         // add outputs to UTXO set
         // TODO: don't add outputs below TX_MIN_OUTPUT_AMOUNT
-        // TODO: don't add coin generation outputs < 100 blocks deep, or non-final lockTime > 1 block/10min in future
+        // TODO: don't add coin generation outputs < 100 blocks deep
         // NOTE: balance/UTXOs will then need to be recalculated when last block changes
-        for (size_t j = 0; j < tx->outCount; j++) {
+        for (j = 0; j < tx->outCount; j++) {
             BRSetAdd(wallet->usedAddrs, tx->outputs[j].address);
             
             if (BRSetContains(wallet->allAddrs, tx->outputs[j].address)) {
@@ -198,7 +220,7 @@ static void _BRWalletUpdateBalance(BRWallet *wallet)
         }
 
         // transaction ordering is not guaranteed, so check the entire UTXO set against the entire spent output set
-        for (size_t j = array_count(wallet->utxos); j > 0; j--) {
+        for (j = array_count(wallet->utxos); j > 0; j--) {
             if (! BRSetContains(wallet->spentOutputs, &wallet->utxos[j - 1])) continue;
             t = BRSetGet(wallet->allTx, &wallet->utxos[j - 1].hash);
             balance -= t->outputs[wallet->utxos[j - 1].n].amount;
