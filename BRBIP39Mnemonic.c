@@ -41,7 +41,7 @@ size_t BRBIP39Encode(char *phrase, size_t phraseLen, const char *wordList[], con
     BRSHA256(&buf[dataLen], data, dataLen); // append SHA256 checksum
 
     for (i = 0; i < dataLen*3/4; i++) {
-        x = be32(*(uint32_t *)&buf[i*11/8]);
+        x = get32be(&buf[i*11/8]);
         word = wordList[(x >> (32 - (11 + ((i*11) % 8)))) % BIP39_WORDLIST_COUNT];
         if (i > 0 && phrase && len < phraseLen) phrase[len] = ' ';
         if (i > 0) len++;

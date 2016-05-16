@@ -32,6 +32,10 @@
 #define BITCOIN_PRIVKEY      128
 #define BITCOIN_PRIVKEY_TEST 239
 
+#if __BIG_ENDIAN__ || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) ||\
+    __ARMEB__ || __THUMBEB__ || __AARCH64EB__ || __MIPSEB__
+#define WORDS_BIGENDIAN 1
+#endif
 #define DETERMINISTIC    1
 #define USE_BASIC_CONFIG 1
 

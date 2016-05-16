@@ -356,7 +356,7 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
             uint8_t o[sizeof(UInt256) + sizeof(uint32_t)];
 
             *(UInt256 *)o = utxos[i].hash;
-            *(uint32_t *)(o + sizeof(UInt256)) = le32(utxos[i].n);
+            set32le(&o[sizeof(UInt256)], utxos[i].n);
             if (! BRBloomFilterContainsData(filter, o, sizeof(o))) BRBloomFilterInsertData(filter, o, sizeof(o));
         }
     
@@ -371,7 +371,7 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
                 if (tx && input->index < tx->outCount &&
                     BRWalletContainsAddress(manager->wallet, tx->outputs[input->index].address)) {
                     *(UInt256 *)o = input->txHash;
-                    *(uint32_t *)(o + sizeof(UInt256)) = le32(input->index);
+                    set32le(&o[sizeof(UInt256)], input->index);
                     if (! BRBloomFilterContainsData(filter, o, sizeof(o))) BRBloomFilterInsertData(filter, o,sizeof(o));
                 }
             }
@@ -683,7 +683,7 @@ static UInt128 *_addressLookup(const char *hostname)
         
         for (p = servinfo; p != NULL; p = p->ai_next) {
             if (p->ai_family == AF_INET) {
-                addrList[i].u32[2] = be32(0xffff);
+                addrList[i].u16[5] = 0xffff;
                 addrList[i].u32[3] = ((struct sockaddr_in *)p->ai_addr)->sin_addr.s_addr;
                 i++;
             }

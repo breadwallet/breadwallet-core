@@ -131,7 +131,7 @@ size_t BRBase58Decode(uint8_t *data, size_t dataLen, const char *str)
 
     if (data && len <= dataLen) {
         if (zcount > 0) memset(data, 0, zcount);
-        memcpy(data + zcount, &buf[i], sizeof(buf) - i);
+        memcpy(&data[zcount], &buf[i], sizeof(buf) - i);
     }
 
     memset(buf, 0, sizeof(buf));

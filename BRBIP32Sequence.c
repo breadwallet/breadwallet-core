@@ -60,7 +60,7 @@ static void _CKDpriv(UInt256 *k, UInt256 *c, uint32_t i)
     }
     else BRSecp256k1PointMul(buf, sizeof(buf), BR_ECPOINT_ZERO, *k, 1);
     
-    *(uint32_t *)&buf[sizeof(BRECPoint)] = be32(i);
+    set32be(&buf[sizeof(BRECPoint)], i);
     
     BRHMAC(&I, BRSHA512, sizeof(UInt512), c, sizeof(*c), buf, sizeof(buf)); // I = HMAC-SHA512(c, k|P(k) || i)
     
@@ -93,7 +93,7 @@ static void _CKDpub(BRECPoint *K, UInt256 *c, uint32_t i)
 
     if ((i & BIP32_HARD) != BIP32_HARD) { // can't derive private child key from public parent key
         *(BRECPoint *)buf = *K;
-        *(uint32_t *)&buf[sizeof(*K)] = be32(i);
+        set32be(&buf[sizeof(*K)], i);
     
         BRHMAC(&I, BRSHA512, sizeof(UInt512), c, sizeof(*c), buf, sizeof(buf)); // I = HMAC-SHA512(c, P(K) || i)
         

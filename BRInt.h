@@ -157,35 +157,39 @@ inline static UInt256 UInt256Reverse(UInt256 u)
 #define _hexu(c) (((c) >= '0' && (c) <= '9') ? (c) - '0' : ((c) >= 'a' && (c) <= 'f') ? (c) - ('a' - 0x0a) :\
                   ((c) >= 'A' && (c) <= 'F') ? (c) - ('A' - 0x0a) : 0)
 
-// integer endian swapping (detects endianess with predefined macros in clang and gcc)
+// unaligned memory access
 
-#if __BIG_ENDIAN__ || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) ||\
-    __ARMEB__ || __THUMBEB__ || __AARCH64EB__ || __MIPSEB__
+union _u16 { uint8_t u8[16/8]; uint16_t u16; };
+union _u32 { uint8_t u8[32/8]; uint32_t u32; };
+union _u64 { uint8_t u8[64/8]; uint64_t u64; };
+    
+#define set16be(r, x) (*(union _u16 *)(r) = (union _u16) { ((x) >> 8) & 0xff, (x) & 0xff })
+#define set16le(r, x) (*(union _u16 *)(r) = (union _u16) { (x) & 0xff, ((x) >> 8) & 0xff })
+#define set32be(r, x) (*(union _u32 *)(r) =\
+    (union _u32) { ((x) >> 24) & 0xff, ((x) >> 16) & 0xff, ((x) >> 8) & 0xff, (x) & 0xff })
+#define set32le(r, x) (*(union _u32 *)(r) =\
+    (union _u32) { (x) & 0xff, ((x) >> 8) & 0xff, ((x) >> 16) & 0xff, ((x) >> 24) & 0xff })
+#define set64be(r, x) (*(union _u64 *)(r) =\
+    (union _u64) { ((x) >> 56) & 0xff, ((x) >> 48) & 0xff, ((x) >> 40) & 0xff, ((x) >> 32) & 0xff,\
+                   ((x) >> 24) & 0xff, ((x) >> 16) & 0xff, ((x) >> 8) & 0xff, (x) & 0xff })
+#define set64le(r, x) (*(union _u64 *)(r) =\
+    (union _u64) { (x) & 0xff, ((x) >> 8) & 0xff, ((x) >> 16) & 0xff, ((x) >> 24) & 0xff,\
+                   ((x) >> 32) & 0xff, ((x) >> 40) & 0xff, ((x) >> 48) & 0xff, ((x) >> 56) & 0xff })
 
-#define WORDS_BIGENDIAN 1
-#define be16(x) (x)
-#define le16(x) ((((x) & 0xff) << 8) | (((x) & 0xff00) >> 8))
-#define be32(x) (x)
-#define le32(x) ((((x) & 0xff) << 24) | (((x) & 0xff00) << 8) | (((x) & 0xff0000) >> 8) | (((x) & 0xff000000) >> 24))
-#define be64(x) (x)
-#define le64(x) ((((x) & 0x00000000000000ffULL) << 56) | (((x) & 0xff00000000000000ULL) >> 56) |\
-                 (((x) & 0x000000000000ff00ULL) << 40) | (((x) & 0x00ff000000000000ULL) >> 40) |\
-                 (((x) & 0x0000000000ff0000ULL) << 24) | (((x) & 0x0000ff0000000000ULL) >> 24) |\
-                 (((x) & 0x00000000ff000000ULL) <<  8) | (((x) & 0x000000ff00000000ULL) >>  8))
-
-#else
-
-#define be16(x) ((((x) & 0xff) << 8) | (((x) & 0xff00) >> 8))
-#define le16(x) (x)
-#define be32(x) ((((x) & 0xff) << 24) | (((x) & 0xff00) << 8) | (((x) & 0xff0000) >> 8) | (((x) & 0xff000000) >> 24))
-#define le32(x) (x)
-#define be64(x) ((((x) & 0x00000000000000ffULL) << 56) | (((x) & 0xff00000000000000ULL) >> 56) |\
-                 (((x) & 0x000000000000ff00ULL) << 40) | (((x) & 0x00ff000000000000ULL) >> 40) |\
-                 (((x) & 0x0000000000ff0000ULL) << 24) | (((x) & 0x0000ff0000000000ULL) >> 24) |\
-                 (((x) & 0x00000000ff000000ULL) <<  8) | (((x) & 0x000000ff00000000ULL) >>  8))
-#define le64(x) (x)
-
-#endif
+#define get16be(x) (((uint16_t)((uint8_t *)(x))[0] << 8)  | ((uint16_t)((uint8_t *)(x))[1]))
+#define get16le(x) (((uint16_t)((uint8_t *)(x))[1] << 8)  | ((uint16_t)((uint8_t *)(x))[0]))
+#define get32be(x) (((uint32_t)((uint8_t *)(x))[0] << 24) | ((uint32_t)((uint8_t *)(x))[1] << 16) |\
+                    ((uint32_t)((uint8_t *)(x))[2] << 8)  | ((uint32_t)((uint8_t *)(x))[3]))
+#define get32le(x) (((uint32_t)((uint8_t *)(x))[3] << 24) | ((uint32_t)((uint8_t *)(x))[2] << 16) |\
+                    ((uint32_t)((uint8_t *)(x))[1] << 8)  | ((uint32_t)((uint8_t *)(x))[0]))
+#define get64be(x) (((uint64_t)((uint8_t *)(x))[0] << 56) | ((uint64_t)((uint8_t *)(x))[1] << 48) |\
+                    ((uint64_t)((uint8_t *)(x))[2] << 40) | ((uint64_t)((uint8_t *)(x))[3] << 32) |\
+                    ((uint64_t)((uint8_t *)(x))[4] << 24) | ((uint64_t)((uint8_t *)(x))[5] << 16) |\
+                    ((uint64_t)((uint8_t *)(x))[6] << 8)  | ((uint64_t)((uint8_t *)(x))[7]))
+#define get64le(x) (((uint64_t)((uint8_t *)(x))[7] << 56) | ((uint64_t)((uint8_t *)(x))[6] << 48) |\
+                    ((uint64_t)((uint8_t *)(x))[5] << 40) | ((uint64_t)((uint8_t *)(x))[4] << 32) |\
+                    ((uint64_t)((uint8_t *)(x))[3] << 24) | ((uint64_t)((uint8_t *)(x))[2] << 16) |\
+                    ((uint64_t)((uint8_t *)(x))[1] << 8)  | ((uint64_t)((uint8_t *)(x))[0]))
 
 #ifdef __cplusplus
 }
