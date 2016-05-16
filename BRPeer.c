@@ -862,14 +862,14 @@ static void *_peerThreadRoutine(void *arg)
             socket = ctx->socket;
             
             while (socket >= 0 && ! error && len < HEADER_LENGTH) {
-                n = read(socket, header + len, sizeof(header) - len);
+                n = read(socket, &header[len], sizeof(header) - len);
                 if (n >= 0) len += n;
                 if (n < 0 && errno != EWOULDBLOCK) error = errno;
                 gettimeofday(&tv, NULL);
                 if (! error && tv.tv_sec + (double)tv.tv_usec/1000000 >= ctx->disconnectTime) error = ETIMEDOUT;
                 
                 while (sizeof(uint32_t) <= len && get32le(header) != MAGIC_NUMBER) {
-                    memmove(header, header + 1, --len); // consume one byte at a time until we find the magic number
+                    memmove(header, &header[1], --len); // consume one byte at a time until we find the magic number
                 }
                 
                 socket = ctx->socket;
@@ -885,7 +885,7 @@ static void *_peerThreadRoutine(void *arg)
             else if (len == HEADER_LENGTH) {
                 const char *type = (const char *)(&header[4]);
                 uint32_t msgLen = get32le(&header[16]);
-                uint32_t checksum = get32le(header + 20);
+                uint32_t checksum = get32le(&header[20]);
                 UInt256 hash;
                 
                 if (msgLen > MAX_MSG_LENGTH) { // check message length
@@ -898,7 +898,7 @@ static void *_peerThreadRoutine(void *arg)
                     socket = ctx->socket;
                     
                     while (socket >= 0 && ! error && len < msgLen) {
-                        n = read(socket, payload + len, msgLen - len);
+                        n = read(socket, &payload[len], msgLen - len);
                         if (n >= 0) len += n;
                         if (n < 0 && errno != EWOULDBLOCK) error = errno;
                         gettimeofday(&tv, NULL);
@@ -912,10 +912,9 @@ static void *_peerThreadRoutine(void *arg)
                     else if (len == msgLen) {
                         BRSHA256_2(&hash, payload, msgLen);
                         
-                        if (get32le(hash.u8) != checksum) { // verify checksum
+                        if (get32le(&hash) != checksum) { // verify checksum
                             peer_log(peer, "error reading %s, invalid checksum %x, expected %x, payload length:%"PRIu32
-                                     ", SHA256_2:%s", type, get32le(hash.u8), checksum, msgLen,
-                                     uint256_hex_encode(hash));
+                                     ", SHA256_2:%s", type, get32le(&hash), checksum, msgLen, uint256_hex_encode(hash));
                             error = EPROTO;
                         }
                         else if (! _BRPeerAcceptMessage(peer, payload, msgLen, type)) error = EPROTO;
@@ -1227,7 +1226,7 @@ void BRPeerSendVersionMessage(BRPeer *peer)
     off += userAgentLen;
     set32le(&msg[off], 0); // last block received
     off += sizeof(uint32_t);
-    msg[off++] = 0; // relay transactions (no for SPV bloom filter mode)
+    msg[off++] = 0; // relay transactions (0 for SPV bloom filter mode)
     BRPeerSendMessage(peer, msg, sizeof(msg), MSG_VERSION);
 }
 

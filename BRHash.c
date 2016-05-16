@@ -34,13 +34,11 @@
 #define le32(x) (x)
 #define be32(x) ((((x) & 0xff) << 24) | (((x) & 0xff00) << 8) | (((x) & 0xff0000) >> 8) | (((x) & 0xff000000) >> 24))
 #else
-#define be32(x) ((union { uint8_t u8[32/8]; uint32_t u32; }) { (x) >> 24, (x) >> 16, (x) >> 8, (x) }.u32)
-#define le32(x) ((union { uint8_t u8[32/8]; uint32_t u32; }) { (x), (x) >> 8, (x) >> 16, (x) >> 24 }.u32)
+#define be32(x) ((union { uint8_t u8[4]; uint32_t u32; }) { .u8 = { (x) >> 24, (x) >> 16, (x) >> 8, (x) } }.u32)
+#define le32(x) ((union { uint8_t u8[4]; uint32_t u32; }) { .u8 = { (x), (x) >> 8, (x) >> 16, (x) >> 24 } }.u32)
 #endif
-#define be64(x) ((union { uint8_t u8[64/8]; uint64_t u64; })\
-                 { (x) >> 56, (x) >> 48, (x) >> 40, (x) >> 32, (x) >> 24, (x) >> 16, (x) >> 8, (x) }.u64)
-#define le64(x) ((union { uint8_t u8[64/8]; uint64_t u64; })\
-                 { (x), (x) >> 8, (x) >> 16, (x) >> 24, (x) >> 32, (x) >> 40, (x) >> 48, (x) >> 56 }.u64)
+#define be64(x) ((union { uint32_t u32[2]; uint64_t u64; }) { be32((uint32_t)((x) >> 32)), be32((uint32_t)(x)) }.u64)
+#define le64(x) ((union { uint32_t u32[2]; uint64_t u64; }) { le32((uint32_t)(x)), le32((uint32_t)((x) >> 32)) }.u64)
 
 // bitwise left rotation
 #define rol32(a, b) (((a) << (b)) | ((a) >> (32 - (b))))
@@ -251,7 +249,7 @@ void BRSHA384(void *md48, const void *data, size_t len)
     memset((uint8_t *)x + (len - i), 0, 128 - (len - i)); // clear remainder of x
     ((uint8_t *)x)[len - i] = 0x80; // append padding
     if (len - i >= 112) _BRSHA512Compress(buf, x), memset(x, 0, 128); // length goes to next block
-    x[14] = 0, x[15] = be64(len*8); // append length in bits
+    x[14] = 0, x[15] = be64((uint64_t)len*8); // append length in bits
     _BRSHA512Compress(buf, x); // finalize
     for (i = 0; i < 6; i++) buf[i] = be64(buf[i]); // endian swap
     memcpy(md48, buf, 48); // write to md
@@ -274,7 +272,7 @@ void BRSHA512(void *md64, const void *data, size_t len)
     memset((uint8_t *)x + (len - i), 0, 128 - (len - i)); // clear remainder of x
     ((uint8_t *)x)[len - i] = 0x80; // append padding
     if (len - i >= 112) _BRSHA512Compress(buf, x), memset(x, 0, 128); // length goes to next block
-    x[14] = 0, x[15] = be64(len*8); // append length in bits
+    x[14] = 0, x[15] = be64((uint64_t)len*8); // append length in bits
     _BRSHA512Compress(buf, x); // finalize
     for (i = 0; i < 8; i++) buf[i] = be64(buf[i]); // endian swap
     memcpy(md64, buf, 64); // write to md
