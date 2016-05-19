@@ -74,7 +74,10 @@ inline static int _ceil_log2(int x)
 // returns a newly allocated merkle block struct that must be freed by calling BRMerkleBlockFree()
 BRMerkleBlock *BRMerkleBlockNew(void)
 {
-    return calloc(1, sizeof(BRMerkleBlock));
+    BRMerkleBlock *block = calloc(1, sizeof(BRMerkleBlock));
+
+    block->height = BLOCK_UNKNOWN_HEIGHT;
+    return block;
 }
 
 // buf must contain either a serialized merkleblock or header
@@ -113,13 +116,12 @@ BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t bufLen)
         if (block->flags) memcpy(block->flags, &buf[off], len);
     
         BRSHA256_2(&block->blockHash, buf, 80);
-        block->height = BLOCK_UNKNOWN_HEIGHT;
     }
     
     return block;
 }
 
-// returns number of bytes written to buf, or total len needed if buf is NULL (BRMerkleBlock.height is not serialized)
+// returns number of bytes written to buf, or total len needed if buf is NULL (block->height is not serialized)
 size_t BRMerkleBlockSerialize(const BRMerkleBlock *block, uint8_t *buf, size_t bufLen)
 {
     size_t off = 0, len = 80;

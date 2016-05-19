@@ -309,7 +309,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
     return tx;
 }
 // returns number of bytes written to buf, or total len needed if buf is NULL
-// (blockHeight and timestamp are not serialized)
+// (tx->blockHeight and tx->timestamp are not serialized)
 size_t BRTransactionSerialize(const BRTransaction *tx, uint8_t *buf, size_t bufLen)
 {
     return _BRTransactionData(tx, buf, bufLen, SIZE_MAX, SIGHASH_ALL);
