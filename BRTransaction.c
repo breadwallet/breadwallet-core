@@ -443,6 +443,16 @@ int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t keysCount)
     else return 0;
 }
 
+// true if tx meets IsStandard() rules: https://bitcoin.org/en/developer-guide#standard-transactions
+int BRTransactionIsStandard(BRTransaction *tx)
+{
+    int r = 1;
+    
+    // TODO: XXXX implement
+    
+    return r;
+}
+
 // frees memory allocated for tx
 void BRTransactionFree(BRTransaction *tx)
 {

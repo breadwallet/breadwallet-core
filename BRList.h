@@ -26,6 +26,7 @@
 #define BRList_h
 
 #include <stdlib.h>
+#include <assert.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,6 +60,7 @@ extern "C" {
 
 #define list_new(head, value) do {\
     (head) = (void *)((void **)calloc(1, sizeof(void **) + sizeof(*(head))) + 1);\
+    assert((head) != NULL);\
     *(head) = (value);\
 } while(0)
 
@@ -72,6 +74,7 @@ extern "C" {
 
 #define list_insert_after(item, value) do {\
     void *_list_tmp = (item);\
+    assert(_list_tmp != NULL);\
     list_new(item, value);\
     list_next(item) = list_next(_list_tmp);\
     list_next(_list_tmp) = (item);\
@@ -80,6 +83,7 @@ extern "C" {
 
 #define list_rm_head(head) do {\
     void *_list_tmp = (head);\
+    assert(_list_tmp != NULL);\
     (head) = list_next(_list_tmp);\
     free(&list_next(_list_tmp));\
 } while(0)
@@ -96,6 +100,7 @@ extern "C" {
 } while(0)
 
 #define list_sort(head, info, comparator) do {\
+    assert(comparator != NULL);\
     (head) = _list_sort(head, info, comparator);\
 } while(0)
 

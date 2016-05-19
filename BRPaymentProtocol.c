@@ -203,14 +203,14 @@ static void _ProtoBufUnknown(uint8_t **unknown, uint64_t key, uint64_t i, const 
 } while(0)
 
 #define _protobuf_unknown(array, key) (\
-    (array_capacity(array)*sizeof(*(array)) <=\
+    (array_capacity(array)*sizeof(*(array)) <\
      ((array_count(array)*sizeof(*(array)) + (key) + 0xf) & ~0xf) + sizeof(uint8_t *)) ? NULL :\
     *(uint8_t **)(((uint8_t *)(array)) + ((array_count(array)*sizeof(*(array)) + (key) + 0xf) & ~0xf))\
 )
 
 #define _protobuf_set_unknown(array, key, unknown) do {\
     size_t _protobuf_idx = (array_count(array)*sizeof(*(array)) + (key) + 0xf) & ~0xf;\
-    if (array_capacity(array)*sizeof(*(array)) <= _protobuf_idx + sizeof(uint8_t *))\
+    if (array_capacity(array)*sizeof(*(array)) < _protobuf_idx + sizeof(uint8_t *))\
         array_set_capacity((array), (_protobuf_idx + sizeof(uint8_t *))/sizeof(*(array)) + 1);\
     *(uint8_t **)(((uint8_t *)(array)) + _protobuf_idx) = (unknown);\
 } while(0)

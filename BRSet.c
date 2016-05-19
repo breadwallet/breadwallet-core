@@ -25,6 +25,7 @@
 #include "BRSet.h"
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 // linear probed hashtable for good cache performance, maximum load factor is 2/3
 
@@ -47,6 +48,11 @@ struct BRSetStruct {
 
 static void _BRSetInit(BRSet *set, size_t (*hash)(const void *), int (*eq)(const void *, const void *), size_t capacity)
 {
+    assert(set != NULL);
+    assert(hash != NULL);
+    assert(eq != NULL);
+    assert(capacity >= 0);
+
     size_t i = 0;
     
     while (i < TABLE_SIZES_LEN && tableSizes[i] < capacity) i++;
@@ -89,6 +95,9 @@ static void _BRSetGrow(BRSet *set, size_t capacity)
 // adds given item to set or replaces an equivalent existing item and returns item replaced if any
 void *BRSetAdd(BRSet *set, void *item)
 {
+    assert(set != NULL);
+    assert(item != NULL);
+    
     size_t size = set->size;
     size_t i = set->hash(item) % size;
     void *t = set->table[i];
@@ -107,6 +116,9 @@ void *BRSetAdd(BRSet *set, void *item)
 // removes item equivalent to given item from set and returns item removed if any
 void *BRSetRemove(BRSet *set, const void *item)
 {
+    assert(set != NULL);
+    assert(item != NULL);
+    
     size_t size = set->size;
     size_t i = set->hash(item) % size;
     void *r = set->table[i], *t;
@@ -137,6 +149,8 @@ void *BRSetRemove(BRSet *set, const void *item)
 // removes all items from set
 void BRSetClear(BRSet *set)
 {
+    assert(set != NULL);
+    
     memset(set->table, 0, set->size*sizeof(*set->table));
     set->itemCount = 0;
 }
@@ -144,6 +158,8 @@ void BRSetClear(BRSet *set)
 // returns the number of items in set
 size_t BRSetCount(const BRSet *set)
 {
+    assert(set != NULL);
+    
     return set->itemCount;
 }
 
@@ -156,6 +172,9 @@ int BRSetContains(const BRSet *set, const void *item)
 // true if any items in otherSet are contained in set
 int BRSetIntersects(const BRSet *set, const BRSet *otherSet)
 {
+    assert(set != NULL);
+    assert(otherSet != NULL);
+    
     size_t i = 0, size = otherSet->size;
     void *t;
     
@@ -170,6 +189,9 @@ int BRSetIntersects(const BRSet *set, const BRSet *otherSet)
 // returns member item from set equivalent to given item
 void *BRSetGet(const BRSet *set, const void *item)
 {
+    assert(set != NULL);
+    assert(item != NULL);
+    
     size_t size = set->size;
     size_t i = set->hash(item) % size;
     void *t = set->table[i];
@@ -185,6 +207,8 @@ void *BRSetGet(const BRSet *set, const void *item)
 // returns an initial random item from set for use when iterating, or NULL if set is empty
 void *BRSetFirst(const BRSet *set)
 {
+    assert(set != NULL);
+    
     size_t i = 0, size = set->size;
     void *r = NULL;
 
@@ -195,6 +219,9 @@ void *BRSetFirst(const BRSet *set)
 // returns the next item after given item when iterating, or NULL if no more items are available
 void *BRSetNext(const BRSet *set, const void *item)
 {
+    assert(set != NULL);
+    assert(item != NULL);
+    
     size_t size = set->size;
     size_t i = set->hash(item) % size;
     void *t = set->table[i], *r = NULL;
@@ -212,6 +239,10 @@ void *BRSetNext(const BRSet *set, const void *item)
 // writes up to count items from set to allItems and returns the number of items written
 size_t BRSetAll(const BRSet *set, void *allItems[], size_t count)
 {
+    assert(set != NULL);
+    assert(allItems != NULL || count == 0);
+    assert(count >= 0);
+    
     size_t i = 0, j = 0, size = set->size;
     void *t;
     
@@ -226,6 +257,9 @@ size_t BRSetAll(const BRSet *set, void *allItems[], size_t count)
 // calls map() with each item in set
 void BRSetMap(const BRSet *set, void *info, void (*map)(void *info, void *item))
 {
+    assert(set != NULL);
+    assert(map != NULL);
+    
     size_t i = 0, size = set->size;
     void *t;
     
@@ -238,6 +272,9 @@ void BRSetMap(const BRSet *set, void *info, void (*map)(void *info, void *item))
 // adds or replaces items from otherSet into set
 void BRSetUnion(BRSet *set, const BRSet *otherSet)
 {
+    assert(set != NULL);
+    assert(otherSet != NULL);
+    
     size_t i = 0, size = otherSet->size;
     void *t;
     
@@ -252,6 +289,9 @@ void BRSetUnion(BRSet *set, const BRSet *otherSet)
 // removes items contained in otherSet from set
 void BRSetMinus(BRSet *set, const BRSet *otherSet)
 {
+    assert(set != NULL);
+    assert(otherSet != NULL);
+
     size_t i = 0, size = otherSet->size;
     void *t;
     
@@ -264,6 +304,9 @@ void BRSetMinus(BRSet *set, const BRSet *otherSet)
 // removes items not contained in otherSet from set
 void BRSetIntersect(BRSet *set, const BRSet *otherSet)
 {
+    assert(set != NULL);
+    assert(otherSet != NULL);
+
     size_t i = 0, size = set->size;
     void *t;
     BRSet oset = *otherSet;
@@ -284,6 +327,8 @@ void BRSetIntersect(BRSet *set, const BRSet *otherSet)
 // frees memory allocated for set
 void BRSetFree(BRSet *set)
 {
+    assert(set != NULL);
+
     free(set->table);
     free(set);
 }
