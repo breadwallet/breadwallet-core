@@ -165,7 +165,7 @@ static void _AES256ECBDecrypt(const void *key, void *buf)
 static void _salsa20_8(uint32_t b[16])
 {
     uint32_t x00 = b[0], x01 = b[1], x02 = b[2], x03 = b[3], x04 = b[4], x05 = b[5], x06 = b[6], x07 = b[7],
-    x08 = b[8], x09 = b[9], x10 = b[10], x11 = b[11], x12 = b[12], x13 = b[13], x14 = b[14], x15 = b[15];
+             x08 = b[8], x09 = b[9], x10 = b[10], x11 = b[11], x12 = b[12], x13 = b[13], x14 = b[14], x15 = b[15];
     
     for (int i = 0; i < 8; i += 2) {
         // operate on columns

@@ -117,7 +117,7 @@ extern "C" {
 #define array_insert(array, idx, item) do {\
     assert((array) != NULL);\
     size_t _array_idx = (idx), _array_i = ++array_count(array);\
-    assert(_array_idx >= 0 && _array_idx < array_count(array) - 1);\
+    assert(_array_idx >= 0 && _array_idx < array_count(array));\
     if (_array_i > array_capacity(array))\
         array_set_capacity(array, (array_capacity(array) + 1)*3/2);\
     while (--_array_i > _array_idx)\
@@ -128,7 +128,7 @@ extern "C" {
 #define array_insert_array(array, idx, other_array, count) do {\
     assert((array) != NULL);\
     size_t _array_idx = (idx), _array_cnt = (count), _array_i = array_count(array) + _array_cnt, _array_j = 0;\
-    assert(_array_idx >= 0 && _array_idx < array_count(array));\
+    assert(_array_idx >= 0 && _array_idx <= array_count(array));\
     assert((other_array) != NULL || _array_cnt == 0);\
     assert(_array_cnt >= 0);\
     if (_array_i > array_capacity(array))\

@@ -42,13 +42,13 @@ typedef struct {
 
 inline static int BRUTXOEq(const void *utxo, const void *otherUtxo)
 {
-    return (utxo == otherUtxo || (UInt256Eq(((BRUTXO *)utxo)->hash, ((BRUTXO *)otherUtxo)->hash) &&
-                                  ((BRUTXO *)utxo)->n == ((BRUTXO *)otherUtxo)->n));
+    return (utxo == otherUtxo || (UInt256Eq(((const BRUTXO *)utxo)->hash, ((const BRUTXO *)otherUtxo)->hash) &&
+                                  ((const BRUTXO *)utxo)->n == ((const BRUTXO *)otherUtxo)->n));
 }
 
 inline static size_t BRUTXOHash(const void *utxo)
 {
-    return (((BRUTXO *)utxo)->hash.u32[0] ^ ((BRUTXO *)utxo)->n)*0x01000193; // (hash xor n)*FNV_PRIME
+    return (((const BRUTXO *)utxo)->hash.u32[0] ^ ((const BRUTXO *)utxo)->n)*0x01000193; // (hash xor n)*FNV_PRIME
 }
 
 typedef struct BRWalletStruct BRWallet;

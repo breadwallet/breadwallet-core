@@ -44,7 +44,7 @@ BRBloomFilter *BRBloomFilterNew(double falsePositiveRate, size_t elemCount, uint
     BRBloomFilter *filter = calloc(1, sizeof(BRBloomFilter));
 
     filter->length = (falsePositiveRate < DBL_EPSILON) ? BLOOM_MAX_FILTER_LENGTH :
-                     (-1.0/pow(M_LN2, 2))*elemCount*log(falsePositiveRate)/8.0;
+                     (-1.0/(M_LN2*M_LN2))*elemCount*log(falsePositiveRate)/8.0;
     if (filter->length > BLOOM_MAX_FILTER_LENGTH) filter->length = BLOOM_MAX_FILTER_LENGTH;
     if (filter->length < 1) filter->length = 1;
     filter->filter = calloc(1, filter->length);

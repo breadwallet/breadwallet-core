@@ -162,7 +162,7 @@ static void _ProtoBufUnknown(uint8_t **unknown, uint64_t key, uint64_t i, const 
 {
     size_t bufLen = 10 + ((key & 0x07) == PROTOBUF_LENDELIM ? dataLen : 0);
     uint8_t _buf[(bufLen <= MAX_STACK) ? bufLen : 0], *buf = (bufLen <= MAX_STACK) ? _buf : malloc(bufLen);
-    size_t off = 0, o = 0, len, l;
+    size_t off = 0, o = 0, l;
     uint64_t k;
     
     _ProtoBufSetVarInt(buf, bufLen, key, &off);
@@ -175,9 +175,9 @@ static void _ProtoBufUnknown(uint8_t **unknown, uint64_t key, uint64_t i, const 
         default: break;
     }
     
-    len = off;
+    if (off < bufLen) bufLen = off;
+    if (! *unknown) array_new(*unknown, bufLen);
     off = 0;
-    if (! *unknown) array_new(*unknown, len);
     
     while (off < array_count(*unknown)) {
         l = array_count(*unknown);
@@ -187,7 +187,7 @@ static void _ProtoBufUnknown(uint8_t **unknown, uint64_t key, uint64_t i, const 
         if (k >= key) break;
     }
     
-    array_insert_array(*unknown, o, buf, len);
+    array_insert_array(*unknown, o, buf, bufLen);
     if (buf != _buf) free(buf);
 }
 

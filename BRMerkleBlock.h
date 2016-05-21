@@ -86,14 +86,14 @@ int BRMerkleBlockVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBloc
 // returns a hash value for block suitable for use in a hashtable
 inline static size_t BRMerkleBlockHash(const void *block)
 {
-    return *(size_t *)&((BRMerkleBlock *)block)->blockHash;
+    return ((const BRMerkleBlock *)block)->blockHash.u32[0];
 }
 
 // true if block and otherBlock have equal blockHash values
 inline static int BRMerkleBlockEq(const void *block, const void *otherBlock)
 {
     return (block == otherBlock ||
-            UInt256Eq(((BRMerkleBlock *)block)->blockHash, ((BRMerkleBlock *)otherBlock)->blockHash));
+            UInt256Eq(((const BRMerkleBlock *)block)->blockHash, ((const BRMerkleBlock *)otherBlock)->blockHash));
 }
 
 // frees memory allocated for block

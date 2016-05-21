@@ -194,14 +194,15 @@ void BRPeerRerequestBlocks(BRPeer *peer, UInt256 fromBlock);
 inline static size_t BRPeerHash(const void *peer)
 {
     // (address xor port)*FNV_PRIME
-    return (((BRPeer *)peer)->address.u32[3] ^ ((BRPeer *)peer)->port)*0x01000193;
+    return (((const BRPeer *)peer)->address.u32[3] ^ ((const BRPeer *)peer)->port)*0x01000193;
 }
 
 // true if a and b have the same address and port
 inline static int BRPeerEq(const void *peer, const void *otherPeer)
 {
-    return (peer == otherPeer || (UInt128Eq(((BRPeer *)peer)->address, ((BRPeer *)otherPeer)->address) &&
-                                  ((BRPeer *)peer)->port == ((BRPeer *)otherPeer)->port));
+    return (peer == otherPeer ||
+            (UInt128Eq(((const BRPeer *)peer)->address, ((const BRPeer *)otherPeer)->address) &&
+             ((const BRPeer *)peer)->port == ((const BRPeer *)otherPeer)->port));
 }
 
 // frees memory allocated for peer

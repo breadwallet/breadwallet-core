@@ -77,12 +77,13 @@ int BRAddressHash160(void *md20, const char *addr);
 
 inline static int BRAddressEq(const void *addr, const void *otherAddr)
 {
-    return (addr == otherAddr || strncmp(addr, otherAddr, sizeof(BRAddress)) == 0);
+    return (addr == otherAddr ||
+            strncmp((const char *)addr, (const char *)otherAddr, sizeof(BRAddress)) == 0);
 }
 
 inline static size_t BRAddressHash(const void *addr)
 {
-    return BRMurmur3_32(addr, strlen(addr), 0);
+    return BRMurmur3_32(addr, strlen((const char *)addr), 0);
 }
 
 #ifdef __cplusplus

@@ -130,11 +130,18 @@ int BRArrayTests()
     }
     
     printf("\n");
-    array_rm(a, 0);                 // [ 2, 3 ]
-    if (array_count(a) != 2 || a[0] != 2) r = 0, fprintf(stderr, "***FAILED*** %s: array_rm() test\n", __func__);
+    array_insert_array(a, 3, c, 2); // [ 1, 2, 3, 3, 2 ]
+    if (array_count(a) != 5 || a[4] != 2)
+        r = 0, fprintf(stderr, "***FAILED*** %s: array_insert_array() test 2\n", __func__);
+    
+    array_insert(a, 5, 1);          // [ 1, 2, 3, 3, 2, 1 ]
+    if (array_count(a) != 6 || a[5] != 1) r = 0, fprintf(stderr, "***FAILED*** %s: array_insert() test 2\n", __func__);
+    
+    array_rm(a, 0);                 // [ 2, 3, 3, 2, 1 ]
+    if (array_count(a) != 5 || a[0] != 2) r = 0, fprintf(stderr, "***FAILED*** %s: array_rm() test\n", __func__);
 
-    array_rm_last(a);               // [ 2 ]
-    if (array_count(a) != 1 || a[0] != 2) r = 0, fprintf(stderr, "***FAILED*** %s: array_rm_last() test\n", __func__);
+    array_rm_last(a);               // [ 2, 3, 3, 2 ]
+    if (array_count(a) != 4 || a[0] != 2) r = 0, fprintf(stderr, "***FAILED*** %s: array_rm_last() test\n", __func__);
     
     array_clear(a);                 // [ ]
     if (array_count(a) != 0) r = 0, fprintf(stderr, "***FAILED*** %s: array_clear() test\n", __func__);
