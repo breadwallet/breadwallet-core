@@ -1170,7 +1170,7 @@ void BRPeerSendMessage(BRPeer *peer, const uint8_t *msg, size_t msgLen, const ch
         set32le(&buf[off], (uint32_t)msgLen);
         off += sizeof(uint32_t);
         BRSHA256_2(hash, msg, msgLen);
-        *(uint32_t *)&buf[off] = *(uint32_t *)hash;
+        memcpy(&buf[off], hash, sizeof(uint32_t));
         off += sizeof(uint32_t);
         memcpy(&buf[off], msg, msgLen);
         peer_log(peer, "sending %s", type);

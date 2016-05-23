@@ -274,8 +274,8 @@ static UInt512 _BRBIP38DeriveKey(const uint8_t passpoint[33], uint32_t addressha
     UInt512 dk;
     uint8_t salt[sizeof(addresshash) + sizeof(entropy)];
     
-    *(uint32_t *)salt = addresshash;
-    *(uint64_t *)(salt + sizeof(addresshash)) = entropy; // salt = addresshash + entropy
+    memcpy(salt, &addresshash, sizeof(addresshash));
+    memcpy(&salt[sizeof(addresshash)], &entropy, sizeof(entropy)); // salt = addresshash + entropy
     
     scrypt(&dk, sizeof(dk), passpoint, 33, salt, sizeof(salt), BIP38_SCRYPT_EC_N, BIP38_SCRYPT_EC_R, BIP38_SCRYPT_EC_P);
     memset(salt, 0, sizeof(salt));

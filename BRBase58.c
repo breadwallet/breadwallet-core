@@ -81,7 +81,7 @@ size_t BRBase58Decode(uint8_t *data, size_t dataLen, const char *str)
     memset(buf, 0, sizeof(buf));
     
     while (*str) {
-        uint32_t carry = *(str++);
+        uint32_t carry = *(const uint8_t *)(str++);
         
         switch (carry) {
             case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
@@ -160,7 +160,7 @@ size_t BRBase58CheckDecode(uint8_t *data, size_t dataLen, const char *str)
     if (len >= 4) {
         len -= 4;
         BRSHA256_2(md, buf, len);
-        if (*(uint32_t *)&buf[len] != *(uint32_t *)md) len = 0; // verify checksum
+        if (memcmp(&buf[len], md, sizeof(uint32_t)) != 0) len = 0; // verify checksum
         if (data && len <= dataLen) memcpy(data, buf, len);
     }
     else len = 0;
