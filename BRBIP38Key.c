@@ -210,7 +210,7 @@ static void scrypt(void *dk, size_t dklen, const void *pw, size_t pwlen, const v
     
     for (int i = 0; i < p; i++) {
         for (long j = 0; j < 32*r; j++) {
-            ((uint32_t *)x)[j] = get32le(&b[i*32*r + j]);
+            ((uint32_t *)x)[j] = get_u32le(&b[i*32*r + j]);
         }
         
         for (long j = 0; j < n; j += 2) {
@@ -221,16 +221,16 @@ static void scrypt(void *dk, size_t dklen, const void *pw, size_t pwlen, const v
         }
         
         for (long j = 0; j < n; j += 2) {
-            m = get64le(&x[(2*r - 1)*8]) & (n - 1);
+            m = get_u64le(&x[(2*r - 1)*8]) & (n - 1);
             for (long k = 0; k < 16*r; k++) x[k] ^= v[m*(16*r) + k];
             _blockmix_salsa8(y, x, z, r);
-            m = get64le(&y[(2*r - 1)*8]) & (n - 1);
+            m = get_u64le(&y[(2*r - 1)*8]) & (n - 1);
             for (long k = 0; k < 16*r; k++) y[k] ^= v[m*(16*r) + k];
             _blockmix_salsa8(x, y, z, r);
         }
         
         for (long j = 0; j < 32*r; j++) {
-            b[i*32*r + j] = get32le(&((uint32_t *)x)[j]);
+            b[i*32*r + j] = get_u32le(&((uint32_t *)x)[j]);
         }
     }
     
@@ -290,7 +290,7 @@ int BRBIP38KeyIsValid(const char *bip38Key)
     
     if (BRBase58CheckDecode(data, sizeof(data), bip38Key) != 39) return 0; // invalid length
     
-    uint16_t prefix = get16be(data);
+    uint16_t prefix = get_u16be(data);
     uint8_t flag = data[2];
     
     if (prefix == BIP38_NOEC_PREFIX) { // non EC multiplied key

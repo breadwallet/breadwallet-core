@@ -289,15 +289,16 @@ UInt160 BRKeyHash160(BRKey *key)
 // returns the number of bytes written, or addrLen needed if addr is NULL
 size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen)
 {
+    UInt160 hash = BRKeyHash160(key);
     uint8_t data[21];
 
     data[0] = BITCOIN_PUBKEY_ADDRESS;
 #if BITCOIN_TESTNET
     data[0] = BITCOIN_PUBKEY_ADDRESS_TEST;
 #endif
-    *(UInt160 *)&data[1] = BRKeyHash160(key);
+    set_u160(&data[1], hash);
 
-    if (! UInt160IsZero(*(UInt160 *)&data[1])) {
+    if (! UInt160IsZero(hash)) {
         addrLen = BRBase58CheckEncode(addr, addrLen, data, sizeof(data));
     }
     else addrLen = 0;

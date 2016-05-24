@@ -41,7 +41,7 @@
 #define PROTOCOL_TIMEOUT      20.0
 #define MAX_CONNECT_FAILURES  20 // notify user of network problems after this many connect failures in a row
 #define CHECKPOINT_COUNT      (sizeof(checkpoint_array)/sizeof(*checkpoint_array))
-#define GENESIS_BLOCK_HASH    (UInt256Reverse(uint256_hex_decode(checkpoint_array[0].hash)))
+#define GENESIS_BLOCK_HASH    (UInt256Reverse(u256_hex_decode(checkpoint_array[0].hash)))
 #define PEER_FLAG_SYNCED      0x01
 #define PEER_FLAG_NEEDSUPDATE 0x02
 
@@ -355,8 +355,8 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
         for (size_t i = 0; i < utxosCount; i++) { // add UTXOs to watch for tx sending money from the wallet
             uint8_t o[sizeof(UInt256) + sizeof(uint32_t)];
 
-            *(UInt256 *)o = utxos[i].hash;
-            set32le(&o[sizeof(UInt256)], utxos[i].n);
+            set_u256(o, utxos[i].hash);
+            set_u32le(&o[sizeof(UInt256)], utxos[i].n);
             if (! BRBloomFilterContainsData(filter, o, sizeof(o))) BRBloomFilterInsertData(filter, o, sizeof(o));
         }
     
@@ -370,8 +370,8 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
 
                 if (tx && input->index < tx->outCount &&
                     BRWalletContainsAddress(manager->wallet, tx->outputs[input->index].address)) {
-                    *(UInt256 *)o = input->txHash;
-                    set32le(&o[sizeof(UInt256)], input->index);
+                    set_u256(o, input->txHash);
+                    set_u32le(&o[sizeof(UInt256)], input->index);
                     if (! BRBloomFilterContainsData(filter, o, sizeof(o))) BRBloomFilterInsertData(filter, o,sizeof(o));
                 }
             }
@@ -963,7 +963,7 @@ static void _peerRelayedTx(void *info, BRTransaction *tx)
     
     pthread_mutex_lock(&manager->lock);
     isSyncing = (manager->lastBlock->height < manager->estimatedHeight);
-    peer_log(peer, "relayed tx: %s", uint256_hex_encode(tx->txHash));
+    peer_log(peer, "relayed tx: %s", u256_hex_encode(tx->txHash));
     
     for (size_t i = array_count(manager->publishedTx); i > 0; i--) { // see if tx is in list of published tx
         if (UInt256Eq(manager->publishedTxHash[i - 1], tx->txHash)) {
@@ -1046,7 +1046,7 @@ static void _peerHasTx(void *info, UInt256 txHash)
     pthread_mutex_lock(&manager->lock);
     tx = BRWalletTransactionForHash(manager->wallet, txHash);
     isSyncing = (manager->lastBlock->height < manager->estimatedHeight);
-    peer_log(peer, "has tx: %s", uint256_hex_encode(txHash));
+    peer_log(peer, "has tx: %s", u256_hex_encode(txHash));
 
     for (size_t i = array_count(manager->publishedTx); i > 0; i--) { // see if tx is in list of published tx
         if (UInt256Eq(manager->publishedTxHash[i - 1], txHash)) {
@@ -1095,7 +1095,7 @@ static void _peerRejectedTx(void *info, UInt256 txHash, uint8_t code)
     BRTransaction *tx, *t;
 
     pthread_mutex_lock(&manager->lock);
-    peer_log(peer, "rejected tx: %s", uint256_hex_encode(txHash));
+    peer_log(peer, "rejected tx: %s", u256_hex_encode(txHash));
     tx = BRWalletTransactionForHash(manager->wallet, txHash);
     _BRTxPeerListRemovePeer(manager->txRequests, txHash, peer);
 
@@ -1155,7 +1155,7 @@ static int _BRPeerManagerVerifyBlock(BRPeerManager *manager, BRMerkleBlock *bloc
     // verify block difficulty
     if (! BRMerkleBlockVerifyDifficulty(block, prev, transitionTime)) {
         peer_log(peer, "relayed block with invalid difficulty target %x, blockHash: %s", block->target,
-                 uint256_hex_encode(block->blockHash));
+                 u256_hex_encode(block->blockHash));
         r = 0;
     }
     else {
@@ -1164,8 +1164,8 @@ static int _BRPeerManagerVerifyBlock(BRPeerManager *manager, BRMerkleBlock *bloc
         // verify blockchain checkpoints
         if (checkpoint && ! BRMerkleBlockEq(block, checkpoint)) {
             peer_log(peer, "relayed a block that differs from the checkpoint at height %"PRIu32", blockHash: %s, "
-                     "expected: %s", block->height, uint256_hex_encode(block->blockHash),
-                     uint256_hex_encode(checkpoint->blockHash));
+                     "expected: %s", block->height, u256_hex_encode(block->blockHash),
+                     u256_hex_encode(checkpoint->blockHash));
             r = 0;
         }
     }
@@ -1235,8 +1235,8 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
     }
     else if (! prev) { // block is an orphan
         peer_log(peer, "relayed orphan block %s, previous %s, last block is %s, height %"PRIu32,
-                 uint256_hex_encode(block->blockHash), uint256_hex_encode(block->prevBlock),
-                 uint256_hex_encode(manager->lastBlock->blockHash), manager->lastBlock->height);
+                 u256_hex_encode(block->blockHash), u256_hex_encode(block->prevBlock),
+                 u256_hex_encode(manager->lastBlock->blockHash), manager->lastBlock->height);
         
         if (block->timestamp + 7*24*60*60 < time(NULL)) { // ignore orphans older than one week ago
             BRMerkleBlockFree(block);
@@ -1313,7 +1313,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
     }
     else if (block->height <= checkpoint_array[CHECKPOINT_COUNT - 1].height) { // fork is older than last checkpoint
         peer_log(peer, "ignoring block on fork older than most recent checkpoint, block #%"PRIu32", hash: %s",
-                 block->height, uint256_hex_encode(block->blockHash));
+                 block->height, u256_hex_encode(block->blockHash));
         BRMerkleBlockFree(block);
         block = NULL;
     }
@@ -1506,7 +1506,7 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
         BRMerkleBlock *block = BRMerkleBlockNew();
         
         block->height = checkpoint_array[i].height;
-        block->blockHash = UInt256Reverse(uint256_hex_decode(checkpoint_array[i].hash));
+        block->blockHash = UInt256Reverse(u256_hex_decode(checkpoint_array[i].hash));
         block->timestamp = checkpoint_array[i].timestamp;
         block->target = checkpoint_array[i].target;
         BRSetAdd(manager->checkpoints, block);
@@ -1674,7 +1674,7 @@ void BRPeerManagerRescan(BRPeerManager *manager)
         // start the chain download from the most recent checkpoint that's at least a week older than earliestKeyTime
         for (size_t i = CHECKPOINT_COUNT; i > 0; i--) {
             if (i - 1 == 0 || checkpoint_array[i - 1].timestamp + 7*24*60*60 < manager->earliestKeyTime) {
-                UInt256 hash = UInt256Reverse(uint256_hex_decode(checkpoint_array[i - 1].hash));
+                UInt256 hash = UInt256Reverse(u256_hex_decode(checkpoint_array[i - 1].hash));
 
                 manager->lastBlock = BRSetGet(manager->blocks, &hash);
                 break;

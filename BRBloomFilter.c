@@ -74,9 +74,9 @@ BRBloomFilter *BRBloomFilterParse(const uint8_t *buf, size_t bufLen)
                      malloc(filter->length) : NULL;
     if (filter->filter) memcpy(filter->filter, &buf[off], filter->length);
     off += filter->length;
-    filter->hashFuncs = (off + sizeof(uint32_t) <= bufLen) ? get32le(&buf[off]) : 0;
+    filter->hashFuncs = (off + sizeof(uint32_t) <= bufLen) ? get_u32le(&buf[off]) : 0;
     off += sizeof(uint32_t);
-    filter->tweak = (off + sizeof(uint32_t) <= bufLen) ? get32le(&buf[off]) : 0;
+    filter->tweak = (off + sizeof(uint32_t) <= bufLen) ? get_u32le(&buf[off]) : 0;
     off += sizeof(uint32_t);
     filter->flags = (off + sizeof(uint8_t) <= bufLen) ? buf[off] : 0;
     off += sizeof(uint8_t);
@@ -99,9 +99,9 @@ size_t BRBloomFilterSerialize(const BRBloomFilter *filter, uint8_t *buf, size_t 
         off += BRVarIntSet(&buf[off], bufLen - off, filter->length);
         memcpy(&buf[off], filter->filter, filter->length);
         off += filter->length;
-        set32le(&buf[off], filter->hashFuncs);
+        set_u32le(&buf[off], filter->hashFuncs);
         off += sizeof(uint32_t);
-        set32le(&buf[off], filter->tweak);
+        set_u32le(&buf[off], filter->tweak);
         off += sizeof(uint32_t);
         buf[off] = filter->flags;
         off += sizeof(uint8_t);
