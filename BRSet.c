@@ -59,6 +59,7 @@ static void _BRSetInit(BRSet *set, size_t (*hash)(const void *), int (*eq)(const
 
     if (i + 1 < TABLE_SIZES_LEN) { // use next larger table size to keep load factor below 2/3 at capacity
         set->table = calloc(tableSizes[i + 1], sizeof(void *));
+        assert(set->table != NULL);
         set->size = tableSizes[i + 1];
     }
     
@@ -75,6 +76,7 @@ BRSet *BRSetNew(size_t (*hash)(const void *), int (*eq)(const void *, const void
 {
     BRSet *set = calloc(1, sizeof(BRSet));
     
+    assert(set != NULL);
     _BRSetInit(set, hash, eq, capacity);
     return set;
 }

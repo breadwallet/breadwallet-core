@@ -26,6 +26,7 @@
 #include "BRHash.h"
 #include "BRBase58.h"
 #include <string.h>
+#include <assert.h>
 
 #define BIP32_HARD     0x80000000
 #define BIP32_SEED_KEY "Bitcoin seed"
@@ -108,8 +109,7 @@ static void _CKDpub(BRECPoint *K, UInt256 *c, uint32_t i)
     }
 }
 
-// writes the base58check encoded serialized master private key (xprv) to str
-// returns number of bytes written including NULL terminator, or strLen needed if str is NULL
+// returns the master public key for the default BIP32 wallet layout - derivation path N(m/0H)
 BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen)
 {
     BRMasterPubKey mpk = BR_MASTER_PUBKEY_NONE;
@@ -117,6 +117,8 @@ BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen)
     UInt256 secret, chain;
     BRKey key;
 
+    assert(seed != NULL || seedLen == 0);
+    
     if (seed) {
         BRHMAC(&I, BRSHA512, sizeof(UInt512), BIP32_SEED_KEY, strlen(BIP32_SEED_KEY), seed, seedLen);
         secret = *(UInt256 *)&I;
@@ -143,7 +145,10 @@ BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen)
 size_t BRBIP32PubKey(uint8_t *pubKey, size_t pubKeyLen, BRMasterPubKey mpk, uint32_t chain, uint32_t index)
 {
     UInt256 chainCode = mpk.chainCode;
-
+    
+    assert(pubKey != NULL || pubKeyLen == 0);
+    assert(memcmp(&mpk, &BR_MASTER_PUBKEY_NONE, sizeof(mpk)) != 0);
+    
     if (pubKey && sizeof(BRECPoint) <= pubKeyLen) {
         *(BRECPoint *)pubKey = *(BRECPoint *)mpk.pubKey;
 
@@ -156,9 +161,11 @@ size_t BRBIP32PubKey(uint8_t *pubKey, size_t pubKeyLen, BRMasterPubKey mpk, uint
 }
 
 // sets the private key for path m/0H/chain/index to key
-void BRBIP32PrivKey(BRKey *key, const void *seed, size_t seedlen, uint32_t chain, uint32_t index)
+void BRBIP32PrivKey(BRKey *key, const void *seed, size_t seedLen, uint32_t chain, uint32_t index)
 {
-    BRBIP32PrivKeyList(key, 1, seed, seedlen, chain, &index);
+    assert(key != NULL);
+    assert(seed != NULL || seedLen == 0);
+    BRBIP32PrivKeyList(key, 1, seed, seedLen, chain, &index);
 }
 
 // sets the private key for path m/0H/chain/index to each element in keys
@@ -167,6 +174,10 @@ void BRBIP32PrivKeyList(BRKey keys[], size_t keysCount, const void *seed, size_t
 {
     UInt512 I;
     UInt256 secret, chainCode, s, c;
+    
+    assert(keys != NULL || keysCount == 0);
+    assert(seed != NULL || seedLen == 0);
+    assert(indexes != NULL || keysCount == 0);
     
     if (keys && keysCount > 0 && seed && indexes) {
         BRHMAC(&I, BRSHA512, sizeof(UInt512), BIP32_SEED_KEY, strlen(BIP32_SEED_KEY), seed, seedLen);
@@ -224,6 +235,9 @@ void BRBIP32APIAuthKey(BRKey *key, const void *seed, size_t seedLen)
 {
     UInt512 I;
     UInt256 secret, chainCode;
+    
+    assert(key != NULL);
+    assert(seed != NULL || seedLen == 0);
     
     if (key && seed) {
         BRHMAC(&I, BRSHA512, sizeof(UInt512), BIP32_SEED_KEY, strlen(BIP32_SEED_KEY), seed, seedLen);

@@ -539,7 +539,8 @@ static int _BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t 
             size_t bufLen = BRVarIntSize(array_count(notfound)) + 36*array_count(notfound), o = 0;
             uint8_t *buf = malloc(bufLen);
             
-            o += BRVarIntSet(&buf[o], bufLen - o, array_count(notfound));
+            assert(buf != NULL);
+            o += BRVarIntSet(&buf[o], (o <= bufLen ? bufLen - o : 0), array_count(notfound));
             memcpy(&buf[o], notfound, 36*array_count(notfound));
             o += 36*array_count(notfound);
             array_free(notfound);
@@ -688,6 +689,7 @@ static int _BRPeerAcceptMerkleblockMessage(BRPeer *peer, const uint8_t *msg, siz
         UInt256 _hashes[(sizeof(UInt256)*count <= MAX_STACK) ? count : 0],
                 *hashes = (sizeof(UInt256)*count <= MAX_STACK) ? _hashes : malloc(count*sizeof(UInt256));
         
+        assert(hashes != NULL);
         count = BRMerkleBlockTxHashes(block, hashes, count);
 
         for (size_t i = count; i > 0; i--) { // reverse order for more efficient removal as tx arrive
@@ -861,6 +863,7 @@ static void *_peerThreadRoutine(void *arg)
         size_t len = 0, payloadLen = 0x1000;
         ssize_t n = 0;
 
+        assert(payload != NULL);
         gettimeofday(&tv, NULL);
         ctx->startTime = tv.tv_sec + (double)tv.tv_usec/1000000;
         BRPeerSendVersionMessage(peer);
@@ -902,6 +905,7 @@ static void *_peerThreadRoutine(void *arg)
                 }
                 else {
                     if (msgLen > payloadLen) payload = realloc(payload, (payloadLen = msgLen));
+                    assert(payload != NULL);
                     len = 0;
                     socket = ctx->socket;
                     
@@ -958,6 +962,7 @@ BRPeer *BRPeerNew(void)
 {
     BRPeerContext *ctx = calloc(1, sizeof(BRPeerContext));
     
+    assert(ctx != NULL);
     array_new(ctx->useragent, 40);
     array_new(ctx->knownBlockHashes, 10);
     array_new(ctx->currentBlockTxHashes, 10);
@@ -1229,7 +1234,7 @@ void BRPeerSendVersionMessage(BRPeer *peer)
     ctx->nonce = ((uint64_t)BRRand(0) << 32) | (uint64_t)BRRand(0); // random nonce
     set_u64le(&msg[off], ctx->nonce);
     off += sizeof(uint64_t);
-    off += BRVarIntSet(&msg[off], sizeof(msg) - off, userAgentLen);
+    off += BRVarIntSet(&msg[off], (off <= sizeof(msg) ? sizeof(msg) - off : 0), userAgentLen);
     strncpy((char *)&msg[off], USER_AGENT, userAgentLen); // user agent string
     off += userAgentLen;
     set_u32le(&msg[off], 0); // last block received
@@ -1273,7 +1278,7 @@ void BRPeerSendGetheaders(BRPeer *peer, const UInt256 locators[], size_t locator
     
     set_u32le(&msg[off], PROTOCOL_VERSION);
     off += sizeof(uint32_t);
-    off += BRVarIntSet(&msg[off], msgLen - off, locatorsCount);
+    off += BRVarIntSet(&msg[off], (off <= msgLen ? msgLen - off : 0), locatorsCount);
 
     for (i = 0; i < locatorsCount; i++) {
         set_u256(&msg[off], locators[i]);
@@ -1299,7 +1304,7 @@ void BRPeerSendGetblocks(BRPeer *peer, const UInt256 locators[], size_t locators
     
     set_u32le(&msg[off], PROTOCOL_VERSION);
     off += sizeof(uint32_t);
-    off += BRVarIntSet(&msg[off], msgLen - off, locatorsCount);
+    off += BRVarIntSet(&msg[off], (off <= msgLen ? msgLen - off : 0), locatorsCount);
     
     for (i = 0; i < locatorsCount; i++) {
         set_u256(&msg[off], locators[i]);
@@ -1339,10 +1344,10 @@ void BRPeerSendInv(BRPeer *peer, const UInt256 txHashes[], size_t txCount)
     txCount = array_count(knownTxHashes) - knownCount;
 
     if (txCount > 0) {
-        size_t off = 0, len = BRVarIntSize(txCount) + (sizeof(uint32_t) + sizeof(*txHashes))*txCount;
-        uint8_t msg[len];
+        size_t off = 0, msgLen = BRVarIntSize(txCount) + (sizeof(uint32_t) + sizeof(*txHashes))*txCount;
+        uint8_t msg[msgLen];
         
-        off += BRVarIntSet(&msg[off], len - off, txCount);
+        off += BRVarIntSet(&msg[off], (off <= msgLen ? msgLen - off : 0), txCount);
         
         for (i = 0; i < txCount; i++) {
             set_u32le(&msg[off], inv_tx);
@@ -1364,10 +1369,10 @@ void BRPeerSendGetdata(BRPeer *peer, const UInt256 txHashes[], size_t txCount, c
         peer_log(peer, "couldn't send getdata, %zu is too many items, max is %d", count, MAX_GETDATA_HASHES);
     }
     else if (count > 0) {
-        size_t len = BRVarIntSize(count) + (sizeof(uint32_t) + sizeof(UInt256))*(count);
-        uint8_t msg[len];
+        size_t msgLen = BRVarIntSize(count) + (sizeof(uint32_t) + sizeof(UInt256))*(count);
+        uint8_t msg[msgLen];
 
-        off += BRVarIntSet(&msg[off], len - off, count);
+        off += BRVarIntSet(&msg[off], (off <= msgLen ? msgLen - off : 0), count);
         
         for (i = 0; i < txCount; i++) {
             set_u32le(&msg[off], inv_tx);

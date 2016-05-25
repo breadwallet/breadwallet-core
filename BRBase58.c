@@ -26,7 +26,9 @@
 #include "BRBase58.h"
 #include "BRHash.h"
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 // base58 and base58check encoding: https://en.bitcoin.it/wiki/Base58Check_encoding
 
@@ -37,13 +39,15 @@ size_t BRBase58Encode(char *str, size_t strLen, const uint8_t *data, size_t data
 {
     size_t i, j, len, zcount = 0;
     
-    while (zcount < dataLen && data[zcount] == 0) zcount++; // count leading zeroes
+    assert(str != NULL || strLen == 0);
+    assert(data != NULL);
+    while (zcount < dataLen && data && data[zcount] == 0) zcount++; // count leading zeroes
 
     uint8_t buf[(dataLen - zcount)*138/100 + 1]; // log(256)/log(58), rounded up
     
     memset(buf, 0, sizeof(buf));
     
-    for (i = zcount; i < dataLen; i++) {
+    for (i = zcount; data && i < dataLen; i++) {
         uint32_t carry = data[i];
         
         for (j = sizeof(buf); j > 0; j--) {
@@ -74,13 +78,15 @@ size_t BRBase58Decode(uint8_t *data, size_t dataLen, const char *str)
 {
     size_t i = 0, j, len, zcount = 0;
     
-    while (*str == base58chars[0]) str++, zcount++; // count leading zeroes
+    assert(data != NULL || dataLen == 0);
+    assert(str != NULL);
+    while (str && *str == base58chars[0]) str++, zcount++; // count leading zeroes
     
-    uint8_t buf[strlen(str)*733/1000 + 1]; // log(58)/log(256), rounded up
+    uint8_t buf[(str) ? strlen(str)*733/1000 + 1 : 0]; // log(58)/log(256), rounded up
     
     memset(buf, 0, sizeof(buf));
     
-    while (*str) {
+    while (str && *str) {
         uint32_t carry = *(const uint8_t *)(str++);
         
         switch (carry) {
@@ -141,21 +147,35 @@ size_t BRBase58Decode(uint8_t *data, size_t dataLen, const char *str)
 // returns the number of characters written to str including NULL terminator, or total strLen needed if str is NULL
 size_t BRBase58CheckEncode(char *str, size_t strLen, const uint8_t *data, size_t dataLen)
 {
-    size_t len;
-    uint8_t buf[dataLen + 256/8];
+    size_t len = 0, bufLen = dataLen + 256/8;
+    uint8_t _buf[(bufLen <= 0x1000) ? bufLen : 0], *buf = (bufLen <= 0x1000) ? _buf : malloc(bufLen);
 
-    memcpy(buf, data, dataLen);
-    BRSHA256_2(&buf[dataLen], data, dataLen);
-    len = BRBase58Encode(str, strLen, buf, dataLen + 4);
-    memset(buf, 0, sizeof(buf));
+    assert(buf != NULL);
+    assert(str != NULL || strLen == 0);
+    assert(data != NULL || dataLen == 0);
+
+    if (data || dataLen == 0) {
+        memcpy(buf, data, dataLen);
+        BRSHA256_2(&buf[dataLen], data, dataLen);
+        len = BRBase58Encode(str, strLen, buf, dataLen + 4);
+    }
+    
+    memset(buf, 0, bufLen);
+    if (buf != _buf) free(buf);
     return len;
 }
 
 // returns the number of bytes written to data, or total dataLen needed if data is NULL
 size_t BRBase58CheckDecode(uint8_t *data, size_t dataLen, const char *str)
 {
-    uint8_t buf[strlen(str)], md[256/8];
-    size_t len = BRBase58Decode(buf, sizeof(buf), str);
+    assert(data != NULL || dataLen == 0);
+    assert(str != NULL);
+    
+    size_t len, bufLen = (str) ? strlen(str) : 0;
+    uint8_t md[256/8], _buf[(bufLen <= 0x1000) ? bufLen : 0], *buf = (bufLen <= 0x1000) ? _buf : malloc(bufLen);
+    
+    assert(buf != NULL);
+    len = BRBase58Decode(buf, bufLen, str);
     
     if (len >= 4) {
         len -= 4;
@@ -165,6 +185,7 @@ size_t BRBase58CheckDecode(uint8_t *data, size_t dataLen, const char *str)
     }
     else len = 0;
     
-    memset(buf, 0, sizeof(buf));
+    memset(buf, 0, bufLen);
+    if (buf != _buf) free(buf);
     return (! data || len <= dataLen) ? len : 0;
 }

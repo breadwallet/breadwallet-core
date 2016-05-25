@@ -26,6 +26,7 @@
 #include "BRHash.h"
 #include "BRInt.h"
 #include <string.h>
+#include <assert.h>
 
 // returns number of bytes written to phrase including NULL terminator, or size needed if phrase is NULL
 size_t BRBIP39Encode(char *phrase, size_t phraseLen, const char *wordList[], const uint8_t *data, size_t dataLen)
@@ -35,6 +36,10 @@ size_t BRBIP39Encode(char *phrase, size_t phraseLen, const char *wordList[], con
     const char *word;
     size_t i, len = 0;
 
+    assert(phrase != NULL || phraseLen == 0);
+    assert(wordList != NULL);
+    assert(data != NULL || dataLen == 0);
+    assert(dataLen > 0 && (dataLen % 4) == 0);
     if (! data || (dataLen % 4) != 0) return 0; // data length must be a multiple of 32 bits
     
     memcpy(buf, data, dataLen);
@@ -63,6 +68,10 @@ size_t BRBIP39Decode(uint8_t *data, size_t dataLen, const char *wordList[], cons
     const char *word = phrase;
     size_t r = 0;
 
+    assert(data != NULL || dataLen == 0);
+    assert(wordList != NULL);
+    assert(phrase != NULL);
+    
     while (word && *word && count < 24) {
         for (i = 0, idx[count] = INT32_MAX; i < BIP39_WORDLIST_COUNT; i++) { // not fast, but simple and correct
             if (strncmp(word, wordList[i], strlen(wordList[i])) != 0 ||
@@ -106,6 +115,8 @@ size_t BRBIP39Decode(uint8_t *data, size_t dataLen, const char *wordList[], cons
 // verifies that all phrase words are contained in wordlist and checksum is valid
 int BRBIP39PhraseIsValid(const char *wordList[], const char *phrase)
 {
+    assert(wordList != NULL);
+    assert(phrase != NULL);
     return (BRBIP39Decode(NULL, 0, wordList, phrase) > 0);
 }
 
@@ -116,6 +127,9 @@ void BRBIP39DeriveKey(uint8_t *key64, const char *phrase, const char *passphrase
 {
     char salt[strlen("mnemonic") + (passphrase ? strlen(passphrase) : 0) + 1];
 
+    assert(key64 != NULL);
+    assert(phrase != NULL);
+    
     if (phrase) {
         strcpy(salt, "mnemonic");
         if (passphrase) strcpy(salt + strlen("mnemonic"), passphrase);

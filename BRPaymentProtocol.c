@@ -165,6 +165,7 @@ static void _ProtoBufUnknown(uint8_t **unknown, uint64_t key, uint64_t i, const 
     size_t off = 0, o = 0, l;
     uint64_t k;
     
+    assert(buf != NULL);
     _ProtoBufSetVarInt(buf, bufLen, key, &off);
     
     switch (key & 0x07) {
@@ -320,6 +321,7 @@ BRPaymentProtocolDetails *BRPaymentProtocolDetailsParse(const uint8_t *buf, size
     size_t off = 0;
     uint8_t *unknown = NULL;
 
+    assert(details != NULL);
     array_new(details->outputs, 1);
     
     while (off < bufLen) {
@@ -365,6 +367,8 @@ size_t BRPaymentProtocolDetailsSerialize(const BRPaymentProtocolDetails *details
     size_t i, off = 0, outputLen = 0x100, l;
     uint8_t *unknown = NULL, *outputBuf = malloc(outputLen);
     
+    assert(outputBuf != NULL);
+    
     if (details->network && ! _protobuf_is_default(details->network, details_network)) {
         _ProtoBufSetString(buf, bufLen, details->network, details_network, &off);
     }
@@ -372,6 +376,7 @@ size_t BRPaymentProtocolDetailsSerialize(const BRPaymentProtocolDetails *details
     for (i = 0; i < details->outputsCount; i++) {
         l = _BRPaymentProtocolOutputSerialize(&details->outputs[i], NULL, 0);
         if (l > outputLen) outputBuf = realloc(outputBuf, (outputLen = l));
+        assert(outputBuf != NULL);
         l = _BRPaymentProtocolOutputSerialize(&details->outputs[i], outputBuf, outputLen);
         _ProtoBufSetBytes(buf, bufLen, outputBuf, l, details_outputs, &off);
     }
@@ -423,6 +428,7 @@ BRPaymentProtocolRequest *BRPaymentProtocolRequestParse(const uint8_t *buf, size
     size_t off = 0;
     uint8_t *unknown = NULL;
     
+    assert(request != NULL);
     request->version = UINT32_MAX;
     
     while (off < bufLen) {
@@ -480,6 +486,7 @@ size_t BRPaymentProtocolRequestSerialize(const BRPaymentProtocolRequest *request
         size_t detailsLen = BRPaymentProtocolDetailsSerialize(request->details, NULL, 0);
         uint8_t *detailsBuf = malloc(detailsLen);
 
+        assert(detailsBuf != NULL);
         detailsLen = BRPaymentProtocolDetailsSerialize(request->details, detailsBuf, detailsLen);
         _ProtoBufSetBytes(buf, bufLen, detailsBuf, detailsLen, request_details, &off);
         free(detailsBuf);
@@ -528,6 +535,7 @@ size_t BRPaymentProtocolRequestDigest(BRPaymentProtocolRequest *request, uint8_t
     size_t len = BRPaymentProtocolRequestSerialize(request, NULL, 0);
     uint8_t *buf = malloc(len);
     
+    assert(buf != NULL);
     len = BRPaymentProtocolRequestSerialize(request, buf, len);
     
     if (request->pkiType && strncmp(request->pkiType, "x509+sha256", strlen("x509+sha256") + 1) == 0) {
@@ -567,6 +575,8 @@ BRPaymentProtocolPayment *BRPaymentProtocolPaymentNew(const uint8_t *merchantDat
                                                       const char *memo)
 {
     BRPaymentProtocolPayment *payment = calloc(1, sizeof(BRPaymentProtocolPayment));
+    
+    assert(payment != NULL);
     
     if (merchantData) {
         array_new(payment->merchantData, merchDataLen);
@@ -610,6 +620,7 @@ BRPaymentProtocolPayment *BRPaymentProtocolPaymentParse(const uint8_t *buf, size
     size_t off = 0;
     uint8_t *unknown = NULL;
     
+    assert(payment != NULL);
     array_new(payment->transactions, 1);
     array_new(payment->refundTo, 1);
     
@@ -646,6 +657,8 @@ size_t BRPaymentProtocolPaymentSerialize(const BRPaymentProtocolPayment *payment
     size_t off = 0, sLen = 0x100, l;
     uint8_t *unknown = NULL, *sBuf = malloc(sLen);
 
+    assert(sBuf != NULL);
+    
     if (payment->merchantData) {
         _ProtoBufSetBytes(buf, bufLen, payment->merchantData, payment->merchDataLen, payment_merch_data, &off);
     }
@@ -653,6 +666,7 @@ size_t BRPaymentProtocolPaymentSerialize(const BRPaymentProtocolPayment *payment
     for (size_t i = 0; i < payment->txCount; i++) {
         l = BRTransactionSerialize(payment->transactions[i], NULL, 0);
         if (l > sLen) sBuf = realloc(sBuf, (sLen = l));
+        assert(sBuf != NULL);
         l = BRTransactionSerialize(payment->transactions[i], sBuf, sLen);
         _ProtoBufSetBytes(buf, bufLen, sBuf, l, payment_transactions, &off);
     }
@@ -660,6 +674,7 @@ size_t BRPaymentProtocolPaymentSerialize(const BRPaymentProtocolPayment *payment
     for (size_t i = 0; i < payment->refundToCount; i++) {
         l = _BRPaymentProtocolOutputSerialize(&payment->refundTo[i], NULL, 0);
         if (l > sLen) sBuf = realloc(sBuf, (sLen = l));
+        assert(sBuf != NULL);
         l = _BRPaymentProtocolOutputSerialize(&payment->refundTo[i], sBuf, l);
         _ProtoBufSetBytes(buf, bufLen, sBuf, l, payment_refund_to, &off);
     }
@@ -705,6 +720,8 @@ BRPaymentProtocolACK *BRPaymentProtocolACKParse(const uint8_t *buf, size_t bufLe
     size_t off = 0;
     uint8_t *unknown = NULL;
     
+    assert(ack != NULL);
+    
     while (off < bufLen) {
         const uint8_t *data = NULL;
         size_t dataLen = bufLen;
@@ -737,6 +754,7 @@ size_t BRPaymentProtocolACKSerialize(const BRPaymentProtocolACK *ack, uint8_t *b
         size_t paymentLen = BRPaymentProtocolPaymentSerialize(ack->payment, NULL, 0);
         uint8_t *paymentBuf = malloc(paymentLen);
         
+        assert(paymentBuf != NULL);
         paymentLen = BRPaymentProtocolPaymentSerialize(ack->payment, paymentBuf, paymentLen);
         _ProtoBufSetBytes(buf, bufLen, paymentBuf, paymentLen, ack_payment, &off);
         free(paymentBuf);

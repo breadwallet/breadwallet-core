@@ -29,6 +29,7 @@
 #include <stdint.h>
 #include <limits.h>
 #include <string.h>
+#include <assert.h>
 
 #define MAX_PROOF_OF_WORK 0x1d00ffff    // highest value for difficulty target (higher values are less difficult)
 #define TARGET_TIMESPAN   (14*24*60*60) // the targeted timespan between difficulty target adjustments
@@ -76,6 +77,7 @@ BRMerkleBlock *BRMerkleBlockNew(void)
 {
     BRMerkleBlock *block = calloc(1, sizeof(BRMerkleBlock));
 
+    assert(block != NULL);
     block->height = BLOCK_UNKNOWN_HEIGHT;
     return block;
 }
@@ -86,6 +88,8 @@ BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t bufLen)
 {
     BRMerkleBlock *block = (buf && 80 <= bufLen) ? BRMerkleBlockNew() : NULL;
     size_t off = 0, len = 0;
+    
+    assert(buf != NULL || bufLen == 0);
     
     if (block) {
         block->version = get_u32le(&buf[off]);
@@ -126,6 +130,9 @@ size_t BRMerkleBlockSerialize(const BRMerkleBlock *block, uint8_t *buf, size_t b
 {
     size_t off = 0, len = 80;
     
+    assert(block != NULL);
+    assert(buf != NULL || bufLen == 0);
+    
     if (block->totalTx > 0) {
         len += sizeof(uint32_t) + BRVarIntSize(block->hashesCount) + block->hashesCount*sizeof(UInt256) +
                BRVarIntSize(block->flagsLen) + block->flagsLen;
@@ -148,7 +155,7 @@ size_t BRMerkleBlockSerialize(const BRMerkleBlock *block, uint8_t *buf, size_t b
         if (block->totalTx > 0) {
             set_u32le(&buf[off], block->totalTx);
             off += sizeof(uint32_t);
-            off += BRVarIntSet(&buf[off], bufLen - off, block->hashesCount);
+            off += BRVarIntSet(&buf[off], (off <= bufLen ? bufLen - off : 0), block->hashesCount);
             if (block->hashes) memcpy(&buf[off], block->hashes, block->hashesCount*sizeof(UInt256));
             off += block->hashesCount*sizeof(UInt256);
             if (block->flags) memcpy(&buf[off], block->flags, block->flagsLen);
@@ -191,6 +198,8 @@ size_t BRMerkleBlockTxHashes(const BRMerkleBlock *block, UInt256 *txHashes, size
 {
     size_t idx = 0, hashIdx = 0, flagIdx = 0;
 
+    assert(block != NULL);
+    assert(txHashes != NULL || hashesCount == 0);
     return _BRMerkleBlockTxHashesR(block, txHashes, (txHashes) ? hashesCount : SIZE_MAX, &idx, &hashIdx, &flagIdx, 0);
 }
 
@@ -227,6 +236,8 @@ static UInt256 _BRMerkleBlockRootR(const BRMerkleBlock *block, size_t *hashIdx, 
 // target is correct for the block's height in the chain - use BRMerkleBlockVerifyDifficulty() for that
 int BRMerkleBlockIsValid(const BRMerkleBlock *block, uint32_t currentTime)
 {
+    assert(block != NULL);
+    
     // target is in "compact" format, where the most significant byte is the size of resulting value in bytes, the next
     // bit is the sign, and the remaining 23bits is the value after having been right shifted by (size - 3)*8 bits
     static const uint32_t maxsize = MAX_PROOF_OF_WORK >> 24, maxtarget = MAX_PROOF_OF_WORK & 0x00ffffff;
@@ -260,6 +271,9 @@ int BRMerkleBlockContainsTxHash(const BRMerkleBlock *block, UInt256 txHash)
 {
     int r = 0;
     
+    assert(block != NULL);
+    assert(! UInt256IsZero(txHash));
+    
     for (size_t i = 0; ! r && i < block->hashesCount; i++) {
         if (UInt256Eq(block->hashes[i], txHash)) r = 1;
     }
@@ -282,7 +296,9 @@ int BRMerkleBlockVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBloc
 {
     int r = 1;
     
-    if (! UInt256Eq(block->prevBlock, previous->blockHash) || block->height != previous->height + 1) r = 0;
+    assert(block != NULL);
+    assert(previous != NULL);
+    if (! previous || !UInt256Eq(block->prevBlock, previous->blockHash) || block->height != previous->height + 1) r = 0;
     if (r && (block->height % BLOCK_DIFFICULTY_INTERVAL) == 0 && transitionTime == 0) r = 0;
     
 #if BITCOIN_TESTNET
@@ -322,6 +338,7 @@ int BRMerkleBlockVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBloc
 // frees memory allocated by BRMerkleBlockParse
 void BRMerkleBlockFree(BRMerkleBlock *block)
 {
+    assert(block != NULL);
     if (block->hashes) free(block->hashes);
     if (block->flags) free(block->flags);
     free(block);

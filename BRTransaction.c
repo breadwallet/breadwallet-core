@@ -58,6 +58,8 @@ uint32_t BRRand(uint32_t upperBound)
 
 void BRTxInputSetAddress(BRTxInput *input, const char *address)
 {
+    assert(input != NULL);
+    assert(address == NULL || BRAddressIsValid(address));
     if (input->script) array_free(input->script);
     input->script = NULL;
     input->scriptLen = 0;
@@ -74,6 +76,8 @@ void BRTxInputSetAddress(BRTxInput *input, const char *address)
 
 void BRTxInputSetScript(BRTxInput *input, const uint8_t *script, size_t scriptLen)
 {
+    assert(input != NULL);
+    assert(script != NULL || scriptLen == 0);
     if (input->script) array_free(input->script);
     input->script = NULL;
     input->scriptLen = 0;
@@ -89,6 +93,8 @@ void BRTxInputSetScript(BRTxInput *input, const uint8_t *script, size_t scriptLe
 
 void BRTxInputSetSignature(BRTxInput *input, const uint8_t *signature, size_t sigLen)
 {
+    assert(input != NULL);
+    assert(signature != NULL || sigLen == 0);
     if (input->signature) array_free(input->signature);
     input->signature = NULL;
     input->sigLen = 0;
@@ -119,6 +125,8 @@ static size_t _BRTxInputData(const BRTxInput *input, uint8_t *data, size_t dataL
 
 void BRTxOutputSetAddress(BRTxOutput *output, const char *address)
 {
+    assert(output != NULL);
+    assert(address == NULL || BRAddressIsValid(address));
     if (output->script) array_free(output->script);
     output->script = NULL;
     output->scriptLen = 0;
@@ -135,6 +143,8 @@ void BRTxOutputSetAddress(BRTxOutput *output, const char *address)
 
 void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scriptLen)
 {
+    assert(output != NULL);
+    assert(script != NULL || scriptLen == 0);
     if (output->script) array_free(output->script);
     output->script = NULL;
     output->scriptLen = 0;
@@ -157,7 +167,7 @@ static size_t _BRTransactionOutputData(const BRTransaction *tx, uint8_t *data, s
         output = &tx->outputs[i];
         if (data && off + sizeof(uint64_t) <= dataLen) set_u64le(&data[off], output->amount);
         off += sizeof(uint64_t);
-        off += BRVarIntSet((data ? &data[off] : NULL), dataLen - off, output->scriptLen);
+        off += BRVarIntSet((data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0), output->scriptLen);
         if (data && off + output->scriptLen <= dataLen) memcpy(&data[off], output->script, output->scriptLen);
         off += output->scriptLen;
     }
@@ -214,7 +224,7 @@ static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t 
         for (i = 0; i < index; i++)  {
             if (data && off + sizeof(uint64_t) <= dataLen) set_u64le(&data[off], -1LL);
             off += sizeof(uint64_t);
-            off += BRVarIntSet((data ? &data[off] : NULL), dataLen - off, 0);
+            off += BRVarIntSet((data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0), 0);
         }
         
         off += _BRTransactionOutputData(tx, (data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0), index);
@@ -237,6 +247,7 @@ BRTransaction *BRTransactionNew(void)
 {
     BRTransaction *tx = calloc(1, sizeof(BRTransaction));
 
+    assert(tx != NULL);
     tx->version = TX_VERSION;
     array_new(tx->inputs, 1);
     array_new(tx->outputs, 2);
@@ -249,6 +260,7 @@ BRTransaction *BRTransactionNew(void)
 // retruns a transaction that must be freed by calling BRTransactionFree()
 BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
 {
+    assert(buf != NULL || bufLen == 0);
     if (! buf) return NULL;
     
     int isSigned = 1;
@@ -312,7 +324,9 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
 // (tx->blockHeight and tx->timestamp are not serialized)
 size_t BRTransactionSerialize(const BRTransaction *tx, uint8_t *buf, size_t bufLen)
 {
-    return _BRTransactionData(tx, buf, bufLen, SIZE_MAX, SIGHASH_ALL);
+    assert(tx != NULL);
+    assert(buf != NULL || bufLen == 0);
+    return (tx) ? _BRTransactionData(tx, buf, bufLen, SIZE_MAX, SIGHASH_ALL) : 0;
 }
 
 // adds an input to tx
@@ -321,10 +335,17 @@ void BRTransactionAddInput(BRTransaction *tx, UInt256 txHash, uint32_t index, co
 {
     BRTxInput input = { txHash, index, "", NULL, 0, NULL, 0, sequence };
 
-    if (script) BRTxInputSetScript(&input, script, scriptLen);
-    if (signature) BRTxInputSetSignature(&input, signature, sigLen);
-    array_add(tx->inputs, input);
-    tx->inCount = array_count(tx->inputs);
+    assert(tx != NULL);
+    assert(! UInt256IsZero(txHash));
+    assert(script != NULL || scriptLen == 0);
+    assert(signature != NULL || sigLen == 0);
+    
+    if (tx) {
+        if (script) BRTxInputSetScript(&input, script, scriptLen);
+        if (signature) BRTxInputSetSignature(&input, signature, sigLen);
+        array_add(tx->inputs, input);
+        tx->inCount = array_count(tx->inputs);
+    }
 }
 
 // adds an output to tx
@@ -332,15 +353,22 @@ void BRTransactionAddOutput(BRTransaction *tx, uint64_t amount, const uint8_t *s
 {
     BRTxOutput output = { "", amount, NULL, 0 };
     
-    BRTxOutputSetScript(&output, script, scriptLen);
-    array_add(tx->outputs, output);
-    tx->outCount = array_count(tx->outputs);
+    assert(tx != NULL);
+    assert(script != NULL || scriptLen == 0);
+    
+    if (tx) {
+        BRTxOutputSetScript(&output, script, scriptLen);
+        array_add(tx->outputs, output);
+        tx->outCount = array_count(tx->outputs);
+    }
 }
 
 // shuffles order of tx outputs
 void BRTransactionShuffleOutputs(BRTransaction *tx)
 {
-    for (uint32_t i = 0; i + 1 < tx->outCount; i++) { // fischer-yates shuffle
+    assert(tx != NULL);
+    
+    for (uint32_t i = 0; tx && i + 1 < tx->outCount; i++) { // fischer-yates shuffle
         uint32_t j = i + BRRand((uint32_t)tx->outCount - i);
         BRTxOutput t;
         
@@ -356,9 +384,12 @@ void BRTransactionShuffleOutputs(BRTransaction *tx)
 size_t BRTransactionSize(const BRTransaction *tx)
 {
     BRTxInput *input;
-    size_t size = 8 + BRVarIntSize(tx->inCount) + BRVarIntSize(tx->outCount);
+    size_t size;
+
+    assert(tx != NULL);
+    size = (tx) ? 8 + BRVarIntSize(tx->inCount) + BRVarIntSize(tx->outCount) : 0;
     
-    for (size_t i = 0; i < tx->inCount; i++) {
+    for (size_t i = 0; tx && i < tx->inCount; i++) {
         input = &tx->inputs[i];
         
         if (input->signature) {
@@ -367,7 +398,7 @@ size_t BRTransactionSize(const BRTransaction *tx)
         else size += TX_INPUT_SIZE;
     }
     
-    for (size_t i = 0; i < tx->outCount; i++) {
+    for (size_t i = 0; tx && i < tx->outCount; i++) {
         size += tx->outputs[i].scriptLen;
     }
     
@@ -377,17 +408,20 @@ size_t BRTransactionSize(const BRTransaction *tx)
 // minimum transaction fee needed for tx to relay across the bitcoin network
 uint64_t BRTransactionStandardFee(const BRTransaction *tx)
 {
+    assert(tx != NULL);
     return ((BRTransactionSize(tx) + 999)/1000)*TX_FEE_PER_KB;
 }
 
 // checks if all signatures exist, but does not verify them
 int BRTransactionIsSigned(const BRTransaction *tx)
 {
-    for (size_t i = 0; i < tx->inCount; i++) {
+    assert(tx != NULL);
+    
+    for (size_t i = 0; tx && i < tx->inCount; i++) {
         if (! tx->inputs[i].signature) return 0;
     }
 
-    return 1;
+    return (tx) ? 1 : 0;
 }
 
 // adds signatures to any inputs with NULL signatures that can be signed with any keys
@@ -397,11 +431,14 @@ int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t keysCount)
     BRAddress addrs[keysCount], address;
     size_t i, j;
     
-    for (i = 0; i < keysCount; i++) {
+    assert(tx != NULL);
+    assert(keys != NULL || keysCount == 0);
+    
+    for (i = 0; tx && i < keysCount; i++) {
         if (! BRKeyAddress(&keys[i], addrs[i].s, sizeof(addrs[i]))) addrs[i] = BR_ADDRESS_NONE;
     }
     
-    for (i = 0; i < tx->inCount; i++) {
+    for (i = 0; tx && i < tx->inCount; i++) {
         BRTxInput *input = &tx->inputs[i];
         
         if (! BRAddressFromScriptPubKey(address.s, sizeof(address), input->script, input->scriptLen)) continue;
@@ -433,7 +470,7 @@ int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t keysCount)
         }
     }
     
-    if (BRTransactionIsSigned(tx)) {
+    if (tx && BRTransactionIsSigned(tx)) {
         uint8_t data[_BRTransactionData(tx, NULL, 0, SIZE_MAX, 0)];
         size_t len = _BRTransactionData(tx, data, sizeof(data), SIZE_MAX, 0);
         
@@ -456,16 +493,20 @@ int BRTransactionIsStandard(BRTransaction *tx)
 // frees memory allocated for tx
 void BRTransactionFree(BRTransaction *tx)
 {
-    for (size_t i = 0; i < tx->inCount; i++) {
-        BRTxInputSetScript(&tx->inputs[i], NULL, 0);
-        BRTxInputSetSignature(&tx->inputs[i], NULL, 0);
-    }
+    assert(tx != NULL);
+    
+    if (tx) {
+        for (size_t i = 0; i < tx->inCount; i++) {
+            BRTxInputSetScript(&tx->inputs[i], NULL, 0);
+            BRTxInputSetSignature(&tx->inputs[i], NULL, 0);
+        }
 
-    for (size_t i = 0; i < tx->outCount; i++) {
-        BRTxOutputSetScript(&tx->outputs[i], NULL, 0);
-    }
+        for (size_t i = 0; i < tx->outCount; i++) {
+            BRTxOutputSetScript(&tx->outputs[i], NULL, 0);
+        }
 
-    array_free(tx->outputs);
-    array_free(tx->inputs);
-    free(tx);
+        array_free(tx->outputs);
+        array_free(tx->inputs);
+        free(tx);
+    }
 }

@@ -841,8 +841,8 @@ int BRBIP39MnemonicTests()
 
     UInt512 key = UINT512_ZERO;
 
-    BRBIP39DeriveKey(key.u8, NULL, NULL); // test invalid key
-    if (! UInt512IsZero(key)) r = 0, fprintf(stderr, "***FAILED*** %s: BRBIP39DeriveKey() test 0\n", __func__);
+//    BRBIP39DeriveKey(key.u8, NULL, NULL); // test invalid key
+//    if (! UInt512IsZero(key)) r = 0, fprintf(stderr, "***FAILED*** %s: BRBIP39DeriveKey() test 0\n", __func__);
 
     UInt128 entropy = UINT128_ZERO;
     char phrase[BRBIP39Encode(NULL, 0, BRBIP39WordsEn, entropy.u8, sizeof(entropy))];
@@ -1027,7 +1027,8 @@ int BRBIP32SequenceTests()
 int BRTransactionTests()
 {
     int r = 1;
-    UInt256 secret = u256_hex_decode("0000000000000000000000000000000000000000000000000000000000000001");
+    UInt256 secret = u256_hex_decode("0000000000000000000000000000000000000000000000000000000000000001"),
+            inHash = u256_hex_decode("0000000000000000000000000000000000000000000000000000000000000001");
     BRKey k[2];
     BRAddress address, addr;
     
@@ -1039,7 +1040,7 @@ int BRTransactionTests()
     size_t scriptLen = BRAddressScriptPubKey(script, sizeof(script), address.s);
     BRTransaction *tx = BRTransactionNew();
     
-    BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
     BRTransactionAddOutput(tx, 100000000, script, scriptLen);
     BRTransactionAddOutput(tx, 4900000000, script, scriptLen);
     
@@ -1077,16 +1078,16 @@ int BRTransactionTests()
     BRTransactionFree(tx);
     
     tx = BRTransactionNew();
-    BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
-    BRTransactionAddInput(tx, UINT256_ZERO, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(tx, inHash, 0, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
     BRTransactionAddOutput(tx, 1000000, script, scriptLen);
     BRTransactionAddOutput(tx, 1000000, script, scriptLen);
     BRTransactionAddOutput(tx, 1000000, script, scriptLen);

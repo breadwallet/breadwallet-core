@@ -335,6 +335,9 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
         size_t txCount = BRWalletTxUnconfirmedBefore(manager->wallet, NULL, 0, blockHeight);
         BRTransaction **transactions = malloc(sizeof(BRTransaction *)*txCount);
 
+        assert(addrs != NULL);
+        assert(utxos != NULL);
+        assert(transactions != NULL);
         addrsCount = BRWalletAllAddrs(manager->wallet, addrs, addrsCount);
         utxosCount = BRWalletUTXOs(manager->wallet, utxos, utxosCount);
         txCount = BRWalletTxUnconfirmedBefore(manager->wallet, transactions, txCount, blockHeight);
@@ -425,6 +428,7 @@ static void _updateFilterLoadDone(void *info, int success)
         
         if (manager->lastBlock->height < manager->estimatedHeight) { // if syncing, rerequest blocks
             peerInfo = calloc(1, sizeof(*peerInfo));
+            assert(peerInfo != NULL);
             peerInfo->peer = peer;
             peerInfo->manager = manager;
             BRPeerRerequestBlocks(manager->downloadPeer, manager->lastBlock->blockHash);
@@ -460,6 +464,7 @@ static void _updateFilterPingDone(void *info, int success)
             
             for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
                 peerInfo = calloc(1, sizeof(*peerInfo));
+                assert(peerInfo != NULL);
                 peerInfo->peer = manager->connectedPeers[i - 1];
                 peerInfo->manager = manager;
                 _BRPeerManagerLoadBloomFilter(manager, peerInfo->peer);
@@ -481,6 +486,7 @@ static void _BRPeerManagerUpdateFilter(BRPeerManager *manager)
         manager->downloadPeer->flags |= PEER_FLAG_NEEDSUPDATE;
         peer_log(manager->downloadPeer, "filter update needed, waiting for pong");
         info = calloc(1, sizeof(*info));
+        assert(info != NULL);
         info->peer = manager->downloadPeer;
         info->manager = manager;
         // wait for pong so we're sure to include any tx already sent by the peer in the updated filter
@@ -585,6 +591,7 @@ static void _BRPeerManagerRequestUnrelayedTx(BRPeerManager *manager, BRPeer *pee
     
         if ((peer->flags & PEER_FLAG_SYNCED) == 0) {
             info = calloc(1, sizeof(*info));
+            assert(info != NULL);
             info->peer = peer;
             info->manager = manager;
             BRPeerSendPing(peer, info, _requestUnrelayedTxGetdataDone);
@@ -656,6 +663,7 @@ static void _BRPeerManagerLoadMempools(BRPeerManager *manager)
         BRPeer *peer = manager->connectedPeers[i - 1];
         BRPeerCallbackInfo *info = calloc(1, sizeof(*info));
 
+        assert(info != NULL);
         info->peer = peer;
         info->manager = manager;
         
@@ -681,6 +689,7 @@ static UInt128 *_addressLookup(const char *hostname)
     if (getaddrinfo(hostname, NULL, NULL, &servinfo) == 0) {
         for (p = servinfo; p != NULL; p = p->ai_next) count++;
         if (count > 0) addrList = calloc(count + 1, sizeof(*addrList));
+        assert(addrList != NULL || count == 0);
         
         for (p = servinfo; p != NULL; p = p->ai_next) {
             if (p->ai_family == AF_INET) {
@@ -1185,6 +1194,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
     BRMerkleBlock orphan, *b, *b2, *prev, *next = NULL;
     uint32_t txTime = 0;
     
+    assert(txHashes != NULL);
     txCount = BRMerkleBlockTxHashes(block, txHashes, txCount);
     pthread_mutex_lock(&manager->lock);
     prev = BRSetGet(manager->blocks, &block->prevBlock);
@@ -1344,6 +1354,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
                 if (count > txCount) {
                     txHashes = (txHashes != _txHashes) ? realloc(txHashes, sizeof(*txHashes)*count) :
                                malloc(sizeof(*txHashes)*count);
+                    assert(txHashes != NULL);
                     txCount = count;
                 }
                 
@@ -1469,6 +1480,7 @@ static BRTransaction *_peerRequestedTx(void *info, UInt256 txHash)
     }
     
 //    pingInfo = calloc(1, sizeof(*pingInfo));
+//    assert(pingInfo != NULL);
 //    pingInfo->peer = peer;
 //    pingInfo->manager = manager;
 //    pingInfo->hash = txHash;
@@ -1491,6 +1503,7 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
 {
     BRPeerManager *manager = calloc(1, sizeof(*manager));
     
+    assert(manager != NULL);
     assert(wallet != NULL);
     assert(blocks != NULL || blocksCount == 0);
     assert(peers != NULL || peersCount == 0);
@@ -1630,6 +1643,7 @@ void BRPeerManagerConnect(BRPeerManager *manager)
             
             if (i != SIZE_MAX) {
                 info = calloc(1, sizeof(*info));
+                assert(info != NULL);
                 info->manager = manager;
                 info->peer = BRPeerNew();
                 *info->peer = peers[i];
@@ -1791,17 +1805,17 @@ void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *inf
     assert(tx != NULL && BRTransactionIsSigned(tx));
     pthread_mutex_lock(&manager->lock);
     
-    if (! BRTransactionIsSigned(tx)) {
+    if (tx && ! BRTransactionIsSigned(tx)) {
         pthread_mutex_unlock(&manager->lock);
         BRTransactionFree(tx);
         if (callback) callback(info, EINVAL); // transaction not signed
     }
-    else if (! manager->isConnected && manager->connectFailureCount >= MAX_CONNECT_FAILURES) {
+    else if (tx && ! manager->isConnected && manager->connectFailureCount >= MAX_CONNECT_FAILURES) {
         pthread_mutex_unlock(&manager->lock);
         BRTransactionFree(tx);
         if (callback) callback(info, ENOTCONN); // not connected to bitcoin network
     }
-    else {
+    else if (tx) {
         tx->timestamp = (uint32_t)time(NULL); // set timestamp to publish time
         _BRPeerManagerAddTxToPublishList(manager, tx, info, callback);
 
@@ -1814,6 +1828,7 @@ void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *inf
             if (peer != manager->downloadPeer || array_count(manager->connectedPeers) == 1) {
                 _BRPeerManagerPublishPendingTx(manager, peer);
                 peerInfo = calloc(1, sizeof(*peerInfo));
+                assert(peerInfo != NULL);
                 peerInfo->peer = peer;
                 peerInfo->manager = manager;
                 BRPeerSendPing(peer, peerInfo, _publishTxInvDone);

@@ -28,6 +28,7 @@
 #include "BRInt.h"
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #define BIP38_NOEC_PREFIX      0x0142
 #define BIP38_EC_PREFIX        0x0143
@@ -206,6 +207,7 @@ static void scrypt(void *dk, size_t dklen, const void *pw, size_t pwlen, const v
     uint64_t x[16*r], y[16*r], z[8], *v = malloc(128*r*n), m;
     uint32_t b[32*r*p];
     
+    assert(v != NULL);
     BRPBKDF2(b, sizeof(b), BRSHA256, 32, pw, pwlen, salt, saltlen, 1);
     
     for (int i = 0; i < p; i++) {
@@ -288,6 +290,7 @@ int BRBIP38KeyIsValid(const char *bip38Key)
 {
     uint8_t data[39];
     
+    assert(bip38Key != NULL);
     if (BRBase58CheckDecode(data, sizeof(data), bip38Key) != 39) return 0; // invalid length
     
     uint16_t prefix = get_u16be(data);

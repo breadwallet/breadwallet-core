@@ -26,6 +26,7 @@
 #include "BRBase58.h"
 #include "BRInt.h"
 #include <stdint.h>
+#include <assert.h>
 
 #define VAR_INT16_HEADER  0xfd
 #define VAR_INT32_HEADER  0xfe
@@ -35,22 +36,24 @@
 uint64_t BRVarInt(const uint8_t *buf, size_t bufLen, size_t *intLen)
 {
     uint64_t r = 0;
-    uint8_t h = (sizeof(uint8_t) <= bufLen) ? *(uint8_t *)buf : 0;
+    uint8_t h = (buf && sizeof(uint8_t) <= bufLen) ? *(uint8_t *)buf : 0;
+    
+    assert(buf != NULL || bufLen == 0);
     
     switch (h) {
         case VAR_INT16_HEADER:
             if (intLen) *intLen = sizeof(h) + sizeof(uint16_t);
-            r = (sizeof(h) + sizeof(uint16_t) <= bufLen) ? get_u16le(&buf[sizeof(h)]) : 0;
+            r = (buf && sizeof(h) + sizeof(uint16_t) <= bufLen) ? get_u16le(&buf[sizeof(h)]) : 0;
             break;
             
         case VAR_INT32_HEADER:
             if (intLen) *intLen = sizeof(h) + sizeof(uint32_t);
-            r = (sizeof(h) + sizeof(uint32_t) <= bufLen) ? get_u32le(&buf[sizeof(h)]) : 0;
+            r = (buf && sizeof(h) + sizeof(uint32_t) <= bufLen) ? get_u32le(&buf[sizeof(h)]) : 0;
             break;
             
         case VAR_INT64_HEADER:
             if (intLen) *intLen = sizeof(h) + sizeof(uint64_t);
-            r = (sizeof(h) + sizeof(uint64_t) <= bufLen) ? get_u64le(&buf[sizeof(h)]) : 0;
+            r = (buf && sizeof(h) + sizeof(uint64_t) <= bufLen) ? get_u64le(&buf[sizeof(h)]) : 0;
             break;
             
         default:
@@ -65,6 +68,8 @@ uint64_t BRVarInt(const uint8_t *buf, size_t bufLen, size_t *intLen)
 size_t BRVarIntSet(uint8_t *buf, size_t bufLen, uint64_t i)
 {
     size_t r = 0;
+    
+    assert(buf != NULL || bufLen == 0);
     
     if (i < VAR_INT16_HEADER) {
         if (buf && sizeof(uint8_t) <= bufLen) *buf = (uint8_t)i;
@@ -107,7 +112,10 @@ size_t BRScriptElements(const uint8_t *elems[], size_t elemsCount, const uint8_t
 {
     size_t off = 0, i = 0, len = 0;
     
-    while (off < scriptLen) {
+    assert(elems != NULL || elemsCount == 0);
+    assert(script != NULL || scriptLen == 0);
+    
+    while (script && off < scriptLen) {
         if (elems && i < elemsCount) elems[i] = &script[off];
         
         switch (script[off]) {
@@ -144,6 +152,10 @@ size_t BRScriptElements(const uint8_t *elems[], size_t elemsCount, const uint8_t
 
 const uint8_t *BRScriptData(const uint8_t *elem, size_t *dataLen)
 {
+    assert(elem != NULL);
+    assert(dataLen != NULL);
+    if (! elem || ! dataLen) return NULL;
+    
     switch (*elem) {
         case OP_PUSHDATA1:
             elem++;
@@ -174,14 +186,18 @@ const uint8_t *BRScriptData(const uint8_t *elem, size_t *dataLen)
 
 size_t BRScriptPushData(uint8_t *script, size_t scriptLen, const uint8_t *data, size_t dataLen)
 {
-    size_t len;
+    size_t len = dataLen;
 
+    assert(script != NULL || scriptLen == 0);
+    assert(data != NULL || dataLen == 0);
+    if (data == NULL && dataLen != 0) return 0;
+    
     if (dataLen < OP_PUSHDATA1) {
-        len = 1 + dataLen;
+        len += 1;
         if (script && len <= scriptLen) script[0] = dataLen;
     }
     else if (dataLen < UINT8_MAX) {
-        len = 1 + sizeof(uint8_t) + dataLen;
+        len += 1 + sizeof(uint8_t);
         
         if (script && len <= scriptLen) {
             script[0] = OP_PUSHDATA1;
@@ -189,7 +205,7 @@ size_t BRScriptPushData(uint8_t *script, size_t scriptLen, const uint8_t *data, 
         }
     }
     else if (dataLen < UINT16_MAX) {
-        len = 1 + sizeof(uint16_t) + dataLen;
+        len += 1 + sizeof(uint16_t);
         
         if (script && len <= scriptLen) {
             script[0] = OP_PUSHDATA2;
@@ -197,7 +213,7 @@ size_t BRScriptPushData(uint8_t *script, size_t scriptLen, const uint8_t *data, 
         }
     }
     else {
-        len = 1 + sizeof(uint32_t) + dataLen;
+        len += 1 + sizeof(uint32_t);
         
         if (script && len <= scriptLen) {
             script[0] = OP_PUSHDATA4;
@@ -216,6 +232,9 @@ size_t BRScriptPushData(uint8_t *script, size_t scriptLen, const uint8_t *data, 
 
 size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *script, size_t scriptLen)
 {
+    assert(addr != NULL || addrLen == 0);
+    assert(script != NULL || scriptLen == 0);
+    assert(scriptLen <= MAX_SCRIPT_LENGTH);
     if (! script || scriptLen == 0 || scriptLen > MAX_SCRIPT_LENGTH) return 0;
     
     uint8_t data[21];
@@ -256,6 +275,9 @@ size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *scri
 
 size_t BRAddressFromScriptSig(char *addr, size_t addrLen, const uint8_t *script, size_t scriptLen)
 {
+    assert(addr != NULL || addrLen == 0);
+    assert(script != NULL || scriptLen == 0);
+    assert(scriptLen <= MAX_SCRIPT_LENGTH);
     if (! script || scriptLen == 0 || scriptLen > MAX_SCRIPT_LENGTH) return 0;
     
     uint8_t data[21];
@@ -295,6 +317,9 @@ size_t BRAddressScriptPubKey(uint8_t *script, size_t scriptLen, const char *addr
     uint8_t data[21];
     size_t r = 0;
     
+    assert(script != NULL || scriptLen == 0);
+    assert(addr != NULL);
+
 #if BITCOIN_TESTNET
     pubkeyAddress = BITCOIN_PUBKEY_ADDRESS_TEST;
     scriptAddress = BITCOIN_SCRIPT_ADDRESS_TEST;
@@ -333,6 +358,8 @@ int BRAddressIsValid(const char *addr)
     uint8_t data[21];
     int r = 0;
     
+    assert(addr != NULL);
+    
     if (BRBase58CheckDecode(data, sizeof(data), addr) == 21) {
         r = (data[0] == BITCOIN_PUBKEY_ADDRESS || data[0] == BITCOIN_SCRIPT_ADDRESS);
     
@@ -349,6 +376,8 @@ int BRAddressHash160(void *md20, const char *addr)
     uint8_t data[21];
     int r = 0;
     
+    assert(md20 != NULL);
+    assert(addr != NULL);
     r = (BRBase58CheckDecode(data, sizeof(data), addr) == 21);
     if (r) memcpy(md20, &data[1], 20);
     return r;

@@ -27,6 +27,7 @@
 #include "BRBase58.h"
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 #include <pthread.h>
 
 #define BITCOIN_PRIVKEY      128
@@ -101,6 +102,8 @@ size_t BRSecp256k1PointAdd(void *r, size_t rLen, BRECPoint a, BRECPoint b, int c
     secp256k1_gej aj, rj;
     size_t size = 0;
     
+    assert(r != NULL || rLen == 0);
+    
     if (((compressed && rLen >= 33) || rLen >= 65) && secp256k1_eckey_pubkey_parse(&ap, a.p, sizeof(a)) &&
         secp256k1_eckey_pubkey_parse(&bp, b.p, sizeof(b))) {
         secp256k1_gej_set_ge(&aj, &ap);
@@ -126,6 +129,7 @@ size_t BRSecp256k1PointMul(void *r, size_t rLen, BRECPoint p, UInt256 i, int com
     secp256k1_ge rp, pp;
     size_t size = 0;
     
+    assert(r != NULL || rLen == 0);
     secp256k1_scalar_set_b32(&is, i.u8, NULL);
     
     if (BRECPointIsZero(p)) {
@@ -150,9 +154,12 @@ size_t BRSecp256k1PointMul(void *r, size_t rLen, BRECPoint p, UInt256 i, int com
 int BRPrivKeyIsValid(const char *privKey)
 {
     uint8_t data[34];
-    size_t dataLen = BRBase58CheckDecode(data, sizeof(data), privKey);
-    size_t strLen = strlen(privKey);
+    size_t dataLen, strLen;
     int r = 0;
+    
+    assert(privKey != NULL);
+    dataLen = BRBase58CheckDecode(data, sizeof(data), privKey);
+    strLen = strlen(privKey);
     
     if (dataLen == 33 || dataLen == 34) { // wallet import format: https://en.bitcoin.it/wiki/Wallet_import_format
 #if BITCOIN_TESTNET
@@ -180,6 +187,8 @@ int BRPrivKeyIsValid(const char *privKey)
 // assigns secret to key and returns true on success
 int BRKeySetSecret(BRKey *key, const UInt256 *secret, int compressed)
 {
+    assert(key != NULL);
+    assert(secret != NULL);
     pthread_once(&_ctx_once, _ctx_init);
     BRKeyClean(key);
     key->secret = *secret;
@@ -197,6 +206,8 @@ int BRKeySetPrivKey(BRKey *key, const char *privKey)
 #if BITCOIN_TESTNET
     version = BITCOIN_PRIVKEY_TEST;
 #endif
+    assert(key != NULL);
+    assert(privKey != NULL);
     
     // mini private key format
     if ((len == 30 || len == 22) && privKey[0] == 'S') {
@@ -231,6 +242,9 @@ int BRKeySetPubKey(BRKey *key, const uint8_t *pubKey, size_t pkLen)
 {
     secp256k1_pubkey pk;
     
+    assert(key != NULL);
+    assert(pubKey != NULL);
+    assert(pkLen == 33 || pkLen == 65);
     pthread_once(&_ctx_once, _ctx_init);
     BRKeyClean(key);
     memcpy(key->pubKey, pubKey, pkLen);
@@ -243,6 +257,9 @@ size_t BRKeyPrivKey(BRKey *key, char *privKey, size_t pkLen)
 {
     uint8_t data[34];
 
+    assert(key != NULL);
+    assert(privKey != NULL || pkLen == 0);
+    
     if (secp256k1_ec_seckey_verify(_ctx, key->secret.u8)) {
         data[0] = BITCOIN_PRIVKEY;
 #if BITCOIN_TESTNET
@@ -266,6 +283,9 @@ size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t pkLen)
     size_t size = (key->compressed) ? 33 : 65;
     secp256k1_pubkey pk;
 
+    assert(key != NULL);
+    assert(pubKey != NULL || pkLen == 0);
+    
     if (memcmp(key->pubKey, empty, size) == 0 && secp256k1_ec_pubkey_create(_ctx, &pk, key->secret.u8)) {
         secp256k1_ec_pubkey_serialize(_ctx, key->pubKey, &size, &pk,
                                       (key->compressed ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED));
@@ -279,8 +299,10 @@ size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t pkLen)
 UInt160 BRKeyHash160(BRKey *key)
 {
     UInt160 hash = UINT160_ZERO;
-    size_t len = BRKeyPubKey(key, NULL, 0);
-
+    size_t len;
+    
+    assert(key != NULL);
+    len = BRKeyPubKey(key, NULL, 0);
     if (len > 0) BRHash160(&hash, key->pubKey, len);
     return hash;
 }
@@ -289,9 +311,12 @@ UInt160 BRKeyHash160(BRKey *key)
 // returns the number of bytes written, or addrLen needed if addr is NULL
 size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen)
 {
-    UInt160 hash = BRKeyHash160(key);
+    UInt160 hash;
     uint8_t data[21];
 
+    assert(key != NULL);
+    assert(addr != NULL || addrLen == 0);
+    hash = BRKeyHash160(key);
     data[0] = BITCOIN_PUBKEY_ADDRESS;
 #if BITCOIN_TESTNET
     data[0] = BITCOIN_PUBKEY_ADDRESS_TEST;
@@ -311,6 +336,9 @@ size_t BRKeySign(BRKey *key, void *sig, size_t sigLen, UInt256 md)
 {
     secp256k1_ecdsa_signature s;
     
+    assert(key != NULL);
+    assert(sig != NULL || sigLen == 0);
+    
     if (secp256k1_ecdsa_sign(_ctx, &s, md.u8, key->secret.u8, secp256k1_nonce_function_rfc6979, NULL)) {
         if (! secp256k1_ecdsa_signature_serialize_der(_ctx, sig, &sigLen, &s)) sigLen = 0;
     }
@@ -322,10 +350,15 @@ size_t BRKeySign(BRKey *key, void *sig, size_t sigLen, UInt256 md)
 // returns true if the signature for md is verified to have been made by key
 int BRKeyVerify(BRKey *key, UInt256 md, const void *sig, size_t sigLen)
 {
-    size_t len = BRKeyPubKey(key, NULL, 0);
     secp256k1_pubkey pk;
     secp256k1_ecdsa_signature s;
+    size_t len;
     int r = 0;
+    
+    assert(key != NULL);
+    assert(sig != NULL);
+    assert(sigLen > 0);
+    len = BRKeyPubKey(key, NULL, 0);
     
     if (len > 0 && secp256k1_ec_pubkey_parse(_ctx, &pk, key->pubKey, len) &&
         secp256k1_ecdsa_signature_parse_der(_ctx, &s, sig, sigLen)) {
@@ -338,6 +371,7 @@ int BRKeyVerify(BRKey *key, UInt256 md, const void *sig, size_t sigLen)
 // wipes key material from key
 void BRKeyClean(BRKey *key)
 {
+    assert(key != NULL);
     memset(key, 0, sizeof(*key));
 }
 
@@ -348,6 +382,10 @@ size_t BRKeyCompactSign(BRKey *key, void *compactSig, size_t sigLen, UInt256 md)
     size_t r = 0;
     int recid = 0;
     secp256k1_ecdsa_recoverable_signature s;
+
+    assert(key != NULL);
+    assert(compactSig != NULL || sigLen == 0);
+    assert(sigLen >= 65 || sigLen == 0);
 
     if (! UInt256IsZero(key->secret)) { // can't sign with a public key
         if (compactSig && sigLen >= 65 &&
@@ -370,6 +408,10 @@ int BRKeyRecoverPubKey(BRKey *key, const void *compactSig, size_t sigLen, UInt25
     size_t len = sizeof(pubKey);
     secp256k1_ecdsa_recoverable_signature s;
     secp256k1_pubkey pk;
+    
+    assert(key != NULL);
+    assert(compactSig != NULL);
+    assert(sigLen == 65);
     
     if (sigLen == 65) {
         if (((uint8_t *)compactSig)[0] - 27 >= 4) compressed = 1;

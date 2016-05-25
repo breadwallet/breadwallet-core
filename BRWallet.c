@@ -245,6 +245,7 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
 
     assert(transactions != NULL || txCount == 0);
     wallet = calloc(1, sizeof(BRWallet));
+    assert(wallet != NULL);
     array_new(wallet->utxos, 100);
     array_new(wallet->transactions, txCount + 100);
     wallet->feePerKb = DEFAULT_FEE_PER_KB;
