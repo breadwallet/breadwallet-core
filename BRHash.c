@@ -25,6 +25,7 @@
 #include "BRHash.h"
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 // endian swapping
 #if __BIG_ENDIAN__ || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
@@ -71,6 +72,9 @@ void BRSHA1(void *md20, const void *data, size_t len)
 {
     size_t i;
     uint32_t x[80], buf[] = { 0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0 }; // initial buffer values
+    
+    assert(md20 != NULL);
+    assert(data != NULL || len == 0);
     
     for (i = 0; i < len; i += 64) { // process data in 64 byte blocks
         memcpy(x, (const uint8_t *)data + i, (i + 64 < len) ? 64 : len - i);
@@ -137,6 +141,9 @@ void BRSHA224(void *md28, const void *data, size_t len) {
     uint32_t x[16], buf[] = { 0xc1059ed8, 0x367cd507, 0x3070dd17, 0xf70e5939, 0xffc00b31, 0x68581511,
                               0x64f98fa7, 0xbefa4fa4 }; // initial buffer values
 
+    assert(md28 != NULL);
+    assert(data != NULL || len == 0);
+
     for (i = 0; i < len; i += 64) { // process data in 64 byte blocks
         memcpy(x, (const uint8_t *)data + i, (i + 64 < len) ? 64 : len - i);
         if (i + 64 > len) break;
@@ -160,6 +167,9 @@ void BRSHA256(void *md32, const void *data, size_t len)
     uint32_t x[16], buf[] = { 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c,
                               0x1f83d9ab, 0x5be0cd19 }; // initial buffer values
     
+    assert(md32 != NULL);
+    assert(data != NULL || len == 0);
+
     for (i = 0; i < len; i += 64) { // process data in 64 byte blocks
         memcpy(x, (const uint8_t *)data + i, (i + 64 < len) ? 64 : len - i);
         if (i + 64 > len) break;
@@ -181,7 +191,9 @@ void BRSHA256(void *md32, const void *data, size_t len)
 void BRSHA256_2(void *md32, const void *data, size_t len)
 {
     uint8_t t[32];
-    
+
+    assert(md32 != NULL);
+    assert(data != NULL || len == 0);
     BRSHA256(t, data, len);
     BRSHA256(md32, t, sizeof(t));
 }
@@ -240,6 +252,9 @@ void BRSHA384(void *md48, const void *data, size_t len)
     uint64_t x[16], buf[] = { 0xcbbb9d5dc1059ed8, 0x629a292a367cd507, 0x9159015a3070dd17, 0x152fecd8f70e5939,
                               0x67332667ffc00b31, 0x8eb44a8768581511, 0xdb0c2e0d64f98fa7, 0x47b5481dbefa4fa4 };
     
+    assert(md48 != NULL);
+    assert(data != NULL || len == 0);
+
     for (i = 0; i < len; i += 128) { // process data in 128 byte blocks
         memcpy(x, (const uint8_t *)data + i, (i + 128 < len) ? 128 : len - i);
         if (i + 128 > len) break;
@@ -263,6 +278,9 @@ void BRSHA512(void *md64, const void *data, size_t len)
     uint64_t x[16], buf[] = { 0x6a09e667f3bcc908, 0xbb67ae8584caa73b, 0x3c6ef372fe94f82b, 0xa54ff53a5f1d36f1,
                               0x510e527fade682d1, 0x9b05688c2b3e6c1f, 0x1f83d9abfb41bd6b, 0x5be0cd19137e2179 };
     
+    assert(md64 != NULL);
+    assert(data != NULL || len == 0);
+
     for (i = 0; i < len; i += 128) { // process data in 128 byte blocks
         memcpy(x, (const uint8_t *)data + i, (i + 128 < len) ? 128 : len - i);
         if (i + 128 > len) break;
@@ -343,6 +361,9 @@ void BRRMD160(void *md20, const void *data, size_t len)
     size_t i;
     uint32_t x[16], buf[] = { 0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476, 0xc3d2e1f0 }; // initial buffer values
     
+    assert(md20 != NULL);
+    assert(data != NULL || len == 0);
+
     for (i = 0; i <= len; i += 64) { // process data in 64 byte blocks
         memcpy(x, (const uint8_t *)data + i, (i + 64 < len) ? 64 : len - i);
         if (i + 64 > len) break;
@@ -365,6 +386,8 @@ void BRHash160(void *md20, const void *data, size_t len)
 {
     uint8_t t[32];
     
+    assert(md20 != NULL);
+    assert(data != NULL || len == 0);
     BRSHA256(t, data, len);
     BRRMD160(md20, t, sizeof(t));
 }
@@ -412,6 +435,9 @@ void BRMD5(void *md16, const void *data, size_t len)
     size_t i;
     uint32_t x[16], buf[] = { 0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476 }; // initial buffer values
     
+    assert(md16 != NULL);
+    assert(data != NULL || len == 0);
+
     for (i = 0; i <= len; i += 64) { // process data in 64 byte blocks
         memcpy(x, (const uint8_t *)data + i, (i + 64 < len) ? 64 : len - i);
         if (i + 64 > len) break;
@@ -438,6 +464,11 @@ void BRHMAC(void *md, void (*hash)(void *, const void *, size_t), size_t hashLen
     size_t i, blockLen = (hashLen > 32) ? 128 : 64;
     uint8_t k[hashLen], kipad[blockLen + dataLen], kopad[blockLen + hashLen];
     
+    assert(md != NULL);
+    assert(hash != NULL);
+    assert(hashLen > 0 && (hashLen % 4) == 0);
+    assert(key != NULL || keyLen == 0);
+    assert(data != NULL || dataLen == 0);
     if (keyLen > blockLen) hash(k, key, keyLen), key = k, keyLen = sizeof(k);
     memset(kipad, 0, blockLen);
     memcpy(kipad, key, keyLen);
@@ -466,6 +497,12 @@ void BRPBKDF2(void *dk, size_t dkLen, void (*hash)(void *, const void *, size_t)
     uint8_t s[saltLen + sizeof(uint32_t)], U[hashLen], T[hashLen];
     uint32_t i, j;
     
+    assert(dk != NULL || dkLen == 0);
+    assert(hash != NULL);
+    assert(hashLen > 0 && (hashLen % 4) == 0);
+    assert(pw != NULL || pwLen == 0);
+    assert(salt != NULL || saltLen == 0);
+    assert(rounds > 0);
     memcpy(s, salt, saltLen);
     
     for (i = 0; i < (dkLen + hashLen - 1)/hashLen; i++) {
@@ -499,6 +536,8 @@ uint32_t BRMurmur3_32(const void *data, size_t len, uint32_t seed)
 {
     uint32_t h = seed, k = 0;
     size_t i, count = len/4;
+    
+    assert(data != NULL || len == 0);
     
     for (i = 0; i < count; i++) {
         k = le32(((const uint32_t *)data)[i])*C1;

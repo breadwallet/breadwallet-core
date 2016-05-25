@@ -322,9 +322,10 @@ BRPaymentProtocolDetails *BRPaymentProtocolDetailsParse(const uint8_t *buf, size
     uint8_t *unknown = NULL;
 
     assert(details != NULL);
+    assert(buf != NULL || bufLen == 0);
     array_new(details->outputs, 1);
     
-    while (off < bufLen) {
+    while (buf && off < bufLen) {
         BRTxOutput output = BR_TX_OUTPUT_NONE;
         const uint8_t *data = NULL;
         size_t dLen = bufLen;
@@ -368,6 +369,8 @@ size_t BRPaymentProtocolDetailsSerialize(const BRPaymentProtocolDetails *details
     uint8_t *unknown = NULL, *outputBuf = malloc(outputLen);
     
     assert(outputBuf != NULL);
+    assert(details != NULL);
+    assert(buf != NULL || bufLen == 0);
     
     if (details->network && ! _protobuf_is_default(details->network, details_network)) {
         _ProtoBufSetString(buf, bufLen, details->network, details_network, &off);
@@ -399,6 +402,8 @@ size_t BRPaymentProtocolDetailsSerialize(const BRPaymentProtocolDetails *details
 // frees memory allocated for details struct
 void BRPaymentProtocolDetailsFree(BRPaymentProtocolDetails *details)
 {
+    assert(details != NULL);
+    
     if (details->network && _protobuf_unknown(details->network, details_unknown)) {
         array_free(_protobuf_unknown(details->network, details_unknown));
     }
@@ -429,9 +434,10 @@ BRPaymentProtocolRequest *BRPaymentProtocolRequestParse(const uint8_t *buf, size
     uint8_t *unknown = NULL;
     
     assert(request != NULL);
+    assert(buf != NULL || bufLen == 0);
     request->version = UINT32_MAX;
     
-    while (off < bufLen) {
+    while (buf && off < bufLen) {
         const uint8_t *data = NULL;
         size_t dataLen = bufLen;
         uint64_t i = 0, key = _ProtoBufField(&i, &data, buf, &dataLen, &off);
@@ -472,6 +478,9 @@ size_t BRPaymentProtocolRequestSerialize(const BRPaymentProtocolRequest *request
     size_t off = 0;
     uint8_t *unknown = NULL;
 
+    assert(request != NULL);
+    assert(buf != NULL || bufLen == 0);
+    
     if (request->pkiType && ! _protobuf_is_default(request->pkiType, request_version)) {
         _ProtoBufSetInt(buf, bufLen, request->version, request_version, &off);
     }
@@ -508,6 +517,9 @@ size_t BRPaymentProtocolRequestCert(const BRPaymentProtocolRequest *request, uin
 {
     size_t off = 0, len = 0;
     
+    assert(request != NULL);
+    assert(cert != NULL || certLen == 0);
+    
     while (request->pkiData && off < request->pkiLen) {
         const uint8_t *data = NULL;
         size_t dataLen = request->pkiLen;
@@ -530,6 +542,8 @@ size_t BRPaymentProtocolRequestCert(const BRPaymentProtocolRequest *request, uin
 // returns the number of bytes written, or the total bytes needed if md is NULL
 size_t BRPaymentProtocolRequestDigest(BRPaymentProtocolRequest *request, uint8_t *md, size_t mdLen)
 {
+    assert(request != NULL);
+    assert(md != NULL || mdLen == 0);
     request->sigLen = 0; // set signature to 0 bytes, a signature can't sign itself
     
     size_t len = BRPaymentProtocolRequestSerialize(request, NULL, 0);
@@ -539,11 +553,11 @@ size_t BRPaymentProtocolRequestDigest(BRPaymentProtocolRequest *request, uint8_t
     len = BRPaymentProtocolRequestSerialize(request, buf, len);
     
     if (request->pkiType && strncmp(request->pkiType, "x509+sha256", strlen("x509+sha256") + 1) == 0) {
-        if (256/8 <= mdLen) BRSHA256(md, buf, len);
+        if (md && 256/8 <= mdLen) BRSHA256(md, buf, len);
         len = 256/8;
     }
     else if (request->pkiType && strncmp(request->pkiType, "x509+sha1", strlen("x509+sha1") + 1) == 0) {
-        if (160/8 <= mdLen) BRSHA1(md, buf, len);
+        if (md && 160/8 <= mdLen) BRSHA1(md, buf, len);
         len = 160/8;
     }
     else len = 0;
@@ -556,6 +570,8 @@ size_t BRPaymentProtocolRequestDigest(BRPaymentProtocolRequest *request, uint8_t
 // frees memory allocated for request struct
 void BRPaymentProtocolRequestFree(BRPaymentProtocolRequest *request)
 {
+    assert(request != NULL);
+    
     if (request->pkiType && _protobuf_unknown(request->pkiType, request_unknown)) {
         array_free(_protobuf_unknown(request->pkiType, request_unknown));
     }
@@ -577,6 +593,10 @@ BRPaymentProtocolPayment *BRPaymentProtocolPaymentNew(const uint8_t *merchantDat
     BRPaymentProtocolPayment *payment = calloc(1, sizeof(BRPaymentProtocolPayment));
     
     assert(payment != NULL);
+    assert(merchantData != NULL || merchDataLen == 0);
+    assert(transactions != NULL || txCount == 0);
+    assert(refundToAmounts != NULL || refundToCount == 0);
+    assert(refundToAddresses!= NULL || refundToCount == 0);
     
     if (merchantData) {
         array_new(payment->merchantData, merchDataLen);
@@ -621,10 +641,11 @@ BRPaymentProtocolPayment *BRPaymentProtocolPaymentParse(const uint8_t *buf, size
     uint8_t *unknown = NULL;
     
     assert(payment != NULL);
+    assert(buf != NULL || bufLen == 0);
     array_new(payment->transactions, 1);
     array_new(payment->refundTo, 1);
     
-    while (off < bufLen) {
+    while (buf && off < bufLen) {
         BRTransaction *tx = NULL;
         BRTxOutput output = BR_TX_OUTPUT_NONE;
         const uint8_t *data = NULL;
@@ -658,6 +679,8 @@ size_t BRPaymentProtocolPaymentSerialize(const BRPaymentProtocolPayment *payment
     uint8_t *unknown = NULL, *sBuf = malloc(sLen);
 
     assert(sBuf != NULL);
+    assert(payment != NULL);
+    assert(buf != NULL || bufLen == 0);
     
     if (payment->merchantData) {
         _ProtoBufSetBytes(buf, bufLen, payment->merchantData, payment->merchDataLen, payment_merch_data, &off);
@@ -692,6 +715,7 @@ size_t BRPaymentProtocolPaymentSerialize(const BRPaymentProtocolPayment *payment
 // frees memory allocated for payment struct (does not call BRTransactionFree() on transactions)
 void BRPaymentProtocolPaymentFree(BRPaymentProtocolPayment *payment)
 {
+    assert(payment != NULL);
     if (payment->merchantData) array_free(payment->merchantData);
     
     if (payment->transactions && _protobuf_unknown(payment->transactions, payment_unknown)) {
@@ -721,8 +745,9 @@ BRPaymentProtocolACK *BRPaymentProtocolACKParse(const uint8_t *buf, size_t bufLe
     uint8_t *unknown = NULL;
     
     assert(ack != NULL);
+    assert(buf != NULL || bufLen == 0);
     
-    while (off < bufLen) {
+    while (buf && off < bufLen) {
         const uint8_t *data = NULL;
         size_t dataLen = bufLen;
         uint64_t i = 0, key = _ProtoBufField(&i, &data, buf, &dataLen, &off);
@@ -748,7 +773,11 @@ BRPaymentProtocolACK *BRPaymentProtocolACKParse(const uint8_t *buf, size_t bufLe
 size_t BRPaymentProtocolACKSerialize(const BRPaymentProtocolACK *ack, uint8_t *buf, size_t bufLen)
 {
     size_t off = 0;
-    uint8_t *unknown = *(uint8_t **)(ack + 1);
+    uint8_t *unknown;
+    
+    assert(ack != NULL);
+    assert(buf != NULL || bufLen == 0);
+    unknown = *(uint8_t **)(ack + 1);
     
     if (ack->payment) {
         size_t paymentLen = BRPaymentProtocolPaymentSerialize(ack->payment, NULL, 0);
@@ -771,8 +800,10 @@ size_t BRPaymentProtocolACKSerialize(const BRPaymentProtocolACK *ack, uint8_t *b
 // frees memory allocated for ACK struct
 void BRPaymentProtocolACKFree(BRPaymentProtocolACK *ack)
 {
-    uint8_t *unknown = *(uint8_t **)(ack + 1);
+    uint8_t *unknown;
     
+    assert(ack != NULL);
+    unknown = *(uint8_t **)(ack + 1);
     if (ack->payment) BRPaymentProtocolPaymentFree(ack->payment);
     if (ack->memo) array_free(ack->memo);
     if (unknown) array_free(unknown);
