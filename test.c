@@ -201,12 +201,12 @@ int BRListTests()
 
 inline static size_t hash_int(const void *i)
 {
-    return (size_t)(*(int *)i)*0x01000193; // i*FNV_PRIME
+    return (size_t)(*(const int *)i)*0x01000193; // i*FNV_PRIME
 }
 
 inline static int eq_int(const void *a, const void *b)
 {
-    return (*(int *)a == *(int *)b);
+    return (*(const int *)a == *(const int *)b);
 }
 
 int BRSetTests()

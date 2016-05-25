@@ -667,7 +667,7 @@ int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, const void *see
         BRBIP32PrivKeyList(&keys[internalCount], externalCount, seed, seedLen, SEQUENCE_EXTERNAL_CHAIN, externalIdx);
         // TODO: XXX wipe seed callback
         seed = NULL;
-        r = BRTransactionSign(tx, keys, internalCount + externalCount);
+        if (tx) r = BRTransactionSign(tx, keys, internalCount + externalCount);
         for (i = 0; i < internalCount + externalCount; i++) BRKeyClean(&keys[i]);
     }
     else r = -1; // user canceled authentication
@@ -1017,7 +1017,7 @@ uint64_t BRWalletFeeForTx(BRWallet *wallet, const BRTransaction *tx)
     
     pthread_mutex_unlock(&wallet->lock);
     
-    for (size_t i = 0; i < tx->outCount && amount != UINT64_MAX; i++) {
+    for (size_t i = 0; tx && i < tx->outCount && amount != UINT64_MAX; i++) {
         amount -= tx->outputs[i].amount;
     }
     

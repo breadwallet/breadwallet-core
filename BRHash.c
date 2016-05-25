@@ -501,7 +501,7 @@ uint32_t BRMurmur3_32(const void *data, size_t len, uint32_t seed)
     size_t i, count = len/4;
     
     for (i = 0; i < count; i++) {
-        k = le32(((uint32_t *)data)[i])*C1;
+        k = le32(((const uint32_t *)data)[i])*C1;
         k = rol32(k, 15)*C2;
         h ^= k;
         h = rol32(h, 13)*5 + 0xe6546b64;
@@ -510,9 +510,9 @@ uint32_t BRMurmur3_32(const void *data, size_t len, uint32_t seed)
     k = 0;
     
     switch (len & 3) {
-        case 3: k ^= ((uint8_t *)data)[i*4 + 2] << 16; // fall through
-        case 2: k ^= ((uint8_t *)data)[i*4 + 1] << 8; // fall through
-        case 1: k ^= ((uint8_t *)data)[i*4], k *= C1, h ^= rol32(k, 15)*C2;
+        case 3: k ^= ((const uint8_t *)data)[i*4 + 2] << 16; // fall through
+        case 2: k ^= ((const uint8_t *)data)[i*4 + 1] << 8; // fall through
+        case 1: k ^= ((const uint8_t *)data)[i*4], k *= C1, h ^= rol32(k, 15)*C2;
     }
     
     h ^= len;
