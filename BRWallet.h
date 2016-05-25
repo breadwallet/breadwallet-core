@@ -97,7 +97,7 @@ int BRWalletAddressIsUsed(BRWallet *wallet, const char *addr);
 // returns the number of transactions written, or total number available if transactions is NULL
 size_t BRWalletTransactions(BRWallet *wallet, BRTransaction *transactions[], size_t count);
 
-// writes transactions registered in the wallet, but unconfirmed prior to blockHeight, to the given transactions array
+// writes transactions registered in the wallet, and that were unconfirmed before blockHeight, to the transactions array
 // returns the number of transactions written, or total number available if transactions is NULL
 size_t BRWalletTxUnconfirmedBefore(BRWallet *wallet, BRTransaction *transactions[], size_t count, uint32_t blockHeight);
 
