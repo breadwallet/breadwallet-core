@@ -194,7 +194,7 @@ inline static int _peerTimestampCompare(const void *peer, const void *otherPeer)
 // returns a hash value for a block's prevBlock value suitable for use in a hashtable
 inline static size_t _BRPrevBlockHash(const void *block)
 {
-    return *(size_t *)&((const BRMerkleBlock *)block)->prevBlock;
+    return (size_t)((const BRMerkleBlock *)block)->prevBlock.u32[0];
 }
 
 // true if block and otherBlock have equal prevBlock values
@@ -206,7 +206,7 @@ inline static int _BRPrevBlockEq(const void *block, const void *otherBlock)
 // returns a hash value for a block's height value suitable for use in a hashtable
 inline static size_t _BRBlockHeightHash(const void *block)
 {
-    return (size_t)((const BRMerkleBlock *)block)->height*0x01000193; // height*FNV_PRIME
+    return (size_t)(((const BRMerkleBlock *)block)->height*0x01000193); // height*FNV_PRIME
 }
 
 // true if block and otherBlock have equal height values

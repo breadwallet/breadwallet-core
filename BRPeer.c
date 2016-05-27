@@ -329,7 +329,7 @@ static int _BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t msgL
             if (blockCount == 1 && UInt256Eq(ctx->lastBlockHash, get_u256(blocks[0]))) blockCount = 0;
             if (blockCount == 1) ctx->lastBlockHash = get_u256(blocks[0]);
 
-            UInt256 blockHashes[blockCount], txHashes[txCount], *knownTxHashes = ctx->knownTxHashes;
+            UInt256 hash, blockHashes[blockCount], txHashes[txCount], *knownTxHashes = ctx->knownTxHashes;
 
             for (i = 0; i < blockCount; i++) {
                 blockHashes[i] = get_u256(blocks[i]);
@@ -344,9 +344,10 @@ static int _BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t msgL
             if (ctx->needsFilterUpdate) blockCount = 0;
         
             for (i = 0, j = 0; i < txCount; i++) {
-                if (BRSetContains(ctx->knownTxHashSet, transactions[i])) continue; // skip transactions we already have
-                txHashes[j++] = get_u256(transactions[i]);
-                array_add(knownTxHashes, txHashes[j - 1]);
+                hash = get_u256(transactions[i]);
+                if (BRSetContains(ctx->knownTxHashSet, &hash)) continue; // skip transactions we already have
+                txHashes[j++] = hash;
+                array_add(knownTxHashes, hash);
             
                 if (ctx->knownTxHashes != knownTxHashes) { // check if knownTxHashes was moved to a new memory location
                     ctx->knownTxHashes = knownTxHashes;
@@ -358,7 +359,7 @@ static int _BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t msgL
                 }
                 else BRSetAdd(ctx->knownTxHashSet, &knownTxHashes[array_count(knownTxHashes) - 1]);
             
-                if (ctx->hasTx) ctx->hasTx(ctx->info, txHashes[j - 1]);
+                if (ctx->hasTx) ctx->hasTx(ctx->info, hash);
             }
             
             txCount = j;

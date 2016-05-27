@@ -266,7 +266,7 @@ size_t BRKeyPrivKey(BRKey *key, char *privKey, size_t pkLen)
         data[0] = BITCOIN_PRIVKEY_TEST;
 #endif
         
-        *(UInt256 *)&data[1] = key->secret;
+        set_u256(&data[1], key->secret);
         if (key->compressed) data[33] = 0x01;
         pkLen = BRBase58CheckEncode(privKey, pkLen, data, (key->compressed) ? 34 : 33);
         memset(data, 0, sizeof(data));

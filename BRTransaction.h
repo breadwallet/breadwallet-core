@@ -134,7 +134,7 @@ int BRTransactionIsStandard(BRTransaction *tx);
 // returns a hash value for tx suitable for use in a hashtable
 inline static size_t BRTransactionHash(const void *tx)
 {
-    return ((const BRTransaction *)tx)->txHash.u32[0];
+    return (size_t)((const BRTransaction *)tx)->txHash.u32[0];
 }
 
 // true if tx and otherTx have equal txHash values

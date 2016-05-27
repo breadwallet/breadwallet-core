@@ -234,7 +234,6 @@ size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *scri
 {
     assert(addr != NULL || addrLen == 0);
     assert(script != NULL || scriptLen == 0);
-    assert(scriptLen <= MAX_SCRIPT_LENGTH);
     if (! script || scriptLen == 0 || scriptLen > MAX_SCRIPT_LENGTH) return 0;
     
     uint8_t data[21];
@@ -277,7 +276,6 @@ size_t BRAddressFromScriptSig(char *addr, size_t addrLen, const uint8_t *script,
 {
     assert(addr != NULL || addrLen == 0);
     assert(script != NULL || scriptLen == 0);
-    assert(scriptLen <= MAX_SCRIPT_LENGTH);
     if (! script || scriptLen == 0 || scriptLen > MAX_SCRIPT_LENGTH) return 0;
     
     uint8_t data[21];
