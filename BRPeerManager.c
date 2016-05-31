@@ -206,7 +206,8 @@ inline static int _BRPrevBlockEq(const void *block, const void *otherBlock)
 // returns a hash value for a block's height value suitable for use in a hashtable
 inline static size_t _BRBlockHeightHash(const void *block)
 {
-    return (size_t)(((const BRMerkleBlock *)block)->height*0x01000193); // height*FNV_PRIME
+    // (FNV_OFFSET xor height)*FNV_PRIME
+    return (size_t)((0x811C9dc5 ^ ((const BRMerkleBlock *)block)->height)*0x01000193);
 }
 
 // true if block and otherBlock have equal height values
@@ -219,7 +220,7 @@ struct BRPeerManagerStruct {
     BRWallet *wallet;
     int isConnected, connectFailureCount, misbehavinCount;
     BRPeer *peers, *downloadPeer, **connectedPeers;
-    uint32_t tweak, earliestKeyTime, syncStartHeight, filterUpdateHeight, estimatedHeight;
+    uint32_t earliestKeyTime, syncStartHeight, filterUpdateHeight, estimatedHeight;
     BRBloomFilter *bloomFilter;
     double fpRate, averageTxPerBlock;
     BRSet *blocks, *orphans, *checkpoints;
@@ -341,7 +342,7 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
         addrsCount = BRWalletAllAddrs(manager->wallet, addrs, addrsCount);
         utxosCount = BRWalletUTXOs(manager->wallet, utxos, utxosCount);
         txCount = BRWalletTxUnconfirmedBefore(manager->wallet, transactions, txCount, blockHeight);
-        filter = BRBloomFilterNew(manager->fpRate, addrsCount + utxosCount + txCount + 100, manager->tweak,
+        filter = BRBloomFilterNew(manager->fpRate, addrsCount + utxosCount + txCount + 100, (uint32_t)BRPeerHash(peer),
                                   BLOOM_UPDATE_ALL);
         
         for (size_t i = 0; i < addrsCount; i++) { // add addresses to watch for tx receiveing money to the wallet
@@ -1222,7 +1223,6 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
             manager->fpRate > BLOOM_DEFAULT_FALSEPOSITIVE_RATE*10.0) {
             peer_log(peer, "bloom filter false positive rate %f too high after %"PRIu32" blocks, disconnecting...",
                      manager->fpRate, manager->lastBlock->height + 1 - manager->filterUpdateHeight);
-            manager->tweak = BRRand(0); // new random filter tweak in case we matched satoshidice or something
             BRPeerDisconnect(peer);
         }
         else if (manager->lastBlock->height + 500 < BRPeerLastBlock(peer) &&
@@ -1510,7 +1510,6 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
     manager->wallet = wallet;
     manager->earliestKeyTime = earliestKeyTime;
     manager->averageTxPerBlock = 400;
-    manager->tweak = BRRand(0);
     array_new(manager->peers, peersCount);
     if (peers) array_add_array(manager->peers, peers, peersCount);
     qsort(manager->peers, array_count(manager->peers), sizeof(*manager->peers), _peerTimestampCompare);

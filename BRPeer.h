@@ -193,8 +193,10 @@ void BRPeerRerequestBlocks(BRPeer *peer, UInt256 fromBlock);
 // returns a hash value for peer suitable for use in a hashtable
 inline static size_t BRPeerHash(const void *peer)
 {
-    // (address xor port)*FNV_PRIME
-    return (size_t)((((const BRPeer *)peer)->address.u32[3] ^ ((const BRPeer *)peer)->port)*0x01000193);
+    uint32_t address = ((const BRPeer *)peer)->address.u32[3], port = ((const BRPeer *)peer)->port;
+ 
+    // (((FNV_OFFSET xor address)*FNV_PRIME) xor port)*FNV_PRIME
+    return (size_t)((((0x811C9dc5 ^ address)*0x01000193) ^ port)*0x01000193);
 }
 
 // true if a and b have the same address and port

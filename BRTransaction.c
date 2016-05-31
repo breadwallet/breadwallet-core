@@ -45,7 +45,8 @@ uint32_t BRRand(uint32_t upperBound)
     static int first = 1;
     uint32_t r;
     
-    if (first) srand(((unsigned)time(NULL) ^ (unsigned)getpid())*0x01000193); // seed = (time xor pid)*FNV_PRIME
+    // seed = (((FNV_OFFSET xor time)*FNV_PRIME) xor pid)*FNV_PRIME
+    if (first) srand((((0x811C9dc5 ^ (unsigned)time(NULL))*0x01000193) ^ (unsigned)getpid())*0x01000193);
     first = 0;
     if (upperBound == 0 || upperBound > BR_RAND_MAX) upperBound = BR_RAND_MAX;
     
