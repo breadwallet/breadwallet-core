@@ -244,7 +244,7 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
     BRTransaction *tx;
 
     assert(transactions != NULL || txCount == 0);
-    wallet = calloc(1, sizeof(BRWallet));
+    wallet = calloc(1, sizeof(*wallet));
     assert(wallet != NULL);
     array_new(wallet->utxos, 100);
     array_new(wallet->transactions, txCount + 100);

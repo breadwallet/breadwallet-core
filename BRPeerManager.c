@@ -328,12 +328,12 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
         manager->fpRate = BLOOM_REDUCED_FALSEPOSITIVE_RATE;
 
         size_t addrsCount = BRWalletAllAddrs(manager->wallet, NULL, 0);
-        BRAddress *addrs = malloc(sizeof(BRAddress)*addrsCount);
+        BRAddress *addrs = malloc(sizeof(*addrs)*addrsCount);
         size_t utxosCount = BRWalletUTXOs(manager->wallet, NULL, 0);
-        BRUTXO *utxos = malloc(sizeof(BRUTXO)*utxosCount);
+        BRUTXO *utxos = malloc(sizeof(*utxos)*utxosCount);
         uint32_t blockHeight = (manager->lastBlock->height > 100) ? manager->lastBlock->height - 100 : 0;
         size_t txCount = BRWalletTxUnconfirmedBefore(manager->wallet, NULL, 0, blockHeight);
-        BRTransaction **transactions = malloc(sizeof(BRTransaction *)*txCount);
+        BRTransaction **transactions = malloc(sizeof(*transactions)*txCount);
 
         assert(addrs != NULL);
         assert(utxos != NULL);
@@ -1189,7 +1189,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
     size_t txCount = BRMerkleBlockTxHashes(block, NULL, 0);
     UInt256 _txHashes[(sizeof(UInt256)*txCount <= MAX_STACK) ? txCount : 0],
-            *txHashes = (sizeof(UInt256)*txCount <= MAX_STACK) ? _txHashes : malloc(sizeof(UInt256)*txCount);
+            *txHashes = (sizeof(UInt256)*txCount <= MAX_STACK) ? _txHashes : malloc(sizeof(*txHashes)*txCount);
     size_t i, fpCount = 0, saveCount = 0;
     BRMerkleBlock orphan, *b, *b2, *prev, *next = NULL;
     uint32_t txTime = 0;

@@ -688,7 +688,7 @@ static int _BRPeerAcceptMerkleblockMessage(BRPeer *peer, const uint8_t *msg, siz
     else {
         size_t count = BRMerkleBlockTxHashes(block, NULL, 0);
         UInt256 _hashes[(sizeof(UInt256)*count <= MAX_STACK) ? count : 0],
-                *hashes = (sizeof(UInt256)*count <= MAX_STACK) ? _hashes : malloc(count*sizeof(UInt256));
+                *hashes = (sizeof(UInt256)*count <= MAX_STACK) ? _hashes : malloc(count*sizeof(*hashes));
         
         assert(hashes != NULL);
         count = BRMerkleBlockTxHashes(block, hashes, count);
@@ -961,7 +961,7 @@ static void *_peerThreadRoutine(void *arg)
 // returns a newly allocated BRPeer struct that must be freed by calling BRPeerFree()
 BRPeer *BRPeerNew(void)
 {
-    BRPeerContext *ctx = calloc(1, sizeof(BRPeerContext));
+    BRPeerContext *ctx = calloc(1, sizeof(*ctx));
     
     assert(ctx != NULL);
     array_new(ctx->useragent, 40);

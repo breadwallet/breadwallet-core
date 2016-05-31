@@ -45,7 +45,7 @@ uint32_t BRRand(uint32_t upperBound)
     static int first = 1;
     uint32_t r;
     
-    if (first) srand(((unsigned)time(NULL) ^ getpid())*0x01000193); // seed = (time xor pid)*FNV_PRIME
+    if (first) srand(((unsigned)time(NULL) ^ (unsigned)getpid())*0x01000193); // seed = (time xor pid)*FNV_PRIME
     first = 0;
     if (upperBound == 0 || upperBound > BR_RAND_MAX) upperBound = BR_RAND_MAX;
     
@@ -245,7 +245,7 @@ static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t 
 // returns a newly allocated empty transaction that must be freed by calling BRTransactionFree()
 BRTransaction *BRTransactionNew(void)
 {
-    BRTransaction *tx = calloc(1, sizeof(BRTransaction));
+    BRTransaction *tx = calloc(1, sizeof(*tx));
 
     assert(tx != NULL);
     tx->version = TX_VERSION;

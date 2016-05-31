@@ -317,7 +317,7 @@ static size_t _BRPaymentProtocolOutputSerialize(BRTxOutput *output, uint8_t *buf
 // returns a details struct that must be freed by calling BRPaymentProtocolDetailsFree()
 BRPaymentProtocolDetails *BRPaymentProtocolDetailsParse(const uint8_t *buf, size_t bufLen)
 {
-    BRPaymentProtocolDetails *details = calloc(1, sizeof(BRPaymentProtocolDetails));
+    BRPaymentProtocolDetails *details = calloc(1, sizeof(*details));
     size_t off = 0;
     uint8_t *unknown = NULL;
 
@@ -429,7 +429,7 @@ void BRPaymentProtocolDetailsFree(BRPaymentProtocolDetails *details)
 // returns a request struct that must be freed by calling BRPaymentProtocolRequestFree()
 BRPaymentProtocolRequest *BRPaymentProtocolRequestParse(const uint8_t *buf, size_t bufLen)
 {
-    BRPaymentProtocolRequest *request = calloc(1, sizeof(BRPaymentProtocolRequest));
+    BRPaymentProtocolRequest *request = calloc(1, sizeof(*request));
     size_t off = 0;
     uint8_t *unknown = NULL;
     
@@ -590,7 +590,7 @@ BRPaymentProtocolPayment *BRPaymentProtocolPaymentNew(const uint8_t *merchantDat
                                                       const BRAddress refundToAddresses[], size_t refundToCount,
                                                       const char *memo)
 {
-    BRPaymentProtocolPayment *payment = calloc(1, sizeof(BRPaymentProtocolPayment));
+    BRPaymentProtocolPayment *payment = calloc(1, sizeof(*payment));
     
     assert(payment != NULL);
     assert(merchantData != NULL || merchDataLen == 0);
@@ -636,7 +636,7 @@ BRPaymentProtocolPayment *BRPaymentProtocolPaymentNew(const uint8_t *merchantDat
 // returns a payment struct that must be freed by calling BRPaymentProtocolPaymentFree()
 BRPaymentProtocolPayment *BRPaymentProtocolPaymentParse(const uint8_t *buf, size_t bufLen)
 {
-    BRPaymentProtocolPayment *payment = calloc(1, sizeof(BRPaymentProtocolPayment));
+    BRPaymentProtocolPayment *payment = calloc(1, sizeof(*payment));
     size_t off = 0;
     uint8_t *unknown = NULL;
     
@@ -740,7 +740,7 @@ void BRPaymentProtocolPaymentFree(BRPaymentProtocolPayment *payment)
 // returns a ACK struct that must be freed by calling BRPaymentProtocolACKFree()
 BRPaymentProtocolACK *BRPaymentProtocolACKParse(const uint8_t *buf, size_t bufLen)
 {
-    BRPaymentProtocolACK *ack = calloc(1, sizeof(BRPaymentProtocolACK) + sizeof(uint8_t *));
+    BRPaymentProtocolACK *ack = calloc(1, ((sizeof(*ack) + 0xf) & ~0xf) + sizeof(uint8_t *));
     size_t off = 0;
     uint8_t *unknown = NULL;
     
@@ -759,7 +759,7 @@ BRPaymentProtocolACK *BRPaymentProtocolACKParse(const uint8_t *buf, size_t bufLe
         }
     }
     
-    if (unknown) *(uint8_t **)(ack + 1) = unknown;
+    if (unknown) *(uint8_t **)((uint8_t *)ack + ((sizeof(*ack) + 0xf) & ~0xf)) = unknown;
     
     if (! ack->payment) { // required
         BRPaymentProtocolACKFree(ack);
@@ -777,7 +777,7 @@ size_t BRPaymentProtocolACKSerialize(const BRPaymentProtocolACK *ack, uint8_t *b
     
     assert(ack != NULL);
     assert(buf != NULL || bufLen == 0);
-    unknown = *(uint8_t **)(ack + 1);
+    unknown = *(uint8_t **)((uint8_t *)ack + ((sizeof(*ack) + 0xf) & ~0xf));
     
     if (ack->payment) {
         size_t paymentLen = BRPaymentProtocolPaymentSerialize(ack->payment, NULL, 0);
@@ -803,7 +803,7 @@ void BRPaymentProtocolACKFree(BRPaymentProtocolACK *ack)
     uint8_t *unknown;
     
     assert(ack != NULL);
-    unknown = *(uint8_t **)(ack + 1);
+    unknown = *(uint8_t **)((uint8_t *)ack + ((sizeof(*ack) + 0xf) & ~0xf));
     if (ack->payment) BRPaymentProtocolPaymentFree(ack->payment);
     if (ack->memo) array_free(ack->memo);
     if (unknown) array_free(unknown);

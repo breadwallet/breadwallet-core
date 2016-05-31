@@ -58,7 +58,7 @@ extern "C" {
 //
 // note:
 // when new items are added to an array past its current capacity, its memory location may change, so other references
-// to it must be updated
+// to it or its members must be updated
 
 #define array_new(array, capacity) do {\
     size_t _array_cap = (capacity);\
