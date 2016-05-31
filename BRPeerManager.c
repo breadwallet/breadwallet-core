@@ -313,79 +313,77 @@ static void _setMapFreeBlock(void *info, void *block)
 
 static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
 {
-    BRBloomFilter *filter = manager->bloomFilter;
+    BRBloomFilter *filter;
     
-    if (! filter) {
-        // every time a new wallet address is added, the bloom filter has to be rebuilt, and each address is only used
-        // for one transaction, so here we generate some spare addresses to avoid rebuilding the filter each time a
-        // wallet transaction is encountered during the chain sync
-        BRWalletUnusedAddrs(manager->wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL + 100, 0);
-        BRWalletUnusedAddrs(manager->wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL + 100, 1);
+    // every time a new wallet address is added, the bloom filter has to be rebuilt, and each address is only used
+    // for one transaction, so here we generate some spare addresses to avoid rebuilding the filter each time a
+    // wallet transaction is encountered during the chain sync
+    BRWalletUnusedAddrs(manager->wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL + 100, 0);
+    BRWalletUnusedAddrs(manager->wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL + 100, 1);
 
-        BRSetMap(manager->orphans, NULL, _setMapFreeBlock);
-        BRSetClear(manager->orphans); // clear out orphans that may have been received on an old filter
-        manager->lastOrphan = NULL;
-        manager->filterUpdateHeight = manager->lastBlock->height;
-        manager->fpRate = BLOOM_REDUCED_FALSEPOSITIVE_RATE;
-
-        size_t addrsCount = BRWalletAllAddrs(manager->wallet, NULL, 0);
-        BRAddress *addrs = malloc(sizeof(*addrs)*addrsCount);
-        size_t utxosCount = BRWalletUTXOs(manager->wallet, NULL, 0);
-        BRUTXO *utxos = malloc(sizeof(*utxos)*utxosCount);
-        uint32_t blockHeight = (manager->lastBlock->height > 100) ? manager->lastBlock->height - 100 : 0;
-        size_t txCount = BRWalletTxUnconfirmedBefore(manager->wallet, NULL, 0, blockHeight);
-        BRTransaction **transactions = malloc(sizeof(*transactions)*txCount);
-
-        assert(addrs != NULL);
-        assert(utxos != NULL);
-        assert(transactions != NULL);
-        addrsCount = BRWalletAllAddrs(manager->wallet, addrs, addrsCount);
-        utxosCount = BRWalletUTXOs(manager->wallet, utxos, utxosCount);
-        txCount = BRWalletTxUnconfirmedBefore(manager->wallet, transactions, txCount, blockHeight);
-        filter = BRBloomFilterNew(manager->fpRate, addrsCount + utxosCount + txCount + 100, (uint32_t)BRPeerHash(peer),
-                                  BLOOM_UPDATE_ALL);
-        
-        for (size_t i = 0; i < addrsCount; i++) { // add addresses to watch for tx receiveing money to the wallet
-            UInt160 hash = UINT160_ZERO;
-            
-            BRAddressHash160(&hash, addrs[i].s);
-        
-            if (! UInt160IsZero(hash) && ! BRBloomFilterContainsData(filter, hash.u8, sizeof(hash))) {
-                BRBloomFilterInsertData(filter, hash.u8, sizeof(hash));
-            }
-        }
-
-        free(addrs);
-        
-        for (size_t i = 0; i < utxosCount; i++) { // add UTXOs to watch for tx sending money from the wallet
-            uint8_t o[sizeof(UInt256) + sizeof(uint32_t)];
-
-            set_u256(o, utxos[i].hash);
-            set_u32le(&o[sizeof(UInt256)], utxos[i].n);
-            if (! BRBloomFilterContainsData(filter, o, sizeof(o))) BRBloomFilterInsertData(filter, o, sizeof(o));
-        }
+    BRSetMap(manager->orphans, NULL, _setMapFreeBlock);
+    BRSetClear(manager->orphans); // clear out orphans that may have been received on an old filter
+    manager->lastOrphan = NULL;
+    manager->filterUpdateHeight = manager->lastBlock->height;
+    manager->fpRate = BLOOM_REDUCED_FALSEPOSITIVE_RATE;
     
-        free(utxos);
+    size_t addrsCount = BRWalletAllAddrs(manager->wallet, NULL, 0);
+    BRAddress *addrs = malloc(addrsCount*sizeof(*addrs));
+    size_t utxosCount = BRWalletUTXOs(manager->wallet, NULL, 0);
+    BRUTXO *utxos = malloc(utxosCount*sizeof(*utxos));
+    uint32_t blockHeight = (manager->lastBlock->height > 100) ? manager->lastBlock->height - 100 : 0;
+    size_t txCount = BRWalletTxUnconfirmedBefore(manager->wallet, NULL, 0, blockHeight);
+    BRTransaction **transactions = malloc(txCount*sizeof(*transactions));
+    
+    assert(addrs != NULL);
+    assert(utxos != NULL);
+    assert(transactions != NULL);
+    addrsCount = BRWalletAllAddrs(manager->wallet, addrs, addrsCount);
+    utxosCount = BRWalletUTXOs(manager->wallet, utxos, utxosCount);
+    txCount = BRWalletTxUnconfirmedBefore(manager->wallet, transactions, txCount, blockHeight);
+    filter = BRBloomFilterNew(manager->fpRate, addrsCount + utxosCount + txCount + 100, (uint32_t)BRPeerHash(peer),
+                              BLOOM_UPDATE_ALL);
+    
+    for (size_t i = 0; i < addrsCount; i++) { // add addresses to watch for tx receiveing money to the wallet
+        UInt160 hash = UINT160_ZERO;
         
-        for (size_t i = 0; i < txCount; i++) { // also add TXOs spent within the last 100 blocks
-            for (size_t j = 0; j < transactions[i]->inCount; j++) {
-                BRTxInput *input = &transactions[i]->inputs[j];
-                BRTransaction *tx = BRWalletTransactionForHash(manager->wallet, input->txHash);
-                uint8_t o[sizeof(UInt256) + sizeof(uint32_t)];
-
-                if (tx && input->index < tx->outCount &&
-                    BRWalletContainsAddress(manager->wallet, tx->outputs[input->index].address)) {
-                    set_u256(o, input->txHash);
-                    set_u32le(&o[sizeof(UInt256)], input->index);
-                    if (! BRBloomFilterContainsData(filter, o, sizeof(o))) BRBloomFilterInsertData(filter, o,sizeof(o));
-                }
-            }
+        BRAddressHash160(&hash, addrs[i].s);
+        
+        if (! UInt160IsZero(hash) && ! BRBloomFilterContainsData(filter, hash.u8, sizeof(hash))) {
+            BRBloomFilterInsertData(filter, hash.u8, sizeof(hash));
         }
-        
-        free(transactions);
-        manager->bloomFilter = filter;
-        // TODO: XXX if already synced, recursively add inputs of unconfirmed receives
     }
+
+    free(addrs);
+        
+    for (size_t i = 0; i < utxosCount; i++) { // add UTXOs to watch for tx sending money from the wallet
+        uint8_t o[sizeof(UInt256) + sizeof(uint32_t)];
+        
+        set_u256(o, utxos[i].hash);
+        set_u32le(&o[sizeof(UInt256)], utxos[i].n);
+        if (! BRBloomFilterContainsData(filter, o, sizeof(o))) BRBloomFilterInsertData(filter, o, sizeof(o));
+    }
+    
+    free(utxos);
+        
+    for (size_t i = 0; i < txCount; i++) { // also add TXOs spent within the last 100 blocks
+        for (size_t j = 0; j < transactions[i]->inCount; j++) {
+            BRTxInput *input = &transactions[i]->inputs[j];
+            BRTransaction *tx = BRWalletTransactionForHash(manager->wallet, input->txHash);
+            uint8_t o[sizeof(UInt256) + sizeof(uint32_t)];
+            
+            if (tx && input->index < tx->outCount &&
+                BRWalletContainsAddress(manager->wallet, tx->outputs[input->index].address)) {
+                set_u256(o, input->txHash);
+                set_u32le(&o[sizeof(UInt256)], input->index);
+                if (! BRBloomFilterContainsData(filter, o, sizeof(o))) BRBloomFilterInsertData(filter, o,sizeof(o));
+            }
+        }
+    }
+    
+    free(transactions);
+    manager->bloomFilter = filter;
+    // TODO: XXX if already synced, recursively add inputs of unconfirmed receives
 
     uint8_t data[BRBloomFilterSerialize(filter, NULL, 0)];
     size_t len = BRBloomFilterSerialize(filter, data, sizeof(data));
@@ -1190,7 +1188,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
     size_t txCount = BRMerkleBlockTxHashes(block, NULL, 0);
     UInt256 _txHashes[(sizeof(UInt256)*txCount <= MAX_STACK) ? txCount : 0],
-            *txHashes = (sizeof(UInt256)*txCount <= MAX_STACK) ? _txHashes : malloc(sizeof(*txHashes)*txCount);
+            *txHashes = (sizeof(UInt256)*txCount <= MAX_STACK) ? _txHashes : malloc(txCount*sizeof(*txHashes));
     size_t i, fpCount = 0, saveCount = 0;
     BRMerkleBlock orphan, *b, *b2, *prev, *next = NULL;
     uint32_t txTime = 0;
@@ -1352,8 +1350,8 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
                 uint32_t height = b->height, timestamp = b->timestamp;
                 
                 if (count > txCount) {
-                    txHashes = (txHashes != _txHashes) ? realloc(txHashes, sizeof(*txHashes)*count) :
-                               malloc(sizeof(*txHashes)*count);
+                    txHashes = (txHashes != _txHashes) ? realloc(txHashes, count*sizeof(*txHashes)) :
+                               malloc(count*sizeof(*txHashes));
                     assert(txHashes != NULL);
                     txCount = count;
                 }
