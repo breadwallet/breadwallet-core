@@ -153,7 +153,6 @@ static int _BRWalletTxIsSend(BRWallet *wallet, BRTransaction *tx)
 static void _BRWalletUpdateBalance(BRWallet *wallet)
 {
     int isInvalid, isPending;
-    char *addr;
     uint64_t balance = 0, prevBalance = 0;
     size_t i, j;
     BRTransaction *tx, *t;
@@ -163,6 +162,7 @@ static void _BRWalletUpdateBalance(BRWallet *wallet)
     BRSetClear(wallet->spentOutputs);
     BRSetClear(wallet->invalidTx);
     BRSetClear(wallet->pendingTx);
+    BRSetClear(wallet->usedAddrs);
     wallet->totalSent = 0;
     wallet->totalReceived = 0;
 
@@ -214,10 +214,9 @@ static void _BRWalletUpdateBalance(BRWallet *wallet)
         // NOTE: balance/UTXOs will then need to be recalculated when last block changes
         for (j = 0; j < tx->outCount; j++) {
             if (tx->outputs[j].address[0] != '\0') {
-                addr = BRSetGet(wallet->allAddrs, tx->outputs[j].address);
-                BRSetAdd(wallet->usedAddrs, (addr) ? addr : tx->outputs[j].address);
+                BRSetAdd(wallet->usedAddrs, tx->outputs[j].address);
                 
-                if (addr) {
+                if (BRSetContains(wallet->allAddrs, tx->outputs[j].address)) {
                     array_add(wallet->utxos, ((BRUTXO) { tx->txHash, (uint32_t)j }));
                     balance += tx->outputs[j].amount;
                 }
@@ -778,14 +777,6 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
         }
         else {
             BRSetRemove(wallet->allTx, tx);
-            BRSetRemove(wallet->invalidTx, tx);
-            BRSetRemove(wallet->pendingTx, tx);
-
-            for (size_t i = 0; i < tx->outCount; i++) {
-                if (BRSetGet(wallet->usedAddrs, tx->outputs[i].address) == tx->outputs[i].address) {
-                    BRSetRemove(wallet->usedAddrs, tx->outputs[i].address);
-                }
-            }
             
             for (size_t i = array_count(wallet->transactions); i > 0; i--) {
                 if (! BRTransactionEq(wallet->transactions[i - 1], tx)) continue;
