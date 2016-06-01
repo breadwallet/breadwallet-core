@@ -60,7 +60,7 @@ inline static uint64_t _txFee(uint64_t feePerKb, size_t size)
 }
 
 // chain position of first tx output address that appears in chain
-inline static size_t _txChainIdx(const BRTransaction *tx, const BRAddress *addrChain)
+inline static size_t _txChainIndex(const BRTransaction *tx, const BRAddress *addrChain)
 {
     for (size_t i = array_count(addrChain); i > 0; i--) {
         for (size_t j = 0; j < tx->outCount; j++) {
@@ -98,9 +98,9 @@ inline static int _BRWalletTxCompare(BRWallet *wallet, const BRTransaction *tx1,
 
     if (_BRWalletTxIsAscending(wallet, tx1, tx2)) return 1;
     if (_BRWalletTxIsAscending(wallet, tx2, tx1)) return -1;
-    i = _txChainIdx(tx1, wallet->internalChain);
-    j = _txChainIdx(tx2, (i == SIZE_MAX) ? wallet->externalChain : wallet->internalChain);
-    if (i == SIZE_MAX && j != SIZE_MAX) i = _txChainIdx((BRTransaction *)tx1, wallet->externalChain);
+    i = _txChainIndex(tx1, wallet->internalChain);
+    j = _txChainIndex(tx2, (i == SIZE_MAX) ? wallet->externalChain : wallet->internalChain);
+    if (i == SIZE_MAX && j != SIZE_MAX) i = _txChainIndex((BRTransaction *)tx1, wallet->externalChain);
     if (i != SIZE_MAX && j != SIZE_MAX && i != j) return (i > j) ? 1 : -1;
     return 0;
 }
@@ -335,6 +335,7 @@ void BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimit,
         if (! BRKeyAddress(&key, address.s, sizeof(address)) || BRAddressEq(&address, &BR_ADDRESS_NONE)) break;
         array_add(addrChain, address);
         count++;
+        if (BRSetContains(wallet->usedAddrs, &address)) i = count;
     }
 
     if (addrs && i + gapLimit <= count) {

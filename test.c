@@ -1211,6 +1211,9 @@ int BRWalletTests()
     if (BRWalletBalance(w) != SATOSHIS)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletNew() test\n", __func__);
 
+    if (BRWalletAllAddrs(w, NULL, 0) != SEQUENCE_GAP_LIMIT_EXTERNAL + SEQUENCE_GAP_LIMIT_INTERNAL + 1)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletAllAddrs() test\n", __func__);
+    
     UInt256 hash = tx->txHash;
 
     tx = BRWalletCreateTransaction(w, SATOSHIS*2, addr.s);
