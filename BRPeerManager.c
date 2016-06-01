@@ -313,8 +313,6 @@ static void _setMapFreeBlock(void *info, void *block)
 
 static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
 {
-    BRBloomFilter *filter;
-    
     // every time a new wallet address is added, the bloom filter has to be rebuilt, and each address is only used
     // for one transaction, so here we generate some spare addresses to avoid rebuilding the filter each time a
     // wallet transaction is encountered during the chain sync
@@ -334,6 +332,7 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
     uint32_t blockHeight = (manager->lastBlock->height > 100) ? manager->lastBlock->height - 100 : 0;
     size_t txCount = BRWalletTxUnconfirmedBefore(manager->wallet, NULL, 0, blockHeight);
     BRTransaction **transactions = malloc(txCount*sizeof(*transactions));
+    BRBloomFilter *filter;
     
     assert(addrs != NULL);
     assert(utxos != NULL);
@@ -382,6 +381,7 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
     }
     
     free(transactions);
+    if (manager->bloomFilter) BRBloomFilterFree(manager->bloomFilter);
     manager->bloomFilter = filter;
     // TODO: XXX if already synced, recursively add inputs of unconfirmed receives
 
@@ -819,8 +819,6 @@ static void _peerConnected(void *info)
             manager->downloadPeer = peer;
             manager->isConnected = 1;
             manager->estimatedHeight = BRPeerLastBlock(peer);
-            if (manager->bloomFilter) BRBloomFilterFree(manager->bloomFilter);
-            manager->bloomFilter = NULL; // make sure the bloom filter is updated with any newly generated addresses
             _BRPeerManagerLoadBloomFilter(manager, peer);
             BRPeerSetCurrentBlockHeight(peer, manager->lastBlock->height);
             _BRPeerManagerPublishPendingTx(manager, peer);

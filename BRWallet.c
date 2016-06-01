@@ -153,6 +153,7 @@ static int _BRWalletTxIsSend(BRWallet *wallet, BRTransaction *tx)
 static void _BRWalletUpdateBalance(BRWallet *wallet)
 {
     int isInvalid, isPending;
+    char *addr;
     uint64_t balance = 0, prevBalance = 0;
     size_t i, j;
     BRTransaction *tx, *t;
@@ -212,11 +213,14 @@ static void _BRWalletUpdateBalance(BRWallet *wallet)
         // TODO: don't add coin generation outputs < 100 blocks deep
         // NOTE: balance/UTXOs will then need to be recalculated when last block changes
         for (j = 0; j < tx->outCount; j++) {
-            BRSetAdd(wallet->usedAddrs, tx->outputs[j].address);
-            
-            if (BRSetContains(wallet->allAddrs, tx->outputs[j].address)) {
-                array_add(wallet->utxos, ((BRUTXO) { tx->txHash, (uint32_t)j }));
-                balance += tx->outputs[j].amount;
+            if (tx->outputs[j].address[0] != '\0') {
+                addr = BRSetGet(wallet->allAddrs, tx->outputs[j].address);
+                BRSetAdd(wallet->usedAddrs, (addr) ? addr : tx->outputs[j].address);
+                
+                if (addr) {
+                    array_add(wallet->utxos, ((BRUTXO) { tx->txHash, (uint32_t)j }));
+                    balance += tx->outputs[j].amount;
+                }
             }
         }
 
@@ -234,6 +238,7 @@ static void _BRWalletUpdateBalance(BRWallet *wallet)
         prevBalance = balance;
     }
 
+    assert(array_count(wallet->balanceHist) == array_count(wallet->transactions));
     wallet->balance = balance;
 }
 
@@ -266,13 +271,15 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
         if (! BRTransactionIsSigned(tx) || BRSetContains(wallet->allTx, tx)) continue;
         BRSetAdd(wallet->allTx, tx);
         _BRWalletInsertTx(wallet, tx);
-        for (size_t j = 0; j < tx->outCount; j++) BRSetAdd(wallet->usedAddrs, tx->outputs[j].address);
+
+        for (size_t j = 0; j < tx->outCount; j++) {
+            if (tx->outputs[j].address[0] != '\0') BRSetAdd(wallet->usedAddrs, tx->outputs[j].address);
+        }
     }
     
     BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL, 0);
     BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
     _BRWalletUpdateBalance(wallet);
-    if (wallet->balanceChanged) wallet->balanceChanged(wallet->callbackInfo, wallet->balance);
     return wallet;
 }
 
@@ -773,7 +780,12 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
             BRSetRemove(wallet->allTx, tx);
             BRSetRemove(wallet->invalidTx, tx);
             BRSetRemove(wallet->pendingTx, tx);
-            for (size_t i = 0; i < tx->outCount; i++) BRSetRemove(wallet->usedAddrs, tx->outputs[i].address);
+
+            for (size_t i = 0; i < tx->outCount; i++) {
+                if (BRSetGet(wallet->usedAddrs, tx->outputs[i].address) == tx->outputs[i].address) {
+                    BRSetRemove(wallet->usedAddrs, tx->outputs[i].address);
+                }
+            }
             
             for (size_t i = array_count(wallet->transactions); i > 0; i--) {
                 if (! BRTransactionEq(wallet->transactions[i - 1], tx)) continue;

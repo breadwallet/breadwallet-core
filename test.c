@@ -1778,26 +1778,6 @@ int BRPeerTests()
     return r;
 }
 
-void syncStarted(void *info)
-{
-    printf("sync started\n");
-}
-
-void syncSucceeded(void *info)
-{
-    printf("sync succeeded\n");
-}
-
-void syncFailed(void *info, int error)
-{
-    printf("sync failed: %s\n", strerror(error));
-}
-
-void txStatusUpdate(void *info)
-{
-    printf("transaction status updated\n");
-}
-
 int BRRunTests()
 {
     int fail = 0;
@@ -1841,6 +1821,26 @@ int BRRunTests()
 }
 
 #ifndef BITCOIN_TEST_NO_MAIN
+void syncStarted(void *info)
+{
+    printf("sync started\n");
+}
+
+void syncSucceeded(void *info)
+{
+    printf("sync succeeded\n");
+}
+
+void syncFailed(void *info, int error)
+{
+    printf("sync failed: %s\n", strerror(error));
+}
+
+void txStatusUpdate(void *info)
+{
+    printf("transaction status updated\n");
+}
+
 int main(int argc, const char *argv[])
 {
     int r = BRRunTests();
@@ -1860,8 +1860,8 @@ int main(int argc, const char *argv[])
 //    printf("wallet created with first receive address: %s\n", BRWalletReceiveAddress(wallet).s);
 //
 //    manager = BRPeerManagerNew(wallet, BIP39_CREATION_TIME, NULL, 0, NULL, 0);
-//    //manager = BRPeerManagerNew(wallet, (uint32_t)time(NULL), NULL, 0, NULL, 0);
-//    BRPeerManagerSetCallbacks(manager, manager, syncStarted, syncSucceeded, syncFailed, txStatusUpdate, NULL,NULL,NULL);
+//    BRPeerManagerSetCallbacks(manager, manager, syncStarted, syncSucceeded, syncFailed, txStatusUpdate, NULL, NULL,
+//                              NULL);
 //
 //    BRPeerManagerConnect(manager);
 //    while (err == 0 && BRPeerManagerPeerCount(manager) > 0) err = sleep(1);
