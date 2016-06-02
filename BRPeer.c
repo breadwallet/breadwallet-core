@@ -163,48 +163,45 @@ static int _BRPeerAcceptVersionMessage(BRPeer *peer, const uint8_t *msg, size_t 
     else {
         ctx->version = get_u32le(&msg[off]);
         off += sizeof(uint32_t);
-    
-        if (ctx->version < MIN_PROTO_VERSION) {
+        peer->services = get_u64le(&msg[off]);
+        off += sizeof(uint64_t);
+        peer->timestamp = get_u64le(&msg[off]);
+        off += sizeof(uint64_t);
+        recvServices = get_u64le(&msg[off]);
+        off += sizeof(uint64_t);
+        recvAddr = get_u128(&msg[off]);
+        off += sizeof(UInt128);
+        recvPort = get_u16be(&msg[off]);
+        off += sizeof(uint16_t);
+        fromServices = get_u64le(&msg[off]);
+        off += sizeof(uint64_t);
+        fromAddr = get_u128(&msg[off]);
+        off += sizeof(UInt128);
+        fromPort = get_u16be(&msg[off]);
+        off += sizeof(uint16_t);
+        nonce = get_u64le(&msg[off]);
+        off += sizeof(uint64_t);
+        strLen = BRVarInt(&msg[off], (off <= msgLen ? msgLen - off : 0), &len);
+        off += len;
+
+        if (off + strLen + sizeof(uint32_t) > msgLen) {
+            peer_log(peer, "malformed version message, length is %zu, should be %zu", msgLen,
+                     off + strLen + sizeof(uint32_t));
+            r = 0;
+        }
+        else if (ctx->version < MIN_PROTO_VERSION) {
             peer_log(peer, "protocol version %"PRIu32" not supported", ctx->version);
             r = 0;
         }
         else {
-            peer->services = get_u64le(&msg[off]);
-            off += sizeof(uint64_t);
-            peer->timestamp = get_u64le(&msg[off]);
-            off += sizeof(uint64_t);
-            recvServices = get_u64le(&msg[off]);
-            off += sizeof(uint64_t);
-            recvAddr = get_u128(&msg[off]);
-            off += sizeof(UInt128);
-            recvPort = get_u16be(&msg[off]);
-            off += sizeof(uint16_t);
-            fromServices = get_u64le(&msg[off]);
-            off += sizeof(uint64_t);
-            fromAddr = get_u128(&msg[off]);
-            off += sizeof(UInt128);
-            fromPort = get_u16be(&msg[off]);
-            off += sizeof(uint16_t);
-            nonce = get_u64le(&msg[off]);
-            off += sizeof(uint64_t);
-            strLen = BRVarInt(&msg[off], (off <= msgLen ? msgLen - off : 0), &len);
-            off += len;
-
-            if (off + strLen + sizeof(uint32_t) > msgLen) {
-                peer_log(peer, "malformed version message, length is %zu, should be %zu", msgLen,
-                         off + strLen + sizeof(uint32_t));
-                r = 0;
-            }
-            else {
-                array_clear(ctx->useragent);
-                array_add_array(ctx->useragent, &msg[off], strLen);
-                array_add(ctx->useragent, '\0');
-                off += strLen;
-                ctx->lastblock = get_u32le(&msg[off]);
-                off += sizeof(uint32_t);
-                peer_log(peer, "got version %"PRIu32", useragent:\"%s\"", ctx->version, ctx->useragent);
-                BRPeerSendVerackMessage(peer);
-            }
+            array_clear(ctx->useragent);
+            array_add_array(ctx->useragent, &msg[off], strLen);
+            array_add(ctx->useragent, '\0');
+            off += strLen;
+            ctx->lastblock = get_u32le(&msg[off]);
+            off += sizeof(uint32_t);
+            peer_log(peer, "got version %"PRIu32", useragent:\"%s\"", ctx->version, ctx->useragent);
+            BRPeerSendVerackMessage(peer);
         }
     }
     
@@ -1178,6 +1175,12 @@ uint32_t BRPeerLastBlock(BRPeer *peer)
 double BRPeerPingTime(BRPeer *peer)
 {
     return ((BRPeerContext *)peer)->pingTime;
+}
+
+// minimum tx fee rate peer will accept
+uint64_t BRPeerFeePerKb(BRPeer *peer)
+{
+    return ((BRPeerContext *)peer)->feePerKb;
 }
 
 #ifndef MSG_NOSIGNAL   // linux based systems have a MSG_NOSIGNAL send flag, useful for supressing SIGPIPE signals

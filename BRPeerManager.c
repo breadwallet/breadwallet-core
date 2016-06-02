@@ -710,6 +710,7 @@ static UInt128 *_addressLookup(const char *hostname)
 // DNS peer discovery
 static void _BRPeerManagerFindPeers(BRPeerManager *manager)
 {
+    static const uint64_t services = SERVICES_NODE_NETWORK | SERVICES_NODE_BLOOM;
     pthread_t threads[sizeof(dns_seeds)/sizeof(*dns_seeds)];
     int errors[sizeof(dns_seeds)/sizeof(*dns_seeds)];
     time_t now = time(NULL), age;
@@ -720,7 +721,7 @@ static void _BRPeerManagerFindPeers(BRPeerManager *manager)
     }
 
     for (addr = addrList = _addressLookup(dns_seeds[0]); addr && ! UInt128IsZero(*addr); addr++) {
-        array_add(manager->peers, ((BRPeer) { *addr, STANDARD_PORT, SERVICES_NODE_NETWORK, now, 0 }));
+        array_add(manager->peers, ((BRPeer) { *addr, STANDARD_PORT, services, now, 0 }));
     }
 
     if (addrList) free(addrList);
@@ -729,7 +730,7 @@ static void _BRPeerManagerFindPeers(BRPeerManager *manager)
         if (errors[i] == 0 && pthread_join(threads[i], (void **)&addrList) == 0) {
             for (addr = addrList; addr && ! UInt128IsZero(*addr); addr++) {
                 age = 3*24*60*60 + BRRand(4*24*60*60); // add between 3 and 7 days
-                array_add(manager->peers, ((BRPeer) { *addr, STANDARD_PORT, SERVICES_NODE_NETWORK, now - age, 0 }));
+                array_add(manager->peers, ((BRPeer) { *addr, STANDARD_PORT, services, now - age, 0 }));
             }
             
             if (addrList) free(addrList);
@@ -780,6 +781,9 @@ static void _peerConnected(void *info)
     if (! (peer->services & SERVICES_NODE_NETWORK) ||
         BRPeerLastBlock(peer) + 10 < manager->lastBlock->height) {
         BRPeerDisconnect(peer);
+    }
+    else if (BRPeerVersion(peer) >= 70011 && ! (peer->services & SERVICES_NODE_BLOOM)) {
+        BRPeerDisconnect(peer); // drop peers that don't support SPV filtering
     }
     else {
         size_t txCount = BRWalletTxUnconfirmedBefore(manager->wallet, NULL, 0, TX_UNCONFIRMED);
