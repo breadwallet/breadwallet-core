@@ -35,6 +35,9 @@
 extern "C" {
 #endif
 
+#define DEFAULT_FEE_PER_KB ((TX_FEE_PER_KB*1000 + 190)/191) // default fee-per-kb to match standard fee on 191 byte tx
+#define MAX_FEE_PER_KB     ((100100*1000 + 190)/191)        // slightly higher than a 1000bit fee on 191byte tx
+
 typedef struct {
     UInt256 hash;
     uint32_t n;
@@ -115,6 +118,7 @@ uint64_t BRWalletTotalReceived(BRWallet *wallet);
 size_t BRWalletUTXOs(BRWallet *wallet, BRUTXO utxos[], size_t count);
 
 // fee-per-kb of transaction size to use when creating a transaction
+uint64_t BRWalletFeePerKb(BRWallet *wallet);
 void BRWalletSetFeePerKb(BRWallet *wallet, uint64_t feePerKb);
 
 // returns an unsigned transaction that sends the specified amount from the wallet to the given address

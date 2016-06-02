@@ -52,7 +52,7 @@
 #define MAX_MSG_LENGTH     0x02000000
 #define MAX_GETDATA_HASHES 50000
 #define ENABLED_SERVICES   0ULL  // we don't provide full blocks to remote nodes
-#define PROTOCOL_VERSION   70002
+#define PROTOCOL_VERSION   70013
 #define MIN_PROTO_VERSION  70002 // peers earlier than this protocol version not supported (need v0.9 txFee relay rules)
 #define LOCAL_HOST         ((UInt128) { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 0x7f, 0x00, 0x00, 0x01 })
 #define CONNECT_TIMEOUT    3.0
@@ -97,7 +97,7 @@ typedef struct {
     char host[INET6_ADDRSTRLEN];
     BRPeerStatus status;
     int waitingForNetwork, needsFilterUpdate;
-    uint64_t nonce;
+    uint64_t nonce, feePerKb;
     char *useragent;
     uint32_t version, lastblock, earliestKeyTime, currentBlockHeight;
     double startTime, pingTime, disconnectTime;
@@ -114,9 +114,10 @@ typedef struct {
     void (*relayedTx)(void *info, BRTransaction *tx);
     void (*hasTx)(void *info, UInt256 txHash);
     void (*rejectedTx)(void *info, UInt256 txHash, uint8_t code);
+    void (*relayedBlock)(void *info, BRMerkleBlock *block);
     void (*notfound)(void *info, const UInt256 txHashes[], size_t txCount, const UInt256 blockHashes[],
                      size_t blockCount);
-    void (*relayedBlock)(void *info, BRMerkleBlock *block);
+    void (*setFeePerKb)(void *info, uint64_t feePerKb);
     BRTransaction *(*requestedTx)(void *info, UInt256 txHash);
     int (*networkIsReachable)(void *info);
     void **pongInfo;
@@ -765,7 +766,24 @@ static int _BRPeerAcceptRejectMessage(BRPeer *peer, const uint8_t *msg, size_t m
     return r;
 }
 
-// TODO: implement BIP133 feefilter
+// BIP133: https://github.com/bitcoin/bips/blob/master/bip-0133.mediawiki
+static int _BRPeerAcceptFeeFilterMessage(BRPeer *peer, const uint8_t *msg, size_t msgLen)
+{
+    BRPeerContext *ctx = (BRPeerContext *)peer;
+    int r = 1;
+    
+    if (sizeof(uint64_t) > msgLen) {
+        peer_log(peer, "malformed feefilter message, length is %zu, should be >= %zu", msgLen, sizeof(uint64_t));
+        r = 0;
+    }
+    else {
+        ctx->feePerKb = get_u64le(msg);
+        peer_log(peer, "got feefilter with rate %llu", ctx->feePerKb);
+        if (ctx->setFeePerKb) ctx->setFeePerKb(ctx->info, ctx->feePerKb);
+    }
+    
+    return r;
+}
 
 static int _BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t msgLen, const char *type)
 {
@@ -792,6 +810,7 @@ static int _BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t msgLen,
     else if (strncmp(MSG_PONG, type, 12) == 0) r = _BRPeerAcceptPongMessage(peer, msg, msgLen);
     else if (strncmp(MSG_MERKLEBLOCK, type, 12) == 0) r = _BRPeerAcceptMerkleblockMessage(peer, msg, msgLen);
     else if (strncmp(MSG_REJECT, type, 12) == 0) r = _BRPeerAcceptRejectMessage(peer, msg, msgLen);
+    else if (strncmp(MSG_FEEFILTER, type, 12) == 0) r = _BRPeerAcceptFeeFilterMessage(peer, msg, msgLen);
     else peer_log(peer, "dropping %s, length %zu, not implemented", type, msgLen);
 
     return r;
@@ -997,6 +1016,7 @@ void BRPeerSetCallbacks(BRPeer *peer, void *info,
                         void (*relayedBlock)(void *info, BRMerkleBlock *block),
                         void (*notfound)(void *info, const UInt256 txHashes[], size_t txCount,
                                          const UInt256 blockHashes[], size_t blockCount),
+                        void (*setFeePerKb)(void *info, uint64_t feePerKb),
                         BRTransaction *(*requestedTx)(void *info, UInt256 txHash),
                         int (*networkIsReachable)(void *info))
 {
@@ -1011,6 +1031,7 @@ void BRPeerSetCallbacks(BRPeer *peer, void *info,
     ctx->rejectedTx = rejectedTx;
     ctx->relayedBlock = relayedBlock;
     ctx->notfound = notfound;
+    ctx->setFeePerKb = setFeePerKb;
     ctx->requestedTx = requestedTx;
     ctx->networkIsReachable = networkIsReachable;
 }

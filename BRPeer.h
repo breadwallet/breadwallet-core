@@ -59,9 +59,10 @@ extern "C" {
 #define STANDARD_PORT 8333
 #endif
 
-#define SERVICES_NODE_NETWORK 1 // services value indicating a node carries full blocks, not just headers
+#define SERVICES_NODE_NETWORK 0x01 // services value indicating a node carries full blocks, not just headers
+#define SERVICES_NODE_BLOOM   0x04 // BIP111: https://github.com/bitcoin/bips/blob/master/bip-0111.mediawiki
 
-#define BR_VERSION "0.6"
+#define BR_VERSION "0.6.1"
 #define USER_AGENT "/breadwallet:" BR_VERSION "/"
 
 // explanation of message types at: https://en.bitcoin.it/wiki/Protocol_specification
@@ -136,6 +137,7 @@ void BRPeerSetCallbacks(BRPeer *peer, void *info,
                         void (*relayedBlock)(void *info, BRMerkleBlock *block),
                         void (*notfound)(void *info, const UInt256 txHashes[], size_t txCount,
                                          const UInt256 blockHashes[], size_t blockCount),
+                        void (*setFeePerKb)(void *info, uint64_t feePerKb),
                         BRTransaction *(*requestedTx)(void *info, UInt256 txHash),
                         int (*networkIsReachable)(void *info));
 
@@ -171,6 +173,9 @@ const char *BRPeerUserAgent(BRPeer *peer);
 
 // best block height reported by connected peer
 uint32_t BRPeerLastBlock(BRPeer *peer);
+
+// minimum tx fee rate peer will accept
+uint64_t BRPeerFeePerKb(BRPeer *peer);
 
 // average ping time for connected peer
 double BRPeerPingTime(BRPeer *peer);

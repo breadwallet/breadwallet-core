@@ -1413,6 +1413,28 @@ static void _peerDataNotfound(void *info, const UInt256 txHashes[], size_t txCou
     pthread_mutex_unlock(&manager->lock);
 }
 
+static void _peerSetFeePerKb(void *info, uint64_t feePerKb)
+{
+    BRPeer *p, *peer = ((BRPeerCallbackInfo *)info)->peer;
+    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+    uint64_t maxFeePerKb = 0, secondFeePerKb = 0;
+    
+    pthread_mutex_lock(&manager->lock);
+    
+    for (size_t i = array_count(manager->connectedPeers); i > 0; i--) { // find second highest fee rate
+        p = manager->connectedPeers[i - 1];
+        if (BRPeerFeePerKb(p) > maxFeePerKb) secondFeePerKb = maxFeePerKb, maxFeePerKb = BRPeerFeePerKb(p);
+    }
+    
+    if (secondFeePerKb > DEFAULT_FEE_PER_KB && secondFeePerKb <= MAX_FEE_PER_KB &&
+        secondFeePerKb > BRWalletFeePerKb(manager->wallet)) {
+        peer_log(peer, "increasing feePerKb to %llu based on feefilter messages from peers", secondFeePerKb);
+        BRWalletSetFeePerKb(manager->wallet, secondFeePerKb);
+    }
+
+    pthread_mutex_unlock(&manager->lock);
+}
+
 //static void _peerRequestedTxPingDone(void *info, int success)
 //{
 //    BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
@@ -1646,7 +1668,7 @@ void BRPeerManagerConnect(BRPeerManager *manager)
                 array_add(manager->connectedPeers, info->peer);
                 BRPeerSetCallbacks(info->peer, info, _peerConnected, _peerDisconnected, _peerRelayedPeers,
                                    _peerRelayedTx, _peerHasTx, _peerRejectedTx, _peerRelayedBlock, _peerDataNotfound,
-                                   _peerRequestedTx, _peerNetworkIsReachable);
+                                   _peerSetFeePerKb, _peerRequestedTx, _peerNetworkIsReachable);
                 BRPeerSetEarliestKeyTime(info->peer, manager->earliestKeyTime);
                 BRPeerConnect(info->peer);
             }

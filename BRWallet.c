@@ -33,8 +33,6 @@
 #include <pthread.h>
 #include <assert.H>
 
-#define DEFAULT_FEE_PER_KB ((TX_FEE_PER_KB*1000 + 190)/191) // default fee-per-kb to match standard fee on 191 byte tx
-
 struct BRWalletStruct {
     uint64_t balance;
     BRUTXO *utxos;
@@ -458,6 +456,17 @@ uint64_t BRWalletTotalReceived(BRWallet *wallet)
 }
 
 // fee-per-kb of transaction size to use when creating a transaction
+uint64_t BRWalletFeePerKb(BRWallet *wallet)
+{
+    uint64_t feePerKb;
+    
+    assert(wallet != NULL);
+    pthread_mutex_lock(&wallet->lock);
+    feePerKb = wallet->feePerKb;
+    pthread_mutex_unlock(&wallet->lock);
+    return feePerKb;
+}
+
 void BRWalletSetFeePerKb(BRWallet *wallet, uint64_t feePerKb)
 {
     assert(wallet != NULL);
