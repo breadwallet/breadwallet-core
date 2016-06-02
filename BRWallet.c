@@ -1077,7 +1077,7 @@ uint64_t BRWalletMinOutputAmount(BRWallet *wallet)
     
     assert(wallet != NULL);
     pthread_mutex_lock(&wallet->lock);
-    amount = wallet->feePerKb*TX_INPUT_SIZE/1000;
+    amount = (TX_MIN_OUTPUT_AMOUNT*wallet->feePerKb + MIN_FEE_PER_KB - 1)/MIN_FEE_PER_KB;
     pthread_mutex_unlock(&wallet->lock);
     return (amount > TX_MIN_OUTPUT_AMOUNT) ? amount : TX_MIN_OUTPUT_AMOUNT;
 }
