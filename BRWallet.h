@@ -35,9 +35,9 @@
 extern "C" {
 #endif
 
-#define DEFAULT_FEE_PER_KB ((5000*1000 + 190)/191) // bitcoind 0.11 minimum relay fee on a 191byte tx
+#define DEFAULT_FEE_PER_KB ((5000ULL*1000 + 190)/191) // bitcoind 0.11 minimum relay fee on a 191byte tx
 #define MIN_FEE_PER_KB     ((TX_FEE_PER_KB*1000 + 190)/191) // minimum relay fee on a 191byte tx
-#define MAX_FEE_PER_KB     ((100100*1000 + 190)/191) // slightly higher than a 1000bit fee on a 191byte tx
+#define MAX_FEE_PER_KB     ((100100ULL*1000 + 190)/191) // slightly higher than a 1000bit fee on a 191byte tx
 
 typedef struct {
     UInt256 hash;
@@ -71,8 +71,8 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
 void BRWalletSetCallbacks(BRWallet *wallet, void *info,
                           void (*balanceChanged)(void *info, uint64_t balance),
                           void (*txAdded)(void *info, BRTransaction *tx),
-                          void (*txUpdated)(void *info, const UInt256 txHashes[], size_t count,
-                                            uint32_t blockHeight, uint32_t timestamp),
+                          void (*txUpdated)(void *info, const UInt256 txHashes[], size_t count, uint32_t blockHeight,
+                                            uint32_t timestamp),
                           void (*txDeleted)(void *info, UInt256 txHash, int notifyUser, int recommendRescan));
 
 // wallets are composed of chains of addresses

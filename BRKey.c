@@ -191,7 +191,7 @@ int BRKeySetSecret(BRKey *key, const UInt256 *secret, int compressed)
     assert(secret != NULL);
     pthread_once(&_ctx_once, _ctx_init);
     BRKeyClean(key);
-    key->secret = *secret;
+    key->secret = get_u256(secret);
     key->compressed = compressed;
     return secp256k1_ec_seckey_verify(_ctx, key->secret.u8);
 }
