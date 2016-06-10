@@ -1364,15 +1364,21 @@ int BRMerkleBlockTests()
     "\xca\x04\x21\x27\xbf\xaf\x9f\x44\xeb\xce\x29\xcb\x29\xc6\xdf\x9d\x05\xb4\x7f\x35\xb2\xed\xff\x4f\x00\x64\xb5\x78"
     "\xab\x74\x1f\xa7\x82\x76\x22\x26\x51\x20\x9f\xe1\xa2\xc4\xc0\xfa\x1c\x58\x51\x0a\xec\x8b\x09\x0d\xd1\xeb\x1f\x82"
     "\xf9\xd2\x61\xb8\x27\x3b\x52\x5b\x02\xff\x1a";
+    uint8_t block2[sizeof(block) - 1];
     BRMerkleBlock *b;
     
     b = BRMerkleBlockParse((uint8_t *)block, sizeof(block) - 1);
     
     if (! UInt256Eq(b->blockHash,
-        UInt256Reverse(u256_hex_decode("00000000000080b66c911bd5ba14a74260057311eaeb1982802f7010f1a9f090")))) r = 0;
+        UInt256Reverse(u256_hex_decode("00000000000080b66c911bd5ba14a74260057311eaeb1982802f7010f1a9f090"))))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRMerkleBlockParse() test\n", __func__);
 
     if (! BRMerkleBlockIsValid(b, (uint32_t)time(NULL)))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRMerkleBlockParse() test\n", __func__);
+    
+    if (BRMerkleBlockSerialize(b, block2, sizeof(block2)) != sizeof(block2) ||
+        memcmp(block, block2, sizeof(block2)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRMerkleBlockSerialize() test\n", __func__);
     
     if (! BRMerkleBlockContainsTxHash(b,
         u256_hex_decode("4c30b63cfcdc2d35e3329421b9805ef0c6565d35381ca857762ea0b3a5a128bb")))
