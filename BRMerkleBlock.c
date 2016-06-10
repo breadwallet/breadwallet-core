@@ -158,6 +158,7 @@ size_t BRMerkleBlockSerialize(const BRMerkleBlock *block, uint8_t *buf, size_t b
             off += BRVarIntSet(&buf[off], (off <= bufLen ? bufLen - off : 0), block->hashesCount);
             if (block->hashes) memcpy(&buf[off], block->hashes, block->hashesCount*sizeof(UInt256));
             off += block->hashesCount*sizeof(UInt256);
+            off += BRVarIntSet(&buf[off], (off <= bufLen ? bufLen - off : 0), block->flagsLen);
             if (block->flags) memcpy(&buf[off], block->flags, block->flagsLen);
             off += block->flagsLen;
         }

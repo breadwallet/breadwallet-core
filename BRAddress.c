@@ -36,7 +36,7 @@
 uint64_t BRVarInt(const uint8_t *buf, size_t bufLen, size_t *intLen)
 {
     uint64_t r = 0;
-    uint8_t h = (buf && sizeof(uint8_t) <= bufLen) ? *(uint8_t *)buf : 0;
+    uint8_t h = (buf && sizeof(uint8_t) <= bufLen) ? *buf : 0;
     
     assert(buf != NULL || bufLen == 0);
     
