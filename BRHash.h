@@ -61,6 +61,10 @@ void BRHMAC(void *md, void (*hash)(void *, const void *, size_t), size_t hashLen
 void BRPBKDF2(void *dk, size_t dkLen, void (*hash)(void *, const void *, size_t), size_t hashLen,
               const void *pw, size_t pwLen, const void *salt, size_t saltLen, unsigned rounds);
 
+// scrypt key derivation: http://www.tarsnap.com/scrypt.html
+void BRScrypt(void *dk, size_t dkLen, const void *pw, size_t pwLen, const void *salt, size_t saltLen,
+              unsigned n, unsigned r, unsigned p);
+
 // murmurHash3 (x86_32): https://code.google.com/p/smhasher/ - for non cryptographic use only
 uint32_t BRMurmur3_32(const void *data, size_t len, uint32_t seed);
 

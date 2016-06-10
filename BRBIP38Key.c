@@ -86,15 +86,17 @@ static const uint8_t sboxi[256] = {
 
 #define xt(x) (((x) << 1) ^ ((((x) >> 7) & 1)*0x1b))
 
-static void _AES256ECBEncrypt(const void *key, void *buf)
+static void _AES256ECBEncrypt(const void *key32, void *buf16)
 {
     size_t i, j;
-    uint8_t *x = buf, k[32], r = 1, a, b, c, d, e;
+    uint32_t _k[32/4], _x[16/4];
+    uint8_t *x = (uint8_t *)_x, *k = (uint8_t *)_k, r = 1, a, b, c, d, e;
     
-    memcpy(k, key, sizeof(k));
+    memcpy(_k, key32, sizeof(_k));
+    memcpy(_x, buf16, sizeof(_x));
     
     for (i = 0; i < 14; i++) {
-        for (j = 0; j < 4; j++) ((uint32_t *)x)[j] ^= ((uint32_t *)k)[j + (i & 1)*4]; // add round key
+        for (j = 0; j < 4; j++) _x[j] ^= _k[j+(i & 1)*4]; // add round key
         
         for (j = 0; j < 16; j++) x[j] = sbox[x[j]]; // sub bytes
         
@@ -103,42 +105,45 @@ static void _AES256ECBEncrypt(const void *key, void *buf)
         a = x[3], x[3] = x[15], x[15] = x[11], x[11] = x[7], x[7] = a, a = x[14], x[14] = x[6], x[6] = a;
         
         for (j = 0; i < 13 && j < 16; j += 4) { // mix columns
-            a = x[j], b = x[j + 1], c = x[j + 2], d = x[j + 3], e = a ^ b ^ c ^ d;
-            x[j] ^= e ^ xt(a ^ b), x[j + 1] ^= e ^ xt(b ^ c), x[j + 2] ^= e ^ xt(c ^ d), x[j + 3] ^= e ^ xt(d ^ a);
+            a = x[j], b = x[j+1], c = x[j+2], d = x[j+3], e = a ^ b ^ c ^ d;
+            x[j] ^= e ^ xt(a ^ b), x[j+1] ^= e ^ xt(b ^ c), x[j+2] ^= e ^ xt(c ^ d), x[j+3] ^= e ^ xt(d ^ a);
         }
         
         if ((i % 2) != 0) { // expand key
             k[0] ^= sbox[k[29]] ^ r, k[1] ^= sbox[k[30]], k[2] ^= sbox[k[31]], k[3] ^= sbox[k[28]], r = xt(r);
-            for (j = 4; j < 16; j += 4) k[j] ^= k[j-4], k[j+1] ^= k[j - 3], k[j + 2] ^= k[j - 2], k[j + 3] ^= k[j - 1];
+            for (j = 4; j < 16; j += 4) k[j] ^= k[j-4], k[j+1] ^= k[j-3], k[j+2] ^= k[j-2], k[j+3] ^= k[j-1];
             k[16] ^= sbox[k[12]], k[17] ^= sbox[k[13]], k[18] ^= sbox[k[14]], k[19] ^= sbox[k[15]];
-            for (j = 20; j < 32; j += 4) k[j] ^= k[j-4], k[j+1] ^= k[j - 3], k[j + 2] ^= k[j - 2], k[j + 3] ^= k[j - 1];
+            for (j = 20; j < 32; j += 4) k[j] ^= k[j-4], k[j+1] ^= k[j-3], k[j+2] ^= k[j-2], k[j+3] ^= k[j-1];
         }
     }
     
-    for (i = 0; i < 4; i++) ((uint32_t *)x)[i] ^= ((uint32_t *)k)[i]; // final add round key
+    for (i = 0; i < 4; i++) _x[i] ^= _k[i]; // final add round key
+    memcpy(buf16, _x, sizeof(_x));
 }
 
-static void _AES256ECBDecrypt(const void *key, void *buf)
+static void _AES256ECBDecrypt(const void *key32, void *buf16)
 {
     size_t i, j;
-    uint8_t *x = buf, k[32], r = 1, a, b, c, d, e, f, g, h;
+    uint32_t _k[32/4], _x[16/4];
+    uint8_t *x = (uint8_t *)_x, *k = (uint8_t *)_k, r = 1, a, b, c, d, e, f, g, h;
     
-    memcpy(k, key, sizeof(k));
+    memcpy(_k, key32, sizeof(_k));
+    memcpy(_x, buf16, sizeof(_x));
     
     for (i = 0; i < 7; i++) { // expand key
         k[0] ^= sbox[k[29]] ^ r, k[1] ^= sbox[k[30]], k[2] ^= sbox[k[31]], k[3] ^= sbox[k[28]], r = xt(r);
-        for (j = 4; j < 16; j += 4) k[j] ^= k[j - 4], k[j + 1] ^= k[j - 3], k[j + 2] ^= k[j - 2], k[j + 3] ^= k[j - 1];
+        for (j = 4; j < 16; j += 4) k[j] ^= k[j-4], k[j+1] ^= k[j-3], k[j+2] ^= k[j-2], k[j+3] ^= k[j-1];
         k[16] ^= sbox[k[12]], k[17] ^= sbox[k[13]], k[18] ^= sbox[k[14]], k[19] ^= sbox[k[15]];
-        for (j = 20; j < 32; j += 4) k[j] ^= k[j - 4], k[j + 1] ^= k[j - 3], k[j + 2] ^= k[j - 2], k[j + 3] ^= k[j - 1];
+        for (j = 20; j < 32; j += 4) k[j] ^= k[j-4], k[j+1] ^= k[j-3], k[j+2] ^= k[j-2], k[j+3] ^= k[j-1];
     }
     
     for (i = 0; i < 14; i++) {
-        for (j = 0; j < 4; j++) ((uint32_t *)x)[j] ^= ((uint32_t *)k)[j + (i & 1)*4]; // add round key
+        for (j = 0; j < 4; j++) _x[j] ^= _k[j+(i & 1)*4]; // add round key
         
         for (j = 0; i > 0 && j < 16; j += 4) { // unmix columns
-            a = x[j], b = x[j + 1], c = x[j + 2], d = x[j + 3], e = a ^ b ^ c ^ d;
+            a = x[j], b = x[j+1], c = x[j+2], d = x[j+3], e = a ^ b ^ c ^ d;
             h = xt(e), f = e ^ xt(xt(h ^ a ^ c)), g = e ^ xt(xt(h ^ b ^ d));
-            x[j] ^= f ^ xt(a ^ b), x[j + 1] ^= g ^ xt(b ^ c), x[j + 2] ^= f ^ xt(c ^ d), x[j + 3] ^= g ^ xt(d ^ a);
+            x[j] ^= f ^ xt(a ^ b), x[j+1] ^= g ^ xt(b ^ c), x[j+2] ^= f ^ xt(c ^ d), x[j+3] ^= g ^ xt(d ^ a);
         }
         
         // unshift rows
@@ -148,103 +153,16 @@ static void _AES256ECBDecrypt(const void *key, void *buf)
         for (j = 0; j < 16; j++) x[j] = sboxi[x[j]]; // unsub bytes
         
         if ((i % 2) == 0) { // unexpand key
-            for (j = 28; j > 16; j -= 4) k[j] ^= k[j-4], k[j+1] ^= k[j - 3], k[j + 2] ^= k[j - 2], k[j + 3] ^= k[j - 1];
+            for (j = 28; j > 16; j -= 4) k[j] ^= k[j-4], k[j+1] ^= k[j-3], k[j+2] ^= k[j-2], k[j+3] ^= k[j-1];
             k[16] ^= sbox[k[12]], k[17] ^= sbox[k[13]], k[18] ^= sbox[k[14]], k[19] ^= sbox[k[15]];
-            for (j = 12; j > 0; j -= 4) k[j] ^= k[j-4], k[j+1] ^= k[j - 3], k[j + 2] ^= k[j - 2], k[j + 3] ^= k[j - 1];
+            for (j = 12; j > 0; j -= 4) k[j] ^= k[j-4], k[j+1] ^= k[j-3], k[j+2] ^= k[j-2], k[j+3] ^= k[j-1];
             r = (r >> 1) ^ ((r & 1)*0x8d);
             k[0] ^= sbox[k[29]] ^ r, k[1] ^= sbox[k[30]], k[2] ^= sbox[k[31]], k[3] ^= sbox[k[28]];
         }
     }
     
-    for (i = 0; i < 4; i++) ((uint32_t *)x)[i] ^= ((uint32_t *)k)[i]; // final add round key
-}
-
-// bitwise left rotation, this will typically be compiled into a single instruction
-#define rotl(a, b) (((a) << (b)) | ((a) >> (32 - (b))))
-
-// salsa20/8 stream cypher: http://cr.yp.to/snuffle.html
-static void _salsa20_8(uint32_t b[16])
-{
-    uint32_t x00 = b[0], x01 = b[1], x02 = b[2], x03 = b[3], x04 = b[4], x05 = b[5], x06 = b[6], x07 = b[7],
-             x08 = b[8], x09 = b[9], x10 = b[10], x11 = b[11], x12 = b[12], x13 = b[13], x14 = b[14], x15 = b[15];
-    
-    for (int i = 0; i < 8; i += 2) {
-        // operate on columns
-        x04 ^= rotl(x00 + x12, 7), x08 ^= rotl(x04 + x00, 9), x12 ^= rotl(x08 + x04, 13), x00 ^= rotl(x12 + x08, 18);
-        x09 ^= rotl(x05 + x01, 7), x13 ^= rotl(x09 + x05, 9), x01 ^= rotl(x13 + x09, 13), x05 ^= rotl(x01 + x13, 18);
-        x14 ^= rotl(x10 + x06, 7), x02 ^= rotl(x14 + x10, 9), x06 ^= rotl(x02 + x14, 13), x10 ^= rotl(x06 + x02, 18);
-        x03 ^= rotl(x15 + x11, 7), x07 ^= rotl(x03 + x15, 9), x11 ^= rotl(x07 + x03, 13), x15 ^= rotl(x11 + x07, 18);
-        
-        // operate on rows
-        x01 ^= rotl(x00 + x03, 7), x02 ^= rotl(x01 + x00, 9), x03 ^= rotl(x02 + x01, 13), x00 ^= rotl(x03 + x02, 18);
-        x06 ^= rotl(x05 + x04, 7), x07 ^= rotl(x06 + x05, 9), x04 ^= rotl(x07 + x06, 13), x05 ^= rotl(x04 + x07, 18);
-        x11 ^= rotl(x10 + x09, 7), x08 ^= rotl(x11 + x10, 9), x09 ^= rotl(x08 + x11, 13), x10 ^= rotl(x09 + x08, 18);
-        x12 ^= rotl(x15 + x14, 7), x13 ^= rotl(x12 + x15, 9), x14 ^= rotl(x13 + x12, 13), x15 ^= rotl(x14 + x13, 18);
-    }
-    
-    b[0] += x00, b[1] += x01, b[2] += x02, b[3] += x03, b[4] += x04, b[5] += x05, b[6] += x06, b[7] += x07;
-    b[8] += x08, b[9] += x09, b[10] += x10, b[11] += x11, b[12] += x12, b[13] += x13, b[14] += x14, b[15] += x15;
-}
-
-static void _blockmix_salsa8(uint64_t *dest, const uint64_t *src, uint64_t *b, int r)
-{
-    memcpy(b, &src[(2*r - 1)*8], 64);
-    
-    for (int i = 0; i < 2*r; i += 2) {
-        for (int j = 0; j < 8; j++) b[j] ^= src[i*8 + j];
-        _salsa20_8((uint32_t *)b);
-        memcpy(&dest[i*4], b, 64);
-        for (int j = 0; j < 8; j++) b[j] ^= src[i*8 + 8 + j];
-        _salsa20_8((uint32_t *)b);
-        memcpy(&dest[i*4 + r*8], b, 64);
-    }
-}
-
-// scrypt key derivation: http://www.tarsnap.com/scrypt.html
-static void scrypt(void *dk, size_t dklen, const void *pw, size_t pwlen, const void *salt, size_t saltlen,
-                   long n, int r, int p)
-{
-    uint64_t x[16*r], y[16*r], z[8], *v = malloc(128*r*n), m;
-    uint32_t b[32*r*p];
-    
-    assert(v != NULL);
-    BRPBKDF2(b, sizeof(b), BRSHA256, 32, pw, pwlen, salt, saltlen, 1);
-    
-    for (int i = 0; i < p; i++) {
-        for (long j = 0; j < 32*r; j++) {
-            ((uint32_t *)x)[j] = get_u32le(&b[i*32*r + j]);
-        }
-        
-        for (long j = 0; j < n; j += 2) {
-            memcpy(&v[j*(16*r)], x, 128*r);
-            _blockmix_salsa8(y, x, z, r);
-            memcpy(&v[(j + 1)*(16*r)], y, 128*r);
-            _blockmix_salsa8(x, y, z, r);
-        }
-        
-        for (long j = 0; j < n; j += 2) {
-            m = get_u64le(&x[(2*r - 1)*8]) & (n - 1);
-            for (long k = 0; k < 16*r; k++) x[k] ^= v[m*(16*r) + k];
-            _blockmix_salsa8(y, x, z, r);
-            m = get_u64le(&y[(2*r - 1)*8]) & (n - 1);
-            for (long k = 0; k < 16*r; k++) y[k] ^= v[m*(16*r) + k];
-            _blockmix_salsa8(x, y, z, r);
-        }
-        
-        for (long j = 0; j < 32*r; j++) {
-            b[i*32*r + j] = get_u32le(&((uint32_t *)x)[j]);
-        }
-    }
-    
-    BRPBKDF2(dk, dklen, BRSHA256, 32, pw, pwlen, b, sizeof(b), 1);
-    
-    memset(b, 0, sizeof(b));
-    memset(x, 0, sizeof(x));
-    memset(y, 0, sizeof(y));
-    memset(z, 0, sizeof(z));
-    memset(v, 0, 128*r*n);
-    free(v);
-    memset(&m, 0, sizeof(m));
+    for (i = 0; i < 4; i++) _x[i] ^= _k[i]; // final add round key
+    memcpy(buf16, _x, sizeof(_x));
 }
 
 static UInt256 _BRBIP38DerivePassfactor(uint8_t flag, uint64_t entropy, const char *passphrase)
@@ -252,8 +170,8 @@ static UInt256 _BRBIP38DerivePassfactor(uint8_t flag, uint64_t entropy, const ch
     size_t len = strlen(passphrase);
     UInt256 prefactor, passfactor;
     
-    scrypt(&prefactor, sizeof(prefactor), passphrase, len, &entropy, (flag & BIP38_LOTSEQUENCE_FLAG) ? 4 : 8,
-           BIP38_SCRYPT_N, BIP38_SCRYPT_R, BIP38_SCRYPT_P);
+    BRScrypt(&prefactor, sizeof(prefactor), passphrase, len, &entropy, (flag & BIP38_LOTSEQUENCE_FLAG) ? 4 : 8,
+             BIP38_SCRYPT_N, BIP38_SCRYPT_R, BIP38_SCRYPT_P);
     
     if (flag & BIP38_LOTSEQUENCE_FLAG) { // passfactor = SHA256(SHA256(prefactor + entropy))
         uint8_t d[sizeof(prefactor) + sizeof(entropy)];
@@ -278,8 +196,8 @@ static UInt512 _BRBIP38DeriveKey(const uint8_t passpoint[33], uint32_t addressha
     
     memcpy(salt, &addresshash, sizeof(addresshash));
     memcpy(&salt[sizeof(addresshash)], &entropy, sizeof(entropy)); // salt = addresshash + entropy
-    
-    scrypt(&dk, sizeof(dk), passpoint, 33, salt, sizeof(salt), BIP38_SCRYPT_EC_N, BIP38_SCRYPT_EC_R, BIP38_SCRYPT_EC_P);
+    BRScrypt(&dk, sizeof(dk), passpoint, 33, salt, sizeof(salt), BIP38_SCRYPT_EC_N, BIP38_SCRYPT_EC_R,
+             BIP38_SCRYPT_EC_P);
     memset(salt, 0, sizeof(salt));
     addresshash = 0;
     entropy = 0;
