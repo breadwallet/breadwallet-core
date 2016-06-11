@@ -1183,8 +1183,8 @@ int BRWalletTests()
     BRTransactionAddInput(tx, inHash, 0, inScript, inScriptLen, NULL, 0, TXIN_SEQUENCE);
     BRTransactionAddOutput(tx, SATOSHIS, outScript, outScriptLen);
 //    BRWalletRegisterTransaction(w, tx); // test adding unsigned tx
-    if (BRWalletBalance(w) != 0)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletRegisterTransaction() test 1\n", __func__);
+//    if (BRWalletBalance(w) != 0)
+//        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletRegisterTransaction() test 1\n", __func__);
 
     if (BRWalletTransactions(w, NULL, 0) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletTransactions() test 1\n", __func__);
@@ -1200,6 +1200,23 @@ int BRWalletTests()
     BRWalletRegisterTransaction(w, tx); // test adding same tx twice
     if (BRWalletBalance(w) != SATOSHIS)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletRegisterTransaction() test 3\n", __func__);
+
+    tx = BRTransactionNew();
+    BRTransactionAddInput(tx, inHash, 1, inScript, inScriptLen, NULL, 0, TXIN_SEQUENCE - 1);
+    BRTransactionAddOutput(tx, SATOSHIS, outScript, outScriptLen);
+    tx->lockTime = 1000;
+    BRTransactionSign(tx, &k, 1);
+
+    if (! BRWalletTransactionIsPending(w, tx))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletTransactionIsPending() test\n", __func__);
+
+    BRWalletRegisterTransaction(w, tx); // test adding tx with future lockTime
+    if (BRWalletBalance(w) != SATOSHIS)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletRegisterTransaction() test 4\n", __func__);
+
+    BRWalletUpdateTransactions(w, &tx->txHash, 1, 1000, 1);
+    if (BRWalletBalance(w) != SATOSHIS*2)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletUpdateTransactions() test\n", __func__);
 
     BRWalletFree(w);
     tx = BRTransactionNew();
@@ -1228,7 +1245,7 @@ int BRWalletTests()
     
     if (tx) tx->timestamp = 1, BRWalletRegisterTransaction(w, tx);
     if (tx && BRWalletBalance(w) + BRWalletFeeForTx(w, tx) != SATOSHIS/2)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletRegisterTransaction() test 4\n", __func__);
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletRegisterTransaction() test 5\n", __func__);
     
     if (BRWalletTransactions(w, NULL, 0) != 2)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletTransactions() test 3\n", __func__);
@@ -1243,7 +1260,7 @@ int BRWalletTests()
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletTransactionIsVerified() test\n", __func__);
 
     if (tx && BRWalletTransactionIsPending(w, tx))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletTransactionIsPending() test\n", __func__);
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletTransactionIsPending() test 2\n", __func__);
     
     BRWalletRemoveTransaction(w, hash); // removing first tx should recursively remove second, leaving none
     if (BRWalletTransactions(w, NULL, 0) != 0)

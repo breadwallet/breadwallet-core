@@ -935,6 +935,7 @@ void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHashes[], size
 {
     BRTransaction *tx;
     UInt256 hashes[count];
+    int needsUpdate = 0;
     size_t i, j;
     
     assert(wallet != NULL);
@@ -950,13 +951,15 @@ void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHashes[], size
         
         if (_BRWalletContainsTx(wallet, tx)) {
             hashes[j++] = txHashes[i];
+            if (BRSetContains(wallet->pendingTx, tx) || BRSetContains(wallet->invalidTx, tx)) needsUpdate = 1;
         }
         else if (blockHeight != TX_UNCONFIRMED) { // remove and free confirmed non-wallet tx
             BRSetRemove(wallet->allTx, tx);
             BRTransactionFree(tx);
         }
     }
-        
+    
+    if (needsUpdate) _BRWalletUpdateBalance(wallet);
     pthread_mutex_unlock(&wallet->lock);
     if (j > 0 && wallet->txUpdated) wallet->txUpdated(wallet->callbackInfo, hashes, j, blockHeight, timestamp);
 }
@@ -979,7 +982,8 @@ void BRWalletSetTxUnconfirmedAfter(BRWallet *wallet, uint32_t blockHeight)
         wallet->transactions[i + j]->blockHeight = TX_UNCONFIRMED;
         hashes[j] = wallet->transactions[i + j]->txHash;
     }
-
+    
+    if (count > 0) _BRWalletUpdateBalance(wallet);
     pthread_mutex_unlock(&wallet->lock);
     if (count > 0 && wallet->txUpdated) wallet->txUpdated(wallet->callbackInfo, hashes, count, TX_UNCONFIRMED, 0);
 }
