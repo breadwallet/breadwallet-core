@@ -26,6 +26,8 @@
 #include "BRBloomFilter.h"
 #include "BRMerkleBlock.h"
 #include "BRWallet.h"
+#include "BRKey.h"
+#include "BRBIP38Key.h"
 #include "BRAddress.h"
 #include "BRBase58.h"
 #include "BRBIP39Mnemonic.h"
@@ -45,6 +47,8 @@
 #include <time.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+
+#define SKIP_BIP38 1
 
 #ifdef __ANDROID__
 #include <android/log.h>
@@ -605,7 +609,7 @@ int BRKeyTests()
     char privKey1[BRKeyPrivKey(&key, NULL, 0)];
     
     BRKeyPrivKey(&key, privKey1, sizeof(privKey1));
-    printf("privKey = %s\n", privKey1);
+    printf("privKey:%s\n", privKey1);
     if (strcmp(privKey1, "5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF") != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 1\n", __func__);
     
@@ -623,7 +627,7 @@ int BRKeyTests()
     char privKey2[BRKeyPrivKey(&key, NULL, 0)];
     
     BRKeyPrivKey(&key, privKey2, sizeof(privKey2));
-    printf("privKey = %s\n", privKey2);
+    printf("privKey:%s\n", privKey2);
     if (strcmp(privKey2, "KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL") != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyPrivKey() test 2\n", __func__);
 #endif
@@ -801,6 +805,92 @@ int BRKeyTests()
     
     if (pkLen5 != pkLen || memcmp(pubKey, pubKey5, pkLen) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPubKeyRecover() test 3\n", __func__);
+
+    printf("                          ");
+    return r;
+}
+
+int BRBIP38KeyTests()
+{
+    int r = 1;
+    BRKey key;
+    char privKey[55];
+    
+    printf("\n");
+
+    // non EC multiplied, uncompressed
+    if (! BRKeySetBIP38Key(&key, "6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg", "TestingOneTwoThree") ||
+        ! BRKeyPrivKey(&key, privKey, sizeof(privKey)) ||
+        strncmp(privKey, "5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR", sizeof(privKey)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetBIP38Key() test 1\n", __func__);
+
+    printf("privKey:%s\n", privKey);
+
+    if (! BRKeySetBIP38Key(&key, "6PRNFFkZc2NZ6dJqFfhRoFNMR9Lnyj7dYGrzdgXXVMXcxoKTePPX1dWByq", "Satoshi") ||
+        ! BRKeyPrivKey(&key, privKey, sizeof(privKey)) ||
+        strncmp(privKey, "5HtasZ6ofTHP6HCwTqTkLDuLQisYPah7aUnSKfC7h4hMUVw2gi5", sizeof(privKey)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetBIP38Key() test 2\n", __func__);
+
+    printf("privKey:%s\n", privKey);
+    
+    // non EC multiplied, compressed
+    if (! BRKeySetBIP38Key(&key, "6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo", "TestingOneTwoThree") ||
+        ! BRKeyPrivKey(&key, privKey, sizeof(privKey)) ||
+        strncmp(privKey, "L44B5gGEpqEDRS9vVPz7QT35jcBG2r3CZwSwQ4fCewXAhAhqGVpP", sizeof(privKey)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetBIP38Key() test 3\n", __func__);
+
+    printf("privKey:%s\n", privKey);
+
+    if (! BRKeySetBIP38Key(&key, "6PYLtMnXvfG3oJde97zRyLYFZCYizPU5T3LwgdYJz1fRhh16bU7u6PPmY7", "Satoshi") ||
+        ! BRKeyPrivKey(&key, privKey, sizeof(privKey)) ||
+        strncmp(privKey, "KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4XqK7NJxXUSK7", sizeof(privKey)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetBIP38Key() test 4\n", __func__);
+
+    printf("privKey:%s\n", privKey);
+
+    // EC multiplied, uncompressed, no lot/sequence number
+    if (! BRKeySetBIP38Key(&key, "6PfQu77ygVyJLZjfvMLyhLMQbYnu5uguoJJ4kMCLqWwPEdfpwANVS76gTX", "TestingOneTwoThree") ||
+        ! BRKeyPrivKey(&key, privKey, sizeof(privKey)) ||
+        strncmp(privKey, "5K4caxezwjGCGfnoPTZ8tMcJBLB7Jvyjv4xxeacadhq8nLisLR2", sizeof(privKey)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetBIP38Key() test 5\n", __func__);
+
+    printf("privKey:%s\n", privKey);
+
+    if (! BRKeySetBIP38Key(&key, "6PfLGnQs6VZnrNpmVKfjotbnQuaJK4KZoPFrAjx1JMJUa1Ft8gnf5WxfKd", "Satoshi") ||
+        ! BRKeyPrivKey(&key, privKey, sizeof(privKey)) ||
+        strncmp(privKey, "5KJ51SgxWaAYR13zd9ReMhJpwrcX47xTJh2D3fGPG9CM8vkv5sH", sizeof(privKey)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetBIP38Key() test 6\n", __func__);
+
+    printf("privKey:%s\n", privKey);
+    
+    // EC multiplied, uncompressed, with lot/sequence number
+    if (! BRKeySetBIP38Key(&key, "6PgNBNNzDkKdhkT6uJntUXwwzQV8Rr2tZcbkDcuC9DZRsS6AtHts4Ypo1j", "MOLON LABE") ||
+        ! BRKeyPrivKey(&key, privKey, sizeof(privKey)) ||
+        strncmp(privKey, "5JLdxTtcTHcfYcmJsNVy1v2PMDx432JPoYcBTVVRHpPaxUrdtf8", sizeof(privKey)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetBIP38Key() test 7\n", __func__);
+
+    printf("privKey:%s\n", privKey);
+
+    if (! BRKeySetBIP38Key(&key, "6PgGWtx25kUg8QWvwuJAgorN6k9FbE25rv5dMRwu5SKMnfpfVe5mar2ngH",
+                           "\u039c\u039f\u039b\u03a9\u039d \u039b\u0391\u0392\u0395") ||
+        ! BRKeyPrivKey(&key, privKey, sizeof(privKey)) ||
+        strncmp(privKey, "5KMKKuUmAkiNbA3DazMQiLfDq47qs8MAEThm4yL8R2PhV1ov33D", sizeof(privKey)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetBIP38Key() test 8\n", __func__);
+
+    printf("privKey:%s\n", privKey);
+    
+//    // password NFC unicode normalization test
+//    if (! BRKeySetBIP38Key(&key, "6PRW5o9FLp4gJDDVqJQKJFTpMvdsSGJxMYHtHaQBF3ooa8mwD69bapcDQn",
+//                           "\u03D2\u0301\0\U00010400\U0001F4A9") ||
+//        ! BRKeyPrivKey(&key, privKey, sizeof(privKey)) ||
+//        strncmp(privKey, "5Jajm8eQ22H3pGWLEVCXyvND8dQZhiQhoLJNKjYXk9roUFTMSZ4", sizeof(privKey)) != 0)
+//        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetBIP38Key() test 9\n", __func__);
+//
+//    printf("privKey:%s\n", privKey);
+
+    // incorrect password test
+    if (BRKeySetBIP38Key(&key, "6PRW5o9FLp4gJDDVqJQKJFTpMvdsSGJxMYHtHaQBF3ooa8mwD69bapcDQn", "foobar"))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetBIP38Key() test 10\n", __func__);
 
     printf("                          ");
     return r;
@@ -1822,6 +1912,12 @@ int BRRunTests()
     printf("%s\n", (BRHashTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRKeyTests...             ");
     printf("%s\n", (BRKeyTests()) ? "success" : (fail++, "***FAIL***"));
+    printf("BRBIP38KeyTests...        ");
+#if SKIP_BIP38
+    printf("SKIPPED\n");
+#else
+    printf("%s\n", (BRBIP38KeyTests()) ? "success" : (fail++, "***FAIL***"));
+#endif
     printf("BRAddressTests...         ");
     printf("%s\n", (BRAddressTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRBIP39MnemonicTests...   ");
