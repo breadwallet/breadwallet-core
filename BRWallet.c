@@ -34,10 +34,10 @@
 #include <assert.H>
 
 struct BRWalletStruct {
-    uint64_t balance;
+    uint64_t balance, totalSent, totalReceived, feePerKb, *balanceHist;
+    uint32_t blockHeight;
     BRUTXO *utxos;
     BRTransaction **transactions;
-    uint64_t totalSent, totalReceived, feePerKb, *balanceHist;
     BRMasterPubKey masterPubKey;
     BRAddress *internalChain, *externalChain;
     BRSet *allTx, *invalidTx, *pendingTx, *spentOutputs, *usedAddrs, *allAddrs;
@@ -152,6 +152,7 @@ static void _BRWalletUpdateBalance(BRWallet *wallet)
 {
     int isInvalid, isPending;
     uint64_t balance = 0, prevBalance = 0;
+    time_t now = time(NULL);
     size_t i, j;
     BRTransaction *tx, *t;
     
@@ -195,7 +196,10 @@ static void _BRWalletUpdateBalance(BRWallet *wallet)
             }
 
             for (j = 0; ! isPending && j < tx->inCount; j++) {
-                if (tx->inputs[j].sequence != TXIN_SEQUENCE) isPending = 1; // check if sequence numbers are final
+                if (tx->inputs[j].sequence < UINT32_MAX - 1) isPending = 1; // check for replace-by-fee
+                if (tx->inputs[j].sequence < UINT32_MAX && tx->lockTime < TX_MAX_LOCK_HEIGHT &&
+                    tx->lockTime > wallet->blockHeight + 1) isPending = 1; // future lockTime
+                if (tx->inputs[j].sequence < UINT32_MAX && tx->lockTime > now) isPending = 1; // future lockTime
                 if (BRSetContains(wallet->pendingTx, &tx->inputs[j].txHash)) isPending = 1; // check for pending inputs
             }
             
@@ -869,16 +873,24 @@ int BRWalletTransactionIsValid(BRWallet *wallet, const BRTransaction *tx)
 int BRWalletTransactionIsPending(BRWallet *wallet, const BRTransaction *tx)
 {
     BRTransaction *t;
+    time_t now = time(NULL);
+    uint32_t blockHeight;
     int r = 0;
     
     assert(wallet != NULL);
     assert(tx != NULL && BRTransactionIsSigned(tx));
-    
+    pthread_mutex_lock(&wallet->lock);
+    blockHeight = wallet->blockHeight;
+    pthread_mutex_unlock(&wallet->lock);
+
     if (tx && tx->blockHeight == TX_UNCONFIRMED) { // only unconfirmed transactions can be postdated
         if (BRTransactionSize(tx) > TX_MAX_SIZE) r = 1; // check transaction size is under TX_MAX_SIZE
         
-        for (size_t i = 0; ! r && i < tx->inCount; i++) { // check that all sequence numbers are final (not RBF)
-            if (tx->inputs[i].sequence != TXIN_SEQUENCE) r = 1;
+        for (size_t i = 0; ! r && i < tx->inCount; i++) {
+            if (tx->inputs[i].sequence < UINT32_MAX - 1) r = 1; // check for replace-by-fee
+            if (tx->inputs[i].sequence < UINT32_MAX && tx->lockTime < TX_MAX_LOCK_HEIGHT &&
+                tx->lockTime > blockHeight + 1) r = 1; // future lockTime
+            if (tx->inputs[i].sequence < UINT32_MAX && tx->lockTime > now) r = 1; // future lockTime
         }
         
         for (size_t i = 0; ! r && i < tx->outCount; i++) { // check that no outputs are dust
@@ -928,6 +940,7 @@ void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHashes[], size
     assert(wallet != NULL);
     assert(txHashes != NULL || count == 0);
     pthread_mutex_lock(&wallet->lock);
+    if (blockHeight > wallet->blockHeight) wallet->blockHeight = blockHeight;
     
     for (i = 0, j = 0; txHashes && i < count; i++) {
         tx = BRSetGet(wallet->allTx, &txHashes[i]);
@@ -955,6 +968,7 @@ void BRWalletSetTxUnconfirmedAfter(BRWallet *wallet, uint32_t blockHeight)
     
     assert(wallet != NULL);
     pthread_mutex_lock(&wallet->lock);
+    wallet->blockHeight = blockHeight;
     count = i = array_count(wallet->transactions);
     while (i > 0 && wallet->transactions[i - 1]->blockHeight > blockHeight) i--;
     count -= i;

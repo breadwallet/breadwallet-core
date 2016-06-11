@@ -105,20 +105,22 @@ BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t bufLen)
         block->nonce = get_u32le(&buf[off]);
         off += sizeof(uint32_t);
         
-        block->totalTx = (off + sizeof(uint32_t) <= bufLen) ? get_u32le(&buf[off]) : 0;
-        off += sizeof(uint32_t);
-        block->hashesCount = (size_t)BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
-        off += len;
-        len = block->hashesCount*sizeof(UInt256);
-        block->hashes = (off + len <= bufLen) ? malloc(len) : NULL;
-        if (block->hashes) memcpy(block->hashes, &buf[off], len);
-        off += len;
-        block->flagsLen = (size_t)BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
-        off += len;
-        len = block->flagsLen;
-        block->flags = (off + len <= bufLen) ? malloc(len) : NULL;
-        if (block->flags) memcpy(block->flags, &buf[off], len);
-    
+        if (off + sizeof(uint32_t) <= bufLen) {
+            block->totalTx = get_u32le(&buf[off]);
+            off += sizeof(uint32_t);
+            block->hashesCount = (size_t)BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
+            off += len;
+            len = block->hashesCount*sizeof(UInt256);
+            block->hashes = (off + len <= bufLen) ? malloc(len) : NULL;
+            if (block->hashes) memcpy(block->hashes, &buf[off], len);
+            off += len;
+            block->flagsLen = (size_t)BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
+            off += len;
+            len = block->flagsLen;
+            block->flags = (off + len <= bufLen) ? malloc(len) : NULL;
+            if (block->flags) memcpy(block->flags, &buf[off], len);
+        }
+        
         BRSHA256_2(&block->blockHash, buf, 80);
     }
     
