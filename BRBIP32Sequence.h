@@ -82,6 +82,9 @@ BRMasterPubKey BRBIP32ParseMasterPubKey(const char *str);
 // key used for authenticated API calls, i.e. bitauth: https://github.com/bitpay/bitauth - path m/1H/0
 void BRBIP32APIAuthKey(BRKey *key, const void *seed, size_t seedLen);
 
+// key used for BitID: https://github.com/bitid/bitid/blob/master/BIP_draft.md
+void BRBIP32BitIDKey(BRKey *key, const void *seed, size_t seedLen, uint32_t index, const char *uri);
+
 #ifdef __cplusplus
 }
 #endif

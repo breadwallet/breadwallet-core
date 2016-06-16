@@ -252,3 +252,37 @@ void BRBIP32APIAuthKey(BRKey *key, const void *seed, size_t seedLen)
         secret = chainCode = UINT256_ZERO;
     }
 }
+
+// key used for BitID: https://github.com/bitid/bitid/blob/master/BIP_draft.md
+void BRBIP32BitIDKey(BRKey *key, const void *seed, size_t seedLen, uint32_t index, const char *uri)
+{
+    assert(key != NULL);
+    assert(seed != NULL || seedLen == 0);
+    assert(uri != NULL);
+    
+    if (key && seed && uri) {
+        UInt512 I;
+        UInt256 secret, chainCode, hash;
+        size_t uriLen = strlen(uri);
+        uint8_t data[sizeof(index) + uriLen];
+
+        set_u32le(data, index);
+        memcpy(&data[sizeof(index)], uri, uriLen);
+        BRSHA256(&hash, data, sizeof(data));
+    
+        BRHMAC(&I, BRSHA512, sizeof(UInt512), BIP32_SEED_KEY, strlen(BIP32_SEED_KEY), seed, seedLen);
+        secret = *(UInt256 *)&I;
+        chainCode = *(UInt256 *)&I.u8[sizeof(UInt256)];
+        I = UINT512_ZERO;
+        
+        _CKDpriv(&secret, &chainCode, 13 | BIP32_HARD); // path m/13H
+        _CKDpriv(&secret, &chainCode, get_u32le(&hash.u32[0]) | BIP32_HARD); // path m/13H/aH
+        _CKDpriv(&secret, &chainCode, get_u32le(&hash.u32[1]) | BIP32_HARD); // path m/13H/aH/bH
+        _CKDpriv(&secret, &chainCode, get_u32le(&hash.u32[2]) | BIP32_HARD); // path m/13H/aH/bH/cH
+        _CKDpriv(&secret, &chainCode, get_u32le(&hash.u32[3]) | BIP32_HARD); // path m/13H/aH/bH/cH/dH
+        
+        BRKeySetSecret(key, &secret, 1);
+        secret = chainCode = UINT256_ZERO;
+    }
+}
+
