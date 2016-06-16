@@ -1107,6 +1107,16 @@ int BRBIP32SequenceTests()
                     u256_hex_decode("7b6a7dd645507d775215a9035be06700e1ed8c541da9351b4bd14bd50ab61428")))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRBIP32PubKey() test\n", __func__);
 
+    UInt512 dk;
+    BRAddress addr;
+
+    BRBIP39DeriveKey(dk.u8, "inhale praise target steak garlic cricket paper better evil almost sadness crawl city "
+                     "banner amused fringe fox insect roast aunt prefer hollow basic ladder", NULL);
+    BRBIP32BitIDKey(&key, dk.u8, sizeof(dk), 0, "http://bitid.bitcoin.blue/callback");
+    BRKeyAddress(&key, addr.s, sizeof(addr));
+    if (strncmp(addr.s, "1J34vj4wowwPYafbeibZGht3zy3qERoUM1", sizeof(addr)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRBIP32BitIDKey() test\n", __func__);
+
     // TODO: XXX test BRBIP32SerializeMasterPrivKey()
     // TODO: XXX test BRBIP32SerializeMasterPubKey()
 
@@ -1967,32 +1977,32 @@ int main(int argc, const char *argv[])
 {
     int r = BRRunTests();
 
-    int err = 0;
-    UInt512 seed = UINT512_ZERO;
-    BRMasterPubKey mpk = BR_MASTER_PUBKEY_NONE;
-    BRWallet *wallet;
-    BRPeerManager *manager;
-    
-    //BRBIP39DeriveKey(seed.u8, "video tiger report bid suspect taxi mail argue naive layer metal surface", NULL);
-    BRBIP39DeriveKey(seed.u8, "axis husband project any sea patch drip tip spirit tide bring belt", NULL);
-    mpk = BRBIP32MasterPubKey(&seed, sizeof(seed));
-
-    wallet = BRWalletNew(NULL, 0, mpk);
-    BRWalletSetCallbacks(wallet, wallet, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
-    printf("wallet created with first receive address: %s\n", BRWalletReceiveAddress(wallet).s);
-
-    manager = BRPeerManagerNew(wallet, BIP39_CREATION_TIME, NULL, 0, NULL, 0);
-    BRPeerManagerSetCallbacks(manager, manager, syncStarted, syncSucceeded, syncFailed, txStatusUpdate, NULL, NULL,
-                              NULL);
-
-    BRPeerManagerConnect(manager);
-    while (err == 0 && BRPeerManagerPeerCount(manager) > 0) err = sleep(1);
-    if (err != 0) printf("sleep got a signal\n");
-
-    BRPeerManagerDisconnect(manager);
-    BRPeerManagerFree(manager);
-    BRWalletFree(wallet);
-    sleep(5);
+//    int err = 0;
+//    UInt512 seed = UINT512_ZERO;
+//    BRMasterPubKey mpk = BR_MASTER_PUBKEY_NONE;
+//    BRWallet *wallet;
+//    BRPeerManager *manager;
+//    
+//    //BRBIP39DeriveKey(seed.u8, "video tiger report bid suspect taxi mail argue naive layer metal surface", NULL);
+//    BRBIP39DeriveKey(seed.u8, "axis husband project any sea patch drip tip spirit tide bring belt", NULL);
+//    mpk = BRBIP32MasterPubKey(&seed, sizeof(seed));
+//
+//    wallet = BRWalletNew(NULL, 0, mpk);
+//    BRWalletSetCallbacks(wallet, wallet, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
+//    printf("wallet created with first receive address: %s\n", BRWalletReceiveAddress(wallet).s);
+//
+//    manager = BRPeerManagerNew(wallet, BIP39_CREATION_TIME, NULL, 0, NULL, 0);
+//    BRPeerManagerSetCallbacks(manager, manager, syncStarted, syncSucceeded, syncFailed, txStatusUpdate, NULL, NULL,
+//                              NULL);
+//
+//    BRPeerManagerConnect(manager);
+//    while (err == 0 && BRPeerManagerPeerCount(manager) > 0) err = sleep(1);
+//    if (err != 0) printf("sleep got a signal\n");
+//
+//    BRPeerManagerDisconnect(manager);
+//    BRPeerManagerFree(manager);
+//    BRWalletFree(wallet);
+//    sleep(5);
     
     return (r) ? 0 : 1;
 }
