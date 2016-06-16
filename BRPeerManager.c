@@ -1430,10 +1430,10 @@ static void _peerSetFeePerKb(void *info, uint64_t feePerKb)
         if (BRPeerFeePerKb(p) > maxFeePerKb) secondFeePerKb = maxFeePerKb, maxFeePerKb = BRPeerFeePerKb(p);
     }
     
-    if (secondFeePerKb > DEFAULT_FEE_PER_KB && secondFeePerKb <= MAX_FEE_PER_KB &&
-        secondFeePerKb > BRWalletFeePerKb(manager->wallet)) {
-        peer_log(peer, "increasing feePerKb to %llu based on feefilter messages from peers", secondFeePerKb);
-        BRWalletSetFeePerKb(manager->wallet, secondFeePerKb);
+    if (secondFeePerKb*3/2 > DEFAULT_FEE_PER_KB && secondFeePerKb*3/2 <= MAX_FEE_PER_KB &&
+        secondFeePerKb*3/2 > BRWalletFeePerKb(manager->wallet)) {
+        peer_log(peer, "increasing feePerKb to %llu based on feefilter messages from peers", secondFeePerKb*3/2);
+        BRWalletSetFeePerKb(manager->wallet, secondFeePerKb*3/2);
     }
 
     pthread_mutex_unlock(&manager->lock);

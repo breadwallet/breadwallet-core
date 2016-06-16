@@ -1967,32 +1967,32 @@ int main(int argc, const char *argv[])
 {
     int r = BRRunTests();
 
-//    int err = 0;
-//    UInt512 seed = UINT512_ZERO;
-//    BRMasterPubKey mpk = BR_MASTER_PUBKEY_NONE;
-//    BRWallet *wallet;
-//    BRPeerManager *manager;
-//    
-//    //BRBIP39DeriveKey(seed.u8, "video tiger report bid suspect taxi mail argue naive layer metal surface", NULL);
-//    BRBIP39DeriveKey(seed.u8, "axis husband project any sea patch drip tip spirit tide bring belt", NULL);
-//    mpk = BRBIP32MasterPubKey(&seed, sizeof(seed));
-//
-//    wallet = BRWalletNew(NULL, 0, mpk);
-//    BRWalletSetCallbacks(wallet, wallet, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
-//    printf("wallet created with first receive address: %s\n", BRWalletReceiveAddress(wallet).s);
-//
-//    manager = BRPeerManagerNew(wallet, BIP39_CREATION_TIME, NULL, 0, NULL, 0);
-//    BRPeerManagerSetCallbacks(manager, manager, syncStarted, syncSucceeded, syncFailed, txStatusUpdate, NULL, NULL,
-//                              NULL);
-//
-//    BRPeerManagerConnect(manager);
-//    while (err == 0 && BRPeerManagerPeerCount(manager) > 0) err = sleep(1);
-//    if (err != 0) printf("sleep got a signal\n");
-//
-//    BRPeerManagerDisconnect(manager);
-//    BRPeerManagerFree(manager);
-//    BRWalletFree(wallet);
-//    sleep(5);
+    int err = 0;
+    UInt512 seed = UINT512_ZERO;
+    BRMasterPubKey mpk = BR_MASTER_PUBKEY_NONE;
+    BRWallet *wallet;
+    BRPeerManager *manager;
+    
+    //BRBIP39DeriveKey(seed.u8, "video tiger report bid suspect taxi mail argue naive layer metal surface", NULL);
+    BRBIP39DeriveKey(seed.u8, "axis husband project any sea patch drip tip spirit tide bring belt", NULL);
+    mpk = BRBIP32MasterPubKey(&seed, sizeof(seed));
+
+    wallet = BRWalletNew(NULL, 0, mpk);
+    BRWalletSetCallbacks(wallet, wallet, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
+    printf("wallet created with first receive address: %s\n", BRWalletReceiveAddress(wallet).s);
+
+    manager = BRPeerManagerNew(wallet, BIP39_CREATION_TIME, NULL, 0, NULL, 0);
+    BRPeerManagerSetCallbacks(manager, manager, syncStarted, syncSucceeded, syncFailed, txStatusUpdate, NULL, NULL,
+                              NULL);
+
+    BRPeerManagerConnect(manager);
+    while (err == 0 && BRPeerManagerPeerCount(manager) > 0) err = sleep(1);
+    if (err != 0) printf("sleep got a signal\n");
+
+    BRPeerManagerDisconnect(manager);
+    BRPeerManagerFree(manager);
+    BRWalletFree(wallet);
+    sleep(5);
     
     return (r) ? 0 : 1;
 }
