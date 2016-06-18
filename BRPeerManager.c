@@ -967,7 +967,6 @@ static void _peerRelayedTx(void *info, BRTransaction *tx)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
-    UInt256 txHash = tx->txHash;
     void *txInfo = NULL;
     void (*txCallback)(void *, int) = NULL;
     int isSyncing, isWalletTx = 0, hasPendingCallbacks = 0;
@@ -975,15 +974,15 @@ static void _peerRelayedTx(void *info, BRTransaction *tx)
     
     pthread_mutex_lock(&manager->lock);
     isSyncing = (manager->lastBlock->height < manager->estimatedHeight);
-    peer_log(peer, "relayed tx: %s", u256_hex_encode(txHash));
+    peer_log(peer, "relayed tx: %s", u256_hex_encode(tx->txHash));
     
     for (size_t i = array_count(manager->publishedTx); i > 0; i--) { // see if tx is in list of published tx
-        if (UInt256Eq(manager->publishedTxHash[i - 1], txHash)) {
+        if (UInt256Eq(manager->publishedTxHash[i - 1], tx->txHash)) {
             txInfo = manager->publishedTx[i - 1].info;
             txCallback = manager->publishedTx[i - 1].callback;
             manager->publishedTx[i - 1].info = NULL;
             manager->publishedTx[i - 1].callback = NULL;
-            relayCount = _BRTxPeerListAddPeer(&manager->txRelays, txHash, peer);
+            relayCount = _BRTxPeerListAddPeer(&manager->txRelays, tx->txHash, peer);
         }
         else if (manager->publishedTx[i - 1].callback != NULL) hasPendingCallbacks = 1;
     }
@@ -995,7 +994,7 @@ static void _peerRelayedTx(void *info, BRTransaction *tx)
 
     if (! isSyncing || BRWalletContainsTransaction(manager->wallet, tx)) {
         isWalletTx = BRWalletRegisterTransaction(manager->wallet, tx);
-        if (isWalletTx) tx = BRWalletTransactionForHash(manager->wallet, txHash);
+        if (isWalletTx) tx = BRWalletTransactionForHash(manager->wallet, tx->txHash);
     }
     else {
         BRTransactionFree(tx);
@@ -1004,17 +1003,17 @@ static void _peerRelayedTx(void *info, BRTransaction *tx)
     
     if (tx && isWalletTx) {
         // reschedule sync timeout
-        if (isSyncing && peer == manager->downloadPeer && tx) BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT);
+        if (isSyncing && peer == manager->downloadPeer) BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT);
         
-        if (tx && BRWalletAmountSentByTx(manager->wallet, tx) > 0 && BRWalletTransactionIsValid(manager->wallet, tx)) {
+        if (BRWalletAmountSentByTx(manager->wallet, tx) > 0 && BRWalletTransactionIsValid(manager->wallet, tx)) {
             _BRPeerManagerAddTxToPublishList(manager, tx, NULL, NULL); // add valid send tx to mempool
         }
 
         // keep track of how many peers have or relay a tx, this indicates how likely the tx is to confirm
         // (we only need to track this after syncing is complete)
-        if (! isSyncing) relayCount = _BRTxPeerListAddPeer(&manager->txRelays, txHash, peer);
+        if (! isSyncing) relayCount = _BRTxPeerListAddPeer(&manager->txRelays, tx->txHash, peer);
         
-        _BRTxPeerListRemovePeer(manager->txRequests, txHash, peer);
+        _BRTxPeerListRemovePeer(manager->txRequests, tx->txHash, peer);
         
         if (manager->bloomFilter != NULL) { // check if bloom filter is already being updated
             BRAddress addrs[SEQUENCE_GAP_LIMIT_EXTERNAL + SEQUENCE_GAP_LIMIT_INTERNAL];
