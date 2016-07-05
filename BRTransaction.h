@@ -49,7 +49,7 @@ extern "C" {
 #define SATOSHIS             100000000LL
 #define MAX_MONEY            (21000000LL*SATOSHIS)
 
-#define BR_RAND_MAX          RAND_MAX
+#define BR_RAND_MAX          ((RAND_MAX > 0x7fffffff) ? 0x7fffffff : RAND_MAX)
 
 // returns a random number less than upperBound (for non-cryptographic use only)
 uint32_t BRRand(uint32_t upperBound);

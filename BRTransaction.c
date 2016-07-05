@@ -52,7 +52,7 @@ uint32_t BRRand(uint32_t upperBound)
     
     do { // to avoid modulo bias, find a rand value not less than 0x100000000 % upperBound
         r = rand();
-    } while (r < ((0xffffffff - upperBound*2) + 1) % upperBound); // ((0x100000000 - x*2) % x) == (0x100000000 % x)
+    } while (r < ((0xffffffff - upperBound*2) + 1) % upperBound); // (((0xffffffff - x*2) + 1) % x) == (0x100000000 % x)
 
     return r % upperBound;
 }

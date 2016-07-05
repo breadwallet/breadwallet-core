@@ -1256,7 +1256,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
         else {
             // call getblocks, unless we already did with the previous block, or we're still syncing
             if (manager->lastBlock->height >= BRPeerLastBlock(peer) &&
-                ! UInt256Eq(manager->lastOrphan->blockHash, block->prevBlock)) {
+                (! manager->lastOrphan || ! UInt256Eq(manager->lastOrphan->blockHash, block->prevBlock))) {
                 UInt256 locators[_BRPeerManagerBlockLocators(manager, NULL, 0)];
                 size_t locatorsCount = _BRPeerManagerBlockLocators(manager, locators,
                                                                    sizeof(locators)/sizeof(*locators));
