@@ -114,9 +114,9 @@ extern "C" {
     array_count(array) += _array_cnt;\
 } while (0)
 
-#define array_insert(array, idx, item) do {\
+#define array_insert(array, index, item) do {\
     assert((array) != NULL);\
-    size_t _array_idx = (idx), _array_i = ++array_count(array);\
+    size_t _array_idx = (index), _array_i = ++array_count(array);\
     assert(_array_idx >= 0 && _array_idx < array_count(array));\
     if (_array_i > array_capacity(array))\
         array_set_capacity(array, (array_capacity(array) + 1)*3/2);\
@@ -125,9 +125,9 @@ extern "C" {
     (array)[_array_idx] = (item);\
 } while (0)
 
-#define array_insert_array(array, idx, other_array, count) do {\
+#define array_insert_array(array, index, other_array, count) do {\
     assert((array) != NULL);\
-    size_t _array_idx = (idx), _array_cnt = (count), _array_i = array_count(array) + _array_cnt, _array_j = 0;\
+    size_t _array_idx = (index), _array_cnt = (count), _array_i = array_count(array) + _array_cnt, _array_j = 0;\
     assert(_array_idx >= 0 && _array_idx <= array_count(array));\
     assert((other_array) != NULL || _array_cnt == 0);\
     assert(_array_cnt >= 0);\
@@ -140,8 +140,8 @@ extern "C" {
     array_count(array) += _array_cnt;\
 } while (0)
 
-#define array_rm(array, idx) do {\
-    size_t _array_i = (idx);\
+#define array_rm(array, index) do {\
+    size_t _array_i = (index);\
     assert((array) != NULL);\
     assert(_array_i >= 0 && _array_i < array_count(array));\
     array_count(array)--;\
@@ -156,8 +156,8 @@ extern "C" {
         memset((array) + --array_count(array), 0, sizeof(*(array)));\
 } while(0)
 
-#define array_rm_range(array, idx, len) do {\
-    size_t _array_i = (idx), _array_len = (len);\
+#define array_rm_range(array, index, len) do {\
+    size_t _array_i = (index), _array_len = (len);\
     assert((array) != NULL);\
     assert(_array_i >= 0 && _array_i < array_count(array));\
     assert(_array_len >= 0 && _array_i + _array_len <= array_count(array));\
