@@ -46,19 +46,21 @@ static inline int BRECPointIsZero(BRECPoint p)
              p.p[31] | p.p[32]) == 0);
 }
 
-// adds 256bit big endian ints (mod secp256k1 order)
-UInt256 BRSecp256k1ModAdd(UInt256 a, UInt256 b);
+// adds 256bit big endian ints (mod secp256k1 order) and stores the result in a
+// returns true on success
+int BRSecp256k1ModAdd(UInt256 *a, const UInt256 *b);
 
-// multiplies 256bit big endian ints (mod secp256k1 order)
-UInt256 BRSecp256k1ModMul(UInt256 a, UInt256 b);
+// multiplies 256bit big endian ints (mod secp256k1 order) and stores the result in a
+// returns true on success
+int BRSecp256k1ModMul(UInt256 *a, const UInt256 *b);
 
-// adds secp256k1 ec-points and writes the result to r
-// returns number of bytes written or total rLen needed if r is NULL
-size_t BRSecp256k1PointAdd(void *r, size_t rLen, BRECPoint a, BRECPoint b, int compressed);
+// multiplies secp256k1 generator ec-point by 256bit big endian int and stores the result in p
+// returns true on success
+int BRSecp256k1PointGen(BRECPoint *p, const UInt256 *i);
 
-// multiplies secp256k1 ec-point by 256bit big endian int and writes result to r
-// returns number of bytes written or total rLen needed if r is NULL
-size_t BRSecp256k1PointMul(void *r, size_t rLen, BRECPoint p, UInt256 i, int compressed);
+// multiplies secp256k1 generator ec-point by 256bit big endian int and adds the result to p
+// returns true on success
+int BRSecp256k1PointAdd(BRECPoint *p, const UInt256 *i);
 
 // returns true if privKey is a valid private key
 int BRPrivKeyIsValid(const char *privKey);

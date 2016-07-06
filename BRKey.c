@@ -62,92 +62,45 @@ static void _ctx_init()
     _ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
 }
 
-// adds 256bit big endian ints (mod secp256k1 order)
-UInt256 BRSecp256k1ModAdd(UInt256 a, UInt256 b)
+// adds 256bit big endian ints (mod secp256k1 order) and stores the result in a
+// returns true on success
+int BRSecp256k1ModAdd(UInt256 *a, const UInt256 *b)
 {
-    secp256k1_scalar as, bs, rs;
-    UInt256 r;
-    
-    secp256k1_scalar_set_b32(&as, a.u8, NULL);
-    secp256k1_scalar_set_b32(&bs, b.u8, NULL);
-    secp256k1_scalar_add(&rs, &as, &bs);
-    secp256k1_scalar_clear(&bs);
-    secp256k1_scalar_clear(&as);
-    secp256k1_scalar_get_b32(r.u8, &rs);
-    secp256k1_scalar_clear(&rs);
-    return r;
+    pthread_once(&_ctx_once, _ctx_init);
+    return secp256k1_ec_privkey_tweak_add(_ctx, (unsigned char *)a, (const unsigned char *)b);
 }
 
-// multiplies 256bit big endian ints (mod secp256k1 order)
-UInt256 BRSecp256k1ModMul(UInt256 a, UInt256 b)
+// multiplies 256bit big endian ints (mod secp256k1 order) and stores the result in a
+// returns true on success
+int BRSecp256k1ModMul(UInt256 *a, const UInt256 *b)
 {
-    secp256k1_scalar as, bs, rs;
-    UInt256 r;
-    
-    secp256k1_scalar_set_b32(&as, a.u8, NULL);
-    secp256k1_scalar_set_b32(&bs, b.u8, NULL);
-    secp256k1_scalar_mul(&rs, &as, &bs);
-    secp256k1_scalar_clear(&bs);
-    secp256k1_scalar_clear(&as);
-    secp256k1_scalar_get_b32(r.u8, &rs);
-    secp256k1_scalar_clear(&rs);
-    return r;
+    pthread_once(&_ctx_once, _ctx_init);
+    return secp256k1_ec_privkey_tweak_mul(_ctx, (unsigned char *)a, (const unsigned char *)b);
 }
 
-// adds secp256k1 ec-points and writes the result to r
-// returns number of bytes written or total rLen needed if r is NULL
-size_t BRSecp256k1PointAdd(void *r, size_t rLen, BRECPoint a, BRECPoint b, int compressed)
+// multiplies secp256k1 generator ec-point by 256bit big endian int and stores the result in p
+// returns true on success
+int BRSecp256k1PointGen(BRECPoint *p, const UInt256 *i)
 {
-    secp256k1_ge ap, bp, rp;
-    secp256k1_gej aj, rj;
-    size_t size = 0;
+    secp256k1_pubkey pubkey;
+    size_t pLen = sizeof(*p);
     
-    assert(r != NULL || rLen == 0);
-    
-    if (((compressed && rLen >= 33) || rLen >= 65) && secp256k1_eckey_pubkey_parse(&ap, a.p, sizeof(a)) &&
-        secp256k1_eckey_pubkey_parse(&bp, b.p, sizeof(b))) {
-        secp256k1_gej_set_ge(&aj, &ap);
-        secp256k1_ge_clear(&ap);
-        secp256k1_gej_add_ge(&rj, &aj, &bp);
-        secp256k1_gej_clear(&aj);
-        secp256k1_ge_clear(&bp);
-        secp256k1_ge_set_gej(&rp, &rj);
-        secp256k1_gej_clear(&rj);
-        secp256k1_eckey_pubkey_serialize(&rp, r, &size, compressed);
-        secp256k1_ge_clear(&rp);
-    }
-    
-    return size;
+    pthread_once(&_ctx_once, _ctx_init);
+    return (secp256k1_ec_pubkey_create(_ctx, &pubkey, (const unsigned char *)i) &&
+            secp256k1_ec_pubkey_serialize(_ctx, (unsigned char *)p, &pLen, &pubkey, SECP256K1_EC_COMPRESSED));
 }
 
-// multiplies secp256k1 ec-point by 256bit big endian int and writes result to r
-// returns number of bytes written or total rLen needed if r is NULL
-size_t BRSecp256k1PointMul(void *r, size_t rLen, BRECPoint p, UInt256 i, int compressed)
+// multiplies secp256k1 generator ec-point by 256bit big endian int and adds the result to p
+// returns true on success
+int BRSecp256k1PointAdd(BRECPoint *p, const UInt256 *i)
 {
-    secp256k1_scalar is;
-    secp256k1_gej rj = SECP256K1_GEJ_CONST_INFINITY;
-    secp256k1_ge rp, pp;
-    size_t size = 0;
+    secp256k1_pubkey pubkey;
+    size_t pLen = sizeof(*p);
     
-    assert(r != NULL || rLen == 0);
-    secp256k1_scalar_set_b32(&is, i.u8, NULL);
-    
-    if (BRECPointIsZero(p)) {
-        pthread_once(&_ctx_once, _ctx_init);
-        secp256k1_ecmult_gen(&_ctx->ecmult_gen_ctx, &rj, &is);
-    }
-    else if (secp256k1_eckey_pubkey_parse(&pp, p.p, sizeof(p))) {
-        secp256k1_ecmult_const(&rj, &pp, &is);
-        secp256k1_ge_clear(&pp);
-    }
-
-    secp256k1_scalar_clear(&is);
-    secp256k1_ge_set_gej(&rp, &rj);
-    secp256k1_gej_clear(&rj);
-    secp256k1_eckey_pubkey_serialize(&rp, r, &size, compressed);
-    secp256k1_ge_clear(&rp);
-
-    return size;
+    pthread_once(&_ctx_once, _ctx_init);
+    return (secp256k1_ec_pubkey_parse(_ctx, &pubkey, (const unsigned char *)p, sizeof(*p)) &&
+            secp256k1_ec_pubkey_tweak_add(_ctx, &pubkey, (const unsigned char *)i) &&
+            secp256k1_ec_pubkey_serialize(_ctx, (unsigned char *)p, &pLen, &pubkey, SECP256K1_EC_COMPRESSED));
 }
 
 // returns true if privKey is a valid private key

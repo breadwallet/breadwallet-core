@@ -266,7 +266,7 @@ int BRKeySetBIP38Key(BRKey *key, const char *bip38Key, const char *passphrase)
         BRECPoint passpoint;
         uint64_t seedb[3];
         
-        BRSecp256k1PointMul(&passpoint, sizeof(passpoint), BR_ECPOINT_ZERO, passfactor, 1); // passpoint = G*passfactor
+        BRSecp256k1PointGen(&passpoint, &passfactor); // passpoint = G*passfactor
         derived = _BRBIP38DeriveKey(passpoint, addresshash, entropy);
         derived1 = *(UInt256 *)&derived, derived2 = *(UInt256 *)&derived.u64[4];
         memcpy(&encrypted1, &data[15], sizeof(uint64_t));
@@ -282,7 +282,8 @@ int BRKeySetBIP38Key(BRKey *key, const char *bip38Key, const char *passphrase)
         seedb[1] = encrypted1.u64[1] ^ derived1.u64[1];
 
         BRSHA256_2(&factorb, seedb, sizeof(seedb)); // factorb = SHA256(SHA256(seedb))
-        secret = BRSecp256k1ModMul(passfactor, factorb); // secret = passfactor*factorb mod N
+        secret = passfactor;
+        BRSecp256k1ModMul(&secret, &factorb); // secret = passfactor*factorb mod N
     }
     
     BRKeySetSecret(key, &secret, flag & BIP38_COMPRESSED_FLAG);
