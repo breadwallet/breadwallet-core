@@ -34,33 +34,26 @@ extern "C" {
 typedef struct {
     uint8_t p[33];
 } BRECPoint;
-    
-#define BR_ECPOINT_ZERO \
-    ((BRECPoint) { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 })
-    
-static inline int BRECPointIsZero(BRECPoint p)
-{
-    return ((p.p[0] | p.p[1] | p.p[2] | p.p[3] | p.p[4] | p.p[5] | p.p[6] | p.p[7] | p.p[8] | p.p[9] | p.p[10] |
-             p.p[11] | p.p[12] | p.p[13] | p.p[14] | p.p[15] | p.p[16] | p.p[17] | p.p[18] | p.p[19] | p.p[20] |
-             p.p[21] | p.p[22] | p.p[23] | p.p[24] | p.p[25] | p.p[26] | p.p[27] | p.p[28] | p.p[29] | p.p[30] |
-             p.p[31] | p.p[32]) == 0);
-}
 
-// adds 256bit big endian ints (mod secp256k1 order) and stores the result in a
+// adds 256bit big endian ints a and b (mod secp256k1 order) and stores the result in a
 // returns true on success
 int BRSecp256k1ModAdd(UInt256 *a, const UInt256 *b);
 
-// multiplies 256bit big endian ints (mod secp256k1 order) and stores the result in a
+// multiplies 256bit big endian ints a and b (mod secp256k1 order) and stores the result in a
 // returns true on success
 int BRSecp256k1ModMul(UInt256 *a, const UInt256 *b);
 
-// multiplies secp256k1 generator ec-point by 256bit big endian int and stores the result in p
+// multiplies secp256k1 generator by 256bit big endian int i and stores the result in p
 // returns true on success
 int BRSecp256k1PointGen(BRECPoint *p, const UInt256 *i);
 
-// multiplies secp256k1 generator ec-point by 256bit big endian int and adds the result to p
+// multiplies secp256k1 generator by 256bit big endian int i and adds the result to ec-point p
 // returns true on success
 int BRSecp256k1PointAdd(BRECPoint *p, const UInt256 *i);
+
+// multiplies secp256k1 ec-point p by 256bit big endian int i and stores the result in p
+// returns true on success
+int BRSecp256k1PointMul(BRECPoint *p, const UInt256 *i);
 
 // returns true if privKey is a valid private key
 int BRPrivKeyIsValid(const char *privKey);
