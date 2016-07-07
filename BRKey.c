@@ -35,10 +35,11 @@
 
 #if __BIG_ENDIAN__ || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) ||\
     __ARMEB__ || __THUMBEB__ || __AARCH64EB__ || __MIPSEB__
-#define WORDS_BIGENDIAN 1
+#define WORDS_BIGENDIAN        1
 #endif
-#define DETERMINISTIC    1
-#define USE_BASIC_CONFIG 1
+#define DETERMINISTIC          1
+#define USE_BASIC_CONFIG       1
+#define ENABLE_MODULE_RECOVERY 1
 
 #pragma clang diagnostic push
 #pragma GCC diagnostic push
@@ -50,7 +51,6 @@
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #include "secp256k1/src/basic-config.h"
 #include "secp256k1/src/secp256k1.c"
-#include "secp256k1/src/modules/recovery/main_impl.h"
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop
 
