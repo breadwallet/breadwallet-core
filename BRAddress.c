@@ -33,6 +33,8 @@
 #define VAR_INT64_HEADER  0xff
 #define MAX_SCRIPT_LENGTH 0x100 // scripts over this size will not be parsed for an address
 
+// reads a varint from buf and stores its length in intLen if intLen is non-NULL
+// returns the varint value
 uint64_t BRVarInt(const uint8_t *buf, size_t bufLen, size_t *intLen)
 {
     uint64_t r = 0;
@@ -65,6 +67,7 @@ uint64_t BRVarInt(const uint8_t *buf, size_t bufLen, size_t *intLen)
     return r;
 }
 
+// writes i to buf as a varint and returns the number of bytes written, or bufLen needed if buf is NULL
 size_t BRVarIntSet(uint8_t *buf, size_t bufLen, uint64_t i)
 {
     size_t r = 0;
@@ -103,11 +106,14 @@ size_t BRVarIntSet(uint8_t *buf, size_t bufLen, uint64_t i)
     return r;
 }
 
+// returns the number of bytes needed to encode i as a varint
 size_t BRVarIntSize(uint64_t i)
 {
     return BRVarIntSet(NULL, 0, i);
 }
 
+// parses script and writes an array of pointers to the script elements (opcodes and data pushes) to elems
+// returns the number of elements written or elemsCount needed if elems is NULL
 size_t BRScriptElements(const uint8_t *elems[], size_t elemsCount, const uint8_t *script, size_t scriptLen)
 {
     size_t off = 0, i = 0, len = 0;
@@ -150,6 +156,7 @@ size_t BRScriptElements(const uint8_t *elems[], size_t elemsCount, const uint8_t
     return ((! elems || i <= elemsCount) && off == scriptLen) ? i : 0;
 }
 
+// given a data push script element, returns a pointer to the start of the data and writes its length to dataLen
 const uint8_t *BRScriptData(const uint8_t *elem, size_t *dataLen)
 {
     assert(elem != NULL);
@@ -184,6 +191,8 @@ const uint8_t *BRScriptData(const uint8_t *elem, size_t *dataLen)
     return (*dataLen > 0) ? elem : NULL;
 }
 
+// writes a data push script element to script
+// returns the number of bytes written, or scriptLen needed if script is NULL
 size_t BRScriptPushData(uint8_t *script, size_t scriptLen, const uint8_t *data, size_t dataLen)
 {
     size_t len = dataLen;
@@ -230,6 +239,8 @@ size_t BRScriptPushData(uint8_t *script, size_t scriptLen, const uint8_t *data, 
 // we are unable to correctly sign later, then the entire wallet balance after that point would become stuck with the
 // current coin selection code
 
+// writes the bitcoin address for a scriptPubKey to addr
+// returns the number of bytes written or addrLen needed if addr is NULL
 size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *script, size_t scriptLen)
 {
     assert(addr != NULL || addrLen == 0);
@@ -272,6 +283,8 @@ size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *scri
     return (d) ? BRBase58CheckEncode(addr, addrLen, data, sizeof(data)) : 0;
 }
 
+// writes the bitcoin address for a scriptSig to addr
+// returns the number of bytes written or addrLen needed if addr is NULL
 size_t BRAddressFromScriptSig(char *addr, size_t addrLen, const uint8_t *script, size_t scriptLen)
 {
     assert(addr != NULL || addrLen == 0);
@@ -309,6 +322,8 @@ size_t BRAddressFromScriptSig(char *addr, size_t addrLen, const uint8_t *script,
     return (d) ? BRBase58CheckEncode(addr, addrLen, data, sizeof(data)) : 0;
 }
 
+// writes the scriptPubKey for addr to script
+// returns the number of bytes written or scripLen needed if script is NULL
 size_t BRAddressScriptPubKey(uint8_t *script, size_t scriptLen, const char *addr)
 {
     static uint8_t pubkeyAddress = BITCOIN_PUBKEY_ADDRESS, scriptAddress = BITCOIN_SCRIPT_ADDRESS;
@@ -351,6 +366,7 @@ size_t BRAddressScriptPubKey(uint8_t *script, size_t scriptLen, const char *addr
     return r;
 }
 
+// returns true if addr is a valid bitcoin address
 int BRAddressIsValid(const char *addr)
 {
     uint8_t data[21];
@@ -369,6 +385,7 @@ int BRAddressIsValid(const char *addr)
     return r;
 }
 
+// writes the 20 byte hash160 of addr to md20 and returns true on success
 int BRAddressHash160(void *md20, const char *addr)
 {
     uint8_t data[21];
