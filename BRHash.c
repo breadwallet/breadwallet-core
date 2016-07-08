@@ -462,7 +462,8 @@ void BRHMAC(void *md, void (*hash)(void *, const void *, size_t), size_t hashLen
             const void *data, size_t dataLen)
 {
     size_t i, blockLen = (hashLen > 32) ? 128 : 64;
-    uint8_t k[hashLen], kipad[blockLen + dataLen], kopad[blockLen + hashLen];
+    uint8_t k[hashLen];
+    uint64_t kipad[(blockLen + dataLen)/sizeof(uint64_t) + 1], kopad[(blockLen + hashLen)/sizeof(uint64_t) + 1];
     
     assert(md != NULL);
     assert(hash != NULL);
@@ -472,13 +473,13 @@ void BRHMAC(void *md, void (*hash)(void *, const void *, size_t), size_t hashLen
     if (keyLen > blockLen) hash(k, key, keyLen), key = k, keyLen = sizeof(k);
     memset(kipad, 0, blockLen);
     memcpy(kipad, key, keyLen);
-    for (i = 0; i < blockLen/sizeof(uint64_t); i++) ((uint64_t *)kipad)[i] ^= 0x3636363636363636;
+    for (i = 0; i < blockLen/sizeof(uint64_t); i++) kipad[i] ^= 0x3636363636363636;
     memset(kopad, 0, blockLen);
     memcpy(kopad, key, keyLen);
-    for (i = 0; i < blockLen/sizeof(uint64_t); i++) ((uint64_t *)kopad)[i] ^= 0x5c5c5c5c5c5c5c5c;
-    memcpy(kipad + blockLen, data, dataLen);
-    hash(kopad + blockLen, kipad, sizeof(kipad));
-    hash(md, kopad, sizeof(kopad));
+    for (i = 0; i < blockLen/sizeof(uint64_t); i++) kopad[i] ^= 0x5c5c5c5c5c5c5c5c;
+    memcpy(&kipad[blockLen/sizeof(uint64_t)], data, dataLen);
+    hash(&kopad[blockLen/sizeof(uint64_t)], kipad, blockLen + dataLen);
+    hash(md, kopad, blockLen + hashLen);
     
     memset(k, 0, sizeof(k));
     memset(kipad, 0, blockLen);
@@ -494,8 +495,8 @@ void BRHMAC(void *md, void (*hash)(void *, const void *, size_t), size_t hashLen
 void BRPBKDF2(void *dk, size_t dkLen, void (*hash)(void *, const void *, size_t), size_t hashLen,
               const void *pw, size_t pwLen, const void *salt, size_t saltLen, unsigned rounds)
 {
-    uint8_t s[saltLen + sizeof(uint32_t)], U[hashLen], T[hashLen];
-    uint32_t i, j;
+    uint8_t s[saltLen + sizeof(uint32_t)];
+    uint32_t i, j, U[hashLen/sizeof(uint32_t)], T[hashLen/sizeof(uint32_t)];
     
     assert(dk != NULL || dkLen == 0);
     assert(hash != NULL);
@@ -513,7 +514,7 @@ void BRPBKDF2(void *dk, size_t dkLen, void (*hash)(void *, const void *, size_t)
         
         for (unsigned r = 1; r < rounds; r++) {
             BRHMAC(U, hash, hashLen, pw, pwLen, U, sizeof(U)); // Urounds = hmac_hash(pw, Urounds-1)
-            for (j = 0; j < hashLen/4; j++) ((uint32_t *)T)[j] ^= ((uint32_t *)U)[j]; // Ti = U1 ^ U2 ^ ... ^ Urounds
+            for (j = 0; j < hashLen/sizeof(uint32_t); j++) T[j] ^= U[j]; // Ti = U1 ^ U2 ^ ... ^ Urounds
         }
         
         // dk = T1 || T2 || ... || Tdklen/hlen
