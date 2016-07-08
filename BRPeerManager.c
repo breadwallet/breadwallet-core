@@ -220,6 +220,7 @@ struct BRPeerManagerStruct {
     BRWallet *wallet;
     int isConnected, connectFailureCount, misbehavinCount;
     BRPeer *peers, *downloadPeer, **connectedPeers;
+    char downloadPeerName[INET6_ADDRSTRLEN + 6];
     uint32_t earliestKeyTime, syncStartHeight, filterUpdateHeight, estimatedHeight;
     BRBloomFilter *bloomFilter;
     double fpRate, averageTxPerBlock;
@@ -1805,6 +1806,21 @@ size_t BRPeerManagerPeerCount(BRPeerManager *manager)
     
     pthread_mutex_unlock(&manager->lock);
     return count;
+}
+
+// description of the peer most recently used to sync blockchain data
+const char *BRPeerManagerDownloadPeerName(BRPeerManager *manager)
+{
+    assert(manager != NULL);
+    pthread_mutex_lock(&manager->lock);
+
+    if (manager->downloadPeer) {
+        sprintf(manager->downloadPeerName, "%s:%d", BRPeerHost(manager->downloadPeer), manager->downloadPeer->port);
+    }
+    else manager->downloadPeerName[0] = '\0';
+    
+    pthread_mutex_unlock(&manager->lock);
+    return manager->downloadPeerName;
 }
 
 static void _publishTxInvDone(void *info, int success)
