@@ -846,6 +846,7 @@ static void _peerConnected(void *info)
     }
     
     pthread_mutex_unlock(&manager->lock);
+    if (manager->txStatusUpdate) manager->txStatusUpdate(manager->info);
 }
 
 static void _peerDisconnected(void *info, int error)
