@@ -489,8 +489,12 @@ void BRHMAC(void *mac, void (*hash)(void *, const void *, size_t), size_t hashLe
 // poly1305 authenticator: https://tools.ietf.org/html/rfc7539
 void BRPoly1305(void *mac16, const void *data, size_t len, const void *key32)
 {
-    uint32_t x[4], c, t0, t1, t2, t3, t4, r0, r1, r2, r3, r4, h0 = 0, h1 = 0, h2 = 0, h3 = 0, h4 = 0;
+    uint32_t x[4], b, t0, t1, t2, t3, t4, r0, r1, r2, r3, r4, h0 = 0, h1 = 0, h2 = 0, h3 = 0, h4 = 0;
     uint64_t d0, d1, d2, d3, d4;
+    
+    assert(mac16 != NULL);
+    assert(data != NULL || len == 0);
+    assert(key32 != NULL);
     
     // r &= 0xffffffc0ffffffc0ffffffc0fffffff
     memcpy(x, key32, 16);
@@ -510,7 +514,7 @@ void BRPoly1305(void *mac16, const void *data, size_t len, const void *key32)
         t0 = le32(x[0]), t1 = le32(x[1]), t2 = le32(x[2]), t3 = le32(x[3]);
         h0 += t0 & 0x03ffffff, h1 += ((t0 >> 26) | (t1 << 6)) & 0x03ffffff;
         h2 += ((t1 >> 20) | (t2 << 12)) & 0x03ffffff, h3 += ((t2 >> 14) | (t3 << 18)) & 0x03ffffff;
-        h4 += (t3 >> 8) | ((i + 16 <= len) ? 1 << 24 : 0);
+        h4 += (t3 >> 8) | ((i + 16 <= len) ? (1 << 24) : 0);
         
         // h *= r
         d0 = (uint64_t)h0*r0 + (uint64_t)h1*r4*5 + (uint64_t)h2*r3*5 + (uint64_t)h3*r2*5 + (uint64_t)h4*r1*5;
@@ -520,26 +524,26 @@ void BRPoly1305(void *mac16, const void *data, size_t len, const void *key32)
         d4 = (uint64_t)h0*r4 + (uint64_t)h1*r3 + (uint64_t)h2*r2 + (uint64_t)h3*r1 + (uint64_t)h4*r0;
         
         // (partial) h %= p
-        d1 += (uint32_t)(d0 >> 26); h1 = d1 & 0x03ffffff, d2 += (uint32_t)(d1 >> 26); h2 = d2 & 0x03ffffff;
-        d3 += (uint32_t)(d2 >> 26); h3 = d3 & 0x03ffffff, d4 += (uint32_t)(d3 >> 26); h4 = d4 & 0x03ffffff;
-        h0 = (d0 & 0x03ffffff) + (uint32_t)(d4 >> 26)*5; h1 += h0 >> 26; h0 &= 0x03ffffff;
+        d1 += (uint32_t)(d0 >> 26), h1 = d1 & 0x03ffffff, d2 += (uint32_t)(d1 >> 26), h2 = d2 & 0x03ffffff;
+        d3 += (uint32_t)(d2 >> 26), h3 = d3 & 0x03ffffff, d4 += (uint32_t)(d3 >> 26), h4 = d4 & 0x03ffffff;
+        h0 = (d0 & 0x03ffffff) + (uint32_t)(d4 >> 26)*5, h1 += h0 >> 26, h0 &= 0x03ffffff;
     }
     
     // fully carry h
-    h2 += h1 >> 26; h1 &= 0x03ffffff, h3 += h2 >> 26; h2 &= 0x03ffffff, h4 += h3 >> 26; h3 &= 0x03ffffff;
-    h0 += (h4 >> 26)*5; h4 &= 0x03ffffff, h1 += h0 >> 26; h0 &= 0x03ffffff;
+    h2 += h1 >> 26, h1 &= 0x03ffffff, h3 += h2 >> 26, h2 &= 0x03ffffff, h4 += h3 >> 26, h3 &= 0x03ffffff;
+    h0 += (h4 >> 26)*5, h4 &= 0x03ffffff, h1 += h0 >> 26, h0 &= 0x03ffffff;
     
     // compute h + -p
-    t0 = h0 + 5; t1 = h1 + (t0 >> 26); t0 &= 0x03ffffff, t2 = h2 + (t1 >> 26); t1 &= 0x03ffffff;
-    t3 = h3 + (t2 >> 26); t2 &= 0x03ffffff, t4 = h4 + (t3 >> 26) - (1 << 26); t3 &= 0x03ffffff;
+    t0 = h0 + 5, t1 = h1 + (t0 >> 26), t0 &= 0x03ffffff, t2 = h2 + (t1 >> 26), t1 &= 0x03ffffff;
+    t3 = h3 + (t2 >> 26), t2 &= 0x03ffffff, t4 = h4 + (t3 >> 26) - (1 << 26), t3 &= 0x03ffffff;
     
     // select h if h < p, or h + -p if h >= p
-    c = (t4 >> 31) - 1, h0 = (h0 & ~c) | (t0 & c), h1 = (h1 & ~c) | (t1 & c);
-    h2 = (h2 & ~c) | (t2 & c), h3 = (h3 & ~c) | (t3 & c), h4 = (h4 & ~c) | (t4 & c);
+    b = (t4 >> 31) - 1, h0 = (h0 & ~b) | (t0 & b), h1 = (h1 & ~b) | (t1 & b);
+    h2 = (h2 & ~b) | (t2 & b), h3 = (h3 & ~b) | (t3 & b), h4 = (h4 & ~b) | (t4 & b);
     
     // h = h % (2^128)
-    h0 = (h0 | (h1 << 26)) & 0x0ffffffff, h1 = ((h1 >>  6) | (h2 << 20)) & 0x0ffffffff;
-    h2 = ((h2 >> 12) | (h3 << 14)) & 0x0ffffffff, h3 = ((h3 >> 18) | (h4 <<  8)) & 0x0ffffffff;
+    h0 = (h0 | (h1 << 26)) & 0x0ffffffff, h1 = ((h1 >> 6) | (h2 << 20)) & 0x0ffffffff;
+    h2 = ((h2 >> 12) | (h3 << 14)) & 0x0ffffffff, h3 = ((h3 >> 18) | (h4 << 8)) & 0x0ffffffff;
     
     // mac = (h + pad) % (2^128)
     memcpy(x, (const uint8_t *)key32 + 16, 16);
@@ -549,7 +553,7 @@ void BRPoly1305(void *mac16, const void *data, size_t len, const void *key32)
     memcpy(mac16, x, 16);
     
     d0 = d1 = d2 = d3 = d4 = 0;
-    x[0] = x[1] = x[2] = x[3] = c = t0 = t1 = t2 = t3 = t4 = r0 = r1 = r2 = r3 = r4 = h0 = h1 = h2 = h3 = h4 = 0;
+    x[0] = x[1] = x[2] = x[3] = b = t0 = t1 = t2 = t3 = t4 = r0 = r1 = r2 = r3 = r4 = h0 = h1 = h2 = h3 = h4 = 0;
 }
 
 // dk = T1 || T2 || ... || Tdklen/hlen
