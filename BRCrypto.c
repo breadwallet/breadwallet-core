@@ -1,5 +1,5 @@
 //
-//  BRHash.c
+//  BRCrypto.c
 //
 //  Created by Aaron Voisine on 8/8/15.
 //  Copyright (c) 2015 breadwallet LLC
@@ -22,7 +22,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include "BRHash.h"
+#include "BRCrypto.h"
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -458,14 +458,14 @@ void BRMD5(void *md16, const void *data, size_t len)
 // HMAC(key, data) = hash((key xor opad) || hash((key xor ipad) || data))
 // opad = 0x5c5c5c...5c5c
 // ipad = 0x363636...3636
-void BRHMAC(void *md, void (*hash)(void *, const void *, size_t), size_t hashLen, const void *key, size_t keyLen,
+void BRHMAC(void *mac, void (*hash)(void *, const void *, size_t), size_t hashLen, const void *key, size_t keyLen,
             const void *data, size_t dataLen)
 {
     size_t i, blockLen = (hashLen > 32) ? 128 : 64;
     uint8_t k[hashLen];
     uint64_t kipad[(blockLen + dataLen)/sizeof(uint64_t) + 1], kopad[(blockLen + hashLen)/sizeof(uint64_t) + 1];
     
-    assert(md != NULL);
+    assert(mac != NULL);
     assert(hash != NULL);
     assert(hashLen > 0 && (hashLen % 4) == 0);
     assert(key != NULL || keyLen == 0);
@@ -479,11 +479,76 @@ void BRHMAC(void *md, void (*hash)(void *, const void *, size_t), size_t hashLen
     for (i = 0; i < blockLen/sizeof(uint64_t); i++) kopad[i] ^= 0x5c5c5c5c5c5c5c5c;
     memcpy(&kipad[blockLen/sizeof(uint64_t)], data, dataLen);
     hash(&kopad[blockLen/sizeof(uint64_t)], kipad, blockLen + dataLen);
-    hash(md, kopad, blockLen + hashLen);
+    hash(mac, kopad, blockLen + hashLen);
     
     memset(k, 0, sizeof(k));
     memset(kipad, 0, blockLen);
     memset(kopad, 0, blockLen);
+}
+
+// poly1305 authenticator: https://tools.ietf.org/html/rfc7539
+void BRPoly1305(void *mac16, const void *data, size_t len, const void *key32)
+{
+    uint32_t x[4], b, t0, t1, t2, t3, t4, r0, r1, r2, r3, r4, h0 = 0, h1 = 0, h2 = 0, h3 = 0, h4 = 0;
+    uint64_t f0, f1, f2, f3, f4;
+    
+    memcpy(x, key32, 16);
+    t0 = le32(x[0]), t1 = le32(x[1]), t2 = le32(x[2]), t3 = le32(x[3]);
+    
+    r0 = t0, r1 = (t0 >> 26) | (t1 << 6), r2 = (t1 >> 20) | (t2 << 12), r3 = (t2 >> 14) | (t3 << 18), r4 = t3 >> 8;
+    r0 &= 0x03ffffff, r1 &= 0x03ffff03, r2 &= 0x03ffc0ff, r3 &= 0x03f03fff, r4 &= 0x000fffff;
+    
+    for (size_t i = 0; i < len; i += 16) { // process data in 16 byte blocks
+        if (i + 16 > len) {
+            memcpy(x, (const uint8_t *)data + i, len - i);
+            memset((uint8_t *)x + (len - i), 0, 16 - (len - i)); // clear remainder of x
+            ((uint8_t *)x)[len - i] = 1; // append padding
+        }
+        else memcpy(x, (const uint8_t *)data + i, 16);
+
+        t0 = le32(x[0]), t1 = le32(x[1]), t2 = le32(x[2]), t3 = le32(x[3]);
+        
+        h0 += t0 & 0x03ffffff;
+        h1 += ((t0 >> 26) | (t1 << 6)) & 0x03ffffff;
+        h2 += ((t1 >> 20) | (t2 << 12)) & 0x03ffffff;
+        h3 += ((t2 >> 14) | (t3 << 18)) & 0x03ffffff;
+        h4 += (t3 >> 8) | ((i + 16 <= len) ? 1 << 24 : 0);
+
+        f0 = (uint64_t)h0*r0 + (uint64_t)h1*r4*5 + (uint64_t)h2*r3*5 + (uint64_t)h3*r2*5 + (uint64_t)h4*r1*5;
+        f1 = (uint64_t)h0*r1 + (uint64_t)h1*r0 + (uint64_t)h2*r4*5 + (uint64_t)h3*r3*5 + (uint64_t)h4*r2*5 + (f0 >> 26);
+        f2 = (uint64_t)h0*r2 + (uint64_t)h1*r1 + (uint64_t)h2*r0 + (uint64_t)h3*r4*5 + (uint64_t)h4*r3*5 + (f1 >> 26);
+        f3 = (uint64_t)h0*r3 + (uint64_t)h1*r2 + (uint64_t)h2*r1 + (uint64_t)h3*r0 + (uint64_t)h4*r4*5 + (f2 >> 26);
+        f4 = (uint64_t)h0*r4 + (uint64_t)h1*r3 + (uint64_t)h2*r2 + (uint64_t)h3*r1 + (uint64_t)h4*r0 + (f3 >> 26);
+
+        h0 = f0 & 0x03ffffff, h1 = f1 & 0x03ffffff, h2 = f2 & 0x03ffffff, h3 = f3 & 0x03ffffff, h4 = f4 & 0x03ffffff;
+        h0 += ((f4 >> 26) & 0xffffffff)*5;
+    }
+
+    h1 += h0 >> 26, h2 += h1 >> 26, h3 += h2 >> 26, h4 += h3 >> 26;
+    h0 &= 0x03ffffff, h1 &= 0x03ffffff, h2 &= 0x03ffffff, h3 &= 0x03ffffff;
+    h0 += (h4 >> 26)*5, h1 += h0 >> 26, h0 &= 0x03ffffff, h4 &= 0x03ffffff;
+
+    t0 = h0 + 5, t1 = h1 + (t0 >> 26), t2 = h2 + (t1 >> 26), t3 = h3 + (t2 >> 26), t4 = h4 + (t3 >> 26) - (1 << 26);
+    t0 &= 0x03ffffff, t1 &= 0x03ffffff, t2 &= 0x03ffffff, t3 &= 0x03ffffff;
+
+    b = (t4 >> 31) - 1;
+    h0 = (h0 & ~b) | (t0 & b);
+    h1 = (h1 & ~b) | (t1 & b);
+    h2 = (h2 & ~b) | (t2 & b);
+    h3 = (h3 & ~b) | (t3 & b);
+    h4 = (h4 & ~b) | (t4 & b);
+
+    memcpy(x, (const uint8_t *)key32 + 16, 16);
+    f0 = (uint64_t)le32(x[0]) + (h0 | (h1 << 26));
+    f1 = (uint64_t)le32(x[1]) + ((h1 >> 6) | (h2 << 20)) + (f0 >> 32);
+    f2 = (uint64_t)le32(x[2]) + ((h2 >> 12) | (h3 << 14)) + (f1 >> 32);
+    f3 = (uint64_t)le32(x[3]) + ((h3 >> 18) | (h4 << 8)) + (f2 >> 32);
+
+    x[0] = le32((uint32_t)f0), x[1] = le32((uint32_t)f1), x[2] = le32((uint32_t)f2), x[3] = le32((uint32_t)f3);
+    memcpy(mac16, x, 16);
+
+    f0 = f1 = f2 = f3 = f4 = 0;
+    x[0] = x[1] = x[2] = x[3] = b = t0 = t1 = t2 = t3 = t4 = r0 = r1 = r2 = r3 = r4 = h0 = h1 = h2 = h3 = h4 = 0;
 }
 
 // dk = T1 || T2 || ... || Tdklen/hlen

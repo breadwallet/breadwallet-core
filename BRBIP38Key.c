@@ -24,7 +24,7 @@
 
 #include "BRBIP38Key.h"
 #include "BRAddress.h"
-#include "BRHash.h"
+#include "BRCrypto.h"
 #include "BRBase58.h"
 #include "BRInt.h"
 #include <stdlib.h>

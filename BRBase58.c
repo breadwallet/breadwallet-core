@@ -24,7 +24,7 @@
 //  THE SOFTWARE.
 
 #include "BRBase58.h"
-#include "BRHash.h"
+#include "BRCrypto.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>

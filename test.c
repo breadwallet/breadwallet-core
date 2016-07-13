@@ -22,7 +22,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include "BRHash.h"
+#include "BRCrypto.h"
 #include "BRBloomFilter.h"
 #include "BRMerkleBlock.h"
 #include "BRWallet.h"
@@ -546,6 +546,107 @@ int BRHashTests()
     BRMD5(md, s, strlen(s));
     if (! UInt128Eq(*(UInt128 *)"\x0c\xc1\x75\xb9\xc0\xf1\xb6\xa8\x31\xc3\x99\xe2\x69\x77\x26\x61",
                     *(UInt128 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRMD5() test 6\n", __func__);
+    
+    return r;
+}
+
+int BRMacTests()
+{
+    int r = 1;
+
+    const char key1[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+    msg1[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+    "\0\0\0\0\0\0\0\0\0\0\0";
+    uint8_t mac[16];
+    
+    BRPoly1305(mac, msg1, sizeof(msg1) - 1, key1);
+    if (memcmp("\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, sizeof(mac)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 1\n", __func__);
+
+    const char key2[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x36\xe5\xf6\xb5\xc5\xe0\x60\x70\xf0\xef\xca\x96\x22\x7a\x86"
+    "\x3e",
+    msg2[] = "Any submission to the IETF intended by the Contributor for publication as all or part of an IETF "
+    "Internet-Draft or RFC and any statement made within the context of an IETF activity is considered an \"IETF "
+    "Contribution\". Such statements include oral statements in IETF sessions, as well as written and electronic "
+    "communications made at any time or place, which are addressed to";
+
+    BRPoly1305(mac, msg2, sizeof(msg2) - 1, key2);
+    if (memcmp("\x36\xe5\xf6\xb5\xc5\xe0\x60\x70\xf0\xef\xca\x96\x22\x7a\x86\x3e", mac, sizeof(mac)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 2\n", __func__);
+
+    const char key3[] = "\x36\xe5\xf6\xb5\xc5\xe0\x60\x70\xf0\xef\xca\x96\x22\x7a\x86\x3e\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+    "\0",
+    msg3[] = "Any submission to the IETF intended by the Contributor for publication as all or part of an IETF "
+    "Internet-Draft or RFC and any statement made within the context of an IETF activity is considered an \"IETF "
+    "Contribution\". Such statements include oral statements in IETF sessions, as well as written and electronic "
+    "communications made at any time or place, which are addressed to";
+
+    BRPoly1305(mac, msg3, sizeof(msg3) - 1, key3);
+    if (memcmp("\xf3\x47\x7e\x7c\xd9\x54\x17\xaf\x89\xa6\xb8\x79\x4c\x31\x0c\xf0", mac, sizeof(mac)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 3\n", __func__);
+    
+    const char key4[] = "\x1c\x92\x40\xa5\xeb\x55\xd3\x8a\xf3\x33\x88\x86\x04\xf6\xb5\xf0\x47\x39\x17\xc1\x40\x2b\x80"
+    "\x09\x9d\xca\x5c\xbc\x20\x70\x75\xc0",
+    msg4[] = "'Twas brillig, and the slithy toves\nDid gyre and gimble in the wabe:\nAll mimsy were the borogoves,\n"
+    "And the mome raths outgrabe.";
+
+    BRPoly1305(mac, msg4, sizeof(msg4) - 1, key4);
+    if (memcmp("\x45\x41\x66\x9a\x7e\xaa\xee\x61\xe7\x08\xdc\x7c\xbc\xc5\xeb\x62", mac, sizeof(mac)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 4\n", __func__);
+
+    const char key5[] = "\x02\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+    msg5[] = "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF";
+
+    BRPoly1305(mac, msg5, sizeof(msg5) - 1, key5);
+    if (memcmp("\x03\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, sizeof(mac)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 5\n", __func__);
+
+    const char key6[] = "\x02\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+    "\xFF",
+    msg6[] = "\x02\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+    
+    BRPoly1305(mac, msg6, sizeof(msg6) - 1, key6);
+    if (memcmp("\x03\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, sizeof(mac)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 6\n", __func__);
+
+    const char key7[] = "\x01\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+    msg7[] = "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xF0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+    "\xFF\xFF\xFF\xFF\xFF\xFF\x11\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+    
+    BRPoly1305(mac, msg7, sizeof(msg7) - 1, key7);
+    if (memcmp("\x05\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, sizeof(mac)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 7\n", __func__);
+
+    const char key8[] = "\x01\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+    msg8[] = "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFB\xFE\xFE\xFE\xFE\xFE\xFE\xFE\xFE\xFE"
+    "\xFE\xFE\xFE\xFE\xFE\xFE\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01";
+    
+    BRPoly1305(mac, msg8, sizeof(msg8) - 1, key8);
+    if (memcmp("\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, sizeof(mac)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 8\n", __func__);
+
+    const char key9[] = "\x02\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+    msg9[] = "\xFD\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF";
+    
+    BRPoly1305(mac, msg9, sizeof(msg9) - 1, key9);
+    if (memcmp("\xFA\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF", mac, sizeof(mac)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 9\n", __func__);
+
+    const char key10[] = "\x01\0\0\0\0\0\0\0\x04\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+    msg10[] = "\xE3\x35\x94\xD7\x50\x5E\x43\xB9\0\0\0\0\0\0\0\0\x33\x94\xD7\x50\x5E\x43\x79\xCD\x01\0\0\0\0\0\0\0\0\0\0"
+    "\0\0\0\0\0\0\0\0\0\0\0\0\0\x01\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+    
+    BRPoly1305(mac, msg10, sizeof(msg10) - 1, key10);
+    if (memcmp("\x14\0\0\0\0\0\0\0\x55\0\0\0\0\0\0\0", mac, sizeof(mac)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 10\n", __func__);
+
+    const char key11[] = "\x01\0\0\0\0\0\0\0\x04\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
+    msg11[] = "\xE3\x35\x94\xD7\x50\x5E\x43\xB9\0\0\0\0\0\0\0\0\x33\x94\xD7\x50\x5E\x43\x79\xCD\x01\0\0\0\0\0\0\0\0\0\0"
+    "\0\0\0\0\0\0\0\0\0\0\0\0\0";
+    
+    BRPoly1305(mac, msg11, sizeof(msg11) - 1, key11);
+    if (memcmp("\x13\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, sizeof(mac)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 11\n", __func__);
     
     return r;
 }
@@ -1920,6 +2021,8 @@ int BRRunTests()
     printf("%s\n", (BRBase58Tests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRHashTests...            ");
     printf("%s\n", (BRHashTests()) ? "success" : (fail++, "***FAIL***"));
+    printf("BRMacTests...             ");
+    printf("%s\n", (BRMacTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRKeyTests...             ");
     printf("%s\n", (BRKeyTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRBIP38KeyTests...        ");

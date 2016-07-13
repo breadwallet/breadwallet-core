@@ -23,7 +23,7 @@
 //  THE SOFTWARE.
 
 #include "BRBIP39Mnemonic.h"
-#include "BRHash.h"
+#include "BRCrypto.h"
 #include "BRInt.h"
 #include <string.h>
 #include <assert.h>

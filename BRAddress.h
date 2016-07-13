@@ -25,7 +25,7 @@
 #ifndef BRAddress_h
 #define BRAddress_h
 
-#include "BRHash.h"
+#include "BRCrypto.h"
 #include <string.h>
 
 #ifdef __cplusplus

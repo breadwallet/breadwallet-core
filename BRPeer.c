@@ -27,7 +27,7 @@
 #include "BRAddress.h"
 #include "BRSet.h"
 #include "BRArray.h"
-#include "BRHash.h"
+#include "BRCrypto.h"
 #include "BRInt.h"
 #include <stdlib.h>
 #include <float.h>

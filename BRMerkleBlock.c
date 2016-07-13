@@ -23,7 +23,7 @@
 //  THE SOFTWARE.
 
 #include "BRMerkleBlock.h"
-#include "BRHash.h"
+#include "BRCrypto.h"
 #include "BRAddress.h"
 #include <stdlib.h>
 #include <stdint.h>

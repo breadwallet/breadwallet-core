@@ -23,7 +23,7 @@
 //  THE SOFTWARE.
 
 #include "BRBIP32Sequence.h"
-#include "BRHash.h"
+#include "BRCrypto.h"
 #include "BRBase58.h"
 #include <string.h>
 #include <assert.h>

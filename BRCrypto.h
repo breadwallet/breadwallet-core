@@ -1,5 +1,5 @@
 //
-//  BRHash.h
+//  BRCrypto.h
 //
 //  Created by Aaron Voisine on 8/8/15.
 //  Copyright (c) 2015 breadwallet LLC
@@ -22,8 +22,8 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BRHash_h
-#define BRHash_h
+#ifndef BRCrypto_h
+#define BRCrypto_h
 
 #include <stddef.h>
 #include <stdint.h>
@@ -55,8 +55,11 @@ void BRHash160(void *md20, const void *data, size_t len);
 // md5 - for non-cryptographic use only
 void BRMD5(void *md16, const void *data, size_t len);
 
-void BRHMAC(void *md, void (*hash)(void *, const void *, size_t), size_t hashLen, const void *key, size_t keyLen,
+void BRHMAC(void *mac, void (*hash)(void *, const void *, size_t), size_t hashLen, const void *key, size_t keyLen,
             const void *data, size_t dataLen);
+
+// poly1305 authenticator: https://tools.ietf.org/html/rfc7539
+void BRPoly1305(void *mac16, const void *data, size_t len, const void *key32);
 
 void BRPBKDF2(void *dk, size_t dkLen, void (*hash)(void *, const void *, size_t), size_t hashLen,
               const void *pw, size_t pwLen, const void *salt, size_t saltLen, unsigned rounds);

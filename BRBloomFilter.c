@@ -23,7 +23,7 @@
 //  THE SOFTWARE.
 
 #include "BRBloomFilter.h"
-#include "BRHash.h"
+#include "BRCrypto.h"
 #include "BRAddress.h"
 #include "BRInt.h"
 #include <stdlib.h>
