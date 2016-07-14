@@ -521,7 +521,7 @@ void BRHMAC(void *mac, void (*hash)(void *, const void *, size_t), size_t hashLe
 }
 
 // poly1305 authenticator: https://tools.ietf.org/html/rfc7539
-void BRPoly1305(void *mac16, const void *data, size_t len, const void *key32)
+void BRPoly1305(void *mac16, const void *key32, const void *data, size_t len)
 {
     uint32_t x[4], b, t0, t1, t2, t3, t4, r0, r1, r2, r3, r4, h0 = 0, h1 = 0, h2 = 0, h3 = 0, h4 = 0;
     uint64_t d0, d1, d2, d3, d4;
@@ -591,12 +591,11 @@ void BRPoly1305(void *mac16, const void *data, size_t len, const void *key32)
 }
 
 // basic chacha quarter round operation
-#define qr(a, b, c, d) \
-    (a) += (b), (d) = rol32((d) ^ (a), 16), (c) += (d), (b) = rol32((b) ^ (c), 12), \
-    (a) += (b), (d) = rol32((d) ^ (a), 8), (c) += (d), (b) = rol32((b) ^ (c), 7)
+#define qr(a, b, c, d) ((a) += (b), (d) = rol32((d) ^ (a), 16), (c) += (d), (b) = rol32((b) ^ (c), 12),\
+                        (a) += (b), (d) = rol32((d) ^ (a), 8), (c) += (d), (b) = rol32((b) ^ (c), 7))
 
 // chacha20 stream cypher: https://cr.yp.to/chacha.html
-void BRChacha20(void *out, const void *data, size_t len, const void *key32, const void *nonce8, uint64_t counter)
+void BRChacha20(void *out, const void *key32, const void *iv8, const void *data, size_t len, uint64_t counter)
 {
     static const char sigma[16] = "expand 32-byte k";
     uint32_t b[16], s[16], x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15;
@@ -605,18 +604,18 @@ void BRChacha20(void *out, const void *data, size_t len, const void *key32, cons
     assert(out != NULL || len == 0);
     assert(data != NULL || len == 0);
     assert(key32 != NULL);
-    assert(nonce8 != NULL);
+    assert(iv8 != NULL);
     
     memcpy(s, sigma, 16);
     memcpy(&s[4], key32, 32);
     s[12] = le32((uint32_t)counter);
     s[13] = le32(counter >> 32);
-    memcpy(&s[14], nonce8, 8);
+    memcpy(&s[14], iv8, 8);
     for (i = 0; i < 16; i++) s[i] = le32(s[i]);
 
     for (i = 0; i < len; i++) {
         if (i % 64 == 0) {
-            x0 = s[0], x1 = s[1], x2 = s[2], x3 = s[3], x4 = s[4], x5 = s[5], x6 = s[6], x7 = s[7],
+            x0 = s[0], x1 = s[1], x2 = s[2], x3 = s[3], x4 = s[4], x5 = s[5], x6 = s[6], x7 = s[7];
             x8 = s[8], x9 = s[9], x10 = s[10], x11 = s[11], x12 = s[12], x13 = s[13], x14 = s[14], x15 = s[15];
             
             for (j = 0; j < 10; j++) {
@@ -624,10 +623,10 @@ void BRChacha20(void *out, const void *data, size_t len, const void *key32, cons
                 qr(x0, x5, x10, x15), qr(x1, x6, x11, x12), qr(x2, x7, x8, x13), qr(x3, x4, x9, x14);
             }
             
-            b[0] = le32(x0 + s[0]), b[1] = le32(x1 + s[1]), b[2] = le32(x2 + s[2]), b[3] = le32(x3 + s[3]);
-            b[4] = le32(x4 + s[4]), b[5] = le32(x5 + s[5]), b[6] = le32(x6 + s[6]), b[7] = le32(x7 + s[7]);
-            b[8] = le32(x8 + s[8]), b[9] = le32(x9 + s[9]), b[10] = le32(x10 + s[10]), b[11] = le32(x11 + s[11]);
-            b[12] = le32(x12 + s[12]), b[13] = le32(x13 + s[13]), b[14] = le32(x14 + s[14]), b[15] = le32(x15 + s[15]);
+            b[0] = le32(s[0] + x0), b[1] = le32(s[1] + x1), b[2] = le32(s[2] + x2), b[3] = le32(s[3] + x3);
+            b[4] = le32(s[4] + x4), b[5] = le32(s[5] + x5), b[6] = le32(s[6] + x6), b[7] = le32(s[7] + x7);
+            b[8] = le32(s[8] + x8), b[9] = le32(s[9] + x9), b[10] = le32(s[10] + x10), b[11] = le32(s[11] + x11);
+            b[12] = le32(s[12] + x12), b[13] = le32(s[13] + x13), b[14] = le32(s[14] + x14), b[15] = le32(s[15] + x15);
 
             s[12]++;
             if (s[12] == 0) s[13]++;

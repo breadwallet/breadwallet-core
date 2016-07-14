@@ -559,7 +559,7 @@ int BRMacTests()
     "\0\0\0\0\0\0\0\0\0\0\0";
     uint8_t mac[16];
     
-    BRPoly1305(mac, msg1, sizeof(msg1) - 1, key1);
+    BRPoly1305(mac, key1, msg1, sizeof(msg1) - 1);
     if (memcmp("\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, sizeof(mac)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 1\n", __func__);
 
@@ -570,7 +570,7 @@ int BRMacTests()
     "Contribution\". Such statements include oral statements in IETF sessions, as well as written and electronic "
     "communications made at any time or place, which are addressed to";
 
-    BRPoly1305(mac, msg2, sizeof(msg2) - 1, key2);
+    BRPoly1305(mac, key2, msg2, sizeof(msg2) - 1);
     if (memcmp("\x36\xe5\xf6\xb5\xc5\xe0\x60\x70\xf0\xef\xca\x96\x22\x7a\x86\x3e", mac, sizeof(mac)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 2\n", __func__);
 
@@ -581,7 +581,7 @@ int BRMacTests()
     "Contribution\". Such statements include oral statements in IETF sessions, as well as written and electronic "
     "communications made at any time or place, which are addressed to";
 
-    BRPoly1305(mac, msg3, sizeof(msg3) - 1, key3);
+    BRPoly1305(mac, key3, msg3, sizeof(msg3) - 1);
     if (memcmp("\xf3\x47\x7e\x7c\xd9\x54\x17\xaf\x89\xa6\xb8\x79\x4c\x31\x0c\xf0", mac, sizeof(mac)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 3\n", __func__);
     
@@ -590,14 +590,14 @@ int BRMacTests()
     msg4[] = "'Twas brillig, and the slithy toves\nDid gyre and gimble in the wabe:\nAll mimsy were the borogoves,\n"
     "And the mome raths outgrabe.";
 
-    BRPoly1305(mac, msg4, sizeof(msg4) - 1, key4);
+    BRPoly1305(mac, key4, msg4, sizeof(msg4) - 1);
     if (memcmp("\x45\x41\x66\x9a\x7e\xaa\xee\x61\xe7\x08\xdc\x7c\xbc\xc5\xeb\x62", mac, sizeof(mac)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 4\n", __func__);
 
     const char key5[] = "\x02\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
     msg5[] = "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF";
 
-    BRPoly1305(mac, msg5, sizeof(msg5) - 1, key5);
+    BRPoly1305(mac, key5, msg5, sizeof(msg5) - 1);
     if (memcmp("\x03\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, sizeof(mac)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 5\n", __func__);
 
@@ -605,7 +605,7 @@ int BRMacTests()
     "\xFF",
     msg6[] = "\x02\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
     
-    BRPoly1305(mac, msg6, sizeof(msg6) - 1, key6);
+    BRPoly1305(mac, key6, msg6, sizeof(msg6) - 1);
     if (memcmp("\x03\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, sizeof(mac)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 6\n", __func__);
 
@@ -613,7 +613,7 @@ int BRMacTests()
     msg7[] = "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xF0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
     "\xFF\xFF\xFF\xFF\xFF\xFF\x11\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
     
-    BRPoly1305(mac, msg7, sizeof(msg7) - 1, key7);
+    BRPoly1305(mac, key7, msg7, sizeof(msg7) - 1);
     if (memcmp("\x05\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, sizeof(mac)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 7\n", __func__);
 
@@ -621,14 +621,14 @@ int BRMacTests()
     msg8[] = "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFB\xFE\xFE\xFE\xFE\xFE\xFE\xFE\xFE\xFE"
     "\xFE\xFE\xFE\xFE\xFE\xFE\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01";
     
-    BRPoly1305(mac, msg8, sizeof(msg8) - 1, key8);
+    BRPoly1305(mac, key8, msg8, sizeof(msg8) - 1);
     if (memcmp("\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, sizeof(mac)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 8\n", __func__);
 
     const char key9[] = "\x02\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
     msg9[] = "\xFD\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF";
     
-    BRPoly1305(mac, msg9, sizeof(msg9) - 1, key9);
+    BRPoly1305(mac, key9, msg9, sizeof(msg9) - 1);
     if (memcmp("\xFA\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF", mac, sizeof(mac)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 9\n", __func__);
 
@@ -636,7 +636,7 @@ int BRMacTests()
     msg10[] = "\xE3\x35\x94\xD7\x50\x5E\x43\xB9\0\0\0\0\0\0\0\0\x33\x94\xD7\x50\x5E\x43\x79\xCD\x01\0\0\0\0\0\0\0\0\0\0"
     "\0\0\0\0\0\0\0\0\0\0\0\0\0\x01\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
     
-    BRPoly1305(mac, msg10, sizeof(msg10) - 1, key10);
+    BRPoly1305(mac, key10, msg10, sizeof(msg10) - 1);
     if (memcmp("\x14\0\0\0\0\0\0\0\x55\0\0\0\0\0\0\0", mac, sizeof(mac)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 10\n", __func__);
 
@@ -644,7 +644,7 @@ int BRMacTests()
     msg11[] = "\xE3\x35\x94\xD7\x50\x5E\x43\xB9\0\0\0\0\0\0\0\0\x33\x94\xD7\x50\x5E\x43\x79\xCD\x01\0\0\0\0\0\0\0\0\0\0"
     "\0\0\0\0\0\0\0\0\0\0\0\0\0";
     
-    BRPoly1305(mac, msg11, sizeof(msg11) - 1, key11);
+    BRPoly1305(mac, key11, msg11, sizeof(msg11) - 1);
     if (memcmp("\x13\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, sizeof(mac)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 11\n", __func__);
     
@@ -656,7 +656,7 @@ int BRCypherTests()
     int r = 1;
     const char key[] = "\0\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16"
     "\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f",
-    nonce[] = "\0\0\0\x4a\0\0\0\0",
+    iv[] = "\0\0\0\x4a\0\0\0\0",
     msg[] = "Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen "
     "would be it.",
     cypher[] = "\x6e\x2e\x35\x9a\x25\x68\xf9\x80\x41\xba\x07\x28\xdd\x0d\x69\x81\xe9\x7e\x7a\xec\x1d\x43\x60\xc2\x0a"
@@ -666,16 +666,16 @@ int BRCypherTests()
     "\x78\x5e\x42\x87\x4d";
     uint8_t out[sizeof(msg) - 1];
 
-    BRChacha20(out, msg, sizeof(msg) - 1, key, nonce, 1);
+    BRChacha20(out, key, iv, msg, sizeof(msg) - 1, 1);
     if (memcmp(cypher, out, sizeof(out)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() cypher test 0\n", __func__);
 
-    BRChacha20(out, out, sizeof(out), key, nonce, 1);
+    BRChacha20(out, key, iv, out, sizeof(out), 1);
     if (memcmp(msg, out, sizeof(out)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() de-cypher test 0\n", __func__);
 
     const char key1[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
-    nonce1[] = "\0\0\0\0\0\0\0\0",
+    iv1[] = "\0\0\0\0\0\0\0\0",
     msg1[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
     "\0\0\0\0\0\0\0\0\0\0\0\0",
     cypher1[] = "\x76\xb8\xe0\xad\xa0\xf1\x3d\x90\x40\x5d\x6a\xe5\x53\x86\xbd\x28\xbd\xd2\x19\xb8\xa0\x8d\xed\x1a\xa8"
@@ -683,16 +683,16 @@ int BRCypherTests()
     "\x18\xa1\x1c\xc3\x87\xb6\x69\xb2\xee\x65\x86";
     uint8_t out1[sizeof(msg1) - 1];
     
-    BRChacha20(out1, msg1, sizeof(msg1) - 1, key1, nonce1, 0);
+    BRChacha20(out1, key1, iv1, msg1, sizeof(msg1) - 1, 0);
     if (memcmp(cypher1, out1, sizeof(out1)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() cypher test 1\n", __func__);
     
-    BRChacha20(out1, out1, sizeof(out1), key1, nonce1, 0);
+    BRChacha20(out1, key1, iv1, out1, sizeof(out1), 0);
     if (memcmp(msg1, out1, sizeof(out1)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() de-cypher test 1\n", __func__);
 
     const char key2[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x01",
-    nonce2[] = "\0\0\0\0\0\0\0\x02",
+    iv2[] = "\0\0\0\0\0\0\0\x02",
     msg2[] = "Any submission to the IETF intended by the Contributor for publication as all or part of an IETF "
     "Internet-Draft or RFC and any statement made within the context of an IETF activity is considered an \"IETF "
     "Contribution\". Such statements include oral statements in IETF sessions, as well as written and electronic "
@@ -713,17 +713,17 @@ int BRCypherTests()
     "\x86\x2f\x37\x30\xe3\x7c\xfd\xc4\xfd\x80\x6c\x22\xf2\x21";
     uint8_t out2[sizeof(msg2) - 1];
     
-    BRChacha20(out2, msg2, sizeof(msg2) - 1, key2, nonce2, 1);
+    BRChacha20(out2, key2, iv2, msg2, sizeof(msg2) - 1, 1);
     if (memcmp(cypher2, out2, sizeof(out2)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() cypher test 2\n", __func__);
     
-    BRChacha20(out2, out2, sizeof(out2), key2, nonce2, 1);
+    BRChacha20(out2, key2, iv2, out2, sizeof(out2), 1);
     if (memcmp(msg2, out2, sizeof(out2)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() de-cypher test 2\n", __func__);
     
     const char key3[] = "\x1c\x92\x40\xa5\xeb\x55\xd3\x8a\xf3\x33\x88\x86\x04\xf6\xb5\xf0\x47\x39\x17\xc1\x40\x2b\x80"
     "\x09\x9d\xca\x5c\xbc\x20\x70\x75\xc0",
-    nonce3[] = "\0\0\0\0\0\0\0\x02",
+    iv3[] = "\0\0\0\0\0\0\0\x02",
     msg3[] = "'Twas brillig, and the slithy toves\nDid gyre and gimble in the wabe:\nAll mimsy were the borogoves,\n"
     "And the mome raths outgrabe.",
     cypher3[] = "\x62\xe6\x34\x7f\x95\xed\x87\xa4\x5f\xfa\xe7\x42\x6f\x27\xa1\xdf\x5f\xb6\x91\x10\x04\x4c\x0d\x73\x11"
@@ -733,11 +733,11 @@ int BRCypherTests()
     "\xa7\x31\xb1\x87\xb5\x8d\xfd\x72\x8a\xfa\x36\x75\x7a\x79\x7a\xc1\x88\xd1";
     uint8_t out3[sizeof(msg3) - 1];
     
-    BRChacha20(out3, msg3, sizeof(msg3) - 1, key3, nonce3, 42);
+    BRChacha20(out3, key3, iv3, msg3, sizeof(msg3) - 1, 42);
     if (memcmp(cypher3, out3, sizeof(out3)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() cypher test 3\n", __func__);
     
-    BRChacha20(out3, out3, sizeof(out3), key3, nonce3, 42);
+    BRChacha20(out3, key3, iv3, out3, sizeof(out3), 42);
     if (memcmp(msg3, out3, sizeof(out3)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() de-cypher test 3\n", __func__);
 
