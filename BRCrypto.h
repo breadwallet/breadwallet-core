@@ -55,21 +55,24 @@ void BRHash160(void *md20, const void *data, size_t len);
 // md5 - for non-cryptographic use only
 void BRMD5(void *md16, const void *data, size_t len);
 
+// murmurHash3 (x86_32): https://code.google.com/p/smhasher/ - for non cryptographic use only
+uint32_t BRMurmur3_32(const void *data, size_t len, uint32_t seed);
+
 void BRHMAC(void *mac, void (*hash)(void *, const void *, size_t), size_t hashLen, const void *key, size_t keyLen,
             const void *data, size_t dataLen);
 
 // poly1305 authenticator: https://tools.ietf.org/html/rfc7539
 void BRPoly1305(void *mac16, const void *data, size_t len, const void *key32);
 
+// chacha20 stream cypher: https://cr.yp.to/chacha.html
+void BRChacha20(void *out, const void *data, size_t len, const void *key32, const void *nonce8, uint64_t counter);
+    
 void BRPBKDF2(void *dk, size_t dkLen, void (*hash)(void *, const void *, size_t), size_t hashLen,
               const void *pw, size_t pwLen, const void *salt, size_t saltLen, unsigned rounds);
 
 // scrypt key derivation: http://www.tarsnap.com/scrypt.html
 void BRScrypt(void *dk, size_t dkLen, const void *pw, size_t pwLen, const void *salt, size_t saltLen,
               unsigned n, unsigned r, unsigned p);
-
-// murmurHash3 (x86_32): https://code.google.com/p/smhasher/ - for non cryptographic use only
-uint32_t BRMurmur3_32(const void *data, size_t len, uint32_t seed);
 
 #ifdef __cplusplus
 }

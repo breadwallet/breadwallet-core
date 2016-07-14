@@ -455,6 +455,40 @@ void BRMD5(void *md16, const void *data, size_t len)
     memset(buf, 0, sizeof(buf));
 }
 
+#define C1 0xcc9e2d51
+#define C2 0x1b873593
+
+// basic mumurHash3 operation
+#define fmix32(h) ((h) ^= (h) >> 16, (h) *= 0x85ebca6b, (h) ^= (h) >> 13, (h) *= 0xc2b2ae35, (h) ^= (h) >> 16)
+
+// murmurHash3 (x86_32): https://code.google.com/p/smhasher/ - for non-cryptographic use only
+uint32_t BRMurmur3_32(const void *data, size_t len, uint32_t seed)
+{
+    uint32_t h = seed, k = 0;
+    size_t i, count = len/4;
+    
+    assert(data != NULL || len == 0);
+    
+    for (i = 0; i < count; i++) {
+        k = le32(((const uint32_t *)data)[i])*C1;
+        k = rol32(k, 15)*C2;
+        h ^= k;
+        h = rol32(h, 13)*5 + 0xe6546b64;
+    }
+    
+    k = 0;
+    
+    switch (len & 3) {
+        case 3: k ^= ((const uint8_t *)data)[i*4 + 2] << 16; // fall through
+        case 2: k ^= ((const uint8_t *)data)[i*4 + 1] << 8; // fall through
+        case 1: k ^= ((const uint8_t *)data)[i*4], k *= C1, h ^= rol32(k, 15)*C2;
+    }
+    
+    h ^= len;
+    fmix32(h);
+    return h;
+}
+
 // HMAC(key, data) = hash((key xor opad) || hash((key xor ipad) || data))
 // opad = 0x5c5c5c...5c5c
 // ipad = 0x363636...3636
@@ -554,6 +588,53 @@ void BRPoly1305(void *mac16, const void *data, size_t len, const void *key32)
     
     d0 = d1 = d2 = d3 = d4 = 0;
     x[0] = x[1] = x[2] = x[3] = b = t0 = t1 = t2 = t3 = t4 = r0 = r1 = r2 = r3 = r4 = h0 = h1 = h2 = h3 = h4 = 0;
+}
+
+// basic chacha quarter round operation
+#define qr(a, b, c, d) \
+    (a) += (b), (d) = rol32((d) ^ (a), 16), (c) += (d), (b) = rol32((b) ^ (c), 12), \
+    (a) += (b), (d) = rol32((d) ^ (a), 8), (c) += (d), (b) = rol32((b) ^ (c), 7)
+
+// chacha20 stream cypher: https://cr.yp.to/chacha.html
+void BRChacha20(void *out, const void *data, size_t len, const void *key32, const void *nonce8, uint64_t counter)
+{
+    static const char sigma[16] = "expand 32-byte k";
+    uint32_t b[16], s[16], x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15;
+    size_t i, j;
+    
+    assert(out != NULL || len == 0);
+    assert(data != NULL || len == 0);
+    assert(key32 != NULL);
+    assert(nonce8 != NULL);
+    
+    memcpy(s, sigma, 16);
+    memcpy(&s[4], key32, 32);
+    s[12] = le32((uint32_t)counter);
+    s[13] = le32(counter >> 32);
+    memcpy(&s[14], nonce8, 8);
+    for (i = 0; i < 16; i++) s[i] = le32(s[i]);
+
+    for (i = 0; i < len; i++) {
+        if (i % 64 == 0) {
+            x0 = s[0], x1 = s[1], x2 = s[2], x3 = s[3], x4 = s[4], x5 = s[5], x6 = s[6], x7 = s[7],
+            x8 = s[8], x9 = s[9], x10 = s[10], x11 = s[11], x12 = s[12], x13 = s[13], x14 = s[14], x15 = s[15];
+            
+            for (j = 0; j < 10; j++) {
+                qr(x0, x4, x8, x12), qr(x1, x5, x9, x13), qr(x2, x6, x10, x14), qr(x3, x7, x11, x15);
+                qr(x0, x5, x10, x15), qr(x1, x6, x11, x12), qr(x2, x7, x8, x13), qr(x3, x4, x9, x14);
+            }
+            
+            b[0] = le32(x0 + s[0]), b[1] = le32(x1 + s[1]), b[2] = le32(x2 + s[2]), b[3] = le32(x3 + s[3]);
+            b[4] = le32(x4 + s[4]), b[5] = le32(x5 + s[5]), b[6] = le32(x6 + s[6]), b[7] = le32(x7 + s[7]);
+            b[8] = le32(x8 + s[8]), b[9] = le32(x9 + s[9]), b[10] = le32(x10 + s[10]), b[11] = le32(x11 + s[11]);
+            b[12] = le32(x12 + s[12]), b[13] = le32(x13 + s[13]), b[14] = le32(x14 + s[14]), b[15] = le32(x15 + s[15]);
+
+            s[12]++;
+            if (s[12] == 0) s[13]++;
+        }
+        
+        ((uint8_t *)out)[i] = ((const uint8_t *)data)[i] ^ ((uint8_t *)b)[i % 64];
+    }
 }
 
 // dk = T1 || T2 || ... || Tdklen/hlen
@@ -680,38 +761,4 @@ void BRScrypt(void *dk, size_t dkLen, const void *pw, size_t pwLen, const void *
     memset(v, 0, 128*r*n);
     free(v);
     memset(&m, 0, sizeof(m));
-}
-
-#define C1 0xcc9e2d51
-#define C2 0x1b873593
-
-// basic mumurHash3 operation
-#define fmix32(h) ((h) ^= (h) >> 16, (h) *= 0x85ebca6b, (h) ^= (h) >> 13, (h) *= 0xc2b2ae35, (h) ^= (h) >> 16)
-
-// murmurHash3 (x86_32): https://code.google.com/p/smhasher/ - for non-cryptographic use only
-uint32_t BRMurmur3_32(const void *data, size_t len, uint32_t seed)
-{
-    uint32_t h = seed, k = 0;
-    size_t i, count = len/4;
-    
-    assert(data != NULL || len == 0);
-    
-    for (i = 0; i < count; i++) {
-        k = le32(((const uint32_t *)data)[i])*C1;
-        k = rol32(k, 15)*C2;
-        h ^= k;
-        h = rol32(h, 13)*5 + 0xe6546b64;
-    }
-    
-    k = 0;
-    
-    switch (len & 3) {
-        case 3: k ^= ((const uint8_t *)data)[i*4 + 2] << 16; // fall through
-        case 2: k ^= ((const uint8_t *)data)[i*4 + 1] << 8; // fall through
-        case 1: k ^= ((const uint8_t *)data)[i*4], k *= C1, h ^= rol32(k, 15)*C2;
-    }
-    
-    h ^= len;
-    fmix32(h);
-    return h;
 }
