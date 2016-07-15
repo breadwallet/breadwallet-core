@@ -85,7 +85,8 @@ uint32_t BRPeerManagerLastBlockHeight(BRPeerManager *manager);
 uint32_t BRPeerManagerEstimatedBlockHeight(BRPeerManager *manager);
 
 // current network sync progress from 0 to 1
-double BRPeerManagerSyncProgress(BRPeerManager *manager);
+// startHeight is the block height of the most recent fully completed sync
+double BRPeerManagerSyncProgress(BRPeerManager *manager, uint32_t startHeight);
 
 // returns the number of currently connected peers
 size_t BRPeerManagerPeerCount(BRPeerManager *manager);
