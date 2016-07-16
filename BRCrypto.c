@@ -31,15 +31,19 @@
 #if __BIG_ENDIAN__ || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 #define be32(x) (x)
 #define le32(x) ((((x) & 0xff) << 24) | (((x) & 0xff00) << 8) | (((x) & 0xff0000) >> 8) | (((x) & 0xff000000) >> 24))
+#define be64(x) (x)
+#define le64(x) ((union { uint32_t u32[2]; uint64_t u64; }) { le32((uint32_t)(x)), le32((uint32_t)((x) >> 32)) }.u64)
 #elif __LITTLE_ENDIAN__ || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__)
 #define le32(x) (x)
 #define be32(x) ((((x) & 0xff) << 24) | (((x) & 0xff00) << 8) | (((x) & 0xff0000) >> 8) | (((x) & 0xff000000) >> 24))
+#define le64(x) (x)
+#define be64(x) ((union { uint32_t u32[2]; uint64_t u64; }) { be32((uint32_t)((x) >> 32)), be32((uint32_t)(x)) }.u64)
 #else // unknown endianess
 #define be32(x) ((union { uint8_t u8[4]; uint32_t u32; }) { (x) >> 24, (x) >> 16, (x) >> 8, (x) }.u32)
 #define le32(x) ((union { uint8_t u8[4]; uint32_t u32; }) { (x), (x) >> 8, (x) >> 16, (x) >> 24 }.u32)
-#endif
 #define be64(x) ((union { uint32_t u32[2]; uint64_t u64; }) { be32((uint32_t)((x) >> 32)), be32((uint32_t)(x)) }.u64)
 #define le64(x) ((union { uint32_t u32[2]; uint64_t u64; }) { le32((uint32_t)(x)), le32((uint32_t)((x) >> 32)) }.u64)
+#endif
 
 // bitwise left rotation
 #define rol32(a, b) (((a) << (b)) | ((a) >> (32 - (b))))
@@ -520,16 +524,11 @@ void BRHMAC(void *mac, void (*hash)(void *, const void *, size_t), size_t hashLe
     memset(kopad, 0, blockLen);
 }
 
-// poly1305 authenticator: https://tools.ietf.org/html/rfc7539
-void BRPoly1305(void *mac16, const void *key32, const void *data, size_t len)
+static void _BRPoly1305Compress(uint32_t h[5], const void *key32, const void *data, size_t len, int final)
 {
-    uint32_t x[4], b, t0, t1, t2, t3, t4, r0, r1, r2, r3, r4, h0 = 0, h1 = 0, h2 = 0, h3 = 0, h4 = 0;
+    uint32_t x[4], b, t0, t1, t2, t3, t4, r0, r1, r2, r3, r4;
     uint64_t d0, d1, d2, d3, d4;
-    
-    assert(mac16 != NULL);
-    assert(data != NULL || len == 0);
-    assert(key32 != NULL);
-    
+
     // r &= 0xffffffc0ffffffc0ffffffc0fffffff
     memcpy(x, key32, 16);
     t0 = le32(x[0]), t1 = le32(x[1]), t2 = le32(x[2]), t3 = le32(x[3]);
@@ -546,48 +545,64 @@ void BRPoly1305(void *mac16, const void *key32, const void *data, size_t len)
         
         // h += x
         t0 = le32(x[0]), t1 = le32(x[1]), t2 = le32(x[2]), t3 = le32(x[3]);
-        h0 += t0 & 0x03ffffff, h1 += ((t0 >> 26) | (t1 << 6)) & 0x03ffffff;
-        h2 += ((t1 >> 20) | (t2 << 12)) & 0x03ffffff, h3 += ((t2 >> 14) | (t3 << 18)) & 0x03ffffff;
-        h4 += (t3 >> 8) | ((i + 16 <= len) ? (1 << 24) : 0);
-        
+        h[0] += t0 & 0x03ffffff, h[1] += ((t0 >> 26) | (t1 << 6)) & 0x03ffffff;
+        h[2] += ((t1 >> 20) | (t2 << 12)) & 0x03ffffff, h[3] += ((t2 >> 14) | (t3 << 18)) & 0x03ffffff;
+        h[4] += (t3 >> 8) | ((i + 16 <= len) ? (1 << 24) : 0);
+    
         // h *= r
-        d0 = (uint64_t)h0*r0 + (uint64_t)h1*r4*5 + (uint64_t)h2*r3*5 + (uint64_t)h3*r2*5 + (uint64_t)h4*r1*5;
-        d1 = (uint64_t)h0*r1 + (uint64_t)h1*r0 + (uint64_t)h2*r4*5 + (uint64_t)h3*r3*5 + (uint64_t)h4*r2*5;
-        d2 = (uint64_t)h0*r2 + (uint64_t)h1*r1 + (uint64_t)h2*r0 + (uint64_t)h3*r4*5 + (uint64_t)h4*r3*5;
-        d3 = (uint64_t)h0*r3 + (uint64_t)h1*r2 + (uint64_t)h2*r1 + (uint64_t)h3*r0 + (uint64_t)h4*r4*5;
-        d4 = (uint64_t)h0*r4 + (uint64_t)h1*r3 + (uint64_t)h2*r2 + (uint64_t)h3*r1 + (uint64_t)h4*r0;
+        d0 = (uint64_t)h[0]*r0 + (uint64_t)h[1]*r4*5 + (uint64_t)h[2]*r3*5 + (uint64_t)h[3]*r2*5 + (uint64_t)h[4]*r1*5;
+        d1 = (uint64_t)h[0]*r1 + (uint64_t)h[1]*r0 + (uint64_t)h[2]*r4*5 + (uint64_t)h[3]*r3*5 + (uint64_t)h[4]*r2*5;
+        d2 = (uint64_t)h[0]*r2 + (uint64_t)h[1]*r1 + (uint64_t)h[2]*r0 + (uint64_t)h[3]*r4*5 + (uint64_t)h[4]*r3*5;
+        d3 = (uint64_t)h[0]*r3 + (uint64_t)h[1]*r2 + (uint64_t)h[2]*r1 + (uint64_t)h[3]*r0 + (uint64_t)h[4]*r4*5;
+        d4 = (uint64_t)h[0]*r4 + (uint64_t)h[1]*r3 + (uint64_t)h[2]*r2 + (uint64_t)h[3]*r1 + (uint64_t)h[4]*r0;
         
         // (partial) h %= p
-        d1 += (uint32_t)(d0 >> 26), h1 = d1 & 0x03ffffff, d2 += (uint32_t)(d1 >> 26), h2 = d2 & 0x03ffffff;
-        d3 += (uint32_t)(d2 >> 26), h3 = d3 & 0x03ffffff, d4 += (uint32_t)(d3 >> 26), h4 = d4 & 0x03ffffff;
-        h0 = (d0 & 0x03ffffff) + (uint32_t)(d4 >> 26)*5, h1 += h0 >> 26, h0 &= 0x03ffffff;
+        d1 += (uint32_t)(d0 >> 26), h[1] = d1 & 0x03ffffff, d2 += (uint32_t)(d1 >> 26), h[2] = d2 & 0x03ffffff;
+        d3 += (uint32_t)(d2 >> 26), h[3] = d3 & 0x03ffffff, d4 += (uint32_t)(d3 >> 26), h[4] = d4 & 0x03ffffff;
+        h[0] = (d0 & 0x03ffffff) + (uint32_t)(d4 >> 26)*5, h[1] += h[0] >> 26, h[0] &= 0x03ffffff;
     }
     
-    // fully carry h
-    h2 += h1 >> 26, h1 &= 0x03ffffff, h3 += h2 >> 26, h2 &= 0x03ffffff, h4 += h3 >> 26, h3 &= 0x03ffffff;
-    h0 += (h4 >> 26)*5, h4 &= 0x03ffffff, h1 += h0 >> 26, h0 &= 0x03ffffff;
-    
-    // compute h + -p
-    t0 = h0 + 5, t1 = h1 + (t0 >> 26), t0 &= 0x03ffffff, t2 = h2 + (t1 >> 26), t1 &= 0x03ffffff;
-    t3 = h3 + (t2 >> 26), t2 &= 0x03ffffff, t4 = h4 + (t3 >> 26) - (1 << 26), t3 &= 0x03ffffff;
-    
-    // select h if h < p, or h + -p if h >= p
-    b = (t4 >> 31) - 1, h0 = (h0 & ~b) | (t0 & b), h1 = (h1 & ~b) | (t1 & b);
-    h2 = (h2 & ~b) | (t2 & b), h3 = (h3 & ~b) | (t3 & b), h4 = (h4 & ~b) | (t4 & b);
-    
-    // h = h % (2^128)
-    h0 = (h0 | (h1 << 26)) & 0x0ffffffff, h1 = ((h1 >> 6) | (h2 << 20)) & 0x0ffffffff;
-    h2 = ((h2 >> 12) | (h3 << 14)) & 0x0ffffffff, h3 = ((h3 >> 18) | (h4 << 8)) & 0x0ffffffff;
-    
-    // mac = (h + pad) % (2^128)
-    memcpy(x, (const uint8_t *)key32 + 16, 16);
-    d0 = (uint64_t)h0 + le32(x[0]), d1 = (uint64_t)h1 + le32(x[1]) + (d0 >> 32);
-    d2 = (uint64_t)h2 + le32(x[2]) + (d1 >> 32), d3 = (uint64_t)h3 + le32(x[3]) + (d2 >> 32);
-    x[0] = le32((uint32_t)d0), x[1] = le32((uint32_t)d1), x[2] = le32((uint32_t)d2), x[3] = le32((uint32_t)d3);
-    memcpy(mac16, x, 16);
+    if (final) {
+        // fully carry h
+        h[2] += h[1] >> 26, h[1] &= 0x03ffffff, h[3] += h[2] >> 26, h[2] &= 0x03ffffff, h[4] += h[3] >> 26;
+        h[3] &= 0x03ffffff, h[0] += (h[4] >> 26)*5, h[4] &= 0x03ffffff, h[1] += h[0] >> 26, h[0] &= 0x03ffffff;
+        
+        // compute h + -p
+        t0 = h[0] + 5, t1 = h[1] + (t0 >> 26), t0 &= 0x03ffffff, t2 = h[2] + (t1 >> 26), t1 &= 0x03ffffff;
+        t3 = h[3] + (t2 >> 26), t2 &= 0x03ffffff, t4 = h[4] + (t3 >> 26) - (1 << 26), t3 &= 0x03ffffff;
+        
+        // select h if h < p, or h + -p if h >= p
+        b = (t4 >> 31) - 1, h[0] = (h[0] & ~b) | (t0 & b), h[1] = (h[1] & ~b) | (t1 & b);
+        h[2] = (h[2] & ~b) | (t2 & b), h[3] = (h[3] & ~b) | (t3 & b), h[4] = (h[4] & ~b) | (t4 & b);
+        
+        // h = h % (2^128)
+        h[0] = (h[0] | (h[1] << 26)) & 0x0ffffffff, h[1] = ((h[1] >> 6) | (h[2] << 20)) & 0x0ffffffff;
+        h[2] = ((h[2] >> 12) | (h[3] << 14)) & 0x0ffffffff, h[3] = ((h[3] >> 18) | (h[4] << 8)) & 0x0ffffffff;
+        
+        // mac = (h + pad) % (2^128)
+        memcpy(x, (const uint8_t *)key32 + 16, 16);
+        d0 = (uint64_t)h[0] + le32(x[0]), d1 = (uint64_t)h[1] + le32(x[1]) + (d0 >> 32);
+        d2 = (uint64_t)h[2] + le32(x[2]) + (d1 >> 32), d3 = (uint64_t)h[3] + le32(x[3]) + (d2 >> 32);
+        h[0] = le32((uint32_t)d0), h[1] = le32((uint32_t)d1), h[2] = le32((uint32_t)d2), h[3] = le32((uint32_t)d3);
+    }
     
     d0 = d1 = d2 = d3 = d4 = 0;
-    x[0] = x[1] = x[2] = x[3] = b = t0 = t1 = t2 = t3 = t4 = r0 = r1 = r2 = r3 = r4 = h0 = h1 = h2 = h3 = h4 = 0;
+    x[0] = x[1] = x[2] = x[3] = b = t0 = t1 = t2 = t3 = t4 = r0 = r1 = r2 = r3 = r4 = 0;
+}
+
+// poly1305 authenticator: https://tools.ietf.org/html/rfc7539
+// must use constant time mem comparison when verifying mac to defend against timing attacks
+void BRPoly1305(void *mac16, const void *key32, const void *data, size_t len)
+{
+    uint32_t h[5] = { 0, 0, 0, 0, 0 };
+    
+    assert(mac16 != NULL);
+    assert(data != NULL || len == 0);
+    assert(key32 != NULL);
+    
+    _BRPoly1305Compress(h, key32, data, len, 1);
+    memcpy(mac16, h, 16);
+    h[0] = h[1] = h[2] = h[3] = h[4] = 0;
 }
 
 // basic chacha quarter round operation
@@ -634,6 +649,85 @@ void BRChacha20(void *out, const void *key32, const void *iv8, const void *data,
         
         ((uint8_t *)out)[i] = ((const uint8_t *)data)[i] ^ ((uint8_t *)b)[i % 64];
     }
+    
+    x0 = x1 = x2 = x3 = x4 = x5 = x6 = x7 = x8 = x9 = x10 = x11 = x12 = x13 = x14 = x15 = 0;
+    memset(s, 0, sizeof(s));
+    memset(b, 0, sizeof(b));
+}
+
+// chacha20-poly1305 authenticated encryption with associated data (AEAD): https://tools.ietf.org/html/rfc7539
+size_t BRChacha20Poly1305AEADEncrypt(void *out, size_t outLen, const void *key32, const void *nonce12,
+                                     const void *data, size_t dataLen, const void *ad, size_t adLen)
+{
+    const void *iv = &((const uint8_t *)nonce12)[4];
+    uint64_t counter = 0, macKey[4] = { 0, 0, 0, 0 }, pad[2] = { 0, 0 };
+    uint32_t h[5] = { 0, 0, 0, 0, 0 };
+    
+    assert(! out || key32 != NULL);
+    assert(! out || nonce12 != NULL);
+    assert(! out || data || dataLen == 0);
+    assert(! out || ad || adLen == 0);
+    
+    if (! out) return dataLen + 16;
+    if (outLen < dataLen + 16 || dataLen/64 >= UINT32_MAX) return 0;
+    
+    memcpy(&((uint32_t *)&counter)[1], nonce12, sizeof(uint32_t));    
+    BRChacha20(macKey, key32, iv, macKey, sizeof(macKey), le64(counter));
+    _BRPoly1305Compress(h, macKey, ad, (adLen/16)*16, 0);
+    memcpy(pad, (const uint8_t *)ad + (adLen/16)*16, adLen % 16);
+    if (adLen % 16) _BRPoly1305Compress(h, macKey, pad, 16, 0);
+    BRChacha20(out, key32, iv, data, dataLen, le64(counter) + 1);
+    _BRPoly1305Compress(h, macKey, out, (dataLen/16)*16, 0);
+    pad[0] = pad[1] = 0;
+    memcpy(pad, (const uint8_t *)out + (dataLen/16)*16, dataLen % 16);
+    if (dataLen % 16) _BRPoly1305Compress(h, macKey, pad, 16, 0);
+    pad[0] = le64(adLen);
+    pad[1] = le64(dataLen);
+    _BRPoly1305Compress(h, macKey, pad, 16, 1);
+    memcpy((uint8_t *)out + dataLen, h, 16);
+    counter = macKey[0] = macKey[1] = macKey[2] = macKey[3] = pad[0] = pad[1] = 0;
+    h[0] = h[1] = h[2] = h[3] = h[4] = 0;
+    return dataLen + 16;
+}
+
+size_t BRChacha20Poly1305AEADDecrypt(void *out, size_t outLen, const void *key32, const void *nonce12,
+                                     const void *data, size_t dataLen, const void *ad, size_t adLen)
+{
+    const void *iv = &((const uint8_t *)nonce12)[4];
+    uint64_t counter = 0, macKey[4] = { 0, 0, 0, 0 }, pad[2] = { 0, 0 };
+    uint32_t h[5] = { 0, 0, 0, 0, 0 }, mac[4];
+    size_t r = 0;
+    
+    assert(! out || key32 != NULL);
+    assert(! out || nonce12 != NULL);
+    assert(! out || data || dataLen == 0);
+    assert(! out || ad || adLen == 0);
+    
+    if (! out) return (dataLen < 16) ? 0 : dataLen - 16;
+    if (dataLen < 16 || (dataLen - 16)/64 >= UINT32_MAX || outLen < dataLen - 16) return 0;
+    
+    memcpy(&((uint32_t *)&counter)[1], nonce12, sizeof(uint32_t));
+    BRChacha20(macKey, key32, iv, macKey, sizeof(macKey), le64(counter));
+    _BRPoly1305Compress(h, macKey, ad, (adLen/16)*16, 0);
+    memcpy(pad, (const uint8_t *)ad + (adLen/16)*16, adLen % 16);
+    if (adLen % 16) _BRPoly1305Compress(h, macKey, pad, 16, 0);
+    _BRPoly1305Compress(h, macKey, data, ((dataLen - 16)/16)*16, 0);
+    pad[0] = pad[1] = 0;
+    memcpy(pad, (const uint8_t *)data + ((dataLen - 16)/16)*16, dataLen % 16);
+    if (dataLen % 16) _BRPoly1305Compress(h, macKey, pad, 16, 0);
+    pad[0] = le64(adLen);
+    pad[1] = le64(dataLen - 16);
+    _BRPoly1305Compress(h, macKey, pad, 16, 1);
+    memcpy(mac, (const uint8_t *)data + dataLen - 16, 16);
+
+    if ((mac[0] ^ h[0]) | (mac[1] ^ h[1]) | (mac[2] ^ h[2]) | (mac[3] ^ h[3]) == 0) { // constant time compare
+        BRChacha20(out, key32, iv, data, dataLen - 16, le64(counter) + 1);
+        r = dataLen - 16;
+    }
+
+    counter = macKey[0] = macKey[1] = macKey[2] = macKey[3] = pad[0] = pad[1] = 0;
+    mac[0] = mac[1] = mac[2] = mac[3] = h[0] = h[1] = h[2] = h[3] = h[4] = 0;
+    return r;
 }
 
 // dk = T1 || T2 || ... || Tdklen/hlen
