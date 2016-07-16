@@ -659,7 +659,7 @@ void BRChacha20(void *out, const void *key32, const void *iv8, const void *data,
 size_t BRChacha20Poly1305AEADEncrypt(void *out, size_t outLen, const void *key32, const void *nonce12,
                                      const void *data, size_t dataLen, const void *ad, size_t adLen)
 {
-    const void *iv = &((const uint8_t *)nonce12)[4];
+    const void *iv = (const uint8_t *)nonce12 + 4;
     uint64_t counter = 0, macKey[4] = { 0, 0, 0, 0 }, pad[2] = { 0, 0 };
     uint32_t h[5] = { 0, 0, 0, 0, 0 };
     
@@ -693,10 +693,9 @@ size_t BRChacha20Poly1305AEADEncrypt(void *out, size_t outLen, const void *key32
 size_t BRChacha20Poly1305AEADDecrypt(void *out, size_t outLen, const void *key32, const void *nonce12,
                                      const void *data, size_t dataLen, const void *ad, size_t adLen)
 {
-    const void *iv = &((const uint8_t *)nonce12)[4];
+    const void *iv = (const uint8_t *)nonce12 + 4;
     uint64_t counter = 0, macKey[4] = { 0, 0, 0, 0 }, pad[2] = { 0, 0 };
     uint32_t h[5] = { 0, 0, 0, 0, 0 }, mac[4];
-    size_t r = 0;
     
     assert(! out || key32 != NULL);
     assert(! out || nonce12 != NULL);
@@ -706,28 +705,25 @@ size_t BRChacha20Poly1305AEADDecrypt(void *out, size_t outLen, const void *key32
     if (! out) return (dataLen < 16) ? 0 : dataLen - 16;
     if (dataLen < 16 || (dataLen - 16)/64 >= UINT32_MAX || outLen < dataLen - 16) return 0;
     
+    outLen = dataLen - 16;
     memcpy(&((uint32_t *)&counter)[1], nonce12, sizeof(uint32_t));
     BRChacha20(macKey, key32, iv, macKey, sizeof(macKey), le64(counter));
     _BRPoly1305Compress(h, macKey, ad, (adLen/16)*16, 0);
     memcpy(pad, (const uint8_t *)ad + (adLen/16)*16, adLen % 16);
     if (adLen % 16) _BRPoly1305Compress(h, macKey, pad, 16, 0);
-    _BRPoly1305Compress(h, macKey, data, ((dataLen - 16)/16)*16, 0);
+    _BRPoly1305Compress(h, macKey, data, (outLen/16)*16, 0);
     pad[0] = pad[1] = 0;
-    memcpy(pad, (const uint8_t *)data + ((dataLen - 16)/16)*16, dataLen % 16);
-    if (dataLen % 16) _BRPoly1305Compress(h, macKey, pad, 16, 0);
+    memcpy(pad, (const uint8_t *)data + (outLen/16)*16, outLen % 16);
+    if (outLen % 16) _BRPoly1305Compress(h, macKey, pad, 16, 0);
     pad[0] = le64(adLen);
-    pad[1] = le64(dataLen - 16);
+    pad[1] = le64(outLen);
     _BRPoly1305Compress(h, macKey, pad, 16, 1);
-    memcpy(mac, (const uint8_t *)data + dataLen - 16, 16);
-
-    if ((mac[0] ^ h[0]) | (mac[1] ^ h[1]) | (mac[2] ^ h[2]) | (mac[3] ^ h[3]) == 0) { // constant time compare
-        BRChacha20(out, key32, iv, data, dataLen - 16, le64(counter) + 1);
-        r = dataLen - 16;
-    }
-
+    memcpy(mac, (const uint8_t *)data + outLen, 16);
+    if ((mac[0] ^ h[0]) | (mac[1] ^ h[1]) | (mac[2] ^ h[2]) | (mac[3] ^ h[3]) != 0) outLen = 0; // constant time compare
+    BRChacha20(out, key32, iv, data, outLen, le64(counter) + 1);
     counter = macKey[0] = macKey[1] = macKey[2] = macKey[3] = pad[0] = pad[1] = 0;
     mac[0] = mac[1] = mac[2] = mac[3] = h[0] = h[1] = h[2] = h[3] = h[4] = 0;
-    return r;
+    return outLen;
 }
 
 // dk = T1 || T2 || ... || Tdklen/hlen
