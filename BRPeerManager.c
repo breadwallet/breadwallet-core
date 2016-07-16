@@ -1781,10 +1781,9 @@ double BRPeerManagerSyncProgress(BRPeerManager *manager, uint32_t startHeight)
     if (! manager->downloadPeer && manager->syncStartHeight == 0) {
         progress = 0.0;
     }
-    else if (manager->lastBlock->height < manager->estimatedHeight && startHeight < manager->estimatedHeight) {
-        if (manager->lastBlock->height > manager->syncStartHeight) {
-            progress = 0.1 + 0.9*(manager->lastBlock->height - startHeight)/
-                       (manager->estimatedHeight - startHeight);
+    else if (manager->lastBlock->height < manager->estimatedHeight) {
+        if (manager->lastBlock->height > startHeight && manager->estimatedHeight > startHeight) {
+            progress = 0.1 + 0.9*(manager->lastBlock->height - startHeight)/(manager->estimatedHeight - startHeight);
         }
         else progress = 0.05;
     }
