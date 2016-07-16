@@ -1769,12 +1769,14 @@ uint32_t BRPeerManagerEstimatedBlockHeight(BRPeerManager *manager)
 }
 
 // current network sync progress from 0 to 1
+// startHeight is the block height of the most recent fully completed sync
 double BRPeerManagerSyncProgress(BRPeerManager *manager, uint32_t startHeight)
 {
     double progress;
     
     assert(manager != NULL);
     pthread_mutex_lock(&manager->lock);
+    if (startHeight == 0) startHeight = manager->syncStartHeight;
     
     if (! manager->downloadPeer && manager->syncStartHeight == 0) {
         progress = 0.0;
