@@ -1712,7 +1712,7 @@ void BRPeerManagerDisconnect(BRPeerManager *manager)
     pthread_mutex_unlock(&manager->lock);
     ts.tv_sec = 0;
     ts.tv_nsec = 1;
-    while (BRPeerManagerIsConnected(manager)) nanosleep(&ts, NULL); // pthread_yield() isn't POSIX standard :(
+    while (BRPeerManagerPeerCount(manager) > 0) nanosleep(&ts, NULL); // pthread_yield() isn't POSIX standard :(
 }
 
 // rescans blocks and transactions after earliestKeyTime (a new random download peer is also selected due to the
