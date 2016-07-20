@@ -237,6 +237,7 @@ struct BRPeerManagerStruct {
     void (*saveBlocks)(void *info, BRMerkleBlock *blocks[], size_t blocksCount);
     void (*savePeers)(void *info, const BRPeer peers[], size_t peersCount);
     int (*networkIsReachable)(void *info);
+    void (*threadCleanup)(void *info);
     pthread_mutex_t lock;
 };
 
@@ -342,7 +343,7 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
     utxosCount = BRWalletUTXOs(manager->wallet, utxos, utxosCount);
     txCount = BRWalletTxUnconfirmedBefore(manager->wallet, transactions, txCount, blockHeight);
     filter = BRBloomFilterNew(manager->fpRate, addrsCount + utxosCount + txCount + 100, (uint32_t)BRPeerHash(peer),
-                              BLOOM_UPDATE_ALL);
+                              BLOOM_UPDATE_ALL); //XXX BUG: txCount not the same as number of spent wallet outputs
     
     for (size_t i = 0; i < addrsCount; i++) { // add addresses to watch for tx receiveing money to the wallet
         UInt160 hash = UINT160_ZERO;
@@ -934,6 +935,7 @@ static void _peerDisconnected(void *info, int error)
     if (willSave && manager->syncFailed) manager->syncFailed(manager->info, error);
     if (willReconnect) BRPeerManagerConnect(manager); // try connecting to another peer
     if (manager->txStatusUpdate) manager->txStatusUpdate(manager->info);
+    if (manager->threadCleanup) manager->threadCleanup(manager->info);
 }
 
 static void _peerRelayedPeers(void *info, const BRPeer peers[], size_t peersCount)
@@ -1533,7 +1535,7 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
     assert(peers != NULL || peersCount == 0);
     manager->wallet = wallet;
     manager->earliestKeyTime = earliestKeyTime;
-    manager->averageTxPerBlock = 400;
+    manager->averageTxPerBlock = 1400;
     array_new(manager->peers, peersCount);
     if (peers) array_add_array(manager->peers, peers, peersCount);
     qsort(manager->peers, array_count(manager->peers), sizeof(*manager->peers), _peerTimestampCompare);
@@ -1586,6 +1588,7 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
 //   - if count is 1, save the given peer without removing any previously saved peers
 //   - if count is 0 or more than 1, save the given peers and delete any previously saved peers not given
 // int networkIsReachable(void *) - must return true when networking is available, false otherwise
+// void threadCleanup(void *) - called before a thread terminates to faciliate any needed cleanup
 void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*syncStarted)(void *info),
                                void (*syncSucceeded)(void *info),
@@ -1593,7 +1596,8 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*txStatusUpdate)(void *info),
                                void (*saveBlocks)(void *info, BRMerkleBlock *blocks[], size_t blocksCount),
                                void (*savePeers)(void *info, const BRPeer peers[], size_t peersCount),
-                               int (*networkIsReachable)(void *info))
+                               int (*networkIsReachable)(void *info),
+                               void (*threadCleanup)(void *info))
 {
     assert(manager != NULL);
     manager->info = info;
@@ -1604,6 +1608,7 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
     manager->saveBlocks = saveBlocks;
     manager->savePeers = savePeers;
     manager->networkIsReachable = networkIsReachable;
+    manager->threadCleanup = threadCleanup;
 }
 
 // true if currently connected to at least one peer

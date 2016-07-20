@@ -2251,7 +2251,7 @@ int main(int argc, const char *argv[])
 //
 //    manager = BRPeerManagerNew(wallet, BIP39_CREATION_TIME, NULL, 0, NULL, 0);
 //    BRPeerManagerSetCallbacks(manager, manager, syncStarted, syncSucceeded, syncFailed, txStatusUpdate, NULL, NULL,
-//                              NULL);
+//                              NULL, NULL);
 //
 //    BRPeerManagerConnect(manager);
 //    while (err == 0 && BRPeerManagerPeerCount(manager) > 0) err = sleep(1);
