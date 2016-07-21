@@ -1159,7 +1159,7 @@ void BRWalletFree(BRWallet *wallet)
 // price is local currency units per bitcoin
 int64_t BRLocalAmount(int64_t amount, double price)
 {
-    int64_t localAmount = llabs(amount)*(price/SATOSHIS);
+    int64_t localAmount = llabs(amount)*price/SATOSHIS;
     
     // if amount is not 0, but is too small to be represented in local currency, return minimum non-zero localAmount
     if (localAmount == 0 && amount != 0) localAmount = 1;
