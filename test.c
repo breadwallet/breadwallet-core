@@ -31,7 +31,7 @@
 #include "BRAddress.h"
 #include "BRBase58.h"
 #include "BRBIP39Mnemonic.h"
-#include "BRBIP39WordsEn.H"
+#include "BRBIP39WordsEn.h"
 #include "BRPeer.h"
 #include "BRPeerManager.h"
 #include "BRPaymentProtocol.h"

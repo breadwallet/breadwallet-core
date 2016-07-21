@@ -25,6 +25,8 @@
 #ifndef BRKey_h
 #define BRKey_h
 
+#include <stddef.h>
+
 #include "BRInt.h"
 
 #ifdef __cplusplus

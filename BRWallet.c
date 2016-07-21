@@ -31,7 +31,7 @@
 #include <limits.h>
 #include <float.h>
 #include <pthread.h>
-#include <assert.H>
+#include <assert.h>
 
 struct BRWalletStruct {
     uint64_t balance, totalSent, totalReceived, feePerKb, *balanceHist;

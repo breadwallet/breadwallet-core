@@ -49,8 +49,8 @@
 #pragma GCC diagnostic ignored "-Wunused-function"
 #pragma clang diagnostic ignored "-Wconditional-uninitialized"
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-#include "secp256k1/src/basic-config.h"
-#include "secp256k1/src/secp256k1.c"
+#include <secp256k1.h>
+#include <secp256k1_recovery.h>
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop
 
