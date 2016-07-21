@@ -25,7 +25,7 @@ libbreadwallet_core_la_CFLAGS = $(libsecp256k1_CFLAGS) $(PTHREAD_CFLAGS)
 libbreadwallet_core_la_LDFLAGS = -version-info $(LIBBREADWALLET_CORE_SO_VERSION) -no-undefined
 libbreadwallet_core_la_LIBADD = $(libsecp256k1_LIBS) $(PTHREAD_LIBS)
 
-libbreadwallet_core_includedir = $(includedir)
+libbreadwallet_core_includedir = $(includedir)/breadwallet-core
 libbreadwallet_core_include_HEADERS = \
 	BRAddress.h  \
 	BRArray.h  \
