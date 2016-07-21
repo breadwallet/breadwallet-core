@@ -176,12 +176,18 @@ union _u256 { uint8_t u8[256/8]; };
 #define set_u32le(r, x) (*(union _u32 *)(r) =\
     (union _u32) { (x) & 0xff, ((x) >> 8) & 0xff, ((x) >> 16) & 0xff, ((x) >> 24) & 0xff })
 
-#define set_u64be(r, x) (*(union _u64 *)(r) =\
-    (union _u64) { ((x) >> 56) & 0xff, ((x) >> 48) & 0xff, ((x) >> 40) & 0xff, ((x) >> 32) & 0xff,\
-                   ((x) >> 24) & 0xff, ((x) >> 16) & 0xff, ((x) >> 8) & 0xff, (x) & 0xff })
-#define set_u64le(r, x) (*(union _u64 *)(r) =\
-    (union _u64) { (x) & 0xff, ((x) >> 8) & 0xff, ((x) >> 16) & 0xff, ((x) >> 24) & 0xff,\
-                   ((x) >> 32) & 0xff, ((x) >> 40) & 0xff, ((x) >> 48) & 0xff, ((x) >> 56) & 0xff })
+static inline void set_u64be(void * const r, const uint64_t x) {
+    *(union _u64 *)r = (union _u64) {
+        ((x) >> 56) & 0xff, ((x) >> 48) & 0xff, ((x) >> 40) & 0xff, ((x) >> 32) & 0xff,
+        ((x) >> 24) & 0xff, ((x) >> 16) & 0xff, ((x) >> 8) & 0xff, (x) & 0xff
+    };
+}
+static inline void set_u64le(void * const r, const uint64_t x) {
+    *(union _u64 *)r = (union _u64) {
+        (x) & 0xff, ((x) >> 8) & 0xff, ((x) >> 16) & 0xff, ((x) >> 24) & 0xff,
+        ((x) >> 32) & 0xff, ((x) >> 40) & 0xff, ((x) >> 48) & 0xff, ((x) >> 56) & 0xff
+    };
+}
 
 #define set_u128(r, x) (*(union _u128 *)(r) =\
     (union _u128) { (x).u8[0], (x).u8[1], (x).u8[2],  (x).u8[3],  (x).u8[4],  (x).u8[5],  (x).u8[6],  (x).u8[7],\
