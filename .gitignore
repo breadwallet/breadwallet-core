@@ -1,3 +1,21 @@
+*.kate-swp
+.deps
+Makefile
+Makefile.in
+aclocal.m4
+ar-lib
+autom4te.cache
+compile
+config.*
+configure
+depcomp
+install-sh
+libbreadwallet-core.pc
+libtool
+ltmain.sh
+missing
+.libs
+
 # Object files
 *.o
 *.ko
