@@ -25,9 +25,8 @@
 #ifndef BRKey_h
 #define BRKey_h
 
-#include <stddef.h>
-
 #include "BRInt.h"
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
