@@ -413,6 +413,10 @@ typedef struct {
     PyObject_HEAD
     b_MasterPubKey *mpk;
     BRWallet *ob_fval;
+    PyObject *onSyncStarted;
+    PyObject *onSyncSucceeded;
+    PyObject *onSyncFailed;
+    PyObject *onTxStatusUpdate;
 } b_Wallet;
 
 static PyObject *b_WalletNew(PyTypeObject *type, PyObject *args, PyObject *kwds) {
@@ -420,6 +424,10 @@ static PyObject *b_WalletNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
     if (self != NULL) {
       self->mpk = NULL;
       self->ob_fval = NULL;
+      self->onSyncStarted = NULL;
+      self->onSyncSucceeded = NULL;
+      self->onSyncFailed = NULL;
+      self->onTxStatusUpdate = NULL;
     }
     return (PyObject *)self;
 }
@@ -429,6 +437,22 @@ static void b_WalletDealloc(b_Wallet *self) {
   self->mpk = NULL;
   BRWalletFree(self->ob_fval);
   self->ob_fval = NULL;
+  if (self->onSyncStarted != NULL) {
+    Py_XDECREF(self->onSyncStarted);
+    self->onSyncStarted = NULL;
+  }
+  if (self->onSyncSucceeded != NULL) {
+    Py_XDECREF(self->onSyncSucceeded);
+    self->onSyncSucceeded = NULL;
+  }
+  if (self->onSyncFailed != NULL) {
+    Py_XDECREF(self->onSyncFailed);
+    self->onSyncFailed = NULL;
+  }
+  if (self->onTxStatusUpdate != NULL) {
+    Py_XDECREF(self->onTxStatusUpdate);
+    self->onTxStatusUpdate = NULL;
+  }
   Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
@@ -457,6 +481,142 @@ static int b_WalletInit(b_Wallet *self, PyObject *args, PyObject *kwds) {
 
     return 0;
 }
+
+PyObject *b_WalletGetSyncStarted(b_Wallet *self, void *closure){
+    if (self->onSyncStarted != NULL) {
+        Py_INCREF(self->onSyncStarted);
+        return self->onSyncStarted;
+    }
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+static int b_WalletSetSyncStarted(b_Wallet *self, PyObject *value, void *closure) {
+    if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError, "Cannot delete the on_sync_started attribute");
+        return -1;
+    }
+
+    if (value != Py_None && !PyFunction_Check(value)) {
+        PyErr_SetString(PyExc_TypeError, "The on_sync_started object must be a function");
+        return -1;
+    }
+
+    if (self->onSyncStarted != NULL) {
+        Py_DECREF(self->onSyncStarted);
+    }
+    Py_INCREF(value);
+    self->onSyncStarted = value;
+
+    return 0;
+}
+
+PyObject *b_WalletGetSyncSucceeded(b_Wallet *self, void *closure){
+    if (self->onSyncSucceeded) {
+        Py_INCREF(self->onSyncSucceeded);
+        return self->onSyncSucceeded;
+    }
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+static int b_WalletSetSyncSucceeded(b_Wallet *self, PyObject *value, void *closure) {
+    if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError, "Cannot delete the on_sync_succeeded attribute");
+        return -1;
+    }
+
+    if (value != Py_None && !PyFunction_Check(value)) {
+        PyErr_SetString(PyExc_TypeError, "The on_sync_succeeded object must be a function");
+        return -1;
+    }
+
+    if (self->onSyncSucceeded != NULL) {
+        Py_DECREF(self->onSyncSucceeded);
+    }
+    Py_INCREF(value);
+    self->onSyncSucceeded = value;
+
+    return 0;
+}
+
+PyObject *b_WalletGetSyncFailed(b_Wallet *self, void *closure){
+    if (self->onSyncFailed != NULL) {
+        Py_INCREF(self->onSyncFailed);
+        return self->onSyncFailed;
+    }
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+static int b_WalletSetSyncFailed(b_Wallet *self, PyObject *value, void *closure) {
+    if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError, "Cannot delete the on_sync_failed  attribute");
+        return -1;
+    }
+
+    if (value != Py_None && !PyFunction_Check(value)) {
+        PyErr_SetString(PyExc_TypeError, "The on_sync_failed object must be a function");
+        return -1;
+    }
+
+    if (self->onSyncFailed != NULL) {
+        Py_DECREF(self->onSyncFailed);
+    }
+    Py_INCREF(value);
+    self->onSyncFailed = value;
+
+    return 0;
+}
+
+PyObject *b_WalletGetTxStatusUpdate(b_Wallet *self, void *closure){
+    if (self->onTxStatusUpdate != NULL) {
+        Py_INCREF(self->onTxStatusUpdate);
+        return self->onTxStatusUpdate;
+    }
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+static int b_WalletSetTxStatusUpdate(b_Wallet *self, PyObject *value, void *closure) {
+    if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError, "Cannot delete the on_tx_status_update attribute");
+        return -1;
+    }
+
+    if (value != Py_None && !PyFunction_Check(value)) {
+      PyErr_SetString(PyExc_TypeError, "The on_tx_status_update object must be a function");
+      return -1;
+    }
+
+    if (self->onTxStatusUpdate != NULL) {
+      Py_DECREF(self->onTxStatusUpdate);
+    }
+    Py_INCREF(value);
+    self->onTxStatusUpdate = value;
+
+    return 0;
+}
+
+static PyGetSetDef b_WalletGetSetters[] = {
+    {"on_sync_started",
+     (getter)b_WalletGetSyncStarted, (setter)b_WalletSetSyncStarted,
+     "callback fired when sync is started",
+     NULL},
+    {"on_sync_succeeded",
+     (getter)b_WalletGetSyncSucceeded, (setter)b_WalletSetSyncSucceeded,
+     "callback fired when sync finishes successfully",
+     NULL},
+     {"on_sync_failed",
+      (getter)b_WalletGetSyncFailed, (setter)b_WalletSetSyncFailed,
+      "callback fired when sync finishes with a failure",
+      NULL},
+    {"on_tx_status_update",
+     (getter)b_WalletGetTxStatusUpdate, (setter)b_WalletSetTxStatusUpdate,
+     "callback fired when transaction status is updated",
+     NULL},
+    {NULL}  /* Sentinel */
+};
 
 static PyTypeObject b_WalletType = {
     PyVarObject_HEAD_INIT(NULL, 0)
@@ -488,7 +648,7 @@ static PyTypeObject b_WalletType = {
     0,                         /* tp_iternext */
     0,                         /* tp_methods */
     0,                         /* tp_members */
-    0,                         /* tp_getset */
+    b_WalletGetSetters,        /* tp_getset */
     0,                         /* tp_base */
     0,                         /* tp_dict */
     0,                         /* tp_descr_get */
