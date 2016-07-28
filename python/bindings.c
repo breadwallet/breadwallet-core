@@ -399,6 +399,17 @@ static PyObject *b_KeyFromBitID(PyObject *cls, PyObject *args, PyObject *kwds) {
     return result;
 }
 
+static PyObject *b_KeyPrivKeyIsValid(PyObject *cls, PyObject *args, PyObject *kwds) {
+    PyObject *result = Py_False;
+    char *pk;
+    static char *kwList[] = { "pk", NULL };
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s", kwList, &pk)) {
+        return NULL;
+    }
+    if (BRPrivKeyIsValid(pk)) result = Py_True;
+    return result;
+}
+
 static PyObject *b_KeyAddress(PyObject *self, PyObject *args) {
     BRAddress address;
     b_Key *bkey = (b_Key *)self;
@@ -412,6 +423,8 @@ static PyMethodDef b_KeyMethods[] = {
     /* Class Methods */
     {"from_bitid", (PyCFunction)b_KeyFromBitID, (METH_VARARGS | METH_KEYWORDS | METH_CLASS),
      "generate a bitid Key from a seed and some bitid parameters"},
+    {"privkey_is_valid", (PyCFunction)b_KeyPrivKeyIsValid, (METH_VARARGS | METH_KEYWORDS | METH_CLASS),
+     "determine whether or not a serialized private key is valid"},
     /* Instance Methods */
     {"address", (PyCFunction)b_KeyAddress, METH_NOARGS,
      "get the address from the key"},

@@ -32,6 +32,10 @@ class KeyTests(unittest.TestCase):
         self.assertNotEqual(key.address(), None)
         self.assertEqual(str(key.address()), "1J34vj4wowwPYafbeibZGht3zy3qERoUM1")
 
+    def test_privkeykey_is_valid(self):
+        self.assertFalse(breadwallet.Key.privkey_is_valid("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRz"))
+        self.assertTrue(breadwallet.Key.privkey_is_valid("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy"))
+
 
 class TransactionTests(unittest.TestCase):
     def test_allocation(self):
