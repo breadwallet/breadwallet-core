@@ -51,70 +51,70 @@ class WalletTests(unittest.TestCase):
         wallet = breadwallet.Wallet(mpk)
         self.assertNotEqual(wallet, None)
 
-    def test_callback_on_sync_started_setters_and_getters(self):
+    def test_callback_on_balance_changed_setters_and_getters(self):
         wallet = self._get_wallet()
 
         def cb_a(): pass
         def cb_b(): pass
 
-        self.assertEqual(wallet.on_sync_started, None)
-        wallet.on_sync_started = None
-        self.assertEqual(wallet.on_sync_started, None)
-        wallet.on_sync_started = cb_a
-        self.assertEqual(wallet.on_sync_started, cb_a)
-        wallet.on_sync_started = None
-        self.assertEqual(wallet.on_sync_started, None)
-        wallet.on_sync_started = cb_a
-        wallet.on_sync_started = cb_b
-        self.assertEqual(wallet.on_sync_started, cb_b)
+        self.assertEqual(wallet.on_balance_changed, None)
+        wallet.on_balance_changed = None
+        self.assertEqual(wallet.on_balance_changed, None)
+        wallet.on_balance_changed = cb_a
+        self.assertEqual(wallet.on_balance_changed, cb_a)
+        wallet.on_balance_changed = None
+        self.assertEqual(wallet.on_balance_changed, None)
+        wallet.on_balance_changed = cb_a
+        wallet.on_balance_changed = cb_b
+        self.assertEqual(wallet.on_balance_changed, cb_b)
 
-    def test_callback_on_sync_succeeded_setters_and_getters(self):
+    def test_callback_on_tx_added_setters_and_getters(self):
         wallet = self._get_wallet()
 
         def cb_a(): pass
         def cb_b(): pass
 
-        self.assertEqual(wallet.on_sync_succeeded, None)
-        wallet.on_sync_succeeded = None
-        self.assertEqual(wallet.on_sync_succeeded, None)
-        wallet.on_sync_succeeded = cb_a
-        self.assertEqual(wallet.on_sync_succeeded, cb_a)
-        wallet.on_sync_succeeded = None
-        self.assertEqual(wallet.on_sync_succeeded, None)
-        wallet.on_sync_succeeded = cb_a
-        wallet.on_sync_succeeded = cb_b
-        self.assertEqual(wallet.on_sync_succeeded, cb_b)
+        self.assertEqual(wallet.on_tx_added, None)
+        wallet.on_tx_added = None
+        self.assertEqual(wallet.on_tx_added, None)
+        wallet.on_tx_added = cb_a
+        self.assertEqual(wallet.on_tx_added, cb_a)
+        wallet.on_tx_added = None
+        self.assertEqual(wallet.on_tx_added, None)
+        wallet.on_tx_added = cb_a
+        wallet.on_tx_added = cb_b
+        self.assertEqual(wallet.on_tx_added, cb_b)
 
-    def test_callback_on_sync_failed_setters_and_getters(self):
+    def test_callback_on_tx_updated_setters_and_getters(self):
         wallet = self._get_wallet()
 
         def cb_a(): pass
         def cb_b(): pass
 
-        self.assertEqual(wallet.on_sync_failed, None)
-        wallet.on_sync_failed = None
-        self.assertEqual(wallet.on_sync_failed, None)
-        wallet.on_sync_failed = cb_a
-        self.assertEqual(wallet.on_sync_failed, cb_a)
-        wallet.on_sync_failed = None
-        self.assertEqual(wallet.on_sync_failed, None)
-        wallet.on_sync_failed = cb_a
-        wallet.on_sync_failed = cb_b
-        self.assertEqual(wallet.on_sync_failed, cb_b)
+        self.assertEqual(wallet.on_tx_updated, None)
+        wallet.on_tx_updated = None
+        self.assertEqual(wallet.on_tx_updated, None)
+        wallet.on_tx_updated = cb_a
+        self.assertEqual(wallet.on_tx_updated, cb_a)
+        wallet.on_tx_updated = None
+        self.assertEqual(wallet.on_tx_updated, None)
+        wallet.on_tx_updated = cb_a
+        wallet.on_tx_updated = cb_b
+        self.assertEqual(wallet.on_tx_updated, cb_b)
 
-    def test_callback_on_tx_status_update_setters_and_getters(self):
+    def test_callback_on_tx_deleted_setters_and_getters(self):
         wallet = self._get_wallet()
 
         def cb_a(): pass
         def cb_b(): pass
 
-        self.assertEqual(wallet.on_tx_status_update, None)
-        wallet.on_tx_status_update = None
-        self.assertEqual(wallet.on_tx_status_update, None)
-        wallet.on_tx_status_update = cb_a
-        self.assertEqual(wallet.on_tx_status_update, cb_a)
-        wallet.on_tx_status_update = None
-        self.assertEqual(wallet.on_tx_status_update, None)
-        wallet.on_tx_status_update = cb_a
-        wallet.on_tx_status_update = cb_b
-        self.assertEqual(wallet.on_tx_status_update, cb_b)
+        self.assertEqual(wallet.on_tx_deleted, None)
+        wallet.on_tx_deleted = None
+        self.assertEqual(wallet.on_tx_deleted, None)
+        wallet.on_tx_deleted = cb_a
+        self.assertEqual(wallet.on_tx_deleted, cb_a)
+        wallet.on_tx_deleted = None
+        self.assertEqual(wallet.on_tx_deleted, None)
+        wallet.on_tx_deleted = cb_a
+        wallet.on_tx_deleted = cb_b
+        self.assertEqual(wallet.on_tx_deleted, cb_b)

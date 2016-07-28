@@ -11,6 +11,60 @@
  * Ints
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+ typedef struct {
+     PyObject_HEAD
+     UInt256 ob_fval;
+ } b_UInt256;
+
+ static PyObject *b_UInt256New(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+     b_UInt256 *self = (b_UInt256 *)type->tp_alloc(type, 0);
+     if (self != NULL) {
+         self->ob_fval = UINT256_ZERO;
+     }
+     return (PyObject *)self;
+ }
+
+ static PyTypeObject b_UInt256Type = {
+     PyVarObject_HEAD_INIT(NULL, 0)
+     "breadwallet.UInt256",     /* tp_name */
+     sizeof(b_UInt256),         /* tp_basicsize */
+     0,                         /* tp_itemsize */
+     0,                         /* tp_dealloc */
+     0,                         /* tp_print */
+     0,                         /* tp_getattr */
+     0,                         /* tp_setattr */
+     0,                         /* tp_as_async */
+     0,                         /* tp_repr */
+     0,                         /* tp_as_number */
+     0,                         /* tp_as_sequence */
+     0,                         /* tp_as_mapping */
+     0,                         /* tp_hash  */
+     0,                         /* tp_call */
+     0,                         /* tp_str */
+     0,                         /* tp_getattro */
+     0,                         /* tp_setattro */
+     0,                         /* tp_as_buffer */
+     Py_TPFLAGS_DEFAULT,        /* tp_flags */
+     "UInt256 Object",          /* tp_doc */
+     0,                         /* tp_traverse */
+     0,                         /* tp_clear */
+     0,                         /* tp_richcompare */
+     0,                         /* tp_weaklistoffset */
+     0,                         /* tp_iter */
+     0,                         /* tp_iternext */
+     0,                         /* tp_methods */
+     0,                         /* tp_members */
+     0,                         /* tp_getset */
+     0,                         /* tp_base */
+     0,                         /* tp_dict */
+     0,                         /* tp_descr_get */
+     0,                         /* tp_descr_set */
+     0,                         /* tp_dictoffset */
+     0,                         /* tp_init */
+     0,                         /* tp_alloc */
+     b_UInt256New,              /* tp_new */
+ };
+
 typedef struct {
     PyObject_HEAD
     UInt512 ob_fval;
@@ -413,47 +467,97 @@ typedef struct {
     PyObject_HEAD
     b_MasterPubKey *mpk;
     BRWallet *ob_fval;
-    PyObject *onSyncStarted;
-    PyObject *onSyncSucceeded;
-    PyObject *onSyncFailed;
-    PyObject *onTxStatusUpdate;
+    PyObject *onBalanceChanged;
+    PyObject *onTxAdded;
+    PyObject *onTxUpdated;
+    PyObject *onTxDeleted;
 } b_Wallet;
+
+static void b_WalletDealloc(b_Wallet *self) {
+    Py_XDECREF(self->mpk);
+    self->mpk = NULL;
+    BRWalletFree(self->ob_fval);
+    self->ob_fval = NULL;
+    if (self->onBalanceChanged != NULL) {
+        Py_XDECREF(self->onBalanceChanged);
+        self->onBalanceChanged = NULL;
+    }
+    if (self->onTxAdded != NULL) {
+        Py_XDECREF(self->onTxAdded);
+        self->onTxAdded = NULL;
+    }
+    if (self->onTxUpdated != NULL) {
+        Py_XDECREF(self->onTxUpdated);
+        self->onTxUpdated = NULL;
+    }
+    if (self->onTxDeleted != NULL) {
+        Py_XDECREF(self->onTxDeleted);
+        self->onTxDeleted = NULL;
+    }
+    Py_TYPE(self)->tp_free((PyObject*)self);
+}
 
 static PyObject *b_WalletNew(PyTypeObject *type, PyObject *args, PyObject *kwds) {
     b_Wallet *self = (b_Wallet *)type->tp_alloc(type, 0);
     if (self != NULL) {
-      self->mpk = NULL;
-      self->ob_fval = NULL;
-      self->onSyncStarted = NULL;
-      self->onSyncSucceeded = NULL;
-      self->onSyncFailed = NULL;
-      self->onTxStatusUpdate = NULL;
+        self->mpk = NULL;
+        self->ob_fval = NULL;
+        self->onBalanceChanged = NULL;
+        self->onTxAdded = NULL;
+        self->onTxUpdated = NULL;
+        self->onTxDeleted = NULL;
     }
     return (PyObject *)self;
 }
 
-static void b_WalletDealloc(b_Wallet *self) {
-  Py_XDECREF(self->mpk);
-  self->mpk = NULL;
-  BRWalletFree(self->ob_fval);
-  self->ob_fval = NULL;
-  if (self->onSyncStarted != NULL) {
-    Py_XDECREF(self->onSyncStarted);
-    self->onSyncStarted = NULL;
-  }
-  if (self->onSyncSucceeded != NULL) {
-    Py_XDECREF(self->onSyncSucceeded);
-    self->onSyncSucceeded = NULL;
-  }
-  if (self->onSyncFailed != NULL) {
-    Py_XDECREF(self->onSyncFailed);
-    self->onSyncFailed = NULL;
-  }
-  if (self->onTxStatusUpdate != NULL) {
-    Py_XDECREF(self->onTxStatusUpdate);
-    self->onTxStatusUpdate = NULL;
-  }
-  Py_TYPE(self)->tp_free((PyObject*)self);
+void b_WalletCallbackBalanceChanged(void *ctx, uint64_t newBalance) {
+    printf("balance changed new=%lld", newBalance);
+    b_Wallet *self = (b_Wallet *)ctx;
+    if (self->onBalanceChanged != NULL && self->onBalanceChanged != Py_None) {
+        PyObject *balObj = PyLong_FromUnsignedLongLong(newBalance);
+        PyObject_CallFunctionObjArgs(self->onBalanceChanged, balObj, NULL);
+    }
+}
+
+void b_WalletCallbackTxAdded(void *ctx, BRTransaction *tx) {
+    printf("tx added tx=%s", u256_hex_encode(tx->txHash));
+    b_Wallet *self = (b_Wallet *)ctx;
+    if (self->onTxAdded != NULL && self->onTxAdded != Py_None) {
+        b_Transaction *txObj = (b_Transaction *)PyObject_New(b_Transaction, &b_TransactionType);
+        txObj->ob_fval = tx;
+        PyObject_CallFunctionObjArgs(self->onTxAdded, txObj, NULL);
+    }
+}
+
+void b_WalletCallbackTxUpdated(void *ctx, const UInt256 txHashes[], size_t count, uint32_t blockHeight, uint32_t timestamp) {
+    printf("tx updated count=%ld blockheight=%d ts=%d", count, blockHeight, timestamp);
+    b_Wallet *self = (b_Wallet *)ctx;
+    if (self->onTxUpdated != NULL && self->onTxUpdated != Py_None) {
+        PyObject *hashList = PyList_New(count);
+        for (size_t i = 0; i < count; i++) {
+            b_UInt256 *hashObj = (b_UInt256 *)PyObject_New(b_UInt256, &b_UInt256Type);
+            hashObj->ob_fval = txHashes[i];
+            PyList_SET_ITEM(hashList, i, (PyObject *)hashObj);
+        }
+        PyObject *blockHeightObj = PyLong_FromUnsignedLong(blockHeight);
+        PyObject *timestampObj = PyLong_FromUnsignedLong(timestamp);
+        PyObject_CallFunctionObjArgs(
+            self->onTxUpdated, hashList, blockHeightObj, timestampObj, NULL
+        );
+    }
+}
+
+void b_WalletCallbackTxDeleted(void *ctx, UInt256 txHash, int notifyUser, int recommendRescan) {
+    printf("tx deleted txhash=%s notify=%d recommend=%d", u256_hex_encode(txHash), notifyUser, recommendRescan);
+    b_Wallet *self = (b_Wallet *)ctx;
+    if (self->onTxDeleted != NULL && self->onTxUpdated != Py_None) {
+        b_UInt256 *hashObj = (b_UInt256 *)PyObject_New(b_UInt256, &b_UInt256Type);
+        hashObj->ob_fval = txHash;
+        PyObject_CallFunctionObjArgs(
+            self->onTxDeleted, hashObj, notifyUser ? Py_True : Py_False,
+            recommendRescan ? Py_True : Py_False, NULL
+        );
+    }
 }
 
 static int b_WalletInit(b_Wallet *self, PyObject *args, PyObject *kwds) {
@@ -463,156 +567,163 @@ static int b_WalletInit(b_Wallet *self, PyObject *args, PyObject *kwds) {
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "O|O", kwlist, &mpk, &txList)) return -1;
 
     if (!mpk) {
-      // TODO: set correct error
-      return -1;
+        // TODO: set correct error
+        return -1;
     }
 
     if (!PyObject_IsInstance(mpk, (PyObject *)&b_MasterPubKeyType)) {
-      // TODO: set correct error
-      return -1;
+        // TODO: set correct error
+        return -1;
     }
 
     // build instance data
     self->mpk = (b_MasterPubKey *)mpk;
     Py_INCREF(self->mpk);
     self->ob_fval = BRWalletNew(NULL, 0, self->mpk->ob_fval);
+    BRWalletSetCallbacks(
+        self->ob_fval, (void *)self,
+        b_WalletCallbackBalanceChanged,
+        b_WalletCallbackTxAdded,
+        b_WalletCallbackTxUpdated,
+        b_WalletCallbackTxDeleted
+    );
 
     // TODO: parse transaction list
 
     return 0;
 }
 
-PyObject *b_WalletGetSyncStarted(b_Wallet *self, void *closure){
-    if (self->onSyncStarted != NULL) {
-        Py_INCREF(self->onSyncStarted);
-        return self->onSyncStarted;
+PyObject *b_WalletGetBalanceChanged(b_Wallet *self, void *closure){
+    if (self->onBalanceChanged != NULL) {
+        Py_INCREF(self->onBalanceChanged);
+        return self->onBalanceChanged;
     }
     Py_INCREF(Py_None);
     return Py_None;
 }
 
-static int b_WalletSetSyncStarted(b_Wallet *self, PyObject *value, void *closure) {
+static int b_WalletSetBalanceChanged(b_Wallet *self, PyObject *value, void *closure) {
     if (value == NULL) {
-        PyErr_SetString(PyExc_TypeError, "Cannot delete the on_sync_started attribute");
+        PyErr_SetString(PyExc_TypeError, "Cannot delete the on_balance_changed attribute");
         return -1;
     }
 
     if (value != Py_None && !PyFunction_Check(value)) {
-        PyErr_SetString(PyExc_TypeError, "The on_sync_started object must be a function");
+        PyErr_SetString(PyExc_TypeError, "The on_balance_changed object must be a function");
         return -1;
     }
 
-    if (self->onSyncStarted != NULL) {
-        Py_DECREF(self->onSyncStarted);
+    if (self->onBalanceChanged != NULL) {
+        Py_DECREF(self->onBalanceChanged);
     }
     Py_INCREF(value);
-    self->onSyncStarted = value;
+    self->onBalanceChanged = value;
 
     return 0;
 }
 
-PyObject *b_WalletGetSyncSucceeded(b_Wallet *self, void *closure){
-    if (self->onSyncSucceeded) {
-        Py_INCREF(self->onSyncSucceeded);
-        return self->onSyncSucceeded;
+PyObject *b_WalletGetTxAdded(b_Wallet *self, void *closure){
+    if (self->onTxAdded) {
+        Py_INCREF(self->onTxAdded);
+        return self->onTxAdded;
     }
     Py_INCREF(Py_None);
     return Py_None;
 }
 
-static int b_WalletSetSyncSucceeded(b_Wallet *self, PyObject *value, void *closure) {
+static int b_WalletSetTxAdded(b_Wallet *self, PyObject *value, void *closure) {
     if (value == NULL) {
-        PyErr_SetString(PyExc_TypeError, "Cannot delete the on_sync_succeeded attribute");
+        PyErr_SetString(PyExc_TypeError, "Cannot delete the on_tx_added attribute");
         return -1;
     }
 
     if (value != Py_None && !PyFunction_Check(value)) {
-        PyErr_SetString(PyExc_TypeError, "The on_sync_succeeded object must be a function");
+        PyErr_SetString(PyExc_TypeError, "The on_tx_added object must be a function");
         return -1;
     }
 
-    if (self->onSyncSucceeded != NULL) {
-        Py_DECREF(self->onSyncSucceeded);
+    if (self->onTxAdded != NULL) {
+        Py_DECREF(self->onTxAdded);
     }
     Py_INCREF(value);
-    self->onSyncSucceeded = value;
+    self->onTxAdded = value;
 
     return 0;
 }
 
-PyObject *b_WalletGetSyncFailed(b_Wallet *self, void *closure){
-    if (self->onSyncFailed != NULL) {
-        Py_INCREF(self->onSyncFailed);
-        return self->onSyncFailed;
+PyObject *b_WalletGetTxUpdated(b_Wallet *self, void *closure){
+    if (self->onTxUpdated != NULL) {
+        Py_INCREF(self->onTxUpdated);
+        return self->onTxUpdated;
     }
     Py_INCREF(Py_None);
     return Py_None;
 }
 
-static int b_WalletSetSyncFailed(b_Wallet *self, PyObject *value, void *closure) {
+static int b_WalletSetTxUpdated(b_Wallet *self, PyObject *value, void *closure) {
     if (value == NULL) {
-        PyErr_SetString(PyExc_TypeError, "Cannot delete the on_sync_failed  attribute");
+        PyErr_SetString(PyExc_TypeError, "Cannot delete the on_tx_updated  attribute");
         return -1;
     }
 
     if (value != Py_None && !PyFunction_Check(value)) {
-        PyErr_SetString(PyExc_TypeError, "The on_sync_failed object must be a function");
+        PyErr_SetString(PyExc_TypeError, "The on_tx_updated object must be a function");
         return -1;
     }
 
-    if (self->onSyncFailed != NULL) {
-        Py_DECREF(self->onSyncFailed);
+    if (self->onTxUpdated != NULL) {
+        Py_DECREF(self->onTxUpdated);
     }
     Py_INCREF(value);
-    self->onSyncFailed = value;
+    self->onTxUpdated = value;
 
     return 0;
 }
 
-PyObject *b_WalletGetTxStatusUpdate(b_Wallet *self, void *closure){
-    if (self->onTxStatusUpdate != NULL) {
-        Py_INCREF(self->onTxStatusUpdate);
-        return self->onTxStatusUpdate;
+PyObject *b_WalletGetTxDeleted(b_Wallet *self, void *closure){
+    if (self->onTxDeleted != NULL) {
+        Py_INCREF(self->onTxDeleted);
+        return self->onTxDeleted;
     }
     Py_INCREF(Py_None);
     return Py_None;
 }
 
-static int b_WalletSetTxStatusUpdate(b_Wallet *self, PyObject *value, void *closure) {
+static int b_WalletSetTxDeleted(b_Wallet *self, PyObject *value, void *closure) {
     if (value == NULL) {
-        PyErr_SetString(PyExc_TypeError, "Cannot delete the on_tx_status_update attribute");
+        PyErr_SetString(PyExc_TypeError, "Cannot delete the on_tx_deleted attribute");
         return -1;
     }
 
     if (value != Py_None && !PyFunction_Check(value)) {
-      PyErr_SetString(PyExc_TypeError, "The on_tx_status_update object must be a function");
+      PyErr_SetString(PyExc_TypeError, "The on_tx_deleted object must be a function");
       return -1;
     }
 
-    if (self->onTxStatusUpdate != NULL) {
-      Py_DECREF(self->onTxStatusUpdate);
+    if (self->onTxDeleted != NULL) {
+      Py_DECREF(self->onTxDeleted);
     }
     Py_INCREF(value);
-    self->onTxStatusUpdate = value;
+    self->onTxDeleted = value;
 
     return 0;
 }
 
 static PyGetSetDef b_WalletGetSetters[] = {
-    {"on_sync_started",
-     (getter)b_WalletGetSyncStarted, (setter)b_WalletSetSyncStarted,
+    {"on_balance_changed",
+     (getter)b_WalletGetBalanceChanged, (setter)b_WalletSetBalanceChanged,
      "callback fired when sync is started",
      NULL},
-    {"on_sync_succeeded",
-     (getter)b_WalletGetSyncSucceeded, (setter)b_WalletSetSyncSucceeded,
+    {"on_tx_added",
+     (getter)b_WalletGetTxAdded, (setter)b_WalletSetTxAdded,
      "callback fired when sync finishes successfully",
      NULL},
-     {"on_sync_failed",
-      (getter)b_WalletGetSyncFailed, (setter)b_WalletSetSyncFailed,
+     {"on_tx_updated",
+      (getter)b_WalletGetTxUpdated, (setter)b_WalletSetTxUpdated,
       "callback fired when sync finishes with a failure",
       NULL},
-    {"on_tx_status_update",
-     (getter)b_WalletGetTxStatusUpdate, (setter)b_WalletSetTxStatusUpdate,
+    {"on_tx_deleted",
+     (getter)b_WalletGetTxDeleted, (setter)b_WalletSetTxDeleted,
      "callback fired when transaction status is updated",
      NULL},
     {NULL}  /* Sentinel */
@@ -675,6 +786,7 @@ static PyModuleDef bmodule = {
 PyMODINIT_FUNC PyInit_breadwallet(void) {
     PyObject* m;
 
+    if (PyType_Ready(&b_UInt256Type) < 0) return NULL;
     if (PyType_Ready(&b_UInt512Type) < 0) return NULL;
     if (PyType_Ready(&b_MasterPubKeyType) < 0) return NULL;
     if (PyType_Ready(&b_KeyType) < 0) return NULL;
@@ -685,12 +797,14 @@ PyMODINIT_FUNC PyInit_breadwallet(void) {
     m = PyModule_Create(&bmodule);
     if (m == NULL) return NULL;
 
+    Py_INCREF(&b_UInt256Type);
     Py_INCREF(&b_UInt512Type);
     Py_INCREF(&b_MasterPubKeyType);
     Py_INCREF(&b_KeyType);
     Py_INCREF(&b_AddressType);
     Py_INCREF(&b_TransactionType);
     Py_INCREF(&b_WalletType);
+    PyModule_AddObject(m, "UInt256", (PyObject *)&b_UInt256Type);
     PyModule_AddObject(m, "UInt512", (PyObject *)&b_UInt512Type);
     PyModule_AddObject(m, "MasterPubKey", (PyObject *)&b_MasterPubKeyType);
     PyModule_AddObject(m, "Key", (PyObject *)&b_KeyType);
