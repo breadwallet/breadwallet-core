@@ -33,6 +33,12 @@ class KeyTests(unittest.TestCase):
         self.assertEqual(str(key.address()), "1J34vj4wowwPYafbeibZGht3zy3qERoUM1")
 
 
+class TransactionTests(unittest.TestCase):
+    def test_allocation(self):
+        t = breadwallet.Transaction()
+        self.assertNotEqual(t, None)
+
+
 class WalletTests(unittest.TestCase):
     def test_allocation(self):
         phrase = "axis husband project any sea patch drip tip spirit tide bring belt"

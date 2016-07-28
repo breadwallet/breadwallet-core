@@ -4,6 +4,7 @@
 #include "BRBIP32Sequence.h"
 #include "BRBIP39Mnemonic.h"
 #include "BRKey.h"
+#include "BRTransaction.h"
 #include "BRWallet.h"
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -15,9 +16,7 @@ typedef struct {
     UInt512 ob_fval;
 } b_UInt512;
 
-static PyObject *
-b_UInt512New(PyTypeObject *type, PyObject *args, PyObject *kwds)
-{
+static PyObject *b_UInt512New(PyTypeObject *type, PyObject *args, PyObject *kwds) {
     b_UInt512 *self = (b_UInt512 *)type->tp_alloc(type, 0);
     if (self != NULL) {
         self->ob_fval = UINT512_ZERO;
@@ -70,66 +69,144 @@ static PyTypeObject b_UInt512Type = {
  * Address
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
- typedef struct {
-     PyObject_HEAD
-     BRAddress ob_fval;
- } b_Address;
+typedef struct {
+    PyObject_HEAD
+    BRAddress ob_fval;
+} b_Address;
 
- static PyObject *b_AddressNew(PyTypeObject *type, PyObject *args, PyObject *kwds) {
-     b_Address *self = (b_Address *)type->tp_alloc(type, 0);
-     if (self != NULL) {
-     }
-     return (PyObject *)self;
- }
+static PyObject *b_AddressNew(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+    b_Address *self = (b_Address *)type->tp_alloc(type, 0);
+    if (self != NULL) {
+    }
+    return (PyObject *)self;
+}
 
- static PyObject *b_AddresToStr(PyObject *self) {
+static PyObject *b_AddresToStr(PyObject *self) {
    return PyUnicode_FromString(((b_Address *)self)->ob_fval.s);
- }
+}
 
- static PyMethodDef b_AddressMethods[] = {
-   {NULL}
- };
+static PyMethodDef b_AddressMethods[] = {
+  {NULL}
+};
 
- static PyTypeObject b_AddressType = {
-     PyVarObject_HEAD_INIT(NULL, 0)
-     "breadwallet.Address",     /* tp_name */
-     sizeof(b_Address),         /* tp_basicsize */
-     0,                         /* tp_itemsize */
-     0,                         /* tp_dealloc */
-     0,                         /* tp_print */
-     0,                         /* tp_getattr */
-     0,                         /* tp_setattr */
-     0,                         /* tp_as_async */
-     (reprfunc)b_AddresToStr,   /* tp_repr */
-     0,                         /* tp_as_number */
-     0,                         /* tp_as_sequence */
-     0,                         /* tp_as_mapping */
-     0,                         /* tp_hash  */
-     0,                         /* tp_call */
-     (reprfunc)b_AddresToStr,   /* tp_str */
-     0,                         /* tp_getattro */
-     0,                         /* tp_setattro */
-     0,                         /* tp_as_buffer */
-     Py_TPFLAGS_DEFAULT,        /* tp_flags */
-     "Address Object",          /* tp_doc */
-     0,                         /* tp_traverse */
-     0,                         /* tp_clear */
-     0,                         /* tp_richcompare */
-     0,                         /* tp_weaklistoffset */
-     0,                         /* tp_iter */
-     0,                         /* tp_iternext */
-     b_AddressMethods,          /* tp_methods */
-     0,                         /* tp_members */
-     0,                         /* tp_getset */
-     0,                         /* tp_base */
-     0,                         /* tp_dict */
-     0,                         /* tp_descr_get */
-     0,                         /* tp_descr_set */
-     0,                         /* tp_dictoffset */
-     0,                         /* tp_init */
-     0,                         /* tp_alloc */
-     b_AddressNew,              /* tp_new */
- };
+static PyTypeObject b_AddressType = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    "breadwallet.Address",     /* tp_name */
+    sizeof(b_Address),         /* tp_basicsize */
+    0,                         /* tp_itemsize */
+    0,                         /* tp_dealloc */
+    0,                         /* tp_print */
+    0,                         /* tp_getattr */
+    0,                         /* tp_setattr */
+    0,                         /* tp_as_async */
+    (reprfunc)b_AddresToStr,   /* tp_repr */
+    0,                         /* tp_as_number */
+    0,                         /* tp_as_sequence */
+    0,                         /* tp_as_mapping */
+    0,                         /* tp_hash  */
+    0,                         /* tp_call */
+    (reprfunc)b_AddresToStr,   /* tp_str */
+    0,                         /* tp_getattro */
+    0,                         /* tp_setattro */
+    0,                         /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT,        /* tp_flags */
+    "Address Object",          /* tp_doc */
+    0,                         /* tp_traverse */
+    0,                         /* tp_clear */
+    0,                         /* tp_richcompare */
+    0,                         /* tp_weaklistoffset */
+    0,                         /* tp_iter */
+    0,                         /* tp_iternext */
+    b_AddressMethods,          /* tp_methods */
+    0,                         /* tp_members */
+    0,                         /* tp_getset */
+    0,                         /* tp_base */
+    0,                         /* tp_dict */
+    0,                         /* tp_descr_get */
+    0,                         /* tp_descr_set */
+    0,                         /* tp_dictoffset */
+    0,                         /* tp_init */
+    0,                         /* tp_alloc */
+    b_AddressNew,              /* tp_new */
+};
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Transaction
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+typedef struct {
+    PyObject_HEAD
+    BRTransaction *ob_fval;
+} b_Transaction;
+
+static void b_TransactionDealloc(b_Transaction *self) {
+  BRTransactionFree(self->ob_fval);
+  self->ob_fval = NULL;
+  Py_TYPE(self)->tp_free((PyObject*)self);
+}
+
+static PyObject *b_TransactionNew(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+    b_Transaction *self = (b_Transaction *)type->tp_alloc(type, 0);
+    if (self != NULL) {
+      self->ob_fval = NULL;
+    }
+    return (PyObject *)self;
+}
+
+static PyObject *b_TransactionInit(PyObject *self, PyObject *args, PyObject *kwds) {
+    b_Transaction *obj = (b_Transaction *)self;
+    obj->ob_fval = BRTransactionNew();
+    return 0;
+}
+
+static PyObject *b_TransactionToStr(PyObject *self) {
+    return PyUnicode_FromString(u256_hex_encode(((b_Transaction *)self)->ob_fval->txHash));
+}
+
+static PyMethodDef b_TransactionMethods[] = {
+    {NULL}
+};
+
+static PyTypeObject b_TransactionType = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    "breadwallet.Transaction", /* tp_name */
+    sizeof(b_Transaction),     /* tp_basicsize */
+    0,                         /* tp_itemsize */
+    (destructor)b_TransactionDealloc, /* tp_dealloc */
+    0,                         /* tp_print */
+    0,                         /* tp_getattr */
+    0,                         /* tp_setattr */
+    0,                         /* tp_as_async */
+    (reprfunc)b_TransactionToStr, /* tp_repr */
+    0,                         /* tp_as_number */
+    0,                         /* tp_as_sequence */
+    0,                         /* tp_as_mapping */
+    0,                         /* tp_hash  */
+    0,                         /* tp_call */
+    (reprfunc)b_TransactionToStr, /* tp_str */
+    0,                         /* tp_getattro */
+    0,                         /* tp_setattro */
+    0,                         /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT,        /* tp_flags */
+    "Transaction Object",      /* tp_doc */
+    0,                         /* tp_traverse */
+    0,                         /* tp_clear */
+    0,                         /* tp_richcompare */
+    0,                         /* tp_weaklistoffset */
+    0,                         /* tp_iter */
+    0,                         /* tp_iternext */
+    b_TransactionMethods,      /* tp_methods */
+    0,                         /* tp_members */
+    0,                         /* tp_getset */
+    0,                         /* tp_base */
+    0,                         /* tp_dict */
+    0,                         /* tp_descr_get */
+    0,                         /* tp_descr_set */
+    0,                         /* tp_dictoffset */
+    (initproc)b_TransactionInit, /* tp_init */
+    0,                         /* tp_alloc */
+    b_TransactionNew,          /* tp_new */
+};
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Keys
@@ -149,30 +226,30 @@ static PyObject *b_MasterPubKeyNew(PyTypeObject *type, PyObject *args, PyObject 
 }
 
 static PyObject *b_MasterPubKeyFromPhrase(PyObject *cls, PyObject *args, PyObject *kwds) {
-  PyObject *result = NULL;
-  char *phrase = "";
-  // parse args
-  static char *kwlist[] = { "phrase", NULL };
-  if (!PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, &phrase)) {
-    return NULL;
-  }
-  // derive
-  UInt512 seed = UINT512_ZERO;
-  BRBIP39DeriveKey(seed.u8, phrase, NULL);
-  // allocate
-  result = PyObject_CallFunction(cls, "");
-  // set value
-  if (result != NULL) {
-    ((b_MasterPubKey *)result)->ob_fval = BRBIP32MasterPubKey(&seed, sizeof(seed));
-  }
-  return result;
+    PyObject *result = NULL;
+    char *phrase = "";
+    // parse args
+    static char *kwlist[] = { "phrase", NULL };
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, &phrase)) {
+      return NULL;
+    }
+    // derive
+    UInt512 seed = UINT512_ZERO;
+    BRBIP39DeriveKey(seed.u8, phrase, NULL);
+    // allocate
+    result = PyObject_CallFunction(cls, "");
+    // set value
+    if (result != NULL) {
+      ((b_MasterPubKey *)result)->ob_fval = BRBIP32MasterPubKey(&seed, sizeof(seed));
+    }
+    return result;
 }
 
 static PyMethodDef b_MasterPubKeyMethods[] = {
-  /* Class Methods */
-  {"from_phrase", (PyCFunction)b_MasterPubKeyFromPhrase, (METH_VARARGS | METH_KEYWORDS | METH_CLASS),
-   "generate a MasterPubKey from a phrase"},
-  {NULL}
+    /* Class Methods */
+    {"from_phrase", (PyCFunction)b_MasterPubKeyFromPhrase, (METH_VARARGS | METH_KEYWORDS | METH_CLASS),
+     "generate a MasterPubKey from a phrase"},
+    {NULL}
 };
 
 static PyTypeObject b_MasterPubKeyType = {
@@ -217,14 +294,14 @@ static PyTypeObject b_MasterPubKeyType = {
 };
 
 static PyObject *b_DeriveKey(PyObject *self, PyObject *args) {
-  const char *phrase;
-  if (!PyArg_ParseTuple(args, "s", &phrase)) return NULL;
-  UInt512 seed = UINT512_ZERO;
-  BRBIP39DeriveKey(seed.u8, phrase, NULL);
-  b_UInt512 *obj = PyObject_New(b_UInt512, &b_UInt512Type);
-  obj->ob_fval = seed;
-  Py_INCREF(obj);
-  return (PyObject *)obj;
+    const char *phrase;
+    if (!PyArg_ParseTuple(args, "s", &phrase)) return NULL;
+    UInt512 seed = UINT512_ZERO;
+    BRBIP39DeriveKey(seed.u8, phrase, NULL);
+    b_UInt512 *obj = PyObject_New(b_UInt512, &b_UInt512Type);
+    obj->ob_fval = seed;
+    Py_INCREF(obj);
+    return (PyObject *)obj;
 }
 
 typedef struct {
@@ -240,51 +317,51 @@ static PyObject *b_KeyNew(PyTypeObject *type, PyObject *args, PyObject *kwds) {
 }
 
 static PyObject *b_KeyFromBitID(PyObject *cls, PyObject *args, PyObject *kwds) {
-  PyObject *result = NULL;
-  PyObject *seedObj = NULL;
-  int index = 0;
-  char *endpoint = NULL;
-  // parse args
-  static char *kwlist[] = { "seed", "index", "endpoint", NULL };
-  if (!PyArg_ParseTupleAndKeywords(args, kwds, "Ois", kwlist, &seedObj, &index, &endpoint)) {
-    return NULL;
-  }
-  if (!PyObject_IsInstance(seedObj, (PyObject *)&b_UInt512Type)) {
-    // TODO: set correct error
-    return NULL;
-  }
-  b_UInt512 *seed = (b_UInt512 *)seedObj;
+    PyObject *result = NULL;
+    PyObject *seedObj = NULL;
+    int index = 0;
+    char *endpoint = NULL;
+    // parse args
+    static char *kwlist[] = { "seed", "index", "endpoint", NULL };
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "Ois", kwlist, &seedObj, &index, &endpoint)) {
+      return NULL;
+    }
+    if (!PyObject_IsInstance(seedObj, (PyObject *)&b_UInt512Type)) {
+      // TODO: set correct error
+      return NULL;
+    }
+    b_UInt512 *seed = (b_UInt512 *)seedObj;
 
-  // create
-  BRKey key;
-  BRBIP32BitIDKey(&key, seed->ob_fval.u8, sizeof(seed->ob_fval.u8), index, endpoint);
+    // create
+    BRKey key;
+    BRBIP32BitIDKey(&key, seed->ob_fval.u8, sizeof(seed->ob_fval.u8), index, endpoint);
 
-  // allocate
-  result = PyObject_CallFunction(cls, "");
-  // set value
-  if (result != NULL) {
-    ((b_Key *)result)->ob_fval = key;
-  }
-  return result;
+    // allocate
+    result = PyObject_CallFunction(cls, "");
+    // set value
+    if (result != NULL) {
+      ((b_Key *)result)->ob_fval = key;
+    }
+    return result;
 }
 
 static PyObject *b_KeyAddress(PyObject *self, PyObject *args) {
-  BRAddress address;
-  b_Key *bkey = (b_Key *)self;
-  BRKeyAddress(&bkey->ob_fval, address.s, sizeof(address));
-  b_Address *ret = (b_Address *)PyObject_New(b_Address, &b_AddressType);
-  ret->ob_fval = address;
-  return (PyObject *)ret;
+    BRAddress address;
+    b_Key *bkey = (b_Key *)self;
+    BRKeyAddress(&bkey->ob_fval, address.s, sizeof(address));
+    b_Address *ret = (b_Address *)PyObject_New(b_Address, &b_AddressType);
+    ret->ob_fval = address;
+    return (PyObject *)ret;
 }
 
 static PyMethodDef b_KeyMethods[] = {
-  /* Class Methods */
-  {"from_bitid", (PyCFunction)b_KeyFromBitID, (METH_VARARGS | METH_KEYWORDS | METH_CLASS),
-   "generate a bitid Key from a seed and some bitid parameters"},
-  /* Instance Methods */
-  {"address", (PyCFunction)b_KeyAddress, METH_NOARGS,
-   "get the address from the key"},
-  {NULL}
+    /* Class Methods */
+    {"from_bitid", (PyCFunction)b_KeyFromBitID, (METH_VARARGS | METH_KEYWORDS | METH_CLASS),
+     "generate a bitid Key from a seed and some bitid parameters"},
+    /* Instance Methods */
+    {"address", (PyCFunction)b_KeyAddress, METH_NOARGS,
+     "get the address from the key"},
+    {NULL}
 };
 
 static PyTypeObject b_KeyType = {
@@ -335,14 +412,14 @@ static PyTypeObject b_KeyType = {
 typedef struct {
     PyObject_HEAD
     b_MasterPubKey *mpk;
-    BRWallet *wallet;
+    BRWallet *ob_fval;
 } b_Wallet;
 
 static PyObject *b_WalletNew(PyTypeObject *type, PyObject *args, PyObject *kwds) {
     b_Wallet *self = (b_Wallet *)type->tp_alloc(type, 0);
     if (self != NULL) {
       self->mpk = NULL;
-      self->wallet = NULL;
+      self->ob_fval = NULL;
     }
     return (PyObject *)self;
 }
@@ -350,8 +427,8 @@ static PyObject *b_WalletNew(PyTypeObject *type, PyObject *args, PyObject *kwds)
 static void b_WalletDealloc(b_Wallet *self) {
   Py_XDECREF(self->mpk);
   self->mpk = NULL;
-  BRWalletFree(self->wallet);
-  self->wallet = NULL;
+  BRWalletFree(self->ob_fval);
+  self->ob_fval = NULL;
   Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
@@ -374,7 +451,7 @@ static int b_WalletInit(b_Wallet *self, PyObject *args, PyObject *kwds) {
     // build instance data
     self->mpk = (b_MasterPubKey *)mpk;
     Py_INCREF(self->mpk);
-    self->wallet = BRWalletNew(NULL, 0, self->mpk->ob_fval);
+    self->ob_fval = BRWalletNew(NULL, 0, self->mpk->ob_fval);
 
     // TODO: parse transaction list
 
@@ -442,6 +519,7 @@ PyMODINIT_FUNC PyInit_breadwallet(void) {
     if (PyType_Ready(&b_MasterPubKeyType) < 0) return NULL;
     if (PyType_Ready(&b_KeyType) < 0) return NULL;
     if (PyType_Ready(&b_AddressType) < 0) return NULL;
+    if (PyType_Ready(&b_TransactionType) < 0) return NULL;
     if (PyType_Ready(&b_WalletType) < 0) return NULL;
 
     m = PyModule_Create(&bmodule);
@@ -451,11 +529,13 @@ PyMODINIT_FUNC PyInit_breadwallet(void) {
     Py_INCREF(&b_MasterPubKeyType);
     Py_INCREF(&b_KeyType);
     Py_INCREF(&b_AddressType);
+    Py_INCREF(&b_TransactionType);
     Py_INCREF(&b_WalletType);
     PyModule_AddObject(m, "UInt512", (PyObject *)&b_UInt512Type);
     PyModule_AddObject(m, "MasterPubKey", (PyObject *)&b_MasterPubKeyType);
     PyModule_AddObject(m, "Key", (PyObject *)&b_KeyType);
     PyModule_AddObject(m, "Address", (PyObject *)&b_KeyType);
+    PyModule_AddObject(m, "Transaction", (PyObject *)&b_TransactionType);
     PyModule_AddObject(m, "Wallet", (PyObject *)&b_WalletType);
     return m;
 }
