@@ -790,13 +790,21 @@ static PyMethodDef bmodulemethods[] = {
 
 static PyModuleDef bmodule = {
     PyModuleDef_HEAD_INIT,
-    "breadwallet",
+#if BITCOIN_TESTNET
+    "breadwallet_testnet",
+#else
+    "breadwallet_mainnet",
+#endif
     "A simple, lightweight, performant SPV wallet",
     -1,
     bmodulemethods, NULL, NULL, NULL, NULL
 };
 
-PyMODINIT_FUNC PyInit_breadwallet(void) {
+#if BITCOIN_TESTNET
+PyMODINIT_FUNC PyInit_breadwallet_testnet(void) {
+#else
+PyMODINIT_FUNC PyInit_breadwallet_mainnet(void) {
+#endif
     PyObject* m;
 
     if (PyType_Ready(&b_UInt256Type) < 0) return NULL;
