@@ -8,6 +8,32 @@ class IntTests(unittest.TestCase):
         self.assertNotEqual(u512, None)
 
 
+class AddressTests(unittest.TestCase):
+    def test_allocation(self):
+        addy = breadwallet.Address("1J34vj4wowwPYafbeibZGht3zy3qERoUM1")
+        self.assertNotEqual(addy, None)
+
+        with self.assertRaises(TypeError):
+            addy2 = breadwallet.Address(2304203942340)
+
+    def test_equality(self):
+        addy1_s = "1J34vj4wowwPYafbeibZGht3zy3qERoUM1"
+        addy1_o = breadwallet.Address(addy1_s)
+        addy2_s = "1F1tAaz5x1HUXrCNLbtMDqcw6o5GNn4xqX"
+        addy2_o = breadwallet.Address(addy2_s)
+        self.assertEqual(addy1_o, addy1_o)
+        self.assertEqual(addy1_o, addy1_s)
+        self.assertNotEqual(addy1_o, addy2_o)
+        self.assertNotEqual(addy1_o, addy2_s)
+        self.assertNotEqual(addy1_o, None) # allow none comparison
+        with self.assertRaises(TypeError):
+            addy1_o == 234234 # raises when trying to compare against anything other than a string/address/none
+
+    def test_to_str(self):
+        addy1_s = "1J34vj4wowwPYafbeibZGht3zy3qERoUM1"
+        self.assertEqual(str(breadwallet.Address(addy1_s)), addy1_s)
+
+
 class KeyTests(unittest.TestCase):
     def test_allocation(self):
         phrase = "axis husband project any sea patch drip tip spirit tide bring belt"
@@ -29,12 +55,17 @@ class KeyTests(unittest.TestCase):
         phrase = "inhale praise target steak garlic cricket paper better evil almost sadness crawl city banner amused fringe fox insect roast aunt prefer hollow basic ladder"
         seed = breadwallet.derive_key(phrase)
         key = breadwallet.Key.from_bitid(seed, 0, "http://bitid.bitcoin.blue/callback")
-        self.assertNotEqual(key.address(), None)
-        self.assertEqual(str(key.address()), "1J34vj4wowwPYafbeibZGht3zy3qERoUM1")
+        self.assertNotEqual(key.address, None)
+        self.assertEqual(str(key.address), "1J34vj4wowwPYafbeibZGht3zy3qERoUM1")
 
     def test_privkeykey_is_valid(self):
         self.assertFalse(breadwallet.Key.privkey_is_valid("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRz"))
         self.assertTrue(breadwallet.Key.privkey_is_valid("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy"))
+
+    def test_set_privkey(self):
+        k = breadwallet.Key()
+        k.privkey = 'S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy'
+        self.assertEqual(k.address, '1CciesT23BNionJeXrbxmjc7ywfiyM4oLW')
 
 
 class TransactionTests(unittest.TestCase):

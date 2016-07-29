@@ -135,9 +135,39 @@ static PyObject *b_AddressNew(PyTypeObject *type, PyObject *args, PyObject *kwds
     return (PyObject *)self;
 }
 
-static PyObject *b_AddresToStr(PyObject *self) {
-   return PyUnicode_FromString(((b_Address *)self)->ob_fval.s);
+static int b_AddressInit(b_Address *self, PyObject *args, PyObject *kwds) {
+    PyObject *addy;
+    // parse args
+    static char *kwlist[] = { "str", NULL };
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|O", kwlist, &addy)) {
+        return -1;
+    }
+    if (addy == NULL || addy == Py_None) {
+        return 0; // optional argument
+    }
+    if (!PyUnicode_Check(addy)) {
+        PyErr_SetString(PyExc_TypeError, "Address must initialized with a string.");
+        return -1;
+    }
+    PyObject *buf = PyUnicode_AsEncodedString(addy, "utf-8", "strict");
+    if (buf == NULL) {
+        PyErr_SetString(PyExc_ValueError, "Error decoding unicode value as utf8");
+        return -1;
+    }
+    memcpy(&self->ob_fval, PyBytes_AsString(buf), PyBytes_Size(buf));
+    return 0;
 }
+
+static PyObject *b_AddressToRepr(b_Address *self) {
+    return PyUnicode_FromFormat("<breadwallet.Address %s>", self->ob_fval.s);
+}
+
+static PyObject *b_AddresToStr(b_Address *self) {
+   return PyUnicode_FromString(self->ob_fval.s);
+}
+
+// forward decl because the comparison needs to check against the Address type
+static PyObject *b_AddressRichCompare(PyObject *a, PyObject *b, int op);
 
 static PyMethodDef b_AddressMethods[] = {
   {NULL}
@@ -153,7 +183,7 @@ static PyTypeObject b_AddressType = {
     0,                         /* tp_getattr */
     0,                         /* tp_setattr */
     0,                         /* tp_as_async */
-    (reprfunc)b_AddresToStr,   /* tp_repr */
+    (reprfunc)b_AddressToRepr, /* tp_repr */
     0,                         /* tp_as_number */
     0,                         /* tp_as_sequence */
     0,                         /* tp_as_mapping */
@@ -167,7 +197,7 @@ static PyTypeObject b_AddressType = {
     "Address Object",          /* tp_doc */
     0,                         /* tp_traverse */
     0,                         /* tp_clear */
-    0,                         /* tp_richcompare */
+    (richcmpfunc)b_AddressRichCompare, /* tp_richcompare */
     0,                         /* tp_weaklistoffset */
     0,                         /* tp_iter */
     0,                         /* tp_iternext */
@@ -179,10 +209,45 @@ static PyTypeObject b_AddressType = {
     0,                         /* tp_descr_get */
     0,                         /* tp_descr_set */
     0,                         /* tp_dictoffset */
-    0,                         /* tp_init */
+    (initproc)b_AddressInit,   /* tp_init */
     0,                         /* tp_alloc */
     b_AddressNew,              /* tp_new */
 };
+
+static PyObject *b_AddressRichCompare(PyObject *a, PyObject *b, int op) {
+    if (op != Py_EQ && op != Py_NE) {
+        return Py_NotImplemented;
+    }
+    if (!PyObject_IsInstance(a, (PyObject *)&b_AddressType)) {
+        // WHAT?
+        PyErr_SetString(PyExc_TypeError, "Instance is not an Address");
+        return NULL;
+    }
+    b_Address *self = (b_Address *)a;
+    int eq = 0;
+    if (PyUnicode_Check(b)) {
+        // compared to a string
+        PyObject *buf = PyUnicode_AsEncodedString(b, "utf-8", "strict");
+        if (buf == NULL) {
+            PyErr_SetString(PyExc_ValueError, "Error decoding unicode value as utf8");
+            return NULL;
+        }
+        const char *addressB = PyBytes_AsString(buf);
+        eq = BRAddressEq(&self->ob_fval, addressB);
+    } else if (PyObject_IsInstance(b, (PyObject *)&b_AddressType)) {
+        b_Address *other = (b_Address *)b;
+        eq = BRAddressEq(&self->ob_fval, &other->ob_fval);
+    } else if (b == Py_None) {
+        // default to not equal
+    } else {
+        PyErr_SetString(PyExc_TypeError, "Address can only be compared to a string or another address");
+        return NULL;
+    }
+    if (op == Py_NE) {
+        eq = !eq;
+    }
+    return eq ? Py_True : Py_False;
+}
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Transaction
@@ -194,20 +259,20 @@ typedef struct {
 } b_Transaction;
 
 static void b_TransactionDealloc(b_Transaction *self) {
-  BRTransactionFree(self->ob_fval);
-  self->ob_fval = NULL;
-  Py_TYPE(self)->tp_free((PyObject*)self);
+    BRTransactionFree(self->ob_fval);
+    self->ob_fval = NULL;
+    Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static PyObject *b_TransactionNew(PyTypeObject *type, PyObject *args, PyObject *kwds) {
     b_Transaction *self = (b_Transaction *)type->tp_alloc(type, 0);
     if (self != NULL) {
-      self->ob_fval = NULL;
+        self->ob_fval = NULL;
     }
     return (PyObject *)self;
 }
 
-static PyObject *b_TransactionInit(PyObject *self, PyObject *args, PyObject *kwds) {
+static int b_TransactionInit(PyObject *self, PyObject *args, PyObject *kwds) {
     b_Transaction *obj = (b_Transaction *)self;
     obj->ob_fval = BRTransactionNew();
     return 0;
@@ -360,12 +425,13 @@ static PyObject *b_DeriveKey(PyObject *self, PyObject *args) {
 
 typedef struct {
     PyObject_HEAD
-    BRKey ob_fval;
+    BRKey *ob_fval;
 } b_Key;
 
 static PyObject *b_KeyNew(PyTypeObject *type, PyObject *args, PyObject *kwds) {
     b_Key *self = (b_Key *)type->tp_alloc(type, 0);
     if (self != NULL) {
+        self->ob_fval = NULL;
     }
     return (PyObject *)self;
 }
@@ -381,14 +447,14 @@ static PyObject *b_KeyFromBitID(PyObject *cls, PyObject *args, PyObject *kwds) {
       return NULL;
     }
     if (!PyObject_IsInstance(seedObj, (PyObject *)&b_UInt512Type)) {
-      // TODO: set correct error
+      PyErr_SetString(PyExc_TypeError, "seed must be an instance of UInt512");
       return NULL;
     }
     b_UInt512 *seed = (b_UInt512 *)seedObj;
 
     // create
-    BRKey key;
-    BRBIP32BitIDKey(&key, seed->ob_fval.u8, sizeof(seed->ob_fval.u8), index, endpoint);
+    BRKey *key = calloc(1, sizeof(BRKey));
+    BRBIP32BitIDKey(key, seed->ob_fval.u8, sizeof(seed->ob_fval.u8), index, endpoint);
 
     // allocate
     result = PyObject_CallFunction(cls, "");
@@ -410,14 +476,148 @@ static PyObject *b_KeyPrivKeyIsValid(PyObject *cls, PyObject *args, PyObject *kw
     return result;
 }
 
-static PyObject *b_KeyAddress(PyObject *self, PyObject *args) {
+static int b_KeySetSecret(b_Key *self, PyObject *value, void *closure) {
+    if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError, "Cannot delete the secret attribute");
+        return -1;
+    }
+    if (!PyObject_IsInstance(value, (PyObject *)&b_UInt256Type)) {
+        PyErr_SetString(PyExc_TypeError, "The secret object must be a UInt256");
+        return -1;
+    }
+    b_UInt256 *sec = (b_UInt256 *)value;
+    if (self->ob_fval == NULL) {
+        self->ob_fval = calloc(1, sizeof(BRKey));
+    }
+    if (!BRKeySetSecret(self->ob_fval, &sec->ob_fval, 1)) {
+        if (!BRKeySetSecret(self->ob_fval, &sec->ob_fval, 0)) {
+            PyErr_SetString(PyExc_ValueError, "Could not parse the secret (tried both compressed and uncompressed)");
+            return -1;
+        }
+    }
+    return 0;
+}
+
+static PyObject *b_KeyGetSecret(b_Key *self, void *closure) {
+    if (self->ob_fval == NULL) {
+        return Py_BuildValue("");
+    }
+    b_UInt256 *ret = (b_UInt256 *)PyObject_New(b_UInt256, &b_UInt256Type);
+    ret->ob_fval = self->ob_fval->secret;
+    return (PyObject *)ret;
+}
+
+static int b_KeySetPrivKey(b_Key *self, PyObject *value, void *closure) {
+    if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError, "Cannot delete the privkey attribute");
+        return -1;
+    }
+    if (!PyUnicode_Check(value)) {
+        PyErr_SetString(PyExc_TypeError, "Priv key must be a string");
+        return -1;
+    }
+    PyObject *buf = PyUnicode_AsEncodedString(value, "utf-8", "strict");
+    if (buf == NULL) {
+        PyErr_SetString(PyExc_ValueError, "Error decoding unicode value as utf8");
+        return -1;
+    }
+    const char *privkey = PyBytes_AsString(buf);
+    if (self->ob_fval == NULL) {
+        self->ob_fval = calloc(1, sizeof(BRKey));
+    }
+    if (!BRKeySetPrivKey(self->ob_fval, privkey)) {
+        PyErr_SetString(PyExc_ValueError, "Unable to set private key (was it correctly serialized?)");
+        return -1;
+    }
+    return 0;
+}
+
+static PyObject *b_KeyGetPrivKey(b_Key *self, void *closure) {
+    PyObject *ret;
+    if (self->ob_fval == NULL) {
+        ret = Py_BuildValue("");
+    } else {
+        char privKey[BRKeyPrivKey(self->ob_fval, NULL, 0)];
+        BRKeyPrivKey(self->ob_fval, privKey, sizeof(privKey));
+        ret = PyUnicode_FromString(privKey);
+        if (ret == NULL) {
+              printf("ERROR: could not export private key\n");
+              ret = Py_BuildValue("");
+        }
+    }
+    return ret;
+}
+
+static int b_KeySetPubKey(b_Key *self, PyObject *value, void *closure) {
+    if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError, "Cannot delete the pubkey attribute");
+        return -1;
+    }
+    if (value == Py_None || !PyBytes_Check(value)) {
+        PyErr_SetString(PyExc_TypeError, "Pub key must be a bytes object");
+        return -1;
+    }
+    const char *pubkey = PyBytes_AsString(value);
+    if (self->ob_fval == NULL) {
+        self->ob_fval = calloc(1, sizeof(BRKey));
+    }
+    // just try both options (same as we do for secret key)
+    if (!BRKeySetPubKey(self->ob_fval, (uint8_t *)pubkey, 33)) {
+        if (!BRKeySetPubKey(self->ob_fval, (uint8_t *)pubkey, 65)) {
+            PyErr_SetString(PyExc_ValueError, "Unable to set public key (was it correctly serialized?) "
+                                              "it should be either 33 or 65 bytes long");
+            return -1;
+        }
+    }
+    return 0;
+}
+
+static PyObject *b_KeyGetPubKey(b_Key *self, void *closure) {
+    PyObject *ret;
+    if (self->ob_fval == NULL) {
+        ret = Py_BuildValue("");
+    } else {
+        uint8_t pubkey[BRKeyPubKey(self->ob_fval, NULL, 0)];
+        size_t keyLen = BRKeyPubKey(self->ob_fval, pubkey, sizeof(pubkey));
+        ret = PyBytes_FromStringAndSize((const char *)pubkey, keyLen);
+        if (ret == NULL) {
+              printf("ERROR: could not export public key\n");
+              ret = Py_BuildValue("");
+        }
+    }
+    return ret;
+}
+
+static PyObject *b_KeyGetAddress(b_Key *self, void *closure) {
+    if (self->ob_fval == NULL) {
+        return Py_BuildValue("");
+    }
     BRAddress address;
-    b_Key *bkey = (b_Key *)self;
-    BRKeyAddress(&bkey->ob_fval, address.s, sizeof(address));
+    BRKeyAddress(self->ob_fval, address.s, sizeof(address));
     b_Address *ret = (b_Address *)PyObject_New(b_Address, &b_AddressType);
     ret->ob_fval = address;
     return (PyObject *)ret;
 }
+
+static PyGetSetDef b_KeyGetSetters[] = {
+    {"secret",
+     (getter)b_KeyGetSecret, (setter)b_KeySetSecret,
+     "get or set the secret. will reset the key",
+     NULL},
+    {"privkey",
+     (getter)b_KeyGetPrivKey, (setter)b_KeySetPrivKey,
+     "get or set the private key. throws a ValueError when key can't be parsed",
+     NULL},
+    {"pubkey",
+     (getter)b_KeyGetPubKey, (setter)b_KeySetPubKey,
+     "get or set the public key. throws a ValueError when the key can't be parsed",
+     NULL},
+    {"address",
+     (getter)b_KeyGetAddress, (setter)NULL,
+     "get the p2sh address of the key",
+     NULL},
+    {NULL}
+};
 
 static PyMethodDef b_KeyMethods[] = {
     /* Class Methods */
@@ -426,8 +626,6 @@ static PyMethodDef b_KeyMethods[] = {
     {"privkey_is_valid", (PyCFunction)b_KeyPrivKeyIsValid, (METH_VARARGS | METH_KEYWORDS | METH_CLASS),
      "determine whether or not a serialized private key is valid"},
     /* Instance Methods */
-    {"address", (PyCFunction)b_KeyAddress, METH_NOARGS,
-     "get the address from the key"},
     {NULL}
 };
 
@@ -461,7 +659,7 @@ static PyTypeObject b_KeyType = {
     0,                         /* tp_iternext */
     b_KeyMethods,              /* tp_methods */
     0,                         /* tp_members */
-    0,                         /* tp_getset */
+    b_KeyGetSetters,           /* tp_getset */
     0,                         /* tp_base */
     0,                         /* tp_dict */
     0,                         /* tp_descr_get */
@@ -542,7 +740,8 @@ void b_WalletCallbackTxAdded(void *ctx, BRTransaction *tx) {
     }
 }
 
-void b_WalletCallbackTxUpdated(void *ctx, const UInt256 txHashes[], size_t count, uint32_t blockHeight, uint32_t timestamp) {
+void b_WalletCallbackTxUpdated(void *ctx, const UInt256 txHashes[], size_t count,
+                               uint32_t blockHeight, uint32_t timestamp) {
     printf("tx updated count=%ld blockheight=%d ts=%d", count, blockHeight, timestamp);
     b_Wallet *self = (b_Wallet *)ctx;
     if (self->onTxUpdated != NULL && self->onTxUpdated != Py_None) {
@@ -829,7 +1028,7 @@ PyMODINIT_FUNC PyInit_breadwallet_mainnet(void) {
     PyModule_AddObject(m, "UInt512", (PyObject *)&b_UInt512Type);
     PyModule_AddObject(m, "MasterPubKey", (PyObject *)&b_MasterPubKeyType);
     PyModule_AddObject(m, "Key", (PyObject *)&b_KeyType);
-    PyModule_AddObject(m, "Address", (PyObject *)&b_KeyType);
+    PyModule_AddObject(m, "Address", (PyObject *)&b_AddressType);
     PyModule_AddObject(m, "Transaction", (PyObject *)&b_TransactionType);
     PyModule_AddObject(m, "Wallet", (PyObject *)&b_WalletType);
     return m;
