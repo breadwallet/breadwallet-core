@@ -153,3 +153,13 @@ class WalletTests(unittest.TestCase):
         wallet.on_tx_deleted = cb_a
         wallet.on_tx_deleted = cb_b
         self.assertEqual(wallet.on_tx_deleted, cb_b)
+
+    def test_get_receive_address(self):
+        wallet = self._get_wallet()
+        self.assertNotEqual(wallet.receive_address, None)
+        self.assertEqual(wallet.receive_address, wallet.receive_address)
+
+    def test_get_change_address(self):
+        wallet = self._get_wallet()
+        self.assertNotEqual(wallet.change_address, None)
+        self.assertEqual(wallet.change_address, wallet.change_address)

@@ -921,6 +921,18 @@ static int b_WalletSetTxDeleted(b_Wallet *self, PyObject *value, void *closure) 
     return 0;
 }
 
+PyObject *b_WalletGetReceiveAddress(b_Wallet *self, void *closure) {
+    b_Address *addrObj = (b_Address *)PyObject_New(b_Address, &b_AddressType);
+    addrObj->ob_fval = BRWalletReceiveAddress(self->ob_fval);
+    return (PyObject *)addrObj;
+}
+
+PyObject *b_WalletGetChangeAddress(b_Wallet *self, void *closure) {
+    b_Address *addrObj = (b_Address *)PyObject_New(b_Address, &b_AddressType);
+    addrObj->ob_fval = BRWalletChangeAddress(self->ob_fval);
+    return (PyObject *)addrObj;
+}
+
 static PyGetSetDef b_WalletGetSetters[] = {
     {"on_balance_changed",
      (getter)b_WalletGetBalanceChanged, (setter)b_WalletSetBalanceChanged,
@@ -937,6 +949,14 @@ static PyGetSetDef b_WalletGetSetters[] = {
     {"on_tx_deleted",
      (getter)b_WalletGetTxDeleted, (setter)b_WalletSetTxDeleted,
      "callback fired when transaction status is updated",
+     NULL},
+    {"receive_address",
+     (getter)b_WalletGetReceiveAddress, NULL,
+     "get the first unused receive address",
+     NULL},
+    {"change_address",
+     (getter)b_WalletGetChangeAddress, NULL,
+     "get the first unused change address",
      NULL},
     {NULL}  /* Sentinel */
 };
