@@ -101,6 +101,17 @@ class KeyTests(unittest.TestCase):
         self.assertEqual(sig, sig3)
         self.assertEqual(sig, sig2)
 
+    def test_verify(self):
+        k = breadwallet.Key()
+        k.secret = breadwallet.UInt256.from_hex('fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364140')
+        message = "Equations are more important to me, because politics is for the present, but an equation is something for eternity."
+        h = hashlib.sha256()
+        h.update(message.encode('utf8'))
+
+        sig = k.sign(h)
+        self.assertTrue(k.verify(h, sig))
+        self.assertTrue(k.verify(h.digest(), sig)) # works with both hash objects or bytes objects
+
 
 class TransactionTests(unittest.TestCase):
     def test_allocation(self):
