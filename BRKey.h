@@ -73,13 +73,13 @@ int BRKeySetSecret(BRKey *key, const UInt256 *secret, int compressed);
 int BRKeySetPrivKey(BRKey *key, const char *privKey);
 
 // assigns pubKey to key and returns true on success
-int BRKeySetPubKey(BRKey *key, const uint8_t *pubKey, size_t pklen);
+int BRKeySetPubKey(BRKey *key, const uint8_t *pubKey, size_t pkLen);
 
 // writes the private key to privKey and returns the number of bytes writen, or pkLen needed if privKey is NULL
-size_t BRKeyPrivKey(BRKey *key, char *privKey, size_t pklen);
+size_t BRKeyPrivKey(BRKey *key, char *privKey, size_t pkLen);
 
 // writes the public key to pubKey and returns the number of bytes written, or pkLen needed if pubKey is NULL
-size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t pklen);
+size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t pkLen);
 
 // returns the ripemd160 hash of the sha256 hash of the public key, or UINT160_ZERO on error
 UInt160 BRKeyHash160(BRKey *key);

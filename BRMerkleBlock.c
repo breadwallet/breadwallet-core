@@ -127,7 +127,7 @@ BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t bufLen)
     return block;
 }
 
-// returns number of bytes written to buf, or total len needed if buf is NULL (block->height is not serialized)
+// returns number of bytes written to buf, or total bufLen needed if buf is NULL (block->height is not serialized)
 size_t BRMerkleBlockSerialize(const BRMerkleBlock *block, uint8_t *buf, size_t bufLen)
 {
     size_t off = 0, len = 80;

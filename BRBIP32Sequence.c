@@ -197,7 +197,7 @@ void BRBIP32PrivKeyList(BRKey keys[], size_t keysCount, const void *seed, size_t
 
 // writes the base58check encoded serialized master private key (xprv) to str
 // returns number of bytes written including NULL terminator, or strLen needed if str is NULL
-size_t BRBIP32SerializeMasterPrivKey(char *str, size_t strLen, const void *seed, size_t slen)
+size_t BRBIP32SerializeMasterPrivKey(char *str, size_t strLen, const void *seed, size_t seedLen)
 {
     // TODO: XXX implement
     return 0;

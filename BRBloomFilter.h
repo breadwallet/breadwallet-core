@@ -62,7 +62,7 @@ BRBloomFilter *BRBloomFilterNew(double falsePositiveRate, size_t elemCount, uint
 // returns a bloom filter struct that must be freed by calling BRBloomFilterFree()
 BRBloomFilter *BRBloomFilterParse(const uint8_t *buf, size_t bufLen);
 
-// returns number of bytes written to buf, or total len needed if buf is NULL
+// returns number of bytes written to buf, or total bufLen needed if buf is NULL
 size_t BRBloomFilterSerialize(const BRBloomFilter *filter, uint8_t *buf, size_t bufLen);
 
 // true if data is matched by filter

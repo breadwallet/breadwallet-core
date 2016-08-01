@@ -178,7 +178,7 @@ static size_t _BRTransactionOutputData(const BRTransaction *tx, uint8_t *data, s
 
 // writes the data that needs to be hashed and signed for the tx input at index
 // an index of SIZE_MAX will write the entire signed transaction
-// returns number of bytes written, or total len needed if data is NULL
+// returns number of bytes written, or total dataLen needed if data is NULL
 static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t dataLen, size_t index, int hashType)
 {
     BRTxInput input;
@@ -322,7 +322,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
     return tx;
 }
 
-// returns number of bytes written to buf, or total len needed if buf is NULL
+// returns number of bytes written to buf, or total bufLen needed if buf is NULL
 // (tx->blockHeight and tx->timestamp are not serialized)
 size_t BRTransactionSerialize(const BRTransaction *tx, uint8_t *buf, size_t bufLen)
 {
