@@ -26,6 +26,7 @@
 #define BRSet_h
 
 #include <stddef.h>
+#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {

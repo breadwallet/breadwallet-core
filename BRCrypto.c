@@ -249,7 +249,6 @@ static void _BRSHA512Compress(uint64_t *r, uint64_t *x)
     memset(w, 0, sizeof(w));
 }
 
-
 void BRSHA384(void *md48, const void *data, size_t len)
 {
     size_t i;

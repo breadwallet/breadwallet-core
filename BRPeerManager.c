@@ -28,7 +28,6 @@
 #include "BRArray.h"
 #include "BRInt.h"
 #include <stdlib.h>
-#include <stdint.h>
 #include <inttypes.h>
 #include <limits.h>
 #include <time.h>

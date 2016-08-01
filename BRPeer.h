@@ -30,7 +30,6 @@
 #include "BRAddress.h"
 #include "BRInt.h"
 #include <stddef.h>
-#include <stdint.h>
 #include <inttypes.h>
 
 #define peer_log(peer, ...) _peer_log("%s:%"PRIu16" " _va_first(__VA_ARGS__, NULL) "\n", BRPeerHost(peer),\

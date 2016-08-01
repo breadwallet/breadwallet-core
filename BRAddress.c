@@ -25,7 +25,7 @@
 #include "BRAddress.h"
 #include "BRBase58.h"
 #include "BRInt.h"
-#include <stdint.h>
+#include <inttypes.h>
 #include <assert.h>
 
 #define VAR_INT16_HEADER  0xfd
