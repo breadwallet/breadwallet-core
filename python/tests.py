@@ -1,3 +1,4 @@
+import hashlib
 import unittest
 import breadwallet
 
@@ -10,6 +11,17 @@ class IntTests(unittest.TestCase):
     def test_from_hex_256(self):
         u256 = breadwallet.UInt256.from_hex('0000000000000000000000000000000000000000000000000000000000000001')
         self.assertNotEqual(u256, None)
+
+    def test_from_hex_and_back_256(self):
+        h = '0000000000000000000000000000000000000000000000000000000000000001'
+        u256 = breadwallet.UInt256.from_hex(h)
+        self.assertEqual(h, u256.hex)
+
+    def test_from_hash_and_back_256(self):
+        h = hashlib.sha256()
+        h.update('test123'.encode('utf8'))
+        u256 = breadwallet.UInt256.from_hash(h)
+        self.assertEqual(h.hexdigest(), u256.hex)
 
     def test_allocation(self):
         u512 = breadwallet.UInt512()

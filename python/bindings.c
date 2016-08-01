@@ -29,20 +29,76 @@ static PyObject *b_UInt256FromHex(PyObject *cls, PyObject *args, PyObject *kwds)
     char *hex = "";
     static char *kwlist[] = { "hex", NULL };
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, &hex)) {
-      return NULL;
+        return NULL;
     }
     result = PyObject_CallFunction(cls, "");
     if (result != NULL) {
-      ((b_UInt256 *)result)->ob_fval = u256_hex_decode(hex);
+        ((b_UInt256 *)result)->ob_fval = u256_hex_decode(hex);
     }
     return result;
 }
 
+static PyObject *b_UInt256FromHash(PyObject *cls, PyObject *args, PyObject *kwds) {
+    PyObject *result = NULL;
+    PyObject *hash = NULL;
+    static char *kwlist[] = { "hash", NULL };
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &hash)) {
+        return NULL;
+    }
+    if (hash == NULL) {
+        PyErr_SetString(PyExc_ValueError, "NULL hash argument");
+        return NULL;
+    }
+    if (!PyObject_HasAttrString(hash, "digest")) {
+        PyErr_SetString(PyExc_TypeError, "hash argument must have a 'digest' attribute that is an instance method");
+        return NULL;
+    }
+    PyObject *digestMethod = PyObject_GetAttrString(hash, "digest");
+    if (digestMethod == NULL || !PyCallable_Check(digestMethod)) {
+        PyErr_SetString(PyExc_TypeError, "hash argument must have a digest() method");
+        Py_XDECREF(digestMethod);
+        return NULL;
+    }
+
+    // get the result of the digest() method as a UInt256
+    PyObject *digestObj = PyObject_CallFunction(digestMethod, "");
+    if (digestObj == NULL || !PyBytes_Check(digestObj) || PyBytes_Size(digestObj) != 32) {
+        PyErr_SetString(PyExc_TypeError, "hash argument digest() method must return a bytes object with a length of 32");
+        Py_XDECREF(digestMethod);
+        Py_XDECREF(digestObj);
+        return NULL;
+    }
+
+    UInt256 *u256 = (void *)PyBytes_AsString(digestObj);
+
+    result = PyObject_CallFunction(cls, "");
+    if (result != NULL) {
+        memcpy(&((b_UInt256 *)result)->ob_fval, u256, 32);
+    }
+    Py_XDECREF(digestMethod);
+    Py_XDECREF(digestObj);
+    return result;
+}
+
+static PyObject *b_UInt256GetHex(b_UInt256 *self, void *closure) {
+    return Py_BuildValue("s", u256_hex_encode(self->ob_fval));
+}
+
+static PyGetSetDef b_UInt256GetSetters[] = {
+    {"hex",
+     (getter)b_UInt256GetHex, NULL,
+     "get the hex value",
+     NULL},
+    {NULL}
+};
+
  static PyMethodDef b_UInt256Methods[] = {
-     /* Class Methods */
-     {"from_hex", (PyCFunction)b_UInt256FromHex, (METH_VARARGS | METH_KEYWORDS | METH_CLASS),
-      "initialize a UInt256 from a hex string"},
-     {NULL}
+    /* Class Methods */
+    {"from_hex", (PyCFunction)b_UInt256FromHex, (METH_VARARGS | METH_KEYWORDS | METH_CLASS),
+     "initialize a UInt256 from a hex string"},
+    {"from_hash", (PyCFunction)b_UInt256FromHash, (METH_VARARGS | METH_KEYWORDS | METH_CLASS),
+     "initialize a UInt256 from a hash object"},
+    {NULL}
  };
 
  static PyTypeObject b_UInt256Type = {
@@ -75,7 +131,7 @@ static PyObject *b_UInt256FromHex(PyObject *cls, PyObject *args, PyObject *kwds)
      0,                         /* tp_iternext */
      b_UInt256Methods,          /* tp_methods */
      0,                         /* tp_members */
-     0,                         /* tp_getset */
+     b_UInt256GetSetters,       /* tp_getset */
      0,                         /* tp_base */
      0,                         /* tp_dict */
      0,                         /* tp_descr_get */
