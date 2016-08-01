@@ -3,6 +3,14 @@ import breadwallet
 
 
 class IntTests(unittest.TestCase):
+    def test_allocation_256(self):
+        u256 = breadwallet.UInt256()
+        self.assertNotEqual(u256, None)
+
+    def test_from_hex_256(self):
+        u256 = breadwallet.UInt256.from_hex('0000000000000000000000000000000000000000000000000000000000000001')
+        self.assertNotEqual(u256, None)
+
     def test_allocation(self):
         u512 = breadwallet.UInt512()
         self.assertNotEqual(u512, None)

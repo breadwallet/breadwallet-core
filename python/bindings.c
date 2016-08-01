@@ -24,6 +24,27 @@
      return (PyObject *)self;
  }
 
+static PyObject *b_UInt256FromHex(PyObject *cls, PyObject *args, PyObject *kwds) {
+    PyObject *result = NULL;
+    char *hex = "";
+    static char *kwlist[] = { "hex", NULL };
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, &hex)) {
+      return NULL;
+    }
+    result = PyObject_CallFunction(cls, "");
+    if (result != NULL) {
+      ((b_UInt256 *)result)->ob_fval = u256_hex_decode(hex);
+    }
+    return result;
+}
+
+ static PyMethodDef b_UInt256Methods[] = {
+     /* Class Methods */
+     {"from_hex", (PyCFunction)b_UInt256FromHex, (METH_VARARGS | METH_KEYWORDS | METH_CLASS),
+      "initialize a UInt256 from a hex string"},
+     {NULL}
+ };
+
  static PyTypeObject b_UInt256Type = {
      PyVarObject_HEAD_INIT(NULL, 0)
      "breadwallet.UInt256",     /* tp_name */
@@ -52,7 +73,7 @@
      0,                         /* tp_weaklistoffset */
      0,                         /* tp_iter */
      0,                         /* tp_iternext */
-     0,                         /* tp_methods */
+     b_UInt256Methods,          /* tp_methods */
      0,                         /* tp_members */
      0,                         /* tp_getset */
      0,                         /* tp_base */
@@ -685,26 +706,31 @@ typedef struct {
 } b_Wallet;
 
 static void b_WalletDealloc(b_Wallet *self) {
-    Py_XDECREF(self->mpk);
-    self->mpk = NULL;
-    BRWalletFree(self->ob_fval);
-    self->ob_fval = NULL;
-    if (self->onBalanceChanged != NULL) {
-        Py_XDECREF(self->onBalanceChanged);
-        self->onBalanceChanged = NULL;
+    if (self->mpk != NULL) {
+        Py_XDECREF(self->mpk);
+        self->mpk = NULL;
     }
-    if (self->onTxAdded != NULL) {
-        Py_XDECREF(self->onTxAdded);
-        self->onTxAdded = NULL;
+    if (self->ob_fval != NULL) {
+        BRWalletFree(self->ob_fval);
+        self->ob_fval = NULL;
     }
-    if (self->onTxUpdated != NULL) {
-        Py_XDECREF(self->onTxUpdated);
-        self->onTxUpdated = NULL;
-    }
-    if (self->onTxDeleted != NULL) {
-        Py_XDECREF(self->onTxDeleted);
-        self->onTxDeleted = NULL;
-    }
+    // TODO: figure this out. currently causes a dealloc error when callbacks are not set
+    // if (self->onBalanceChanged != NULL) {
+    //     Py_XDECREF(self->onBalanceChanged);
+    //     self->onBalanceChanged = NULL;
+    // }
+    // if (self->onTxAdded != NULL) {
+    //     Py_XDECREF(self->onTxAdded);
+    //     self->onTxAdded = NULL;
+    // }
+    // if (self->onTxUpdated != NULL) {
+    //     Py_XDECREF(self->onTxUpdated);
+    //     self->onTxUpdated = NULL;
+    // }
+    // if (self->onTxDeleted != NULL) {
+    //     Py_XDECREF(self->onTxDeleted);
+    //     self->onTxDeleted = NULL;
+    // }
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
