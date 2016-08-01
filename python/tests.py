@@ -87,6 +87,20 @@ class KeyTests(unittest.TestCase):
         k.privkey = 'S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy'
         self.assertEqual(k.address, '1CciesT23BNionJeXrbxmjc7ywfiyM4oLW')
 
+    def test_sign(self):
+        k = breadwallet.Key()
+        k.secret = breadwallet.UInt256.from_hex('fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364140')
+        message = "Equations are more important to me, because politics is for the present, but an equation is something for eternity."
+        h = hashlib.sha256()
+        h.update(message.encode('utf8'))
+
+        sig = k.sign(h.digest()) # can take either a hash or a bytes object
+        sig2 = k.sign(h)
+        sig3 = b'\x30\x44\x02\x20\x54\xc4\xa3\x3c\x64\x23\xd6\x89\x37\x8f\x16\x0a\x7f\xf8\xb6\x13\x30\x44\x4a\xbb\x58\xfb\x47\x0f\x96\xea\x16\xd9\x9d\x4a\x2f\xed\x02\x20\x07\x08\x23\x04\x41\x0e\xfa\x6b\x29\x43\x11\x1b\x6a\x4e\x0a\xaa\x7b\x7d\xb5\x5a\x07\xe9\x86\x1d\x1f\xb3\xcb\x1f\x42\x10\x44\xa5'
+        self.assertEqual(len(sig), len(sig3))
+        self.assertEqual(sig, sig3)
+        self.assertEqual(sig, sig2)
+
 
 class TransactionTests(unittest.TestCase):
     def test_allocation(self):

@@ -521,11 +521,11 @@ static PyObject *b_KeyFromBitID(PyObject *cls, PyObject *args, PyObject *kwds) {
     // parse args
     static char *kwlist[] = { "seed", "index", "endpoint", NULL };
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "Ois", kwlist, &seedObj, &index, &endpoint)) {
-      return NULL;
+          return NULL;
     }
     if (!PyObject_IsInstance(seedObj, (PyObject *)&b_UInt512Type)) {
-      PyErr_SetString(PyExc_TypeError, "seed must be an instance of UInt512");
-      return NULL;
+          PyErr_SetString(PyExc_TypeError, "seed must be an instance of UInt512");
+          return NULL;
     }
     b_UInt512 *seed = (b_UInt512 *)seedObj;
 
@@ -537,9 +537,48 @@ static PyObject *b_KeyFromBitID(PyObject *cls, PyObject *args, PyObject *kwds) {
     result = PyObject_CallFunction(cls, "");
     // set value
     if (result != NULL) {
-      ((b_Key *)result)->ob_fval = key;
+        ((b_Key *)result)->ob_fval = key;
     }
     return result;
+}
+
+static PyObject *b_KeySign(b_Key *self, PyObject *args, PyObject *kwds) {
+    PyObject *message;
+    static char *kwlist[] = { "message", NULL };
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &message)) {
+        return NULL;
+    }
+    if (message == NULL || message == Py_None) {
+        PyErr_SetString(PyExc_ValueError, "message must not be NULL");
+        return NULL;
+    }
+    int msgLen;
+    UInt256 *toSign;
+    PyObject *msgBytes;
+    if (PyObject_IsInstance(message, (PyObject *)&PyBytes_Type)) {
+        msgBytes = message;
+    } else if (PyCallable_Check(PyObject_GetAttrString(message, "digest"))) {
+        msgBytes = PyObject_CallMethod(message, "digest", "");
+        if (!PyObject_IsInstance(msgBytes, (PyObject *)&PyBytes_Type)) {
+            PyErr_SetString(PyExc_TypeError, "digest() must return a bytes object");
+            return NULL;
+        }
+    } else {
+        PyErr_SetString(PyExc_TypeError, "message must be either a bytes object with 32 bytes or a hash object "
+                                         "with a digest() method");
+        return NULL;
+    }
+    if (PyBytes_Size(msgBytes) != 32) {
+        PyErr_SetString(PyExc_ValueError, "must be 32 bytes of data (a UInt256)");
+        return NULL;
+    }
+
+    toSign = (UInt256 *)PyBytes_AsString(msgBytes);
+    uint8_t sig[72];
+    size_t sigLen = BRKeySign(self->ob_fval, sig, sizeof(sig), *toSign);
+    PyObject *ret = PyBytes_FromStringAndSize((const char *)&sig, sigLen);
+    
+    return ret;
 }
 
 static PyObject *b_KeyPrivKeyIsValid(PyObject *cls, PyObject *args, PyObject *kwds) {
@@ -703,6 +742,8 @@ static PyMethodDef b_KeyMethods[] = {
     {"privkey_is_valid", (PyCFunction)b_KeyPrivKeyIsValid, (METH_VARARGS | METH_KEYWORDS | METH_CLASS),
      "determine whether or not a serialized private key is valid"},
     /* Instance Methods */
+    {"sign", (PyCFunction)b_KeySign, (METH_VARARGS | METH_KEYWORDS),
+     "sign a bytes or an object with a digest() method"},
     {NULL}
 };
 
