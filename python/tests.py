@@ -1,5 +1,8 @@
+import binascii
 import hashlib
+import os
 import unittest
+
 import breadwallet
 
 
@@ -86,6 +89,14 @@ class KeyTests(unittest.TestCase):
         k = breadwallet.Key()
         k.privkey = 'S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy'
         self.assertEqual(k.address, '1CciesT23BNionJeXrbxmjc7ywfiyM4oLW')
+
+    def test_set_seckey_random(self):
+        i = os.urandom(32)
+        h = binascii.hexlify(i).decode('utf8')
+        u256 = breadwallet.UInt256.from_hex(h)
+        k = breadwallet.Key()
+        k.secret = u256
+        self.assertEqual(k.secret.hex, h)
 
     def test_sign(self):
         k = breadwallet.Key()
