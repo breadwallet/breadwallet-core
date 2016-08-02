@@ -229,3 +229,24 @@ class WalletTests(unittest.TestCase):
         wallet = self._get_wallet()
         self.assertNotEqual(wallet.change_address, None)
         self.assertEqual(wallet.change_address, wallet.change_address)
+
+    def test_get_balance(self):
+        wallet = self._get_wallet()
+        self.assertEqual(wallet.balance, 0)
+
+    def test_get_total_sent(self):
+        wallet = self._get_wallet()
+        self.assertEqual(wallet.total_sent, 0)
+
+    def test_get_total_received(self):
+        wallet = self._get_wallet()
+        self.assertEqual(wallet.total_received, 0)
+
+    def test_get_fee(self):
+        wallet = self._get_wallet()
+        self.assertGreater(wallet.fee_per_kb, 1)
+
+    def test_set_fee(self):
+        wallet = self._get_wallet()
+        wallet.fee_per_kb = 123
+        self.assertEqual(wallet.fee_per_kb, 123)

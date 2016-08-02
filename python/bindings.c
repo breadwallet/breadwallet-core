@@ -1178,7 +1178,46 @@ PyObject *b_WalletGetChangeAddress(b_Wallet *self, void *closure) {
     return (PyObject *)addrObj;
 }
 
+PyObject *b_WalletGetBalance(b_Wallet *self, void *closure) {
+    return Py_BuildValue("K", BRWalletBalance(self->ob_fval));
+}
+
+PyObject *b_WalletGetTotalSent(b_Wallet *self, void *closure) {
+    return Py_BuildValue("K", BRWalletTotalSent(self->ob_fval));
+}
+
+PyObject *b_WalletGetTotalReceived(b_Wallet *self, void *closure) {
+    return Py_BuildValue("K", BRWalletTotalReceived(self->ob_fval));
+}
+
+PyObject *b_WalletGetFeePerKB(b_Wallet *self, void *closure) {
+    return Py_BuildValue("K", BRWalletFeePerKb(self->ob_fval));
+}
+
+int b_WalletSetFeePerKB(b_Wallet *self, PyObject *value, void *closure) {
+    if (!PyLong_Check(value)) {
+        PyErr_SetString(PyExc_TypeError, "fee per kb must be a number");
+        return -1;;
+    }
+    BRWalletSetFeePerKb(self->ob_fval, PyLong_AsUnsignedLongLong(value));
+    return 0;
+}
+
 static PyGetSetDef b_WalletGetSetters[] = {
+    // props
+    {"balance", (getter)b_WalletGetBalance, NULL,
+     "gets the total balance int he wallet, not including transactions known to be invalid",
+     NULL},
+    {"total_sent", (getter)b_WalletGetTotalSent, NULL,
+     "gets the total amount sent not including change addresses",
+     NULL},
+    {"total_received", (getter)b_WalletGetTotalReceived, NULL,
+     "gets the total amount received not including change addresses",
+     NULL},
+    {"fee_per_kb", (getter)b_WalletGetFeePerKB, (setter)b_WalletSetFeePerKB,
+     "fee-per-kb size to use when creating a transaction, in satoshis",
+     NULL},
+    // callbacks
     {"on_balance_changed",
      (getter)b_WalletGetBalanceChanged, (setter)b_WalletSetBalanceChanged,
      "callback fired when sync is started",
