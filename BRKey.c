@@ -157,7 +157,7 @@ int BRKeySetSecret(BRKey *key, const UInt256 *secret, int compressed)
     assert(secret != NULL);
     pthread_once(&_ctx_once, _ctx_init);
     BRKeyClean(key);
-    key->secret = get_u256(secret);
+    key->secret = UInt256Get(secret);
     key->compressed = compressed;
     return secp256k1_ec_seckey_verify(_ctx, key->secret.u8);
 }
@@ -232,7 +232,7 @@ size_t BRKeyPrivKey(BRKey *key, char *privKey, size_t pkLen)
         data[0] = BITCOIN_PRIVKEY_TEST;
 #endif
         
-        set_u256(&data[1], key->secret);
+        UInt256Set(&data[1], key->secret);
         if (key->compressed) data[33] = 0x01;
         pkLen = BRBase58CheckEncode(privKey, pkLen, data, (key->compressed) ? 34 : 33);
         memset(data, 0, sizeof(data));
@@ -287,7 +287,7 @@ size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen)
 #if BITCOIN_TESTNET
     data[0] = BITCOIN_PUBKEY_ADDRESS_TEST;
 #endif
-    set_u160(&data[1], hash);
+    UInt160Set(&data[1], hash);
 
     if (! UInt160IsZero(hash)) {
         addrLen = BRBase58CheckEncode(addr, addrLen, data, sizeof(data));

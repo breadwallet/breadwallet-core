@@ -44,7 +44,7 @@ struct BRWalletStruct {
     void *callbackInfo;
     void (*balanceChanged)(void *info, uint64_t balance);
     void (*txAdded)(void *info, BRTransaction *tx);
-    void (*txUpdated)(void *info, const UInt256 txHashes[], size_t count, uint32_t blockHeight, uint32_t timestamp);
+    void (*txUpdated)(void *info, const UInt256 txHashes[], size_t txCount, uint32_t blockHeight, uint32_t timestamp);
     void (*txDeleted)(void *info, UInt256 txHash, int notifyUser, int recommendRescan);
     pthread_mutex_t lock;
 };
@@ -295,7 +295,7 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
 void BRWalletSetCallbacks(BRWallet *wallet, void *info,
                           void (*balanceChanged)(void *info, uint64_t balance),
                           void (*txAdded)(void *info, BRTransaction *tx),
-                          void (*txUpdated)(void *info, const UInt256 txHash[], size_t count, uint32_t blockHeight,
+                          void (*txUpdated)(void *info, const UInt256 txHashes[], size_t txCount, uint32_t blockHeight,
                                             uint32_t timestamp),
                           void (*txDeleted)(void *info, UInt256 txHash, int notifyUser, int recommendRescan))
 {
@@ -382,19 +382,19 @@ uint64_t BRWalletBalance(BRWallet *wallet)
 }
 
 // writes unspent outputs to utxos and returns the number of outputs written, or total number available if utxos is NULL
-size_t BRWalletUTXOs(BRWallet *wallet, BRUTXO *utxos, size_t count)
+size_t BRWalletUTXOs(BRWallet *wallet, BRUTXO *utxos, size_t utxosCount)
 {
     assert(wallet != NULL);
-    assert(utxos != NULL || count == 0);
+    assert(utxos != NULL || utxosCount == 0);
     pthread_mutex_lock(&wallet->lock);
-    if (! utxos || array_count(wallet->utxos) < count) count = array_count(wallet->utxos);
+    if (! utxos || array_count(wallet->utxos) < utxosCount) utxosCount = array_count(wallet->utxos);
 
-    for (size_t i = 0; utxos && i < count; i++) {
+    for (size_t i = 0; utxos && i < utxosCount; i++) {
         utxos[i] = wallet->utxos[i];
     }
 
     pthread_mutex_unlock(&wallet->lock);
-    return count;
+    return utxosCount;
 }
 
 // writes transactions registered in the wallet, sorted by date, oldest first, to the given transactions array
@@ -566,7 +566,7 @@ BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, cons
 
 // returns an unsigned transaction that satisifes the given transaction outputs
 // result must be freed using BRTransactionFree()
-BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput outputs[], size_t count)
+BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput outputs[], size_t outCount)
 {
     BRTransaction *tx, *transaction = BRTransactionNew();
     uint64_t feeAmount, amount = 0, balance = 0;
@@ -575,9 +575,9 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
     
     assert(wallet != NULL);
     assert(outputs != NULL);
-    assert(count > 0);
+    assert(outCount > 0);
 
-    for (i = 0; outputs && i < count; i++) {
+    for (i = 0; outputs && i < outCount; i++) {
         assert(outputs[i].script != NULL);
         assert(outputs[i].scriptLen > 0);
         BRTransactionAddOutput(transaction, outputs[i].amount, outputs[i].script, outputs[i].scriptLen);
@@ -604,20 +604,20 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
         
             // check for sufficient total funds before building a smaller transaction
             if (wallet->balance < amount + _txFee(wallet->feePerKb, 10 + array_count(wallet->utxos)*TX_INPUT_SIZE +
-                                                  (count + 1)*TX_OUTPUT_SIZE + cpfpSize)) break;
+                                                  (outCount + 1)*TX_OUTPUT_SIZE + cpfpSize)) break;
             pthread_mutex_unlock(&wallet->lock);
 
-            if (outputs[count - 1].amount > amount + feeAmount + TX_MIN_OUTPUT_AMOUNT - balance) {
-                BRTxOutput newOutputs[count];
+            if (outputs[outCount - 1].amount > amount + feeAmount + TX_MIN_OUTPUT_AMOUNT - balance) {
+                BRTxOutput newOutputs[outCount];
                 
-                for (j = 0; j < count; j++) {
+                for (j = 0; j < outCount; j++) {
                     newOutputs[j] = outputs[j];
                 }
                 
-                newOutputs[count - 1].amount -= amount + feeAmount - balance; // reduce last output amount
-                transaction = BRWalletCreateTxForOutputs(wallet, newOutputs, count);
+                newOutputs[outCount - 1].amount -= amount + feeAmount - balance; // reduce last output amount
+                transaction = BRWalletCreateTxForOutputs(wallet, newOutputs, outCount);
             }
-            else transaction = BRWalletCreateTxForOutputs(wallet, outputs, count - 1); // remove last output
+            else transaction = BRWalletCreateTxForOutputs(wallet, outputs, outCount - 1); // remove last output
 
             balance = amount = feeAmount = 0;
             pthread_mutex_lock(&wallet->lock);
@@ -640,7 +640,7 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
     
     pthread_mutex_unlock(&wallet->lock);
     
-    if (transaction && (count < 1 || balance < amount + feeAmount)) { // no outputs/insufficient funds
+    if (transaction && (outCount < 1 || balance < amount + feeAmount)) { // no outputs/insufficient funds
         BRTransactionFree(transaction);
         transaction = NULL;
     }
@@ -930,20 +930,20 @@ int BRWalletTransactionIsVerified(BRWallet *wallet, const BRTransaction *tx)
 
 // set the block heights and timestamps for the given transactions
 // use height TX_UNCONFIRMED and timestamp 0 to indicate a tx should remain marked as unverified (not 0-conf safe)
-void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHashes[], size_t count, uint32_t blockHeight,
+void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHashes[], size_t txCount, uint32_t blockHeight,
                                 uint32_t timestamp)
 {
     BRTransaction *tx;
-    UInt256 hashes[count];
+    UInt256 hashes[txCount];
     int needsUpdate = 0;
     size_t i, j;
     
     assert(wallet != NULL);
-    assert(txHashes != NULL || count == 0);
+    assert(txHashes != NULL || txCount == 0);
     pthread_mutex_lock(&wallet->lock);
     if (blockHeight > wallet->blockHeight) wallet->blockHeight = blockHeight;
     
-    for (i = 0, j = 0; txHashes && i < count; i++) {
+    for (i = 0, j = 0; txHashes && i < txCount; i++) {
         tx = BRSetGet(wallet->allTx, &txHashes[i]);
         if (! tx || (tx->blockHeight == blockHeight && tx->timestamp == timestamp)) continue;
         tx->timestamp = timestamp;

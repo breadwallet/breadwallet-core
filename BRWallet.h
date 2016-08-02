@@ -71,7 +71,7 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
 void BRWalletSetCallbacks(BRWallet *wallet, void *info,
                           void (*balanceChanged)(void *info, uint64_t balance),
                           void (*txAdded)(void *info, BRTransaction *tx),
-                          void (*txUpdated)(void *info, const UInt256 txHashes[], size_t count, uint32_t blockHeight,
+                          void (*txUpdated)(void *info, const UInt256 txHashes[], size_t txCount, uint32_t blockHeight,
                                             uint32_t timestamp),
                           void (*txDeleted)(void *info, UInt256 txHash, int notifyUser, int recommendRescan));
 
@@ -116,7 +116,7 @@ uint64_t BRWalletTotalSent(BRWallet *wallet);
 uint64_t BRWalletTotalReceived(BRWallet *wallet);
 
 // writes unspent outputs to utxos and returns the number of outputs written, or total number available if utxos is NULL
-size_t BRWalletUTXOs(BRWallet *wallet, BRUTXO utxos[], size_t count);
+size_t BRWalletUTXOs(BRWallet *wallet, BRUTXO utxos[], size_t utxosCount);
 
 // fee-per-kb of transaction size to use when creating a transaction
 uint64_t BRWalletFeePerKb(BRWallet *wallet);
@@ -128,7 +128,7 @@ BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, cons
 
 // returns an unsigned transaction that satisifes the given transaction outputs
 // result must be freed using BRTransactionFree()
-BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput outputs[], size_t count);
+BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput outputs[], size_t outCount);
 
 // signs any inputs in tx that can be signed using private keys from the wallet
 // seed is the master private key (wallet seed) corresponding to the master public key given when the wallet was created
@@ -158,7 +158,7 @@ int BRWalletTransactionIsVerified(BRWallet *wallet, const BRTransaction *tx);
 
 // set the block heights and timestamps for the given transactions
 // use height TX_UNCONFIRMED and timestamp 0 to indicate a tx should remain marked as unverified (not 0-conf safe)
-void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHashes[], size_t count, uint32_t blockHeight,
+void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHashes[], size_t txCount, uint32_t blockHeight,
                                 uint32_t timestamp);
     
 // marks all transactions confirmed after blockHeight as unconfirmed (useful for chain re-orgs)

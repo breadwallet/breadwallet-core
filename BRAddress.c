@@ -45,17 +45,17 @@ uint64_t BRVarInt(const uint8_t *buf, size_t bufLen, size_t *intLen)
     switch (h) {
         case VAR_INT16_HEADER:
             if (intLen) *intLen = sizeof(h) + sizeof(uint16_t);
-            r = (buf && sizeof(h) + sizeof(uint16_t) <= bufLen) ? get_u16le(&buf[sizeof(h)]) : 0;
+            r = (buf && sizeof(h) + sizeof(uint16_t) <= bufLen) ? UInt16GetLE(&buf[sizeof(h)]) : 0;
             break;
             
         case VAR_INT32_HEADER:
             if (intLen) *intLen = sizeof(h) + sizeof(uint32_t);
-            r = (buf && sizeof(h) + sizeof(uint32_t) <= bufLen) ? get_u32le(&buf[sizeof(h)]) : 0;
+            r = (buf && sizeof(h) + sizeof(uint32_t) <= bufLen) ? UInt32GetLE(&buf[sizeof(h)]) : 0;
             break;
             
         case VAR_INT64_HEADER:
             if (intLen) *intLen = sizeof(h) + sizeof(uint64_t);
-            r = (buf && sizeof(h) + sizeof(uint64_t) <= bufLen) ? get_u64le(&buf[sizeof(h)]) : 0;
+            r = (buf && sizeof(h) + sizeof(uint64_t) <= bufLen) ? UInt64GetLE(&buf[sizeof(h)]) : 0;
             break;
             
         default:
@@ -81,7 +81,7 @@ size_t BRVarIntSet(uint8_t *buf, size_t bufLen, uint64_t i)
     else if (i <= UINT16_MAX) {
         if (buf && sizeof(uint8_t) + sizeof(uint16_t) <= bufLen) {
             *buf = VAR_INT16_HEADER;
-            set_u16le(&buf[sizeof(uint8_t)], (uint16_t)i);
+            UInt16SetLE(&buf[sizeof(uint8_t)], (uint16_t)i);
         }
         
         r = (! buf || sizeof(uint8_t) + sizeof(uint16_t) <= bufLen) ? sizeof(uint8_t) + sizeof(uint16_t) : 0;
@@ -89,7 +89,7 @@ size_t BRVarIntSet(uint8_t *buf, size_t bufLen, uint64_t i)
     else if (i <= UINT32_MAX) {
         if (buf && sizeof(uint8_t) + sizeof(uint32_t) <= bufLen) {
             *buf = VAR_INT32_HEADER;
-            set_u32le(&buf[sizeof(uint8_t)], (uint32_t)i);
+            UInt32SetLE(&buf[sizeof(uint8_t)], (uint32_t)i);
         }
         
         r = (! buf || sizeof(uint8_t) + sizeof(uint32_t) <= bufLen) ? sizeof(uint8_t) + sizeof(uint32_t) : 0;
@@ -97,7 +97,7 @@ size_t BRVarIntSet(uint8_t *buf, size_t bufLen, uint64_t i)
     else {
         if (buf && sizeof(uint8_t) + sizeof(uint64_t) <= bufLen) {
             *buf = VAR_INT64_HEADER;
-            set_u64le(&buf[sizeof(uint8_t)], i);
+            UInt64SetLE(&buf[sizeof(uint8_t)], i);
         }
         
         r = (! buf || sizeof(uint8_t) + sizeof(uint64_t) <= bufLen) ? sizeof(uint8_t) + sizeof(uint64_t) : 0;
@@ -133,13 +133,13 @@ size_t BRScriptElements(const uint8_t *elems[], size_t elemsCount, const uint8_t
                 
             case OP_PUSHDATA2:
                 off++;
-                if (off + sizeof(uint16_t) <= scriptLen) len = get_u16le(&script[off]);
+                if (off + sizeof(uint16_t) <= scriptLen) len = UInt16GetLE(&script[off]);
                 off += sizeof(uint16_t);
                 break;
                 
             case OP_PUSHDATA4:
                 off++;
-                if (off + sizeof(uint32_t) <= scriptLen) len = get_u32le(&script[off]);
+                if (off + sizeof(uint32_t) <= scriptLen) len = UInt32GetLE(&script[off]);
                 off += sizeof(uint32_t);
                 break;
                 
@@ -172,13 +172,13 @@ const uint8_t *BRScriptData(const uint8_t *elem, size_t *dataLen)
             
         case OP_PUSHDATA2:
             elem++;
-            *dataLen = get_u16le(elem);
+            *dataLen = UInt16GetLE(elem);
             elem += sizeof(uint16_t);
             break;
             
         case OP_PUSHDATA4:
             elem++;
-            *dataLen = get_u32le(elem);
+            *dataLen = UInt32GetLE(elem);
             elem += sizeof(uint32_t);
             break;
             
@@ -218,7 +218,7 @@ size_t BRScriptPushData(uint8_t *script, size_t scriptLen, const uint8_t *data, 
         
         if (script && len <= scriptLen) {
             script[0] = OP_PUSHDATA2;
-            set_u16le(&script[1], dataLen);
+            UInt16SetLE(&script[1], dataLen);
         }
     }
     else {
@@ -226,7 +226,7 @@ size_t BRScriptPushData(uint8_t *script, size_t scriptLen, const uint8_t *data, 
         
         if (script && len <= scriptLen) {
             script[0] = OP_PUSHDATA4;
-            set_u32le(&script[1], dataLen);
+            UInt32SetLE(&script[1], (uint32_t)dataLen);
         }
     }
     

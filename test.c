@@ -70,36 +70,38 @@ int BRIntsTests()
         uint64_t u64;
     } x = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
     
-    if (get_u16be(&x) != 0x0102) r = 0, fprintf(stderr, "***FAILED*** %s: get_u16be() test\n", __func__);
-    if (get_u16le(&x) != 0x0201) r = 0, fprintf(stderr, "***FAILED*** %s: get_u16le() test\n", __func__);
-    if (get_u32be(&x) != 0x01020304) r = 0, fprintf(stderr, "***FAILED*** %s: get_u32be() test\n", __func__);
-    if (get_u32le(&x) != 0x04030201) r = 0, fprintf(stderr, "***FAILED*** %s: get_u32le() test\n", __func__);
-    if (get_u64be(&x) != 0x0102030405060708) r = 0, fprintf(stderr, "***FAILED*** %s: get_u64be() test\n", __func__);
-    if (get_u64le(&x) != 0x0807060504030201) r = 0, fprintf(stderr, "***FAILED*** %s: get_u64le() test\n", __func__);
+    if (UInt16GetBE(&x) != 0x0102) r = 0, fprintf(stderr, "***FAILED*** %s: UInt16GetBE() test\n", __func__);
+    if (UInt16GetLE(&x) != 0x0201) r = 0, fprintf(stderr, "***FAILED*** %s: UInt16GetLE() test\n", __func__);
+    if (UInt32GetBE(&x) != 0x01020304) r = 0, fprintf(stderr, "***FAILED*** %s: UInt32GetBE() test\n", __func__);
+    if (UInt32GetLE(&x) != 0x04030201) r = 0, fprintf(stderr, "***FAILED*** %s: UInt32GetLE() test\n", __func__);
+    if (UInt64GetBE(&x) != 0x0102030405060708)
+        r = 0, fprintf(stderr, "***FAILED*** %s: UInt64GetBE() test\n", __func__);
+    if (UInt64GetLE(&x) != 0x0807060504030201)
+        r = 0, fprintf(stderr, "***FAILED*** %s: UInt64GetLE() test\n", __func__);
 
-    set_u16be(&x, 0x0201);
-    if (x.u8[0] != 0x02 || x.u8[1] != 0x01) r = 0, fprintf(stderr, "***FAILED*** %s: set_u16be() test\n", __func__);
+    UInt16SetBE(&x, 0x0201);
+    if (x.u8[0] != 0x02 || x.u8[1] != 0x01) r = 0, fprintf(stderr, "***FAILED*** %s: UInt16SetBE() test\n", __func__);
 
-    set_u16le(&x, 0x0201);
-    if (x.u8[0] != 0x01 || x.u8[1] != 0x02) r = 0, fprintf(stderr, "***FAILED*** %s: set_u16le() test\n", __func__);
+    UInt16SetLE(&x, 0x0201);
+    if (x.u8[0] != 0x01 || x.u8[1] != 0x02) r = 0, fprintf(stderr, "***FAILED*** %s: UInt16SetLE() test\n", __func__);
 
-    set_u32be(&x, 0x04030201);
+    UInt32SetBE(&x, 0x04030201);
     if (x.u8[0] != 0x04 || x.u8[1] != 0x03 || x.u8[2] != 0x02 || x.u8[3] != 0x01)
-        r = 0, fprintf(stderr, "***FAILED*** %s: set_u32be() test\n", __func__);
+        r = 0, fprintf(stderr, "***FAILED*** %s: UInt32SetBE() test\n", __func__);
 
-    set_u32le(&x, 0x04030201);
+    UInt32SetLE(&x, 0x04030201);
     if (x.u8[0] != 0x01 || x.u8[1] != 0x02 || x.u8[2] != 0x03 || x.u8[3] != 0x04)
-        r = 0, fprintf(stderr, "***FAILED*** %s: set_u32le() test\n", __func__);
+        r = 0, fprintf(stderr, "***FAILED*** %s: UInt32SetLE() test\n", __func__);
 
-    set_u64be(&x, 0x0807060504030201);
+    UInt64SetBE(&x, 0x0807060504030201);
     if (x.u8[0] != 0x08 || x.u8[1] != 0x07 || x.u8[2] != 0x06 || x.u8[3] != 0x05 ||
         x.u8[4] != 0x04 || x.u8[5] != 0x03 || x.u8[6] != 0x02 || x.u8[7] != 0x01)
-        r = 0, fprintf(stderr, "***FAILED*** %s: set_u64be() test\n", __func__);
+        r = 0, fprintf(stderr, "***FAILED*** %s: UInt64SetBE() test\n", __func__);
 
-    set_u64le(&x, 0x0807060504030201);
+    UInt64SetLE(&x, 0x0807060504030201);
     if (x.u8[0] != 0x01 || x.u8[1] != 0x02 || x.u8[2] != 0x03 || x.u8[3] != 0x04 ||
         x.u8[4] != 0x05 || x.u8[5] != 0x06 || x.u8[6] != 0x07 || x.u8[7] != 0x08)
-        r = 0, fprintf(stderr, "***FAILED*** %s: set_u64le() test\n", __func__);
+        r = 0, fprintf(stderr, "***FAILED*** %s: UInt64SetLE() test\n", __func__);
     
     return r;
 }
@@ -1485,9 +1487,10 @@ static void walletTxAdded(void *info, BRTransaction *tx)
     printf("tx added: %s\n", u256_hex_encode(tx->txHash));
 }
 
-static void walletTxUpdated(void *info, const UInt256 txHash[], size_t count, uint32_t blockHeight, uint32_t timestamp)
+static void walletTxUpdated(void *info, const UInt256 txHashes[], size_t txCount, uint32_t blockHeight,
+                            uint32_t timestamp)
 {
-    for (size_t i = 0; i < count; i++) printf("tx updated: %s\n", u256_hex_encode(txHash[i]));
+    for (size_t i = 0; i < txCount; i++) printf("tx updated: %s\n", u256_hex_encode(txHashes[i]));
 }
 
 static void walletTxDeleted(void *info, UInt256 txHash, int notifyUser, int recommendRescan)
@@ -1508,8 +1511,8 @@ int BRWalletTests()
     int r = 1;
     BRMasterPubKey mpk = BRBIP32MasterPubKey("", 1);
     BRWallet *w = BRWalletNew(NULL, 0, mpk);
-    const UInt256 secret = u256_hex_decode("0000000000000000000000000000000000000000000000000000000000000001"),
-                  inHash = u256_hex_decode("0000000000000000000000000000000000000000000000000000000000000001");
+    UInt256 secret = u256_hex_decode("0000000000000000000000000000000000000000000000000000000000000001"),
+            inHash = u256_hex_decode("0000000000000000000000000000000000000000000000000000000000000001");
     BRKey k;
     BRAddress addr, recvAddr = BRWalletReceiveAddress(w);
     BRTransaction *tx;

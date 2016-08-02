@@ -57,11 +57,11 @@ static void _CKDpriv(UInt256 *k, UInt256 *c, uint32_t i)
     
     if (i & BIP32_HARD) {
         buf[0] = 0;
-        set_u256(&buf[1], *k);
+        UInt256Set(&buf[1], *k);
     }
     else BRSecp256k1PointGen((BRECPoint *)buf, k);
     
-    set_u32be(&buf[sizeof(BRECPoint)], i);
+    UInt32SetBE(&buf[sizeof(BRECPoint)], i);
     
     BRHMAC(&I, BRSHA512, sizeof(UInt512), c, sizeof(*c), buf, sizeof(buf)); // I = HMAC-SHA512(c, k|P(k) || i)
     
@@ -93,7 +93,7 @@ static void _CKDpub(BRECPoint *K, UInt256 *c, uint32_t i)
 
     if ((i & BIP32_HARD) != BIP32_HARD) { // can't derive private child key from public parent key
         *(BRECPoint *)buf = *K;
-        set_u32be(&buf[sizeof(*K)], i);
+        UInt32SetBE(&buf[sizeof(*K)], i);
     
         BRHMAC(&I, BRSHA512, sizeof(UInt512), c, sizeof(*c), buf, sizeof(buf)); // I = HMAC-SHA512(c, P(K) || i)
         
@@ -262,7 +262,7 @@ void BRBIP32BitIDKey(BRKey *key, const void *seed, size_t seedLen, uint32_t inde
         size_t uriLen = strlen(uri);
         uint8_t data[sizeof(index) + uriLen];
 
-        set_u32le(data, index);
+        UInt32SetLE(data, index);
         memcpy(&data[sizeof(index)], uri, uriLen);
         BRSHA256(&hash, data, sizeof(data));
     
@@ -272,10 +272,10 @@ void BRBIP32BitIDKey(BRKey *key, const void *seed, size_t seedLen, uint32_t inde
         I = UINT512_ZERO;
         
         _CKDpriv(&secret, &chainCode, 13 | BIP32_HARD); // path m/13H
-        _CKDpriv(&secret, &chainCode, get_u32le(&hash.u32[0]) | BIP32_HARD); // path m/13H/aH
-        _CKDpriv(&secret, &chainCode, get_u32le(&hash.u32[1]) | BIP32_HARD); // path m/13H/aH/bH
-        _CKDpriv(&secret, &chainCode, get_u32le(&hash.u32[2]) | BIP32_HARD); // path m/13H/aH/bH/cH
-        _CKDpriv(&secret, &chainCode, get_u32le(&hash.u32[3]) | BIP32_HARD); // path m/13H/aH/bH/cH/dH
+        _CKDpriv(&secret, &chainCode, UInt32GetLE(&hash.u32[0]) | BIP32_HARD); // path m/13H/aH
+        _CKDpriv(&secret, &chainCode, UInt32GetLE(&hash.u32[1]) | BIP32_HARD); // path m/13H/aH/bH
+        _CKDpriv(&secret, &chainCode, UInt32GetLE(&hash.u32[2]) | BIP32_HARD); // path m/13H/aH/bH/cH
+        _CKDpriv(&secret, &chainCode, UInt32GetLE(&hash.u32[3]) | BIP32_HARD); // path m/13H/aH/bH/cH/dH
         
         BRKeySetSecret(key, &secret, 1);
         secret = chainCode = UINT256_ZERO;

@@ -359,8 +359,8 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
     for (size_t i = 0; i < utxosCount; i++) { // add UTXOs to watch for tx sending money from the wallet
         uint8_t o[sizeof(UInt256) + sizeof(uint32_t)];
         
-        set_u256(o, utxos[i].hash);
-        set_u32le(&o[sizeof(UInt256)], utxos[i].n);
+        UInt256Set(o, utxos[i].hash);
+        UInt32SetLE(&o[sizeof(UInt256)], utxos[i].n);
         if (! BRBloomFilterContainsData(filter, o, sizeof(o))) BRBloomFilterInsertData(filter, o, sizeof(o));
     }
     
@@ -374,8 +374,8 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
             
             if (tx && input->index < tx->outCount &&
                 BRWalletContainsAddress(manager->wallet, tx->outputs[input->index].address)) {
-                set_u256(o, input->txHash);
-                set_u32le(&o[sizeof(UInt256)], input->index);
+                UInt256Set(o, input->txHash);
+                UInt32SetLE(&o[sizeof(UInt256)], input->index);
                 if (! BRBloomFilterContainsData(filter, o, sizeof(o))) BRBloomFilterInsertData(filter, o,sizeof(o));
             }
         }
@@ -1192,8 +1192,8 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
     size_t txCount = BRMerkleBlockTxHashes(block, NULL, 0);
-    UInt256 _txHashes[(sizeof(UInt256)*txCount <= MAX_STACK) ? txCount : 0],
-            *txHashes = (sizeof(UInt256)*txCount <= MAX_STACK) ? _txHashes : malloc(txCount*sizeof(*txHashes));
+    UInt256 _txHashes[(sizeof(UInt256)*txCount <= 0x1000) ? txCount : 0],
+            *txHashes = (sizeof(UInt256)*txCount <= 0x1000) ? _txHashes : malloc(txCount*sizeof(*txHashes));
     size_t i, fpCount = 0, saveCount = 0;
     BRMerkleBlock orphan, *b, *b2, *prev, *next = NULL;
     uint32_t txTime = 0;

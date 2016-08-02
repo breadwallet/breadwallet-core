@@ -31,7 +31,7 @@
 extern "C" {
 #endif
 
-#define MAX_STACK 0x20000 // maximum buffer size to allocate on the stack, 128k
+#define MAX_STACK 0x1000 // maximum buffer size to allocate on the stack, 4k
 
 // large integers
 
@@ -161,88 +161,138 @@ inline static UInt256 UInt256Reverse(UInt256 u)
 
 // unaligned memory access helpers
 
-union _u16 { uint8_t u8[16/8]; };
-union _u32 { uint8_t u8[32/8]; };
-union _u64 { uint8_t u8[64/8]; };
-union _u128 { uint8_t u8[128/8]; };
-union _u160 { uint8_t u8[160/8]; };
-union _u256 { uint8_t u8[256/8]; };
-    
-#define set_u16be(r, x) (*(union _u16 *)(r) = (union _u16) { ((x) >> 8) & 0xff, (x) & 0xff })
-#define set_u16le(r, x) (*(union _u16 *)(r) = (union _u16) { (x) & 0xff, ((x) >> 8) & 0xff })
-
-#define set_u32be(r, x) (*(union _u32 *)(r) =\
-    (union _u32) { ((x) >> 24) & 0xff, ((x) >> 16) & 0xff, ((x) >> 8) & 0xff, (x) & 0xff })
-#define set_u32le(r, x) (*(union _u32 *)(r) =\
-    (union _u32) { (x) & 0xff, ((x) >> 8) & 0xff, ((x) >> 16) & 0xff, ((x) >> 24) & 0xff })
-
-static inline void set_u64be(void * const r, const uint64_t x) {
-    *(union _u64 *)r = (union _u64) {
-        ((x) >> 56) & 0xff, ((x) >> 48) & 0xff, ((x) >> 40) & 0xff, ((x) >> 32) & 0xff,
-        ((x) >> 24) & 0xff, ((x) >> 16) & 0xff, ((x) >> 8) & 0xff, (x) & 0xff
-    };
-}
-static inline void set_u64le(void * const r, const uint64_t x) {
-    *(union _u64 *)r = (union _u64) {
-        (x) & 0xff, ((x) >> 8) & 0xff, ((x) >> 16) & 0xff, ((x) >> 24) & 0xff,
-        ((x) >> 32) & 0xff, ((x) >> 40) & 0xff, ((x) >> 48) & 0xff, ((x) >> 56) & 0xff
-    };
+inline static void UInt16SetBE(void *p, uint16_t u)
+{
+    *(union _u16 { uint8_t u8[16/8]; } *)p = (union _u16) { (u >> 8) & 0xff, u & 0xff };
 }
 
-#define set_u128(r, x) (*(union _u128 *)(r) =\
-    (union _u128) { (x).u8[0], (x).u8[1], (x).u8[2],  (x).u8[3],  (x).u8[4],  (x).u8[5],  (x).u8[6],  (x).u8[7],\
-                    (x).u8[8], (x).u8[9], (x).u8[10], (x).u8[11], (x).u8[12], (x).u8[13], (x).u8[14], (x).u8[15] })
+inline static void UInt16SetLE(void *p, uint16_t u)
+{
+    *(union _u16 { uint8_t u8[16/8]; } *)p = (union _u16) { u & 0xff, (u >> 8) & 0xff };
+}
 
-#define set_u160(r, x) (*(union _u160 *)(r) =\
-    (union _u160) { (x).u8[0],  (x).u8[1],  (x).u8[2],  (x).u8[3],  (x).u8[4],  (x).u8[5],  (x).u8[6],  (x).u8[7],\
-                    (x).u8[8],  (x).u8[9],  (x).u8[10], (x).u8[11], (x).u8[12], (x).u8[13], (x).u8[14], (x).u8[15],\
-                    (x).u8[16], (x).u8[17], (x).u8[18], (x).u8[19] })
+inline static void UInt32SetBE(void *p, uint32_t u)
+{
+    *(union _u32 { uint8_t u8[32/8]; } *)p =
+        (union _u32) { (u >> 24) & 0xff, (u >> 16) & 0xff, (u >> 8) & 0xff, u & 0xff };
+}
 
-#define set_u256(r, x) (*(union _u256 *)(r) =\
-    (union _u256) { (x).u8[0],  (x).u8[1],  (x).u8[2],  (x).u8[3],  (x).u8[4],  (x).u8[5],  (x).u8[6],  (x).u8[7],\
-                    (x).u8[8],  (x).u8[9],  (x).u8[10], (x).u8[11], (x).u8[12], (x).u8[13], (x).u8[14], (x).u8[15],\
-                    (x).u8[16], (x).u8[17], (x).u8[18], (x).u8[19], (x).u8[20], (x).u8[21], (x).u8[22], (x).u8[23],\
-                    (x).u8[24], (x).u8[25], (x).u8[26], (x).u8[27], (x).u8[28], (x).u8[29], (x).u8[30], (x).u8[31] })
+inline static void UInt32SetLE(void *p, uint32_t u)
+{
+    *(union _u32 { uint8_t u8[32/8]; } *)p =
+        (union _u32) { u & 0xff, (u >> 8) & 0xff, (u >> 16) & 0xff, (u >> 24) & 0xff };
+}
 
-#define get_u16be(x) (((uint16_t)((const uint8_t *)(x))[0] << 8)  | ((uint16_t)((const uint8_t *)(x))[1]))
-#define get_u16le(x) (((uint16_t)((const uint8_t *)(x))[1] << 8)  | ((uint16_t)((const uint8_t *)(x))[0]))
+inline static void UInt64SetBE(void *p, uint64_t u)
+{
+    *(union _u64 { uint8_t u8[64/8]; } *)p =
+        (union _u64) { (u >> 56) & 0xff, (u >> 48) & 0xff, (u >> 40) & 0xff, (u >> 32) & 0xff,
+                       (u >> 24) & 0xff, (u >> 16) & 0xff, (u >> 8) & 0xff, u & 0xff };
+}
 
-#define get_u32be(x) (((uint32_t)((const uint8_t *)(x))[0] << 24) | ((uint32_t)((const uint8_t *)(x))[1] << 16) |\
-                      ((uint32_t)((const uint8_t *)(x))[2] << 8)  | ((uint32_t)((const uint8_t *)(x))[3]))
-#define get_u32le(x) (((uint32_t)((const uint8_t *)(x))[3] << 24) | ((uint32_t)((const uint8_t *)(x))[2] << 16) |\
-                      ((uint32_t)((const uint8_t *)(x))[1] << 8)  | ((uint32_t)((const uint8_t *)(x))[0]))
+inline static void UInt64SetLE(void *p, uint64_t u)
+{
+    *(union _u64 { uint8_t u8[64/8]; } *)p =
+        (union _u64) { u & 0xff, (u >> 8) & 0xff, (u >> 16) & 0xff, (u >> 24) & 0xff,
+                       (u >> 32) & 0xff, (u >> 40) & 0xff, (u >> 48) & 0xff, (u >> 56) & 0xff };
+}
 
-#define get_u64be(x) (((uint64_t)((const uint8_t *)(x))[0] << 56) | ((uint64_t)((const uint8_t *)(x))[1] << 48) |\
-                      ((uint64_t)((const uint8_t *)(x))[2] << 40) | ((uint64_t)((const uint8_t *)(x))[3] << 32) |\
-                      ((uint64_t)((const uint8_t *)(x))[4] << 24) | ((uint64_t)((const uint8_t *)(x))[5] << 16) |\
-                      ((uint64_t)((const uint8_t *)(x))[6] << 8)  | ((uint64_t)((const uint8_t *)(x))[7]))
-#define get_u64le(x) (((uint64_t)((const uint8_t *)(x))[7] << 56) | ((uint64_t)((const uint8_t *)(x))[6] << 48) |\
-                      ((uint64_t)((const uint8_t *)(x))[5] << 40) | ((uint64_t)((const uint8_t *)(x))[4] << 32) |\
-                      ((uint64_t)((const uint8_t *)(x))[3] << 24) | ((uint64_t)((const uint8_t *)(x))[2] << 16) |\
-                      ((uint64_t)((const uint8_t *)(x))[1] << 8)  | ((uint64_t)((const uint8_t *)(x))[0]))
+inline static void UInt128Set(void *p, UInt128 u)
+{
+    *(union _u128 { uint8_t u8[128/8]; } *)p =
+        (union _u128) { u.u8[0], u.u8[1], u.u8[2],  u.u8[3],  u.u8[4],  u.u8[5],  u.u8[6],  u.u8[7],
+                        u.u8[8], u.u8[9], u.u8[10], u.u8[11], u.u8[12], u.u8[13], u.u8[14], u.u8[15] };
+}
 
-#define get_u128(x) ((UInt128) { .u8 = {\
-    ((const uint8_t *)(x))[0],  ((const uint8_t *)(x))[1],  ((const uint8_t *)(x))[2],  ((const uint8_t *)(x))[3],\
-    ((const uint8_t *)(x))[4],  ((const uint8_t *)(x))[5],  ((const uint8_t *)(x))[6],  ((const uint8_t *)(x))[7],\
-    ((const uint8_t *)(x))[8],  ((const uint8_t *)(x))[9],  ((const uint8_t *)(x))[10], ((const uint8_t *)(x))[11],\
-    ((const uint8_t *)(x))[12], ((const uint8_t *)(x))[13], ((const uint8_t *)(x))[14], ((const uint8_t *)(x))[15] } })
+inline static void UInt160Set(void *p, UInt160 u)
+{
+    *(union _u160 { uint8_t u8[160/8]; } *)p =
+        (union _u160) { u.u8[0],  u.u8[1],  u.u8[2],  u.u8[3],  u.u8[4],  u.u8[5],  u.u8[6],  u.u8[7],
+                        u.u8[8],  u.u8[9],  u.u8[10], u.u8[11], u.u8[12], u.u8[13], u.u8[14], u.u8[15],
+                        u.u8[16], u.u8[17], u.u8[18], u.u8[19] };
+}
 
-#define get_u160(x) ((UInt160) { .u8 = {\
-    ((const uint8_t *)(x))[0],  ((const uint8_t *)(x))[1],  ((const uint8_t *)(x))[2],  ((const uint8_t *)(x))[3],\
-    ((const uint8_t *)(x))[4],  ((const uint8_t *)(x))[5],  ((const uint8_t *)(x))[6],  ((const uint8_t *)(x))[7],\
-    ((const uint8_t *)(x))[8],  ((const uint8_t *)(x))[9],  ((const uint8_t *)(x))[10], ((const uint8_t *)(x))[11],\
-    ((const uint8_t *)(x))[12], ((const uint8_t *)(x))[13], ((const uint8_t *)(x))[14], ((const uint8_t *)(x))[15],\
-    ((const uint8_t *)(x))[16], ((const uint8_t *)(x))[17], ((const uint8_t *)(x))[18], ((const uint8_t *)(x))[19] } })
+inline static void UInt256Set(void *p, UInt256 u)
+{
+    *(union _u256 { uint8_t u8[256/8]; } *)p =
+        (union _u256) { u.u8[0],  u.u8[1],  u.u8[2],  u.u8[3],  u.u8[4],  u.u8[5],  u.u8[6],  u.u8[7],
+                        u.u8[8],  u.u8[9],  u.u8[10], u.u8[11], u.u8[12], u.u8[13], u.u8[14], u.u8[15],
+                        u.u8[16], u.u8[17], u.u8[18], u.u8[19], u.u8[20], u.u8[21], u.u8[22], u.u8[23],
+                        u.u8[24], u.u8[25], u.u8[26], u.u8[27], u.u8[28], u.u8[29], u.u8[30], u.u8[31] };
+}
 
-#define get_u256(x) ((UInt256) { .u8 = {\
-    ((const uint8_t *)(x))[0],  ((const uint8_t *)(x))[1],  ((const uint8_t *)(x))[2],  ((const uint8_t *)(x))[3],\
-    ((const uint8_t *)(x))[4],  ((const uint8_t *)(x))[5],  ((const uint8_t *)(x))[6],  ((const uint8_t *)(x))[7],\
-    ((const uint8_t *)(x))[8],  ((const uint8_t *)(x))[9],  ((const uint8_t *)(x))[10], ((const uint8_t *)(x))[11],\
-    ((const uint8_t *)(x))[12], ((const uint8_t *)(x))[13], ((const uint8_t *)(x))[14], ((const uint8_t *)(x))[15],\
-    ((const uint8_t *)(x))[16], ((const uint8_t *)(x))[17], ((const uint8_t *)(x))[18], ((const uint8_t *)(x))[19],\
-    ((const uint8_t *)(x))[20], ((const uint8_t *)(x))[21], ((const uint8_t *)(x))[22], ((const uint8_t *)(x))[23],\
-    ((const uint8_t *)(x))[24], ((const uint8_t *)(x))[25], ((const uint8_t *)(x))[26], ((const uint8_t *)(x))[27],\
-    ((const uint8_t *)(x))[28], ((const uint8_t *)(x))[29], ((const uint8_t *)(x))[30], ((const uint8_t *)(x))[31] } })
+inline static uint16_t UInt16GetBE(const void *p)
+{
+    return (((uint16_t)((const uint8_t *)p)[0] << 8) | ((uint16_t)((const uint8_t *)p)[1]));
+}
+
+inline static uint16_t UInt16GetLE(const void *p)
+{
+    return (((uint16_t)((const uint8_t *)p)[1] << 8) | ((uint16_t)((const uint8_t *)p)[0]));
+}
+
+inline static uint32_t UInt32GetBE(const void *p)
+{
+    return (((uint32_t)((const uint8_t *)p)[0] << 24) | ((uint32_t)((const uint8_t *)p)[1] << 16) |
+            ((uint32_t)((const uint8_t *)p)[2] << 8)  | ((uint32_t)((const uint8_t *)p)[3]));
+}
+
+inline static uint32_t UInt32GetLE(const void *p)
+{
+    return (((uint32_t)((const uint8_t *)p)[3] << 24) | ((uint32_t)((const uint8_t *)p)[2] << 16) |
+            ((uint32_t)((const uint8_t *)p)[1] << 8)  | ((uint32_t)((const uint8_t *)p)[0]));
+}
+
+inline static uint64_t UInt64GetBE(const void *p)
+{
+    return (((uint64_t)((const uint8_t *)p)[0] << 56) | ((uint64_t)((const uint8_t *)p)[1] << 48) |
+            ((uint64_t)((const uint8_t *)p)[2] << 40) | ((uint64_t)((const uint8_t *)p)[3] << 32) |
+            ((uint64_t)((const uint8_t *)p)[4] << 24) | ((uint64_t)((const uint8_t *)p)[5] << 16) |
+            ((uint64_t)((const uint8_t *)p)[6] << 8)  | ((uint64_t)((const uint8_t *)p)[7]));
+}
+
+inline static uint64_t UInt64GetLE(const void *p)
+{
+    return (((uint64_t)((const uint8_t *)p)[7] << 56) | ((uint64_t)((const uint8_t *)p)[6] << 48) |
+            ((uint64_t)((const uint8_t *)p)[5] << 40) | ((uint64_t)((const uint8_t *)p)[4] << 32) |
+            ((uint64_t)((const uint8_t *)p)[3] << 24) | ((uint64_t)((const uint8_t *)p)[2] << 16) |
+            ((uint64_t)((const uint8_t *)p)[1] << 8)  | ((uint64_t)((const uint8_t *)p)[0]));
+}
+
+inline static UInt128 UInt128Get(const void *p)
+{
+    return (UInt128) { .u8 = {
+        ((const uint8_t *)p)[0],  ((const uint8_t *)p)[1],  ((const uint8_t *)p)[2],  ((const uint8_t *)p)[3],
+        ((const uint8_t *)p)[4],  ((const uint8_t *)p)[5],  ((const uint8_t *)p)[6],  ((const uint8_t *)p)[7],
+        ((const uint8_t *)p)[8],  ((const uint8_t *)p)[9],  ((const uint8_t *)p)[10], ((const uint8_t *)p)[11],
+        ((const uint8_t *)p)[12], ((const uint8_t *)p)[13], ((const uint8_t *)p)[14], ((const uint8_t *)p)[15]
+    } };
+}
+
+inline static UInt160 UInt160Get(const void *p)
+{
+    return (UInt160) { .u8 = {
+        ((const uint8_t *)p)[0],  ((const uint8_t *)p)[1],  ((const uint8_t *)p)[2],  ((const uint8_t *)p)[3],
+        ((const uint8_t *)p)[4],  ((const uint8_t *)p)[5],  ((const uint8_t *)p)[6],  ((const uint8_t *)p)[7],
+        ((const uint8_t *)p)[8],  ((const uint8_t *)p)[9],  ((const uint8_t *)p)[10], ((const uint8_t *)p)[11],
+        ((const uint8_t *)p)[12], ((const uint8_t *)p)[13], ((const uint8_t *)p)[14], ((const uint8_t *)p)[15],
+        ((const uint8_t *)p)[16], ((const uint8_t *)p)[17], ((const uint8_t *)p)[18], ((const uint8_t *)p)[19]
+    } };
+}
+
+inline static UInt256 UInt256Get(const void *p)
+{
+    return (UInt256) { .u8 = {
+        ((const uint8_t *)p)[0],  ((const uint8_t *)p)[1],  ((const uint8_t *)p)[2],  ((const uint8_t *)p)[3],
+        ((const uint8_t *)p)[4],  ((const uint8_t *)p)[5],  ((const uint8_t *)p)[6],  ((const uint8_t *)p)[7],
+        ((const uint8_t *)p)[8],  ((const uint8_t *)p)[9],  ((const uint8_t *)p)[10], ((const uint8_t *)p)[11],
+        ((const uint8_t *)p)[12], ((const uint8_t *)p)[13], ((const uint8_t *)p)[14], ((const uint8_t *)p)[15],
+        ((const uint8_t *)p)[16], ((const uint8_t *)p)[17], ((const uint8_t *)p)[18], ((const uint8_t *)p)[19],
+        ((const uint8_t *)p)[20], ((const uint8_t *)p)[21], ((const uint8_t *)p)[22], ((const uint8_t *)p)[23],
+        ((const uint8_t *)p)[24], ((const uint8_t *)p)[25], ((const uint8_t *)p)[26], ((const uint8_t *)p)[27],
+        ((const uint8_t *)p)[28], ((const uint8_t *)p)[29], ((const uint8_t *)p)[30], ((const uint8_t *)p)[31]
+    } };
+}
 
 #ifdef __cplusplus
 }

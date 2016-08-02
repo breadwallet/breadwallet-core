@@ -209,7 +209,7 @@ int BRBIP38KeyIsValid(const char *bip38Key)
     assert(bip38Key != NULL);
     if (BRBase58CheckDecode(data, sizeof(data), bip38Key) != 39) return 0; // invalid length
     
-    uint16_t prefix = get_u16be(data);
+    uint16_t prefix = UInt16GetBE(data);
     uint8_t flag = data[2];
     
     if (prefix == BIP38_NOEC_PREFIX) { // non EC multiplied key
@@ -234,7 +234,7 @@ int BRKeySetBIP38Key(BRKey *key, const char *bip38Key, const char *passphrase)
     assert(passphrase != NULL);
     if (BRBase58CheckDecode(data, sizeof(data), bip38Key) != 39) return 0; // invalid length
     
-    uint16_t prefix = get_u16be(data);
+    uint16_t prefix = UInt16GetBE(data);
     uint8_t flag = data[2];
     const uint8_t *addresshash = &data[3];
     size_t pwLen = strlen(passphrase);
@@ -244,7 +244,7 @@ int BRKeySetBIP38Key(BRKey *key, const char *bip38Key, const char *passphrase)
 
     if (prefix == BIP38_NOEC_PREFIX) { // non EC multiplied key
         // data = prefix + flag + addresshash + encrypted1 + encrypted2
-        UInt128 encrypted1 = get_u128(&data[7]), encrypted2 = get_u128(&data[23]);
+        UInt128 encrypted1 = UInt128Get(&data[7]), encrypted2 = UInt128Get(&data[23]);
 
         BRScrypt(&derived, sizeof(derived), passphrase, pwLen, addresshash, sizeof(uint32_t),
                  BIP38_SCRYPT_N, BIP38_SCRYPT_R, BIP38_SCRYPT_P);
@@ -261,7 +261,7 @@ int BRKeySetBIP38Key(BRKey *key, const char *bip38Key, const char *passphrase)
     else if (prefix == BIP38_EC_PREFIX) { // EC multipled key
         // data = prefix + flag + addresshash + entropy + encrypted1[0...7] + encrypted2
         const uint8_t *entropy = &data[7];
-        UInt128 encrypted1 = UINT128_ZERO, encrypted2 = get_u128(&data[23]);
+        UInt128 encrypted1 = UINT128_ZERO, encrypted2 = UInt128Get(&data[23]);
         UInt256 passfactor = _BRBIP38DerivePassfactor(flag, entropy, passphrase), factorb;
         BRECPoint passpoint;
         uint64_t seedb[3];

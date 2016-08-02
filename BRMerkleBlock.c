@@ -92,21 +92,21 @@ BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t bufLen)
     assert(buf != NULL || bufLen == 0);
     
     if (block) {
-        block->version = get_u32le(&buf[off]);
+        block->version = UInt32GetLE(&buf[off]);
         off += sizeof(uint32_t);
-        block->prevBlock = get_u256(&buf[off]);
+        block->prevBlock = UInt256Get(&buf[off]);
         off += sizeof(UInt256);
-        block->merkleRoot = get_u256(&buf[off]);
+        block->merkleRoot = UInt256Get(&buf[off]);
         off += sizeof(UInt256);
-        block->timestamp = get_u32le(&buf[off]);
+        block->timestamp = UInt32GetLE(&buf[off]);
         off += sizeof(uint32_t);
-        block->target = get_u32le(&buf[off]);
+        block->target = UInt32GetLE(&buf[off]);
         off += sizeof(uint32_t);
-        block->nonce = get_u32le(&buf[off]);
+        block->nonce = UInt32GetLE(&buf[off]);
         off += sizeof(uint32_t);
         
         if (off + sizeof(uint32_t) <= bufLen) {
-            block->totalTx = get_u32le(&buf[off]);
+            block->totalTx = UInt32GetLE(&buf[off]);
             off += sizeof(uint32_t);
             block->hashesCount = (size_t)BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
             off += len;
@@ -141,21 +141,21 @@ size_t BRMerkleBlockSerialize(const BRMerkleBlock *block, uint8_t *buf, size_t b
     }
     
     if (buf && len <= bufLen) {
-        set_u32le(&buf[off], block->version);
+        UInt32SetLE(&buf[off], block->version);
         off += sizeof(uint32_t);
-        set_u256(&buf[off], block->prevBlock);
+        UInt256Set(&buf[off], block->prevBlock);
         off += sizeof(UInt256);
-        set_u256(&buf[off], block->merkleRoot);
+        UInt256Set(&buf[off], block->merkleRoot);
         off += sizeof(UInt256);
-        set_u32le(&buf[off], block->timestamp);
+        UInt32SetLE(&buf[off], block->timestamp);
         off += sizeof(uint32_t);
-        set_u32le(&buf[off], block->target);
+        UInt32SetLE(&buf[off], block->target);
         off += sizeof(uint32_t);
-        set_u32le(&buf[off], block->nonce);
+        UInt32SetLE(&buf[off], block->nonce);
         off += sizeof(uint32_t);
     
         if (block->totalTx > 0) {
-            set_u32le(&buf[off], block->totalTx);
+            UInt32SetLE(&buf[off], block->totalTx);
             off += sizeof(uint32_t);
             off += BRVarIntSet(&buf[off], (off <= bufLen ? bufLen - off : 0), block->hashesCount);
             if (block->hashes) memcpy(&buf[off], block->hashes, block->hashesCount*sizeof(UInt256));
@@ -258,8 +258,8 @@ int BRMerkleBlockIsValid(const BRMerkleBlock *block, uint32_t currentTime)
     // check if proof-of-work target is out of range
     if (target == 0 || target & 0x00800000 || size > maxsize || (size == maxsize && target > maxtarget)) r = 0;
     
-    if (size > 3) set_u32le(&t.u8[size - 3], target);
-    else set_u32le(t.u8, target >> (3 - size)*8);
+    if (size > 3) UInt32SetLE(&t.u8[size - 3], target);
+    else UInt32SetLE(t.u8, target >> (3 - size)*8);
     
     for (int i = sizeof(t) - 1; r && i >= 0; i--) { // check proof-of-work
         if (block->blockHash.u8[i] < t.u8[i]) break;

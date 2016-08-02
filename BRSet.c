@@ -70,7 +70,7 @@ static void _BRSetInit(BRSet *set, size_t (*hash)(const void *), int (*eq)(const
 
 // retruns a newly allocated empty set that must be freed by calling BRSetFree()
 // size_t hash(const void *) is a function that returns a hash value for a given set item
-// int eq(const void *, const void *) is a function that tests if two set items are equal
+// int eq(const void *, const void *) is a function that returns true if two set items are equal
 // any two items that are equal must also have identical hash values
 // capacity is the maximum estimated number of items the set will need to hold
 BRSet *BRSetNew(size_t (*hash)(const void *), int (*eq)(const void *, const void *), size_t capacity)
@@ -166,7 +166,7 @@ size_t BRSetCount(const BRSet *set)
     return set->itemCount;
 }
 
-// true if item is contained in set
+// true if an item equivalant to the given item is contained in set
 int BRSetContains(const BRSet *set, const void *item)
 {
     return (BRSetGet(set, item) != NULL);
@@ -189,7 +189,7 @@ int BRSetIntersects(const BRSet *set, const BRSet *otherSet)
     return 0;
 }
 
-// returns member item from set equivalent to given item, or NULL if there are none
+// returns member item from set equivalent to given item, or NULL if there is none
 void *BRSetGet(const BRSet *set, const void *item)
 {
     assert(set != NULL);

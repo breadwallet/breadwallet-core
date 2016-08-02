@@ -114,12 +114,12 @@ static size_t _BRTxInputData(const BRTxInput *input, uint8_t *data, size_t dataL
     
     if (data && off + sizeof(UInt256) <= dataLen) memcpy(&data[off], &input->txHash, sizeof(UInt256)); // previous out
     off += sizeof(UInt256);
-    if (data && off + sizeof(uint32_t) <= dataLen) set_u32le(&data[off], input->index);
+    if (data && off + sizeof(uint32_t) <= dataLen) UInt32SetLE(&data[off], input->index);
     off += sizeof(uint32_t);
     off += BRVarIntSet((data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0), input->sigLen);
     if (data && off + input->sigLen <= dataLen) memcpy(&data[off], input->signature, input->sigLen); // scriptSig
     off += input->sigLen;
-    if (data && off + sizeof(uint32_t) <= dataLen) set_u32le(&data[off], input->sequence);
+    if (data && off + sizeof(uint32_t) <= dataLen) UInt32SetLE(&data[off], input->sequence);
     off += sizeof(uint32_t);
     return (! data || off <= dataLen) ? off : 0;
 }
@@ -166,7 +166,7 @@ static size_t _BRTransactionOutputData(const BRTransaction *tx, uint8_t *data, s
     
     for (i = (index == SIZE_MAX ? 0 : index); i < tx->outCount && (index == SIZE_MAX || index == i); i++) {
         output = &tx->outputs[i];
-        if (data && off + sizeof(uint64_t) <= dataLen) set_u64le(&data[off], output->amount);
+        if (data && off + sizeof(uint64_t) <= dataLen) UInt64SetLE(&data[off], output->amount);
         off += sizeof(uint64_t);
         off += BRVarIntSet((data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0), output->scriptLen);
         if (data && off + output->scriptLen <= dataLen) memcpy(&data[off], output->script, output->scriptLen);
@@ -186,7 +186,7 @@ static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t 
     size_t i, off = 0;
     
     if (anyoneCanPay && index >= tx->inCount) return 0;
-    if (data && off + sizeof(uint32_t) <= dataLen) set_u32le(&data[off], tx->version); // tx version
+    if (data && off + sizeof(uint32_t) <= dataLen) UInt32SetLE(&data[off], tx->version); // tx version
     off += sizeof(uint32_t);
     
     if (! anyoneCanPay) {
@@ -223,7 +223,7 @@ static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t 
         off += BRVarIntSet((data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0), index + 1);
         
         for (i = 0; i < index; i++)  {
-            if (data && off + sizeof(uint64_t) <= dataLen) set_u64le(&data[off], -1LL);
+            if (data && off + sizeof(uint64_t) <= dataLen) UInt64SetLE(&data[off], -1LL);
             off += sizeof(uint64_t);
             off += BRVarIntSet((data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0), 0);
         }
@@ -232,11 +232,11 @@ static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t 
     }
     else off += BRVarIntSet((data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0), 0); //SIGHASH_NONE outputs
     
-    if (data && off + sizeof(uint32_t) <= dataLen) set_u32le(&data[off], tx->lockTime); // locktime
+    if (data && off + sizeof(uint32_t) <= dataLen) UInt32SetLE(&data[off], tx->lockTime); // locktime
     off += sizeof(uint32_t);
     
     if (index != SIZE_MAX) {
-        if (data && off + sizeof(uint32_t) <= dataLen) set_u32le(&data[off], hashType); // hash type
+        if (data && off + sizeof(uint32_t) <= dataLen) UInt32SetLE(&data[off], hashType); // hash type
         off += sizeof(uint32_t);
     }
     
@@ -270,7 +270,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
     BRTxInput *input;
     BRTxOutput *output;
     
-    tx->version = (off + sizeof(uint32_t) <= bufLen) ? get_u32le(&buf[off]) : 0;
+    tx->version = (off + sizeof(uint32_t) <= bufLen) ? UInt32GetLE(&buf[off]) : 0;
     off += sizeof(uint32_t);
     tx->inCount = BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
     off += len;
@@ -278,9 +278,9 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
     
     for (i = 0; off <= bufLen && i < tx->inCount; i++) {
         input = &tx->inputs[i];
-        input->txHash = (off + sizeof(UInt256) <= bufLen) ? get_u256(&buf[off]) : UINT256_ZERO;
+        input->txHash = (off + sizeof(UInt256) <= bufLen) ? UInt256Get(&buf[off]) : UINT256_ZERO;
         off += sizeof(UInt256);
-        input->index = (off + sizeof(uint32_t) <= bufLen) ? get_u32le(&buf[off]) : 0;
+        input->index = (off + sizeof(uint32_t) <= bufLen) ? UInt32GetLE(&buf[off]) : 0;
         off += sizeof(uint32_t);
         sLen = BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
         off += len;
@@ -292,7 +292,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
         else if (off + sLen <= bufLen) BRTxInputSetSignature(input, &buf[off], sLen);
         
         off += sLen;
-        input->sequence = (off + sizeof(uint32_t) <= bufLen) ? get_u32le(&buf[off]) : 0;
+        input->sequence = (off + sizeof(uint32_t) <= bufLen) ? UInt32GetLE(&buf[off]) : 0;
         off += sizeof(uint32_t);
     }
     
@@ -302,7 +302,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
     
     for (i = 0; off <= bufLen && i < tx->outCount; i++) {
         output = &tx->outputs[i];
-        output->amount = (off + sizeof(uint64_t) <= bufLen) ? get_u64le(&buf[off]) : 0;
+        output->amount = (off + sizeof(uint64_t) <= bufLen) ? UInt64GetLE(&buf[off]) : 0;
         off += sizeof(uint64_t);
         sLen = BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
         off += len;
@@ -310,7 +310,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
         off += sLen;
     }
     
-    tx->lockTime = (off + sizeof(uint32_t) <= bufLen) ? get_u32le(&buf[off]) : 0;
+    tx->lockTime = (off + sizeof(uint32_t) <= bufLen) ? UInt32GetLE(&buf[off]) : 0;
     off += sizeof(uint32_t);
     
     if (tx->inCount == 0 || off > bufLen) {
