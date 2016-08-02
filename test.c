@@ -999,7 +999,7 @@ int BRKeyTests()
     msg = "foo";
     BRSHA256(&md, msg, strlen(msg));
     sigLen = BRKeyCompactSign(&key, sig, sizeof(sig), md);
-    BRKeyRecoverPubKey(&key2, sig, sigLen, md);
+    BRKeyRecoverPubKey(&key2, md, sig, sigLen);
     pkLen = BRKeyPubKey(&key2, pubKey, sizeof(pubKey));
     
     uint8_t pubKey1[BRKeyPubKey(&key, NULL, 0)];
@@ -1012,7 +1012,7 @@ int BRKeyTests()
     msg = "foo";
     BRSHA256(&md, msg, strlen(msg));
     sigLen = BRKeyCompactSign(&key, sig, sizeof(sig), md);
-    BRKeyRecoverPubKey(&key2, sig, sigLen, md);
+    BRKeyRecoverPubKey(&key2, md, sig, sigLen);
     pkLen = BRKeyPubKey(&key2, pubKey, sizeof(pubKey));
     
     uint8_t pubKey2[BRKeyPubKey(&key, NULL, 0)];
@@ -1027,7 +1027,7 @@ int BRKeyTests()
     BRSHA256_2(&md, msg, strlen(msg));
     sigLen = BRBase58Decode(sig, sizeof(sig),
                            "3kq9e842BzkMfbPSbhKVwGZgspDSkz4YfqjdBYQPWDzqd77gPgR1zq4XG7KtAL5DZTcfFFs2iph4urNyXeBkXsEYY");
-    BRKeyRecoverPubKey(&key2, sig, sigLen, md);
+    BRKeyRecoverPubKey(&key2, md, sig, sigLen);
     uint8_t pubKey3[BRKeyPubKey(&key2, NULL, 0)];
     size_t pkLen3 = BRKeyPubKey(&key2, pubKey3, sizeof(pubKey3));
 
@@ -1040,7 +1040,7 @@ int BRKeyTests()
     sigLen = BRBase58Decode(sig, sizeof(sig),
                            "3qECEYmb6x4X22sH98Aer68SdfrLwtqvb5Ncv7EqKmzbxeYYJ1hU9irP6R5PeCctCPYo5KQiWFgoJ3H5MkuX18gHu");
     
-    BRKeyRecoverPubKey(&key2, sig, sigLen, md);
+    BRKeyRecoverPubKey(&key2, md, sig, sigLen);
     uint8_t pubKey4[BRKeyPubKey(&key2, NULL, 0)];
     size_t pkLen4 = BRKeyPubKey(&key2, pubKey4, sizeof(pubKey4));
     
@@ -1053,7 +1053,7 @@ int BRKeyTests()
     sigLen = BRBase58Decode(sig, sizeof(sig),
                            "3oHQhxq5eW8dnp7DquTCbA5tECoNx7ubyiubw4kiFm7wXJF916SZVykFzb8rB1K6dEu7mLspBWbBEJyYk79jAosVR");
     
-    BRKeyRecoverPubKey(&key2, sig, sigLen, md);
+    BRKeyRecoverPubKey(&key2, md, sig, sigLen);
     uint8_t pubKey5[BRKeyPubKey(&key2, NULL, 0)];
     size_t pkLen5 = BRKeyPubKey(&key2, pubKey5, sizeof(pubKey5));
     

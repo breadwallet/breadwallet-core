@@ -367,7 +367,7 @@ size_t BRKeyCompactSign(BRKey *key, void *compactSig, size_t sigLen, UInt256 md)
 }
 
 // assigns pubKey recovered from compactSig to key and returns true on success
-int BRKeyRecoverPubKey(BRKey *key, const void *compactSig, size_t sigLen, UInt256 md)
+int BRKeyRecoverPubKey(BRKey *key, UInt256 md, const void *compactSig, size_t sigLen)
 {
     int r = 0, compressed = 0, recid = 0;
     uint8_t pubKey[65];
