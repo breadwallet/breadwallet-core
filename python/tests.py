@@ -112,6 +112,16 @@ class KeyTests(unittest.TestCase):
         self.assertEqual(sig, sig3)
         self.assertEqual(sig, sig2)
 
+    def test_sign_compact_and_recover_pubkey(self):
+        k = breadwallet.Key()
+        k.secret = breadwallet.UInt256.from_hex('0000000000000000000000000000000000000000000000000000000000000001')
+        message = "foo"
+        h = hashlib.sha256()
+        h.update(message.encode('utf8'))
+        sig = k.sign_compact(h)
+        k2 = breadwallet.Key.recover_pubkey(h, sig)
+        self.assertEqual(k.pubkey, k2.pubkey)
+
     def test_verify(self):
         k = breadwallet.Key()
         k.secret = breadwallet.UInt256.from_hex('fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364140')

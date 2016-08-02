@@ -542,6 +542,51 @@ static PyObject *b_KeyFromBitID(PyObject *cls, PyObject *args, PyObject *kwds) {
     return result;
 }
 
+static PyObject *b_KeyRecoverPubKey(PyObject *cls, PyObject *args, PyObject *kwds) {
+    b_Key *result = NULL;
+    PyObject *message = NULL;
+    PyObject *signature = NULL;
+    static char *kwlist[] = { "message", "signature", NULL };
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "OS", kwlist, &message, &signature)) {
+        return NULL;
+    }
+    if (message == NULL || message == Py_None) {
+        PyErr_SetString(PyExc_ValueError, "message must not be NULL");
+        return NULL;
+    }
+    UInt256 *toSign;
+    PyObject *msgBytes;
+    if (PyObject_IsInstance(message, (PyObject *)&PyBytes_Type)) {
+        msgBytes = message;
+    } else if (PyCallable_Check(PyObject_GetAttrString(message, "digest"))) {
+        msgBytes = PyObject_CallMethod(message, "digest", "");
+        if (!PyObject_IsInstance(msgBytes, (PyObject *)&PyBytes_Type)) {
+            PyErr_SetString(PyExc_TypeError, "digest() must return a bytes object");
+            return NULL;
+        }
+    } else {
+        PyErr_SetString(PyExc_TypeError, "message must be either a bytes object with 32 bytes or a hash object "
+                                         "with a digest() method");
+        return NULL;
+    }
+    if (PyBytes_Size(msgBytes) != 32) {
+        PyErr_SetString(PyExc_ValueError, "must be 32 bytes of data (a UInt256)");
+        return NULL;
+    }
+    toSign = (UInt256 *)PyBytes_AsString(msgBytes);
+    BRKey *key = calloc(1, sizeof(BRKey));
+    int keyLen = BRKeyRecoverPubKey(key, PyBytes_AsString(signature), PyBytes_Size(signature), *toSign);
+    if (!keyLen) {
+        return Py_BuildValue(""); // unable to recover, return None
+    }
+
+    result = (b_Key *)PyObject_CallFunction(cls, "");
+    if (result != NULL) {
+        result->ob_fval = key;
+    }
+    return (PyObject *)result;
+}
+
 static PyObject *b_KeySign(b_Key *self, PyObject *args, PyObject *kwds) {
     PyObject *message;
     static char *kwlist[] = { "message", NULL };
@@ -613,6 +658,43 @@ static PyObject *b_KeyVerify(b_Key *self, PyObject *args, PyObject *kwds) {
     toSign = (UInt256 *)PyBytes_AsString(msgBytes);
     int valid = BRKeyVerify(self->ob_fval, *toSign, PyBytes_AsString(signature), PyBytes_Size(signature));
     return valid ? Py_True : Py_False;
+}
+
+static PyObject *b_KeyCompactSign(b_Key *self, PyObject *args, PyObject *kwds) {
+    PyObject *message;
+    static char *kwlist[] = { "message", NULL };
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "O", kwlist, &message)) {
+        return NULL;
+    }
+    if (message == NULL || message == Py_None) {
+        PyErr_SetString(PyExc_ValueError, "message must not be NULL");
+        return NULL;
+    }
+    UInt256 *toSign;
+    PyObject *msgBytes;
+    if (PyObject_IsInstance(message, (PyObject *)&PyBytes_Type)) {
+        msgBytes = message;
+    } else if (PyCallable_Check(PyObject_GetAttrString(message, "digest"))) {
+        msgBytes = PyObject_CallMethod(message, "digest", "");
+        if (!PyObject_IsInstance(msgBytes, (PyObject *)&PyBytes_Type)) {
+            PyErr_SetString(PyExc_TypeError, "digest() must return a bytes object");
+            return NULL;
+        }
+    } else {
+        PyErr_SetString(PyExc_TypeError, "message must be either a bytes object with 32 bytes or a hash object "
+                                         "with a digest() method");
+        return NULL;
+    }
+    if (PyBytes_Size(msgBytes) != 32) {
+        PyErr_SetString(PyExc_ValueError, "must be 32 bytes of data (a UInt256)");
+        return NULL;
+    }
+
+    toSign = (UInt256 *)PyBytes_AsString(msgBytes);
+    uint8_t sig[72];
+    size_t sigLen = BRKeyCompactSign(self->ob_fval, sig, sizeof(sig), *toSign);
+    PyObject *ret = PyBytes_FromStringAndSize((const char *)&sig, sigLen);
+    return ret;
 }
 
 static PyObject *b_KeyPrivKeyIsValid(PyObject *cls, PyObject *args, PyObject *kwds) {
@@ -773,11 +855,15 @@ static PyMethodDef b_KeyMethods[] = {
     /* Class Methods */
     {"from_bitid", (PyCFunction)b_KeyFromBitID, (METH_VARARGS | METH_KEYWORDS | METH_CLASS),
      "generate a bitid Key from a seed and some bitid parameters"},
+    {"recover_pubkey", (PyCFunction)b_KeyRecoverPubKey, (METH_VARARGS | METH_KEYWORDS | METH_CLASS),
+     "recover a public key from a compact signature"},
     {"privkey_is_valid", (PyCFunction)b_KeyPrivKeyIsValid, (METH_VARARGS | METH_KEYWORDS | METH_CLASS),
      "determine whether or not a serialized private key is valid"},
     /* Instance Methods */
     {"sign", (PyCFunction)b_KeySign, (METH_VARARGS | METH_KEYWORDS),
      "sign a bytes or an object with a digest() method"},
+    {"sign_compact", (PyCFunction)b_KeyCompactSign, (METH_VARARGS | METH_KEYWORDS),
+     "sign some bytes (or an object with the digest() method) using the compact signature format"},
     {"verify", (PyCFunction)b_KeyVerify, (METH_VARARGS | METH_KEYWORDS),
      "verify the message signature was made by this key"},
     {NULL}
