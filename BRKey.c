@@ -219,7 +219,7 @@ int BRKeySetPubKey(BRKey *key, const uint8_t *pubKey, size_t pkLen)
 }
 
 // writes the private key to privKey and returns the number of bytes writen, or pkLen needed if privKey is NULL
-size_t BRKeyPrivKey(BRKey *key, char *privKey, size_t pkLen)
+size_t BRKeyPrivKey(const BRKey *key, char *privKey, size_t pkLen)
 {
     uint8_t data[34];
 
@@ -298,7 +298,7 @@ size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen)
 }
 
 // signs md with key and writes signature to sig and returns the number of bytes written or sigLen needed if sig is NULL
-size_t BRKeySign(BRKey *key, void *sig, size_t sigLen, UInt256 md)
+size_t BRKeySign(const BRKey *key, void *sig, size_t sigLen, UInt256 md)
 {
     secp256k1_ecdsa_signature s;
     
@@ -343,7 +343,7 @@ void BRKeyClean(BRKey *key)
 
 // Pieter Wuille's compact signature encoding used for bitcoin message signing
 // to verify a compact signature, recover a public key from the signature and verify that it matches the signer's pubkey
-size_t BRKeyCompactSign(BRKey *key, void *compactSig, size_t sigLen, UInt256 md)
+size_t BRKeyCompactSign(const BRKey *key, void *compactSig, size_t sigLen, UInt256 md)
 {
     size_t r = 0;
     int recid = 0;

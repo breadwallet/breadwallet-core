@@ -129,7 +129,7 @@ int BRTransactionIsSigned(const BRTransaction *tx);
 int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t keysCount);
 
 // true if tx meets IsStandard() rules: https://bitcoin.org/en/developer-guide#standard-transactions
-int BRTransactionIsStandard(BRTransaction *tx);
+int BRTransactionIsStandard(const BRTransaction *tx);
 
 // returns a hash value for tx suitable for use in a hashtable
 inline static size_t BRTransactionHash(const void *tx)

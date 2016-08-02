@@ -76,7 +76,7 @@ int BRKeySetPrivKey(BRKey *key, const char *privKey);
 int BRKeySetPubKey(BRKey *key, const uint8_t *pubKey, size_t pkLen);
 
 // writes the private key to privKey and returns the number of bytes writen, or pkLen needed if privKey is NULL
-size_t BRKeyPrivKey(BRKey *key, char *privKey, size_t pkLen);
+size_t BRKeyPrivKey(const BRKey *key, char *privKey, size_t pkLen);
 
 // writes the public key to pubKey and returns the number of bytes written, or pkLen needed if pubKey is NULL
 size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t pkLen);
@@ -89,7 +89,7 @@ UInt160 BRKeyHash160(BRKey *key);
 size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen);
 
 // signs md with key and writes signature to sig and returns the number of bytes written or sigLen needed if sig is NULL
-size_t BRKeySign(BRKey *key, void *sig, size_t sigLen, UInt256 md);
+size_t BRKeySign(const BRKey *key, void *sig, size_t sigLen, UInt256 md);
 
 // returns true if the signature for md is verified to have been made by key
 int BRKeyVerify(BRKey *key, UInt256 md, const void *sig, size_t sigLen);
@@ -99,7 +99,7 @@ void BRKeyClean(BRKey *key);
 
 // Pieter Wuille's compact signature encoding used for bitcoin message signing
 // to verify a compact signature, recover a public key from the signature and verify that it matches the signer's pubkey
-size_t BRKeyCompactSign(BRKey *key, void *compactSig, size_t sigLen, UInt256 md);
+size_t BRKeyCompactSign(const BRKey *key, void *compactSig, size_t sigLen, UInt256 md);
 
 // assigns pubKey recovered from compactSig to key and returns true on success
 int BRKeyRecoverPubKey(BRKey *key, UInt256 md, const void *compactSig, size_t sigLen);

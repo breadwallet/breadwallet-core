@@ -483,7 +483,7 @@ int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t keysCount)
 }
 
 // true if tx meets IsStandard() rules: https://bitcoin.org/en/developer-guide#standard-transactions
-int BRTransactionIsStandard(BRTransaction *tx)
+int BRTransactionIsStandard(const BRTransaction *tx)
 {
     int r = 1;
     
