@@ -145,7 +145,6 @@ void BRTxOutputSetAddress(BRTxOutput *output, const char *address)
 void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scriptLen)
 {
     assert(output != NULL);
-    assert(script != NULL || scriptLen == 0);
     if (output->script) array_free(output->script);
     output->script = NULL;
     output->scriptLen = 0;
@@ -327,7 +326,6 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
 size_t BRTransactionSerialize(const BRTransaction *tx, uint8_t *buf, size_t bufLen)
 {
     assert(tx != NULL);
-    assert(buf != NULL || bufLen == 0);
     return (tx) ? _BRTransactionData(tx, buf, bufLen, SIZE_MAX, SIGHASH_ALL) : 0;
 }
 

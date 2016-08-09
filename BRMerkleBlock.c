@@ -133,7 +133,6 @@ size_t BRMerkleBlockSerialize(const BRMerkleBlock *block, uint8_t *buf, size_t b
     size_t off = 0, len = 80;
     
     assert(block != NULL);
-    assert(buf != NULL || bufLen == 0);
     
     if (block->totalTx > 0) {
         len += sizeof(uint32_t) + BRVarIntSize(block->hashesCount) + block->hashesCount*sizeof(UInt256) +
@@ -202,7 +201,6 @@ size_t BRMerkleBlockTxHashes(const BRMerkleBlock *block, UInt256 *txHashes, size
     size_t idx = 0, hashIdx = 0, flagIdx = 0;
 
     assert(block != NULL);
-    assert(txHashes != NULL || hashesCount == 0);
     return _BRMerkleBlockTxHashesR(block, txHashes, (txHashes) ? hashesCount : SIZE_MAX, &idx, &hashIdx, &flagIdx, 0);
 }
 
@@ -222,7 +220,7 @@ static UInt256 _BRMerkleBlockRootR(const BRMerkleBlock *block, size_t *hashIdx, 
             hashes[0] = _BRMerkleBlockRootR(block, hashIdx, flagIdx, depth + 1); // left branch
             hashes[1] = _BRMerkleBlockRootR(block, hashIdx, flagIdx, depth + 1); // right branch
 
-            if (! UInt256Eq(hashes[0], hashes[1])) {
+            if (! UInt256IsZero(hashes[0]) && ! UInt256Eq(hashes[0], hashes[1])) {
                 if (UInt256IsZero(hashes[1])) hashes[1] = hashes[0]; // if right branch is missing, dup left branch
                 BRSHA256_2(&md, hashes, sizeof(hashes));
             }
@@ -286,7 +284,7 @@ int BRMerkleBlockContainsTxHash(const BRMerkleBlock *block, UInt256 txHash)
 
 // verifies the block difficulty target is correct for the block's position in the chain
 // transitionTime is the timestamp of the block at the previous difficulty transition
-// transitionTime may be 0 if height is not a multiple of BLOCK_DIFFICULTY_INTERVAL
+// transitionTime may be 0 if block->height is not a multiple of BLOCK_DIFFICULTY_INTERVAL
 //
 // The difficulty target algorithm works as follows:
 // The target must be the same as in the previous block unless the block's height is a multiple of 2016. Every 2016

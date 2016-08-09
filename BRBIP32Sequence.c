@@ -142,7 +142,6 @@ size_t BRBIP32PubKey(uint8_t *pubKey, size_t pubKeyLen, BRMasterPubKey mpk, uint
 {
     UInt256 chainCode = mpk.chainCode;
     
-    assert(pubKey != NULL || pubKeyLen == 0);
     assert(memcmp(&mpk, &BR_MASTER_PUBKEY_NONE, sizeof(mpk)) != 0);
     
     if (pubKey && sizeof(BRECPoint) <= pubKeyLen) {

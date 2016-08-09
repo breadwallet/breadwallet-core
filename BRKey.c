@@ -281,7 +281,6 @@ size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen)
     uint8_t data[21];
 
     assert(key != NULL);
-    assert(addr != NULL || addrLen == 0);
     hash = BRKeyHash160(key);
     data[0] = BITCOIN_PUBKEY_ADDRESS;
 #if BITCOIN_TESTNET
@@ -303,7 +302,6 @@ size_t BRKeySign(const BRKey *key, void *sig, size_t sigLen, UInt256 md)
     secp256k1_ecdsa_signature s;
     
     assert(key != NULL);
-    assert(sig != NULL || sigLen == 0);
     
     if (secp256k1_ecdsa_sign(_ctx, &s, md.u8, key->secret.u8, secp256k1_nonce_function_rfc6979, NULL)) {
         if (! secp256k1_ecdsa_signature_serialize_der(_ctx, sig, &sigLen, &s)) sigLen = 0;
@@ -322,7 +320,7 @@ int BRKeyVerify(BRKey *key, UInt256 md, const void *sig, size_t sigLen)
     int r = 0;
     
     assert(key != NULL);
-    assert(sig != NULL);
+    assert(sig != NULL || sigLen == 0);
     assert(sigLen > 0);
     len = BRKeyPubKey(key, NULL, 0);
     
@@ -350,8 +348,7 @@ size_t BRKeyCompactSign(const BRKey *key, void *compactSig, size_t sigLen, UInt2
     secp256k1_ecdsa_recoverable_signature s;
 
     assert(key != NULL);
-    assert(compactSig != NULL || sigLen == 0);
-    assert(sigLen >= 65 || sigLen == 0);
+    assert(sigLen >= 65 || compactSig == NULL);
 
     if (! UInt256IsZero(key->secret)) { // can't sign with a public key
         if (compactSig && sigLen >= 65 &&

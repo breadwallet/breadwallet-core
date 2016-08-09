@@ -385,7 +385,6 @@ uint64_t BRWalletBalance(BRWallet *wallet)
 size_t BRWalletUTXOs(BRWallet *wallet, BRUTXO *utxos, size_t utxosCount)
 {
     assert(wallet != NULL);
-    assert(utxos != NULL || utxosCount == 0);
     pthread_mutex_lock(&wallet->lock);
     if (! utxos || array_count(wallet->utxos) < utxosCount) utxosCount = array_count(wallet->utxos);
 
@@ -402,7 +401,6 @@ size_t BRWalletUTXOs(BRWallet *wallet, BRUTXO *utxos, size_t utxosCount)
 size_t BRWalletTransactions(BRWallet *wallet, BRTransaction *transactions[], size_t count)
 {
     assert(wallet != NULL);
-    assert(transactions != NULL || count == 0);
     pthread_mutex_lock(&wallet->lock);
     if (! transactions || array_count(wallet->transactions) < count) count = array_count(wallet->transactions);
 
@@ -421,7 +419,6 @@ size_t BRWalletTxUnconfirmedBefore(BRWallet *wallet, BRTransaction *transactions
     size_t total, n = 0;
 
     assert(wallet != NULL);
-    assert(transactions != NULL || count == 0);
     pthread_mutex_lock(&wallet->lock);
     total = array_count(wallet->transactions);
     while (n < total && wallet->transactions[(total - n) - 1]->blockHeight >= blockHeight) n++;
@@ -504,7 +501,6 @@ size_t BRWalletAllAddrs(BRWallet *wallet, BRAddress addrs[], size_t count)
     size_t i, internalCount = 0, externalCount = 0;
     
     assert(wallet != NULL);
-    assert(addrs != NULL || count == 0);
     pthread_mutex_lock(&wallet->lock);
     internalCount = (! addrs || array_count(wallet->internalChain) < count) ?
                     array_count(wallet->internalChain) : count;
@@ -574,12 +570,10 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
     BRUTXO *o;
     
     assert(wallet != NULL);
-    assert(outputs != NULL);
-    assert(outCount > 0);
+    assert(outputs != NULL && outCount > 0);
 
     for (i = 0; outputs && i < outCount; i++) {
-        assert(outputs[i].script != NULL);
-        assert(outputs[i].scriptLen > 0);
+        assert(outputs[i].script != NULL && outputs[i].scriptLen > 0);
         BRTransactionAddOutput(transaction, outputs[i].amount, outputs[i].script, outputs[i].scriptLen);
         amount += outputs[i].amount;
     }

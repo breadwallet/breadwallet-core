@@ -39,7 +39,6 @@ size_t BRBase58Encode(char *str, size_t strLen, const uint8_t *data, size_t data
 {
     size_t i, j, len, zcount = 0;
     
-    assert(str != NULL || strLen == 0);
     assert(data != NULL);
     while (zcount < dataLen && data && data[zcount] == 0) zcount++; // count leading zeroes
 
@@ -78,7 +77,6 @@ size_t BRBase58Decode(uint8_t *data, size_t dataLen, const char *str)
 {
     size_t i = 0, j, len, zcount = 0;
     
-    assert(data != NULL || dataLen == 0);
     assert(str != NULL);
     while (str && *str == base58chars[0]) str++, zcount++; // count leading zeroes
     
@@ -151,7 +149,6 @@ size_t BRBase58CheckEncode(char *str, size_t strLen, const uint8_t *data, size_t
     uint8_t _buf[(bufLen <= 0x1000) ? bufLen : 0], *buf = (bufLen <= 0x1000) ? _buf : malloc(bufLen);
 
     assert(buf != NULL);
-    assert(str != NULL || strLen == 0);
     assert(data != NULL || dataLen == 0);
 
     if (data || dataLen == 0) {
@@ -168,12 +165,10 @@ size_t BRBase58CheckEncode(char *str, size_t strLen, const uint8_t *data, size_t
 // returns the number of bytes written to data, or total dataLen needed if data is NULL
 size_t BRBase58CheckDecode(uint8_t *data, size_t dataLen, const char *str)
 {
-    assert(data != NULL || dataLen == 0);
-    assert(str != NULL);
-    
     size_t len, bufLen = (str) ? strlen(str) : 0;
     uint8_t md[256/8], _buf[(bufLen <= 0x1000) ? bufLen : 0], *buf = (bufLen <= 0x1000) ? _buf : malloc(bufLen);
-    
+
+    assert(str != NULL);
     assert(buf != NULL);
     len = BRBase58Decode(buf, bufLen, str);
     

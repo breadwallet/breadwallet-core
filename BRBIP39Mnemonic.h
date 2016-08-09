@@ -38,10 +38,10 @@ extern "C" {
 #define BIP39_CREATION_TIME  1388534400 // oldest possible BIP39 phrase creation time, seconds after unix epoch
 #define BIP39_WORDLIST_COUNT 2048       // number of words in a BIP39 wordlist
 
-// returns number of bytes written to phrase including NULL terminator, or size needed if phrase is NULL
+// returns number of bytes written to phrase including NULL terminator, or phraseLen needed if phrase is NULL
 size_t BRBIP39Encode(char *phrase, size_t phraseLen, const char *wordList[], const uint8_t *data, size_t dataLen);
 
-// returns number of bytes written to data, or size needed if data is NULL
+// returns number of bytes written to data, or dataLen needed if data is NULL
 size_t BRBIP39Decode(uint8_t *data, size_t dataLen, const char *wordList[], const char *phrase);
 
 // verifies that all phrase words are contained in wordlist and checksum is valid

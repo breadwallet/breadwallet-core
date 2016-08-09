@@ -40,8 +40,6 @@ uint64_t BRVarInt(const uint8_t *buf, size_t bufLen, size_t *intLen)
     uint64_t r = 0;
     uint8_t h = (buf && sizeof(uint8_t) <= bufLen) ? *buf : 0;
     
-    assert(buf != NULL || bufLen == 0);
-    
     switch (h) {
         case VAR_INT16_HEADER:
             if (intLen) *intLen = sizeof(h) + sizeof(uint16_t);
@@ -71,8 +69,6 @@ uint64_t BRVarInt(const uint8_t *buf, size_t bufLen, size_t *intLen)
 size_t BRVarIntSet(uint8_t *buf, size_t bufLen, uint64_t i)
 {
     size_t r = 0;
-    
-    assert(buf != NULL || bufLen == 0);
     
     if (i < VAR_INT16_HEADER) {
         if (buf && sizeof(uint8_t) <= bufLen) *buf = (uint8_t)i;
@@ -118,7 +114,6 @@ size_t BRScriptElements(const uint8_t *elems[], size_t elemsCount, const uint8_t
 {
     size_t off = 0, i = 0, len = 0;
     
-    assert(elems != NULL || elemsCount == 0);
     assert(script != NULL || scriptLen == 0);
     
     while (script && off < scriptLen) {
@@ -197,7 +192,6 @@ size_t BRScriptPushData(uint8_t *script, size_t scriptLen, const uint8_t *data, 
 {
     size_t len = dataLen;
 
-    assert(script != NULL || scriptLen == 0);
     assert(data != NULL || dataLen == 0);
     if (data == NULL && dataLen != 0) return 0;
     
@@ -243,7 +237,6 @@ size_t BRScriptPushData(uint8_t *script, size_t scriptLen, const uint8_t *data, 
 // returns the number of bytes written or addrLen needed if addr is NULL
 size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *script, size_t scriptLen)
 {
-    assert(addr != NULL || addrLen == 0);
     assert(script != NULL || scriptLen == 0);
     if (! script || scriptLen == 0 || scriptLen > MAX_SCRIPT_LENGTH) return 0;
     
@@ -287,7 +280,6 @@ size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *scri
 // returns the number of bytes written or addrLen needed if addr is NULL
 size_t BRAddressFromScriptSig(char *addr, size_t addrLen, const uint8_t *script, size_t scriptLen)
 {
-    assert(addr != NULL || addrLen == 0);
     assert(script != NULL || scriptLen == 0);
     if (! script || scriptLen == 0 || scriptLen > MAX_SCRIPT_LENGTH) return 0;
     
@@ -330,7 +322,6 @@ size_t BRAddressScriptPubKey(uint8_t *script, size_t scriptLen, const char *addr
     uint8_t data[21];
     size_t r = 0;
     
-    assert(script != NULL || scriptLen == 0);
     assert(addr != NULL);
 
 #if BITCOIN_TESTNET

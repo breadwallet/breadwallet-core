@@ -28,7 +28,7 @@
 #include <string.h>
 #include <assert.h>
 
-// returns number of bytes written to phrase including NULL terminator, or size needed if phrase is NULL
+// returns number of bytes written to phrase including NULL terminator, or phraseLen needed if phrase is NULL
 size_t BRBIP39Encode(char *phrase, size_t phraseLen, const char *wordList[], const uint8_t *data, size_t dataLen)
 {
     uint32_t x;
@@ -36,7 +36,6 @@ size_t BRBIP39Encode(char *phrase, size_t phraseLen, const char *wordList[], con
     const char *word;
     size_t i, len = 0;
 
-    assert(phrase != NULL || phraseLen == 0);
     assert(wordList != NULL);
     assert(data != NULL || dataLen == 0);
     assert(dataLen > 0 && (dataLen % 4) == 0);
@@ -60,7 +59,7 @@ size_t BRBIP39Encode(char *phrase, size_t phraseLen, const char *wordList[], con
     return (! phrase || len + 1 <= phraseLen) ? len + 1 : 0;
 }
 
-// returns number of bytes written to data, or size needed if data is NULL
+// returns number of bytes written to data, or dataLen needed if data is NULL
 size_t BRBIP39Decode(uint8_t *data, size_t dataLen, const char *wordList[], const char *phrase)
 {
     uint32_t x, y, count = 0, idx[24], i;
@@ -68,7 +67,6 @@ size_t BRBIP39Decode(uint8_t *data, size_t dataLen, const char *wordList[], cons
     const char *word = phrase;
     size_t r = 0;
 
-    assert(data != NULL || dataLen == 0);
     assert(wordList != NULL);
     assert(phrase != NULL);
     

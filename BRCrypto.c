@@ -661,14 +661,14 @@ size_t BRChacha20Poly1305AEADEncrypt(void *out, size_t outLen, const void *key32
     const void *iv = (const uint8_t *)nonce12 + 4;
     uint64_t counter = 0, macKey[4] = { 0, 0, 0, 0 }, pad[2] = { 0, 0 };
     uint32_t h[5] = { 0, 0, 0, 0, 0 };
-    
-    assert(! out || key32 != NULL);
-    assert(! out || nonce12 != NULL);
-    assert(! out || data || dataLen == 0);
-    assert(! out || ad || adLen == 0);
-    
+
     if (! out) return dataLen + 16;
     if (outLen < dataLen + 16 || dataLen/64 >= UINT32_MAX) return 0;
+
+    assert(key32 != NULL);
+    assert(nonce12 != NULL);
+    assert(data != NULL || dataLen == 0);
+    assert(ad != NULL || adLen == 0);
     
     memcpy(&((uint32_t *)&counter)[1], nonce12, sizeof(uint32_t));    
     BRChacha20(macKey, key32, iv, macKey, sizeof(macKey), le64(counter));
@@ -696,14 +696,14 @@ size_t BRChacha20Poly1305AEADDecrypt(void *out, size_t outLen, const void *key32
     uint64_t counter = 0, macKey[4] = { 0, 0, 0, 0 }, pad[2] = { 0, 0 };
     uint32_t h[5] = { 0, 0, 0, 0, 0 }, mac[4];
     
-    assert(! out || key32 != NULL);
-    assert(! out || nonce12 != NULL);
-    assert(! out || data || dataLen == 0);
-    assert(! out || ad || adLen == 0);
-    
     if (! out) return (dataLen < 16) ? 0 : dataLen - 16;
     if (dataLen < 16 || (dataLen - 16)/64 >= UINT32_MAX || outLen < dataLen - 16) return 0;
     
+    assert(key32 != NULL);
+    assert(nonce12 != NULL);
+    assert(data != NULL || dataLen == 0);
+    assert(ad != NULL || adLen == 0);
+
     outLen = dataLen - 16;
     memcpy(&((uint32_t *)&counter)[1], nonce12, sizeof(uint32_t));
     BRChacha20(macKey, key32, iv, macKey, sizeof(macKey), le64(counter));
