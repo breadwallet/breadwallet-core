@@ -338,7 +338,7 @@ size_t BRKeyBIP38Key(BRKey *key, char *bip38Key, size_t bip38KeyLen, const char 
     UInt256 hash, derived1, derived2;
     UInt128 encrypted1, encrypted2;
     
-    if (! bip38Key) return 43*138/100 + 1; // 43bytes*log(256)/log(58), rounded up
+    if (! bip38Key) return 43*138/100 + 2; // 43bytes*log(256)/log(58), rounded up, plus NULL terminator
 
     assert(key != NULL);
     assert(passphrase != NULL);
