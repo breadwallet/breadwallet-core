@@ -207,6 +207,7 @@ int BRBIP38KeyIsValid(const char *bip38Key)
     uint8_t data[39];
     
     assert(bip38Key != NULL);
+    
     if (BRBase58CheckDecode(data, sizeof(data), bip38Key) != 39) return 0; // invalid length
     
     uint16_t prefix = UInt16GetBE(data);
@@ -232,6 +233,7 @@ int BRKeySetBIP38Key(BRKey *key, const char *bip38Key, const char *passphrase)
     assert(key != NULL);
     assert(bip38Key != NULL);
     assert(passphrase != NULL);
+    
     if (BRBase58CheckDecode(data, sizeof(data), bip38Key) != 39) return 0; // invalid length
     
     uint16_t prefix = UInt16GetBE(data);
@@ -327,6 +329,48 @@ void BRKeySetBIP38ItermediateCode(BRKey *key, const char *code, const uint8_t *s
 // returns number of bytes written to bip38Key including NULL terminator or total bip38KeyLen needed if bip38Key is NULL
 size_t BRKeyBIP38Key(BRKey *key, char *bip38Key, size_t bip38KeyLen, const char *passphrase)
 {
-    // TODO: XXX implement
-    return 0;
+    uint16_t prefix = BIP38_NOEC_PREFIX;
+    uint8_t buf[39], flag = BIP38_NOEC_FLAG;
+    uint32_t salt;
+    size_t off = 0;
+    BRAddress address;
+    UInt512 derived;
+    UInt256 hash, derived1, derived2;
+    UInt128 encrypted1, encrypted2;
+    
+    if (! bip38Key) return 43*138/100 + 1; // 43bytes*log(256)/log(58), rounded up
+
+    assert(key != NULL);
+    assert(passphrase != NULL);
+   
+    if (key->compressed) flag |= BIP38_COMPRESSED_FLAG;
+    BRKeyAddress(key, address.s, sizeof(address));
+    BRSHA256_2(&hash, address.s, strlen(address.s));
+    salt = hash.u32[0];
+
+    BRScrypt(&derived, sizeof(derived), passphrase, strlen(passphrase), &salt, sizeof(salt),
+             BIP38_SCRYPT_N, BIP38_SCRYPT_R, BIP38_SCRYPT_P);
+    derived1 = *(UInt256 *)&derived, derived2 = *(UInt256 *)&derived.u64[4];
+    
+    // enctryped1 = AES256Encrypt(privkey[0...15] xor derived1[0...15], derived2)
+    encrypted1.u64[0] = key->secret.u64[0] ^ derived1.u64[0];
+    encrypted1.u64[1] = key->secret.u64[1] ^ derived1.u64[1];
+    _BRAES256ECBEncrypt(&derived2, &encrypted1);
+
+    // encrypted2 = AES256Encrypt(privkey[16...31] xor derived1[16...31], derived2)
+    encrypted2.u64[0] = key->secret.u64[2] ^ derived1.u64[2];
+    encrypted2.u64[1] = key->secret.u64[3] ^ derived1.u64[3];
+    _BRAES256ECBEncrypt(&derived2, &encrypted2);
+    
+    UInt16SetBE(&buf[off], prefix);
+    off += sizeof(prefix);
+    buf[off] = flag;
+    off += sizeof(flag);
+    UInt32SetBE(&buf[off], UInt32GetBE(&salt));
+    off += sizeof(salt);
+    UInt128Set(&buf[off], encrypted1);
+    off += sizeof(encrypted1);
+    UInt128Set(&buf[off], encrypted2);
+    off += sizeof(encrypted2);
+    return BRBase58CheckEncode(bip38Key, bip38KeyLen, buf, off);
 }

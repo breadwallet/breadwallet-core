@@ -56,9 +56,8 @@ extern "C" {
 // array_clear(myArray);                    // myArray is now empty
 // array_free(myArray);                     // free memory allocated for myArray
 //
-// note:
-// when new items are added to an array past its current capacity, its memory location may change, so other references
-// to it or its members must be updated
+// NOTE: when new items are added to an array past its current capacity, its memory location may change, so other
+// references to it or its members must be updated
 
 #define array_new(array, capacity) do {\
     size_t _array_cap = (capacity);\

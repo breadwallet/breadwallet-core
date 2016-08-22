@@ -1094,9 +1094,7 @@ void BRPeerConnect(BRPeer *peer)
                     peer_log(peer, "error creating thread");
                     ctx->status = BRPeerStatusDisconnected;
                 }
-                else if (pthread_attr_setstacksize(&attr, 512*1024) != 0 || // set stack size (there's no standard)
-                         // set thread detached so it'll free resources immediately on exit without waiting for join
-                         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0 ||
+                else if (pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0 ||
                          pthread_create(&ctx->thread, &attr, _peerThreadRoutine, peer) != 0) {
                     error = EAGAIN;
                     peer_log(peer, "error creating thread");

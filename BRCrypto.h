@@ -61,8 +61,14 @@ uint32_t BRMurmur3_32(const void *data, size_t len, uint32_t seed);
 void BRHMAC(void *mac, void (*hash)(void *, const void *, size_t), size_t hashLen, const void *key, size_t keyLen,
             const void *data, size_t dataLen);
 
+// hmac-drbg with no prediction resistance or additional input
+// K and V must point to buffers of size hashLen, and ps (personalization string) may be NULL
+// to generate additional drbg output, use K and V from the previous call, and set seed, nonce and ps to NULL
+void BRHMACDRBG(void *out, size_t outLen, void *K, void *V, void (*hash)(void *, const void *, size_t), size_t hashLen,
+                const void *seed, size_t seedLen, const void *nonce, size_t nonceLen, const void *ps, size_t psLen);
+
 // poly1305 authenticator: https://tools.ietf.org/html/rfc7539
-// must use constant time mem comparison when verifying mac to defend against timing attacks
+// NOTE: must use constant time mem comparison when verifying mac to defend against timing attacks
 void BRPoly1305(void *mac16, const void *key32, const void *data, size_t len);
 
 // chacha20 stream cypher: https://cr.yp.to/chacha.html

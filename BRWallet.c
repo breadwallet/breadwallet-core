@@ -547,7 +547,7 @@ int BRWalletAddressIsUsed(BRWallet *wallet, const char *addr)
 }
 
 // returns an unsigned transaction that sends the specified amount from the wallet to the given address
-// result must be freed using BRTransactionFree()
+// result must be freed by calling BRTransactionFree()
 BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, const char *addr)
 {
     BRTxOutput o = BR_TX_OUTPUT_NONE;
@@ -561,7 +561,7 @@ BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, cons
 }
 
 // returns an unsigned transaction that satisifes the given transaction outputs
-// result must be freed using BRTransactionFree()
+// result must be freed by calling BRTransactionFree()
 BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput outputs[], size_t outCount)
 {
     BRTransaction *tx, *transaction = BRTransactionNew();

@@ -391,6 +391,7 @@ void BRHash160(void *md20, const void *data, size_t len)
     
     assert(md20 != NULL);
     assert(data != NULL || len == 0);
+    
     BRSHA256(t, data, len);
     BRRMD160(md20, t, sizeof(t));
 }
@@ -507,6 +508,7 @@ void BRHMAC(void *mac, void (*hash)(void *, const void *, size_t), size_t hashLe
     assert(hashLen > 0 && (hashLen % 4) == 0);
     assert(key != NULL || keyLen == 0);
     assert(data != NULL || dataLen == 0);
+    
     if (keyLen > blockLen) hash(k, key, keyLen), key = k, keyLen = sizeof(k);
     memset(kipad, 0, blockLen);
     memcpy(kipad, key, keyLen);
@@ -521,6 +523,51 @@ void BRHMAC(void *mac, void (*hash)(void *, const void *, size_t), size_t hashLe
     memset(k, 0, sizeof(k));
     memset(kipad, 0, blockLen);
     memset(kopad, 0, blockLen);
+}
+
+// hmac-drbg with no prediction resistance or additional input
+// K and V must point to buffers of size hashLen, and ps (personalization string) may be NULL
+// to generate additional drbg output, use K and V from the previous call, and set seed, nonce and ps to NULL
+void BRHMACDRBG(void *out, size_t outLen, void *K, void *V, void (*hash)(void *, const void *, size_t), size_t hashLen,
+                const void *seed, size_t seedLen, const void *nonce, size_t nonceLen, const void *ps, size_t psLen)
+{
+    size_t i, bufLen = hashLen + 1 + seedLen + nonceLen + psLen;
+    uint8_t buf[bufLen];
+    
+    assert(out != NULL || outLen == 0);
+    assert(K != NULL);
+    assert(V != NULL);
+    assert(hash != NULL);
+    assert(hashLen > 0 && (hashLen % 4) == 0);
+    assert(seed != NULL || seedLen == 0);
+    assert(nonce != NULL || nonceLen == 0);
+    assert(ps != NULL || psLen == 0);
+    
+    if (seed || nonce || ps) { // K = [0x00, 0x00, ... 0x00], V = [0x01, 0x01, ... 0x01]
+        for (i = 0; i < hashLen; i++) ((uint8_t *)K)[i] = 0x00, ((uint8_t *)V)[i] = 0x01;
+    }
+    
+    memcpy(buf, V, hashLen);
+    buf[hashLen] = 0x00;
+    memcpy(&buf[hashLen + 1], seed, seedLen);
+    memcpy(&buf[hashLen + 1 + seedLen], nonce, nonceLen);
+    memcpy(&buf[hashLen + 1 + seedLen + nonceLen], ps, psLen);
+    BRHMAC(K, hash, hashLen, K, hashLen, buf, bufLen); // K = HMAC(K, V || 0x00 || entropy || nonce || ps)
+    BRHMAC(V, hash, hashLen, K, hashLen, V, hashLen);  // V = HMAC(K, V)
+    
+    if (seed || nonce || ps) {
+        memcpy(buf, V, hashLen);
+        buf[hashLen] = 0x01;
+        BRHMAC(K, hash, hashLen, K, hashLen, buf, bufLen); // K = HMAC(K, V || 0x01 || entropy || nonce || ps)
+        BRHMAC(V, hash, hashLen, K, hashLen, V, hashLen);  // V = HMAC(K, V)
+    }
+    
+    memset(buf, 0, bufLen);
+    
+    for (i = 0; i*hashLen < outLen; i++) {
+        BRHMAC(V, hash, hashLen, K, hashLen, V, hashLen); // V = HMAC(K, V)
+        memcpy((uint8_t *)out + i*hashLen, V, (i*hashLen + hashLen <= outLen) ? hashLen : outLen % hashLen);
+    }
 }
 
 static void _BRPoly1305Compress(uint32_t h[5], const void *key32, const void *data, size_t len, int final)
@@ -590,7 +637,7 @@ static void _BRPoly1305Compress(uint32_t h[5], const void *key32, const void *da
 }
 
 // poly1305 authenticator: https://tools.ietf.org/html/rfc7539
-// must use constant time mem comparison when verifying mac to defend against timing attacks
+// NOTE: must use constant time mem comparison when verifying mac to defend against timing attacks
 void BRPoly1305(void *mac16, const void *key32, const void *data, size_t len)
 {
     uint32_t h[5] = { 0, 0, 0, 0, 0 };
@@ -697,7 +744,7 @@ size_t BRChacha20Poly1305AEADDecrypt(void *out, size_t outLen, const void *key32
     uint32_t h[5] = { 0, 0, 0, 0, 0 }, mac[4];
     
     if (! out) return (dataLen < 16) ? 0 : dataLen - 16;
-    if (dataLen < 16 || (dataLen - 16)/64 >= UINT32_MAX || outLen < dataLen - 16) return 0;
+    if (dataLen < 16 || (dataLen - 16)/64 >= UINT32_MAX || outLen + 16 < dataLen) return 0;
     
     assert(key32 != NULL);
     assert(nonce12 != NULL);
@@ -743,6 +790,7 @@ void BRPBKDF2(void *dk, size_t dkLen, void (*hash)(void *, const void *, size_t)
     assert(pw != NULL || pwLen == 0);
     assert(salt != NULL || saltLen == 0);
     assert(rounds > 0);
+    
     memcpy(s, salt, saltLen);
     
     for (i = 0; i < (dkLen + hashLen - 1)/hashLen; i++) {
@@ -817,6 +865,7 @@ void BRScrypt(void *dk, size_t dkLen, const void *pw, size_t pwLen, const void *
     assert(n > 0);
     assert(r > 0);
     assert(p > 0);
+    
     BRPBKDF2(b, sizeof(b), BRSHA256, 32, pw, pwLen, salt, saltLen, 1);
     
     for (int i = 0; i < p; i++) {

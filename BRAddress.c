@@ -315,7 +315,7 @@ size_t BRAddressFromScriptSig(char *addr, size_t addrLen, const uint8_t *script,
 }
 
 // writes the scriptPubKey for addr to script
-// returns the number of bytes written or scripLen needed if script is NULL
+// returns the number of bytes written or scriptLen needed if script is NULL
 size_t BRAddressScriptPubKey(uint8_t *script, size_t scriptLen, const char *addr)
 {
     static uint8_t pubkeyAddress = BITCOIN_PUBKEY_ADDRESS, scriptAddress = BITCOIN_SCRIPT_ADDRESS;

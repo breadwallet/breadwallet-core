@@ -76,6 +76,7 @@ int BRKeySetPrivKey(BRKey *key, const char *privKey);
 int BRKeySetPubKey(BRKey *key, const uint8_t *pubKey, size_t pkLen);
 
 // writes the private key to privKey and returns the number of bytes writen, or pkLen needed if privKey is NULL
+// returns 0 on failure
 size_t BRKeyPrivKey(const BRKey *key, char *privKey, size_t pkLen);
 
 // writes the public key to pubKey and returns the number of bytes written, or pkLen needed if pubKey is NULL
@@ -89,6 +90,7 @@ UInt160 BRKeyHash160(BRKey *key);
 size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen);
 
 // signs md with key and writes signature to sig and returns the number of bytes written or sigLen needed if sig is NULL
+// returns 0 on failure
 size_t BRKeySign(const BRKey *key, void *sig, size_t sigLen, UInt256 md);
 
 // returns true if the signature for md is verified to have been made by key

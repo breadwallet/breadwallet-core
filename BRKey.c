@@ -124,6 +124,7 @@ int BRPrivKeyIsValid(const char *privKey)
     int r = 0;
     
     assert(privKey != NULL);
+
     dataLen = BRBase58CheckDecode(data, sizeof(data), privKey);
     strLen = strlen(privKey);
     
@@ -155,6 +156,7 @@ int BRKeySetSecret(BRKey *key, const UInt256 *secret, int compressed)
 {
     assert(key != NULL);
     assert(secret != NULL);
+    
     pthread_once(&_ctx_once, _ctx_init);
     BRKeyClean(key);
     key->secret = UInt256Get(secret);
@@ -172,6 +174,7 @@ int BRKeySetPrivKey(BRKey *key, const char *privKey)
 #if BITCOIN_TESTNET
     version = BITCOIN_PRIVKEY_TEST;
 #endif
+
     assert(key != NULL);
     assert(privKey != NULL);
     
@@ -211,6 +214,7 @@ int BRKeySetPubKey(BRKey *key, const uint8_t *pubKey, size_t pkLen)
     assert(key != NULL);
     assert(pubKey != NULL);
     assert(pkLen == 33 || pkLen == 65);
+    
     pthread_once(&_ctx_once, _ctx_init);
     BRKeyClean(key);
     memcpy(key->pubKey, pubKey, pkLen);
@@ -219,12 +223,12 @@ int BRKeySetPubKey(BRKey *key, const uint8_t *pubKey, size_t pkLen)
 }
 
 // writes the private key to privKey and returns the number of bytes writen, or pkLen needed if privKey is NULL
+// returns 0 on failure
 size_t BRKeyPrivKey(const BRKey *key, char *privKey, size_t pkLen)
 {
     uint8_t data[34];
 
     assert(key != NULL);
-    assert(privKey != NULL || pkLen == 0);
     
     if (secp256k1_ec_seckey_verify(_ctx, key->secret.u8)) {
         data[0] = BITCOIN_PRIVKEY;
@@ -250,7 +254,6 @@ size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t pkLen)
     secp256k1_pubkey pk;
 
     assert(key != NULL);
-    assert(pubKey != NULL || pkLen == 0);
     
     if (memcmp(key->pubKey, empty, size) == 0 && secp256k1_ec_pubkey_create(_ctx, &pk, key->secret.u8)) {
         secp256k1_ec_pubkey_serialize(_ctx, key->pubKey, &size, &pk,
@@ -281,6 +284,7 @@ size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen)
     uint8_t data[21];
 
     assert(key != NULL);
+    
     hash = BRKeyHash160(key);
     data[0] = BITCOIN_PUBKEY_ADDRESS;
 #if BITCOIN_TESTNET
@@ -297,6 +301,7 @@ size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen)
 }
 
 // signs md with key and writes signature to sig and returns the number of bytes written or sigLen needed if sig is NULL
+// returns 0 on failure
 size_t BRKeySign(const BRKey *key, void *sig, size_t sigLen, UInt256 md)
 {
     secp256k1_ecdsa_signature s;
@@ -322,6 +327,7 @@ int BRKeyVerify(BRKey *key, UInt256 md, const void *sig, size_t sigLen)
     assert(key != NULL);
     assert(sig != NULL || sigLen == 0);
     assert(sigLen > 0);
+    
     len = BRKeyPubKey(key, NULL, 0);
     
     if (len > 0 && secp256k1_ec_pubkey_parse(_ctx, &pk, key->pubKey, len) &&

@@ -153,7 +153,7 @@ int BRArrayTests()
     if (array_count(a) != 0) r = 0, fprintf(stderr, "***FAILED*** %s: array_clear() test\n", __func__);
     
     array_free(a);
-    printf("                          ");
+    printf("                                    ");
     return r;
 }
 
@@ -201,7 +201,7 @@ int BRListTests()
     list_free(head);
     if (head) r = 0, fprintf(stderr, "***FAILED*** %s: list_free() test\n", __func__);
     
-    printf("                          ");
+    printf("                                    ");
     return r;
 }
 
@@ -556,13 +556,67 @@ int BRMacTests()
 {
     int r = 1;
 
+    // test hmac
+    
+    const char k1[] = "\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b",
+    d1[] = "Hi There";
+    uint8_t mac[64];
+    
+    BRHMAC(mac, BRSHA224, 224/8, k1, sizeof(k1) - 1, d1, sizeof(d1) - 1);
+    if (memcmp("\x89\x6f\xb1\x12\x8a\xbb\xdf\x19\x68\x32\x10\x7c\xd4\x9d\xf3\x3f\x47\xb4\xb1\x16\x99\x12\xba\x4f\x53"
+               "\x68\x4b\x22", mac, 28) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRHMAC() sha224 test 1\n", __func__);
+
+    BRHMAC(mac, BRSHA256, 256/8, k1, sizeof(k1) - 1, d1, sizeof(d1) - 1);
+    if (memcmp("\xb0\x34\x4c\x61\xd8\xdb\x38\x53\x5c\xa8\xaf\xce\xaf\x0b\xf1\x2b\x88\x1d\xc2\x00\xc9\x83\x3d\xa7\x26"
+               "\xe9\x37\x6c\x2e\x32\xcf\xf7", mac, 32) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRHMAC() sha256 test 1\n", __func__);
+
+    BRHMAC(mac, BRSHA384, 384/8, k1, sizeof(k1) - 1, d1, sizeof(d1) - 1);
+    if (memcmp("\xaf\xd0\x39\x44\xd8\x48\x95\x62\x6b\x08\x25\xf4\xab\x46\x90\x7f\x15\xf9\xda\xdb\xe4\x10\x1e\xc6\x82"
+               "\xaa\x03\x4c\x7c\xeb\xc5\x9c\xfa\xea\x9e\xa9\x07\x6e\xde\x7f\x4a\xf1\x52\xe8\xb2\xfa\x9c\xb6", mac, 48)
+        != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRHMAC() sha384 test 1\n", __func__);
+
+    BRHMAC(mac, BRSHA512, 512/8, k1, sizeof(k1) - 1, d1, sizeof(d1) - 1);
+    if (memcmp("\x87\xaa\x7c\xde\xa5\xef\x61\x9d\x4f\xf0\xb4\x24\x1a\x1d\x6c\xb0\x23\x79\xf4\xe2\xce\x4e\xc2\x78\x7a"
+               "\xd0\xb3\x05\x45\xe1\x7c\xde\xda\xa8\x33\xb7\xd6\xb8\xa7\x02\x03\x8b\x27\x4e\xae\xa3\xf4\xe4\xbe\x9d"
+               "\x91\x4e\xeb\x61\xf1\x70\x2e\x69\x6c\x20\x3a\x12\x68\x54", mac, 64) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRHMAC() sha512 test 1\n", __func__);
+
+    const char k2[] = "Jefe",
+    d2[] = "what do ya want for nothing?";
+
+    BRHMAC(mac, BRSHA224, 224/8, k2, sizeof(k2) - 1, d2, sizeof(d2) - 1);
+    if (memcmp("\xa3\x0e\x01\x09\x8b\xc6\xdb\xbf\x45\x69\x0f\x3a\x7e\x9e\x6d\x0f\x8b\xbe\xa2\xa3\x9e\x61\x48\x00\x8f"
+               "\xd0\x5e\x44", mac, 28) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRHMAC() sha224 test 2\n", __func__);
+    
+    BRHMAC(mac, BRSHA256, 256/8, k2, sizeof(k2) - 1, d2, sizeof(d2) - 1);
+    if (memcmp("\x5b\xdc\xc1\x46\xbf\x60\x75\x4e\x6a\x04\x24\x26\x08\x95\x75\xc7\x5a\x00\x3f\x08\x9d\x27\x39\x83\x9d"
+               "\xec\x58\xb9\x64\xec\x38\x43", mac, 32) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRHMAC() sha256 test 2\n", __func__);
+    
+    BRHMAC(mac, BRSHA384, 384/8, k2, sizeof(k2) - 1, d2, sizeof(d2) - 1);
+    if (memcmp("\xaf\x45\xd2\xe3\x76\x48\x40\x31\x61\x7f\x78\xd2\xb5\x8a\x6b\x1b\x9c\x7e\xf4\x64\xf5\xa0\x1b\x47\xe4"
+               "\x2e\xc3\x73\x63\x22\x44\x5e\x8e\x22\x40\xca\x5e\x69\xe2\xc7\x8b\x32\x39\xec\xfa\xb2\x16\x49", mac, 48)
+        != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRHMAC() sha384 test 2\n", __func__);
+    
+    BRHMAC(mac, BRSHA512, 512/8, k2, sizeof(k2) - 1, d2, sizeof(d2) - 1);
+    if (memcmp("\x16\x4b\x7a\x7b\xfc\xf8\x19\xe2\xe3\x95\xfb\xe7\x3b\x56\xe0\xa3\x87\xbd\x64\x22\x2e\x83\x1f\xd6\x10"
+               "\x27\x0c\xd7\xea\x25\x05\x54\x97\x58\xbf\x75\xc0\x5a\x99\x4a\x6d\x03\x4f\x65\xf8\xf0\xe6\xfd\xca\xea"
+               "\xb1\xa3\x4d\x4a\x6b\x4b\x63\x6e\x07\x0a\x38\xbc\xe7\x37", mac, 64) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRHMAC() sha512 test 2\n", __func__);
+    
+    // test poly1305
+
     const char key1[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
     msg1[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
     "\0\0\0\0\0\0\0\0\0\0\0";
-    uint8_t mac[16];
     
     BRPoly1305(mac, key1, msg1, sizeof(msg1) - 1);
-    if (memcmp("\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, sizeof(mac)) != 0)
+    if (memcmp("\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, 16) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 1\n", __func__);
 
     const char key2[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x36\xe5\xf6\xb5\xc5\xe0\x60\x70\xf0\xef\xca\x96\x22\x7a\x86"
@@ -573,7 +627,7 @@ int BRMacTests()
     "communications made at any time or place, which are addressed to";
 
     BRPoly1305(mac, key2, msg2, sizeof(msg2) - 1);
-    if (memcmp("\x36\xe5\xf6\xb5\xc5\xe0\x60\x70\xf0\xef\xca\x96\x22\x7a\x86\x3e", mac, sizeof(mac)) != 0)
+    if (memcmp("\x36\xe5\xf6\xb5\xc5\xe0\x60\x70\xf0\xef\xca\x96\x22\x7a\x86\x3e", mac, 16) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 2\n", __func__);
 
     const char key3[] = "\x36\xe5\xf6\xb5\xc5\xe0\x60\x70\xf0\xef\xca\x96\x22\x7a\x86\x3e\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
@@ -584,7 +638,7 @@ int BRMacTests()
     "communications made at any time or place, which are addressed to";
 
     BRPoly1305(mac, key3, msg3, sizeof(msg3) - 1);
-    if (memcmp("\xf3\x47\x7e\x7c\xd9\x54\x17\xaf\x89\xa6\xb8\x79\x4c\x31\x0c\xf0", mac, sizeof(mac)) != 0)
+    if (memcmp("\xf3\x47\x7e\x7c\xd9\x54\x17\xaf\x89\xa6\xb8\x79\x4c\x31\x0c\xf0", mac, 16) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 3\n", __func__);
     
     const char key4[] = "\x1c\x92\x40\xa5\xeb\x55\xd3\x8a\xf3\x33\x88\x86\x04\xf6\xb5\xf0\x47\x39\x17\xc1\x40\x2b\x80"
@@ -593,14 +647,14 @@ int BRMacTests()
     "And the mome raths outgrabe.";
 
     BRPoly1305(mac, key4, msg4, sizeof(msg4) - 1);
-    if (memcmp("\x45\x41\x66\x9a\x7e\xaa\xee\x61\xe7\x08\xdc\x7c\xbc\xc5\xeb\x62", mac, sizeof(mac)) != 0)
+    if (memcmp("\x45\x41\x66\x9a\x7e\xaa\xee\x61\xe7\x08\xdc\x7c\xbc\xc5\xeb\x62", mac, 16) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 4\n", __func__);
 
     const char key5[] = "\x02\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
     msg5[] = "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF";
 
     BRPoly1305(mac, key5, msg5, sizeof(msg5) - 1);
-    if (memcmp("\x03\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, sizeof(mac)) != 0)
+    if (memcmp("\x03\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, 16) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 5\n", __func__);
 
     const char key6[] = "\x02\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
@@ -608,7 +662,7 @@ int BRMacTests()
     msg6[] = "\x02\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
     
     BRPoly1305(mac, key6, msg6, sizeof(msg6) - 1);
-    if (memcmp("\x03\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, sizeof(mac)) != 0)
+    if (memcmp("\x03\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, 16) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 6\n", __func__);
 
     const char key7[] = "\x01\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
@@ -616,7 +670,7 @@ int BRMacTests()
     "\xFF\xFF\xFF\xFF\xFF\xFF\x11\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
     
     BRPoly1305(mac, key7, msg7, sizeof(msg7) - 1);
-    if (memcmp("\x05\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, sizeof(mac)) != 0)
+    if (memcmp("\x05\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, 16) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 7\n", __func__);
 
     const char key8[] = "\x01\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
@@ -624,14 +678,14 @@ int BRMacTests()
     "\xFE\xFE\xFE\xFE\xFE\xFE\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01";
     
     BRPoly1305(mac, key8, msg8, sizeof(msg8) - 1);
-    if (memcmp("\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, sizeof(mac)) != 0)
+    if (memcmp("\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, 16) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 8\n", __func__);
 
     const char key9[] = "\x02\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
     msg9[] = "\xFD\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF";
     
     BRPoly1305(mac, key9, msg9, sizeof(msg9) - 1);
-    if (memcmp("\xFA\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF", mac, sizeof(mac)) != 0)
+    if (memcmp("\xFA\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF", mac, 16) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 9\n", __func__);
 
     const char key10[] = "\x01\0\0\0\0\0\0\0\x04\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
@@ -639,7 +693,7 @@ int BRMacTests()
     "\0\0\0\0\0\0\0\0\0\0\0\0\0\x01\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
     
     BRPoly1305(mac, key10, msg10, sizeof(msg10) - 1);
-    if (memcmp("\x14\0\0\0\0\0\0\0\x55\0\0\0\0\0\0\0", mac, sizeof(mac)) != 0)
+    if (memcmp("\x14\0\0\0\0\0\0\0\x55\0\0\0\0\0\0\0", mac, 16) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 10\n", __func__);
 
     const char key11[] = "\x01\0\0\0\0\0\0\0\x04\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
@@ -647,8 +701,148 @@ int BRMacTests()
     "\0\0\0\0\0\0\0\0\0\0\0\0\0";
     
     BRPoly1305(mac, key11, msg11, sizeof(msg11) - 1);
-    if (memcmp("\x13\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, sizeof(mac)) != 0)
+    if (memcmp("\x13\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", mac, 16) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPoly1305() test 11\n", __func__);
+    
+    return r;
+}
+
+int BRDrbgTests()
+{
+    int r = 1;
+    const char seed1[] = "\xa7\x6e\x77\xa9\x69\xab\x92\x64\x51\x81\xf0\x15\x78\x02\x52\x37\x46\xc3\x4b\xf3\x21\x86\x76"
+    "\x41", nonce1[] = "\x05\x1e\xd6\xba\x39\x36\x80\x33\xad\xc9\x3d\x4e";
+    uint8_t out[2048/8], K[512/8], V[512/8];
+    
+    BRHMACDRBG(out, 896/8, K, V, BRSHA224, 224/8, seed1, sizeof(seed1) - 1, nonce1, sizeof(nonce1) - 1, NULL, 0);
+    BRHMACDRBG(out, 896/8, K, V, BRSHA224, 224/8, NULL, 0, NULL, 0, NULL, 0);
+    if (memcmp("\x89\x25\x98\x7d\xb5\x56\x6e\x60\x52\x0f\x09\xbd\xdd\xab\x48\x82\x92\xbe\xd9\x2c\xd3\x85\xe5\xb6\xfc"
+               "\x22\x3e\x19\x19\x64\x0b\x4e\x34\xe3\x45\x75\x03\x3e\x56\xc0\xa8\xf6\x08\xbe\x21\xd3\xd2\x21\xc6\x7d"
+               "\x39\xab\xec\x98\xd8\x13\x12\xf3\xa2\x65\x3d\x55\xff\xbf\x44\xc3\x37\xc8\x2b\xed\x31\x4c\x21\x1b\xe2"
+               "\x3e\xc3\x94\x39\x9b\xa3\x51\xc4\x68\x7d\xce\x64\x9e\x7c\x2a\x1b\xa7\xb0\xb5\xda\xb1\x25\x67\x1b\x1b"
+               "\xcf\x90\x08\xda\x65\xca\xd6\x12\xd9\x5d\xdc\x92", out, 896/8) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRHMACDRBG() test 1\n", __func__);
+
+    const char seed2[] = "\xf6\xe6\x8b\xb0\x58\x5c\x84\xd7\xb9\xf1\x75\x79\xad\x9b\x9a\x8a\xa2\x66\x6a\xbf\x4e\x8b\x44"
+    "\xa3", nonce2[] = "\xa4\x33\x11\xd5\x78\x42\xef\x09\x6b\x66\xfa\x5e",
+    ps2[] = "\x2f\x50\x7e\x12\xd6\x8a\x88\x0f\xa7\x0d\x6e\x5e\x54\x39\x15\x38\x17\x32\x97\x81\x4e\x06\xd7\xfd";
+
+    BRHMACDRBG(out, 896/8, K, V, BRSHA224, 224/8, seed2, sizeof(seed2) - 1, nonce2, sizeof(nonce2) - 1,
+               ps2, sizeof(ps2) - 1);
+    BRHMACDRBG(out, 896/8, K, V, BRSHA224, 224/8, NULL, 0, NULL, 0, NULL, 0);
+    if (memcmp("\x10\xc2\xf9\x3c\xa9\x9a\x8e\x8e\xcf\x22\x54\x00\xc8\x04\xa7\xb3\x68\xd9\x3c\xee\x3b\xfa\x6f\x44\x59"
+               "\x20\xa6\xa9\x12\xd2\x68\xd6\x91\xf1\x78\x8b\xaf\x01\x3f\xb1\x68\x50\x1c\xa1\x56\xb5\x71\xba\x04\x7d"
+               "\x8d\x02\x9d\xc1\xc1\xee\x07\xfc\xa5\x0a\xf6\x99\xc5\xbc\x2f\x79\x0a\xcf\x27\x80\x41\x51\x81\x41\xe7"
+               "\xdc\x91\x64\xc3\xe5\x71\xb2\x65\xfb\x89\x54\x26\x1d\x92\xdb\xf2\x0a\xe0\x2f\xc2\xb7\x80\xc0\x18\xb6"
+               "\xb5\x4b\x43\x20\xf2\xb8\x9d\x34\x33\x07\xfb\xb2", out, 896/8) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRHMACDRBG() test 2\n", __func__);
+
+    const char seed3[] = "\xca\x85\x19\x11\x34\x93\x84\xbf\xfe\x89\xde\x1c\xbd\xc4\x6e\x68\x31\xe4\x4d\x34\xa4\xfb\x93"
+    "\x5e\xe2\x85\xdd\x14\xb7\x1a\x74\x88",
+    nonce3[] = "\x65\x9b\xa9\x6c\x60\x1d\xc6\x9f\xc9\x02\x94\x08\x05\xec\x0c\xa8";
+    
+    BRHMACDRBG(out, 1024/8, K, V, BRSHA256, 256/8, seed3, sizeof(seed3) - 1, nonce3, sizeof(nonce3) - 1, NULL, 0);
+    BRHMACDRBG(out, 1024/8, K, V, BRSHA256, 256/8, NULL, 0, NULL, 0, NULL, 0);
+    if (memcmp("\xe5\x28\xe9\xab\xf2\xde\xce\x54\xd4\x7c\x7e\x75\xe5\xfe\x30\x21\x49\xf8\x17\xea\x9f\xb4\xbe\xe6\xf4"
+               "\x19\x96\x97\xd0\x4d\x5b\x89\xd5\x4f\xbb\x97\x8a\x15\xb5\xc4\x43\xc9\xec\x21\x03\x6d\x24\x60\xb6\xf7"
+               "\x3e\xba\xd0\xdc\x2a\xba\x6e\x62\x4a\xbf\x07\x74\x5b\xc1\x07\x69\x4b\xb7\x54\x7b\xb0\x99\x5f\x70\xde"
+               "\x25\xd6\xb2\x9e\x2d\x30\x11\xbb\x19\xd2\x76\x76\xc0\x71\x62\xc8\xb5\xcc\xde\x06\x68\x96\x1d\xf8\x68"
+               "\x03\x48\x2c\xb3\x7e\xd6\xd5\xc0\xbb\x8d\x50\xcf\x1f\x50\xd4\x76\xaa\x04\x58\xbd\xab\xa8\x06\xf4\x8b"
+               "\xe9\xdc\xb8", out, 1024/8) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRHMACDRBG() test 3\n", __func__);
+
+    const char seed4[] = "\x5c\xac\xc6\x81\x65\xa2\xe2\xee\x20\x81\x2f\x35\xec\x73\xa7\x9d\xbf\x30\xfd\x47\x54\x76\xac"
+    "\x0c\x44\xfc\x61\x74\xcd\xac\x2b\x55",
+    nonce4[] = "\x6f\x88\x54\x96\xc1\xe6\x3a\xf6\x20\xbe\xcd\x9e\x71\xec\xb8\x24",
+    ps4[] = "\xe7\x2d\xd8\x59\x0d\x4e\xd5\x29\x55\x15\xc3\x5e\xd6\x19\x9e\x9d\x21\x1b\x8f\x06\x9b\x30\x58\xca\xa6\x67"
+    "\x0b\x96\xef\x12\x08\xd0";
+    
+    BRHMACDRBG(out, 1024/8, K, V, BRSHA256, 256/8, seed4, sizeof(seed4) - 1, nonce4, sizeof(nonce4) - 1,
+               ps4, sizeof(ps4) - 1);
+    BRHMACDRBG(out, 1024/8, K, V, BRSHA256, 256/8, NULL, 0, NULL, 0, NULL, 0);
+    if (memcmp("\xf1\x01\x2c\xf5\x43\xf9\x45\x33\xdf\x27\xfe\xdf\xbf\x58\xe5\xb7\x9a\x3d\xc5\x17\xa9\xc4\x02\xbd\xbf"
+               "\xc9\xa0\xc0\xf7\x21\xf9\xd5\x3f\xaf\x4a\xaf\xdc\x4b\x8f\x7a\x1b\x58\x0f\xca\xa5\x23\x38\xd4\xbd\x95"
+               "\xf5\x89\x66\xa2\x43\xcd\xcd\x3f\x44\x6e\xd4\xbc\x54\x6d\x9f\x60\x7b\x19\x0d\xd6\x99\x54\x45\x0d\x16"
+               "\xcd\x0e\x2d\x64\x37\x06\x7d\x8b\x44\xd1\x9a\x6a\xf7\xa7\xcf\xa8\x79\x4e\x5f\xbd\x72\x8e\x8f\xb2\xf2"
+               "\xe8\xdb\x5d\xd4\xff\x1a\xa2\x75\xf3\x58\x86\x09\x8e\x80\xff\x84\x48\x86\x06\x0d\xa8\xb1\xe7\x13\x78"
+               "\x46\xb2\x3b", out, 1024/8) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRHMACDRBG() test 4\n", __func__);
+
+    const char seed5[] = "\xa1\xdc\x2d\xfe\xda\x4f\x3a\x11\x24\xe0\xe7\x5e\xbf\xbe\x5f\x98\xca\xc1\x10\x18\x22\x1d\xda"
+    "\x3f\xdc\xf8\xf9\x12\x5d\x68\x44\x7a",
+    nonce5[] = "\xba\xe5\xea\x27\x16\x65\x40\x51\x52\x68\xa4\x93\xa9\x6b\x51\x87";
+    
+    BRHMACDRBG(out, 1536/8, K, V, BRSHA384, 384/8, seed5, sizeof(seed5) - 1, nonce5, sizeof(nonce5) - 1, NULL, 0);
+    BRHMACDRBG(out, 1536/8, K, V, BRSHA384, 384/8, NULL, 0, NULL, 0, NULL, 0);
+    if (memcmp("\x22\x82\x93\xe5\x9b\x1e\x45\x45\xa4\xff\x9f\x23\x26\x16\xfc\x51\x08\xa1\x12\x8d\xeb\xd0\xf7\xc2\x0a"
+               "\xce\x83\x7c\xa1\x05\xcb\xf2\x4c\x0d\xac\x1f\x98\x47\xda\xfd\x0d\x05\x00\x72\x1f\xfa\xd3\xc6\x84\xa9"
+               "\x92\xd1\x10\xa5\x49\xa2\x64\xd1\x4a\x89\x11\xc5\x0b\xe8\xcd\x6a\x7e\x8f\xac\x78\x3a\xd9\x5b\x24\xf6"
+               "\x4f\xd8\xcc\x4c\x8b\x64\x9e\xac\x2b\x15\xb3\x63\xe3\x0d\xf7\x95\x41\xa6\xb8\xa1\xca\xac\x23\x89\x49"
+               "\xb4\x66\x43\x69\x4c\x85\xe1\xd5\xfc\xbc\xd9\xaa\xae\x62\x60\xac\xee\x66\x0b\x8a\x79\xbe\xa4\x8e\x07"
+               "\x9c\xeb\x6a\x5e\xaf\x49\x93\xa8\x2c\x3f\x1b\x75\x8d\x7c\x53\xe3\x09\x4e\xea\xc6\x3d\xc2\x55\xbe\x6d"
+               "\xcd\xcc\x2b\x51\xe5\xca\x45\xd2\xb2\x06\x84\xa5\xa8\xfa\x58\x06\xb9\x6f\x84\x61\xeb\xf5\x1b\xc5\x15"
+               "\xa7\xdd\x8c\x54\x75\xc0\xe7\x0f\x2f\xd0\xfa\xf7\x86\x9a\x99\xab\x6c", out, 1536/8) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRHMACDRBG() test 5\n", __func__);
+
+    const char seed6[] = "\x2c\xd9\x68\xba\xcd\xa2\xbc\x31\x4d\x2f\xb4\x1f\xe4\x33\x54\xfb\x76\x11\x34\xeb\x19\xee\xc6"
+    "\x04\x31\xe2\xf3\x67\x55\xb8\x51\x26",
+    nonce6[] = "\xe3\xde\xdf\x2a\xf9\x38\x2a\x1e\x65\x21\x43\xe9\x52\x21\x2d\x39",
+    ps6[] = "\x59\xfa\x82\x35\x10\x88\x21\xac\xcb\xd3\xc1\x4e\xaf\x76\x85\x6d\x6a\x07\xf4\x33\x83\xdb\x4c\xc6\x03\x80"
+    "\x40\xb1\x88\x10\xd5\x3c";
+
+    BRHMACDRBG(out, 1536/8, K, V, BRSHA384, 384/8, seed6, sizeof(seed6) - 1, nonce6, sizeof(nonce6) - 1,
+               ps6, sizeof(ps6) - 1);
+    BRHMACDRBG(out, 1536/8, K, V, BRSHA384, 384/8, NULL, 0, NULL, 0, NULL, 0);
+    if (memcmp("\x06\x05\x1c\xe6\xb2\xf1\xc3\x43\x78\xe0\x8c\xaf\x8f\xe8\x36\x20\x1f\xf7\xec\x2d\xb8\xfc\x5a\x25\x19"
+               "\xad\xd2\x52\x4d\x90\x47\x01\x94\xb2\x47\xaf\x3a\x34\xa6\x73\x29\x8e\x57\x07\x0b\x25\x6f\x59\xfd\x09"
+               "\x86\x32\x76\x8e\x2d\x55\x13\x7d\x6c\x17\xb1\xa5\x3f\xe4\x5d\x6e\xd0\xe3\x1d\x49\xe6\x48\x20\xdb\x14"
+               "\x50\x14\xe2\xf0\x38\xb6\x9b\x72\x20\xe0\x42\xa8\xef\xc9\x89\x85\x70\x6a\xb9\x63\x54\x51\x23\x0a\x12"
+               "\x8a\xee\x80\x1d\x4e\x37\x18\xff\x59\x51\x1c\x3f\x3f\xf1\xb2\x0f\x10\x97\x74\xa8\xdd\xc1\xfa\xdf\x41"
+               "\xaf\xcc\x13\xd4\x00\x96\xd9\x97\x94\x88\x57\xa8\x94\xd0\xef\x8b\x32\x35\xc3\x21\x3b\xa8\x5c\x50\xc2"
+               "\xf3\xd6\x1b\x0d\x10\x4e\xcc\xfc\xf3\x6c\x35\xfe\x5e\x49\xe7\x60\x2c\xb1\x53\x3d\xe1\x2f\x0b\xec\x61"
+               "\x3a\x0e\xd9\x63\x38\x21\x95\x7e\x5b\x7c\xb3\x2f\x60\xb7\xc0\x2f\xa4", out, 1536/8) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRHMACDRBG() test 6\n", __func__);
+
+    const char seed7[] = "\x35\x04\x9f\x38\x9a\x33\xc0\xec\xb1\x29\x32\x38\xfd\x95\x1f\x8f\xfd\x51\x7d\xfd\xe0\x60\x41"
+    "\xd3\x29\x45\xb3\xe2\x69\x14\xba\x15",
+    nonce7[] = "\xf7\x32\x87\x60\xbe\x61\x68\xe6\xaa\x9f\xb5\x47\x84\x98\x9a\x11";
+    
+    BRHMACDRBG(out, 2048/8, K, V, BRSHA512, 512/8, seed7, sizeof(seed7) - 1, nonce7, sizeof(nonce7) - 1, NULL, 0);
+    BRHMACDRBG(out, 2048/8, K, V, BRSHA512, 512/8, NULL, 0, NULL, 0, NULL, 0);
+    if (memcmp("\xe7\x64\x91\xb0\x26\x0a\xac\xfd\xed\x01\xad\x39\xfb\xf1\xa6\x6a\x88\x28\x4c\xaa\x51\x23\x36\x8a\x2a"
+               "\xd9\x33\x0e\xe4\x83\x35\xe3\xc9\xc9\xba\x90\xe6\xcb\xc9\x42\x99\x62\xd6\x0c\x1a\x66\x61\xed\xcf\xaa"
+               "\x31\xd9\x72\xb8\x26\x4b\x9d\x45\x62\xcf\x18\x49\x41\x28\xa0\x92\xc1\x7a\x8d\xa6\xf3\x11\x3e\x8a\x7e"
+               "\xdf\xcd\x44\x27\x08\x2b\xd3\x90\x67\x5e\x96\x62\x40\x81\x44\x97\x17\x17\x30\x3d\x8d\xc3\x52\xc9\xe8"
+               "\xb9\x5e\x7f\x35\xfa\x2a\xc9\xf5\x49\xb2\x92\xbc\x7c\x4b\xc7\xf0\x1e\xe0\xa5\x77\x85\x9e\xf6\xe8\x2d"
+               "\x79\xef\x23\x89\x2d\x16\x7c\x14\x0d\x22\xaa\xc3\x2b\x64\xcc\xdf\xee\xe2\x73\x05\x28\xa3\x87\x63\xb2"
+               "\x42\x27\xf9\x1a\xc3\xff\xe4\x7f\xb1\x15\x38\xe4\x35\x30\x7e\x77\x48\x18\x02\xb0\xf6\x13\xf3\x70\xff"
+               "\xb0\xdb\xea\xb7\x74\xfe\x1e\xfb\xb1\xa8\x0d\x01\x15\x4a\x94\x59\xe7\x3a\xd3\x61\x10\x8b\xbc\x86\xb0"
+               "\x91\x4f\x09\x51\x36\xcb\xe6\x34\x55\x5c\xe0\xbb\x26\x36\x18\xdc\x5c\x36\x72\x91\xce\x08\x25\x51\x89"
+               "\x87\x15\x4f\xe9\xec\xb0\x52\xb3\xf0\xa2\x56\xfc\xc3\x0c\xc1\x45\x72\x53\x1c\x96\x28\x97\x36\x39\xbe"
+               "\xda\x45\x6f\x2b\xdd\xf6", out, 2048/8) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRHMACDRBG() test 7\n", __func__);
+
+    const char seed8[] = "\x73\x52\x9b\xba\x71\xa3\xd4\xb4\xfc\xf9\xa7\xed\xee\xd2\x69\xdb\xdc\x37\x48\xb9\x0d\xf6\x8c"
+    "\x0d\x00\xe2\x45\xde\x54\x69\x8c\x77",
+    nonce8[] = "\x22\xe2\xd6\xe2\x45\x01\x21\x2b\x6f\x05\x8e\x7c\x54\x13\x80\x07",
+    ps8[] = "\xe2\xcc\x19\xe3\x15\x95\xd0\xe4\xde\x9e\x8b\xd3\xb2\x36\xde\xc2\xd4\xb0\x32\xc3\xdd\x5b\xf9\x89\x1c\x28"
+    "\x4c\xd1\xba\xc6\x7b\xdb";
+    
+    BRHMACDRBG(out, 2048/8, K, V, BRSHA512, 512/8, seed8, sizeof(seed8) - 1, nonce8, sizeof(nonce8) - 1,
+               ps8, sizeof(ps8) - 1);
+    BRHMACDRBG(out, 2048/8, K, V, BRSHA512, 512/8, NULL, 0, NULL, 0, NULL, 0);
+    if (memcmp("\x1a\x73\xd5\x8b\x73\x42\xc3\xc9\x33\xe3\xba\x15\xee\xdd\x82\x70\x98\x86\x91\xc3\x79\x4b\x45\xaa\x35"
+               "\x85\x70\x39\x15\x71\x88\x1c\x0d\x9c\x42\x89\xe5\xb1\x98\xdb\x55\x34\xc3\xcb\x84\x66\xab\x48\x25\x0f"
+               "\xa6\x7f\x24\xcb\x19\xb7\x03\x8e\x46\xaf\x56\x68\x7b\xab\x7e\x5d\xe3\xc8\x2f\xa7\x31\x2f\x54\xdc\x0f"
+               "\x1d\xc9\x3f\x5b\x03\xfc\xaa\x60\x03\xca\xe2\x8d\x3d\x47\x07\x36\x8c\x14\x4a\x7a\xa4\x60\x91\x82\x2d"
+               "\xa2\x92\xf9\x7f\x32\xca\xf9\x0a\xe3\xdd\x3e\x48\xe8\x08\xae\x12\xe6\x33\xaa\x04\x10\x10\x6e\x1a\xb5"
+               "\x6b\xc0\xa0\xd8\x0f\x43\x8e\x9b\x34\x92\xe4\xa3\xbc\x88\xd7\x3a\x39\x04\xf7\xdd\x06\x0c\x48\xae\x8d"
+               "\x7b\x12\xbf\x89\xa1\x95\x51\xb5\x3b\x3f\x55\xa5\x11\xd2\x82\x0e\x94\x16\x40\xc8\x45\xa8\xa0\x46\x64"
+               "\x32\xc5\x85\x0c\x5b\x61\xbe\xc5\x27\x26\x02\x52\x11\x25\xad\xdf\x67\x7e\x94\x9b\x96\x78\x2b\xc0\x1a"
+               "\x90\x44\x91\xdf\x08\x08\x9b\xed\x00\x4a\xd5\x6e\x12\xf8\xea\x1a\x20\x08\x83\xad\x72\xb3\xb9\xfa\xe1"
+               "\x2b\x4e\xb6\x5d\x5c\x2b\xac\xb3\xce\x46\xc7\xc4\x84\x64\xc9\xc2\x91\x42\xfb\x35\xe7\xbc\x26\x7c\xe8"
+               "\x52\x29\x6a\xc0\x42\xf9", out, 2048/8) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRHMACDRBG() test 8\n", __func__);
     
     return r;
 }
@@ -1060,7 +1254,7 @@ int BRKeyTests()
     if (pkLen5 != pkLen || memcmp(pubKey, pubKey5, pkLen) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPubKeyRecover() test 3\n", __func__);
 
-    printf("                          ");
+    printf("                                    ");
     return r;
 }
 
@@ -1068,17 +1262,27 @@ int BRBIP38KeyTests()
 {
     int r = 1;
     BRKey key;
-    char privKey[55];
+    char privKey[55], bip38Key[61];
     
     printf("\n");
 
     // non EC multiplied, uncompressed
+    if (! BRKeySetPrivKey(&key, "5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR") ||
+        ! BRKeyBIP38Key(&key, bip38Key, sizeof(bip38Key), "TestingOneTwoThree") ||
+        strncmp(bip38Key, "6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg", sizeof(bip38Key)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyBIP38Key() test 1\n", __func__);
+    
     if (! BRKeySetBIP38Key(&key, "6PRVWUbkzzsbcVac2qwfssoUJAN1Xhrg6bNk8J7Nzm5H7kxEbn2Nh2ZoGg", "TestingOneTwoThree") ||
         ! BRKeyPrivKey(&key, privKey, sizeof(privKey)) ||
         strncmp(privKey, "5KN7MzqK5wt2TP1fQCYyHBtDrXdJuXbUzm4A9rKAteGu3Qi5CVR", sizeof(privKey)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetBIP38Key() test 1\n", __func__);
 
     printf("privKey:%s\n", privKey);
+
+    if (! BRKeySetPrivKey(&key, "5HtasZ6ofTHP6HCwTqTkLDuLQisYPah7aUnSKfC7h4hMUVw2gi5") ||
+        ! BRKeyBIP38Key(&key, bip38Key, sizeof(bip38Key), "Satoshi") ||
+        strncmp(bip38Key, "6PRNFFkZc2NZ6dJqFfhRoFNMR9Lnyj7dYGrzdgXXVMXcxoKTePPX1dWByq", sizeof(bip38Key)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyBIP38Key() test 2\n", __func__);
 
     if (! BRKeySetBIP38Key(&key, "6PRNFFkZc2NZ6dJqFfhRoFNMR9Lnyj7dYGrzdgXXVMXcxoKTePPX1dWByq", "Satoshi") ||
         ! BRKeyPrivKey(&key, privKey, sizeof(privKey)) ||
@@ -1088,12 +1292,22 @@ int BRBIP38KeyTests()
     printf("privKey:%s\n", privKey);
     
     // non EC multiplied, compressed
+    if (! BRKeySetPrivKey(&key, "L44B5gGEpqEDRS9vVPz7QT35jcBG2r3CZwSwQ4fCewXAhAhqGVpP") ||
+        ! BRKeyBIP38Key(&key, bip38Key, sizeof(bip38Key), "TestingOneTwoThree") ||
+        strncmp(bip38Key, "6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo", sizeof(bip38Key)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyBIP38Key() test 3\n", __func__);
+
     if (! BRKeySetBIP38Key(&key, "6PYNKZ1EAgYgmQfmNVamxyXVWHzK5s6DGhwP4J5o44cvXdoY7sRzhtpUeo", "TestingOneTwoThree") ||
         ! BRKeyPrivKey(&key, privKey, sizeof(privKey)) ||
         strncmp(privKey, "L44B5gGEpqEDRS9vVPz7QT35jcBG2r3CZwSwQ4fCewXAhAhqGVpP", sizeof(privKey)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetBIP38Key() test 3\n", __func__);
 
     printf("privKey:%s\n", privKey);
+
+    if (! BRKeySetPrivKey(&key, "KwYgW8gcxj1JWJXhPSu4Fqwzfhp5Yfi42mdYmMa4XqK7NJxXUSK7") ||
+        ! BRKeyBIP38Key(&key, bip38Key, sizeof(bip38Key), "Satoshi") ||
+        strncmp(bip38Key, "6PYLtMnXvfG3oJde97zRyLYFZCYizPU5T3LwgdYJz1fRhh16bU7u6PPmY7", sizeof(bip38Key)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyBIP38Key() test 4\n", __func__);
 
     if (! BRKeySetBIP38Key(&key, "6PYLtMnXvfG3oJde97zRyLYFZCYizPU5T3LwgdYJz1fRhh16bU7u6PPmY7", "Satoshi") ||
         ! BRKeyPrivKey(&key, privKey, sizeof(privKey)) ||
@@ -1146,7 +1360,7 @@ int BRBIP38KeyTests()
     if (BRKeySetBIP38Key(&key, "6PRW5o9FLp4gJDDVqJQKJFTpMvdsSGJxMYHtHaQBF3ooa8mwD69bapcDQn", "foobar"))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySetBIP38Key() test 10\n", __func__);
 
-    printf("                          ");
+    printf("                                    ");
     return r;
 }
 
@@ -1374,7 +1588,7 @@ int BRBIP32SequenceTests()
     // TODO: XXX test BRBIP32SerializeMasterPrivKey()
     // TODO: XXX test BRBIP32SerializeMasterPubKey()
 
-    printf("                          ");
+    printf("                                    ");
     return r;
 }
 
@@ -1624,7 +1838,7 @@ int BRWalletTests()
     if (! BRAddressEq(BRWalletReceiveAddress(w).s, recvAddr.s)) // verify used addresses are correctly tracked
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletReceiveAddress() test\n", __func__);
     
-    printf("                          ");
+    printf("                                    ");
     BRWalletFree(w);
     
     int64_t amt;
@@ -2141,7 +2355,89 @@ int BRPaymentProtocolTests()
     if (len > 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRPaymentProtocolRequestParse/Serialize() test 3\n", __func__);
     
-    printf("                          ");
+    printf("                                    ");
+    return r;
+}
+
+int BRPaymentProtocolEncryptionTests()
+{
+    int r = 1;
+    BRKey senderKey, receiverKey;
+    uint8_t id[32] = { 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
+                       0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00 };
+    
+    BRKeySetSecret(&senderKey, &u256_hex_decode("0000000000000000000000000000000000000000000000000000000000000001"), 1);
+    BRKeySetSecret(&receiverKey, &u256_hex_decode("0000000000000000000000000000000000000000000000000000000000000002"),
+                   1);
+    
+    BRPaymentProtocolInvoiceRequest *req = BRPaymentProtocolInvoiceRequestNew(&senderKey, 0, NULL, NULL, 0, NULL, NULL,
+                                                                              NULL, 0);
+    
+    if (! req) r = 0, fprintf(stderr, "***FAILED*** %s: BRPaymentProtocolInvoiceRequestNew() test\n", __func__);
+    
+    uint8_t buf0[(req) ? BRPaymentProtocolInvoiceRequestSerialize(req, NULL, 0) : 0];
+    size_t len0 = (req) ? BRPaymentProtocolInvoiceRequestSerialize(req, buf0, sizeof(buf0)) : 0;
+    
+    if (req) BRPaymentProtocolInvoiceRequestFree(req);
+    req = BRPaymentProtocolInvoiceRequestParse(buf0, len0);
+    
+    if (! req || memcmp(req->senderPubKey.pubKey, senderKey.pubKey, 33) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRPaymentProtocolInvoiceRequestSerialize/Parse() test\n", __func__);
+    
+    if (req) BRPaymentProtocolInvoiceRequestFree(req);
+    
+    const char buf[] = "\x0a\x00\x12\x5f\x54\x72\x61\x6e\x73\x61\x63\x74\x69\x6f\x6e\x20\x72\x65\x63\x65\x69\x76\x65"
+    "\x64\x20\x62\x79\x20\x42\x69\x74\x50\x61\x79\x2e\x20\x49\x6e\x76\x6f\x69\x63\x65\x20\x77\x69\x6c\x6c\x20\x62\x65"
+    "\x20\x6d\x61\x72\x6b\x65\x64\x20\x61\x73\x20\x70\x61\x69\x64\x20\x69\x66\x20\x74\x68\x65\x20\x74\x72\x61\x6e\x73"
+    "\x61\x63\x74\x69\x6f\x6e\x20\x69\x73\x20\x63\x6f\x6e\x66\x69\x72\x6d\x65\x64\x2e";
+    
+    BRPaymentProtocolMessage *msg1 = BRPaymentProtocolMessageNew(BRPaymentProtocolMessageTypeACK,
+                                                                 (uint8_t *)buf, sizeof(buf) - 1, 1, NULL,
+                                                                 id, sizeof(id));
+    
+    if (! msg1) r = 0, fprintf(stderr, "***FAILED*** %s: BRPaymentProtocolMessageNew() test\n", __func__);
+    
+    uint8_t buf1[(msg1) ? BRPaymentProtocolMessageSerialize(msg1, NULL, 0) : 0];
+    size_t len1 = (msg1) ? BRPaymentProtocolMessageSerialize(msg1, buf1, sizeof(buf1)) : 0;
+    
+    if (msg1) BRPaymentProtocolMessageFree(msg1);
+    msg1 = BRPaymentProtocolMessageParse(buf1, len1);
+    
+    if (! msg1 || msg1->msgLen != sizeof(buf) - 1 || memcmp(buf, msg1->message, sizeof(buf) - 1) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRPaymentProtocolMessageSerialize/Parse() test\n", __func__);
+    
+    if (msg1) BRPaymentProtocolMessageFree(msg1);
+    
+    BRPaymentProtocolEncryptedMessage *msg2 =
+        BRPaymentProtocolEncryptedMessageNew(BRPaymentProtocolMessageTypeACK, (uint8_t *)buf, sizeof(buf) - 1,
+                                             &receiverKey, &senderKey, time(NULL), id, sizeof(id), 1, NULL);
+
+    if (! msg2) r = 0, fprintf(stderr, "***FAILED*** %s: BRPaymentProtocolEncryptedMessageNew() test\n", __func__);
+    
+    uint8_t buf2[(msg2) ? BRPaymentProtocolEncryptedMessageSerialize(msg2, NULL, 0) : 0];
+    size_t len2 = (msg2) ? BRPaymentProtocolEncryptedMessageSerialize(msg2, buf2, sizeof(buf2)) : 0;
+    
+    if (msg2) BRPaymentProtocolEncryptedMessageFree(msg2);
+    msg2 = BRPaymentProtocolEncryptedMessageParse(buf2, len2);
+    
+    if (! msg2 || msg2->msgLen != sizeof(buf) - 1 + 16)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRPaymentProtocolEncryptedMessageSerialize/Parse() test\n", __func__);
+
+    if (msg2 && ! BRPaymentProtocolEncryptedMessageVerify(msg2, &receiverKey))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRPaymentProtocolEncryptedMessageVerify() test\n", __func__);
+
+    uint8_t out[(msg2) ? msg2->msgLen : 0];
+    size_t outLen = BRPaymentProtocolEncryptedMessageDecrypt(msg2, out, sizeof(out), &receiverKey);
+    
+    if (outLen != sizeof(buf) - 1 || memcmp(buf, out, outLen) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRPaymentProtocolEncryptedMessageDecrypt() test 1\n", __func__);
+    
+    if (msg2) outLen = BRPaymentProtocolEncryptedMessageDecrypt(msg2, out, sizeof(out), &senderKey);
+    
+    if (outLen != sizeof(buf) - 1 || memcmp(buf, out, outLen) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRPaymentProtocolEncryptedMessageDecrypt() test 2\n", __func__);
+    
+    if (msg2) BRPaymentProtocolEncryptedMessageFree(msg2);
     return r;
 }
 
@@ -2149,8 +2445,6 @@ void BRPeerAcceptMessageTest(BRPeer *peer, const uint8_t *msg, size_t len, const
 
 int BRPeerTests()
 {
-    // TODO: XXXX test for stack overflow
-    
     int r = 1;
     BRPeer *p = BRPeerNew();
     const char msg[] = "my message";
@@ -2163,48 +2457,52 @@ int BRRunTests()
 {
     int fail = 0;
     
-    printf("BRIntsTests...            ");
+    printf("BRIntsTests...                      ");
     printf("%s\n", (BRIntsTests()) ? "success" : (fail++, "***FAIL***"));
-    printf("BRArrayTests...           ");
+    printf("BRArrayTests...                     ");
     printf("%s\n", (BRArrayTests()) ? "success" : (fail++, "***FAIL***"));
-    printf("BRListTests...            ");
+    printf("BRListTests...                      ");
     printf("%s\n", (BRListTests()) ? "success" : (fail++, "***FAIL***"));
-    printf("BRSetTests...             ");
+    printf("BRSetTests...                       ");
     printf("%s\n", (BRSetTests()) ? "success" : (fail++, "***FAIL***"));
-    printf("BRBase58Tests...          ");
+    printf("BRBase58Tests...                    ");
     printf("%s\n", (BRBase58Tests()) ? "success" : (fail++, "***FAIL***"));
-    printf("BRHashTests...            ");
+    printf("BRHashTests...                      ");
     printf("%s\n", (BRHashTests()) ? "success" : (fail++, "***FAIL***"));
-    printf("BRMacTests...             ");
+    printf("BRMacTests...                       ");
     printf("%s\n", (BRMacTests()) ? "success" : (fail++, "***FAIL***"));
-    printf("BRCypherTests...          ");
+    printf("BRDrbgTests...                      ");
+    printf("%s\n", (BRDrbgTests()) ? "success" : (fail++, "***FAIL***"));
+    printf("BRCypherTests...                    ");
     printf("%s\n", (BRCypherTests()) ? "success" : (fail++, "***FAIL***"));
-    printf("BRAuthEncryptTests...     ");
+    printf("BRAuthEncryptTests...               ");
     printf("%s\n", (BRAuthEncryptTests()) ? "success" : (fail++, "***FAIL***"));
-    printf("BRKeyTests...             ");
+    printf("BRKeyTests...                       ");
     printf("%s\n", (BRKeyTests()) ? "success" : (fail++, "***FAIL***"));
-    printf("BRBIP38KeyTests...        ");
+    printf("BRBIP38KeyTests...                  ");
 #if SKIP_BIP38
     printf("SKIPPED\n");
 #else
     printf("%s\n", (BRBIP38KeyTests()) ? "success" : (fail++, "***FAIL***"));
 #endif
-    printf("BRAddressTests...         ");
+    printf("BRAddressTests...                   ");
     printf("%s\n", (BRAddressTests()) ? "success" : (fail++, "***FAIL***"));
-    printf("BRBIP39MnemonicTests...   ");
+    printf("BRBIP39MnemonicTests...             ");
     printf("%s\n", (BRBIP39MnemonicTests()) ? "success" : (fail++, "***FAIL***"));
-    printf("BRBIP32SequenceTests...   ");
+    printf("BRBIP32SequenceTests...             ");
     printf("%s\n", (BRBIP32SequenceTests()) ? "success" : (fail++, "***FAIL***"));
-    printf("BRTransactionTests...     ");
+    printf("BRTransactionTests...               ");
     printf("%s\n", (BRTransactionTests()) ? "success" : (fail++, "***FAIL***"));
-    printf("BRWalletTests...          ");
+    printf("BRWalletTests...                    ");
     printf("%s\n", (BRWalletTests()) ? "success" : (fail++, "***FAIL***"));
-    printf("BRBloomFilterTests...     ");
+    printf("BRBloomFilterTests...               ");
     printf("%s\n", (BRBloomFilterTests()) ? "success" : (fail++, "***FAIL***"));
-    printf("BRMerkleBlockTests...     ");
+    printf("BRMerkleBlockTests...               ");
     printf("%s\n", (BRMerkleBlockTests()) ? "success" : (fail++, "***FAIL***"));
-    printf("BRPaymentProtocolTests... ");
+    printf("BRPaymentProtocolTests...           ");
     printf("%s\n", (BRPaymentProtocolTests()) ? "success" : (fail++, "***FAIL***"));
+    printf("BRPaymentProtocolEncryptionTests... ");
+    printf("%s\n", (BRPaymentProtocolEncryptionTests()) ? "success" : (fail++, "***FAIL***"));
     printf("\n");
     
     if (fail > 0) printf("%d TEST FUNCTION(S) ***FAILED***\n", fail);
@@ -2237,7 +2535,7 @@ void txStatusUpdate(void *info)
 int main(int argc, const char *argv[])
 {
     int r = BRRunTests();
-
+    
 //    int err = 0;
 //    UInt512 seed = UINT512_ZERO;
 //    BRMasterPubKey mpk = BR_MASTER_PUBKEY_NONE;

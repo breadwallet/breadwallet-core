@@ -27,6 +27,8 @@
 
 #include "BRCrypto.h"
 #include <string.h>
+#include <stddef.h>
+#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -89,7 +91,7 @@ size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *scri
 size_t BRAddressFromScriptSig(char *addr, size_t addrLen, const uint8_t *script, size_t scriptLen);
 
 // writes the scriptPubKey for addr to script
-// returns the number of bytes written or scripLen needed if script is NULL
+// returns the number of bytes written or scriptLen needed if script is NULL
 size_t BRAddressScriptPubKey(uint8_t *script, size_t scriptLen, const char *addr);
 
 // returns true if addr is a valid bitcoin address
