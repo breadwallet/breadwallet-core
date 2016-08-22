@@ -1202,20 +1202,17 @@ static void _BRECDH(void *out32, BRKey *privKey, BRKey *pubKey)
 static void _BRPaymentProtocolEncryptedMessageCEK(BRPaymentProtocolEncryptedMessage *msg, void *cek32, void *iv12,
                                                   BRKey *privKey)
 {
-    uint64_t n;
-    uint8_t secret[256/8], seed[512/8], K[256/8], V[256/8], pk[65], rpk[65], *nonce;
-    size_t pkLen, rpkLen;
-    BRKey *pubKey;
-    
-    pkLen = BRKeyPubKey(privKey, pk, sizeof(pk));
-    rpkLen = BRKeyPubKey(&msg->receiverPubKey, rpk, sizeof(rpk));
-    pubKey = (pkLen != rpkLen || memcmp(pk, rpk, pkLen) != 0) ? &msg->receiverPubKey : &msg->senderPubKey;
+    uint8_t secret[32], seed[512/8], K[256/8], V[256/8], pk[65], rpk[65],
+            nonce[] = { msg->nonce >> 56, msg->nonce >> 48, msg->nonce >> 40, msg->nonce >> 32,
+                        msg->nonce >> 24, msg->nonce >> 16, msg->nonce >> 8, msg->nonce }; // convert to big endian
+    size_t pkLen = BRKeyPubKey(privKey, pk, sizeof(pk)),
+           rpkLen = BRKeyPubKey(&msg->receiverPubKey, rpk, sizeof(rpk));
+    BRKey *pubKey = (pkLen != rpkLen || memcmp(pk, rpk, pkLen) != 0) ? &msg->receiverPubKey : &msg->senderPubKey;
+
     _BRECDH(secret, privKey, pubKey);
     BRSHA512(seed, secret, sizeof(secret));
     memset(secret, 0, sizeof(secret));
-    n = msg->nonce;
-    nonce = (uint8_t[]) { n >> 56, n >> 48, n >> 40, n >> 32, n >> 24, n >> 16, n >> 8, n }; // convert to big endian
-    BRHMACDRBG(cek32, 32, K, V, BRSHA256, 256/8, seed, sizeof(seed), nonce, sizeof(n), NULL, 0);
+    BRHMACDRBG(cek32, 32, K, V, BRSHA256, 256/8, seed, sizeof(seed), nonce, sizeof(nonce), NULL, 0);
     memset(seed, 0, sizeof(seed));
     BRHMACDRBG(iv12, 12, K, V, BRSHA256, 256/8, NULL, 0, NULL, 0, NULL, 0);
     memset(K, 0, sizeof(K));
