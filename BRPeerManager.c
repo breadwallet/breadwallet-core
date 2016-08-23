@@ -1699,6 +1699,7 @@ void BRPeerManagerConnect(BRPeerManager *manager)
 void BRPeerManagerDisconnect(BRPeerManager *manager)
 {
     struct timespec ts;
+    size_t peerCount;
     
     assert(manager != NULL);
     pthread_mutex_lock(&manager->lock);
@@ -1711,7 +1712,13 @@ void BRPeerManagerDisconnect(BRPeerManager *manager)
     pthread_mutex_unlock(&manager->lock);
     ts.tv_sec = 0;
     ts.tv_nsec = 1;
-    while (BRPeerManagerPeerCount(manager) > 0) nanosleep(&ts, NULL); // pthread_yield() isn't POSIX standard :(
+    
+    do {
+        nanosleep(&ts, NULL); // pthread_yield() isn't POSIX standard :(
+        pthread_mutex_lock(&manager->lock);
+        peerCount = array_count(manager->connectedPeers);
+        pthread_mutex_unlock(&manager->lock);
+    } while (peerCount > 0);
 }
 
 // rescans blocks and transactions after earliestKeyTime (a new random download peer is also selected due to the
