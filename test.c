@@ -2419,8 +2419,6 @@ int BRRunTests()
     printf("%s\n", (BRIntsTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRArrayTests...                     ");
     printf("%s\n", (BRArrayTests()) ? "success" : (fail++, "***FAIL***"));
-    printf("BRListTests...                      ");
-    printf("%s\n", (BRListTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRSetTests...                       ");
     printf("%s\n", (BRSetTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRBase58Tests...                    ");
