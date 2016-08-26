@@ -37,7 +37,6 @@
 #include "BRPaymentProtocol.h"
 #include "BRInt.h"
 #include "BRArray.h"
-#include "BRList.h"
 #include "BRSet.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -162,47 +161,6 @@ inline static int compare_int(void *info, const void *a, const void *b)
     if (*(int *)a < *(int *)b) return -1;
     if (*(int *)a > *(int *)b) return 1;
     return 0;
-}
-
-int BRListTests()
-{
-    // test singly-linked list
-
-    int r = 1;
-    int *head = NULL, *item = NULL;
-    
-    list_new(head, 1);                   // 1
-    if (! head || *head != 1) r = 0, fprintf(stderr, "***FAILED*** %s: list_new() test\n", __func__);
-    list_insert_head(head, 2);           // 2->1
-    if (! head || *head != 2) r = 0, fprintf(stderr, "***FAILED*** %s: list_insert_head() test\n", __func__);
-    list_insert_after(head, 3);          // 2->3->1
-    item = list_next(head);
-    if (! item || *item != 3) r = 0, fprintf(stderr, "***FAILED*** %s: list_insert_after() test\n", __func__);
-    list_sort(head, NULL, compare_int); // 1->2->3
-    printf("\n");
-
-    for (item = head; item; item = list_next(item)) {
-        printf("%i->", *item);           // "1->2->3->"
-    }
-
-    printf("\n");
-    if (! head || *head != 1) r = 0, fprintf(stderr, "***FAILED*** %s: list_sort() test\n", __func__);
-    item = list_next(head);
-    if (! item || *item != 2) r = 0, fprintf(stderr, "***FAILED*** %s: list_sort() test\n", __func__);
-    item = list_next(list_next(head));
-    if (! item || *item != 3) r = 0, fprintf(stderr, "***FAILED*** %s: list_sort() test\n", __func__);
-    item = list_next(head);
-    list_rm_after(item);                 // 1->2
-    item = list_next(item);
-    if (item) r = 0, fprintf(stderr, "***FAILED*** %s: list_rm_after() test\n", __func__);
-    list_rm_head(head);                  // 2
-    item = list_next(head);
-    if (item) r = 0, fprintf(stderr, "***FAILED*** %s: list_rm_head() test\n", __func__);
-    list_free(head);
-    if (head) r = 0, fprintf(stderr, "***FAILED*** %s: list_free() test\n", __func__);
-    
-    printf("                                    ");
-    return r;
 }
 
 inline static size_t hash_int(const void *i)

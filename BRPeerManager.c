@@ -1703,8 +1703,9 @@ void BRPeerManagerDisconnect(BRPeerManager *manager)
     
     assert(manager != NULL);
     pthread_mutex_lock(&manager->lock);
+    peerCount = array_count(manager->connectedPeers);
     
-    for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
+    for (size_t i = peerCount; i > 0; i--) {
         manager->connectFailureCount = MAX_CONNECT_FAILURES; // prevent futher automatic reconnect attempts
         BRPeerDisconnect(manager->connectedPeers[i - 1]);
     }
@@ -1713,12 +1714,12 @@ void BRPeerManagerDisconnect(BRPeerManager *manager)
     ts.tv_sec = 0;
     ts.tv_nsec = 1;
     
-    do {
+    while (peerCount > 0) {
         nanosleep(&ts, NULL); // pthread_yield() isn't POSIX standard :(
         pthread_mutex_lock(&manager->lock);
         peerCount = array_count(manager->connectedPeers);
         pthread_mutex_unlock(&manager->lock);
-    } while (peerCount > 0);
+    }
 }
 
 // rescans blocks and transactions after earliestKeyTime (a new random download peer is also selected due to the
