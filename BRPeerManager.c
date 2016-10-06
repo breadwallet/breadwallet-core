@@ -228,7 +228,7 @@ struct BRPeerManagerStruct {
     BRMerkleBlock *lastBlock, *lastOrphan;
     BRTxPeerList *txRelays, *txRequests;
     BRPublishedTx *publishedTx;
-    UInt256 *publishedTxHash;
+    UInt256 *publishedTxHashes;
     void *info;
     void (*syncStarted)(void *info);
     void (*syncSucceeded)(void *info);
@@ -279,7 +279,7 @@ static void _BRPeerManagerAddTxToPublishList(BRPeerManager *manager, BRTransacti
         }
         
         array_add(manager->publishedTx, ((BRPublishedTx) { tx, info, callback }));
-        array_add(manager->publishedTxHash, tx->txHash);
+        array_add(manager->publishedTxHashes, tx->txHash);
 
         for (size_t i = 0; i < tx->inCount; i++) {
             _BRPeerManagerAddTxToPublishList(manager, BRWalletTransactionForHash(manager->wallet, tx->inputs[i].txHash),
@@ -343,7 +343,7 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
     utxosCount = BRWalletUTXOs(manager->wallet, utxos, utxosCount);
     txCount = BRWalletTxUnconfirmedBefore(manager->wallet, transactions, txCount, blockHeight);
     filter = BRBloomFilterNew(manager->fpRate, addrsCount + utxosCount + txCount + 100, (uint32_t)BRPeerHash(peer),
-                              BLOOM_UPDATE_ALL); //XXX BUG: txCount not the same as number of spent wallet outputs
+                              BLOOM_UPDATE_ALL); // BUG: XXX txCount not the same as number of spent wallet outputs
     
     for (size_t i = 0; i < addrsCount; i++) { // add addresses to watch for tx receiveing money to the wallet
         UInt160 hash = UINT160_ZERO;
@@ -505,7 +505,7 @@ static void _BRPeerManagerUpdateTx(BRPeerManager *manager, const UInt256 txHashe
                 
                 if (! UInt256Eq(txHashes[i], tx->txHash)) continue;
                 array_rm(manager->publishedTx, j - 1);
-                array_rm(manager->publishedTxHash, j - 1);
+                array_rm(manager->publishedTxHashes, j - 1);
                 if (! BRWalletTransactionForHash(manager->wallet, tx->txHash)) BRTransactionFree(tx);
             }
             
@@ -574,11 +574,11 @@ static void _requestUnrelayedTxGetdataDone(void *info, int success)
 static void _BRPeerManagerRequestUnrelayedTx(BRPeerManager *manager, BRPeer *peer)
 {
     BRPeerCallbackInfo *info;
-    UInt256 hash, txHashes[array_count(manager->publishedTxHash)];
+    UInt256 hash, txHashes[array_count(manager->publishedTxHashes)];
     size_t count = 0;
 
-    for (size_t i = array_count(manager->publishedTxHash); i > 0; i--) {
-        hash = manager->publishedTxHash[i - 1];
+    for (size_t i = array_count(manager->publishedTxHashes); i > 0; i--) {
+        hash = manager->publishedTxHashes[i - 1];
         
         if (! _BRTxPeerListHasPeer(manager->txRelays, hash, peer) &&
             ! _BRTxPeerListHasPeer(manager->txRequests, hash, peer)) {
@@ -609,7 +609,7 @@ static void _BRPeerManagerPublishPendingTx(BRPeerManager *manager, BRPeer *peer)
         break;
     }
     
-    BRPeerSendInv(peer, manager->publishedTxHash, array_count(manager->publishedTxHash));
+    BRPeerSendInv(peer, manager->publishedTxHashes, array_count(manager->publishedTxHashes));
 }
 
 static void _loadMempoolsMempoolDone(void *info, int success)
@@ -876,7 +876,7 @@ static void _peerDisconnected(void *info, int error)
         isSyncing = (manager->lastBlock->height < manager->estimatedHeight);
         
         // if it's a timeout and there's pending tx publish callbacks, the tx publish timed out
-        // BUG: XXXX what if it's a connect timeout and not a publish timeout?
+        // BUG: XXX what if it's a connect timeout and not a publish timeout?
         if (error == ETIMEDOUT && (peer != manager->downloadPeer || ! isSyncing ||
                                    array_count(manager->connectedPeers) == 1)) txError = ETIMEDOUT;
     }
@@ -913,7 +913,7 @@ static void _peerDisconnected(void *info, int error)
             txCallback[txCount] = manager->publishedTx[i - 1].callback;
             txCount++;
             BRTransactionFree(manager->publishedTx[i - 1].tx);
-            array_rm(manager->publishedTxHash, i - 1);
+            array_rm(manager->publishedTxHashes, i - 1);
             array_rm(manager->publishedTx, i - 1);
         }
     }
@@ -981,7 +981,7 @@ static void _peerRelayedTx(void *info, BRTransaction *tx)
     peer_log(peer, "relayed tx: %s", u256_hex_encode(tx->txHash));
     
     for (size_t i = array_count(manager->publishedTx); i > 0; i--) { // see if tx is in list of published tx
-        if (UInt256Eq(manager->publishedTxHash[i - 1], tx->txHash)) {
+        if (UInt256Eq(manager->publishedTxHashes[i - 1], tx->txHash)) {
             txInfo = manager->publishedTx[i - 1].info;
             txCallback = manager->publishedTx[i - 1].callback;
             manager->publishedTx[i - 1].info = NULL;
@@ -1064,7 +1064,7 @@ static void _peerHasTx(void *info, UInt256 txHash)
     peer_log(peer, "has tx: %s", u256_hex_encode(txHash));
 
     for (size_t i = array_count(manager->publishedTx); i > 0; i--) { // see if tx is in list of published tx
-        if (UInt256Eq(manager->publishedTxHash[i - 1], txHash)) {
+        if (UInt256Eq(manager->publishedTxHashes[i - 1], txHash)) {
             if (! tx) tx = manager->publishedTx[i - 1].tx;
             txInfo = manager->publishedTx[i - 1].info;
             txCallback = manager->publishedTx[i - 1].callback;
@@ -1474,7 +1474,7 @@ static BRTransaction *_peerRequestedTx(void *info, UInt256 txHash)
     isSyncing = (manager->lastBlock->height < manager->estimatedHeight);
 
     for (size_t i = array_count(manager->publishedTx); i > 0; i--) {
-        if (UInt256Eq(manager->publishedTxHash[i - 1], txHash)) {
+        if (UInt256Eq(manager->publishedTxHashes[i - 1], txHash)) {
             tx = manager->publishedTx[i - 1].tx;
             txInfo = manager->publishedTx[i - 1].info;
             txCallback = manager->publishedTx[i - 1].callback;
@@ -1484,7 +1484,7 @@ static BRTransaction *_peerRequestedTx(void *info, UInt256 txHash)
             if (tx && ! BRWalletTransactionIsValid(manager->wallet, tx)) {
                 error = EINVAL;
                 array_rm(manager->publishedTx, i - 1);
-                array_rm(manager->publishedTxHash, i - 1);
+                array_rm(manager->publishedTxHashes, i - 1);
                 
                 if (! BRWalletTransactionForHash(manager->wallet, txHash)) {
                     BRTransactionFree(tx);
@@ -1570,7 +1570,7 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
     array_new(manager->txRelays, 10);
     array_new(manager->txRequests, 10);
     array_new(manager->publishedTx, 10);
-    array_new(manager->publishedTxHash, 10);
+    array_new(manager->publishedTxHashes, 10);
     pthread_mutex_init(&manager->lock, NULL);
     return manager;
 }
@@ -1928,7 +1928,7 @@ void BRPeerManagerFree(BRPeerManager *manager)
     for (size_t i = array_count(manager->txRequests); i > 0; i--) free(manager->txRequests[i - 1].peers);
     array_free(manager->txRequests);
     array_free(manager->publishedTx);
-    array_free(manager->publishedTxHash);
+    array_free(manager->publishedTxHashes);
     pthread_mutex_unlock(&manager->lock);
     pthread_mutex_destroy(&manager->lock);
     free(manager);

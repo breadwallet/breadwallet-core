@@ -231,7 +231,7 @@ typedef struct {
     char *statusMsg; // human-readable payment protocol status message, optional
 } BRPaymentProtocolEncryptedMessage;
 
-// returns a newly allocated encrypted message struct that must be freed by calling BRPaymentProtocolMessageFree()
+// returns a newly allocated encrypted message struct that must be freed with BRPaymentProtocolEncryptedMessageFree()
 // message is the un-encrypted serialized payment protocol message
 // one of either receiverKey or senderKey must contain a private key, and the other must contain only a public key
 BRPaymentProtocolEncryptedMessage *BRPaymentProtocolEncryptedMessageNew(BRPaymentProtocolMessageType msgType,

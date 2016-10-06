@@ -1078,6 +1078,7 @@ void BRPeerConnect(BRPeer *peer)
                 error = errno;
                 peer_log(peer, "error creating socket");
                 ctx->status = BRPeerStatusDisconnected;
+                if (ctx->disconnected) ctx->disconnected(ctx->info, error);
             }
             else {
                 tv.tv_sec = 1; // one second timeout for send/receive, so thread doesn't block for too long
@@ -1093,17 +1094,17 @@ void BRPeerConnect(BRPeer *peer)
                     error = ENOMEM;
                     peer_log(peer, "error creating thread");
                     ctx->status = BRPeerStatusDisconnected;
+                    if (ctx->disconnected) ctx->disconnected(ctx->info, error);
                 }
                 else if (pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0 ||
                          pthread_create(&ctx->thread, &attr, _peerThreadRoutine, peer) != 0) {
                     error = EAGAIN;
                     peer_log(peer, "error creating thread");
-                    ctx->status = BRPeerStatusDisconnected;
                     pthread_attr_destroy(&attr);
+                    ctx->status = BRPeerStatusDisconnected;
+                    if (ctx->disconnected) ctx->disconnected(ctx->info, error);
                 }
             }
-            
-            if (ctx->status == BRPeerStatusDisconnected && ctx->disconnected) ctx->disconnected(ctx->info, error);
         }
     }
 }

@@ -131,6 +131,6 @@ void BRBIP39DeriveKey(uint8_t *key64, const char *phrase, const char *passphrase
     if (phrase) {
         strcpy(salt, "mnemonic");
         if (passphrase) strcpy(salt + strlen("mnemonic"), passphrase);
-        BRPBKDF2(key64, 64, BRSHA512, 64, phrase, strlen(phrase), salt, strlen(salt), 2048);
+        BRPBKDF2(key64, 64, BRSHA512, 512/8, phrase, strlen(phrase), salt, strlen(salt), 2048);
     }
 }

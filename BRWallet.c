@@ -728,7 +728,7 @@ int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx)
                    // BUG: limit total non-wallet unconfirmed tx to avoid memory exhaustion attack
                 if (tx->blockHeight == TX_UNCONFIRMED) BRSetAdd(wallet->allTx, tx);
                 r = 0;
-                // BUG: XXXX memory leak if tx is not added to wallet->allTx, and we can't just free it
+                // BUG: XXX memory leak if tx is not added to wallet->allTx, and we can't just free it
             }
         }
     

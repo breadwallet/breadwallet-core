@@ -485,7 +485,7 @@ int BRTransactionIsStandard(const BRTransaction *tx)
 {
     int r = 1;
     
-    // TODO: XXXX implement
+    // TODO: XXX implement
     
     return r;
 }

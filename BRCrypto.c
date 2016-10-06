@@ -866,7 +866,7 @@ void BRScrypt(void *dk, size_t dkLen, const void *pw, size_t pwLen, const void *
     assert(r > 0);
     assert(p > 0);
     
-    BRPBKDF2(b, sizeof(b), BRSHA256, 32, pw, pwLen, salt, saltLen, 1);
+    BRPBKDF2(b, sizeof(b), BRSHA256, 256/8, pw, pwLen, salt, saltLen, 1);
     
     for (int i = 0; i < p; i++) {
         for (unsigned j = 0; j < 32*r; j++) ((uint32_t *)x)[j] = le32(b[i*32*r + j]);
@@ -890,7 +890,7 @@ void BRScrypt(void *dk, size_t dkLen, const void *pw, size_t pwLen, const void *
         for (unsigned j = 0; j < 32*r; j++) b[i*32*r + j] = le32(((uint32_t *)x)[j]);
     }
     
-    BRPBKDF2(dk, dkLen, BRSHA256, 32, pw, pwLen, b, sizeof(b), 1);
+    BRPBKDF2(dk, dkLen, BRSHA256, 256/8, pw, pwLen, b, sizeof(b), 1);
     memset(b, 0, sizeof(b));
     memset(x, 0, sizeof(x));
     memset(y, 0, sizeof(y));

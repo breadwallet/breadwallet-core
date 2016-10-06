@@ -1388,9 +1388,12 @@ size_t BRPaymentProtocolEncryptedMessageDecrypt(BRPaymentProtocolEncryptedMessag
     char *ad;
 
     assert(msg != NULL);
-    assert(privKey != NULL);
     assert(msg->message != NULL);
     
+    if (! out) return (msg->msgLen < 16) ? 0 : msg->msgLen - 16;
+
+    assert(privKey != NULL);
+
     _BRPaymentProtocolEncryptedMessageCEK(msg, cek, iv, privKey);
     adLen = (msg->statusMsg) ? 20 + strlen(msg->statusMsg) + 1 : 20 + 1;
     ad = calloc(adLen, sizeof(*ad));

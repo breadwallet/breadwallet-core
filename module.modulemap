@@ -1,0 +1,4 @@
+module breadwallet_core [system] [extern_c] {
+    umbrella header "BRCore.h"
+    export *
+}
