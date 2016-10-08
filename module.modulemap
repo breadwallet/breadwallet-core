@@ -1,4 +1,23 @@
-module breadwallet_core [system] [extern_c] {
-    umbrella header "BRCore.h"
+module BRCore [system] [extern_c] {
+    textual header "secp256k1/src/basic-config.h"
+    textual header "secp256k1/src/secp256k1.c"
+    textual header "secp256k1/include/secp256k1_recovery.h"
+    header "BRInt.h"
+    header "BRArray.h"
+    header "BRSet.h"
+    header "BRBloomFilter.h"
+    header "BRMerkleBlock.h"
+    header "BRPeer.h"
+    header "BRCrypto.h"
+    header "BRBase58.h"
+    header "BRKey.h"
+    header "BRBIP38Key.h"
+    header "BRBIP39Mnemonic.h"
+    header "BRBIP32Sequence.h"
+    header "BRTransaction.h"
+    header "BRPaymentProtocol.h"
+    header "BRAddress.h"
+    header "BRWallet.h"
+    header "BRPeerManager.h"
     export *
 }
