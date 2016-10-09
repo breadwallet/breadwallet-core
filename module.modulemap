@@ -1,7 +1,6 @@
 module BRCore [system] [extern_c] {
     textual header "secp256k1/src/basic-config.h"
     textual header "secp256k1/src/secp256k1.c"
-    textual header "secp256k1/include/secp256k1_recovery.h"
     header "BRInt.h"
     header "BRArray.h"
     header "BRSet.h"
