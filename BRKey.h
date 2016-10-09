@@ -58,6 +58,7 @@ int BRSecp256k1PointAdd(BRECPoint *p, const UInt256 *i);
 int BRSecp256k1PointMul(BRECPoint *p, const UInt256 *i);
 
 // returns true if privKey is a valid private key
+// supported formats are wallet import format (WIF), mini private key format, or hex string
 int BRPrivKeyIsValid(const char *privKey);
 
 typedef struct {
@@ -70,16 +71,17 @@ typedef struct {
 int BRKeySetSecret(BRKey *key, const UInt256 *secret, int compressed);
 
 // assigns privKey to key and returns true on success
+// privKey must be wallet import format (WIF), mini private key format, or hex string
 int BRKeySetPrivKey(BRKey *key, const char *privKey);
 
-// assigns pubKey to key and returns true on success
+// assigns DER encoded pubKey to key and returns true on success
 int BRKeySetPubKey(BRKey *key, const uint8_t *pubKey, size_t pkLen);
 
-// writes the private key to privKey and returns the number of bytes writen, or pkLen needed if privKey is NULL
+// writes the WIF private key to privKey and returns the number of bytes writen, or pkLen needed if privKey is NULL
 // returns 0 on failure
 size_t BRKeyPrivKey(const BRKey *key, char *privKey, size_t pkLen);
 
-// writes the public key to pubKey and returns the number of bytes written, or pkLen needed if pubKey is NULL
+// writes the DER encoded public key to pubKey and returns number of bytes written, or pkLen needed if pubKey is NULL
 size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t pkLen);
 
 // returns the ripemd160 hash of the sha256 hash of the public key, or UINT160_ZERO on error
