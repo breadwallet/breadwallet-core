@@ -271,7 +271,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
     
     tx->version = (off + sizeof(uint32_t) <= bufLen) ? UInt32GetLE(&buf[off]) : 0;
     off += sizeof(uint32_t);
-    tx->inCount = BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
+    tx->inCount = (size_t)BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
     off += len;
     array_set_count(tx->inputs, tx->inCount);
     
@@ -281,7 +281,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
         off += sizeof(UInt256);
         input->index = (off + sizeof(uint32_t) <= bufLen) ? UInt32GetLE(&buf[off]) : 0;
         off += sizeof(uint32_t);
-        sLen = BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
+        sLen = (size_t)BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
         off += len;
         
         if (off + sLen <= bufLen && BRAddressFromScriptPubKey(NULL, 0, &buf[off], sLen) > 0) {
@@ -295,7 +295,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
         off += sizeof(uint32_t);
     }
     
-    tx->outCount = BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
+    tx->outCount = (size_t)BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
     off += len;
     array_set_count(tx->outputs, tx->outCount);
     
@@ -303,7 +303,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
         output = &tx->outputs[i];
         output->amount = (off + sizeof(uint64_t) <= bufLen) ? UInt64GetLE(&buf[off]) : 0;
         off += sizeof(uint64_t);
-        sLen = BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
+        sLen = (size_t)BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
         off += len;
         if (off + sLen <= bufLen) BRTxOutputSetScript(output, &buf[off], sLen);
         off += sLen;

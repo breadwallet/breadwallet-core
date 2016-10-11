@@ -72,7 +72,7 @@ static void _ProtoBufSetVarInt(uint8_t *buf, size_t bufLen, uint64_t i, size_t *
 static const uint8_t *_ProtoBufLenDelim(const uint8_t *buf, size_t *len, size_t *off)
 {
     const uint8_t *data = NULL;
-    size_t dataLen = _ProtoBufVarInt(buf, *len, off);
+    size_t dataLen = (size_t)_ProtoBufVarInt(buf, *len, off);
     
     if (buf && *off + dataLen <= *len) data = &buf[*off];
     *off += dataLen;

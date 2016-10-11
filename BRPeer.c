@@ -181,7 +181,7 @@ static int _BRPeerAcceptVersionMessage(BRPeer *peer, const uint8_t *msg, size_t 
         off += sizeof(uint16_t);
         nonce = UInt64GetLE(&msg[off]);
         off += sizeof(uint64_t);
-        strLen = BRVarInt(&msg[off], (off <= msgLen ? msgLen - off : 0), &len);
+        strLen = (size_t)BRVarInt(&msg[off], (off <= msgLen ? msgLen - off : 0), &len);
         off += len;
 
         if (off + strLen + sizeof(uint32_t) > msgLen) {
@@ -233,7 +233,7 @@ static int _BRPeerAcceptVerackMessage(BRPeer *peer, const uint8_t *msg, size_t m
 static int _BRPeerAcceptAddrMessage(BRPeer *peer, const uint8_t *msg, size_t msgLen)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
-    size_t off = 0, count = BRVarInt(msg, msgLen, &off);
+    size_t off = 0, count = (size_t)BRVarInt(msg, msgLen, &off);
     int r = 1;
     
     if (off == 0 || off + count*30 > msgLen) {
@@ -279,7 +279,7 @@ static int _BRPeerAcceptAddrMessage(BRPeer *peer, const uint8_t *msg, size_t msg
 static int _BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t msgLen)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
-    size_t off = 0, count = BRVarInt(msg, msgLen, &off);
+    size_t off = 0, count = (size_t)BRVarInt(msg, msgLen, &off);
     int r = 1;
     
     if (off == 0 || off + count*36 > msgLen) {
@@ -422,7 +422,7 @@ static int _BRPeerAcceptTxMessage(BRPeer *peer, const uint8_t *msg, size_t msgLe
 static int _BRPeerAcceptHeadersMessage(BRPeer *peer, const uint8_t *msg, size_t msgLen)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
-    size_t off = 0, count = BRVarInt(msg, msgLen, &off);
+    size_t off = 0, count = (size_t)BRVarInt(msg, msgLen, &off);
     int r = 1;
 
     if (off == 0 || off + 81*count > msgLen) {
@@ -491,7 +491,7 @@ static int _BRPeerAcceptGetaddrMessage(BRPeer *peer, const uint8_t *msg, size_t 
 static int _BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t msgLen)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
-    size_t off = 0, count = BRVarInt(msg, msgLen, &off);
+    size_t off = 0, count = (size_t)BRVarInt(msg, msgLen, &off);
     int r = 1;
     
     if (off == 0 || off + 36*count > msgLen) {
@@ -554,7 +554,7 @@ static int _BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t 
 static int _BRPeerAcceptNotfoundMessage(BRPeer *peer, const uint8_t *msg, size_t msgLen)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
-    size_t off = 0, count = BRVarInt(msg, msgLen, &off);
+    size_t off = 0, count = (size_t)BRVarInt(msg, msgLen, &off);
     int r = 1;
 
     if (off == 0 || off + 36*count > msgLen) {
@@ -716,7 +716,7 @@ static int _BRPeerAcceptMerkleblockMessage(BRPeer *peer, const uint8_t *msg, siz
 static int _BRPeerAcceptRejectMessage(BRPeer *peer, const uint8_t *msg, size_t msgLen)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
-    size_t off = 0, strLen = BRVarInt(msg, msgLen, &off);
+    size_t off = 0, strLen = (size_t)BRVarInt(msg, msgLen, &off);
     int r = 1;
     
     if (off + strLen + sizeof(uint8_t) > msgLen) {
@@ -733,7 +733,7 @@ static int _BRPeerAcceptRejectMessage(BRPeer *peer, const uint8_t *msg, size_t m
         type[sizeof(type) - 1] = '\0';
         off += strLen;
         code = msg[off++];
-        strLen = BRVarInt(&msg[off], (off <= msgLen ? msgLen - off : 0), &len);
+        strLen = (size_t)BRVarInt(&msg[off], (off <= msgLen ? msgLen - off : 0), &len);
         off += len;
         if (strncmp(type, MSG_TX, sizeof(type)) == 0) hashLen = sizeof(UInt256);
         

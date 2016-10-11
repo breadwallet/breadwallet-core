@@ -75,7 +75,7 @@ BRBloomFilter *BRBloomFilterParse(const uint8_t *buf, size_t bufLen)
     assert(buf != NULL || bufLen == 0);
     
     if (buf) {
-        filter->length = BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
+        filter->length = (size_t)BRVarInt(&buf[off], (off <= bufLen ? bufLen - off : 0), &len);
         off += len;
         filter->filter = (filter->length <= BLOOM_MAX_FILTER_LENGTH && off + filter->length <= bufLen) ?
                          malloc(filter->length) : NULL;
