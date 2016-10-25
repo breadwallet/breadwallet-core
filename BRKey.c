@@ -137,14 +137,13 @@ int BRPrivKeyIsValid(const char *privKey)
 #endif
     }
     else if ((strLen == 30 || strLen == 22) && privKey[0] == 'S') { // mini private key format
-        UInt256 hash = UINT256_ZERO;
         char s[strLen + 2];
         
         strncpy(s, privKey, sizeof(s));
         s[sizeof(s) - 2] = '?';
-        BRSHA256(&hash, s, sizeof(s) - 1);
+        BRSHA256(data, s, sizeof(s) - 1);
         memset(s, 0, sizeof(s));
-        r = (hash.u8[0] == 0);
+        r = (data[0] == 0);
     }
     else r = (strspn(privKey, "0123456789ABCDEFabcdef") == 64); // hex encoded key
     
