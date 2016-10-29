@@ -565,7 +565,7 @@ BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, cons
 BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput outputs[], size_t outCount)
 {
     BRTransaction *tx, *transaction = BRTransactionNew();
-    uint64_t feeAmount, amount = 0, balance = 0;
+    uint64_t feeAmount, amount = 0, balance = 0, minAmount;
     size_t i, j, cpfpSize = 0;
     BRUTXO *o;
     
@@ -578,6 +578,7 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
         amount += outputs[i].amount;
     }
     
+    minAmount = BRWalletMinOutputAmount(wallet);
     pthread_mutex_lock(&wallet->lock);
     feeAmount = _txFee(wallet->feePerKb, BRTransactionSize(transaction) + TX_OUTPUT_SIZE);
     
@@ -601,7 +602,7 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
                                                   (outCount + 1)*TX_OUTPUT_SIZE + cpfpSize)) break;
             pthread_mutex_unlock(&wallet->lock);
 
-            if (outputs[outCount - 1].amount > amount + feeAmount + TX_MIN_OUTPUT_AMOUNT - balance) {
+            if (outputs[outCount - 1].amount > amount + feeAmount + minAmount - balance) {
                 BRTxOutput newOutputs[outCount];
                 
                 for (j = 0; j < outCount; j++) {
@@ -629,7 +630,7 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
         // increase fee to round off remaining wallet balance to nearest 100 satoshi
         if (wallet->balance > amount + feeAmount) feeAmount += (wallet->balance - (amount + feeAmount)) % 100;
         
-        if (balance == amount + feeAmount || balance >= amount + feeAmount + TX_MIN_OUTPUT_AMOUNT) break;
+        if (balance == amount + feeAmount || balance >= amount + feeAmount + minAmount) break;
     }
     
     pthread_mutex_unlock(&wallet->lock);
@@ -638,7 +639,7 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
         BRTransactionFree(transaction);
         transaction = NULL;
     }
-    else if (transaction && balance - (amount + feeAmount) >= TX_MIN_OUTPUT_AMOUNT) { // add change output
+    else if (transaction && balance - (amount + feeAmount) >= minAmount) { // add change output
         BRAddress addr = BRWalletChangeAddress(wallet);
         uint8_t script[BRAddressScriptPubKey(NULL, 0, addr.s)];
         size_t scriptLen = BRAddressScriptPubKey(script, sizeof(script), addr.s);

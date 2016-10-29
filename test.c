@@ -1798,8 +1798,24 @@ int BRWalletTests()
     
     printf("                                    ");
     BRWalletFree(w);
-    
+
     int64_t amt;
+    
+    tx = BRTransactionNew();
+    BRTransactionAddInput(tx, inHash, 0, inScript, inScriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddOutput(tx, 740000, outScript, outScriptLen);
+    BRTransactionSign(tx, &k, 1);
+    w = BRWalletNew(&tx, 1, mpk);
+    BRWalletSetCallbacks(w, w, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
+    BRWalletSetFeePerKb(w, 65000);
+    amt = BRWalletMaxOutputAmount(w);
+    tx = BRWalletCreateTransaction(w, amt, addr.s);
+    
+    if (BRWalletAmountSentByTx(w, tx) - BRWalletFeeForTx(w, tx) != amt || BRWalletAmountReceivedFromTx(w, tx) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletMaxOutputAmount() test 1\n", __func__);
+
+    BRTransactionFree(tx);
+    BRWalletFree(w);
     
     amt = BRBitcoinAmount(50000, 50000);
     if (amt != SATOSHIS) r = 0, fprintf(stderr, "***FAILED*** %s: BRBitcoinAmount() test 1\n", __func__);

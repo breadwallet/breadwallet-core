@@ -393,13 +393,13 @@ size_t BRTransactionSize(const BRTransaction *tx)
         input = &tx->inputs[i];
         
         if (input->signature) {
-            size += input->sigLen;
+            size += sizeof(UInt256) + sizeof(uint32_t) + BRVarIntSize(input->sigLen) + input->sigLen + sizeof(uint32_t);
         }
         else size += TX_INPUT_SIZE;
     }
     
     for (size_t i = 0; tx && i < tx->outCount; i++) {
-        size += tx->outputs[i].scriptLen;
+        size += sizeof(uint64_t) + BRVarIntSize(tx->outputs[i].scriptLen) + tx->outputs[i].scriptLen;
     }
     
     return size;
