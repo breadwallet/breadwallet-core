@@ -70,6 +70,10 @@ size_t BRMerkleBlockSerialize(const BRMerkleBlock *block, uint8_t *buf, size_t b
 // returns number of tx hashes written, or total number of matched hashes in the block if txHashes is NULL
 size_t BRMerkleBlockTxHashes(const BRMerkleBlock *block, UInt256 *txHashes, size_t hashesCount);
 
+// sets the hashes and flags fields for a block created with BRMerkleBlockNew()
+void BRMerkleBlockSetTxHashes(BRMerkleBlock *block, const UInt256 hashes[], size_t hashesCount,
+                              const uint8_t *flags, size_t flagsLen);
+
 // true if merkle tree and timestamp are valid, and proof-of-work matches the stated difficulty target
 // NOTE: this only checks if the block difficulty matches the difficulty target in the header, it does not check if the
 // target is correct for the block's height in the chain - use BRMerkleBlockVerifyDifficulty() for that

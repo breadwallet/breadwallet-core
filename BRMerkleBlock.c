@@ -78,6 +78,7 @@ BRMerkleBlock *BRMerkleBlockNew(void)
     BRMerkleBlock *block = calloc(1, sizeof(*block));
 
     assert(block != NULL);
+    
     block->height = BLOCK_UNKNOWN_HEIGHT;
     return block;
 }
@@ -201,7 +202,24 @@ size_t BRMerkleBlockTxHashes(const BRMerkleBlock *block, UInt256 *txHashes, size
     size_t idx = 0, hashIdx = 0, flagIdx = 0;
 
     assert(block != NULL);
+    
     return _BRMerkleBlockTxHashesR(block, txHashes, (txHashes) ? hashesCount : SIZE_MAX, &idx, &hashIdx, &flagIdx, 0);
+}
+
+// sets the hashes and flags fields for a block created with BRMerkleBlockNew()
+void BRMerkleBlockSetTxHashes(BRMerkleBlock *block, const UInt256 hashes[], size_t hashesCount,
+                              const uint8_t *flags, size_t flagsLen)
+{
+    assert(block != NULL);
+    assert(hashes != NULL || hashesCount == 0);
+    assert(flags != NULL || flagsLen == 0);
+    
+    if (block->hashes) free(block->hashes);
+    block->hashes = (hashesCount > 0) ? malloc(hashesCount*sizeof(UInt256)) : NULL;
+    if (block->hashes) memcpy(block->hashes, hashes, hashesCount*sizeof(UInt256));
+    if (block->flags) free(block->flags);
+    block->flags = (flagsLen > 0) ? malloc(flagsLen) : NULL;
+    if (block->flags) memcpy(block->flags, flags, flagsLen);
 }
 
 // recursively walks the merkle tree to calculate the merkle root
@@ -299,6 +317,7 @@ int BRMerkleBlockVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBloc
     
     assert(block != NULL);
     assert(previous != NULL);
+    
     if (! previous || !UInt256Eq(block->prevBlock, previous->blockHash) || block->height != previous->height + 1) r = 0;
     if (r && (block->height % BLOCK_DIFFICULTY_INTERVAL) == 0 && transitionTime == 0) r = 0;
     
@@ -340,6 +359,7 @@ int BRMerkleBlockVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBloc
 void BRMerkleBlockFree(BRMerkleBlock *block)
 {
     assert(block != NULL);
+    
     if (block->hashes) free(block->hashes);
     if (block->flags) free(block->flags);
     free(block);
