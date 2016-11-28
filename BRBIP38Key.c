@@ -292,7 +292,7 @@ int BRKeySetBIP38Key(BRKey *key, const char *bip38Key, const char *passphrase)
     secret = UINT256_ZERO;
     BRKeyAddress(key, address.s, sizeof(address));
     BRSHA256_2(&hash, address.s, strlen(address.s));
-    if (! address.s[9] || memcmp(&hash, addresshash, sizeof(uint32_t)) != 0) r = 0;
+    if (! address.s[0] || memcmp(&hash, addresshash, sizeof(uint32_t)) != 0) r = 0;
     return r;
 }
 

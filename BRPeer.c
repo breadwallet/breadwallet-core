@@ -122,6 +122,8 @@ typedef struct {
     int (*networkIsReachable)(void *info);
     void **pongInfo;
     void (**pongCallback)(void *info, int success);
+    void *mempoolInfo;
+    void (*mempoolCallback)(void *info, int success);
     pthread_t thread;
 } BRPeerContext;
 
@@ -132,6 +134,26 @@ void BRPeerSendAddr(BRPeer *peer);
 inline static int _BRPeerIsIPv4(const BRPeer *peer)
 {
     return (peer->address.u64[0] == 0 && peer->address.u16[4] == 0 && peer->address.u16[5] == 0xffff);
+}
+
+static void _BRPeerAddKnownTxHashes(const BRPeer *peer, const UInt256 txHashes[], size_t txCount)
+{
+    BRPeerContext *ctx = (BRPeerContext *)peer;
+    UInt256 *knownTxHashes = ctx->knownTxHashes;
+    size_t i, j;
+    
+    for (i = 0; i < txCount; i++) {
+        if (! BRSetContains(ctx->knownTxHashSet, &txHashes[i])) {
+            array_add(knownTxHashes, txHashes[i]);
+            
+            if (ctx->knownTxHashes != knownTxHashes) { // check if knownTxHashes was moved to a new memory location
+                ctx->knownTxHashes = knownTxHashes;
+                BRSetClear(ctx->knownTxHashSet);
+                for (j = array_count(knownTxHashes); j > 0; j--) BRSetAdd(ctx->knownTxHashSet, &knownTxHashes[j - 1]);
+            }
+            else BRSetAdd(ctx->knownTxHashSet, &knownTxHashes[array_count(knownTxHashes) - 1]);
+        }
+    }
 }
 
 static void _BRPeerDidConnect(BRPeer *peer)
@@ -293,7 +315,7 @@ static int _BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t msgL
     else {
         inv_type type;
         const uint8_t *transactions[count], *blocks[count];
-        size_t i, j, k, txCount = 0, blockCount = 0;
+        size_t i, j, txCount = 0, blockCount = 0;
         
         peer_log(peer, "got inv with %zu items", count);
 
@@ -327,7 +349,7 @@ static int _BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t msgL
             if (blockCount == 1 && UInt256Eq(ctx->lastBlockHash, UInt256Get(blocks[0]))) blockCount = 0;
             if (blockCount == 1) ctx->lastBlockHash = UInt256Get(blocks[0]);
 
-            UInt256 hash, blockHashes[blockCount], txHashes[txCount], *knownTxHashes = ctx->knownTxHashes;
+            UInt256 hash, blockHashes[blockCount], txHashes[txCount];
 
             for (i = 0; i < blockCount; i++) {
                 blockHashes[i] = UInt256Get(blocks[i]);
@@ -343,31 +365,26 @@ static int _BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t msgL
         
             for (i = 0, j = 0; i < txCount; i++) {
                 hash = UInt256Get(transactions[i]);
-                if (BRSetContains(ctx->knownTxHashSet, &hash)) continue; // skip transactions we already have
-                txHashes[j++] = hash;
-                array_add(knownTxHashes, hash);
-            
-                if (ctx->knownTxHashes != knownTxHashes) { // check if knownTxHashes was moved to a new memory location
-                    ctx->knownTxHashes = knownTxHashes;
-                    BRSetClear(ctx->knownTxHashSet);
-
-                    for (k = array_count(knownTxHashes); k > 0; k--) {
-                        BRSetAdd(ctx->knownTxHashSet, &knownTxHashes[k - 1]);
-                    }
+                
+                if (BRSetContains(ctx->knownTxHashSet, &hash)) {
+                    if (ctx->hasTx) ctx->hasTx(ctx->info, hash);
                 }
-                else BRSetAdd(ctx->knownTxHashSet, &knownTxHashes[array_count(knownTxHashes) - 1]);
-            
-                if (ctx->hasTx) ctx->hasTx(ctx->info, hash);
+                else txHashes[j++] = hash;
             }
             
-            txCount = j;
-            if (txCount > 0 || blockCount > 0) BRPeerSendGetdata(peer, txHashes, txCount, blockHashes, blockCount);
+            _BRPeerAddKnownTxHashes(peer, txHashes, j);
+            if (j > 0 || blockCount > 0) BRPeerSendGetdata(peer, txHashes, j, blockHashes, blockCount);
     
             // to improve chain download performance, if we received 500 block hashes, request the next 500 block hashes
             if (blockCount >= 500) {
                 UInt256 locators[] = { blockHashes[blockCount - 1], blockHashes[0] };
             
                 BRPeerSendGetblocks(peer, locators, 2, UINT256_ZERO);
+            }
+            
+            if (txCount > 0 && ctx->mempoolCallback) {
+                BRPeerSendPing(peer, ctx->mempoolInfo, ctx->mempoolCallback);
+                ctx->mempoolCallback = NULL;
             }
         }
     }
@@ -971,6 +988,8 @@ static void *_peerThreadRoutine(void *arg)
         if (pongCallback) pongCallback(pongInfo, 0);
     }
 
+    if (ctx->mempoolCallback) ctx->mempoolCallback(ctx->mempoolInfo, 0);
+    ctx->mempoolCallback = NULL;
     if (ctx->disconnected) ctx->disconnected(ctx->info, error);
     return NULL; // detached threads don't need to return a value
 }
@@ -1078,7 +1097,7 @@ void BRPeerConnect(BRPeer *peer)
                 error = errno;
                 peer_log(peer, "error creating socket");
                 ctx->status = BRPeerStatusDisconnected;
-                if (ctx->disconnected) ctx->disconnected(ctx->info, error);
+                //if (ctx->disconnected) ctx->disconnected(ctx->info, error);
             }
             else {
                 tv.tv_sec = 1; // one second timeout for send/receive, so thread doesn't block for too long
@@ -1102,7 +1121,7 @@ void BRPeerConnect(BRPeer *peer)
                     peer_log(peer, "error creating thread");
                     pthread_attr_destroy(&attr);
                     ctx->status = BRPeerStatusDisconnected;
-                    if (ctx->disconnected) ctx->disconnected(ctx->info, error);
+                    //if (ctx->disconnected) ctx->disconnected(ctx->info, error);
                 }
             }
         }
@@ -1289,9 +1308,20 @@ void BRPeerSendFilterload(BRPeer *peer, const uint8_t *filter, size_t filterLen)
     BRPeerSendMessage(peer, filter, filterLen, MSG_FILTERLOAD);
 }
 
-void BRPeerSendMempool(BRPeer *peer)
+void BRPeerSendMempool(BRPeer *peer, const UInt256 knownTxHashes[], size_t knownTxCount, void *info,
+                       void (*completionCallback)(void *info, int success))
 {
-    ((BRPeerContext *)peer)->sentMempool = 1;
+    BRPeerContext *ctx = (BRPeerContext *)peer;
+
+    _BRPeerAddKnownTxHashes(peer, knownTxHashes, knownTxCount);
+    ctx->sentMempool = 1;
+    
+    if (! ctx->mempoolCallback) {
+        ctx->mempoolInfo = info;
+        ctx->mempoolCallback = completionCallback;
+    }
+    else if (completionCallback) completionCallback(info, 0);
+    
     BRPeerSendMessage(peer, NULL, 0, MSG_MEMPOOL);
 }
 
@@ -1350,26 +1380,13 @@ void BRPeerSendGetblocks(BRPeer *peer, const UInt256 locators[], size_t locators
 void BRPeerSendInv(BRPeer *peer, const UInt256 txHashes[], size_t txCount)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
-    UInt256 *knownTxHashes = ctx->knownTxHashes;
-    size_t i, j, knownCount = array_count(knownTxHashes);
+    size_t knownCount = array_count(ctx->knownTxHashes);
 
-    for (i = 0; i < txCount; i++) {
-        if (! BRSetContains(ctx->knownTxHashSet, &txHashes[i])) {
-            array_add(knownTxHashes, txHashes[i]);
-
-            if (ctx->knownTxHashes != knownTxHashes) { // check if knownTxHashes was moved to a new memory location
-                ctx->knownTxHashes = knownTxHashes;
-                BRSetClear(ctx->knownTxHashSet);
-                for (j = array_count(knownTxHashes); j > 0; j--) BRSetAdd(ctx->knownTxHashSet, &knownTxHashes[j - 1]);
-            }
-            else BRSetAdd(ctx->knownTxHashSet, &knownTxHashes[array_count(knownTxHashes) - 1]);
-        }
-    }
-    
-    txCount = array_count(knownTxHashes) - knownCount;
+    _BRPeerAddKnownTxHashes(peer, txHashes, txCount);
+    txCount = array_count(ctx->knownTxHashes) - knownCount;
 
     if (txCount > 0) {
-        size_t off = 0, msgLen = BRVarIntSize(txCount) + (sizeof(uint32_t) + sizeof(*txHashes))*txCount;
+        size_t i, off = 0, msgLen = BRVarIntSize(txCount) + (sizeof(uint32_t) + sizeof(*txHashes))*txCount;
         uint8_t msg[msgLen];
         
         off += BRVarIntSet(&msg[off], (off <= msgLen ? msgLen - off : 0), txCount);
@@ -1377,7 +1394,7 @@ void BRPeerSendInv(BRPeer *peer, const UInt256 txHashes[], size_t txCount)
         for (i = 0; i < txCount; i++) {
             UInt32SetLE(&msg[off], inv_tx);
             off += sizeof(uint32_t);
-            UInt256Set(&msg[off], knownTxHashes[knownCount + i]);
+            UInt256Set(&msg[off], ctx->knownTxHashes[knownCount + i]);
             off += sizeof(UInt256);
         }
 
