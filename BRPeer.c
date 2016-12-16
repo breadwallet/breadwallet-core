@@ -100,7 +100,7 @@ typedef struct {
     uint64_t nonce, feePerKb;
     char *useragent;
     uint32_t version, lastblock, earliestKeyTime, currentBlockHeight;
-    double startTime, pingTime, disconnectTime;
+    double startTime, pingTime, disconnectTime, mempoolTime;
     int sentVerack, gotVerack, sentGetaddr, sentFilter, sentGetdata, sentMempool, sentGetblocks;
     UInt256 lastBlockHash;
     BRMerkleBlock *currentBlock;
@@ -163,6 +163,7 @@ static void _BRPeerDidConnect(BRPeer *peer)
     if (ctx->status == BRPeerStatusConnecting && ctx->sentVerack && ctx->gotVerack) {
         peer_log(peer, "handshake completed");
         ctx->disconnectTime = DBL_MAX;
+        ctx->mempoolTime = DBL_MAX;
         ctx->status = BRPeerStatusConnected;
         peer_log(peer, "connected with lastblock: %"PRIu32, ctx->lastblock);
         if (ctx->connected) ctx->connected(ctx->info);
@@ -385,6 +386,7 @@ static int _BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t msgL
             if (txCount > 0 && ctx->mempoolCallback) {
                 BRPeerSendPing(peer, ctx->mempoolInfo, ctx->mempoolCallback);
                 ctx->mempoolCallback = NULL;
+                ctx->mempoolTime = DBL_MAX;
             }
         }
     }
@@ -893,6 +895,7 @@ static void *_peerThreadRoutine(void *arg)
 
     if (_BRPeerOpenSocket(peer, CONNECT_TIMEOUT, &error)) {
         struct timeval tv;
+        double time;
         uint8_t header[HEADER_LENGTH], *payload = malloc(0x1000);
         size_t len = 0, payloadLen = 0x1000;
         ssize_t n = 0;
@@ -911,7 +914,14 @@ static void *_peerThreadRoutine(void *arg)
                 if (n >= 0) len += n;
                 if (n < 0 && errno != EWOULDBLOCK) error = errno;
                 gettimeofday(&tv, NULL);
-                if (! error && tv.tv_sec + (double)tv.tv_usec/1000000 >= ctx->disconnectTime) error = ETIMEDOUT;
+                time = tv.tv_sec + (double)tv.tv_usec/1000000;
+                if (! error && time >= ctx->disconnectTime) error = ETIMEDOUT;
+
+                if (! error && time >= ctx->mempoolTime) {
+                    BRPeerSendPing(peer, ctx->mempoolInfo, ctx->mempoolCallback);
+                    ctx->mempoolCallback = NULL;
+                    ctx->mempoolTime = DBL_MAX;
+                }
                 
                 while (sizeof(uint32_t) <= len && UInt32GetLE(header) != MAGIC_NUMBER) {
                     memmove(header, &header[1], --len); // consume one byte at a time until we find the magic number
@@ -948,7 +958,8 @@ static void *_peerThreadRoutine(void *arg)
                         if (n >= 0) len += n;
                         if (n < 0 && errno != EWOULDBLOCK) error = errno;
                         gettimeofday(&tv, NULL);
-                        if (! error && tv.tv_sec + (double)tv.tv_usec/1000000 >= ctx->disconnectTime) error = ETIMEDOUT;
+                        time = tv.tv_sec + (double)tv.tv_usec/1000000;
+                        if (! error && time >= ctx->disconnectTime) error = ETIMEDOUT;
                         socket = ctx->socket;
                     }
                     
@@ -1312,11 +1323,14 @@ void BRPeerSendMempool(BRPeer *peer, const UInt256 knownTxHashes[], size_t known
                        void (*completionCallback)(void *info, int success))
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
-
+    struct timeval tv;
+    
     _BRPeerAddKnownTxHashes(peer, knownTxHashes, knownTxCount);
     ctx->sentMempool = 1;
     
     if (! ctx->mempoolCallback) {
+        gettimeofday(&tv, NULL);
+        ctx->mempoolTime = tv.tv_sec + (double)tv.tv_usec/1000000 + 5.0;
         ctx->mempoolInfo = info;
         ctx->mempoolCallback = completionCallback;
     }

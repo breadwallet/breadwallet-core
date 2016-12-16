@@ -156,12 +156,12 @@ int BRArrayTests()
     return r;
 }
 
-inline static int compare_int(void *info, const void *a, const void *b)
-{
-    if (*(int *)a < *(int *)b) return -1;
-    if (*(int *)a > *(int *)b) return 1;
-    return 0;
-}
+//inline static int compare_int(void *info, const void *a, const void *b)
+//{
+//    if (*(int *)a < *(int *)b) return -1;
+//    if (*(int *)a > *(int *)b) return 1;
+//    return 0;
+//}
 
 inline static size_t hash_int(const void *i)
 {
