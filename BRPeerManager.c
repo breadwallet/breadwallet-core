@@ -781,7 +781,6 @@ static void _peerConnected(void *info)
     
     pthread_mutex_lock(&manager->lock);
     if (peer->timestamp > now + 2*60*60 || peer->timestamp < now - 2*60*60) peer->timestamp = now; // sanity check
-//    manager->connectFailureCount = 0;
     
     // drop peers that don't carry full blocks, or aren't synced yet
     // TODO: XXX does this work with 0.11 pruned nodes?
@@ -796,7 +795,7 @@ static void _peerConnected(void *info)
              (BRPeerLastBlock(manager->downloadPeer) >= BRPeerLastBlock(peer) ||
               manager->lastBlock->height >= BRPeerLastBlock(peer))) {
         if (manager->lastBlock->height >= BRPeerLastBlock(peer)) { // only load bloom filter if we're done syncing
-            manager->connectFailureCount = 0;
+            manager->connectFailureCount = 0; // also reset connect failure count if we're already synced
             _BRPeerManagerLoadBloomFilter(manager, peer);
             _BRPeerManagerPublishPendingTx(manager, peer);
             BRPeerSendPing(peer, info, _peerConnectedFilterloadDone);
@@ -828,14 +827,14 @@ static void _peerConnected(void *info)
             BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT); // schedule sync timeout
 
             // request just block headers up to a week before earliestKeyTime, and then merkleblocks after that
-            // BUG: XXX headers can timeout on slow connections (each message is over 160k)
+            // we do not reset connect failure count yet incase this request times out
             if (manager->lastBlock->timestamp + 7*24*60*60 >= manager->earliestKeyTime) {
                 BRPeerSendGetblocks(peer, locators, count, UINT256_ZERO);
             }
             else BRPeerSendGetheaders(peer, locators, count, UINT256_ZERO);
         }
         else { // we're already synced
-            manager->connectFailureCount = 0;
+            manager->connectFailureCount = 0; // reset connect failure count
             _BRPeerManagerLoadMempools(manager);
         }
     }
@@ -1238,8 +1237,8 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
         block = NULL;
 
         if (peer == manager->downloadPeer && manager->lastBlock->height < manager->estimatedHeight) {
-            manager->connectFailureCount = 0;
             BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT); // reschedule sync timeout
+            manager->connectFailureCount = 0; // reset failure count once we know our initial request didn't timeout
         }
     }
     else if (! prev) { // block is an orphan
@@ -1283,8 +1282,8 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
         if (manager->downloadPeer) BRPeerSetCurrentBlockHeight(manager->downloadPeer, block->height);
             
         if (block->height < manager->estimatedHeight && peer == manager->downloadPeer) {
-            manager->connectFailureCount = 0;
             BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT); // reschedule sync timeout
+            manager->connectFailureCount = 0; // reset failure count once we know our initial request didn't timeout
         }
         
         if ((block->height % BLOCK_DIFFICULTY_INTERVAL) == 0) saveCount = 1; // save transition block immediately
