@@ -781,7 +781,7 @@ static void _peerConnected(void *info)
     
     pthread_mutex_lock(&manager->lock);
     if (peer->timestamp > now + 2*60*60 || peer->timestamp < now - 2*60*60) peer->timestamp = now; // sanity check
-    manager->connectFailureCount = 0;
+//    manager->connectFailureCount = 0;
     
     // drop peers that don't carry full blocks, or aren't synced yet
     // TODO: XXX does this work with 0.11 pruned nodes?
@@ -796,6 +796,7 @@ static void _peerConnected(void *info)
              (BRPeerLastBlock(manager->downloadPeer) >= BRPeerLastBlock(peer) ||
               manager->lastBlock->height >= BRPeerLastBlock(peer))) {
         if (manager->lastBlock->height >= BRPeerLastBlock(peer)) { // only load bloom filter if we're done syncing
+            manager->connectFailureCount = 0;
             _BRPeerManagerLoadBloomFilter(manager, peer);
             _BRPeerManagerPublishPendingTx(manager, peer);
             BRPeerSendPing(peer, info, _peerConnectedFilterloadDone);
@@ -833,7 +834,10 @@ static void _peerConnected(void *info)
             }
             else BRPeerSendGetheaders(peer, locators, count, UINT256_ZERO);
         }
-        else _BRPeerManagerLoadMempools(manager); // we're already synced
+        else { // we're already synced
+            manager->connectFailureCount = 0;
+            _BRPeerManagerLoadMempools(manager);
+        }
     }
 
     pthread_mutex_unlock(&manager->lock);
@@ -1234,6 +1238,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
         block = NULL;
 
         if (peer == manager->downloadPeer && manager->lastBlock->height < manager->estimatedHeight) {
+            manager->connectFailureCount = 0;
             BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT); // reschedule sync timeout
         }
     }
@@ -1278,6 +1283,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
         if (manager->downloadPeer) BRPeerSetCurrentBlockHeight(manager->downloadPeer, block->height);
             
         if (block->height < manager->estimatedHeight && peer == manager->downloadPeer) {
+            manager->connectFailureCount = 0;
             BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT); // reschedule sync timeout
         }
         
