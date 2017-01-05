@@ -770,6 +770,10 @@ static void _peerConnected(void *info)
             manager->connectFailureCount = 0; // also reset connect failure count if we're already synced
             _BRPeerManagerLoadBloomFilter(manager, peer);
             _BRPeerManagerPublishPendingTx(manager, peer);
+            BRPeerCallbackInfo *peerInfo = calloc(1, sizeof(*peerInfo));
+            assert(peerInfo != NULL);
+            peerInfo->peer = peer;
+            peerInfo->manager = manager;
             BRPeerSendPing(peer, info, _loadBloomFilterDone);
         }
     }
