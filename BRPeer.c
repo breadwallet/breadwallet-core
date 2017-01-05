@@ -1334,10 +1334,13 @@ void BRPeerSendMempool(BRPeer *peer, const UInt256 knownTxHashes[], size_t known
     _BRPeerAddKnownTxHashes(peer, knownTxHashes, knownTxCount);
     
     if (! sentMempool && ! ctx->mempoolCallback) {
-        gettimeofday(&tv, NULL);
-        ctx->mempoolTime = tv.tv_sec + (double)tv.tv_usec/1000000 + 5.0;
-        ctx->mempoolInfo = info;
-        ctx->mempoolCallback = completionCallback;
+        if (completionCallback) {
+            gettimeofday(&tv, NULL);
+            ctx->mempoolTime = tv.tv_sec + (double)tv.tv_usec/1000000 + 5.0;
+            ctx->mempoolInfo = info;
+            ctx->mempoolCallback = completionCallback;
+        }
+        
         BRPeerSendMessage(peer, NULL, 0, MSG_MEMPOOL);
     }
     else if (completionCallback) completionCallback(info, 0);
