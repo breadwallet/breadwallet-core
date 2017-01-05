@@ -774,7 +774,7 @@ static void _peerConnected(void *info)
             assert(peerInfo != NULL);
             peerInfo->peer = peer;
             peerInfo->manager = manager;
-            BRPeerSendPing(peer, info, _loadBloomFilterDone);
+            BRPeerSendPing(peer, peerInfo, _loadBloomFilterDone);
         }
     }
     else { // select the peer with the lowest ping time to download the chain from if we're behind
