@@ -261,7 +261,7 @@ static int _BRPeerAcceptAddrMessage(BRPeer *peer, const uint8_t *msg, size_t msg
     int r = 1;
     
     if (off == 0 || off + count*30 > msgLen) {
-        peer_log(peer, "malformed addr message, length is %zu, should be %zu for %zu addresses", msgLen,
+        peer_log(peer, "malformed addr message, length is %zu, should be %zu for %zu address(es)", msgLen,
                  BRVarIntSize(count) + 30*count, count);
         r = 0;
     }
@@ -273,7 +273,7 @@ static int _BRPeerAcceptAddrMessage(BRPeer *peer, const uint8_t *msg, size_t msg
         size_t peersCount = 0;
         time_t now = time(NULL);
         
-        peer_log(peer, "got addr with %zu addresses", count);
+        peer_log(peer, "got addr with %zu address(es)", count);
 
         for (size_t i = 0; i < count; i++) {
             p.timestamp = UInt32GetLE(&msg[off]);
@@ -307,7 +307,7 @@ static int _BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t msgL
     int r = 1;
     
     if (off == 0 || off + count*36 > msgLen) {
-        peer_log(peer, "malformed inv message, length is %zu, should be %zu for %zu items", msgLen,
+        peer_log(peer, "malformed inv message, length is %zu, should be %zu for %zu item(s)", msgLen,
                  BRVarIntSize(count) + 36*count, count);
         r = 0;
     }
@@ -319,7 +319,7 @@ static int _BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t msgL
         const uint8_t *transactions[count], *blocks[count];
         size_t i, j, txCount = 0, blockCount = 0;
         
-        peer_log(peer, "got inv with %zu items", count);
+        peer_log(peer, "got inv with %zu item(s)", count);
 
         for (i = 0; i < count; i++) {
             type = UInt32GetLE(&msg[off]);
@@ -343,7 +343,7 @@ static int _BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t msgL
         }
         else if (ctx->currentBlockHeight > 0 && blockCount > 2 && blockCount < 500 &&
                  ctx->currentBlockHeight + array_count(ctx->knownBlockHashes) + blockCount < ctx->lastblock) {
-            peer_log(peer, "non-standard inv, %zu is fewer block hashes than expected", blockCount);
+            peer_log(peer, "non-standard inv, %zu is fewer block hash(es) than expected", blockCount);
             r = 0;
         }
         else {
@@ -446,12 +446,12 @@ static int _BRPeerAcceptHeadersMessage(BRPeer *peer, const uint8_t *msg, size_t 
     int r = 1;
 
     if (off == 0 || off + 81*count > msgLen) {
-        peer_log(peer, "malformed headers message, length is %zu, should be %zu for %zu items", msgLen,
+        peer_log(peer, "malformed headers message, length is %zu, should be %zu for %zu header(s)", msgLen,
                  BRVarIntSize(count) + 81*count, count);
         r = 0;
     }
     else {
-        peer_log(peer, "got %zu headers", count);
+        peer_log(peer, "got %zu header(s)", count);
     
         // To improve chain download performance, if this message contains 2000 headers then request the next 2000
         // headers immediately, and switch to requesting blocks when we receive a header newer than earliestKeyTime
@@ -493,7 +493,7 @@ static int _BRPeerAcceptHeadersMessage(BRPeer *peer, const uint8_t *msg, size_t 
             }
         }
         else {
-            peer_log(peer, "non-standard headers message, %zu is fewer headers than expected", count);
+            peer_log(peer, "non-standard headers message, %zu is fewer header(s) than expected", count);
             r = 0;
         }
     }
@@ -515,7 +515,7 @@ static int _BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t 
     int r = 1;
     
     if (off == 0 || off + 36*count > msgLen) {
-        peer_log(peer, "malformed getdata message, length is %zu, should %zu for %zu items", msgLen,
+        peer_log(peer, "malformed getdata message, length is %zu, should %zu for %zu item(s)", msgLen,
                  BRVarIntSize(count) + 36*count, count);
         r = 0;
     }
@@ -526,7 +526,7 @@ static int _BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t 
         struct inv_item { uint8_t item[36]; } *notfound = NULL;
         BRTransaction *tx = NULL;
         
-        peer_log(peer, "got getdata with %zu items", count);
+        peer_log(peer, "got getdata with %zu item(s)", count);
         
         for (size_t i = 0; i < count; i++) {
             inv_type type = UInt32GetLE(&msg[off]);
@@ -578,7 +578,7 @@ static int _BRPeerAcceptNotfoundMessage(BRPeer *peer, const uint8_t *msg, size_t
     int r = 1;
 
     if (off == 0 || off + 36*count > msgLen) {
-        peer_log(peer, "malformed notfound message, length is %zu, should be %zu for %zu items", msgLen,
+        peer_log(peer, "malformed notfound message, length is %zu, should be %zu for %zu item(s)", msgLen,
                  BRVarIntSize(count) + 36*count, count);
         r = 0;
     }
@@ -589,7 +589,7 @@ static int _BRPeerAcceptNotfoundMessage(BRPeer *peer, const uint8_t *msg, size_t
         inv_type type;
         UInt256 *txHashes, *blockHashes, hash;
         
-        peer_log(peer, "got notfound with %zu items", count);
+        peer_log(peer, "got notfound with %zu item(s)", count);
         array_new(txHashes, 1);
         array_new(blockHashes, 1);
         
@@ -1319,6 +1319,7 @@ void BRPeerSendAddr(BRPeer *peer)
 void BRPeerSendFilterload(BRPeer *peer, const uint8_t *filter, size_t filterLen)
 {
     ((BRPeerContext *)peer)->sentFilter = 1;
+    ((BRPeerContext *)peer)->sentMempool = 0;
     BRPeerSendMessage(peer, filter, filterLen, MSG_FILTERLOAD);
 }
 
@@ -1327,19 +1328,19 @@ void BRPeerSendMempool(BRPeer *peer, const UInt256 knownTxHashes[], size_t known
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     struct timeval tv;
+    int sentMempool = ctx->sentMempool;
     
-    _BRPeerAddKnownTxHashes(peer, knownTxHashes, knownTxCount);
     ctx->sentMempool = 1;
+    _BRPeerAddKnownTxHashes(peer, knownTxHashes, knownTxCount);
     
-    if (! ctx->mempoolCallback) {
+    if (! sentMempool && ! ctx->mempoolCallback) {
         gettimeofday(&tv, NULL);
         ctx->mempoolTime = tv.tv_sec + (double)tv.tv_usec/1000000 + 5.0;
         ctx->mempoolInfo = info;
         ctx->mempoolCallback = completionCallback;
+        BRPeerSendMessage(peer, NULL, 0, MSG_MEMPOOL);
     }
     else if (completionCallback) completionCallback(info, 0);
-    
-    BRPeerSendMessage(peer, NULL, 0, MSG_MEMPOOL);
 }
 
 void BRPeerSendGetheaders(BRPeer *peer, const UInt256 locators[], size_t locatorsCount, UInt256 hashStop)
@@ -1482,7 +1483,7 @@ void BRPeerRerequestBlocks(BRPeer *peer, UInt256 fromBlock)
    
     if (i > 0) {
         array_rm_range(ctx->knownBlockHashes, 0, i - 1);
-        peer_log(peer, "re-requesting %zu blocks", array_count(ctx->knownBlockHashes));
+        peer_log(peer, "re-requesting %zu block(s)", array_count(ctx->knownBlockHashes));
         BRPeerSendGetdata(peer, NULL, 0, ctx->knownBlockHashes, array_count(ctx->knownBlockHashes));
     }
 }

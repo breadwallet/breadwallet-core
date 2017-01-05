@@ -1239,12 +1239,13 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
         }
     }
     else if (! _BRPeerManagerVerifyBlock(manager, block, prev, peer)) { // block is invalid
+        peer_log(peer, "relayed invalid block");
         BRMerkleBlockFree(block);
         block = NULL;
         _BRPeerManagerPeerMisbehavin(manager, peer);
     }
     else if (UInt256Eq(block->prevBlock, manager->lastBlock->blockHash)) { // new block extends main chain
-        if ((block->height % 500) == 0 || txCount > 0 || block->height > BRPeerLastBlock(peer)) {
+        if ((block->height % 500) == 0 || txCount > 0 || block->height >= BRPeerLastBlock(peer)) {
             peer_log(peer, "adding block #%"PRIu32", false positive rate: %f", block->height, manager->fpRate);
         }
         
@@ -1266,7 +1267,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
         }
     }
     else if (BRSetContains(manager->blocks, block)) { // we already have the block (or at least the header)
-        if ((block->height % 500) == 0 || txCount > 0 || block->height > BRPeerLastBlock(peer)) {
+        if ((block->height % 500) == 0 || txCount > 0 || block->height >= BRPeerLastBlock(peer)) {
             peer_log(peer, "relayed existing block #%"PRIu32, block->height);
         }
         
