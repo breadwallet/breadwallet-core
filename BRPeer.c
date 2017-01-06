@@ -121,6 +121,7 @@ typedef struct {
     void (*setFeePerKb)(void *info, uint64_t feePerKb);
     BRTransaction *(*requestedTx)(void *info, UInt256 txHash);
     int (*networkIsReachable)(void *info);
+    void (*threadCleanup)(void *info);
     void **pongInfo;
     void (**pongCallback)(void *info, int success);
     void *mempoolInfo;
@@ -894,6 +895,8 @@ static void *_peerThreadRoutine(void *arg)
     BRPeerContext *ctx = arg;
     int socket, error = 0;
 
+    pthread_cleanup_push(ctx->threadCleanup, ctx->info);
+    
     if (_BRPeerOpenSocket(peer, CONNECT_TIMEOUT, &error)) {
         struct timeval tv;
         double time = 0, msgTimeout;
@@ -1005,7 +1008,12 @@ static void *_peerThreadRoutine(void *arg)
     if (ctx->mempoolCallback) ctx->mempoolCallback(ctx->mempoolInfo, 0);
     ctx->mempoolCallback = NULL;
     if (ctx->disconnected) ctx->disconnected(ctx->info, error);
+    pthread_cleanup_pop(ctx->threadCleanup);
     return NULL; // detached threads don't need to return a value
+}
+
+static void _dummyThreadCleanup(void *info)
+{
 }
 
 // returns a newly allocated BRPeer struct that must be freed by calling BRPeerFree()
@@ -1023,6 +1031,7 @@ BRPeer *BRPeerNew(void)
     array_new(ctx->pongCallback, 10);
     ctx->pingTime = DBL_MAX;
     ctx->socket = -1;
+    ctx->threadCleanup = _dummyThreadCleanup;
     return &ctx->peer;
 }
 
@@ -1037,6 +1046,7 @@ BRPeer *BRPeerNew(void)
 // void notfound(void *, const UInt256[], size_t, const UInt256[], size_t) - called when "notfound" message is received
 // BRTransaction *requestedTx(void *, UInt256) - called when "getdata" message with a tx hash is received from peer
 // int networkIsReachable(void *) - must return true when networking is available, false otherwise
+// void threadCleanup(void *) - called before a thread terminates to faciliate any needed cleanup
 void BRPeerSetCallbacks(BRPeer *peer, void *info,
                         void (*connected)(void *info),
                         void (*disconnected)(void *info, int error),
@@ -1049,7 +1059,8 @@ void BRPeerSetCallbacks(BRPeer *peer, void *info,
                                          const UInt256 blockHashes[], size_t blockCount),
                         void (*setFeePerKb)(void *info, uint64_t feePerKb),
                         BRTransaction *(*requestedTx)(void *info, UInt256 txHash),
-                        int (*networkIsReachable)(void *info))
+                        int (*networkIsReachable)(void *info),
+                        void (*threadCleanup)(void *info))
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     
@@ -1065,6 +1076,7 @@ void BRPeerSetCallbacks(BRPeer *peer, void *info,
     ctx->setFeePerKb = setFeePerKb;
     ctx->requestedTx = requestedTx;
     ctx->networkIsReachable = networkIsReachable;
+    ctx->threadCleanup = (threadCleanup) ? threadCleanup : _dummyThreadCleanup;
 }
 
 // set earliestKeyTime to wallet creation time in order to speed up initial sync

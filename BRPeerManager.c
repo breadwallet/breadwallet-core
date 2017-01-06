@@ -41,6 +41,7 @@
 #define PROTOCOL_TIMEOUT      20.0
 #define MAX_CONNECT_FAILURES  20 // notify user of network problems after this many connect failures in a row
 #define CHECKPOINT_COUNT      (sizeof(checkpoint_array)/sizeof(*checkpoint_array))
+#define DNS_SEEDS_COUNT       (sizeof(dns_seeds)/sizeof(*dns_seeds))
 #define GENESIS_BLOCK_HASH    (UInt256Reverse(u256_hex_decode(checkpoint_array[0].hash)))
 #define PEER_FLAG_SYNCED      0x01
 #define PEER_FLAG_NEEDSUPDATE 0x02
@@ -102,6 +103,12 @@ static const char *dns_seeds[] = {
 };
 
 #endif
+
+typedef struct {
+    BRPeerManager *manager;
+    const char *hostname;
+    int complete;
+} BRFindPeersInfo;
 
 typedef struct {
     BRPeer *peer;
@@ -712,17 +719,39 @@ static UInt128 *_addressLookup(const char *hostname)
     return addrList;
 }
 
+static void *_findPeersThreadRoutine(void *arg)
+{
+    BRFindPeersInfo *info = (BRFindPeersInfo *)arg;
+    UInt128 *addrList;
+    
+    pthread_cleanup_push(info->manager->threadCleanup, info->manager->info);
+    addrList = _addressLookup(info->hostname);
+    info->complete = 1;
+    pthread_cleanup_pop(info->manager->threadCleanup);
+    return addrList;
+}
+
 // DNS peer discovery
 static void _BRPeerManagerFindPeers(BRPeerManager *manager)
 {
     static const uint64_t services = SERVICES_NODE_NETWORK | SERVICES_NODE_BLOOM;
-    pthread_t threads[sizeof(dns_seeds)/sizeof(*dns_seeds)];
-    int errors[sizeof(dns_seeds)/sizeof(*dns_seeds)];
+    pthread_t threads[DNS_SEEDS_COUNT];
     time_t now = time(NULL), age;
+    size_t threadCount = 0;
+    struct timespec ts;
     UInt128 *addr, *addrList;
+    BRFindPeersInfo *info = calloc(DNS_SEEDS_COUNT, sizeof(*info));
     
-    for (size_t i = 1; i < sizeof(dns_seeds)/sizeof(*dns_seeds); i++) {
-        errors[i] = pthread_create(&threads[i], NULL, (void *(*)(void *))_addressLookup, (void *)dns_seeds[i]);
+    assert(info != NULL);
+    
+    for (size_t i = 1; i < DNS_SEEDS_COUNT; i++) {
+        info[i].manager = manager;
+        info[i].hostname = dns_seeds[i];
+
+        if (pthread_create(&threads[i], NULL, _findPeersThreadRoutine, &info[i]) == 0) {
+            threadCount++;
+        }
+        else threads[i] = NULL;
     }
 
     for (addr = addrList = _addressLookup(dns_seeds[0]); addr && ! UInt128IsZero(*addr); addr++) {
@@ -730,18 +759,31 @@ static void _BRPeerManagerFindPeers(BRPeerManager *manager)
     }
 
     if (addrList) free(addrList);
+    ts.tv_sec = 0;
+    ts.tv_nsec = 1;
 
-    for (size_t i = 1; i < sizeof(dns_seeds)/sizeof(*dns_seeds); i++) {
-        if (errors[i] == 0 && pthread_join(threads[i], (void **)&addrList) == 0) {
+    do {
+        nanosleep(&ts, NULL); // pthread_yield() isn't POSIX standard :(
+
+        for (size_t i = 1; i < DNS_SEEDS_COUNT; i++) {
+            if (! threads[i] || ! info[i].complete || pthread_join(threads[i], (void **)&addrList) != 0) continue;
+
             for (addr = addrList; addr && ! UInt128IsZero(*addr); addr++) {
                 age = 3*24*60*60 + BRRand(4*24*60*60); // add between 3 and 7 days
                 array_add(manager->peers, ((BRPeer) { *addr, STANDARD_PORT, services, now - age, 0 }));
             }
             
             if (addrList) free(addrList);
+            threads[i] = NULL;
+            threadCount--;
         }
+    } while (threadCount && array_count(manager->peers) == 0);
+
+    for (size_t i = 1; i < DNS_SEEDS_COUNT; i++) {
+        if (threads[i]) pthread_cancel(threads[i]);
     }
     
+    free(info);
     qsort(manager->peers, array_count(manager->peers), sizeof(*manager->peers), _peerTimestampCompare);
 }
 
@@ -749,6 +791,7 @@ static void _peerConnected(void *info)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+    BRPeerCallbackInfo *peerInfo;
     time_t now = time(NULL);
     
     pthread_mutex_lock(&manager->lock);
@@ -770,7 +813,7 @@ static void _peerConnected(void *info)
             manager->connectFailureCount = 0; // also reset connect failure count if we're already synced
             _BRPeerManagerLoadBloomFilter(manager, peer);
             _BRPeerManagerPublishPendingTx(manager, peer);
-            BRPeerCallbackInfo *peerInfo = calloc(1, sizeof(*peerInfo));
+            peerInfo = calloc(1, sizeof(*peerInfo));
             assert(peerInfo != NULL);
             peerInfo->peer = peer;
             peerInfo->manager = manager;
@@ -826,7 +869,7 @@ static void _peerDisconnected(void *info, int error)
     int isSyncing, willSave = 0, willReconnect = 0, txError = 0;
     size_t txCount = 0;
     
-    free(info);
+    //free(info);
     pthread_mutex_lock(&manager->lock);
 
     void *txInfo[array_count(manager->publishedTx)];
@@ -903,7 +946,6 @@ static void _peerDisconnected(void *info, int error)
     if (willSave && manager->syncFailed) manager->syncFailed(manager->info, error);
     if (willReconnect) BRPeerManagerConnect(manager); // try connecting to another peer
     if (manager->txStatusUpdate) manager->txStatusUpdate(manager->info);
-    if (manager->threadCleanup) manager->threadCleanup(manager->info);
 }
 
 static void _peerRelayedPeers(void *info, const BRPeer peers[], size_t peersCount)
@@ -1495,6 +1537,18 @@ static int _peerNetworkIsReachable(void *info)
     return (manager->networkIsReachable) ? manager->networkIsReachable(manager->info) : 1;
 }
 
+static void _peerThreadCleanup(void *info)
+{
+    BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
+
+    free(info);
+    if (manager->threadCleanup) manager->threadCleanup(manager->info);
+}
+
+static void _dummyThreadCleanup(void *info)
+{
+}
+
 // returns a newly allocated BRPeerManager struct that must be freed by calling BRPeerManagerFree()
 BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMerkleBlock *blocks[], size_t blocksCount,
                                 const BRPeer peers[], size_t peersCount)
@@ -1544,6 +1598,7 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
     array_new(manager->publishedTx, 10);
     array_new(manager->publishedTxHashes, 10);
     pthread_mutex_init(&manager->lock, NULL);
+    manager->threadCleanup = _dummyThreadCleanup;
     return manager;
 }
 
@@ -1580,7 +1635,7 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
     manager->saveBlocks = saveBlocks;
     manager->savePeers = savePeers;
     manager->networkIsReachable = networkIsReachable;
-    manager->threadCleanup = threadCleanup;
+    manager->threadCleanup = (threadCleanup) ? threadCleanup : _dummyThreadCleanup;
 }
 
 // true if currently connected to at least one peer
@@ -1651,7 +1706,7 @@ void BRPeerManagerConnect(BRPeerManager *manager)
                 array_add(manager->connectedPeers, info->peer);
                 BRPeerSetCallbacks(info->peer, info, _peerConnected, _peerDisconnected, _peerRelayedPeers,
                                    _peerRelayedTx, _peerHasTx, _peerRejectedTx, _peerRelayedBlock, _peerDataNotfound,
-                                   _peerSetFeePerKb, _peerRequestedTx, _peerNetworkIsReachable);
+                                   _peerSetFeePerKb, _peerRequestedTx, _peerNetworkIsReachable, _peerThreadCleanup);
                 BRPeerSetEarliestKeyTime(info->peer, manager->earliestKeyTime);
                 BRPeerConnect(info->peer);
             }
