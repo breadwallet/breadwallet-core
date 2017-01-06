@@ -726,8 +726,15 @@ static void *_findPeersThreadRoutine(void *arg)
     
     pthread_cleanup_push(info->manager->threadCleanup, info->manager->info);
     addrList = _addressLookup(info->hostname);
-    info->complete = 1;
-    pthread_cleanup_pop(info->manager->threadCleanup);
+
+    if (info->complete) {
+        free(info),
+        free(addrList),
+        addrList = NULL;
+    }
+    else info->complete = 1;
+    
+    pthread_cleanup_pop(1);
     return addrList;
 }
 
@@ -740,15 +747,15 @@ static void _BRPeerManagerFindPeers(BRPeerManager *manager)
     size_t threadCount = 0;
     struct timespec ts;
     UInt128 *addr, *addrList;
-    BRFindPeersInfo *info = calloc(DNS_SEEDS_COUNT, sizeof(*info));
-    
-    assert(info != NULL);
+    BRFindPeersInfo *info[DNS_SEEDS_COUNT];
     
     for (size_t i = 1; i < DNS_SEEDS_COUNT; i++) {
-        info[i].manager = manager;
-        info[i].hostname = dns_seeds[i];
+        info[i] = calloc(1, sizeof(BRFindPeersInfo));
+        assert(info[i] != NULL);
+        info[i]->manager = manager;
+        info[i]->hostname = dns_seeds[i];
 
-        if (pthread_create(&threads[i], NULL, _findPeersThreadRoutine, &info[i]) == 0) {
+        if (pthread_create(&threads[i], NULL, _findPeersThreadRoutine, info[i]) == 0) {
             threadCount++;
         }
         else threads[i] = NULL;
@@ -766,7 +773,7 @@ static void _BRPeerManagerFindPeers(BRPeerManager *manager)
         nanosleep(&ts, NULL); // pthread_yield() isn't POSIX standard :(
 
         for (size_t i = 1; i < DNS_SEEDS_COUNT; i++) {
-            if (! threads[i] || ! info[i].complete || pthread_join(threads[i], (void **)&addrList) != 0) continue;
+            if (! threads[i] || ! info[i]->complete || pthread_join(threads[i], (void **)&addrList) != 0) continue;
 
             for (addr = addrList; addr && ! UInt128IsZero(*addr); addr++) {
                 age = 3*24*60*60 + BRRand(4*24*60*60); // add between 3 and 7 days
@@ -774,16 +781,16 @@ static void _BRPeerManagerFindPeers(BRPeerManager *manager)
             }
             
             if (addrList) free(addrList);
+            free(info[i]);
             threads[i] = NULL;
             threadCount--;
         }
     } while (threadCount && array_count(manager->peers) == 0);
 
     for (size_t i = 1; i < DNS_SEEDS_COUNT; i++) {
-        if (threads[i]) pthread_cancel(threads[i]);
+        info[i]->complete = 1;
     }
     
-    free(info);
     qsort(manager->peers, array_count(manager->peers), sizeof(*manager->peers), _peerTimestampCompare);
 }
 

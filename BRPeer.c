@@ -1008,7 +1008,7 @@ static void *_peerThreadRoutine(void *arg)
     if (ctx->mempoolCallback) ctx->mempoolCallback(ctx->mempoolInfo, 0);
     ctx->mempoolCallback = NULL;
     if (ctx->disconnected) ctx->disconnected(ctx->info, error);
-    pthread_cleanup_pop(ctx->threadCleanup);
+    pthread_cleanup_pop(1);
     return NULL; // detached threads don't need to return a value
 }
 
