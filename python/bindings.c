@@ -575,7 +575,7 @@ static PyObject *b_KeyRecoverPubKey(PyObject *cls, PyObject *args, PyObject *kwd
     }
     toSign = (UInt256 *)PyBytes_AsString(msgBytes);
     BRKey *key = calloc(1, sizeof(BRKey));
-    int keyLen = BRKeyRecoverPubKey(key, PyBytes_AsString(signature), PyBytes_Size(signature), *toSign);
+    int keyLen = BRKeyRecoverPubKey(key, *toSign, PyBytes_AsString(signature), PyBytes_Size(signature));
     if (!keyLen) {
         return Py_BuildValue(""); // unable to recover, return None
     }
