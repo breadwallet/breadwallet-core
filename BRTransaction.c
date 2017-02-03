@@ -134,7 +134,7 @@ void BRTxOutputSetAddress(BRTxOutput *output, const char *address)
     memset(output->address, 0, sizeof(output->address));
 
     if (address) {
-        strncpy(output->address, address, sizeof(output->address));
+        strncpy(output->address, address, sizeof(output->address) - 1);
         output->scriptLen = BRAddressScriptPubKey(NULL, 0, address);
         array_new(output->script, output->scriptLen);
         array_set_count(output->script, output->scriptLen);
