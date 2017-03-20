@@ -109,7 +109,7 @@ size_t BRVarIntSize(uint64_t i)
 }
 
 // parses script and writes an array of pointers to the script elements (opcodes and data pushes) to elems
-// returns the number of elements written or elemsCount needed if elems is NULL
+// returns the number of elements written, or elemsCount needed if elems is NULL
 size_t BRScriptElements(const uint8_t *elems[], size_t elemsCount, const uint8_t *script, size_t scriptLen)
 {
     size_t off = 0, i = 0, len = 0;
@@ -234,7 +234,7 @@ size_t BRScriptPushData(uint8_t *script, size_t scriptLen, const uint8_t *data, 
 // current coin selection code
 
 // writes the bitcoin address for a scriptPubKey to addr
-// returns the number of bytes written or addrLen needed if addr is NULL
+// returns the number of bytes written, or addrLen needed if addr is NULL
 size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *script, size_t scriptLen)
 {
     assert(script != NULL || scriptLen == 0);
@@ -277,7 +277,7 @@ size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *scri
 }
 
 // writes the bitcoin address for a scriptSig to addr
-// returns the number of bytes written or addrLen needed if addr is NULL
+// returns the number of bytes written, or addrLen needed if addr is NULL
 size_t BRAddressFromScriptSig(char *addr, size_t addrLen, const uint8_t *script, size_t scriptLen)
 {
     assert(script != NULL || scriptLen == 0);
@@ -315,7 +315,7 @@ size_t BRAddressFromScriptSig(char *addr, size_t addrLen, const uint8_t *script,
 }
 
 // writes the scriptPubKey for addr to script
-// returns the number of bytes written or scriptLen needed if script is NULL
+// returns the number of bytes written, or scriptLen needed if script is NULL
 size_t BRAddressScriptPubKey(uint8_t *script, size_t scriptLen, const char *addr)
 {
     static uint8_t pubkeyAddress = BITCOIN_PUBKEY_ADDRESS, scriptAddress = BITCOIN_SCRIPT_ADDRESS;

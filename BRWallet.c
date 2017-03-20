@@ -404,23 +404,24 @@ size_t BRWalletUTXOs(BRWallet *wallet, BRUTXO *utxos, size_t utxosCount)
 
 // writes transactions registered in the wallet, sorted by date, oldest first, to the given transactions array
 // returns the number of transactions written, or total number available if transactions is NULL
-size_t BRWalletTransactions(BRWallet *wallet, BRTransaction *transactions[], size_t count)
+size_t BRWalletTransactions(BRWallet *wallet, BRTransaction *transactions[], size_t txCount)
 {
     assert(wallet != NULL);
     pthread_mutex_lock(&wallet->lock);
-    if (! transactions || array_count(wallet->transactions) < count) count = array_count(wallet->transactions);
+    if (! transactions || array_count(wallet->transactions) < txCount) txCount = array_count(wallet->transactions);
 
-    for (size_t i = 0; transactions && i < count; i++) {
+    for (size_t i = 0; transactions && i < txCount; i++) {
         transactions[i] = wallet->transactions[i];
     }
     
     pthread_mutex_unlock(&wallet->lock);
-    return count;
+    return txCount;
 }
 
 // writes transactions registered in the wallet, and that were unconfirmed before blockHeight, to the transactions array
 // returns the number of transactions written, or total number available if transactions is NULL
-size_t BRWalletTxUnconfirmedBefore(BRWallet *wallet, BRTransaction *transactions[], size_t count, uint32_t blockHeight)
+size_t BRWalletTxUnconfirmedBefore(BRWallet *wallet, BRTransaction *transactions[], size_t txCount,
+                                   uint32_t blockHeight)
 {
     size_t total, n = 0;
 
@@ -428,14 +429,14 @@ size_t BRWalletTxUnconfirmedBefore(BRWallet *wallet, BRTransaction *transactions
     pthread_mutex_lock(&wallet->lock);
     total = array_count(wallet->transactions);
     while (n < total && wallet->transactions[(total - n) - 1]->blockHeight >= blockHeight) n++;
-    if (! transactions || n < count) count = n;
+    if (! transactions || n < txCount) txCount = n;
 
-    for (size_t i = 0; transactions && i < count; i++) {
+    for (size_t i = 0; transactions && i < txCount; i++) {
         transactions[i] = wallet->transactions[(total - n) + i];
     }
 
     pthread_mutex_unlock(&wallet->lock);
-    return count;
+    return txCount;
 }
 
 // total amount spent from the wallet (exluding change)
@@ -502,21 +503,21 @@ BRAddress BRWalletChangeAddress(BRWallet *wallet)
 
 // writes all addresses previously genereated with BRWalletUnusedAddrs() to addrs
 // returns the number addresses written, or total number available if addrs is NULL
-size_t BRWalletAllAddrs(BRWallet *wallet, BRAddress addrs[], size_t count)
+size_t BRWalletAllAddrs(BRWallet *wallet, BRAddress addrs[], size_t addrsCount)
 {
     size_t i, internalCount = 0, externalCount = 0;
     
     assert(wallet != NULL);
     pthread_mutex_lock(&wallet->lock);
-    internalCount = (! addrs || array_count(wallet->internalChain) < count) ?
-                    array_count(wallet->internalChain) : count;
+    internalCount = (! addrs || array_count(wallet->internalChain) < addrsCount) ?
+                    array_count(wallet->internalChain) : addrsCount;
 
     for (i = 0; addrs && i < internalCount; i++) {
         addrs[i] = wallet->internalChain[i];
     }
 
-    externalCount = (! addrs || array_count(wallet->externalChain) < count - internalCount) ?
-                    array_count(wallet->externalChain) : count - internalCount;
+    externalCount = (! addrs || array_count(wallet->externalChain) < addrsCount - internalCount) ?
+                    array_count(wallet->externalChain) : addrsCount - internalCount;
 
     for (i = 0; addrs && i < externalCount; i++) {
         addrs[internalCount + i] = wallet->externalChain[i];

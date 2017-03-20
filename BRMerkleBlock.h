@@ -67,7 +67,7 @@ BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t bufLen);
 size_t BRMerkleBlockSerialize(const BRMerkleBlock *block, uint8_t *buf, size_t bufLen);
 
 // populates txHashes with the matched tx hashes in the block
-// returns number of tx hashes written, or total number of matched hashes in the block if txHashes is NULL
+// returns number of tx hashes written, or the total hashesCount needed if txHashes is NULL
 size_t BRMerkleBlockTxHashes(const BRMerkleBlock *block, UInt256 *txHashes, size_t hashesCount);
 
 // sets the hashes and flags fields for a block created with BRMerkleBlockNew()

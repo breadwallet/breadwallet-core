@@ -66,7 +66,7 @@ size_t BRVarIntSet(uint8_t *buf, size_t bufLen, uint64_t i);
 size_t BRVarIntSize(uint64_t i);
 
 // parses script and writes an array of pointers to the script elements (opcodes and data pushes) to elems
-// returns the number of elements written or elemsCount needed if elems is NULL
+// returns the number of elements written, or elemsCount needed if elems is NULL
 size_t BRScriptElements(const uint8_t *elems[], size_t elemsCount, const uint8_t *script, size_t scriptLen);
 
 // given a data push script element, returns a pointer to the start of the data and writes its length to dataLen
@@ -83,15 +83,15 @@ typedef struct {
 #define BR_ADDRESS_NONE ((BRAddress) { "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0" })
 
 // writes the bitcoin address for a scriptPubKey to addr
-// returns the number of bytes written or addrLen needed if addr is NULL
+// returns the number of bytes written, or addrLen needed if addr is NULL
 size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *script, size_t scriptLen);
 
 // writes the bitcoin address for a scriptSig to addr
-// returns the number of bytes written or addrLen needed if addr is NULL
+// returns the number of bytes written, or addrLen needed if addr is NULL
 size_t BRAddressFromScriptSig(char *addr, size_t addrLen, const uint8_t *script, size_t scriptLen);
 
 // writes the scriptPubKey for addr to script
-// returns the number of bytes written or scriptLen needed if script is NULL
+// returns the number of bytes written, or scriptLen needed if script is NULL
 size_t BRAddressScriptPubKey(uint8_t *script, size_t scriptLen, const char *addr);
 
 // returns true if addr is a valid bitcoin address

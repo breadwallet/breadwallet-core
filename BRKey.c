@@ -301,7 +301,8 @@ size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen)
     return addrLen;
 }
 
-// signs md with key and writes signature to sig and returns the number of bytes written or sigLen needed if sig is NULL
+// signs md with key and writes signature to sig
+// returns the number of bytes written, or sigLen needed if sig is NULL
 // returns 0 on failure
 size_t BRKeySign(const BRKey *key, void *sig, size_t sigLen, UInt256 md)
 {

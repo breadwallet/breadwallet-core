@@ -196,7 +196,7 @@ static size_t _BRMerkleBlockTxHashesR(const BRMerkleBlock *block, UInt256 *txHas
 }
 
 // populates txHashes with the matched tx hashes in the block
-// returns number of hashes written, or total number of matched hashes in the block if txHashes is NULL
+// returns number of hashes written, or the total hashesCount needed if txHashes is NULL
 size_t BRMerkleBlockTxHashes(const BRMerkleBlock *block, UInt256 *txHashes, size_t hashesCount)
 {
     size_t idx = 0, hashIdx = 0, flagIdx = 0;
