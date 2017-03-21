@@ -1778,6 +1778,19 @@ void BRPeerManagerRescan(BRPeerManager *manager)
     else pthread_mutex_unlock(&manager->lock);
 }
 
+// the (unverified) best block height reported by connected peers
+uint32_t BRPeerManagerEstimatedBlockHeight(BRPeerManager *manager)
+{
+    uint32_t height;
+    
+    assert(manager != NULL);
+    pthread_mutex_lock(&manager->lock);
+    height = (manager->lastBlock->height < manager->estimatedHeight) ? manager->estimatedHeight :
+    manager->lastBlock->height;
+    pthread_mutex_unlock(&manager->lock);
+    return height;
+}
+
 // current proof-of-work verified best block height
 uint32_t BRPeerManagerLastBlockHeight(BRPeerManager *manager)
 {
@@ -1790,17 +1803,16 @@ uint32_t BRPeerManagerLastBlockHeight(BRPeerManager *manager)
     return height;
 }
 
-// the (unverified) best block height reported by connected peers
-uint32_t BRPeerManagerEstimatedBlockHeight(BRPeerManager *manager)
+// current proof-of-work verified best block timestamp (time interval since unix epoch)
+uint32_t BRPeerManagerLastBlockTimestamp(BRPeerManager *manager)
 {
-    uint32_t height;
-
+    uint32_t timestamp;
+    
     assert(manager != NULL);
     pthread_mutex_lock(&manager->lock);
-    height = (manager->lastBlock->height < manager->estimatedHeight) ? manager->estimatedHeight :
-             manager->lastBlock->height;
+    timestamp = manager->lastBlock->timestamp;
     pthread_mutex_unlock(&manager->lock);
-    return height;
+    return timestamp;
 }
 
 // current network sync progress from 0 to 1

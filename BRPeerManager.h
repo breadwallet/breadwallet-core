@@ -81,11 +81,14 @@ void BRPeerManagerDisconnect(BRPeerManager *manager);
 // possibility that a malicious node might lie by omitting transactions that match the bloom filter)
 void BRPeerManagerRescan(BRPeerManager *manager);
 
+// the (unverified) best block height reported by connected peers
+uint32_t BRPeerManagerEstimatedBlockHeight(BRPeerManager *manager);
+
 // current proof-of-work verified best block height
 uint32_t BRPeerManagerLastBlockHeight(BRPeerManager *manager);
 
-// the (unverified) best block height reported by connected peers
-uint32_t BRPeerManagerEstimatedBlockHeight(BRPeerManager *manager);
+// current proof-of-work verified best block timestamp (time interval since unix epoch)
+uint32_t BRPeerManagerLastBlockTimestamp(BRPeerManager *manager);
 
 // current network sync progress from 0 to 1
 // startHeight is the block height of the most recent fully completed sync
