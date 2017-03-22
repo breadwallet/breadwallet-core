@@ -629,7 +629,9 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
         balance += tx->outputs[o->n].amount;
         
         // size of unconfirmed, non-change inputs for child-pays-for-parent fee
-        if (tx->blockHeight == TX_UNCONFIRMED && ! _BRWalletTxIsSend(wallet, tx)) cpfpSize += BRTransactionSize(tx);
+        // don't include parent tx with more than 10 inputs or 10 outputs
+        if (tx->blockHeight == TX_UNCONFIRMED && tx->inCount <= 10 && tx->outCount <= 10 &&
+            ! _BRWalletTxIsSend(wallet, tx)) cpfpSize += BRTransactionSize(tx);
 
         // fee amount after adding a change output
         feeAmount = _txFee(wallet->feePerKb, BRTransactionSize(transaction) + TX_OUTPUT_SIZE + cpfpSize);
@@ -1121,7 +1123,9 @@ uint64_t BRWalletMaxOutputAmount(BRWallet *wallet)
         amount += tx->outputs[o->n].amount;
         
         // size of unconfirmed, non-change inputs for child-pays-for-parent fee
-        if (tx->blockHeight == TX_UNCONFIRMED && ! _BRWalletTxIsSend(wallet, tx)) cpfpSize += BRTransactionSize(tx);
+        // don't include parent tx with more than 10 inputs or 10 outputs
+        if (tx->blockHeight == TX_UNCONFIRMED && tx->inCount <= 10 && tx->outCount <= 10 &&
+            ! _BRWalletTxIsSend(wallet, tx)) cpfpSize += BRTransactionSize(tx);
     }
 
     txSize = 8 + BRVarIntSize(inCount) + TX_INPUT_SIZE*inCount + BRVarIntSize(2) + TX_OUTPUT_SIZE*2;
