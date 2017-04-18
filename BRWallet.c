@@ -1092,6 +1092,28 @@ uint64_t BRWalletFeeForTxSize(BRWallet *wallet, size_t size)
     return fee;
 }
 
+// fee that will be added for a transaction of the given amount
+uint64_t BRWalletFeeForTxAmount(BRWallet *wallet, uint64_t amount)
+{
+    BRTxOutput o = BR_TX_OUTPUT_NONE;
+    BRTransaction *tx;
+    uint64_t fee = 0, maxAmount = 0;
+    
+    assert(wallet != NULL);
+    assert(amount > 0);
+    maxAmount = BRWalletMaxOutputAmount(wallet);
+    o.amount = (amount < maxAmount) ? amount : maxAmount;
+    BRTxOutputSetAddress(&o, "1111111111111111111114oLvT2"); // unspendable dummy address
+    tx = BRWalletCreateTxForOutputs(wallet, &o, 1);
+
+    if (tx) {
+        fee = BRWalletFeeForTx(wallet, tx);
+        BRTransactionFree(tx);
+    }
+    
+    return fee;
+}
+
 // outputs below this amount are uneconomical due to fees (TX_MIN_OUTPUT_AMOUNT is the absolute minimum output amount)
 uint64_t BRWalletMinOutputAmount(BRWallet *wallet)
 {

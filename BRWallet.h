@@ -180,6 +180,9 @@ uint64_t BRWalletBalanceAfterTx(BRWallet *wallet, const BRTransaction *tx);
 // fee that will be added for a transaction of the given size in bytes
 uint64_t BRWalletFeeForTxSize(BRWallet *wallet, size_t size);
 
+// fee that will be added for a transaction of the given amount
+uint64_t BRWalletFeeForTxAmount(BRWallet *wallet, uint64_t amount);
+
 // outputs below this amount are uneconomical due to fees (TX_MIN_OUTPUT_AMOUNT is the absolute minimum output amount)
 uint64_t BRWalletMinOutputAmount(BRWallet *wallet);
 

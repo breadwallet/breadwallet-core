@@ -1762,6 +1762,9 @@ int BRWalletTests()
 
     tx = BRWalletCreateTransaction(w, SATOSHIS*2, addr.s);
     if (tx) r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletCreateTransaction() test 3\n", __func__);
+
+    if (BRWalletFeeForTxAmount(w, SATOSHIS/2) < 1000)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletFeeForTxAmount() test 1\n", __func__);
     
     tx = BRWalletCreateTransaction(w, SATOSHIS/2, addr.s);
     if (! tx) r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletCreateTransaction() test 4\n", __func__);
@@ -1795,6 +1798,9 @@ int BRWalletTests()
 
     if (! BRAddressEq(BRWalletReceiveAddress(w).s, recvAddr.s)) // verify used addresses are correctly tracked
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletReceiveAddress() test\n", __func__);
+    
+    if (BRWalletFeeForTxAmount(w, SATOSHIS) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletFeeForTxAmount() test 2\n", __func__);
     
     printf("                                    ");
     BRWalletFree(w);
