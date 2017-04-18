@@ -97,17 +97,19 @@ typedef struct {
     BRPeer peer; // superstruct on top of BRPeer
     char host[INET6_ADDRSTRLEN];
     BRPeerStatus status;
-    int waitingForNetwork, needsFilterUpdate;
+    int waitingForNetwork;
+    volatile int needsFilterUpdate;
     uint64_t nonce, feePerKb;
     char *useragent;
     uint32_t version, lastblock, earliestKeyTime, currentBlockHeight;
-    double startTime, pingTime, disconnectTime, mempoolTime;
+    double startTime, pingTime;
+    volatile double disconnectTime, mempoolTime;
     int sentVerack, gotVerack, sentGetaddr, sentFilter, sentGetdata, sentMempool, sentGetblocks;
     UInt256 lastBlockHash;
     BRMerkleBlock *currentBlock;
     UInt256 *currentBlockTxHashes, *knownBlockHashes, *knownTxHashes;
     BRSet *knownTxHashSet;
-    int socket;
+    volatile int socket;
     void *info;
     void (*connected)(void *info);
     void (*disconnected)(void *info, int error);
@@ -1343,9 +1345,10 @@ void BRPeerSendMempool(BRPeer *peer, const UInt256 knownTxHashes[], size_t known
     int sentMempool = ctx->sentMempool;
     
     ctx->sentMempool = 1;
-    _BRPeerAddKnownTxHashes(peer, knownTxHashes, knownTxCount);
     
     if (! sentMempool && ! ctx->mempoolCallback) {
+        _BRPeerAddKnownTxHashes(peer, knownTxHashes, knownTxCount);
+        
         if (completionCallback) {
             gettimeofday(&tv, NULL);
             ctx->mempoolTime = tv.tv_sec + (double)tv.tv_usec/1000000 + 5.0;

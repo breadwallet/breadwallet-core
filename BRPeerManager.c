@@ -1155,7 +1155,12 @@ static int _BRPeerManagerVerifyBlock(BRPeerManager *manager, BRMerkleBlock *bloc
             b = BRSetGet(manager->blocks, &b->prevBlock);
         }
 
-        if (b) {
+        if (! b) {
+            peer_log(peer, "missing previous difficulty tansition time, can't verify blockHash: %s",
+                     u256_hex_encode(block->blockHash));
+            r = 0;
+        }
+        else {
             transitionTime = b->timestamp;
             prevBlock = b->prevBlock;
         }
@@ -1172,12 +1177,13 @@ static int _BRPeerManagerVerifyBlock(BRPeerManager *manager, BRMerkleBlock *bloc
     }
 
     // verify block difficulty
-    if (! BRMerkleBlockVerifyDifficulty(block, prev, transitionTime)) {
+    if (r && ! BRMerkleBlockVerifyDifficulty(block, prev, transitionTime)) {
         peer_log(peer, "relayed block with invalid difficulty target %x, blockHash: %s", block->target,
                  u256_hex_encode(block->blockHash));
         r = 0;
     }
-    else {
+    
+    if (r) {
         BRMerkleBlock *checkpoint = BRSetGet(manager->checkpoints, block);
 
         // verify blockchain checkpoints
@@ -1548,6 +1554,7 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
                                 const BRPeer peers[], size_t peersCount)
 {
     BRPeerManager *manager = calloc(1, sizeof(*manager));
+    BRMerkleBlock orphan, *block = NULL;
     
     assert(manager != NULL);
     assert(wallet != NULL);
@@ -1561,12 +1568,11 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
     qsort(manager->peers, array_count(manager->peers), sizeof(*manager->peers), _peerTimestampCompare);
     array_new(manager->connectedPeers, PEER_MAX_CONNECTIONS);
     manager->blocks = BRSetNew(BRMerkleBlockHash, BRMerkleBlockEq, blocksCount);
-    manager->orphans = BRSetNew(_BRPrevBlockHash, _BRPrevBlockEq, 10); // orphans are indexed by prevBlock
-    manager->checkpoints = BRSetNew(_BRBlockHeightHash, _BRBlockHeightEq, 20); // checkpoints are indexed by height
+    manager->orphans = BRSetNew(_BRPrevBlockHash, _BRPrevBlockEq, blocksCount); // orphans are indexed by prevBlock
+    manager->checkpoints = BRSetNew(_BRBlockHeightHash, _BRBlockHeightEq, 100); // checkpoints are indexed by height
 
     for (size_t i = 0; i < CHECKPOINT_COUNT; i++) {
-        BRMerkleBlock *block = BRMerkleBlockNew();
-        
+        block = BRMerkleBlockNew();
         block->height = checkpoint_array[i].height;
         block->blockHash = UInt256Reverse(u256_hex_decode(checkpoint_array[i].hash));
         block->timestamp = checkpoint_array[i].timestamp;
@@ -1576,15 +1582,23 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
         if (i == 0 || block->timestamp + 7*24*60*60 < manager->earliestKeyTime) manager->lastBlock = block;
     }
 
+    block = NULL;
+    
     for (size_t i = 0; blocks && i < blocksCount; i++) {
-        if (manager->lastBlock->height != BLOCK_UNKNOWN_HEIGHT) {
-            BRSetAdd(manager->blocks, blocks[i]);
-            if (! manager->lastBlock || blocks[i]->height > manager->lastBlock->height) manager->lastBlock = blocks[i];
-        }
-        else { // block has no height set
-            BRPeerManagerFree(manager);
-            return NULL; // block height must be saved/restored along with serialized block data
-        }
+        assert(blocks[i]->height != BLOCK_UNKNOWN_HEIGHT); // height must be saved/restored along with serialized block
+        BRSetAdd(manager->orphans, blocks[i]);
+
+        if ((blocks[i]->height % BLOCK_DIFFICULTY_INTERVAL) == 0 &&
+            (! block || blocks[i]->height < block->height)) block = blocks[i]; // find first transition block
+    }
+    
+    while (block) {
+        BRSetAdd(manager->blocks, block);
+        manager->lastBlock = block;
+        orphan.prevBlock = block->prevBlock;
+        BRSetRemove(manager->orphans, &orphan);
+        orphan.prevBlock = block->blockHash;
+        block = BRSetGet(manager->orphans, &orphan);
     }
     
     array_new(manager->txRelays, 10);
