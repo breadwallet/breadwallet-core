@@ -28,6 +28,7 @@
 #include "BRArray.h"
 #include "BRInt.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include <inttypes.h>
 #include <limits.h>
 #include <time.h>
@@ -49,17 +50,18 @@
 #if BITCOIN_TESTNET
 
 static const struct { uint32_t height; const char *hash; uint32_t timestamp; uint32_t target; } checkpoint_array[] = {
-    {      0, "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943", 1296688602, 0x1d00ffff },
-    {  20160, "000000001cf5440e7c9ae69f655759b17a32aad141896defd55bb895b7cfc44e", 1345001466, 0x1c4d1756 },
-    {  40320, "000000008011f56b8c92ff27fb502df5723171c5374673670ef0eee3696aee6d", 1355980158, 0x1d00ffff },
-    {  60480, "00000000130f90cda6a43048a58788c0a5c75fa3c32d38f788458eb8f6952cee", 1363746033, 0x1c1eca8a },
-    {  80640, "00000000002d0a8b51a9c028918db3068f976e3373d586f08201a4449619731c", 1369042673, 0x1c011c48 },
-    { 100800, "0000000000a33112f86f3f7b0aa590cb4949b84c2d9c673e9e303257b3be9000", 1376543922, 0x1c00d907 },
-    { 120960, "00000000003367e56e7f08fdd13b85bbb31c5bace2f8ca2b0000904d84960d0c", 1382025703, 0x1c00df4c },
-    { 141120, "0000000007da2f551c3acd00e34cc389a4c6b6b3fad0e4e67907ad4c7ed6ab9f", 1384495076, 0x1c0ffff0 },
-    { 161280, "0000000001d1b79a1aec5702aaa39bad593980dfe26799697085206ef9513486", 1388980370, 0x1c03fffc },
-    { 181440, "00000000002bb4563a0ec21dc4136b37dcd1b9d577a75a695c8dd0b861e1307e", 1392304311, 0x1b336ce6 },
-    { 201600, "0000000000376bb71314321c45de3015fe958543afcbada242a3b1b072498e38", 1393813869, 0x1b602ac0 }
+    {       0, "000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943", 1296688602, 0x1d00ffff },
+    {  100800, "0000000000a33112f86f3f7b0aa590cb4949b84c2d9c673e9e303257b3be9000", 1376543922, 0x1c00d907 },
+    {  201600, "0000000000376bb71314321c45de3015fe958543afcbada242a3b1b072498e38", 1393813869, 0x1b602ac0 },
+    {  302400, "0000000000001c93ebe0a7c33426e8edb9755505537ef9303a023f80be29d32d", 1413766239, 0x1a33605e },
+    {  403200, "0000000000ef8b05da54711e2106907737741ac0278d59f358303c71d500f3c4", 1431821666, 0x1c02346c },
+    {  504000, "0000000000005d105473c916cd9d16334f017368afea6bcee71629e0fcf2f4f5", 1436951946, 0x1b00ab86 },
+    {  604800, "00000000000008653c7e5c00c703c5a9d53b318837bb1b3586a3d060ce6fff2e", 1447484641, 0x1a092a20 },
+    {  705600, "00000000004ee3bc2e2dd06c31f2d7a9c3e471ec0251924f59f222e5e9c37e12", 1455728685, 0x1c0ffff0 },
+    {  806400, "0000000000000faf114ff29df6dbac969c6b4a3b407cd790d3a12742b50c2398", 1462006183, 0x1a34e280 },
+    {  907200, "0000000000166938e6f172a21fe69fe335e33565539e74bf74eeb00d2022c226", 1469705562, 0x1c00ffff },
+    { 1008000, "000000000000390aca616746a9456a0d64c1bd73661fd60a51b5bf1c92bae5a0", 1476926743, 0x1a52ccc0 },
+    { 1108800, "00000000000288d9a219419d0607fb67cc324d4b6d2945ca81eaa5e739fab81e", 1490751239, 0x1b09ecf0 }
 };
 
 static const char *dns_seeds[] = {
@@ -1902,19 +1904,29 @@ void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *inf
 {
     assert(manager != NULL);
     assert(tx != NULL && BRTransactionIsSigned(tx));
-    pthread_mutex_lock(&manager->lock);
+    if (tx) pthread_mutex_lock(&manager->lock);
     
     if (tx && ! BRTransactionIsSigned(tx)) {
         pthread_mutex_unlock(&manager->lock);
         BRTransactionFree(tx);
+        tx = NULL;
         if (callback) callback(info, EINVAL); // transaction not signed
     }
-    else if (tx && ! manager->isConnected && manager->connectFailureCount >= MAX_CONNECT_FAILURES) {
+    else if (tx && ! manager->isConnected) {
+        int connectFailureCount = manager->connectFailureCount;
+
         pthread_mutex_unlock(&manager->lock);
-        BRTransactionFree(tx);
-        if (callback) callback(info, ENOTCONN); // not connected to bitcoin network
+
+        if (connectFailureCount >= MAX_CONNECT_FAILURES ||
+            (manager->networkIsReachable && ! manager->networkIsReachable(manager->info))) {
+            BRTransactionFree(tx);
+            tx = NULL;
+            if (callback) callback(info, ENOTCONN); // not connected to bitcoin network
+        }
+        else pthread_mutex_lock(&manager->lock);
     }
-    else if (tx) {
+    
+    if (tx) {
         size_t i, count = 0;
         
         tx->timestamp = (uint32_t)time(NULL); // set timestamp to publish time
@@ -1944,7 +1956,6 @@ void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *inf
 
         pthread_mutex_unlock(&manager->lock);
     }
-    else pthread_mutex_unlock(&manager->lock);
 }
 
 // number of connected peers that have relayed the given unconfirmed transaction
