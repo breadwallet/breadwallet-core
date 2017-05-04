@@ -1095,17 +1095,17 @@ uint64_t BRWalletFeeForTxSize(BRWallet *wallet, size_t size)
 // fee that will be added for a transaction of the given amount
 uint64_t BRWalletFeeForTxAmount(BRWallet *wallet, uint64_t amount)
 {
+    static const uint8_t dummyScript[] = { OP_DUP, OP_HASH160, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                           0, 0, OP_EQUALVERIFY, OP_CHECKSIG };
     BRTxOutput o = BR_TX_OUTPUT_NONE;
     BRTransaction *tx;
     uint64_t fee = 0, maxAmount = 0;
-    uint8_t scriptPubKey[] = { OP_DUP, OP_HASH160, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                               OP_EQUALVERIFY, OP_CHECKSIG };
     
     assert(wallet != NULL);
     assert(amount > 0);
     maxAmount = BRWalletMaxOutputAmount(wallet);
     o.amount = (amount < maxAmount) ? amount : maxAmount;
-    BRTxOutputSetScript(&o, scriptPubKey, sizeof(scriptPubKey)); // unspendable dummy scriptPubKey
+    BRTxOutputSetScript(&o, dummyScript, sizeof(dummyScript)); // unspendable dummy scriptPubKey
     tx = BRWalletCreateTxForOutputs(wallet, &o, 1);
 
     if (tx) {

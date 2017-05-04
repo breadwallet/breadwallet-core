@@ -917,7 +917,8 @@ static void *_peerThreadRoutine(void *arg)
             
             while (socket >= 0 && ! error && len < HEADER_LENGTH) {
                 n = read(socket, &header[len], sizeof(header) - len);
-                if (n >= 0) len += n;
+                if (n > 0) len += n;
+                if (n == 0) error = ECONNRESET;
                 if (n < 0 && errno != EWOULDBLOCK) error = errno;
                 gettimeofday(&tv, NULL);
                 time = tv.tv_sec + (double)tv.tv_usec/1000000;
@@ -962,7 +963,8 @@ static void *_peerThreadRoutine(void *arg)
                     
                     while (socket >= 0 && ! error && len < msgLen) {
                         n = read(socket, &payload[len], msgLen - len);
-                        if (n >= 0) len += n;
+                        if (n > 0) len += n;
+                        if (n == 0) error = ECONNRESET;
                         if (n < 0 && errno != EWOULDBLOCK) error = errno;
                         gettimeofday(&tv, NULL);
                         time = tv.tv_sec + (double)tv.tv_usec/1000000;
