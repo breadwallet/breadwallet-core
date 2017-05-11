@@ -1591,7 +1591,7 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
         BRSetAdd(manager->orphans, blocks[i]);
 
         if ((blocks[i]->height % BLOCK_DIFFICULTY_INTERVAL) == 0 &&
-            (! block || blocks[i]->height < block->height)) block = blocks[i]; // find first transition block
+            (! block || blocks[i]->height > block->height)) block = blocks[i]; // find last transition block
     }
     
     while (block) {
