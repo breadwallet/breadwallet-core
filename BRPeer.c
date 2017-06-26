@@ -1171,7 +1171,7 @@ void BRPeerDisconnect(BRPeer *peer)
     }
 }
 
-// call this to (re)schedule a disconnect in the given number of seconds, or 0 to cancel (useful for sync timeout)
+// call this to (re)schedule a disconnect in the given number of seconds, or < 0 to cancel (useful for sync timeout)
 void BRPeerScheduleDisconnect(BRPeer *peer, double seconds)
 {
     BRPeerContext *ctx = ((BRPeerContext *)peer);
@@ -1360,7 +1360,10 @@ void BRPeerSendMempool(BRPeer *peer, const UInt256 knownTxHashes[], size_t known
         
         BRPeerSendMessage(peer, NULL, 0, MSG_MEMPOOL);
     }
-    else if (completionCallback) completionCallback(info, 0);
+    else {
+        peer_log(peer, "mempool request already sent");
+        if (completionCallback) completionCallback(info, 0);
+    }
 }
 
 void BRPeerSendGetheaders(BRPeer *peer, const UInt256 locators[], size_t locatorsCount, UInt256 hashStop)
