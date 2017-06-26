@@ -137,16 +137,16 @@ static int _BRWalletContainsTx(BRWallet *wallet, const BRTransaction *tx)
     return r;
 }
 
-static int _BRWalletTxIsSend(BRWallet *wallet, BRTransaction *tx)
-{
-    int r = 0;
-    
-    for (size_t i = 0; ! r && i < tx->inCount; i++) {
-        if (BRSetContains(wallet->allAddrs, tx->inputs[i].address)) r = 1;
-    }
-    
-    return r;
-}
+//static int _BRWalletTxIsSend(BRWallet *wallet, BRTransaction *tx)
+//{
+//    int r = 0;
+//    
+//    for (size_t i = 0; ! r && i < tx->inCount; i++) {
+//        if (BRSetContains(wallet->allAddrs, tx->inputs[i].address)) r = 1;
+//    }
+//    
+//    return r;
+//}
 
 static void _BRWalletUpdateBalance(BRWallet *wallet)
 {
