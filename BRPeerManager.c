@@ -1216,7 +1216,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
     size_t txCount = BRMerkleBlockTxHashes(block, NULL, 0);
     UInt256 _txHashes[(sizeof(UInt256)*txCount <= 0x1000) ? txCount : 0],
             *txHashes = (sizeof(UInt256)*txCount <= 0x1000) ? _txHashes : malloc(txCount*sizeof(*txHashes));
-    size_t i, fpCount = 0, saveCount = 0;
+    size_t i, j, fpCount = 0, saveCount = 0;
     BRMerkleBlock orphan, *b, *b2, *prev, *next = NULL;
     uint32_t txTime = 0;
     
@@ -1319,7 +1319,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
         if ((block->height % BLOCK_DIFFICULTY_INTERVAL) == 0) saveCount = 1; // save transition block immediately
         
         if (block->height == manager->estimatedHeight) { // chain download is complete
-            saveCount = (block->height % BLOCK_DIFFICULTY_INTERVAL) + BLOCK_DIFFICULTY_INTERVAL + 1;
+            saveCount = (block->height % BLOCK_DIFFICULTY_INTERVAL) + BLOCK_DIFFICULTY_INTERVAL;
             _BRPeerManagerLoadMempools(manager);
         }
     }
@@ -1395,7 +1395,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
             manager->lastBlock = block;
             
             if (block->height == manager->estimatedHeight) { // chain download is complete
-                saveCount = (block->height % BLOCK_DIFFICULTY_INTERVAL) + BLOCK_DIFFICULTY_INTERVAL + 1;
+                saveCount = (block->height % BLOCK_DIFFICULTY_INTERVAL) + BLOCK_DIFFICULTY_INTERVAL;
                 _BRPeerManagerLoadMempools(manager);
             }
         }
@@ -1418,6 +1418,10 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
         b = BRSetGet(manager->blocks, &b->prevBlock);
     }
     
+    // make sure the set of blocks to be saved starts at a difficulty interval
+    j = (i > 0) ? saveBlocks[i - 1]->height % BLOCK_DIFFICULTY_INTERVAL : 0;
+    i = (i > j) ? i - j : 0;
+    assert(i == 0 || (saveBlocks[i - 1]->height % BLOCK_DIFFICULTY_INTERVAL) == 0);
     pthread_mutex_unlock(&manager->lock);
     if (i > 0 && manager->saveBlocks) manager->saveBlocks(manager->info, saveBlocks, i);
     
