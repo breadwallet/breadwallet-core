@@ -1319,7 +1319,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
         if ((block->height % BLOCK_DIFFICULTY_INTERVAL) == 0) saveCount = 1; // save transition block immediately
         
         if (block->height == manager->estimatedHeight) { // chain download is complete
-            saveCount = (block->height % BLOCK_DIFFICULTY_INTERVAL) + BLOCK_DIFFICULTY_INTERVAL;
+            saveCount = (block->height % BLOCK_DIFFICULTY_INTERVAL) + BLOCK_DIFFICULTY_INTERVAL + 1;
             _BRPeerManagerLoadMempools(manager);
         }
     }
@@ -1395,7 +1395,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
             manager->lastBlock = block;
             
             if (block->height == manager->estimatedHeight) { // chain download is complete
-                saveCount = (block->height % BLOCK_DIFFICULTY_INTERVAL) + BLOCK_DIFFICULTY_INTERVAL;
+                saveCount = (block->height % BLOCK_DIFFICULTY_INTERVAL) + BLOCK_DIFFICULTY_INTERVAL + 1;
                 _BRPeerManagerLoadMempools(manager);
             }
         }
@@ -1419,7 +1419,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
     }
     
     // make sure the set of blocks to be saved starts at a difficulty interval
-    j = (i > 0) ? saveBlocks[i - 1]->height % BLOCK_DIFFICULTY_INTERVAL : 0;
+    j = (i > 0) ? BLOCK_DIFFICULTY_INTERVAL - (saveBlocks[i - 1]->height % BLOCK_DIFFICULTY_INTERVAL) : 0;
     i = (i > j) ? i - j : 0;
     assert(i == 0 || (saveBlocks[i - 1]->height % BLOCK_DIFFICULTY_INTERVAL) == 0);
     pthread_mutex_unlock(&manager->lock);
