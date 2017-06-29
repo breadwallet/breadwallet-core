@@ -124,10 +124,10 @@ typedef struct {
     BRTransaction *(*requestedTx)(void *info, UInt256 txHash);
     int (*networkIsReachable)(void *info);
     void (*threadCleanup)(void *info);
-    void **pongInfo;
-    void (**pongCallback)(void *info, int success);
-    void *mempoolInfo;
-    void (*mempoolCallback)(void *info, int success);
+    void ** volatile pongInfo;
+    void (** volatile pongCallback)(void *info, int success);
+    void * volatile mempoolInfo;
+    void (* volatile mempoolCallback)(void *info, int success);
     pthread_t thread;
 } BRPeerContext;
 
@@ -1356,7 +1356,7 @@ void BRPeerSendMempool(BRPeer *peer, const UInt256 knownTxHashes[], size_t known
         
         if (completionCallback) {
             gettimeofday(&tv, NULL);
-            ctx->mempoolTime = tv.tv_sec + (double)tv.tv_usec/1000000 + 5.0;
+            ctx->mempoolTime = tv.tv_sec + (double)tv.tv_usec/1000000 + 10.0;
             ctx->mempoolInfo = info;
             ctx->mempoolCallback = completionCallback;
         }
