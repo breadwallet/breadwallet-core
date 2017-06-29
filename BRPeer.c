@@ -167,7 +167,6 @@ static void _BRPeerDidConnect(BRPeer *peer)
     if (ctx->status == BRPeerStatusConnecting && ctx->sentVerack && ctx->gotVerack) {
         peer_log(peer, "handshake completed");
         ctx->disconnectTime = DBL_MAX;
-        ctx->mempoolTime = DBL_MAX;
         ctx->status = BRPeerStatusConnected;
         peer_log(peer, "connected with lastblock: %"PRIu32, ctx->lastblock);
         if (ctx->connected) ctx->connected(ctx->info);
@@ -926,7 +925,7 @@ static void *_peerThreadRoutine(void *arg)
                 if (! error && time >= ctx->disconnectTime) error = ETIMEDOUT;
 
                 if (! error && time >= ctx->mempoolTime) {
-                    peer_log(peer, "done waiting for mempool request");
+                    peer_log(peer, "done waiting for mempool response");
                     BRPeerSendPing(peer, ctx->mempoolInfo, ctx->mempoolCallback);
                     ctx->mempoolCallback = NULL;
                     ctx->mempoolTime = DBL_MAX;
@@ -1036,6 +1035,8 @@ BRPeer *BRPeerNew(void)
     array_new(ctx->pongInfo, 10);
     array_new(ctx->pongCallback, 10);
     ctx->pingTime = DBL_MAX;
+    ctx->mempoolTime = DBL_MAX;
+    ctx->disconnectTime = DBL_MAX;
     ctx->socket = -1;
     ctx->threadCleanup = _dummyThreadCleanup;
     return &ctx->peer;
