@@ -632,8 +632,10 @@ static void _mempoolDone(void *info, int success)
     free(info);
     
     if (success) {
+        peer_log(peer, "mempool request finished");
         pthread_mutex_lock(&manager->lock);
         if (manager->syncStartHeight > 0) {
+            peer_log(peer, "sync succeeded");
             syncFinished = 1;
             _BRPeerManagerSyncStopped(manager);
         }
@@ -644,6 +646,7 @@ static void _mempoolDone(void *info, int success)
         if (manager->txStatusUpdate) manager->txStatusUpdate(manager->info);
         if (syncFinished && manager->syncSucceeded) manager->syncSucceeded(manager->info);
     }
+    else peer_log(peer, "mempool request failed");
 }
 
 static void _loadBloomFilterDone(void *info, int success)
@@ -662,6 +665,7 @@ static void _loadBloomFilterDone(void *info, int success)
         free(info);
         
         if (peer == manager->downloadPeer) {
+            peer_log(peer, "sync succeeded");
             _BRPeerManagerSyncStopped(manager);
             pthread_mutex_unlock(&manager->lock);
             if (manager->syncSucceeded) manager->syncSucceeded(manager->info);
@@ -918,6 +922,7 @@ static void _peerDisconnected(void *info, int error)
         array_clear(manager->peers);
         txError = ENOTCONN; // trigger any pending tx publish callbacks
         willSave = 1;
+        peer_log(peer, "sync failed");
     }
     else if (manager->connectFailureCount < MAX_CONNECT_FAILURES) willReconnect = 1;
     
@@ -1308,7 +1313,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
         
         BRSetAdd(manager->blocks, block);
         manager->lastBlock = block;
-        _BRPeerManagerUpdateTx(manager, txHashes, txCount, block->height, txTime);
+        if (txCount > 0) _BRPeerManagerUpdateTx(manager, txHashes, txCount, block->height, txTime);
         if (manager->downloadPeer) BRPeerSetCurrentBlockHeight(manager->downloadPeer, block->height);
             
         if (block->height < manager->estimatedHeight && peer == manager->downloadPeer) {
@@ -1332,7 +1337,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
         while (b && b->height > block->height) b = BRSetGet(manager->blocks, &b->prevBlock); // is block in main chain?
         
         if (BRMerkleBlockEq(b, block)) { // if it's not on a fork, set block heights for its transactions
-            _BRPeerManagerUpdateTx(manager, txHashes, txCount, block->height, txTime);
+            if (txCount > 0) _BRPeerManagerUpdateTx(manager, txHashes, txCount, block->height, txTime);
             if (block->height == manager->lastBlock->height) manager->lastBlock = block;
         }
         
@@ -1389,7 +1394,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
                 count = BRMerkleBlockTxHashes(b, txHashes, count);
                 b = BRSetGet(manager->blocks, &b->prevBlock);
                 if (b) timestamp = timestamp/2 + b->timestamp/2;
-                BRWalletUpdateTransactions(manager->wallet, txHashes, count, height, timestamp);
+                if (count > 0) BRWalletUpdateTransactions(manager->wallet, txHashes, count, height, timestamp);
             }
         
             manager->lastBlock = block;
@@ -1753,6 +1758,7 @@ void BRPeerManagerConnect(BRPeerManager *manager)
     }
     
     if (array_count(manager->connectedPeers) == 0) {
+        peer_log(&BR_PEER_NONE, "sync failed");
         _BRPeerManagerSyncStopped(manager);
         pthread_mutex_unlock(&manager->lock);
         if (manager->syncFailed) manager->syncFailed(manager->info, ENETUNREACH);

@@ -388,6 +388,7 @@ static int _BRPeerAcceptInvMessage(BRPeer *peer, const uint8_t *msg, size_t msgL
             }
             
             if (txCount > 0 && ctx->mempoolCallback) {
+                peer_log(peer, "got initial mempool response");
                 BRPeerSendPing(peer, ctx->mempoolInfo, ctx->mempoolCallback);
                 ctx->mempoolCallback = NULL;
                 ctx->mempoolTime = DBL_MAX;
@@ -925,6 +926,7 @@ static void *_peerThreadRoutine(void *arg)
                 if (! error && time >= ctx->disconnectTime) error = ETIMEDOUT;
 
                 if (! error && time >= ctx->mempoolTime) {
+                    peer_log(peer, "done waiting for mempool request");
                     BRPeerSendPing(peer, ctx->mempoolInfo, ctx->mempoolCallback);
                     ctx->mempoolCallback = NULL;
                     ctx->mempoolTime = DBL_MAX;
