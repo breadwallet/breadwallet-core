@@ -875,7 +875,7 @@ static void _peerDisconnected(void *info, int error)
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
     BRTxPeerList *peerList;
-    int isSyncing, willSave = 0, willReconnect = 0, txError = 0;
+    int willSave = 0, willReconnect = 0, txError = 0;
     size_t txCount = 0;
     
     //free(info);
@@ -893,11 +893,10 @@ static void _peerDisconnected(void *info, int error)
         }
         
         manager->connectFailureCount++;
-        isSyncing = (manager->lastBlock->height < manager->estimatedHeight);
         
         // if it's a timeout and there's pending tx publish callbacks, the tx publish timed out
         // BUG: XXX what if it's a connect timeout and not a publish timeout?
-        if (error == ETIMEDOUT && (peer != manager->downloadPeer || ! isSyncing ||
+        if (error == ETIMEDOUT && (peer != manager->downloadPeer || manager->syncStartHeight == 0 ||
                                    array_count(manager->connectedPeers) == 1)) txError = ETIMEDOUT;
     }
     
@@ -993,11 +992,10 @@ static void _peerRelayedTx(void *info, BRTransaction *tx)
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
     void *txInfo = NULL;
     void (*txCallback)(void *, int) = NULL;
-    int isSyncing, isWalletTx = 0, hasPendingCallbacks = 0;
+    int isWalletTx = 0, hasPendingCallbacks = 0;
     size_t relayCount = 0;
     
     pthread_mutex_lock(&manager->lock);
-    isSyncing = (manager->lastBlock->height < manager->estimatedHeight);
     peer_log(peer, "relayed tx: %s", u256_hex_encode(tx->txHash));
     
     for (size_t i = array_count(manager->publishedTx); i > 0; i--) { // see if tx is in list of published tx
@@ -1012,11 +1010,11 @@ static void _peerRelayedTx(void *info, BRTransaction *tx)
     }
 
     // cancel tx publish timeout if no publish callbacks are pending, and syncing is done or this is not downloadPeer
-    if (! hasPendingCallbacks && (! isSyncing || peer != manager->downloadPeer)) {
+    if (! hasPendingCallbacks && (manager->syncStartHeight == 0 || peer != manager->downloadPeer)) {
         BRPeerScheduleDisconnect(peer, -1); // cancel publish tx timeout
     }
 
-    if (! isSyncing || BRWalletContainsTransaction(manager->wallet, tx)) {
+    if (manager->syncStartHeight == 0 || BRWalletContainsTransaction(manager->wallet, tx)) {
         isWalletTx = BRWalletRegisterTransaction(manager->wallet, tx);
         if (isWalletTx) tx = BRWalletTransactionForHash(manager->wallet, tx->txHash);
     }
@@ -1027,7 +1025,9 @@ static void _peerRelayedTx(void *info, BRTransaction *tx)
     
     if (tx && isWalletTx) {
         // reschedule sync timeout
-        if (isSyncing && peer == manager->downloadPeer) BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT);
+        if (manager->syncStartHeight > 0 && peer == manager->downloadPeer) {
+            BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT);
+        }
         
         if (BRWalletAmountSentByTx(manager->wallet, tx) > 0 && BRWalletTransactionIsValid(manager->wallet, tx)) {
             _BRPeerManagerAddTxToPublishList(manager, tx, NULL, NULL); // add valid send tx to mempool
@@ -1035,7 +1035,7 @@ static void _peerRelayedTx(void *info, BRTransaction *tx)
 
         // keep track of how many peers have or relay a tx, this indicates how likely the tx is to confirm
         // (we only need to track this after syncing is complete)
-        if (! isSyncing) relayCount = _BRTxPeerListAddPeer(&manager->txRelays, tx->txHash, peer);
+        if (manager->syncStartHeight == 0) relayCount = _BRTxPeerListAddPeer(&manager->txRelays, tx->txHash, peer);
         
         _BRTxPeerListRemovePeer(manager->txRequests, tx->txHash, peer);
         
@@ -1075,12 +1075,11 @@ static void _peerHasTx(void *info, UInt256 txHash)
     BRTransaction *tx;
     void *txInfo = NULL;
     void (*txCallback)(void *, int) = NULL;
-    int isSyncing, isWalletTx = 0, hasPendingCallbacks = 0;
+    int isWalletTx = 0, hasPendingCallbacks = 0;
     size_t relayCount = 0;
     
     pthread_mutex_lock(&manager->lock);
     tx = BRWalletTransactionForHash(manager->wallet, txHash);
-    isSyncing = (manager->lastBlock->height < manager->estimatedHeight);
     peer_log(peer, "has tx: %s", u256_hex_encode(txHash));
 
     for (size_t i = array_count(manager->publishedTx); i > 0; i--) { // see if tx is in list of published tx
@@ -1096,7 +1095,7 @@ static void _peerHasTx(void *info, UInt256 txHash)
     }
     
     // cancel tx publish timeout if no publish callbacks are pending, and syncing is done or this is not downloadPeer
-    if (! hasPendingCallbacks && (! isSyncing || peer != manager->downloadPeer)) {
+    if (! hasPendingCallbacks && (manager->syncStartHeight == 0 || peer != manager->downloadPeer)) {
         BRPeerScheduleDisconnect(peer, -1); // cancel publish tx timeout
     }
 
@@ -1105,11 +1104,13 @@ static void _peerHasTx(void *info, UInt256 txHash)
         if (isWalletTx) tx = BRWalletTransactionForHash(manager->wallet, tx->txHash);
 
         // reschedule sync timeout
-        if (isSyncing && peer == manager->downloadPeer && isWalletTx) BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT);
+        if (manager->syncStartHeight > 0 && peer == manager->downloadPeer && isWalletTx) {
+            BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT);
+        }
         
         // keep track of how many peers have or relay a tx, this indicates how likely the tx is to confirm
         // (we only need to track this after syncing is complete)
-        if (! isSyncing) relayCount = _BRTxPeerListAddPeer(&manager->txRelays, txHash, peer);
+        if (manager->syncStartHeight == 0) relayCount = _BRTxPeerListAddPeer(&manager->txRelays, txHash, peer);
 
         // set timestamp when tx is verified
         if (relayCount >= manager->maxConnectCount && tx && tx->blockHeight == TX_UNCONFIRMED && tx->timestamp == 0) {
@@ -1502,10 +1503,9 @@ static BRTransaction *_peerRequestedTx(void *info, UInt256 txHash)
     BRTransaction *tx = NULL;
     void *txInfo = NULL;
     void (*txCallback)(void *, int) = NULL;
-    int isSyncing, hasPendingCallbacks = 0, error = 0;
+    int hasPendingCallbacks = 0, error = 0;
 
     pthread_mutex_lock(&manager->lock);
-    isSyncing = (manager->lastBlock->height < manager->estimatedHeight);
 
     for (size_t i = array_count(manager->publishedTx); i > 0; i--) {
         if (UInt256Eq(manager->publishedTxHashes[i - 1], txHash)) {
@@ -1530,7 +1530,7 @@ static BRTransaction *_peerRequestedTx(void *info, UInt256 txHash)
     }
 
     // cancel tx publish timeout if no publish callbacks are pending, and syncing is done or this is not downloadPeer
-    if (! hasPendingCallbacks && (! isSyncing || peer != manager->downloadPeer)) {
+    if (! hasPendingCallbacks && (manager->syncStartHeight == 0 || peer != manager->downloadPeer)) {
         BRPeerScheduleDisconnect(peer, -1); // cancel publish tx timeout
     }
 
@@ -1835,7 +1835,7 @@ uint32_t BRPeerManagerEstimatedBlockHeight(BRPeerManager *manager)
     assert(manager != NULL);
     pthread_mutex_lock(&manager->lock);
     height = (manager->lastBlock->height < manager->estimatedHeight) ? manager->estimatedHeight :
-    manager->lastBlock->height;
+             manager->lastBlock->height;
     pthread_mutex_unlock(&manager->lock);
     return height;
 }
