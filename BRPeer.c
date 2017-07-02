@@ -124,10 +124,10 @@ typedef struct {
     BRTransaction *(*requestedTx)(void *info, UInt256 txHash);
     int (*networkIsReachable)(void *info);
     void (*threadCleanup)(void *info);
-    void ** volatile pongInfo;
-    void (** volatile pongCallback)(void *info, int success);
-    void * volatile mempoolInfo;
-    void (* volatile mempoolCallback)(void *info, int success);
+    void **volatile pongInfo;
+    void (**volatile pongCallback)(void *info, int success);
+    void *volatile mempoolInfo;
+    void (*volatile mempoolCallback)(void *info, int success);
     pthread_t thread;
 } BRPeerContext;
 

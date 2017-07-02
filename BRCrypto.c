@@ -68,7 +68,7 @@ static void _BRSHA1Compress(uint32_t *r, uint32_t *x)
     for (; i < 80; i++) sha1(f2(b, c, d), 0xca62c1d6, (x[i] = rol32(x[i - 3] ^ x[i - 8] ^ x[i - 14] ^ x[i - 16], 1)));
     
     r[0] += a, r[1] += b, r[2] += c, r[3] += d, r[4] += e;
-    a = b = c = d = e = t = 0;
+    var_clean(&a, &b, &c, &d, &e, &t);
 }
 
 // sha-1 - not recommended for cryptographic use
@@ -93,8 +93,8 @@ void BRSHA1(void *md20, const void *data, size_t len)
     _BRSHA1Compress(buf, x); // finalize
     for (i = 0; i < 5; i++) buf[i] = be32(buf[i]); // endian swap
     memcpy(md20, buf, 20); // write to md
-    memset(x, 0, sizeof(x));
-    memset(buf, 0, sizeof(buf));
+    mem_clean(x, sizeof(x));
+    mem_clean(buf, sizeof(buf));
 }
 
 // bitwise right rotation
@@ -136,8 +136,8 @@ static void _BRSHA256Compress(uint32_t *r, uint32_t *x)
     }
     
     r[0] += a, r[1] += b, r[2] += c, r[3] += d, r[4] += e, r[5] += f, r[6] += g, r[7] += h;
-    a = b = c = d = e = f = g = h = t1 = t2 = 0;
-    memset(w, 0, sizeof(w));
+    var_clean(&a, &b, &c, &d, &e, &f, &g, &h, &t1, &t2);
+    mem_clean(w, sizeof(w));
 }
 
 void BRSHA224(void *md28, const void *data, size_t len) {
@@ -161,8 +161,8 @@ void BRSHA224(void *md28, const void *data, size_t len) {
     _BRSHA256Compress(buf, x); // finalize
     for (i = 0; i < 7; i++) buf[i] = be32(buf[i]); // endian swap
     memcpy(md28, buf, 28); // write to md
-    memset(x, 0, sizeof(x));
-    memset(buf, 0, sizeof(buf));
+    mem_clean(x, sizeof(x));
+    mem_clean(buf, sizeof(buf));
 }
 
 void BRSHA256(void *md32, const void *data, size_t len)
@@ -187,8 +187,8 @@ void BRSHA256(void *md32, const void *data, size_t len)
     _BRSHA256Compress(buf, x); // finalize
     for (i = 0; i < 8; i++) buf[i] = be32(buf[i]); // endian swap
     memcpy(md32, buf, 32); // write to md
-    memset(x, 0, sizeof(x));
-    memset(buf, 0, sizeof(buf));
+    mem_clean(x, sizeof(x));
+    mem_clean(buf, sizeof(buf));
 }
 
 // double-sha-256 = sha-256(sha-256(x))
@@ -245,8 +245,8 @@ static void _BRSHA512Compress(uint64_t *r, uint64_t *x)
     }
     
     r[0] += a, r[1] += b, r[2] += c, r[3] += d, r[4] += e, r[5] += f, r[6] += g, r[7] += h;
-    a = b = c = d = e = f = g = h = t1 = t2 = 0;
-    memset(w, 0, sizeof(w));
+    var_clean(&a, &b, &c, &d, &e, &f, &g, &h, &t1, &t2);
+    mem_clean(w, sizeof(w));
 }
 
 void BRSHA384(void *md48, const void *data, size_t len)
@@ -271,8 +271,8 @@ void BRSHA384(void *md48, const void *data, size_t len)
     _BRSHA512Compress(buf, x); // finalize
     for (i = 0; i < 6; i++) buf[i] = be64(buf[i]); // endian swap
     memcpy(md48, buf, 48); // write to md
-    memset(x, 0, sizeof(x));
-    memset(buf, 0, sizeof(buf));
+    mem_clean(x, sizeof(x));
+    mem_clean(buf, sizeof(buf));
 }
 
 void BRSHA512(void *md64, const void *data, size_t len)
@@ -297,8 +297,8 @@ void BRSHA512(void *md64, const void *data, size_t len)
     _BRSHA512Compress(buf, x); // finalize
     for (i = 0; i < 8; i++) buf[i] = be64(buf[i]); // endian swap
     memcpy(md64, buf, 64); // write to md
-    memset(x, 0, sizeof(x));
-    memset(buf, 0, sizeof(buf));
+    mem_clean(x, sizeof(x));
+    mem_clean(buf, sizeof(buf));
 }
 
 // basic ripemd functions
@@ -355,7 +355,7 @@ static void _BRRMDCompress(uint32_t *r, uint32_t *x)
     
     t = r[1] + cl + dr; // final result for r[0]
     r[1] = r[2] + dl + er, r[2] = r[3] + el + ar, r[3] = r[4] + al + br, r[4] = r[0] + bl + cr, r[0] = t; // combine
-    al = bl = cl = dl = el = ar = br = cr = dr = er = t = 0;
+    var_clean(&al, &bl, &cl, &dl, &el, &ar, &br, &cr, &dr, &er, &t);
 }
 
 // ripemd-160: http://homes.esat.kuleuven.be/~bosselae/ripemd160.html
@@ -380,8 +380,8 @@ void BRRMD160(void *md20, const void *data, size_t len)
     _BRRMDCompress(buf, x); // finalize
     for (i = 0; i < 5; i++) buf[i] = le32(buf[i]); // endian swap
     memcpy(md20, buf, 20); // write to md
-    memset(x, 0, sizeof(x));
-    memset(buf, 0, sizeof(buf));
+    mem_clean(x, sizeof(x));
+    mem_clean(buf, sizeof(buf));
 }
 
 // bitcoin hash-160 = ripemd-160(sha-256(x))
@@ -430,7 +430,7 @@ static void _BRMD5Compress(uint32_t *r, uint32_t *x)
     for (; i < 64; i++) md5(I, a, b, c, d, x[(7*i) % 16], k[i], s[12 + (i % 4)], t);
     
     r[0] += a, r[1] += b, r[2] += c, r[3] += d;
-    a = b = c = d = t = 0;
+    var_clean(&a, &b, &c, &d, &t);
 }
 
 // md5 - for non-cyptographic use only
@@ -455,8 +455,8 @@ void BRMD5(void *md16, const void *data, size_t len)
     _BRMD5Compress(buf, x); // finalize
     for (i = 0; i < 4; i++) buf[i] = le32(buf[i]); // endian swap
     memcpy(md16, buf, 16); // write to md
-    memset(x, 0, sizeof(x));
-    memset(buf, 0, sizeof(buf));
+    mem_clean(x, sizeof(x));
+    mem_clean(buf, sizeof(buf));
 }
 
 #define C1 0xcc9e2d51
@@ -520,9 +520,9 @@ void BRHMAC(void *mac, void (*hash)(void *, const void *, size_t), size_t hashLe
     hash(&kopad[blockLen/sizeof(uint64_t)], kipad, blockLen + dataLen);
     hash(mac, kopad, blockLen + hashLen);
     
-    memset(k, 0, sizeof(k));
-    memset(kipad, 0, blockLen);
-    memset(kopad, 0, blockLen);
+    mem_clean(k, sizeof(k));
+    mem_clean(kipad, blockLen);
+    mem_clean(kopad, blockLen);
 }
 
 // hmac-drbg with no prediction resistance or additional input
@@ -562,7 +562,7 @@ void BRHMACDRBG(void *out, size_t outLen, void *K, void *V, void (*hash)(void *,
         BRHMAC(V, hash, hashLen, K, hashLen, V, hashLen);  // V = HMAC(K, V)
     }
     
-    memset(buf, 0, bufLen);
+    mem_clean(buf, bufLen);
     
     for (i = 0; i*hashLen < outLen; i++) {
         BRHMAC(V, hash, hashLen, K, hashLen, V, hashLen); // V = HMAC(K, V)
@@ -632,8 +632,9 @@ static void _BRPoly1305Compress(uint32_t h[5], const void *key32, const void *da
         h[0] = le32((uint32_t)d0), h[1] = le32((uint32_t)d1), h[2] = le32((uint32_t)d2), h[3] = le32((uint32_t)d3);
     }
     
-    d0 = d1 = d2 = d3 = d4 = 0;
-    x[0] = x[1] = x[2] = x[3] = b = t0 = t1 = t2 = t3 = t4 = r0 = r1 = r2 = r3 = r4 = 0;
+    var_clean(&d0, &d1, &d2, &d3, &d4);
+    mem_clean(x, sizeof(x));
+    var_clean(&b, &t0, &t1, &t2, &t3, &t4, &r0, &r1, &r2, &r3, &r4);
 }
 
 // poly1305 authenticator: https://tools.ietf.org/html/rfc7539
@@ -648,7 +649,7 @@ void BRPoly1305(void *mac16, const void *key32, const void *data, size_t len)
     
     _BRPoly1305Compress(h, key32, data, len, 1);
     memcpy(mac16, h, 16);
-    h[0] = h[1] = h[2] = h[3] = h[4] = 0;
+    mem_clean(h, sizeof(h));
 }
 
 // basic chacha quarter round operation
@@ -696,9 +697,9 @@ void BRChacha20(void *out, const void *key32, const void *iv8, const void *data,
         ((uint8_t *)out)[i] = ((const uint8_t *)data)[i] ^ ((uint8_t *)b)[i % 64];
     }
     
-    x0 = x1 = x2 = x3 = x4 = x5 = x6 = x7 = x8 = x9 = x10 = x11 = x12 = x13 = x14 = x15 = 0;
-    memset(s, 0, sizeof(s));
-    memset(b, 0, sizeof(b));
+    var_clean(&x0, &x1, &x2, &x3, &x4, &x5, &x6, &x7, &x8, &x9, &x10, &x11, &x12, &x13, &x14, &x15);
+    mem_clean(s, sizeof(s));
+    mem_clean(b, sizeof(b));
 }
 
 // chacha20-poly1305 authenticated encryption with associated data (AEAD): https://tools.ietf.org/html/rfc7539
@@ -730,9 +731,8 @@ size_t BRChacha20Poly1305AEADEncrypt(void *out, size_t outLen, const void *key32
     pad[0] = le64(adLen);
     pad[1] = le64(dataLen);
     _BRPoly1305Compress(h, macKey, pad, 16, 1);
+    mem_clean(macKey, sizeof(macKey));
     memcpy((uint8_t *)out + dataLen, h, 16);
-    counter = macKey[0] = macKey[1] = macKey[2] = macKey[3] = pad[0] = pad[1] = 0;
-    h[0] = h[1] = h[2] = h[3] = h[4] = 0;
     return dataLen + 16;
 }
 
@@ -764,11 +764,10 @@ size_t BRChacha20Poly1305AEADDecrypt(void *out, size_t outLen, const void *key32
     pad[0] = le64(adLen);
     pad[1] = le64(outLen);
     _BRPoly1305Compress(h, macKey, pad, 16, 1);
+    mem_clean(macKey, sizeof(macKey));
     memcpy(mac, (const uint8_t *)data + outLen, 16);
     if ((mac[0] ^ h[0]) | (mac[1] ^ h[1]) | (mac[2] ^ h[2]) | (mac[3] ^ h[3]) != 0) outLen = 0; // constant time compare
     BRChacha20(out, key32, iv, data, outLen, le64(counter) + 1);
-    counter = macKey[0] = macKey[1] = macKey[2] = macKey[3] = pad[0] = pad[1] = 0;
-    mac[0] = mac[1] = mac[2] = mac[3] = h[0] = h[1] = h[2] = h[3] = h[4] = 0;
     return outLen;
 }
 
@@ -808,9 +807,9 @@ void BRPBKDF2(void *dk, size_t dkLen, void (*hash)(void *, const void *, size_t)
         memcpy((uint8_t *)dk + i*hashLen, T, (i*hashLen + hashLen <= dkLen) ? hashLen : dkLen % hashLen);
     }
     
-    memset(s, 0, sizeof(s));
-    memset(U, 0, sizeof(U));
-    memset(T, 0, sizeof(T));
+    mem_clean(s, sizeof(s));
+    mem_clean(U, sizeof(U));
+    mem_clean(T, sizeof(T));
 }
 
 // salsa20/8 stream cypher: http://cr.yp.to/snuffle.html
@@ -891,11 +890,10 @@ void BRScrypt(void *dk, size_t dkLen, const void *pw, size_t pwLen, const void *
     }
     
     BRPBKDF2(dk, dkLen, BRSHA256, 256/8, pw, pwLen, b, sizeof(b), 1);
-    memset(b, 0, sizeof(b));
-    memset(x, 0, sizeof(x));
-    memset(y, 0, sizeof(y));
-    memset(z, 0, sizeof(z));
-    memset(v, 0, 128*r*n);
+    mem_clean(b, sizeof(b));
+    mem_clean(x, sizeof(x));
+    mem_clean(y, sizeof(y));
+    mem_clean(z, sizeof(z));
+    mem_clean(v, 128*r*n);
     free(v);
-    memset(&m, 0, sizeof(m));
 }

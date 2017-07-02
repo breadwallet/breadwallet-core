@@ -1211,12 +1211,12 @@ static void _BRPaymentProtocolEncryptedMessageCEK(BRPaymentProtocolEncryptedMess
 
     _BRECDH(secret, privKey, pubKey);
     BRSHA512(seed, secret, sizeof(secret));
-    memset(secret, 0, sizeof(secret));
+    mem_clean(secret, sizeof(secret));
     BRHMACDRBG(cek32, 32, K, V, BRSHA256, 256/8, seed, sizeof(seed), nonce, sizeof(nonce), NULL, 0);
-    memset(seed, 0, sizeof(seed));
+    mem_clean(seed, sizeof(seed));
     BRHMACDRBG(iv12, 12, K, V, BRSHA256, 256/8, NULL, 0, NULL, 0, NULL, 0);
-    memset(K, 0, sizeof(K));
-    memset(V, 0, sizeof(V));
+    mem_clean(K, sizeof(K));
+    mem_clean(V, sizeof(V));
 }
 
 // returns a newly allocated encrypted message struct that must be freed by calling BRPaymentProtocolMessageFree()
@@ -1259,8 +1259,8 @@ BRPaymentProtocolEncryptedMessage *BRPaymentProtocolEncryptedMessageNew(BRPaymen
     _BRPaymentProtocolEncryptedMessageCEK(msg, cek, iv, privKey);
     snprintf(ad, adLen, "%"PRIu64"%s", statusCode, (statusMsg) ? statusMsg : "");
     bufLen = BRChacha20Poly1305AEADEncrypt(buf, bufLen, cek, iv, message, msgLen, ad, strlen(ad));
-    memset(cek, 0, sizeof(cek));
-    memset(iv, 0, sizeof(iv));
+    mem_clean(cek, sizeof(cek));
+    mem_clean(iv, sizeof(iv));
     free(ad);
     msg->msgLen = _ProtoBufBytes(&msg->message, buf, bufLen);
     free(buf);
@@ -1404,8 +1404,8 @@ size_t BRPaymentProtocolEncryptedMessageDecrypt(BRPaymentProtocolEncryptedMessag
     else if (msg->statusMsg) strncpy(ad, msg->statusMsg, adLen);
     
     outLen = BRChacha20Poly1305AEADDecrypt(out, outLen, cek, iv, msg->message, msg->msgLen, ad, strlen(ad));
-    memset(cek, 0, sizeof(cek));
-    memset(iv, 0, sizeof(iv));
+    mem_clean(cek, sizeof(cek));
+    mem_clean(iv, sizeof(iv));
     free(ad);
     return outLen;
 }

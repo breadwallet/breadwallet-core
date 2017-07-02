@@ -55,7 +55,7 @@ size_t BRBase58Encode(char *str, size_t strLen, const uint8_t *data, size_t data
             carry /= 58;
         }
         
-        carry = 0;
+        var_clean(&carry);
     }
     
     i = 0;
@@ -68,7 +68,7 @@ size_t BRBase58Encode(char *str, size_t strLen, const uint8_t *data, size_t data
         *str = '\0';
     }
     
-    memset(buf, 0, sizeof(buf));
+    mem_clean(buf, sizeof(buf));
     return (! str || len <= strLen) ? len : 0;
 }
 
@@ -127,7 +127,7 @@ size_t BRBase58Decode(uint8_t *data, size_t dataLen, const char *str)
             carry >>= 8;
         }
         
-        carry = 0;
+        var_clean(&carry);
     }
     
     while (i < sizeof(buf) && buf[i] == 0) i++; // skip leading zeroes
@@ -138,7 +138,7 @@ size_t BRBase58Decode(uint8_t *data, size_t dataLen, const char *str)
         memcpy(&data[zcount], &buf[i], sizeof(buf) - i);
     }
 
-    memset(buf, 0, sizeof(buf));
+    mem_clean(buf, sizeof(buf));
     return (! data || len <= dataLen) ? len : 0;
 }
 
@@ -157,7 +157,7 @@ size_t BRBase58CheckEncode(char *str, size_t strLen, const uint8_t *data, size_t
         len = BRBase58Encode(str, strLen, buf, dataLen + 4);
     }
     
-    memset(buf, 0, bufLen);
+    mem_clean(buf, bufLen);
     if (buf != _buf) free(buf);
     return len;
 }
@@ -180,7 +180,7 @@ size_t BRBase58CheckDecode(uint8_t *data, size_t dataLen, const char *str)
     }
     else len = 0;
     
-    memset(buf, 0, bufLen);
+    mem_clean(buf, bufLen);
     if (buf != _buf) free(buf);
     return (! data || len <= dataLen) ? len : 0;
 }

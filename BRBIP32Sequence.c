@@ -68,8 +68,8 @@ static void _CKDpriv(UInt256 *k, UInt256 *c, uint32_t i)
     BRSecp256k1ModAdd(k, (UInt256 *)&I); // k = IL + k (mod n)
     *c = *(UInt256 *)&I.u8[sizeof(UInt256)]; // c = IR
     
-    I = UINT512_ZERO;
-    memset(buf, 0, sizeof(buf));
+    var_clean(&I);
+    mem_clean(buf, sizeof(buf));
 }
 
 // Public parent key -> public child key
@@ -100,8 +100,8 @@ static void _CKDpub(BRECPoint *K, UInt256 *c, uint32_t i)
         *c = *(UInt256 *)&I.u8[sizeof(UInt256)]; // c = IR
         BRSecp256k1PointAdd(K, (UInt256 *)&I); // K = P(IL) + K
 
-        I = UINT512_ZERO;
-        memset(buf, 0, sizeof(buf));
+        var_clean(&I);
+        mem_clean(buf, sizeof(buf));
     }
 }
 
@@ -119,7 +119,7 @@ BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen)
         BRHMAC(&I, BRSHA512, sizeof(UInt512), BIP32_SEED_KEY, strlen(BIP32_SEED_KEY), seed, seedLen);
         secret = *(UInt256 *)&I;
         chain = *(UInt256 *)&I.u8[sizeof(UInt256)];
-        I = UINT512_ZERO;
+        var_clean(&I);
     
         BRKeySetSecret(&key, &secret, 1);
         mpk.fingerPrint = BRKeyHash160(&key).u32[0];
@@ -128,7 +128,7 @@ BRMasterPubKey BRBIP32MasterPubKey(const void *seed, size_t seedLen)
     
         mpk.chainCode = chain;
         BRKeySetSecret(&key, &secret, 1);
-        secret = chain = UINT256_ZERO;
+        var_clean(&secret, &chain);
         BRKeyPubKey(&key, &mpk.pubKey, sizeof(mpk.pubKey)); // path N(m/0H)
         BRKeyClean(&key);
     }
@@ -149,7 +149,7 @@ size_t BRBIP32PubKey(uint8_t *pubKey, size_t pubKeyLen, BRMasterPubKey mpk, uint
 
         _CKDpub((BRECPoint *)pubKey, &chainCode, chain); // path N(m/0H/chain)
         _CKDpub((BRECPoint *)pubKey, &chainCode, index); // index'th key in chain
-        chainCode = UINT256_ZERO;
+        var_clean(&chainCode);
     }
     
     return (! pubKey || sizeof(BRECPoint) <= pubKeyLen) ? sizeof(BRECPoint) : 0;
@@ -178,7 +178,7 @@ void BRBIP32PrivKeyList(BRKey keys[], size_t keysCount, const void *seed, size_t
         BRHMAC(&I, BRSHA512, sizeof(UInt512), BIP32_SEED_KEY, strlen(BIP32_SEED_KEY), seed, seedLen);
         secret = *(UInt256 *)&I;
         chainCode = *(UInt256 *)&I.u8[sizeof(UInt256)];
-        I = UINT512_ZERO;
+        var_clean(&I);
 
         _CKDpriv(&secret, &chainCode, 0 | BIP32_HARD); // path m/0H
         _CKDpriv(&secret, &chainCode, chain); // path m/0H/chain
@@ -190,7 +190,7 @@ void BRBIP32PrivKeyList(BRKey keys[], size_t keysCount, const void *seed, size_t
             BRKeySetSecret(&keys[i], &s, 1);
         }
         
-        secret = chainCode = c = s = UINT256_ZERO;
+        var_clean(&secret, &chainCode, &c, &s);
     }
 }
 
@@ -238,13 +238,13 @@ void BRBIP32APIAuthKey(BRKey *key, const void *seed, size_t seedLen)
         BRHMAC(&I, BRSHA512, sizeof(UInt512), BIP32_SEED_KEY, strlen(BIP32_SEED_KEY), seed, seedLen);
         secret = *(UInt256 *)&I;
         chainCode = *(UInt256 *)&I.u8[sizeof(UInt256)];
-        I = UINT512_ZERO;
+        var_clean(&I);
 
         _CKDpriv(&secret, &chainCode, 1 | BIP32_HARD); // path m/1H
         _CKDpriv(&secret, &chainCode, 0); // path m/1H/0
         
         BRKeySetSecret(key, &secret, 1);
-        secret = chainCode = UINT256_ZERO;
+        var_clean(&secret, chainCode);
     }
 }
 
@@ -268,7 +268,7 @@ void BRBIP32BitIDKey(BRKey *key, const void *seed, size_t seedLen, uint32_t inde
         BRHMAC(&I, BRSHA512, sizeof(UInt512), BIP32_SEED_KEY, strlen(BIP32_SEED_KEY), seed, seedLen);
         secret = *(UInt256 *)&I;
         chainCode = *(UInt256 *)&I.u8[sizeof(UInt256)];
-        I = UINT512_ZERO;
+        var_clean(&I);
         
         _CKDpriv(&secret, &chainCode, 13 | BIP32_HARD); // path m/13H
         _CKDpriv(&secret, &chainCode, UInt32GetLE(&hash.u32[0]) | BIP32_HARD); // path m/13H/aH
@@ -277,7 +277,7 @@ void BRBIP32BitIDKey(BRKey *key, const void *seed, size_t seedLen, uint32_t inde
         _CKDpriv(&secret, &chainCode, UInt32GetLE(&hash.u32[3]) | BIP32_HARD); // path m/13H/aH/bH/cH/dH
         
         BRKeySetSecret(key, &secret, 1);
-        secret = chainCode = UINT256_ZERO;
+        var_clean(&secret, &chainCode);
     }
 }
 

@@ -142,12 +142,12 @@ int BRPrivKeyIsValid(const char *privKey)
         strncpy(s, privKey, sizeof(s));
         s[sizeof(s) - 2] = '?';
         BRSHA256(data, s, sizeof(s) - 1);
-        memset(s, 0, sizeof(s));
+        mem_clean(s, sizeof(s));
         r = (data[0] == 0);
     }
     else r = (strspn(privKey, "0123456789ABCDEFabcdef") == 64); // hex encoded key
     
-    memset(data, 0, sizeof(data));
+    mem_clean(data, sizeof(data));
     return r;
 }
 
@@ -203,7 +203,7 @@ int BRKeySetPrivKey(BRKey *key, const char *privKey)
         }
     }
 
-    memset(data, 0, sizeof(data));
+    mem_clean(data, sizeof(data));
     return r;
 }
 
@@ -240,7 +240,7 @@ size_t BRKeyPrivKey(const BRKey *key, char *privKey, size_t pkLen)
         UInt256Set(&data[1], key->secret);
         if (key->compressed) data[33] = 0x01;
         pkLen = BRBase58CheckEncode(privKey, pkLen, data, (key->compressed) ? 34 : 33);
-        memset(data, 0, sizeof(data));
+        mem_clean(data, sizeof(data));
     }
     else pkLen = 0;
     
@@ -344,7 +344,7 @@ int BRKeyVerify(BRKey *key, UInt256 md, const void *sig, size_t sigLen)
 void BRKeyClean(BRKey *key)
 {
     assert(key != NULL);
-    memset(key, 0, sizeof(*key));
+    var_clean(key);
 }
 
 // Pieter Wuille's compact signature encoding used for bitcoin message signing

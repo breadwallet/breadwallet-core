@@ -53,9 +53,9 @@ size_t BRBIP39Encode(char *phrase, size_t phraseLen, const char *wordList[], con
         len += strlen(word);
     }
 
-    word = NULL;
-    x = 0;
-    memset(buf, 0, sizeof(buf));
+    var_clean(&word);
+    var_clean(&x);
+    mem_clean(buf, sizeof(buf));
     return (! phrase || len + 1 <= phraseLen) ? len + 1 : 0;
 }
 
@@ -101,12 +101,12 @@ size_t BRBIP39Decode(uint8_t *data, size_t dataLen, const char *wordList[], cons
             if (data && r <= dataLen) memcpy(data, buf, r);
         }
         
-        memset(buf, 0, sizeof(buf));
+        mem_clean(buf, sizeof(buf));
     }
 
-    b = 0;
-    x = y = 0;
-    memset(idx, 0, sizeof(idx));
+    var_clean(&b);
+    var_clean(&x, &y);
+    mem_clean(idx, sizeof(idx));
     return (! data || r <= dataLen) ? r : 0;
 }
 
@@ -132,5 +132,6 @@ void BRBIP39DeriveKey(void *key64, const char *phrase, const char *passphrase)
         strcpy(salt, "mnemonic");
         if (passphrase) strcpy(salt + strlen("mnemonic"), passphrase);
         BRPBKDF2(key64, 64, BRSHA512, 512/8, phrase, strlen(phrase), salt, strlen(salt), 2048);
+        mem_clean(salt, sizeof(salt));
     }
 }

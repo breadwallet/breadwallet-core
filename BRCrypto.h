@@ -25,6 +25,7 @@
 #ifndef BRCrypto_h
 #define BRCrypto_h
 
+#include <stdarg.h>
 #include <stddef.h>
 #include <inttypes.h>
 
@@ -88,8 +89,26 @@ void BRPBKDF2(void *dk, size_t dkLen, void (*hash)(void *, const void *, size_t)
 void BRScrypt(void *dk, size_t dkLen, const void *pw, size_t pwLen, const void *salt, size_t saltLen,
               unsigned n, unsigned r, unsigned p);
 
+// zeros out memory in a way that can't be optimized out by the compiler
+inline static void mem_clean(void *ptr, size_t len)
+{
+    void *(*volatile const memset_ptr)(void *, int, size_t) = memset;
+    memset_ptr(ptr, 0, len);
+}
+
+#define var_clean(...) _var_clean(sizeof(*(_va_first(__VA_ARGS__))), __VA_ARGS__, NULL)
+#define _va_first(first, ...) first
+
+inline static void _var_clean(size_t size, ...)
+{
+    va_list args;
+    va_start(args, size);
+    for (void *ptr = va_arg(args, void *); ptr; ptr = va_arg(args, void *)) mem_clean(ptr, size);
+    va_end(args);
+}
+    
 #ifdef __cplusplus
 }
 #endif
 
-#endif // BRHash_h
+#endif // BRCrypto_h
