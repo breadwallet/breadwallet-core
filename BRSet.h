@@ -62,17 +62,15 @@ int BRSetIntersects(const BRSet *set, const BRSet *otherSet);
 // returns member item from set equivalent to given item, or NULL if there is none
 void *BRSetGet(const BRSet *set, const void *item);
 
-// returns an initial random item from set for use when iterating, or NULL if set is empty
-void *BRSetFirst(const BRSet *set);
-
-// returns the next item after given item when iterating, or NULL if no more items are available
-void *BRSetNext(const BRSet *set, const void *item);
+// interates over set and returns the next item after previous, or NULL if no more items are available
+// if previous is NULL, an initial item is returned
+void *BRSetIterate(const BRSet *set, const void *previous);
 
 // writes up to count items from set to allItems and returns number of items written
 size_t BRSetAll(const BRSet *set, void *allItems[], size_t count);
 
-// calls map() with each item in set
-void BRSetMap(const BRSet *set, void *info, void (*map)(void *info, void *item));
+// calls apply() with each item in set
+void BRSetApply(const BRSet *set, void *info, void (*apply)(void *info, void *item));
 
 // adds or replaces items from otherSet into set
 void BRSetUnion(BRSet *set, const BRSet *otherSet);

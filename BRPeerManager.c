@@ -319,7 +319,7 @@ static size_t _BRPeerManagerBlockLocators(BRPeerManager *manager, UInt256 locato
     return ++i;
 }
 
-static void _setMapFreeBlock(void *info, void *block)
+static void _setApplyFreeBlock(void *info, void *block)
 {
     BRMerkleBlockFree(block);
 }
@@ -332,7 +332,7 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
     BRWalletUnusedAddrs(manager->wallet, NULL, SEQUENCE_GAP_LIMIT_EXTERNAL + 100, 0);
     BRWalletUnusedAddrs(manager->wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL + 100, 1);
 
-    BRSetMap(manager->orphans, NULL, _setMapFreeBlock);
+    BRSetApply(manager->orphans, NULL, _setApplyFreeBlock);
     BRSetClear(manager->orphans); // clear out orphans that may have been received on an old filter
     manager->lastOrphan = NULL;
     manager->filterUpdateHeight = manager->lastBlock->height;
@@ -2018,9 +2018,9 @@ void BRPeerManagerFree(BRPeerManager *manager)
     array_free(manager->peers);
     for (size_t i = array_count(manager->connectedPeers); i > 0; i--) BRPeerFree(manager->connectedPeers[i - 1]);
     array_free(manager->connectedPeers);
-    BRSetMap(manager->blocks, NULL, _setMapFreeBlock);
+    BRSetApply(manager->blocks, NULL, _setApplyFreeBlock);
     BRSetFree(manager->blocks);
-    BRSetMap(manager->orphans, NULL, _setMapFreeBlock);
+    BRSetApply(manager->orphans, NULL, _setApplyFreeBlock);
     BRSetFree(manager->orphans);
     BRSetFree(manager->checkpoints);
     for (size_t i = array_count(manager->txRelays); i > 0; i--) free(manager->txRelays[i - 1].peers);

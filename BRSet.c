@@ -207,34 +207,27 @@ void *BRSetGet(const BRSet *set, const void *item)
     return t;
 }
 
-// returns an initial random item from set for use when iterating, or NULL if set is empty
-void *BRSetFirst(const BRSet *set)
+// interates over set and returns the next item after previous, or NULL if no more items are available
+// if previous is NULL, an initial item is returned
+void *BRSetIterate(const BRSet *set, const void *previous)
 {
     assert(set != NULL);
     
     size_t i = 0, size = set->size;
-    void *r = NULL;
-
-    while (! r && i < size) r = set->table[i++];
-    return r;
-}
-
-// returns the next item after given item when iterating, or NULL if no more items are available
-void *BRSetNext(const BRSet *set, const void *item)
-{
-    assert(set != NULL);
-    assert(item != NULL);
+    void *t, *r = NULL;
     
-    size_t size = set->size;
-    size_t i = set->hash(item) % size;
-    void *t = set->table[i], *r = NULL;
-    
-    while (t != item && t && ! set->eq(t, item)) { // probe for item
-        i = (i + 1) % size;
+    if (previous != NULL) {
+        i = set->hash(previous) % size;
         t = set->table[i];
+        
+        while (t != previous && t && ! set->eq(t, previous)) { // probe for item
+            i = (i + 1) % size;
+            t = set->table[i];
+        }
+    
+        i++;
     }
     
-    i++;
     while (! r && i < size) r = set->table[i++];
     return r;
 }
@@ -257,18 +250,18 @@ size_t BRSetAll(const BRSet *set, void *allItems[], size_t count)
     return j;
 }
 
-// calls map() with each item in set
-void BRSetMap(const BRSet *set, void *info, void (*map)(void *info, void *item))
+// calls apply() with each item in set
+void BRSetApply(const BRSet *set, void *info, void (*apply)(void *info, void *item))
 {
     assert(set != NULL);
-    assert(map != NULL);
+    assert(apply != NULL);
     
     size_t i = 0, size = set->size;
     void *t;
     
     while (i < size) {
         t = set->table[i++];
-        if (t) map(info, t);
+        if (t) apply(info, t);
     }
 }
 
@@ -280,8 +273,6 @@ void BRSetUnion(BRSet *set, const BRSet *otherSet)
     
     size_t i = 0, size = otherSet->size;
     void *t;
-    
-    if (otherSet->itemCount > ((set->size + 2)/3)*2) _BRSetGrow(set, otherSet->itemCount);
     
     while (i < size) {
         t = otherSet->table[i++];
@@ -312,15 +303,11 @@ void BRSetIntersect(BRSet *set, const BRSet *otherSet)
 
     size_t i = 0, size = set->size;
     void *t;
-    BRSet oset = *otherSet;
-    
-    oset.hash = set->hash;
-    oset.eq = set->eq;
     
     while (i < size) {
         t = set->table[i];
 
-        if (t && ! BRSetContains(&oset, t)) {
+        if (t && ! BRSetContains(otherSet, t)) {
             BRSetRemove(set, t);
         }
         else i++;
