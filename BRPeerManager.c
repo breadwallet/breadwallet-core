@@ -1425,8 +1425,8 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
     }
     
     // make sure the set of blocks to be saved starts at a difficulty interval
-    j = (i > 0) ? BLOCK_DIFFICULTY_INTERVAL - (saveBlocks[i - 1]->height % BLOCK_DIFFICULTY_INTERVAL) : 0;
-    i = (i > j) ? i - j : 0;
+    j = (i > 0) ? saveBlocks[i - 1]->height % BLOCK_DIFFICULTY_INTERVAL : 0;
+    if (j > 0) i -= (i > BLOCK_DIFFICULTY_INTERVAL - j) ? BLOCK_DIFFICULTY_INTERVAL - j : i;
     assert(i == 0 || (saveBlocks[i - 1]->height % BLOCK_DIFFICULTY_INTERVAL) == 0);
     pthread_mutex_unlock(&manager->lock);
     if (i > 0 && manager->saveBlocks) manager->saveBlocks(manager->info, saveBlocks, i);
