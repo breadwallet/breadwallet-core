@@ -80,7 +80,8 @@ void BRWalletSetCallbacks(BRWallet *wallet, void *info,
 // this function writes to addrs an array of <gapLimit> unused addresses following the last used address in the chain
 // the internal chain is used for change addresses and the external chain for receive addresses
 // addrs may be NULL to only generate addresses for BRWalletContainsAddress()
-void BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimit, int internal);
+// returns the number addresses written to addrs
+size_t BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimit, int internal);
 
 // returns the first unused external address
 BRAddress BRWalletReceiveAddress(BRWallet *wallet);

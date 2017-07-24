@@ -47,7 +47,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
-//#define SKIP_BIP38 1
+#define SKIP_BIP38 1
 
 #ifdef __ANDROID__
 #include <android/log.h>

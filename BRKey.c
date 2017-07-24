@@ -270,10 +270,11 @@ UInt160 BRKeyHash160(BRKey *key)
 {
     UInt160 hash = UINT160_ZERO;
     size_t len;
+    secp256k1_pubkey pk;
     
     assert(key != NULL);
     len = BRKeyPubKey(key, NULL, 0);
-    if (len > 0) BRHash160(&hash, key->pubKey, len);
+    if (secp256k1_ec_pubkey_parse(_ctx, &pk, key->pubKey, len)) BRHash160(&hash, key->pubKey, len);
     return hash;
 }
 

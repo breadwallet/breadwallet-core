@@ -318,10 +318,11 @@ void BRWalletSetCallbacks(BRWallet *wallet, void *info,
 // this function writes to addrs an array of <gapLimit> unused addresses following the last used address in the chain
 // the internal chain is used for change addresses and the external chain for receive addresses
 // addrs may be NULL to only generate addresses for BRWalletContainsAddress()
-void BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimit, int internal)
+// returns the number addresses written to addrs
+size_t BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimit, int internal)
 {
     BRAddress *addrChain;
-    size_t i, j, count, startCount;
+    size_t i, j = 0, count, startCount;
     uint32_t chain = (internal) ? SEQUENCE_INTERNAL_CHAIN : SEQUENCE_EXTERNAL_CHAIN;
 
     assert(wallet != NULL);
@@ -339,7 +340,7 @@ void BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimit,
         uint8_t pubKey[BRBIP32PubKey(NULL, 0, wallet->masterPubKey, chain, count)];
         size_t len = BRBIP32PubKey(pubKey, sizeof(pubKey), wallet->masterPubKey, chain, (uint32_t)count);
         
-        BRKeySetPubKey(&key, pubKey, len);
+        if (! BRKeySetPubKey(&key, pubKey, len)) break;
         if (! BRKeyAddress(&key, address.s, sizeof(address)) || BRAddressEq(&address, &BR_ADDRESS_NONE)) break;
         array_add(addrChain, address);
         count++;
@@ -373,6 +374,7 @@ void BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimit,
     }
 
     pthread_mutex_unlock(&wallet->lock);
+    return j;
 }
 
 // current wallet balance, not including transactions known to be invalid
