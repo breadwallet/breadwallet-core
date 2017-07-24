@@ -256,9 +256,12 @@ size_t BRKeyPubKey(BRKey *key, void *pubKey, size_t pkLen)
 
     assert(key != NULL);
     
-    if (memcmp(key->pubKey, empty, size) == 0 && secp256k1_ec_pubkey_create(_ctx, &pk, key->secret.u8)) {
-        secp256k1_ec_pubkey_serialize(_ctx, key->pubKey, &size, &pk,
-                                      (key->compressed ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED));
+    if (memcmp(key->pubKey, empty, size) == 0) {
+        if (secp256k1_ec_pubkey_create(_ctx, &pk, key->secret.u8)) {
+            secp256k1_ec_pubkey_serialize(_ctx, key->pubKey, &size, &pk,
+                                          (key->compressed ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED));
+        }
+        else size = 0;
     }
 
     if (pubKey && size <= pkLen) memcpy(pubKey, key->pubKey, size);
@@ -274,7 +277,7 @@ UInt160 BRKeyHash160(BRKey *key)
     
     assert(key != NULL);
     len = BRKeyPubKey(key, NULL, 0);
-    if (secp256k1_ec_pubkey_parse(_ctx, &pk, key->pubKey, len)) BRHash160(&hash, key->pubKey, len);
+    if (len > 0 && secp256k1_ec_pubkey_parse(_ctx, &pk, key->pubKey, len)) BRHash160(&hash, key->pubKey, len);
     return hash;
 }
 
