@@ -244,7 +244,7 @@ void BRBIP32APIAuthKey(BRKey *key, const void *seed, size_t seedLen)
         _CKDpriv(&secret, &chainCode, 0); // path m/1H/0
         
         BRKeySetSecret(key, &secret, 1);
-        var_clean(&secret, chainCode);
+        var_clean(&secret, &chainCode);
     }
 }
 
