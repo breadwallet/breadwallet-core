@@ -242,11 +242,10 @@ struct BRPeerManagerStruct {
     UInt256 *publishedTxHashes;
     void *info;
     void (*syncStarted)(void *info);
-    void (*syncSucceeded)(void *info);
-    void (*syncFailed)(void *info, int error);
+    void (*syncStopped)(void *info, int error);
     void (*txStatusUpdate)(void *info);
-    void (*saveBlocks)(void *info, BRMerkleBlock *blocks[], size_t blocksCount);
-    void (*savePeers)(void *info, const BRPeer peers[], size_t peersCount);
+    void (*saveBlocks)(void *info, int replace, BRMerkleBlock *blocks[], size_t blocksCount);
+    void (*savePeers)(void *info, int replace, const BRPeer peers[], size_t peersCount);
     int (*networkIsReachable)(void *info);
     void (*threadCleanup)(void *info);
     pthread_mutex_t lock;
@@ -644,7 +643,7 @@ static void _mempoolDone(void *info, int success)
         BRPeerSendGetaddr(peer); // request a list of other bitcoin peers
         pthread_mutex_unlock(&manager->lock);
         if (manager->txStatusUpdate) manager->txStatusUpdate(manager->info);
-        if (syncFinished && manager->syncSucceeded) manager->syncSucceeded(manager->info);
+        if (syncFinished && manager->syncStopped) manager->syncStopped(manager->info, 0);
     }
     else peer_log(peer, "mempool request failed");
 }
@@ -668,7 +667,7 @@ static void _loadBloomFilterDone(void *info, int success)
             peer_log(peer, "sync succeeded");
             _BRPeerManagerSyncStopped(manager);
             pthread_mutex_unlock(&manager->lock);
-            if (manager->syncSucceeded) manager->syncSucceeded(manager->info);
+            if (manager->syncStopped) manager->syncStopped(manager->info, 0);
         }
         else pthread_mutex_unlock(&manager->lock);
     }
@@ -951,8 +950,8 @@ static void _peerDisconnected(void *info, int error)
         txCallback[i](txInfo[i], txError);
     }
     
-    if (willSave && manager->savePeers) manager->savePeers(manager->info, NULL, 0);
-    if (willSave && manager->syncFailed) manager->syncFailed(manager->info, error);
+    if (willSave && manager->savePeers) manager->savePeers(manager->info, 1, NULL, 0);
+    if (willSave && manager->syncStopped) manager->syncStopped(manager->info, error);
     if (willReconnect) BRPeerManagerConnect(manager); // try connecting to another peer
     if (manager->txStatusUpdate) manager->txStatusUpdate(manager->info);
 }
@@ -983,7 +982,8 @@ static void _peerRelayedPeers(void *info, const BRPeer peers[], size_t peersCoun
     pthread_mutex_unlock(&manager->lock);
     
     // peer relaying is complete when we receive <1000
-    if (peersCount > 1 && peersCount < 1000 && manager->savePeers) manager->savePeers(manager->info, save, peersCount);
+    if (peersCount > 1 && peersCount < 1000 &&
+        manager->savePeers) manager->savePeers(manager->info, 1, save, peersCount);
 }
 
 static void _peerRelayedTx(void *info, BRTransaction *tx)
@@ -1429,7 +1429,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
     if (j > 0) i -= (i > BLOCK_DIFFICULTY_INTERVAL - j) ? BLOCK_DIFFICULTY_INTERVAL - j : i;
     assert(i == 0 || (saveBlocks[i - 1]->height % BLOCK_DIFFICULTY_INTERVAL) == 0);
     pthread_mutex_unlock(&manager->lock);
-    if (i > 0 && manager->saveBlocks) manager->saveBlocks(manager->info, saveBlocks, i);
+    if (i > 0 && manager->saveBlocks) manager->saveBlocks(manager->info, (i > 1 ? 1 : 0), saveBlocks, i);
     
     if (block && block->height != BLOCK_UNKNOWN_HEIGHT && block->height >= BRPeerLastBlock(peer) &&
         manager->txStatusUpdate) {
@@ -1634,32 +1634,27 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
 // not thread-safe, set callbacks once before calling BRPeerManagerConnect()
 // info is a void pointer that will be passed along with each callback call
 // void syncStarted(void *) - called when blockchain syncing starts
-// void syncSucceeded(void *) - called when blockchain syncing completes successfully
-// void syncFailed(void *, int) - called when blockchain syncing fails, error is an errno.h code
+// void syncStopped(void *, int) - called when blockchain syncing stops, error is an errno.h code
 // void txStatusUpdate(void *) - called when transaction status may have changed such as when a new block arrives
-// void saveBlocks(void *, BRMerkleBlock *[], size_t) - called when blocks should be saved to the persistent store
-//   - if count is 1, save the given block without removing any previously saved blocks
-//   - if count is 0 or more than 1, save the given blocks and delete any previously saved blocks not given
-// void savePeers(void *, const BRPeer[], size_t) - called when peers should be saved to the persistent store
-//   - if count is 1, save the given peer without removing any previously saved peers
-//   - if count is 0 or more than 1, save the given peers and delete any previously saved peers not given
+// void saveBlocks(void *, int, BRMerkleBlock *[], size_t) - called when blocks should be saved to the persistent store
+// - if replace is true, remove any previously saved blocks first
+// void savePeers(void *, int, const BRPeer[], size_t) - called when peers should be saved to the persistent store
+// - if replace is true, remove any previously saved peers first
 // int networkIsReachable(void *) - must return true when networking is available, false otherwise
 // void threadCleanup(void *) - called before a thread terminates to faciliate any needed cleanup
 void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*syncStarted)(void *info),
-                               void (*syncSucceeded)(void *info),
-                               void (*syncFailed)(void *info, int error),
+                               void (*syncStopped)(void *info, int error),
                                void (*txStatusUpdate)(void *info),
-                               void (*saveBlocks)(void *info, BRMerkleBlock *blocks[], size_t blocksCount),
-                               void (*savePeers)(void *info, const BRPeer peers[], size_t peersCount),
+                               void (*saveBlocks)(void *info, int replace, BRMerkleBlock *blocks[], size_t blocksCount),
+                               void (*savePeers)(void *info, int replace, const BRPeer peers[], size_t peersCount),
                                int (*networkIsReachable)(void *info),
                                void (*threadCleanup)(void *info))
 {
     assert(manager != NULL);
     manager->info = info;
     manager->syncStarted = syncStarted;
-    manager->syncSucceeded = syncSucceeded;
-    manager->syncFailed = syncFailed;
+    manager->syncStopped = syncStopped;
     manager->txStatusUpdate = txStatusUpdate;
     manager->saveBlocks = saveBlocks;
     manager->savePeers = savePeers;
@@ -1761,7 +1756,7 @@ void BRPeerManagerConnect(BRPeerManager *manager)
         peer_log(&BR_PEER_NONE, "sync failed");
         _BRPeerManagerSyncStopped(manager);
         pthread_mutex_unlock(&manager->lock);
-        if (manager->syncFailed) manager->syncFailed(manager->info, ENETUNREACH);
+        if (manager->syncStopped) manager->syncStopped(manager->info, ENETUNREACH);
     }
     else pthread_mutex_unlock(&manager->lock);
 }

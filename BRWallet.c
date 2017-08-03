@@ -695,7 +695,7 @@ int BRWalletSignTransaction(BRWallet *wallet, BRTransaction *tx, int forkId, con
         BRBIP32PrivKeyList(&keys[internalCount], externalCount, seed, seedLen, SEQUENCE_EXTERNAL_CHAIN, externalIdx);
         // TODO: XXX wipe seed callback
         seed = NULL;
-        if (tx) r = BRTransactionSign(tx, keys, internalCount + externalCount, 0);
+        if (tx) r = BRTransactionSign(tx, 0, keys, internalCount + externalCount);
         for (i = 0; i < internalCount + externalCount; i++) BRKeyClean(&keys[i]);
     }
     else r = -1; // user canceled authentication

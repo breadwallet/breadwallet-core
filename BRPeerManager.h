@@ -47,24 +47,20 @@ BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMe
 // not thread-safe, set callbacks once before calling BRPeerManagerConnect()
 // info is a void pointer that will be passed along with each callback call
 // void syncStarted(void *) - called when blockchain syncing starts
-// void syncSucceeded(void *) - called when blockchain syncing completes successfully
-// void syncFailed(void *, int) - called when blockchain syncing fails, error is an errno.h code
+// void syncStopped(void *, int) - called when blockchain syncing stops, error is an errno.h code
 // void txStatusUpdate(void *) - called when transaction status may have changed such as when a new block arrives
-// void saveBlocks(void *, BRMerkleBlock *[], size_t) - called when blocks should be saved to the persistent store
-//   - if count is 1, save the given block without removing any previously saved blocks
-//   - if count is 0 or more than 1, save the given blocks and delete any previously saved blocks not given
-// void savePeers(void *, const BRPeer[], size_t) - called when peers should be saved to the persistent store
-//   - if count is 1, save the given peer without removing any previously saved peers
-//   - if count is 0 or more than 1, save the given peers and delete any previously saved peers not given
+// void saveBlocks(void *, int, BRMerkleBlock *[], size_t) - called when blocks should be saved to the persistent store
+// - if replace is true, remove any previously saved blocks first
+// void savePeers(void *, int, const BRPeer[], size_t) - called when peers should be saved to the persistent store
+// - if replace is true, remove any previously saved peers first
 // int networkIsReachable(void *) - must return true when networking is available, false otherwise
 // void threadCleanup(void *) - called before a thread terminates to faciliate any needed cleanup
 void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*syncStarted)(void *info),
-                               void (*syncSucceeded)(void *info),
-                               void (*syncFailed)(void *info, int error),
+                               void (*syncStopped)(void *info, int error),
                                void (*txStatusUpdate)(void *info),
-                               void (*saveBlocks)(void *info, BRMerkleBlock *blocks[], size_t blocksCount),
-                               void (*savePeers)(void *info, const BRPeer peers[], size_t peersCount),
+                               void (*saveBlocks)(void *info, int replace, BRMerkleBlock *blocks[], size_t blocksCount),
+                               void (*savePeers)(void *info, int replace, const BRPeer peers[], size_t peersCount),
                                int (*networkIsReachable)(void *info),
                                void (*threadCleanup)(void *info));
 
