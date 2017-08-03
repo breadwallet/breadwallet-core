@@ -38,6 +38,7 @@
 #define SIGHASH_NONE         0x02 // sign none of the outputs, I don't care where the bitcoins go
 #define SIGHASH_SINGLE       0x03 // sign one of the outputs, I don't care where the other outputs go
 #define SIGHASH_ANYONECANPAY 0x80 // let other people add inputs, I don't care where the rest of the bitcoins come from
+#define SIGHASH_FORKID       0x40 // use BIP143 digest method (for b-cash signatures)
 
 // returns a random number less than upperBound, for non-cryptographic use only
 uint32_t BRRand(uint32_t upperBound)
@@ -175,15 +176,85 @@ static size_t _BRTransactionOutputData(const BRTransaction *tx, uint8_t *data, s
     return (! data || off <= dataLen) ? off : 0;
 }
 
+// writes the BIP143 witness program data that needs to be hashed and signed for the tx input at index
+// https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki
+// an index of SIZE_MAX will write the entire signed transaction
+// returns number of bytes written, or total len needed if data is NULL
+static size_t _BRTransactionWitnessData(const BRTransaction *tx, uint8_t *data, size_t dataLen, size_t index,
+                                        int hashType)
+{
+    BRTxInput input;
+    int anyoneCanPay = (hashType & SIGHASH_ANYONECANPAY), sigHash = (hashType & 0x1f),
+        forkId = (hashType & SIGHASH_FORKID);
+    size_t i, off = 0;
+    
+    if (index >= tx->inCount) return 0;
+    if (data && off + sizeof(uint32_t) <= dataLen) UInt32SetLE(&data[off], tx->version); // tx version
+    off += sizeof(uint32_t);
+    
+    if (! anyoneCanPay) {
+        uint8_t buf[(sizeof(UInt256) + sizeof(uint32_t))*tx->inCount];
+        
+        for (i = 0; i < tx->inCount; i++) {
+            UInt256Set(&buf[(sizeof(UInt256) + sizeof(uint32_t))*i], tx->inputs[i].txHash);
+            UInt32SetLE(&buf[(sizeof(UInt256) + sizeof(uint32_t))*i + sizeof(UInt256)], tx->inputs[i].index);
+        }
+        
+        if (data && off + sizeof(UInt256) <= dataLen) BRSHA256_2(&data[off], buf, sizeof(buf)); // inputs hash
+    }
+    else if (data && off + sizeof(UInt256) <= dataLen) UInt256Set(&data[off], UINT256_ZERO); // anyone-can-pay
+    
+    off += sizeof(UInt256);
+    
+    if (! anyoneCanPay && sigHash != SIGHASH_SINGLE && sigHash != SIGHASH_NONE) {
+        uint8_t buf[sizeof(uint32_t)*tx->inCount];
+        
+        for (i = 0; i < tx->inCount; i++) UInt32SetLE(&buf[sizeof(uint32_t)*i], tx->inputs[i].sequence);
+        if (data && off + sizeof(UInt256) <= dataLen) BRSHA256_2(&data[off], buf, sizeof(buf)); // sequence hash
+    }
+    else if (data && off + sizeof(UInt256) <= dataLen) UInt256Set(&data[off], UINT256_ZERO);
+    
+    off += sizeof(UInt256);
+    input = tx->inputs[index];
+    input.signature = input.script; // TODO: handle OP_CODESEPARATOR
+    input.sigLen = input.scriptLen;
+    off += _BRTxInputData(&input, (data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0));
+    
+    if (sigHash != SIGHASH_SINGLE && sigHash != SIGHASH_NONE) {
+        size_t bufLen = _BRTransactionOutputData(tx, NULL, 0, SIZE_MAX);
+        uint8_t _buf[(bufLen <= 0x1000) ? bufLen : 0], *buf = (bufLen <= 0x1000) ? _buf : malloc(bufLen);
+        
+        bufLen = _BRTransactionOutputData(tx, buf, bufLen, SIZE_MAX);
+        if (data && off + sizeof(UInt256) <= dataLen) BRSHA256_2(&data[off], buf, bufLen); // SIGHASH_ALL outputs hash
+        if (buf != _buf) free(buf);
+    }
+    else if (sigHash == SIGHASH_SINGLE && index < tx->outCount) {
+        uint8_t buf[_BRTransactionOutputData(tx, NULL, 0, index)];
+        size_t bufLen = _BRTransactionOutputData(tx, buf, sizeof(buf), index);
+        
+        if (data && off + sizeof(UInt256) <= dataLen) BRSHA256_2(&data[off], buf, bufLen); //SIGHASH_SINGLE outputs hash
+    }
+    else if (data && off + sizeof(UInt256) <= dataLen) UInt256Set(&data[off], UINT256_ZERO); // SIGHASH_NONE
+    
+    off += sizeof(UInt256);
+    if (data && off + sizeof(uint32_t) <= dataLen) UInt32SetLE(&data[off], tx->lockTime); // locktime
+    off += sizeof(uint32_t);
+    if (data && off + sizeof(uint32_t) <= dataLen) UInt32SetLE(&data[off], (forkId << 8) | hashType); // hash type
+    off += sizeof(uint32_t);
+    return (! data || off <= dataLen) ? off : 0;
+}
+
 // writes the data that needs to be hashed and signed for the tx input at index
 // an index of SIZE_MAX will write the entire signed transaction
 // returns number of bytes written, or total dataLen needed if data is NULL
 static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t dataLen, size_t index, int hashType)
 {
     BRTxInput input;
-    int anyoneCanPay = (hashType & SIGHASH_ANYONECANPAY), sigHash = (hashType & 0x1f);
+    int anyoneCanPay = (hashType & SIGHASH_ANYONECANPAY), sigHash = (hashType & 0x1f),
+        forkId = (hashType & SIGHASH_FORKID);
     size_t i, off = 0;
     
+    if (forkId) return _BRTransactionWitnessData(tx, data, dataLen, index, hashType);
     if (anyoneCanPay && index >= tx->inCount) return 0;
     if (data && off + sizeof(uint32_t) <= dataLen) UInt32SetLE(&data[off], tx->version); // tx version
     off += sizeof(uint32_t);
@@ -425,8 +496,9 @@ int BRTransactionIsSigned(const BRTransaction *tx)
 }
 
 // adds signatures to any inputs with NULL signatures that can be signed with any keys
+// forkId is 0 for bitcoin, 0x40 for b-cash
 // returns true if tx is signed
-int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t keysCount)
+int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t keysCount, int forkId)
 {
     BRAddress addrs[keysCount], address;
     size_t i, j;
@@ -448,23 +520,30 @@ int BRTransactionSign(BRTransaction *tx, BRKey keys[], size_t keysCount)
         
         const uint8_t *elems[BRScriptElements(NULL, 0, input->script, input->scriptLen)];
         size_t elemsCount = BRScriptElements(elems, sizeof(elems)/sizeof(*elems), input->script, input->scriptLen);
-        uint8_t data[_BRTransactionData(tx, NULL, 0, i, SIGHASH_ALL)];
-        size_t dataLen = _BRTransactionData(tx, data, sizeof(data), i, SIGHASH_ALL);
-        uint8_t sig[73], pubKey[65], script[1 + sizeof(sig) + 1 + sizeof(pubKey)];
-        size_t sigLen, pkLen, scriptLen;
+        uint8_t pubKey[BRKeyPubKey(&keys[j], NULL, 0)];
+        size_t pkLen = BRKeyPubKey(&keys[j], pubKey, sizeof(pubKey));
+        uint8_t sig[73], script[1 + sizeof(sig) + 1 + sizeof(pubKey)];
+        size_t sigLen, scriptLen;
         UInt256 md = UINT256_ZERO;
         
-        BRSHA256_2(&md, data, dataLen);
-        sigLen = BRKeySign(&keys[j], sig, sizeof(sig) - 1, md);
-        sig[sigLen++] = SIGHASH_ALL;
-        pkLen = BRKeyPubKey(&keys[j], pubKey, sizeof(pubKey));
-        
         if (elemsCount >= 2 && *elems[elemsCount - 2] == OP_EQUALVERIFY) { // pay-to-pubkey-hash
+            uint8_t data[_BRTransactionData(tx, NULL, 0, i, forkId | SIGHASH_ALL)];
+            size_t dataLen = _BRTransactionData(tx, data, sizeof(data), i, forkId | SIGHASH_ALL);
+            
+            BRSHA256_2(&md, data, dataLen);
+            sigLen = BRKeySign(&keys[j], sig, sizeof(sig) - 1, md);
+            sig[sigLen++] = forkId | SIGHASH_ALL;
             scriptLen = BRScriptPushData(script, sizeof(script), sig, sigLen);
             scriptLen += BRScriptPushData(&script[scriptLen], sizeof(script) - scriptLen, pubKey, pkLen);
             BRTxInputSetSignature(input, script, scriptLen);
         }
         else { // pay-to-pubkey
+            uint8_t data[_BRTransactionData(tx, NULL, 0, i, forkId | SIGHASH_ALL)];
+            size_t dataLen = _BRTransactionData(tx, data, sizeof(data), i, forkId | SIGHASH_ALL);
+            
+            BRSHA256_2(&md, data, dataLen);
+            sigLen = BRKeySign(&keys[j], sig, sizeof(sig) - 1, md);
+            sig[sigLen++] = forkId | SIGHASH_ALL;
             scriptLen = BRScriptPushData(script, sizeof(script), sig, sigLen);
             BRTxInputSetSignature(input, script, scriptLen);
         }

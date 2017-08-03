@@ -1581,7 +1581,7 @@ int BRTransactionTests()
         r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionParse() test 0\n", __func__);
     if (! tx) return r;
     
-    BRTransactionSign(tx, k, 2);
+    BRTransactionSign(tx, k, 2, 0);
     BRAddressFromScriptSig(addr.s, sizeof(addr), tx->inputs[0].signature, tx->inputs[0].sigLen);
     if (! BRTransactionIsSigned(tx) || ! BRAddressEq(&address, &addr))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionSign() test 1\n", __func__);
@@ -1624,7 +1624,7 @@ int BRTransactionTests()
     BRTransactionAddOutput(tx, 1000000, script, scriptLen);
     BRTransactionAddOutput(tx, 1000000, script, scriptLen);
     BRTransactionAddOutput(tx, 1000000, script, scriptLen);
-    BRTransactionSign(tx, k, 2);
+    BRTransactionSign(tx, k, 2, 0);
     BRAddressFromScriptSig(addr.s, sizeof(addr), tx->inputs[tx->inCount - 1].signature,
                            tx->inputs[tx->inCount - 1].sigLen);
     if (! BRTransactionIsSigned(tx) || ! BRAddressEq(&address, &addr))
@@ -1716,7 +1716,7 @@ int BRWalletTests()
     if (BRWalletTransactions(w, NULL, 0) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletTransactions() test 1\n", __func__);
 
-    BRTransactionSign(tx, &k, 1);
+    BRTransactionSign(tx, &k, 1, 0);
     BRWalletRegisterTransaction(w, tx);
     if (BRWalletBalance(w) != SATOSHIS)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletRegisterTransaction() test 2\n", __func__);
@@ -1732,7 +1732,7 @@ int BRWalletTests()
     BRTransactionAddInput(tx, inHash, 1, inScript, inScriptLen, NULL, 0, TXIN_SEQUENCE - 1);
     BRTransactionAddOutput(tx, SATOSHIS, outScript, outScriptLen);
     tx->lockTime = 1000;
-    BRTransactionSign(tx, &k, 1);
+    BRTransactionSign(tx, &k, 1, 0);
 
     if (! BRWalletTransactionIsPending(w, tx))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletTransactionIsPending() test\n", __func__);
@@ -1749,7 +1749,7 @@ int BRWalletTests()
     tx = BRTransactionNew();
     BRTransactionAddInput(tx, inHash, 0, inScript, inScriptLen, NULL, 0, TXIN_SEQUENCE);
     BRTransactionAddOutput(tx, SATOSHIS, outScript, outScriptLen);
-    BRTransactionSign(tx, &k, 1);
+    BRTransactionSign(tx, &k, 1, 0);
     tx->timestamp = 1;
     w = BRWalletNew(&tx, 1, mpk);
     if (BRWalletBalance(w) != SATOSHIS)
@@ -1769,7 +1769,7 @@ int BRWalletTests()
     tx = BRWalletCreateTransaction(w, SATOSHIS/2, addr.s);
     if (! tx) r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletCreateTransaction() test 4\n", __func__);
 
-    if (tx) BRWalletSignTransaction(w, tx, "", 1);
+    if (tx) BRWalletSignTransaction(w, tx, 0, "", 1);
     if (tx && ! BRTransactionIsSigned(tx))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletSignTransaction() test\n", __func__);
     
@@ -1810,7 +1810,7 @@ int BRWalletTests()
     tx = BRTransactionNew();
     BRTransactionAddInput(tx, inHash, 0, inScript, inScriptLen, NULL, 0, TXIN_SEQUENCE);
     BRTransactionAddOutput(tx, 740000, outScript, outScriptLen);
-    BRTransactionSign(tx, &k, 1);
+    BRTransactionSign(tx, &k, 1, 0);
     w = BRWalletNew(&tx, 1, mpk);
     BRWalletSetCallbacks(w, w, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
     BRWalletSetFeePerKb(w, 65000);
