@@ -577,6 +577,7 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
     uint64_t feeAmount, amount = 0, balance = 0, minAmount;
     size_t i, j, cpfpSize = 0;
     BRUTXO *o;
+    BRAddress addr = BR_ADDRESS_NONE;
     
     assert(wallet != NULL);
     assert(outputs != NULL && outCount > 0);
@@ -651,7 +652,7 @@ BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput out
         transaction = NULL;
     }
     else if (transaction && balance - (amount + feeAmount) >= minAmount) { // add change output
-        BRAddress addr = BRWalletChangeAddress(wallet);
+        BRWalletUnusedAddrs(wallet, &addr, 1, 1);
         uint8_t script[BRAddressScriptPubKey(NULL, 0, addr.s)];
         size_t scriptLen = BRAddressScriptPubKey(script, sizeof(script), addr.s);
     

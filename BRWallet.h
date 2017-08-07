@@ -86,9 +86,6 @@ size_t BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimi
 // returns the first unused external address
 BRAddress BRWalletReceiveAddress(BRWallet *wallet);
 
-// returns the first unused internal address
-BRAddress BRWalletChangeAddress(BRWallet *wallet);
-
 // writes all addresses previously genereated with BRWalletUnusedAddrs() to addrs
 // returns the number addresses written, or total number available if addrs is NULL
 size_t BRWalletAllAddrs(BRWallet *wallet, BRAddress addrs[], size_t addrsCount);
