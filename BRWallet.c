@@ -494,15 +494,6 @@ BRAddress BRWalletReceiveAddress(BRWallet *wallet)
     return addr;
 }
 
-// returns the first unused internal address
-BRAddress BRWalletChangeAddress(BRWallet *wallet)
-{
-    BRAddress addr = BR_ADDRESS_NONE;
-    
-    BRWalletUnusedAddrs(wallet, &addr, 1, 1);
-    return addr;
-}
-
 // writes all addresses previously genereated with BRWalletUnusedAddrs() to addrs
 // returns the number addresses written, or total number available if addrs is NULL
 size_t BRWalletAllAddrs(BRWallet *wallet, BRAddress addrs[], size_t addrsCount)
