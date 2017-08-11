@@ -120,6 +120,12 @@ static size_t _BRTxInputData(const BRTxInput *input, uint8_t *data, size_t dataL
     off += BRVarIntSet((data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0), input->sigLen);
     if (data && off + input->sigLen <= dataLen) memcpy(&data[off], input->signature, input->sigLen); // scriptSig
     off += input->sigLen;
+
+    if (input->amount != 0) {
+        if (data && off + sizeof(uint64_t) <= dataLen) UInt64SetLE(&data[off], input->amount);
+        off += sizeof(uint64_t);
+    }
+
     if (data && off + sizeof(uint32_t) <= dataLen) UInt32SetLE(&data[off], input->sequence);
     off += sizeof(uint32_t);
     return (! data || off <= dataLen) ? off : 0;
@@ -184,8 +190,7 @@ static size_t _BRTransactionWitnessData(const BRTransaction *tx, uint8_t *data, 
                                         int hashType)
 {
     BRTxInput input;
-    int anyoneCanPay = (hashType & SIGHASH_ANYONECANPAY), sigHash = (hashType & 0x1f),
-        forkId = (hashType & SIGHASH_FORKID);
+    int anyoneCanPay = (hashType & SIGHASH_ANYONECANPAY), sigHash = (hashType & 0x1f);
     size_t i, off = 0;
     
     if (index >= tx->inCount) return 0;
@@ -239,7 +244,7 @@ static size_t _BRTransactionWitnessData(const BRTransaction *tx, uint8_t *data, 
     off += sizeof(UInt256);
     if (data && off + sizeof(uint32_t) <= dataLen) UInt32SetLE(&data[off], tx->lockTime); // locktime
     off += sizeof(uint32_t);
-    if (data && off + sizeof(uint32_t) <= dataLen) UInt32SetLE(&data[off], (forkId << 8) | hashType); // hash type
+    if (data && off + sizeof(uint32_t) <= dataLen) UInt32SetLE(&data[off], hashType); // hash type
     off += sizeof(uint32_t);
     return (! data || off <= dataLen) ? off : 0;
 }
@@ -250,11 +255,10 @@ static size_t _BRTransactionWitnessData(const BRTransaction *tx, uint8_t *data, 
 static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t dataLen, size_t index, int hashType)
 {
     BRTxInput input;
-    int anyoneCanPay = (hashType & SIGHASH_ANYONECANPAY), sigHash = (hashType & 0x1f),
-        forkId = (hashType & SIGHASH_FORKID);
+    int anyoneCanPay = (hashType & SIGHASH_ANYONECANPAY), sigHash = (hashType & 0x1f);
     size_t i, off = 0;
     
-    if (forkId) return _BRTransactionWitnessData(tx, data, dataLen, index, hashType);
+    if (hashType & SIGHASH_FORKID) return _BRTransactionWitnessData(tx, data, dataLen, index, hashType);
     if (anyoneCanPay && index >= tx->inCount) return 0;
     if (data && off + sizeof(uint32_t) <= dataLen) UInt32SetLE(&data[off], tx->version); // tx version
     off += sizeof(uint32_t);
@@ -268,11 +272,13 @@ static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t 
             if (index == i || (index == SIZE_MAX && ! input.signature)) {
                 input.signature = input.script; // TODO: handle OP_CODESEPARATOR
                 input.sigLen = input.scriptLen;
+                if (index == i) input.amount = 0;
             }
             else if (index != SIZE_MAX) {
                 input.sigLen = 0;
                 if (sigHash == SIGHASH_NONE || sigHash == SIGHASH_SINGLE) input.sequence = 0;
             }
+            else input.amount = 0;
             
             off += _BRTxInputData(&input, (data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0));
         }
@@ -282,6 +288,7 @@ static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t 
         input = tx->inputs[index];
         input.signature = input.script; // TODO: handle OP_CODESEPARATOR
         input.sigLen = input.scriptLen;
+        input.amount = 0;
         off += _BRTxInputData(&input, (data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0));
     }
     
@@ -357,6 +364,8 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
         
         if (off + sLen <= bufLen && BRAddressFromScriptPubKey(NULL, 0, &buf[off], sLen) > 0) {
             BRTxInputSetScript(input, &buf[off], sLen);
+            input->amount = (off + sLen + sizeof(uint64_t) <= bufLen) ? UInt64GetLE(&buf[off + sLen]) : 0;
+            off += sizeof(uint64_t);
             isSigned = 0;
         }
         else if (off + sLen <= bufLen) BRTxInputSetSignature(input, &buf[off], sLen);
@@ -401,10 +410,11 @@ size_t BRTransactionSerialize(const BRTransaction *tx, uint8_t *buf, size_t bufL
 }
 
 // adds an input to tx
-void BRTransactionAddInput(BRTransaction *tx, UInt256 txHash, uint32_t index, const uint8_t *script, size_t scriptLen,
-                           const uint8_t *signature, size_t sigLen, uint32_t sequence)
+void BRTransactionAddInput(BRTransaction *tx, UInt256 txHash, uint32_t index, uint64_t amount,
+                           const uint8_t *script, size_t scriptLen, const uint8_t *signature, size_t sigLen,
+                           uint32_t sequence)
 {
-    BRTxInput input = { txHash, index, "", NULL, 0, NULL, 0, sequence };
+    BRTxInput input = { txHash, index, "", amount, NULL, 0, NULL, 0, sequence };
 
     assert(tx != NULL);
     assert(! UInt256IsZero(txHash));

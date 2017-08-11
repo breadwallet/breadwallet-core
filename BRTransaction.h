@@ -58,6 +58,7 @@ typedef struct {
     UInt256 txHash;
     uint32_t index;
     char address[36];
+    uint64_t amount;
     uint8_t *script;
     size_t scriptLen;
     uint8_t *signature;
@@ -106,8 +107,9 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen);
 size_t BRTransactionSerialize(const BRTransaction *tx, uint8_t *buf, size_t bufLen);
 
 // adds an input to tx
-void BRTransactionAddInput(BRTransaction *tx, UInt256 txHash, uint32_t index, const uint8_t *script, size_t scriptLen,
-                           const uint8_t *signature, size_t sigLen, uint32_t sequence);
+void BRTransactionAddInput(BRTransaction *tx, UInt256 txHash, uint32_t index, uint64_t amount,
+                           const uint8_t *script, size_t scriptLen, const uint8_t *signature, size_t sigLen,
+                           uint32_t sequence);
 
 // adds an output to tx
 void BRTransactionAddOutput(BRTransaction *tx, uint64_t amount, const uint8_t *script, size_t scriptLen);
