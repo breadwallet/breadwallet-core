@@ -805,14 +805,22 @@ static void _peerConnected(void *info)
     pthread_mutex_lock(&manager->lock);
     if (peer->timestamp > now + 2*60*60 || peer->timestamp < now - 2*60*60) peer->timestamp = now; // sanity check
     
-    // drop peers that don't carry full blocks, or aren't synced yet
     // TODO: XXX does this work with 0.11 pruned nodes?
-    if (! (peer->services & SERVICES_NODE_NETWORK) ||
-        BRPeerLastBlock(peer) + 10 < manager->lastBlock->height) {
+    if (! (peer->services & SERVICES_NODE_NETWORK)) {
+        peer_log(peer, "node doesn't carry full blocks");
+        BRPeerDisconnect(peer);
+    }
+    else if (BRPeerLastBlock(peer) + 10 < manager->lastBlock->height) {
+        peer_log(peer, "node isn't synced");
+        BRPeerDisconnect(peer);
+    }
+    else if ((peer->services & SERVICES_NODE_BCASH) == SERVICES_NODE_BCASH) {
+        peer_log(peer, "b-cash nodes not supported");
         BRPeerDisconnect(peer);
     }
     else if (BRPeerVersion(peer) >= 70011 && ! (peer->services & SERVICES_NODE_BLOOM)) {
-        BRPeerDisconnect(peer); // drop peers that don't support SPV filtering
+        peer_log(peer, "node doesn't support SPV mode");
+        BRPeerDisconnect(peer);
     }
     else if (manager->downloadPeer && // check if we should stick with the existing download peer
              (BRPeerLastBlock(manager->downloadPeer) >= BRPeerLastBlock(peer) ||
