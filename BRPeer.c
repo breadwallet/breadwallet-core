@@ -542,7 +542,13 @@ static int _BRPeerAcceptGetdataMessage(BRPeer *peer, const uint8_t *msg, size_t 
                     if (tx && BRTransactionSize(tx) < TX_MAX_SIZE) {
                         uint8_t buf[BRTransactionSerialize(tx, NULL, 0)];
                         size_t bufLen = BRTransactionSerialize(tx, buf, sizeof(buf));
+                        char txHex[bufLen*2 + 1];
                         
+                        for (size_t j = 0; j < bufLen; j++) {
+                            sprintf(&txHex[j*2], "%02x", buf[j]);
+                        }
+                        
+                        peer_log(peer, "publishing tx: %s", txHex);
                         BRPeerSendMessage(peer, buf, bufLen, MSG_TX);
                         break;
                     }
