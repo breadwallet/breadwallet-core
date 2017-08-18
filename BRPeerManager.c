@@ -584,21 +584,22 @@ static void _requestUnrelayedTxGetdataDone(void *info, int success)
 static void _BRPeerManagerRequestUnrelayedTx(BRPeerManager *manager, BRPeer *peer)
 {
     BRPeerCallbackInfo *info;
-    UInt256 hash, txHashes[array_count(manager->publishedTxHashes)];
-    size_t count = 0;
-
-    for (size_t i = array_count(manager->publishedTxHashes); i > 0; i--) {
-        hash = manager->publishedTxHashes[i - 1];
-        
-        if (! _BRTxPeerListHasPeer(manager->txRelays, hash, peer) &&
-            ! _BRTxPeerListHasPeer(manager->txRequests, hash, peer)) {
-            txHashes[count++] = hash;
-            _BRTxPeerListAddPeer(&manager->txRequests, hash, peer);
+    size_t hashCount = 0, txCount = BRWalletTxUnconfirmedBefore(manager->wallet, NULL, 0, TX_UNCONFIRMED);
+    BRTransaction *tx[txCount];
+    UInt256 txHashes[txCount];
+    
+    txCount = BRWalletTxUnconfirmedBefore(manager->wallet, tx, txCount, TX_UNCONFIRMED);
+    
+    for (size_t i = 0; i < txCount; i++) {
+        if (! _BRTxPeerListHasPeer(manager->txRelays, tx[i]->txHash, peer) &&
+            ! _BRTxPeerListHasPeer(manager->txRequests, tx[i]->txHash, peer)) {
+            txHashes[hashCount++] = tx[i]->txHash;
+            _BRTxPeerListAddPeer(&manager->txRequests, tx[i]->txHash, peer);
         }
     }
 
-    if (count > 0) {
-        BRPeerSendGetdata(peer, txHashes, count, NULL, 0);
+    if (hashCount > 0) {
+        BRPeerSendGetdata(peer, txHashes, hashCount, NULL, 0);
     
         if ((peer->flags & PEER_FLAG_SYNCED) == 0) {
             info = calloc(1, sizeof(*info));
