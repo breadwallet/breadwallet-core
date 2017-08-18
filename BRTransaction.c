@@ -277,6 +277,7 @@ static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t 
             else if (index != SIZE_MAX) {
                 input.sigLen = 0;
                 if (sigHash == SIGHASH_NONE || sigHash == SIGHASH_SINGLE) input.sequence = 0;
+                input.amount = 0;
             }
             else input.amount = 0;
             
