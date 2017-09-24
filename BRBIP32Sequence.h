@@ -37,6 +37,8 @@ extern "C" {
 // BIP32 is a scheme for deriving chains of addresses from a seed value
 // https://github.com/bitcoin/bips/blob/master/bip-0032.mediawiki
 
+#define BIP32_HARD                  0x80000000
+
 #define SEQUENCE_GAP_LIMIT_EXTERNAL 10
 #define SEQUENCE_GAP_LIMIT_INTERNAL 5
 #define SEQUENCE_EXTERNAL_CHAIN     0
@@ -64,6 +66,9 @@ void BRBIP32PrivKey(BRKey *key, const void *seed, size_t seedLen, uint32_t chain
 // sets the private key for path m/0H/chain/index to each element in keys
 void BRBIP32PrivKeyList(BRKey keys[], size_t keysCount, const void *seed, size_t seedLen, uint32_t chain,
                         const uint32_t indexes[]);
+    
+// sets the private key for the specified path to key
+void BRBIP32PrivKeyPath(BRKey *key, const void *seed, size_t seedLen, int depth, ...);
 
 // writes the base58check encoded serialized master private key (xprv) to str
 // returns number of bytes written including NULL terminator, or strLen needed if str is NULL
