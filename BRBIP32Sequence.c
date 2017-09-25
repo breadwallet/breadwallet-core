@@ -192,11 +192,22 @@ void BRBIP32PrivKeyList(BRKey keys[], size_t keysCount, const void *seed, size_t
 }
 
 // sets the private key for the specified path to key
+// depth is the number of arguments used to specify the path
 void BRBIP32PrivKeyPath(BRKey *key, const void *seed, size_t seedLen, int depth, ...)
+{
+    va_list ap;
+
+    va_start(ap, depth);
+    BRBIP32vPrivKeyPath(key, seed, seedLen, depth, ap);
+    va_end(ap);
+}
+
+// sets the private key for the path specified by vlist to key
+// depth is the number of arguments in vlist
+void BRBIP32vPrivKeyPath(BRKey *key, const void *seed, size_t seedLen, int depth, va_list vlist)
 {
     UInt512 I;
     UInt256 secret, chainCode;
-    va_list ap;
     
     assert(key != NULL);
     assert(seed != NULL || seedLen == 0);
@@ -207,13 +218,11 @@ void BRBIP32PrivKeyPath(BRKey *key, const void *seed, size_t seedLen, int depth,
         secret = *(UInt256 *)&I;
         chainCode = *(UInt256 *)&I.u8[sizeof(UInt256)];
         var_clean(&I);
-        va_start(ap, depth);
      
         for (int i = 0; i < depth; i++) {
-            _CKDpriv(&secret, &chainCode, va_arg(ap, uint32_t));
+            _CKDpriv(&secret, &chainCode, va_arg(vlist, uint32_t));
         }
         
-        va_end(ap);
         BRKeySetSecret(key, &secret, 1);
         var_clean(&secret, &chainCode);
     }
