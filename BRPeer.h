@@ -54,6 +54,8 @@ extern "C" {
 
 #if BITCOIN_TESTNET
 #define STANDARD_PORT 18333
+#elif BITCOIN_REGTEST
+#define STANDARD_PORT 18444
 #else
 #define STANDARD_PORT 8333
 #endif

@@ -69,6 +69,16 @@ static const char *dns_seeds[] = {
     "testnet-seed.bitcoin.schildbach.de."
 };
 
+#elif BITCOIN_REGTEST
+
+static const struct { uint32_t height; const char *hash; uint32_t timestamp; uint32_t target; } checkpoint_array[] = {
+    {      0, "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206", 1296688602, 0x207fffff }
+    };
+
+static const char *dns_seeds[] = {
+    "example.com"
+    };
+
 #else // main net
 
 // blockchain checkpoints - these are also used as starting points for partial chain downloads, so they need to be at

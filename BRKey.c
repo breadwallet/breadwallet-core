@@ -32,6 +32,7 @@
 
 #define BITCOIN_PRIVKEY      128
 #define BITCOIN_PRIVKEY_TEST 239
+#define BITCOIN_PRIVKEY_REGTEST        239
 
 #if __BIG_ENDIAN__ || (defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) ||\
     __ARMEB__ || __THUMBEB__ || __AARCH64EB__ || __MIPSEB__
@@ -132,6 +133,8 @@ int BRPrivKeyIsValid(const char *privKey)
     if (dataLen == 33 || dataLen == 34) { // wallet import format: https://en.bitcoin.it/wiki/Wallet_import_format
 #if BITCOIN_TESTNET
         r = (data[0] == BITCOIN_PRIVKEY_TEST);
+#elif BITCOIN_REGTEST
+        r = (data[0] == BITCOIN_PRIVKEY_REGTEST);
 #else
         r = (data[0] == BITCOIN_PRIVKEY);
 #endif
@@ -174,6 +177,8 @@ int BRKeySetPrivKey(BRKey *key, const char *privKey)
     
 #if BITCOIN_TESTNET
     version = BITCOIN_PRIVKEY_TEST;
+#elif BITCOIN_REGTEST
+    version = BITCOIN_PRIVKEY_REGTEST;
 #endif
 
     assert(key != NULL);
@@ -235,6 +240,8 @@ size_t BRKeyPrivKey(const BRKey *key, char *privKey, size_t pkLen)
         data[0] = BITCOIN_PRIVKEY;
 #if BITCOIN_TESTNET
         data[0] = BITCOIN_PRIVKEY_TEST;
+#elif BITCOIN_REGTEST
+        data[0] = BITCOIN_PRIVKEY_REGTEST;
 #endif
         
         UInt256Set(&data[1], key->secret);
@@ -294,6 +301,8 @@ size_t BRKeyAddress(BRKey *key, char *addr, size_t addrLen)
     data[0] = BITCOIN_PUBKEY_ADDRESS;
 #if BITCOIN_TESTNET
     data[0] = BITCOIN_PUBKEY_ADDRESS_TEST;
+#elif BITCOIN_REGTEST
+    data[0] = BITCOIN_PUBKEY_ADDRESS_REGTEST;
 #endif
     UInt160Set(&data[1], hash);
 
