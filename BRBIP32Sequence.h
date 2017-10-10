@@ -27,6 +27,7 @@
 
 #include "BRKey.h"
 #include "BRInt.h"
+#include <stdarg.h>
 #include <stddef.h>
 #include <inttypes.h>
 
