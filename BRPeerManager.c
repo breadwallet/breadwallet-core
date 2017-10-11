@@ -715,9 +715,9 @@ static UInt128 *_addressLookup(const char *hostname)
                 addrList[i].u32[3] = ((struct sockaddr_in *)p->ai_addr)->sin_addr.s_addr;
                 i++;
             }
-//            else if (p->ai_family == AF_INET6) {
-//                addrList[i++] = *(UInt128 *)&((struct sockaddr_in6 *)p->ai_addr)->sin6_addr;
-//            }
+            else if (p->ai_family == AF_INET6) {
+                addrList[i++] = *(UInt128 *)&((struct sockaddr_in6 *)p->ai_addr)->sin6_addr;
+            }
         }
         
         freeaddrinfo(servinfo);

@@ -844,7 +844,7 @@ static int _BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t msgLen,
 
 static int _BRPeerOpenSocket(BRPeer *peer, double timeout, int *error)
 {
-    struct sockaddr addr;
+    struct sockaddr_storage addr;
     struct timeval tv;
     fd_set fds;
     socklen_t addrLen, optLen;
@@ -870,7 +870,7 @@ static int _BRPeerOpenSocket(BRPeer *peer, double timeout, int *error)
             addrLen = sizeof(struct sockaddr_in6);
         }
 
-        if (connect(socket, &addr, addrLen) < 0) err = errno;
+        if (connect(socket, (struct sockaddr *)&addr, addrLen) < 0) err = errno;
 
         if (err == EINPROGRESS) {
             err = 0;
@@ -887,6 +887,7 @@ static int _BRPeerOpenSocket(BRPeer *peer, double timeout, int *error)
                 r = 0;
             }
         }
+        else if (err) r = 0;
 
         if (r) peer_log(peer, "socket connected");
         fcntl(socket, F_SETFL, arg); // restore socket non-blocking status
