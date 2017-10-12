@@ -842,34 +842,52 @@ static int _BRPeerAcceptMessage(BRPeer *peer, const uint8_t *msg, size_t msgLen,
     return r;
 }
 
-static int _BRPeerOpenSocket(BRPeer *peer, double timeout, int *error)
+static int _BRPeerOpenSocket(BRPeer *peer, int domain, double timeout, int *error)
 {
+    BRPeerContext *ctx = (BRPeerContext *)peer;
     struct sockaddr_storage addr;
     struct timeval tv;
     fd_set fds;
     socklen_t addrLen, optLen;
-    int socket = ((BRPeerContext *)peer)->socket;
-    int count, err = 0, r = 1, arg = fcntl(socket, F_GETFL, NULL);
+    int count, arg = 0, err = 0, on = 1, r = 1;
 
-    if (arg < 0 || fcntl(socket, F_SETFL, arg | O_NONBLOCK) < 0) r = 0; // temporarily set the socket non-blocking
-    if (! r) err = errno;
+    ctx->socket = socket(domain, SOCK_STREAM, 0);
+    
+    if (ctx->socket < 0) {
+        err = errno;
+        r = 0;
+    }
+    else {
+        tv.tv_sec = 1; // one second timeout for send/receive, so thread doesn't block for too long
+        tv.tv_usec = 0;
+        setsockopt(ctx->socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+        setsockopt(ctx->socket, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+        setsockopt(ctx->socket, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on));
+#ifdef SO_NOSIGPIPE // BSD based systems have a SO_NOSIGPIPE socket option to supress SIGPIPE signals
+        setsockopt(ctx->socket, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
+#endif
+        arg = fcntl(ctx->socket, F_GETFL, NULL);
+        if (arg < 0 || fcntl(ctx->socket, F_SETFL, arg | O_NONBLOCK) < 0) r = 0; // temporarily set socket non-blocking
+        if (! r) err = errno;
+    }
 
     if (r) {
         memset(&addr, 0, sizeof(addr));
-        ((struct sockaddr_in6 *)&addr)->sin6_family = AF_INET6;
-        ((struct sockaddr_in6 *)&addr)->sin6_addr = *(struct in6_addr *)&peer->address;
-        ((struct sockaddr_in6 *)&addr)->sin6_port = htons(peer->port);
-        addrLen = sizeof(struct sockaddr_in6);
-        if (connect(socket, (struct sockaddr *)&addr, addrLen) < 0) err = errno;
-
-        if (err && err != EINPROGRESS && _BRPeerIsIPv4(peer)) {
-            err = 0;
+        
+        if (domain == PF_INET6) {
+            ((struct sockaddr_in6 *)&addr)->sin6_family = AF_INET6;
+            ((struct sockaddr_in6 *)&addr)->sin6_addr = *(struct in6_addr *)&peer->address;
+            ((struct sockaddr_in6 *)&addr)->sin6_port = htons(peer->port);
+            addrLen = sizeof(struct sockaddr_in6);
+        }
+        else {
             ((struct sockaddr_in *)&addr)->sin_family = AF_INET;
             ((struct sockaddr_in *)&addr)->sin_addr = *(struct in_addr *)&peer->address.u32[3];
             ((struct sockaddr_in *)&addr)->sin_port = htons(peer->port);
             addrLen = sizeof(struct sockaddr_in);
-            if (connect(socket, (struct sockaddr *)&addr, addrLen) < 0) err = errno;
         }
+        
+        if (connect(ctx->socket, (struct sockaddr *)&addr, addrLen) < 0) err = errno;
         
         if (err == EINPROGRESS) {
             err = 0;
@@ -877,19 +895,22 @@ static int _BRPeerOpenSocket(BRPeer *peer, double timeout, int *error)
             tv.tv_sec = timeout;
             tv.tv_usec = (long)(timeout*1000000) % 1000000;
             FD_ZERO(&fds);
-            FD_SET(socket, &fds);
-            count = select(socket + 1, NULL, &fds, NULL, &tv);
+            FD_SET(ctx->socket, &fds);
+            count = select(ctx->socket + 1, NULL, &fds, NULL, &tv);
 
-            if (count <= 0 || getsockopt(socket, SOL_SOCKET, SO_ERROR, &err, &optLen) < 0 || err) {
+            if (count <= 0 || getsockopt(ctx->socket, SOL_SOCKET, SO_ERROR, &err, &optLen) < 0 || err) {
                 if (count == 0) err = ETIMEDOUT;
                 if (count < 0 || ! err) err = errno;
                 r = 0;
             }
         }
+        else if (err && domain == PF_INET6 && _BRPeerIsIPv4(peer)) {
+            return _BRPeerOpenSocket(peer, PF_INET, timeout, error); // fallback to IPv4
+        }
         else if (err) r = 0;
 
         if (r) peer_log(peer, "socket connected");
-        fcntl(socket, F_SETFL, arg); // restore socket non-blocking status
+        fcntl(ctx->socket, F_SETFL, arg); // restore socket non-blocking status
     }
 
     if (! r && err) peer_log(peer, "connect error: %s", strerror(err));
@@ -905,7 +926,7 @@ static void *_peerThreadRoutine(void *arg)
 
     pthread_cleanup_push(ctx->threadCleanup, ctx->info);
     
-    if (_BRPeerOpenSocket(peer, CONNECT_TIMEOUT, &error)) {
+    if (_BRPeerOpenSocket(peer, PF_INET6, CONNECT_TIMEOUT, &error)) {
         struct timeval tv;
         double time = 0, msgTimeout;
         uint8_t header[HEADER_LENGTH], *payload = malloc(0x1000);
@@ -1115,7 +1136,7 @@ void BRPeerConnect(BRPeer *peer)
 {
     BRPeerContext *ctx = (BRPeerContext *)peer;
     struct timeval tv;
-    int error = 0, on = 1;
+    int error = 0;
     pthread_attr_t attr;
 
     if (ctx->status == BRPeerStatusDisconnected || ctx->waitingForNetwork) {
@@ -1130,38 +1151,20 @@ void BRPeerConnect(BRPeer *peer)
             ctx->waitingForNetwork = 0;
             gettimeofday(&tv, NULL);
             ctx->disconnectTime = tv.tv_sec + (double)tv.tv_usec/1000000 + CONNECT_TIMEOUT;
-            ctx->socket = socket((_BRPeerIsIPv4(peer) ? PF_INET : PF_INET6), SOCK_STREAM, 0);
-            
-            if (ctx->socket < 0) {
-                error = errno;
-                peer_log(peer, "error creating socket");
+
+            if (pthread_attr_init(&attr) != 0) {
+                error = ENOMEM;
+                peer_log(peer, "error creating thread");
                 ctx->status = BRPeerStatusDisconnected;
                 //if (ctx->disconnected) ctx->disconnected(ctx->info, error);
             }
-            else {
-                tv.tv_sec = 1; // one second timeout for send/receive, so thread doesn't block for too long
-                tv.tv_usec = 0;
-                setsockopt(ctx->socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-                setsockopt(ctx->socket, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
-                setsockopt(ctx->socket, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on));
-#ifdef SO_NOSIGPIPE // BSD based systems have a SO_NOSIGPIPE socket option to supress SIGPIPE signals
-                setsockopt(ctx->socket, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
-#endif
-
-                if (pthread_attr_init(&attr) != 0) {
-                    error = ENOMEM;
-                    peer_log(peer, "error creating thread");
-                    ctx->status = BRPeerStatusDisconnected;
-                    if (ctx->disconnected) ctx->disconnected(ctx->info, error);
-                }
-                else if (pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0 ||
-                         pthread_create(&ctx->thread, &attr, _peerThreadRoutine, peer) != 0) {
-                    error = EAGAIN;
-                    peer_log(peer, "error creating thread");
-                    pthread_attr_destroy(&attr);
-                    ctx->status = BRPeerStatusDisconnected;
-                    //if (ctx->disconnected) ctx->disconnected(ctx->info, error);
-                }
+            else if (pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0 ||
+                     pthread_create(&ctx->thread, &attr, _peerThreadRoutine, peer) != 0) {
+                error = EAGAIN;
+                peer_log(peer, "error creating thread");
+                pthread_attr_destroy(&attr);
+                ctx->status = BRPeerStatusDisconnected;
+                //if (ctx->disconnected) ctx->disconnected(ctx->info, error);
             }
         }
     }
