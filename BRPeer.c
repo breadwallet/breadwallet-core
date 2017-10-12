@@ -856,22 +856,21 @@ static int _BRPeerOpenSocket(BRPeer *peer, double timeout, int *error)
 
     if (r) {
         memset(&addr, 0, sizeof(addr));
-        
-        if (_BRPeerIsIPv4(peer)) {
+        ((struct sockaddr_in6 *)&addr)->sin6_family = AF_INET6;
+        ((struct sockaddr_in6 *)&addr)->sin6_addr = *(struct in6_addr *)&peer->address;
+        ((struct sockaddr_in6 *)&addr)->sin6_port = htons(peer->port);
+        addrLen = sizeof(struct sockaddr_in6);
+        if (connect(socket, (struct sockaddr *)&addr, addrLen) < 0) err = errno;
+
+        if (err && err != EINPROGRESS && _BRPeerIsIPv4(peer)) {
+            err = 0;
             ((struct sockaddr_in *)&addr)->sin_family = AF_INET;
             ((struct sockaddr_in *)&addr)->sin_addr = *(struct in_addr *)&peer->address.u32[3];
             ((struct sockaddr_in *)&addr)->sin_port = htons(peer->port);
             addrLen = sizeof(struct sockaddr_in);
+            if (connect(socket, (struct sockaddr *)&addr, addrLen) < 0) err = errno;
         }
-        else {
-            ((struct sockaddr_in6 *)&addr)->sin6_family = AF_INET6;
-            ((struct sockaddr_in6 *)&addr)->sin6_addr = *(struct in6_addr *)&peer->address;
-            ((struct sockaddr_in6 *)&addr)->sin6_port = htons(peer->port);
-            addrLen = sizeof(struct sockaddr_in6);
-        }
-
-        if (connect(socket, (struct sockaddr *)&addr, addrLen) < 0) err = errno;
-
+        
         if (err == EINPROGRESS) {
             err = 0;
             optLen = sizeof(err);
