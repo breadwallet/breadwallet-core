@@ -32,7 +32,7 @@
 #include <assert.h>
 
 #define MAX_PROOF_OF_WORK 0x1d00ffff    // highest value for difficulty target (higher values are less difficult)
-#define TARGET_TIMESPAN   (14*24*60*60) // the targeted timespan between difficulty target adjustments
+#define TARGET_TIMESPAN   (0.10*24*60*60) // the targeted timespan between difficulty target adjustments
 
 inline static int _ceil_log2(int x)
 {
@@ -266,20 +266,36 @@ int BRMerkleBlockIsValid(const BRMerkleBlock *block, uint32_t currentTime)
     int r = 1;
     
     // check if merkle root is correct
-    if (block->totalTx > 0 && ! UInt256Eq(merkleRoot, block->merkleRoot)) r = 0;
+    if (block->totalTx > 0 && ! UInt256Eq(merkleRoot, block->merkleRoot)) {
+        r = 0;
+
+        digi_log("invalid merkleRoot: %s - %s", u256_hex_encode(merkleRoot), u256_hex_encode(block->merkleRoot));
+    }
     
     // check if timestamp is too far in future
-    if (block->timestamp > currentTime + BLOCK_MAX_TIME_DRIFT) r = 0;
+    if (block->timestamp > currentTime + BLOCK_MAX_TIME_DRIFT) {
+        r = 0;
+
+        digi_log("timestamp too far in future for block (%s, height = %d): %d - %d", u256_hex_encode(block->blockHash), block->height, block->timestamp, (currentTime + BLOCK_MAX_TIME_DRIFT));
+    }
     
     // check if proof-of-work target is out of range
-    if (target == 0 || target & 0x00800000 || size > maxsize || (size == maxsize && target > maxtarget)) r = 0;
+    if (target == 0 || target & 0x00800000 || size > maxsize || (size == maxsize && target > maxtarget)) {
+        r = 0;
+
+        digi_log("target is out of range: %x - %x - %x - %x", target, maxtarget, size, maxsize);
+    }
     
     if (size > 3) UInt32SetLE(&t.u8[size - 3], target);
     else UInt32SetLE(t.u8, target >> (3 - size)*8);
     
     for (int i = sizeof(t) - 1; r && i >= 0; i--) { // check proof-of-work
         if (block->blockHash.u8[i] < t.u8[i]) break;
-        if (block->blockHash.u8[i] > t.u8[i]) r = 0;
+        if (block->blockHash.u8[i] > t.u8[i]) {
+            r = 0;
+
+            digi_log("invalid pow[%d]: %x - %x", i, block->powHash.u8[i], t.u8[i]);
+        }
     }
     
     return r;
@@ -325,8 +341,9 @@ int BRMerkleBlockVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBloc
     // TODO: implement testnet difficulty rule check
     return r; // don't worry about difficulty on testnet for now
 #endif
-    
-    if (r && (block->height % BLOCK_DIFFICULTY_INTERVAL) == 0) {
+
+    // TODO: fix difficulty target check for Digibyte
+    /*if (r && (block->height % BLOCK_DIFFICULTY_INTERVAL) == 0) {
         // target is in "compact" format, where the most significant byte is the size of resulting value in bytes, next
         // bit is the sign, and the remaining 23bits is the value after having been right shifted by (size - 3)*8 bits
         static const uint32_t maxsize = MAX_PROOF_OF_WORK >> 24, maxtarget = MAX_PROOF_OF_WORK & 0x00ffffff;
@@ -350,7 +367,7 @@ int BRMerkleBlockVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBloc
     
         if (block->target != ((uint32_t)target | size << 24)) r = 0;
     }
-    else if (r && block->target != previous->target) r = 0;
+    else if (r && block->target != previous->target) r = 0;*/
     
     return r;
 }
