@@ -507,6 +507,35 @@ int BRHashTests()
     if (! UInt128Eq(*(UInt128 *)"\x0c\xc1\x75\xb9\xc0\xf1\xb6\xa8\x31\xc3\x99\xe2\x69\x77\x26\x61",
                     *(UInt128 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRMD5() test 6\n", __func__);
     
+    // test sha3-256
+    
+    s = "";
+    BRSHA3_256(md, s, strlen(s));
+    if (! UInt256Eq(*(UInt256 *)"\xa7\xff\xc6\xf8\xbf\x1e\xd7\x66\x51\xc1\x47\x56\xa0\x61\xd6\x62\xf5\x80\xff\x4d\xe4"
+                    "\x3b\x49\xfa\x82\xd8\x0a\x4b\x80\xf8\x43\x4a", *(UInt256 *)md))
+        r = 0, fprintf(stderr, "***FAILED*** %s: SHA3-256() test 7\n", __func__);
+    
+    s = "abc";
+    BRSHA3_256(md, s, strlen(s));
+    if (! UInt256Eq(*(UInt256 *)"\x3a\x98\x5d\xa7\x4f\xe2\x25\xb2\x04\x5c\x17\x2d\x6b\xd3\x90\xbd\x85\x5f\x08\x6e\x3e"
+                    "\x9d\x52\x5b\x46\xbf\xe2\x45\x11\x43\x15\x32", *(UInt256 *)md))
+        r = 0, fprintf(stderr, "***FAILED*** %s: SHA3-256() test 8\n", __func__);
+    
+    s =
+    "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu";
+    BRSHA3_256(md, s, strlen(s));
+    if (! UInt256Eq(*(UInt256 *)"\x91\x6f\x60\x61\xfe\x87\x97\x41\xca\x64\x69\xb4\x39\x71\xdf\xdb\x28\xb1\xa3\x2d\xc3"
+                    "\x6c\xb3\x25\x4e\x81\x2b\xe2\x7a\xad\x1d\x18", *(UInt256 *)md))
+        r = 0, fprintf(stderr, "***FAILED*** %s: SHA3-256() test 9\n", __func__);
+    
+    // test keccak-256
+    
+    s = "";
+    BRKeccak256(md, s, strlen(s));
+    if (! UInt256Eq(*(UInt256 *)"\xc5\xd2\x46\x01\x86\xf7\x23\x3c\x92\x7e\x7d\xb2\xdc\xc7\x03\xc0\xe5\x00\xb6\x53\xca"
+                    "\x82\x27\x3b\x7b\xfa\xd8\x04\x5d\x85\xa4\x70", *(UInt256 *)md))
+        r = 0, fprintf(stderr, "***FAILED*** %s: Keccak-256() test 10\n", __func__);
+    
     return r;
 }
 

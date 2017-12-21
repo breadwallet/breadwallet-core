@@ -53,6 +53,12 @@ void BRRMD160(void *md20, const void *data, size_t len);
 // bitcoin hash-160 = ripemd-160(sha-256(x))
 void BRHash160(void *md20, const void *data, size_t len);
 
+// sha3-256: http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.202.pdf
+void BRSHA3_256(void *md32, const void *data, size_t len);
+
+// keccak-256: https://keccak.team/files/Keccak-submission-3.pdf
+void BRKeccak256(void *md32, const void *data, size_t len);
+
 // md5 - for non-cryptographic use only
 void BRMD5(void *md16, const void *data, size_t len);
 
