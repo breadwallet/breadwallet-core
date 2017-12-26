@@ -110,7 +110,7 @@ void BRSHA1(void *md20, const void *data, size_t len)
 #define s2(x) (ror32((x), 7) ^ ror32((x), 18) ^ ((x) >> 3))
 #define s3(x) (ror32((x), 17) ^ ror32((x), 19) ^ ((x) >> 10))
 
-static void _BRSHA256Compress(uint32_t *r, uint32_t *x)
+static void _BRSHA256Compress(uint32_t *r, const uint32_t *x)
 {
     static const uint32_t k[] = {
         0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
@@ -211,7 +211,7 @@ void BRSHA256_2(void *md32, const void *data, size_t len)
 #define S2(x) (ror64((x), 1) ^ ror64((x), 8) ^ ((x) >> 7))
 #define S3(x) (ror64((x), 19) ^ ror64((x), 61) ^ ((x) >> 6))
 
-static void _BRSHA512Compress(uint64_t *r, uint64_t *x)
+static void _BRSHA512Compress(uint64_t *r, const uint64_t *x)
 {
     static const uint64_t k[] = {
         0x428a2f98d728ae22, 0x7137449123ef65cd, 0xb5c0fbcfec4d3b2f, 0xe9b5dba58189dbbc, 0x3956c25bf348b538,
@@ -312,7 +312,7 @@ void BRSHA512(void *md64, const void *data, size_t len)
 #define rmd(a, b, c, d, e, f, g, h, i, j) ((a) = rol32((f) + (b) + le32(c) + (d), (e)) + (g), (f) = (g), (g) = (h),\
                                            (h) = rol32((i), 10), (i) = (j), (j) = (a))
 
-static void _BRRMDCompress(uint32_t *r, uint32_t *x)
+static void _BRRMDCompress(uint32_t *r, const uint32_t *x)
 {
     // left line
     static const int rl1[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }, // round 1, id
@@ -402,11 +402,10 @@ void BRHash160(void *md20, const void *data, size_t len)
 static void _BRSHA3Compress(uint64_t *r, const uint64_t *x, size_t blockSize)
 {
     static const uint64_t k[] = { // keccak round constants
-        0x0000000000000001, 0x0000000000008082, 0x800000000000808A, 0x8000000080008000,
-        0x000000000000808B, 0x0000000080000001, 0x8000000080008081, 0x8000000000008009,
-        0x000000000000008A, 0x0000000000000088, 0x0000000080008009, 0x000000008000000A,
-        0x000000008000808B, 0x800000000000008B, 0x8000000000008089, 0x8000000000008003,
-        0x8000000000008002, 0x8000000000000080, 0x000000000000800A, 0x800000008000000A,
+        0x0000000000000001, 0x0000000000008082, 0x800000000000808a, 0x8000000080008000, 0x000000000000808b,
+        0x0000000080000001, 0x8000000080008081, 0x8000000000008009, 0x000000000000008a, 0x0000000000000088,
+        0x0000000080008009, 0x000000008000000a, 0x000000008000808b, 0x800000000000008b, 0x8000000000008089,
+        0x8000000000008003, 0x8000000000008002, 0x8000000000000080, 0x000000000000800a, 0x800000008000000a,
         0x8000000080008081, 0x8000000000008080, 0x0000000080000001, 0x8000000080008008
     };
     
@@ -509,7 +508,7 @@ void BRKeccak256(void *md32, const void *data, size_t len)
 #define md5(f, a, b, c, d, x, k, s, t) ((a) += f((b), (c), (d)) + le32(x) + (k), (a) = rol32(a, s), (a) += (b),\
                                         (t) = (d), (d) = (c), (c) = (b), (b) = (a), (a) = (t))
 
-static void _BRMD5Compress(uint32_t *r, uint32_t *x)
+static void _BRMD5Compress(uint32_t *r, const uint32_t *x)
 {
     static const uint32_t k[] = {
         0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
