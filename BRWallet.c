@@ -935,7 +935,7 @@ void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHashes[], size
     BRTransaction *tx;
     UInt256 hashes[txCount];
     int needsUpdate = 0;
-    size_t i, j;
+    size_t i, j, k;
     
     assert(wallet != NULL);
     assert(txHashes != NULL || txCount == 0);
@@ -949,6 +949,13 @@ void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHashes[], size
         tx->blockHeight = blockHeight;
         
         if (_BRWalletContainsTx(wallet, tx)) {
+            for (k = array_count(wallet->transactions); k > 0; k--) { // remove and re-insert tx to keep wallet sorted
+                if (! BRTransactionEq(wallet->transactions[k - 1], tx)) continue;
+                array_rm(wallet->transactions, k - 1);
+                _BRWalletInsertTx(wallet, tx);
+                break;
+            }
+            
             hashes[j++] = txHashes[i];
             if (BRSetContains(wallet->pendingTx, tx) || BRSetContains(wallet->invalidTx, tx)) needsUpdate = 1;
         }
