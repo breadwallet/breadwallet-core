@@ -804,7 +804,7 @@ static int _BRPeerAcceptFeeFilterMessage(BRPeer *peer, const uint8_t *msg, size_
     }
     else {
         ctx->feePerKb = UInt64GetLE(msg);
-        peer_log(peer, "got feefilter with rate %llu", ctx->feePerKb);
+        peer_log(peer, "got feefilter with rate %"PRIu64, ctx->feePerKb);
         if (ctx->setFeePerKb) ctx->setFeePerKb(ctx->info, ctx->feePerKb);
     }
     

@@ -1480,7 +1480,7 @@ static void _peerSetFeePerKb(void *info, uint64_t feePerKb)
     
     if (secondFeePerKb*3/2 > DEFAULT_FEE_PER_KB && secondFeePerKb*3/2 <= MAX_FEE_PER_KB &&
         secondFeePerKb*3/2 > BRWalletFeePerKb(manager->wallet)) {
-        peer_log(peer, "increasing feePerKb to %llu based on feefilter messages from peers", secondFeePerKb*3/2);
+        peer_log(peer, "increasing feePerKb to %"PRIu64" based on feefilter messages from peers", secondFeePerKb*3/2);
         BRWalletSetFeePerKb(manager->wallet, secondFeePerKb*3/2);
     }
 
