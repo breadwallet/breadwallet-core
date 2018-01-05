@@ -31,7 +31,11 @@
 #include <string.h>
 #include <assert.h>
 
+#if BITCOIN_REGTEST
+#define MAX_PROOF_OF_WORK 0x207fffff
+#else
 #define MAX_PROOF_OF_WORK 0x1d00ffff    // highest value for difficulty target (higher values are less difficult)
+#endif
 #define TARGET_TIMESPAN   (14*24*60*60) // the targeted timespan between difficulty target adjustments
 
 inline static int _ceil_log2(int x)
@@ -324,8 +328,11 @@ int BRMerkleBlockVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBloc
 #if BITCOIN_TESTNET
     // TODO: implement testnet difficulty rule check
     return r; // don't worry about difficulty on testnet for now
+#elif BITCOIN_REGTEST
+    // TODO: implement testnet difficulty rule check
+    return r; // don't worry about difficulty on testnet for now
 #endif
-    
+
     if (r && (block->height % BLOCK_DIFFICULTY_INTERVAL) == 0) {
         // target is in "compact" format, where the most significant byte is the size of resulting value in bytes, next
         // bit is the sign, and the remaining 23bits is the value after having been right shifted by (size - 3)*8 bits

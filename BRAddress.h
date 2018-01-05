@@ -36,6 +36,8 @@ extern "C" {
 
 #if BITCOIN_TESTNET
 #pragma message "testnet build"
+#elif BITCOIN_REGTEST
+#pragma message "regtest build"
 #endif
 
 // bitcoin address prefixes
@@ -43,6 +45,8 @@ extern "C" {
 #define BITCOIN_SCRIPT_ADDRESS      5
 #define BITCOIN_PUBKEY_ADDRESS_TEST 111
 #define BITCOIN_SCRIPT_ADDRESS_TEST 196
+#define BITCOIN_PUBKEY_ADDRESS_REGTEST 111
+#define BITCOIN_SCRIPT_ADDRESS_REGTEST 196
 
 // bitcoin script opcodes: https://en.bitcoin.it/wiki/Script#Constants
 #define OP_0           0x00
