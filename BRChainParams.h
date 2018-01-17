@@ -84,6 +84,18 @@ static const BRCheckPoint BRTestNetCheckpoints[] = {
     { 1108800, uint256("00000000000288d9a219419d0607fb67cc324d4b6d2945ca81eaa5e739fab81e"), 1490751239, 0x1b09ecf0 }
 };
 
+static int BRTestNetVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBlock *previous, uint32_t transitionTime)
+{
+    int r = 1;
+    
+    assert(block != NULL);
+    assert(previous != NULL);
+    
+    if (! previous || !UInt256Eq(block->prevBlock, previous->blockHash) || block->height != previous->height + 1) r = 0;
+    if (r && (block->height % BLOCK_DIFFICULTY_INTERVAL) == 0 && transitionTime == 0) r = 0;
+    return r;
+}
+
 static const BRChainParams BRMainNetParams = {
     BRMainNetDNSSeeds,
     8333,       // standardPort
@@ -99,7 +111,7 @@ static const BRChainParams BRTestNetParams = {
     18333,      // standardPort
     0x0709110b, // magicNumber
     0,          // services
-    BRMerkleBlockVerifyDifficulty,
+    BRTestNetVerifyDifficulty,
     BRTestNetCheckpoints,
     sizeof(BRTestNetCheckpoints)/sizeof(*BRTestNetCheckpoints)
 };
