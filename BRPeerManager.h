@@ -37,12 +37,24 @@ extern "C" {
 #endif
 
 #define PEER_MAX_CONNECTIONS 3
-
+    
+typedef struct { uint32_t height; UInt256 hash; uint32_t timestamp; uint32_t target; } BRCheckPoint;
+    
+typedef struct {
+    const char **dnsSeeds; // NULL terminated array of dns seeds
+    uint16_t standardPort;
+    uint32_t magicNumber;
+    uint64_t services;
+    int (*verifyDifficulty)(const BRMerkleBlock *block, const BRMerkleBlock *previous, uint32_t transitionTime);
+    const BRCheckPoint *checkpoints;
+    size_t checkpointsCount;
+} BRChainParams;
+    
 typedef struct BRPeerManagerStruct BRPeerManager;
 
 // returns a newly allocated BRPeerManager struct that must be freed by calling BRPeerManagerFree()
-BRPeerManager *BRPeerManagerNew(BRWallet *wallet, uint32_t earliestKeyTime, BRMerkleBlock *blocks[], size_t blocksCount,
-                                const BRPeer peers[], size_t peersCount);
+BRPeerManager *BRPeerManagerNew(const BRChainParams *params, BRWallet *wallet, uint32_t earliestKeyTime,
+                                BRMerkleBlock *blocks[], size_t blocksCount, const BRPeer peers[], size_t peersCount);
 
 // not thread-safe, set callbacks once before calling BRPeerManagerConnect()
 // info is a void pointer that will be passed along with each callback call

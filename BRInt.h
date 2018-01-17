@@ -117,7 +117,7 @@ inline static UInt256 UInt256Reverse(UInt256 u)
 
 // hex encoding/decoding
 
-#define u256_hex_encode(u) ((const char[]) {\
+#define u256hex(u) ((const char[]) {\
     _hexc((u).u8[ 0] >> 4), _hexc((u).u8[ 0]), _hexc((u).u8[ 1] >> 4), _hexc((u).u8[ 1]),\
     _hexc((u).u8[ 2] >> 4), _hexc((u).u8[ 2]), _hexc((u).u8[ 3] >> 4), _hexc((u).u8[ 3]),\
     _hexc((u).u8[ 4] >> 4), _hexc((u).u8[ 4]), _hexc((u).u8[ 5] >> 4), _hexc((u).u8[ 5]),\
@@ -135,7 +135,7 @@ inline static UInt256 UInt256Reverse(UInt256 u)
     _hexc((u).u8[28] >> 4), _hexc((u).u8[28]), _hexc((u).u8[29] >> 4), _hexc((u).u8[29]),\
     _hexc((u).u8[30] >> 4), _hexc((u).u8[30]), _hexc((u).u8[31] >> 4), _hexc((u).u8[31]), '\0' })
 
-#define u256_hex_decode(s) ((UInt256) { .u8 = {\
+#define uint256(s) ((UInt256) { .u8 = {\
     (_hexu((s)[ 0]) << 4) | _hexu((s)[ 1]), (_hexu((s)[ 2]) << 4) | _hexu((s)[ 3]),\
     (_hexu((s)[ 4]) << 4) | _hexu((s)[ 5]), (_hexu((s)[ 6]) << 4) | _hexu((s)[ 7]),\
     (_hexu((s)[ 8]) << 4) | _hexu((s)[ 9]), (_hexu((s)[10]) << 4) | _hexu((s)[11]),\
@@ -155,7 +155,7 @@ inline static UInt256 UInt256Reverse(UInt256 u)
 
 #define _hexc(u) (((u) & 0x0f) + ((((u) & 0x0f) <= 9) ? '0' : 'a' - 0x0a))
 #define _hexu(c) (((c) >= '0' && (c) <= '9') ? (c) - '0' : ((c) >= 'a' && (c) <= 'f') ? (c) - ('a' - 0x0a) :\
-                  ((c) >= 'A' && (c) <= 'F') ? (c) - ('A' - 0x0a) : 0)
+                  ((c) >= 'A' && (c) <= 'F') ? (c) - ('A' - 0x0a) : -1)
 
 // unaligned memory access helpers
 
