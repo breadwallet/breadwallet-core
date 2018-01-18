@@ -1574,9 +1574,14 @@ int BRBIP32SequenceTests()
                      "banner amused fringe fox insect roast aunt prefer hollow basic ladder", NULL);
     BRBIP32BitIDKey(&key, dk.u8, sizeof(dk), 0, "http://bitid.bitcoin.blue/callback");
     BRKeyAddress(&key, addr.s, sizeof(addr));
+#if BITCOIN_TESTNET
+    if (strncmp(addr.s, "mxZ2Dn9vcyNeKh9DNHZw6d6NrxeYCVNjc2", sizeof(addr)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRBIP32BitIDKey() test\n", __func__);
+#else
     if (strncmp(addr.s, "1J34vj4wowwPYafbeibZGht3zy3qERoUM1", sizeof(addr)) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRBIP32BitIDKey() test\n", __func__);
-
+#endif
+    
     // TODO: XXX test BRBIP32SerializeMasterPrivKey()
     // TODO: XXX test BRBIP32SerializeMasterPubKey()
 

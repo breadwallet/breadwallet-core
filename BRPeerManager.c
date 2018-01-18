@@ -1143,7 +1143,7 @@ static int _BRPeerManagerVerifyBlock(BRPeerManager *manager, BRMerkleBlock *bloc
     }
 
     // verify block difficulty
-    if (r && ! BRMerkleBlockVerifyDifficulty(block, prev, transitionTime)) {
+    if (r && ! manager->params->verifyDifficulty(block, prev, transitionTime)) {
         peer_log(peer, "relayed block with invalid difficulty target %x, blockHash: %s", block->target,
                  u256hex(block->blockHash));
         r = 0;
@@ -1843,7 +1843,7 @@ size_t BRPeerManagerPeerCount(BRPeerManager *manager)
     pthread_mutex_lock(&manager->lock);
     
     for (size_t i = array_count(manager->connectedPeers); i > 0; i--) {
-        if (BRPeerConnectStatus(manager->connectedPeers[i - 1]) == BRPeerStatusConnected) count++;
+        if (BRPeerConnectStatus(manager->connectedPeers[i - 1]) != BRPeerStatusDisconnected) count++;
     }
     
     pthread_mutex_unlock(&manager->lock);
