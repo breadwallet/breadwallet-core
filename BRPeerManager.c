@@ -1625,16 +1625,22 @@ void BRPeerManagerSetFixedPeer(BRPeerManager *manager, UInt128 address, uint16_t
     pthread_mutex_unlock(&manager->lock);
 }
 
-// true if currently connected to at least one peer
-int BRPeerManagerIsConnected(BRPeerManager *manager)
+// current connect status
+BRPeerStatus BRPeerManagerConnectStatus(BRPeerManager *manager)
 {
-    int isConnected;
+    BRPeerStatus status = BRPeerStatusDisconnected;
     
     assert(manager != NULL);
     pthread_mutex_lock(&manager->lock);
-    isConnected = manager->isConnected;
+    if (manager->isConnected != 0) status = BRPeerStatusConnected;
+
+    for (size_t i = array_count(manager->connectedPeers); i > 0 && status == BRPeerStatusDisconnected; i--) {
+        if (BRPeerConnectStatus(manager->connectedPeers[i - 1]) == BRPeerStatusDisconnected) continue;
+        status = BRPeerStatusConnecting;
+    }
+
     pthread_mutex_unlock(&manager->lock);
-    return isConnected;
+    return status;
 }
 
 // connect to bitcoin peer-to-peer network (also call this whenever networkIsReachable() status changes)

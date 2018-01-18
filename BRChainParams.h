@@ -26,7 +26,23 @@
 #define BRChainParams_h
 
 #include "BRMerkleBlock.h"
-#include "BRPeerManager.h"
+
+typedef struct {
+    uint32_t height;
+    UInt256 hash;
+    uint32_t timestamp;
+    uint32_t target;
+} BRCheckPoint;
+
+typedef struct {
+    const char **dnsSeeds; // NULL terminated array of dns seeds
+    uint16_t standardPort;
+    uint32_t magicNumber;
+    uint64_t services;
+    int (*verifyDifficulty)(const BRMerkleBlock *block, const BRMerkleBlock *previous, uint32_t transitionTime);
+    const BRCheckPoint *checkpoints;
+    size_t checkpointsCount;
+} BRChainParams;
 
 static const char *BRMainNetDNSSeeds[] = {
     "seed.breadwallet.com.", "seed.bitcoin.sipa.be.", "dnsseed.bluematt.me.", "dnsseed.bitcoin.dashjr.org.",

@@ -29,6 +29,7 @@
 #include "BRMerkleBlock.h"
 #include "BRTransaction.h"
 #include "BRWallet.h"
+#include "BRChainParams.h"
 #include <stddef.h>
 #include <inttypes.h>
 
@@ -37,19 +38,7 @@ extern "C" {
 #endif
 
 #define PEER_MAX_CONNECTIONS 3
-    
-typedef struct { uint32_t height; UInt256 hash; uint32_t timestamp; uint32_t target; } BRCheckPoint;
-    
-typedef struct {
-    const char **dnsSeeds; // NULL terminated array of dns seeds
-    uint16_t standardPort;
-    uint32_t magicNumber;
-    uint64_t services;
-    int (*verifyDifficulty)(const BRMerkleBlock *block, const BRMerkleBlock *previous, uint32_t transitionTime);
-    const BRCheckPoint *checkpoints;
-    size_t checkpointsCount;
-} BRChainParams;
-    
+
 typedef struct BRPeerManagerStruct BRPeerManager;
 
 // returns a newly allocated BRPeerManager struct that must be freed by calling BRPeerManagerFree()
@@ -80,8 +69,8 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
 // set address to UINT128_ZERO to revert to default behavior
 void BRPeerManagerSetFixedPeer(BRPeerManager *manager, UInt128 address, uint16_t port);
 
-// true if currently connected to at least one peer
-int BRPeerManagerIsConnected(BRPeerManager *manager);
+// current connect status
+BRPeerStatus BRPeerManagerConnectStatus(BRPeerManager *manager);
 
 // connect to bitcoin peer-to-peer network (also call this whenever networkIsReachable() status changes)
 void BRPeerManagerConnect(BRPeerManager *manager);
