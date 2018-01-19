@@ -26,6 +26,7 @@
 #define BRChainParams_h
 
 #include "BRMerkleBlock.h"
+#include <assert.h>
 
 typedef struct {
     uint32_t height;
