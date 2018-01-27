@@ -131,6 +131,18 @@ static size_t _BRTxInputData(const BRTxInput *input, uint8_t *data, size_t dataL
     return (! data || off <= dataLen) ? off : 0;
 }
 
+void BRTxInputCopy(BRTxInput *target, BRTxInput *source) {
+    assert (target != NULL);
+    assert (source != NULL);
+    *target = *source;
+
+    target->script = NULL;
+    BRTxInputSetScript(target, source->script, source->scriptLen);
+
+    target->signature = NULL;
+    BRTxInputSetSignature(target, source->signature, source->sigLen);
+}
+
 void BRTxOutputSetAddress(BRTxOutput *output, const char *address)
 {
     assert(output != NULL);
@@ -180,6 +192,15 @@ static size_t _BRTransactionOutputData(const BRTransaction *tx, uint8_t *data, s
     }
     
     return (! data || off <= dataLen) ? off : 0;
+}
+
+void BRTxOutputCopy(BRTxOutput *target, BRTxOutput *source) {
+    assert (target != NULL);
+    assert (source != NULL);
+    *target = *source;
+
+    target->script = NULL;
+    BRTxOutputSetScript(target, source->script, source->scriptLen);
 }
 
 // writes the BIP143 witness program data that needs to be hashed and signed for the tx input at index
@@ -333,6 +354,30 @@ BRTransaction *BRTransactionNew(void)
     tx->lockTime = TX_LOCKTIME;
     tx->blockHeight = TX_UNCONFIRMED;
     return tx;
+}
+
+BRTransaction *BRTransactionCopy(BRTransaction *tx) {
+    assert (tx != NULL);
+    BRTransaction *cpy = calloc(1, sizeof(*tx));
+
+    assert (cpy != NULL);
+    *cpy = *tx;
+
+    size_t inputCount = array_capacity(tx->inputs);
+    array_new (cpy->inputs,  inputCount);
+    array_add_array (cpy->inputs,  tx->inputs, inputCount);
+    for (int i = 0; i < inputCount; i++) {
+        BRTxInputCopy(&cpy->inputs[i], &tx->inputs[i]);
+    }
+
+    size_t outputCount = array_capacity(tx->outputs);
+    array_new (cpy->outputs, outputCount);
+    array_add_array (cpy->outputs, tx->outputs, outputCount);
+    for (int i = 0; i < outputCount; i++) {
+        BRTxOutputCopy(&cpy->outputs[i], &tx->outputs[i]);
+    }
+
+    return cpy;
 }
 
 // buf must contain a serialized tx

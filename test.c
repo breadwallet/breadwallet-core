@@ -39,6 +39,7 @@
 #include "BRInt.h"
 #include "BRArray.h"
 #include "BRSet.h"
+#include "BRTransaction.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -135,13 +136,13 @@ int BRArrayTests()
 
     array_rm_range(a, 0, 4);        // [ 1, 2, 3 ]
     if (array_count(a) != 3 || a[0] != 1) r = 0, fprintf(stderr, "***FAILED*** %s: array_rm_range() test\n", __func__);
-    printf("\n");
 
+    printf("\n");
     for (size_t i = 0; i < array_count(a); i++) {
         printf("%i, ", a[i]);       // 1, 2, 3,
     }
-    
     printf("\n");
+
     array_insert_array(a, 3, c, 2); // [ 1, 2, 3, 3, 2 ]
     if (array_count(a) != 5 || a[4] != 2)
         r = 0, fprintf(stderr, "***FAILED*** %s: array_insert_array() test 2\n", __func__);
@@ -157,8 +158,9 @@ int BRArrayTests()
     
     array_clear(a);                 // [ ]
     if (array_count(a) != 0) r = 0, fprintf(stderr, "***FAILED*** %s: array_clear() test\n", __func__);
-    
+
     array_free(a);
+    
     printf("                                    ");
     return r;
 }
@@ -1589,6 +1591,52 @@ int BRBIP32SequenceTests()
     return r;
 }
 
+static int BRTxOutputEqual(BRTxOutput *out1, BRTxOutput *out2) {
+    return out1->amount == out2->amount
+           && 0 == memcmp (out1->address, out2->address, sizeof (out1->address))
+           && out1->scriptLen == out2->scriptLen
+           && 0 == memcmp (out1->script, out2->script, out1->scriptLen * sizeof (uint8_t));
+}
+
+
+//
+static int BRTxInputEqual(BRTxInput *in1, BRTxInput *in2) {
+    return 0 == memcmp(&in1->txHash, &in2->txHash, sizeof(UInt256))
+           && in1->index == in2->index
+           && 0 == memcmp(in1->address, in2->address, sizeof(in1->address))
+           && in1->amount == in2->amount
+           && in1->scriptLen == in2->scriptLen
+           && 0 == memcmp(in1->script, in2->script, in1->scriptLen * sizeof(uint8_t))
+           && in1->sigLen == in2->sigLen
+           && 0 == memcmp(in1->signature, in2->signature, in1->sigLen * sizeof(uint8_t))
+           && in1->sequence == in2->sequence;
+}
+
+// true if tx1 and tx2 have equal data (in their respective structures).
+static int BRTransactionEqual (BRTransaction *tx1, BRTransaction *tx2) {
+    if (memcmp (&tx1->txHash, &tx2->txHash, sizeof (UInt256()))
+        || tx1->version != tx2->version
+        || tx1->lockTime != tx2->lockTime
+        || tx1->blockHeight != tx2->blockHeight
+        || tx1->timestamp != tx2->timestamp
+        || array_capacity(tx1->inputs) != array_capacity(tx2->inputs)
+        || array_capacity(tx1->outputs) != array_capacity(tx2->outputs))
+        return 0;
+
+    // Inputs
+    if (NULL != tx1->inputs)
+        for (int i = 0; i < array_capacity(tx1->inputs); i++)
+            if (!BRTxInputEqual(&tx1->inputs[i], &tx2->inputs[i]))
+                return 0;
+    // Outputs
+    if (NULL != tx1->outputs)
+        for (int i = 0; i < array_capacity(tx1->outputs); i++)
+            if (!BRTxOutputEqual(&tx1->outputs[i], &tx2->outputs[i]))
+                return 0;
+
+    return 1;
+}
+
 int BRTransactionTests()
 {
     int r = 1;
@@ -1684,7 +1732,31 @@ int BRTransactionTests()
     if (len4 != len5 || memcmp(buf4, buf5, len4) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionSerialize() test 2\n", __func__);
     BRTransactionFree(tx);
-    
+
+    BRTransaction *src = BRTransactionNew ();
+    BRTransactionAddInput(src, inHash, 0, 1, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddInput(src, inHash, 0, 1, script, scriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddOutput(src, 1000000, script, scriptLen);
+    BRTransactionAddOutput(src, 1000000, script, scriptLen);
+    BRTransactionAddOutput(src, 1000000, script, scriptLen);
+
+    BRTransaction *tgt = BRTransactionCopy(src);
+    if (!BRTransactionEqual(tgt, src))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionCopy() test 1\n", __func__);
+
+    tgt->blockHeight++;
+    if (BRTransactionEqual(tgt, src)) // fail if equal
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionCopy() test 2\n", __func__);
+
+    BRTransactionFree(tgt);
+    BRTransactionFree(src);
+
+    src = BRTransactionParse(buf4, len4);
+    tgt = BRTransactionCopy(src);
+    if (!BRTransactionEqual(tgt, src))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionCopy() test 3\n", __func__);
+    BRTransactionFree(tgt);
+    BRTransactionFree(src);
     return r;
 }
 
@@ -1952,6 +2024,23 @@ int BRBloomFilterTests()
     return r;
 }
 
+// true if block and otherBlock have equal data (in their respective structures).
+static int BRMerkleBlockEqual (const BRMerkleBlock *block1, const BRMerkleBlock *block2) {
+    return 0 == memcmp(&block1->blockHash, &block2->blockHash, sizeof(UInt256))
+           && block1->version == block2->version
+           && 0 == memcmp(&block1->prevBlock, &block2->prevBlock, sizeof(UInt256))
+           && 0 == memcmp(&block1->merkleRoot, &block2->merkleRoot, sizeof(UInt256))
+           && block1->timestamp == block2->timestamp
+           && block1->target == block2->target
+           && block1->nonce == block2->nonce
+           && block1->totalTx == block2->totalTx
+           && block1->hashesCount == block2->hashesCount
+           && 0 == memcmp(block1->hashes, block2->hashes, block1->hashesCount * sizeof(UInt256))
+           && block1->flagsLen == block2->flagsLen
+           && 0 == memcmp(block1->flags, block2->flags, block1->flagsLen * sizeof(uint8_t))
+           && block1->height == block2->height;
+}
+
 int BRMerkleBlockTests()
 {
     int r = 1;
@@ -2012,7 +2101,19 @@ int BRMerkleBlockTests()
     // TODO: XXX test BRMerkleBlockVerifyDifficulty()
     
     // TODO: test (CVE-2012-2459) vulnerability
-    
+
+    BRMerkleBlock *c = BRMerkleBlockCopy(b);
+
+    if (!BRMerkleBlockEqual(b, c))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRMerkleBlockEqual() test 1\n", __func__);
+
+    c->height++;
+    if (BRMerkleBlockEqual(b, c)) // fail if equal
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRMerkleBlockEqual() test 2\n", __func__);
+
+    if (c) BRMerkleBlockFree(c);
+
+
     if (b) BRMerkleBlockFree(b);
     return r;
 }
