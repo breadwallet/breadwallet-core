@@ -69,6 +69,7 @@ typedef struct {
 void BRTxInputSetAddress(BRTxInput *input, const char *address);
 void BRTxInputSetScript(BRTxInput *input, const uint8_t *script, size_t scriptLen);
 void BRTxInputSetSignature(BRTxInput *input, const uint8_t *signature, size_t sigLen);
+void BRTxInputCopy(BRTxInput *target, BRTxInput *source);
 
 typedef struct {
     char address[36];
@@ -82,6 +83,7 @@ typedef struct {
 // when creating a BRTxOutput struct outside of a BRTransaction, set address or script to NULL when done to free memory
 void BRTxOutputSetAddress(BRTxOutput *output, const char *address);
 void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scriptLen);
+void BRTxOutputCopy(BRTxOutput *target, BRTxOutput *source);
 
 typedef struct {
     UInt256 txHash;
@@ -97,6 +99,10 @@ typedef struct {
 
 // returns a newly allocated empty transaction that must be freed by calling BRTransactionFree()
 BRTransaction *BRTransactionNew(void);
+
+// returns a newly allocated transaction that is a deep copy of tx and that must be freed by
+// calling BRTransactionFree.
+BRTransaction *BRTransactionCopy(BRTransaction *tx);
 
 // buf must contain a serialized tx
 // retruns a transaction that must be freed by calling BRTransactionFree()
