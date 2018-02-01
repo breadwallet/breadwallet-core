@@ -83,7 +83,9 @@ BRMerkleBlock *BRMerkleBlockNew(void)
     return block;
 }
 
-BRMerkleBlock *BRMerkleBlockCopy(BRMerkleBlock *source) {
+// returns a deep copy of block and that must be freed by calling BRMerkleBlockFree()
+BRMerkleBlock *BRMerkleBlockCopy(const BRMerkleBlock *source)
+{
     BRMerkleBlock *block = calloc(1, sizeof(*source));
 
     assert(block != NULL);

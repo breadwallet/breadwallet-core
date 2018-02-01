@@ -59,9 +59,8 @@ typedef struct {
 // returns a newly allocated merkle block struct that must be freed by calling BRMerkleBlockFree()
 BRMerkleBlock *BRMerkleBlockNew(void);
 
-// returns a newly allocated merkle block struct that is a deep copy of tx and that must be freed
-// by calling BRMerkleBlockFree()
-BRMerkleBlock *BRMerkleBlockCopy(BRMerkleBlock *block);
+// returns a deep copy of block and that must be freed by calling BRMerkleBlockFree()
+BRMerkleBlock *BRMerkleBlockCopy(const BRMerkleBlock *block);
 
 // buf must contain either a serialized merkleblock or header
 // returns a merkle block struct that must be freed by calling BRMerkleBlockFree()

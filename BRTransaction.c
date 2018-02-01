@@ -131,7 +131,7 @@ static size_t _BRTxInputData(const BRTxInput *input, uint8_t *data, size_t dataL
     return (! data || off <= dataLen) ? off : 0;
 }
 
-void BRTxInputCopy(BRTxInput *target, BRTxInput *source) {
+void BRTxInputCopy(BRTxInput *target, const BRTxInput *source) {
     assert (target != NULL);
     assert (source != NULL);
     *target = *source;
@@ -194,7 +194,7 @@ static size_t _BRTransactionOutputData(const BRTransaction *tx, uint8_t *data, s
     return (! data || off <= dataLen) ? off : 0;
 }
 
-void BRTxOutputCopy(BRTxOutput *target, BRTxOutput *source) {
+void BRTxOutputCopy(BRTxOutput *target, const BRTxOutput *source) {
     assert (target != NULL);
     assert (source != NULL);
     *target = *source;
@@ -356,7 +356,9 @@ BRTransaction *BRTransactionNew(void)
     return tx;
 }
 
-BRTransaction *BRTransactionCopy(BRTransaction *tx) {
+// returns a deep copy of tx and that must be freed by calling BRTransactionFree()
+BRTransaction *BRTransactionCopy(const BRTransaction *tx)
+{
     assert (tx != NULL);
     BRTransaction *cpy = calloc(1, sizeof(*tx));
 
