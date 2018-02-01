@@ -49,6 +49,8 @@ extern "C" {
 #define OP_PUSHDATA1   0x4c
 #define OP_PUSHDATA2   0x4d
 #define OP_PUSHDATA4   0x4e
+#define OP_1NEGATE     0x4f
+#define OP_1           0x51
 #define OP_DUP         0x76
 #define OP_EQUAL       0x87
 #define OP_EQUALVERIFY 0x88
