@@ -25,11 +25,27 @@
 package com.breadwallet.core;
 
 public class BRCorePaymentProtocolMessage extends BRCoreJniReference {
-    public BRCorePaymentProtocolMessage () {
-        super (createPaymentProtocolMessage ());
+    public BRCorePaymentProtocolMessage (byte[] data) {
+        super (createPaymentProtocolMessage (data));
     }
 
-    private static native long createPaymentProtocolMessage ();
+    public MessageType getMessageType () {
+        return MessageType.fromValue(getMessageTypeValue ());
+    }
+
+    private native int getMessageTypeValue ();
+
+    public native byte[] getMessage ();
+
+    public native long getStatusCode ();
+
+    public native String getStatusMessage ();
+
+    public native byte[] getIdentifier ();
+
+    private static native long createPaymentProtocolMessage (byte[] data);
+
+    public native void disposeNative ();
 
     //
     //
@@ -47,7 +63,7 @@ public class BRCorePaymentProtocolMessage extends BRCoreJniReference {
             this.value = value;
         }
 
-        public MessageType fromValue (int value) {
+        public static MessageType fromValue (int value) {
             for (MessageType type : MessageType.values())
                 if (type.value == value)
                     return type;

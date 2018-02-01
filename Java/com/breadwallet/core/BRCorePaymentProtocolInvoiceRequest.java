@@ -25,9 +25,29 @@
 package com.breadwallet.core;
 
 public class BRCorePaymentProtocolInvoiceRequest extends BRCoreJniReference {
-    public BRCorePaymentProtocolInvoiceRequest() {
-        super(createPaymentProtocolInvoiceRequest());
+    public BRCorePaymentProtocolInvoiceRequest(byte[] data) {
+        super(createPaymentProtocolInvoiceRequest(data));
     }
 
-    private static native long createPaymentProtocolInvoiceRequest();
+    public BRCoreKey getSenderPublicKey () {
+        return new BRCoreKey (getSenderPublicKeyReference());
+    }
+
+    protected native long getSenderPublicKeyReference ();
+
+    public native long getAmount ();
+
+    public native String getPKIType ();
+
+    public native byte[] getPKIData ();
+
+    public native String getMemo ();
+
+    public native String getNotifyURL ();
+
+    public native byte[] getSignature ();
+
+    private static native long createPaymentProtocolInvoiceRequest(byte[] data);
+
+    public native void disposeNative ();
 }

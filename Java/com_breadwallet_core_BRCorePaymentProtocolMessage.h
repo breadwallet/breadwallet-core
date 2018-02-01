@@ -9,11 +9,59 @@ extern "C" {
 #endif
 /*
  * Class:     com_breadwallet_core_BRCorePaymentProtocolMessage
- * Method:    createPaymentProtocolMessage
+ * Method:    getMessageTypeValue
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolMessage_getMessageTypeValue
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolMessage
+ * Method:    getMessage
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolMessage_getMessage
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolMessage
+ * Method:    getStatusCode
  * Signature: ()J
  */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolMessage_getStatusCode
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolMessage
+ * Method:    getStatusMessage
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolMessage_getStatusMessage
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolMessage
+ * Method:    getIdentifier
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolMessage_getIdentifier
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolMessage
+ * Method:    createPaymentProtocolMessage
+ * Signature: ([B)J
+ */
 JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolMessage_createPaymentProtocolMessage
-  (JNIEnv *, jclass);
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolMessage
+ * Method:    disposeNative
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolMessage_disposeNative
+  (JNIEnv *, jobject);
 
 #ifdef __cplusplus
 }

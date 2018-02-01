@@ -25,6 +25,22 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransaction_getVersion
 
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction
+ * Method:    getInputs
+ * Signature: ()[Lcom/breadwallet/core/BRCoreTransactionInput;
+ */
+JNIEXPORT jobjectArray JNICALL Java_com_breadwallet_core_BRCoreTransaction_getInputs
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreTransaction
+ * Method:    getOutputs
+ * Signature: ()[Lcom/breadwallet/core/BRCoreTransactionOutput;
+ */
+JNIEXPORT jobjectArray JNICALL Java_com_breadwallet_core_BRCoreTransaction_getOutputs
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreTransaction
  * Method:    getLockTime
  * Signature: ()J
  */
@@ -54,6 +70,22 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransaction_getTimestamp
  */
 JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreTransaction_serialize
   (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreTransaction
+ * Method:    addInput
+ * Signature: (Lcom/breadwallet/core/BRCoreTransactionInput;)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreTransaction_addInput
+  (JNIEnv *, jobject, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreTransaction
+ * Method:    addOutput
+ * Signature: (Lcom/breadwallet/core/BRCoreTransactionOutput;)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreTransaction_addOutput
+  (JNIEnv *, jobject, jobject);
 
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction

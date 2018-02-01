@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include <BRPeer.h>
+#include <BRInt.h>
 #include "BRPeer.h"
 #include "BRCoreJni.h"
 #include "com_breadwallet_core_BRCorePeer.h"
@@ -29,14 +30,19 @@
 /*
  * Class:     com_breadwallet_core_BRCorePeer
  * Method:    getAddress
- * Signature: ()Ljava/lang/String;
+ * Signature: ()[B
  */
-JNIEXPORT jstring JNICALL
-Java_com_breadwallet_core_BRCorePeer_getAddress
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCorePeer_getAddress
         (JNIEnv *env, jobject thisObject) {
     BRPeer *peer = (BRPeer *) getJNIReference (env, thisObject);
-    return (*env)->NewStringUTF (env, BRPeerHost(peer));
+
+    jsize addressLen = sizeof(peer->address.u8);
+    jbyteArray address = (*env)->NewByteArray (env, addressLen);
+    (*env)->SetByteArrayRegion (env, address, 0, addressLen, (jbyte *) peer->address.u8);
+
+    return address;
 }
+
 
 /*
  * Class:     com_breadwallet_core_BRCorePeer

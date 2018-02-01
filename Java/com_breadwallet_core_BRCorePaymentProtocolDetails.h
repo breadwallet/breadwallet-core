@@ -10,10 +10,26 @@ extern "C" {
 /*
  * Class:     com_breadwallet_core_BRCorePaymentProtocolDetails
  * Method:    createPaymentProtocolDetails
- * Signature: ()J
+ * Signature: ([B)J
  */
 JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolDetails_createPaymentProtocolDetails
-  (JNIEnv *, jclass);
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolDetails
+ * Method:    serialize
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolDetails_serialize
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolDetails
+ * Method:    disposeNative
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolDetails_disposeNative
+  (JNIEnv *, jobject);
 
 #ifdef __cplusplus
 }

@@ -27,9 +27,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#include "com_breadwallet_core_BRCorePaymentProtocolDetails.h"
-#include "com_breadwallet_core_BRCorePaymentProtocolPayment.h"
 #include "com_breadwallet_core_BRCorePaymentProtocolRequest.h"
+#include "com_breadwallet_core_BRCorePaymentProtocolPayment.h"
+// ACK
 #include "com_breadwallet_core_BRCorePaymentProtocolInvoiceRequest.h"
 #include "com_breadwallet_core_BRCorePaymentProtocolMessage.h"
 #include "com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage.h"

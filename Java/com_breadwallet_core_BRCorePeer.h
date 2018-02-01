@@ -10,9 +10,9 @@ extern "C" {
 /*
  * Class:     com_breadwallet_core_BRCorePeer
  * Method:    getAddress
- * Signature: ()Ljava/lang/String;
+ * Signature: ()[B
  */
-JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCorePeer_getAddress
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCorePeer_getAddress
   (JNIEnv *, jobject);
 
 /*

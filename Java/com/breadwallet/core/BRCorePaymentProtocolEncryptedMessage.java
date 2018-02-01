@@ -26,9 +26,35 @@ package com.breadwallet.core;
 
 
 public class BRCorePaymentProtocolEncryptedMessage extends BRCoreJniReference {
-    public BRCorePaymentProtocolEncryptedMessage () {
-        super (createPaymentProtocolEncryptedMessage ());
+    public BRCorePaymentProtocolEncryptedMessage (byte[] data) {
+        super (createPaymentProtocolEncryptedMessage (data));
     }
 
-    private static native long createPaymentProtocolEncryptedMessage ();
+    public native byte[] getMessage ();
+
+    public BRCoreKey getReceiverPublicKey () {
+        return new BRCoreKey (getReceiverPublicKeyReference());
+    }
+
+    public native long getReceiverPublicKeyReference ();
+
+    public BRCoreKey getSenderPublicKey () {
+        return new BRCoreKey (getSenderPublicKeyReference());
+    }
+
+    public native long getSenderPublicKeyReference ();
+
+    public native long getNonce ();
+
+    public native byte[] getSignature ();
+
+    public native byte[] getIdentifier ();
+
+    public native long getStatusCode ();
+
+    public native String getStatusMessage ();
+
+    private static native long createPaymentProtocolEncryptedMessage (byte[] data);
+
+    public native void disposeNative ();
 }

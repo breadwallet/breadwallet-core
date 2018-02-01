@@ -28,9 +28,39 @@ public class BRCorePaymentProtocolRequest extends BRCoreJniReference {
     //
     //
     //
-    public BRCorePaymentProtocolRequest() {
-        super(createPaymentProtocolRequest());
+    public BRCorePaymentProtocolRequest(byte[] data) {
+        super(createPaymentProtocolRequest(data));
     }
 
-    private static native long createPaymentProtocolRequest();
+    public native String getNetwork();
+
+    public native BRCoreTransactionOutput[] getOutputs ();
+
+    public native long getTime ();
+
+    public native long getExpires();
+
+    public native String getMemo();
+
+    public native String getPaymentURL ();
+
+    public native byte[] getMerchantData ();
+
+    public native long getVersion ();
+
+    public native String getPKIType ();
+
+    public native byte[] getPKIData ();
+
+    public native byte[] getSignature ();
+
+    public native byte[] getDigest ();
+
+    public native byte[][] getCerts ();
+
+    private static native long createPaymentProtocolRequest(byte[] data);
+
+    public native byte[] serialize ();
+
+    public native void disposeNative ();
 }

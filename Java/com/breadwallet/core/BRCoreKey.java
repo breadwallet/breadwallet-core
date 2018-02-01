@@ -45,7 +45,7 @@ public class BRCoreKey extends BRCoreJniReference {
         setSecret(secret.getBytes());
     }
 
-    private BRCoreKey (long jniReferenceAddress) {
+    protected BRCoreKey (long jniReferenceAddress) {
         super (jniReferenceAddress);
     }
 

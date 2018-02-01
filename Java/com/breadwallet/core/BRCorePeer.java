@@ -24,6 +24,8 @@
  */
 package com.breadwallet.core;
 
+import java.util.Arrays;
+
 /**
  *
  */
@@ -58,43 +60,46 @@ public class BRCorePeer extends BRCoreJniReference {
     }
 
 
-    public String getName () {
-        return getAddress() + ":" + getPort();
-    }
+//    public String getName () {
+//        return getAddress() + ":" + getPort();
+//    }
 
-    public native String getAddress ();
+    public native byte[] getAddress ();
 
     public native int getPort ();
 
-    public native void setEarliestKeyTime (long earliestKeyTime);
+    //
+    // These all require a PeerContext
+    //
+    private native void setEarliestKeyTime (long earliestKeyTime);
 
-    public native void setCurrentBlockHeight (long currentBlockHeight);
+    private native void setCurrentBlockHeight (long currentBlockHeight);
 
-    public ConnectStatus getConnectStatus () {
+    private ConnectStatus getConnectStatus () {
         return ConnectStatus.fromValue(getConnectStatusValue());
     }
 
-    public native int getConnectStatusValue ();
+    private native int getConnectStatusValue ();
 
-    public native void connect ();
+    private native void connect ();
 
-    public native void disconnect ();
+    private native void disconnect ();
 
-    public native void scheduleDisconnect (double secoonds);
+    private native void scheduleDisconnect (double secoonds);
 
-    public native void setNeedsFilterUpdate (boolean needsFilterUpdate);
+    private native void setNeedsFilterUpdate (boolean needsFilterUpdate);
 
-    public native String getHost ();
+    private native String getHost ();
 
-    public native long getVersion ();
+    private native long getVersion ();
 
-    public native String getUserAgent ();
+    private native String getUserAgent ();
 
-    public native long getLastBlock ();
+    private native long getLastBlock ();
 
-    public native long getFeePerKb ();
+    private native long getFeePerKb ();
 
-    public native double getPingTime ();
+    private native double getPingTime ();
 
     // send message
 
@@ -136,8 +141,9 @@ public class BRCorePeer extends BRCoreJniReference {
 
     @Override
     public String toString() {
-        return "BRCorePeer{" +
-                "jniReferenceAddress=" + jniReferenceAddress +
+        return "BRCorePeer {@" + jniReferenceAddress +
+                "\n  addr : " + Arrays.toString(getAddress()) +
+                "\n  port : " + getPort() +
                 '}';
     }
 }

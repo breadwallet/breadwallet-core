@@ -54,9 +54,17 @@ public class BRCoreTransaction extends BRCoreJniReference {
      */
     public native long getVersion ();
 
-    // getInputs
+    /**
+     *
+     * @return
+     */
+    public native BRCoreTransactionInput[] getInputs ();
 
-    // getOutputs
+    /**
+     *
+     * @return
+     */
+    public native BRCoreTransactionOutput[] getOutputs ();
 
     /**
      * The transaction's lockTime
@@ -88,9 +96,17 @@ public class BRCoreTransaction extends BRCoreJniReference {
      */
     public native byte[] serialize ();
 
-    // addInput
+    /**
+     *
+     * @param input
+     */
+    public native void addInput (BRCoreTransactionInput input);
 
-    // addOutput
+    /**
+     *
+     * @param output
+     */
+    public native void addOutput (BRCoreTransactionOutput output);
 
     /**
      * Shuffle the transaction's outputs.

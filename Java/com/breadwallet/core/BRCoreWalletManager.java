@@ -209,6 +209,10 @@ public class BRCoreWalletManager implements
     public void onTxAdded(BRCoreTransaction transaction) {
         System.err.println ("onTxAdded");
         System.err.println(transaction.toString());
+        for (BRCoreTransactionInput input : transaction.getInputs())
+            System.err.println (input.toString());
+        for (BRCoreTransactionOutput output : transaction.getOutputs())
+            System.err.println (output.toString());
     }
 
     @Override

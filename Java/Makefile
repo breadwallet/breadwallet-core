@@ -12,6 +12,8 @@ JNI_SRCS=com_breadwallet_core_BRCoreAddress.c \
 	com_breadwallet_core_BRCorePeer.c \
 	com_breadwallet_core_BRCorePeerManager.c \
 	com_breadwallet_core_BRCoreTransaction.c \
+	com_breadwallet_core_BRCoreTransactionInput.c \
+	com_breadwallet_core_BRCoreTransactionOutput.c \
 	com_breadwallet_core_BRCorePaymentProtocol.c \
 	com_breadwallet_core_BRCoreWallet.c \
 	BRCoreJni.c
@@ -24,20 +26,21 @@ JNI_HDRS=$(JNI_SRCS:.c=.h)
 JAVA_SRCS=com/breadwallet/core/BRCoreAddress.java \
 	com/breadwallet/core/BRCoreChainParams.java \
 	com/breadwallet/core/BRCoreJniReference.java \
+	com/breadwallet/core/BRCoreKey.java \
 	com/breadwallet/core/BRCoreMasterPubKey.java \
 	com/breadwallet/core/BRCoreMerkleBlock.java \
-	com/breadwallet/core/BRCorePeer.java \
-	com/breadwallet/core/BRCoreKey.java \
-	com/breadwallet/core/BRCorePeerManager.java \
-	com/breadwallet/core/BRCoreTransaction.java \
-	com/breadwallet/core/BRCoreWallet.java \
-	com/breadwallet/core/BRCoreWalletManager.java \
-	com/breadwallet/core/BRCorePaymentProtocolDetails.java \
-	com/breadwallet/core/BRCorePaymentProtocolRequest.java \
-	com/breadwallet/core/BRCorePaymentProtocolPayment.java \
+	com/breadwallet/core/BRCorePaymentProtocolEncryptedMessage.java \
 	com/breadwallet/core/BRCorePaymentProtocolInvoiceRequest.java \
 	com/breadwallet/core/BRCorePaymentProtocolMessage.java \
-	com/breadwallet/core/BRCorePaymentProtocolEncryptedMessage.java \
+	com/breadwallet/core/BRCorePaymentProtocolPayment.java \
+	com/breadwallet/core/BRCorePaymentProtocolRequest.java \
+	com/breadwallet/core/BRCorePeer.java \
+	com/breadwallet/core/BRCorePeerManager.java \
+	com/breadwallet/core/BRCoreTransaction.java \
+	com/breadwallet/core/BRCoreTransactionInput.java \
+	com/breadwallet/core/BRCoreTransactionOutput.java \
+	com/breadwallet/core/BRCoreWallet.java \
+	com/breadwallet/core/BRCoreWalletManager.java \
 	com/breadwallet/core/test/BRWalletManager.java
 
 JAVA_OBJS=$(JAVA_SRCS:.java=.class)
@@ -69,7 +72,8 @@ CFLAGS=-I$(JAVA_HOME)/include \
 	-Wno-nullability-completeness -Wno-format-extra-args -Wno-unknown-warning-option
 
 test: $(JNI_LIB) java_comp
-	java -Dwallet.test -classpath build com.breadwallet.core.test.BRWalletManager $(ARGS) # -D.
+	java -Xdebug -Xrunjdwp:transport=dt_socket,address=8008,server=y,suspend=n \
+		 -Dwallet.test -classpath build com.breadwallet.core.test.BRWalletManager $(ARGS) # -D.
 
 $(JNI_LIB): $(JNI_OBJS) $(CORE_OBJS)
 	cc -dynamiclib -o $(JNI_LIB) $(JNI_OBJS) $(CORE_OBJS)

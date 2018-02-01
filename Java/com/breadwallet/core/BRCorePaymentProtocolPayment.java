@@ -26,10 +26,20 @@ package com.breadwallet.core;
 
 
 public class BRCorePaymentProtocolPayment extends BRCoreJniReference {
-    public BRCorePaymentProtocolPayment() {
-        super(createPaymentProtocolPayment());
+    public BRCorePaymentProtocolPayment(byte[] data) {
+        super(createPaymentProtocolPayment(data));
     }
 
-    private static native long createPaymentProtocolPayment();
+    public native byte[] getMerchantData ();
+
+    public native BRCoreTransaction[] getTransactions ();
+
+    public native BRCoreTransactionOutput[] getRefundTo ();
+
+    public native String getMemo ();
+
+    private static native long createPaymentProtocolPayment(byte[] data);
+
+    public native void disposeNative ();
 
 }

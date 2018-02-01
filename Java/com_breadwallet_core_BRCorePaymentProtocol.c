@@ -20,17 +20,812 @@
 //  THE SOFTWARE.
 
 #include <BRPaymentProtocol.h>
+#include <stdlib.h>
+#include <malloc.h>
+#include <assert.h>
 #include "BRCoreJni.h"
 #include "com_breadwallet_core_BRCorePaymentProtocol.h"
 
+// ======================
+//
+// Request
+//
+
+
 /*
- * Class:     com_breadwallet_core_BRCorePaymentProtocolDetails
- * Method:    createPaymentProtocolDetails
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolRequest
+ * Method:    getNetwork
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolRequest_getNetwork
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolRequest *request =
+            (BRPaymentProtocolRequest *) getJNIReference(env, thisObject);
+    return (*env)->NewStringUTF (env, request->details->network);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolRequest
+ * Method:    getOutputs
+ * Signature: ()[Lcom/breadwallet/core/BRCoreTransactionOutput;
+ */
+JNIEXPORT jobjectArray JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolRequest_getOutputs
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolRequest *request =
+            (BRPaymentProtocolRequest *) getJNIReference(env, thisObject);
+
+    size_t outputCount = request->details->outCount;
+
+    jclass outputClass = (*env)->FindClass(env, "com/breadwallet/core/BRCoreTransactionOutput");
+    jmethodID outputConstructor = (*env)->GetMethodID(env, outputClass, "<init>", "(J)V");
+    assert (NULL != outputConstructor);
+
+    jobjectArray outputs = (*env)->NewObjectArray (env, outputCount, outputClass, 0);
+
+    for (int i = 0; i < outputCount; i++) {
+        BRTxOutput *output = (BRTxOutput *) calloc (1, sizeof (BRTxOutput));
+        BRTxOutputCopy (output, &request->details->outputs[i]);
+
+        jobject outputObject = (*env)->NewObject (env, outputClass, outputConstructor, (jlong) output);
+        (*env)->SetObjectArrayElement (env, outputs, i, outputObject);
+
+        (*env)->DeleteLocalRef (env, outputObject);
+    }
+
+    return outputs;
+
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolRequest
+ * Method:    getTime
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL
-Java_com_breadwallet_core_BRCorePaymentProtocolDetails_createPaymentProtocolDetails
-        (JNIEnv *env, jclass thisClass) {
-    return (jlong) 0;
+Java_com_breadwallet_core_BRCorePaymentProtocolRequest_getTime
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolRequest *request =
+            (BRPaymentProtocolRequest *) getJNIReference(env, thisObject);
+    return (jlong) request->details->time;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolRequest
+ * Method:    getExpires
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolRequest_getExpires
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolRequest *request =
+            (BRPaymentProtocolRequest *) getJNIReference(env, thisObject);
+    return (jlong) request->details->expires;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolRequest
+ * Method:    getMemo
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolRequest_getMemo
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolRequest *request =
+            (BRPaymentProtocolRequest *) getJNIReference(env, thisObject);
+    return (*env)->NewStringUTF (env, request->details->memo);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolRequest
+ * Method:    getPaymentURL
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolRequest_getPaymentURL
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolRequest *request =
+            (BRPaymentProtocolRequest *) getJNIReference(env, thisObject);
+    return (*env)->NewStringUTF (env, request->details->paymentURL);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolRequest
+ * Method:    getMerchantData
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolRequest_getMerchantData
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolRequest *request =
+            (BRPaymentProtocolRequest *) getJNIReference(env, thisObject);
+
+    jbyteArray merchantData = (*env)->NewByteArray (env, (jsize) request->details->merchDataLen);
+    (*env)->SetByteArrayRegion (env, merchantData, 0, (jsize) request->details->merchDataLen,
+                                (const jbyte *) request->details->merchantData);
+    return merchantData;
+}
+
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolRequest
+ * Method:    getVersion
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolRequest_getVersion
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolRequest *request =
+            (BRPaymentProtocolRequest *) getJNIReference(env, thisObject);
+    return request->version;
+}
+
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolRequest
+ * Method:    getPKIType
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolRequest_getPKIType
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolRequest *request =
+            (BRPaymentProtocolRequest *) getJNIReference(env, thisObject);
+    return (*env)->NewStringUTF (env, request->pkiType);
+}
+
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolRequest
+ * Method:    getPKIData
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolRequest_getPKIData
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolRequest *request =
+            (BRPaymentProtocolRequest *) getJNIReference(env, thisObject);
+
+    jbyteArray pkiData = (*env)->NewByteArray (env, (jsize) request->pkiDataLen);
+    (*env)->SetByteArrayRegion (env, pkiData, 0, (jsize) request->pkiDataLen,
+                                (const jbyte *) request->pkiData);
+    return pkiData;
+}
+
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolRequest
+ * Method:    getSignature
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolRequest_getSignature
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolRequest *request =
+            (BRPaymentProtocolRequest *) getJNIReference(env, thisObject);
+
+    jbyteArray signatureData = (*env)->NewByteArray (env, (jsize) request->sigLen);
+    (*env)->SetByteArrayRegion (env, signatureData, 0, (jsize) request->sigLen,
+                                (const jbyte *) request->signature);
+    return signatureData;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolRequest
+ * Method:    getDigest
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolRequest_getDigest
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolRequest *request =
+            (BRPaymentProtocolRequest *) getJNIReference(env, thisObject);
+
+    size_t digestCount = BRPaymentProtocolRequestDigest (request, NULL, 0);
+    jbyteArray digestData = (*env)->NewByteArray (env, digestCount);
+    uint8_t *digest = (uint8_t *) (*env)->GetByteArrayElements (env, digestData, 0);
+
+    BRPaymentProtocolRequestDigest (request, digest, digestCount);
+    (*env)->SetByteArrayRegion (env, digestData, 0, digestCount, (const jbyte *) digest);
+    return digestData;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolRequest
+ * Method:    getCerts
+ * Signature: ()[[B
+ */
+JNIEXPORT jobjectArray JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolRequest_getCerts
+        (JNIEnv *env, jobject thisObject){
+    BRPaymentProtocolRequest *request =
+            (BRPaymentProtocolRequest *) getJNIReference(env, thisObject);
+
+    size_t numberOfCerts = 0;
+    while (0 != BRPaymentProtocolRequestCert (request, NULL, 0, numberOfCerts))
+        numberOfCerts++;
+
+    jbyteArray byteArray  = (*env)->NewByteArray (env, 0);
+    jclass byteArrayClass = (*env)->GetObjectClass (env, byteArray);
+    (*env)->DeleteLocalRef (env, byteArray);
+
+    jobjectArray result = (*env)->NewObjectArray (env, (jsize) numberOfCerts, byteArrayClass, 0);
+
+    for (size_t index = 0; index < numberOfCerts; index++) {
+        size_t certLen = (size_t) BRPaymentProtocolRequestCert (request, NULL, 0, index);
+        jbyteArray certByteArray = (*env)->NewByteArray (env, (jsize) certLen);
+        uint8_t *certData = (uint8_t *) (*env)->GetByteArrayElements (env, certByteArray, 0);
+
+        BRPaymentProtocolRequestCert (request, certData, certLen, index);
+        (*env)->SetByteArrayRegion (env, certByteArray, 0, (jsize) certLen, (jbyte *) certData);
+
+        (*env)->SetObjectArrayElement (env, result, (jsize) index, certByteArray);
+        (*env)->DeleteLocalRef (env, certByteArray);
+    }
+
+    return result;
+
+}
+
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolRequest
+ * Method:    createPaymentProtocolRequest
+ * Signature: ([B)J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolRequest_createPaymentProtocolRequest
+        (JNIEnv *env, jclass thisClass, jbyteArray dataByteArray) {
+    size_t dataLen = (*env)->GetArrayLength(env, dataByteArray);
+    const uint8_t *data = (uint8_t *) (*env)->GetByteArrayElements(env, dataByteArray, 0);
+    return (jlong) BRPaymentProtocolRequestParse(data, dataLen);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolRequest
+ * Method:    serialize
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolRequest_serialize
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolRequest *request = (BRPaymentProtocolRequest *) getJNIReference (env, thisObject);
+
+    size_t dataLen = BRPaymentProtocolRequestSerialize (request, NULL, 0);
+    uint8_t *data = (uint8_t *) malloc (dataLen);
+    BRPaymentProtocolRequestSerialize (request, data, dataLen);
+
+    jbyteArray dataByteArray = (*env)->NewByteArray (env, dataLen);
+    (*env)->SetByteArrayRegion (env, dataByteArray, 0, dataLen, (jbyte *) data);
+
+    return dataByteArray;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolRequest
+ * Method:    disposeNative
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolRequest_disposeNative
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolDetails *details = (BRPaymentProtocolDetails *) getJNIReference (env, thisObject);
+    if (NULL != details) BRPaymentProtocolDetailsFree(details);
+}
+
+// ======================
+//
+// Payment
+//
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolPayment
+ * Method:    getMerchantData
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolPayment_getMerchantData
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolPayment *payment =
+            (BRPaymentProtocolPayment *) getJNIReference (env, thisObject);
+
+    jbyteArray merchantData = (*env)->NewByteArray (env, (jsize) payment->merchDataLen);
+    (*env)->SetByteArrayRegion (env, merchantData, 0, (jsize) payment->merchDataLen,
+                                (const jbyte *) payment->merchantData);
+    return merchantData;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolPayment
+ * Method:    getTransactions
+ * Signature: ()[Lcom/breadwallet/core/BRCoreTransaction;
+ */
+JNIEXPORT jobjectArray JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolPayment_getTransactions
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolPayment *payment =
+            (BRPaymentProtocolPayment *) getJNIReference (env, thisObject);
+
+    size_t objectCount = payment->txCount;
+
+    jclass objectClass = (*env)->FindClass(env, "com/breadwallet/core/BRCoreTransaction");
+    jmethodID objectConstructor = (*env)->GetMethodID(env, objectClass, "<init>", "(J)V");
+    assert (NULL != objectConstructor);
+
+    jobjectArray objects = (*env)->NewObjectArray (env, objectCount, objectClass, 0);
+
+    for (int i = 0; i < objectCount; i++) {
+        BRTransaction *transaction = BRTransactionCopy (payment->transactions[i]);
+
+        jobject object = (*env)->NewObject (env, objectClass, objectConstructor, (jlong) transaction);
+        (*env)->SetObjectArrayElement (env, objects, i, object);
+
+        (*env)->DeleteLocalRef (env, object);
+    }
+
+    return objects;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolPayment
+ * Method:    getRefundTo
+ * Signature: ()[Lcom/breadwallet/core/BRCoreTransactionOutput;
+ */
+JNIEXPORT jobjectArray JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolPayment_getRefundTo
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolPayment *payment =
+            (BRPaymentProtocolPayment *) getJNIReference (env, thisObject);
+
+    size_t objectCount = payment->refundToCount;
+
+    jclass objectClass = (*env)->FindClass(env, "com/breadwallet/core/BRCoreTransactionOutput");
+    jmethodID objectConstructor = (*env)->GetMethodID(env, objectClass, "<init>", "(J)V");
+    assert (NULL != objectConstructor);
+
+    jobjectArray objects = (*env)->NewObjectArray (env, objectCount, objectClass, 0);
+
+    for (int i = 0; i < objectCount; i++) {
+        BRTxOutput *target = (BRTxOutput *) calloc (1, sizeof (BRTxOutput));
+        BRTxOutputCopy (target, &payment->refundTo[i]);
+
+        jobject object = (*env)->NewObject (env, objectClass, objectConstructor, (jlong) target);
+        (*env)->SetObjectArrayElement (env, objects, i, object);
+
+        (*env)->DeleteLocalRef (env, object);
+    }
+
+    return objects;
+
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolPayment
+ * Method:    getMemo
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolPayment_getMemo
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolPayment *payment =
+            (BRPaymentProtocolPayment *) getJNIReference (env, thisObject);
+    return (*env)->NewStringUTF (env, payment->memo);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolPayment
+ * Method:    createPaymentProtocolPayment
+ * Signature: ([B)J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolPayment_createPaymentProtocolPayment
+        (JNIEnv *env, jclass thisClass, jbyteArray dataByteArray)  {
+    size_t dataLen = (*env)->GetArrayLength(env, dataByteArray);
+    const uint8_t *data = (uint8_t *) (*env)->GetByteArrayElements(env, dataByteArray, 0);
+    return (jlong) BRPaymentProtocolPaymentParse (data, dataLen);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolPayment
+ * Method:    disposeNative
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolPayment_disposeNative
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolPayment *payment =
+            (BRPaymentProtocolPayment *) getJNIReference (env, thisObject);
+    if (NULL != payment) BRPaymentProtocolPaymentFree (payment);
+}
+
+
+// ======================
+//
+// Invoice Request
+//
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolInvoiceRequest
+ * Method:    getSenderPublicKeyReference
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolInvoiceRequest_getSenderPublicKeyReference
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolInvoiceRequest *request =
+            (BRPaymentProtocolInvoiceRequest *) getJNIReference (env, thisObject);
+
+    BRKey *key = (BRKey *) malloc (sizeof (BRKey));
+    memcpy (key, &request->senderPubKey, sizeof (BRKey));
+    return (jlong)key;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolInvoiceRequest
+ * Method:    getAmount
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolInvoiceRequest_getAmount
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolInvoiceRequest *request =
+            (BRPaymentProtocolInvoiceRequest *) getJNIReference (env, thisObject);
+    return (jlong) request->amount;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolInvoiceRequest
+ * Method:    getPKIType
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolInvoiceRequest_getPKIType
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolInvoiceRequest *request =
+            (BRPaymentProtocolInvoiceRequest *) getJNIReference (env, thisObject);
+    return (*env)->NewStringUTF (env, request->pkiType);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolInvoiceRequest
+ * Method:    getPKIData
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolInvoiceRequest_getPKIData
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolInvoiceRequest *request =
+            (BRPaymentProtocolInvoiceRequest *) getJNIReference (env, thisObject);
+
+    jbyteArray data = (*env)->NewByteArray (env, (jsize) request->pkiDataLen);
+    (*env)->SetByteArrayRegion (env, data, 0, (jsize) request->pkiDataLen,
+                                (const jbyte *) request->pkiData);
+    return data;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolInvoiceRequest
+ * Method:    getMemo
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolInvoiceRequest_getMemo
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolInvoiceRequest *request =
+            (BRPaymentProtocolInvoiceRequest *) getJNIReference (env, thisObject);
+    return (*env)->NewStringUTF (env, request->memo);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolInvoiceRequest
+ * Method:    getNotifyURL
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolInvoiceRequest_getNotifyURL
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolInvoiceRequest *request =
+            (BRPaymentProtocolInvoiceRequest *) getJNIReference (env, thisObject);
+    return (*env)->NewStringUTF (env, request->notifyUrl);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolInvoiceRequest
+ * Method:    getSignature
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolInvoiceRequest_getSignature
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolInvoiceRequest *request =
+            (BRPaymentProtocolInvoiceRequest *) getJNIReference (env, thisObject);
+
+    jbyteArray data = (*env)->NewByteArray (env, (jsize) request->sigLen);
+    (*env)->SetByteArrayRegion (env, data, 0, (jsize) request->sigLen,
+                                (const jbyte *) request->signature);
+    return data;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolInvoiceRequest
+ * Method:    createPaymentProtocolInvoiceRequest
+ * Signature: ([B)J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolInvoiceRequest_createPaymentProtocolInvoiceRequest
+        (JNIEnv *env, jclass thisClass, jbyteArray dataByteArray) {
+    size_t dataLen = (*env)->GetArrayLength(env, dataByteArray);
+    const uint8_t *data = (uint8_t *) (*env)->GetByteArrayElements(env, dataByteArray, 0);
+    return (jlong) BRPaymentProtocolInvoiceRequestParse (data, dataLen);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolInvoiceRequest
+ * Method:    disposeNative
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolInvoiceRequest_disposeNative
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolInvoiceRequest *request =
+            (BRPaymentProtocolInvoiceRequest *) getJNIReference (env, thisObject);
+    if (NULL != request) BRPaymentProtocolInvoiceRequestFree (request);
+}
+
+// ======================
+//
+// Message
+//
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolMessage
+ * Method:    getMessageTypeValue
+ * Signature: ()I
+ */
+JNIEXPORT jint JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolMessage_getMessageTypeValue
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolMessage *message =
+            (BRPaymentProtocolMessage *) getJNIReference (env, thisObject);
+    return (jint) message->msgType;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolMessage
+ * Method:    getMessage
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolMessage_getMessage
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolMessage *message =
+            (BRPaymentProtocolMessage *) getJNIReference(env, thisObject);
+
+    jbyteArray data = (*env)->NewByteArray(env, (jsize) message->msgLen);
+    (*env)->SetByteArrayRegion(env, data, 0, (jsize) message->msgLen,
+                               (const jbyte *) message->message);
+    return data;
+}
+
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolMessage
+ * Method:    getStatusCode
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolMessage_getStatusCode
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolMessage *message =
+            (BRPaymentProtocolMessage *) getJNIReference (env, thisObject);
+    return (jlong) message->statusCode;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolMessage
+ * Method:    getStatusMessage
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolMessage_getStatusMessage
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolMessage *message =
+            (BRPaymentProtocolMessage *) getJNIReference (env, thisObject);
+    return (*env)->NewStringUTF (env, message->statusMsg);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolMessage
+ * Method:    getIdentifier
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolMessage_getIdentifier
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolMessage *message =
+            (BRPaymentProtocolMessage *) getJNIReference (env, thisObject);
+
+    jbyteArray data = (*env)->NewByteArray(env, (jsize) message->identLen);
+    (*env)->SetByteArrayRegion(env, data, 0, (jsize) message->identLen,
+                               (const jbyte *) message->identifier);
+    return data;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolMessage
+ * Method:    createPaymentProtocolMessage
+ * Signature: ([B)J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolMessage_createPaymentProtocolMessage
+        (JNIEnv *env, jclass thisClass, jbyteArray dataByteArray) {
+
+    size_t dataLen = (*env)->GetArrayLength(env, dataByteArray);
+    const uint8_t *data = (uint8_t *) (*env)->GetByteArrayElements(env, dataByteArray, 0);
+    return (jlong) BRPaymentProtocolMessageParse (data, dataLen);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolMessage
+ * Method:    disposeNative
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolMessage_disposeNative
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolMessage *message =
+            (BRPaymentProtocolMessage *) getJNIReference (env, thisObject);
+    if (NULL != message) BRPaymentProtocolMessageFree(message);
+}
+
+// ======================
+//
+// Encrypted Message
+//
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage
+ * Method:    getMessage
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage_getMessage
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolEncryptedMessage *message =
+            (BRPaymentProtocolEncryptedMessage *) getJNIReference(env, thisObject);
+
+    jbyteArray data = (*env)->NewByteArray(env, (jsize) message->msgLen);
+    (*env)->SetByteArrayRegion(env, data, 0, (jsize) message->msgLen,
+                               (const jbyte *) message->message);
+    return data;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage
+ * Method:    getReceiverPublicKeyReference
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage_getReceiverPublicKeyReference
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolEncryptedMessage *message =
+            (BRPaymentProtocolEncryptedMessage *) getJNIReference(env, thisObject);
+
+    BRKey *key = (BRKey *) malloc (sizeof (BRKey));
+    memcpy (key, &message->receiverPubKey, sizeof (BRKey));
+    return (jlong) key;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage
+ * Method:    getSenderPublicKeyReference
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage_getSenderPublicKeyReference
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolEncryptedMessage *message =
+            (BRPaymentProtocolEncryptedMessage *) getJNIReference(env, thisObject);
+
+    BRKey *key = (BRKey *) malloc (sizeof (BRKey));
+    memcpy (key, &message->senderPubKey, sizeof (BRKey));
+    return (jlong) key;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage
+ * Method:    getNonce
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage_getNonce
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolEncryptedMessage *message =
+            (BRPaymentProtocolEncryptedMessage *) getJNIReference(env, thisObject);
+    return (jlong) message->nonce;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage
+ * Method:    getSignature
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage_getSignature
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolEncryptedMessage *message =
+            (BRPaymentProtocolEncryptedMessage *) getJNIReference(env, thisObject);
+
+    jbyteArray data = (*env)->NewByteArray (env, (jsize) message->sigLen);
+    (*env)->SetByteArrayRegion (env, data, 0, (jsize) message->sigLen,
+                                (const jbyte *) message->signature);
+    return data;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage
+ * Method:    getIdentifier
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage_getIdentifier
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolEncryptedMessage *message =
+            (BRPaymentProtocolEncryptedMessage *) getJNIReference(env, thisObject);
+
+    jbyteArray data = (*env)->NewByteArray(env, (jsize) message->identLen);
+    (*env)->SetByteArrayRegion(env, data, 0, (jsize) message->identLen,
+                               (const jbyte *) message->identifier);
+    return data;
+
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage
+ * Method:    getStatusCode
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage_getStatusCode
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolEncryptedMessage *message =
+            (BRPaymentProtocolEncryptedMessage *) getJNIReference(env, thisObject);
+    return message->statusCode;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage
+ * Method:    getStatusMessage
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage_getStatusMessage
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolEncryptedMessage *message =
+            (BRPaymentProtocolEncryptedMessage *) getJNIReference(env, thisObject);
+    return (*env)->NewStringUTF (env, message->statusMsg);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage
+ * Method:    createPaymentProtocolEncryptedMessage
+ * Signature: ([B)J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage_createPaymentProtocolEncryptedMessage
+        (JNIEnv *env, jclass thisClass, jbyteArray dataByteArray) {
+    size_t dataLen = (*env)->GetArrayLength(env, dataByteArray);
+    const uint8_t *data = (uint8_t *) (*env)->GetByteArrayElements(env, dataByteArray, 0);
+    return (jlong) BRPaymentProtocolEncryptedMessageParse (data, dataLen);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage
+ * Method:    disposeNative
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage_disposeNative
+        (JNIEnv *env, jobject thisObject) {
+    BRPaymentProtocolEncryptedMessage *message =
+            (BRPaymentProtocolEncryptedMessage *) getJNIReference(env, thisObject);
+
+    if (NULL != message) BRPaymentProtocolEncryptedMessageFree(message);
 }
 

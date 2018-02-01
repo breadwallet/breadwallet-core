@@ -1,7 +1,7 @@
 /*
  * BreadWallet
  *
- * Created by Ed Gamble <ed@breadwallet.com> on 1/22/18.
+ * Created by Ed Gamble <ed@breadwallet.com> on 1/31/18.
  * Copyright (c) 2018 breadwallet LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -24,10 +24,35 @@
  */
 package com.breadwallet.core;
 
-public class BRCorePaymentProtocolDetails extends BRCoreJniReference {
-    public BRCorePaymentProtocolDetails () {
-        super (createPaymentProtocolDetails ());
+public class BRCoreTransactionOutput extends BRCoreJniReference {
+
+    public BRCoreTransactionOutput(String address,
+                                   long amount,
+                                   byte[] script) {
+        this(createTransactionOutput(address, amount, script));
     }
 
-    private static native long createPaymentProtocolDetails ();
+    public BRCoreTransactionOutput(long jniReferenceAddress) {
+        super(jniReferenceAddress);
+    }
+
+    protected static native long createTransactionOutput(String address,
+                                                         long amount,
+                                                         byte[] script);
+
+    public native String getAddress();
+
+    private native void setAddress(String address);
+
+    public native long getAmount();
+
+    public native byte[] getScript();
+
+    public String toString() {
+        return "BRCoreTransactionOutput {@" + jniReferenceAddress +
+                "\n  address: " + getAddress() +
+                "\n  amount : " + getAmount() +
+                "\n  scriptL: " + getScript().length +
+                '}';
+    }
 }
