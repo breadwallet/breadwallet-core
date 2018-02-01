@@ -81,6 +81,14 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolEncrypted
 
 /*
  * Class:     com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage
+ * Method:    serialize
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage_serialize
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage
  * Method:    disposeNative
  * Signature: ()V
  */

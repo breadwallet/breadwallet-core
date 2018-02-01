@@ -104,17 +104,17 @@ Java_com_breadwallet_core_BRCoreKey_setPrivKey
 /*
  * Class:     com_breadwallet_core_BRCoreKey
  * Method:    setSecret
- * Signature: ([B)V
+ * Signature: ([BZ)V
  */
 JNIEXPORT void JNICALL
 Java_com_breadwallet_core_BRCoreKey_setSecret
-        (JNIEnv *env, jobject thisObject, jbyteArray secretByteArray) {
+        (JNIEnv *env, jobject thisObject, jbyteArray secretByteArray, jboolean compressed) {
     BRKey *key = (BRKey *) getJNIReference(env, thisObject);
 
     const char *secretKey = (const char *)
             (*env)->GetByteArrayElements(env, secretByteArray, 0);
 
-    BRKeySetSecret (key, (const UInt256 *) secretKey, 1);
+    BRKeySetSecret (key, (const UInt256 *) secretKey, JNI_TRUE == compressed);
 }
 
 /*

@@ -25,14 +25,17 @@
 package com.breadwallet.core.test;
 
 import com.breadwallet.core.BRCoreChainParams;
+import com.breadwallet.core.BRCoreKey;
 import com.breadwallet.core.BRCoreMasterPubKey;
+import com.breadwallet.core.BRCorePaymentProtocolACK;
+import com.breadwallet.core.BRCorePaymentProtocolInvoiceRequest;
+import com.breadwallet.core.BRCorePaymentProtocolMessage;
 import com.breadwallet.core.BRCorePaymentProtocolRequest;
 import com.breadwallet.core.BRCoreWalletManager;
 
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.function.Consumer;
 
 /**
  *
@@ -58,19 +61,19 @@ public class BRWalletManager extends BRCoreWalletManager {
 
     @Override
     public void syncStarted() {
-        System.err.println ("syncStarted (BRWalletManager)");
+        System.err.println("syncStarted (BRWalletManager)");
     }
 
-    private static final double BIP39_CREATION_TIME= 1388534400.0;
+    private static final double BIP39_CREATION_TIME = 1388534400.0;
     private static final String SOME_RANDOM_TEST_PAPER_KEY =
             "axis husband project any sea patch drip tip spirit tide bring belt";
 
-    public static void main (String[] args) {
+    public static void main(String[] args) {
 
         runTests();
 
         Configuration configuration = parseArguments(
-                null == args || 0 == args.length ? new String[] { "-test" } : args);
+                null == args ? new String[] {""} : args);
 
         final BRCoreMasterPubKey masterPubKey =
                 new BRCoreMasterPubKey(SOME_RANDOM_TEST_PAPER_KEY.getBytes());
@@ -84,12 +87,12 @@ public class BRWalletManager extends BRCoreWalletManager {
                             BIP39_CREATION_TIME));
         }
 
-        if (!walletManagers.isEmpty())
-            describeWalletManager(walletManagers.get(0));
+        if (walletManagers.isEmpty()) return;
 
-        for (BRWalletManager walletManager : walletManagers) {
-            walletManager.getPeerManager().connect();;
-        }
+        describeWalletManager(walletManagers.get(0));
+
+        for (BRWalletManager walletManager : walletManagers)
+            walletManager.getPeerManager().connect();
 
         try {
             Thread.sleep(120 * 60 * 1000);
@@ -100,12 +103,10 @@ public class BRWalletManager extends BRCoreWalletManager {
             System.err.println("Interrupted - Done");
         }
 
-        for (BRWalletManager walletManager : walletManagers) {
-            walletManager.getPeerManager().disconnect();;
-        }
+        for (BRWalletManager walletManager : walletManagers)
+            walletManager.getPeerManager().disconnect();
 
         System.exit(0);
-
     }
 // From test.c
 //
@@ -133,7 +134,7 @@ public class BRWalletManager extends BRCoreWalletManager {
 //        185.35.138.84:8333 got feefilter with rate 1000
 //        185.35.138.84:8333 got 2000 header(s)
 
-    private static void describeWalletManager (BRWalletManager manager) {
+    private static void describeWalletManager(BRWalletManager manager) {
         System.err.println("MasterPubKey: " + manager.masterPubKey.toString());
         System.err.println("\nChainParams: " + manager.chainParams.toString());
         System.err.println("\n" + manager.toString());
@@ -143,7 +144,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.err.println("\n" + manager.getPeerManager());
     }
 
-    private static Configuration parseArguments (String[] args) {
+    private static Configuration parseArguments(String[] args) {
         List<BRCoreChainParams> listOfParams = new LinkedList<>();
 
         for (int i = 0; i < args.length; i++) {
@@ -157,8 +158,10 @@ public class BRWalletManager extends BRCoreWalletManager {
                 case "-cash":
                     listOfParams.add(BRCoreChainParams.bcashChainParams);
                     break;
+                case "":
+                    break;
                 default:
-                    System.err.println ("Unexpected argument (" + args[i] + ") - ignoring");
+                    System.err.println("Unexpected argument (" + args[i] + ") - ignoring");
                     break;
             }
         }
@@ -173,28 +176,114 @@ public class BRWalletManager extends BRCoreWalletManager {
         }
     }
 
-    private static void runTests () {
-        runPaymentProtocolTest();;
+    private static void runTests() {
+        System.out.println ("\nStarting Tests:");
+        runPaymentProtocolTests();
+        System.out.println ("Completed Tests\n");
     }
 
-     private static void runPaymentProtocolTest () {
+    private static void runPaymentProtocolTests () {
+        System.out.println ("    PaymentProtocol:");
+        runPaymentProtocolRequestTest();
+        runPaymentProtocolACKTest();
+//        runPaymentProtocolInvoiceRequestTest();
+        runPaymentProtocolMessageTest();
+
+    }
+
+    private static void runPaymentProtocolInvoiceRequestTest() {
+        System.out.println("        InvoiceRequest");
+
+        BRCoreKey sendKey = new BRCoreKey("0000000000000000000000000000000000000000000000000000000000000002", true);
+        BRCoreKey recvKey = new BRCoreKey("0000000000000000000000000000000000000000000000000000000000000002", true);
+
+        BRCorePaymentProtocolInvoiceRequest invoiceRequest =
+                new BRCorePaymentProtocolInvoiceRequest(sendKey, 0, null, null, null, null, null);
+
+
+        byte[] serialized = invoiceRequest.serialize();
+
+        BRCorePaymentProtocolInvoiceRequest invoiceRequestFromSerialized =
+                new BRCorePaymentProtocolInvoiceRequest(serialized);
+
+        assert (Arrays.equals(sendKey.getPubKey(), invoiceRequestFromSerialized.getSenderPublicKey().getPubKey()));
+    }
+
+    private static void runPaymentProtocolMessageTest () {
+        System.out.println ("        Message");
+
+        //
+        //
+        int intId[] = { 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00,
+                0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff, 0x00 };
+        byte id[] = asBytes(intId);
+
+        byte msg[] = getPaymentProtocolMessageBytes();
+
+//        BRPaymentProtocolMessage *msg1 = BRPaymentProtocolMessageNew(BRPaymentProtocolMessageTypeACK, (uint8_t *)buf,
+//                sizeof(buf) - 1, 1, NULL, id, sizeof(id));
+
+        BRCorePaymentProtocolMessage message =
+                new BRCorePaymentProtocolMessage(BRCorePaymentProtocolMessage.MessageType.ACK, msg,
+                        1, "", id);
+
+        byte[] serialized = message.serialize();
+
+        BRCorePaymentProtocolMessage messageSerialized =
+                new BRCorePaymentProtocolMessage(serialized);
+
+        assert (Arrays.equals(message.getMessage(), messageSerialized.getMessage()));
+
+    }
+
+    private static void runPaymentProtocolRequestTest() {
+        System.out.println ("        Request");
 
         // Request
-        byte requestData[] = getPaymentProtcolBytes1();
+        byte requestData[] = getPaymentProtocolRequestBytes();
         BRCorePaymentProtocolRequest request = new BRCorePaymentProtocolRequest(requestData);
         byte serializedRequestData[] = request.serialize();
         assert (Arrays.equals(serializedRequestData, requestData));
 
         // BRPaymentProtocolRequestCert
-         byte[][] certs = request.getCerts();
-         assert (3 == certs.length);
-
-        //
+        byte[][] certs = request.getCerts();
+        assert (3 == certs.length);
     }
 
-    private static byte[] getPaymentProtcolBytes1 () {
+    private static void runPaymentProtocolACKTest() {
+        System.out.println ("        ACK");
+
+        byte data[] = getPaymentProtocolAckBytes();
+        BRCorePaymentProtocolACK ack = new BRCorePaymentProtocolACK(data);
+        byte serialized[] = ack.serialize();
+        assert (Arrays.equals(data, serialized));
+
+        assert (!ack.getCustomerMemo().isEmpty());
+        System.out.println ("            Customer Memo: " + ack.getCustomerMemo());
+    }
+
+    private static byte[] getPaymentProtocolAckBytes() {
         int intBuffer[] =
-                { 0x08, 0x01, 0x12, 0x0b, 0x78, 0x35, 0x30, 0x39, 0x2b, 0x73, 0x68, 0x61, 0x32, 0x35, 0x36, 0x1a, 0xb8, 0x1d, 0x0a, 0xc9, 0x0b, 0x30, 0x82
+                {0x0a, 0x00, 0x12, 0x5f, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x20, 0x72, 0x65, 0x63, 0x65, 0x69, 0x76, 0x65
+                        , 0x64, 0x20, 0x62, 0x79, 0x20, 0x42, 0x69, 0x74, 0x50, 0x61, 0x79, 0x2e, 0x20, 0x49, 0x6e, 0x76, 0x6f, 0x69, 0x63, 0x65, 0x20, 0x77, 0x69, 0x6c, 0x6c, 0x20, 0x62, 0x65
+                        , 0x20, 0x6d, 0x61, 0x72, 0x6b, 0x65, 0x64, 0x20, 0x61, 0x73, 0x20, 0x70, 0x61, 0x69, 0x64, 0x20, 0x69, 0x66, 0x20, 0x74, 0x68, 0x65, 0x20, 0x74, 0x72, 0x61, 0x6e, 0x73
+                        , 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x20, 0x69, 0x73, 0x20, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x72, 0x6d, 0x65, 0x64, 0x2e
+                };
+        return asBytes(intBuffer);
+    }
+
+    private static byte[] getPaymentProtocolMessageBytes () {
+        int intBuffer[] =
+                { 0x0a, 0x00, 0x12, 0x5f, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x20, 0x72, 0x65, 0x63, 0x65, 0x69, 0x76, 0x65
+                , 0x64, 0x20, 0x62, 0x79, 0x20, 0x42, 0x69, 0x74, 0x50, 0x61, 0x79, 0x2e, 0x20, 0x49, 0x6e, 0x76, 0x6f, 0x69, 0x63, 0x65, 0x20, 0x77, 0x69, 0x6c, 0x6c, 0x20, 0x62, 0x65
+                , 0x20, 0x6d, 0x61, 0x72, 0x6b, 0x65, 0x64, 0x20, 0x61, 0x73, 0x20, 0x70, 0x61, 0x69, 0x64, 0x20, 0x69, 0x66, 0x20, 0x74, 0x68, 0x65, 0x20, 0x74, 0x72, 0x61, 0x6e, 0x73
+                , 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x20, 0x69, 0x73, 0x20, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x72, 0x6d, 0x65, 0x64, 0x2e
+        };
+        return asBytes (intBuffer);
+    }
+    private static byte[] getPaymentProtocolRequestBytes() {
+        int intBuffer[] =
+                {0x08, 0x01, 0x12, 0x0b, 0x78, 0x35, 0x30, 0x39, 0x2b, 0x73, 0x68, 0x61, 0x32, 0x35, 0x36, 0x1a, 0xb8, 0x1d, 0x0a, 0xc9, 0x0b, 0x30, 0x82
                         , 0x05, 0xc5, 0x30, 0x82, 0x04, 0xad, 0xa0, 0x03, 0x02, 0x01, 0x02, 0x02, 0x07, 0x2b, 0x85, 0x8c, 0x53, 0xee, 0xed, 0x2f, 0x30, 0x0d, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86
                         , 0xf7, 0x0d, 0x01, 0x01, 0x05, 0x05, 0x00, 0x30, 0x81, 0xca, 0x31, 0x0b, 0x30, 0x09, 0x06, 0x03, 0x55, 0x04, 0x06, 0x13, 0x02, 0x55, 0x53, 0x31, 0x10, 0x30, 0x0e, 0x06
                         , 0x03, 0x55, 0x04, 0x08, 0x13, 0x07, 0x41, 0x72, 0x69, 0x7a, 0x6f, 0x6e, 0x61, 0x31, 0x13, 0x30, 0x11, 0x06, 0x03, 0x55, 0x04, 0x07, 0x13, 0x0a, 0x53, 0x63, 0x6f, 0x74
@@ -344,14 +433,18 @@ public class BRWalletManager extends BRCoreWalletManager {
                         , 0x61, 0xf2, 0xcc, 0xab, 0x4e, 0xc8, 0x68, 0xb2, 0xde, 0x00, 0x0f, 0x24, 0x2d, 0xb7, 0x3f, 0xff, 0xb2, 0x69, 0x37, 0xcf, 0x83, 0xed, 0x6d, 0x2e, 0xfa, 0xa7, 0x71, 0xd2
                         , 0xd2, 0xc6, 0x97, 0x84, 0x4b, 0x83, 0x94, 0x8c, 0x98, 0x25, 0x2b, 0x5f, 0x35, 0x2e, 0xdd, 0x4f, 0xe9, 0x6b, 0x29, 0xcb, 0xe0, 0xc9, 0xca, 0x3d, 0x10, 0x7a, 0x3e, 0xb7
                         , 0x90, 0xda, 0xb5, 0xdd, 0xd7, 0x3d, 0xe6, 0xc7, 0x48, 0xf2, 0x04, 0x7d, 0xb4, 0x25, 0xc8, 0x0c, 0x39, 0x13, 0x54, 0x73, 0xca, 0xca, 0xd3, 0x61, 0x9b, 0xaa, 0xf2, 0x8e
-                        , 0x39, 0x1d, 0xa4, 0xa6, 0xc7, 0xb8, 0x2b, 0x74};
-
-        byte buffer[] = new byte[intBuffer.length];
-
-        for (int i = 0; i < intBuffer.length; i++)
-            buffer[i] = (byte) intBuffer[i];
-
-        return buffer;
+                        , 0x39, 0x1d, 0xa4, 0xa6, 0xc7, 0xb8, 0x2b, 0x74
+                };
+        return asBytes(intBuffer);
     }
 
+    private static byte[] asBytes (int ints[]) {
+        byte bytes[] = new byte[ints.length];
+
+        for (int i = 0; i < ints.length; i++)
+            bytes[i] = (byte) ints[i];
+
+        return bytes;
+
+    }
 }

@@ -29,6 +29,16 @@ public class BRCorePaymentProtocolInvoiceRequest extends BRCoreJniReference {
         super(createPaymentProtocolInvoiceRequest(data));
     }
 
+    public BRCorePaymentProtocolInvoiceRequest (BRCoreKey senderPublicKey, long amount,
+                                                String pkiType, byte[] pkiData,
+                                                String memo, String notifyURL,
+                                                byte[] signature) {
+        super (createPaymentProtocolInvoiceRequestFull(senderPublicKey, amount,
+                pkiType, pkiData,
+                memo, notifyURL,
+                signature));
+    }
+
     public BRCoreKey getSenderPublicKey () {
         return new BRCoreKey (getSenderPublicKeyReference());
     }
@@ -48,6 +58,13 @@ public class BRCorePaymentProtocolInvoiceRequest extends BRCoreJniReference {
     public native byte[] getSignature ();
 
     private static native long createPaymentProtocolInvoiceRequest(byte[] data);
+
+    private static native long createPaymentProtocolInvoiceRequestFull(BRCoreKey senderPublicKey, long amount,
+                                                                        String pkiType, byte[] pkiData,
+                                                                        String memo, String notifyURL,
+                                                                        byte[] signature);
+
+    public native byte[] serialize ();
 
     public native void disposeNative ();
 }

@@ -57,6 +57,22 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolMessage_c
 
 /*
  * Class:     com_breadwallet_core_BRCorePaymentProtocolMessage
+ * Method:    createPaymentProtocolMessageFull
+ * Signature: (I[BJLjava/lang/String;[B)J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolMessage_createPaymentProtocolMessageFull
+  (JNIEnv *, jclass, jint, jbyteArray, jlong, jstring, jbyteArray);
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolMessage
+ * Method:    serialize
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolMessage_serialize
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolMessage
  * Method:    disposeNative
  * Signature: ()V
  */

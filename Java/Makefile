@@ -33,6 +33,7 @@ JAVA_SRCS=com/breadwallet/core/BRCoreAddress.java \
 	com/breadwallet/core/BRCorePaymentProtocolInvoiceRequest.java \
 	com/breadwallet/core/BRCorePaymentProtocolMessage.java \
 	com/breadwallet/core/BRCorePaymentProtocolPayment.java \
+	com/breadwallet/core/BRCorePaymentProtocolACK.java \
 	com/breadwallet/core/BRCorePaymentProtocolRequest.java \
 	com/breadwallet/core/BRCorePeer.java \
 	com/breadwallet/core/BRCorePeerManager.java \
@@ -73,7 +74,8 @@ CFLAGS=-I$(JAVA_HOME)/include \
 
 test: $(JNI_LIB) java_comp
 	java -Xdebug -Xrunjdwp:transport=dt_socket,address=8008,server=y,suspend=n \
-		 -Dwallet.test -classpath build com.breadwallet.core.test.BRWalletManager $(ARGS) # -D.
+		 -Dwallet.test -classpath build -Djava.library.path=. \
+		 com.breadwallet.core.test.BRWalletManager $(ARGS) # -D.
 
 $(JNI_LIB): $(JNI_OBJS) $(CORE_OBJS)
 	cc -dynamiclib -o $(JNI_LIB) $(JNI_OBJS) $(CORE_OBJS)

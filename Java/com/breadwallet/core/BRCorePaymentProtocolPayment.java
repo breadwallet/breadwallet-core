@@ -36,9 +36,11 @@ public class BRCorePaymentProtocolPayment extends BRCoreJniReference {
 
     public native BRCoreTransactionOutput[] getRefundTo ();
 
-    public native String getMemo ();
+    public native String getMerchantMemo ();
 
     private static native long createPaymentProtocolPayment(byte[] data);
+
+    public native byte[] serialize ();
 
     public native void disposeNative ();
 

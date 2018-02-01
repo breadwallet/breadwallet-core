@@ -33,10 +33,10 @@ JNIEXPORT jobjectArray JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolPa
 
 /*
  * Class:     com_breadwallet_core_BRCorePaymentProtocolPayment
- * Method:    getMemo
+ * Method:    getMerchantMemo
  * Signature: ()Ljava/lang/String;
  */
-JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolPayment_getMemo
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolPayment_getMerchantMemo
   (JNIEnv *, jobject);
 
 /*
@@ -46,6 +46,14 @@ JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolPayment
  */
 JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolPayment_createPaymentProtocolPayment
   (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolPayment
+ * Method:    serialize
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolPayment_serialize
+  (JNIEnv *, jobject);
 
 /*
  * Class:     com_breadwallet_core_BRCorePaymentProtocolPayment

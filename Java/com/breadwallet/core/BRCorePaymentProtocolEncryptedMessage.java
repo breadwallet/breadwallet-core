@@ -56,5 +56,7 @@ public class BRCorePaymentProtocolEncryptedMessage extends BRCoreJniReference {
 
     private static native long createPaymentProtocolEncryptedMessage (byte[] data);
 
+    public native byte[] serialize ();
+
     public native void disposeNative ();
 }

@@ -40,9 +40,9 @@ public class BRCoreKey extends BRCoreJniReference {
         }
     }
 
-    public BRCoreKey (String secret) {
+    public BRCoreKey (String secret, boolean compressed) {
         this (createJniCoreKey());
-        setSecret(secret.getBytes());
+        setSecret(secret.getBytes(), compressed);
     }
 
     protected BRCoreKey (long jniReferenceAddress) {
@@ -57,7 +57,7 @@ public class BRCoreKey extends BRCoreJniReference {
 
     public native boolean setPrivKey(byte[] privKey);
 
-    private native void setSecret(byte[] secret);
+    private native void setSecret(byte[] secret, boolean compressed);
 
     public native byte[] compactSign(byte[] data);
 

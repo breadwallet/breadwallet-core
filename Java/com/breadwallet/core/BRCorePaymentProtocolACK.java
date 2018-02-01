@@ -1,7 +1,7 @@
 /*
  * BreadWallet
  *
- * Created by Ed Gamble <ed@breadwallet.com> on 1/30/18.
+ * Created by Ed Gamble <ed@breadwallet.com> on 2/1/18.
  * Copyright (c) 2018 breadwallet LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,18 +22,30 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#ifndef _Included_com_breadwallet_core_BRCorePaymentProtocol
-#define _Included_com_breadwallet_core_BRCorePaymentProtocol
-#ifdef __cplusplus
-extern "C" {
-#endif
-#include "com_breadwallet_core_BRCorePaymentProtocolRequest.h"
-#include "com_breadwallet_core_BRCorePaymentProtocolPayment.h"
-#include "com_breadwallet_core_BRCorePaymentProtocolACK.h"
-#include "com_breadwallet_core_BRCorePaymentProtocolInvoiceRequest.h"
-#include "com_breadwallet_core_BRCorePaymentProtocolMessage.h"
-#include "com_breadwallet_core_BRCorePaymentProtocolEncryptedMessage.h"
-#ifdef __cplusplus
+package com.breadwallet.core;
+
+public class BRCorePaymentProtocolACK extends BRCoreJniReference {
+    public BRCorePaymentProtocolACK(byte[] data) {
+        this(createPaymentProtocolACK(data));
+    }
+
+    protected BRCorePaymentProtocolACK(long jniReferenceAddress) {
+        super (jniReferenceAddress);
+    }
+
+    public native String getCustomerMemo ();
+
+    public native byte[] getMerchantData ();
+
+    public native BRCoreTransaction[] getTransactions ();
+
+    public native BRCoreTransactionOutput[] getRefundTo ();
+
+    public native String getMerchantMemo ();
+
+    private static native long createPaymentProtocolACK(byte[] data);
+
+    public native byte[] serialize ();
+
+    public native void disposeNative ();
 }
-#endif
-#endif
