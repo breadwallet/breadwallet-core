@@ -23,26 +23,26 @@ JNI_OBJS=$(JNI_SRCS:.c=.o)
 # JNI Header Files that we are interest in keeping (that are not empty)
 JNI_HDRS=$(JNI_SRCS:.c=.h)
 
-JAVA_SRCS=com/breadwallet/core/BRCoreAddress.java \
-	com/breadwallet/core/BRCoreChainParams.java \
-	com/breadwallet/core/BRCoreJniReference.java \
-	com/breadwallet/core/BRCoreKey.java \
-	com/breadwallet/core/BRCoreMasterPubKey.java \
-	com/breadwallet/core/BRCoreMerkleBlock.java \
-	com/breadwallet/core/BRCorePaymentProtocolEncryptedMessage.java \
-	com/breadwallet/core/BRCorePaymentProtocolInvoiceRequest.java \
-	com/breadwallet/core/BRCorePaymentProtocolMessage.java \
-	com/breadwallet/core/BRCorePaymentProtocolPayment.java \
-	com/breadwallet/core/BRCorePaymentProtocolACK.java \
-	com/breadwallet/core/BRCorePaymentProtocolRequest.java \
-	com/breadwallet/core/BRCorePeer.java \
-	com/breadwallet/core/BRCorePeerManager.java \
-	com/breadwallet/core/BRCoreTransaction.java \
-	com/breadwallet/core/BRCoreTransactionInput.java \
-	com/breadwallet/core/BRCoreTransactionOutput.java \
-	com/breadwallet/core/BRCoreWallet.java \
-	com/breadwallet/core/BRCoreWalletManager.java \
-	com/breadwallet/core/test/BRWalletManager.java
+JAVA_SRCS=root/com/breadwallet/core/BRCoreAddress.java \
+	root/com/breadwallet/core/BRCoreChainParams.java \
+	root/com/breadwallet/core/BRCoreJniReference.java \
+	root/com/breadwallet/core/BRCoreKey.java \
+	root/com/breadwallet/core/BRCoreMasterPubKey.java \
+	root/com/breadwallet/core/BRCoreMerkleBlock.java \
+	root/com/breadwallet/core/BRCorePaymentProtocolEncryptedMessage.java \
+	root/com/breadwallet/core/BRCorePaymentProtocolInvoiceRequest.java \
+	root/com/breadwallet/core/BRCorePaymentProtocolMessage.java \
+	root/com/breadwallet/core/BRCorePaymentProtocolPayment.java \
+    root/com/breadwallet/core/BRCorePaymentProtocolACK.java \
+	root/com/breadwallet/core/BRCorePaymentProtocolRequest.java \
+	root/com/breadwallet/core/BRCorePeer.java \
+	root/com/breadwallet/core/BRCorePeerManager.java \
+	root/com/breadwallet/core/BRCoreTransaction.java \
+	root/com/breadwallet/core/BRCoreTransactionInput.java \
+	root/com/breadwallet/core/BRCoreTransactionOutput.java \
+	root/com/breadwallet/core/BRCoreWallet.java \
+	root/com/breadwallet/core/BRCoreWalletManager.java \
+	root/com/breadwallet/core/test/BRWalletManager.java
 
 JAVA_OBJS=$(JAVA_SRCS:.java=.class)
 
