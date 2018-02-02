@@ -24,6 +24,8 @@
  */
 package com.breadwallet.core;
 
+import java.util.concurrent.Executor;
+
 /**
  * A BRCoreWalletManger instance manages a single wallet, and that wallet's individual connection
  * to the bitcoin network.  After instantiating a BRCoreWalletManager object, call
@@ -40,11 +42,9 @@ public class BRCoreWalletManager implements
 
     double earliestPeerTime;
 
-//    protected Optional<BRCoreWallet> wallet;
-    BRCoreWallet wallet;
+    BRCoreWallet wallet; // Optional<BRCoreWallet>
 
-//    protected Optional<BRCorePeerManager> peerManager;
-    BRCorePeerManager peerManager;
+    BRCorePeerManager peerManager; // Optional<BRCorePeerManager>
     
     //
     //
@@ -60,12 +60,6 @@ public class BRCoreWalletManager implements
     //
     // Wallet
     //
-    //    public Optional<BRCoreWallet> getWallet() {
-    //        if (null == wallet) {
-    //            wallet = Optional.of (createWallet());
-    //        }
-    //        return wallet;
-    //    }
     public BRCoreWallet getWallet () {
         if (null == wallet) {
             wallet = createWallet();
@@ -81,7 +75,20 @@ public class BRCoreWalletManager implements
 
     protected BRCoreWallet createWallet () {
         return new BRCoreWallet (loadTransactions(), masterPubKey,
-                new WrappedExceptionWalletListener (this));
+                createWalletListener());
+    }
+
+    /**
+     * Factory method to create a BRCoreWallet.Listener (or subtype).   This class,
+     * BRCoreWalletManager is a BRCoreWallet.Listener and thus `this` can be returned.
+     * However, as Listener methods are generally called from the Core, using JNI, it
+     * is *important* to 'wrap' this - like with WrappedExceptionWalletListener (which
+     * catches exceptions) or with
+     *
+     * @return a BRCoreWallet.Listener, like `this` or a `wrapped this`
+     */
+    protected BRCoreWallet.Listener createWalletListener () {
+        return new WrappedExceptionWalletListener (this);
     }
 
     //
@@ -118,7 +125,16 @@ public class BRCoreWalletManager implements
      */
     protected BRCorePeerManager createPeerManager (BRCoreWallet wallet) {
         return new BRCorePeerManager(chainParams, wallet, earliestPeerTime, loadBlocks(), loadPeers(),
-                new WrappedExceptionPeerManagerListener(this));
+                createPeerManagerListener());
+    }
+
+    /**
+     * Factory method to create a BRCorePeerManagerListener.  See comments for createWalletListener.
+     *
+     * @return A BRCorePeerManager.Listener, like `this` or a `wrapped this`
+     */
+    protected BRCorePeerManager.Listener createPeerManagerListener () {
+        return new WrappedExceptionPeerManagerListener (this);
     }
 
     //
@@ -185,16 +201,6 @@ public class BRCoreWalletManager implements
         System.err.println (String.format ("txPublished: %d", error));
     }
 
-    @Override
-    public BRCoreMerkleBlock createMerkleBlock(long jniReferenceAddress) {
-        return new BRCoreMerkleBlock (jniReferenceAddress);
-    }
-
-    @Override
-    public BRCorePeer createPeer(long jniReferenceAddress) {
-        return new BRCorePeer (jniReferenceAddress);
-    }
-
     //
     // BRCoreWallet.Listener
     //
@@ -223,16 +229,6 @@ public class BRCoreWalletManager implements
     @Override
     public void onTxDeleted(String hash, int notifyUser, int recommendRescan) {
         System.err.println ("onTxDeleted");
-    }
-
-    @Override
-    public BRCoreTransaction createTransaction(long jniReferenceAddress) {
-        return new BRCoreTransaction (jniReferenceAddress);
-    }
-
-    @Override
-    public BRCoreAddress createAddress(long jniReferenceAddress) {
-        return new BRCoreAddress (jniReferenceAddress);
     }
 
     //
@@ -328,25 +324,93 @@ public class BRCoreWalletManager implements
                 ex.printStackTrace(System.err);
             }
         }
+    }
 
-        @Override
-        public BRCoreMerkleBlock createMerkleBlock(long jniReferenceAddress) {
-            try { return listener.createMerkleBlock(jniReferenceAddress); }
-            catch (Exception ex) {
-                ex.printStackTrace(System.err);
-                return null;
-            }
+    // ============================================================================================
+    //
+    // Callbacks from Core, via JNI, run on a Core thread - they absolutely should not run on a
+    // Core thread.
+
+    //
+    // Executor Wrapped PeerManagerListener
+    //
+
+    public static class WrappedExecutorPeerManagerListener implements BRCorePeerManager.Listener {
+        BRCorePeerManager.Listener listener;
+        Executor executor;
+
+        public WrappedExecutorPeerManagerListener(BRCorePeerManager.Listener listener, Executor executor) {
+            this.listener = listener;
+            this.executor = executor;
         }
 
         @Override
-        public BRCorePeer createPeer(long jniReferenceAddress) {
-            try { return listener.createPeer(jniReferenceAddress); }
-            catch (Exception ex) {
-                ex.printStackTrace(System.err);
-                return null;
-            }
+        public void syncStarted() {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    listener.syncStarted();
+                }
+            });
+        }
+
+        @Override
+        public void syncStopped(final int error) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    listener.syncStopped(error);
+                }
+            });
+        }
+
+        @Override
+        public void txStatusUpdate() {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    listener.txStatusUpdate();
+                }
+            });
+        }
+
+        @Override
+        public void saveBlocks(final boolean replace, final BRCoreMerkleBlock[] blocks) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    listener.saveBlocks(replace, blocks);
+                }
+            });
+        }
+
+        @Override
+        public void savePeers(final boolean replace, final BRCorePeer[] peers) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    listener.savePeers(replace, peers);
+                }
+            });
+        }
+
+        @Override
+        public boolean networkIsReachable() {
+            return listener.networkIsReachable();
+        }
+
+        @Override
+        public void txPublished(final int error) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    listener.txPublished(error);
+                }
+            });
         }
     }
+
+    // ============================================================================================
 
     //
     // Exception Wrapped WalletListener
@@ -389,23 +453,61 @@ public class BRCoreWalletManager implements
                 ex.printStackTrace(System.err);
             }
         }
+    }
 
-        @Override
-        public BRCoreTransaction createTransaction(long jniReferenceAddress) {
-            try { return listener.createTransaction (jniReferenceAddress); }
-            catch (Exception ex) {
-                ex.printStackTrace(System.err);
-                return null;
-            }
+    // ============================================================================================
+
+    //
+    // Executor Wrapped WalletListener
+    //
+
+    static public class WrappedExecutorWalletListener implements BRCoreWallet.Listener {
+        private BRCoreWallet.Listener listener;
+        Executor executor;
+
+        public WrappedExecutorWalletListener(BRCoreWallet.Listener listener, Executor executor) {
+            this.listener = listener;
+            this.executor = executor;
         }
 
         @Override
-        public BRCoreAddress createAddress(long jniReferenceAddress) {
-            try { return listener.createAddress (jniReferenceAddress); }
-            catch (Exception ex) {
-                ex.printStackTrace(System.err);
-                return null;
-            }
+        public void balanceChanged(final long balance) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    listener.balanceChanged(balance);
+                }
+            });
+        }
+
+        @Override
+        public void onTxAdded(final BRCoreTransaction transaction) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    listener.onTxAdded (transaction);
+                }
+            });
+        }
+
+        @Override
+        public void onTxUpdated(final String hash, final int blockHeight, final int timeStamp) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    listener.onTxUpdated (hash, blockHeight, timeStamp);
+                }
+            });
+        }
+
+        @Override
+        public void onTxDeleted (final String hash, final int notifyUser, final int recommendRescan) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    listener.onTxDeleted(hash, notifyUser, recommendRescan);
+                }
+            });
         }
     }
 }

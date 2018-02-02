@@ -41,11 +41,6 @@ public class BRCoreWallet extends BRCoreJniReference
 
         // func txDeleted(_ txHash: UInt256, notifyUser: Bool, recommendRescan: Bool)
         void onTxDeleted(String hash, int notifyUser, final int recommendRescan);
-
-        //
-        BRCoreTransaction createTransaction (long jniReferenceAddress);
-        
-        BRCoreAddress createAddress (long jniReferenceAddress);
     }
 
     //

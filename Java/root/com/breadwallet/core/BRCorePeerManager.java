@@ -33,7 +33,7 @@ import java.util.concurrent.Executor;
 public class BRCorePeerManager extends BRCoreJniReference {
 
     //
-    //
+    // Callback interface from Core, via JNI.
     //
     interface Listener {
         // func syncStarted()
@@ -54,99 +54,8 @@ public class BRCorePeerManager extends BRCoreJniReference {
         // func networkIsReachable() -> Bool}
         boolean networkIsReachable();
 
+        // Called on publishTransaction
         void txPublished (int error);
-
-        BRCoreMerkleBlock createMerkleBlock (long jniReferenceAddress);
-        BRCorePeer createPeer (long jniReferenceAddress);
-    }
-
-    //
-    // A Listener that runs on a provided Executor.  This gets the Listener computation off of
-    // the Core thread.
-    //
-    public static class WrappedExecutorListener implements Listener {
-        Listener listener;
-        Executor executor;
-
-        public WrappedExecutorListener(Listener listener, Executor executor) {
-            this.listener = listener;
-            this.executor = executor;
-        }
-
-        @Override
-        public void syncStarted() {
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    listener.syncStarted();
-                }
-            });
-        }
-
-        @Override
-        public void syncStopped(final int error) {
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    listener.syncStopped(error);
-                }
-            });
-        }
-
-        @Override
-        public void txStatusUpdate() {
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    listener.txStatusUpdate();
-                }
-            });
-        }
-
-        @Override
-        public void saveBlocks(final boolean replace, final BRCoreMerkleBlock[] blocks) {
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    listener.saveBlocks(replace, blocks);
-                }
-            });
-        }
-
-        @Override
-        public void savePeers(final boolean replace, final BRCorePeer[] peers) {
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    listener.savePeers(replace, peers);
-                }
-            });
-        }
-
-        @Override
-        public boolean networkIsReachable() {
-            return listener.networkIsReachable();
-        }
-
-        @Override
-        public void txPublished(final int error) {
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    listener.txPublished(error);
-                }
-            });
-        }
-
-        @Override
-        public BRCoreMerkleBlock createMerkleBlock(long jniReferenceAddress) {
-            return listener.createMerkleBlock(jniReferenceAddress);
-        }
-
-        @Override
-        public BRCorePeer createPeer(long jniReferenceAddress) {
-            return listener.createPeer (jniReferenceAddress);
-        }
     }
 
     //
@@ -155,8 +64,8 @@ public class BRCorePeerManager extends BRCoreJniReference {
     protected BRCoreWallet wallet;
 
     //
-    // Weakly held (to avoid a likely self-reference) for use by JNI functions
-    // createCorePeerManager() and publishTransactionWithListener().
+    // Weakly held (to avoid a likely self-reference) for use by JNI function
+    // publishTransactionWithListener().
     //
     protected WeakReference<Listener> listener;
 
@@ -255,8 +164,17 @@ public class BRCorePeerManager extends BRCoreJniReference {
         publishTransactionWithListener(transaction, listener.get());
 
     }
-    public native void publishTransactionWithListener (BRCoreTransaction transaction,
-                                                       Listener listener);
+
+    /**
+     * A native method that will callback to BRCorePeerManager.Listener::txPublished.  We must
+     * pass in the Listener, so that the Core function BRPeerManagerPublishTx() will know where
+     * to callback into Java
+     *
+     * @param transaction
+     * @param listener
+     */
+    protected native void publishTransactionWithListener (BRCoreTransaction transaction,
+                                                          Listener listener);
 
 
     /**
@@ -282,6 +200,9 @@ public class BRCorePeerManager extends BRCoreJniReference {
 
     public native void disposeNative();
 
+    //
+    // toString()
+    //
     @Override
     public String toString() {
         return "BRCorePeerManager {@ " + jniReferenceAddress +

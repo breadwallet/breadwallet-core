@@ -7,14 +7,15 @@ JNI_LIB=libCore.jnilib
 JNI_SRCS=com_breadwallet_core_BRCoreAddress.c \
 	com_breadwallet_core_BRCoreChainParams.c \
 	com_breadwallet_core_BRCoreJniReference.c \
+	com_breadwallet_core_BRCoreKey.c \
 	com_breadwallet_core_BRCoreMasterPubKey.c \
 	com_breadwallet_core_BRCoreMerkleBlock.c \
+	com_breadwallet_core_BRCorePaymentProtocol.c \
 	com_breadwallet_core_BRCorePeer.c \
 	com_breadwallet_core_BRCorePeerManager.c \
 	com_breadwallet_core_BRCoreTransaction.c \
 	com_breadwallet_core_BRCoreTransactionInput.c \
 	com_breadwallet_core_BRCoreTransactionOutput.c \
-	com_breadwallet_core_BRCorePaymentProtocol.c \
 	com_breadwallet_core_BRCoreWallet.c \
 	BRCoreJni.c
 
@@ -33,7 +34,7 @@ JAVA_SRCS=root/com/breadwallet/core/BRCoreAddress.java \
 	root/com/breadwallet/core/BRCorePaymentProtocolInvoiceRequest.java \
 	root/com/breadwallet/core/BRCorePaymentProtocolMessage.java \
 	root/com/breadwallet/core/BRCorePaymentProtocolPayment.java \
-    root/com/breadwallet/core/BRCorePaymentProtocolACK.java \
+	root/com/breadwallet/core/BRCorePaymentProtocolACK.java \
 	root/com/breadwallet/core/BRCorePaymentProtocolRequest.java \
 	root/com/breadwallet/core/BRCorePeer.java \
 	root/com/breadwallet/core/BRCorePeerManager.java \
@@ -71,6 +72,8 @@ CFLAGS=-I$(JAVA_HOME)/include \
 	-I.. \
 	-I../secp256k1 \
 	-Wno-nullability-completeness -Wno-format-extra-args -Wno-unknown-warning-option
+
+compile: $(JNI_LIB) java_comp
 
 test: $(JNI_LIB) java_comp
 	java -Xdebug -Xrunjdwp:transport=dt_socket,address=8008,server=y,suspend=n \

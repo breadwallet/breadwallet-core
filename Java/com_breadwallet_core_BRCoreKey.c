@@ -22,6 +22,7 @@
 #include "BRCoreJni.h"
 #include <BRKey.h>
 #include <BRAddress.h>
+#include <stdlib.h>
 #include <malloc.h>
 #include <assert.h>
 #include "com_breadwallet_core_BRCoreKey.h"

@@ -173,7 +173,7 @@ Java_com_breadwallet_core_BRCorePeerManager_publishTransactionWithListener
     BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
     BRTransaction *transaction = (BRTransaction *) getJNIReference(env, transitionObject);
 
-    // Dangerous - make a global listener but what if PublishTx is never called?
+    // TODO: Dangerous - make a global listener but what if PublishTx is never called?
     jobject globalListener = (*env)->NewWeakGlobalRef (env, listenerObject);
     BRPeerManagerPublishTx(peerManager, transaction, globalListener, txPublished);
 }
@@ -294,7 +294,7 @@ syncStarted(void *info) {
     if (NULL == env) return;
 
     jobject listener = (*env)->NewLocalRef (env, (jobject) info);
-    if (NULL == listener) return; // GC reclaimed
+    if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
 
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
@@ -310,12 +310,13 @@ syncStopped(void *info, int error) {
     if (NULL == env) return;
 
     jobject listener = (*env)->NewLocalRef (env, (jobject) info);
-    if (NULL == listener) return; // GC reclaimed
+    if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
 
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
                                  "syncStopped",
                                  "(I)V");
+
     (*env)->CallVoidMethod(env, listener, listenerMethod, error);
     (*env)->DeleteLocalRef (env, listener);
 }
@@ -326,12 +327,13 @@ txStatusUpdate(void *info) {
     if (NULL == env) return;
 
     jobject listener = (*env)->NewLocalRef (env, (jobject) info);
-    if (NULL == listener) return; // GC reclaimed
+    if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
 
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
                                  "txStatusUpdate",
                                  "()V");
+
     (*env)->CallVoidMethod(env, listener, listenerMethod);
     (*env)->DeleteLocalRef (env, listener);
 }
@@ -342,7 +344,7 @@ saveBlocks(void *info, int replace, BRMerkleBlock *blocks[], size_t blockCount) 
     if (NULL == env) return;
 
     jobject listener = (*env)->NewLocalRef(env, (jobject) info);
-    if (NULL == listener) return; // GC reclaimed
+    if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
 
     // The saveBlocks callback
     jmethodID listenerMethod =
@@ -377,7 +379,7 @@ savePeers(void *info, int replace, const BRPeer peers[], size_t count) {
     if (NULL == env) return;
 
     jobject listener = (*env)->NewLocalRef (env, (jobject) info);
-    if (NULL == listener) return; // GC reclaimed
+    if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
 
     // The savePeers callback
     jmethodID listenerMethod =
@@ -415,7 +417,7 @@ networkIsReachable(void *info) {
     if (NULL == env) return 0;
 
     jobject listener = (*env)->NewLocalRef(env, (jobject) info);
-    if (NULL == listener) return 0; // GC reclaimed
+    if ((*env)->IsSameObject (env, listener, NULL)) return 0; // GC reclaimed
 
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
@@ -434,8 +436,10 @@ txPublished (void *info, int error) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
+    // Info is a GlobalWeakRef - by using NewLocalRef we save the reference, if it
+    // has not been reclaimed yet.
     jobject listener = (*env)->NewLocalRef (env, (jobject) info);
-    if (NULL == listener) return; // GC reclaimed
+    if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
 
     // Ensure this; see comment above (on txPublished use)
     (*env)->DeleteWeakGlobalRef (env, info);

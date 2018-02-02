@@ -95,7 +95,7 @@ public class BRWalletManager extends BRCoreWalletManager {
             walletManager.getPeerManager().connect();
 
         try {
-            Thread.sleep(120 * 60 * 1000);
+            Thread.sleep(20 * 60 * 1000);
             System.err.println("Times Up - Done");
 
             Thread.sleep(2 * 1000);
@@ -106,33 +106,22 @@ public class BRWalletManager extends BRCoreWalletManager {
         for (BRWalletManager walletManager : walletManagers)
             walletManager.getPeerManager().disconnect();
 
+        walletManagers.clear();
+        forceGC();
+
         System.exit(0);
     }
-// From test.c
-//
-//        ALL TESTS PASSED
-//        wallet created with first receive address: 15RBcXQMTfebbAfUFeBbcDfs1fVvPayWdU
-//                :::0 PeerManager: ChainParams: Port: 8333, MagicNumber: d9b4bef9
-//                :::0 PeerManager: Wallet: Balance: 0, FeePerKB: 50000
-//        sync started
-//        201.210.38.158:8333 connecting
-//        90.17.54.173:8333 connecting
-//        185.35.138.84:8333 connecting
-//        185.35.138.84:8333 socket connected
-//        185.35.138.84:8333 sending version
-//        185.35.138.84:8333 got version 70015, useragent:"/Satoshi:0.15.1/"
-//        185.35.138.84:8333 sending verack
-//        185.35.138.84:8333 got verack in 0.193193s
-//        185.35.138.84:8333 handshake completed
-//        185.35.138.84:8333 connected with lastblock: 505969
-//        185.35.138.84:8333 sending filterload
-//        185.35.138.84:8333 calling getheaders with 2 locators: [e2d0358276dcfdff72ce027d75b0b7d3b8c6ea3dc3e17ba70a00000000000000, 6fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000]
-//        185.35.138.84:8333 sending getheaders
-//        185.35.138.84:8333 dropping sendheaders, length 0, not implemented
-//        185.35.138.84:8333 got ping
-//        185.35.138.84:8333 sending pong
-//        185.35.138.84:8333 got feefilter with rate 1000
-//        185.35.138.84:8333 got 2000 header(s)
+
+    private static void forceGC () {
+        System.gc();
+        System.err.println ("Spinning");
+        List<Integer> ignore = new LinkedList<>();
+        for (int i = 0; i < 1000; i++)
+            for (int j = 0; j < 10000; j++)
+                ignore.add (j);
+        System.err.println ("Spinning Done");
+    }
+
 
     private static void describeWalletManager(BRWalletManager manager) {
         System.err.println("MasterPubKey: " + manager.masterPubKey.toString());
@@ -186,9 +175,8 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println ("    PaymentProtocol:");
         runPaymentProtocolRequestTest();
         runPaymentProtocolACKTest();
-//        runPaymentProtocolInvoiceRequestTest();
         runPaymentProtocolMessageTest();
-
+        runPaymentProtocolInvoiceRequestTest();
     }
 
     private static void runPaymentProtocolInvoiceRequestTest() {

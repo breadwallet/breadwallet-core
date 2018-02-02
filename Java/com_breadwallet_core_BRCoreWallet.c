@@ -535,7 +535,7 @@ balanceChanged(void *info, uint64_t balance) {
     if (NULL == env) return;
 
     jobject listener = (*env)->NewLocalRef (env, (jobject) info);
-    if (NULL == listener) return; // GC reclaimed
+    if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
 
     // The onBalanceChanged callback
     jmethodID listenerMethod =
@@ -556,7 +556,7 @@ txAdded(void *info, BRTransaction *tx) {
     if (NULL == env) return;
 
     jobject listener = (*env)->NewLocalRef(env, (jobject) info);
-    if (NULL == listener) return; // GC reclaimed
+    if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
 
     // The onTxAdded listener
     jmethodID listenerMethod =
@@ -618,7 +618,7 @@ txUpdated(void *info, const UInt256 txHashes[], size_t count, uint32_t blockHeig
     if (NULL == env) return;
 
     jobject listener = (*env)->NewLocalRef (env, (jobject) info);
-    if (NULL == listener) return; // GC reclaimed
+    if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
 
     // The onTxUpdated callback
     jmethodID listenerMethod =
@@ -646,7 +646,7 @@ txDeleted(void *info, UInt256 txHash, int notifyUser, int recommendRescan) {
     if (NULL == env) return;
 
     jobject listener = (*env)->NewLocalRef (env, (jobject) info);
-    if (NULL == listener) return; // GC reclaimed
+    if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
 
     // The onTxDeleted callback
     jmethodID listenerMethod =
