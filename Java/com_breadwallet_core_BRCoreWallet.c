@@ -529,7 +529,8 @@ JNIEXPORT void JNICALL
 Java_com_breadwallet_core_BRCoreWallet_disposeNative
         (JNIEnv *env, jobject thisObject) {
     BRWallet *wallet = (BRWallet *) getJNIReference(env, thisObject);
-    // TODO: Locate 'globalListener', then DeleteWeakGlobalRef() to save global reference space.
+
+    // Locate 'globalListener', then DeleteWeakGlobalRef() to save global reference space.
     if (NULL != wallet) {
         jfieldID listenerField = (*env)->GetFieldID (env, (*env)->GetObjectClass (env, thisObject),
                                                      "listener",

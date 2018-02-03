@@ -29,15 +29,21 @@ package com.breadwallet.core;
  */
 public class BRCoreMasterPubKey extends BRCoreJniReference {
 
-    public BRCoreMasterPubKey (byte[] phrase) {
-        this (createJniCoreMasterPubKey(phrase));
+    public native byte[] getPubKey ();
+
+    public BRCoreMasterPubKey (byte[] bytes, boolean isPaperKey) {
+        this (isPaperKey
+                ? createJniCoreMasterPubKeyFromPhrase(bytes)
+                : createJniCoreMasterPubKeyFromPubKey(bytes));
     }
 
     private BRCoreMasterPubKey (long jniReferenceAddress) {
         super (jniReferenceAddress);
     }
 
-    private static native long createJniCoreMasterPubKey (byte[] phrase);
+    private static native long createJniCoreMasterPubKeyFromPhrase (byte[] phrase);
+
+    private static native long createJniCoreMasterPubKeyFromPubKey (byte[] phrase);
 
     public static native byte[] bip32BitIDKey(byte[] seed, int index, String uri);
 

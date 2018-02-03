@@ -78,7 +78,7 @@ public class BRWalletManager extends BRCoreWalletManager {
                 null == args ? new String[] {""} : args);
 
         final BRCoreMasterPubKey masterPubKey =
-                new BRCoreMasterPubKey(SOME_RANDOM_TEST_PAPER_KEY.getBytes());
+                new BRCoreMasterPubKey(SOME_RANDOM_TEST_PAPER_KEY.getBytes(), true);
 
         final List<BRWalletManager> walletManagers = new LinkedList<>();
 
@@ -170,6 +170,7 @@ public class BRWalletManager extends BRCoreWalletManager {
     private static void runTests() {
         System.out.println ("\nStarting Tests:");
         runGCTests();
+        runMasterPubKeyTests();
         runPaymentProtocolTests();
         System.out.println ("Completed Tests\n");
     }
@@ -178,7 +179,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println ("    GC:");
 
         final BRCoreMasterPubKey masterPubKey =
-                new BRCoreMasterPubKey(SOME_RANDOM_TEST_PAPER_KEY.getBytes());
+                new BRCoreMasterPubKey(SOME_RANDOM_TEST_PAPER_KEY.getBytes(), true);
 
         final BRCoreChainParams chainParams =
                 BRCoreChainParams.testnetChainParams;
@@ -197,6 +198,14 @@ public class BRWalletManager extends BRCoreWalletManager {
         forceGC();
     }
 
+    private static void runMasterPubKeyTests () {
+        System.out.println ("    MasterPubKey:");
+
+        BRCoreMasterPubKey keyFromPaperKey = new BRCoreMasterPubKey(SOME_RANDOM_TEST_PAPER_KEY.getBytes(), true);
+        byte[] keyPubKey = keyFromPaperKey.getPubKey();
+        BRCoreMasterPubKey keyFromBytes = new BRCoreMasterPubKey(keyPubKey, false);
+        assert (Arrays.equals(keyPubKey, keyFromBytes.getPubKey()));
+    }
 
     private static void runPaymentProtocolTests () {
         System.out.println ("    PaymentProtocol:");

@@ -9,10 +9,26 @@ extern "C" {
 #endif
 /*
  * Class:     com_breadwallet_core_BRCoreMasterPubKey
- * Method:    createJniCoreMasterPubKey
+ * Method:    getPubKey
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreMasterPubKey_getPubKey
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreMasterPubKey
+ * Method:    createJniCoreMasterPubKeyFromPhrase
  * Signature: ([B)J
  */
-JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKey
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKeyFromPhrase
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreMasterPubKey
+ * Method:    createJniCoreMasterPubKeyFromPubKey
+ * Signature: ([B)J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKeyFromPubKey
   (JNIEnv *, jclass, jbyteArray);
 
 /*

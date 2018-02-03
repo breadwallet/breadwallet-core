@@ -22,13 +22,32 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include <string.h>
+#include <BRBIP32Sequence.h>
+#include <assert.h>
 #include "BRBIP39Mnemonic.h"
 #include "BRBIP32Sequence.h"
 #include "BRCoreJni.h"
 #include "com_breadwallet_core_BRCoreMasterPubKey.h"
 
+/*
+ * Class:     com_breadwallet_core_BRCoreMasterPubKey
+ * Method:    getPubKey
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreMasterPubKey_getPubKey
+        (JNIEnv *env, jobject thisObject) {
+    BRMasterPubKey *key = (BRMasterPubKey *) getJNIReference (env, thisObject);
+
+    jsize      pubKeyLen = sizeof(key->pubKey);
+    jbyteArray pubKey    = (*env)->NewByteArray (env, pubKeyLen);
+    (*env)->SetByteArrayRegion (env, pubKey, 0, pubKeyLen, (const jbyte *) key->pubKey);
+
+    return pubKey;
+}
+
+
 JNIEXPORT jlong JNICALL
-Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKey
+Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKeyFromPhrase
         (JNIEnv *env, jclass thisClass,
          jbyteArray phrase) {
 
@@ -86,6 +105,27 @@ Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKey
 
     return (jlong) resKey;
 
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreMasterPubKey
+ * Method:    createJniCoreMasterPubKeyFromPubKey
+ * Signature: ([B)J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKeyFromPubKey
+        (JNIEnv *env, jclass thisClass,
+         jbyteArray phrase) {
+
+    if (setJvm(env) != JNI_OK) return 0;
+
+    jsize phraseLength = (*env)->GetArrayLength (env, phrase);
+    jbyte *phraseBytes = (*env)->GetByteArrayElements (env, phrase, 0);
+    assert (phraseLength == 33);
+
+    BRMasterPubKey *key = (BRMasterPubKey *) calloc (1, sizeof (BRMasterPubKey));
+    memcpy(key->pubKey, phraseBytes, 33);
+
+    return (jlong) key;
 }
 
 /*

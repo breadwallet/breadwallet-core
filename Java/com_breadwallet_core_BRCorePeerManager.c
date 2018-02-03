@@ -289,8 +289,21 @@ JNIEXPORT void JNICALL
 Java_com_breadwallet_core_BRCorePeerManager_disposeNative
         (JNIEnv *env, jobject thisObject) {
     BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
-    // TODO: Locate 'globalListener', then DeleteWeakGlobalRef() to save global reference space.
-    if (NULL != peerManager) BRPeerManagerFree(peerManager);
+
+    // Locate 'globalListener', then DeleteWeakGlobalRef() to save global reference space.
+    if (NULL != peerManager) {
+        jfieldID listenerField = (*env)->GetFieldID (env, (*env)->GetObjectClass (env, thisObject),
+                                                     "listener",
+                                                     "Ljava/lang/ref/WeakReference;");
+        assert (NULL != listenerField);
+
+        jweak listenerWeakGlobalRef = (*env)->GetObjectField (env, thisObject, listenerField);
+        if (!(*env)->IsSameObject (env, listenerWeakGlobalRef, NULL)) {
+            (*env)->DeleteWeakGlobalRef (env, listenerWeakGlobalRef);
+        }
+
+        BRPeerManagerFree(peerManager);
+    }
 }
 
 
