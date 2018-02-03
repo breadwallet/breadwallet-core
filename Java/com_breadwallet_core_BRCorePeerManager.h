@@ -106,10 +106,18 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCorePeerManager_getRelayCoun
 /*
  * Class:     com_breadwallet_core_BRCorePeerManager
  * Method:    createCorePeerManager
- * Signature: (Lcom/breadwallet/core/BRCoreChainParams;Lcom/breadwallet/core/BRCoreWallet;D[Lcom/breadwallet/core/BRCoreMerkleBlock;[Lcom/breadwallet/core/BRCorePeer;Lcom/breadwallet/core/BRCorePeerManager/Listener;)J
+ * Signature: (Lcom/breadwallet/core/BRCoreChainParams;Lcom/breadwallet/core/BRCoreWallet;D[Lcom/breadwallet/core/BRCoreMerkleBlock;[Lcom/breadwallet/core/BRCorePeer;)J
  */
 JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCorePeerManager_createCorePeerManager
-  (JNIEnv *, jclass, jobject, jobject, jdouble, jobjectArray, jobjectArray, jobject);
+  (JNIEnv *, jclass, jobject, jobject, jdouble, jobjectArray, jobjectArray);
+
+/*
+ * Class:     com_breadwallet_core_BRCorePeerManager
+ * Method:    installListener
+ * Signature: (Lcom/breadwallet/core/BRCorePeerManager/Listener;)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCorePeerManager_installListener
+  (JNIEnv *, jobject, jobject);
 
 /*
  * Class:     com_breadwallet_core_BRCorePeerManager

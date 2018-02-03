@@ -207,8 +207,7 @@ Java_com_breadwallet_core_BRCorePeerManager_createCorePeerManager
          jobject objWallet,
          jdouble dblEarliestKeyTime,
          jobjectArray objBlocksArray,
-         jobjectArray objPeersArray,
-         jobject objListener) {
+         jobjectArray objPeersArray) {
     if (setJvm(env) != JNI_OK) return 0;
 
     BRChainParams *params = (BRChainParams *) getJNIReference(env, objParams);
@@ -244,14 +243,34 @@ Java_com_breadwallet_core_BRCorePeerManager_createCorePeerManager
     if (NULL != blocks) free(blocks);
     if (NULL != peers ) free(peers);
 
+    return (jlong) result;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePeerManager
+ * Method:    installListener
+ * Signature: (Lcom/breadwallet/core/BRCorePeerManager/Listener;)V
+ */
+JNIEXPORT void
+JNICALL Java_com_breadwallet_core_BRCorePeerManager_installListener
+        (JNIEnv *env, jobject thisObject, jobject listenerObject) {
+
+    BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
+
     // TODO: Reclaim the globalListener
     //   Save in the PeerManager simply as Object; reference then delete on dispose.
     //
     // 'WeakGlobal' allows GC and prevents cross-thread SEGV
-    jobject globalListener = (*env)->NewWeakGlobalRef (env, objListener);
+    jobject listenerWeakRefGlobal = (*env)->NewWeakGlobalRef(env, listenerObject);
+
+    jfieldID listenerField = (*env)->GetFieldID(env, (*env)->GetObjectClass(env, thisObject),
+                                                "listener",
+                                                "Ljava/lang/ref/WeakReference;");
+    assert (NULL != listenerField);
+    (*env)->SetObjectField(env, thisObject, listenerField, listenerWeakRefGlobal);
 
     // Fill in callbacks
-    BRPeerManagerSetCallbacks (result, (void *) globalListener,
+    BRPeerManagerSetCallbacks (peerManager, (void *) listenerWeakRefGlobal,
                                syncStarted,
                                syncStopped,
                                txStatusUpdate,
@@ -259,8 +278,6 @@ Java_com_breadwallet_core_BRCorePeerManager_createCorePeerManager
                                savePeers,
                                networkIsReachable,
                                threadCleanup);
-
-    return (jlong) result;
 }
 
 /*

@@ -44,8 +44,7 @@ JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_BRCoreWallet_createJniCoreWallet
         (JNIEnv *env, jclass thisClass,
          jobjectArray objTransactionsArray,
-         jobject objMasterPubKey,
-         jobject objListener) {
+         jobject objMasterPubKey) {
 
     BRMasterPubKey *masterPubKey = (BRMasterPubKey *) getJNIReference(env, objMasterPubKey);
 
@@ -59,22 +58,38 @@ Java_com_breadwallet_core_BRCoreWallet_createJniCoreWallet
         transactions[index] = transaction;
     }
 
-    BRWallet *result = BRWalletNew(transactions, transactionsCount, *masterPubKey);
+    return (jlong) BRWalletNew(transactions, transactionsCount, *masterPubKey);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreWallet
+ * Method:    installListener
+ * Signature: (Lcom/breadwallet/core/BRCoreWallet/Listener;)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreWallet_installListener
+        (JNIEnv *env, jobject thisObject, jobject listenerObject) {
+
+    BRWallet *wallet = (BRWallet *) getJNIReference (env, thisObject);
 
     // TODO: Reclaim the globalListener
     //   Save in the PeerManager simply as Object; reference then delete on dispose.
     //
     // 'WeakGlobal' allows GC and prevents cross-thread SEGV
-    jobject globalListener = (*env)->NewWeakGlobalRef (env, objListener);
+    jobject listenerWeakRefGlobal = (*env)->NewWeakGlobalRef (env, listenerObject);
 
-    BRWalletSetCallbacks(result, globalListener,
+    jfieldID listenerField = (*env)->GetFieldID (env, (*env)->GetObjectClass (env, thisObject),
+                                                 "listener",
+                                                 "Ljava/lang/ref/WeakReference;");
+    assert (NULL != listenerField);
+    (*env)->SetObjectField (env, thisObject, listenerField, listenerWeakRefGlobal);
+
+    BRWalletSetCallbacks(wallet, listenerWeakRefGlobal,
                          balanceChanged,
                          txAdded,
                          txUpdated,
                          txDeleted);
-
-    return (jlong) result;
 }
+
 
 /*
  * Class:     com_breadwallet_core_BRCoreWallet
@@ -515,7 +530,19 @@ Java_com_breadwallet_core_BRCoreWallet_disposeNative
         (JNIEnv *env, jobject thisObject) {
     BRWallet *wallet = (BRWallet *) getJNIReference(env, thisObject);
     // TODO: Locate 'globalListener', then DeleteWeakGlobalRef() to save global reference space.
-    if (NULL != wallet) BRWalletFree(wallet);
+    if (NULL != wallet) {
+        jfieldID listenerField = (*env)->GetFieldID (env, (*env)->GetObjectClass (env, thisObject),
+                                                     "listener",
+                                                     "Ljava/lang/ref/WeakReference;");
+        assert (NULL != listenerField);
+
+        jweak listenerWeakGlobalRef = (*env)->GetObjectField (env, thisObject, listenerField);
+        if (!(*env)->IsSameObject (env, listenerWeakGlobalRef, NULL)) {
+            (*env)->DeleteWeakGlobalRef (env, listenerWeakGlobalRef);
+        }
+
+        BRWalletFree(wallet);
+    }
 }
 
 //

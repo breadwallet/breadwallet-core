@@ -77,8 +77,9 @@ public class BRCorePeerManager extends BRCoreJniReference {
                              BRCorePeer[] peers,
                              Listener listener) {
         // double time to int time.
-        super(createCorePeerManager(params, wallet, earliestKeyTime, blocks, peers, listener));
-        this.listener = new WeakReference<>(listener);
+        super(createCorePeerManager(params, wallet, earliestKeyTime, blocks, peers));
+        installListener(listener);
+        assert (null != this.listener);
         this.wallet = wallet;
     }
 
@@ -191,8 +192,9 @@ public class BRCorePeerManager extends BRCoreJniReference {
                                                      BRCoreWallet wallet,
                                                      double earliestKeyTime, // int
                                                      BRCoreMerkleBlock[] blocks,
-                                                     BRCorePeer[] peers,
-                                                     Listener listener);
+                                                     BRCorePeer[] peers);
+
+    protected native void installListener (BRCorePeerManager.Listener listener);
 
     //
     // Finalization

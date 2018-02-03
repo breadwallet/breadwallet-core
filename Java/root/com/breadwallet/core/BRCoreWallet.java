@@ -24,6 +24,8 @@
  */
 package com.breadwallet.core;
 
+import java.lang.ref.WeakReference;
+
 /**
  *
  */
@@ -46,16 +48,22 @@ public class BRCoreWallet extends BRCoreJniReference
     //
     //
     //
+
+    protected WeakReference<Listener> listener = null;
+
     public BRCoreWallet(BRCoreTransaction[] transactions,
                         BRCoreMasterPubKey masterPubKey,
                         Listener listener)
     {
-        super (createJniCoreWallet(transactions, masterPubKey, listener));
+        super (createJniCoreWallet(transactions, masterPubKey));
+        installListener (listener);
+        assert (null != this.listener);
     }
 
     protected static native long createJniCoreWallet (BRCoreTransaction[] transactions,
-                                                      BRCoreMasterPubKey masterPubKey,
-                                                      Listener listener);
+                                                      BRCoreMasterPubKey masterPubKey);
+
+    protected native void installListener (Listener listener);
 
     // returns the first unused external address
     // BRAddress BRWalletReceiveAddress(BRWallet *wallet);

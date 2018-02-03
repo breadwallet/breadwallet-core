@@ -31,6 +31,8 @@ import com.breadwallet.core.BRCorePaymentProtocolACK;
 import com.breadwallet.core.BRCorePaymentProtocolInvoiceRequest;
 import com.breadwallet.core.BRCorePaymentProtocolMessage;
 import com.breadwallet.core.BRCorePaymentProtocolRequest;
+import com.breadwallet.core.BRCorePeerManager;
+import com.breadwallet.core.BRCoreWallet;
 import com.breadwallet.core.BRCoreWalletManager;
 
 import java.util.Arrays;
@@ -167,9 +169,34 @@ public class BRWalletManager extends BRCoreWalletManager {
 
     private static void runTests() {
         System.out.println ("\nStarting Tests:");
+        runGCTests();
         runPaymentProtocolTests();
         System.out.println ("Completed Tests\n");
     }
+
+    private static void runGCTests () {
+        System.out.println ("    GC:");
+
+        final BRCoreMasterPubKey masterPubKey =
+                new BRCoreMasterPubKey(SOME_RANDOM_TEST_PAPER_KEY.getBytes());
+
+        final BRCoreChainParams chainParams =
+                BRCoreChainParams.testnetChainParams;
+
+        BRWalletManager walletManager =
+                new BRWalletManager(masterPubKey, chainParams, BIP39_CREATION_TIME);
+
+        walletManager.getWallet();
+        walletManager.getPeerManager();
+
+        // Do not connect.
+
+        walletManager = null;
+
+        forceGC();
+        forceGC();
+    }
+
 
     private static void runPaymentProtocolTests () {
         System.out.println ("    PaymentProtocol:");

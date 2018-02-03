@@ -10,10 +10,18 @@ extern "C" {
 /*
  * Class:     com_breadwallet_core_BRCoreWallet
  * Method:    createJniCoreWallet
- * Signature: ([Lcom/breadwallet/core/BRCoreTransaction;Lcom/breadwallet/core/BRCoreMasterPubKey;Lcom/breadwallet/core/BRCoreWallet/Listener;)J
+ * Signature: ([Lcom/breadwallet/core/BRCoreTransaction;Lcom/breadwallet/core/BRCoreMasterPubKey;)J
  */
 JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreWallet_createJniCoreWallet
-  (JNIEnv *, jclass, jobjectArray, jobject, jobject);
+  (JNIEnv *, jclass, jobjectArray, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreWallet
+ * Method:    installListener
+ * Signature: (Lcom/breadwallet/core/BRCoreWallet/Listener;)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreWallet_installListener
+  (JNIEnv *, jobject, jobject);
 
 /*
  * Class:     com_breadwallet_core_BRCoreWallet
