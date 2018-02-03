@@ -33,6 +33,22 @@ JNIEXPORT jint JNICALL Java_com_breadwallet_core_BRCoreKey_getCompressed
 
 /*
  * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    getBase58EncodedPublicKey
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreKey_getBase58EncodedPublicKey
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    getSeedFromPhrase
+ * Signature: ([B)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_getSeedFromPhrase
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
  * Method:    createJniCoreKey
  * Signature: ()J
  */

@@ -53,6 +53,10 @@ public class BRCoreKey extends BRCoreJniReference {
     public native byte[] getPubKey ();
     public native int    getCompressed ();
 
+    public native String getBase58EncodedPublicKey ();
+
+    public static native byte[] getSeedFromPhrase (byte[] phrase);
+
     private static native long createJniCoreKey ();
 
     public native boolean setPrivKey(byte[] privKey);

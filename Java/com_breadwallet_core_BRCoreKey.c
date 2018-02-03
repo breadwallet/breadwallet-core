@@ -25,6 +25,8 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include <assert.h>
+#include <BRBase58.h>
+#include <BRBIP39Mnemonic.h>
 #include "com_breadwallet_core_BRCoreKey.h"
 
 /*
@@ -70,6 +72,48 @@ JNIEXPORT jint JNICALL Java_com_breadwallet_core_BRCoreKey_getCompressed
         (JNIEnv *env, jobject thisObject) {
     BRKey *key = (BRKey *) getJNIReference(env, thisObject);
     return (jint) key->compressed;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    getBase58EncodedPublicKey
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL
+Java_com_breadwallet_core_BRCoreKey_getBase58EncodedPublicKey
+        (JNIEnv *env, jobject thisObject) {
+    BRKey *key = (BRKey *) getJNIReference(env, thisObject);
+
+    // Extract pubKey
+    size_t len = BRKeyPubKey(key, NULL, 0);
+    uint8_t pubKey[len];
+    BRKeyPubKey(key, &pubKey, len);
+
+    // Encode pubKey
+    size_t strLen = BRBase58Encode(NULL, 0, pubKey, len);
+    char base58string[strLen];
+    BRBase58Encode(base58string, strLen, pubKey, len);
+
+    return (*env)->NewStringUTF (env, base58string);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    getSeedFromPhrase
+ * Signature: ([B)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_getSeedFromPhrase
+        (JNIEnv *env, jclass thisClass, jbyteArray phrase) {
+
+    jbyte *bytePhrase = (*env)->GetByteArrayElements(env, phrase, 0);
+    UInt512 key = UINT512_ZERO;
+    char *charPhrase = (char *) bytePhrase;
+    BRBIP39DeriveKey(key.u8, charPhrase, NULL);
+
+    jbyteArray result = (*env)->NewByteArray(env, (jsize) sizeof(key));
+    (*env)->SetByteArrayRegion(env, result, 0, (jsize) sizeof(key), (jbyte *) &key);
+
+    return result;
 }
 
 /*

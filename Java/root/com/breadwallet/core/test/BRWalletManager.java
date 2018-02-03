@@ -31,8 +31,6 @@ import com.breadwallet.core.BRCorePaymentProtocolACK;
 import com.breadwallet.core.BRCorePaymentProtocolInvoiceRequest;
 import com.breadwallet.core.BRCorePaymentProtocolMessage;
 import com.breadwallet.core.BRCorePaymentProtocolRequest;
-import com.breadwallet.core.BRCorePeerManager;
-import com.breadwallet.core.BRCoreWallet;
 import com.breadwallet.core.BRCoreWalletManager;
 
 import java.util.Arrays;
@@ -170,7 +168,7 @@ public class BRWalletManager extends BRCoreWalletManager {
     private static void runTests() {
         System.out.println ("\nStarting Tests:");
         runGCTests();
-        runMasterPubKeyTests();
+        runKeyTests();
         runPaymentProtocolTests();
         System.out.println ("Completed Tests\n");
     }
@@ -198,13 +196,16 @@ public class BRWalletManager extends BRCoreWalletManager {
         forceGC();
     }
 
-    private static void runMasterPubKeyTests () {
+    private static void runKeyTests() {
         System.out.println ("    MasterPubKey:");
 
         BRCoreMasterPubKey keyFromPaperKey = new BRCoreMasterPubKey(SOME_RANDOM_TEST_PAPER_KEY.getBytes(), true);
         byte[] keyPubKey = keyFromPaperKey.getPubKey();
         BRCoreMasterPubKey keyFromBytes = new BRCoreMasterPubKey(keyPubKey, false);
         assert (Arrays.equals(keyPubKey, keyFromBytes.getPubKey()));
+
+        // BRCoreKey
+        // ...
     }
 
     private static void runPaymentProtocolTests () {
