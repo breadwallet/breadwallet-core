@@ -131,18 +131,6 @@ static size_t _BRTxInputData(const BRTxInput *input, uint8_t *data, size_t dataL
     return (! data || off <= dataLen) ? off : 0;
 }
 
-void BRTxInputCopy(BRTxInput *target, const BRTxInput *source) {
-    assert (target != NULL);
-    assert (source != NULL);
-    *target = *source;
-
-    target->script = NULL;
-    BRTxInputSetScript(target, source->script, source->scriptLen);
-
-    target->signature = NULL;
-    BRTxInputSetSignature(target, source->signature, source->sigLen);
-}
-
 void BRTxOutputSetAddress(BRTxOutput *output, const char *address)
 {
     assert(output != NULL);
@@ -192,15 +180,6 @@ static size_t _BRTransactionOutputData(const BRTransaction *tx, uint8_t *data, s
     }
     
     return (! data || off <= dataLen) ? off : 0;
-}
-
-void BRTxOutputCopy(BRTxOutput *target, const BRTxOutput *source) {
-    assert (target != NULL);
-    assert (source != NULL);
-    *target = *source;
-
-    target->script = NULL;
-    BRTxOutputSetScript(target, source->script, source->scriptLen);
 }
 
 // writes the BIP143 witness program data that needs to be hashed and signed for the tx input at index
@@ -359,24 +338,24 @@ BRTransaction *BRTransactionNew(void)
 // returns a deep copy of tx and that must be freed by calling BRTransactionFree()
 BRTransaction *BRTransactionCopy(const BRTransaction *tx)
 {
-    assert (tx != NULL);
-    BRTransaction *cpy = calloc(1, sizeof(*tx));
-
-    assert (cpy != NULL);
+    BRTransaction *cpy = BRTransactionNew();
+    BRTxInput *inputs = cpy->inputs;
+    BRTxOutput *outputs = cpy->outputs;
+    
+    assert(tx != NULL);
     *cpy = *tx;
+    cpy->inputs = inputs;
+    cpy->outputs = outputs;
+    cpy->inCount = cpy->outCount = 0;
 
-    size_t inputCount = array_capacity(tx->inputs);
-    array_new (cpy->inputs,  inputCount);
-    array_add_array (cpy->inputs,  tx->inputs, inputCount);
-    for (int i = 0; i < inputCount; i++) {
-        BRTxInputCopy(&cpy->inputs[i], &tx->inputs[i]);
+    for (size_t i = 0; i < tx->inCount; i++) {
+        BRTransactionAddInput(cpy, tx->inputs[i].txHash, tx->inputs[i].index, tx->inputs[i].amount,
+                              tx->inputs[i].script, tx->inputs[i].scriptLen,
+                              tx->inputs[i].signature, tx->inputs[i].sigLen, tx->inputs[i].sequence);
     }
-
-    size_t outputCount = array_capacity(tx->outputs);
-    array_new (cpy->outputs, outputCount);
-    array_add_array (cpy->outputs, tx->outputs, outputCount);
-    for (int i = 0; i < outputCount; i++) {
-        BRTxOutputCopy(&cpy->outputs[i], &tx->outputs[i]);
+    
+    for (size_t i = 0; i < tx->outCount; i++) {
+        BRTransactionAddOutput(cpy, tx->outputs[i].amount, tx->outputs[i].script, tx->outputs[i].scriptLen);
     }
 
     return cpy;

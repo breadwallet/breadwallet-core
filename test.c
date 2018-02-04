@@ -1649,23 +1649,23 @@ static int BRTxInputEqual(BRTxInput *in1, BRTxInput *in2) {
 
 // true if tx1 and tx2 have equal data (in their respective structures).
 static int BRTransactionEqual (BRTransaction *tx1, BRTransaction *tx2) {
-    if (memcmp (&tx1->txHash, &tx2->txHash, sizeof (UInt256()))
+    if (memcmp (&tx1->txHash, &tx2->txHash, sizeof(UInt256))
         || tx1->version != tx2->version
         || tx1->lockTime != tx2->lockTime
         || tx1->blockHeight != tx2->blockHeight
         || tx1->timestamp != tx2->timestamp
-        || array_capacity(tx1->inputs) != array_capacity(tx2->inputs)
-        || array_capacity(tx1->outputs) != array_capacity(tx2->outputs))
+        || array_count(tx1->inputs) != array_count(tx2->inputs)
+        || array_count(tx1->outputs) != array_count(tx2->outputs))
         return 0;
 
     // Inputs
     if (NULL != tx1->inputs)
-        for (int i = 0; i < array_capacity(tx1->inputs); i++)
+        for (int i = 0; i < array_count(tx1->inputs); i++)
             if (!BRTxInputEqual(&tx1->inputs[i], &tx2->inputs[i]))
                 return 0;
     // Outputs
     if (NULL != tx1->outputs)
-        for (int i = 0; i < array_capacity(tx1->outputs); i++)
+        for (int i = 0; i < array_count(tx1->outputs); i++)
             if (!BRTxOutputEqual(&tx1->outputs[i], &tx2->outputs[i]))
                 return 0;
 

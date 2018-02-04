@@ -34,10 +34,9 @@
 
 // bech32 address format: https://github.com/bitcoin/bips/blob/master/bip-0173.mediawiki
 
-static const char bech32chars[] = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
-
-#define polymod(x) ((((x) & 0x1ffffff) << 5) ^ (-(((x) >> 25) & 1) & 0x3b6a57b2) ^ (-(((x) >> 26) & 1) & 0x26508e6d) ^\
-    (-(((x) >> 27) & 1) & 0x1ea119fa) ^ (-(((x) >> 28) & 1) & 0x3d4233dd) ^ (-(((x) >> 29) & 1) & 0x2a1462b3))
+#define polymod(x) ((((x) & 0x1ffffff) << 5) ^ (-(((x) >> 25) & 1) & 0x3b6a57b2) ^\
+                    (-(((x) >> 26) & 1) & 0x26508e6d) ^ (-(((x) >> 27) & 1) & 0x1ea119fa) ^\
+                    (-(((x) >> 28) & 1) & 0x3d4233dd) ^ (-(((x) >> 29) & 1) & 0x2a1462b3))
 
 // returns the number of bytes written to data42 (maximum of 42)
 size_t BRBech32Decode(char *hrp84, uint8_t *data42, const char *addr)
@@ -86,10 +85,12 @@ size_t BRBech32Decode(char *hrp84, uint8_t *data42, const char *addr)
     
     bufLen = (addrLen - (sep + 2 + 6))*5/8;
     if (hrp84 == NULL || data42 == NULL || chk != 1 || ver > 16 || bufLen < 2 || bufLen > 40) return 0;
+    assert(sep < 84);
     for (i = 0; i < sep; i++) hrp84[i] = tolower(addr[i]);
     hrp84[sep] = '\0';
     data42[0] = (ver == 0) ? OP_0 : ver + OP_1 - 1;
     data42[1] = bufLen;
+    assert(bufLen <= 40);
     memcpy(&data42[2], buf, bufLen);
     return 2 + bufLen;
 }
@@ -98,6 +99,7 @@ size_t BRBech32Decode(char *hrp84, uint8_t *data42, const char *addr)
 // returns the number of bytes written to addr91 (maximum of 91)
 size_t BRBech32Encode(char *addr91, const char *hrp, const uint8_t data[])
 {
+    static const char chars[] = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
     char addr[91];
     uint32_t x, chk = 1;
     uint8_t ver, a, b = 0, c = 0;
@@ -120,21 +122,22 @@ size_t BRBech32Encode(char *addr91, const char *hrp, const uint8_t data[])
     ver = (data[0] >= OP_1) ? data[0] + 1 - OP_1 : 0;
     if (ver > 16 || data[1] < 2 || data[1] > 40) return 0;
     chk = polymod(chk) ^ ver;
-    addr[i++] = bech32chars[ver];
+    addr[i++] = chars[ver];
     
     for (j = 0; j <= data[1]; j++) {
         a = b, b = (j < data[1]) ? data[2 + j] : 0;
         x = (j % 5)*8 - ((j % 5)*8/5)*5;
         c = ((a << (5 - x)) | (b >> (3 + x))) & 0x1f;
-        if (j < data[1] || j % 5 > 0) chk = polymod(chk) ^ c, addr[i++] = bech32chars[c];
+        if (j < data[1] || j % 5 > 0) chk = polymod(chk) ^ c, addr[i++] = chars[c];
         if (x >= 2) c = (b >> (x - 2)) & 0x1f;
-        if (x >= 2 && j < data[1]) chk = polymod(chk) ^ c, addr[i++] = bech32chars[c];
+        if (x >= 2 && j < data[1]) chk = polymod(chk) ^ c, addr[i++] = chars[c];
     }
     
     for (j = 0; j < 6; j++) chk = polymod(chk);
     chk ^= 1;
-    for (j = 0; j < 6; ++j) addr[i++] = bech32chars[(chk >> ((5 - j)*5)) & 0x1f];
+    for (j = 0; j < 6; ++j) addr[i++] = chars[(chk >> ((5 - j)*5)) & 0x1f];
     addr[i++] = '\0';
+    assert(i <= 91);
     memcpy(addr91, addr, i);
     return i;
 }

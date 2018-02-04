@@ -69,7 +69,6 @@ typedef struct {
 void BRTxInputSetAddress(BRTxInput *input, const char *address);
 void BRTxInputSetScript(BRTxInput *input, const uint8_t *script, size_t scriptLen);
 void BRTxInputSetSignature(BRTxInput *input, const uint8_t *signature, size_t sigLen);
-void BRTxInputCopy(BRTxInput *target, const BRTxInput *source);
 
 typedef struct {
     char address[36];
@@ -83,7 +82,6 @@ typedef struct {
 // when creating a BRTxOutput struct outside of a BRTransaction, set address or script to NULL when done to free memory
 void BRTxOutputSetAddress(BRTxOutput *output, const char *address);
 void BRTxOutputSetScript(BRTxOutput *output, const uint8_t *script, size_t scriptLen);
-void BRTxOutputCopy(BRTxOutput *target, const BRTxOutput *source);
 
 typedef struct {
     UInt256 txHash;
