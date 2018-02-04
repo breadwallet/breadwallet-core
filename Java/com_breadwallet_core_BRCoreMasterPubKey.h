@@ -17,6 +17,14 @@ JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreMasterPubKey_getPub
 
 /*
  * Class:     com_breadwallet_core_BRCoreMasterPubKey
+ * Method:    createPubKey
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreMasterPubKey_createPubKey
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreMasterPubKey
  * Method:    createJniCoreMasterPubKeyFromPhrase
  * Signature: ([B)J
  */
@@ -38,6 +46,22 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCo
  */
 JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreMasterPubKey_bip32BitIDKey
   (JNIEnv *, jclass, jbyteArray, jint, jstring);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreMasterPubKey
+ * Method:    validateRecoveryPhrase
+ * Signature: ([Ljava/lang/String;Ljava/lang/String;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreMasterPubKey_validateRecoveryPhrase
+  (JNIEnv *, jclass, jobjectArray, jstring);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreMasterPubKey
+ * Method:    encodeSeed
+ * Signature: ([B[Ljava/lang/String;)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreMasterPubKey_encodeSeed
+  (JNIEnv *, jclass, jbyteArray, jobjectArray);
 
 #ifdef __cplusplus
 }

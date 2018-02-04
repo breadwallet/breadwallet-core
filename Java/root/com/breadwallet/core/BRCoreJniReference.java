@@ -48,6 +48,8 @@ public abstract class BRCoreJniReference {
     //
     //
     protected void finalize () throws Throwable {
+        System.err.println ("Finalize: " +
+                this.getClass().getSimpleName() + " @ " + jniReferenceAddress);
         dispose ();
     }
 

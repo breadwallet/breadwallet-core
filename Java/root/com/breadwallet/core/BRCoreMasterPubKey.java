@@ -31,6 +31,12 @@ public class BRCoreMasterPubKey extends BRCoreJniReference {
 
     public native byte[] getPubKey ();
 
+    public BRCoreKey getPubKeyAsCoreKey () {
+        return new BRCoreKey (createPubKey ());
+    }
+
+    protected native long createPubKey ();
+
     public BRCoreMasterPubKey (byte[] bytes, boolean isPaperKey) {
         this (isPaperKey
                 ? createJniCoreMasterPubKeyFromPhrase(bytes)
@@ -46,6 +52,18 @@ public class BRCoreMasterPubKey extends BRCoreJniReference {
     private static native long createJniCoreMasterPubKeyFromPubKey (byte[] phrase);
 
     public static native byte[] bip32BitIDKey(byte[] seed, int index, String uri);
+
+    /**
+     * Validates `words` as 'phrase` for this BRCoreMasterPubKey.
+     *
+     * @param words
+     * @return
+     */
+    //public native boolean validateRecoveryPhrase (String[] words)
+
+    public static native boolean validateRecoveryPhrase(String[] words, String phrase);
+
+    private static native byte[] encodeSeed (byte[] seed, String[] words);
 
     @Override
     public String toString() {

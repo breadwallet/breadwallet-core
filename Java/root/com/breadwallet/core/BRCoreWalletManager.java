@@ -138,6 +138,36 @@ public class BRCoreWalletManager implements
     }
 
     //
+    //
+    //
+    public byte[] signAndPublishTransaction (BRCoreTransaction transaction, BRCoreMasterPubKey masterPubKey) {
+        assert (false);
+        return null;
+    }
+
+    /**
+     * Sign and then publish the `transaction`
+     *
+     * @param transaction
+     * @param seed
+     * @return the transaction hash
+     */
+    public String signAndPublishTransaction (BRCoreTransaction transaction, byte[] seed) {
+        getWallet().signTransaction(transaction, getForkId(), seed);
+        getPeerManager().publishTransaction(transaction);
+        return transaction.getHash();
+    }
+
+    protected int getForkId () {
+        if (chainParams == BRCoreChainParams.mainnetChainParams
+                || chainParams == BRCoreChainParams.testnetChainParams)
+            return 0x00;
+        else if (chainParams == BRCoreChainParams.bcashChainParams)
+            return 0x40;
+        else return -1;
+    }
+
+    //
     // Support
     //
 

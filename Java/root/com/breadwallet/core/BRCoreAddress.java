@@ -28,9 +28,16 @@ package com.breadwallet.core;
  *
  */
 public class BRCoreAddress extends BRCoreJniReference {
+    public BRCoreAddress (String address) {
+        this (createCoreAddress (address));
+    }
     protected BRCoreAddress (long jniReferenceAddress) {
         super (jniReferenceAddress);
     }
 
+    protected static native long createCoreAddress (String address);
+
     public native String stringify ();
+
+    public native boolean isValid ();
 }

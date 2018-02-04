@@ -45,6 +45,26 @@ JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreMasterPubKey_getPub
     return pubKey;
 }
 
+/*
+ * Class:     com_breadwallet_core_BRCoreMasterPubKey
+ * Method:    createPubKey
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_BRCoreMasterPubKey_createPubKey
+        (JNIEnv *env, jobject thisObject) {
+    BRMasterPubKey *mpk = (BRMasterPubKey *) getJNIReference (env, thisObject);
+
+    // Fill pubKey from MPK
+    uint8_t pubKey[33];
+    BRBIP32PubKey (pubKey, sizeof(pubKey), *mpk, 0, 0);
+
+    // Allocate and fill BRKey
+    BRKey *key = (BRKey *) calloc (1, sizeof (BRKey));
+    BRKeySetPubKey(key, pubKey, sizeof(pubKey));
+
+    return (jlong) key;
+}
 
 JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKeyFromPhrase
@@ -151,4 +171,73 @@ Java_com_breadwallet_core_BRCoreMasterPubKey_bip32BitIDKey
     (*env)->SetByteArrayRegion(env, result, 0, (jsize) sizeof(rawKey), (jbyte *) rawKey);
 
     return result;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreMasterPubKey
+ * Method:    validateRecoveryPhrase
+ * Signature: ([Ljava/lang/String;Ljava/lang/String;)Z
+ */
+JNIEXPORT jboolean JNICALL
+Java_com_breadwallet_core_BRCoreMasterPubKey_validateRecoveryPhrase
+        (JNIEnv *env, jclass thisClass, jobjectArray stringArray, jstring jPhrase) {
+    int wordsCount = (*env)->GetArrayLength(env, stringArray);
+    char *wordList[wordsCount];
+
+    for (int i = 0; i < wordsCount; i++) {
+        jstring string = (jstring) (*env)->GetObjectArrayElement(env, stringArray, i);
+        const char *rawString = (*env)->GetStringUTFChars(env, string, 0);
+
+        wordList[i] = malloc(strlen(rawString) + 1);
+        strcpy(wordList[i], rawString);
+        (*env)->ReleaseStringUTFChars(env, string, rawString);
+        (*env)->DeleteLocalRef(env, string);
+    }
+
+    const char *str = (*env)->GetStringUTFChars(env, jPhrase, NULL);
+    int result = BRBIP39PhraseIsValid((const char **) wordList, str);
+
+    (*env)->ReleaseStringUTFChars(env, jPhrase, str);
+
+    return (jboolean) (result ? JNI_TRUE : JNI_FALSE);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreMasterPubKey
+ * Method:    encodeSeed
+ * Signature: ([B[Ljava/lang/String;)[B
+ */
+JNIEXPORT jbyteArray JNICALL
+Java_com_breadwallet_core_BRCoreMasterPubKey_encodeSeed
+        (JNIEnv *env, jclass thisClass, jbyteArray seed, jobjectArray stringArray) {
+
+    int wordsCount = (*env)->GetArrayLength(env, stringArray);
+    int seedLength = (*env)->GetArrayLength(env, seed);
+    const char *wordList[wordsCount];
+    assert(seedLength == 16);
+    assert(wordsCount == 2048);
+    for (int i = 0; i < wordsCount; i++) {
+        jstring string = (jstring) (*env)->GetObjectArrayElement(env, stringArray, i);
+        const char *rawString = (*env)->GetStringUTFChars(env, string, 0);
+
+        wordList[i] = rawString;
+        (*env)->DeleteLocalRef(env, string);
+    }
+    // __android_log_print(ANDROID_LOG_DEBUG, "Message from C: ", "encodeSeed: %zu", sizeof(wordList));
+
+    jbyte *byteSeed = (*env)->GetByteArrayElements(env, seed, 0);
+    size_t size = BRBIP39Encode(NULL, 0, wordList, (uint8_t *) byteSeed, (size_t) seedLength);
+    char result[size];
+    jbyteArray bytePhrase = NULL;
+
+    size = BRBIP39Encode(result, sizeof(result), wordList, (const uint8_t *) byteSeed,
+                         (size_t) seedLength);
+
+    if (size > 0) {
+        bytePhrase = (*env)->NewByteArray(env, (int) size - 1);
+        (*env)->SetByteArrayRegion(env, bytePhrase, 0, (int) size - 1, (jbyte *) result);
+
+    }
+
+    return bytePhrase;
 }

@@ -27,6 +27,7 @@
 #include <assert.h>
 #include <BRBase58.h>
 #include <BRBIP39Mnemonic.h>
+#include <BRBIP38Key.h>
 #include "com_breadwallet_core_BRCoreKey.h"
 
 /*
@@ -34,7 +35,8 @@
  * Method:    getSecret
  * Signature: ()[B
  */
-JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_getSecret
+JNIEXPORT jbyteArray JNICALL
+Java_com_breadwallet_core_BRCoreKey_getSecret
         (JNIEnv *env, jobject thisObject) {
     BRKey *key = (BRKey *) getJNIReference(env, thisObject);
 
@@ -51,7 +53,8 @@ JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_getSecret
  * Method:    getPubKey
  * Signature: ()[B
  */
-JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_getPubKey
+JNIEXPORT jbyteArray JNICALL
+Java_com_breadwallet_core_BRCoreKey_getPubKey
         (JNIEnv *env, jobject thisObject) {
     BRKey *key = (BRKey *) getJNIReference(env, thisObject);
 
@@ -68,7 +71,8 @@ JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_getPubKey
  * Method:    getCompressed
  * Signature: ()I
  */
-JNIEXPORT jint JNICALL Java_com_breadwallet_core_BRCoreKey_getCompressed
+JNIEXPORT jint JNICALL
+Java_com_breadwallet_core_BRCoreKey_getCompressed
         (JNIEnv *env, jobject thisObject) {
     BRKey *key = (BRKey *) getJNIReference(env, thisObject);
     return (jint) key->compressed;
@@ -102,7 +106,8 @@ Java_com_breadwallet_core_BRCoreKey_getBase58EncodedPublicKey
  * Method:    getSeedFromPhrase
  * Signature: ([B)[B
  */
-JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_getSeedFromPhrase
+JNIEXPORT jbyteArray JNICALL
+Java_com_breadwallet_core_BRCoreKey_getSeedFromPhrase
         (JNIEnv *env, jclass thisClass, jbyteArray phrase) {
 
     jbyte *bytePhrase = (*env)->GetByteArrayElements(env, phrase, 0);
@@ -259,7 +264,8 @@ Java_com_breadwallet_core_BRCoreKey_decryptNative
  * Method:    address
  * Signature: ()Ljava/lang/String;
  */
-JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreKey_address
+JNIEXPORT jstring JNICALL
+Java_com_breadwallet_core_BRCoreKey_address
         (JNIEnv *env, jobject thisObject) {
     BRKey *key = (BRKey *) getJNIReference(env, thisObject);
 
@@ -268,4 +274,33 @@ JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreKey_address
     assert(address.s[0] != '\0');
 
     return (*env)->NewStringUTF(env, address.s);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    isValidBitcoinPrivateKey
+ * Signature: (Ljava/lang/String;)Z
+ */
+JNIEXPORT jboolean JNICALL
+Java_com_breadwallet_core_BRCoreKey_isValidBitcoinPrivateKey
+        (JNIEnv *env, jclass thisClass, jstring stringObject) {
+    const char *privKey = (*env)->GetStringUTFChars(env, stringObject, NULL);
+    int result = BRPrivKeyIsValid(privKey);
+
+    (*env)->ReleaseStringUTFChars(env, stringObject, privKey);
+    return (jboolean) (1 == result ? JNI_TRUE : JNI_FALSE);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    isValidBitcoinBIP38Key
+ * Signature: (Ljava/lang/String;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreKey_isValidBitcoinBIP38Key
+        (JNIEnv *env, jclass thisClass, jstring stringObject) {
+    const char *privKey = (*env)->GetStringUTFChars(env, stringObject, 0);
+    int result = BRBIP38KeyIsValid(privKey);
+
+    (*env)->ReleaseStringUTFChars(env, stringObject, privKey);
+    return (jboolean) (1 == result ? JNI_TRUE : JNI_FALSE);
 }

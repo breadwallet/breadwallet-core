@@ -113,11 +113,35 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreWallet_setFeePerKb
 
 /*
  * Class:     com_breadwallet_core_BRCoreWallet
+ * Method:    getMaxFeePerKb
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreWallet_getMaxFeePerKb
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreWallet
+ * Method:    getDefaultFeePerKb
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreWallet_getDefaultFeePerKb
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreWallet
  * Method:    createTransaction
  * Signature: (JLcom/breadwallet/core/BRCoreAddress;)Lcom/breadwallet/core/BRCoreTransaction;
  */
 JNIEXPORT jobject JNICALL Java_com_breadwallet_core_BRCoreWallet_createTransaction
   (JNIEnv *, jobject, jlong, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreWallet
+ * Method:    signTransaction
+ * Signature: (Lcom/breadwallet/core/BRCoreTransaction;I[B)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreWallet_signTransaction
+  (JNIEnv *, jobject, jobject, jint, jbyteArray);
 
 /*
  * Class:     com_breadwallet_core_BRCoreWallet

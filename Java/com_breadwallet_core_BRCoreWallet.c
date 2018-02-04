@@ -302,6 +302,26 @@ Java_com_breadwallet_core_BRCoreWallet_setFeePerKb
 
 /*
  * Class:     com_breadwallet_core_BRCoreWallet
+ * Method:    getMaxFeePerKb
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreWallet_getMaxFeePerKb
+        (JNIEnv *env, jobject thisObject) {
+    return MAX_FEE_PER_KB;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreWallet
+ * Method:    getDefaultFeePerKb
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreWallet_getDefaultFeePerKb
+        (JNIEnv *env, jobject thisObject) {
+    return DEFAULT_FEE_PER_KB;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreWallet
  * Method:    createTransaction
  * Signature: (JLcom/breadwallet/core/BRCoreAddress;)Lcom/breadwallet/core/BRCoreTransaction;
  */
@@ -319,6 +339,29 @@ Java_com_breadwallet_core_BRCoreWallet_createTransaction
 
     return (*env)->NewObject (env, transactionClass, transactionConstructor, (jlong) transaction);
 }
+
+/*
+ * Class:     com_breadwallet_core_BRCoreWallet
+ * Method:    signTransaction
+ * Signature: (Lcom/breadwallet/core/BRCoreTransaction;I[B)Z
+ */
+JNIEXPORT jboolean JNICALL
+Java_com_breadwallet_core_BRCoreWallet_signTransaction
+        (JNIEnv *env, jobject thisObject,
+         jobject transactionObject,
+         jint forkId,
+         jbyteArray seedByteArray) {
+    BRWallet  *wallet  = (BRWallet  *) getJNIReference (env, thisObject);
+    BRTransaction *transaction = (BRTransaction *) getJNIReference (env, transactionObject);
+
+    size_t      seedLen = (size_t) (*env)->GetArrayLength (env, seedByteArray);
+    const void *seed = (const void *) (*env)->GetByteArrayElements (env, seedByteArray, 0);
+
+    return 1 == BRWalletSignTransaction (wallet, transaction, forkId, seed, seedLen)
+           ? JNI_TRUE
+           : JNI_FALSE;
+}
+
 
 /*
  * Class:     com_breadwallet_core_BRCoreWallet

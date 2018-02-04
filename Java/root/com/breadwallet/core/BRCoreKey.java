@@ -71,6 +71,10 @@ public class BRCoreKey extends BRCoreJniReference {
 
     public native String address();
 
+    public static native boolean isValidBitcoinPrivateKey(String key);
+
+    public static native boolean isValidBitcoinBIP38Key(String key);
+
     @Override
     public String toString() {
         return "BRCoreKey {@" + jniReferenceAddress +

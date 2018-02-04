@@ -103,6 +103,22 @@ JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_decryptNative
 JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreKey_address
   (JNIEnv *, jobject);
 
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    isValidBitcoinPrivateKey
+ * Signature: (Ljava/lang/String;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreKey_isValidBitcoinPrivateKey
+  (JNIEnv *, jclass, jstring);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    isValidBitcoinBIP38Key
+ * Signature: (Ljava/lang/String;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreKey_isValidBitcoinBIP38Key
+  (JNIEnv *, jclass, jstring);
+
 #ifdef __cplusplus
 }
 #endif

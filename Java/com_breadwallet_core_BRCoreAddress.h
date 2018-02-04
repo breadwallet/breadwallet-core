@@ -9,10 +9,26 @@ extern "C" {
 #endif
 /*
  * Class:     com_breadwallet_core_BRCoreAddress
+ * Method:    createCoreAddress
+ * Signature: (Ljava/lang/String;)J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreAddress_createCoreAddress
+  (JNIEnv *, jclass, jstring);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreAddress
  * Method:    stringify
  * Signature: ()Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreAddress_stringify
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreAddress
+ * Method:    isValid
+ * Signature: ()Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreAddress_isValid
   (JNIEnv *, jobject);
 
 #ifdef __cplusplus

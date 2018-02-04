@@ -97,11 +97,16 @@ public class BRCoreWallet extends BRCoreJniReference
 
     public native void setFeePerKb (long feePerKb);
 
+    public native long getMaxFeePerKb ();
+
+    public native long getDefaultFeePerKb ();
+
     public native BRCoreTransaction createTransaction (long amount, BRCoreAddress address);
 
     // createTxForOutputs
 
-    // sign transaction
+    // Need to remove 'forkId' - should be derived from the chainParams leading to this wallet.
+    public native boolean signTransaction (BRCoreTransaction transaction, int forkId, byte[] seed);
 
     public native boolean containsTransaction (BRCoreTransaction transaction);
 
