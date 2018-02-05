@@ -63,7 +63,7 @@ public class BRCoreMasterPubKey extends BRCoreJniReference {
 
     public static native boolean validateRecoveryPhrase(String[] words, String phrase);
 
-    private static native byte[] encodeSeed (byte[] seed, String[] words);
+    public static native byte[] encodeSeed (byte[] seed, String[] words);
 
     @Override
     public String toString() {

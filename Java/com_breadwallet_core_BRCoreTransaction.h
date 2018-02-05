@@ -10,9 +10,9 @@ extern "C" {
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction
  * Method:    getHash
- * Signature: ()Ljava/lang/String;
+ * Signature: ()[B
  */
-JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreTransaction_getHash
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreTransaction_getHash
   (JNIEnv *, jobject);
 
 /*
@@ -129,6 +129,14 @@ JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreTransaction_isStandar
 
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction
+ * Method:    getMinOutputAmount
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransaction_getMinOutputAmount
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreTransaction
  * Method:    disposeNative
  * Signature: ()V
  */
@@ -142,6 +150,14 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreTransaction_disposeNative
  */
 JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransaction_createJniCoreTransaction
   (JNIEnv *, jclass, jbyteArray, jlong, jlong);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreTransaction
+ * Method:    createJniCoreTransactionSerialized
+ * Signature: ([B)J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransaction_createJniCoreTransactionSerialized
+  (JNIEnv *, jclass, jbyteArray);
 
 #ifdef __cplusplus
 }

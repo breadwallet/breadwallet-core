@@ -53,12 +53,22 @@ public class BRCoreKey extends BRCoreJniReference {
     public native byte[] getPubKey ();
     public native int    getCompressed ();
 
-    public native String getBase58EncodedPublicKey ();
-
+    //
+    //
+    //
     public static native byte[] getSeedFromPhrase (byte[] phrase);
+
+    public static native byte[] getAuthPrivKeyForAPI (byte[] seed);
+
+    public static native String getAuthPublicKeyForAPI (byte[] privKey);
+
+    public static native String decryptBip38Key (String privKey, String pass);
 
     private static native long createJniCoreKey ();
 
+    //
+    //
+    //
     public native boolean setPrivKey(byte[] privKey);
 
     private native void setSecret(byte[] secret, boolean compressed);
@@ -71,6 +81,9 @@ public class BRCoreKey extends BRCoreJniReference {
 
     public native String address();
 
+    //
+    //
+    //
     public static native boolean isValidBitcoinPrivateKey(String key);
 
     public static native boolean isValidBitcoinBIP38Key(String key);

@@ -33,19 +33,35 @@ JNIEXPORT jint JNICALL Java_com_breadwallet_core_BRCoreKey_getCompressed
 
 /*
  * Class:     com_breadwallet_core_BRCoreKey
- * Method:    getBase58EncodedPublicKey
- * Signature: ()Ljava/lang/String;
- */
-JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreKey_getBase58EncodedPublicKey
-  (JNIEnv *, jobject);
-
-/*
- * Class:     com_breadwallet_core_BRCoreKey
  * Method:    getSeedFromPhrase
  * Signature: ([B)[B
  */
 JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_getSeedFromPhrase
   (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    getAuthPrivKeyForAPI
+ * Signature: ([B)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_getAuthPrivKeyForAPI
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    getAuthPublicKeyForAPI
+ * Signature: ([B)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreKey_getAuthPublicKeyForAPI
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    decryptBip38Key
+ * Signature: (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreKey_decryptBip38Key
+  (JNIEnv *, jclass, jstring, jstring);
 
 /*
  * Class:     com_breadwallet_core_BRCoreKey

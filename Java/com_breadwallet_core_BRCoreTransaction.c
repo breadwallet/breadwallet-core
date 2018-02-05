@@ -23,23 +23,31 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <malloc.h>
+#include <BRInt.h>
 #include "BRCoreJni.h"
 #include "com_breadwallet_core_BRCoreTransaction.h"
 
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction
  * Method:    getHash
- * Signature: ()Ljava/lang/String;
+ * Signature: ()[B
  */
-JNIEXPORT jstring JNICALL
+JNIEXPORT jbyteArray JNICALL
 Java_com_breadwallet_core_BRCoreTransaction_getHash
         (JNIEnv *env, jobject thisObject) {
     BRTransaction *transaction = (BRTransaction *) getJNIReference (env, thisObject);
 
     UInt256 transactionHash = transaction->txHash;
-    const char *strHash = u256hex(transactionHash);
-    return (*env)->NewStringUTF(env, strHash);
+
+    jbyteArray hashByteArray = (*env)->NewByteArray (env, sizeof (UInt256));
+    (*env)->SetByteArrayRegion (env, hashByteArray, 0, sizeof (UInt256), transactionHash.u8);
+
+//    const char *strHash = u256hex(transactionHash);
+//    return (*env)->NewStringUTF(env, strHash);
+
+    return hashByteArray;
 }
+
 
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction
@@ -258,6 +266,16 @@ JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreTransaction_isStandar
 
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction
+ * Method:    getMinOutputAmount
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransaction_getMinOutputAmount
+        (JNIEnv *env, jclass thisClass) {
+    return TX_MIN_OUTPUT_AMOUNT;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreTransaction
  * Method:    disposeNative
  * Signature: ()V
  */
@@ -289,6 +307,24 @@ Java_com_breadwallet_core_BRCoreTransaction_createJniCoreTransaction
 
     transaction->blockHeight = (uint32_t) blockHeight;
     transaction->timestamp =(uint32_t) timestamp;
+
+    return (jlong) transaction;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreTransaction
+ * Method:    createJniCoreTransactionSerialized
+ * Signature: ([B)J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransaction_createJniCoreTransactionSerialized
+        (JNIEnv *env, jclass thisClass, jbyteArray transactionByteArray) {
+
+    // static native long createJniCoreTransaction (byte[] buffer, long blockHeight, long timeStamp);
+    size_t transactionSize = (size_t) (*env)->GetArrayLength (env, transactionByteArray);
+    const uint8_t *transactionData = (const uint8_t *) (*env)->GetByteArrayElements (env, transactionByteArray, 0);
+
+    BRTransaction *transaction = BRTransactionParse(transactionData, transactionSize);
+    assert (NULL != transaction);
 
     return (jlong) transaction;
 }

@@ -28,6 +28,7 @@
 #include <BRBase58.h>
 #include <BRBIP39Mnemonic.h>
 #include <BRBIP38Key.h>
+#include <BRBIP32Sequence.h>
 #include "com_breadwallet_core_BRCoreKey.h"
 
 /*
@@ -78,6 +79,7 @@ Java_com_breadwallet_core_BRCoreKey_getCompressed
     return (jint) key->compressed;
 }
 
+// Unused
 /*
  * Class:     com_breadwallet_core_BRCoreKey
  * Method:    getBase58EncodedPublicKey
@@ -119,6 +121,74 @@ Java_com_breadwallet_core_BRCoreKey_getSeedFromPhrase
     (*env)->SetByteArrayRegion(env, result, 0, (jsize) sizeof(key), (jbyte *) &key);
 
     return result;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    getAuthPrivKeyForAPI
+ * Signature: ([B)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_getAuthPrivKeyForAPI
+        (JNIEnv *env, jclass thisClass, jbyteArray seed) {
+    //__android_log_print(ANDROID_LOG_DEBUG, "Message from C: ", "getAuthPrivKeyForAPI");
+    jbyte *bytesSeed = (*env)->GetByteArrayElements(env, seed, 0);
+    size_t seedLen = (size_t) (*env)->GetArrayLength(env, seed);
+    //__android_log_print(ANDROID_LOG_DEBUG, "Message from C: ", "seedLen: %d", (int) seedLen);
+
+    BRKey key;
+    BRBIP32APIAuthKey(&key, bytesSeed, seedLen);
+    char rawKey[BRKeyPrivKey(&key, NULL, 0)];
+    BRKeyPrivKey(&key, rawKey, sizeof(rawKey));
+
+    //    __android_log_print(ANDROID_LOG_DEBUG, "Message from C: ", "rawKey: %s", rawKey);
+    jbyteArray result = (*env)->NewByteArray(env, (jsize) sizeof(rawKey));
+    (*env)->SetByteArrayRegion(env, result, 0, (jsize) sizeof(rawKey), (jbyte *) rawKey);
+    return result;
+
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    getAuthPublicKeyForAPI
+ * Signature: ([B)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreKey_getAuthPublicKeyForAPI
+        (JNIEnv *env, jclass thisClass, jbyteArray privKey) {
+    //__android_log_print(ANDROID_LOG_DEBUG, "Message from C: ", "getAuthPublicKeyForAPI");
+    jbyte *bytePrivKey = (*env)->GetByteArrayElements(env, privKey, 0);
+    BRKey key;
+    BRKeySetPrivKey(&key, (const char *) bytePrivKey);
+
+    size_t len = BRKeyPubKey(&key, NULL, 0);
+    uint8_t pubKey[len];
+    BRKeyPubKey(&key, &pubKey, len);
+    size_t strLen = BRBase58Encode(NULL, 0, pubKey, len);
+    char base58string[strLen];
+    BRBase58Encode(base58string, strLen, pubKey, len);
+
+    return (*env)->NewStringUTF(env, base58string);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    decryptBip38Key
+ * Signature: (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreKey_decryptBip38Key
+        (JNIEnv *env, jclass thisClass, jstring privKey, jstring pass) {
+    //__android_log_print(ANDROID_LOG_DEBUG, "Message from C: ", "decryptBip38Key");
+
+    BRKey key;
+    const char *rawPrivKey = (*env)->GetStringUTFChars(env, privKey, NULL);
+    const char *rawPass = (*env)->GetStringUTFChars(env, pass, NULL);
+    int result = BRKeySetBIP38Key(&key, rawPrivKey, rawPass);
+
+    if (result) {
+        char pk[BRKeyPrivKey(&key, NULL, 0)];
+
+        BRKeyPrivKey(&key, pk, sizeof(pk));
+        return (*env)->NewStringUTF(env, pk);
+    } else return (*env)->NewStringUTF(env, "");
 }
 
 /*

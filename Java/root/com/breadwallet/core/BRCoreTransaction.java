@@ -30,6 +30,11 @@ package com.breadwallet.core;
 public class BRCoreTransaction extends BRCoreJniReference {
     //
 
+    public BRCoreTransaction (byte[] buffer) {
+        this (createJniCoreTransactionSerialized (buffer));
+        // ...
+    }
+
     public BRCoreTransaction (byte[] buffer, long blockHeight, long timeStamp ) {
         this (createJniCoreTransaction (buffer, blockHeight, timeStamp));
         // ...
@@ -40,12 +45,11 @@ public class BRCoreTransaction extends BRCoreJniReference {
     }
 
     /**
-     * Return a String of the Transaction hash - CANNOT POSSIBLY BE A STRING (zero in the hash).
-     * Should be byte[]...
+     * Return the Transaction hash
      *
      * @return
      */
-    public native String getHash ();
+    public native byte[] getHash ();
 
     /**
      * The transaction's version
@@ -147,6 +151,8 @@ public class BRCoreTransaction extends BRCoreJniReference {
      */
     public native boolean isStandard ();
 
+    public static native long getMinOutputAmount ();
+
     /**
      * Call BRTransactionFree()
      */
@@ -160,6 +166,8 @@ public class BRCoreTransaction extends BRCoreJniReference {
      * @return
      */
     private static native long createJniCoreTransaction (byte[] buffer, long blockHeight, long timeStamp);
+
+    private static native long createJniCoreTransactionSerialized (byte[] buffer);
 
     @Override
     public String toString() {

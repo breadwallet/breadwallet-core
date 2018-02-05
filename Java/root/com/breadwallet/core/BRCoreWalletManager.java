@@ -152,7 +152,7 @@ public class BRCoreWalletManager implements
      * @param seed
      * @return the transaction hash
      */
-    public String signAndPublishTransaction (BRCoreTransaction transaction, byte[] seed) {
+    public byte[] signAndPublishTransaction (BRCoreTransaction transaction, byte[] seed) {
         getWallet().signTransaction(transaction, getForkId(), seed);
         getPeerManager().publishTransaction(transaction);
         return transaction.getHash();
