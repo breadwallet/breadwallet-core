@@ -29,6 +29,7 @@ package com.breadwallet.core;
 import java.util.Arrays;
 
 public class BRCoreKey extends BRCoreJniReference {
+
     public BRCoreKey (byte[] privateKey) {
         this (createJniCoreKey());
 
@@ -36,21 +37,40 @@ public class BRCoreKey extends BRCoreJniReference {
             throw new NullPointerException("key is empty");
 
         if (!setPrivKey(privateKey)) {
-            throw new IllegalArgumentException("Failed to setup the key: " + Arrays.toString(privateKey));
+            throw new IllegalArgumentException("Failed to set PrivKey");
         }
     }
 
     public BRCoreKey (String secret, boolean compressed) {
         this (createJniCoreKey());
-        setSecret(secret.getBytes(), compressed);
+
+        if (!setSecret(secret.getBytes(), compressed)) {
+            throw new IllegalArgumentException("Failed to set Secret");
+        }
     }
 
     protected BRCoreKey (long jniReferenceAddress) {
         super (jniReferenceAddress);
     }
 
+    /**
+     * Get the byte[] representation of the 256 bit (UInt256) secret
+     *
+     * @return
+     */
     public native byte[] getSecret ();
+
+    /**
+     * Get the byte[] representation of the 65 byte public key.
+     * @return
+     */
     public native byte[] getPubKey ();
+
+    /**
+     * Returns true if compressed.
+     *
+     * @return
+     */
     public native int    getCompressed ();
 
     //
@@ -71,7 +91,7 @@ public class BRCoreKey extends BRCoreJniReference {
     //
     public native boolean setPrivKey(byte[] privKey);
 
-    private native void setSecret(byte[] secret, boolean compressed);
+    private native boolean setSecret(byte[] secret, boolean compressed);
 
     public native byte[] compactSign(byte[] data);
 

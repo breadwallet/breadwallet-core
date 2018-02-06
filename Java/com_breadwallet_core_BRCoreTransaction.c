@@ -40,7 +40,7 @@ Java_com_breadwallet_core_BRCoreTransaction_getHash
     UInt256 transactionHash = transaction->txHash;
 
     jbyteArray hashByteArray = (*env)->NewByteArray (env, sizeof (UInt256));
-    (*env)->SetByteArrayRegion (env, hashByteArray, 0, sizeof (UInt256), transactionHash.u8);
+    (*env)->SetByteArrayRegion (env, hashByteArray, 0, sizeof (UInt256), (const jbyte *) transactionHash.u8);
 
 //    const char *strHash = u256hex(transactionHash);
 //    return (*env)->NewStringUTF(env, strHash);
@@ -165,7 +165,7 @@ JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreTransaction_seriali
     BRTransaction *transaction = (BRTransaction *) getJNIReference (env, thisObject);
 
     size_t byteArraySize = 1;
-    jbyteArray  byteArray         = (*env)->NewByteArray (env, byteArraySize);
+    jbyteArray  byteArray         = (*env)->NewByteArray (env, (jsize) byteArraySize);
     jbyte      *byteArrayElements = (*env)->GetByteArrayElements (env, byteArray, JNI_FALSE);
 
     BRTransactionSerialize(transaction, (uint8_t *) byteArrayElements, byteArraySize);

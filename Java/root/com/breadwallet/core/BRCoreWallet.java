@@ -127,7 +127,14 @@ public class BRCoreWallet extends BRCoreJniReference
     // set TX Unconfirmed After
 
 
-    public long transactionAmount (BRCoreTransaction tx)
+    /**
+     * Return the net amount received by this wallet.  If the amount is positive, then the balance
+     * of this wallet increased; if the amount is negative, then the balance decreased.
+     *
+     * @param tx
+     * @return
+     */
+    public long getTransactionAmount (BRCoreTransaction tx)
     {
         long amountSent = getTransactionAmountSent(tx);
         long amountReceived = getTransactionAmountReceived(tx);
@@ -144,6 +151,52 @@ public class BRCoreWallet extends BRCoreJniReference
     public native long getTransactionAmountReceived (BRCoreTransaction tx);
 
     public native long getBalanceAfterTransaction (BRCoreTransaction transaction);
+
+    /**
+     * Return a BRCoreAddress for a) the receiver (if we sent an amount) or b) the sender (if
+     * we received an amount).  The returned address will be the first address that is not in
+     * this wallet from the outputs or the inputs, respectively.
+     *
+     * @param transaction
+     * @return
+     */
+    public BRCoreAddress getTransactionAddress (BRCoreTransaction transaction){
+        return getTransactionAmount(transaction) > 0
+                ? getTransactionAddressInputs(transaction)   // we received -> from inputs
+                : getTransactionAddressOutputs(transaction); // we sent     -> to outputs
+    }
+
+    /**
+     * Return the first BRCoreAddress from the `transaction` inputs that is not an address
+     * in this wallet.
+     *
+     * @param transaction
+     * @return The/A BRCoreAddress that received an amount from us (that we sent to)
+     */
+    public BRCoreAddress getTransactionAddressInputs(BRCoreTransaction transaction) {
+        for (BRCoreTransactionInput input : transaction.getInputs()) {
+            BRCoreAddress address = new BRCoreAddress(input.getAddress());
+            if (!containsAddress(address))
+                return address;
+        }
+        return null;
+    }
+
+    /**
+     * Return the first BRCoreAddress from the `transaction` outputs this is not an address
+     * in this wallet.
+     *
+     * @param transaction
+     * @return The/A BRCoreAddress that sent to us.
+     */
+    public BRCoreAddress getTransactionAddressOutputs(BRCoreTransaction transaction) {
+        for (BRCoreTransactionOutput output : transaction.getOutputs()) {
+            BRCoreAddress address = new BRCoreAddress (output.getAddress());
+            if (!containsAddress (address))
+                return address;
+        }
+        return null;
+    }
 
     public native long getFeeForTransactionSize (int size);
 

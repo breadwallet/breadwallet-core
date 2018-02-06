@@ -82,9 +82,9 @@ JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreKey_setPrivKey
 /*
  * Class:     com_breadwallet_core_BRCoreKey
  * Method:    setSecret
- * Signature: ([BZ)V
+ * Signature: ([BZ)Z
  */
-JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreKey_setSecret
+JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreKey_setSecret
   (JNIEnv *, jobject, jbyteArray, jboolean);
 
 /*
