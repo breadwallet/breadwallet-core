@@ -37,6 +37,8 @@ static void threadCleanup(void *info);
 
 static void txPublished (void *info, int error);
 
+static jclass blockClass;
+
 /*
  * Class:     com_breadwallet_core_BRCorePeerManager
  * Method:    getConnectStatusValue
@@ -269,6 +271,9 @@ JNICALL Java_com_breadwallet_core_BRCorePeerManager_installListener
     assert (NULL != listenerField);
     (*env)->SetObjectField(env, thisObject, listenerField, listenerWeakRefGlobal);
 
+    blockClass = (*env)->FindClass(env, "com/breadwallet/core/BRCoreMerkleBlock");
+    blockClass = (*env)->NewGlobalRef (env, blockClass);
+
     // Fill in callbacks
     BRPeerManagerSetCallbacks (peerManager, (void *) listenerWeakRefGlobal,
                                syncStarted,
@@ -384,7 +389,7 @@ saveBlocks(void *info, int replace, BRMerkleBlock *blocks[], size_t blockCount) 
     assert (NULL != listenerMethod);
 
     // Create the Java BRCoreMerkleBlock array
-    jclass blockClass = (*env)->FindClass(env, "com/breadwallet/core/BRCoreMerkleBlock");
+    //jclass blockClass = (*env)->FindClass(env, "com/breadwallet/core/BRCoreMerkleBlock");
     jmethodID blockConstructor = (*env)->GetMethodID(env, blockClass, "<init>", "(J)V");
     assert (NULL != blockConstructor);
 
