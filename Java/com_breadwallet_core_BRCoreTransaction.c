@@ -27,6 +27,37 @@
 #include "BRCoreJni.h"
 #include "com_breadwallet_core_BRCoreTransaction.h"
 
+//
+// Statically Initialize Java References
+//
+static jboolean needStaticInitialize = JNI_TRUE;
+
+jclass transactionInputClass;
+jmethodID transactionInputConstructor;
+
+jclass transactionOutputClass;
+jmethodID transactionOutputConstructor;
+
+static void doStaticInitialize (JNIEnv *env) {
+    if (needStaticInitialize) {
+        needStaticInitialize = JNI_FALSE;
+
+        transactionInputClass = (*env)->FindClass(env, "com/breadwallet/core/BRCoreTransactionInput");
+        assert (NULL != transactionInputClass);
+        transactionInputClass = (*env)->NewGlobalRef (env, transactionInputClass);
+
+        transactionInputConstructor = (*env)->GetMethodID(env, transactionInputClass, "<init>", "(J)V");
+        assert (NULL != transactionInputConstructor);
+
+        transactionOutputClass = (*env)->FindClass(env, "com/breadwallet/core/BRCoreTransactionOutput");
+        assert(NULL != transactionOutputClass);
+        transactionOutputClass = (*env)->NewGlobalRef (env, transactionOutputClass);
+
+        transactionOutputConstructor = (*env)->GetMethodID(env, transactionOutputClass, "<init>", "(J)V");
+        assert (NULL != transactionOutputConstructor);
+    }
+}
+
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction
  * Method:    getHash
@@ -71,17 +102,13 @@ JNIEXPORT jobjectArray JNICALL Java_com_breadwallet_core_BRCoreTransaction_getIn
 
     size_t inputCount = transaction->inCount;
 
-    jclass inputClass = (*env)->FindClass(env, "com/breadwallet/core/BRCoreTransactionInput");
-    jmethodID inputConstructor = (*env)->GetMethodID(env, inputClass, "<init>", "(J)V");
-    assert (NULL != inputConstructor);
-
-    jobjectArray inputs = (*env)->NewObjectArray (env, inputCount, inputClass, 0);
+    jobjectArray inputs = (*env)->NewObjectArray (env, inputCount, transactionInputClass, 0);
 
     for (int i = 0; i < inputCount; i++) {
         BRTxInput *input = (BRTxInput *) calloc (1, sizeof (BRTxInput));
         BRTxInputCopy(input, &transaction->inputs[i]);
 
-        jobject inputObject = (*env)->NewObject (env, inputClass, inputConstructor, (jlong) input);
+        jobject inputObject = (*env)->NewObject (env, transactionInputClass, transactionInputConstructor, (jlong) input);
         (*env)->SetObjectArrayElement (env, inputs, i, inputObject);
 
         (*env)->DeleteLocalRef (env, inputObject);
@@ -101,17 +128,13 @@ JNIEXPORT jobjectArray JNICALL Java_com_breadwallet_core_BRCoreTransaction_getOu
 
     size_t outputCount = transaction->outCount;
 
-    jclass outputClass = (*env)->FindClass(env, "com/breadwallet/core/BRCoreTransactionOutput");
-    jmethodID outputConstructor = (*env)->GetMethodID(env, outputClass, "<init>", "(J)V");
-    assert (NULL != outputConstructor);
-
-    jobjectArray outputs = (*env)->NewObjectArray (env, outputCount, outputClass, 0);
+    jobjectArray outputs = (*env)->NewObjectArray (env, outputCount, transactionOutputClass, 0);
 
     for (int i = 0; i < outputCount; i++) {
         BRTxOutput *output = (BRTxOutput *) calloc (1, sizeof (BRTxOutput));
         BRTxOutputCopy(output, &transaction->outputs[i]);
 
-        jobject outputObject = (*env)->NewObject (env, outputClass, outputConstructor, (jlong) output);
+        jobject outputObject = (*env)->NewObject (env, transactionOutputClass, transactionOutputConstructor, (jlong) output);
         (*env)->SetObjectArrayElement (env, outputs, i, outputObject);
 
         (*env)->DeleteLocalRef (env, outputObject);
@@ -297,6 +320,7 @@ Java_com_breadwallet_core_BRCoreTransaction_createJniCoreTransaction
          jbyteArray transactionByteArray,
          jlong blockHeight,
          jlong timestamp) {
+    doStaticInitialize (env);
 
     // static native long createJniCoreTransaction (byte[] buffer, long blockHeight, long timeStamp);
     size_t transactionSize = (size_t) (*env)->GetArrayLength (env, transactionByteArray);
@@ -318,6 +342,7 @@ Java_com_breadwallet_core_BRCoreTransaction_createJniCoreTransaction
  */
 JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransaction_createJniCoreTransactionSerialized
         (JNIEnv *env, jclass thisClass, jbyteArray transactionByteArray) {
+    doStaticInitialize (env);
 
     // static native long createJniCoreTransaction (byte[] buffer, long blockHeight, long timeStamp);
     size_t transactionSize = (size_t) (*env)->GetArrayLength (env, transactionByteArray);

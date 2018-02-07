@@ -35,6 +35,37 @@ static void txUpdated(void *info, const UInt256 txHashes[], size_t count,
                       uint32_t timestamp);
 static void txDeleted(void *info, UInt256 txHash, int notifyUser, int recommendRescan);
 
+//
+// Statically Initialize Java References
+//
+static jboolean needStaticInitialize = JNI_TRUE;
+
+static jclass addressClass;
+static jmethodID addressConstructor;
+
+static jclass transactionClass;
+static jmethodID transactionConstructor;
+
+static void doStaticInitialize (JNIEnv *env) {
+    if (needStaticInitialize) {
+        needStaticInitialize = JNI_FALSE;
+
+        addressClass = (*env)->FindClass(env, "com/breadwallet/core/BRCoreAddress");
+        assert (NULL != addressClass);
+        addressClass = (*env)->NewGlobalRef (env, addressClass);
+
+        addressConstructor = (*env)->GetMethodID(env, addressClass, "<init>", "(J)V");
+        assert (NULL != addressConstructor);
+
+        transactionClass = (*env)->FindClass (env, "com/breadwallet/core/BRCoreTransaction");
+        assert (NULL != transactionClass);
+        transactionClass = (*env)->NewGlobalRef (env, transactionClass);
+
+        transactionConstructor = (*env)->GetMethodID(env, transactionClass, "<init>", "(J)V");
+        assert (NULL != transactionConstructor);
+    }
+}
+
 /*
  * Class:     com_breadwallet_core_BRCoreWallet
  * Method:    createJniCoreWallet
@@ -45,6 +76,7 @@ Java_com_breadwallet_core_BRCoreWallet_createJniCoreWallet
         (JNIEnv *env, jclass thisClass,
          jobjectArray objTransactionsArray,
          jobject objMasterPubKey) {
+    doStaticInitialize(env);
 
     BRMasterPubKey *masterPubKey = (BRMasterPubKey *) getJNIReference(env, objMasterPubKey);
 
@@ -104,10 +136,6 @@ Java_com_breadwallet_core_BRCoreWallet_getReceiveAddress
     BRAddress *address = (BRAddress *) malloc (sizeof (BRAddress));
     *address = BRWalletReceiveAddress (wallet);
 
-    jclass addressClass = (*env)->FindClass(env, "com/breadwallet/core/BRCoreAddress");
-    jmethodID addressConstructor = (*env)->GetMethodID(env, addressClass, "<init>", "(J)V");
-    assert (NULL != addressConstructor);
-
     return (*env)->NewObject (env, addressClass, addressConstructor, (jlong) address);
 }
 
@@ -127,18 +155,14 @@ Java_com_breadwallet_core_BRCoreWallet_getAllAddresses
     BRAddress *addresses = (BRAddress *) calloc (addrCount, sizeof (BRAddress));
     BRWalletAllAddrs (wallet, addresses, addrCount);
 
-    jclass addrClass = (*env)->FindClass(env, "com/breadwallet/core/BRCoreAddress");
-    jmethodID addrConstructor = (*env)->GetMethodID(env, addrClass, "<init>", "(J)V");
-    assert (NULL != addrConstructor);
-
-    jobjectArray addrArray = (*env)->NewObjectArray (env, addrCount, addrClass, 0);
+    jobjectArray addrArray = (*env)->NewObjectArray (env, addrCount, addressClass, 0);
 
     for (int i = 0; i < addrCount; i++) {
         // Get the JNI Reference Address
         BRAddress *address = (BRAddress *) malloc (sizeof (BRAddress));
         *address = addresses[i];
 
-        jobject addrObject = (*env)->NewObject (env, addrClass, addrConstructor, (jlong) address);
+        jobject addrObject = (*env)->NewObject (env, addressClass, addressConstructor, (jlong) address);
 
         (*env)->SetObjectArrayElement (env, addrArray, i, addrObject);
         (*env)->DeleteLocalRef (env, addrObject);
@@ -190,10 +214,6 @@ Java_com_breadwallet_core_BRCoreWallet_getTransactions
     BRTransaction **transactions = (BRTransaction **) calloc (transactionCount, sizeof (BRTransaction *));
     BRWalletTransactions (wallet, transactions, transactionCount);
 
-    jclass transactionClass = (*env)->FindClass (env, "com/breadwallet/core/BRCoreTransaction");
-    jmethodID transactionConstructor = (*env)->GetMethodID(env, transactionClass, "<init>", "(J)V");
-    assert (NULL != transactionConstructor);
-
     jobjectArray transactionArray = (*env)->NewObjectArray (env, transactionCount, transactionClass, 0);
 
     for (int index = 0; index < transactionCount; index++) {
@@ -221,10 +241,6 @@ Java_com_breadwallet_core_BRCoreWallet_getTransactionsConfirmedBefore
     size_t transactionCount = BRWalletTxUnconfirmedBefore (wallet, NULL, 0, blockHeight);
     BRTransaction **transactions = (BRTransaction **) calloc (transactionCount, sizeof (BRTransaction *));
     BRWalletTxUnconfirmedBefore (wallet, transactions, transactionCount, blockHeight);
-
-    jclass transactionClass = (*env)->FindClass (env, "com/breadwallet/core/BRCoreTransaction");
-    jmethodID transactionConstructor = (*env)->GetMethodID(env, transactionClass, "<init>", "(J)V");
-    assert (NULL != transactionConstructor);
 
     jobjectArray transactionArray = (*env)->NewObjectArray (env, transactionCount, transactionClass, 0);
 
@@ -331,13 +347,8 @@ Java_com_breadwallet_core_BRCoreWallet_createTransaction
     BRWallet  *wallet  = (BRWallet  *) getJNIReference (env, thisObject);
     BRAddress *address = (BRAddress *) getJNIReference (env, addressObject);
 
-    BRTransaction *transaction = BRWalletCreateTransaction (wallet, amount, (const char *) address);
-
-    jclass transactionClass = (*env)->FindClass (env, "com/breadwallet/core/BRCoreTransaction");
-    jmethodID transactionConstructor = (*env)->GetMethodID(env, transactionClass, "<init>", "(J)V");
-    assert (NULL != transactionConstructor);
-
-    return (*env)->NewObject (env, transactionClass, transactionConstructor, (jlong) transaction);
+    return (*env)->NewObject (env, transactionClass, transactionConstructor,
+                              (jlong) BRWalletCreateTransaction (wallet, amount, (const char *) address));
 }
 
 /*
@@ -416,13 +427,8 @@ Java_com_breadwallet_core_BRCoreWallet_transactionForHash
 
     uint8_t *hashData = (uint8_t *) (*env)->GetByteArrayElements(env, hashByteArray, 0);
 
-    BRTransaction *transaction = BRWalletTransactionForHash(wallet, UInt256Get(hashData));
-
-    jclass transactionClass = (*env)->FindClass (env, "com/breadwallet/core/BRCoreTransaction");
-    jmethodID transactionConstructor = (*env)->GetMethodID(env, transactionClass, "<init>", "(J)V");
-    assert (NULL != transactionConstructor);
-
-    return (*env)->NewObject (env, transactionClass, transactionConstructor, (jlong) transaction);
+    return (*env)->NewObject (env, transactionClass, transactionConstructor,
+                              (jlong) BRWalletTransactionForHash(wallet, UInt256Get(hashData)));
 }
 
 /*
@@ -636,10 +642,6 @@ txAdded(void *info, BRTransaction *tx) {
                                  "(Lcom/breadwallet/core/BRCoreTransaction;)V");
     assert (NULL != listenerMethod);
 
-    jclass transactionClass = (*env)->FindClass (env, "com/breadwallet/core/BRCoreTransaction");
-    jmethodID transactionConstructor = (*env)->GetMethodID(env, transactionClass, "<init>", "(J)V");
-    assert (NULL != transactionConstructor);
-
     // Create the BRCoreTransaction
     jobject transaction = (*env)->NewObject (env, transactionClass, transactionConstructor,
                                              (jlong) BRTransactionCopy(tx));
@@ -650,36 +652,6 @@ txAdded(void *info, BRTransaction *tx) {
                            transaction);
     (*env)->DeleteLocalRef(env, listener);
 }
-
-/*
-    uint8_t buf[BRTransactionSerialize(tx, NULL, 0)];
-    size_t len = BRTransactionSerialize(tx, buf, sizeof(buf));
-    uint64_t fee = (BRWalletFeeForTx(_wallet, tx) == -1) ? 0 : BRWalletFeeForTx(_wallet, tx);
-    jlong amount;
-
-    if (BRWalletAmountSentByTx(_wallet, tx) == 0) {
-        amount = (jlong) BRWalletAmountReceivedFromTx(_wallet, tx);
-    } else {
-        amount = (jlong) (
-                (BRWalletAmountSentByTx(_wallet, tx) - BRWalletAmountReceivedFromTx(_wallet, tx) -
-                 fee) * -1);
-    }
-
-    jbyteArray result = (*env)->NewByteArray(env, (jsize) len);
-
-    (*env)->SetByteArrayRegion(env, result, 0, (jsize) len, (jbyte *) buf);
-
-    UInt256 transactionHash = tx->txHash;
-    const char *strHash = u256hex(transactionHash);
-    jstring jstrHash = (*env)->NewStringUTF(env, strHash);
-
-    (*env)->CallStaticVoidMethod(env, _walletManagerClass, mid,
-                                 result,
-                                 (jint) tx->blockHeight,
-                                 (jlong) tx->timestamp,
-                                 (jlong) amount, jstrHash);
-    (*env)->DeleteLocalRef(env, jstrHash);
-*/
 
 static void
 txUpdated(void *info, const UInt256 txHashes[], size_t count, uint32_t blockHeight,

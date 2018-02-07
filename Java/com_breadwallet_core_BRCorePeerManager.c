@@ -37,7 +37,36 @@ static void threadCleanup(void *info);
 
 static void txPublished (void *info, int error);
 
+//
+// Statically Initialize Java References
+//
+static jboolean needStaticInitialize = JNI_TRUE;
+
 static jclass blockClass;
+static jmethodID blockConstructor;
+
+static jclass peerClass;
+static jmethodID peerConstructor;
+
+static void doStaticInitialize (JNIEnv *env) {
+    if (needStaticInitialize) {
+        needStaticInitialize = JNI_FALSE;
+
+        blockClass = (*env)->FindClass(env, "com/breadwallet/core/BRCoreMerkleBlock");
+        assert (NULL != blockClass);
+        blockClass = (*env)->NewGlobalRef (env, blockClass);
+
+        blockConstructor = (*env)->GetMethodID(env, blockClass, "<init>", "(J)V");
+        assert (NULL != blockConstructor);
+
+        peerClass = (*env)->FindClass(env, "com/breadwallet/core/BRCorePeer");
+        assert (NULL != peerClass);
+        peerClass = (*env)->NewGlobalRef (env, peerClass);
+
+        peerConstructor = (*env)->GetMethodID(env, peerClass, "<init>", "(J)V");
+        assert (NULL != peerConstructor);
+    }
+}
 
 /*
  * Class:     com_breadwallet_core_BRCorePeerManager
@@ -210,7 +239,7 @@ Java_com_breadwallet_core_BRCorePeerManager_createCorePeerManager
          jdouble dblEarliestKeyTime,
          jobjectArray objBlocksArray,
          jobjectArray objPeersArray) {
-    if (setJvm(env) != JNI_OK) return 0;
+    doStaticInitialize(env);
 
     BRChainParams *params = (BRChainParams *) getJNIReference(env, objParams);
     BRWallet *wallet = (BRWallet *) getJNIReference(env, objWallet);
@@ -270,9 +299,6 @@ JNICALL Java_com_breadwallet_core_BRCorePeerManager_installListener
                                                 "Ljava/lang/ref/WeakReference;");
     assert (NULL != listenerField);
     (*env)->SetObjectField(env, thisObject, listenerField, listenerWeakRefGlobal);
-
-    blockClass = (*env)->FindClass(env, "com/breadwallet/core/BRCoreMerkleBlock");
-    blockClass = (*env)->NewGlobalRef (env, blockClass);
 
     // Fill in callbacks
     BRPeerManagerSetCallbacks (peerManager, (void *) listenerWeakRefGlobal,
@@ -389,10 +415,6 @@ saveBlocks(void *info, int replace, BRMerkleBlock *blocks[], size_t blockCount) 
     assert (NULL != listenerMethod);
 
     // Create the Java BRCoreMerkleBlock array
-    //jclass blockClass = (*env)->FindClass(env, "com/breadwallet/core/BRCoreMerkleBlock");
-    jmethodID blockConstructor = (*env)->GetMethodID(env, blockClass, "<init>", "(J)V");
-    assert (NULL != blockConstructor);
-
     jobjectArray blockArray = (*env)->NewObjectArray(env, blockCount, blockClass, 0);
 
     for (int index = 0; index < blockCount; index++) {
@@ -423,11 +445,7 @@ savePeers(void *info, int replace, const BRPeer peers[], size_t count) {
                                  "(Z[Lcom/breadwallet/core/BRCorePeer;)V");
     assert (NULL != listenerMethod);
 
-    jclass peerClass = (*env)->FindClass(env, "com/breadwallet/core/BRCorePeer");
     jobjectArray peerArray = (*env)->NewObjectArray(env, count, peerClass, 0);
-
-    jmethodID peerConstructor = (*env)->GetMethodID(env, peerClass, "<init>", "(J)V");
-    assert (NULL != peerConstructor);
 
     for (int index = 0; index < count; index++) {
         BRPeer *peer = (BRPeer *) malloc(sizeof(BRPeer));
@@ -437,7 +455,6 @@ savePeers(void *info, int replace, const BRPeer peers[], size_t count) {
                 (*env)->NewObject (env, peerClass, peerConstructor, (jlong) peer);
 
         (*env)->SetObjectArrayElement(env, peerArray, index, peerObject);
-
         (*env)->DeleteLocalRef (env, peerObject);
     }
 

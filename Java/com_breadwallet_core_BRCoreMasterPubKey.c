@@ -70,9 +70,6 @@ JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKeyFromPhrase
         (JNIEnv *env, jclass thisClass,
          jbyteArray phrase) {
-
-    if (setJvm(env) != JNI_OK) return 0;
-
     jsize phraseLength = (*env)->GetArrayLength (env, phrase);
     jbyte *phraseBytes = (*env)->GetByteArrayElements (env, phrase, 0);
 
@@ -136,9 +133,6 @@ JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKeyFromPubKey
         (JNIEnv *env, jclass thisClass,
          jbyteArray phrase) {
-
-    if (setJvm(env) != JNI_OK) return 0;
-
     jsize phraseLength = (*env)->GetArrayLength (env, phrase);
     jbyte *phraseBytes = (*env)->GetByteArrayElements (env, phrase, 0);
     assert (phraseLength == 33);

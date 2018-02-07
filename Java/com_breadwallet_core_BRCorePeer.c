@@ -224,8 +224,6 @@ Java_com_breadwallet_core_BRCorePeer_createJniCorePeer___3B_3B_3B
          jbyteArray peerAddress,
          jbyteArray peerPort,
          jbyteArray peerTimeStamp ) {
-    if (setJvm(env) != JNI_OK) return 0;
-
     BRPeer *result = (BRPeer *) calloc (1, sizeof (BRPeer));
 
     jbyte *byteAddr  = (*env)->GetByteArrayElements(env, peerAddress, 0);
@@ -250,8 +248,6 @@ JNIEXPORT jlong
 JNICALL Java_com_breadwallet_core_BRCorePeer_createJniCorePeer__J
         (JNIEnv *env, jclass thisClass,
          jlong magicNumber) {
-    if (setJvm(env) != JNI_OK) return 0;
-
     BRPeer *result = BRPeerNew((uint32_t) magicNumber);
     return (jlong) result;
 }

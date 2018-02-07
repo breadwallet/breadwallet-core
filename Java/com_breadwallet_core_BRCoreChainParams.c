@@ -45,8 +45,6 @@ JNIEXPORT jint JNICALL Java_com_breadwallet_core_BRCoreChainParams_getJniMagicNu
  */
 JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreChainParams_createJniMainnetChainParams
         (JNIEnv *env, jclass thisClass) {
-    if (setJvm(env) != JNI_OK) return 0;
-
     BRChainParams *result = (BRChainParams *) calloc (1, sizeof (BRChainParams));
     memcpy (result, &BRMainNetParams, sizeof (BRChainParams));
     return (jlong) result;
@@ -59,8 +57,6 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreChainParams_createJniMai
  */
 JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreChainParams_createJniTestnetChainParams
         (JNIEnv *env, jclass thisClass) {
-    if (setJvm(env) != JNI_OK) return 0;
-
     BRChainParams *result = (BRChainParams *) calloc (1, sizeof (BRChainParams));
     memcpy (result, &BRTestNetParams, sizeof (BRChainParams));
     return (jlong) result;
@@ -73,8 +69,6 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreChainParams_createJniTes
  */
 JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreChainParams_createJniBcashChainParams
         (JNIEnv *env, jclass thisClass) {
-    if (setJvm(env) != JNI_OK) return 0;
-
     BRChainParams *result = (BRChainParams *) calloc (1, sizeof (BRChainParams));
     memcpy (result, &BRTestNetParams, sizeof (BRChainParams)); // WRONG
     return (jlong) result;
