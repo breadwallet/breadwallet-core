@@ -581,7 +581,7 @@ Java_com_breadwallet_core_BRCoreWallet_disposeNative
         assert (NULL != listenerField);
 
         jweak listenerWeakGlobalRef = (*env)->GetObjectField (env, thisObject, listenerField);
-        if (!(*env)->IsSameObject (env, listenerWeakGlobalRef, NULL)) {
+        if (JNIWeakGlobalRefType == (*env)->GetObjectRefType (env, listenerWeakGlobalRef)) {
             (*env)->DeleteWeakGlobalRef (env, listenerWeakGlobalRef);
         }
 

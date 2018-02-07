@@ -132,7 +132,8 @@ Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKeyFromPhrase
  * Method:    createJniCoreMasterPubKeyFromPubKey
  * Signature: ([B)J
  */
-JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKeyFromPubKey
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKeyFromPubKey
         (JNIEnv *env, jclass thisClass,
          jbyteArray phrase) {
 
