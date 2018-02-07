@@ -376,9 +376,11 @@ syncStopped(void *info, int error) {
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
                                  "syncStopped",
-                                 "(I)V");
+                                 "(Ljava/lang/String;)V");
 
-    (*env)->CallVoidMethod(env, listener, listenerMethod, error);
+    jstring errorString = (*env)->NewStringUTF (env, strerror (error));
+
+    (*env)->CallVoidMethod(env, listener, listenerMethod, errorString);
     (*env)->DeleteLocalRef (env, listener);
 }
 
@@ -499,10 +501,12 @@ txPublished (void *info, int error) {
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
                                  "txPublished",
-                                 "(I)V");
+                                 "(Ljava/lang/String;)V");
     assert (NULL != listenerMethod);
 
-    (*env)->CallVoidMethod(env, listener, listenerMethod, error);
+    jstring errorString = (*env)->NewStringUTF (env, strerror (error));
+
+    (*env)->CallVoidMethod(env, listener, listenerMethod, errorString);
     (*env)->DeleteLocalRef (env, listener);
 }
 

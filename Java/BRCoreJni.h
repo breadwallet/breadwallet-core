@@ -35,14 +35,6 @@ JNIEnv *getEnv();
 /**
  *
  * @param env
- * @return
- */
-extern
-int setJvm (JNIEnv *env);
-
-/**
- *
- * @param env
  * @param thisObject
  * @return
  */

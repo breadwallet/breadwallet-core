@@ -196,7 +196,7 @@ public class BRCoreWalletManager implements
     }
 
     @Override
-    public void syncStopped(int error) {
+    public void syncStopped(String error) {
         System.err.println ("syncStopped: " + error);
     }
 
@@ -227,8 +227,8 @@ public class BRCoreWalletManager implements
     }
 
     @Override
-    public void txPublished(int error) {
-        System.err.println (String.format ("txPublished: %d", error));
+    public void txPublished(String error) {
+        System.err.println (String.format ("txPublished: %s", error));
     }
 
     //
@@ -307,7 +307,7 @@ public class BRCoreWalletManager implements
         }
 
         @Override
-        public void syncStopped(int error) {
+        public void syncStopped(String error) {
             try { listener.syncStopped(error); }
             catch (Exception ex) {
                 ex.printStackTrace(System.err);
@@ -348,7 +348,7 @@ public class BRCoreWalletManager implements
         }
 
         @Override
-        public void txPublished(int error) {
+        public void txPublished(String error) {
             try { listener.txPublished(error); }
             catch (Exception ex) {
                 ex.printStackTrace(System.err);
@@ -385,7 +385,7 @@ public class BRCoreWalletManager implements
         }
 
         @Override
-        public void syncStopped(final int error) {
+        public void syncStopped(final String error) {
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
@@ -430,7 +430,7 @@ public class BRCoreWalletManager implements
         }
 
         @Override
-        public void txPublished(final int error) {
+        public void txPublished(final String error) {
             executor.execute(new Runnable() {
                 @Override
                 public void run() {

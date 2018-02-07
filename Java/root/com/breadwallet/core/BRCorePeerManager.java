@@ -25,7 +25,6 @@
 package com.breadwallet.core;
 
 import java.lang.ref.WeakReference;
-import java.util.concurrent.Executor;
 
 /**
  *
@@ -40,7 +39,7 @@ public class BRCorePeerManager extends BRCoreJniReference {
         void syncStarted();
 
         // func syncStopped(_ error: BRPeerManagerError?)
-        void syncStopped(int error);
+        void syncStopped(String error);
 
         // func txStatusUpdate()
         void txStatusUpdate();
@@ -55,7 +54,7 @@ public class BRCorePeerManager extends BRCoreJniReference {
         boolean networkIsReachable();
 
         // Called on publishTransaction
-        void txPublished (int error);
+        void txPublished (String error);
     }
 
     //

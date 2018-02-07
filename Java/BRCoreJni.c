@@ -38,20 +38,8 @@ JNIEnv *getEnv() {
     return status == JNI_OK ? env : NULL;
 }
 
-extern
-int setJvm (JNIEnv *env) {
-    if (NULL != jvm) return JNI_OK;
-
-    jint status = (*env)->GetJavaVM(env, &jvm);
-
-    if (status != JNI_OK) {
-        jvm = NULL;
-    }
-    return status;
-}
-
 JNIEXPORT jint JNICALL
-JNI_OnLoad(JavaVM *theJvm, void *reserved) {
+JNI_OnLoad (JavaVM *theJvm, void *reserved) {
     JNIEnv *env = 0;
 
     if ((*theJvm)->GetEnv(theJvm, (void **)&env, JNI_VERSION_1_6)) {
