@@ -158,6 +158,10 @@ public class BRCoreTransaction extends BRCoreJniReference {
      */
     public native void disposeNative ();
 
+    protected static native void initializeNative ();
+
+    static { initializeNative(); }
+
     /**
      *
      * @param buffer

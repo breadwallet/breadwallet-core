@@ -201,6 +201,10 @@ public class BRCorePeerManager extends BRCoreJniReference {
 
     public native void disposeNative();
 
+    protected static native void initializeNative ();
+
+    static { initializeNative(); }
+
     //
     // toString()
     //

@@ -127,6 +127,14 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCorePeerManager_installListen
 JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCorePeerManager_disposeNative
   (JNIEnv *, jobject);
 
+/*
+ * Class:     com_breadwallet_core_BRCorePeerManager
+ * Method:    initializeNative
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCorePeerManager_initializeNative
+  (JNIEnv *, jclass);
+
 #ifdef __cplusplus
 }
 #endif

@@ -66,4 +66,3 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreJniReference_disposeNativ
     // Not always free(); could be BRPeerManagerFree()
     if (NULL != reference) free (reference);
 }
-

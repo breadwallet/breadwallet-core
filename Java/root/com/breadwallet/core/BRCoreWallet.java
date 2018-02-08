@@ -213,6 +213,9 @@ public class BRCoreWallet extends BRCoreJniReference
     // To call BRWalletFree()
     public native void disposeNative ();
 
+    protected static native void initializeNative ();
+
+    static { initializeNative(); }
 
     @Override
     public String toString() {

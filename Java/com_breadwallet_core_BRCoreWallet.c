@@ -38,33 +38,12 @@ static void txDeleted(void *info, UInt256 txHash, int notifyUser, int recommendR
 //
 // Statically Initialize Java References
 //
-static jboolean needStaticInitialize = JNI_TRUE;
-
 static jclass addressClass;
 static jmethodID addressConstructor;
 
 static jclass transactionClass;
 static jmethodID transactionConstructor;
 
-static void doStaticInitialize (JNIEnv *env) {
-    if (needStaticInitialize) {
-        needStaticInitialize = JNI_FALSE;
-
-        addressClass = (*env)->FindClass(env, "com/breadwallet/core/BRCoreAddress");
-        assert (NULL != addressClass);
-        addressClass = (*env)->NewGlobalRef (env, addressClass);
-
-        addressConstructor = (*env)->GetMethodID(env, addressClass, "<init>", "(J)V");
-        assert (NULL != addressConstructor);
-
-        transactionClass = (*env)->FindClass (env, "com/breadwallet/core/BRCoreTransaction");
-        assert (NULL != transactionClass);
-        transactionClass = (*env)->NewGlobalRef (env, transactionClass);
-
-        transactionConstructor = (*env)->GetMethodID(env, transactionClass, "<init>", "(J)V");
-        assert (NULL != transactionConstructor);
-    }
-}
 
 /*
  * Class:     com_breadwallet_core_BRCoreWallet
@@ -76,7 +55,6 @@ Java_com_breadwallet_core_BRCoreWallet_createJniCoreWallet
         (JNIEnv *env, jclass thisClass,
          jobjectArray objTransactionsArray,
          jobject objMasterPubKey) {
-    doStaticInitialize(env);
 
     BRMasterPubKey *masterPubKey = (BRMasterPubKey *) getJNIReference(env, objMasterPubKey);
 
@@ -593,6 +571,28 @@ Java_com_breadwallet_core_BRCoreWallet_disposeNative
 
         BRWalletFree(wallet);
     }
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreWallet
+ * Method:    initializeNative
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreWallet_initializeNative
+        (JNIEnv *env, jclass thisClass) {
+    addressClass = (*env)->FindClass(env, "com/breadwallet/core/BRCoreAddress");
+    assert (NULL != addressClass);
+    addressClass = (*env)->NewGlobalRef (env, addressClass);
+
+    addressConstructor = (*env)->GetMethodID(env, addressClass, "<init>", "(J)V");
+    assert (NULL != addressConstructor);
+
+    transactionClass = (*env)->FindClass (env, "com/breadwallet/core/BRCoreTransaction");
+    assert (NULL != transactionClass);
+    transactionClass = (*env)->NewGlobalRef (env, transactionClass);
+
+    transactionConstructor = (*env)->GetMethodID(env, transactionClass, "<init>", "(J)V");
+    assert (NULL != transactionConstructor);
 }
 
 //

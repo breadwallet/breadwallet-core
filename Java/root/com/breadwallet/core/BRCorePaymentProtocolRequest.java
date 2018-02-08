@@ -63,4 +63,8 @@ public class BRCorePaymentProtocolRequest extends BRCoreJniReference {
     public native byte[] serialize ();
 
     public native void disposeNative ();
+
+    protected static native void initializeNative ();
+
+    static { initializeNative(); }
 }

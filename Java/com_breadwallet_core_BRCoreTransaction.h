@@ -145,6 +145,14 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreTransaction_disposeNative
 
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction
+ * Method:    initializeNative
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreTransaction_initializeNative
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreTransaction
  * Method:    createJniCoreTransaction
  * Signature: ([BJJ)J
  */

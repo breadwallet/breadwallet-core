@@ -40,33 +40,11 @@ static void txPublished (void *info, int error);
 //
 // Statically Initialize Java References
 //
-static jboolean needStaticInitialize = JNI_TRUE;
-
 static jclass blockClass;
 static jmethodID blockConstructor;
 
 static jclass peerClass;
 static jmethodID peerConstructor;
-
-static void doStaticInitialize (JNIEnv *env) {
-    if (needStaticInitialize) {
-        needStaticInitialize = JNI_FALSE;
-
-        blockClass = (*env)->FindClass(env, "com/breadwallet/core/BRCoreMerkleBlock");
-        assert (NULL != blockClass);
-        blockClass = (*env)->NewGlobalRef (env, blockClass);
-
-        blockConstructor = (*env)->GetMethodID(env, blockClass, "<init>", "(J)V");
-        assert (NULL != blockConstructor);
-
-        peerClass = (*env)->FindClass(env, "com/breadwallet/core/BRCorePeer");
-        assert (NULL != peerClass);
-        peerClass = (*env)->NewGlobalRef (env, peerClass);
-
-        peerConstructor = (*env)->GetMethodID(env, peerClass, "<init>", "(J)V");
-        assert (NULL != peerConstructor);
-    }
-}
 
 /*
  * Class:     com_breadwallet_core_BRCorePeerManager
@@ -239,7 +217,6 @@ Java_com_breadwallet_core_BRCorePeerManager_createCorePeerManager
          jdouble dblEarliestKeyTime,
          jobjectArray objBlocksArray,
          jobjectArray objPeersArray) {
-    doStaticInitialize(env);
 
     BRChainParams *params = (BRChainParams *) getJNIReference(env, objParams);
     BRWallet *wallet = (BRWallet *) getJNIReference(env, objWallet);
@@ -337,6 +314,27 @@ Java_com_breadwallet_core_BRCorePeerManager_disposeNative
     }
 }
 
+/*
+ * Class:     com_breadwallet_core_BRCorePeerManager
+ * Method:    initializeNative
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCorePeerManager_initializeNative
+        (JNIEnv *env, jclass thisClass) {
+    blockClass = (*env)->FindClass(env, "com/breadwallet/core/BRCoreMerkleBlock");
+    assert (NULL != blockClass);
+    blockClass = (*env)->NewGlobalRef (env, blockClass);
+
+    blockConstructor = (*env)->GetMethodID(env, blockClass, "<init>", "(J)V");
+    assert (NULL != blockConstructor);
+
+    peerClass = (*env)->FindClass(env, "com/breadwallet/core/BRCorePeer");
+    assert (NULL != peerClass);
+    peerClass = (*env)->NewGlobalRef (env, peerClass);
+
+    peerConstructor = (*env)->GetMethodID(env, peerClass, "<init>", "(J)V");
+    assert (NULL != peerConstructor);
+}
 
 //
 // Callbacks

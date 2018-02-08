@@ -271,6 +271,14 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreWallet_getMaxOutputAmoun
 JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreWallet_disposeNative
   (JNIEnv *, jobject);
 
+/*
+ * Class:     com_breadwallet_core_BRCoreWallet
+ * Method:    initializeNative
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreWallet_initializeNative
+  (JNIEnv *, jclass);
+
 #ifdef __cplusplus
 }
 #endif

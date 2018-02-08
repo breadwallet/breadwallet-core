@@ -71,6 +71,14 @@ JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolACK_
 JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolACK_disposeNative
   (JNIEnv *, jobject);
 
+/*
+ * Class:     com_breadwallet_core_BRCorePaymentProtocolACK
+ * Method:    initializeNative
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolACK_initializeNative
+  (JNIEnv *, jclass);
+
 #ifdef __cplusplus
 }
 #endif

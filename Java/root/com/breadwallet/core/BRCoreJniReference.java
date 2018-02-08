@@ -57,10 +57,5 @@ public abstract class BRCoreJniReference {
         disposeNative ();
     }
 
-    //
-    //
-    //
-
     public native void disposeNative ();
-
 }
