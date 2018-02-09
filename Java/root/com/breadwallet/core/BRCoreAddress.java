@@ -31,13 +31,28 @@ public class BRCoreAddress extends BRCoreJniReference {
     public BRCoreAddress (String address) {
         this (createCoreAddress (address));
     }
+
     protected BRCoreAddress (long jniReferenceAddress) {
         super (jniReferenceAddress);
     }
 
     protected static native long createCoreAddress (String address);
 
+    protected static native long createCoreAddressFromScriptPubKey (byte[] script);
+
+    public static BRCoreAddress fromScriptPubKey (byte[] script) {
+        return new BRCoreAddress (createCoreAddressFromScriptPubKey (script));
+    }
+
+    protected static native long createCoreAddressFromScriptSignature (byte[] script);
+
+    public static BRCoreAddress fromScriptSignature (byte[] script) {
+        return new BRCoreAddress (createCoreAddressFromScriptSignature (script));
+    }
+
     public native String stringify ();
 
     public native boolean isValid ();
+
+    public native byte[] getPubKeyScript();
 }

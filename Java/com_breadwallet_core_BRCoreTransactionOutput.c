@@ -30,25 +30,24 @@
 /*
  * Class:     com_breadwallet_core_BRCoreTransactionOutput
  * Method:    createTransactionOutput
- * Signature: (Ljava/lang/String;J[B)J
+ * Signature: (J[B)J
  */
-JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransactionOutput_createTransactionOutput
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_BRCoreTransactionOutput_createTransactionOutput
         (JNIEnv *env, jclass thisClass,
-         jstring addressString,
          jlong amount,
          jbyteArray scriptByteArray) {
     BRTxOutput *output = (BRTxOutput *) calloc (1, sizeof (BRTxOutput));
 
-    output->amount = (uint32_t) amount;
-
     // script
     output->script = NULL;
     size_t scriptLen = (size_t) (*env)->GetArrayLength (env, scriptByteArray);
-    const uint8_t *scriptData = (const uint8_t *) (*env)->GetByteArrayElements (env, scriptByteArray, 0);
-    BRTxOutputSetScript(output, scriptData, scriptLen);
+    const uint8_t *script = (const uint8_t *) (*env)->GetByteArrayElements (env, scriptByteArray, 0);
+    BRTxOutputSetScript(output, script, scriptLen);
+
+    output->amount = (uint32_t) amount;
 
     return (jlong) output;
-
 }
 
 /*

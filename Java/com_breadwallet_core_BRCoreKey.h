@@ -33,6 +33,14 @@ JNIEXPORT jint JNICALL Java_com_breadwallet_core_BRCoreKey_getCompressed
 
 /*
  * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    getPrivKey
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreKey_getPrivKey
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
  * Method:    getSeedFromPhrase
  * Signature: ([B)[B
  */
@@ -73,11 +81,19 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreKey_createJniCoreKey
 
 /*
  * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    createCoreKeyForBIP32
+ * Signature: ([BJJ)J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreKey_createCoreKeyForBIP32
+  (JNIEnv *, jclass, jbyteArray, jlong, jlong);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
  * Method:    setPrivKey
- * Signature: ([B)Z
+ * Signature: (Ljava/lang/String;)Z
  */
 JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreKey_setPrivKey
-  (JNIEnv *, jobject, jbyteArray);
+  (JNIEnv *, jobject, jstring);
 
 /*
  * Class:     com_breadwallet_core_BRCoreKey
@@ -134,6 +150,30 @@ JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreKey_isValidBitcoinPri
  */
 JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreKey_isValidBitcoinBIP38Key
   (JNIEnv *, jclass, jstring);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    encodeSHA256
+ * Signature: (Ljava/lang/String;)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_encodeSHA256
+  (JNIEnv *, jclass, jstring);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    sign
+ * Signature: ([B)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_sign
+  (JNIEnv *, jobject, jbyteArray);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    verify
+ * Signature: ([B[B)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreKey_verify
+  (JNIEnv *, jobject, jbyteArray, jbyteArray);
 
 #ifdef __cplusplus
 }

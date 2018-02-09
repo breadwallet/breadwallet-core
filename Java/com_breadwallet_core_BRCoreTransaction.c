@@ -165,7 +165,7 @@ JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreTransaction_seriali
         (JNIEnv *env, jobject thisObject) {
     BRTransaction *transaction = (BRTransaction *) getJNIReference (env, thisObject);
 
-    size_t byteArraySize = 1;
+    size_t byteArraySize = BRTransactionSerialize(transaction, NULL, 0);
     jbyteArray  byteArray         = (*env)->NewByteArray (env, (jsize) byteArraySize);
     jbyte      *byteArrayElements = (*env)->GetByteArrayElements (env, byteArray, JNI_FALSE);
 
@@ -252,6 +252,29 @@ JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreTransaction_isSigned
         (JNIEnv *env, jobject thisObject) {
     BRTransaction *transaction = (BRTransaction *) getJNIReference (env, thisObject);
     return (jboolean) BRTransactionIsSigned (transaction);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreTransaction
+ * Method:    sign
+ * Signature: ([Lcom/breadwallet/core/BRCoreKey;)V
+ */
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_BRCoreTransaction_sign
+        (JNIEnv *env, jobject thisObject, jobjectArray keyObjectArray) {
+    BRTransaction *transaction = (BRTransaction *) getJNIReference (env, thisObject);
+
+    size_t keyCount = (*env)->GetArrayLength (env, keyObjectArray);
+    BRKey keys[keyCount];
+    for (int index = 0; index < keyCount; index++) {
+        jobject keyObject = (*env)->GetObjectArrayElement (env, keyObjectArray, index);
+        keys[index] = *(BRKey *) getJNIReference (env, keyObject);
+
+        (*env)->DeleteLocalRef (env, keyObject);
+    }
+    BRTransactionSign(transaction, 0x00, keys, keyCount);
+
+    return;
 }
 
 /*
@@ -351,4 +374,14 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransaction_createJniCor
     assert (NULL != transaction);
 
     return (jlong) transaction;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreTransaction
+ * Method:    createJniCoreTransactionEmpty
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransaction_createJniCoreTransactionEmpty
+        (JNIEnv *env, jclass thisClass) {
+    return (jlong) BRTransactionNew();
 }

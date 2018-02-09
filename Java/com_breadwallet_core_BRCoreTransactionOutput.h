@@ -10,10 +10,10 @@ extern "C" {
 /*
  * Class:     com_breadwallet_core_BRCoreTransactionOutput
  * Method:    createTransactionOutput
- * Signature: (Ljava/lang/String;J[B)J
+ * Signature: (J[B)J
  */
 JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransactionOutput_createTransactionOutput
-  (JNIEnv *, jclass, jstring, jlong, jbyteArray);
+  (JNIEnv *, jclass, jlong, jbyteArray);
 
 /*
  * Class:     com_breadwallet_core_BRCoreTransactionOutput

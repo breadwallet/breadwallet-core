@@ -30,10 +30,10 @@ import java.util.Arrays;
 
 public class BRCoreKey extends BRCoreJniReference {
 
-    public BRCoreKey (byte[] privateKey) {
+    public BRCoreKey (String privateKey) {
         this (createJniCoreKey());
 
-        if (null == privateKey || 0 == privateKey.length)
+        if (null == privateKey || 0 == privateKey.length())
             throw new NullPointerException("key is empty");
 
         if (!setPrivKey(privateKey)) {
@@ -41,18 +41,26 @@ public class BRCoreKey extends BRCoreJniReference {
         }
     }
 
-    public BRCoreKey (String secret, boolean compressed) {
+    public BRCoreKey (byte[] secret, boolean compressed) {
         this (createJniCoreKey());
 
-        if (!setSecret(secret.getBytes(), compressed)) {
+        if (!setSecret(secret, compressed)) {
             throw new IllegalArgumentException("Failed to set Secret");
         }
+    }
+
+    public BRCoreKey (byte[] seed, long chain, long index) {
+        this (createCoreKeyForBIP32(seed, chain, index));
     }
 
     protected BRCoreKey (long jniReferenceAddress) {
         super (jniReferenceAddress);
     }
 
+    // TEST ONLY - Invalid Key
+    public BRCoreKey () {
+        this (createJniCoreKey());
+    }
     /**
      * Get the byte[] representation of the 256 bit (UInt256) secret
      *
@@ -73,6 +81,11 @@ public class BRCoreKey extends BRCoreJniReference {
      */
     public native int    getCompressed ();
 
+    /**
+     *
+     * @return
+     */
+    public native String getPrivKey ();
     //
     //
     //
@@ -86,10 +99,11 @@ public class BRCoreKey extends BRCoreJniReference {
 
     private static native long createJniCoreKey ();
 
+    private static native long createCoreKeyForBIP32 (byte[] seed, long chain, long index);
     //
     //
     //
-    public native boolean setPrivKey(byte[] privKey);
+    public native boolean setPrivKey(String privKey);
 
     private native boolean setSecret(byte[] secret, boolean compressed);
 
@@ -115,4 +129,30 @@ public class BRCoreKey extends BRCoreJniReference {
                 "\n  compressed: " + getCompressed() +
                 '}';
     }
+
+    public static String encodeHex(byte[] in) {
+        final StringBuilder builder = new StringBuilder();
+        for (byte b : in) {
+            builder.append(String.format("%02x", b));
+        }
+        return builder.toString();
+    }
+
+    public static byte[] decodeHex(String s) {
+        int len = s.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+                    + Character.digit(s.charAt(i + 1), 16));
+        }
+        return data;
+    }
+
+    /* Returns 'messageDigest */
+    public static native byte[] encodeSHA256 (String message);
+
+    /* Returns 'signature' */
+    public native byte[] sign (byte[] messageDigest);
+
+    public native boolean verify (byte[] messageDigest, byte[] signature);
 }

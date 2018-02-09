@@ -24,6 +24,7 @@
  */
 package com.breadwallet.core.test;
 
+import com.breadwallet.core.BRCoreAddress;
 import com.breadwallet.core.BRCoreChainParams;
 import com.breadwallet.core.BRCoreKey;
 import com.breadwallet.core.BRCoreMasterPubKey;
@@ -31,6 +32,9 @@ import com.breadwallet.core.BRCorePaymentProtocolACK;
 import com.breadwallet.core.BRCorePaymentProtocolInvoiceRequest;
 import com.breadwallet.core.BRCorePaymentProtocolMessage;
 import com.breadwallet.core.BRCorePaymentProtocolRequest;
+import com.breadwallet.core.BRCoreTransaction;
+import com.breadwallet.core.BRCoreTransactionInput;
+import com.breadwallet.core.BRCoreTransactionOutput;
 import com.breadwallet.core.BRCoreWalletManager;
 
 import java.util.Arrays;
@@ -167,8 +171,9 @@ public class BRWalletManager extends BRCoreWalletManager {
 
     private static void runTests() {
         System.out.println ("\nStarting Tests:");
-        runGCTests();
+//        runGCTests();
         runKeyTests();
+        runTransactionTests();
         runPaymentProtocolTests();
         System.out.println ("Completed Tests\n");
     }
@@ -197,15 +202,223 @@ public class BRWalletManager extends BRCoreWalletManager {
     }
 
     private static void runKeyTests() {
-        System.out.println ("    MasterPubKey:");
+        System.out.println("    Key:");
+
+        BRCoreKey key = null;
+        BRCoreAddress addr1;
+        BRCoreAddress addr2;
+
+        //
+        //
+        //
+        System.out.println("        ScriptPubKey:");
+
+        byte[] secret = { // 32
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+        };
+
+        key = new BRCoreKey(secret, true);
+        System.out.println("            " + key.address());
+
+        addr1 = new BRCoreAddress(key.address());
+
+        byte[] script = addr1.getPubKeyScript();
+
+        addr2 = BRCoreAddress.fromScriptPubKey(script);
+        assert (addr1.stringify().equals(addr2.stringify()));
+
+        //
+        //
+        //
+        System.out.println("        BIP32Sequence:");
+
+        byte[] seed = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F };
+
+        key = new BRCoreKey(seed, 1, 2 | 0x80000000L);
+        System.out.println("            000102030405060708090a0b0c0d0e0f/0H/1/2H prv = " + BRCoreKey.encodeHex(key.getSecret()));
+        assert (BRCoreKey.encodeHex(key.getSecret()).equals("cbce0d719ecf7431d88e6a89fa1483e02e35092af60c042b1df2ff59fa424dca"));
+
+        key = new BRCoreKey (seed, 0, 97);
+        System.out.println("            000102030405060708090a0b0c0d0e0f/0H/0/97 prv = " + BRCoreKey.encodeHex(key.getSecret()));
+        assert (BRCoreKey.encodeHex(key.getSecret()).equals("00136c1ad038f9a00871895322a487ed14f1cdc4d22ad351cfa1a0d235975dd7"));
+
+        //
+        //
+        //
+        System.out.println("        MasterPubKey:");
 
         BRCoreMasterPubKey keyFromPaperKey = new BRCoreMasterPubKey(SOME_RANDOM_TEST_PAPER_KEY.getBytes(), true);
         byte[] keyPubKey = keyFromPaperKey.getPubKey();
         BRCoreMasterPubKey keyFromBytes = new BRCoreMasterPubKey(keyPubKey, false);
         assert (Arrays.equals(keyPubKey, keyFromBytes.getPubKey()));
 
-        // BRCoreKey
-        // ...
+        //
+        //
+        //
+        System.out.println("        Key/Addr:");
+
+        BRCoreAddress addr = null;
+        String addrString = null;
+
+        assert (!BRCoreKey.isValidBitcoinPrivateKey("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRz"));
+
+        assert (BRCoreKey.isValidBitcoinPrivateKey("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy"));
+        key = new BRCoreKey("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy");
+        addrString = key.address();
+        System.out.println("            privKey:S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy = " + addrString);
+        assert (addrString.equals("1CciesT23BNionJeXrbxmjc7ywfiyM4oLW"));
+
+        assert (BRCoreKey.isValidBitcoinPrivateKey("SzavMBLoXU6kDrqtUVmffv"));
+        key = new BRCoreKey("SzavMBLoXU6kDrqtUVmffv");
+        addrString = key.address();
+        System.out.println("            privKey:SzavMBLoXU6kDrqtUVmffv = " + addrString);
+        assert (addrString.equals("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj"));
+
+        // uncompressed private key
+        assert (BRCoreKey.isValidBitcoinPrivateKey("5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF"));
+        key = new BRCoreKey("5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF");
+        addrString = key.address();
+        System.out.println("            privKey:5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF = " + addrString);
+        assert (addrString.equals("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj"));
+
+        // uncompressed private key export
+        String privKeyString = key.getPrivKey();
+        System.out.println("            privKey:" + privKeyString);
+        assert (privKeyString.equals("5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF"));
+
+        // compressed private key
+        assert (BRCoreKey.isValidBitcoinPrivateKey("KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL"));
+        key = new BRCoreKey("KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL");
+        addrString = key.address();
+        System.out.println("            privKey:KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL = " + addrString);
+        assert (addrString.equals("1JMsC6fCtYWkTjPPdDrYX3we2aBrewuEM3"));
+
+        privKeyString = key.getPrivKey();
+        System.out.println("            privKey:" + privKeyString);
+        assert (privKeyString.equals("KyvGbxRUoofdw3TNydWn2Z78dBHSy2odn1d3wXWN2o3SAtccFNJL"));
+
+        // signing
+        System.out.println("        Key/Addr Sign:");
+
+        key = new BRCoreKey(secret, true);
+
+        byte[] messageDigest = BRCoreKey.encodeSHA256("Everything should be made as simple as possible, but not simpler.");
+        System.out.println ("            messageDigest: " + Arrays.toString((messageDigest)));
+
+        byte[] signature = key.sign(messageDigest);
+        System.out.println ("            signature    : " + Arrays.toString((signature)));
+
+        assert (key.verify(messageDigest, signature));
+        //
+
+        /*
+            BRKeySetSecret(&key, &uint256("0000000000000000000000000000000000000000000000000000000000000001"), 1);
+    msg = ;
+    BRSHA256(&md, msg, strlen(msg));
+    sigLen = BRKeySign(&key, sig, sizeof(sig), md);
+
+    char sig1[] = "\x30\x44\x02\x20\x33\xa6\x9c\xd2\x06\x54\x32\xa3\x0f\x3d\x1c\xe4\xeb\x0d\x59\xb8\xab\x58\xc7\x4f\x27"
+    "\xc4\x1a\x7f\xdb\x56\x96\xad\x4e\x61\x08\xc9\x02\x20\x6f\x80\x79\x82\x86\x6f\x78\x5d\x3f\x64\x18\xd2\x41\x63\xdd"
+    "\xae\x11\x7b\x7d\xb4\xd5\xfd\xf0\x07\x1d\xe0\x69\xfa\x54\x34\x22\x62";
+
+    if (sigLen != sizeof(sig1) - 1 || memcmp(sig, sig1, sigLen) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeySign() test 1\n", __func__);
+
+    if (! BRKeyVerify(&key, md, sig, sigLen))
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyVerify() test 1\n", __func__);
+
+
+         */
+    }
+
+
+    private static void runTransactionTests () {
+        byte[] secret = { // 32
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+        };
+
+        byte[] inHash = { // 32
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+        };
+
+        BRCoreKey k[] = new BRCoreKey[]{
+                new BRCoreKey(),
+                new BRCoreKey(secret, true)
+        };
+
+        BRCoreAddress address = new BRCoreAddress(k[1].address());
+        System.out.println("            Address: " + address.stringify());
+
+        byte[] script = address.getPubKeyScript();
+        System.out.println("            Script : " + Arrays.toString(script));
+
+        //Address: 1BgGZ9tcN4rm9KBzDn7KprQz87SZ26SAMH
+        //Script : [118, -87, 20, 117, 30, 118, -24, 25, -111, -106, -44, 84, -108, 28, 69, -47, -77, -93, 35, -15, 67, 59, -42, -120, -84]
+
+        BRCoreTransaction transaction = new BRCoreTransaction();
+        transaction.addInput(
+                new BRCoreTransactionInput(inHash, 0, 1, script, new byte[]{}, 4294967295L));
+        transaction.addOutput(
+                new BRCoreTransactionOutput(100000000L, script));
+        transaction.addOutput(
+                new BRCoreTransactionOutput(4900000000L, script));
+
+        byte[] transactionSerialized = transaction.serialize();
+        System.out.println("            Transaction: " + Arrays.toString(transactionSerialized));
+        // Transaction : [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 25, 118, 169, 20, 117, 30, 118, 232, 25, 145, 150, 212, 84, 148, 28, 69, 209, 179, 163, 35, 241, 67, 59, 214, 136, 172, 1, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 2, 0, 225, 245, 5, 0, 0, 0, 0, 25, 118, 169, 20, 117, 30, 118, 232, 25, 145, 150, 212, 84, 148, 28, 69, 209, 179, 163, 35, 241, 67, 59, 214, 136, 172, 0, 17, 16, 36, 1, 0, 0, 0, 25, 118, 169, 20, 117, 30, 118, 232, 25, 145, 150, 212, 84, 148, 28, 69, 209, 179, 163, 35, 241, 67, 59, 214, 136, 172, 0, 0, 0, 0, ]
+
+        assert (transactionSerialized.length != 0);
+
+        BRCoreTransaction transactionFromSerialized = new BRCoreTransaction(transactionSerialized);
+
+        assert (transactionFromSerialized.getInputs().length == 1
+                && transactionFromSerialized.getOutputs().length == 2);
+
+        assert (transaction.getTimestamp() == transactionFromSerialized.getTimestamp()
+                && transaction.getBlockHeight() == transactionFromSerialized.getBlockHeight());
+
+        transaction.sign(k);
+        assert (transaction.isSigned());
+
+        BRCoreAddress sigAddress = BRCoreAddress.fromScriptSignature(script);
+        assert (address.stringify().equals(sigAddress.stringify()));
+
+        transactionSerialized = transaction.serialize();
+        transactionFromSerialized = new BRCoreTransaction (transactionSerialized);
+        assert (transactionFromSerialized.isSigned());
+
+        assert (Arrays.equals(transactionSerialized, transactionFromSerialized.serialize()));
+
+        transaction = new BRCoreTransaction();
+        transaction.addInput(
+                new BRCoreTransactionInput(inHash, 0, 1, script, new byte[]{}, 4294967295L));
+        transaction.addInput(
+                new BRCoreTransactionInput(inHash, 0, 1, script, new byte[]{}, 4294967295L));
+        transaction.addInput(
+                new BRCoreTransactionInput(inHash, 0, 1, script, new byte[]{}, 4294967295L));
+        transaction.addInput(
+                new BRCoreTransactionInput(inHash, 0, 1, script, new byte[]{}, 4294967295L));
+        transaction.addInput(
+                new BRCoreTransactionInput(inHash, 0, 1, script, new byte[]{}, 4294967295L));
+
+        transaction.addOutput(
+                new BRCoreTransactionOutput(4900000000L, script));
+        transaction.addOutput(
+                new BRCoreTransactionOutput(4900000000L, script));
+        transaction.addOutput(
+                new BRCoreTransactionOutput(4900000000L, script));
+        transaction.addOutput(
+                new BRCoreTransactionOutput(4900000000L, script));
+
+        transaction.sign(k);
+        assert (transaction.isSigned());
+        BRCoreTransactionInput inputs[] = transaction.getInputs();
+        sigAddress = BRCoreAddress.fromScriptSignature(
+                inputs[inputs.length - 1].getScript());
+        assert (address.stringify().equals(sigAddress.stringify()));
     }
 
     private static void runPaymentProtocolTests () {
@@ -219,8 +432,12 @@ public class BRWalletManager extends BRCoreWalletManager {
     private static void runPaymentProtocolInvoiceRequestTest() {
         System.out.println("        InvoiceRequest");
 
-        BRCoreKey sendKey = new BRCoreKey("0000000000000000000000000000000000000000000000000000000000000002", true);
-        BRCoreKey recvKey = new BRCoreKey("0000000000000000000000000000000000000000000000000000000000000002", true);
+        byte[] secret = { // 32
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2
+        };
+        BRCoreKey sendKey = new BRCoreKey(secret, true);
+        BRCoreKey recvKey = new BRCoreKey(secret, true);
 
         BRCorePaymentProtocolInvoiceRequest invoiceRequest =
                 new BRCorePaymentProtocolInvoiceRequest(sendKey, 0, null, null, null, null, null);

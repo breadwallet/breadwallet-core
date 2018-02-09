@@ -79,6 +79,23 @@ Java_com_breadwallet_core_BRCoreKey_getCompressed
     return (jint) key->compressed;
 }
 
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    getPrivKey
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreKey_getPrivKey
+        (JNIEnv *env, jobject thisObject) {
+    BRKey *key = (BRKey *) getJNIReference(env, thisObject);
+
+    size_t privKeyLen = (size_t) BRKeyPrivKey(key, NULL, 0);
+    char privKey[privKeyLen + 1];
+    BRKeyPrivKey(key, privKey, privKeyLen);
+    privKey[privKeyLen] = '\0';
+
+    return (*env)->NewStringUTF (env, privKey);
+}
+
 // Unused
 /*
  * Class:     com_breadwallet_core_BRCoreKey
@@ -205,20 +222,37 @@ Java_com_breadwallet_core_BRCoreKey_createJniCoreKey
 
 /*
  * Class:     com_breadwallet_core_BRCoreKey
- * Method:    setPrivKey
- * Signature: ([B)Z
+ * Method:    createCoreKeyForBIP32
+ * Signature: ([BJJ)J
  */
-JNIEXPORT jboolean JNICALL
-Java_com_breadwallet_core_BRCoreKey_setPrivKey
-        (JNIEnv *env, jobject thisObject, jbyteArray privateKeyByteArray) {
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreKey_createCoreKeyForBIP32
+        (JNIEnv *env, jclass thisClass,
+         jbyteArray seedByteArray,
+         jlong chain,
+         jlong index) {
+    BRKey *key = (BRKey *) calloc (1, sizeof(BRKey));
+
+    size_t seedLen = (size_t) (*env)->GetArrayLength (env, seedByteArray);
+    const void *seed = (const void *) (*env)->GetByteArrayElements (env, seedByteArray, 0);
+
+    BRBIP32PrivKey (key, seed, seedLen, (uint32_t) chain, (uint32_t) index);
+    return (jlong) key;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    setPrivKey
+ * Signature: (Ljava/lang/String;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreKey_setPrivKey
+        (JNIEnv *env, jobject thisObject, jstring privKeyString) {
     BRKey *key = (BRKey *) getJNIReference(env, thisObject);
+    const char *privKey = (*env)->GetStringUTFChars (env, privKeyString, 0);
 
-    const char *privateKey = (const char *)
-            (*env)->GetByteArrayElements(env, privateKeyByteArray, 0);
-
-    return (jboolean) (1 == BRKeySetPrivKey(key, privateKey)
+    return (jboolean) (1 == BRKeySetPrivKey(key, privKey)
                        ? JNI_TRUE
                        : JNI_FALSE);
+
 }
 
 /*
@@ -375,4 +409,78 @@ JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreKey_isValidBitcoinBIP
 
     (*env)->ReleaseStringUTFChars(env, stringObject, privKey);
     return (jboolean) (1 == result ? JNI_TRUE : JNI_FALSE);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    encodeSHA256
+ * Signature: (Ljava/lang/String;)[B
+ */
+JNIEXPORT jbyteArray JNICALL
+Java_com_breadwallet_core_BRCoreKey_encodeSHA256
+        (JNIEnv *env, jclass thisClass,
+         jstring messageString) {
+    uint8_t md[32];
+
+    size_t      messageLen = (size_t) (*env)->GetStringLength (env, messageString);
+    const void *message    = (*env)->GetStringUTFChars (env, messageString, 0);
+
+    BRSHA256 (md, message, messageLen);
+
+    jbyteArray result = (*env)->NewByteArray (env, 32);
+    (*env)->SetByteArrayRegion (env, result, 0, 32, (const jbyte *) md);
+
+    return result;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    sign
+ * Signature: ([B)[B
+ */
+JNIEXPORT jbyteArray JNICALL
+Java_com_breadwallet_core_BRCoreKey_sign
+        (JNIEnv *env, jobject thisObject,
+         jbyteArray messageDigestByteArray) {
+    BRKey *key = (BRKey *) getJNIReference(env, thisObject);
+
+    size_t messageDigestLen = (size_t) (*env)->GetArrayLength (env, messageDigestByteArray);
+    assert (32 == messageDigestLen);
+    const uint8_t *messageDigest = (const uint8_t *) (*env)->GetByteArrayElements (env, messageDigestByteArray, 0);
+
+    UInt256 md = UInt256Get(messageDigest);
+
+    size_t signatureLen = BRKeySign (key, NULL, 0, md);
+    fprintf (stderr, "** LEN: %d", signatureLen);
+    uint8_t signature[signatureLen];
+    BRKeySign(key, signature, signatureLen, md);
+
+    jobject result = (*env)->NewByteArray (env, (jsize) signatureLen);
+    (*env)->SetByteArrayRegion (env, result, 0, (jsize) signatureLen, (const jbyte *) signature);
+
+    return result;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    verify
+ * Signature: ([B[B)Z
+ */
+JNIEXPORT jboolean JNICALL
+Java_com_breadwallet_core_BRCoreKey_verify
+        (JNIEnv *env, jobject thisObject,
+         jbyteArray messageDigestByteArray,
+         jbyteArray signatureByteArray) {
+    BRKey *key = (BRKey *) getJNIReference(env, thisObject);
+
+    size_t messageDigestLen = (size_t) (*env)->GetArrayLength(env, messageDigestByteArray);
+    assert (32 == messageDigestLen);
+    UInt256 *messageDigest = (UInt256 *) (*env)->GetByteArrayElements(env, messageDigestByteArray, 0);
+
+    size_t signatureLen = (size_t) (*env)->GetArrayLength(env, signatureByteArray);
+    const void *signature = (const void *) (*env)->GetByteArrayElements(env, signatureByteArray, 0);
+
+    return (jboolean) (1 == BRKeyVerify(key, *messageDigest, signature, signatureLen)
+                       ? JNI_TRUE
+                       : JNI_FALSE);
 }

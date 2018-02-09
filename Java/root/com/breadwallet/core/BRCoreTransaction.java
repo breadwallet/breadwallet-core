@@ -24,6 +24,8 @@
  */
 package com.breadwallet.core;
 
+import java.util.Arrays;
+
 /**
  *
  */
@@ -38,6 +40,10 @@ public class BRCoreTransaction extends BRCoreJniReference {
     public BRCoreTransaction (byte[] buffer, long blockHeight, long timeStamp ) {
         this (createJniCoreTransaction (buffer, blockHeight, timeStamp));
         // ...
+    }
+
+    public BRCoreTransaction () {
+        this (createJniCoreTransactionEmpty());
     }
 
     protected BRCoreTransaction (long jniReferenceAddress) {
@@ -141,7 +147,12 @@ public class BRCoreTransaction extends BRCoreJniReference {
      */
     public native boolean isSigned ();
 
-    // sign
+
+    public native void sign (BRCoreKey[] keys);
+
+    public void sign (BRCoreKey key) {
+        sign (new BRCoreKey[] { key });
+    }
 
     /**
      * Return true if this transaction satisfied the rules in:
@@ -173,10 +184,12 @@ public class BRCoreTransaction extends BRCoreJniReference {
 
     private static native long createJniCoreTransactionSerialized (byte[] buffer);
 
+    private static native long createJniCoreTransactionEmpty ();
+
     @Override
     public String toString() {
         return "BRCoreTransaction {@" + jniReferenceAddress +
-                "\n  hash       : " + getHash() +
+                "\n  hash       : " + Arrays.toString(getHash()) +
                 "\n  timestamp  : " + getTimestamp() +
                 "\n  blockHeight: " + getBlockHeight() +
                 "\n  standardFee: " + getStandardFee() +
