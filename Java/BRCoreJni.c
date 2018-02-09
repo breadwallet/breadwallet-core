@@ -38,6 +38,12 @@ JNIEnv *getEnv() {
     return status == JNI_OK ? env : NULL;
 }
 
+extern
+void *releaseEnv () {
+    if (NULL != jvm)
+        (*jvm)->DetachCurrentThread (jvm);
+}
+
 JNIEXPORT jint JNICALL
 JNI_OnLoad (JavaVM *theJvm, void *reserved) {
     JNIEnv *env = 0;

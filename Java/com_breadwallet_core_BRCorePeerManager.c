@@ -376,7 +376,7 @@ syncStopped(void *info, int error) {
                                  "syncStopped",
                                  "(Ljava/lang/String;)V");
 
-    jstring errorString = (*env)->NewStringUTF (env, strerror (error));
+    jstring errorString = (*env)->NewStringUTF (env, (error == 0 ? "" : strerror (error)));
 
     (*env)->CallVoidMethod(env, listener, listenerMethod, errorString);
     (*env)->DeleteLocalRef (env, listener);
@@ -502,7 +502,7 @@ txPublished (void *info, int error) {
                                  "(Ljava/lang/String;)V");
     assert (NULL != listenerMethod);
 
-    jstring errorString = (*env)->NewStringUTF (env, strerror (error));
+    jstring errorString = (*env)->NewStringUTF (env, (error == 0 ? "" : strerror (error)));
 
     (*env)->CallVoidMethod(env, listener, listenerMethod, errorString);
     (*env)->DeleteLocalRef (env, listener);
@@ -517,6 +517,8 @@ threadCleanup(void *info) {
     if (NULL == listener) return; // GC reclaimed
 
     (*env)->DeleteLocalRef (env, listener);
+
+    releaseEnv();
 }
 
 

@@ -32,6 +32,9 @@
 extern
 JNIEnv *getEnv();
 
+extern
+void *releaseEnv ();
+
 /**
  *
  * @param env

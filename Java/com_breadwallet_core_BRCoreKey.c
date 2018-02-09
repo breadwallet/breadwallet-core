@@ -451,7 +451,6 @@ Java_com_breadwallet_core_BRCoreKey_sign
     UInt256 md = UInt256Get(messageDigest);
 
     size_t signatureLen = BRKeySign (key, NULL, 0, md);
-    fprintf (stderr, "** LEN: %d", signatureLen);
     uint8_t signature[signatureLen];
     BRKeySign(key, signature, signatureLen, md);
 

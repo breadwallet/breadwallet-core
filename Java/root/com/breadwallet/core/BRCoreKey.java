@@ -30,6 +30,10 @@ import java.util.Arrays;
 
 public class BRCoreKey extends BRCoreJniReference {
 
+    //
+    // PrivateKey-Based Constructors
+    //
+
     public BRCoreKey (String privateKey) {
         this (createJniCoreKey());
 
@@ -41,6 +45,14 @@ public class BRCoreKey extends BRCoreJniReference {
         }
     }
 
+    public BRCoreKey (byte[] privateKey) {
+        this (BRCoreKey.encodeASCII(privateKey));
+    }
+
+    //
+    // Secret-Based Constructors
+    //
+
     public BRCoreKey (byte[] secret, boolean compressed) {
         this (createJniCoreKey());
 
@@ -49,9 +61,17 @@ public class BRCoreKey extends BRCoreJniReference {
         }
     }
 
+    //
+    // Seed (BIP32) Based Constructors
+    //
+
     public BRCoreKey (byte[] seed, long chain, long index) {
         this (createCoreKeyForBIP32(seed, chain, index));
     }
+
+    //
+    // Internal, JNI-based Constructor
+    //
 
     protected BRCoreKey (long jniReferenceAddress) {
         super (jniReferenceAddress);
@@ -61,6 +81,7 @@ public class BRCoreKey extends BRCoreJniReference {
     public BRCoreKey () {
         this (createJniCoreKey());
     }
+
     /**
      * Get the byte[] representation of the 256 bit (UInt256) secret
      *
@@ -79,13 +100,14 @@ public class BRCoreKey extends BRCoreJniReference {
      *
      * @return
      */
-    public native int    getCompressed ();
+    public native int getCompressed ();
 
     /**
      *
      * @return
      */
     public native String getPrivKey ();
+
     //
     //
     //
@@ -97,6 +119,9 @@ public class BRCoreKey extends BRCoreJniReference {
 
     public static native String decryptBip38Key (String privKey, String pass);
 
+    //
+    //
+    //
     private static native long createJniCoreKey ();
 
     private static native long createCoreKeyForBIP32 (byte[] seed, long chain, long index);
@@ -113,6 +138,9 @@ public class BRCoreKey extends BRCoreJniReference {
 
     public native byte[] decryptNative(byte[] data, byte[] nonce);
 
+    //
+    //
+    //
     public native String address();
 
     //
@@ -148,7 +176,15 @@ public class BRCoreKey extends BRCoreJniReference {
         return data;
     }
 
-    /* Returns 'messageDigest */
+    public static String encodeASCII (byte[] in) {
+        return new String (in);
+    }
+
+    public static byte[] decodeASCII (String s) {
+        return s.getBytes();
+    }
+
+    /* Returns 'messageDigest (UInt256) */
     public static native byte[] encodeSHA256 (String message);
 
     /* Returns 'signature' */

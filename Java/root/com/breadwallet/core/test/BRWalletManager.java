@@ -275,6 +275,9 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println("            privKey:SzavMBLoXU6kDrqtUVmffv = " + addrString);
         assert (addrString.equals("1CC3X2gu58d6wXUWMffpuzN9JAfTUWu4Kj"));
 
+        assert ("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy".equals(
+                BRCoreKey.encodeASCII(BRCoreKey.decodeASCII("S6c56bnXQiBjk9mqSYE7ykVQ7NzrRy"))));
+
         // uncompressed private key
         assert (BRCoreKey.isValidBitcoinPrivateKey("5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF"));
         key = new BRCoreKey("5Kb8kLf9zgWQnogidDA76MzPL6TsZZY36hWXMssSzNydYXYB9KF");
