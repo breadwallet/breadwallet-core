@@ -450,9 +450,9 @@ Java_com_breadwallet_core_BRCoreKey_sign
 
     UInt256 md = UInt256Get(messageDigest);
 
-    size_t signatureLen = BRKeySign (key, NULL, 0, md);
-    uint8_t signature[signatureLen];
-    BRKeySign(key, signature, signatureLen, md);
+    uint8_t signature[256];
+    size_t signatureLen = BRKeySign(key, signature, sizeof(signature), md);
+    assert (signatureLen <= 256);
 
     jobject result = (*env)->NewByteArray (env, (jsize) signatureLen);
     (*env)->SetByteArrayRegion (env, result, 0, (jsize) signatureLen, (const jbyte *) signature);

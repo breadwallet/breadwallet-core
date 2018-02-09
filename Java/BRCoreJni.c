@@ -39,7 +39,7 @@ JNIEnv *getEnv() {
 }
 
 extern
-void *releaseEnv () {
+void releaseEnv () {
     if (NULL != jvm)
         (*jvm)->DetachCurrentThread (jvm);
 }

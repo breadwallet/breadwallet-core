@@ -33,7 +33,7 @@ extern
 JNIEnv *getEnv();
 
 extern
-void *releaseEnv ();
+void releaseEnv ();
 
 /**
  *
