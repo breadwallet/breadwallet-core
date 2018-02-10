@@ -135,6 +135,18 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransaction_getLockTime
 
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction
+ * Method:    setLockTime
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_BRCoreTransaction_setLockTime
+        (JNIEnv *env, jobject thisObject, jlong lockTime) {
+    BRTransaction *transaction = (BRTransaction *) getJNIReference (env, thisObject);
+    transaction->lockTime = (uint32_t) lockTime;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreTransaction
  * Method:    getBlockHeight
  * Signature: ()J
  */
@@ -155,6 +167,18 @@ Java_com_breadwallet_core_BRCoreTransaction_getTimestamp
     BRTransaction *transaction = (BRTransaction *) getJNIReference (env, thisObject);
     return (jlong) transaction->timestamp;
 }
+
+/*
+ * Class:     com_breadwallet_core_BRCoreTransaction
+ * Method:    setTimestamp
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreTransaction_setTimestamp
+        (JNIEnv *env, jobject thisObject, jlong timestamp) {
+    BRTransaction *transaction = (BRTransaction *) getJNIReference (env, thisObject);
+    transaction->timestamp = (uint32_t) timestamp;
+}
+
 
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction
@@ -237,7 +261,8 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransaction_getSize
  * Method:    getStandardFee
  * Signature: ()J
  */
-JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransaction_getStandardFee
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_BRCoreTransaction_getStandardFee
         (JNIEnv *env, jobject thisObject) {
     BRTransaction *transaction = (BRTransaction *) getJNIReference (env, thisObject);
     return (jlong) BRTransactionStandardFee (transaction);
@@ -248,9 +273,11 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransaction_getStandardF
  * Method:    isSigned
  * Signature: ()Z
  */
-JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreTransaction_isSigned
+JNIEXPORT jboolean JNICALL
+Java_com_breadwallet_core_BRCoreTransaction_isSigned
         (JNIEnv *env, jobject thisObject) {
     BRTransaction *transaction = (BRTransaction *) getJNIReference (env, thisObject);
+    assert (NULL != transaction);
     return (jboolean) BRTransactionIsSigned (transaction);
 }
 

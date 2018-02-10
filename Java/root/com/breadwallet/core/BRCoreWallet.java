@@ -31,7 +31,7 @@ import java.lang.ref.WeakReference;
  */
 public class BRCoreWallet extends BRCoreJniReference
 {
-    interface Listener {
+    public interface Listener {
         // func balanceChanged(_ balance: UInt64)
         void balanceChanged(long balance);
 
@@ -114,6 +114,8 @@ public class BRCoreWallet extends BRCoreJniReference
 
     public native void removeTransaction (byte[] transactionHash);
 
+    public native void updateTransactions (byte[][] transactionsHashes, long blockHeight, long timestamp);
+
     public native BRCoreTransaction transactionForHash (byte[] transactionHash);
 
     public native boolean transactionIsValid (BRCoreTransaction transaction);
@@ -122,7 +124,6 @@ public class BRCoreWallet extends BRCoreJniReference
 
     public native boolean transactionIsVerified (BRCoreTransaction transaction);
 
-    // update transactions
 
     // set TX Unconfirmed After
 

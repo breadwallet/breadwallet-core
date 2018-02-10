@@ -322,11 +322,18 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreWallet_getDefaultFeePerK
 JNIEXPORT jobject JNICALL
 Java_com_breadwallet_core_BRCoreWallet_createTransaction
         (JNIEnv *env, jobject thisObject, jlong amount, jobject addressObject) {
-    BRWallet  *wallet  = (BRWallet  *) getJNIReference (env, thisObject);
-    BRAddress *address = (BRAddress *) getJNIReference (env, addressObject);
+    BRWallet *wallet = (BRWallet *) getJNIReference(env, thisObject);
+    BRAddress *address = (BRAddress *) getJNIReference(env, addressObject);
 
-    return (*env)->NewObject (env, transactionClass, transactionConstructor,
-                              (jlong) BRWalletCreateTransaction (wallet, amount, (const char *) address));
+    // transaction may be NULL - like if the wallet does not have a large enough balance
+    // to cover the transaction amount
+    BRTransaction *transaction = BRWalletCreateTransaction(wallet,
+                                                           (uint64_t) amount,
+                                                           (const char *) address->s);
+
+    return NULL == transaction
+           ? NULL
+           : (*env)->NewObject(env, transactionClass, transactionConstructor, (jlong) transaction);
 }
 
 /*
@@ -340,17 +347,16 @@ Java_com_breadwallet_core_BRCoreWallet_signTransaction
          jobject transactionObject,
          jint forkId,
          jbyteArray seedByteArray) {
-    BRWallet  *wallet  = (BRWallet  *) getJNIReference (env, thisObject);
-    BRTransaction *transaction = (BRTransaction *) getJNIReference (env, transactionObject);
+    BRWallet *wallet = (BRWallet *) getJNIReference(env, thisObject);
+    BRTransaction *transaction = (BRTransaction *) getJNIReference(env, transactionObject);
 
-    size_t      seedLen = (size_t) (*env)->GetArrayLength (env, seedByteArray);
-    const void *seed = (const void *) (*env)->GetByteArrayElements (env, seedByteArray, 0);
+    size_t seedLen = (size_t) (*env)->GetArrayLength(env, seedByteArray);
+    const void *seed = (const void *) (*env)->GetByteArrayElements(env, seedByteArray, 0);
 
-    return 1 == BRWalletSignTransaction (wallet, transaction, forkId, seed, seedLen)
-           ? JNI_TRUE
-           : JNI_FALSE;
+    return (jboolean) (1 == BRWalletSignTransaction(wallet, transaction, forkId, seed, seedLen)
+                       ? JNI_TRUE
+                       : JNI_FALSE);
 }
-
 
 /*
  * Class:     com_breadwallet_core_BRCoreWallet
@@ -380,7 +386,7 @@ Java_com_breadwallet_core_BRCoreWallet_registerTransaction
 
 /*
  * Class:     com_breadwallet_core_BRCoreWallet
- * Method:    removeTranaction
+ * Method:    removeTransaction
  * Signature: ([B)V
  */
 JNIEXPORT void JNICALL
@@ -391,6 +397,30 @@ Java_com_breadwallet_core_BRCoreWallet_removeTransaction
     uint8_t *hashData = (uint8_t *) (*env)->GetByteArrayElements(env, hashByteArray, 0);
 
     BRWalletRemoveTransaction (wallet, UInt256Get(hashData));
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreWallet
+ * Method:    updateTransactions
+ * Signature: ([[BJJ)V
+ */
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_BRCoreWallet_updateTransactions
+        (JNIEnv *env, jobject thisObject,
+         jobjectArray transactionsHashesArray,
+         jlong blockHeight,
+         jlong timestamp) {
+    BRWallet  *wallet  = (BRWallet  *) getJNIReference (env, thisObject);
+
+    size_t txCount = (size_t) (*env)->GetArrayLength (env, transactionsHashesArray);
+    UInt256 txHashes[txCount];
+
+    for (int i = 0; i < txCount; i++) {
+        jbyteArray txHashByteArray = (jbyteArray) (*env)->GetObjectArrayElement (env, transactionsHashesArray, 0);
+        const jbyte *txHashBytes = (*env)->GetByteArrayElements (env, txHashByteArray, 0);
+        txHashes[i] = UInt256Get(txHashBytes);
+    }
+    BRWalletUpdateTransactions(wallet, txHashes, txCount, (uint32_t) blockHeight, (uint32_t) timestamp);
 }
 
 /*

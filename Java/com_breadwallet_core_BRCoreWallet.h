@@ -169,6 +169,14 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreWallet_removeTransaction
 
 /*
  * Class:     com_breadwallet_core_BRCoreWallet
+ * Method:    updateTransactions
+ * Signature: ([[BJJ)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreWallet_updateTransactions
+  (JNIEnv *, jobject, jobjectArray, jlong, jlong);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreWallet
  * Method:    transactionForHash
  * Signature: ([B)Lcom/breadwallet/core/BRCoreTransaction;
  */

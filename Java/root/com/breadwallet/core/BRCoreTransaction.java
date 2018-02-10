@@ -83,6 +83,8 @@ public class BRCoreTransaction extends BRCoreJniReference {
      */
     public native long getLockTime ();
 
+    public native void setLockTime (long lockTime);
+
     /**
      * The transaction's blockHeight.
      *
@@ -96,6 +98,8 @@ public class BRCoreTransaction extends BRCoreJniReference {
      * @return the timestamp as a long (from a uint32_t).
      */
     public native long getTimestamp ();
+
+    public native void setTimestamp (long timestamp);
 
     // parse
 

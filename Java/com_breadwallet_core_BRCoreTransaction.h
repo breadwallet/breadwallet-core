@@ -49,6 +49,14 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransaction_getLockTime
 
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction
+ * Method:    setLockTime
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreTransaction_setLockTime
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreTransaction
  * Method:    getBlockHeight
  * Signature: ()J
  */
@@ -62,6 +70,14 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransaction_getBlockHeig
  */
 JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransaction_getTimestamp
   (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreTransaction
+ * Method:    setTimestamp
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreTransaction_setTimestamp
+  (JNIEnv *, jobject, jlong);
 
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction
