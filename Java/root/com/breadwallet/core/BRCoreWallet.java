@@ -199,7 +199,7 @@ public class BRCoreWallet extends BRCoreJniReference
         return null;
     }
 
-    public native long getFeeForTransactionSize (int size);
+    public native long getFeeForTransactionSize (long size);
 
     public native long getFeeForTransactionAmount (long amount);
 

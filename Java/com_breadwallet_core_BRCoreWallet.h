@@ -242,10 +242,10 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreWallet_getBalanceAfterTr
 /*
  * Class:     com_breadwallet_core_BRCoreWallet
  * Method:    getFeeForTransactionSize
- * Signature: (I)J
+ * Signature: (J)J
  */
 JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreWallet_getFeeForTransactionSize
-  (JNIEnv *, jobject, jint);
+  (JNIEnv *, jobject, jlong);
 
 /*
  * Class:     com_breadwallet_core_BRCoreWallet

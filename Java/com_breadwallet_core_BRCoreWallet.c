@@ -534,13 +534,13 @@ Java_com_breadwallet_core_BRCoreWallet_getBalanceAfterTransaction
 /*
  * Class:     com_breadwallet_core_BRCoreWallet
  * Method:    getFeeForTransactionSize
- * Signature: (I)J
+ * Signature: (J)J
  */
 JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_BRCoreWallet_getFeeForTransactionSize
-        (JNIEnv *env, jobject thisObject, jint size) {
+        (JNIEnv *env, jobject thisObject, jlong size) {
     BRWallet *wallet = (BRWallet *) getJNIReference (env, thisObject);
-    return (jlong) BRWalletFeeForTxSize (wallet, size);
+    return (jlong) BRWalletFeeForTxSize (wallet, (size_t) size);
 }
 
 /*
@@ -552,7 +552,7 @@ JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_BRCoreWallet_getFeeForTransactionAmount
         (JNIEnv *env, jobject thisObject, jlong amount) {
     BRWallet *wallet = (BRWallet *) getJNIReference (env, thisObject);
-    return (jlong) BRWalletFeeForTxAmount (wallet, amount);
+    return (jlong) BRWalletFeeForTxAmount (wallet, (uint64_t) amount);
 }
 
 /*
