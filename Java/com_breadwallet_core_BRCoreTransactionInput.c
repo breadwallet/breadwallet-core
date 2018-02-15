@@ -60,7 +60,7 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransactionInput_createT
     const uint8_t *signature = (const uint8_t *) (*env)->GetByteArrayElements (env, signatureByteArray, 0);
     BRTxInputSetSignature (input, signature, signatureLen);
 
-    input->sequence = (uint32_t) sequence;
+    input->sequence = (uint32_t) (sequence == -1 ? TXIN_SEQUENCE : sequence);
 
     return (jlong) input;
 }

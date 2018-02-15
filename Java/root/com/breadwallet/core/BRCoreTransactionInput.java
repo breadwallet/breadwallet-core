@@ -28,6 +28,16 @@ import java.util.Arrays;
 
 public class BRCoreTransactionInput extends BRCoreJniReference {
 
+    /**
+     * Create a transaction input.
+     *
+     * @param hash
+     * @param index
+     * @param amount
+     * @param script
+     * @param signature
+     * @param sequence The sequence number.  If -1, TXIN_SEQUENCE will be used.
+     */
     public BRCoreTransactionInput (byte[] hash, long index, long amount,
                                    byte[] script,
                                    byte[] signature,
