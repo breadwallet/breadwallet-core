@@ -41,6 +41,14 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransactionOutput_getAmo
 
 /*
  * Class:     com_breadwallet_core_BRCoreTransactionOutput
+ * Method:    setAmount
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreTransactionOutput_setAmount
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreTransactionOutput
  * Method:    getScript
  * Signature: ()[B
  */

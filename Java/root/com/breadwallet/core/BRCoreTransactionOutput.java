@@ -44,6 +44,11 @@ public class BRCoreTransactionOutput extends BRCoreJniReference {
 
     public native long getAmount();
 
+    /**
+     * Change the output amount - typically used after computing transaction fees.
+     */
+    public native void setAmount(long amount);
+
     public native byte[] getScript();
 
     public String toString() {

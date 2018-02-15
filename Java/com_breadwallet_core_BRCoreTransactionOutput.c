@@ -103,6 +103,17 @@ Java_com_breadwallet_core_BRCoreTransactionOutput_getAmount
 
 /*
  * Class:     com_breadwallet_core_BRCoreTransactionOutput
+ * Method:    setAmount
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreTransactionOutput_setAmount
+        (JNIEnv *env, jobject thisObject, jlong amount) {
+    BRTxOutput *output = (BRTxOutput *) getJNIReference (env, thisObject);
+    output->amount = (uint64_t) amount;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreTransactionOutput
  * Method:    getScript
  * Signature: ()[B
  */
