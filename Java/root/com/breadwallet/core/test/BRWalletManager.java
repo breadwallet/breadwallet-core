@@ -73,19 +73,21 @@ public class BRWalletManager extends BRCoreWalletManager {
     private static final String SOME_RANDOM_TEST_PAPER_KEY =
             "axis husband project any sea patch drip tip spirit tide bring belt";
 
-    public static boolean canRunMain = true;
-
     public static void main(String[] args) {
-        if (!canRunMain) return;
-        canRunMain = false;
-
-        try { Thread.sleep(10 * 1000); }
-        catch (Exception ex) {}
-
-        runTests();
 
         Configuration configuration = parseArguments(
                 null == args ? new String[] {""} : args);
+
+
+        // Allow debugger to connect
+        if (configuration.delay) {
+            try {
+                Thread.sleep(10 * 1000);
+            } catch (Exception ex) {
+            }
+        }
+
+        runTests();
 
         final BRCoreMasterPubKey masterPubKey =
                 new BRCoreMasterPubKey(SOME_RANDOM_TEST_PAPER_KEY.getBytes(), true);
@@ -147,6 +149,7 @@ public class BRWalletManager extends BRCoreWalletManager {
 
     private static Configuration parseArguments(String[] args) {
         List<BRCoreChainParams> listOfParams = new LinkedList<>();
+        boolean delay = false;
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
@@ -162,6 +165,9 @@ public class BRWalletManager extends BRCoreWalletManager {
                 case "-testcash":
                     listOfParams.add(BRCoreChainParams.testnetBcashChainParams);
                     break;
+                case "-delay":
+                    delay = true;
+                    break;
                 case "":
                     break;
                 default:
@@ -169,28 +175,28 @@ public class BRWalletManager extends BRCoreWalletManager {
                     break;
             }
         }
-        return new Configuration(listOfParams);
+        return new Configuration(delay, listOfParams);
     }
 
     private static class Configuration {
+        boolean delay;
         List<BRCoreChainParams> listOfParams;
 
-        public Configuration(List<BRCoreChainParams> listOfParams) {
+        public Configuration(boolean delay, List<BRCoreChainParams> listOfParams) {
+            this.delay = delay;
             this.listOfParams = listOfParams;
         }
     }
 
-
     private static void runTests() {
         System.out.println ("\nStarting Tests:");
 
-        // Require 'mainnet'
         runKeyTests();
         runTransactionTests();
         runWalletTests();
         runPaymentProtocolTests();
         // TODO: Fix
-        runGCTests();
+        //runGCTests();
         System.out.println ("Completed Tests\n");
     }
 
@@ -540,11 +546,10 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println ("            Customer Memo: " + ack.getCustomerMemo());
     }
 
-    private static void runWalletTests()
-    {
+    private static void runWalletTests() {
         System.out.println("    Wallet:");
 
-        final long SATOSHIS  = 100000000L;
+        final long SATOSHIS = 100000000L;
         final long MAX_MONEY = 2100000L * SATOSHIS;
 
         final int SEQUENCE_GAP_LIMIT_EXTERNAL = 10;
@@ -562,39 +567,36 @@ public class BRWalletManager extends BRCoreWalletManager {
 
         byte[] phrase = "a random seed".getBytes();
 
-        System.out.println ("Phrase Bytes: " + Arrays.toString(phrase));
-        System.out.println ("Phrase Chars: " + new String(phrase));
-
-
         BRCoreMasterPubKey mpk = new BRCoreMasterPubKey(phrase, true);
 
         BRCoreWallet.Listener listener =
                 new BRCoreWallet.Listener() {
                     @Override
                     public void balanceChanged(long balance) {
-                        System.out.println (String.format("            balance   : %d", balance));
+                        System.out.println(String.format("            balance   : %d", balance));
                     }
 
                     @Override
                     public void onTxAdded(BRCoreTransaction transaction) {
-                        System.out.println (String.format("            tx added  : %s",
+                        System.out.println(String.format("            tx added  : %s",
                                 BRCoreKey.encodeHex(transaction.getHash())));
 
                     }
 
                     @Override
                     public void onTxUpdated(String hash, int blockHeight, int timeStamp) {
-                        System.out.println (String.format("            tx updated: %s", hash));
+                        System.out.println(String.format("            tx updated: %s", hash));
                     }
 
                     @Override
                     public void onTxDeleted(String hash, int notifyUser, int recommendRescan) {
-                        System.out.println (String.format("            tx deleted: %s", hash));
+                        System.out.println(String.format("            tx deleted: %s", hash));
 
                     }
                 };
 
-        BRCoreWallet w = new BRCoreWallet (new BRCoreTransaction[]{}, mpk, listener);
+        BRCoreWallet w = new BRCoreWallet(new BRCoreTransaction[]{}, mpk, listener);
+        asserting(null != w);
         BRCoreAddress recvAddr = w.getReceiveAddress();
 
         // A rando
@@ -602,52 +604,52 @@ public class BRWalletManager extends BRCoreWalletManager {
         BRCoreAddress addr = new BRCoreAddress(k.address());
 
         BRCoreTransaction tx = w.createTransaction(1, addr);
-        asserting (null == tx); // no money
+        asserting(null == tx); // no money
 
         tx = w.createTransaction(SATOSHIS, addr);
-        asserting (null == tx); // no money
-        asserting (0 == w.getTransactions().length);
+        asserting(null == tx); // no money
+        asserting(0 == w.getTransactions().length);
 
-        byte[] inScript  = addr.getPubKeyScript();      // from rando
+        byte[] inScript = addr.getPubKeyScript();      // from rando
         byte[] outScript = recvAddr.getPubKeyScript();  // to me
 
         System.out.println("        One SATOSHI");
 
         tx = new BRCoreTransaction();
-        tx.addInput (
-                new BRCoreTransactionInput(inHash, 0, 1, inScript, new byte[] {}, 4294967295L));
+        tx.addInput(
+                new BRCoreTransactionInput(inHash, 0, 1, inScript, new byte[]{}, 4294967295L));
         tx.addOutput(
                 new BRCoreTransactionOutput(SATOSHIS, outScript));
         tx.sign(k);
         w.registerTransaction(tx);
 
-        asserting (SATOSHIS == w.getBalance());
-        asserting (1 == w.getTransactions().length);
+        asserting(SATOSHIS == w.getBalance());
+        asserting(1 == w.getTransactions().length);
 
         // Register twice - no extra money
         w.registerTransaction(tx);
-        asserting (SATOSHIS == w.getBalance());
+        asserting(SATOSHIS == w.getBalance());
 
         System.out.println("        LockTime");
         tx = new BRCoreTransaction();
-        tx.addInput (
-                new BRCoreTransactionInput(inHash, 1, 1, inScript, new byte[] {}, 4294967295L - 1));
+        tx.addInput(
+                new BRCoreTransactionInput(inHash, 1, 1, inScript, new byte[]{}, 4294967295L - 1));
         tx.addOutput(
                 new BRCoreTransactionOutput(SATOSHIS, outScript));
         tx.setLockTime(1000);
         tx.sign(k);
-        asserting (tx.isSigned());
-        asserting (w.transactionIsPending(tx));
+        asserting(tx.isSigned());
+        asserting(w.transactionIsPending(tx));
 
         // Locktime prevents - no extra money
         w.registerTransaction(tx);
-        asserting (SATOSHIS == w.getBalance());
+        asserting(SATOSHIS == w.getBalance());
 
-        byte[][] hashes = new byte[][] { tx.getHash() };
+        byte[][] hashes = new byte[][]{tx.getHash()};
 
         // pass locktime - money added
         w.updateTransactions(hashes, 1000, 1);
-        asserting (2*SATOSHIS == w.getBalance());
+        asserting(2 * SATOSHIS == w.getBalance());
 
         //
         //
@@ -683,7 +685,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         asserting (null != tx);
         asserting (! tx.isSigned());
 
-	    w.signTransaction(tx, 0, phrase);
+	w.signTransaction(tx, 0, phrase);
         asserting (tx.isSigned());
 
         tx.setTimestamp(1);

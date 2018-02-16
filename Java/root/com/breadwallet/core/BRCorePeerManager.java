@@ -211,7 +211,7 @@ public class BRCorePeerManager extends BRCoreJniReference {
     @Override
     public String toString() {
         return "BRCorePeerManager {@ " + jniReferenceAddress +
-                "\n  wallet addr: " + wallet.getReceiveAddress().stringify() +
+                "\n  wallet addr: " + (wallet == null ? "<none>" : wallet.getReceiveAddress().stringify()) +
                 "\n  peer count : " + getPeerCount() +
                 "\n  status     : " + getConnectStatus().name() +
                 '}';
