@@ -66,6 +66,7 @@ Java_com_breadwallet_core_BRCoreWallet_createJniCoreWallet
     for (int index = 0; index < transactionsCount; index++) {
         jobject objTransaction = (*env)->GetObjectArrayElement (env, objTransactionsArray, index);
         transactions[index] = (BRTransaction *) getJNIReference(env, objTransaction);
+        (*env)->DeleteLocalRef (env, objTransaction);
     }
 
     return (jlong) BRWalletNew(transactions, transactionsCount, *masterPubKey);

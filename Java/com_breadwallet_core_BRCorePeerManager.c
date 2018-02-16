@@ -232,6 +232,7 @@ Java_com_breadwallet_core_BRCorePeerManager_createCorePeerManager
         jobject objBlock = (*env)->GetObjectArrayElement (env, objBlocksArray, index);
         BRMerkleBlock *block = (BRMerkleBlock *) getJNIReference(env, objBlock);
         blocks[index] = BRMerkleBlockCopy(block);
+        (*env)->DeleteLocalRef (env, objBlock);
     }
 
     // Peers
@@ -242,6 +243,7 @@ Java_com_breadwallet_core_BRCorePeerManager_createCorePeerManager
         jobject objPeer = (*env)->GetObjectArrayElement (env, objPeersArray, index);
         BRPeer *peer = getJNIReference(env, objPeer);
         peers[index] = *peer; // block assignment
+        (*env)->DeleteLocalRef (env, objPeer);
     }
 
     BRPeerManager *result = BRPeerManagerNew(params, wallet, earliestKeyTime,
