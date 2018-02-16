@@ -172,6 +172,28 @@ Java_com_breadwallet_core_BRCoreMerkleBlock_getHeight
 
 /*
  * Class:     com_breadwallet_core_BRCoreMerkleBlock
+ * Method:    serialize
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreMerkleBlock_serialize
+        (JNIEnv *env, jobject thisObject) {
+    BRMerkleBlock *block = (BRMerkleBlock *) getJNIReference(env, thisObject);
+
+    size_t      byteArraySize     = BRMerkleBlockSerialize(block, NULL, 0);
+    jbyteArray  byteArray         = (*env)->NewByteArray (env, (jsize) byteArraySize);
+    jbyte      *byteArrayElements = (*env)->GetByteArrayElements (env, byteArray, JNI_FALSE);
+
+    BRMerkleBlockSerialize(block, (uint8_t *) byteArrayElements, byteArraySize);
+
+    // Ensure ELEMENTS 'written' back to byteArray
+    (*env)->ReleaseByteArrayElements (env, byteArray, byteArrayElements, JNI_COMMIT);
+
+    return byteArray;
+}
+
+
+/*
+ * Class:     com_breadwallet_core_BRCoreMerkleBlock
  * Method:    isValid
  * Signature: (J)Z
  */

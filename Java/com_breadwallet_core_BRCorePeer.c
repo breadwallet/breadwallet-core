@@ -57,6 +57,17 @@ JNICALL Java_com_breadwallet_core_BRCorePeer_getPort
 
 /*
  * Class:     com_breadwallet_core_BRCorePeer
+ * Method:    getTimestamp
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCorePeer_getTimestamp
+        (JNIEnv *env, jobject thisObject) {
+    BRPeer *peer = (BRPeer *) getJNIReference (env, thisObject);
+    return peer->timestamp;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePeer
  * Method:    setEarliestKeyTime
  * Signature: (J)V
  */

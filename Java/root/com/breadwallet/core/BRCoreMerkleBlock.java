@@ -63,7 +63,12 @@ public class BRCoreMerkleBlock extends BRCoreJniReference {
 
     public native long getHeight ();
 
-    // serialize
+    /**
+     * Serialize the transaction into a byte array.
+     *
+     * @return the byte array
+     */
+    public native byte[] serialize ();
 
     public native boolean isValid (long currentTime);
 

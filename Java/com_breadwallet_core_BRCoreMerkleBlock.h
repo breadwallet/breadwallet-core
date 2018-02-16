@@ -89,6 +89,14 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreMerkleBlock_getHeight
 
 /*
  * Class:     com_breadwallet_core_BRCoreMerkleBlock
+ * Method:    serialize
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreMerkleBlock_serialize
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreMerkleBlock
  * Method:    isValid
  * Signature: (J)Z
  */

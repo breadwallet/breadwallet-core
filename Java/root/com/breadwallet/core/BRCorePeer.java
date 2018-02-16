@@ -68,6 +68,8 @@ public class BRCorePeer extends BRCoreJniReference {
 
     public native int getPort ();
 
+    public native long getTimestamp ();
+
     //
     // These all require a PeerContext
     //
