@@ -73,7 +73,14 @@ public class BRWalletManager extends BRCoreWalletManager {
     private static final String SOME_RANDOM_TEST_PAPER_KEY =
             "axis husband project any sea patch drip tip spirit tide bring belt";
 
+    public static boolean canRunMain = true;
+
     public static void main(String[] args) {
+        if (!canRunMain) return;
+        canRunMain = false;
+
+        try { Thread.sleep(10 * 1000); }
+        catch (Exception ex) {}
 
         runTests();
 
@@ -173,14 +180,17 @@ public class BRWalletManager extends BRCoreWalletManager {
         }
     }
 
+
     private static void runTests() {
         System.out.println ("\nStarting Tests:");
+
+        // Require 'mainnet'
         runKeyTests();
         runTransactionTests();
         runWalletTests();
         runPaymentProtocolTests();
         // TODO: Fix
-        //runGCTests();
+        runGCTests();
         System.out.println ("Completed Tests\n");
     }
 
@@ -437,6 +447,14 @@ public class BRWalletManager extends BRCoreWalletManager {
                 inputs[inputs.length - 1].getScript());
         // TODO: Fix
         // asserting (address.stringify().equals(sigAddress.stringify()));
+
+        System.out.println("        Set Output Amount:");
+
+        BRCoreTransactionOutput out1 = new BRCoreTransactionOutput(4900000000L, script);
+        assert (4900000000L == out1.getAmount());
+        out1.setAmount(100);
+        assert (100 == out1.getAmount());
+
     }
 
     private static void runPaymentProtocolTests () {
@@ -543,6 +561,10 @@ public class BRWalletManager extends BRCoreWalletManager {
         };
 
         byte[] phrase = "a random seed".getBytes();
+
+        System.out.println ("Phrase Bytes: " + Arrays.toString(phrase));
+        System.out.println ("Phrase Chars: " + new String(phrase));
+
 
         BRCoreMasterPubKey mpk = new BRCoreMasterPubKey(phrase, true);
 
@@ -661,13 +683,9 @@ public class BRWalletManager extends BRCoreWalletManager {
         asserting (null != tx);
         asserting (! tx.isSigned());
 
-        // TODO: Fix
-//	    w.signTransaction(tx, 0, phrase);
-//        asserting (tx.isSigned());
+	    w.signTransaction(tx, 0, phrase);
+        asserting (tx.isSigned());
 
-        System.out.println("            Four");
-        // TODO: Fix too
-/*
         tx.setTimestamp(1);
         w.registerTransaction(tx);
         asserting (w.getBalance() + w.getTransactionFee(tx) == SATOSHIS/2);
@@ -678,9 +696,11 @@ public class BRWalletManager extends BRCoreWalletManager {
         asserting(2 == w.getTransactions().length);
         BRCoreTransaction foundTX = w.transactionForHash(txHash);
 
-        w.removeTransaction(txHash);
-        asserting(0 == w.getTransactions().length);
-        */
+        // TODO: removeTransaction leads to a memory error
+        // The transaction for txHash is freed but other dependent transactions are also freed
+        // presumably they are all already registered?  Seems not.
+//        w.removeTransaction(txHash);
+//        asserting(0 == w.getTransactions().length);
     }
 
 

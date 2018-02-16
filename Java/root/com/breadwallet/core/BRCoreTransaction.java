@@ -30,7 +30,13 @@ import java.util.Arrays;
  *
  */
 public class BRCoreTransaction extends BRCoreJniReference {
-    //
+
+    /**
+     * Set to 'true' when this transaction is successfully registered with a wallet.
+     * Once registered, the Wallet owns the JNI 'C memory' and thus on GC we won't
+     * call BRTransactionFree (<jni reference>)
+     */
+    protected boolean isRegistered = false;
 
     public BRCoreTransaction (byte[] buffer) {
         this (createJniCoreTransactionSerialized (buffer));
@@ -48,6 +54,12 @@ public class BRCoreTransaction extends BRCoreJniReference {
 
     protected BRCoreTransaction (long jniReferenceAddress) {
         super (jniReferenceAddress);
+    }
+
+    @Override
+    public void dispose () {
+        if (!isRegistered)
+            disposeNative ();
     }
 
     /**
@@ -193,10 +205,10 @@ public class BRCoreTransaction extends BRCoreJniReference {
     @Override
     public String toString() {
         return "BRCoreTransaction {@" + jniReferenceAddress +
-                "\n  hash       : " + Arrays.toString(getHash()) +
-                "\n  timestamp  : " + getTimestamp() +
-                "\n  blockHeight: " + getBlockHeight() +
-                "\n  standardFee: " + getStandardFee() +
+//                "\n  hash       : " + Arrays.toString(getHash()) +
+//                "\n  timestamp  : " + getTimestamp() +
+//                "\n  blockHeight: " + getBlockHeight() +
+//                "\n  standardFee: " + getStandardFee() +
                 '}';
     }
 }

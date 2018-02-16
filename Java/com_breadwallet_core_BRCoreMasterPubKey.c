@@ -70,6 +70,8 @@ JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKeyFromPhrase
         (JNIEnv *env, jclass thisClass,
          jbyteArray phrase) {
+
+    // Get the phraseBytes
     jsize phraseLength = (*env)->GetArrayLength (env, phrase);
     jbyte *phraseBytes = (*env)->GetByteArrayElements (env, phrase, 0);
 
@@ -80,7 +82,7 @@ Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKeyFromPhrase
     //
     // This conversion might not be required if `phrase` is a 'null-terminated byte array'.  But
     // that is a dangerous assumption if violated (buffer overflow errors).
-    char *phraseString = malloc (1 + phraseLength);
+    char phraseString[1 + phraseLength];
     memcpy (phraseString, phraseBytes, phraseLength);
     phraseString[phraseLength] = '\0';
 
@@ -110,9 +112,9 @@ Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKeyFromPhrase
 //    (*env)->ReleaseByteArrayElements(env, phrase, bytePhrase, JNI_ABORT);
 //    //release everything
 
+    // Derive a UInt512 'BIP39' seed from the phraseString.
     UInt512 seed = UINT512_ZERO;
     BRBIP39DeriveKey(seed.u8, phraseString, NULL);
-    free (phraseString);
 
     BRMasterPubKey pubKey = BRBIP32MasterPubKey(&seed, sizeof(seed));
 
@@ -121,7 +123,6 @@ Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKeyFromPhrase
     *resKey = pubKey;
 
     return (jlong) resKey;
-
 }
 
 /*
@@ -227,6 +228,8 @@ Java_com_breadwallet_core_BRCoreMasterPubKey_encodeSeed
 
     size = BRBIP39Encode(result, sizeof(result), wordList, (const uint8_t *) byteSeed,
                          (size_t) seedLength);
+
+    // TODO: Release UTFChars
 
     if (size > 0) {
         bytePhrase = (*env)->NewByteArray(env, (int) size - 1);

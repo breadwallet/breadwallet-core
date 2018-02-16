@@ -1792,7 +1792,13 @@ static void walletTxDeleted(void *info, UInt256 txHash, int notifyUser, int reco
 int BRWalletTests()
 {
     int r = 1;
-    BRMasterPubKey mpk = BRBIP32MasterPubKey("", 1);
+    const char *phrase = "a random seed";                     // ""
+    UInt512 seed;
+
+    BRBIP39DeriveKey(&seed, phrase, NULL); // 
+
+
+    BRMasterPubKey mpk = BRBIP32MasterPubKey(&seed, sizeof(seed));
     BRWallet *w = BRWalletNew(NULL, 0, mpk);
     UInt256 secret = uint256("0000000000000000000000000000000000000000000000000000000000000001"),
             inHash = uint256("0000000000000000000000000000000000000000000000000000000000000001");
@@ -1880,7 +1886,7 @@ int BRWalletTests()
     tx = BRWalletCreateTransaction(w, SATOSHIS/2, addr.s);
     if (! tx) r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletCreateTransaction() test 4\n", __func__);
 
-    if (tx) BRWalletSignTransaction(w, tx, 0, "", 1);
+    if (tx) BRWalletSignTransaction(w, tx, 0, &seed, sizeof(seed));
     if (tx && ! BRTransactionIsSigned(tx))
         r = 0, fprintf(stderr, "***FAILED*** %s: BRWalletSignTransaction() test\n", __func__);
     

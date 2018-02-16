@@ -58,6 +58,10 @@ public class BRCoreWallet extends BRCoreJniReference
         super (createJniCoreWallet(transactions, masterPubKey));
         installListener (listener);
         assert (null != this.listener);
+
+        // All `transactions` are effectively registered - now 'owned' by wallet
+        for (BRCoreTransaction transaction : transactions)
+            transaction.isRegistered = true;
     }
 
     protected static native long createJniCoreWallet (BRCoreTransaction[] transactions,
@@ -101,16 +105,45 @@ public class BRCoreWallet extends BRCoreJniReference
 
     public native long getDefaultFeePerKb ();
 
+    /**
+     * Creates a BRCoreTransaction for sending `amount` to `address`.  Will create a
+     * BRCoreTransactionOutput for `address` with a script of:
+     *      DUP HASH160 <pub key hash for address> EQUALVERIFY CHECKSIG
+     * (provided `address` is a 'pub key address'; otherwise produces a script for a scriptAddress)
+     *
+     * Will iterate over the wallet's UTXOs adding in their transaction output (amount, script) as
+     * a BRCoreTransactionInput.  If the UTXOs can't cover `amount` then `null` is returned;
+     * otherwise a 'change' output is added for an unused wallet address.
+     *
+     * @param amount the amount to send
+     * @param address the address to send to
+     * @return a consistently constructed transaction.
+     */
     public native BRCoreTransaction createTransaction (long amount, BRCoreAddress address);
 
     // createTxForOutputs
 
     // Need to remove 'forkId' - should be derived from the chainParams leading to this wallet.
-    public native boolean signTransaction (BRCoreTransaction transaction, int forkId, byte[] seed);
+
+    /**
+     * Sign `transaction` for the provided `forkId` (BTC or BCH) using `phrase`.  The `phrase` must
+     * be the 'paper key' used when the wallet's MasterPubKey was originally created.
+     *
+     * @param transaction
+     * @param forkId
+     * @param phrase
+     * @return
+     */
+    public native boolean signTransaction (BRCoreTransaction transaction, int forkId, byte[] phrase);
 
     public native boolean containsTransaction (BRCoreTransaction transaction);
 
-    public native boolean registerTransaction (BRCoreTransaction transaction);
+    public boolean registerTransaction (BRCoreTransaction transaction) {
+        transaction.isRegistered = jniRegisterTransaction(transaction);
+        return transaction.isRegistered;
+    }
+
+    private native boolean jniRegisterTransaction (BRCoreTransaction transaction);
 
     public native void removeTransaction (byte[] transactionHash);
 
@@ -220,10 +253,10 @@ public class BRCoreWallet extends BRCoreJniReference
 
     @Override
     public String toString() {
-        return "BRCoreWallet {@" + jniReferenceAddress +
-                "\n  rcv addr: " + getReceiveAddress().stringify() +
-                "\n  balance : " + getBalance() +
-                "\n  fee/kb  : " + getFeePerKb() +
+        return "BRCoreWallet {@" + Long.toHexString(jniReferenceAddress) +
+//                "\n  rcv addr: " + getReceiveAddress().stringify() +
+//                "\n  balance : " + getBalance() +
+//                "\n  fee/kb  : " + getFeePerKb() +
                 '}';
     }
 }

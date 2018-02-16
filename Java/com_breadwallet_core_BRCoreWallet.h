@@ -153,10 +153,10 @@ JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreWallet_containsTransa
 
 /*
  * Class:     com_breadwallet_core_BRCoreWallet
- * Method:    registerTransaction
+ * Method:    jniRegisterTransaction
  * Signature: (Lcom/breadwallet/core/BRCoreTransaction;)Z
  */
-JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreWallet_registerTransaction
+JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreWallet_jniRegisterTransaction
   (JNIEnv *, jobject, jobject);
 
 /*

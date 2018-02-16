@@ -36,6 +36,10 @@ jmethodID transactionInputConstructor;
 jclass transactionOutputClass;
 jmethodID transactionOutputConstructor;
 
+static char *JNI_TRANSACTION_IS_REGISTERED_NAME = "isRegistered";
+static char *JNI_TRANSACTION_IS_REGISTERED_TYPE = "Z";
+
+
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction
  * Method:    getHash
@@ -334,7 +338,19 @@ JNIEXPORT void JNICALL
 Java_com_breadwallet_core_BRCoreTransaction_disposeNative
         (JNIEnv *env, jobject thisObject) {
     BRTransaction *transaction = (BRTransaction *) getJNIReference (env, thisObject);
+
+    // Check if registered
+//    jclass   thisClass = (*env)->GetObjectClass (env, thisObject);
+//    jfieldID thisField = (*env)->GetFieldID(env, thisClass,
+//                                            JNI_TRANSACTION_IS_REGISTERED_NAME,
+//                                            JNI_TRANSACTION_IS_REGISTERED_TYPE);
+//
+//    jboolean isRegistered = (*env)->GetBooleanField (env, thisObject, thisField);
+//
+//    if (NULL != transaction && !isRegistered) BRTransactionFree(transaction);
+
     if (NULL != transaction) BRTransactionFree(transaction);
+
 }
 
 /*

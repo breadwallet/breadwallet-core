@@ -209,14 +209,14 @@ public class BRCoreWalletManager implements
     @Override
     public void saveBlocks(boolean replace, BRCoreMerkleBlock[] blocks) {
         // System.err.println ("saveBlocks: " + Integer.toBinaryString(blocks.length));
-        System.err.println(String.format("saveBlocks: %d", blocks.length));
+        System.err.println(getChainDescriptiveName() + String.format(": saveBlocks: %d", blocks.length));
         for (int i = 0; i < blocks.length; i++)
             System.err.println(blocks[i].toString());
     }
 
     @Override
     public void savePeers(boolean replace, BRCorePeer[] peers) {
-        System.err.println(String.format("savePeers: %d", peers.length));
+        System.err.println(getChainDescriptiveName() + String.format(": savePeers: %d", peers.length));
         for (int i = 0; i < peers.length; i++)
             System.err.println(peers[i].toString());
     }
@@ -229,7 +229,7 @@ public class BRCoreWalletManager implements
 
     @Override
     public void txPublished(String error) {
-        System.err.println (String.format ("txPublished: %s", error));
+        System.err.println (getChainDescriptiveName() + String.format (":   txPublished: %s", error));
     }
 
     //
@@ -238,13 +238,13 @@ public class BRCoreWalletManager implements
 
     @Override
     public void balanceChanged(long balance) {
-        System.err.println (String.format ("balanceChanged: %d", balance));
+        System.err.println (getChainDescriptiveName() + String.format (": balanceChanged: %d", balance));
         System.err.println (wallet.toString());
     }
 
     @Override
     public void onTxAdded(BRCoreTransaction transaction) {
-        System.err.println ("onTxAdded");
+        System.err.println (getChainDescriptiveName() + ": onTxAdded");
         System.err.println(transaction.toString());
         for (BRCoreTransactionInput input : transaction.getInputs())
             System.err.println (input.toString());
@@ -254,12 +254,12 @@ public class BRCoreWalletManager implements
 
     @Override
     public void onTxUpdated(String hash, int blockHeight, int timeStamp) {
-        System.err.println ("onTxUpdated");
+        System.err.println (getChainDescriptiveName() + ": onTxUpdated");
     }
 
     @Override
     public void onTxDeleted(String hash, int notifyUser, int recommendRescan) {
-        System.err.println ("onTxDeleted");
+        System.err.println (getChainDescriptiveName() + ": onTxDeleted");
     }
 
     //
@@ -276,6 +276,18 @@ public class BRCoreWalletManager implements
                 '}';
     }
 
+    private String getChainDescriptiveName ()
+    {
+        if (chainParams == BRCoreChainParams.mainnetChainParams)
+            return "Bitcoin Mainnet";
+        else if (chainParams == BRCoreChainParams.testnetChainParams)
+            return "Bitcoin Testnet";
+        else if (chainParams == BRCoreChainParams.mainnetBcashChainParams)
+            return "Bitcash Mainnet";
+        else if (chainParams == BRCoreChainParams.testnetBcashChainParams)
+            return "Bitcash Testnet";
+        return "Unknown";
+    }
     // ============================================================================================
     //
     // Callbacks from JNI code that throw an exception are QUIETLY SWALLOWED.  We'll provide

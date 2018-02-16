@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include <assert.h>
+#include <BRBIP39Mnemonic.h>
 #include "BRWallet.h"
 #include "BRAddress.h"
 #include "BRCoreJni.h"
@@ -60,12 +61,11 @@ Java_com_breadwallet_core_BRCoreWallet_createJniCoreWallet
 
     // Transactions
     size_t transactionsCount = (*env)->GetArrayLength(env, objTransactionsArray);
-    BRTransaction **transactions = (BRTransaction **) calloc(transactionsCount, sizeof(BRTransaction *));
+    BRTransaction *transactions[transactionsCount];
 
     for (int index = 0; index < transactionsCount; index++) {
         jobject objTransaction = (*env)->GetObjectArrayElement (env, objTransactionsArray, index);
-        BRTransaction *transaction = (BRTransaction *) getJNIReference(env, objTransaction);
-        transactions[index] = transaction;
+        transactions[index] = (BRTransaction *) getJNIReference(env, objTransaction);
     }
 
     return (jlong) BRWalletNew(transactions, transactionsCount, *masterPubKey);
@@ -346,14 +346,24 @@ Java_com_breadwallet_core_BRCoreWallet_signTransaction
         (JNIEnv *env, jobject thisObject,
          jobject transactionObject,
          jint forkId,
-         jbyteArray seedByteArray) {
+         jbyteArray phraseByteArray) {
     BRWallet *wallet = (BRWallet *) getJNIReference(env, thisObject);
     BRTransaction *transaction = (BRTransaction *) getJNIReference(env, transactionObject);
 
-    size_t seedLen = (size_t) (*env)->GetArrayLength(env, seedByteArray);
-    const void *seed = (const void *) (*env)->GetByteArrayElements(env, seedByteArray, 0);
+    // Convert phraseByteArray to a char* phrase
+    size_t phraseLen = (size_t) (*env)->GetArrayLength(env, phraseByteArray);
+    const jbyte *phraseBytes = (const jbyte *) (*env)->GetByteArrayElements(env, phraseByteArray, 0);
 
-    return (jboolean) (1 == BRWalletSignTransaction(wallet, transaction, forkId, seed, seedLen)
+    char phrase [1 + phraseLen];
+    memcpy (phrase, phraseBytes, phraseLen);
+    phrase[phraseLen] = '\0';
+
+    // Convert phrase to its BIP38 512 bit seed.
+    UInt512 seed;
+    BRBIP39DeriveKey (&seed, phrase, NULL);
+
+    // Sign with the seed
+    return (jboolean) (1 == BRWalletSignTransaction(wallet, transaction, forkId, &seed, sizeof(seed))
                        ? JNI_TRUE
                        : JNI_FALSE);
 }
@@ -373,14 +383,16 @@ Java_com_breadwallet_core_BRCoreWallet_containsTransaction
 
 /*
  * Class:     com_breadwallet_core_BRCoreWallet
- * Method:    registerTransaction
+ * Method:    jniRegisterTransaction
  * Signature: (Lcom/breadwallet/core/BRCoreTransaction;)Z
  */
 JNIEXPORT jboolean JNICALL
-Java_com_breadwallet_core_BRCoreWallet_registerTransaction
+Java_com_breadwallet_core_BRCoreWallet_jniRegisterTransaction
         (JNIEnv *env, jobject thisObject, jobject transactionObject) {
     BRWallet  *wallet  = (BRWallet  *) getJNIReference (env, thisObject);
     BRTransaction *transaction = (BRTransaction *) getJNIReference (env, transactionObject);
+
+    // TODO: The registered transaction memory is now 'owned' by the wallet.  Will double free.
     return (jboolean) BRWalletRegisterTransaction (wallet, transaction);
 }
 

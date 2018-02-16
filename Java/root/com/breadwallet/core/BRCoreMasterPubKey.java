@@ -29,14 +29,30 @@ package com.breadwallet.core;
  */
 public class BRCoreMasterPubKey extends BRCoreJniReference {
 
+    /**
+     * The MasterPubKey's public key as byte[].
+     *
+     * @return
+     */
     public native byte[] getPubKey ();
 
+    /**
+     * The MasterPubKey's public key as BRCoreKey
+     *
+     * @return
+     */
     public BRCoreKey getPubKeyAsCoreKey () {
         return new BRCoreKey (createPubKey ());
     }
 
-    protected native long createPubKey ();
 
+    /**
+     * Constructor from `bytes`.  If `isPaperKey` is true, then `bytes` represents that
+     * 12-word 'paper key' string; otherwise, `bytes` is the 'pub key' (returned by getPubKey())
+     *
+     * @param bytes either 'paper key' (as byte[]) or 'pub key'
+     * @param isPaperKey true is 'paper key'
+     */
     public BRCoreMasterPubKey (byte[] bytes, boolean isPaperKey) {
         this (isPaperKey
                 ? createJniCoreMasterPubKeyFromPhrase(bytes)
@@ -47,10 +63,22 @@ public class BRCoreMasterPubKey extends BRCoreJniReference {
         super (jniReferenceAddress);
     }
 
+    //
+    // Native Support Methods
+    //
+    private native long createPubKey ();
+
     private static native long createJniCoreMasterPubKeyFromPhrase (byte[] phrase);
 
-    private static native long createJniCoreMasterPubKeyFromPubKey (byte[] phrase);
+    private static native long createJniCoreMasterPubKeyFromPubKey (byte[] pubKey);
 
+    /**
+     *
+     * @param seed
+     * @param index
+     * @param uri
+     * @return
+     */
     public static native byte[] bip32BitIDKey(byte[] seed, int index, String uri);
 
     /**
@@ -61,14 +89,29 @@ public class BRCoreMasterPubKey extends BRCoreJniReference {
      */
     //public native boolean validateRecoveryPhrase (String[] words)
 
+    /**
+     * Validate `phrase` using `words`.  Essentially, every word in `phrase` must be found in
+     * `words`
+     *
+     * @param words
+     * @param phrase
+     * @return
+     */
     public static native boolean validateRecoveryPhrase(String[] words, String phrase);
 
+    /**
+     * BIP39Encode `seed` with `words`.  There must be 2048 `words` and the `seed` must be 16
+     * bytes.
+     *
+     * @param seed
+     * @param words
+     * @return
+     */
     public static native byte[] encodeSeed (byte[] seed, String[] words);
 
     @Override
     public String toString() {
-        return "BRCoreMasterPubKey{" +
-                "jniReferenceAddress=" + jniReferenceAddress +
+        return "BRCoreMasterPubKey {@ " + jniReferenceAddress +
                 '}';
     }
 }

@@ -76,7 +76,7 @@ CFLAGS=-I$(JAVA_HOME)/include \
 compile: $(JNI_LIB) java_comp
 
 test: $(JNI_LIB) java_comp
-	java -Xdebug -Xrunjdwp:transport=dt_socket,address=8008,server=y,suspend=n \
+	java -Xss1m -Xdebug -Xrunjdwp:transport=dt_socket,address=8008,server=y,suspend=n \
 		 -Dwallet.test -classpath build -Djava.library.path=. \
 		 com.breadwallet.core.test.BRWalletManager $(ARGS) # -D.
 
