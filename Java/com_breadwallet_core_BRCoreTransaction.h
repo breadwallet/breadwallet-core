@@ -153,6 +153,14 @@ JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreTransaction_isStandar
 
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction
+ * Method:    getReverseHash
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreTransaction_getReverseHash
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreTransaction
  * Method:    getMinOutputAmount
  * Signature: ()J
  */

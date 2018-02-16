@@ -321,6 +321,20 @@ JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreTransaction_isStandar
 
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction
+ * Method:    getReverseHash
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreTransaction_getReverseHash
+        (JNIEnv *env, jobject thisObject) {
+    BRTransaction *transaction = (BRTransaction *) getJNIReference (env, thisObject);
+
+    UInt256 txid = transaction->txHash;
+    UInt256 reversedHash = UInt256Reverse(txid);
+    return (*env)->NewStringUTF(env, u256hex(reversedHash));
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreTransaction
  * Method:    getMinOutputAmount
  * Signature: ()J
  */

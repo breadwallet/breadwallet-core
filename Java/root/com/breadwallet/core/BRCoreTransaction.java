@@ -82,11 +82,31 @@ public class BRCoreTransaction extends BRCoreJniReference {
      */
     public native BRCoreTransactionInput[] getInputs ();
 
+    public String[] getInputAddresses () {
+        BRCoreTransactionInput[] inputs = getInputs();
+        String[] addresses = new String [inputs.length];
+
+        for (int i = 0; i < inputs.length; i++)
+            addresses[i] = inputs[i].getAddress();
+
+        return addresses;
+    }
+
     /**
      *
      * @return
      */
     public native BRCoreTransactionOutput[] getOutputs ();
+
+    public String[] getOutputAddresses () {
+        BRCoreTransactionOutput[] outputs = getOutputs();
+        String[] addresses = new String [outputs.length];
+
+        for (int i = 0; i < outputs.length; i++)
+            addresses[i] = outputs[i].getAddress();
+
+        return addresses;
+    }
 
     /**
      * The transaction's lockTime
@@ -177,6 +197,13 @@ public class BRCoreTransaction extends BRCoreJniReference {
      * @return true if standard; false otherwise
      */
     public native boolean isStandard ();
+
+    /*
+         UInt256 txid = tempTx->txHash;
+        UInt256 reversedHash = UInt256Reverse(txid);
+        return (*env)->NewStringUTF(env, u256hex(reversedHash));
+     */
+    public native String getReverseHash ();
 
     public static native long getMinOutputAmount ();
 
