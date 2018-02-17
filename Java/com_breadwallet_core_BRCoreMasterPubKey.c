@@ -212,6 +212,8 @@ Java_com_breadwallet_core_BRCoreMasterPubKey_encodeSeed
     const char *wordList[wordsCount];
     assert(seedLength == 16);
     assert(wordsCount == 2048);
+
+    // Copy stringArray elements into workList as char*
     for (int i = 0; i < wordsCount; i++) {
         jstring string = (jstring) (*env)->GetObjectArrayElement(env, stringArray, i);
         const char *rawString = (*env)->GetStringUTFChars(env, string, 0);
@@ -219,19 +221,27 @@ Java_com_breadwallet_core_BRCoreMasterPubKey_encodeSeed
         wordList[i] = rawString;
         (*env)->DeleteLocalRef(env, string);
     }
-    // __android_log_print(ANDROID_LOG_DEBUG, "Message from C: ", "encodeSeed: %zu", sizeof(wordList));
 
+    // Encode into 'result'
     jbyte *byteSeed = (*env)->GetByteArrayElements(env, seed, 0);
     size_t size = BRBIP39Encode(NULL, 0, wordList, (uint8_t *) byteSeed, (size_t) seedLength);
     char result[size];
-    jbyteArray bytePhrase = NULL;
 
     size = BRBIP39Encode(result, sizeof(result), wordList, (const uint8_t *) byteSeed,
                          (size_t) seedLength);
 
-    // TODO: Release UTFChars
+    // Release the UTF strings from wordList
+    for (int i = 0; i < wordsCount; i++) {
+        jstring string = (jstring) (*env)->GetObjectArrayElement(env, stringArray, i);
+        (*env)->ReleaseStringUTFChars(env, string, wordList[i]);
+        (*env)->DeleteLocalRef(env, string);
+    }
+
+    // Return byte[] of 'result'
+    jbyteArray bytePhrase = NULL;
 
     if (size > 0) {
+        // TODO: Why (size - 1)
         bytePhrase = (*env)->NewByteArray(env, (int) size - 1);
         (*env)->SetByteArrayRegion(env, bytePhrase, 0, (int) size - 1, (jbyte *) result);
 

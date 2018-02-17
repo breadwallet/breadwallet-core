@@ -63,12 +63,18 @@ public class BRCorePeerManager extends BRCoreJniReference {
     protected BRCoreWallet wallet;
 
     //
-    // Weakly held (to avoid a likely self-reference) for use by JNI function
-    // publishTransactionWithListener().
+    // Hold a weak reference to the listener.  It is a weak reference because it is likely to
+    // be self-referential which would prevent GC of this PeerManager.  This listener is used
+    // by the BRCore PeerManager, and specifically in a BRCore thread context to invoke the
+    // Listener methods.  Because of the use in a BRCore thread, the Listener *MUST BE* and
+    // JNI Global Ref.  The installListener() method, called in the BRCorePeerManager constructor
+    // initializes 'listener' with a GlobalWeakReference.
     //
-    protected WeakReference<Listener> listener;
+    protected WeakReference<Listener> listener = null;
 
-
+    //
+    //
+    //
     public BRCorePeerManager(BRCoreChainParams params,
                              BRCoreWallet wallet,
                              double earliestKeyTime,
@@ -175,7 +181,6 @@ public class BRCorePeerManager extends BRCoreJniReference {
      */
     protected native void publishTransactionWithListener (BRCoreTransaction transaction,
                                                           Listener listener);
-
 
     /**
      * @param txHash

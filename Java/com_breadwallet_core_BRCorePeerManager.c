@@ -264,22 +264,19 @@ Java_com_breadwallet_core_BRCorePeerManager_createCorePeerManager
 JNIEXPORT void
 JNICALL Java_com_breadwallet_core_BRCorePeerManager_installListener
         (JNIEnv *env, jobject thisObject, jobject listenerObject) {
-
     BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
 
-    // TODO: Reclaim the globalListener
-    //   Save in the PeerManager simply as Object; reference then delete on dispose.
-    //
-    // 'WeakGlobal' allows GC and prevents cross-thread SEGV
+    // Get a WeakGlobalRef - 'weak' to allow for GC; 'global' to allow BRCore thread access
     jobject listenerWeakRefGlobal = (*env)->NewWeakGlobalRef(env, listenerObject);
 
+    // Assign listenerWeakRefGlobal back to thisObject.listener
     jfieldID listenerField = (*env)->GetFieldID(env, (*env)->GetObjectClass(env, thisObject),
                                                 "listener",
                                                 "Ljava/lang/ref/WeakReference;");
     assert (NULL != listenerField);
     (*env)->SetObjectField(env, thisObject, listenerField, listenerWeakRefGlobal);
 
-    // Fill in callbacks
+    // Assign callbacks
     BRPeerManagerSetCallbacks (peerManager, (void *) listenerWeakRefGlobal,
                                syncStarted,
                                syncStopped,
@@ -490,8 +487,8 @@ txPublished (void *info, int error) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    // Info is a GlobalWeakRef - by using NewLocalRef we save the reference, if it
-    // has not been reclaimed yet.
+    // Info is a GlobalWeakRef - by using NewLocalRef, we save the reference,
+    // if it has not been reclaimed yet.  If it has been reclaimed, then it is NULL;
     jobject listener = (*env)->NewLocalRef (env, (jobject) info);
     if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
 

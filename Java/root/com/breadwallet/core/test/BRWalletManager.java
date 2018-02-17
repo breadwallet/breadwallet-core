@@ -196,7 +196,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         runWalletTests();
         runPaymentProtocolTests();
         // TODO: Fix
-        //runGCTests();
+        runGCTests();
         System.out.println ("Completed Tests\n");
     }
 
@@ -685,7 +685,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         asserting (null != tx);
         asserting (! tx.isSigned());
 
-	w.signTransaction(tx, 0, phrase);
+	    w.signTransaction(tx, 0, phrase);
         asserting (tx.isSigned());
 
         tx.setTimestamp(1);

@@ -57,10 +57,10 @@ JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreWallet_addressIsUsed
 
 /*
  * Class:     com_breadwallet_core_BRCoreWallet
- * Method:    getTransactions
+ * Method:    jniGetTransactions
  * Signature: ()[Lcom/breadwallet/core/BRCoreTransaction;
  */
-JNIEXPORT jobjectArray JNICALL Java_com_breadwallet_core_BRCoreWallet_getTransactions
+JNIEXPORT jobjectArray JNICALL Java_com_breadwallet_core_BRCoreWallet_jniGetTransactions
   (JNIEnv *, jobject);
 
 /*
@@ -177,10 +177,10 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreWallet_updateTransactions
 
 /*
  * Class:     com_breadwallet_core_BRCoreWallet
- * Method:    transactionForHash
+ * Method:    jniTransactionForHash
  * Signature: ([B)Lcom/breadwallet/core/BRCoreTransaction;
  */
-JNIEXPORT jobject JNICALL Java_com_breadwallet_core_BRCoreWallet_transactionForHash
+JNIEXPORT jobject JNICALL Java_com_breadwallet_core_BRCoreWallet_jniTransactionForHash
   (JNIEnv *, jobject, jbyteArray);
 
 /*

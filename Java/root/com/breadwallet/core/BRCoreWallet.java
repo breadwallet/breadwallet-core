@@ -46,11 +46,18 @@ public class BRCoreWallet extends BRCoreJniReference
     }
 
     //
+    // Hold a weak reference to the listener.  It is a weak reference because it is likely to
+    // be self-referential which would prevent GC of this Wallet.  This listener is used
+    // by the BRCore Wallet, and specifically in a BRCore thread context to invoke the
+    // Listener methods.  Because of the use in a BRCore thread, the Listener *MUST BE* a
+    // JNI Global Ref.  The installListener() method, called in the BRCoreWallet constructor
+    // initializes 'listener' with a GlobalWeakReference.
     //
-    //
-
     protected WeakReference<Listener> listener = null;
 
+    //
+    //
+    //
     public BRCoreWallet(BRCoreTransaction[] transactions,
                         BRCoreMasterPubKey masterPubKey,
                         Listener listener)
@@ -85,7 +92,20 @@ public class BRCoreWallet extends BRCoreJniReference
     // int BRWalletAddressIsUsed(BRWallet *wallet, const char *addr);
     public native boolean addressIsUsed (BRCoreAddress address);
 
-    public native BRCoreTransaction[] getTransactions ();
+    // TODO: Holding these transactions when the wallet is GCed.... boom!?
+    public BRCoreTransaction[] getTransactions () {
+        BRCoreTransaction[] transactions = jniGetTransactions();
+        for (BRCoreTransaction transaction : transactions)
+            transaction.isRegistered = true;
+        return transactions;
+    }
+
+    /**
+     * Return *registered* transactions in wallet - these are not copies of the JNI C transaction
+     * Therefore they *must* be marked 'isRegistered = true'
+     * @return
+     */
+    private native BRCoreTransaction[] jniGetTransactions ();
 
     public native BRCoreTransaction[] getTransactionsConfirmedBefore (long blockHeight);
 
@@ -139,8 +159,14 @@ public class BRCoreWallet extends BRCoreJniReference
     public native boolean containsTransaction (BRCoreTransaction transaction);
 
     public boolean registerTransaction (BRCoreTransaction transaction) {
-        transaction.isRegistered = jniRegisterTransaction(transaction);
-        return transaction.isRegistered;
+        // Try to register; this might fail on a 're-register' attempt.
+        boolean registered = jniRegisterTransaction(transaction);
+
+        // Make isRegistered sticky.
+        transaction.isRegistered = transaction.isRegistered || registered;
+
+        // Return the status of the register.
+        return registered;
     }
 
     private native boolean jniRegisterTransaction (BRCoreTransaction transaction);
@@ -149,7 +175,19 @@ public class BRCoreWallet extends BRCoreJniReference
 
     public native void updateTransactions (byte[][] transactionsHashes, long blockHeight, long timestamp);
 
-    public native BRCoreTransaction transactionForHash (byte[] transactionHash);
+    // TODO: Holding this transactions when the wallet is GCed.... boom!?
+    public BRCoreTransaction transactionForHash (byte[] transactionHash) {
+        BRCoreTransaction transaction = jniTransactionForHash(transactionHash);
+
+        // We got this transaction via BRWalletTransactionForHash() - which returns a JNI C
+        // pointer to a registered transaction:
+        //      'returns the transaction with the given hash if it's been registered in the wallet'
+        if (null != transaction) transaction.isRegistered = true;
+
+        return transaction;
+    }
+
+    private native BRCoreTransaction jniTransactionForHash (byte[] transactionHash);
 
     public native boolean transactionIsValid (BRCoreTransaction transaction);
 
