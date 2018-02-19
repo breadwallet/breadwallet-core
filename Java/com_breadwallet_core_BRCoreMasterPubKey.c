@@ -241,9 +241,8 @@ Java_com_breadwallet_core_BRCoreMasterPubKey_encodeSeed
     jbyteArray bytePhrase = NULL;
 
     if (size > 0) {
-        // TODO: Why (size - 1)
-        bytePhrase = (*env)->NewByteArray(env, (int) size - 1);
-        (*env)->SetByteArrayRegion(env, bytePhrase, 0, (int) size - 1, (jbyte *) result);
+        bytePhrase = (*env)->NewByteArray(env, (int) size);
+        (*env)->SetByteArrayRegion(env, bytePhrase, 0, (int) size, (jbyte *) result);
 
     }
 
