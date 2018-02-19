@@ -57,10 +57,10 @@ JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreMasterPubKey_validate
 
 /*
  * Class:     com_breadwallet_core_BRCoreMasterPubKey
- * Method:    encodeSeed
+ * Method:    generatePaperKey
  * Signature: ([B[Ljava/lang/String;)[B
  */
-JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreMasterPubKey_encodeSeed
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreMasterPubKey_generatePaperKey
   (JNIEnv *, jclass, jbyteArray, jobjectArray);
 
 #ifdef __cplusplus

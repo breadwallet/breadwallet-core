@@ -200,11 +200,11 @@ Java_com_breadwallet_core_BRCoreMasterPubKey_validateRecoveryPhrase
 
 /*
  * Class:     com_breadwallet_core_BRCoreMasterPubKey
- * Method:    encodeSeed
+ * Method:    generatePaperKey
  * Signature: ([B[Ljava/lang/String;)[B
  */
 JNIEXPORT jbyteArray JNICALL
-Java_com_breadwallet_core_BRCoreMasterPubKey_encodeSeed
+Java_com_breadwallet_core_BRCoreMasterPubKey_generatePaperKey
         (JNIEnv *env, jclass thisClass, jbyteArray seed, jobjectArray stringArray) {
 
     int wordsCount = (*env)->GetArrayLength(env, stringArray);
@@ -241,8 +241,9 @@ Java_com_breadwallet_core_BRCoreMasterPubKey_encodeSeed
     jbyteArray bytePhrase = NULL;
 
     if (size > 0) {
-        bytePhrase = (*env)->NewByteArray(env, (int) size);
-        (*env)->SetByteArrayRegion(env, bytePhrase, 0, (int) size, (jbyte *) result);
+        // The 'result' size INCLUDES the NULL terminator; we don't want that.
+        bytePhrase = (*env)->NewByteArray(env, (int) (size - 1));
+        (*env)->SetByteArrayRegion(env, bytePhrase, 0, (int) (size - 1), (jbyte *) result);
 
     }
 

@@ -82,14 +82,6 @@ public class BRCoreMasterPubKey extends BRCoreJniReference {
     public static native byte[] bip32BitIDKey(byte[] seed, int index, String uri);
 
     /**
-     * Validates `words` as 'phrase` for this BRCoreMasterPubKey.
-     *
-     * @param words
-     * @return
-     */
-    //public native boolean validateRecoveryPhrase (String[] words)
-
-    /**
      * Validate `phrase` using `words`.  Essentially, every word in `phrase` must be found in
      * `words`
      *
@@ -100,14 +92,14 @@ public class BRCoreMasterPubKey extends BRCoreJniReference {
     public static native boolean validateRecoveryPhrase(String[] words, String phrase);
 
     /**
-     * BIP39Encode `seed` with `words`.  There must be 2048 `words` and the `seed` must be 16
-     * bytes.
+     * Generate a 'paper key' given a random seed and array of words[2048].  This method will
+     * fail, with assert(false), is seed is not of size 16 and words are not of size 2048.
      *
-     * @param seed
-     * @param words
+     * @param seed  The result of new SecureRandom().generateSeed(16)
+     * @param words Valid words.
      * @return
      */
-    public static native byte[] encodeSeed (byte[] seed, String[] words);
+    public static native byte[] generatePaperKey (byte[] seed, String[] words);
 
     @Override
     public String toString() {
