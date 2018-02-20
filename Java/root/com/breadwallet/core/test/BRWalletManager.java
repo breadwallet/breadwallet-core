@@ -195,6 +195,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         runKeyTests();
         runTransactionTests();
         runWalletTests();
+        runWalletManagerTests();
         runPaymentProtocolTests();
         // TODO: Fix
         runGCTests();
@@ -575,7 +576,10 @@ public class BRWalletManager extends BRCoreWalletManager {
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
         };
 
-        byte[] phrase = "a random seed".getBytes();
+
+        final byte[] randomSeed = new SecureRandom().generateSeed(16);
+        byte[] phrase = BRCoreMasterPubKey.generatePaperKey(randomSeed, words);
+        //byte[] phrase = "a random seed".getBytes();
 
         BRCoreMasterPubKey mpk = new BRCoreMasterPubKey(phrase, true);
 
@@ -609,7 +613,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         asserting(null != w);
         BRCoreAddress recvAddr = w.getReceiveAddress();
 
-        // A rando
+        // A random addr
         BRCoreKey k = new BRCoreKey(secret, true);
         BRCoreAddress addr = new BRCoreAddress(k.address());
 
@@ -630,7 +634,10 @@ public class BRWalletManager extends BRCoreWalletManager {
                 new BRCoreTransactionInput(inHash, 0, 1, inScript, new byte[]{}, 4294967295L));
         tx.addOutput(
                 new BRCoreTransactionOutput(SATOSHIS, outScript));
-        tx.sign(k);
+//        tx.sign(k);
+        w.signTransaction(tx, 0x00, phrase);
+        assert (tx.isSigned());
+        System.out.println("            Signed");
         w.registerTransaction(tx);
 
         asserting(SATOSHIS == w.getBalance());
@@ -713,10 +720,86 @@ public class BRWalletManager extends BRCoreWalletManager {
         // presumably they are all already registered?  Seems not.
 //        w.removeTransaction(txHash);
 //        asserting(0 == w.getTransactions().length);
+
+        //
+        // MPK from pubKey
+        System.out.println("        MasterPubKey from PubKey");
+
+        byte[] mpkPubKey = mpk.getPubKey();
+        mpk = new BRCoreMasterPubKey(mpkPubKey, false);
+        w = new BRCoreWallet(new BRCoreTransaction[]{}, mpk, listener);
+
+        tx = new BRCoreTransaction();
+        tx.addInput(
+                new BRCoreTransactionInput(inHash, 0, 1, inScript, new byte[]{}, 4294967295L));
+        tx.addOutput(
+                new BRCoreTransactionOutput(SATOSHIS, outScript));
+        w.signTransaction(tx, 0x00, phrase);
+        assert (tx.isSigned());
+        System.out.println("            Signed");
+        w.registerTransaction(tx);
+        asserting(SATOSHIS == w.getBalance());
+
+        tx = w.createTransaction(SATOSHIS/2, addr);
+        asserting (null != tx);
+        asserting (! tx.isSigned());
+
+        w.signTransaction(tx, 0, phrase);
+        asserting (tx.isSigned());
+        System.out.println("            Can send half SATOSHI");
+    }
+
+    private static void runWalletManagerTests() {
+        System.out.println("    Wallet Manager:");
+
+        final long SATOSHIS = 100000000L;
+
+        byte[] secret = { // 32
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+        };
+
+        byte[] inHash = { // 32
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+        };
+
+
+        final byte[] randomSeed = new SecureRandom().generateSeed(16);
+        byte[] phrase = BRCoreMasterPubKey.generatePaperKey(randomSeed, words);
+
+        BRCoreMasterPubKey mpk = new BRCoreMasterPubKey(phrase, true);
+
+        BRCoreWalletManager wm = new BRCoreWalletManager(mpk, BRCoreChainParams.testnetChainParams, -1);
+
+        BRCoreWallet w = wm.getWallet();
+        asserting(null != w);
+        BRCoreAddress recvAddr = w.getReceiveAddress();
+
+        // A random addr
+        BRCoreKey k = new BRCoreKey(secret, true);
+        BRCoreAddress addr = new BRCoreAddress(k.address());
+
+        byte[] inScript = addr.getPubKeyScript();      // from rando
+        byte[] outScript = recvAddr.getPubKeyScript();  // to me
+
+        System.out.println("        One SATOSHI");
+
+        BRCoreTransaction tx = new BRCoreTransaction();
+        tx.addInput(
+                new BRCoreTransactionInput(inHash, 0, 1, inScript, new byte[]{}, 4294967295L));
+        tx.addOutput(
+                new BRCoreTransactionOutput(SATOSHIS, outScript));
+
+//        wm.signAndPublishTransaction(tx, phrase);
+        wm.getWallet().signTransaction(tx, 0x00, phrase);
+
+        assert (tx.isSigned());
+        System.out.println("            Signed");
     }
 
 
-    private static byte[] getPaymentProtocolAckBytes() {
+        private static byte[] getPaymentProtocolAckBytes() {
         int intBuffer[] =
                 {0x0a, 0x00, 0x12, 0x5f, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x20, 0x72, 0x65, 0x63, 0x65, 0x69, 0x76, 0x65
                         , 0x64, 0x20, 0x62, 0x79, 0x20, 0x42, 0x69, 0x74, 0x50, 0x61, 0x79, 0x2e, 0x20, 0x49, 0x6e, 0x76, 0x6f, 0x69, 0x63, 0x65, 0x20, 0x77, 0x69, 0x6c, 0x6c, 0x20, 0x62, 0x65

@@ -149,11 +149,11 @@ public class BRCoreWalletManager implements
      * Sign and then publish the `transaction`
      *
      * @param transaction
-     * @param seed
+     * @param phrase the result of BRCoreMasterPubKey.generatePaperKey()
      * @return the transaction hash
      */
-    public byte[] signAndPublishTransaction (BRCoreTransaction transaction, byte[] seed) {
-        getWallet().signTransaction(transaction, getForkId(), seed);
+    public byte[] signAndPublishTransaction (BRCoreTransaction transaction, byte[] phrase) {
+        getWallet().signTransaction(transaction, getForkId(), phrase);
         getPeerManager().publishTransaction(transaction);
         return transaction.getHash();
     }
