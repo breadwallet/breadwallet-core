@@ -31,6 +31,22 @@
 
 /*
  * Class:     com_breadwallet_core_BRCoreMasterPubKey
+ * Method:    serialize
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreMasterPubKey_serialize
+        (JNIEnv *env, jobject thisObject) {
+    BRMasterPubKey *key = (BRMasterPubKey *) getJNIReference (env, thisObject);
+
+    jbyteArray result = (*env)->NewByteArray (env, (jsize) sizeof(BRMasterPubKey));
+    (*env)->SetByteArrayRegion(env, result, 0, (jsize) sizeof(BRMasterPubKey), (jbyte *) key);
+
+    return result;
+}
+
+
+/*
+ * Class:     com_breadwallet_core_BRCoreMasterPubKey
  * Method:    getPubKey
  * Signature: ()[B
  */
@@ -131,15 +147,15 @@ Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKeyFromPhrase
  * Signature: ([B)J
  */
 JNIEXPORT jlong JNICALL
-Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKeyFromPubKey
+Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKeyFromSerialization
         (JNIEnv *env, jclass thisClass,
-         jbyteArray phrase) {
-    jsize phraseLength = (*env)->GetArrayLength (env, phrase);
-    jbyte *phraseBytes = (*env)->GetByteArrayElements (env, phrase, 0);
-    assert (phraseLength == 33);
+         jbyteArray serialization) {
+    jsize serializationLength = (*env)->GetArrayLength (env, serialization);
+    jbyte *serializationBytes = (*env)->GetByteArrayElements (env, serialization, 0);
+    assert (serializationLength == sizeof(BRMasterPubKey));
 
     BRMasterPubKey *key = (BRMasterPubKey *) calloc (1, sizeof (BRMasterPubKey));
-    memcpy(key->pubKey, phraseBytes, 33);
+    memcpy(key, serializationBytes, sizeof(BRMasterPubKey));
 
     return (jlong) key;
 }

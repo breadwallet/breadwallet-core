@@ -273,9 +273,9 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println("        MasterPubKey:");
 
         BRCoreMasterPubKey keyFromPaperKey = new BRCoreMasterPubKey(SOME_RANDOM_TEST_PAPER_KEY.getBytes(), true);
-        byte[] keyPubKey = keyFromPaperKey.getPubKey();
-        BRCoreMasterPubKey keyFromBytes = new BRCoreMasterPubKey(keyPubKey, false);
-        asserting (Arrays.equals(keyPubKey, keyFromBytes.getPubKey()));
+        byte[] keySerialized = keyFromPaperKey.serialize();
+        BRCoreMasterPubKey keyFromBytes = new BRCoreMasterPubKey(keySerialized, false);
+        asserting (Arrays.equals(keySerialized, keyFromBytes.serialize()));
 
         System.out.println("            encodeSeed:");
 
@@ -725,8 +725,8 @@ public class BRWalletManager extends BRCoreWalletManager {
         // MPK from pubKey
         System.out.println("        MasterPubKey from PubKey");
 
-        byte[] mpkPubKey = mpk.getPubKey();
-        mpk = new BRCoreMasterPubKey(mpkPubKey, false);
+        byte[] mpkSerialized = mpk.serialize();
+        mpk = new BRCoreMasterPubKey(mpkSerialized, false);
         w = new BRCoreWallet(new BRCoreTransaction[]{}, mpk, listener);
 
         tx = new BRCoreTransaction();

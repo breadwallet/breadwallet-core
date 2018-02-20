@@ -9,6 +9,14 @@ extern "C" {
 #endif
 /*
  * Class:     com_breadwallet_core_BRCoreMasterPubKey
+ * Method:    serialize
+ * Signature: ()[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreMasterPubKey_serialize
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreMasterPubKey
  * Method:    getPubKey
  * Signature: ()[B
  */
@@ -33,10 +41,10 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCo
 
 /*
  * Class:     com_breadwallet_core_BRCoreMasterPubKey
- * Method:    createJniCoreMasterPubKeyFromPubKey
+ * Method:    createJniCoreMasterPubKeyFromSerialization
  * Signature: ([B)J
  */
-JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKeyFromPubKey
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreMasterPubKey_createJniCoreMasterPubKeyFromSerialization
   (JNIEnv *, jclass, jbyteArray);
 
 /*

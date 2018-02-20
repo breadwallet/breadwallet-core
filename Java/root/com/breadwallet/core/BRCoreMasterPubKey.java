@@ -30,6 +30,14 @@ package com.breadwallet.core;
 public class BRCoreMasterPubKey extends BRCoreJniReference {
 
     /**
+     * A serialization of `this` - it will be machine dependent as the serialization is simply
+     * the instances raw bytes.
+     *
+     * @return
+     */
+    public native byte[] serialize ();
+
+    /**
      * The MasterPubKey's public key as byte[].
      *
      * @return
@@ -48,7 +56,8 @@ public class BRCoreMasterPubKey extends BRCoreJniReference {
 
     /**
      * Constructor from `bytes`.  If `isPaperKey` is true, then `bytes` represents that
-     * 12-word 'paper key' string; otherwise, `bytes` is the 'pub key' (returned by getPubKey())
+     * 12-word 'paper key' string; otherwise, `bytes` is the serialization returned by
+     * serialize()
      *
      * @param bytes either 'paper key' (as byte[]) or 'pub key'
      * @param isPaperKey true is 'paper key'
@@ -56,7 +65,7 @@ public class BRCoreMasterPubKey extends BRCoreJniReference {
     public BRCoreMasterPubKey (byte[] bytes, boolean isPaperKey) {
         this (isPaperKey
                 ? createJniCoreMasterPubKeyFromPhrase(bytes)
-                : createJniCoreMasterPubKeyFromPubKey(bytes));
+                : createJniCoreMasterPubKeyFromSerialization(bytes));
     }
 
     private BRCoreMasterPubKey (long jniReferenceAddress) {
@@ -70,7 +79,7 @@ public class BRCoreMasterPubKey extends BRCoreJniReference {
 
     private static native long createJniCoreMasterPubKeyFromPhrase (byte[] phrase);
 
-    private static native long createJniCoreMasterPubKeyFromPubKey (byte[] pubKey);
+    private static native long createJniCoreMasterPubKeyFromSerialization(byte[] pubKey);
 
     /**
      *
