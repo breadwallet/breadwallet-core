@@ -23,17 +23,18 @@
 #define COREJNI_BRCOREJVM_H
 
 #include <jni.h>
+#include <BRTransaction.h>
 #include "com_breadwallet_core_BRCoreJniReference.h"
 
 /**
  *
  * @return
  */
-extern
-JNIEnv *getEnv();
+extern JNIEnv *
+getEnv();
 
-extern
-void releaseEnv ();
+extern void
+releaseEnv ();
 
 /**
  *
@@ -41,9 +42,21 @@ void releaseEnv ();
  * @param thisObject
  * @return
  */
-void *getJNIReference (
+extern void *
+getJNIReference (
         JNIEnv *env,
         jobject thisObject);
 
+
+//
+// Support
+//
+extern void
+transactionInputCopy(BRTxInput *target,
+                     const BRTxInput *source);
+
+extern void
+transactionOutputCopy (BRTxOutput *target,
+                       const BRTxOutput *source);
 
 #endif //COREJNI_BRCOREJVM_H

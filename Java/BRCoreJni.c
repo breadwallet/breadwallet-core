@@ -20,6 +20,8 @@
 //  THE SOFTWARE.
 
 #include <jni.h>
+#include <BRTransaction.h>
+#include <assert.h>
 #include "BRCoreJni.h"
 
 static JavaVM *jvm = NULL;
@@ -56,3 +58,33 @@ JNI_OnLoad (JavaVM *theJvm, void *reserved) {
 
     return JNI_VERSION_1_6;
 }
+
+//
+// Support
+//
+extern void
+transactionInputCopy(BRTxInput *target,
+                     const BRTxInput *source) {
+    assert (target != NULL);
+    assert (source != NULL);
+    *target = *source;
+
+    target->script = NULL;
+    BRTxInputSetScript(target, source->script, source->scriptLen);
+
+    target->signature = NULL;
+    BRTxInputSetSignature(target, source->signature, source->sigLen);
+}
+
+extern void
+transactionOutputCopy (BRTxOutput *target,
+                       const BRTxOutput *source) {
+    assert (target != NULL);
+    assert (source != NULL);
+    *target = *source;
+
+    target->script = NULL;
+    BRTxOutputSetScript(target, source->script, source->scriptLen);
+}
+
+

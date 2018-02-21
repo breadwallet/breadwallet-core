@@ -100,7 +100,7 @@ Java_com_breadwallet_core_BRCorePaymentProtocolRequest_getOutputs
 
     for (int i = 0; i < outputCount; i++) {
         BRTxOutput *output = (BRTxOutput *) calloc (1, sizeof (BRTxOutput));
-        BRTxOutputCopy (output, &request->details->outputs[i]);
+        transactionOutputCopy (output, &request->details->outputs[i]);
 
         jobject outputObject = (*env)->NewObject (env, transactionOutputClass, transactionOutputConstructor, (jlong) output);
         (*env)->SetObjectArrayElement (env, outputs, i, outputObject);
@@ -422,7 +422,7 @@ Java_com_breadwallet_core_BRCorePaymentProtocolPayment_getRefundTo
 
     for (int i = 0; i < objectCount; i++) {
         BRTxOutput *target = (BRTxOutput *) calloc (1, sizeof (BRTxOutput));
-        BRTxOutputCopy (target, &payment->refundTo[i]);
+        transactionOutputCopy (target, &payment->refundTo[i]);
 
         jobject object = (*env)->NewObject (env, transactionOutputClass, transactionOutputConstructor, (jlong) target);
         (*env)->SetObjectArrayElement (env, objects, i, object);
@@ -579,7 +579,7 @@ Java_com_breadwallet_core_BRCorePaymentProtocolACK_getRefundTo
 
     for (int i = 0; i < objectCount; i++) {
         BRTxOutput *target = (BRTxOutput *) calloc (1, sizeof (BRTxOutput));
-        BRTxOutputCopy (target, &payment->refundTo[i]);
+        transactionOutputCopy (target, &payment->refundTo[i]);
 
         jobject object = (*env)->NewObject (env, transactionOutputClass, transactionOutputConstructor, (jlong) target);
         (*env)->SetObjectArrayElement (env, objects, i, object);

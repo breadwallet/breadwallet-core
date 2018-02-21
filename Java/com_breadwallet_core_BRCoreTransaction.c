@@ -39,7 +39,6 @@ jmethodID transactionOutputConstructor;
 static char *JNI_TRANSACTION_IS_REGISTERED_NAME = "isRegistered";
 static char *JNI_TRANSACTION_IS_REGISTERED_TYPE = "Z";
 
-
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction
  * Method:    getHash
@@ -88,7 +87,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_breadwallet_core_BRCoreTransaction_getIn
 
     for (int i = 0; i < inputCount; i++) {
         BRTxInput *input = (BRTxInput *) calloc (1, sizeof (BRTxInput));
-        BRTxInputCopy(input, &transaction->inputs[i]);
+        transactionInputCopy(input, &transaction->inputs[i]);
 
         jobject inputObject = (*env)->NewObject (env, transactionInputClass, transactionInputConstructor, (jlong) input);
         (*env)->SetObjectArrayElement (env, inputs, i, inputObject);
@@ -114,7 +113,7 @@ JNIEXPORT jobjectArray JNICALL Java_com_breadwallet_core_BRCoreTransaction_getOu
 
     for (int i = 0; i < outputCount; i++) {
         BRTxOutput *output = (BRTxOutput *) calloc (1, sizeof (BRTxOutput));
-        BRTxOutputCopy(output, &transaction->outputs[i]);
+        transactionOutputCopy(output, &transaction->outputs[i]);
 
         jobject outputObject = (*env)->NewObject (env, transactionOutputClass, transactionOutputConstructor, (jlong) output);
         (*env)->SetObjectArrayElement (env, outputs, i, outputObject);
