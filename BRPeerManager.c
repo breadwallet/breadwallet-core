@@ -1368,6 +1368,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
     BRMerkleBlock *saveBlocks[saveCount];
     
     for (i = 0, b = block; b && i < saveCount; i++) {
+        assert(b->height != BLOCK_UNKNOWN_HEIGHT); // verify all blocks to be saved are in the chain
         saveBlocks[i] = b;
         b = BRSetGet(manager->blocks, &b->prevBlock);
     }

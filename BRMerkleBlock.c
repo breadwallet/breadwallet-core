@@ -83,30 +83,17 @@ BRMerkleBlock *BRMerkleBlockNew(void)
     return block;
 }
 
-BRMerkleBlock *BRMerkleBlockCopy(BRMerkleBlock *source) {
-    BRMerkleBlock *block = calloc(1, sizeof(*source));
+// returns a deep copy of block and that must be freed by calling BRMerkleBlockFree()
+BRMerkleBlock *BRMerkleBlockCopy(const BRMerkleBlock *block)
+{
+    BRMerkleBlock *cpy = BRMerkleBlockNew();
 
     assert(block != NULL);
-    *block = *source;
-
-    block->hashes = NULL;
-    block->flags = NULL;
-
-    // hashes
-    size_t hashesLen = source->hashesCount * sizeof(UInt256);
-    if (hashesLen > 0) {
-        block->hashes = (UInt256 *) malloc (hashesLen);
-        memcpy(block->hashes, source->hashes, hashesLen);
-    }
-
-    // flags
-    size_t flagsLen = source->flagsLen*sizeof(uint8_t);
-    if (flagsLen > 0) {
-        block->flags = (uint8_t *) malloc (flagsLen);
-        memcpy(block->flags, source->flags, flagsLen);
-    }
-
-    return block;
+    *cpy = *block;
+    cpy->hashes = NULL;
+    cpy->flags = NULL;
+    BRMerkleBlockSetTxHashes(cpy, block->hashes, block->hashesCount, block->flags, block->flagsLen);
+    return cpy;
 }
 
 // buf must contain either a serialized merkleblock or header

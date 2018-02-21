@@ -30,6 +30,7 @@
 #include "BRBIP38Key.h"
 #include "BRAddress.h"
 #include "BRBase58.h"
+#include "BRBech32.h"
 #include "BRBIP39Mnemonic.h"
 #include "BRBIP39WordsEn.h"
 #include "BRPeer.h"
@@ -226,12 +227,12 @@ int BRBase58Tests()
     uint8_t buf1[BRBase58Decode(NULL, 0, s)];
     size_t len1 = BRBase58Decode(buf1, sizeof(buf1), s);
 
-    if (len1 != 0) r = 0, fprintf(stderr, "***FAILED*** %s: Base58Decode() test 1\n", __func__);
+    if (len1 != 0) r = 0, fprintf(stderr, "***FAILED*** %s: BRBase58Decode() test 1\n", __func__);
 
     uint8_t buf2[BRBase58Decode(NULL, 0, "")];
     size_t len2 = BRBase58Decode(buf2, sizeof(buf2), "");
     
-    if (len2 != 0) r = 0, fprintf(stderr, "***FAILED*** %s: Base58Decode() test 2\n", __func__);
+    if (len2 != 0) r = 0, fprintf(stderr, "***FAILED*** %s: BRBase58Decode() test 2\n", __func__);
     
     s = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
     
@@ -240,7 +241,7 @@ int BRBase58Tests()
     char str3[BRBase58Encode(NULL, 0, buf3, len3)];
     
     BRBase58Encode(str3, sizeof(str3), buf3, len3);
-    if (strcmp(str3, s) != 0) r = 0, fprintf(stderr, "***FAILED*** %s: Base58Decode() test 3\n", __func__);
+    if (strcmp(str3, s) != 0) r = 0, fprintf(stderr, "***FAILED*** %s: BRBase58Decode() test 3\n", __func__);
 
     s = "1111111111111111111111111111111111111111111111111111111111111111111";
 
@@ -249,7 +250,7 @@ int BRBase58Tests()
     char str4[BRBase58Encode(NULL, 0, buf4, len4)];
     
     BRBase58Encode(str4, sizeof(str4), buf4, len4);
-    if (strcmp(str4, s) != 0) r = 0, fprintf(stderr, "***FAILED*** %s: Base58Decode() test 4\n", __func__);
+    if (strcmp(str4, s) != 0) r = 0, fprintf(stderr, "***FAILED*** %s: BRBase58Decode() test 4\n", __func__);
 
     s = "111111111111111111111111111111111111111111111111111111111111111111z";
 
@@ -258,7 +259,7 @@ int BRBase58Tests()
     char str5[BRBase58Encode(NULL, 0, buf5, len5)];
     
     BRBase58Encode(str5, sizeof(str5), buf5, len5);
-    if (strcmp(str5, s) != 0) r = 0, fprintf(stderr, "***FAILED*** %s: Base58Decode() test 5\n", __func__);
+    if (strcmp(str5, s) != 0) r = 0, fprintf(stderr, "***FAILED*** %s: BRBase58Decode() test 5\n", __func__);
 
     s = "z";
     
@@ -267,7 +268,7 @@ int BRBase58Tests()
     char str6[BRBase58Encode(NULL, 0, buf6, len6)];
     
     BRBase58Encode(str6, sizeof(str6), buf6, len6);
-    if (strcmp(str6, s) != 0) r = 0, fprintf(stderr, "***FAILED*** %s: Base58Decode() test 6\n", __func__);
+    if (strcmp(str6, s) != 0) r = 0, fprintf(stderr, "***FAILED*** %s: BRBase58Decode() test 6\n", __func__);
 
     s = NULL;
     
@@ -317,6 +318,40 @@ int BRBase58Tests()
     if (l5 != 21 || memcmp(s, b5, l5) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRBase58CheckDecode() test 5\n", __func__);
 
+    return r;
+}
+
+int BRBech32Tests()
+{
+    int r = 1;
+    uint8_t b[52];
+    char h[84];
+    char *s, addr[91];
+    size_t l;
+    
+    s = "\x00\x14\x75\x1e\x76\xe8\x19\x91\x96\xd4\x54\x94\x1c\x45\xd1\xb3\xa3\x23\xf1\x43\x3b\xd6";
+    l = BRBech32Decode(h, b, "BC1QW508D6QEJXTDG4Y5R3ZARVARY0C5XW7KV8F3T4");
+    if (l != 22 || strcmp(h, "bc") || memcmp(s, b, l))
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBech32Decode() test 1", __func__);
+    
+    l = BRBech32Decode(h, b, "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4");
+    if (l != 22 || strcmp(h, "bc") || memcmp(s, b, l))
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBech32Decode() test 2", __func__);
+
+    l = BRBech32Encode(addr, "bc", b);
+    if (l == 0 || strcmp(addr, "bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"))
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBech32Encode() test 2", __func__);
+
+    s = "\x52\x10\x75\x1e\x76\xe8\x19\x91\x96\xd4\x54\x94\x1c\x45\xd1\xb3\xa3\x23";
+    l = BRBech32Decode(h, b, "bc1zw508d6qejxtdg4y5r3zarvaryvg6kdaj");
+    if (l != 18 || strcmp(h, "bc") || memcmp(s, b, l))
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBech32Decode() test 3", __func__);
+
+    l = BRBech32Encode(addr, "bc", b);
+    if (l == 0 || strcmp(addr, "bc1zw508d6qejxtdg4y5r3zarvaryvg6kdaj"))
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRBech32Encode() test 3", __func__);
+
+    if (! r) fprintf(stderr, "\n                                    ");
     return r;
 }
 
@@ -1614,23 +1649,23 @@ static int BRTxInputEqual(BRTxInput *in1, BRTxInput *in2) {
 
 // true if tx1 and tx2 have equal data (in their respective structures).
 static int BRTransactionEqual (BRTransaction *tx1, BRTransaction *tx2) {
-    if (memcmp (&tx1->txHash, &tx2->txHash, sizeof (UInt256()))
+    if (memcmp (&tx1->txHash, &tx2->txHash, sizeof(UInt256))
         || tx1->version != tx2->version
         || tx1->lockTime != tx2->lockTime
         || tx1->blockHeight != tx2->blockHeight
         || tx1->timestamp != tx2->timestamp
-        || array_capacity(tx1->inputs) != array_capacity(tx2->inputs)
-        || array_capacity(tx1->outputs) != array_capacity(tx2->outputs))
+        || array_count(tx1->inputs) != array_count(tx2->inputs)
+        || array_count(tx1->outputs) != array_count(tx2->outputs))
         return 0;
 
     // Inputs
     if (NULL != tx1->inputs)
-        for (int i = 0; i < array_capacity(tx1->inputs); i++)
+        for (int i = 0; i < array_count(tx1->inputs); i++)
             if (!BRTxInputEqual(&tx1->inputs[i], &tx2->inputs[i]))
                 return 0;
     // Outputs
     if (NULL != tx1->outputs)
-        for (int i = 0; i < array_capacity(tx1->outputs); i++)
+        for (int i = 0; i < array_count(tx1->outputs); i++)
             if (!BRTxOutputEqual(&tx1->outputs[i], &tx2->outputs[i]))
                 return 0;
 
@@ -2584,6 +2619,8 @@ int BRRunTests()
     printf("%s\n", (BRSetTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRBase58Tests...                    ");
     printf("%s\n", (BRBase58Tests()) ? "success" : (fail++, "***FAIL***"));
+    printf("BRBech32Tests...                    ");
+    printf("%s\n", (BRBech32Tests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRHashTests...                      ");
     printf("%s\n", (BRHashTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRMacTests...                       ");
@@ -2662,7 +2699,7 @@ int main(int argc, const char *argv[])
 //    BRWalletSetCallbacks(wallet, wallet, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
 //    printf("wallet created with first receive address: %s\n", BRWalletReceiveAddress(wallet).s);
 //
-//    manager = BRPeerManagerNew(&BR_CHAIN_PARAMS, wallet, BIP39_CREATION_TIME, NULL, 0, NULL, 0);
+//    manager = BRPeerManagerNew(&BRMainNetParams, wallet, BIP39_CREATION_TIME, NULL, 0, NULL, 0);
 //    BRPeerManagerSetCallbacks(manager, manager, syncStarted, syncStopped, txStatusUpdate, NULL, NULL, NULL, NULL);
 //
 //    BRPeerManagerConnect(manager);

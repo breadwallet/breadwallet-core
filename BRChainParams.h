@@ -36,7 +36,7 @@ typedef struct {
 } BRCheckPoint;
 
 typedef struct {
-    const char **dnsSeeds; // NULL terminated array of dns seeds
+    const char * const *dnsSeeds; // NULL terminated array of dns seeds
     uint16_t standardPort;
     uint32_t magicNumber;
     uint64_t services;
