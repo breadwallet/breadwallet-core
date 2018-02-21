@@ -17,6 +17,14 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreMerkleBlock_createJniCor
 
 /*
  * Class:     com_breadwallet_core_BRCoreMerkleBlock
+ * Method:    createJniCoreMerkleBlockEmpty
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreMerkleBlock_createJniCoreMerkleBlockEmpty
+  (JNIEnv *, jclass);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreMerkleBlock
  * Method:    getBlockHash
  * Signature: ()[B
  */

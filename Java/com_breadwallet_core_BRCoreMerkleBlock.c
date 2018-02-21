@@ -42,10 +42,25 @@ Java_com_breadwallet_core_BRCoreMerkleBlock_createJniCoreMerkleBlock
     assert (NULL != blockBytes);
     BRMerkleBlock *block = BRMerkleBlockParse((const uint8_t *) blockBytes, (size_t) blockLength);
     assert (NULL != block);
-    block->height = (uint32_t) blockHeight;
+    if (blockHeight != -1)
+        block->height = (uint32_t) blockHeight;
 
     return (jlong) block;
 }
+
+/*
+ * Class:     com_breadwallet_core_BRCoreMerkleBlock
+ * Method:    createJniCoreMerkleBlockEmpty
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreMerkleBlock_createJniCoreMerkleBlockEmpty
+        (JNIEnv *env, jclass thisClass) {
+    // Test only
+    BRMerkleBlock *block = BRMerkleBlockNew();
+    block->height = BLOCK_UNKNOWN_HEIGHT;
+    return (jlong) block;
+}
+
 
 /*
  * Class:     com_breadwallet_core_BRCoreMerkleBlock

@@ -1,6 +1,7 @@
 DIR=$(shell pwd)
 JAVA_DIR=${JAVA_HOME}
-CINC_DIR=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include
+#CINC_DIR=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include
+CINC_DIR=/usr/include
 
 JNI_LIB=libCore.jnilib
 

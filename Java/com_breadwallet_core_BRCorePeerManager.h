@@ -105,6 +105,22 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCorePeerManager_getRelayCoun
 
 /*
  * Class:     com_breadwallet_core_BRCorePeerManager
+ * Method:    testSaveBlocksCallback
+ * Signature: (Z[Lcom/breadwallet/core/BRCoreMerkleBlock;)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCorePeerManager_testSaveBlocksCallback
+  (JNIEnv *, jobject, jboolean, jobjectArray);
+
+/*
+ * Class:     com_breadwallet_core_BRCorePeerManager
+ * Method:    testSavePeersCallback
+ * Signature: (Z[Lcom/breadwallet/core/BRCorePeer;)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCorePeerManager_testSavePeersCallback
+  (JNIEnv *, jobject, jboolean, jobjectArray);
+
+/*
+ * Class:     com_breadwallet_core_BRCorePeerManager
  * Method:    createCorePeerManager
  * Signature: (Lcom/breadwallet/core/BRCoreChainParams;Lcom/breadwallet/core/BRCoreWallet;D[Lcom/breadwallet/core/BRCoreMerkleBlock;[Lcom/breadwallet/core/BRCorePeer;)J
  */

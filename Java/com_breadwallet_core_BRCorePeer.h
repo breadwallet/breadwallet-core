@@ -140,15 +140,15 @@ JNIEXPORT jdouble JNICALL Java_com_breadwallet_core_BRCorePeer_getPingTime
  * Method:    createJniCorePeer
  * Signature: ([B[B[B)J
  */
-JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCorePeer_createJniCorePeer___3B_3B_3B
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCorePeer_createJniCorePeer
   (JNIEnv *, jclass, jbyteArray, jbyteArray, jbyteArray);
 
 /*
  * Class:     com_breadwallet_core_BRCorePeer
- * Method:    createJniCorePeer
+ * Method:    createJniCorePeerMagic
  * Signature: (J)J
  */
-JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCorePeer_createJniCorePeer__J
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCorePeer_createJniCorePeerMagic
   (JNIEnv *, jclass, jlong);
 
 #ifdef __cplusplus

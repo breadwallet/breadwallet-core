@@ -203,6 +203,62 @@ Java_com_breadwallet_core_BRCorePeerManager_getRelayCount
     return BRPeerManagerRelayCount(peerManager,hash);
 }
 
+/*
+ * Class:     com_breadwallet_core_BRCorePeerManager
+ * Method:    testSaveBlocksCallback
+ * Signature: (Z[Lcom/breadwallet/core/BRCoreMerkleBlock;)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCorePeerManager_testSaveBlocksCallback
+        (JNIEnv *env, jobject thisObject, jboolean replace, jobjectArray blockObjectArray) {
+    BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
+
+    size_t blockCount = (size_t) (*env)->GetArrayLength (env, blockObjectArray);
+
+    BRMerkleBlock *blocks[blockCount];
+    for (int i = 0; i < blockCount; i++) {
+        jobject block = (*env)->GetObjectArrayElement (env, blockObjectArray, i);
+        blocks[i] = (BRMerkleBlock *) getJNIReference (env, block);
+        (*env)->DeleteLocalRef (env, block);
+    }
+
+    // Listener
+    jfieldID listenerField = (*env)->GetFieldID (env, (*env)->GetObjectClass (env, thisObject),
+                                                 "listener",
+                                                 "Ljava/lang/ref/WeakReference;");
+    assert (NULL != listenerField);
+    jweak listenerWeakGlobalRef = (*env)->GetObjectField (env, thisObject, listenerField);
+
+    saveBlocks(listenerWeakGlobalRef, replace, blocks, blockCount);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePeerManager
+ * Method:    testSavePeersCallback
+ * Signature: (Z[Lcom/breadwallet/core/BRCorePeer;)V
+ */
+JNIEXPORT void JNICALL 
+Java_com_breadwallet_core_BRCorePeerManager_testSavePeersCallback
+        (JNIEnv *env, jobject thisObject, jboolean replace, jobjectArray peerObjectArray) {
+    BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
+
+    size_t peerCount = (size_t) (*env)->GetArrayLength (env, peerObjectArray);
+
+    BRPeer peers[peerCount];
+    for (int i = 0; i < peerCount; i++) {
+        jobject peer = (*env)->GetObjectArrayElement (env, peerObjectArray, i);
+        peers[i] = *(BRPeer *) getJNIReference (env, peer);
+        (*env)->DeleteLocalRef (env, peer);
+    }
+
+    // Listener
+    jfieldID listenerField = (*env)->GetFieldID (env, (*env)->GetObjectClass (env, thisObject),
+                                                 "listener",
+                                                 "Ljava/lang/ref/WeakReference;");
+    assert (NULL != listenerField);
+    jweak listenerWeakGlobalRef = (*env)->GetObjectField (env, thisObject, listenerField);
+
+    savePeers(listenerWeakGlobalRef, replace, peers, peerCount);
+}
 
 /*
  * Class:     com_breadwallet_core_BRCorePeerManager

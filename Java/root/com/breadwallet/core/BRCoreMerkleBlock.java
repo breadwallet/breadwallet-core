@@ -39,7 +39,15 @@ public class BRCoreMerkleBlock extends BRCoreJniReference {
         super (jniReferenceAddress);
     }
 
+    // Test
+    public BRCoreMerkleBlock () {
+        this (createJniCoreMerkleBlockEmpty());
+    }
+
     private static native long createJniCoreMerkleBlock (byte[] block, int blockHeight);
+
+    // Test
+    private static native long createJniCoreMerkleBlockEmpty ();
 
     public native byte[] getBlockHash ();
 

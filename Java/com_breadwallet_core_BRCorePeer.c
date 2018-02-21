@@ -230,7 +230,7 @@ Java_com_breadwallet_core_BRCorePeer_getPingTime
  * Signature: ([B[B[B)J
  */
 JNIEXPORT jlong JNICALL
-Java_com_breadwallet_core_BRCorePeer_createJniCorePeer___3B_3B_3B
+Java_com_breadwallet_core_BRCorePeer_createJniCorePeer
         (JNIEnv *env, jclass thisClass,
          jbyteArray peerAddress,
          jbyteArray peerPort,
@@ -252,11 +252,11 @@ Java_com_breadwallet_core_BRCorePeer_createJniCorePeer___3B_3B_3B
 
 /*
  * Class:     com_breadwallet_core_BRCorePeer
- * Method:    createJniCorePeer
+ * Method:    createJniCorePeerMagic
  * Signature: (J)J
  */
 JNIEXPORT jlong
-JNICALL Java_com_breadwallet_core_BRCorePeer_createJniCorePeer__J
+JNICALL Java_com_breadwallet_core_BRCorePeer_createJniCorePeerMagic
         (JNIEnv *env, jclass thisClass,
          jlong magicNumber) {
     BRPeer *result = BRPeerNew((uint32_t) magicNumber);

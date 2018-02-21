@@ -126,20 +126,18 @@ public class BRCorePeer extends BRCoreJniReference {
     }
 
     public BRCorePeer (int magicNumber) {
-        this (createJniCorePeer (magicNumber));
+        this (createJniCorePeerMagic(magicNumber));
     }
 
     protected BRCorePeer(long jniReferenceAddress) {
         super(jniReferenceAddress);
     }
 
-    private static native long createJniCorePeer(byte[] peerAddress,
-                                                 byte[] peerPort,
-                                                 byte[] timeStamp);
+    private static native long createJniCorePeer (byte[] peerAddress,
+                                                  byte[] peerPort,
+                                                  byte[] timeStamp);
 
-    private static native long createJniCorePeer(long magicNumber);
-
-
+    private static native long createJniCorePeerMagic(long magicNumber);
 
     @Override
     public String toString() {

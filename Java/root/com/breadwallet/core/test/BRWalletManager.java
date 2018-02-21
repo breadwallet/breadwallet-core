@@ -28,10 +28,13 @@ import com.breadwallet.core.BRCoreAddress;
 import com.breadwallet.core.BRCoreChainParams;
 import com.breadwallet.core.BRCoreKey;
 import com.breadwallet.core.BRCoreMasterPubKey;
+import com.breadwallet.core.BRCoreMerkleBlock;
 import com.breadwallet.core.BRCorePaymentProtocolACK;
 import com.breadwallet.core.BRCorePaymentProtocolInvoiceRequest;
 import com.breadwallet.core.BRCorePaymentProtocolMessage;
 import com.breadwallet.core.BRCorePaymentProtocolRequest;
+import com.breadwallet.core.BRCorePeer;
+import com.breadwallet.core.BRCorePeerManager;
 import com.breadwallet.core.BRCoreTransaction;
 import com.breadwallet.core.BRCoreTransactionInput;
 import com.breadwallet.core.BRCoreTransactionOutput;
@@ -196,6 +199,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         runTransactionTests();
         runWalletTests();
         runWalletManagerTests();
+        runPeerManagerTests();
         runPaymentProtocolTests();
         // TODO: Fix
         runGCTests();
@@ -583,33 +587,9 @@ public class BRWalletManager extends BRCoreWalletManager {
 
         BRCoreMasterPubKey mpk = new BRCoreMasterPubKey(phrase, true);
 
-        BRCoreWallet.Listener listener =
-                new BRCoreWallet.Listener() {
-                    @Override
-                    public void balanceChanged(long balance) {
-                        System.out.println(String.format("            balance   : %d", balance));
-                    }
+        BRCoreWallet.Listener walletListener = getWalletListener();
 
-                    @Override
-                    public void onTxAdded(BRCoreTransaction transaction) {
-                        System.out.println(String.format("            tx added  : %s",
-                                BRCoreKey.encodeHex(transaction.getHash())));
-
-                    }
-
-                    @Override
-                    public void onTxUpdated(String hash, int blockHeight, int timeStamp) {
-                        System.out.println(String.format("            tx updated: %s", hash));
-                    }
-
-                    @Override
-                    public void onTxDeleted(String hash, int notifyUser, int recommendRescan) {
-                        System.out.println(String.format("            tx deleted: %s", hash));
-
-                    }
-                };
-
-        BRCoreWallet w = new BRCoreWallet(new BRCoreTransaction[]{}, mpk, listener);
+        BRCoreWallet w = new BRCoreWallet(new BRCoreTransaction[]{}, mpk, walletListener);
         asserting(null != w);
         BRCoreAddress recvAddr = w.getReceiveAddress();
 
@@ -684,7 +664,7 @@ public class BRWalletManager extends BRCoreWalletManager {
 
         System.out.println("            Init w/ One SATOSHI");
 
-        w = new BRCoreWallet(new BRCoreTransaction[] { tx }, mpk, listener);
+        w = new BRCoreWallet(new BRCoreTransaction[] { tx }, mpk, walletListener);
         asserting (SATOSHIS == w.getBalance());
         asserting (w.getAllAddresses().length == 1 + SEQUENCE_GAP_LIMIT_EXTERNAL + SEQUENCE_GAP_LIMIT_INTERNAL);
 
@@ -727,7 +707,7 @@ public class BRWalletManager extends BRCoreWalletManager {
 
         byte[] mpkSerialized = mpk.serialize();
         mpk = new BRCoreMasterPubKey(mpkSerialized, false);
-        w = new BRCoreWallet(new BRCoreTransaction[]{}, mpk, listener);
+        w = new BRCoreWallet(new BRCoreTransaction[]{}, mpk, walletListener);
 
         tx = new BRCoreTransaction();
         tx.addInput(
@@ -798,8 +778,142 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println("            Signed");
     }
 
+    //
+    //
+    //
+    private static void runPeerManagerTests() {
+        System.out.println("    Peer Manager:");
 
-        private static byte[] getPaymentProtocolAckBytes() {
+        final byte[] randomSeed = new SecureRandom().generateSeed(16);
+        byte[] phrase = BRCoreMasterPubKey.generatePaperKey(randomSeed, words);
+
+        BRCoreMasterPubKey mpk = new BRCoreMasterPubKey(phrase, true);
+
+        BRCoreWallet w = new BRCoreWallet(new BRCoreTransaction[]{}, mpk, getWalletListener());
+        asserting(null != w);
+
+        System.out.println("            Peers");
+
+        BRCorePeer peer = new BRCorePeer(1);
+        BRCorePeer[] peers = new BRCorePeer[1024];
+        for (int i = 0; i < 1024; i++)
+            peers[i] = peer;
+
+        System.out.println("            Blocks");
+
+        BRCoreMerkleBlock block = new BRCoreMerkleBlock(getMerkleBlockBytes(), 100001);
+        assert (null != block);
+        assert (100001 == block.getHeight());
+
+        BRCoreMerkleBlock[] blocks = new BRCoreMerkleBlock[1024];
+        for (int i = 0; i < 1024; i++)
+            blocks[i] = block;
+
+        System.out.println("            Manager");
+
+        BRCorePeerManager pm = new BRCorePeerManager(
+                BRCoreChainParams.testnetChainParams,
+                w,
+                0,
+                blocks,
+                peers,
+                getPeerManagerListener());
+        assert (null != pm);
+
+        pm.testSaveBlocksCallback(false, blocks);
+        pm.testSavePeersCallback(false, peers);
+    }
+
+    private static BRCoreWallet.Listener getWalletListener () {
+        return  new BRCoreWallet.Listener() {
+            @Override
+            public void balanceChanged(long balance) {
+                System.out.println(String.format("            balance   : %d", balance));
+            }
+
+            @Override
+            public void onTxAdded(BRCoreTransaction transaction) {
+                System.out.println(String.format("            tx added  : %s",
+                        BRCoreKey.encodeHex(transaction.getHash())));
+
+            }
+
+            @Override
+            public void onTxUpdated(String hash, int blockHeight, int timeStamp) {
+                System.out.println(String.format("            tx updated: %s", hash));
+            }
+
+            @Override
+            public void onTxDeleted(String hash, int notifyUser, int recommendRescan) {
+                System.out.println(String.format("            tx deleted: %s", hash));
+
+            }
+        };
+    }
+
+    private static BRCorePeerManager.Listener getPeerManagerListener () {
+        return new BRCorePeerManager.Listener() {
+            @Override
+            public void syncStarted() {
+                System.out.println(String.format("            syncStarted"));
+
+            }
+
+            @Override
+            public void syncStopped(String error) {
+                System.out.println(String.format("            syncStopped: %s", error));
+
+            }
+
+            @Override
+            public void txStatusUpdate() {
+                System.out.println(String.format("            txStatusUpdate"));
+            }
+
+            @Override
+            public void saveBlocks(boolean replace, BRCoreMerkleBlock[] blocks) {
+                System.out.println(String.format("            saveBlocks: %d", blocks.length));
+            }
+
+            @Override
+            public void savePeers(boolean replace, BRCorePeer[] peers) {
+                System.out.println(String.format("            savePeers: %d", peers.length));
+            }
+
+            @Override
+            public boolean networkIsReachable() {
+                System.out.println(String.format("            networkIsReachable"));
+                return false;
+            }
+
+            @Override
+            public void txPublished(String error) {
+                System.out.println(String.format("            txPublished: %s", error));
+
+            }
+        };
+    }
+
+    private static byte[] getMerkleBlockBytes () {
+        int intBuffer[] =
+                {0x01, 0x00, 0x00, 0x00, 0x06, 0xe5, 0x33, 0xfd, 0x1a, 0xda, 0x86, 0x39, 0x1f, 0x3f, 0x6c, 0x34, 0x32, 0x04, 0xb0, 0xd2, 0x78, 0xd4, 0xaa, 0xec, 0x1c
+                        , 0x0b, 0x20, 0xaa, 0x27, 0xba, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x6a, 0xbb, 0xb3, 0xeb, 0x3d, 0x73, 0x3a, 0x9f, 0xe1, 0x89, 0x67, 0xfd, 0x7d, 0x4c, 0x11, 0x7e, 0x4c
+                        , 0xcb, 0xba, 0xc5, 0xbe, 0xc4, 0xd9, 0x10, 0xd9, 0x00, 0xb3, 0xae, 0x07, 0x93, 0xe7, 0x7f, 0x54, 0x24, 0x1b, 0x4d, 0x4c, 0x86, 0x04, 0x1b, 0x40, 0x89, 0xcc, 0x9b, 0x0c
+                        , 0x00, 0x00, 0x00, 0x08, 0x4c, 0x30, 0xb6, 0x3c, 0xfc, 0xdc, 0x2d, 0x35, 0xe3, 0x32, 0x94, 0x21, 0xb9, 0x80, 0x5e, 0xf0, 0xc6, 0x56, 0x5d, 0x35, 0x38, 0x1c, 0xa8, 0x57
+                        , 0x76, 0x2e, 0xa0, 0xb3, 0xa5, 0xa1, 0x28, 0xbb, 0xca, 0x50, 0x65, 0xff, 0x96, 0x17, 0xcb, 0xcb, 0xa4, 0x5e, 0xb2, 0x37, 0x26, 0xdf, 0x64, 0x98, 0xa9, 0xb9, 0xca, 0xfe
+                        , 0xd4, 0xf5, 0x4c, 0xba, 0xb9, 0xd2, 0x27, 0xb0, 0x03, 0x5d, 0xde, 0xfb, 0xbb, 0x15, 0xac, 0x1d, 0x57, 0xd0, 0x18, 0x2a, 0xae, 0xe6, 0x1c, 0x74, 0x74, 0x3a, 0x9c, 0x4f
+                        , 0x78, 0x58, 0x95, 0xe5, 0x63, 0x90, 0x9b, 0xaf, 0xec, 0x45, 0xc9, 0xa2, 0xb0, 0xff, 0x31, 0x81, 0xd7, 0x77, 0x06, 0xbe, 0x8b, 0x1d, 0xcc, 0x91, 0x11, 0x2e, 0xad, 0xa8
+                        , 0x6d, 0x42, 0x4e, 0x2d, 0x0a, 0x89, 0x07, 0xc3, 0x48, 0x8b, 0x6e, 0x44, 0xfd, 0xa5, 0xa7, 0x4a, 0x25, 0xcb, 0xc7, 0xd6, 0xbb, 0x4f, 0xa0, 0x42, 0x45, 0xf4, 0xac, 0x8a
+                        , 0x1a, 0x57, 0x1d, 0x55, 0x37, 0xea, 0xc2, 0x4a, 0xdc, 0xa1, 0x45, 0x4d, 0x65, 0xed, 0xa4, 0x46, 0x05, 0x54, 0x79, 0xaf, 0x6c, 0x6d, 0x4d, 0xd3, 0xc9, 0xab, 0x65, 0x84
+                        , 0x48, 0xc1, 0x0b, 0x69, 0x21, 0xb7, 0xa4, 0xce, 0x30, 0x21, 0xeb, 0x22, 0xed, 0x6b, 0xb6, 0xa7, 0xfd, 0xe1, 0xe5, 0xbc, 0xc4, 0xb1, 0xdb, 0x66, 0x15, 0xc6, 0xab, 0xc5
+                        , 0xca, 0x04, 0x21, 0x27, 0xbf, 0xaf, 0x9f, 0x44, 0xeb, 0xce, 0x29, 0xcb, 0x29, 0xc6, 0xdf, 0x9d, 0x05, 0xb4, 0x7f, 0x35, 0xb2, 0xed, 0xff, 0x4f, 0x00, 0x64, 0xb5, 0x78
+                        , 0xab, 0x74, 0x1f, 0xa7, 0x82, 0x76, 0x22, 0x26, 0x51, 0x20, 0x9f, 0xe1, 0xa2, 0xc4, 0xc0, 0xfa, 0x1c, 0x58, 0x51, 0x0a, 0xec, 0x8b, 0x09, 0x0d, 0xd1, 0xeb, 0x1f, 0x82
+                        , 0xf9, 0xd2, 0x61, 0xb8, 0x27, 0x3b, 0x52, 0x5b, 0x02, 0xff, 0x1a
+                };
+        return asBytes(intBuffer);
+    }
+
+    private static byte[] getPaymentProtocolAckBytes() {
         int intBuffer[] =
                 {0x0a, 0x00, 0x12, 0x5f, 0x54, 0x72, 0x61, 0x6e, 0x73, 0x61, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x20, 0x72, 0x65, 0x63, 0x65, 0x69, 0x76, 0x65
                         , 0x64, 0x20, 0x62, 0x79, 0x20, 0x42, 0x69, 0x74, 0x50, 0x61, 0x79, 0x2e, 0x20, 0x49, 0x6e, 0x76, 0x6f, 0x69, 0x63, 0x65, 0x20, 0x77, 0x69, 0x6c, 0x6c, 0x20, 0x62, 0x65

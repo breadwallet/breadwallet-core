@@ -34,7 +34,7 @@ public class BRCorePeerManager extends BRCoreJniReference {
     //
     // Callback interface from Core, via JNI.
     //
-    interface Listener {
+    public interface Listener {
         // func syncStarted()
         void syncStarted();
 
@@ -187,6 +187,13 @@ public class BRCorePeerManager extends BRCoreJniReference {
      * @return
      */
     public native long getRelayCount (byte[] txHash);
+
+    //
+    // Test
+    //
+    public native void testSaveBlocksCallback (boolean replace, BRCoreMerkleBlock[] blocks);
+
+    public native void testSavePeersCallback (boolean replace, BRCorePeer[] peers);
 
     //
     // Constructor
