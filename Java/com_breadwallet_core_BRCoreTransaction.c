@@ -352,16 +352,8 @@ Java_com_breadwallet_core_BRCoreTransaction_disposeNative
         (JNIEnv *env, jobject thisObject) {
     BRTransaction *transaction = (BRTransaction *) getJNIReference (env, thisObject);
 
-    // Check if registered
-//    jclass   thisClass = (*env)->GetObjectClass (env, thisObject);
-//    jfieldID thisField = (*env)->GetFieldID(env, thisClass,
-//                                            JNI_TRANSACTION_IS_REGISTERED_NAME,
-//                                            JNI_TRANSACTION_IS_REGISTERED_TYPE);
-//
-//    jboolean isRegistered = (*env)->GetBooleanField (env, thisObject, thisField);
-//
-//    if (NULL != transaction && !isRegistered) BRTransactionFree(transaction);
-
+    // See BRCoreTransaction.isRegistered and dispose().  We will not free a
+    // transaction that is registered with the Core.
     if (NULL != transaction) BRTransactionFree(transaction);
 
 }

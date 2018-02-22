@@ -197,19 +197,19 @@ public class BRCoreWalletManager implements
     @Override
     public void syncStarted() {
         if (!SHOW_CALLBACK) return;
-        System.err.println ("syncStarted");
+        System.err.println (getChainDescriptiveName() + " syncStarted");
     }
 
     @Override
     public void syncStopped(String error) {
         if (!SHOW_CALLBACK) return;
-        System.err.println ("syncStopped: " + error);
+        System.err.println (getChainDescriptiveName() + " syncStopped: " + error);
     }
 
     @Override
     public void txStatusUpdate() {
         if (!SHOW_CALLBACK) return;
-        System.err.println ("txStatusUpdate");
+        System.err.println (getChainDescriptiveName() + " txStatusUpdate");
     }
 
     @Override

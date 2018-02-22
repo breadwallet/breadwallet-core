@@ -27,6 +27,12 @@
 #include "BRAddress.h"
 #include "BRCoreJni.h"
 #include "com_breadwallet_core_BRCoreWallet.h"
+#include "com_breadwallet_core_BRCoreTransaction.h"
+
+#define JNI_COPY_TRANSACTION(tx)    \
+    (com_breadwallet_core_BRCoreTransaction_JNI_COPIES_TRANSACTIONS && NULL != (tx) \
+        ? BRTransactionCopy(tx) \
+        : (tx))
 
 /* Forward Declarations */
 static void balanceChanged(void *info, uint64_t balance);
@@ -198,7 +204,8 @@ Java_com_breadwallet_core_BRCoreWallet_jniGetTransactions
     for (int index = 0; index < transactionCount; index++) {
         jobject transactionObject =
                 (*env)->NewObject (env, transactionClass, transactionConstructor,
-                                   (jlong) transactions[index]);
+                                   (jlong) JNI_COPY_TRANSACTION(transactions[index]));
+        assert (!(*env)->IsSameObject (env, transactionObject, NULL));
 
         (*env)->SetObjectArrayElement (env, transactionArray, index, transactionObject);
         (*env)->DeleteLocalRef (env, transactionObject);
@@ -393,7 +400,7 @@ Java_com_breadwallet_core_BRCoreWallet_jniRegisterTransaction
     BRWallet  *wallet  = (BRWallet  *) getJNIReference (env, thisObject);
     BRTransaction *transaction = (BRTransaction *) getJNIReference (env, transactionObject);
 
-    // TODO: The registered transaction memory is now 'owned' by the wallet.  Will double free().
+    // The `transaction` is now owned by Core; it may be freed.
     return (jboolean) BRWalletRegisterTransaction (wallet, transaction);
 }
 
@@ -449,7 +456,7 @@ Java_com_breadwallet_core_BRCoreWallet_jniTransactionForHash
     uint8_t *hashData = (uint8_t *) (*env)->GetByteArrayElements(env, hashByteArray, 0);
 
     return (*env)->NewObject (env, transactionClass, transactionConstructor,
-                              (jlong) BRWalletTransactionForHash(wallet, UInt256Get(hashData)));
+                              (jlong) JNI_COPY_TRANSACTION(BRWalletTransactionForHash(wallet, UInt256Get(hashData))));
 }
 
 /*

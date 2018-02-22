@@ -31,6 +31,8 @@ import java.util.Arrays;
  */
 public class BRCoreTransaction extends BRCoreJniReference {
 
+    protected static final boolean JNI_COPIES_TRANSACTIONS = true;
+
     /**
      * Set to 'true' when this transaction is successfully registered with a wallet.
      * Once registered, the Wallet owns the JNI 'C memory' and thus on GC we won't

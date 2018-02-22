@@ -29,7 +29,7 @@ package com.breadwallet.core;
  */
 public abstract class BRCoreJniReference {
 
-    public static final boolean SHOW_FINALIZE = false;
+    protected static boolean SHOW_FINALIZE = false;
     /**
      * C Pointer (as a Java long) to the underlying Breadwallet Core entity allocated from the
      * C heap memory.  The referenced Core entity is used to implement native functions that
