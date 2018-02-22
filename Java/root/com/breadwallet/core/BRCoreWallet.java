@@ -288,14 +288,5 @@ public class BRCoreWallet extends BRCoreJniReference
     protected static native void initializeNative ();
 
     static { initializeNative(); }
-
-    @Override
-    public String toString() {
-        return "BRCoreWallet {@" + Long.toHexString(jniReferenceAddress) +
-//                "\n  rcv addr: " + getReceiveAddress().stringify() +
-//                "\n  balance : " + getBalance() +
-//                "\n  fee/kb  : " + getFeePerKb() +
-                '}';
-    }
 }
 

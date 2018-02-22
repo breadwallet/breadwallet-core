@@ -138,12 +138,4 @@ public class BRCorePeer extends BRCoreJniReference {
                                                   byte[] timeStamp);
 
     private static native long createJniCorePeerMagic(long magicNumber);
-
-    @Override
-    public String toString() {
-        return "BRCorePeer {@" + jniReferenceAddress +
-                "\n  addr : " + Arrays.toString(getAddress()) +
-                "\n  port : " + getPort() +
-                '}';
-    }
 }

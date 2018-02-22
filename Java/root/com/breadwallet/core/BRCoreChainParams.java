@@ -59,14 +59,4 @@ public class BRCoreChainParams extends BRCoreJniReference {
             new BRCoreChainParams(createJniTestnetBcashChainParams());
 
     private static native long createJniTestnetBcashChainParams();
-
-    //
-    //
-    //
-    @Override
-    public String toString() {
-        return "BRCoreChainParams{" +
-                "jniReferenceAddress=" + jniReferenceAddress +
-                '}';
-    }
 }

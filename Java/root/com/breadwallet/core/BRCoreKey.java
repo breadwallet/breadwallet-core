@@ -150,14 +150,6 @@ public class BRCoreKey extends BRCoreJniReference {
 
     public static native boolean isValidBitcoinBIP38Key(String key);
 
-    @Override
-    public String toString() {
-        return "BRCoreKey {@" + jniReferenceAddress +
-                "\n  pubKey    : " + getPubKey() +
-                "\n  compressed: " + getCompressed() +
-                '}';
-    }
-
     public static String encodeHex(byte[] in) {
         final StringBuilder builder = new StringBuilder();
         for (byte b : in) {

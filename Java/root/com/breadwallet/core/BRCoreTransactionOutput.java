@@ -50,12 +50,4 @@ public class BRCoreTransactionOutput extends BRCoreJniReference {
     public native void setAmount(long amount);
 
     public native byte[] getScript();
-
-    public String toString() {
-        return "BRCoreTransactionOutput {@" + jniReferenceAddress +
-                "\n  address: " + getAddress() +
-                "\n  amount : " + getAmount() +
-                "\n  scriptL: " + getScript().length +
-                '}';
-    }
 }

@@ -228,14 +228,4 @@ public class BRCoreTransaction extends BRCoreJniReference {
     private static native long createJniCoreTransactionSerialized (byte[] buffer);
 
     private static native long createJniCoreTransactionEmpty ();
-
-    @Override
-    public String toString() {
-        return "BRCoreTransaction {@" + jniReferenceAddress +
-//                "\n  hash       : " + Arrays.toString(getHash()) +
-//                "\n  timestamp  : " + getTimestamp() +
-//                "\n  blockHeight: " + getBlockHeight() +
-//                "\n  standardFee: " + getStandardFee() +
-                '}';
-    }
 }

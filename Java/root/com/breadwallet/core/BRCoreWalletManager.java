@@ -36,6 +36,9 @@ public class BRCoreWalletManager implements
         BRCorePeerManager.Listener,
         BRCoreWallet.Listener {
 
+    protected static boolean SHOW_CALLBACK = true;
+    protected static boolean SHOW_CALLBACK_DETAIL = false;
+
     protected BRCoreMasterPubKey masterPubKey;
 
     protected BRCoreChainParams chainParams;
@@ -193,30 +196,38 @@ public class BRCoreWalletManager implements
 
     @Override
     public void syncStarted() {
+        if (!SHOW_CALLBACK) return;
         System.err.println ("syncStarted");
     }
 
     @Override
     public void syncStopped(String error) {
+        if (!SHOW_CALLBACK) return;
         System.err.println ("syncStopped: " + error);
     }
 
     @Override
     public void txStatusUpdate() {
+        if (!SHOW_CALLBACK) return;
         System.err.println ("txStatusUpdate");
     }
 
     @Override
     public void saveBlocks(boolean replace, BRCoreMerkleBlock[] blocks) {
-        // System.err.println ("saveBlocks: " + Integer.toBinaryString(blocks.length));
+        if (!SHOW_CALLBACK) return;
         System.err.println(getChainDescriptiveName() + String.format(": saveBlocks: %d", blocks.length));
+
+        if (!SHOW_CALLBACK_DETAIL) return;
         for (int i = 0; i < blocks.length; i++)
             System.err.println(blocks[i].toString());
     }
 
     @Override
     public void savePeers(boolean replace, BRCorePeer[] peers) {
+        if (!SHOW_CALLBACK) return;
         System.err.println(getChainDescriptiveName() + String.format(": savePeers: %d", peers.length));
+
+        if (!SHOW_CALLBACK_DETAIL) return;
         for (int i = 0; i < peers.length; i++)
             System.err.println(peers[i].toString());
     }
@@ -229,6 +240,7 @@ public class BRCoreWalletManager implements
 
     @Override
     public void txPublished(String error) {
+        if (!SHOW_CALLBACK) return;
         System.err.println (getChainDescriptiveName() + String.format (":   txPublished: %s", error));
     }
 
@@ -238,14 +250,17 @@ public class BRCoreWalletManager implements
 
     @Override
     public void balanceChanged(long balance) {
+        if (!SHOW_CALLBACK) return;
         System.err.println (getChainDescriptiveName() + String.format (": balanceChanged: %d", balance));
         System.err.println (wallet.toString());
     }
 
     @Override
     public void onTxAdded(BRCoreTransaction transaction) {
-        System.err.println (getChainDescriptiveName() + ": onTxAdded");
-        System.err.println(transaction.toString());
+        if (!SHOW_CALLBACK) return;
+        System.err.println (getChainDescriptiveName() + ": onTxAdded: " + bytesToHex(transaction.getHash()));
+
+        if (!SHOW_CALLBACK_DETAIL) return;
         for (BRCoreTransactionInput input : transaction.getInputs())
             System.err.println (input.toString());
         for (BRCoreTransactionOutput output : transaction.getOutputs())
@@ -254,12 +269,14 @@ public class BRCoreWalletManager implements
 
     @Override
     public void onTxUpdated(String hash, int blockHeight, int timeStamp) {
-        System.err.println (getChainDescriptiveName() + ": onTxUpdated");
+        if (!SHOW_CALLBACK) return;
+        System.err.println (getChainDescriptiveName() + ": onTxUpdated: " + hash);
     }
 
     @Override
     public void onTxDeleted(String hash, int notifyUser, int recommendRescan) {
-        System.err.println (getChainDescriptiveName() + ": onTxDeleted");
+        if (!SHOW_CALLBACK) return;
+        System.err.println (getChainDescriptiveName() + ": onTxDeleted: " + hash);
     }
 
     //
@@ -267,7 +284,7 @@ public class BRCoreWalletManager implements
     //
     @Override
     public String toString() {
-        return "BRCoreWalletManager{" +
+        return "BRCoreWalletManager {" +
                 "\n  masterPubKey      : " + masterPubKey +
                 "\n  chainParams       : " + chainParams +
                 "\n  earliest peer time: " + earliestPeerTime +
@@ -552,5 +569,16 @@ public class BRCoreWalletManager implements
                 }
             });
         }
+    }
+
+    private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
+    private static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for ( int j = 0; j < bytes.length; j++ ) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
     }
 }
