@@ -256,6 +256,14 @@ public class BRWalletManager extends BRCoreWalletManager {
         addr2 = BRCoreAddress.fromScriptPubKey(script);
         asserting (addr1.stringify().equals(addr2.stringify()));
 
+        System.out.println("        BitCash:");
+        String bitcoinAddr1 = key.address();
+        System.out.println("          Coin: " + bitcoinAddr1);
+        String bitcashAddr  = BRCoreAddress.bcashEncodeBitcoin(bitcoinAddr1);
+        System.out.println("          Cash: " + bitcashAddr);
+        String bitcoinAddr2 = BRCoreAddress.bcashDecodeBitcoin(bitcashAddr);
+        asserting (bitcoinAddr1.equals(bitcoinAddr2));
+
         //
         //
         //

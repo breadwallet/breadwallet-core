@@ -62,7 +62,8 @@ CORE_SRCS=../BRAddress.c \
 	../BRPeerManager.c \
 	../BRSet.c \
 	../BRTransaction.c \
-	../BRWallet.c
+	../BRWallet.c \
+	../bcash/BRBCashAddr.c
 
 CORE_OBJS=$(CORE_SRCS:.c=.o)
 
