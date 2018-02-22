@@ -41,7 +41,7 @@
 // returns the number of bytes written to data42 (maximum of 42)
 size_t BRBech32Decode(char *hrp84, uint8_t *data42, const char *addr)
 {
-    size_t i, j, bufLen, addrLen = (addr) ? strlen(addr) : 0, sep = addrLen;
+    size_t i, j, bufLen, addrLen, sep;
     uint32_t x, chk = 1;
     uint8_t c, ver = 0xff, buf[52], upper = 0, lower = 0;
 
@@ -49,12 +49,13 @@ size_t BRBech32Decode(char *hrp84, uint8_t *data42, const char *addr)
     assert(data42 != NULL);
     assert(addr != NULL);
     
-    for (i = 0; i < addrLen; i++) {
+    for (i = 0; addr && addr[i]; i++) {
         if (addr[i] < 33 || addr[i] > 126) return 0;
         if (islower(addr[i])) lower = 1;
         if (isupper(addr[i])) upper = 1;
     }
 
+    addrLen = sep = i;
     while (sep > 0 && addr[sep] != '1') sep--;
     if (addrLen < 8 || addrLen > 90 || sep < 1 || sep + 2 + 6 > addrLen || (upper && lower)) return 0;
     for (i = 0; i < sep; i++) chk = polymod(chk) ^ (tolower(addr[i]) >> 5);
@@ -103,7 +104,7 @@ size_t BRBech32Encode(char *addr91, const char *hrp, const uint8_t data[])
     char addr[91];
     uint32_t x, chk = 1;
     uint8_t ver, a, b = 0, c = 0;
-    size_t i, j;
+    size_t i, j, len;
 
     assert(addr91 != NULL);
     assert(hrp != NULL);
@@ -120,24 +121,24 @@ size_t BRBech32Encode(char *addr91, const char *hrp, const uint8_t data[])
     addr[i++] = '1';
     if (i < 1 || data == NULL || (data[0] > OP_0 && data[0] < OP_1)) return 0;
     ver = (data[0] >= OP_1) ? data[0] + 1 - OP_1 : 0;
-    if (ver > 16 || data[1] < 2 || data[1] > 40) return 0;
+    len = data[1];
+    if (ver > 16 || len < 2 || len > 40 || i + 1 + len + 6 >= 91) return 0;
     chk = polymod(chk) ^ ver;
     addr[i++] = chars[ver];
     
-    for (j = 0; j <= data[1]; j++) {
-        a = b, b = (j < data[1]) ? data[2 + j] : 0;
+    for (j = 0; j <= len; j++) {
+        a = b, b = (j < len) ? data[2 + j] : 0;
         x = (j % 5)*8 - ((j % 5)*8/5)*5;
         c = ((a << (5 - x)) | (b >> (3 + x))) & 0x1f;
-        if (j < data[1] || j % 5 > 0) chk = polymod(chk) ^ c, addr[i++] = chars[c];
+        if (j < len || j % 5 > 0) chk = polymod(chk) ^ c, addr[i++] = chars[c];
         if (x >= 2) c = (b >> (x - 2)) & 0x1f;
-        if (x >= 2 && j < data[1]) chk = polymod(chk) ^ c, addr[i++] = chars[c];
+        if (x >= 2 && j < len) chk = polymod(chk) ^ c, addr[i++] = chars[c];
     }
     
     for (j = 0; j < 6; j++) chk = polymod(chk);
     chk ^= 1;
     for (j = 0; j < 6; ++j) addr[i++] = chars[(chk >> ((5 - j)*5)) & 0x1f];
     addr[i++] = '\0';
-    assert(i <= 91);
     memcpy(addr91, addr, i);
     return i;
 }

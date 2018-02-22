@@ -34,7 +34,8 @@ static const char *BRBCashDNSSeeds[] = {
 };
 
 static const char *BRBCashTestNetDNSSeeds[] = {
-    "testnet-seed.bitcoinabc.org", "testnet-seed-abc.bitcoinforks.org", "testnet-seed.bitprim.org", "testnet-seed.deadalnix.me", "testnet-seeder.criptolayer.net", NULL
+    "testnet-seed.bitcoinabc.org", "testnet-seed-abc.bitcoinforks.org", "testnet-seed.bitprim.org",
+    "testnet-seed.deadalnix.me", "testnet-seeder.criptolayer.net", NULL
 };
 
 static const BRCheckPoint BRBCashTestNetCheckpoints[] = {
@@ -95,7 +96,8 @@ static int BRBCashVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBlo
     return r;
 }
 
-static int BRBCashTestNetVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBlock *previous, uint32_t transitionTime)
+static int BRBCashTestNetVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBlock *previous,
+                                          uint32_t transitionTime)
 {
     int r = 1;
 
@@ -119,12 +121,12 @@ static const BRChainParams BRBCashParams = {
 
 static const BRChainParams BRBCashTestNetParams = {
     BRBCashTestNetDNSSeeds,
-    18333,                // standardPort
+    18333,               // standardPort
     0xf4f3e5f4,          // magicNumber
     SERVICES_NODE_BCASH, // services
     BRBCashTestNetVerifyDifficulty,
     BRBCashTestNetCheckpoints,
-    sizeof(BRBCashTestNetCheckpoints)/sizeof(*BRBCashCheckpoints)
+    sizeof(BRBCashTestNetCheckpoints)/sizeof(*BRBCashTestNetCheckpoints)
 };
 
 #endif // BRChainParams_h
