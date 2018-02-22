@@ -24,7 +24,14 @@
 //  THE SOFTWARE.
 
 #include "bcash/BRBCashAddr.h"
-//#include "BRAddress.h"
+//#include "BRAddress.h" // WTF?! header guards not working? some kind of compiler bug?
+#define OP_0 0x00
+#define OP_1 0x51
+#define BITCOIN_PUBKEY_ADDRESS      0
+#define BITCOIN_SCRIPT_ADDRESS      5
+#define BITCOIN_PUBKEY_ADDRESS_TEST 111
+#define BITCOIN_SCRIPT_ADDRESS_TEST 196
+#include "BRBase58.h"
 #include "BRCrypto.h"
 #include <inttypes.h>
 #include <stdlib.h>
@@ -34,22 +41,22 @@
 
 // b-cash address format: https://github.com/bitcoincashorg/spec/blob/master/cashaddr.md
 
-#define OP_0 0x00
-#define OP_1 0x51
+#define BCASH_PUBKEY_ADDRESS 28
+#define BCASH_SCRIPT_ADDRESS 40
 
-#define polymod(x) ((((x) & 0x07ffffffff) << 5) ^ (-(((x) >> 25) & 1) & 0x98f2bc8e61) ^\
-    (-(((x) >> 26) & 1) & 0x79b76d99e2) ^ (-(((x) >> 27) & 1) & 0xf33e5fb3c4) ^\
-    (-(((x) >> 28) & 1) & 0xf33e5fb3c4) ^ (-(((x) >> 29) & 1) & 0x1e4f43e470))
+#define polymod(x) ((((x) & 0x07ffffffff) << 5) ^ (-(((x) >> 35) & 1) & 0x98f2bc8e61) ^\
+    (-(((x) >> 36) & 1) & 0x79b76d99e2) ^ (-(((x) >> 37) & 1) & 0xf33e5fb3c4) ^\
+    (-(((x) >> 38) & 1) & 0xae2eabe2a8) ^ (-(((x) >> 39) & 1) & 0x1e4f43e470))
 
-// returns the number of bytes written to data42 (maximum of 42)
-static size_t _BRBCashAddrDecode(char *hrp84, uint8_t *data42, const char *addr)
+// returns the number of bytes written to data21 (maximum of 21)
+static size_t _BRBCashAddrDecode(char *hrp12, uint8_t *data21, const char *addr)
 {
     size_t i, j, bufLen, addrLen = (addr) ? strlen(addr) : 0, sep = addrLen;
     uint64_t x, chk = 1;
-    uint8_t c, ver = 0xff, buf[52], upper = 0, lower = 0;
+    uint8_t c, buf[22], upper = 0, lower = 0;
     
-    assert(hrp84 != NULL);
-    assert(data42 != NULL);
+    assert(hrp12 != NULL);
+    assert(data21 != NULL);
     assert(addr != NULL);
     
     for (i = 0; i < addrLen; i++) {
@@ -58,14 +65,13 @@ static size_t _BRBCashAddrDecode(char *hrp84, uint8_t *data42, const char *addr)
         if (isupper(addr[i])) upper = 1;
     }
     
-    while (sep > 0 && addr[sep] != '1') sep--;
-    if (addrLen < 8 || addrLen > 90 || sep < 1 || sep + 2 + 6 > addrLen || (upper && lower)) return 0;
-    for (i = 0; i < sep; i++) chk = polymod(chk) ^ (tolower(addr[i]) >> 5);
-    chk = polymod(chk);
+    while (sep > 0 && addr[sep] != ':') sep--;
+    if (sep > 11 || sep + 34 + 8 > addrLen || (upper && lower)) return 0;
     for (i = 0; i < sep; i++) chk = polymod(chk) ^ (addr[i] & 0x1f);
+    chk = polymod(chk);
     memset(buf, 0, sizeof(buf));
     
-    for (i = sep + 1, j = -1; i < addrLen; i++, j++) {
+    for (i = sep + 1, j = 0; i < addrLen; i++, j++) {
         switch (tolower(addr[i])) {
             case 'q': c = 0;  break; case 'p': c = 1;  break; case 'z': c = 2;  break; case 'r': c = 3;  break;
             case 'y': c = 4;  break; case '9': c = 5;  break; case 'x': c = 6;  break; case '8': c = 7;  break;
@@ -79,77 +85,99 @@ static size_t _BRBCashAddrDecode(char *hrp84, uint8_t *data42, const char *addr)
         }
         
         chk = polymod(chk) ^ c;
-        if (j == -1) ver = c;
-        if (j == -1 || i + 6 >= addrLen) continue;
+        if (i + 8 >= addrLen) continue;
         x = (j % 8)*5 - ((j % 8)*5/8)*8;
         buf[(j/8)*5 + (j % 8)*5/8] |= (c << 3) >> x;
         if (x > 3) buf[(j/8)*5 + (j % 8)*5/8 + 1] |= c << (11 - x);
     }
     
-    bufLen = (addrLen - (sep + 2 + 6))*5/8;
-    if (hrp84 == NULL || data42 == NULL || chk != 1 || ver > 16 || bufLen < 2 || bufLen > 40) return 0;
-    for (i = 0; i < sep; i++) hrp84[i] = tolower(addr[i]);
-    hrp84[sep] = '\0';
-    data42[0] = (ver == 0) ? OP_0 : ver + OP_1 - 1;
-    data42[1] = bufLen;
-    memcpy(&data42[2], buf, bufLen);
-    return 2 + bufLen;
+    bufLen = (addrLen - (sep + 8))*5/8;
+    if (hrp12 == NULL || data21 == NULL || chk != 1 || bufLen != 21) return 0;
+    for (i = 0; i < sep; i++) hrp12[i] = tolower(addr[i]);
+    hrp12[sep] = '\0';
+    memcpy(data21, buf, bufLen);
+    return bufLen;
 }
 
-// returns the number of bytes written to addr91 (maximum of 91)
-static size_t _BRBCashAddrEncode(char *addr91, const char *hrp, const uint8_t data[])
+// returns the number of bytes written to addr55 (maximum of 55)
+static size_t _BRBCashAddrEncode(char *addr55, const char *hrp, const uint8_t data[], size_t dataLen)
 {
     static const char chars[] = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
-    char addr[91];
+    char addr[55];
     uint64_t x, chk = 1;
-    uint8_t ver, a, b = 0, c = 0;
+    uint8_t a, b = 0, c = 0;
     size_t i, j;
     
-    assert(addr91 != NULL);
+    assert(addr55 != NULL);
     assert(hrp != NULL);
     assert(data != NULL);
+    assert(dataLen == 21);
     
     for (i = 0; hrp && hrp[i]; i++) {
-        if (i > 83 || hrp[i] < 33 || hrp[i] > 126 || isupper(hrp[i])) return 0;
-        chk = polymod(chk) ^ (hrp[i] >> 5);
+        if (i > 12 || hrp[i] < 33 || hrp[i] > 126 || isupper(hrp[i])) return 0;
+        chk = polymod(chk) ^ (hrp[i] & 0x1f);
         addr[i] = hrp[i];
     }
     
     chk = polymod(chk);
-    for (j = 0; j < i; j++) chk = polymod(chk) ^ (hrp[j] & 0x1f);
-    addr[i++] = '1';
-    if (i < 1 || data == NULL || (data[0] > OP_0 && data[0] < OP_1)) return 0;
-    ver = (data[0] >= OP_1) ? data[0] + 1 - OP_1 : 0;
-    if (ver > 16 || data[1] < 2 || data[1] > 40) return 0;
-    chk = polymod(chk) ^ ver;
-    addr[i++] = chars[ver];
+    addr[i++] = ':';
+    if (i < 1 || data == NULL || dataLen != 21) return 0;
     
-    for (j = 0; j <= data[1]; j++) {
-        a = b, b = (j < data[1]) ? data[2 + j] : 0;
+    for (j = 0; j <= dataLen; j++) {
+        a = b, b = (j < dataLen) ? data[j] : 0;
         x = (j % 5)*8 - ((j % 5)*8/5)*5;
         c = ((a << (5 - x)) | (b >> (3 + x))) & 0x1f;
-        if (j < data[1] || j % 5 > 0) chk = polymod(chk) ^ c, addr[i++] = chars[c];
+        if (j < dataLen || j % 5 > 0) chk = polymod(chk) ^ c, addr[i++] = chars[c];
         if (x >= 2) c = (b >> (x - 2)) & 0x1f;
-        if (x >= 2 && j < data[1]) chk = polymod(chk) ^ c, addr[i++] = chars[c];
+        if (x >= 2 && j < dataLen) chk = polymod(chk) ^ c, addr[i++] = chars[c];
     }
     
-    for (j = 0; j < 6; j++) chk = polymod(chk);
+    for (j = 0; j < 8; j++) chk = polymod(chk);
     chk ^= 1;
-    for (j = 0; j < 6; ++j) addr[i++] = chars[(chk >> ((5 - j)*5)) & 0x1f];
+    for (j = 0; j < 8; ++j) addr[i++] = chars[(chk >> ((7 - j)*5)) & 0x1f];
     addr[i++] = '\0';
-    memcpy(addr91, addr, i);
+    memcpy(addr55, addr, i);
     return i;
 }
 
 // returns the number of bytes written to bitcoinAddr36 (maximum of 36)
 size_t BRBCashAddrDecode(char *bitcoinAddr36, const char *bCashAddr)
 {
-    return 0;
+    uint8_t data[21], ver = 0xff;
+    char hrp[12];
+    
+    assert(bitcoinAddr36 != NULL);
+    assert(bCashAddr != NULL);
+    
+    if (_BRBCashAddrDecode(hrp, data, bCashAddr) == 21) {
+        if (strcmp(hrp, "bitcoincash") == 0 && data[0] == 0x00) ver = BITCOIN_PUBKEY_ADDRESS;
+        if (strcmp(hrp, "bitcoincash") == 0 && data[0] == 0x08) ver = BITCOIN_SCRIPT_ADDRESS;
+        if (strcmp(hrp, "bchtest") == 0 && data[0] == 0x00) ver = BITCOIN_PUBKEY_ADDRESS_TEST;
+        if (strcmp(hrp, "bchtest") == 0 && data[0] == 0x08) ver = BITCOIN_SCRIPT_ADDRESS_TEST;
+    }
+    else if (BRBase58CheckDecode(data, sizeof(data), bCashAddr) == 21) {
+        if (data[0] == BCASH_PUBKEY_ADDRESS) ver = BITCOIN_PUBKEY_ADDRESS;
+        if (data[0] == BCASH_SCRIPT_ADDRESS) ver = BITCOIN_SCRIPT_ADDRESS;
+    }
+
+    data[0] = ver;
+    return (ver != 0xff) ? BRBase58CheckEncode(bitcoinAddr36, 36, data, 21) : 0;
 }
 
 // returns the number of bytes written to bCashAddr55 (maximum of 55)
 size_t BRBCashAddrEncode(char *bCashAddr55, const char *bitcoinAddr)
 {
-    return 0;
+    uint8_t data[21], ver = 0;
+    const char *hrp = NULL;
+    
+    assert(bCashAddr55 != NULL);
+    assert(bitcoinAddr != NULL);
+    if (BRBase58CheckDecode(data, sizeof(data), bitcoinAddr) != 21) return 0;
+    if (data[0] == BITCOIN_PUBKEY_ADDRESS) ver = 0x00, hrp = "bitcoincash";
+    if (data[0] == BITCOIN_SCRIPT_ADDRESS) ver = 0x08, hrp = "bitcoincash";
+    if (data[0] == BITCOIN_PUBKEY_ADDRESS_TEST) ver = 0x00, hrp = "bchtest";
+    if (data[0] == BITCOIN_SCRIPT_ADDRESS_TEST) ver = 0x08, hrp = "bchtest";
+    data[0] = ver;
+    return _BRBCashAddrEncode(bCashAddr55, hrp, data, 21);
 }
 
