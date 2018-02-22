@@ -20,5 +20,6 @@ module BRCore [system] [extern_c] {
     header "BRPeerManager.h"
     header "BRChainParams.h"
     header "bcash/BRBCashParams.h"
+    header "bcash/BRBCashAddr.h"
     export *
 }
