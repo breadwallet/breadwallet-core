@@ -26,6 +26,7 @@
 #include "BRWallet.h"
 #include "BRAddress.h"
 #include "BRCoreJni.h"
+#include "BRTransaction.h"
 #include "com_breadwallet_core_BRCoreWallet.h"
 #include "com_breadwallet_core_BRCoreTransaction.h"
 
@@ -343,6 +344,34 @@ Java_com_breadwallet_core_BRCoreWallet_createTransaction
            ? NULL
            : (*env)->NewObject(env, transactionClass, transactionConstructor, (jlong) transaction);
 }
+
+/*
+ * Class:     com_breadwallet_core_BRCoreWallet
+ * Method:    createTransactionForOutputs
+ * Signature: ([Lcom/breadwallet/core/BRCoreTransactionOutput;)Lcom/breadwallet/core/BRCoreTransaction;
+ */
+JNIEXPORT jobject JNICALL Java_com_breadwallet_core_BRCoreWallet_createTransactionForOutputs
+        (JNIEnv *env, jobject thisObject, jobjectArray outputsArray) {
+    BRWallet *wallet = (BRWallet *) getJNIReference(env, thisObject);
+
+    size_t outputsCount = (size_t) (*env)->GetArrayLength (env, outputsArray);
+
+    BRTxOutput outputs[outputsCount];
+
+    for (int i = 0; i < outputsCount; i++) {
+        jobject outputObject = (*env)->GetObjectArrayElement (env, outputsArray, i);
+        outputs[i] = *(BRTxOutput *) getJNIReference (env, outputObject);
+        (*env)->DeleteLocalRef (env, outputObject);
+    }
+
+    // It appears that the outputs and their content are not 'held' by the Core, in any way.
+    BRTransaction *transaction = BRWalletCreateTxForOutputs(wallet, outputs, outputsCount);
+
+    return NULL == transaction
+           ? NULL
+           : (*env)->NewObject(env, transactionClass, transactionConstructor, (jlong) transaction);
+}
+
 
 /*
  * Class:     com_breadwallet_core_BRCoreWallet

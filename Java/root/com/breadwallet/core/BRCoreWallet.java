@@ -144,7 +144,13 @@ public class BRCoreWallet extends BRCoreJniReference
      */
     public native BRCoreTransaction createTransaction (long amount, BRCoreAddress address);
 
-    // createTxForOutputs
+    /**
+     * Create a BRCoreTransaction with the provided outputs
+     *
+     * @param outputs the outputs to include
+     * @return a consistently constructed transaction (input selected, fees handled, etc)
+     */
+    public native BRCoreTransaction createTransactionForOutputs (BRCoreTransactionOutput[] outputs);
 
     // Need to remove 'forkId' - should be derived from the chainParams leading to this wallet.
 

@@ -735,6 +735,18 @@ public class BRWalletManager extends BRCoreWalletManager {
         w.signTransaction(tx, 0, phrase);
         asserting (tx.isSigned());
         System.out.println("            Can send half SATOSHI");
+
+
+        //
+        System.out.println("        fromOutputs");
+        BRCoreTransactionOutput[] outputs = {
+                new BRCoreTransactionOutput(SATOSHIS/10, outScript),
+                new BRCoreTransactionOutput(SATOSHIS/10, outScript),
+                new BRCoreTransactionOutput(SATOSHIS/10, outScript)
+        };
+
+        BRCoreTransaction transaction = w.createTransactionForOutputs(outputs);
+        asserting (null != transaction);
     }
 
     private static void runWalletManagerTests() {

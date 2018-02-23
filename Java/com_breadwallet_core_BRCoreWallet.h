@@ -137,6 +137,14 @@ JNIEXPORT jobject JNICALL Java_com_breadwallet_core_BRCoreWallet_createTransacti
 
 /*
  * Class:     com_breadwallet_core_BRCoreWallet
+ * Method:    createTransactionForOutputs
+ * Signature: ([Lcom/breadwallet/core/BRCoreTransactionOutput;)Lcom/breadwallet/core/BRCoreTransaction;
+ */
+JNIEXPORT jobject JNICALL Java_com_breadwallet_core_BRCoreWallet_createTransactionForOutputs
+  (JNIEnv *, jobject, jobjectArray);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreWallet
  * Method:    signTransaction
  * Signature: (Lcom/breadwallet/core/BRCoreTransaction;I[B)Z
  */
