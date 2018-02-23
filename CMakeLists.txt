@@ -21,6 +21,8 @@ add_library(breadwallet-core-lib SHARED
 	BRSet.h
 	BRTransaction.h
 	BRWallet.h
+	bcash/BRBCashAddr.h
+	bcash/BRBCashParams.h
 
 	BRAddress.c
 	BRBIP32Sequence.c
@@ -38,11 +40,13 @@ add_library(breadwallet-core-lib SHARED
 	BRSet.c
 	BRTransaction.c
 	BRWallet.c
+	bcash/BRBCashAddr.c
 	)
 
 add_executable(breadwallet-test test.c)
 target_link_libraries(breadwallet-test breadwallet-core-lib)
 
+include_directories(.)
 include_directories(secp256k1/include/)
 include_directories(secp256k1/src/)
 include_directories(secp256k1/)
