@@ -86,32 +86,4 @@ public class BRCoreMerkleBlock extends BRCoreJniReference {
 
     // To call BRMerkleBlockFree()
     public native void disposeNative ();
-
-    // From the DataSource get a BlockEntity; deconstruct and pass to PeerManager which produces
-    // a C BRMerkleBlock; then, sometime later, get a saveBlock callback; lookup the BlockEntity
-    // class and call the constructor - effectively converting a BRMerkleBlock back to a
-    // BlockEntity.
-    //
-    // Whatever class (BRCoreWalletManager) is handling callbacks (like saveBlocks) will be getting
-    // what - a BRMerkleBlock (C pointer)? - a BRCoreMerkleBlock (how)?
-    //
-    //
-    // The Swift version does not use a subclass of BRMerkleBlock - it uses BRMerkleBlock directly;
-    // but is also doesn't use a DataSource and instead uses SQLite queries directly.
-    //
-    // Perhaps the callbacks, like saveBlocks, needs some 'contextual parameter' to go from
-    // BRMerkleBlock to whatever?  Surely must as one must go from BRMerkleBlock (in C) to
-    // BRCoreMerkleBlock (in Java w/ reference to C).
-    //
-    // Callback contains BRCoreMerkleBlock and the JNI C callback code needs to construct them!!!
-
-    @Override
-    public String toString() {
-        return "BRCoreMerkleBlock {@" + jniReferenceAddress +
-                "\n  hash     : " + Arrays.toString(getBlockHash()) +
-                "\n  timestamp: " + getTimestamp() +
-                "\n  height   : " + getHeight() +
-                "\n  txCount  : " + getTransactionCount() +
-                "}";
-    }
 }

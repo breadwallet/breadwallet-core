@@ -7,6 +7,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#undef com_breadwallet_core_BRCoreTransaction_JNI_COPIES_TRANSACTIONS
+#define com_breadwallet_core_BRCoreTransaction_JNI_COPIES_TRANSACTIONS 1L
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction
  * Method:    getHash

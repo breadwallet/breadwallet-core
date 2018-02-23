@@ -55,6 +55,22 @@ JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreAddress_isValid
 JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreAddress_getPubKeyScript
   (JNIEnv *, jobject);
 
+/*
+ * Class:     com_breadwallet_core_BRCoreAddress
+ * Method:    bcashDecodeBitcoin
+ * Signature: (Ljava/lang/String;)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreAddress_bcashDecodeBitcoin
+  (JNIEnv *, jclass, jstring);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreAddress
+ * Method:    bcashEncodeBitcoin
+ * Signature: (Ljava/lang/String;)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreAddress_bcashEncodeBitcoin
+  (JNIEnv *, jclass, jstring);
+
 #ifdef __cplusplus
 }
 #endif

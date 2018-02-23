@@ -95,8 +95,11 @@ public class BRCoreWallet extends BRCoreJniReference
     // TODO: Holding these transactions when the wallet is GCed.... boom!?
     public BRCoreTransaction[] getTransactions () {
         BRCoreTransaction[] transactions = jniGetTransactions();
+
+        // Make as 'registered' if not a copy.
         for (BRCoreTransaction transaction : transactions)
-            transaction.isRegistered = true;
+            transaction.isRegistered = ! BRCoreTransaction.JNI_COPIES_TRANSACTIONS;
+
         return transactions;
     }
 
@@ -141,7 +144,13 @@ public class BRCoreWallet extends BRCoreJniReference
      */
     public native BRCoreTransaction createTransaction (long amount, BRCoreAddress address);
 
-    // createTxForOutputs
+    /**
+     * Create a BRCoreTransaction with the provided outputs
+     *
+     * @param outputs the outputs to include
+     * @return a consistently constructed transaction (input selected, fees handled, etc)
+     */
+    public native BRCoreTransaction createTransactionForOutputs (BRCoreTransactionOutput[] outputs);
 
     // Need to remove 'forkId' - should be derived from the chainParams leading to this wallet.
 
@@ -175,14 +184,22 @@ public class BRCoreWallet extends BRCoreJniReference
 
     public native void updateTransactions (byte[][] transactionsHashes, long blockHeight, long timestamp);
 
-    // TODO: Holding this transactions when the wallet is GCed.... boom!?
+    /**
+     * Returns the BRCoreTransaction with the provided `transactionHash` if it exists; otherwise
+     * NULL is returned.
+     *
+     * If BRCoreTransaction.JNI_COPIES_TRANSACTIONS is true, then the returned transaction is
+     * a copy of the Core BRTransaction - TBD caution when passed back into Core
+     *
+     * @param transactionHash
+     * @return
+     */
     public BRCoreTransaction transactionForHash (byte[] transactionHash) {
         BRCoreTransaction transaction = jniTransactionForHash(transactionHash);
 
-        // We got this transaction via BRWalletTransactionForHash() - which returns a JNI C
-        // pointer to a registered transaction:
-        //      'returns the transaction with the given hash if it's been registered in the wallet'
-        if (null != transaction) transaction.isRegistered = true;
+        // We mark as 'registered' if not a copy.
+        if (null != transaction)
+            transaction.isRegistered = !BRCoreTransaction.JNI_COPIES_TRANSACTIONS;
 
         return transaction;
     }
@@ -288,14 +305,5 @@ public class BRCoreWallet extends BRCoreJniReference
     protected static native void initializeNative ();
 
     static { initializeNative(); }
-
-    @Override
-    public String toString() {
-        return "BRCoreWallet {@" + Long.toHexString(jniReferenceAddress) +
-//                "\n  rcv addr: " + getReceiveAddress().stringify() +
-//                "\n  balance : " + getBalance() +
-//                "\n  fee/kb  : " + getFeePerKb() +
-                '}';
-    }
 }
 

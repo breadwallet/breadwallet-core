@@ -69,16 +69,5 @@ public class BRCoreTransactionInput extends BRCoreJniReference {
     public native byte[] getSignature ();
 
     public native long getSequence ();
-
-    public String toString() {
-        return "BRCoreTransactionInput {@" + jniReferenceAddress +
-                "\n  address: " + getAddress() +
-                "\n  amount : " + getAmount() +
-                "\n  index  : " + getIndex() +
-                "\n  hash   : " + Arrays.toString(getHash()) +
-                "\n  sigL   : " + getSignature().length +
-                "\n  scriptL: " + getScript().length +
-                '}';
-    }
 }
 

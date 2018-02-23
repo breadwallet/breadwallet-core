@@ -109,10 +109,4 @@ public class BRCoreMasterPubKey extends BRCoreJniReference {
      * @return
      */
     public static native byte[] generatePaperKey (byte[] seed, String[] words);
-
-    @Override
-    public String toString() {
-        return "BRCoreMasterPubKey {@ " + jniReferenceAddress +
-                '}';
-    }
 }

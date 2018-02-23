@@ -29,6 +29,7 @@ package com.breadwallet.core;
  */
 public abstract class BRCoreJniReference {
 
+    protected static boolean SHOW_FINALIZE = false;
     /**
      * C Pointer (as a Java long) to the underlying Breadwallet Core entity allocated from the
      * C heap memory.  The referenced Core entity is used to implement native functions that
@@ -48,8 +49,7 @@ public abstract class BRCoreJniReference {
     //
     //
     protected void finalize () throws Throwable {
-        System.err.println ("Finalize: " +
-                this.getClass().getSimpleName() + " @ " + Long.toHexString(jniReferenceAddress));
+        if (SHOW_FINALIZE) System.err.println("Finalize: " + toString());
         dispose ();
     }
 
@@ -58,4 +58,8 @@ public abstract class BRCoreJniReference {
     }
 
     public native void disposeNative ();
+
+    public String toString() {
+        return getClass().getName() + "@" + Integer.toHexString(hashCode()) + " JNI=" + Long.toHexString(jniReferenceAddress);
+    }
 }

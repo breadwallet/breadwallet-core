@@ -24,6 +24,7 @@
 #include <assert.h>
 #include "BRAddress.h"
 #include "com_breadwallet_core_BRCoreAddress.h"
+#include "bcash/BRBCashAddr.h"
 
 /*
  * Class:     com_breadwallet_core_BRCoreAddress
@@ -124,4 +125,41 @@ Java_com_breadwallet_core_BRCoreAddress_getPubKeyScript
     (*env)->SetByteArrayRegion (env, result, 0, (jsize) pubKeyLen, (const jbyte *) pubKey);
 
     return result;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreAddress
+ * Method:    bcashDecodeBitcoin
+ * Signature: (Ljava/lang/String;)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreAddress_bcashDecodeBitcoin
+        (JNIEnv *env, jclass thisClass, jstring bcashAddrString ) {
+    const char *bcashAddr = (*env)->GetStringUTFChars (env, bcashAddrString, 0);
+
+    char bitcoinAddr[36 + 1];
+
+    // returns the number of bytes written to bitcoinAddr36 (maximum of 36)
+    size_t bitcoinAddrLen = BRBCashAddrDecode (bitcoinAddr, bcashAddr);
+    bitcoinAddr[bitcoinAddrLen] = '\0';
+
+    return (*env)->NewStringUTF (env, bitcoinAddr);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreAddress
+ * Method:    bcashEncodeBitcoin
+ * Signature: (Ljava/lang/String;)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreAddress_bcashEncodeBitcoin
+        (JNIEnv *env, jclass thisClass, jstring bitcoinAddrString) {
+    const char *bitcoinAddr = (*env)->GetStringUTFChars (env, bitcoinAddrString, 0);
+
+    char bcashAddr[55 + 1];
+
+    // returns the number of bytes written to bCashAddr55 (maximum of 55)
+
+    size_t bcashAddrLen = BRBCashAddrEncode(bcashAddr, bitcoinAddr);
+    bcashAddr[bcashAddrLen] = '\0';
+
+    return (*env)->NewStringUTF (env, bcashAddr);
 }
