@@ -205,7 +205,7 @@ void BRSHA256_2(void *md32, const void *data, size_t len)
 // bitwise right rotation
 #define ror64(a, b) (((a) >> (b)) | ((a) << (64 - (b))))
 
-// basic sha512 opeartions
+// basic sha512 operations
 #define S0(x) (ror64((x), 28) ^ ror64((x), 34) ^ ror64((x), 39))
 #define S1(x) (ror64((x), 14) ^ ror64((x), 18) ^ ror64((x), 41))
 #define S2(x) (ror64((x), 1) ^ ror64((x), 8) ^ ((x) >> 7))
@@ -535,7 +535,7 @@ static void _BRMD5Compress(uint32_t *r, const uint32_t *x)
     var_clean(&a, &b, &c, &d, &t);
 }
 
-// md5 - for non-cyptographic use only
+// md5 - for non-cryptographic use only
 void BRMD5(void *md16, const void *data, size_t len)
 {
     size_t i;

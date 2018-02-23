@@ -77,7 +77,7 @@ int BRKeySetPrivKey(BRKey *key, const char *privKey);
 // assigns DER encoded pubKey to key and returns true on success
 int BRKeySetPubKey(BRKey *key, const uint8_t *pubKey, size_t pkLen);
 
-// writes the WIF private key to privKey and returns the number of bytes writen, or pkLen needed if privKey is NULL
+// writes the WIF private key to privKey and returns the number of bytes written, or pkLen needed if privKey is NULL
 // returns 0 on failure
 size_t BRKeyPrivKey(const BRKey *key, char *privKey, size_t pkLen);
 

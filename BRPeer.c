@@ -55,7 +55,7 @@
 
 // the standard blockchain download protocol works as follows (for SPV mode):
 // - local peer sends getblocks
-// - remote peer reponds with inv containing up to 500 block hashes
+// - remote peer responds with inv containing up to 500 block hashes
 // - local peer sends getdata with the block hashes
 // - remote peer responds with multiple merkleblock and tx messages
 // - remote peer sends inv containg 1 hash, of the most recent block
@@ -725,7 +725,7 @@ static int _BRPeerAcceptMerkleblockMessage(BRPeer *peer, const uint8_t *msg, siz
     }
 
     if (block) {
-        if (array_count(ctx->currentBlockTxHashes) > 0) { // wait til we get all tx messages before processing the block
+        if (array_count(ctx->currentBlockTxHashes) > 0) { // wait till we get all tx messages before processing the block
             ctx->currentBlock = block;
         }
         else if (ctx->relayedBlock) {
@@ -1075,7 +1075,7 @@ BRPeer *BRPeerNew(uint32_t magicNumber)
 // void notfound(void *, const UInt256[], size_t, const UInt256[], size_t) - called when "notfound" message is received
 // BRTransaction *requestedTx(void *, UInt256) - called when "getdata" message with a tx hash is received from peer
 // int networkIsReachable(void *) - must return true when networking is available, false otherwise
-// void threadCleanup(void *) - called before a thread terminates to faciliate any needed cleanup
+// void threadCleanup(void *) - called before a thread terminates to facilitate any needed cleanup
 void BRPeerSetCallbacks(BRPeer *peer, void *info,
                         void (*connected)(void *info),
                         void (*disconnected)(void *info, int error),
@@ -1239,7 +1239,7 @@ uint64_t BRPeerFeePerKb(BRPeer *peer)
     return ((BRPeerContext *)peer)->feePerKb;
 }
 
-#ifndef MSG_NOSIGNAL   // linux based systems have a MSG_NOSIGNAL send flag, useful for supressing SIGPIPE signals
+#ifndef MSG_NOSIGNAL   // linux based systems have a MSG_NOSIGNAL send flag, useful for suppressing SIGPIPE signals
 #define MSG_NOSIGNAL 0 // set to 0 if undefined (BSD has the SO_NOSIGPIPE sockopt, and windows has no signals at all)
 #endif
 

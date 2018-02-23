@@ -1285,7 +1285,7 @@ BRPaymentProtocolEncryptedMessage *BRPaymentProtocolEncryptedMessageNew(BRPaymen
     return msg;
 }
 
-// buf must contain a serialized encrytped message
+// buf must contain a serialized encrypted message
 // returns an encrypted message struct that must be freed by calling BRPaymentProtocolEncryptedMessageFree()
 BRPaymentProtocolEncryptedMessage *BRPaymentProtocolEncryptedMessageParse(const uint8_t *buf, size_t bufLen)
 {

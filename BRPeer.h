@@ -121,7 +121,7 @@ BRPeer *BRPeerNew(uint32_t magicNumber);
 // void notfound(void *, const UInt256[], size_t, const UInt256[], size_t) - called when "notfound" message is received
 // BRTransaction *requestedTx(void *, UInt256) - called when "getdata" message with a tx hash is received from peer
 // int networkIsReachable(void *) - must return true when networking is available, false otherwise
-// void threadCleanup(void *) - called before a thread terminates to faciliate any needed cleanup    
+// void threadCleanup(void *) - called before a thread terminates to facilitate any needed cleanup    
 void BRPeerSetCallbacks(BRPeer *peer, void *info,
                         void (*connected)(void *info),
                         void (*disconnected)(void *info, int error),

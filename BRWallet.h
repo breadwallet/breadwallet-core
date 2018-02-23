@@ -86,7 +86,7 @@ size_t BRWalletUnusedAddrs(BRWallet *wallet, BRAddress addrs[], uint32_t gapLimi
 // returns the first unused external address
 BRAddress BRWalletReceiveAddress(BRWallet *wallet);
 
-// writes all addresses previously genereated with BRWalletUnusedAddrs() to addrs
+// writes all addresses previously generated with BRWalletUnusedAddrs() to addrs
 // returns the number addresses written, or total number available if addrs is NULL
 size_t BRWalletAllAddrs(BRWallet *wallet, BRAddress addrs[], size_t addrsCount);
 
@@ -108,10 +108,10 @@ size_t BRWalletTxUnconfirmedBefore(BRWallet *wallet, BRTransaction *transactions
 // current wallet balance, not including transactions known to be invalid
 uint64_t BRWalletBalance(BRWallet *wallet);
 
-// total amount spent from the wallet (exluding change)
+// total amount spent from the wallet (excluding change)
 uint64_t BRWalletTotalSent(BRWallet *wallet);
 
-// total amount received by the wallet (exluding change)
+// total amount received by the wallet (excluding change)
 uint64_t BRWalletTotalReceived(BRWallet *wallet);
 
 // writes unspent outputs to utxos and returns the number of outputs written, or number available if utxos is NULL
@@ -125,7 +125,7 @@ void BRWalletSetFeePerKb(BRWallet *wallet, uint64_t feePerKb);
 // result must be freed using BRTransactionFree()
 BRTransaction *BRWalletCreateTransaction(BRWallet *wallet, uint64_t amount, const char *addr);
 
-// returns an unsigned transaction that satisifes the given transaction outputs
+// returns an unsigned transaction that satisfies the given transaction outputs
 // result must be freed using BRTransactionFree()
 BRTransaction *BRWalletCreateTxForOutputs(BRWallet *wallet, const BRTxOutput outputs[], size_t outCount);
 
@@ -167,7 +167,7 @@ void BRWalletSetTxUnconfirmedAfter(BRWallet *wallet, uint32_t blockHeight);
 // returns the amount received by the wallet from the transaction (total outputs to change and/or receive addresses)
 uint64_t BRWalletAmountReceivedFromTx(BRWallet *wallet, const BRTransaction *tx);
 
-// returns the amount sent from the wallet by the trasaction (total wallet outputs consumed, change and fee included)
+// returns the amount sent from the wallet by the transaction (total wallet outputs consumed, change and fee included)
 uint64_t BRWalletAmountSentByTx(BRWallet *wallet, const BRTransaction *tx);
 
 // returns the fee for the given transaction if all its inputs are from wallet transactions, UINT64_MAX otherwise

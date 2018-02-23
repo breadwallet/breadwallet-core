@@ -240,7 +240,7 @@ static void _BRPeerManagerAddTxToPublishList(BRPeerManager *manager, BRTransacti
 
 static size_t _BRPeerManagerBlockLocators(BRPeerManager *manager, UInt256 locators[], size_t locatorsCount)
 {
-    // append 10 most recent block hashes, decending, then continue appending, doubling the step back each time,
+    // append 10 most recent block hashes, descending, then continue appending, doubling the step back each time,
     // finishing with the genesis block (top, -1, -2, -3, -4, -5, -6, -7, -8, -9, -11, -15, -23, -39, -71, -135, ..., 0)
     BRMerkleBlock *block = manager->lastBlock;
     int32_t step = 1, i = 0, j;
@@ -295,7 +295,7 @@ static void _BRPeerManagerLoadBloomFilter(BRPeerManager *manager, BRPeer *peer)
     filter = BRBloomFilterNew(manager->fpRate, addrsCount + utxosCount + txCount + 100, (uint32_t)BRPeerHash(peer),
                               BLOOM_UPDATE_ALL); // BUG: XXX txCount not the same as number of spent wallet outputs
     
-    for (size_t i = 0; i < addrsCount; i++) { // add addresses to watch for tx receiveing money to the wallet
+    for (size_t i = 0; i < addrsCount; i++) { // add addresses to watch for tx receiving money to the wallet
         UInt160 hash = UINT160_ZERO;
         
         BRAddressHash160(&hash, addrs[i].s);
@@ -377,7 +377,7 @@ static void _updateFilterLoadDone(void *info, int success)
         BRPeerSetNeedsFilterUpdate(peer, 0);
         peer->flags &= ~PEER_FLAG_NEEDSUPDATE;
         
-        if (manager->lastBlock->height < manager->estimatedHeight) { // if syncing, rerequest blocks
+        if (manager->lastBlock->height < manager->estimatedHeight) { // if syncing, re-request blocks
             peerInfo = calloc(1, sizeof(*peerInfo));
             assert(peerInfo != NULL);
             peerInfo->peer = peer;
@@ -803,7 +803,7 @@ static void _peerConnected(void *info)
             BRPeerScheduleDisconnect(peer, PROTOCOL_TIMEOUT); // schedule sync timeout
 
             // request just block headers up to a week before earliestKeyTime, and then merkleblocks after that
-            // we do not reset connect failure count yet incase this request times out
+            // we do not reset connect failure count yet in case this request times out
             if (manager->lastBlock->timestamp + 7*24*60*60 >= manager->earliestKeyTime) {
                 BRPeerSendGetblocks(peer, locators, count, UINT256_ZERO);
             }
@@ -1193,7 +1193,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
         // moving average number of tx-per-block
         manager->averageTxPerBlock = manager->averageTxPerBlock*0.999 + block->totalTx*0.001;
         
-        // 1% low pass filter, also weights each block by total transactions, compared to the avarage
+        // 1% low pass filter, also weights each block by total transactions, compared to the average
         manager->fpRate = manager->fpRate*(1.0 - 0.01*block->totalTx/manager->averageTxPerBlock) +
                           0.01*fpCount/manager->averageTxPerBlock;
         
@@ -1215,7 +1215,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
         BRMerkleBlockFree(block);
         block = NULL;
     }
-    else if (manager->bloomFilter == NULL) { // ingore potentially incomplete blocks when a filter update is pending
+    else if (manager->bloomFilter == NULL) { // ignore potentially incomplete blocks when a filter update is pending
         BRMerkleBlockFree(block);
         block = NULL;
 
@@ -1299,9 +1299,9 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
         }
     }
     else if (manager->lastBlock->height < BRPeerLastBlock(peer) &&
-             block->height > manager->lastBlock->height + 1) { // special case, new block mined durring rescan
+             block->height > manager->lastBlock->height + 1) { // special case, new block mined during rescan
         peer_log(peer, "marking new block #%"PRIu32" as orphan until rescan completes", block->height);
-        BRSetAdd(manager->orphans, block); // mark as orphan til we're caught up
+        BRSetAdd(manager->orphans, block); // mark as orphan till we're caught up
         manager->lastOrphan = block;
     }
     else if (block->height <= manager->params->checkpoints[manager->params->checkpointsCount - 1].height) { // old fork
@@ -1592,7 +1592,7 @@ BRPeerManager *BRPeerManagerNew(const BRChainParams *params, BRWallet *wallet, u
 // void savePeers(void *, int, const BRPeer[], size_t) - called when peers should be saved to the persistent store
 // - if replace is true, remove any previously saved peers first
 // int networkIsReachable(void *) - must return true when networking is available, false otherwise
-// void threadCleanup(void *) - called before a thread terminates to faciliate any needed cleanup
+// void threadCleanup(void *) - called before a thread terminates to facilitate any needed cleanup
 void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*syncStarted)(void *info),
                                void (*syncStopped)(void *info, int error),
@@ -1729,7 +1729,7 @@ void BRPeerManagerDisconnect(BRPeerManager *manager)
     dnsThreadCount = manager->dnsThreadCount;
     
     for (size_t i = peerCount; i > 0; i--) {
-        manager->connectFailureCount = MAX_CONNECT_FAILURES; // prevent futher automatic reconnect attempts
+        manager->connectFailureCount = MAX_CONNECT_FAILURES; // prevent further automatic reconnect attempts
         BRPeerDisconnect(manager->connectedPeers[i - 1]);
     }
     
@@ -1927,7 +1927,7 @@ void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *inf
 
             if (BRPeerConnectStatus(peer) != BRPeerStatusConnected) continue;
             
-            // instead of publishing to all peers, leave out downloadPeer to see if tx propogates/gets relayed back
+            // instead of publishing to all peers, leave out downloadPeer to see if tx propagates/gets relayed back
             // TODO: XXX connect to a random peer with an empty or fake bloom filter just for publishing
             if (peer != manager->downloadPeer || count == 1) {
                 _BRPeerManagerPublishPendingTx(manager, peer);
