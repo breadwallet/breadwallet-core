@@ -314,7 +314,7 @@ public class BRCoreWalletManager implements
     //
     // Exception Wrapped PeerManagerListener
     //
-    static private class WrappedExceptionPeerManagerListener implements BRCorePeerManager.Listener {
+    static public class WrappedExceptionPeerManagerListener implements BRCorePeerManager.Listener {
         private BRCorePeerManager.Listener listener;
 
         public WrappedExceptionPeerManagerListener(BRCorePeerManager.Listener listener) {
@@ -395,7 +395,7 @@ public class BRCoreWalletManager implements
     // Executor Wrapped PeerManagerListener
     //
 
-    public static class WrappedExecutorPeerManagerListener implements BRCorePeerManager.Listener {
+    static public class WrappedExecutorPeerManagerListener implements BRCorePeerManager.Listener {
         BRCorePeerManager.Listener listener;
         Executor executor;
 
@@ -475,7 +475,7 @@ public class BRCoreWalletManager implements
     //
     // Exception Wrapped WalletListener
     //
-    static private class WrappedExceptionWalletListener implements BRCoreWallet.Listener {
+    static public class WrappedExceptionWalletListener implements BRCoreWallet.Listener {
         private BRCoreWallet.Listener listener;
 
         public WrappedExceptionWalletListener(BRCoreWallet.Listener listener) {
