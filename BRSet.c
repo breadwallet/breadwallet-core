@@ -207,7 +207,7 @@ void *BRSetGet(const BRSet *set, const void *item)
     return t;
 }
 
-// integrates over set and returns the next item after previous, or NULL if no more items are available
+// iterates over set and returns the next item after previous, or NULL if no more items are available
 // if previous is NULL, an initial item is returned
 void *BRSetIterate(const BRSet *set, const void *previous)
 {
