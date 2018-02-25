@@ -26,35 +26,91 @@
 #ifndef BR_Ethereum_Wallet_H
 #define BR_Ethereum_Wallet_H
 
-#include "BREthereum.h"
-#include "BREthereumAddress.h"
+#include "BREthereumEther.h"
+#include "BREthereumGas.h"
+#include "BREthereumAccount.h"
 #include "BREthereumTransaction.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/**
+ * An EthereumWallet holds ETH or ERC20 Tokens.
+ *
+ * GetEtherPerHolding
+ * SetEtherPerHolding
+ * GetHoldingValueInEther
+ *
+ * GetLocalCurrentyPerHolding
+ * SetLocalCurrencyPerHolding
+ * GetHoldingValueInLocalCurrency
+ */
 typedef struct BREthereumWalletRecord *BREthereumWallet;
 
+/**
+ *
+ * @param account
+ * @return
+ */
 extern BREthereumWallet
-createEthereumWallet ();
+walletCreate(BREthereumAccount account);
 
-extern BREthereumTransaction
-createTransaction (BREthereumWallet wallet,
-                   BREthereumAddress recvAddress,
-                   BREthereumEther amount);
+/**
+ *
+ * @param account
+ * @param address
+ * @return
+ */
+extern BREthereumWallet
+walletCreateWithAddress(BREthereumAccount account,
+                        BREthereumAddress address);
 
+/**
+ * Create a Wallet holding Token.
+ *
+ * @param account
+ * @param token
+ * @return
+ */
+extern BREthereumWallet
+walletCreateHoldingToken(BREthereumAccount account,
+                         BREthereumAddress address,
+                         BREthereumToken token);
+
+/**
+ *
+ * @param wallet
+ * @param recvAddress
+ * @param amount
+ * @return
+ */
 extern BREthereumTransaction
-createTransactionDetailed(BREthereumWallet wallet,
-                          BREthereumAddress recvAddress,
-                          BREthereumEther amount,
-                          int gasPrice,
-                          int gasLimit,
-                          int nonce);
+walletCreateTransaction(BREthereumWallet wallet,
+                        BREthereumAddress recvAddress,
+                        BREthereumEther amount);
+
+/**
+ *
+ * @param wallet
+ * @param recvAddress
+ * @param amount
+ * @param gasPrice
+ * @param gasLimit
+ * @param nonce
+ * @return
+ */
+extern BREthereumTransaction
+walletCreateTransactionDetailed(BREthereumWallet wallet,
+                                BREthereumAddress recvAddress,
+                                BREthereumEther amount,
+                                BREthereumGasPrice gasPrice,
+                                BREthereumGas gasLimit,
+                                int nonce);
 
 extern void
-signTransaction (BREthereumWallet wallet,
-                 BREthereumTransaction transaction);
+walletSignTransaction(BREthereumWallet wallet,
+                      BREthereumTransaction transaction);
 
 /**
  * For `transaction`, get the 'signed transaction data' suitable for use in the RPC-JSON Ethereum
@@ -64,22 +120,67 @@ signTransaction (BREthereumWallet wallet,
  * @param transaction
  * @return
  */
-extern char *
-getRawTransaction (BREthereumWallet wallet,
-                   BREthereumTransaction transaction);
+extern char *  // uint8_t, EthereumByteArray
+walletGetRawTransaction(BREthereumWallet wallet,
+                        BREthereumTransaction transaction);
 
+/**
+ * Get the wallet's default Gas Limit.
+ *
+ * @param wallet
+ * @return
+ */
+extern BREthereumGas
+walletGetDefaultGasLimit(BREthereumWallet wallet);
 
+/**
+ * Set the wallet's default Gas Limit.  When creating a transaction, unless otherwise specified,
+ * this GasLimit is used.  The default value depends on the wallet type: ETH, ERC20 Token or
+ * Contract.
+ *
+ * @param wallet
+ * @param gasLimit
+ */
+extern void
+walletSetDefaultGasLimit(BREthereumWallet wallet, BREthereumGas gasLimit);
+
+/**
+ * Gets the wallet's default Gas Price.
+ *
+ * @param wallet
+ * @return
+ */
+extern BREthereumGasPrice
+walletGetDefaultGasPrice(BREthereumWallet wallet);
+
+/**
+ * Sets the wallets' default Gas Price.
+ *
+ * @param wallet
+ * @param gasPrice
+ */
+extern void
+walletSetDefaultGasPrice(BREthereumWallet wallet, BREthereumGasPrice gasPrice);
+
+/**
+ *
+ * [Used for walletCreateTransactionDetailed()]
+ *
+ * @param wallet
+ * @return
+ */
 extern int
-getDefaultGasLimit (BREthereumWallet wallet);
+walletGetNonce(BREthereumWallet wallet);
 
+/**
+ *
+ * [Used for walletCreateTransactionDetailed()]
+ *
+ * @param wallet
+ * @return
+ */
 extern int
-getDefaultGasPrice (BREthereumWallet wallet);
-
-extern int
-getNonce (BREthereumWallet wallet);
-
-extern int
-incrementNonce (BREthereumWallet wallet);
+walletIncrementNonce(BREthereumWallet wallet);
 
 #ifdef __cplusplus
 }

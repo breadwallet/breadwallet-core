@@ -24,7 +24,7 @@
 //  THE SOFTWARE.
 
 #include <malloc.h>
-#include "BREthereum.h"
+#include "BREthereumEther.h"
 
 static UInt256
 addUInt256PP (UInt256 x, UInt256 y);
@@ -67,8 +67,8 @@ static UInt256 etherUnitScaleFactor [NUMBER_OF_ETHER_UNITS] = {
 
 // positive
 extern UInt256
-getEtherValue (const BREthereumEther ether,
-               BREthereumEtherUnit unit) {
+etherGetValue(const BREthereumEther ether,
+              BREthereumEtherUnit unit) {
     switch (unit) {
         case WEI:
             return ether.valueInWEI;
@@ -79,13 +79,13 @@ getEtherValue (const BREthereumEther ether,
 
 // positive
 extern char *
-getEtherValueString (const BREthereumEther ether,
-                     BREthereumEtherUnit unit) {
-    return encodeUInt256(getEtherValue(ether, unit));
+etherGetValueString(const BREthereumEther ether,
+                    BREthereumEtherUnit unit) {
+    return encodeUInt256(etherGetValue(ether, unit));
 }
 
 extern BREthereumEther
-createEther (const UInt256 value, BREthereumEtherUnit unit) {
+etherCreate(const UInt256 value, BREthereumEtherUnit unit) {
     BREthereumEther ether;
     ether.positive = TRUE;
 
@@ -97,13 +97,19 @@ createEther (const UInt256 value, BREthereumEtherUnit unit) {
 }
 
 extern BREthereumEther
-createEtherString (const char *string, BREthereumEtherUnit unit) {
-    return createEther(decodeUInt256(string), unit);
+etherCreateString(const char *string, BREthereumEtherUnit unit) {
+    return etherCreate(decodeUInt256(string), unit);
 }
 
 extern BREthereumEther
-createEtherZero () {
-    return createEther (UINT256_ZERO, WEI);
+etherCreateNumber (uint64_t number, BREthereumEtherUnit unit) {
+    UInt256 value = { .u64 = { 0, 0, 0, number } };
+    return etherCreate (value, unit);
+}
+
+extern BREthereumEther
+etherCreateZero() {
+    return etherCreate(UINT256_ZERO, WEI);
 }
 
 extern BREthereumEther
@@ -119,7 +125,7 @@ etherNegate (BREthereumEther e) {
 extern BREthereumEther
 etherAdd (BREthereumEther e1, BREthereumEther e2) {
     if (ETHEREUM_BOOLEAN_IS_TRUE(e1.positive) && ETHEREUM_BOOLEAN_IS_TRUE(e2.positive)) {
-        return createEther (addUInt256PP (e1.valueInWEI, e2.valueInWEI), WEI);
+        return etherCreate(addUInt256PP(e1.valueInWEI, e2.valueInWEI), WEI);
     }
     else if (ETHEREUM_BOOLEAN_IS_TRUE(e1.positive) && ETHEREUM_BOOLEAN_IS_FALSE(e2.positive)) {
         return etherSub (e1, etherNegate(e2));
@@ -133,7 +139,7 @@ extern BREthereumEther
 etherSub (BREthereumEther e1, BREthereumEther e2) {
     if (ETHEREUM_BOOLEAN_IS_TRUE(e1.positive) && ETHEREUM_BOOLEAN_IS_TRUE(e2.positive)) {
         // TODO: Implement
-        return createEtherZero();
+        return etherCreateZero();
     }
     else if (ETHEREUM_BOOLEAN_IS_TRUE(e1.positive) && ETHEREUM_BOOLEAN_IS_FALSE(e2.positive)) {
         return etherAdd (e1, etherNegate(e2));

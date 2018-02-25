@@ -1,8 +1,8 @@
 //
-//  BREthereum
+//  sedes
 //  breadwallet-core Ethereum
 //
-//  Created by Ed Gamble on 2/24/18.
+//  Created by Ed Gamble on 2/25/18.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,14 +23,4 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_H
-#define BR_Ethereum_H
-
-#include "BREthereumEther.h"
-#include "BREthereumGas.h"
-#include "BREthereumAccount.h"
-#include "BREthereumTransaction.h"
-#include "BREthereumHolding.h"
-#include "BREthereumWallet.h"
-
-#endif // BR_Ethereum_H
+#include "sedes.h"

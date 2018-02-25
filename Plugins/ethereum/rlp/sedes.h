@@ -1,8 +1,8 @@
 //
-//  BBREthereumAddress.h
+//  sedes
 //  breadwallet-core Ethereum
 //
-//  Created by Ed Gamble on 2/21/2018.
+//  Created by Ed Gamble on 2/25/18.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,21 +23,15 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_Address_H
-#define BR_Ethereum_Address_H
+#ifndef BR_Ethereum_Sedes_H
+#define BR_Ethereum_Sedes_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// Value type?
-typedef struct BREthereumAddressRecord *BREthereumAddress;
-
-extern BREthereumAddress
-createEthereumAddress ();
-
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* BR_Ethereum_Address_H */
+#endif //BR_Ethereum_Sedes_H

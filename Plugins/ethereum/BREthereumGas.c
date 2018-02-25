@@ -1,5 +1,5 @@
 //
-//  BREthereum
+//  BREthereumGas
 //  breadwallet-core Ethereum
 //
 //  Created by Ed Gamble on 2/24/18.
@@ -23,14 +23,32 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_H
-#define BR_Ethereum_H
-
-#include "BREthereumEther.h"
 #include "BREthereumGas.h"
-#include "BREthereumAccount.h"
-#include "BREthereumTransaction.h"
-#include "BREthereumHolding.h"
-#include "BREthereumWallet.h"
 
-#endif // BR_Ethereum_H
+//
+// Gas
+//
+extern BREthereumGas
+gasCreate(uint64_t amountOfGas) {
+    BREthereumGas gas;
+    gas.amountOfGas = amountOfGas;
+    return gas;
+}
+
+//
+// Gas Price
+//
+extern BREthereumGasPrice
+gasPriceCreate(BREthereumEther ether) {
+    BREthereumGasPrice gasPrice;
+    gasPrice.etherPerGas = ether;
+    return gasPrice;
+}
+
+extern BREthereumEther
+gasPriceGetGasCost(BREthereumGasPrice price, BREthereumGas gas) {
+    BREthereumEther etherPerGas = price.etherPerGas;
+    uint64_t amountOfGas = gas.amountOfGas;
+
+    return etherCreate(UINT256_ZERO /* etherPerGas * amountOfGas */, WEI);
+}

@@ -24,80 +24,238 @@
 //  THE SOFTWARE.
 
 #include <malloc.h>
-#include "BREthereumWallet.h"
+#include <assert.h>
+#include "BREthereum.h"
 
+#define DEFAULT_ETHER_GAS_LIMIT    21000ull
+
+#define DEFAULT_ETHER_GAS_PRICE_NUMBER   2ull
+#define DEFAULT_ETHER_GAS_PRICE_UNIT     GWEI
+
+/* Forward Declarations */
+static BREthereumGasPrice
+walletCreateDefaultGasPrice (BREthereumWallet wallet);
+
+static BREthereumGas
+walletCreateDefaultGasLimit (BREthereumWallet wallet);
+
+/**
+ *
+ */
 struct BREthereumWalletRecord {
-    int nonce;
-    // account
-    // privateKey
 
+    /**
+     * The wallet's account.  The account is used to sign transactions.
+     */
+    BREthereumAccount account;
+
+    /**
+     * The wallet's primary address - perhaps the sole address.  Must be an address
+     * from the wallet's account.
+     */
+    BREthereumAddress address;      // Primary Address
+    // BRSet (addresses)
+
+    // gasPrice is the maximum price of gas you are willing to pay for this transaction.
+    // gasLimit is the maximum gas you are willing to pay for this transaction.
+    //
+
+
+    /**
+     * The wallet' default gasPrice. gasPrice is the maximum price of gas you are willing to pay
+     * for a transaction of this wallet's holding type.  This default value can be 'overridden'
+     * when creating a specific transaction.
+     */
+    BREthereumGasPrice defaultGasPrice;
+
+    /**
+     * The wallet's default gasLimit. gasLimit is the maximum gas you are willing to pay for t
+     * a transaction of this wallet's holding type.  This default value can be 'overridden'
+     * when creating a specific transaction.
+     */
+    BREthereumGas defaultGasLimit;
+
+    /**
+     * The wallet's holding, either ETHER or a TOKEN.
+     */
+    BREthereumHolding holding;
+
+    /**
+     * An optional ERC20 token specification.  Will be NULL (and unused) for holding ETHER.
+     */
+    BREthereumToken token; // optional
+
+    /**
+     * The number of transactions for this wallet.
+     */
+    int nonce;
 };
 
-extern BREthereumWallet
-createEthereumWallet ()
-{
+static BREthereumWallet
+walletCreateDetailed (BREthereumAccount account,
+                      BREthereumAddress address,
+                      BREthereumWalletHoldingType type,
+                      BREthereumToken optionalToken) {
     BREthereumWallet wallet = calloc (1, sizeof (struct BREthereumWalletRecord));
+
+    assert (NULL != account);
+    wallet->account = account;
+
+    assert (NULL != address);
+    wallet->address = address;
+
+    wallet->holding = holdingCreate(type);
+    wallet->token   = optionalToken;
+
+    wallet->defaultGasLimit = walletCreateDefaultGasLimit (wallet);
+    wallet->defaultGasPrice = walletCreateDefaultGasPrice (wallet);
+
     // nonce = eth.getTransactionCount(<account>)
     return wallet;
 }
 
-// gasPrice is the maximum price of gas you are willing to pay for this transaction.
-// gasLimit is the maximum gas you are willing to pay for this transaction.
-//
-extern BREthereumTransaction
-createTransaction(BREthereumWallet wallet,
-                  BREthereumAddress recvAddress,
-                  BREthereumEther amount) {
+extern BREthereumWallet
+walletCreate(BREthereumAccount account)
+{
+    return walletCreateWithAddress
+            (account,
+             accountCreateAddress(account));
+}
 
-    return createTransactionDetailed
+extern BREthereumWallet
+walletCreateWithAddress(BREthereumAccount account,
+                        BREthereumAddress address) {
+    return walletCreateDetailed
+            (account,
+            address,
+            WALLET_HOLDING_ETHER,
+            tokenCreateNone());
+}
+
+extern BREthereumWallet
+walletCreateHoldingToken(BREthereumAccount account,
+                         BREthereumAddress address,
+                         BREthereumToken token) {
+    return walletCreateDetailed
+            (account,
+            address,
+            WALLET_HOLDING_TOKEN,
+            token);
+}
+
+extern BREthereumTransaction
+walletCreateTransaction(BREthereumWallet wallet,
+                        BREthereumAddress recvAddress,
+                        BREthereumEther amount) {
+
+    return walletCreateTransactionDetailed
             (wallet,
              recvAddress,
              amount,
-             getDefaultGasPrice(wallet),
-             getDefaultGasLimit(wallet),
-             incrementNonce(wallet));
+             walletGetDefaultGasPrice(wallet),
+             walletGetDefaultGasLimit(wallet),
+             walletIncrementNonce(wallet));
 }
 
 extern BREthereumTransaction
-createTransactionDetailed(BREthereumWallet wallet,
-                          BREthereumAddress recvAddress,
-                          BREthereumEther amount,
-                          int gasPrice,
-                          int gasLimit,
-                          int nonce) {
-    return NULL;
+walletCreateTransactionDetailed(BREthereumWallet wallet,
+                                BREthereumAddress recvAddress,
+                                BREthereumEther amount,
+                                BREthereumGasPrice gasPrice,
+                                BREthereumGas gasLimit,
+                                int nonce) {
+    return transactionCreate(
+            wallet->address,
+            recvAddress,
+            amount,
+            gasPrice,
+            gasLimit,
+            nonce);
 }
 
+
 extern void
-signTransaction (BREthereumWallet wallet,
-                 BREthereumTransaction transaction) {
-    return;
+walletSignTransaction(BREthereumWallet wallet,
+                      BREthereumTransaction transaction) {
+    transactionSetSigner(transaction, wallet->account);
 }
 
 extern char *
-getRawTransaction (BREthereumWallet wallet,
-                   BREthereumTransaction transaction) {
+walletGetRawTransaction(BREthereumWallet wallet,
+                        BREthereumTransaction transaction) {
+    // Fill 'data'
+
+    // Convert transaction to some byte array
+
+    // Sign the bytes
+
+    // Attach the signature
+
+    // convert to raw bytes
+
     return NULL;
 }
 
 
-extern int
-getDefaultGasLimit (BREthereumWallet wallet) {
-    return 0;
+extern BREthereumGas
+walletGetDefaultGasLimit(BREthereumWallet wallet) {
+    return wallet->defaultGasLimit;
 }
 
-extern int
-getDefaultGasPrice (BREthereumWallet wallet) {
-    return 0;
+extern void
+walletSetDefaultGasLimit(BREthereumWallet wallet, BREthereumGas gasLimit) {
+    wallet->defaultGasLimit = gasLimit;
 }
 
+static BREthereumGas
+walletCreateDefaultGasLimit (BREthereumWallet wallet) {
+    switch (holdingGetType(wallet->holding)) {
+        case WALLET_HOLDING_ETHER:
+            return gasCreate (DEFAULT_ETHER_GAS_LIMIT);
+        case WALLET_HOLDING_TOKEN:
+            return tokenGetGasLimit (wallet->token);
+    }
+}
+
+
+//
+// Gas Price
+//
+
+extern BREthereumGasPrice
+walletGetDefaultGasPrice(BREthereumWallet wallet) {
+    return wallet->defaultGasPrice;
+}
+
+extern void
+walletSetDefaultGasPrice(BREthereumWallet wallet, BREthereumGasPrice gasPrice) {
+    wallet->defaultGasPrice = gasPrice;
+}
+
+static BREthereumGasPrice
+walletCreateDefaultGasPrice (BREthereumWallet wallet) {
+    switch (holdingGetType(wallet->holding)) {
+        case WALLET_HOLDING_ETHER:
+            return gasPriceCreate(
+                    etherCreateNumber
+                            (DEFAULT_ETHER_GAS_PRICE_NUMBER,
+                             DEFAULT_ETHER_GAS_PRICE_UNIT));
+        case WALLET_HOLDING_TOKEN:
+            return tokenGetGasPrice (wallet->token);
+    }
+}
+
+//
+// Nonce
+//
+
 extern int
-getNonce (BREthereumWallet wallet) {
+walletGetNonce(BREthereumWallet wallet) {
     return wallet->nonce;
 }
 
 extern int
-incrementNonce (BREthereumWallet wallet) {
+walletIncrementNonce(BREthereumWallet wallet) {
     return ++wallet->nonce;
 }
 
@@ -168,7 +326,7 @@ incrementNonce (BREthereumWallet wallet) {
  > {
     address: "0xb8CE9ab6943e0eCED004cDe8e3bBed6568B2Fa01",
     privateKey: "0x348ce564d427a3311b6536bbcff9390d69395b06ed6c486954e971d960fe8709",
-    signTransaction: function(tx){...},
+    walletSignTransaction: function(tx){...},
     sign: function(data){...},
     encrypt: function(password){...}
  }

@@ -1,8 +1,8 @@
 //
-//  BBREthereumTransaction.h
+//  BREthereumHolding
 //  breadwallet-core Ethereum
 //
-//  Created by Ed Gamble on 2/21/2018.
+//  Created by Ed Gamble on 2/25/18.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,10 +23,9 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_Transaction_H
-#define BR_Ethereum_Transaction_H
+#ifndef BR_Ethereum_Holding_H
+#define BR_Ethereum_Holding_H
 
-#include "BREthereumAccount.h"
 #include "BREthereumEther.h"
 #include "BREthereumGas.h"
 
@@ -34,44 +33,60 @@
 extern "C" {
 #endif
 
-// Value type
-typedef struct BREthereumTransactionRecord *BREthereumTransaction;
+/**
+ * An Ethereum Wallet holds either ETHER or TOKENs.
+ */
+typedef enum {
+    WALLET_HOLDING_ETHER,
+    WALLET_HOLDING_TOKEN
+} BREthereumWalletHoldingType;
 
-extern BREthereumTransaction
-transactionCreate(BREthereumAddress sourceAddress,
-                  BREthereumAddress targetAddress,
-                  BREthereumEther amount,
-                  BREthereumGasPrice gasPrice,
-                  BREthereumGas gasLimit,
-                  int nonce);
+/**
+ * An Ethereum Wallet holds a specific amount of ETHER or TOKENs
+ */
+typedef struct BREthereumHoldingRecord {
+    BREthereumWalletHoldingType type;
+    union {
+        struct {
+            BREthereumEther amount;
+        } ether;
+        struct {
+            UInt256 scale;
+            UInt256 amount;
+        } token;
+    } holding;
+} BREthereumHolding;
 
-extern BREthereumAddress
-transactionGetSourceAddress(BREthereumTransaction transaction);
+extern BREthereumHolding
+holdingCreate (BREthereumWalletHoldingType type);
 
-extern BREthereumAddress
-transactionGetTargetAddress(BREthereumTransaction transaction);
+extern BREthereumWalletHoldingType
+holdingGetType (BREthereumHolding holding);
 
-extern BREthereumEther
-transactionGetAmount (BREthereumTransaction transaction);
+/**
+ * A Ethereum Token defines an ERC20 Token
+ */
+typedef struct BREthereumTokenRecord {
+    int pending1; // token identifier
+    int pending2; //
+    BREthereumGas gasLimit;
+    BREthereumGasPrice gasPrice;
+} BREthereumToken;
 
-extern BREthereumGasPrice
-transactionGetGasPrice (BREthereumTransaction transaction);
+extern BREthereumToken
+tokenCreate (/* ... */);
+
+extern BREthereumToken
+tokenCreateNone ();
 
 extern BREthereumGas
-transactionGetGasLimit (BREthereumTransaction transaction);
+tokenGetGasLimit (BREthereumToken token);
 
-extern BREthereumAccount
-transactionGetSigner (BREthereumTransaction transaction);
-
-// Error if account does not hold sourceAddress ?
-extern void
-transactionSetSigner (BREthereumTransaction transaction, BREthereumAccount account);
-
-extern BREthereumBoolean
-transactionIsSigned (BREthereumTransaction transaction);
+extern BREthereumGasPrice
+tokenGetGasPrice (BREthereumToken token);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* BR_Ethereum_Transaction_H */
+#endif //BR_Ethereum_Holding_H

@@ -1,8 +1,8 @@
 //
-//  BREthereum
+//  BBREthereumAddress.c
 //  breadwallet-core Ethereum
 //
-//  Created by Ed Gamble on 2/24/18.
+//  Created by Ed Gamble on 2/21/2018.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,14 +23,29 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_H
-#define BR_Ethereum_H
-
+#include <malloc.h>
 #include "BREthereumEther.h"
-#include "BREthereumGas.h"
 #include "BREthereumAccount.h"
-#include "BREthereumTransaction.h"
-#include "BREthereumHolding.h"
-#include "BREthereumWallet.h"
 
-#endif // BR_Ethereum_H
+struct BREthereumAddressRecord {
+    UInt160 addr;
+};
+
+struct BREthereumAccountRecord {
+    int foo;
+};
+
+extern BREthereumAccount
+accountCreate(/* private key - derived from paper key - can create BIP32 addresses */) {
+    BREthereumAccount account = (BREthereumAccount) calloc (1, sizeof (struct BREthereumAccountRecord));
+    return account;
+}
+
+extern BREthereumAddress
+accountCreateAddress(BREthereumAccount account) {
+    BREthereumAddress address = calloc (1, sizeof (struct BREthereumAddressRecord));
+
+    // Generate from account.
+    return address;
+}
+

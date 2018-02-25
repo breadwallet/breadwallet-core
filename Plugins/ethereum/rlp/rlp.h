@@ -1,8 +1,8 @@
 //
-//  BBREthereumAddress.c
+//  rlp
 //  breadwallet-core Ethereum
 //
-//  Created by Ed Gamble on 2/21/2018.
+//  Created by Ed Gamble on 2/25/18.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,17 +23,15 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include <malloc.h>
-#include "BREthereum.h"
-#include "BREthereumAddress.h"
+#ifndef BR_Ethereum_RLP_H
+#define BR_Ethereum_RLP_H
 
-struct BREthereumAddressRecord {
-    UInt160 addr;
-};
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-extern BREthereumAddress
-createEthereumAddress ()
-{
-    BREthereumAddress address = calloc (1, sizeof (struct BREthereumAddressRecord));
-    return address;
+#ifdef __cplusplus
 }
+#endif
+
+#endif //BR_Ethereum_RLP_H
