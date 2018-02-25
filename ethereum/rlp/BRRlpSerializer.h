@@ -23,4 +23,15 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include "sedes.h"
+#ifndef BR_RLP_Serializer_H
+#define BR_RLP_Serializer_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif //BR_RLP_Serializer_H

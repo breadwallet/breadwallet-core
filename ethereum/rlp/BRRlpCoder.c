@@ -1,5 +1,5 @@
 //
-//  sedes
+//  rlp
 //  breadwallet-core Ethereum
 //
 //  Created by Ed Gamble on 2/25/18.
@@ -23,15 +23,4 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_Sedes_H
-#define BR_Ethereum_Sedes_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif //BR_Ethereum_Sedes_H
+#include "BRRlpCoder.h"

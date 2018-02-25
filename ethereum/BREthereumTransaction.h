@@ -30,6 +30,8 @@
 #include "BREthereumEther.h"
 #include "BREthereumGas.h"
 
+#include "BRRlp.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -1,5 +1,5 @@
 //
-//  rlp
+//  BRRlp
 //  breadwallet-core Ethereum
 //
 //  Created by Ed Gamble on 2/25/18.
@@ -23,4 +23,10 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include "rlp.h"
+#ifndef BR_RLP_H
+#define BR_RLP_H
+
+#include "BRRlpSerializer.h"
+#include "BRRlpCoder.h"
+
+#endif //BR_RLP_H

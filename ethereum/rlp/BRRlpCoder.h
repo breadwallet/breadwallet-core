@@ -23,8 +23,8 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_RLP_H
-#define BR_Ethereum_RLP_H
+#ifndef BR_RLP_Coder_H
+#define BR_RLP_Coder_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,4 +34,4 @@ extern "C" {
 }
 #endif
 
-#endif //BR_Ethereum_RLP_H
+#endif //BR_RLP_Coder_H
