@@ -149,6 +149,9 @@ inline static int BRTransactionEq(const void *tx, const void *otherTx)
     return (tx == otherTx || UInt256Eq(((const BRTransaction *)tx)->txHash, ((const BRTransaction *)otherTx)->txHash));
 }
 
+int BRTransactionValidate (const BRTransaction *tx);
+void BRTransactionValidateAssert (const BRTransaction *tx);
+
 // frees memory allocated for tx
 void BRTransactionFree(BRTransaction *tx);
 

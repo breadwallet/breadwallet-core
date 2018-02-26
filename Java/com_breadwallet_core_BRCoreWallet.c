@@ -196,7 +196,7 @@ Java_com_breadwallet_core_BRCoreWallet_jniGetTransactions
 
     size_t transactionCount = BRWalletTransactions (wallet, NULL, 0);
     BRTransaction *transactions[transactionCount];
-    BRWalletTransactions (wallet, transactions, transactionCount);
+    transactionCount = BRWalletTransactions (wallet, transactions, transactionCount);
 
     jobjectArray transactionArray = (*env)->NewObjectArray (env, transactionCount, transactionClass, 0);
 

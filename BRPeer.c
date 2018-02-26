@@ -1154,6 +1154,7 @@ void BRPeerConnect(BRPeer *peer)
                 //if (ctx->disconnected) ctx->disconnected(ctx->info, error);
             }
             else if (pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0 ||
+                     pthread_attr_setstacksize(&attr, 2 * 1024 * 1024) != 0 ||
                      pthread_create(&ctx->thread, &attr, _peerThreadRoutine, peer) != 0) {
                 error = EAGAIN;
                 peer_log(peer, "error creating thread");
