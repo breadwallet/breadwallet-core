@@ -49,12 +49,6 @@ typedef struct BREthereumEtherStruct {
     UInt256 valueInWEI;
 } BREthereumEther;
 
-extern UInt256
-etherGetValue(const BREthereumEther ether, BREthereumEtherUnit unit);
-
-extern char *
-etherGetValueString(const BREthereumEther ether, BREthereumEtherUnit unit);
-
 extern BREthereumEther
 etherCreate(const UInt256 value, BREthereumEtherUnit unit);
 
@@ -66,6 +60,12 @@ etherCreateNumber (uint64_t number, BREthereumEtherUnit unit);
 
 extern BREthereumEther
 etherCreateZero();
+
+extern UInt256
+etherGetValue(const BREthereumEther ether, BREthereumEtherUnit unit);
+
+extern char *
+etherGetValueString(const BREthereumEther ether, BREthereumEtherUnit unit);
 
 extern BREthereumEther
 etherNegate (BREthereumEther);

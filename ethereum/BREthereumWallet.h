@@ -120,7 +120,7 @@ walletSignTransaction(BREthereumWallet wallet,
  * @param transaction
  * @return
  */
-extern char *  // uint8_t, EthereumByteArray
+extern BRRlpData  // uint8_t, EthereumByteArray
 walletGetRawTransaction(BREthereumWallet wallet,
                         BREthereumTransaction transaction);
 

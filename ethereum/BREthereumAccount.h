@@ -40,7 +40,7 @@ typedef struct BREthereumAccountRecord *BREthereumAccount;
  * account is conceptually identical to the App's 'private key' derived from the User's 'paper
  * key'.  An EthereumAccount uses BIP32 (probably not BIP44) to generate addresses; and thus
  * the provided 'private key' must be suitable for BIP32.  [The 'private key` argument is likely
- * to be a BRMasterPubKey thingy]
+ * a BRMasterPubKey thingy]
  *
  * An EthereumAccount can generate an essentially arbitrary number of EthereumAddress-es.  However,
  * in Ethereum addresses are not a factor in privacy; therefore, we'll use one EthereumAddress per

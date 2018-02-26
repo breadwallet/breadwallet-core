@@ -26,9 +26,16 @@
 #ifndef BR_RLP_Coder_H
 #define BR_RLP_Coder_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef struct BRRlpDataRecord {
+    size_t byteCount;
+    uint8_t *bytes;
+} BRRlpData;
 
 #ifdef __cplusplus
 }

@@ -116,6 +116,24 @@ transactionIsSigned (BREthereumTransaction transaction) {
     return NULL != transactionGetSigner (transaction) ? TRUE : FALSE;
 }
 
+//
+// RLP
+//
+
+extern BRRlpData
+transactionEncodeRLP (BREthereumTransaction transaction,
+                      BREthereumTranactionRLPType type) {
+    BRRlpData data;
+    return data;
+}
+
+extern BREthereumTransaction
+createTransactionDecodeRLP (BRRlpData data,
+                            BREthereumTranactionRLPType type) {
+    BREthereumTransaction transaction;
+    return transaction;
+}
+
 
 /*
      https://github.com/ethereum/pyethereum/blob/develop/ethereum/transactions.py#L22

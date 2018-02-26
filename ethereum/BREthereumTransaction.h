@@ -30,7 +30,7 @@
 #include "BREthereumEther.h"
 #include "BREthereumGas.h"
 
-#include "BRRlp.h"
+#include "rlp/BRRlp.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -71,6 +71,22 @@ transactionSetSigner (BREthereumTransaction transaction, BREthereumAccount accou
 
 extern BREthereumBoolean
 transactionIsSigned (BREthereumTransaction transaction);
+
+//
+// RLP Encoding
+//
+typedef enum {
+    TRANSACTION_RLP_SIGNED,
+    TRANSACTION_RLP_UNSIGNED
+} BREthereumTranactionRLPType;
+
+extern BRRlpData
+transactionEncodeRLP (BREthereumTransaction transaction,
+                      BREthereumTranactionRLPType type);
+
+extern BREthereumTransaction
+createTransactionDecodeRLP (BRRlpData data,
+                            BREthereumTranactionRLPType type);
 
 #ifdef __cplusplus
 }
