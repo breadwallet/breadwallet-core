@@ -26,6 +26,7 @@
 #include "BRKey.h"
 #include "BRAddress.h"
 #include "BRArray.h"
+#include "BRPeer.h"
 #include <stdlib.h>
 #include <inttypes.h>
 #include <limits.h>
@@ -630,7 +631,15 @@ int BRTransactionValidate (const BRTransaction *tx) {
 }
 
 void BRTransactionValidateAssert (const BRTransaction *tx) {
-    assert (BRTransactionValidate(tx));
+    if (!BRTransactionValidate(tx)) {
+        _peer_log("\n\nBad Trans: %p\n", tx);
+        if (NULL != tx) {
+            _peer_log("  Version: %d\n", tx->version);
+            _peer_log("   Inputs: (%zu) %p\n", tx->inCount, tx->inputs);
+            _peer_log("  Outputs: (%zu) %p\n", tx->outCount, tx->outputs);
+        }
+    }
+//    assert (BRTransactionValidate(tx));
 }
 
 // frees memory allocated for tx

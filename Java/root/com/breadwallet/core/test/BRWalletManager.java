@@ -263,6 +263,8 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println("          Cash: " + bitcashAddr);
         String bitcoinAddr2 = BRCoreAddress.bcashDecodeBitcoin(bitcashAddr);
         asserting (bitcoinAddr1.equals(bitcoinAddr2));
+        String bitcoinAddr3 = BRCoreAddress.bcashDecodeBitcoin("bitcoincash:qzfhn2f7dwsfqdf6nlu07rw6c3ssqe9rm5a5y8tgm9");
+        assert (null != bitcoinAddr3 && !bitcoinAddr3.isEmpty());
 
         //
         //
