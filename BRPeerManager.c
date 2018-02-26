@@ -509,6 +509,9 @@ static void _requestUnrelayedTxGetdataDone(void *info, int success)
             
             if (! isPublishing && _BRTxPeerListCount(manager->txRelays, tx[i]->txHash) == 0 &&
                 _BRTxPeerListCount(manager->txRequests, tx[i]->txHash) == 0) {
+                peer_log(peer, "removing tx unconfirmed at height: %d, txHash: %s", manager->lastBlock->height,
+                         u256hex(tx[i]->txHash));
+                assert(tx[i]->blockHeight == TX_UNCONFIRMED);
                 BRWalletRemoveTransaction(manager->wallet, tx[i]->txHash);
             }
             else if (! isPublishing && _BRTxPeerListCount(manager->txRelays, tx[i]->txHash) < manager->maxConnectCount){
@@ -788,7 +791,11 @@ static void _peerConnected(void *info)
                 BRPeerLastBlock(p) > BRPeerLastBlock(peer)) peer = p;
         }
         
-        if (manager->downloadPeer) BRPeerDisconnect(manager->downloadPeer);
+        if (manager->downloadPeer) {
+            peer_log(peer, "selecting new download peer with higher reported lastblock");
+            BRPeerDisconnect(manager->downloadPeer);
+        }
+        
         manager->downloadPeer = peer;
         manager->isConnected = 1;
         manager->estimatedHeight = BRPeerLastBlock(peer);
@@ -1527,6 +1534,7 @@ BRPeerManager *BRPeerManagerNew(const BRChainParams *params, BRWallet *wallet, u
     
     assert(manager != NULL);
     assert(params != NULL);
+    assert(params->standardPort != 0);
     assert(wallet != NULL);
     assert(blocks != NULL || blocksCount == 0);
     assert(peers != NULL || peersCount == 0);

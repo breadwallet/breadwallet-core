@@ -222,7 +222,8 @@ static int _BRPeerAcceptVersionMessage(BRPeer *peer, const uint8_t *msg, size_t 
             off += strLen;
             ctx->lastblock = UInt32GetLE(&msg[off]);
             off += sizeof(uint32_t);
-            peer_log(peer, "got version %"PRIu32", useragent:\"%s\"", ctx->version, ctx->useragent);
+            peer_log(peer, "got version %"PRIu32", services %"PRIx64", useragent:\"%s\"", ctx->version, peer->services,
+                     ctx->useragent);
             BRPeerSendVerackMessage(peer);
         }
     }
