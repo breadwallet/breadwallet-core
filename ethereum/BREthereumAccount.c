@@ -49,3 +49,23 @@ accountCreateAddress(BREthereumAccount account) {
     return address;
 }
 
+extern BREthereumSignature
+accountSignBytes(BREthereumAccount account,
+                 BREthereumAddress address,
+                 BREthereumSignatureType type,
+                 uint8_t bytes,
+                 size_t bytesCount) {
+    BREthereumSignature signature;
+
+    signature.type = type;
+
+    // TODO: Implement
+    switch (type) {
+        case SIGNATURE_TYPE_FOO:
+            break;
+        case SIGNATURE_TYPE_VRS:
+            break;
+    }
+    return signature;
+}
+

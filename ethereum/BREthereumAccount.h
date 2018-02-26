@@ -60,8 +60,40 @@ accountCreate(/* private key - derived from paper key - can create BIP32 address
 extern BREthereumAddress
 accountCreateAddress(BREthereumAccount account);
 
+//
+// Signature
+//
 
-// sign a byte array
+typedef enum {
+    SIGNATURE_TYPE_FOO,
+    SIGNATURE_TYPE_VRS
+} BREthereumSignatureType;
+
+typedef struct {
+    BREthereumSignatureType type;
+    union {
+        struct { int ignore; } foo;
+        struct { int v, r, s; } bar;
+    } sig;
+} BREthereumSignature;
+
+
+/**
+ * Sign an arbitrary array of bytes with the account's private key using the signature algorithm
+ * specified by `type`.
+ *
+ * @param account
+ * @param type
+ * @param bytes
+ * @param bytesCount
+ * @return
+ */
+extern BREthereumSignature
+accountSignBytes(BREthereumAccount account,
+                 BREthereumAddress address,
+                 BREthereumSignatureType type,
+                 uint8_t bytes,
+                 size_t bytesCount);
 
 #ifdef __cplusplus
 }

@@ -72,21 +72,27 @@ transactionSetSigner (BREthereumTransaction transaction, BREthereumAccount accou
 extern BREthereumBoolean
 transactionIsSigned (BREthereumTransaction transaction);
 
+extern void
+transactionSetData (BREthereumTransaction transaction, char *data);
+
+extern void
+transactionSetVRS(BREthereumTransaction transaction, int v, int r, int s);
+
 //
 // RLP Encoding
 //
 typedef enum {
     TRANSACTION_RLP_SIGNED,
     TRANSACTION_RLP_UNSIGNED
-} BREthereumTranactionRLPType;
+} BREthereumTransactionRLPType;
 
 extern BRRlpData
 transactionEncodeRLP (BREthereumTransaction transaction,
-                      BREthereumTranactionRLPType type);
+                      BREthereumTransactionRLPType type);
 
 extern BREthereumTransaction
 createTransactionDecodeRLP (BRRlpData data,
-                            BREthereumTranactionRLPType type);
+                            BREthereumTransactionRLPType type);
 
 #ifdef __cplusplus
 }

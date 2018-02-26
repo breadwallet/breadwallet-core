@@ -24,6 +24,7 @@
 //  THE SOFTWARE.
 
 #include <malloc.h>
+#include <string.h>
 #include "BREthereumTransaction.h"
 
 struct BREthereumTransactionRecord {
@@ -33,13 +34,15 @@ struct BREthereumTransactionRecord {
     BREthereumGasPrice gasPrice;
     BREthereumGas gasLimit;
 
-    // data
-    // v
-    // r
-    // s
+    // TODO: Proper type: data, v, r, s
+    char *data;
+    int v;
+    int r;
+    int s;
+
     // hash
 
-    // Signer
+    // Signer - needed?
     BREthereumAccount signer; // optional
 };
 
@@ -117,19 +120,38 @@ transactionIsSigned (BREthereumTransaction transaction) {
 }
 
 //
+// Data
+//
+extern void
+transactionSetData (BREthereumTransaction transaction, char *data) {
+    transaction->data = malloc(1 + strlen(data));
+    strcpy(transaction->data, data);
+}
+
+//
+// VRS
+//
+extern void
+transactionSetVRS(BREthereumTransaction transaction, int v, int r, int s) {
+    transaction->v = v;
+    transaction->r = r;
+    transaction->s = s;
+}
+
+//
 // RLP
 //
 
 extern BRRlpData
 transactionEncodeRLP (BREthereumTransaction transaction,
-                      BREthereumTranactionRLPType type) {
+                      BREthereumTransactionRLPType type) {
     BRRlpData data;
     return data;
 }
 
 extern BREthereumTransaction
 createTransactionDecodeRLP (BRRlpData data,
-                            BREthereumTranactionRLPType type) {
+                            BREthereumTransactionRLPType type) {
     BREthereumTransaction transaction;
     return transaction;
 }

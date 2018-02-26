@@ -33,7 +33,7 @@ extern "C" {
 #endif
 
 typedef struct BRRlpDataRecord {
-    size_t byteCount;
+    size_t bytesCount;
     uint8_t *bytes;
 } BRRlpData;
 

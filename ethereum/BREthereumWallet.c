@@ -26,6 +26,7 @@
 #include <malloc.h>
 #include <assert.h>
 #include "BREthereum.h"
+#include "BREthereumAccount.h"
 
 #define DEFAULT_ETHER_GAS_LIMIT    21000ull
 
@@ -182,24 +183,48 @@ walletSignTransaction(BREthereumWallet wallet,
     // Maybe sign and cache; maybe defer until needed (lazy sign).
 }
 
-extern BRRlpData
+static char *
+walletDataForHolding (BREthereumWallet wallet) {
+    // TODO: Implement
+    switch (wallet->holding.type) {
+        case WALLET_HOLDING_ETHER:
+            return "ether";
+
+        case WALLET_HOLDING_TOKEN:
+            return "token";
+    }
+}
+
+extern BRRlpData // TODO: is this the actual result?
 walletGetRawTransaction(BREthereumWallet wallet,
                         BREthereumTransaction transaction) {
+
+    // TODO: This is properly done in 'transaction` (if `transaction` sees `account`-ish)
+
+    // Fill in the transaction data appropriate for the holding (ETHER or TOKEN)
+    transactionSetData(transaction, walletDataForHolding(wallet));
 
     // RLP Encode the UNSIGNED transaction
     BRRlpData transactionUnsignedRLP = transactionEncodeRLP
             (transaction, TRANSACTION_RLP_UNSIGNED);
 
     // Sign the RLP Encoded bytes.
-    // accountSign (wallet->account, wallet->address, transactionUnsignedRLP);
+    BREthereumSignature signature = accountSignBytes
+            (wallet->account,
+             wallet->address,
+             SIGNATURE_TYPE_VRS,
+             transactionUnsignedRLP.bytes,
+             transactionUnsignedRLP.bytesCount);
 
     // Attach the signature
-    // transactionSetVRS (transaction, v, r, s);
+    transactionSetVRS(transaction,
+                      signature.sig.bar.v,
+                      signature.sig.bar.r,
+                      signature.sig.bar.s);
 
     // RLP Encode the SIGNED transaction.
-    // TODO: is this the actual result?
-    return transactionEncodeRLP (transaction, TRANSACTION_RLP_SIGNED);
-
+    return transactionEncodeRLP(transaction, TRANSACTION_RLP_SIGNED);
+}
     /*
 
     signing_data = RLP.encode(self, sedes: UnsignedTransaction)
@@ -268,7 +293,6 @@ walletGetRawTransaction(BREthereumWallet wallet,
 
 
      */
-}
 
 extern BREthereumGas
 walletGetDefaultGasLimit(BREthereumWallet wallet) {
