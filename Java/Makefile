@@ -53,6 +53,7 @@ CORE_SRCS=../BRAddress.c \
 	../BRBIP38Key.c \
 	../BRBIP39Mnemonic.c \
 	../BRBase58.c \
+	../BRBech32.c \
 	../BRBloomFilter.c \
 	../BRCrypto.c \
 	../BRKey.c \

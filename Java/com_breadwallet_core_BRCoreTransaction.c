@@ -380,6 +380,17 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreTransaction_initializeNat
     assert (NULL != transactionOutputConstructor);
 }
 
+/*
+ * Class:     com_breadwallet_core_BRCoreTransaction
+ * Method:    validate
+ * Signature: ()Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreTransaction_validate
+        (JNIEnv *env, jobject thisObject) {
+    BRTransaction *transaction = (BRTransaction *) getJNIReference (env, thisObject);
+
+    return 1 == BRTransactionValidate(transaction)? JNI_TRUE : JNI_FALSE;
+}
 
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction

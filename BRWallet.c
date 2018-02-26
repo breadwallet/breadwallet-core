@@ -165,7 +165,7 @@ static int _BRWalletContainsTx(BRWallet *wallet, const BRTransaction *tx)
     
     for (size_t i = 0; ! r && i < tx->inCount; i++) {
         BRTransaction *t = BRSetGet(wallet->allTx, &tx->inputs[i].txHash);
-        BRTransactionValidateAssert(t);
+        if (t) BRTransactionValidateAssert(t);
         uint32_t n = tx->inputs[i].index;
         
         if (t && n < t->outCount && BRSetContains(wallet->allAddrs, t->outputs[n].address)) r = 1;
