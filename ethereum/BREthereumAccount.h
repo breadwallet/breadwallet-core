@@ -92,7 +92,7 @@ extern BREthereumSignature
 accountSignBytes(BREthereumAccount account,
                  BREthereumAddress address,
                  BREthereumSignatureType type,
-                 uint8_t bytes,
+                 uint8_t *bytes,
                  size_t bytesCount);
 
 #ifdef __cplusplus
