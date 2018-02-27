@@ -30,10 +30,70 @@
 extern "C" {
 #endif
 
-// Value type?
+//
+// BIP39 Word List
+//
+
+/**
+ * Install 'wordList' as the default.  THIS SHARED MEMORY; DO NOT FREE wordList.
+ *
+ * @param wordList
+ * @param wordListLength
+ * @return
+ */
+extern int
+installSharedWordList (char *wordList[], int wordListLength);
+
+//
+// Address
+//
+
+/**
+ *
+ */
 typedef struct BREthereumAddressRecord *BREthereumAddress;
 
-typedef struct BREthereumAccountRecord *BREthereumAccount;
+/**
+ * The address' privateKey as a newly allocated 'char *'
+ *
+ * @param address
+ * @return
+ */
+extern const char *
+addressGetPrivateKeyString (BREthereumAddress address);
+
+/**
+ * The address' publicKey as a newly allocated 'char *'
+ *
+ * @param address
+ * @return
+ */
+extern char *
+addressGetPublicKeyString (BREthereumAddress address);
+
+/**
+ * The address' publicKey as a 'hash 160'
+ *
+ * @param address
+ * @return
+ */
+extern const UInt160
+addressGetPublicKeyHash160 (BREthereumAddress address);
+
+/**
+ * The address' publicKey as an 'Ethereum Address String' (Keccak256 encoded with a '0x' prefix).
+ *
+ * @param address
+ * @return
+ */
+extern char *
+addressGetPublicKeyKeccak256 (BREthereumAddress address);
+
+// sign something with this private key...
+
+//
+// Account
+//
 
 /**
  * The Bread App will have a single EthereumAccount for both Ether and all ERC20 tokens.  This
@@ -46,19 +106,37 @@ typedef struct BREthereumAccountRecord *BREthereumAccount;
  * in Ethereum addresses are not a factor in privacy; therefore, we'll use one EthereumAddress per
  * EthereumWallet - all transactions for that wallet will use the same address.
  *
+ */
+typedef struct BREthereumAccountRecord *BREthereumAccount;
+
+/**
+ * Create a new account using paperKey and the sharedWordList (see installSharedWordList).
+ *
+ * @param paperKey
  * @return
  */
 extern BREthereumAccount
-accountCreate(/* private key - derived from paper key - can create BIP32 addresses */);
+accountCreate(const char *paperKey);
 
 /**
- * Create an EthereumAddress for the provided `account`
+ * Create a new account using paperKey and the provided wordList
+ *
+ * @param paperKey
+ * @param wordList
+ * @param wordListLength
+ * @return
+ */
+extern BREthereumAccount
+accountCreateDetailed(const char *paperKey, const char *wordList[], const int wordListLength);
+
+/**
+ * The account's primary address (aka 'address[0]')
+ *
  * @param account
  * @return
  */
-
 extern BREthereumAddress
-accountCreateAddress(BREthereumAccount account);
+accountGetPrimaryAddress (BREthereumAccount account);
 
 //
 // Signature
