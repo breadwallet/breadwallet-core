@@ -143,7 +143,7 @@ static size_t _BRBCashAddrEncode(char *addr55, const char *hrp, const uint8_t da
 // returns the number of bytes written to bitcoinAddr36 (maximum of 36)
 size_t BRBCashAddrDecode(char *bitcoinAddr36, const char *bCashAddr)
 {
-    uint8_t data[21], ver = 0xff;
+    uint8_t data[21], ver = UINT8_MAX;
     char hrp[12];
     
     assert(bitcoinAddr36 != NULL);
@@ -161,7 +161,7 @@ size_t BRBCashAddrDecode(char *bitcoinAddr36, const char *bCashAddr)
     }
 
     data[0] = ver;
-    return (ver != 0xff) ? BRBase58CheckEncode(bitcoinAddr36, 36, data, 21) : 0;
+    return (ver != UINT8_MAX) ? BRBase58CheckEncode(bitcoinAddr36, 36, data, 21) : 0;
 }
 
 // returns the number of bytes written to bCashAddr55 (maximum of 55)
