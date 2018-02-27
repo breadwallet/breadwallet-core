@@ -47,6 +47,12 @@ getJNIReference (
         JNIEnv *env,
         jobject thisObject);
 
+//
+// JNI Support
+//
+extern char *
+jniGetClassName (JNIEnv *env, jobject obj);
+
 
 //
 // Support

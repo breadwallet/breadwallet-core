@@ -23,6 +23,7 @@
 #include <malloc.h>
 #include <assert.h>
 #include <BRBIP39Mnemonic.h>
+#include <android/log.h>
 #include "BRWallet.h"
 #include "BRAddress.h"
 #include "BRCoreJni.h"
@@ -68,15 +69,20 @@ Java_com_breadwallet_core_BRCoreWallet_createJniCoreWallet
 
     // Transactions
     size_t transactionsCount = (*env)->GetArrayLength(env, objTransactionsArray);
-    BRTransaction *transactions[transactionsCount];
+    BRTransaction **transactions = (BRTransaction **) calloc (transactionsCount, sizeof (BRTransaction *));
 
     for (int index = 0; index < transactionsCount; index++) {
         jobject objTransaction = (*env)->GetObjectArrayElement (env, objTransactionsArray, index);
+        // TODO: Transaction Copy?  Confirm isRegistered.
         transactions[index] = (BRTransaction *) getJNIReference(env, objTransaction);
         (*env)->DeleteLocalRef (env, objTransaction);
     }
 
-    return (jlong) BRWalletNew(transactions, transactionsCount, *masterPubKey);
+    BRWallet *wallet = BRWalletNew(transactions, transactionsCount, *masterPubKey);
+
+    if (NULL != transactions) free (transactions);
+
+    return (jlong) wallet;
 }
 
 /*
@@ -152,6 +158,8 @@ Java_com_breadwallet_core_BRCoreWallet_getAllAddresses
         (*env)->DeleteLocalRef (env, addrObject);
     }
 
+    if (NULL != addresses) free (addresses);
+
     return addrArray;
 }
 
@@ -195,7 +203,7 @@ Java_com_breadwallet_core_BRCoreWallet_jniGetTransactions
     BRWallet  *wallet  = (BRWallet  *) getJNIReference (env, thisObject);
 
     size_t transactionCount = BRWalletTransactions (wallet, NULL, 0);
-    BRTransaction *transactions[transactionCount];
+    BRTransaction **transactions = (BRTransaction **) calloc (transactionCount, sizeof (BRTransaction *));
     transactionCount = BRWalletTransactions (wallet, transactions, transactionCount);
 
     jobjectArray transactionArray = (*env)->NewObjectArray (env, transactionCount, transactionClass, 0);
@@ -211,6 +219,8 @@ Java_com_breadwallet_core_BRCoreWallet_jniGetTransactions
         (*env)->SetObjectArrayElement (env, transactionArray, index, transactionObject);
         (*env)->DeleteLocalRef (env, transactionObject);
     }
+
+    if (NULL != transactions) free (transactions);
 
     return transactionArray;
 }
@@ -239,6 +249,8 @@ Java_com_breadwallet_core_BRCoreWallet_getTransactionsConfirmedBefore
         (*env)->SetObjectArrayElement (env, transactionArray, index, transactionObject);
         (*env)->DeleteLocalRef (env, transactionObject);
     }
+
+    if (NULL != transactions) free (transactions);
 
     return transactionArray;
 }
@@ -331,7 +343,7 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreWallet_getDefaultFeePerK
 JNIEXPORT jobject JNICALL
 Java_com_breadwallet_core_BRCoreWallet_createTransaction
         (JNIEnv *env, jobject thisObject, jlong amount, jobject addressObject) {
-    BRWallet *wallet = (BRWallet *) getJNIReference(env, thisObject);
+    BRWallet  *wallet  = (BRWallet  *) getJNIReference(env, thisObject);
     BRAddress *address = (BRAddress *) getJNIReference(env, addressObject);
 
     // transaction may be NULL - like if the wallet does not have a large enough balance
@@ -355,8 +367,7 @@ JNIEXPORT jobject JNICALL Java_com_breadwallet_core_BRCoreWallet_createTransacti
     BRWallet *wallet = (BRWallet *) getJNIReference(env, thisObject);
 
     size_t outputsCount = (size_t) (*env)->GetArrayLength (env, outputsArray);
-
-    BRTxOutput outputs[outputsCount];
+    BRTxOutput *outputs = (BRTxOutput *) calloc (outputsCount, sizeof (BRTxOutput));
 
     for (int i = 0; i < outputsCount; i++) {
         jobject outputObject = (*env)->GetObjectArrayElement (env, outputsArray, i);
@@ -366,6 +377,8 @@ JNIEXPORT jobject JNICALL Java_com_breadwallet_core_BRCoreWallet_createTransacti
 
     // It appears that the outputs and their content are not 'held' by the Core, in any way.
     BRTransaction *transaction = BRWalletCreateTxForOutputs(wallet, outputs, outputsCount);
+
+    if (NULL != outputs) free (outputs);
 
     return NULL == transaction
            ? NULL
@@ -462,7 +475,7 @@ Java_com_breadwallet_core_BRCoreWallet_updateTransactions
     BRWallet  *wallet  = (BRWallet  *) getJNIReference (env, thisObject);
 
     size_t txCount = (size_t) (*env)->GetArrayLength (env, transactionsHashesArray);
-    UInt256 txHashes[txCount];
+    UInt256 *txHashes = (UInt256 *) calloc (txCount, sizeof (UInt256));
 
     for (int i = 0; i < txCount; i++) {
         jbyteArray txHashByteArray = (jbyteArray) (*env)->GetObjectArrayElement (env, transactionsHashesArray, 0);
@@ -470,6 +483,8 @@ Java_com_breadwallet_core_BRCoreWallet_updateTransactions
         txHashes[i] = UInt256Get(txHashBytes);
     }
     BRWalletUpdateTransactions(wallet, txHashes, txCount, (uint32_t) blockHeight, (uint32_t) timestamp);
+
+    if (NULL == txHashes) free (txHashes);
 }
 
 /*
@@ -685,6 +700,10 @@ lookupListenerMethod (JNIEnv *env, jobject listener, char *name, char *type) {
                                type);
 }
 
+static void showClassName (JNIEnv *env, jobject object, char *message) {
+//    __android_log_print(ANDROID_LOG_DEBUG, "JNI", "Listener @ %s : %s", message, jniGetClassName(env, object));
+}
+
 static void
 balanceChanged(void *info, uint64_t balance) {
     JNIEnv *env = getEnv();
@@ -692,6 +711,8 @@ balanceChanged(void *info, uint64_t balance) {
 
     jobject listener = (*env)->NewLocalRef (env, (jobject) info);
     if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
+
+    showClassName(env, listener, "balanceChanged");
 
     // The onBalanceChanged callback
     jmethodID listenerMethod =
@@ -713,6 +734,8 @@ txAdded(void *info, BRTransaction *tx) {
 
     jobject listener = (*env)->NewLocalRef(env, (jobject) info);
     if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
+
+    showClassName(env, listener, "txAdded");
 
     // The onTxAdded listener
     jmethodID listenerMethod =
@@ -742,6 +765,8 @@ txUpdated(void *info, const UInt256 txHashes[], size_t count, uint32_t blockHeig
     jobject listener = (*env)->NewLocalRef (env, (jobject) info);
     if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
 
+    showClassName(env, listener, "txUpdated");
+
     // The onTxUpdated callback
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
@@ -769,6 +794,8 @@ txDeleted(void *info, UInt256 txHash, int notifyUser, int recommendRescan) {
 
     jobject listener = (*env)->NewLocalRef (env, (jobject) info);
     if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
+
+    showClassName(env, listener, "txDeleted");
 
     // The onTxDeleted callback
     jmethodID listenerMethod =

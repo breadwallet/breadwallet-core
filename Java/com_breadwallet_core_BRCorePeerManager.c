@@ -222,8 +222,8 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCorePeerManager_testSaveBlock
     BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
 
     size_t blockCount = (size_t) (*env)->GetArrayLength (env, blockObjectArray);
+    BRMerkleBlock **blocks = (BRMerkleBlock **) calloc (blockCount, sizeof (BRMerkleBlock *));
 
-    BRMerkleBlock *blocks[blockCount];
     for (int i = 0; i < blockCount; i++) {
         jobject block = (*env)->GetObjectArrayElement (env, blockObjectArray, i);
         blocks[i] = (BRMerkleBlock *) getJNIReference (env, block);
@@ -238,6 +238,8 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCorePeerManager_testSaveBlock
     jweak listenerWeakGlobalRef = (*env)->GetObjectField (env, thisObject, listenerField);
 
     saveBlocks(listenerWeakGlobalRef, replace, blocks, blockCount);
+
+    if (NULL != blocks) free (blocks);
 }
 
 /*
@@ -251,8 +253,8 @@ Java_com_breadwallet_core_BRCorePeerManager_testSavePeersCallback
     BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
 
     size_t peerCount = (size_t) (*env)->GetArrayLength (env, peerObjectArray);
+    BRPeer *peers = (BRPeer *) calloc (peerCount, sizeof (BRPeer));
 
-    BRPeer peers[peerCount];
     for (int i = 0; i < peerCount; i++) {
         jobject peer = (*env)->GetObjectArrayElement (env, peerObjectArray, i);
         peers[i] = *(BRPeer *) getJNIReference (env, peer);
@@ -267,6 +269,8 @@ Java_com_breadwallet_core_BRCorePeerManager_testSavePeersCallback
     jweak listenerWeakGlobalRef = (*env)->GetObjectField (env, thisObject, listenerField);
 
     savePeers(listenerWeakGlobalRef, replace, peers, peerCount);
+
+    if (NULL != peers) free (peers);
 }
 
 /*
@@ -419,6 +423,10 @@ lookupListenerMethod (JNIEnv *env, jobject listener, char *name, char *type) {
                                type);
 }
 
+static void showClassName (JNIEnv *env, jobject object, char *message) {
+//    __android_log_print(ANDROID_LOG_DEBUG, "JNI", "Listener @ %s : %s", message, jniGetClassName(env, object));
+}
+
 static void
 syncStarted(void *info) {
     JNIEnv *env = getEnv();
@@ -426,6 +434,8 @@ syncStarted(void *info) {
 
     jobject listener = (*env)->NewLocalRef (env, (jobject) info);
     if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
+
+    showClassName(env, listener, "syncStarted");
 
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
@@ -442,6 +452,8 @@ syncStopped(void *info, int error) {
 
     jobject listener = (*env)->NewLocalRef (env, (jobject) info);
     if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
+
+    showClassName(env, listener, "syncStopped");
 
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
@@ -462,6 +474,8 @@ txStatusUpdate(void *info) {
     jobject listener = (*env)->NewLocalRef (env, (jobject) info);
     if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
 
+    showClassName(env, listener, "txStatusUpdate");
+
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
                                  "txStatusUpdate",
@@ -478,6 +492,8 @@ saveBlocks(void *info, int replace, BRMerkleBlock *blocks[], size_t blockCount) 
 
     jobject listener = (*env)->NewLocalRef(env, (jobject) info);
     if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
+
+    showClassName(env, listener, "saveBlocks");
 
     // The saveBlocks callback
     jmethodID listenerMethod =
@@ -509,6 +525,8 @@ savePeers(void *info, int replace, const BRPeer peers[], size_t count) {
 
     jobject listener = (*env)->NewLocalRef (env, (jobject) info);
     if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
+
+    showClassName(env, listener, "savePeers");
 
     // The savePeers callback
     jmethodID listenerMethod =
@@ -543,6 +561,8 @@ networkIsReachable(void *info) {
     jobject listener = (*env)->NewLocalRef(env, (jobject) info);
     if ((*env)->IsSameObject (env, listener, NULL)) return 0; // GC reclaimed
 
+    showClassName(env, listener, "networkIsReachable");
+
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
                                  "networkIsReachable",
@@ -564,6 +584,8 @@ txPublished (void *info, int error) {
     // if it has not been reclaimed yet.  If it has been reclaimed, then it is NULL;
     jobject listener = (*env)->NewLocalRef (env, (jobject) info);
     if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
+
+    showClassName(env, listener, "txPublished");
 
     // Ensure this; see comment above (on txPublished use)
     (*env)->DeleteWeakGlobalRef (env, info);
@@ -587,6 +609,8 @@ threadCleanup(void *info) {
 
     jobject listener = (*env)->NewLocalRef (env, (jobject) info);
     if (NULL == listener) return; // GC reclaimed
+
+    showClassName(env, listener, "threadCleanup");
 
     (*env)->DeleteLocalRef (env, listener);
 

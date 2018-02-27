@@ -225,7 +225,7 @@ Java_com_breadwallet_core_BRCoreMasterPubKey_generatePaperKey
 
     int wordsCount = (*env)->GetArrayLength(env, stringArray);
     int seedLength = (*env)->GetArrayLength(env, seed);
-    const char *wordList[wordsCount];
+    const char **wordList = (const char **) calloc (wordsCount, sizeof (char*));
     assert(seedLength == 16);
     assert(wordsCount == 2048);
 
@@ -252,6 +252,8 @@ Java_com_breadwallet_core_BRCoreMasterPubKey_generatePaperKey
         (*env)->ReleaseStringUTFChars(env, string, wordList[i]);
         (*env)->DeleteLocalRef(env, string);
     }
+
+    if (NULL != wordList) free (wordList);
 
     // Return byte[] of 'result'
     jbyteArray bytePhrase = NULL;

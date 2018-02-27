@@ -295,7 +295,8 @@ Java_com_breadwallet_core_BRCoreTransaction_sign
     BRTransaction *transaction = (BRTransaction *) getJNIReference (env, thisObject);
 
     size_t keyCount = (*env)->GetArrayLength (env, keyObjectArray);
-    BRKey keys[keyCount];
+    BRKey *keys = (BRKey *) calloc (keyCount, sizeof (BRKey));
+
     for (int index = 0; index < keyCount; index++) {
         jobject keyObject = (*env)->GetObjectArrayElement (env, keyObjectArray, index);
         keys[index] = *(BRKey *) getJNIReference (env, keyObject);
@@ -304,6 +305,7 @@ Java_com_breadwallet_core_BRCoreTransaction_sign
     }
     BRTransactionSign(transaction, 0x00, keys, keyCount);
 
+    if (NULL == keys) free (keys);
     return;
 }
 
