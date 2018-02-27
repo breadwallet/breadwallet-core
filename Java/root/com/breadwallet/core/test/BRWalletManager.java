@@ -111,7 +111,7 @@ public class BRWalletManager extends BRCoreWalletManager {
             }
         }
 
-//        runTests();
+        runTests();
 
         final BRCoreMasterPubKey masterPubKey =
                 new BRCoreMasterPubKey(THE_PAPER_KEY.getBytes(), true);

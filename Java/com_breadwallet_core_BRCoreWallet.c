@@ -23,7 +23,7 @@
 #include <malloc.h>
 #include <assert.h>
 #include <BRBIP39Mnemonic.h>
-#include <android/log.h>
+//#include <android/log.h>
 #include "BRWallet.h"
 #include "BRAddress.h"
 #include "BRCoreJni.h"

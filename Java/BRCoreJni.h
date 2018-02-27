@@ -50,7 +50,7 @@ getJNIReference (
 //
 // JNI Support
 //
-extern char *
+extern const char *
 jniGetClassName (JNIEnv *env, jobject obj);
 
 
