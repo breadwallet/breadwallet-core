@@ -167,6 +167,10 @@ public class BRCorePeerManager extends BRCoreJniReference {
      * @param transaction
      */
     public void publishTransaction (BRCoreTransaction transaction) {
+        // Calling publishTransactionWithListener will 'give' transaction to the wallet.  Thus
+        // it must be considered 'registered' if we are not copying.
+        transaction.isRegistered = transaction.isRegistered
+                || !BRCoreTransaction.JNI_COPIES_TRANSACTIONS;
         publishTransactionWithListener(transaction, listener.get());
 
     }
@@ -175,6 +179,9 @@ public class BRCorePeerManager extends BRCoreJniReference {
      * A native method that will callback to BRCorePeerManager.Listener::txPublished.  We must
      * pass in the Listener, so that the Core function BRPeerManagerPublishTx() will know where
      * to callback into Java
+     *
+     * This calls BRPeerManagerPublishTx which notes "publishes tx to bitcoin network (do not
+     * call BRTransactionFree() on tx afterward)"
      *
      * @param transaction
      * @param listener
@@ -199,6 +206,17 @@ public class BRCorePeerManager extends BRCoreJniReference {
     // Constructor
     //
 
+    /**
+     * This will eventually call BRPeerManagerNew() with *copies* of `blocks` and `peers`. Thus
+     * these array objects will not be shared.
+     *
+     * @param params
+     * @param wallet
+     * @param earliestKeyTime
+     * @param blocks
+     * @param peers
+     * @return
+     */
     private static native long createCorePeerManager(BRCoreChainParams params,
                                                      BRCoreWallet wallet,
                                                      double earliestKeyTime, // int

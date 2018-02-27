@@ -45,6 +45,8 @@ import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 /**
  *
@@ -55,18 +57,27 @@ public class BRWalletManager extends BRCoreWalletManager {
             System.loadLibrary("Core");
     }
 
+    Executor listenerExecutor;
     public BRWalletManager(BRCoreMasterPubKey masterPubKey,
                            BRCoreChainParams chainParams,
                            double earliestPeerTime) {
         super(masterPubKey, chainParams, earliestPeerTime);
+        listenerExecutor = Executors.newSingleThreadExecutor();
     }
 
-//    @Override
-//    protected BRCorePeer[] loadPeers() {
-//        return new BRCorePeer[] {
-//                new BRCorePeer(this.chainParams.getJniMagicNumber())
-//        };
-//    }
+    @Override
+    protected BRCoreWallet.Listener createWalletListener() {
+        return new BRCoreWalletManager.WrappedExecutorWalletListener(
+                super.createWalletListener(),
+                listenerExecutor);
+    }
+
+    @Override
+    protected BRCorePeerManager.Listener createPeerManagerListener() {
+        return new BRCoreWalletManager.WrappedExecutorPeerManagerListener(
+                super.createPeerManagerListener(),
+                listenerExecutor);
+    }
 
     @Override
     public void syncStarted() {
@@ -74,14 +85,23 @@ public class BRWalletManager extends BRCoreWalletManager {
     }
 
     private static final double BIP39_CREATION_TIME = 1388534400.0;
-    private static final String SOME_RANDOM_TEST_PAPER_KEY =
+    private static final String RANDOM_TEST_PAPER_KEY =
             "axis husband project any sea patch drip tip spirit tide bring belt";
+
+    private static final String USABLE_PAPER_KEY =
+            "ginger settle marine tissue robot crane night number ramp coast roast critic";
+
+    private static final String THE_PAPER_KEY = USABLE_PAPER_KEY;
+
+    private static final double THE_PAPER_KEY_TIME =
+        (System.currentTimeMillis() / 1000) - 3 * 7 * 24 * 60 * 60;// Three weeks ago.
+
+    private static final int SLEEP_TIME_IN_SECONDS = 3 * 60; // 5 minutes
 
     public static void main(String[] args) {
 
         Configuration configuration = parseArguments(
                 null == args ? new String[] {""} : args);
-
 
         // Allow debugger to connect
         if (configuration.delay) {
@@ -91,10 +111,10 @@ public class BRWalletManager extends BRCoreWalletManager {
             }
         }
 
-        runTests();
+//        runTests();
 
         final BRCoreMasterPubKey masterPubKey =
-                new BRCoreMasterPubKey(SOME_RANDOM_TEST_PAPER_KEY.getBytes(), true);
+                new BRCoreMasterPubKey(THE_PAPER_KEY.getBytes(), true);
 
         final List<BRWalletManager> walletManagers = new LinkedList<>();
 
@@ -102,7 +122,7 @@ public class BRWalletManager extends BRCoreWalletManager {
             walletManagers.add(
                     new BRWalletManager(masterPubKey,
                             chainParams,
-                            BIP39_CREATION_TIME));
+                            THE_PAPER_KEY_TIME));
         }
 
         if (walletManagers.isEmpty()) return;
@@ -113,7 +133,15 @@ public class BRWalletManager extends BRCoreWalletManager {
             walletManager.getPeerManager().connect();
 
         try {
-            Thread.sleep(20 * 60 * 1000);
+            Thread.sleep (15 * 1000);
+            for (BRWalletManager walletManager : walletManagers) {
+                System.err.println ("Retry");
+                walletManager.getPeerManager().disconnect();
+                walletManager.getPeerManager().connect();
+                walletManager.getPeerManager().rescan();
+            }
+
+            Thread.sleep(SLEEP_TIME_IN_SECONDS * 1000);
             System.err.println("Times Up - Done");
 
             Thread.sleep(2 * 1000);
@@ -210,7 +238,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println ("    GC:");
 
         final BRCoreMasterPubKey masterPubKey =
-                new BRCoreMasterPubKey(SOME_RANDOM_TEST_PAPER_KEY.getBytes(), true);
+                new BRCoreMasterPubKey(THE_PAPER_KEY.getBytes(), true);
 
         final BRCoreChainParams chainParams =
                 BRCoreChainParams.testnetChainParams;
@@ -286,7 +314,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         //
         System.out.println("        MasterPubKey:");
 
-        BRCoreMasterPubKey keyFromPaperKey = new BRCoreMasterPubKey(SOME_RANDOM_TEST_PAPER_KEY.getBytes(), true);
+        BRCoreMasterPubKey keyFromPaperKey = new BRCoreMasterPubKey(THE_PAPER_KEY.getBytes(), true);
         byte[] keySerialized = keyFromPaperKey.serialize();
         BRCoreMasterPubKey keyFromBytes = new BRCoreMasterPubKey(keySerialized, false);
         asserting (Arrays.equals(keySerialized, keyFromBytes.serialize()));

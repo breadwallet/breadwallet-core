@@ -25,6 +25,12 @@
 #include "BRChainParams.h"
 #include "BRCoreJni.h"
 #include "com_breadwallet_core_BRCorePeerManager.h"
+#include "com_breadwallet_core_BRCoreTransaction.h"
+
+#define JNI_COPY_TRANSACTION(tx)    \
+    (com_breadwallet_core_BRCoreTransaction_JNI_COPIES_TRANSACTIONS && NULL != (tx) \
+        ? BRTransactionCopy(tx) \
+        : (tx))
 
 /* Forward Declarations */
 static void syncStarted(void *info);
@@ -184,7 +190,10 @@ Java_com_breadwallet_core_BRCorePeerManager_publishTransactionWithListener
 
     // TODO: Dangerous - make a global listener but what if PublishTx is never called?
     jobject globalListener = (*env)->NewWeakGlobalRef (env, listenerObject);
-    BRPeerManagerPublishTx(peerManager, transaction, globalListener, txPublished);
+    BRPeerManagerPublishTx(peerManager,
+                           JNI_COPY_TRANSACTION(transaction),
+                           globalListener,
+                           txPublished);
 }
 
 /*
@@ -286,7 +295,11 @@ Java_com_breadwallet_core_BRCorePeerManager_createCorePeerManager
     // ownership transferred to the Core.  Thus, we'll deep copy each block
     for (int index = 0; index < blocksCount; index++) {
         jobject objBlock = (*env)->GetObjectArrayElement (env, objBlocksArray, index);
+        assert (!(*env)->IsSameObject (env, objBlock, NULL));
+
         BRMerkleBlock *block = (BRMerkleBlock *) getJNIReference(env, objBlock);
+        assert (NULL != block);
+
         blocks[index] = BRMerkleBlockCopy(block);
         (*env)->DeleteLocalRef (env, objBlock);
     }
@@ -297,7 +310,11 @@ Java_com_breadwallet_core_BRCorePeerManager_createCorePeerManager
 
     for (int index =0; index < peersCount; index++) {
         jobject objPeer = (*env)->GetObjectArrayElement (env, objPeersArray, index);
+        assert (!(*env)->IsSameObject (env, objPeer, NULL));
+
         BRPeer *peer = getJNIReference(env, objPeer);
+        assert (NULL != peer);
+
         peers[index] = *peer; // block assignment
         (*env)->DeleteLocalRef (env, objPeer);
     }

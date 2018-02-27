@@ -199,7 +199,8 @@ public class BRCoreWallet extends BRCoreJniReference
 
         // We mark as 'registered' if not a copy.
         if (null != transaction)
-            transaction.isRegistered = !BRCoreTransaction.JNI_COPIES_TRANSACTIONS;
+            transaction.isRegistered = transaction.isRegistered
+                || !BRCoreTransaction.JNI_COPIES_TRANSACTIONS;
 
         return transaction;
     }
