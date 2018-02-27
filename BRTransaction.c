@@ -513,24 +513,6 @@ size_t BRTransactionSize(const BRTransaction *tx)
     return size;
 }
 
-// the amount of the transaction fee for tx
-uint64_t BRTransactionFee(const BRTransaction *tx)
-{
-    uint64_t amount = 0;
-    
-    assert(tx != NULL);
-    
-    for (size_t i = 0; tx && i < tx->inCount; i++) {
-        amount += tx->inputs[i].amount;
-    }
-    
-    for (size_t i = 0; tx && i < tx->outCount && amount != UINT64_MAX; i++) {
-        amount = (tx->outputs[i].amount <= amount) ? amount - tx->outputs[i].amount : UINT64_MAX;
-    }
-    
-    return amount;
-}
-
 // minimum transaction fee needed for tx to relay across the bitcoin network
 uint64_t BRTransactionStandardFee(const BRTransaction *tx)
 {
