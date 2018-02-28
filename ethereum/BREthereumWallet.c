@@ -23,7 +23,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <assert.h>
 #include "BREthereum.h"
 #include "BREthereumAccount.h"
@@ -97,19 +97,25 @@ walletCreateDetailed (BREthereumAccount account,
                       BREthereumAddress address,
                       BREthereumWalletHoldingType type,
                       BREthereumToken optionalToken) {
-    BREthereumWallet wallet = calloc (1, sizeof (struct BREthereumWalletRecord));
 
     assert (NULL != account);
-    wallet->account = account;
-
     assert (NULL != address);
+
+    BREthereumWallet wallet = calloc(1, sizeof(struct BREthereumWalletRecord));
+
+    wallet->account = account;
     wallet->address = address;
 
     wallet->holding = holdingCreate(type);
-    wallet->token   = optionalToken;
+    wallet->token = optionalToken;
 
-    wallet->defaultGasLimit = walletCreateDefaultGasLimit (wallet);
-    wallet->defaultGasPrice = walletCreateDefaultGasPrice (wallet);
+    wallet->defaultGasLimit = NULL == optionalToken
+                              ? walletCreateDefaultGasLimit(wallet)
+                              : tokenGetGasLimit (optionalToken);
+
+    wallet->defaultGasPrice = NULL == optionalToken
+                              ? walletCreateDefaultGasPrice(wallet)
+                              : tokenGetGasPrice (optionalToken);
 
     // nonce = eth.getTransactionCount(<account>)
     return wallet;
@@ -120,7 +126,7 @@ walletCreate(BREthereumAccount account)
 {
     return walletCreateWithAddress
             (account,
-             accountCreateAddress(account));
+             accountGetPrimaryAddress(account));
 }
 
 extern BREthereumWallet
@@ -174,33 +180,19 @@ walletCreateTransactionDetailed(BREthereumWallet wallet,
             nonce);
 }
 
-
+/**
+ * Sign the transaction.
+ *
+ * @param wallet
+ * @param transaction
+ * @param paperKey
+ */
 extern void
 walletSignTransaction(BREthereumWallet wallet,
-                      BREthereumTransaction transaction) {
-    transactionSetSigner(transaction, wallet->account);
+                      BREthereumTransaction transaction,
+                      const char *paperKey) {
 
-    // Maybe sign and cache; maybe defer until needed (lazy sign).
-}
-
-static char *
-walletDataForHolding (BREthereumWallet wallet) {
-    // TODO: Implement
-    switch (wallet->holding.type) {
-        case WALLET_HOLDING_ETHER:
-            return "ether";
-
-        case WALLET_HOLDING_TOKEN:
-            return "token";
-    }
-}
-
-extern BRRlpData // TODO: is this the actual result?
-walletGetRawTransaction(BREthereumWallet wallet,
-                        BREthereumTransaction transaction) {
-
-    // TODO: This is properly done in 'transaction` (if `transaction` sees `account`-ish)
-
+    // TODO: Perhaps this is unneeded, if already provided.
     // Fill in the transaction data appropriate for the holding (ETHER or TOKEN)
     transactionSetData(transaction, walletDataForHolding(wallet));
 
@@ -214,7 +206,8 @@ walletGetRawTransaction(BREthereumWallet wallet,
              wallet->address,
              SIGNATURE_TYPE_VRS,
              transactionUnsignedRLP.bytes,
-             transactionUnsignedRLP.bytesCount);
+             transactionUnsignedRLP.bytesCount,
+             paperKey);
 
     // Attach the signature
     transactionSetVRS(transaction,
@@ -222,8 +215,27 @@ walletGetRawTransaction(BREthereumWallet wallet,
                       signature.sig.bar.r,
                       signature.sig.bar.s);
 
-    // RLP Encode the SIGNED transaction.
-    return transactionEncodeRLP(transaction, TRANSACTION_RLP_SIGNED);
+    transactionSetSigner(transaction, wallet->account);
+}
+
+static char *
+walletDataForHolding (BREthereumWallet wallet) {
+    // TODO: Implement
+    switch (wallet->holding.type) {
+        case WALLET_HOLDING_ETHER:
+            return "";  // empty string - official 'ETHER' data
+
+        case WALLET_HOLDING_TOKEN:
+            return "token";
+    }
+}
+
+extern BRRlpData // TODO: is this the actual result?
+walletGetRawTransaction(BREthereumWallet wallet,
+                        BREthereumTransaction transaction) {
+    return transactionIsSigned(transaction)
+           ? transactionEncodeRLP(transaction, TRANSACTION_RLP_SIGNED)
+           : NULL;
 }
     /*
 

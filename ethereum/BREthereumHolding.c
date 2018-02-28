@@ -29,9 +29,16 @@
 #include "BREthereum.h"
 
 extern BREthereumToken
-tokenCreate (/* ... */) {
+tokenCreate (char *address,
+              BREthereumGas gasLimit,
+              BREthereumGasPrice gasPrice) {
     BREthereumToken token = tokenCreateNone();
-    // fill in
+
+    // TODO: Copy address or what (BREthereumToken is a value type....)
+    token.address = address;
+    token.gasLimit = gasLimit;
+    token.gasPrice = gasPrice;
+
     return token;
 }
 

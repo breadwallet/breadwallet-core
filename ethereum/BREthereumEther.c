@@ -23,7 +23,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include <malloc.h>
+#include <stdlib.h>
 #include "BREthereumEther.h"
 
 static UInt256
@@ -87,7 +87,7 @@ etherGetValueString(const BREthereumEther ether,
 extern BREthereumEther
 etherCreate(const UInt256 value, BREthereumEtherUnit unit) {
     BREthereumEther ether;
-    ether.positive = TRUE;
+    ether.positive = ETHEREUM_BOOLEAN_TRUE;
 
     switch (unit) {
         case WEI: ether.valueInWEI = value;
@@ -116,7 +116,7 @@ extern BREthereumEther
 etherNegate (BREthereumEther e) {
     BREthereumEther ether;
 
-    ether.positive = e.positive == TRUE ? FALSE : TRUE;
+    ether.positive = e.positive == ETHEREUM_BOOLEAN_TRUE ? ETHEREUM_BOOLEAN_FALSE : ETHEREUM_BOOLEAN_TRUE;
     ether.valueInWEI = e.valueInWEI;
 
     return ether;
@@ -154,14 +154,14 @@ etherSub (BREthereumEther e1, BREthereumEther e2) {
 //
 extern BREthereumBoolean
 etherIsEQ (BREthereumEther e1, BREthereumEther e2) {
-    return UInt256Eq (e1.valueInWEI, e2.valueInWEI) ? TRUE : FALSE;
+    return UInt256Eq (e1.valueInWEI, e2.valueInWEI) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
 }
 
 //
 
 extern BREthereumBoolean
 etherIsGT (BREthereumEther e1, BREthereumEther e2) {
-    return FALSE;
+    return ETHEREUM_BOOLEAN_FALSE;
 }
 
 extern BREthereumBoolean
@@ -171,7 +171,7 @@ etherIsGE (BREthereumEther e1, BREthereumEther e2) {
 
 extern BREthereumBoolean
 etherIsZero (BREthereumEther e) {
-    return UInt256IsZero (e.valueInWEI) ? TRUE : FALSE;
+    return UInt256IsZero (e.valueInWEI) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
 }
 
 

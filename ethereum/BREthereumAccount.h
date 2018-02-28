@@ -30,6 +30,8 @@
 extern "C" {
 #endif
 
+#include <BRInt.h>
+
 //
 // BIP39 Word List
 //
@@ -42,7 +44,7 @@ extern "C" {
  * @return
  */
 extern int
-installSharedWordList (char *wordList[], int wordListLength);
+installSharedWordList (const char *wordList[], int wordListLength);
 
 //
 // Address
@@ -171,7 +173,8 @@ accountSignBytes(BREthereumAccount account,
                  BREthereumAddress address,
                  BREthereumSignatureType type,
                  uint8_t *bytes,
-                 size_t bytesCount);
+                 size_t bytesCount,
+                 const char *paperKey);
 
 #ifdef __cplusplus
 }

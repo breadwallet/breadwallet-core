@@ -110,7 +110,8 @@ walletCreateTransactionDetailed(BREthereumWallet wallet,
 
 extern void
 walletSignTransaction(BREthereumWallet wallet,
-                      BREthereumTransaction transaction);
+                      BREthereumTransaction transaction,
+                      const char *paperKey);
 
 /**
  * For `transaction`, get the 'signed transaction data' suitable for use in the RPC-JSON Ethereum

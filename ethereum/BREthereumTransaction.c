@@ -23,7 +23,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include "BREthereumTransaction.h"
 
@@ -116,7 +116,7 @@ transactionSetSigner (BREthereumTransaction transaction, BREthereumAccount accou
 
 extern BREthereumBoolean
 transactionIsSigned (BREthereumTransaction transaction) {
-    return NULL != transactionGetSigner (transaction) ? TRUE : FALSE;
+    return NULL != transactionGetSigner (transaction) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
 }
 
 //

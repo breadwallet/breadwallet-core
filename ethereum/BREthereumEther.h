@@ -9,12 +9,12 @@ extern "C" {
 #endif
 
 typedef enum {
-    TRUE = 0,               // INTENTIONALLY 'backwards'
-    FALSE = 1
+    ETHEREUM_BOOLEAN_TRUE = 0,               // INTENTIONALLY 'backwards'
+    ETHEREUM_BOOLEAN_FALSE = 1
 } BREthereumBoolean;
 
-#define ETHEREUM_BOOLEAN_IS_TRUE(x)  ((x) == TRUE)
-#define ETHEREUM_BOOLEAN_IS_FALSE(x) ((x) == FALSE)
+#define ETHEREUM_BOOLEAN_IS_TRUE(x)  ((x) == ETHEREUM_BOOLEAN_TRUE)
+#define ETHEREUM_BOOLEAN_IS_FALSE(x) ((x) == ETHEREUM_BOOLEAN_FALSE)
 
 typedef enum {
     WEI = 0,

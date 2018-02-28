@@ -67,14 +67,27 @@ holdingGetType (BREthereumHolding holding);
  * A Ethereum Token defines an ERC20 Token
  */
 typedef struct BREthereumTokenRecord {
-    int pending1; // token identifier
-    int pending2; //
+    /**
+     * An Ethereum '0x' address for the token's contract.
+     */
+    char *address;
+
+    /**
+     *
+     */
     BREthereumGas gasLimit;
+
+    /**
+     *
+     */
     BREthereumGasPrice gasPrice;
+    
 } BREthereumToken;
 
 extern BREthereumToken
-tokenCreate (/* ... */);
+tokenCreate (char *address,
+             BREthereumGas gasLimit,
+             BREthereumGasPrice gasPrice);
 
 extern BREthereumToken
 tokenCreateNone ();

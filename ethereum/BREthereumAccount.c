@@ -23,7 +23,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <BRBIP39Mnemonic.h>
 #include <string.h>
 #include <BRKey.h>
@@ -89,12 +89,12 @@ accountCreatePrimaryAddress (BREthereumAccount account);
 
 //
 // Locale-Based BIP-39 Word List
-static char **sharedWordList = NULL;
+static const char **sharedWordList;
 
 #define WORD_LIST_LENGTH 2048
 
 extern int
-installSharedWordList (char *wordList[], int wordListLength) {
+installSharedWordList (const char *wordList[], int wordListLength) {
     if (BIP39_WORDLIST_COUNT != wordListLength)
         return 0;
 
@@ -171,6 +171,10 @@ addressGetPublicKeyHash160 (BREthereumAddress address) {
     return BRKeyHash160(&address->key);
 }
 
+// https://kobl.one/blog/create-full-ethereum-keypair-and-address/#derive-the-ethereum-address-from-the-public-key
+// The private key must be 32 bytes and not begin with 0x00 and the public one must be
+// uncompressed and 64 bytes long or 65 with the constant 0x04 prefix.
+// More on that in the next section.
 extern char *
 addressGetPublicKeyKeccak256 (BREthereumAddress address) {
     // https://ethereum.stackexchange.com/a/3619/33128
@@ -181,9 +185,18 @@ addressGetPublicKeyKeccak256 (BREthereumAddress address) {
 
     // Take the last 20 bytes, convert to hex, prefix with '0x' -> 42
     char *string = malloc (43);
+    char *s = string;
 
+    *s++ = '0';
+    *s++ = 'x';
 
+    for (int index = 12; index < 32; index++) {
+        *s++ = _hexc (md[index]);
+        *s++ = _hexc (md[index] >> 4);
+    }
+    *s = '\0';
 
+    return s;
 }
 
 //
@@ -264,7 +277,8 @@ accountSignBytes(BREthereumAccount account,
                  BREthereumAddress address,
                  BREthereumSignatureType type,
                  uint8_t *bytes,
-                 size_t bytesCount) {
+                 size_t bytesCount,
+                 const char *paperKey) {
     BREthereumSignature signature;
 
     signature.type = type;
