@@ -333,8 +333,6 @@ BRTransaction *BRTransactionNew(void)
     array_new(tx->outputs, 2);
     tx->lockTime = TX_LOCKTIME;
     tx->blockHeight = TX_UNCONFIRMED;
-
-    BRTransactionValidateAssert (tx);
     return tx;
 }
 
@@ -346,8 +344,6 @@ BRTransaction *BRTransactionCopy(const BRTransaction *tx)
     BRTxOutput *outputs = cpy->outputs;
     
     assert(tx != NULL);
-    BRTransactionValidateAssert (tx);
-
     *cpy = *tx;
     cpy->inputs = inputs;
     cpy->outputs = outputs;
@@ -363,7 +359,6 @@ BRTransaction *BRTransactionCopy(const BRTransaction *tx)
         BRTransactionAddOutput(cpy, tx->outputs[i].amount, tx->outputs[i].script, tx->outputs[i].scriptLen);
     }
 
-    BRTransactionValidateAssert (cpy);
     return cpy;
 }
 
@@ -431,9 +426,6 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
     }
     else if (isSigned) BRSHA256_2(&tx->txHash, buf, off);
 
-    if (NULL != tx)
-        BRTransactionValidateAssert (tx);
-
     return tx;
 }
 
@@ -442,8 +434,6 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
 size_t BRTransactionSerialize(const BRTransaction *tx, uint8_t *buf, size_t bufLen)
 {
     assert(tx != NULL);
-    BRTransactionValidateAssert (tx);
-
     return (tx) ? _BRTransactionData(tx, buf, bufLen, SIZE_MAX, SIGHASH_ALL) : 0;
 }
 
@@ -486,7 +476,6 @@ void BRTransactionAddOutput(BRTransaction *tx, uint64_t amount, const uint8_t *s
 void BRTransactionShuffleOutputs(BRTransaction *tx)
 {
     assert(tx != NULL);
-    BRTransactionValidateAssert (tx);
 
     for (uint32_t i = 0; tx && i + 1 < tx->outCount; i++) { // fischer-yates shuffle
         uint32_t j = i + BRRand((uint32_t)tx->outCount - i);
@@ -507,7 +496,6 @@ size_t BRTransactionSize(const BRTransaction *tx)
     size_t size;
 
     assert(tx != NULL);
-    BRTransactionValidateAssert (tx);
 
     size = (tx) ? 8 + BRVarIntSize(tx->inCount) + BRVarIntSize(tx->outCount) : 0;
     
@@ -538,7 +526,6 @@ uint64_t BRTransactionStandardFee(const BRTransaction *tx)
 int BRTransactionIsSigned(const BRTransaction *tx)
 {
     assert(tx != NULL);
-    BRTransactionValidateAssert (tx);
 
     for (size_t i = 0; tx && i < tx->inCount; i++) {
         if (! tx->inputs[i].signature) return 0;
@@ -557,8 +544,6 @@ int BRTransactionSign(BRTransaction *tx, int forkId, BRKey keys[], size_t keysCo
     
     assert(tx != NULL);
     assert(keys != NULL || keysCount == 0);
-
-    BRTransactionValidateAssert (tx);
 
     for (i = 0; tx && i < keysCount; i++) {
         if (! BRKeyAddress(&keys[i], addrs[i].s, sizeof(addrs[i]))) addrs[i] = BR_ADDRESS_NONE;
@@ -621,25 +606,6 @@ int BRTransactionIsStandard(const BRTransaction *tx)
     // TODO: XXX implement
     
     return r;
-}
-
-int BRTransactionValidate (const BRTransaction *tx) {
-    return NULL != tx
-           && 1 <= tx->version && tx->version <= 2
-           && NULL != tx->inputs && array_count(tx->inputs) == tx->inCount
-           && NULL != tx->outputs && array_count(tx->outputs) == tx->outCount;
-}
-
-void BRTransactionValidateAssert (const BRTransaction *tx) {
-    if (!BRTransactionValidate(tx)) {
-        _peer_log("\n\nBad Trans: %p\n", tx);
-        if (NULL != tx) {
-            _peer_log("  Version: %d\n", tx->version);
-            _peer_log("   Inputs: (%zu) %p\n", tx->inCount, tx->inputs);
-            _peer_log("  Outputs: (%zu) %p\n", tx->outCount, tx->outputs);
-        }
-    }
-//    assert (BRTransactionValidate(tx));
 }
 
 // frees memory allocated for tx

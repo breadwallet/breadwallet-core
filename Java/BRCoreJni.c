@@ -60,21 +60,6 @@ JNI_OnLoad (JavaVM *theJvm, void *reserved) {
 }
 
 //
-// JNI Support
-//
-extern const char *
-jniGetClassName (JNIEnv *env, jobject obj) {
-    jclass cls = (*env)->FindClass(env, "java/lang/Class");
-    jmethodID mid = (*env)->GetMethodID(env, cls, "getName", "()Ljava/lang/String;");
-
-    cls = (*env)->GetObjectClass(env, obj);
-
-    jstring className_jstring = (*env)->CallObjectMethod(env, cls, mid);
-
-    return (*env)->GetStringUTFChars(env, className_jstring, JNI_FALSE);
-}
-
-//
 // Support
 //
 extern void

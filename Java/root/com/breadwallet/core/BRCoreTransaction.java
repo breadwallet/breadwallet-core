@@ -218,8 +218,6 @@ public class BRCoreTransaction extends BRCoreJniReference {
 
     static { initializeNative(); }
 
-    public native boolean validate ();
-
     /**
      *
      * @param buffer

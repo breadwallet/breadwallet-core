@@ -48,13 +48,6 @@ getJNIReference (
         jobject thisObject);
 
 //
-// JNI Support
-//
-extern const char *
-jniGetClassName (JNIEnv *env, jobject obj);
-
-
-//
 // Support
 //
 extern void

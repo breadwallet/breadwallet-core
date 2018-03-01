@@ -199,21 +199,17 @@ public class BRCoreWalletManager implements
         BRCoreTransaction transactions[] = wallet.getTransactions();
         System.err.println (getChainDescriptiveName() + " " + label + " txCount: " + transactions.length);
         for (BRCoreTransaction transaction : wallet.getTransactions()) {
-            boolean valid = transaction.validate();
-            System.err.println("    tx: " + transaction.toString() +
-                    (valid ? "" : " INVALID"));
-            if (valid) {
-                System.err.println("        : " +
-                        (transaction.isSigned() ? "SIGNED" : "NOT-SIGNED") + " " +
-                        (transaction.isSigned() ? (wallet.transactionIsValid(transaction) ? "VALID" : "NOT-VALID") : "N/A") + " " +
-                        "balance: " + (transaction.isSigned() ? wallet.getBalanceAfterTransaction(transaction) : "N/A"));
+            System.err.println("    tx: " + transaction.toString());
+            System.err.println("        : " +
+                    (transaction.isSigned() ? "SIGNED" : "NOT-SIGNED") + " " +
+                    (transaction.isSigned() ? (wallet.transactionIsValid(transaction) ? "VALID" : "NOT-VALID") : "N/A") + " " +
+                    "balance: " + (transaction.isSigned() ? wallet.getBalanceAfterTransaction(transaction) : "N/A"));
 
-                if (SHOW_CALLBACK_DETAIL_TX_IO) {
-                    for (BRCoreTransactionInput input : transaction.getInputs())
-                        System.err.println(input.toString());
-                    for (BRCoreTransactionOutput output : transaction.getOutputs())
-                        System.err.println(output.toString());
-                }
+            if (SHOW_CALLBACK_DETAIL_TX_IO) {
+                for (BRCoreTransactionInput input : transaction.getInputs())
+                    System.err.println(input.toString());
+                for (BRCoreTransactionOutput output : transaction.getOutputs())
+                    System.err.println(output.toString());
             }
         }
         System.err.println ("    balance: " + wallet.getBalance());

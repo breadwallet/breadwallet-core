@@ -708,10 +708,6 @@ lookupListenerMethod (JNIEnv *env, jobject listener, char *name, char *type) {
                                type);
 }
 
-static void showClassName (JNIEnv *env, jobject object, char *message) {
-//    __android_log_print(ANDROID_LOG_DEBUG, "JNI", "Listener @ %s : %s", message, jniGetClassName(env, object));
-}
-
 static void
 balanceChanged(void *info, uint64_t balance) {
     JNIEnv *env = getEnv();
@@ -719,8 +715,6 @@ balanceChanged(void *info, uint64_t balance) {
 
     jobject listener = (*env)->NewLocalRef (env, (jobject) info);
     if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
-
-    showClassName(env, listener, "balanceChanged");
 
     // The onBalanceChanged callback
     jmethodID listenerMethod =
@@ -742,8 +736,6 @@ txAdded(void *info, BRTransaction *tx) {
 
     jobject listener = (*env)->NewLocalRef(env, (jobject) info);
     if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
-
-    showClassName(env, listener, "txAdded");
 
     // The onTxAdded listener
     jmethodID listenerMethod =
@@ -773,8 +765,6 @@ txUpdated(void *info, const UInt256 txHashes[], size_t count, uint32_t blockHeig
     jobject listener = (*env)->NewLocalRef (env, (jobject) info);
     if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
 
-    showClassName(env, listener, "txUpdated");
-
     // The onTxUpdated callback
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
@@ -802,8 +792,6 @@ txDeleted(void *info, UInt256 txHash, int notifyUser, int recommendRescan) {
 
     jobject listener = (*env)->NewLocalRef (env, (jobject) info);
     if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
-
-    showClassName(env, listener, "txDeleted");
 
     // The onTxDeleted callback
     jmethodID listenerMethod =
