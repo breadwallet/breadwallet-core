@@ -494,29 +494,30 @@ static void _requestUnrelayedTxGetdataDone(void *info, int success)
     // don't remove transactions until we're connected to maxConnectCount peers, and all peers have finished
     // relaying their mempools
     if (count >= manager->maxConnectCount) {
+        UInt256 hash;
         size_t txCount = BRWalletTxUnconfirmedBefore(manager->wallet, NULL, 0, TX_UNCONFIRMED);
-        BRTransaction *tx[(txCount < 10000) ? txCount : 10000];
+        BRTransaction *tx[(txCount*sizeof(BRTransaction *) <= 0x1000) ? txCount : 0x1000/sizeof(BRTransaction *)];
         
         txCount = BRWalletTxUnconfirmedBefore(manager->wallet, tx, sizeof(tx)/sizeof(*tx), TX_UNCONFIRMED);
 
-        for (size_t i = 0; i < txCount; i++) {
+        for (size_t i = txCount; i > 0; i--) {
+            hash = tx[i - 1]->txHash;
             isPublishing = 0;
             
             for (size_t j = array_count(manager->publishedTx); ! isPublishing && j > 0; j--) {
-                if (BRTransactionEq(manager->publishedTx[j - 1].tx, tx[i]) &&
+                if (BRTransactionEq(manager->publishedTx[j - 1].tx, tx[i - 1]) &&
                     manager->publishedTx[j - 1].callback != NULL) isPublishing = 1;
             }
             
-            if (! isPublishing && _BRTxPeerListCount(manager->txRelays, tx[i]->txHash) == 0 &&
-                _BRTxPeerListCount(manager->txRequests, tx[i]->txHash) == 0) {
-                peer_log(peer, "removing tx (%p) unconfirmed at height: %d, txHash: %s", tx[i], manager->lastBlock->height,
-                         u256hex(tx[i]->txHash));
-                assert(tx[i]->blockHeight == TX_UNCONFIRMED);
-                BRWalletRemoveTransaction(manager->wallet, tx[i]->txHash);
+            if (! isPublishing && _BRTxPeerListCount(manager->txRelays, hash) == 0 &&
+                _BRTxPeerListCount(manager->txRequests, hash) == 0) {
+                peer_log(peer, "removing tx unconfirmed at: %d, txHash: %s", manager->lastBlock->height, u256hex(hash));
+                assert(tx[i - 1]->blockHeight == TX_UNCONFIRMED);
+                BRWalletRemoveTransaction(manager->wallet, hash);
             }
-            else if (! isPublishing && _BRTxPeerListCount(manager->txRelays, tx[i]->txHash) < manager->maxConnectCount){
+            else if (! isPublishing && _BRTxPeerListCount(manager->txRelays, hash) < manager->maxConnectCount) {
                 // set timestamp 0 to mark as unverified
-                _BRPeerManagerUpdateTx(manager, &tx[i]->txHash, 1, TX_UNCONFIRMED, 0);
+                _BRPeerManagerUpdateTx(manager, &hash, 1, TX_UNCONFIRMED, 0);
             }
         }
     }
