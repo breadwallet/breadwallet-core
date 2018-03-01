@@ -752,7 +752,8 @@ txAdded(void *info, BRTransaction *tx) {
     (*env)->CallVoidMethod(env, listener,
                            listenerMethod,
                            transaction);
-    (*env)->DeleteLocalRef(env, listener);
+    (*env)->DeleteLocalRef (env, listener);
+    (*env)->DeleteLocalRef (env, transaction);
 }
 
 static void

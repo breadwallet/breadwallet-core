@@ -464,6 +464,7 @@ syncStopped(void *info, int error) {
 
     (*env)->CallVoidMethod(env, listener, listenerMethod, errorString);
     (*env)->DeleteLocalRef (env, listener);
+    (*env)->DeleteLocalRef (env, errorString);
 }
 
 static void
@@ -512,6 +513,7 @@ saveBlocks(void *info, int replace, BRMerkleBlock *blocks[], size_t blockCount) 
     // Invoke the callback, fully constituted with the blocks array.
     (*env)->CallVoidMethod(env, listener, listenerMethod, replace, blockArray);
     (*env)->DeleteLocalRef(env, listener);
+    (*env)->DeleteLocalRef(env, blockArray);
 }
 
 static void
@@ -545,6 +547,7 @@ savePeers(void *info, int replace, const BRPeer peers[], size_t count) {
     // Invoke the callback, fully constituted with the peers array.
     (*env)->CallVoidMethod (env, listener, listenerMethod, replace, peerArray);
     (*env)->DeleteLocalRef (env, listener);
+    (*env)->DeleteLocalRef (env, peerArray);
 }
 
 static int
@@ -590,6 +593,7 @@ txPublished (void *info, int error) {
 
     (*env)->CallVoidMethod(env, listener, listenerMethod, errorString);
     (*env)->DeleteLocalRef (env, listener);
+    (*env)->DeleteLocalRef (env, errorString);
 }
 
 static void
