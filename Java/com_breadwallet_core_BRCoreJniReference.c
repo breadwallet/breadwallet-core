@@ -32,9 +32,11 @@ static jfieldID getJNIReferenceField (
         jobject thisObject)
 {
     jclass thisClass = (*env)->GetObjectClass (env, thisObject);
-    return (*env)->GetFieldID(env, thisClass,
+    jfieldID thisFieldId = (*env)->GetFieldID(env, thisClass,
                               JNI_REFERENCE_ADDRESS_FIELD_NAME,
                               JNI_REFERENCE_ADDRESS_FIELD_TYPE);
+    (*env)->DeleteLocalRef (env, thisClass);
+    return thisFieldId;
 }
 
 static jlong getJNIReferenceAddress (

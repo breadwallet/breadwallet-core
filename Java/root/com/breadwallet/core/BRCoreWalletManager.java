@@ -39,7 +39,7 @@ public class BRCoreWalletManager implements
     protected static boolean SHOW_CALLBACK = true;
     protected static boolean SHOW_CALLBACK_DETAIL = false;
 
-    protected static boolean SHOW_CALLBACK_DETAIL_TX_STATUS = true;
+    protected static boolean SHOW_CALLBACK_DETAIL_TX_STATUS = false;
     protected static boolean SHOW_CALLBACK_DETAIL_TX_IO = false;
 
     protected BRCoreMasterPubKey masterPubKey;
@@ -205,8 +205,8 @@ public class BRCoreWalletManager implements
             if (valid) {
                 System.err.println("        : " +
                         (transaction.isSigned() ? "SIGNED" : "NOT-SIGNED") + " " +
-                        (wallet.transactionIsValid(transaction) ? "VALID" : "NOT-VALID") + " " +
-                        "balance: " + (wallet.getBalanceAfterTransaction(transaction)));
+                        (transaction.isSigned() ? (wallet.transactionIsValid(transaction) ? "VALID" : "NOT-VALID") : "N/A") + " " +
+                        "balance: " + (transaction.isSigned() ? wallet.getBalanceAfterTransaction(transaction) : "N/A"));
 
                 if (SHOW_CALLBACK_DETAIL_TX_IO) {
                     for (BRCoreTransactionInput input : transaction.getInputs())
@@ -237,6 +237,7 @@ public class BRCoreWalletManager implements
     @Override
     public void txStatusUpdate() {
         if (!SHOW_CALLBACK) return;
+        System.err.println (getChainDescriptiveName() + " txStatusUpdate");
         //super.txStatusUpdate();
 
         if (!SHOW_CALLBACK_DETAIL_TX_STATUS) return;

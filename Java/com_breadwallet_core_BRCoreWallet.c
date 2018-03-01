@@ -23,18 +23,26 @@
 #include <malloc.h>
 #include <assert.h>
 #include <BRBIP39Mnemonic.h>
-//#include <android/log.h>
 #include "BRWallet.h"
 #include "BRAddress.h"
 #include "BRCoreJni.h"
 #include "BRTransaction.h"
+#include "BRPeerManager.h"
 #include "com_breadwallet_core_BRCoreWallet.h"
 #include "com_breadwallet_core_BRCoreTransaction.h"
 
-#define JNI_COPY_TRANSACTION(tx)    \
-    (com_breadwallet_core_BRCoreTransaction_JNI_COPIES_TRANSACTIONS && NULL != (tx) \
-        ? BRTransactionCopy(tx) \
-        : (tx))
+static BRTransaction *
+JNI_COPY_TRANSACTION (BRTransaction *tx) {
+    if (com_breadwallet_core_BRCoreTransaction_JNI_COPIES_TRANSACTIONS && NULL != tx) {
+        return BRTransactionCopy(tx);
+    }
+    else {
+#if defined (__ANDROID_NDK__)
+        __android_log_print(ANDROID_LOG_DEBUG, "JNI", "FAILED TO COPY: %p", tx);
+#endif
+        return NULL;
+    }
+}
 
 /* Forward Declarations */
 static void balanceChanged(void *info, uint64_t balance);
@@ -244,7 +252,7 @@ Java_com_breadwallet_core_BRCoreWallet_getTransactionsConfirmedBefore
     for (int index = 0; index < transactionCount; index++) {
         jobject transactionObject =
                 (*env)->NewObject (env, transactionClass, transactionConstructor,
-                                   (jlong) BRTransactionCopy(transactions[index]));
+                                   (jlong) JNI_COPY_TRANSACTION(transactions[index]));
 
         (*env)->SetObjectArrayElement (env, transactionArray, index, transactionObject);
         (*env)->DeleteLocalRef (env, transactionObject);
@@ -746,7 +754,7 @@ txAdded(void *info, BRTransaction *tx) {
 
     // Create the BRCoreTransaction
     jobject transaction = (*env)->NewObject (env, transactionClass, transactionConstructor,
-                                             (jlong) BRTransactionCopy(tx));
+                                             (jlong) JNI_COPY_TRANSACTION(tx));
 
     // Invoke the callback with the provided transaction
     (*env)->CallVoidMethod(env, listener,

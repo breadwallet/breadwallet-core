@@ -27,10 +27,18 @@
 #include "com_breadwallet_core_BRCorePeerManager.h"
 #include "com_breadwallet_core_BRCoreTransaction.h"
 
-#define JNI_COPY_TRANSACTION(tx)    \
-    (com_breadwallet_core_BRCoreTransaction_JNI_COPIES_TRANSACTIONS && NULL != (tx) \
-        ? BRTransactionCopy(tx) \
-        : (tx))
+static BRTransaction *
+JNI_COPY_TRANSACTION (BRTransaction *tx) {
+    if (com_breadwallet_core_BRCoreTransaction_JNI_COPIES_TRANSACTIONS && NULL != tx) {
+        return BRTransactionCopy(tx);
+    }
+    else {
+#if defined (__ANDROID_NDK__)
+        __android_log_print(ANDROID_LOG_DEBUG, "JNI", "FAILED TO COPY: %p", tx);
+#endif
+        return NULL;
+    }
+}
 
 /* Forward Declarations */
 static void syncStarted(void *info);
@@ -292,7 +300,7 @@ Java_com_breadwallet_core_BRCorePeerManager_createCorePeerManager
     uint32_t earliestKeyTime = (uint32_t) dblEarliestKeyTime;
 
     // Blocks
-    size_t blocksCount = (*env)->GetArrayLength(env, objBlocksArray);
+    size_t blocksCount = (size_t) (*env)->GetArrayLength(env, objBlocksArray);
     BRMerkleBlock **blocks = (0 == blocksCount ? NULL : (BRMerkleBlock **) calloc(blocksCount, sizeof(BRMerkleBlock *)));
 
     // The upcoming call to BRPeerManagerNew() assumes that the blocks provided have their memory
@@ -309,7 +317,7 @@ Java_com_breadwallet_core_BRCorePeerManager_createCorePeerManager
     }
 
     // Peers
-    size_t peersCount = (*env)->GetArrayLength(env, objPeersArray);
+    size_t peersCount = (size_t) (*env)->GetArrayLength(env, objPeersArray);
     BRPeer *peers = (0 == peersCount ? NULL : (BRPeer *) calloc(peersCount, sizeof(BRPeer)));
 
     for (int index =0; index < peersCount; index++) {

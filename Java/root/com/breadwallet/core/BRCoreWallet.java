@@ -96,9 +96,11 @@ public class BRCoreWallet extends BRCoreJniReference
     public BRCoreTransaction[] getTransactions () {
         BRCoreTransaction[] transactions = jniGetTransactions();
 
-        // Make as 'registered' if not a copy.
-        for (BRCoreTransaction transaction : transactions)
-            transaction.isRegistered = ! BRCoreTransaction.JNI_COPIES_TRANSACTIONS;
+        // Mark as 'registered' if not a copy.
+        for (BRCoreTransaction transaction : transactions) {
+            assert (transaction.isSigned());
+            transaction.isRegistered = !BRCoreTransaction.JNI_COPIES_TRANSACTIONS;
+        }
 
         return transactions;
     }
@@ -207,6 +209,13 @@ public class BRCoreWallet extends BRCoreJniReference
 
     private native BRCoreTransaction jniTransactionForHash (byte[] transactionHash);
 
+    /**
+     * Check if a transaction is valid - THIS METHOD WILL FATAL if the transaction is not signed.
+     * You must call transaction.isSigned to avoid the FATAL.
+     *
+     * @param transaction
+     * @return
+     */
     public native boolean transactionIsValid (BRCoreTransaction transaction);
 
     public native boolean transactionIsPending (BRCoreTransaction transaction);

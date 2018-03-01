@@ -509,7 +509,7 @@ static void _requestUnrelayedTxGetdataDone(void *info, int success)
             
             if (! isPublishing && _BRTxPeerListCount(manager->txRelays, tx[i]->txHash) == 0 &&
                 _BRTxPeerListCount(manager->txRequests, tx[i]->txHash) == 0) {
-                peer_log(peer, "removing tx unconfirmed at height: %d, txHash: %s", manager->lastBlock->height,
+                peer_log(peer, "removing tx (%p) unconfirmed at height: %d, txHash: %s", tx[i], manager->lastBlock->height,
                          u256hex(tx[i]->txHash));
                 assert(tx[i]->blockHeight == TX_UNCONFIRMED);
                 BRWalletRemoveTransaction(manager->wallet, tx[i]->txHash);
