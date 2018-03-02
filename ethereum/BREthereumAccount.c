@@ -86,9 +86,17 @@
 // Ethereum
 // https://mytokenwallet.com/bip39.html
 
+#define PRIMARY_ADDRESS_BIP44_INDEX 0
+
 /* Forward Declarations */
 static BREthereumAddress
 accountCreateAddress (BREthereumAccount account, UInt512 seed, uint32_t index);
+
+static UInt512
+deriveSeedFromPaperKey (const char *paperKey);
+
+static BRKey
+derivePrivateKeyFromSeed (UInt512 seed, uint32_t index);
 
 static void
 encodeHex (char *target, size_t targetLen, uint8_t *source, size_t sourceLen);
@@ -149,6 +157,11 @@ struct BREthereumAddressRecord {
      * 0x04 at byte 0; we strip off that first byte and are left with 64.  Go figure.
      */
     uint8_t publicKey [64];  // BIP44: 'Master Public Key 'M' (264 bits) - 8
+
+    /**
+     * The BIP-44 Index used for this key.
+     */
+    uint32_t index;
 };
 
 static BREthereumBoolean
@@ -187,12 +200,13 @@ addressFree (BREthereumAddress address) {
  * @return
  */
 static BREthereumAddress
-createAddressDerived (const uint8_t *publicKey) {
+createAddressDerived (const uint8_t *publicKey, uint32_t index) {
     printf ("       PubKey (arg): %p\n", publicKey);
 
     BREthereumAddress address = malloc (sizeof (struct BREthereumAddressRecord));
 
     address->type = ADDRESS_DERIVED;  // painfully
+    address->index = index;
 
     // Seriously???
     //
@@ -320,15 +334,14 @@ accountCreateDetailed(const char *paperKey, const char *wordList[], const int wo
         return NULL;
 
     // Generate the 512bit private key using a BIP39 paperKey
-    UInt512 seed = UINT512_ZERO;
-    BRBIP39DeriveKey(seed.u8, paperKey, NULL); // no passphrase
+    UInt512 seed = deriveSeedFromPaperKey(paperKey);
 
     // Create the actual account
     BREthereumAccount account = (BREthereumAccount) calloc (1, sizeof (struct BREthereumAccountRecord));
 
     // Assign the key; create the primary address.
     account->masterPubKey = BRBIP32MasterPubKey(&seed, sizeof(seed));
-    account->primaryAddress = accountCreateAddress(account, seed, 0);
+    account->primaryAddress = accountCreateAddress(account, seed, PRIMARY_ADDRESS_BIP44_INDEX);
 
     return account;
 }
@@ -346,20 +359,7 @@ accountGetPrimaryAddress (BREthereumAccount account) {
 
 static BREthereumAddress
 accountCreateAddress (BREthereumAccount account, UInt512 seed, uint32_t index) {
-    BRKey privateKey;
-    uint8_t publicKey[65];
-
-    printf ("       PubKey (stack): %p\n", publicKey);
-
-    // The BIP32 privateKey for m/44'/60'/0'/0/index
-    BRBIP32PrivKeyPath(&privateKey, &seed, sizeof(UInt512), 5,
-                       44 | BIP32_HARD,          // purpose  : BIP-44
-                       60 | BIP32_HARD,          // coin_type: Ethereum
-                       0 | BIP32_HARD,          // account  : <n/a>
-                       0,                        // change   : not change
-                       index);                   // index    :
-
-    privateKey.compressed = 0;
+    BRKey privateKey = derivePrivateKeyFromSeed (seed, index);
 
     // Seriously???
     //
@@ -369,6 +369,7 @@ accountCreateAddress (BREthereumAccount account, UInt512 seed, uint32_t index) {
     // uncompressed and 64 bytes long or 65 with the constant 0x04 prefix. More on that in the
     // next section. ...
 
+    uint8_t publicKey[65];
     size_t pubKeyLength = BRKeyPubKey(&privateKey, NULL, 0);
     assert (pubKeyLength == 65);
 
@@ -379,7 +380,7 @@ accountCreateAddress (BREthereumAccount account, UInt512 seed, uint32_t index) {
     BRKeyPubKey(&privateKey, publicKey, 65);
     assert (publicKey[0] = 0x04);
 
-    return createAddressDerived(publicKey);
+    return createAddressDerived(publicKey, index);
 }
 
 //
@@ -394,25 +395,81 @@ accountSignBytes(BREthereumAccount account,
                  const char *paperKey) {
     BREthereumSignature signature;
 
-    // UInt512 seed;
-    //    BRBIP39DeriveKey(&seed, phrase, nil)
-    //    return wallet.signTransaction(tx, forkId: forkId, seed: &seed)
-
+    // Save the type.
     signature.type = type;
 
-    // TODO: Implement
+    // Recreate the seed; then recreate the PrivateKey (for the address with 'index')
+    UInt512 seed = deriveSeedFromPaperKey(paperKey);
+    BRKey privateKeyUncompressed = derivePrivateKeyFromSeed(seed, address->index);
+
+    // Hash with the required Keccak-256
+    UInt256 messageDigest;
+    BRKeccak256(&messageDigest, bytes, bytesCount);
+
     switch (type) {
         case SIGNATURE_TYPE_FOO:
             break;
-        case SIGNATURE_TYPE_VRS:
+
+        case SIGNATURE_TYPE_RECOVERABLE: {
+            // Determine the signature length
+            size_t signatureLen = BRKeyCompactSign(&privateKeyUncompressed,
+                                                   NULL, 0,
+                                                   messageDigest);
+
+            // Fill the signature
+            uint8_t signatureBytes[signatureLen];
+            signatureLen = BRKeyCompactSign(&privateKeyUncompressed,
+                                            signatureBytes, signatureLen,
+                                            messageDigest);
+            assert (65 == signatureLen);
+
+            // The actual 'signature' is one byte added to secp256k1_ecdsa_recoverable_signature
+            // and secp256k1_ecdsa_recoverable_signature is 64 bytes as {r[32], s32]}
+
+            // Extract V, R, and S
+            signature.sig.recoverable.v = signatureBytes[0];
+            memcpy(signature.sig.recoverable.r, &signatureBytes[ 1], 32);
+            memcpy(signature.sig.recoverable.s, &signatureBytes[33], 32);
+
+            // TODO: Confirm signature
+            // assigns pubKey recovered from compactSig to key and returns true on success
+            // int BRKeyRecoverPubKey(BRKey *key, UInt256 md, const void *compactSig, size_t sigLen)
+
             break;
+        }
     }
+
     return signature;
 }
 
 //
 // Support
 //
+
+static UInt512
+deriveSeedFromPaperKey (const char *paperKey) {
+    // Generate the 512bit private key using a BIP39 paperKey
+    UInt512 seed = UINT512_ZERO;
+    BRBIP39DeriveKey(seed.u8, paperKey, NULL); // no passphrase
+    return seed;
+}
+
+static BRKey
+derivePrivateKeyFromSeed (UInt512 seed, uint32_t index) {
+    BRKey privateKey;
+
+    // The BIP32 privateKey for m/44'/60'/0'/0/index
+    BRBIP32PrivKeyPath(&privateKey, &seed, sizeof(UInt512), 5,
+                       44 | BIP32_HARD,          // purpose  : BIP-44
+                       60 | BIP32_HARD,          // coin_type: Ethereum
+                       0 | BIP32_HARD,          // account  : <n/a>
+                       0,                        // change   : not change
+                       index);                   // index    :
+
+    privateKey.compressed = 0;
+
+    return privateKey;
+}
 
 static void
 encodeHex (char *target, size_t targetLen, uint8_t *source, size_t sourceLen) {

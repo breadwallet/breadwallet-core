@@ -216,7 +216,7 @@ walletSignTransaction(BREthereumWallet wallet,
     BREthereumSignature signature = accountSignBytes
             (wallet->account,
              wallet->address,
-             SIGNATURE_TYPE_VRS,
+             SIGNATURE_TYPE_RECOVERABLE,
              transactionUnsignedRLP.bytes,
              transactionUnsignedRLP.bytesCount,
              paperKey);

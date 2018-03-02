@@ -133,16 +133,21 @@ accountGetPrimaryAddress (BREthereumAccount account);
 
 typedef enum {
     SIGNATURE_TYPE_FOO,
-    SIGNATURE_TYPE_VRS
+    SIGNATURE_TYPE_RECOVERABLE
 } BREthereumSignatureType;
 
 typedef struct {
     BREthereumSignatureType type;
     union {
-        struct { int ignore; } foo;
+        struct {
+            int ignore;
+        } foo;
 
-        // TODO: Proper type: data, v, r, s
-        struct { int v, r, s; } vrs;
+        struct {
+            uint8_t v;
+            uint8_t r[32];
+            uint8_t s[32];
+        } recoverable;
     } sig;
 } BREthereumSignature;
 

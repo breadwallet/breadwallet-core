@@ -98,7 +98,7 @@ tokenGetGasPrice (BREthereumToken token) {
 
 
 BREthereumToken tokenBRD = {
-        "0xabc",
+        "0x5250776FAD5A73707d222950de7999d3675a2722",
         "BRD",
         "Bread Token",
         "The Bread Token ...",
