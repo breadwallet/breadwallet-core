@@ -1117,11 +1117,12 @@ static void _peerRejectedTx(void *info, UInt256 txHash, uint8_t code)
 
 static int _BRPeerManagerVerifyBlock(BRPeerManager *manager, BRMerkleBlock *block, BRMerkleBlock *prev, BRPeer *peer)
 {
-    uint32_t transitionTime = 0;
     int r = 1;
-    
+
+    if (! prev || ! UInt256Eq(block->prevBlock, prev->blockHash) || block->height != prev->height + 1) r = 0;
+
     // check if we hit a difficulty transition, and find previous transition time
-    if ((block->height % BLOCK_DIFFICULTY_INTERVAL) == 0) {
+    if (r && (block->height % BLOCK_DIFFICULTY_INTERVAL) == 0) {
         BRMerkleBlock *b = block;
         UInt256 prevBlock;
 
@@ -1130,15 +1131,11 @@ static int _BRPeerManagerVerifyBlock(BRPeerManager *manager, BRMerkleBlock *bloc
         }
 
         if (! b) {
-            peer_log(peer, "missing previous difficulty tansition time, can't verify blockHash: %s",
-                     u256hex(block->blockHash));
+            peer_log(peer, "missing previous difficulty tansition, can't verify block: %s", u256hex(block->blockHash));
             r = 0;
         }
-        else {
-            transitionTime = b->timestamp;
-            prevBlock = b->prevBlock;
-        }
-        
+        else prevBlock = b->prevBlock;
+
         while (b) { // free up some memory
             b = BRSetGet(manager->blocks, &prevBlock);
             if (b) prevBlock = b->prevBlock;
@@ -1151,7 +1148,7 @@ static int _BRPeerManagerVerifyBlock(BRPeerManager *manager, BRMerkleBlock *bloc
     }
 
     // verify block difficulty
-    if (r && ! manager->params->verifyDifficulty(block, prev, transitionTime)) {
+    if (r && ! manager->params->verifyDifficulty(block, manager->blocks)) {
         peer_log(peer, "relayed block with invalid difficulty target %x, blockHash: %s", block->target,
                  u256hex(block->blockHash));
         r = 0;

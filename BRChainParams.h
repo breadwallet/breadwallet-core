@@ -26,6 +26,7 @@
 #define BRChainParams_h
 
 #include "BRMerkleBlock.h"
+#include "BRSet.h"
 #include <assert.h>
 
 typedef struct {
@@ -40,7 +41,7 @@ typedef struct {
     uint16_t standardPort;
     uint32_t magicNumber;
     uint64_t services;
-    int (*verifyDifficulty)(const BRMerkleBlock *block, const BRMerkleBlock *previous, uint32_t transitionTime);
+    int (*verifyDifficulty)(const BRMerkleBlock *block, const BRSet *blockSet); // blockSet must have last 2016 blocks
     const BRCheckPoint *checkpoints;
     size_t checkpointsCount;
 } BRChainParams;
@@ -101,16 +102,28 @@ static const BRCheckPoint BRTestNetCheckpoints[] = {
     { 1108800, uint256("00000000000288d9a219419d0607fb67cc324d4b6d2945ca81eaa5e739fab81e"), 1490751239, 0x1b09ecf0 }
 };
 
-static int BRTestNetVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBlock *previous, uint32_t transitionTime)
+static int BRMainNetVerifyDifficulty(const BRMerkleBlock *block, const BRSet *blockSet)
 {
-    int r = 1;
+    const BRMerkleBlock *previous, *b = NULL;
+    uint32_t i;
     
     assert(block != NULL);
-    assert(previous != NULL);
+    assert(blockSet != NULL);
     
-    if (! previous || !UInt256Eq(block->prevBlock, previous->blockHash) || block->height != previous->height + 1) r = 0;
-    if (r && (block->height % BLOCK_DIFFICULTY_INTERVAL) == 0 && transitionTime == 0) r = 0;
-    return r;
+    // check if we hit a difficulty transition, and find previous transition block
+    if ((block->height % BLOCK_DIFFICULTY_INTERVAL) == 0) {
+        for (i = 0, b = block; b && i < BLOCK_DIFFICULTY_INTERVAL; i++) {
+            b = BRSetGet(blockSet, &b->prevBlock);
+        }
+    }
+    
+    previous = BRSetGet(blockSet, &block->prevBlock);
+    return BRMerkleBlockVerifyDifficulty(block, previous, (b) ? b->timestamp : 0);
+}
+
+static int BRTestNetVerifyDifficulty(const BRMerkleBlock *block, const BRSet *blockSet)
+{
+    return 1; // XXX skip testnet difficulty check for now
 }
 
 static const BRChainParams BRMainNetParams = {
@@ -118,7 +131,7 @@ static const BRChainParams BRMainNetParams = {
     8333,       // standardPort
     0xd9b4bef9, // magicNumber
     0,          // services
-    BRMerkleBlockVerifyDifficulty,
+    BRMainNetVerifyDifficulty,
     BRMainNetCheckpoints,
     sizeof(BRMainNetCheckpoints)/sizeof(*BRMainNetCheckpoints)
 };
