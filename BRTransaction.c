@@ -26,7 +26,6 @@
 #include "BRKey.h"
 #include "BRAddress.h"
 #include "BRArray.h"
-#include "BRPeer.h"
 #include <stdlib.h>
 #include <inttypes.h>
 #include <limits.h>
@@ -425,7 +424,7 @@ BRTransaction *BRTransactionParse(const uint8_t *buf, size_t bufLen)
         tx = NULL;
     }
     else if (isSigned) BRSHA256_2(&tx->txHash, buf, off);
-
+    
     return tx;
 }
 
@@ -476,7 +475,7 @@ void BRTransactionAddOutput(BRTransaction *tx, uint64_t amount, const uint8_t *s
 void BRTransactionShuffleOutputs(BRTransaction *tx)
 {
     assert(tx != NULL);
-
+    
     for (uint32_t i = 0; tx && i + 1 < tx->outCount; i++) { // fischer-yates shuffle
         uint32_t j = i + BRRand((uint32_t)tx->outCount - i);
         BRTxOutput t;
@@ -496,7 +495,6 @@ size_t BRTransactionSize(const BRTransaction *tx)
     size_t size;
 
     assert(tx != NULL);
-
     size = (tx) ? 8 + BRVarIntSize(tx->inCount) + BRVarIntSize(tx->outCount) : 0;
     
     for (size_t i = 0; tx && i < tx->inCount; i++) {
@@ -526,7 +524,7 @@ uint64_t BRTransactionStandardFee(const BRTransaction *tx)
 int BRTransactionIsSigned(const BRTransaction *tx)
 {
     assert(tx != NULL);
-
+    
     for (size_t i = 0; tx && i < tx->inCount; i++) {
         if (! tx->inputs[i].signature) return 0;
     }
@@ -544,7 +542,7 @@ int BRTransactionSign(BRTransaction *tx, int forkId, BRKey keys[], size_t keysCo
     
     assert(tx != NULL);
     assert(keys != NULL || keysCount == 0);
-
+    
     for (i = 0; tx && i < keysCount; i++) {
         if (! BRKeyAddress(&keys[i], addrs[i].s, sizeof(addrs[i]))) addrs[i] = BR_ADDRESS_NONE;
     }
