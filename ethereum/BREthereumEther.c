@@ -1,5 +1,5 @@
 //
-//  BBREthereumAddress.c
+//  BBREthereumEther.c
 //  breadwallet-core Ethereum
 //
 //  Created by Ed Gamble on 2/21/2018.
@@ -52,13 +52,13 @@ gtUInt256 (UInt256 x);
 */
 
 static UInt256 etherUnitScaleFactor [NUMBER_OF_ETHER_UNITS] = {
-        { .u64 = { 0, 0, 0,                   1 } },            /* wei       - 1    */
-        { .u64 = { 0, 0, 0,                1000 } },            /* kwei      - 1e3  */
-        { .u64 = { 0, 0, 0,             1000000 } },             /* mwei      - 1e6  */
-        { .u64 = { 0, 0, 0,          1000000000 } },            /* gwei      - 1e9  */
-        { .u64 = { 0, 0, 0,       1000000000000 } },            /* szabo     - 1e12 */
-        { .u64 = { 0, 0, 0,    1000000000000000 } },            /* finney    - 1e15 */
-        { .u64 = { 0, 0, 0, 1000000000000000000 } },            /* ether     - 1e18 */
+        { .u64 = { 0, 0,           0,                    1  } },  /* wei       - 1    */
+        { .u64 = { 0, 0,           0,                 1000  } },  /* kwei      - 1e3  */
+        { .u64 = { 0, 0,           0,              1000000  } },  /* mwei      - 1e6  */
+        { .u64 = { 0, 0,           0,           1000000000  } },  /* gwei      - 1e9  */
+        { .u64 = { 0, 0,           0,        1000000000000  } },  /* szabo     - 1e12 */
+        { .u64 = { 0, 0,           0,     1000000000000000  } },  /* finney    - 1e15 */
+        { .u64 = { 0, 0,           0,  1000000000000000000  } },  /* ether     - 1e18 */
         { .u64 = { 0, 0,          54,  3875820019684212736u } }, /* kether    - 1e21 */
         { .u64 = { 0, 0,       54210,  2003764205206896640u } }, /* mether    - 1e24 */
         { .u64 = { 0, 0,    54210108, 11515845246265065472u } }, /* gether    - 1e27 */
@@ -108,7 +108,7 @@ etherCreateNumber (uint64_t number, BREthereumEtherUnit unit) {
 }
 
 extern BREthereumEther
-etherCreateZero() {
+etherCreateZero(void) {
     return etherCreate(UINT256_ZERO, WEI);
 }
 

@@ -30,36 +30,50 @@
 #include <errno.h>
 #include <time.h>
 #include <unistd.h>
+#include <assert.h>
 
 #include "BREthereum.h"
 #include "../BRBIP39WordsEn.h"
 
-#define SOME_RANDOM_TEST_PAPER_KEY "axis husband project any sea patch drip tip spirit tide bring belt"
+/*
+m/44'/60'/0'/0/0 :: 0x2161DedC3Be05B7Bb5aa16154BcbD254E9e9eb68
+                    0x03c026c4b041059c84a187252682b6f80cbbe64eb81497111ab6914b050a8936fd
+                    0x73bf21bf06769f98dabcfac16c2f74e852da823effed12794e56876ede02d45d
+m/44'/60'/0'/0/1 :: 0x9595F373a4eAe74511561A52998cc6fB4F9C2bdD
+*/
+
+#define TEST_PAPER_KEY    "army van defense carry jealous true garbage claim echo media make crunch"
+#define TEST_ETH_ADDR_CHK "0x2161DedC3Be05B7Bb5aa16154BcbD254E9e9eb68"
+#define TEST_ETH_ADDR     "0x2161dedc3be05b7bb5aa16154bcbd254e9e9eb68"
+#define TEST_ETH_PUBKEY   "0x03c026c4b041059c84a187252682b6f80cbbe64eb81497111ab6914b050a8936fd"
+#define TEST_ETH_PRIKEY   "0x73bf21bf06769f98dabcfac16c2f74e852da823effed12794e56876ede02d45d"
 
 void runAddressTests (BREthereumAddress address) {
-    printf ("==== Address\n");
-    printf ("    PaperKey: %s\n", SOME_RANDOM_TEST_PAPER_KEY);
-//    printf ("  PrivateKey: %s\n", addressGetPrivateKeyString((address)));
-    printf ("   PublicKey: %s\n", addressGetPublicKeyString(address));
+//    printf ("==== Address\n");
+    printf ("       Address: %p\n", address);
 
-//    (Ethereum) Root: wM5uZBNTYmaYGiK8VbcFnjp31nkcGkCmemfmeVBwHDCMVh7JeKrMqz7othgry4FYPcnQNsuGzs91FV9vkxMDA2PoQXPPx6v7w9nHUqD3N8imMkSo
-//
-//    Extended Private:
-//    wM5uZBVNx184sk3iVjZ3g3jPf6vv7mfSXKynrjFoCRnfYihbs7UopynDPikFUrX6P9BNrWcf2rWQUi9PSP7Ln4DPCz9X9LdEkEz5pAWrXA9EAJvV
-//
-//    Extended Public:
-//    wM5uZBVNx184sk3iVjZ3g3jPf6vv7mfSXKynrjFoCRnfYihbs7UopynDPikFUrdfrgJyyjXKnW7ZvcXySBPhTTrRLZPY8JDrs8kLTAG89rLNA1x7
-//
-//    Index 0:
-//    address:		0xe8109e4bf446EE7ad86bbf90F4a25998B7aF771c
-//    public key:   0x02d760a7701dd88c48b1918a77ec81c638a348c6c9028a43c31c78d4e33c8dd308
-//    private key:	0x13bed3cd2077015d7a2ebeba041c5013b942ae2236f9861e3d424c14735ffd83
+    printf ("      PaperKey: %p, %s\n", TEST_PAPER_KEY, TEST_PAPER_KEY);
+    printf ("\n");
 
+    const char *publicKeyString = addressPublicKeyAsString (address);
+    printf ("    Public Key: %p, %s\n", publicKeyString, publicKeyString);
+    assert (0 == strcmp (TEST_ETH_PUBKEY, publicKeyString));
+
+    const char *addressString = addressAsString (address);
+    printf ("       Address: %s\n", addressString);
+    assert (0 == strcmp (TEST_ETH_ADDR, addressString) ||
+	      0 == strcmp (TEST_ETH_ADDR_CHK, addressString));
+
+    free ((void *) addressString);
+    free ((void *) publicKeyString);
 }
 
 void runAccountTests () {
-    BREthereumAccount account = accountCreate(SOME_RANDOM_TEST_PAPER_KEY);
+    BREthereumAccount account = accountCreate(TEST_PAPER_KEY);
+
+    printf ("       Account: %p\n", account);
     runAddressTests(accountGetPrimaryAddress(account));
+    accountFree (account);
 }
 
 void runTests () {

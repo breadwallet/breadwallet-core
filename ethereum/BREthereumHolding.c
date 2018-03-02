@@ -26,16 +26,23 @@
 
 #include <string.h>
 #include "BREthereumHolding.h"
+#include "BREthereumEther.h"
 #include "BREthereum.h"
 
 extern BREthereumToken
-tokenCreate (char *address,
-              BREthereumGas gasLimit,
-              BREthereumGasPrice gasPrice) {
+tokenCreate(char *address,
+            char *symbol,
+            char *name,
+            char *description,
+            BREthereumGas gasLimit,
+            BREthereumGasPrice gasPrice) {
     BREthereumToken token = tokenCreateNone();
 
     // TODO: Copy address or what (BREthereumToken is a value type....)
     token.address = address;
+    token.symbol  = symbol;
+    token.name    = name;
+    token.description = description;
     token.gasLimit = gasLimit;
     token.gasPrice = gasPrice;
 
@@ -43,7 +50,7 @@ tokenCreate (char *address,
 }
 
 extern BREthereumToken
-tokenCreateNone () {
+tokenCreateNone (void) {
     BREthereumToken token;
     memset (&token, sizeof (BREthereumToken), 0);
     return token;
@@ -88,3 +95,11 @@ extern BREthereumGasPrice
 tokenGetGasPrice (BREthereumToken token) {
     return token.gasPrice;
 }
+
+
+BREthereumToken tokenBRD = {
+        "0xabc",
+        "BRD",
+        "Bread Token",
+        "The Bread Token ...",
+};

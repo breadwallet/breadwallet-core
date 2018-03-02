@@ -26,38 +26,34 @@
 #include <stdlib.h>
 #include <string.h>
 #include "BREthereumTransaction.h"
+#include "BREthereumHolding.h"
 
 struct BREthereumTransactionRecord {
     BREthereumAddress sourceAddress;
     BREthereumAddress targetAddress;
-    BREthereumEther amount;
+    BREthereumHolding amount;
     BREthereumGasPrice gasPrice;
     BREthereumGas gasLimit;
 
-    // TODO: Proper type: data, v, r, s
     char *data;
-    int v;
-    int r;
-    int s;
+
+    /**
+     * The signature, if signed (signer is not NULL).  This is a 'VRS' signature.
+     */
+    BREthereumSignature signature;
+
+    /**
+     * The signing account, if signed.  NULL is not signed.
+     */
+    BREthereumAccount signer;
 
     // hash
-
-    // Signer - needed?
-    BREthereumAccount signer; // optional
-};
-
-struct BREthereumTransactionResult {
-    BREthereumTransaction transaction;
-    BREthereumGas gas;
-    // block hash
-    // block number
-    // transaction index
 };
 
 extern BREthereumTransaction
 transactionCreate(BREthereumAddress sourceAddress,
                   BREthereumAddress targetAddress,
-                  BREthereumEther amount,
+                  BREthereumHolding amount,
                   BREthereumGasPrice gasPrice,
                   BREthereumGas gasLimit,
                   int nonce) {
@@ -85,8 +81,8 @@ transactionGetTargetAddress(BREthereumTransaction transaction) {
     return transaction->targetAddress;
 }
 
-extern BREthereumEther
-transactionGetAmount (BREthereumTransaction transaction) {
+extern BREthereumHolding
+transactionGetAmount(BREthereumTransaction transaction) {
     return transaction->amount;
 }
 
@@ -101,25 +97,6 @@ transactionGetGasLimit (BREthereumTransaction transaction) {
 }
 
 //
-// Signer
-//
-
-extern BREthereumAccount
-transactionGetSigner (BREthereumTransaction transaction) {
-    return transaction->signer; // NULL is not signed.
-}
-
-extern void
-transactionSetSigner (BREthereumTransaction transaction, BREthereumAccount account) {
-    transaction->signer = account;
-}
-
-extern BREthereumBoolean
-transactionIsSigned (BREthereumTransaction transaction) {
-    return NULL != transactionGetSigner (transaction) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
-}
-
-//
 // Data
 //
 extern void
@@ -129,13 +106,25 @@ transactionSetData (BREthereumTransaction transaction, char *data) {
 }
 
 //
-// VRS
+// Sign
 //
 extern void
-transactionSetVRS(BREthereumTransaction transaction, int v, int r, int s) {
-    transaction->v = v;
-    transaction->r = r;
-    transaction->s = s;
+transactionSign(BREthereumTransaction transaction,
+                BREthereumAccount signer,
+                BREthereumSignature signature) {
+    transaction->signer = signer;
+    transaction->signature = signature;
+}
+
+extern BREthereumAccount
+transactionGetSigner (BREthereumTransaction transaction) {
+    return transaction->signer; // NULL is not signed.
+}
+
+
+extern BREthereumBoolean
+transactionIsSigned (BREthereumTransaction transaction) {
+    return NULL != transactionGetSigner (transaction) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
 }
 
 //
@@ -146,16 +135,31 @@ extern BRRlpData
 transactionEncodeRLP (BREthereumTransaction transaction,
                       BREthereumTransactionRLPType type) {
     BRRlpData data;
-    return data;
+
+  data.bytesCount = 0;
+  data.bytes = NULL;
+  return data;
 }
 
 extern BREthereumTransaction
 createTransactionDecodeRLP (BRRlpData data,
                             BREthereumTransactionRLPType type) {
     BREthereumTransaction transaction;
-    return transaction;
+
+  memset (&transaction, sizeof(struct BREthereumTransactionRecord), 0);
+  return transaction;
 }
 
+//
+// Transaction Result
+//
+struct BREthereumTransactionResult {
+    BREthereumTransaction transaction;
+    BREthereumGas gas;
+    // block hash
+    // block number
+    // transaction index
+};
 
 /*
      https://github.com/ethereum/pyethereum/blob/develop/ethereum/transactions.py#L22

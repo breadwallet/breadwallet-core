@@ -31,18 +31,18 @@
 #include "BREthereumGas.h"
 
 #include "rlp/BRRlp.h"
+#include "BREthereumHolding.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// Value type
 typedef struct BREthereumTransactionRecord *BREthereumTransaction;
 
 extern BREthereumTransaction
 transactionCreate(BREthereumAddress sourceAddress,
                   BREthereumAddress targetAddress,
-                  BREthereumEther amount,
+                  BREthereumHolding amount,
                   BREthereumGasPrice gasPrice,
                   BREthereumGas gasLimit,
                   int nonce);
@@ -53,8 +53,8 @@ transactionGetSourceAddress(BREthereumTransaction transaction);
 extern BREthereumAddress
 transactionGetTargetAddress(BREthereumTransaction transaction);
 
-extern BREthereumEther
-transactionGetAmount (BREthereumTransaction transaction);
+extern BREthereumHolding
+transactionGetAmount(BREthereumTransaction transaction);
 
 extern BREthereumGasPrice
 transactionGetGasPrice (BREthereumTransaction transaction);
@@ -62,21 +62,19 @@ transactionGetGasPrice (BREthereumTransaction transaction);
 extern BREthereumGas
 transactionGetGasLimit (BREthereumTransaction transaction);
 
-extern BREthereumAccount
-transactionGetSigner (BREthereumTransaction transaction);
-
-// Error if account does not hold sourceAddress ?
-extern void
-transactionSetSigner (BREthereumTransaction transaction, BREthereumAccount account);
-
-extern BREthereumBoolean
-transactionIsSigned (BREthereumTransaction transaction);
-
 extern void
 transactionSetData (BREthereumTransaction transaction, char *data);
 
 extern void
-transactionSetVRS(BREthereumTransaction transaction, int v, int r, int s);
+transactionSign(BREthereumTransaction transaction,
+                BREthereumAccount signer,
+                BREthereumSignature signature);
+
+extern BREthereumAccount
+transactionGetSigner (BREthereumTransaction transaction);
+
+extern BREthereumBoolean
+transactionIsSigned (BREthereumTransaction transaction);
 
 //
 // RLP Encoding
@@ -93,6 +91,11 @@ transactionEncodeRLP (BREthereumTransaction transaction,
 extern BREthereumTransaction
 createTransactionDecodeRLP (BRRlpData data,
                             BREthereumTransactionRLPType type);
+
+//
+// Transaction Result
+//
+typedef struct BREthereumTransactionResultRecord *BREthereumTransactionResult;
 
 #ifdef __cplusplus
 }

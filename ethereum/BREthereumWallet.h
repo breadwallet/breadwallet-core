@@ -49,6 +49,7 @@ extern "C" {
 typedef struct BREthereumWalletRecord *BREthereumWallet;
 
 /**
+ * Create a wallet holding ETH; will use the account's primary address.
  *
  * @param account
  * @return
@@ -57,6 +58,8 @@ extern BREthereumWallet
 walletCreate(BREthereumAccount account);
 
 /**
+ * Create a wallet holding ETH; will use `address` as the wallet's address.  The provided address
+ * must be owned by `account`.
  *
  * @param account
  * @param address
@@ -88,7 +91,7 @@ walletCreateHoldingToken(BREthereumAccount account,
 extern BREthereumTransaction
 walletCreateTransaction(BREthereumWallet wallet,
                         BREthereumAddress recvAddress,
-                        BREthereumEther amount);
+                        BREthereumHolding amount);
 
 /**
  *
@@ -103,7 +106,7 @@ walletCreateTransaction(BREthereumWallet wallet,
 extern BREthereumTransaction
 walletCreateTransactionDetailed(BREthereumWallet wallet,
                                 BREthereumAddress recvAddress,
-                                BREthereumEther amount,
+                                BREthereumHolding amount,
                                 BREthereumGasPrice gasPrice,
                                 BREthereumGas gasLimit,
                                 int nonce);

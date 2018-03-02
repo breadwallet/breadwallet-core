@@ -109,11 +109,11 @@ walletCreateDetailed (BREthereumAccount account,
     wallet->holding = holdingCreate(type);
     wallet->token = optionalToken;
 
-    wallet->defaultGasLimit = NULL == optionalToken
+    wallet->defaultGasLimit = WALLET_HOLDING_ETHER == type
                               ? walletCreateDefaultGasLimit(wallet)
                               : tokenGetGasLimit (optionalToken);
 
-    wallet->defaultGasPrice = NULL == optionalToken
+    wallet->defaultGasPrice = WALLET_HOLDING_ETHER == type
                               ? walletCreateDefaultGasPrice(wallet)
                               : tokenGetGasPrice (optionalToken);
 
@@ -153,7 +153,7 @@ walletCreateHoldingToken(BREthereumAccount account,
 extern BREthereumTransaction
 walletCreateTransaction(BREthereumWallet wallet,
                         BREthereumAddress recvAddress,
-                        BREthereumEther amount) {
+                        BREthereumHolding amount) {
 
     return walletCreateTransactionDetailed
             (wallet,
@@ -167,7 +167,7 @@ walletCreateTransaction(BREthereumWallet wallet,
 extern BREthereumTransaction
 walletCreateTransactionDetailed(BREthereumWallet wallet,
                                 BREthereumAddress recvAddress,
-                                BREthereumEther amount,
+                                BREthereumHolding amount,
                                 BREthereumGasPrice gasPrice,
                                 BREthereumGas gasLimit,
                                 int nonce) {
@@ -178,6 +178,18 @@ walletCreateTransactionDetailed(BREthereumWallet wallet,
             gasPrice,
             gasLimit,
             nonce);
+}
+
+static char *
+walletDataForHolding (BREthereumWallet wallet) {
+    // TODO: Implement
+    switch (wallet->holding.type) {
+        case WALLET_HOLDING_ETHER:
+            return "";  // empty string - official 'ETHER' data
+
+        case WALLET_HOLDING_TOKEN:
+            return "token";
+    }
 }
 
 /**
@@ -210,24 +222,7 @@ walletSignTransaction(BREthereumWallet wallet,
              paperKey);
 
     // Attach the signature
-    transactionSetVRS(transaction,
-                      signature.sig.bar.v,
-                      signature.sig.bar.r,
-                      signature.sig.bar.s);
-
-    transactionSetSigner(transaction, wallet->account);
-}
-
-static char *
-walletDataForHolding (BREthereumWallet wallet) {
-    // TODO: Implement
-    switch (wallet->holding.type) {
-        case WALLET_HOLDING_ETHER:
-            return "";  // empty string - official 'ETHER' data
-
-        case WALLET_HOLDING_TOKEN:
-            return "token";
-    }
+    transactionSign(transaction, wallet->account, signature);
 }
 
 extern BRRlpData // TODO: is this the actual result?
@@ -235,7 +230,7 @@ walletGetRawTransaction(BREthereumWallet wallet,
                         BREthereumTransaction transaction) {
     return transactionIsSigned(transaction)
            ? transactionEncodeRLP(transaction, TRANSACTION_RLP_SIGNED)
-           : NULL;
+           : createRlpDataEmpty();
 }
     /*
 

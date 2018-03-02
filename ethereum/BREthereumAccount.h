@@ -30,7 +30,7 @@
 extern "C" {
 #endif
 
-#include <BRInt.h>
+#include "BRInt.h"
 
 //
 // BIP39 Word List
@@ -56,42 +56,24 @@ installSharedWordList (const char *wordList[], int wordListLength);
 typedef struct BREthereumAddressRecord *BREthereumAddress;
 
 /**
- * The address' privateKey as a newly allocated 'char *'
+ * Create an address from the external representation of an address.
  *
- * @param address
+ * @param string
  * @return
  */
+extern BREthereumAddress
+createAddress (const char *string);
+
+extern void
+addressFree (BREthereumAddress address);
+
 extern const char *
-addressGetPrivateKeyString (BREthereumAddress address);
+addressAsString (BREthereumAddress address);
 
-/**
- * The address' publicKey as a newly allocated 'char *'
- *
- * @param address
- * @return
- */
-extern char *
-addressGetPublicKeyString (BREthereumAddress address);
-
-/**
- * The address' publicKey as a 'hash 160'
- *
- * @param address
- * @return
- */
-extern const UInt160
-addressGetPublicKeyHash160 (BREthereumAddress address);
-
-/**
- * The address' publicKey as an 'Ethereum Address String' (Keccak256 encoded with a '0x' prefix).
- *
- * @param address
- * @return
- */
-extern char *
-addressGetPublicKeyKeccak256 (BREthereumAddress address);
-
-// sign something with this private key...
+#if defined (DEBUG)
+extern const char *
+addressPublicKeyAsString (BREthereumAddress address);
+#endif
 
 //
 // Account
@@ -120,6 +102,9 @@ typedef struct BREthereumAccountRecord *BREthereumAccount;
 extern BREthereumAccount
 accountCreate(const char *paperKey);
 
+extern void
+accountFree (BREthereumAccount account);
+
 /**
  * Create a new account using paperKey and the provided wordList
  *
@@ -132,7 +117,9 @@ extern BREthereumAccount
 accountCreateDetailed(const char *paperKey, const char *wordList[], const int wordListLength);
 
 /**
- * The account's primary address (aka 'address[0]')
+ * The account's primary address (aka 'address[0]').
+ *
+ * TODO: Copy or not
  *
  * @param account
  * @return
@@ -153,7 +140,9 @@ typedef struct {
     BREthereumSignatureType type;
     union {
         struct { int ignore; } foo;
-        struct { int v, r, s; } bar;
+
+        // TODO: Proper type: data, v, r, s
+        struct { int v, r, s; } vrs;
     } sig;
 } BREthereumSignature;
 

@@ -23,4 +23,12 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#include <string.h>
 #include "BRRlpCoder.h"
+
+extern BRRlpData
+createRlpDataEmpty (void) {
+    BRRlpData data;
+    memset (&data, sizeof (BRRlpData), 0);
+    return data;
+}

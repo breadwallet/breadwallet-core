@@ -37,6 +37,9 @@ typedef struct BRRlpDataRecord {
     uint8_t *bytes;
 } BRRlpData;
 
+extern BRRlpData
+createRlpDataEmpty (void);
+
 #ifdef __cplusplus
 }
 #endif

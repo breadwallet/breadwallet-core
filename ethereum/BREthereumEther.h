@@ -2,7 +2,7 @@
 #ifndef BR_Ethereum_Ether_H
 #define BR_Ethereum_Ether_H
 
-#include <BRInt.h>
+#include "BRInt.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -59,7 +59,7 @@ extern BREthereumEther
 etherCreateNumber (uint64_t number, BREthereumEtherUnit unit);
 
 extern BREthereumEther
-etherCreateZero();
+etherCreateZero (void);
 
 extern UInt256
 etherGetValue(const BREthereumEther ether, BREthereumEtherUnit unit);

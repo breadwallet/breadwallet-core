@@ -73,30 +73,50 @@ typedef struct BREthereumTokenRecord {
     char *address;
 
     /**
-     *
+     * The (exchange) symbol - "BRD"
+     */
+    char *symbol;
+
+    /**
+     * The name - "Bread Token"
+     */
+    char *name;
+
+    /**
+     * The description - "The Bread Token ..."
+     */
+    char *description;
+
+    /**
+     * The (default) Gas Limit for exchanges of this token.
      */
     BREthereumGas gasLimit;
 
     /**
-     *
+     * The (default) Gas Price for exchanges of this token.
      */
     BREthereumGasPrice gasPrice;
     
 } BREthereumToken;
 
 extern BREthereumToken
-tokenCreate (char *address,
-             BREthereumGas gasLimit,
-             BREthereumGasPrice gasPrice);
+tokenCreate(char *address,
+            char *symbol,
+            char *name,
+            char *description,
+            BREthereumGas gasLimit,
+            BREthereumGasPrice gasPrice);
 
 extern BREthereumToken
-tokenCreateNone ();
+tokenCreateNone (void);
 
 extern BREthereumGas
 tokenGetGasLimit (BREthereumToken token);
 
 extern BREthereumGasPrice
 tokenGetGasPrice (BREthereumToken token);
+
+//extern BREthereumToken tokenBRD;
 
 #ifdef __cplusplus
 }
