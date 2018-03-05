@@ -24,7 +24,8 @@ ETH_SRCS=rlp/BRRlpCoder.c \
 	BREthereumGas.c \
 	BREthereumHolding.c \
 	BREthereumTransaction.c \
-	BREthereumWallet.c
+	BREthereumWallet.c \
+	BREthereumLightNode.c
 
 ETH_OBJS=$(ETH_SRCS:.c=.o)
 

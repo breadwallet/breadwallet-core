@@ -50,6 +50,8 @@ struct BREthereumTransactionRecord {
 
     uint64_t nonce;
     // hash
+
+    // EIP-135 - chainId - "Since EIP-155 use chainId for v"
 };
 
 extern BREthereumTransaction

@@ -100,7 +100,7 @@ void rlpCheckString (const char *string, uint8_t *result, size_t resultSize) {
 
 void rlpCheckInt (uint64_t value, uint8_t *result, size_t resultSize) {
     BRRlpCoder coder = createRlpCoder();
-    printf ("  %d", value);
+    printf ("  %llu", value);
     rlpEncodeItemUInt64(coder, value);
     rlpCheck(coder, result, resultSize);
 }
@@ -165,7 +165,7 @@ void runAddressTests (BREthereumAccount account) {
 //
 
 
-// https://github.com/ethereum/EIPs/issues/155
+// https://github.com/ethereum/EIPs/issues/155 (SEE 'kvhnuke commented on Nov 22, 2016')
 //
 // Consider a transaction with nonce = 9, gasprice = 20 * 10**9, startgas = 21000,
 // to = 0x3535353535353535353535353535353535353535, value = 10**18, data='' (empty).
@@ -175,7 +175,7 @@ void runAddressTests (BREthereumAccount account) {
 // 0xec098504a817c800825208943535353535353535353535353535353535353535880de0b6b3a764000080018080
 // The "signing hash" becomes:
 //
-// 0x2691916f9e6e5b304f135496c08f632040f02d78e36ae5bbbb38f919730c8fa0
+// 0xdaf5a779ae972f972197303d7b574746c7ef83eadac0f2791ad23db92e4c8e53
 //
 // If the transaction is signed with the private key
 // 0x4646464646464646464646464646464646464646464646464646464646464646, then the v,r,s values become:
@@ -189,66 +189,47 @@ void runAddressTests (BREthereumAccount account) {
 // 0xf86c098504a817c800825208943535353535353535353535353535353535353535880de0b6b3a76400008025a028ef61340bd939bc2195fe537567866003e1a15d3c71ff63e1590620aa636276a067cbe9d8997f761aecb703304b3800ccf555c9f3dc64214b297fb1966a3b6d83
 //
 
-#define SIGNATURE_SIGNING_DATA "0xec098504a817c800825208943535353535353535353535353535353535353535880de0b6b3a764000080018080"
-#define SIGNATURE_SIGNING_HASH "0x2691916f9e6e5b304f135496c08f632040f02d78e36ae5bbbb38f919730c8fa0"
+#define SIGNATURE_SIGNING_DATA "ec098504a817c800825208943535353535353535353535353535353535353535880de0b6b3a764000080018080"  // removed "0x"
+#define SIGNATURE_SIGNING_HASH "daf5a779ae972f972197303d7b574746c7ef83eadac0f2791ad23db92e4c8e53" // removed "0x"
 #define SIGNATURE_PRIVATE_KEY  "4646464646464646464646464646464646464646464646464646464646464646"
 
 #define SIGNATURE_V "37"
 #define SIGNATURE_R "11298168949998536842419725113857172427648002808790045841403298480749678639159"
 #define SIGNATURE_S "26113561835810707062310182368620287328545641189938585203131842552044123671646"
 
-#define SIGNING_DATA_2 "0xf86c258502540be40083035b609482e041e84074fc5f5947d4d27e3c44f824b7a1a187b1a2bc2ec500008078a04a7db627266fa9a4116e3f6b33f5d245db40983234eb356261f36808909d2848a0166fa098a2ce3bda87af6000ed0083e3bf7cc31c6686b670bd85cbc6da2d6e85"
-#define SIGNING_HASH_2 "0x58e5a0fc7fbc849eddc100d44e86276168a8c7baaa5604e44ba6f5eb8ba1b7eb"
+#define SIGNING_DATA_2 "f86c258502540be40083035b609482e041e84074fc5f5947d4d27e3c44f824b7a1a187b1a2bc2ec500008078a04a7db627266fa9a4116e3f6b33f5d245db40983234eb356261f36808909d2848a0166fa098a2ce3bda87af6000ed0083e3bf7cc31c6686b670bd85cbc6da2d6e85"
+#define SIGNING_HASH_2 "58e5a0fc7fbc849eddc100d44e86276168a8c7baaa5604e44ba6f5eb8ba1b7eb"
 
 void runSignatureTests (BREthereumAccount account) {
     printf ("\n== Signature\n");
-
-    size_t signingDataLen = strlen(SIGNATURE_SIGNING_DATA)/2;
-    uint8_t signingData[signingDataLen];
-    decodeHex(signingData, signingDataLen, SIGNATURE_SIGNING_DATA, sizeof(SIGNATURE_SIGNING_DATA));
-
-    printf ("%s\n", SIGNATURE_SIGNING_DATA);
-    showHex(signingData, signingDataLen);
-    printf ("\n");
-
-    char result[65];
-
     UInt256 digest;
-    BRSHA256(&digest, signingData, signingDataLen);
-    printf ("\nSHA 1: "); showHex(digest.u8, sizeof(digest));
-    encodeHex(result, 65, digest.u8, sizeof(digest));
-    printf ("\n     : 0x%s\n", result);
 
-    BRSHA256_2(&digest, signingData, signingDataLen);
-    printf ("\nSHA 2: "); showHex(digest.u8, sizeof(digest));
-    encodeHex(result, 65, digest.u8, sizeof(digest));
-    printf ("\n     : 0x%s\n", result);
+    printf ("    Sig 1:");
+    char *signingData = SIGNATURE_SIGNING_DATA;
+    char *signingHash = SIGNATURE_SIGNING_HASH;
 
-    BRKeccak256(&digest, signingData, signingDataLen);
-    printf ("\nKECCK: "); showHex(digest.u8, sizeof(digest));
-    encodeHex(result, 65, digest.u8, sizeof(digest));
-    printf ("\n     : 0x%s\n", result);
+    size_t   signingBytesCount = 0;
+    uint8_t *signingBytes = decodeHexCreate(&signingBytesCount, signingData, strlen (signingData));
 
-    printf ("\n HASH: %s", SIGNATURE_SIGNING_HASH);
+    BRKeccak256(&digest, signingBytes, signingBytesCount);
 
-    printf ("\n\n\n");
+    char *digestString = encodeHexCreate(NULL, (uint8_t *) &digest, sizeof(UInt256));
+    printf ("\n  Hex: %s\n", digestString);
+    assert (0 == strcmp (digestString, signingHash));
 
-    // SIGNING_DATA -> HEX
-    size_t signingData2Len = strlen(SIGNING_DATA_2)/2;
-    uint8_t signingData2[signingData2Len];
-    decodeHex(signingData2, signingData2Len, SIGNING_DATA_2, sizeof(SIGNING_DATA_2));
-    // HASH and display
-    BRKeccak256(&digest, signingData, signingDataLen);
-    printf ("\nKECCK: "); showHex(digest.u8, sizeof(digest));
-    encodeHex(result, 65, digest.u8, sizeof(digest));
-    printf ("\n     : 0x%s\n", result);
+    //
+    printf ("    Sig 2:");
+    signingData = SIGNING_DATA_2;
+    signingHash = SIGNING_HASH_2;
+    signingBytesCount = 0;
 
-    // Just has the freaking string
-    BRKeccak256(&digest, SIGNING_DATA_2, sizeof(SIGNING_DATA_2));
-    printf ("\nKECCK raw: "); showHex(digest.u8, sizeof(digest));
-    encodeHex(result, 65, digest.u8, sizeof(digest));
-    printf ("\n         : 0x%s", result);
-    printf ("\n     HASH: %s", SIGNING_HASH_2);
+    uint8_t *signingBytes2 = decodeHexCreate(&signingBytesCount, signingData, strlen (signingData));
+
+    BRKeccak256(&digest, signingBytes2, signingBytesCount);
+
+    char *digestString2 = encodeHexCreate(NULL, (uint8_t *) &digest, sizeof(UInt256));
+    printf ("\n  Hex: %s\n", digestString2);
+    assert (0 == strcmp (digestString2, signingHash));
 
 
 //    > msgSha = web3.sha3('Now it the time')
@@ -263,40 +244,39 @@ void runSignatureTests (BREthereumAccount account) {
 //  The "signing data" becomes:
 //     0xec 09 8504a817c800 825208 943535353535353535353535353535353535353535 880de0b6b3a7640000 80 01 80 80
 //          09 8504a817c800 825208 943535353535353535353535353535353535353535 880de0b6b3a7640000 80
+//          09 8504a817c800 825208 943535353535353535353535353535353535353535 880de0b6b3a7640000 80
 
 //  The "signing hash" becomes:
 //     0x2691916f9e6e5b304f135496c08f632040f02d78e36ae5bbbb38f919730c8fa0
 
-#define TEST_TRANS_NONCE 9
-#define TEST_TRANS_GAS_PRICE_VALUE 20000000000 // 20 GWEI
-#define TEST_TRANS_GAS_PRICE_UNIT  WEI
-#define TEST_TRANS_GAS_LIMIT 21000
-#define TEST_TRANS_TARGET_ADDRESS "0x3535353535353535353535353535353535353535"
-#define TEST_TRANS_ETHER_AMOUNT 1000000000000000000u // 1 ETHER
-#define TEST_TRANS_ETHER_AMOUNT_UNIT WEI
-#define TEST_TRANS_DATA ""
+#define TEST_TRANS1_NONCE 9
+#define TEST_TRANS1_GAS_PRICE_VALUE 20000000000 // 20 GWEI
+#define TEST_TRANS1_GAS_PRICE_UNIT  WEI
+#define TEST_TRANS1_GAS_LIMIT 21000
+#define TEST_TRANS1_TARGET_ADDRESS "0x3535353535353535353535353535353535353535"
+#define TEST_TRANS1_ETHER_AMOUNT 1000000000000000000u // 1 ETHER
+#define TEST_TRANS1_ETHER_AMOUNT_UNIT WEI
+#define TEST_TRANS1_DATA ""
 
-void runTransactionTests (BREthereumAccount account) {
-    printf ("\n== Transaction\n");
+#define TEST_TRANS1_RESULT "098504a817c800825208943535353535353535353535353535353535353535880de0b6b3a764000080"  // Leave off: 0xec,  signature { 01 80 80 }
 
+void runTransactionTests1 (BREthereumAccount account) {
     BREthereumWallet  wallet = walletCreate(account);
 
     BREthereumTransaction transaction = walletCreateTransactionDetailed(
             wallet,
-            createAddress(TEST_TRANS_TARGET_ADDRESS),
-            holdingCreateEther(etherCreateNumber(TEST_TRANS_ETHER_AMOUNT, TEST_TRANS_ETHER_AMOUNT_UNIT)),
-            gasPriceCreate(etherCreateNumber(TEST_TRANS_GAS_PRICE_VALUE, TEST_TRANS_GAS_PRICE_UNIT)),
-            gasCreate(TEST_TRANS_GAS_LIMIT),
-            TEST_TRANS_NONCE);
+            createAddress(TEST_TRANS1_TARGET_ADDRESS),
+            holdingCreateEther(etherCreateNumber(TEST_TRANS1_ETHER_AMOUNT, TEST_TRANS1_ETHER_AMOUNT_UNIT)),
+            gasPriceCreate(etherCreateNumber(TEST_TRANS1_GAS_PRICE_VALUE, TEST_TRANS1_GAS_PRICE_UNIT)),
+            gasCreate(TEST_TRANS1_GAS_LIMIT),
+            TEST_TRANS1_NONCE);
 
     BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, TRANSACTION_RLP_UNSIGNED);
 
-    showHex(dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
-
     char result[2 * dataUnsignedTransaction.bytesCount + 1];
     encodeHex(result, 2 * dataUnsignedTransaction.bytesCount + 1, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
-    printf ("Hex: %s", result);
-
+    printf ("  Tx1 Raw (unsigned): %s\n", result);
+    assert (0 == strcmp (result, TEST_TRANS1_RESULT));
 }
 
 // https://etherscan.io/tx/0xc070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c
@@ -305,11 +285,51 @@ void runTransactionTests (BREthereumAccount account) {
 //   to: 0x873feb0644a6fbb9532bb31d1c03d4538aadec30
 // Amnt: 0.5 Ether ($429.90)
 // GasL: 21000
+// GasP: 2 Gwei
 // Nonc: 1
 // Data: 0x
 //
 //  Raw: 0xf86b 01 8477359400 825208 94,873feb0644a6fbb9532bb31d1c03d4538aadec30 8806f05b59d3b20000 80 26a030013044b571726723302bcf8dfad8765cf676db0844277a6f8cf63d04894008a069edd285604fdf010d96b8b7d9c547f9599b8ac51c50b8b97076bb9955c0bdde
 //       List  Nonc  GasP      GasL          RecvAddr                               Amount         Data   <signature>
+// Rslt:        01 8477359400 825208 94,873feb0644a6fbb9532bb31d1c03d4538aadec30 8806f05b59d3b20000 80
+
+#define TEST_TRANS2_NONCE 1
+#define TEST_TRANS2_GAS_PRICE_VALUE 2000000000 // 20 GWEI
+#define TEST_TRANS2_GAS_PRICE_UNIT  WEI
+#define TEST_TRANS2_GAS_LIMIT 21000
+#define TEST_TRANS2_TARGET_ADDRESS "0x873feb0644a6fbb9532bb31d1c03d4538aadec30"
+#define TEST_TRANS2_ETHER_AMOUNT 500000000000000000u // 0.5 ETHER
+#define TEST_TRANS2_ETHER_AMOUNT_UNIT WEI
+#define TEST_TRANS2_DATA ""
+
+#define TEST_TRANS2_RESULT "01847735940082520894873feb0644a6fbb9532bb31d1c03d4538aadec308806f05b59d3b2000080"  // Leave off: 0xf86b, signature { 01 80 80 }
+
+void runTransactionTests2 (BREthereumAccount account) {
+
+    BREthereumWallet  wallet = walletCreate(account);
+
+    BREthereumTransaction transaction = walletCreateTransactionDetailed(
+            wallet,
+            createAddress(TEST_TRANS2_TARGET_ADDRESS),
+            holdingCreateEther(etherCreateNumber(TEST_TRANS2_ETHER_AMOUNT, TEST_TRANS2_ETHER_AMOUNT_UNIT)),
+            gasPriceCreate(etherCreateNumber(TEST_TRANS2_GAS_PRICE_VALUE, TEST_TRANS2_GAS_PRICE_UNIT)),
+            gasCreate(TEST_TRANS2_GAS_LIMIT),
+            TEST_TRANS2_NONCE);
+
+    BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, TRANSACTION_RLP_UNSIGNED);
+
+    char result[2 * dataUnsignedTransaction.bytesCount + 1];
+    encodeHex(result, 2 * dataUnsignedTransaction.bytesCount + 1, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
+    printf ("  Tx2 Raw (unsigned): %s\n", result);
+    assert (0 == strcmp (result, TEST_TRANS2_RESULT));
+}
+
+void runTransactionTests (BREthereumAccount account) {
+    printf ("\n== Transaction\n");
+
+    runTransactionTests1 (account);
+    runTransactionTests2 (account);
+}
 
 // Account Tests
 //

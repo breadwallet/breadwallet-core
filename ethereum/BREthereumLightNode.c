@@ -23,6 +23,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#include <stdlib.h>
 #include <malloc.h>
 #include <assert.h>
 #include "BREthereumLightNode.h"
@@ -41,6 +42,7 @@ extern BREthereumLightNode
 createLightNode (BREthereumLightNodeConfiguration configuration) {
     BREthereumLightNode node = (BREthereumLightNode) calloc (1, sizeof (struct BREthereumLightNodeRecord));
     node->configuration = configuration;
+    return node;
 }
 
 extern BREthereumLightNodeAccountId
@@ -196,5 +198,4 @@ lightNodeGetTransactionAmount (BREthereumLightNode node,
     BREthereumHolding holding = transactionGetAmount(transaction);
     return holding.holding.ether.amount;
 }
-#endif
 
