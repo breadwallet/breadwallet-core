@@ -18,8 +18,7 @@ CORE_SRCS=../BRAddress.c \
 
 CORE_OBJS=$(CORE_SRCS:.c=.o)
 
-ETH_SRCS=rlp/BRRlpSerializer.c \
-	rlp/BRRlpCoder.c \
+ETH_SRCS=rlp/BRRlpCoder.c \
 	BREthereumAccount.c \
 	BREthereumEther.c \
 	BREthereumGas.c \
@@ -31,8 +30,8 @@ ETH_OBJS=$(ETH_SRCS:.c=.o)
 
 test: clean
 	cc -o test -Wno-format-extra-args -Wno-nullability-completeness -Wno-unknown-warning-option \
-		-I/usr/include -I/usr/include/malloc -I../secp256k1 -I.. -I. \
-		-DDEBUG $(CORE_SRCS) $(ETH_SRCS) test.c
+		-I/usr/include -I/usr/include/malloc -I/usr/include/machine -I../secp256k1 -I.. -I. \
+		-DDEBUG $(CORE_SRCS) $(ETH_SRCS) test.c -lc
 
 clean:
 	rm -rf $(CORE_OBJS) $(ETH_OBJS)

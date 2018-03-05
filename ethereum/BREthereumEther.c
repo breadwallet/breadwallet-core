@@ -51,18 +51,18 @@ gtUInt256 (UInt256 x);
     > (ether #e1e30) -> 54210108624, 5076944270305263616
 */
 
-static UInt256 etherUnitScaleFactor [NUMBER_OF_ETHER_UNITS] = {
-        { .u64 = { 0, 0,           0,                    1  } },  /* wei       - 1    */
-        { .u64 = { 0, 0,           0,                 1000  } },  /* kwei      - 1e3  */
-        { .u64 = { 0, 0,           0,              1000000  } },  /* mwei      - 1e6  */
-        { .u64 = { 0, 0,           0,           1000000000  } },  /* gwei      - 1e9  */
-        { .u64 = { 0, 0,           0,        1000000000000  } },  /* szabo     - 1e12 */
-        { .u64 = { 0, 0,           0,     1000000000000000  } },  /* finney    - 1e15 */
-        { .u64 = { 0, 0,           0,  1000000000000000000  } },  /* ether     - 1e18 */
-        { .u64 = { 0, 0,          54,  3875820019684212736u } }, /* kether    - 1e21 */
-        { .u64 = { 0, 0,       54210,  2003764205206896640u } }, /* mether    - 1e24 */
-        { .u64 = { 0, 0,    54210108, 11515845246265065472u } }, /* gether    - 1e27 */
-        { .u64 = { 0, 0, 54210108624,  5076944270305263616u } }  /* tether    - 1e30 */
+static UInt256 etherUnitScaleFactor [NUMBER_OF_ETHER_UNITS] = {   /* LITTLE ENDIAN    */
+        { .u64 = {                     1,           0, 0, 0 } },  /* wei       - 1    */
+        { .u64 = {                  1000,           0, 0, 0 } },  /* kwei      - 1e3  */
+        { .u64 = {               1000000,           0, 0, 0 } },  /* mwei      - 1e6  */
+        { .u64 = {            1000000000,           0, 0, 0 } },  /* gwei      - 1e9  */
+        { .u64 = {         1000000000000,           0, 0, 0 } },  /* szabo     - 1e12 */
+        { .u64 = {      1000000000000000,           0, 0, 0 } },  /* finney    - 1e15 */
+        { .u64 = {   1000000000000000000,           0, 0, 0 } },  /* ether     - 1e18 */
+        { .u64 = {  3875820019684212736u,          54, 0, 0 } }, /* kether    - 1e21 */
+        { .u64 = {  2003764205206896640u,       54210, 0, 0 } }, /* mether    - 1e24 */
+        { .u64 = { 11515845246265065472u,    54210108, 0, 0 } }, /* gether    - 1e27 */
+        { .u64 = {  5076944270305263616u, 54210108624, 0, 0 } }  /* tether    - 1e30 */
 };
 
 // positive
@@ -84,14 +84,23 @@ etherGetValueString(const BREthereumEther ether,
     return encodeUInt256(etherGetValue(ether, unit));
 }
 
+extern void
+etherRlpEncode (const BREthereumEther ether, BRRlpCoder coder) {
+    rlpEncodeItemUInt256(coder, ether.valueInWEI);
+}
+
 extern BREthereumEther
 etherCreate(const UInt256 value, BREthereumEtherUnit unit) {
     BREthereumEther ether;
     ether.positive = ETHEREUM_BOOLEAN_TRUE;
 
     switch (unit) {
-        case WEI: ether.valueInWEI = value;
-        default:  ether.valueInWEI = multiplyUInt256 (value, etherUnitScaleFactor[unit]);
+        case WEI:
+            ether.valueInWEI = value;
+            break;
+        default:
+            ether.valueInWEI = multiplyUInt256 (value, etherUnitScaleFactor[unit]);
+            break;
     }
     return ether;
 }
@@ -103,7 +112,7 @@ etherCreateString(const char *string, BREthereumEtherUnit unit) {
 
 extern BREthereumEther
 etherCreateNumber (uint64_t number, BREthereumEtherUnit unit) {
-    UInt256 value = { .u64 = { 0, 0, 0, number } };
+    UInt256 value = { .u64 = { number, 0, 0, 0 } };
     return etherCreate (value, unit);
 }
 

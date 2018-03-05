@@ -2,6 +2,7 @@
 #ifndef BR_Ethereum_Ether_H
 #define BR_Ethereum_Ether_H
 
+#include "rlp/BRRlpCoder.h"
 #include "BRInt.h"
 
 #ifdef __cplusplus
@@ -66,6 +67,9 @@ etherGetValue(const BREthereumEther ether, BREthereumEtherUnit unit);
 
 extern char *
 etherGetValueString(const BREthereumEther ether, BREthereumEtherUnit unit);
+
+extern void
+etherRlpEncode (const BREthereumEther ether, BRRlpCoder coder);
 
 extern BREthereumEther
 etherNegate (BREthereumEther);

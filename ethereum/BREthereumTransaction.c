@@ -27,6 +27,7 @@
 #include <string.h>
 #include "BREthereumTransaction.h"
 #include "BREthereumHolding.h"
+#include "BREthereumAccount.h"
 
 struct BREthereumTransactionRecord {
     BREthereumAddress sourceAddress;
@@ -47,6 +48,7 @@ struct BREthereumTransactionRecord {
      */
     BREthereumAccount signer;
 
+    uint64_t nonce;
     // hash
 };
 
@@ -56,7 +58,7 @@ transactionCreate(BREthereumAddress sourceAddress,
                   BREthereumHolding amount,
                   BREthereumGasPrice gasPrice,
                   BREthereumGas gasLimit,
-                  int nonce) {
+                  uint64_t nonce) {
     BREthereumTransaction transaction = calloc (1, sizeof (struct BREthereumTransactionRecord));
 
     transaction->sourceAddress = sourceAddress;
@@ -64,6 +66,7 @@ transactionCreate(BREthereumAddress sourceAddress,
     transaction->amount = amount;
     transaction->gasPrice = gasPrice;
     transaction->gasLimit = gasLimit;
+    transaction->nonce = nonce;
 
     transaction->signer = NULL;
 
@@ -134,11 +137,59 @@ transactionIsSigned (BREthereumTransaction transaction) {
 extern BRRlpData
 transactionEncodeRLP (BREthereumTransaction transaction,
                       BREthereumTransactionRLPType type) {
-    BRRlpData data;
 
-  data.bytesCount = 0;
-  data.bytes = NULL;
-  return data;
+    BRRlpCoder coder = createRlpCoder();
+
+    // Encode an 'unsigned transaction'
+
+    printf ("Fields\n");
+    printf ("Nonce\n");
+    rlpEncodeItemUInt64(coder, transaction->nonce);
+    printf ("gasPrice\n");
+    gasPriceRlpEncode(transaction->gasPrice, coder);
+    printf ("gas\n");
+    gasRlpEncode(transaction->gasLimit, coder);
+    printf ("address\n");
+    addressRlpEncode(transaction->targetAddress, coder);
+    printf ("holding\n");
+    holdingRlpEncode(transaction->amount, coder);
+    printf ("data\n");
+    rlpEncodeItemString(coder, transaction->data);
+
+
+    switch (type) {
+        case TRANSACTION_RLP_UNSIGNED:
+            break;
+
+        case TRANSACTION_RLP_SIGNED:
+            printf ("Signature\n");
+            rlpEncodeItemUInt64(coder, transaction->signature.sig.recoverable.v);
+            // TODO: {r,s} encoded as byte array?
+            rlpEncodeItemBytes (coder,
+                                transaction->signature.sig.recoverable.r,
+                                sizeof (transaction->signature.sig.recoverable.r));
+
+            rlpEncodeItemBytes (coder,
+                                transaction->signature.sig.recoverable.s,
+                                sizeof (transaction->signature.sig.recoverable.s));
+            break;
+    }
+
+    printf ("Result\n");
+    BRRlpData result = createRlpDataCopy(rlpGetData(coder));
+    rlpCoderRelease (coder);
+    return result;
+
+//    byte[] gasPrice = RLP.encodeElement(this.gasPrice);
+//    byte[] gasLimit = RLP.encodeElement(this.gasLimit);
+//    ...
+//    v = RLP.encodeInt(encodeV);
+//    r = RLP.encodeElement(BigIntegers.asUnsignedByteArray(signature.r));
+//    s = RLP.encodeElement(BigIntegers.asUnsignedByteArray(signature.s));
+//    ...
+//    this.rlpEncoded = RLP.encodeList(nonce, gasPrice, gasLimit,
+//                                     receiveAddress, value, data, v, r, s);
+
 }
 
 extern BREthereumTransaction
@@ -412,4 +463,92 @@ struct BREthereumTransactionResult {
 
  https://github.com/ethereum/pyrlp/blob/develop/rlp/sedes/lists.py
  *
+ */
+
+
+
+/*
+     public byte[] getEncoded() {
+
+        if (rlpEncoded != null) return rlpEncoded;
+
+        // parse null as 0 for nonce
+        byte[] nonce = null;
+        if (this.nonce == null || this.nonce.length == 1 && this.nonce[0] == 0) {
+            nonce = RLP.encodeElement(null);
+        } else {
+            nonce = RLP.encodeElement(this.nonce);
+        }
+        byte[] gasPrice = RLP.encodeElement(this.gasPrice);
+        byte[] gasLimit = RLP.encodeElement(this.gasLimit);
+        byte[] receiveAddress = RLP.encodeElement(this.receiveAddress);
+        byte[] value = RLP.encodeElement(this.value);
+        byte[] data = RLP.encodeElement(this.data);
+
+        byte[] v, r, s;
+
+        if (signature != null) {
+            int encodeV;
+            if (chainId == null) {
+                encodeV = signature.v;
+            } else {
+                encodeV = signature.v - LOWER_REAL_V;
+                encodeV += chainId * 2 + CHAIN_ID_INC;
+            }
+            v = RLP.encodeInt(encodeV);
+            r = RLP.encodeElement(BigIntegers.asUnsignedByteArray(signature.r));
+            s = RLP.encodeElement(BigIntegers.asUnsignedByteArray(signature.s));
+        } else {
+            // Since EIP-155 use chainId for v
+            v = chainId == null ? RLP.encodeElement(EMPTY_BYTE_ARRAY) : RLP.encodeInt(chainId);
+            r = RLP.encodeElement(EMPTY_BYTE_ARRAY);
+            s = RLP.encodeElement(EMPTY_BYTE_ARRAY);
+        }
+
+        this.rlpEncoded = RLP.encodeList(nonce, gasPrice, gasLimit,
+                receiveAddress, value, data, v, r, s);
+
+        this.hash = this.getHash();
+
+        return rlpEncoded;
+    }
+
+
+     public synchronized void rlpParse() {
+        if (parsed) return;
+        try {
+            RLPList decodedTxList = RLP.decode2(rlpEncoded);
+            RLPList transaction = (RLPList) decodedTxList.get(0);
+
+            // Basic verification
+            if (transaction.size() > 9 ) throw new RuntimeException("Too many RLP elements");
+            for (RLPElement rlpElement : transaction) {
+                if (!(rlpElement instanceof RLPItem))
+                    throw new RuntimeException("Transaction RLP elements shouldn't be lists");
+            }
+
+            this.nonce = transaction.get(0).getRLPData();
+            this.gasPrice = transaction.get(1).getRLPData();
+            this.gasLimit = transaction.get(2).getRLPData();
+            this.receiveAddress = transaction.get(3).getRLPData();
+            this.value = transaction.get(4).getRLPData();
+            this.data = transaction.get(5).getRLPData();
+            // only parse signature in case tx is signed
+            if (transaction.get(6).getRLPData() != null) {
+                byte[] vData =  transaction.get(6).getRLPData();
+                BigInteger v = ByteUtil.bytesToBigInteger(vData);
+                this.chainId = extractChainIdFromV(v);
+                byte[] r = transaction.get(7).getRLPData();
+                byte[] s = transaction.get(8).getRLPData();
+                this.signature = ECDSASignature.fromComponents(r, s, getRealV(v));
+            } else {
+                logger.debug("RLP encoded tx is not signed!");
+            }
+            this.parsed = true;
+            this.hash = getHash();
+        } catch (Exception e) {
+            throw new RuntimeException("Error on parsing RLP", e);
+        }
+    }
+
  */

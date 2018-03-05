@@ -69,7 +69,7 @@ showHex (uint8_t *source, size_t sourceLen) {
         printf("%s%x", prefix, source[i]);
         prefix = ", ";
     }
-    printf ("}");
+    printf ("}\n");
 }
 
 /*
@@ -78,6 +78,78 @@ m/44'/60'/0'/0/0 :: 0x2161DedC3Be05B7Bb5aa16154BcbD254E9e9eb68
                     0x73bf21bf06769f98dabcfac16c2f74e852da823effed12794e56876ede02d45d
 m/44'/60'/0'/0/1 :: 0x9595F373a4eAe74511561A52998cc6fB4F9C2bdD
 */
+
+//
+// RLP Test
+//
+#define RLP_S1 "dog"
+#define RLP_S1_RES { 0x83, 'd', 'o', 'g' };
+
+#define RLP_S2 ""
+#define RLP_S2_RES { 0x80 }
+
+#define RLP_S3 "Lorem ipsum dolor sit amet, consectetur adipisicing elit"
+#define RLP_S3_RES { 0xb8, 0x38, 'L', 'o', 'r', 'e', 'm', ' ', 'i', 'p', 's', 'u', 'm', ' ', 'd', 'o', 'l', 'o', 'r', \
+ ' ', 's', 'i', 't', ' ', 'a', 'm', 'e', 't', ',', ' ', 'c', 'o', 'n', 's', 'e', 'c', 't', 'e', 't', 'u', 'r', \
+ ' ', 'a', 'd', 'i', 'p', 'i', 's', 'i', 'c', 'i', 'n', 'g', ' ', 'e', 'l', 'i', 't' };
+
+#define RLP_V1 0
+#define RLP_V1_RES { 0x00 }
+
+#define RLP_V2 15
+#define RLP_V2_RES { 0x0f }
+
+#define RLP_V3 1024
+#define RLP_V3_RES { 0x82, 0x04, 0x00 }
+
+int equalBytes (uint8_t *a, size_t aLen, uint8_t *b, size_t bLen) {
+    if (aLen != bLen) return 0;
+    for (int i = 0; i < aLen; i++)
+        if (a[i] != b[i]) return 0;
+    return 1;
+}
+
+void rlpCheck (BRRlpCoder coder, uint8_t *result, size_t resultSize) {
+    BRRlpData data = rlpGetData(coder);
+    equalBytes(data.bytes, data.bytesCount, result, resultSize);
+    showHex (data.bytes, data.bytesCount);
+//    showHex (result, resultSize);
+    rlpCoderRelease(coder);
+}
+
+void rlpCheckString (const char *string, uint8_t *result, size_t resultSize) {
+    BRRlpCoder coder = createRlpCoder();
+    rlpEncodeItemString(coder, string);
+    rlpCheck(coder, result, resultSize);
+}
+
+void rlpCheckInt (uint64_t value, uint8_t *result, size_t resultSize) {
+    BRRlpCoder coder = createRlpCoder();
+    rlpEncodeItemUInt64(coder, value);
+    rlpCheck(coder, result, resultSize);
+}
+
+void runRlpTest () {
+    printf ("==== RLP\n");
+
+    uint8_t s1r[] = RLP_S1_RES;
+    rlpCheckString(RLP_S1, s1r, sizeof(s1r));
+
+    uint8_t s2r[] = RLP_S2_RES;
+    rlpCheckString(RLP_S2, s2r, sizeof(s2r));
+
+    uint8_t s3r[] = RLP_S3_RES;
+    rlpCheckString(RLP_S3, s3r, sizeof(s3r));
+
+    uint8_t t3r[] = RLP_V1_RES;
+    rlpCheckInt(RLP_V1, t3r, sizeof(t3r));
+
+    uint8_t t4r[] = RLP_V2_RES;
+    rlpCheckInt(RLP_V2, t4r, sizeof(t4r));
+
+    uint8_t t5r[] = RLP_V3_RES;
+    rlpCheckInt(RLP_V3,t5r, sizeof(t5r));
+}
 
 //
 // Account Test
@@ -200,6 +272,56 @@ void runSignatureTests (BREthereumAccount account) {
     printf ("\n     HASH: %s", SIGNING_HASH_2);
 
 
+//    > msgSha = web3.sha3('Now it the time')
+//    "0x8b3942af68acfd875239181babe9ce093c420ca78d15b178fb63cf839dcf0971"
+
+
+}
+
+// Consider a transaction with nonce = 9, gasprice = 20 * 10**9, startgas = 21000,
+// to = 0x3535353535353535353535353535353535353535, value = 10**18, data='' (empty).
+//
+//  The "signing data" becomes:
+//     0xec 09 8504a817c800 825208 943535353535353535353535353535353535353535 880de0b6b3a7640000 80 01 80 80
+//          09 8504a817c800 825208 943535353535353535353535353535353535353535 880de0b6b3a7640000 80
+
+//  The "signing hash" becomes:
+//     0x2691916f9e6e5b304f135496c08f632040f02d78e36ae5bbbb38f919730c8fa0
+
+#define TEST_TRANS_NONCE 9
+#define TEST_TRANS_GAS_PRICE_VALUE 20000000000 // 20 GWEI
+#define TEST_TRANS_GAS_PRICE_UNIT  WEI
+#define TEST_TRANS_GAS_LIMIT 21000
+#define TEST_TRANS_TARGET_ADDRESS "0x3535353535353535353535353535353535353535"
+#define TEST_TRANS_ETHER_AMOUNT 1000000000000000000u // 1 ETHER
+#define TEST_TRANS_ETHER_AMOUNT_UNIT WEI
+#define TEST_TRANS_DATA ""
+
+void runTransactionTests (BREthereumAccount account) {
+    printf ("==== Transaction\n");
+
+    printf ("Wallet\n");
+
+    BREthereumWallet  wallet = walletCreate(account);
+
+    printf ("Transaction\n");
+
+    BREthereumTransaction transaction = walletCreateTransactionDetailed(
+            wallet,
+            createAddress(TEST_TRANS_TARGET_ADDRESS),
+            holdingCreateEther(etherCreateNumber(TEST_TRANS_ETHER_AMOUNT, TEST_TRANS_ETHER_AMOUNT_UNIT)),
+            gasPriceCreate(etherCreateNumber(TEST_TRANS_GAS_PRICE_VALUE, TEST_TRANS_GAS_PRICE_UNIT)),
+            gasCreate(TEST_TRANS_GAS_LIMIT),
+            TEST_TRANS_NONCE);
+
+    printf ("Encode\n");
+    BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, TRANSACTION_RLP_UNSIGNED);
+
+    showHex(dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
+
+    char result[2 * dataUnsignedTransaction.bytesCount + 1];
+    encodeHex(result, 2 * dataUnsignedTransaction.bytesCount + 1, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
+    printf ("Hex: %s", result);
 
 }
 
@@ -210,6 +332,7 @@ void runAccountTests () {
     BREthereumAccount account = accountCreate(TEST_PAPER_KEY);
 
     printf ("       Account: %p\n", account);
+    runTransactionTests(account);
     runAddressTests(account);
     runSignatureTests(account);
 
@@ -222,6 +345,7 @@ void runAccountTests () {
 
 void runTests () {
     installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
+    runRlpTest();
     runAccountTests();
 }
 

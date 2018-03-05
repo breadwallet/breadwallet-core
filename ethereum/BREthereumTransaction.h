@@ -45,7 +45,7 @@ transactionCreate(BREthereumAddress sourceAddress,
                   BREthereumHolding amount,
                   BREthereumGasPrice gasPrice,
                   BREthereumGas gasLimit,
-                  int nonce);
+                  uint64_t nonce);
 
 extern BREthereumAddress
 transactionGetSourceAddress(BREthereumTransaction transaction);

@@ -29,6 +29,63 @@
 #include "BREthereumEther.h"
 #include "BREthereum.h"
 
+//
+// Holding
+//
+
+extern BREthereumHolding
+holdingCreate (BREthereumWalletHoldingType type) {
+    BREthereumHolding holding;
+
+    holding.type = type;
+    switch (type) {
+        case WALLET_HOLDING_ETHER:
+            holding.holding.ether.amount = etherCreateZero();
+            break;
+        case WALLET_HOLDING_TOKEN: {
+            UInt256 scale = {.u64 = {0, 0, 0, 1}};
+            holding.holding.token.scale = scale;
+            holding.holding.token.amount = UINT256_ZERO;
+            break;
+        }
+    }
+    return holding;
+}
+
+
+extern BREthereumHolding
+holdingCreateEther (BREthereumEther ether) {
+    BREthereumHolding holding = holdingCreate (WALLET_HOLDING_ETHER);
+    holding.holding.ether.amount = ether;
+    return holding;
+}
+
+extern BREthereumHolding
+holdingCreateToken (UInt256 scale, UInt256 amount) {
+    BREthereumHolding holding = holdingCreate (WALLET_HOLDING_TOKEN);
+    holding.holding.token.scale = scale;
+    holding.holding.token.amount = amount;
+    return holding;
+}
+
+extern BREthereumWalletHoldingType
+holdingGetType (BREthereumHolding holding) {
+    return holding.type;
+}
+
+extern void
+holdingRlpEncode(BREthereumHolding holding, BRRlpCoder coder) {
+    switch (holding.type) {
+        case WALLET_HOLDING_ETHER:
+            etherRlpEncode(holding.holding.ether.amount, coder);
+            break;
+
+        case WALLET_HOLDING_TOKEN:
+            rlpEncodeItemUInt64(coder, 0);
+            break;
+    }
+}
+
 extern BREthereumToken
 tokenCreate(char *address,
             char *symbol,
@@ -54,35 +111,6 @@ tokenCreateNone (void) {
     BREthereumToken token;
     memset (&token, sizeof (BREthereumToken), 0);
     return token;
-}
-
-//
-// Holding
-//
-
-extern BREthereumHolding
-holdingCreate (BREthereumWalletHoldingType type) {
-    BREthereumHolding holding;
-
-    holding.type = type;
-    switch (type) {
-        case WALLET_HOLDING_ETHER:
-            holding.holding.ether.amount = etherCreateZero();
-            break;
-        case WALLET_HOLDING_TOKEN: {
-            UInt256 scale = {.u64 = {0, 0, 0, 1}};
-            holding.holding.token.scale = scale;
-            holding.holding.token.amount = UINT256_ZERO;
-            break;
-        }
-    }
-    return holding;
-}
-
-
-extern BREthereumWalletHoldingType
-holdingGetType (BREthereumHolding holding) {
-    return holding.type;
 }
 
 extern BREthereumGas

@@ -26,19 +26,64 @@
 #ifndef BR_RLP_Coder_H
 #define BR_RLP_Coder_H
 
+#include <stddef.h>
 #include <stdint.h>
+#include "BRInt.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef struct BRRlpDataRecord {
+    // type
+    size_t bytesAllocated;
     size_t bytesCount;
     uint8_t *bytes;
 } BRRlpData;
 
 extern BRRlpData
 createRlpDataEmpty (void);
+
+extern BRRlpData
+createRlpDataCopy (BRRlpData data);
+
+/**
+ * Return a '0x' prefixed hex string of the data bytes.
+ *
+ * @param data
+ * @return
+ */
+extern const char *
+rlpDataAsString (BRRlpData data);
+
+//
+//
+//
+typedef struct BRRlpCoderRecord *BRRlpCoder;
+
+extern BRRlpCoder
+createRlpCoder (void);
+
+extern void
+rlpCoderRelease (BRRlpCoder coder);
+
+extern void
+rlpEncodeItemUInt64(BRRlpCoder coder, uint64_t value);
+
+extern void
+rlpEncodeItemUInt256(BRRlpCoder coder, UInt256 value);
+
+extern void
+rlpEncodeItemString(BRRlpCoder coder, const char *string);
+
+extern void
+rlpEncodeItemBytes(BRRlpCoder coder, uint8_t *bytes, size_t bytesCount);
+
+//extern void
+//rlpEncodeList (BRRlpCoder coder, BRRlpData *data, size_t dataCount);
+
+extern BRRlpData
+rlpGetData (BRRlpCoder coder);
 
 #ifdef __cplusplus
 }

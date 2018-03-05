@@ -43,6 +43,9 @@ typedef struct BREthereumGasStruct {
 extern BREthereumGas
 gasCreate(uint64_t gas);
 
+extern void
+gasRlpEncode (BREthereumGas gas, BRRlpCoder coder);
+
 /**
  * Ethereum Gas Price is the amount of Ether for on Gas - aka Ether/Gas.  The total cost for
  * an Ethereum transaction is the Gas Price * Gas (used).
@@ -73,6 +76,9 @@ gasPriceCreate(BREthereumEther ether);
  */
 extern BREthereumEther
 gasPriceGetGasCost(BREthereumGasPrice price, BREthereumGas gas);
+
+extern void
+gasPriceRlpEncode (BREthereumGasPrice price, BRRlpCoder coder);
 
 #ifdef __cplusplus
 }

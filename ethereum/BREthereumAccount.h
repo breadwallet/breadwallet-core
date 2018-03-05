@@ -31,6 +31,7 @@ extern "C" {
 #endif
 
 #include "BRInt.h"
+#include "rlp/BRRlpCoder.h"
 
 //
 // BIP39 Word List
@@ -74,6 +75,9 @@ addressAsString (BREthereumAddress address);
 extern const char *
 addressPublicKeyAsString (BREthereumAddress address);
 #endif
+
+extern void
+addressRlpEncode (BREthereumAddress address, BRRlpCoder coder);
 
 //
 // Account

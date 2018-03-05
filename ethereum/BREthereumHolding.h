@@ -60,8 +60,17 @@ typedef struct BREthereumHoldingRecord {
 extern BREthereumHolding
 holdingCreate (BREthereumWalletHoldingType type);
 
+extern BREthereumHolding
+holdingCreateEther (BREthereumEther ether);
+
+extern BREthereumHolding
+holdingCreateToken (UInt256 scale, UInt256 amount);
+
 extern BREthereumWalletHoldingType
 holdingGetType (BREthereumHolding holding);
+
+extern void
+holdingRlpEncode(BREthereumHolding holding, BRRlpCoder coder);
 
 /**
  * A Ethereum Token defines an ERC20 Token

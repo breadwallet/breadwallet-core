@@ -298,6 +298,11 @@ addressPublicKeyAsString (BREthereumAddress address) {
 }
 #endif
 
+extern void
+addressRlpEncode (BREthereumAddress address, BRRlpCoder coder) {
+    rlpEncodeItemString(coder, &address->string[2]);  // skip '0x'
+}
+
 //
 // Account
 //

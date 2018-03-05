@@ -26,7 +26,6 @@
 #ifndef BR_RLP_H
 #define BR_RLP_H
 
-#include "BRRlpSerializer.h"
 #include "BRRlpCoder.h"
 
 #endif //BR_RLP_H
