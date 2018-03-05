@@ -201,8 +201,6 @@ addressFree (BREthereumAddress address) {
  */
 static BREthereumAddress
 createAddressDerived (const uint8_t *publicKey, uint32_t index) {
-    printf ("       PubKey (arg): %p\n", publicKey);
-
     BREthereumAddress address = malloc (sizeof (struct BREthereumAddressRecord));
 
     address->type = ADDRESS_DERIVED;  // painfully
@@ -323,7 +321,7 @@ struct BREthereumAccountRecord {
 };
 
 extern BREthereumAccount
-accountCreate(const char *paperKey) {
+createAccount(const char *paperKey) {
     return accountCreateDetailed(paperKey, sharedWordList, BIP39_WORDLIST_COUNT);
 }
 

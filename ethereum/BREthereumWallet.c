@@ -106,7 +106,7 @@ walletCreateDetailed (BREthereumAccount account,
     wallet->account = account;
     wallet->address = address;
 
-    wallet->holding = holdingCreate(type);
+    wallet->holding = createHolding(type);
     wallet->token = optionalToken;
 
     wallet->defaultGasLimit = WALLET_HOLDING_ETHER == type

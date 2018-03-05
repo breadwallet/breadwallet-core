@@ -104,7 +104,7 @@ typedef struct BREthereumAccountRecord *BREthereumAccount;
  * @return
  */
 extern BREthereumAccount
-accountCreate(const char *paperKey);
+createAccount(const char *paperKey);
 
 extern void
 accountFree (BREthereumAccount account);

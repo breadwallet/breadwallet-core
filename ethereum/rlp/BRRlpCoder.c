@@ -23,6 +23,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#include <stdlib.h>
 #include <string.h>
 #include <malloc.h>
 #include <assert.h>
@@ -258,9 +259,8 @@ rlpEncodeItemBytes(BRRlpCoder coder, uint8_t *bytes, size_t bytesCount) {
         rlpAppendData(coder, createRlpData(rlpBytes, 1));
     }
     else if (bytesCount < 56) {
-        printf ("encoding bytes: %d\n", bytesCount);
         uint8_t rlpBytes [1 + bytesCount];
-        rlpBytes[0] = 0x80 + bytesCount;
+        rlpBytes[0] = (uint8_t) (0x80 + bytesCount);
         memcpy (&rlpBytes[1], bytes, bytesCount);
         rlpAppendData(coder, createRlpData(rlpBytes, 1 + bytesCount));
     }
@@ -279,7 +279,6 @@ rlpEncodeItemBytes(BRRlpCoder coder, uint8_t *bytes, size_t bytesCount) {
 
 extern BRRlpData
 rlpGetData (BRRlpCoder coder) {
-    printf ("Appending: %d", coder->dataCount);
     if (1 != coder->dataCount)
         rlpDataAppendList (&coder->data[0], &coder->data[1], coder->dataCount - 1);
 

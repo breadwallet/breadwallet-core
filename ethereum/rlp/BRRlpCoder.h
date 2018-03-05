@@ -85,6 +85,16 @@ rlpEncodeItemBytes(BRRlpCoder coder, uint8_t *bytes, size_t bytesCount);
 extern BRRlpData
 rlpGetData (BRRlpCoder coder);
 
+//
+//
+//
+/*
+
+ extern void
+ addressRlpEncode (BREthereumAddress address, BRRlpCoder coder);
+
+ */
+
 #ifdef __cplusplus
 }
 #endif

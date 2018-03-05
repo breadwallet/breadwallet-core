@@ -142,18 +142,11 @@ transactionEncodeRLP (BREthereumTransaction transaction,
 
     // Encode an 'unsigned transaction'
 
-    printf ("Fields\n");
-    printf ("Nonce\n");
     rlpEncodeItemUInt64(coder, transaction->nonce);
-    printf ("gasPrice\n");
     gasPriceRlpEncode(transaction->gasPrice, coder);
-    printf ("gas\n");
     gasRlpEncode(transaction->gasLimit, coder);
-    printf ("address\n");
     addressRlpEncode(transaction->targetAddress, coder);
-    printf ("holding\n");
     holdingRlpEncode(transaction->amount, coder);
-    printf ("data\n");
     rlpEncodeItemString(coder, transaction->data);
 
 
@@ -162,7 +155,6 @@ transactionEncodeRLP (BREthereumTransaction transaction,
             break;
 
         case TRANSACTION_RLP_SIGNED:
-            printf ("Signature\n");
             rlpEncodeItemUInt64(coder, transaction->signature.sig.recoverable.v);
             // TODO: {r,s} encoded as byte array?
             rlpEncodeItemBytes (coder,
@@ -175,7 +167,6 @@ transactionEncodeRLP (BREthereumTransaction transaction,
             break;
     }
 
-    printf ("Result\n");
     BRRlpData result = createRlpDataCopy(rlpGetData(coder));
     rlpCoderRelease (coder);
     return result;

@@ -113,7 +113,7 @@ void rlpCheck (BRRlpCoder coder, uint8_t *result, size_t resultSize) {
     BRRlpData data = rlpGetData(coder);
     equalBytes(data.bytes, data.bytesCount, result, resultSize);
     showHex (data.bytes, data.bytesCount);
-//    showHex (result, resultSize);
+    showHex (result, resultSize);
     rlpCoderRelease(coder);
 }
 
@@ -163,8 +163,8 @@ void runRlpTest () {
 void runAddressTests (BREthereumAccount account) {
     BREthereumAddress address = accountGetPrimaryAddress(account);
 
-    printf ("==== Address\n");
-    printf ("       Address: %p\n", address);
+    printf ("\n= Address\n");
+    printf ("        String: %p\n", address);
 
     printf ("      PaperKey: %p, %s\n", TEST_PAPER_KEY, TEST_PAPER_KEY);
     printf ("\n");
@@ -222,7 +222,7 @@ void runAddressTests (BREthereumAccount account) {
 #define SIGNING_HASH_2 "0x58e5a0fc7fbc849eddc100d44e86276168a8c7baaa5604e44ba6f5eb8ba1b7eb"
 
 void runSignatureTests (BREthereumAccount account) {
-    printf ("==== Signature\n");
+    printf ("\n= Signature\n");
 
     size_t signingDataLen = strlen(SIGNATURE_SIGNING_DATA)/2;
     uint8_t signingData[signingDataLen];
@@ -298,13 +298,9 @@ void runSignatureTests (BREthereumAccount account) {
 #define TEST_TRANS_DATA ""
 
 void runTransactionTests (BREthereumAccount account) {
-    printf ("==== Transaction\n");
-
-    printf ("Wallet\n");
+    printf ("\n= Transaction\n");
 
     BREthereumWallet  wallet = walletCreate(account);
-
-    printf ("Transaction\n");
 
     BREthereumTransaction transaction = walletCreateTransactionDetailed(
             wallet,
@@ -314,7 +310,6 @@ void runTransactionTests (BREthereumAccount account) {
             gasCreate(TEST_TRANS_GAS_LIMIT),
             TEST_TRANS_NONCE);
 
-    printf ("Encode\n");
     BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, TRANSACTION_RLP_UNSIGNED);
 
     showHex(dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
@@ -329,7 +324,9 @@ void runTransactionTests (BREthereumAccount account) {
 // Account Tests
 //
 void runAccountTests () {
-    BREthereumAccount account = accountCreate(TEST_PAPER_KEY);
+    printf ("==== Account\n");
+
+    BREthereumAccount account = createAccount(TEST_PAPER_KEY);
 
     printf ("       Account: %p\n", account);
     runTransactionTests(account);

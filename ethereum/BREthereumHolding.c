@@ -34,7 +34,7 @@
 //
 
 extern BREthereumHolding
-holdingCreate (BREthereumWalletHoldingType type) {
+createHolding(BREthereumWalletHoldingType type) {
     BREthereumHolding holding;
 
     holding.type = type;
@@ -55,14 +55,14 @@ holdingCreate (BREthereumWalletHoldingType type) {
 
 extern BREthereumHolding
 holdingCreateEther (BREthereumEther ether) {
-    BREthereumHolding holding = holdingCreate (WALLET_HOLDING_ETHER);
+    BREthereumHolding holding = createHolding(WALLET_HOLDING_ETHER);
     holding.holding.ether.amount = ether;
     return holding;
 }
 
 extern BREthereumHolding
 holdingCreateToken (UInt256 scale, UInt256 amount) {
-    BREthereumHolding holding = holdingCreate (WALLET_HOLDING_TOKEN);
+    BREthereumHolding holding = createHolding(WALLET_HOLDING_TOKEN);
     holding.holding.token.scale = scale;
     holding.holding.token.amount = amount;
     return holding;

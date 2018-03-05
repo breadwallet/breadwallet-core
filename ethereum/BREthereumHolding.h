@@ -58,7 +58,7 @@ typedef struct BREthereumHoldingRecord {
 } BREthereumHolding;
 
 extern BREthereumHolding
-holdingCreate (BREthereumWalletHoldingType type);
+createHolding(BREthereumWalletHoldingType type);
 
 extern BREthereumHolding
 holdingCreateEther (BREthereumEther ether);
