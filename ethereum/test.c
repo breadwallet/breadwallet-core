@@ -37,31 +37,6 @@
 #include "BREthereum.h"
 #include "../BRBIP39WordsEn.h"
 
-/* bytes -> chars */
-static void
-encodeHex (char *target, size_t targetLen, uint8_t *source, size_t sourceLen) {
-    assert (targetLen == 2 * sourceLen  + 1);
-
-    int i = 0;
-    for (; i < sourceLen && 2 * i < targetLen - 1; i++) {
-        target[2*i] = (uint8_t) _hexc (source[i] >> 4);
-        target[2*i + 1] = (uint8_t) _hexc (source[i]);
-    }
-    target[2*i] = '\0';
-}
-
-/* chars -> bytes */
-static void
-decodeHex (uint8_t *target, size_t targetLen, char *source, size_t sourceLen) {
-    assert (targetLen == sourceLen / 2);
-
-    for (int i = 0; i < targetLen; i++) {
-//        printf ("%c ", source[2*i]);
-//        printf ("%c ", source[(2*i)+1]);
-        target[i] = (uint8_t) ((_hexu(source[2*i]) << 4) | _hexu(source[(2*i)+1]));
-    }
-}
-
 static void
 showHex (uint8_t *source, size_t sourceLen) {
     char *prefix = "{";
@@ -111,20 +86,21 @@ int equalBytes (uint8_t *a, size_t aLen, uint8_t *b, size_t bLen) {
 
 void rlpCheck (BRRlpCoder coder, uint8_t *result, size_t resultSize) {
     BRRlpData data = rlpGetData(coder);
-    equalBytes(data.bytes, data.bytesCount, result, resultSize);
-    showHex (data.bytes, data.bytesCount);
-    showHex (result, resultSize);
+    assert (equalBytes(data.bytes, data.bytesCount, result, resultSize));
+    printf (" => "); showHex (data.bytes, data.bytesCount);
     rlpCoderRelease(coder);
 }
 
 void rlpCheckString (const char *string, uint8_t *result, size_t resultSize) {
     BRRlpCoder coder = createRlpCoder();
+    printf ("  \"%s\"", string);
     rlpEncodeItemString(coder, string);
     rlpCheck(coder, result, resultSize);
 }
 
 void rlpCheckInt (uint64_t value, uint8_t *result, size_t resultSize) {
     BRRlpCoder coder = createRlpCoder();
+    printf ("  %d", value);
     rlpEncodeItemUInt64(coder, value);
     rlpCheck(coder, result, resultSize);
 }
@@ -149,6 +125,8 @@ void runRlpTest () {
 
     uint8_t t5r[] = RLP_V3_RES;
     rlpCheckInt(RLP_V3,t5r, sizeof(t5r));
+
+    printf ("\n\n");
 }
 
 //
@@ -163,7 +141,7 @@ void runRlpTest () {
 void runAddressTests (BREthereumAccount account) {
     BREthereumAddress address = accountGetPrimaryAddress(account);
 
-    printf ("\n= Address\n");
+    printf ("\n== Address\n");
     printf ("        String: %p\n", address);
 
     printf ("      PaperKey: %p, %s\n", TEST_PAPER_KEY, TEST_PAPER_KEY);
@@ -188,6 +166,7 @@ void runAddressTests (BREthereumAccount account) {
 
 
 // https://github.com/ethereum/EIPs/issues/155
+//
 // Consider a transaction with nonce = 9, gasprice = 20 * 10**9, startgas = 21000,
 // to = 0x3535353535353535353535353535353535353535, value = 10**18, data='' (empty).
 //
@@ -222,7 +201,7 @@ void runAddressTests (BREthereumAccount account) {
 #define SIGNING_HASH_2 "0x58e5a0fc7fbc849eddc100d44e86276168a8c7baaa5604e44ba6f5eb8ba1b7eb"
 
 void runSignatureTests (BREthereumAccount account) {
-    printf ("\n= Signature\n");
+    printf ("\n== Signature\n");
 
     size_t signingDataLen = strlen(SIGNATURE_SIGNING_DATA)/2;
     uint8_t signingData[signingDataLen];
@@ -298,7 +277,7 @@ void runSignatureTests (BREthereumAccount account) {
 #define TEST_TRANS_DATA ""
 
 void runTransactionTests (BREthereumAccount account) {
-    printf ("\n= Transaction\n");
+    printf ("\n== Transaction\n");
 
     BREthereumWallet  wallet = walletCreate(account);
 
@@ -320,20 +299,31 @@ void runTransactionTests (BREthereumAccount account) {
 
 }
 
+// https://etherscan.io/tx/0xc070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c
+// Hash: 0xc070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c
+// From: 0x23c2a202c38331b91980a8a23d31f4ca3d0ecc2b
+//   to: 0x873feb0644a6fbb9532bb31d1c03d4538aadec30
+// Amnt: 0.5 Ether ($429.90)
+// GasL: 21000
+// Nonc: 1
+// Data: 0x
 //
+//  Raw: 0xf86b 01 8477359400 825208 94,873feb0644a6fbb9532bb31d1c03d4538aadec30 8806f05b59d3b20000 80 26a030013044b571726723302bcf8dfad8765cf676db0844277a6f8cf63d04894008a069edd285604fdf010d96b8b7d9c547f9599b8ac51c50b8b97076bb9955c0bdde
+//       List  Nonc  GasP      GasL          RecvAddr                               Amount         Data   <signature>
+
 // Account Tests
 //
 void runAccountTests () {
-    printf ("==== Account\n");
 
     BREthereumAccount account = createAccount(TEST_PAPER_KEY);
 
-    printf ("       Account: %p\n", account);
+    printf ("==== Account: %p\n", account);
     runTransactionTests(account);
     runAddressTests(account);
     runSignatureTests(account);
 
     accountFree (account);
+    printf ("\n\n");
 }
 
 //

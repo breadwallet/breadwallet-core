@@ -98,12 +98,6 @@ deriveSeedFromPaperKey (const char *paperKey);
 static BRKey
 derivePrivateKeyFromSeed (UInt512 seed, uint32_t index);
 
-static void
-encodeHex (char *target, size_t targetLen, uint8_t *source, size_t sourceLen);
-
-static const char *
-encodeAsHexString (uint8_t *source, size_t sourceLen);
-
 //
 // Locale-Based BIP-39 Word List
 static const char **sharedWordList;
@@ -143,6 +137,10 @@ struct BREthereumAddressRecord {
     /**
      * The 'official' ethereum address string for (the external representation of) this
      * BREthereum address.
+     *
+     * THIS IS NOT A SIMPLE STRING; this is a hex encoded (with encodeHex) string prefixed with
+     * "0x".  Generally, when using this string, for example when RLP encoding, one needs to
+     * convert back to the byte array.
      */
     char string[43];    // '0x' + <40 chars> + '\0'
 
@@ -298,7 +296,16 @@ addressPublicKeyAsString (BREthereumAddress address) {
 
 extern void
 addressRlpEncode (BREthereumAddress address, BRRlpCoder coder) {
-    rlpEncodeItemString(coder, &address->string[2]);  // skip '0x'
+//    rlpEncodeItemString(coder, &address->string[2]);  // skip '0x'
+
+    char *addressToDecode = &address->string[2]; // skip '0x'
+    size_t addressToDecodeLen = strlen (addressToDecode);
+
+    size_t bytesLength = decodeHexLength(addressToDecodeLen);
+    uint8_t bytes[bytesLength];
+    decodeHex(bytes, bytesLength, addressToDecode, addressToDecodeLen);
+
+    rlpEncodeItemBytes (coder, bytes, bytesLength);
 }
 
 //
@@ -474,26 +481,7 @@ derivePrivateKeyFromSeed (UInt512 seed, uint32_t index) {
     return privateKey;
 }
 
-static void
-encodeHex (char *target, size_t targetLen, uint8_t *source, size_t sourceLen) {
-    assert (targetLen == 2 * sourceLen  + 1);
 
-    int i = 0;
-    for (; i < sourceLen && 2 * i < targetLen - 1; i++) {
-        target[2*i] = _hexc (source[i] >> 4);
-        target[2*i + 1] = _hexc (source[i]);
-    }
-    target[2*i] = '\0';
-}
-
-static const char *
-encodeAsHexString (uint8_t *source, size_t sourceLen) {
-    size_t resultLen = 1 + 2 * sourceLen;
-    char *result = malloc (resultLen);
-
-    encodeHex(result, resultLen, source, sourceLen);
-    return result;
-}
 /*
 extern const char *
 addressEncodePrivateKey(BREthereumAddress address, BREthereumAddressEncodeType type) {

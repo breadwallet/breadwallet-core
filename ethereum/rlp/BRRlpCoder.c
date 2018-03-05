@@ -30,9 +30,6 @@
 #include <endian.h>
 #include "BRRlpCoder.h"
 
-static void
-decodeHex (uint8_t *target, size_t targetLen, char *source, size_t sourceLen);
-
 #define RLP_DATA_DEFAULT_DATA_ALLOCATED 1024
 
 extern BRRlpData
@@ -164,39 +161,10 @@ rlpAsBigEndian (uint8_t *bytes, size_t bytesCount) {
 #endif
 }
 
-//static void
-//rlpEncodeItemLength (BRRlpCoder coder, uint64_t value, uint8_t baseline) {
-//    // Value into bytes; assumes BIG_ENDIAN
-//    uint8_t valueBytes[8];
-//    memcpy (valueBytes, (uint8_t *) &value, 8);
-//
-//    rlpAsBigEndian(valueBytes, 8);
-//
-//    // Get `bytes` with an added `baseline` entry.
-//    uint8_t rlpBytes [1 + sizeof(value)];
-//
-//    // Find the first non-zero byte in `value`
-//    int nonZeroIndex = rlpNonZeroIndex(valueBytes, sizeof(uint64_t));
-//    size_t nonZeroBytesCount = sizeof(uint64_t) - nonZeroIndex;
-//    assert (0 != nonZeroBytesCount);
-//
-//    rlpBytes[0] = (uint8_t) (baseline + nonZeroBytesCount);
-//    memcpy (&rlpBytes[1], &valueBytes[nonZeroIndex], (size_t) nonZeroBytesCount);
-//
-//    rlpAppendData (coder, createRlpData(rlpBytes, 1 + nonZeroBytesCount));
-//}
-
-//extern void
-//rlpEncodeSignedValue (BRRlpCoder coder, int64_t value) {
-//    if (value >= 0)
-//        rlpEncodeItemValue(coder, value);
-//    else {
-//
-//    }
-//}
-
 static void
-rlpEncodeItemNumber (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount, uint8_t baseline) {
+rlpEncodeItemNumber (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount, uint8_t baseline, uint8_t limit) {
+
+    // TODO: Fix this tortured logic.
     uint8_t valueBytes [bytesCount];
     memcpy(valueBytes, bytes, bytesCount);
     // Ensure ValueBytes is big endian.
@@ -206,7 +174,13 @@ rlpEncodeItemNumber (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount, uint8_
     int nonZeroIndex = rlpNonZeroIndex(valueBytes, bytesCount);
     size_t nonZeroBytesCount = bytesCount - nonZeroIndex;
 
-    if (nonZeroBytesCount == 1 && valueBytes[nonZeroIndex] < 0x80) {
+    // All zeros.
+    if (nonZeroIndex == bytesCount) {
+        nonZeroBytesCount = 1;
+        nonZeroIndex = 0;
+    }
+
+    if (nonZeroBytesCount == 1 && valueBytes[nonZeroIndex] < limit) {
         rlpAppendData(coder, createRlpData(&valueBytes[nonZeroIndex], 1));
     }
     else {
@@ -220,35 +194,18 @@ rlpEncodeItemNumber (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount, uint8_
 
 extern void
 rlpEncodeItemUInt64(BRRlpCoder coder, uint64_t value) {
-    rlpEncodeItemNumber (coder, (uint8_t *) &value, sizeof(uint64_t), 0x80);
-
-//    if (value < 0x80) {
-//        uint8_t bytes[1];
-//
-//        bytes[0] = (uint8_t) value;
-//        rlpAppendData (coder, createRlpData(bytes, 1));
-//    }
-//    else {
-//        rlpEncodeItemLength(coder, value, 0x80);
-//    }
+    rlpEncodeItemNumber (coder, (uint8_t *) &value, sizeof(uint64_t), 0x80, 0x80);
 }
-
 
 extern void
 rlpEncodeItemUInt256(BRRlpCoder coder, UInt256 value) {
-    rlpEncodeItemNumber (coder, (uint8_t *) &value, sizeof(UInt256), 0x80);
+    rlpEncodeItemNumber (coder, (uint8_t *) &value, sizeof(UInt256), 0x80, 0x80);
 }
 
 extern void
 rlpEncodeItemString(BRRlpCoder coder, const char *string) {
     if (NULL == string) string = "";
-    size_t bytesCount = strlen(string)/2;
-    uint8_t bytes [bytesCount];
-    decodeHex(bytes, bytesCount, string, strlen(string));
-
-//    printf ("encoding string: %d : %s\n", strlen(string), string);
-//    rlpEncodeItemBytes(coder, (uint8_t *) string, strlen (string));
-    rlpEncodeItemBytes(coder, bytes, bytesCount);
+    rlpEncodeItemBytes(coder, (uint8_t *) string, strlen (string));
 }
 
 extern void
@@ -265,8 +222,7 @@ rlpEncodeItemBytes(BRRlpCoder coder, uint8_t *bytes, size_t bytesCount) {
         rlpAppendData(coder, createRlpData(rlpBytes, 1 + bytesCount));
     }
     else {
-/*        rlpEncodeItemLength(coder, bytesCount, 0xb7); */
-        rlpEncodeItemNumber(coder, (uint8_t *) &bytesCount, sizeof(bytesCount), 0xb7);
+        rlpEncodeItemNumber(coder, (uint8_t *) &bytesCount, sizeof(bytesCount), 0xb7, 56);
         rlpAppendData(coder, createRlpData(bytes, bytesCount));
     }
 }
@@ -285,11 +241,58 @@ rlpGetData (BRRlpCoder coder) {
     return coder->data[0];
 }
 
-static void
+//
+//
+//
+
+extern void
 decodeHex (uint8_t *target, size_t targetLen, char *source, size_t sourceLen) {
-    assert (targetLen == sourceLen / 2);
+    //
+    assert (0 == sourceLen % 2);
+    assert (2 * targetLen == sourceLen);
 
     for (int i = 0; i < targetLen; i++) {
         target[i] = (uint8_t) ((_hexu(source[2*i]) << 4) | _hexu(source[(2*i)+1]));
+     }
+}
+
+extern size_t
+decodeHexLength (size_t stringLen) {
+    assert (0 == stringLen % 2);
+    return stringLen/2;
+}
+
+extern uint8_t *
+decodeHexCreate (size_t *targetLen, char *source, size_t sourceLen) {
+    size_t length = decodeHexLength(sourceLen);
+    if (NULL != targetLen) *targetLen = length;
+    uint8_t *target = malloc (length);
+    decodeHex (target, length, source, sourceLen);
+    return target;
+}
+
+extern void
+encodeHex (char *target, size_t targetLen, uint8_t *source, size_t sourceLen) {
+    assert (targetLen == 2 * sourceLen  + 1);
+
+    int i = 0;
+    for (; i < sourceLen && 2 * i < targetLen - 1; i++) {
+        target[2*i] = (uint8_t) _hexc (source[i] >> 4);
+        target[2*i + 1] = (uint8_t) _hexc (source[i]);
     }
+    target[2*i] = '\0';
+}
+
+extern size_t
+encodeHexLength(size_t byteArrayLen) {
+    return 2 * byteArrayLen + 1;
+}
+
+extern char *
+encodeHexCreate (size_t *targetLen, uint8_t *source, size_t sourceLen) {
+    size_t length = encodeHexLength(sourceLen);
+    if (NULL != targetLen) *targetLen = length;
+    char *target = malloc (length);
+    encodeHex(target, length, source, sourceLen);
+    return target;
 }
