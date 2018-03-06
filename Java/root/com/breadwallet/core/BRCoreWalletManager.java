@@ -197,22 +197,22 @@ public class BRCoreWalletManager implements
         BRCoreWallet wallet = getWallet();
 
         BRCoreTransaction transactions[] = wallet.getTransactions();
-        System.err.println (getChainDescriptiveName() + " " + label + " txCount: " + transactions.length);
+        System.out.println (getChainDescriptiveName() + " " + label + " txCount: " + transactions.length);
         for (BRCoreTransaction transaction : wallet.getTransactions()) {
-            System.err.println("    tx: " + transaction.toString());
-            System.err.println("        : " +
+            System.out.println("    tx: " + transaction.toString());
+            System.out.println("        : " +
                     (transaction.isSigned() ? "SIGNED" : "NOT-SIGNED") + " " +
                     (transaction.isSigned() ? (wallet.transactionIsValid(transaction) ? "VALID" : "NOT-VALID") : "N/A") + " " +
                     "balance: " + (transaction.isSigned() ? wallet.getBalanceAfterTransaction(transaction) : "N/A"));
 
             if (SHOW_CALLBACK_DETAIL_TX_IO) {
                 for (BRCoreTransactionInput input : transaction.getInputs())
-                    System.err.println(input.toString());
+                    System.out.println(input.toString());
                 for (BRCoreTransactionOutput output : transaction.getOutputs())
-                    System.err.println(output.toString());
+                    System.out.println(output.toString());
             }
         }
-        System.err.println ("    balance: " + wallet.getBalance());
+        System.out.println ("    balance: " + wallet.getBalance());
     }
     //
     // BRCorePeerManager.Listener
@@ -221,19 +221,19 @@ public class BRCoreWalletManager implements
     @Override
     public void syncStarted() {
         if (!SHOW_CALLBACK) return;
-        System.err.println (getChainDescriptiveName() + " syncStarted");
+        System.out.println (getChainDescriptiveName() + ": syncStarted");
     }
 
     @Override
     public void syncStopped(String error) {
         if (!SHOW_CALLBACK) return;
-        System.err.println (getChainDescriptiveName() + " syncStopped: " + error);
+        System.out.println (getChainDescriptiveName() + ": syncStopped: " + error);
     }
 
     @Override
     public void txStatusUpdate() {
         if (!SHOW_CALLBACK) return;
-        System.err.println (getChainDescriptiveName() + " txStatusUpdate");
+        System.out.println (getChainDescriptiveName() + ": txStatusUpdate");
         //super.txStatusUpdate();
 
         if (!SHOW_CALLBACK_DETAIL_TX_STATUS) return;
@@ -243,33 +243,33 @@ public class BRCoreWalletManager implements
     @Override
     public void saveBlocks(boolean replace, BRCoreMerkleBlock[] blocks) {
         if (!SHOW_CALLBACK) return;
-        System.err.println(getChainDescriptiveName() + String.format(": saveBlocks: %d", blocks.length));
+        System.out.println(getChainDescriptiveName() + String.format(": saveBlocks: %d", blocks.length));
 
         if (!SHOW_CALLBACK_DETAIL) return;
         for (int i = 0; i < blocks.length; i++)
-            System.err.println(blocks[i].toString());
+            System.out.println(blocks[i].toString());
     }
 
     @Override
     public void savePeers(boolean replace, BRCorePeer[] peers) {
         if (!SHOW_CALLBACK) return;
-        System.err.println(getChainDescriptiveName() + String.format(": savePeers: %d", peers.length));
+        System.out.println(getChainDescriptiveName() + String.format(": savePeers: %d", peers.length));
 
         if (!SHOW_CALLBACK_DETAIL) return;
         for (int i = 0; i < peers.length; i++)
-            System.err.println(peers[i].toString());
+            System.out.println(peers[i].toString());
     }
 
     @Override
     public boolean networkIsReachable() {
-        // System.err.println ("networkIsReachable");
+        // System.out.println ("networkIsReachable");
         return true;
     }
 
     @Override
     public void txPublished(String error) {
         if (!SHOW_CALLBACK) return;
-        System.err.println (getChainDescriptiveName() + String.format (":   txPublished: %s", error));
+        System.out.println (getChainDescriptiveName() + String.format (": txPublished: %s", error));
 
         if (!SHOW_CALLBACK_DETAIL_TX_STATUS) return;
         showTxDetail("txPublished");
@@ -282,7 +282,7 @@ public class BRCoreWalletManager implements
     @Override
     public void balanceChanged(long balance) {
         if (!SHOW_CALLBACK) return;
-        System.err.println (getChainDescriptiveName() + String.format (": balanceChanged: %d", balance));
+        System.out.println (getChainDescriptiveName() + String.format (": balanceChanged: %d", balance));
         if (!SHOW_CALLBACK_DETAIL_TX_STATUS) return;
         showTxDetail("balanceChanged");
     }
@@ -290,7 +290,7 @@ public class BRCoreWalletManager implements
     @Override
     public void onTxAdded(BRCoreTransaction transaction) {
         if (!SHOW_CALLBACK) return;
-        System.err.println (getChainDescriptiveName() + ": onTxAdded: " + bytesToHex(transaction.getHash()));
+        System.out.println (getChainDescriptiveName() + ": onTxAdded: " + bytesToHex(transaction.getHash()));
 
         if (!SHOW_CALLBACK_DETAIL_TX_STATUS) return;
         showTxDetail("balanceChanged");
@@ -299,7 +299,7 @@ public class BRCoreWalletManager implements
     @Override
     public void onTxUpdated(String hash, int blockHeight, int timeStamp) {
         if (!SHOW_CALLBACK) return;
-        System.err.println (getChainDescriptiveName() + ": onTxUpdated: " + hash);
+        System.out.println (getChainDescriptiveName() + ": onTxUpdated: " + hash);
 
         if (!SHOW_CALLBACK_DETAIL_TX_STATUS) return;
         showTxDetail("onTxUpdated");
@@ -308,7 +308,7 @@ public class BRCoreWalletManager implements
     @Override
     public void onTxDeleted(String hash, int notifyUser, int recommendRescan) {
         if (!SHOW_CALLBACK) return;
-        System.err.println (getChainDescriptiveName() + ": onTxDeleted: " + hash);
+        System.out.println (getChainDescriptiveName() + ": onTxDeleted: " + hash);
 
         if (!SHOW_CALLBACK_DETAIL_TX_STATUS) return;
         showTxDetail("onTxDeleted");

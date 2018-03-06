@@ -103,17 +103,11 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreWallet_installListener
     BRWallet *wallet = (BRWallet *) getJNIReference (env, thisObject);
 
      // Get a WeakGlobalRef - 'weak' to allow for GC; 'global' to allow BRCore thread access
-    jobject listenerWeakRefGlobal = (*env)->NewWeakGlobalRef (env, listenerObject);
-
-    // Assign listenerWeakRefGlobal back to thisObject.listener
-    jfieldID listenerField = (*env)->GetFieldID (env, (*env)->GetObjectClass (env, thisObject),
-                                                 "listener",
-                                                 "Ljava/lang/ref/WeakReference;");
-    assert (NULL != listenerField);
-    (*env)->SetObjectField (env, thisObject, listenerField, listenerWeakRefGlobal);
+    // TODO: If this is made a WeakGlobal then the App crashes.
+    jobject listener = (*env)->NewGlobalRef (env, listenerObject);
 
     // Assign callbacks
-    BRWalletSetCallbacks(wallet, listenerWeakRefGlobal,
+    BRWalletSetCallbacks(wallet, listener,
                          balanceChanged,
                          txAdded,
                          txUpdated,
@@ -659,17 +653,8 @@ Java_com_breadwallet_core_BRCoreWallet_disposeNative
         (JNIEnv *env, jobject thisObject) {
     BRWallet *wallet = (BRWallet *) getJNIReference(env, thisObject);
 
-    // Locate 'globalListener', then DeleteWeakGlobalRef() to save global reference space.
     if (NULL != wallet) {
-        jfieldID listenerField = (*env)->GetFieldID (env, (*env)->GetObjectClass (env, thisObject),
-                                                     "listener",
-                                                     "Ljava/lang/ref/WeakReference;");
-        assert (NULL != listenerField);
-
-        jweak listenerWeakGlobalRef = (*env)->GetObjectField (env, thisObject, listenerField);
-        if (JNIWeakGlobalRefType == (*env)->GetObjectRefType (env, listenerWeakGlobalRef)) {
-            (*env)->DeleteWeakGlobalRef (env, listenerWeakGlobalRef);
-        }
+        // TODO: Locate `installListener` WeakGlobal reference - delete it.
 
         BRWalletFree(wallet);
     }

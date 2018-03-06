@@ -870,8 +870,8 @@ public class BRWalletManager extends BRCoreWalletManager {
                 getPeerManagerListener());
         assert (null != pm);
 
-        pm.testSaveBlocksCallback(false, blocks);
-        pm.testSavePeersCallback(false, peers);
+//        pm.testSaveBlocksCallback(false, blocks);
+//        pm.testSavePeersCallback(false, peers);
     }
 
     private static BRCoreWallet.Listener getWalletListener () {

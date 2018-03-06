@@ -63,8 +63,10 @@ public class BRCoreWallet extends BRCoreJniReference
                         Listener listener)
     {
         super (createJniCoreWallet(transactions, masterPubKey));
+        assert (null != listener);
+        this.listener = new WeakReference<>(listener);
+
         installListener (listener);
-        assert (null != this.listener);
 
         // All `transactions` are effectively registered - now 'owned' by wallet
         for (BRCoreTransaction transaction : transactions)
