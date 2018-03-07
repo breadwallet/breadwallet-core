@@ -31,11 +31,14 @@
 #include <time.h>
 #include <unistd.h>
 #include <assert.h>
-#include <BRCrypto.h>
-#include <BRInt.h>
+#include <regex.h>
+#include "BRCrypto.h"
+#include "BRInt.h"
+#include "BRKey.h"
 
 #include "BREthereum.h"
 #include "../BRBIP39WordsEn.h"
+#include "BREthereumLightNode.h"
 
 static void
 showHex (uint8_t *source, size_t sourceLen) {
@@ -126,7 +129,7 @@ void runRlpTest () {
     uint8_t t5r[] = RLP_V3_RES;
     rlpCheckInt(RLP_V3,t5r, sizeof(t5r));
 
-    printf ("\n\n");
+    printf ("\n");
 }
 
 //
@@ -141,7 +144,7 @@ void runRlpTest () {
 void runAddressTests (BREthereumAccount account) {
     BREthereumAddress address = accountGetPrimaryAddress(account);
 
-    printf ("\n== Address\n");
+    printf ("== Address\n");
     printf ("        String: %p\n", address);
 
     printf ("      PaperKey: %p, %s\n", TEST_PAPER_KEY, TEST_PAPER_KEY);
@@ -163,9 +166,12 @@ void runAddressTests (BREthereumAccount account) {
 //
 // Signature Test
 //
-
-
-// https://github.com/ethereum/EIPs/issues/155 (SEE 'kvhnuke commented on Nov 22, 2016')
+// Test signing primitives: BRKeccak256, BRKeyCompactSign. NOTE: there are inconsistencies in the
+// Ethereum EIP 155 sources on github.  It does not appear that that 'raw transaction' bytes are
+// consistent with the {v, r, s} values 'appended' to the 'unsigned transaction rlp'.  The official
+// location is https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md - but I've used the
+// following (and specifically the 'kvhnuke comment'):
+//    https://github.com/ethereum/EIPs/issues/155 (SEE 'kvhnuke commented on Nov 22, 2016')
 //
 // Consider a transaction with nonce = 9, gasprice = 20 * 10**9, startgas = 21000,
 // to = 0x3535353535353535353535353535353535353535, value = 10**18, data='' (empty).
@@ -193,9 +199,9 @@ void runAddressTests (BREthereumAccount account) {
 #define SIGNATURE_SIGNING_HASH "daf5a779ae972f972197303d7b574746c7ef83eadac0f2791ad23db92e4c8e53" // removed "0x"
 #define SIGNATURE_PRIVATE_KEY  "4646464646464646464646464646464646464646464646464646464646464646"
 
-#define SIGNATURE_V "37"
-#define SIGNATURE_R "11298168949998536842419725113857172427648002808790045841403298480749678639159"
-#define SIGNATURE_S "26113561835810707062310182368620287328545641189938585203131842552044123671646"
+#define SIGNATURE_V "1b" // 37
+#define SIGNATURE_R "28ef61340bd939bc2195fe537567866003e1a15d3c71ff63e1590620aa636276" // remove "0x"
+#define SIGNATURE_S "67cbe9d8997f761aecb703304b3800ccf555c9f3dc64214b297fb1966a3b6d83" // remove "0x"
 
 #define SIGNING_DATA_2 "f86c258502540be40083035b609482e041e84074fc5f5947d4d27e3c44f824b7a1a187b1a2bc2ec500008078a04a7db627266fa9a4116e3f6b33f5d245db40983234eb356261f36808909d2848a0166fa098a2ce3bda87af6000ed0083e3bf7cc31c6686b670bd85cbc6da2d6e85"
 #define SIGNING_HASH_2 "58e5a0fc7fbc849eddc100d44e86276168a8c7baaa5604e44ba6f5eb8ba1b7eb"
@@ -204,7 +210,7 @@ void runSignatureTests (BREthereumAccount account) {
     printf ("\n== Signature\n");
     UInt256 digest;
 
-    printf ("    Sig 1:");
+    printf ("    Data 1:\n");
     char *signingData = SIGNATURE_SIGNING_DATA;
     char *signingHash = SIGNATURE_SIGNING_HASH;
 
@@ -214,11 +220,32 @@ void runSignatureTests (BREthereumAccount account) {
     BRKeccak256(&digest, signingBytes, signingBytesCount);
 
     char *digestString = encodeHexCreate(NULL, (uint8_t *) &digest, sizeof(UInt256));
-    printf ("\n  Hex: %s\n", digestString);
+    printf ("      Hex: %s\n", digestString);
     assert (0 == strcmp (digestString, signingHash));
 
+    BRKey privateKeyUncompressed;
+    BRKeySetPrivKey(&privateKeyUncompressed, SIGNATURE_PRIVATE_KEY);
+
+    size_t signatureLen = BRKeyCompactSign(&privateKeyUncompressed,
+                                           NULL, 0,
+                                           digest);
+
+    // Fill the signature
+    uint8_t signatureBytes[signatureLen];
+    signatureLen = BRKeyCompactSign(&privateKeyUncompressed,
+                                    signatureBytes, signatureLen,
+                                    digest);
+    assert (65 == signatureLen);
+
+    char *signatureHex = encodeHexCreate(NULL, signatureBytes, signatureLen);
+    printf ("      Sig: %s\n", signatureHex);
+    assert (130 == strlen(signatureHex));
+    assert (0 == strncmp (&signatureHex[ 0], SIGNATURE_V, 2));
+    assert (0 == strncmp (&signatureHex[ 2], SIGNATURE_R, 64));
+    assert (0 == strncmp (&signatureHex[66], SIGNATURE_S, 64));
+
     //
-    printf ("    Sig 2:");
+    printf ("    Data 2:");
     signingData = SIGNING_DATA_2;
     signingHash = SIGNING_HASH_2;
     signingBytesCount = 0;
@@ -228,15 +255,16 @@ void runSignatureTests (BREthereumAccount account) {
     BRKeccak256(&digest, signingBytes2, signingBytesCount);
 
     char *digestString2 = encodeHexCreate(NULL, (uint8_t *) &digest, sizeof(UInt256));
-    printf ("\n  Hex: %s\n", digestString2);
+    printf ("\n      Hex: %s\n", digestString2);
     assert (0 == strcmp (digestString2, signingHash));
-
-
-//    > msgSha = web3.sha3('Now it the time')
-//    "0x8b3942af68acfd875239181babe9ce093c420ca78d15b178fb63cf839dcf0971"
-
-
 }
+
+//
+// Transaction Tests
+//
+// Take some transactions from 'etherscan.io'; duplicate their content; ensure we process them
+// correctly.  Check the
+
 
 // Consider a transaction with nonce = 9, gasprice = 20 * 10**9, startgas = 21000,
 // to = 0x3535353535353535353535353535353535353535, value = 10**18, data='' (empty).
@@ -331,6 +359,7 @@ void runTransactionTests (BREthereumAccount account) {
     runTransactionTests2 (account);
 }
 
+//
 // Account Tests
 //
 void runAccountTests () {
@@ -338,22 +367,84 @@ void runAccountTests () {
     BREthereumAccount account = createAccount(TEST_PAPER_KEY);
 
     printf ("==== Account: %p\n", account);
-    runTransactionTests(account);
     runAddressTests(account);
     runSignatureTests(account);
+//    runTransactionTests(account);
 
     accountFree (account);
     printf ("\n\n");
 }
 
 //
+// Light Node Tests
+//
+#define NODE_PAPER_KEY "ginger settle marine tissue robot crane night number ramp coast roast critic"
+#define NODE_NONCE              TEST_TRANS2_NONCE // 1
+#define NODE_GAS_PRICE_VALUE    TEST_TRANS2_GAS_PRICE_VALUE // 20 GWEI
+#define NODE_GAS_PRICE_UNIT     TEST_TRANS2_GAS_PRICE_UNIT // WEI
+#define NODE_GAS_LIMIT          TEST_TRANS2_GAS_LIMIT
+#define NODE_RECV_ADDR          TEST_TRANS2_TARGET_ADDRESS
+#define NODE_ETHER_AMOUNT_UNIT  TEST_TRANS2_ETHER_AMOUNT_UNIT
+#define NODE_ETHER_AMOUNT       TEST_TRANS2_ETHER_AMOUNT
+
+//  Raw:      0xf86b 01 8477359400 825208 94,873feb0644a6fbb9532bb31d1c03d4538aadec30 8806f05b59d3b20000 80 26,a030013044b571726723302bcf8dfad8765cf676db0844277a6f8cf63d04894008a069edd285604fdf010d96b8b7d9c547f9599b8ac51c50b8b97076bb9955c0bdde
+#define NODE_RESULT "01 8477359400 825208 94,873feb0644a6fbb9532bb31d1c03d4538aadec30 8806f05b59d3b20000 80 1b,a0594c2fe40942a9dbd75b9cdd09397016592fc98ae24226f41706c5004c6608d0a072861c46ae62f4aae06eba04e5708b9421d2fcf21fa7f02aed1ff04accd405e3"
+
+void runLightNodeTests () {
+    printf ("==== Light Node\n");
+
+    BREthereumLightNodeConfiguration configuration;
+
+    BREthereumLightNode node = createLightNode(configuration);
+    BREthereumLightNodeAccountId account = lightNodeCreateAccount(node, NODE_PAPER_KEY);
+
+    printf ("  Node + Account\n");
+
+    // A wallet holding Ether
+    BREthereumLightNodeWalletId wallet = lightNodeCreateWallet(node, account);
+
+    printf ("  Wallet\n");
+
+  lightNodeSetWalletGasPrice(node, wallet,
+                             TEST_TRANS2_GAS_PRICE_UNIT,
+                             TEST_TRANS2_GAS_PRICE_VALUE);
+  
+    BREthereumLightNodeTransactionId tx1 =
+            lightNodeWalletCreateTransaction
+                    (node,
+                     wallet,
+                     NODE_RECV_ADDR,
+                     NODE_ETHER_AMOUNT_UNIT,
+                     NODE_ETHER_AMOUNT);
+
+    printf ("  Transaction\n");
+
+    lightNodeWalletSignTransaction (node, wallet, tx1, NODE_PAPER_KEY);
+
+    printf ("    Signed\n");
+
+    uint8_t *bytes;
+    size_t   bytesCount;
+
+    lightNodeFillTransactionRawData(node, wallet, tx1, &bytes, &bytesCount);
+
+    printf ("    Filled Raw\n");
+
+    // USE JSON_RPC to submit {bytes}
+  char result[2 * bytesCount + 1];
+  encodeHex(result, 2 * bytesCount + 1, bytes, bytesCount);
+  printf ("        Bytes: %s\n", result);
+}
+//
 // All Tests
 //
 
-void runTests () {
+extern void
+runTests (void) {
     installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
     runRlpTest();
     runAccountTests();
+    runLightNodeTests();
 }
 
 int main(int argc, const char *argv[]) {

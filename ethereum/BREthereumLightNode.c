@@ -24,8 +24,8 @@
 //  THE SOFTWARE.
 
 #include <stdlib.h>
-#include <malloc.h>
 #include <assert.h>
+#include <string.h>
 #include "BREthereumLightNode.h"
 #include "BREthereumAccount.h"
 #include "BREthereumWallet.h"
@@ -115,6 +115,14 @@ lightNodeGetWalletGasLimit (BREthereumLightNode node,
     return walletGetDefaultGasLimit(wallet).amountOfGas;
 }
 
+extern void
+lightNodeSetWalletGasPrice (BREthereumLightNode node,
+                            BREthereumLightNodeWalletId wallet,
+                            BREthereumEtherUnit unit,
+                            uint64_t value) {
+  walletSetDefaultGasPrice (wallet, gasPriceCreate(etherCreateNumber (value, unit)));
+}
+
 //
 // Transactions
 //
@@ -177,10 +185,23 @@ lightNodeWalletSubmitTransaction (BREthereumLightNode node,
 
 #if ETHEREUM_LIGHT_NODE_USE_JSON_RPC
 extern void
-lightNodeFillTransactionRawData (BREthereumLightNode node,
-                                 BREthereumLightNodeTransactionId transaction,
-                                 uint8_t **bytesPtr,
-                                 size_t  bytesCountPtr);
+lightNodeFillTransactionRawData(BREthereumLightNode node,
+                                BREthereumLightNodeWalletId walletId,
+                                BREthereumLightNodeTransactionId transactionId,
+                                uint8_t **bytesPtr, size_t *bytesCountPtr) {
+    BREthereumWallet wallet = (BREthereumWallet) walletId;
+    BREthereumTransaction transaction = (BREthereumTransaction) transactionId;
+
+    assert (NULL != bytesCountPtr && NULL != bytesPtr);
+    assert (ETHEREUM_BOOLEAN_IS_TRUE (transactionIsSigned(transaction)));
+
+    BRRlpData rawTransactionData =
+            walletGetRawTransaction(wallet, transaction);
+
+    *bytesCountPtr = rawTransactionData.bytesCount;
+    *bytesPtr = (uint8_t *) malloc (*bytesCountPtr);
+    memcpy (*bytesPtr, rawTransactionData.bytes, *bytesCountPtr);
+}
 #endif
 
 extern const char *

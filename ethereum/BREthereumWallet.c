@@ -30,8 +30,8 @@
 
 #define DEFAULT_ETHER_GAS_LIMIT    21000ull
 
-#define DEFAULT_ETHER_GAS_PRICE_NUMBER   2ull
-#define DEFAULT_ETHER_GAS_PRICE_UNIT     GWEI
+#define DEFAULT_ETHER_GAS_PRICE_NUMBER   200000000ull  // 2 GWEI
+#define DEFAULT_ETHER_GAS_PRICE_UNIT     WEI
 
 /* Forward Declarations */
 static BREthereumGasPrice
@@ -228,7 +228,7 @@ walletSignTransaction(BREthereumWallet wallet,
 extern BRRlpData // TODO: is this the actual result?
 walletGetRawTransaction(BREthereumWallet wallet,
                         BREthereumTransaction transaction) {
-    return transactionIsSigned(transaction)
+    return ETHEREUM_BOOLEAN_TRUE == transactionIsSigned(transaction)
            ? transactionEncodeRLP(transaction, TRANSACTION_RLP_SIGNED)
            : createRlpDataEmpty();
 }

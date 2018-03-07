@@ -157,6 +157,15 @@ encodeHexLength(size_t byteArrayLen);
 extern char *
 encodeHexCreate (size_t *targetLen, uint8_t *source, size_t sourceLen);
 
+/**
+ * Return TRUE/1 if `string` is an encoded-hex string.
+ *
+ * @param string
+ * @return
+ */
+extern int
+encodeHexValidate (const char *string);
+
 #ifdef __cplusplus
 }
 #endif

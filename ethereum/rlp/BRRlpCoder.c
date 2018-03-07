@@ -25,9 +25,9 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <malloc.h>
 #include <assert.h>
 #include <endian.h>
+#include <regex.h>
 #include "BRRlpCoder.h"
 
 #define RLP_DATA_DEFAULT_DATA_ALLOCATED 1024
@@ -57,6 +57,11 @@ createRlpData (uint8_t *bytes, size_t bytesCount) {
 extern BRRlpData
 createRlpDataCopy (BRRlpData data) {
     return createRlpData(data.bytes, data.bytesCount);
+}
+
+static void
+rlpDataRelease (BRRlpData data) {
+  free (data.bytes);
 }
 
 extern const char *
@@ -124,7 +129,7 @@ createRlpCoder (void) {
 extern void
 rlpCoderRelease (BRRlpCoder coder) {
     for (int i = 0; i < coder->dataCount; i++)
-        /* something */;
+      rlpDataRelease (coder->data[i]);
     free (coder->data);
     free (coder);
 }
@@ -295,4 +300,21 @@ encodeHexCreate (size_t *targetLen, uint8_t *source, size_t sourceLen) {
     char *target = malloc (length);
     encodeHex(target, length, source, sourceLen);
     return target;
+}
+
+#define HEX_REGEX "^([0-9A-Fa-f]{2})+$" // "^[0-9A-Fa-f]+$"
+
+extern int
+encodeHexValidate (const char *string) {
+    static regex_t hexCharRegex;
+    static int hexCharRegexInitialized = 0;
+
+    if (!hexCharRegexInitialized) {
+        // Has pairs of hex digits
+      //regcomp(&hexCharRegex, "^([0-9A-Fa-f]{2})+$", REG_BASIC);
+        regcomp(&hexCharRegex, HEX_REGEX, REG_EXTENDED);
+        hexCharRegexInitialized = 1;
+    }
+
+    return 0 == regexec (&hexCharRegex, string, 0, NULL, 0);
 }

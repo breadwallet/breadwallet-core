@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <regex.h>
 //#include "BRKey.h"
 #include "BRBIP32Sequence.h"
 #include "BRBIP39Mnemonic.h"
@@ -162,18 +163,9 @@ struct BREthereumAddressRecord {
     uint32_t index;
 };
 
-static BREthereumBoolean
-validateStringAsEthereumAddress(const char *string) {
-    return 42 == strlen(string)
-           && '0' == string[0]
-           && 'x' == string[1]
-           ? ETHEREUM_BOOLEAN_TRUE
-           : ETHEREUM_BOOLEAN_FALSE;
-}
-
 extern BREthereumAddress
 createAddress (const char *string) {
-    if (ETHEREUM_BOOLEAN_IS_FALSE(validateStringAsEthereumAddress(string))) return NULL;
+    if (ETHEREUM_BOOLEAN_IS_FALSE(validateAddressString(string))) return NULL;
 
     BREthereumAddress address = malloc (sizeof (struct BREthereumAddressRecord));
 
@@ -182,6 +174,16 @@ createAddress (const char *string) {
     address->string[42] = '\0';
 
     return address;
+}
+
+extern BREthereumBoolean
+validateAddressString(const char *string) {
+    return 42 == strlen(string)
+           && '0' == string[0]
+           && 'x' == string[1]
+           && encodeHexValidate (&string[2])
+           ? ETHEREUM_BOOLEAN_TRUE
+           : ETHEREUM_BOOLEAN_FALSE;
 }
 
 extern void

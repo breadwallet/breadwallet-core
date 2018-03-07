@@ -97,6 +97,12 @@ extern uint64_t
 lightNodeGetWalletGasLimit (BREthereumLightNode node,
                             BREthereumLightNodeWalletId wallet);
 
+extern void
+lightNodeSetWalletGasPrice (BREthereumLightNode node,
+                            BREthereumLightNodeWalletId wallet,
+                            BREthereumEtherUnit unit,
+                            uint64_t value);
+
 // ...
 
 //
@@ -148,10 +154,10 @@ lightNodeWalletSubmitTransaction (BREthereumLightNode node,
  */
 #if ETHEREUM_LIGHT_NODE_USE_JSON_RPC
 extern void
-lightNodeFillTransactionRawData (BREthereumLightNode node,
-                                 BREthereumLightNodeTransactionId transaction,
-                                 uint8_t **bytesPtr,
-                                 size_t  bytesCountPtr);
+lightNodeFillTransactionRawData(BREthereumLightNode node,
+                                BREthereumLightNodeWalletId wallet,
+                                BREthereumLightNodeTransactionId transaction,
+                                uint8_t **bytesPtr, size_t *bytesCountPtr);
 #endif
 
 extern const char *

@@ -31,6 +31,7 @@ extern "C" {
 #endif
 
 #include "BRInt.h"
+#include "BREthereumEther.h"
 #include "rlp/BRRlpCoder.h"
 
 //
@@ -57,13 +58,28 @@ installSharedWordList (const char *wordList[], int wordListLength);
 typedef struct BREthereumAddressRecord *BREthereumAddress;
 
 /**
- * Create an address from the external representation of an address.
+ * Create an address from the external representation of an address.  The provided address *must*
+ * include a prefix of "Ox" and pass the validateAddressString() function; otherwise NULL is
+ * returned.
  *
  * @param string
  * @return
  */
 extern BREthereumAddress
 createAddress (const char *string);
+
+/**
+ * Validate `string` as an Ethereum address.  The validation is minimal - based solely on the
+ * `string` content.  Said another way, the Ethereum Network is not used for validation.
+ *
+ * At a minimum `string` must start with "0x", have a total of 42 characters and by a 'hex' string
+ * (as if a result of encodeHex(); containing characters [0-9,a-f])
+ *
+ * @param string
+ * @return
+ */
+extern BREthereumBoolean
+validateAddressString(const char *string);
 
 extern void
 addressFree (BREthereumAddress address);
