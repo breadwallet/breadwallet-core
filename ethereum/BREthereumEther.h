@@ -71,7 +71,7 @@ etherGetValueString(const BREthereumEther ether, BREthereumEtherUnit unit);
 //extern uint64_t
 //etherGetValueNumberDANGEROUS (const BREthereumEther ether, BREthereumEtherUnit unit);
 
-extern void
+extern BRRlpItem
 etherRlpEncode (const BREthereumEther ether, BRRlpCoder coder);
 
 extern BREthereumEther

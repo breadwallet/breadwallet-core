@@ -34,68 +34,57 @@
 extern "C" {
 #endif
 
-typedef struct BRRlpDataRecord {
-    // type
-    size_t bytesAllocated;
-    size_t bytesCount;
-    uint8_t *bytes;
-} BRRlpData;
 
-extern BRRlpData
-createRlpDataEmpty (void);
+typedef struct {
+  void *identifier;
+  unsigned long indexer;
+} BRRlpItem;
 
-extern BRRlpData
-createRlpDataCopy (BRRlpData data);
-
-/**
- * Return a '0x' prefixed hex string of the data bytes.
- *
- * @param data
- * @return
- */
-extern const char *
-rlpDataAsString (BRRlpData data);
-
-//
-//
-//
 typedef struct BRRlpCoderRecord *BRRlpCoder;
 
 extern BRRlpCoder
-createRlpCoder (void);
+rlpCoderCreate (void);
 
 extern void
 rlpCoderRelease (BRRlpCoder coder);
 
-extern void
-rlpEncodeItemUInt64(BRRlpCoder coder, uint64_t value);
+extern BRRlpItem
+rlpEncodeItemUInt64 (BRRlpCoder coder, uint64_t value);
 
-extern void
-rlpEncodeItemUInt256(BRRlpCoder coder, UInt256 value);
+extern BRRlpItem
+rlpEncodeItemUInt256 (BRRlpCoder coder, UInt256 value);
 
-extern void
-rlpEncodeItemString(BRRlpCoder coder, const char *string);
+extern BRRlpItem
+rlpEncodeItemBytes (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount);
 
-extern void
-rlpEncodeItemBytes(BRRlpCoder coder, uint8_t *bytes, size_t bytesCount);
+extern BRRlpItem
+rlpEncodeItemString (BRRlpCoder coder, char *string);
 
-//extern void
-//rlpEncodeList (BRRlpCoder coder, BRRlpData *data, size_t dataCount);
+extern BRRlpItem
+rlpEncodeList1 (BRRlpCoder coder, BRRlpItem item1);
+
+extern BRRlpItem
+rlpEncodeList2 (BRRlpCoder coder, BRRlpItem item1, BRRlpItem item2);
+
+extern BRRlpItem
+rlpEncodeList (BRRlpCoder coder, size_t count, ...);
+
+extern BRRlpItem
+rlpEncodeListItems (BRRlpCoder coder, BRRlpItem *items, size_t itemsCount);
+
+// Hold onto BRRlpItem 'forever'... then try to use... will fail because 'coder'
+// will not have 'context'
+extern void
+rlpGetData (BRRlpCoder coder, BRRlpItem item, uint8_t **bytes, size_t *bytesCount);
+
+typedef struct {
+  size_t bytesCount;
+  uint8_t *bytes;
+} BRRlpData;
 
 extern BRRlpData
-rlpGetData (BRRlpCoder coder);
-
-//
-//
-//
-/*
-
- extern void
- addressRlpEncode (BREthereumAddress address, BRRlpCoder coder);
-
- */
-
-
+createRlpDataEmpty (void);
+  
 //
 // Support
 //

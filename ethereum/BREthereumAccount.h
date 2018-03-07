@@ -92,7 +92,7 @@ extern const char *
 addressPublicKeyAsString (BREthereumAddress address);
 #endif
 
-extern void
+extern BRRlpItem
 addressRlpEncode (BREthereumAddress address, BRRlpCoder coder);
 
 //

@@ -35,9 +35,9 @@ gasCreate(uint64_t amountOfGas) {
     return gas;
 }
 
-extern void
+extern BRRlpItem
 gasRlpEncode (BREthereumGas gas, BRRlpCoder coder) {
-    rlpEncodeItemUInt64(coder, gas.amountOfGas);
+    return rlpEncodeItemUInt64(coder, gas.amountOfGas);
 }
 
 //
@@ -58,7 +58,7 @@ gasPriceGetGasCost(BREthereumGasPrice price, BREthereumGas gas) {
     return etherCreate(UINT256_ZERO /* etherPerGas * amountOfGas */, WEI);
 }
 
-extern void
+extern BRRlpItem
 gasPriceRlpEncode (BREthereumGasPrice price, BRRlpCoder coder) {
-    etherRlpEncode(price.etherPerGas, coder);
+    return etherRlpEncode(price.etherPerGas, coder);
 }

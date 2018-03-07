@@ -84,9 +84,9 @@ etherGetValueString(const BREthereumEther ether,
     return encodeUInt256(etherGetValue(ether, unit));
 }
 
-extern void
+extern BRRlpItem
 etherRlpEncode (const BREthereumEther ether, BRRlpCoder coder) {
-    rlpEncodeItemUInt256(coder, ether.valueInWEI);
+    return rlpEncodeItemUInt256(coder, ether.valueInWEI);
 }
 
 extern BREthereumEther

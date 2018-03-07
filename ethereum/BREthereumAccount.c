@@ -296,7 +296,7 @@ addressPublicKeyAsString (BREthereumAddress address) {
 }
 #endif
 
-extern void
+extern BRRlpItem
 addressRlpEncode (BREthereumAddress address, BRRlpCoder coder) {
 //    rlpEncodeItemString(coder, &address->string[2]);  // skip '0x'
 
@@ -307,7 +307,7 @@ addressRlpEncode (BREthereumAddress address, BRRlpCoder coder) {
     uint8_t bytes[bytesLength];
     decodeHex(bytes, bytesLength, addressToDecode, addressToDecodeLen);
 
-    rlpEncodeItemBytes (coder, bytes, bytesLength);
+    return rlpEncodeItemBytes (coder, bytes, bytesLength);
 }
 
 //

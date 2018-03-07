@@ -80,6 +80,9 @@ m/44'/60'/0'/0/1 :: 0x9595F373a4eAe74511561A52998cc6fB4F9C2bdD
 #define RLP_V3 1024
 #define RLP_V3_RES { 0x82, 0x04, 0x00 }
 
+// 'cat', 'dog'
+#define RLP_L1_RES { 0xc8, 0x83, 'c', 'a', 't', 0x83, 'd', 'o', 'g' }
+
 int equalBytes (uint8_t *a, size_t aLen, uint8_t *b, size_t bLen) {
     if (aLen != bLen) return 0;
     for (int i = 0; i < aLen; i++)
@@ -87,49 +90,57 @@ int equalBytes (uint8_t *a, size_t aLen, uint8_t *b, size_t bLen) {
     return 1;
 }
 
-void rlpCheck (BRRlpCoder coder, uint8_t *result, size_t resultSize) {
-    BRRlpData data = rlpGetData(coder);
-    assert (equalBytes(data.bytes, data.bytesCount, result, resultSize));
-    printf (" => "); showHex (data.bytes, data.bytesCount);
-    rlpCoderRelease(coder);
+void rlpCheck (BRRlpCoder coder, BRRlpItem item, uint8_t *result, size_t resultSize) {
+  BRRlpData data;
+
+  rlpGetData(coder, item, &data.bytes, &data.bytesCount);
+  assert (equalBytes(data.bytes, data.bytesCount, result, resultSize));
+  printf (" => "); showHex (data.bytes, data.bytesCount);
+
+  free (data.bytes);
 }
 
-void rlpCheckString (const char *string, uint8_t *result, size_t resultSize) {
-    BRRlpCoder coder = createRlpCoder();
+void rlpCheckString (BRRlpCoder coder, const char *string, uint8_t *result, size_t resultSize) {
     printf ("  \"%s\"", string);
-    rlpEncodeItemString(coder, string);
-    rlpCheck(coder, result, resultSize);
+    rlpCheck(coder, rlpEncodeItemString(coder, (char*) string), result, resultSize);
 }
 
-void rlpCheckInt (uint64_t value, uint8_t *result, size_t resultSize) {
-    BRRlpCoder coder = createRlpCoder();
+void rlpCheckInt (BRRlpCoder coder, uint64_t value, uint8_t *result, size_t resultSize) {
     printf ("  %llu", value);
-    rlpEncodeItemUInt64(coder, value);
-    rlpCheck(coder, result, resultSize);
+    rlpCheck(coder, rlpEncodeItemUInt64(coder, value), result, resultSize);
 }
 
 void runRlpTest () {
     printf ("==== RLP\n");
 
-    uint8_t s1r[] = RLP_S1_RES;
-    rlpCheckString(RLP_S1, s1r, sizeof(s1r));
+  BRRlpCoder coder = rlpCoderCreate();
 
-    uint8_t s2r[] = RLP_S2_RES;
-    rlpCheckString(RLP_S2, s2r, sizeof(s2r));
+  uint8_t s1r[] = RLP_S1_RES;
+  rlpCheckString(coder, RLP_S1, s1r, sizeof(s1r));
 
-    uint8_t s3r[] = RLP_S3_RES;
-    rlpCheckString(RLP_S3, s3r, sizeof(s3r));
+  uint8_t s2r[] = RLP_S2_RES;
+  rlpCheckString(coder, RLP_S2, s2r, sizeof(s2r));
 
-    uint8_t t3r[] = RLP_V1_RES;
-    rlpCheckInt(RLP_V1, t3r, sizeof(t3r));
+  uint8_t s3r[] = RLP_S3_RES;
+  rlpCheckString(coder, RLP_S3, s3r, sizeof(s3r));
 
-    uint8_t t4r[] = RLP_V2_RES;
-    rlpCheckInt(RLP_V2, t4r, sizeof(t4r));
+  uint8_t t3r[] = RLP_V1_RES;
+  rlpCheckInt(coder, RLP_V1, t3r, sizeof(t3r));
 
-    uint8_t t5r[] = RLP_V3_RES;
-    rlpCheckInt(RLP_V3,t5r, sizeof(t5r));
+  uint8_t t4r[] = RLP_V2_RES;
+  rlpCheckInt(coder, RLP_V2, t4r, sizeof(t4r));
 
-    printf ("\n");
+  uint8_t t5r[] = RLP_V3_RES;
+  rlpCheckInt(coder, RLP_V3,t5r, sizeof(t5r));
+
+  BRRlpItem listCatDog = rlpEncodeList2(coder,
+                                        rlpEncodeItemString(coder, "cat"),
+                                        rlpEncodeItemString(coder, "dog"));
+  uint8_t resCatDog[] = RLP_L1_RES;
+//  rlpCheck(coder, listCatDog, resCatDog, 9);
+
+  rlpCoderRelease(coder);
+  printf ("\n");
 }
 
 //

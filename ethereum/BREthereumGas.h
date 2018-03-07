@@ -43,7 +43,7 @@ typedef struct BREthereumGasStruct {
 extern BREthereumGas
 gasCreate(uint64_t gas);
 
-extern void
+extern BRRlpItem
 gasRlpEncode (BREthereumGas gas, BRRlpCoder coder);
 
 /**
@@ -77,7 +77,7 @@ gasPriceCreate(BREthereumEther ether);
 extern BREthereumEther
 gasPriceGetGasCost(BREthereumGasPrice price, BREthereumGas gas);
 
-extern void
+extern BRRlpItem
 gasPriceRlpEncode (BREthereumGasPrice price, BRRlpCoder coder);
 
 #ifdef __cplusplus

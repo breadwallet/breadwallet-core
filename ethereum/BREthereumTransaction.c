@@ -129,7 +129,7 @@ transactionGetSigner (BREthereumTransaction transaction) {
 
 extern BREthereumBoolean
 transactionIsSigned (BREthereumTransaction transaction) {
-    return NULL != transactionGetSigner (transaction) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
+  return NULL != transactionGetSigner (transaction) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
 }
 
 //
@@ -140,49 +140,44 @@ extern BRRlpData
 transactionEncodeRLP (BREthereumTransaction transaction,
                       BREthereumTransactionRLPType type) {
 
-    BRRlpCoder coder = createRlpCoder();
+  BRRlpCoder coder = rlpCoderCreate();
 
-    // Encode an 'unsigned transaction'
+  BRRlpItem items[10];
+  size_t itemsCount = 0;
 
-    rlpEncodeItemUInt64(coder, transaction->nonce);
-    gasPriceRlpEncode(transaction->gasPrice, coder);
-    gasRlpEncode(transaction->gasLimit, coder);
-    addressRlpEncode(transaction->targetAddress, coder);
-    holdingRlpEncode(transaction->amount, coder);
-    rlpEncodeItemString(coder, transaction->data);
+  items[0] = rlpEncodeItemUInt64(coder, transaction->nonce);
+  items[1] = gasPriceRlpEncode(transaction->gasPrice, coder);
+  items[2] = gasRlpEncode(transaction->gasLimit, coder);
+  items[3] = addressRlpEncode(transaction->targetAddress, coder);
+  items[4] = holdingRlpEncode(transaction->amount, coder);
+  items[5] = rlpEncodeItemString(coder, transaction->data);
+  itemsCount = 6;
 
+  switch (type) {
+    case TRANSACTION_RLP_UNSIGNED:
+      break;
 
-    switch (type) {
-        case TRANSACTION_RLP_UNSIGNED:
-            break;
+    case TRANSACTION_RLP_SIGNED:
+      items[6] = rlpEncodeItemUInt64(coder, transaction->signature.sig.recoverable.v);
 
-        case TRANSACTION_RLP_SIGNED:
-            rlpEncodeItemUInt64(coder, transaction->signature.sig.recoverable.v);
-            // TODO: {r,s} encoded as byte array?
-            rlpEncodeItemBytes (coder,
-                                transaction->signature.sig.recoverable.r,
-                                sizeof (transaction->signature.sig.recoverable.r));
+      items[7] = rlpEncodeItemBytes (coder,
+                          transaction->signature.sig.recoverable.r,
+                          sizeof (transaction->signature.sig.recoverable.r));
 
-            rlpEncodeItemBytes (coder,
-                                transaction->signature.sig.recoverable.s,
-                                sizeof (transaction->signature.sig.recoverable.s));
-            break;
-    }
+      items[8] = rlpEncodeItemBytes (coder,
+                          transaction->signature.sig.recoverable.s,
+                          sizeof (transaction->signature.sig.recoverable.s));
+      itemsCount += 3;
+      break;
+  }
 
-    BRRlpData result = createRlpDataCopy(rlpGetData(coder));
-    rlpCoderRelease (coder);
-    return result;
+  BRRlpItem encoding = rlpEncodeListItems(coder, items, itemsCount);
+  BRRlpData result;
 
-//    byte[] gasPrice = RLP.encodeElement(this.gasPrice);
-//    byte[] gasLimit = RLP.encodeElement(this.gasLimit);
-//    ...
-//    v = RLP.encodeInt(encodeV);
-//    r = RLP.encodeElement(BigIntegers.asUnsignedByteArray(signature.r));
-//    s = RLP.encodeElement(BigIntegers.asUnsignedByteArray(signature.s));
-//    ...
-//    this.rlpEncoded = RLP.encodeList(nonce, gasPrice, gasLimit,
-//                                     receiveAddress, value, data, v, r, s);
+  rlpGetData(coder, encoding, &result.bytes, &result.bytesCount);
+  rlpCoderRelease(coder);
 
+  return result;
 }
 
 extern BREthereumTransaction

@@ -73,16 +73,14 @@ holdingGetType (BREthereumHolding holding) {
     return holding.type;
 }
 
-extern void
+extern BRRlpItem
 holdingRlpEncode(BREthereumHolding holding, BRRlpCoder coder) {
     switch (holding.type) {
         case WALLET_HOLDING_ETHER:
-            etherRlpEncode(holding.holding.ether.amount, coder);
-            break;
+            return etherRlpEncode(holding.holding.ether.amount, coder);
 
         case WALLET_HOLDING_TOKEN:
-            rlpEncodeItemUInt64(coder, 0);
-            break;
+            return rlpEncodeItemUInt64(coder, 0);
     }
 }
 

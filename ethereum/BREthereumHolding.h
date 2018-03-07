@@ -69,7 +69,7 @@ holdingCreateToken (UInt256 scale, UInt256 amount);
 extern BREthereumWalletHoldingType
 holdingGetType (BREthereumHolding holding);
 
-extern void
+extern BRRlpItem
 holdingRlpEncode(BREthereumHolding holding, BRRlpCoder coder);
 
 /**
