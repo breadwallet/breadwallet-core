@@ -137,7 +137,8 @@ void runRlpTest () {
                                         rlpEncodeItemString(coder, "cat"),
                                         rlpEncodeItemString(coder, "dog"));
   uint8_t resCatDog[] = RLP_L1_RES;
-//  rlpCheck(coder, listCatDog, resCatDog, 9);
+  printf ("  \"%s\"", "[\"cat\" \"dog\"]");
+  rlpCheck(coder, listCatDog, resCatDog, 9);
 
   rlpCoderRelease(coder);
   printf ("\n");
@@ -297,7 +298,7 @@ void runSignatureTests (BREthereumAccount account) {
 #define TEST_TRANS1_ETHER_AMOUNT_UNIT WEI
 #define TEST_TRANS1_DATA ""
 
-#define TEST_TRANS1_RESULT "098504a817c800825208943535353535353535353535353535353535353535880de0b6b3a764000080"  // Leave off: 0xec,  signature { 01 80 80 }
+#define TEST_TRANS1_RESULT "e9098504a817c800825208943535353535353535353535353535353535353535880de0b6b3a764000080"  // Leave off: signature { 01 80 80 }, replace 0xec with 0xe9
 
 void runTransactionTests1 (BREthereumAccount account) {
     BREthereumWallet  wallet = walletCreate(account);
@@ -341,7 +342,10 @@ void runTransactionTests1 (BREthereumAccount account) {
 #define TEST_TRANS2_ETHER_AMOUNT_UNIT WEI
 #define TEST_TRANS2_DATA ""
 
-#define TEST_TRANS2_RESULT "01847735940082520894873feb0644a6fbb9532bb31d1c03d4538aadec308806f05b59d3b2000080"  // Leave off: 0xf86b, signature { 01 80 80 }
+#define TEST_TRANS2_RESULT_SIGNED   "f86b01847735940082520894873feb0644a6fbb9532bb31d1c03d4538aadec308806f05b59d3b200008026a030013044b571726723302bcf8dfad8765cf676db0844277a6f8cf63d04894008a069edd285604fdf010d96b8b7d9c547f9599b8ac51c50b8b97076bb9955c0bdde"
+#define TEST_TRANS2_RESULT_UNSIGNED   "e801847735940082520894873feb0644a6fbb9532bb31d1c03d4538aadec308806f05b59d3b2000080"
+//                                     e801847735940082520894873feb0644a6fbb9532bb31d1c03d4538aadec308806f05b59d3b2000080
+
 
 void runTransactionTests2 (BREthereumAccount account) {
 
@@ -360,7 +364,7 @@ void runTransactionTests2 (BREthereumAccount account) {
     char result[2 * dataUnsignedTransaction.bytesCount + 1];
     encodeHex(result, 2 * dataUnsignedTransaction.bytesCount + 1, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
     printf ("  Tx2 Raw (unsigned): %s\n", result);
-    assert (0 == strcmp (result, TEST_TRANS2_RESULT));
+    assert (0 == strcmp (result, TEST_TRANS2_RESULT_UNSIGNED));
 }
 
 void runTransactionTests (BREthereumAccount account) {
@@ -380,7 +384,7 @@ void runAccountTests () {
     printf ("==== Account: %p\n", account);
     runAddressTests(account);
     runSignatureTests(account);
-//    runTransactionTests(account);
+    runTransactionTests(account);
 
     accountFree (account);
     printf ("\n\n");
@@ -398,6 +402,7 @@ void runAccountTests () {
 #define NODE_ETHER_AMOUNT_UNIT  TEST_TRANS2_ETHER_AMOUNT_UNIT
 #define NODE_ETHER_AMOUNT       TEST_TRANS2_ETHER_AMOUNT
 
+//  Result      f86b 01 8477359400 825208 94,873feb0644a6fbb9532bb31d1c03d4538aadec30 8806f05b59d3b20000 80 1b,a053ee5877032551f52da516c83620273312c8ab5a773d482dd60a772bb4a39938a07e187ee2335bfcfa3d20119e0e424d9ef5a81452dadee91ef2daf40081fdc454
 //  Raw:      0xf86b 01 8477359400 825208 94,873feb0644a6fbb9532bb31d1c03d4538aadec30 8806f05b59d3b20000 80 26,a030013044b571726723302bcf8dfad8765cf676db0844277a6f8cf63d04894008a069edd285604fdf010d96b8b7d9c547f9599b8ac51c50b8b97076bb9955c0bdde
 #define NODE_RESULT "01 8477359400 825208 94,873feb0644a6fbb9532bb31d1c03d4538aadec30 8806f05b59d3b20000 80 1b,a0594c2fe40942a9dbd75b9cdd09397016592fc98ae24226f41706c5004c6608d0a072861c46ae62f4aae06eba04e5708b9421d2fcf21fa7f02aed1ff04accd405e3"
 

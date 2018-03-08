@@ -30,85 +30,102 @@
 #include <assert.h>
 #include "BRRlpCoder.h"
 
+/**
+ * An RLP Encoding is comprised of two types: an ITEM and a LIST (of ITEM).
+ *
+ */
 typedef enum {
   CODER_ITEM,
   CODER_LIST
 } BRRlpItemType;
 
+/**
+ * An RLP Context holds encoding results for each of the encoding types, either ITEM or LIST.
+ * The ITEM type holds the bytes directly; the LIST type holds a list/array of ITEMS.
+ *
+ * The upcoming RLP Coder is going to hold multiple Contexts.  The public interface for RLP Item
+ * holds an 'indexer' which is the index to a Context in the Coder.
+ */
 typedef struct {
   BRRlpCoder coder;  // validation
   BRRlpItemType type;
-  union {
-    struct {
-      size_t bytesCount;
-      uint8_t *bytes;
-    } item;
 
-    struct {
-      size_t itemsCount;
-      BRRlpItem *items;
-    } list;
-  } u;
+  // The encoding
+  size_t bytesCount;
+  uint8_t *bytes;
+
+  // If CODER_LIST, then the component items.
+  size_t itemsCount;
+  BRRlpItem *items;
+
 } BRRlpContext;
+
+static BRRlpContext contextEmpty = { NULL, CODER_ITEM, 0, NULL, 0, NULL };
+
+static int
+contextIsEmpty (BRRlpContext context) {
+  return NULL == context.coder;
+}
 
 static void
 contextRelease (BRRlpContext context) {
-  switch (context.type) {
-    case CODER_ITEM:
-      free (context.u.item.bytes);
-      break;
-    case CODER_LIST:
-      free (context.u.list.items);
-      break;
-  }
+  if (NULL != context.bytes) free (context.bytes);
+  if (NULL != context.items) free (context.items);
 }
 
 static BRRlpContext
 createContextItem (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount, int takeBytes) {
-  BRRlpContext context;
+  // assert (bytesCount > 0);
+  BRRlpContext context = contextEmpty;
 
   context.coder = coder;
   context.type = CODER_ITEM;
-  context.u.item.bytesCount = bytesCount;
+  context.bytesCount = bytesCount;
   if (takeBytes)
-    context.u.item.bytes = bytes;
+    context.bytes = bytes;
   else {
     uint8_t *myBytes = malloc (bytesCount);
     memcpy (myBytes, bytes, bytesCount);
-    context.u.item.bytes = myBytes;
+    context.bytes = myBytes;
   }
   return context;
 }
 
 static BRRlpContext
-createContextList (BRRlpCoder coder, BRRlpItem *items, size_t itemsCount) {
-  BRRlpContext context;
-
-  context.coder = coder;
+createContextList (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount, int takeBytes, BRRlpItem *items, size_t itemsCount) {
+  BRRlpContext context = createContextItem(coder, bytes, bytesCount, takeBytes);
   context.type = CODER_LIST;
+  context.itemsCount = itemsCount;
 
-  context.u.list.items = calloc (itemsCount, sizeof (BRRlpItem));
-  context.u.list.itemsCount = itemsCount;
+  context.items = calloc (itemsCount, sizeof (BRRlpItem));
   for (int i = 0; i < itemsCount; i++)
-    context.u.list.items[i] = items[i];
+    context.items[i] = items[i];
 
   return context;
 }
 
+/**
+ * Return a new BRRlpContext by appending the two proviedd contexts.  Both provided contexts
+ * must be for CODER_ITEM (othewise an 'assert' is raised); the appending is performed by simply
+ * concatenating the two context's byte arrays.
+ *
+ * If release is TRUE, then both the provided contexts are released; thereby freeing their memory.
+ *
+ */
 static BRRlpContext
 createContextItemAppend (BRRlpCoder coder, BRRlpContext context1, BRRlpContext context2, int release) {
   assert (CODER_ITEM == context1.type && CODER_ITEM == context2.type);
   assert (coder == context1.coder     && coder == context2.coder);
 
-  BRRlpContext context;
+  BRRlpContext context = contextEmpty;
 
   context.coder = coder;
   context.type = CODER_ITEM;
 
-  context.u.item.bytesCount = context1.u.item.bytesCount + context2.u.item.bytesCount;
-  context.u.item.bytes = malloc (context.u.item.bytesCount);
-  memcpy (&context.u.item.bytes[0], context1.u.item.bytes, context1.u.item.bytesCount);
-  memcpy (&context.u.item.bytes[context1.u.item.bytesCount], context2.u.item.bytes, context2.u.item.bytesCount);
+  context.bytesCount = context1.bytesCount + context2.bytesCount;
+  context.bytes = malloc (context.bytesCount);
+  memcpy (&context.bytes[0], context1.bytes, context1.bytesCount);
+  memcpy (&context.bytes[context1.bytesCount], context2.bytes, context2.bytesCount);
 
   if (release) {
     contextRelease(context1);
@@ -118,18 +135,17 @@ createContextItemAppend (BRRlpCoder coder, BRRlpContext context1, BRRlpContext c
   return context;
 }
 
-
-
-//
-// Coder
-//
-#define CODER_DEFAULT_CONTEXTS 10
-
+/**
+ * And RLP Coder holds Contexts; any held Context can be encode into an array of bytes (uint8_t)
+ * using coderContextFillData() or the public funtion rlpGetData().
+ */
 struct BRRlpCoderRecord {
   BRRlpContext *contexts;
   size_t contextsCount;
   size_t contextsAllocated;
 };
+
+#define CODER_DEFAULT_CONTEXTS 10
 
 extern BRRlpCoder
 rlpCoderCreate (void) {
@@ -142,9 +158,11 @@ rlpCoderCreate (void) {
   return coder;
 }
 
-extern void
-rlpCoderRelease (BRRlpCoder coder) {
-  // for each context; release
+static void
+coderRelease (BRRlpCoder coder) {
+  for (int i = 0; i < coder->contextsCount; i++) {
+    contextRelease(coder->contexts[i]);
+  }
   free (coder->contexts);
   free (coder);
 }
@@ -154,16 +172,21 @@ coderIsValidItem (BRRlpCoder coder, BRRlpItem item) {
   return item.indexer < coder->contextsCount && item.identifier == coder;
 }
 
+/**
+ * Return the RLP Context corresponding to the provided RLP Item; if `item` is invalid, then
+ * an empty context is returned.
+ */
 static BRRlpContext
 coderLookupContext (BRRlpCoder coder, BRRlpItem item) {
-  // TODO: Fix-aroo
-  BRRlpContext nullContext;
-  memset (&nullContext, 0, sizeof (BRRlpContext));
   return (coderIsValidItem(coder, item)
           ? coder->contexts[item.indexer]
-          : nullContext);
+          : contextEmpty);
 }
 
+/**
+ * Add `context` to `coder` and return the corresponding RLP Item.  Extends coder's context
+ * array if required.
+ */
 static BRRlpItem
 coderAddContext (BRRlpCoder coder, BRRlpContext context) {
   if (coder->contextsCount + 1 >= coder->contextsAllocated) {
@@ -181,220 +204,177 @@ coderAddContext (BRRlpCoder coder, BRRlpContext context) {
   }
 }
 
-//
-// Contexts
-//
+// The largest number supported for encoding is a UInt256 - which is representable as 32 bytes.
+#define CODER_NUMBER_BYTES_LIMIT    (256/8)
 
-// Return the index of the first non-zero byte; if all bytes are zero, bytesCount is returned
+/**
+ * Return the index of the first non-zero byte; if all bytes are zero, bytesCount is returned
+ */
 static int
-rlpNonZeroIndex (uint8_t *bytes, size_t bytesCount) {
+coderNonZeroIndex (uint8_t *bytes, size_t bytesCount) {
   for (int i = 0; i < bytesCount; i++)
     if (bytes[i] != 0) return i;
   return (int) bytesCount;
 }
 
+/**
+ * Fill `target` with `source` converted to BIG_ENDIAN.
+ *
+ * Note: target and source must not overlap.
+ */
 static void
-rlpAsBigEndian (uint8_t *bytes, size_t bytesCount) {
+coderConvertToBigEndian (uint8_t *target, uint8_t *source, size_t count) {
+  assert (target != source);  // common overlap case, but wholely insufficient.
+  for (int i = 0; i < count; i++) {
 #if BYTE_ORDER == LITTLE_ENDIAN
-  for (int i = 0; i < bytesCount/2; i++) {
-    uint8_t tmp = bytes[i];
-    bytes[i] = bytes[bytesCount - 1 - i];
-    bytes[bytesCount - 1 - i] = tmp;
-  }
+    target[i] = source[count - 1 - i];
+#else
+    target[i] = source[i]
 #endif
+  }
+}
+
+static void
+coderConvertToBigEndianAndNormalize (uint8_t *target, uint8_t *source, size_t length, size_t *targetIndex, size_t *targetCount) {
+  assert (length <= CODER_NUMBER_BYTES_LIMIT);
+
+  coderConvertToBigEndian (target, source, length);
+
+  *targetIndex = coderNonZeroIndex(target, length);
+  *targetCount = length - *targetIndex;
+
+  if (0 == *targetCount) {
+    *targetCount = 1;
+    *targetIndex = 0;
+  }
 }
 
 static BRRlpContext
-coderContextItemNumber (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount, uint8_t baseline, uint8_t limit) {
-
-  // TODO: Fix this tortured logic.
-  uint8_t valueBytes [bytesCount];
-  memcpy(valueBytes, bytes, bytesCount);
-  // Ensure ValueBytes is big endian.
-  rlpAsBigEndian(valueBytes, bytesCount);
-
-  // Find the first non-zero byte in `value`
-  int nonZeroIndex = rlpNonZeroIndex(valueBytes, bytesCount);
-  size_t nonZeroBytesCount = bytesCount - nonZeroIndex;
-
-  // All zeros.
-  if (nonZeroIndex == bytesCount) {
-    nonZeroBytesCount = 1;
-    nonZeroIndex = 0;
+coderEncodeLength (BRRlpCoder coder, uint64_t length, uint8_t baseline) {
+  // If the length is small, simply encode a single byte as (baseline + length)
+  if (length < 56) {
+    uint8_t encoding = baseline + length;
+    return createContextItem (coder, &encoding, 1, 0);
   }
-
-  if (nonZeroBytesCount == 1 && valueBytes[nonZeroIndex] < limit) {
-    return createContextItem(coder, &valueBytes[nonZeroIndex], 1, 0);
-  }
+  // Otherwise, encode the length as bytes.
   else {
-    uint8_t rlpBytes [1 + nonZeroBytesCount];
-    rlpBytes[0] = (uint8_t) (baseline + nonZeroBytesCount);
-    memcpy (&rlpBytes[1], &valueBytes[nonZeroIndex], (size_t) nonZeroBytesCount);
-    return createContextItem (coder, rlpBytes, 1 + nonZeroBytesCount, 0);
+    size_t lengthSize = sizeof (uint64_t);
+
+    uint8_t bytes [lengthSize]; // big_endian representation of the bytes in 'length'
+    size_t bytesIndex;          // Index of the first non-zero byte
+    size_t bytesCount;          // The number of bytes to encode (beyond index)
+
+    coderConvertToBigEndianAndNormalize (bytes, (uint8_t *) &length, lengthSize, &bytesIndex, &bytesCount);
+
+    // The encoding a a header byte with the bytesCount and then the big_endian bytes themselves.
+    uint8_t encoding [1 + bytesCount];
+    encoding[0] = baseline + 55 + bytesCount;
+    memcpy (&encoding[1], &bytes[bytesIndex], bytesCount);
+    return createContextItem(coder, encoding, 1 + bytesCount, 0);
   }
 }
 
 static BRRlpContext
-coderContextItemUInt64 (BRRlpCoder coder, uint64_t value) {
-  return coderContextItemNumber(coder, (uint8_t *) &value, sizeof(value), 0x80, 0x80);
-}
-
-static BRRlpContext
-coderContextItemUInt256 (BRRlpCoder coder, UInt256 value) {
-  return coderContextItemNumber(coder, (uint8_t *) &value, sizeof(value), 0x80, 0x80);
-}
-
-static BRRlpContext
-coderContextItemBytes(BRRlpCoder coder, uint8_t *bytes, size_t bytesCount) {
+coderEncodeBytes(BRRlpCoder coder, uint8_t *bytes, size_t bytesCount) {
+  // Encode a single byte directly
   if (1 == bytesCount && bytes[0] < 0x80) {
-    uint8_t rlpBytes[1];
-    rlpBytes[0] = bytes[0];
-    return createContextItem(coder, rlpBytes, 1, 0);
+    return createContextItem(coder, bytes, 1, 0);
   }
-  else if (bytesCount < 56) {
-    uint8_t rlpBytes [1 + bytesCount];
-    rlpBytes[0] = (uint8_t) (0x80 + bytesCount);
-    memcpy (&rlpBytes[1], bytes, bytesCount);
-    return createContextItem(coder, rlpBytes, 1 + bytesCount, 0);
-  }
+
+  // otherwise, encode the length and then the bytes themselves
   else {
     return createContextItemAppend(coder,
-                                   coderContextItemNumber(coder, (uint8_t *) &bytesCount, sizeof(bytesCount), 0xb7, 56),
+                                   coderEncodeLength(coder, bytesCount, 0x80),
                                    createContextItem(coder, bytes, bytesCount, 0),
                                    1);
   }
 }
 
 static BRRlpContext
-coderContextList1 (BRRlpCoder coder, BRRlpItem item1) {
-  return createContextList(coder, &item1, 1);
+coderEncodeNumber (BRRlpCoder coder, uint8_t *source, size_t sourceCount) {
+  // Encode a number by converting the number to a big_endian representation and then simply
+  // encoding those bytes.
+  uint8_t bytes [sourceCount]; // big_endian representation of the bytes in 'length'
+  size_t bytesIndex;           // Index of the first non-zero byte
+  size_t bytesCount;           // The number of bytes to encode
+
+  coderConvertToBigEndianAndNormalize (bytes, source, sourceCount, &bytesIndex, &bytesCount);
+
+  return coderEncodeBytes(coder, &bytes[bytesIndex], bytesCount);
 }
 
 static BRRlpContext
-coderContextList2 (BRRlpCoder coder, BRRlpItem item1, BRRlpItem item2) {
-  BRRlpItem items[2];
-
-  items[0] = item1;
-  items[1] = item2;
-
-  return createContextList(coder, items, 2);
+coderEncodeUInt64 (BRRlpCoder coder, uint64_t value) {
+  return coderEncodeNumber(coder, (uint8_t *) &value, sizeof(value));
 }
 
-#define COMPUTE_SIZE_FOR_LIST_HEADER 4;
+static BRRlpContext
+coderEncodeUInt256 (BRRlpCoder coder, UInt256 value) {
+  return coderEncodeNumber(coder, (uint8_t *) &value, sizeof(value));
+}
 
-static size_t
-codeContextHeaderCount (BRRlpCoder coder, size_t bytesCount) {
-  if (bytesCount < 56)
-    return 1;
-  else {
-    size_t count = 0;
-    while (bytesCount > 0) {
-      count += 1;
-      bytesCount >>= 8;
-    }
-    return 1 + count;
+static BRRlpContext
+coderEncodeList (BRRlpCoder coder, BRRlpItem *items, size_t itemsCount) {
+  // Validate the items
+  for (int i = 0; i < itemsCount; i++) {
+    assert (coderIsValidItem(coder, items[i]));
   }
-}
 
-static void
-codeContextByteCount (BRRlpCoder coder, BRRlpItem item, size_t *bytesCount, size_t *headerCount) {
-  BRRlpContext context = coderLookupContext(coder, item);
-  switch (context.type) {
-    case CODER_ITEM:
-      *bytesCount = context.u.item.bytesCount;
-      *headerCount = 0;
-      break;
+  // Eventually fill these with concatenated item encodings.
+  size_t bytesCount = 0;
+  uint8_t *bytes = NULL;
 
-    case CODER_LIST: {
-      size_t itemBytesCount;
-      size_t itemHeaderCount;
+  for (int i = 0; i < itemsCount; i++)
+    bytesCount += coderLookupContext(coder, items[i]).bytesCount;
 
-      *bytesCount = 0;
-      for (int i = 0; i < context.u.list.itemsCount; i++) {
-        codeContextByteCount(coder, context.u.list.items[i], &itemBytesCount, &itemHeaderCount);
-        *bytesCount += itemBytesCount + itemHeaderCount;
-      }
+  bytes = malloc (bytesCount);
 
-      *headerCount = codeContextHeaderCount(coder, *bytesCount);
-      break;
+  {
+    size_t bytesIndex = 0;
+    for (int i = 0; i < itemsCount; i++) {
+      BRRlpContext itemContext = coderLookupContext(coder, items[i]);
+      memcpy (&bytes[bytesIndex], itemContext.bytes, itemContext.bytesCount);
+      bytesIndex += itemContext.bytesCount;
     }
   }
+
+  BRRlpContext encodedBytesContext = (0 == bytesCount
+                                      ? coderEncodeLength(coder, bytesCount, 0xc0)
+                                      : createContextItemAppend(coder,
+                                                                coderEncodeLength(coder, bytesCount, 0xc0),
+                                                                createContextItem(coder, bytes, bytesCount, 1),
+                                                                1));
+
+  return createContextList(coder,
+                           encodedBytesContext.bytes,
+                           encodedBytesContext.bytesCount,
+                           1,
+                           items,
+                           itemsCount);
 }
 
-static void
-coderContextFillData (BRRlpCoder coder, BRRlpItem item, uint8_t **bytes, size_t *bytesCount) {
-  assert (coderIsValidItem(coder, item));
-  assert (NULL != bytes && NULL != bytesCount);
-
-  BRRlpContext context = coderLookupContext(coder, item);
-  switch (context.type) {
-    case CODER_ITEM:
-      *bytesCount = context.u.item.bytesCount;
-      *bytes = malloc (*bytesCount);
-      memcpy (*bytes, context.u.item.bytes, *bytesCount);
-      break;
-
-    case CODER_LIST: {
-      size_t itemBytesCount;
-      size_t itemHeaderCount;
-
-      codeContextByteCount(coder, item, &itemBytesCount, &itemHeaderCount);
-
-      *bytesCount = itemBytesCount + itemHeaderCount;
-      *bytes = malloc (*bytesCount);
-
-      // Encode the header
-      BRRlpContext headerContext  =
-        coderContextItemNumber(coder, (uint8_t *) &bytesCount, sizeof(size_t), 0xc0, 56);
-      memcpy (bytes, headerContext.u.item.bytes, headerContext.u.item.bytesCount);
-      contextRelease(headerContext);
-
-      //      (*bytes)[0] = 0xc0 + (itemHeaderCount - 1);
-      //      memset (&(*bytes)[1], 0xee, itemHeaderCount -1);
-
-      // We could just recurse down with coderContextFillData; however, for a non-LIST
-      // we can just copy bytes into place directly.
-      size_t bytesIndex = itemHeaderCount;
-      for (int i = 0; i < context.u.list.itemsCount; i++) {
-        BRRlpContext nextContext = coderLookupContext(coder, context.u.list.items[i]);
-        switch (nextContext.type) {
-          case CODER_ITEM:
-            memcpy (&(*bytes)[bytesIndex], nextContext.u.item.bytes, nextContext.u.item.bytesCount);
-            bytesIndex += nextContext.u.item.bytesCount;
-            break;
-          case CODER_LIST: {
-            uint8_t *itemBytes;
-            size_t   itemBytesCount;
-            coderContextFillData(coder, nextContext.u.list.items[i], &itemBytes, &itemBytesCount);
-            memcpy(&(*bytes)[bytesIndex], itemBytes, itemBytesCount);
-            bytesIndex += itemBytesCount;
-            free (itemBytes);
-            break;
-          } // case CODER_LIST
-        } // switch nextContext.type
-      } // for items
-      break;
-    }
-  }
-}
 
 //
 // Public Interface
 //
+extern void
+rlpCoderRelease (BRRlpCoder coder) {
+  coderRelease (coder);
+}
+
 extern BRRlpItem
 rlpEncodeItemUInt64(BRRlpCoder coder, uint64_t value) {
-  return coderAddContext(coder, coderContextItemUInt64(coder, value));
+  return coderAddContext(coder, coderEncodeUInt64(coder, value));
 }
 
 extern BRRlpItem
 rlpEncodeItemUInt256(BRRlpCoder coder, UInt256 value) {
-  return coderAddContext(coder, coderContextItemUInt256(coder, value));
+  return coderAddContext(coder, coderEncodeUInt256(coder, value));
 }
-
 
 extern BRRlpItem
 rlpEncodeItemBytes(BRRlpCoder coder, uint8_t *bytes, size_t bytesCount) {
-  return coderAddContext(coder, coderContextItemBytes(coder, bytes, bytesCount));
+  return coderAddContext(coder, coderEncodeBytes(coder, bytes, bytesCount));
 }
 
 extern BRRlpItem
@@ -404,16 +384,26 @@ rlpEncodeItemString (BRRlpCoder coder, char *string) {
 }
 
 extern BRRlpItem
-rlpEncodeList1 (BRRlpCoder coder, BRRlpItem item1) {
-  assert (coderIsValidItem(coder, item1));
-  return coderAddContext(coder, coderContextList1(coder, item1));
+rlpEncodeList1 (BRRlpCoder coder, BRRlpItem item) {
+  assert (coderIsValidItem(coder, item));
+  BRRlpItem items[1];
+
+  items[0] = item;
+
+  return coderAddContext(coder, coderEncodeList(coder, items, 1));
 }
 
 extern BRRlpItem
 rlpEncodeList2 (BRRlpCoder coder, BRRlpItem item1, BRRlpItem item2) {
   assert (coderIsValidItem(coder, item1));
   assert (coderIsValidItem(coder, item1));
-  return coderAddContext(coder, coderContextList2(coder, item1, item2));
+
+  BRRlpItem items[2];
+
+  items[0] = item1;
+  items[1] = item2;
+
+  return coderAddContext(coder, coderEncodeList(coder, items, 2));
 }
 
 extern BRRlpItem
@@ -426,19 +416,23 @@ rlpEncodeList (BRRlpCoder coder, size_t count, ...) {
     items[i] = va_arg (args, BRRlpItem);
   va_end(args);
 
-  return coderAddContext(coder, createContextList(coder, items, count));
+  return coderAddContext(coder, coderEncodeList(coder, items, count));
 }
 
 extern BRRlpItem
 rlpEncodeListItems (BRRlpCoder coder, BRRlpItem *items, size_t itemsCount) {
-  return coderAddContext(coder, createContextList(coder, items, itemsCount));
+  return coderAddContext(coder, coderEncodeList(coder, items, itemsCount));
 }
 
-// Hold onto BRRlpItem 'forever'... then try to use... will fail because 'coder'
-// will not have 'context'
 extern void
 rlpGetData (BRRlpCoder coder, BRRlpItem item, uint8_t **bytes, size_t *bytesCount) {
-  coderContextFillData(coder, item, bytes, bytesCount);
+  assert (coderIsValidItem(coder, item));
+  assert (NULL != bytes && NULL != bytesCount);
+
+  BRRlpContext context = coderLookupContext(coder, item);
+  *bytesCount = context.bytesCount;
+  *bytes = malloc (*bytesCount);
+  memcpy (*bytes, context.bytes, context.bytesCount);
 }
 
 extern BRRlpData
