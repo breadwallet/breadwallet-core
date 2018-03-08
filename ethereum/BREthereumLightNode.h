@@ -96,6 +96,10 @@ lightNodeCreateWallet (BREthereumLightNode node,
 extern uint64_t
 lightNodeGetWalletGasLimit (BREthereumLightNode node,
                             BREthereumLightNodeWalletId wallet);
+extern void
+lightNodeSetWalletGasLimit (BREthereumLightNode node,
+                            BREthereumLightNodeWalletId wallet,
+                            uint64_t gasLimit);
 
 extern void
 lightNodeSetWalletGasPrice (BREthereumLightNode node,

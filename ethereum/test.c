@@ -160,7 +160,6 @@ void runAddressTests (BREthereumAccount account) {
     printf ("        String: %p\n", address);
 
     printf ("      PaperKey: %p, %s\n", TEST_PAPER_KEY, TEST_PAPER_KEY);
-    printf ("\n");
 
     const char *publicKeyString = addressPublicKeyAsString (address);
     printf ("    Public Key: %p, %s\n", publicKeyString, publicKeyString);
@@ -402,54 +401,75 @@ void runAccountTests () {
 #define NODE_ETHER_AMOUNT_UNIT  TEST_TRANS2_ETHER_AMOUNT_UNIT
 #define NODE_ETHER_AMOUNT       TEST_TRANS2_ETHER_AMOUNT
 
+#define GAS_PRICE_20_GWEI       2000000000
+#define GAS_PRICE_10_GWEI       1000000000
+#define GAS_PRICE_5_GWEI         500000000
+
+#define GAS_LIMIT_DEFAULT 21000
+
 //  Result      f86b 01 8477359400 825208 94,873feb0644a6fbb9532bb31d1c03d4538aadec30 8806f05b59d3b20000 80 1b,a053ee5877032551f52da516c83620273312c8ab5a773d482dd60a772bb4a39938a07e187ee2335bfcfa3d20119e0e424d9ef5a81452dadee91ef2daf40081fdc454
 //  Raw:      0xf86b 01 8477359400 825208 94,873feb0644a6fbb9532bb31d1c03d4538aadec30 8806f05b59d3b20000 80 26,a030013044b571726723302bcf8dfad8765cf676db0844277a6f8cf63d04894008a069edd285604fdf010d96b8b7d9c547f9599b8ac51c50b8b97076bb9955c0bdde
 #define NODE_RESULT "01 8477359400 825208 94,873feb0644a6fbb9532bb31d1c03d4538aadec30 8806f05b59d3b20000 80 1b,a0594c2fe40942a9dbd75b9cdd09397016592fc98ae24226f41706c5004c6608d0a072861c46ae62f4aae06eba04e5708b9421d2fcf21fa7f02aed1ff04accd405e3"
 
-void runLightNodeTests () {
-    printf ("==== Light Node\n");
 
-    BREthereumLightNodeConfiguration configuration;
+void prepareTransaction (const char *paperKey, const char *recvAddr, const uint64_t gasPrice, const uint64_t gasLimit, const uint64_t amount) {
+  BREthereumLightNodeConfiguration configuration;
 
-    BREthereumLightNode node = createLightNode(configuration);
-    BREthereumLightNodeAccountId account = lightNodeCreateAccount(node, NODE_PAPER_KEY);
+  BREthereumLightNode node = createLightNode(configuration);
+  BREthereumLightNodeAccountId account = lightNodeCreateAccount(node, paperKey);
 
-    printf ("  Node + Account\n");
+  // A wallet holding Ether
+  BREthereumLightNodeWalletId wallet = lightNodeCreateWallet(node, account);
 
-    // A wallet holding Ether
-    BREthereumLightNodeWalletId wallet = lightNodeCreateWallet(node, account);
+  lightNodeSetWalletGasPrice(node, wallet, WEI, gasPrice);
+  lightNodeSetWalletGasLimit(node, wallet, gasLimit);
 
-    printf ("  Wallet\n");
+  BREthereumLightNodeTransactionId tx1 =
+  lightNodeWalletCreateTransaction
+  (node,
+   wallet,
+   recvAddr,
+   WEI,
+   amount);
 
-  lightNodeSetWalletGasPrice(node, wallet,
-                             TEST_TRANS2_GAS_PRICE_UNIT,
-                             TEST_TRANS2_GAS_PRICE_VALUE);
-  
-    BREthereumLightNodeTransactionId tx1 =
-            lightNodeWalletCreateTransaction
-                    (node,
-                     wallet,
-                     NODE_RECV_ADDR,
-                     NODE_ETHER_AMOUNT_UNIT,
-                     NODE_ETHER_AMOUNT);
+  lightNodeWalletSignTransaction (node, wallet, tx1, paperKey);
 
-    printf ("  Transaction\n");
+  uint8_t *bytes;
+  size_t   bytesCount;
 
-    lightNodeWalletSignTransaction (node, wallet, tx1, NODE_PAPER_KEY);
+  lightNodeFillTransactionRawData(node, wallet, tx1, &bytes, &bytesCount);
 
-    printf ("    Signed\n");
-
-    uint8_t *bytes;
-    size_t   bytesCount;
-
-    lightNodeFillTransactionRawData(node, wallet, tx1, &bytes, &bytesCount);
-
-    printf ("    Filled Raw\n");
-
-    // USE JSON_RPC to submit {bytes}
+  // USE JSON_RPC to submit {bytes}
   char result[2 * bytesCount + 1];
   encodeHex(result, 2 * bytesCount + 1, bytes, bytesCount);
-  printf ("        Bytes: %s\n", result);
+  printf ("        Raw Transaction: %s\n", result);
+}
+
+void runLightNodeTests () {
+  printf ("==== Light Node\n");
+  prepareTransaction(NODE_PAPER_KEY, NODE_RECV_ADDR, TEST_TRANS2_GAS_PRICE_VALUE, GAS_LIMIT_DEFAULT, NODE_ETHER_AMOUNT);
+}
+
+// Local (PaperKey) -> LocalTest @ 5 GWEI gasPrice @ 21000 gasLimit & 0.0001/2 ETH
+#define ACTUAL_RAW_TX "f86a01841dcd65008252089422583f6c7dae5032f4d72a10b9e9fa977cbfc5f68701c6bf52634000801ca05d27cbd6a84e5d34bb20ce7dade4a21efb4da7507958c17d7f92cfa99a4a9eb6a005fcb9a61e729b3c6b0af3bad307ef06cdf5c5578615fedcc4163a2aa2812260"
+// eth.sendRawTransaction ('0xf86a01841dcd65008252089422583f6c7dae5032f4d72a10b9e9fa977cbfc5f68701c6bf52634000801ca05d27cbd6a84e5d34bb20ce7dade4a21efb4da7507958c17d7f92cfa99a4a9eb6a005fcb9a61e729b3c6b0af3bad307ef06cdf5c5578615fedcc4163a2aa2812260', function (err, hash) { if (!err) console.log(hash); });
+extern void
+reallySend () {
+  char paperKey[1024];
+  char recvAddress[1024];
+
+  fputs("PaperKey: ", stdout);
+  fgets (paperKey, 1024, stdin);
+  paperKey[strlen(paperKey) - 1] = '\0';
+
+  fputs("Address: ", stdout);
+  fgets (recvAddress, 1024, stdin);
+  recvAddress[strlen(recvAddress) - 1] = '\0';
+
+  printf ("PaperKey: '%s'\nAddress: '%s'\n", paperKey, recvAddress);
+
+  // 0.001/2 ETH
+  prepareTransaction(paperKey, recvAddress, GAS_PRICE_5_GWEI, GAS_LIMIT_DEFAULT, 1000000000000000000 / 1000 / 2);
 }
 //
 // All Tests
@@ -461,6 +481,7 @@ runTests (void) {
     runRlpTest();
     runAccountTests();
     runLightNodeTests();
+//    reallySend();
 }
 
 int main(int argc, const char *argv[]) {

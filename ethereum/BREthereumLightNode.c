@@ -116,10 +116,21 @@ lightNodeGetWalletGasLimit (BREthereumLightNode node,
 }
 
 extern void
+lightNodeSetWalletGasLimit (BREthereumLightNode node,
+                            BREthereumLightNodeWalletId walletId,
+                            uint64_t gasLimit) {
+  BREthereumWallet wallet = (BREthereumWallet) walletId;
+
+  walletSetDefaultGasLimit(wallet, gasCreate(gasLimit));
+}
+
+extern void
 lightNodeSetWalletGasPrice (BREthereumLightNode node,
-                            BREthereumLightNodeWalletId wallet,
+                            BREthereumLightNodeWalletId walletId,
                             BREthereumEtherUnit unit,
                             uint64_t value) {
+  BREthereumWallet wallet = (BREthereumWallet) walletId;
+
   walletSetDefaultGasPrice (wallet, gasPriceCreate(etherCreateNumber (value, unit)));
 }
 
