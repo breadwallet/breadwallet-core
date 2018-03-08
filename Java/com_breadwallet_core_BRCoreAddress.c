@@ -37,7 +37,11 @@ Java_com_breadwallet_core_BRCoreAddress_createCoreAddress
     BRAddress *address = (BRAddress *) calloc (1, sizeof (BRAddress));
 
     size_t stringLen = (size_t) (*env)->GetStringLength (env, stringObject);
-    //assert (stringLen <= 36);
+    size_t stringLenMax = sizeof (address->s) - 1;
+
+    // Do not overflow address->s
+    if (stringLen > stringLenMax)
+        stringLen = stringLenMax;
 
     const char *stringChars = (const char *) (*env)->GetStringUTFChars (env, stringObject, 0);
     memcpy(address->s, stringChars, stringLen);

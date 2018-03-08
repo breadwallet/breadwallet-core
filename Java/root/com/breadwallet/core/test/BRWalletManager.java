@@ -278,6 +278,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println("            " + key.address());
 
         addr1 = new BRCoreAddress(key.address());
+        assert (addr1.isValid());
 
         byte[] script = addr1.getPubKeyScript();
 
@@ -293,6 +294,16 @@ public class BRWalletManager extends BRCoreWalletManager {
         asserting (bitcoinAddr1.equals(bitcoinAddr2));
         String bitcoinAddr3 = BRCoreAddress.bcashDecodeBitcoin("bitcoincash:qzfhn2f7dwsfqdf6nlu07rw6c3ssqe9rm5a5y8tgm9");
         assert (null != bitcoinAddr3 && !bitcoinAddr3.isEmpty());
+
+        System.out.println (" Mihail's BCH: " + "bitcoincash:qzc93708k7x0w3gr32thxc5fla38xf8x8vq8h33fva");
+        System.out.println (" Mihail's BTC: " + BRCoreAddress.bcashDecodeBitcoin("bitcoincash:qzc93708k7x0w3gr32thxc5fla38xf8x8vq8h33fva"));
+
+        BRCoreAddress addrX1 = new BRCoreAddress(
+                "bitcoincash:qzc93708k7x0w3gr32thxc5fla38xf8x8vq8h33fva");
+        assert (!addrX1.isValid());
+        BRCoreAddress addrX2 = new BRCoreAddress(
+                BRCoreAddress.bcashDecodeBitcoin("bitcoincash:qzc93708k7x0w3gr32thxc5fla38xf8x8vq8h33fva"));
+        assert (addrX2.isValid());
 
         //
         //
