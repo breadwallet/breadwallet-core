@@ -443,6 +443,13 @@ createRlpDataEmpty (void) {
   return data;
 }
 
+extern void
+rlpDataRelease (BRRlpData data) {
+  if (NULL != data.bytes) free (data.bytes);
+  data.bytesCount = 0;
+  data.bytes = NULL;
+}
+
 //
 //
 //

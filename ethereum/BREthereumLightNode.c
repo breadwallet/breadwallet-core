@@ -213,6 +213,18 @@ lightNodeFillTransactionRawData(BREthereumLightNode node,
     *bytesPtr = (uint8_t *) malloc (*bytesCountPtr);
     memcpy (*bytesPtr, rawTransactionData.bytes, *bytesCountPtr);
 }
+
+extern const char *
+lightNodeGetTransactionRawDataHexEncoded(BREthereumLightNode node,
+                                         BREthereumLightNodeWalletId walletId,
+                                         BREthereumLightNodeTransactionId transactionId,
+                                         const char *prefix) {
+  BREthereumWallet wallet = (BREthereumWallet) walletId;
+  BREthereumTransaction transaction = (BREthereumTransaction) transactionId;
+
+  return walletGetRawTransactionHexEncoded(wallet, transaction, prefix);
+}
+
 #endif
 
 extern const char *

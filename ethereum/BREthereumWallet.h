@@ -129,6 +129,16 @@ walletGetRawTransaction(BREthereumWallet wallet,
                         BREthereumTransaction transaction);
 
 /**
+ * For `transaction`, get the `signed transation data`, encoded in hex with an optional prefix
+ * (typically "0x"), suitable for use in the RPC-JSON Ethereum method 'eth_sendRawTransaction"
+ *
+ */
+extern const char *
+walletGetRawTransactionHexEncoded (BREthereumWallet wallet,
+                                   BREthereumTransaction transaction,
+                                   const char *prefix);
+
+/**
  * Get the wallet's default Gas Limit.
  *
  * @param wallet

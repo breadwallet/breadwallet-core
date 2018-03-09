@@ -225,81 +225,35 @@ walletSignTransaction(BREthereumWallet wallet,
     transactionSign(transaction, wallet->account, signature);
 }
 
-extern BRRlpData // TODO: is this the actual result?
+extern BRRlpData
 walletGetRawTransaction(BREthereumWallet wallet,
                         BREthereumTransaction transaction) {
     return ETHEREUM_BOOLEAN_TRUE == transactionIsSigned(transaction)
            ? transactionEncodeRLP(transaction, TRANSACTION_RLP_SIGNED)
            : createRlpDataEmpty();
 }
-    /*
 
-    signing_data = RLP.encode(self, sedes: UnsignedTransaction)
-    rawhash = Utils.keccak256 signing_data
-    key = PrivateKey.new(key).encode(:bin)
+extern const char *
+walletGetRawTransactionHexEncoded (BREthereumWallet wallet,
+                                   BREthereumTransaction transaction,
+                                   const char *prefix) {
+  BRRlpData data = walletGetRawTransaction (wallet, transaction);
+  char *result;
 
-    vrs = Secp256k1.recoverable_sign rawhash, key
-    self.v = encode_v(vrs[0])
-    self.r = vrs[1]
-    self.s = vrs[2]
+  if (NULL == prefix) prefix = "";
 
-    self.sender = PrivateKey.new(key).to_address
+  if (0 == data.bytesCount)
+    result = (char *) prefix;
+  else {
+    size_t resultLen = strlen(prefix) + 2 * data.bytesCount + 1;
+    result = malloc (resultLen);
+    strcpy (result, prefix);
+    encodeHex(&result[strlen(prefix)], 2 * data.bytesCount + 1, data.bytes, data.bytesCount);
+  }
 
-     // SEDES
-     Transaction:
-     fields = [
-        ('nonce', big_endian_int),
-        ('gasprice', big_endian_int),
-        ('startgas', big_endian_int),
-        ('to', utils.address),
-        ('value', big_endian_int),
-        ('data', binary),
-        ('v', big_endian_int),
-        ('r', big_endian_int),
-        ('s', big_endian_int)]
-     UnsignedTransaction:
-        Transaction.exclude(['v', 'r', 's'])
-
-     def sign(self, key, network_id=None):
-        """Sign this transaction with a private key.
-        A potentially already existing signature would be overridden.
-        """
-        if network_id is None:
-            rawhash = utils.sha3(rlp.encode(self, UnsignedTransaction))
-        else:
-            assert 1 <= network_id < 2**63 - 18
-            rlpdata = rlp.encode(rlp.infer_sedes(self).serialize(self)[
-                                 :-3] + [network_id, b'', b''])
-            rawhash = utils.sha3(rlpdata)
-
-        key = normalize_key(key)
-
-        self.v, self.r, self.s = ecsign(rawhash, key)
-        if network_id is not None:
-            self.v += 8 + network_id * 2
-
-        self._sender = utils.privtoaddr(key)
-        return self
-
-     def ecsign(rawhash, key):
-        if coincurve and hasattr(coincurve, 'PrivateKey'):
-          pk = coincurve.PrivateKey(key)
-         signature = pk.sign_recoverable(rawhash, hasher=None)
-         v = safe_ord(signature[64]) + 27
-          r = big_endian_to_int(signature[0:32])
-          s = big_endian_to_int(signature[32:64])
-        else:
-          v, r, s = ecdsa_raw_sign(rawhash, key)
-     return v, r, s
-
-     def sha3(seed):
-         return sha3_256(to_string(seed))
-
-     def sha3_256(x):
-        return keccak.new(digest_bits=256, data=x).digest()
-
-
-     */
+  rlpDataRelease(data);
+  return result;
+}
 
 extern BREthereumGas
 walletGetDefaultGasLimit(BREthereumWallet wallet) {

@@ -84,6 +84,9 @@ typedef struct {
 
 extern BRRlpData
 createRlpDataEmpty (void);
+
+extern void
+rlpDataRelease (BRRlpData data);
   
 //
 // Support

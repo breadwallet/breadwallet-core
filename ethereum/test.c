@@ -411,38 +411,34 @@ void runAccountTests () {
 //  Raw:      0xf86b 01 8477359400 825208 94,873feb0644a6fbb9532bb31d1c03d4538aadec30 8806f05b59d3b20000 80 26,a030013044b571726723302bcf8dfad8765cf676db0844277a6f8cf63d04894008a069edd285604fdf010d96b8b7d9c547f9599b8ac51c50b8b97076bb9955c0bdde
 #define NODE_RESULT "01 8477359400 825208 94,873feb0644a6fbb9532bb31d1c03d4538aadec30 8806f05b59d3b20000 80 1b,a0594c2fe40942a9dbd75b9cdd09397016592fc98ae24226f41706c5004c6608d0a072861c46ae62f4aae06eba04e5708b9421d2fcf21fa7f02aed1ff04accd405e3"
 
-
 void prepareTransaction (const char *paperKey, const char *recvAddr, const uint64_t gasPrice, const uint64_t gasLimit, const uint64_t amount) {
-  BREthereumLightNodeConfiguration configuration;
 
+  // START - One Time Code Block
+  BREthereumLightNodeConfiguration configuration;
   BREthereumLightNode node = createLightNode(configuration);
   BREthereumLightNodeAccountId account = lightNodeCreateAccount(node, paperKey);
-
   // A wallet holding Ether
   BREthereumLightNodeWalletId wallet = lightNodeCreateWallet(node, account);
+  // END - One Time Code Block
 
+  // Optional - will provide listNodeWalletCreateTransactionDetailed.
   lightNodeSetWalletGasPrice(node, wallet, WEI, gasPrice);
   lightNodeSetWalletGasLimit(node, wallet, gasLimit);
 
   BREthereumLightNodeTransactionId tx1 =
-  lightNodeWalletCreateTransaction
-  (node,
-   wallet,
-   recvAddr,
-   WEI,
-   amount);
+    lightNodeWalletCreateTransaction
+      (node,
+       wallet,
+       recvAddr,
+       WEI,
+       amount);
 
   lightNodeWalletSignTransaction (node, wallet, tx1, paperKey);
 
-  uint8_t *bytes;
-  size_t   bytesCount;
+  const char *rawTransactionHexEncoded =
+    lightNodeGetTransactionRawDataHexEncoded(node, wallet, tx1, "Ox");
 
-  lightNodeFillTransactionRawData(node, wallet, tx1, &bytes, &bytesCount);
-
-  // USE JSON_RPC to submit {bytes}
-  char result[2 * bytesCount + 1];
-  encodeHex(result, 2 * bytesCount + 1, bytes, bytesCount);
-  printf ("        Raw Transaction: %s\n", result);
+  printf ("        Raw Transaction: %s\n", rawTransactionHexEncoded);
 }
 
 void runLightNodeTests () {

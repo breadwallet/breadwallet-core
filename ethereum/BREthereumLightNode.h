@@ -23,13 +23,13 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#ifndef BR_Ethereum_Light_Node_H
+#define BR_Ethereum_Light_Node_H
+
 #define ETHEREUM_LIGHT_NODE_USE_JSON_RPC  1
 
 #include <stdint.h>
 #include "BREthereumEther.h"
-
-#ifndef BR_Ethereum_Light_Node_H
-#define BR_Ethereum_Light_Node_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -162,6 +162,12 @@ lightNodeFillTransactionRawData(BREthereumLightNode node,
                                 BREthereumLightNodeWalletId wallet,
                                 BREthereumLightNodeTransactionId transaction,
                                 uint8_t **bytesPtr, size_t *bytesCountPtr);
+
+extern const char *
+lightNodeGetTransactionRawDataHexEncoded(BREthereumLightNode node,
+                                         BREthereumLightNodeWalletId walletId,
+                                         BREthereumLightNodeTransactionId transactionId,
+                                         const char *prefix);
 #endif
 
 extern const char *
