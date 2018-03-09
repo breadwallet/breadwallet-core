@@ -278,7 +278,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println("            " + key.address());
 
         addr1 = new BRCoreAddress(key.address());
-        assert (addr1.isValid());
+        asserting (addr1.isValid());
 
         byte[] script = addr1.getPubKeyScript();
 
@@ -293,17 +293,17 @@ public class BRWalletManager extends BRCoreWalletManager {
         String bitcoinAddr2 = BRCoreAddress.bcashDecodeBitcoin(bitcashAddr);
         asserting (bitcoinAddr1.equals(bitcoinAddr2));
         String bitcoinAddr3 = BRCoreAddress.bcashDecodeBitcoin("bitcoincash:qzfhn2f7dwsfqdf6nlu07rw6c3ssqe9rm5a5y8tgm9");
-        assert (null != bitcoinAddr3 && !bitcoinAddr3.isEmpty());
+        asserting (null != bitcoinAddr3 && !bitcoinAddr3.isEmpty());
 
         System.out.println (" Mihail's BCH: " + "bitcoincash:qzc93708k7x0w3gr32thxc5fla38xf8x8vq8h33fva");
         System.out.println (" Mihail's BTC: " + BRCoreAddress.bcashDecodeBitcoin("bitcoincash:qzc93708k7x0w3gr32thxc5fla38xf8x8vq8h33fva"));
 
         BRCoreAddress addrX1 = new BRCoreAddress(
                 "bitcoincash:qzc93708k7x0w3gr32thxc5fla38xf8x8vq8h33fva");
-        assert (!addrX1.isValid());
+        asserting (!addrX1.isValid());
         BRCoreAddress addrX2 = new BRCoreAddress(
                 BRCoreAddress.bcashDecodeBitcoin("bitcoincash:qzc93708k7x0w3gr32thxc5fla38xf8x8vq8h33fva"));
-        assert (addrX2.isValid());
+        asserting (addrX2.isValid());
 
         //
         //
@@ -337,8 +337,8 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println("               PaperKey: " + Arrays.toString(paperKeyBytes));
         System.out.println("               PaperKey: " + new String(paperKeyBytes));
         System.out.println("               PaperKey: " + Arrays.toString(new String(paperKeyBytes).getBytes()));
-        assert (Arrays.equals(paperKeyBytes, new String (paperKeyBytes).getBytes()));
-        assert (0 != paperKeyBytes[paperKeyBytes.length - 1]);
+        asserting (Arrays.equals(paperKeyBytes, new String (paperKeyBytes).getBytes()));
+        asserting (0 != paperKeyBytes[paperKeyBytes.length - 1]);
         //
         //
         //
@@ -473,7 +473,7 @@ public class BRWalletManager extends BRCoreWalletManager {
                 && transaction.getBlockHeight() == transactionFromSerialized.getBlockHeight());
 
         System.out.println("            Signed");
-        transaction.sign(k);
+        transaction.sign(k, 0x00);
         asserting (transaction.isSigned());
 
         BRCoreAddress sigAddress;
@@ -510,7 +510,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         transaction.addOutput(
                 new BRCoreTransactionOutput(4900000000L, script));
 
-        transaction.sign(k);
+        transaction.sign(k, 0x00);
         asserting (transaction.isSigned());
         BRCoreTransactionInput inputs[] = transaction.getInputs();
         sigAddress = BRCoreAddress.fromScriptSignature(
@@ -521,9 +521,9 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println("        Set Output Amount:");
 
         BRCoreTransactionOutput out1 = new BRCoreTransactionOutput(4900000000L, script);
-        assert (4900000000L == out1.getAmount());
+        asserting (4900000000L == out1.getAmount());
         out1.setAmount(100);
-        assert (100 == out1.getAmount());
+        asserting (100 == out1.getAmount());
 
     }
 
@@ -663,9 +663,8 @@ public class BRWalletManager extends BRCoreWalletManager {
                 new BRCoreTransactionInput(inHash, 0, 1, inScript, new byte[]{}, 4294967295L));
         tx.addOutput(
                 new BRCoreTransactionOutput(SATOSHIS, outScript));
-//        tx.sign(k);
         w.signTransaction(tx, 0x00, phrase);
-        assert (tx.isSigned());
+        asserting (tx.isSigned());
         System.out.println("            Signed");
         w.registerTransaction(tx);
 
@@ -683,7 +682,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         tx.addOutput(
                 new BRCoreTransactionOutput(SATOSHIS, outScript));
         tx.setLockTime(1000);
-        tx.sign(k);
+        tx.sign(k, 0x00);
         asserting(tx.isSigned());
         asserting(w.transactionIsPending(tx));
 
@@ -707,7 +706,7 @@ public class BRWalletManager extends BRCoreWalletManager {
                 new BRCoreTransactionInput(inHash, 0, 1, inScript, new byte[] {}, 4294967295L));
         tx.addOutput(
                 new BRCoreTransactionOutput(SATOSHIS, outScript));
-        tx.sign(k);
+        tx.sign(k, 0x00);
         tx.setTimestamp (1);
         asserting (tx.isSigned());
 
@@ -764,7 +763,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         tx.addOutput(
                 new BRCoreTransactionOutput(SATOSHIS, outScript));
         w.signTransaction(tx, 0x00, phrase);
-        assert (tx.isSigned());
+        asserting (tx.isSigned());
         System.out.println("            Signed");
         w.registerTransaction(tx);
         asserting(SATOSHIS == w.getBalance());
@@ -835,7 +834,7 @@ public class BRWalletManager extends BRCoreWalletManager {
 //        wm.signAndPublishTransaction(tx, phrase);
         wm.getWallet().signTransaction(tx, 0x00, phrase);
 
-        assert (tx.isSigned());
+        asserting (tx.isSigned());
         System.out.println("            Signed");
     }
 
@@ -863,8 +862,11 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println("            Blocks");
 
         BRCoreMerkleBlock block = new BRCoreMerkleBlock(getMerkleBlockBytes(), 100001);
-        assert (null != block);
-        assert (100001 == block.getHeight());
+        asserting (null != block);
+        asserting (100001 == block.getHeight());
+
+        byte[] hash = block.getBlockHash();
+        asserting (!block.containsTransactionHash(hash));
 
         BRCoreMerkleBlock[] blocks = new BRCoreMerkleBlock[1024];
         for (int i = 0; i < 1024; i++)
@@ -879,7 +881,7 @@ public class BRWalletManager extends BRCoreWalletManager {
                 blocks,
                 peers,
                 getPeerManagerListener());
-        assert (null != pm);
+        asserting (null != pm);
 
 //        pm.testSaveBlocksCallback(false, blocks);
 //        pm.testSavePeersCallback(false, peers);

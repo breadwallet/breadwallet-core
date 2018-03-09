@@ -83,7 +83,6 @@ Java_com_breadwallet_core_BRCorePeerManager_connect
         (JNIEnv *env, jobject thisObject) {
     BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
     BRPeerManagerConnect(peerManager);
-    return;
 }
 
 /*
@@ -96,7 +95,6 @@ Java_com_breadwallet_core_BRCorePeerManager_disconnect
         (JNIEnv *env, jobject thisObject) {
     BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
     BRPeerManagerDisconnect (peerManager);
-    return;
 }
 
 /*

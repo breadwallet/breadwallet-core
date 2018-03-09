@@ -228,7 +228,9 @@ JNIEXPORT jboolean JNICALL
 Java_com_breadwallet_core_BRCoreMerkleBlock_containsTransactionHash
         (JNIEnv *env, jobject thisObject, jbyteArray hashByteArray) {
     BRMerkleBlock *block = (BRMerkleBlock *) getJNIReference(env, thisObject);
-    return JNI_FALSE;
+
+    UInt256 *hash = (UInt256 *) (*env)->GetByteArrayElements (env, hashByteArray, JNI_FALSE);
+    return (jboolean) BRMerkleBlockContainsTxHash (block, *hash);
 }
 
 /*
