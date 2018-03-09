@@ -1,8 +1,8 @@
 //
-//  BREthereum
+//  BREthereumContract
 //  breadwallet-core Ethereum
 //
-//  Created by Ed Gamble on 2/24/18.
+//  Created by Ed Gamble on 3/5/18.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,15 +23,39 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_H
-#define BR_Ethereum_H
+#ifndef BR_Ethereum_Contract_h
+#define BR_Ethereum_Contract_h
 
-#include "BREthereumEther.h"
-#include "BREthereumGas.h"
-#include "BREthereumAccount.h"
-#include "BREthereumTransaction.h"
-#include "BREthereumHolding.h"
-#include "BREthereumContract.h"
-#include "BREthereumWallet.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#endif // BR_Ethereum_H
+typedef struct BREthereumFunctionRecord *BREthereumFunction;
+typedef struct BREthereumContractRecord *BREthereumContract;
+
+extern BREthereumContract contractERC20;
+extern BREthereumFunction functionERC20Transfer; // "transfer(address,uint256)"
+
+/**
+ * Encode an Ehtereum function with arguments.  The specific arguments and their types are
+ * defined on a function-by-function basis.  For each function argument, contractEncode() is
+ * called with a pair as (uint8_t *bytes, size_t bytesCount).  Thus for example, an ERC20
+ * token transfer would be called as:
+ *
+ * char *address;
+ * UInt256 amount;
+ *
+ * char *encoding contractEncode (contractERC20, functionERC20Transfer,
+ *          (uint8_t *) address, strlen(address),
+ *          (uint8_t *) &amount, sizeof (UInt256));
+ * ...
+ * free (encoding);
+ */
+extern const char *
+contractEncode (BREthereumContract contract, BREthereumFunction function, ...);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif //BREthereumContract_h

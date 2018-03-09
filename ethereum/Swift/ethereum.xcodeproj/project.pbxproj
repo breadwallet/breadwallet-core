@@ -68,6 +68,8 @@
 		3C7E514E204F295F00F6AF13 /* BREthereumLightNode.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C7E514C204F295F00F6AF13 /* BREthereumLightNode.c */; };
 		3C7E514F204F295F00F6AF13 /* BREthereumLightNode.h in Headers */ = {isa = PBXBuildFile; fileRef = 3C7E514D204F295F00F6AF13 /* BREthereumLightNode.h */; };
 		3C7E5152204F29C500F6AF13 /* test.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C7E5151204F29C500F6AF13 /* test.c */; };
+		3C7E515A2051EC8B00F6AF13 /* BREthereumContract.h in Headers */ = {isa = PBXBuildFile; fileRef = 3C7E51582051EC8B00F6AF13 /* BREthereumContract.h */; };
+		3C7E515B2051EC8B00F6AF13 /* BREthereumContract.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C7E51592051EC8B00F6AF13 /* BREthereumContract.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -147,6 +149,8 @@
 		3C7E514D204F295F00F6AF13 /* BREthereumLightNode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BREthereumLightNode.h; sourceTree = "<group>"; };
 		3C7E5150204F29C400F6AF13 /* ethereumTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ethereumTests-Bridging-Header.h"; sourceTree = "<group>"; };
 		3C7E5151204F29C500F6AF13 /* test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = test.c; path = ../../test.c; sourceTree = "<group>"; };
+		3C7E51582051EC8B00F6AF13 /* BREthereumContract.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumContract.h; sourceTree = "<group>"; };
+		3C7E51592051EC8B00F6AF13 /* BREthereumContract.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumContract.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -266,6 +270,8 @@
 				3C5EC2562049A8BA0096AD24 /* BREthereumWallet.h */,
 				3C7E514C204F295F00F6AF13 /* BREthereumLightNode.c */,
 				3C7E514D204F295F00F6AF13 /* BREthereumLightNode.h */,
+				3C7E51592051EC8B00F6AF13 /* BREthereumContract.c */,
+				3C7E51582051EC8B00F6AF13 /* BREthereumContract.h */,
 			);
 			name = ethereum;
 			path = ..;
@@ -336,6 +342,7 @@
 				3C7E514F204F295F00F6AF13 /* BREthereumLightNode.h in Headers */,
 				3C5EC2472049A8990096AD24 /* BRBIP39Mnemonic.h in Headers */,
 				3C5EC2482049A8990096AD24 /* BRPaymentProtocol.h in Headers */,
+				3C7E515A2051EC8B00F6AF13 /* BREthereumContract.h in Headers */,
 				3C5EC27F2049A9160096AD24 /* BRRlp.h in Headers */,
 				3C5EC2422049A8990096AD24 /* BRPeer.h in Headers */,
 				3C5EC2872049A93B0096AD24 /* BRBCashParams.h in Headers */,
@@ -453,6 +460,7 @@
 				3C5EC2392049A8990096AD24 /* BRKey.c in Sources */,
 				3C5EC2342049A8990096AD24 /* BRPeer.c in Sources */,
 				3C5EC24A2049A8990096AD24 /* BRAddress.c in Sources */,
+				3C7E515B2051EC8B00F6AF13 /* BREthereumContract.c in Sources */,
 				3C5EC2362049A8990096AD24 /* BRCrypto.c in Sources */,
 				3C5EC2512049A8990096AD24 /* BRBIP38Key.c in Sources */,
 				3C5EC24F2049A8990096AD24 /* BRSet.c in Sources */,

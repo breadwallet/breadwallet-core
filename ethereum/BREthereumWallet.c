@@ -26,7 +26,6 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "BREthereum.h"
-#include "BREthereumAccount.h"
 
 #define DEFAULT_ETHER_GAS_LIMIT    21000ull
 
@@ -55,12 +54,6 @@ struct BREthereumWalletRecord {
      * from the wallet's account.
      */
     BREthereumAddress address;      // Primary Address
-    // BRSet (addresses)
-
-    // gasPrice is the maximum price of gas you are willing to pay for this transaction.
-    // gasLimit is the maximum gas you are willing to pay for this transaction.
-    //
-
 
     /**
      * The wallet' default gasPrice. gasPrice is the maximum price of gas you are willing to pay
@@ -171,6 +164,12 @@ walletCreateTransactionDetailed(BREthereumWallet wallet,
                                 BREthereumGasPrice gasPrice,
                                 BREthereumGas gasLimit,
                                 int nonce) {
+  // TODO: provide 'DataForHolding'
+  //  Wallet needs contract+function - expects a 'transfer function'
+  //  What are the arguments to walletDataForHolding... needs the transaction?  Needs more?
+  //  Must 'rework' transaction (if token, amount = 0, ...)
+  //
+  // switch (wallet->holding.type) { ... }
     return transactionCreate(
             wallet->address,
             recvAddress,
@@ -188,6 +187,7 @@ walletDataForHolding (BREthereumWallet wallet) {
             return "";  // empty string - official 'ETHER' data
 
         case WALLET_HOLDING_TOKEN:
+//          contractEncode(contractERC20, functionERC20Transfer, ...)
             return "token";
     }
 }

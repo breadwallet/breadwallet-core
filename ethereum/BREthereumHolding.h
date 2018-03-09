@@ -97,6 +97,11 @@ typedef struct BREthereumTokenRecord {
     char *description;
 
     /**
+     * The maximum decimals (typically 0 to 18).
+     */
+  unsigned int decimals;
+
+    /**
      * The (default) Gas Limit for exchanges of this token.
      */
     BREthereumGas gasLimit;
