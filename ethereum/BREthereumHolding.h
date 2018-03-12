@@ -76,23 +76,34 @@ holdingRlpEncode(BREthereumHolding holding, BRRlpCoder coder);
 //
 // Parsing
 //
-typedef enum {
-  ETHEREUM_HOLDING_PARSE_OK,
-  ETHEREUM_HOLDING_PARSE_EXCESSIVE_DIGITS,
-  ETHEREUM_HOLDING_PARSE_STRANGE_DIGITS,
-  ETHEREUM_HOLDING_PARSE_TOO_SMALL,
-  ETHEREUM_HOLDING_PARSE_TOO_LARGE
-} BREthereumHoldingParseStatus;
-
   // amount
   // number + power
   //  "12.345" + digits 4 -> 123450
   //  "12.345" + digits 18 -> 12345<15 zeros>
+
+  /**
+   *
+   * Parse a string of base-10 digits with one optional decimal point into an Ether holding and
+   * assign the status.  If status is 'OK' then the holding will contain some amount of Ether;
+   * otherwise status will indicate the failure and holding will contain zero Ether.
+   *
+   * Examples of number are: "12.3", "12000000000", "0.00000000012", "1.000000000023"
+   *
+   * Status Errors are:
+   *     STRANGE_DIGITS: 12a.3f <all characters must be [0-9\.]
+   *          UNDERFLOW: 0.1 WEI (aka
+   *           OVERFLOW: 1000000 TETHER
+   *
+   * @param number
+   * @param unit
+   * @param status
+   *
+   */
 extern BREthereumHolding
-holdingCreateEtherParse (const char *number, BREthereumEtherUnit unit, BREthereumHoldingParseStatus *status);
+holdingCreateEtherParse (const char *number, BREthereumEtherUnit unit, BREthereumEtherParseStatus *status);
 
 extern BREthereumHolding
-holdingCreateTokenParse (const char *number, BREthereumHoldingParseStatus *status);
+holdingCreateTokenParse (const char *number, BREthereumEtherParseStatus *status);
 
 /**
  * A Ethereum Token defines an ERC20 Token

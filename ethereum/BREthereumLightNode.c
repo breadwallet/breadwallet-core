@@ -105,6 +105,24 @@ lightNodeCreateWallet (BREthereumLightNode node,
 // Token
 
 //
+// Holding / Ether
+//
+extern BREthereumEther
+lightNodeCreateEtherAmountString (BREthereumLightNode node,
+                                  const char *number,
+                                  BREthereumEtherUnit unit,
+                                  BREthereumEtherParseStatus *status) {
+  return etherCreateString(number, unit, status);
+}
+
+extern BREthereumEther
+lightNodeCreateEtherAmountUnit (BREthereumLightNode node,
+                                uint64_t amountInUnit,
+                                BREthereumEtherUnit unit) {
+  return etherCreateNumber(amountInUnit, unit);
+}
+
+//
 // Wallet Defaults
 //
 extern uint64_t
@@ -153,14 +171,13 @@ extern BREthereumLightNodeTransactionId
 lightNodeWalletCreateTransaction(BREthereumLightNode node,
                                  BREthereumLightNodeWalletId walletId,
                                  const char *recvAddress,
-                                 BREthereumEtherUnit unit,
-                                 uint64_t amountInUnit) {
+                                 BREthereumEther amount) {
     BREthereumWallet wallet = (BREthereumWallet) walletId;
 
     BREthereumTransaction transaction = walletCreateTransaction
             (wallet,
              createAddress(recvAddress),
-             holdingCreateEther (etherCreateNumber (amountInUnit, unit)));
+             holdingCreateEther (amount));
 
     lightNodeInsertTransaction(node, transaction);
     return (void *) transaction;

@@ -43,6 +43,12 @@ extern UInt256
 createUInt256 (uint64_t value);
 
 /**
+ * Create as 10^digits
+ */
+extern UInt256
+createUInt256Power (uint8_t digits, int *overflow);
+
+  /**
  * Return `x + y`
  */
 extern UInt512

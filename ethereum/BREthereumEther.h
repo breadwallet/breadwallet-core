@@ -9,14 +9,30 @@
 extern "C" {
 #endif
 
+//
+// Etherum Boolean
+//
 typedef enum {
-    ETHEREUM_BOOLEAN_TRUE = 0,               // INTENTIONALLY 'backwards'
-    ETHEREUM_BOOLEAN_FALSE = 1
+  ETHEREUM_BOOLEAN_TRUE = 0,               // INTENTIONALLY 'backwards'
+  ETHEREUM_BOOLEAN_FALSE = 1
 } BREthereumBoolean;
 
 #define ETHEREUM_BOOLEAN_IS_TRUE(x)  ((x) == ETHEREUM_BOOLEAN_TRUE)
 #define ETHEREUM_BOOLEAN_IS_FALSE(x) ((x) == ETHEREUM_BOOLEAN_FALSE)
 
+//
+// Etherum Ether Parse Status
+//
+typedef enum {
+  ETHEREUM_ETHER_PARSE_OK,
+  ETHEREUM_ETHER_PARSE_STRANGE_DIGITS,
+  ETHEREUM_ETHER_PARSE_UNDERFLOW,
+  ETHEREUM_ETHER_PARSE_OVERFLOW
+} BREthereumEtherParseStatus;
+
+//
+// Ether
+//
 typedef enum {
     WEI = 0,
 
@@ -56,13 +72,13 @@ extern BREthereumEther
 etherCreateUnit(const UInt256 value, BREthereumEtherUnit unit, int *overflow);
 
 extern BREthereumEther
-etherCreateString(const char *string, BREthereumEtherUnit unit, int *overflow);
-
-extern BREthereumEther
 etherCreateNumber (uint64_t number, BREthereumEtherUnit unit);
 
 extern BREthereumEther
 etherCreateZero (void);
+
+extern BREthereumEther
+etherCreateString(const char *string, BREthereumEtherUnit unit, BREthereumEtherParseStatus *status);
 
 extern UInt256
 etherGetValue(const BREthereumEther ether, BREthereumEtherUnit unit);

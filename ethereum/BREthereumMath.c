@@ -34,6 +34,21 @@ createUInt256 (uint64_t value) {
 }
 
 extern UInt256
+createUInt256Power (uint8_t digits, int *overflow) {
+  if (digits < 20) {    // 10^19 fits in uint64_t
+    uint64_t value = 1;
+    while (digits-- > 0)
+      value *= 10;
+    *overflow = 0;
+    return createUInt256(value);
+  }
+  else {
+    *overflow = 1;
+    return UINT256_ZERO;
+  }
+}
+
+extern UInt256
 addUInt256_Overflow (const UInt256 y, const UInt256 x, int *overflow) {
   assert (overflow != NULL);
 

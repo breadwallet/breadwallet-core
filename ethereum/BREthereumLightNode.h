@@ -91,6 +91,34 @@ lightNodeCreateWallet (BREthereumLightNode node,
 // Token
 
 //
+// Holding / Ether
+//
+
+/**
+ * Create Ether from a string representing a number.  The string can *only* contain digits and
+ * a single decimal point.  No '-', no '+' no 'e' (exponents).
+ *
+ * @param node
+ * @param number
+ * @param unit
+ * @param status This MUST NOT BE NULL. If assigned anything but OK, the return Ether is 0.
+ */
+extern BREthereumEther
+lightNodeCreateEtherAmountString (BREthereumLightNode node,
+                                  const char *number,
+                                  BREthereumEtherUnit unit,
+                                  BREthereumEtherParseStatus *status);
+
+/**
+ * Create Ether from a 'smallish' number an a unit
+ *
+ */
+extern BREthereumEther
+lightNodeCreateEtherAmountUnit (BREthereumLightNode node,
+                                uint64_t amountInUnit,
+                                BREthereumEtherUnit unit);
+
+//
 // Wallet Defaults
 //
 extern uint64_t
@@ -126,8 +154,7 @@ extern BREthereumLightNodeTransactionId
 lightNodeWalletCreateTransaction(BREthereumLightNode node,
                                  BREthereumLightNodeWalletId wallet,
                                  const char *recvAddress,
-                                 BREthereumEtherUnit unit,
-                                 uint64_t amountInUnit);
+                                 BREthereumEther amount);
 
 extern void // status, error
 lightNodeWalletSignTransaction (BREthereumLightNode node,
@@ -140,7 +167,7 @@ extern void // status, error
 lightNodeWalletSubmitTransaction (BREthereumLightNode node,
                                   BREthereumLightNodeWalletId wallet,
                                   BREthereumLightNodeTransactionId transaction);
-#endif
+#endif // !ETHEREUM_LIGHT_NODE_USE_JSON_RPC
 
 //
 // Transactions
@@ -168,7 +195,7 @@ lightNodeGetTransactionRawDataHexEncoded(BREthereumLightNode node,
                                          BREthereumLightNodeWalletId walletId,
                                          BREthereumLightNodeTransactionId transactionId,
                                          const char *prefix);
-#endif
+#endif // ETHEREUM_LIGHT_NODE_USE_JSON_RPC
 
 extern const char *
 lightNodeGetTransactionRecvAddress (BREthereumLightNode node,

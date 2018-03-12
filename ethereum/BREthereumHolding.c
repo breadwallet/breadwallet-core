@@ -88,14 +88,19 @@ holdingRlpEncode(BREthereumHolding holding, BRRlpCoder coder) {
 // Parse
 //
 extern BREthereumHolding
-holdingCreateEtherParse (const char *number, BREthereumEtherUnit unit, BREthereumHoldingParseStatus *status) {
+holdingCreateEtherParse (const char *number, BREthereumEtherUnit unit, BREthereumEtherParseStatus *status) {
   BREthereumHolding holding;
+  holding.type = WALLET_HOLDING_ETHER;
+  holding.holding.ether.amount = etherCreateString(number, unit, status);
   return holding;
 }
 
 extern BREthereumHolding
-holdingCreateTokenParse (const char *number, BREthereumHoldingParseStatus *status) {
+holdingCreateTokenParse (const char *number, BREthereumEtherParseStatus *status) {
   BREthereumHolding holding;
+  holding.type = WALLET_HOLDING_TOKEN;
+  holding.holding.token.amount = UINT256_ZERO;
+  holding.holding.token.scale  = UINT256_ZERO;
   return holding;
 }
 

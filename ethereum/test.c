@@ -193,12 +193,67 @@ runMathMulTests () {
           && UINT32_MAX == z.u32[15]);
 
 }
+
 static void
 runMathTests() {
   runMathAddTests();
   runMathSubTests();
   runMathMulTests();
 }
+
+//
+// Ether Parse
+//
+static void
+runEtherParseTests () {
+  BREthereumEtherParseStatus status;
+  int overflow;
+  BREthereumEther e;
+  
+  e = etherCreateString("1", WEI, &status);
+  assert (ETHEREUM_ETHER_PARSE_OK == status
+          && ETHEREUM_BOOLEAN_TRUE == etherIsEQ(e, etherCreateNumber(1, WEI)));
+  
+  e = etherCreateString("100", WEI, &status);
+  assert (ETHEREUM_ETHER_PARSE_OK == status
+          && ETHEREUM_BOOLEAN_TRUE == etherIsEQ(e, etherCreateNumber(100, WEI)));
+
+  e = etherCreateString("100.0000", WEI, &status);
+  assert (ETHEREUM_ETHER_PARSE_OK == status
+          && ETHEREUM_BOOLEAN_TRUE == etherIsEQ(e, etherCreateNumber(100, WEI)));
+
+  e = etherCreateString("0.001", WEI+1, &status);
+  assert (ETHEREUM_ETHER_PARSE_OK == status
+          && ETHEREUM_BOOLEAN_TRUE == etherIsEQ(e, etherCreateNumber(1, WEI)));
+
+  e = etherCreateString("0.00100", WEI+1, &status);
+  assert (ETHEREUM_ETHER_PARSE_OK == status
+          && ETHEREUM_BOOLEAN_TRUE == etherIsEQ(e, etherCreateNumber(1, WEI)));
+
+  e = etherCreateString("0.001002", ETHER, &status);
+  assert (ETHEREUM_ETHER_PARSE_OK == status
+          && ETHEREUM_BOOLEAN_TRUE == etherIsEQ(e, etherCreateNumber(1002, ETHER-2)));
+
+  e = etherCreateString("12.03", ETHER, &status);
+  assert (ETHEREUM_ETHER_PARSE_OK == status
+          && ETHEREUM_BOOLEAN_TRUE == etherIsEQ(e, etherCreateNumber(12030, ETHER-1)));
+
+  e = etherCreateString("12.03", WEI, &status);
+  assert (ETHEREUM_ETHER_PARSE_UNDERFLOW == status);
+
+  e = etherCreateString("100000000000000000000000000000000000000000000000000000000000000000000000000000000", WEI, &status);
+  assert (ETHEREUM_ETHER_PARSE_OVERFLOW == status);
+
+  e = etherCreateString("1000000000000000000000", WEI, &status);
+  assert (ETHEREUM_ETHER_PARSE_OK == status
+          && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (e, etherCreateNumber(1, KETHER)));
+
+  e = etherCreateString("2000000000000000000000.000000", WEI, &status);
+  assert (ETHEREUM_ETHER_PARSE_OK == status
+          && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (e, etherCreateNumber(2, KETHER)));
+}
+
+
 /*
 m/44'/60'/0'/0/0 :: 0x2161DedC3Be05B7Bb5aa16154BcbD254E9e9eb68
                     0x03c026c4b041059c84a187252682b6f80cbbe64eb81497111ab6914b050a8936fd
@@ -574,13 +629,15 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
   lightNodeSetWalletGasPrice(node, wallet, WEI, gasPrice);
   lightNodeSetWalletGasLimit(node, wallet, gasLimit);
 
+  BREthereumEther amountInEther =
+    lightNodeCreateEtherAmountUnit(node, amount, WEI);
+
   BREthereumLightNodeTransactionId tx1 =
     lightNodeWalletCreateTransaction
       (node,
        wallet,
        recvAddr,
-       WEI,
-       amount);
+       amountInEther);
 
   lightNodeWalletSignTransaction (node, wallet, tx1, paperKey);
 
@@ -622,12 +679,13 @@ reallySend () {
 
 extern void
 runTests (void) {
-    installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);\
+  installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);\
   runMathTests();
-    runRlpTest();
-    runAccountTests();
-    runLightNodeTests();
-//    reallySend();
+  runEtherParseTests();
+  runRlpTest();
+  runAccountTests();
+  runLightNodeTests();
+  //    reallySend();
 }
 
 int main(int argc, const char *argv[]) {
