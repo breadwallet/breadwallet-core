@@ -53,7 +53,7 @@
 #define CONNECT_TIMEOUT    3.0
 #define MESSAGE_TIMEOUT    10.0
 
-#define PTHREAD_STACK_SIZE  (128 * 1024)
+#define PTHREAD_STACK_SIZE  (512 * 1024)
 
 // the standard blockchain download protocol works as follows (for SPV mode):
 // - local peer sends getblocks
