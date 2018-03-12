@@ -339,9 +339,8 @@ size_t BRAddressFromWitness(char *addr, size_t addrLen, const uint8_t *witness, 
 // returns the number of bytes written, or scriptLen needed if script is NULL
 size_t BRAddressScriptPubKey(uint8_t *script, size_t scriptLen, const char *addr)
 {
-    uint8_t pubkeyAddress = BITCOIN_PUBKEY_ADDRESS, scriptAddress = BITCOIN_SCRIPT_ADDRESS;
-    uint8_t data[42];
-    char hrp[84], bech32Prefix[] = "bc";
+    uint8_t data[42], pubkeyAddress = BITCOIN_PUBKEY_ADDRESS, scriptAddress = BITCOIN_SCRIPT_ADDRESS;
+    char hrp[84], *bech32Prefix = "bc";
     size_t dataLen, r = 0;
     
     assert(addr != NULL);
