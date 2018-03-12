@@ -84,6 +84,24 @@ holdingRlpEncode(BREthereumHolding holding, BRRlpCoder coder) {
     }
 }
 
+//
+// Parse
+//
+extern BREthereumHolding
+holdingCreateEtherParse (const char *number, BREthereumEtherUnit unit, BREthereumHoldingParseStatus *status) {
+  BREthereumHolding holding;
+  return holding;
+}
+
+extern BREthereumHolding
+holdingCreateTokenParse (const char *number, BREthereumHoldingParseStatus *status) {
+  BREthereumHolding holding;
+  return holding;
+}
+
+//
+// Token
+//
 extern BREthereumToken
 tokenCreate(char *address,
             char *symbol,
@@ -130,7 +148,7 @@ BREthereumToken tokenBRD = {
   "The Bread Token ...",
   10,
   { 50000 },
-  { { ETHEREUM_BOOLEAN_TRUE, { .u32 = {0, 0, 0, 0}}}}
+  { { { .u64 = {0, 0, 0, 0}}}}
 };
 
 /*

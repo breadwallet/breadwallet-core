@@ -53,7 +53,7 @@ static void argumentEncodeUInt256 (uint8_t *bytes, size_t bytesCount, char *char
  *
  *
  */
-typedef struct BREthereumFunctionRecord {
+struct BREthereumFunctionRecord {
   char *interface;
   char *signature;
   char *selector;

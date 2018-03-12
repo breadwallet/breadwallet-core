@@ -50,6 +50,155 @@ showHex (uint8_t *source, size_t sourceLen) {
     printf ("}\n");
 }
 
+//
+// Math Tests
+//
+static void
+runMathAddTests () {
+  int carry = -1;
+  UInt256 z;
+  UInt256 x0atMax = { .u32 = { UINT32_MAX, 0, 0, 0, 0, 0, 0, 0 }};
+  UInt256 xOne    = { .u32 = {          1, 0, 0, 0, 0, 0, 0, 0 }};
+  UInt256 xTwo    = { .u32 = {          2, 0, 0, 0, 0, 0, 0, 0 }};
+  UInt256 x2to32  = { .u32 = {          0, 1, 0, 0, 0, 0, 0, 0 }};
+  UInt256 x7atMax = { .u32 = {          0, 0, 0, 0, 0, 0, 0, UINT32_MAX }};
+  UInt256 x7atOne = { .u32 = {          0, 0, 0, 0, 0, 0, 0, 1 }};
+  UInt256 xMax    = { .u32 = { UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX }};
+
+  z = addUInt256_Overflow (xOne, xOne, &carry);
+  assert (2 == z.u32[0] && 0 == carry);
+
+  z = addUInt256_Overflow (xOne, x0atMax, &carry);
+  assert (1 == z.u32[1] && 0 == carry);
+
+  z = addUInt256_Overflow (xOne, x2to32, &carry);
+  assert (1 == z.u32[0] && 1 == z.u32[1] && 0 == carry);
+
+  z = addUInt256_Overflow (xTwo, x7atOne, &carry);
+  assert (2 == z.u32[0] && 1 == z.u32[7] && 0 == carry);
+  
+  z = addUInt256_Overflow (x7atMax, z, &carry);
+  assert (0 == z.u32[7] && 0 == z.u32[0] && 1 == carry);
+
+  z = addUInt256_Overflow (xMax, xOne, &carry);
+  assert (1 == carry);
+}
+
+static void
+runMathSubTests () {
+  int negative = -1;
+  UInt256 z;
+  UInt256 x0atMax = { .u32 = { UINT32_MAX, 0, 0, 0, 0, 0, 0, 0 }};
+  UInt256 xOne    = { .u32 = {          1, 0, 0, 0, 0, 0, 0, 0 }};
+  UInt256 xOneOne = { .u32 = {          1, 1, 0, 0, 0, 0, 0, 0 }};
+  UInt256 xTwo    = { .u32 = {          2, 0, 0, 0, 0, 0, 0, 0 }};
+//  UInt256 x2to32  = { .u32 = {          0, 1, 0, 0, 0, 0, 0, 0 }};
+//  UInt256 x7atMax = { .u32 = {          0, 0, 0, 0, 0, 0, 0, UINT32_MAX }};
+//  UInt256 x7atOne = { .u32 = {          0, 0, 0, 0, 0, 0, 0, 1 }};
+//  UInt256 xMax    = { .u32 = { UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX }};
+
+  z = subUInt256_Negative(xOne, xOne, &negative);
+  assert (0 == z.u32[0] && 0 == negative);
+
+  z = subUInt256_Negative(xTwo, xOne, &negative);
+  assert (1 == z.u32[0] && 0 == negative);
+
+  z = subUInt256_Negative(xOne, xTwo, &negative);
+  assert (1 == z.u32[0] && 1 == negative);
+
+  z = subUInt256_Negative(xOne, x0atMax, &negative);
+  assert ((UINT32_MAX - 1) == z.u32[0]
+          && 0 == z.u32[7]
+          && 1 == negative);
+
+  z = subUInt256_Negative(xOneOne, xTwo, &negative);
+  UInt256 zr5 = { .u32 = { UINT32_MAX, 0, 0, 0, 0, 0, 0, 0 }};
+  assert (eqUInt256(zr5, z) && 0 == negative);
+  assert (UINT32_MAX == z.u32[0]
+          && 0 == z.u32[1]
+          && 0 == z.u32[2]
+          && 0 == z.u32[7]
+          && 0 == negative);
+}
+
+static void
+runMathMulTests () {
+  int carry = -1;
+  UInt512 z;
+  UInt256 x0atMax   = { .u32 = { UINT32_MAX, 0, 0, 0, 0, 0, 0, 0 }};
+  UInt256 xOne      = { .u32 = {          1, 0, 0, 0, 0, 0, 0, 0 }};
+  UInt256 xTwo      = { .u32 = {          2, 0, 0, 0, 0, 0, 0, 0 }};
+  UInt256 x2to31    = { .u32 = {    (1<<31), 0, 0, 0, 0, 0, 0, 0 }};
+  UInt256 x2to32    = { .u32 = {          0, 1, 0, 0, 0, 0, 0, 0 }};
+  UInt256 x7atOne   = { .u32 = {          0, 0, 0, 0, 0, 0, 0, 1 }};
+  UInt256 x7at2to31 = { .u32 = {          0, 0, 0, 0, 0, 0, 0, (1<<31) }};
+  UInt256 xMax      = { .u32 = { UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX, UINT32_MAX }};
+
+  //  > (define xMax (- (expt 2 256) 1)
+  //  > (number->string xMax 2)
+  //  "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+
+  z = mulUInt256(xOne, x0atMax);
+  assert (UINT32_MAX == z.u32[0] && 0 == z.u32[1] /* && ...*/);
+
+  z = mulUInt256(xOne, x7atOne);
+  assert (1 == z.u32[7]);
+
+  z = mulUInt256(x2to31, xTwo);
+  assert (0 == z.u32[0] && 1 == z.u32[1] && 0 == z.u32[2] /* && ... */);
+
+  z = mulUInt256(x2to32, x2to32);
+  assert (0 == z.u32[0] && 0 == z.u32[1] && 1 == z.u32[2] && 0 == z.u32[3]);
+
+  // (= (* (expt 2 255) (expt 2 255)) (expt 2 510))
+  z = mulUInt256(x7at2to31, x7at2to31);
+  assert ((1<<30) == z.u32[15]);
+
+  z = mulUInt256(xMax, xMax);
+  //  > (number->string (* xMax xMax) 2)
+  //  "1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111110 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001"
+  //  define (factor m)
+  //    (if (positive? m)
+  //        (begin
+  //         (display (remainder m (expt 2 32))) (newline)
+  //         (factor (quotient m (expt 2 32))))))
+  //  > (factor (* m256 m256))
+  //  1
+  //  0
+  //  0
+  //  0
+  //  0
+  //  0
+  //  0
+  //  0
+  //  4294967294
+  //  4294967295
+  //  4294967295
+  //  4294967295
+  //  4294967295
+  //  4294967295
+  //  4294967295
+  //  4294967295
+  assert (1 == z.u32[0]
+          && 0 == z.u32[1]
+          // ...
+          && 0 == z.u32[7]
+          && UINT32_MAX - 1 == z.u32[ 8]
+          && UINT32_MAX == z.u32[ 9]
+          && UINT32_MAX == z.u32[10]
+          && UINT32_MAX == z.u32[11]
+          && UINT32_MAX == z.u32[12]
+          && UINT32_MAX == z.u32[13]
+          && UINT32_MAX == z.u32[14]
+          && UINT32_MAX == z.u32[15]);
+
+}
+static void
+runMathTests() {
+  runMathAddTests();
+  runMathSubTests();
+  runMathMulTests();
+}
 /*
 m/44'/60'/0'/0/0 :: 0x2161DedC3Be05B7Bb5aa16154BcbD254E9e9eb68
                     0x03c026c4b041059c84a187252682b6f80cbbe64eb81497111ab6914b050a8936fd
@@ -473,7 +622,8 @@ reallySend () {
 
 extern void
 runTests (void) {
-    installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
+    installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);\
+  runMathTests();
     runRlpTest();
     runAccountTests();
     runLightNodeTests();

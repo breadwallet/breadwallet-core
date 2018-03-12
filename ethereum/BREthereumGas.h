@@ -68,14 +68,16 @@ extern BREthereumGasPrice
 gasPriceCreate(BREthereumEther ether);
 
 /**
- * Compute the Gas Cost (in Ether) for a given Gas Price and Gas.
+ * Compute the Gas Cost (in Ether) for a given Gas Price and Gas.  This can overflow; on overflow
+ * the returned Ether is 0(!).
  *
  * @param price The Ether/Gas
  * @param gas  The Gas
+ * @param overflow Set to 1 if overflow; 0 otherwise. MUST NOT BE NULL.
  * @return
  */
 extern BREthereumEther
-gasPriceGetGasCost(BREthereumGasPrice price, BREthereumGas gas);
+gasPriceGetGasCost(BREthereumGasPrice price, BREthereumGas gas, int *overflow);
 
 extern BRRlpItem
 gasPriceRlpEncode (BREthereumGasPrice price, BRRlpCoder coder);

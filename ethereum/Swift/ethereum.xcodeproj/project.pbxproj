@@ -70,6 +70,8 @@
 		3C7E5152204F29C500F6AF13 /* test.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C7E5151204F29C500F6AF13 /* test.c */; };
 		3C7E515A2051EC8B00F6AF13 /* BREthereumContract.h in Headers */ = {isa = PBXBuildFile; fileRef = 3C7E51582051EC8B00F6AF13 /* BREthereumContract.h */; };
 		3C7E515B2051EC8B00F6AF13 /* BREthereumContract.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C7E51592051EC8B00F6AF13 /* BREthereumContract.c */; };
+		3C7E515E2054332B00F6AF13 /* BREthereumMath.h in Headers */ = {isa = PBXBuildFile; fileRef = 3C7E515C2054332B00F6AF13 /* BREthereumMath.h */; };
+		3C7E515F2054332B00F6AF13 /* BREthereumMath.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C7E515D2054332B00F6AF13 /* BREthereumMath.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -151,6 +153,8 @@
 		3C7E5151204F29C500F6AF13 /* test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = test.c; path = ../../test.c; sourceTree = "<group>"; };
 		3C7E51582051EC8B00F6AF13 /* BREthereumContract.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumContract.h; sourceTree = "<group>"; };
 		3C7E51592051EC8B00F6AF13 /* BREthereumContract.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumContract.c; sourceTree = "<group>"; };
+		3C7E515C2054332B00F6AF13 /* BREthereumMath.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumMath.h; sourceTree = "<group>"; };
+		3C7E515D2054332B00F6AF13 /* BREthereumMath.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumMath.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -256,6 +260,8 @@
 			children = (
 				3C5EC26E2049A8C10096AD24 /* rlp */,
 				3C5EC25A2049A8BA0096AD24 /* BREthereum.h */,
+				3C7E515D2054332B00F6AF13 /* BREthereumMath.c */,
+				3C7E515C2054332B00F6AF13 /* BREthereumMath.h */,
 				3C5EC2602049A8BA0096AD24 /* BREthereumAccount.c */,
 				3C5EC25D2049A8BA0096AD24 /* BREthereumAccount.h */,
 				3C5EC2542049A8B90096AD24 /* BREthereumEther.c */,
@@ -328,6 +334,7 @@
 				3C5EC2892049A93B0096AD24 /* BRBCashAddr.h in Headers */,
 				3C5EC2492049A8990096AD24 /* BRKey.h in Headers */,
 				3C5EC2322049A8990096AD24 /* BRAddress.h in Headers */,
+				3C7E515E2054332B00F6AF13 /* BREthereumMath.h in Headers */,
 				3C5EC26C2049A8BA0096AD24 /* BREthereumEther.h in Headers */,
 				3C5EC22F2049A8990096AD24 /* BRTransaction.h in Headers */,
 				3C5EC2382049A8990096AD24 /* BRBIP38Key.h in Headers */,
@@ -465,6 +472,7 @@
 				3C5EC2512049A8990096AD24 /* BRBIP38Key.c in Sources */,
 				3C5EC24F2049A8990096AD24 /* BRSet.c in Sources */,
 				3C5EC24E2049A8990096AD24 /* BRPeerManager.c in Sources */,
+				3C7E515F2054332B00F6AF13 /* BREthereumMath.c in Sources */,
 				3C5EC2402049A8990096AD24 /* BRPaymentProtocol.c in Sources */,
 				3C5EC2462049A8990096AD24 /* BRBIP39Mnemonic.c in Sources */,
 				3C5EC2882049A93B0096AD24 /* BRBCashAddr.c in Sources */,

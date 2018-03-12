@@ -3,7 +3,7 @@
 #define BR_Ethereum_Ether_H
 
 #include "rlp/BRRlpCoder.h"
-#include "BRInt.h"
+#include "BREthereumMath.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,15 +46,17 @@ typedef enum {
 #define NUMBER_OF_ETHER_UNITS  (1 + TETHER)
 
 typedef struct BREthereumEtherStruct {
-    BREthereumBoolean positive;
     UInt256 valueInWEI;
 } BREthereumEther;
 
 extern BREthereumEther
-etherCreate(const UInt256 value, BREthereumEtherUnit unit);
+etherCreate(const UInt256 value);
 
 extern BREthereumEther
-etherCreateString(const char *string, BREthereumEtherUnit unit);
+etherCreateUnit(const UInt256 value, BREthereumEtherUnit unit, int *overflow);
+
+extern BREthereumEther
+etherCreateString(const char *string, BREthereumEtherUnit unit, int *overflow);
 
 extern BREthereumEther
 etherCreateNumber (uint64_t number, BREthereumEtherUnit unit);
@@ -75,13 +77,10 @@ extern BRRlpItem
 etherRlpEncode (const BREthereumEther ether, BRRlpCoder coder);
 
 extern BREthereumEther
-etherNegate (BREthereumEther);
+etherAdd (BREthereumEther e1, BREthereumEther e2, int *overflow);
 
 extern BREthereumEther
-etherAdd (BREthereumEther e1, BREthereumEther e2);
-
-extern BREthereumEther
-etherSub (BREthereumEther e1, BREthereumEther e2);
+etherSub (BREthereumEther e1, BREthereumEther e2, int *negative);
 
 //
 // Comparisons
@@ -90,7 +89,6 @@ extern BREthereumBoolean
 etherIsEQ (BREthereumEther e1, BREthereumEther e2);
 
 //
-
 extern BREthereumBoolean
 etherIsGT (BREthereumEther e1, BREthereumEther e2);
 
@@ -98,7 +96,22 @@ extern BREthereumBoolean
 etherIsGE (BREthereumEther e1, BREthereumEther e2);
 
 extern BREthereumBoolean
+etherIsLT (BREthereumEther e1, BREthereumEther e2);
+
+extern BREthereumBoolean
+etherIsLE (BREthereumEther e1, BREthereumEther e2);
+
+extern BREthereumBoolean
 etherIsZero (BREthereumEther e);
+
+typedef enum {
+  ETHEREUM_COMPARISON_LT = -1,
+  ETHEREUM_COMPARISON_EQ =  0,
+  ETHEREUM_COMPARISON_GT = +1
+} BREthereumComparison;
+
+extern BREthereumComparison
+etherCompare (BREthereumEther e1, BREthereumEther e2);
 
 #ifdef __cplusplus
 }

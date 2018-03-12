@@ -26,136 +26,113 @@
 #include <stdlib.h>
 #include "BREthereumEther.h"
 
-static UInt256
-addUInt256PP (UInt256 x, UInt256 y);
+#if LITTLE_ENDIAN != BYTE_ORDER
+#error "Must be a `LITTLE ENDIAN` cpu architecture"
+#endif
 
-static UInt256
-divideUInt256 (UInt256 numerator, UInt256 denominator);
-
-static UInt256
-multiplyUInt256 (UInt256 numerator, UInt256 denominator);
-
-static UInt256
-decodeUInt256 (const char *string);
-
-static char *
-encodeUInt256 (UInt256 value);
-
-static int
-gtUInt256 (UInt256 x);
-/*
-(define ether (lambda (x) (values (quotient x max64) (remainder x max64)))
-    > (ether #e1e21) -> 54, 3875820019684212736
-    > (ether #e1e24) -> 54210, 2003764205206896640
-    > (ether #e1e27) -> 54210108, 11515845246265065472
-    > (ether #e1e30) -> 54210108624, 5076944270305263616
-*/
+//    > (define ether (lambda (x) (values (quotient x max64) (remainder x max64)))
+//    > (ether #e1e21) -> 54, 3875820019684212736
+//    > (ether #e1e24) -> 54210, 2003764205206896640
+//    > (ether #e1e27) -> 54210108, 11515845246265065472
+//    > (ether #e1e30) -> 54210108624, 5076944270305263616
 
 static UInt256 etherUnitScaleFactor [NUMBER_OF_ETHER_UNITS] = {   /* LITTLE ENDIAN    */
-        { .u64 = {                     1,           0, 0, 0 } },  /* wei       - 1    */
-        { .u64 = {                  1000,           0, 0, 0 } },  /* kwei      - 1e3  */
-        { .u64 = {               1000000,           0, 0, 0 } },  /* mwei      - 1e6  */
-        { .u64 = {            1000000000,           0, 0, 0 } },  /* gwei      - 1e9  */
-        { .u64 = {         1000000000000,           0, 0, 0 } },  /* szabo     - 1e12 */
-        { .u64 = {      1000000000000000,           0, 0, 0 } },  /* finney    - 1e15 */
-        { .u64 = {   1000000000000000000,           0, 0, 0 } },  /* ether     - 1e18 */
-        { .u64 = {  3875820019684212736u,          54, 0, 0 } }, /* kether    - 1e21 */
-        { .u64 = {  2003764205206896640u,       54210, 0, 0 } }, /* mether    - 1e24 */
-        { .u64 = { 11515845246265065472u,    54210108, 0, 0 } }, /* gether    - 1e27 */
-        { .u64 = {  5076944270305263616u, 54210108624, 0, 0 } }  /* tether    - 1e30 */
+        { .u64 = {                     1,            0, 0, 0 } }, /* wei       - 1    */
+        { .u64 = {                  1000,            0, 0, 0 } }, /* kwei      - 1e3  */
+        { .u64 = {               1000000,            0, 0, 0 } }, /* mwei      - 1e6  */
+        { .u64 = {            1000000000,            0, 0, 0 } }, /* gwei      - 1e9  */
+        { .u64 = {         1000000000000,            0, 0, 0 } }, /* szabo     - 1e12 */
+        { .u64 = {      1000000000000000,            0, 0, 0 } }, /* finney    - 1e15 */
+        { .u64 = {   1000000000000000000,            0, 0, 0 } }, /* ether     - 1e18 */
+        { .u64 = {   3875820019684212736u,          54, 0, 0 } }, /* kether    - 1e21 */
+        { .u64 = {   2003764205206896640u,       54210, 0, 0 } }, /* mether    - 1e24 */
+        { .u64 = {  11515845246265065472u,    54210108, 0, 0 } }, /* gether    - 1e27 */
+        { .u64 = {   5076944270305263616u, 54210108624, 0, 0 } }  /* tether    - 1e30 */
 };
 
-// positive
-extern UInt256
+extern UInt256 // Can't be done: 1 WEI in ETHER... not representable as UInt256
 etherGetValue(const BREthereumEther ether,
               BREthereumEtherUnit unit) {
-    switch (unit) {
-        case WEI:
-            return ether.valueInWEI;
-        default:
-            return divideUInt256 (ether.valueInWEI, etherUnitScaleFactor[unit]);
-    }
+  switch (unit) {
+    case WEI:
+      return ether.valueInWEI;
+    default:
+      // TODO: CRITICAL
+      return UINT256_ZERO; /* divideUInt256 (ether.valueInWEI, etherUnitScaleFactor[unit]); */
+  }
 }
 
-// positive
-extern char *
+extern char * // Perhaps can be done. 1 WEI -> 1e-18 Ether
 etherGetValueString(const BREthereumEther ether,
                     BREthereumEtherUnit unit) {
-    return encodeUInt256(etherGetValue(ether, unit));
+  // TODO: CRITICAL
+  return ""; /* encodeUInt256(etherGetValue(ether, unit)); */
 }
 
 extern BRRlpItem
 etherRlpEncode (const BREthereumEther ether, BRRlpCoder coder) {
-    return rlpEncodeItemUInt256(coder, ether.valueInWEI);
+  return rlpEncodeItemUInt256(coder, ether.valueInWEI);
 }
 
 extern BREthereumEther
-etherCreate(const UInt256 value, BREthereumEtherUnit unit) {
-    BREthereumEther ether;
-    ether.positive = ETHEREUM_BOOLEAN_TRUE;
+etherCreate(const UInt256 value) {
+  BREthereumEther ether;
+  ether.valueInWEI = value;
+  return ether;
+}
 
-    switch (unit) {
-        case WEI:
-            ether.valueInWEI = value;
-            break;
-        default:
-            ether.valueInWEI = multiplyUInt256 (value, etherUnitScaleFactor[unit]);
-            break;
+// TODO: Critical
+extern BREthereumEther
+etherCreateUnit(const UInt256 value, BREthereumEtherUnit unit, int *overflow) {
+  assert (NULL != overflow);
+
+  BREthereumEther ether;
+  switch (unit) {
+    case WEI:
+      ether.valueInWEI = value;
+      *overflow = 0;
+      break;
+    default: {
+      ether.valueInWEI = mulUInt256_Overflow(value, etherUnitScaleFactor[unit], overflow);
+      break;
     }
-    return ether;
+  }
+  return ether;
 }
 
 extern BREthereumEther
-etherCreateString(const char *string, BREthereumEtherUnit unit) {
-    return etherCreate(decodeUInt256(string), unit);
+etherCreateString(const char *string, BREthereumEtherUnit unit, int *overflow) {
+  // TODO: Critical
+  return etherCreateUnit(/* decodeUInt256(string)*/ UINT256_ZERO, unit, overflow);
 }
 
 extern BREthereumEther
 etherCreateNumber (uint64_t number, BREthereumEtherUnit unit) {
-    UInt256 value = { .u64 = { number, 0, 0, 0 } };
-    return etherCreate (value, unit);
+  int overflow;
+  UInt256 value = { .u64 = { number, 0, 0, 0 } };
+  BREthereumEther ether = etherCreateUnit(value, unit, &overflow);
+  assert (0 == overflow);
+  return ether;
 }
 
 extern BREthereumEther
 etherCreateZero(void) {
-    return etherCreate(UINT256_ZERO, WEI);
+  return etherCreate(UINT256_ZERO);
 }
 
 extern BREthereumEther
-etherNegate (BREthereumEther e) {
-    BREthereumEther ether;
-
-    ether.positive = e.positive == ETHEREUM_BOOLEAN_TRUE ? ETHEREUM_BOOLEAN_FALSE : ETHEREUM_BOOLEAN_TRUE;
-    ether.valueInWEI = e.valueInWEI;
-
-    return ether;
+etherAdd (BREthereumEther e1, BREthereumEther e2, int *overflow) {
+  BREthereumEther result;
+  result.valueInWEI = addUInt256_Overflow(e1.valueInWEI, e2.valueInWEI, overflow);
+  return result;
 }
 
 extern BREthereumEther
-etherAdd (BREthereumEther e1, BREthereumEther e2) {
-    if (ETHEREUM_BOOLEAN_IS_TRUE(e1.positive) && ETHEREUM_BOOLEAN_IS_TRUE(e2.positive)) {
-        return etherCreate(addUInt256PP(e1.valueInWEI, e2.valueInWEI), WEI);
-    }
-    else if (ETHEREUM_BOOLEAN_IS_TRUE(e1.positive) && ETHEREUM_BOOLEAN_IS_FALSE(e2.positive)) {
-        return etherSub (e1, etherNegate(e2));
-    }
-    else {
-        return etherNegate (etherAdd (etherNegate(e1), etherNegate(e2)));
-    }
-}
+etherSub (BREthereumEther e1, BREthereumEther e2, int *negative) {
+  BREthereumEther result;
+  result.valueInWEI = subUInt256_Negative(e1.valueInWEI, e2.valueInWEI, negative);
+  return result;
 
-extern BREthereumEther
-etherSub (BREthereumEther e1, BREthereumEther e2) {
-    if (ETHEREUM_BOOLEAN_IS_TRUE(e1.positive) && ETHEREUM_BOOLEAN_IS_TRUE(e2.positive)) {
-        // TODO: Implement
-        return etherCreateZero();
-    }
-    else if (ETHEREUM_BOOLEAN_IS_TRUE(e1.positive) && ETHEREUM_BOOLEAN_IS_FALSE(e2.positive)) {
-        return etherAdd (e1, etherNegate(e2));
-    }
-    else {
-        return etherNegate (etherSub (etherNegate(e1), etherNegate(e2)));
-    }
 }
 
 //
@@ -163,59 +140,41 @@ etherSub (BREthereumEther e1, BREthereumEther e2) {
 //
 extern BREthereumBoolean
 etherIsEQ (BREthereumEther e1, BREthereumEther e2) {
-    return UInt256Eq (e1.valueInWEI, e2.valueInWEI) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
+  return eqUInt256 (e1.valueInWEI, e2.valueInWEI) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
 }
-
-//
 
 extern BREthereumBoolean
 etherIsGT (BREthereumEther e1, BREthereumEther e2) {
-    return ETHEREUM_BOOLEAN_FALSE;
+  return gtUInt256(e1.valueInWEI, e2.valueInWEI) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
 }
 
 extern BREthereumBoolean
 etherIsGE (BREthereumEther e1, BREthereumEther e2) {
-    return etherIsEQ (e1, e2)|| etherIsGT (e1, e2);
+  return geUInt256(e1.valueInWEI, e2.valueInWEI) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
+}
+
+extern BREthereumBoolean
+etherIsLT (BREthereumEther e1, BREthereumEther e2) {
+  return ltUInt256(e1.valueInWEI, e2.valueInWEI) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
+}
+
+extern BREthereumBoolean
+etherIsLE (BREthereumEther e1, BREthereumEther e2) {
+  return leUInt256(e1.valueInWEI, e2.valueInWEI) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
 }
 
 extern BREthereumBoolean
 etherIsZero (BREthereumEther e) {
-    return UInt256IsZero (e.valueInWEI) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
+  return UInt256IsZero (e.valueInWEI) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
 }
 
-
-static UInt256
-addUInt256PP (UInt256 x, UInt256 y) {
-    // TODO: Implement
-    return UINT256_ZERO;
-}
-
-static UInt256
-divideUInt256 (UInt256 numerator, UInt256 denominator) {
-    // TODO: Implement
-    return UINT256_ZERO;
-}
-
-static UInt256
-multiplyUInt256 (UInt256 numerator, UInt256 denominator) {
-    // TODO: Implement
-    return UINT256_ZERO;
-}
-
-static UInt256
-decodeUInt256 (const char *string) {
-    // TODO: Implement
-    return UINT256_ZERO;
-}
-
-static char *
-encodeUInt256 (UInt256 value) {
-    // TODO: Implement
-    return NULL;
-}
-
-static int
-gtUInt256 (UInt256 x) {
-    // TODO: Implement
-    return 0;
+extern BREthereumComparison
+etherCompare (BREthereumEther e1, BREthereumEther e2) {
+  switch (compareUInt256(e1.valueInWEI, e2.valueInWEI))
+  {
+    case -1: return ETHEREUM_COMPARISON_LT;
+    case  0: return ETHEREUM_COMPARISON_EQ;
+    case +1: return ETHEREUM_COMPARISON_GT;
+    default: assert (0);
+  }
 }

@@ -63,6 +63,7 @@ createHolding(BREthereumWalletHoldingType type);
 extern BREthereumHolding
 holdingCreateEther (BREthereumEther ether);
 
+// TODO: what is 'scale' - replace with 'decimals'?
 extern BREthereumHolding
 holdingCreateToken (UInt256 scale, UInt256 amount);
 
@@ -71,6 +72,27 @@ holdingGetType (BREthereumHolding holding);
 
 extern BRRlpItem
 holdingRlpEncode(BREthereumHolding holding, BRRlpCoder coder);
+
+//
+// Parsing
+//
+typedef enum {
+  ETHEREUM_HOLDING_PARSE_OK,
+  ETHEREUM_HOLDING_PARSE_EXCESSIVE_DIGITS,
+  ETHEREUM_HOLDING_PARSE_STRANGE_DIGITS,
+  ETHEREUM_HOLDING_PARSE_TOO_SMALL,
+  ETHEREUM_HOLDING_PARSE_TOO_LARGE
+} BREthereumHoldingParseStatus;
+
+  // amount
+  // number + power
+  //  "12.345" + digits 4 -> 123450
+  //  "12.345" + digits 18 -> 12345<15 zeros>
+extern BREthereumHolding
+holdingCreateEtherParse (const char *number, BREthereumEtherUnit unit, BREthereumHoldingParseStatus *status);
+
+extern BREthereumHolding
+holdingCreateTokenParse (const char *number, BREthereumHoldingParseStatus *status);
 
 /**
  * A Ethereum Token defines an ERC20 Token
