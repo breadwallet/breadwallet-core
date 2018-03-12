@@ -21,6 +21,8 @@
 
 #include <stdlib.h>
 #include <malloc.h>
+#include <arpa/inet.h>
+#include <BRChainParams.h>
 #include "BRPeerManager.h"
 #include "BRChainParams.h"
 #include "BRCoreJni.h"
@@ -83,6 +85,49 @@ Java_com_breadwallet_core_BRCorePeerManager_connect
         (JNIEnv *env, jobject thisObject) {
     BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
     BRPeerManagerConnect(peerManager);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePeerManager
+ * Method:    jniUseFixedPeer
+ * Signature: (Ljava/lang/String;I)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCorePeerManager_jniUseFixedPeer
+        (JNIEnv *env, jobject thisObject,
+         jstring nodeString,
+         jint port) {
+    BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
+    const BRChainParams *chainParams = BRPeerManagerChainParams(peerManager);
+
+    const char *host = (*env)->GetStringUTFChars(env, nodeString, NULL);
+
+    UInt128 address = UINT128_ZERO;
+    uint16_t _port = (uint16_t) port;
+
+    if (strlen(host) != 0) {
+        struct in_addr addr;
+        if (inet_pton(AF_INET, host, &addr) != 1) return JNI_FALSE;
+        address.u16[5] = 0xffff;
+        address.u32[3] = addr.s_addr;
+        if (port == 0) _port = chainParams->standardPort;
+    } else {
+        _port = 0;
+    }
+
+    BRPeerManagerSetFixedPeer(peerManager, address, _port);
+    return JNI_TRUE;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePeerManager
+ * Method:    getCurrentPeerName
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL
+Java_com_breadwallet_core_BRCorePeerManager_getCurrentPeerName
+        (JNIEnv *env, jobject thisObject) {
+    BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
+    return (*env)->NewStringUTF (env, BRPeerManagerDownloadPeerName(peerManager));
 }
 
 /*

@@ -116,7 +116,15 @@ public class BRCorePeerManager extends BRCoreJniReference {
 */
 
     //
+    // Fixed Peer
+    //
+    public boolean useFixedPeer (String node, int port) {
+        return jniUseFixedPeer(node, port);
+    }
 
+    protected native boolean jniUseFixedPeer (String node, int port);
+
+    public native String getCurrentPeerName ();
     /**
      * Disconnect from bitcoin peer-to-peer network (may cause syncFailed(), saveBlocks() or
      * savePeers() callbacks to fire)
