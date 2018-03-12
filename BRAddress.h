@@ -51,6 +51,7 @@ extern "C" {
 #define OP_PUSHDATA4   0x4e
 #define OP_1NEGATE     0x4f
 #define OP_1           0x51
+#define OP_16          0x60
 #define OP_DUP         0x76
 #define OP_EQUAL       0x87
 #define OP_EQUALVERIFY 0x88
@@ -79,10 +80,11 @@ const uint8_t *BRScriptData(const uint8_t *elem, size_t *dataLen);
 size_t BRScriptPushData(uint8_t *script, size_t scriptLen, const uint8_t *data, size_t dataLen);
 
 typedef struct {
-    char s[36];
+    char s[75];
 } BRAddress;
 
-#define BR_ADDRESS_NONE ((BRAddress) { "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0" })
+#define BR_ADDRESS_NONE ((BRAddress) { "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"\
+                                       "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0" })
 
 // writes the bitcoin address for a scriptPubKey to addr
 // returns the number of bytes written, or addrLen needed if addr is NULL
@@ -91,6 +93,10 @@ size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *scri
 // writes the bitcoin address for a scriptSig to addr
 // returns the number of bytes written, or addrLen needed if addr is NULL
 size_t BRAddressFromScriptSig(char *addr, size_t addrLen, const uint8_t *script, size_t scriptLen);
+
+// writes the bitcoin address for a witness to addr
+// returns the number of bytes written, or addrLen needed if addr is NULL
+size_t BRAddressFromWitness(char *addr, size_t addrLen, const uint8_t *witness, size_t witLen);
 
 // writes the scriptPubKey for addr to script
 // returns the number of bytes written, or scriptLen needed if script is NULL
