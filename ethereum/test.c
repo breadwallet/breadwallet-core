@@ -354,6 +354,7 @@ void runRlpTest () {
 #define TEST_PAPER_KEY    "army van defense carry jealous true garbage claim echo media make crunch"
 #define TEST_ETH_ADDR_CHK "0x2161DedC3Be05B7Bb5aa16154BcbD254E9e9eb68"
 #define TEST_ETH_ADDR     "0x2161dedc3be05b7bb5aa16154bcbd254e9e9eb68"
+// This is a compressed public key; we generate uncompress public keys as { 04 x y }
 #define TEST_ETH_PUBKEY   "0x03c026c4b041059c84a187252682b6f80cbbe64eb81497111ab6914b050a8936fd"
 #define TEST_ETH_PRIKEY   "0x73bf21bf06769f98dabcfac16c2f74e852da823effed12794e56876ede02d45d"
 
@@ -365,7 +366,7 @@ void runAddressTests (BREthereumAccount account) {
 
     printf ("      PaperKey: %p, %s\n", TEST_PAPER_KEY, TEST_PAPER_KEY);
 
-    const char *publicKeyString = addressPublicKeyAsString (address);
+    const char *publicKeyString = addressPublicKeyAsString (address, 1);
     printf ("    Public Key: %p, %s\n", publicKeyString, publicKeyString);
     assert (0 == strcmp (TEST_ETH_PUBKEY, publicKeyString));
 

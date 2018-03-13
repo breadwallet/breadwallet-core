@@ -89,7 +89,7 @@ addressAsString (BREthereumAddress address);
 
 #if defined (DEBUG)
 extern const char *
-addressPublicKeyAsString (BREthereumAddress address);
+addressPublicKeyAsString (BREthereumAddress address, int compressed);
 #endif
 
 extern BRRlpItem

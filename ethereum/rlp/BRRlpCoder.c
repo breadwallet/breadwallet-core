@@ -484,12 +484,11 @@ extern void
 encodeHex (char *target, size_t targetLen, uint8_t *source, size_t sourceLen) {
     assert (targetLen == 2 * sourceLen  + 1);
 
-    int i = 0;
-    for (; i < sourceLen && 2 * i < targetLen - 1; i++) {
+    for (int i = 0; i < sourceLen; i++) {
         target[2*i] = (uint8_t) _hexc (source[i] >> 4);
         target[2*i + 1] = (uint8_t) _hexc (source[i]);
     }
-    target[2*i] = '\0';
+    target[2*sourceLen] = '\0';
 }
 
 extern size_t

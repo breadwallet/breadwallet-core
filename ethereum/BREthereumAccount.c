@@ -284,15 +284,25 @@ addressAsString (BREthereumAddress address) {
 
 #if defined (DEBUG)
 extern const char *
-addressPublicKeyAsString (BREthereumAddress address) {
-    // TODO: Encode this properly....
-    size_t sourceLen = sizeof (address->publicKey)/2;
+addressPublicKeyAsString (BREthereumAddress address, int compressed) {
+  // The byte array at address->publicKey has the '04' 'uncompressed' prefix removed.  Thus
+  // the value in publicKey is uncompressed and 64 bytes.  As a string, this result will have
+  // an 0x0<n> prefix where 'n' is in { 4: uncompressed, 2: compressed even, 3: compressed odd }.
 
-    char *result = malloc (4 + sourceLen + 1);
-    strcpy (result, "0x03");  // encode properly...
-    encodeHex(&result[4], 2 * sourceLen + 1, address->publicKey, sourceLen);
+  // Default, uncompressed
+  char *prefix = "0x04";
+  size_t sourceLen = sizeof (address->publicKey);           // 64 bytes: { x y }
 
-    return result;
+  if (compressed) {
+    sourceLen /= 2;  // use 'x'; skip 'y'
+    prefix = (0 == address->publicKey[63] % 2 ? "0x02" : "0x03");
+  }
+
+  char *result = malloc (4 + 2 * sourceLen + 1);
+  strcpy (result, prefix);  // encode properly...
+  encodeHex(&result[4], 2 * sourceLen + 1, address->publicKey, sourceLen);
+  
+  return result;
 }
 #endif
 
