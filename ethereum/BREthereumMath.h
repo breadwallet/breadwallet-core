@@ -48,6 +48,13 @@ createUInt256 (uint64_t value);
 extern UInt256
 createUInt256Power (uint8_t digits, int *overflow);
 
+/**
+ * Create from a string in the provided base.  The string must consist of only characters
+ * in the base.  That is, avoid the '0x' prefix.
+ */
+extern UInt256
+createUInt256Parse (const char *digits, int base, int *error);
+
   /**
  * Return `x + y`
  */

@@ -23,6 +23,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#include <assert.h>
 #include "BREthereumMath.h"
 
 #define AS_UINT64(x)  ((uint64_t) (x))
@@ -188,3 +189,167 @@ compareUInt256 (UInt256 x, UInt256 y) {
              ? +1
              : -1));
 }
+/*
+// Convert the first `digits` characters from `string` into a UInt256.
+static UInt256
+etherCreatePartial (const char *string, int digits) {
+  assert (digits <= MAX64_BASE10_LENGTH);
+
+  char number[1 + MAX64_BASE10_LENGTH];
+  strncpy (number, string, MAX64_BASE10_LENGTH);
+  number[MAX64_BASE10_LENGTH] = '\0';
+
+  uint64_t value = strtoull (number, NULL, 10);
+  return createUInt256 (value);
+}
+
+static UInt256
+etherScaleDigits (UInt256 value, int digits, int *overflow) {
+  UInt256 scale = createUInt256Power(digits, overflow);
+  return (*overflow
+          ? UINT256_ZERO
+          : mulUInt256_Overflow(value, scale, overflow));
+}
+
+static UInt256
+etherCreateFull (const char *string, BREthereumEtherParseStatus *status) {
+  UInt256 value = UINT256_ZERO;
+
+  long length = strlen (string);
+  for (long index = 0; index < length; index += MAX64_BASE10_LENGTH) {
+    if (index == 0)
+      value = etherCreatePartial(&string[index], MAX64_BASE10_LENGTH);
+    else {
+      int scaleOverflow = 0, addOverflow = 0;
+      value = etherScaleDigits(value,
+                               (length - index >= MAX64_BASE10_LENGTH ? MAX64_BASE10_LENGTH : (int) (length - index)),
+                               &scaleOverflow);
+      value = addUInt256_Overflow(value,
+                                  etherCreatePartial(&string[index], MAX64_BASE10_LENGTH),
+                                  &addOverflow);
+      if (scaleOverflow || addOverflow) {
+        *status = ETHEREUM_ETHER_PARSE_OVERFLOW;
+        return UINT256_ZERO;
+      }
+    }
+
+  }
+
+  *status = ETHEREUM_ETHER_PARSE_OK;
+  return value;
+}
+*/
+
+//    > max064
+//    18446744073709551615
+//    > (number->string max064 2)
+//    "1111111111111111111111111111111111111111111111111111111111111111"
+//    > (string-length (number->string max064 2))
+//    64
+//    > (number->string max064 10)
+//    "18446744073709551615"
+//    > (string-length (number->string max064 10))
+//    20
+//    >(number->string max064 16)
+//    "FFFFFFFFFFFFFFFF"
+//    > (string-length (number->string max064 16))
+//    16
+
+// The maximum digits allows in a string so as to prevent overflow in uint64_t
+static int
+parseMaximumDigitsForUint64InBase (int base) {
+  switch (base) {
+    case 2:  return 64;
+    case 10: return 19;
+    case 16: return 16;
+    default: return -1;
+  }
+}
+
+static int
+paraeMaximumDigitsForUint256InBase (int base) {
+  switch (base) {
+    case 2:  return 256;
+    case 10: return 78;
+    case 16: return 64;
+    default: return 0;
+  }
+}
+
+extern UInt256
+parseUInt256Power (int digits, int base, int *overflow) {
+  int maxDigits = parseMaximumDigitsForUint64InBase(base);
+
+  if (digits > maxDigits) {
+    *overflow = 1;
+    return UINT256_ZERO;
+  }
+
+  uint64_t value = 1;
+  while (digits-- > 0)
+    value *= base;  // slow, but yeah.
+  *overflow = 0;
+  return createUInt256(value);
+}
+
+static UInt256
+parseUInt256ScaleByPower (UInt256 value, int digits, int base, int *overflow) {
+  UInt256 scale = parseUInt256Power(digits, base, overflow);
+  return (*overflow
+          ? UINT256_ZERO
+          : mulUInt256_Overflow(value, scale, overflow));
+}
+
+static UInt256
+parseUInt64 (const char *string, int digits, int base) {
+  int maxDigits = parseMaximumDigitsForUint64InBase(base);
+  assert (digits <= maxDigits );
+
+  //
+  char number[1 + maxDigits];
+  strncpy (number, string, maxDigits);
+  number[maxDigits] = '\0';
+
+  uint64_t value = strtoull (number, NULL, base);
+  return createUInt256 (value);
+}
+
+extern UInt256
+createUInt256Parse (const char *string, int base, int *error) {
+  UInt256 value = UINT256_ZERO;
+
+  int maxDigits = paraeMaximumDigitsForUint256InBase(base);
+  long length = strlen (string);
+  assert (length <= maxDigits);
+
+  // We'll process this many digits in `string`.
+  int stringChunks = parseMaximumDigitsForUint64InBase(base);
+
+  for (long index = 0; index < length; index += stringChunks) {
+    // On the first time through, get an initial value
+    if (index == 0)
+      value = parseUInt64(string, stringChunks, base);
+
+    // Otherwise, we'll scale value and and in the next chunk.
+    else {
+      // This many remain - if more than stringChunks, we'll scale by just stringChunks
+      int remainingDigits = (int) (length - index);
+      int scalingDigits = remainingDigits >= stringChunks ? stringChunks : remainingDigits;
+
+      int scaleOverflow = 0, addOverflow = 0;
+
+      // Scale (aka shift the value by scalingDigits)
+      value = parseUInt256ScaleByPower(value, scalingDigits, base, &scaleOverflow);
+
+      // Add in the next chuck.
+      value = addUInt256_Overflow(value, parseUInt64(&string[index], stringChunks, base), &addOverflow);
+      if (scaleOverflow || addOverflow) {
+        *error = 1;
+        return UINT256_ZERO;
+      }
+    }
+  }
+  *error = 0;
+  return value;
+}
+

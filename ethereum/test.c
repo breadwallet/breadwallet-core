@@ -195,7 +195,31 @@ runMathMulTests () {
 }
 
 static void
+runMathParseTests () {
+  int error;
+  UInt256 r = UINT256_ZERO;
+  UInt256 a = UINT256_ZERO;
+
+  // "0x09184e72a000" // 10000000000000
+  r = createUInt256Parse("09184e72a000", 16, &error);
+  a.u64[0] = 10000000000000;
+  assert (0 == error && eqUInt256(r, a));
+
+  // "0x0234c8a3397aab58" // 158972490234375000
+  r = createUInt256Parse("0234c8a3397aab58", 16, &error);
+  a.u64[0] = 158972490234375000;
+  assert (0 == error && eqUInt256(r, a));
+
+  // 115792089237316195423570985008687907853269984665640564039457584007913129639935
+  r = createUInt256Parse("115792089237316195423570985008687907853269984665640564039457584007913129639935", 10, &error);
+  a.u64[0] = a.u64[1] = a.u64[2] = a.u64[3] = UINT64_MAX;
+  assert (0 == error && eqUInt256(r, a));
+
+}
+
+static void
 runMathTests() {
+  runMathParseTests ();
   runMathAddTests();
   runMathSubTests();
   runMathMulTests();
