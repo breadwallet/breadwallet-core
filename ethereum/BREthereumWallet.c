@@ -56,6 +56,11 @@ struct BREthereumWalletRecord {
     BREthereumAddress address;      // Primary Address
 
     /**
+     * The wallet's network.
+     */
+    BREthereumNetwork network;
+
+    /**
      * The wallet' default gasPrice. gasPrice is the maximum price of gas you are willing to pay
      * for a transaction of this wallet's holding type.  This default value can be 'overridden'
      * when creating a specific transaction.
@@ -88,6 +93,7 @@ struct BREthereumWalletRecord {
 static BREthereumWallet
 walletCreateDetailed (BREthereumAccount account,
                       BREthereumAddress address,
+                      BREthereumNetwork network,
                       BREthereumWalletHoldingType type,
                       BREthereumToken optionalToken) {
 
@@ -98,6 +104,7 @@ walletCreateDetailed (BREthereumAccount account,
 
     wallet->account = account;
     wallet->address = address;
+    wallet->network = network;
 
     wallet->holding = createHolding(type);
     wallet->token = optionalToken;
@@ -115,32 +122,38 @@ walletCreateDetailed (BREthereumAccount account,
 }
 
 extern BREthereumWallet
-walletCreate(BREthereumAccount account)
+walletCreate(BREthereumAccount account,
+             BREthereumNetwork network)
 {
     return walletCreateWithAddress
             (account,
-             accountGetPrimaryAddress(account));
+             accountGetPrimaryAddress(account),
+             network);
 }
 
 extern BREthereumWallet
 walletCreateWithAddress(BREthereumAccount account,
-                        BREthereumAddress address) {
+                        BREthereumAddress address,
+                        BREthereumNetwork network) {
     return walletCreateDetailed
             (account,
-            address,
-            WALLET_HOLDING_ETHER,
-            tokenCreateNone());
+             address,
+             network,
+             WALLET_HOLDING_ETHER,
+             tokenCreateNone());
 }
 
 extern BREthereumWallet
 walletCreateHoldingToken(BREthereumAccount account,
                          BREthereumAddress address,
+                         BREthereumNetwork network,
                          BREthereumToken token) {
     return walletCreateDetailed
             (account,
-            address,
-            WALLET_HOLDING_TOKEN,
-            token);
+             address,
+             network,
+             WALLET_HOLDING_TOKEN,
+             token);
 }
 
 extern BREthereumTransaction
@@ -210,7 +223,7 @@ walletSignTransaction(BREthereumWallet wallet,
 
     // RLP Encode the UNSIGNED transaction
     BRRlpData transactionUnsignedRLP = transactionEncodeRLP
-            (transaction, TRANSACTION_RLP_UNSIGNED);
+            (transaction, wallet->network, TRANSACTION_RLP_UNSIGNED);
 
     // Sign the RLP Encoded bytes.
     BREthereumSignature signature = accountSignBytes
@@ -229,7 +242,7 @@ extern BRRlpData
 walletGetRawTransaction(BREthereumWallet wallet,
                         BREthereumTransaction transaction) {
     return ETHEREUM_BOOLEAN_TRUE == transactionIsSigned(transaction)
-           ? transactionEncodeRLP(transaction, TRANSACTION_RLP_SIGNED)
+           ? transactionEncodeRLP(transaction, wallet->network, TRANSACTION_RLP_SIGNED)
            : createRlpDataEmpty();
 }
 

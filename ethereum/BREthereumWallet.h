@@ -29,6 +29,7 @@
 #include "BREthereumEther.h"
 #include "BREthereumGas.h"
 #include "BREthereumAccount.h"
+#include "BREthereumNetwork.h"
 #include "BREthereumTransaction.h"
 
 #ifdef __cplusplus
@@ -55,7 +56,8 @@ typedef struct BREthereumWalletRecord *BREthereumWallet;
  * @return
  */
 extern BREthereumWallet
-walletCreate(BREthereumAccount account);
+walletCreate(BREthereumAccount account,
+             BREthereumNetwork network);
 
 /**
  * Create a wallet holding ETH; will use `address` as the wallet's address.  The provided address
@@ -67,7 +69,8 @@ walletCreate(BREthereumAccount account);
  */
 extern BREthereumWallet
 walletCreateWithAddress(BREthereumAccount account,
-                        BREthereumAddress address);
+                        BREthereumAddress address,
+                        BREthereumNetwork network);
 
 /**
  * Create a Wallet holding Token.
@@ -79,6 +82,7 @@ walletCreateWithAddress(BREthereumAccount account,
 extern BREthereumWallet
 walletCreateHoldingToken(BREthereumAccount account,
                          BREthereumAddress address,
+                         BREthereumNetwork network,
                          BREthereumToken token);
 
 /**

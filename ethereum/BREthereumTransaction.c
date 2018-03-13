@@ -30,28 +30,30 @@
 #include "BREthereumAccount.h"
 
 struct BREthereumTransactionRecord {
-    BREthereumAddress sourceAddress;
-    BREthereumAddress targetAddress;
-    BREthereumHolding amount;
-    BREthereumGasPrice gasPrice;
-    BREthereumGas gasLimit;
+  BREthereumAddress sourceAddress;
+  BREthereumAddress targetAddress;
+  BREthereumHolding amount;
+  BREthereumGasPrice gasPrice;
+  BREthereumGas gasLimit;
+  uint64_t nonce;
+  BREthereumChainId chainId;   // EIP-135 - chainId - "Since EIP-155 use chainId for v"
 
-    char *data;
+  /**
+   *
+   */
+   char *data;
 
-    /**
-     * The signature, if signed (signer is not NULL).  This is a 'VRS' signature.
-     */
-    BREthereumSignature signature;
+   // hash
 
-    /**
-     * The signing account, if signed.  NULL is not signed.
-     */
-    BREthereumAccount signer;
+   /**
+   * The signature, if signed (signer is not NULL).  This is a 'VRS' signature.
+   */
+  BREthereumSignature signature;
 
-    uint64_t nonce;
-    // hash
-
-    // EIP-135 - chainId - "Since EIP-155 use chainId for v"
+  /**
+   * The signing account, if signed.  NULL if not signed.
+   */
+  BREthereumAccount signer;
 };
 
 extern BREthereumTransaction
@@ -69,7 +71,7 @@ transactionCreate(BREthereumAddress sourceAddress,
     transaction->gasPrice = gasPrice;
     transaction->gasLimit = gasLimit;
     transaction->nonce = nonce;
-
+    transaction->chainId = 0;
     transaction->signer = NULL;
 
     return transaction;
@@ -115,10 +117,16 @@ transactionSetData (BREthereumTransaction transaction, char *data) {
 //
 extern void
 transactionSign(BREthereumTransaction transaction,
-                BREthereumAccount signer,
+                BREthereumAccount account,
                 BREthereumSignature signature) {
-    transaction->signer = signer;
+    transaction->signer = account;
     transaction->signature = signature;
+
+    // The signature algorithm does not account for EIP-155 and thus the chainID.  We are signing
+    // transactions according to EIP-155.  Thus v = CHAIN_ID * 2 + 35 or v = CHAIN_ID * 2 + 36
+    // whereas the non-EIP-155 value of v is { 27, 28 }
+    assert (SIGNATURE_TYPE_RECOVERABLE == signature.type);
+    assert (27 == signature.sig.recoverable.v || 28 == signature.sig.recoverable.v);
 }
 
 extern BREthereumAccount
@@ -126,10 +134,11 @@ transactionGetSigner (BREthereumTransaction transaction) {
     return transaction->signer; // NULL is not signed.
 }
 
-
 extern BREthereumBoolean
 transactionIsSigned (BREthereumTransaction transaction) {
-  return NULL != transactionGetSigner (transaction) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
+  return (NULL != transactionGetSigner (transaction)
+          ? ETHEREUM_BOOLEAN_TRUE
+          : ETHEREUM_BOOLEAN_FALSE);
 }
 
 //
@@ -138,6 +147,7 @@ transactionIsSigned (BREthereumTransaction transaction) {
 
 extern BRRlpData
 transactionEncodeRLP (BREthereumTransaction transaction,
+                      BREthereumNetwork network,
                       BREthereumTransactionRLPType type) {
 
   BRRlpCoder coder = rlpCoderCreate();
@@ -153,12 +163,28 @@ transactionEncodeRLP (BREthereumTransaction transaction,
   items[5] = rlpEncodeItemString(coder, transaction->data);
   itemsCount = 6;
 
+  // EIP-155:
+  // If block.number >= FORK_BLKNUM and v = CHAIN_ID * 2 + 35 or v = CHAIN_ID * 2 + 36, then when
+  // computing the hash of a transaction for purposes of signing or recovering, instead of hashing
+  // only the first six elements (i.e. nonce, gasprice, startgas, to, value, data), hash nine
+  // elements, with v replaced by CHAIN_ID, r = 0 and s = 0. The currently existing signature
+  // scheme using v = 27 and v = 28 remains valid and continues to operate under the same rules
+  // as it does now.
+
+  transaction->chainId = networkGetChainId(network);
+
   switch (type) {
     case TRANSACTION_RLP_UNSIGNED:
+      // For EIP-155, encode { v, r, s } with v as the chainId and both r and s as empty.
+      items[6] = rlpEncodeItemUInt64(coder, transaction->chainId);
+      items[7] = rlpEncodeItemString(coder, "");
+      items[8] = rlpEncodeItemString(coder, "");
+      itemsCount += 3;
       break;
 
     case TRANSACTION_RLP_SIGNED:
-      items[6] = rlpEncodeItemUInt64(coder, transaction->signature.sig.recoverable.v);
+      // For EIP-155, encode v with the chainID.
+      items[6] = rlpEncodeItemUInt64(coder, transaction->signature.sig.recoverable.v + 8 + 2 * transaction->chainId);
 
       items[7] = rlpEncodeItemBytes (coder,
                           transaction->signature.sig.recoverable.r,

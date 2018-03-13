@@ -30,16 +30,21 @@
 
 #include <stdint.h>
 #include "BREthereumEther.h"
+#include "BREthereumNetwork.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef struct {
-    int callback_1;
-    int callback_2;
-    char *url; //json_rpc??
+  BREthereumNetwork network;
+  int callback_1;
+  int callback_2;
+  char *url; //json_rpc??
 } BREthereumLightNodeConfiguration;
+
+extern BREthereumLightNodeConfiguration
+lightNodeConfigurationCreate (BREthereumNetwork network /* ... */);
 
 // Errors
 typedef enum {
@@ -86,7 +91,8 @@ lightNodeGetAccountPrimaryAddress (BREthereumLightNode node,
  */
 extern BREthereumLightNodeWalletId
 lightNodeCreateWallet (BREthereumLightNode node,
-                       BREthereumLightNodeAccountId account);
+                       BREthereumLightNodeAccountId account,
+                       BREthereumNetwork network);
 
 // Token
 

@@ -502,10 +502,10 @@ void runSignatureTests (BREthereumAccount account) {
 #define TEST_TRANS1_ETHER_AMOUNT_UNIT WEI
 #define TEST_TRANS1_DATA ""
 
-#define TEST_TRANS1_RESULT "e9098504a817c800825208943535353535353535353535353535353535353535880de0b6b3a764000080"  // Leave off: signature { 01 80 80 }, replace 0xec with 0xe9
+#define TEST_TRANS1_RESULT "ec098504a817c800825208943535353535353535353535353535353535353535880de0b6b3a764000080018080"
 
-void runTransactionTests1 (BREthereumAccount account) {
-    BREthereumWallet  wallet = walletCreate(account);
+void runTransactionTests1 (BREthereumAccount account, BREthereumNetwork network) {
+    BREthereumWallet  wallet = walletCreate(account, network);
 
     BREthereumTransaction transaction = walletCreateTransactionDetailed(
             wallet,
@@ -515,7 +515,8 @@ void runTransactionTests1 (BREthereumAccount account) {
             gasCreate(TEST_TRANS1_GAS_LIMIT),
             TEST_TRANS1_NONCE);
 
-    BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, TRANSACTION_RLP_UNSIGNED);
+    assert (1 == networkGetChainId(network));
+    BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
 
     char result[2 * dataUnsignedTransaction.bytesCount + 1];
     encodeHex(result, 2 * dataUnsignedTransaction.bytesCount + 1, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
@@ -547,13 +548,11 @@ void runTransactionTests1 (BREthereumAccount account) {
 #define TEST_TRANS2_DATA ""
 
 #define TEST_TRANS2_RESULT_SIGNED   "f86b01847735940082520894873feb0644a6fbb9532bb31d1c03d4538aadec308806f05b59d3b200008026a030013044b571726723302bcf8dfad8765cf676db0844277a6f8cf63d04894008a069edd285604fdf010d96b8b7d9c547f9599b8ac51c50b8b97076bb9955c0bdde"
-#define TEST_TRANS2_RESULT_UNSIGNED   "e801847735940082520894873feb0644a6fbb9532bb31d1c03d4538aadec308806f05b59d3b2000080"
-//                                     e801847735940082520894873feb0644a6fbb9532bb31d1c03d4538aadec308806f05b59d3b2000080
+#define TEST_TRANS2_RESULT_UNSIGNED   "eb01847735940082520894873feb0644a6fbb9532bb31d1c03d4538aadec308806f05b59d3b2000080018080"
 
+void runTransactionTests2 (BREthereumAccount account, BREthereumNetwork network) {
 
-void runTransactionTests2 (BREthereumAccount account) {
-
-    BREthereumWallet  wallet = walletCreate(account);
+    BREthereumWallet  wallet = walletCreate(account, network);
 
     BREthereumTransaction transaction = walletCreateTransactionDetailed(
             wallet,
@@ -563,7 +562,8 @@ void runTransactionTests2 (BREthereumAccount account) {
             gasCreate(TEST_TRANS2_GAS_LIMIT),
             TEST_TRANS2_NONCE);
 
-    BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, TRANSACTION_RLP_UNSIGNED);
+    assert (1 == networkGetChainId(network));
+    BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
 
     char result[2 * dataUnsignedTransaction.bytesCount + 1];
     encodeHex(result, 2 * dataUnsignedTransaction.bytesCount + 1, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
@@ -571,11 +571,11 @@ void runTransactionTests2 (BREthereumAccount account) {
     assert (0 == strcmp (result, TEST_TRANS2_RESULT_UNSIGNED));
 }
 
-void runTransactionTests (BREthereumAccount account) {
+void runTransactionTests (BREthereumAccount account, BREthereumNetwork network) {
     printf ("\n== Transaction\n");
 
-    runTransactionTests1 (account);
-    runTransactionTests2 (account);
+    runTransactionTests1 (account, network);
+    runTransactionTests2 (account, network);
 }
 
 //
@@ -584,11 +584,12 @@ void runTransactionTests (BREthereumAccount account) {
 void runAccountTests () {
 
     BREthereumAccount account = createAccount(TEST_PAPER_KEY);
+    BREthereumNetwork network = ethereumMainnet;
 
     printf ("==== Account: %p\n", account);
     runAddressTests(account);
     runSignatureTests(account);
-    runTransactionTests(account);
+    runTransactionTests(account, network);
 
     accountFree (account);
     printf ("\n\n");
@@ -622,8 +623,9 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
   BREthereumLightNodeConfiguration configuration;
   BREthereumLightNode node = createLightNode(configuration);
   BREthereumLightNodeAccountId account = lightNodeCreateAccount(node, paperKey);
+  BREthereumNetwork network = ethereumMainnet;
   // A wallet holding Ether
-  BREthereumLightNodeWalletId wallet = lightNodeCreateWallet(node, account);
+  BREthereumLightNodeWalletId wallet = lightNodeCreateWallet(node, account, network);
   // END - One Time Code Block
 
   // Optional - will provide listNodeWalletCreateTransactionDetailed.
@@ -655,7 +657,7 @@ void runLightNodeTests () {
 
 // Local (PaperKey) -> LocalTest @ 5 GWEI gasPrice @ 21000 gasLimit & 0.0001/2 ETH
 #define ACTUAL_RAW_TX "f86a01841dcd65008252089422583f6c7dae5032f4d72a10b9e9fa977cbfc5f68701c6bf52634000801ca05d27cbd6a84e5d34bb20ce7dade4a21efb4da7507958c17d7f92cfa99a4a9eb6a005fcb9a61e729b3c6b0af3bad307ef06cdf5c5578615fedcc4163a2aa2812260"
-// eth.sendRawTransaction ('0xf86a01841dcd65008252089422583f6c7dae5032f4d72a10b9e9fa977cbfc5f68701c6bf52634000801ca05d27cbd6a84e5d34bb20ce7dade4a21efb4da7507958c17d7f92cfa99a4a9eb6a005fcb9a61e729b3c6b0af3bad307ef06cdf5c5578615fedcc4163a2aa2812260', function (err, hash) { if (!err) console.log(hash); });
+// eth.sendRawTran ('0xf86a01841dcd65008252089422583f6c7dae5032f4d72a10b9e9fa977cbfc5f68701c6bf52634000801ca05d27cbd6a84e5d34bb20ce7dade4a21efb4da7507958c17d7f92cfa99a4a9eb6a005fcb9a61e729b3c6b0af3bad307ef06cdf5c5578615fedcc4163a2aa2812260', function (err, hash) { if (!err) console.log(hash); });
 extern void
 reallySend () {
   char paperKey[1024];

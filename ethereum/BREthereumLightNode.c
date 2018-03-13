@@ -31,6 +31,22 @@
 #include "BREthereumWallet.h"
 #include "BREthereumHolding.h"
 
+//
+// Light Node Configuration
+//
+extern BREthereumLightNodeConfiguration
+lightNodeConfigurationCreate (BREthereumNetwork network /* ... */) {
+  BREthereumLightNodeConfiguration configuration;
+  configuration.network = network;
+  configuration.callback_1 = 1;
+  configuration.callback_2 = 2;
+  configuration.url = "";
+  return configuration;
+}
+
+//
+// Light Node
+//
 struct BREthereumLightNodeRecord {
     BREthereumLightNodeConfiguration configuration;
     BREthereumAccount account;
@@ -89,14 +105,15 @@ ligthNodeHasWallet (BREthereumLightNode node,
 
 extern BREthereumLightNodeWalletId
 lightNodeCreateWallet (BREthereumLightNode node,
-                       BREthereumLightNodeAccountId accountId) {
+                       BREthereumLightNodeAccountId accountId,
+                       BREthereumNetwork network) {
 
     BREthereumAccount account = (BREthereumAccount) accountId;
     if (node->account != (BREthereumAccount) account) return NULL;
 
     BREthereumAddress address = accountGetPrimaryAddress(account);
 
-    BREthereumWallet wallet = walletCreateWithAddress(account, address);
+    BREthereumWallet wallet = walletCreateWithAddress(account, address, network);
 
     lightNodeInsertWallet(node, wallet);
     return (void *) wallet;

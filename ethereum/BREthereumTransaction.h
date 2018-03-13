@@ -26,12 +26,12 @@
 #ifndef BR_Ethereum_Transaction_H
 #define BR_Ethereum_Transaction_H
 
+#include "BREthereumNetwork.h"
 #include "BREthereumAccount.h"
 #include "BREthereumEther.h"
 #include "BREthereumGas.h"
-
-#include "rlp/BRRlp.h"
 #include "BREthereumHolding.h"
+#include "rlp/BRRlp.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -67,7 +67,7 @@ transactionSetData (BREthereumTransaction transaction, char *data);
 
 extern void
 transactionSign(BREthereumTransaction transaction,
-                BREthereumAccount signer,
+                BREthereumAccount account,
                 BREthereumSignature signature);
 
 extern BREthereumAccount
@@ -84,8 +84,13 @@ typedef enum {
     TRANSACTION_RLP_UNSIGNED
 } BREthereumTransactionRLPType;
 
+/**
+ * RLP encode transaction for the provided network with the specified type.  Different networks
+ * have different RLP encodings - notably the network's chainId is part of the encoding.
+ */
 extern BRRlpData
 transactionEncodeRLP (BREthereumTransaction transaction,
+                      BREthereumNetwork network,
                       BREthereumTransactionRLPType type);
 
 extern BREthereumTransaction
