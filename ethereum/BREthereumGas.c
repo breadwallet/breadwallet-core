@@ -24,6 +24,7 @@
 //  THE SOFTWARE.
 
 #include "BREthereumGas.h"
+#include <assert.h>
 
 //
 // Gas

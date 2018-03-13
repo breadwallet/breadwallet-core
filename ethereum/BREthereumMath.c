@@ -23,7 +23,9 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 #include "BREthereumMath.h"
 
 #define AS_UINT64(x)  ((uint64_t) (x))

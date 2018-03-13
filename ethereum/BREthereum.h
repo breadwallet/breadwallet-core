@@ -26,12 +26,16 @@
 #ifndef BR_Ethereum_H
 #define BR_Ethereum_H
 
+#include "rlp/BRRlp.h"
+#include "BREthereumMath.h"
 #include "BREthereumEther.h"
 #include "BREthereumGas.h"
 #include "BREthereumAccount.h"
-#include "BREthereumTransaction.h"
+#include "BREthereumNetwork.h"
 #include "BREthereumHolding.h"
 #include "BREthereumContract.h"
+#include "BREthereumTransaction.h"
 #include "BREthereumWallet.h"
+#include "BREthereumLightNode.h"
 
 #endif // BR_Ethereum_H

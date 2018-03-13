@@ -24,6 +24,8 @@
 //  THE SOFTWARE.
 
 #include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 #include "BREthereumEther.h"
 
 #if LITTLE_ENDIAN != BYTE_ORDER

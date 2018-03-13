@@ -25,6 +25,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include "BREthereumTransaction.h"
 #include "BREthereumHolding.h"
 #include "BREthereumAccount.h"
