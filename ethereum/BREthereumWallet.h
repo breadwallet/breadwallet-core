@@ -143,6 +143,12 @@ walletGetRawTransactionHexEncoded (BREthereumWallet wallet,
                                    const char *prefix);
 
 /**
+*
+*/
+extern BREthereumAddress
+walletGetAddress (BREthereumWallet wallet);
+
+/**
  * Get the wallet's default Gas Limit.
  *
  * @param wallet

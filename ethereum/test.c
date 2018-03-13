@@ -644,7 +644,8 @@ void runAccountTests () {
 void prepareTransaction (const char *paperKey, const char *recvAddr, const uint64_t gasPrice, const uint64_t gasLimit, const uint64_t amount) {
 
   // START - One Time Code Block
-  BREthereumLightNodeConfiguration configuration;
+  BREthereumLightNodeConfiguration configuration =
+    lightNodeConfigurationCreateLES(ethereumMainnet, 0);
   BREthereumLightNode node = createLightNode(configuration);
   BREthereumLightNodeAccountId account = lightNodeCreateAccount(node, paperKey);
   BREthereumNetwork network = ethereumMainnet;

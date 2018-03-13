@@ -35,12 +35,25 @@
 // Light Node Configuration
 //
 extern BREthereumLightNodeConfiguration
-lightNodeConfigurationCreate (BREthereumNetwork network /* ... */) {
+lightNodeConfigurationCreateLES (BREthereumNetwork network /* ... */, int foo) {
   BREthereumLightNodeConfiguration configuration;
   configuration.network = network;
-  configuration.callback_1 = 1;
-  configuration.callback_2 = 2;
-  configuration.url = "";
+  configuration.type = NODE_TYPE_LES;
+  configuration.u.les.foo = foo;
+  return configuration;
+}
+
+extern BREthereumLightNodeConfiguration
+lightNodeConfigurationCreateJSON_RPC(BREthereumNetwork network,
+                                     JsonRpcGetBalance funcGetBalance,
+                                     JsonRpcGetGasPrice functGetGasPrice,
+                                     JsonRpcEstimateGas funcEstimateGas) {
+  BREthereumLightNodeConfiguration configuration;
+  configuration.network = network;
+  configuration.type = NODE_TYPE_JSON_RPC;
+  configuration.u.json_rpc.funcGetBalance = funcGetBalance;
+  configuration.u.json_rpc.functGetGasPrice = functGetGasPrice;
+  configuration.u.json_rpc.funcEstimateGas = funcEstimateGas;
   return configuration;
 }
 
@@ -52,6 +65,7 @@ struct BREthereumLightNodeRecord {
     BREthereumAccount account;
     BREthereumWallet  wallets[10];  // for now
     BREthereumTransaction transactions[1000]; // for now
+    unsigned int requestId;
 };
 
 extern BREthereumLightNode
@@ -137,6 +151,61 @@ lightNodeCreateEtherAmountUnit (BREthereumLightNode node,
                                 uint64_t amountInUnit,
                                 BREthereumEtherUnit unit) {
   return etherCreateNumber(amountInUnit, unit);
+}
+//
+// Wallet
+//
+extern BREthereumEther
+lightNodeUpdateWalletBalance (BREthereumLightNode node,
+                              BREthereumLightNodeWalletId walletId) {
+  BREthereumWallet wallet = (BREthereumWallet) walletId;
+
+  switch (node->configuration.type) {
+    case NODE_TYPE_JSON_RPC: {
+      const char *address = addressAsString(walletGetAddress(wallet));
+
+      int error = 0;
+      const char *result = node->configuration.u.json_rpc.funcGetBalance (++node->requestId, address);
+      assert (0 == strcmp (result, "0x"));
+      UInt256 amount = createUInt256Parse(&result[2], 16, &error);
+      return etherCreate(amount);
+    }
+    case NODE_TYPE_LES:
+      assert (0);
+  }
+}
+
+extern BREthereumGas
+lightNodeUpdateWalletEstimatedGas (BREthereumLightNode node,
+                                BREthereumLightNodeWalletId wallet) {
+  switch (node->configuration.type) {
+    case NODE_TYPE_JSON_RPC: {
+      int error = 0;
+      const char *result = node->configuration.u.json_rpc.functGetGasPrice (++node->requestId);
+      assert (0 == strcmp (result, "0x"));
+      UInt256 amount = createUInt256Parse(&result[2], 16, &error);
+      assert (0 == amount.u64[1] && 0 == amount.u64[2] && 0 == amount.u64[3]);
+      return gasCreate(amount.u64[0]);
+    }
+    case NODE_TYPE_LES:
+      assert (0);
+  }
+}
+
+extern BREthereumGasPrice
+lightNodeUpdateWalletEstimatedGasPrice (BREthereumLightNode node,
+                                     BREthereumLightNodeWalletId wallet) {
+  switch (node->configuration.type) {
+    case NODE_TYPE_JSON_RPC: {
+      int error = 0;
+      const char *result = node->configuration.u.json_rpc.functGetGasPrice (++node->requestId);
+      assert (0 == strcmp (result, "0x"));
+      UInt256 amount = createUInt256Parse(&result[2], 16, &error);
+      return gasPriceCreate(etherCreate(amount));
+    }
+    case NODE_TYPE_LES:
+      assert (0);
+  }
 }
 
 //

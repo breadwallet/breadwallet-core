@@ -30,21 +30,52 @@
 
 #include <stdint.h>
 #include "BREthereumEther.h"
+#include "BREthereumGas.h"
 #include "BREthereumNetwork.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+typedef enum {
+  NODE_TYPE_JSON_RPC,
+  NODE_TYPE_LES
+} BREthereumLightNodeType;
+
+//
+// JSON RPC Support
+//
+typedef const char* (*JsonRpcGetBalance) (int id, const char *account);
+typedef const char* (*JsonRpcGetGasPrice) (int id);
+typedef const char* (*JsonRpcEstimateGas) (int id, const char *to, const char *amount, const char *data);
+
 typedef struct {
   BREthereumNetwork network;
-  int callback_1;
-  int callback_2;
-  char *url; //json_rpc??
+  BREthereumLightNodeType type;
+  union {
+    //
+    struct {
+      JsonRpcGetBalance funcGetBalance;
+      JsonRpcGetGasPrice functGetGasPrice;
+      JsonRpcEstimateGas funcEstimateGas;
+    } json_rpc;
+
+    //
+    struct {
+      int foo;
+    } les;
+  } u;
 } BREthereumLightNodeConfiguration;
 
 extern BREthereumLightNodeConfiguration
-lightNodeConfigurationCreate (BREthereumNetwork network /* ... */);
+lightNodeConfigurationCreateLES (BREthereumNetwork network,
+                                int foo);
+
+extern BREthereumLightNodeConfiguration
+lightNodeConfigurationCreateJSON_RPC(BREthereumNetwork network,
+                                     JsonRpcGetBalance funcGetBalance,
+                                     JsonRpcGetGasPrice functGetGasPrice,
+                                     JsonRpcEstimateGas funcEstimateGas);
 
 // Errors
 typedef enum {
@@ -123,6 +154,21 @@ extern BREthereumEther
 lightNodeCreateEtherAmountUnit (BREthereumLightNode node,
                                 uint64_t amountInUnit,
                                 BREthereumEtherUnit unit);
+
+//
+// Wallet Updates
+//
+extern BREthereumEther
+lightNodeUpdateWalletBalance (BREthereumLightNode node,
+                              BREthereumLightNodeWalletId wallet);
+
+extern BREthereumGas
+lightNodeUpdateWalletEstimatedGas (BREthereumLightNode node,
+                                   BREthereumLightNodeWalletId wallet);
+
+extern BREthereumGasPrice
+lightNodeUpdateWalletEstimatedGasPrice (BREthereumLightNode node,
+                                       BREthereumLightNodeWalletId wallet);
 
 //
 // Wallet Defaults

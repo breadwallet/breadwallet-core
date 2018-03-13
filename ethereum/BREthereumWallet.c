@@ -268,6 +268,11 @@ walletGetRawTransactionHexEncoded (BREthereumWallet wallet,
   return result;
 }
 
+extern BREthereumAddress
+walletGetAddress (BREthereumWallet wallet) {
+  return wallet->address;
+}
+
 extern BREthereumGas
 walletGetDefaultGasLimit(BREthereumWallet wallet) {
     return wallet->defaultGasLimit;
