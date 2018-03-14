@@ -215,6 +215,13 @@ runMathParseTests () {
   a.u64[0] = a.u64[1] = a.u64[2] = a.u64[3] = UINT64_MAX;
   assert (0 == error && eqUInt256(r, a));
 
+  r = createUInt256Parse("1000000000000000000000000000000", 10, &error); // 1 TETHER (10^30)
+  assert (0 == error
+          && r.u64[0] == 5076944270305263616u
+          && r.u64[1] == 54210108624
+          && r.u64[2] == 0
+          && r.u64[3] == 0);
+
 }
 
 static void
@@ -657,8 +664,11 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
   lightNodeSetWalletGasPrice(node, wallet, WEI, gasPrice);
   lightNodeSetWalletGasLimit(node, wallet, gasLimit);
 
-  BREthereumEther amountInEther =
+  BREthereumHolding holdingAmountInEther =
     lightNodeCreateEtherAmountUnit(node, amount, WEI);
+
+  BREthereumEther amountInEther =
+    holdingGetEther(holdingAmountInEther);
 
   BREthereumLightNodeTransactionId tx1 =
     lightNodeWalletCreateTransaction

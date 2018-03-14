@@ -31,33 +31,53 @@
 #include <stdint.h>
 #include "BREthereumEther.h"
 #include "BREthereumGas.h"
+#include "BREthereumHolding.h"
 #include "BREthereumNetwork.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+//
+// JSON RPC Support
+//
+// Type defintions for callback functions.  When configuring a LightNode to use JSON_RPC these
+// functions must be provided.  The functions will use the provided arguments to create a JSON_RPC
+// Ethereum call; block until the call returns, unpack the response and then provide the result
+// (as a newly allocated string - the Ethereum Core will own it and free() it.)
+//
+typedef void *JsonRpcContext;
+typedef const char* (*JsonRpcGetBalance) (JsonRpcContext context, int id, const char *account);
+typedef const char* (*JsonRpcGetGasPrice) (JsonRpcContext context, int id);
+typedef const char* (*JsonRpcEstimateGas) (JsonRpcContext context, int id, const char *to, const char *amount, const char *data);
+typedef const char* (*JsonRpcSubmitTransaction) (JsonRpcContext context, int id, const char *transaction);
+
+//
+// Two types of LightNode - JSON_RPC or LES (Light Ethereum Subprotocol).
+//
 typedef enum {
   NODE_TYPE_JSON_RPC,
   NODE_TYPE_LES
 } BREthereumLightNodeType;
 
 //
-// JSON RPC Support
+// Light Node Configuration
 //
-typedef const char* (*JsonRpcGetBalance) (int id, const char *account);
-typedef const char* (*JsonRpcGetGasPrice) (int id);
-typedef const char* (*JsonRpcEstimateGas) (int id, const char *to, const char *amount, const char *data);
-
+// Used to configure a light node appropriately for JSON_RPC or LES.  Starts with a
+// BREthereumNetwork (one of ethereum{Mainnet,Testnet,Rinkeby} and then specifics for the
+// type.
+//
 typedef struct {
   BREthereumNetwork network;
   BREthereumLightNodeType type;
   union {
     //
     struct {
+      JsonRpcContext funcContext;
       JsonRpcGetBalance funcGetBalance;
       JsonRpcGetGasPrice functGetGasPrice;
       JsonRpcEstimateGas funcEstimateGas;
+      JsonRpcSubmitTransaction funcSubmitTransaction;
     } json_rpc;
 
     //
@@ -67,15 +87,24 @@ typedef struct {
   } u;
 } BREthereumLightNodeConfiguration;
 
+/**
+ * Create a LES configuration
+ */
 extern BREthereumLightNodeConfiguration
 lightNodeConfigurationCreateLES (BREthereumNetwork network,
                                 int foo);
 
+/**
+ * Create a JSON_RPC configuration w/ the set of functions needed to perform JSON RPC calls
+ * and to process the result.
+ */
 extern BREthereumLightNodeConfiguration
 lightNodeConfigurationCreateJSON_RPC(BREthereumNetwork network,
+                                     JsonRpcContext context,
                                      JsonRpcGetBalance funcGetBalance,
                                      JsonRpcGetGasPrice functGetGasPrice,
-                                     JsonRpcEstimateGas funcEstimateGas);
+                                     JsonRpcEstimateGas funcEstimateGas,
+                                     JsonRpcSubmitTransaction funcSubmitTransaction);
 
 // Errors
 typedef enum {
@@ -83,6 +112,9 @@ typedef enum {
     NODE_ERROR_Y
 } BREthereumLightNodeError;
 
+/**
+ * Light Node Transaction Status - these are Ethereum defined.
+ */
 typedef enum {
     NODE_TRANSACTION_STATUS_Unknown  = 0,  // (0): transaction is unknown
     NODE_TRANSACTION_STATUS_Queued   = 1,  // (1): transaction is queued (not processable yet)
@@ -105,16 +137,24 @@ typedef struct BREthereumLightNodeRecord *BREthereumLightNode;
 extern BREthereumLightNode
 createLightNode (BREthereumLightNodeConfiguration configuration);
 
+/**
+ * Create an Ethereum Account using `paperKey` for BIP-32 generation of keys.  The same paper key
+ * must be used when signing transactions for this account.
+ */
 extern BREthereumLightNodeAccountId
 lightNodeCreateAccount (BREthereumLightNode node,
                         const char *paperKey);
 
+/**
+ * Get the primary address for `account`.  This is the '0x'-prefixed, 40-char, hex encoded
+ * string.  The returned char* is newly allocated, on each call - you MUST free() it.
+ */
 extern const char *
 lightNodeGetAccountPrimaryAddress (BREthereumLightNode node,
                                    BREthereumLightNodeAccountId account);
 
 /**
- * Create an wallet for `account` holding ETHER.
+ * Create a wallet for `account` holding ETHER.
  *
  * @param node
  * @param accountId
@@ -125,7 +165,19 @@ lightNodeCreateWallet (BREthereumLightNode node,
                        BREthereumLightNodeAccountId account,
                        BREthereumNetwork network);
 
-// Token
+/**
+ * Create a wallet for `account` holding `token`.
+ *
+ * @param node
+ * @param account
+ * @param network
+ * @param token
+ */
+extern BREthereumLightNodeWalletId
+lightNodeCreateWalletHoldingToken (BREthereumLightNode node,
+                                   BREthereumLightNodeAccountId account,
+                                   BREthereumNetwork network,
+                                   BREthereumToken token);
 
 //
 // Holding / Ether
@@ -136,21 +188,22 @@ lightNodeCreateWallet (BREthereumLightNode node,
  * a single decimal point.  No '-', no '+' no 'e' (exponents).
  *
  * @param node
- * @param number
- * @param unit
- * @param status This MUST NOT BE NULL. If assigned anything but OK, the return Ether is 0.
+ * @param number the amount as a decimal (base10) number.
+ * @param unit the number's unit - typically ETH, GWEI or WEI.
+ * @param status This MUST NOT BE NULL. If assigned anything but OK, the return Ether is 0.  In
+ *        practice you must reference `status` otherwise you'll have unknown errors with 0 ETH.
  */
-extern BREthereumEther
+extern BREthereumHolding
 lightNodeCreateEtherAmountString (BREthereumLightNode node,
                                   const char *number,
                                   BREthereumEtherUnit unit,
                                   BREthereumEtherParseStatus *status);
 
 /**
- * Create Ether from a 'smallish' number an a unit
+ * Create Ether from a 'smallish' number and a unit
  *
  */
-extern BREthereumEther
+extern BREthereumHolding
 lightNodeCreateEtherAmountUnit (BREthereumLightNode node,
                                 uint64_t amountInUnit,
                                 BREthereumEtherUnit unit);
@@ -194,12 +247,12 @@ lightNodeSetWalletGasPrice (BREthereumLightNode node,
 //
 
 /**
+ * Create a transaction to transfer `amount` (Ether) from `wallet` to `recvAddrss`.
  *
  * @param node
- * @param wallet
+ * @param wallet the wallet
  * @param recvAddress A '0x' prefixed, strlen 42 Ethereum address.
- * @param unit
- * @param amountInUnit
+ * @param amount the ether to transfer
  * @return
  */
 extern BREthereumLightNodeTransactionId
@@ -208,18 +261,25 @@ lightNodeWalletCreateTransaction(BREthereumLightNode node,
                                  const char *recvAddress,
                                  BREthereumEther amount);
 
+  /**
+   * Sign the transaction using the wallet's account (for the sender's address).  The paperKey
+   * is used to 'lookup' the private key.
+   *
+   * @param node
+   * @param wallet
+   * @param transaction
+   * @param paperKey
+   */
 extern void // status, error
 lightNodeWalletSignTransaction (BREthereumLightNode node,
                                 BREthereumLightNodeWalletId wallet,
                                 BREthereumLightNodeTransactionId transaction,
                                 const char *paperKey);
 
-#if !ETHEREUM_LIGHT_NODE_USE_JSON_RPC
-extern void // status, error
+extern BREthereumBoolean // status, error
 lightNodeWalletSubmitTransaction (BREthereumLightNode node,
                                   BREthereumLightNodeWalletId wallet,
                                   BREthereumLightNodeTransactionId transaction);
-#endif // !ETHEREUM_LIGHT_NODE_USE_JSON_RPC
 
 //
 // Transactions

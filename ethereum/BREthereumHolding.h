@@ -70,6 +70,10 @@ holdingCreateToken (UInt256 scale, UInt256 amount);
 extern BREthereumWalletHoldingType
 holdingGetType (BREthereumHolding holding);
 
+// TODO: Error if holding.type != ETHER
+extern BREthereumEther
+holdingGetEther (BREthereumHolding holding);
+
 extern BRRlpItem
 holdingRlpEncode(BREthereumHolding holding, BRRlpCoder coder);
 

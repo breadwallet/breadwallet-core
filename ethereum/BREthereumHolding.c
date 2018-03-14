@@ -73,6 +73,11 @@ holdingGetType (BREthereumHolding holding) {
     return holding.type;
 }
 
+extern BREthereumEther
+holdingGetEther (BREthereumHolding holding) {
+  return holding.holding.ether.amount;
+}
+
 extern BRRlpItem
 holdingRlpEncode(BREthereumHolding holding, BRRlpCoder coder) {
     switch (holding.type) {

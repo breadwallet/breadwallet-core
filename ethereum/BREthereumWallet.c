@@ -146,12 +146,11 @@ walletCreateWithAddress(BREthereumAccount account,
 
 extern BREthereumWallet
 walletCreateHoldingToken(BREthereumAccount account,
-                         BREthereumAddress address,
                          BREthereumNetwork network,
                          BREthereumToken token) {
     return walletCreateDetailed
             (account,
-             address,
+             accountGetPrimaryAddress(account),
              network,
              WALLET_HOLDING_TOKEN,
              token);
