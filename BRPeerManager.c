@@ -1968,6 +1968,10 @@ size_t BRPeerManagerRelayCount(BRPeerManager *manager, UInt256 txHash)
     return count;
 }
 
+const BRChainParams *BRPeerManagerChainParams (BRPeerManager *manager) {
+    return manager->params;
+}
+
 // frees memory allocated for manager
 void BRPeerManagerFree(BRPeerManager *manager)
 {
