@@ -24,7 +24,6 @@
 
 #include "BRBIP32Sequence.h"
 #include "BRCrypto.h"
-#include "BRBase58.h"
 #include <string.h>
 #include <assert.h>
 

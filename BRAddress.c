@@ -241,9 +241,9 @@ size_t BRAddressFromScriptPubKey(char *addr, size_t addrLen, const uint8_t *scri
     assert(script != NULL || scriptLen == 0);
     if (! script || scriptLen == 0 || scriptLen > MAX_SCRIPT_LENGTH) return 0;
     
+    char a[91];
     uint8_t data[21];
     const uint8_t *d, *elems[BRScriptElements(NULL, 0, script, scriptLen)];
-    char a[91];
     size_t r = 0, l = 0, count = BRScriptElements(elems, sizeof(elems)/sizeof(*elems), script, scriptLen);
     
     if (count == 5 && *elems[0] == OP_DUP && *elems[1] == OP_HASH160 && *elems[2] == 20 &&
@@ -297,8 +297,8 @@ size_t BRAddressFromScriptSig(char *addr, size_t addrLen, const uint8_t *script,
     if (! script || scriptLen == 0 || scriptLen > MAX_SCRIPT_LENGTH) return 0;
     
     uint8_t data[21];
-    const uint8_t *elems[BRScriptElements(NULL, 0, script, scriptLen)], *d = NULL;
-    size_t count = BRScriptElements(elems, sizeof(elems)/sizeof(*elems), script, scriptLen), l = 0;
+    const uint8_t *d = NULL, *elems[BRScriptElements(NULL, 0, script, scriptLen)];
+    size_t l = 0, count = BRScriptElements(elems, sizeof(elems)/sizeof(*elems), script, scriptLen);
 
     data[0] = BITCOIN_PUBKEY_ADDRESS;
 #if BITCOIN_TESTNET
@@ -344,7 +344,6 @@ size_t BRAddressScriptPubKey(uint8_t *script, size_t scriptLen, const char *addr
     size_t dataLen, r = 0;
     
     assert(addr != NULL);
-
 #if BITCOIN_TESTNET
     pubkeyAddress = BITCOIN_PUBKEY_ADDRESS_TEST;
     scriptAddress = BITCOIN_SCRIPT_ADDRESS_TEST;
@@ -398,14 +397,12 @@ int BRAddressIsValid(const char *addr)
     
     if (BRBase58CheckDecode(data, sizeof(data), addr) == 21) {
         r = (data[0] == BITCOIN_PUBKEY_ADDRESS || data[0] == BITCOIN_SCRIPT_ADDRESS);
-    
 #if BITCOIN_TESTNET
         r = (data[0] == BITCOIN_PUBKEY_ADDRESS_TEST || data[0] == BITCOIN_SCRIPT_ADDRESS_TEST);
 #endif
     }
     else if (BRBech32Decode(hrp, data, addr) > 2) {
         r = (strcmp(hrp, "bc") == 0 && (data[0] != OP_0 || data[1] == 20 || data[1] == 32));
-
 #if BITCOIN_TESTNET
         r = (strcmp(hrp, "tb") == 0 && (data[0] != OP_0 || data[1] == 20 || data[1] == 32));
 #endif

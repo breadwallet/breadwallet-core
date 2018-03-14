@@ -117,8 +117,7 @@ inline static size_t BRAddressHash(const void *addr)
 // true if addr and otherAddr are equal
 inline static int BRAddressEq(const void *addr, const void *otherAddr)
 {
-    return (addr == otherAddr ||
-            strncmp((const char *)addr, (const char *)otherAddr, sizeof(BRAddress)) == 0);
+    return (addr == otherAddr || strncmp((const char *)addr, (const char *)otherAddr, sizeof(BRAddress)) == 0);
 }
 
 #ifdef __cplusplus

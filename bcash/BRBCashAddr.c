@@ -24,11 +24,7 @@
 //  THE SOFTWARE.
 
 #include "bcash/BRBCashAddr.h"
-//#include "BRAddress.h" // WTF?! header guards not working? some kind of compiler bug?
-#define BITCOIN_PUBKEY_ADDRESS      0
-#define BITCOIN_SCRIPT_ADDRESS      5
-#define BITCOIN_PUBKEY_ADDRESS_TEST 111
-#define BITCOIN_SCRIPT_ADDRESS_TEST 196
+#include "BRAddress.h"
 #include "BRBase58.h"
 #include "BRCrypto.h"
 #include <inttypes.h>
