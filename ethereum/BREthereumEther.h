@@ -83,11 +83,11 @@ etherCreateString(const char *string, BREthereumEtherUnit unit, BREthereumEtherP
 extern UInt256
 etherGetValue(const BREthereumEther ether, BREthereumEtherUnit unit);
 
+/**
+ * Return a string representing `ether` in `unit (in base 10)
+ */
 extern char *
 etherGetValueString(const BREthereumEther ether, BREthereumEtherUnit unit);
-
-//extern uint64_t
-//etherGetValueNumberDANGEROUS (const BREthereumEther ether, BREthereumEtherUnit unit);
 
 extern BRRlpItem
 etherRlpEncode (const BREthereumEther ether, BRRlpCoder coder);

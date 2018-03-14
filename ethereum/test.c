@@ -195,6 +195,38 @@ runMathMulTests () {
 }
 
 static void
+runMathDivTests () {
+  UInt256 r = UINT256_ZERO;
+  uint32_t rem;
+
+  // 10^21
+  r.u64[0] = 3875820019684212736u;
+  r.u64[1] = 54;
+
+  // 10^15
+  UInt256 a = divUInt256_Small(r, 1000000, &rem);
+  assert (0 == rem
+          && a.u64[0] == 1000000000000000
+          && a.u64[1] == 0
+          && a.u64[2] == 0
+          && a.u64[3] == 0);
+}
+
+static void
+runMathCoerceTests () {
+  UInt256 a = { .u64 = { 1000000000000000, 0, 0, 0}};
+  const char *as = coerceString(a, 10);
+  assert (0 == strcmp (as, "1000000000000000"));
+  free ((char *) as);
+
+  UInt256 b = { .u64 = { 3875820019684212736u, 54, 0, 0}};
+  const char *bs = coerceString(b, 10);
+  assert (0 == strcmp (bs, "1000000000000000000000"));
+  free ((char *) bs);
+
+
+}
+static void
 runMathParseTests () {
   int error;
   UInt256 r = UINT256_ZERO;
@@ -227,9 +259,11 @@ runMathParseTests () {
 static void
 runMathTests() {
   runMathParseTests ();
+  runMathCoerceTests();
   runMathAddTests();
   runMathSubTests();
   runMathMulTests();
+  runMathDivTests();
 }
 
 //
@@ -282,6 +316,22 @@ runEtherParseTests () {
   e = etherCreateString("2000000000000000000000.000000", WEI, &status);
   assert (ETHEREUM_ETHER_PARSE_OK == status
           && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (e, etherCreateNumber(2, KETHER)));
+
+  char *s;
+  e = etherCreateString("123", WEI, &status);
+  s = etherGetValueString(e, WEI);
+  assert (0 == strcmp (s, "123"));
+  free (s);
+
+  e = etherCreateString("1234", WEI, &status);
+  s = etherGetValueString(e, WEI+1);
+  assert (0 == strcmp (s, "1.234"));
+  free (s);
+
+  e = etherCreateString("123", WEI, &status);
+  s = etherGetValueString(e, WEI+2);
+  assert (0 == strcmp (s, "0.000123"));
+  free (s);
 }
 
 

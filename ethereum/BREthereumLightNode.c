@@ -169,6 +169,14 @@ lightNodeCreateEtherAmountUnit (BREthereumLightNode node,
                                 BREthereumEtherUnit unit) {
   return holdingCreateEther (etherCreateNumber(amountInUnit, unit));
 }
+
+extern char *
+lightNodeCoerceEtherAmountToString (BREthereumLightNode node,
+                                    BREthereumEther ether,
+                                    BREthereumEtherUnit unit) {
+  return etherGetValueString(ether, unit);
+}
+
 //
 // Wallet
 //

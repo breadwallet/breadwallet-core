@@ -208,6 +208,14 @@ lightNodeCreateEtherAmountUnit (BREthereumLightNode node,
                                 uint64_t amountInUnit,
                                 BREthereumEtherUnit unit);
 
+/**
+ * Convert `ether` to a char* in `unit`.  Caller owns the result and must call free()
+ */
+extern char *
+lightNodeCoerceEtherAmountToString (BREthereumLightNode node,
+                                    BREthereumEther ether,
+                                    BREthereumEtherUnit unit);
+
 //
 // Wallet Updates
 //

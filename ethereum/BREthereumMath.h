@@ -87,12 +87,22 @@ mulUInt256 (UInt256 x, UInt256 y);
 extern UInt256
 mulUInt256_Overflow (UInt256 x, UInt256 y, int *overflow);
 
+extern UInt256
+divUInt256_Small (UInt256 x, uint32_t y, uint32_t *rem);
+
 /**
  * Coerce `x`, a UInt512, to a UInt256.  If `x` is too big then overflow is set to 1 and
  * zero is returned.
  */
 extern UInt256
 coerceUInt256 (UInt512  x, int *overflow);
+
+  /**
+   * Returns the string representation of `x` in `base`.  The returned string is owned by the
+   * caller.
+   */
+extern char *
+coerceString (UInt256 x, int base);
 
 //  static UInt256
 //  divideUInt256 (UInt256 numerator, UInt256 denominator) {

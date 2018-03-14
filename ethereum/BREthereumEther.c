@@ -24,6 +24,7 @@
 //  THE SOFTWARE.
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <assert.h>
 #include "BREthereumEther.h"
@@ -287,10 +288,39 @@ etherGetValue(const BREthereumEther ether,
 }
 
 extern char * // Perhaps can be done. 1 WEI -> 1e-18 Ether
-etherGetValueString(const BREthereumEther ether,
-                    BREthereumEtherUnit unit) {
-  // TODO: CRITICAL
-  return ""; /* encodeUInt256(etherGetValue(ether, unit)); */
+etherGetValueString(const BREthereumEther ether, BREthereumEtherUnit unit) {
+  char *string = coerceString(ether.valueInWEI, 10);
+  switch (unit) {
+    case WEI:
+      return string;
+    default: {
+      int decimals = 3 * unit;
+      int slength = (int) strlen (string);
+      if (decimals >= slength) {
+        char *result = calloc (decimals + 3, 1);
+
+        // Fill to decimals
+        char format [10];
+        sprintf (format, "0.%%%ds", decimals);
+        sprintf (result, format, string);
+
+        // Replace fills of ' ' with '0'
+        for (int i = 0; i < decimals + 2; i++) {
+          if (' ' == result[i])
+            result[i] = '0';
+        }
+        return result;
+      }
+      else {
+        int dindex = slength - decimals;
+        char *result = calloc (slength + 2, 1);
+        strncpy (result, string, dindex);
+        result[dindex] = '.';
+        strcpy (&result[dindex+1], &string[dindex]);
+        return result;
+      }
+    }
+  }
 }
 
 extern BRRlpItem
