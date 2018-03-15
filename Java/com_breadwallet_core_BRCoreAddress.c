@@ -36,8 +36,17 @@ Java_com_breadwallet_core_BRCoreAddress_createCoreAddress
         (JNIEnv *env, jclass thisClass, jstring stringObject) {
     BRAddress *address = (BRAddress *) calloc (1, sizeof (BRAddress));
 
+    // If given NULL, just return an empty address
+    if ((*env)->IsSameObject (env, stringObject, NULL))
+        return (jlong) address;
+
+    // ... otherwise fill in address
     size_t stringLen = (size_t) (*env)->GetStringLength (env, stringObject);
-    assert (stringLen <= 36);
+    size_t stringLenMax = sizeof (address->s) - 1;
+
+    // Do not overflow address->s
+    if (stringLen > stringLenMax)
+        stringLen = stringLenMax;
 
     const char *stringChars = (const char *) (*env)->GetStringUTFChars (env, stringObject, 0);
     memcpy(address->s, stringChars, stringLen);

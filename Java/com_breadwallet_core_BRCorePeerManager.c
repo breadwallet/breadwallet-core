@@ -21,10 +21,26 @@
 
 #include <stdlib.h>
 #include <malloc.h>
+#include <arpa/inet.h>
+#include <BRChainParams.h>
 #include "BRPeerManager.h"
 #include "BRChainParams.h"
 #include "BRCoreJni.h"
 #include "com_breadwallet_core_BRCorePeerManager.h"
+#include "com_breadwallet_core_BRCoreTransaction.h"
+
+static BRTransaction *
+JNI_COPY_TRANSACTION (BRTransaction *tx) {
+    if (com_breadwallet_core_BRCoreTransaction_JNI_COPIES_TRANSACTIONS && NULL != tx) {
+        return BRTransactionCopy(tx);
+    }
+    else {
+#if defined (__ANDROID_NDK__)
+        __android_log_print(ANDROID_LOG_DEBUG, "JNI", "FAILED TO COPY: %p", tx);
+#endif
+        return NULL;
+    }
+}
 
 /* Forward Declarations */
 static void syncStarted(void *info);
@@ -69,7 +85,49 @@ Java_com_breadwallet_core_BRCorePeerManager_connect
         (JNIEnv *env, jobject thisObject) {
     BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
     BRPeerManagerConnect(peerManager);
-    return;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePeerManager
+ * Method:    jniUseFixedPeer
+ * Signature: (Ljava/lang/String;I)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCorePeerManager_jniUseFixedPeer
+        (JNIEnv *env, jobject thisObject,
+         jstring nodeString,
+         jint port) {
+    BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
+    const BRChainParams *chainParams = BRPeerManagerChainParams(peerManager);
+
+    const char *host = (*env)->GetStringUTFChars(env, nodeString, NULL);
+
+    UInt128 address = UINT128_ZERO;
+    uint16_t _port = (uint16_t) port;
+
+    if (strlen(host) != 0) {
+        struct in_addr addr;
+        if (inet_pton(AF_INET, host, &addr) != 1) return JNI_FALSE;
+        address.u16[5] = 0xffff;
+        address.u32[3] = addr.s_addr;
+        if (port == 0) _port = chainParams->standardPort;
+    } else {
+        _port = 0;
+    }
+
+    BRPeerManagerSetFixedPeer(peerManager, address, _port);
+    return JNI_TRUE;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePeerManager
+ * Method:    getCurrentPeerName
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL
+Java_com_breadwallet_core_BRCorePeerManager_getCurrentPeerName
+        (JNIEnv *env, jobject thisObject) {
+    BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
+    return (*env)->NewStringUTF (env, BRPeerManagerDownloadPeerName(peerManager));
 }
 
 /*
@@ -82,7 +140,6 @@ Java_com_breadwallet_core_BRCorePeerManager_disconnect
         (JNIEnv *env, jobject thisObject) {
     BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
     BRPeerManagerDisconnect (peerManager);
-    return;
 }
 
 /*
@@ -181,10 +238,17 @@ Java_com_breadwallet_core_BRCorePeerManager_publishTransactionWithListener
         (JNIEnv *env, jobject thisObject, jobject transitionObject, jobject listenerObject) {
     BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
     BRTransaction *transaction = (BRTransaction *) getJNIReference(env, transitionObject);
+    // It is (perhaps) possible that the listenerObject is NULL.  It came in via a WeakReference
+    // but the reference is to `self` (BRCorePeerManager) - so maybe publishTransaction
+    // cannot even be called.  No matter, we'll make the Core call and handle NULL later.
 
-    // TODO: Dangerous - make a global listener but what if PublishTx is never called?
+    // TODO: What if PublishTx is never called - the WeakGlobal is never deleted?
     jobject globalListener = (*env)->NewWeakGlobalRef (env, listenerObject);
-    BRPeerManagerPublishTx(peerManager, transaction, globalListener, txPublished);
+
+    BRPeerManagerPublishTx(peerManager,
+                           JNI_COPY_TRANSACTION(transaction),
+                           globalListener,
+                           txPublished);
 }
 
 /*
@@ -213,22 +277,24 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCorePeerManager_testSaveBlock
     BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
 
     size_t blockCount = (size_t) (*env)->GetArrayLength (env, blockObjectArray);
+    BRMerkleBlock **blocks = (BRMerkleBlock **) calloc (blockCount, sizeof (BRMerkleBlock *));
 
-    BRMerkleBlock *blocks[blockCount];
     for (int i = 0; i < blockCount; i++) {
         jobject block = (*env)->GetObjectArrayElement (env, blockObjectArray, i);
         blocks[i] = (BRMerkleBlock *) getJNIReference (env, block);
         (*env)->DeleteLocalRef (env, block);
     }
 
-    // Listener
-    jfieldID listenerField = (*env)->GetFieldID (env, (*env)->GetObjectClass (env, thisObject),
-                                                 "listener",
-                                                 "Ljava/lang/ref/WeakReference;");
-    assert (NULL != listenerField);
-    jweak listenerWeakGlobalRef = (*env)->GetObjectField (env, thisObject, listenerField);
+    // TODO: Reimplement with proper WeakReference access
+//    jfieldID listenerField = (*env)->GetFieldID (env, (*env)->GetObjectClass (env, thisObject),
+//                                                 "listener",
+//                                                 "Ljava/lang/ref/WeakReference;");
+//    assert (NULL != listenerField);
+//    jweak listenerWeakGlobalRef = (*env)->GetObjectField (env, thisObject, listenerField);
+//
+//    saveBlocks(listenerWeakGlobalRef, replace, blocks, blockCount);
 
-    saveBlocks(listenerWeakGlobalRef, replace, blocks, blockCount);
+    if (NULL != blocks) free (blocks);
 }
 
 /*
@@ -242,22 +308,24 @@ Java_com_breadwallet_core_BRCorePeerManager_testSavePeersCallback
     BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
 
     size_t peerCount = (size_t) (*env)->GetArrayLength (env, peerObjectArray);
+    BRPeer *peers = (BRPeer *) calloc (peerCount, sizeof (BRPeer));
 
-    BRPeer peers[peerCount];
     for (int i = 0; i < peerCount; i++) {
         jobject peer = (*env)->GetObjectArrayElement (env, peerObjectArray, i);
         peers[i] = *(BRPeer *) getJNIReference (env, peer);
         (*env)->DeleteLocalRef (env, peer);
     }
 
-    // Listener
-    jfieldID listenerField = (*env)->GetFieldID (env, (*env)->GetObjectClass (env, thisObject),
-                                                 "listener",
-                                                 "Ljava/lang/ref/WeakReference;");
-    assert (NULL != listenerField);
-    jweak listenerWeakGlobalRef = (*env)->GetObjectField (env, thisObject, listenerField);
+    // TODO: Reimplement with proper WeakReference access
+//    jfieldID listenerField = (*env)->GetFieldID (env, (*env)->GetObjectClass (env, thisObject),
+//                                                 "listener",
+//                                                 "Ljava/lang/ref/WeakReference;");
+//    assert (NULL != listenerField);
+//    jweak listenerWeakGlobalRef = (*env)->GetObjectField (env, thisObject, listenerField);
+//
+//    savePeers(listenerWeakGlobalRef, replace, peers, peerCount);
 
-    savePeers(listenerWeakGlobalRef, replace, peers, peerCount);
+    if (NULL != peers) free (peers);
 }
 
 /*
@@ -279,25 +347,33 @@ Java_com_breadwallet_core_BRCorePeerManager_createCorePeerManager
     uint32_t earliestKeyTime = (uint32_t) dblEarliestKeyTime;
 
     // Blocks
-    size_t blocksCount = (*env)->GetArrayLength(env, objBlocksArray);
+    size_t blocksCount = (size_t) (*env)->GetArrayLength(env, objBlocksArray);
     BRMerkleBlock **blocks = (0 == blocksCount ? NULL : (BRMerkleBlock **) calloc(blocksCount, sizeof(BRMerkleBlock *)));
 
     // The upcoming call to BRPeerManagerNew() assumes that the blocks provided have their memory
     // ownership transferred to the Core.  Thus, we'll deep copy each block
     for (int index = 0; index < blocksCount; index++) {
         jobject objBlock = (*env)->GetObjectArrayElement (env, objBlocksArray, index);
+        assert (!(*env)->IsSameObject (env, objBlock, NULL));
+
         BRMerkleBlock *block = (BRMerkleBlock *) getJNIReference(env, objBlock);
+        assert (NULL != block);
+
         blocks[index] = BRMerkleBlockCopy(block);
         (*env)->DeleteLocalRef (env, objBlock);
     }
 
     // Peers
-    size_t peersCount = (*env)->GetArrayLength(env, objPeersArray);
+    size_t peersCount = (size_t) (*env)->GetArrayLength(env, objPeersArray);
     BRPeer *peers = (0 == peersCount ? NULL : (BRPeer *) calloc(peersCount, sizeof(BRPeer)));
 
     for (int index =0; index < peersCount; index++) {
         jobject objPeer = (*env)->GetObjectArrayElement (env, objPeersArray, index);
+        assert (!(*env)->IsSameObject (env, objPeer, NULL));
+
         BRPeer *peer = getJNIReference(env, objPeer);
+        assert (NULL != peer);
+
         peers[index] = *peer; // block assignment
         (*env)->DeleteLocalRef (env, objPeer);
     }
@@ -323,17 +399,11 @@ JNICALL Java_com_breadwallet_core_BRCorePeerManager_installListener
     BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
 
     // Get a WeakGlobalRef - 'weak' to allow for GC; 'global' to allow BRCore thread access
-    jobject listenerWeakRefGlobal = (*env)->NewWeakGlobalRef(env, listenerObject);
-
-    // Assign listenerWeakRefGlobal back to thisObject.listener
-    jfieldID listenerField = (*env)->GetFieldID(env, (*env)->GetObjectClass(env, thisObject),
-                                                "listener",
-                                                "Ljava/lang/ref/WeakReference;");
-    assert (NULL != listenerField);
-    (*env)->SetObjectField(env, thisObject, listenerField, listenerWeakRefGlobal);
+    // TODO: If this is made a WeakGlobal then the App crashes.
+    jobject listener = (*env)->NewGlobalRef(env, listenerObject);
 
     // Assign callbacks
-    BRPeerManagerSetCallbacks (peerManager, (void *) listenerWeakRefGlobal,
+    BRPeerManagerSetCallbacks (peerManager, (void *) listener,
                                syncStarted,
                                syncStopped,
                                txStatusUpdate,
@@ -353,18 +423,9 @@ Java_com_breadwallet_core_BRCorePeerManager_disposeNative
         (JNIEnv *env, jobject thisObject) {
     BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
 
-    // Locate 'globalListener', then DeleteWeakGlobalRef() to save global reference space.
     if (NULL != peerManager) {
-        jfieldID listenerField = (*env)->GetFieldID (env, (*env)->GetObjectClass (env, thisObject),
-                                                     "listener",
-                                                     "Ljava/lang/ref/WeakReference;");
-        assert (NULL != listenerField);
-
-        jweak listenerWeakGlobalRef = (*env)->GetObjectField (env, thisObject, listenerField);
-        if (JNIWeakGlobalRefType == (*env)->GetObjectRefType (env, listenerWeakGlobalRef)) {
-            (*env)->DeleteWeakGlobalRef (env, listenerWeakGlobalRef);
-        }
-
+        // TODO: Locate `installListener` WeakGlobal reference - delete it.
+        assert (BRPeerStatusDisconnected == BRPeerManagerConnectStatus(peerManager));
         BRPeerManagerFree(peerManager);
     }
 }
@@ -435,6 +496,7 @@ syncStopped(void *info, int error) {
 
     (*env)->CallVoidMethod(env, listener, listenerMethod, errorString);
     (*env)->DeleteLocalRef (env, listener);
+    (*env)->DeleteLocalRef (env, errorString);
 }
 
 static void
@@ -483,6 +545,7 @@ saveBlocks(void *info, int replace, BRMerkleBlock *blocks[], size_t blockCount) 
     // Invoke the callback, fully constituted with the blocks array.
     (*env)->CallVoidMethod(env, listener, listenerMethod, replace, blockArray);
     (*env)->DeleteLocalRef(env, listener);
+    (*env)->DeleteLocalRef(env, blockArray);
 }
 
 static void
@@ -516,6 +579,7 @@ savePeers(void *info, int replace, const BRPeer peers[], size_t count) {
     // Invoke the callback, fully constituted with the peers array.
     (*env)->CallVoidMethod (env, listener, listenerMethod, replace, peerArray);
     (*env)->DeleteLocalRef (env, listener);
+    (*env)->DeleteLocalRef (env, peerArray);
 }
 
 static int
@@ -543,13 +607,15 @@ txPublished (void *info, int error) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    // Info is a GlobalWeakRef - by using NewLocalRef, we save the reference,
-    // if it has not been reclaimed yet.  If it has been reclaimed, then it is NULL;
+    // Info is a GlobalWeakRef - by using NewLocalRef, we save the reference if it has not
+    // been reclaimed yet.  If it has been reclaimed, then it is NULL;
     jobject listener = (*env)->NewLocalRef (env, (jobject) info);
-    if ((*env)->IsSameObject (env, listener, NULL)) return; // GC reclaimed
 
     // Ensure this; see comment above (on txPublished use)
     (*env)->DeleteWeakGlobalRef (env, info);
+
+    // If listener was GS reclaimed, skip the callback
+    if ((*env)->IsSameObject (env, listener, NULL)) return;
 
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
@@ -561,6 +627,7 @@ txPublished (void *info, int error) {
 
     (*env)->CallVoidMethod(env, listener, listenerMethod, errorString);
     (*env)->DeleteLocalRef (env, listener);
+    (*env)->DeleteLocalRef (env, errorString);
 }
 
 static void

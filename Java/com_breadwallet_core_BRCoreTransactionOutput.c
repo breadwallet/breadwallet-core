@@ -45,7 +45,7 @@ Java_com_breadwallet_core_BRCoreTransactionOutput_createTransactionOutput
     const uint8_t *script = (const uint8_t *) (*env)->GetByteArrayElements (env, scriptByteArray, 0);
     BRTxOutputSetScript(output, script, scriptLen);
 
-    output->amount = (uint32_t) amount;
+    output->amount = (uint64_t) amount;
 
     return (jlong) output;
 }

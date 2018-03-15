@@ -83,9 +83,11 @@ public class BRCorePeerManager extends BRCoreJniReference {
                              Listener listener) {
         // double time to int time.
         super(createCorePeerManager(params, wallet, earliestKeyTime, blocks, peers));
-        installListener(listener);
-        assert (null != this.listener);
+        assert (null != listener);
+        this.listener = new WeakReference<>(listener);
         this.wallet = wallet;
+
+        installListener(listener);
     }
 
     /**
@@ -114,6 +116,22 @@ public class BRCorePeerManager extends BRCoreJniReference {
 */
 
     //
+    // Fixed Peer
+    //
+    public boolean useFixedPeer (String node, int port) {
+        return jniUseFixedPeer(node, port);
+    }
+
+    protected native boolean jniUseFixedPeer (String node, int port);
+
+    public native String getCurrentPeerName ();
+
+    @Override
+    protected void finalize() throws Throwable {
+        if (BRCorePeer.ConnectStatus.Disconnected != getConnectStatus())
+            System.out.println ("Disposing PeerManager while not DISCONNECTED: " + this.toString());
+        super.finalize();
+    }
 
     /**
      * Disconnect from bitcoin peer-to-peer network (may cause syncFailed(), saveBlocks() or
@@ -167,6 +185,10 @@ public class BRCorePeerManager extends BRCoreJniReference {
      * @param transaction
      */
     public void publishTransaction (BRCoreTransaction transaction) {
+        // Calling publishTransactionWithListener will 'give' transaction to the wallet.  Thus
+        // it must be considered 'registered' if we are not copying.
+        transaction.isRegistered = transaction.isRegistered
+                || !BRCoreTransaction.JNI_COPIES_TRANSACTIONS;
         publishTransactionWithListener(transaction, listener.get());
 
     }
@@ -175,6 +197,9 @@ public class BRCorePeerManager extends BRCoreJniReference {
      * A native method that will callback to BRCorePeerManager.Listener::txPublished.  We must
      * pass in the Listener, so that the Core function BRPeerManagerPublishTx() will know where
      * to callback into Java
+     *
+     * This calls BRPeerManagerPublishTx which notes "publishes tx to bitcoin network (do not
+     * call BRTransactionFree() on tx afterward)"
      *
      * @param transaction
      * @param listener
@@ -191,14 +216,26 @@ public class BRCorePeerManager extends BRCoreJniReference {
     //
     // Test
     //
-    public native void testSaveBlocksCallback (boolean replace, BRCoreMerkleBlock[] blocks);
 
+    // TODO: Reimplement w/ proper WeakReference listener access.
+    public native void testSaveBlocksCallback (boolean replace, BRCoreMerkleBlock[] blocks);
     public native void testSavePeersCallback (boolean replace, BRCorePeer[] peers);
 
     //
     // Constructor
     //
 
+    /**
+     * This will eventually call BRPeerManagerNew() with *copies* of `blocks` and `peers`. Thus
+     * these array objects will not be shared.
+     *
+     * @param params
+     * @param wallet
+     * @param earliestKeyTime
+     * @param blocks
+     * @param peers
+     * @return
+     */
     private static native long createCorePeerManager(BRCoreChainParams params,
                                                      BRCoreWallet wallet,
                                                      double earliestKeyTime, // int

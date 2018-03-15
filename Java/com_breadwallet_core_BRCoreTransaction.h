@@ -140,10 +140,10 @@ JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCoreTransaction_isSigned
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction
  * Method:    sign
- * Signature: ([Lcom/breadwallet/core/BRCoreKey;)V
+ * Signature: ([Lcom/breadwallet/core/BRCoreKey;I)V
  */
 JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreTransaction_sign
-  (JNIEnv *, jobject, jobjectArray);
+  (JNIEnv *, jobject, jobjectArray, jint);
 
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction

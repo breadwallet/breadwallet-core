@@ -80,6 +80,13 @@ public class BRCoreMerkleBlock extends BRCoreJniReference {
 
     public native boolean isValid (long currentTime);
 
+    /**
+     * True if the given hash is known to be included in the block.  [The 'blockHash' is not
+     * 'included in the block']
+     *
+     * @param hash
+     * @return
+     */
     public native boolean containsTransactionHash (byte[] hash);
 
     // verify difficulty

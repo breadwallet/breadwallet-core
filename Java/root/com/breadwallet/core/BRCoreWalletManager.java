@@ -39,6 +39,9 @@ public class BRCoreWalletManager implements
     protected static boolean SHOW_CALLBACK = true;
     protected static boolean SHOW_CALLBACK_DETAIL = false;
 
+    protected static boolean SHOW_CALLBACK_DETAIL_TX_STATUS = false;
+    protected static boolean SHOW_CALLBACK_DETAIL_TX_IO = false;
+
     protected BRCoreMasterPubKey masterPubKey;
 
     protected BRCoreChainParams chainParams;
@@ -63,7 +66,7 @@ public class BRCoreWalletManager implements
     //
     // Wallet
     //
-    public BRCoreWallet getWallet () {
+    public synchronized BRCoreWallet getWallet () {
         if (null == wallet) {
             wallet = createWallet();
         }
@@ -110,7 +113,7 @@ public class BRCoreWalletManager implements
     //        }
     //        return peerManager;
     //    }
-    public BRCorePeerManager getPeerManager () {
+    public synchronized BRCorePeerManager getPeerManager () {
         if (null == peerManager) {
             BRCoreWallet wallet = getWallet();
             if (null != wallet) {
@@ -190,6 +193,27 @@ public class BRCoreWalletManager implements
         return new BRCorePeer[0];
     }
 
+    private void showTxDetail (String label) {
+        BRCoreWallet wallet = getWallet();
+
+        BRCoreTransaction transactions[] = wallet.getTransactions();
+        System.out.println (getChainDescriptiveName() + " " + label + " txCount: " + transactions.length);
+        for (BRCoreTransaction transaction : wallet.getTransactions()) {
+            System.out.println("    tx: " + transaction.toString());
+            System.out.println("        : " +
+                    (transaction.isSigned() ? "SIGNED" : "NOT-SIGNED") + " " +
+                    (transaction.isSigned() ? (wallet.transactionIsValid(transaction) ? "VALID" : "NOT-VALID") : "N/A") + " " +
+                    "balance: " + (transaction.isSigned() ? wallet.getBalanceAfterTransaction(transaction) : "N/A"));
+
+            if (SHOW_CALLBACK_DETAIL_TX_IO) {
+                for (BRCoreTransactionInput input : transaction.getInputs())
+                    System.out.println(input.toString());
+                for (BRCoreTransactionOutput output : transaction.getOutputs())
+                    System.out.println(output.toString());
+            }
+        }
+        System.out.println ("    balance: " + wallet.getBalance());
+    }
     //
     // BRCorePeerManager.Listener
     //
@@ -197,51 +221,58 @@ public class BRCoreWalletManager implements
     @Override
     public void syncStarted() {
         if (!SHOW_CALLBACK) return;
-        System.err.println (getChainDescriptiveName() + " syncStarted");
+        System.out.println (getChainDescriptiveName() + ": syncStarted");
     }
 
     @Override
     public void syncStopped(String error) {
         if (!SHOW_CALLBACK) return;
-        System.err.println (getChainDescriptiveName() + " syncStopped: " + error);
+        System.out.println (getChainDescriptiveName() + ": syncStopped: " + error);
     }
 
     @Override
     public void txStatusUpdate() {
         if (!SHOW_CALLBACK) return;
-        System.err.println (getChainDescriptiveName() + " txStatusUpdate");
+        System.out.println (getChainDescriptiveName() + ": txStatusUpdate");
+        //super.txStatusUpdate();
+
+        if (!SHOW_CALLBACK_DETAIL_TX_STATUS) return;
+        showTxDetail("txStatusUpdate");
     }
 
     @Override
     public void saveBlocks(boolean replace, BRCoreMerkleBlock[] blocks) {
         if (!SHOW_CALLBACK) return;
-        System.err.println(getChainDescriptiveName() + String.format(": saveBlocks: %d", blocks.length));
+        System.out.println(getChainDescriptiveName() + String.format(": saveBlocks: %d", blocks.length));
 
         if (!SHOW_CALLBACK_DETAIL) return;
         for (int i = 0; i < blocks.length; i++)
-            System.err.println(blocks[i].toString());
+            System.out.println(blocks[i].toString());
     }
 
     @Override
     public void savePeers(boolean replace, BRCorePeer[] peers) {
         if (!SHOW_CALLBACK) return;
-        System.err.println(getChainDescriptiveName() + String.format(": savePeers: %d", peers.length));
+        System.out.println(getChainDescriptiveName() + String.format(": savePeers: %d", peers.length));
 
         if (!SHOW_CALLBACK_DETAIL) return;
         for (int i = 0; i < peers.length; i++)
-            System.err.println(peers[i].toString());
+            System.out.println(peers[i].toString());
     }
 
     @Override
     public boolean networkIsReachable() {
-        // System.err.println ("networkIsReachable");
+        // System.out.println ("networkIsReachable");
         return true;
     }
 
     @Override
     public void txPublished(String error) {
         if (!SHOW_CALLBACK) return;
-        System.err.println (getChainDescriptiveName() + String.format (":   txPublished: %s", error));
+        System.out.println (getChainDescriptiveName() + String.format (": txPublished: %s", error));
+
+        if (!SHOW_CALLBACK_DETAIL_TX_STATUS) return;
+        showTxDetail("txPublished");
     }
 
     //
@@ -251,32 +282,36 @@ public class BRCoreWalletManager implements
     @Override
     public void balanceChanged(long balance) {
         if (!SHOW_CALLBACK) return;
-        System.err.println (getChainDescriptiveName() + String.format (": balanceChanged: %d", balance));
-        System.err.println (wallet.toString());
+        System.out.println (getChainDescriptiveName() + String.format (": balanceChanged: %d", balance));
+        if (!SHOW_CALLBACK_DETAIL_TX_STATUS) return;
+        showTxDetail("balanceChanged");
     }
 
     @Override
     public void onTxAdded(BRCoreTransaction transaction) {
         if (!SHOW_CALLBACK) return;
-        System.err.println (getChainDescriptiveName() + ": onTxAdded: " + bytesToHex(transaction.getHash()));
+        System.out.println (getChainDescriptiveName() + ": onTxAdded: " + bytesToHex(transaction.getHash()));
 
-        if (!SHOW_CALLBACK_DETAIL) return;
-        for (BRCoreTransactionInput input : transaction.getInputs())
-            System.err.println (input.toString());
-        for (BRCoreTransactionOutput output : transaction.getOutputs())
-            System.err.println (output.toString());
+        if (!SHOW_CALLBACK_DETAIL_TX_STATUS) return;
+        showTxDetail("balanceChanged");
     }
 
     @Override
     public void onTxUpdated(String hash, int blockHeight, int timeStamp) {
         if (!SHOW_CALLBACK) return;
-        System.err.println (getChainDescriptiveName() + ": onTxUpdated: " + hash);
+        System.out.println (getChainDescriptiveName() + ": onTxUpdated: " + hash);
+
+        if (!SHOW_CALLBACK_DETAIL_TX_STATUS) return;
+        showTxDetail("onTxUpdated");
     }
 
     @Override
     public void onTxDeleted(String hash, int notifyUser, int recommendRescan) {
         if (!SHOW_CALLBACK) return;
-        System.err.println (getChainDescriptiveName() + ": onTxDeleted: " + hash);
+        System.out.println (getChainDescriptiveName() + ": onTxDeleted: " + hash);
+
+        if (!SHOW_CALLBACK_DETAIL_TX_STATUS) return;
+        showTxDetail("onTxDeleted");
     }
 
     //
@@ -314,7 +349,7 @@ public class BRCoreWalletManager implements
     //
     // Exception Wrapped PeerManagerListener
     //
-    static private class WrappedExceptionPeerManagerListener implements BRCorePeerManager.Listener {
+    static public class WrappedExceptionPeerManagerListener implements BRCorePeerManager.Listener {
         private BRCorePeerManager.Listener listener;
 
         public WrappedExceptionPeerManagerListener(BRCorePeerManager.Listener listener) {
@@ -395,7 +430,7 @@ public class BRCoreWalletManager implements
     // Executor Wrapped PeerManagerListener
     //
 
-    public static class WrappedExecutorPeerManagerListener implements BRCorePeerManager.Listener {
+    static public class WrappedExecutorPeerManagerListener implements BRCorePeerManager.Listener {
         BRCorePeerManager.Listener listener;
         Executor executor;
 
@@ -475,7 +510,7 @@ public class BRCoreWalletManager implements
     //
     // Exception Wrapped WalletListener
     //
-    static private class WrappedExceptionWalletListener implements BRCoreWallet.Listener {
+    static public class WrappedExceptionWalletListener implements BRCoreWallet.Listener {
         private BRCoreWallet.Listener listener;
 
         public WrappedExceptionWalletListener(BRCoreWallet.Listener listener) {

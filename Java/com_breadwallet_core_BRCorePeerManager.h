@@ -25,6 +25,22 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCorePeerManager_connect
 
 /*
  * Class:     com_breadwallet_core_BRCorePeerManager
+ * Method:    jniUseFixedPeer
+ * Signature: (Ljava/lang/String;I)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_BRCorePeerManager_jniUseFixedPeer
+  (JNIEnv *, jobject, jstring, jint);
+
+/*
+ * Class:     com_breadwallet_core_BRCorePeerManager
+ * Method:    getCurrentPeerName
+ * Signature: ()Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCorePeerManager_getCurrentPeerName
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCorePeerManager
  * Method:    disconnect
  * Signature: ()V
  */

@@ -226,6 +226,30 @@ Java_com_breadwallet_core_BRCorePeer_getPingTime
 
 /*
  * Class:     com_breadwallet_core_BRCorePeer
+ * Method:    createJniCorePeerNatural
+ * Signature: ([BIJ)J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCorePeer_createJniCorePeerNatural
+        (JNIEnv *env, jclass thisClass,
+         jbyteArray peerAddress,
+         jint peerPort,
+         jlong peerTimestamp) {
+    BRPeer *result = (BRPeer *) calloc (1, sizeof (BRPeer));
+
+    jbyte *byteAddr  = (*env)->GetByteArrayElements(env, peerAddress, 0);
+
+    result->address = *(UInt128 *) byteAddr;
+    result->port = (uint16_t) peerPort;
+    result->timestamp = (uint64_t) peerTimestamp;
+    result->services = SERVICES_NODE_NETWORK;
+    result->flags = 0;
+
+    return (jlong) result;
+}
+
+
+/*
+ * Class:     com_breadwallet_core_BRCorePeer
  * Method:    createJniCorePeer
  * Signature: ([B[B[B)J
  */

@@ -1404,17 +1404,29 @@ int BRAddressTests()
     
     BRKeySetSecret(&k, &secret, 1);
     if (! BRKeyAddress(&k, addr.s, sizeof(addr)))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRKeyAddress()\n", __func__);
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRKeyAddress()", __func__);
 
     uint8_t script[BRAddressScriptPubKey(NULL, 0, addr.s)];
     size_t scriptLen = BRAddressScriptPubKey(script, sizeof(script), addr.s);
     
     BRAddressFromScriptPubKey(addr2.s, sizeof(addr2), script, scriptLen);
     if (! BRAddressEq(&addr, &addr2))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRAddressFromScriptPubKey()\n", __func__);
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRAddressFromScriptPubKey() test 1", __func__);
     
     // TODO: test BRAddressFromScriptSig()
     
+    BRAddress addr3;
+    char script2[] = "\0\x14\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+    if (! BRAddressFromScriptPubKey(addr3.s, sizeof(addr3), (uint8_t *)script2, sizeof(script2)))
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRAddressFromScriptPubKey() test 2", __func__);
+
+    uint8_t script3[BRAddressScriptPubKey(NULL, 0, addr3.s)];
+    size_t script3Len = BRAddressScriptPubKey(script3, sizeof(script3), addr3.s);
+
+    if (script3Len != sizeof(script2) || memcmp(script2, script3, sizeof(script2)))
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRAddressScriptPubKey() test", __func__);
+
+    if (! r) fprintf(stderr, "\n                                    ");
     return r;
 }
 
@@ -1695,18 +1707,18 @@ int BRTransactionTests()
     uint8_t buf[BRTransactionSerialize(tx, NULL, 0)]; // test serializing/parsing unsigned tx
     size_t len = BRTransactionSerialize(tx, buf, sizeof(buf));
     
-    if (len == 0) r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionSerialize() test 0\n", __func__);
+    if (len == 0) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionSerialize() test 0", __func__);
     BRTransactionFree(tx);
     tx = BRTransactionParse(buf, len);
     
     if (! tx || tx->inCount != 1 || tx->outCount != 2)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionParse() test 0\n", __func__);
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionParse() test 0", __func__);
     if (! tx) return r;
     
     BRTransactionSign(tx, 0, k, 2);
     BRAddressFromScriptSig(addr.s, sizeof(addr), tx->inputs[0].signature, tx->inputs[0].sigLen);
     if (! BRTransactionIsSigned(tx) || ! BRAddressEq(&address, &addr))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionSign() test 1\n", __func__);
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionSign() test 1", __func__);
 
     uint8_t buf2[BRTransactionSerialize(tx, NULL, 0)];
     size_t len2 = BRTransactionSerialize(tx, buf2, sizeof(buf2));
@@ -1715,14 +1727,14 @@ int BRTransactionTests()
     tx = BRTransactionParse(buf2, len2);
 
     if (! tx || ! BRTransactionIsSigned(tx))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionParse() test 1\n", __func__);
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionParse() test 1", __func__);
     if (! tx) return r;
     
     uint8_t buf3[BRTransactionSerialize(tx, NULL, 0)];
     size_t len3 = BRTransactionSerialize(tx, buf3, sizeof(buf3));
     
     if (len2 != len3 || memcmp(buf2, buf3, len2) != 0)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionSerialize() test 1\n", __func__);
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionSerialize() test 1", __func__);
     BRTransactionFree(tx);
     
     tx = BRTransactionNew();
@@ -1750,7 +1762,7 @@ int BRTransactionTests()
     BRAddressFromScriptSig(addr.s, sizeof(addr), tx->inputs[tx->inCount - 1].signature,
                            tx->inputs[tx->inCount - 1].sigLen);
     if (! BRTransactionIsSigned(tx) || ! BRAddressEq(&address, &addr))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionSign() test 2\n", __func__);
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionSign() test 2", __func__);
 
     uint8_t buf4[BRTransactionSerialize(tx, NULL, 0)];
     size_t len4 = BRTransactionSerialize(tx, buf4, sizeof(buf4));
@@ -1758,14 +1770,14 @@ int BRTransactionTests()
     BRTransactionFree(tx);
     tx = BRTransactionParse(buf4, len4);
     if (! tx || ! BRTransactionIsSigned(tx))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionParse() test 2\n", __func__);
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionParse() test 2", __func__);
     if (! tx) return r;
 
     uint8_t buf5[BRTransactionSerialize(tx, NULL, 0)];
     size_t len5 = BRTransactionSerialize(tx, buf5, sizeof(buf5));
     
     if (len4 != len5 || memcmp(buf4, buf5, len4) != 0)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionSerialize() test 2\n", __func__);
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionSerialize() test 2", __func__);
     BRTransactionFree(tx);
 
     BRTransaction *src = BRTransactionNew ();
@@ -1777,11 +1789,11 @@ int BRTransactionTests()
 
     BRTransaction *tgt = BRTransactionCopy(src);
     if (!BRTransactionEqual(tgt, src))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionCopy() test 1\n", __func__);
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionCopy() test 1", __func__);
 
     tgt->blockHeight++;
     if (BRTransactionEqual(tgt, src)) // fail if equal
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionCopy() test 2\n", __func__);
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionCopy() test 2", __func__);
 
     BRTransactionFree(tgt);
     BRTransactionFree(src);
@@ -1789,9 +1801,11 @@ int BRTransactionTests()
     src = BRTransactionParse(buf4, len4);
     tgt = BRTransactionCopy(src);
     if (!BRTransactionEqual(tgt, src))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRTransactionCopy() test 3\n", __func__);
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRTransactionCopy() test 3", __func__);
     BRTransactionFree(tgt);
     BRTransactionFree(src);
+    
+    if (! r) fprintf(stderr, "\n                                    ");
     return r;
 }
 

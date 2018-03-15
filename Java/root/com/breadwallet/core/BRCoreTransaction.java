@@ -186,10 +186,10 @@ public class BRCoreTransaction extends BRCoreJniReference {
     public native boolean isSigned ();
 
 
-    public native void sign (BRCoreKey[] keys);
+    public native void sign (BRCoreKey[] keys, int forkId);
 
-    public void sign (BRCoreKey key) {
-        sign (new BRCoreKey[] { key });
+    public void sign (BRCoreKey key, int forkId) {
+        sign (new BRCoreKey[] { key }, forkId);
     }
 
     /**

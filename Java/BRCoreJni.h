@@ -47,7 +47,6 @@ getJNIReference (
         JNIEnv *env,
         jobject thisObject);
 
-
 //
 // Support
 //

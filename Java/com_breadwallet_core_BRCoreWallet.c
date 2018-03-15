@@ -27,13 +27,22 @@
 #include "BRAddress.h"
 #include "BRCoreJni.h"
 #include "BRTransaction.h"
+#include "BRPeerManager.h"
 #include "com_breadwallet_core_BRCoreWallet.h"
 #include "com_breadwallet_core_BRCoreTransaction.h"
 
-#define JNI_COPY_TRANSACTION(tx)    \
-    (com_breadwallet_core_BRCoreTransaction_JNI_COPIES_TRANSACTIONS && NULL != (tx) \
-        ? BRTransactionCopy(tx) \
-        : (tx))
+static BRTransaction *
+JNI_COPY_TRANSACTION (BRTransaction *tx) {
+    if (com_breadwallet_core_BRCoreTransaction_JNI_COPIES_TRANSACTIONS && NULL != tx) {
+        return BRTransactionCopy(tx);
+    }
+    else {
+#if defined (__ANDROID_NDK__)
+        __android_log_print(ANDROID_LOG_DEBUG, "JNI", "FAILED TO COPY: %p", tx);
+#endif
+        return NULL;
+    }
+}
 
 /* Forward Declarations */
 static void balanceChanged(void *info, uint64_t balance);
@@ -68,15 +77,20 @@ Java_com_breadwallet_core_BRCoreWallet_createJniCoreWallet
 
     // Transactions
     size_t transactionsCount = (*env)->GetArrayLength(env, objTransactionsArray);
-    BRTransaction *transactions[transactionsCount];
+    BRTransaction **transactions = (BRTransaction **) calloc (transactionsCount, sizeof (BRTransaction *));
 
     for (int index = 0; index < transactionsCount; index++) {
         jobject objTransaction = (*env)->GetObjectArrayElement (env, objTransactionsArray, index);
+        // TODO: Transaction Copy?  Confirm isRegistered.
         transactions[index] = (BRTransaction *) getJNIReference(env, objTransaction);
         (*env)->DeleteLocalRef (env, objTransaction);
     }
 
-    return (jlong) BRWalletNew(transactions, transactionsCount, *masterPubKey);
+    BRWallet *wallet = BRWalletNew(transactions, transactionsCount, *masterPubKey);
+
+    if (NULL != transactions) free (transactions);
+
+    return (jlong) wallet;
 }
 
 /*
@@ -89,17 +103,11 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreWallet_installListener
     BRWallet *wallet = (BRWallet *) getJNIReference (env, thisObject);
 
      // Get a WeakGlobalRef - 'weak' to allow for GC; 'global' to allow BRCore thread access
-    jobject listenerWeakRefGlobal = (*env)->NewWeakGlobalRef (env, listenerObject);
-
-    // Assign listenerWeakRefGlobal back to thisObject.listener
-    jfieldID listenerField = (*env)->GetFieldID (env, (*env)->GetObjectClass (env, thisObject),
-                                                 "listener",
-                                                 "Ljava/lang/ref/WeakReference;");
-    assert (NULL != listenerField);
-    (*env)->SetObjectField (env, thisObject, listenerField, listenerWeakRefGlobal);
+    // TODO: If this is made a WeakGlobal then the App crashes.
+    jobject listener = (*env)->NewGlobalRef (env, listenerObject);
 
     // Assign callbacks
-    BRWalletSetCallbacks(wallet, listenerWeakRefGlobal,
+    BRWalletSetCallbacks(wallet, listener,
                          balanceChanged,
                          txAdded,
                          txUpdated,
@@ -152,6 +160,8 @@ Java_com_breadwallet_core_BRCoreWallet_getAllAddresses
         (*env)->DeleteLocalRef (env, addrObject);
     }
 
+    if (NULL != addresses) free (addresses);
+
     return addrArray;
 }
 
@@ -195,8 +205,8 @@ Java_com_breadwallet_core_BRCoreWallet_jniGetTransactions
     BRWallet  *wallet  = (BRWallet  *) getJNIReference (env, thisObject);
 
     size_t transactionCount = BRWalletTransactions (wallet, NULL, 0);
-    BRTransaction *transactions[transactionCount];
-    BRWalletTransactions (wallet, transactions, transactionCount);
+    BRTransaction **transactions = (BRTransaction **) calloc (transactionCount, sizeof (BRTransaction *));
+    transactionCount = BRWalletTransactions (wallet, transactions, transactionCount);
 
     jobjectArray transactionArray = (*env)->NewObjectArray (env, transactionCount, transactionClass, 0);
 
@@ -211,6 +221,8 @@ Java_com_breadwallet_core_BRCoreWallet_jniGetTransactions
         (*env)->SetObjectArrayElement (env, transactionArray, index, transactionObject);
         (*env)->DeleteLocalRef (env, transactionObject);
     }
+
+    if (NULL != transactions) free (transactions);
 
     return transactionArray;
 }
@@ -234,11 +246,13 @@ Java_com_breadwallet_core_BRCoreWallet_getTransactionsConfirmedBefore
     for (int index = 0; index < transactionCount; index++) {
         jobject transactionObject =
                 (*env)->NewObject (env, transactionClass, transactionConstructor,
-                                   (jlong) BRTransactionCopy(transactions[index]));
+                                   (jlong) JNI_COPY_TRANSACTION(transactions[index]));
 
         (*env)->SetObjectArrayElement (env, transactionArray, index, transactionObject);
         (*env)->DeleteLocalRef (env, transactionObject);
     }
+
+    if (NULL != transactions) free (transactions);
 
     return transactionArray;
 }
@@ -331,7 +345,7 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreWallet_getDefaultFeePerK
 JNIEXPORT jobject JNICALL
 Java_com_breadwallet_core_BRCoreWallet_createTransaction
         (JNIEnv *env, jobject thisObject, jlong amount, jobject addressObject) {
-    BRWallet *wallet = (BRWallet *) getJNIReference(env, thisObject);
+    BRWallet  *wallet  = (BRWallet  *) getJNIReference(env, thisObject);
     BRAddress *address = (BRAddress *) getJNIReference(env, addressObject);
 
     // transaction may be NULL - like if the wallet does not have a large enough balance
@@ -355,8 +369,7 @@ JNIEXPORT jobject JNICALL Java_com_breadwallet_core_BRCoreWallet_createTransacti
     BRWallet *wallet = (BRWallet *) getJNIReference(env, thisObject);
 
     size_t outputsCount = (size_t) (*env)->GetArrayLength (env, outputsArray);
-
-    BRTxOutput outputs[outputsCount];
+    BRTxOutput *outputs = (BRTxOutput *) calloc (outputsCount, sizeof (BRTxOutput));
 
     for (int i = 0; i < outputsCount; i++) {
         jobject outputObject = (*env)->GetObjectArrayElement (env, outputsArray, i);
@@ -366,6 +379,8 @@ JNIEXPORT jobject JNICALL Java_com_breadwallet_core_BRCoreWallet_createTransacti
 
     // It appears that the outputs and their content are not 'held' by the Core, in any way.
     BRTransaction *transaction = BRWalletCreateTxForOutputs(wallet, outputs, outputsCount);
+
+    if (NULL != outputs) free (outputs);
 
     return NULL == transaction
            ? NULL
@@ -462,7 +477,7 @@ Java_com_breadwallet_core_BRCoreWallet_updateTransactions
     BRWallet  *wallet  = (BRWallet  *) getJNIReference (env, thisObject);
 
     size_t txCount = (size_t) (*env)->GetArrayLength (env, transactionsHashesArray);
-    UInt256 txHashes[txCount];
+    UInt256 *txHashes = (UInt256 *) calloc (txCount, sizeof (UInt256));
 
     for (int i = 0; i < txCount; i++) {
         jbyteArray txHashByteArray = (jbyteArray) (*env)->GetObjectArrayElement (env, transactionsHashesArray, 0);
@@ -470,6 +485,8 @@ Java_com_breadwallet_core_BRCoreWallet_updateTransactions
         txHashes[i] = UInt256Get(txHashBytes);
     }
     BRWalletUpdateTransactions(wallet, txHashes, txCount, (uint32_t) blockHeight, (uint32_t) timestamp);
+
+    if (NULL == txHashes) free (txHashes);
 }
 
 /*
@@ -636,17 +653,8 @@ Java_com_breadwallet_core_BRCoreWallet_disposeNative
         (JNIEnv *env, jobject thisObject) {
     BRWallet *wallet = (BRWallet *) getJNIReference(env, thisObject);
 
-    // Locate 'globalListener', then DeleteWeakGlobalRef() to save global reference space.
     if (NULL != wallet) {
-        jfieldID listenerField = (*env)->GetFieldID (env, (*env)->GetObjectClass (env, thisObject),
-                                                     "listener",
-                                                     "Ljava/lang/ref/WeakReference;");
-        assert (NULL != listenerField);
-
-        jweak listenerWeakGlobalRef = (*env)->GetObjectField (env, thisObject, listenerField);
-        if (JNIWeakGlobalRefType == (*env)->GetObjectRefType (env, listenerWeakGlobalRef)) {
-            (*env)->DeleteWeakGlobalRef (env, listenerWeakGlobalRef);
-        }
+        // TODO: Locate `installListener` WeakGlobal reference - delete it.
 
         BRWalletFree(wallet);
     }
@@ -723,13 +731,14 @@ txAdded(void *info, BRTransaction *tx) {
 
     // Create the BRCoreTransaction
     jobject transaction = (*env)->NewObject (env, transactionClass, transactionConstructor,
-                                             (jlong) BRTransactionCopy(tx));
+                                             (jlong) JNI_COPY_TRANSACTION(tx));
 
     // Invoke the callback with the provided transaction
     (*env)->CallVoidMethod(env, listener,
                            listenerMethod,
                            transaction);
-    (*env)->DeleteLocalRef(env, listener);
+    (*env)->DeleteLocalRef (env, listener);
+    (*env)->DeleteLocalRef (env, transaction);
 }
 
 static void

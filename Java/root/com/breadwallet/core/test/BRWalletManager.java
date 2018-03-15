@@ -45,6 +45,8 @@ import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 /**
  *
@@ -55,18 +57,27 @@ public class BRWalletManager extends BRCoreWalletManager {
             System.loadLibrary("Core");
     }
 
+    Executor listenerExecutor;
     public BRWalletManager(BRCoreMasterPubKey masterPubKey,
                            BRCoreChainParams chainParams,
                            double earliestPeerTime) {
         super(masterPubKey, chainParams, earliestPeerTime);
+        listenerExecutor = Executors.newSingleThreadExecutor();
     }
 
-//    @Override
-//    protected BRCorePeer[] loadPeers() {
-//        return new BRCorePeer[] {
-//                new BRCorePeer(this.chainParams.getJniMagicNumber())
-//        };
-//    }
+    @Override
+    protected BRCoreWallet.Listener createWalletListener() {
+        return new BRCoreWalletManager.WrappedExecutorWalletListener(
+                super.createWalletListener(),
+                listenerExecutor);
+    }
+
+    @Override
+    protected BRCorePeerManager.Listener createPeerManagerListener() {
+        return new BRCoreWalletManager.WrappedExecutorPeerManagerListener(
+                super.createPeerManagerListener(),
+                listenerExecutor);
+    }
 
     @Override
     public void syncStarted() {
@@ -74,14 +85,23 @@ public class BRWalletManager extends BRCoreWalletManager {
     }
 
     private static final double BIP39_CREATION_TIME = 1388534400.0;
-    private static final String SOME_RANDOM_TEST_PAPER_KEY =
+    private static final String RANDOM_TEST_PAPER_KEY =
             "axis husband project any sea patch drip tip spirit tide bring belt";
+
+    private static final String USABLE_PAPER_KEY =
+            "ginger settle marine tissue robot crane night number ramp coast roast critic";
+
+    private static final String THE_PAPER_KEY = USABLE_PAPER_KEY;
+
+    private static final double THE_PAPER_KEY_TIME =
+        (System.currentTimeMillis() / 1000) - 3 * 7 * 24 * 60 * 60;// Three weeks ago.
+
+    private static final int SLEEP_TIME_IN_SECONDS = 3 * 60; // 5 minutes
 
     public static void main(String[] args) {
 
         Configuration configuration = parseArguments(
                 null == args ? new String[] {""} : args);
-
 
         // Allow debugger to connect
         if (configuration.delay) {
@@ -94,7 +114,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         runTests();
 
         final BRCoreMasterPubKey masterPubKey =
-                new BRCoreMasterPubKey(SOME_RANDOM_TEST_PAPER_KEY.getBytes(), true);
+                new BRCoreMasterPubKey(THE_PAPER_KEY.getBytes(), true);
 
         final List<BRWalletManager> walletManagers = new LinkedList<>();
 
@@ -102,7 +122,7 @@ public class BRWalletManager extends BRCoreWalletManager {
             walletManagers.add(
                     new BRWalletManager(masterPubKey,
                             chainParams,
-                            BIP39_CREATION_TIME));
+                            THE_PAPER_KEY_TIME));
         }
 
         if (walletManagers.isEmpty()) return;
@@ -113,7 +133,15 @@ public class BRWalletManager extends BRCoreWalletManager {
             walletManager.getPeerManager().connect();
 
         try {
-            Thread.sleep(20 * 60 * 1000);
+            Thread.sleep (15 * 1000);
+            for (BRWalletManager walletManager : walletManagers) {
+                System.err.println ("Retry");
+                walletManager.getPeerManager().disconnect();
+                walletManager.getPeerManager().connect();
+                walletManager.getPeerManager().rescan();
+            }
+
+            Thread.sleep(SLEEP_TIME_IN_SECONDS * 1000);
             System.err.println("Times Up - Done");
 
             Thread.sleep(2 * 1000);
@@ -210,7 +238,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println ("    GC:");
 
         final BRCoreMasterPubKey masterPubKey =
-                new BRCoreMasterPubKey(SOME_RANDOM_TEST_PAPER_KEY.getBytes(), true);
+                new BRCoreMasterPubKey(THE_PAPER_KEY.getBytes(), true);
 
         final BRCoreChainParams chainParams =
                 BRCoreChainParams.testnetChainParams;
@@ -250,6 +278,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println("            " + key.address());
 
         addr1 = new BRCoreAddress(key.address());
+        asserting (addr1.isValid());
 
         byte[] script = addr1.getPubKeyScript();
 
@@ -263,6 +292,18 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println("          Cash: " + bitcashAddr);
         String bitcoinAddr2 = BRCoreAddress.bcashDecodeBitcoin(bitcashAddr);
         asserting (bitcoinAddr1.equals(bitcoinAddr2));
+        String bitcoinAddr3 = BRCoreAddress.bcashDecodeBitcoin("bitcoincash:qzfhn2f7dwsfqdf6nlu07rw6c3ssqe9rm5a5y8tgm9");
+        asserting (null != bitcoinAddr3 && !bitcoinAddr3.isEmpty());
+
+        System.out.println (" Mihail's BCH: " + "bitcoincash:qzc93708k7x0w3gr32thxc5fla38xf8x8vq8h33fva");
+        System.out.println (" Mihail's BTC: " + BRCoreAddress.bcashDecodeBitcoin("bitcoincash:qzc93708k7x0w3gr32thxc5fla38xf8x8vq8h33fva"));
+
+        BRCoreAddress addrX1 = new BRCoreAddress(
+                "bitcoincash:qzc93708k7x0w3gr32thxc5fla38xf8x8vq8h33fva");
+        asserting (!addrX1.isValid());
+        BRCoreAddress addrX2 = new BRCoreAddress(
+                BRCoreAddress.bcashDecodeBitcoin("bitcoincash:qzc93708k7x0w3gr32thxc5fla38xf8x8vq8h33fva"));
+        asserting (addrX2.isValid());
 
 
         String bitcoinAddr8 = "n2gzmWpFmcyC1WamqXvZs4kFf16sJD5MNN";
@@ -293,7 +334,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         //
         System.out.println("        MasterPubKey:");
 
-        BRCoreMasterPubKey keyFromPaperKey = new BRCoreMasterPubKey(SOME_RANDOM_TEST_PAPER_KEY.getBytes(), true);
+        BRCoreMasterPubKey keyFromPaperKey = new BRCoreMasterPubKey(THE_PAPER_KEY.getBytes(), true);
         byte[] keySerialized = keyFromPaperKey.serialize();
         BRCoreMasterPubKey keyFromBytes = new BRCoreMasterPubKey(keySerialized, false);
         asserting (Arrays.equals(keySerialized, keyFromBytes.serialize()));
@@ -305,8 +346,8 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println("               PaperKey: " + Arrays.toString(paperKeyBytes));
         System.out.println("               PaperKey: " + new String(paperKeyBytes));
         System.out.println("               PaperKey: " + Arrays.toString(new String(paperKeyBytes).getBytes()));
-        assert (Arrays.equals(paperKeyBytes, new String (paperKeyBytes).getBytes()));
-        assert (0 != paperKeyBytes[paperKeyBytes.length - 1]);
+        asserting (Arrays.equals(paperKeyBytes, new String (paperKeyBytes).getBytes()));
+        asserting (0 != paperKeyBytes[paperKeyBytes.length - 1]);
         //
         //
         //
@@ -441,7 +482,7 @@ public class BRWalletManager extends BRCoreWalletManager {
                 && transaction.getBlockHeight() == transactionFromSerialized.getBlockHeight());
 
         System.out.println("            Signed");
-        transaction.sign(k);
+        transaction.sign(k, 0x00);
         asserting (transaction.isSigned());
 
         BRCoreAddress sigAddress;
@@ -478,7 +519,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         transaction.addOutput(
                 new BRCoreTransactionOutput(4900000000L, script));
 
-        transaction.sign(k);
+        transaction.sign(k, 0x00);
         asserting (transaction.isSigned());
         BRCoreTransactionInput inputs[] = transaction.getInputs();
         sigAddress = BRCoreAddress.fromScriptSignature(
@@ -489,9 +530,9 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println("        Set Output Amount:");
 
         BRCoreTransactionOutput out1 = new BRCoreTransactionOutput(4900000000L, script);
-        assert (4900000000L == out1.getAmount());
+        asserting (4900000000L == out1.getAmount());
         out1.setAmount(100);
-        assert (100 == out1.getAmount());
+        asserting (100 == out1.getAmount());
 
     }
 
@@ -631,9 +672,8 @@ public class BRWalletManager extends BRCoreWalletManager {
                 new BRCoreTransactionInput(inHash, 0, 1, inScript, new byte[]{}, 4294967295L));
         tx.addOutput(
                 new BRCoreTransactionOutput(SATOSHIS, outScript));
-//        tx.sign(k);
         w.signTransaction(tx, 0x00, phrase);
-        assert (tx.isSigned());
+        asserting (tx.isSigned());
         System.out.println("            Signed");
         w.registerTransaction(tx);
 
@@ -651,7 +691,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         tx.addOutput(
                 new BRCoreTransactionOutput(SATOSHIS, outScript));
         tx.setLockTime(1000);
-        tx.sign(k);
+        tx.sign(k, 0x00);
         asserting(tx.isSigned());
         asserting(w.transactionIsPending(tx));
 
@@ -675,7 +715,7 @@ public class BRWalletManager extends BRCoreWalletManager {
                 new BRCoreTransactionInput(inHash, 0, 1, inScript, new byte[] {}, 4294967295L));
         tx.addOutput(
                 new BRCoreTransactionOutput(SATOSHIS, outScript));
-        tx.sign(k);
+        tx.sign(k, 0x00);
         tx.setTimestamp (1);
         asserting (tx.isSigned());
 
@@ -732,7 +772,7 @@ public class BRWalletManager extends BRCoreWalletManager {
         tx.addOutput(
                 new BRCoreTransactionOutput(SATOSHIS, outScript));
         w.signTransaction(tx, 0x00, phrase);
-        assert (tx.isSigned());
+        asserting (tx.isSigned());
         System.out.println("            Signed");
         w.registerTransaction(tx);
         asserting(SATOSHIS == w.getBalance());
@@ -803,7 +843,7 @@ public class BRWalletManager extends BRCoreWalletManager {
 //        wm.signAndPublishTransaction(tx, phrase);
         wm.getWallet().signTransaction(tx, 0x00, phrase);
 
-        assert (tx.isSigned());
+        asserting (tx.isSigned());
         System.out.println("            Signed");
     }
 
@@ -831,8 +871,11 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println("            Blocks");
 
         BRCoreMerkleBlock block = new BRCoreMerkleBlock(getMerkleBlockBytes(), 100001);
-        assert (null != block);
-        assert (100001 == block.getHeight());
+        asserting (null != block);
+        asserting (100001 == block.getHeight());
+
+        byte[] hash = block.getBlockHash();
+        asserting (!block.containsTransactionHash(hash));
 
         BRCoreMerkleBlock[] blocks = new BRCoreMerkleBlock[1024];
         for (int i = 0; i < 1024; i++)
@@ -847,10 +890,10 @@ public class BRWalletManager extends BRCoreWalletManager {
                 blocks,
                 peers,
                 getPeerManagerListener());
-        assert (null != pm);
+        asserting (null != pm);
 
-        pm.testSaveBlocksCallback(false, blocks);
-        pm.testSavePeersCallback(false, peers);
+//        pm.testSaveBlocksCallback(false, blocks);
+//        pm.testSavePeersCallback(false, peers);
     }
 
     private static BRCoreWallet.Listener getWalletListener () {

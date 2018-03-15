@@ -141,7 +141,7 @@ int BRWalletContainsTransaction(BRWallet *wallet, const BRTransaction *tx);
 // adds a transaction to the wallet, or returns false if it isn't associated with the wallet
 int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx);
 
-// removes a tx from the wallet and calls BRTransactionFree() on it, along with any tx that depend on its outputs
+// removes a tx from the wallet, along with any tx that depend on its outputs
 void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash);
 
 // returns the transaction with the given hash if it's been registered in the wallet

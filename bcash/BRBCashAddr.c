@@ -24,13 +24,7 @@
 //  THE SOFTWARE.
 
 #include "bcash/BRBCashAddr.h"
-//#include "BRAddress.h" // WTF?! header guards not working? some kind of compiler bug?
-#define OP_0 0x00
-#define OP_1 0x51
-#define BITCOIN_PUBKEY_ADDRESS      0
-#define BITCOIN_SCRIPT_ADDRESS      5
-#define BITCOIN_PUBKEY_ADDRESS_TEST 111
-#define BITCOIN_SCRIPT_ADDRESS_TEST 196
+#include "BRAddress.h"
 #include "BRBase58.h"
 #include "BRCrypto.h"
 #include <inttypes.h>
@@ -143,7 +137,7 @@ static size_t _BRBCashAddrEncode(char *addr55, const char *hrp, const uint8_t da
 // returns the number of bytes written to bitcoinAddr36 (maximum of 36)
 size_t BRBCashAddrDecode(char *bitcoinAddr36, const char *bCashAddr)
 {
-    uint8_t data[21], ver = 0xff;
+    uint8_t data[21], ver = UINT8_MAX;
     char hrp[12];
     
     assert(bitcoinAddr36 != NULL);
@@ -161,7 +155,7 @@ size_t BRBCashAddrDecode(char *bitcoinAddr36, const char *bCashAddr)
     }
 
     data[0] = ver;
-    return (ver != 0xff) ? BRBase58CheckEncode(bitcoinAddr36, 36, data, 21) : 0;
+    return (ver != UINT8_MAX) ? BRBase58CheckEncode(bitcoinAddr36, 36, data, 21) : 0;
 }
 
 // returns the number of bytes written to bCashAddr55 (maximum of 55)

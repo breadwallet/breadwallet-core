@@ -57,7 +57,7 @@ uint32_t BRRand(uint32_t upperBound);
 typedef struct {
     UInt256 txHash;
     uint32_t index;
-    char address[36];
+    char address[75];
     uint64_t amount;
     uint8_t *script;
     size_t scriptLen;
@@ -71,7 +71,7 @@ void BRTxInputSetScript(BRTxInput *input, const uint8_t *script, size_t scriptLe
 void BRTxInputSetSignature(BRTxInput *input, const uint8_t *signature, size_t sigLen);
 
 typedef struct {
-    char address[36];
+    char address[75];
     uint64_t amount;
     uint8_t *script;
     size_t scriptLen;
@@ -122,7 +122,7 @@ void BRTransactionShuffleOutputs(BRTransaction *tx);
 
 // size in bytes if signed, or estimated size assuming compact pubkey sigs
 size_t BRTransactionSize(const BRTransaction *tx);
-
+    
 // minimum transaction fee needed for tx to relay across the bitcoin network
 uint64_t BRTransactionStandardFee(const BRTransaction *tx);
 

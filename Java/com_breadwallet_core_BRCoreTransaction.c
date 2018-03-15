@@ -54,9 +54,6 @@ Java_com_breadwallet_core_BRCoreTransaction_getHash
     jbyteArray hashByteArray = (*env)->NewByteArray (env, sizeof (UInt256));
     (*env)->SetByteArrayRegion (env, hashByteArray, 0, sizeof (UInt256), (const jbyte *) transactionHash.u8);
 
-//    const char *strHash = u256hex(transactionHash);
-//    return (*env)->NewStringUTF(env, strHash);
-
     return hashByteArray;
 }
 
@@ -287,23 +284,25 @@ Java_com_breadwallet_core_BRCoreTransaction_isSigned
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction
  * Method:    sign
- * Signature: ([Lcom/breadwallet/core/BRCoreKey;)V
+ * Signature: ([Lcom/breadwallet/core/BRCoreKey;I)V
  */
 JNIEXPORT void JNICALL
 Java_com_breadwallet_core_BRCoreTransaction_sign
-        (JNIEnv *env, jobject thisObject, jobjectArray keyObjectArray) {
+        (JNIEnv *env, jobject thisObject, jobjectArray keyObjectArray, jint forkId) {
     BRTransaction *transaction = (BRTransaction *) getJNIReference (env, thisObject);
 
     size_t keyCount = (*env)->GetArrayLength (env, keyObjectArray);
-    BRKey keys[keyCount];
+    BRKey *keys = (BRKey *) calloc (keyCount, sizeof (BRKey));
+
     for (int index = 0; index < keyCount; index++) {
         jobject keyObject = (*env)->GetObjectArrayElement (env, keyObjectArray, index);
         keys[index] = *(BRKey *) getJNIReference (env, keyObject);
 
         (*env)->DeleteLocalRef (env, keyObject);
     }
-    BRTransactionSign(transaction, 0x00, keys, keyCount);
+    BRTransactionSign(transaction, forkId, keys, keyCount);
 
+    if (NULL == keys) free (keys);
     return;
 }
 
@@ -379,7 +378,6 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCoreTransaction_initializeNat
     transactionOutputConstructor = (*env)->GetMethodID(env, transactionOutputClass, "<init>", "(J)V");
     assert (NULL != transactionOutputConstructor);
 }
-
 
 /*
  * Class:     com_breadwallet_core_BRCoreTransaction

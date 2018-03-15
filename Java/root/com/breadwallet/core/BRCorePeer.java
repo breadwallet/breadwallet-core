@@ -119,6 +119,12 @@ public class BRCorePeer extends BRCoreJniReference {
     //
     //
     //
+    public BRCorePeer (byte[] peerAddress,
+                       int peerPort,
+                       long timestamp) {
+        this (createJniCorePeerNatural(peerAddress, peerPort, timestamp));
+    }
+
     public BRCorePeer(byte[] peerAddress,
                       byte[] peerPort,
                       byte[] timeStamp) {
@@ -132,6 +138,10 @@ public class BRCorePeer extends BRCoreJniReference {
     protected BRCorePeer(long jniReferenceAddress) {
         super(jniReferenceAddress);
     }
+
+    private static native long createJniCorePeerNatural (byte[] peerAddress,
+                                                            int peerPort,
+                                                            long timeStamp);
 
     private static native long createJniCorePeer (byte[] peerAddress,
                                                   byte[] peerPort,
