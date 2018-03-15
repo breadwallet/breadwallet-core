@@ -199,7 +199,7 @@ coerceUInt256 (UInt512  x, int *overflow) {
 }
 
 static char *
-coerceReverseSTring (const char *s) {
+coerceReverseString (const char *s) {
   long len = strlen(s);
   char *t = calloc (1 + len, 1);
   for (int i = 0; i < len; i++)
@@ -209,9 +209,23 @@ coerceReverseSTring (const char *s) {
 
 extern char *
 coerceString (UInt256 x, int base) {
+  // Handle 0 explicitly, rather than in each case
+  if (eqUInt256(x, UINT256_ZERO)) {
+    char *result = calloc (2, 1);
+    result[0] = '0';
+    return result;
+  }
+
+  // otherwise, full stop
   switch (base) {
-    case 16:
-      return encodeHexCreate (NULL, x.u8, sizeof (x.u8));
+    case 16: {
+      // Reverse and 'strip zeros'
+      UInt256 xr = UInt256Reverse(x);
+      int xrIndex = 0;
+      while (0 == xr.u8[xrIndex]) xrIndex++;
+      // Encode
+      return encodeHexCreate (NULL, &xr.u8[xrIndex], sizeof (xr.u8) - xrIndex);
+    }
     case 10: {
       char r[256];
       memset (r, 0, 256);
@@ -220,7 +234,7 @@ coerceString (UInt256 x, int base) {
         x = divUInt256_Small(x, base, &rem);
         r[i] = '0' + rem;
       }
-      return coerceReverseSTring(r);
+      return coerceReverseString(r);
     }
     case 2:
       assert (0);
@@ -286,8 +300,16 @@ parseUInt256Power (int digits, int base, int *overflow) {
   uint64_t value = 1;
   while (digits-- > 0)
     value *= base;  // slow, but yeah.
+
+  // Reality is that this can overflow for 16^16 = 2^64 (one too many).  We'll handle it.
+  //  Probably also for 2^256... can't handle that one similarly.
   *overflow = 0;
-  return createUInt256(value);
+  if (value == 0) {
+    UInt256 result = UINT256_ZERO;
+    result.u64[1] = 1;
+    return result;
+  }
+  else return createUInt256(value);
 }
 
 static UInt256

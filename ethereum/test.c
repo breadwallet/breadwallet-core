@@ -254,6 +254,35 @@ runMathParseTests () {
           && r.u64[2] == 0
           && r.u64[3] == 0);
 
+  char *s;
+  r = createUInt256Parse("425693205796080237694414176550132631862392541400559", 10, &error);
+  s = coerceString(r, 10);
+  assert (0 == strcmp("425693205796080237694414176550132631862392541400559", s));
+  free (s);
+
+  s = coerceString(r, 16);
+  printf ("S: %s\n", s);
+  assert (0 == strcasecmp("0123456789ABCDEFEDCBA98765432123456789ABCDEF", s));
+  free(s);
+
+  r = createUInt256Parse("0123456789ABCDEFEDCBA98765432123456789ABCDEF", 16, &error);
+  s = coerceString(r, 16);
+  assert (0 == strcasecmp ("0123456789ABCDEFEDCBA98765432123456789ABCDEF", s));
+  free (s);
+
+  s = coerceString(r, 10);
+  assert (0 == strcmp ("425693205796080237694414176550132631862392541400559", s));
+  free (s);
+
+  r = UINT256_ZERO;
+  s = coerceString(r, 10);
+  assert (0 == strcmp ("0", s));
+  free (s);
+
+  s = coerceString(r, 16);
+  assert (0 == strcmp ("0", s));
+  free (s);
+
 }
 
 static void
