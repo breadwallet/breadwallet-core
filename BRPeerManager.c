@@ -1001,7 +1001,7 @@ static void _peerHasTx(void *info, UInt256 txHash)
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
     BRTransaction *tx;
-    BRPublishedTx pubTx;
+    BRPublishedTx pubTx = { NULL, NULL, NULL };
     int isWalletTx = 0, hasPendingCallbacks = 0;
     size_t relayCount = 0;
     
@@ -1405,7 +1405,7 @@ static BRTransaction *_peerRequestedTx(void *info, UInt256 txHash)
 {
     BRPeer *peer = ((BRPeerCallbackInfo *)info)->peer;
     BRPeerManager *manager = ((BRPeerCallbackInfo *)info)->manager;
-    BRPublishedTx pubTx;
+    BRPublishedTx pubTx = { NULL, NULL, NULL };
     int hasPendingCallbacks = 0, error = 0;
 
     pthread_mutex_lock(&manager->lock);
@@ -1817,7 +1817,7 @@ static void _publishTxInvDone(void *info, int success)
     pthread_mutex_unlock(&manager->lock);
 }
 
-// publishes tx to bitcoin network
+// publishes tx to bitcoin network (do not call BRTransactionFree() on tx afterward)
 void BRPeerManagerPublishTx(BRPeerManager *manager, BRTransaction *tx, void *info,
                             void (*callback)(void *info, int error))
 {
