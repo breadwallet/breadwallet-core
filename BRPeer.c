@@ -1529,8 +1529,8 @@ void BRPeerFree(BRPeer *peer)
     if (ctx->knownBlockHashes) array_free(ctx->knownBlockHashes);
     if (ctx->knownTxHashes) array_free(ctx->knownTxHashes);
     if (ctx->knownTxHashSet) BRSetFree(ctx->knownTxHashSet);
-    if (ctx->pongInfo) array_free(ctx->pongInfo);
     if (ctx->pongCallback) array_free(ctx->pongCallback);
+    if (ctx->pongInfo) array_free(ctx->pongInfo);
     free(ctx);
 }
 
