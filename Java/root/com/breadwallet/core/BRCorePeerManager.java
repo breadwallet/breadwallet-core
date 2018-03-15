@@ -125,6 +125,14 @@ public class BRCorePeerManager extends BRCoreJniReference {
     protected native boolean jniUseFixedPeer (String node, int port);
 
     public native String getCurrentPeerName ();
+
+    @Override
+    protected void finalize() throws Throwable {
+        if (BRCorePeer.ConnectStatus.Disconnected != getConnectStatus())
+            System.out.println ("Disposing PeerManager while not DISCONNECTED: " + this.toString());
+        super.finalize();
+    }
+
     /**
      * Disconnect from bitcoin peer-to-peer network (may cause syncFailed(), saveBlocks() or
      * savePeers() callbacks to fire)
