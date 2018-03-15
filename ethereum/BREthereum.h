@@ -31,10 +31,11 @@
 #include "BREthereumEther.h"
 #include "BREthereumGas.h"
 #include "BREthereumAccount.h"
-#include "BREthereumNetwork.h"
-#include "BREthereumHolding.h"
 #include "BREthereumContract.h"
+#include "BREthereumToken.h"
+#include "BREthereumHolding.h"
 #include "BREthereumTransaction.h"
+#include "BREthereumNetwork.h"
 #include "BREthereumWallet.h"
 #include "BREthereumLightNode.h"
 

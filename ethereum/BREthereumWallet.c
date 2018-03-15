@@ -76,9 +76,9 @@ struct BREthereumWalletRecord {
     BREthereumGas defaultGasLimit;
 
     /**
-     * The wallet's holding, either ETHER or a TOKEN.
+     * The wallet's balance, either ETHER or a TOKEN.
      */
-    BREthereumHolding holding;
+    BREthereumHolding balance;
 
     /**
      * An optional ERC20 token specification.  Will be NULL (and unused) for holding ETHER.
@@ -107,8 +107,10 @@ walletCreateDetailed (BREthereumAccount account,
     wallet->address = address;
     wallet->network = network;
 
-    wallet->holding = createHolding(type);
     wallet->token = optionalToken;
+    wallet->balance = (WALLET_HOLDING_ETHER == type
+                       ? holdingCreateEther(etherCreate(UINT256_ZERO))
+                       : holdingCreateToken(wallet->token, UINT256_ZERO));
 
     wallet->defaultGasLimit = WALLET_HOLDING_ETHER == type
                               ? walletCreateDefaultGasLimit(wallet)
@@ -177,6 +179,10 @@ walletCreateTransactionDetailed(BREthereumWallet wallet,
                                 BREthereumGasPrice gasPrice,
                                 BREthereumGas gasLimit,
                                 int nonce) {
+  assert (walletGetHoldingType(wallet) == holdingGetType(amount));
+  assert (WALLET_HOLDING_ETHER == holdingGetType(amount)
+          || 1 /*(wallet->token == tokenQuantityGetToken (holdingGetTokenQuantity(amount)))*/);
+
   // TODO: provide 'DataForHolding'
   //  Wallet needs contract+function - expects a 'transfer function'
   //  What are the arguments to walletDataForHolding... needs the transaction?  Needs more?
@@ -195,7 +201,7 @@ walletCreateTransactionDetailed(BREthereumWallet wallet,
 static char *
 walletDataForHolding (BREthereumWallet wallet) {
     // TODO: Implement
-    switch (wallet->holding.type) {
+    switch (wallet->balance.type) {
         case WALLET_HOLDING_ETHER:
             return "";  // empty string - official 'ETHER' data
 
@@ -273,6 +279,16 @@ walletGetAddress (BREthereumWallet wallet) {
   return wallet->address;
 }
 
+extern BREthereumWalletHoldingType
+walletGetHoldingType (BREthereumWallet wallet) {
+  return wallet->balance.type;
+}
+
+extern BREthereumHolding
+walletGetBalance (BREthereumWallet wallet) {
+  return wallet->balance;
+}
+
 extern BREthereumGas
 walletGetDefaultGasLimit(BREthereumWallet wallet) {
     return wallet->defaultGasLimit;
@@ -285,7 +301,7 @@ walletSetDefaultGasLimit(BREthereumWallet wallet, BREthereumGas gasLimit) {
 
 static BREthereumGas
 walletCreateDefaultGasLimit (BREthereumWallet wallet) {
-    switch (holdingGetType(wallet->holding)) {
+    switch (holdingGetType(wallet->balance)) {
         case WALLET_HOLDING_ETHER:
             return gasCreate (DEFAULT_ETHER_GAS_LIMIT);
         case WALLET_HOLDING_TOKEN:
@@ -310,7 +326,7 @@ walletSetDefaultGasPrice(BREthereumWallet wallet, BREthereumGasPrice gasPrice) {
 
 static BREthereumGasPrice
 walletCreateDefaultGasPrice (BREthereumWallet wallet) {
-    switch (holdingGetType(wallet->holding)) {
+    switch (holdingGetType(wallet->balance)) {
         case WALLET_HOLDING_ETHER:
             return gasPriceCreate(
                     etherCreateNumber

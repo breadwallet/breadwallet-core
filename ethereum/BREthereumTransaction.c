@@ -33,6 +33,13 @@
 struct BREthereumTransactionRecord {
   BREthereumAddress sourceAddress;
   BREthereumAddress targetAddress;
+
+  /**
+   * The amount transferred from sourceAddress to targetAddress.  Note that this is not
+   * necessarily the 'amount' RLP encoded in the 'raw transaction'.  Specifically if the `amount`
+   * is for TOKEN, then the RLP encoded amount is 0 and the RLP encoded data for the ERC20
+   * transfer function encodes the amount.
+   */
   BREthereumHolding amount;
   BREthereumGasPrice gasPrice;
   BREthereumGas gasLimit;
@@ -73,11 +80,11 @@ transactionCreate(BREthereumAddress sourceAddress,
     transaction->gasLimit = gasLimit;
     transaction->nonce = nonce;
     transaction->chainId = 0;
+    transaction->data = NULL;
     transaction->signer = NULL;
 
     return transaction;
 }
-
 
 extern BREthereumAddress
 transactionGetSourceAddress(BREthereumTransaction transaction) {
@@ -109,8 +116,8 @@ transactionGetGasLimit (BREthereumTransaction transaction) {
 //
 extern void
 transactionSetData (BREthereumTransaction transaction, char *data) {
-    transaction->data = malloc(1 + strlen(data));
-    strcpy(transaction->data, data);
+  transaction->data = malloc(1 + strlen(data));
+  strcpy(transaction->data, data);
 }
 
 //
@@ -145,6 +152,26 @@ transactionIsSigned (BREthereumTransaction transaction) {
 //
 // RLP
 //
+static BRRlpItem
+transactionEncodeDataForHolding (BREthereumTransaction transaction,
+                                 BREthereumHolding holding,
+                                 BRRlpCoder coder) {
+  if (NULL == transaction->data) {
+    switch (holdingGetType(holding)) {
+      case WALLET_HOLDING_ETHER:
+        transaction->data = "";
+        break;
+      case WALLET_HOLDING_TOKEN: {
+        UInt256 value = holdingGetTokenQuantity(holding).valueAsInteger;
+        transaction->data = contractEncode
+        (contractERC20, functionERC20Transfer,
+         (uint8_t *) &value,
+         sizeof (UInt256));
+      }
+    }
+  }
+  return rlpEncodeItemString(coder, transaction->data);
+}
 
 extern BRRlpData
 transactionEncodeRLP (BREthereumTransaction transaction,
@@ -160,8 +187,8 @@ transactionEncodeRLP (BREthereumTransaction transaction,
   items[1] = gasPriceRlpEncode(transaction->gasPrice, coder);
   items[2] = gasRlpEncode(transaction->gasLimit, coder);
   items[3] = addressRlpEncode(transaction->targetAddress, coder);
-  items[4] = holdingRlpEncode(transaction->amount, coder);
-  items[5] = rlpEncodeItemString(coder, transaction->data);
+  items[4] = holdingRlpEncode(transaction->amount, coder);   // Encodes TOKEN as '0'
+  items[5] = transactionEncodeDataForHolding(transaction, transaction->amount, coder);
   itemsCount = 6;
 
   // EIP-155:

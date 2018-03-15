@@ -27,7 +27,7 @@
 #define BR_Ethereum_Holding_H
 
 #include "BREthereumEther.h"
-#include "BREthereumGas.h"
+#include "BREthereumToken.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -45,34 +45,34 @@ typedef enum {
  * An Ethereum Wallet holds a specific amount of ETHER or TOKENs
  */
 typedef struct BREthereumHoldingRecord {
-    BREthereumWalletHoldingType type;
-    union {
-        struct {
-            BREthereumEther amount;
-        } ether;
-        struct {
-            UInt256 scale;
-            UInt256 amount;
-        } token;
-    } holding;
+  BREthereumWalletHoldingType type;
+  union {
+    BREthereumEther ether;
+    BREthereumTokenQuantity tokenQuantity;
+  } u;
 } BREthereumHolding;
-
-extern BREthereumHolding
-createHolding(BREthereumWalletHoldingType type);
 
 extern BREthereumHolding
 holdingCreateEther (BREthereumEther ether);
 
 // TODO: what is 'scale' - replace with 'decimals'?
 extern BREthereumHolding
-holdingCreateToken (UInt256 scale, UInt256 amount);
+holdingCreateToken (BREthereumToken token, UInt256 valueAsInteger);
 
 extern BREthereumWalletHoldingType
 holdingGetType (BREthereumHolding holding);
 
-// TODO: Error if holding.type != ETHER
+/**
+ * The holding's ether if holding ETHER; otherwise fatal.
+ */
 extern BREthereumEther
 holdingGetEther (BREthereumHolding holding);
+
+/**
+ * The holding's tokenQuantity if holding TOKEN; otherwise fatal.
+ */
+extern BREthereumTokenQuantity
+holdingGetTokenQuantity (BREthereumHolding holding);
 
 extern BRRlpItem
 holdingRlpEncode(BREthereumHolding holding, BRRlpCoder coder);
@@ -80,94 +80,34 @@ holdingRlpEncode(BREthereumHolding holding, BRRlpCoder coder);
 //
 // Parsing
 //
-  // amount
-  // number + power
-  //  "12.345" + digits 4 -> 123450
-  //  "12.345" + digits 18 -> 12345<15 zeros>
-
-  /**
-   *
-   * Parse a string of base-10 digits with one optional decimal point into an Ether holding and
-   * assign the status.  If status is 'OK' then the holding will contain some amount of Ether;
-   * otherwise status will indicate the failure and holding will contain zero Ether.
-   *
-   * Examples of number are: "12.3", "12000000000", "0.00000000012", "1.000000000023"
-   *
-   * Status Errors are:
-   *     STRANGE_DIGITS: 12a.3f <all characters must be [0-9\.]
-   *          UNDERFLOW: 0.1 WEI (aka
-   *           OVERFLOW: 1000000 TETHER
-   *
-   * @param number
-   * @param unit
-   * @param status
-   *
-   */
-extern BREthereumHolding
-holdingCreateEtherParse (const char *number, BREthereumEtherUnit unit, BREthereumEtherParseStatus *status);
-
-extern BREthereumHolding
-holdingCreateTokenParse (const char *number, BREthereumEtherParseStatus *status);
-
 /**
- * A Ethereum Token defines an ERC20 Token
+ *
+ * Parse a string of base-10 digits with one optional decimal point into an Ether holding and
+ * assign the status.  If status is 'OK' then the holding will contain some amount of Ether;
+ * otherwise status will indicate the failure and holding will contain zero Ether.
+ *
+ * Examples of number are: "12.3", "12000000000", "0.00000000012", "1.000000000023"
+ *
+ * Status Errors are:
+ *     STRANGE_DIGITS: 12a.3f <all characters must be [0-9\.]
+ *          UNDERFLOW: 0.1 WEI
+ *           OVERFLOW: 1000000 TETHER
+ *
+ * @param number
+ * @param unit
+ * @param status
+ *
  */
-typedef struct BREthereumTokenRecord {
-    /**
-     * An Ethereum '0x' address for the token's contract.
-     */
-    char *address;
+extern BREthereumHolding
+holdingCreateEtherString (const char *number,
+                          BREthereumEtherUnit unit,
+                          BREthereumEtherParseStatus *status);
 
-    /**
-     * The (exchange) symbol - "BRD"
-     */
-    char *symbol;
-
-    /**
-     * The name - "Bread Token"
-     */
-    char *name;
-
-    /**
-     * The description - "The Bread Token ..."
-     */
-    char *description;
-
-    /**
-     * The maximum decimals (typically 0 to 18).
-     */
-  unsigned int decimals;
-
-    /**
-     * The (default) Gas Limit for exchanges of this token.
-     */
-    BREthereumGas gasLimit;
-
-    /**
-     * The (default) Gas Price for exchanges of this token.
-     */
-    BREthereumGasPrice gasPrice;
-    
-} BREthereumToken;
-
-extern BREthereumToken
-tokenCreate(char *address,
-            char *symbol,
-            char *name,
-            char *description,
-            BREthereumGas gasLimit,
-            BREthereumGasPrice gasPrice);
-
-extern BREthereumToken
-tokenCreateNone (void);
-
-extern BREthereumGas
-tokenGetGasLimit (BREthereumToken token);
-
-extern BREthereumGasPrice
-tokenGetGasPrice (BREthereumToken token);
-
-//extern BREthereumToken tokenBRD;
+extern BREthereumHolding
+holdingCreateTokenQuantityString (BREthereumToken token,
+                                  const char *number,
+                                  BREthereumTokenQuantityUnit unit,
+                                  BREthereumEtherParseStatus *status);
 
 #ifdef __cplusplus
 }

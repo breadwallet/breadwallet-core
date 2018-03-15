@@ -25,47 +25,26 @@
 
 
 #include <string.h>
+#include <assert.h>
 #include "BREthereumHolding.h"
-#include "BREthereumEther.h"
-#include "BREthereum.h"
 
 //
 // Holding
 //
-
-extern BREthereumHolding
-createHolding(BREthereumWalletHoldingType type) {
-    BREthereumHolding holding;
-
-    holding.type = type;
-    switch (type) {
-        case WALLET_HOLDING_ETHER:
-            holding.holding.ether.amount = etherCreateZero();
-            break;
-        case WALLET_HOLDING_TOKEN: {
-            UInt256 scale = {.u64 = {0, 0, 0, 1}};
-            holding.holding.token.scale = scale;
-            holding.holding.token.amount = UINT256_ZERO;
-            break;
-        }
-    }
-    return holding;
-}
-
-
 extern BREthereumHolding
 holdingCreateEther (BREthereumEther ether) {
-    BREthereumHolding holding = createHolding(WALLET_HOLDING_ETHER);
-    holding.holding.ether.amount = ether;
-    return holding;
+  BREthereumHolding holding;
+  holding.type = WALLET_HOLDING_ETHER;
+  holding.u.ether = ether;
+  return holding;
 }
 
 extern BREthereumHolding
-holdingCreateToken (UInt256 scale, UInt256 amount) {
-    BREthereumHolding holding = createHolding(WALLET_HOLDING_TOKEN);
-    holding.holding.token.scale = scale;
-    holding.holding.token.amount = amount;
-    return holding;
+holdingCreateToken (BREthereumToken token, UInt256 valueAsInteger) {
+  BREthereumHolding holding;
+  holding.type = WALLET_HOLDING_TOKEN;
+  holding.u.tokenQuantity = createTokenQuantity(token, valueAsInteger);
+  return holding;
 }
 
 extern BREthereumWalletHoldingType
@@ -75,14 +54,21 @@ holdingGetType (BREthereumHolding holding) {
 
 extern BREthereumEther
 holdingGetEther (BREthereumHolding holding) {
-  return holding.holding.ether.amount;
+  assert (holding.type == WALLET_HOLDING_ETHER);
+  return holding.u.ether;
+}
+
+extern BREthereumTokenQuantity
+holdingGetTokenQuantity (BREthereumHolding holding) {
+  assert (holding.type == WALLET_HOLDING_ETHER);
+  return holding.u.tokenQuantity;
 }
 
 extern BRRlpItem
 holdingRlpEncode(BREthereumHolding holding, BRRlpCoder coder) {
     switch (holding.type) {
         case WALLET_HOLDING_ETHER:
-            return etherRlpEncode(holding.holding.ether.amount, coder);
+            return etherRlpEncode(holding.u.ether, coder);
 
         case WALLET_HOLDING_TOKEN:
             return rlpEncodeItemUInt64(coder, 0);
@@ -93,76 +79,22 @@ holdingRlpEncode(BREthereumHolding holding, BRRlpCoder coder) {
 // Parse
 //
 extern BREthereumHolding
-holdingCreateEtherParse (const char *number, BREthereumEtherUnit unit, BREthereumEtherParseStatus *status) {
+holdingCreateEtherString (const char *number, BREthereumEtherUnit unit, BREthereumEtherParseStatus *status) {
   BREthereumHolding holding;
   holding.type = WALLET_HOLDING_ETHER;
-  holding.holding.ether.amount = etherCreateString(number, unit, status);
+  holding.u.ether = etherCreateString(number, unit, status);
   return holding;
 }
 
 extern BREthereumHolding
-holdingCreateTokenParse (const char *number, BREthereumEtherParseStatus *status) {
+holdingCreateTokenQuantityString (BREthereumToken token, const char *number, BREthereumTokenQuantityUnit unit, BREthereumEtherParseStatus *status) {
   BREthereumHolding holding;
   holding.type = WALLET_HOLDING_TOKEN;
-  holding.holding.token.amount = UINT256_ZERO;
-  holding.holding.token.scale  = UINT256_ZERO;
+  holding.u.tokenQuantity = createTokenQuantityString(token, number, unit);
   return holding;
 }
 
-//
-// Token
-//
-extern BREthereumToken
-tokenCreate(char *address,
-            char *symbol,
-            char *name,
-            char *description,
-            BREthereumGas gasLimit,
-            BREthereumGasPrice gasPrice) {
-    BREthereumToken token = tokenCreateNone();
-
-    // TODO: Copy address or what (BREthereumToken is a value type....)
-    token.address = address;
-    token.symbol  = symbol;
-    token.name    = name;
-    token.description = description;
-    token.gasLimit = gasLimit;
-    token.gasPrice = gasPrice;
-
-    return token;
-}
-
-extern BREthereumToken
-tokenCreateNone (void) {
-    BREthereumToken token;
-    memset (&token, sizeof (BREthereumToken), 0);
-    return token;
-}
-
-extern BREthereumGas
-tokenGetGasLimit (BREthereumToken token) {
-    return token.gasLimit;
-}
-
-
-extern BREthereumGasPrice
-tokenGetGasPrice (BREthereumToken token) {
-    return token.gasPrice;
-}
-
-
-BREthereumToken tokenBRD = {
-  "0x5250776FAD5A73707d222950de7999d3675a2722",
-  "BRD",
-  "Bread Token",
-  "The Bread Token ...",
-  10,
-  { 50000 },
-  { { { .u64 = {0, 0, 0, 0}}}}
-};
-
 /*
-
  const Web3 = require("web3");
  const web3 = new Web3();
  web3.setProvider(new

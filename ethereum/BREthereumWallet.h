@@ -28,6 +28,7 @@
 
 #include "BREthereumEther.h"
 #include "BREthereumGas.h"
+#include "BREthereumHolding.h"
 #include "BREthereumAccount.h"
 #include "BREthereumNetwork.h"
 #include "BREthereumTransaction.h"
@@ -146,6 +147,18 @@ walletGetRawTransactionHexEncoded (BREthereumWallet wallet,
 */
 extern BREthereumAddress
 walletGetAddress (BREthereumWallet wallet);
+
+/**
+ * The wallet's holding type: ETHER or TOKEN
+ */
+extern BREthereumWalletHoldingType
+walletGetHoldingType (BREthereumWallet wallet);
+
+  /**
+ * The wallet's balance
+ */
+extern BREthereumHolding
+walletGetBalance (BREthereumWallet wallet);
 
 /**
  * Get the wallet's default Gas Limit.

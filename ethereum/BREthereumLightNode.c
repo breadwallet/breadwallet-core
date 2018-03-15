@@ -384,7 +384,7 @@ lightNodeGetTransactionRecvAddress (BREthereumLightNode node,
 extern BREthereumEther
 lightNodeGetTransactionAmount (BREthereumLightNode node,
                                BREthereumLightNodeTransactionId transactionId) {
-    BREthereumTransaction transaction = (BREthereumTransaction) transactionId;
-    BREthereumHolding holding = transactionGetAmount(transaction);
-    return holding.holding.ether.amount;
+  BREthereumTransaction transaction = (BREthereumTransaction) transactionId;
+  BREthereumHolding holding = transactionGetAmount(transaction);
+  return holdingGetEther(holding); // TODO: Fatal if TOKEN
 }
