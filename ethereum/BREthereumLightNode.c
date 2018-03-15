@@ -192,7 +192,7 @@ lightNodeUpdateWalletBalance (BREthereumLightNode node,
       int error = 0;
       const char *result = node->configuration.u.json_rpc.funcGetBalance
         (node->configuration.u.json_rpc.funcContext, ++node->requestId, address);
-      assert (0 == strcmp (result, "0x"));
+      assert (0 == strncmp (result, "0x", 2));
       UInt256 amount = createUInt256Parse(&result[2], 16, &error);
       return etherCreate(amount);
     }

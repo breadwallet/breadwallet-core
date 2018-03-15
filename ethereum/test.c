@@ -764,9 +764,62 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
   printf ("        Raw Transaction: %s\n", rawTransactionHexEncoded);
 }
 
+//
+// Light Node JSON_RCP
+//
+typedef struct JsonRpcTestContextRecord {
+} *JsonRpcTestContext;
+
+// Stubbed Callbacks - should actually construct JSON, invoke an Etherum JSON_RPC method,
+// get the response and return the result.
+static const char *
+jsonRpcGetBalance (JsonRpcTestContext context, int id, const char *account) {
+  return "0x123f";
+}
+
+static const char *
+jsonRpcGetGasPrice (JsonRpcTestContext context, int id) {
+  return "0xffc0";
+}
+
+static const char *
+jsonRpcEstimateGas (JsonRpcTestContext context, int id, const char *to, const char *amount, const char *data) {
+  return "0x77";
+}
+
+static const char *
+jsonRpcSubmitTransaction (JsonRpcTestContext context, int id, const char *transaction) {
+  // The transaction hash
+  return "0x123abc456def";
+}
+
+static void
+runLightNode_JSON_RPC_test (const char *paperKey) {
+  int err = 0;
+  JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
+
+  BREthereumLightNodeConfiguration configuration =
+    lightNodeConfigurationCreateJSON_RPC(ethereumMainnet,
+                                         context,
+                                         (JsonRpcGetBalance) jsonRpcGetBalance,
+                                         (JsonRpcGetGasPrice) jsonRpcGetGasPrice,
+                                         (JsonRpcEstimateGas) jsonRpcEstimateGas,
+                                         (JsonRpcSubmitTransaction) jsonRpcSubmitTransaction);
+
+  BREthereumLightNode node = createLightNode(configuration);
+  BREthereumLightNodeAccountId account = lightNodeCreateAccount(node, paperKey);
+  // A wallet holding Ether
+  BREthereumLightNodeWalletId wallet = lightNodeCreateWallet(node, account, ethereumMainnet);
+
+  BREthereumEther balance = lightNodeUpdateWalletBalance (node, wallet);
+  BREthereumEther expectedBalance = etherCreate(createUInt256Parse("0x123f", 16, &err));
+  assert (0 == err && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (balance, expectedBalance));
+}
+
 void runLightNodeTests () {
   printf ("==== Light Node\n");
   prepareTransaction(NODE_PAPER_KEY, NODE_RECV_ADDR, TEST_TRANS2_GAS_PRICE_VALUE, GAS_LIMIT_DEFAULT, NODE_ETHER_AMOUNT);
+  runLightNode_JSON_RPC_test(NODE_PAPER_KEY);
 }
 
 // Local (PaperKey) -> LocalTest @ 5 GWEI gasPrice @ 21000 gasLimit & 0.0001/2 ETH
