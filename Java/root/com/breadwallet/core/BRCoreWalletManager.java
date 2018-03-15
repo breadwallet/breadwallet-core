@@ -66,7 +66,7 @@ public class BRCoreWalletManager implements
     //
     // Wallet
     //
-    public BRCoreWallet getWallet () {
+    public synchronized BRCoreWallet getWallet () {
         if (null == wallet) {
             wallet = createWallet();
         }
@@ -113,7 +113,7 @@ public class BRCoreWalletManager implements
     //        }
     //        return peerManager;
     //    }
-    public BRCorePeerManager getPeerManager () {
+    public synchronized BRCorePeerManager getPeerManager () {
         if (null == peerManager) {
             BRCoreWallet wallet = getWallet();
             if (null != wallet) {

@@ -425,7 +425,7 @@ Java_com_breadwallet_core_BRCorePeerManager_disposeNative
 
     if (NULL != peerManager) {
         // TODO: Locate `installListener` WeakGlobal reference - delete it.
-
+        assert (BRPeerStatusDisconnected == BRPeerManagerConnectStatus(peerManager));
         BRPeerManagerFree(peerManager);
     }
 }
