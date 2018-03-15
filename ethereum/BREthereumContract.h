@@ -47,7 +47,8 @@ extern BREthereumFunction functionERC20Transfer; // "transfer(address,uint256)"
  *
  * char *encoding contractEncode (contractERC20, functionERC20Transfer,
  *          (uint8_t *) address, strlen(address),
- *          (uint8_t *) &amount, sizeof (UInt256));
+ *          (uint8_t *) &amount, sizeof (UInt256),
+ *          NULL);  // end marker -> 'bytes' is never NULL.
  * ...
  * free (encoding);
  */

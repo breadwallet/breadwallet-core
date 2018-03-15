@@ -95,8 +95,7 @@ tokenGetGasPrice (BREthereumToken token);
 extern BREthereumContract
 tokenGetContract (BREthereumToken token);
 
-//extern BREthereumToken tokenBRD;
-
+extern BREthereumToken tokenBRD;
 
 //
 // Token Quantity

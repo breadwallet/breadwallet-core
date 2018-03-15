@@ -60,19 +60,20 @@ holdingGetEther (BREthereumHolding holding) {
 
 extern BREthereumTokenQuantity
 holdingGetTokenQuantity (BREthereumHolding holding) {
-  assert (holding.type == WALLET_HOLDING_ETHER);
+  assert (holding.type == WALLET_HOLDING_TOKEN);
   return holding.u.tokenQuantity;
 }
 
 extern BRRlpItem
 holdingRlpEncode(BREthereumHolding holding, BRRlpCoder coder) {
-    switch (holding.type) {
-        case WALLET_HOLDING_ETHER:
-            return etherRlpEncode(holding.u.ether, coder);
+  switch (holding.type) {
+    case WALLET_HOLDING_ETHER:
+      return etherRlpEncode(holding.u.ether, coder);
 
-        case WALLET_HOLDING_TOKEN:
-            return rlpEncodeItemUInt64(coder, 0);
-    }
+    case WALLET_HOLDING_TOKEN:
+      // We do not encode a 'number 0', we encode an empty string - it seems from ethereumio
+      return rlpEncodeItemString(coder, ""); // rlpEncodeItemUInt64(coder, 0);
+  }
 }
 
 //

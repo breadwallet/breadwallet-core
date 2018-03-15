@@ -30,6 +30,8 @@
 #include "BREthereumHolding.h"
 #include "BREthereumAccount.h"
 
+#include <stdio.h>
+
 struct BREthereumTransactionRecord {
   BREthereumAddress sourceAddress;
   BREthereumAddress targetAddress;
@@ -163,16 +165,61 @@ transactionEncodeDataForHolding (BREthereumTransaction transaction,
         break;
       case WALLET_HOLDING_TOKEN: {
         UInt256 value = holdingGetTokenQuantity(holding).valueAsInteger;
-        transaction->data = contractEncode
-        (contractERC20, functionERC20Transfer,
-         (uint8_t *) &value,
-         sizeof (UInt256));
+        const char *address = addressAsString(transaction->targetAddress);
+
+        // Data is a HEX ENCODED string
+        transaction->data = (char *) contractEncode
+          (contractERC20, functionERC20Transfer,
+           // Address
+           (uint8_t *) &address[2], strlen(address) - 2,
+           // Amount
+           (uint8_t *) &value, sizeof (UInt256),
+           NULL);
+        printf ("Transaction Data: %s\n", transaction->data);
+
+        free ((char *) address);
       }
     }
   }
-  return rlpEncodeItemString(coder, transaction->data);
+
+  // Handle a common case.
+  if (NULL == transaction->data || 0 == strlen(transaction->data))
+    return rlpEncodeItemString(coder, "");
+  else {
+    // decodeHex() DATA, then RLP encode as bytes.
+    size_t bytesCount = 0;
+    uint8_t *bytes = decodeHexCreate(&bytesCount, transaction->data, strlen(transaction->data));
+    BRRlpItem item = rlpEncodeItemBytes(coder, bytes, bytesCount);
+    free (bytes);
+
+    return item;
+  }
 }
 
+static BRRlpItem
+transactionEncodeAddressForHolding (BREthereumTransaction transaction,
+                                    BREthereumHolding holding,
+                                    BRRlpCoder coder) {
+  switch (holdingGetType(holding)) {
+    case WALLET_HOLDING_ETHER:
+      return addressRlpEncode(transaction->targetAddress, coder);
+    case WALLET_HOLDING_TOKEN: {
+      BREthereumToken token = tokenQuantityGetToken (holdingGetTokenQuantity(holding));
+      BREthereumAddress contractAddress = createAddress(token.address);
+      BRRlpItem result = addressRlpEncode(contractAddress, coder);
+      addressFree(contractAddress);
+      return result;
+    }
+  }
+}
+
+static BRRlpItem
+transactionEncodeHolding (BREthereumTransaction transaction,
+                                 BREthereumHolding holding,
+                                 BRRlpCoder coder) {
+  // Holding already handles ETHER vs TOKEN.
+  return holdingRlpEncode(holding, coder);
+}
 extern BRRlpData
 transactionEncodeRLP (BREthereumTransaction transaction,
                       BREthereumNetwork network,
@@ -186,8 +233,8 @@ transactionEncodeRLP (BREthereumTransaction transaction,
   items[0] = rlpEncodeItemUInt64(coder, transaction->nonce);
   items[1] = gasPriceRlpEncode(transaction->gasPrice, coder);
   items[2] = gasRlpEncode(transaction->gasLimit, coder);
-  items[3] = addressRlpEncode(transaction->targetAddress, coder);
-  items[4] = holdingRlpEncode(transaction->amount, coder);   // Encodes TOKEN as '0'
+  items[3] = transactionEncodeAddressForHolding(transaction, transaction->amount, coder);
+  items[4] = transactionEncodeHolding(transaction, transaction->amount, coder);
   items[5] = transactionEncodeDataForHolding(transaction, transaction->amount, coder);
   itemsCount = 6;
 

@@ -34,11 +34,11 @@
 #include <regex.h>
 #include "BRCrypto.h"
 #include "BRInt.h"
-#include "BRKey.h"
+#include "../BRBIP39WordsEn.h"
+//#include "BRKey.h"
 
 #include "BREthereum.h"
-#include "../BRBIP39WordsEn.h"
-#include "BREthereumLightNode.h"
+//#include "BREthereumLightNode.h"
 
 static void
 showHex (uint8_t *source, size_t sourceLen) {
@@ -283,6 +283,9 @@ runMathParseTests () {
   assert (0 == strcmp ("0", s));
   free (s);
 
+  r = createUInt256Parse("596877", 10, &error);
+  s = coerceString(r, 16);
+  printf ("596877: %s\n", s);
 }
 
 static void
@@ -453,6 +456,18 @@ void runRlpTest () {
   uint8_t resCatDog[] = RLP_L1_RES;
   printf ("  \"%s\"", "[\"cat\" \"dog\"]");
   rlpCheck(coder, listCatDog, resCatDog, 9);
+
+  int error = 0;
+  char *value = "5968770000000000000000";
+  UInt256 r = createUInt256Parse(value, 10, &error);
+  BRRlpItem item = rlpEncodeItemUInt256(coder, r);
+  BRRlpData data;
+  rlpGetData(coder, item, &data.bytes, &data.bytesCount);
+  printf ("  %s\n    => ", value); showHex (data.bytes, data.bytesCount);
+  char *dataHex = encodeHexCreate(NULL, data.bytes, data.bytesCount);
+  printf ("    => %s\n", dataHex);
+  assert (0 == strcasecmp (dataHex, "8a01439152d319e84d0000"));
+  free (dataHex);
 
   rlpCoderRelease(coder);
   printf ("\n");
@@ -681,11 +696,70 @@ void runTransactionTests2 (BREthereumAccount account, BREthereumNetwork network)
     assert (0 == strcmp (result, TEST_TRANS2_RESULT_UNSIGNED));
 }
 
+/*
+ From: 0xd551234ae421e3bcba99a0da6d736074f22192ff
+   To: Contract 0x558ec3152e2eb2174905cd19aea4e34a23de9ad6 (BreadToken)
+ Recv: 0x932a27e1bc84f5b74c29af3d888926b1307f4a5c
+ Amnt: 5,968.77
+
+ Raw Hash:
+ 0xf8ad83067642850ba43b74008301246a94558ec3152e2eb2174905cd19aea4e34a23de9ad68
+ // RLP Header - 'data'
+ 0b844
+ a9059cbb
+ 000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c
+ 0000000000000000000000000000000000000000000001439152d319e84d0000
+ // v, r, s signature
+ 25, a0a352fe7973fe554d3d5d21effb82667b3a17cc7b259eec482baf41a5ac80e155a0772ba32bfe32ccf7c4b764db155cd3e39b66c3b10abaa44ce27bc3013dd9ae7b
+
+ Input Data:
+ Function: transfer(address _to, uint256 _value) ***
+
+ MethodID: 0xa9059cbb
+ [0]:  000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c
+ [1]:  0000000000000000000000000000000000000000000001439152d319e84d0000
+
+*/
+#define TEST_TRANS3_TARGET_ADDRESS "0x932a27e1bc84f5b74c29af3d888926b1307f4a5c"
+#define TEST_TRANS3_GAS_PRICE_VALUE 50 // 20 GWEI
+#define TEST_TRANS3_GAS_PRICE_UNIT  GWEI
+#define TEST_TRANS3_GAS_LIMIT 74858
+#define TEST_TRANS3_NONCE 423490
+
+#define TEST_TRANS3_UNSIGNED_TX "f86d83067642850ba43b74008301246a94558ec3152e2eb2174905cd19aea4e34a23de9ad680b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000001439152d319e84d0000018080" // Add 018080 (v,r,s); adjust header count
+// Answer: "0xf8ad 83067642 850ba43b7400 8301246a 94,558ec3152e2eb2174905cd19aea4e34a23de9ad6_80_b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000001439152d319e84d0000"
+// Error :    f86d 83067642 850ba43b7400 8301246a 94,558ec3152e2eb2174905cd19aea4e34a23de9ad6_00_b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000001439152d319e84d0000018080
+
+void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network) {
+  int error;
+  BREthereumToken token = tokenBRD;
+  BREthereumWallet wallet = walletCreateHoldingToken (account, network, token);
+  UInt256 value = createUInt256Parse ("5968770000000000000000", 10, &error);
+  BREthereumHolding amount = holdingCreateToken(token, value);
+
+  BREthereumTransaction transaction = walletCreateTransactionDetailed
+  (wallet,
+   createAddress(TEST_TRANS3_TARGET_ADDRESS),
+   amount,
+   gasPriceCreate(etherCreateNumber(TEST_TRANS3_GAS_PRICE_VALUE, TEST_TRANS3_GAS_PRICE_UNIT)),
+   gasCreate(TEST_TRANS3_GAS_LIMIT),
+   TEST_TRANS3_NONCE);
+
+  assert (1 == networkGetChainId(network));
+  BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
+
+  char *rawTx = encodeHexCreate(NULL, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
+  printf ("  Tx3 Raw (unsigned): %s\n", rawTx);
+  assert (0 == strcasecmp(rawTx, TEST_TRANS3_UNSIGNED_TX));
+  free (rawTx);
+}
+
 void runTransactionTests (BREthereumAccount account, BREthereumNetwork network) {
     printf ("\n== Transaction\n");
 
     runTransactionTests1 (account, network);
-    runTransactionTests2 (account, network);
+  runTransactionTests2 (account, network);
+  runTransactionTests3 (account, network);
 }
 
 //
@@ -858,8 +932,9 @@ runTests (void) {
   //    reallySend();
 }
 
+#if defined (TEST_ETHEREUM_NEED_MAIN)
 int main(int argc, const char *argv[]) {
     runTests();
 }
-
+#endif
 
