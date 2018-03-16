@@ -50,11 +50,33 @@ createUInt256Power (uint8_t digits, int *overflow);
 
 /**
  * Create from a string in the provided base.  The string must consist of only characters
- * in the base.  That is, avoid the '0x' prefix.  No decimal points.
+ * in the base.  That is, avoid the '0x' prefix.  No decimal points; this is an integer parse
+ *
+ * @param number an integer value expressed in `base`
+ * @param the base
+ * @param pointer to a boolean error
  */
 extern UInt256
-createUInt256Parse (const char *digits, int base, int *error);
+createUInt256Parse (const char *number, int base, int *error);
 
+/**
+ * Create from a string with the specificed number of decimals (values after a decimal point).
+ * Example w/ decimals = 5:
+ *   "12"        -> 1200000
+ *   "12.34"     -> 1234000
+ *   "12.00001   -> 1200001
+ *   "12.000001" -> 'error' (underflow)
+ *    "0.00001"  ->       1
+ *
+ * @param number: a base10 number with one optional decimal point.
+ * @param decimals: number of decimals after the decimal point
+ * @param error: pointer to a boolean error.
+ *
+ * @warn Requires stack size of at least 2 * (strlen(number) + digits). [We are sloppy]
+ */
+extern UInt256
+createUInt256ParseDecimal (const char *number, int decimals, int *error);
+  
   /**
  * Return `x + y`
  */
@@ -97,12 +119,23 @@ divUInt256_Small (UInt256 x, uint32_t y, uint32_t *rem);
 extern UInt256
 coerceUInt256 (UInt512  x, int *overflow);
 
-  /**
-   * Returns the string representation of `x` in `base`.  The returned string is owned by the
-   * caller.
-   */
+/**
+ * Returns the string representation of `x` in `base`.  The returned string is owned by the
+ * caller.
+ *
+ * YOU OWN THE RETURNED MEMORY
+ */
 extern char *
 coerceString (UInt256 x, int base);
+
+  /**
+   * Returns a decimal string represention of `x` in base `0 with `decimals` digits after the
+   * decimal-point.
+   *
+   * YOU OWN THE RETURNED MEMORY
+   */
+extern char *
+coerceStringDecimal (UInt256 x, int decimals);
 
 //  static UInt256
 //  divideUInt256 (UInt256 numerator, UInt256 denominator) {
@@ -184,9 +217,6 @@ parseIsInteger (const char *number);
 
 extern BRUtilMathParseStatus
 parseIsDecimal (const char *number);
-
-extern BRUtilMathParseStatus
-parseDecimalSplit (const char *string, char *whole, char *fract, unsigned long size);
 
 #ifdef __cplusplus
 }

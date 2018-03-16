@@ -60,7 +60,6 @@ etherCreate(const UInt256 value) {
   return ether;
 }
 
-// TODO: Critical
 extern BREthereumEther
 etherCreateUnit(const UInt256 value, BREthereumEtherUnit unit, int *overflow) {
   assert (NULL != overflow);
@@ -93,187 +92,16 @@ etherCreateZero(void) {
   return etherCreate(UINT256_ZERO);
 }
 
-//> (define max256 (expt 2 256))
-//> (number->string max256)
-//"115792089237316195423570985008687907853269984665640564039457584007913129639936"
-//> (string-length (number->string max256))
-//78
-//
-//> (number->string (expt 2 64))
-//"18446744073709551616"
-//> (string-length (number->string (expt 2 64)))
-//20
-
-
-#define MAX256_BASE10_LENGTH  80    // 78 + '\0' + luck.
-#define MAX64_BASE10_LENGTH   19    // 19 digits => uint64_t w/o overflow
-
-// Split `string` at '.' into `whole` and `fract` each of `size` (including `\0`)
-static void
-etherSplitString (const char *string, char *whole, char *fract, int size, BREthereumEtherParseStatus *status) {
-  assert (size > 0); // at least one for '\0'
-
-  // TODO: regex on [0-9\i\*
-  whole[0] = '\0';
-  fract[0] = '\0';
-  *status = ETHEREUM_ETHER_PARSE_OK;
-
-  if (0 == strlen (string)) return;
-
-  char *dotFor = strchr(string, '.');
-  char *dotRev = strrchr(string, '.');
-  if (dotFor != dotRev) {  // only one '.'
-    *status = ETHEREUM_ETHER_PARSE_STRANGE_DIGITS;
-    return;
-  }
-
-  long wholeLength = (NULL == dotFor ? strlen(string) : dotFor - string);
-  long fractLength = (NULL == dotFor ? 0 : (strlen(string) - wholeLength - 1));
-
-  if (wholeLength > size - 1) {
-    *status = ETHEREUM_ETHER_PARSE_OVERFLOW;
-    return;
-  }
-  if (fractLength > size - 1) {
-    *status =ETHEREUM_ETHER_PARSE_UNDERFLOW;    // TODO: sort of.
-    return;
-  }
-
-  strncpy (whole, string, wholeLength);
-  whole[wholeLength] = '\0';
-
-  strncpy (fract, &string[wholeLength + 1], fractLength);
-  fract[fractLength] = '\0';
-  // trim trailing zeros
-  for (int index = 1; index <= fractLength; index++) {
-    if ('0' == fract[fractLength - index])
-      fract[fractLength - index] = '\0';
-    else
-      break; // done on first non '0'
-  }
-}
-
-// Convert the first `digits` characters from `string` into a UInt256.
-static UInt256
-etherCreatePartial (const char *string, int digits) {
-  assert (digits <= MAX64_BASE10_LENGTH);
-
-  char number[1 + MAX64_BASE10_LENGTH];
-  strncpy (number, string, MAX64_BASE10_LENGTH);
-  number[MAX64_BASE10_LENGTH] = '\0';
-
-  uint64_t value = strtoull (number, NULL, 10);
-  return createUInt256 (value);
-}
-
-static UInt256
-etherScaleDigits (UInt256 value, int digits, int *overflow) {
-  UInt256 scale = createUInt256Power(digits, overflow);
-  return (*overflow
-          ? UINT256_ZERO
-          : mulUInt256_Overflow(value, scale, overflow));
-}
-
-static UInt256
-etherCreateFull (const char *string, BREthereumEtherParseStatus *status) {
-  UInt256 value = UINT256_ZERO;
-
-  long length = strlen (string);
-  for (long index = 0; index < length; index += MAX64_BASE10_LENGTH) {
-    if (index == 0)
-      value = etherCreatePartial(&string[index], MAX64_BASE10_LENGTH);
-    else {
-      int scaleOverflow = 0, addOverflow = 0;
-      value = etherScaleDigits(value,
-                               (length - index >= MAX64_BASE10_LENGTH ? MAX64_BASE10_LENGTH : (int) (length - index)),
-                               &scaleOverflow);
-      value = addUInt256_Overflow(value,
-                                  etherCreatePartial(&string[index], MAX64_BASE10_LENGTH),
-                                  &addOverflow);
-      if (scaleOverflow || addOverflow) {
-        *status = ETHEREUM_ETHER_PARSE_OVERFLOW;
-        return UINT256_ZERO;
-      }
-    }
-
-  }
-
-  *status = ETHEREUM_ETHER_PARSE_OK;
-  return value;
-}
-
-// Return the number of digits in a fraction.  "12.0003" -> "0003" -> 4
-static int
-etherFractionalDigits (const char *fraction) {
-  return (int) strlen(fraction);
-}
-
 extern BREthereumEther
-etherCreateString(const char *string, BREthereumEtherUnit unit, BREthereumEtherParseStatus *status) {
-  int overflow = 0;
+etherCreateString(const char *number, BREthereumEtherUnit unit, BREthereumEtherParseStatus *status) {
+  int error = 0;
+  int decimals = 3 * unit;
 
-  char whole[MAX256_BASE10_LENGTH];  //
-  char fract[MAX256_BASE10_LENGTH];
-
-  // Only [0-9] and one decimal.
-  etherSplitString (string, whole, fract, MAX256_BASE10_LENGTH, status);
-  if (ETHEREUM_ETHER_PARSE_OK != *status)
-    return etherCreateZero();
-
-  // Process the 'whole' part.
-  UInt256 wholeValue = etherCreateFull(whole, status);
-  if (ETHEREUM_ETHER_PARSE_OK != *status)
-    return etherCreateZero();
-
-  // Process the 'fract' part.
-  UInt256 fractValue = etherCreateFull(fract, status);
-  if (ETHEREUM_ETHER_PARSE_OK != *status)
-    return etherCreateZero();
-
-  // If the fractional part is '0' we are done.
-  if (eqUInt256(fractValue, UINT256_ZERO)) {
-    BREthereumEther ether = etherCreateUnit(wholeValue, unit, &overflow);
-    *status = (overflow
-               ? ETHEREUM_ETHER_PARSE_OVERFLOW
-               : ETHEREUM_ETHER_PARSE_OK);
-    return ether;
-  }
-
-  // Check for underflow: ".02" WEI -> "20" (WEI-1) => underflow
-  int fractDigits = etherFractionalDigits(fract);                 // ".02" -> 2
-  // Every 3 fract digits is one ethereum unit
-  int fractUnitOffset = fractDigits/3 + (0 != fractDigits%3);     // ".02" -> 0 + 1 -> 1
-  // Shift the unit down by fractUnitOffset.  We'll scale 'whole' and 'fract' up accordingly.
-  if (((int) unit) < fractUnitOffset) {
-    *status = ETHEREUM_ETHER_PARSE_UNDERFLOW;
-    return etherCreateZero();
-  }
-  else {
-    unit -= fractUnitOffset;                                      // (unit - 1)
-  }
-  assert (unit >= 0);
-
-  // Scale wholeValue by 10*digits
-  int wholeScaleDigits = 3 * fractUnitOffset;                     // 3 => "12.02" -> "12000"
-  int fractScaleDigits = 3 * fractUnitOffset - fractDigits;       // 1 =>   ".02" -> "020"
-
-  int fractOverflow, wholeOverflow, sumOverflow;
-
-  // Do the calculations assuming no overflow.
-  wholeValue = etherScaleDigits(wholeValue, wholeScaleDigits, &wholeOverflow);
-  fractValue = etherScaleDigits(fractValue, fractScaleDigits, &fractOverflow);
-
-  UInt256 result = addUInt256_Overflow(wholeValue, fractValue, &sumOverflow);
-  BREthereumEther ether = etherCreateUnit(result, unit, &overflow);
-
-  if (wholeOverflow || fractOverflow || sumOverflow || overflow) {
-    *status = ETHEREUM_ETHER_PARSE_OVERFLOW;
-    return etherCreateZero();
-  }
-
-  *status = ETHEREUM_ETHER_PARSE_OK;
-  return ether;
+  UInt256 value = createUInt256ParseDecimal(number, decimals, &error);
+  *status = (0 == error ? ETHEREUM_ETHER_PARSE_OK : ETHEREUM_ETHER_PARSE_STRANGE_DIGITS);
+  return etherCreate(value);
 }
+
 
 extern UInt256 // Can't be done: 1 WEI in ETHER... not representable as UInt256
 etherGetValue(const BREthereumEther ether,
@@ -289,38 +117,7 @@ etherGetValue(const BREthereumEther ether,
 
 extern char * // Perhaps can be done. 1 WEI -> 1e-18 Ether
 etherGetValueString(const BREthereumEther ether, BREthereumEtherUnit unit) {
-  char *string = coerceString(ether.valueInWEI, 10);
-  switch (unit) {
-    case WEI:
-      return string;
-    default: {
-      int decimals = 3 * unit;
-      int slength = (int) strlen (string);
-      if (decimals >= slength) {
-        char *result = calloc (decimals + 3, 1);
-
-        // Fill to decimals
-        char format [10];
-        sprintf (format, "0.%%%ds", decimals);
-        sprintf (result, format, string);
-
-        // Replace fills of ' ' with '0'
-        for (int i = 0; i < decimals + 2; i++) {
-          if (' ' == result[i])
-            result[i] = '0';
-        }
-        return result;
-      }
-      else {
-        int dindex = slength - decimals;
-        char *result = calloc (slength + 2, 1);
-        strncpy (result, string, dindex);
-        result[dindex] = '.';
-        strcpy (&result[dindex+1], &string[dindex]);
-        return result;
-      }
-    }
-  }
+  return coerceStringDecimal(ether.valueInWEI, 3 * unit);
 }
 
 extern BRRlpItem
