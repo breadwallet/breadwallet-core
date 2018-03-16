@@ -1,8 +1,8 @@
 //
-//  BREthereum
+//  BBRUtil.h
 //  breadwallet-core Ethereum
 //
-//  Created by Ed Gamble on 2/24/18.
+//  Created by Ed Gamble on 3/16/2018.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,20 +23,10 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_H
-#define BR_Ethereum_H
+#ifndef BR_Util_H
+#define BR_Util_H
 
-#include "BRUtil.h"
-#include "BRRlp.h"
-#include "BREthereumEther.h"
-#include "BREthereumGas.h"
-#include "BREthereumAccount.h"
-#include "BREthereumContract.h"
-#include "BREthereumToken.h"
-#include "BREthereumAmount.h"
-#include "BREthereumTransaction.h"
-#include "BREthereumNetwork.h"
-#include "BREthereumWallet.h"
-#include "BREthereumLightNode.h"
+#include "BRUtilHex.h"
+#include "BRUtilMath.h"
 
-#endif // BR_Ethereum_H
+#endif // BR_Util_H

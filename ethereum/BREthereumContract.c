@@ -28,7 +28,7 @@
 #include <memory.h>
 #include <assert.h>
 #include "BREthereumContract.h"
-#include "rlp/BRRlpCoder.h"
+#include "BRUtil.h"
 
 /* Forward Declarations */
 static void

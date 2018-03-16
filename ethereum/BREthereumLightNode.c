@@ -29,7 +29,7 @@
 #include "BREthereumLightNode.h"
 #include "BREthereumAccount.h"
 #include "BREthereumWallet.h"
-#include "BREthereumHolding.h"
+#include "BREthereumAmount.h"
 
 //
 // Light Node Configuration
@@ -64,11 +64,14 @@ lightNodeConfigurationCreateJSON_RPC(BREthereumNetwork network,
 //
 // Light Node
 //
+#define HACK_NUMBER_OF_WALLETS 10
+#define HACK_NUMBER_OF_TRANSACTIONS 1000
+
 struct BREthereumLightNodeRecord {
     BREthereumLightNodeConfiguration configuration;
     BREthereumAccount account;
-    BREthereumWallet  wallets[10];  // for now
-    BREthereumTransaction transactions[1000]; // for now
+    BREthereumWallet  wallets[HACK_NUMBER_OF_WALLETS];  // for now
+    BREthereumTransaction transactions[HACK_NUMBER_OF_TRANSACTIONS]; // for now
     unsigned int requestId;
 };
 
@@ -104,7 +107,7 @@ lightNodeGetAccountPrimaryAddress (BREthereumLightNode node,
 static void
 lightNodeInsertWallet (BREthereumLightNode node,
                        BREthereumWallet wallet) {
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < HACK_NUMBER_OF_WALLETS; i++)
         if (NULL == node->wallets[i]) {
             node->wallets[i] = wallet;
             return;
@@ -112,13 +115,13 @@ lightNodeInsertWallet (BREthereumLightNode node,
     assert (0);
 }
 
-static int
-ligthNodeHasWallet (BREthereumLightNode node,
-                    BREthereumWallet wallet) {
-    for (int i = 0; i < 10; i++)
-        if (wallet == node->wallets[i])
-            return 1;
-    return 0;
+static BREthereumWallet
+lightNodeLookupWallet (BREthereumLightNode node,
+                       BREthereumLightNodeWalletId walletId) {
+  for (int i = 0; i < HACK_NUMBER_OF_WALLETS; i++)
+    if (walletId == node->wallets[i])
+      return node->wallets[i];
+  return NULL;
 }
 
 extern BREthereumLightNodeWalletId
@@ -155,19 +158,19 @@ lightNodeCreateWalletHoldingToken (BREthereumLightNode node,
 //
 // Holding / Ether
 //
-extern BREthereumHolding
+extern BREthereumAmount
 lightNodeCreateEtherAmountString (BREthereumLightNode node,
                                   const char *number,
                                   BREthereumEtherUnit unit,
                                   BREthereumEtherParseStatus *status) {
-  return holdingCreateEther (etherCreateString(number, unit, status));
+  return amountCreateEther (etherCreateString(number, unit, status));
 }
 
-extern BREthereumHolding
+extern BREthereumAmount
 lightNodeCreateEtherAmountUnit (BREthereumLightNode node,
                                 uint64_t amountInUnit,
                                 BREthereumEtherUnit unit) {
-  return holdingCreateEther (etherCreateNumber(amountInUnit, unit));
+  return amountCreateEther (etherCreateNumber(amountInUnit, unit));
 }
 
 extern char *
@@ -177,13 +180,22 @@ lightNodeCoerceEtherAmountToString (BREthereumLightNode node,
   return etherGetValueString(ether, unit);
 }
 
+extern BREthereumAmount
+lightNodeCreateTokenAmountString (BREthereumLightNode node,
+                                  BREthereumToken token,
+                                  const char *number,
+                                  BREthereumTokenQuantityUnit unit,
+                                  BREthereumBoolean *error) {
+  return amountCreateTokenQuantityString(token, number, unit, error);
+}
+
 //
 // Wallet
 //
 extern BREthereumEther
 lightNodeUpdateWalletBalance (BREthereumLightNode node,
                               BREthereumLightNodeWalletId walletId) {
-  BREthereumWallet wallet = (BREthereumWallet) walletId;
+  BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
 
   switch (node->configuration.type) {
     case NODE_TYPE_JSON_RPC: {
@@ -242,17 +254,15 @@ lightNodeUpdateWalletEstimatedGasPrice (BREthereumLightNode node,
 extern uint64_t
 lightNodeGetWalletGasLimit (BREthereumLightNode node,
                             BREthereumLightNodeWalletId walletId) {
-    BREthereumWallet wallet = (BREthereumWallet) walletId;
-
-    return walletGetDefaultGasLimit(wallet).amountOfGas;
+  BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
+  return walletGetDefaultGasLimit(wallet).amountOfGas;
 }
 
 extern void
 lightNodeSetWalletGasLimit (BREthereumLightNode node,
                             BREthereumLightNodeWalletId walletId,
                             uint64_t gasLimit) {
-  BREthereumWallet wallet = (BREthereumWallet) walletId;
-
+  BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
   walletSetDefaultGasLimit(wallet, gasCreate(gasLimit));
 }
 
@@ -261,8 +271,7 @@ lightNodeSetWalletGasPrice (BREthereumLightNode node,
                             BREthereumLightNodeWalletId walletId,
                             BREthereumEtherUnit unit,
                             uint64_t value) {
-  BREthereumWallet wallet = (BREthereumWallet) walletId;
-
+  BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
   walletSetDefaultGasPrice (wallet, gasPriceCreate(etherCreateNumber (value, unit)));
 }
 
@@ -273,7 +282,7 @@ lightNodeSetWalletGasPrice (BREthereumLightNode node,
 static void
 lightNodeInsertTransaction (BREthereumLightNode node,
                              BREthereumTransaction transaction) {
-    for (int i = 0; i < 1000; i++)
+    for (int i = 0; i < HACK_NUMBER_OF_TRANSACTIONS; i++)
         if (NULL == node->transactions[i]) {
             node->transactions[i] = transaction;
             return;
@@ -281,20 +290,27 @@ lightNodeInsertTransaction (BREthereumLightNode node,
     assert (0);
 }
 
+static BREthereumTransaction
+lightNodeLookupTransaction (BREthereumLightNode node,
+                           BREthereumLightNodeTransactionId transactionId) {
+  for (int i = 0; i < HACK_NUMBER_OF_TRANSACTIONS; i++)
+    if (transactionId == node->transactions[i])
+      return node->transactions[i];
+  return NULL;
+}
+
 extern BREthereumLightNodeTransactionId
 lightNodeWalletCreateTransaction(BREthereumLightNode node,
                                  BREthereumLightNodeWalletId walletId,
                                  const char *recvAddress,
-                                 BREthereumEther amount) {
-    BREthereumWallet wallet = (BREthereumWallet) walletId;
+                                 BREthereumAmount amount) {
+  BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
+  BREthereumTransaction transaction = walletCreateTransaction (wallet,
+                                                               createAddress(recvAddress),
+                                                               amount);
 
-    BREthereumTransaction transaction = walletCreateTransaction
-            (wallet,
-             createAddress(recvAddress),
-             holdingCreateEther (amount));
-
-    lightNodeInsertTransaction(node, transaction);
-    return (void *) transaction;
+  lightNodeInsertTransaction(node, transaction);
+  return (void *) transaction;
 }
 
 extern void // status, error
@@ -302,18 +318,17 @@ lightNodeWalletSignTransaction (BREthereumLightNode node,
                                 BREthereumLightNodeWalletId walletId,
                                 BREthereumLightNodeTransactionId transactionId,
                                 const char *paperKey) {
-    BREthereumWallet wallet = (BREthereumWallet) walletId;
-    BREthereumTransaction transaction = (BREthereumTransaction) transactionId;
-
-    walletSignTransaction(wallet, transaction, paperKey);
+  BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
+  BREthereumTransaction transaction = lightNodeLookupTransaction(node, transactionId);
+  walletSignTransaction(wallet, transaction, paperKey);
 }
 
 extern BREthereumBoolean // status, error
 lightNodeWalletSubmitTransaction (BREthereumLightNode node,
                                   BREthereumLightNodeWalletId walletId,
                                   BREthereumLightNodeTransactionId transactionId) {
-  BREthereumWallet wallet = (BREthereumWallet) walletId;
-  BREthereumTransaction transaction = (BREthereumTransaction) transactionId;
+  BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
+  BREthereumTransaction transaction = lightNodeLookupTransaction(node, transactionId);
 
   switch (node->configuration.type) {
     case NODE_TYPE_JSON_RPC: {
@@ -347,18 +362,18 @@ lightNodeFillTransactionRawData(BREthereumLightNode node,
                                 BREthereumLightNodeWalletId walletId,
                                 BREthereumLightNodeTransactionId transactionId,
                                 uint8_t **bytesPtr, size_t *bytesCountPtr) {
-    BREthereumWallet wallet = (BREthereumWallet) walletId;
-    BREthereumTransaction transaction = (BREthereumTransaction) transactionId;
+  BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
+  BREthereumTransaction transaction = lightNodeLookupTransaction(node, transactionId);
 
-    assert (NULL != bytesCountPtr && NULL != bytesPtr);
-    assert (ETHEREUM_BOOLEAN_IS_TRUE (transactionIsSigned(transaction)));
+  assert (NULL != bytesCountPtr && NULL != bytesPtr);
+  assert (ETHEREUM_BOOLEAN_IS_TRUE (transactionIsSigned(transaction)));
 
-    BRRlpData rawTransactionData =
-            walletGetRawTransaction(wallet, transaction);
+  BRRlpData rawTransactionData =
+  walletGetRawTransaction(wallet, transaction);
 
-    *bytesCountPtr = rawTransactionData.bytesCount;
-    *bytesPtr = (uint8_t *) malloc (*bytesCountPtr);
-    memcpy (*bytesPtr, rawTransactionData.bytes, *bytesCountPtr);
+  *bytesCountPtr = rawTransactionData.bytesCount;
+  *bytesPtr = (uint8_t *) malloc (*bytesCountPtr);
+  memcpy (*bytesPtr, rawTransactionData.bytes, *bytesCountPtr);
 }
 
 extern const char *
@@ -366,8 +381,8 @@ lightNodeGetTransactionRawDataHexEncoded(BREthereumLightNode node,
                                          BREthereumLightNodeWalletId walletId,
                                          BREthereumLightNodeTransactionId transactionId,
                                          const char *prefix) {
-  BREthereumWallet wallet = (BREthereumWallet) walletId;
-  BREthereumTransaction transaction = (BREthereumTransaction) transactionId;
+  BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
+  BREthereumTransaction transaction = lightNodeLookupTransaction(node, transactionId);
 
   return walletGetRawTransactionHexEncoded(wallet, transaction, prefix);
 }
@@ -376,15 +391,14 @@ lightNodeGetTransactionRawDataHexEncoded(BREthereumLightNode node,
 extern const char *
 lightNodeGetTransactionRecvAddress (BREthereumLightNode node,
                                     BREthereumLightNodeTransactionId transactionId) {
-    BREthereumTransaction transaction = (BREthereumTransaction) transactionId;
-
-    return addressAsString(transactionGetTargetAddress(transaction));
+  BREthereumTransaction transaction = lightNodeLookupTransaction(node, transactionId);
+  return addressAsString(transactionGetTargetAddress(transaction));
 }
 
 extern BREthereumEther
 lightNodeGetTransactionAmount (BREthereumLightNode node,
                                BREthereumLightNodeTransactionId transactionId) {
-  BREthereumTransaction transaction = (BREthereumTransaction) transactionId;
-  BREthereumHolding holding = transactionGetAmount(transaction);
-  return holdingGetEther(holding); // TODO: Fatal if TOKEN
+  BREthereumTransaction transaction = lightNodeLookupTransaction(node, transactionId);
+  BREthereumAmount holding = transactionGetAmount(transaction);
+  return amountGetEther(holding); // TODO: Fatal if TOKEN
 }

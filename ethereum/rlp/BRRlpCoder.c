@@ -26,9 +26,9 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <memory.h>
-#include <regex.h>
 #include <assert.h>
 #include "BRRlpCoder.h"
+#include "BRUtil.h"
 
 /**
  * An RLP Encoding is comprised of two types: an ITEM and a LIST (of ITEM).
@@ -62,10 +62,10 @@ typedef struct {
 
 static BRRlpContext contextEmpty = { NULL, CODER_ITEM, 0, NULL, 0, NULL };
 
-static int
-contextIsEmpty (BRRlpContext context) {
-  return NULL == context.coder;
-}
+//static int
+//contextIsEmpty (BRRlpContext context) {
+//  return NULL == context.coder;
+//}
 
 static void
 contextRelease (BRRlpContext context) {
@@ -384,6 +384,27 @@ rlpEncodeItemString (BRRlpCoder coder, char *string) {
 }
 
 extern BRRlpItem
+rlpEncodeItemHexString (BRRlpCoder coder, char *string) {
+  if (NULL == string)
+    return rlpEncodeItemString(coder, string);
+
+  // Strip off "0x" if it exists
+  if (0 == strncmp (string, "0x", 2))
+    string = &string[2];
+
+  if (0 == strlen(string))
+    return rlpEncodeItemString(coder, string);
+
+  // Decode Hex into (new) BYTES; then RLP encode those bytes.
+  size_t bytesCount = 0;
+  uint8_t *bytes = decodeHexCreate(&bytesCount, string, strlen(string));
+  BRRlpItem item = rlpEncodeItemBytes(coder, bytes, bytesCount);
+  free (bytes);
+
+  return item;
+}
+
+extern BRRlpItem
 rlpEncodeList1 (BRRlpCoder coder, BRRlpItem item) {
   assert (coderIsValidItem(coder, item));
   BRRlpItem items[1];
@@ -448,78 +469,6 @@ rlpDataRelease (BRRlpData data) {
   if (NULL != data.bytes) free (data.bytes);
   data.bytesCount = 0;
   data.bytes = NULL;
-}
-
-//
-//
-//
-
-extern void
-decodeHex (uint8_t *target, size_t targetLen, char *source, size_t sourceLen) {
-    //
-    assert (0 == sourceLen % 2);
-    assert (2 * targetLen == sourceLen);
-
-    for (int i = 0; i < targetLen; i++) {
-        target[i] = (uint8_t) ((_hexu(source[2*i]) << 4) | _hexu(source[(2*i)+1]));
-     }
-}
-
-extern size_t
-decodeHexLength (size_t stringLen) {
-    assert (0 == stringLen % 2);
-    return stringLen/2;
-}
-
-extern uint8_t *
-decodeHexCreate (size_t *targetLen, char *source, size_t sourceLen) {
-    size_t length = decodeHexLength(sourceLen);
-    if (NULL != targetLen) *targetLen = length;
-    uint8_t *target = malloc (length);
-    decodeHex (target, length, source, sourceLen);
-    return target;
-}
-
-extern void
-encodeHex (char *target, size_t targetLen, uint8_t *source, size_t sourceLen) {
-    assert (targetLen == 2 * sourceLen  + 1);
-
-    for (int i = 0; i < sourceLen; i++) {
-        target[2*i] = (uint8_t) _hexc (source[i] >> 4);
-        target[2*i + 1] = (uint8_t) _hexc (source[i]);
-    }
-    target[2*sourceLen] = '\0';
-}
-
-extern size_t
-encodeHexLength(size_t byteArrayLen) {
-    return 2 * byteArrayLen + 1;
-}
-
-extern char *
-encodeHexCreate (size_t *targetLen, uint8_t *source, size_t sourceLen) {
-    size_t length = encodeHexLength(sourceLen);
-    if (NULL != targetLen) *targetLen = length;
-    char *target = malloc (length);
-    encodeHex(target, length, source, sourceLen);
-    return target;
-}
-
-#define HEX_REGEX "^([0-9A-Fa-f]{2})+$" // "^[0-9A-Fa-f]+$"
-
-extern int
-encodeHexValidate (const char *string) {
-    static regex_t hexCharRegex;
-    static int hexCharRegexInitialized = 0;
-
-    if (!hexCharRegexInitialized) {
-        // Has pairs of hex digits
-      //regcomp(&hexCharRegex, "^([0-9A-Fa-f]{2})+$", REG_BASIC);
-        regcomp(&hexCharRegex, HEX_REGEX, REG_EXTENDED);
-        hexCharRegexInitialized = 1;
-    }
-
-    return 0 == regexec (&hexCharRegex, string, 0, NULL, 0);
 }
 
 /*

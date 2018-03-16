@@ -35,10 +35,8 @@
 #include "BRCrypto.h"
 #include "BRInt.h"
 #include "../BRBIP39WordsEn.h"
-//#include "BRKey.h"
 
 #include "BREthereum.h"
-//#include "BREthereumLightNode.h"
 
 static void
 showHex (uint8_t *source, size_t sourceLen) {
@@ -123,7 +121,6 @@ runMathSubTests () {
 
 static void
 runMathMulTests () {
-  int carry = -1;
   UInt512 z;
   UInt256 x0atMax   = { .u32 = { UINT32_MAX, 0, 0, 0, 0, 0, 0, 0 }};
   UInt256 xOne      = { .u32 = {          1, 0, 0, 0, 0, 0, 0, 0 }};
@@ -299,12 +296,26 @@ runMathTests() {
 }
 
 //
-// Ether Parse
+// Ether & Token Parse
 //
+static void
+runTokenParseTests () {
+  int err = 0;
+  BREthereumBoolean error;
+  UInt256 value = createUInt256Parse ("5968770000000000000000", 10, &err);
+
+//  UInt256 valueParseInt = parseTokenQuantity("5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, 18, &error);
+//  UInt256 valueParseDec = parseTokenQuantity("5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, 18, &error);
+
+  BREthereumTokenQuantity valueInt = createTokenQuantityString(tokenBRD, "5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, &error);
+  BREthereumTokenQuantity valueDec = createTokenQuantityString(tokenBRD, "5968.77", TOKEN_QUANTITY_TYPE_DECIMAL, &error);
+  assert (eqUInt256(value, valueInt.valueAsInteger));
+  assert (eqUInt256(valueInt.valueAsInteger, valueDec.valueAsInteger));
+}
+
 static void
 runEtherParseTests () {
   BREthereumEtherParseStatus status;
-  int overflow;
   BREthereumEther e;
   
   e = etherCreateString("1", WEI, &status);
@@ -630,23 +641,25 @@ void runSignatureTests (BREthereumAccount account) {
 #define TEST_TRANS1_RESULT "ec098504a817c800825208943535353535353535353535353535353535353535880de0b6b3a764000080018080"
 
 void runTransactionTests1 (BREthereumAccount account, BREthereumNetwork network) {
-    BREthereumWallet  wallet = walletCreate(account, network);
+  printf ("     TEST 1\n");
 
-    BREthereumTransaction transaction = walletCreateTransactionDetailed(
-            wallet,
-            createAddress(TEST_TRANS1_TARGET_ADDRESS),
-            holdingCreateEther(etherCreateNumber(TEST_TRANS1_ETHER_AMOUNT, TEST_TRANS1_ETHER_AMOUNT_UNIT)),
-            gasPriceCreate(etherCreateNumber(TEST_TRANS1_GAS_PRICE_VALUE, TEST_TRANS1_GAS_PRICE_UNIT)),
-            gasCreate(TEST_TRANS1_GAS_LIMIT),
-            TEST_TRANS1_NONCE);
+  BREthereumWallet  wallet = walletCreate(account, network);
 
-    assert (1 == networkGetChainId(network));
-    BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
+  BREthereumTransaction transaction = walletCreateTransactionDetailed
+  (wallet,
+   createAddress(TEST_TRANS1_TARGET_ADDRESS),
+   amountCreateEther(etherCreateNumber(TEST_TRANS1_ETHER_AMOUNT, TEST_TRANS1_ETHER_AMOUNT_UNIT)),
+   gasPriceCreate(etherCreateNumber(TEST_TRANS1_GAS_PRICE_VALUE, TEST_TRANS1_GAS_PRICE_UNIT)),
+   gasCreate(TEST_TRANS1_GAS_LIMIT),
+   TEST_TRANS1_NONCE);
 
-    char result[2 * dataUnsignedTransaction.bytesCount + 1];
-    encodeHex(result, 2 * dataUnsignedTransaction.bytesCount + 1, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
-    printf ("  Tx1 Raw (unsigned): %s\n", result);
-    assert (0 == strcmp (result, TEST_TRANS1_RESULT));
+  assert (1 == networkGetChainId(network));
+  BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
+
+  char result[2 * dataUnsignedTransaction.bytesCount + 1];
+  encodeHex(result, 2 * dataUnsignedTransaction.bytesCount + 1, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
+  printf ("       Tx1 Raw (unsigned): %s\n", result);
+  assert (0 == strcmp (result, TEST_TRANS1_RESULT));
 }
 
 // https://etherscan.io/tx/0xc070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c
@@ -676,24 +689,25 @@ void runTransactionTests1 (BREthereumAccount account, BREthereumNetwork network)
 #define TEST_TRANS2_RESULT_UNSIGNED   "eb01847735940082520894873feb0644a6fbb9532bb31d1c03d4538aadec308806f05b59d3b2000080018080"
 
 void runTransactionTests2 (BREthereumAccount account, BREthereumNetwork network) {
+  printf ("     TEST 2\n");
 
-    BREthereumWallet  wallet = walletCreate(account, network);
+  BREthereumWallet  wallet = walletCreate(account, network);
 
-    BREthereumTransaction transaction = walletCreateTransactionDetailed(
-            wallet,
-            createAddress(TEST_TRANS2_TARGET_ADDRESS),
-            holdingCreateEther(etherCreateNumber(TEST_TRANS2_ETHER_AMOUNT, TEST_TRANS2_ETHER_AMOUNT_UNIT)),
-            gasPriceCreate(etherCreateNumber(TEST_TRANS2_GAS_PRICE_VALUE, TEST_TRANS2_GAS_PRICE_UNIT)),
-            gasCreate(TEST_TRANS2_GAS_LIMIT),
-            TEST_TRANS2_NONCE);
+  BREthereumTransaction transaction = walletCreateTransactionDetailed
+  (wallet,
+   createAddress(TEST_TRANS2_TARGET_ADDRESS),
+   amountCreateEther(etherCreateNumber(TEST_TRANS2_ETHER_AMOUNT, TEST_TRANS2_ETHER_AMOUNT_UNIT)),
+   gasPriceCreate(etherCreateNumber(TEST_TRANS2_GAS_PRICE_VALUE, TEST_TRANS2_GAS_PRICE_UNIT)),
+   gasCreate(TEST_TRANS2_GAS_LIMIT),
+   TEST_TRANS2_NONCE);
 
-    assert (1 == networkGetChainId(network));
-    BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
+  assert (1 == networkGetChainId(network));
+  BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
 
-    char result[2 * dataUnsignedTransaction.bytesCount + 1];
-    encodeHex(result, 2 * dataUnsignedTransaction.bytesCount + 1, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
-    printf ("  Tx2 Raw (unsigned): %s\n", result);
-    assert (0 == strcmp (result, TEST_TRANS2_RESULT_UNSIGNED));
+  char result[2 * dataUnsignedTransaction.bytesCount + 1];
+  encodeHex(result, 2 * dataUnsignedTransaction.bytesCount + 1, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
+  printf ("       Tx2 Raw (unsigned): %s\n", result);
+  assert (0 == strcmp (result, TEST_TRANS2_RESULT_UNSIGNED));
 }
 
 /*
@@ -725,31 +739,35 @@ void runTransactionTests2 (BREthereumAccount account, BREthereumNetwork network)
 #define TEST_TRANS3_GAS_PRICE_UNIT  GWEI
 #define TEST_TRANS3_GAS_LIMIT 74858
 #define TEST_TRANS3_NONCE 423490
+#define TEST_TRANS3_DECIMAL_AMOUNT "5968.77"
 
 #define TEST_TRANS3_UNSIGNED_TX "f86d83067642850ba43b74008301246a94558ec3152e2eb2174905cd19aea4e34a23de9ad680b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000001439152d319e84d0000018080" // Add 018080 (v,r,s); adjust header count
 // Answer: "0xf8ad 83067642 850ba43b7400 8301246a 94,558ec3152e2eb2174905cd19aea4e34a23de9ad6_80_b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000001439152d319e84d0000"
 // Error :    f86d 83067642 850ba43b7400 8301246a 94,558ec3152e2eb2174905cd19aea4e34a23de9ad6_00_b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000001439152d319e84d0000018080
+//                                                                                            **  => amount = 0 => encoded as empty bytes, not numeric 0
 
 void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network) {
+  printf ("     TEST 3\n");
+
   int error;
   BREthereumToken token = tokenBRD;
   BREthereumWallet wallet = walletCreateHoldingToken (account, network, token);
   UInt256 value = createUInt256Parse ("5968770000000000000000", 10, &error);
-  BREthereumHolding amount = holdingCreateToken(token, value);
+  BREthereumAmount amount = amountCreateToken(token, value);
 
   BREthereumTransaction transaction = walletCreateTransactionDetailed
-  (wallet,
-   createAddress(TEST_TRANS3_TARGET_ADDRESS),
-   amount,
-   gasPriceCreate(etherCreateNumber(TEST_TRANS3_GAS_PRICE_VALUE, TEST_TRANS3_GAS_PRICE_UNIT)),
-   gasCreate(TEST_TRANS3_GAS_LIMIT),
-   TEST_TRANS3_NONCE);
+    (wallet,
+     createAddress(TEST_TRANS3_TARGET_ADDRESS),
+     amount,
+     gasPriceCreate(etherCreateNumber(TEST_TRANS3_GAS_PRICE_VALUE, TEST_TRANS3_GAS_PRICE_UNIT)),
+     gasCreate(TEST_TRANS3_GAS_LIMIT),
+     TEST_TRANS3_NONCE);
 
   assert (1 == networkGetChainId(network));
   BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
 
   char *rawTx = encodeHexCreate(NULL, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
-  printf ("  Tx3 Raw (unsigned): %s\n", rawTx);
+  printf ("       Tx3 Raw (unsigned): %s\n", rawTx);
   assert (0 == strcasecmp(rawTx, TEST_TRANS3_UNSIGNED_TX));
   free (rawTx);
 }
@@ -802,6 +820,7 @@ void runAccountTests () {
 #define NODE_RESULT "01 8477359400 825208 94,873feb0644a6fbb9532bb31d1c03d4538aadec30 8806f05b59d3b20000 80 1b,a0594c2fe40942a9dbd75b9cdd09397016592fc98ae24226f41706c5004c6608d0a072861c46ae62f4aae06eba04e5708b9421d2fcf21fa7f02aed1ff04accd405e3"
 
 void prepareTransaction (const char *paperKey, const char *recvAddr, const uint64_t gasPrice, const uint64_t gasLimit, const uint64_t amount) {
+  printf ("     Prepare Transaction\n");
 
   // START - One Time Code Block
   BREthereumLightNodeConfiguration configuration =
@@ -809,7 +828,7 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
   BREthereumLightNode node = createLightNode(configuration);
   BREthereumLightNodeAccountId account = lightNodeCreateAccount(node, paperKey);
   BREthereumNetwork network = ethereumMainnet;
-  // A wallet holding Ether
+  // A wallet amount Ether
   BREthereumLightNodeWalletId wallet = lightNodeCreateWallet(node, account, network);
   // END - One Time Code Block
 
@@ -817,23 +836,20 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
   lightNodeSetWalletGasPrice(node, wallet, WEI, gasPrice);
   lightNodeSetWalletGasLimit(node, wallet, gasLimit);
 
-  BREthereumHolding holdingAmountInEther =
+  BREthereumAmount amountAmountInEther =
     lightNodeCreateEtherAmountUnit(node, amount, WEI);
-
-  BREthereumEther amountInEther =
-    holdingGetEther(holdingAmountInEther);
 
   BREthereumLightNodeTransactionId tx1 =
     lightNodeWalletCreateTransaction
       (node,
        wallet,
        recvAddr,
-       amountInEther);
+       amountAmountInEther);
 
   lightNodeWalletSignTransaction (node, wallet, tx1, paperKey);
 
   const char *rawTransactionHexEncoded =
-    lightNodeGetTransactionRawDataHexEncoded(node, wallet, tx1, "Ox");
+    lightNodeGetTransactionRawDataHexEncoded(node, wallet, tx1, "0x");
 
   printf ("        Raw Transaction: %s\n", rawTransactionHexEncoded);
 }
@@ -869,6 +885,8 @@ jsonRpcSubmitTransaction (JsonRpcTestContext context, int id, const char *transa
 
 static void
 runLightNode_JSON_RPC_test (const char *paperKey) {
+  printf ("     JSON_RCP\n");
+
   int err = 0;
   JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
@@ -882,18 +900,53 @@ runLightNode_JSON_RPC_test (const char *paperKey) {
 
   BREthereumLightNode node = createLightNode(configuration);
   BREthereumLightNodeAccountId account = lightNodeCreateAccount(node, paperKey);
-  // A wallet holding Ether
+  // A wallet amount Ether
   BREthereumLightNodeWalletId wallet = lightNodeCreateWallet(node, account, ethereumMainnet);
 
+  // Callback to JSON_RPC for 'getBalanance'
   BREthereumEther balance = lightNodeUpdateWalletBalance (node, wallet);
   BREthereumEther expectedBalance = etherCreate(createUInt256Parse("0x123f", 16, &err));
   assert (0 == err && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (balance, expectedBalance));
+}
+
+// Unsigned Result: 0xf864010082c35094558ec3152e2eb2174905cd19aea4e34a23de9ad680b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000000000000000000000000018080
+//   Signed Result: 0xf8a4010082c35094558ec3152e2eb2174905cd19aea4e34a23de9ad680b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c000000000000000000000000000000000000000000000000000000000000000025a0b729de661448a377bee9ef3f49f8ec51f6c5810cf177a8162d31e9611a940a18a030b44adbe0253fe6176ccd8b585745e60f411b009ec73815f201fff0f540fc4d
+static void
+runLightNode_TOKEN_test (const char *paperKey) {
+  printf ("     TOKEN\n");
+
+  BREthereumBoolean status;
+
+  BREthereumLightNode node = createLightNode
+  (lightNodeConfigurationCreateLES(ethereumMainnet, 0));
+  BREthereumLightNodeAccountId account = lightNodeCreateAccount(node, paperKey);
+  BREthereumLightNodeWalletId wallet = lightNodeCreateWalletHoldingToken(node, account, ethereumMainnet, tokenBRD);
+
+  BREthereumAmount amount = lightNodeCreateTokenAmountString(node, tokenBRD,
+                                                              TEST_TRANS3_DECIMAL_AMOUNT,
+                                                              TOKEN_QUANTITY_TYPE_DECIMAL,
+                                                              &status);
+  BREthereumLightNodeTransactionId transaction =
+  lightNodeWalletCreateTransaction (node, wallet,
+                                    TEST_TRANS3_TARGET_ADDRESS,
+                                    amount);
+
+  const char *rawTxUnsigned = lightNodeGetTransactionRawDataHexEncoded(node, wallet, transaction, "0x");
+  printf ("        RawTx Unsigned: %s\n", rawTxUnsigned);
+  // No match: nonce, gasLimit, gasPrice differ
+  // assert (0 == strcasecmp(&rawTxUnsigned[2], TEST_TRANS3_UNSIGNED_TX));
+
+  lightNodeWalletSignTransaction(node, wallet, transaction, paperKey);
+  const char *rawTxSigned = lightNodeGetTransactionRawDataHexEncoded(node, wallet, transaction, "0x");
+  printf ("        RawTx  Signed: %s\n", rawTxSigned);
+
 }
 
 void runLightNodeTests () {
   printf ("==== Light Node\n");
   prepareTransaction(NODE_PAPER_KEY, NODE_RECV_ADDR, TEST_TRANS2_GAS_PRICE_VALUE, GAS_LIMIT_DEFAULT, NODE_ETHER_AMOUNT);
   runLightNode_JSON_RPC_test(NODE_PAPER_KEY);
+  runLightNode_TOKEN_test (NODE_PAPER_KEY);
 }
 
 // Local (PaperKey) -> LocalTest @ 5 GWEI gasPrice @ 21000 gasLimit & 0.0001/2 ETH
@@ -926,6 +979,7 @@ runTests (void) {
   installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);\
   runMathTests();
   runEtherParseTests();
+  runTokenParseTests();
   runRlpTest();
   runAccountTests();
   runLightNodeTests();

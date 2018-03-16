@@ -27,12 +27,12 @@
 #include <string.h>
 #include <assert.h>
 #include <regex.h>
-//#include "BRKey.h"
 #include "BRBIP32Sequence.h"
 #include "BRBIP39Mnemonic.h"
 #include "BRCrypto.h"
 #include "BRBase58.h"
 
+#include "BRUtil.h"
 #include "BREthereumEther.h"
 #include "BREthereumAccount.h"
 
@@ -141,7 +141,7 @@ struct BREthereumAddressRecord {
      *
      * THIS IS NOT A SIMPLE STRING; this is a hex encoded (with encodeHex) string prefixed with
      * "0x".  Generally, when using this string, for example when RLP encoding, one needs to
-     * convert back to the byte array.
+     * convert back to the byte array (use rlpEncodeItemHexString())
      */
     char string[43];    // '0x' + <40 chars> + '\0'
 
@@ -308,16 +308,7 @@ addressPublicKeyAsString (BREthereumAddress address, int compressed) {
 
 extern BRRlpItem
 addressRlpEncode (BREthereumAddress address, BRRlpCoder coder) {
-//    rlpEncodeItemString(coder, &address->string[2]);  // skip '0x'
-
-    char *addressToDecode = &address->string[2]; // skip '0x'
-    size_t addressToDecodeLen = strlen (addressToDecode);
-
-    size_t bytesLength = decodeHexLength(addressToDecodeLen);
-    uint8_t bytes[bytesLength];
-    decodeHex(bytes, bytesLength, addressToDecode, addressToDecodeLen);
-
-    return rlpEncodeItemBytes (coder, bytes, bytesLength);
+  return rlpEncodeItemHexString(coder, address->string);
 }
 
 //

@@ -1,5 +1,5 @@
 //
-//  BBREthereumMath.c
+//  BBRUtilMath.c
 //  breadwallet-core Ethereum
 //
 //  Created by Ed Gamble on 3/10/2018.
@@ -26,8 +26,9 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
-#include "BREthereumMath.h"
-#include "rlp/BRRlpCoder.h"
+#include <regex.h>
+#include "BRUtil.h"
+#include "BRRlp.h"
 
 #define AS_UINT64(x)  ((uint64_t) (x))
 
@@ -250,6 +251,103 @@ compareUInt256 (UInt256 x, UInt256 y) {
           : (gtUInt256(x, y)
              ? +1
              : -1));
+}
+
+//
+// Parsing
+//
+
+#define INTEGER_REGEX "^[0-9]+$"
+#define DECIMAL_REGEX "^[0-9]+\\.[0-9]*$"
+
+extern BRUtilMathParseStatus
+parseIsInteger (const char *number) {
+  static regex_t regex;
+  static int regexInitialized = 0;
+
+  if (!regexInitialized) {
+    regcomp(&regex, INTEGER_REGEX, REG_EXTENDED);
+    regexInitialized = 1;
+  }
+
+  return (0 == regexec (&regex, number, 0, NULL, 0)
+          ? UTIL_MATH_PARSE_OK
+          : UTIL_MATH_PARSE_STRANGE_DIGITS);
+}
+
+extern BRUtilMathParseStatus
+parseIsDecimal (const char *number) {
+  static regex_t regex;
+  static int regexInitialized = 0;
+
+  if (!regexInitialized) {
+    regcomp(&regex, DECIMAL_REGEX, REG_EXTENDED);
+    regexInitialized = 1;
+  }
+
+  return (0 == regexec (&regex, number, 0, NULL, 0)
+          ? UTIL_MATH_PARSE_OK
+          : parseIsInteger (number));
+}
+
+extern BRUtilMathParseStatus
+parseDecimalSplit (const char *string,
+                   char *whole, char *fract, unsigned long size) {
+  assert (size > 0); // at least one for '\0'
+
+  // TODO: regex on [0-9\i\*
+  whole[0] = '\0';
+  fract[0] = '\0';
+
+  if (0 == strlen (string))
+    return UTIL_MATH_PARSE_OK;
+
+  if (UTIL_MATH_PARSE_OK != parseIsDecimal(string))
+    return UTIL_MATH_PARSE_STRANGE_DIGITS;
+
+  char *dot = strchr(string, '.');
+
+  long wholeLength = (NULL == dot ? strlen(string) : dot - string);
+  long fractLength = (NULL == dot ? 0 : (strlen(string) - wholeLength - 1));
+
+  if (wholeLength > size - 1)
+    return UTIL_MATH_PARSE_OVERFLOW;
+
+  if (fractLength > size - 1)
+    return UTIL_MATH_PARSE_UNDERFLOW;    // TODO: sort of.
+
+  strncpy (whole, string, wholeLength);
+  whole[wholeLength] = '\0';
+
+  strncpy (fract, &string[wholeLength + 1], fractLength);
+  fract[fractLength] = '\0';
+
+  // trim trailing zeros
+  for (int index = 1; index <= fractLength; index++) {
+    if ('0' == fract[fractLength - index])
+      fract[fractLength - index] = '\0';
+    else
+      break; // done on first non '0'
+  }
+
+  return UTIL_MATH_PARSE_OK;
+}
+
+extern BRUtilMathParseStatus
+parseDecimalPad (const char *string, char *target, int size, char padChar, int paddedSize) {
+  unsigned long stringLength = strlen (string);
+
+  assert (size >= (strlen(string) + 1));
+  assert (size >= paddedSize + 1);
+
+  if (stringLength > paddedSize)
+    return UTIL_MATH_PARSE_OVERFLOW;
+
+  strcpy (target, string);
+  memset (&target[stringLength], padChar, paddedSize - stringLength);
+  target[paddedSize] = '\0';
+
+  return UTIL_MATH_PARSE_OK;
 }
 
 //    > max064

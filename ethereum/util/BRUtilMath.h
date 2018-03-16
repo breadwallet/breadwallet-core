@@ -1,5 +1,5 @@
 //
-//  BBREthereumMath.h
+//  BBRUtilMath.h
 //  breadwallet-core Ethereum
 //
 //  Created by Ed Gamble on 3/10/2018.
@@ -23,8 +23,8 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_Math_H
-#define BR_Ethereum_Math_H
+#ifndef BR_Util_Math_H
+#define BR_Util_Math_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,7 +50,7 @@ createUInt256Power (uint8_t digits, int *overflow);
 
 /**
  * Create from a string in the provided base.  The string must consist of only characters
- * in the base.  That is, avoid the '0x' prefix.
+ * in the base.  That is, avoid the '0x' prefix.  No decimal points.
  */
 extern UInt256
 createUInt256Parse (const char *digits, int base, int *error);
@@ -168,8 +168,28 @@ leUInt256 (UInt256 x, UInt256 y) {
 extern int
 compareUInt256 (UInt256 x, UInt256 y);
 
+  //
+  // Parsing
+  //
+  typedef enum {
+    UTIL_MATH_PARSE_OK,
+    UTIL_MATH_PARSE_STRANGE_DIGITS,
+    UTIL_MATH_PARSE_UNDERFLOW,
+    UTIL_MATH_PARSE_OVERFLOW
+  } BRUtilMathParseStatus;
+
+
+extern BRUtilMathParseStatus
+parseIsInteger (const char *number);
+
+extern BRUtilMathParseStatus
+parseIsDecimal (const char *number);
+
+extern BRUtilMathParseStatus
+parseDecimalSplit (const char *string, char *whole, char *fract, unsigned long size);
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* BR_Ethereum_Math_H */
+#endif /* BR_Util_Math_H */

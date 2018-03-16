@@ -24,7 +24,6 @@
 //  THE SOFTWARE.
 
 #include <stdlib.h>
-#include "BREthereumMath.h"
 #include "BREthereumNetwork.h"
 
 struct BREthereumNetworkRecord {

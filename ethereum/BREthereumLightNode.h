@@ -31,7 +31,7 @@
 #include <stdint.h>
 #include "BREthereumEther.h"
 #include "BREthereumGas.h"
-#include "BREthereumHolding.h"
+#include "BREthereumAmount.h"
 #include "BREthereumNetwork.h"
 
 #ifdef __cplusplus
@@ -193,7 +193,7 @@ lightNodeCreateWalletHoldingToken (BREthereumLightNode node,
  * @param status This MUST NOT BE NULL. If assigned anything but OK, the return Ether is 0.  In
  *        practice you must reference `status` otherwise you'll have unknown errors with 0 ETH.
  */
-extern BREthereumHolding
+extern BREthereumAmount
 lightNodeCreateEtherAmountString (BREthereumLightNode node,
                                   const char *number,
                                   BREthereumEtherUnit unit,
@@ -203,7 +203,7 @@ lightNodeCreateEtherAmountString (BREthereumLightNode node,
  * Create Ether from a 'smallish' number and a unit
  *
  */
-extern BREthereumHolding
+extern BREthereumAmount
 lightNodeCreateEtherAmountUnit (BREthereumLightNode node,
                                 uint64_t amountInUnit,
                                 BREthereumEtherUnit unit);
@@ -215,6 +215,13 @@ extern char *
 lightNodeCoerceEtherAmountToString (BREthereumLightNode node,
                                     BREthereumEther ether,
                                     BREthereumEtherUnit unit);
+
+extern BREthereumAmount
+lightNodeCreateTokenAmountString (BREthereumLightNode node,
+                                  BREthereumToken token,
+                                  const char *number,
+                                  BREthereumTokenQuantityUnit unit,
+                                  BREthereumBoolean *error);
 
 //
 // Wallet Updates
@@ -255,19 +262,19 @@ lightNodeSetWalletGasPrice (BREthereumLightNode node,
 //
 
 /**
- * Create a transaction to transfer `amount` (Ether) from `wallet` to `recvAddrss`.
+ * Create a transaction to transfer `amount` from `wallet` to `recvAddrss`.
  *
  * @param node
  * @param wallet the wallet
  * @param recvAddress A '0x' prefixed, strlen 42 Ethereum address.
- * @param amount the ether to transfer
+ * @param amount to transfer
  * @return
  */
 extern BREthereumLightNodeTransactionId
 lightNodeWalletCreateTransaction(BREthereumLightNode node,
                                  BREthereumLightNodeWalletId wallet,
                                  const char *recvAddress,
-                                 BREthereumEther amount);
+                                 BREthereumAmount amount);
 
   /**
    * Sign the transaction using the wallet's account (for the sender's address).  The paperKey

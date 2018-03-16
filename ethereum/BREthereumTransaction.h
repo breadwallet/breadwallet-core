@@ -30,7 +30,7 @@
 #include "BREthereumAccount.h"
 #include "BREthereumEther.h"
 #include "BREthereumGas.h"
-#include "BREthereumHolding.h"
+#include "BREthereumAmount.h"
 #include "rlp/BRRlp.h"
 
 #ifdef __cplusplus
@@ -42,7 +42,7 @@ typedef struct BREthereumTransactionRecord *BREthereumTransaction;
 extern BREthereumTransaction
 transactionCreate(BREthereumAddress sourceAddress,
                   BREthereumAddress targetAddress,
-                  BREthereumHolding amount,
+                  BREthereumAmount amount,
                   BREthereumGasPrice gasPrice,
                   BREthereumGas gasLimit,
                   uint64_t nonce);
@@ -53,7 +53,7 @@ transactionGetSourceAddress(BREthereumTransaction transaction);
 extern BREthereumAddress
 transactionGetTargetAddress(BREthereumTransaction transaction);
 
-extern BREthereumHolding
+extern BREthereumAmount
 transactionGetAmount(BREthereumTransaction transaction);
 
 extern BREthereumGasPrice

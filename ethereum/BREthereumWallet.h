@@ -28,7 +28,7 @@
 
 #include "BREthereumEther.h"
 #include "BREthereumGas.h"
-#include "BREthereumHolding.h"
+#include "BREthereumAmount.h"
 #include "BREthereumAccount.h"
 #include "BREthereumNetwork.h"
 #include "BREthereumTransaction.h"
@@ -95,7 +95,7 @@ walletCreateHoldingToken(BREthereumAccount account,
 extern BREthereumTransaction
 walletCreateTransaction(BREthereumWallet wallet,
                         BREthereumAddress recvAddress,
-                        BREthereumHolding amount);
+                        BREthereumAmount amount);
 
 /**
  *
@@ -110,7 +110,7 @@ walletCreateTransaction(BREthereumWallet wallet,
 extern BREthereumTransaction
 walletCreateTransactionDetailed(BREthereumWallet wallet,
                                 BREthereumAddress recvAddress,
-                                BREthereumHolding amount,
+                                BREthereumAmount amount,
                                 BREthereumGasPrice gasPrice,
                                 BREthereumGas gasLimit,
                                 int nonce);
@@ -151,13 +151,13 @@ walletGetAddress (BREthereumWallet wallet);
 /**
  * The wallet's holding type: ETHER or TOKEN
  */
-extern BREthereumWalletHoldingType
-walletGetHoldingType (BREthereumWallet wallet);
+extern BREthereumAmountType
+walletGetAmountType (BREthereumWallet wallet);
 
   /**
  * The wallet's balance
  */
-extern BREthereumHolding
+extern BREthereumAmount
 walletGetBalance (BREthereumWallet wallet);
 
 /**

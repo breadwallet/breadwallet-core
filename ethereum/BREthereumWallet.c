@@ -78,7 +78,7 @@ struct BREthereumWalletRecord {
     /**
      * The wallet's balance, either ETHER or a TOKEN.
      */
-    BREthereumHolding balance;
+    BREthereumAmount balance;
 
     /**
      * An optional ERC20 token specification.  Will be NULL (and unused) for holding ETHER.
@@ -95,7 +95,7 @@ static BREthereumWallet
 walletCreateDetailed (BREthereumAccount account,
                       BREthereumAddress address,
                       BREthereumNetwork network,
-                      BREthereumWalletHoldingType type,
+                      BREthereumAmountType type,
                       BREthereumToken optionalToken) {
 
     assert (NULL != account);
@@ -108,15 +108,15 @@ walletCreateDetailed (BREthereumAccount account,
     wallet->network = network;
 
     wallet->token = optionalToken;
-    wallet->balance = (WALLET_HOLDING_ETHER == type
-                       ? holdingCreateEther(etherCreate(UINT256_ZERO))
-                       : holdingCreateToken(wallet->token, UINT256_ZERO));
+    wallet->balance = (AMOUNT_ETHER == type
+                       ? amountCreateEther(etherCreate(UINT256_ZERO))
+                       : amountCreateToken(wallet->token, UINT256_ZERO));
 
-    wallet->defaultGasLimit = WALLET_HOLDING_ETHER == type
+    wallet->defaultGasLimit = AMOUNT_ETHER == type
                               ? walletCreateDefaultGasLimit(wallet)
                               : tokenGetGasLimit (optionalToken);
 
-    wallet->defaultGasPrice = WALLET_HOLDING_ETHER == type
+    wallet->defaultGasPrice = AMOUNT_ETHER == type
                               ? walletCreateDefaultGasPrice(wallet)
                               : tokenGetGasPrice (optionalToken);
 
@@ -142,7 +142,7 @@ walletCreateWithAddress(BREthereumAccount account,
             (account,
              address,
              network,
-             WALLET_HOLDING_ETHER,
+             AMOUNT_ETHER,
              tokenCreateNone());
 }
 
@@ -154,14 +154,14 @@ walletCreateHoldingToken(BREthereumAccount account,
             (account,
              accountGetPrimaryAddress(account),
              network,
-             WALLET_HOLDING_TOKEN,
+             AMOUNT_TOKEN,
              token);
 }
 
 extern BREthereumTransaction
 walletCreateTransaction(BREthereumWallet wallet,
                         BREthereumAddress recvAddress,
-                        BREthereumHolding amount) {
+                        BREthereumAmount amount) {
 
     return walletCreateTransactionDetailed
             (wallet,
@@ -175,12 +175,12 @@ walletCreateTransaction(BREthereumWallet wallet,
 extern BREthereumTransaction
 walletCreateTransactionDetailed(BREthereumWallet wallet,
                                 BREthereumAddress recvAddress,
-                                BREthereumHolding amount,
+                                BREthereumAmount amount,
                                 BREthereumGasPrice gasPrice,
                                 BREthereumGas gasLimit,
                                 int nonce) {
-  assert (walletGetHoldingType(wallet) == holdingGetType(amount));
-  assert (WALLET_HOLDING_ETHER == holdingGetType(amount)
+  assert (walletGetAmountType(wallet) == amountGetType(amount));
+  assert (AMOUNT_ETHER == amountGetType(amount)
           || 1 /*(wallet->token == tokenQuantityGetToken (holdingGetTokenQuantity(amount)))*/);
 
   // TODO: provide 'DataForHolding'
@@ -198,19 +198,6 @@ walletCreateTransactionDetailed(BREthereumWallet wallet,
             nonce);
 }
 
-static char *
-walletDataForHolding (BREthereumWallet wallet) {
-    // TODO: Implement
-    switch (wallet->balance.type) {
-        case WALLET_HOLDING_ETHER:
-            return "";  // empty string - official 'ETHER' data
-
-        case WALLET_HOLDING_TOKEN:
-//          contractEncode(contractERC20, functionERC20Transfer, ...)
-            return "token";
-    }
-}
-
 /**
  * Sign the transaction.
  *
@@ -222,10 +209,6 @@ extern void
 walletSignTransaction(BREthereumWallet wallet,
                       BREthereumTransaction transaction,
                       const char *paperKey) {
-
-    // TODO: Perhaps this is unneeded, if already provided.
-    // Fill in the transaction data appropriate for the holding (ETHER or TOKEN)
-    transactionSetData(transaction, walletDataForHolding(wallet));
 
     // RLP Encode the UNSIGNED transaction
     BRRlpData transactionUnsignedRLP = transactionEncodeRLP
@@ -247,9 +230,11 @@ walletSignTransaction(BREthereumWallet wallet,
 extern BRRlpData
 walletGetRawTransaction(BREthereumWallet wallet,
                         BREthereumTransaction transaction) {
-    return ETHEREUM_BOOLEAN_TRUE == transactionIsSigned(transaction)
-           ? transactionEncodeRLP(transaction, wallet->network, TRANSACTION_RLP_SIGNED)
-           : createRlpDataEmpty();
+  return transactionEncodeRLP (transaction,
+                               wallet->network,
+                               (ETHEREUM_BOOLEAN_TRUE == transactionIsSigned(transaction)
+                                ? TRANSACTION_RLP_SIGNED
+                                : TRANSACTION_RLP_UNSIGNED));
 }
 
 extern const char *
@@ -279,12 +264,12 @@ walletGetAddress (BREthereumWallet wallet) {
   return wallet->address;
 }
 
-extern BREthereumWalletHoldingType
-walletGetHoldingType (BREthereumWallet wallet) {
+extern BREthereumAmountType
+walletGetAmountType (BREthereumWallet wallet) {
   return wallet->balance.type;
 }
 
-extern BREthereumHolding
+extern BREthereumAmount
 walletGetBalance (BREthereumWallet wallet) {
   return wallet->balance;
 }
@@ -301,10 +286,10 @@ walletSetDefaultGasLimit(BREthereumWallet wallet, BREthereumGas gasLimit) {
 
 static BREthereumGas
 walletCreateDefaultGasLimit (BREthereumWallet wallet) {
-    switch (holdingGetType(wallet->balance)) {
-        case WALLET_HOLDING_ETHER:
+    switch (amountGetType(wallet->balance)) {
+        case AMOUNT_ETHER:
             return gasCreate (DEFAULT_ETHER_GAS_LIMIT);
-        case WALLET_HOLDING_TOKEN:
+        case AMOUNT_TOKEN:
             return tokenGetGasLimit (wallet->token);
     }
 }
@@ -326,13 +311,13 @@ walletSetDefaultGasPrice(BREthereumWallet wallet, BREthereumGasPrice gasPrice) {
 
 static BREthereumGasPrice
 walletCreateDefaultGasPrice (BREthereumWallet wallet) {
-    switch (holdingGetType(wallet->balance)) {
-        case WALLET_HOLDING_ETHER:
+    switch (amountGetType(wallet->balance)) {
+        case AMOUNT_ETHER:
             return gasPriceCreate(
                     etherCreateNumber
                             (DEFAULT_ETHER_GAS_PRICE_NUMBER,
                              DEFAULT_ETHER_GAS_PRICE_UNIT));
-        case WALLET_HOLDING_TOKEN:
+        case AMOUNT_TOKEN:
             return tokenGetGasPrice (wallet->token);
     }
 }

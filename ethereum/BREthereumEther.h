@@ -2,8 +2,8 @@
 #ifndef BR_Ethereum_Ether_H
 #define BR_Ethereum_Ether_H
 
-#include "rlp/BRRlpCoder.h"
-#include "BREthereumMath.h"
+#include "BRRlp.h"
+#include "BRUtil.h"
 
 #ifdef __cplusplus
 extern "C" {

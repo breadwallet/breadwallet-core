@@ -37,45 +37,45 @@ extern "C" {
  * An Ethereum Wallet holds either ETHER or TOKENs.
  */
 typedef enum {
-    WALLET_HOLDING_ETHER,
-    WALLET_HOLDING_TOKEN
-} BREthereumWalletHoldingType;
+    AMOUNT_ETHER,
+    AMOUNT_TOKEN
+} BREthereumAmountType;
 
 /**
  * An Ethereum Wallet holds a specific amount of ETHER or TOKENs
  */
-typedef struct BREthereumHoldingRecord {
-  BREthereumWalletHoldingType type;
+typedef struct BREthereumAmountRecord {
+  BREthereumAmountType type;
   union {
     BREthereumEther ether;
     BREthereumTokenQuantity tokenQuantity;
   } u;
-} BREthereumHolding;
+} BREthereumAmount;
 
-extern BREthereumHolding
-holdingCreateEther (BREthereumEther ether);
+extern BREthereumAmount
+amountCreateEther (BREthereumEther ether);
 
 // TODO: what is 'scale' - replace with 'decimals'?
-extern BREthereumHolding
-holdingCreateToken (BREthereumToken token, UInt256 valueAsInteger);
+extern BREthereumAmount
+amountCreateToken (BREthereumToken token, UInt256 valueAsInteger);
 
-extern BREthereumWalletHoldingType
-holdingGetType (BREthereumHolding holding);
+extern BREthereumAmountType
+amountGetType (BREthereumAmount amount);
 
 /**
- * The holding's ether if holding ETHER; otherwise fatal.
+ * The amount's ether if holding ETHER; otherwise fatal.
  */
 extern BREthereumEther
-holdingGetEther (BREthereumHolding holding);
+amountGetEther (BREthereumAmount amount);
 
 /**
- * The holding's tokenQuantity if holding TOKEN; otherwise fatal.
+ * The amount's tokenQuantity if holding TOKEN; otherwise fatal.
  */
 extern BREthereumTokenQuantity
-holdingGetTokenQuantity (BREthereumHolding holding);
+amountGetTokenQuantity (BREthereumAmount amount);
 
 extern BRRlpItem
-holdingRlpEncode(BREthereumHolding holding, BRRlpCoder coder);
+amountRlpEncode(BREthereumAmount amount, BRRlpCoder coder);
 
 //
 // Parsing
@@ -98,16 +98,16 @@ holdingRlpEncode(BREthereumHolding holding, BRRlpCoder coder);
  * @param status
  *
  */
-extern BREthereumHolding
-holdingCreateEtherString (const char *number,
+extern BREthereumAmount
+amountCreateEtherString (const char *number,
                           BREthereumEtherUnit unit,
                           BREthereumEtherParseStatus *status);
 
-extern BREthereumHolding
-holdingCreateTokenQuantityString (BREthereumToken token,
+extern BREthereumAmount
+amountCreateTokenQuantityString (BREthereumToken token,
                                   const char *number,
                                   BREthereumTokenQuantityUnit unit,
-                                  BREthereumEtherParseStatus *status);
+                                  BREthereumBoolean *error);
 
 #ifdef __cplusplus
 }

@@ -125,7 +125,8 @@ createTokenQuantity (BREthereumToken token,
 extern BREthereumTokenQuantity
 createTokenQuantityString (BREthereumToken token,
                            const char *number,
-                           BREthereumTokenQuantityUnit unit);
+                           BREthereumTokenQuantityUnit unit,
+                           BREthereumBoolean *error);
 
 extern BREthereumToken
 tokenQuantityGetToken (BREthereumTokenQuantity quantity);

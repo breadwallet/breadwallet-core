@@ -27,7 +27,7 @@
 #include <string.h>
 #include <assert.h>
 #include "BREthereumTransaction.h"
-#include "BREthereumHolding.h"
+#include "BREthereumAmount.h"
 #include "BREthereumAccount.h"
 
 #include <stdio.h>
@@ -42,7 +42,7 @@ struct BREthereumTransactionRecord {
    * is for TOKEN, then the RLP encoded amount is 0 and the RLP encoded data for the ERC20
    * transfer function encodes the amount.
    */
-  BREthereumHolding amount;
+  BREthereumAmount amount;
   BREthereumGasPrice gasPrice;
   BREthereumGas gasLimit;
   uint64_t nonce;
@@ -69,7 +69,7 @@ struct BREthereumTransactionRecord {
 extern BREthereumTransaction
 transactionCreate(BREthereumAddress sourceAddress,
                   BREthereumAddress targetAddress,
-                  BREthereumHolding amount,
+                  BREthereumAmount amount,
                   BREthereumGasPrice gasPrice,
                   BREthereumGas gasLimit,
                   uint64_t nonce) {
@@ -98,7 +98,7 @@ transactionGetTargetAddress(BREthereumTransaction transaction) {
     return transaction->targetAddress;
 }
 
-extern BREthereumHolding
+extern BREthereumAmount
 transactionGetAmount(BREthereumTransaction transaction) {
     return transaction->amount;
 }
@@ -156,15 +156,15 @@ transactionIsSigned (BREthereumTransaction transaction) {
 //
 static BRRlpItem
 transactionEncodeDataForHolding (BREthereumTransaction transaction,
-                                 BREthereumHolding holding,
+                                 BREthereumAmount holding,
                                  BRRlpCoder coder) {
   if (NULL == transaction->data) {
-    switch (holdingGetType(holding)) {
-      case WALLET_HOLDING_ETHER:
+    switch (amountGetType(holding)) {
+      case AMOUNT_ETHER:
         transaction->data = "";
         break;
-      case WALLET_HOLDING_TOKEN: {
-        UInt256 value = holdingGetTokenQuantity(holding).valueAsInteger;
+      case AMOUNT_TOKEN: {
+        UInt256 value = amountGetTokenQuantity(holding).valueAsInteger;
         const char *address = addressAsString(transaction->targetAddress);
 
         // Data is a HEX ENCODED string
@@ -175,36 +175,26 @@ transactionEncodeDataForHolding (BREthereumTransaction transaction,
            // Amount
            (uint8_t *) &value, sizeof (UInt256),
            NULL);
-        printf ("Transaction Data: %s\n", transaction->data);
 
         free ((char *) address);
       }
     }
   }
 
-  // Handle a common case.
-  if (NULL == transaction->data || 0 == strlen(transaction->data))
-    return rlpEncodeItemString(coder, "");
-  else {
-    // decodeHex() DATA, then RLP encode as bytes.
-    size_t bytesCount = 0;
-    uint8_t *bytes = decodeHexCreate(&bytesCount, transaction->data, strlen(transaction->data));
-    BRRlpItem item = rlpEncodeItemBytes(coder, bytes, bytesCount);
-    free (bytes);
-
-    return item;
-  }
+  return (NULL == transaction->data || 0 == strlen(transaction->data)
+          ? rlpEncodeItemString(coder, "")
+          : rlpEncodeItemHexString(coder, transaction->data));
 }
 
 static BRRlpItem
 transactionEncodeAddressForHolding (BREthereumTransaction transaction,
-                                    BREthereumHolding holding,
+                                    BREthereumAmount holding,
                                     BRRlpCoder coder) {
-  switch (holdingGetType(holding)) {
-    case WALLET_HOLDING_ETHER:
+  switch (amountGetType(holding)) {
+    case AMOUNT_ETHER:
       return addressRlpEncode(transaction->targetAddress, coder);
-    case WALLET_HOLDING_TOKEN: {
-      BREthereumToken token = tokenQuantityGetToken (holdingGetTokenQuantity(holding));
+    case AMOUNT_TOKEN: {
+      BREthereumToken token = tokenQuantityGetToken (amountGetTokenQuantity(holding));
       BREthereumAddress contractAddress = createAddress(token.address);
       BRRlpItem result = addressRlpEncode(contractAddress, coder);
       addressFree(contractAddress);
@@ -215,10 +205,10 @@ transactionEncodeAddressForHolding (BREthereumTransaction transaction,
 
 static BRRlpItem
 transactionEncodeHolding (BREthereumTransaction transaction,
-                                 BREthereumHolding holding,
+                                 BREthereumAmount holding,
                                  BRRlpCoder coder) {
   // Holding already handles ETHER vs TOKEN.
-  return holdingRlpEncode(holding, coder);
+  return amountRlpEncode(holding, coder);
 }
 extern BRRlpData
 transactionEncodeRLP (BREthereumTransaction transaction,

@@ -95,17 +95,54 @@ createTokenQuantity (BREthereumToken token,
 }
 
 static UInt256
-parseTokenQuantity (const char *number, BREthereumTokenQuantityUnit unit, int decimals, int *error) {
+parseTokenQuantityString (const char *number, BREthereumTokenQuantityUnit unit, int decimals, int *error) {
+  if ((TOKEN_QUANTITY_TYPE_DECIMAL == unit && UTIL_MATH_PARSE_OK != parseIsDecimal(number))
+      || (TOKEN_QUANTITY_TYPE_INTEGER == unit && UTIL_MATH_PARSE_OK != parseIsInteger(number))) {
+    *error = 1;
+    return UINT256_ZERO;
+  }
+
+  switch (unit) {
+    case TOKEN_QUANTITY_TYPE_DECIMAL: {
+      unsigned long length = strlen (number) + decimals;
+      char whole [length + 1];
+      char fract [length + 1];
+
+      whole[0] = fract[0] = '\0';
+      parseDecimalSplit(number, whole, fract, length);
+
+      // Too many fractional digits
+      unsigned long fractLen = strlen(fract);
+      if (fractLen > decimals) {
+        *error = 1;
+        return UINT256_ZERO;
+      }
+      for (; fractLen < decimals; fractLen++)
+        fract[fractLen] = '0';
+      fract[fractLen] = 0;
+
+      strcat (whole, fract);
+
+      return createUInt256Parse(whole, 10, error);
+    }
+
+    case TOKEN_QUANTITY_TYPE_INTEGER:
+      // The `number` is a whole number
+      return createUInt256Parse(number, 10, error);
+  }
   return UINT256_ZERO;
 }
 
 extern BREthereumTokenQuantity
 createTokenQuantityString (BREthereumToken token,
                            const char *number,
-                           BREthereumTokenQuantityUnit unit) {
-  int error = 0;
-  UInt256 valueAsInteger = parseTokenQuantity(number, unit, token.decimals, &error);
-  return createTokenQuantity(token, valueAsInteger);
+                           BREthereumTokenQuantityUnit unit,
+                           BREthereumBoolean *error) {
+  int err = 0;
+  UInt256 valueAsInteger = parseTokenQuantityString(number, unit, token.decimals, &err);
+
+  *error = (1 == err ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE);
+  return createTokenQuantity(token, (1 == err ? UINT256_ZERO : valueAsInteger));
 }
 
 extern BREthereumToken

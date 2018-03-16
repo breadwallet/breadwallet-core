@@ -1,5 +1,5 @@
 //
-//  BREthereumHolding
+//  BREthereumamount
 //  breadwallet-core Ethereum
 //
 //  Created by Ed Gamble on 2/25/18.
@@ -26,51 +26,51 @@
 
 #include <string.h>
 #include <assert.h>
-#include "BREthereumHolding.h"
+#include "BREthereumAmount.h"
 
 //
-// Holding
+// amount
 //
-extern BREthereumHolding
-holdingCreateEther (BREthereumEther ether) {
-  BREthereumHolding holding;
-  holding.type = WALLET_HOLDING_ETHER;
-  holding.u.ether = ether;
-  return holding;
+extern BREthereumAmount
+amountCreateEther (BREthereumEther ether) {
+  BREthereumAmount amount;
+  amount.type = AMOUNT_ETHER;
+  amount.u.ether = ether;
+  return amount;
 }
 
-extern BREthereumHolding
-holdingCreateToken (BREthereumToken token, UInt256 valueAsInteger) {
-  BREthereumHolding holding;
-  holding.type = WALLET_HOLDING_TOKEN;
-  holding.u.tokenQuantity = createTokenQuantity(token, valueAsInteger);
-  return holding;
+extern BREthereumAmount
+amountCreateToken (BREthereumToken token, UInt256 valueAsInteger) {
+  BREthereumAmount amount;
+  amount.type = AMOUNT_TOKEN;
+  amount.u.tokenQuantity = createTokenQuantity(token, valueAsInteger);
+  return amount;
 }
 
-extern BREthereumWalletHoldingType
-holdingGetType (BREthereumHolding holding) {
-    return holding.type;
+extern BREthereumAmountType
+amountGetType (BREthereumAmount amount) {
+    return amount.type;
 }
 
 extern BREthereumEther
-holdingGetEther (BREthereumHolding holding) {
-  assert (holding.type == WALLET_HOLDING_ETHER);
-  return holding.u.ether;
+amountGetEther (BREthereumAmount amount) {
+  assert (amount.type == AMOUNT_ETHER);
+  return amount.u.ether;
 }
 
 extern BREthereumTokenQuantity
-holdingGetTokenQuantity (BREthereumHolding holding) {
-  assert (holding.type == WALLET_HOLDING_TOKEN);
-  return holding.u.tokenQuantity;
+amountGetTokenQuantity (BREthereumAmount amount) {
+  assert (amount.type == AMOUNT_TOKEN);
+  return amount.u.tokenQuantity;
 }
 
 extern BRRlpItem
-holdingRlpEncode(BREthereumHolding holding, BRRlpCoder coder) {
-  switch (holding.type) {
-    case WALLET_HOLDING_ETHER:
-      return etherRlpEncode(holding.u.ether, coder);
+amountRlpEncode(BREthereumAmount amount, BRRlpCoder coder) {
+  switch (amount.type) {
+    case AMOUNT_ETHER:
+      return etherRlpEncode(amount.u.ether, coder);
 
-    case WALLET_HOLDING_TOKEN:
+    case AMOUNT_TOKEN:
       // We do not encode a 'number 0', we encode an empty string - it seems from ethereumio
       return rlpEncodeItemString(coder, ""); // rlpEncodeItemUInt64(coder, 0);
   }
@@ -79,20 +79,20 @@ holdingRlpEncode(BREthereumHolding holding, BRRlpCoder coder) {
 //
 // Parse
 //
-extern BREthereumHolding
-holdingCreateEtherString (const char *number, BREthereumEtherUnit unit, BREthereumEtherParseStatus *status) {
-  BREthereumHolding holding;
-  holding.type = WALLET_HOLDING_ETHER;
-  holding.u.ether = etherCreateString(number, unit, status);
-  return holding;
+extern BREthereumAmount
+amountCreateEtherString (const char *number, BREthereumEtherUnit unit, BREthereumEtherParseStatus *status) {
+  BREthereumAmount amount;
+  amount.type = AMOUNT_ETHER;
+  amount.u.ether = etherCreateString(number, unit, status);
+  return amount;
 }
 
-extern BREthereumHolding
-holdingCreateTokenQuantityString (BREthereumToken token, const char *number, BREthereumTokenQuantityUnit unit, BREthereumEtherParseStatus *status) {
-  BREthereumHolding holding;
-  holding.type = WALLET_HOLDING_TOKEN;
-  holding.u.tokenQuantity = createTokenQuantityString(token, number, unit);
-  return holding;
+extern BREthereumAmount
+amountCreateTokenQuantityString (BREthereumToken token, const char *number, BREthereumTokenQuantityUnit unit, BREthereumBoolean *error) {
+  BREthereumAmount amount;
+  amount.type = AMOUNT_TOKEN;
+  amount.u.tokenQuantity = createTokenQuantityString(token, number, unit, error);
+  return amount;
 }
 
 /*
