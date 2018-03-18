@@ -59,8 +59,11 @@ Java_com_breadwallet_core_BRCoreKey_getPubKey
         (JNIEnv *env, jobject thisObject) {
     BRKey *key = (BRKey *) getJNIReference(env, thisObject);
 
-    size_t pubKeyLen = sizeof (65 * sizeof(uint8_t));
+    // Actually get the pubKey...
+    BRKeyPubKey(key, NULL, 0);
 
+    // ... now copy it.
+    size_t pubKeyLen = 65 * sizeof(uint8_t);
     jbyteArray result = (*env)->NewByteArray(env, (jsize) pubKeyLen);
     (*env)->SetByteArrayRegion(env, result, 0, (jsize) pubKeyLen,
                                (const jbyte *) key->pubKey);
