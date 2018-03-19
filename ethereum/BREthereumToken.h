@@ -101,9 +101,9 @@ extern BREthereumToken tokenBRD;
 // Token Quantity
 //
 
-  /**
-   * A BREthereumTokenQuantityUnit defines the (external) representation of a token quantity
-   */
+/**
+ * A BREthereumTokenQuantityUnit defines the (external) representation of a token quantity
+ */
 typedef enum {
   TOKEN_QUANTITY_TYPE_DECIMAL,
   TOKEN_QUANTITY_TYPE_INTEGER

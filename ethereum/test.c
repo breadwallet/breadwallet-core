@@ -221,8 +221,23 @@ runMathCoerceTests () {
   assert (0 == strcmp (bs, "1000000000000000000000"));
   free ((char *) bs);
 
+  UInt256 c = { .u64 = { 15, 0, 0, 0}};
+  const char *cs = coerceString(c, 2);
+  assert (0 == strcmp (cs, "00001111"));  // unexpected
+  free ((char *) cs);
+
+  UInt256 d = { .u64 = { 0, UINT64_MAX, 0, 0}};
+  const char *ds = coerceString(d, 2);
+  assert (0 == strcmp (ds, "11111111111111111111111111111111111111111111111111111111111111110000000000000000000000000000000000000000000000000000000000000000"));
+  free ((char *) ds);
+
+  UInt256 e = { .u64 = { 15, 0, 0, 0}};
+  const char *es = coerceString(e, 16);
+  assert (0 == strcmp (es, "0f"));  // unexpected
+  free ((char *) es);
 
 }
+
 static void
 runMathParseTests () {
   int error;
@@ -283,6 +298,30 @@ runMathParseTests () {
   r = createUInt256Parse("596877", 10, &error);
   s = coerceString(r, 16);
   printf ("596877: %s\n", s);
+
+  r = createUInt256Parse
+  ("1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
+   2, &error);
+  assert (error == 0 && UINT64_MAX == r.u64[0] && UINT64_MAX == r.u64[1] && UINT64_MAX == r.u64[2] && UINT64_MAX == r.u64[3]);
+
+  r = createUInt256Parse ("ffffffffffffffff", 16, &error);
+  assert (error == 0 && UINT64_MAX == r.u64[0] && 0 == r.u64[1] && 0 == r.u64[2] && 0 == r.u64[3]);
+
+  r = createUInt256Parse ("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16, &error);
+  assert (error == 0 && UINT64_MAX == r.u64[0] && UINT64_MAX == r.u64[1] && UINT64_MAX == r.u64[2] && UINT64_MAX == r.u64[3]);
+
+  r = createUInt256ParseDecimal(".01", 2, &error);
+  assert (1 == error);
+
+  r = createUInt256ParseDecimal("0.01", 2, &error);
+  assert (1 == r.u64[0] && 0 == r.u64[1] && 0 == r.u64[2] && 0 == r.u64[3]);
+
+  r = createUInt256ParseDecimal("01.", 0, &error);
+  assert (1 == r.u64[0] && 0 == r.u64[1] && 0 == r.u64[2] && 0 == r.u64[3]);
+
+  r = createUInt256ParseDecimal("01.", 2, &error);
+  assert (100 == r.u64[0] && 0 == r.u64[1] && 0 == r.u64[2] && 0 == r.u64[3]);
+
 }
 
 static void

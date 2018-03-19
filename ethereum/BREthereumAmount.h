@@ -80,6 +80,7 @@ amountRlpEncode(BREthereumAmount amount, BRRlpCoder coder);
 //
 // Parsing
 //
+
 /**
  *
  * Parse a string of base-10 digits with one optional decimal point into an Ether holding and
@@ -103,6 +104,24 @@ amountCreateEtherString (const char *number,
                           BREthereumEtherUnit unit,
                           BREthereumEtherParseStatus *status);
 
+/**
+ *
+ * Parse a string of base-10 digits with one optional decimal point into an Token holding and
+ * assign the status.  If status is 'OK' then the holding will contain some amount of Token;
+ * otherwise status will indicate the failure and holding will contain nothing.
+ *
+ * Examples of number are: "12.3", "12000000000", "0.00000000012", "1.000000000023"
+ *
+ * Status Errors are:
+ *     STRANGE_DIGITS: 12a.3f <all characters must be [0-9\.]
+ *          UNDERFLOW: 0.1 WEI
+ *           OVERFLOW: 1000000 TETHER
+ *
+ * @param number
+ * @param unit
+ * @param status
+ *
+ */
 extern BREthereumAmount
 amountCreateTokenQuantityString (BREthereumToken token,
                                   const char *number,

@@ -147,7 +147,7 @@ parseMaximumDigitsForUInt64InBase (int base) {
     case 2:  return 64;
     case 10: return 19;
     case 16: return 16;
-    default: return -1;
+    default: assert (0);
   }
 }
 
@@ -157,7 +157,7 @@ parseMaximumDigitsForUInt256InBase (int base) {
     case 2:  return 256;
     case 10: return 78;
     case 16: return 64;
-    default: return 0;
+    default: assert(0);
   }
 }
 
@@ -225,6 +225,9 @@ createUInt256Parse (const char *string, int base, int *error) {
   // We'll process this many digits in `string`.
   int stringChunks = parseMaximumDigitsForUInt64InBase(base);
 
+  // For parsing a string like "123.45", the character at index 0 is '1'.  So by parsing chunks
+  // with ascending index, we naturally treat `string` as big endian - no matter the base.
+  // Eventually, when `parseUInt64()` calls `strtoull` we'll still be using big endian.
   for (long index = 0; index < length; index += stringChunks) {
     // On the first time through, get an initial value
     if (index == 0)
@@ -274,19 +277,24 @@ coerceString (UInt256 x, int base) {
     return result;
   }
 
-  // otherwise, full stop
   switch (base) {
+      // We'll just hex encode the UInt256 based on the (little endian) bytes.  This WILL produce
+      // a result with an even number of characters - as 15 becomes 0f (aka 0x0f).  This is
+      // actually correct (or at least reasonably correct); if only because, if you want to convert
+      // back to a value, the decodeHex() WILL expect an even number of characters.
     case 16: {
       // Reverse and 'strip zeros'
-      UInt256 xr = UInt256Reverse(x);
+      UInt256 xr = UInt256Reverse(x);  // TODO: LITTLE ENDIAN only
       int xrIndex = 0;
       while (0 == xr.u8[xrIndex]) xrIndex++;
       // Encode
       return encodeHexCreate (NULL, &xr.u8[xrIndex], sizeof (xr.u8) - xrIndex);
     }
+
+      // Repeatedly divide by 10; append the result with the remainder.
     case 10: {
-      char r[256];
-      memset (r, 0, 256);
+      char r[257];
+      memset (r, 0, 257);
       for (int i = 0; i < 256 && !eqUInt256(x, UINT256_ZERO); i++) {
         uint32_t rem;
         x = divUInt256_Small(x, base, &rem);
@@ -294,8 +302,26 @@ coerceString (UInt256 x, int base) {
       }
       return coerceReverseString(r);
     }
-    case 2:
-      assert (0);
+
+      // Get the base 16 result and then swap hex values for binary strings.
+    case 2: {
+      static const char *hex2Binary[16] = {
+        [ 0] = "0000", [ 1] = "0001", [ 2] = "0010", [ 3] = "0011",
+        [ 4] = "0100", [ 5] = "0101", [ 6] = "0110", [ 7] = "0111",
+        [ 8] = "1000", [ 9] = "1001", [10] = "1010", [11] = "1011",
+        [12] = "1100", [13] = "1101", [14] = "1110", [15] = "1111",
+      };
+      char * base16    = coerceString (x, 16);
+      size_t base16Len = strlen (base16);
+
+      char *r = malloc (4 * base16Len + 1);
+      for (int i = 0; i < base16Len; i++)
+        strcpy (&r[4 * i], hex2Binary[_hexu(base16[i])]);
+      r[4 * base16Len] = '\0';
+      free (base16);
+      // strip zeros?
+      return r;
+    }
     default:
       assert (0);
   }

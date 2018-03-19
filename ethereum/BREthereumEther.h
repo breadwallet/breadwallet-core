@@ -66,6 +66,9 @@ typedef struct BREthereumEtherStruct {
 } BREthereumEther;
 
 extern BREthereumEther
+etherCreateZero (void);
+
+extern BREthereumEther
 etherCreate(const UInt256 value);
 
 extern BREthereumEther
@@ -74,9 +77,14 @@ etherCreateUnit(const UInt256 value, BREthereumEtherUnit unit, int *overflow);
 extern BREthereumEther
 etherCreateNumber (uint64_t number, BREthereumEtherUnit unit);
 
-extern BREthereumEther
-etherCreateZero (void);
-
+/**
+ * Create Ether from a decimal string in unit.  The `number` must be either an integer or have
+ * a single decimal point with at least one preceeding characters.  Thus: 0.001, 1.0000, 12
+ * and 12.100 are all valid.  But .1 is invalid (required 0.1).
+ *
+ * @warn what happens if invalid
+ *
+ */
 extern BREthereumEther
 etherCreateString(const char *string, BREthereumEtherUnit unit, BREthereumEtherParseStatus *status);
 
@@ -84,7 +92,12 @@ extern UInt256
 etherGetValue(const BREthereumEther ether, BREthereumEtherUnit unit);
 
 /**
- * Return a string representing `ether` in `unit (in base 10)
+ * Return a decimal string representing `ether` in `unit`.
+ *
+ * @param ether -
+ * @param unit -
+ *
+ * @return A newly allocated string (you own it).
  */
 extern char *
 etherGetValueString(const BREthereumEther ether, BREthereumEtherUnit unit);
@@ -104,7 +117,6 @@ etherSub (BREthereumEther e1, BREthereumEther e2, int *negative);
 extern BREthereumBoolean
 etherIsEQ (BREthereumEther e1, BREthereumEther e2);
 
-//
 extern BREthereumBoolean
 etherIsGT (BREthereumEther e1, BREthereumEther e2);
 

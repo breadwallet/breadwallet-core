@@ -43,17 +43,21 @@ extern UInt256
 createUInt256 (uint64_t value);
 
 /**
- * Create as 10^digits
+ * Create as `(expt 10 power)`
  */
 extern UInt256
-createUInt256Power (uint8_t digits, int *overflow);
+createUInt256Power (uint8_t power, int *overflow);
 
 /**
  * Create from a string in the provided base.  The string must consist of only characters
- * in the base.  That is, avoid the '0x' prefix.  No decimal points; this is an integer parse
+ * in the base.  That is, avoid the '0x' prefix.  No decimal points; this is an integer parse.
  *
- * @param number an integer value expressed in `base`
- * @param the base
+ * The string must be in big-endian format, always.  Generally this is only an issue for hex
+ * (and perhaps) binary strings.  That is, for decimal strings you would expect "12.3" to some
+ * who wind up with the number 3.21.  But for 0x0102, maybe not so clear.
+ *
+ * @param number - an integer value expressed in `base` in big-endian format.
+ * @param base - must only be one of 2, 10, or 16.
  * @param pointer to a boolean error
  */
 extern UInt256
@@ -72,7 +76,7 @@ createUInt256Parse (const char *number, int base, int *error);
  * @param decimals: number of decimals after the decimal point
  * @param error: pointer to a boolean error.
  *
- * @warn Requires stack size of at least 2 * (strlen(number) + digits). [We are sloppy]
+ * @warn Requires stack size of at least 3 * (strlen(number) + digits). [We are sloppy]
  */
 extern UInt256
 createUInt256ParseDecimal (const char *number, int decimals, int *error);
@@ -120,10 +124,10 @@ extern UInt256
 coerceUInt256 (UInt512  x, int *overflow);
 
 /**
- * Returns the string representation of `x` in `base`.  The returned string is owned by the
- * caller.
+ * Returns the string representation of `x` in `base`.  No matter the base, the returned string
+ * will be in big-endian format.
  *
- * YOU OWN THE RETURNED MEMORY
+ * @warn YOU OWN THE RETURNED MEMORY
  */
 extern char *
 coerceString (UInt256 x, int base);
@@ -132,7 +136,7 @@ coerceString (UInt256 x, int base);
    * Returns a decimal string represention of `x` in base `0 with `decimals` digits after the
    * decimal-point.
    *
-   * YOU OWN THE RETURNED MEMORY
+   * @warn YOU OWN THE RETURNED MEMORY
    */
 extern char *
 coerceStringDecimal (UInt256 x, int decimals);
