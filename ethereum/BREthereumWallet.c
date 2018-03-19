@@ -100,6 +100,7 @@ walletCreateDetailed (BREthereumAccount account,
 
     assert (NULL != account);
     assert (NULL != address);
+    assert (AMOUNT_TOKEN != type || NULL != optionalToken);
 
     BREthereumWallet wallet = calloc(1, sizeof(struct BREthereumWalletRecord));
 
@@ -143,7 +144,7 @@ walletCreateWithAddress(BREthereumAccount account,
              address,
              network,
              AMOUNT_ETHER,
-             tokenCreateNone());
+             NULL);
 }
 
 extern BREthereumWallet

@@ -24,47 +24,74 @@
 //  THE SOFTWARE.
 
 #include <string.h>
+#include <assert.h>
 #include "BREthereumToken.h"
+
+// For tokenBRD define some default for Gas Limit and Price. Argubly never up to date
+// and thus changed in BREtherEthereumWallet.
+#define TOKEN_BRD_DEFAULT_GAS_LIMIT  50000
+#define TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64  20000000000 // 20 GWEI
 
 //
 // Token
 //
-extern BREthereumToken
-tokenCreate(char *address,
-            char *symbol,
-            char *name,
-            char *description,
-            BREthereumGas gasLimit,
-            BREthereumGasPrice gasPrice) {
-  BREthereumToken token = tokenCreateNone();
 
-  // TODO: Copy address or what (BREthereumToken is a value type....)
-  token.address = address;
-  token.symbol  = symbol;
-  token.name    = name;
-  token.description = description;
-  token.gasLimit = gasLimit;
-  token.gasPrice = gasPrice;
+struct BREthereumTokenRecord {
+  /**
+   * An Ethereum '0x' address for the token's contract.
+   */
+  char *address;
 
-  return token;
-}
+  /**
+   * The (exchange) symbol - "BRD"
+   */
+  char *symbol;
 
-extern BREthereumToken
-tokenCreateNone (void) {
-  BREthereumToken token;
-  memset (&token, sizeof (BREthereumToken), 0);
-  return token;
+  /**
+   * The name - "Bread Token"
+   */
+  char *name;
+
+  /**
+   * The description - "The Bread Token ..."
+   */
+  char *description;
+
+  /**
+   * The maximum decimals (typically 0 to 18).
+   */
+  unsigned int decimals;
+
+  /**
+   * The (default) Gas Limit for exchanges of this token.
+   */
+  BREthereumGas gasLimit;           // TODO: Feels modifiable
+
+  /**
+   * The (default) Gas Price for exchanges of this token.
+   */
+  BREthereumGasPrice gasPrice;      // TODO: Feels modifiable
+
+  /**
+   * True(1) if allocated statically
+   */
+  int staticallyAllocated;
+};
+
+extern const char *
+tokenGetAddress (BREthereumToken token) {
+  return token->address;
 }
 
 extern BREthereumGas
 tokenGetGasLimit (BREthereumToken token) {
-  return token.gasLimit;
+  return token->gasLimit;
 }
 
 
 extern BREthereumGasPrice
 tokenGetGasPrice (BREthereumToken token) {
-  return token.gasPrice;
+  return token->gasPrice;
 }
 
 extern BREthereumContract
@@ -72,15 +99,17 @@ tokenGetContract (BREthereumToken token) {
   return contractERC20;
 }
 
-BREthereumToken tokenBRD = {
+struct BREthereumTokenRecord tokenBRDRecord = {
   "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6", // "0x5250776FAD5A73707d222950de7999d3675a2722",
   "BRD",
   "Bread Token",
   "The Bread Token ...",
   18,                               // Decimals
-  { 50000 },                        // Default gasLimit
-  { { { .u64 = {0, 0, 0, 0}}}}      // Default gasPrice
+  { TOKEN_BRD_DEFAULT_GAS_LIMIT },                        // Default gasLimit
+  { { { .u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},     // Default gasPrice
+  1
 };
+const BREthereumToken tokenBRD = &tokenBRDRecord;
 
 //
 // Token Quantity
@@ -88,6 +117,8 @@ BREthereumToken tokenBRD = {
 extern BREthereumTokenQuantity
 createTokenQuantity (BREthereumToken token,
                      UInt256 valueAsInteger) {
+  assert (NULL != token);
+
   BREthereumTokenQuantity quantity;
   quantity.token = token;
   quantity.valueAsInteger = valueAsInteger;
@@ -108,14 +139,14 @@ createTokenQuantityString (BREthereumToken token,
   }
   else {
     valueAsInteger = (TOKEN_QUANTITY_TYPE_DECIMAL == unit
-                      ? createUInt256ParseDecimal(number, token.decimals, status)
+                      ? createUInt256ParseDecimal(number, token->decimals, status)
                       : createUInt256Parse (number, 10, status));
   }
 
   return createTokenQuantity(token, (CORE_PARSE_OK != *status ? UINT256_ZERO : valueAsInteger));
 }
 
-extern BREthereumToken
+extern const BREthereumToken
 tokenQuantityGetToken (BREthereumTokenQuantity quantity) {
   return quantity.token;
 }

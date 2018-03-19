@@ -195,7 +195,7 @@ transactionEncodeAddressForHolding (BREthereumTransaction transaction,
       return addressRlpEncode(transaction->targetAddress, coder);
     case AMOUNT_TOKEN: {
       BREthereumToken token = tokenQuantityGetToken (amountGetTokenQuantity(holding));
-      BREthereumAddress contractAddress = createAddress(token.address);
+      BREthereumAddress contractAddress = createAddress(tokenGetAddress(token));
       BRRlpItem result = addressRlpEncode(contractAddress, coder);
       addressFree(contractAddress);
       return result;

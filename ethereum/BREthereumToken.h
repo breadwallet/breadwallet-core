@@ -35,56 +35,15 @@ extern "C" {
 #endif
 
 /**
- * An Ethereum ERC20 Token - conceptually an utter constant (but see gasLimit and gasPrice).
+ * An Ethereum ERC20 Token
  */
-typedef struct BREthereumTokenRecord {
-  /**
-   * An Ethereum '0x' address for the token's contract.
-   */
-  char *address;
+typedef struct BREthereumTokenRecord *BREthereumToken;
 
-  /**
-   * The (exchange) symbol - "BRD"
-   */
-  char *symbol;
-
-  /**
-   * The name - "Bread Token"
-   */
-  char *name;
-
-  /**
-   * The description - "The Bread Token ..."
-   */
-  char *description;
-
-  /**
-   * The maximum decimals (typically 0 to 18).
-   */
-  unsigned int decimals;
-
-  /**
-   * The (default) Gas Limit for exchanges of this token.
-   */
-  BREthereumGas gasLimit;           // TODO: Feels modifiable
-
-  /**
-   * The (default) Gas Price for exchanges of this token.
-   */
-  BREthereumGasPrice gasPrice;      // TODO: Feels modifiable
-
-} BREthereumToken;
-
-extern BREthereumToken
-tokenCreate(char *address,
-            char *symbol,
-            char *name,
-            char *description,
-            BREthereumGas gasLimit,
-            BREthereumGasPrice gasPrice);
-
-extern BREthereumToken
-tokenCreateNone (void);
+/**
+ * Return the token address as a '0x'-prefixed string.  DO NOT FREE THIS.
+ */
+extern const char *
+tokenGetAddress (BREthereumToken token);
 
 extern BREthereumGas
 tokenGetGasLimit (BREthereumToken token);
@@ -95,7 +54,7 @@ tokenGetGasPrice (BREthereumToken token);
 extern BREthereumContract
 tokenGetContract (BREthereumToken token);
 
-extern BREthereumToken tokenBRD;
+extern const BREthereumToken tokenBRD;
 
 //
 // Token Quantity
@@ -128,7 +87,7 @@ createTokenQuantityString (BREthereumToken token,
                            BREthereumTokenQuantityUnit unit,
                            BRCoreParseStatus *status);
 
-extern BREthereumToken
+extern const BREthereumToken
 tokenQuantityGetToken (BREthereumTokenQuantity quantity);
 
 #ifdef __cplusplus
