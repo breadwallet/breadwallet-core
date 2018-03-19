@@ -93,12 +93,10 @@ etherCreateZero(void) {
 }
 
 extern BREthereumEther
-etherCreateString(const char *number, BREthereumEtherUnit unit, BREthereumEtherParseStatus *status) {
-  int error = 0;
+etherCreateString(const char *number, BREthereumEtherUnit unit, BRCoreParseStatus *status) {
   int decimals = 3 * unit;
 
-  UInt256 value = createUInt256ParseDecimal(number, decimals, &error);
-  *status = (0 == error ? ETHEREUM_ETHER_PARSE_OK : ETHEREUM_ETHER_PARSE_STRANGE_DIGITS);
+  UInt256 value = createUInt256ParseDecimal(number, decimals, status);
   return etherCreate(value);
 }
 

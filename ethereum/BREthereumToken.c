@@ -98,23 +98,21 @@ extern BREthereumTokenQuantity
 createTokenQuantityString (BREthereumToken token,
                            const char *number,
                            BREthereumTokenQuantityUnit unit,
-                           BREthereumBoolean *error) {
-  int err = 0;
+                           BRCoreParseStatus *status) {
   UInt256 valueAsInteger;
 
-  if ((TOKEN_QUANTITY_TYPE_DECIMAL == unit && UTIL_MATH_PARSE_OK != parseIsDecimal(number))
-      || (TOKEN_QUANTITY_TYPE_INTEGER == unit && UTIL_MATH_PARSE_OK != parseIsInteger(number))) {
-    err = 1;
+  if ((TOKEN_QUANTITY_TYPE_DECIMAL == unit && CORE_PARSE_OK != parseIsDecimal(number))
+      || (TOKEN_QUANTITY_TYPE_INTEGER == unit && CORE_PARSE_OK != parseIsInteger(number))) {
+    *status = CORE_PARSE_STRANGE_DIGITS;
     valueAsInteger = UINT256_ZERO;
   }
   else {
     valueAsInteger = (TOKEN_QUANTITY_TYPE_DECIMAL == unit
-                      ? createUInt256ParseDecimal(number, token.decimals, &err)
-                      : createUInt256Parse (number, 10, &err));
+                      ? createUInt256ParseDecimal(number, token.decimals, status)
+                      : createUInt256Parse (number, 10, status));
   }
 
-  *error = (1 == err ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE);
-  return createTokenQuantity(token, (1 == err ? UINT256_ZERO : valueAsInteger));
+  return createTokenQuantity(token, (CORE_PARSE_OK != *status ? UINT256_ZERO : valueAsInteger));
 }
 
 extern BREthereumToken

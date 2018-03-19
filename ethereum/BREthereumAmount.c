@@ -80,7 +80,7 @@ amountRlpEncode(BREthereumAmount amount, BRRlpCoder coder) {
 // Parse
 //
 extern BREthereumAmount
-amountCreateEtherString (const char *number, BREthereumEtherUnit unit, BREthereumEtherParseStatus *status) {
+amountCreateEtherString (const char *number, BREthereumEtherUnit unit, BRCoreParseStatus *status) {
   BREthereumAmount amount;
   amount.type = AMOUNT_ETHER;
   amount.u.ether = etherCreateString(number, unit, status);
@@ -88,10 +88,10 @@ amountCreateEtherString (const char *number, BREthereumEtherUnit unit, BREthereu
 }
 
 extern BREthereumAmount
-amountCreateTokenQuantityString (BREthereumToken token, const char *number, BREthereumTokenQuantityUnit unit, BREthereumBoolean *error) {
+amountCreateTokenQuantityString (BREthereumToken token, const char *number, BREthereumTokenQuantityUnit unit, BRCoreParseStatus *status) {
   BREthereumAmount amount;
   amount.type = AMOUNT_TOKEN;
-  amount.u.tokenQuantity = createTokenQuantityString(token, number, unit, error);
+  amount.u.tokenQuantity = createTokenQuantityString(token, number, unit, status);
   return amount;
 }
 

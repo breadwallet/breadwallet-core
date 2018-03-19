@@ -36,6 +36,14 @@ extern "C" {
 #error "Must be a `LITTLE ENDIAN` cpu architecture"
 #endif
 
+typedef enum {
+  CORE_PARSE_OK,
+  CORE_PARSE_STRANGE_DIGITS,    // non-decimals with optional single decimal point
+  CORE_PARSE_UNDERFLOW,         // too many decimals for defined resolution .001 but need .01
+  CORE_PARSE_OVERFLOW           // too many decimals for integer
+} BRCoreParseStatus;
+
+
 /**
  * Create from a single uint64_t value.
  */
@@ -61,7 +69,7 @@ createUInt256Power (uint8_t power, int *overflow);
  * @param pointer to a boolean error
  */
 extern UInt256
-createUInt256Parse (const char *number, int base, int *error);
+createUInt256Parse (const char *number, int base, BRCoreParseStatus *status);
 
 /**
  * Create from a string with the specificed number of decimals (values after a decimal point).
@@ -79,7 +87,7 @@ createUInt256Parse (const char *number, int base, int *error);
  * @warn Requires stack size of at least 3 * (strlen(number) + digits). [We are sloppy]
  */
 extern UInt256
-createUInt256ParseDecimal (const char *number, int decimals, int *error);
+createUInt256ParseDecimal (const char *number, int decimals, BRCoreParseStatus *status);
   
   /**
  * Return `x + y`
@@ -208,18 +216,10 @@ compareUInt256 (UInt256 x, UInt256 y);
   //
   // Parsing
   //
-  typedef enum {
-    UTIL_MATH_PARSE_OK,
-    UTIL_MATH_PARSE_STRANGE_DIGITS,
-    UTIL_MATH_PARSE_UNDERFLOW,
-    UTIL_MATH_PARSE_OVERFLOW
-  } BRUtilMathParseStatus;
-
-
-extern BRUtilMathParseStatus
+extern BRCoreParseStatus
 parseIsInteger (const char *number);
 
-extern BRUtilMathParseStatus
+extern BRCoreParseStatus
 parseIsDecimal (const char *number);
 
 #ifdef __cplusplus

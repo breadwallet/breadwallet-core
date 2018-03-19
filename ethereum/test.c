@@ -240,34 +240,34 @@ runMathCoerceTests () {
 
 static void
 runMathParseTests () {
-  int error;
+  BRCoreParseStatus status;
   UInt256 r = UINT256_ZERO;
   UInt256 a = UINT256_ZERO;
 
   // "0x09184e72a000" // 10000000000000
-  r = createUInt256Parse("09184e72a000", 16, &error);
+  r = createUInt256Parse("09184e72a000", 16, &status);
   a.u64[0] = 10000000000000;
-  assert (0 == error && eqUInt256(r, a));
+  assert (CORE_PARSE_OK == status && eqUInt256(r, a));
 
   // "0x0234c8a3397aab58" // 158972490234375000
-  r = createUInt256Parse("0234c8a3397aab58", 16, &error);
+  r = createUInt256Parse("0234c8a3397aab58", 16, &status);
   a.u64[0] = 158972490234375000;
-  assert (0 == error && eqUInt256(r, a));
+  assert (CORE_PARSE_OK == status && eqUInt256(r, a));
 
   // 115792089237316195423570985008687907853269984665640564039457584007913129639935
-  r = createUInt256Parse("115792089237316195423570985008687907853269984665640564039457584007913129639935", 10, &error);
+  r = createUInt256Parse("115792089237316195423570985008687907853269984665640564039457584007913129639935", 10, &status);
   a.u64[0] = a.u64[1] = a.u64[2] = a.u64[3] = UINT64_MAX;
-  assert (0 == error && eqUInt256(r, a));
+  assert (CORE_PARSE_OK == status && eqUInt256(r, a));
 
-  r = createUInt256Parse("1000000000000000000000000000000", 10, &error); // 1 TETHER (10^30)
-  assert (0 == error
+  r = createUInt256Parse("1000000000000000000000000000000", 10, &status); // 1 TETHER (10^30)
+  assert (CORE_PARSE_OK == status
           && r.u64[0] == 5076944270305263616u
           && r.u64[1] == 54210108624
           && r.u64[2] == 0
           && r.u64[3] == 0);
 
   char *s;
-  r = createUInt256Parse("425693205796080237694414176550132631862392541400559", 10, &error);
+  r = createUInt256Parse("425693205796080237694414176550132631862392541400559", 10, &status);
   s = coerceString(r, 10);
   assert (0 == strcmp("425693205796080237694414176550132631862392541400559", s));
   free (s);
@@ -277,7 +277,7 @@ runMathParseTests () {
   assert (0 == strcasecmp("0123456789ABCDEFEDCBA98765432123456789ABCDEF", s));
   free(s);
 
-  r = createUInt256Parse("0123456789ABCDEFEDCBA98765432123456789ABCDEF", 16, &error);
+  r = createUInt256Parse("0123456789ABCDEFEDCBA98765432123456789ABCDEF", 16, &status);
   s = coerceString(r, 16);
   assert (0 == strcasecmp ("0123456789ABCDEFEDCBA98765432123456789ABCDEF", s));
   free (s);
@@ -295,32 +295,32 @@ runMathParseTests () {
   assert (0 == strcmp ("0", s));
   free (s);
 
-  r = createUInt256Parse("596877", 10, &error);
+  r = createUInt256Parse("596877", 10, &status);
   s = coerceString(r, 16);
   printf ("596877: %s\n", s);
 
   r = createUInt256Parse
   ("1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
-   2, &error);
-  assert (error == 0 && UINT64_MAX == r.u64[0] && UINT64_MAX == r.u64[1] && UINT64_MAX == r.u64[2] && UINT64_MAX == r.u64[3]);
+   2, &status);
+  assert (CORE_PARSE_OK == status && UINT64_MAX == r.u64[0] && UINT64_MAX == r.u64[1] && UINT64_MAX == r.u64[2] && UINT64_MAX == r.u64[3]);
 
-  r = createUInt256Parse ("ffffffffffffffff", 16, &error);
-  assert (error == 0 && UINT64_MAX == r.u64[0] && 0 == r.u64[1] && 0 == r.u64[2] && 0 == r.u64[3]);
+  r = createUInt256Parse ("ffffffffffffffff", 16, &status);
+  assert (CORE_PARSE_OK == status && UINT64_MAX == r.u64[0] && 0 == r.u64[1] && 0 == r.u64[2] && 0 == r.u64[3]);
 
-  r = createUInt256Parse ("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16, &error);
-  assert (error == 0 && UINT64_MAX == r.u64[0] && UINT64_MAX == r.u64[1] && UINT64_MAX == r.u64[2] && UINT64_MAX == r.u64[3]);
+  r = createUInt256Parse ("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", 16, &status);
+  assert (CORE_PARSE_OK == status && UINT64_MAX == r.u64[0] && UINT64_MAX == r.u64[1] && UINT64_MAX == r.u64[2] && UINT64_MAX == r.u64[3]);
 
-  r = createUInt256ParseDecimal(".01", 2, &error);
-  assert (1 == error);
+  r = createUInt256ParseDecimal(".01", 2, &status);
+  assert (CORE_PARSE_OK != status);
 
-  r = createUInt256ParseDecimal("0.01", 2, &error);
-  assert (1 == r.u64[0] && 0 == r.u64[1] && 0 == r.u64[2] && 0 == r.u64[3]);
+  r = createUInt256ParseDecimal("0.01", 2, &status);
+  assert (CORE_PARSE_OK == status && 1 == r.u64[0] && 0 == r.u64[1] && 0 == r.u64[2] && 0 == r.u64[3]);
 
-  r = createUInt256ParseDecimal("01.", 0, &error);
-  assert (1 == r.u64[0] && 0 == r.u64[1] && 0 == r.u64[2] && 0 == r.u64[3]);
+  r = createUInt256ParseDecimal("01.", 0, &status);
+  assert (CORE_PARSE_OK == status && 1 == r.u64[0] && 0 == r.u64[1] && 0 == r.u64[2] && 0 == r.u64[3]);
 
-  r = createUInt256ParseDecimal("01.", 2, &error);
-  assert (100 == r.u64[0] && 0 == r.u64[1] && 0 == r.u64[2] && 0 == r.u64[3]);
+  r = createUInt256ParseDecimal("01.", 2, &status);
+  assert (CORE_PARSE_OK == status && 100 == r.u64[0] && 0 == r.u64[1] && 0 == r.u64[2] && 0 == r.u64[3]);
 
 }
 
@@ -339,66 +339,66 @@ runMathTests() {
 //
 static void
 runTokenParseTests () {
-  int err = 0;
-  BREthereumBoolean error;
-  UInt256 value = createUInt256Parse ("5968770000000000000000", 10, &err);
+  BRCoreParseStatus status = CORE_PARSE_OK;
+  UInt256 value = createUInt256Parse ("5968770000000000000000", 10, &status);
 
 //  UInt256 valueParseInt = parseTokenQuantity("5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, 18, &error);
 //  UInt256 valueParseDec = parseTokenQuantity("5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, 18, &error);
 
-  BREthereumTokenQuantity valueInt = createTokenQuantityString(tokenBRD, "5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, &error);
-  BREthereumTokenQuantity valueDec = createTokenQuantityString(tokenBRD, "5968.77", TOKEN_QUANTITY_TYPE_DECIMAL, &error);
-  assert (eqUInt256(value, valueInt.valueAsInteger));
-  assert (eqUInt256(valueInt.valueAsInteger, valueDec.valueAsInteger));
+  BREthereumTokenQuantity valueInt = createTokenQuantityString(tokenBRD, "5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, &status);
+  assert (CORE_PARSE_OK == status && eqUInt256(value, valueInt.valueAsInteger));
+
+  BREthereumTokenQuantity valueDec = createTokenQuantityString(tokenBRD, "5968.77", TOKEN_QUANTITY_TYPE_DECIMAL, &status);
+  assert (CORE_PARSE_OK == status && eqUInt256(valueInt.valueAsInteger, valueDec.valueAsInteger));
 }
 
 static void
 runEtherParseTests () {
-  BREthereumEtherParseStatus status;
+  BRCoreParseStatus status;
   BREthereumEther e;
   
   e = etherCreateString("1", WEI, &status);
-  assert (ETHEREUM_ETHER_PARSE_OK == status
+  assert (CORE_PARSE_OK == status
           && ETHEREUM_BOOLEAN_TRUE == etherIsEQ(e, etherCreateNumber(1, WEI)));
   
   e = etherCreateString("100", WEI, &status);
-  assert (ETHEREUM_ETHER_PARSE_OK == status
+  assert (CORE_PARSE_OK == status
           && ETHEREUM_BOOLEAN_TRUE == etherIsEQ(e, etherCreateNumber(100, WEI)));
 
   e = etherCreateString("100.0000", WEI, &status);
-  assert (ETHEREUM_ETHER_PARSE_OK == status
+  assert (CORE_PARSE_OK == status
           && ETHEREUM_BOOLEAN_TRUE == etherIsEQ(e, etherCreateNumber(100, WEI)));
 
   e = etherCreateString("0.001", WEI+1, &status);
-  assert (ETHEREUM_ETHER_PARSE_OK == status
+  assert (CORE_PARSE_OK == status
           && ETHEREUM_BOOLEAN_TRUE == etherIsEQ(e, etherCreateNumber(1, WEI)));
 
   e = etherCreateString("0.00100", WEI+1, &status);
-  assert (ETHEREUM_ETHER_PARSE_OK == status
+  assert (CORE_PARSE_OK == status
           && ETHEREUM_BOOLEAN_TRUE == etherIsEQ(e, etherCreateNumber(1, WEI)));
 
   e = etherCreateString("0.001002", ETHER, &status);
-  assert (ETHEREUM_ETHER_PARSE_OK == status
+  assert (CORE_PARSE_OK == status
           && ETHEREUM_BOOLEAN_TRUE == etherIsEQ(e, etherCreateNumber(1002, ETHER-2)));
 
   e = etherCreateString("12.03", ETHER, &status);
-  assert (ETHEREUM_ETHER_PARSE_OK == status
+  assert (CORE_PARSE_OK == status
           && ETHEREUM_BOOLEAN_TRUE == etherIsEQ(e, etherCreateNumber(12030, ETHER-1)));
 
   e = etherCreateString("12.03", WEI, &status);
 //  assert (ETHEREUM_ETHER_PARSE_UNDERFLOW == status);
-  assert (ETHEREUM_ETHER_PARSE_OK != status);
+  assert (CORE_PARSE_OK != status);
 
   e = etherCreateString("100000000000000000000000000000000000000000000000000000000000000000000000000000000", WEI, &status);
 //  assert (ETHEREUM_ETHER_PARSE_OVERFLOW == status);
-  assert (ETHEREUM_ETHER_PARSE_OK != status);
+  assert (CORE_PARSE_OK != status);
 
   e = etherCreateString("1000000000000000000000", WEI, &status);
-  assert (ETHEREUM_ETHER_PARSE_OK == status
+  assert (CORE_PARSE_OK == status
           && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (e, etherCreateNumber(1, KETHER)));
 
   e = etherCreateString("2000000000000000000000.000000", WEI, &status);
-  assert (ETHEREUM_ETHER_PARSE_OK == status
+  assert (CORE_PARSE_OK == status
           && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (e, etherCreateNumber(2, KETHER)));
 
   char *s;
@@ -509,9 +509,9 @@ void runRlpTest () {
   printf ("  \"%s\"", "[\"cat\" \"dog\"]");
   rlpCheck(coder, listCatDog, resCatDog, 9);
 
-  int error = 0;
+  BRCoreParseStatus status = CORE_PARSE_OK;
   char *value = "5968770000000000000000";
-  UInt256 r = createUInt256Parse(value, 10, &error);
+  UInt256 r = createUInt256Parse(value, 10, &status);
   BRRlpItem item = rlpEncodeItemUInt256(coder, r);
   BRRlpData data;
   rlpGetData(coder, item, &data.bytes, &data.bytesCount);
@@ -790,10 +790,10 @@ void runTransactionTests2 (BREthereumAccount account, BREthereumNetwork network)
 void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network) {
   printf ("     TEST 3\n");
 
-  int error;
+  BRCoreParseStatus status;
   BREthereumToken token = tokenBRD;
   BREthereumWallet wallet = walletCreateHoldingToken (account, network, token);
-  UInt256 value = createUInt256Parse ("5968770000000000000000", 10, &error);
+  UInt256 value = createUInt256Parse ("5968770000000000000000", 10, &status);
   BREthereumAmount amount = amountCreateToken(token, value);
 
   BREthereumTransaction transaction = walletCreateTransactionDetailed
@@ -928,7 +928,7 @@ static void
 runLightNode_JSON_RPC_test (const char *paperKey) {
   printf ("     JSON_RCP\n");
 
-  int err = 0;
+  BRCoreParseStatus status;
   JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
   BREthereumLightNodeConfiguration configuration =
@@ -944,10 +944,10 @@ runLightNode_JSON_RPC_test (const char *paperKey) {
   // A wallet amount Ether
   BREthereumLightNodeWalletId wallet = lightNodeCreateWallet(node, account, ethereumMainnet);
 
-  // Callback to JSON_RPC for 'getBalanance'
-  BREthereumEther balance = lightNodeUpdateWalletBalance (node, wallet);
-  BREthereumEther expectedBalance = etherCreate(createUInt256Parse("0x123f", 16, &err));
-  assert (0 == err && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (balance, expectedBalance));
+  // Callback to JSON_RPC for 'getBalanance'&
+  BREthereumEther balance = lightNodeUpdateWalletBalance (node, wallet, &status);
+  BREthereumEther expectedBalance = etherCreate(createUInt256Parse("0x123f", 16, &status));
+  assert (CORE_PARSE_OK == status && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (balance, expectedBalance));
 }
 
 // Unsigned Result: 0xf864010082c35094558ec3152e2eb2174905cd19aea4e34a23de9ad680b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000000000000000000000000018080
@@ -956,7 +956,7 @@ static void
 runLightNode_TOKEN_test (const char *paperKey) {
   printf ("     TOKEN\n");
 
-  BREthereumBoolean status;
+  BRCoreParseStatus status;
 
   BREthereumLightNode node = createLightNode
   (lightNodeConfigurationCreateLES(ethereumMainnet, 0));

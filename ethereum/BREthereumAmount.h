@@ -102,7 +102,7 @@ amountRlpEncode(BREthereumAmount amount, BRRlpCoder coder);
 extern BREthereumAmount
 amountCreateEtherString (const char *number,
                           BREthereumEtherUnit unit,
-                          BREthereumEtherParseStatus *status);
+                          BRCoreParseStatus *status);
 
 /**
  *
@@ -124,9 +124,9 @@ amountCreateEtherString (const char *number,
  */
 extern BREthereumAmount
 amountCreateTokenQuantityString (BREthereumToken token,
-                                  const char *number,
-                                  BREthereumTokenQuantityUnit unit,
-                                  BREthereumBoolean *error);
+                                const char *number,
+                                 BREthereumTokenQuantityUnit unit,
+                                 BRCoreParseStatus *status);
 
 #ifdef __cplusplus
 }

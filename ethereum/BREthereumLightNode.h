@@ -197,7 +197,7 @@ extern BREthereumAmount
 lightNodeCreateEtherAmountString (BREthereumLightNode node,
                                   const char *number,
                                   BREthereumEtherUnit unit,
-                                  BREthereumEtherParseStatus *status);
+                                  BRCoreParseStatus *status);
 
 /**
  * Create Ether from a 'smallish' number and a unit
@@ -221,22 +221,25 @@ lightNodeCreateTokenAmountString (BREthereumLightNode node,
                                   BREthereumToken token,
                                   const char *number,
                                   BREthereumTokenQuantityUnit unit,
-                                  BREthereumBoolean *error);
+                                  BRCoreParseStatus *status);
 
 //
 // Wallet Updates
 //
 extern BREthereumEther
 lightNodeUpdateWalletBalance (BREthereumLightNode node,
-                              BREthereumLightNodeWalletId wallet);
+                              BREthereumLightNodeWalletId wallet,
+                              BRCoreParseStatus *status);
 
 extern BREthereumGas
 lightNodeUpdateWalletEstimatedGas (BREthereumLightNode node,
-                                   BREthereumLightNodeWalletId wallet);
+                                   BREthereumLightNodeWalletId wallet,
+                                   BRCoreParseStatus *status);
 
 extern BREthereumGasPrice
 lightNodeUpdateWalletEstimatedGasPrice (BREthereumLightNode node,
-                                       BREthereumLightNodeWalletId wallet);
+                                        BREthereumLightNodeWalletId wallet,
+                                        BRCoreParseStatus *status);
 
 //
 // Wallet Defaults

@@ -37,7 +37,7 @@
 #define INTEGER_REGEX "^[0-9]+$"
 #define DECIMAL_REGEX "^[0-9]+\\.[0-9]*$"
 
-extern BRUtilMathParseStatus
+extern BRCoreParseStatus
 parseIsInteger (const char *number) {
   static regex_t regex;
   static int regexInitialized = 0;
@@ -48,11 +48,11 @@ parseIsInteger (const char *number) {
   }
 
   return (0 == regexec (&regex, number, 0, NULL, 0)
-          ? UTIL_MATH_PARSE_OK
-          : UTIL_MATH_PARSE_STRANGE_DIGITS);
+          ? CORE_PARSE_OK
+          : CORE_PARSE_STRANGE_DIGITS);
 }
 
-extern BRUtilMathParseStatus
+extern BRCoreParseStatus
 parseIsDecimal (const char *number) {
   static regex_t regex;
   static int regexInitialized = 0;
@@ -63,7 +63,7 @@ parseIsDecimal (const char *number) {
   }
 
   return (0 == regexec (&regex, number, 0, NULL, 0)
-          ? UTIL_MATH_PARSE_OK
+          ? CORE_PARSE_OK
           : parseIsInteger (number));
 }
 
@@ -71,16 +71,21 @@ parseIsDecimal (const char *number) {
 #define SURELY_ENOUGH_CHARS 100     // No more than ~78 in UInt256
 
 extern UInt256
-createUInt256ParseDecimal (const char *string, int decimals, int *error) {
-  if (UTIL_MATH_PARSE_OK != parseIsDecimal(string)
-      || strlen(string) >= SURELY_ENOUGH_CHARS
-      || decimals >= SURELY_ENOUGH_CHARS) {
-    *error = 1;
-    return UINT256_ZERO;
-  }
+createUInt256ParseDecimal (const char *string, int decimals, BRCoreParseStatus *status) {
+  // Check basic `string` content.
+  *status = CORE_PARSE_OK;
+  if (CORE_PARSE_OK != parseIsDecimal(string))
+    *status = CORE_PARSE_STRANGE_DIGITS;
+  else if (strlen(string) >= SURELY_ENOUGH_CHARS)
+    *status = CORE_PARSE_OVERFLOW;
+  else if (decimals >= SURELY_ENOUGH_CHARS)
+    *status = CORE_PARSE_UNDERFLOW;
 
-  if (UTIL_MATH_PARSE_OK == parseIsInteger(string))
-    return createUInt256Parse(string, 10, error);
+  if (CORE_PARSE_OK != *status)
+    return UINT256_ZERO;
+
+  if (CORE_PARSE_OK == parseIsInteger(string))
+    return createUInt256Parse(string, 10, status);
 
   // Get a 'new' string so strsep() can overwrite it.
   char splitterA [SURELY_ENOUGH_CHARS];
@@ -106,7 +111,7 @@ createUInt256ParseDecimal (const char *string, int decimals, int *error) {
   // Too many fractional digits
   fractLen = strlen(fract);
   if (fractLen > decimals) {
-    *error = 1;
+    *status = CORE_PARSE_UNDERFLOW;
     return UINT256_ZERO;
   }
 
@@ -121,7 +126,7 @@ createUInt256ParseDecimal (const char *string, int decimals, int *error) {
     *padding++ = '0';
   *padding = 0;
 
-  return createUInt256Parse(number, 10, error);
+  return createUInt256Parse(number, 10, status);
 }
 
 
@@ -210,15 +215,15 @@ parseUInt64 (const char *string, int digits, int base) {
 }
 
 extern UInt256
-createUInt256Parse (const char *string, int base, int *error) {
-  assert (NULL != error);
+createUInt256Parse (const char *string, int base, BRCoreParseStatus *status) {
+  assert (NULL != status);
 
   UInt256 value = UINT256_ZERO;
   int maxDigits = parseMaximumDigitsForUInt256InBase(base);
   long length = strlen (string);
 
   if (length > maxDigits) {  // overflow
-    *error = 1;
+    *status = CORE_PARSE_OVERFLOW;
     return UINT256_ZERO;
   }
 
@@ -247,12 +252,12 @@ createUInt256Parse (const char *string, int base, int *error) {
       // Add in the next chuck.
       value = addUInt256_Overflow(value, parseUInt64(&string[index], stringChunks, base), &addOverflow);
       if (scaleOverflow || addOverflow) {
-        *error = 1;
+        *status = CORE_PARSE_OVERFLOW;
         return UINT256_ZERO;
       }
     }
   }
-  *error = 0;
+  *status = CORE_PARSE_OK;
   return value;
 }
 

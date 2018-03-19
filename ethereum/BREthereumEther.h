@@ -21,16 +21,6 @@ typedef enum {
 #define ETHEREUM_BOOLEAN_IS_FALSE(x) ((x) == ETHEREUM_BOOLEAN_FALSE)
 
 //
-// Etherum Ether Parse Status
-//
-typedef enum {
-  ETHEREUM_ETHER_PARSE_OK,
-  ETHEREUM_ETHER_PARSE_STRANGE_DIGITS,
-  ETHEREUM_ETHER_PARSE_UNDERFLOW,
-  ETHEREUM_ETHER_PARSE_OVERFLOW
-} BREthereumEtherParseStatus;
-
-//
 // Ether
 //
 typedef enum {
@@ -86,7 +76,7 @@ etherCreateNumber (uint64_t number, BREthereumEtherUnit unit);
  *
  */
 extern BREthereumEther
-etherCreateString(const char *string, BREthereumEtherUnit unit, BREthereumEtherParseStatus *status);
+etherCreateString(const char *string, BREthereumEtherUnit unit, BRCoreParseStatus *status);
 
 extern UInt256
 etherGetValue(const BREthereumEther ether, BREthereumEtherUnit unit);
