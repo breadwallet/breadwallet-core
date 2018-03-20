@@ -30,8 +30,17 @@
 #include "BREthereumAmount.h"
 #include "BREthereumAccount.h"
 
-#include <stdio.h>
+// Forward Declarations
+static void
+provideData (BREthereumTransaction transaction);
 
+static void
+provideGasEstimate (BREthereumTransaction transaction);
+
+/**
+ *
+ *
+ */
 struct BREthereumTransactionRecord {
   BREthereumAddress sourceAddress;
   BREthereumAddress targetAddress;
@@ -54,6 +63,11 @@ struct BREthereumTransactionRecord {
    char *data;
 
    // hash
+
+  /**
+   * The estimated amount of Gas needed to process this transaction.
+   */
+  BREthereumGas gasEstimate;
 
    /**
    * The signature, if signed (signer is not NULL).  This is a 'VRS' signature.
@@ -82,8 +96,10 @@ transactionCreate(BREthereumAddress sourceAddress,
     transaction->gasLimit = gasLimit;
     transaction->nonce = nonce;
     transaction->chainId = 0;
-    transaction->data = NULL;
     transaction->signer = NULL;
+
+    provideData(transaction);
+    provideGasEstimate(transaction);
 
     return transaction;
 }
@@ -108,18 +124,71 @@ transactionGetGasPrice (BREthereumTransaction transaction) {
     return transaction->gasPrice;
 }
 
+extern void
+transactionSetGasPrice (BREthereumTransaction transaction,
+                        BREthereumGasPrice gasPrice) {
+  transaction->gasPrice = gasPrice;
+}
+
 extern BREthereumGas
 transactionGetGasLimit (BREthereumTransaction transaction) {
     return transaction->gasLimit;
 }
 
+extern void
+transactionSetGasLimit (BREthereumTransaction transaction,
+                        BREthereumGas gasLimit) {
+  transaction->gasLimit = gasLimit;
+}
+
+extern BREthereumGas
+transactionGetGasEstimate (BREthereumTransaction transaction) {
+  return transaction->gasEstimate;
+}
+
+extern void
+transactionSetGasEstimate (BREthereumTransaction transaction,
+                           BREthereumGas gasEstimate) {
+  transaction->gasEstimate = gasEstimate;
+}
+
+static void
+provideGasEstimate (BREthereumTransaction transaction) {
+  transactionSetGasEstimate(transaction, amountGetGasEstimate(transaction->amount));
+}
+
 //
 // Data
 //
-extern void
-transactionSetData (BREthereumTransaction transaction, char *data) {
-  transaction->data = malloc(1 + strlen(data));
-  strcpy(transaction->data, data);
+extern const char *
+transactionGetData (BREthereumTransaction transaction) {
+  return transaction->data;
+}
+
+static void
+provideData (BREthereumTransaction transaction) {
+  if (NULL == transaction->data) {
+    switch (amountGetType (transaction->amount)) {
+      case AMOUNT_ETHER:
+        transaction->data = "";
+        break;
+      case AMOUNT_TOKEN: {
+        UInt256 value = amountGetTokenQuantity(transaction->amount).valueAsInteger;
+        const char *address = addressAsString(transaction->targetAddress);
+
+        // Data is a HEX ENCODED string
+        transaction->data = (char *) contractEncode
+        (contractERC20, functionERC20Transfer,
+         // Address
+         (uint8_t *) &address[2], strlen(address) - 2,
+         // Amount
+         (uint8_t *) &value, sizeof (UInt256),
+         NULL);
+
+        free ((char *) address);
+      }
+    }
+  }
 }
 
 //
@@ -158,29 +227,6 @@ static BRRlpItem
 transactionEncodeDataForHolding (BREthereumTransaction transaction,
                                  BREthereumAmount holding,
                                  BRRlpCoder coder) {
-  if (NULL == transaction->data) {
-    switch (amountGetType(holding)) {
-      case AMOUNT_ETHER:
-        transaction->data = "";
-        break;
-      case AMOUNT_TOKEN: {
-        UInt256 value = amountGetTokenQuantity(holding).valueAsInteger;
-        const char *address = addressAsString(transaction->targetAddress);
-
-        // Data is a HEX ENCODED string
-        transaction->data = (char *) contractEncode
-          (contractERC20, functionERC20Transfer,
-           // Address
-           (uint8_t *) &address[2], strlen(address) - 2,
-           // Amount
-           (uint8_t *) &value, sizeof (UInt256),
-           NULL);
-
-        free ((char *) address);
-      }
-    }
-  }
-
   return (NULL == transaction->data || 0 == strlen(transaction->data)
           ? rlpEncodeItemString(coder, "")
           : rlpEncodeItemHexString(coder, transaction->data));
@@ -278,6 +324,19 @@ createTransactionDecodeRLP (BRRlpData data,
 
   memset (&transaction, sizeof(struct BREthereumTransactionRecord), 0);
   return transaction;
+}
+
+//
+// Private
+//
+extern BREthereumEther
+transactionGetEffectiveAmountInEther (BREthereumTransaction transaction) {
+  switch (amountGetType(transaction->amount)) {
+    case AMOUNT_TOKEN:
+      return etherCreate(UINT256_ZERO);
+    case AMOUNT_ETHER:
+      return transaction->amount.u.ether;
+  }
 }
 
 //

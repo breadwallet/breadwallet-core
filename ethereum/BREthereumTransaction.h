@@ -59,13 +59,29 @@ transactionGetAmount(BREthereumTransaction transaction);
 extern BREthereumGasPrice
 transactionGetGasPrice (BREthereumTransaction transaction);
 
+extern void
+transactionSetGasPrice (BREthereumTransaction transaction,
+                        BREthereumGasPrice gasPrice);
+
 extern BREthereumGas
 transactionGetGasLimit (BREthereumTransaction transaction);
 
-  // TODO: Can we set the GasPrice and GasLimit - like after querying for appropriate values?
+extern void
+transactionSetGasLimit (BREthereumTransaction transaction,
+                        BREthereumGas gasLimit);
+
+extern BREthereumGas
+transactionGetGasEstimate (BREthereumTransaction transaction);
 
 extern void
-transactionSetData (BREthereumTransaction transaction, char *data);
+transactionSetGasEstimate (BREthereumTransaction transaction,
+                          BREthereumGas gasEstimate);
+
+/**
+ * Do not modify returned value
+ */
+extern const char *
+transactionGetData (BREthereumTransaction transaction);
 
 extern void
 transactionSign(BREthereumTransaction transaction,

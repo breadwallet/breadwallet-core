@@ -697,6 +697,8 @@ void runTransactionTests1 (BREthereumAccount account, BREthereumNetwork network)
   assert (1 == networkGetChainId(network));
   BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
 
+  assert (21000ull == transactionGetGasEstimate(transaction).amountOfGas);
+
   char result[2 * dataUnsignedTransaction.bytesCount + 1];
   encodeHex(result, 2 * dataUnsignedTransaction.bytesCount + 1, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
   printf ("       Tx1 Raw (unsigned): %s\n", result);
@@ -924,6 +926,20 @@ jsonRpcSubmitTransaction (JsonRpcTestContext context, int id, const char *transa
   return "0x123abc456def";
 }
 
+static void jsonRpcGetTransactions (JsonRpcContext context, int id, const char *account,
+                                    JsonRpcAnnounceTransaction announceTransaction,
+                                    JsonRpcAnnounceTransactionContext announceTransactionContext) {
+  // Get all the transaction, then one by one call 'announce'
+  announceTransaction (announceTransactionContext,
+                       "0x0ea166deef4d04aaefd0697982e6f7aa325ab69c",
+                       "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
+                       "11113000000000",
+                       "21000",
+                       "21000000000",
+                       "",
+                       "118");
+}
+
 static void
 runLightNode_JSON_RPC_test (const char *paperKey) {
   printf ("     JSON_RCP\n");
@@ -937,7 +953,8 @@ runLightNode_JSON_RPC_test (const char *paperKey) {
                                          (JsonRpcGetBalance) jsonRpcGetBalance,
                                          (JsonRpcGetGasPrice) jsonRpcGetGasPrice,
                                          (JsonRpcEstimateGas) jsonRpcEstimateGas,
-                                         (JsonRpcSubmitTransaction) jsonRpcSubmitTransaction);
+                                         (JsonRpcSubmitTransaction) jsonRpcSubmitTransaction,
+                                         (JsonRpcGetTransactions) jsonRpcGetTransactions);
 
   BREthereumLightNode node = createLightNode(configuration);
   BREthereumLightNodeAccountId account = lightNodeCreateAccount(node, paperKey);

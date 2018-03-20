@@ -275,7 +275,7 @@ createAddressDerived (const uint8_t *publicKey, uint32_t index) {
     return address;
 }
 
-extern const char *
+extern char *
 addressAsString (BREthereumAddress address) {
     char *result = malloc (43);
     strncpy (result, address->string, 43);

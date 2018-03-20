@@ -84,7 +84,10 @@ validateAddressString(const char *string);
 extern void
 addressFree (BREthereumAddress address);
 
-extern const char *
+/**
+ * Returns a string representation of the address, newly allocated.  YOU OWN THIS.
+ */
+extern char *
 addressAsString (BREthereumAddress address);
 
 #if defined (DEBUG)

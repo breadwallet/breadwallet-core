@@ -28,8 +28,6 @@
 #include <assert.h>
 #include "BREthereum.h"
 
-#define DEFAULT_ETHER_GAS_LIMIT    21000ull
-
 #define DEFAULT_ETHER_GAS_PRICE_NUMBER   200000000ull  // 2 GWEI
 #define DEFAULT_ETHER_GAS_PRICE_UNIT     WEI
 
@@ -287,14 +285,8 @@ walletSetDefaultGasLimit(BREthereumWallet wallet, BREthereumGas gasLimit) {
 
 static BREthereumGas
 walletCreateDefaultGasLimit (BREthereumWallet wallet) {
-    switch (amountGetType(wallet->balance)) {
-        case AMOUNT_ETHER:
-            return gasCreate (DEFAULT_ETHER_GAS_LIMIT);
-        case AMOUNT_TOKEN:
-            return tokenGetGasLimit (wallet->token);
-    }
+  return amountGetGasEstimate(wallet->balance);
 }
-
 
 //
 // Gas Price

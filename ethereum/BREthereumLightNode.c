@@ -26,10 +26,12 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
-#include "BREthereumLightNode.h"
-#include "BREthereumAccount.h"
-#include "BREthereumWallet.h"
-#include "BREthereumAmount.h"
+#include "BREthereumPrivate.h"
+
+// Forward declaration
+static BREthereumTransaction
+lightNodeLookupTransaction (BREthereumLightNode node,
+                            BREthereumLightNodeTransactionId transactionId);
 
 //
 // Light Node Configuration
@@ -49,7 +51,8 @@ lightNodeConfigurationCreateJSON_RPC(BREthereumNetwork network,
                                      JsonRpcGetBalance funcGetBalance,
                                      JsonRpcGetGasPrice functGetGasPrice,
                                      JsonRpcEstimateGas funcEstimateGas,
-                                     JsonRpcSubmitTransaction funcSubmitTransaction) {
+                                     JsonRpcSubmitTransaction funcSubmitTransaction,
+                                     JsonRpcGetTransactions funcGetTransactions) {
   BREthereumLightNodeConfiguration configuration;
   configuration.network = network;
   configuration.type = NODE_TYPE_JSON_RPC;
@@ -58,6 +61,7 @@ lightNodeConfigurationCreateJSON_RPC(BREthereumNetwork network,
   configuration.u.json_rpc.functGetGasPrice = functGetGasPrice;
   configuration.u.json_rpc.funcEstimateGas = funcEstimateGas;
   configuration.u.json_rpc.funcSubmitTransaction = funcSubmitTransaction;
+  configuration.u.json_rpc.funcGetTransactions = funcGetTransactions;
   return configuration;
 }
 
@@ -201,7 +205,6 @@ lightNodeUpdateWalletBalance (BREthereumLightNode node,
   switch (node->configuration.type) {
     case NODE_TYPE_JSON_RPC: {
       const char *address = addressAsString(walletGetAddress(wallet));
-
       const char *result = node->configuration.u.json_rpc.funcGetBalance
         (node->configuration.u.json_rpc.funcContext, ++node->requestId, address);
       assert (0 == strncmp (result, "0x", 2));
@@ -215,16 +218,29 @@ lightNodeUpdateWalletBalance (BREthereumLightNode node,
 
 extern BREthereumGas
 lightNodeUpdateWalletEstimatedGas (BREthereumLightNode node,
-                                   BREthereumLightNodeWalletId wallet,
+                                   BREthereumLightNodeWalletId walletId,
+                                   BREthereumLightNodeTransactionId transactionId,
                                    BRCoreParseStatus *status) {
+//  BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
+  BREthereumTransaction transaction = lightNodeLookupTransaction(node, transactionId);
+
   switch (node->configuration.type) {
     case NODE_TYPE_JSON_RPC: {
-      const char *result = node->configuration.u.json_rpc.functGetGasPrice
-        (node->configuration.u.json_rpc.funcContext, ++node->requestId);
+      // This will be ZERO if transaction amount is in TOKEN.
+      BREthereumEther amountInEther = transactionGetEffectiveAmountInEther (transaction);
+      char *to = (char *) addressAsString (transactionGetTargetAddress(transaction));
+      char *amount = coerceString(amountInEther.valueInWEI, 16);
+      char *data = (char *) transactionGetData(transaction);
+
+      const char *result = node->configuration.u.json_rpc.funcEstimateGas
+        (node->configuration.u.json_rpc.funcContext, ++node->requestId,
+         to, amount, data);
+      free (to); free (amount), free(data);
+
       assert (0 == strcmp (result, "0x"));
-      UInt256 amount = createUInt256Parse(&result[2], 16, status);
-      assert (0 == amount.u64[1] && 0 == amount.u64[2] && 0 == amount.u64[3]);
-      return gasCreate(amount.u64[0]);
+      UInt256 gas = createUInt256Parse(&result[2], 16, status);
+      assert (0 == gas.u64[1] && 0 == gas.u64[2] && 0 == gas.u64[3]);
+      return gasCreate(gas.u64[0]);
     }
     case NODE_TYPE_LES:
       assert (0);
@@ -352,6 +368,43 @@ lightNodeWalletSubmitTransaction (BREthereumLightNode node,
   }
 }
 
+//
+// Get Transactions
+//
+static void
+announceTransactionHandler (BREthereumLightNode node,  // + wallet
+                            const char *from,
+                            const char *to,
+                            const char *amount, // value
+                            const char *gasLimit,
+                            const char *gasPrice,
+                            const char *data,
+                            const char *nonce) {
+  return;
+}
+
+//
+extern void
+lightNodeWalletUpdateTransactions (BREthereumLightNode node,
+                                   BREthereumLightNodeWalletId walletId) {
+  BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
+
+  switch (node->configuration.type) {
+    case NODE_TYPE_JSON_RPC: {
+      char *address = addressAsString(walletGetAddress(wallet));
+
+      node->configuration.u.json_rpc.funcGetTransactions
+      (node->configuration.u.json_rpc.funcContext, ++node->requestId, address,
+       (JsonRpcAnnounceTransactionContext) announceTransactionHandler,
+       node);
+
+      free (address);
+    }
+      break;
+    case NODE_TYPE_LES:
+      assert (0);
+  }
+}
 //
 // Transactions
 //

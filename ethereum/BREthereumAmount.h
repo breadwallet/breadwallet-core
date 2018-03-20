@@ -27,6 +27,7 @@
 #define BR_Ethereum_Holding_H
 
 #include "BREthereumEther.h"
+#include "BREthereumGas.h"
 #include "BREthereumToken.h"
 
 #ifdef __cplusplus
@@ -73,6 +74,13 @@ amountGetEther (BREthereumAmount amount);
  */
 extern BREthereumTokenQuantity
 amountGetTokenQuantity (BREthereumAmount amount);
+
+/**
+ * An estimate of the Gas required to transfer amount.  For ETHER this is 'fixed' as 22000; for
+ * TOKEN this is derived from the token's properties.
+ */
+extern BREthereumGas
+amountGetGasEstimate (BREthereumAmount amount);
 
 extern BRRlpItem
 amountRlpEncode(BREthereumAmount amount, BRRlpCoder coder);
