@@ -319,12 +319,6 @@ struct BREthereumAccountRecord {
     BRMasterPubKey masterPubKey;
 
     /**
-     * The BIP39-Derived 512-bit key/seed.  This will be used a a BIP32 seed so as to
-     * generate addresses.
-     */
-    UInt512 privateKey;
-
-    /**
      * The primary address for this account - aka address[0].
      */
     BREthereumAddress primaryAddress;

@@ -926,9 +926,10 @@ jsonRpcSubmitTransaction (JsonRpcTestContext context, int id, const char *transa
   return "0x123abc456def";
 }
 
-static void jsonRpcGetTransactions (JsonRpcContext context, int id, const char *account,
-                                    JsonRpcAnnounceTransaction announceTransaction,
-                                    JsonRpcAnnounceTransactionContext announceTransactionContext) {
+static void
+jsonRpcGetTransactions (JsonRpcContext context, int id, const char *account,
+                        JsonRpcAnnounceTransaction announceTransaction,
+                        JsonRpcAnnounceTransactionContext announceTransactionContext) {
   // Get all the transaction, then one by one call 'announce'
   announceTransaction (announceTransactionContext,
                        "0x0ea166deef4d04aaefd0697982e6f7aa325ab69c",
