@@ -877,8 +877,8 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
   // END - One Time Code Block
 
   // Optional - will provide listNodeWalletCreateTransactionDetailed.
-  lightNodeSetWalletGasPrice(node, wallet, WEI, gasPrice);
-  lightNodeSetWalletGasLimit(node, wallet, gasLimit);
+  lightNodeWalletSetDefaultGasPrice(node, wallet, WEI, gasPrice);
+  lightNodeWalletSetDefaultGasLimit(node, wallet, gasLimit);
 
   BREthereumAmount amountAmountInEther =
     lightNodeCreateEtherAmountUnit(node, amount, WEI);
@@ -967,7 +967,8 @@ runLightNode_JSON_RPC_test (const char *paperKey) {
 
 
   // Callback to JSON_RPC for 'getBalanance'&
-  BREthereumAmount balance = lightNodeUpdateWalletBalance (node, wallet, &status);
+  lightNodeUpdateWalletBalance (node, wallet, &status);
+  BREthereumAmount balance = walletGetBalance(wallet);
   BREthereumEther expectedBalance = etherCreate(createUInt256Parse("0x123f", 16, &status));
   assert (CORE_PARSE_OK == status
           && AMOUNT_ETHER == amountGetType(balance)

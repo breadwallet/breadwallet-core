@@ -63,6 +63,9 @@ struct BREthereumWalletRecord {
      * The wallet' default gasPrice. gasPrice is the maximum price of gas you are willing to pay
      * for a transaction of this wallet's holding type.  This default value can be 'overridden'
      * when creating a specific transaction.
+     *
+     * The gasPrice determines how 'interested' a miner is in 'blocking' a transaction.  Thus,
+     * the gasPrice determines how quickly your transaction will be added to the block chain.
      */
     BREthereumGasPrice defaultGasPrice;
 
@@ -70,6 +73,9 @@ struct BREthereumWalletRecord {
      * The wallet's default gasLimit. gasLimit is the maximum gas you are willing to pay for t
      * a transaction of this wallet's holding type.  This default value can be 'overridden'
      * when creating a specific transaction.
+     *
+     * The gasLimit prevents your transaction's computation from 'spinning out of control' and
+     * thus consuming unexpectedly large amounts of Ether.
      */
     BREthereumGas defaultGasLimit;
 
@@ -276,6 +282,12 @@ walletGetToken (BREthereumWallet wallet) {
 extern BREthereumAmount
 walletGetBalance (BREthereumWallet wallet) {
   return wallet->balance;
+}
+
+extern void
+walletSetBalance (BREthereumWallet wallet,
+                  BREthereumAmount balance) {
+  wallet->balance = balance;
 }
 
 extern BREthereumGas

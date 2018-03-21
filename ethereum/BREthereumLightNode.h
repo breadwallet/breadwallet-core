@@ -230,42 +230,38 @@ lightNodeCreateTokenAmountString (BREthereumLightNode node,
                                   const char *number,
                                   BREthereumTokenQuantityUnit unit,
                                   BRCoreParseStatus *status);
-
-//
-// Wallet Updates
-//
-extern BREthereumAmount
-lightNodeUpdateWalletBalance (BREthereumLightNode node,
-                              BREthereumLightNodeWalletId wallet,
-                              BRCoreParseStatus *status);
-
-extern BREthereumGas
-lightNodeUpdateWalletEstimatedGas (BREthereumLightNode node,
-                                   BREthereumLightNodeWalletId wallet,
-                                   BREthereumLightNodeTransactionId transaction,
-                                   BRCoreParseStatus *status);
-
-extern BREthereumGasPrice
-lightNodeUpdateWalletEstimatedGasPrice (BREthereumLightNode node,
-                                        BREthereumLightNodeWalletId wallet,
-                                        BRCoreParseStatus *status);
-
 //
 // Wallet Defaults
 //
 extern uint64_t
-lightNodeGetWalletGasLimit (BREthereumLightNode node,
-                            BREthereumLightNodeWalletId wallet);
-extern void
-lightNodeSetWalletGasLimit (BREthereumLightNode node,
-                            BREthereumLightNodeWalletId wallet,
-                            uint64_t gasLimit);
+lightNodeWalletGetDefaultGasLimit (BREthereumLightNode node,
+                                   BREthereumLightNodeWalletId wallet);
 
 extern void
-lightNodeSetWalletGasPrice (BREthereumLightNode node,
-                            BREthereumLightNodeWalletId wallet,
-                            BREthereumEtherUnit unit,
-                            uint64_t value);
+lightNodeWalletSetDefaultGasLimit (BREthereumLightNode node,
+                                   BREthereumLightNodeWalletId wallet,
+                                   uint64_t gasLimit);
+  
+extern uint64_t
+lightNodeWalletGetGasEstimate (BREthereumLightNode node,
+                               BREthereumLightNodeWalletId wallet,
+                               BREthereumLightNodeTransactionId transaction);
+
+extern void
+lightNodeWalletSetDefaultGasPrice (BREthereumLightNode node,
+                                   BREthereumLightNodeWalletId wallet,
+                                   BREthereumEtherUnit unit,
+                                   uint64_t value);
+
+// Returns the ETH/GAS price in WEI.  IF the value is too large to express in WEI as a uint64_t
+// then ZERO is returned.  Caution warranted.
+extern uint64_t
+lightNodeWalletGetDefaultGasPrice (BREthereumLightNode node,
+                                   BREthereumLightNodeWalletId wallet);
+
+extern BREthereumAmount
+lightNodeWalletGetBalance (BREthereumLightNode node,
+                           BREthereumLightNodeWalletId wallet);
 
 // ...
 
@@ -318,6 +314,25 @@ lightNodeWalletUpdateTransactions (BREthereumLightNode node,
                                    BREthereumLightNodeWalletId walletId);
 
 #if ETHEREUM_LIGHT_NODE_USE_JSON_RPC
+//
+// Wallet Updates
+//
+extern void
+lightNodeUpdateWalletBalance (BREthereumLightNode node,
+                              BREthereumLightNodeWalletId wallet,
+                              BRCoreParseStatus *status);
+
+extern void
+lightNodeUpdateTransactionGasEstimate (BREthereumLightNode node,
+                                       BREthereumLightNodeWalletId wallet,
+                                       BREthereumLightNodeTransactionId transaction,
+                                       BRCoreParseStatus *status);
+
+extern void
+lightNodeUpdateWalletDefaultGasPrice (BREthereumLightNode node,
+                                      BREthereumLightNodeWalletId wallet,
+                                      BRCoreParseStatus *status);
+
 
 /**
  * Return the serialized raw data for `transaction`.  The value `*bytesPtr` points to a byte array;

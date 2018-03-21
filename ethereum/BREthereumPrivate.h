@@ -34,4 +34,8 @@
 extern BREthereumEther
 transactionGetEffectiveAmountInEther (BREthereumTransaction transaction);
 
+extern void
+walletSetBalance (BREthereumWallet wallet,
+                  BREthereumAmount balance);
+
 #endif /* BR_Ethereum_Private_H */

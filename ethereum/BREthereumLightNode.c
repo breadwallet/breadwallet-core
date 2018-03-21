@@ -201,106 +201,57 @@ lightNodeCreateTokenAmountString (BREthereumLightNode node,
 //
 // Wallet
 //
-extern BREthereumAmount
-lightNodeUpdateWalletBalance (BREthereumLightNode node,
-                              BREthereumLightNodeWalletId walletId,
-                              BRCoreParseStatus *status) {
-  BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
-
-  switch (node->configuration.type) {
-    case NODE_TYPE_JSON_RPC: {
-      char *address = addressAsString(walletGetAddress(wallet));
-      const char *number = node->configuration.u.json_rpc.funcGetBalance
-      (node->configuration.u.json_rpc.funcContext, ++node->requestId, address);
-
-      assert (0 == strncmp (number, "0x", 2));
-      UInt256 value = createUInt256Parse(number, 16, status);
-
-      BREthereumAmount amount = (AMOUNT_ETHER == walletGetAmountType(wallet)
-                                 ? amountCreateEther(etherCreate(value))
-                                 : amountCreateToken(createTokenQuantity(walletGetToken(wallet), value)));
-
-      free (address);
-      return amount;
-    }
-    case NODE_TYPE_LES:
-      assert (0);
-  }
-}
-
-extern BREthereumGas
-lightNodeUpdateWalletEstimatedGas (BREthereumLightNode node,
-                                   BREthereumLightNodeWalletId walletId,
-                                   BREthereumLightNodeTransactionId transactionId,
-                                   BRCoreParseStatus *status) {
-//  BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
-  BREthereumTransaction transaction = lightNodeLookupTransaction(node, transactionId);
-
-  switch (node->configuration.type) {
-    case NODE_TYPE_JSON_RPC: {
-      // This will be ZERO if transaction amount is in TOKEN.
-      BREthereumEther amountInEther = transactionGetEffectiveAmountInEther (transaction);
-      char *to = (char *) addressAsString (transactionGetTargetAddress(transaction));
-      char *amount = coerceString(amountInEther.valueInWEI, 16);
-      char *data = (char *) transactionGetData(transaction);
-
-      const char *result = node->configuration.u.json_rpc.funcEstimateGas
-        (node->configuration.u.json_rpc.funcContext, ++node->requestId,
-         to, amount, data);
-      free (to); free (amount), free(data);
-
-      assert (0 == strcmp (result, "0x"));
-      UInt256 gas = createUInt256Parse(&result[2], 16, status);
-      assert (0 == gas.u64[1] && 0 == gas.u64[2] && 0 == gas.u64[3]);
-      return gasCreate(gas.u64[0]);
-    }
-    case NODE_TYPE_LES:
-      assert (0);
-  }
-}
-
-extern BREthereumGasPrice
-lightNodeUpdateWalletEstimatedGasPrice (BREthereumLightNode node,
-                                        BREthereumLightNodeWalletId wallet,
-                                        BRCoreParseStatus *status) {
-  switch (node->configuration.type) {
-    case NODE_TYPE_JSON_RPC: {
-      const char *result = node->configuration.u.json_rpc.functGetGasPrice
-        (node->configuration.u.json_rpc.funcContext, ++node->requestId);
-      assert (0 == strcmp (result, "0x"));
-      UInt256 amount = createUInt256Parse(&result[2], 16, status);
-      return gasPriceCreate(etherCreate(amount));
-    }
-    case NODE_TYPE_LES:
-      assert (0);
-  }
-}
-
 //
 // Wallet Defaults
 //
 extern uint64_t
-lightNodeGetWalletGasLimit (BREthereumLightNode node,
+lightNodeWalletGetDefaultGasLimit (BREthereumLightNode node,
                             BREthereumLightNodeWalletId walletId) {
   BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
   return walletGetDefaultGasLimit(wallet).amountOfGas;
 }
 
 extern void
-lightNodeSetWalletGasLimit (BREthereumLightNode node,
+lightNodeWalletSetDefaultGasLimit (BREthereumLightNode node,
                             BREthereumLightNodeWalletId walletId,
                             uint64_t gasLimit) {
   BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
   walletSetDefaultGasLimit(wallet, gasCreate(gasLimit));
 }
 
+extern uint64_t
+lightNodeWalletGetGasEstimate (BREthereumLightNode node,
+                               BREthereumLightNodeWalletId walletId,
+                               BREthereumLightNodeTransactionId transactionId) {
+//  BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
+  BREthereumTransaction transaction = lightNodeLookupTransaction(node, transactionId);
+  return transactionGetGasEstimate(transaction).amountOfGas;
+}
+
 extern void
-lightNodeSetWalletGasPrice (BREthereumLightNode node,
+lightNodeWalletSetDefaultGasPrice (BREthereumLightNode node,
                             BREthereumLightNodeWalletId walletId,
                             BREthereumEtherUnit unit,
                             uint64_t value) {
   BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
   walletSetDefaultGasPrice (wallet, gasPriceCreate(etherCreateNumber (value, unit)));
+}
+
+extern uint64_t
+lightNodeWalletGetDefaultGasPrice (BREthereumLightNode node,
+                                   BREthereumLightNodeWalletId walletId) {
+  BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
+  BREthereumGasPrice gasPrice = walletGetDefaultGasPrice(wallet);
+  return (gtUInt256 (gasPrice.etherPerGas.valueInWEI, createUInt256(UINT64_MAX))
+          ? 0
+          : gasPrice.etherPerGas.valueInWEI.u64[0]);
+}
+
+extern BREthereumAmount
+lightNodeWalletGetBalance (BREthereumLightNode node,
+                           BREthereumLightNodeWalletId walletId) {
+  BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
+  return walletGetBalance(wallet);
 }
 
 //
@@ -410,6 +361,87 @@ lightNodeWalletUpdateTransactions (BREthereumLightNode node,
 }
 
 #if ETHEREUM_LIGHT_NODE_USE_JSON_RPC
+extern void
+lightNodeUpdateWalletBalance (BREthereumLightNode node,
+                              BREthereumLightNodeWalletId walletId,
+                              BRCoreParseStatus *status) {
+  BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
+
+  switch (node->configuration.type) {
+    case NODE_TYPE_JSON_RPC: {
+      char *address = addressAsString(walletGetAddress(wallet));
+      const char *number = node->configuration.u.json_rpc.funcGetBalance
+      (node->configuration.u.json_rpc.funcContext, ++node->requestId, address);
+
+      assert (0 == strncmp (number, "0x", 2));
+      UInt256 value = createUInt256Parse(number, 16, status);
+
+      BREthereumAmount amount = (AMOUNT_ETHER == walletGetAmountType(wallet)
+                                 ? amountCreateEther(etherCreate(value))
+                                 : amountCreateToken(createTokenQuantity(walletGetToken(wallet), value)));
+
+      walletSetBalance (wallet, amount);
+      free (address);
+      break;
+    }
+    case NODE_TYPE_LES:
+      assert (0);
+  }
+}
+
+extern void
+lightNodeUpdateTransactionGasEstimate (BREthereumLightNode node,
+                                   BREthereumLightNodeWalletId walletId,
+                                   BREthereumLightNodeTransactionId transactionId,
+                                   BRCoreParseStatus *status) {
+  //  BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
+  BREthereumTransaction transaction = lightNodeLookupTransaction(node, transactionId);
+
+  switch (node->configuration.type) {
+    case NODE_TYPE_JSON_RPC: {
+      // This will be ZERO if transaction amount is in TOKEN.
+      BREthereumEther amountInEther = transactionGetEffectiveAmountInEther (transaction);
+      char *to = (char *) addressAsString (transactionGetTargetAddress(transaction));
+      char *amount = coerceString(amountInEther.valueInWEI, 16);
+      char *data = (char *) transactionGetData(transaction);
+
+      const char *result = node->configuration.u.json_rpc.funcEstimateGas
+      (node->configuration.u.json_rpc.funcContext, ++node->requestId,
+       to, amount, data);
+      free (to); free (amount), free(data);
+
+      assert (0 == strcmp (result, "0x"));
+      UInt256 gas = createUInt256Parse(&result[2], 16, status);
+      assert (0 == gas.u64[1] && 0 == gas.u64[2] && 0 == gas.u64[3]);
+
+      transactionSetGasEstimate(transaction, gasCreate(gas.u64[0]));
+      break;
+    }
+    case NODE_TYPE_LES:
+      assert (0);
+  }
+}
+
+extern void
+lightNodeUpdateWalletDefaultGasPrice (BREthereumLightNode node,
+                                        BREthereumLightNodeWalletId wallet,
+                                        BRCoreParseStatus *status) {
+  switch (node->configuration.type) {
+    case NODE_TYPE_JSON_RPC: {
+      const char *result = node->configuration.u.json_rpc.functGetGasPrice
+      (node->configuration.u.json_rpc.funcContext, ++node->requestId);
+      assert (0 == strcmp (result, "0x"));
+      UInt256 amount = createUInt256Parse(&result[2], 16, status);
+
+      walletSetDefaultGasPrice(wallet, gasPriceCreate(etherCreate(amount)));
+      break;
+    }
+    case NODE_TYPE_LES:
+      assert (0);
+  }
+}
+
+
 extern void
 lightNodeFillTransactionRawData(BREthereumLightNode node,
                                 BREthereumLightNodeWalletId walletId,
