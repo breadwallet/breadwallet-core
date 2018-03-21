@@ -90,6 +90,17 @@ createTokenQuantityString (BREthereumToken token,
 extern const BREthereumToken
 tokenQuantityGetToken (BREthereumTokenQuantity quantity);
 
+/**
+ * A newly allocated string; you own it.
+ *
+ * @param quantity
+ * @param unit
+ * @return
+ */
+extern char *
+tokenQuantityGetValueString(const BREthereumTokenQuantity quantity,
+                            BREthereumTokenQuantityUnit unit);
+
 #ifdef __cplusplus
 }
 #endif

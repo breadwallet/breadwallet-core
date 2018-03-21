@@ -25,8 +25,9 @@
 #include <BRBIP39Mnemonic.h>
 #include <BREthereumLightNode.h>
 #include <string.h>
+#include <BREthereumWallet.h>
+#include <BREthereum.h>
 #include "com_breadwallet_core_ethereum_BREthereumLightNode.h"
-#include "BREthereumLightNode.h"
 #include "BRCoreJni.h"
 
 //
@@ -148,23 +149,16 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetAccountPrimaryAddre
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniForceWalletBalanceUpdate
- * Signature: (J)Ljava/lang/String;
+ * Signature: (J)V
  */
-JNIEXPORT jstring JNICALL
-Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniForceWalletBalanceUpdate
+JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniForceWalletBalanceUpdate
         (JNIEnv *env, jobject thisObject, jlong wallet) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
-
     BRCoreParseStatus status = CORE_PARSE_OK;
-
-    BREthereumEther balance = lightNodeUpdateWalletBalance
+    lightNodeUpdateWalletBalance
             (node,
              (BREthereumLightNodeWalletId) wallet,
              &status);
-    char *balanceChars = etherGetValueString(balance, WEI);
-    jstring result = (*env)->NewStringUTF (env, balanceChars);
-    free (balanceChars);
-    return result;
 }
 
 /*

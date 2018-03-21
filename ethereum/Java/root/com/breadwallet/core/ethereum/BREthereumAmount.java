@@ -1,7 +1,7 @@
 /*
- * EthereumWallet
+ * EthereumAmount
  *
- * Created by Ed Gamble <ed@breadwallet.com> on 3/20/18.
+ * Created by Ed Gamble <ed@breadwallet.com> on 3/21/18.
  * Copyright (c) 2018 breadwallet LLC
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -24,39 +24,11 @@
  */
 package com.breadwallet.core.ethereum;
 
-public class BREthereumWallet  extends BREthereumLightNode.Reference {
+import com.breadwallet.core.BRCoreJniReference;
 
-    private BREthereumAccount account;
-    private BREthereumNetwork network;
-    private BREthereumToken   token = null;
+public class BREthereumAmount extends BRCoreJniReference {
 
-    protected BREthereumWallet (BREthereumLightNode node, long identifier,
-                                BREthereumAccount account,
-                                BREthereumNetwork network) {
-        super (node, identifier);
-        this.account = account;
-        this.network = network;
+    private BREthereumAmount (long jniReferenceAddress) {
+        super (jniReferenceAddress);
     }
-
-    protected BREthereumWallet (BREthereumLightNode node, long identifier,
-                                BREthereumAccount account,
-                                BREthereumNetwork network,
-                                BREthereumToken token) {
-        this (node, identifier, account, network);
-        this.token = token;
-    }
-
-    public BREthereumAccount getAccount () {
-        return account;
-    }
-
-    public BREthereumNetwork getNetwork () {
-        return network;
-    }
-
-    public BREthereumToken getToken () {
-        return token;
-    }
-
-    public native String getBalance ();
- }
+}

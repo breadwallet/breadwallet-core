@@ -50,9 +50,9 @@ JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniForceWalletBalanceUpdate
- * Signature: (J)Ljava/lang/String;
+ * Signature: (J)V
  */
-JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniForceWalletBalanceUpdate
+JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniForceWalletBalanceUpdate
   (JNIEnv *, jobject, jlong);
 
 /*

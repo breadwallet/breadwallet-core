@@ -26,6 +26,7 @@
 #include <string.h>
 #include <assert.h>
 #include "BREthereumToken.h"
+#include "BREthereum.h"
 
 // For tokenBRD define some default for Gas Limit and Price. Argubly never up to date
 // and thus changed in BREtherEthereumWallet.
@@ -149,4 +150,12 @@ createTokenQuantityString (BREthereumToken token,
 extern const BREthereumToken
 tokenQuantityGetToken (BREthereumTokenQuantity quantity) {
   return quantity.token;
+}
+
+extern char *
+tokenQuantityGetValueString(const BREthereumTokenQuantity quantity,
+                            BREthereumTokenQuantityUnit unit) {
+  return TOKEN_QUANTITY_TYPE_DECIMAL == unit
+         ? coerceString(quantity.valueAsInteger, 10)
+         : coerceStringDecimal(quantity.valueAsInteger, quantity.token->decimals);
 }

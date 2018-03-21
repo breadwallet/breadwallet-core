@@ -20,7 +20,7 @@ JAVA_SRCS=../../Java/root/com/breadwallet/core/BRCoreJniReference.java \
 	root/com/breadwallet/core/ethereum/BREthereumNetwork.java \
 	root/com/breadwallet/core/ethereum/BREthereumToken.java \
 	root/com/breadwallet/core/ethereum/BREthereumWallet.java \
-	root/com/breadwallet/core/ethereum/test/BREthereumTest.java
+	root/com/breadwallet/core/ethereum/test/BREthereumLightNodeClientTest.java \
 
 JAVA_OBJS=$(JAVA_SRCS:.java=.class)
 

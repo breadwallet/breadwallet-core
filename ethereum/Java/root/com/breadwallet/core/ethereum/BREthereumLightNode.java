@@ -135,7 +135,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     }
 
     public void forceBalanceUpdate(BREthereumWallet wallet) {
-        wallet.setBalance(jniForceWalletBalanceUpdate(wallet.identifier));
+        jniForceWalletBalanceUpdate(wallet.identifier);
     }
 
     //
@@ -171,12 +171,10 @@ public class BREthereumLightNode extends BRCoreJniReference {
 
     protected native String jniGetAccountPrimaryAddress(long account);
 
-    // TODO: Return Amount
-    protected native String jniForceWalletBalanceUpdate(long wallet);
+    protected native void jniForceWalletBalanceUpdate(long wallet);
 
     protected native void jniForceWalletTransactionUpdate (long wallet);
 
-    // TODO: Not going to work...
     protected native void jniAnnounceTransaction(String from,
                                                  String to,
                                                  String contract,
