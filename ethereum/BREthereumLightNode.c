@@ -26,6 +26,8 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <BRBIP39Mnemonic.h>
+#include <BRBIP39WordsEn.h>
 #include "BREthereumPrivate.h"
 
 // Forward declaration
@@ -89,13 +91,16 @@ createLightNode (BREthereumLightNodeConfiguration configuration) {
 extern BREthereumLightNodeAccountId
 lightNodeCreateAccount (BREthereumLightNode node,
                         const char *paperKey) {
-    if (NULL != node->account) return NULL;
+  if (NULL != node->account) return NULL;
 
-    node->account = createAccount (paperKey);
-    return (void *) node->account;
+  // TODO: Move somewhere.
+  installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
+
+  node->account = createAccount(paperKey);
+  return (void *) node->account;
 }
 
-extern const char *
+extern char *
 lightNodeGetAccountPrimaryAddress (BREthereumLightNode node,
                                    BREthereumLightNodeAccountId account) {
     if (node->account != (BREthereumAccount) account) return NULL;

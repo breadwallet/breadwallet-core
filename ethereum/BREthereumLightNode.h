@@ -189,7 +189,7 @@ lightNodeCreateAccount (BREthereumLightNode node,
  * Get the primary address for `account`.  This is the '0x'-prefixed, 40-char, hex encoded
  * string.  The returned char* is newly allocated, on each call - you MUST free() it.
  */
-extern const char *
+extern char *
 lightNodeGetAccountPrimaryAddress (BREthereumLightNode node,
                                    BREthereumLightNodeAccountId account);
 

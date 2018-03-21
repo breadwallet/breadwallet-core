@@ -1035,7 +1035,7 @@ reallySend () {
 
 extern void
 runTests (void) {
-  installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);\
+  installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
   runMathTests();
   runEtherParseTests();
   runTokenParseTests();

@@ -4,7 +4,9 @@ CINC_DIR=/usr/include
 
 JNI_LIB=libCore.jnilib
 
-JNI_SRCS=com_breadwallet_core_ethereum_BREthereumLightNode.c
+JNI_SRCS=com_breadwallet_core_ethereum_BREthereumLightNode.c \
+	com_breadwallet_core_ethereum_BREthereumNetwork.c \
+	com_breadwallet_core_ethereum_BREthereumToken.c
 #	BRCoreJni.c
 
 JNI_OBJS=$(JNI_SRCS:.c=.o)
@@ -12,7 +14,12 @@ JNI_OBJS=$(JNI_SRCS:.c=.o)
 # JNI Header Files that we are interest in keeping (that are not empty)
 JNI_HDRS=$(JNI_SRCS:.c=.h)
 
-JAVA_SRCS=root/com/breadwallet/core/ethereum/BREthereumLightNode.java \
+JAVA_SRCS=../../Java/root/com/breadwallet/core/BRCoreJniReference.java \
+	root/com/breadwallet/core/ethereum/BREthereumAccount.java \
+	root/com/breadwallet/core/ethereum/BREthereumLightNode.java \
+	root/com/breadwallet/core/ethereum/BREthereumNetwork.java \
+	root/com/breadwallet/core/ethereum/BREthereumToken.java \
+	root/com/breadwallet/core/ethereum/BREthereumWallet.java \
 	root/com/breadwallet/core/ethereum/test/BREthereumTest.java
 
 JAVA_OBJS=$(JAVA_SRCS:.java=.class)
@@ -27,18 +34,27 @@ CORE_SRCS=../../BRAddress.c \
 	../../BRKey.c \
 	../../BRMerkleBlock.c \
 	../../BRPaymentProtocol.c \
+	../../BRBech32.c \
 	../../BRPeer.c \
 	../../BRPeerManager.c \
 	../../BRSet.c \
 	../../BRTransaction.c \
 	../../BRWallet.c \
 	../../bcash/BRBCashAddr.c \
+	../../Java/BRCoreJni.c \
+	../../Java/com_breadwallet_core_BRCoreJniReference.c \
+	../util/BRUtilMath.c \
+	../util/BRUtilMathParse.c \
+	../util/BRUtilHex.c \
 	../rlp/BRRlpCoder.c \
 	../BREthereumAccount.c \
+	../BREthereumAmount.c \
+	../BREthereumContract.c \
 	../BREthereumEther.c \
 	../BREthereumGas.c \
-	../BREthereumHolding.c \
 	../BREthereumLightNode.c \
+	../BREthereumNetwork.c \
+	../BREthereumToken.c \
 	../BREthereumTransaction.c \
 	../BREthereumWallet.c 
 
@@ -49,9 +65,10 @@ CFLAGS=-I$(JAVA_HOME)/include \
 	-I$(JAVA_HOME)/include/darwin \
 	-I$(CINC_DIR) \
 	-I$(CINC_DIR)/malloc \
-	-I.. \
-	-I../.. \
-	-I../secp256k1 \
+	-I. -I./util -I./rlp \
+	-I.. -I../util -I../rlp \
+	-I../.. -I../../Java \
+	-I../../secp256k1 \
 	-Wno-nullability-completeness -Wno-format-extra-args -Wno-unknown-warning-option
 
 compile: $(JNI_LIB) java_comp
