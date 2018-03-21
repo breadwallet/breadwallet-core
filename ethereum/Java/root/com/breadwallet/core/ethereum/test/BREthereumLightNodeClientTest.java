@@ -34,7 +34,7 @@ import com.breadwallet.core.ethereum.BREthereumWallet;
 /**
  *
  */
-public class BREthereumTest implements BREthereumLightNode.ClientJSON_RPC {
+public class BREthereumLightNodeClientTest implements BREthereumLightNode.ClientJSON_RPC {
     static {
         if (System.getProperties().containsKey("light.node.test"))
             System.loadLibrary("Core");
@@ -42,36 +42,41 @@ public class BREthereumTest implements BREthereumLightNode.ClientJSON_RPC {
 
     protected BREthereumLightNode node;
 
-    public BREthereumTest(BREthereumNetwork network) {
-        this.node = BREthereumLightNode.create(this, network);
+    public BREthereumLightNodeClientTest() {
     }
 
-    public BREthereumLightNode getNode() {
-        return node;
+    @Override
+    public void assignNode(BREthereumLightNode node) {
+        this.node = node;
     }
 
     @Override
     public String getBalance(int id, String account) {
+        asserting (null != node);
         return "0x123f";  // NON-NLS
     }
 
     @Override
     public String getGasPrice(int id) {
+        asserting (null != node);
         return "0xffc0"; // NON-NLS
     }
 
     @Override
     public String getGasEstimate(int id, String to, String amount, String data) {
+        asserting (null != node);
         return "0x77"; // NON-NLS
     }
 
     @Override
     public String submitTransaction(int id, String rawTransaction) {
+        asserting (null != node);
         return "0x123abc456def"; // NON-NLS
     }
 
     @Override
     public void getTransactions(int id, String account) {
+        asserting (null != node);
         // Query, then for-each...
         // TODO: In this form, not going to work.
         node.announceTransaction(
@@ -93,13 +98,13 @@ public class BREthereumTest implements BREthereumLightNode.ClientJSON_RPC {
 
 
     public static void main(String[] args) {
-        BREthereumNetwork network = BREthereumNetwork.testnet;
-        BREthereumTest test = new BREthereumTest(network);
+        BREthereumLightNodeClientTest test = new BREthereumLightNodeClientTest();
 
-        BREthereumLightNode node = test.getNode();
+        BREthereumLightNode node = new BREthereumLightNode.JSON_RPC(test, BREthereumNetwork.testnet);
         BREthereumAccount account = node.createAccount(USABLE_PAPER_KEY);
-        BREthereumWallet walletEther = node.createWallet(account, network);
-        BREthereumWallet walletToken = node.createWallet(account, network, BREthereumToken.tokenBRD);
+
+        BREthereumWallet walletEther = node.createWallet(account, BREthereumNetwork.testnet);
+        BREthereumWallet walletToken = node.createWallet(account, BREthereumNetwork.testnet, BREthereumToken.tokenBRD);
 
         asserting ("0.0".equals(walletEther.getBalance()));
         node.forceBalanceUpdate(walletEther);
@@ -116,4 +121,3 @@ public class BREthereumTest implements BREthereumLightNode.ClientJSON_RPC {
         }
     }
 }
-

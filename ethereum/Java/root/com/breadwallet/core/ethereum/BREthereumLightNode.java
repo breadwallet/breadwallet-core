@@ -37,11 +37,10 @@ public class BREthereumLightNode extends BRCoreJniReference {
     // Client
     //
     interface Client {
-
+        void assignNode (BREthereumLightNode node);
     }
 
     public interface ClientLES extends Client {
-
     }
 
     public interface ClientJSON_RPC extends Client {
@@ -80,7 +79,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     // Light Node Types
     //
     static public class LES extends BREthereumLightNode {
-        protected LES(ClientLES client, BREthereumNetwork network) {
+        public LES(ClientLES client, BREthereumNetwork network) {
             super(BREthereumLightNode.jniCreateEthereumLightNodeLES(client, network.getIdentifier()),
                     client,
                     network);
@@ -88,7 +87,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     }
 
     static public class JSON_RPC extends BREthereumLightNode {
-        protected JSON_RPC(ClientJSON_RPC client, BREthereumNetwork network) {
+        public JSON_RPC(ClientJSON_RPC client, BREthereumNetwork network) {
             super(BREthereumLightNode.jniCreateEthereumLightNodeJSON_RPC(client, network.getIdentifier()),
                     client,
                     network);
@@ -101,20 +100,11 @@ public class BREthereumLightNode extends BRCoreJniReference {
     WeakReference<Client> client;
     BREthereumNetwork network;
 
-    public static BREthereumLightNode create(Client client, BREthereumNetwork network) {
-        if (client instanceof ClientJSON_RPC)
-            return new JSON_RPC((ClientJSON_RPC) client, network);
-        else if (client instanceof ClientLES)
-            return new LES((ClientLES) client, network);
-        else
-            return null;
-    }
-
-
     protected BREthereumLightNode(long jniReferenceAddress, Client client, BREthereumNetwork network) {
         super(jniReferenceAddress);
         this.client = new WeakReference<Client>(client);
         this.network = network;
+        client.assignNode(this);
     }
 
     //

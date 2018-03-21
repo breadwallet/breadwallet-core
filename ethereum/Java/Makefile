@@ -75,12 +75,12 @@ compile: $(JNI_LIB) java_comp
 
 test: $(JNI_LIB) java_comp
 	java -Xss1m -Dlight.node.test -classpath build -Djava.library.path=. \
-		 com.breadwallet.core.ethereum.test.BREthereumTest $(ARGS) # -D.
+		 com.breadwallet.core.ethereum.test.BREthereumLightNodeClientTest $(ARGS) # -D.
 
 debug: $(JNI_LIB) java_comp
 	java -Xss1m -Xdebug -Xrunjdwp:transport=dt_socket,address=8008,server=y,suspend=n \
 		 -Dlight.node.test -classpath build -Djava.library.path=. \
-		 com.breadwallet.core.ethereum.test.BREthereumTest $(ARGS) # -D.
+		 com.breadwallet.core.ethereum.test.BREthereumLightNodeClientTest $(ARGS) # -D.
 
 $(JNI_LIB): $(JNI_OBJS) $(CORE_OBJS)
 	cc -dynamiclib -o $(JNI_LIB) $(JNI_OBJS) $(CORE_OBJS)

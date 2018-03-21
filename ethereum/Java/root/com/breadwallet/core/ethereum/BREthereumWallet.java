@@ -58,7 +58,7 @@ public class BREthereumWallet  extends BREthereumLightNode.Reference {
         return token;
     }
 
-    // TOD: String for now.
+    // TODO: String for now.
     private String balance = "0.0";
 
     public String getBalance() {
