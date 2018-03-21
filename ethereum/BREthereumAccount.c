@@ -36,51 +36,6 @@
 #include "BREthereumEther.h"
 #include "BREthereumAccount.h"
 
-// Swift
-
-// Wallet Manager
-//     init(masterPubKey: BRMasterPubKey, earliestKeyTime: TimeInterval, dbPath: String? = nil, store: Store) throws {
-//
-// public key for etherium wallet
-// var ethPubKey: [UInt8]? {
-//    var key = BRKey(privKey: ethPrivKey!)
-//    defer { key?.clean() }
-//    key?.compressed = 0
-//    guard let pubKey = key?.pubKey(), pubKey.count == 65 else { return nil }
-//    return [UInt8](pubKey[1...])
-//  }
-//
-//
-//     var ethPrivKey: String? {
-//        return autoreleasepool {
-//            do {
-//                if let ethKey: String? = try? keychainItem(key: KeychainKey.ethPrivKey) {
-//                    if ethKey != nil { return ethKey }
-//                }
-//                var key = BRKey()
-//                var seed = UInt512()
-//                guard let phrase: String = try keychainItem(key: KeychainKey.mnemonic) else { return nil }
-//                BRBIP39DeriveKey(&seed, phrase, nil)
-//                // BIP44 etherium path m/44H/60H/0H/0/0: https://github.com/bitcoin/bips/blob/master/bip-0044.mediawiki
-//                BRBIP32vPrivKeyPath(&key, &seed, MemoryLayout<UInt512>.size, 5,
-//                                    getVaList([44 | BIP32_HARD, 60 | BIP32_HARD, 0 | BIP32_HARD, 0, 0]))    // ... change(=0), index(=0)
-//                seed = UInt512() // clear seed
-//                let pkLen = BRKeyPrivKey(&key, nil, 0)
-//                var pkData = CFDataCreateMutable(secureAllocator, pkLen) as Data
-//                pkData.count = pkLen
-//                guard pkData.withUnsafeMutableBytes({ BRKeyPrivKey(&key, $0, pkLen) }) == pkLen else { return nil }
-//                let privKey = CFStringCreateFromExternalRepresentation(secureAllocator, pkData as CFData,
-//                                                                       CFStringBuiltInEncodings.UTF8.rawValue) as String
-//                try setKeychainItem(key: KeychainKey.ethPrivKey, item: privKey)
-//                return privKey
-//            }
-//            catch let error {
-//                print("apiAuthKey error: \(error)")
-//                return nil
-//            }
-//        }
-//    }
-
 // BIP39 test vectors
 // https://github.com/trezor/python-mnemonic/blob/master/vectors.json
 
@@ -101,6 +56,7 @@ derivePrivateKeyFromSeed (UInt512 seed, uint32_t index);
 
 //
 // Locale-Based BIP-39 Word List
+//
 static const char **sharedWordList;
 
 #define WORD_LIST_LENGTH 2048
@@ -119,20 +75,19 @@ installSharedWordList (const char *wordList[], int wordListLength) {
 // Address
 //
 
-// And then there is this:
-// TODO: Figure out Ethereum Address
-/*
-         var md32 = [UInt8](repeating: 0, count: 32)
-        BRKeccak256(&md32, ethPubKey, ethPubKey.count)
-        self.address = GethAddress(fromBytes: Data(md32[12...]))
+/**
+ * Two address types - explicitly provided or derived from BIP44
  */
-
 typedef enum {
     ADDRESS_PROVIDED,   // target,
     ADDRESS_DERIVED,    // from BIP44
 } BREthereumAddressType;
 
-
+/**
+ * An EthereumAddress is as '0x'-prefixed, hex-encoded string with an overall lenght of 42
+ * characters.  Addresses can be explicitly provided - such as with a 'send to' addresses; or can
+ * be derived using BIP44 scheme - such as with internal addresses.
+ */
 struct BREthereumAddressRecord {
 
     /**
@@ -477,117 +432,3 @@ derivePrivateKeyFromSeed (UInt512 seed, uint32_t index) {
 
     return privateKey;
 }
-
-
-/*
-extern const char *
-addressEncodePrivateKey(BREthereumAddress address, BREthereumAddressEncodeType type) {
-    switch (type) {
-        case ADDRESS_ENCODE_HEX: {
-            size_t stringLen = 1 + 2 * sizeof(UInt256);
-
-            char *string = malloc (stringLen);
-
-            encodeHex(string, stringLen, (uint8_t *) &address->key.secret, sizeof (UInt256));
-
-            return string;
-        }
-
-        case ADDRESS_ENCODE_WIF: {
-            // BRKeyPrivKey produces the WIF encoding.
-
-            address->key.compressed = 0;
-
-            // Get the string length
-            size_t stringLen = BRKeyPrivKey(&address->key, NULL, 0);
-
-            // Allocate a string
-            char *string = malloc(stringLen);
-
-
-            // Fill it
-            return 0 == BRKeyPrivKey(&address->key, string, stringLen)
-                   ? NULL
-                   : string;
-        }
-
-        case ADDRESS_ENCODE_WIF_COMPRESSED:{
-            // BRKeyPrivKey produces the WIF encoding.
-
-            address->key.compressed = 1;
-
-            // Get the string length
-            size_t stringLen = BRKeyPrivKey(&address->key, NULL, 0);
-
-            // Allocate a string
-            char *string = malloc(stringLen);
-
-
-            // Fill it
-            return 0 == BRKeyPrivKey(&address->key, string, stringLen)
-                   ? NULL
-                   : string;
-        }
-
-        case ADDRESS_ENCODE_ETH:
-            return NULL;
-    }
-}
-
-extern char *
-addressEncodePublicKey(BREthereumAddress address, BREthereumAddressEncodeType type) {
-    switch (type) {
-        case ADDRESS_ENCODE_HEX: {
-            size_t stringLen = 1 + 2 * sizeof(address->key.pubKey);
-
-            char *string = malloc(stringLen);
-
-            encodeHex (string, stringLen, (uint8_t *) &address->key.pubKey,
-                       sizeof(address->key.pubKey));
-
-            return string;
-        }
-        case ADDRESS_ENCODE_WIF: {
-            size_t stringLen = BRBase58CheckEncode(NULL, 0, (const uint8_t *) &address->key.pubKey, sizeof (address->key.pubKey));
-
-            char *string = malloc (stringLen);
-
-            BRBase58CheckEncode(string, stringLen, (const uint8_t *) &address->key.pubKey, sizeof (address->key.pubKey));
-
-            return string;
-        }
-
-        case ADDRESS_ENCODE_WIF_COMPRESSED:
-            return NULL;
-
-        case ADDRESS_ENCODE_ETH: {
-            // https://kobl.one/blog/create-full-ethereum-keypair-and-address/#derive-the-ethereum-address-from-the-public-key
-            // The private key must be 32 bytes and not begin with 0x00 and the public one must be
-            // uncompressed and 64 bytes long or 65 with the constant 0x04 prefix.
-            // More on that in the next section.
-
-            // 1. Start with the public key (128 characters / 64 bytes)
-            // 2. Take the Keccak-256 hash of the public key. You should now have a string that is
-            //     64 characters / 32 bytes. (note: SHA3-256 eventually became the standard,
-            //     but Ethereum uses Keccak)
-            // 3. Take the last 40 characters / 20 bytes of this public key (Keccak-256). Or, in
-            //     other words, drop the first 24 characters / 12 bytes. These 40 characters / 20
-            //     bytes are the address. When prefixed with 0x it becomes 42 characters long.
-
-            uint8_t hash[32];
-
-            BRKeccak256(hash, address->key.pubKey, 64);
-
-            size_t stringLen = 2 + 2 * 20;   // '0x' + 20 bytes + terminator;
-
-            char *string = malloc(1 + stringLen);
-
-            string[0] = '0';
-            string[1] = 'x';
-            encodeHex(&string[2], stringLen - 2 + 1, &hash[12], 20);
-
-            return string;
-        }
-    }
-}
-*/

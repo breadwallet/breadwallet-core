@@ -234,7 +234,7 @@ lightNodeCreateTokenAmountString (BREthereumLightNode node,
 //
 // Wallet Updates
 //
-extern BREthereumEther
+extern BREthereumAmount
 lightNodeUpdateWalletBalance (BREthereumLightNode node,
                               BREthereumLightNodeWalletId wallet,
                               BRCoreParseStatus *status);

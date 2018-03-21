@@ -34,7 +34,7 @@
 #include <regex.h>
 #include "BRCrypto.h"
 #include "BRInt.h"
-#include "BRKey.h"
+//#include "BRKey.h"
 #include "../BRBIP39WordsEn.h"
 
 #include "BREthereum.h"
@@ -797,7 +797,7 @@ void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network)
   BREthereumToken token = tokenBRD;
   BREthereumWallet wallet = walletCreateHoldingToken (account, network, token);
   UInt256 value = createUInt256Parse ("5968770000000000000000", 10, &status);
-  BREthereumAmount amount = amountCreateToken(token, value);
+  BREthereumAmount amount = amountCreateToken(createTokenQuantity (token, value));
 
   BREthereumTransaction transaction = walletCreateTransactionDetailed
     (wallet,
@@ -967,9 +967,11 @@ runLightNode_JSON_RPC_test (const char *paperKey) {
 
 
   // Callback to JSON_RPC for 'getBalanance'&
-  BREthereumEther balance = lightNodeUpdateWalletBalance (node, wallet, &status);
+  BREthereumAmount balance = lightNodeUpdateWalletBalance (node, wallet, &status);
   BREthereumEther expectedBalance = etherCreate(createUInt256Parse("0x123f", 16, &status));
-  assert (CORE_PARSE_OK == status && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (balance, expectedBalance));
+  assert (CORE_PARSE_OK == status
+          && AMOUNT_ETHER == amountGetType(balance)
+          && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (expectedBalance, amountGetEther(balance)));
 
   lightNodeWalletUpdateTransactions(node, wallet);
 }

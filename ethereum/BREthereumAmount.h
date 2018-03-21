@@ -58,7 +58,7 @@ amountCreateEther (BREthereumEther ether);
 
 // TODO: what is 'scale' - replace with 'decimals'?
 extern BREthereumAmount
-amountCreateToken (BREthereumToken token, UInt256 valueAsInteger);
+amountCreateToken (BREthereumTokenQuantity tokenQuantity);
 
 extern BREthereumAmountType
 amountGetType (BREthereumAmount amount);

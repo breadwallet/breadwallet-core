@@ -149,12 +149,18 @@ extern BREthereumAddress
 walletGetAddress (BREthereumWallet wallet);
 
 /**
- * The wallet's holding type: ETHER or TOKEN
+ * The wallet's amount type: ETHER or TOKEN
  */
 extern BREthereumAmountType
 walletGetAmountType (BREthereumWallet wallet);
 
-  /**
+/**
+ * The wallet's token or NULL if the wallet holds ETHER.
+ */
+extern BREthereumToken
+walletGetToken (BREthereumWallet wallet);
+
+/**
  * The wallet's balance
  */
 extern BREthereumAmount

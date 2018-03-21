@@ -41,11 +41,10 @@ amountCreateEther (BREthereumEther ether) {
 }
 
 extern BREthereumAmount
-amountCreateToken (BREthereumToken token, UInt256 valueAsInteger) {
-  assert (NULL != token);
+amountCreateToken (BREthereumTokenQuantity tokenQuantity) {
   BREthereumAmount amount;
   amount.type = AMOUNT_TOKEN;
-  amount.u.tokenQuantity = createTokenQuantity(token, valueAsInteger);
+  amount.u.tokenQuantity = tokenQuantity;
   return amount;
 }
 

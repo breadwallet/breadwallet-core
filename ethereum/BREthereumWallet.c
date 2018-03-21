@@ -109,7 +109,7 @@ walletCreateDetailed (BREthereumAccount account,
     wallet->token = optionalToken;
     wallet->balance = (AMOUNT_ETHER == type
                        ? amountCreateEther(etherCreate(UINT256_ZERO))
-                       : amountCreateToken(wallet->token, UINT256_ZERO));
+                       : amountCreateToken(createTokenQuantity (wallet->token, UINT256_ZERO)));
 
     wallet->defaultGasLimit = AMOUNT_ETHER == type
                               ? walletCreateDefaultGasLimit(wallet)
@@ -266,6 +266,11 @@ walletGetAddress (BREthereumWallet wallet) {
 extern BREthereumAmountType
 walletGetAmountType (BREthereumWallet wallet) {
   return wallet->balance.type;
+}
+
+extern BREthereumToken
+walletGetToken (BREthereumWallet wallet) {
+  return wallet->token;
 }
 
 extern BREthereumAmount

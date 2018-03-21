@@ -201,7 +201,7 @@ lightNodeCreateTokenAmountString (BREthereumLightNode node,
 //
 // Wallet
 //
-extern BREthereumEther
+extern BREthereumAmount
 lightNodeUpdateWalletBalance (BREthereumLightNode node,
                               BREthereumLightNodeWalletId walletId,
                               BRCoreParseStatus *status) {
@@ -209,12 +209,19 @@ lightNodeUpdateWalletBalance (BREthereumLightNode node,
 
   switch (node->configuration.type) {
     case NODE_TYPE_JSON_RPC: {
-      const char *address = addressAsString(walletGetAddress(wallet));
-      const char *result = node->configuration.u.json_rpc.funcGetBalance
-        (node->configuration.u.json_rpc.funcContext, ++node->requestId, address);
-      assert (0 == strncmp (result, "0x", 2));
-      UInt256 amount = createUInt256Parse(&result[2], 16, status);
-      return etherCreate(amount);
+      char *address = addressAsString(walletGetAddress(wallet));
+      const char *number = node->configuration.u.json_rpc.funcGetBalance
+      (node->configuration.u.json_rpc.funcContext, ++node->requestId, address);
+
+      assert (0 == strncmp (number, "0x", 2));
+      UInt256 value = createUInt256Parse(number, 16, status);
+
+      BREthereumAmount amount = (AMOUNT_ETHER == walletGetAmountType(wallet)
+                                 ? amountCreateEther(etherCreate(value))
+                                 : amountCreateToken(createTokenQuantity(walletGetToken(wallet), value)));
+
+      free (address);
+      return amount;
     }
     case NODE_TYPE_LES:
       assert (0);
