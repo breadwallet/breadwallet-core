@@ -46,21 +46,21 @@ public class BREthereumLightNode extends BRCoreJniReference {
 
     public interface ClientJSON_RPC extends Client {
         // typedef const char* (*JsonRpcGetBalance) (JsonRpcContext context, int id, const char *account);
-        String getBalance (int id, String account);
+        String getBalance(int id, String account);
 
         // typedef const char* (*JsonRpcGetGasPrice) (JsonRpcContext context, int id);
-        String getGasPrice (int id);
+        String getGasPrice(int id);
 
         // typedef const char* (*JsonRpcEstimateGas) (JsonRpcContext context, int id, const char *to, const char *amount, const char *data);
-        String getGasEstimate (int id, String to, String amount, String data);
+        String getGasEstimate(int id, String to, String amount, String data);
 
         // typedef const char* (*JsonRpcSubmitTransaction) (JsonRpcContext context, int id, const char *transaction);
-        String submitTransaction (int id, String rawTransaction);
+        String submitTransaction(int id, String rawTransaction);
 
         // typedef void (*JsonRpcGetTransactions) (JsonRpcContext context, int id, const char *account,
         //                                         JsonRpcAnnounceTransaction announceTransaction,
         //                                         JsonRpcAnnounceTransactionContext announceTransactionContext);
-        void getTransactions (int id, String account);
+        void getTransactions(int id, String account);
     }
 
     //
@@ -81,7 +81,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     static public class LES extends BREthereumLightNode {
         protected LES(ClientLES client, BREthereumNetwork network) {
-            super (BREthereumLightNode.jniCreateEthereumLightNodeLES(client, network.getIdentifier()),
+            super(BREthereumLightNode.jniCreateEthereumLightNodeLES(client, network.getIdentifier()),
                     client,
                     network);
         }
@@ -89,30 +89,30 @@ public class BREthereumLightNode extends BRCoreJniReference {
 
     static public class JSON_RPC extends BREthereumLightNode {
         protected JSON_RPC(ClientJSON_RPC client, BREthereumNetwork network) {
-            super (BREthereumLightNode.jniCreateEthereumLightNodeJSON_RPC(client, network.getIdentifier()),
+            super(BREthereumLightNode.jniCreateEthereumLightNodeJSON_RPC(client, network.getIdentifier()),
                     client,
                     network);
         }
     }
 
-     //
+    //
     // Light Node
     //
     WeakReference<Client> client;
     BREthereumNetwork network;
 
-    public static BREthereumLightNode create (Client client, BREthereumNetwork network) {
+    public static BREthereumLightNode create(Client client, BREthereumNetwork network) {
         if (client instanceof ClientJSON_RPC)
             return new JSON_RPC((ClientJSON_RPC) client, network);
         else if (client instanceof ClientLES)
-            return new LES ((ClientLES) client, network);
+            return new LES((ClientLES) client, network);
         else
             return null;
     }
 
 
     protected BREthereumLightNode(long jniReferenceAddress, Client client, BREthereumNetwork network) {
-        super (jniReferenceAddress);
+        super(jniReferenceAddress);
         this.client = new WeakReference<Client>(client);
         this.network = network;
     }
@@ -144,41 +144,57 @@ public class BREthereumLightNode extends BRCoreJniReference {
                 network);
     }
 
-    public void forceBalanceUpdate (BREthereumWallet wallet) {
+    public void forceBalanceUpdate(BREthereumWallet wallet) {
         wallet.setBalance(jniForceWalletBalanceUpdate(wallet.identifier));
     }
 
     //
     // Transaction
     //
+    public void forceWalletTransactionUpdate (BREthereumWallet wallet) {
+        jniForceWalletTransactionUpdate(wallet.identifier);
+    }
+
+    public void announceTransaction(String from,
+                                    String to,
+                                    String contract,
+                                    String amount,
+                                    String gasLimit,
+                                    String gasPrice,
+                                    String data,
+                                    String nonce) {
+        jniAnnounceTransaction(from, to, contract, amount, gasLimit, gasPrice, data, nonce);
+    }
 
 
     //
     // JNI Interface
     //
 
-    protected static native long jniCreateEthereumLightNodeLES (Client client, long network);
+    protected static native long jniCreateEthereumLightNodeLES(Client client, long network);
 
-    protected static native long jniCreateEthereumLightNodeJSON_RPC (Client client, long network);
+    protected static native long jniCreateEthereumLightNodeJSON_RPC(Client client, long network);
 
     protected native long jniCreateEthereumLightNodeAccount(String paperKey);
 
-    protected native long jniCreateEthereumLightNodeWallet (long accountId, long networkId);
+    protected native long jniCreateEthereumLightNodeWallet(long accountId, long networkId);
 
     protected native String jniGetAccountPrimaryAddress(long account);
 
-    // TODO: Error
-    protected native String jniForceWalletBalanceUpdate (long wallet);
+    // TODO: Return Amount
+    protected native String jniForceWalletBalanceUpdate(long wallet);
 
+    protected native void jniForceWalletTransactionUpdate (long wallet);
 
     // TODO: Not going to work...
-    public native void jniAnnounceTransaction(String from,
-                                              String to,
-                                              String amount,
-                                              String gasLimit,
-                                              String gasPrice,
-                                              String data,
-                                              String nonce);
+    protected native void jniAnnounceTransaction(String from,
+                                                 String to,
+                                                 String contract,
+                                                 String amount,
+                                                 String gasLimit,
+                                                 String gasPrice,
+                                                 String data,
+                                                 String nonce);
     //    public native void disposeNative ();
 
     protected static native void initializeNative();
@@ -186,6 +202,5 @@ public class BREthereumLightNode extends BRCoreJniReference {
     static {
         initializeNative();
     }
-
- }
+}
 

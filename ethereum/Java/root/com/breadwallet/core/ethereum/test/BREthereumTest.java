@@ -74,9 +74,10 @@ public class BREthereumTest implements BREthereumLightNode.ClientJSON_RPC {
     public void getTransactions(int id, String account) {
         // Query, then for-each...
         // TODO: In this form, not going to work.
-        node.jniAnnounceTransaction(
+        node.announceTransaction(
                 "0x0ea166deef4d04aaefd0697982e6f7aa325ab69c",       // NON-NLS
-                "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",         // NON-NLS
+                "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
+                "",// NON-NLS
                 "11113000000000",
                 "21000",
                 "21000000000",
@@ -103,6 +104,8 @@ public class BREthereumTest implements BREthereumLightNode.ClientJSON_RPC {
         asserting ("0.0".equals(walletEther.getBalance()));
         node.forceBalanceUpdate(walletEther);
         asserting (Integer.parseInt("123f", 16) == Integer.parseInt(walletEther.getBalance()));
+
+        node.forceWalletTransactionUpdate(walletEther);
 
         System.out.println("No actual tests");
     }

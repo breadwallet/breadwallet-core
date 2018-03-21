@@ -45,9 +45,7 @@ static const char *
 jsonRpcSubmitTransaction (JsonRpcContext context, int id, const char *transaction);
 
 static void
-jsonRpcGetTransactions(JsonRpcContext context, int id, const char *account,
-                       JsonRpcAnnounceTransaction announceTransaction,
-                       JsonRpcAnnounceTransactionContext announceTransactionContext);
+jsonRpcGetTransactions(JsonRpcContext context, int id, const char *account);
 
 //
 // Statically Initialize Java References
@@ -169,6 +167,47 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniForceWalletBalanceUpda
     return result;
 }
 
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniForceWalletTransactionUpdate
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniForceWalletTransactionUpdate
+        (JNIEnv *env, jobject thisObject, jlong wallet) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+    lightNodeWalletUpdateTransactions(node, (BREthereumLightNodeWalletId) wallet);
+}
+
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniAnnounceTransaction
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceTransaction
+        (JNIEnv *env, jobject thisObject,
+         jstring toObject,
+         jstring fromObject,
+         jstring contractObject,
+         jstring amountObject,
+         jstring gasLimitObject,
+         jstring gasPriceObject,
+         jstring dataObject,
+         jstring nonceObject) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+
+    lightNodeAnnounceTransaction(node,
+                                 (*env)->GetStringUTFChars (env, toObject, 0),
+                                 (*env)->GetStringUTFChars (env, fromObject, 0),
+                                 (*env)->GetStringUTFChars (env, contractObject, 0),
+                                 (*env)->GetStringUTFChars (env, amountObject, 0),
+                                 (*env)->GetStringUTFChars (env, gasLimitObject, 0),
+                                 (*env)->GetStringUTFChars (env, gasPriceObject, 0),
+                                 (*env)->GetStringUTFChars (env, dataObject, 0),
+                                 (*env)->GetStringUTFChars (env, nonceObject, 0));
+}
+
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
@@ -223,50 +262,148 @@ jsonRpcGetBalance(JsonRpcContext context, int id, const char *account) {
     assert (NULL != listenerMethod);
 
     jobject accountObject = (*env)->NewStringUTF(env, account);
-    jstring balanceObject =
+
+    jstring resultObject =
             (*env)->CallObjectMethod(env, listener, listenerMethod,
                                      id,
                                      accountObject);
 
-    const char *balance = (*env)->GetStringUTFChars(env, balanceObject, 0);
-    char *result = malloc(strlen(balance) + 1);
-    strcpy(result, balance);
+    const char *resultChars = (*env)->GetStringUTFChars(env, resultObject, 0);
+    char *result = malloc(strlen(resultChars) + 1);
+    strcpy(result, resultChars);
 
     (*env)->DeleteLocalRef(env, listener);
     (*env)->DeleteLocalRef(env, accountObject);
-    (*env)->DeleteLocalRef(env, balanceObject);
+    (*env)->DeleteLocalRef(env, resultObject);
 
     return result;
 }
 
 static const char *
 jsonRpcGetGasPrice (JsonRpcContext context, int id) {
-    return "0xffc0";
+    JNIEnv *env = getEnv();
+    if (NULL == env) return NULL;
+
+    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
+    if ((*env)->IsSameObject(env, listener, NULL)) return NULL; // GC reclaimed
+
+    //String getGasPrice (int id);
+    jmethodID listenerMethod =
+            lookupListenerMethod(env, listener,
+                                 "getGasPrice",
+                                 "(I)Ljava/lang/String;");
+    assert (NULL != listenerMethod);
+
+    jstring resultObject =
+            (*env)->CallObjectMethod(env, listener, listenerMethod,
+                                     id);
+
+    const char *resultChars = (*env)->GetStringUTFChars(env, resultObject, 0);
+    char *result = malloc(strlen(resultChars) + 1);
+    strcpy(result, resultChars);
+
+    (*env)->DeleteLocalRef(env, listener);
+    (*env)->DeleteLocalRef(env, resultObject);
+
+    return result;
 }
 
 static const char *
 jsonRpcEstimateGas (JsonRpcContext context, int id, const char *to, const char *amount, const char *data) {
-    return "0x77";
+    JNIEnv *env = getEnv();
+    if (NULL == env) return NULL;
+
+    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
+    if ((*env)->IsSameObject(env, listener, NULL)) return NULL; // GC reclaimed
+
+    // String getGasEstimate (int id, String to, String amount, String data);
+    jmethodID listenerMethod =
+            lookupListenerMethod(env, listener,
+                                 "getGasEstimate",
+                                 "(ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;");
+    assert (NULL != listenerMethod);
+
+    jobject toObject = (*env)->NewStringUTF(env, to);
+    jobject amountObject = (*env)->NewStringUTF(env, amount);
+    jobject dataObject = (*env)->NewStringUTF(env, data);
+
+    jstring resultObject =
+            (*env)->CallObjectMethod(env, listener, listenerMethod,
+                                     id,
+                                     toObject,
+                                     amountObject,
+                                     dataObject);
+
+    const char *resultChars = (*env)->GetStringUTFChars(env, resultObject, 0);
+    char *result = malloc(strlen(resultChars) + 1);
+    strcpy(result, resultChars);
+
+    (*env)->DeleteLocalRef(env, listener);
+    (*env)->DeleteLocalRef(env, toObject);
+    (*env)->DeleteLocalRef(env, amountObject);
+    (*env)->DeleteLocalRef(env, dataObject);
+    (*env)->DeleteLocalRef(env, resultObject);
+
+    return result;
 }
 
 static const char *
 jsonRpcSubmitTransaction (JsonRpcContext context, int id, const char *transaction) {
-    // The transaction hash
-    return "0x123abc456def";
+    JNIEnv *env = getEnv();
+    if (NULL == env) return NULL;
+
+    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
+    if ((*env)->IsSameObject(env, listener, NULL)) return NULL; // GC reclaimed
+
+    // String submitTransaction (int id, String rawTransaction);
+    jmethodID listenerMethod =
+            lookupListenerMethod(env, listener,
+                                 "submitTransaction",
+                                 "(ILjava/lang/String;)Ljava/lang/String;");
+    assert (NULL != listenerMethod);
+
+    jobject transactionObject = (*env)->NewStringUTF(env, transaction);
+
+    jstring resultObject =
+            (*env)->CallObjectMethod(env, listener, listenerMethod,
+                                     id,
+                                     transactionObject);
+
+    const char *resultChars = (*env)->GetStringUTFChars(env, resultObject, 0);
+    char *result = malloc(strlen(resultChars) + 1);
+    strcpy(result, resultChars);
+
+    (*env)->DeleteLocalRef(env, listener);
+    (*env)->DeleteLocalRef(env, transactionObject);
+    (*env)->DeleteLocalRef(env, resultObject);
+
+    return result;
 }
 
 static void
-jsonRpcGetTransactions (JsonRpcContext context, int id, const char *account,
-                                    JsonRpcAnnounceTransaction announceTransaction,
-                                    JsonRpcAnnounceTransactionContext announceTransactionContext) {
-    // Get all the transaction, then one by one call 'announce'
-    announceTransaction (announceTransactionContext,
-                         "0x0ea166deef4d04aaefd0697982e6f7aa325ab69c",
-                         "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
-                         "11113000000000",
-                         "21000",
-                         "21000000000",
-                         "",
-                         "118");
+jsonRpcGetTransactions(JsonRpcContext context, int id, const char *address) {
+    JNIEnv *env = getEnv();
+    if (NULL == env) return;
+
+    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
+    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
+
+    // void getTransactions(int id, String account);
+    jmethodID listenerMethod =
+            lookupListenerMethod(env, listener,
+                                 "getTransactions",
+                                 "(ILjava/lang/String;)V");
+    assert (NULL != listenerMethod);
+
+    jobject addressObject = (*env)->NewStringUTF(env, address);
+
+    (*env)->CallVoidMethod(env, listener, listenerMethod,
+                           id,
+                           addressObject);
+
+    (*env)->DeleteLocalRef(env, listener);
+    (*env)->DeleteLocalRef(env, addressObject);
+
+    return;
 }
 

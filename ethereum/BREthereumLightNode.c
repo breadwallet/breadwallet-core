@@ -374,45 +374,33 @@ lightNodeWalletSubmitTransaction (BREthereumLightNode node,
 }
 
 //
-// Get Transactions
+// Transactions
 //
-static void
-announceTransactionHandler (BREthereumLightNode node,  // + wallet
-                            const char *from,
-                            const char *to,
-                            const char *amount, // value
-                            const char *gasLimit,
-                            const char *gasPrice,
-                            const char *data,
-                            const char *nonce) {
-  return;
-}
 
-//
+/**
+ *
+ * @param node
+ * @param walletId
+ */
 extern void
 lightNodeWalletUpdateTransactions (BREthereumLightNode node,
                                    BREthereumLightNodeWalletId walletId) {
-  BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
+    BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
 
-  switch (node->configuration.type) {
-    case NODE_TYPE_JSON_RPC: {
-      char *address = addressAsString(walletGetAddress(wallet));
+    switch (node->configuration.type) {
+        case NODE_TYPE_JSON_RPC: {
+            char *address = addressAsString(walletGetAddress(wallet));
 
-      node->configuration.u.json_rpc.funcGetTransactions
-      (node->configuration.u.json_rpc.funcContext, ++node->requestId, address,
-       (JsonRpcAnnounceTransactionContext) announceTransactionHandler,
-       node);
+            node->configuration.u.json_rpc.funcGetTransactions
+                    (node->configuration.u.json_rpc.funcContext, ++node->requestId, address);
 
-      free (address);
+            free (address);
+        }
+            break;
+        case NODE_TYPE_LES:
+            assert (0);
     }
-      break;
-    case NODE_TYPE_LES:
-      assert (0);
-  }
 }
-//
-// Transactions
-//
 
 #if ETHEREUM_LIGHT_NODE_USE_JSON_RPC
 extern void
@@ -444,7 +432,45 @@ lightNodeGetTransactionRawDataHexEncoded(BREthereumLightNode node,
 
   return walletGetRawTransactionHexEncoded(wallet, transaction, prefix);
 }
-#endif
+
+extern void
+lightNodeAnnounceTransaction(BREthereumLightNode node,
+                             const char *from,
+                             const char *to,
+                             const char *contract,
+                             const char *amount, // value
+                             const char *gasLimit,
+                             const char *gasPrice,
+                             const char *data,
+                             const char *nonce) {
+    // Figure out the wallet....
+    // create a transaction
+    return;
+}
+
+//  {
+//    "blockNumber":"1627184",
+//    "timeStamp":"1516477482",
+//    "hash":"0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
+//    "nonce":"118",
+//    "blockHash":"0x0ef0110d68ee3af220e0d7c10d644fea98252180dbfc8a94cab9f0ea8b1036af",
+//    "transactionIndex":"3",
+//    "from":"0x0ea166deef4d04aaefd0697982e6f7aa325ab69c",
+//    "to":"0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
+//    "value":"11113000000000",
+//    "gas":"21000",
+//    "gasPrice":"21000000000",
+//    "isError":"0",
+//    "txreceipt_status":"1",
+//    "input":"0x",
+//    "contractAddress":"",
+//    "cumulativeGasUsed":"106535",
+//    "gasUsed":"21000",
+//    "confirmations":"339050"}
+
+
+
+#endif // ETHEREUM_LIGHT_NODE_USE_JSON_RPC
 
 extern const char *
 lightNodeGetTransactionRecvAddress (BREthereumLightNode node,

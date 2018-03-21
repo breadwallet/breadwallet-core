@@ -42,37 +42,6 @@ extern "C" {
 // JSON RPC Support
 //
 
-// Some JSON_RPC call will occur to get all transactions associated with an account.  We'll
-// process these transactions into the LightNode (associated with a wallet).  Thereafter
-// a 'light node client' can get the announced transactions using non-JSON_RPC interfaces.
-typedef void *JsonRpcAnnounceTransactionContext;
-typedef void (*JsonRpcAnnounceTransaction) (JsonRpcAnnounceTransactionContext context,
-                                            const char *from,
-                                            const char *to,
-                                            const char *amount, // value
-                                            const char *gasLimit,
-                                            const char *gasPrice,
-                                            const char *data,
-                                            const char *nonce);
-//  {
-//    "blockNumber":"1627184",
-//    "timeStamp":"1516477482",
-//    "hash":"0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
-//    "nonce":"118",
-//    "blockHash":"0x0ef0110d68ee3af220e0d7c10d644fea98252180dbfc8a94cab9f0ea8b1036af",
-//    "transactionIndex":"3",
-//    "from":"0x0ea166deef4d04aaefd0697982e6f7aa325ab69c",
-//    "to":"0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
-//    "value":"11113000000000",
-//    "gas":"21000",
-//    "gasPrice":"21000000000",
-//    "isError":"0",
-//    "txreceipt_status":"1",
-//    "input":"0x",
-//    "contractAddress":"",
-//    "cumulativeGasUsed":"106535",
-//    "gasUsed":"21000",
-//    "confirmations":"339050"}
 
 //
 // Type defintions for callback functions.  When configuring a LightNode to use JSON_RPC these
@@ -85,9 +54,8 @@ typedef const char* (*JsonRpcGetBalance) (JsonRpcContext context, int id, const 
 typedef const char* (*JsonRpcGetGasPrice) (JsonRpcContext context, int id);
 typedef const char* (*JsonRpcEstimateGas) (JsonRpcContext context, int id, const char *to, const char *amount, const char *data);
 typedef const char* (*JsonRpcSubmitTransaction) (JsonRpcContext context, int id, const char *transaction);
-typedef void (*JsonRpcGetTransactions) (JsonRpcContext context, int id, const char *account,
-                                        JsonRpcAnnounceTransaction announceTransaction,
-                                        JsonRpcAnnounceTransactionContext announceTransactionContext);
+// Must call lightNodeAnnounceTransaction(...) with data for eac transaction
+typedef void (*JsonRpcGetTransactions) (JsonRpcContext context, int id, const char *account);
 
 
 //
@@ -343,14 +311,13 @@ lightNodeWalletSubmitTransaction (BREthereumLightNode node,
 /**
  * Update the transactions for `wallet`.  For a JSON_RPC light node will call out to
  * JsonRpcGetTransactions which is expected to query all transactions associated with the
- * wallet's address and then the call out is to call back the 'account transaction' callback.
+ * wallet's address and then the call out is to call back the 'announce transaction' callback.
  */
 extern void
 lightNodeWalletUpdateTransactions (BREthereumLightNode node,
                                    BREthereumLightNodeWalletId walletId);
-//
-// Transactions
-//
+
+#if ETHEREUM_LIGHT_NODE_USE_JSON_RPC
 
 /**
  * Return the serialized raw data for `transaction`.  The value `*bytesPtr` points to a byte array;
@@ -362,7 +329,7 @@ lightNodeWalletUpdateTransactions (BREthereumLightNode node,
  * @param bytesPtr
  * @param bytesCountPtr
  */
-#if ETHEREUM_LIGHT_NODE_USE_JSON_RPC
+
 extern void
 lightNodeFillTransactionRawData(BREthereumLightNode node,
                                 BREthereumLightNodeWalletId wallet,
@@ -374,6 +341,21 @@ lightNodeGetTransactionRawDataHexEncoded(BREthereumLightNode node,
                                          BREthereumLightNodeWalletId walletId,
                                          BREthereumLightNodeTransactionId transactionId,
                                          const char *prefix);
+
+// Some JSON_RPC call will occur to get all transactions associated with an account.  We'll
+// process these transactions into the LightNode (associated with a wallet).  Thereafter
+// a 'light node client' can get the announced transactions using non-JSON_RPC interfaces.
+extern void
+lightNodeAnnounceTransaction(BREthereumLightNode node,
+                             const char *from,
+                             const char *to,
+                             const char *contract,
+                             const char *amount, // value
+                             const char *gasLimit,
+                             const char *gasPrice,
+                             const char *data,
+                             const char *nonce);
+
 #endif // ETHEREUM_LIGHT_NODE_USE_JSON_RPC
 
 extern const char *
