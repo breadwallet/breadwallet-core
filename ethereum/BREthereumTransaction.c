@@ -37,12 +37,96 @@ provideData (BREthereumTransaction transaction);
 static void
 provideGasEstimate (BREthereumTransaction transaction);
 
+//    "blockNumber":"1627184",
+//    "timeStamp":"1516477482",
+//    "hash":"0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
+//    "nonce":"118",
+//    "blockHash":"0x0ef0110d68ee3af220e0d7c10d644fea98252180dbfc8a94cab9f0ea8b1036af",
+//    "transactionIndex":"3",
+//    "from":"0x0ea166deef4d04aaefd0697982e6f7aa325ab69c",
+//    "to":"0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
+//    "value":"11113000000000",
+//    "gas":"21000",
+//    "gasPrice":"21000000000",
+//    "isError":"0",
+//    "txreceipt_status":"1",
+//    "input":"0x",
+//    "contractAddress":"",
+//    "cumulativeGasUsed":"106535",
+//    "gasUsed":"21000",
+//    "confirmations":"339050"}
+
+typedef struct {
+  BREthereumTransactionStatus status;
+  union {
+    struct {
+      int foo;
+    } created;
+
+    struct {
+      int foo;
+    } _signed;
+
+    struct {
+      int foo;
+      // block number
+      // block hash
+      // transaction index
+      // gasUsed
+      // timestamp
+      // confirmations? 
+    } blocked;
+
+    struct {
+      int foo;
+    } dropped;
+
+    struct {
+      int foo;
+    } submitted;
+  } u;
+} BREthereumTransactionState;
+
+static void
+transactionStateCreated (BREthereumTransactionState *state /* ... */) {
+  state->status = TRANSACTION_CREATED;
+}
+
+static void
+transactionStateSigned (BREthereumTransactionState *state /* ... */) {
+  state->status = TRANSACTION_SIGNED;
+}
+
+static void
+transactionStateSubmitted (BREthereumTransactionState *state /* ... */) {
+  state->status = TRANSACTION_SUBMITTED;
+}
+
+static void
+transactionStateBlocked (BREthereumTransactionState *state /* ... */) {
+  state->status = TRANSACTION_BLOCKED;
+}
+
+static void
+transactionStateDropped (BREthereumTransactionState *state /* ... */) {
+  state->status = TRANSACTION_DROPPED;
+}
+
+
 /**
- *
+ * An Ethereum Transaction ...
  *
  */
 struct BREthereumTransactionRecord {
+
+  //
+  //
+  //
   BREthereumAddress sourceAddress;
+
+  //
+  //
+  //
   BREthereumAddress targetAddress;
 
   /**
@@ -60,9 +144,10 @@ struct BREthereumTransactionRecord {
   /**
    *
    */
-   char *data;
+  char *data;
 
-   // hash
+  // hash
+  BREthereumHash hash;
 
   /**
    * The estimated amount of Gas needed to process this transaction.
@@ -78,6 +163,11 @@ struct BREthereumTransactionRecord {
    * The signing account, if signed.  NULL if not signed.
    */
   BREthereumAccount signer;
+
+  //
+  // State
+  //
+  BREthereumTransactionState state;
 };
 
 extern BREthereumTransaction
@@ -89,6 +179,7 @@ transactionCreate(BREthereumAddress sourceAddress,
                   uint64_t nonce) {
     BREthereumTransaction transaction = calloc (1, sizeof (struct BREthereumTransactionRecord));
 
+    transactionStateCreated(&transaction->state);
     transaction->sourceAddress = sourceAddress;
     transaction->targetAddress = targetAddress;
     transaction->amount = amount;
@@ -97,6 +188,7 @@ transactionCreate(BREthereumAddress sourceAddress,
     transaction->nonce = nonce;
     transaction->chainId = 0;
     transaction->signer = NULL;
+    transaction->hash = 0;
 
     provideData(transaction);
     provideGasEstimate(transaction);
@@ -157,6 +249,18 @@ provideGasEstimate (BREthereumTransaction transaction) {
   transactionSetGasEstimate(transaction, amountGetGasEstimate(transaction->amount));
 }
 
+extern uint64_t
+transactionGetNonce (BREthereumTransaction transaction) {
+  return transaction->nonce;
+}
+
+extern BREthereumToken
+transactionGetToken (BREthereumTransaction transaction) {
+  return (AMOUNT_ETHER == amountGetType(transaction->amount)
+          ? NULL
+          : tokenQuantityGetToken(amountGetTokenQuantity(transaction->amount)));
+}
+
 //
 // Data
 //
@@ -198,6 +302,7 @@ extern void
 transactionSign(BREthereumTransaction transaction,
                 BREthereumAccount account,
                 BREthereumSignature signature) {
+    transactionStateSigned(&transaction->state);
     transaction->signer = account;
     transaction->signature = signature;
 
@@ -218,6 +323,11 @@ transactionIsSigned (BREthereumTransaction transaction) {
   return (NULL != transactionGetSigner (transaction)
           ? ETHEREUM_BOOLEAN_TRUE
           : ETHEREUM_BOOLEAN_FALSE);
+}
+
+extern BREthereumHash
+transactionGetHash (BREthereumTransaction transaction) {
+  return transaction->hash;
 }
 
 //
@@ -337,6 +447,41 @@ transactionGetEffectiveAmountInEther (BREthereumTransaction transaction) {
     case AMOUNT_ETHER:
       return transaction->amount.u.ether;
   }
+}
+
+extern BRTransactionComparison
+transactionCompare (BREthereumTransaction t1,
+                    BREthereumTransaction t2) {
+  // nothing yet, really
+  return (t1->nonce < t2->nonce
+          ? TRANSACTION_COMPARISON_LT
+          : (t1->nonce == t2->nonce
+             ? TRANSACTION_COMPARISON_EQ
+             : TRANSACTION_COMPARISON_GT));
+}
+
+extern BREthereumTransactionStatus
+transactionGetStatus (BREthereumTransaction transaction) {
+  return transaction->state.status;
+}
+
+extern void
+transactionAnnounceBlocked (BREthereumTransaction transaction,
+                            int foo) {
+  transactionStateBlocked(&transaction->state);
+}
+
+extern void
+transactionAnnounceDropped (BREthereumTransaction transaction,
+                            int foo) {
+  transactionStateDropped(&transaction->state);
+}
+
+extern void
+transactionAnnounceSubmitted (BREthereumTransaction transaction,
+                              BREthereumHash hash) {
+  transactionStateSubmitted(&transaction->state);
+  transaction->hash = hash;
 }
 
 //

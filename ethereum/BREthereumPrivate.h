@@ -34,8 +34,25 @@
 extern BREthereumEther
 transactionGetEffectiveAmountInEther (BREthereumTransaction transaction);
 
+extern BREthereumTransaction
+walletGetTransactionById (BREthereumWallet wallet,
+                          BREthereumLightNodeTransactionId transactionId);
+
 extern void
 walletSetBalance (BREthereumWallet wallet,
                   BREthereumAmount balance);
+
+extern void
+walletTransactionSubmitted (BREthereumWallet wallet,
+                            BREthereumTransaction transaction,
+                            BREthereumHash hash); // ....
+
+extern void
+walletTransactionBlocked (BREthereumWallet wallet,
+                          BREthereumTransaction transaction);
+
+extern void
+walletTransactionDropped (BREthereumWallet wallet,
+                          BREthereumTransaction transaction);
 
 #endif /* BR_Ethereum_Private_H */

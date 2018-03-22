@@ -896,6 +896,21 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
     lightNodeGetTransactionRawDataHexEncoded(node, wallet, tx1, "0x");
 
   printf ("        Raw Transaction: %s\n", rawTransactionHexEncoded);
+
+  char *fromAddr = addressAsString(accountGetPrimaryAddress(account));
+  BREthereumLightNodeTransactionId *transactions = lightNodeWalletGetTransactions(node, wallet);
+  assert (NULL != transactions && NULL != transactions[0]);
+
+  BREthereumLightNodeTransactionId transaction = transactions[0];
+
+  char **properties = lightNodeGetTransactionProperties(node, wallet, transaction, 2, TRANSACTION_PROPERTY_FROM_ADDR, TRANSACTION_PROPERTY_TO_ADDR);
+  assert (0 == strcmp (properties[0], fromAddr)
+          && 0 == strcmp (properties[1], recvAddr));
+
+  free (fromAddr);
+  free (properties[0]);
+  free (properties[1]);
+  free (properties);
 }
 
 //

@@ -305,7 +305,7 @@ lightNodeWalletSubmitTransaction (BREthereumLightNode node,
                                   BREthereumLightNodeTransactionId transaction);
 
 /**
- * Update the transactions for `wallet`.  For a JSON_RPC light node will call out to
+ * Update the transactions for `wallet`.  A JSON_RPC light node will call out to
  * JsonRpcGetTransactions which is expected to query all transactions associated with the
  * wallet's address and then the call out is to call back the 'announce transaction' callback.
  */
@@ -375,12 +375,38 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
 
 extern const char *
 lightNodeGetTransactionRecvAddress (BREthereumLightNode node,
+                                    BREthereumLightNodeWalletId wallet,
                                     BREthereumLightNodeTransactionId transaction);
 
 extern BREthereumEther
 lightNodeGetTransactionAmount (BREthereumLightNode node,
+                               BREthereumLightNodeWalletId wallet,
                                BREthereumLightNodeTransactionId transaction);
 
+extern BREthereumLightNodeTransactionId *
+lightNodeWalletGetTransactions (BREthereumLightNode node,
+                                BREthereumLightNodeWalletId wallet);
+  
+typedef enum {
+  TRANSACTION_PROPERTY_TO_ADDR,
+  TRANSACTION_PROPERTY_FROM_ADDR,
+  //  ...
+  TRANSACTION_PROPERTY_NONCE
+} BREthereumTransactionProperty;
+
+extern char *
+lightNodeGetTransactionProperty (BREthereumLightNode node,
+                                 BREthereumLightNodeWalletId wallet,
+                                 BREthereumLightNodeTransactionId transaction,
+                                 BREthereumTransactionProperty property);
+
+extern char **
+lightNodeGetTransactionProperties (BREthereumLightNode node,
+                                   BREthereumLightNodeWalletId wallet,
+                                   BREthereumLightNodeTransactionId transaction,
+                                   unsigned int propertyCount,
+                                   ...);
+  
 #ifdef __cplusplus
 }
 #endif

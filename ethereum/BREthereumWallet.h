@@ -122,7 +122,7 @@ walletSignTransaction(BREthereumWallet wallet,
 
 /**
  * For `transaction`, get the 'signed transaction data' suitable for use in the RPC-JSON Ethereum
- * method `eth_sendRawTransaction`.
+ * method `eth_sendRawTransaction` (once hex-encoded).
  *
  * @param wallet
  * @param transaction
@@ -178,7 +178,7 @@ walletGetDefaultGasLimit(BREthereumWallet wallet);
 /**
  * Set the wallet's default Gas Limit.  When creating a transaction, unless otherwise specified,
  * this GasLimit is used.  The default value depends on the wallet type: ETH, ERC20 Token or
- * Contract.
+ * Contract; therefore, set it carefully.
  *
  * @param wallet
  * @param gasLimit
@@ -223,6 +223,34 @@ walletGetNonce(BREthereumWallet wallet);
  */
 extern int
 walletIncrementNonce(BREthereumWallet wallet);
+
+//
+// Transactions
+//
+typedef int (*BREthereumTransactionPredicate) (void *context, BREthereumTransaction transaction, unsigned int index);
+typedef void (*BREthereumTransactionWalker) (void *context, BREthereumTransaction transaction, unsigned int index);
+
+extern int
+transactionPredicateAny (void *context,
+                         BREthereumTransaction transaction,
+                         unsigned int index);
+
+extern void
+walletWalkTransactions (BREthereumWallet wallet,
+                        void *context,
+                        BREthereumTransactionPredicate predicate,
+                        BREthereumTransactionWalker walker);
+
+extern BREthereumTransaction
+walletGetTransactionByHash (BREthereumWallet wallet,
+                          BREthereumHash hash);
+
+extern BREthereumTransaction
+walletGetTransactionByNonce (BREthereumWallet wallet,
+                            uint64_t nonce);
+
+extern unsigned long
+walletGetTransactionCount (BREthereumWallet wallet);
 
 #ifdef __cplusplus
 }

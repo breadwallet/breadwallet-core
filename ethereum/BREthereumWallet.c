@@ -27,9 +27,12 @@
 #include <string.h>
 #include <assert.h>
 #include "BREthereum.h"
+#include "BRArray.h"
 
 #define DEFAULT_ETHER_GAS_PRICE_NUMBER   200000000ull  // 2 GWEI
 #define DEFAULT_ETHER_GAS_PRICE_UNIT     WEI
+
+#define DEFAULT_TRANSACTION_CAPACITY     20
 
 /* Forward Declarations */
 static BREthereumGasPrice
@@ -93,6 +96,15 @@ struct BREthereumWalletRecord {
      * The number of transactions for this wallet.
      */
     int nonce;
+
+  //
+  // Transactions
+  //
+  BREthereumTransaction *transactions;
+
+  // Listeners -
+  //   on all transaction state changes.
+  //   on balance changes? (implied by transactions)
 };
 
 static BREthereumWallet
@@ -125,6 +137,7 @@ walletCreateDetailed (BREthereumAccount account,
                               ? walletCreateDefaultGasPrice(wallet)
                               : tokenGetGasPrice (optionalToken);
 
+    array_new(wallet->transactions, DEFAULT_TRANSACTION_CAPACITY);
     // nonce = eth.getTransactionCount(<account>)
     return wallet;
 }
@@ -194,13 +207,16 @@ walletCreateTransactionDetailed(BREthereumWallet wallet,
   //  Must 'rework' transaction (if token, amount = 0, ...)
   //
   // switch (wallet->holding.type) { ... }
-    return transactionCreate(
-            wallet->address,
-            recvAddress,
-            amount,
-            gasPrice,
-            gasLimit,
-            nonce);
+
+  BREthereumTransaction transaction = transactionCreate(wallet->address,
+                                                        recvAddress,
+                                                        amount,
+                                                        gasPrice,
+                                                        gasLimit,
+                                                        nonce);
+  // No ordering, as of yet.
+  array_add (wallet->transactions, transaction);
+  return transaction;
 }
 
 /**
@@ -344,6 +360,81 @@ walletGetNonce(BREthereumWallet wallet) {
 extern int
 walletIncrementNonce(BREthereumWallet wallet) {
     return ++wallet->nonce;
+}
+
+//
+// Transactions
+//
+extern int
+transactionPredicateAny (void *context,
+                         BREthereumTransaction transaction,
+                         unsigned int index) {
+  return 1;
+}
+
+extern void
+walletWalkTransactions (BREthereumWallet wallet,
+                        void *context,
+                        BREthereumTransactionPredicate predicate,
+                        BREthereumTransactionWalker walker) {
+  for (int i = 0; i < array_count(wallet->transactions); i++)
+    if (predicate (context, wallet->transactions[i], i))
+      walker (context, wallet->transactions[i], i);
+}
+
+extern BREthereumTransaction
+walletGetTransactionByHash (BREthereumWallet wallet,
+                            BREthereumHash hash) {
+  for (int i = 0; i < array_count(wallet->transactions); i++)
+    if (hash == transactionGetHash (wallet->transactions[i]))
+      return wallet->transactions [i];
+  return NULL;
+}
+
+extern BREthereumTransaction
+walletGetTransactionByNonce (BREthereumWallet wallet,
+                             uint64_t nonce) {
+  for (int i = 0; i < array_count(wallet->transactions); i++)
+    if (nonce == transactionGetNonce (wallet->transactions[i]))
+      return wallet->transactions [i];
+  return NULL;
+}
+
+extern BREthereumTransaction
+walletGetTransactionById (BREthereumWallet wallet,
+                          BREthereumLightNodeTransactionId transactionId) {
+  for (int i = 0; i < array_count(wallet->transactions); i++)
+    if (transactionId == wallet->transactions[i])
+      return wallet->transactions [i];
+  return NULL;
+}
+
+extern unsigned long
+walletGetTransactionCount (BREthereumWallet wallet) {
+  return array_count(wallet->transactions);
+}
+
+//
+// Transaction State
+//
+extern void
+walletTransactionSubmitted (BREthereumWallet wallet,
+                            BREthereumTransaction transaction,
+                            BREthereumHash hash) {
+  transactionAnnounceSubmitted (transaction, hash);
+  // balance updated?
+}
+
+extern void
+walletTransactionBlocked (BREthereumWallet wallet,
+                            BREthereumTransaction transaction) {
+  transactionAnnounceBlocked (transaction, 0);
+}
+
+extern void
+walletTransactionDropped (BREthereumWallet wallet,
+                            BREthereumTransaction transaction) {
+  transactionAnnounceDropped (transaction, 0);
 }
 
 /*

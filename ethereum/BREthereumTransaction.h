@@ -77,6 +77,15 @@ extern void
 transactionSetGasEstimate (BREthereumTransaction transaction,
                           BREthereumGas gasEstimate);
 
+extern uint64_t
+transactionGetNonce (BREthereumTransaction transaction);
+
+/**
+ * A token or null
+ */
+extern BREthereumToken
+transactionGetToken (BREthereumTransaction transaction);
+
 /**
  * Do not modify returned value
  */
@@ -93,6 +102,11 @@ transactionGetSigner (BREthereumTransaction transaction);
 
 extern BREthereumBoolean
 transactionIsSigned (BREthereumTransaction transaction);
+
+typedef int BREthereumHash;
+
+extern BREthereumHash
+transactionGetHash (BREthereumTransaction transaction);
 
 //
 // RLP Encoding
@@ -114,6 +128,48 @@ transactionEncodeRLP (BREthereumTransaction transaction,
 extern BREthereumTransaction
 createTransactionDecodeRLP (BRRlpData data,
                             BREthereumTransactionRLPType type);
+
+//
+// Transaction Comparison
+//
+typedef enum {
+  TRANSACTION_COMPARISON_LT = -1,
+  TRANSACTION_COMPARISON_EQ =  0,
+  TRANSACTION_COMPARISON_GT = +1
+} BRTransactionComparison;
+
+/**
+ * Compares two transactions.
+ */
+extern BRTransactionComparison
+transactionCompare (BREthereumTransaction t1,
+                    BREthereumTransaction t2);
+
+//
+// Transaction Status
+//
+typedef enum {
+  TRANSACTION_CREATED,
+  TRANSACTION_SIGNED,
+  TRANSACTION_SUBMITTED,  // more than just 'sent'; in one 'mempool'; has hash
+  TRANSACTION_BLOCKED,
+  TRANSACTION_DROPPED     // not in any 'mempool'
+} BREthereumTransactionStatus;
+
+extern BREthereumTransactionStatus
+transactionGetStatus (BREthereumTransaction transaction);
+
+extern void
+transactionAnnounceBlocked (BREthereumTransaction transaction,
+                          int foo); // block info
+
+extern void
+transactionAnnounceDropped (BREthereumTransaction transaction,
+                            int foo); // dropped info
+
+extern void
+transactionAnnounceSubmitted (BREthereumTransaction transaction,
+                              BREthereumHash hash); // submitted info
 
 //
 // Transaction Result
