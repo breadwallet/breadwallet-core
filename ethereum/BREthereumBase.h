@@ -1,8 +1,8 @@
 //
-//  BREthereum
+//  BREthereumBase
 //  breadwallet-core Ethereum
 //
-//  Created by Ed Gamble on 2/24/18.
+//  Created by Ed Gamble on 3/22/18.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,21 +23,37 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_H
-#define BR_Ethereum_H
+#ifndef BR_Ethereum_Base_H
+#define BR_Ethereum_Base_H
 
-#include "BRUtil.h"
-#include "BRRlp.h"
-#include "BREthereumBase.h"
-#include "BREthereumEther.h"
-#include "BREthereumGas.h"
-#include "BREthereumAccount.h"
-#include "BREthereumContract.h"
-#include "BREthereumToken.h"
-#include "BREthereumAmount.h"
-#include "BREthereumTransaction.h"
-#include "BREthereumNetwork.h"
-#include "BREthereumWallet.h"
-#include "BREthereumLightNode.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#endif // BR_Ethereum_H
+#define private_extern  extern
+
+//
+// Etherum Boolean
+//
+typedef enum {
+  ETHEREUM_BOOLEAN_TRUE = 0,               // INTENTIONALLY 'backwards'
+  ETHEREUM_BOOLEAN_FALSE = 1
+} BREthereumBoolean;
+
+#define ETHEREUM_BOOLEAN_IS_TRUE(x)  ((x) == ETHEREUM_BOOLEAN_TRUE)
+#define ETHEREUM_BOOLEAN_IS_FALSE(x) ((x) == ETHEREUM_BOOLEAN_FALSE)
+
+//
+// Ethereum Comparison
+//
+typedef enum {
+  ETHEREUM_COMPARISON_LT = -1,
+  ETHEREUM_COMPARISON_EQ =  0,
+  ETHEREUM_COMPARISON_GT = +1
+} BREthereumComparison;
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* BR_Ethereum_Base_H */

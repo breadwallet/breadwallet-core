@@ -31,9 +31,9 @@
 #include "BRBIP39Mnemonic.h"
 #include "BRCrypto.h"
 #include "BRBase58.h"
+#include "BRBIP39WordsEn.h"
 
 #include "BRUtil.h"
-#include "BREthereumEther.h"
 #include "BREthereumAccount.h"
 
 // BIP39 test vectors
@@ -116,6 +116,11 @@ struct BREthereumAddressRecord {
      * The BIP-44 Index used for this key.
      */
     uint32_t index;
+
+  /**
+   * The NEXT nonce value
+   */
+  uint64_t nonce;
 };
 
 extern BREthereumAddress
@@ -125,6 +130,7 @@ createAddress (const char *string) {
     BREthereumAddress address = malloc (sizeof (struct BREthereumAddressRecord));
 
     address->type = ADDRESS_PROVIDED;
+    address->nonce = 0;
     strncpy (address->string, string, 42);
     address->string[42] = '\0';
 
@@ -146,6 +152,22 @@ addressFree (BREthereumAddress address) {
     free (address);
 }
 
+extern uint64_t
+addressGetNonce(BREthereumAddress address) {
+  return address->nonce;
+}
+
+private_extern void
+addressSetNonce(BREthereumAddress address,
+                uint64_t nonce) {
+  address->nonce = nonce;
+}
+
+private_extern uint64_t
+addressGetThenIncrementNonce(BREthereumAddress address) {
+  return address->nonce++;
+}
+
 /**
  * Create an address given a 65 byte publicKey (derived from a BIP-44 public key).
  *
@@ -159,6 +181,7 @@ createAddressDerived (const uint8_t *publicKey, uint32_t index) {
     BREthereumAddress address = malloc (sizeof (struct BREthereumAddressRecord));
 
     address->type = ADDRESS_DERIVED;  // painfully
+    address->nonce = 0;
     address->index = index;
 
     // Seriously???
@@ -232,9 +255,7 @@ createAddressDerived (const uint8_t *publicKey, uint32_t index) {
 
 extern char *
 addressAsString (BREthereumAddress address) {
-    char *result = malloc (43);
-    strncpy (result, address->string, 43);
-    return result;
+  return strndup (address->string, 43);
 }
 
 #if defined (DEBUG)
@@ -281,6 +302,9 @@ struct BREthereumAccountRecord {
 
 extern BREthereumAccount
 createAccount(const char *paperKey) {
+    if (NULL == sharedWordList)
+      installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
+
     return accountCreateDetailed(paperKey, sharedWordList, BIP39_WORDLIST_COUNT);
 }
 

@@ -43,7 +43,7 @@ createUInt256Power (uint8_t digits, int *overflow) {
   if (digits < 20) {    // 10^19 fits in uint64_t
     uint64_t value = 1;
     while (digits-- > 0)
-      value *= 10;
+      value *= 10;      // slowest possible integer algorithm... still fast enough.
     *overflow = 0;
     return createUInt256(value);
   }

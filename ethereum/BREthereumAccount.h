@@ -31,8 +31,8 @@ extern "C" {
 #endif
 
 #include "BRInt.h"
-#include "BREthereumEther.h"
 #include "rlp/BRRlpCoder.h"
+#include "BREthereumEther.h"
 
 //
 // BIP39 Word List
@@ -80,6 +80,9 @@ createAddress (const char *string);
  */
 extern BREthereumBoolean
 validateAddressString(const char *string);
+
+extern uint64_t
+addressGetNonce(BREthereumAddress address);
 
 extern void
 addressFree (BREthereumAddress address);

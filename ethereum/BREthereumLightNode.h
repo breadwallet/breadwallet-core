@@ -38,10 +38,15 @@
 extern "C" {
 #endif
 
+/**
+ * An Ethereum Light Node
+ *
+ */
+typedef struct BREthereumLightNodeRecord *BREthereumLightNode;
+
 //
 // JSON RPC Support
 //
-
 
 //
 // Type defintions for callback functions.  When configuring a LightNode to use JSON_RPC these
@@ -50,12 +55,12 @@ extern "C" {
 // (as a newly allocated string - the Ethereum Core will own it and free() it.)
 //
 typedef void *JsonRpcContext;
-typedef const char* (*JsonRpcGetBalance) (JsonRpcContext context, int id, const char *account);
-typedef const char* (*JsonRpcGetGasPrice) (JsonRpcContext context, int id);
-typedef const char* (*JsonRpcEstimateGas) (JsonRpcContext context, int id, const char *to, const char *amount, const char *data);
-typedef const char* (*JsonRpcSubmitTransaction) (JsonRpcContext context, int id, const char *transaction);
+typedef const char* (*JsonRpcGetBalance) (JsonRpcContext context, BREthereumLightNode node, int id, const char *account);
+typedef const char* (*JsonRpcGetGasPrice) (JsonRpcContext context, BREthereumLightNode node, int id);
+typedef const char* (*JsonRpcEstimateGas) (JsonRpcContext context, BREthereumLightNode node,  int id, const char *to, const char *amount, const char *data);
+typedef const char* (*JsonRpcSubmitTransaction) (JsonRpcContext context, BREthereumLightNode node,  int id, const char *transaction);
 // Must call lightNodeAnnounceTransaction(...) with data for eac transaction
-typedef void (*JsonRpcGetTransactions) (JsonRpcContext context, int id, const char *account);
+typedef void (*JsonRpcGetTransactions) (JsonRpcContext context, BREthereumLightNode node,  int id, const char *account);
 
 
 //
@@ -136,42 +141,40 @@ typedef void *BREthereumLightNodeTransactionId;
 typedef void *BREthereumLightNodeAccountId;
 typedef void *BREthereumLightNodeWalletId;
 
-/**
- * An Ethereum Light Node
- *
- */
-typedef struct BREthereumLightNodeRecord *BREthereumLightNode;
 
+/**
+ * Create a LightNode managing the account associated with the paperKey.  (The `paperKey` must
+ * use words from the defaul wordList (Use installSharedWordList).  The `paperKey` is used for
+ * BIP-32 generation of keys; the same paper key must be used when signing transactions for
+ * this node's account.
+ */
 extern BREthereumLightNode
-createLightNode (BREthereumLightNodeConfiguration configuration);
+createLightNode (BREthereumLightNodeConfiguration configuration,
+                 const char *paperKey);
 
 /**
  * Create an Ethereum Account using `paperKey` for BIP-32 generation of keys.  The same paper key
  * must be used when signing transactions for this account.
  */
 extern BREthereumLightNodeAccountId
-lightNodeCreateAccount (BREthereumLightNode node,
-                        const char *paperKey);
+lightNodeGetAccount (BREthereumLightNode node);
 
 /**
  * Get the primary address for `account`.  This is the '0x'-prefixed, 40-char, hex encoded
  * string.  The returned char* is newly allocated, on each call - you MUST free() it.
  */
 extern char *
-lightNodeGetAccountPrimaryAddress (BREthereumLightNode node,
-                                   BREthereumLightNodeAccountId account);
+lightNodeGetAccountPrimaryAddress (BREthereumLightNode node);
 
 /**
- * Create a wallet for `account` holding ETHER.
+ * Get the wallet for `account` holding ETHER.  This wallet is created, along with the account,
+ * when a light node itself is created.
  *
  * @param node
- * @param accountId
  * @return
  */
 extern BREthereumLightNodeWalletId
-lightNodeCreateWallet (BREthereumLightNode node,
-                       BREthereumLightNodeAccountId account,
-                       BREthereumNetwork network);
+lightNodeGetWallet (BREthereumLightNode node);
 
 /**
  * Create a wallet for `account` holding `token`.
@@ -183,8 +186,6 @@ lightNodeCreateWallet (BREthereumLightNode node,
  */
 extern BREthereumLightNodeWalletId
 lightNodeCreateWalletHoldingToken (BREthereumLightNode node,
-                                   BREthereumLightNodeAccountId account,
-                                   BREthereumNetwork network,
                                    BREthereumToken token);
 
 //
@@ -305,13 +306,12 @@ lightNodeWalletSubmitTransaction (BREthereumLightNode node,
                                   BREthereumLightNodeTransactionId transaction);
 
 /**
- * Update the transactions for `wallet`.  A JSON_RPC light node will call out to
+ * Update the transactions for the node's account.  A JSON_RPC light node will call out to
  * JsonRpcGetTransactions which is expected to query all transactions associated with the
- * wallet's address and then the call out is to call back the 'announce transaction' callback.
+ * accounts address and then the call out is to call back the 'announce transaction' callback.
  */
 extern void
-lightNodeWalletUpdateTransactions (BREthereumLightNode node,
-                                   BREthereumLightNodeWalletId walletId);
+lightNodeUpdateTransactions (BREthereumLightNode node);
 
 #if ETHEREUM_LIGHT_NODE_USE_JSON_RPC
 //
@@ -383,6 +383,9 @@ lightNodeGetTransactionAmount (BREthereumLightNode node,
                                BREthereumLightNodeWalletId wallet,
                                BREthereumLightNodeTransactionId transaction);
 
+/**
+ * Returns a NULL terminated array of transaction identifiers.
+ */
 extern BREthereumLightNodeTransactionId *
 lightNodeWalletGetTransactions (BREthereumLightNode node,
                                 BREthereumLightNodeWalletId wallet);

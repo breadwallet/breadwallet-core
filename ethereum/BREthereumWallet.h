@@ -99,6 +99,15 @@ walletCreateTransaction(BREthereumWallet wallet,
 
 /**
  *
+ * You will have all sorts of problems with `nonce`...
+
+ *   1) It needs to be derived from and consistent with the wallet's address nonce.
+ *         walletSignTransaction() - the first point where the nonce is used - will fatal.
+ *   2) If you create a transaction, thereby using/incrementing a nonce, but then don't submit
+ *         the transaction, then *all* subsequent transaction will be pended *forever*.
+ *
+ * @warn If you create it, you must submit it.
+ *
  * @param wallet
  * @param recvAddress
  * @param amount
@@ -113,7 +122,7 @@ walletCreateTransactionDetailed(BREthereumWallet wallet,
                                 BREthereumAmount amount,
                                 BREthereumGasPrice gasPrice,
                                 BREthereumGas gasLimit,
-                                int nonce);
+                                uint64_t nonce);
 
 extern void
 walletSignTransaction(BREthereumWallet wallet,
@@ -204,26 +213,6 @@ walletGetDefaultGasPrice(BREthereumWallet wallet);
 extern void
 walletSetDefaultGasPrice(BREthereumWallet wallet, BREthereumGasPrice gasPrice);
 
-/**
- *
- * [Used for walletCreateTransactionDetailed()]
- *
- * @param wallet
- * @return
- */
-extern int
-walletGetNonce(BREthereumWallet wallet);
-
-/**
- *
- * [Used for walletCreateTransactionDetailed()]
- *
- * @param wallet
- * @return
- */
-extern int
-walletIncrementNonce(BREthereumWallet wallet);
-
 //
 // Transactions
 //
@@ -231,9 +220,14 @@ typedef int (*BREthereumTransactionPredicate) (void *context, BREthereumTransact
 typedef void (*BREthereumTransactionWalker) (void *context, BREthereumTransaction transaction, unsigned int index);
 
 extern int
-transactionPredicateAny (void *context,
+transactionPredicateAny (void *ignore,
                          BREthereumTransaction transaction,
                          unsigned int index);
+
+extern int
+transactionPredicateStatus (BREthereumTransactionStatus status,
+                            BREthereumTransaction transaction,
+                            unsigned int index);
 
 extern void
 walletWalkTransactions (BREthereumWallet wallet,

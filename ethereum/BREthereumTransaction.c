@@ -439,7 +439,7 @@ createTransactionDecodeRLP (BRRlpData data,
 //
 // Private
 //
-extern BREthereumEther
+private_extern BREthereumEther
 transactionGetEffectiveAmountInEther (BREthereumTransaction transaction) {
   switch (amountGetType(transaction->amount)) {
     case AMOUNT_TOKEN:

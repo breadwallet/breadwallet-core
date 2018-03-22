@@ -28,21 +28,11 @@
 
 #include "BRRlp.h"
 #include "BRUtil.h"
+#include "BREthereumBase.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-//
-// Etherum Boolean
-//
-typedef enum {
-  ETHEREUM_BOOLEAN_TRUE = 0,               // INTENTIONALLY 'backwards'
-  ETHEREUM_BOOLEAN_FALSE = 1
-} BREthereumBoolean;
-
-#define ETHEREUM_BOOLEAN_IS_TRUE(x)  ((x) == ETHEREUM_BOOLEAN_TRUE)
-#define ETHEREUM_BOOLEAN_IS_FALSE(x) ((x) == ETHEREUM_BOOLEAN_FALSE)
 
 //
 // Ether
@@ -145,12 +135,6 @@ etherIsLE (BREthereumEther e1, BREthereumEther e2);
 
 extern BREthereumBoolean
 etherIsZero (BREthereumEther e);
-
-typedef enum {
-  ETHEREUM_COMPARISON_LT = -1,
-  ETHEREUM_COMPARISON_EQ =  0,
-  ETHEREUM_COMPARISON_GT = +1
-} BREthereumComparison;
 
 extern BREthereumComparison
 etherCompare (BREthereumEther e1, BREthereumEther e2);

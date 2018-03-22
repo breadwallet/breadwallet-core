@@ -26,7 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "BREthereum.h"
+#include "BREthereumPrivate.h"
 #include "BRArray.h"
 
 #define DEFAULT_ETHER_GAS_PRICE_NUMBER   200000000ull  // 2 GWEI
@@ -92,21 +92,19 @@ struct BREthereumWalletRecord {
      */
     BREthereumToken token; // optional
 
-    /**
-     * The number of transactions for this wallet.
-     */
-    int nonce;
+    //
+    // Transactions
+    //
+    BREthereumTransaction *transactions;
 
-  //
-  // Transactions
-  //
-  BREthereumTransaction *transactions;
-
-  // Listeners -
-  //   on all transaction state changes.
-  //   on balance changes? (implied by transactions)
+    // Listeners -
+    //   on all transaction state changes.
+    //   on balance changes? (implied by transactions)
 };
 
+//
+// Wallet Creation
+//
 static BREthereumWallet
 walletCreateDetailed (BREthereumAccount account,
                       BREthereumAddress address,
@@ -176,6 +174,9 @@ walletCreateHoldingToken(BREthereumAccount account,
              token);
 }
 
+//
+// Transaction Creation
+//
 extern BREthereumTransaction
 walletCreateTransaction(BREthereumWallet wallet,
                         BREthereumAddress recvAddress,
@@ -187,7 +188,7 @@ walletCreateTransaction(BREthereumWallet wallet,
              amount,
              walletGetDefaultGasPrice(wallet),
              walletGetDefaultGasLimit(wallet),
-             walletIncrementNonce(wallet));
+             addressGetThenIncrementNonce(wallet->address));
 }
 
 extern BREthereumTransaction
@@ -196,7 +197,7 @@ walletCreateTransactionDetailed(BREthereumWallet wallet,
                                 BREthereumAmount amount,
                                 BREthereumGasPrice gasPrice,
                                 BREthereumGas gasLimit,
-                                int nonce) {
+                                uint64_t nonce) {
   assert (walletGetAmountType(wallet) == amountGetType(amount));
   assert (AMOUNT_ETHER == amountGetType(amount)
           || 1 /*(wallet->token == tokenQuantityGetToken (holdingGetTokenQuantity(amount)))*/);
@@ -214,10 +215,20 @@ walletCreateTransactionDetailed(BREthereumWallet wallet,
                                                         gasPrice,
                                                         gasLimit,
                                                         nonce);
-  // No ordering, as of yet.
-  array_add (wallet->transactions, transaction);
+  walletHandleTransaction(wallet, transaction);
   return transaction;
 }
+
+private_extern void
+walletHandleTransaction (BREthereumWallet wallet,
+                         BREthereumTransaction transaction) {
+  // No ordering...
+  array_add (wallet->transactions, transaction);
+}
+
+//
+// Transaction Signing and Encoding
+//
 
 /**
  * Sign the transaction.
@@ -230,6 +241,9 @@ extern void
 walletSignTransaction(BREthereumWallet wallet,
                       BREthereumTransaction transaction,
                       const char *paperKey) {
+
+    // TODO: This is overkill...
+    assert (transactionGetNonce(transaction) + 1 == addressGetNonce(wallet->address));
 
     // RLP Encode the UNSIGNED transaction
     BRRlpData transactionUnsignedRLP = transactionEncodeRLP
@@ -280,6 +294,10 @@ walletGetRawTransactionHexEncoded (BREthereumWallet wallet,
   return result;
 }
 
+//
+// Wallet 'Field' Accessors
+//
+
 extern BREthereumAddress
 walletGetAddress (BREthereumWallet wallet) {
   return wallet->address;
@@ -295,16 +313,20 @@ walletGetToken (BREthereumWallet wallet) {
   return wallet->token;
 }
 
+// Balance
+
 extern BREthereumAmount
 walletGetBalance (BREthereumWallet wallet) {
   return wallet->balance;
 }
 
-extern void
+private_extern void
 walletSetBalance (BREthereumWallet wallet,
                   BREthereumAmount balance) {
   wallet->balance = balance;
 }
+
+// Gas Limit
 
 extern BREthereumGas
 walletGetDefaultGasLimit(BREthereumWallet wallet) {
@@ -321,9 +343,7 @@ walletCreateDefaultGasLimit (BREthereumWallet wallet) {
   return amountGetGasEstimate(wallet->balance);
 }
 
-//
 // Gas Price
-//
 
 extern BREthereumGasPrice
 walletGetDefaultGasPrice(BREthereumWallet wallet) {
@@ -349,27 +369,21 @@ walletCreateDefaultGasPrice (BREthereumWallet wallet) {
 }
 
 //
-// Nonce
+// Transaction 'Observation'
 //
 
 extern int
-walletGetNonce(BREthereumWallet wallet) {
-    return wallet->nonce;
-}
-
-extern int
-walletIncrementNonce(BREthereumWallet wallet) {
-    return ++wallet->nonce;
-}
-
-//
-// Transactions
-//
-extern int
-transactionPredicateAny (void *context,
+transactionPredicateAny (void *ignore,
                          BREthereumTransaction transaction,
                          unsigned int index) {
   return 1;
+}
+
+extern int
+transactionPredicateStatus (BREthereumTransactionStatus status,
+                            BREthereumTransaction transaction,
+                            unsigned int index) {
+  return status == transactionGetStatus(transaction);
 }
 
 extern void
@@ -400,7 +414,7 @@ walletGetTransactionByNonce (BREthereumWallet wallet,
   return NULL;
 }
 
-extern BREthereumTransaction
+private_extern BREthereumTransaction
 walletGetTransactionById (BREthereumWallet wallet,
                           BREthereumLightNodeTransactionId transactionId) {
   for (int i = 0; i < array_count(wallet->transactions); i++)
@@ -417,7 +431,7 @@ walletGetTransactionCount (BREthereumWallet wallet) {
 //
 // Transaction State
 //
-extern void
+private_extern void
 walletTransactionSubmitted (BREthereumWallet wallet,
                             BREthereumTransaction transaction,
                             BREthereumHash hash) {
@@ -425,13 +439,13 @@ walletTransactionSubmitted (BREthereumWallet wallet,
   // balance updated?
 }
 
-extern void
+private_extern void
 walletTransactionBlocked (BREthereumWallet wallet,
                             BREthereumTransaction transaction) {
   transactionAnnounceBlocked (transaction, 0);
 }
 
-extern void
+private_extern void
 walletTransactionDropped (BREthereumWallet wallet,
                             BREthereumTransaction transaction) {
   transactionAnnounceDropped (transaction, 0);

@@ -31,28 +31,48 @@
 // Returns Ether appropriate for encoding a transaction.  If the transaction is for a TOKEN,
 // then the returned Ether is zero (because the amount of a TOKEN transfer is encoded in the
 // contract's function call, in the transaction.data field).
-extern BREthereumEther
+private_extern BREthereumEther
 transactionGetEffectiveAmountInEther (BREthereumTransaction transaction);
 
-extern BREthereumTransaction
+private_extern BREthereumTransaction
 walletGetTransactionById (BREthereumWallet wallet,
                           BREthereumLightNodeTransactionId transactionId);
 
-extern void
+private_extern void
 walletSetBalance (BREthereumWallet wallet,
                   BREthereumAmount balance);
 
-extern void
+private_extern void
 walletTransactionSubmitted (BREthereumWallet wallet,
                             BREthereumTransaction transaction,
                             BREthereumHash hash); // ....
 
-extern void
+private_extern void
 walletTransactionBlocked (BREthereumWallet wallet,
                           BREthereumTransaction transaction);
 
-extern void
+private_extern void
 walletTransactionDropped (BREthereumWallet wallet,
                           BREthereumTransaction transaction);
+
+private_extern void
+walletHandleTransaction (BREthereumWallet wallet,
+                         BREthereumTransaction transaction);
+//
+// Address
+//
+
+private_extern void
+addressSetNonce(BREthereumAddress address,
+                uint64_t nonce);
+
+private_extern uint64_t
+addressGetThenIncrementNonce(BREthereumAddress address);
+
+//
+// Token Lookup
+//
+private_extern BREthereumToken
+tokenLookup (const char *address);
 
 #endif /* BR_Ethereum_Private_H */

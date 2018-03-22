@@ -51,7 +51,7 @@ extern UInt256
 createUInt256 (uint64_t value);
 
 /**
- * Create as `(expt 10 power)`
+ * Create as `(expt 10 power)` where power < 20 is required.
  */
 extern UInt256
 createUInt256Power (uint8_t power, int *overflow);

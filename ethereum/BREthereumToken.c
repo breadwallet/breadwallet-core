@@ -25,6 +25,7 @@
 
 #include <string.h>
 #include <assert.h>
+#include "BRArray.h"
 #include "BREthereumToken.h"
 #include "BREthereum.h"
 
@@ -98,6 +99,20 @@ tokenGetGasPrice (BREthereumToken token) {
 extern BREthereumContract
 tokenGetContract (BREthereumToken token) {
   return contractERC20;
+}
+
+static BREthereumToken *tokens = NULL;
+
+private_extern BREthereumToken
+tokenLookup (const char *address) {
+  if (NULL == tokens) {
+    array_new(tokens, 10);
+    array_add(tokens, tokenBRD);
+  }
+  for (int i = 0; i < array_count(tokens); i++)
+    if (0 == strcasecmp (address, tokens[i]->address))
+      return tokens[i];
+  return NULL;
 }
 
 struct BREthereumTokenRecord tokenBRDRecord = {
