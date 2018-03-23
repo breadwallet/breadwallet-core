@@ -37,25 +37,42 @@ provideData (BREthereumTransaction transaction);
 static void
 provideGasEstimate (BREthereumTransaction transaction);
 
-//    "blockNumber":"1627184",
-//    "timeStamp":"1516477482",
-//    "hash":"0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
-//    "nonce":"118",
-//    "blockHash":"0x0ef0110d68ee3af220e0d7c10d644fea98252180dbfc8a94cab9f0ea8b1036af",
-//    "transactionIndex":"3",
-//    "from":"0x0ea166deef4d04aaefd0697982e6f7aa325ab69c",
-//    "to":"0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
-//    "value":"11113000000000",
-//    "gas":"21000",
-//    "gasPrice":"21000000000",
-//    "isError":"0",
-//    "txreceipt_status":"1",
-//    "input":"0x",
-//    "contractAddress":"",
-//    "cumulativeGasUsed":"106535",
-//    "gasUsed":"21000",
-//    "confirmations":"339050"}
+//
+// Transaction Hash
+//
+extern BREthereumHash
+hashCreate (const char *string) {
+    return strdup (string);
+}
 
+extern BREthereumHash
+hashCreateEmpty (void) {
+    return NULL;
+}
+
+extern BREthereumBoolean
+hashExists (BREthereumHash hash) {
+    return NULL != hash;
+}
+
+extern BREthereumHash
+hashCopy(BREthereumHash hash) {
+    return strdup (hash);
+}
+
+extern BREthereumComparison
+hashCompare(BREthereumHash hash1, BREthereumHash hash2) {
+    int result = strcasecmp(hash1, hash2);
+    return (result == 0
+            ? ETHEREUM_COMPARISON_EQ
+            : (result < 0
+               ? ETHEREUM_COMPARISON_LT
+               : ETHEREUM_COMPARISON_GT));
+}
+
+//
+// Transaction State
+//
 typedef struct {
   BREthereumTransactionStatus status;
   union {
@@ -146,7 +163,9 @@ struct BREthereumTransactionRecord {
    */
   char *data;
 
-  // hash
+  /**
+   * The transaction's hash.   This will be 'empty' until the transaction is submitted.
+   */
   BREthereumHash hash;
 
   /**
@@ -325,7 +344,7 @@ transactionIsSigned (BREthereumTransaction transaction) {
           : ETHEREUM_BOOLEAN_FALSE);
 }
 
-extern BREthereumHash
+extern const BREthereumHash
 transactionGetHash (BREthereumTransaction transaction) {
   return transaction->hash;
 }
@@ -449,15 +468,15 @@ transactionGetEffectiveAmountInEther (BREthereumTransaction transaction) {
   }
 }
 
-extern BRTransactionComparison
+extern BREthereumComparison
 transactionCompare (BREthereumTransaction t1,
                     BREthereumTransaction t2) {
   // nothing yet, really
   return (t1->nonce < t2->nonce
-          ? TRANSACTION_COMPARISON_LT
+          ? ETHEREUM_COMPARISON_LT
           : (t1->nonce == t2->nonce
-             ? TRANSACTION_COMPARISON_EQ
-             : TRANSACTION_COMPARISON_GT));
+             ? ETHEREUM_COMPARISON_EQ
+             : ETHEREUM_COMPARISON_GT));
 }
 
 extern BREthereumTransactionStatus
@@ -481,7 +500,7 @@ extern void
 transactionAnnounceSubmitted (BREthereumTransaction transaction,
                               BREthereumHash hash) {
   transactionStateSubmitted(&transaction->state);
-  transaction->hash = hash;
+  transaction->hash = hashCopy(hash);
 }
 
 //

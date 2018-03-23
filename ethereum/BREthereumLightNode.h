@@ -374,6 +374,7 @@ lightNodeGetTransactionRawDataHexEncoded(BREthereumLightNode node,
 // a 'light node client' can get the announced transactions using non-JSON_RPC interfaces.
 extern void
 lightNodeAnnounceTransaction(BREthereumLightNode node,
+                             const char *hash,
                              const char *from,
                              const char *to,
                              const char *contract,
@@ -381,7 +382,17 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
                              const char *gasLimit,
                              const char *gasPrice,
                              const char *data,
-                             const char *nonce);
+                             const char *nonce,
+                             const char *gasUsed,
+                             const char *blockNumber,
+                             const char *blockHash,
+                             const char *blockConfirmations,
+                             const char *blockTransactionIndex,
+                             const char *blockTimestamp,
+                             // cumulative gas used,
+                             // confirmations
+                             // txreceipt_status
+                             const char *isError);
 
 #endif // ETHEREUM_LIGHT_NODE_USE_JSON_RPC
 

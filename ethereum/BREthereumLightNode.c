@@ -506,6 +506,7 @@ lightNodeGetTransactionRawDataHexEncoded(BREthereumLightNode node,
 
 extern void
 lightNodeAnnounceTransaction(BREthereumLightNode node,
+                             const char *hashString,
                              const char *from,
                              const char *to,
                              const char *contract,
@@ -513,94 +514,115 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
                              const char *gasLimitString,
                              const char *gasPriceString,
                              const char *data,
-                             const char *nonceString) {
-  BREthereumTransaction transaction = NULL;
-  BREthereumToken token = NULL;
-  BREthereumAddress sourceAddr = accountGetPrimaryAddress(node->account);
-  int newTransaction = 0;
+                             const char *nonceString,
+                             const char *gasUsed,
+                             const char *blockNumber,
+                             const char *blockHash,
+                             const char *blockConfirmations,
+                             const char *blockTransactionIndex,
+                             const char *blockTimestamp,
+        // cumulative gas used,
+        // confirmations
+        // txreceipt_status
+                             const char *isError) {
+    BREthereumTransaction transaction = NULL;
+    BREthereumToken token = NULL;
+    BREthereumAddress sourceAddr = accountGetPrimaryAddress(node->account);
+    int newTransaction = 0;
 
-  char *address = addressAsString(sourceAddr);
-  assert (0 == strcmp (from, address));
-  free (address);
+    char *address = addressAsString(sourceAddr);
+    assert (0 == strcmp(from, address));
+    free(address);
 
-  // TODO: Assumes `nonce` is uint64_t; which it is.
-  uint64_t nonce = strtoull (nonceString, NULL, 10);
+    BREthereumHash hash = hashCreate(hashString);
 
-  // Update the sourceAddr nonce.
-  if (nonce >= addressGetNonce(sourceAddr))
-    addressSetNonce(sourceAddr, nonce + 1);  // next
+    // TODO: Assumes `nonce` is uint64_t; which it is.
+    uint64_t nonce = strtoull(nonceString, NULL, 10);
 
-  // Walk the transactions looking for a pre-existing one with 'nonce'
-  for (int i = 0; i < array_count(node->transactions); i++)
-    if (nonce == transactionGetNonce(node->transactions[i])) {
-      transaction = node->transactions[i];
-      break;
+    // Update the sourceAddr nonce.
+    if (nonce >= addressGetNonce(sourceAddr))
+        addressSetNonce(sourceAddr, nonce + 1);  // next
+
+    // Walk the transactions looking for a pre-existing one with 'nonce'
+    for (int i = 0; i < array_count(node->transactions); i++)
+        if (nonce == transactionGetNonce(node->transactions[i])) {
+            transaction = node->transactions[i];
+            break;
+        }
+
+    // If we didn't have a transaction with 'nonce'; then create one.
+    if (NULL == transaction) {
+        BRCoreParseStatus status;
+        BREthereumAddress targetAddr = createAddress(to);
+        BREthereumAddress contractAddr = (NULL == contract || '\0' == contract[0]
+                                          ? NULL
+                                          : createAddress(contract));
+
+        // See if we have a token defined.
+        token = (NULL == contractAddr ? NULL : tokenLookup(contract));
+
+        // Get the amount; this can be tricky if we have a token
+        // TODO: Quit faking this.
+        BREthereumAmount amount = amountCreateEther(
+                etherCreate(createUInt256Parse(amountString, 16, &status)));
+
+        // Easily extract the gasPrice and gasLimit.
+        BREthereumGasPrice gasPrice = gasPriceCreate(
+                etherCreate(createUInt256Parse(gasPriceString, 16, &status)));
+        BREthereumGas gasLimit = gasCreate(strtoull(gasLimitString, NULL, 0));
+
+        // TODO: 'Deconvolve' the `data` based on `token`
+
+        // Finally, get ourselves a transaction.
+        transaction = transactionCreate(sourceAddr,
+                                        targetAddr,
+                                        amount,
+                                        gasPrice,
+                                        gasLimit,
+                                        nonce);
+        // With transaction defined - including with a properly typed amount; we should be able
+        // to validate based, in part, on strcmp(data, transaction->data)
+
+        array_add (node->transactions, transaction);
+        newTransaction = 1;
     }
 
-  // If we didn't have a transaction with 'nonce'; then create one.
-  if (NULL == transaction) {
-    BRCoreParseStatus status;
-    BREthereumAddress targetAddr = createAddress(to);
-    BREthereumAddress contractAddr = (NULL == contract || '\0' == contract[0]
-                                      ? NULL
-                                      : createAddress(contract));
+    // Other properties
+    // hash
+    // state (block, etc)
 
-    // See if we have a token defined.
-    token = (NULL == contractAddr ? NULL : tokenLookup(contract));
+    BREthereumWallet wallet = NULL;
 
-    // Get the amount; this can be tricky if we have a token
-    // TODO: Quit faking this.
-    BREthereumAmount amount = amountCreateEther (etherCreate (createUInt256Parse(amountString, 16, &status)));
-
-    // Easily extract the gasPrice and gasLimit.
-    BREthereumGasPrice gasPrice = gasPriceCreate (etherCreate (createUInt256Parse(gasPriceString, 16, &status)));
-    BREthereumGas gasLimit = gasCreate(strtoull (gasLimitString, NULL, 0));
-
-    // TODO: 'Deconvolve' the `data` based on `token`
-
-    // Finally, get ourselves a transaction.
-    transaction = transactionCreate (sourceAddr,
-                                     targetAddr,
-                                     amount,
-                                     gasPrice,
-                                     gasLimit,
-                                     nonce);
-    // With transaction defined - including with a properly typed amount; we should be able
-    // to validate based, in part, on strcmp(data, transaction->data)
-
-    array_add (node->transactions, transaction);
-    newTransaction = 1;
-  }
-
-  // Other properties
-  // hash
-  // state (block, etc)
-
-  BREthereumWallet wallet = NULL;
-
-  // Find a wallet.
-  for (int i = 0; i < array_count(node->wallets); i++) {
-    // If we have a token and it matches wallet OR we don't have a token and wallet's doesn't either
-    if ((NULL != token && token == walletGetToken(node->wallets[i]))
-        || (NULL == token && NULL == walletGetToken(node->wallets[i]))) {
-      wallet = node->wallets[i];
-      break;
+    // Find a wallet.
+    for (int i = 0; i < array_count(node->wallets); i++) {
+        // If we have a token and it matches wallet OR we don't have a token and wallet's doesn't either
+        if ((NULL != token && token == walletGetToken(node->wallets[i]))
+            || (NULL == token && NULL == walletGetToken(node->wallets[i]))) {
+            wallet = node->wallets[i];
+            break;
+        }
     }
-  }
 
-  // No wallet; create one
-  if (NULL == wallet) {
-    wallet = (NULL != token
-              ? walletCreateHoldingToken(node->account, node->configuration.network, token)
-              : walletCreate(node->account, node->configuration.network));
-    array_add (node->wallets, wallet);
-  }
+    // No wallet; create one
+    if (NULL == wallet) {
+        wallet = (NULL != token
+                  ? walletCreateHoldingToken(node->account, node->configuration.network, token)
+                  : walletCreate(node->account, node->configuration.network));
+        array_add (node->wallets, wallet);
+    }
 
-  if (1 == newTransaction)
-    walletHandleTransaction(wallet, transaction);
+    if (1 == newTransaction) {
+        // This transaction is in wallet.
+        walletHandleTransaction(wallet, transaction);
+        // In this callback implies submitted.
+        walletTransactionSubmitted(wallet, transaction, hash);
+    }
 
-  // TODO: Process 'state' properly
-  // walletTransactionSubmitted(wallet, transaction, hash);
+    // Build a block-ish
+    //   Add to node
+
+    // TODO: Process 'state' properly - errors?
+    walletTransactionBlocked(wallet, transaction);
 }
 
 //  {
@@ -671,7 +693,7 @@ lightNodeGetTransactionProperty (BREthereumLightNode node,
                                  BREthereumLightNodeWalletId wallet,
                                  BREthereumLightNodeTransactionId transactionId,
                                  BREthereumTransactionProperty property) {
-  BREthereumTransaction transaction = lightNodeLookupTransaction(node, wallet, transactionId);
+  BREthereumTransaction transaction = (BREthereumTransaction) transactionId; // lightNodeLookupTransaction(node, wallet, transactionId);
   if (NULL == transaction) return NULL;
 
   switch (property) {

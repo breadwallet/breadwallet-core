@@ -24,27 +24,34 @@
  */
 package com.breadwallet.core.ethereum;
 
-public class BREthereumWallet  extends BREthereumLightNode.Reference {
+/**
+ * An EthereumWallet holds either ETHER or TOKEN values.
+ */
+public class BREthereumWallet extends BREthereumLightNode.Reference {
+
+    //
+    // The Unit to use when displaying amounts - such as a wallet balance.
+    //
+    public enum Unit {
+        TOKEN_DECIMAL(0),
+        TOKEN_INTEGER(1),
+
+        ETHER_WEI(0),
+        ETHER_GWEI(3),
+        ETHER_ETHER(6);
+
+        // jniValue must match Core enum for:
+        //    BREthereumUnit and BREthereumTokenQuantityUnit
+        protected long jniValue;
+
+        Unit(long jniValue) {
+            this.jniValue = jniValue;
+        }
+    };
 
     private BREthereumAccount account;
     private BREthereumNetwork network;
     private BREthereumToken   token = null;
-
-    protected BREthereumWallet (BREthereumLightNode node, long identifier,
-                                BREthereumAccount account,
-                                BREthereumNetwork network) {
-        super (node, identifier);
-        this.account = account;
-        this.network = network;
-    }
-
-    protected BREthereumWallet (BREthereumLightNode node, long identifier,
-                                BREthereumAccount account,
-                                BREthereumNetwork network,
-                                BREthereumToken token) {
-        this (node, identifier, account, network);
-        this.token = token;
-    }
 
     public BREthereumAccount getAccount () {
         return account;
@@ -58,7 +65,92 @@ public class BREthereumWallet  extends BREthereumLightNode.Reference {
         return token;
     }
 
+    public boolean walletHoldsEther () {
+        return null == token;
+    }
+
+    //
+    // Constructors
+    //
+
+    protected BREthereumWallet (BREthereumLightNode node, long identifier,
+                                BREthereumAccount account,
+                                BREthereumNetwork network) {
+        super (node, identifier);
+        this.account = account;
+        this.network = network;
+        this.defaultUnit = Unit.ETHER_ETHER;
+    }
+
+    protected BREthereumWallet (BREthereumLightNode node, long identifier,
+                                BREthereumAccount account,
+                                BREthereumNetwork network,
+                                BREthereumToken token) {
+        this (node, identifier, account, network);
+        this.token = token;
+        this.defaultUnit = Unit.TOKEN_INTEGER;
+    }
+
+    //
+    // (Default) Unit
+    //
+    protected Unit defaultUnit;
+
+    public Unit getDefaultUnit() {
+        return defaultUnit;
+    }
+
+    public void setDefaultUnit(Unit unit) {
+        validUnitOrException(unit);
+        this.defaultUnit = unit;
+    }
+
+    protected boolean validUnit(Unit unit) {
+        return (null == token
+                ? (unit == Unit.ETHER_WEI || unit == Unit.ETHER_GWEI || unit == Unit.ETHER_ETHER)
+                : (unit == Unit.TOKEN_DECIMAL || unit == Unit.TOKEN_INTEGER));
+    }
+
+    protected void validUnitOrException (Unit unit) {
+        if (!validUnit(unit))
+            throw new IllegalArgumentException("Invalid Unit for Wallet type: " + unit.toString());
+    }
+
+    //
+    // Balance
+    //
+
     public String getBalance () {
-        return node.get().jniGetWalletBalance(identifier);
+        return getBalance(defaultUnit);
+    }
+
+    public String getBalance(Unit unit) {
+        validUnitOrException(unit);
+        return node.get().jniGetWalletBalance(identifier, unit.jniValue);
+    }
+
+    //
+    // Transactions
+    //
+    public BREthereumTransaction createTransaction (String targetAddress,
+                                                    String amount,
+                                                    Unit amountUnit) {
+        long transaction = node.get().jniCreateTransaction(identifier, targetAddress, amount, amountUnit.jniValue);
+        return new BREthereumTransaction(node.get(), transaction);
+    }
+
+    // getAll
+    // getByX
+    // getByY
+
+    // sign
+    public void sign (BREthereumTransaction transaction,
+                      String paperKey) {
+        node.get().jniSignTransaction(identifier, transaction.identifier, paperKey);
+    }
+
+    // submit
+    public void submit (BREthereumTransaction transaction) {
+        node.get().jniSubmitTransaction(identifier, transaction.identifier);
     }
  }

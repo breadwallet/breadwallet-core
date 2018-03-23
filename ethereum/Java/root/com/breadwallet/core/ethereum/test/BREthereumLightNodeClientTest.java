@@ -29,6 +29,7 @@ import com.breadwallet.core.ethereum.BREthereumAccount;
 import com.breadwallet.core.ethereum.BREthereumLightNode;
 import com.breadwallet.core.ethereum.BREthereumNetwork;
 import com.breadwallet.core.ethereum.BREthereumToken;
+import com.breadwallet.core.ethereum.BREthereumTransaction;
 import com.breadwallet.core.ethereum.BREthereumWallet;
 
 /**
@@ -79,6 +80,7 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
         asserting (null != node);
         // Query, then for-each...
         node.announceTransaction(
+                "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
                 node.getAddress(),
                 "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",        // NON-NLS
                 "",  // NON-NLS
@@ -86,7 +88,14 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
                 "21000",
                 "21000000000",
                 "",
-                "118");
+                "118",
+                "21000",
+                "1627184",
+                "0x0ef0110d68ee3af220e0d7c10d644fea98252180dbfc8a94cab9f0ea8b1036af",
+                "339050",
+                "3",
+                "1516477482",
+                "0");
     }
 
     private static final String RANDOM_TEST_PAPER_KEY =
@@ -95,15 +104,24 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
     private static final String USABLE_PAPER_KEY =
             "ginger settle marine tissue robot crane night number ramp coast roast critic";
 
+    private static boolean runMain = true;
+    private static int runCount = 0;
 
     public static void main(String[] args) {
+        if (!runMain)return;
+        runMain = false;
+        runCount++;
+
         BREthereumLightNodeClientTest client = new BREthereumLightNodeClientTest();
 
         BREthereumLightNode node = new BREthereumLightNode.JSON_RPC(client, BREthereumNetwork.testnet, USABLE_PAPER_KEY);
         BREthereumAccount account = node.getAccount();
 
         BREthereumWallet walletEther = node.getWallet();
+        walletEther.setDefaultUnit(BREthereumWallet.Unit.ETHER_WEI);
+
         BREthereumWallet walletToken = node.createWallet(BREthereumToken.tokenBRD);
+        walletToken.setDefaultUnit(BREthereumWallet.Unit.TOKEN_DECIMAL);
 
         asserting ("0".equals(walletEther.getBalance()));
 
@@ -112,6 +130,13 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
         asserting (Integer.parseInt("123f", 16) == Integer.parseInt(walletEther.getBalance()));
 
         node.forceTransactionUpdate(walletEther);
+
+        BREthereumTransaction trans1 = walletEther.createTransaction(
+                "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
+                "11113000000000",
+                BREthereumWallet.Unit.ETHER_WEI);
+        walletEther.sign(trans1, USABLE_PAPER_KEY);
+        walletEther.submit(trans1);
 
         node.disconnect();
         System.out.println("Success");

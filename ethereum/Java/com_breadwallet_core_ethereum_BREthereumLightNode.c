@@ -167,22 +167,20 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetAccountPrimaryAddre
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniGetWalletBalance
- * Signature: (J)Ljava/lang/String;
+ * Signature: (JJ)Ljava/lang/String;
  */
-JNIEXPORT jstring JNICALL
-Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetWalletBalance
-        (JNIEnv *env, jobject thisObject, jlong walletId) {
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetWalletBalance
+        (JNIEnv *env, jobject thisObject, jlong walletId, jlong unit) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
     BREthereumWallet wallet = (BREthereumWallet) walletId;
     BREthereumAmount balance = walletGetBalance(wallet);
 
     char *number = (AMOUNT_ETHER == amountGetType(balance)
-                    ? etherGetValueString(balance.u.ether, WEI)
-                    : tokenQuantityGetValueString(balance.u.tokenQuantity,
-                                                  TOKEN_QUANTITY_TYPE_DECIMAL));
+                    ? etherGetValueString(balance.u.ether, unit)
+                    : tokenQuantityGetValueString(balance.u.tokenQuantity, unit));
 
-    jstring result = (*env)->NewStringUTF (env, number);
-    free (number);
+    jstring result = (*env)->NewStringUTF(env, number);
+    free(number);
     return result;
 }
 
@@ -214,15 +212,14 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniForceTransactionUpdate
     lightNodeUpdateTransactions(node);
 }
 
-
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniAnnounceTransaction
- * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
  */
-JNIEXPORT void JNICALL
-Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceTransaction
+JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceTransaction
         (JNIEnv *env, jobject thisObject,
+         jstring hashObject,
          jstring toObject,
          jstring fromObject,
          jstring contractObject,
@@ -230,10 +227,17 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceTransaction
          jstring gasLimitObject,
          jstring gasPriceObject,
          jstring dataObject,
-         jstring nonceObject) {
+         jstring nonceObject,
+         jstring gasUsedObject,
+         jstring blockNumberObject,
+         jstring blockHashObject,
+         jstring blockConfirmationsObject,
+         jstring blockTransactionIndexObject,
+         jstring blockTimestampObject,
+         jstring isErrorObject) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
-
     lightNodeAnnounceTransaction(node,
+                                 (*env)->GetStringUTFChars (env, hashObject, 0),
                                  (*env)->GetStringUTFChars (env, toObject, 0),
                                  (*env)->GetStringUTFChars (env, fromObject, 0),
                                  (*env)->GetStringUTFChars (env, contractObject, 0),
@@ -241,7 +245,105 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceTransaction
                                  (*env)->GetStringUTFChars (env, gasLimitObject, 0),
                                  (*env)->GetStringUTFChars (env, gasPriceObject, 0),
                                  (*env)->GetStringUTFChars (env, dataObject, 0),
-                                 (*env)->GetStringUTFChars (env, nonceObject, 0));
+                                 (*env)->GetStringUTFChars (env, nonceObject, 0),
+                                 (*env)->GetStringUTFChars (env, gasUsedObject, 0),
+                                 (*env)->GetStringUTFChars (env, blockNumberObject, 0),
+                                 (*env)->GetStringUTFChars (env, blockHashObject, 0),
+                                 (*env)->GetStringUTFChars (env, blockConfirmationsObject, 0),
+                                 (*env)->GetStringUTFChars (env, blockTransactionIndexObject, 0),
+                                 (*env)->GetStringUTFChars (env, blockTimestampObject, 0),
+                                 (*env)->GetStringUTFChars (env, isErrorObject, 0));
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniCreateTransaction
+ * Signature: (JLjava/lang/String;Ljava/lang/String;J)J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateTransaction
+        (JNIEnv *env, jobject thisObject,
+         jlong walletId,
+         jstring toObject,
+         jstring amountObject,
+         jlong amountUnit) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+    BREthereumWallet wallet = (BREthereumWallet) walletId; // TODO: Unfair to simply cast (but correct at the moment).
+    BREthereumToken token = walletGetToken(wallet);
+
+    // Get an actual Amount
+    BRCoreParseStatus status = CORE_PARSE_OK;
+    const char *amountChars = (*env)->GetStringUTFChars (env, amountObject, 0);
+    BREthereumAmount amount = NULL == token
+                              ? amountCreateEtherString(amountChars, amountUnit, &status)
+                              : amountCreateTokenQuantityString(token, amountChars, amountUnit, 0);
+
+    return (long) lightNodeWalletCreateTransaction(node,
+                                                   (BREthereumLightNodeWalletId) walletId,
+                                                   (*env)->GetStringUTFChars(env, toObject, 0),
+                                                   amount);
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniSignTransaction
+ * Signature: (JJLjava/lang/String;)V
+ */
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniSignTransaction
+        (JNIEnv *env, jobject thisObject,
+         jlong walletId,
+         jlong transactionId,
+         jstring paperKey) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+    lightNodeWalletSignTransaction(node,
+                                   (BREthereumLightNodeWalletId) walletId,
+                                   (BREthereumLightNodeTransactionId) transactionId,
+                                   (*env)->GetStringUTFChars (env, paperKey, 0));
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniSubmitTransaction
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniSubmitTransaction
+        (JNIEnv *env, jobject thisObject,
+         jlong walletId,
+         jlong transactionId) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+    lightNodeWalletSubmitTransaction(node,
+                                   (BREthereumLightNodeWalletId) walletId,
+                                   (BREthereumLightNodeTransactionId) transactionId);
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniGetTransactionProperties
+ * Signature: (J[J)[Ljava/lang/String;
+ */
+JNIEXPORT jobjectArray JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetTransactionProperties
+        (JNIEnv *env, jobject thisObject,
+         jlong transactionId,
+         jlongArray propertyIndices) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+
+    jsize stringsCount = (*env)->GetArrayLength (env, propertyIndices);
+    jobjectArray strings = (*env)->NewObjectArray (env, stringsCount,
+                                                   (*env)->FindClass(env, "java/lang/String"),
+                                                   0);
+    jlong *indices = (*env)->GetLongArrayElements (env, propertyIndices, 0);
+
+    for (int i = 0; i < stringsCount; i++) {
+        char *string = lightNodeGetTransactionProperty(node,
+                                                       (BREthereumLightNodeWalletId) 0,
+                                                       (BREthereumLightNodeTransactionId) transactionId,
+                                                       (BREthereumTransactionProperty) indices[i]);
+        (*env)->SetObjectArrayElement(env, strings, i, (*env)->NewStringUTF(env, string));
+    }
+    return strings;
 }
 
 /*

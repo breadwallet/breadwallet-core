@@ -44,19 +44,19 @@ public class BREthereumLightNode extends BRCoreJniReference {
     }
 
     public interface ClientJSON_RPC extends Client {
-        // typedef const char* (*JsonRpcGetBalance) (JsonRpcContext context, int id, const char *account);
+        // typedef const char* (*JsonRpcGetBalance) (JsonRpcContext context, int id, String account);
         String getBalance(int id, String account);
 
         // typedef const char* (*JsonRpcGetGasPrice) (JsonRpcContext context, int id);
         String getGasPrice(int id);
 
-        // typedef const char* (*JsonRpcEstimateGas) (JsonRpcContext context, int id, const char *to, const char *amount, const char *data);
+        // typedef const char* (*JsonRpcEstimateGas) (JsonRpcContext context, int id, String to, String amount, String data);
         String getGasEstimate(int id, String to, String amount, String data);
 
-        // typedef const char* (*JsonRpcSubmitTransaction) (JsonRpcContext context, int id, const char *transaction);
+        // typedef const char* (*JsonRpcSubmitTransaction) (JsonRpcContext context, int id, String transaction);
         String submitTransaction(int id, String rawTransaction);
 
-        // typedef void (*JsonRpcGetTransactions) (JsonRpcContext context, int id, const char *account,
+        // typedef void (*JsonRpcGetTransactions) (JsonRpcContext context, int id, String account,
         //                                         JsonRpcAnnounceTransaction announceTransaction,
         //                                         JsonRpcAnnounceTransactionContext announceTransactionContext);
         void getTransactions(int id, String account);
@@ -166,15 +166,28 @@ public class BREthereumLightNode extends BRCoreJniReference {
         jniForceTransactionUpdate();
     }
 
-    public void announceTransaction(String from,
+    public void announceTransaction(String hash,
+                                    String from,
                                     String to,
                                     String contract,
-                                    String amount,
+                                    String amount, // value
                                     String gasLimit,
                                     String gasPrice,
                                     String data,
-                                    String nonce) {
-        jniAnnounceTransaction(from, to, contract, amount, gasLimit, gasPrice, data, nonce);
+                                    String nonce,
+                                    String gasUsed,
+                                    String blockNumber,
+                                    String blockHash,
+                                    String blockConfirmations,
+                                    String blockTransactionIndex,
+                                    String blockTimestamp,
+                                    // cumulative gas used,
+                                    // confirmations
+                                    // txreceipt_status
+                                    String isError) {
+        jniAnnounceTransaction(hash, from, to, contract, amount, gasLimit, gasPrice, data, nonce, gasUsed,
+                blockNumber, blockHash, blockConfirmations, blockTransactionIndex, blockTimestamp,
+                isError);
     }
 
 
@@ -193,20 +206,46 @@ public class BREthereumLightNode extends BRCoreJniReference {
     protected native long jniLightNodeCreateWalletToken(long tokenId);
 
     protected native String jniGetAccountPrimaryAddress(long acountId);
-    protected native String jniGetWalletBalance (long walletId);
+    protected native String jniGetWalletBalance (long walletId, long unit);
 
     protected native void jniForceWalletBalanceUpdate(long wallet);
 
     protected native void jniForceTransactionUpdate();
 
-    protected native void jniAnnounceTransaction(String from,
+    protected native void jniAnnounceTransaction(String hash,
+                                                 String from,
                                                  String to,
                                                  String contract,
-                                                 String amount,
+                                                 String amount, // value
                                                  String gasLimit,
                                                  String gasPrice,
                                                  String data,
-                                                 String nonce);
+                                                 String nonce,
+                                                 String gasUsed,
+                                                 String blockNumber,
+                                                 String blockHash,
+                                                 String blockConfirmations,
+                                                 String blockTransactionIndex,
+                                                 String blockTimestamp,
+                                                 // cumulative gas used,
+                                                 // confirmations
+                                                 // txreceipt_status
+                                                 String isError);
+
+    protected native long jniCreateTransaction (long walletId,
+                                                String to,
+                                                String amount,
+                                                long amountUnit);
+
+    protected native void jniSignTransaction (long walletId,
+                                              long transactionId,
+                                              String paperKey);
+
+    protected native void jniSubmitTransaction (long walletId,
+                                                long transactionId);
+
+    protected native String[] jniGetTransactionProperties (long transactionId,
+                                                           long properties[]);
 
     protected native boolean jniLightNodeConnect ();
     protected native boolean jniLightNodeDisconnect ();

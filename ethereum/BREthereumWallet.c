@@ -399,9 +399,12 @@ walletWalkTransactions (BREthereumWallet wallet,
 extern BREthereumTransaction
 walletGetTransactionByHash (BREthereumWallet wallet,
                             BREthereumHash hash) {
-  for (int i = 0; i < array_count(wallet->transactions); i++)
-    if (hash == transactionGetHash (wallet->transactions[i]))
-      return wallet->transactions [i];
+    if (hashExists(hash))
+        for (int i = 0; i < array_count(wallet->transactions); i++) {
+            BREthereumHash transactionHash = transactionGetHash(wallet->transactions[i]);
+            if (hashExists(transactionHash) && ETHEREUM_COMPARISON_EQ == hashCompare(hash, transactionHash))
+                return wallet->transactions[i];
+        }
   return NULL;
 }
 

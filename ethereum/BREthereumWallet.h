@@ -237,7 +237,7 @@ walletWalkTransactions (BREthereumWallet wallet,
 
 extern BREthereumTransaction
 walletGetTransactionByHash (BREthereumWallet wallet,
-                          BREthereumHash hash);
+                            BREthereumHash hash);
 
 extern BREthereumTransaction
 walletGetTransactionByNonce (BREthereumWallet wallet,

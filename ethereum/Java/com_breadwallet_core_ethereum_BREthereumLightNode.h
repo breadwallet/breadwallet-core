@@ -66,10 +66,10 @@ JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniGetWalletBalance
- * Signature: (J)Ljava/lang/String;
+ * Signature: (JJ)Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetWalletBalance
-  (JNIEnv *, jobject, jlong);
+  (JNIEnv *, jobject, jlong, jlong);
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
@@ -90,10 +90,42 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jn
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniAnnounceTransaction
- * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
  */
 JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceTransaction
-  (JNIEnv *, jobject, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jstring);
+  (JNIEnv *, jobject, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jstring, jstring);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniCreateTransaction
+ * Signature: (JLjava/lang/String;Ljava/lang/String;J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateTransaction
+  (JNIEnv *, jobject, jlong, jstring, jstring, jlong);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniSignTransaction
+ * Signature: (JJLjava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniSignTransaction
+  (JNIEnv *, jobject, jlong, jlong, jstring);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniSubmitTransaction
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniSubmitTransaction
+  (JNIEnv *, jobject, jlong, jlong);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniGetTransactionProperties
+ * Signature: (J[J)[Ljava/lang/String;
+ */
+JNIEXPORT jobjectArray JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetTransactionProperties
+  (JNIEnv *, jobject, jlong, jlongArray);
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode

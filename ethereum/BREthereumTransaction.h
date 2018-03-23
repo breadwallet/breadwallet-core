@@ -37,6 +37,29 @@
 extern "C" {
 #endif
 
+//
+// Hash
+//
+typedef char* BREthereumHash;
+
+extern BREthereumHash
+hashCreate (const char *string);
+
+extern BREthereumHash
+hashCreateEmpty (void);
+
+extern BREthereumBoolean
+hashExists (BREthereumHash hash);
+
+extern BREthereumHash
+hashCopy(BREthereumHash hash);
+
+extern BREthereumComparison
+hashCompare(BREthereumHash hash1, BREthereumHash hash2);
+
+//
+// Transaction
+//
 typedef struct BREthereumTransactionRecord *BREthereumTransaction;
 
 extern BREthereumTransaction
@@ -80,6 +103,9 @@ transactionSetGasEstimate (BREthereumTransaction transaction,
 extern uint64_t
 transactionGetNonce (BREthereumTransaction transaction);
 
+extern const BREthereumHash
+transactionGetHash (BREthereumTransaction transaction);
+
 /**
  * A token or null
  */
@@ -102,11 +128,6 @@ transactionGetSigner (BREthereumTransaction transaction);
 
 extern BREthereumBoolean
 transactionIsSigned (BREthereumTransaction transaction);
-
-typedef int BREthereumHash;
-
-extern BREthereumHash
-transactionGetHash (BREthereumTransaction transaction);
 
 //
 // RLP Encoding
@@ -132,16 +153,11 @@ createTransactionDecodeRLP (BRRlpData data,
 //
 // Transaction Comparison
 //
-typedef enum {
-  TRANSACTION_COMPARISON_LT = -1,
-  TRANSACTION_COMPARISON_EQ =  0,
-  TRANSACTION_COMPARISON_GT = +1
-} BRTransactionComparison;
 
 /**
  * Compares two transactions.
  */
-extern BRTransactionComparison
+extern BREthereumComparison
 transactionCompare (BREthereumTransaction t1,
                     BREthereumTransaction t2);
 
