@@ -126,14 +126,6 @@ createLightNode (BREthereumLightNodeConfiguration configuration,
 
   // Create other wallets for each TOKEN?
 
-  // We have no wallets (or one?) at this point and no idea how many we will have eventually.
-  // Still we will query *all transactions* for our account's address and we will store those
-  // transactions in this node (eventually shared with the wallet).  Be getting all the
-  // transactions, we'll have a shot at getting the address's nonce correct.
-
-  lightNodeUpdateTransactions(node);
-
-  //
   return node;
 }
 
@@ -145,6 +137,26 @@ lightNodeGetAccount (BREthereumLightNode node) {
 extern char *
 lightNodeGetAccountPrimaryAddress (BREthereumLightNode node) {
     return addressAsString (accountGetPrimaryAddress(node->account));
+}
+
+//
+// Connect // Disconnect
+//
+extern BREthereumBoolean
+lightNodeConnect (BREthereumLightNode node) {
+    // We have no wallets (or one?) at this point and no idea how many we will have eventually.
+    // Still we will query *all transactions* for our account's address and we will store those
+    // transactions in this node (eventually shared with the wallet).  Be getting all the
+    // transactions, we'll have a shot at getting the address's nonce correct.
+
+    lightNodeUpdateTransactions(node);
+    return ETHEREUM_BOOLEAN_TRUE;
+
+}
+
+extern BREthereumBoolean
+lightNodeDisconnect (BREthereumLightNode node) {
+    return ETHEREUM_BOOLEAN_TRUE;
 }
 
 //

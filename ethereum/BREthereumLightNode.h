@@ -167,6 +167,18 @@ extern char *
 lightNodeGetAccountPrimaryAddress (BREthereumLightNode node);
 
 /**
+ * Connect to the Ethereum Network;
+ *
+ * @param node
+ * @return
+ */
+extern BREthereumBoolean
+lightNodeConnect (BREthereumLightNode node);
+
+extern BREthereumBoolean
+lightNodeDisconnect (BREthereumLightNode node);
+
+/**
  * Get the wallet for `account` holding ETHER.  This wallet is created, along with the account,
  * when a light node itself is created.
  *

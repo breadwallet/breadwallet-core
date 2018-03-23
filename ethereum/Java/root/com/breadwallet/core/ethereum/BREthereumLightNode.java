@@ -79,16 +79,16 @@ public class BREthereumLightNode extends BRCoreJniReference {
     // Light Node Types
     //
     static public class LES extends BREthereumLightNode {
-        public LES(ClientLES client, BREthereumNetwork network) {
-            super(BREthereumLightNode.jniCreateEthereumLightNodeLES(client, network.getIdentifier()),
+        public LES(ClientLES client, BREthereumNetwork network, String paperKey) {
+            super(BREthereumLightNode.jniCreateLightNodeLES(client, network.getIdentifier(), paperKey),
                     client,
                     network);
         }
     }
 
     static public class JSON_RPC extends BREthereumLightNode {
-        public JSON_RPC(ClientJSON_RPC client, BREthereumNetwork network) {
-            super(BREthereumLightNode.jniCreateEthereumLightNodeJSON_RPC(client, network.getIdentifier()),
+        public JSON_RPC(ClientJSON_RPC client, BREthereumNetwork network, String paperKey) {
+            super(BREthereumLightNode.jniCreateLightNodeJSON_RPC(client, network.getIdentifier(), paperKey),
                     client,
                     network);
         }
@@ -99,39 +99,60 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     WeakReference<Client> client;
     BREthereumNetwork network;
+    BREthereumAccount account;
 
     protected BREthereumLightNode(long jniReferenceAddress, Client client, BREthereumNetwork network) {
         super(jniReferenceAddress);
         this.client = new WeakReference<Client>(client);
         this.network = network;
+        this.account = new BREthereumAccount(this, jniLightNodeGetAccount());
         client.assignNode(this);
     }
 
     //
     // Account
     //
-    public BREthereumAccount createAccount(String paperKey) {
-        return new BREthereumAccount(this, jniCreateEthereumLightNodeAccount(paperKey));
+    public BREthereumAccount getAccount() {
+        return account;
+    }
+
+    public String getAddress () {
+        return account.getPrimaryAddress();
+    }
+
+    //
+    // Connect // Disconnect
+    public boolean connect () {
+        return jniLightNodeConnect ();
+    }
+
+    public boolean disconnect () {
+        return jniLightNodeDisconnect ();
     }
 
     //
     // Wallet
     //
-    public BREthereumWallet createWallet(BREthereumAccount account,
-                                         BREthereumNetwork network) {
+    public BREthereumWallet getWallet () {
         return new BREthereumWallet(this,
-                jniCreateEthereumLightNodeWallet(account.identifier, network.getIdentifier()),
-                account,
+                jniLightNodeGetWallet(),
+                getAccount(),
                 network);
     }
 
-    public BREthereumWallet createWallet(BREthereumAccount account,
-                                         BREthereumNetwork network,
-                                         BREthereumToken token) {
+    public BREthereumWallet getWallet(BREthereumToken token) {
+        long walletId = jniLightNodeGetWalletToken(token.getIdentifier());
+        return 0 == walletId
+                ? null
+                : new BREthereumWallet(this, walletId, getAccount(), network, token);
+    }
+
+    public BREthereumWallet createWallet(BREthereumToken token) {
         return new BREthereumWallet(this,
-                jniCreateEthereumLightNodeWallet(account.identifier, network.getIdentifier()),
-                account,
-                network);
+                jniLightNodeCreateWalletToken(token.getIdentifier()),
+                getAccount(),
+                network,
+                token);
     }
 
     public void forceBalanceUpdate(BREthereumWallet wallet) {
@@ -141,8 +162,8 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     // Transaction
     //
-    public void forceWalletTransactionUpdate (BREthereumWallet wallet) {
-        jniForceWalletTransactionUpdate(wallet.identifier);
+    public void forceTransactionUpdate (BREthereumWallet wallet) {
+        jniForceTransactionUpdate();
     }
 
     public void announceTransaction(String from,
@@ -161,19 +182,22 @@ public class BREthereumLightNode extends BRCoreJniReference {
     // JNI Interface
     //
 
-    protected static native long jniCreateEthereumLightNodeLES(Client client, long network);
+    protected static native long jniCreateLightNodeLES(Client client, long network, String paperKey);
 
-    protected static native long jniCreateEthereumLightNodeJSON_RPC(Client client, long network);
+    protected static native long jniCreateLightNodeJSON_RPC(Client client, long network, String paperKey);
 
-    protected native long jniCreateEthereumLightNodeAccount(String paperKey);
+    protected native long jniLightNodeGetAccount();
+    protected native long jniLightNodeGetWallet();
+    protected native long jniLightNodeGetWalletToken (long tokenId);
 
-    protected native long jniCreateEthereumLightNodeWallet(long accountId, long networkId);
+    protected native long jniLightNodeCreateWalletToken(long tokenId);
 
-    protected native String jniGetAccountPrimaryAddress(long account);
+    protected native String jniGetAccountPrimaryAddress(long acountId);
+    protected native String jniGetWalletBalance (long walletId);
 
     protected native void jniForceWalletBalanceUpdate(long wallet);
 
-    protected native void jniForceWalletTransactionUpdate (long wallet);
+    protected native void jniForceTransactionUpdate();
 
     protected native void jniAnnounceTransaction(String from,
                                                  String to,
@@ -183,6 +207,10 @@ public class BREthereumLightNode extends BRCoreJniReference {
                                                  String gasPrice,
                                                  String data,
                                                  String nonce);
+
+    protected native boolean jniLightNodeConnect ();
+    protected native boolean jniLightNodeDisconnect ();
+
     //    public native void disposeNative ();
 
     protected static native void initializeNative();

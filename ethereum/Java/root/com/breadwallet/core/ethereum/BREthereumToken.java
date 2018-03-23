@@ -33,6 +33,10 @@ public class BREthereumToken extends BRCoreJniReference {
         super (jniReferenceAddress);
     }
 
+    public long getIdentifier () {
+        return jniReferenceAddress;
+    }
+
     public static BREthereumToken tokenBRD =
             new BREthereumToken(jniGetTokenBRD());
 

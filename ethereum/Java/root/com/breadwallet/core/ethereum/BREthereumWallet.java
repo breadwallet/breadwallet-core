@@ -58,5 +58,7 @@ public class BREthereumWallet  extends BREthereumLightNode.Reference {
         return token;
     }
 
-    public native String getBalance ();
+    public String getBalance () {
+        return node.get().jniGetWalletBalance(identifier);
+    }
  }

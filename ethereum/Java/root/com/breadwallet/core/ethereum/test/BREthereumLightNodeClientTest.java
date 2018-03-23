@@ -78,11 +78,10 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
     public void getTransactions(int id, String account) {
         asserting (null != node);
         // Query, then for-each...
-        // TODO: In this form, not going to work.
         node.announceTransaction(
-                "0x0ea166deef4d04aaefd0697982e6f7aa325ab69c",       // NON-NLS
-                "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
-                "",// NON-NLS
+                node.getAddress(),
+                "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",        // NON-NLS
+                "",  // NON-NLS
                 "11113000000000",
                 "21000",
                 "21000000000",
@@ -98,21 +97,24 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
 
 
     public static void main(String[] args) {
-        BREthereumLightNodeClientTest test = new BREthereumLightNodeClientTest();
+        BREthereumLightNodeClientTest client = new BREthereumLightNodeClientTest();
 
-        BREthereumLightNode node = new BREthereumLightNode.JSON_RPC(test, BREthereumNetwork.testnet);
-        BREthereumAccount account = node.createAccount(USABLE_PAPER_KEY);
+        BREthereumLightNode node = new BREthereumLightNode.JSON_RPC(client, BREthereumNetwork.testnet, USABLE_PAPER_KEY);
+        BREthereumAccount account = node.getAccount();
 
-        BREthereumWallet walletEther = node.createWallet(account, BREthereumNetwork.testnet);
-        BREthereumWallet walletToken = node.createWallet(account, BREthereumNetwork.testnet, BREthereumToken.tokenBRD);
+        BREthereumWallet walletEther = node.getWallet();
+        BREthereumWallet walletToken = node.createWallet(BREthereumToken.tokenBRD);
 
-        asserting ("0.0".equals(walletEther.getBalance()));
+        asserting ("0".equals(walletEther.getBalance()));
+
+        node.connect();
         node.forceBalanceUpdate(walletEther);
         asserting (Integer.parseInt("123f", 16) == Integer.parseInt(walletEther.getBalance()));
 
-        node.forceWalletTransactionUpdate(walletEther);
+        node.forceTransactionUpdate(walletEther);
 
-        System.out.println("No actual tests");
+        node.disconnect();
+        System.out.println("Success");
     }
 
     private static void asserting (boolean assertion) {

@@ -7,14 +7,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-/*
- * Class:     com_breadwallet_core_ethereum_BREthereumWallet
- * Method:    getBalance
- * Signature: ()Ljava/lang/String;
- */
-JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumWallet_getBalance
-  (JNIEnv *, jobject);
-
 #ifdef __cplusplus
 }
 #endif
