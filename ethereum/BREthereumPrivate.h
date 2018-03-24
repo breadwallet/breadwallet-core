@@ -49,7 +49,9 @@ walletTransactionSubmitted (BREthereumWallet wallet,
 
 private_extern void
 walletTransactionBlocked (BREthereumWallet wallet,
-                          BREthereumTransaction transaction);
+                          BREthereumTransaction transaction,
+                          BREthereumHash blockHash,
+                          unsigned int blockIndex);
 
 private_extern void
 walletTransactionDropped (BREthereumWallet wallet,
@@ -74,5 +76,11 @@ addressGetThenIncrementNonce(BREthereumAddress address);
 //
 private_extern BREthereumToken
 tokenLookup (const char *address);
+
+//
+// Block
+//
+private_extern void
+blockFree (BREthereumBlock block);
 
 #endif /* BR_Ethereum_Private_H */

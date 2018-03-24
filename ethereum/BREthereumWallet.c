@@ -444,8 +444,10 @@ walletTransactionSubmitted (BREthereumWallet wallet,
 
 private_extern void
 walletTransactionBlocked (BREthereumWallet wallet,
-                            BREthereumTransaction transaction) {
-  transactionAnnounceBlocked (transaction, 0);
+                          BREthereumTransaction transaction,
+                          BREthereumHash blockHash,
+                          unsigned int blockIndex) {
+  transactionAnnounceBlocked (transaction, blockHash, blockIndex);
 }
 
 private_extern void

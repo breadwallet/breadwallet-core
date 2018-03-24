@@ -56,7 +56,7 @@ hashExists (BREthereumHash hash) {
 }
 
 extern BREthereumHash
-hashCopy(BREthereumHash hash) {
+hashCopy(const BREthereumHash hash) {
     return strdup (hash);
 }
 
@@ -85,13 +85,8 @@ typedef struct {
     } _signed;
 
     struct {
-      int foo;
-      // block number
-      // block hash
-      // transaction index
-      // gasUsed
-      // timestamp
-      // confirmations? 
+      BREthereumHash hash;
+      unsigned int index;
     } blocked;
 
     struct {
@@ -120,8 +115,12 @@ transactionStateSubmitted (BREthereumTransactionState *state /* ... */) {
 }
 
 static void
-transactionStateBlocked (BREthereumTransactionState *state /* ... */) {
+transactionStateBlocked (BREthereumTransactionState *state,
+                         BREthereumHash blockHash,
+                         unsigned int blockIndex) {
   state->status = TRANSACTION_BLOCKED;
+  state->u.blocked.hash = hashCopy(blockHash);
+  state->u.blocked.index = blockIndex;
 }
 
 static void
@@ -486,8 +485,9 @@ transactionGetStatus (BREthereumTransaction transaction) {
 
 extern void
 transactionAnnounceBlocked (BREthereumTransaction transaction,
-                            int foo) {
-  transactionStateBlocked(&transaction->state);
+                            BREthereumHash blockHash,
+                            unsigned int blockIndex) {
+  transactionStateBlocked(&transaction->state, blockHash, blockIndex);
 }
 
 extern void

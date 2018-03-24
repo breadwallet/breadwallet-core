@@ -77,6 +77,7 @@ lightNodeConfigurationCreateJSON_RPC(BREthereumNetwork network,
 // Light Node
 //
 #define DEFAULT_WALLET_CAPACITY 10
+#define DEFAULT_BLOCK_CAPACITY 100
 #define DEFAULT_TRANSACTION_CAPACITY 1000
 
 /**
@@ -104,7 +105,12 @@ struct BREthereumLightNodeRecord {
    * The transactions seen/handled by this node.  These will generally be parcelled out to their
    * associaed wallets.
    */
-  BREthereumTransaction *transactions;
+  BREthereumTransaction *transactions; // BRSet
+
+  /**
+   * The blocks seen/handled by this node.
+   */
+  BREthereumBlock *blocks; // BRSet
 
   //
   unsigned int requestId;
@@ -118,6 +124,7 @@ createLightNode (BREthereumLightNodeConfiguration configuration,
   node->account = createAccount(paperKey);
   array_new(node->wallets, DEFAULT_WALLET_CAPACITY);
   array_new(node->transactions, DEFAULT_TRANSACTION_CAPACITY);
+  array_new(node->blocks, DEFAULT_BLOCK_CAPACITY);
 
   // Create a default ETH wallet.
   node->walletHoldingEther = walletCreate(node->account,
@@ -284,6 +291,24 @@ lightNodeWalletGetBalance (BREthereumLightNode node,
                            BREthereumLightNodeWalletId walletId) {
   BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
   return walletGetBalance(wallet);
+}
+
+//
+// Blocks
+//
+static BREthereumBlock
+lightNodeLookupBlock (BREthereumLightNode node,
+                      const BREthereumHash hash) {
+  for (int i = 0; i < array_count(node->blocks); i++)
+    if (ETHEREUM_COMPARISON_EQ == hashCompare(hash, blockGetHash(node->blocks[i])))
+      return node->blocks[i];
+  return NULL;
+}
+
+static void
+lightNodeInsertBlock (BREthereumLightNode node,
+                      BREthereumBlock block) {
+  array_add(node->blocks, block);
 }
 
 //
@@ -517,31 +542,31 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
                              const char *nonceString,
                              const char *gasUsed,
                              const char *blockNumber,
-                             const char *blockHash,
+                             const char *blockHashString,
                              const char *blockConfirmations,
                              const char *blockTransactionIndex,
                              const char *blockTimestamp,
-        // cumulative gas used,
-        // confirmations
-        // txreceipt_status
                              const char *isError) {
     BREthereumTransaction transaction = NULL;
     BREthereumToken token = NULL;
-    BREthereumAddress sourceAddr = accountGetPrimaryAddress(node->account);
+    BREthereumAddress primaryAddress = accountGetPrimaryAddress(node->account);
     int newTransaction = 0;
 
-    char *address = addressAsString(sourceAddr);
-    assert (0 == strcmp(from, address));
-    free(address);
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(addressHasString(primaryAddress, from))
+            || ETHEREUM_BOOLEAN_IS_TRUE(addressHasString(primaryAddress, to)));
 
     BREthereumHash hash = hashCreate(hashString);
 
     // TODO: Assumes `nonce` is uint64_t; which it is.
     uint64_t nonce = strtoull(nonceString, NULL, 10);
 
-    // Update the sourceAddr nonce.
-    if (nonce >= addressGetNonce(sourceAddr))
-        addressSetNonce(sourceAddr, nonce + 1);  // next
+    // Update the primaryAddress nonce if this transaction originated from us
+    if (nonce >= addressGetNonce(primaryAddress)
+        && ETHEREUM_BOOLEAN_IS_TRUE(addressHasString(primaryAddress, from)))
+            addressSetNonce(primaryAddress, nonce + 1);  // next
+
+            // TODO: Looking for Hash or Nonce.  Prefer Hash unless
+            // TODO:   there isn't one and we originated; then look for nonce?
 
     // Walk the transactions looking for a pre-existing one with 'nonce'
     for (int i = 0; i < array_count(node->transactions); i++)
@@ -550,7 +575,7 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
             break;
         }
 
-    // If we didn't have a transaction with 'nonce'; then create one.
+    // If we didn't have a transaction (with 'hash' or 'nonce'); then create one.
     if (NULL == transaction) {
         BRCoreParseStatus status;
         BREthereumAddress targetAddr = createAddress(to);
@@ -574,7 +599,7 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
         // TODO: 'Deconvolve' the `data` based on `token`
 
         // Finally, get ourselves a transaction.
-        transaction = transactionCreate(sourceAddr,
+        transaction = transactionCreate(primaryAddress,
                                         targetAddr,
                                         amount,
                                         gasPrice,
@@ -618,22 +643,30 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
         walletTransactionSubmitted(wallet, transaction, hash);
     }
 
-    // Build a block-ish
-    //   Add to node
+  // Build a block-ish
+  BREthereumHash blockHash = hashCreate (blockHashString);
+  BREthereumBlock block = lightNodeLookupBlock(node, blockHash);
+  if (NULL == block) {
+    block = createBlock(blockNumber, blockHash, blockConfirmations, blockTimestamp);
+    lightNodeInsertBlock(node, block);
+  }
+  free (blockHash);
 
-    // TODO: Process 'state' properly - errors?
-    walletTransactionBlocked(wallet, transaction);
+  // TODO: Process 'state' properly - errors?
+
+  walletTransactionBlocked(wallet, transaction, blockGetHash(block),
+                           (unsigned int) strtoul (blockTransactionIndex, NULL, 10));
 }
 
 //  {
 //    "blockNumber":"1627184",
 //    "timeStamp":"1516477482",
-//    "hash":"0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
-//    "nonce":"118",
+//    "hash":     "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
 //    "blockHash":"0x0ef0110d68ee3af220e0d7c10d644fea98252180dbfc8a94cab9f0ea8b1036af",
 //    "transactionIndex":"3",
 //    "from":"0x0ea166deef4d04aaefd0697982e6f7aa325ab69c",
 //    "to":"0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
+//    "nonce":"118",
 //    "value":"11113000000000",
 //    "gas":"21000",
 //    "gasPrice":"21000000000",

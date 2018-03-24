@@ -253,6 +253,14 @@ createAddressDerived (const uint8_t *publicKey, uint32_t index) {
     return address;
 }
 
+extern BREthereumBoolean
+addressHasString (BREthereumAddress address,
+                  const char *string) {
+  return (0 == strcasecmp(string, address->string)
+          ? ETHEREUM_BOOLEAN_TRUE
+          : ETHEREUM_BOOLEAN_FALSE);
+}
+
 extern char *
 addressAsString (BREthereumAddress address) {
   return strndup (address->string, 43);

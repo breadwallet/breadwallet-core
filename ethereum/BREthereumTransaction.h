@@ -38,26 +38,6 @@ extern "C" {
 #endif
 
 //
-// Hash
-//
-typedef char* BREthereumHash;
-
-extern BREthereumHash
-hashCreate (const char *string);
-
-extern BREthereumHash
-hashCreateEmpty (void);
-
-extern BREthereumBoolean
-hashExists (BREthereumHash hash);
-
-extern BREthereumHash
-hashCopy(BREthereumHash hash);
-
-extern BREthereumComparison
-hashCompare(BREthereumHash hash1, BREthereumHash hash2);
-
-//
 // Transaction
 //
 typedef struct BREthereumTransactionRecord *BREthereumTransaction;
@@ -177,7 +157,8 @@ transactionGetStatus (BREthereumTransaction transaction);
 
 extern void
 transactionAnnounceBlocked (BREthereumTransaction transaction,
-                          int foo); // block info
+                            BREthereumHash blockHash,
+                            unsigned int blockIndex);
 
 extern void
 transactionAnnounceDropped (BREthereumTransaction transaction,

@@ -36,6 +36,7 @@
 #include "BREthereumToken.h"
 #include "BREthereumAmount.h"
 #include "BREthereumTransaction.h"
+#include "BREthereumBlock.h"
 #include "BREthereumNetwork.h"
 #include "BREthereumWallet.h"
 #include "BREthereumLightNode.h"

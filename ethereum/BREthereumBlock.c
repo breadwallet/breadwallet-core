@@ -1,8 +1,8 @@
 //
-//  BREthereumBase
+//  BBREthereumBlock.c
 //  breadwallet-core Ethereum
 //
-//  Created by Ed Gamble on 3/22/18.
+//  Created by Ed Gamble on 3/23/2018.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,57 +23,42 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_Base_H
-#define BR_Ethereum_Base_H
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
+#include "BREthereumBlock.h"
+#include "BREthereumPrivate.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+struct BREthereumBlockRecord {
+  char *number;
+  char *hash;
+  char *confirmations;
+  char *timestamp;
+};
 
-#define private_extern  extern
-
-//
-// Etherum Boolean
-//
-typedef enum {
-  ETHEREUM_BOOLEAN_TRUE = 0,               // INTENTIONALLY 'backwards'
-  ETHEREUM_BOOLEAN_FALSE = 1
-} BREthereumBoolean;
-
-#define ETHEREUM_BOOLEAN_IS_TRUE(x)  ((x) == ETHEREUM_BOOLEAN_TRUE)
-#define ETHEREUM_BOOLEAN_IS_FALSE(x) ((x) == ETHEREUM_BOOLEAN_FALSE)
-
-//
-// Ethereum Comparison
-//
-typedef enum {
-  ETHEREUM_COMPARISON_LT = -1,
-  ETHEREUM_COMPARISON_EQ =  0,
-  ETHEREUM_COMPARISON_GT = +1
-} BREthereumComparison;
-
-//
-// Hash
-//
-typedef char* BREthereumHash;
-
-extern BREthereumHash
-hashCreate (const char *string);
-
-extern BREthereumHash
-hashCreateEmpty (void);
-
-extern BREthereumBoolean
-hashExists (BREthereumHash hash);
-
-extern BREthereumHash
-hashCopy(BREthereumHash hash);
-
-extern BREthereumComparison
-hashCompare(BREthereumHash hash1, BREthereumHash hash2);
-
-#ifdef __cplusplus
+extern BREthereumBlock
+createBlock (const char *number,
+             const char *hash,
+             const char *confirmations,
+             const char *timestamp) {
+  BREthereumBlock block = (BREthereumBlock) malloc (sizeof (struct BREthereumBlockRecord));
+  block->number = strdup(number);
+  block->hash = strdup(hash);
+  block->confirmations = strdup(confirmations);
+  block->timestamp = strdup(timestamp);
+  return block;
 }
-#endif
 
-#endif /* BR_Ethereum_Base_H */
+extern BREthereumHash
+blockGetHash (BREthereumBlock block) {
+  return hashCopy(block->hash);
+}
+
+private_extern void
+blockFree (BREthereumBlock block) {
+  free (block->number);
+  free (block->hash);
+  free (block->confirmations);
+  free (block->timestamp);
+  free (block);
+}

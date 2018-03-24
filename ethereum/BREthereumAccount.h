@@ -87,6 +87,9 @@ addressGetNonce(BREthereumAddress address);
 extern void
 addressFree (BREthereumAddress address);
 
+extern BREthereumBoolean
+addressHasString (BREthereumAddress address,
+                  const char *string);
 /**
  * Returns a string representation of the address, newly allocated.  YOU OWN THIS.
  */
