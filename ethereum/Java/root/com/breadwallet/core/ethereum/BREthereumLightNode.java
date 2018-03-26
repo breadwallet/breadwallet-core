@@ -63,19 +63,6 @@ public class BREthereumLightNode extends BRCoreJniReference {
     }
 
     //
-    // Reference
-    //
-    static class Reference {
-        WeakReference<BREthereumLightNode> node;
-        long identifier;
-
-        public Reference(BREthereumLightNode node, long identifier) {
-            this.node = new WeakReference<>(node);
-            this.identifier = identifier;
-        }
-    }
-
-    //
     // Light Node Types
     //
     static public class LES extends BREthereumLightNode {
@@ -247,6 +234,9 @@ public class BREthereumLightNode extends BRCoreJniReference {
     protected native String[] jniGetTransactionProperties (long transactionId,
                                                            long properties[]);
 
+    protected native String jniGetTransactionAmount (long transactionId, long unit);
+    protected native boolean jniTransactionHasToken (long transactionId);
+
     protected native boolean jniLightNodeConnect ();
     protected native boolean jniLightNodeDisconnect ();
 
@@ -256,6 +246,65 @@ public class BREthereumLightNode extends BRCoreJniReference {
 
     static {
         initializeNative();
+    }
+
+    //
+    // Support
+    //
+
+    //
+    // Reference
+    //
+    static class Reference {
+        WeakReference<BREthereumLightNode> node;
+        long identifier;
+
+        Reference(BREthereumLightNode node, long identifier) {
+            this.node = new WeakReference<>(node);
+            this.identifier = identifier;
+        }
+    }
+
+    //
+    // Reference With Default Unit
+    //
+    static class ReferenceWithDefaultUnit extends Reference {
+        protected BREthereumAmount.Unit defaultUnit;
+        protected boolean defaultUnitUsesToken = false;
+
+        public BREthereumAmount.Unit getDefaultUnit() {
+            return defaultUnit;
+        }
+
+        public void setDefaultUnit(BREthereumAmount.Unit unit) {
+            validUnitOrException(unit);
+            this.defaultUnit = unit;
+        }
+
+        //
+        // Constructor
+        //
+        protected ReferenceWithDefaultUnit (BREthereumLightNode node,
+                                            long identifier,
+                                            BREthereumAmount.Unit unit) {
+            super(node, identifier);
+            this.defaultUnit = unit;
+            this.defaultUnitUsesToken = unit.isTokenUnit();
+        }
+
+        //
+        // Support
+        //
+        protected boolean validUnit(BREthereumAmount.Unit unit) {
+            return (!defaultUnitUsesToken
+                    ? (unit == BREthereumAmount.Unit.ETHER_WEI || unit == BREthereumAmount.Unit.ETHER_GWEI || unit == BREthereumAmount.Unit.ETHER_ETHER)
+                    : (unit == BREthereumAmount.Unit.TOKEN_DECIMAL || unit == BREthereumAmount.Unit.TOKEN_INTEGER));
+        }
+
+        protected void validUnitOrException (BREthereumAmount.Unit unit) {
+            if (!validUnit(unit))
+                throw new IllegalArgumentException("Invalid Unit for instance type: " + unit.toString());
+        }
     }
 }
 

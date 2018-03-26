@@ -24,30 +24,12 @@
  */
 package com.breadwallet.core.ethereum;
 
+import com.breadwallet.core.ethereum.BREthereumAmount.Unit;
+
 /**
  * An EthereumWallet holds either ETHER or TOKEN values.
  */
-public class BREthereumWallet extends BREthereumLightNode.Reference {
-
-    //
-    // The Unit to use when displaying amounts - such as a wallet balance.
-    //
-    public enum Unit {
-        TOKEN_DECIMAL(0),
-        TOKEN_INTEGER(1),
-
-        ETHER_WEI(0),
-        ETHER_GWEI(3),
-        ETHER_ETHER(6);
-
-        // jniValue must match Core enum for:
-        //    BREthereumUnit and BREthereumTokenQuantityUnit
-        protected long jniValue;
-
-        Unit(long jniValue) {
-            this.jniValue = jniValue;
-        }
-    };
+public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUnit {
 
     private BREthereumAccount account;
     private BREthereumNetwork network;
@@ -76,10 +58,9 @@ public class BREthereumWallet extends BREthereumLightNode.Reference {
     protected BREthereumWallet (BREthereumLightNode node, long identifier,
                                 BREthereumAccount account,
                                 BREthereumNetwork network) {
-        super (node, identifier);
+        super (node, identifier, Unit.ETHER_ETHER);
         this.account = account;
         this.network = network;
-        this.defaultUnit = Unit.ETHER_ETHER;
     }
 
     protected BREthereumWallet (BREthereumLightNode node, long identifier,
@@ -88,32 +69,8 @@ public class BREthereumWallet extends BREthereumLightNode.Reference {
                                 BREthereumToken token) {
         this (node, identifier, account, network);
         this.token = token;
-        this.defaultUnit = Unit.TOKEN_INTEGER;
-    }
-
-    //
-    // (Default) Unit
-    //
-    protected Unit defaultUnit;
-
-    public Unit getDefaultUnit() {
-        return defaultUnit;
-    }
-
-    public void setDefaultUnit(Unit unit) {
-        validUnitOrException(unit);
-        this.defaultUnit = unit;
-    }
-
-    protected boolean validUnit(Unit unit) {
-        return (null == token
-                ? (unit == Unit.ETHER_WEI || unit == Unit.ETHER_GWEI || unit == Unit.ETHER_ETHER)
-                : (unit == Unit.TOKEN_DECIMAL || unit == Unit.TOKEN_INTEGER));
-    }
-
-    protected void validUnitOrException (Unit unit) {
-        if (!validUnit(unit))
-            throw new IllegalArgumentException("Invalid Unit for Wallet type: " + unit.toString());
+        this.defaultUnit = Unit.TOKEN_DECIMAL;
+        this.defaultUnitUsesToken = true;
     }
 
     //
@@ -132,11 +89,20 @@ public class BREthereumWallet extends BREthereumLightNode.Reference {
     //
     // Transactions
     //
-    public BREthereumTransaction createTransaction (String targetAddress,
-                                                    String amount,
-                                                    Unit amountUnit) {
-        long transaction = node.get().jniCreateTransaction(identifier, targetAddress, amount, amountUnit.jniValue);
-        return new BREthereumTransaction(node.get(), transaction);
+    public BREthereumTransaction createTransaction(String targetAddress,
+                                                   String amount,
+                                                   Unit amountUnit) {
+        BREthereumLightNode lightNode = node.get();
+
+        // We'll assume that the transaction's default unit is the same unit as provided
+        // for `amount`.  Should not be a bad assumption.  However, arguably we could set
+        // the transaction's unit as the wallet's unit.
+        return new BREthereumTransaction(lightNode,
+                lightNode.jniCreateTransaction(identifier,
+                        targetAddress,
+                        amount,
+                        amountUnit.jniValue),
+                amountUnit);
     }
 
     // getAll

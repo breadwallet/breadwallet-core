@@ -24,11 +24,35 @@
  */
 package com.breadwallet.core.ethereum;
 
-import com.breadwallet.core.BRCoreJniReference;
+public abstract class BREthereumAmount {
 
-public class BREthereumAmount extends BRCoreJniReference {
+    //
+    // The Unit to use when displaying amounts - such as a wallet balance.
+    //
+    public enum Unit {
+        TOKEN_DECIMAL(0),
+        TOKEN_INTEGER(1),
 
-    private BREthereumAmount (long jniReferenceAddress) {
-        super (jniReferenceAddress);
-    }
+        ETHER_WEI(0),
+        ETHER_GWEI(3),
+        ETHER_ETHER(6);
+
+        // jniValue must match Core enum for:
+        //    BREthereumUnit and BREthereumTokenQuantityUnit
+        protected long jniValue;
+
+        Unit(long jniValue) {
+            this.jniValue = jniValue;
+        }
+
+        public boolean isTokenUnit () {
+            switch (this) {
+                case TOKEN_DECIMAL:
+                case TOKEN_INTEGER:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+    };
 }

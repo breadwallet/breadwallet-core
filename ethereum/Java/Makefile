@@ -16,6 +16,7 @@ JNI_HDRS=$(JNI_SRCS:.c=.h)
 
 JAVA_SRCS=../../Java/root/com/breadwallet/core/BRCoreJniReference.java \
 	root/com/breadwallet/core/ethereum/BREthereumAccount.java \
+	root/com/breadwallet/core/ethereum/BREthereumAmount.java \
 	root/com/breadwallet/core/ethereum/BREthereumLightNode.java \
 	root/com/breadwallet/core/ethereum/BREthereumNetwork.java \
 	root/com/breadwallet/core/ethereum/BREthereumToken.java \
@@ -57,6 +58,7 @@ CORE_SRCS=../../BRAddress.c \
 	../BREthereumNetwork.c \
 	../BREthereumToken.c \
 	../BREthereumTransaction.c \
+	../BREthereumBlock.c \
 	../BREthereumWallet.c 
 
 

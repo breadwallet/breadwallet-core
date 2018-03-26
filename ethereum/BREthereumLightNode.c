@@ -151,12 +151,20 @@ lightNodeGetAccountPrimaryAddress (BREthereumLightNode node) {
 //
 extern BREthereumBoolean
 lightNodeConnect (BREthereumLightNode node) {
-    // We have no wallets (or one?) at this point and no idea how many we will have eventually.
-    // Still we will query *all transactions* for our account's address and we will store those
-    // transactions in this node (eventually shared with the wallet).  Be getting all the
-    // transactions, we'll have a shot at getting the address's nonce correct.
-
+    // We'll query all transactions for this node's account.  That will give us a shot at
+    // getting the nonce for the account's address correct.  We'll save all the transactions and
+    // then process them into wallet as wallets exist.
     lightNodeUpdateTransactions(node);
+
+    // For all the known wallets, get their balance.
+    BRCoreParseStatus status;
+    for (int i = 0; i < array_count(node->wallets); i++) {
+        lightNodeUpdateWalletBalance (node, (BREthereumLightNodeWalletId) node->wallets[i], &status);
+        if (CORE_PARSE_OK != status) {
+
+        }
+    }
+
     return ETHEREUM_BOOLEAN_TRUE;
 
 }
@@ -348,7 +356,7 @@ lightNodeWalletCreateTransaction(BREthereumLightNode node,
                                                                amount);
 
 //  lightNodeInsertTransaction(node, transaction);
-  return (void *) transaction;
+  return (BREthereumLightNodeTransactionId) transaction;
 }
 
 extern void // status, error

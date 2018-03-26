@@ -26,14 +26,22 @@ package com.breadwallet.core.ethereum;
 
 import java.util.EnumMap;
 
+
 /**
  *
  */
-public class BREthereumTransaction extends BREthereumLightNode.Reference {
+public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefaultUnit {
 
     public enum Property {
         TARGET_ADDRESS(0),  // toAddr
         SOURCE_ADDRESS(1),  // fromAddr
+        // hash
+        // timestamp
+        // confirmation
+        // gasLimit
+        // gasUsed
+        // gasPrice
+
         // ...
         NONCE(2);
 
@@ -46,12 +54,25 @@ public class BREthereumTransaction extends BREthereumLightNode.Reference {
         static Property lookup (long jnivalue) {
             return values()[(int) jnivalue];
         }
+
+        static long[] jniValues = {
+            Property.TARGET_ADDRESS.jniValue,
+            Property.SOURCE_ADDRESS.jniValue,
+            Property.NONCE.jniValue
+        };
     }
 
     protected EnumMap<Property, String> properties;
 
-    protected BREthereumTransaction (BREthereumLightNode node, long identifier) {
-        super(node, identifier);
+    /**
+     *
+     * @param node
+     * @param identifier
+     * @param unit  The transaction's unit; should be identical with that unit used to create
+     *              the transaction identifier.
+     */
+    protected BREthereumTransaction (BREthereumLightNode node, long identifier, BREthereumAmount.Unit unit) {
+        super(node, identifier, unit);
         installProperties();
     }
 
@@ -66,18 +87,25 @@ public class BREthereumTransaction extends BREthereumLightNode.Reference {
     // ...
 
     //
+    // Amount
+    //
+
+    public String getAmount () {
+        return getAmount(defaultUnit);
+    }
+
+    public String getAmount(BREthereumAmount.Unit unit) {
+        validUnitOrException(unit);
+        return node.get().jniGetTransactionAmount(identifier, unit.jniValue);
+    }
+
+    //
     // Support
     //
-    protected static long[] jniProperties = {
-            Property.TARGET_ADDRESS.jniValue,
-            Property.SOURCE_ADDRESS.jniValue,
-            Property.NONCE.jniValue
-    };
-
     protected void installProperties() {
-        final String values[] = node.get().jniGetTransactionProperties(identifier, jniProperties);
+        final String values[] = node.get().jniGetTransactionProperties(identifier, Property.jniValues);
         this.properties = new EnumMap<Property, String>(Property.class){{
-            for (long jniValue : jniProperties)
+            for (long jniValue : Property.jniValues)
                 put (Property.lookup(jniValue), values[(int) jniValue]);
         }};
     }

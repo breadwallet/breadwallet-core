@@ -26,11 +26,14 @@ package com.breadwallet.core.ethereum.test;
 
 
 import com.breadwallet.core.ethereum.BREthereumAccount;
+import com.breadwallet.core.ethereum.BREthereumAmount;
 import com.breadwallet.core.ethereum.BREthereumLightNode;
 import com.breadwallet.core.ethereum.BREthereumNetwork;
 import com.breadwallet.core.ethereum.BREthereumToken;
 import com.breadwallet.core.ethereum.BREthereumTransaction;
 import com.breadwallet.core.ethereum.BREthereumWallet;
+
+import static com.breadwallet.core.ethereum.BREthereumAmount.Unit.ETHER_GWEI;
 
 /**
  *
@@ -40,6 +43,12 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
         if (System.getProperties().containsKey("light.node.test"))
             System.loadLibrary("Core");
     }
+
+    private static final String RANDOM_TEST_PAPER_KEY =
+            "axis husband project any sea patch drip tip spirit tide bring belt";
+
+    private static final String USABLE_PAPER_KEY =
+            "ginger settle marine tissue robot crane night number ramp coast roast critic";
 
     protected BREthereumLightNode node;
 
@@ -98,47 +107,51 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
                 "0");
     }
 
-    private static final String RANDOM_TEST_PAPER_KEY =
-            "axis husband project any sea patch drip tip spirit tide bring belt";
+    protected void runTest () {
+        // Create the node; reference through this.node
+        new BREthereumLightNode.JSON_RPC(this, BREthereumNetwork.testnet, USABLE_PAPER_KEY);
 
-    private static final String USABLE_PAPER_KEY =
-            "ginger settle marine tissue robot crane night number ramp coast roast critic";
-
-    private static boolean runMain = true;
-    private static int runCount = 0;
-
-    public static void main(String[] args) {
-        if (!runMain)return;
-        runMain = false;
-        runCount++;
-
-        BREthereumLightNodeClientTest client = new BREthereumLightNodeClientTest();
-
-        BREthereumLightNode node = new BREthereumLightNode.JSON_RPC(client, BREthereumNetwork.testnet, USABLE_PAPER_KEY);
-        BREthereumAccount account = node.getAccount();
+        //
+        // Test body
+        //
 
         BREthereumWallet walletEther = node.getWallet();
-        walletEther.setDefaultUnit(BREthereumWallet.Unit.ETHER_WEI);
+        walletEther.setDefaultUnit(BREthereumAmount.Unit.ETHER_WEI);
 
         BREthereumWallet walletToken = node.createWallet(BREthereumToken.tokenBRD);
-        walletToken.setDefaultUnit(BREthereumWallet.Unit.TOKEN_DECIMAL);
+        walletToken.setDefaultUnit(BREthereumAmount.Unit.TOKEN_DECIMAL);
 
         asserting ("0".equals(walletEther.getBalance()));
 
         node.connect();
-        node.forceBalanceUpdate(walletEther);
         asserting (Integer.parseInt("123f", 16) == Integer.parseInt(walletEther.getBalance()));
-
-        node.forceTransactionUpdate(walletEther);
 
         BREthereumTransaction trans1 = walletEther.createTransaction(
                 "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
                 "11113000000000",
-                BREthereumWallet.Unit.ETHER_WEI);
+                BREthereumAmount.Unit.ETHER_WEI);
         walletEther.sign(trans1, USABLE_PAPER_KEY);
         walletEther.submit(trans1);
 
+        asserting ("11113000000000".equals(trans1.getAmount()));
+        asserting ("11113.000000000".equals(trans1.getAmount(ETHER_GWEI)));
+
+        node.forceTransactionUpdate(walletEther);
+
+        // Check trans1
+
         node.disconnect();
+    }
+
+    private static boolean runMain = true;
+
+    public static void main(String[] args) {
+        if (!runMain)return;
+        runMain = false;
+
+        new BREthereumLightNodeClientTest()
+                .runTest();
+
         System.out.println("Success");
     }
 

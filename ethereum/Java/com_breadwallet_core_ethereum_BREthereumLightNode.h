@@ -129,6 +129,22 @@ JNIEXPORT jobjectArray JNICALL Java_com_breadwallet_core_ethereum_BREthereumLigh
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniGetTransactionAmount
+ * Signature: (JJ)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetTransactionAmount
+  (JNIEnv *, jobject, jlong, jlong);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniTransactionHasToken
+ * Signature: (J)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionHasToken
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniLightNodeConnect
  * Signature: ()Z
  */
