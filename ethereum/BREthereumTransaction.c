@@ -85,7 +85,9 @@ typedef struct {
         } _signed;
 
         struct {
+            BREthereumGas gasUsed;
             uint64_t number;
+            uint64_t timestamp;
             uint64_t transactionIndex;
         } blocked;
 
@@ -116,10 +118,14 @@ transactionStateSubmitted (BREthereumTransactionState *state /* ... */) {
 
 static void
 transactionStateBlocked (BREthereumTransactionState *state,
+                         BREthereumGas gasUsed,
                          uint64_t blockNumber,
+                         uint64_t blockTimestamp,
                          uint64_t blockTransactionIndex) {
     state->status = TRANSACTION_BLOCKED;
+    state->u.blocked.gasUsed = gasUsed;
     state->u.blocked.number = blockNumber;
+    state->u.blocked.timestamp = blockTimestamp;
     state->u.blocked.transactionIndex = blockTransactionIndex;
 }
 
@@ -474,9 +480,11 @@ transactionGetStatus (BREthereumTransaction transaction) {
 
 extern void
 transactionAnnounceBlocked (BREthereumTransaction transaction,
+                            BREthereumGas gasUsed,
                             uint64_t blockNumber,
-                            uint64_t blockTransationIndex) {
-    transactionStateBlocked(&transaction->state, blockNumber, blockTransationIndex);
+                            uint64_t blockTimestamp,
+                            uint64_t blockTransactionIndex) {
+    transactionStateBlocked(&transaction->state, gasUsed, blockNumber, blockTimestamp, blockTransactionIndex);
 }
 
 extern void
@@ -496,6 +504,23 @@ static int
 transactionHasStatus(BREthereumTransaction transaction,
                      BREthereumTransactionStatus status) {
     return status == transaction->state.status;
+}
+
+extern int
+transactionExtractBlocked(BREthereumTransaction transaction,
+                          BREthereumGas *gas,
+                          uint64_t *blockNumber,
+                          uint64_t *blockTimestamp,
+                          uint64_t *blockTransactionIndex) {
+    if (!transactionHasStatus(transaction, TRANSACTION_BLOCKED))
+        return 0;
+
+    if (NULL != gas) *gas = transaction->state.u.blocked.gasUsed;
+    if (NULL != blockNumber) *blockNumber = transaction->state.u.blocked.number;
+    if (NULL != blockTimestamp) *blockTimestamp = transaction->state.u.blocked.timestamp;
+    if (NULL != blockTransactionIndex) *blockTransactionIndex = transaction->state.u.blocked.transactionIndex;
+
+    return 1;
 }
 
 /**

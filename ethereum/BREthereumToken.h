@@ -55,6 +55,7 @@ extern BREthereumContract
 tokenGetContract (BREthereumToken token);
 
 extern const BREthereumToken tokenBRD;
+extern const BREthereumToken tokenUNK;
 
 //
 // Token Quantity

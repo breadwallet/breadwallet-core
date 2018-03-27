@@ -24,6 +24,10 @@
  */
 package com.breadwallet.core.ethereum;
 
+import android.support.test.espresso.proto.action.ViewActions;
+
+import com.breadwallet.tools.exceptions.PaymentRequestExpiredException;
+
 import java.util.EnumMap;
 
 
@@ -33,17 +37,16 @@ import java.util.EnumMap;
 public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefaultUnit {
 
     public enum Property {
-        TARGET_ADDRESS(0),  // toAddr
-        SOURCE_ADDRESS(1),  // fromAddr
-        // hash
-        // timestamp
-        // confirmation
-        // gasLimit
-        // gasUsed
-        // gasPrice
-
-        // ...
-        NONCE(2);
+        TARGET_ADDRESS(0),  // Ox'toAddr'
+        SOURCE_ADDRESS(1),  // Ox'fromAddr'
+        AMOUNT(2),          // ETH in WEI or TOKEN in INTEGER
+        GAS_PRICE(3),       // ETH/Gas in WEI
+        GAS_LIMIT(4),       // Gas
+        GAS_USED(5),        // Gas
+        NONCE(6),           // integer
+        HASH(7),            // 0x'hash'
+        BLOCK_NUMBER(8),    // integer
+        BLOCK_TIMESTAMP(9); // seconds since EPOCH
 
         long jniValue;
 
@@ -55,13 +58,12 @@ public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefa
             return values()[(int) jnivalue];
         }
 
-        static long[] jniValues = {
-            Property.TARGET_ADDRESS.jniValue,
-            Property.SOURCE_ADDRESS.jniValue,
-            Property.NONCE.jniValue
-        };
     }
 
+    /**
+     * This caching is going to be a problem, a big problem, when for example, a transaction
+     * gets blocked but properties has cached 'not blocked' values.
+     */
     protected EnumMap<Property, String> properties;
 
     /**
@@ -73,21 +75,15 @@ public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefa
      */
     protected BREthereumTransaction (BREthereumLightNode node, long identifier, BREthereumAmount.Unit unit) {
         super(node, identifier, unit);
-        installProperties();
     }
 
     public String getProperty (Property property) {
+        if (null == properties) installProperties();
         return properties.get(property);
     }
 
-    public String getSourceAddress () {
-        return properties.get(Property.SOURCE_ADDRESS);
-    }
-
-    // ...
-
     //
-    // Amount
+    // Amount (handling units)
     //
 
     public String getAmount () {
@@ -102,10 +98,23 @@ public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefa
     //
     // Support
     //
+    static long[] jniValues = {
+            Property.TARGET_ADDRESS.jniValue,
+            Property.SOURCE_ADDRESS.jniValue,
+            Property.AMOUNT.jniValue,
+            Property.GAS_PRICE.jniValue,
+            Property.GAS_LIMIT.jniValue,
+            Property.GAS_USED.jniValue,
+            Property.NONCE.jniValue,
+            Property.HASH.jniValue,
+            Property.BLOCK_NUMBER.jniValue,
+            Property.BLOCK_TIMESTAMP.jniValue
+    };
+
     protected void installProperties() {
-        final String values[] = node.get().jniGetTransactionProperties(identifier, Property.jniValues);
+        final String values[] = node.get().jniGetTransactionProperties(identifier, jniValues);
         this.properties = new EnumMap<Property, String>(Property.class){{
-            for (long jniValue : Property.jniValues)
+            for (long jniValue : jniValues)
                 put (Property.lookup(jniValue), values[(int) jniValue]);
         }};
     }

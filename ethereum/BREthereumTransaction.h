@@ -86,18 +86,15 @@ transactionGetNonce (BREthereumTransaction transaction);
 extern const BREthereumHash
 transactionGetHash (BREthereumTransaction transaction);
 
-/**
- * A token or null
- */
-extern BREthereumToken
-transactionGetToken (BREthereumTransaction transaction);
-
-/**
- * Do not modify returned value
- */
-extern const char *
+extern const char * // no not modify the return value
 transactionGetData (BREthereumTransaction transaction);
 
+extern BREthereumToken // or null
+transactionGetToken (BREthereumTransaction transaction);
+
+//
+// Transaction Signing
+//
 extern void
 transactionSign(BREthereumTransaction transaction,
                 BREthereumAccount account,
@@ -110,7 +107,7 @@ extern BREthereumBoolean
 transactionIsSigned (BREthereumTransaction transaction);
 
 //
-// RLP Encoding
+// Transaction RLP Encoding
 //
 typedef enum {
     TRANSACTION_RLP_SIGNED,
@@ -133,10 +130,6 @@ createTransactionDecodeRLP (BRRlpData data,
 //
 // Transaction Comparison
 //
-
-/**
- * Compares two transactions.
- */
 extern BREthereumComparison
 transactionCompare (BREthereumTransaction t1,
                     BREthereumTransaction t2);
@@ -157,8 +150,10 @@ transactionGetStatus (BREthereumTransaction transaction);
 
 extern void
 transactionAnnounceBlocked (BREthereumTransaction transaction,
+                            BREthereumGas gasUsed,
                             uint64_t blockNumber,
-                            uint64_t blockTransationIndex);
+                            uint64_t blockTimestamp,
+                            uint64_t blockTransactionIndex);
 
 extern void
 transactionAnnounceDropped (BREthereumTransaction transaction,
@@ -168,6 +163,12 @@ extern void
 transactionAnnounceSubmitted (BREthereumTransaction transaction,
                               BREthereumHash hash); // submitted info
 
+extern int
+transactionExtractBlocked(BREthereumTransaction transaction,
+                          BREthereumGas *gas,
+                          uint64_t *blockNumber,
+                          uint64_t *blockTimestamp,
+                          uint64_t *blockTransactionIndex);
 //
 // Transaction Result
 //

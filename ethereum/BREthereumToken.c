@@ -108,6 +108,7 @@ tokenLookup (const char *address) {
     if (NULL == tokens) {
         array_new(tokens, 10);
         array_add(tokens, tokenBRD);
+        array_add(tokens, tokenUNK);
     }
     if (NULL != address && '\0' != address[0])
         for (int i = 0; i < array_count(tokens); i++)
@@ -127,6 +128,18 @@ struct BREthereumTokenRecord tokenBRDRecord = {
     1
 };
 const BREthereumToken tokenBRD = &tokenBRDRecord;
+
+struct BREthereumTokenRecord tokenUNKRecord = {
+    "0x722dd3f80bac40c951b51bdd28dd19d435762180", // "0x5250776FAD5A73707d222950de7999d3675a2722",
+    "UNK",
+    "Unknown Token",
+    "An Unknown Token ...",
+    4,                               // Decimals
+    { TOKEN_BRD_DEFAULT_GAS_LIMIT },                        // Default gasLimit
+    { { { .u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},     // Default gasPrice
+    1
+};
+const BREthereumToken tokenUNK = &tokenUNKRecord;
 
 //
 // Token Quantity

@@ -564,14 +564,17 @@ static BREthereumBlock
 lightNodeAnnounceBlock(BREthereumLightNode node,
                        const char *strBlockNumber,
                        const char *blockHashString,
-                       const char *blockConfirmations,
-                       const char *blockTimestamp) {
+                       const char *strBlockConfirmations,
+                       const char *strBlockTimestamp) {
     // Build a block-ish
     BREthereumHash blockHash = hashCreate (blockHashString);
     BREthereumBlock block = lightNodeLookupBlock(node, blockHash);
     if (NULL == block) {
         uint64_t blockNumber = strtoull(strBlockNumber, NULL, 0);
-        block = createBlock(blockNumber, blockHash, blockConfirmations, blockTimestamp);
+        uint64_t blockTimestamp = strtoull(strBlockTimestamp, NULL, 0);
+        uint64_t blockConfirmations = strtoull (strBlockConfirmations, NULL, 0);
+
+        block = createBlock(blockHash, blockNumber, blockConfirmations, blockTimestamp);
         lightNodeInsertBlock(node, block);
     }
     else {
@@ -647,7 +650,7 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
                              const char *gasPriceString,
                              const char *data,
                              const char *nonce,
-                             const char *gasUsed,
+                             const char *strGasUsed,
                              const char *blockNumber,
                              const char *blockHash,
                              const char *blockConfirmations,
@@ -763,7 +766,9 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
         
         if (NULL != tokenTarget) free(tokenTarget);
     }
-    
+
+    BREthereumGas gasUsed = gasCreate(strtoull(strGasUsed, NULL, 0));
+
     // Other properties
     // hash
     // state (block, etc)
@@ -784,7 +789,11 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
     
     // Announce this transaction as blocked.
     // TODO: Handle already blocked: repeated transaction (most common).
-    walletTransactionBlocked(wallet, transaction, blockGetNumber(block), blockTransactionIndex);
+    walletTransactionBlocked(wallet, transaction,
+                             gasUsed,
+                             blockGetNumber(block),
+                             blockGetTimestamp(block),
+                             blockTransactionIndex);
 }
 
 //  {
@@ -850,6 +859,13 @@ lightNodeWalletGetTransactions (BREthereumLightNode node,
     return transactions;
 }
 
+static char *
+ullToStr (uint64_t value) {
+    char buf[100];
+    sprintf(buf, "%" PRIu64, value);
+    return strdup (buf);
+}
+
 extern char *
 lightNodeGetTransactionProperty (BREthereumLightNode node,
                                  BREthereumLightNodeWalletId wallet,
@@ -860,13 +876,43 @@ lightNodeGetTransactionProperty (BREthereumLightNode node,
     
     switch (property) {
         case TRANSACTION_PROPERTY_TO_ADDR:
-            return addressAsString (transactionGetTargetAddress(transaction));
+            return addressAsString(transactionGetTargetAddress(transaction));
         case TRANSACTION_PROPERTY_FROM_ADDR:
-            return addressAsString (transactionGetSourceAddress(transaction));
-        case TRANSACTION_PROPERTY_NONCE: {
-            char buf[100];
-            sprintf (buf, "%llu", transactionGetNonce(transaction));
-            return strdup (buf);
+            return addressAsString(transactionGetSourceAddress(transaction));
+        case TRANSACTION_PROPERTY_AMOUNT: {
+            BREthereumAmount amount = transactionGetAmount(transaction);
+            return (AMOUNT_ETHER == amountGetType(amount)
+                    ? etherGetValueString(amountGetEther(amount), WEI)
+                    : tokenQuantityGetValueString(amountGetTokenQuantity(amount),
+                                                  TOKEN_QUANTITY_TYPE_INTEGER));
+        }
+        case TRANSACTION_PROPERTY_GAS_PRICE:
+            return etherGetValueString(transactionGetGasPrice(transaction).etherPerGas, WEI);
+        case TRANSACTION_PROPERTY_GAS_LIMIT:
+            return ullToStr(transactionGetGasLimit(transaction).amountOfGas);
+        case TRANSACTION_PROPERTY_GAS_USED:  {
+            BREthereumGas gasUsed;
+            return (transactionExtractBlocked(transaction, &gasUsed, NULL, NULL, NULL)
+                    ? ""
+                    : ullToStr(gasUsed.amountOfGas));
+        }
+        case TRANSACTION_PROPERTY_NONCE:
+            return ullToStr(transactionGetNonce(transaction));
+        case TRANSACTION_PROPERTY_HASH: {
+            BREthereumHash hash = transactionGetHash(transaction);
+            return hashExists(hash) ? hashCopy(hash) : "";
+        }
+        case TRANSACTION_PROPERTY_BLOCK_NUMBER: {
+            uint64_t blockNumber;
+            return (transactionExtractBlocked(transaction, NULL, &blockNumber, NULL, NULL)
+                    ? ""
+                    : ullToStr(blockNumber));
+        }
+        case TRANSACTION_PROPERTY_BLOCK_TIMESTAMP: {
+            uint64_t blockTimestamp;
+            return (transactionExtractBlocked(transaction, NULL, NULL, &blockTimestamp, NULL)
+                    ? ""
+                    : ullToStr(blockTimestamp));
         }
     }
 }

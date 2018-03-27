@@ -480,9 +480,11 @@ walletTransactionSubmitted (BREthereumWallet wallet,
 private_extern void
 walletTransactionBlocked (BREthereumWallet wallet,
                           BREthereumTransaction transaction,
+                          BREthereumGas gasUsed,
                           uint64_t blockNumber,
+                          uint64_t blockTimestamp,
                           uint64_t blockTransactionIndex) {
-    transactionAnnounceBlocked (transaction, blockNumber, blockTransactionIndex);
+    transactionAnnounceBlocked (transaction, gasUsed, blockNumber, blockTimestamp, blockTransactionIndex);
     walletUpdateTransactionSorted(wallet, transaction);
 }
 

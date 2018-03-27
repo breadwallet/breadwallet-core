@@ -196,7 +196,10 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniEstimateWalletGasPrice
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
 
     BRCoreParseStatus status = CORE_PARSE_OK;
-    lightNodeUpdateWalletDefaultGasPrice(node, walletId, &status);
+    lightNodeUpdateWalletDefaultGasPrice
+            (node,
+             (BREthereumLightNodeWalletId) walletId,
+             &status);
     if (CORE_PARSE_OK != status) {
         // TODO: Handle bad parse
     }
@@ -349,7 +352,8 @@ JNIEXPORT jlongArray JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightN
     BREthereumWallet wallet = (BREthereumWallet) walletId;
     unsigned int count = walletGetTransactionCount(wallet);
 
-    BREthereumLightNodeTransactionId *transactionIds = lightNodeWalletGetTransactions(node, walletId);
+    BREthereumLightNodeTransactionId *transactionIds =
+            lightNodeWalletGetTransactions(node, (BREthereumLightNodeWalletId) walletId);
 
     jlongArray transactions = (*env)->NewLongArray (env, count);
     (*env)->SetLongArrayRegion (env, transactions, 0, count, (jlong*) transactionIds);
@@ -437,7 +441,11 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jn
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
 
     BRCoreParseStatus status = CORE_PARSE_OK;
-    lightNodeUpdateTransactionGasEstimate(node, walletId, transactionId, &status);
+    lightNodeUpdateTransactionGasEstimate
+            (node,
+             (BREthereumLightNodeWalletId) walletId,
+             (BREthereumLightNodeTransactionId) transactionId,
+             &status);
 
     if (CORE_PARSE_OK != status) {
         // TODO: Handle status not OK

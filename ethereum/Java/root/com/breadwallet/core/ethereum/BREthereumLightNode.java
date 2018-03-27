@@ -109,6 +109,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
 
     //
     // Connect // Disconnect
+    //
     public boolean connect () {
         return jniLightNodeConnect ();
     }
