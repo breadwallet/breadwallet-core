@@ -109,9 +109,10 @@ tokenLookup (const char *address) {
     array_new(tokens, 10);
     array_add(tokens, tokenBRD);
   }
-  for (int i = 0; i < array_count(tokens); i++)
-    if (0 == strcasecmp (address, tokens[i]->address))
-      return tokens[i];
+  if (NULL != address && '\0' != address[0])
+    for (int i = 0; i < array_count(tokens); i++)
+      if (0 == strcasecmp (address, tokens[i]->address))
+        return tokens[i];
   return NULL;
 }
 

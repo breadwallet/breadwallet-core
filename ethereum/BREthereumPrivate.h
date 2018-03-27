@@ -50,8 +50,8 @@ walletTransactionSubmitted (BREthereumWallet wallet,
 private_extern void
 walletTransactionBlocked (BREthereumWallet wallet,
                           BREthereumTransaction transaction,
-                          BREthereumHash blockHash,
-                          unsigned int blockIndex);
+                          uint64_t blockNumber,
+                          uint64_t blockTransactionIndex);
 
 private_extern void
 walletTransactionDropped (BREthereumWallet wallet,
@@ -82,5 +82,17 @@ tokenLookup (const char *address);
 //
 private_extern void
 blockFree (BREthereumBlock block);
+
+//
+// Contract / Function
+//
+private_extern UInt256
+functionERC20TransferDecodeAmount (BREthereumFunction function,
+                                   const char *data,
+                                   BRCoreParseStatus *status);
+
+private_extern char *
+functionERC20TransferDecodeAddress (BREthereumFunction function,
+                                    const char *data);
 
 #endif /* BR_Ethereum_Private_H */

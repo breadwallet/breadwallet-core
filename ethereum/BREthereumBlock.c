@@ -30,23 +30,28 @@
 #include "BREthereumPrivate.h"
 
 struct BREthereumBlockRecord {
-  char *number;
+  uint64_t number;
   char *hash;
   char *confirmations;
   char *timestamp;
 };
 
 extern BREthereumBlock
-createBlock (const char *number,
+createBlock (uint64_t number,
              const char *hash,
              const char *confirmations,
              const char *timestamp) {
   BREthereumBlock block = (BREthereumBlock) malloc (sizeof (struct BREthereumBlockRecord));
-  block->number = strdup(number);
+  block->number = number;
   block->hash = strdup(hash);
   block->confirmations = strdup(confirmations);
   block->timestamp = strdup(timestamp);
   return block;
+}
+
+extern uint64_t
+blockGetNumber (BREthereumBlock block) {
+  return block->number;
 }
 
 extern BREthereumHash
@@ -56,7 +61,6 @@ blockGetHash (BREthereumBlock block) {
 
 private_extern void
 blockFree (BREthereumBlock block) {
-  free (block->number);
   free (block->hash);
   free (block->confirmations);
   free (block->timestamp);

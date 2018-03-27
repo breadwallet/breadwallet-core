@@ -149,7 +149,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     // Transaction
     //
-    public void forceTransactionUpdate (BREthereumWallet wallet) {
+    public void forceTransactionUpdate () {
         jniForceTransactionUpdate();
     }
 
@@ -230,6 +230,8 @@ public class BREthereumLightNode extends BRCoreJniReference {
 
     protected native void jniSubmitTransaction (long walletId,
                                                 long transactionId);
+
+    protected native long[] jniGetTransactions (long walletId);
 
     protected native String[] jniGetTransactionProperties (long transactionId,
                                                            long properties[]);

@@ -34,10 +34,13 @@ extern "C" {
 typedef struct BREthereumBlockRecord *BREthereumBlock;
 
 extern BREthereumBlock
-createBlock (const char *number,
+createBlock (uint64_t number,
              const char *hash,
              const char *confirmations,
              const char *timestamp);
+
+extern uint64_t
+blockGetNumber (BREthereumBlock block);
 
 extern BREthereumHash
 blockGetHash (BREthereumBlock block);

@@ -119,4 +119,12 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
     public void submit (BREthereumTransaction transaction) {
         node.get().jniSubmitTransaction(identifier, transaction.identifier);
     }
+
+    public BREthereumTransaction[] getTransactions () {
+        long[] transactionIds = node.get().jniGetTransactions(identifier);
+        BREthereumTransaction[] transactions = new BREthereumTransaction[transactionIds.length];
+        for (int i = 0; i < transactionIds.length; i++)
+            transactions[i] = new BREthereumTransaction(node.get(), transactionIds[i], defaultUnit);
+        return transactions;
+    }
  }

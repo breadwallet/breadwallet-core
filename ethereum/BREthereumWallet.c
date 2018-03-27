@@ -41,6 +41,10 @@ walletCreateDefaultGasPrice (BREthereumWallet wallet);
 static BREthereumGas
 walletCreateDefaultGasLimit (BREthereumWallet wallet);
 
+static void
+walletInsertTransactionSorted (BREthereumWallet wallet,
+                               BREthereumTransaction transaction);
+
 /**
  *
  */
@@ -93,7 +97,9 @@ struct BREthereumWalletRecord {
     BREthereumToken token; // optional
 
     //
-    // Transactions
+    // Transactions - these are sorted from oldest [index 0] to newest.  As transactions are added
+    // we'll maintain the ordering using an 'insertion sort' - while starting at the end and
+    // working backwards.
     //
     BREthereumTransaction *transactions;
 
@@ -220,10 +226,9 @@ walletCreateTransactionDetailed(BREthereumWallet wallet,
 }
 
 private_extern void
-walletHandleTransaction (BREthereumWallet wallet,
-                         BREthereumTransaction transaction) {
-  // No ordering...
-  array_add (wallet->transactions, transaction);
+walletHandleTransaction(BREthereumWallet wallet,
+                        BREthereumTransaction transaction) {
+    walletInsertTransactionSorted(wallet, transaction);
 }
 
 //
@@ -426,6 +431,36 @@ walletGetTransactionById (BREthereumWallet wallet,
   return NULL;
 }
 
+static int // -1 if not found
+walletLookupTransactionIndex (BREthereumWallet wallet,
+                              BREthereumTransaction transaction) {
+    for (int i = 0; i < array_count(wallet->transactions); i++)
+        if (transaction == wallet->transactions[i])
+            return i;
+    return -1;
+}
+
+static void
+walletInsertTransactionSorted (BREthereumWallet wallet,
+                               BREthereumTransaction transaction) {
+    size_t index = array_count(wallet->transactions);  // if empty (unsigned int) index == 0
+    for (; index > 0; index--)
+        // quit if transaction is not-less-than the next in wallet
+        if (ETHEREUM_COMPARISON_LT != transactionCompare(transaction, wallet->transactions[index - 1]))
+            break;
+    array_insert(wallet->transactions, index, transaction);
+}
+
+static void
+walletUpdateTransactionSorted (BREthereumWallet wallet,
+                               BREthereumTransaction transaction) {
+    // transaction might have moved - move it if needed - but for now, remove then insert.
+    int index = walletLookupTransactionIndex(wallet, transaction);
+    assert (-1 != index);
+    array_rm(wallet->transactions, index);
+    walletInsertTransactionSorted(wallet, transaction);
+}
+
 extern unsigned long
 walletGetTransactionCount (BREthereumWallet wallet) {
   return array_count(wallet->transactions);
@@ -445,9 +480,10 @@ walletTransactionSubmitted (BREthereumWallet wallet,
 private_extern void
 walletTransactionBlocked (BREthereumWallet wallet,
                           BREthereumTransaction transaction,
-                          BREthereumHash blockHash,
-                          unsigned int blockIndex) {
-  transactionAnnounceBlocked (transaction, blockHash, blockIndex);
+                          uint64_t blockNumber,
+                          uint64_t blockTransactionIndex) {
+  transactionAnnounceBlocked (transaction, blockNumber, blockTransactionIndex);
+  walletUpdateTransactionSorted(wallet, transaction);
 }
 
 private_extern void

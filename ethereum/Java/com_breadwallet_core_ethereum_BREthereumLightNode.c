@@ -318,6 +318,27 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniSubmitTransaction
                                    (BREthereumLightNodeTransactionId) transactionId);
 }
 
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniGetTransactions
+ * Signature: (J)[J
+ */
+JNIEXPORT jlongArray JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetTransactions
+        (JNIEnv *env, jobject thisObject, jlong walletId) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+    BREthereumWallet wallet = (BREthereumWallet) walletId;
+    unsigned int count = walletGetTransactionCount(wallet);
+
+    BREthereumLightNodeTransactionId *transactionIds = lightNodeWalletGetTransactions(node, walletId);
+
+    jlongArray transactions = (*env)->NewLongArray (env, count);
+    (*env)->SetLongArrayRegion (env, transactions, 0, count, (jlong*) transactionIds);
+
+    free (transactionIds);
+    return transactions;
+}
+
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniGetTransactionProperties

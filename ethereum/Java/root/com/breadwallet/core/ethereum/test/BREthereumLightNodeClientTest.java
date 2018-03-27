@@ -96,7 +96,7 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
                 "11113000000000",
                 "21000",
                 "21000000000",
-                "",
+                "0x",
                 "118",
                 "21000",
                 "1627184",
@@ -105,6 +105,83 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
                 "3",
                 "1516477482",
                 "0");
+
+        // From 0: Swap to-from; later block number.  (Fake hash)
+        node.announceTransaction(
+                "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d221",
+                "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",        // NON-NLS
+                node.getAddress(),
+                "",  // NON-NLS
+                "11113000000000",
+                "21000",
+                "21000000000",
+                "0x",
+                "118",
+                "21000",
+                "2627184",
+                "0x0ef0110d68ee3af220e0d7c10d644fea98252180dbfc8a94cab9f0ea8b1036bf",
+                "339050",
+                "3",
+                "1516477482",
+                "0");
+
+        // From 0: earlier transactionIndex; lower nonce (Fake hash)
+        node.announceTransaction(
+                "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d222",
+                node.getAddress(),
+                "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",        // NON-NLS
+                "",  // NON-NLS
+                "11113000000000",
+                "21000",
+                "21000000000",
+                "0x",
+                "117",
+                "21000",
+                "1627184",
+                "0x0ef0110d68ee3af220e0d7c10d644fea98252180dbfc8a94cab9f0ea8b1036af",
+                "339050",
+                "1",
+                "1516477482",
+                "0");
+
+        // From 0: 'to' as tokenBread; data; block number before 'mod 2'.
+        node.announceTransaction(
+                "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d223",
+                node.getAddress(),
+                "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6",        // NON-NLS
+                "",  // NON-NLS
+                "11113000000000",
+                "21000",
+                "21000000000",
+                "0xa9059cbb0000000000000000000000006c0fe9f8f018e68e2f0bee94ab41b75e71df094d00000000000000000000000000000000000000000000000000000000000003e8",
+                "120",
+                "21000",
+                "1627184",
+                "0x0ef0110d68ee3af220e0d7c10d644fea98252180dbfc8a94cab9f0ea8b1036af",
+                "339050",
+                "0",
+                "1516477482",
+                "0");
+
+        // From 0: identical
+        node.announceTransaction(
+                "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
+                node.getAddress(),
+                "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",        // NON-NLS
+                "",  // NON-NLS
+                "11113000000000",
+                "21000",
+                "21000000000",
+                "0x",
+                "118",
+                "21000",
+                "1627184",
+                "0x0ef0110d68ee3af220e0d7c10d644fea98252180dbfc8a94cab9f0ea8b1036af",
+                "339050",
+                "3",
+                "1516477482",
+                "0");
+
     }
 
     protected void runTest () {
@@ -136,7 +213,24 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
         asserting ("11113000000000".equals(trans1.getAmount()));
         asserting ("11113.000000000".equals(trans1.getAmount(ETHER_GWEI)));
 
-        node.forceTransactionUpdate(walletEther);
+        System.out.println ("==== Ether ====\n");
+        for (BREthereumTransaction transaction : walletEther.getTransactions()) {
+            System.out.println ("Transaction:" +
+                    "\n    from: " + transaction.getProperty(BREthereumTransaction.Property.SOURCE_ADDRESS) +
+                    "\n      to: " + transaction.getProperty(BREthereumTransaction.Property.TARGET_ADDRESS) +
+                    "\n   nonce: " + transaction.getProperty(BREthereumTransaction.Property.NONCE) +
+                    "\n\n");
+        }
+
+        System.out.println ("==== Token ====\n");
+        for (BREthereumTransaction transaction : walletToken.getTransactions()) {
+            System.out.println ("Transaction:" +
+                    "\n    from: " + transaction.getProperty(BREthereumTransaction.Property.SOURCE_ADDRESS) +
+                    "\n      to: " + transaction.getProperty(BREthereumTransaction.Property.TARGET_ADDRESS) +
+                    "\n   nonce: " + transaction.getProperty(BREthereumTransaction.Property.NONCE) +
+                    "\n\n");
+        }
+
 
         // Check trans1
 

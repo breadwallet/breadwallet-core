@@ -55,6 +55,16 @@ extern BREthereumFunction functionERC20Transfer; // "transfer(address,uint256)"
 extern const char *
 contractEncode (BREthereumContract contract, BREthereumFunction function, ...);
 
+/**
+ * Return the function for `encodeing` or NULL.
+ *
+ * @param contract
+ * @param encoding
+ * @return
+ */
+extern BREthereumFunction
+contractLookupFunctionForEncoding (BREthereumContract contract, const char *encoding);
+
 #ifdef __cplusplus
 }
 #endif

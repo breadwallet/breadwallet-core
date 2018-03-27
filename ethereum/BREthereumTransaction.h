@@ -157,8 +157,8 @@ transactionGetStatus (BREthereumTransaction transaction);
 
 extern void
 transactionAnnounceBlocked (BREthereumTransaction transaction,
-                            BREthereumHash blockHash,
-                            unsigned int blockIndex);
+                            uint64_t blockNumber,
+                            uint64_t blockTransationIndex);
 
 extern void
 transactionAnnounceDropped (BREthereumTransaction transaction,

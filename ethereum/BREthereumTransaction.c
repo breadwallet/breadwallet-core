@@ -47,12 +47,12 @@ hashCreate (const char *string) {
 
 extern BREthereumHash
 hashCreateEmpty (void) {
-    return NULL;
+    return "";
 }
 
 extern BREthereumBoolean
 hashExists (BREthereumHash hash) {
-    return NULL != hash;
+    return '\0' != hash[0];
 }
 
 extern BREthereumHash
@@ -85,8 +85,8 @@ typedef struct {
     } _signed;
 
     struct {
-      BREthereumHash hash;
-      unsigned int index;
+        uint64_t number;
+        uint64_t transactionIndex;
     } blocked;
 
     struct {
@@ -116,11 +116,11 @@ transactionStateSubmitted (BREthereumTransactionState *state /* ... */) {
 
 static void
 transactionStateBlocked (BREthereumTransactionState *state,
-                         BREthereumHash blockHash,
-                         unsigned int blockIndex) {
+                         uint64_t blockNumber,
+                         uint64_t blockTransactionIndex) {
   state->status = TRANSACTION_BLOCKED;
-  state->u.blocked.hash = hashCopy(blockHash);
-  state->u.blocked.index = blockIndex;
+  state->u.blocked.number = blockNumber;
+  state->u.blocked.transactionIndex = blockTransactionIndex;
 }
 
 static void
@@ -467,17 +467,6 @@ transactionGetEffectiveAmountInEther (BREthereumTransaction transaction) {
   }
 }
 
-extern BREthereumComparison
-transactionCompare (BREthereumTransaction t1,
-                    BREthereumTransaction t2) {
-  // nothing yet, really
-  return (t1->nonce < t2->nonce
-          ? ETHEREUM_COMPARISON_LT
-          : (t1->nonce == t2->nonce
-             ? ETHEREUM_COMPARISON_EQ
-             : ETHEREUM_COMPARISON_GT));
-}
-
 extern BREthereumTransactionStatus
 transactionGetStatus (BREthereumTransaction transaction) {
   return transaction->state.status;
@@ -485,9 +474,9 @@ transactionGetStatus (BREthereumTransaction transaction) {
 
 extern void
 transactionAnnounceBlocked (BREthereumTransaction transaction,
-                            BREthereumHash blockHash,
-                            unsigned int blockIndex) {
-  transactionStateBlocked(&transaction->state, blockHash, blockIndex);
+                            uint64_t blockNumber,
+                            uint64_t blockTransationIndex) {
+  transactionStateBlocked(&transaction->state, blockNumber, blockTransationIndex);
 }
 
 extern void
@@ -502,6 +491,50 @@ transactionAnnounceSubmitted (BREthereumTransaction transaction,
   transactionStateSubmitted(&transaction->state);
   transaction->hash = hashCopy(hash);
 }
+
+static int
+transactionHasStatus(BREthereumTransaction transaction,
+                     BREthereumTransactionStatus status) {
+    return status == transaction->state.status;
+}
+
+/**
+ * Compare two transactions based on their block, or if not blocked, their nonce.
+ * @param t1
+ * @param t2
+ * @return
+ */
+extern BREthereumComparison
+transactionCompare(BREthereumTransaction t1,
+                   BREthereumTransaction t2) {
+    int t1Blocked = transactionHasStatus(t1, TRANSACTION_BLOCKED);
+    int t2Blocked = transactionHasStatus(t2, TRANSACTION_BLOCKED);
+
+    if (t1Blocked && t2Blocked)
+        return (t1->state.u.blocked.number < t2->state.u.blocked.number
+                ? ETHEREUM_COMPARISON_LT
+                : (t1->state.u.blocked.number > t2->state.u.blocked.number
+                   ? ETHEREUM_COMPARISON_GT
+                   : (t1->state.u.blocked.transactionIndex < t2->state.u.blocked.transactionIndex
+                      ? ETHEREUM_COMPARISON_LT
+                      : (t1->state.u.blocked.transactionIndex > t2->state.u.blocked.transactionIndex
+                         ? ETHEREUM_COMPARISON_GT
+                         : ETHEREUM_COMPARISON_EQ))));
+
+    else if (!t1Blocked && t2Blocked)
+        return ETHEREUM_COMPARISON_GT;
+
+    else if (t1Blocked && !t2Blocked)
+        return ETHEREUM_COMPARISON_LT;
+
+    else
+        return (t1->nonce < t2->nonce
+                ? ETHEREUM_COMPARISON_LT
+                : (t1->nonce > t2->nonce
+                   ? ETHEREUM_COMPARISON_GT
+                   : ETHEREUM_COMPARISON_EQ));
+}
+
 
 //
 // Transaction Result

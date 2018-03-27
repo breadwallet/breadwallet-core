@@ -28,6 +28,7 @@
 #include <memory.h>
 #include <assert.h>
 #include "BREthereumContract.h"
+#include "BREthereumBase.h"
 #include "BRUtil.h"
 
 /* Forward Declarations */
@@ -152,6 +153,43 @@ static struct BREthereumContractRecord contractRecordERC20 = {
 BREthereumContract contractERC20 = &contractRecordERC20;
 BREthereumFunction functionERC20Transfer = &contractRecordERC20.functions[2];
 
+
+static int
+functionIsEncodedInData (BREthereumFunction function, const char *data) {
+  return NULL != data &&
+         0 == strncmp (function->selector, data, strlen(function->selector));
+}
+
+extern BREthereumFunction
+contractLookupFunctionForEncoding (BREthereumContract contract, const char *encoding) {
+  for (int i = 0; i < contract->functionsCount; i++)
+    if (functionIsEncodedInData(&contract->functions[i], encoding))
+      return &contract->functions[i];
+  return NULL;
+}
+
+private_extern UInt256
+functionERC20TransferDecodeAmount (BREthereumFunction function,
+                                   const char *data,
+                                   BRCoreParseStatus *status) {
+  assert (function == functionERC20Transfer);
+  // Second argument - skip selector + 1st argument
+  data = &data [strlen(function->selector) + 1 * 64];
+  return createUInt256Parse(data, 16, status);
+}
+
+private_extern char *
+functionERC20TransferDecodeAddress (BREthereumFunction function,
+                                    const char *data) {
+  assert (function == functionERC20Transfer);
+  // Second argument - skip selector + 1st argument
+  char result[2 + 40 + 1];
+  result[0] = '0';
+  result[1] = 'x';
+  memcpy (&result[2], &data[strlen(function->selector) + 24], 40);  // 24 -> skip '0000...<addr>'
+  result[42] = '\0';
+  return strdup (result);
+}
 
 /**
 */

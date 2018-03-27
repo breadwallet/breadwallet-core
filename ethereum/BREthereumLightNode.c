@@ -195,7 +195,7 @@ lightNodeLookupWallet (BREthereumLightNode node,
 
 extern BREthereumLightNodeWalletId
 lightNodeGetWallet (BREthereumLightNode node) {
-  return (void *) node->walletHoldingEther;
+  return (BREthereumLightNodeWalletId) node->walletHoldingEther;
 }
 
 extern BREthereumLightNodeWalletId
@@ -205,7 +205,7 @@ lightNodeCreateWalletHoldingToken (BREthereumLightNode node,
                                                       node->configuration.network,
                                                       token);
   lightNodeInsertWallet(node, wallet);
-  return (void *) wallet;
+  return (BREthereumLightNodeWalletId) wallet;
 
 }
 
@@ -337,12 +337,31 @@ lightNodeInsertBlock (BREthereumLightNode node,
 static BREthereumTransaction
 lightNodeLookupTransaction (BREthereumLightNode node,
                             BREthereumLightNodeWalletId walletId,
-                           BREthereumLightNodeTransactionId transactionId) {
+                            BREthereumLightNodeTransactionId transactionId) {
   for (int i = 0; i < array_count(node->wallets); i++)
     if (walletId == node->wallets[i]) {
       return walletGetTransactionById(node->wallets[i], transactionId);
     }
   return NULL;
+}
+
+static BREthereumTransaction
+lightNodeLookupTransactionByHash (BREthereumLightNode node,
+                                  BREthereumHash hash) {
+    for (int i = 0; i < array_count(node->transactions); i++)
+        if (ETHEREUM_COMPARISON_EQ == hashCompare(hash, transactionGetHash(node->transactions[i])))
+            return node->transactions[i];
+    return NULL;
+}
+
+static BREthereumTransaction
+lightNodeLookupTransactionByNone (BREthereumLightNode node,
+                                  uint64_t nonce) {
+    for (int i = 0; i < array_count(node->transactions); i++)
+        if (ETHEREUM_COMPARISON_EQ == hashCompare(hashCreateEmpty(), transactionGetHash(node->transactions[i]))
+            && nonce == transactionGetNonce(node->transactions[i]))
+            return node->transactions[i];
+    return NULL;
 }
 
 extern BREthereumLightNodeTransactionId
@@ -537,6 +556,82 @@ lightNodeGetTransactionRawDataHexEncoded(BREthereumLightNode node,
   return walletGetRawTransactionHexEncoded(wallet, transaction, prefix);
 }
 
+static BREthereumBlock
+lightNodeAnnounceBlock(BREthereumLightNode node,
+                       const char *strBlockNumber,
+                       const char *blockHashString,
+                       const char *blockConfirmations,
+                       const char *blockTimestamp) {
+    // Build a block-ish
+    BREthereumHash blockHash = hashCreate (blockHashString);
+    BREthereumBlock block = lightNodeLookupBlock(node, blockHash);
+    if (NULL == block) {
+        uint64_t blockNumber = strtoull(strBlockNumber, NULL, 0);
+        block = createBlock(blockNumber, blockHash, blockConfirmations, blockTimestamp);
+        lightNodeInsertBlock(node, block);
+    }
+    else {
+        // confirm
+    }
+    free (blockHash);
+    return block;
+}
+
+static int
+lightNodeDataIsEmpty (BREthereumLightNode node, const char *data) {
+    return NULL == data || 0 == strcmp ("", data) || 0 == strcmp ("0x", data);
+}
+
+static BREthereumToken
+lightNodeAnnounceToken (BREthereumLightNode node,
+                        const char *target,
+                        const char *contract,
+                        const char *data) {
+    // If `data` is anything besides "0x", then we have a contract function call.  At that point
+    // it seems we need to process `data` to extract the 'function + args' and then, if the
+    // function is 'transfer() token' we can then and only then conclude that we have a token
+
+    if (lightNodeDataIsEmpty(node, data)) return NULL;
+
+    // There is contract data; see if it is a ERC20 function.
+    BREthereumFunction function = contractLookupFunctionForEncoding(contractERC20, data);
+
+    // Not an ERC20 token
+    if (NULL == function) return NULL;
+
+    // See if we have an existing token.
+    BREthereumToken token = tokenLookup(target);
+    if (NULL == token) token = tokenLookup(contract);
+
+    // We found a token...
+    if (NULL != token) return token;
+
+    // ... we didn't find a token - we should create is dynamically.
+    fprintf (stderr, "Ignoring transaction for unknown ERC20 token at '%s'", target);
+    return NULL;
+}
+
+static BREthereumWallet
+lightNodeAnnounceWallet(BREthereumLightNode node,
+                        BREthereumToken token) {
+    // Find a wallet.
+    for (int i = 0; i < array_count(node->wallets); i++) {
+        // If we have a token and it matches wallet's token OR we don't have a
+        // token and wallet doesn't either.
+        if ((NULL != token && token == walletGetToken(node->wallets[i]))
+            || (NULL == token && NULL == walletGetToken(node->wallets[i]))) {
+            return node->wallets[i];
+        }
+    }
+
+    // We always assume a wallet holding ETHER; so only here for non-NULL token.
+    assert (NULL != token);
+
+    // Create a wallet for token.
+    BREthereumLightNodeWalletId walletId = lightNodeCreateWalletHoldingToken (node, token);
+    return lightNodeLookupWallet(node, walletId);
+}
+
 extern void
 lightNodeAnnounceTransaction(BREthereumLightNode node,
                              const char *hashString,
@@ -547,123 +642,145 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
                              const char *gasLimitString,
                              const char *gasPriceString,
                              const char *data,
-                             const char *nonceString,
+                             const char *nonce,
                              const char *gasUsed,
                              const char *blockNumber,
-                             const char *blockHashString,
+                             const char *blockHash,
                              const char *blockConfirmations,
-                             const char *blockTransactionIndex,
+                             const char *strBlockTransactionIndex,
                              const char *blockTimestamp,
                              const char *isError) {
     BREthereumTransaction transaction = NULL;
-    BREthereumToken token = NULL;
     BREthereumAddress primaryAddress = accountGetPrimaryAddress(node->account);
     int newTransaction = 0;
 
     assert (ETHEREUM_BOOLEAN_IS_TRUE(addressHasString(primaryAddress, from))
             || ETHEREUM_BOOLEAN_IS_TRUE(addressHasString(primaryAddress, to)));
 
+    // primaryAddress is either the transaction's `source` or `target`.
+    BREthereumBoolean isSource = addressHasString(primaryAddress, from);
+
+    // Get the nonceValue
+    uint64_t nonceValue = strtoull(nonce, NULL, 10); // TODO: Assumes `nonce` is uint64_t; which it is for now
+
+    // If `isSource` then the nonce is 'ours'.
+    if (ETHEREUM_BOOLEAN_IS_TRUE(isSource) && nonceValue >= addressGetNonce(primaryAddress))
+        addressSetNonce(primaryAddress, nonceValue + 1);  // next
+
+    // Find a token.
+    BREthereumToken token = lightNodeAnnounceToken(node,
+                                                   (ETHEREUM_BOOLEAN_IS_TRUE(isSource) ? to : from),
+                                                   contract,
+                                                   data);
+
+    // If we have data, but did not identify a token; then we are processing a transaction for
+    // a contract that we know nothing about - likely not even a wallet.
+    if (!lightNodeDataIsEmpty(node, data) && NULL == token) {
+        fprintf (stderr, "Ignoring transaction with '%s' having data '%s'",
+                 (ETHEREUM_BOOLEAN_IS_TRUE(isSource) ? to : from),
+                 data);
+        return;
+    }
+
+    // Find or create a block.  No point is doing this until we have a transaction of interest
+    BREthereumBlock block = lightNodeAnnounceBlock(node, blockNumber, blockHash, blockConfirmations, blockTimestamp);
+    assert (NULL != block);
+
+    // The transaction's index within the block.
+    unsigned int blockTransactionIndex = (unsigned int) strtoul (strBlockTransactionIndex, NULL, 10);
+
+    // Find or create a wallet for this transaction
+    BREthereumWallet wallet = lightNodeAnnounceWallet (node, token);
+
+    // Get the transaction's hash.
     BREthereumHash hash = hashCreate(hashString);
 
-    // TODO: Assumes `nonce` is uint64_t; which it is.
-    uint64_t nonce = strtoull(nonceString, NULL, 10);
+    // Look for a pre-existing transaction
+    transaction = lightNodeLookupTransactionByHash(node, hash);
 
-    // Update the primaryAddress nonce if this transaction originated from us
-    if (nonce >= addressGetNonce(primaryAddress)
-        && ETHEREUM_BOOLEAN_IS_TRUE(addressHasString(primaryAddress, from)))
-            addressSetNonce(primaryAddress, nonce + 1);  // next
+    // If we did not have a transaction for 'hash' it might be (might likely be) a newly submitted
+    // transaction that we are holding but that doesn't have a hash yet.  This will *only* apply
+    // if we are the source.
+    if (NULL == transaction && ETHEREUM_BOOLEAN_IS_TRUE(isSource))
+        transaction = lightNodeLookupTransactionByNone(node, nonceValue);
 
-            // TODO: Looking for Hash or Nonce.  Prefer Hash unless
-            // TODO:   there isn't one and we originated; then look for nonce?
-
-    // Walk the transactions looking for a pre-existing one with 'nonce'
-    for (int i = 0; i < array_count(node->transactions); i++)
-        if (nonce == transactionGetNonce(node->transactions[i])) {
-            transaction = node->transactions[i];
-            break;
-        }
-
-    // If we didn't have a transaction (with 'hash' or 'nonce'); then create one.
+    // If we still don't have a transaction (with 'hash' or 'nonce'); then create one.
     if (NULL == transaction) {
         BRCoreParseStatus status;
-        BREthereumAddress targetAddr = createAddress(to);
-        BREthereumAddress contractAddr = (NULL == contract || '\0' == contract[0]
-                                          ? NULL
-                                          : createAddress(contract));
 
-        // See if we have a token defined.
-        token = (NULL == contractAddr ? NULL : tokenLookup(contract));
+        // If we have an ERC20 token, then the {source,target}Address comes from data.
+        char *tokenTarget = NULL;
+        if (NULL != token) {
+            tokenTarget = functionERC20TransferDecodeAddress(functionERC20Transfer, data);
+            if (ETHEREUM_BOOLEAN_IS_TRUE(isSource))
+                to = tokenTarget;
+            else
+                from = tokenTarget;
+        }
+
+        BREthereumAddress sourceAddr =
+                (ETHEREUM_BOOLEAN_IS_TRUE(isSource) ? primaryAddress : createAddress(from));
+        BREthereumAddress targetAddr =
+                (ETHEREUM_BOOLEAN_IS_TRUE(isSource) ? createAddress(to) : primaryAddress);
+
+        // TODO: What to do with `contractAddr` - find an example in returned JSON
+        // TODO: What to do with non-Ether, non-Token-Transfer transactions
 
         // Get the amount; this can be tricky if we have a token
-        // TODO: Quit faking this.
-        BREthereumAmount amount = amountCreateEther(
-                etherCreate(createUInt256Parse(amountString, 16, &status)));
+        BREthereumAmount amount =
+                (NULL == token
+                 ? amountCreateEther(etherCreate(createUInt256Parse(amountString, 10, &status)))
+                 : amountCreateToken(createTokenQuantity(token,
+                                                         functionERC20TransferDecodeAmount(
+                                                                 functionERC20Transfer,
+                                                                 data,
+                                                                 &status))));
+        // TODO: Handle Status Error
 
         // Easily extract the gasPrice and gasLimit.
-        BREthereumGasPrice gasPrice = gasPriceCreate(
-                etherCreate(createUInt256Parse(gasPriceString, 16, &status)));
-        BREthereumGas gasLimit = gasCreate(strtoull(gasLimitString, NULL, 0));
+        BREthereumGasPrice gasPrice =
+                gasPriceCreate(etherCreate(createUInt256Parse(gasPriceString, 16, &status)));
 
-        // TODO: 'Deconvolve' the `data` based on `token`
+        BREthereumGas gasLimit =
+                gasCreate(strtoull(gasLimitString, NULL, 0));
 
         // Finally, get ourselves a transaction.
-        transaction = transactionCreate(primaryAddress,
+        transaction = transactionCreate(sourceAddr,
                                         targetAddr,
                                         amount,
                                         gasPrice,
                                         gasLimit,
-                                        nonce);
+                                        nonceValue);
         // With transaction defined - including with a properly typed amount; we should be able
         // to validate based, in part, on strcmp(data, transaction->data)
 
         array_add (node->transactions, transaction);
         newTransaction = 1;
+
+        if (NULL != tokenTarget) free(tokenTarget);
     }
 
     // Other properties
     // hash
     // state (block, etc)
 
-    BREthereumWallet wallet = NULL;
-
-    // Find a wallet.
-    for (int i = 0; i < array_count(node->wallets); i++) {
-        // If we have a token and it matches wallet OR we don't have a token and wallet's doesn't either
-        if ((NULL != token && token == walletGetToken(node->wallets[i]))
-            || (NULL == token && NULL == walletGetToken(node->wallets[i]))) {
-            wallet = node->wallets[i];
-            break;
-        }
-    }
-
-    // No wallet; create one
-    if (NULL == wallet) {
-        wallet = (NULL != token
-                  ? walletCreateHoldingToken(node->account, node->configuration.network, token)
-                  : walletCreate(node->account, node->configuration.network));
-        array_add (node->wallets, wallet);
-    }
-
+    // For a new transaction, add it to wallet and then transition through the transaction
+    // states.  We do extra work here; but we ensure that the transactions happen in order and
+    // consistently with the normal flow - which is created (added to end of wallet transactions);
+    // submitted (assigned hash) and then blocked (resorted to proper position, perhaps).
     if (1 == newTransaction) {
         // This transaction is in wallet.
         walletHandleTransaction(wallet, transaction);
-        // In this callback implies submitted.
+        // When in this callback, a new transaction implies submitted.  So announce.
         walletTransactionSubmitted(wallet, transaction, hash);
     }
 
-  // Build a block-ish
-  BREthereumHash blockHash = hashCreate (blockHashString);
-  BREthereumBlock block = lightNodeLookupBlock(node, blockHash);
-  if (NULL == block) {
-    block = createBlock(blockNumber, blockHash, blockConfirmations, blockTimestamp);
-    lightNodeInsertBlock(node, block);
-  }
-  free (blockHash);
 
-  // TODO: Process 'state' properly - errors?
+    // TODO: Process 'state' properly - errors?
 
-  walletTransactionBlocked(wallet, transaction, blockGetHash(block),
-                           (unsigned int) strtoul (blockTransactionIndex, NULL, 10));
+    // Announce this transaction as blocked.
+    // TODO: Handle already blocked: repeated transaction (most common).
+    walletTransactionBlocked(wallet, transaction, blockGetNumber(block), blockTransactionIndex);
 }
 
 //  {
