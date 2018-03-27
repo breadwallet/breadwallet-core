@@ -152,8 +152,8 @@ walletGetRawTransactionHexEncoded (BREthereumWallet wallet,
                                    const char *prefix);
 
 /**
-*
-*/
+ *
+ */
 extern BREthereumAddress
 walletGetAddress (BREthereumWallet wallet);
 
@@ -241,11 +241,11 @@ walletGetTransactionByHash (BREthereumWallet wallet,
 
 extern BREthereumTransaction
 walletGetTransactionByNonce (BREthereumWallet wallet,
-                            uint64_t nonce);
+                             uint64_t nonce);
 
 extern unsigned long
 walletGetTransactionCount (BREthereumWallet wallet);
-
+    
 #ifdef __cplusplus
 }
 #endif

@@ -53,11 +53,11 @@ gasPriceCreate(BREthereumEther ether) {
 
 extern BREthereumEther
 gasPriceGetGasCost(BREthereumGasPrice price, BREthereumGas gas, int *overflow) {
-  assert (NULL != overflow);
-
-  return etherCreate (mulUInt256_Overflow (createUInt256(gas.amountOfGas), // gas
-                                           price.etherPerGas.valueInWEI,   // WEI/gas
-                                           overflow));
+    assert (NULL != overflow);
+    
+    return etherCreate (mulUInt256_Overflow (createUInt256(gas.amountOfGas), // gas
+                                             price.etherPerGas.valueInWEI,   // WEI/gas
+                                             overflow));
 }
 
 extern BRRlpItem

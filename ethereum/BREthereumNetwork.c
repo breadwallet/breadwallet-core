@@ -27,19 +27,19 @@
 #include "BREthereumNetwork.h"
 
 struct BREthereumNetworkRecord {
-  int chainId;
+    int chainId;
 };
 
 extern BREthereumChainId
 networkGetChainId (BREthereumNetwork network) {
-  return network->chainId;
+    return network->chainId;
 }
 
 //
 // Mainnet
 //
 static struct BREthereumNetworkRecord ethereumMainnetRecord = {
-  1
+    1
 };
 const BREthereumNetwork ethereumMainnet = &ethereumMainnetRecord;
 
@@ -63,7 +63,7 @@ MainnetChainConfig = &ChainConfig{
 // Testnet
 //
 static struct BREthereumNetworkRecord ethereumTestnetRecord = {
-  3
+    3
 };
 const BREthereumNetwork ethereumTestnet = &ethereumTestnetRecord;
 
@@ -86,7 +86,7 @@ TestnetChainConfig = &ChainConfig{
 // Rinkeby
 //
 static struct BREthereumNetworkRecord ethereumRinkebyRecord = {
-  4
+    4
 };
 const BREthereumNetwork ethereumRinkeby = &ethereumRinkebyRecord;
 

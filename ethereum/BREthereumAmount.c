@@ -34,18 +34,18 @@
 //
 extern BREthereumAmount
 amountCreateEther (BREthereumEther ether) {
-  BREthereumAmount amount;
-  amount.type = AMOUNT_ETHER;
-  amount.u.ether = ether;
-  return amount;
+    BREthereumAmount amount;
+    amount.type = AMOUNT_ETHER;
+    amount.u.ether = ether;
+    return amount;
 }
 
 extern BREthereumAmount
 amountCreateToken (BREthereumTokenQuantity tokenQuantity) {
-  BREthereumAmount amount;
-  amount.type = AMOUNT_TOKEN;
-  amount.u.tokenQuantity = tokenQuantity;
-  return amount;
+    BREthereumAmount amount;
+    amount.type = AMOUNT_TOKEN;
+    amount.u.tokenQuantity = tokenQuantity;
+    return amount;
 }
 
 extern BREthereumAmountType
@@ -55,36 +55,36 @@ amountGetType (BREthereumAmount amount) {
 
 extern BREthereumEther
 amountGetEther (BREthereumAmount amount) {
-  assert (amount.type == AMOUNT_ETHER);
-  return amount.u.ether;
+    assert (amount.type == AMOUNT_ETHER);
+    return amount.u.ether;
 }
 
 extern BREthereumTokenQuantity
 amountGetTokenQuantity (BREthereumAmount amount) {
-  assert (amount.type == AMOUNT_TOKEN);
-  return amount.u.tokenQuantity;
+    assert (amount.type == AMOUNT_TOKEN);
+    return amount.u.tokenQuantity;
 }
 
 extern BREthereumGas
 amountGetGasEstimate (BREthereumAmount amount) {
-  switch (amount.type) {
-    case AMOUNT_ETHER:
-      return gasCreate (DEFAULT_ETHER_GAS_LIMIT);
-    case AMOUNT_TOKEN:
-      return tokenGetGasLimit (amount.u.tokenQuantity.token);
-  }
+    switch (amount.type) {
+        case AMOUNT_ETHER:
+            return gasCreate (DEFAULT_ETHER_GAS_LIMIT);
+        case AMOUNT_TOKEN:
+            return tokenGetGasLimit (amount.u.tokenQuantity.token);
+    }
 }
 
 extern BRRlpItem
 amountRlpEncode(BREthereumAmount amount, BRRlpCoder coder) {
-  switch (amount.type) {
-    case AMOUNT_ETHER:
-      return etherRlpEncode(amount.u.ether, coder);
-
-    case AMOUNT_TOKEN:
-      // We do not encode a 'number 0', we encode an empty string - it seems from ethereumio
-      return rlpEncodeItemString(coder, ""); // rlpEncodeItemUInt64(coder, 0);
-  }
+    switch (amount.type) {
+        case AMOUNT_ETHER:
+            return etherRlpEncode(amount.u.ether, coder);
+            
+        case AMOUNT_TOKEN:
+            // We do not encode a 'number 0', we encode an empty string - it seems from ethereumio
+            return rlpEncodeItemString(coder, ""); // rlpEncodeItemUInt64(coder, 0);
+    }
 }
 
 //
@@ -92,18 +92,18 @@ amountRlpEncode(BREthereumAmount amount, BRRlpCoder coder) {
 //
 extern BREthereumAmount
 amountCreateEtherString (const char *number, BREthereumEtherUnit unit, BRCoreParseStatus *status) {
-  BREthereumAmount amount;
-  amount.type = AMOUNT_ETHER;
-  amount.u.ether = etherCreateString(number, unit, status);
-  return amount;
+    BREthereumAmount amount;
+    amount.type = AMOUNT_ETHER;
+    amount.u.ether = etherCreateString(number, unit, status);
+    return amount;
 }
 
 extern BREthereumAmount
 amountCreateTokenQuantityString (BREthereumToken token, const char *number, BREthereumTokenQuantityUnit unit, BRCoreParseStatus *status) {
-  BREthereumAmount amount;
-  amount.type = AMOUNT_TOKEN;
-  amount.u.tokenQuantity = createTokenQuantityString(token, number, unit, status);
-  return amount;
+    BREthereumAmount amount;
+    amount.type = AMOUNT_TOKEN;
+    amount.u.tokenQuantity = createTokenQuantityString(token, number, unit, status);
+    return amount;
 }
 
 /*

@@ -39,92 +39,92 @@
 //
 
 struct BREthereumTokenRecord {
-  /**
-   * An Ethereum '0x' address for the token's contract.
-   */
-  char *address;
-
-  /**
-   * The (exchange) symbol - "BRD"
-   */
-  char *symbol;
-
-  /**
-   * The name - "Bread Token"
-   */
-  char *name;
-
-  /**
-   * The description - "The Bread Token ..."
-   */
-  char *description;
-
-  /**
-   * The maximum decimals (typically 0 to 18).
-   */
-  unsigned int decimals;
-
-  /**
-   * The (default) Gas Limit for exchanges of this token.
-   */
-  BREthereumGas gasLimit;           // TODO: Feels modifiable
-
-  /**
-   * The (default) Gas Price for exchanges of this token.
-   */
-  BREthereumGasPrice gasPrice;      // TODO: Feels modifiable
-
-  /**
-   * True(1) if allocated statically
-   */
-  int staticallyAllocated;
+    /**
+     * An Ethereum '0x' address for the token's contract.
+     */
+    char *address;
+    
+    /**
+     * The (exchange) symbol - "BRD"
+     */
+    char *symbol;
+    
+    /**
+     * The name - "Bread Token"
+     */
+    char *name;
+    
+    /**
+     * The description - "The Bread Token ..."
+     */
+    char *description;
+    
+    /**
+     * The maximum decimals (typically 0 to 18).
+     */
+    unsigned int decimals;
+    
+    /**
+     * The (default) Gas Limit for exchanges of this token.
+     */
+    BREthereumGas gasLimit;           // TODO: Feels modifiable
+    
+    /**
+     * The (default) Gas Price for exchanges of this token.
+     */
+    BREthereumGasPrice gasPrice;      // TODO: Feels modifiable
+    
+    /**
+     * True(1) if allocated statically
+     */
+    int staticallyAllocated;
 };
 
 extern const char *
 tokenGetAddress (BREthereumToken token) {
-  return token->address;
+    return token->address;
 }
 
 extern BREthereumGas
 tokenGetGasLimit (BREthereumToken token) {
-  return token->gasLimit;
+    return token->gasLimit;
 }
 
 
 extern BREthereumGasPrice
 tokenGetGasPrice (BREthereumToken token) {
-  return token->gasPrice;
+    return token->gasPrice;
 }
 
 extern BREthereumContract
 tokenGetContract (BREthereumToken token) {
-  return contractERC20;
+    return contractERC20;
 }
 
 static BREthereumToken *tokens = NULL;
 
 private_extern BREthereumToken
 tokenLookup (const char *address) {
-  if (NULL == tokens) {
-    array_new(tokens, 10);
-    array_add(tokens, tokenBRD);
-  }
-  if (NULL != address && '\0' != address[0])
-    for (int i = 0; i < array_count(tokens); i++)
-      if (0 == strcasecmp (address, tokens[i]->address))
-        return tokens[i];
-  return NULL;
+    if (NULL == tokens) {
+        array_new(tokens, 10);
+        array_add(tokens, tokenBRD);
+    }
+    if (NULL != address && '\0' != address[0])
+        for (int i = 0; i < array_count(tokens); i++)
+            if (0 == strcasecmp (address, tokens[i]->address))
+                return tokens[i];
+    return NULL;
 }
 
 struct BREthereumTokenRecord tokenBRDRecord = {
-  "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6", // "0x5250776FAD5A73707d222950de7999d3675a2722",
-  "BRD",
-  "Bread Token",
-  "The Bread Token ...",
-  18,                               // Decimals
-  { TOKEN_BRD_DEFAULT_GAS_LIMIT },                        // Default gasLimit
-  { { { .u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},     // Default gasPrice
-  1
+    "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6", // "0x5250776FAD5A73707d222950de7999d3675a2722",
+    "BRD",
+    "Bread Token",
+    "The Bread Token ...",
+    18,                               // Decimals
+    { TOKEN_BRD_DEFAULT_GAS_LIMIT },                        // Default gasLimit
+    { { { .u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},     // Default gasPrice
+    1
 };
 const BREthereumToken tokenBRD = &tokenBRDRecord;
 
@@ -134,12 +134,12 @@ const BREthereumToken tokenBRD = &tokenBRDRecord;
 extern BREthereumTokenQuantity
 createTokenQuantity (BREthereumToken token,
                      UInt256 valueAsInteger) {
-  assert (NULL != token);
-
-  BREthereumTokenQuantity quantity;
-  quantity.token = token;
-  quantity.valueAsInteger = valueAsInteger;
-  return quantity;
+    assert (NULL != token);
+    
+    BREthereumTokenQuantity quantity;
+    quantity.token = token;
+    quantity.valueAsInteger = valueAsInteger;
+    return quantity;
 }
 
 extern BREthereumTokenQuantity
@@ -147,31 +147,31 @@ createTokenQuantityString (BREthereumToken token,
                            const char *number,
                            BREthereumTokenQuantityUnit unit,
                            BRCoreParseStatus *status) {
-  UInt256 valueAsInteger;
-
-  if ((TOKEN_QUANTITY_TYPE_DECIMAL == unit && CORE_PARSE_OK != parseIsDecimal(number))
-      || (TOKEN_QUANTITY_TYPE_INTEGER == unit && CORE_PARSE_OK != parseIsInteger(number))) {
-    *status = CORE_PARSE_STRANGE_DIGITS;
-    valueAsInteger = UINT256_ZERO;
-  }
-  else {
-    valueAsInteger = (TOKEN_QUANTITY_TYPE_DECIMAL == unit
-                      ? createUInt256ParseDecimal(number, token->decimals, status)
-                      : createUInt256Parse (number, 10, status));
-  }
-
-  return createTokenQuantity(token, (CORE_PARSE_OK != *status ? UINT256_ZERO : valueAsInteger));
+    UInt256 valueAsInteger;
+    
+    if ((TOKEN_QUANTITY_TYPE_DECIMAL == unit && CORE_PARSE_OK != parseIsDecimal(number))
+        || (TOKEN_QUANTITY_TYPE_INTEGER == unit && CORE_PARSE_OK != parseIsInteger(number))) {
+        *status = CORE_PARSE_STRANGE_DIGITS;
+        valueAsInteger = UINT256_ZERO;
+    }
+    else {
+        valueAsInteger = (TOKEN_QUANTITY_TYPE_DECIMAL == unit
+                          ? createUInt256ParseDecimal(number, token->decimals, status)
+                          : createUInt256Parse (number, 10, status));
+    }
+    
+    return createTokenQuantity(token, (CORE_PARSE_OK != *status ? UINT256_ZERO : valueAsInteger));
 }
 
 extern const BREthereumToken
 tokenQuantityGetToken (BREthereumTokenQuantity quantity) {
-  return quantity.token;
+    return quantity.token;
 }
 
 extern char *
 tokenQuantityGetValueString(const BREthereumTokenQuantity quantity,
                             BREthereumTokenQuantityUnit unit) {
-  return TOKEN_QUANTITY_TYPE_DECIMAL == unit
-         ? coerceString(quantity.valueAsInteger, 10)
-         : coerceStringDecimal(quantity.valueAsInteger, quantity.token->decimals);
+    return TOKEN_QUANTITY_TYPE_DECIMAL == unit
+    ? coerceString(quantity.valueAsInteger, 10)
+    : coerceStringDecimal(quantity.valueAsInteger, quantity.token->decimals);
 }

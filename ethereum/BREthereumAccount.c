@@ -65,9 +65,9 @@ extern int
 installSharedWordList (const char *wordList[], int wordListLength) {
     if (BIP39_WORDLIST_COUNT != wordListLength)
         return 0;
-
+    
     sharedWordList = wordList;
-
+    
     return 1;
 }
 
@@ -89,7 +89,7 @@ typedef enum {
  * be derived using BIP44 scheme - such as with internal addresses.
  */
 struct BREthereumAddressRecord {
-
+    
     /**
      * The 'official' ethereum address string for (the external representation of) this
      * BREthereum address.
@@ -99,52 +99,52 @@ struct BREthereumAddressRecord {
      * convert back to the byte array (use rlpEncodeItemHexString())
      */
     char string[43];    // '0x' + <40 chars> + '\0'
-
+    
     /**
      * Identify the type of this address record - created with a provided string or
      * with a provided publicKey.
      */
     BREthereumAddressType type;
-
+    
     /**
      * The public key.  This started out as a BIP44 264 bits (65 bytes) array with a value of
      * 0x04 at byte 0; we strip off that first byte and are left with 64.  Go figure.
      */
     uint8_t publicKey [64];  // BIP44: 'Master Public Key 'M' (264 bits) - 8
-
+    
     /**
      * The BIP-44 Index used for this key.
      */
     uint32_t index;
-
-  /**
-   * The NEXT nonce value
-   */
-  uint64_t nonce;
+    
+    /**
+     * The NEXT nonce value
+     */
+    uint64_t nonce;
 };
 
 extern BREthereumAddress
 createAddress (const char *string) {
     if (ETHEREUM_BOOLEAN_IS_FALSE(validateAddressString(string))) return NULL;
-
+    
     BREthereumAddress address = malloc (sizeof (struct BREthereumAddressRecord));
-
+    
     address->type = ADDRESS_PROVIDED;
     address->nonce = 0;
     strncpy (address->string, string, 42);
     address->string[42] = '\0';
-
+    
     return address;
 }
 
 extern BREthereumBoolean
 validateAddressString(const char *string) {
     return 42 == strlen(string)
-           && '0' == string[0]
-           && 'x' == string[1]
-           && encodeHexValidate (&string[2])
-           ? ETHEREUM_BOOLEAN_TRUE
-           : ETHEREUM_BOOLEAN_FALSE;
+    && '0' == string[0]
+    && 'x' == string[1]
+    && encodeHexValidate (&string[2])
+    ? ETHEREUM_BOOLEAN_TRUE
+    : ETHEREUM_BOOLEAN_FALSE;
 }
 
 extern void
@@ -154,18 +154,18 @@ addressFree (BREthereumAddress address) {
 
 extern uint64_t
 addressGetNonce(BREthereumAddress address) {
-  return address->nonce;
+    return address->nonce;
 }
 
 private_extern void
 addressSetNonce(BREthereumAddress address,
                 uint64_t nonce) {
-  address->nonce = nonce;
+    address->nonce = nonce;
 }
 
 private_extern uint64_t
 addressGetThenIncrementNonce(BREthereumAddress address) {
-  return address->nonce++;
+    return address->nonce++;
 }
 
 /**
@@ -179,11 +179,11 @@ addressGetThenIncrementNonce(BREthereumAddress address) {
 static BREthereumAddress
 createAddressDerived (const uint8_t *publicKey, uint32_t index) {
     BREthereumAddress address = malloc (sizeof (struct BREthereumAddressRecord));
-
+    
     address->type = ADDRESS_DERIVED;  // painfully
     address->nonce = 0;
     address->index = index;
-
+    
     // Seriously???
     //
     // https://kobl.one/blog/create-full-ethereum-keypair-and-address/#derive-the-ethereum-address-from-the-public-key
@@ -191,17 +191,17 @@ createAddressDerived (const uint8_t *publicKey, uint32_t index) {
     // "The public key is what we need in order to derive its Ethereum address. Every EC public key
     // begins with the 0x04 prefix before giving the location of the two point on the curve. You
     // should remove this leading 0x04 byte in order to hash it correctly. ...
-
+    
     assert (publicKey[0] == 0x04);
-
+    
     // Strip off byte 0
     memcpy(address->publicKey, &publicKey[1], sizeof (address->publicKey));
-
+    
     // We interrupt your regularly scheduled programming...
-
+    
     // "Use any method you like to get it in the form of an hexadecimal string
     // "The <pub file> now contains the hexadecimal value of the public key without the 0x04 prefix.
-
+    
     // "An Ethereum address is made of 20 bytes (40 hex characters long), it is commonly
     // represented by adding the 0x prefix. In order to derive it, one should take the keccak-256
     // hash of the hexadecimal form of a public key, then keep only the last 20 bytes (aka get
@@ -212,24 +212,24 @@ createAddressDerived (const uint8_t *publicKey, uint32_t index) {
     // not a simple string.
     //
     // WTF is a 'simple string'.  Seriously??
-
+    
     // Back to our regularly scheduled programming...
     //
     // We'll assume our BRKeccak256 takes an array of bytes (sure, the argument is void*); NOT
     // a hexadecimal format of a 0x04 stripped public key...
-
+    
     // Fill in string
     address->string[0] = '0';
     address->string[1] = 'x';
-
+    
     // Hash the public key (64 bytes, 0x04 prefix axed) and then hex encode the last 20 values
     uint8_t hash[32];
     BRKeccak256(hash, address->publicKey, sizeof (address->publicKey));
     // Offset '2' into address->string and account for the '\0' terminator.
     encodeHex(&address->string[2], 40 + 1, &hash[12], 20);
-
+    
     // And now the 'checksum after thought'
-
+    
     // https://ethereum.stackexchange.com/a/19048/33128
     //
     // Ethereum wallet addresses are in hex [0-9A-F]*. While the address itself is case-insensitive
@@ -248,7 +248,7 @@ createAddressDerived (const uint8_t *publicKey, uint32_t index) {
     // So, you sha3 hash the address, and look at each Nth character of the sha result. If it's 7
     // or below, the Nth character in the address is lowercase. If it is 8 or above, that character
     // is uppercase.
-
+    
     // We'll skip it.
     return address;
 }
@@ -256,52 +256,52 @@ createAddressDerived (const uint8_t *publicKey, uint32_t index) {
 extern BREthereumBoolean
 addressHasString (BREthereumAddress address,
                   const char *string) {
-  return (0 == strcasecmp(string, address->string)
-          ? ETHEREUM_BOOLEAN_TRUE
-          : ETHEREUM_BOOLEAN_FALSE);
+    return (0 == strcasecmp(string, address->string)
+            ? ETHEREUM_BOOLEAN_TRUE
+            : ETHEREUM_BOOLEAN_FALSE);
 }
 
 extern char *
 addressAsString (BREthereumAddress address) {
-  return strndup (address->string, 43);
+    return strndup (address->string, 43);
 }
 
 #if defined (DEBUG)
 extern const char *
 addressPublicKeyAsString (BREthereumAddress address, int compressed) {
-  // The byte array at address->publicKey has the '04' 'uncompressed' prefix removed.  Thus
-  // the value in publicKey is uncompressed and 64 bytes.  As a string, this result will have
-  // an 0x0<n> prefix where 'n' is in { 4: uncompressed, 2: compressed even, 3: compressed odd }.
-
-  // Default, uncompressed
-  char *prefix = "0x04";
-  size_t sourceLen = sizeof (address->publicKey);           // 64 bytes: { x y }
-
-  if (compressed) {
-    sourceLen /= 2;  // use 'x'; skip 'y'
-    prefix = (0 == address->publicKey[63] % 2 ? "0x02" : "0x03");
-  }
-
-  char *result = malloc (4 + 2 * sourceLen + 1);
-  strcpy (result, prefix);  // encode properly...
-  encodeHex(&result[4], 2 * sourceLen + 1, address->publicKey, sourceLen);
-  
-  return result;
+    // The byte array at address->publicKey has the '04' 'uncompressed' prefix removed.  Thus
+    // the value in publicKey is uncompressed and 64 bytes.  As a string, this result will have
+    // an 0x0<n> prefix where 'n' is in { 4: uncompressed, 2: compressed even, 3: compressed odd }.
+    
+    // Default, uncompressed
+    char *prefix = "0x04";
+    size_t sourceLen = sizeof (address->publicKey);           // 64 bytes: { x y }
+    
+    if (compressed) {
+        sourceLen /= 2;  // use 'x'; skip 'y'
+        prefix = (0 == address->publicKey[63] % 2 ? "0x02" : "0x03");
+    }
+    
+    char *result = malloc (4 + 2 * sourceLen + 1);
+    strcpy (result, prefix);  // encode properly...
+    encodeHex(&result[4], 2 * sourceLen + 1, address->publicKey, sourceLen);
+    
+    return result;
 }
 #endif
 
 extern BRRlpItem
 addressRlpEncode (BREthereumAddress address, BRRlpCoder coder) {
-  return rlpEncodeItemHexString(coder, address->string);
+    return rlpEncodeItemHexString(coder, address->string);
 }
 
 //
 // Account
 //
 struct BREthereumAccountRecord {
-
+    
     BRMasterPubKey masterPubKey;
-
+    
     /**
      * The primary address for this account - aka address[0].
      */
@@ -311,32 +311,32 @@ struct BREthereumAccountRecord {
 extern BREthereumAccount
 createAccount(const char *paperKey) {
     if (NULL == sharedWordList)
-      installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
-
+        installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
+    
     return accountCreateDetailed(paperKey, sharedWordList, BIP39_WORDLIST_COUNT);
 }
 
 extern BREthereumAccount
 accountCreateDetailed(const char *paperKey, const char *wordList[], const int wordListLength) {
-
+    
     // Validate arguments
     if (NULL == paperKey || NULL == wordList || BIP39_WORDLIST_COUNT != wordListLength)
         return NULL;
-
+    
     // Validate paperKey
     if (0 == BRBIP39Decode(NULL, 0, wordList, paperKey))
         return NULL;
-
+    
     // Generate the 512bit private key using a BIP39 paperKey
     UInt512 seed = deriveSeedFromPaperKey(paperKey);
-
+    
     // Create the actual account
     BREthereumAccount account = (BREthereumAccount) calloc (1, sizeof (struct BREthereumAccountRecord));
-
+    
     // Assign the key; create the primary address.
     account->masterPubKey = BRBIP32MasterPubKey(&seed, sizeof(seed));
     account->primaryAddress = accountCreateAddress(account, seed, PRIMARY_ADDRESS_BIP44_INDEX);
-
+    
     return account;
 }
 
@@ -354,7 +354,7 @@ accountGetPrimaryAddress (BREthereumAccount account) {
 static BREthereumAddress
 accountCreateAddress (BREthereumAccount account, UInt512 seed, uint32_t index) {
     BRKey privateKey = derivePrivateKeyFromSeed (seed, index);
-
+    
     // Seriously???
     //
     // https://kobl.one/blog/create-full-ethereum-keypair-and-address/#derive-the-ethereum-address-from-the-public-key
@@ -362,18 +362,18 @@ accountCreateAddress (BREthereumAccount account, UInt512 seed, uint32_t index) {
     // "The private key must be 32 bytes and not begin with 0x00 and the public one must be
     // uncompressed and 64 bytes long or 65 with the constant 0x04 prefix. More on that in the
     // next section. ...
-
+    
     uint8_t publicKey[65];
     size_t pubKeyLength = BRKeyPubKey(&privateKey, NULL, 0);
     assert (pubKeyLength == 65);
-
+    
     // "The public key is what we need in order to derive its Ethereum address. Every EC public key
     // begins with the 0x04 prefix before giving the location of the two point on the curve. You
     // should remove this leading 0x04 byte in order to hash it correctly. ...
-
+    
     BRKeyPubKey(&privateKey, publicKey, 65);
     assert (publicKey[0] = 0x04);
-
+    
     return createAddressDerived(publicKey, index);
 }
 
@@ -388,51 +388,51 @@ accountSignBytes(BREthereumAccount account,
                  size_t bytesCount,
                  const char *paperKey) {
     BREthereumSignature signature;
-
+    
     // Save the type.
     signature.type = type;
-
+    
     // Recreate the seed; then recreate the PrivateKey (for the address with 'index')
     UInt512 seed = deriveSeedFromPaperKey(paperKey);
     BRKey privateKeyUncompressed = derivePrivateKeyFromSeed(seed, address->index);
-
+    
     // Hash with the required Keccak-256
     UInt256 messageDigest;
     BRKeccak256(&messageDigest, bytes, bytesCount);
-
+    
     switch (type) {
         case SIGNATURE_TYPE_FOO:
             break;
-
+            
         case SIGNATURE_TYPE_RECOVERABLE: {
             // Determine the signature length
             size_t signatureLen = BRKeyCompactSign(&privateKeyUncompressed,
                                                    NULL, 0,
                                                    messageDigest);
-
+            
             // Fill the signature
             uint8_t signatureBytes[signatureLen];
             signatureLen = BRKeyCompactSign(&privateKeyUncompressed,
                                             signatureBytes, signatureLen,
                                             messageDigest);
             assert (65 == signatureLen);
-
+            
             // The actual 'signature' is one byte added to secp256k1_ecdsa_recoverable_signature
             // and secp256k1_ecdsa_recoverable_signature is 64 bytes as {r[32], s32]}
-
+            
             // Extract V, R, and S
             signature.sig.recoverable.v = signatureBytes[0];
             memcpy(signature.sig.recoverable.r, &signatureBytes[ 1], 32);
             memcpy(signature.sig.recoverable.s, &signatureBytes[33], 32);
-
+            
             // TODO: Confirm signature
             // assigns pubKey recovered from compactSig to key and returns true on success
             // int BRKeyRecoverPubKey(BRKey *key, UInt256 md, const void *compactSig, size_t sigLen)
-
+            
             break;
         }
     }
-
+    
     return signature;
 }
 
@@ -451,7 +451,7 @@ deriveSeedFromPaperKey (const char *paperKey) {
 static BRKey
 derivePrivateKeyFromSeed (UInt512 seed, uint32_t index) {
     BRKey privateKey;
-
+    
     // The BIP32 privateKey for m/44'/60'/0'/0/index
     BRBIP32PrivKeyPath(&privateKey, &seed, sizeof(UInt512), 5,
                        44 | BIP32_HARD,          // purpose  : BIP-44
@@ -459,8 +459,8 @@ derivePrivateKeyFromSeed (UInt512 seed, uint32_t index) {
                        0 | BIP32_HARD,          // account  : <n/a>
                        0,                        // change   : not change
                        index);                   // index    :
-
+    
     privateKey.compressed = 0;
-
+    
     return privateKey;
 }

@@ -61,11 +61,11 @@ static void argumentEncodeUInt256 (uint8_t *bytes, size_t bytesCount, uint8_t *t
  *
  */
 struct BREthereumFunctionRecord {
-  char *interface;
-  char *signature;
-  char *selector;
-  unsigned int argumentCount;
-  ArgumentEncodeFunc argumentEncoders[5];
+    char *interface;
+    char *signature;
+    char *selector;
+    unsigned int argumentCount;
+    ArgumentEncodeFunc argumentEncoders[5];
 };
 
 /**
@@ -73,8 +73,8 @@ struct BREthereumFunctionRecord {
  *
  */
 struct BREthereumContractRecord {
-  unsigned int functionsCount;
-  struct BREthereumFunctionRecord functions[DEFAULT_CONTRACT_FUNCTION_LIMIT];
+    unsigned int functionsCount;
+    struct BREthereumFunctionRecord functions[DEFAULT_CONTRACT_FUNCTION_LIMIT];
 };
 
 //
@@ -94,61 +94,61 @@ struct BREthereumContractRecord {
 // 54fd4d50 version()
 
 static struct BREthereumContractRecord contractRecordERC20 = {
-  6,
-  {
-    // function name() constant returns (string name)
-    // function symbol() constant returns (string symbol)
-    // function decimals() constant returns (uint8 decimals)
-    // function version() constant returns (string version)
-
-    { "function totalSupply() constant returns (uint256 totalSupply)",
-      "totalSupply()",
-      "0x18160ddd",
-      0
-    },
-
-    { "function balanceOf(address _owner) constant returns (uint256 balance)",
-      "balanceOf(address)",
-      "0x70a08231",
-      1,
-      argumentEncodeAddress
-    },
-
-    { "function transfer(address _to, uint256 _value) returns (bool success)",
-      "transfer(address,uint256)",
-      "0xa9059cbb",
-      2,
-      argumentEncodeAddress,
-      argumentEncodeUInt256
-    },
-
-    { "function transferFrom(address _from, address _to, uint256 _value) returns (bool success)",
-      "transferFrom(address,address,uint256)",
-      "0x23b872dd",
-      3,
-      argumentEncodeAddress,
-      argumentEncodeAddress,
-      argumentEncodeUInt256
-    },
-
-    { "function approve(address _spender, uint256 _value) returns (bool success)",
-      "approve(address,uint256)",
-      "0x095ea7b3",
-      2,
-      argumentEncodeAddress,
-      argumentEncodeUInt256
-    },
-
-    { "function allowance(address _owner, address _spender) constant returns (uint256 remaining)",
-      "allowance(address,address)",
-      "0xdd62ed3e",  // dd62ed3e
-      2,
-      argumentEncodeAddress,
-      argumentEncodeAddress
+    6,
+    {
+        // function name() constant returns (string name)
+        // function symbol() constant returns (string symbol)
+        // function decimals() constant returns (uint8 decimals)
+        // function version() constant returns (string version)
+        
+        { "function totalSupply() constant returns (uint256 totalSupply)",
+            "totalSupply()",
+            "0x18160ddd",
+            0
+        },
+        
+        { "function balanceOf(address _owner) constant returns (uint256 balance)",
+            "balanceOf(address)",
+            "0x70a08231",
+            1,
+            argumentEncodeAddress
+        },
+        
+        { "function transfer(address _to, uint256 _value) returns (bool success)",
+            "transfer(address,uint256)",
+            "0xa9059cbb",
+            2,
+            argumentEncodeAddress,
+            argumentEncodeUInt256
+        },
+        
+        { "function transferFrom(address _from, address _to, uint256 _value) returns (bool success)",
+            "transferFrom(address,address,uint256)",
+            "0x23b872dd",
+            3,
+            argumentEncodeAddress,
+            argumentEncodeAddress,
+            argumentEncodeUInt256
+        },
+        
+        { "function approve(address _spender, uint256 _value) returns (bool success)",
+            "approve(address,uint256)",
+            "0x095ea7b3",
+            2,
+            argumentEncodeAddress,
+            argumentEncodeUInt256
+        },
+        
+        { "function allowance(address _owner, address _spender) constant returns (uint256 remaining)",
+            "allowance(address,address)",
+            "0xdd62ed3e",  // dd62ed3e
+            2,
+            argumentEncodeAddress,
+            argumentEncodeAddress
+        }
+        
+        // Events
     }
-
-    // Events
-  }
 };
 BREthereumContract contractERC20 = &contractRecordERC20;
 BREthereumFunction functionERC20Transfer = &contractRecordERC20.functions[2];
@@ -156,96 +156,96 @@ BREthereumFunction functionERC20Transfer = &contractRecordERC20.functions[2];
 
 static int
 functionIsEncodedInData (BREthereumFunction function, const char *data) {
-  return NULL != data &&
-         0 == strncmp (function->selector, data, strlen(function->selector));
+    return NULL != data &&
+    0 == strncmp (function->selector, data, strlen(function->selector));
 }
 
 extern BREthereumFunction
 contractLookupFunctionForEncoding (BREthereumContract contract, const char *encoding) {
-  for (int i = 0; i < contract->functionsCount; i++)
-    if (functionIsEncodedInData(&contract->functions[i], encoding))
-      return &contract->functions[i];
-  return NULL;
+    for (int i = 0; i < contract->functionsCount; i++)
+        if (functionIsEncodedInData(&contract->functions[i], encoding))
+            return &contract->functions[i];
+    return NULL;
 }
 
 private_extern UInt256
 functionERC20TransferDecodeAmount (BREthereumFunction function,
                                    const char *data,
                                    BRCoreParseStatus *status) {
-  assert (function == functionERC20Transfer);
-  // Second argument - skip selector + 1st argument
-  data = &data [strlen(function->selector) + 1 * 64];
-  return createUInt256Parse(data, 16, status);
+    assert (function == functionERC20Transfer);
+    // Second argument - skip selector + 1st argument
+    data = &data [strlen(function->selector) + 1 * 64];
+    return createUInt256Parse(data, 16, status);
 }
 
 private_extern char *
 functionERC20TransferDecodeAddress (BREthereumFunction function,
                                     const char *data) {
-  assert (function == functionERC20Transfer);
-  // Second argument - skip selector + 1st argument
-  char result[2 + 40 + 1];
-  result[0] = '0';
-  result[1] = 'x';
-  memcpy (&result[2], &data[strlen(function->selector) + 24], 40);  // 24 -> skip '0000...<addr>'
-  result[42] = '\0';
-  return strdup (result);
+    assert (function == functionERC20Transfer);
+    // Second argument - skip selector + 1st argument
+    char result[2 + 40 + 1];
+    result[0] = '0';
+    result[1] = 'x';
+    memcpy (&result[2], &data[strlen(function->selector) + 24], 40);  // 24 -> skip '0000...<addr>'
+    result[42] = '\0';
+    return strdup (result);
 }
 
 /**
-*/
+ */
 extern const char *
 contractEncode (BREthereumContract contract, BREthereumFunction function, ...) {
-  // We'll require VAR ARGS
-  unsigned int argsCount = function->argumentCount;
-
-  // The encoding result is the function selector plus 64 chars for each argument plus '\0'
-  char *encoding = malloc (strlen(function->selector) - 2 + argsCount * 64 + 1);
-  size_t encodingIndex = 0;
-
-  // Copy the selector
-  memcpy (&encoding[encodingIndex], &function->selector[2], strlen(function->selector) - 2);
-  encodingIndex += strlen(function->selector) - 2;
-
-  va_list args;
-  va_start (args, function);
-  for (int i = 0; i < argsCount; i++) {
-    uint8_t targetBytes[32];
-
-    // Encode each argument into an `encoding` offset
-    uint8_t *bytes = va_arg (args, uint8_t*);
-    assert (NULL != bytes);
-
-    size_t  bytesCount = va_arg (args, size_t);
-    (*function->argumentEncoders[i]) (bytes, bytesCount, targetBytes, 32);
-
-    encodeHex(&encoding[encodingIndex], 65, targetBytes, 32);
-    encodingIndex += 64;
-  }
-  encoding[encodingIndex] = '\0';
-  va_end(args);
-
-  return encoding;
+    // We'll require VAR ARGS
+    unsigned int argsCount = function->argumentCount;
+    
+    // The encoding result is the function selector plus 64 chars for each argument plus '\0'
+    char *encoding = malloc (strlen(function->selector) - 2 + argsCount * 64 + 1);
+    size_t encodingIndex = 0;
+    
+    // Copy the selector
+    memcpy (&encoding[encodingIndex], &function->selector[2], strlen(function->selector) - 2);
+    encodingIndex += strlen(function->selector) - 2;
+    
+    va_list args;
+    va_start (args, function);
+    for (int i = 0; i < argsCount; i++) {
+        uint8_t targetBytes[32];
+        
+        // Encode each argument into an `encoding` offset
+        uint8_t *bytes = va_arg (args, uint8_t*);
+        assert (NULL != bytes);
+        
+        size_t  bytesCount = va_arg (args, size_t);
+        (*function->argumentEncoders[i]) (bytes, bytesCount, targetBytes, 32);
+        
+        encodeHex(&encoding[encodingIndex], 65, targetBytes, 32);
+        encodingIndex += 64;
+    }
+    encoding[encodingIndex] = '\0';
+    va_end(args);
+    
+    return encoding;
 }
 
 /**
  *  An address is what: bytes, "0x..." or "..." ?
  */
 static void argumentEncodeAddress (uint8_t *bytes, size_t bytesCount, uint8_t *target, size_t targetCount) {
-  memset (target, 0, targetCount);
-
-  uint8_t decodedBytes[bytesCount/2];
-  decodeHex(decodedBytes, bytesCount/2, (char *) bytes, bytesCount);
-
-  memcpy (&target[targetCount - bytesCount/2], decodedBytes, bytesCount/2);
+    memset (target, 0, targetCount);
+    
+    uint8_t decodedBytes[bytesCount/2];
+    decodeHex(decodedBytes, bytesCount/2, (char *) bytes, bytesCount);
+    
+    memcpy (&target[targetCount - bytesCount/2], decodedBytes, bytesCount/2);
 }
 
 /**
  *
  */
 static void argumentEncodeUInt256 (uint8_t *bytes, size_t bytesCount, uint8_t *target, size_t targetCount) {
-  assert (32 == bytesCount && 32 == targetCount);
-  // TODO: ENDIAN
-  encodeReverseBytes(target, bytes, bytesCount);
+    assert (32 == bytesCount && 32 == targetCount);
+    // TODO: ENDIAN
+    encodeReverseBytes(target, bytes, bytesCount);
 }
 
 //
@@ -253,8 +253,8 @@ static void argumentEncodeUInt256 (uint8_t *bytes, size_t bytesCount, uint8_t *t
 //
 static void
 encodeReverseBytes (uint8_t *t, const uint8_t *s, size_t slen) {
-  for (int i = 0; i < slen; i++)
-    t[slen - i - 1] = s[i];
+    for (int i = 0; i < slen; i++)
+        t[slen - i - 1] = s[i];
 }
 
 
