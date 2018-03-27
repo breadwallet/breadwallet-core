@@ -492,9 +492,13 @@ lightNodeUpdateTransactionGasEstimate (BREthereumLightNode node,
             const char *result = node->configuration.u.json_rpc.funcEstimateGas
             (node->configuration.u.json_rpc.funcContext, node, ++node->requestId,
              to, amount, data);
-            free (to); free (amount), free(data);
+
+            free (to); free (amount);
+
+            if (NULL != data && '\0' != data[0])
+                free(data);
             
-            assert (0 == strcmp (result, "0x"));
+            assert (0 == strncmp (result, "0x", 2));
             UInt256 gas = createUInt256Parse(&result[2], 16, status);
             assert (0 == gas.u64[1] && 0 == gas.u64[2] && 0 == gas.u64[3]);
             
@@ -514,7 +518,7 @@ lightNodeUpdateWalletDefaultGasPrice (BREthereumLightNode node,
         case NODE_TYPE_JSON_RPC: {
             const char *result = node->configuration.u.json_rpc.functGetGasPrice
             (node->configuration.u.json_rpc.funcContext, node, ++node->requestId);
-            assert (0 == strcmp (result, "0x"));
+            assert (0 == strncmp (result, "0x", 2));
             UInt256 amount = createUInt256Parse(&result[2], 16, status);
             
             walletSetDefaultGasPrice(wallet, gasPriceCreate(etherCreate(amount)));

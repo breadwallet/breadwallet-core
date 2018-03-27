@@ -142,10 +142,6 @@ public class BREthereumLightNode extends BRCoreJniReference {
                 token);
     }
 
-    public void forceBalanceUpdate(BREthereumWallet wallet) {
-        jniForceWalletBalanceUpdate(wallet.identifier);
-    }
-
     //
     // Transaction
     //
@@ -194,6 +190,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
 
     protected native String jniGetAccountPrimaryAddress(long acountId);
     protected native String jniGetWalletBalance (long walletId, long unit);
+    protected native void jniEstimateWalletGasPrice (long walletId);
 
     protected native void jniForceWalletBalanceUpdate(long wallet);
 
@@ -238,6 +235,9 @@ public class BREthereumLightNode extends BRCoreJniReference {
 
     protected native String jniGetTransactionAmount (long transactionId, long unit);
     protected native boolean jniTransactionHasToken (long transactionId);
+
+    protected native void jniEstimateTransactionGas (long walletId,
+                                                     long transactionId);
 
     protected native boolean jniLightNodeConnect ();
     protected native boolean jniLightNodeDisconnect ();

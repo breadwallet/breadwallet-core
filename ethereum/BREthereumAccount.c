@@ -308,6 +308,18 @@ struct BREthereumAccountRecord {
     BREthereumAddress primaryAddress;
 };
 
+static BREthereumAccount
+createAccountWithBIP32Seed (UInt512 seed) {
+    BREthereumAccount account = (BREthereumAccount) calloc (1, sizeof (struct BREthereumAccountRecord));
+
+    // Assign the key; create the primary address.
+    account->masterPubKey = BRBIP32MasterPubKey(&seed, sizeof(seed));
+    account->primaryAddress = accountCreateAddress(account, seed, PRIMARY_ADDRESS_BIP44_INDEX);
+
+    return account;
+
+}
+
 extern BREthereumAccount
 createAccount(const char *paperKey) {
     if (NULL == sharedWordList)
@@ -328,17 +340,8 @@ accountCreateDetailed(const char *paperKey, const char *wordList[], const int wo
         return NULL;
     
     // Generate the 512bit private key using a BIP39 paperKey
-    UInt512 seed = deriveSeedFromPaperKey(paperKey);
-    
-    // Create the actual account
-    BREthereumAccount account = (BREthereumAccount) calloc (1, sizeof (struct BREthereumAccountRecord));
-    
-    // Assign the key; create the primary address.
-    account->masterPubKey = BRBIP32MasterPubKey(&seed, sizeof(seed));
-    account->primaryAddress = accountCreateAddress(account, seed, PRIMARY_ADDRESS_BIP44_INDEX);
-    
-    return account;
-}
+    return createAccountWithBIP32Seed(deriveSeedFromPaperKey(paperKey));
+ }
 
 extern void
 accountFree (BREthereumAccount account) {

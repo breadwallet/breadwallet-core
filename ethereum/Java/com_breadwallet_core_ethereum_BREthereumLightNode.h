@@ -73,6 +73,14 @@ JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniEstimateWalletGasPrice
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniEstimateWalletGasPrice
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniForceWalletBalanceUpdate
  * Signature: (J)V
  */
@@ -150,6 +158,14 @@ JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode
  */
 JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionHasToken
   (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniEstimateTransactionGas
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniEstimateTransactionGas
+  (JNIEnv *, jobject, jlong, jlong);
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode

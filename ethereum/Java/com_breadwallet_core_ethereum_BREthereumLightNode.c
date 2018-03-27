@@ -169,7 +169,8 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetAccountPrimaryAddre
  * Method:    jniGetWalletBalance
  * Signature: (JJ)Ljava/lang/String;
  */
-JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetWalletBalance
+JNIEXPORT jstring JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetWalletBalance
         (JNIEnv *env, jobject thisObject, jlong walletId, jlong unit) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
     BREthereumWallet wallet = (BREthereumWallet) walletId;
@@ -184,13 +185,31 @@ JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode
     return result;
 }
 
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniEstimateWalletGasPrice
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniEstimateWalletGasPrice
+        (JNIEnv *env, jobject thisObject, jlong walletId) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+
+    BRCoreParseStatus status = CORE_PARSE_OK;
+    lightNodeUpdateWalletDefaultGasPrice(node, walletId, &status);
+    if (CORE_PARSE_OK != status) {
+        // TODO: Handle bad parse
+    }
+}
+
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniForceWalletBalanceUpdate
  * Signature: (J)V
  */
-JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniForceWalletBalanceUpdate
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniForceWalletBalanceUpdate
         (JNIEnv *env, jobject thisObject, jlong wallet) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
     BRCoreParseStatus status = CORE_PARSE_OK;
@@ -404,6 +423,25 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionHasToken
     return (jboolean) (NULL != transactionGetToken(transaction)
                        ? JNI_TRUE
                        : JNI_FALSE);
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniEstimateTransactionGas
+ * Signature: (JJ)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniEstimateTransactionGas
+        (JNIEnv *env, jobject thisObject,
+         jlong walletId,
+         jlong transactionId) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+
+    BRCoreParseStatus status = CORE_PARSE_OK;
+    lightNodeUpdateTransactionGasEstimate(node, walletId, transactionId, &status);
+
+    if (CORE_PARSE_OK != status) {
+        // TODO: Handle status not OK
+    }
 }
 
 
