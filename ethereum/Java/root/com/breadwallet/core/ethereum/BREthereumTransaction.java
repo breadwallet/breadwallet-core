@@ -24,47 +24,10 @@
  */
 package com.breadwallet.core.ethereum;
 
-import android.support.test.espresso.proto.action.ViewActions;
-
-import com.breadwallet.tools.exceptions.PaymentRequestExpiredException;
-
-import java.util.EnumMap;
-
-
 /**
  *
  */
 public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefaultUnit {
-
-    public enum Property {
-        TARGET_ADDRESS(0),  // Ox'toAddr'
-        SOURCE_ADDRESS(1),  // Ox'fromAddr'
-        AMOUNT(2),          // ETH in WEI or TOKEN in INTEGER
-        GAS_PRICE(3),       // ETH/Gas in WEI
-        GAS_LIMIT(4),       // Gas
-        GAS_USED(5),        // Gas
-        NONCE(6),           // integer
-        HASH(7),            // 0x'hash'
-        BLOCK_NUMBER(8),    // integer
-        BLOCK_TIMESTAMP(9); // seconds since EPOCH
-
-        long jniValue;
-
-        Property(long jniValue) {
-            this.jniValue = jniValue;
-        }
-
-        static Property lookup (long jnivalue) {
-            return values()[(int) jnivalue];
-        }
-
-    }
-
-    /**
-     * This caching is going to be a problem, a big problem, when for example, a transaction
-     * gets blocked but properties has cached 'not blocked' values.
-     */
-    protected EnumMap<Property, String> properties;
 
     /**
      *
@@ -77,9 +40,16 @@ public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefa
         super(node, identifier, unit);
     }
 
-    public String getProperty (Property property) {
-        if (null == properties) installProperties();
-        return properties.get(property);
+    public boolean isConfirmed () {
+        return node.get().jniTransactionIsConfirmed(identifier);
+    }
+
+    public String getSourceAddress () {
+        return node.get().jniTransactionSourceAddress(identifier);
+    }
+
+    public String getTargetAddress () {
+        return node.get().jniTransactionTargetAddress(identifier);
     }
 
     //
@@ -92,30 +62,40 @@ public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefa
 
     public String getAmount(BREthereumAmount.Unit unit) {
         validUnitOrException(unit);
-        return node.get().jniGetTransactionAmount(identifier, unit.jniValue);
+        return node.get().jniTransactionGetAmount(identifier, unit.jniValue);
     }
 
     //
-    // Support
+    // Gas Price, Limit, Used
     //
-    static long[] jniValues = {
-            Property.TARGET_ADDRESS.jniValue,
-            Property.SOURCE_ADDRESS.jniValue,
-            Property.AMOUNT.jniValue,
-            Property.GAS_PRICE.jniValue,
-            Property.GAS_LIMIT.jniValue,
-            Property.GAS_USED.jniValue,
-            Property.NONCE.jniValue,
-            Property.HASH.jniValue,
-            Property.BLOCK_NUMBER.jniValue,
-            Property.BLOCK_TIMESTAMP.jniValue
-    };
+    public String getGasPrice (BREthereumAmount.Unit unit) {
+        assert (!unit.isTokenUnit());
+        return node.get().jniTransactionGetGasPrice(identifier, unit.jniValue);
+    }
 
-    protected void installProperties() {
-        final String values[] = node.get().jniGetTransactionProperties(identifier, jniValues);
-        this.properties = new EnumMap<Property, String>(Property.class){{
-            for (long jniValue : jniValues)
-                put (Property.lookup(jniValue), values[(int) jniValue]);
-        }};
+    public long getGasLimit () {
+        return node.get().jniTransactionGetGasLimit(identifier);
+    }
+
+    public long getGasUsed () {
+        return node.get().jniTransactionGetGasUsed(identifier);
+    }
+
+    //
+    // Nonce
+    //
+    public long getNonce () {
+        return node.get().jniTransactionGetNonce(identifier);
+    }
+
+    //
+    // Block Number, Timestamp
+    //
+    public long getBlockNumber () {
+        return node.get().jniTransactionGetBlockNumber(identifier);
+    }
+
+    public long getBlockTimestamp () {
+        return node.get().jniTransactionGetBlockTimestamp(identifier);
     }
 }

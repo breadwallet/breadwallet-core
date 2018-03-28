@@ -217,18 +217,23 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
         System.out.println ("==== Ether ====\n");
         for (BREthereumTransaction transaction : walletEther.getTransactions()) {
             System.out.println ("Transaction:" +
-                    "\n    from: " + transaction.getProperty(BREthereumTransaction.Property.SOURCE_ADDRESS) +
-                    "\n      to: " + transaction.getProperty(BREthereumTransaction.Property.TARGET_ADDRESS) +
-                    "\n   nonce: " + transaction.getProperty(BREthereumTransaction.Property.NONCE) +
+                    "\n        from: " + transaction.getSourceAddress() +
+                    "\n          to: " + transaction.getTargetAddress() +
+                    "\n    gasPrice: " + transaction.getGasPrice(BREthereumAmount.Unit.ETHER_WEI) +
+                    "\n    gasLimit: " + transaction.getGasLimit() +
+                    "\n     gasUsed: " + transaction.getGasUsed() +
+                    "\n       nonce: " + transaction.getNonce() +
+                    "\n   blkNumber: " + transaction.getBlockNumber() +
+                    "\n     blkTime: " + transaction.getBlockTimestamp() +
                     "\n\n");
         }
 
         System.out.println ("==== Token ====\n");
         for (BREthereumTransaction transaction : walletToken.getTransactions()) {
             System.out.println ("Transaction:" +
-                    "\n    from: " + transaction.getProperty(BREthereumTransaction.Property.SOURCE_ADDRESS) +
-                    "\n      to: " + transaction.getProperty(BREthereumTransaction.Property.TARGET_ADDRESS) +
-                    "\n   nonce: " + transaction.getProperty(BREthereumTransaction.Property.NONCE) +
+                    "\n    from: " + transaction.getSourceAddress() +
+                    "\n      to: " + transaction.getTargetAddress() +
+                    "\n   nonce: " + transaction.getNonce() +
                     "\n\n");
         }
 

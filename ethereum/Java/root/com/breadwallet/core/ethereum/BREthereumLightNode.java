@@ -231,14 +231,21 @@ public class BREthereumLightNode extends BRCoreJniReference {
 
     protected native long[] jniGetTransactions (long walletId);
 
-    protected native String[] jniGetTransactionProperties (long transactionId,
-                                                           long properties[]);
-
-    protected native String jniGetTransactionAmount (long transactionId, long unit);
+    protected native String jniTransactionGetAmount(long transactionId, long unit);
     protected native boolean jniTransactionHasToken (long transactionId);
 
-    protected native void jniEstimateTransactionGas (long walletId,
-                                                     long transactionId);
+    protected native void jniTransactionEstimateGas(long walletId,
+                                                    long transactionId);
+
+    protected native String jniTransactionSourceAddress (long transactionId);
+    protected native String jniTransactionTargetAddress (long transactionId);
+    protected native String jniTransactionGetGasPrice (long tranactionId, long unit);
+    protected native long jniTransactionGetGasLimit (long tranactionId);
+    protected native long jniTransactionGetGasUsed (long tranactionId);
+    protected native long jniTransactionGetNonce (long tranactionId);
+    protected native long jniTransactionGetBlockNumber (long tranactionId);
+    protected native long jniTransactionGetBlockTimestamp (long tranactionId);
+    protected native boolean jniTransactionIsConfirmed (long transactionId);
 
     protected native boolean jniLightNodeConnect ();
     protected native boolean jniLightNodeDisconnect ();

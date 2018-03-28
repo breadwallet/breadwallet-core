@@ -318,6 +318,13 @@ lightNodeWalletSubmitTransaction (BREthereumLightNode node,
                                   BREthereumLightNodeTransactionId transaction);
 
 /**
+ * Returns a NULL terminated array of transaction identifiers.
+ */
+extern BREthereumLightNodeTransactionId *
+lightNodeWalletGetTransactions (BREthereumLightNode node,
+                                BREthereumLightNodeWalletId wallet);
+
+/**
  * Update the transactions for the node's account.  A JSON_RPC light node will call out to
  * JsonRpcGetTransactions which is expected to query all transactions associated with the
  * accounts address and then the call out is to call back the 'announce transaction' callback.
@@ -396,49 +403,53 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
 
 #endif // ETHEREUM_LIGHT_NODE_USE_JSON_RPC
 
-extern const char *
-lightNodeGetTransactionRecvAddress (BREthereumLightNode node,
-                                    BREthereumLightNodeWalletId wallet,
+extern char * // receiver, target
+lightNodeTransactionGetRecvAddress (BREthereumLightNode node,
                                     BREthereumLightNodeTransactionId transaction);
 
-extern BREthereumEther
-lightNodeGetTransactionAmount (BREthereumLightNode node,
-                               BREthereumLightNodeWalletId wallet,
-                               BREthereumLightNodeTransactionId transaction);
-
-/**
- * Returns a NULL terminated array of transaction identifiers.
- */
-extern BREthereumLightNodeTransactionId *
-lightNodeWalletGetTransactions (BREthereumLightNode node,
-                                BREthereumLightNodeWalletId wallet);
-  
-typedef enum {
-    TRANSACTION_PROPERTY_TO_ADDR,
-    TRANSACTION_PROPERTY_FROM_ADDR,
-    TRANSACTION_PROPERTY_AMOUNT,            // ETH-in-WEI
-    TRANSACTION_PROPERTY_GAS_PRICE,         // ETH-in-WEI/Gas
-    TRANSACTION_PROPERTY_GAS_LIMIT,         // Gas
-    TRANSACTION_PROPERTY_GAS_USED,          // Gas
-    TRANSACTION_PROPERTY_NONCE,
-    TRANSACTION_PROPERTY_HASH,
-    TRANSACTION_PROPERTY_BLOCK_NUMBER,
-    TRANSACTION_PROPERTY_BLOCK_TIMESTAMP
-} BREthereumTransactionProperty;
+extern char * // sender, source
+lightNodeTransactionGetSendAddress (BREthereumLightNode node,
+                                    BREthereumLightNodeTransactionId transaction);
 
 extern char *
-lightNodeGetTransactionProperty (BREthereumLightNode node,
-                                 BREthereumLightNodeWalletId wallet,
-                                 BREthereumLightNodeTransactionId transaction,
-                                 BREthereumTransactionProperty property);
-
-extern char **
-lightNodeGetTransactionProperties (BREthereumLightNode node,
-                                   BREthereumLightNodeWalletId wallet,
+lightNodeTransactionGetAmountEther(BREthereumLightNode node,
                                    BREthereumLightNodeTransactionId transaction,
-                                   unsigned int propertyCount,
-                                   ...);
-  
+                                   BREthereumEtherUnit unit);
+
+extern char *
+lightNodeTransactionGetAmountTokenQuantity(BREthereumLightNode node,
+                                           BREthereumLightNodeTransactionId transaction,
+                                           BREthereumTokenQuantityUnit unit);
+
+extern char *
+lightNodeTransactionGetGasPrice (BREthereumLightNode node,
+                                 BREthereumLightNodeTransactionId transaction,
+                                 BREthereumEtherUnit unit);
+
+extern uint64_t
+lightNodeTransactionGetGasLimit (BREthereumLightNode node,
+                                 BREthereumLightNodeTransactionId transaction);
+
+extern uint64_t
+lightNodeTransactionGetGasUsed (BREthereumLightNode node,
+                                BREthereumLightNodeTransactionId transaction);
+
+extern uint64_t
+lightNodeTransactionGetNonce (BREthereumLightNode node,
+                              BREthereumLightNodeTransactionId transaction);
+
+extern uint64_t
+lightNodeTransactionGetBlockNumber (BREthereumLightNode node,
+                                    BREthereumLightNodeTransactionId transaction);
+
+extern uint64_t
+lightNodeTransactionGetBlockTimestamp (BREthereumLightNode node,
+                                       BREthereumLightNodeTransactionId transaction);
+
+extern BREthereumBoolean
+lightNodeTransactionIsConfirmed (BREthereumLightNode node,
+                                 BREthereumLightNodeTransactionId transaction);
+
 #ifdef __cplusplus
 }
 #endif

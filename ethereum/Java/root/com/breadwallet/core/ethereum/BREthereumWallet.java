@@ -147,7 +147,7 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
      * @param transaction
      */
     public void estimateGas (BREthereumTransaction transaction) {
-        node.get().jniEstimateTransactionGas(identifier, transaction.identifier);
+        node.get().jniTransactionEstimateGas(identifier, transaction.identifier);
     }
 
     // getAll
