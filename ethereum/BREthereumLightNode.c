@@ -29,6 +29,8 @@
 #include <stdarg.h>
 #include <stdio.h>  // sprintf
 #include <BRBIP39Mnemonic.h>
+#include <pthread.h>
+#include <unistd.h>
 #include "BREthereumPrivate.h"
 #include "BRArray.h"
 
@@ -79,6 +81,15 @@ lightNodeConfigurationCreateJSON_RPC(BREthereumNetwork network,
 #define DEFAULT_BLOCK_CAPACITY 100
 #define DEFAULT_TRANSACTION_CAPACITY 1000
 
+typedef enum {
+    LIGHT_NODE_CREATED,
+    LIGHT_NODE_CONNECTING,
+    LIGHT_NODE_CONNECTED,
+    LIGHT_NODE_DISCONNECTING,
+    LIGHT_NODE_DISCONNECTED,
+    LIGHT_NODE_ERRORED
+} BREthereumLightNodeState;
+
 /**
  *
  */
@@ -113,25 +124,40 @@ struct BREthereumLightNodeRecord {
     
     //
     unsigned int requestId;
+
+    BREthereumLightNodeState state;
+
+    pthread_t thread;
+    pthread_mutex_t lock;
 };
 
 extern BREthereumLightNode
 createLightNode (BREthereumLightNodeConfiguration configuration,
                  const char *paperKey) {
     BREthereumLightNode node = (BREthereumLightNode) calloc (1, sizeof (struct BREthereumLightNodeRecord));
+    node->state = LIGHT_NODE_CREATED;
     node->configuration = configuration;
     node->account = createAccount(paperKey);
     array_new(node->wallets, DEFAULT_WALLET_CAPACITY);
     array_new(node->transactions, DEFAULT_TRANSACTION_CAPACITY);
     array_new(node->blocks, DEFAULT_BLOCK_CAPACITY);
-    
+
+    {
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+
+        pthread_mutex_init(&node->lock, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
+
     // Create a default ETH wallet.
     node->walletHoldingEther = walletCreate(node->account,
                                             node->configuration.network);
     lightNodeInsertWallet(node, node->walletHoldingEther);
     
     // Create other wallets for each TOKEN?
-    
+
     return node;
 }
 
@@ -148,28 +174,78 @@ lightNodeGetAccountPrimaryAddress (BREthereumLightNode node) {
 //
 // Connect // Disconnect
 //
-extern BREthereumBoolean
-lightNodeConnect (BREthereumLightNode node) {
-    // We'll query all transactions for this node's account.  That will give us a shot at
-    // getting the nonce for the account's address correct.  We'll save all the transactions and
-    // then process them into wallet as wallets exist.
-    lightNodeUpdateTransactions(node);
-    
-    // For all the known wallets, get their balance.
-    BRCoreParseStatus status;
-    for (int i = 0; i < array_count(node->wallets); i++) {
-        lightNodeUpdateWalletBalance (node, (BREthereumLightNodeWalletId) node->wallets[i], &status);
-        if (CORE_PARSE_OK != status) {
-            
+#define PTHREAD_STACK_SIZE (512 * 1024)
+#define PTHREAD_SLEEP_SECONDS (15)
+
+typedef void* (*ThreadRoutine) (void*);
+
+static void *
+lightNodeThreadRoutine (BREthereumLightNode node) {
+    node->state = LIGHT_NODE_CONNECTED;
+
+    while (1) {
+        if (LIGHT_NODE_DISCONNECTING == node->state) break;
+        pthread_mutex_lock(&node->lock);
+
+        // We'll query all transactions for this node's account.  That will give us a shot at
+        // getting the nonce for the account's address correct.  We'll save all the transactions and
+        // then process them into wallet as wallets exist.
+        lightNodeUpdateTransactions(node);
+
+        // For all the known wallets, get their balance.
+        BRCoreParseStatus status;
+        for (int i = 0; i < array_count(node->wallets); i++) {
+            lightNodeUpdateWalletBalance (node, (BREthereumLightNodeWalletId) node->wallets[i], &status);
+            if (CORE_PARSE_OK != status) {
+
+            }
+        }
+
+        pthread_mutex_unlock(&node->lock);
+        if (1 == sleep (PTHREAD_SLEEP_SECONDS)) {
         }
     }
-    
-    return ETHEREUM_BOOLEAN_TRUE;
-    
+
+    node->state = LIGHT_NODE_DISCONNECTED;
+    pthread_detach(node->thread);
+    return NULL;
+}
+
+extern BREthereumBoolean
+lightNodeConnect (BREthereumLightNode node) {
+    pthread_attr_t attr;
+
+    switch (node->state) {
+        case LIGHT_NODE_CONNECTING:
+        case LIGHT_NODE_CONNECTED:
+        case LIGHT_NODE_DISCONNECTING:
+            return ETHEREUM_BOOLEAN_FALSE;
+
+        case LIGHT_NODE_CREATED:
+        case LIGHT_NODE_DISCONNECTED:
+        case LIGHT_NODE_ERRORED: {
+            if (0 != pthread_attr_init(&attr)) {
+                // Unable to initialize attr
+                node->state = LIGHT_NODE_ERRORED;
+                return ETHEREUM_BOOLEAN_FALSE;
+            } else if (0 != pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) ||
+                       0 != pthread_attr_setstacksize(&attr, PTHREAD_STACK_SIZE) ||
+                       0 != pthread_create(&node->thread, &attr, (ThreadRoutine) lightNodeThreadRoutine, node)) {
+                // Unable to fully create the thread w/ task
+                node->state = LIGHT_NODE_ERRORED;
+                pthread_attr_destroy(&attr);
+                return ETHEREUM_BOOLEAN_FALSE;
+            }
+
+            node->state = LIGHT_NODE_CONNECTING;
+            return ETHEREUM_BOOLEAN_TRUE;
+        }
+    }
 }
 
 extern BREthereumBoolean
 lightNodeDisconnect (BREthereumLightNode node) {
+    node->state = LIGHT_NODE_DISCONNECTING;
     return ETHEREUM_BOOLEAN_TRUE;
 }
 
@@ -180,16 +256,24 @@ lightNodeDisconnect (BREthereumLightNode node) {
 static void
 lightNodeInsertWallet (BREthereumLightNode node,
                        BREthereumWallet wallet) {
+    pthread_mutex_lock(&node->lock);
     array_add (node->wallets, wallet);
+    pthread_mutex_unlock(&node->lock);
 }
 
 static BREthereumWallet
 lightNodeLookupWallet (BREthereumLightNode node,
                        BREthereumLightNodeWalletId walletId) {
+    BREthereumWallet wallet = NULL;
+
+    pthread_mutex_lock(&node->lock);
     for (int i = 0; i < array_count(node->wallets); i++)
-        if (walletId == node->wallets[i])
-            return node->wallets[i];
-    return NULL;
+        if (walletId == node->wallets[i]) {
+            wallet = node->wallets[i];
+            break;
+        }
+    pthread_mutex_unlock(&node->lock);
+    return wallet;
 }
 
 extern BREthereumLightNodeWalletId
@@ -198,14 +282,35 @@ lightNodeGetWallet (BREthereumLightNode node) {
 }
 
 extern BREthereumLightNodeWalletId
+lightNodeGetWalletHoldingToken (BREthereumLightNode node,
+                                BREthereumToken token) {
+    BREthereumWallet wallet = NULL;
+
+    pthread_mutex_lock(&node->lock);
+    for (int i = 0; i < array_count(node->wallets); i++)
+        if (token == walletGetToken(node->wallets[i])) {
+            wallet = node->wallets[i];
+            break;
+        }
+    pthread_mutex_unlock(&node->lock);
+    return wallet;
+}
+
+extern BREthereumLightNodeWalletId
 lightNodeCreateWalletHoldingToken (BREthereumLightNode node,
                                    BREthereumToken token) {
-    BREthereumWallet wallet = walletCreateHoldingToken (node->account,
-                                                        node->configuration.network,
-                                                        token);
-    lightNodeInsertWallet(node, wallet);
+    pthread_mutex_lock(&node->lock);
+    BREthereumWallet wallet = lightNodeGetWalletHoldingToken(node, token);
+
+    if (NULL == wallet) {
+        wallet = walletCreateHoldingToken(node->account,
+                                          node->configuration.network,
+                                          token);
+        lightNodeInsertWallet(node, wallet);
+    }
+
+    pthread_mutex_unlock(&node->lock);
     return (BREthereumLightNodeWalletId) wallet;
-    
 }
 
 // Token
@@ -306,16 +411,24 @@ lightNodeWalletGetBalance (BREthereumLightNode node,
 static BREthereumBlock
 lightNodeLookupBlock (BREthereumLightNode node,
                       const BREthereumHash hash) {
+    BREthereumBlock block = NULL;
+
+    pthread_mutex_lock(&node->lock);
     for (int i = 0; i < array_count(node->blocks); i++)
-        if (ETHEREUM_COMPARISON_EQ == hashCompare(hash, blockGetHash(node->blocks[i])))
-            return node->blocks[i];
-    return NULL;
+        if (ETHEREUM_COMPARISON_EQ == hashCompare(hash, blockGetHash(node->blocks[i]))) {
+            block = node->blocks[i];
+            break;
+        }
+    pthread_mutex_unlock(&node->lock);
+    return block;
 }
 
 static void
 lightNodeInsertBlock (BREthereumLightNode node,
                       BREthereumBlock block) {
+    pthread_mutex_lock(&node->lock);
     array_add(node->blocks, block);
+    pthread_mutex_unlock(&node->lock);
 }
 
 //
@@ -325,35 +438,55 @@ lightNodeInsertBlock (BREthereumLightNode node,
 static void
 lightNodeInsertTransaction (BREthereumLightNode node,
                              BREthereumTransaction transaction) {
+    pthread_mutex_lock(&node->lock);
     array_add (node->transactions, transaction);
+    pthread_mutex_unlock(&node->lock);
 }
 
 static BREthereumTransaction
 lightNodeLookupTransaction(BREthereumLightNode node,
                            BREthereumLightNodeTransactionId transactionId) {
+    BREthereumTransaction transaction = NULL;
+
+    pthread_mutex_lock(&node->lock);
     for (int i = 0; i < array_count(node->transactions); i++)
-        if (transactionId == node->transactions[i])
-            return node->transactions[i];
-    return NULL;
+        if (transactionId == node->transactions[i]) {
+            transaction = node->transactions[i];
+            break;
+        }
+    pthread_mutex_unlock(&node->lock);
+    return transaction;
 }
 
 static BREthereumTransaction
 lightNodeLookupTransactionByHash (BREthereumLightNode node,
                                   BREthereumHash hash) {
+    BREthereumTransaction transaction = NULL;
+
+    pthread_mutex_lock(&node->lock);
     for (int i = 0; i < array_count(node->transactions); i++)
-        if (ETHEREUM_COMPARISON_EQ == hashCompare(hash, transactionGetHash(node->transactions[i])))
-            return node->transactions[i];
-    return NULL;
+        if (ETHEREUM_COMPARISON_EQ == hashCompare(hash, transactionGetHash(node->transactions[i]))) {
+            transaction = node->transactions[i];
+            break;
+        }
+    pthread_mutex_unlock(&node->lock);
+    return transaction;
 }
 
 static BREthereumTransaction
 lightNodeLookupTransactionByNone (BREthereumLightNode node,
                                   uint64_t nonce) {
+    BREthereumTransaction transaction = NULL;
+
+    pthread_mutex_lock(&node->lock);
     for (int i = 0; i < array_count(node->transactions); i++)
         if (ETHEREUM_COMPARISON_EQ == hashCompare(hashCreateEmpty(), transactionGetHash(node->transactions[i]))
-            && nonce == transactionGetNonce(node->transactions[i]))
-            return node->transactions[i];
-    return NULL;
+            && nonce == transactionGetNonce(node->transactions[i])) {
+            transaction = node->transactions[i];
+            break;
+        }
+    pthread_mutex_unlock(&node->lock);
+    return transaction;
 }
 
 extern BREthereumLightNodeTransactionId
@@ -361,12 +494,15 @@ lightNodeWalletCreateTransaction(BREthereumLightNode node,
                                  BREthereumLightNodeWalletId walletId,
                                  const char *recvAddress,
                                  BREthereumAmount amount) {
+    pthread_mutex_lock(&node->lock);
+
     BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
     BREthereumTransaction transaction = walletCreateTransaction (wallet,
                                                                  createAddress(recvAddress),
                                                                  amount);
-    
     lightNodeInsertTransaction(node, transaction);
+
+    pthread_mutex_unlock(&node->lock);
     return (BREthereumLightNodeTransactionId) transaction;
 }
 
@@ -423,6 +559,8 @@ extern BREthereumLightNodeTransactionId *
 lightNodeWalletGetTransactions (BREthereumLightNode node,
                                 BREthereumLightNodeWalletId walletId) {
     BREthereumWallet wallet = lightNodeLookupWallet(node, walletId);
+    pthread_mutex_lock(&node->lock);
+
     unsigned long count = walletGetTransactionCount(wallet);
     BREthereumLightNodeTransactionId *transactions = calloc (count + 1, sizeof (BREthereumLightNodeTransactionId));
 
@@ -431,6 +569,7 @@ lightNodeWalletGetTransactions (BREthereumLightNode node,
                            (BREthereumTransactionWalker) assignToTransactions);
     transactions[count] = NULL;
 
+    pthread_mutex_unlock(&node->lock);
     return transactions;
 }
 
@@ -639,21 +778,9 @@ lightNodeAnnounceToken (BREthereumLightNode node,
 static BREthereumWallet
 lightNodeAnnounceWallet(BREthereumLightNode node,
                         BREthereumToken token) {
-    // Find a wallet.
-    for (int i = 0; i < array_count(node->wallets); i++) {
-        // If we have a token and it matches wallet's token OR we don't have a
-        // token and wallet doesn't either.
-        if ((NULL != token && token == walletGetToken(node->wallets[i]))
-            || (NULL == token && NULL == walletGetToken(node->wallets[i]))) {
-            return node->wallets[i];
-        }
-    }
-    
-    // We always assume a wallet holding ETHER; so only here for non-NULL token.
-    assert (NULL != token);
-    
-    // Create a wallet for token.
-    BREthereumLightNodeWalletId walletId = lightNodeCreateWalletHoldingToken (node, token);
+    BREthereumLightNodeWalletId walletId = (NULL == token
+                                            ? lightNodeGetWallet(node)
+                                            : lightNodeCreateWalletHoldingToken(node, token));
     return lightNodeLookupWallet(node, walletId);
 }
 
@@ -687,7 +814,9 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
     
     // Get the nonceValue
     uint64_t nonceValue = strtoull(nonce, NULL, 10); // TODO: Assumes `nonce` is uint64_t; which it is for now
-    
+
+    pthread_mutex_lock(&node->lock);
+
     // If `isSource` then the nonce is 'ours'.
     if (ETHEREUM_BOOLEAN_IS_TRUE(isSource) && nonceValue >= addressGetNonce(primaryAddress))
         addressSetNonce(primaryAddress, nonceValue + 1);  // next
@@ -704,6 +833,7 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
         fprintf (stderr, "Ignoring transaction with '%s' having data '%s'",
                  (ETHEREUM_BOOLEAN_IS_TRUE(isSource) ? to : from),
                  data);
+        pthread_mutex_unlock(&node->lock);
         return;
     }
     
@@ -812,6 +942,8 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
                              blockGetNumber(block),
                              blockGetTimestamp(block),
                              blockTransactionIndex);
+
+    pthread_mutex_unlock(&node->lock);
 }
 
 //  {

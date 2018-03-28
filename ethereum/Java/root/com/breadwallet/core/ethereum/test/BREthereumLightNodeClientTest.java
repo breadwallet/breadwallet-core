@@ -201,8 +201,6 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
         asserting ("0".equals(walletEther.getBalance()));
 
         node.connect();
-        walletEther.updateBalance();  // actually, node.connect() does this too.
-        asserting (Integer.parseInt("123f", 16) == Integer.parseInt(walletEther.getBalance()));
 
         BREthereumTransaction trans1 = walletEther.createTransaction(
                 "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
@@ -237,6 +235,8 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
                     "\n\n");
         }
 
+        // Wait until balance updates.
+        asserting (Integer.parseInt("123f", 16) == Integer.parseInt(walletEther.getBalance()));
         walletEther.estimateGasPrice();
         walletEther.estimateGas(trans1);
 

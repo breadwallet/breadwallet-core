@@ -189,7 +189,18 @@ extern BREthereumLightNodeWalletId
 lightNodeGetWallet (BREthereumLightNode node);
 
 /**
- * Create a wallet for `account` holding `token`.
+ * Get the wallet holding `token`.  If none exists, returns NULL.
+
+ * @param node
+ * @param token
+ * @return
+ */
+extern BREthereumLightNodeWalletId
+lightNodeGetWalletHoldingToken (BREthereumLightNode node,
+                                BREthereumToken token);
+
+/**
+ * Create a wallet for `token` if one doesn't aleady exist; otherwise return the existing one.
  *
  * @param node
  * @param account

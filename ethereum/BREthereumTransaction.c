@@ -61,7 +61,7 @@ hashCopy(const BREthereumHash hash) {
 }
 
 extern BREthereumComparison
-hashCompare(BREthereumHash hash1, BREthereumHash hash2) {
+ hashCompare(BREthereumHash hash1, BREthereumHash hash2) {
     int result = strcasecmp(hash1, hash2);
     return (result == 0
             ? ETHEREUM_COMPARISON_EQ
@@ -212,7 +212,7 @@ transactionCreate(BREthereumAddress sourceAddress,
     transaction->nonce = nonce;
     transaction->chainId = 0;
     transaction->signer = NULL;
-    transaction->hash = 0;
+    transaction->hash = hashCreateEmpty();
 
     provideData(transaction);
     provideGasEstimate(transaction);

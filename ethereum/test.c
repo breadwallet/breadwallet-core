@@ -901,15 +901,10 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
     assert (NULL != transactions && NULL != transactions[0]);
     
     BREthereumLightNodeTransactionId transaction = transactions[0];
-    
-    char **properties = lightNodeGetTransactionProperties(node, wallet, transaction, 2, TRANSACTION_PROPERTY_FROM_ADDR, TRANSACTION_PROPERTY_TO_ADDR);
-    assert (0 == strcmp (properties[0], fromAddr)
-            && 0 == strcmp (properties[1], recvAddr));
-    
+    assert (0 == strcmp (fromAddr, lightNodeTransactionGetSendAddress(node, transaction)) &&
+            0 == strcmp (recvAddr, lightNodeTransactionGetRecvAddress(node, transaction)));
+
     free (fromAddr);
-    free (properties[0]);
-    free (properties[1]);
-    free (properties);
 }
 
 //
@@ -985,16 +980,20 @@ runLightNode_JSON_RPC_test (const char *paperKey) {
     BREthereumLightNode node = createLightNode(configuration, paperKey);
     BREthereumLightNodeWalletId wallet = lightNodeGetWallet(node);
     
-    
+    lightNodeConnect(node);
+
+    sleep (2);  // let connect 'take'
+
     // Callback to JSON_RPC for 'getBalanance'&
-    lightNodeUpdateWalletBalance (node, wallet, &status);
+    //    lightNodeUpdateWalletBalance (node, wallet, &status);
     BREthereumAmount balance = walletGetBalance(wallet);
     BREthereumEther expectedBalance = etherCreate(createUInt256Parse("0x123f", 16, &status));
     assert (CORE_PARSE_OK == status
             && AMOUNT_ETHER == amountGetType(balance)
             && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (expectedBalance, amountGetEther(balance)));
     
-    lightNodeUpdateTransactions(node);
+//    lightNodeUpdateTransactions(node);
+    lightNodeDisconnect(node);
 }
 
 // Unsigned Result: 0xf864010082c35094558ec3152e2eb2174905cd19aea4e34a23de9ad680b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000000000000000000000000018080
