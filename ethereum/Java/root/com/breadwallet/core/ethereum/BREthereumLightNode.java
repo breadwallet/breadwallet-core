@@ -36,7 +36,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     // Client
     //
-    interface Client {
+    public interface Client {
         void assignNode (BREthereumLightNode node);
     }
 
