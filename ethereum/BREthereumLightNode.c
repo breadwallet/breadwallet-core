@@ -560,7 +560,7 @@ lightNodeWalletSignTransaction (BREthereumLightNode node,
     walletSignTransaction(wallet, transaction, paperKey);
 }
 
-extern BREthereumBoolean // status, error
+extern void // status, error
 lightNodeWalletSubmitTransaction(BREthereumLightNode node,
                                  BREthereumLightNodeWalletId wid,
                                  BREthereumLightNodeTransactionId tid) {

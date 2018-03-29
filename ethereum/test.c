@@ -897,7 +897,7 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
     
     char *fromAddr = lightNodeGetAccountPrimaryAddress(node);
     BREthereumLightNodeTransactionId *transactions = lightNodeWalletGetTransactions(node, wallet);
-    assert (NULL != transactions && NULL != transactions[0]);
+    assert (NULL != transactions && -1 != transactions[0]);
     
     BREthereumLightNodeTransactionId transaction = transactions[0];
     assert (0 == strcmp (fromAddr, lightNodeTransactionGetSendAddress(node, transaction)) &&
@@ -915,32 +915,54 @@ typedef struct JsonRpcTestContextRecord {
 
 // Stubbed Callbacks - should actually construct JSON, invoke an Etherum JSON_RPC method,
 // get the response and return the result.
-static const char *
-jsonRpcGetBalance (JsonRpcTestContext context,  BREthereumLightNode node, int id, const char *account) {
-    return "0x123f";
-}
-
-static const char *
-jsonRpcGetGasPrice (JsonRpcTestContext context,  BREthereumLightNode node, int id) {
-    return "0xffc0";
-}
-
-static const char *
-jsonRpcEstimateGas (JsonRpcTestContext context,  BREthereumLightNode node, int id, const char *to, const char *amount, const char *data) {
-    return "0x77";
-}
-
-static const char *
-jsonRpcSubmitTransaction (JsonRpcTestContext context,  BREthereumLightNode node, int id, const char *transaction) {
-    // The transaction hash
-    return "0x123abc456def";
+static void
+jsonRpcGetBalance (JsonRpcContext context,
+                   BREthereumLightNode node,
+                   BREthereumLightNodeWalletId wid,
+                   const char *address,
+                   int rid) {
+    lightNodeAnnounceBalance(node, wid, "0x123f", rid);
 }
 
 static void
-jsonRpcGetTransactions (JsonRpcTestContext context,  BREthereumLightNode node, int id, const char *account) {
+jsonRpcGetGasPrice (JsonRpcContext context,
+                    BREthereumLightNode node,
+                    BREthereumLightNodeWalletId wid,
+                    int rid) {
+    lightNodeAnnounceGasPrice(node, wid, "0xffc0", rid);
+}
+
+static void
+jsonRpcEstimateGas (JsonRpcContext context,
+                    BREthereumLightNode node,
+                    BREthereumLightNodeWalletId wid,
+                    BREthereumLightNodeTransactionId tid,
+                    const char *to,
+                    const char *amount,
+                    const char *data,
+                    int rid) {
+    lightNodeAnnounceGasEstimate(node, tid, "0x77", rid);
+}
+
+static void
+jsonRpcSubmitTransaction (JsonRpcContext context,
+                          BREthereumLightNode node,
+                          BREthereumLightNodeWalletId wid,
+                          BREthereumLightNodeTransactionId tid,
+                          const char *transaction,
+                          int rid) {
+    // The transaction hash
+    lightNodeAnnounceSubmitTransaction(node, tid, "0x123abc456def", rid);
+}
+
+static void
+jsonRpcGetTransactions (JsonRpcContext context,
+                        BREthereumLightNode node,
+                        const char *account,
+                        int id) {
     // Get all the transaction, then one by one call 'announce'
     char *address = lightNodeGetAccountPrimaryAddress(node);
-    lightNodeAnnounceTransaction(node,
+    lightNodeAnnounceTransaction(node, id,
                                  "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
                                  address,   // required
                                  "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
@@ -970,11 +992,11 @@ runLightNode_JSON_RPC_test (const char *paperKey) {
     BREthereumLightNodeConfiguration configuration =
     lightNodeConfigurationCreateJSON_RPC(ethereumMainnet,
                                          context,
-                                         (JsonRpcGetBalance) jsonRpcGetBalance,
-                                         (JsonRpcGetGasPrice) jsonRpcGetGasPrice,
-                                         (JsonRpcEstimateGas) jsonRpcEstimateGas,
-                                         (JsonRpcSubmitTransaction) jsonRpcSubmitTransaction,
-                                         (JsonRpcGetTransactions) jsonRpcGetTransactions);
+                                         jsonRpcGetBalance,
+                                         jsonRpcGetGasPrice,
+                                         jsonRpcEstimateGas,
+                                         jsonRpcSubmitTransaction,
+                                         jsonRpcGetTransactions);
     
     BREthereumLightNode node = createLightNode(configuration, paperKey);
     BREthereumLightNodeWalletId wallet = lightNodeGetWallet(node);
@@ -985,7 +1007,7 @@ runLightNode_JSON_RPC_test (const char *paperKey) {
 
     // Callback to JSON_RPC for 'getBalanance'&
     //    lightNodeUpdateWalletBalance (node, wallet, &status);
-    BREthereumAmount balance = walletGetBalance(wallet);
+    BREthereumAmount balance = lightNodeWalletGetBalance (node, wallet);
     BREthereumEther expectedBalance = etherCreate(createUInt256Parse("0x123f", 16, &status));
     assert (CORE_PARSE_OK == status
             && AMOUNT_ETHER == amountGetType(balance)
