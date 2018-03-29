@@ -50,45 +50,43 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
     private static final String USABLE_PAPER_KEY =
             "ginger settle marine tissue robot crane night number ramp coast roast critic";
 
-    protected BREthereumLightNode node;
+    protected BREthereumLightNode.JSON_RPC node;
 
     public BREthereumLightNodeClientTest() {
     }
 
     @Override
     public void assignNode(BREthereumLightNode node) {
-        this.node = node;
+        asserting (node instanceof BREthereumLightNode.JSON_RPC);
+            this.node = (BREthereumLightNode.JSON_RPC) node;
     }
 
     @Override
-    public String getBalance(int id, String account) {
-        asserting (null != node);
-        return "0x123f";  // NON-NLS
+    public void getBalance(int wid, String address, int rid) {
+        node.announceBalance(wid, "0x123f", rid);
     }
 
     @Override
-    public String getGasPrice(int id) {
-        asserting (null != node);
-        return "0xffc0"; // NON-NLS
+    public void getGasPrice(int wid, int rid) {
+        node.announceGasPrice(wid, "0xffc0", rid); // NON-NLS
     }
 
     @Override
-    public String getGasEstimate(int id, String to, String amount, String data) {
-        asserting (null != node);
-        return "0x77"; // NON-NLS
+    public void getGasEstimate(int wid, int tid, String to, String amount, String data, int rid) {
+        node.announceGasEstimate(tid, "0x77", rid); // NON-NLS
     }
 
     @Override
-    public String submitTransaction(int id, String rawTransaction) {
-        asserting (null != node);
-        return "0x123abc456def"; // NON-NLS
+    public void submitTransaction(int wid, int tid, String rawTransaction, int rid) {
+        node.announceSubmitTransaction(tid, "0x123abc456def", rid); // NON-NLS
+
     }
 
     @Override
-    public void getTransactions(int id, String account) {
-        asserting (null != node);
+    public void getTransactions(String address, int rid) {
         // Query, then for-each...
         node.announceTransaction(
+                rid,
                 "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
                 node.getAddress(),
                 "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",        // NON-NLS
@@ -108,6 +106,7 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
 
         // From 0: Swap to-from; later block number.  (Fake hash)
         node.announceTransaction(
+                rid,
                 "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d221",
                 "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",        // NON-NLS
                 node.getAddress(),
@@ -127,6 +126,7 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
 
         // From 0: earlier transactionIndex; lower nonce (Fake hash)
         node.announceTransaction(
+                rid,
                 "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d222",
                 node.getAddress(),
                 "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",        // NON-NLS
@@ -146,6 +146,7 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
 
         // From 0: 'to' as tokenBread; data; block number before 'mod 2'.
         node.announceTransaction(
+                rid,
                 "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d223",
                 node.getAddress(),
                 "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6",        // NON-NLS
@@ -165,6 +166,7 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
 
         // From 0: identical
         node.announceTransaction(
+                rid,
                 "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
                 node.getAddress(),
                 "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",        // NON-NLS
@@ -200,6 +202,7 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
 
         asserting ("0".equals(walletEther.getBalance()));
 
+        System.out.println ("Connect");
         node.connect();
 
         BREthereumTransaction trans1 = walletEther.createTransaction(
@@ -242,6 +245,7 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
 
         // Check trans1
 
+        System.out.println ("Disconnect");
         node.disconnect();
     }
 

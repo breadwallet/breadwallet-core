@@ -277,7 +277,7 @@ walletGetRawTransaction(BREthereumWallet wallet,
                                   : TRANSACTION_RLP_UNSIGNED));
 }
 
-extern const char *
+extern char *
 walletGetRawTransactionHexEncoded (BREthereumWallet wallet,
                                    BREthereumTransaction transaction,
                                    const char *prefix) {
@@ -423,12 +423,11 @@ walletGetTransactionByNonce (BREthereumWallet wallet,
 }
 
 private_extern BREthereumTransaction
-walletGetTransactionById (BREthereumWallet wallet,
-                          BREthereumLightNodeTransactionId transactionId) {
-    for (int i = 0; i < array_count(wallet->transactions); i++)
-        if (transactionId == wallet->transactions[i])
-            return wallet->transactions [i];
-    return NULL;
+walletGetTransactionById(BREthereumWallet wallet,
+                         BREthereumLightNodeTransactionId tid) {
+    return 0 <= tid && tid < array_count(wallet->transactions)
+           ? wallet->transactions[tid]
+           : NULL;
 }
 
 static int // -1 if not found

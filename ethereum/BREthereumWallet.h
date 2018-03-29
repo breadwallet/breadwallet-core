@@ -146,7 +146,7 @@ walletGetRawTransaction(BREthereumWallet wallet,
  * (typically "0x"), suitable for use in the RPC-JSON Ethereum method 'eth_sendRawTransaction"
  *
  */
-extern const char *
+extern char *
 walletGetRawTransactionHexEncoded (BREthereumWallet wallet,
                                    BREthereumTransaction transaction,
                                    const char *prefix);

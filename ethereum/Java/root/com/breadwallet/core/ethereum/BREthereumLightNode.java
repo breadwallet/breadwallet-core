@@ -44,26 +44,47 @@ public class BREthereumLightNode extends BRCoreJniReference {
     }
 
     public interface ClientJSON_RPC extends Client {
-        // typedef const char* (*JsonRpcGetBalance) (JsonRpcContext context, int id, String account);
-        String getBalance(int id, String account);
+        //        typedef void (*JsonRpcGetBalance) (JsonRpcContext context,
+        //                                   BREthereumLightNode node,
+        //                                   BREthereumLightNodeWalletId wid,
+        //                                   const char *address,
+        //                                   int rid);
+        void getBalance(int wid, String address, int rid);
 
-        // typedef const char* (*JsonRpcGetGasPrice) (JsonRpcContext context, int id);
-        String getGasPrice(int id);
+        //        typedef void (*JsonRpcGetGasPrice) (JsonRpcContext context,
+        //                                    BREthereumLightNode node,
+        //                                    BREthereumLightNodeWalletId wid,
+        //                                    int rid);
+        void getGasPrice(int wid, int rid);
 
-        // typedef const char* (*JsonRpcEstimateGas) (JsonRpcContext context, int id, String to, String amount, String data);
-        String getGasEstimate(int id, String to, String amount, String data);
+        //        typedef void (*JsonRpcEstimateGas) (JsonRpcContext context,
+        //                                    BREthereumLightNode node,
+        //                                    BREthereumLightNodeWalletId wid,
+        //                                    BREthereumLightNodeTransactionId tid,
+        //                                    const char *to,
+        //                                    const char *amount,
+        //                                    const char *data,
+        //                                    int rid);
 
-        // typedef const char* (*JsonRpcSubmitTransaction) (JsonRpcContext context, int id, String transaction);
-        String submitTransaction(int id, String rawTransaction);
+        void getGasEstimate(int wid, int tid, String to, String amount, String data, int rid);
 
-        // typedef void (*JsonRpcGetTransactions) (JsonRpcContext context, int id, String account,
-        //                                         JsonRpcAnnounceTransaction announceTransaction,
-        //                                         JsonRpcAnnounceTransactionContext announceTransactionContext);
-        void getTransactions(int id, String account);
+        //        typedef void (*JsonRpcSubmitTransaction) (JsonRpcContext context,
+        //                                          BREthereumLightNode node,
+        //                                          BREthereumLightNodeWalletId wid,
+        //                                          BREthereumLightNodeTransactionId tid,
+        //                                          const char *transaction,
+        //                                          int rid);
+        void submitTransaction(int wid, int tid, String rawTransaction, int rid);
+
+        //        typedef void (*JsonRpcGetTransactions) (JsonRpcContext context,
+        //                                        BREthereumLightNode node,
+        //                                        const char *address,
+        //                                        int rid);
+        void getTransactions(String address, int rid);
     }
 
     //
-    // Light Node Types
+    // Light Node LES
     //
     static public class LES extends BREthereumLightNode {
         public LES(ClientLES client, BREthereumNetwork network, String paperKey) {
@@ -73,11 +94,55 @@ public class BREthereumLightNode extends BRCoreJniReference {
         }
     }
 
+    //
+    // Light Node JSON_RPC
+    //
     static public class JSON_RPC extends BREthereumLightNode {
         public JSON_RPC(ClientJSON_RPC client, BREthereumNetwork network, String paperKey) {
             super(BREthereumLightNode.jniCreateLightNodeJSON_RPC(client, network.getIdentifier(), paperKey),
                     client,
                     network);
+        }
+
+        public void announceBalance (int wid, String balance, int rid) {
+            jniAnnounceBalance(wid, balance, rid);
+        }
+
+        public void announceGasPrice (int wid, String gasPrice, int rid) {
+            jniAnnounceGasPrice(wid, gasPrice, rid);
+        }
+
+        public void announceGasEstimate (int tid, String gasEstimate, int rid) {
+            jniAnnounceGasEstimate(tid, gasEstimate, rid);
+        }
+
+        public void announceSubmitTransaction (int tid, String hash, int rid) {
+            jniAnnounceSubmitTransaction(tid, hash, rid);
+        }
+
+        public void announceTransaction(int id,
+                                        String hash,
+                                        String from,
+                                        String to,
+                                        String contract,
+                                        String amount, // value
+                                        String gasLimit,
+                                        String gasPrice,
+                                        String data,
+                                        String nonce,
+                                        String gasUsed,
+                                        String blockNumber,
+                                        String blockHash,
+                                        String blockConfirmations,
+                                        String blockTransactionIndex,
+                                        String blockTimestamp,
+                                        // cumulative gas used,
+                                        // confirmations
+                                        // txreceipt_status
+                                        String isError) {
+            jniAnnounceTransaction(id, hash, from, to, contract, amount, gasLimit, gasPrice, data, nonce, gasUsed,
+                    blockNumber, blockHash, blockConfirmations, blockTransactionIndex, blockTimestamp,
+                    isError);
         }
     }
 
@@ -144,37 +209,8 @@ public class BREthereumLightNode extends BRCoreJniReference {
     }
 
     //
-    // Transaction
+    // Callback Announcements
     //
-    public void forceTransactionUpdate () {
-        jniForceTransactionUpdate();
-    }
-
-    public void announceTransaction(String hash,
-                                    String from,
-                                    String to,
-                                    String contract,
-                                    String amount, // value
-                                    String gasLimit,
-                                    String gasPrice,
-                                    String data,
-                                    String nonce,
-                                    String gasUsed,
-                                    String blockNumber,
-                                    String blockHash,
-                                    String blockConfirmations,
-                                    String blockTransactionIndex,
-                                    String blockTimestamp,
-                                    // cumulative gas used,
-                                    // confirmations
-                                    // txreceipt_status
-                                    String isError) {
-        jniAnnounceTransaction(hash, from, to, contract, amount, gasLimit, gasPrice, data, nonce, gasUsed,
-                blockNumber, blockHash, blockConfirmations, blockTransactionIndex, blockTimestamp,
-                isError);
-    }
-
-
     //
     // JNI Interface
     //
@@ -195,9 +231,11 @@ public class BREthereumLightNode extends BRCoreJniReference {
 
     protected native void jniForceWalletBalanceUpdate(long wallet);
 
-    protected native void jniForceTransactionUpdate();
-
-    protected native void jniAnnounceTransaction(String hash,
+    //
+    // Announcements
+    //
+    protected native void jniAnnounceTransaction(int id,
+                                                 String hash,
                                                  String from,
                                                  String to,
                                                  String contract,
@@ -217,6 +255,14 @@ public class BREthereumLightNode extends BRCoreJniReference {
                                                  // txreceipt_status
                                                  String isError);
 
+    protected native void jniAnnounceBalance (int wid, String balance, int rid);
+    protected native void jniAnnounceGasPrice (int wid, String gasPrice, int rid);
+    protected native void jniAnnounceGasEstimate (int tid, String gasEstimate, int rid);
+    protected native void jniAnnounceSubmitTransaction (int tid, String hash, int rid);
+
+    //
+    // Wallet Transactions
+    //
     protected native long jniCreateTransaction (long walletId,
                                                 String to,
                                                 String amount,
@@ -231,12 +277,16 @@ public class BREthereumLightNode extends BRCoreJniReference {
 
     protected native long[] jniGetTransactions (long walletId);
 
-    protected native String jniTransactionGetAmount(long transactionId, long unit);
-    protected native boolean jniTransactionHasToken (long transactionId);
-
     protected native void jniTransactionEstimateGas(long walletId,
                                                     long transactionId);
 
+
+    //
+    // Transactions
+    //
+    protected native boolean jniTransactionHasToken (long transactionId);
+
+    protected native String jniTransactionGetAmount(long transactionId, long unit);
     protected native String jniTransactionSourceAddress (long transactionId);
     protected native String jniTransactionTargetAddress (long transactionId);
     protected native String jniTransactionGetGasPrice (long tranactionId, long unit);
@@ -247,10 +297,11 @@ public class BREthereumLightNode extends BRCoreJniReference {
     protected native long jniTransactionGetBlockTimestamp (long tranactionId);
     protected native boolean jniTransactionIsConfirmed (long transactionId);
 
+    //
+    // Connect // Disconnect
+    //
     protected native boolean jniLightNodeConnect ();
     protected native boolean jniLightNodeDisconnect ();
-
-    //    public native void disposeNative ();
 
     protected static native void initializeNative();
 

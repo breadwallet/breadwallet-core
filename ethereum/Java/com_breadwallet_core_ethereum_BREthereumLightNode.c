@@ -33,20 +33,42 @@
 //
 // Forward Declarations
 //
-static const char *
-jsonRpcGetBalance (JsonRpcContext context, BREthereumLightNode node, int id, const char *account);
-
-static const char *
-jsonRpcGetGasPrice (JsonRpcContext context, BREthereumLightNode node, int id);
-
-static const char *
-jsonRpcEstimateGas (JsonRpcContext context, BREthereumLightNode node, int id, const char *to, const char *amount, const char *data);
-
-static const char *
-jsonRpcSubmitTransaction (JsonRpcContext context, BREthereumLightNode node, int id, const char *transaction);
+static void
+jsonRpcGetBalance (JsonRpcContext context,
+                   BREthereumLightNode node,
+                   BREthereumLightNodeWalletId wid,
+                   const char *address,
+                   int id);
 
 static void
-jsonRpcGetTransactions(JsonRpcContext context, BREthereumLightNode node, int id, const char *account);
+jsonRpcGetGasPrice (JsonRpcContext context,
+                    BREthereumLightNode node,
+                    BREthereumLightNodeWalletId wid,
+                    int id);
+
+static void
+jsonRpcEstimateGas (JsonRpcContext context,
+                    BREthereumLightNode node,
+                    BREthereumLightNodeWalletId wid,
+                    BREthereumLightNodeTransactionId tid,
+                    const char *to,
+                    const char *amount,
+                    const char *data,
+                    int id);
+
+static void
+jsonRpcSubmitTransaction (JsonRpcContext context,
+                          BREthereumLightNode node,
+                          BREthereumLightNodeWalletId wid,
+                          BREthereumLightNodeTransactionId tid,
+                          const char *transaction,
+                          int id);
+
+static void
+jsonRpcGetTransactions(JsonRpcContext context,
+                       BREthereumLightNode node,
+                       const char *account,
+                       int id);
 
 static jstring
 asJniString(JNIEnv *env, char *string) {
@@ -161,10 +183,7 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetAccountPrimaryAddre
         (JNIEnv *env, jobject thisObject, jlong account) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
 
-    BREthereumAddress address = accountGetPrimaryAddress((BREthereumAccount) account);
-
-    char *addressChars = addressAsString(address);
-
+    char *addressChars = lightNodeGetAccountPrimaryAddress(node);
     jstring addressObject = (*env)->NewStringUTF(env, addressChars);
     free(addressChars);
 
@@ -178,10 +197,9 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetAccountPrimaryAddre
  */
 JNIEXPORT jstring JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetWalletBalance
-        (JNIEnv *env, jobject thisObject, jlong walletId, jlong unit) {
+        (JNIEnv *env, jobject thisObject, jlong wid, jlong unit) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
-    BREthereumWallet wallet = (BREthereumWallet) walletId;
-    BREthereumAmount balance = walletGetBalance(wallet);
+    BREthereumAmount balance = lightNodeWalletGetBalance(node, wid);
 
     char *number = (AMOUNT_ETHER == amountGetType(balance)
                     ? etherGetValueString(balance.u.ether, unit)
@@ -199,17 +217,12 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetWalletBalance
  */
 JNIEXPORT void JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniEstimateWalletGasPrice
-        (JNIEnv *env, jobject thisObject, jlong walletId) {
+        (JNIEnv *env, jobject thisObject, jlong wid) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
 
-    BRCoreParseStatus status = CORE_PARSE_OK;
     lightNodeUpdateWalletDefaultGasPrice
             (node,
-             (BREthereumLightNodeWalletId) walletId,
-             &status);
-    if (CORE_PARSE_OK != status) {
-        // TODO: Handle bad parse
-    }
+             (BREthereumLightNodeWalletId) wid);
 }
 
 
@@ -220,13 +233,11 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniEstimateWalletGasPrice
  */
 JNIEXPORT void JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniForceWalletBalanceUpdate
-        (JNIEnv *env, jobject thisObject, jlong wallet) {
+        (JNIEnv *env, jobject thisObject, jlong wid) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
-    BRCoreParseStatus status = CORE_PARSE_OK;
     lightNodeUpdateWalletBalance
             (node,
-             (BREthereumLightNodeWalletId) wallet,
-             &status);
+             (BREthereumLightNodeWalletId) wid);
 }
 
 /*
@@ -244,10 +255,12 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniForceTransactionUpdate
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniAnnounceTransaction
- * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+ * Signature: (ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceTransaction
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceTransaction
         (JNIEnv *env, jobject thisObject,
+         jint id,
          jstring hashObject,
          jstring toObject,
          jstring fromObject,
@@ -265,7 +278,7 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jn
          jstring blockTimestampObject,
          jstring isErrorObject) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
-    lightNodeAnnounceTransaction(node,
+    lightNodeAnnounceTransaction(node, id,
                                  (*env)->GetStringUTFChars (env, hashObject, 0),
                                  (*env)->GetStringUTFChars (env, toObject, 0),
                                  (*env)->GetStringUTFChars (env, fromObject, 0),
@@ -286,21 +299,93 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jn
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniAnnounceBalance
+ * Signature: (ILjava/lang/String;I)V
+ */
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceBalance
+        (JNIEnv *env, jobject thisObject,
+         jint wid,
+         jstring balance,
+         jint rid) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+    lightNodeAnnounceBalance(node,
+                             wid,
+                             (*env)->GetStringUTFChars(env, balance, 0),
+                             rid);
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniAnnounceGasPrice
+ * Signature: (ILjava/lang/String;I)V
+ */
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceGasPrice
+        (JNIEnv *env, jobject thisObject,
+         jint wid,
+         jstring gasPrice,
+         jint rid) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+    lightNodeAnnounceGasPrice(node,
+                              wid,
+                              (*env)->GetStringUTFChars(env, gasPrice, 0),
+                              rid);
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniAnnounceGasEstimate
+ * Signature: (ILjava/lang/String;I)V
+ */
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceGasEstimate
+        (JNIEnv *env, jobject thisObject,
+         jint tid,
+         jstring gasEstimate,
+         jint rid) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+    lightNodeAnnounceGasEstimate(node,
+                                 tid,
+                                 (*env)->GetStringUTFChars(env, gasEstimate, 0),
+                                 rid);
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniAnnounceSubmitTransaction
+ * Signature: (ILjava/lang/String;I)V
+ */
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceSubmitTransaction
+        (JNIEnv *env, jobject thisObject,
+         jint tid,
+         jstring hash,
+         jint rid) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+    lightNodeAnnounceSubmitTransaction(node,
+                                       tid,
+                                       (*env)->GetStringUTFChars(env, hash, 0),
+                                       rid);
+}
+
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniCreateTransaction
  * Signature: (JLjava/lang/String;Ljava/lang/String;J)J
  */
 JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateTransaction
         (JNIEnv *env, jobject thisObject,
-         jlong walletId,
+         jlong wid,
          jstring toObject,
          jstring amountObject,
          jlong amountUnit) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
-    BREthereumWallet wallet = (BREthereumWallet) walletId; // TODO: Unfair to simply cast (but correct at the moment).
-    BREthereumToken token = walletGetToken(wallet);
+    BREthereumToken token = lightNodeWalletGetToken(node, wid);
 
-    // Get an actual Amount
+        // Get an actual Amount
     BRCoreParseStatus status = CORE_PARSE_OK;
     const char *amountChars = (*env)->GetStringUTFChars(env, amountObject, 0);
     BREthereumAmount amount = NULL == token
@@ -308,7 +393,7 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateTransaction
                               : amountCreateTokenQuantityString(token, amountChars, amountUnit, 0);
 
     return (jlong) lightNodeWalletCreateTransaction(node,
-                                                    (BREthereumLightNodeWalletId) walletId,
+                                                    (BREthereumLightNodeWalletId) wid,
                                                     (*env)->GetStringUTFChars(env, toObject, 0),
                                                     amount);
 }
@@ -353,17 +438,23 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniSubmitTransaction
  * Method:    jniGetTransactions
  * Signature: (J)[J
  */
-JNIEXPORT jlongArray JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetTransactions
-        (JNIEnv *env, jobject thisObject, jlong walletId) {
+JNIEXPORT jlongArray JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetTransactions
+        (JNIEnv *env, jobject thisObject,
+         jlong wid) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
-    BREthereumWallet wallet = (BREthereumWallet) walletId;
-    unsigned int count = walletGetTransactionCount(wallet);
+    int count = lightNodeWalletGetTransactionCount(node, wid);
+    assert (-1 != count);
 
+    // uint32_t array - need a long
     BREthereumLightNodeTransactionId *transactionIds =
-            lightNodeWalletGetTransactions(node, (BREthereumLightNodeWalletId) walletId);
+            lightNodeWalletGetTransactions(node, (BREthereumLightNodeWalletId) wid);
 
-    jlongArray transactions = (*env)->NewLongArray (env, count);
-    (*env)->SetLongArrayRegion (env, transactions, 0, count, (jlong*) transactionIds);
+    jlong ids[count];
+    for (int i = 0; i < count; i++) ids[i] = (jlong) transactionIds[i];
+
+    jlongArray transactions = (*env)->NewLongArray (env, (jsize) count);
+    (*env)->SetLongArrayRegion (env, transactions, 0, (jsize) count, (jlong*) ids);
 
     free (transactionIds);
     return transactions;
@@ -376,16 +467,17 @@ JNIEXPORT jlongArray JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightN
  */
 JNIEXPORT jstring JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionGetAmount
-        (JNIEnv *env, jobject thisObject, jlong transactionId, jlong unit) {
+        (JNIEnv *env, jobject thisObject,
+         jlong tid,
+         jlong unit) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
-    BREthereumTransaction transaction = (BREthereumTransaction) transactionId;
-    BREthereumAmount amount = transactionGetAmount(transaction);
 
     return asJniString(env,
-                       (AMOUNT_ETHER == amountGetType(amount)
-                        ? etherGetValueString(amount.u.ether, (BREthereumEtherUnit) unit)
-                        : tokenQuantityGetValueString(amount.u.tokenQuantity,
-                                                      (BREthereumTokenQuantityUnit) unit)));
+                       (ETHEREUM_BOOLEAN_TRUE == lightNodeTransactionHoldsToken(node, tid, NULL)
+                        ? lightNodeTransactionGetAmountEther(node, tid,
+                                                             (BREthereumEtherUnit) unit)
+                        : lightNodeTransactionGetAmountTokenQuantity(node, tid,
+                                                                     (BREthereumTokenQuantityUnit) unit)));
 }
 
 /*
@@ -395,10 +487,10 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionGetAmount
  */
 JNIEXPORT jboolean JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionHasToken
-        (JNIEnv *env, jobject thisObject, jlong transactionId) {
+        (JNIEnv *env, jobject thisObject,
+         jlong tid) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
-    BREthereumTransaction transaction = (BREthereumTransaction) transactionId;
-    return (jboolean) (NULL != transactionGetToken(transaction)
+    return (jboolean) (ETHEREUM_BOOLEAN_FALSE == lightNodeTransactionHoldsToken(node, tid, NULL)
                        ? JNI_TRUE
                        : JNI_FALSE);
 }
@@ -408,22 +500,17 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionHasToken
  * Method:    jniTransactionEstimateGas
  * Signature: (JJ)V
  */
-JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionEstimateGas
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionEstimateGas
         (JNIEnv *env, jobject thisObject,
          jlong walletId,
          jlong transactionId) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
 
-    BRCoreParseStatus status = CORE_PARSE_OK;
     lightNodeUpdateTransactionGasEstimate
             (node,
              (BREthereumLightNodeWalletId) walletId,
-             (BREthereumLightNodeTransactionId) transactionId,
-             &status);
-
-    if (CORE_PARSE_OK != status) {
-        // TODO: Handle status not OK
-    }
+             (BREthereumLightNodeTransactionId) transactionId);
 }
 
 /*
@@ -620,142 +707,137 @@ lookupListenerMethod (JNIEnv *env, jobject listener, char *name, char *type) {
 }
 
 
-static const char *
-jsonRpcGetBalance(JsonRpcContext context, BREthereumLightNode node, int id, const char *account) {
+static void
+jsonRpcGetBalance(JsonRpcContext context,
+                  BREthereumLightNode node,
+                  BREthereumLightNodeWalletId wid,
+                  const char *account,
+                  int id) {
     JNIEnv *env = getEnv();
-    if (NULL == env) return NULL;
+    if (NULL == env) return;
 
     jobject listener = (*env)->NewLocalRef(env, (jobject) context);
-    if ((*env)->IsSameObject(env, listener, NULL)) return NULL; // GC reclaimed
+    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
 
     // String getBalance (int id, String account);
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
                                  "getBalance",
-                                 "(ILjava/lang/String;)Ljava/lang/String;");
+                                 "(ILjava/lang/String;I)V");
     assert (NULL != listenerMethod);
 
     jobject accountObject = (*env)->NewStringUTF(env, account);
 
-    jstring resultObject =
-            (*env)->CallObjectMethod(env, listener, listenerMethod,
-                                     id,
-                                     accountObject);
-
-    const char *resultChars = (*env)->GetStringUTFChars(env, resultObject, 0);
-    char *result = malloc(strlen(resultChars) + 1);
-    strcpy(result, resultChars);
+    (*env)->CallVoidMethod(env, listener, listenerMethod,
+                           wid,
+                           accountObject,
+                           id);
 
     (*env)->DeleteLocalRef(env, listener);
     (*env)->DeleteLocalRef(env, accountObject);
-    (*env)->DeleteLocalRef(env, resultObject);
-
-    return result;
 }
 
-static const char *
-jsonRpcGetGasPrice (JsonRpcContext context, BREthereumLightNode node, int id) {
+static void
+jsonRpcGetGasPrice(JsonRpcContext context,
+                   BREthereumLightNode node,
+                   BREthereumLightNodeWalletId wid,
+                   int id) {
     JNIEnv *env = getEnv();
-    if (NULL == env) return NULL;
+    if (NULL == env) return;
 
     jobject listener = (*env)->NewLocalRef(env, (jobject) context);
-    if ((*env)->IsSameObject(env, listener, NULL)) return NULL; // GC reclaimed
+    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
 
     //String getGasPrice (int id);
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
                                  "getGasPrice",
-                                 "(I)Ljava/lang/String;");
+                                 "(II)V");
     assert (NULL != listenerMethod);
 
-    jstring resultObject =
-            (*env)->CallObjectMethod(env, listener, listenerMethod,
-                                     id);
-
-    const char *resultChars = (*env)->GetStringUTFChars(env, resultObject, 0);
-    char *result = malloc(strlen(resultChars) + 1);
-    strcpy(result, resultChars);
+    (*env)->CallVoidMethod(env, listener, listenerMethod,
+                           wid,
+                           id);
 
     (*env)->DeleteLocalRef(env, listener);
-    (*env)->DeleteLocalRef(env, resultObject);
-
-    return result;
 }
 
-static const char *
-jsonRpcEstimateGas (JsonRpcContext context, BREthereumLightNode node, int id, const char *to, const char *amount, const char *data) {
+static void
+jsonRpcEstimateGas(JsonRpcContext context, BREthereumLightNode node,
+                   BREthereumLightNodeWalletId wid,
+                   BREthereumLightNodeTransactionId tid,
+                   const char *to,
+                   const char *amount,
+                   const char *data,
+                   int id) {
     JNIEnv *env = getEnv();
-    if (NULL == env) return NULL;
+    if (NULL == env) return;
 
     jobject listener = (*env)->NewLocalRef(env, (jobject) context);
-    if ((*env)->IsSameObject(env, listener, NULL)) return NULL; // GC reclaimed
+    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
 
     // String getGasEstimate (int id, String to, String amount, String data);
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
                                  "getGasEstimate",
-                                 "(ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;");
+                                 "(IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V");
     assert (NULL != listenerMethod);
 
     jobject toObject = (*env)->NewStringUTF(env, to);
     jobject amountObject = (*env)->NewStringUTF(env, amount);
     jobject dataObject = (*env)->NewStringUTF(env, data);
 
-    jstring resultObject =
-            (*env)->CallObjectMethod(env, listener, listenerMethod,
-                                     id,
-                                     toObject,
-                                     amountObject,
-                                     dataObject);
-
-    const char *resultChars = (*env)->GetStringUTFChars(env, resultObject, 0);
-    char *result = malloc(strlen(resultChars) + 1);
-    strcpy(result, resultChars);
+    (*env)->CallVoidMethod(env, listener, listenerMethod,
+                           wid,
+                           tid,
+                           toObject,
+                           amountObject,
+                           dataObject,
+                           id);
 
     (*env)->DeleteLocalRef(env, listener);
     (*env)->DeleteLocalRef(env, toObject);
     (*env)->DeleteLocalRef(env, amountObject);
     (*env)->DeleteLocalRef(env, dataObject);
-    (*env)->DeleteLocalRef(env, resultObject);
-
-    return result;
 }
 
-static const char *
-jsonRpcSubmitTransaction (JsonRpcContext context, BREthereumLightNode node, int id, const char *transaction) {
+static void
+jsonRpcSubmitTransaction(JsonRpcContext context,
+                         BREthereumLightNode node,
+                         BREthereumLightNodeWalletId wid,
+                         BREthereumLightNodeTransactionId tid,
+                         const char *transaction,
+                         int id) {
     JNIEnv *env = getEnv();
-    if (NULL == env) return NULL;
+    if (NULL == env) return;
 
     jobject listener = (*env)->NewLocalRef(env, (jobject) context);
-    if ((*env)->IsSameObject(env, listener, NULL)) return NULL; // GC reclaimed
+    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
 
     // String submitTransaction (int id, String rawTransaction);
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
                                  "submitTransaction",
-                                 "(ILjava/lang/String;)Ljava/lang/String;");
+                                 "(IILjava/lang/String;I)V");
     assert (NULL != listenerMethod);
 
     jobject transactionObject = (*env)->NewStringUTF(env, transaction);
 
-    jstring resultObject =
-            (*env)->CallObjectMethod(env, listener, listenerMethod,
-                                     id,
-                                     transactionObject);
-
-    const char *resultChars = (*env)->GetStringUTFChars(env, resultObject, 0);
-    char *result = malloc(strlen(resultChars) + 1);
-    strcpy(result, resultChars);
+    (*env)->CallVoidMethod(env, listener, listenerMethod,
+                             wid,
+                             tid,
+                             transactionObject,
+                             id);
 
     (*env)->DeleteLocalRef(env, listener);
     (*env)->DeleteLocalRef(env, transactionObject);
-    (*env)->DeleteLocalRef(env, resultObject);
-
-    return result;
 }
 
 static void
-jsonRpcGetTransactions(JsonRpcContext context, BREthereumLightNode node, int id, const char *address) {
+jsonRpcGetTransactions(JsonRpcContext context,
+                       BREthereumLightNode node,
+                       const char *address,
+                       int id) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
@@ -773,18 +855,16 @@ jsonRpcGetTransactions(JsonRpcContext context, BREthereumLightNode node, int id,
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
                                  "getTransactions",
-                                 "(ILjava/lang/String;)V");
+                                 "(Ljava/lang/String;I)V");
     assert (NULL != listenerMethod);
 
     jobject addressObject = (*env)->NewStringUTF(env, address);
 
     (*env)->CallVoidMethod(env, listener, listenerMethod,
-                           id,
-                           addressObject);
+                           addressObject,
+                           id);
 
     (*env)->DeleteLocalRef(env, listener);
     (*env)->DeleteLocalRef(env, addressObject);
-
-    return;
 }
 

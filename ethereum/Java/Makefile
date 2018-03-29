@@ -51,6 +51,7 @@ CORE_SRCS=../../BRAddress.c \
 	../rlp/BRRlpCoder.c \
 	../BREthereumAccount.c \
 	../BREthereumAmount.c \
+	../BREthereumBlock.c \
 	../BREthereumContract.c \
 	../BREthereumEther.c \
 	../BREthereumGas.c \
@@ -58,7 +59,6 @@ CORE_SRCS=../../BRAddress.c \
 	../BREthereumNetwork.c \
 	../BREthereumToken.c \
 	../BREthereumTransaction.c \
-	../BREthereumBlock.c \
 	../BREthereumWallet.c 
 
 

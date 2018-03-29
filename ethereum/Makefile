@@ -25,6 +25,7 @@ ETH_SRCS=./util/BRUtilMath.c \
 	./rlp/BRRlpCoder.c \
 	./BREthereumAccount.c \
 	./BREthereumAmount.c \
+	./BREthereumBlock.c \
 	./BREthereumContract.c \
 	./BREthereumEther.c \
 	./BREthereumGas.c \
