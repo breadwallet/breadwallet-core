@@ -248,7 +248,7 @@ walletSignTransaction(BREthereumWallet wallet,
                       const char *paperKey) {
     
     // TODO: This is overkill...
-    assert (transactionGetNonce(transaction) + 1 == addressGetNonce(wallet->address));
+    //assert (transactionGetNonce(transaction) + 1 == addressGetNonce(wallet->address));
     
     // RLP Encode the UNSIGNED transaction
     BRRlpData transactionUnsignedRLP = transactionEncodeRLP
