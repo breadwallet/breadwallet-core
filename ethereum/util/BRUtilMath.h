@@ -115,11 +115,29 @@ extern UInt512
 mulUInt256 (UInt256 x, UInt256 y);
 
 /**
- * Multiple as `x * y`.  If the result is too big then overflow is set to 1 and
+ * Multiply as `x * y`.  If the result is too big then overflow is set to 1 and
  * zero is returned.
  */
 extern UInt256
 mulUInt256_Overflow (UInt256 x, UInt256 y, int *overflow);
+
+/**
+ * Multiply as `x * y` where `y` is a small (aka uint32) number.  If the result is too big
+ * then overflow is set to 1 and zero is returned
+ */
+extern UInt256
+mulUInt256_Small (UInt256 x, uint32_t y, int *overflow);
+
+/**
+ * Multiply as `x * y` where `y` is a postive double.  If `y` is negative, then this function
+ * sets *negative to 1 and performs `x * -y`.  If the result is too big then overflow is set to 1
+ * and zero is returned. `overflow` must not be NULL; `negative` must not be NULL.
+ *
+ * If `rem` is provided, then the remainder is returned.  Remainder occurs if you multiply,
+ * for example, 1 * 0.123, rem will be 0.123.
+ */
+extern UInt256
+mulUInt256_Double (UInt256 x, double y, int *overflow, int *negative, double *rem);
 
 extern UInt256
 divUInt256_Small (UInt256 x, uint32_t y, uint32_t *rem);

@@ -27,6 +27,7 @@
 #include <assert.h>
 #include <string.h>
 #include <regex.h>
+#include <math.h>
 #include "BRUtil.h"
 #include "BRRlp.h"
 
@@ -160,6 +161,69 @@ mulUInt256 (const UInt256 x, const UInt256 y) {
 extern UInt256
 mulUInt256_Overflow (UInt256 x, UInt256 y, int *overflow) {
     return coerceUInt256 (mulUInt256 (x, y), overflow);
+}
+
+extern UInt256
+mulUInt256_Small (UInt256 x, uint32_t y, int *overflow) {
+    return mulUInt256_Overflow(x, createUInt256 (y), overflow);
+}
+
+extern UInt256
+mulUInt256_Double (UInt256 x, double y, int *overflow, int *negative, double *rem) {
+    assert (NULL != overflow && NULL != negative);
+
+    *negative = (y < 0.0);
+    if (*negative) y = -y;
+
+    // Multiplying a large double times a large uint32 will overflow uint64; so we'll
+    // operate on uint16 types.
+    //
+    // When multiplying by a double there will likely be a integer and a fraction; the integer
+    // part can lead to overflow (adding into a higher digit).  The fractional part can lead
+    // to 'underflow' (adding into a lower digit) - but when adding to a lower digit, that can
+    // itself overflow.
+    //
+    // We'll take a two pass approach.  Multiply from high digits down to low digits with
+    // underflow into each lower computation but *recoding* any overflow.  We'll then go back
+    // from low digits to high digits adding in the saved overflow.
+    //
+    // fingers-crossed
+    long double fractional, integer;
+    unsigned int count = sizeof (UInt256) / sizeof(uint16_t);
+    UInt256 z = UINT256_ZERO;
+
+    long double underflow = 0;
+    uint64_t overflows[count];  // overflow can be huge... not large enough...
+
+    // From high to low, account for underflow along the way...
+    for (int i = count -1; i >= 0; i--) {
+        long double total = y * (long double) (x.u16[i]) + underflow;
+        // split out the integer and fractional parts
+        fractional = modfl (total, &integer);
+        // the fractional part gets added to one lower 2^16 digit
+        underflow = fractional * (long double) (1 << 16);
+        // the overflow gets save (at 'i' but for use on 'i+1')
+        overflows[i] = AS_UINT64(integer) >> 16;
+
+        // The integer (coerced to uint16_t) is the 'i' result
+        z.u16[i] = (uint16_t) (AS_UINT64(integer));
+
+        if (i == 0 && NULL != rem) *rem = (double) fractional;
+    }
+
+    // From low to high, adding in the overflows and any new carry.
+    uint64_t carry = 0;
+    for (int i = 0; i < count; i++) {
+        if (i == 0) continue;
+        uint64_t total = z.u16[i] + overflows[i - 1] + carry;
+        carry = total >> 16;
+        z.u16[i] = (uint16_t) total;
+    }
+
+    *overflow = (0 != (overflows[count - 1] + carry));
+    if (*overflow) z = UINT256_ZERO;
+
+    return z;
 }
 
 extern UInt256

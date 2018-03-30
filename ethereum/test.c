@@ -193,6 +193,54 @@ runMathMulTests () {
 }
 
 static void
+runMathMulDoubleTests () {
+    BRCoreParseStatus status;
+    int over, neg; double rem;
+    UInt256 ai, ao, r;
+
+    ai = createUInt256Parse("1000000000000000", 10, &status);  // Input
+    ao = createUInt256Parse("1000000000000000", 10, &status);  // Output
+    r = mulUInt256_Double(ai, -1.0, &over, &neg, &rem);
+    assert (over == 0 && neg == 1 && eqUInt256(r, ao));
+    assert (0 == strcmp ("1000000000000000", coerceString(r, 10)));
+
+    ai = createUInt256Parse("1000000000000000", 10, &status);  // Input
+    ao = createUInt256Parse(  "10000000000000", 10, &status);  // Output
+    r = mulUInt256_Double(ai, 0.01, &over, &neg, &rem);
+    assert (over == 0 && neg == 0 && eqUInt256(r, ao));
+    assert (0 == strcmp ("10000000000000", coerceString(r, 10)));
+
+    ai = createUInt256Parse("1000000000000000", 10, &status);  // Input
+    ao = createUInt256Parse("10000000", 10, &status);  // Output
+    r = mulUInt256_Double(ai, 0.00000001, &over, &neg, &rem);
+    assert (over == 0 && neg == 0 && eqUInt256(r, ao));
+    assert (0 == strcmp ("10000000", coerceString(r, 10)));
+
+    ai = createUInt256Parse("1000000000000000", 10, &status);  // Input
+    ao = createUInt256Parse("100000000000000000000", 10, &status);  // Output
+    r = mulUInt256_Double(ai, 100000.0, &over, &neg, &rem);
+    assert (over == 0 && neg == 0 && eqUInt256(r, ao));
+    assert (0 == strcmp ("100000000000000000000", coerceString(r, 10)));
+
+
+    ai = createUInt256Parse("1000000000000000", 10, &status);  // Input
+    ao = createUInt256Parse("100000000000000000000000000000000000", 10, &status);  // Output
+    r = mulUInt256_Double(ai, 10000000000.0, &over, &neg, &rem);
+    r = mulUInt256_Double(r,  10000000000.0, &over, &neg, &rem);
+    assert (over == 0 && neg == 0 && eqUInt256(r, ao));
+    assert (0 == strcmp ("100000000000000000000000000000000000", coerceString(r, 10)));
+
+    ai = createUInt256Parse("1", 10, &status);  // Input
+    ao = createUInt256Parse("0", 10, &status);  // Output
+    r = mulUInt256_Double(ai, 0.123, &over, &neg, &rem);
+    assert (over == 0 && eqUInt256(r, ao));
+    assert (0 == strcmp ("0", coerceString(r, 10)));
+    assert (0.123 == rem);
+
+    // overflow...
+}
+
+static void
 runMathDivTests () {
     UInt256 r = UINT256_ZERO;
     uint32_t rem;
@@ -322,7 +370,7 @@ runMathParseTests () {
     
     r = createUInt256ParseDecimal("01.", 2, &status);
     assert (CORE_PARSE_OK == status && 100 == r.u64[0] && 0 == r.u64[1] && 0 == r.u64[2] && 0 == r.u64[3]);
-    
+
 }
 
 static void
@@ -332,6 +380,7 @@ runMathTests() {
     runMathAddTests();
     runMathSubTests();
     runMathMulTests();
+    runMathMulDoubleTests();
     runMathDivTests();
 }
 
