@@ -45,6 +45,18 @@ typedef struct BREthereumTokenRecord *BREthereumToken;
 extern const char *
 tokenGetAddress (BREthereumToken token);
 
+extern const char *
+tokenGetSymbol (BREthereumToken token);
+
+extern const char *
+tokenGetName (BREthereumToken token);
+
+extern const char *
+tokenGetDescription(BREthereumToken token);
+
+extern int
+tokenGetDecimals (BREthereumToken token);
+
 extern BREthereumGas
 tokenGetGasLimit (BREthereumToken token);
 

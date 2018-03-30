@@ -1118,6 +1118,7 @@ runLightNode_TOKEN_test (const char *paperKey) {
     
 }
 
+static void
 runLightNode_PUBLIC_KEY_test (const char *paperKey) {
     printf ("     PUBLIC KEY\n");
 

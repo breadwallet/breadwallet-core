@@ -85,6 +85,26 @@ tokenGetAddress (BREthereumToken token) {
     return token->address;
 }
 
+extern const char *
+tokenGetSymbol (BREthereumToken token) {
+    return token->symbol;
+}
+
+extern const char *
+tokenGetName (BREthereumToken token) {
+    return token->name;
+}
+
+extern const char *
+tokenGetDescription(BREthereumToken token) {
+    return token->description;
+}
+
+extern int
+tokenGetDecimals (BREthereumToken token) {
+    return token->decimals;
+}
+
 extern BREthereumGas
 tokenGetGasLimit (BREthereumToken token) {
     return token->gasLimit;
