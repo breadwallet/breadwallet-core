@@ -48,6 +48,76 @@ typedef struct BREthereumLightNodeRecord *BREthereumLightNode;
 typedef int32_t BREthereumLightNodeTransactionId;
 typedef int32_t BREthereumLightNodeAccountId;
 typedef int32_t BREthereumLightNodeWalletId;
+typedef int32_t BREthereumLightNodeBlockId;
+typedef int32_t BREthereumLightNodeListenerId;
+
+//
+// Errors - Right Up Front - 'The Emporeror Has No Clothes' ??
+//
+typedef enum {
+    NODE_ERROR_UNKNOWN_NODE,
+    NODE_ERROR_UNKNOWN_TRANSACTION,
+    NODE_ERROR_UNKNOWN_ACCOUNT,
+    NODE_ERROR_UNKNOWN_WALLET,
+    NODE_ERROR_UNKNOWN_BLOCK,
+    NODE_ERROR_UNKNOWN_LISTENER,
+
+    // Node
+    NODE_ERROR_NODE_X,
+
+    // Transaction
+    NODE_ERROR_TRANSACTION_X,
+
+    // Acount
+    // Wallet
+    // Block
+    // Listener
+} BREthereumLightNodeError;
+
+
+//
+// Listener
+//
+typedef enum {
+    WALLET_EVENT_CREATED,
+    WALLET_EVENT_BALANCE_UPDATED,
+    WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED,
+    WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
+    WALLET_EVENT_TRANSACTION_ADDED,
+    WALLET_EVENT_TRANSACTION_REMOVED,
+    WALLET_EVENT_DELETED
+} BREthereumLightNodeWalletEvent;
+
+typedef enum {
+    BLOCK_EVENT_CREATED
+} BREthereumLightNodeBlockEvent;
+
+typedef enum {
+    TRANSACTION_EVENT_CREATED,
+    TRANSACTION_EVENT_SIGNED,
+    TRANSACTION_EVENT_SUBMITTED,
+    TRANSACTION_EVENT_BLOCKED,  // aka confirmed
+    TRANSACTION_EVENT_ERRORED,
+
+    TRANSACTION_EVENT_GAS_ESTIMATE_UPDATED
+} BREthereumLightNodeTransactionEvent;
+
+typedef void *BREthereumLightNodeListenerContext;
+
+typedef void (*BREthereumLightNodeListenerWalletEventHandler) (BREthereumLightNodeListenerContext context,
+                                                               BREthereumLightNode node,
+                                                               BREthereumLightNodeWalletId wid,
+                                                               BREthereumLightNodeWalletEvent event);
+
+typedef void (*BREthereumLightNodeListenerBlockEventHandler) (BREthereumLightNodeListenerContext context,
+                                                              BREthereumLightNode node,
+                                                              BREthereumLightNodeBlockId bid,
+                                                              BREthereumLightNodeBlockEvent event);
+
+typedef void (*BREthereumLightNodeListenerTransactionEventHandler) (BREthereumLightNodeListenerContext context,
+                                                                    BREthereumLightNode node,
+                                                                    BREthereumLightNodeTransactionId tid,
+                                                                    BREthereumLightNodeTransactionEvent event);
 
 
 //
@@ -150,23 +220,9 @@ lightNodeConfigurationCreateJSON_RPC(BREthereumNetwork network,
                                      JsonRpcSubmitTransaction funcSubmitTransaction,
                                      JsonRpcGetTransactions funcGetTransactions);
 
-// Errors
-typedef enum {
-    NODE_ERROR_X,
-    NODE_ERROR_Y
-} BREthereumLightNodeError;
-
-/**
- * Light Node Transaction Status - these are Ethereum defined.
- */
-typedef enum {
-    NODE_TRANSACTION_STATUS_Unknown  = 0,  // (0): transaction is unknown
-    NODE_TRANSACTION_STATUS_Queued   = 1,  // (1): transaction is queued (not processable yet)
-    NODE_TRANSACTION_STATUS_Pending  = 2,  // (2): transaction is pending (processable)
-    NODE_TRANSACTION_STATUS_Included = 3,  // (3): transaction is already included in the canonical chain. data contains an RLP-encoded [blockHash: B_32, blockNumber: P, txIndex: P] structure
-    NODE_TRANSACTION_STATUS_Error    = 4   // (4): transaction sending failed. data contains a text error message
-} BREthereumLightNodeTransactionStatus;
-
+//
+// Light Node
+//
 
 /**
  * Create a LightNode managing the account associated with the paperKey.  (The `paperKey` must
@@ -203,6 +259,24 @@ lightNodeConnect (BREthereumLightNode node);
 
 extern BREthereumBoolean
 lightNodeDisconnect (BREthereumLightNode node);
+
+//
+// Listener
+//
+extern BREthereumLightNodeListenerId
+lightNodeAddListener (BREthereumLightNode node,
+                      BREthereumLightNodeListenerContext context,
+                      BREthereumLightNodeListenerWalletEventHandler walletEventHandler,
+                      BREthereumLightNodeListenerBlockEventHandler blockEventHandler,
+                      BREthereumLightNodeListenerTransactionEventHandler transactionEventHandler);
+
+extern BREthereumBoolean
+lightNodeHasListener (BREthereumLightNode node,
+                      BREthereumLightNodeListenerId lid);
+
+extern BREthereumBoolean
+lightNodeRemoveListener (BREthereumLightNode node,
+                         BREthereumLightNodeListenerId lid);
 
 /**
  * Get the wallet for `account` holding ETHER.  This wallet is created, along with the account,
@@ -541,6 +615,20 @@ lightNodeTransactionHoldsToken (BREthereumLightNode node,
 extern BREthereumToken
 lightNodeTransactionGetToken (BREthereumLightNode node,
                          BREthereumLightNodeTransactionId tid);
+
+// Pending
+
+/**
+ * Light Node Transaction Status - these are Ethereum defined.
+ */
+typedef enum {
+    NODE_TRANSACTION_STATUS_Unknown  = 0,  // (0): transaction is unknown
+    NODE_TRANSACTION_STATUS_Queued   = 1,  // (1): transaction is queued (not processable yet)
+    NODE_TRANSACTION_STATUS_Pending  = 2,  // (2): transaction is pending (processable)
+    NODE_TRANSACTION_STATUS_Included = 3,  // (3): transaction is already included in the canonical chain. data contains an RLP-encoded [blockHash: B_32, blockNumber: P, txIndex: P] structure
+    NODE_TRANSACTION_STATUS_Error    = 4   // (4): transaction sending failed. data contains a text error message
+} BREthereumLightNodeTransactionStatus;
+
 
 
 #ifdef __cplusplus

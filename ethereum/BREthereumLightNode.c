@@ -42,6 +42,18 @@ lightNodeLookupTransaction (BREthereumLightNode node,
 static void
 lightNodeInsertWallet (BREthereumLightNode node,
                        BREthereumWallet wallet);
+
+//
+// Light Node Listener
+//
+typedef struct  {
+    BREthereumLightNodeListenerContext context;
+    BREthereumLightNodeListenerWalletEventHandler walletEventHandler;
+    BREthereumLightNodeListenerBlockEventHandler blockEventHandler;
+    BREthereumLightNodeListenerTransactionEventHandler transactionEventHandler;
+} BREthereumLightNodeListener;
+
+
 //
 // Light Node Configuration
 //
@@ -77,6 +89,7 @@ lightNodeConfigurationCreateJSON_RPC(BREthereumNetwork network,
 //
 // Light Node
 //
+#define DEFAULT_LISTENER_CAPACITY 3
 #define DEFAULT_WALLET_CAPACITY 10
 #define DEFAULT_BLOCK_CAPACITY 100
 #define DEFAULT_TRANSACTION_CAPACITY 1000
@@ -98,7 +111,7 @@ struct BREthereumLightNodeRecord {
      * The Configuration defining this Light Node
      */
     BREthereumLightNodeConfiguration configuration;
-    
+
     /**
      * The account
      */
@@ -127,6 +140,8 @@ struct BREthereumLightNodeRecord {
 
     BREthereumLightNodeState state;
 
+    BREthereumLightNodeListener *listeners; // BRArray
+
     pthread_t thread;
     pthread_mutex_t lock;
 };
@@ -141,6 +156,7 @@ createLightNode (BREthereumLightNodeConfiguration configuration,
     array_new(node->wallets, DEFAULT_WALLET_CAPACITY);
     array_new(node->transactions, DEFAULT_TRANSACTION_CAPACITY);
     array_new(node->blocks, DEFAULT_BLOCK_CAPACITY);
+    array_new(node->listeners, DEFAULT_LISTENER_CAPACITY);
 
     {
         pthread_mutexattr_t attr;
@@ -169,6 +185,98 @@ lightNodeGetAccount (BREthereumLightNode node) {
 extern char *
 lightNodeGetAccountPrimaryAddress (BREthereumLightNode node) {
     return addressAsString (accountGetPrimaryAddress(node->account));
+}
+
+//
+// Listener
+//
+extern BREthereumLightNodeListenerId
+lightNodeAddListener (BREthereumLightNode node,
+                      BREthereumLightNodeListenerContext context,
+                      BREthereumLightNodeListenerWalletEventHandler walletEventHandler,
+                      BREthereumLightNodeListenerBlockEventHandler blockEventHandler,
+                      BREthereumLightNodeListenerTransactionEventHandler transactionEventHandler) {
+    BREthereumLightNodeListenerId lid = -1;
+    BREthereumLightNodeListener listener;
+
+    listener.context = context;
+    listener.walletEventHandler = walletEventHandler;
+    listener.blockEventHandler = blockEventHandler;
+    listener.transactionEventHandler = transactionEventHandler;
+
+    pthread_mutex_lock(&node->lock);
+    array_add (node->listeners, listener);
+    lid = (BREthereumLightNodeListenerId) (array_count (node->listeners) - 1);
+    pthread_mutex_unlock(&node->lock);
+
+    return lid;
+}
+
+extern BREthereumBoolean
+lightNodeHasListener (BREthereumLightNode node,
+                      BREthereumLightNodeListenerId lid) {
+    return (0 <= lid && lid < array_count(node->listeners)
+        && NULL != node->listeners[lid].context
+        && (NULL != node->listeners[lid].walletEventHandler ||
+            NULL != node->listeners[lid].blockEventHandler  ||
+            NULL != node->listeners[lid].transactionEventHandler)
+            ? ETHEREUM_BOOLEAN_TRUE
+            : ETHEREUM_BOOLEAN_FALSE);
+}
+
+extern BREthereumBoolean
+lightNodeRemoveListener (BREthereumLightNode node,
+                         BREthereumLightNodeListenerId lid) {
+    if (0 <= lid && lid < array_count(node->listeners)) {
+        memset (&node->listeners[lid], 0, sizeof (BREthereumLightNodeListener));
+        return ETHEREUM_BOOLEAN_TRUE;
+    }
+    return ETHEREUM_BOOLEAN_FALSE;
+}
+
+extern void
+lightNodeListenerAnnounceWalletEvent (BREthereumLightNode node,
+                                      BREthereumLightNodeWalletId wid,
+                                      BREthereumLightNodeWalletEvent event) {
+    int count = (int) array_count(node->listeners);
+    for (int i = 0; i < count; i++) {
+        if (NULL != node->listeners[i].walletEventHandler)
+            node->listeners[i].walletEventHandler
+            (node->listeners[i].context,
+             node,
+             wid,
+             event);
+    }
+}
+
+extern void
+lightNodeListenerAnnounceBlockEvent (BREthereumLightNode node,
+                                     BREthereumLightNodeBlockId bid,
+                                     BREthereumLightNodeBlockEvent event) {
+    int count = (int) array_count(node->listeners);
+    for (int i = 0; i < count; i++) {
+        if (NULL != node->listeners[i].blockEventHandler)
+            node->listeners[i].blockEventHandler
+            (node->listeners[i].context,
+             node,
+             bid,
+             event);
+    }
+}
+
+extern void
+lightNodeListenerAnnounceTransactionEvent (BREthereumLightNode node,
+                                           BREthereumLightNodeTransactionId tid,
+                                           BREthereumLightNodeTransactionEvent event) {
+    int count = (int) array_count(node->listeners);
+    for (int i = 0; i < count; i++) {
+        if (NULL != node->listeners[i].transactionEventHandler)
+            node->listeners[i].transactionEventHandler
+            (node->listeners[i].context,
+             node,
+             tid,
+             event);
+    }
 }
 
 //
@@ -251,9 +359,12 @@ lightNodeDisconnect (BREthereumLightNode node) {
 static void
 lightNodeInsertWallet (BREthereumLightNode node,
                        BREthereumWallet wallet) {
+    BREthereumLightNodeWalletId wid = -1;
     pthread_mutex_lock(&node->lock);
     array_add (node->wallets, wallet);
+    wid = (BREthereumLightNodeWalletId) (array_count(node->wallets) - 1);
     pthread_mutex_unlock(&node->lock);
+    lightNodeListenerAnnounceWalletEvent(node, wid, WALLET_EVENT_CREATED);
 }
 
 static BREthereumWallet
@@ -396,6 +507,8 @@ lightNodeWalletSetDefaultGasLimit (BREthereumLightNode node,
                                    uint64_t gasLimit) {
     BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
     walletSetDefaultGasLimit(wallet, gasCreate(gasLimit));
+    lightNodeListenerAnnounceWalletEvent(node, wid, WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED);
+
 }
 
 extern uint64_t
@@ -414,6 +527,8 @@ lightNodeWalletSetDefaultGasPrice (BREthereumLightNode node,
                                    uint64_t value) {
     BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
     walletSetDefaultGasPrice (wallet, gasPriceCreate(etherCreateNumber (value, unit)));
+    lightNodeListenerAnnounceWalletEvent(node, wid, WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED);
+
 }
 
 extern uint64_t
@@ -454,9 +569,12 @@ lightNodeLookupBlock (BREthereumLightNode node,
 static void
 lightNodeInsertBlock (BREthereumLightNode node,
                       BREthereumBlock block) {
+    BREthereumLightNodeBlockId bid = -1;
     pthread_mutex_lock(&node->lock);
     array_add(node->blocks, block);
+    bid = (BREthereumLightNodeBlockId) (array_count(node->blocks) - 1);
     pthread_mutex_unlock(&node->lock);
+    lightNodeListenerAnnounceBlockEvent(node, bid, BLOCK_EVENT_CREATED);
 }
 
 //
@@ -465,7 +583,7 @@ lightNodeInsertBlock (BREthereumLightNode node,
 
 static void
 lightNodeInsertTransaction (BREthereumLightNode node,
-                             BREthereumTransaction transaction) {
+                            BREthereumTransaction transaction) {
     pthread_mutex_lock(&node->lock);
     array_add (node->transactions, transaction);
     pthread_mutex_unlock(&node->lock);
@@ -547,6 +665,8 @@ lightNodeWalletCreateTransaction(BREthereumLightNode node,
     tid = lightNodeLookupTransactionId(node, transaction);
 
     pthread_mutex_unlock(&node->lock);
+
+    lightNodeListenerAnnounceTransactionEvent(node, tid, TRANSACTION_EVENT_CREATED);
     return tid;
 }
 
@@ -558,6 +678,7 @@ lightNodeWalletSignTransaction (BREthereumLightNode node,
     BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
     BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
     walletSignTransaction(wallet, transaction, paperKey);
+    lightNodeListenerAnnounceTransactionEvent(node, tid, TRANSACTION_EVENT_SIGNED);
 }
 
 extern void // status, error
@@ -622,7 +743,7 @@ lightNodeWalletGetTransactionCount (BREthereumLightNode node,
 
     pthread_mutex_lock(&node->lock);
     BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
-    if (NULL != wallet) count = walletGetTransactionCount(wallet);
+    if (NULL != wallet) count = (int) walletGetTransactionCount(wallet);
     pthread_mutex_unlock(&node->lock);
 
     return count;
@@ -987,6 +1108,11 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
     
     // Announce this transaction as blocked.
     // TODO: Handle already blocked: repeated transaction (most common).
+
+    // Get the current status.
+    BREthereumTransactionStatus status = transactionGetStatus(transaction);
+
+    // Update the status as blocked
     walletTransactionBlocked(wallet, transaction,
                              gasUsed,
                              blockGetNumber(block),
@@ -994,6 +1120,11 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
                              blockTransactionIndex);
 
     pthread_mutex_unlock(&node->lock);
+
+    if (TRANSACTION_BLOCKED != status) {
+        BREthereumLightNodeTransactionId tid = lightNodeLookupTransactionId(node, transaction);
+        lightNodeListenerAnnounceTransactionEvent(node, tid, TRANSACTION_EVENT_BLOCKED);
+    }
 }
 
 //  {
@@ -1034,6 +1165,7 @@ lightNodeAnnounceBalance (BREthereumLightNode node,
 
     walletSetBalance (wallet, amount);
     pthread_mutex_unlock(&node->lock);
+    lightNodeListenerAnnounceWalletEvent(node, wid, WALLET_EVENT_BALANCE_UPDATED);
 }
 
 extern void
@@ -1051,6 +1183,7 @@ lightNodeAnnounceGasPrice (BREthereumLightNode node,
     walletSetDefaultGasPrice(wallet, gasPriceCreate(etherCreate(amount)));
     pthread_mutex_lock(&node->lock);
 
+    lightNodeListenerAnnounceWalletEvent(node, wid, WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED);
 }
 
 extern void
@@ -1068,6 +1201,7 @@ lightNodeAnnounceGasEstimate (BREthereumLightNode node,
     transactionSetGasEstimate(transaction, gasCreate(gas.u64[0]));
     pthread_mutex_lock(&node->lock);
 
+    lightNodeListenerAnnounceTransactionEvent(node, tid, TRANSACTION_EVENT_GAS_ESTIMATE_UPDATED);
 }
 
 extern void
@@ -1075,9 +1209,7 @@ lightNodeAnnounceSubmitTransaction (BREthereumLightNode node,
                                     BREthereumLightNodeTransactionId tid,
                                     const char *hash,
                                     int id) {
-    int success = (strlen(hash) > 2
-                   ? ETHEREUM_BOOLEAN_TRUE
-                   : ETHEREUM_BOOLEAN_FALSE);
+    lightNodeListenerAnnounceTransactionEvent(node, tid, TRANSACTION_EVENT_SUBMITTED);
 }
 
 #endif // ETHEREUM_LIGHT_NODE_USE_JSON_RPC

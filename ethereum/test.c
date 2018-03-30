@@ -1017,6 +1017,76 @@ runLightNode_JSON_RPC_test (const char *paperKey) {
     lightNodeDisconnect(node);
 }
 
+//
+// Listener
+//
+static void
+walletEventHandler (BREthereumLightNodeListenerContext context,
+                    BREthereumLightNode node,
+                    BREthereumLightNodeWalletId wid,
+                    BREthereumLightNodeWalletEvent event) {
+    fprintf (stdout, "        WalletEvent: wid=%d, ev=%d\n", wid, event);
+}
+
+static void
+blockEventHandler (BREthereumLightNodeListenerContext context,
+              BREthereumLightNode node,
+              BREthereumLightNodeBlockId bid,
+              BREthereumLightNodeBlockEvent event) {
+    fprintf (stdout, "         BlockEvent: bid=%d, ev=%d\n", bid, event);
+
+}
+
+static void
+transactionEventHandler (BREthereumLightNodeListenerContext context,
+                    BREthereumLightNode node,
+                    BREthereumLightNodeTransactionId tid,
+                    BREthereumLightNodeTransactionEvent event) {
+    fprintf (stdout, "         TransEvent: tid=%d, ev=%d\n", tid, event);
+}
+
+static void
+runLightNode_LISTENER_test (const char *paperKey) {
+    printf ("     LISTENER\n");
+
+    BRCoreParseStatus status;
+    JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
+
+    BREthereumLightNodeConfiguration configuration =
+    lightNodeConfigurationCreateJSON_RPC(ethereumMainnet,
+                                         context,
+                                         jsonRpcGetBalance,
+                                         jsonRpcGetGasPrice,
+                                         jsonRpcEstimateGas,
+                                         jsonRpcSubmitTransaction,
+                                         jsonRpcGetTransactions);
+
+    BREthereumLightNode node = createLightNode(configuration, paperKey);
+
+    BREthereumLightNodeListenerId lid = lightNodeAddListener(node,
+                                                             (BREthereumLightNodeListenerContext) NULL,
+                                                             walletEventHandler,
+                                                             blockEventHandler,
+                                                             transactionEventHandler);
+
+    BREthereumLightNodeWalletId wallet = lightNodeGetWallet(node);
+
+    lightNodeConnect(node);
+
+    sleep (2);  // let connect 'take'
+
+    // Callback to JSON_RPC for 'getBalanance'&
+    //    lightNodeUpdateWalletBalance (node, wallet, &status);
+    BREthereumAmount balance = lightNodeWalletGetBalance (node, wallet);
+    BREthereumEther expectedBalance = etherCreate(createUInt256Parse("0x123f", 16, &status));
+    assert (CORE_PARSE_OK == status
+            && AMOUNT_ETHER == amountGetType(balance)
+            && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (expectedBalance, amountGetEther(balance)));
+
+    //    lightNodeUpdateTransactions(node);
+    lightNodeDisconnect(node);
+}
+
 // Unsigned Result: 0xf864010082c35094558ec3152e2eb2174905cd19aea4e34a23de9ad680b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000000000000000000000000018080
 //   Signed Result: 0xf8a4010082c35094558ec3152e2eb2174905cd19aea4e34a23de9ad680b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c000000000000000000000000000000000000000000000000000000000000000025a0b729de661448a377bee9ef3f49f8ec51f6c5810cf177a8162d31e9611a940a18a030b44adbe0253fe6176ccd8b585745e60f411b009ec73815f201fff0f540fc4d
 static void
@@ -1053,6 +1123,7 @@ void runLightNodeTests () {
     prepareTransaction(NODE_PAPER_KEY, NODE_RECV_ADDR, TEST_TRANS2_GAS_PRICE_VALUE, GAS_LIMIT_DEFAULT, NODE_ETHER_AMOUNT);
     runLightNode_JSON_RPC_test(NODE_PAPER_KEY);
     runLightNode_TOKEN_test (NODE_PAPER_KEY);
+    runLightNode_LISTENER_test (NODE_PAPER_KEY);
 }
 
 // Local (PaperKey) -> LocalTest @ 5 GWEI gasPrice @ 21000 gasLimit & 0.0001/2 ETH
