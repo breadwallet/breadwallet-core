@@ -96,6 +96,9 @@ addressHasString (BREthereumAddress address,
 extern char *
 addressAsString (BREthereumAddress address);
 
+extern uint8_t *
+addressGetPublicKey (BREthereumAddress address);
+
 #if defined (DEBUG)
 extern const char *
 addressPublicKeyAsString (BREthereumAddress address, int compressed);
@@ -130,6 +133,9 @@ typedef struct BREthereumAccountRecord *BREthereumAccount;
  */
 extern BREthereumAccount
 createAccount(const char *paperKey);
+
+extern BREthereumAccount
+createAccountWithPublicKey (uint8_t *publicKey);
 
 extern void
 accountFree (BREthereumAccount account);

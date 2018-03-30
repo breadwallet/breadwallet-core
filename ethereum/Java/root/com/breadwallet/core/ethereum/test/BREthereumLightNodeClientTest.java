@@ -246,6 +246,14 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
         // Check trans1
 
         System.out.println ("Disconnect");
+
+        byte[] publicKey = node.getAddressPublicKey();
+        asserting (65 == publicKey.length);
+
+        BREthereumLightNode node1 = this.node;
+        BREthereumLightNode node2 = new BREthereumLightNode.JSON_RPC(this, BREthereumNetwork.testnet, publicKey);
+        asserting (node1.getAddress().equals(node2.getAddress()));
+
         node.disconnect();
     }
 

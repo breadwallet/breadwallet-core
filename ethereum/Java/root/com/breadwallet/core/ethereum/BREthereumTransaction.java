@@ -52,6 +52,9 @@ public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefa
         return node.get().jniTransactionTargetAddress(identifier);
     }
 
+    public String getHash () {
+        return node.get().jniTransactionGetHash (identifier);
+    }
     //
     // Amount (handling units)
     //

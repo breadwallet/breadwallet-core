@@ -146,13 +146,13 @@ struct BREthereumLightNodeRecord {
     pthread_mutex_t lock;
 };
 
-extern BREthereumLightNode
-createLightNode (BREthereumLightNodeConfiguration configuration,
-                 const char *paperKey) {
+static BREthereumLightNode
+createLightNodeInternal (BREthereumLightNodeConfiguration configuration,
+                         BREthereumAccount account) {
     BREthereumLightNode node = (BREthereumLightNode) calloc (1, sizeof (struct BREthereumLightNodeRecord));
     node->state = LIGHT_NODE_CREATED;
     node->configuration = configuration;
-    node->account = createAccount(paperKey);
+    node->account = account;
     array_new(node->wallets, DEFAULT_WALLET_CAPACITY);
     array_new(node->transactions, DEFAULT_TRANSACTION_CAPACITY);
     array_new(node->blocks, DEFAULT_BLOCK_CAPACITY);
@@ -171,10 +171,23 @@ createLightNode (BREthereumLightNodeConfiguration configuration,
     node->walletHoldingEther = walletCreate(node->account,
                                             node->configuration.network);
     lightNodeInsertWallet(node, node->walletHoldingEther);
-    
+
     // Create other wallets for each TOKEN?
 
     return node;
+
+}
+
+extern BREthereumLightNode
+createLightNode (BREthereumLightNodeConfiguration configuration,
+                 const char *paperKey) {
+    return createLightNodeInternal(configuration, createAccount(paperKey));
+}
+
+extern BREthereumLightNode
+createLightNodeWithPublicKey (BREthereumLightNodeConfiguration configuration,
+                              uint8_t *publicKey) { // 65 byte, 0x04-prefixed, uncompressed public key
+    return createLightNodeInternal(configuration, createAccountWithPublicKey (publicKey));
 }
 
 extern BREthereumLightNodeAccountId
@@ -185,6 +198,11 @@ lightNodeGetAccount (BREthereumLightNode node) {
 extern char *
 lightNodeGetAccountPrimaryAddress (BREthereumLightNode node) {
     return addressAsString (accountGetPrimaryAddress(node->account));
+}
+
+extern uint8_t * // 65 bytes
+lightNodeGetAccountPrimaryAddressPublicKey (BREthereumLightNode node) {
+    return addressGetPublicKey(accountGetPrimaryAddress(node->account));
 }
 
 //
@@ -1226,6 +1244,13 @@ lightNodeTransactionGetSendAddress (BREthereumLightNode node,
                                     BREthereumLightNodeTransactionId transactionId) {
     BREthereumTransaction transaction = lightNodeLookupTransaction(node, transactionId);
     return addressAsString(transactionGetSourceAddress(transaction));
+}
+
+extern char *
+lightNodeTransactionGetHash (BREthereumLightNode node,
+                             BREthereumLightNodeTransactionId transactionId) {
+    BREthereumTransaction transaction = lightNodeLookupTransaction(node, transactionId);
+    return strdup (transactionGetHash(transaction));
 }
 
 extern char *

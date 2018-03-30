@@ -1118,12 +1118,30 @@ runLightNode_TOKEN_test (const char *paperKey) {
     
 }
 
+runLightNode_PUBLIC_KEY_test (const char *paperKey) {
+    printf ("     PUBLIC KEY\n");
+
+    BREthereumLightNode node1 = createLightNode (lightNodeConfigurationCreateLES(ethereumMainnet, 0), paperKey);
+    char *addr1 = lightNodeGetAccountPrimaryAddress (node1);
+
+    uint8_t *publicKey = lightNodeGetAccountPrimaryAddressPublicKey (node1);
+    BREthereumLightNode node2 = createLightNodeWithPublicKey (lightNodeConfigurationCreateLES(ethereumMainnet, 0), publicKey);
+    char *addr2 = lightNodeGetAccountPrimaryAddress (node2);
+
+    assert (0 == strcmp (addr1, addr2));
+
+    free (publicKey);
+    free (addr1);
+    free(addr2);
+}
+
 void runLightNodeTests () {
     printf ("==== Light Node\n");
     prepareTransaction(NODE_PAPER_KEY, NODE_RECV_ADDR, TEST_TRANS2_GAS_PRICE_VALUE, GAS_LIMIT_DEFAULT, NODE_ETHER_AMOUNT);
     runLightNode_JSON_RPC_test(NODE_PAPER_KEY);
     runLightNode_TOKEN_test (NODE_PAPER_KEY);
     runLightNode_LISTENER_test (NODE_PAPER_KEY);
+    runLightNode_PUBLIC_KEY_test (NODE_PAPER_KEY);
 }
 
 // Local (PaperKey) -> LocalTest @ 5 GWEI gasPrice @ 21000 gasLimit & 0.0001/2 ETH
@@ -1161,6 +1179,7 @@ runTests (void) {
     runAccountTests();
     runLightNodeTests();
     //    reallySend();
+    printf ("Done\n");
 }
 
 #if defined (TEST_ETHEREUM_NEED_MAIN)

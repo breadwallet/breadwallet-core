@@ -266,6 +266,14 @@ addressAsString (BREthereumAddress address) {
     return strndup (address->string, 43);
 }
 
+extern uint8_t * // 65 bytes
+addressGetPublicKey (BREthereumAddress address) {
+    uint8_t *result = (uint8_t*) malloc (1 + sizeof (address->publicKey));
+    result[0] = 0x04;
+    memcpy (&result[1], address->publicKey, sizeof (address->publicKey));
+    return result;
+}
+
 #if defined (DEBUG)
 extern const char *
 addressPublicKeyAsString (BREthereumAddress address, int compressed) {
@@ -321,27 +329,38 @@ createAccountWithBIP32Seed (UInt512 seed) {
 }
 
 extern BREthereumAccount
+createAccountWithPublicKey (uint8_t *publicKey) { // 65 bytes, 0x04-prefixed, uncompressed public key
+    BREthereumAccount account = (BREthereumAccount) calloc (1, sizeof (struct BREthereumAccountRecord));
+
+    // Assign the key; create the primary address.
+    account->masterPubKey = BR_MASTER_PUBKEY_NONE;
+    account->primaryAddress = createAddressDerived (publicKey, PRIMARY_ADDRESS_BIP44_INDEX);
+
+    return account;
+}
+
+extern BREthereumAccount
+accountCreateDetailed(const char *paperKey, const char *wordList[], const int wordListLength) {
+
+    // Validate arguments
+    if (NULL == paperKey || NULL == wordList || BIP39_WORDLIST_COUNT != wordListLength)
+        return NULL;
+
+    // Validate paperKey
+    if (0 == BRBIP39Decode(NULL, 0, wordList, paperKey))
+        return NULL;
+
+    // Generate the 512bit private key using a BIP39 paperKey
+    return createAccountWithBIP32Seed(deriveSeedFromPaperKey(paperKey));
+}
+
+extern BREthereumAccount
 createAccount(const char *paperKey) {
     if (NULL == sharedWordList)
         installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
     
     return accountCreateDetailed(paperKey, sharedWordList, BIP39_WORDLIST_COUNT);
 }
-
-extern BREthereumAccount
-accountCreateDetailed(const char *paperKey, const char *wordList[], const int wordListLength) {
-    
-    // Validate arguments
-    if (NULL == paperKey || NULL == wordList || BIP39_WORDLIST_COUNT != wordListLength)
-        return NULL;
-    
-    // Validate paperKey
-    if (0 == BRBIP39Decode(NULL, 0, wordList, paperKey))
-        return NULL;
-    
-    // Generate the 512bit private key using a BIP39 paperKey
-    return createAccountWithBIP32Seed(deriveSeedFromPaperKey(paperKey));
- }
 
 extern void
 accountFree (BREthereumAccount account) {

@@ -92,6 +92,12 @@ public class BREthereumLightNode extends BRCoreJniReference {
                     client,
                     network);
         }
+
+        public LES(ClientLES client, BREthereumNetwork network, byte[] publicKey) {
+            super(BREthereumLightNode.jniCreateLightNodeLES_PublicKey(client, network.getIdentifier(), publicKey),
+                    client,
+                    network);
+        }
     }
 
     //
@@ -100,6 +106,12 @@ public class BREthereumLightNode extends BRCoreJniReference {
     static public class JSON_RPC extends BREthereumLightNode {
         public JSON_RPC(ClientJSON_RPC client, BREthereumNetwork network, String paperKey) {
             super(BREthereumLightNode.jniCreateLightNodeJSON_RPC(client, network.getIdentifier(), paperKey),
+                    client,
+                    network);
+        }
+
+        public JSON_RPC(ClientJSON_RPC client, BREthereumNetwork network, byte[] publicKey) {
+            super(BREthereumLightNode.jniCreateLightNodeJSON_RPC_PublicKey(client, network.getIdentifier(), publicKey),
                     client,
                     network);
         }
@@ -172,6 +184,9 @@ public class BREthereumLightNode extends BRCoreJniReference {
         return account.getPrimaryAddress();
     }
 
+    public byte[] getAddressPublicKey () {
+        return account.getPrimaryAddressPublicKey();
+    }
     //
     // Connect // Disconnect
     //
@@ -216,16 +231,19 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
 
     protected static native long jniCreateLightNodeLES(Client client, long network, String paperKey);
+    protected static native long jniCreateLightNodeLES_PublicKey(Client client, long network, byte[] publicKey);
 
     protected static native long jniCreateLightNodeJSON_RPC(Client client, long network, String paperKey);
+    protected static native long jniCreateLightNodeJSON_RPC_PublicKey(Client client, long network, byte[] publicKey);
 
     protected native long jniLightNodeGetAccount();
+    protected native String jniGetAccountPrimaryAddress(long accountId);
+    protected native byte[] jniGetAccountPrimaryAddressPublicKey(long accountId);
+
     protected native long jniLightNodeGetWallet();
     protected native long jniLightNodeGetWalletToken (long tokenId);
-
     protected native long jniLightNodeCreateWalletToken(long tokenId);
 
-    protected native String jniGetAccountPrimaryAddress(long acountId);
     protected native String jniGetWalletBalance (long walletId, long unit);
     protected native void jniEstimateWalletGasPrice (long walletId);
 
@@ -289,6 +307,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     protected native String jniTransactionGetAmount(long transactionId, long unit);
     protected native String jniTransactionSourceAddress (long transactionId);
     protected native String jniTransactionTargetAddress (long transactionId);
+    protected native String jniTransactionGetHash (long transactionId);
     protected native String jniTransactionGetGasPrice (long tranactionId, long unit);
     protected native long jniTransactionGetGasLimit (long tranactionId);
     protected native long jniTransactionGetGasUsed (long tranactionId);

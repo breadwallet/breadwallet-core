@@ -17,6 +17,14 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_j
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniCreateLightNodeLES_PublicKey
+ * Signature: (Lcom/breadwallet/core/ethereum/BREthereumLightNode/Client;J[B)J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateLightNodeLES_1PublicKey
+  (JNIEnv *, jclass, jobject, jlong, jbyteArray);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniCreateLightNodeJSON_RPC
  * Signature: (Lcom/breadwallet/core/ethereum/BREthereumLightNode/Client;JLjava/lang/String;)J
  */
@@ -25,11 +33,35 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_j
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniCreateLightNodeJSON_RPC_PublicKey
+ * Signature: (Lcom/breadwallet/core/ethereum/BREthereumLightNode/Client;J[B)J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateLightNodeJSON_1RPC_1PublicKey
+  (JNIEnv *, jclass, jobject, jlong, jbyteArray);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniLightNodeGetAccount
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeGetAccount
   (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniGetAccountPrimaryAddress
+ * Signature: (J)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetAccountPrimaryAddress
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniGetAccountPrimaryAddressPublicKey
+ * Signature: (J)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetAccountPrimaryAddressPublicKey
+  (JNIEnv *, jobject, jlong);
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
@@ -53,14 +85,6 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_j
  * Signature: (J)J
  */
 JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeCreateWalletToken
-  (JNIEnv *, jobject, jlong);
-
-/*
- * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
- * Method:    jniGetAccountPrimaryAddress
- * Signature: (J)Ljava/lang/String;
- */
-JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetAccountPrimaryAddress
   (JNIEnv *, jobject, jlong);
 
 /*
@@ -197,6 +221,14 @@ JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode
  * Signature: (J)Ljava/lang/String;
  */
 JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionTargetAddress
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniTransactionGetHash
+ * Signature: (J)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionGetHash
   (JNIEnv *, jobject, jlong);
 
 /*

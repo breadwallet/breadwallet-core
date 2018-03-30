@@ -235,6 +235,14 @@ createLightNode (BREthereumLightNodeConfiguration configuration,
                  const char *paperKey);
 
 /**
+ * Create a LightNode managing the account associated with the publicKey.  Public key is a
+ * 0x04-prefixed, 65-byte array - as returned by lightNodeGetAccountPrimaryAddressPublicKey().
+ */
+extern BREthereumLightNode
+createLightNodeWithPublicKey (BREthereumLightNodeConfiguration configuration,
+                              uint8_t *publicKey);
+
+/**
  * Create an Ethereum Account using `paperKey` for BIP-32 generation of keys.  The same paper key
  * must be used when signing transactions for this account.
  */
@@ -247,6 +255,13 @@ lightNodeGetAccount (BREthereumLightNode node);
  */
 extern char *
 lightNodeGetAccountPrimaryAddress (BREthereumLightNode node);
+
+/**
+ * Get the public key for `account`.  This is a 0x04-prefixed, 65-byte array.  You own this
+ * memory and you MUST free() it.
+ */
+extern uint8_t *
+lightNodeGetAccountPrimaryAddressPublicKey (BREthereumLightNode node);
 
 /**
  * Connect to the Ethereum Network;
@@ -567,6 +582,10 @@ lightNodeTransactionGetRecvAddress (BREthereumLightNode node,
 extern char * // sender, source
 lightNodeTransactionGetSendAddress (BREthereumLightNode node,
                                     BREthereumLightNodeTransactionId transaction);
+
+extern char *
+lightNodeTransactionGetHash (BREthereumLightNode node,
+                             BREthereumLightNodeTransactionId transaction);
 
 extern char *
 lightNodeTransactionGetAmountEther(BREthereumLightNode node,
