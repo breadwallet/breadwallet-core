@@ -38,7 +38,7 @@ extern "C" {
 // BIP75 payment protocol encryption: https://github.com/bitcoin/bips/blob/master/bip-0075.mediawiki
 
 typedef struct {
-    char *network; // "main" or "test", default is "main"
+    char *network; // main / test / regtest, default is "main"
     BRTxOutput *outputs; // where to send payments, outputs[n].amount defaults to 0
     size_t outCount;
     uint64_t time; // request creation time, seconds since unix epoch, optional
