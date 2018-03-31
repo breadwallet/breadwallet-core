@@ -30,6 +30,7 @@
 extern "C" {
 #endif
 
+#include "BRKey.h"
 #include "BRInt.h"
 #include "rlp/BRRlpCoder.h"
 #include "BREthereumEther.h"
@@ -204,6 +205,15 @@ accountSignBytes(BREthereumAccount account,
                  uint8_t *bytes,
                  size_t bytesCount,
                  const char *paperKey);
+
+//
+// Support (quasi-private)
+//
+extern UInt512
+deriveSeedFromPaperKey (const char *paperKey);
+
+extern BRKey
+derivePrivateKeyFromSeed (UInt512 seed, uint32_t index);
 
 #ifdef __cplusplus
 }

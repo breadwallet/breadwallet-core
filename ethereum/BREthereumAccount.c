@@ -48,12 +48,6 @@
 static BREthereumAddress
 accountCreateAddress (BREthereumAccount account, UInt512 seed, uint32_t index);
 
-static UInt512
-deriveSeedFromPaperKey (const char *paperKey);
-
-static BRKey
-derivePrivateKeyFromSeed (UInt512 seed, uint32_t index);
-
 //
 // Locale-Based BIP-39 Word List
 //
@@ -462,7 +456,7 @@ accountSignBytes(BREthereumAccount account,
 // Support
 //
 
-static UInt512
+extern UInt512
 deriveSeedFromPaperKey (const char *paperKey) {
     // Generate the 512bit private key using a BIP39 paperKey
     UInt512 seed = UINT512_ZERO;
@@ -470,7 +464,7 @@ deriveSeedFromPaperKey (const char *paperKey) {
     return seed;
 }
 
-static BRKey
+extern BRKey
 derivePrivateKeyFromSeed (UInt512 seed, uint32_t index) {
     BRKey privateKey;
     
