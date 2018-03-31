@@ -70,7 +70,7 @@ extern BREthereumLightNodeConfiguration
 lightNodeConfigurationCreateJSON_RPC(BREthereumNetwork network,
                                      JsonRpcContext context,
                                      JsonRpcGetBalance funcGetBalance,
-                                     JsonRpcGetGasPrice functGetGasPrice,
+                                     JsonRpcGetGasPrice funcGetGasPrice,
                                      JsonRpcEstimateGas funcEstimateGas,
                                      JsonRpcSubmitTransaction funcSubmitTransaction,
                                      JsonRpcGetTransactions funcGetTransactions) {
@@ -79,7 +79,7 @@ lightNodeConfigurationCreateJSON_RPC(BREthereumNetwork network,
     configuration.type = NODE_TYPE_JSON_RPC;
     configuration.u.json_rpc.funcContext = context;
     configuration.u.json_rpc.funcGetBalance = funcGetBalance;
-    configuration.u.json_rpc.functGetGasPrice = functGetGasPrice;
+    configuration.u.json_rpc.funcGetGasPrice = funcGetGasPrice;
     configuration.u.json_rpc.funcEstimateGas = funcEstimateGas;
     configuration.u.json_rpc.funcSubmitTransaction = funcSubmitTransaction;
     configuration.u.json_rpc.funcGetTransactions = funcGetTransactions;
@@ -863,7 +863,7 @@ lightNodeUpdateWalletDefaultGasPrice (BREthereumLightNode node,
                                       BREthereumLightNodeWalletId wid) {
     switch (node->configuration.type) {
         case NODE_TYPE_JSON_RPC: {
-            node->configuration.u.json_rpc.functGetGasPrice
+            node->configuration.u.json_rpc.funcGetGasPrice
             (node->configuration.u.json_rpc.funcContext,
              node,
              wid,
@@ -1199,7 +1199,7 @@ lightNodeAnnounceGasPrice (BREthereumLightNode node,
     pthread_mutex_lock(&node->lock);
     BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
     walletSetDefaultGasPrice(wallet, gasPriceCreate(etherCreate(amount)));
-    pthread_mutex_lock(&node->lock);
+    pthread_mutex_unlock(&node->lock);
 
     lightNodeListenerAnnounceWalletEvent(node, wid, WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED);
 }
@@ -1217,7 +1217,7 @@ lightNodeAnnounceGasEstimate (BREthereumLightNode node,
     pthread_mutex_lock(&node->lock);
     BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
     transactionSetGasEstimate(transaction, gasCreate(gas.u64[0]));
-    pthread_mutex_lock(&node->lock);
+    pthread_mutex_unlock(&node->lock);
 
     lightNodeListenerAnnounceTransactionEvent(node, tid, TRANSACTION_EVENT_GAS_ESTIMATE_UPDATED);
 }

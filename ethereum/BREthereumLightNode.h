@@ -187,7 +187,7 @@ typedef struct {
     struct {
       JsonRpcContext funcContext;
       JsonRpcGetBalance funcGetBalance;
-      JsonRpcGetGasPrice functGetGasPrice;
+      JsonRpcGetGasPrice funcGetGasPrice;
       JsonRpcEstimateGas funcEstimateGas;
       JsonRpcSubmitTransaction funcSubmitTransaction;
       JsonRpcGetTransactions funcGetTransactions;
