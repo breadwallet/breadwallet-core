@@ -272,6 +272,36 @@ walletSignTransaction(BREthereumWallet wallet,
     transactionSign(transaction, wallet->account, signature);
 }
 
+// For now.
+extern void
+walletSignTransactionWithPrivateKey(BREthereumWallet wallet,
+                                    BREthereumTransaction transaction,
+                                    BRKey privateKey) {
+
+    if (TRANSACTION_NONCE_IS_NOT_ASSIGNED == transactionGetNonce(transaction))
+        transactionSetNonce (transaction, addressGetThenIncrementNonce(wallet->address));
+
+    // TODO: This is overkill...
+    //assert (transactionGetNonce(transaction) + 1 == addressGetNonce(wallet->address));
+
+    // RLP Encode the UNSIGNED transaction
+    BRRlpData transactionUnsignedRLP = transactionEncodeRLP
+    (transaction, wallet->network, TRANSACTION_RLP_UNSIGNED);
+
+    // Sign the RLP Encoded bytes.
+    BREthereumSignature signature = accountSignBytesWithPrivateKey
+    (wallet->account,
+     wallet->address,
+     SIGNATURE_TYPE_RECOVERABLE,
+     transactionUnsignedRLP.bytes,
+     transactionUnsignedRLP.bytesCount,
+     privateKey);
+
+    // Attach the signature
+    transactionSign(transaction, wallet->account, signature);
+
+}
+
 extern BRRlpData
 walletGetRawTransaction(BREthereumWallet wallet,
                         BREthereumTransaction transaction) {

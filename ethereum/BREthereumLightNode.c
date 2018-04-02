@@ -205,6 +205,13 @@ lightNodeGetAccountPrimaryAddressPublicKey (BREthereumLightNode node) {
     return addressGetPublicKey(accountGetPrimaryAddress(node->account));
 }
 
+extern BRKey
+lightNodeGetAccountPrimaryAddressPrivateKey (BREthereumLightNode node,
+                                             const char *paperKey) {
+    return accountGetPrimaryAddressPrivateKey (node->account, paperKey);
+    
+}
+
 //
 // Listener
 //

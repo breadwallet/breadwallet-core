@@ -163,6 +163,13 @@ accountCreateDetailed(const char *paperKey, const char *wordList[], const int wo
 extern BREthereumAddress
 accountGetPrimaryAddress (BREthereumAccount account);
 
+/**
+ * the privateKey for the account's primary address
+ */
+extern BRKey
+accountGetPrimaryAddressPrivateKey (BREthereumAccount account,
+                                    const char *paperKey);
+    
 //
 // Signature
 //
@@ -198,6 +205,14 @@ typedef struct {
  * @param bytesCount
  * @return
  */
+extern BREthereumSignature
+accountSignBytesWithPrivateKey(BREthereumAccount account,
+                 BREthereumAddress address,
+                 BREthereumSignatureType type,
+                 uint8_t *bytes,
+                 size_t bytesCount,
+                 BRKey privateKey);
+
 extern BREthereumSignature
 accountSignBytes(BREthereumAccount account,
                  BREthereumAddress address,

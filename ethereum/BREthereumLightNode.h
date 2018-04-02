@@ -263,6 +263,10 @@ lightNodeGetAccountPrimaryAddress (BREthereumLightNode node);
 extern uint8_t *
 lightNodeGetAccountPrimaryAddressPublicKey (BREthereumLightNode node);
 
+extern BRKey
+lightNodeGetAccountPrimaryAddressPrivateKey (BREthereumLightNode node,
+                                             const char *paperKey);
+
 /**
  * Connect to the Ethereum Network;
  *

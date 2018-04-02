@@ -129,6 +129,11 @@ walletSignTransaction(BREthereumWallet wallet,
                       BREthereumTransaction transaction,
                       const char *paperKey);
 
+extern void
+walletSignTransactionWithPrivateKey(BREthereumWallet wallet,
+                                    BREthereumTransaction transaction,
+                                    BRKey privateKey);
+
 /**
  * For `transaction`, get the 'signed transaction data' suitable for use in the RPC-JSON Ethereum
  * method `eth_sendRawTransaction` (once hex-encoded).

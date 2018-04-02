@@ -367,6 +367,13 @@ accountGetPrimaryAddress (BREthereumAccount account) {
     return account->primaryAddress;
 }
 
+extern BRKey
+accountGetPrimaryAddressPrivateKey (BREthereumAccount account,
+                                    const char *paperKey) {
+ return derivePrivateKeyFromSeed(deriveSeedFromPaperKey(paperKey),
+                                 account->primaryAddress->index);
+}
+
 static BREthereumAddress
 accountCreateAddress (BREthereumAccount account, UInt512 seed, uint32_t index) {
     BRKey privateKey = derivePrivateKeyFromSeed (seed, index);
@@ -397,20 +404,16 @@ accountCreateAddress (BREthereumAccount account, UInt512 seed, uint32_t index) {
 // Signature
 //
 extern BREthereumSignature
-accountSignBytes(BREthereumAccount account,
+accountSignBytesWithPrivateKey(BREthereumAccount account,
                  BREthereumAddress address,
                  BREthereumSignatureType type,
                  uint8_t *bytes,
                  size_t bytesCount,
-                 const char *paperKey) {
+                 BRKey privateKeyUncompressed) {
     BREthereumSignature signature;
     
     // Save the type.
     signature.type = type;
-    
-    // Recreate the seed; then recreate the PrivateKey (for the address with 'index')
-    UInt512 seed = deriveSeedFromPaperKey(paperKey);
-    BRKey privateKeyUncompressed = derivePrivateKeyFromSeed(seed, address->index);
     
     // Hash with the required Keccak-256
     UInt256 messageDigest;
@@ -450,6 +453,22 @@ accountSignBytes(BREthereumAccount account,
     }
     
     return signature;
+}
+
+extern BREthereumSignature
+accountSignBytes(BREthereumAccount account,
+                 BREthereumAddress address,
+                 BREthereumSignatureType type,
+                 uint8_t *bytes,
+                 size_t bytesCount,
+                 const char *paperKey) {
+    UInt512 seed = deriveSeedFromPaperKey(paperKey);
+    return accountSignBytesWithPrivateKey(account,
+                             address,
+                             type,
+                             bytes,
+                             bytesCount,
+                             derivePrivateKeyFromSeed(seed, address->index));
 }
 
 //
