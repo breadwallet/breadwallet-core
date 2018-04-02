@@ -135,8 +135,12 @@ typedef struct BREthereumAccountRecord *BREthereumAccount;
 extern BREthereumAccount
 createAccount(const char *paperKey);
 
+/**
+ * Create a new account using the 65 bytes, 0x04-prefixed, uncompressed public key (as returned
+ * by addressGetPublicKey())
+ */
 extern BREthereumAccount
-createAccountWithPublicKey (uint8_t *publicKey);
+createAccountWithPublicKey (const uint8_t *publicKey);
 
 extern void
 accountFree (BREthereumAccount account);
@@ -162,6 +166,12 @@ accountCreateDetailed(const char *paperKey, const char *wordList[], const int wo
  */
 extern BREthereumAddress
 accountGetPrimaryAddress (BREthereumAccount account);
+
+/**
+ * the public key for the account's primary address
+ */
+extern uint8_t *
+accountGetPrimaryAddressPublicKey (BREthereumAccount account);
 
 /**
  * the privateKey for the account's primary address

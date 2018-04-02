@@ -323,7 +323,7 @@ createAccountWithBIP32Seed (UInt512 seed) {
 }
 
 extern BREthereumAccount
-createAccountWithPublicKey (uint8_t *publicKey) { // 65 bytes, 0x04-prefixed, uncompressed public key
+createAccountWithPublicKey (const uint8_t *publicKey) { // 65 bytes, 0x04-prefixed, uncompressed public key
     BREthereumAccount account = (BREthereumAccount) calloc (1, sizeof (struct BREthereumAccountRecord));
 
     // Assign the key; create the primary address.
@@ -365,6 +365,11 @@ accountFree (BREthereumAccount account) {
 extern BREthereumAddress
 accountGetPrimaryAddress (BREthereumAccount account) {
     return account->primaryAddress;
+}
+
+extern uint8_t *
+accountGetPrimaryAddressPublicKey (BREthereumAccount account) {
+    return addressGetPublicKey(account->primaryAddress);
 }
 
 extern BRKey

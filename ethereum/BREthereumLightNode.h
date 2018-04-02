@@ -263,6 +263,9 @@ lightNodeGetAccountPrimaryAddress (BREthereumLightNode node);
 extern uint8_t *
 lightNodeGetAccountPrimaryAddressPublicKey (BREthereumLightNode node);
 
+/**
+ * Get the private key for `account`.
+ */
 extern BRKey
 lightNodeGetAccountPrimaryAddressPrivateKey (BREthereumLightNode node,
                                              const char *paperKey);

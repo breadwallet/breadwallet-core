@@ -202,7 +202,7 @@ lightNodeGetAccountPrimaryAddress (BREthereumLightNode node) {
 
 extern uint8_t * // 65 bytes
 lightNodeGetAccountPrimaryAddressPublicKey (BREthereumLightNode node) {
-    return addressGetPublicKey(accountGetPrimaryAddress(node->account));
+    return accountGetPrimaryAddressPublicKey(node->account);
 }
 
 extern BRKey
