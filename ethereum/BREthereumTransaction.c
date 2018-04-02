@@ -278,6 +278,12 @@ transactionGetNonce (BREthereumTransaction transaction) {
     return transaction->nonce;
 }
 
+private_extern void
+transactionSetNonce (BREthereumTransaction transaction,
+                     uint64_t nonce) {
+    transaction->nonce = nonce;
+}
+
 extern BREthereumToken
 transactionGetToken (BREthereumTransaction transaction) {
     return (AMOUNT_ETHER == amountGetType(transaction->amount)

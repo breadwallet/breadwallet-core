@@ -34,6 +34,8 @@
 
 #define DEFAULT_TRANSACTION_CAPACITY     20
 
+#define TRANSACTION_NONCE_IS_NOT_ASSIGNED   UINT64_MAX
+
 /* Forward Declarations */
 static BREthereumGasPrice
 walletCreateDefaultGasPrice (BREthereumWallet wallet);
@@ -194,7 +196,7 @@ walletCreateTransaction(BREthereumWallet wallet,
      amount,
      walletGetDefaultGasPrice(wallet),
      walletGetDefaultGasLimit(wallet),
-     addressGetThenIncrementNonce(wallet->address));
+     TRANSACTION_NONCE_IS_NOT_ASSIGNED);
 }
 
 extern BREthereumTransaction
@@ -246,7 +248,10 @@ extern void
 walletSignTransaction(BREthereumWallet wallet,
                       BREthereumTransaction transaction,
                       const char *paperKey) {
-    
+
+    if (TRANSACTION_NONCE_IS_NOT_ASSIGNED == transactionGetNonce(transaction))
+        transactionSetNonce (transaction, addressGetThenIncrementNonce(wallet->address));
+
     // TODO: This is overkill...
     //assert (transactionGetNonce(transaction) + 1 == addressGetNonce(wallet->address));
     

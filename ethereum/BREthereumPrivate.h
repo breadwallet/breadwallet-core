@@ -86,6 +86,13 @@ private_extern void
 blockFree (BREthereumBlock block);
 
 //
+// Transaction
+//
+private_extern void
+transactionSetNonce (BREthereumTransaction transaction,
+                    uint64_t nonce);
+
+//
 // Contract / Function
 //
 private_extern UInt256
