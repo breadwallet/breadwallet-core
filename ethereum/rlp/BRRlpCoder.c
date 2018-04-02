@@ -305,7 +305,9 @@ coderEncodeNumber (BRRlpCoder coder, uint8_t *source, size_t sourceCount) {
 
 static BRRlpContext
 coderEncodeUInt64 (BRRlpCoder coder, uint64_t value) {
-    return coderEncodeNumber(coder, (uint8_t *) &value, sizeof(value));
+    return (0 == value
+            ? coderEncodeLength(coder, 0, 0x80)
+            : coderEncodeNumber(coder, (uint8_t *) &value, sizeof(value)));
 }
 
 static BRRlpContext
