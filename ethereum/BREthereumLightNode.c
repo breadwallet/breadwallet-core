@@ -1099,7 +1099,7 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
         
         // Easily extract the gasPrice and gasLimit.
         BREthereumGasPrice gasPrice =
-        gasPriceCreate(etherCreate(createUInt256Parse(gasPriceString, 16, &status)));
+        gasPriceCreate(etherCreate(createUInt256Parse(gasPriceString, 10, &status)));
         
         BREthereumGas gasLimit =
         gasCreate(strtoull(gasLimitString, NULL, 0));
