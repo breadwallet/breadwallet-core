@@ -647,8 +647,7 @@ public class BRWalletManager extends BRCoreWalletManager {
 
         BRCoreWallet.Listener walletListener = getWalletListener();
 
-        BRCoreWallet w = new BRCoreWallet(new BRCoreTransaction[]{}, mpk, walletListener);
-        asserting(null != w);
+        BRCoreWallet w = createWallet(new BRCoreTransaction[]{}, mpk, walletListener);
         BRCoreAddress recvAddr = w.getReceiveAddress();
 
         // A random addr
@@ -721,7 +720,7 @@ public class BRWalletManager extends BRCoreWalletManager {
 
         System.out.println("            Init w/ One SATOSHI");
 
-        w = new BRCoreWallet(new BRCoreTransaction[] { tx }, mpk, walletListener);
+        w = createWallet(new BRCoreTransaction[] { tx }, mpk, walletListener);
         asserting (SATOSHIS == w.getBalance());
         asserting (w.getAllAddresses().length == 1 + SEQUENCE_GAP_LIMIT_EXTERNAL + SEQUENCE_GAP_LIMIT_INTERNAL);
 
@@ -764,7 +763,7 @@ public class BRWalletManager extends BRCoreWalletManager {
 
         byte[] mpkSerialized = mpk.serialize();
         mpk = new BRCoreMasterPubKey(mpkSerialized, false);
-        w = new BRCoreWallet(new BRCoreTransaction[]{}, mpk, walletListener);
+        w = createWallet(new BRCoreTransaction[]{}, mpk, walletListener);
 
         tx = new BRCoreTransaction();
         tx.addInput(
@@ -858,8 +857,7 @@ public class BRWalletManager extends BRCoreWalletManager {
 
         BRCoreMasterPubKey mpk = new BRCoreMasterPubKey(phrase, true);
 
-        BRCoreWallet w = new BRCoreWallet(new BRCoreTransaction[]{}, mpk, getWalletListener());
-        asserting(null != w);
+        BRCoreWallet w = createWallet(new BRCoreTransaction[]{}, mpk, getWalletListener());
 
         System.out.println("            Peers");
 
@@ -964,6 +962,18 @@ public class BRWalletManager extends BRCoreWalletManager {
 
             }
         };
+    }
+
+    private static BRCoreWallet createWallet (BRCoreTransaction[] transactions,
+                                              BRCoreMasterPubKey masterPubKey,
+                                              BRCoreWallet.Listener listener) {
+        try {
+            return new BRCoreWallet(transactions, masterPubKey, listener);
+        }
+        catch (BRCoreWallet.WalletExecption ex) {
+            asserting (false);
+            return null;
+        }
     }
 
     private static byte[] getMerkleBlockBytes () {

@@ -31,6 +31,8 @@ import java.lang.ref.WeakReference;
  */
 public class BRCoreWallet extends BRCoreJniReference
 {
+    public class WalletExecption extends Exception {}
+
     public interface Listener {
         // func balanceChanged(_ balance: UInt64)
         void balanceChanged(long balance);
@@ -61,8 +63,14 @@ public class BRCoreWallet extends BRCoreJniReference
     public BRCoreWallet(BRCoreTransaction[] transactions,
                         BRCoreMasterPubKey masterPubKey,
                         Listener listener)
+        throws WalletExecption
     {
         super (createJniCoreWallet(transactions, masterPubKey));
+
+        // If we don't have a proper Core Wallet, raise an exception
+        if (0 == this.jniReferenceAddress)
+            throw new WalletExecption();
+
         assert (null != listener);
         this.listener = new WeakReference<>(listener);
 
