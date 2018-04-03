@@ -27,6 +27,7 @@
 #include <string.h>
 #include <assert.h>
 #include <regex.h>
+#include <ctype.h>
 #include "BRBIP32Sequence.h"
 #include "BRBIP39Mnemonic.h"
 #include "BRCrypto.h"
@@ -242,8 +243,36 @@ createAddressDerived (const uint8_t *publicKey, uint32_t index) {
     // So, you sha3 hash the address, and look at each Nth character of the sha result. If it's 7
     // or below, the Nth character in the address is lowercase. If it is 8 or above, that character
     // is uppercase.
-    
-    // We'll skip it.
+
+    // We'll skip it - unless somebody requests it.
+
+    // PaperKey: boring head harsh green empty clip fatal typical found crane dinner timber
+    //  Address: 0xa9de3dbd7d561e67527bc1ecb025c59d53b9f7ef
+    //   Result: 0xa9de3dbD7d561e67527bC1Ecb025c59D53b9F7Ef
+    //
+    //        > web3.toChecksumAddress("0xa9de3dbd7d561e67527bc1ecb025c59d53b9f7ef")
+    //          "0xa9de3dbD7d561e67527bC1Ecb025c59D53b9F7Ef"
+    //
+    //        > web3.sha3("a9de3dbd7d561e67527bc1ecb025c59d53b9f7ef")
+    //          "0x6540e229f74514b83dd4a29553c029ad7b31c882df256a8c5222802c1b9b78d9"
+
+    // We'll checksum address->string but while avoiding the '0x' prefix
+    char *checksumAddr = &address->string[2];
+    size_t checksumAddrLen = strlen(checksumAddr);
+    assert (checksumAddrLen < 2 * sizeof(hash));
+
+    // Ethereum 'SHA3' is actually Keccak256
+    BRKeccak256(hash, checksumAddr, checksumAddrLen);
+
+    for (int i = 0; i < checksumAddrLen; i++) {
+        // We should hex-encode the hash and then look character by character.  Instead
+        // we'll extract 4 bits as the upper or lower nibble and compare to 8.  This is the
+        // same extracting that encodeHex performs, ultimately.
+        int value = 0x0f & (hash[i / 2] >> ((0 == i % 2) ? 4 : 0));
+        checksumAddr[i] = (value < 8
+                           ? (char) tolower(checksumAddr[i])
+                           : (char) toupper(checksumAddr[i]));
+    }
     return address;
 }
 
