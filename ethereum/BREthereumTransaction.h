@@ -59,6 +59,20 @@ transactionGetTargetAddress(BREthereumTransaction transaction);
 extern BREthereumAmount
 transactionGetAmount(BREthereumTransaction transaction);
 
+/**
+ * Return the fee (in Ether) for transaction.  If the transaction is confirmed (aka blocked) then
+ * the value returned is the actual fee paid (as gasUsed * gasPrice); if the transaction is not
+ * confirmed then an estimated fee is returned (as gasEstimate * gasPrice).
+ */
+extern BREthereumEther
+transactionGetFee (BREthereumTransaction transaction, int *overflow);
+
+/**
+ * Return the maximum fee (in Ether) for transaction (as gasLimit * gasPrice).
+ */
+extern BREthereumEther
+transactionGetFeeLimit (BREthereumTransaction transaction, int *overflow);
+
 extern BREthereumGasPrice
 transactionGetGasPrice (BREthereumTransaction transaction);
 
@@ -148,6 +162,9 @@ typedef enum {
 extern BREthereumTransactionStatus
 transactionGetStatus (BREthereumTransaction transaction);
 
+extern BREthereumBoolean
+transactionIsConfirmed (BREthereumTransaction transaction);
+    
 extern void
 transactionAnnounceBlocked (BREthereumTransaction transaction,
                             BREthereumGas gasUsed,

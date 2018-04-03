@@ -1347,9 +1347,7 @@ extern BREthereumBoolean
 lightNodeTransactionIsConfirmed(BREthereumLightNode node,
                                 BREthereumLightNodeTransactionId transactionId) {
     BREthereumTransaction transaction = lightNodeLookupTransaction(node, transactionId);
-    return (transactionGetStatus(transaction) == TRANSACTION_BLOCKED
-            ? ETHEREUM_BOOLEAN_TRUE
-            : ETHEREUM_BOOLEAN_FALSE);
+    return transactionIsConfirmed(transaction);
 }
 
 extern BREthereumBoolean

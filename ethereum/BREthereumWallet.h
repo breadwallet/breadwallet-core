@@ -86,6 +86,25 @@ walletCreateHoldingToken(BREthereumAccount account,
                          BREthereumToken token);
 
 /**
+ * Estimate the transaction fee (in Ether) for transferring amount.  The estimate uses
+ * the wallet's default gasPrice and the amount's default gas.
+ */
+extern BREthereumEther
+walletEstimateTransactionFee (BREthereumWallet wallet,
+                              BREthereumAmount amount,
+                              int *overflow);
+
+/**
+ * Estimate the transaction fee (in Ether) for transferring amount.
+ */
+extern BREthereumEther
+walletEstimateTransactionFeeDetailed (BREthereumWallet wallet,
+                                      BREthereumAmount amount,
+                                      BREthereumGasPrice price,
+                                      BREthereumGas gas,
+                                      int *overflow);
+
+/**
  *
  * @param wallet
  * @param recvAddress

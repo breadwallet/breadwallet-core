@@ -79,7 +79,7 @@ struct BREthereumWalletRecord {
     BREthereumGasPrice defaultGasPrice;
     
     /**
-     * The wallet's default gasLimit. gasLimit is the maximum gas you are willing to pay for t
+     * The wallet's default gasLimit. gasLimit is the maximum gas you are willing to pay for
      * a transaction of this wallet's holding type.  This default value can be 'overridden'
      * when creating a specific transaction.
      *
@@ -180,6 +180,34 @@ walletCreateHoldingToken(BREthereumAccount account,
      network,
      AMOUNT_TOKEN,
      token);
+}
+
+//
+// Transaction
+//
+extern BREthereumEther
+walletEstimateTransactionFee (BREthereumWallet wallet,
+                              BREthereumAmount amount,
+                              int *overflow) {
+    return walletEstimateTransactionFeeDetailed(wallet,
+                                                amount,
+                                                wallet->defaultGasPrice,
+                                                amountGetGasEstimate(amount),
+                                                overflow);
+}
+
+/**
+ * Estimate the transaction fee (in Ether) for transferring amount.
+ */
+extern BREthereumEther
+walletEstimateTransactionFeeDetailed (BREthereumWallet wallet,
+                                      BREthereumAmount amount,
+                                      BREthereumGasPrice price,
+                                      BREthereumGas gas,
+                                      int *overflow) {
+    return etherCreate(mulUInt256_Overflow(price.etherPerGas.valueInWEI,
+                                           createUInt256(gas.amountOfGas),
+                                           overflow));
 }
 
 //
@@ -399,8 +427,7 @@ static BREthereumGasPrice
 walletCreateDefaultGasPrice (BREthereumWallet wallet) {
     switch (amountGetType(wallet->balance)) {
         case AMOUNT_ETHER:
-            return gasPriceCreate(
-                                  etherCreateNumber
+            return gasPriceCreate(etherCreateNumber
                                   (DEFAULT_ETHER_GAS_PRICE_NUMBER,
                                    DEFAULT_ETHER_GAS_PRICE_UNIT));
         case AMOUNT_TOKEN:

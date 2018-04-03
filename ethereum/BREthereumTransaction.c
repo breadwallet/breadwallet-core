@@ -235,6 +235,24 @@ transactionGetAmount(BREthereumTransaction transaction) {
     return transaction->amount;
 }
 
+extern BREthereumEther
+transactionGetFee (BREthereumTransaction transaction, int *overflow) {
+    return etherCreate
+    (mulUInt256_Overflow(transaction->gasPrice.etherPerGas.valueInWEI,
+                         createUInt256 (ETHEREUM_BOOLEAN_IS_TRUE(transactionIsConfirmed(transaction))
+                                        ? transaction->state.u.blocked.gasUsed.amountOfGas
+                                        : transaction->gasEstimate.amountOfGas),
+                         overflow));
+}
+
+extern BREthereumEther
+transactionGetFeeLimit (BREthereumTransaction transaction, int *overflow) {
+    return etherCreate
+    (mulUInt256_Overflow(transaction->gasPrice.etherPerGas.valueInWEI,
+                         createUInt256 (transaction->gasLimit.amountOfGas),
+                         overflow));
+}
+
 extern BREthereumGasPrice
 transactionGetGasPrice (BREthereumTransaction transaction) {
     return transaction->gasPrice;
@@ -484,6 +502,12 @@ transactionGetStatus (BREthereumTransaction transaction) {
     return transaction->state.status;
 }
 
+extern BREthereumBoolean
+transactionIsConfirmed (BREthereumTransaction transaction) {
+    return (transaction->state.status == TRANSACTION_BLOCKED
+            ? ETHEREUM_BOOLEAN_TRUE
+            : ETHEREUM_BOOLEAN_FALSE);
+}
 extern void
 transactionAnnounceBlocked (BREthereumTransaction transaction,
                             BREthereumGas gasUsed,
