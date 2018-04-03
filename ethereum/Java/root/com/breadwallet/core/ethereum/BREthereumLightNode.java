@@ -298,6 +298,10 @@ public class BREthereumLightNode extends BRCoreJniReference {
     protected native void jniTransactionEstimateGas(long walletId,
                                                     long transactionId);
 
+    protected native String jniTransactionEstimateFee (long walletId,
+                                                       String amount,
+                                                       long amountUnit,
+                                                       long resultUnit);
 
     //
     // Transactions
@@ -305,6 +309,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     protected native boolean jniTransactionHasToken (long transactionId);
 
     protected native String jniTransactionGetAmount(long transactionId, long unit);
+    protected native String jniTransactionGetFee (long transactionId, long unit);
     protected native String jniTransactionSourceAddress (long transactionId);
     protected native String jniTransactionTargetAddress (long transactionId);
     protected native String jniTransactionGetHash (long transactionId);

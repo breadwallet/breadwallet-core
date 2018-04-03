@@ -573,6 +573,15 @@ lightNodeWalletGetBalance (BREthereumLightNode node,
     return walletGetBalance(wallet);
 }
 
+extern BREthereumEther
+lightNodeWalletEstimateTransactionFee (BREthereumLightNode node,
+                                       BREthereumLightNodeWalletId wid,
+                                       BREthereumAmount amount,
+                                       int *overflow) {
+    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
+    return walletEstimateTransactionFee(wallet, amount, overflow);
+}
+
 //
 // Blocks
 //
@@ -1367,5 +1376,14 @@ lightNodeTransactionGetToken (BREthereumLightNode node,
     BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
     assert (NULL != transaction);
     return transactionGetToken(transaction);
+}
+
+extern BREthereumEther
+lightNodeTransactionGetFee (BREthereumLightNode node,
+                            BREthereumLightNodeTransactionId tid,
+                            int *overflow) {
+    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    assert (NULL != transaction);
+    return transactionGetFee(transaction, overflow);
 }
 

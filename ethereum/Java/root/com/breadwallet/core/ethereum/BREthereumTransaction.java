@@ -55,10 +55,10 @@ public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefa
     public String getHash () {
         return node.get().jniTransactionGetHash (identifier);
     }
-    //
-    // Amount (handling units)
-    //
 
+    //
+    // Amount
+    //
     public String getAmount () {
         return getAmount(defaultUnit);
     }
@@ -66,6 +66,17 @@ public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefa
     public String getAmount(BREthereumAmount.Unit unit) {
         validUnitOrException(unit);
         return node.get().jniTransactionGetAmount(identifier, unit.jniValue);
+    }
+
+    //
+    // Fee
+    //
+    public String getFee () {
+        return getFee(defaultUnit);
+    }
+
+    public String getFee (BREthereumAmount.Unit unit) {
+        return node.get().jniTransactionGetFee(identifier, unit.jniValue);
     }
 
     //

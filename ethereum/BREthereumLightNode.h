@@ -427,6 +427,12 @@ extern BREthereumAmount
 lightNodeWalletGetBalance (BREthereumLightNode node,
                            BREthereumLightNodeWalletId wallet);
 
+extern BREthereumEther
+lightNodeWalletEstimateTransactionFee (BREthereumLightNode node,
+                                       BREthereumLightNodeWalletId wallet,
+                                       BREthereumAmount amount,
+                                       int *overflow);
+
 // ...
 
 //
@@ -642,6 +648,11 @@ lightNodeTransactionHoldsToken (BREthereumLightNode node,
 extern BREthereumToken
 lightNodeTransactionGetToken (BREthereumLightNode node,
                          BREthereumLightNodeTransactionId tid);
+
+extern BREthereumEther
+lightNodeTransactionGetFee (BREthereumLightNode node,
+                            BREthereumLightNodeTransactionId tid,
+                            int *overflow);
 
 // Pending
 

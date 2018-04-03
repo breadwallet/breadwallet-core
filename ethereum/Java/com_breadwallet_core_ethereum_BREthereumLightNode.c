@@ -552,6 +552,35 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionGetAmount
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniTransactionGetFee
+ * Signature: (JJ)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionGetFee
+        (JNIEnv *env, jobject thisObject,
+         jlong tid,
+         jlong unit) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+
+    int overflow = 0;
+    BREthereumEther fee = lightNodeTransactionGetFee(node,
+                                                     (BREthereumLightNodeTransactionId) tid,
+                                                     &overflow);
+
+    // Return the FEE in `resultUnit`
+    char *feeString = (0 != overflow
+                       ? ""
+                       : lightNodeCoerceEtherAmountToString(node, fee,
+                                                            (BREthereumEtherUnit) unit));
+    jstring result = (*env)->NewStringUTF(env, feeString);
+    if (0 != strcmp("", feeString)) free(feeString);
+
+    return result;
+}
+
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniTransactionHasToken
  * Signature: (J)Z
  */
@@ -582,6 +611,53 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionEstimateGas
              (BREthereumLightNodeWalletId) walletId,
              (BREthereumLightNodeTransactionId) transactionId);
 }
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniTransactionEstimateFee
+ * Signature: (JLjava/lang/String;JJ)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionEstimateFee
+        (JNIEnv *env, jobject thisObject,
+         jlong wid,
+         jstring amountString,
+         jlong amountUnit,
+         jlong resultUnit) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+
+    int overflow;
+    const char *number = (*env)->GetStringUTFChars(env, amountString, 0);
+    BRCoreParseStatus status;
+
+    // Get the `amount` as ETHER or TOKEN QUANTITY
+    BREthereumToken token = lightNodeWalletGetToken(node, (BREthereumLightNodeWalletId) wid);
+    BREthereumAmount amount = (NULL == token
+                               ? lightNodeCreateEtherAmountString(node, number,
+                                                                  (BREthereumEtherUnit) amountUnit,
+                                                                  &status)
+                               : lightNodeCreateTokenAmountString(node, token, number,
+                                                                  (BREthereumTokenQuantityUnit) amountUnit,
+                                                                  &status));
+    (*env)->ReleaseStringUTFChars(env, amountString, number);
+
+    // Get the estimated FEE
+    BREthereumEther fee = lightNodeWalletEstimateTransactionFee(node,
+                                                                (BREthereumLightNodeWalletId) wid,
+                                                                amount, &overflow);
+
+    // Return the FEE in `resultUnit`
+    char *feeString = (status != CORE_PARSE_OK || 0 != overflow
+                       ? ""
+                       : lightNodeCoerceEtherAmountToString(node, fee,
+                                                            (BREthereumEtherUnit) resultUnit));
+
+    jstring result = (*env)->NewStringUTF(env, feeString);
+    if (0 != strcmp("", feeString)) free(feeString);
+
+    return result;
+}
+
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode

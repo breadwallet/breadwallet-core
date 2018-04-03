@@ -98,10 +98,43 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
         node.get().jniForceWalletBalanceUpdate(identifier);
     }
 
+    /**
+     * Estimate the gasPrice needed for timely processing of transactions into the blockchain.
+     * This method changes the wallet's defaultGasPrice which is used when by createTransaction().
+     *
+     * Estimate provided after callback BREthereumLightNode.estimateGasPrice
+     */
+    public void estimateGasPrice () {
+        node.get().jniEstimateWalletGasPrice(identifier);
+    }
+
+    /**
+     * Updates the gasEstimate for `transaction`.  To access the estimate use:
+     *   transaction.getGasEstimate().
+     *
+     * Estimate provided after callback BREthereumLightNode.estimateGas
+     *
+     * @param transaction
+     */
+    public void estimateGas (BREthereumTransaction transaction) {
+        node.get().jniTransactionEstimateGas(identifier, transaction.identifier);
+    }
+
 
     //
     // Transactions
     //
+    public String transactionEstimatedFee (String amount,
+                                           Unit amountUnit,
+                                           Unit resultUnit) {
+        return node.get().jniTransactionEstimateFee(identifier, amount,
+                amountUnit.jniValue,
+                resultUnit.jniValue);
+    }
+
+    public String transactionEstimatedFee (String amount) {
+        return transactionEstimatedFee(amount, defaultUnit, defaultUnit);
+    }
 
     /**
      * Create a new transaction.
@@ -130,24 +163,6 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
                         amount,
                         amountUnit.jniValue),
                 amountUnit);
-    }
-
-    /**
-     * Estimate the gasPrice needed for timely processing of transactions into the blockchain.
-     * This method changes the wallet's defaultGasPrice which is used when by createTransaction().
-     */
-    public void estimateGasPrice () {
-        node.get().jniEstimateWalletGasPrice(identifier);
-    }
-
-    /**
-     * Updates the gasEstimate for `transaction`.  To access the estimate use:
-     *   transaction.getGasEstimate().
-     *
-     * @param transaction
-     */
-    public void estimateGas (BREthereumTransaction transaction) {
-        node.get().jniTransactionEstimateGas(identifier, transaction.identifier);
     }
 
     // getAll
