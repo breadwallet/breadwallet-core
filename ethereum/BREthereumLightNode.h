@@ -29,6 +29,7 @@
 #define ETHEREUM_LIGHT_NODE_USE_JSON_RPC  1
 
 #include <stdint.h>
+#include "BRKey.h"
 #include "BREthereumEther.h"
 #include "BREthereumGas.h"
 #include "BREthereumAmount.h"
