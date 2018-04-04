@@ -1001,7 +1001,7 @@ jsonRpcSubmitTransaction (JsonRpcContext context,
                           const char *transaction,
                           int rid) {
     // The transaction hash
-    lightNodeAnnounceSubmitTransaction(node, tid, "0x123abc456def", rid);
+    lightNodeAnnounceSubmitTransaction(node, 0, tid, "0x123abc456def", rid);
 }
 
 static void

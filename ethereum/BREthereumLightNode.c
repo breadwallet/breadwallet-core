@@ -1239,10 +1239,18 @@ lightNodeAnnounceGasEstimate (BREthereumLightNode node,
 }
 
 extern void
-lightNodeAnnounceSubmitTransaction (BREthereumLightNode node,
-                                    BREthereumLightNodeTransactionId tid,
-                                    const char *hash,
-                                    int id) {
+lightNodeAnnounceSubmitTransaction(BREthereumLightNode node,
+                                   BREthereumLightNodeWalletId wid,
+                                   BREthereumLightNodeTransactionId tid,
+                                   const char *hash,
+                                   int id) {
+    pthread_mutex_lock(&node->lock);
+    BREthereumWallet  wallet = lightNodeLookupWallet(node, wid);
+    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    if (NULL != wallet && NULL != transaction)
+        walletTransactionSubmitted(wallet, transaction, hash);
+    pthread_mutex_unlock(&node->lock);
+
     lightNodeListenerAnnounceTransactionEvent(node, tid, TRANSACTION_EVENT_SUBMITTED);
 }
 

@@ -127,8 +127,8 @@ public class BREthereumLightNode extends BRCoreJniReference {
             jniAnnounceGasEstimate(tid, gasEstimate, rid);
         }
 
-        public void announceSubmitTransaction (int tid, String hash, int rid) {
-            jniAnnounceSubmitTransaction(tid, hash, rid);
+        public void announceSubmitTransaction (int wid, int tid, String hash, int rid) {
+            jniAnnounceSubmitTransaction(wid, tid, hash, rid);
         }
 
         public void announceTransaction(int id,
@@ -336,7 +336,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     protected native void jniAnnounceBalance (int wid, String balance, int rid);
     protected native void jniAnnounceGasPrice (int wid, String gasPrice, int rid);
     protected native void jniAnnounceGasEstimate (int tid, String gasEstimate, int rid);
-    protected native void jniAnnounceSubmitTransaction (int tid, String hash, int rid);
+    protected native void jniAnnounceSubmitTransaction (int wid, int tid, String hash, int rid);
 
     //
     // Wallet Transactions

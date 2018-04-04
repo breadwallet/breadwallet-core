@@ -81,7 +81,7 @@ public class BREthereumLightNodeClientTest implements
 
     @Override
     public void submitTransaction(int wid, int tid, String rawTransaction, int rid) {
-        node.announceSubmitTransaction(tid, "0x123abc456def", rid); // NON-NLS
+        node.announceSubmitTransaction(wid, tid, "0x123abc456def", rid); // NON-NLS
 
     }
 

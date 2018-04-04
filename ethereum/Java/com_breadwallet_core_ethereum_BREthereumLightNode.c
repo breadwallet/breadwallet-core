@@ -472,14 +472,12 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceGasEstimate
 JNIEXPORT void JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceSubmitTransaction
         (JNIEnv *env, jobject thisObject,
+         jint wid,
          jint tid,
          jstring hash,
          jint rid) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
-    lightNodeAnnounceSubmitTransaction(node,
-                                       tid,
-                                       (*env)->GetStringUTFChars(env, hash, 0),
-                                       rid);
+    lightNodeAnnounceSubmitTransaction(node, wid, tid, (*env)->GetStringUTFChars(env, hash, 0), rid);
 }
 
 

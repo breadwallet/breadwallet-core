@@ -582,10 +582,11 @@ lightNodeAnnounceGasEstimate (BREthereumLightNode node,
                               int rid);
 
 extern void
-lightNodeAnnounceSubmitTransaction (BREthereumLightNode node,
-                                    BREthereumLightNodeTransactionId tid,
-                                    const char *hash,
-                                    int rid);
+lightNodeAnnounceSubmitTransaction(BREthereumLightNode node,
+                                   BREthereumLightNodeWalletId wid,
+                                   BREthereumLightNodeTransactionId tid,
+                                   const char *hash,
+                                   int rid);
 
 #endif // ETHEREUM_LIGHT_NODE_USE_JSON_RPC
 
