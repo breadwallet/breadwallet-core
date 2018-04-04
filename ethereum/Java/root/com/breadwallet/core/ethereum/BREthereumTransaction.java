@@ -44,6 +44,10 @@ public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefa
         return node.get().jniTransactionIsConfirmed(identifier);
     }
 
+    public boolean isSubmitted () {
+        return node.get().jniTransactionIsSubmitted(identifier);
+    }
+
     public String getSourceAddress () {
         return node.get().jniTransactionSourceAddress(identifier);
     }

@@ -806,6 +806,25 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionIsConfirmed
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniTransactionIsSubmitted
+ * Signature: (J)Z
+ */
+JNIEXPORT jboolean JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionIsSubmitted
+    (JNIEnv *env, jobject thisObject, jlong transactionId) {
+        BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+        return (jboolean) (ETHEREUM_BOOLEAN_TRUE ==
+                           lightNodeTransactionIsSubmitted
+                                   (node,
+                                    (BREthereumLightNodeTransactionId) transactionId)
+                           ? JNI_TRUE
+                           : JNI_FALSE);
+
+    }
+
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniLightNodeConnect
  * Signature: ()Z
  */

@@ -305,6 +305,14 @@ JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNod
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniTransactionIsSubmitted
+ * Signature: (J)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionIsSubmitted
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniLightNodeConnect
  * Signature: ()Z
  */

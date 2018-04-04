@@ -320,6 +320,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     protected native long jniTransactionGetBlockNumber (long tranactionId);
     protected native long jniTransactionGetBlockTimestamp (long tranactionId);
     protected native boolean jniTransactionIsConfirmed (long transactionId);
+    protected native boolean jniTransactionIsSubmitted (long transactionId);
 
     //
     // Connect // Disconnect

@@ -26,6 +26,9 @@ package com.breadwallet.core.ethereum;
 
 import com.breadwallet.core.ethereum.BREthereumAmount.Unit;
 
+import java.util.LinkedList;
+import java.util.List;
+
 /**
  * An EthereumWallet holds either ETHER or TOKEN values.
  */
@@ -182,9 +185,12 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
 
     public BREthereumTransaction[] getTransactions () {
         long[] transactionIds = node.get().jniGetTransactions(identifier);
-        BREthereumTransaction[] transactions = new BREthereumTransaction[transactionIds.length];
+        List<BREthereumTransaction> transactions = new LinkedList<>();
+
         for (int i = 0; i < transactionIds.length; i++)
-            transactions[i] = new BREthereumTransaction(node.get(), transactionIds[i], defaultUnit);
-        return transactions;
+            if (node.get().jniTransactionIsSubmitted(transactionIds[i]))
+                transactions.add(new BREthereumTransaction(node.get(), transactionIds[i], defaultUnit));
+
+        return transactions.toArray(new BREthereumTransaction[transactions.size()]);
     }
  }

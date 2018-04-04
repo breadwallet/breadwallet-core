@@ -508,6 +508,20 @@ transactionIsConfirmed (BREthereumTransaction transaction) {
             ? ETHEREUM_BOOLEAN_TRUE
             : ETHEREUM_BOOLEAN_FALSE);
 }
+
+extern BREthereumBoolean
+transactionIsSubmitted (BREthereumTransaction transaction) {
+    switch (transaction->state.status) {
+        case TRANSACTION_CREATED:
+            return ETHEREUM_BOOLEAN_FALSE;
+        case TRANSACTION_SIGNED:
+        case TRANSACTION_SUBMITTED:
+        case TRANSACTION_BLOCKED:
+        case TRANSACTION_DROPPED:
+            return ETHEREUM_BOOLEAN_TRUE;
+    }
+}
+
 extern void
 transactionAnnounceBlocked (BREthereumTransaction transaction,
                             BREthereumGas gasUsed,

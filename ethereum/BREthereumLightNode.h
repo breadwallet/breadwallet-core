@@ -641,6 +641,10 @@ lightNodeTransactionIsConfirmed (BREthereumLightNode node,
                                  BREthereumLightNodeTransactionId transaction);
 
 extern BREthereumBoolean
+lightNodeTransactionIsSubmitted (BREthereumLightNode node,
+                                 BREthereumLightNodeTransactionId transaction);
+
+extern BREthereumBoolean
 lightNodeTransactionHoldsToken (BREthereumLightNode node,
                            BREthereumLightNodeTransactionId tid,
                            BREthereumToken token);

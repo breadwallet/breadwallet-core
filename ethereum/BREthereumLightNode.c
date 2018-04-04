@@ -1360,6 +1360,13 @@ lightNodeTransactionIsConfirmed(BREthereumLightNode node,
 }
 
 extern BREthereumBoolean
+lightNodeTransactionIsSubmitted (BREthereumLightNode node,
+                                 BREthereumLightNodeTransactionId transactionId) {
+    BREthereumTransaction transaction = lightNodeLookupTransaction(node, transactionId);
+    return transactionIsSubmitted(transaction);
+}
+
+extern BREthereumBoolean
 lightNodeTransactionHoldsToken (BREthereumLightNode node,
                                  BREthereumLightNodeTransactionId tid,
                                  BREthereumToken token) {

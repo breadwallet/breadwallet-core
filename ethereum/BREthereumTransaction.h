@@ -164,7 +164,11 @@ transactionGetStatus (BREthereumTransaction transaction);
 
 extern BREthereumBoolean
 transactionIsConfirmed (BREthereumTransaction transaction);
-    
+
+// TODO: Rethink
+extern BREthereumBoolean
+transactionIsSubmitted (BREthereumTransaction transaction);
+
 extern void
 transactionAnnounceBlocked (BREthereumTransaction transaction,
                             BREthereumGas gasUsed,
