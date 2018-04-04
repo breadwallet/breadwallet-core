@@ -70,6 +70,28 @@ jsonRpcGetTransactions(JsonRpcContext context,
                        const char *account,
                        int id);
 
+//
+// Forward Declarations - Listener
+//
+static void
+listenerWalletEventHandler(BREthereumLightNodeListenerContext context,
+                           BREthereumLightNode node,
+                           BREthereumLightNodeWalletId wid,
+                           BREthereumLightNodeWalletEvent event);
+
+
+static void
+listenerBlockEventHandler(BREthereumLightNodeListenerContext context,
+                          BREthereumLightNode node,
+                          BREthereumLightNodeBlockId bid,
+                          BREthereumLightNodeBlockEvent event);
+
+static void
+listenerTransactionEventHandler(BREthereumLightNodeListenerContext context,
+                                BREthereumLightNode node,
+                                BREthereumLightNodeTransactionId tid,
+                                BREthereumLightNodeTransactionEvent event);
+
 static jstring
 asJniString(JNIEnv *env, char *string) {
     jstring result = (*env)->NewStringUTF(env, string);
@@ -80,11 +102,32 @@ asJniString(JNIEnv *env, char *string) {
 //
 // Statically Initialize Java References
 //
-static jclass addressClass;
-static jmethodID addressConstructor;
+
+static jclass walletClass;
+static jmethodID walletFinder;
 
 static jclass transactionClass;
-static jmethodID transactionConstructor;
+static jmethodID transactionFinder;
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniAddListener
+ * Signature: (Lcom/breadwallet/core/ethereum/BREthereumLightNode/Listener;)V
+ */
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAddListener
+        (JNIEnv *env, jobject thisObject, jobject listenerObject) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+
+    jobject listener = (*env)->NewGlobalRef(env, thisObject); // listenerObject);
+
+    lightNodeAddListener(node,
+                         listener,
+                         listenerWalletEventHandler,
+                         listenerBlockEventHandler,
+                         listenerTransactionEventHandler);
+}
+
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniCreateLightNodeLES
@@ -856,20 +899,25 @@ JNIEXPORT void JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumLightNode_initializeNative
   (JNIEnv *env, jclass thisClass) {
 
-//  addressClass = (*env)->FindClass(env, "com/breadwallet/core/BRCoreAddress");
-//  assert (NULL != addressClass);
-//  addressClass = (*env)->NewGlobalRef (env, addressClass);
-//
-//  addressConstructor = (*env)->GetMethodID(env, addressClass, "<init>", "(J)V");
-//  assert (NULL != addressConstructor);
-//
-//  transactionClass = (*env)->FindClass (env, "com/breadwallet/core/BRCoreTransaction");
-//  assert (NULL != transactionClass);
-//  transactionClass = (*env)->NewGlobalRef (env, transactionClass);
-//
-//  transactionConstructor = (*env)->GetMethodID(env, transactionClass, "<init>", "(J)V");
-//  assert (NULL != transactionConstructor);
+    // Wallet Finder
+    walletClass = (*env)->FindClass(env, "com/breadwallet/core/ethereum/BREthereumWallet");
+    assert (NULL != walletClass);
+    walletClass = (*env)->NewGlobalRef (env, walletClass);
 
+    walletFinder = (*env)->GetStaticMethodID (env, walletClass,
+                                              "getWallet",
+                                              "(J)Lcom/breadwallet/core/ethereum/BREthereumWallet;");
+    assert (NULL != walletFinder);
+
+    // Transaction Finder
+    transactionClass = (*env)->FindClass(env, "com/breadwallet/core/ethereum/BREthereumTransaction");
+    assert (NULL != transactionClass);
+    transactionClass = (*env)->NewGlobalRef (env, transactionClass);
+
+    transactionFinder = (*env)->GetStaticMethodID (env, transactionClass,
+                                              "getTransaction",
+                                              "(J)Lcom/breadwallet/core/ethereum/BREthereumTransaction;");
+    assert (NULL != transactionFinder);
 }
 
 //
@@ -1045,3 +1093,80 @@ jsonRpcGetTransactions(JsonRpcContext context,
     (*env)->DeleteLocalRef(env, addressObject);
 }
 
+//
+// Listener Callbacks
+//
+static void
+listenerWalletEventHandler(BREthereumLightNodeListenerContext context,
+                           BREthereumLightNode node,
+                           BREthereumLightNodeWalletId wid,
+                           BREthereumLightNodeWalletEvent event) {
+    JNIEnv *env = getEnv();
+    if (NULL == env) return;
+
+    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
+    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
+
+    // void handleWalletEvent (BREthereumWallet wallet, WalletEvent event);
+
+    jmethodID listenerMethod =
+            lookupListenerMethod(env, listener,
+                                 "trampolineWalletEvent",
+                                 "(Lcom/breadwallet/core/ethereum/BREthereumWallet;J)V");
+    assert (NULL != listenerMethod);
+
+    // Lookup/Create wallet
+    jobject wallet = (*env)->CallStaticObjectMethod(env, walletClass, walletFinder, wid);
+    if ((*env)->IsSameObject(env, wallet, NULL)) return;
+
+    // Callback
+    (*env)->CallVoidMethod(env, listener, listenerMethod, wallet, event);
+
+    // Cleanup
+    (*env)->DeleteLocalRef(env, wallet);
+    (*env)->DeleteLocalRef(env, listener);
+}
+
+
+static void
+listenerBlockEventHandler(BREthereumLightNodeListenerContext context,
+                          BREthereumLightNode node,
+                          BREthereumLightNodeBlockId bid,
+                          BREthereumLightNodeBlockEvent event) {
+    JNIEnv *env = getEnv();
+    if (NULL == env) return;
+
+    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
+    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
+
+}
+
+static void
+listenerTransactionEventHandler(BREthereumLightNodeListenerContext context,
+                                BREthereumLightNode node,
+                                BREthereumLightNodeTransactionId tid,
+                                BREthereumLightNodeTransactionEvent event) {
+    JNIEnv *env = getEnv();
+    if (NULL == env) return;
+
+    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
+    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
+
+    jmethodID listenerMethod =
+            lookupListenerMethod(env, listener,
+                                 "trampolineTransactionEvent",
+                                 "(Lcom/breadwallet/core/ethereum/BREthereumTransaction;J)V");
+    assert (NULL != listenerMethod);
+
+    // Lookup/Create Transaction
+    jobject transaction = (*env)->CallStaticObjectMethod(env, transactionClass, transactionFinder, tid);
+    if ((*env)->IsSameObject(env, transaction, NULL)) return;
+
+    // Callback
+    (*env)->CallVoidMethod(env, listener, listenerMethod, transaction, event);
+
+    // Cleanup
+    (*env)->DeleteLocalRef(env, transaction);
+    (*env)->DeleteLocalRef(env, listener);
+
+}

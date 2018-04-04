@@ -25,7 +25,6 @@
 package com.breadwallet.core.ethereum;
 
 import com.breadwallet.core.BRCoreJniReference;
-
 import java.lang.ref.WeakReference;
 
 /**
@@ -159,9 +158,48 @@ public class BREthereumLightNode extends BRCoreJniReference {
     }
 
     //
+    // Listener
+    //
+    // In the following the Event enumerations *must* match the corresponding declarations in
+    // BREthereumLightNode.h - the enumerations values/indices must be identical.
+    //
+    public interface Listener {
+        enum WalletEvent {
+            CREATED,
+            BALANCE_UPDATED,
+            DEFAULT_GAS_LIMIT_UPDATED,
+            DEFAULT_GAS_PRICE_UPDATED,
+            TRANSACTION_ADDED,
+            TRANSACTION_REMOVED,
+            DELETED
+        }
+
+        void handleWalletEvent (BREthereumWallet wallet, WalletEvent event);
+
+        enum BlockEvent {
+            CREATED
+        }
+
+        //void handleBlockEvent (BREthereumBlock block, BlockEvent event);
+
+        enum TransactionEvent {
+            TRANSACTION_EVENT_CREATED,
+            TRANSACTION_EVENT_SIGNED,
+            TRANSACTION_EVENT_SUBMITTED,
+            TRANSACTION_EVENT_BLOCKED,  // aka confirmed
+            TRANSACTION_EVENT_ERRORED,
+            TRANSACTION_EVENT_GAS_ESTIMATE_UPDATED
+        }
+
+        void handleTransactionEvent (BREthereumTransaction transaction, TransactionEvent event);
+    }
+
+    //
     // Light Node
     //
     WeakReference<Client> client;
+    WeakReference<Listener> listener;
+
     BREthereumNetwork network;
     BREthereumAccount account;
 
@@ -171,6 +209,11 @@ public class BREthereumLightNode extends BRCoreJniReference {
         this.network = network;
         this.account = new BREthereumAccount(this, jniLightNodeGetAccount());
         client.assignNode(this);
+    }
+
+    public void addListener (Listener listener) {
+        this.listener = new WeakReference<Listener>(listener);
+        jniAddListener(listener);
     }
 
     //
@@ -226,9 +269,26 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     // Callback Announcements
     //
+    // In the JNI Code, we had a problem directly accessing the Listener methods for the provided
+    // listener (see addListener()).  So instead we'll access these methods below and then 'bounce'
+    // to method calls for the listener.
+    //
+    // These methods also give us a chance to convert the `event`, as a `long`, to the Event.
+    //
+    private void trampolineWalletEvent (BREthereumWallet wallet, long event) {
+        Listener l =  listener.get();
+        if (null != l) l.handleWalletEvent(wallet, Listener.WalletEvent.values()[(int) event]);
+    }
+
+    private void trampolineTransactionEvent (BREthereumTransaction transaction, long event) {
+        Listener l =  listener.get();
+        if (null != l) l.handleTransactionEvent(transaction, Listener.TransactionEvent.values()[(int) event]);
+    }
+
     //
     // JNI Interface
     //
+    protected native void jniAddListener (Listener listener);
 
     protected static native long jniCreateLightNodeLES(Client client, long network, String paperKey);
     protected static native long jniCreateLightNodeLES_PublicKey(Client client, long network, byte[] publicKey);
@@ -393,4 +453,3 @@ public class BREthereumLightNode extends BRCoreJniReference {
         }
     }
 }
-

@@ -414,6 +414,7 @@ transactionEncodeHolding (BREthereumTransaction transaction,
     // Holding already handles ETHER vs TOKEN.
     return amountRlpEncode(holding, coder);
 }
+
 extern BRRlpData
 transactionEncodeRLP (BREthereumTransaction transaction,
                       BREthereumNetwork network,

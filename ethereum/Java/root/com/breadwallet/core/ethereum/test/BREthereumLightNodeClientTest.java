@@ -39,7 +39,9 @@ import static com.breadwallet.core.ethereum.BREthereumAmount.Unit.ETHER_GWEI;
 /**
  *
  */
-public class BREthereumLightNodeClientTest implements BREthereumLightNode.ClientJSON_RPC {
+public class BREthereumLightNodeClientTest implements
+        BREthereumLightNode.ClientJSON_RPC,
+        BREthereumLightNode.Listener {
     static {
         if (System.getProperties().containsKey("light.node.test"))
             System.loadLibrary("Core");
@@ -187,9 +189,26 @@ public class BREthereumLightNodeClientTest implements BREthereumLightNode.Client
 
     }
 
+    //
+    // Listener
+    //
+
+
+    @Override
+    public void handleWalletEvent(BREthereumWallet wallet, WalletEvent event) {
+        System.err.println ("WalletEvent: " + event);
+    }
+
+    @Override
+    public void handleTransactionEvent(BREthereumTransaction transaction, TransactionEvent event) {
+
+    }
+
     protected void runTest () {
         // Create the node; reference through this.node
         new BREthereumLightNode.JSON_RPC(this, BREthereumNetwork.testnet, USABLE_PAPER_KEY);
+        node.addListener(this);
+
 
         //
         // Test body

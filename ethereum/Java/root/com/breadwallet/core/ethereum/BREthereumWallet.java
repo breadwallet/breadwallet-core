@@ -26,6 +26,10 @@ package com.breadwallet.core.ethereum;
 
 import com.breadwallet.core.ethereum.BREthereumAmount.Unit;
 
+import java.lang.ref.WeakReference;
+import java.util.HashMap;
+import java.util.Map;
+
 import java.util.LinkedList;
 import java.util.List;
 
@@ -62,6 +66,7 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
                                 BREthereumAccount account,
                                 BREthereumNetwork network) {
         super (node, identifier, Unit.ETHER_ETHER);
+        addWallet(identifier, this);
         this.account = account;
         this.network = network;
     }
@@ -71,6 +76,7 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
                                 BREthereumNetwork network,
                                 BREthereumToken token) {
         this (node, identifier, account, network);
+        addWallet(identifier, this);
         this.token = token;
         this.defaultUnit = Unit.TOKEN_DECIMAL;
         this.defaultUnitUsesToken = true;
@@ -192,5 +198,20 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
                 transactions.add(new BREthereumTransaction(node.get(), transactionIds[i], defaultUnit));
 
         return transactions.toArray(new BREthereumTransaction[transactions.size()]);
+    }
+
+    //
+    // Static Lookup
+    //
+
+    static private Map<Long, WeakReference<BREthereumWallet>> wallets = new HashMap<>();
+
+    static void addWallet (long identifier, BREthereumWallet wallet) {
+        wallets.put (identifier, new WeakReference<BREthereumWallet>(wallet));
+    }
+
+    static BREthereumWallet getWallet (long identifier) {
+        WeakReference<BREthereumWallet> wallet = wallets.get(identifier);
+        return null == wallet ? null : wallet.get();
     }
  }

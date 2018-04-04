@@ -99,9 +99,6 @@ jni_hdr: java_comp
 	  done)
 	@rm -f com_breadwallet_core_ethereum_BREthereum*_*.h .h
 
-#            if [[ "$${class}" != "*\"$\"*" ]]; then
-#           fi
-
 clean:
 	rm -rf build $(JNI_OBJS) $(CORE_OBJS) $(JAVA_OBJS) $(JNI_LIB)
 
