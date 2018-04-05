@@ -45,7 +45,7 @@ walletSetBalance (BREthereumWallet wallet,
 private_extern void
 walletTransactionSubmitted (BREthereumWallet wallet,
                             BREthereumTransaction transaction,
-                            BREthereumHash hash); // ....
+                            const BREthereumHash hash); // ....
 
 private_extern void
 walletTransactionBlocked (BREthereumWallet wallet,

@@ -427,6 +427,15 @@ extern BREthereumAmount
 lightNodeWalletGetBalance (BREthereumLightNode node,
                            BREthereumLightNodeWalletId wallet);
 
+extern char *
+lightNodeWalletGetBalanceEther (BREthereumLightNode node,
+                                BREthereumLightNodeWalletId wallet,
+                                BREthereumEtherUnit unit);
+extern char *
+lightNodeWalletGetBalanceTokenQuantity (BREthereumLightNode node,
+                                        BREthereumLightNodeWalletId wallet,
+                                        BREthereumTokenQuantityUnit unit);
+
 extern BREthereumEther
 lightNodeWalletEstimateTransactionFee (BREthereumLightNode node,
                                        BREthereumLightNodeWalletId wallet,
@@ -468,6 +477,12 @@ lightNodeWalletSignTransaction (BREthereumLightNode node,
                                 BREthereumLightNodeWalletId wid,
                                 BREthereumLightNodeTransactionId tid,
                                 const char *paperKey);
+
+extern void // status, error
+lightNodeWalletSignTransactionWithPrivateKey (BREthereumLightNode node,
+                                              BREthereumLightNodeWalletId wid,
+                                              BREthereumLightNodeTransactionId tid,
+                                              BRKey privateKey);
 
 extern void // status, error
 lightNodeWalletSubmitTransaction (BREthereumLightNode node,

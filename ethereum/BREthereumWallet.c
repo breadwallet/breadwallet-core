@@ -533,7 +533,7 @@ walletGetTransactionCount (BREthereumWallet wallet) {
 private_extern void
 walletTransactionSubmitted (BREthereumWallet wallet,
                             BREthereumTransaction transaction,
-                            BREthereumHash hash) {
+                            const BREthereumHash hash) {
     transactionAnnounceSubmitted (transaction, hash);
     // balance updated?
 }

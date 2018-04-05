@@ -209,7 +209,7 @@ extern BRKey
 lightNodeGetAccountPrimaryAddressPrivateKey (BREthereumLightNode node,
                                              const char *paperKey) {
     return accountGetPrimaryAddressPrivateKey (node->account, paperKey);
-    
+
 }
 
 //
@@ -573,6 +573,28 @@ lightNodeWalletGetBalance (BREthereumLightNode node,
     return walletGetBalance(wallet);
 }
 
+extern char *
+lightNodeWalletGetBalanceEther (BREthereumLightNode node,
+                                BREthereumLightNodeWalletId wid,
+                                BREthereumEtherUnit unit) {
+    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
+    BREthereumAmount balance = walletGetBalance(wallet);
+    return (AMOUNT_ETHER == amountGetType(balance)
+            ? etherGetValueString(balance.u.ether, unit)
+            : NULL);
+}
+
+extern char *
+lightNodeWalletGetBalanceTokenQuantity (BREthereumLightNode node,
+                                        BREthereumLightNodeWalletId wid,
+                                        BREthereumTokenQuantityUnit unit) {
+    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
+    BREthereumAmount balance = walletGetBalance(wallet);
+    return (AMOUNT_TOKEN == amountGetType(balance)
+            ? tokenQuantityGetValueString(balance.u.tokenQuantity, unit)
+            : NULL);
+}
+
 extern BREthereumEther
 lightNodeWalletEstimateTransactionFee (BREthereumLightNode node,
                                        BREthereumLightNodeWalletId wid,
@@ -712,6 +734,17 @@ lightNodeWalletSignTransaction (BREthereumLightNode node,
     BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
     BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
     walletSignTransaction(wallet, transaction, paperKey);
+    lightNodeListenerAnnounceTransactionEvent(node, tid, TRANSACTION_EVENT_SIGNED);
+}
+
+extern void // status, error
+lightNodeWalletSignTransactionWithPrivateKey (BREthereumLightNode node,
+                                BREthereumLightNodeWalletId wid,
+                                BREthereumLightNodeTransactionId tid,
+                                BRKey privateKey) {
+    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
+    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    walletSignTransactionWithPrivateKey(wallet, transaction, privateKey);
     lightNodeListenerAnnounceTransactionEvent(node, tid, TRANSACTION_EVENT_SIGNED);
 }
 
@@ -1242,13 +1275,16 @@ extern void
 lightNodeAnnounceSubmitTransaction(BREthereumLightNode node,
                                    BREthereumLightNodeWalletId wid,
                                    BREthereumLightNodeTransactionId tid,
-                                   const char *hash,
+                                   const char *strHash,
                                    int id) {
     pthread_mutex_lock(&node->lock);
     BREthereumWallet  wallet = lightNodeLookupWallet(node, wid);
     BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
-    if (NULL != wallet && NULL != transaction)
+    if (NULL != wallet && NULL != transaction) {
+        BREthereumHash hash = hashCreate(strHash);
         walletTransactionSubmitted(wallet, transaction, hash);
+        free (hash);
+    }
     pthread_mutex_unlock(&node->lock);
 
     lightNodeListenerAnnounceTransactionEvent(node, tid, TRANSACTION_EVENT_SUBMITTED);
