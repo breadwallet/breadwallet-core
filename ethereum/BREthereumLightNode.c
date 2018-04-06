@@ -1335,12 +1335,11 @@ lightNodeTransactionGetAmountTokenQuantity(BREthereumLightNode node,
             : "");
 }
 
-extern BREthereumEther
+extern BREthereumAmount
 lightNodeTransactionGetAmount(BREthereumLightNode node,
                               BREthereumLightNodeTransactionId transactionId) {
     BREthereumTransaction transaction = lightNodeLookupTransaction(node, transactionId);
-    BREthereumAmount holding = transactionGetAmount(transaction);
-    return amountGetEther(holding); // TODO: Fatal if TOKEN
+    return transactionGetAmount(transaction);
 }
 
 extern char *

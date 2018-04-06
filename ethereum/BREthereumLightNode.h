@@ -627,6 +627,10 @@ lightNodeTransactionGetAmountTokenQuantity(BREthereumLightNode node,
                                            BREthereumLightNodeTransactionId transaction,
                                            BREthereumTokenQuantityUnit unit);
 
+extern BREthereumAmount
+lightNodeTransactionGetAmount(BREthereumLightNode node,
+                              BREthereumLightNodeTransactionId transactionId);
+
 extern char *
 lightNodeTransactionGetGasPrice (BREthereumLightNode node,
                                  BREthereumLightNodeTransactionId transaction,
