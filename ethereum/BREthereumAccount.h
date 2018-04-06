@@ -97,7 +97,7 @@ addressHasString (BREthereumAddress address,
 extern char *
 addressAsString (BREthereumAddress address);
 
-extern uint8_t *
+extern BRKey
 addressGetPublicKey (BREthereumAddress address);
 
 #if defined (DEBUG)
@@ -140,7 +140,7 @@ createAccount(const char *paperKey);
  * by addressGetPublicKey())
  */
 extern BREthereumAccount
-createAccountWithPublicKey (const uint8_t *publicKey);
+createAccountWithPublicKey (const BRKey publicKey);
 
 extern void
 accountFree (BREthereumAccount account);
@@ -170,7 +170,7 @@ accountGetPrimaryAddress (BREthereumAccount account);
 /**
  * the public key for the account's primary address
  */
-extern uint8_t *
+extern BRKey
 accountGetPrimaryAddressPublicKey (BREthereumAccount account);
 
 /**

@@ -186,7 +186,7 @@ createLightNode (BREthereumLightNodeConfiguration configuration,
 
 extern BREthereumLightNode
 createLightNodeWithPublicKey (BREthereumLightNodeConfiguration configuration,
-                              uint8_t *publicKey) { // 65 byte, 0x04-prefixed, uncompressed public key
+                              const BRKey publicKey) { // 65 byte, 0x04-prefixed, uncompressed public key
     return createLightNodeInternal(configuration, createAccountWithPublicKey (publicKey));
 }
 
@@ -200,7 +200,7 @@ lightNodeGetAccountPrimaryAddress (BREthereumLightNode node) {
     return addressAsString (accountGetPrimaryAddress(node->account));
 }
 
-extern uint8_t * // 65 bytes
+extern BRKey // key.pubKey
 lightNodeGetAccountPrimaryAddressPublicKey (BREthereumLightNode node) {
     return accountGetPrimaryAddressPublicKey(node->account);
 }

@@ -156,8 +156,12 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateLightNodeLES_1Pu
             lightNodeConfigurationCreateLES((BREthereumNetwork) network, 0);
 
     jbyte *publicKeyBytes = (*env)->GetByteArrayElements(env, publicKey, 0);
+    BRKey key;
+
+    memcpy (key.pubKey, publicKeyBytes, 65);
     BREthereumLightNode node =
-            createLightNodeWithPublicKey(configuration, (uint8_t *) publicKeyBytes);
+            createLightNodeWithPublicKey(configuration, key);
+
     (*env)->ReleaseByteArrayElements(env, publicKey, publicKeyBytes, 0);
     return (jlong) node;
 }
@@ -212,8 +216,12 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateLightNodeJSON_1R
                      jsonRpcGetTransactions);
 
     jbyte *publicKeyBytes = (*env)->GetByteArrayElements(env, publicKey, 0);
+    BRKey key;
+
+    memcpy (key.pubKey, publicKeyBytes, 65);
     BREthereumLightNode node =
-            createLightNodeWithPublicKey(configuration, (uint8_t *) publicKeyBytes);
+      createLightNodeWithPublicKey(configuration, key);
+
     (*env)->ReleaseByteArrayElements(env, publicKey, publicKeyBytes, 0);
     return (jlong) node;
 }
