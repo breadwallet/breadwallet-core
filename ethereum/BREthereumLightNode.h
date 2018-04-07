@@ -117,6 +117,7 @@ typedef void (*BREthereumLightNodeListenerBlockEventHandler) (BREthereumLightNod
 
 typedef void (*BREthereumLightNodeListenerTransactionEventHandler) (BREthereumLightNodeListenerContext context,
                                                                     BREthereumLightNode node,
+                                                                    BREthereumLightNodeWalletId wid,
                                                                     BREthereumLightNodeTransactionId tid,
                                                                     BREthereumLightNodeTransactionEvent event);
 
@@ -593,6 +594,7 @@ lightNodeAnnounceGasPrice(BREthereumLightNode node,
 
 extern void
 lightNodeAnnounceGasEstimate (BREthereumLightNode node,
+                              BREthereumLightNodeWalletId wid,
                               BREthereumLightNodeTransactionId tid,
                               const char *gasEstimate,
                               int rid);

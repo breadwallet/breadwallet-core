@@ -457,16 +457,18 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceGasPrice
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniAnnounceGasEstimate
- * Signature: (ILjava/lang/String;I)V
+ * Signature: (IILjava/lang/String;I)V
  */
 JNIEXPORT void JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceGasEstimate
         (JNIEnv *env, jobject thisObject,
+	 jint wid,
          jint tid,
          jstring gasEstimate,
          jint rid) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
     lightNodeAnnounceGasEstimate(node,
+				 wid,
                                  tid,
                                  (*env)->GetStringUTFChars(env, gasEstimate, 0),
                                  rid);

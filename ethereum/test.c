@@ -990,7 +990,7 @@ jsonRpcEstimateGas (JsonRpcContext context,
                     const char *amount,
                     const char *data,
                     int rid) {
-    lightNodeAnnounceGasEstimate(node, tid, "0x77", rid);
+    lightNodeAnnounceGasEstimate(node, wid, tid, "0x77", rid);
 }
 
 static void
@@ -1001,7 +1001,7 @@ jsonRpcSubmitTransaction (JsonRpcContext context,
                           const char *transaction,
                           int rid) {
     // The transaction hash
-    lightNodeAnnounceSubmitTransaction(node, 0, tid, "0x123abc456def", rid);
+    lightNodeAnnounceSubmitTransaction(node, wid, tid, "0x123abc456def", rid);
 }
 
 static void
