@@ -634,6 +634,10 @@ extern BREthereumAmount
 lightNodeTransactionGetAmount(BREthereumLightNode node,
                               BREthereumLightNodeTransactionId transactionId);
 
+extern BREthereumAmount
+lightNodeTransactionGetGasPriceToo(BREthereumLightNode node,
+                                   BREthereumLightNodeTransactionId transactionId);
+
 extern char *
 lightNodeTransactionGetGasPrice (BREthereumLightNode node,
                                  BREthereumLightNodeTransactionId transaction,

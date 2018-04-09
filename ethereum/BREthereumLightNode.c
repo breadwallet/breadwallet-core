@@ -1346,6 +1346,14 @@ lightNodeTransactionGetAmount(BREthereumLightNode node,
     return transactionGetAmount(transaction);
 }
 
+extern BREthereumAmount
+lightNodeTransactionGetGasPriceToo(BREthereumLightNode node,
+                                BREthereumLightNodeTransactionId transactionId) {
+    BREthereumTransaction transaction = lightNodeLookupTransaction(node, transactionId);
+    BREthereumGasPrice gasPrice = transactionGetGasPrice(transaction);
+    return amountCreateEther (gasPrice.etherPerGas);
+}
+
 extern char *
 lightNodeTransactionGetGasPrice(BREthereumLightNode node,
                                 BREthereumLightNodeTransactionId transactionId,
