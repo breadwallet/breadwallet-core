@@ -86,8 +86,8 @@ public class BREthereumLightNode extends BRCoreJniReference {
     // Light Node LES
     //
     static public class LES extends BREthereumLightNode {
-        public LES(ClientLES client, BREthereumNetwork network, String paperKey) {
-            super(BREthereumLightNode.jniCreateLightNodeLES(client, network.getIdentifier(), paperKey),
+        public LES(ClientLES client, BREthereumNetwork network, String paperKey, String[] wordList) {
+            super(BREthereumLightNode.jniCreateLightNodeLES(client, network.getIdentifier(), paperKey, wordList),
                     client,
                     network);
         }
@@ -103,8 +103,8 @@ public class BREthereumLightNode extends BRCoreJniReference {
     // Light Node JSON_RPC
     //
     static public class JSON_RPC extends BREthereumLightNode {
-        public JSON_RPC(ClientJSON_RPC client, BREthereumNetwork network, String paperKey) {
-            super(BREthereumLightNode.jniCreateLightNodeJSON_RPC(client, network.getIdentifier(), paperKey),
+        public JSON_RPC(ClientJSON_RPC client, BREthereumNetwork network, String paperKey, String[] wordList) {
+            super(BREthereumLightNode.jniCreateLightNodeJSON_RPC(client, network.getIdentifier(), paperKey, wordList),
                     client,
                     network);
         }
@@ -191,7 +191,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
             TRANSACTION_EVENT_GAS_ESTIMATE_UPDATED
         }
 
-        void handleTransactionEvent (BREthereumTransaction transaction, TransactionEvent event);
+        void handleTransactionEvent (BREthereumWallet wallet, BREthereumTransaction transaction, TransactionEvent event);
     }
 
     //
@@ -280,9 +280,9 @@ public class BREthereumLightNode extends BRCoreJniReference {
         if (null != l) l.handleWalletEvent(wallet, Listener.WalletEvent.values()[(int) event]);
     }
 
-    private void trampolineTransactionEvent (BREthereumTransaction transaction, long event) {
+    private void trampolineTransactionEvent (BREthereumWallet wallet, BREthereumTransaction transaction, long event) {
         Listener l =  listener.get();
-        if (null != l) l.handleTransactionEvent(transaction, Listener.TransactionEvent.values()[(int) event]);
+        if (null != l) l.handleTransactionEvent(wallet, transaction, Listener.TransactionEvent.values()[(int) event]);
     }
 
     //
@@ -290,10 +290,10 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     protected native void jniAddListener (Listener listener);
 
-    protected static native long jniCreateLightNodeLES(Client client, long network, String paperKey);
+    protected static native long jniCreateLightNodeLES(Client client, long network, String paperKey, String[] wordList);
     protected static native long jniCreateLightNodeLES_PublicKey(Client client, long network, byte[] publicKey);
 
-    protected static native long jniCreateLightNodeJSON_RPC(Client client, long network, String paperKey);
+    protected static native long jniCreateLightNodeJSON_RPC(Client client, long network, String paperKey, String[] wordList);
     protected static native long jniCreateLightNodeJSON_RPC_PublicKey(Client client, long network, byte[] publicKey);
 
     protected native long jniLightNodeGetAccount();

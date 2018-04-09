@@ -28,6 +28,7 @@
 #include <assert.h>
 #include <regex.h>
 #include <ctype.h>
+#include <BRKey.h>
 #include "BRBIP32Sequence.h"
 #include "BRBIP39Mnemonic.h"
 #include "BRCrypto.h"
@@ -293,7 +294,10 @@ extern BRKey // 65 bytes
 addressGetPublicKey (BREthereumAddress address) {
     BRKey result;
     BRKeyClean(&result);
-    memcpy (result.pubKey, address->publicKey, sizeof (address->publicKey));
+
+    result.pubKey[0] = 0x04;
+    memcpy (&result.pubKey[1], address->publicKey, sizeof (address->publicKey));
+
     return result;
 }
 

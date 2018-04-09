@@ -27,6 +27,7 @@
 #include <string.h>
 #include <BREthereumWallet.h>
 #include <BREthereum.h>
+#include <BRKey.h>
 #include "com_breadwallet_core_ethereum_BREthereumLightNode.h"
 #include "BRCoreJni.h"
 
@@ -89,6 +90,7 @@ listenerBlockEventHandler(BREthereumLightNodeListenerContext context,
 static void
 listenerTransactionEventHandler(BREthereumLightNodeListenerContext context,
                                 BREthereumLightNode node,
+                                BREthereumLightNodeWalletId wid,
                                 BREthereumLightNodeTransactionId tid,
                                 BREthereumLightNodeTransactionEvent event);
 
@@ -131,11 +133,33 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAddListener
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniCreateLightNodeLES
- * Signature: (Lcom/breadwallet/core/ethereum/BREthereumLightNode/Client;JLjava/lang/String;)J
+ * Signature: (Lcom/breadwallet/core/ethereum/BREthereumLightNode/Client;JLjava/lang/String;[Ljava/lang/String;)J
  */
 JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateLightNodeLES
-        (JNIEnv *env, jclass thisClass, jobject clientObject, jlong network, jstring paperKey) {
+        (JNIEnv *env, jclass thisClass,
+         jobject clientObject,
+         jlong network,
+         jstring paperKey,
+         jobjectArray wordsArrayObject) {
+
+    // Install the wordList
+    int wordsCount = (*env)->GetArrayLength(env, wordsArrayObject);
+    assert (BIP39_WORDLIST_COUNT == wordsCount);
+    char *wordList[wordsCount];
+
+    for (int i = 0; i < wordsCount; i++) {
+        jstring string = (jstring) (*env)->GetObjectArrayElement(env, wordsArrayObject, i);
+        const char *rawString = (*env)->GetStringUTFChars(env, string, 0);
+
+        wordList[i] = strdup (rawString);
+
+        (*env)->ReleaseStringUTFChars(env, string, rawString);
+        (*env)->DeleteLocalRef(env, string);
+    }
+
+    installSharedWordList((const char **) wordList, BIP39_WORDLIST_COUNT);
+
     BREthereumLightNodeConfiguration configuration =
             lightNodeConfigurationCreateLES((BREthereumNetwork) network, 0);
     return (jlong) createLightNode(configuration, (*env)->GetStringUTFChars (env, paperKey, 0));
@@ -169,11 +193,32 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateLightNodeLES_1Pu
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniCreateLightNodeJSON_RPC
- * Signature: (Lcom/breadwallet/core/ethereum/BREthereumLightNode/Client;JLjava/lang/String;)J
+ * Signature: (Lcom/breadwallet/core/ethereum/BREthereumLightNode/Client;JLjava/lang/String;[Ljava/lang/String;)J
  */
 JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateLightNodeJSON_1RPC
-        (JNIEnv *env, jclass thisClass, jobject clientObject, jlong network, jstring paperKey) {
+        (JNIEnv *env, jclass thisClass,
+         jobject clientObject,
+         jlong network,
+         jstring paperKey,
+         jobjectArray wordsArrayObject) {
+
+    // Install the wordList
+    int wordsCount = (*env)->GetArrayLength(env, wordsArrayObject);
+    assert (BIP39_WORDLIST_COUNT == wordsCount);
+    char *wordList[wordsCount];
+
+    for (int i = 0; i < wordsCount; i++) {
+        jstring string = (jstring) (*env)->GetObjectArrayElement(env, wordsArrayObject, i);
+        const char *rawString = (*env)->GetStringUTFChars(env, string, 0);
+
+        wordList[i] = strdup (rawString);
+
+        (*env)->ReleaseStringUTFChars(env, string, rawString);
+        (*env)->DeleteLocalRef(env, string);
+    }
+
+    installSharedWordList((const char **) wordList, BIP39_WORDLIST_COUNT);
 
     // Get a global reference to client; ensure the client exists in callback threads.
     jobject client = (*env)->NewGlobalRef (env, clientObject);
@@ -303,10 +348,9 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetAccountPrimaryAddre
         (JNIEnv *env, jobject thisObject, jlong account) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
 
-    uint8_t *publicKeyBytes = lightNodeGetAccountPrimaryAddressPublicKey(node);
+    BRKey key = lightNodeGetAccountPrimaryAddressPublicKey(node);
     jbyteArray publicKey = (*env)->NewByteArray (env, 65);
-    (*env)->SetByteArrayRegion (env, publicKey, 0, 65, (const jbyte *) publicKeyBytes);
-    free (publicKeyBytes);
+    (*env)->SetByteArrayRegion (env, publicKey, 0, 65, (const jbyte *) key.pubKey);
 
     return publicKey;
 }
@@ -1152,6 +1196,7 @@ listenerBlockEventHandler(BREthereumLightNodeListenerContext context,
 static void
 listenerTransactionEventHandler(BREthereumLightNodeListenerContext context,
                                 BREthereumLightNode node,
+                                BREthereumLightNodeWalletId wid,
                                 BREthereumLightNodeTransactionId tid,
                                 BREthereumLightNodeTransactionEvent event) {
     JNIEnv *env = getEnv();
@@ -1166,15 +1211,20 @@ listenerTransactionEventHandler(BREthereumLightNodeListenerContext context,
                                  "(Lcom/breadwallet/core/ethereum/BREthereumTransaction;J)V");
     assert (NULL != listenerMethod);
 
+    // Lookup/Create Wallet
+    jobject wallet = (*env)->CallStaticObjectMethod(env, walletClass, walletFinder, wid);
+    if ((*env)->IsSameObject(env, wallet, NULL)) return;
+
     // Lookup/Create Transaction
     jobject transaction = (*env)->CallStaticObjectMethod(env, transactionClass, transactionFinder, tid);
     if ((*env)->IsSameObject(env, transaction, NULL)) return;
 
     // Callback
-    (*env)->CallVoidMethod(env, listener, listenerMethod, transaction, event);
+    (*env)->CallVoidMethod(env, listener, listenerMethod, wallet, transaction, event);
 
     // Cleanup
     (*env)->DeleteLocalRef(env, transaction);
+    (*env)->DeleteLocalRef(env, wallet);
     (*env)->DeleteLocalRef(env, listener);
 
 }
