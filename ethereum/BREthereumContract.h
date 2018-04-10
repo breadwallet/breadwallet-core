@@ -31,10 +31,13 @@ extern "C" {
 #endif
 
 typedef struct BREthereumFunctionRecord *BREthereumFunction;
+typedef struct BREthereumEventRecord *BREthereumEvent;
 typedef struct BREthereumContractRecord *BREthereumContract;
+
 
 extern BREthereumContract contractERC20;
 extern BREthereumFunction functionERC20Transfer; // "transfer(address,uint256)"
+extern BREthereumEvent eventERC20Transder;       // "Transfer(address indexed _from, address indexed _to, uint256 _value)"
 
 /**
  * Encode an Ehtereum function with arguments.  The specific arguments and their types are

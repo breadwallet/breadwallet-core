@@ -39,6 +39,10 @@ static BREthereumTransaction
 lightNodeLookupTransaction (BREthereumLightNode node,
                             BREthereumLightNodeTransactionId transactionId);
 
+static BREthereumWallet
+lightNodeLookupWallet(BREthereumLightNode node,
+                      BREthereumLightNodeWalletId wid);
+
 static void
 lightNodeInsertWallet (BREthereumLightNode node,
                        BREthereumWallet wallet);
@@ -73,7 +77,8 @@ lightNodeConfigurationCreateJSON_RPC(BREthereumNetwork network,
                                      JsonRpcGetGasPrice funcGetGasPrice,
                                      JsonRpcEstimateGas funcEstimateGas,
                                      JsonRpcSubmitTransaction funcSubmitTransaction,
-                                     JsonRpcGetTransactions funcGetTransactions) {
+                                     JsonRpcGetTransactions funcGetTransactions,
+                                     JsonRpcGetLogs funcGetLogs) {
     BREthereumLightNodeConfiguration configuration;
     configuration.network = network;
     configuration.type = NODE_TYPE_JSON_RPC;
@@ -83,6 +88,7 @@ lightNodeConfigurationCreateJSON_RPC(BREthereumNetwork network,
     configuration.u.json_rpc.funcEstimateGas = funcEstimateGas;
     configuration.u.json_rpc.funcSubmitTransaction = funcSubmitTransaction;
     configuration.u.json_rpc.funcGetTransactions = funcGetTransactions;
+    configuration.u.json_rpc.funcGetLogs = funcGetLogs;
     return configuration;
 }
 
@@ -326,6 +332,15 @@ lightNodeThreadRoutine (BREthereumLightNode node) {
         // getting the nonce for the account's address correct.  We'll save all the transactions and
         // then process them into wallet as wallets exist.
         lightNodeUpdateTransactions(node);
+
+        // Similarly, we'll query all logs for this node's account.  We'll process these into
+        // (token) transactions and associate with their wallet.
+        for (int i = 0; i < array_count(node->wallets); i++) {
+            BREthereumWallet wallet = lightNodeLookupWallet (node, i);
+            BREthereumToken token = walletGetToken(wallet);
+            if (NULL != token)
+                lightNodeUpdateLogs(node, tokenGetAddress(token));
+        }
 
         // For all the known wallets, get their balance.
         for (int i = 0; i < array_count(node->wallets); i++)
@@ -847,6 +862,36 @@ lightNodeUpdateTransactions (BREthereumLightNode node) {
     }
 }
 
+//
+// Logs
+//
+/**
+ *
+ * @param node
+ */
+extern void
+lightNodeUpdateLogs (BREthereumLightNode node, const char *contract) {
+    switch (node->configuration.type) {
+        case NODE_TYPE_JSON_RPC: {
+            char *address = addressAsString(accountGetPrimaryAddress(node->account));
+
+            node->configuration.u.json_rpc.funcGetLogs
+            (node->configuration.u.json_rpc.funcContext,
+             node,
+             address,
+             contract,
+             ++node->requestId);
+
+            free (address);
+            break;
+        }
+        case NODE_TYPE_LES:
+            //      assert (0);
+            break;
+    }
+}
+
+
 #if ETHEREUM_LIGHT_NODE_USE_JSON_RPC
 
 extern void
@@ -1216,6 +1261,11 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
 //    "cumulativeGasUsed":"106535",
 //    "gasUsed":"21000",
 //    "confirmations":"339050"}
+
+extern void
+lightNodeAnnounceLog (BREthereumLightNode node,
+                      int id) {
+}
 
 extern void
 lightNodeAnnounceBalance (BREthereumLightNode node,

@@ -43,6 +43,7 @@ encodeReverseBytes (uint8_t *t, const uint8_t *s, size_t slen);
 // Contracts are not defined dynamically - so we can adjust this if need be.  Notably our primary
 // concern is the ERC20 contract - which as less than ten functions
 #define DEFAULT_CONTRACT_FUNCTION_LIMIT   10
+#define DEFAULT_CONTRACT_EVENT_LIMIT       5
 
 /**
  * Define a function type to encode an argument into 64 characters, per the Ethereum Contract ABI.
@@ -68,6 +69,22 @@ struct BREthereumFunctionRecord {
     ArgumentEncodeFunc argumentEncoders[5];
 };
 
+#define NULL_FUNCTION  { NULL, NULL, NULL, 0 }
+
+/**
+ *
+ */
+struct BREthereumEventRecord {
+    char *interface;
+    char *signature;
+    char *selector;   // signature?  rename; confirm 'function' naming
+    // ...
+    unsigned int argumentCount;
+    // ...
+};
+
+#define NULL_EVENT { NULL, NULL, NULL, 0 }
+
 /**
  *
  *
@@ -75,6 +92,8 @@ struct BREthereumFunctionRecord {
 struct BREthereumContractRecord {
     unsigned int functionsCount;
     struct BREthereumFunctionRecord functions[DEFAULT_CONTRACT_FUNCTION_LIMIT];
+    unsigned int eventsCount;
+    struct BREthereumEventRecord events[DEFAULT_CONTRACT_EVENT_LIMIT];
 };
 
 //
@@ -82,16 +101,22 @@ struct BREthereumContractRecord {
 //
 // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-20.md
 // https://medium.com/hellogold/erc20-coins-and-the-multisig-wallet-acc3b43e2137
-// 06fdde03 name()
-// 95d89b41 symbol()
-// 313ce567 decimals()
-// 18160ddd totalSupply()
-// 70a08231 balanceOf(address)
-// a9059cbb transfer(address,uint256)
-// 23b872dd transferFrom(address,address,uint256)
-// 095ea7b3 approve(address,uint256)
-// dd62ed3e allowance(address,address)
-// 54fd4d50 version()
+//
+// Functions
+//  06fdde03 name()
+//  95d89b41 symbol()
+//  313ce567 decimals()
+//  18160ddd totalSupply()
+//  70a08231 balanceOf(address)
+//  a9059cbb transfer(address,uint256)
+//  23b872dd transferFrom(address,address,uint256)
+//  095ea7b3 approve(address,uint256)
+//  dd62ed3e allowance(address,address)
+//  54fd4d50 version()
+//
+// Events
+//  Transfer(address indexed _from, address indexed _to, uint256 _value)
+//  Approval(address indexed _owner, address indexed _spender, uint256 _value)
 
 static struct BREthereumContractRecord contractRecordERC20 = {
     6,
@@ -145,14 +170,44 @@ static struct BREthereumContractRecord contractRecordERC20 = {
             2,
             argumentEncodeAddress,
             argumentEncodeAddress
-        }
+        },
         
-        // Events
+        NULL_FUNCTION,  // 7
+        NULL_FUNCTION,  // 8
+        NULL_FUNCTION,  // 9
+        NULL_FUNCTION,  // 10
+    },
+    
+    // Events
+    2,
+    {
+        {
+            "event Transfer(address indexed _from, address indexed _to, uint256 _value)",
+            "Transfer(address,address,uint256)",
+            "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+            // ...
+            3
+            // ...
+        },
+        
+        {
+            "event Approval(address indexed _owner, address indexed _spender, uint256 _value)",
+            "Approval(address,address,uint256)",
+            "0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925",
+            // ...
+            3
+            // ...
+        },
+        
+        NULL_EVENT, // 3
+        NULL_EVENT, // 4
+        NULL_EVENT, // 5
     }
 };
+
 BREthereumContract contractERC20 = &contractRecordERC20;
 BREthereumFunction functionERC20Transfer = &contractRecordERC20.functions[2];
-
+BREthereumEvent eventERC20Transfer = &contractRecordERC20.events[0];
 
 static int
 functionIsEncodedInData (BREthereumFunction function, const char *data) {

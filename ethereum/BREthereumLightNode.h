@@ -165,6 +165,11 @@ typedef void (*JsonRpcGetTransactions) (JsonRpcContext context,
                                         const char *address,
                                         int rid);
 
+typedef void (*JsonRpcGetLogs) (JsonRpcContext context,
+                                BREthereumLightNode node,
+                                const char *address,
+                                const char *contract, // optional?
+                                int rid);
 
 //
 // Two types of LightNode - JSON_RPC or LES (Light Ethereum Subprotocol).
@@ -193,6 +198,7 @@ typedef struct {
       JsonRpcEstimateGas funcEstimateGas;
       JsonRpcSubmitTransaction funcSubmitTransaction;
       JsonRpcGetTransactions funcGetTransactions;
+      JsonRpcGetLogs funcGetLogs;
     } json_rpc;
 
     //
@@ -220,7 +226,8 @@ lightNodeConfigurationCreateJSON_RPC(BREthereumNetwork network,
                                      JsonRpcGetGasPrice functGetGasPrice,
                                      JsonRpcEstimateGas funcEstimateGas,
                                      JsonRpcSubmitTransaction funcSubmitTransaction,
-                                     JsonRpcGetTransactions funcGetTransactions);
+                                     JsonRpcGetTransactions funcGetTransactions,
+                                     JsonRpcGetLogs funcGetLogs);
 
 //
 // Light Node
@@ -513,6 +520,9 @@ lightNodeWalletGetTransactionCount (BREthereumLightNode node,
 extern void
 lightNodeUpdateTransactions (BREthereumLightNode node);
 
+extern void
+lightNodeUpdateLogs (BREthereumLightNode node, const char *contract);
+
 #if ETHEREUM_LIGHT_NODE_USE_JSON_RPC
 //
 // Wallet Updates
@@ -579,6 +589,10 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
                              // confirmations
                              // txreceipt_status
                              const char *isError);
+
+extern void
+lightNodeAnnounceLog (BREthereumLightNode node,
+                      int id);
 
 extern void
 lightNodeAnnounceBalance (BREthereumLightNode node,
