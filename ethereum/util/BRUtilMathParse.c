@@ -217,7 +217,24 @@ parseUInt64 (const char *string, int digits, int base) {
 extern UInt256
 createUInt256Parse (const char *string, int base, BRCoreParseStatus *status) {
     assert (NULL != status);
-    
+
+    // Strip '0x'
+    if (0 == strncmp (string, "0x", 2)) {
+        if (0 == base) base = 16;
+
+        if (16 == base) string = &string[2];
+        else {
+            *status = CORE_PARSE_STRANGE_DIGITS;
+            return UINT256_ZERO;
+        }
+    }
+
+    // If base is still 0 (after dealing with an optional '0x'), assume 10
+    if (0 == base) base = 10;
+
+    // Strip leading '0's
+    while ('0' == *string) string++;
+
     UInt256 value = UINT256_ZERO;
     int maxDigits = parseMaximumDigitsForUInt256InBase(base);
     long length = strlen (string);

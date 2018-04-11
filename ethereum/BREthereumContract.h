@@ -37,7 +37,13 @@ typedef struct BREthereumContractRecord *BREthereumContract;
 
 extern BREthereumContract contractERC20;
 extern BREthereumFunction functionERC20Transfer; // "transfer(address,uint256)"
-extern BREthereumEvent eventERC20Transder;       // "Transfer(address indexed _from, address indexed _to, uint256 _value)"
+extern BREthereumEvent eventERC20Transfer;       // "Transfer(address indexed _from, address indexed _to, uint256 _value)"
+
+/**
+ *
+ */
+extern const char *
+eventGetSelector (BREthereumEvent event);
 
 /**
  * Encode an Ehtereum function with arguments.  The specific arguments and their types are
@@ -67,6 +73,9 @@ contractEncode (BREthereumContract contract, BREthereumFunction function, ...);
  */
 extern BREthereumFunction
 contractLookupFunctionForEncoding (BREthereumContract contract, const char *encoding);
+
+extern BREthereumEvent
+contractLookupEventForTopic (BREthereumContract contract, const char *topic);
 
 #ifdef __cplusplus
 }

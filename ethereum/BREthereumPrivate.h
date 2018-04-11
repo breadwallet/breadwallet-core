@@ -104,4 +104,13 @@ private_extern char *
 functionERC20TransferDecodeAddress (BREthereumFunction function,
                                     const char *data);
 
+private_extern char *
+eventERC20TransferDecodeAddress (BREthereumEvent event,
+                                 const char *topic);
+
+private_extern UInt256
+eventERC20TransferDecodeUInt256 (BREthereumEvent event,
+                                 const char *number,
+                                 BRCoreParseStatus *status);
+
 #endif /* BR_Ethereum_Private_H */

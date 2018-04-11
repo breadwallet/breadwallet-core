@@ -238,13 +238,6 @@ walletCreateTransactionDetailed(BREthereumWallet wallet,
     assert (AMOUNT_ETHER == amountGetType(amount)
             || 1 /*(wallet->token == tokenQuantityGetToken (holdingGetTokenQuantity(amount)))*/);
     
-    // TODO: provide 'DataForHolding'
-    //  Wallet needs contract+function - expects a 'transfer function'
-    //  What are the arguments to walletDataForHolding... needs the transaction?  Needs more?
-    //  Must 'rework' transaction (if token, amount = 0, ...)
-    //
-    // switch (wallet->holding.type) { ... }
-    
     BREthereumTransaction transaction = transactionCreate(wallet->address,
                                                           recvAddress,
                                                           amount,

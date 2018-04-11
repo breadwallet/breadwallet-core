@@ -154,7 +154,7 @@ accountFree (BREthereumAccount account);
  * @return
  */
 extern BREthereumAccount
-accountCreateDetailed(const char *paperKey, const char *wordList[], const int wordListLength);
+createAccountDetailed(const char *paperKey, const char *wordList[], const int wordListLength);
 
 /**
  * The account's primary address (aka 'address[0]').

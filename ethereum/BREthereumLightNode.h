@@ -168,7 +168,7 @@ typedef void (*JsonRpcGetTransactions) (JsonRpcContext context,
 typedef void (*JsonRpcGetLogs) (JsonRpcContext context,
                                 BREthereumLightNode node,
                                 const char *address,
-                                const char *contract, // optional?
+                                const char *event,
                                 int rid);
 
 //
@@ -521,7 +521,7 @@ extern void
 lightNodeUpdateTransactions (BREthereumLightNode node);
 
 extern void
-lightNodeUpdateLogs (BREthereumLightNode node, const char *contract);
+lightNodeUpdateLogs (BREthereumLightNode node, BREthereumEvent event);
 
 #if ETHEREUM_LIGHT_NODE_USE_JSON_RPC
 //
@@ -592,7 +592,18 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
 
 extern void
 lightNodeAnnounceLog (BREthereumLightNode node,
-                      int id);
+                      int id,
+                      const char *strHash,
+                      const char *strContract,
+                      int topicCount,
+                      const char **arrayTopics,
+                      const char *strData,
+                      const char *strGasPrice,
+                      const char *strGasUsed,
+                      const char *strLogIndex,
+                      const char *strBlockNumber,
+                      const char *strBlockTransactionIndex,
+                      const char *strBlockTimestamp);
 
 extern void
 lightNodeAnnounceBalance (BREthereumLightNode node,

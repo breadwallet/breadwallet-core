@@ -35,6 +35,9 @@
 static void
 encodeReverseBytes (uint8_t *t, const uint8_t *s, size_t slen);
 
+static int
+functionIsEncodedInData (BREthereumFunction function, const char *data);
+
 // https://medium.com/@jgm.orinoco/understanding-erc-20-token-contracts-a809a7310aa5
 // https://github.com/ethereum/wiki/wiki/Ethereum-Contract-ABI
 // https://ethereumbuilders.gitbooks.io/guide/content/en/solidity_features.html
@@ -44,6 +47,11 @@ encodeReverseBytes (uint8_t *t, const uint8_t *s, size_t slen);
 // concern is the ERC20 contract - which as less than ten functions
 #define DEFAULT_CONTRACT_FUNCTION_LIMIT   10
 #define DEFAULT_CONTRACT_EVENT_LIMIT       5
+
+
+//
+// Contract Functions
+//
 
 /**
  * Define a function type to encode an argument into 64 characters, per the Ethereum Contract ABI.
@@ -72,6 +80,51 @@ struct BREthereumFunctionRecord {
 #define NULL_FUNCTION  { NULL, NULL, NULL, 0 }
 
 /**
+ *  An address is what: bytes, "0x..." or "..." ?
+ */
+static void argumentEncodeAddress (uint8_t *bytes, size_t bytesCount, uint8_t *target, size_t targetCount) {
+    memset (target, 0, targetCount);
+
+    uint8_t decodedBytes[bytesCount/2];
+    decodeHex(decodedBytes, bytesCount/2, (char *) bytes, bytesCount);
+
+    memcpy (&target[targetCount - bytesCount/2], decodedBytes, bytesCount/2);
+}
+
+/**
+ *
+ */
+static void argumentEncodeUInt256 (uint8_t *bytes, size_t bytesCount, uint8_t *target, size_t targetCount) {
+    assert (32 == bytesCount && 32 == targetCount);
+    // TODO: ENDIAN
+    encodeReverseBytes(target, bytes, bytesCount);
+}
+
+
+//
+// Contract Events
+//
+
+// Topic Coders
+typedef void (*TopicEncodeFunc) (void);
+typedef void (*TopicDecodeFunc) (void);
+
+static void topicEncodeAddress (void);
+static void topicDecodeAddress (void);
+
+static void topicEncodeUInt256 (void);
+static void topicDecodeUInt256 (void);
+
+typedef struct {
+    TopicEncodeFunc encoder;
+    TopicDecodeFunc decoder;
+} TopicCoderPair;
+
+#define coderUInt256  { topicEncodeUInt256, topicDecodeUInt256 }
+#define coderAddress  { topicEncodeAddress, topicDecodeAddress }
+#define coderNULL     { NULL, NULL }
+
+/**
  *
  */
 struct BREthereumEventRecord {
@@ -80,10 +133,48 @@ struct BREthereumEventRecord {
     char *selector;   // signature?  rename; confirm 'function' naming
     // ...
     unsigned int argumentCount;
+    TopicCoderPair topicCoders[5];
     // ...
 };
 
 #define NULL_EVENT { NULL, NULL, NULL, 0 }
+
+static void
+topicEncodeAddress (void) {}
+
+static void
+topicDecodeAddress (void) {}
+
+static void
+topicEncodeUInt256 (void) {}
+
+static void
+topicDecodeUInt256 (void) {}
+
+private_extern char *
+eventERC20TransferDecodeAddress (BREthereumEvent event,
+                                 const char *topic) {
+    assert (event == eventERC20Transfer);
+    // Second argument - skip selector + 1st argument
+    char result[2 + 40 + 1];
+    result[0] = '0';
+    result[1] = 'x';
+    memcpy (&result[2], &topic[2 + 24], 40);  // 24 -> skip '0000...<addr>'
+    result[42] = '\0';
+    return strdup (result);
+}
+
+private_extern UInt256
+eventERC20TransferDecodeUInt256 (BREthereumEvent event,
+                                 const char *number,
+                                 BRCoreParseStatus *status) {
+    return createUInt256Parse(number, 16, status);
+}
+
+extern const char *
+eventGetSelector (BREthereumEvent event) {
+    return event->selector;
+}
 
 /**
  *
@@ -186,8 +277,14 @@ static struct BREthereumContractRecord contractRecordERC20 = {
             "Transfer(address,address,uint256)",
             "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
             // ...
-            3
-            // ...
+            3,
+            {
+                coderAddress,
+                coderAddress,
+                coderUInt256,
+                coderNULL,
+                coderNULL
+            }
         },
         
         {
@@ -195,8 +292,14 @@ static struct BREthereumContractRecord contractRecordERC20 = {
             "Approval(address,address,uint256)",
             "0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925",
             // ...
-            3
-            // ...
+            3,
+            {
+                coderAddress,
+                coderAddress,
+                coderUInt256,
+                coderNULL,
+                coderNULL
+            }
         },
         
         NULL_EVENT, // 3
@@ -209,17 +312,19 @@ BREthereumContract contractERC20 = &contractRecordERC20;
 BREthereumFunction functionERC20Transfer = &contractRecordERC20.functions[2];
 BREthereumEvent eventERC20Transfer = &contractRecordERC20.events[0];
 
-static int
-functionIsEncodedInData (BREthereumFunction function, const char *data) {
-    return NULL != data &&
-    0 == strncmp (function->selector, data, strlen(function->selector));
-}
-
 extern BREthereumFunction
 contractLookupFunctionForEncoding (BREthereumContract contract, const char *encoding) {
     for (int i = 0; i < contract->functionsCount; i++)
         if (functionIsEncodedInData(&contract->functions[i], encoding))
             return &contract->functions[i];
+    return NULL;
+}
+
+extern BREthereumEvent
+contractLookupEventForTopic (BREthereumContract contract, const char *topic) {
+    for (int i = 0; i < contract->eventsCount; i++)
+        if (0 == strcmp (topic, contract->events[i].selector))
+            return &contract->events[i];
     return NULL;
 }
 
@@ -282,27 +387,6 @@ contractEncode (BREthereumContract contract, BREthereumFunction function, ...) {
     return encoding;
 }
 
-/**
- *  An address is what: bytes, "0x..." or "..." ?
- */
-static void argumentEncodeAddress (uint8_t *bytes, size_t bytesCount, uint8_t *target, size_t targetCount) {
-    memset (target, 0, targetCount);
-    
-    uint8_t decodedBytes[bytesCount/2];
-    decodeHex(decodedBytes, bytesCount/2, (char *) bytes, bytesCount);
-    
-    memcpy (&target[targetCount - bytesCount/2], decodedBytes, bytesCount/2);
-}
-
-/**
- *
- */
-static void argumentEncodeUInt256 (uint8_t *bytes, size_t bytesCount, uint8_t *target, size_t targetCount) {
-    assert (32 == bytesCount && 32 == targetCount);
-    // TODO: ENDIAN
-    encodeReverseBytes(target, bytes, bytesCount);
-}
-
 //
 // Support
 //
@@ -312,6 +396,11 @@ encodeReverseBytes (uint8_t *t, const uint8_t *s, size_t slen) {
         t[slen - i - 1] = s[i];
 }
 
+static int
+functionIsEncodedInData (BREthereumFunction function, const char *data) {
+    return NULL != data &&
+    0 == strncmp (function->selector, data, strlen(function->selector));
+}
 
 /* ERC20
 o TotalSupply [Get the total token supply]
@@ -360,3 +449,11 @@ o allowance (address *_owner*, address *_spender*) constant returns (uint256 rem
 
  Implication ->
  */
+
+/*
+              "address":"0x722dd3f80bac40c951b51bdd28dd19d435762180",
+              "topics":["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+                        "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "0x000000000000000000000000bdfdad139440d2db9ba2aa3b7081c2de39291508"],
+              "data":"0x0000000000000000000000000000000000000000000000000000000000002328",
+*/

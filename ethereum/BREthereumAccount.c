@@ -367,7 +367,7 @@ createAccountWithPublicKey (const BRKey key) { // 65 bytes, 0x04-prefixed, uncom
 }
 
 extern BREthereumAccount
-accountCreateDetailed(const char *paperKey, const char *wordList[], const int wordListLength) {
+createAccountDetailed(const char *paperKey, const char *wordList[], const int wordListLength) {
 
     // Validate arguments
     if (NULL == paperKey || NULL == wordList || BIP39_WORDLIST_COUNT != wordListLength)
@@ -386,7 +386,7 @@ createAccount(const char *paperKey) {
     if (NULL == sharedWordList)
         installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
     
-    return accountCreateDetailed(paperKey, sharedWordList, BIP39_WORDLIST_COUNT);
+    return createAccountDetailed(paperKey, sharedWordList, BIP39_WORDLIST_COUNT);
 }
 
 extern void
