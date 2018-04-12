@@ -63,11 +63,20 @@ tokenGetGasLimit (BREthereumToken token);
 extern BREthereumGasPrice
 tokenGetGasPrice (BREthereumToken token);
 
+extern const char *
+tokenGetColorLeft (BREthereumToken token);
+
+extern const char *
+tokenGetColorRight (BREthereumToken token);
+
 extern BREthereumContract
 tokenGetContract (BREthereumToken token);
 
 extern const BREthereumToken tokenBRD;
 extern const BREthereumToken tokenUNK;
+
+extern BREthereumToken
+tokenLookup (const char *address);
 
 //
 // Token Quantity

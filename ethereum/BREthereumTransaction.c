@@ -415,6 +415,15 @@ transactionEncodeHolding (BREthereumTransaction transaction,
     return amountRlpEncode(holding, coder);
 }
 
+static BRRlpItem
+transactionEncodeNonce (BREthereumTransaction transaction,
+                        uint64_t nonce,
+                        BRRlpCoder coder) {
+    return (0 == nonce
+            ? rlpEncodeItemString(coder, "")
+            : rlpEncodeItemUInt64(coder, nonce));
+}
+
 extern BRRlpData
 transactionEncodeRLP (BREthereumTransaction transaction,
                       BREthereumNetwork network,
@@ -425,7 +434,7 @@ transactionEncodeRLP (BREthereumTransaction transaction,
     BRRlpItem items[10];
     size_t itemsCount = 0;
 
-    items[0] = rlpEncodeItemUInt64(coder, transaction->nonce);
+    items[0] = transactionEncodeNonce(transaction, transaction->nonce, coder);
     items[1] = gasPriceRlpEncode(transaction->gasPrice, coder);
     items[2] = gasRlpEncode(transaction->gasLimit, coder);
     items[3] = transactionEncodeAddressForHolding(transaction, transaction->amount, coder);

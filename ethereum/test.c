@@ -1032,6 +1032,32 @@ jsonRpcGetTransactions (JsonRpcContext context,
 }
 
 static void
+jsonRpcGetLogs (JsonRpcContext context,
+                BREthereumLightNode node,
+                const char *addressIgnore,
+                const char *event,
+                int rid) {
+    char *address = lightNodeGetAccountPrimaryAddress(node);
+    const char *topics[] = {
+        "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+        "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "0x000000000000000000000000bdfdad139440d2db9ba2aa3b7081c2de39291508"
+    };
+    lightNodeAnnounceLog (node, rid,
+                          address,
+                          "0x722dd3f80bac40c951b51bdd28dd19d435762180",
+                          3,
+                          topics,
+                          "0x0000000000000000000000000000000000000000000000000000000000002328",
+                          "0xba43b7400",
+                          "0xc64e",
+                          "0x",
+                          "0x1e487e",
+                          "0x",
+                          "0x59fa1ac9");
+}
+
+static void
 runLightNode_JSON_RPC_test (const char *paperKey) {
     printf ("     JSON_RCP\n");
     
@@ -1045,7 +1071,8 @@ runLightNode_JSON_RPC_test (const char *paperKey) {
                                          jsonRpcGetGasPrice,
                                          jsonRpcEstimateGas,
                                          jsonRpcSubmitTransaction,
-                                         jsonRpcGetTransactions);
+                                         jsonRpcGetTransactions,
+                                         jsonRpcGetLogs);
     
     BREthereumLightNode node = createLightNode(configuration, paperKey);
     BREthereumLightNodeWalletId wallet = lightNodeGetWallet(node);
@@ -1108,7 +1135,8 @@ runLightNode_LISTENER_test (const char *paperKey) {
                                          jsonRpcGetGasPrice,
                                          jsonRpcEstimateGas,
                                          jsonRpcSubmitTransaction,
-                                         jsonRpcGetTransactions);
+                                         jsonRpcGetTransactions,
+                                         jsonRpcGetLogs);
 
     BREthereumLightNode node = createLightNode(configuration, paperKey);
 
@@ -1174,13 +1202,12 @@ runLightNode_PUBLIC_KEY_test (const char *paperKey) {
     BREthereumLightNode node1 = createLightNode (lightNodeConfigurationCreateLES(ethereumMainnet, 0), paperKey);
     char *addr1 = lightNodeGetAccountPrimaryAddress (node1);
 
-    uint8_t *publicKey = lightNodeGetAccountPrimaryAddressPublicKey (node1);
+    BRKey publicKey = lightNodeGetAccountPrimaryAddressPublicKey (node1);
     BREthereumLightNode node2 = createLightNodeWithPublicKey (lightNodeConfigurationCreateLES(ethereumMainnet, 0), publicKey);
     char *addr2 = lightNodeGetAccountPrimaryAddress (node2);
 
     assert (0 == strcmp (addr1, addr2));
 
-    free (publicKey);
     free (addr1);
     free(addr2);
 }
@@ -1192,6 +1219,21 @@ void runLightNodeTests () {
     runLightNode_TOKEN_test (NODE_PAPER_KEY);
     runLightNode_LISTENER_test (NODE_PAPER_KEY);
     runLightNode_PUBLIC_KEY_test (NODE_PAPER_KEY);
+}
+
+void runTokenTests () {
+    printf ("==== Token\n");
+
+    BREthereumToken token;
+
+    token = tokenLookup ("0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"); // BRD
+    assert (NULL != token);
+
+    token = tokenLookup("0x722dd3f80bac40c951b51bdd28dd19d435762180"); // UNK
+    assert (NULL != token);
+
+    token = tokenLookup("0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0"); // EOI
+    assert (NULL != token);
 }
 
 // Local (PaperKey) -> LocalTest @ 5 GWEI gasPrice @ 21000 gasLimit & 0.0001/2 ETH
@@ -1227,6 +1269,7 @@ runTests (void) {
     runTokenParseTests();
     runRlpTest();
     runAccountTests();
+    runTokenTests ();
     runLightNodeTests();
     //    reallySend();
     printf ("Done\n");
