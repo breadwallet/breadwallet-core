@@ -1229,7 +1229,7 @@ void runTokenTests () {
     token = tokenLookup ("0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"); // BRD
     assert (NULL != token);
 
-    token = tokenLookup("0x722dd3f80bac40c951b51bdd28dd19d435762180"); // UNK
+    token = tokenLookup("0x3efd578b271d034a69499e4a2d933c631d44b9ad"); // TST: mainnet
     assert (NULL != token);
 
     token = tokenLookup("0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0"); // EOI

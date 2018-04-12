@@ -1176,7 +1176,11 @@ static struct BREthereumTokenRecord tokens[] =
 };
 
 struct BREthereumTokenRecord tokenUNKRecord = {
-    "0x722dd3f80bac40c951b51bdd28dd19d435762180", // "0x5250776FAD5A73707d222950de7999d3675a2722",
+#if defined (BITCOIN_TESTNET) && 1 == BITCOIN_TESTNET
+    "0x722dd3f80bac40c951b51bdd28dd19d435762180", // testnet,
+#else
+    "0x3efd578b271d034a69499e4a2d933c631d44b9ad", // mainnet
+#endif
     "UNK",
     "Unknown Token",
     "An Unknown Token ...",
