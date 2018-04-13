@@ -471,6 +471,11 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceTransaction
                                  (*env)->GetStringUTFChars (env, isErrorObject, 0));
 }
 
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniAnnounceLog
+ * Signature: (ILjava/lang/String;Ljava/lang/String;[Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+ */
 JNIEXPORT void JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceLog
         (JNIEnv *env, jobject thisObject,
