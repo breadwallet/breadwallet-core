@@ -34,6 +34,10 @@
 extern "C" {
 #endif
 
+typedef struct {
+    size_t bytesCount;
+    uint8_t *bytes;
+} BRRlpData;
 
 typedef struct {
   void *identifier;
@@ -48,21 +52,57 @@ rlpCoderCreate (void);
 extern void
 rlpCoderRelease (BRRlpCoder coder);
 
+//
+// UInt64
+//
 extern BRRlpItem
 rlpEncodeItemUInt64 (BRRlpCoder coder, uint64_t value);
 
+extern uint64_t
+rlpDecodeItemUInt64(BRRlpCoder coder, BRRlpItem item);
+
+//
+// UInt256
+//
 extern BRRlpItem
 rlpEncodeItemUInt256 (BRRlpCoder coder, UInt256 value);
 
+extern UInt256
+rlpDecodeItemUInt256 (BRRlpCoder coder, BRRlpItem item);
+
+//
+// Bytes
+//
 extern BRRlpItem
 rlpEncodeItemBytes (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount);
 
+extern BRRlpData
+rlpDecodeItemBytes (BRRlpCoder coder, BRRlpItem item);
+
+//
+// String
+//
 extern BRRlpItem
 rlpEncodeItemString (BRRlpCoder coder, char *string);
 
+extern char *
+rlpDecodeItemString (BRRlpCoder coder, BRRlpItem item);
+
+extern int
+rlpDecodeItemIsString (BRRlpCoder coder, BRRlpItem item);
+
+//
+// Hex String
+//
 extern BRRlpItem
 rlpEncodeItemHexString (BRRlpCoder coder, char *string);
 
+extern char *
+rlpDecodeItemHexString (BRRlpCoder coder, BRRlpItem item, const char *prefix);
+
+//
+// List
+//
 extern BRRlpItem
 rlpEncodeList1 (BRRlpCoder coder, BRRlpItem item1);
 
@@ -75,22 +115,26 @@ rlpEncodeList (BRRlpCoder coder, size_t count, ...);
 extern BRRlpItem
 rlpEncodeListItems (BRRlpCoder coder, BRRlpItem *items, size_t itemsCount);
 
+extern const BRRlpItem *
+rlpDecodeList (BRRlpCoder coder, BRRlpItem item, size_t *itemsCount);
+    
 // Hold onto BRRlpItem 'forever'... then try to use... will fail because 'coder'
 // will not have 'context'
 extern void
-rlpGetData (BRRlpCoder coder, BRRlpItem item, uint8_t **bytes, size_t *bytesCount);
+rlpDataExtract (BRRlpCoder coder, BRRlpItem item, uint8_t **bytes, size_t *bytesCount);
 
-typedef struct {
-  size_t bytesCount;
-  uint8_t *bytes;
-} BRRlpData;
-
+    //
+    // RLPData
+    //
 extern BRRlpData
 createRlpDataEmpty (void);
 
 extern void
 rlpDataRelease (BRRlpData data);
-  
+
+extern BRRlpItem
+rlpGetItem (BRRlpCoder coder, BRRlpData data);
+
 #ifdef __cplusplus
 }
 #endif

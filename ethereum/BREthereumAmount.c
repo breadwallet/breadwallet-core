@@ -65,6 +65,19 @@ amountGetTokenQuantity (BREthereumAmount amount) {
     return amount.u.tokenQuantity;
 }
 
+extern BREthereumComparison
+amountCompare (BREthereumAmount a1, BREthereumAmount a2, int *typeMismatch) {
+    assert (NULL != typeMismatch);
+    *typeMismatch = (a1.type != a2.type);
+    if (*typeMismatch) return ETHEREUM_COMPARISON_GT;
+    switch (a1.type) {
+        case AMOUNT_ETHER:
+            return etherCompare(a1.u.ether, a2.u.ether);
+        case AMOUNT_TOKEN:
+            return tokenQuantityCompare(a1.u.tokenQuantity, a2.u.tokenQuantity, typeMismatch);
+    }
+}
+
 extern BREthereumGas
 amountGetGasEstimate (BREthereumAmount amount) {
     switch (amount.type) {
@@ -87,6 +100,16 @@ amountRlpEncode(BREthereumAmount amount, BRRlpCoder coder) {
     }
 }
 
+extern BREthereumAmount
+amountRlpDecodeAsEther (BRRlpItem item, BRRlpCoder coder) {
+    return amountCreateEther(etherRlpDecode(item, coder));
+}
+
+extern BREthereumAmount
+amountRlpDecodeAsToken (BRRlpItem item, BRRlpCoder coder, BREthereumToken token) {
+    return amountCreateToken(createTokenQuantity(token, rlpDecodeItemUInt256 (coder, item)));
+}
+ 
 //
 // Parse
 //

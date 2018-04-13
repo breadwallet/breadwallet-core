@@ -75,6 +75,9 @@ amountGetEther (BREthereumAmount amount);
 extern BREthereumTokenQuantity
 amountGetTokenQuantity (BREthereumAmount amount);
 
+extern BREthereumComparison
+amountCompare (BREthereumAmount a1, BREthereumAmount a2, int *typeMismatch);
+
 /**
  * An estimate of the Gas required to transfer amount.  For ETHER this is 'fixed' as 22000; for
  * TOKEN this is derived from the token's properties.
@@ -84,6 +87,12 @@ amountGetGasEstimate (BREthereumAmount amount);
 
 extern BRRlpItem
 amountRlpEncode(BREthereumAmount amount, BRRlpCoder coder);
+
+extern BREthereumAmount
+amountRlpDecodeAsEther (BRRlpItem item, BRRlpCoder coder);
+
+extern BREthereumAmount
+amountRlpDecodeAsToken (BRRlpItem item, BRRlpCoder coder, BREthereumToken token);
 
 //
 // Parsing

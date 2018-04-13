@@ -124,6 +124,11 @@ etherRlpEncode (const BREthereumEther ether, BRRlpCoder coder) {
 }
 
 extern BREthereumEther
+etherRlpDecode (BRRlpItem item, BRRlpCoder coder) {
+    return etherCreate(rlpDecodeItemUInt256 (coder, item));
+}
+
+extern BREthereumEther
 etherAdd (BREthereumEther e1, BREthereumEther e2, int *overflow) {
     BREthereumEther result;
     result.valueInWEI = addUInt256_Overflow(e1.valueInWEI, e2.valueInWEI, overflow);

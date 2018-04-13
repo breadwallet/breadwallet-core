@@ -123,6 +123,9 @@ extern char *
 tokenQuantityGetValueString(const BREthereumTokenQuantity quantity,
                             BREthereumTokenQuantityUnit unit);
 
+extern BREthereumComparison
+tokenQuantityCompare (BREthereumTokenQuantity q1, BREthereumTokenQuantity q2, int *typeMismatch);
+
 #ifdef __cplusplus
 }
 #endif

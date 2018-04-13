@@ -37,7 +37,8 @@
 //#include "BRKey.h"
 #include "../BRBIP39WordsEn.h"
 
-#include "BREthereum.h"
+//#include "BREthereum.h"
+#include "BREthereumPrivate.h"
 
 static void
 showHex (uint8_t *source, size_t sourceLen) {
@@ -512,7 +513,7 @@ int equalBytes (uint8_t *a, size_t aLen, uint8_t *b, size_t bLen) {
 void rlpCheck (BRRlpCoder coder, BRRlpItem item, uint8_t *result, size_t resultSize) {
     BRRlpData data;
     
-    rlpGetData(coder, item, &data.bytes, &data.bytesCount);
+    rlpDataExtract(coder, item, &data.bytes, &data.bytesCount);
     assert (equalBytes(data.bytes, data.bytesCount, result, resultSize));
     printf (" => "); showHex (data.bytes, data.bytesCount);
     
@@ -529,8 +530,8 @@ void rlpCheckInt (BRRlpCoder coder, uint64_t value, uint8_t *result, size_t resu
     rlpCheck(coder, rlpEncodeItemUInt64(coder, value), result, resultSize);
 }
 
-void runRlpTest () {
-    printf ("==== RLP\n");
+void runRlpEncodeTest () {
+    printf ("         Encode\n");
     
     BRRlpCoder coder = rlpCoderCreate();
     
@@ -564,7 +565,7 @@ void runRlpTest () {
     UInt256 r = createUInt256Parse(value, 10, &status);
     BRRlpItem item = rlpEncodeItemUInt256(coder, r);
     BRRlpData data;
-    rlpGetData(coder, item, &data.bytes, &data.bytesCount);
+    rlpDataExtract(coder, item, &data.bytes, &data.bytesCount);
     printf ("  %s\n    => ", value); showHex (data.bytes, data.bytesCount);
     char *dataHex = encodeHexCreate(NULL, data.bytes, data.bytesCount);
     printf ("    => %s\n", dataHex);
@@ -573,6 +574,57 @@ void runRlpTest () {
     
     rlpCoderRelease(coder);
     printf ("\n");
+}
+
+void runRlpDecodeTest () {
+    printf ("         Decode\n");
+    BRRlpCoder coder = rlpCoderCreate();
+    size_t c;
+
+    // cat & dog
+    uint8_t l1b[] = RLP_L1_RES;
+    BRRlpData l1d;
+    l1d.bytes = l1b;
+    l1d.bytesCount = 9;
+
+    BRRlpItem l1i = rlpGetItem(coder, l1d);
+    const BRRlpItem *l1is = rlpDecodeList (coder, l1i, &c);
+    assert (2 == c);
+
+    char *liCat = rlpDecodeItemString(coder, l1is[0]);
+    char *liDog = rlpDecodeItemString(coder, l1is[1]);
+    assert (0 == strcmp (liCat, "cat"));
+    assert (0 == strcmp (liDog, "dog"));
+    free (liCat);
+    free (liDog);
+
+    uint8_t s3b[] = RLP_S3_RES;
+    BRRlpData s3d;
+    s3d.bytes = s3b;
+    s3d.bytesCount = 58;
+
+    BRRlpItem s3i = rlpGetItem(coder, s3d);
+    char *s3Lorem = rlpDecodeItemString(coder, s3i);
+    assert (0 == strcmp (s3Lorem, RLP_S3));
+    free (s3Lorem);
+
+    //
+    uint8_t v3b[] = RLP_V3_RES;
+    BRRlpData v3d;
+    v3d.bytes = v3b;
+    v3d.bytesCount = 3;
+
+    BRRlpItem v3i = rlpGetItem(coder, v3d);
+    int v3v = rlpDecodeItemUInt64(coder, v3i);
+    assert (1024 == v3v);
+
+    rlpCoderRelease(coder);
+}
+
+void runRlpTest () {
+    printf ("==== RLP\n");
+    runRlpEncodeTest ();
+    runRlpDecodeTest ();
 }
 
 //
@@ -834,10 +886,11 @@ void runTransactionTests2 (BREthereumAccount account, BREthereumNetwork network)
 #define TEST_TRANS3_NONCE 423490
 #define TEST_TRANS3_DECIMAL_AMOUNT "5968.77"
 
-#define TEST_TRANS3_UNSIGNED_TX "f86d83067642850ba43b74008301246a94558ec3152e2eb2174905cd19aea4e34a23de9ad680b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000001439152d319e84d0000018080" // Add 018080 (v,r,s); adjust header count
-                                                                                                                                                                                                                                                                 // Answer: "0xf8ad 83067642 850ba43b7400 8301246a 94,558ec3152e2eb2174905cd19aea4e34a23de9ad6_80_b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000001439152d319e84d0000"
-                                                                                                                                                                                                                                                                 // Error :    f86d 83067642 850ba43b7400 8301246a 94,558ec3152e2eb2174905cd19aea4e34a23de9ad6_00_b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000001439152d319e84d0000018080
-                                                                                                                                                                                                                                                                 //                                                                                            **  => amount = 0 => encoded as empty bytes, not numeric 0
+#define TEST_TRANS3_UNSIGNED_TX "f86d83067642850ba43b74008301246a94558ec3152e2eb2174905cd19aea4e34a23de9ad680b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000001439152d319e84d0000018080"
+// Add 018080 (v,r,s); adjust header count
+// Answer: "0xf8ad 83067642 850ba43b7400 8301246a 94,558ec3152e2eb2174905cd19aea4e34a23de9ad6_80_b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000001439152d319e84d0000"
+// Error :    f86d 83067642 850ba43b7400 8301246a 94,558ec3152e2eb2174905cd19aea4e34a23de9ad6_00_b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000001439152d319e84d0000018080
+//                                                                                            **  => amount = 0 => encoded as empty bytes, not numeric 0
 
 void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network) {
     printf ("     TEST 3\n");
@@ -911,6 +964,90 @@ void runAccountTests () {
 //  Result      f86b 01 8477359400 825208 94,873feb0644a6fbb9532bb31d1c03d4538aadec30 8806f05b59d3b20000 80 1b,a053ee5877032551f52da516c83620273312c8ab5a773d482dd60a772bb4a39938a07e187ee2335bfcfa3d20119e0e424d9ef5a81452dadee91ef2daf40081fdc454
 //  Raw:      0xf86b 01 8477359400 825208 94,873feb0644a6fbb9532bb31d1c03d4538aadec30 8806f05b59d3b20000 80 26,a030013044b571726723302bcf8dfad8765cf676db0844277a6f8cf63d04894008a069edd285604fdf010d96b8b7d9c547f9599b8ac51c50b8b97076bb9955c0bdde
 #define NODE_RESULT "01 8477359400 825208 94,873feb0644a6fbb9532bb31d1c03d4538aadec30 8806f05b59d3b20000 80 1b,a0594c2fe40942a9dbd75b9cdd09397016592fc98ae24226f41706c5004c6608d0a072861c46ae62f4aae06eba04e5708b9421d2fcf21fa7f02aed1ff04accd405e3"
+
+void testTransactionCodingEther () {
+    printf ("     Coding Transaction\n");
+
+    BREthereumAccount account = createAccount (NODE_PAPER_KEY);
+    BREthereumWallet wallet = walletCreate(account, ethereumMainnet);
+
+    BREthereumAddress txRecvAddr = createAddress(NODE_RECV_ADDR);
+    BREthereumAmount txAmount = amountCreateEther(etherCreate(createUInt256(NODE_ETHER_AMOUNT)));
+    BREthereumGasPrice txGasPrice = gasPriceCreate(etherCreate(createUInt256(NODE_GAS_PRICE_VALUE)));
+    BREthereumGas txGas = gasCreate(NODE_GAS_LIMIT);
+    BREthereumTransaction transaction = walletCreateTransactionDetailed(wallet,
+                                                                        txRecvAddr,
+                                                                        txAmount,
+                                                                        txGasPrice,
+                                                                        txGas,
+                                                                        NODE_NONCE);
+    walletSignTransaction(wallet, transaction, NODE_PAPER_KEY);
+
+    BRRlpData data = walletGetRawTransaction (wallet, transaction);
+    char *rawTx = encodeHexCreate(NULL, data.bytes, data.bytesCount);
+    printf ("        Raw Transaction: 0x%s\n", rawTx);
+
+    BREthereumTransaction decodedTransaction = transactionDecodeRLP(ethereumMainnet, TRANSACTION_RLP_SIGNED, data);
+
+    assert (transactionGetNonce(transaction) == transactionGetNonce(decodedTransaction));
+    assert (ETHEREUM_COMPARISON_EQ == gasPriceCompare(transactionGetGasPrice(transaction),
+                                                      transactionGetGasPrice(decodedTransaction)));
+    assert (ETHEREUM_COMPARISON_EQ == gasCompare(transactionGetGasLimit(transaction),
+                                                 transactionGetGasLimit(decodedTransaction)));
+    int typeMismatch = 0;
+    assert (ETHEREUM_COMPARISON_EQ == amountCompare(transactionGetAmount(transaction),
+                                                    transactionGetAmount(decodedTransaction),
+                                                    &typeMismatch));
+
+    assert (ETHEREUM_BOOLEAN_TRUE == addressEqual(transactionGetTargetAddress(transaction),
+                                                  transactionGetTargetAddress(decodedTransaction)));
+
+    // Signature
+    assert (ETHEREUM_BOOLEAN_TRUE == signatureEqual(transactionGetSignature (transaction),
+                                                    transactionGetSignature (decodedTransaction)));
+}
+
+void testTransactionCodingToken () {
+    printf ("     Coding Transaction\n");
+
+    BREthereumAccount account = createAccount (NODE_PAPER_KEY);
+    BREthereumWallet wallet = walletCreateHoldingToken(account, ethereumMainnet, tokenBRD);
+
+    BREthereumAddress txRecvAddr = createAddress(NODE_RECV_ADDR);
+    BREthereumAmount txAmount = amountCreateToken(createTokenQuantity(tokenBRD, createUInt256(NODE_ETHER_AMOUNT)));
+    BREthereumGasPrice txGasPrice = gasPriceCreate(etherCreate(createUInt256(NODE_GAS_PRICE_VALUE)));
+    BREthereumGas txGas = gasCreate(NODE_GAS_LIMIT);
+    BREthereumTransaction transaction = walletCreateTransactionDetailed(wallet,
+                                                                        txRecvAddr,
+                                                                        txAmount,
+                                                                        txGasPrice,
+                                                                        txGas,
+                                                                        NODE_NONCE);
+    walletSignTransaction(wallet, transaction, NODE_PAPER_KEY);
+
+    BRRlpData data = walletGetRawTransaction (wallet, transaction);
+    char *rawTx = encodeHexCreate(NULL, data.bytes, data.bytesCount);
+    printf ("        Raw Transaction: 0x%s\n", rawTx);
+
+    BREthereumTransaction decodedTransaction = transactionDecodeRLP(ethereumMainnet, TRANSACTION_RLP_SIGNED, data);
+
+    assert (transactionGetNonce(transaction) == transactionGetNonce(decodedTransaction));
+    assert (ETHEREUM_COMPARISON_EQ == gasPriceCompare(transactionGetGasPrice(transaction),
+                                                      transactionGetGasPrice(decodedTransaction)));
+    assert (ETHEREUM_COMPARISON_EQ == gasCompare(transactionGetGasLimit(transaction),
+                                                 transactionGetGasLimit(decodedTransaction)));
+    int typeMismatch = 0;
+    assert (ETHEREUM_COMPARISON_EQ == amountCompare(transactionGetAmount(transaction),
+                                                    transactionGetAmount(decodedTransaction),
+                                                    &typeMismatch));
+
+    assert (ETHEREUM_BOOLEAN_TRUE == addressEqual(transactionGetTargetAddress(transaction),
+                                                  transactionGetTargetAddress(decodedTransaction)));
+
+    // Signature
+    assert (ETHEREUM_BOOLEAN_TRUE == signatureEqual(transactionGetSignature (transaction),
+                                                    transactionGetSignature (decodedTransaction)));
+}
 
 void prepareTransaction (const char *paperKey, const char *recvAddr, const uint64_t gasPrice, const uint64_t gasLimit, const uint64_t amount) {
     printf ("     Prepare Transaction\n");
@@ -1116,6 +1253,7 @@ blockEventHandler (BREthereumLightNodeListenerContext context,
 static void
 transactionEventHandler (BREthereumLightNodeListenerContext context,
                     BREthereumLightNode node,
+                    BREthereumLightNodeWalletId wid,
                     BREthereumLightNodeTransactionId tid,
                     BREthereumLightNodeTransactionEvent event) {
     fprintf (stdout, "         TransEvent: tid=%d, ev=%d\n", tid, event);
@@ -1214,7 +1352,9 @@ runLightNode_PUBLIC_KEY_test (const char *paperKey) {
 
 void runLightNodeTests () {
     printf ("==== Light Node\n");
-    prepareTransaction(NODE_PAPER_KEY, NODE_RECV_ADDR, TEST_TRANS2_GAS_PRICE_VALUE, GAS_LIMIT_DEFAULT, NODE_ETHER_AMOUNT);
+//    prepareTransaction(NODE_PAPER_KEY, NODE_RECV_ADDR, TEST_TRANS2_GAS_PRICE_VALUE, GAS_LIMIT_DEFAULT, NODE_ETHER_AMOUNT);
+    testTransactionCodingEther ();
+    testTransactionCodingToken ();
     runLightNode_JSON_RPC_test(NODE_PAPER_KEY);
     runLightNode_TOKEN_test (NODE_PAPER_KEY);
     runLightNode_LISTENER_test (NODE_PAPER_KEY);

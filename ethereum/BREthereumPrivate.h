@@ -26,7 +26,7 @@
 #ifndef BR_Ethereum_Private_H
 #define BR_Ethereum_Private_H
 
-#import "BREthereum.h"
+#include "BREthereum.h"
 
 // Returns Ether appropriate for encoding a transaction.  If the transaction is for a TOKEN,
 // then the returned Ether is zero (because the amount of a TOKEN transfer is encoded in the

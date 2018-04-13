@@ -185,6 +185,18 @@ tokenQuantityGetValueString(const BREthereumTokenQuantity quantity,
     : coerceStringDecimal(quantity.valueAsInteger, quantity.token->decimals);
 }
 
+extern BREthereumComparison
+tokenQuantityCompare (BREthereumTokenQuantity q1, BREthereumTokenQuantity q2, int *typeMismatch) {
+    *typeMismatch = (q1.token != q2.token);
+    if (*typeMismatch) return ETHEREUM_COMPARISON_GT;
+    switch (compareUInt256(q1.valueAsInteger, q2.valueAsInteger)) {
+        case -1: return ETHEREUM_COMPARISON_LT;
+        case  0: return ETHEREUM_COMPARISON_EQ;
+        case +1: return ETHEREUM_COMPARISON_GT;
+        default: return ETHEREUM_COMPARISON_GT;
+    }
+}
+
 // var tf = function (tokens) { return 1; }
 // {"code":"SNGLS","colors":["FAFAFA","FAFAFA"],"name":"Singular DTV","decimal":"0","address":"0xaeC2E87E0A235266D9C5ADc9DEb4b2E29b54D009"}
 //var tokensInJSONToC = function (tokens) {

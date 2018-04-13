@@ -285,6 +285,13 @@ addressHasString (BREthereumAddress address,
             : ETHEREUM_BOOLEAN_FALSE);
 }
 
+extern BREthereumBoolean
+addressEqual (BREthereumAddress a1, BREthereumAddress a2) {
+    return (0 == strcmp (a1->string, a2->string)
+            ? ETHEREUM_BOOLEAN_TRUE
+            : ETHEREUM_BOOLEAN_FALSE);
+}
+
 extern char *
 addressAsString (BREthereumAddress address) {
     return strndup (address->string, 43);
@@ -328,6 +335,11 @@ addressPublicKeyAsString (BREthereumAddress address, int compressed) {
 extern BRRlpItem
 addressRlpEncode (BREthereumAddress address, BRRlpCoder coder) {
     return rlpEncodeItemHexString(coder, address->string);
+}
+
+extern BREthereumAddress
+addressRlpDecode (BRRlpItem item, BRRlpCoder coder) {
+    return createAddress(rlpDecodeItemHexString (coder, item, "0x"));
 }
 
 //
@@ -441,6 +453,13 @@ accountCreateAddress (BREthereumAccount account, UInt512 seed, uint32_t index) {
 //
 // Signature
 //
+extern BREthereumBoolean
+signatureEqual (BREthereumSignature s1, BREthereumSignature s2) {
+    return (0 == memcmp(&s1, &s2, sizeof (BREthereumSignature))
+            ? ETHEREUM_BOOLEAN_TRUE
+            : ETHEREUM_BOOLEAN_FALSE);
+}
+
 extern BREthereumSignature
 accountSignBytesWithPrivateKey(BREthereumAccount account,
                  BREthereumAddress address,

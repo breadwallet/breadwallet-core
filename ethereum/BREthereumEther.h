@@ -110,6 +110,9 @@ extern BRRlpItem
 etherRlpEncode (const BREthereumEther ether, BRRlpCoder coder);
 
 extern BREthereumEther
+etherRlpDecode (BRRlpItem item, BRRlpCoder coder);
+    
+extern BREthereumEther
 etherAdd (BREthereumEther e1, BREthereumEther e2, int *overflow);
 
 extern BREthereumEther

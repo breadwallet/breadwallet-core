@@ -73,6 +73,11 @@ contextRelease (BRRlpContext context) {
     if (NULL != context.items) free (context.items);
 }
 
+static int
+contextIsValid (BRRlpContext context) {
+    return NULL != context.coder;
+}
+
 static BRRlpContext
 createContextItem (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount, int takeBytes) {
     // assert (bytesCount > 0);
@@ -105,7 +110,7 @@ createContextList (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount, int take
 }
 
 /**
- * Return a new BRRlpContext by appending the two proviedd contexts.  Both provided contexts
+ * Return a new BRRlpContext by appending the two provided contexts.  Both provided contexts
  * must be for CODER_ITEM (othewise an 'assert' is raised); the appending is performed by simply
  * concatenating the two context's byte arrays.
  *
@@ -136,7 +141,7 @@ createContextItemAppend (BRRlpCoder coder, BRRlpContext context1, BRRlpContext c
 }
 
 /**
- * And RLP Coder holds Contexts; any held Context can be encode into an array of bytes (uint8_t)
+ * And RLP Coder holds Contexts; any held Context can be encoded into an array of bytes (uint8_t)
  * using coderContextFillData() or the public funtion rlpGetData().
  */
 struct BRRlpCoderRecord {
@@ -211,7 +216,7 @@ coderAddContext (BRRlpCoder coder, BRRlpContext context) {
  * Return the index of the first non-zero byte; if all bytes are zero, bytesCount is returned
  */
 static int
-coderNonZeroIndex (uint8_t *bytes, size_t bytesCount) {
+findNonZeroIndex (uint8_t *bytes, size_t bytesCount) {
     for (int i = 0; i < bytesCount; i++)
         if (bytes[i] != 0) return i;
     return (int) bytesCount;
@@ -223,7 +228,7 @@ coderNonZeroIndex (uint8_t *bytes, size_t bytesCount) {
  * Note: target and source must not overlap.
  */
 static void
-coderConvertToBigEndian (uint8_t *target, uint8_t *source, size_t count) {
+swapBytesIfLittleEndian (uint8_t *target, uint8_t *source, size_t count) {
     assert (target != source);  // common overlap case, but wholely insufficient.
     for (int i = 0; i < count; i++) {
 #if BYTE_ORDER == LITTLE_ENDIAN
@@ -234,13 +239,18 @@ coderConvertToBigEndian (uint8_t *target, uint8_t *source, size_t count) {
     }
 }
 
+/**
+ * Fill `length` bytes formatted as big-endian into `target` from `source`.  Set `targetIndex`
+ * as the `target` index of the first non-zero value; set `targetCount` is the number of bytes
+ * after `targetIndex`.
+ */
 static void
-coderConvertToBigEndianAndNormalize (uint8_t *target, uint8_t *source, size_t length, size_t *targetIndex, size_t *targetCount) {
+convertToBigEndianAndNormalize (uint8_t *target, uint8_t *source, size_t length, size_t *targetIndex, size_t *targetCount) {
     assert (length <= CODER_NUMBER_BYTES_LIMIT);
     
-    coderConvertToBigEndian (target, source, length);
+    swapBytesIfLittleEndian (target, source, length);
     
-    *targetIndex = coderNonZeroIndex(target, length);
+    *targetIndex = findNonZeroIndex(target, length);
     *targetCount = length - *targetIndex;
     
     if (0 == *targetCount) {
@@ -249,10 +259,29 @@ coderConvertToBigEndianAndNormalize (uint8_t *target, uint8_t *source, size_t le
     }
 }
 
+/**
+ * Fill `targetCount` bytes into `target` using the big-endian formatted `bytesCount` at `bytes`.
+ */
+static void
+convertFromBigEndian (uint8_t *target, size_t targetCount, uint8_t *bytes, size_t bytesCount) {
+    // Bytes represents a number in big-endian              : 04 00
+    // Fill out the number with prefix zeros                : 00 00 00 00 00 00 04 00
+    // Copy the bytes into target, swap if little endian    : 00 04 00 00 00 00 00 00
+    uint8_t value[targetCount];
+    memset (value, 0, targetCount);
+    memcpy (&value[targetCount - bytesCount], bytes, bytesCount);
+
+    swapBytesIfLittleEndian(target, value, targetCount);
+}
+
+#define RLP_PREFIX_BYTES  (0x80)
+#define RLP_PREFIX_LIST   (0xc0)
+#define RLP_PREFIX_LENGTH_LIMIT  (55)
+
 static BRRlpContext
 coderEncodeLength (BRRlpCoder coder, uint64_t length, uint8_t baseline) {
     // If the length is small, simply encode a single byte as (baseline + length)
-    if (length < 56) {
+    if (length <= RLP_PREFIX_LENGTH_LIMIT) {
         uint8_t encoding = baseline + length;
         return createContextItem (coder, &encoding, 1, 0);
     }
@@ -264,32 +293,67 @@ coderEncodeLength (BRRlpCoder coder, uint64_t length, uint8_t baseline) {
         size_t bytesIndex;          // Index of the first non-zero byte
         size_t bytesCount;          // The number of bytes to encode (beyond index)
         
-        coderConvertToBigEndianAndNormalize (bytes, (uint8_t *) &length, lengthSize, &bytesIndex, &bytesCount);
+        convertToBigEndianAndNormalize (bytes, (uint8_t *) &length, lengthSize, &bytesIndex, &bytesCount);
         
-        // The encoding a a header byte with the bytesCount and then the big_endian bytes themselves.
+        // The encoding - a header byte with the bytesCount and then the big_endian bytes themselves.
         uint8_t encoding [1 + bytesCount];
-        encoding[0] = baseline + 55 + bytesCount;
+        encoding[0] = baseline + RLP_PREFIX_LENGTH_LIMIT + bytesCount;
         memcpy (&encoding[1], &bytes[bytesIndex], bytesCount);
         return createContextItem(coder, encoding, 1 + bytesCount, 0);
+    }
+}
+
+static uint64_t
+coderDecodeLength (BRRlpCoder coder, uint8_t *bytes, uint8_t baseline, uint8_t *offset) {
+    uint8_t prefix = bytes[0];
+
+    *offset = 0;
+    if (prefix < baseline) return 1;
+
+    else if ((prefix - baseline) <= RLP_PREFIX_LENGTH_LIMIT) {
+        *offset = 1; // just prefix
+        return (prefix - baseline);
+    }
+    else {
+        // Number of bytes encoding the length
+        size_t lengthByteCount = (prefix - baseline) - RLP_PREFIX_LENGTH_LIMIT;
+        *offset = 1 + lengthByteCount; // prefix + length bytes
+
+        // Result
+        uint64_t length = 0;
+        size_t lengthSize = sizeof (uint64_t);
+        assert (lengthByteCount <= lengthSize);
+
+        convertFromBigEndian((uint8_t*)&length, lengthSize, &bytes[1], lengthByteCount);
+//        // A big-endian byte array.
+//        uint8_t bytesValue [lengthSize];
+//        memset (bytesValue, 0, lengthSize);
+//        memcpy (&bytesValue[8 - lengthByteCount], &bytes[1], lengthByteCount);
+//
+//        coderSwapBytesIfLittleEndian((uint8_t*)&length, bytesValue, lengthSize);
+        return length;
     }
 }
 
 static BRRlpContext
 coderEncodeBytes(BRRlpCoder coder, uint8_t *bytes, size_t bytesCount) {
     // Encode a single byte directly
-    if (1 == bytesCount && bytes[0] < 0x80) {
+    if (1 == bytesCount && bytes[0] < RLP_PREFIX_BYTES) {
         return createContextItem(coder, bytes, 1, 0);
     }
     
     // otherwise, encode the length and then the bytes themselves
     else {
         return createContextItemAppend(coder,
-                                       coderEncodeLength(coder, bytesCount, 0x80),
+                                       coderEncodeLength(coder, bytesCount, RLP_PREFIX_BYTES),
                                        createContextItem(coder, bytes, bytesCount, 0),
                                        1);
     }
 }
 
+//
+// Number
+//
 static BRRlpContext
 coderEncodeNumber (BRRlpCoder coder, uint8_t *source, size_t sourceCount) {
     // Encode a number by converting the number to a big_endian representation and then simply
@@ -298,21 +362,54 @@ coderEncodeNumber (BRRlpCoder coder, uint8_t *source, size_t sourceCount) {
     size_t bytesIndex;           // Index of the first non-zero byte
     size_t bytesCount;           // The number of bytes to encode
     
-    coderConvertToBigEndianAndNormalize (bytes, source, sourceCount, &bytesIndex, &bytesCount);
+    convertToBigEndianAndNormalize (bytes, source, sourceCount, &bytesIndex, &bytesCount);
     
     return coderEncodeBytes(coder, &bytes[bytesIndex], bytesCount);
 }
 
+static void
+coderDecodeNumber (BRRlpCoder coder, uint8_t *target, size_t targetCount, uint8_t *bytes, size_t bytesCount) {
+    uint8_t offset = 0;
+    uint64_t length = coderDecodeLength(coder, bytes, RLP_PREFIX_BYTES, &offset);
+
+    convertFromBigEndian(target, targetCount, &bytes[offset], length);
+}
+
+//
+// UInt64
+//
 static BRRlpContext
 coderEncodeUInt64 (BRRlpCoder coder, uint64_t value) {
     return coderEncodeNumber(coder, (uint8_t *) &value, sizeof(value));
 }
 
+static uint64_t
+coderDecodeUInt64 (BRRlpCoder coder, BRRlpContext context) {
+    assert (contextIsValid(context));
+    uint64_t value = 0;
+    coderDecodeNumber (coder, (uint8_t*)&value, sizeof(uint64_t), context.bytes, context.bytesCount);
+    return value;
+}
+
+//
+// UInt256
+//
 static BRRlpContext
 coderEncodeUInt256 (BRRlpCoder coder, UInt256 value) {
     return coderEncodeNumber(coder, (uint8_t *) &value, sizeof(value));
 }
 
+static UInt256
+coderDecodeUInt256 (BRRlpCoder coder, BRRlpContext context) {
+    assert (contextIsValid(context));
+    UInt256 value = UINT256_ZERO;
+    coderDecodeNumber (coder, (uint8_t*)&value, sizeof (UInt256), context.bytes, context.bytesCount);
+    return value;
+}
+
+//
+// List
+//
 static BRRlpContext
 coderEncodeList (BRRlpCoder coder, BRRlpItem *items, size_t itemsCount) {
     // Validate the items
@@ -339,9 +436,9 @@ coderEncodeList (BRRlpCoder coder, BRRlpItem *items, size_t itemsCount) {
     }
     
     BRRlpContext encodedBytesContext = (0 == bytesCount
-                                        ? coderEncodeLength(coder, bytesCount, 0xc0)
+                                        ? coderEncodeLength(coder, bytesCount, RLP_PREFIX_LIST)
                                         : createContextItemAppend(coder,
-                                                                  coderEncodeLength(coder, bytesCount, 0xc0),
+                                                                  coderEncodeLength(coder, bytesCount, RLP_PREFIX_LIST),
                                                                   createContextItem(coder, bytes, bytesCount, 1),
                                                                   1));
     
@@ -362,27 +459,93 @@ rlpCoderRelease (BRRlpCoder coder) {
     coderRelease (coder);
 }
 
+//
+// UInt64
+//
 extern BRRlpItem
 rlpEncodeItemUInt64(BRRlpCoder coder, uint64_t value) {
     return coderAddContext(coder, coderEncodeUInt64(coder, value));
 }
 
+extern uint64_t
+rlpDecodeItemUInt64(BRRlpCoder coder, BRRlpItem item) {
+    return coderDecodeUInt64(coder, coderLookupContext(coder, item));
+}
+
+//
+// UInt256
+//
 extern BRRlpItem
 rlpEncodeItemUInt256(BRRlpCoder coder, UInt256 value) {
     return coderAddContext(coder, coderEncodeUInt256(coder, value));
 }
 
+extern UInt256
+rlpDecodeItemUInt256 (BRRlpCoder coder, BRRlpItem item) {
+    return coderDecodeUInt256(coder, coderLookupContext(coder, item));
+}
+
+//
+// Bytes
+//
 extern BRRlpItem
 rlpEncodeItemBytes(BRRlpCoder coder, uint8_t *bytes, size_t bytesCount) {
     return coderAddContext(coder, coderEncodeBytes(coder, bytes, bytesCount));
 }
 
+extern BRRlpData
+rlpDecodeItemBytes (BRRlpCoder coder, BRRlpItem item) {
+    assert (coderIsValidItem(coder, item));
+    BRRlpContext context = coderLookupContext(coder, item);
+
+    uint8_t offset = 0;
+    uint64_t length = coderDecodeLength(coder, context.bytes, RLP_PREFIX_BYTES, &offset);
+
+    BRRlpData result;
+    result.bytesCount = length;
+    result.bytes = malloc (length);
+    memcpy (result.bytes, &context.bytes[offset], length);
+
+    return result;
+}
+
+//
+// String
+//
 extern BRRlpItem
 rlpEncodeItemString (BRRlpCoder coder, char *string) {
     if (NULL == string) string = "";
     return rlpEncodeItemBytes(coder, (uint8_t *) string, strlen (string));
 }
 
+extern char *
+rlpDecodeItemString (BRRlpCoder coder, BRRlpItem item) {
+    assert (coderIsValidItem(coder, item));
+    BRRlpContext context = coderLookupContext(coder, item);
+
+    uint8_t offset = 0;
+    uint64_t length = coderDecodeLength(coder, context.bytes, RLP_PREFIX_BYTES, &offset);
+
+    char *result = malloc (length + 1);
+    memcpy (result, &context.bytes[offset], length);
+    result[length] = '\0';
+
+    return result;
+}
+
+extern int
+rlpDecodeItemIsString (BRRlpCoder coder, BRRlpItem item) {
+    assert (coderIsValidItem(coder, item));
+    BRRlpContext context = coderLookupContext(coder, item);
+    return (CODER_ITEM == context.type
+            && 0 != context.bytesCount
+            && RLP_PREFIX_BYTES <= context.bytes[0]
+            && context.bytes[0] <  RLP_PREFIX_LIST);
+}
+
+//
+// Hex String
+//
 extern BRRlpItem
 rlpEncodeItemHexString (BRRlpCoder coder, char *string) {
     if (NULL == string)
@@ -404,6 +567,22 @@ rlpEncodeItemHexString (BRRlpCoder coder, char *string) {
     return item;
 }
 
+extern char *
+rlpDecodeItemHexString (BRRlpCoder coder, BRRlpItem item, const char *prefix) {
+    BRRlpData data = rlpDecodeItemBytes(coder, item);
+    if (NULL == prefix) prefix = "";
+
+    char *result = malloc (strlen(prefix) + 2 * data.bytesCount + 1);
+    strcpy (result, prefix);
+    encodeHex(&result[strlen(prefix)], 2 * data.bytesCount + 1, data.bytes, data.bytesCount);
+
+    rlpDataRelease (data);
+    return result;
+}
+
+//
+// List
+//
 extern BRRlpItem
 rlpEncodeList1 (BRRlpCoder coder, BRRlpItem item) {
     assert (coderIsValidItem(coder, item));
@@ -445,17 +624,24 @@ rlpEncodeListItems (BRRlpCoder coder, BRRlpItem *items, size_t itemsCount) {
     return coderAddContext(coder, coderEncodeList(coder, items, itemsCount));
 }
 
-extern void
-rlpGetData (BRRlpCoder coder, BRRlpItem item, uint8_t **bytes, size_t *bytesCount) {
+extern const BRRlpItem *
+rlpDecodeList (BRRlpCoder coder, BRRlpItem item, size_t *itemsCount) {
     assert (coderIsValidItem(coder, item));
-    assert (NULL != bytes && NULL != bytesCount);
-    
     BRRlpContext context = coderLookupContext(coder, item);
-    *bytesCount = context.bytesCount;
-    *bytes = malloc (*bytesCount);
-    memcpy (*bytes, context.bytes, context.bytesCount);
+
+    switch (context.type) {
+        case CODER_ITEM:
+            *itemsCount = 0;
+            return NULL;
+        case CODER_LIST:
+            *itemsCount = context.itemsCount;
+            return context.items;
+    }
 }
 
+//
+// Data
+//
 extern BRRlpData
 createRlpDataEmpty (void) {
     BRRlpData data;
@@ -466,9 +652,107 @@ createRlpDataEmpty (void) {
 
 extern void
 rlpDataRelease (BRRlpData data) {
-    if (NULL != data.bytes) free (data.bytes);
+    if (NULL != data.bytes && '\0' != data.bytes[0]) free (data.bytes);
     data.bytesCount = 0;
     data.bytes = NULL;
+}
+
+extern void
+rlpDataExtract (BRRlpCoder coder, BRRlpItem item, uint8_t **bytes, size_t *bytesCount) {
+    assert (coderIsValidItem(coder, item));
+    assert (NULL != bytes && NULL != bytesCount);
+    
+    BRRlpContext context = coderLookupContext(coder, item);
+    *bytesCount = context.bytesCount;
+    *bytes = malloc (*bytesCount);
+    memcpy (*bytes, context.bytes, context.bytesCount);
+}
+
+/**
+ * Return `data` with `bytes` and bytesCount derived from the bytes[0] and associated length.
+ */
+static BRRlpData
+rlpGetItem_FillData (BRRlpCoder coder, uint8_t *bytes) {
+    BRRlpData data;
+    data.bytes = bytes;
+    data.bytesCount = 1;
+
+    uint8_t prefix = bytes[0];
+    if (prefix >= RLP_PREFIX_BYTES) {
+        uint8_t offset;
+        data.bytesCount = coderDecodeLength(coder, bytes,
+                                            (prefix < RLP_PREFIX_LIST ? RLP_PREFIX_BYTES : RLP_PREFIX_LIST),
+                                            &offset);
+        data.bytesCount += offset;
+    }
+    return data;
+}
+
+#define DEFAULT_ITEM_INCREMENT 20
+
+/**
+ * Convet the bytes in `data` into an `item`.  If `data` represents a RLP list, then `item` will
+ * represent a list.
+ */
+extern BRRlpItem
+rlpGetItem (BRRlpCoder coder, BRRlpData data) {
+    assert (0 != data.bytesCount);
+
+    uint8_t prefix = data.bytes[0];
+
+    // If not a list, then we are done; just return an `item` with `data`
+    if (prefix < RLP_PREFIX_LIST) {
+        return coderAddContext(coder, createContextItem(coder, data.bytes, data.bytesCount, 0));
+    }
+
+    // If a list, then we'll consume `data` with sub-items.
+    else {
+        // We can have an arbitrary number of sub-times.  Assume we have DEFAULT_ITEM_INCREMENT
+        // but be willing to increase the number if needed.
+        BRRlpItem itemsArray[DEFAULT_ITEM_INCREMENT];
+        uint64_t itemsIndex = 0;
+        uint64_t itemsCount = DEFAULT_ITEM_INCREMENT;
+
+        // We'll use this to accumulate subitems.
+        BRRlpItem *items = itemsArray;
+
+        // The upper limit on bytes to consume.
+        uint8_t *bytesLimit = data.bytes + data.bytesCount;
+        uint8_t *bytes = data.bytes;
+
+        // Start of `data` encodes a list with a number of bytes.  We'll start extracting
+        // sub-items after the list's length.
+        uint8_t bytesOffset = 0;
+        uint64_t bytesCount = coderDecodeLength(coder, data.bytes, RLP_PREFIX_LIST, &bytesOffset);
+        assert (data.bytesCount == bytesCount + bytesOffset);
+
+        // Start of the first sub-item
+        bytes += bytesOffset;
+        
+        while (bytes < bytesLimit) {
+            // Get the `data` for this sub-item and then recurse
+            BRRlpData d = rlpGetItem_FillData(coder, bytes);
+            items[itemsIndex++] = rlpGetItem (coder, d);
+
+            // Move to the next sub-item
+            bytes += d.bytesCount;
+
+            // Extend `items` is we've used the allocated number.
+            if (itemsIndex == itemsCount) {
+                itemsCount += DEFAULT_ITEM_INCREMENT;
+                if (items == itemsArray) {
+                    // Move 'off' the stack allocated array.
+                    items = malloc(itemsCount * sizeof(BRRlpItem));
+                    memcpy (items, itemsArray, itemsIndex * sizeof(BRRlpItem));
+                }
+                else
+                    items = realloc(items, itemsCount * sizeof (BRRlpItem));
+            }
+        }
+
+        if (items != itemsArray) free(items);
+        return coderAddContext(coder, createContextList(coder, data.bytes, data.bytesCount, 0, items, itemsIndex));
+    }
 }
 
 /*
@@ -481,8 +765,9 @@ def rlp_decode(input):
     output = instantiate_str(substr(input, offset, dataLen))
   elif type is list:
     output = instantiate_list(substr(input, offset, dataLen))
-output + rlp_decode(substr(input, offset + dataLen))
-return output
+
+  output + rlp_decode(substr(input, offset + dataLen))
+  return output
 
 def decode_length(input):
   length = len(input)

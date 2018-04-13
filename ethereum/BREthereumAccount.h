@@ -91,6 +91,10 @@ addressFree (BREthereumAddress address);
 extern BREthereumBoolean
 addressHasString (BREthereumAddress address,
                   const char *string);
+
+extern BREthereumBoolean
+addressEqual (BREthereumAddress a1, BREthereumAddress a2);
+
 /**
  * Returns a string representation of the address, newly allocated.  YOU OWN THIS.
  */
@@ -107,6 +111,9 @@ addressPublicKeyAsString (BREthereumAddress address, int compressed);
 
 extern BRRlpItem
 addressRlpEncode (BREthereumAddress address, BRRlpCoder coder);
+
+extern BREthereumAddress
+addressRlpDecode (BRRlpItem item, BRRlpCoder coder);
 
 //
 // Account
@@ -204,6 +211,8 @@ typedef struct {
     } sig;
 } BREthereumSignature;
 
+extern BREthereumBoolean
+signatureEqual (BREthereumSignature s1, BREthereumSignature s2);
 
 /**
  * Sign an arbitrary array of bytes with the account's private key using the signature algorithm

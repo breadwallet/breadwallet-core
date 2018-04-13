@@ -29,6 +29,7 @@
 #include "BREthereumTransaction.h"
 #include "BREthereumAmount.h"
 #include "BREthereumAccount.h"
+#include "BREthereumPrivate.h"
 
 // Forward Declarations
 static void
@@ -378,8 +379,13 @@ transactionGetHash (BREthereumTransaction transaction) {
     return transaction->hash;
 }
 
+extern BREthereumSignature
+transactionGetSignature (BREthereumTransaction transaction) {
+    return transaction->signature;
+}
+
 //
-// RLP
+// RLP Encode / Decode
 //
 static BRRlpItem
 transactionEncodeDataForHolding (BREthereumTransaction transaction,
@@ -408,14 +414,6 @@ transactionEncodeAddressForHolding (BREthereumTransaction transaction,
 }
 
 static BRRlpItem
-transactionEncodeHolding (BREthereumTransaction transaction,
-                          BREthereumAmount holding,
-                          BRRlpCoder coder) {
-    // Holding already handles ETHER vs TOKEN.
-    return amountRlpEncode(holding, coder);
-}
-
-static BRRlpItem
 transactionEncodeNonce (BREthereumTransaction transaction,
                         uint64_t nonce,
                         BRRlpCoder coder) {
@@ -424,6 +422,20 @@ transactionEncodeNonce (BREthereumTransaction transaction,
             : rlpEncodeItemUInt64(coder, nonce));
 }
 
+static uint64_t
+transactionDecodeNonce (BRRlpItem item,
+                        BRRlpCoder coder) {
+    if (rlpDecodeItemIsString (coder, item)) {
+        const char *string = rlpDecodeItemString (coder, item);
+        assert (NULL != string && '\0' == string[0]);
+        return 0;
+    }
+    else return rlpDecodeItemUInt64 (coder, item);
+}
+
+//
+// Tranaction RLP Encode
+//
 extern BRRlpData
 transactionEncodeRLP (BREthereumTransaction transaction,
                       BREthereumNetwork network,
@@ -438,7 +450,7 @@ transactionEncodeRLP (BREthereumTransaction transaction,
     items[1] = gasPriceRlpEncode(transaction->gasPrice, coder);
     items[2] = gasRlpEncode(transaction->gasLimit, coder);
     items[3] = transactionEncodeAddressForHolding(transaction, transaction->amount, coder);
-    items[4] = transactionEncodeHolding(transaction, transaction->amount, coder);
+    items[4] = amountRlpEncode(transaction->amount, coder);
     items[5] = transactionEncodeDataForHolding(transaction, transaction->amount, coder);
     itemsCount = 6;
 
@@ -479,18 +491,99 @@ transactionEncodeRLP (BREthereumTransaction transaction,
     BRRlpItem encoding = rlpEncodeListItems(coder, items, itemsCount);
     BRRlpData result;
 
-    rlpGetData(coder, encoding, &result.bytes, &result.bytesCount);
+    rlpDataExtract(coder, encoding, &result.bytes, &result.bytesCount);
     rlpCoderRelease(coder);
 
     return result;
 }
 
+//
+// Tranaction RLP Decode
+//
 extern BREthereumTransaction
-createTransactionDecodeRLP (BRRlpData data,
-                            BREthereumTransactionRLPType type) {
-    BREthereumTransaction transaction;
+transactionDecodeRLP (BREthereumNetwork network,
+                      BREthereumTransactionRLPType type,
+                      BRRlpData data) {
+    BREthereumTransaction transaction = malloc (sizeof(struct BREthereumTransactionRecord));
+    memset (transaction, 0, sizeof(struct BREthereumTransactionRecord));
 
-    memset (&transaction, sizeof(struct BREthereumTransactionRecord), 0);
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem item = rlpGetItem (coder, data);
+
+    size_t itemsCount = 0;
+    const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
+    assert (9 == itemsCount);
+
+    transaction->nonce = transactionDecodeNonce(items[0], coder);
+    transaction->gasPrice = gasPriceRlpDecode(items[1], coder);
+    transaction->gasLimit = gasRlpDecode(items[2], coder);
+
+    char *strData = rlpDecodeItemHexString (coder, items[5], "0x");
+    assert (NULL != strData);
+    if ('\0' == strData[0] || 0 == strcmp (strData, "0x")) {
+        // This is a ETHER transfer
+        transaction->targetAddress = addressRlpDecode(items[3], coder);
+        transaction->amount = amountRlpDecodeAsEther(items[4], coder);
+        transaction->data = strData;
+    }
+    else {
+        // This is a TOKEN transfer.
+
+        BREthereumAddress contractAddr = addressRlpDecode(items[3], coder);
+        BREthereumToken token = tokenLookup(addressAsString (contractAddr));
+
+        // Confirm `strData` encodes functionERC20Transfer
+        BREthereumFunction function = contractLookupFunctionForEncoding(contractERC20, strData);
+        if (NULL == token || function != functionERC20Transfer) {
+            free (transaction);
+            return NULL;
+        }
+
+        BRCoreParseStatus status = CORE_PARSE_OK;
+        UInt256 amount = functionERC20TransferDecodeAmount (function, strData, &status);
+        char *recvAddr = functionERC20TransferDecodeAddress(function, strData);
+
+        if (CORE_PARSE_OK != status) {
+            free (transaction);
+            return NULL;
+        }
+        
+        transaction->amount = amountCreateToken(createTokenQuantity(token, amount));
+        transaction->targetAddress = createAddress(recvAddr);
+
+        free (recvAddr);
+    }
+
+    transaction->chainId = networkGetChainId(network);
+
+    uint64_t eipChainId = rlpDecodeItemUInt64 (coder, items[6]);
+
+    if (eipChainId == transaction->chainId) {
+        // TRANSACTION_RLP_UNSIGNED
+        transaction->signer = NULL;
+    }
+    else {
+        // TRANSACTION_RLP_SIGNED
+        transaction->signer = NULL;  // wallet, account
+        transaction->signature.type = SIGNATURE_TYPE_RECOVERABLE;
+        transaction->signature.sig.recoverable.v = eipChainId - 8 - 2 * transaction->chainId;
+
+        BRRlpData rData = rlpDecodeItemBytes (coder, items[7]);
+        assert (32 == rData.bytesCount);
+        memcpy (transaction->signature.sig.recoverable.r, rData.bytes, rData.bytesCount);
+
+        BRRlpData sData = rlpDecodeItemBytes (coder, items[8]);
+        assert (32 == sData.bytesCount);
+        memcpy (transaction->signature.sig.recoverable.s, sData.bytes, sData.bytesCount);
+    }
+
+//    items[0] = transactionEncodeNonce(transaction, transaction->nonce, coder);
+//    items[1] = gasPriceRlpEncode(transaction->gasPrice, coder);
+//    items[2] = gasRlpEncode(transaction->gasLimit, coder);
+//    items[3] = transactionEncodeAddressForHolding(transaction, transaction->amount, coder);
+//    items[4] = amountRlpEncode(transaction->amount, coder);
+//    items[5] = transactionEncodeDataForHolding(transaction, transaction->amount, coder);
+
     return transaction;
 }
 

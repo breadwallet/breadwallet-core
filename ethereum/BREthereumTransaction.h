@@ -120,6 +120,9 @@ transactionGetSigner (BREthereumTransaction transaction);
 extern BREthereumBoolean
 transactionIsSigned (BREthereumTransaction transaction);
 
+extern BREthereumSignature
+transactionGetSignature (BREthereumTransaction transaction);
+
 //
 // Transaction RLP Encoding
 //
@@ -138,8 +141,9 @@ transactionEncodeRLP (BREthereumTransaction transaction,
                       BREthereumTransactionRLPType type);
 
 extern BREthereumTransaction
-createTransactionDecodeRLP (BRRlpData data,
-                            BREthereumTransactionRLPType type);
+transactionDecodeRLP (BREthereumNetwork network,
+                      BREthereumTransactionRLPType type,
+                      BRRlpData data);
 
 //
 // Transaction Comparison
