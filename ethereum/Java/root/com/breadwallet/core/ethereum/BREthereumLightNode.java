@@ -80,6 +80,13 @@ public class BREthereumLightNode extends BRCoreJniReference {
         //                                        const char *address,
         //                                        int rid);
         void getTransactions(String address, int rid);
+
+        //        typedef void (*JsonRpcGetLogs) (JsonRpcContext context,
+        //                                BREthereumLightNode node,
+        //                                const char *address,
+        //                                const char *event,
+        //                                int rid);
+        void getLogs (String address, String event, int rid);
     }
 
     //
@@ -154,6 +161,21 @@ public class BREthereumLightNode extends BRCoreJniReference {
             jniAnnounceTransaction(id, hash, from, to, contract, amount, gasLimit, gasPrice, data, nonce, gasUsed,
                     blockNumber, blockHash, blockConfirmations, blockTransactionIndex, blockTimestamp,
                     isError);
+        }
+
+        public void announceLog (int id,
+                                 String hash,
+                                 String contract,
+                                 String[] topics,
+                                 String data,
+                                 String gasPrice,
+                                 String gasUsed,
+                                 String logIndex,
+                                 String blockNumber,
+                                 String blockTransactionIndex,
+                                 String blockTimestamp) {
+            jniAnnounceLog(id, hash, contract, topics, data, gasPrice, gasUsed, logIndex,
+                    blockNumber, blockTransactionIndex, blockTimestamp);
         }
     }
 
@@ -332,6 +354,18 @@ public class BREthereumLightNode extends BRCoreJniReference {
                                                  // confirmations
                                                  // txreceipt_status
                                                  String isError);
+
+    protected native void jniAnnounceLog(int id,
+                                         String hash,
+                                         String contract,
+                                         String[] topics,
+                                         String data,
+                                         String gasPrice,
+                                         String gasUsed,
+                                         String logIndex,
+                                         String blockNumber,
+                                         String blockTransactionIndex,
+                                         String blockTimestamp);
 
     protected native void jniAnnounceBalance (int wid, String balance, int rid);
     protected native void jniAnnounceGasPrice (int wid, String gasPrice, int rid);

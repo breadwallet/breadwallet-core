@@ -188,6 +188,28 @@ public class BREthereumLightNodeClientTest implements
 
     }
 
+    @Override
+    public void getLogs(String address, String event, int rid) {
+        String[] topics = {
+                "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+                "0x0000000000000000000000000000000000000000000000000000000000000000",
+                "0x000000000000000000000000bdfdad139440d2db9ba2aa3b7081c2de39291508"
+        };
+
+        node.announceLog(
+                rid,
+                "0xa37bd8bd8b1fa2838ef65aec9f401f56a6279f99bb1cfb81fa84e923b1b60f2b",
+                "0x722dd3f80bac40c951b51bdd28dd19d435762180",
+                topics,
+                "0x0000000000000000000000000000000000000000000000000000000000002328",
+                "0xba43b7400",
+                "0xc64e",
+                "0x",
+                "0x1e487e",
+                "0x",
+                "0x59fa1ac9");
+    }
+
     //
     // Listener
     //

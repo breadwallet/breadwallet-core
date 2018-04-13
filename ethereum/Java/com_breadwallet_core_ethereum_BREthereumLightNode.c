@@ -71,6 +71,13 @@ jsonRpcGetTransactions(JsonRpcContext context,
                        const char *account,
                        int id);
 
+static void
+jsonRpcGetLogs(JsonRpcContext context,
+               BREthereumLightNode node,
+               const char *address,
+               const char *event,
+               int id);
+
 //
 // Forward Declarations - Listener
 //
@@ -231,7 +238,8 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateLightNodeJSON_1R
                      jsonRpcGetGasPrice,
                      jsonRpcEstimateGas,
                      jsonRpcSubmitTransaction,
-                     jsonRpcGetTransactions);
+                     jsonRpcGetTransactions,
+                     jsonRpcGetLogs);
 
     return (jlong) createLightNode(configuration, (*env)->GetStringUTFChars (env, paperKey, 0));
 }
@@ -258,7 +266,8 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateLightNodeJSON_1R
                      jsonRpcGetGasPrice,
                      jsonRpcEstimateGas,
                      jsonRpcSubmitTransaction,
-                     jsonRpcGetTransactions);
+                     jsonRpcGetTransactions,
+                     jsonRpcGetLogs);
 
     jbyte *publicKeyBytes = (*env)->GetByteArrayElements(env, publicKey, 0);
     BRKey key;
@@ -460,6 +469,49 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceTransaction
                                  (*env)->GetStringUTFChars (env, blockTransactionIndexObject, 0),
                                  (*env)->GetStringUTFChars (env, blockTimestampObject, 0),
                                  (*env)->GetStringUTFChars (env, isErrorObject, 0));
+}
+
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceLog
+        (JNIEnv *env, jobject thisObject,
+         jint id,
+         jstring hashObject,
+         jstring contractObject,
+         jobjectArray topicsArray,
+         jstring dataObject,
+         jstring gasPriceObject,
+         jstring gasUsedObject,
+         jstring logIndexObject,
+         jstring blockNumberObject,
+         jstring blockTransactionIndexObject,
+         jstring blockTimestampObject) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+
+    size_t topicsCount = (size_t) (*env)->GetArrayLength (env, topicsArray);
+    const char *topics[topicsCount];
+
+    for (int i = 0; i < topicsCount; i++) {
+        jstring topic = (*env)->GetObjectArrayElement (env, topicsArray, i);
+        topics[i] = (*env)->GetStringUTFChars (env, topic, 0);
+        (*env)->DeleteLocalRef (env, topic);
+    }
+
+    lightNodeAnnounceLog (node, id,
+                          (*env)->GetStringUTFChars (env, hashObject, 0),
+                          (*env)->GetStringUTFChars (env, contractObject, 0),
+                          topicsCount,
+                          topics,
+                          (*env)->GetStringUTFChars (env, dataObject, 0),
+                          (*env)->GetStringUTFChars (env, gasPriceObject, 0),
+                          (*env)->GetStringUTFChars (env, gasUsedObject, 0),
+                          (*env)->GetStringUTFChars (env, logIndexObject, 0),
+                          (*env)->GetStringUTFChars (env, blockNumberObject, 0),
+                          (*env)->GetStringUTFChars (env, blockTransactionIndexObject, 0),
+                          (*env)->GetStringUTFChars (env, blockTimestampObject, 0));
+
+    for (int i = 0; i < topicsCount; i++) {
+        (*env)->ReleaseStringUTFChars (env, topicsArray, topics[i]);
+    }
 }
 
 /*
@@ -1144,6 +1196,38 @@ jsonRpcGetTransactions(JsonRpcContext context,
     (*env)->DeleteLocalRef(env, listener);
     (*env)->DeleteLocalRef(env, addressObject);
 }
+
+static void
+jsonRpcGetLogs(JsonRpcContext context,
+               BREthereumLightNode node,
+               const char *address,
+               const char *event,
+               int id) {
+    JNIEnv *env = getEnv();
+    if (NULL == env) return;
+
+    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
+    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
+
+    // void getTransactions(int id, String account);
+    jmethodID listenerMethod =
+            lookupListenerMethod(env, listener,
+                                 "getLogs",
+                                 "(Ljava/lang/String;Ljava/lang/String;I)V");
+    assert (NULL != listenerMethod);
+
+    jobject addressObject = (*env)->NewStringUTF(env, address);
+    jobject eventObject = (*env)->NewStringUTF(env, event);
+
+    (*env)->CallVoidMethod(env, listener, listenerMethod,
+                           addressObject,
+                           eventObject,
+                           id);
+
+    (*env)->DeleteLocalRef(env, listener);
+    (*env)->DeleteLocalRef(env, addressObject);
+}
+
 
 //
 // Listener Callbacks
