@@ -515,7 +515,9 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceLog
                           (*env)->GetStringUTFChars (env, blockTimestampObject, 0));
 
     for (int i = 0; i < topicsCount; i++) {
-        (*env)->ReleaseStringUTFChars (env, topicsArray, topics[i]);
+        jstring topic = (*env)->GetObjectArrayElement (env, topicsArray, i);
+        (*env)->ReleaseStringUTFChars (env, topic, topics[i]);
+        (*env)->DeleteLocalRef (env, topic);
     }
 }
 
@@ -612,7 +614,7 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateTransaction
     const char *amountChars = (*env)->GetStringUTFChars(env, amountObject, 0);
     BREthereumAmount amount = NULL == token
                               ? amountCreateEtherString(amountChars, amountUnit, &status)
-                              : amountCreateTokenQuantityString(token, amountChars, amountUnit, 0);
+                              : amountCreateTokenQuantityString(token, amountChars, amountUnit, &status);
 
     return (jlong) lightNodeWalletCreateTransaction(node,
                                                     (BREthereumLightNodeWalletId) wid,

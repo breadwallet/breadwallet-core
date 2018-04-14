@@ -232,7 +232,7 @@ public class BREthereumLightNodeClientTest implements
     protected void runTest () {
         // Create the node; reference through this.node
         new BREthereumLightNode.JSON_RPC(this, BREthereumNetwork.testnet, USABLE_PAPER_KEY, words);
-        node.addListener(this);
+//        node.addListener(this);
 
 
         //
@@ -241,9 +241,6 @@ public class BREthereumLightNodeClientTest implements
 
         BREthereumWallet walletEther = node.getWallet();
         walletEther.setDefaultUnit(BREthereumAmount.Unit.ETHER_WEI);
-
-        BREthereumWallet walletToken = node.createWallet(BREthereumToken.tokenBRD);
-        walletToken.setDefaultUnit(BREthereumAmount.Unit.TOKEN_DECIMAL);
 
         asserting ("0".equals(walletEther.getBalance()));
 
@@ -281,6 +278,16 @@ public class BREthereumLightNodeClientTest implements
                     "\n     blkTime: " + transaction.getBlockTimestamp() +
                     "\n\n");
         }
+
+        BREthereumWallet walletToken = node.createWallet(BREthereumToken.tokenBRD);
+        walletToken.setDefaultUnit(BREthereumAmount.Unit.TOKEN_DECIMAL);
+        BREthereumTransaction tokenTransaction1 =
+                walletToken.createTransaction(
+                        "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
+                        "1.2",
+                        BREthereumAmount.Unit.TOKEN_DECIMAL);
+        walletToken.sign(tokenTransaction1, USABLE_PAPER_KEY);
+        walletToken.submit(tokenTransaction1);
 
         System.out.println ("==== Token ====\n");
         for (BREthereumTransaction transaction : walletToken.getTransactions()) {
