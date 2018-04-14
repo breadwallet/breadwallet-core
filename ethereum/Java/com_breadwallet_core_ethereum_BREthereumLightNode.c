@@ -987,12 +987,24 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeConnect
  * Method:    jniLightNodeDisconnect
  * Signature: ()Z
  */
-JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeDisconnect
+JNIEXPORT jboolean JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeDisconnect
         (JNIEnv *env, jobject thisObject) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
     return (jboolean) (ETHEREUM_BOOLEAN_TRUE == lightNodeDisconnect(node) ? JNI_TRUE : JNI_FALSE);
 }
 
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniLightNodeDisconnectAndWait
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeDisconnectAndWait
+        (JNIEnv *env, jobject thisObject) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+    lightNodeDisconnectAndWait(node);
+}
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
@@ -1292,7 +1304,7 @@ listenerTransactionEventHandler(BREthereumLightNodeListenerContext context,
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
                                  "trampolineTransactionEvent",
-                                 "(Lcom/breadwallet/core/ethereum/BREthereumTransaction;J)V");
+                                 "(Lcom/breadwallet/core/ethereum/BREthereumWallet;Lcom/breadwallet/core/ethereum/BREthereumTransaction;J)V");
     assert (NULL != listenerMethod);
 
     // Lookup/Create Wallet

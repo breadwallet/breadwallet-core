@@ -349,8 +349,9 @@ lightNodeThreadRoutine (BREthereumLightNode node) {
             lightNodeUpdateWalletBalance (node, i);
 
         pthread_mutex_unlock(&node->lock);
-        if (1 == sleep (PTHREAD_SLEEP_SECONDS)) {
-        }
+
+        if (LIGHT_NODE_DISCONNECTING == node->state) break;
+        if (1 == sleep (PTHREAD_SLEEP_SECONDS)) {}
     }
 
     node->state = LIGHT_NODE_DISCONNECTED;
@@ -390,10 +391,24 @@ lightNodeConnect (BREthereumLightNode node) {
     }
 }
 
+extern void
+lightNodeConnectAndWait (BREthereumLightNode node) {
+    lightNodeConnect(node);
+    while (LIGHT_NODE_CONNECTED != node->state)
+        sleep (1);
+}
+
 extern BREthereumBoolean
 lightNodeDisconnect (BREthereumLightNode node) {
     node->state = LIGHT_NODE_DISCONNECTING;
     return ETHEREUM_BOOLEAN_TRUE;
+}
+
+extern void
+lightNodeDisconnectAndWait (BREthereumLightNode node) {
+    lightNodeDisconnect(node);
+    while (LIGHT_NODE_DISCONNECTED != node->state)
+        sleep (1);
 }
 
 //
@@ -1330,6 +1345,7 @@ lightNodeAnnounceBalance (BREthereumLightNode node,
     UInt256 value = createUInt256Parse(balance, 16, &status);
 
     pthread_mutex_lock(&node->lock);
+    if (LIGHT_NODE_CONNECTED != node->state) return;
     BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
     BREthereumAmount amount = (AMOUNT_ETHER == walletGetAmountType(wallet)
                                ? amountCreateEther(etherCreate(value))

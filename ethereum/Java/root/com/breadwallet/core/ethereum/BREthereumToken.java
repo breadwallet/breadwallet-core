@@ -33,17 +33,47 @@ public class BREthereumToken extends BRCoreJniReference {
         super (jniReferenceAddress);
     }
 
+    public native String getAddress ();
+    public native String getSymbol ();
+    public native String getName ();
+    public native String getDescription ();
+    public native int getDecimals ();
+    public native String getColorLeft ();
+    public native String getColorRight ();
+
     public long getIdentifier () {
         return jniReferenceAddress;
     }
 
+    //
+    // Lookup with an Address (the Contract)
+    //
+    public static BREthereumToken lookup (String address) {
+        for (BREthereumToken token : tokens)
+            if (address.equals(token.getAddress()))
+                return token;
+        return null;
+    }
+
+    //
+    // All Tokens
+    //
+    public static final BREthereumToken[] tokens;
+
+    static {
+        long[] references = jniTokenAll ();
+        tokens = new BREthereumToken[references.length];
+        for (int i = 0; i < references.length; i++)
+            tokens[i] = new BREthereumToken(references[i]);
+    }
+
+    //
+    // The BRD Token
+    //
     public static BREthereumToken tokenBRD =
             new BREthereumToken(jniGetTokenBRD());
 
     static native long jniGetTokenBRD ();
 
-//    private static BREthereumToken tokenEOS =
-//            new BREthereumToken(jniGetTokenEOS());
-//
-//    static native long jniGetTokenEOS ();
+    static native long[] jniTokenAll ();
 }

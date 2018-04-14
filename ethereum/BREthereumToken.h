@@ -78,6 +78,12 @@ extern const BREthereumToken tokenUNK;
 extern BREthereumToken
 tokenLookup (const char *address);
 
+extern int
+tokenCount ();
+
+extern BREthereumToken
+tokenGet (int index);
+
 //
 // Token Quantity
 //

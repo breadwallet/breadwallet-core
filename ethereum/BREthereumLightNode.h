@@ -292,6 +292,14 @@ lightNodeConnect (BREthereumLightNode node);
 extern BREthereumBoolean
 lightNodeDisconnect (BREthereumLightNode node);
 
+// Really, really bad form...
+extern void
+lightNodeConnectAndWait (BREthereumLightNode node);
+
+// ... and this too, but slightly less so.
+extern void
+lightNodeDisconnectAndWait (BREthereumLightNode node);
+
 //
 // Listener
 //

@@ -34,6 +34,7 @@ import com.breadwallet.core.ethereum.BREthereumWallet;
 
 import static com.breadwallet.core.ethereum.BREthereumAmount.Unit.ETHER_ETHER;
 import static com.breadwallet.core.ethereum.BREthereumAmount.Unit.ETHER_GWEI;
+import static java.lang.Thread.sleep;
 
 /**
  *
@@ -305,8 +306,17 @@ public class BREthereumLightNodeClientTest implements
         BREthereumLightNode node2 = new BREthereumLightNode.JSON_RPC(this, BREthereumNetwork.testnet, publicKey);
         asserting (node1.getAddress().equals(node2.getAddress()));
 
+        // Tokens
+        //
+        for (BREthereumToken token : BREthereumToken.tokens)
+            System.out.println ("Token: " + token.getSymbol() + ", " + token.getName() +
+                    ", " + token.getAddress() +
+                    ", " + token.getDecimals());
         System.out.println ("Disconnect");
-        node.disconnect();
+        node.disconnectAndWait();
+        try { sleep(1000); } catch (Exception ex) {}
+
+        //
     }
 
     private static boolean runMain = true;
