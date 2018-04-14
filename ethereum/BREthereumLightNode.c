@@ -1345,13 +1345,15 @@ lightNodeAnnounceBalance (BREthereumLightNode node,
     UInt256 value = createUInt256Parse(balance, 16, &status);
 
     pthread_mutex_lock(&node->lock);
-    if (LIGHT_NODE_CONNECTED != node->state) return;
-    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
-    BREthereumAmount amount = (AMOUNT_ETHER == walletGetAmountType(wallet)
-                               ? amountCreateEther(etherCreate(value))
-                               : amountCreateToken(createTokenQuantity(walletGetToken(wallet), value)));
+    if (LIGHT_NODE_CONNECTED == node->state) {
+        BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
+        BREthereumAmount amount = (AMOUNT_ETHER == walletGetAmountType(wallet)
+                                   ? amountCreateEther(etherCreate(value))
+                                   : amountCreateToken(
+                        createTokenQuantity(walletGetToken(wallet), value)));
 
-    walletSetBalance (wallet, amount);
+        walletSetBalance(wallet, amount);
+    }
     pthread_mutex_unlock(&node->lock);
     lightNodeListenerAnnounceWalletEvent(node, wid, WALLET_EVENT_BALANCE_UPDATED);
 }
