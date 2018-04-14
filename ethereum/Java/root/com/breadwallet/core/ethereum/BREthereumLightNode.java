@@ -262,6 +262,9 @@ public class BREthereumLightNode extends BRCoreJniReference {
     public boolean disconnect () {
         return jniLightNodeDisconnect ();
     }
+    public void disconnectAndWait () {
+        jniLightNodeDisconnectAndWait();
+    }
 
     //
     // Wallet
@@ -417,10 +420,16 @@ public class BREthereumLightNode extends BRCoreJniReference {
     protected native boolean jniTransactionIsSubmitted (long transactionId);
 
     //
+    // Tokens
+    //
+    protected native String jniTokenGetAddress (long tokenId);
+
+    //
     // Connect // Disconnect
     //
     protected native boolean jniLightNodeConnect ();
     protected native boolean jniLightNodeDisconnect ();
+    protected native void jniLightNodeDisconnectAndWait ();
 
     protected static native void initializeNative();
 

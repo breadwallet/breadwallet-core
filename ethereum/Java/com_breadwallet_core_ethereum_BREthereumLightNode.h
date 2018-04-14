@@ -329,6 +329,14 @@ JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNod
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniTokenGetAddress
+ * Signature: (J)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTokenGetAddress
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniLightNodeConnect
  * Signature: ()Z
  */
@@ -341,6 +349,14 @@ JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNod
  * Signature: ()Z
  */
 JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeDisconnect
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniLightNodeDisconnectAndWait
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeDisconnectAndWait
   (JNIEnv *, jobject);
 
 /*

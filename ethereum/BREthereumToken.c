@@ -1219,3 +1219,17 @@ tokenLookup (const char *address) {
     return NULL;
 }
 
+
+extern int
+tokenCount () {
+   return sizeof (tokens) / sizeof (struct BREthereumTokenRecord);  // -1 {NULL}; +1 UNK
+}
+
+extern BREthereumToken
+tokenGet (int index) {
+    int count = tokenCount();
+
+    if (index >= count || index < 0) return NULL;
+    else if (index == count - 1) return tokenUNK;
+    else return &tokens[index];
+}
