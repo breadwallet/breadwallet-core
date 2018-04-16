@@ -37,4 +37,8 @@ public class BREthereumAccount extends BREthereumLightNode.Reference {
     public byte[] getPrimaryAddressPublicKey () {
         return node.get().jniGetAccountPrimaryAddressPublicKey(identifier);
     }
+
+    public byte[] getPrimaryAddressPrivateKey (String paperKey) {
+        return node.get().jniGetAccountPrimaryAddressPrivateKey(identifier, paperKey);
+    }
 }

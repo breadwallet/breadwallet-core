@@ -324,6 +324,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     protected native long jniLightNodeGetAccount();
     protected native String jniGetAccountPrimaryAddress(long accountId);
     protected native byte[] jniGetAccountPrimaryAddressPublicKey(long accountId);
+    protected native byte[] jniGetAccountPrimaryAddressPrivateKey(long accountId, String paperKey);
 
     protected native long jniLightNodeGetWallet();
     protected native long jniLightNodeGetWalletToken (long tokenId);
@@ -386,6 +387,10 @@ public class BREthereumLightNode extends BRCoreJniReference {
     protected native void jniSignTransaction (long walletId,
                                               long transactionId,
                                               String paperKey);
+
+    protected native void jniSignTransactionWithPrivateKey(long walletId,
+                                                           long transactionId,
+                                                           byte[] privateKey);
 
     protected native void jniSubmitTransaction (long walletId,
                                                 long transactionId);
