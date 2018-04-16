@@ -1311,6 +1311,7 @@ listenerWalletEventHandler(BREthereumLightNodeListenerContext context,
     if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
 
     // void handleWalletEvent (BREthereumWallet wallet, WalletEvent event);
+    //  Signature: (Lcom/breadwallet/core/ethereum/BREthereumWallet;J)V
 
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
@@ -1356,6 +1357,8 @@ listenerTransactionEventHandler(BREthereumLightNodeListenerContext context,
     jobject listener = (*env)->NewLocalRef(env, (jobject) context);
     if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
 
+    // Signature: (Lcom/breadwallet/core/ethereum/BREthereumWallet;Lcom/breadwallet/core/ethereum/BREthereumTransaction;J)V
+
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
                                  "trampolineTransactionEvent",
@@ -1377,5 +1380,4 @@ listenerTransactionEventHandler(BREthereumLightNodeListenerContext context,
     (*env)->DeleteLocalRef(env, transaction);
     (*env)->DeleteLocalRef(env, wallet);
     (*env)->DeleteLocalRef(env, listener);
-
 }
