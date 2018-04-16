@@ -366,6 +366,28 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetAccountPrimaryAddre
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniGetAccountPrimaryAddressPrivateKey
+ * Signature: (JLjava/lang/String;)[B
+ */
+JNIEXPORT jbyteArray JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniGetAccountPrimaryAddressPrivateKey
+        (JNIEnv *env, jobject thisObject,
+         jlong account,
+         jstring paperKeyString) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+
+    const char *paperKey = (*env)->GetStringUTFChars(env, paperKeyString, 0);
+    BRKey key = lightNodeGetAccountPrimaryAddressPrivateKey(node, paperKey);
+    (*env)->ReleaseStringUTFChars(env, paperKeyString, paperKey);
+
+    jbyteArray privateKey = (*env)->NewByteArray(env, sizeof(BRKey));
+    (*env)->SetByteArrayRegion(env, privateKey, 0, sizeof(BRKey), (const jbyte *) &key);
+
+    return privateKey;
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniGetWalletBalance
  * Signature: (JJ)Ljava/lang/String;
  */
@@ -639,6 +661,32 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniSignTransaction
                                    (BREthereumLightNodeTransactionId) transactionId,
                                    (*env)->GetStringUTFChars (env, paperKey, 0));
 }
+
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniSignTransactionWithPrivateKey
+ * Signature: (JJ[B)V
+ */
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniSignTransactionWithPrivateKey
+        (JNIEnv *env, jobject thisObject,
+         jlong walletId,
+         jlong transactionId,
+         jbyteArray privateKeyByteArray) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+
+    BRKey *key = (BRKey *) (*env)->GetByteArrayElements (env, privateKeyByteArray, 0);
+
+    lightNodeWalletSignTransactionWithPrivateKey(node,
+                                                 (BREthereumLightNodeWalletId) walletId,
+                                                 (BREthereumLightNodeTransactionId) transactionId,
+                                                 *key);
+
+    (*env)->ReleaseByteArrayElements (env, privateKeyByteArray, (jbyte*) key, 0);
+}
+
+
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode

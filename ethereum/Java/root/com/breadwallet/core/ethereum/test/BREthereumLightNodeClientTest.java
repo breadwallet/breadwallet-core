@@ -306,6 +306,9 @@ public class BREthereumLightNodeClientTest implements
         // Check trans1
 
 
+        //
+        // Public Key
+        //
         byte[] publicKey = node.getAddressPublicKey();
         asserting (65 == publicKey.length);
 
@@ -319,6 +322,22 @@ public class BREthereumLightNodeClientTest implements
             System.out.println ("Token: " + token.getSymbol() + ", " + token.getName() +
                     ", " + token.getAddress() +
                     ", " + token.getDecimals());
+
+        //
+        // Private Key
+        //
+        System.out.println ("PrivateKey");
+        byte[] privateKey = node.getAccount().getPrimaryAddressPrivateKey(USABLE_PAPER_KEY);
+        BREthereumTransaction tokenTransaction2 =
+                walletToken.createTransaction(
+                        "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
+                        "1.2",
+                        BREthereumAmount.Unit.TOKEN_DECIMAL);
+        walletToken.signWithPrivateKey(tokenTransaction1, privateKey);
+
+        //
+        // Disconnect
+        //
         System.out.println ("Disconnect");
         node.disconnectAndWait();
         try { sleep(1000); } catch (Exception ex) {}

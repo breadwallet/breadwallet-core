@@ -184,6 +184,11 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
         node.get().jniSignTransaction(identifier, transaction.identifier, paperKey);
     }
 
+    public void signWithPrivateKey (BREthereumTransaction transaction,
+                                    byte[] privateKey) {
+        node.get().jniSignTransactionWithPrivateKey(identifier, transaction.identifier, privateKey);
+    }
+
     // submit
     public void submit (BREthereumTransaction transaction) {
         node.get().jniSubmitTransaction(identifier, transaction.identifier);
