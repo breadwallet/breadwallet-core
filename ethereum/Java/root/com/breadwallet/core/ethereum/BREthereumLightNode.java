@@ -205,12 +205,12 @@ public class BREthereumLightNode extends BRCoreJniReference {
         //void handleBlockEvent (BREthereumBlock block, BlockEvent event);
 
         enum TransactionEvent {
-            TRANSACTION_EVENT_CREATED,
-            TRANSACTION_EVENT_SIGNED,
-            TRANSACTION_EVENT_SUBMITTED,
-            TRANSACTION_EVENT_BLOCKED,  // aka confirmed
-            TRANSACTION_EVENT_ERRORED,
-            TRANSACTION_EVENT_GAS_ESTIMATE_UPDATED
+            CREATED,
+            SIGNED,
+            SUBMITTED,
+            BLOCKED,  // aka confirmed
+            ERRORED,
+            GAS_ESTIMATE_UPDATED
         }
 
         void handleTransactionEvent (BREthereumWallet wallet, BREthereumTransaction transaction, TransactionEvent event);
@@ -300,12 +300,12 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     // These methods also give us a chance to convert the `event`, as a `long`, to the Event.
     //
-    private void trampolineWalletEvent (BREthereumWallet wallet, long event) {
+    protected void trampolineWalletEvent (BREthereumWallet wallet, long event) {
         Listener l =  listener.get();
         if (null != l) l.handleWalletEvent(wallet, Listener.WalletEvent.values()[(int) event]);
     }
 
-    private void trampolineTransactionEvent (BREthereumWallet wallet, BREthereumTransaction transaction, long event) {
+    protected void trampolineTransactionEvent (BREthereumWallet wallet, BREthereumTransaction transaction, long event) {
         Listener l =  listener.get();
         if (null != l) l.handleTransactionEvent(wallet, transaction, Listener.TransactionEvent.values()[(int) event]);
     }
