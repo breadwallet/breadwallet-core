@@ -860,14 +860,17 @@ lightNodeUpdateLogs (BREthereumLightNode node, BREthereumEvent event) {
     switch (node->configuration.type) {
         case NODE_TYPE_JSON_RPC: {
             char *address = addressAsString(accountGetPrimaryAddress(node->account));
+            char *encodedAddress =
+                    eventERC20TransferEncodeAddress (event, address);
 
             node->configuration.u.json_rpc.funcGetLogs
             (node->configuration.u.json_rpc.funcContext,
              node,
-             address,
+             encodedAddress,
              eventGetSelector(event),
              ++node->requestId);
 
+            free (encodedAddress);
             free (address);
             break;
         }

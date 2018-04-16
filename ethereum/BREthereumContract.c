@@ -164,6 +164,26 @@ eventERC20TransferDecodeAddress (BREthereumEvent event,
     return strdup (result);
 }
 
+private_extern char *
+eventERC20TransferEncodeAddress (BREthereumEvent event,
+                                 const char *address) {
+    assert (event == eventERC20Transfer);
+    assert ('0' == address[0] && 'x' == address[1] && 42 == strlen (address));
+
+    address = &address[2];
+
+    // Need 66 chars as: 0x<0...0>address
+    char result[67];
+
+    memset (result, '0', 66);
+    result[66] = '\0';
+
+    result[0] = '0';
+    result[1] = 'x';
+    strcpy (&result[2 + 24], address);  // 24 -> skip '000...<addr>'
+    return strdup (result);
+}
+
 private_extern UInt256
 eventERC20TransferDecodeUInt256 (BREthereumEvent event,
                                  const char *number,

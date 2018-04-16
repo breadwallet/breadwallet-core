@@ -108,6 +108,10 @@ private_extern char *
 eventERC20TransferDecodeAddress (BREthereumEvent event,
                                  const char *topic);
 
+private_extern char *
+eventERC20TransferEncodeAddress (BREthereumEvent event,
+                                 const char *address);
+
 private_extern UInt256
 eventERC20TransferDecodeUInt256 (BREthereumEvent event,
                                  const char *number,
