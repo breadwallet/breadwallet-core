@@ -308,6 +308,10 @@ public class BREthereumLightNode extends BRCoreJniReference {
         return getWallet(token);
     }
 
+    // TODO: Remove once 'client callbacks' are LightNode trampolines
+    public BREthereumWallet getWalletByIdentifier (long wid) {
+        return walletLookupOrCreate(wid, null);
+    }
     //
     // Transaction
     //

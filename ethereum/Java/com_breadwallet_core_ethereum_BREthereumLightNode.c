@@ -568,13 +568,14 @@ JNIEXPORT void JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceBalance
         (JNIEnv *env, jobject thisObject,
          jint wid,
-         jstring balance,
+         jstring balanceString,
          jint rid) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
-    lightNodeAnnounceBalance(node,
-                             wid,
-                             (*env)->GetStringUTFChars(env, balance, 0),
-                             rid);
+
+    const char *balance = (*env)->GetStringUTFChars(env, balanceString, 0);
+    lightNodeAnnounceBalance(node, wid, balance, rid);
+
+    (*env)->ReleaseStringUTFChars (env, balanceString, balance);
 }
 
 /*
