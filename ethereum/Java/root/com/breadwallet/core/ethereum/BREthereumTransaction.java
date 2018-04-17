@@ -24,10 +24,6 @@
  */
 package com.breadwallet.core.ethereum;
 
-import java.lang.ref.WeakReference;
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  *
  */
@@ -42,7 +38,6 @@ public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefa
      */
     protected BREthereumTransaction (BREthereumLightNode node, long identifier, BREthereumAmount.Unit unit) {
         super(node, identifier, unit);
-        addTransaction(identifier, this);
     }
 
     public boolean isConfirmed () {
@@ -121,20 +116,4 @@ public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefa
     public long getBlockTimestamp () {
         return node.get().jniTransactionGetBlockTimestamp(identifier);
     }
-
-    //
-    // Static Lookup
-    //
-
-    static private Map<Long, WeakReference<BREthereumTransaction>> transactions = new HashMap<>();
-
-    static void addTransaction (long identifier, BREthereumTransaction transaction) {
-        transactions.put (identifier, new WeakReference<BREthereumTransaction>(transaction));
-    }
-
-    static BREthereumTransaction getTransaction (long identifier) {
-        WeakReference<BREthereumTransaction> transaction = transactions.get(identifier);
-        return null == transaction ? null : transaction.get();
-    }
-
 }

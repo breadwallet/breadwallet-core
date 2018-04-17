@@ -26,10 +26,6 @@ package com.breadwallet.core.ethereum;
 
 import com.breadwallet.core.ethereum.BREthereumAmount.Unit;
 
-import java.lang.ref.WeakReference;
-import java.util.HashMap;
-import java.util.Map;
-
 import java.util.LinkedList;
 import java.util.List;
 
@@ -38,17 +34,28 @@ import java.util.List;
  */
 public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUnit {
 
+    //
+    // Account
+    //
     private BREthereumAccount account;
-    private BREthereumNetwork network;
-    private BREthereumToken   token = null;
 
     public BREthereumAccount getAccount () {
         return account;
     }
 
+    //
+    // Network
+    //
+    private BREthereumNetwork network;
+
     public BREthereumNetwork getNetwork () {
         return network;
     }
+
+    //
+    // Token
+    //
+    private BREthereumToken token = null;
 
     public BREthereumToken getToken () {
         return token;
@@ -66,7 +73,6 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
                                 BREthereumAccount account,
                                 BREthereumNetwork network) {
         super (node, identifier, Unit.ETHER_ETHER);
-        addWallet(identifier, this);
         this.account = account;
         this.network = network;
     }
@@ -76,7 +82,6 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
                                 BREthereumNetwork network,
                                 BREthereumToken token) {
         this (node, identifier, account, network);
-        addWallet(identifier, this);
         this.token = token;
         this.defaultUnit = Unit.TOKEN_DECIMAL;
         this.defaultUnitUsesToken = true;
@@ -87,13 +92,19 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
     //
 
     /**
-     * Get the current balance - as of the last call to updateBalance().
+     * Get the current balance - as of the last call to updateBalance().  The `result` and the
+     * wallet's `defaultUnit` specify the current balance.
      * @return
      */
     public String getBalance () {
         return getBalance(defaultUnit);
     }
 
+    /**
+     * Get the current balance (see above); `result` and `unit` specify the current balance.
+     * @param unit
+     * @return
+     */
     public String getBalance(Unit unit) {
         validUnitOrException(unit);
         return node.get().jniGetWalletBalance(identifier, unit.jniValue);
@@ -133,6 +144,17 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
     //
     // Transactions
     //
+
+    /**
+     * Estimate the transaction fee for this wallet's typical transaction (e.g. transfer ETHER;
+     * transfer TOKEN).  `amount` and `amountUnit` specify the quantity transferred; `result` and
+     * `resultUnit` specify the fee.
+     *
+     * @param amount
+     * @param amountUnit
+     * @param resultUnit
+     * @return
+     */
     public String transactionEstimatedFee (String amount,
                                            Unit amountUnit,
                                            Unit resultUnit) {
@@ -141,6 +163,12 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
                 resultUnit.jniValue);
     }
 
+    /**
+     * Estimate the transaction fee using the default amount and result units.  See above.
+     *
+     * @param amount
+     * @return
+     */
     public String transactionEstimatedFee (String amount) {
         return transactionEstimatedFee(amount, defaultUnit, defaultUnit);
     }
@@ -174,49 +202,56 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
                 amountUnit);
     }
 
-    // getAll
-    // getByX
-    // getByY
-
-    // sign
+     /**
+     * Sign a transaction with `paperKey`
+     *
+     * @param transaction
+     * @param paperKey
+     */
     public void sign (BREthereumTransaction transaction,
                       String paperKey) {
         node.get().jniSignTransaction(identifier, transaction.identifier, paperKey);
     }
 
+    /**
+     * sign a transaction with `privateKey`
+     *
+     * @param transaction
+     * @param privateKey
+     */
     public void signWithPrivateKey (BREthereumTransaction transaction,
                                     byte[] privateKey) {
         node.get().jniSignTransactionWithPrivateKey(identifier, transaction.identifier, privateKey);
     }
 
-    // submit
+    /**
+     * Submit a transaction to the Ethereum Blockchain.
+     *
+     * @param transaction
+     */
     public void submit (BREthereumTransaction transaction) {
         node.get().jniSubmitTransaction(identifier, transaction.identifier);
     }
 
+    /**
+     * Get an array of transactions held in wallet.
+     *
+     * @return
+     */
     public BREthereumTransaction[] getTransactions () {
         long[] transactionIds = node.get().jniGetTransactions(identifier);
+
+        // We don't know the length just yet; otherwise ...
+        // BREthereumTransaction[] transactions = new BREthereumTransaction[transactionIds.length];
+
         List<BREthereumTransaction> transactions = new LinkedList<>();
 
         for (int i = 0; i < transactionIds.length; i++)
             if (node.get().jniTransactionIsSubmitted(transactionIds[i]))
+                // transaction = node.get().transactionLookupOrCreate (tid)
+                // transaction.setDefaultUnit (defaultUnit).
                 transactions.add(new BREthereumTransaction(node.get(), transactionIds[i], defaultUnit));
 
         return transactions.toArray(new BREthereumTransaction[transactions.size()]);
     }
-
-    //
-    // Static Lookup
-    //
-
-    static private Map<Long, WeakReference<BREthereumWallet>> wallets = new HashMap<>();
-
-    static void addWallet (long identifier, BREthereumWallet wallet) {
-        wallets.put (identifier, new WeakReference<BREthereumWallet>(wallet));
-    }
-
-    static BREthereumWallet getWallet (long identifier) {
-        WeakReference<BREthereumWallet> wallet = wallets.get(identifier);
-        return null == wallet ? null : wallet.get();
-    }
- }
+  }

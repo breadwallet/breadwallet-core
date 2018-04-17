@@ -710,8 +710,8 @@ lightNodeTransactionHoldsToken (BREthereumLightNode node,
                            BREthereumToken token);
 
 extern BREthereumToken
-lightNodeTransactionGetToken (BREthereumLightNode node,
-                         BREthereumLightNodeTransactionId tid);
+lightNodeTransactionGetToken(BREthereumLightNode node,
+                             BREthereumLightNodeTransactionId tid);
 
 extern BREthereumEther
 lightNodeTransactionGetFee (BREthereumLightNode node,
