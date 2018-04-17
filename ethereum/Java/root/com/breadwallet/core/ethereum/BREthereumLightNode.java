@@ -26,6 +26,8 @@ package com.breadwallet.core.ethereum;
 
 import com.breadwallet.core.BRCoreJniReference;
 import java.lang.ref.WeakReference;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  *
@@ -222,25 +224,19 @@ public class BREthereumLightNode extends BRCoreJniReference {
     WeakReference<Client> client;
     WeakReference<Listener> listener;
 
+    //
+    // Network
+    //
     BREthereumNetwork network;
-    BREthereumAccount account;
 
-    protected BREthereumLightNode(long jniReferenceAddress, Client client, BREthereumNetwork network) {
-        super(jniReferenceAddress);
-        this.client = new WeakReference<Client>(client);
-        this.network = network;
-        this.account = new BREthereumAccount(this, jniLightNodeGetAccount());
-        client.assignNode(this);
+    public BREthereumNetwork getNetwork () {
+        return network;
     }
-
-    public void addListener (Listener listener) {
-        this.listener = new WeakReference<Listener>(listener);
-        jniAddListener(listener);
-    }
-
     //
     // Account
     //
+    BREthereumAccount account;
+
     public BREthereumAccount getAccount() {
         return account;
     }
@@ -252,43 +248,121 @@ public class BREthereumLightNode extends BRCoreJniReference {
     public byte[] getAddressPublicKey () {
         return account.getPrimaryAddressPublicKey();
     }
+
+    //
+    // Wallet
+    //
+    // We hold a mapping, from identifier to wallet, for all wallets held/managed by this node.
+    // The Core already holds wallets and thus we don't actually need to 'duplicate' that
+    // functionality; however, to not hold wallets here would mean that every getWallet(), every
+    // event handler would need to create another Wallet (feeling like a 'value type').  We don't
+    // do that - but we could, and might some day.
+    //
+    // We could hold a WeakReference (and we probably should) - but, at least with the current
+    // Android app, we witnessed wallets being reclaimed between each event update.  The consequence
+    // was that we re-created the wallets each time; only to have them reclaimed.  Now, that is
+    // actually not that big a deal and it should disappear completely when the Android app holds
+    // on to wallets that have transactions.
+    //
+    // Of course, if the wallet shows up, then it is in Core Ethereum, and it shouldn't be
+    // a WeakReference() - since it clearly exists in Core.  We'll leave this as a string
+    // reference and explicitly delete wallets on a 'DELETE' event.
+    //
+    protected Map<Long, BREthereumWallet> wallets = new HashMap<>();
+
+    protected BREthereumWallet walletLookupOrCreate(long wid, BREthereumToken token) {
+        BREthereumWallet wallet = wallets.get(wid);
+
+        // If we never had a wallet, then create one.
+        if (null == wallet) {
+
+            // If `token` is null, then lookup the token for wallet.
+            if (null == token) {
+                long tokenRef = jniLightNodeWalletGetToken(wid);
+                if (0 != tokenRef)
+                    token = BREthereumToken.lookupByReference (tokenRef);
+            }
+
+            wallet = (null == token
+                    ? new BREthereumWallet(this, wid, account, network)
+                    : new BREthereumWallet(this, wid, account, network, token));
+
+            wallets.put(wid, wallet);
+
+        }
+
+        return wallet;
+    }
+
+    public BREthereumWallet getWallet () {
+        long wid = jniLightNodeGetWallet();
+        return walletLookupOrCreate (wid, null);
+    }
+
+    public BREthereumWallet getWallet(BREthereumToken token) {
+        long wid = jniLightNodeCreateWalletToken(token.getIdentifier()); // TODO: Use GetWalletToken()
+        return walletLookupOrCreate(wid, token);
+    }
+
+    public BREthereumWallet createWallet(BREthereumToken token) {
+        return getWallet(token);
+    }
+
+    //
+    // Transaction
+    //
+    // We'll hold a mapping, from identifier to transaction, for all transactions.
+    //
+    protected Map<Long, WeakReference<BREthereumTransaction>> transactions = new HashMap<>();
+
+    protected BREthereumTransaction transactionLookupOrCreate(long tid) {
+        WeakReference<BREthereumTransaction> transactionRef = transactions.get(tid);
+
+        if (null == transactionRef || null == transactionRef.get()) {
+            long tokenReference = jniTransactionGetToken(tid);
+
+            transactionRef = new WeakReference<>(
+                    new BREthereumTransaction(this, tid,
+                            (0 == tokenReference
+                                    ? BREthereumAmount.Unit.ETHER_ETHER
+                                    : BREthereumAmount.Unit.TOKEN_DECIMAL)));
+            transactions.put(tid, transactionRef);
+        }
+
+        return transactionRef.get();
+    }
+
+    //
+    // Constructor
+    //
+    protected BREthereumLightNode(long jniReferenceAddress, Client client, BREthereumNetwork network) {
+        super(jniReferenceAddress);
+
+        // `this` is the JNI listener, using the `trampoline` functions to invoke
+        // the installed `Listener`.
+        jniAddListener(null);
+
+        this.client = new WeakReference<Client>(client);
+        this.network = network;
+        this.account = new BREthereumAccount(this, jniLightNodeGetAccount());
+        client.assignNode(this);
+    }
+
+    public void addListener (Listener listener) {
+        this.listener = new WeakReference<>(listener);
+    }
+
     //
     // Connect // Disconnect
     //
     public boolean connect () {
         return jniLightNodeConnect ();
     }
-
     public boolean disconnect () {
         return jniLightNodeDisconnect ();
     }
     public void disconnectAndWait () {
         jniLightNodeDisconnectAndWait();
-    }
-
-    //
-    // Wallet
-    //
-    public BREthereumWallet getWallet () {
-        return new BREthereumWallet(this,
-                jniLightNodeGetWallet(),
-                getAccount(),
-                network);
-    }
-
-    public BREthereumWallet getWallet(BREthereumToken token) {
-        long walletId = jniLightNodeGetWalletToken(token.getIdentifier());
-        return 0 == walletId
-                ? null
-                : new BREthereumWallet(this, walletId, getAccount(), network, token);
-    }
-
-    public BREthereumWallet createWallet(BREthereumToken token) {
-        return new BREthereumWallet(this,
-                jniLightNodeCreateWalletToken(token.getIdentifier()),
-                getAccount(),
-                network,
-                token);
     }
 
     //
@@ -300,43 +374,49 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     // These methods also give us a chance to convert the `event`, as a `long`, to the Event.
     //
-    protected void trampolineWalletEvent (BREthereumWallet wallet, long event) {
+    protected void trampolineWalletEvent (long wid, long event) {
         Listener l =  listener.get();
-        if (null != l) l.handleWalletEvent(wallet, Listener.WalletEvent.values()[(int) event]);
+        if (null == l) return;
+
+        // Lookup the wallet - this will create the wallet if it doesn't exist.  Thus, if the
+        // `event` is `create`, we get a wallet; and even, if the `event` is `delete`, we get a
+        // wallet too.
+        BREthereumWallet wallet = walletLookupOrCreate(wid, null);
+
+        // Invoke handler
+        l.handleWalletEvent(wallet, Listener.WalletEvent.values()[(int) event]);
     }
 
-    protected void trampolineTransactionEvent (BREthereumWallet wallet, BREthereumTransaction transaction, long event) {
+    protected void trampolineBlockEvent (long bid, long event) {
+        Listener l = listener.get();
+        if (null == l) return;
+
+        // Nothing, at this point
+    }
+
+    protected void trampolineTransactionEvent (long wid, long tid, long event) {
         Listener l =  listener.get();
-        if (null != l) l.handleTransactionEvent(wallet, transaction, Listener.TransactionEvent.values()[(int) event]);
+        if (null == l) return;
+
+        BREthereumWallet wallet = walletLookupOrCreate(wid, null);
+        BREthereumTransaction transaction = transactionLookupOrCreate (tid);
+
+        l.handleTransactionEvent(wallet, transaction, Listener.TransactionEvent.values()[(int) event]);
     }
 
     //
-    // JNI Interface
+    // JNI: Constructors
     //
-    protected native void jniAddListener (Listener listener);
-
     protected static native long jniCreateLightNodeLES(Client client, long network, String paperKey, String[] wordList);
     protected static native long jniCreateLightNodeLES_PublicKey(Client client, long network, byte[] publicKey);
 
     protected static native long jniCreateLightNodeJSON_RPC(Client client, long network, String paperKey, String[] wordList);
     protected static native long jniCreateLightNodeJSON_RPC_PublicKey(Client client, long network, byte[] publicKey);
 
-    protected native long jniLightNodeGetAccount();
-    protected native String jniGetAccountPrimaryAddress(long accountId);
-    protected native byte[] jniGetAccountPrimaryAddressPublicKey(long accountId);
-    protected native byte[] jniGetAccountPrimaryAddressPrivateKey(long accountId, String paperKey);
-
-    protected native long jniLightNodeGetWallet();
-    protected native long jniLightNodeGetWalletToken (long tokenId);
-    protected native long jniLightNodeCreateWalletToken(long tokenId);
-
-    protected native String jniGetWalletBalance (long walletId, long unit);
-    protected native void jniEstimateWalletGasPrice (long walletId);
-
-    protected native void jniForceWalletBalanceUpdate(long wallet);
+    protected native void jniAddListener (Listener listener);
 
     //
-    // Announcements
+    // JNI: Announcements
     //
     protected native void jniAnnounceTransaction(int id,
                                                  String hash,
@@ -376,8 +456,26 @@ public class BREthereumLightNode extends BRCoreJniReference {
     protected native void jniAnnounceGasEstimate (int wid, int tid, String gasEstimate, int rid);
     protected native void jniAnnounceSubmitTransaction (int wid, int tid, String hash, int rid);
 
+
+    // JNI: Account & Address
+    protected native long jniLightNodeGetAccount();
+    protected native String jniGetAccountPrimaryAddress(long accountId);
+    protected native byte[] jniGetAccountPrimaryAddressPublicKey(long accountId);
+    protected native byte[] jniGetAccountPrimaryAddressPrivateKey(long accountId, String paperKey);
+
+    // JNI: Wallet
+    protected native long jniLightNodeGetWallet();
+    protected native long jniLightNodeGetWalletToken (long tokenId);
+    protected native long jniLightNodeCreateWalletToken(long tokenId);
+    protected native long jniLightNodeWalletGetToken (long wid);
+
+    protected native String jniGetWalletBalance (long walletId, long unit);
+    protected native void jniEstimateWalletGasPrice (long walletId);
+
+    protected native void jniForceWalletBalanceUpdate(long wallet);
+
     //
-    // Wallet Transactions
+    // JNI: Wallet Transactions
     //
     protected native long jniCreateTransaction (long walletId,
                                                 String to,
@@ -406,7 +504,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
                                                        long resultUnit);
 
     //
-    // Transactions
+    // JNI: Transactions
     //
     protected native boolean jniTransactionHasToken (long transactionId);
 
@@ -415,27 +513,29 @@ public class BREthereumLightNode extends BRCoreJniReference {
     protected native String jniTransactionSourceAddress (long transactionId);
     protected native String jniTransactionTargetAddress (long transactionId);
     protected native String jniTransactionGetHash (long transactionId);
-    protected native String jniTransactionGetGasPrice (long tranactionId, long unit);
-    protected native long jniTransactionGetGasLimit (long tranactionId);
-    protected native long jniTransactionGetGasUsed (long tranactionId);
-    protected native long jniTransactionGetNonce (long tranactionId);
-    protected native long jniTransactionGetBlockNumber (long tranactionId);
-    protected native long jniTransactionGetBlockTimestamp (long tranactionId);
+    protected native String jniTransactionGetGasPrice (long transactionId, long unit);
+    protected native long jniTransactionGetGasLimit (long transactionId);
+    protected native long jniTransactionGetGasUsed (long transactionId);
+    protected native long jniTransactionGetNonce (long transactionId);
+    protected native long jniTransactionGetBlockNumber (long transactionId);
+    protected native long jniTransactionGetBlockTimestamp (long transactionId);
+    protected native long jniTransactionGetToken (long transactionId);
     protected native boolean jniTransactionIsConfirmed (long transactionId);
     protected native boolean jniTransactionIsSubmitted (long transactionId);
 
     //
-    // Tokens
+    // JNI: Tokens
     //
     protected native String jniTokenGetAddress (long tokenId);
 
     //
-    // Connect // Disconnect
+    // JNI: Connect & Disconnect
     //
     protected native boolean jniLightNodeConnect ();
     protected native boolean jniLightNodeDisconnect ();
     protected native void jniLightNodeDisconnectAndWait ();
 
+    // JNI: Initialize
     protected static native void initializeNative();
 
     static {

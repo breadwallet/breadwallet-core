@@ -48,9 +48,29 @@ public class BREthereumToken extends BRCoreJniReference {
     //
     // Lookup with an Address (the Contract)
     //
+
+    /**
+     * Return the token having `address` or `null` is `address` is unknown.
+     *
+     * @param address
+     * @return
+     */
     public static BREthereumToken lookup (String address) {
         for (BREthereumToken token : tokens)
             if (address.equals(token.getAddress()))
+                return token;
+        return null;
+    }
+
+    /**
+     * Return the token having `reference` or `null` if `reference` is unknown.
+     *
+     * @param reference
+     * @return
+     */
+    protected static BREthereumToken lookupByReference (long reference) {
+        for (BREthereumToken token : tokens)
+            if (reference == token.jniReferenceAddress)
                 return token;
         return null;
     }

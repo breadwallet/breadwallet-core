@@ -337,13 +337,6 @@ lightNodeThreadRoutine (BREthereumLightNode node) {
         // (token) transactions and associate with their wallet.
         lightNodeUpdateLogs(node, eventERC20Transfer);
 
-//        for (int i = 0; i < array_count(node->wallets); i++) {
-//            BREthereumWallet wallet = lightNodeLookupWallet (node, i);
-//            BREthereumToken token = walletGetToken(wallet);
-//            if (NULL != token)
-//                lightNodeUpdateLogs(node, tokenGetAddress(token));
-//        }
-
         // For all the known wallets, get their balance.
         for (int i = 0; i < array_count(node->wallets); i++)
             lightNodeUpdateWalletBalance (node, i);
