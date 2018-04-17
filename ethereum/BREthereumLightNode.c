@@ -1337,8 +1337,8 @@ lightNodeAnnounceBalance (BREthereumLightNode node,
                           int rid) {
     BRCoreParseStatus status;
 
-    assert (0 == strncmp (balance, "0x", 2));
-    UInt256 value = createUInt256Parse(balance, 16, &status);
+    // Passed in `balance` can be base 10 or 16.  Let UInt256Prase decide.
+    UInt256 value = createUInt256Parse(balance, 0, &status);
 
     pthread_mutex_lock(&node->lock);
     if (LIGHT_NODE_CONNECTED == node->state) {
