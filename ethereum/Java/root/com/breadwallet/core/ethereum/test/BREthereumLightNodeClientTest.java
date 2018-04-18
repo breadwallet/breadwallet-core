@@ -232,7 +232,7 @@ public class BREthereumLightNodeClientTest implements
     protected void runTest () {
         // Create the node; reference through this.node
         new BREthereumLightNode.JSON_RPC(this, BREthereumNetwork.testnet, USABLE_PAPER_KEY, words);
-//        node.addListener(this);
+        node.addListener(this);
 
 
         //
@@ -251,8 +251,11 @@ public class BREthereumLightNodeClientTest implements
                 "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
                 "11113000000000",
                 BREthereumAmount.Unit.ETHER_WEI);
+	System.out.println ("X1");
         walletEther.sign(trans1, USABLE_PAPER_KEY);
+        System.out.println ("X2");
         walletEther.submit(trans1);
+        System.out.println ("X3");
 
         asserting ("11113000000000".equals(trans1.getAmount()));
         asserting ("11113.000000000".equals(trans1.getAmount(ETHER_GWEI)));
@@ -264,6 +267,7 @@ public class BREthereumLightNodeClientTest implements
         // Fee for 1 WEI is 840000 GWEI
         asserting ("840000000000000".equals(walletEther.transactionEstimatedFee("1")));
         asserting ("840000.000000000".equals(walletEther.transactionEstimatedFee("1", ETHER_ETHER, ETHER_GWEI)));
+        System.out.println ("X4");
 
         System.out.println ("==== Ether ====\n");
         for (BREthereumTransaction transaction : walletEther.getTransactions()) {

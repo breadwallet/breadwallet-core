@@ -27,6 +27,9 @@
 #define BR_Ethereum_Private_H
 
 #include "BREthereum.h"
+#include "BREthereumTransaction.h"
+#include "BREthereumBlock.h"
+#include "BREthereumWallet.h"
 
 // Returns Ether appropriate for encoding a transaction.  If the transaction is for a TOKEN,
 // then the returned Ether is zero (because the amount of a TOKEN transfer is encoded in the
@@ -36,7 +39,7 @@ transactionGetEffectiveAmountInEther (BREthereumTransaction transaction);
 
 private_extern BREthereumTransaction
 walletGetTransactionById (BREthereumWallet wallet,
-                          BREthereumLightNodeTransactionId transactionId);
+                          BREthereumTransactionId transactionId);
 
 private_extern void
 walletSetBalance (BREthereumWallet wallet,
@@ -62,6 +65,15 @@ walletTransactionDropped (BREthereumWallet wallet,
 private_extern void
 walletHandleTransaction (BREthereumWallet wallet,
                          BREthereumTransaction transaction);
+
+private_extern void
+walletUnhandleTransaction (BREthereumWallet wallet,
+                           BREthereumTransaction transaction);
+
+private_extern int
+walletHasTransaction (BREthereumWallet wallet,
+                      BREthereumTransaction transaction);
+
 //
 // Address
 //

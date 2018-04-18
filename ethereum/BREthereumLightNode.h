@@ -26,712 +26,104 @@
 #ifndef BR_Ethereum_Light_Node_H
 #define BR_Ethereum_Light_Node_H
 
-#define ETHEREUM_LIGHT_NODE_USE_JSON_RPC  1
-
 #include <stdint.h>
-#include "BRKey.h"
-#include "BREthereumEther.h"
-#include "BREthereumGas.h"
-#include "BREthereumAmount.h"
-#include "BREthereumNetwork.h"
+#include "BREthereum.h"
+#include "BREthereumAccount.h"
+#include "BREthereumTransaction.h"
+#include "BREthereumBlock.h"
+#include "BREthereumWallet.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/**
- * An Ethereum Light Node
- *
- */
-typedef struct BREthereumLightNodeRecord *BREthereumLightNode;
-
-// Opaque Pointers
-typedef int32_t BREthereumLightNodeTransactionId;
-typedef int32_t BREthereumLightNodeAccountId;
-typedef int32_t BREthereumLightNodeWalletId;
-typedef int32_t BREthereumLightNodeBlockId;
-typedef int32_t BREthereumLightNodeListenerId;
-
-//
-// Errors - Right Up Front - 'The Emporeror Has No Clothes' ??
-//
-typedef enum {
-    NODE_ERROR_UNKNOWN_NODE,
-    NODE_ERROR_UNKNOWN_TRANSACTION,
-    NODE_ERROR_UNKNOWN_ACCOUNT,
-    NODE_ERROR_UNKNOWN_WALLET,
-    NODE_ERROR_UNKNOWN_BLOCK,
-    NODE_ERROR_UNKNOWN_LISTENER,
-
-    // Node
-    NODE_ERROR_NODE_X,
-
-    // Transaction
-    NODE_ERROR_TRANSACTION_X,
-
-    // Acount
-    // Wallet
-    // Block
-    // Listener
-} BREthereumLightNodeError;
-
-
-//
-// Listener
-//
-typedef enum {
-    WALLET_EVENT_CREATED,
-    WALLET_EVENT_BALANCE_UPDATED,
-    WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED,
-    WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
-    WALLET_EVENT_TRANSACTION_ADDED,
-    WALLET_EVENT_TRANSACTION_REMOVED,
-    WALLET_EVENT_DELETED
-} BREthereumLightNodeWalletEvent;
-
-typedef enum {
-    BLOCK_EVENT_CREATED
-} BREthereumLightNodeBlockEvent;
-
-typedef enum {
-    TRANSACTION_EVENT_CREATED,
-    TRANSACTION_EVENT_SIGNED,
-    TRANSACTION_EVENT_SUBMITTED,
-    TRANSACTION_EVENT_BLOCKED,  // aka confirmed
-    TRANSACTION_EVENT_ERRORED,
-
-    TRANSACTION_EVENT_GAS_ESTIMATE_UPDATED
-} BREthereumLightNodeTransactionEvent;
-
-typedef void *BREthereumLightNodeListenerContext;
-
-typedef void (*BREthereumLightNodeListenerWalletEventHandler) (BREthereumLightNodeListenerContext context,
-                                                               BREthereumLightNode node,
-                                                               BREthereumLightNodeWalletId wid,
-                                                               BREthereumLightNodeWalletEvent event);
-
-typedef void (*BREthereumLightNodeListenerBlockEventHandler) (BREthereumLightNodeListenerContext context,
-                                                              BREthereumLightNode node,
-                                                              BREthereumLightNodeBlockId bid,
-                                                              BREthereumLightNodeBlockEvent event);
-
-typedef void (*BREthereumLightNodeListenerTransactionEventHandler) (BREthereumLightNodeListenerContext context,
-                                                                    BREthereumLightNode node,
-                                                                    BREthereumLightNodeWalletId wid,
-                                                                    BREthereumLightNodeTransactionId tid,
-                                                                    BREthereumLightNodeTransactionEvent event);
-
-
-//
-// JSON RPC Support
-//
-
-//
-// Type defintions for callback functions.  When configuring a LightNode to use JSON_RPC these
-// functions must be provided.  The functions will use the provided arguments to create a JSON_RPC
-// Ethereum call; block until the call returns, unpack the response and then provide the result
-// (as a newly allocated string - the Ethereum Core will own it and free() it.)
-//
-typedef void *JsonRpcContext;
-typedef void (*JsonRpcGetBalance) (JsonRpcContext context,
-                                   BREthereumLightNode node,
-                                   BREthereumLightNodeWalletId wid,
-                                   const char *address,
-                                   int rid);
-
-typedef void (*JsonRpcGetGasPrice) (JsonRpcContext context,
-                                    BREthereumLightNode node,
-                                    BREthereumLightNodeWalletId wid,
-                                    int rid);
-
-typedef void (*JsonRpcEstimateGas) (JsonRpcContext context,
-                                    BREthereumLightNode node,
-                                    BREthereumLightNodeWalletId wid,
-                                    BREthereumLightNodeTransactionId tid,
-                                    const char *to,
-                                    const char *amount,
-                                    const char *data,
-                                    int rid);
-
-typedef void (*JsonRpcSubmitTransaction) (JsonRpcContext context,
-                                          BREthereumLightNode node,
-                                          BREthereumLightNodeWalletId wid,
-                                          BREthereumLightNodeTransactionId tid,
-                                          const char *transaction,
-                                          int rid);
-
-typedef void (*JsonRpcGetTransactions) (JsonRpcContext context,
-                                        BREthereumLightNode node,
-                                        const char *address,
-                                        int rid);
-
-typedef void (*JsonRpcGetLogs) (JsonRpcContext context,
-                                BREthereumLightNode node,
-                                const char *address,
-                                const char *event,
-                                int rid);
-
-//
-// Two types of LightNode - JSON_RPC or LES (Light Ethereum Subprotocol).
-//
-typedef enum {
-  NODE_TYPE_JSON_RPC,
-  NODE_TYPE_LES
-} BREthereumLightNodeType;
-
-//
-// Light Node Configuration
-//
-// Used to configure a light node appropriately for JSON_RPC or LES.  Starts with a
-// BREthereumNetwork (one of ethereum{Mainnet,Testnet,Rinkeby} and then specifics for the
-// type.
-//
-typedef struct {
-  BREthereumNetwork network;
-  BREthereumLightNodeType type;
-  union {
-    //
-    struct {
-      JsonRpcContext funcContext;
-      JsonRpcGetBalance funcGetBalance;
-      JsonRpcGetGasPrice funcGetGasPrice;
-      JsonRpcEstimateGas funcEstimateGas;
-      JsonRpcSubmitTransaction funcSubmitTransaction;
-      JsonRpcGetTransactions funcGetTransactions;
-      JsonRpcGetLogs funcGetLogs;
-    } json_rpc;
-
-    //
-    struct {
-      int foo;
-    } les;
-  } u;
-} BREthereumLightNodeConfiguration;
-
-/**
- * Create a LES configuration
- */
-extern BREthereumLightNodeConfiguration
-lightNodeConfigurationCreateLES (BREthereumNetwork network,
-                                int foo);
-
-/**
- * Create a JSON_RPC configuration w/ the set of functions needed to perform JSON RPC calls
- * and to process the result.
- */
-extern BREthereumLightNodeConfiguration
-lightNodeConfigurationCreateJSON_RPC(BREthereumNetwork network,
-                                     JsonRpcContext context,
-                                     JsonRpcGetBalance funcGetBalance,
-                                     JsonRpcGetGasPrice functGetGasPrice,
-                                     JsonRpcEstimateGas funcEstimateGas,
-                                     JsonRpcSubmitTransaction funcSubmitTransaction,
-                                     JsonRpcGetTransactions funcGetTransactions,
-                                     JsonRpcGetLogs funcGetLogs);
-
-//
-// Light Node
-//
-
-/**
- * Create a LightNode managing the account associated with the paperKey.  (The `paperKey` must
- * use words from the defaul wordList (Use installSharedWordList).  The `paperKey` is used for
- * BIP-32 generation of keys; the same paper key must be used when signing transactions for
- * this node's account.
- */
 extern BREthereumLightNode
-createLightNode (BREthereumLightNodeConfiguration configuration,
-                 const char *paperKey);
+createLightNode (BREthereumConfiguration configuration,
+                 BREthereumAccount account);
 
-/**
- * Create a LightNode managing the account associated with the publicKey.  Public key is a
- * 0x04-prefixed, 65-byte array in BRKey - as returned by
- * lightNodeGetAccountPrimaryAddressPublicKey().
- */
-extern BREthereumLightNode
-createLightNodeWithPublicKey (BREthereumLightNodeConfiguration configuration,
-                              const BRKey publicKey);
-
-/**
- * Create an Ethereum Account using `paperKey` for BIP-32 generation of keys.  The same paper key
- * must be used when signing transactions for this account.
- */
-extern BREthereumLightNodeAccountId
+extern BREthereumAccount
 lightNodeGetAccount (BREthereumLightNode node);
 
-/**
- * Get the primary address for `account`.  This is the '0x'-prefixed, 40-char, hex encoded
- * string.  The returned char* is newly allocated, on each call - you MUST free() it.
- */
-extern char *
-lightNodeGetAccountPrimaryAddress (BREthereumLightNode node);
-
-/**
- * Get the public key for `account`.  This is a 0x04-prefixed, 65-byte array.  You own this
- * memory and you MUST free() it.
- */
-extern BRKey
-lightNodeGetAccountPrimaryAddressPublicKey (BREthereumLightNode node);
-
-/**
- * Get the private key for `account`.
- */
-extern BRKey
-lightNodeGetAccountPrimaryAddressPrivateKey (BREthereumLightNode node,
-                                             const char *paperKey);
-
-/**
- * Connect to the Ethereum Network;
- *
- * @param node
- * @return
- */
+//
+// Connect & Disconnect
+//
 extern BREthereumBoolean
-lightNodeConnect (BREthereumLightNode node);
+lightNodeConnect(BREthereumLightNode node);
+
+extern void
+lightNodeConnectAndWait (BREthereumLightNode node);
 
 extern BREthereumBoolean
 lightNodeDisconnect (BREthereumLightNode node);
 
-// Really, really bad form...
 extern void
-lightNodeConnectAndWait (BREthereumLightNode node);
-
-// ... and this too, but slightly less so.
-extern void
-lightNodeDisconnectAndWait (BREthereumLightNode node);
+lightNodeDisconnectAndWait(BREthereumLightNode node);
 
 //
-// Listener
+// {Wallet, Block, Transaction} Lookup
 //
-extern BREthereumLightNodeListenerId
-lightNodeAddListener (BREthereumLightNode node,
-                      BREthereumLightNodeListenerContext context,
-                      BREthereumLightNodeListenerWalletEventHandler walletEventHandler,
-                      BREthereumLightNodeListenerBlockEventHandler blockEventHandler,
-                      BREthereumLightNodeListenerTransactionEventHandler transactionEventHandler);
+extern BREthereumWallet
+lightNodeLookupWallet(BREthereumLightNode node,
+                      BREthereumWalletId wid);
 
-extern BREthereumBoolean
-lightNodeHasListener (BREthereumLightNode node,
-                      BREthereumLightNodeListenerId lid);
+extern BREthereumBlock
+lightNodeLookupBlock (BREthereumLightNode node,
+                      const BREthereumHash hash);
 
-extern BREthereumBoolean
-lightNodeRemoveListener (BREthereumLightNode node,
-                         BREthereumLightNodeListenerId lid);
-
-/**
- * Get the wallet for `account` holding ETHER.  This wallet is created, along with the account,
- * when a light node itself is created.
- *
- * @param node
- * @return
- */
-extern BREthereumLightNodeWalletId
-lightNodeGetWallet (BREthereumLightNode node);
-
-/**
- * Get the wallet holding `token`.  If none exists, returns NULL.
-
- * @param node
- * @param token
- * @return
- */
-extern BREthereumLightNodeWalletId
-lightNodeGetWalletHoldingToken (BREthereumLightNode node,
-                                BREthereumToken token);
-
-/**
- * Create a wallet for `token` if one doesn't aleady exist; otherwise return the existing one.
- *
- * @param node
- * @param account
- * @param network
- * @param token
- */
-extern BREthereumLightNodeWalletId
-lightNodeCreateWalletHoldingToken (BREthereumLightNode node,
-                                   BREthereumToken token);
-
-/**
- * Token can be NULL => holds Ether
- *
- * @param node
- * @param wid
- * @param token
- * @return
- */
-extern BREthereumBoolean
-lightNodeWalletHoldsToken (BREthereumLightNode node,
-                           BREthereumLightNodeWalletId wid,
-                           BREthereumToken token);
-
-extern BREthereumToken
-lightNodeWalletGetToken (BREthereumLightNode node,
-                         BREthereumLightNodeWalletId wid);
+extern BREthereumTransaction
+lightNodeLookupTransaction(BREthereumLightNode node,
+                           BREthereumTransactionId tid);
 
 //
-// Holding / Ether
+// Wallet
 //
+extern BREthereumWalletId
+lightNodeGetWallet(BREthereumLightNode node);
 
-/**
- * Create Ether from a string representing a number.  The string can *only* contain digits and
- * a single decimal point.  No '-', no '+' no 'e' (exponents).
- *
- * @param node
- * @param number the amount as a decimal (base10) number.
- * @param unit the number's unit - typically ETH, GWEI or WEI.
- * @param status This MUST NOT BE NULL. If assigned anything but OK, the return Ether is 0.  In
- *        practice you must reference `status` otherwise you'll have unknown errors with 0 ETH.
- */
-extern BREthereumAmount
-lightNodeCreateEtherAmountString (BREthereumLightNode node,
-                                  const char *number,
-                                  BREthereumEtherUnit unit,
-                                  BRCoreParseStatus *status);
+extern BREthereumWalletId
+lightNodeGetWalletHoldingToken(BREthereumLightNode node,
+                              BREthereumToken token);
 
-/**
- * Create Ether from a 'smallish' number and a unit
- *
- */
-extern BREthereumAmount
-lightNodeCreateEtherAmountUnit (BREthereumLightNode node,
-                                uint64_t amountInUnit,
-                                BREthereumEtherUnit unit);
-
-/**
- * Convert `ether` to a char* in `unit`.  Caller owns the result and must call free()
- */
-extern char *
-lightNodeCoerceEtherAmountToString (BREthereumLightNode node,
-                                    BREthereumEther ether,
-                                    BREthereumEtherUnit unit);
-
-extern BREthereumAmount
-lightNodeCreateTokenAmountString (BREthereumLightNode node,
-                                  BREthereumToken token,
-                                  const char *number,
-                                  BREthereumTokenQuantityUnit unit,
-                                  BRCoreParseStatus *status);
-//
-// Wallet Defaults
-//
-extern uint64_t
-lightNodeWalletGetDefaultGasLimit (BREthereumLightNode node,
-                                   BREthereumLightNodeWalletId wallet);
-
-extern void
-lightNodeWalletSetDefaultGasLimit (BREthereumLightNode node,
-                                   BREthereumLightNodeWalletId wallet,
-                                   uint64_t gasLimit);
-  
-extern uint64_t
-lightNodeWalletGetGasEstimate (BREthereumLightNode node,
-                               BREthereumLightNodeWalletId wallet,
-                               BREthereumLightNodeTransactionId transaction);
-
-extern void
-lightNodeWalletSetDefaultGasPrice (BREthereumLightNode node,
-                                   BREthereumLightNodeWalletId wallet,
-                                   BREthereumEtherUnit unit,
-                                   uint64_t value);
-
-// Returns the ETH/GAS price in WEI.  IF the value is too large to express in WEI as a uint64_t
-// then ZERO is returned.  Caution warranted.
-extern uint64_t
-lightNodeWalletGetDefaultGasPrice (BREthereumLightNode node,
-                                   BREthereumLightNodeWalletId wallet);
-
-extern BREthereumAmount
-lightNodeWalletGetBalance (BREthereumLightNode node,
-                           BREthereumLightNodeWalletId wallet);
-
-extern char *
-lightNodeWalletGetBalanceEther (BREthereumLightNode node,
-                                BREthereumLightNodeWalletId wallet,
-                                BREthereumEtherUnit unit);
-extern char *
-lightNodeWalletGetBalanceTokenQuantity (BREthereumLightNode node,
-                                        BREthereumLightNodeWalletId wallet,
-                                        BREthereumTokenQuantityUnit unit);
-
-extern BREthereumEther
-lightNodeWalletEstimateTransactionFee (BREthereumLightNode node,
-                                       BREthereumLightNodeWalletId wallet,
-                                       BREthereumAmount amount,
-                                       int *overflow);
-
-// ...
-
-//
-// Wallet Transactions
-//
-
-/**
- * Create a transaction to transfer `amount` from `wallet` to `recvAddrss`.
- *
- * @param node
- * @param wallet the wallet
- * @param recvAddress A '0x' prefixed, strlen 42 Ethereum address.
- * @param amount to transfer
- * @return
- */
-extern BREthereumLightNodeTransactionId
+extern BREthereumTransactionId
 lightNodeWalletCreateTransaction(BREthereumLightNode node,
-                                 BREthereumLightNodeWalletId wallet,
-                                 const char *recvAddress,
-                                 BREthereumAmount amount);
-
-  /**
-   * Sign the transaction using the wallet's account (for the sender's address).  The paperKey
-   * is used to 'lookup' the private key.
-   *
-   * @param node
-   * @param wallet
-   * @param transaction
-   * @param paperKey
-   */
-extern void // status, error
-lightNodeWalletSignTransaction (BREthereumLightNode node,
-                                BREthereumLightNodeWalletId wid,
-                                BREthereumLightNodeTransactionId tid,
-                                const char *paperKey);
+                                BREthereumWallet wallet,
+                                const char *recvAddress,
+                                BREthereumAmount amount);
 
 extern void // status, error
-lightNodeWalletSignTransactionWithPrivateKey (BREthereumLightNode node,
-                                              BREthereumLightNodeWalletId wid,
-                                              BREthereumLightNodeTransactionId tid,
-                                              BRKey privateKey);
+lightNodeWalletSignTransaction(BREthereumLightNode node,
+                               BREthereumWallet wallet,
+                               BREthereumTransaction transaction,
+                               BRKey privateKey);
 
 extern void // status, error
-lightNodeWalletSubmitTransaction (BREthereumLightNode node,
-                                  BREthereumLightNodeWalletId wid,
-                                  BREthereumLightNodeTransactionId tid);
+lightNodeWalletSignTransactionWithPaperKey(BREthereumLightNode node,
+                               BREthereumWallet wallet,
+                               BREthereumTransaction transaction,
+                               const char *paperKey);
 
-/**
- * Returns a -1 terminated array of transaction identifiers.
- */
-extern BREthereumLightNodeTransactionId *
-lightNodeWalletGetTransactions (BREthereumLightNode node,
-                                BREthereumLightNodeWalletId wallet);
+extern void // status, error
+lightNodeWalletSubmitTransaction(BREthereumLightNode node,
+                                 BREthereumWallet wallet,
+                                 BREthereumTransaction transaction);
 
-/**
- * Returns -1 on invalid wid
- */
-extern int // TODO: What in invalid wid?
-lightNodeWalletGetTransactionCount (BREthereumLightNode node,
-                                    BREthereumLightNodeWalletId wid);
+extern BREthereumTransactionId *
+lightNodeWalletGetTransactions(BREthereumLightNode node,
+                                BREthereumWallet wallet);
 
-/**
- * Update the transactions for the node's account.  A JSON_RPC light node will call out to
- * JsonRpcGetTransactions which is expected to query all transactions associated with the
- * accounts address and then the call out is to call back the 'announce transaction' callback.
- */
-extern void
-lightNodeUpdateTransactions (BREthereumLightNode node);
+extern int
+lightNodeWalletGetTransactionCount(BREthereumLightNode node,
+                                   BREthereumWallet wallet);
 
 extern void
-lightNodeUpdateLogs (BREthereumLightNode node, BREthereumEvent event);
-
-#if ETHEREUM_LIGHT_NODE_USE_JSON_RPC
-//
-// Wallet Updates
-//
-extern void
-lightNodeUpdateWalletBalance (BREthereumLightNode node,
-                              BREthereumLightNodeWalletId wid);
+lightNodeWalletSetDefaultGasLimit(BREthereumLightNode node,
+                                 BREthereumWallet wallet,
+                                 BREthereumGas gasLimit);
 
 extern void
-lightNodeUpdateTransactionGasEstimate (BREthereumLightNode node,
-                                       BREthereumLightNodeWalletId wid,
-                                       BREthereumLightNodeTransactionId tid);
-
-extern void
-lightNodeUpdateWalletDefaultGasPrice (BREthereumLightNode node,
-                                      BREthereumLightNodeWalletId wid);
-
-
-/**
- * Return the serialized raw data for `transaction`.  The value `*bytesPtr` points to a byte array;
- * the callee OWNs that byte array (and thus must call free).  The value `*bytesCountPtr` hold
- * the size of the byte array.
- *
- * @param node
- * @param transaction
- * @param bytesPtr
- * @param bytesCountPtr
- */
-
-extern void
-lightNodeFillTransactionRawData(BREthereumLightNode node,
-                                BREthereumLightNodeWalletId wallet,
-                                BREthereumLightNodeTransactionId transaction,
-                                uint8_t **bytesPtr, size_t *bytesCountPtr);
-
-extern const char *
-lightNodeGetTransactionRawDataHexEncoded(BREthereumLightNode node,
-                                         BREthereumLightNodeWalletId walletId,
-                                         BREthereumLightNodeTransactionId transactionId,
-                                         const char *prefix);
-
-// Some JSON_RPC call will occur to get all transactions associated with an account.  We'll
-// process these transactions into the LightNode (associated with a wallet).  Thereafter
-// a 'light node client' can get the announced transactions using non-JSON_RPC interfaces.
-extern void
-lightNodeAnnounceTransaction(BREthereumLightNode node,
-                             int id,
-                             const char *hash,
-                             const char *from,
-                             const char *to,
-                             const char *contract,
-                             const char *amount, // value
-                             const char *gasLimit,
-                             const char *gasPrice,
-                             const char *data,
-                             const char *nonce,
-                             const char *gasUsed,
-                             const char *blockNumber,
-                             const char *blockHash,
-                             const char *blockConfirmations,
-                             const char *blockTransactionIndex,
-                             const char *blockTimestamp,
-                             // cumulative gas used,
-                             // confirmations
-                             // txreceipt_status
-                             const char *isError);
-
-extern void
-lightNodeAnnounceLog (BREthereumLightNode node,
-                      int id,
-                      const char *strHash,
-                      const char *strContract,
-                      int topicCount,
-                      const char **arrayTopics,
-                      const char *strData,
-                      const char *strGasPrice,
-                      const char *strGasUsed,
-                      const char *strLogIndex,
-                      const char *strBlockNumber,
-                      const char *strBlockTransactionIndex,
-                      const char *strBlockTimestamp);
-
-extern void
-lightNodeAnnounceBalance (BREthereumLightNode node,
-                          BREthereumLightNodeWalletId wid,
-                          const char *balance,
-                          int rid);
-
-extern void
-lightNodeAnnounceGasPrice(BREthereumLightNode node,
-                          BREthereumLightNodeWalletId wid,
-                          const char *gasEstimate,
-                          int id);
-
-extern void
-lightNodeAnnounceGasEstimate (BREthereumLightNode node,
-                              BREthereumLightNodeWalletId wid,
-                              BREthereumLightNodeTransactionId tid,
-                              const char *gasEstimate,
-                              int rid);
-
-extern void
-lightNodeAnnounceSubmitTransaction(BREthereumLightNode node,
-                                   BREthereumLightNodeWalletId wid,
-                                   BREthereumLightNodeTransactionId tid,
-                                   const char *hash,
-                                   int rid);
-
-#endif // ETHEREUM_LIGHT_NODE_USE_JSON_RPC
-
-extern char * // receiver, target
-lightNodeTransactionGetRecvAddress (BREthereumLightNode node,
-                                    BREthereumLightNodeTransactionId transaction);
-
-extern char * // sender, source
-lightNodeTransactionGetSendAddress (BREthereumLightNode node,
-                                    BREthereumLightNodeTransactionId transaction);
-
-extern char *
-lightNodeTransactionGetHash (BREthereumLightNode node,
-                             BREthereumLightNodeTransactionId transaction);
-
-extern char *
-lightNodeTransactionGetAmountEther(BREthereumLightNode node,
-                                   BREthereumLightNodeTransactionId transaction,
-                                   BREthereumEtherUnit unit);
-
-extern char *
-lightNodeTransactionGetAmountTokenQuantity(BREthereumLightNode node,
-                                           BREthereumLightNodeTransactionId transaction,
-                                           BREthereumTokenQuantityUnit unit);
-
-extern BREthereumAmount
-lightNodeTransactionGetAmount(BREthereumLightNode node,
-                              BREthereumLightNodeTransactionId transactionId);
-
-extern BREthereumAmount
-lightNodeTransactionGetGasPriceToo(BREthereumLightNode node,
-                                   BREthereumLightNodeTransactionId transactionId);
-
-extern char *
-lightNodeTransactionGetGasPrice (BREthereumLightNode node,
-                                 BREthereumLightNodeTransactionId transaction,
-                                 BREthereumEtherUnit unit);
-
-extern uint64_t
-lightNodeTransactionGetGasLimit (BREthereumLightNode node,
-                                 BREthereumLightNodeTransactionId transaction);
-
-extern uint64_t
-lightNodeTransactionGetGasUsed (BREthereumLightNode node,
-                                BREthereumLightNodeTransactionId transaction);
-
-extern uint64_t
-lightNodeTransactionGetNonce (BREthereumLightNode node,
-                              BREthereumLightNodeTransactionId transaction);
-
-extern uint64_t
-lightNodeTransactionGetBlockNumber (BREthereumLightNode node,
-                                    BREthereumLightNodeTransactionId transaction);
-
-extern uint64_t
-lightNodeTransactionGetBlockTimestamp (BREthereumLightNode node,
-                                       BREthereumLightNodeTransactionId transaction);
-
-extern BREthereumBoolean
-lightNodeTransactionIsConfirmed (BREthereumLightNode node,
-                                 BREthereumLightNodeTransactionId transaction);
-
-extern BREthereumBoolean
-lightNodeTransactionIsSubmitted (BREthereumLightNode node,
-                                 BREthereumLightNodeTransactionId transaction);
-
-extern BREthereumBoolean
-lightNodeTransactionHoldsToken (BREthereumLightNode node,
-                           BREthereumLightNodeTransactionId tid,
-                           BREthereumToken token);
-
-extern BREthereumToken
-lightNodeTransactionGetToken(BREthereumLightNode node,
-                             BREthereumLightNodeTransactionId tid);
-
-extern BREthereumEther
-lightNodeTransactionGetFee (BREthereumLightNode node,
-                            BREthereumLightNodeTransactionId tid,
-                            int *overflow);
-
-// Pending
-
-/**
- * Light Node Transaction Status - these are Ethereum defined.
- */
-typedef enum {
-    NODE_TRANSACTION_STATUS_Unknown  = 0,  // (0): transaction is unknown
-    NODE_TRANSACTION_STATUS_Queued   = 1,  // (1): transaction is queued (not processable yet)
-    NODE_TRANSACTION_STATUS_Pending  = 2,  // (2): transaction is pending (processable)
-    NODE_TRANSACTION_STATUS_Included = 3,  // (3): transaction is already included in the canonical chain. data contains an RLP-encoded [blockHash: B_32, blockNumber: P, txIndex: P] structure
-    NODE_TRANSACTION_STATUS_Error    = 4   // (4): transaction sending failed. data contains a text error message
-} BREthereumLightNodeTransactionStatus;
-
-
+lightNodeWalletSetDefaultGasPrice(BREthereumLightNode node,
+                                  BREthereumWallet wallet,
+                                  BREthereumGasPrice gasPrice);
 
 #ifdef __cplusplus
 }
