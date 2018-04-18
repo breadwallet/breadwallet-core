@@ -60,8 +60,8 @@ public class BREthereumLightNodeClientTest implements
 
     @Override
     public void assignNode(BREthereumLightNode node) {
-        asserting (node instanceof BREthereumLightNode.JSON_RPC);
-            this.node = (BREthereumLightNode.JSON_RPC) node;
+        asserting(node instanceof BREthereumLightNode.JSON_RPC);
+        this.node = (BREthereumLightNode.JSON_RPC) node;
     }
 
     @Override
@@ -307,26 +307,6 @@ public class BREthereumLightNodeClientTest implements
         walletEther.estimateGasPrice();
         walletEther.estimateGas(trans1);
 
-        // Check trans1
-
-
-        //
-        // Public Key
-        //
-        byte[] publicKey = node.getAddressPublicKey();
-        asserting (65 == publicKey.length);
-
-        BREthereumLightNode node1 = this.node;
-        BREthereumLightNode node2 = new BREthereumLightNode.JSON_RPC(this, BREthereumNetwork.testnet, publicKey);
-        asserting (node1.getAddress().equals(node2.getAddress()));
-
-        // Tokens
-        //
-        for (BREthereumToken token : BREthereumToken.tokens)
-            System.out.println ("Token: " + token.getSymbol() + ", " + token.getName() +
-                    ", " + token.getAddress() +
-                    ", " + token.getDecimals());
-
         //
         // Private Key
         //
@@ -339,14 +319,31 @@ public class BREthereumLightNodeClientTest implements
                         BREthereumAmount.Unit.TOKEN_DECIMAL);
         walletToken.signWithPrivateKey(tokenTransaction1, privateKey);
 
+        // Tokens
+        //
+        for (BREthereumToken token : BREthereumToken.tokens)
+            System.out.println ("Token: " + token.getSymbol() + ", " + token.getName() +
+                    ", " + token.getAddress() +
+                    ", " + token.getDecimals());
+
         //
         // Disconnect
         //
-        System.out.println ("Disconnect");
+        System.out.println ("Disconnect (wait...)");
         node.disconnectAndWait();
         try { sleep(1000); } catch (Exception ex) {}
 
         //
+        // Public Key
+        //
+        byte[] publicKey = node.getAddressPublicKey();
+        asserting (65 == publicKey.length);
+
+        BREthereumLightNode node1 = this.node;
+        BREthereumLightNode node2 = new BREthereumLightNode.JSON_RPC(this, BREthereumNetwork.testnet, publicKey);
+        asserting (node1.getAddress().equals(node2.getAddress()));
+
+        this.node = null;
     }
 
     private static boolean runMain = true;
@@ -359,6 +356,7 @@ public class BREthereumLightNodeClientTest implements
                 .runTest();
 
         System.out.println("Success");
+        System.exit(0);
     }
 
     private static void asserting (boolean assertion) {
