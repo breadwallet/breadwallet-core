@@ -47,21 +47,21 @@ public class BREthereumLightNode extends BRCoreJniReference {
     public interface ClientJSON_RPC extends Client {
         //        typedef void (*JsonRpcGetBalance) (JsonRpcContext context,
         //                                   BREthereumLightNode node,
-        //                                   BREthereumLightNodeWalletId wid,
+        //                                   BREthereumWalletId wid,
         //                                   const char *address,
         //                                   int rid);
         void getBalance(int wid, String address, int rid);
 
         //        typedef void (*JsonRpcGetGasPrice) (JsonRpcContext context,
         //                                    BREthereumLightNode node,
-        //                                    BREthereumLightNodeWalletId wid,
+        //                                    BREthereumWalletId wid,
         //                                    int rid);
         void getGasPrice(int wid, int rid);
 
         //        typedef void (*JsonRpcEstimateGas) (JsonRpcContext context,
         //                                    BREthereumLightNode node,
-        //                                    BREthereumLightNodeWalletId wid,
-        //                                    BREthereumLightNodeTransactionId tid,
+        //                                    BREthereumWalletId wid,
+        //                                    BREthereumTransactionId tid,
         //                                    const char *to,
         //                                    const char *amount,
         //                                    const char *data,
@@ -71,8 +71,8 @@ public class BREthereumLightNode extends BRCoreJniReference {
 
         //        typedef void (*JsonRpcSubmitTransaction) (JsonRpcContext context,
         //                                          BREthereumLightNode node,
-        //                                          BREthereumLightNodeWalletId wid,
-        //                                          BREthereumLightNodeTransactionId tid,
+        //                                          BREthereumWalletId wid,
+        //                                          BREthereumTransactionId tid,
         //                                          const char *transaction,
         //                                          int rid);
         void submitTransaction(int wid, int tid, String rawTransaction, int rid);

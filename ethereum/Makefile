@@ -33,7 +33,8 @@ ETH_SRCS=./util/BRUtilMath.c \
 	./BREthereumNetwork.c \
 	./BREthereumToken.c \
 	./BREthereumTransaction.c \
-	./BREthereumWallet.c 
+	./BREthereumWallet.c \
+	./BREthereum.c
 
 ETH_OBJS=$(ETH_SRCS:.c=.o)
 

@@ -36,20 +36,6 @@ extern "C" {
 #include "BREthereumEther.h"
 
 //
-// BIP39 Word List
-//
-
-/**
- * Install 'wordList' as the default.  THIS SHARED MEMORY; DO NOT FREE wordList.
- *
- * @param wordList
- * @param wordListLength
- * @return
- */
-extern int
-installSharedWordList (const char *wordList[], int wordListLength);
-
-//
 // Address
 //
 

@@ -59,7 +59,8 @@ CORE_SRCS=../../BRAddress.c \
 	../BREthereumNetwork.c \
 	../BREthereumToken.c \
 	../BREthereumTransaction.c \
-	../BREthereumWallet.c 
+	../BREthereumWallet.c \
+	../BREthereum.c
 
 
 CORE_OBJS=$(CORE_SRCS:.c=.o)

@@ -47,6 +47,10 @@ static void
 walletInsertTransactionSorted (BREthereumWallet wallet,
                                BREthereumTransaction transaction);
 
+static int // -1 if not found
+walletLookupTransactionIndex (BREthereumWallet wallet,
+                              BREthereumTransaction transaction);
+
 /**
  *
  */
@@ -254,6 +258,19 @@ walletHandleTransaction(BREthereumWallet wallet,
     walletInsertTransactionSorted(wallet, transaction);
 }
 
+private_extern void
+walletUnhandleTransaction (BREthereumWallet wallet,
+                           BREthereumTransaction transaction) {
+    int index = walletLookupTransactionIndex(wallet, transaction);
+    assert (-1 != index);
+    array_rm(wallet->transactions, index);
+}
+
+private_extern int
+walletHasTransaction (BREthereumWallet wallet,
+                      BREthereumTransaction transaction) {
+    return -1 != walletLookupTransactionIndex(wallet, transaction);
+}
 //
 // Transaction Signing and Encoding
 //
@@ -477,9 +494,10 @@ walletGetTransactionByNonce (BREthereumWallet wallet,
     return NULL;
 }
 
+// TODO: Wrong - TID is wrong in wallet context.
 private_extern BREthereumTransaction
 walletGetTransactionById(BREthereumWallet wallet,
-                         BREthereumLightNodeTransactionId tid) {
+                         BREthereumTransactionId tid) {
     return 0 <= tid && tid < array_count(wallet->transactions)
            ? wallet->transactions[tid]
            : NULL;
