@@ -57,7 +57,7 @@ public class BREthereumToken extends BRCoreJniReference {
      */
     public static BREthereumToken lookup (String address) {
         for (BREthereumToken token : tokens)
-            if (address.equals(token.getAddress()))
+            if (address.equalsIgnoreCase(token.getAddress()))
                 return token;
         return null;
     }
