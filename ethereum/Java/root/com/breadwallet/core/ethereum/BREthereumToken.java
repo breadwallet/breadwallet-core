@@ -91,9 +91,13 @@ public class BREthereumToken extends BRCoreJniReference {
     // The BRD Token
     //
     public static BREthereumToken tokenBRD =
-            new BREthereumToken(jniGetTokenBRD());
+            BREthereumToken.lookupByReference(jniGetTokenBRD());
 
-    static native long jniGetTokenBRD ();
+    protected static native long jniGetTokenBRD ();
+    protected static native long[] jniTokenAll ();
 
-    static native long[] jniTokenAll ();
+    @Override
+    public int hashCode() {
+        return getAddress().toLowerCase().hashCode();
+    }
 }
