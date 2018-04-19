@@ -300,12 +300,8 @@ public class BREthereumLightNode extends BRCoreJniReference {
     }
 
     public BREthereumWallet getWallet(BREthereumToken token) {
-        long wid = jniLightNodeCreateWalletToken(token.getIdentifier()); // TODO: Use GetWalletToken()
+        long wid = jniLightNodeGetWalletToken(token.getIdentifier());
         return walletLookupOrCreate(wid, token);
-    }
-
-    public BREthereumWallet createWallet(BREthereumToken token) {
-        return getWallet(token);
     }
 
     // TODO: Remove once 'client callbacks' are LightNode trampolines

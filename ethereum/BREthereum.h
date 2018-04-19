@@ -377,7 +377,7 @@ extern BREthereumWalletId
 ethereumGetWallet(BREthereumLightNode node);
 
 /**
- * Get the wallet holding `token`.  If none exists, returns NULL.
+ * Get the wallet holding `token`.  If none exists, create one and return it.
 
  * @param node
  * @param token
@@ -386,18 +386,6 @@ ethereumGetWallet(BREthereumLightNode node);
 extern BREthereumWalletId
 ethereumGetWalletHoldingToken(BREthereumLightNode node,
                               BREthereumToken token);
-
-/**
- * Create a wallet for `token` if one doesn't aleady exist; otherwise return the existing one.
- *
- * @param node
- * @param account
- * @param network
- * @param token
- */
-//extern BREthereumWalletId
-//ethereumCreateWalletHoldingToken(BREthereumLightNode node,
-//                                 BREthereumToken token);
 
 extern uint64_t
 ethereumWalletGetDefaultGasLimit(BREthereumLightNode node,

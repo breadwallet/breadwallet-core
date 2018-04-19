@@ -318,22 +318,7 @@ JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeGetWalletToken
         (JNIEnv *env, jobject thisObject, jlong tokenId) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
-    // TODO: Implement
-    return (jlong) NULL;
-}
-
-
-/*
- * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
- * Method:    jniLightNodeCreateWalletToken
- * Signature: (J)J
- */
-JNIEXPORT jlong JNICALL
-Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeCreateWalletToken
-        (JNIEnv *env, jobject thisObject, jlong token) {
-    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
-    // TODO: Fix
-    return (jlong) ethereumGetWalletHoldingToken(node, (BREthereumToken) token);
+    return (jlong) ethereumGetWalletHoldingToken(node, (BREthereumToken) tokenId);
 }
 
 /*
