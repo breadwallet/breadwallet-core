@@ -1053,9 +1053,9 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
     printf ("     Prepare Transaction\n");
     
     // START - One Time Code Block
-    BREthereumConfiguration configuration =
-        ethereumConfigurationCreateLES(ethereumMainnet, 0);
-    BREthereumLightNode node = ethereumCreate(configuration, paperKey);
+    BREthereumClient client =
+        ethereumClientCreateLES(ethereumMainnet, 0);
+    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey);
     // A wallet amount Ether
     BREthereumWalletId wallet = ethereumGetWallet(node);
     // END - One Time Code Block
@@ -1201,8 +1201,8 @@ runLightNode_JSON_RPC_test (const char *paperKey) {
     BRCoreParseStatus status;
     JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
     
-    BREthereumConfiguration configuration =
-    ethereumConfigurationCreateJSON_RPC(ethereumMainnet,
+    BREthereumClient configuration =
+    ethereumClientCreateJSON_RPC(ethereumMainnet,
                                          context,
                                          jsonRpcGetBalance,
                                          jsonRpcGetGasPrice,
@@ -1211,10 +1211,10 @@ runLightNode_JSON_RPC_test (const char *paperKey) {
                                          jsonRpcGetTransactions,
                                          jsonRpcGetLogs);
     
-    BREthereumLightNode node = ethereumCreate(configuration, paperKey);
+    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey);
     BREthereumWalletId wallet = ethereumGetWallet(node);
     
-    ethereumConnect(node);
+    ethereumConnect(node, configuration);
 
     sleep (2);  // let connect 'take'
 
@@ -1266,8 +1266,8 @@ runLightNode_LISTENER_test (const char *paperKey) {
     BRCoreParseStatus status;
     JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
-    BREthereumConfiguration configuration =
-    ethereumConfigurationCreateJSON_RPC(ethereumMainnet,
+    BREthereumClient configuration =
+    ethereumClientCreateJSON_RPC(ethereumMainnet,
                                          context,
                                          jsonRpcGetBalance,
                                          jsonRpcGetGasPrice,
@@ -1276,7 +1276,7 @@ runLightNode_LISTENER_test (const char *paperKey) {
                                          jsonRpcGetTransactions,
                                          jsonRpcGetLogs);
 
-    BREthereumLightNode node = ethereumCreate(configuration, paperKey);
+    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey);
 
     BREthereumListenerId lid = lightNodeAddListener(node,
                                                              (BREthereumListenerContext) NULL,
@@ -1286,7 +1286,7 @@ runLightNode_LISTENER_test (const char *paperKey) {
 
     BREthereumWalletId wallet = ethereumGetWallet(node);
 
-    ethereumConnect(node);
+    ethereumConnect(node, configuration);
 
     sleep (5);  // let connect 'take'
 
@@ -1310,7 +1310,7 @@ runLightNode_TOKEN_test (const char *paperKey) {
     
     BRCoreParseStatus status;
     
-    BREthereumLightNode node = ethereumCreate (ethereumConfigurationCreateLES(ethereumMainnet, 0), paperKey);
+    BREthereumLightNode node = ethereumCreate (ethereumMainnet, paperKey);
     BREthereumWalletId wallet = ethereumGetWalletHoldingToken(node, tokenBRD);
     
     BREthereumAmount amount = ethereumCreateTokenAmountString(node, tokenBRD,
@@ -1337,11 +1337,11 @@ static void
 runLightNode_PUBLIC_KEY_test (const char *paperKey) {
     printf ("     PUBLIC KEY\n");
 
-    BREthereumLightNode node1 = ethereumCreate (ethereumConfigurationCreateLES(ethereumMainnet, 0), paperKey);
+    BREthereumLightNode node1 = ethereumCreate (ethereumMainnet, paperKey);
     char *addr1 = ethereumGetAccountPrimaryAddress (node1);
 
     BRKey publicKey = ethereumGetAccountPrimaryAddressPublicKey (node1);
-    BREthereumLightNode node2 = ethereumCreateWithPublicKey (ethereumConfigurationCreateLES(ethereumMainnet, 0), publicKey);
+    BREthereumLightNode node2 = ethereumCreateWithPublicKey (ethereumMainnet, publicKey);
     char *addr2 = ethereumGetAccountPrimaryAddress (node2);
 
     assert (0 == strcmp (addr1, addr2));

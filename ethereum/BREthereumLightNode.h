@@ -38,7 +38,7 @@ extern "C" {
 #endif
 
 extern BREthereumLightNode
-createLightNode (BREthereumConfiguration configuration,
+createLightNode (BREthereumNetwork network,
                  BREthereumAccount account);
 
 extern BREthereumAccount
@@ -48,16 +48,11 @@ lightNodeGetAccount (BREthereumLightNode node);
 // Connect & Disconnect
 //
 extern BREthereumBoolean
-lightNodeConnect(BREthereumLightNode node);
-
-extern void
-lightNodeConnectAndWait (BREthereumLightNode node);
+lightNodeConnect(BREthereumLightNode node,
+                 BREthereumClient client);
 
 extern BREthereumBoolean
 lightNodeDisconnect (BREthereumLightNode node);
-
-extern void
-lightNodeDisconnectAndWait(BREthereumLightNode node);
 
 //
 // {Wallet, Block, Transaction} Lookup

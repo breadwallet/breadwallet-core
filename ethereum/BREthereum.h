@@ -175,6 +175,7 @@ typedef void (*JsonRpcGetLogs) (JsonRpcContext context,
 // Two types of LightNode - JSON_RPC or LES (Light Ethereum Subprotocol).
 //
 typedef enum {
+    NODE_TYPE_NONE,
     NODE_TYPE_JSON_RPC,
     NODE_TYPE_LES
 } BREthereumType;
@@ -187,8 +188,8 @@ typedef enum {
 // type.
 //
 typedef struct {
-    BREthereumNetwork network;
     BREthereumType type;
+    BREthereumNetwork network;
     union {
         //
         struct {
@@ -207,7 +208,7 @@ typedef struct {
             int foo;
         } les;
     } u;
-} BREthereumConfiguration;
+} BREthereumClient;
 
 
 //
@@ -217,16 +218,16 @@ typedef struct {
 /**
  * Create a LES configuration
  */
-extern BREthereumConfiguration
-ethereumConfigurationCreateLES(BREthereumNetwork network,
+extern BREthereumClient
+ethereumClientCreateLES(BREthereumNetwork network,
                                int foo);
 
 /**
  * Create a JSON_RPC configuration w/ the set of functions needed to perform JSON RPC calls
  * and to process the result.
  */
-extern BREthereumConfiguration
-ethereumConfigurationCreateJSON_RPC(BREthereumNetwork network,
+extern BREthereumClient
+ethereumClientCreateJSON_RPC(BREthereumNetwork network,
                                     JsonRpcContext context,
                                     JsonRpcGetBalance funcGetBalance,
                                     JsonRpcGetGasPrice functGetGasPrice,
@@ -256,7 +257,7 @@ installSharedWordList (const char *wordList[], int wordListLength);
  * this node's account.
  */
 extern BREthereumLightNode
-ethereumCreate(BREthereumConfiguration configuration,
+ethereumCreate(BREthereumNetwork network,
                const char *paperKey);
 
 /**
@@ -265,7 +266,7 @@ ethereumCreate(BREthereumConfiguration configuration,
  * ethereumGetAccountPrimaryAddressPublicKey().
  */
 extern BREthereumLightNode
-ethereumCreateWithPublicKey(BREthereumConfiguration configuration,
+ethereumCreateWithPublicKey(BREthereumNetwork network,
                             const BRKey publicKey);
 
 /**
@@ -349,19 +350,11 @@ ethereumCoerceTokenAmountToString(BREthereumLightNode node,
  * @return
  */
 extern BREthereumBoolean
-ethereumConnect(BREthereumLightNode node);
+ethereumConnect(BREthereumLightNode node,
+                BREthereumClient client);
 
 extern BREthereumBoolean
 ethereumDisconnect (BREthereumLightNode node);
-
-// Really, really bad form...
-extern void
-ethereumConnectAndWait (BREthereumLightNode node);
-
-// ... and this too, but slightly less so.
-extern void
-ethereumDisconnectAndWait(BREthereumLightNode node);
-
 
 //
 // Wallet
