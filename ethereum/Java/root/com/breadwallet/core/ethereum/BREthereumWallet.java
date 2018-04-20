@@ -88,6 +88,36 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
     }
 
     //
+    // Default Gas Price (ETH in WEI)
+    //
+    public static final long MAXIMUM_DEFAULT_GAS_PRICE = 100000000000000L; // 100 GWEI
+
+    public static final long GAS_PRICE_1_GWEI  =  1000000000000L;
+    public static final long GAS_PRICE_2_GWEI  =  2000000000000L;
+    public static final long GAS_PRICE_4_GWEI  =  4000000000000L;
+    public static final long GAS_PRICE_10_GWEI = 10000000000000L;
+    public static final long GAS_PRICE_20_GWEI = 20000000000000L;
+
+    public long getDefaultGasPrice () {
+        return node.get().jniWalletGetDefaultGasPrice(identifier);
+    }
+
+    public void setDefaultGasPrice (long gasPrice) {
+        assert (gasPrice <= MAXIMUM_DEFAULT_GAS_PRICE);
+        node.get().jniWalletSetDefaultGasPrice(identifier, gasPrice);
+    }
+
+    //
+    // Default Gas Limit (in 'gas')
+    //
+    public long getDefaultGasLimit () {
+        return node.get().jniWalletGetDefaultGasLimit(identifier);
+    }
+    public void setDefaultGasLimit (long gasLimit) {
+        node.get().jniWalletSetDefaultGasLimit (identifier, gasLimit);
+    }
+
+    //
     // Balance
     //
 
@@ -111,16 +141,20 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
     }
 
     /**
-     * Force a balance update (by querying the Ethereum Blockchain) and the assign the
+     * Force a balance update (by querying the Ethereum Blockchain) and then assign the
      * wallet's balance.  Access with getBalance().
      */
     public void updateBalance () {
         node.get().jniForceWalletBalanceUpdate(identifier);
     }
 
+    //
+    // Estimate GasPrice and Gas
+    //
+
     /**
      * Estimate the gasPrice needed for timely processing of transactions into the blockchain.
-     * This method changes the wallet's defaultGasPrice which is used when by createTransaction().
+     * This method changes the wallet's defaultGasPrice which is used then by createTransaction().
      *
      * Estimate provided after callback BREthereumLightNode.estimateGasPrice
      */
@@ -139,7 +173,6 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
     public void estimateGas (BREthereumTransaction transaction) {
         node.get().jniTransactionEstimateGas(identifier, transaction.identifier);
     }
-
 
     //
     // Transactions
@@ -176,10 +209,16 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
     /**
      * Create a new transaction.
      *
-     * The created transaction will use the wallet's defaultGasPrice and defaultGasLimit.  The
-     * defaultGasPrice is changed with estimateGasPrice() - which only needs to be called
-     * occasionally per Ethereum blockchain 'congestion'.  Once the transaction is created, one
-     * might need to call estimateGas() and then tx.setGasLimit().
+     * The created transaction will use the wallet's defaultGasPrice and defaultGasLimit.
+     *
+     * Note: the wallet's defaultGasPrice can be changed prior to calling this method with either
+     * setDefaultGasPrice() or estimateGasPrice().  In practice the defaultGasPrice only needs to
+     * be updated occasionally per Ethereum blockchain 'congestion'.
+     *
+     * Note: the wallet's defaultGasLimit needs to be large enough to support the transaction.  For
+     * transfers of ETHER, the gasLimit default is 21000 (which is standardized).  For transfers of
+     * TOKENs, the gasLimit is set to 92000 - which is not guaranteed to be large enough but has
+     * been set high enough to handle most all TOKENs.
      *
      * @param targetAddress
      * @param amount
@@ -191,9 +230,8 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
                                                    Unit amountUnit) {
         BREthereumLightNode lightNode = node.get();
 
-        // We'll assume that the transaction's default unit is the same unit as provided
-        // for `amount`.  Should not be a bad assumption.  However, arguably we could set
-        // the transaction's unit as the wallet's unit.
+        // Note: The created transaction's unit will be `amountUnit`.  This unit may differ
+        // from the wallet's defaultUnit - which should not be a problem.
         return new BREthereumTransaction(lightNode,
                 lightNode.jniCreateTransaction(identifier,
                         targetAddress,

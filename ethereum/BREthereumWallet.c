@@ -29,7 +29,7 @@
 #include "BREthereumPrivate.h"
 #include "BRArray.h"
 
-#define DEFAULT_ETHER_GAS_PRICE_NUMBER   40000000000ull  // 40 GWEI was 2 GWEI (2000000000ull)
+#define DEFAULT_ETHER_GAS_PRICE_NUMBER   500000000 // 0.5 GWEI
 #define DEFAULT_ETHER_GAS_PRICE_UNIT     WEI
 
 #define DEFAULT_TRANSACTION_CAPACITY     20
@@ -240,7 +240,7 @@ walletCreateTransactionDetailed(BREthereumWallet wallet,
                                 uint64_t nonce) {
     assert (walletGetAmountType(wallet) == amountGetType(amount));
     assert (AMOUNT_ETHER == amountGetType(amount)
-            || 1 /*(wallet->token == tokenQuantityGetToken (holdingGetTokenQuantity(amount)))*/);
+            || (wallet->token == tokenQuantityGetToken (amountGetTokenQuantity(amount))));
     
     BREthereumTransaction transaction = transactionCreate(wallet->address,
                                                           recvAddress,
