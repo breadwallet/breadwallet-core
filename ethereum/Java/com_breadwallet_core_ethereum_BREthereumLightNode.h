@@ -322,10 +322,10 @@ JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniTransactionGetGasPrice
- * Signature: (JJ)Ljava/lang/String;
+ * Signature: (J)J
  */
-JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionGetGasPrice
-  (JNIEnv *, jobject, jlong, jlong);
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionGetGasPrice
+  (JNIEnv *, jobject, jlong);
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode

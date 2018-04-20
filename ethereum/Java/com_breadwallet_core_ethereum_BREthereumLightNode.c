@@ -1019,16 +1019,13 @@ JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniTransactionGetGasPrice
- * Signature: (JJ)Ljava/lang/String;
+ * Signature: (J)J
  */
-JNIEXPORT jstring JNICALL
+JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionGetGasPrice
-        (JNIEnv *env, jobject thisObject, jlong transactionId, jlong unit) {
+        (JNIEnv *env, jobject thisObject, jlong tid) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
-    return asJniString(env, ethereumTransactionGetGasPrice
-            (node,
-             (BREthereumTransactionId) transactionId,
-             (BREthereumEtherUnit) unit));
+    return ethereumTransactionGetGasPrice(node, tid);
 }
 
 /*

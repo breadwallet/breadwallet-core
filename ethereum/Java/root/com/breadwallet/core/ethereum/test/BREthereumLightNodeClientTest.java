@@ -267,7 +267,7 @@ public class BREthereumLightNodeClientTest implements
         asserting ("11113.000000000".equals(trans1.getAmount(ETHER_GWEI)));
 
         asserting (21000 == trans1.getGasLimit());
-        asserting ("40.000000000".equals(trans1.getGasPrice(ETHER_GWEI)));
+        asserting (40000000000L ==  trans1.getGasPrice());
         asserting ("840000.000000000".equals(trans1.getFee(ETHER_GWEI)));
 
         // Fee for 1 WEI is 840000 GWEI
@@ -280,7 +280,7 @@ public class BREthereumLightNodeClientTest implements
             System.out.println ("Transaction:" +
                     "\n        from: " + transaction.getSourceAddress() +
                     "\n          to: " + transaction.getTargetAddress() +
-                    "\n    gasPrice: " + transaction.getGasPrice(BREthereumAmount.Unit.ETHER_WEI) +
+                    "\n    gasPrice: " + transaction.getGasPrice() +
                     "\n    gasLimit: " + transaction.getGasLimit() +
                     "\n     gasUsed: " + transaction.getGasUsed() +
                     "\n       nonce: " + transaction.getNonce() +
