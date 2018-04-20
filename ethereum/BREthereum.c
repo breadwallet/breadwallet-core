@@ -307,22 +307,30 @@ ethereumTransactionGetAmount(BREthereumLightNode node,
     return transactionGetAmount(transaction);
 }
 
-extern BREthereumAmount
-ethereumTransactionGetGasPriceToo(BREthereumLightNode node,
+extern uint64_t
+ethereumTransactionGetGasPrice(BREthereumLightNode node,
                                   BREthereumTransactionId tid) {
     BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
     BREthereumGasPrice gasPrice = transactionGetGasPrice(transaction);
-    return amountCreateEther (gasPrice.etherPerGas);
+    return gasPrice.etherPerGas.valueInWEI.u64[0];
 }
 
-extern char *
-ethereumTransactionGetGasPrice(BREthereumLightNode node,
-                               BREthereumTransactionId tid,
-                               BREthereumEtherUnit unit) {
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
-    BREthereumGasPrice gasPrice = transactionGetGasPrice(transaction);
-    return etherGetValueString(gasPrice.etherPerGas, unit);
-}
+//extern char *
+//ethereumTransactionGetGasPrice(BREthereumLightNode node,
+//                               BREthereumTransactionId tid,
+//                               BREthereumEtherUnit unit) {
+//    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+//    BREthereumGasPrice gasPrice = transactionGetGasPrice(transaction);
+//    return etherGetValueString(gasPrice.etherPerGas, unit);
+//}
+//
+//extern BREthereumAmount
+//ethereumTransactionGetGasPriceToo(BREthereumLightNode node,
+//                                  BREthereumTransactionId tid) {
+//    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+//    BREthereumGasPrice gasPrice = transactionGetGasPrice(transaction);
+//    return amountCreateEther (gasPrice.etherPerGas);
+//}
 
 extern uint64_t
 ethereumTransactionGetGasLimit(BREthereumLightNode node,

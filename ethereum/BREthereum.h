@@ -536,14 +536,18 @@ extern BREthereumAmount
 ethereumTransactionGetAmount(BREthereumLightNode node,
                              BREthereumTransactionId tid);
 
-extern BREthereumAmount
-ethereumTransactionGetGasPriceToo(BREthereumLightNode node,
-                                  BREthereumTransactionId tid);
-
-extern char *
+extern uint64_t
 ethereumTransactionGetGasPrice(BREthereumLightNode node,
-                               BREthereumTransactionId tid,
-                               BREthereumEtherUnit unit);
+                               BREthereumTransactionId tid);
+
+//extern BREthereumAmount
+//ethereumTransactionGetGasPriceToo(BREthereumLightNode node,
+//                                  BREthereumTransactionId tid);
+//
+//extern char *
+//ethereumTransactionGetGasPrice(BREthereumLightNode node,
+//                               BREthereumTransactionId tid,
+//                               BREthereumEtherUnit unit);
 
 extern uint64_t
 ethereumTransactionGetGasLimit(BREthereumLightNode node,
