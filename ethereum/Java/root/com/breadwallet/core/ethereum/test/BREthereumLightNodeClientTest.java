@@ -244,6 +244,12 @@ public class BREthereumLightNodeClientTest implements
 
         asserting ("0".equals(walletEther.getBalance()));
 
+        BREthereumWallet walletToken = node.getWallet(BREthereumToken.tokenBRD);
+        asserting (null != walletToken.getToken()
+                && walletToken.getToken().getSymbol().equals("BRD"));
+        walletToken.setDefaultUnit(BREthereumAmount.Unit.TOKEN_DECIMAL);
+
+
         System.out.println ("Connect");
         node.connect();
 
@@ -283,8 +289,6 @@ public class BREthereumLightNodeClientTest implements
                     "\n\n");
         }
 
-        BREthereumWallet walletToken = node.createWallet(BREthereumToken.tokenBRD);
-        walletToken.setDefaultUnit(BREthereumAmount.Unit.TOKEN_DECIMAL);
         BREthereumTransaction tokenTransaction1 =
                 walletToken.createTransaction(
                         "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",

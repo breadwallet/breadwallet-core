@@ -318,22 +318,7 @@ JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeGetWalletToken
         (JNIEnv *env, jobject thisObject, jlong tokenId) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
-    // TODO: Implement
-    return (jlong) NULL;
-}
-
-
-/*
- * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
- * Method:    jniLightNodeCreateWalletToken
- * Signature: (J)J
- */
-JNIEXPORT jlong JNICALL
-Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeCreateWalletToken
-        (JNIEnv *env, jobject thisObject, jlong token) {
-    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
-    // TODO: Fix
-    return (jlong) ethereumGetWalletHoldingToken(node, (BREthereumToken) token);
+    return (jlong) ethereumGetWalletHoldingToken(node, (BREthereumToken) tokenId);
 }
 
 /*
@@ -455,6 +440,63 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniForceWalletBalanceUpda
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniWalletGetDefaultGasPrice
+ * Signature: (J)J
+ */
+JNIEXPORT jlong
+JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniWalletGetDefaultGasPrice
+        (JNIEnv *env, jobject thisObject,
+         jlong wid) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+    return ethereumWalletGetDefaultGasPrice(node, wid);
+
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniWalletSetDefaultGasPrice
+ * Signature: (JJ)V
+ */
+JNIEXPORT void
+JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniWalletSetDefaultGasPrice
+        (JNIEnv *env, jobject thisObject,
+         jlong wid,
+         jlong value) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+    ethereumWalletSetDefaultGasPrice(node, wid, WEI, value);
+
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniWalletGetDefaultGasLimit
+ * Signature: (J)J
+ */
+JNIEXPORT jlong
+JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniWalletGetDefaultGasLimit
+        (JNIEnv *env, jobject thisObject,
+         jlong wid) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+    return ethereumWalletGetDefaultGasLimit (node, wid);
+
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniWalletSetDefaultGasLimit
+ * Signature: (JJ)V
+ */
+JNIEXPORT void
+JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniWalletSetDefaultGasLimit
+        (JNIEnv *env, jobject thisObject,
+         jlong wid,
+         jlong value) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+    ethereumWalletSetDefaultGasLimit(node, wid, value);
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniForceTransactionUpdate
  * Signature: ()V
  */
@@ -491,23 +533,48 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceTransaction
          jstring blockTimestampObject,
          jstring isErrorObject) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+
+    const char *hash = (*env)->GetStringUTFChars(env, hashObject, 0);
+    const char *to = (*env)->GetStringUTFChars(env, toObject, 0);
+    const char *from = (*env)->GetStringUTFChars(env, fromObject, 0);
+    const char *contract = (*env)->GetStringUTFChars(env, contractObject, 0);
+    const char *amount = (*env)->GetStringUTFChars(env, amountObject, 0);
+    const char *gasLimit = (*env)->GetStringUTFChars(env, gasLimitObject, 0);
+    const char *gasPrice = (*env)->GetStringUTFChars(env, gasPriceObject, 0);
+    const char *data = (*env)->GetStringUTFChars(env, dataObject, 0);
+    const char *nonce = (*env)->GetStringUTFChars(env, nonceObject, 0);
+    const char *gasUsed = (*env)->GetStringUTFChars(env, gasUsedObject, 0);
+    const char *blockNumber = (*env)->GetStringUTFChars(env, blockNumberObject, 0);
+    const char *blockHash = (*env)->GetStringUTFChars(env, blockHashObject, 0);
+    const char *blockConfirmation = (*env)->GetStringUTFChars(env, blockConfirmationsObject, 0);
+    const char *blockTransactionIndex = (*env)->GetStringUTFChars(env, blockTransactionIndexObject, 0);
+    const char *blockTimestamp = (*env)->GetStringUTFChars(env, blockTimestampObject, 0);
+    const char *isError = (*env)->GetStringUTFChars(env, isErrorObject, 0);
+
     lightNodeAnnounceTransaction(node, id,
-                                 (*env)->GetStringUTFChars (env, hashObject, 0),
-                                 (*env)->GetStringUTFChars (env, toObject, 0),
-                                 (*env)->GetStringUTFChars (env, fromObject, 0),
-                                 (*env)->GetStringUTFChars (env, contractObject, 0),
-                                 (*env)->GetStringUTFChars (env, amountObject, 0),
-                                 (*env)->GetStringUTFChars (env, gasLimitObject, 0),
-                                 (*env)->GetStringUTFChars (env, gasPriceObject, 0),
-                                 (*env)->GetStringUTFChars (env, dataObject, 0),
-                                 (*env)->GetStringUTFChars (env, nonceObject, 0),
-                                 (*env)->GetStringUTFChars (env, gasUsedObject, 0),
-                                 (*env)->GetStringUTFChars (env, blockNumberObject, 0),
-                                 (*env)->GetStringUTFChars (env, blockHashObject, 0),
-                                 (*env)->GetStringUTFChars (env, blockConfirmationsObject, 0),
-                                 (*env)->GetStringUTFChars (env, blockTransactionIndexObject, 0),
-                                 (*env)->GetStringUTFChars (env, blockTimestampObject, 0),
-                                 (*env)->GetStringUTFChars (env, isErrorObject, 0));
+                                 hash, to, from, contract,
+                                 amount, gasLimit, gasPrice,
+                                 data, nonce, gasUsed,
+                                 blockNumber, blockHash, blockConfirmation, blockTransactionIndex,
+                                 blockTimestamp,
+                                 isError);
+
+    (*env)->ReleaseStringUTFChars(env, hashObject, hash);
+    (*env)->ReleaseStringUTFChars(env, toObject, to);
+    (*env)->ReleaseStringUTFChars(env, fromObject, from);
+    (*env)->ReleaseStringUTFChars(env, contractObject, contract);
+    (*env)->ReleaseStringUTFChars(env, amountObject, amount);
+    (*env)->ReleaseStringUTFChars(env, gasLimitObject, gasLimit);
+    (*env)->ReleaseStringUTFChars(env, gasPriceObject, gasPrice);
+    (*env)->ReleaseStringUTFChars(env, dataObject, data);
+    (*env)->ReleaseStringUTFChars(env, nonceObject, nonce);
+    (*env)->ReleaseStringUTFChars(env, gasUsedObject, gasUsed);
+    (*env)->ReleaseStringUTFChars(env, blockNumberObject, blockNumber);
+    (*env)->ReleaseStringUTFChars(env, blockHashObject, blockHash);
+    (*env)->ReleaseStringUTFChars(env, blockConfirmationsObject, blockConfirmation);
+    (*env)->ReleaseStringUTFChars(env, blockTransactionIndexObject, blockTransactionIndex);
+    (*env)->ReleaseStringUTFChars(env, blockTimestampObject, blockTimestamp);
+    (*env)->ReleaseStringUTFChars(env, isErrorObject, isError);
 }
 
 /*
@@ -531,32 +598,47 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceLog
          jstring blockTimestampObject) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
 
-    size_t topicsCount = (size_t) (*env)->GetArrayLength (env, topicsArray);
+    size_t topicsCount = (size_t) (*env)->GetArrayLength(env, topicsArray);
     const char *topics[topicsCount];
 
     for (int i = 0; i < topicsCount; i++) {
-        jstring topic = (*env)->GetObjectArrayElement (env, topicsArray, i);
-        topics[i] = (*env)->GetStringUTFChars (env, topic, 0);
-        (*env)->DeleteLocalRef (env, topic);
+        jstring topic = (*env)->GetObjectArrayElement(env, topicsArray, i);
+        topics[i] = (*env)->GetStringUTFChars(env, topic, 0);
+        (*env)->DeleteLocalRef(env, topic);
     }
 
-    lightNodeAnnounceLog (node, id,
-                          (*env)->GetStringUTFChars (env, hashObject, 0),
-                          (*env)->GetStringUTFChars (env, contractObject, 0),
-                          topicsCount,
-                          topics,
-                          (*env)->GetStringUTFChars (env, dataObject, 0),
-                          (*env)->GetStringUTFChars (env, gasPriceObject, 0),
-                          (*env)->GetStringUTFChars (env, gasUsedObject, 0),
-                          (*env)->GetStringUTFChars (env, logIndexObject, 0),
-                          (*env)->GetStringUTFChars (env, blockNumberObject, 0),
-                          (*env)->GetStringUTFChars (env, blockTransactionIndexObject, 0),
-                          (*env)->GetStringUTFChars (env, blockTimestampObject, 0));
+    const char *hash = (*env)->GetStringUTFChars(env, hashObject, 0);
+    const char *contract = (*env)->GetStringUTFChars(env, contractObject, 0);
+    const char *data = (*env)->GetStringUTFChars(env, dataObject, 0);
+    const char *gasPrice = (*env)->GetStringUTFChars(env, gasPriceObject, 0);
+    const char *gasUsed = (*env)->GetStringUTFChars(env, gasUsedObject, 0);
+    const char *logIndex = (*env)->GetStringUTFChars(env, logIndexObject, 0);
+    const char *blockNumber = (*env)->GetStringUTFChars(env, blockNumberObject, 0);
+    const char *blockTransactionIndex = (*env)->GetStringUTFChars(env, blockTransactionIndexObject, 0);
+    const char *blockTimestamp = (*env)->GetStringUTFChars(env, blockTimestampObject, 0);
+
+    lightNodeAnnounceLog(node, id,
+                         hash, contract,
+                         topicsCount,
+                         topics,
+                         data, gasPrice, gasUsed,
+                         logIndex,
+                         blockNumber, blockTransactionIndex, blockTimestamp);
+
+    (*env)->ReleaseStringUTFChars(env, hashObject, hash);
+    (*env)->ReleaseStringUTFChars(env, contractObject, contract);
+    (*env)->ReleaseStringUTFChars(env, dataObject, data);
+    (*env)->ReleaseStringUTFChars(env, gasPriceObject, gasPrice);
+    (*env)->ReleaseStringUTFChars(env, gasUsedObject, gasUsed);
+    (*env)->ReleaseStringUTFChars(env, logIndexObject, logIndex);
+    (*env)->ReleaseStringUTFChars(env, blockNumberObject, blockNumber);
+    (*env)->ReleaseStringUTFChars(env, blockTransactionIndexObject, blockTransactionIndex);
+    (*env)->ReleaseStringUTFChars(env, blockTimestampObject, blockTimestamp);
 
     for (int i = 0; i < topicsCount; i++) {
-        jstring topic = (*env)->GetObjectArrayElement (env, topicsArray, i);
-        (*env)->ReleaseStringUTFChars (env, topic, topics[i]);
-        (*env)->DeleteLocalRef (env, topic);
+        jstring topic = (*env)->GetObjectArrayElement(env, topicsArray, i);
+        (*env)->ReleaseStringUTFChars(env, topic, topics[i]);
+        (*env)->DeleteLocalRef(env, topic);
     }
 }
 
@@ -591,10 +673,12 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceGasPrice
          jstring gasPrice,
          jint rid) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+    const char *strGasPrice = (*env)->GetStringUTFChars (env, gasPrice, 0);
     lightNodeAnnounceGasPrice(node,
                               wid,
-                              (*env)->GetStringUTFChars(env, gasPrice, 0),
+                              strGasPrice,
                               rid);
+    (*env)->ReleaseStringUTFChars (env, gasPrice, strGasPrice);
 }
 
 /*
@@ -610,11 +694,13 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceGasEstimate
          jstring gasEstimate,
          jint rid) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+    const char *strGasEstimate = (*env)->GetStringUTFChars(env, gasEstimate, 0);
     lightNodeAnnounceGasEstimate(node,
                                  wid,
                                  tid,
-                                 (*env)->GetStringUTFChars(env, gasEstimate, 0),
+                                 strGasEstimate,
                                  rid);
+    (*env)->ReleaseStringUTFChars(env, gasEstimate, strGasEstimate);
 }
 
 /*
@@ -630,7 +716,9 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceSubmitTransact
          jstring hash,
          jint rid) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
-    lightNodeAnnounceSubmitTransaction(node, wid, tid, (*env)->GetStringUTFChars(env, hash, 0), rid);
+    const char *hashStr = (*env)->GetStringUTFChars (env, hash, 0);
+    lightNodeAnnounceSubmitTransaction(node, wid, tid, hashStr, rid);
+    (*env)->ReleaseStringUTFChars (env, hash, hashStr);
 }
 
 
@@ -1208,10 +1296,10 @@ jsonRpcEstimateGas(JsonRpcContext context, BREthereumLightNode node,
                            dataObject,
                            id);
 
-    (*env)->DeleteLocalRef(env, listener);
-    (*env)->DeleteLocalRef(env, toObject);
-    (*env)->DeleteLocalRef(env, amountObject);
     (*env)->DeleteLocalRef(env, dataObject);
+    (*env)->DeleteLocalRef(env, amountObject);
+    (*env)->DeleteLocalRef(env, toObject);
+    (*env)->DeleteLocalRef(env, listener);
 }
 
 static void
@@ -1242,8 +1330,8 @@ jsonRpcSubmitTransaction(JsonRpcContext context,
                              transactionObject,
                              id);
 
-    (*env)->DeleteLocalRef(env, listener);
     (*env)->DeleteLocalRef(env, transactionObject);
+    (*env)->DeleteLocalRef(env, listener);
 }
 
 static void
@@ -1277,8 +1365,8 @@ jsonRpcGetTransactions(JsonRpcContext context,
                            addressObject,
                            id);
 
-    (*env)->DeleteLocalRef(env, listener);
     (*env)->DeleteLocalRef(env, addressObject);
+    (*env)->DeleteLocalRef(env, listener);
 }
 
 static void
@@ -1308,8 +1396,9 @@ jsonRpcGetLogs(JsonRpcContext context,
                            eventObject,
                            id);
 
-    (*env)->DeleteLocalRef(env, listener);
+    (*env)->DeleteLocalRef(env, eventObject);
     (*env)->DeleteLocalRef(env, addressObject);
+    (*env)->DeleteLocalRef(env, listener);
 }
 
 

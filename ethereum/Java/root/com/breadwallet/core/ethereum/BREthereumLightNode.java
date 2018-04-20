@@ -300,12 +300,8 @@ public class BREthereumLightNode extends BRCoreJniReference {
     }
 
     public BREthereumWallet getWallet(BREthereumToken token) {
-        long wid = jniLightNodeCreateWalletToken(token.getIdentifier()); // TODO: Use GetWalletToken()
+        long wid = jniLightNodeGetWalletToken(token.getIdentifier());
         return walletLookupOrCreate(wid, token);
-    }
-
-    public BREthereumWallet createWallet(BREthereumToken token) {
-        return getWallet(token);
     }
 
     // TODO: Remove once 'client callbacks' are LightNode trampolines
@@ -356,6 +352,10 @@ public class BREthereumLightNode extends BRCoreJniReference {
         this.listener = new WeakReference<>(listener);
     }
 
+    protected Listener getListener () {
+	return null == listener ? null : listener.get();
+    }
+
     //
     // Connect // Disconnect
     //
@@ -379,7 +379,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     // These methods also give us a chance to convert the `event`, as a `long`, to the Event.
     //
     protected void trampolineWalletEvent (long wid, long event) {
-        Listener l =  listener.get();
+        Listener l =  getListener();
         if (null == l) return;
 
         // Lookup the wallet - this will create the wallet if it doesn't exist.  Thus, if the
@@ -392,14 +392,14 @@ public class BREthereumLightNode extends BRCoreJniReference {
     }
 
     protected void trampolineBlockEvent (long bid, long event) {
-        Listener l = listener.get();
+        Listener l = getListener();
         if (null == l) return;
 
         // Nothing, at this point
     }
 
     protected void trampolineTransactionEvent (long wid, long tid, long event) {
-        Listener l =  listener.get();
+        Listener l =  getListener();
         if (null == l) return;
 
         BREthereumWallet wallet = walletLookupOrCreate(wid, null);
@@ -478,6 +478,11 @@ public class BREthereumLightNode extends BRCoreJniReference {
 
     protected native void jniForceWalletBalanceUpdate(long wallet);
 
+    protected native long jniWalletGetDefaultGasPrice (long wallet);
+    protected native void jniWalletSetDefaultGasPrice (long wallet, long value);
+
+    protected native long jniWalletGetDefaultGasLimit (long wallet);
+    protected native void jniWalletSetDefaultGasLimit (long wallet, long value);
     //
     // JNI: Wallet Transactions
     //
