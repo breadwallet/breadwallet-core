@@ -440,6 +440,63 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniForceWalletBalanceUpda
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniWalletGetDefaultGasPrice
+ * Signature: (J)J
+ */
+JNIEXPORT jlong
+JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniWalletGetDefaultGasPrice
+        (JNIEnv *env, jobject thisObject,
+         jlong wid) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+    return ethereumWalletGetDefaultGasPrice(node, wid);
+
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniWalletSetDefaultGasPrice
+ * Signature: (JJ)V
+ */
+JNIEXPORT void
+JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniWalletSetDefaultGasPrice
+        (JNIEnv *env, jobject thisObject,
+         jlong wid,
+         jlong value) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+    ethereumWalletSetDefaultGasPrice(node, wid, WEI, value);
+
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniWalletGetDefaultGasLimit
+ * Signature: (J)J
+ */
+JNIEXPORT jlong
+JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniWalletGetDefaultGasLimit
+        (JNIEnv *env, jobject thisObject,
+         jlong wid) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+    return ethereumWalletGetDefaultGasLimit (node, wid);
+
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniWalletSetDefaultGasLimit
+ * Signature: (JJ)V
+ */
+JNIEXPORT void
+JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniWalletSetDefaultGasLimit
+        (JNIEnv *env, jobject thisObject,
+         jlong wid,
+         jlong value) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+    ethereumWalletSetDefaultGasLimit(node, wid, value);
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniForceTransactionUpdate
  * Signature: ()V
  */

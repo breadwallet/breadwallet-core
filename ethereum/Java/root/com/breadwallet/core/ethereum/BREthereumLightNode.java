@@ -478,6 +478,11 @@ public class BREthereumLightNode extends BRCoreJniReference {
 
     protected native void jniForceWalletBalanceUpdate(long wallet);
 
+    protected native long jniWalletGetDefaultGasPrice (long wallet);
+    protected native void jniWalletSetDefaultGasPrice (long wallet, long value);
+
+    protected native long jniWalletGetDefaultGasLimit (long wallet);
+    protected native void jniWalletSetDefaultGasLimit (long wallet, long value);
     //
     // JNI: Wallet Transactions
     //

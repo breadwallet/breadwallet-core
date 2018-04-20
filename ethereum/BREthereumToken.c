@@ -29,10 +29,10 @@
 #include "BREthereumToken.h"
 #include "BREthereum.h"
 
-// For tokenBRD define some default for Gas Limit and Price. Argubly never up to date
-// and thus changed in BREtherEthereumWallet.
-#define TOKEN_BRD_DEFAULT_GAS_LIMIT  50000
-#define TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64  20000000000 // 20 GWEI
+// For tokenBRD define defaults for Gas Limit and Price.  These are arguably never up to date
+// and thus should be changed in programmatically using walletSetDefaultGas{Price,Limit}().
+#define TOKEN_BRD_DEFAULT_GAS_LIMIT  92000
+#define TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64  500000000 // 0.5 GWEI
 
 //
 // Token
