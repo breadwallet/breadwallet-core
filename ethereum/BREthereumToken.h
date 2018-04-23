@@ -34,6 +34,11 @@
 extern "C" {
 #endif
 
+// Enabled the 'TST token'
+#if !defined(BITCOIN_DEBUG)
+#define BITCOIN_DEBUG
+#endif
+
 /**
  * An Ethereum ERC20 Token
  */
@@ -73,7 +78,10 @@ extern BREthereumContract
 tokenGetContract (BREthereumToken token);
 
 extern const BREthereumToken tokenBRD;
+
+#if defined (BITCOIN_DEBUG)
 extern const BREthereumToken tokenTST;
+#endif
 
 extern BREthereumToken
 tokenLookup (const char *address);
