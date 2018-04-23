@@ -51,6 +51,7 @@
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #include "secp256k1/src/basic-config.h"
 #include "secp256k1/src/secp256k1.c"
+#include "secp256k1/src/modules/ecdh/main_impl.h"
 #pragma clang diagnostic pop
 #pragma GCC diagnostic pop
 

@@ -34,6 +34,7 @@
 #include "BREthereumGas.h"
 #include "BREthereumAmount.h"
 #include "BREthereumNetwork.h"
+#include "BREthereumNode.h"
 
 #ifdef __cplusplus
 extern "C" {

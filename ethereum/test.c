@@ -30,13 +30,13 @@
 #include <errno.h>
 #include <time.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 #include <assert.h>
 #include <regex.h>
 #include "BRCrypto.h"
 #include "BRInt.h"
 //#include "BRKey.h"
 #include "../BRBIP39WordsEn.h"
-
 #include "BREthereum.h"
 #include "BREthereumPrivate.h"
 
@@ -753,6 +753,36 @@ void runSignatureTests (BREthereumAccount account) {
     printf ("\n      Hex: %s\n", digestString2);
     assert (0 == strcmp (digestString2, signingHash));
 }
+// LES Tests
+
+void runLESNodeTest() {
+    
+    UInt128 address = UINT128_ZERO;
+    uint16_t port = 0;
+    struct in_addr addr;
+    
+     if (inet_pton(AF_INET, "127.0.0.1", &addr) != 1) {
+        fprintf(stderr, "***FAILED*** %s: Could not convert address tro AF_INET\n", __func__);
+        assert(0);
+     }
+    address.u16[5] = 0xffff;
+    address.u32[3] = addr.s_addr;
+    
+    BREthereumPeer remotePeer1 = {address,port};
+    BREthereumPeer remotePeer2 = {address,port};
+    BREthereumNode node = ethereumNodeCreate(remotePeer1, ETHEREUM_BOOLEAN_TRUE);
+    BREthereumNode node2 = ethereumNodeCreate(remotePeer2, ETHEREUM_BOOLEAN_FALSE);
+    
+    ethereumNodeConnect(node);
+    ethereumNodeConnect(node2);
+
+    //Wait for up to 24 seconds, to give the nodes time to start and find each other to perform the handshake;
+    sleep(24);
+
+    assert(ethereumNodeStatus(node) == BRE_NODE_CONNECTED);
+    assert(ethereumNodeStatus(node2) == BRE_NODE_CONNECTED);
+
+}
 
 //
 // Transaction Tests
@@ -1411,6 +1441,7 @@ runTests (void) {
     runAccountTests();
     runTokenTests ();
     runLightNodeTests();
+    //runLESNodeTest();
     //    reallySend();
     printf ("Done\n");
 }
