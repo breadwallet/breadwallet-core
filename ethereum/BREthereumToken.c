@@ -180,7 +180,7 @@ tokenQuantityGetToken (BREthereumTokenQuantity quantity) {
 extern char *
 tokenQuantityGetValueString(const BREthereumTokenQuantity quantity,
                             BREthereumTokenQuantityUnit unit) {
-    return TOKEN_QUANTITY_TYPE_DECIMAL == unit
+    return TOKEN_QUANTITY_TYPE_INTEGER == unit
     ? coerceString(quantity.valueAsInteger, 10)
     : coerceStringDecimal(quantity.valueAsInteger, quantity.token->decimals);
 }

@@ -267,12 +267,13 @@ public class BREthereumLightNodeClientTest implements
         asserting ("11113.000000000".equals(trans1.getAmount(ETHER_GWEI)));
 
         asserting (21000 == trans1.getGasLimit());
-        asserting ("40.000000000".equals(trans1.getGasPrice(ETHER_GWEI)));
-        asserting ("840000.000000000".equals(trans1.getFee(ETHER_GWEI)));
+        asserting ("0.500000000".equals(trans1.getGasPrice(ETHER_GWEI)));
+        asserting ("10500.000000000".equals(trans1.getFee(ETHER_GWEI)));
+        System.out.println ("X4");
 
         // Fee for 1 WEI is 840000 GWEI
-        asserting ("840000000000000".equals(walletEther.transactionEstimatedFee("1")));
-        asserting ("840000.000000000".equals(walletEther.transactionEstimatedFee("1", ETHER_ETHER, ETHER_GWEI)));
+        asserting ("10500000000000".equals(walletEther.transactionEstimatedFee("1")));
+        asserting ("10500.000000000".equals(walletEther.transactionEstimatedFee("1", ETHER_ETHER, ETHER_GWEI)));
         System.out.println ("X4");
 
         System.out.println ("==== Ether ====\n");
@@ -307,10 +308,19 @@ public class BREthereumLightNodeClientTest implements
         }
 
         // Wait until balance updates.
-        asserting (Integer.parseInt("123f", 16) == Integer.parseInt(walletEther.getBalance()));
+        String etherBalanceWEI = "4671"; // 0x123f
+        String etherBalanceGWEI = "0.000004671"; // 0x123f
+        asserting(etherBalanceWEI.equals(walletEther.getBalance()));
+        asserting(etherBalanceWEI.equals(walletEther.getBalance(BREthereumAmount.Unit.ETHER_WEI)));
+        asserting(etherBalanceGWEI.equals(walletEther.getBalance(BREthereumAmount.Unit.ETHER_GWEI)));
+
+        String tokenBalanceInteger = "4671";
+        String tokenBalanceDecimal18 = "0.000000000000004671";
+        asserting (tokenBalanceInteger.equals(walletToken.getBalance(BREthereumAmount.Unit.TOKEN_INTEGER)));
+        asserting (tokenBalanceDecimal18.equals(walletToken.getBalance(BREthereumAmount.Unit.TOKEN_DECIMAL)));
+
         walletEther.estimateGasPrice();
         walletEther.estimateGas(trans1);
-
         //
         // Private Key
         //
