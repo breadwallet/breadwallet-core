@@ -34,11 +34,6 @@
 extern "C" {
 #endif
 
-// Enabled the 'TST token'
-#if !defined(BITCOIN_DEBUG)
-#define BITCOIN_DEBUG
-#endif
-
 /**
  * An Ethereum ERC20 Token
  */

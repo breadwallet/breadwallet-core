@@ -24,7 +24,6 @@
 //  THE SOFTWARE.
 
 #include <string.h>
-#include <assert.h>
 #include "BRArray.h"
 #include "BREthereumToken.h"
 #include "BREthereum.h"
@@ -250,9 +249,9 @@ static struct BREthereumTokenRecord tokens[] = {
                 "0x3efd578b271d034a69499e4a2d933c631d44b9ad", // mainnet
 #endif
                 "TST",
-                "TST Token",
-                "Token for TeSTing",
-                4,
+                "Test Standard Token",
+                "TeST Standard Token (TST) for TeSTing (TST)",
+                18,
                 "FAFAFA",
                 "FAFAFA",
                 {TOKEN_BRD_DEFAULT_GAS_LIMIT},
