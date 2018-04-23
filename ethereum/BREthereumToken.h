@@ -73,7 +73,10 @@ extern BREthereumContract
 tokenGetContract (BREthereumToken token);
 
 extern const BREthereumToken tokenBRD;
+
+#if defined (BITCOIN_DEBUG)
 extern const BREthereumToken tokenTST;
+#endif
 
 extern BREthereumToken
 tokenLookup (const char *address);
