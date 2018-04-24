@@ -38,27 +38,20 @@ public class BREthereumLightNode extends BRCoreJniReference {
     // Client
     //
     public interface Client {
-        void assignNode (BREthereumLightNode node);
-    }
-
-    public interface ClientLES extends Client {
-    }
-
-    public interface ClientJSON_RPC extends Client {
-        //        typedef void (*JsonRpcGetBalance) (JsonRpcContext context,
+        //        typedef void (*BREthereumClientHandlerGetBalance) (BREthereumClientContext context,
         //                                   BREthereumLightNode node,
         //                                   BREthereumWalletId wid,
         //                                   const char *address,
         //                                   int rid);
         void getBalance(int wid, String address, int rid);
 
-        //        typedef void (*JsonRpcGetGasPrice) (JsonRpcContext context,
+        //        typedef void (*BREthereumClientHandlerGetGasPrice) (BREthereumClientContext context,
         //                                    BREthereumLightNode node,
         //                                    BREthereumWalletId wid,
         //                                    int rid);
         void getGasPrice(int wid, int rid);
 
-        //        typedef void (*JsonRpcEstimateGas) (JsonRpcContext context,
+        //        typedef void (*BREthereumClientHandlerEstimateGas) (BREthereumClientContext context,
         //                                    BREthereumLightNode node,
         //                                    BREthereumWalletId wid,
         //                                    BREthereumTransactionId tid,
@@ -69,7 +62,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
 
         void getGasEstimate(int wid, int tid, String to, String amount, String data, int rid);
 
-        //        typedef void (*JsonRpcSubmitTransaction) (JsonRpcContext context,
+        //        typedef void (*BREthereumClientHandlerSubmitTransaction) (BREthereumClientContext context,
         //                                          BREthereumLightNode node,
         //                                          BREthereumWalletId wid,
         //                                          BREthereumTransactionId tid,
@@ -77,13 +70,13 @@ public class BREthereumLightNode extends BRCoreJniReference {
         //                                          int rid);
         void submitTransaction(int wid, int tid, String rawTransaction, int rid);
 
-        //        typedef void (*JsonRpcGetTransactions) (JsonRpcContext context,
+        //        typedef void (*BREthereumClientHandlerGetTransactions) (BREthereumClientContext context,
         //                                        BREthereumLightNode node,
         //                                        const char *address,
         //                                        int rid);
         void getTransactions(String address, int rid);
 
-        //        typedef void (*JsonRpcGetLogs) (JsonRpcContext context,
+        //        typedef void (*BREthereumClientHandlerGetLogs) (BREthereumClientContext context,
         //                                BREthereumLightNode node,
         //                                const char *address,
         //                                const char *event,
@@ -92,94 +85,65 @@ public class BREthereumLightNode extends BRCoreJniReference {
     }
 
     //
-    // Light Node LES
+    // Client Announcers
     //
-    static public class LES extends BREthereumLightNode {
-        public LES(ClientLES client, BREthereumNetwork network, String paperKey, String[] wordList) {
-            super(BREthereumLightNode.jniCreateLightNodeLES(client, network.getIdentifier(), paperKey, wordList),
-                    client,
-                    network);
-        }
 
-        public LES(ClientLES client, BREthereumNetwork network, byte[] publicKey) {
-            super(BREthereumLightNode.jniCreateLightNodeLES_PublicKey(client, network.getIdentifier(), publicKey),
-                    client,
-                    network);
-        }
+    public void announceBalance(int wid, String balance, int rid) {
+        jniAnnounceBalance(wid, balance, rid);
     }
 
-    //
-    // Light Node JSON_RPC
-    //
-    static public class JSON_RPC extends BREthereumLightNode {
-        public JSON_RPC(ClientJSON_RPC client, BREthereumNetwork network, String paperKey, String[] wordList) {
-            super(BREthereumLightNode.jniCreateLightNodeJSON_RPC(client, network.getIdentifier(), paperKey, wordList),
-                    client,
-                    network);
-        }
-
-        public JSON_RPC(ClientJSON_RPC client, BREthereumNetwork network, byte[] publicKey) {
-            super(BREthereumLightNode.jniCreateLightNodeJSON_RPC_PublicKey(client, network.getIdentifier(), publicKey),
-                    client,
-                    network);
-        }
-
-        public void announceBalance (int wid, String balance, int rid) {
-            jniAnnounceBalance(wid, balance, rid);
-        }
-
-        public void announceGasPrice (int wid, String gasPrice, int rid) {
-            jniAnnounceGasPrice(wid, gasPrice, rid);
-        }
-
-        public void announceGasEstimate (int wid, int tid, String gasEstimate, int rid) {
-            jniAnnounceGasEstimate(wid, tid, gasEstimate, rid);
-        }
-
-        public void announceSubmitTransaction (int wid, int tid, String hash, int rid) {
-            jniAnnounceSubmitTransaction(wid, tid, hash, rid);
-        }
-
-        public void announceTransaction(int id,
-                                        String hash,
-                                        String from,
-                                        String to,
-                                        String contract,
-                                        String amount, // value
-                                        String gasLimit,
-                                        String gasPrice,
-                                        String data,
-                                        String nonce,
-                                        String gasUsed,
-                                        String blockNumber,
-                                        String blockHash,
-                                        String blockConfirmations,
-                                        String blockTransactionIndex,
-                                        String blockTimestamp,
-                                        // cumulative gas used,
-                                        // confirmations
-                                        // txreceipt_status
-                                        String isError) {
-            jniAnnounceTransaction(id, hash, from, to, contract, amount, gasLimit, gasPrice, data, nonce, gasUsed,
-                    blockNumber, blockHash, blockConfirmations, blockTransactionIndex, blockTimestamp,
-                    isError);
-        }
-
-        public void announceLog (int id,
-                                 String hash,
-                                 String contract,
-                                 String[] topics,
-                                 String data,
-                                 String gasPrice,
-                                 String gasUsed,
-                                 String logIndex,
-                                 String blockNumber,
-                                 String blockTransactionIndex,
-                                 String blockTimestamp) {
-            jniAnnounceLog(id, hash, contract, topics, data, gasPrice, gasUsed, logIndex,
-                    blockNumber, blockTransactionIndex, blockTimestamp);
-        }
+    public void announceGasPrice(int wid, String gasPrice, int rid) {
+        jniAnnounceGasPrice(wid, gasPrice, rid);
     }
+
+    public void announceGasEstimate(int wid, int tid, String gasEstimate, int rid) {
+        jniAnnounceGasEstimate(wid, tid, gasEstimate, rid);
+    }
+
+    public void announceSubmitTransaction(int wid, int tid, String hash, int rid) {
+        jniAnnounceSubmitTransaction(wid, tid, hash, rid);
+    }
+
+    public void announceTransaction(int id,
+                                    String hash,
+                                    String from,
+                                    String to,
+                                    String contract,
+                                    String amount, // value
+                                    String gasLimit,
+                                    String gasPrice,
+                                    String data,
+                                    String nonce,
+                                    String gasUsed,
+                                    String blockNumber,
+                                    String blockHash,
+                                    String blockConfirmations,
+                                    String blockTransactionIndex,
+                                    String blockTimestamp,
+                                    // cumulative gas used,
+                                    // confirmations
+                                    // txreceipt_status
+                                    String isError) {
+        jniAnnounceTransaction(id, hash, from, to, contract, amount, gasLimit, gasPrice, data, nonce, gasUsed,
+                blockNumber, blockHash, blockConfirmations, blockTransactionIndex, blockTimestamp,
+                isError);
+    }
+
+    public void announceLog(int id,
+                            String hash,
+                            String contract,
+                            String[] topics,
+                            String data,
+                            String gasPrice,
+                            String gasUsed,
+                            String logIndex,
+                            String blockNumber,
+                            String blockTransactionIndex,
+                            String blockTimestamp) {
+        jniAnnounceLog(id, hash, contract, topics, data, gasPrice, gasUsed, logIndex,
+                blockNumber, blockTransactionIndex, blockTimestamp);
+    }
+
 
     //
     // Listener
@@ -335,18 +299,29 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     // Constructor
     //
-    protected BREthereumLightNode(long jniReferenceAddress, Client client, BREthereumNetwork network) {
-        super(jniReferenceAddress);
+
+    public BREthereumLightNode(Client client, BREthereumNetwork network, String paperKey, String[] wordList) {
+        this(BREthereumLightNode.jniCreateLightNode(client, network.getIdentifier(), paperKey, wordList),
+                client, network);
+    }
+
+    public BREthereumLightNode(Client client, BREthereumNetwork network, byte[] publicKey) {
+        this(BREthereumLightNode.jniCreateLightNode_PublicKey(client, network.getIdentifier(), publicKey),
+                client, network);
+    }
+
+    private BREthereumLightNode(long identifier, Client client, BREthereumNetwork network) {
+        super(identifier);
 
         // `this` is the JNI listener, using the `trampoline` functions to invoke
         // the installed `Listener`.
         jniAddListener(null);
 
-        this.client = new WeakReference<Client>(client);
+        this.client = new WeakReference<>(client);
         this.network = network;
         this.account = new BREthereumAccount(this, jniLightNodeGetAccount());
-        client.assignNode(this);
     }
+
 
     public void addListener (Listener listener) {
         this.listener = new WeakReference<>(listener);
@@ -364,9 +339,6 @@ public class BREthereumLightNode extends BRCoreJniReference {
     }
     public boolean disconnect () {
         return jniLightNodeDisconnect ();
-    }
-    public void disconnectAndWait () {
-        jniLightNodeDisconnectAndWait();
     }
 
     //
@@ -408,14 +380,35 @@ public class BREthereumLightNode extends BRCoreJniReference {
         l.handleTransactionEvent(wallet, transaction, Listener.TransactionEvent.values()[(int) event]);
     }
 
+     protected void trampolineGetBalance(int wid, String address, int rid) {
+        client.get().getBalance(wid, address, rid);
+    }
+
+    protected void trampolineGetGasPrice(int wid, int rid) {
+        client.get().getGasPrice(wid, rid);
+    }
+
+    protected void trampolineGetGasEstimate(int wid, int tid, String to, String amount, String data, int rid) {
+        client.get().getGasEstimate(wid, tid, to, amount, data, rid);
+    }
+
+    protected void trampolineSubmitTransaction(int wid, int tid, String rawTransaction, int rid) {
+        client.get().submitTransaction(wid, tid, rawTransaction, rid);
+    }
+
+    protected void trampolineGetTransactions(String address, int rid) {
+        client.get().getTransactions(address, rid);
+    }
+
+    protected void trampolineGetLogs (String address, String event, int rid) {
+        client.get().getLogs(address, event, rid);
+    }
+
     //
     // JNI: Constructors
     //
-    protected static native long jniCreateLightNodeLES(Client client, long network, String paperKey, String[] wordList);
-    protected static native long jniCreateLightNodeLES_PublicKey(Client client, long network, byte[] publicKey);
-
-    protected static native long jniCreateLightNodeJSON_RPC(Client client, long network, String paperKey, String[] wordList);
-    protected static native long jniCreateLightNodeJSON_RPC_PublicKey(Client client, long network, byte[] publicKey);
+    protected static native long jniCreateLightNode(Client client, long network, String paperKey, String[] wordList);
+    protected static native long jniCreateLightNode_PublicKey(Client client, long network, byte[] publicKey);
 
     protected native void jniAddListener (Listener listener);
 
@@ -542,7 +535,6 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     protected native boolean jniLightNodeConnect ();
     protected native boolean jniLightNodeDisconnect ();
-    protected native void jniLightNodeDisconnectAndWait ();
 
     // JNI: Initialize
     protected static native void initializeNative();

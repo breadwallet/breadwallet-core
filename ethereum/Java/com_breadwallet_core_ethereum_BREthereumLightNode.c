@@ -35,48 +35,48 @@
 // Forward Declarations
 //
 static void
-jsonRpcGetBalance (JsonRpcContext context,
-                   BREthereumLightNode node,
-                   BREthereumWalletId wid,
-                   const char *address,
-                   int id);
+clientGetBalance(BREthereumClientContext context,
+                 BREthereumLightNode node,
+                 BREthereumWalletId wid,
+                 const char *address,
+                 int id);
 
 static void
-jsonRpcGetGasPrice (JsonRpcContext context,
-                    BREthereumLightNode node,
-                    BREthereumWalletId wid,
-                    int id);
+clientGetGasPrice(BREthereumClientContext context,
+                  BREthereumLightNode node,
+                  BREthereumWalletId wid,
+                  int id);
 
 static void
-jsonRpcEstimateGas (JsonRpcContext context,
-                    BREthereumLightNode node,
-                    BREthereumWalletId wid,
-                    BREthereumTransactionId tid,
-                    const char *to,
-                    const char *amount,
-                    const char *data,
-                    int id);
+clientEstimateGas(BREthereumClientContext context,
+                  BREthereumLightNode node,
+                  BREthereumWalletId wid,
+                  BREthereumTransactionId tid,
+                  const char *to,
+                  const char *amount,
+                  const char *data,
+                  int id);
 
 static void
-jsonRpcSubmitTransaction (JsonRpcContext context,
-                          BREthereumLightNode node,
-                          BREthereumWalletId wid,
-                          BREthereumTransactionId tid,
-                          const char *transaction,
-                          int id);
+clientSubmitTransaction(BREthereumClientContext context,
+                        BREthereumLightNode node,
+                        BREthereumWalletId wid,
+                        BREthereumTransactionId tid,
+                        const char *transaction,
+                        int id);
 
 static void
-jsonRpcGetTransactions(JsonRpcContext context,
-                       BREthereumLightNode node,
-                       const char *account,
-                       int id);
+clientGetTransactions(BREthereumClientContext context,
+                      BREthereumLightNode node,
+                      const char *account,
+                      int id);
 
 static void
-jsonRpcGetLogs(JsonRpcContext context,
-               BREthereumLightNode node,
-               const char *address,
-               const char *event,
-               int id);
+clientGetLogs(BREthereumClientContext context,
+              BREthereumLightNode node,
+              const char *address,
+              const char *event,
+              int id);
 
 //
 // Forward Declarations - Listener
@@ -131,79 +131,79 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAddListener
                          listenerTransactionEventHandler);
 }
 
+///*
+// * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+// * Method:    jniCreateLightNodeLES
+// * Signature: (Lcom/breadwallet/core/ethereum/BREthereumLightNode/Client;JLjava/lang/String;[Ljava/lang/String;)J
+// */
+//JNIEXPORT jlong JNICALL
+//Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateLightNodeLES
+//        (JNIEnv *env, jclass thisClass,
+//         jobject clientObject,
+//         jlong network,
+//         jstring paperKeyString,
+//         jobjectArray wordsArrayObject) {
+//
+//    // Install the wordList
+//    int wordsCount = (*env)->GetArrayLength(env, wordsArrayObject);
+//    assert (BIP39_WORDLIST_COUNT == wordsCount);
+//    char *wordList[wordsCount];
+//
+//    for (int i = 0; i < wordsCount; i++) {
+//        jstring string = (jstring) (*env)->GetObjectArrayElement(env, wordsArrayObject, i);
+//        const char *rawString = (*env)->GetStringUTFChars(env, string, 0);
+//
+//        wordList[i] = strdup (rawString);
+//
+//        (*env)->ReleaseStringUTFChars(env, string, rawString);
+//        (*env)->DeleteLocalRef(env, string);
+//    }
+//
+//    installSharedWordList((const char **) wordList, BIP39_WORDLIST_COUNT);
+//
+//    const char *paperKey = (*env)->GetStringUTFChars (env, paperKeyString, 0);
+//
+//    BREthereumConfiguration configuration =
+//            ethereumConfigurationCreateLES((BREthereumNetwork) network, 0);
+//
+//    BREthereumLightNode node = ethereumCreate(configuration, paperKey);
+//
+//    (*env)->ReleaseStringUTFChars (env, paperKeyString, paperKey);
+//    return (jlong) node;
+//}
+//
+///*
+// * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+// * Method:    jniCreateLightNodeLES_PublicKey
+// * Signature: (Lcom/breadwallet/core/ethereum/BREthereumLightNode/Client;J[B)J
+// */
+//JNIEXPORT jlong JNICALL
+//Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateLightNodeLES_1PublicKey
+//        (JNIEnv *env, jclass thisClass, jobject clientObject, jlong network, jbyteArray publicKey) {
+//
+//    assert (65 == (*env)->GetArrayLength(env, publicKey));
+//
+//     BREthereumConfiguration configuration =
+//             ethereumConfigurationCreateLES((BREthereumNetwork) network, 0);
+//
+//    jbyte *publicKeyBytes = (*env)->GetByteArrayElements(env, publicKey, 0);
+//    BRKey key;
+//
+//    memcpy (key.pubKey, publicKeyBytes, 65);
+//    BREthereumLightNode node =
+//            ethereumCreateWithPublicKey(configuration, key);
+//
+//    (*env)->ReleaseByteArrayElements(env, publicKey, publicKeyBytes, 0);
+//    return (jlong) node;
+//}
+
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
- * Method:    jniCreateLightNodeLES
+ * Method:    jniCreateLightNode
  * Signature: (Lcom/breadwallet/core/ethereum/BREthereumLightNode/Client;JLjava/lang/String;[Ljava/lang/String;)J
  */
 JNIEXPORT jlong JNICALL
-Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateLightNodeLES
-        (JNIEnv *env, jclass thisClass,
-         jobject clientObject,
-         jlong network,
-         jstring paperKeyString,
-         jobjectArray wordsArrayObject) {
-
-    // Install the wordList
-    int wordsCount = (*env)->GetArrayLength(env, wordsArrayObject);
-    assert (BIP39_WORDLIST_COUNT == wordsCount);
-    char *wordList[wordsCount];
-
-    for (int i = 0; i < wordsCount; i++) {
-        jstring string = (jstring) (*env)->GetObjectArrayElement(env, wordsArrayObject, i);
-        const char *rawString = (*env)->GetStringUTFChars(env, string, 0);
-
-        wordList[i] = strdup (rawString);
-
-        (*env)->ReleaseStringUTFChars(env, string, rawString);
-        (*env)->DeleteLocalRef(env, string);
-    }
-
-    installSharedWordList((const char **) wordList, BIP39_WORDLIST_COUNT);
-
-    const char *paperKey = (*env)->GetStringUTFChars (env, paperKeyString, 0);
-
-    BREthereumConfiguration configuration =
-            ethereumConfigurationCreateLES((BREthereumNetwork) network, 0);
-
-    BREthereumLightNode node = ethereumCreate(configuration, paperKey);
-
-    (*env)->ReleaseStringUTFChars (env, paperKeyString, paperKey);
-    return (jlong) node;
-}
-
-/*
- * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
- * Method:    jniCreateLightNodeLES_PublicKey
- * Signature: (Lcom/breadwallet/core/ethereum/BREthereumLightNode/Client;J[B)J
- */
-JNIEXPORT jlong JNICALL
-Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateLightNodeLES_1PublicKey
-        (JNIEnv *env, jclass thisClass, jobject clientObject, jlong network, jbyteArray publicKey) {
-
-    assert (65 == (*env)->GetArrayLength(env, publicKey));
-
-     BREthereumConfiguration configuration =
-             ethereumConfigurationCreateLES((BREthereumNetwork) network, 0);
-
-    jbyte *publicKeyBytes = (*env)->GetByteArrayElements(env, publicKey, 0);
-    BRKey key;
-
-    memcpy (key.pubKey, publicKeyBytes, 65);
-    BREthereumLightNode node =
-            ethereumCreateWithPublicKey(configuration, key);
-
-    (*env)->ReleaseByteArrayElements(env, publicKey, publicKeyBytes, 0);
-    return (jlong) node;
-}
-
-/*
- * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
- * Method:    jniCreateLightNodeJSON_RPC
- * Signature: (Lcom/breadwallet/core/ethereum/BREthereumLightNode/Client;JLjava/lang/String;[Ljava/lang/String;)J
- */
-JNIEXPORT jlong JNICALL
-Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateLightNodeJSON_1RPC
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateLightNode
         (JNIEnv *env, jclass thisClass,
          jobject clientObject,
          jlong network,
@@ -231,18 +231,8 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateLightNodeJSON_1R
     jobject client = (*env)->NewGlobalRef (env, clientObject);
 
     const char *paperKey = (*env)->GetStringUTFChars (env, paperKeyString, 0);
-    BREthereumConfiguration configuration =
-            ethereumConfigurationCreateJSON_RPC
-                    ((BREthereumNetwork) network,
-                     (JsonRpcContext) client,
-                     jsonRpcGetBalance,
-                     jsonRpcGetGasPrice,
-                     jsonRpcEstimateGas,
-                     jsonRpcSubmitTransaction,
-                     jsonRpcGetTransactions,
-                     jsonRpcGetLogs);
 
-    BREthereumLightNode node = ethereumCreate(configuration, paperKey);
+    BREthereumLightNode node = ethereumCreate((BREthereumNetwork) network, paperKey);
 
     (*env)->ReleaseStringUTFChars (env, paperKeyString, paperKey);
     return (jlong) node;
@@ -250,11 +240,11 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateLightNodeJSON_1R
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
- * Method:    jniCreateLightNodeJSON_RPC_PublicKey
+ * Method:    jniCreateLightNode_PublicKey
  * Signature: (Lcom/breadwallet/core/ethereum/BREthereumLightNode/Client;J[B)J
  */
 JNIEXPORT jlong JNICALL
-Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateLightNodeJSON_1RPC_1PublicKey
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateLightNode_1PublicKey
     (JNIEnv *env, jclass thisClass, jobject clientObject, jlong network, jbyteArray publicKey) {
 
     assert (65 == (*env)->GetArrayLength(env, publicKey));
@@ -262,23 +252,12 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateLightNodeJSON_1R
     // Get a global reference to client; ensure the client exists in callback threads.
     jobject client = (*env)->NewGlobalRef(env, clientObject);
 
-    BREthereumConfiguration configuration =
-            ethereumConfigurationCreateJSON_RPC
-                    ((BREthereumNetwork) network,
-                     (JsonRpcContext) client,
-                     jsonRpcGetBalance,
-                     jsonRpcGetGasPrice,
-                     jsonRpcEstimateGas,
-                     jsonRpcSubmitTransaction,
-                     jsonRpcGetTransactions,
-                     jsonRpcGetLogs);
-
     jbyte *publicKeyBytes = (*env)->GetByteArrayElements(env, publicKey, 0);
     BRKey key;
 
     memcpy (key.pubKey, publicKeyBytes, 65);
     BREthereumLightNode node =
-            ethereumCreateWithPublicKey(configuration, key);
+            ethereumCreateWithPublicKey((BREthereumNetwork) network, key);
 
 
     (*env)->ReleaseByteArrayElements(env, publicKey, publicKeyBytes, 0);
@@ -1159,7 +1138,23 @@ JNIEXPORT jboolean JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeConnect
         (JNIEnv *env, jobject thisObject) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
-    return (jboolean) (ETHEREUM_BOOLEAN_TRUE == ethereumConnect(node) ? JNI_TRUE : JNI_FALSE);
+
+
+    jobject context = (*env)->NewGlobalRef(env, thisObject); // listenerObject);
+
+    // If node is JSON_RPC
+    BREthereumClient client =
+            ethereumClientCreate
+                    ((BREthereumClientContext) context,
+                     clientGetBalance,
+                     clientGetGasPrice,
+                     clientEstimateGas,
+                     clientSubmitTransaction,
+                     clientGetTransactions,
+                     clientGetLogs);
+
+
+    return (jboolean) (ETHEREUM_BOOLEAN_TRUE == ethereumConnect(node, client) ? JNI_TRUE : JNI_FALSE);
 }
 
 /*
@@ -1171,19 +1166,11 @@ JNIEXPORT jboolean JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeDisconnect
         (JNIEnv *env, jobject thisObject) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
-    return (jboolean) (ETHEREUM_BOOLEAN_TRUE == ethereumDisconnect(node) ? JNI_TRUE : JNI_FALSE);
-}
 
-/*
- * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
- * Method:    jniLightNodeDisconnectAndWait
- * Signature: ()V
- */
-JNIEXPORT void JNICALL
-Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeDisconnectAndWait
-        (JNIEnv *env, jobject thisObject) {
-    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
-    ethereumDisconnectAndWait(node);
+    // TODO: Hopefully
+    (*env)->DeleteGlobalRef (env, thisObject);
+
+    return (jboolean) (ETHEREUM_BOOLEAN_TRUE == ethereumDisconnect(node) ? JNI_TRUE : JNI_FALSE);
 }
 
 /*
@@ -1209,11 +1196,11 @@ lookupListenerMethod (JNIEnv *env, jobject listener, char *name, char *type) {
 
 
 static void
-jsonRpcGetBalance(JsonRpcContext context,
-                  BREthereumLightNode node,
-                  BREthereumWalletId wid,
-                  const char *account,
-                  int id) {
+clientGetBalance(BREthereumClientContext context,
+                 BREthereumLightNode node,
+                 BREthereumWalletId wid,
+                 const char *account,
+                 int id) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
@@ -1223,7 +1210,7 @@ jsonRpcGetBalance(JsonRpcContext context,
     // String getBalance (int id, String account);
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
-                                 "getBalance",
+                                 "trampolineGetBalance",
                                  "(ILjava/lang/String;I)V");
     assert (NULL != listenerMethod);
 
@@ -1239,10 +1226,10 @@ jsonRpcGetBalance(JsonRpcContext context,
 }
 
 static void
-jsonRpcGetGasPrice(JsonRpcContext context,
-                   BREthereumLightNode node,
-                   BREthereumWalletId wid,
-                   int id) {
+clientGetGasPrice(BREthereumClientContext context,
+                  BREthereumLightNode node,
+                  BREthereumWalletId wid,
+                  int id) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
@@ -1252,7 +1239,7 @@ jsonRpcGetGasPrice(JsonRpcContext context,
     //String getGasPrice (int id);
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
-                                 "getGasPrice",
+                                 "trampolineGetGasPrice",
                                  "(II)V");
     assert (NULL != listenerMethod);
 
@@ -1264,13 +1251,13 @@ jsonRpcGetGasPrice(JsonRpcContext context,
 }
 
 static void
-jsonRpcEstimateGas(JsonRpcContext context, BREthereumLightNode node,
-                   BREthereumWalletId wid,
-                   BREthereumTransactionId tid,
-                   const char *to,
-                   const char *amount,
-                   const char *data,
-                   int id) {
+clientEstimateGas(BREthereumClientContext context, BREthereumLightNode node,
+                  BREthereumWalletId wid,
+                  BREthereumTransactionId tid,
+                  const char *to,
+                  const char *amount,
+                  const char *data,
+                  int id) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
@@ -1280,7 +1267,7 @@ jsonRpcEstimateGas(JsonRpcContext context, BREthereumLightNode node,
     // String getGasEstimate (int id, String to, String amount, String data);
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
-                                 "getGasEstimate",
+                                 "trampolineGetGasEstimate",
                                  "(IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V");
     assert (NULL != listenerMethod);
 
@@ -1303,12 +1290,12 @@ jsonRpcEstimateGas(JsonRpcContext context, BREthereumLightNode node,
 }
 
 static void
-jsonRpcSubmitTransaction(JsonRpcContext context,
-                         BREthereumLightNode node,
-                         BREthereumWalletId wid,
-                         BREthereumTransactionId tid,
-                         const char *transaction,
-                         int id) {
+clientSubmitTransaction(BREthereumClientContext context,
+                        BREthereumLightNode node,
+                        BREthereumWalletId wid,
+                        BREthereumTransactionId tid,
+                        const char *transaction,
+                        int id) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
@@ -1318,7 +1305,7 @@ jsonRpcSubmitTransaction(JsonRpcContext context,
     // String submitTransaction (int id, String rawTransaction);
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
-                                 "submitTransaction",
+                                 "trampolineSubmitTransaction",
                                  "(IILjava/lang/String;I)V");
     assert (NULL != listenerMethod);
 
@@ -1335,10 +1322,10 @@ jsonRpcSubmitTransaction(JsonRpcContext context,
 }
 
 static void
-jsonRpcGetTransactions(JsonRpcContext context,
-                       BREthereumLightNode node,
-                       const char *address,
-                       int id) {
+clientGetTransactions(BREthereumClientContext context,
+                      BREthereumLightNode node,
+                      const char *address,
+                      int id) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
@@ -1355,7 +1342,7 @@ jsonRpcGetTransactions(JsonRpcContext context,
     // void getTransactions(int id, String account);
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
-                                 "getTransactions",
+                                 "trampolineGetTransactions",
                                  "(Ljava/lang/String;I)V");
     assert (NULL != listenerMethod);
 
@@ -1370,11 +1357,11 @@ jsonRpcGetTransactions(JsonRpcContext context,
 }
 
 static void
-jsonRpcGetLogs(JsonRpcContext context,
-               BREthereumLightNode node,
-               const char *address,
-               const char *event,
-               int id) {
+clientGetLogs(BREthereumClientContext context,
+              BREthereumLightNode node,
+              const char *address,
+              const char *event,
+              int id) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
@@ -1384,7 +1371,7 @@ jsonRpcGetLogs(JsonRpcContext context,
     // void getTransactions(int id, String account);
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
-                                 "getLogs",
+                                 "trampolineGetLogs",
                                  "(Ljava/lang/String;Ljava/lang/String;I)V");
     assert (NULL != listenerMethod);
 

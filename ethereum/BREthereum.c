@@ -79,6 +79,12 @@ ethereumGetAccountPrimaryAddressPrivateKey(BREthereumLightNode node,
 
 }
 
+extern BREthereumNetwork
+ethereumGetNetwork (BREthereumLightNode node) {
+    return lightNodeGetNetwork(node);
+}
+
+
 extern BREthereumWalletId
 ethereumGetWallet(BREthereumLightNode node) {
     return lightNodeGetWallet(node);

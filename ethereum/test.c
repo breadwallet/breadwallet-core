@@ -1102,7 +1102,7 @@ typedef struct JsonRpcTestContextRecord {
 // Stubbed Callbacks - should actually construct JSON, invoke an Etherum JSON_RPC method,
 // get the response and return the result.
 static void
-jsonRpcGetBalance (JsonRpcContext context,
+jsonRpcGetBalance (BREthereumClientContext context,
                    BREthereumLightNode node,
                    BREthereumWalletId wid,
                    const char *address,
@@ -1111,7 +1111,7 @@ jsonRpcGetBalance (JsonRpcContext context,
 }
 
 static void
-jsonRpcGetGasPrice (JsonRpcContext context,
+jsonRpcGetGasPrice (BREthereumClientContext context,
                     BREthereumLightNode node,
                     BREthereumWalletId wid,
                     int rid) {
@@ -1119,7 +1119,7 @@ jsonRpcGetGasPrice (JsonRpcContext context,
 }
 
 static void
-jsonRpcEstimateGas (JsonRpcContext context,
+jsonRpcEstimateGas (BREthereumClientContext context,
                     BREthereumLightNode node,
                     BREthereumWalletId wid,
                     BREthereumTransactionId tid,
@@ -1131,7 +1131,7 @@ jsonRpcEstimateGas (JsonRpcContext context,
 }
 
 static void
-jsonRpcSubmitTransaction (JsonRpcContext context,
+jsonRpcSubmitTransaction (BREthereumClientContext context,
                           BREthereumLightNode node,
                           BREthereumWalletId wid,
                           BREthereumTransactionId tid,
@@ -1142,7 +1142,7 @@ jsonRpcSubmitTransaction (JsonRpcContext context,
 }
 
 static void
-jsonRpcGetTransactions (JsonRpcContext context,
+jsonRpcGetTransactions (BREthereumClientContext context,
                         BREthereumLightNode node,
                         const char *account,
                         int id) {
@@ -1169,7 +1169,7 @@ jsonRpcGetTransactions (JsonRpcContext context,
 }
 
 static void
-jsonRpcGetLogs (JsonRpcContext context,
+jsonRpcGetLogs (BREthereumClientContext context,
                 BREthereumLightNode node,
                 const char *addressIgnore,
                 const char *event,
@@ -1202,14 +1202,14 @@ runLightNode_JSON_RPC_test (const char *paperKey) {
     JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
     
     BREthereumClient configuration =
-    ethereumClientCreateJSON_RPC(ethereumMainnet,
+            ethereumClientCreateJSON_RPC(ethereumMainnet,
                                          context,
-                                         jsonRpcGetBalance,
-                                         jsonRpcGetGasPrice,
-                                         jsonRpcEstimateGas,
-                                         jsonRpcSubmitTransaction,
-                                         jsonRpcGetTransactions,
-                                         jsonRpcGetLogs);
+                                         clientGetBalance,
+                                         clientGetGasPrice,
+                                         clientEstimateGas,
+                                         clientSubmitTransaction,
+                                         clientGetTransactions,
+                                         clientGetLogs);
     
     BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey);
     BREthereumWalletId wallet = ethereumGetWallet(node);
@@ -1267,14 +1267,14 @@ runLightNode_LISTENER_test (const char *paperKey) {
     JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
     BREthereumClient configuration =
-    ethereumClientCreateJSON_RPC(ethereumMainnet,
+            ethereumClientCreateJSON_RPC(ethereumMainnet,
                                          context,
-                                         jsonRpcGetBalance,
-                                         jsonRpcGetGasPrice,
-                                         jsonRpcEstimateGas,
-                                         jsonRpcSubmitTransaction,
-                                         jsonRpcGetTransactions,
-                                         jsonRpcGetLogs);
+                                         clientGetBalance,
+                                         clientGetGasPrice,
+                                         clientEstimateGas,
+                                         clientSubmitTransaction,
+                                         clientGetTransactions,
+                                         clientGetLogs);
 
     BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey);
 

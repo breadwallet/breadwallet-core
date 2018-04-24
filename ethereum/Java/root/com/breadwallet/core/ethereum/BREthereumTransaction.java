@@ -86,6 +86,10 @@ public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefa
     //
     // Gas Price, Limit, Used
     //
+    public String getGasPrice () {
+        return getGasPrice(defaultUnit);
+    }
+
     public String getGasPrice (BREthereumAmount.Unit unit) {
         assert (!unit.isTokenUnit());
         return node.get().jniTransactionGetGasPrice(identifier, unit.jniValue);
