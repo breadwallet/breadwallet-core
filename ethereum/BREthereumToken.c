@@ -1285,9 +1285,7 @@ static struct BREthereumTokenRecord tokens[] = {
                 {TOKEN_BRD_DEFAULT_GAS_LIMIT},
                 {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
                 1
-        },
-
-    { NULL }
+        }
 };
 
 const BREthereumToken tokenBRD = &tokens[0];
