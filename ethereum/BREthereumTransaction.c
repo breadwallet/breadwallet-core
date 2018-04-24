@@ -687,6 +687,13 @@ transactionExtractBlocked(BREthereumTransaction transaction,
     return 1;
 }
 
+extern uint64_t
+transactionGetBlockConfirmations(BREthereumTransaction transaction) {
+    return transaction->state.status == TRANSACTION_BLOCKED
+           ? transaction->state.u.blocked.confirmations
+           : 0;
+}
+
 /**
  * Compare two transactions based on their block, or if not blocked, their nonce.
  * @param t1

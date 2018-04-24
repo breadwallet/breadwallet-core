@@ -1064,6 +1064,7 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
         walletTransactionSubmitted(wallet, transaction, hash);
 
     }
+    BREthereumTransactionId tid = lightNodeLookupTransactionId(node, transaction);
 
     BREthereumGas gasUsed = gasCreate(strtoull(strGasUsed, NULL, 0));
 
@@ -1072,21 +1073,23 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
     // Get the current status.
     BREthereumTransactionStatus status = transactionGetStatus(transaction);
 
-    uint64_t blockConfirmations = strtoull (strBlockConfirmations, NULL, 0);
+    // See if the block confirmations have changed.
+    uint64_t newBlockConfirmations = strtoull (strBlockConfirmations, NULL, 0);
+    uint64_t oldBlockConfirmations = transactionGetBlockConfirmations (transaction);
 
     // Update the status as blocked
     walletTransactionBlocked(wallet, transaction, gasUsed,
                              blockGetNumber(block),
                              blockGetTimestamp(block),
-                             blockConfirmations,
+                             newBlockConfirmations,
                              blockTransactionIndex);
 
-    BREthereumTransactionId tid = lightNodeLookupTransactionId(node, transaction);
-    // Announce a transaction event.  If already 'BLOCKED', then update CONFIRMATIONS.
-    lightNodeListenerAnnounceTransactionEvent(node, wid, tid,
-                                              (TRANSACTION_BLOCKED == status
-                                               ? TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED
-                                               : TRANSACTION_EVENT_BLOCKED));
+    if (TRANSACTION_BLOCKED != status || newBlockConfirmations > oldBlockConfirmations)
+        // Announce a transaction event.  If already 'BLOCKED', then update CONFIRMATIONS.
+        lightNodeListenerAnnounceTransactionEvent(node, wid, tid,
+                                                  (TRANSACTION_BLOCKED == status
+                                                   ? TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED
+                                                   : TRANSACTION_EVENT_BLOCKED));
 
     // Hmmm...
     pthread_mutex_unlock(&node->lock);
@@ -1197,22 +1200,27 @@ lightNodeAnnounceLog (BREthereumLightNode node,
     BREthereumTransactionStatus status = transactionGetStatus(transaction);
 
     // TODO: actual `confirmations` argument
-    uint64_t blockConfirmations =
+    uint64_t newBlockConfirmations =
             blockGetNumber(lightNodeLookupBlock(node, lightNodeGetCurrentBlock(node))) - blockGetNumber(block);
-    if (blockConfirmations < 0) blockConfirmations = 0;
+    if (newBlockConfirmations < 0) newBlockConfirmations = 0;
+
+    uint64_t oldBlockConfirmations = transactionGetBlockConfirmations (transaction);
 
     // Update the status as blocked
     walletTransactionBlocked(wallet, transaction, gasUsed,
                              blockGetNumber(block),
                              blockGetTimestamp(block),
-                             blockConfirmations,
+                             newBlockConfirmations,
                              blockTransactionIndex);
 
     BREthereumTransactionId tid = lightNodeLookupTransactionId(node, transaction);
-    lightNodeListenerAnnounceTransactionEvent(node, wid, tid,
-                                              (TRANSACTION_BLOCKED == status
-                                               ? TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED
-                                               : TRANSACTION_EVENT_BLOCKED));
+
+    if (TRANSACTION_BLOCKED != status || newBlockConfirmations > oldBlockConfirmations)
+        // Announce a transaction event.  If already 'BLOCKED', then update CONFIRMATIONS.
+        lightNodeListenerAnnounceTransactionEvent(node, wid, tid,
+                                                  (TRANSACTION_BLOCKED == status
+                                                   ? TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED
+                                                   : TRANSACTION_EVENT_BLOCKED));
 
     // Hmmmm...
     pthread_mutex_unlock(&node->lock);
