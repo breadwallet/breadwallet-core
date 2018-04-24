@@ -65,6 +65,10 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
         return null == token;
     }
 
+    public String getSymbol () {
+        return null == token ? "ETH" : token.getSymbol();
+    }
+
     //
     // Constructors
     //

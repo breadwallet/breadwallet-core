@@ -201,10 +201,11 @@ public class BREthereumLightNode extends BRCoreJniReference {
         void handleWalletEvent (BREthereumWallet wallet, WalletEvent event);
 
         enum BlockEvent {
-            CREATED
+            CREATED,
+            DELETED
         }
 
-        //void handleBlockEvent (BREthereumBlock block, BlockEvent event);
+        void handleBlockEvent (BREthereumBlock block, BlockEvent event);
 
         enum TransactionEvent {
             CREATED,
@@ -212,7 +213,8 @@ public class BREthereumLightNode extends BRCoreJniReference {
             SUBMITTED,
             BLOCKED,  // aka confirmed
             ERRORED,
-            GAS_ESTIMATE_UPDATED
+            GAS_ESTIMATE_UPDATED,
+            BLOCK_CONFIRMATIONS_UPDATED
         }
 
         void handleTransactionEvent (BREthereumWallet wallet, BREthereumTransaction transaction, TransactionEvent event);
@@ -308,6 +310,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     public BREthereumWallet getWalletByIdentifier (long wid) {
         return walletLookupOrCreate(wid, null);
     }
+
     //
     // Transaction
     //
@@ -332,6 +335,25 @@ public class BREthereumLightNode extends BRCoreJniReference {
         return transactionRef.get();
     }
 
+    //
+    // Block
+    //
+    protected Map<Long, BREthereumBlock> blocks = new HashMap<>();
+
+    protected BREthereumBlock blockLookupOrCreate (long bid) {
+        BREthereumBlock block = blocks.get(bid);
+
+        if (null == block) {
+            block = new BREthereumBlock(this, bid);
+            blocks.put (bid, block);
+        }
+        return block;
+    }
+
+    public BREthereumBlock getCurrentBlock () {
+        long bid = jniLightNodeGetCurrentBlock ();
+        return blockLookupOrCreate(bid);
+    }
     //
     // Constructor
     //
@@ -528,6 +550,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     protected native long jniTransactionGetNonce (long transactionId);
     protected native long jniTransactionGetBlockNumber (long transactionId);
     protected native long jniTransactionGetBlockTimestamp (long transactionId);
+    protected native long jniTransactionGetBlockConfirmations (long transactionId);
     protected native long jniTransactionGetToken (long transactionId);
     protected native boolean jniTransactionIsConfirmed (long transactionId);
     protected native boolean jniTransactionIsSubmitted (long transactionId);
@@ -535,7 +558,15 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     // JNI: Tokens
     //
-    protected native String jniTokenGetAddress (long tokenId);
+    // protected native String jniTokenGetAddress (long tokenId);
+
+    //
+    // JNI: Block
+    //
+    protected native long jniLightNodeGetCurrentBlock ();
+    protected native long jniBlockGetNumber (long bid);
+    protected native long jniBlockGetTimestamp (long bid);
+    protected native String jniBlockGetHash (long bid);
 
     //
     // JNI: Connect & Disconnect

@@ -26,10 +26,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+
 #include "BREthereumTransaction.h"
 #include "BREthereumAmount.h"
 #include "BREthereumAccount.h"
 #include "BREthereumPrivate.h"
+
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
 
 // Forward Declarations
 static void
@@ -89,6 +92,7 @@ typedef struct {
             BREthereumGas gasUsed;
             uint64_t number;
             uint64_t timestamp;
+            uint64_t confirmations;
             uint64_t transactionIndex;
         } blocked;
 
@@ -118,15 +122,22 @@ transactionStateSubmitted (BREthereumTransactionState *state /* ... */) {
 }
 
 static void
-transactionStateBlocked (BREthereumTransactionState *state,
-                         BREthereumGas gasUsed,
-                         uint64_t blockNumber,
-                         uint64_t blockTimestamp,
-                         uint64_t blockTransactionIndex) {
+transactionStateBlocked(BREthereumTransactionState *state, BREthereumGas gasUsed,
+                        uint64_t blockNumber,
+                        uint64_t blockTimestamp,
+                        uint64_t blockConfirmations,
+                        uint64_t blockTransactionIndex) {
+
+    // Ensure blockConfirmations is the maximum seen.
+    blockConfirmations = (TRANSACTION_BLOCKED == state->status
+                          ? MAX (blockConfirmations, state->u.blocked.confirmations)
+                          : blockConfirmations);
+
     state->status = TRANSACTION_BLOCKED;
     state->u.blocked.gasUsed = gasUsed;
     state->u.blocked.number = blockNumber;
     state->u.blocked.timestamp = blockTimestamp;
+    state->u.blocked.confirmations = blockConfirmations;
     state->u.blocked.transactionIndex = blockTransactionIndex;
 }
 
@@ -626,12 +637,16 @@ transactionIsSubmitted (BREthereumTransaction transaction) {
 }
 
 extern void
-transactionAnnounceBlocked (BREthereumTransaction transaction,
-                            BREthereumGas gasUsed,
-                            uint64_t blockNumber,
-                            uint64_t blockTimestamp,
-                            uint64_t blockTransactionIndex) {
-    transactionStateBlocked(&transaction->state, gasUsed, blockNumber, blockTimestamp, blockTransactionIndex);
+transactionAnnounceBlocked(BREthereumTransaction transaction, BREthereumGas gasUsed,
+                           uint64_t blockNumber,
+                           uint64_t blockTimestamp,
+                           uint64_t blockConfirmations,
+                           uint64_t blockTransactionIndex) {
+    transactionStateBlocked(&transaction->state, gasUsed,
+                            blockNumber,
+                            blockTimestamp,
+                            blockConfirmations,
+                            blockTransactionIndex);
 }
 
 extern void
@@ -658,6 +673,7 @@ transactionExtractBlocked(BREthereumTransaction transaction,
                           BREthereumGas *gas,
                           uint64_t *blockNumber,
                           uint64_t *blockTimestamp,
+                          uint64_t *blockConfirmations,
                           uint64_t *blockTransactionIndex) {
     if (!transactionHasStatus(transaction, TRANSACTION_BLOCKED))
         return 0;
@@ -665,6 +681,7 @@ transactionExtractBlocked(BREthereumTransaction transaction,
     if (NULL != gas) *gas = transaction->state.u.blocked.gasUsed;
     if (NULL != blockNumber) *blockNumber = transaction->state.u.blocked.number;
     if (NULL != blockTimestamp) *blockTimestamp = transaction->state.u.blocked.timestamp;
+    if (NULL != blockConfirmations) *blockConfirmations = transaction->state.u.blocked.confirmations;
     if (NULL != blockTransactionIndex) *blockTransactionIndex = transaction->state.u.blocked.transactionIndex;
 
     return 1;

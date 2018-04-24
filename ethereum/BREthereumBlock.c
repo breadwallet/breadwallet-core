@@ -37,14 +37,10 @@ struct BREthereumBlockRecord {
 };
 
 extern BREthereumBlock
-createBlock (BREthereumHash hash,
-             uint64_t number,
-             uint64_t confirmations,
-             uint64_t timestamp) {
+createBlock(BREthereumHash hash, uint64_t number, uint64_t timestamp) {
     BREthereumBlock block = (BREthereumBlock) malloc (sizeof (struct BREthereumBlockRecord));
     block->hash = hashCopy(hash);
     block->number = number;
-    block->confirmations = confirmations;
     block->timestamp = timestamp;
     return block;
 }

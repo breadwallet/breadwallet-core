@@ -255,6 +255,36 @@ ethereumWalletGetToken(BREthereumLightNode node,
 }
 
 //
+// Block
+//
+extern BREthereumBlockId
+ethereumGetCurrentBlock (BREthereumLightNode node) {
+    return lightNodeGetCurrentBlock(node);
+}
+
+extern uint64_t
+ethereumBlockGetNumber (BREthereumLightNode node,
+                        BREthereumBlockId bid) {
+    BREthereumBlock block = lightNodeLookupBlock(node, bid);
+    return blockGetNumber(block);
+}
+
+extern uint64_t
+ethereumBlockGetTimestamp (BREthereumLightNode node,
+                           BREthereumBlockId bid) {
+    BREthereumBlock block = lightNodeLookupBlock(node, bid);
+    return blockGetTimestamp(block);
+}
+
+extern char *
+ethereumBlockGetHash (BREthereumLightNode node,
+                      BREthereumBlockId bid) {
+    BREthereumBlock block = lightNodeLookupBlock(node, bid);
+    BREthereumHash  hash = blockGetHash(block);
+    return strdup (hash);
+}
+
+//
 // Transaction
 //
 extern char *
@@ -336,7 +366,7 @@ ethereumTransactionGetGasUsed(BREthereumLightNode node,
                               BREthereumTransactionId tid) {
     BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
     BREthereumGas gasUsed;
-    return (transactionExtractBlocked(transaction, &gasUsed, NULL, NULL, NULL)
+    return (transactionExtractBlocked(transaction, &gasUsed, NULL, NULL, NULL, NULL)
             ? gasUsed.amountOfGas
             : 0);
 }
@@ -353,7 +383,7 @@ ethereumTransactionGetBlockNumber(BREthereumLightNode node,
                                   BREthereumTransactionId tid) {
     BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
     uint64_t blockNumber;
-    return (transactionExtractBlocked(transaction, NULL, &blockNumber, NULL, NULL)
+    return (transactionExtractBlocked(transaction, NULL, &blockNumber, NULL, NULL, NULL)
             ? blockNumber
             : 0);
 }
@@ -363,8 +393,18 @@ ethereumTransactionGetBlockTimestamp(BREthereumLightNode node,
                                      BREthereumTransactionId tid) {
     BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
     uint64_t blockTimestamp;
-    return (transactionExtractBlocked(transaction, NULL, NULL, &blockTimestamp, NULL)
+    return (transactionExtractBlocked(transaction, NULL, NULL, &blockTimestamp, NULL, NULL)
             ? blockTimestamp
+            : 0);
+}
+
+extern uint64_t
+ethereumTransactionGetBlockConfirmations(BREthereumLightNode node,
+                                       BREthereumTransactionId tid) {
+    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    uint64_t blockConfirmations;
+    return (transactionExtractBlocked(transaction, NULL, NULL, NULL, &blockConfirmations, NULL)
+            ? blockConfirmations
             : 0);
 }
 
