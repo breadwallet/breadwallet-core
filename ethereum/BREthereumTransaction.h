@@ -178,7 +178,6 @@ transactionAnnounceBlocked(BREthereumTransaction transaction,
                            BREthereumGas gasUsed,
                            uint64_t blockNumber,
                            uint64_t blockTimestamp,
-                           uint64_t blockConfirmations,
                            uint64_t blockTransactionIndex);
 
 extern void
@@ -194,8 +193,8 @@ transactionExtractBlocked(BREthereumTransaction transaction,
                           BREthereumGas *gas,
                           uint64_t *blockNumber,
                           uint64_t *blockTimestamp,
-                          uint64_t *blockConfirmations,
                           uint64_t *blockTransactionIndex);
+
 //
 // Transaction Result
 //

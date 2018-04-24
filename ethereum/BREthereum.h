@@ -509,8 +509,8 @@ ethereumWalletGetToken(BREthereumLightNode node,
 //
 // Block
 //
-extern BREthereumBlockId
-ethereumGetCurrentBlock (BREthereumLightNode node);
+extern uint64_t
+ethereumGetBlockHeight (BREthereumLightNode node);
 
 extern uint64_t
 ethereumBlockGetNumber (BREthereumLightNode node,
@@ -587,6 +587,7 @@ ethereumTransactionGetBlockTimestamp(BREthereumLightNode node,
 extern uint64_t
 ethereumTransactionGetBlockConfirmations(BREthereumLightNode node,
                                          BREthereumTransactionId tid);
+
 extern BREthereumBoolean
 ethereumTransactionIsConfirmed(BREthereumLightNode node,
                                BREthereumTransactionId tid);

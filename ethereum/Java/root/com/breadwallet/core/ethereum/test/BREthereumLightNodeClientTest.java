@@ -297,8 +297,8 @@ public class BREthereumLightNodeClientTest implements
         }
 
         System.out.println("==== Block ====\n");
-        BREthereumBlock currentBlock = node.getCurrentBlock();
-        asserting (2627184 == currentBlock.getNumber());  // Set getTransactions() above.
+        long currentBlockHeight = node.getBlockHeight();
+        asserting (2966234 == currentBlockHeight);  // Set getTransactions() above.
 
         System.out.println("==== Token Transaction ====\n");
 

@@ -401,10 +401,10 @@ JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNod
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
- * Method:    jniLightNodeGetCurrentBlock
+ * Method:    jniLightNodeGetBlockHeight
  * Signature: ()J
  */
-JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeGetCurrentBlock
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeGetBlockHeight
   (JNIEnv *, jobject);
 
 /*
