@@ -51,12 +51,12 @@ walletTransactionSubmitted (BREthereumWallet wallet,
                             const BREthereumHash hash); // ....
 
 private_extern void
-walletTransactionBlocked (BREthereumWallet wallet,
-                          BREthereumTransaction transaction,
-                          BREthereumGas gasUsed,
-                          uint64_t blockNumber,
-                          uint64_t blockTimestamp,
-                          uint64_t blockTransactionIndex);
+walletTransactionBlocked(BREthereumWallet wallet,
+                         BREthereumTransaction transaction,
+                         BREthereumGas gasUsed,
+                         uint64_t blockNumber,
+                         uint64_t blockTimestamp,
+                         uint64_t blockTransactionIndex);
 
 private_extern void
 walletTransactionDropped (BREthereumWallet wallet,

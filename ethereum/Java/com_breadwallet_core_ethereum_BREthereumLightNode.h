@@ -353,6 +353,14 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_j
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniTransactionGetBlockConfirmations
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionGetBlockConfirmations
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniTransactionGetToken
  * Signature: (J)J
  */
@@ -377,10 +385,34 @@ JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNod
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
- * Method:    jniTokenGetAddress
+ * Method:    jniLightNodeGetBlockHeight
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeGetBlockHeight
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniBlockGetNumber
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniBlockGetNumber
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniBlockGetTimestamp
+ * Signature: (J)J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniBlockGetTimestamp
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniBlockGetHash
  * Signature: (J)Ljava/lang/String;
  */
-JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTokenGetAddress
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniBlockGetHash
   (JNIEnv *, jobject, jlong);
 
 /*

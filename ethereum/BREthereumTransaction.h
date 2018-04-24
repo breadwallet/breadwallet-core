@@ -174,11 +174,11 @@ extern BREthereumBoolean
 transactionIsSubmitted (BREthereumTransaction transaction);
 
 extern void
-transactionAnnounceBlocked (BREthereumTransaction transaction,
-                            BREthereumGas gasUsed,
-                            uint64_t blockNumber,
-                            uint64_t blockTimestamp,
-                            uint64_t blockTransactionIndex);
+transactionAnnounceBlocked(BREthereumTransaction transaction,
+                           BREthereumGas gasUsed,
+                           uint64_t blockNumber,
+                           uint64_t blockTimestamp,
+                           uint64_t blockTransactionIndex);
 
 extern void
 transactionAnnounceDropped (BREthereumTransaction transaction,
@@ -194,6 +194,7 @@ transactionExtractBlocked(BREthereumTransaction transaction,
                           uint64_t *blockNumber,
                           uint64_t *blockTimestamp,
                           uint64_t *blockTransactionIndex);
+
 //
 // Transaction Result
 //

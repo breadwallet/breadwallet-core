@@ -77,8 +77,12 @@ lightNodeLookupWallet(BREthereumLightNode node,
                       BREthereumWalletId wid);
 
 extern BREthereumBlock
-lightNodeLookupBlock (BREthereumLightNode node,
-                      const BREthereumHash hash);
+lightNodeLookupBlock(BREthereumLightNode node,
+                     BREthereumBlockId bid);
+
+extern BREthereumBlock
+lightNodeLookupBlockByHash(BREthereumLightNode node,
+                           const BREthereumHash hash);
 
 extern BREthereumTransaction
 lightNodeLookupTransaction(BREthereumLightNode node,
@@ -134,6 +138,16 @@ extern void
 lightNodeWalletSetDefaultGasPrice(BREthereumLightNode node,
                                   BREthereumWallet wallet,
                                   BREthereumGasPrice gasPrice);
+
+//
+// Block
+//
+extern uint64_t
+lightNodeGetBlockHeight(BREthereumLightNode node);
+
+extern void
+lightNodeUpdateBlockHeight(BREthereumLightNode node,
+                           uint64_t blockHeight);
 
 #ifdef __cplusplus
 }

@@ -24,7 +24,6 @@
 //  THE SOFTWARE.
 
 #include <string.h>
-#include <assert.h>
 #include "BRArray.h"
 #include "BREthereumToken.h"
 #include "BREthereum.h"
@@ -200,9 +199,9 @@ tokenQuantityCompare(BREthereumTokenQuantity q1, BREthereumTokenQuantity q2, int
     }
 }
 
-// var tf = function (tokens) { return 1; }
 // {"code":"SNGLS","colors":["FAFAFA","FAFAFA"],"name":"Singular DTV","decimal":"0","address":"0xaeC2E87E0A235266D9C5ADc9DEb4b2E29b54D009"}
-//var tokensInJSONToC = function (tokens) {
+//
+// var tokensInJSONToC = function (tokens) {
 //    return "static struct BREthereumTokenRecord tokens[] = \n{" +
 //           tokens.map (function (token) {
 //        return `
@@ -219,15 +218,17 @@ tokenQuantityCompare(BREthereumTokenQuantity q1, BREthereumTokenQuantity q2, int
 //            1
 //        }`})
 //    .join (",\n") + "\n};"
-//}
+// }
 //
-//var result = tokensInJSONToC (tokens);
+// var result = tokensInJSONToC (tokens);
+// console.log (result)
 
 //
 //
 //
 static struct BREthereumTokenRecord tokens[] = {
-        {   // BRD first... so we can find it.
+        {
+                // BRD first... so we can find it.
                 "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6",
                 "BRD",
                 "BRD Token",
@@ -239,6 +240,25 @@ static struct BREthereumTokenRecord tokens[] = {
                 {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
                 1
         },
+#if defined (BITCOIN_DEBUG)
+        {
+                // (Optional) TST next... so we can find it too.
+#if defined (BITCOIN_TESTNET) && 1 == BITCOIN_TESTNET
+                "0x722dd3f80bac40c951b51bdd28dd19d435762180", // testnet,
+#else
+                "0x3efd578b271d034a69499e4a2d933c631d44b9ad", // mainnet
+#endif
+                "TST",
+                "Test Standard Token",
+                "TeST Standard Token (TST) for TeSTing (TST)",
+                18,
+                "FAFAFA",
+                "FAFAFA",
+                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
+                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+                1
+        },
+#endif // defined (BITCOIN_DEBUG)
 
         {
                 "0xAf30D2a7E90d7DC361c8C4585e9BB7D2F6f15bc7",
@@ -1270,51 +1290,31 @@ static struct BREthereumTokenRecord tokens[] = {
     { NULL }
 };
 
-struct BREthereumTokenRecord tokenTSTRecord = {
-#if defined (BITCOIN_TESTNET) && 1 == BITCOIN_TESTNET
-        "0x722dd3f80bac40c951b51bdd28dd19d435762180", // testnet,
-#else
-        "0x3efd578b271d034a69499e4a2d933c631d44b9ad", // mainnet
-#endif
-        "TST",
-        "TST Token",
-        "Token for TeSTing",
-        4,                               // Decimals
-        "FAFAFA",
-        "FAFAFA",
-        {TOKEN_BRD_DEFAULT_GAS_LIMIT},                        // Default gasLimit
-        {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},     // Default gasPrice
-        1
-};
-
-const BREthereumToken tokenTST = &tokenTSTRecord;
 const BREthereumToken tokenBRD = &tokens[0];
+
+#if defined (BITCOIN_DEBUG)
+const BREthereumToken tokenTST = &tokens[1];
+#endif
 
 extern BREthereumToken
 tokenLookup(const char *address) {
-    if (NULL != address && '\0' != address[0])
-        for (int i = 0; NULL != tokens[i].address; i++)
+    if (NULL != address && '\0' != address[0]) {
+        int count = tokenCount();
+        for (int i = 0; i < count; i++)
             if (0 == strcasecmp(address, tokens[i].address))
                 return &tokens[i];
-
-    // Testnet TST Token
-    if (0 == strcmp(address, tokenTST->address)) return tokenTST;
+    }
     return NULL;
 }
 
-
 extern int
 tokenCount() {
-    return sizeof(tokens) / sizeof(struct BREthereumTokenRecord);  // -1 {NULL}; +1 UNK
+    return sizeof(tokens) / sizeof(struct BREthereumTokenRecord);
 }
 
 extern BREthereumToken
 tokenGet(int index) {
-    int count = tokenCount();
-
-    if (index >= count || index < 0) return NULL;
-    else if (index == count - 1) return tokenTST;
-    else return &tokens[index];
+    return (0 <= index && index < tokenCount()
+            ? &tokens[index]
+            : NULL);
 }
-
-

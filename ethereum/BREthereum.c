@@ -252,6 +252,37 @@ ethereumWalletGetToken(BREthereumLightNode node,
 }
 
 //
+// Block
+//
+extern uint64_t
+ethereumGetBlockHeight (BREthereumLightNode node) {
+    return lightNodeGetBlockHeight(node);
+}
+
+
+extern uint64_t
+ethereumBlockGetNumber (BREthereumLightNode node,
+                        BREthereumBlockId bid) {
+    BREthereumBlock block = lightNodeLookupBlock(node, bid);
+    return blockGetNumber(block);
+}
+
+extern uint64_t
+ethereumBlockGetTimestamp (BREthereumLightNode node,
+                           BREthereumBlockId bid) {
+    BREthereumBlock block = lightNodeLookupBlock(node, bid);
+    return blockGetTimestamp(block);
+}
+
+extern char *
+ethereumBlockGetHash (BREthereumLightNode node,
+                      BREthereumBlockId bid) {
+    BREthereumBlock block = lightNodeLookupBlock(node, bid);
+    BREthereumHash  hash = blockGetHash(block);
+    return strdup (hash);
+}
+
+//
 // Transaction
 //
 extern char *
@@ -362,6 +393,17 @@ ethereumTransactionGetBlockTimestamp(BREthereumLightNode node,
     uint64_t blockTimestamp;
     return (transactionExtractBlocked(transaction, NULL, NULL, &blockTimestamp, NULL)
             ? blockTimestamp
+            : 0);
+}
+
+extern uint64_t
+ethereumTransactionGetBlockConfirmations(BREthereumLightNode node,
+                                         BREthereumTransactionId tid) {
+    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+
+    uint64_t blockNumber = 0;
+    return (transactionExtractBlocked(transaction, NULL, &blockNumber, NULL, NULL)
+            ? (lightNodeGetBlockHeight(node) - blockNumber)
             : 0);
 }
 

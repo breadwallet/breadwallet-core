@@ -90,7 +90,8 @@ typedef enum {
 } BREthereumWalletEvent;
 
 typedef enum {
-    BLOCK_EVENT_CREATED
+    BLOCK_EVENT_CREATED,
+    BLOCK_EVENT_DELETED
 } BREthereumBlockEvent;
 
 typedef enum {
@@ -100,7 +101,8 @@ typedef enum {
     TRANSACTION_EVENT_BLOCKED,  // aka confirmed
     TRANSACTION_EVENT_ERRORED,
 
-    TRANSACTION_EVENT_GAS_ESTIMATE_UPDATED
+    TRANSACTION_EVENT_GAS_ESTIMATE_UPDATED,
+    TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED
 } BREthereumTransactionEvent;
 
 typedef void *BREthereumListenerContext;
@@ -467,6 +469,23 @@ extern BREthereumToken
 ethereumWalletGetToken(BREthereumLightNode node,
                        BREthereumWalletId wid);
 
+//
+// Block
+//
+extern uint64_t
+ethereumGetBlockHeight (BREthereumLightNode node);
+
+extern uint64_t
+ethereumBlockGetNumber (BREthereumLightNode node,
+                        BREthereumBlockId bid);
+
+extern uint64_t
+ethereumBlockGetTimestamp (BREthereumLightNode node,
+                        BREthereumBlockId bid);
+
+extern char *
+ethereumBlockGetHash (BREthereumLightNode node,
+                      BREthereumBlockId bid);
 
 //
 //
@@ -527,6 +546,10 @@ ethereumTransactionGetBlockNumber(BREthereumLightNode node,
 extern uint64_t
 ethereumTransactionGetBlockTimestamp(BREthereumLightNode node,
                                      BREthereumTransactionId tid);
+
+extern uint64_t
+ethereumTransactionGetBlockConfirmations(BREthereumLightNode node,
+                                         BREthereumTransactionId tid);
 
 extern BREthereumBoolean
 ethereumTransactionIsConfirmed(BREthereumLightNode node,

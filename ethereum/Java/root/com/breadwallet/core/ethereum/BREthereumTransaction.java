@@ -120,4 +120,8 @@ public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefa
     public long getBlockTimestamp () {
         return node.get().jniTransactionGetBlockTimestamp(identifier);
     }
+
+    public long getBlockConfirmations () {
+        return node.get().jniTransactionGetBlockConfirmations(identifier);
+    }
 }
