@@ -1165,14 +1165,13 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionIsSubmitted
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
- * Method:    jniLightNodeGetCurrentBlock
+ * Method:    jniLightNodeGetBlockHeight
  * Signature: ()J
  */
-JNIEXPORT jlong JNICALL
-Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeGetCurrentBlock
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeGetBlockHeight
         (JNIEnv *env, jobject thisObject) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
-    return ethereumGetCurrentBlock(node);
+    return (jlong) ethereumGetBlockHeight(node);
 }
 
 /*

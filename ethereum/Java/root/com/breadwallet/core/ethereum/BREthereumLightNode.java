@@ -350,10 +350,10 @@ public class BREthereumLightNode extends BRCoreJniReference {
         return block;
     }
 
-    public BREthereumBlock getCurrentBlock () {
-        long bid = jniLightNodeGetCurrentBlock ();
-        return blockLookupOrCreate(bid);
+    public long getBlockHeight () {
+        return jniLightNodeGetBlockHeight();
     }
+
     //
     // Constructor
     //
@@ -563,7 +563,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     // JNI: Block
     //
-    protected native long jniLightNodeGetCurrentBlock ();
+    protected native long jniLightNodeGetBlockHeight ();
     protected native long jniBlockGetNumber (long bid);
     protected native long jniBlockGetTimestamp (long bid);
     protected native String jniBlockGetHash (long bid);

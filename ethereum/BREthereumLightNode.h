@@ -132,8 +132,12 @@ lightNodeWalletSetDefaultGasPrice(BREthereumLightNode node,
 //
 // Block
 //
-extern BREthereumBlockId
-lightNodeGetCurrentBlock (BREthereumLightNode node);
+extern uint64_t
+lightNodeGetBlockHeight(BREthereumLightNode node);
+
+extern void
+lightNodeUpdateBlockHeight(BREthereumLightNode node,
+                           uint64_t blockHeight);
 
 #ifdef __cplusplus
 }

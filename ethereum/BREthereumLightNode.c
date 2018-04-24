@@ -147,10 +147,15 @@ struct BREthereumLightNodeRecord {
     BREthereumTransaction *transactions; // BRSet
     
     /**
-     * The blocks seen/handled by this node.
+     * The blocks handled by this node.  [This is currently just those handled for transactions
+     * (both Ethererum transactions and logs.  It is unlikely that the current block is here.]
      */
     BREthereumBlock *blocks; // BRSet
-    
+
+    /**
+     * The BlockHeight is the largest block number seen (or computed).
+     */
+    uint64_t blockHeight;
     //
     unsigned int requestId;
 
@@ -648,21 +653,17 @@ lightNodeInsertBlock (BREthereumLightNode node,
     lightNodeListenerAnnounceBlockEvent(node, bid, BLOCK_EVENT_CREATED);
 }
 
-extern BREthereumBlockId
-lightNodeGetCurrentBlock (BREthereumLightNode node) {
-    BREthereumBlockId bid = -1;
-    uint64_t largestBlockNumber = 0;
 
-    pthread_mutex_lock(&node->lock);
-    for (int i = 0; i < array_count(node->blocks); i++) {
-        uint64_t newestBlockNumber = blockGetNumber(node->blocks[i]);
-        if (newestBlockNumber > largestBlockNumber) {
-            bid = i;
-            largestBlockNumber = newestBlockNumber;
-        }
-    }
-    pthread_mutex_unlock(&node->lock);
-    return bid;
+extern uint64_t
+lightNodeGetBlockHeight(BREthereumLightNode node) {
+    return node->blockHeight;
+}
+
+extern void
+lightNodeUpdateBlockHeight(BREthereumLightNode node,
+                           uint64_t blockHeight) {
+    if (blockHeight > node->blockHeight)
+        node->blockHeight = blockHeight;
 }
 
 //
@@ -1074,22 +1075,21 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
     BREthereumTransactionStatus status = transactionGetStatus(transaction);
 
     // See if the block confirmations have changed.
-    uint64_t newBlockConfirmations = strtoull (strBlockConfirmations, NULL, 0);
-    uint64_t oldBlockConfirmations = transactionGetBlockConfirmations (transaction);
+    uint64_t blockConfirmations = strtoull (strBlockConfirmations, NULL, 0);
+    // There is an implied update to the node's block height
+    lightNodeUpdateBlockHeight(node, blockGetNumber(block) + blockConfirmations);
 
     // Update the status as blocked
     walletTransactionBlocked(wallet, transaction, gasUsed,
                              blockGetNumber(block),
                              blockGetTimestamp(block),
-                             newBlockConfirmations,
                              blockTransactionIndex);
 
-    if (TRANSACTION_BLOCKED != status || newBlockConfirmations > oldBlockConfirmations)
-        // Announce a transaction event.  If already 'BLOCKED', then update CONFIRMATIONS.
-        lightNodeListenerAnnounceTransactionEvent(node, wid, tid,
-                                                  (TRANSACTION_BLOCKED == status
-                                                   ? TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED
-                                                   : TRANSACTION_EVENT_BLOCKED));
+    // Announce a transaction event.  If already 'BLOCKED', then update CONFIRMATIONS.
+    lightNodeListenerAnnounceTransactionEvent(node, wid, tid,
+                                              (TRANSACTION_BLOCKED == status
+                                               ? TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED
+                                               : TRANSACTION_EVENT_BLOCKED));
 
     // Hmmm...
     pthread_mutex_unlock(&node->lock);
@@ -1193,34 +1193,27 @@ lightNodeAnnounceLog (BREthereumLightNode node,
         walletTransactionSubmitted(wallet, transaction, hash);
 
     }
+    BREthereumTransactionId tid = lightNodeLookupTransactionId(node, transaction);
 
     // TODO: Process 'state' properly - errors?
 
     // Get the current status.
     BREthereumTransactionStatus status = transactionGetStatus(transaction);
 
-    // TODO: actual `confirmations` argument
-    uint64_t newBlockConfirmations =
-            blockGetNumber(lightNodeLookupBlock(node, lightNodeGetCurrentBlock(node))) - blockGetNumber(block);
-    if (newBlockConfirmations < 0) newBlockConfirmations = 0;
-
-    uint64_t oldBlockConfirmations = transactionGetBlockConfirmations (transaction);
+    // Try hard to figure out the confirmations.
+    lightNodeUpdateBlockHeight(node, blockGetNumber(block));
 
     // Update the status as blocked
     walletTransactionBlocked(wallet, transaction, gasUsed,
                              blockGetNumber(block),
                              blockGetTimestamp(block),
-                             newBlockConfirmations,
                              blockTransactionIndex);
 
-    BREthereumTransactionId tid = lightNodeLookupTransactionId(node, transaction);
-
-    if (TRANSACTION_BLOCKED != status || newBlockConfirmations > oldBlockConfirmations)
-        // Announce a transaction event.  If already 'BLOCKED', then update CONFIRMATIONS.
-        lightNodeListenerAnnounceTransactionEvent(node, wid, tid,
-                                                  (TRANSACTION_BLOCKED == status
-                                                   ? TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED
-                                                   : TRANSACTION_EVENT_BLOCKED));
+    // Announce a transaction event.  If already 'BLOCKED', then update CONFIRMATIONS.
+    lightNodeListenerAnnounceTransactionEvent(node, wid, tid,
+                                              (TRANSACTION_BLOCKED == status
+                                               ? TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED
+                                               : TRANSACTION_EVENT_BLOCKED));
 
     // Hmmmm...
     pthread_mutex_unlock(&node->lock);

@@ -56,7 +56,6 @@ walletTransactionBlocked(BREthereumWallet wallet,
                          BREthereumGas gasUsed,
                          uint64_t blockNumber,
                          uint64_t blockTimestamp,
-                         uint64_t blockConfirmations,
                          uint64_t blockTransactionIndex);
 
 private_extern void
