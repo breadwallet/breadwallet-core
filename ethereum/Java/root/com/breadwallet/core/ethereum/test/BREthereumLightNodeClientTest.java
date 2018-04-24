@@ -26,6 +26,7 @@ package com.breadwallet.core.ethereum.test;
 
 
 import com.breadwallet.core.ethereum.BREthereumAmount;
+import com.breadwallet.core.ethereum.BREthereumBlock;
 import com.breadwallet.core.ethereum.BREthereumLightNode;
 import com.breadwallet.core.ethereum.BREthereumNetwork;
 import com.breadwallet.core.ethereum.BREthereumToken;
@@ -223,13 +224,18 @@ public class BREthereumLightNodeClientTest implements
     }
 
     @Override
+    public void handleBlockEvent(BREthereumBlock block, BlockEvent event) {
+        System.err.println ("BlockEvent: " + event);
+    }
+
+    @Override
     public void handleTransactionEvent(BREthereumWallet wallet,
                                        BREthereumTransaction transaction,
                                        TransactionEvent event) {
-
+        System.err.println ("TransactionEvent: " + event);
     }
 
-    protected void runTest () {
+    protected void runTest() {
         // Create the node; reference through this.node
         new BREthereumLightNode.JSON_RPC(this, BREthereumNetwork.testnet, USABLE_PAPER_KEY, words);
         node.addListener(this);
@@ -242,43 +248,43 @@ public class BREthereumLightNodeClientTest implements
         BREthereumWallet walletEther = node.getWallet();
         walletEther.setDefaultUnit(BREthereumAmount.Unit.ETHER_WEI);
 
-        asserting ("0".equals(walletEther.getBalance()));
+        asserting("0".equals(walletEther.getBalance()));
 
         BREthereumWallet walletToken = node.getWallet(BREthereumToken.tokenBRD);
-        asserting (null != walletToken.getToken()
+        asserting(null != walletToken.getToken()
                 && walletToken.getToken().getSymbol().equals("BRD"));
         walletToken.setDefaultUnit(BREthereumAmount.Unit.TOKEN_DECIMAL);
 
 
-        System.out.println ("Connect");
+        System.out.println("Connect");
         node.connect();
 
         BREthereumTransaction trans1 = walletEther.createTransaction(
                 "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
                 "11113000000000",
                 BREthereumAmount.Unit.ETHER_WEI);
-	System.out.println ("X1");
+        System.out.println("X1");
         walletEther.sign(trans1, USABLE_PAPER_KEY);
-        System.out.println ("X2");
+        System.out.println("X2");
         walletEther.submit(trans1);
-        System.out.println ("X3");
+        System.out.println("X3");
 
-        asserting ("11113000000000".equals(trans1.getAmount()));
-        asserting ("11113.000000000".equals(trans1.getAmount(ETHER_GWEI)));
+        asserting("11113000000000".equals(trans1.getAmount()));
+        asserting("11113.000000000".equals(trans1.getAmount(ETHER_GWEI)));
 
-        asserting (21000 == trans1.getGasLimit());
-        asserting ("0.500000000".equals(trans1.getGasPrice(ETHER_GWEI)));
-        asserting ("10500.000000000".equals(trans1.getFee(ETHER_GWEI)));
-        System.out.println ("X4");
+        asserting(21000 == trans1.getGasLimit());
+        asserting("0.500000000".equals(trans1.getGasPrice(ETHER_GWEI)));
+        asserting("10500.000000000".equals(trans1.getFee(ETHER_GWEI)));
+        System.out.println("X4");
 
         // Fee for 1 WEI is 840000 GWEI
-        asserting ("10500000000000".equals(walletEther.transactionEstimatedFee("1")));
-        asserting ("10500.000000000".equals(walletEther.transactionEstimatedFee("1", ETHER_ETHER, ETHER_GWEI)));
-        System.out.println ("X4");
+        asserting("10500000000000".equals(walletEther.transactionEstimatedFee("1")));
+        asserting("10500.000000000".equals(walletEther.transactionEstimatedFee("1", ETHER_ETHER, ETHER_GWEI)));
+        System.out.println("X4");
 
-        System.out.println ("==== Ether ====\n");
+        System.out.println("==== Ether ====\n");
         for (BREthereumTransaction transaction : walletEther.getTransactions()) {
-            System.out.println ("Transaction:" +
+            System.out.println("Transaction:" +
                     "\n        from: " + transaction.getSourceAddress() +
                     "\n          to: " + transaction.getTargetAddress() +
                     "\n    gasPrice: " + transaction.getGasPrice(BREthereumAmount.Unit.ETHER_WEI) +
@@ -290,6 +296,12 @@ public class BREthereumLightNodeClientTest implements
                     "\n\n");
         }
 
+        System.out.println("==== Block ====\n");
+        BREthereumBlock currentBlock = node.getCurrentBlock();
+        asserting (2627184 == currentBlock.getNumber());  // Set getTransactions() above.
+
+        System.out.println("==== Token Transaction ====\n");
+
         BREthereumTransaction tokenTransaction1 =
                 walletToken.createTransaction(
                         "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
@@ -298,9 +310,9 @@ public class BREthereumLightNodeClientTest implements
         walletToken.sign(tokenTransaction1, USABLE_PAPER_KEY);
         walletToken.submit(tokenTransaction1);
 
-        System.out.println ("==== Token ====\n");
+        System.out.println("==== Token ====\n");
         for (BREthereumTransaction transaction : walletToken.getTransactions()) {
-            System.out.println ("Transaction:" +
+            System.out.println("Transaction:" +
                     "\n    from: " + transaction.getSourceAddress() +
                     "\n      to: " + transaction.getTargetAddress() +
                     "\n   nonce: " + transaction.getNonce() +
@@ -316,15 +328,15 @@ public class BREthereumLightNodeClientTest implements
 
         String tokenBalanceInteger = "4671";
         String tokenBalanceDecimal18 = "0.000000000000004671";
-        asserting (tokenBalanceInteger.equals(walletToken.getBalance(BREthereumAmount.Unit.TOKEN_INTEGER)));
-        asserting (tokenBalanceDecimal18.equals(walletToken.getBalance(BREthereumAmount.Unit.TOKEN_DECIMAL)));
+        asserting(tokenBalanceInteger.equals(walletToken.getBalance(BREthereumAmount.Unit.TOKEN_INTEGER)));
+        asserting(tokenBalanceDecimal18.equals(walletToken.getBalance(BREthereumAmount.Unit.TOKEN_DECIMAL)));
 
         walletEther.estimateGasPrice();
         walletEther.estimateGas(trans1);
         //
         // Private Key
         //
-        System.out.println ("PrivateKey");
+        System.out.println("PrivateKey");
         byte[] privateKey = node.getAccount().getPrimaryAddressPrivateKey(USABLE_PAPER_KEY);
         BREthereumTransaction tokenTransaction2 =
                 walletToken.createTransaction(
@@ -336,26 +348,29 @@ public class BREthereumLightNodeClientTest implements
         // Tokens
         //
         for (BREthereumToken token : BREthereumToken.tokens)
-            System.out.println ("Token: " + token.getSymbol() + ", " + token.getName() +
+            System.out.println("Token: " + token.getSymbol() + ", " + token.getName() +
                     ", " + token.getAddress() +
                     ", " + token.getDecimals());
 
         //
         // Disconnect
         //
-        System.out.println ("Disconnect (wait...)");
+        System.out.println("Disconnect (wait...)");
         node.disconnectAndWait();
-        try { sleep(1000); } catch (Exception ex) {}
+        try {
+            sleep(1000);
+        } catch (Exception ex) {
+        }
 
         //
         // Public Key
         //
         byte[] publicKey = node.getAddressPublicKey();
-        asserting (65 == publicKey.length);
+        asserting(65 == publicKey.length);
 
         BREthereumLightNode node1 = this.node;
         BREthereumLightNode node2 = new BREthereumLightNode.JSON_RPC(this, BREthereumNetwork.testnet, publicKey);
-        asserting (node1.getAddress().equals(node2.getAddress()));
+        asserting(node1.getAddress().equals(node2.getAddress()));
 
         this.node = null;
     }

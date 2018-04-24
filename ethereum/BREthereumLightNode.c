@@ -52,6 +52,11 @@ lightNodeInsertTransaction (BREthereumLightNode node,
 static BREthereumTransactionId
 lightNodeLookupTransactionId(BREthereumLightNode node,
                              BREthereumTransaction transaction);
+
+static BREthereumBlockId
+lightNodeLookupBlockId (BREthereumLightNode node,
+                        BREthereumBlock block);
+
 //
 // Light Node Listener
 //
@@ -589,8 +594,8 @@ lightNodeWalletSetDefaultGasPrice(BREthereumLightNode node,
 // Blocks
 //
 extern BREthereumBlock
-lightNodeLookupBlock (BREthereumLightNode node,
-                      const BREthereumHash hash) {
+lightNodeLookupBlockByHash(BREthereumLightNode node,
+                           const BREthereumHash hash) {
     BREthereumBlock block = NULL;
 
     pthread_mutex_lock(&node->lock);
@@ -603,6 +608,35 @@ lightNodeLookupBlock (BREthereumLightNode node,
     return block;
 }
 
+extern BREthereumBlock
+lightNodeLookupBlock(BREthereumLightNode node,
+                     BREthereumBlockId bid) {
+    BREthereumBlock block = NULL;
+
+    pthread_mutex_lock(&node->lock);
+    block = (0 <= bid && bid < array_count(node->blocks)
+                   ? node->blocks[bid]
+                   : NULL);
+    pthread_mutex_unlock(&node->lock);
+    return block;
+}
+
+
+static BREthereumBlockId
+lightNodeLookupBlockId (BREthereumLightNode node,
+                        BREthereumBlock block) {
+    BREthereumBlockId bid = -1;
+
+    pthread_mutex_lock(&node->lock);
+    for (int i = 0; i < array_count(node->blocks); i++)
+        if (block == node->blocks[i]) {
+            bid = i;
+            break;
+        }
+    pthread_mutex_unlock(&node->lock);
+    return bid;
+}
+
 static void
 lightNodeInsertBlock (BREthereumLightNode node,
                       BREthereumBlock block) {
@@ -612,6 +646,23 @@ lightNodeInsertBlock (BREthereumLightNode node,
     bid = (BREthereumBlockId) (array_count(node->blocks) - 1);
     pthread_mutex_unlock(&node->lock);
     lightNodeListenerAnnounceBlockEvent(node, bid, BLOCK_EVENT_CREATED);
+}
+
+extern BREthereumBlockId
+lightNodeGetCurrentBlock (BREthereumLightNode node) {
+    BREthereumBlockId bid = -1;
+    uint64_t largestBlockNumber = 0;
+
+    pthread_mutex_lock(&node->lock);
+    for (int i = 0; i < array_count(node->blocks); i++) {
+        uint64_t newestBlockNumber = blockGetNumber(node->blocks[i]);
+        if (newestBlockNumber > largestBlockNumber) {
+            bid = i;
+            largestBlockNumber = newestBlockNumber;
+        }
+    }
+    pthread_mutex_unlock(&node->lock);
+    return bid;
 }
 
 //
@@ -843,22 +894,24 @@ static BREthereumBlock
 lightNodeAnnounceBlock(BREthereumLightNode node,
                        const char *strBlockNumber,
                        const char *strBlockHash,
-                       const char *strBlockConfirmations,
                        const char *strBlockTimestamp) {
     // Build a block-ish
     BREthereumHash blockHash = hashCreate (strBlockHash);
-    BREthereumBlock block = lightNodeLookupBlock(node, blockHash);
+    BREthereumBlock block = lightNodeLookupBlockByHash(node, blockHash);
     if (NULL == block) {
         uint64_t blockNumber = strtoull(strBlockNumber, NULL, 0);
         uint64_t blockTimestamp = strtoull(strBlockTimestamp, NULL, 0);
-        uint64_t blockConfirmations = strtoull (strBlockConfirmations, NULL, 0);
 
-        block = createBlock(blockHash, blockNumber, blockConfirmations, blockTimestamp);
+        block = createBlock(blockHash, blockNumber, blockTimestamp);
         lightNodeInsertBlock(node, block);
+
+        BREthereumTransactionId bid = lightNodeLookupBlockId(node, block);
+        lightNodeListenerAnnounceBlockEvent(node, bid, BLOCK_EVENT_CREATED);
     }
     else {
-        // confirm
+        // TODO: Assert on {number, timestamp}?
     }
+
     free (blockHash);
     return block;
 }
@@ -921,7 +974,7 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
                              const char *strGasUsed,
                              const char *blockNumber,
                              const char *blockHash,
-                             const char *blockConfirmations,
+                             const char *strBlockConfirmations,
                              const char *strBlockTransactionIndex,
                              const char *blockTimestamp,
                              const char *isError) {
@@ -944,7 +997,7 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
         addressSetNonce(primaryAddress, nonce + 1);  // next
 
     // Find or create a block.  No point in doing this until we have a transaction of interest
-    BREthereumBlock block = lightNodeAnnounceBlock(node, blockNumber, blockHash, blockConfirmations, blockTimestamp);
+    BREthereumBlock block = lightNodeAnnounceBlock(node, blockNumber, blockHash, blockTimestamp);
     assert (NULL != block);
     
     // The transaction's index within the block.
@@ -1019,17 +1072,21 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
     // Get the current status.
     BREthereumTransactionStatus status = transactionGetStatus(transaction);
 
+    uint64_t blockConfirmations = strtoull (strBlockConfirmations, NULL, 0);
+
     // Update the status as blocked
-    walletTransactionBlocked(wallet, transaction,
-                             gasUsed,
+    walletTransactionBlocked(wallet, transaction, gasUsed,
                              blockGetNumber(block),
                              blockGetTimestamp(block),
+                             blockConfirmations,
                              blockTransactionIndex);
 
-    if (TRANSACTION_BLOCKED != status) {
-        BREthereumTransactionId tid = lightNodeLookupTransactionId(node, transaction);
-        lightNodeListenerAnnounceTransactionEvent(node, wid, tid, TRANSACTION_EVENT_BLOCKED);
-    }
+    BREthereumTransactionId tid = lightNodeLookupTransactionId(node, transaction);
+    // Announce a transaction event.  If already 'BLOCKED', then update CONFIRMATIONS.
+    lightNodeListenerAnnounceTransactionEvent(node, wid, tid,
+                                              (TRANSACTION_BLOCKED == status
+                                               ? TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED
+                                               : TRANSACTION_EVENT_BLOCKED));
 
     // Hmmm...
     pthread_mutex_unlock(&node->lock);
@@ -1084,6 +1141,13 @@ lightNodeAnnounceLog (BREthereumLightNode node,
     BREthereumEvent event = contractLookupEventForTopic (contractERC20, arrayTopics[0]);
     if (NULL == event || event != eventERC20Transfer) { pthread_mutex_unlock(&node->lock); return; }; // uninteresting event
 
+    // Find or create a block.  No point in doing this until we have a transaction of interest
+    const char *strBlockHash = strBlockNumber;  // TODO: actual hash argument
+    BREthereumBlock block = lightNodeAnnounceBlock(node, strBlockNumber, strBlockHash, strBlockTimestamp);
+    assert (NULL != block);
+
+    unsigned int blockTransactionIndex = (unsigned int) strtoul (strBlockTransactionIndex, NULL, 0);
+
     // Wallet for token
     BREthereumWallet wallet = lightNodeAnnounceWallet(node, token);
     BREthereumWalletId wid = lightNodeLookupWalletId(node, wallet);
@@ -1132,21 +1196,23 @@ lightNodeAnnounceLog (BREthereumLightNode node,
     // Get the current status.
     BREthereumTransactionStatus status = transactionGetStatus(transaction);
 
-    uint64_t blockNumber = strtoull(strBlockNumber, NULL, 0);
-    uint64_t blockTimestamp = strtoull(strBlockTimestamp, NULL, 0);
-    unsigned int blockTransactionIndex = (unsigned int) strtoul (strBlockTransactionIndex, NULL, 0);
+    // TODO: actual `confirmations` argument
+    uint64_t blockConfirmations =
+            blockGetNumber(lightNodeLookupBlock(node, lightNodeGetCurrentBlock(node))) - blockGetNumber(block);
+    if (blockConfirmations < 0) blockConfirmations = 0;
 
     // Update the status as blocked
-    walletTransactionBlocked(wallet, transaction,
-                             gasUsed,
-                             blockNumber,
-                             blockTimestamp,
+    walletTransactionBlocked(wallet, transaction, gasUsed,
+                             blockGetNumber(block),
+                             blockGetTimestamp(block),
+                             blockConfirmations,
                              blockTransactionIndex);
 
-    if (TRANSACTION_BLOCKED != status) {
-        BREthereumTransactionId tid = lightNodeLookupTransactionId(node, transaction);
-        lightNodeListenerAnnounceTransactionEvent(node, wid, tid, TRANSACTION_EVENT_BLOCKED);
-    }
+    BREthereumTransactionId tid = lightNodeLookupTransactionId(node, transaction);
+    lightNodeListenerAnnounceTransactionEvent(node, wid, tid,
+                                              (TRANSACTION_BLOCKED == status
+                                               ? TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED
+                                               : TRANSACTION_EVENT_BLOCKED));
 
     // Hmmmm...
     pthread_mutex_unlock(&node->lock);
