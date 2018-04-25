@@ -252,8 +252,8 @@ static struct BREthereumTokenRecord tokens[] = {
                 "Test Standard Token",
                 "TeST Standard Token (TST) for TeSTing (TST)",
                 18,
-                "#fafafa",
-                "#fafafa",
+                "#bfbfbf",
+                "#bfbfbf",
                 {TOKEN_BRD_DEFAULT_GAS_LIMIT},
                 {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
                 1
