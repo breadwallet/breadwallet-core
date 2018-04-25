@@ -30,14 +30,13 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include "secp256k1.h"
-#include "secp256k1_ecdh.h"
 #include "BRInt.h"
 #include "BREthereumBase.h"
 #include "BRKey.h"
 #include "BRCrypto.h"
 #include "BREthereumHandshake.h"
 #include "BREthereumNode.h"
+#include "BREthereumLESBase.h"
 
 #ifndef MSG_NOSIGNAL   // linux based systems have a MSG_NOSIGNAL send flag, useful for supressing SIGPIPE signals
 #define MSG_NOSIGNAL 0 // set to 0 if undefined (BSD has the SO_NOSIGPIPE sockopt, and windows has no signals at all)
@@ -87,37 +86,6 @@ typedef struct {
 
 
 /*** Private functions **/
-BREthereumBoolean _ecdhAgree(BRKey* key, UInt512* pubKey, UInt256* outSecret)
-{
-    secp256k1_context* ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
-    secp256k1_pubkey rawPubKey;
-    unsigned char compressedPoint[33];
-    unsigned char serialPubKey[65];
-    serialPubKey[0] = 0x04;
-    memcpy(&serialPubKey[1], pubKey->u8, sizeof(pubKey->u8));
-    if (!secp256k1_ec_pubkey_parse(ctx, &rawPubKey, serialPubKey, sizeof(serialPubKey)))
-        return ETHEREUM_BOOLEAN_FALSE;  // Invalid public key.
-
-    if (!secp256k1_ecdh(ctx, compressedPoint, &rawPubKey, (unsigned char*)key->secret.u8))
-        return ETHEREUM_BOOLEAN_FALSE;  // Invalid secret key.
-    
-    memcpy(outSecret->u8, &compressedPoint[1], sizeof(outSecret->u8));
-    secp256k1_context_destroy(ctx);
-    return ETHEREUM_BOOLEAN_TRUE;
-}
-void _encryptECIES(UInt512* pubKey, uint8_t * plain, uint8_t * cipher, ssize_t len) {
-
-    //TODO: Implement encrypt ECIES
-    memcpy(cipher, plain, len);
-}
-BREthereumBoolean _decryptECIES(UInt256* priKey, uint8_t * plain, uint8_t * cipher)
-{
-    //TODO: Implement decrypt ECIES
-    return ETHEREUM_BOOLEAN_FALSE;
-}
-BREthereumBoolean decryptECIES() {
-    return ETHEREUM_BOOLEAN_TRUE;
-}
 void _xorBRInt256(UInt256 * opr1, UInt256 * opr2, UInt256 * result)
 {
     for (unsigned int i = 0; i < sizeof(opr1->u8); ++i) {
@@ -193,7 +161,8 @@ int _writeAuth(BREthereumHandshakeContext * ctx){
     
     //ephemeral-shared-secret = ecdh.agree(ephemeral-privkey, remote-ephemeral-pubk)
     UInt256 ephemeralSharedSecret;
-    _ecdhAgree(ctx->key, &ctx->peer->remoteId, &ephemeralSharedSecret);
+    
+    etheruemECDHAgree(ctx->key, &ctx->peer->remoteId, &ephemeralSharedSecret);
     
     //ecdh-shared-secret^nonce
     UInt256 xorStaticNonce;
@@ -212,7 +181,7 @@ int _writeAuth(BREthereumHandshakeContext * ctx){
     authBuf[authBufLen - 1] = 0x0;
 
     //E(remote-pubk, S(ecdhe-random, ecdh-shared-secret^nonce) || H(ecdhe-random-pubk) || pubk || nonce || 0x0)
-    _encryptECIES(&ctx->peer->remoteId, authBuf, authBufCipher, authBufLen);
+    ethereumEncryptECIES(&ctx->peer->remoteId, authBuf, authBufCipher, authBufLen);
     
     return _sendBuffer(ctx, authBufCipher, authBufLen, "writeAuth");
 
@@ -238,7 +207,7 @@ void _writeAck(BREthereumHandshakeContext * ctx) {
     ackBuf[ackBufLen- 1] = 0x0;
 
     //E( epubk || nonce || 0x0)
-    _encryptECIES(&ctx->peer->remoteId, ackBuf, ackBufCipher, ackBufLen);
+    ethereumEncryptECIES(&ctx->peer->remoteId, ackBuf, ackBufCipher, ackBufLen);
     
     _sendBuffer(ctx, ackBufCipher, ackBufLen, "writeAuck");
 }
@@ -253,7 +222,7 @@ int _readAuth(BREthereumHandshakeContext * ctx) {
     if (ec) {
         return ec;
     }
-    else if (_decryptECIES(&ctx->key->secret, ctx->ackBufCipher, ctx->authBuf))
+    else if (ethereumDecryptECIES(&ctx->key->secret, ctx->ackBufCipher, ctx->authBuf, authBufLen))
     {
         // TODO: Implement the reading of the Auth. For now we assume we connect to our own Ethereum node first
     }
@@ -270,7 +239,7 @@ int _readAck(BREthereumHandshakeContext * ctx) {
     if (ec) {
         return ec;
     }
-    else if (_decryptECIES(&ctx->key->secret, ctx->ackBufCipher, ctx->authBuf))
+    else if (ethereumDecryptECIES(&ctx->key->secret, ctx->ackBufCipher, ctx->authBuf, authBufLen))
     {
         // TODO: Implement the reading of the Ack. For now we assume we connect to our own Ethereum node first
     }

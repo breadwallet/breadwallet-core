@@ -83,19 +83,6 @@ static void *_nodeThreadRunFunc(void *arg);
 
 
 /**
- * Determines a uniform number between the given ranges
- * @cite: https://stackoverflow.com/questions/11641629/generating-a-uniform-distribution-of-integers-in-c
- * TODO: We need to use a crypto sercure rand function instead of rand()
-int uniform_distribution_secure(int rangeLow, int rangeHigh) {
-    int range = rangeHigh - rangeLow + 1;
-    int secureMax = RAND_MAX - RAND_MAX % range;
-    int x;
-    do x = rand(); while (x >= secureMax);
-    return rangeLow + x / (secureMax / range);
-}
-*/
-
-/**
  * Note: This function is a direct copy of Aaron's _BRPeerOpenSocket function with a few modifications to
  * work for the Ethereum Core.
  * TODO: May want to make this more modular to work for both etheruem and bitcoin
