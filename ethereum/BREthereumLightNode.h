@@ -37,27 +37,37 @@
 extern "C" {
 #endif
 
+//
+// Two types of LightNode - JSON_RPC or LES (Light Ethereum Subprotocol).  For a LES LightNode
+// some of the Client callbacks will only be used as a fallback.
+//
+typedef enum {
+    NODE_TYPE_NONE,
+    NODE_TYPE_JSON_RPC,
+    NODE_TYPE_LES
+} BREthereumType;
+
+#define FIXED_LIGHT_NODE_TYPE   (NODE_TYPE_LES)
+
 extern BREthereumLightNode
-createLightNode (BREthereumConfiguration configuration,
+createLightNode (BREthereumNetwork network,
                  BREthereumAccount account);
 
 extern BREthereumAccount
 lightNodeGetAccount (BREthereumLightNode node);
 
+extern BREthereumNetwork
+lightNodeGetNetwork (BREthereumLightNode node);
+
 //
 // Connect & Disconnect
 //
 extern BREthereumBoolean
-lightNodeConnect(BREthereumLightNode node);
-
-extern void
-lightNodeConnectAndWait (BREthereumLightNode node);
+lightNodeConnect(BREthereumLightNode node,
+                 BREthereumClient client);
 
 extern BREthereumBoolean
 lightNodeDisconnect (BREthereumLightNode node);
-
-extern void
-lightNodeDisconnectAndWait(BREthereumLightNode node);
 
 //
 // {Wallet, Block, Transaction} Lookup

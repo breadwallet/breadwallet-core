@@ -25,7 +25,8 @@ module BRCore [system] [extern_c] {
     export *
 
     explicit module Ethereum {
-      umbrella header "ethereum/BREthereum.h"
+      header "ethereum/BREthereum.h"
+      header "ethereum/BREthereumToken.h"
       export *
     }
 }

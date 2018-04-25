@@ -35,35 +35,26 @@
 //
 //
 extern BREthereumLightNode
-ethereumCreate(BREthereumConfiguration configuration,
+ethereumCreate(BREthereumNetwork network,
                const char *paperKey) {
-    return createLightNode (configuration, createAccount(paperKey));
+    return createLightNode (network, createAccount(paperKey));
 }
 
 extern BREthereumLightNode
-ethereumCreateWithPublicKey(BREthereumConfiguration configuration,
+ethereumCreateWithPublicKey(BREthereumNetwork network,
                             const BRKey publicKey) { // 65 byte, 0x04-prefixed, uncompressed public key
-    return createLightNode (configuration, createAccountWithPublicKey (publicKey));
+    return createLightNode (network, createAccountWithPublicKey (publicKey));
 }
 
 extern BREthereumBoolean
-ethereumConnect(BREthereumLightNode node) {
-    return lightNodeConnect(node);
-}
-
-extern void
-ethereumConnectAndWait (BREthereumLightNode node) {
-    lightNodeConnectAndWait(node);
+ethereumConnect(BREthereumLightNode node,
+                BREthereumClient client) {
+    return lightNodeConnect(node, client);
 }
 
 extern BREthereumBoolean
 ethereumDisconnect (BREthereumLightNode node) {
     return lightNodeDisconnect(node);
-}
-
-extern void
-ethereumDisconnectAndWait(BREthereumLightNode node) {
-    lightNodeDisconnectAndWait(node);
 }
 
 extern BREthereumAccountId
@@ -87,6 +78,12 @@ ethereumGetAccountPrimaryAddressPrivateKey(BREthereumLightNode node,
     return accountGetPrimaryAddressPrivateKey (lightNodeGetAccount(node), paperKey);
 
 }
+
+extern BREthereumNetwork
+ethereumGetNetwork (BREthereumLightNode node) {
+    return lightNodeGetNetwork(node);
+}
+
 
 extern BREthereumWalletId
 ethereumGetWallet(BREthereumLightNode node) {
