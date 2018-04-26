@@ -75,30 +75,65 @@ public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefa
     //
     // Fee
     //
+
+    /**
+     * The fee in GWEI
+     *
+     * @return in GWEI
+     */
     public String getFee () {
-        return getFee(defaultUnit);
+        return getFee(BREthereumAmount.Unit.ETHER_GWEI);
     }
 
+    /**
+     * The fee in `unit`
+     *
+     * @param unit must be an ether unit, otherwise fatal()
+     * @return in `unit`
+     */
     public String getFee (BREthereumAmount.Unit unit) {
+        assert (!unit.isTokenUnit());
         return node.get().jniTransactionGetFee(identifier, unit.jniValue);
     }
 
     //
     // Gas Price, Limit, Used
     //
+
+    /**
+     * The gasPrise in GWEI
+     *
+     * @return in GWEI
+     */
     public String getGasPrice () {
-        return getGasPrice(defaultUnit);
+        return getGasPrice(BREthereumAmount.Unit.ETHER_GWEI);
     }
 
+    /**
+     * The gasPrice in `unit`
+     *
+     * @param unit unit must be an ether unit, otherwise fatal()
+     * @return in `unit`
+     */
     public String getGasPrice (BREthereumAmount.Unit unit) {
         assert (!unit.isTokenUnit());
         return node.get().jniTransactionGetGasPrice(identifier, unit.jniValue);
     }
 
+    /**
+     * The gasLimit in `gas`
+     *
+     * @return in `gas`
+     */
     public long getGasLimit () {
         return node.get().jniTransactionGetGasLimit(identifier);
     }
 
+    /**
+     * The gasUsed in `gas`
+     *
+     * @return in `gas`
+     */
     public long getGasUsed () {
         return node.get().jniTransactionGetGasUsed(identifier);
     }
