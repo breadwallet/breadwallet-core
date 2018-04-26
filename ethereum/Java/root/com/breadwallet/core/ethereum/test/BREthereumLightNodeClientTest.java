@@ -318,6 +318,8 @@ public class BREthereumLightNodeClientTest implements
                     "\n   nonce: " + transaction.getNonce() +
                     "\n\n");
         }
+        BREthereumToken t1 = BREthereumToken.lookup(BREthereumToken.tokenBRD.getAddress());
+        asserting (t1.getSymbol().equals(BREthereumToken.tokenBRD.getSymbol()));
 
         // Wait until balance updates.
         String etherBalanceWEI = "4671"; // 0x123f
