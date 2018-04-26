@@ -58,7 +58,7 @@ public class BREthereumToken extends BRCoreJniReference {
      * @return
      */
     public static BREthereumToken lookup (String address) {
-        return tokensByAddress.get(address);
+        return tokensByAddress.get(address.toLowerCase());
     }
 
     /**
@@ -85,7 +85,7 @@ public class BREthereumToken extends BRCoreJniReference {
             BREthereumToken token = new BREthereumToken(references[i]);
             tokens[i] = token;
             tokensByReference.put(references[i], token);
-            tokensByAddress.put (token.getAddress(), token);
+            tokensByAddress.put (token.getAddress().toLowerCase(), token);
         }
     }
 
