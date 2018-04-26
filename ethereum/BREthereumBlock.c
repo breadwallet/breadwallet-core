@@ -32,7 +32,7 @@
 struct BREthereumBlockRecord {
     char *hash;
     uint64_t number;
-    uint64_t confirmations;  // NO NO NO
+    uint64_t confirmations;
     uint64_t timestamp;
 };
 

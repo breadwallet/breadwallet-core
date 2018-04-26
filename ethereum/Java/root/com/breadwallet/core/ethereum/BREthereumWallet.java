@@ -26,6 +26,7 @@ package com.breadwallet.core.ethereum;
 
 import com.breadwallet.core.ethereum.BREthereumAmount.Unit;
 
+import java.math.BigDecimal;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -143,6 +144,32 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
         validUnitOrException(unit);
         return node.get().jniGetWalletBalance(identifier, unit.jniValue);
     }
+
+    /**
+     * Convert the balance to fiat.
+     *
+     * As an (typical) example - assume the conversion is 600 $/ETH. `fiatPerCryto` would be
+     * 600.0 and `unitForCrypto` would be Unit.ETHER_ETHER. Assume the amount was 1.2 ETH.  The
+     * return will be $720.0
+     *
+     * @param fiatPerCrypto
+     * @param unitForFiatPerCrypto
+     * @return
+     */
+    public double getBalanceInFiat (double fiatPerCrypto,
+                                   BREthereumAmount.Unit unitForFiatPerCrypto) {
+        return fiatPerCrypto * Double.parseDouble(getBalance(unitForFiatPerCrypto));
+    }
+
+    /**
+     * See `double getBalanceInFiat (double, Unit)`
+     *
+     */
+    public BigDecimal getBalanceInFiat (BigDecimal fiatPerCrypto,
+                                       BREthereumAmount.Unit unitForFiatPerCrypto) {
+        return fiatPerCrypto.multiply(new BigDecimal(getBalance(unitForFiatPerCrypto)));
+    }
+
 
     /**
      * Force a balance update (by querying the Ethereum Blockchain) and then assign the

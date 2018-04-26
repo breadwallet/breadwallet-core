@@ -24,6 +24,8 @@
  */
 package com.breadwallet.core.ethereum;
 
+import java.math.BigDecimal;
+
 /**
  *
  */
@@ -72,33 +74,118 @@ public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefa
         return node.get().jniTransactionGetAmount(identifier, unit.jniValue);
     }
 
+    /**
+     * Convert the amount to fiat.
+     *
+     * As an (typical) example - assume the conversion is 600 $/ETH. `fiatPerCryto` would be
+     * 600.0 and `unitForCrypto` would be Unit.ETHER_ETHER. Assume the amount was 1.2 ETH.  The
+     * return will be $720.0
+     *
+     * @param fiatPerCrypto
+     * @param unitForFiatPerCrypto
+     * @return
+     */
+    public double getAmountInFiat (double fiatPerCrypto,
+                                   BREthereumAmount.Unit unitForFiatPerCrypto) {
+        return fiatPerCrypto * Double.parseDouble(getAmount(unitForFiatPerCrypto));
+    }
+
+    /**
+     * See `double getAmountInFiat (double, Unit)`
+     *
+     */
+    public BigDecimal getAmountInFiat (BigDecimal fiatPerCrypto,
+                                       BREthereumAmount.Unit unitForFiatPerCrypto) {
+        return fiatPerCrypto.multiply(new BigDecimal(getAmount(unitForFiatPerCrypto)));
+    }
+
     //
     // Fee
     //
+
+    /**
+     * The fee in GWEI
+     *
+     * @return in GWEI
+     */
     public String getFee () {
-        return getFee(defaultUnit);
+        return getFee(BREthereumAmount.Unit.ETHER_GWEI);
     }
 
+    /**
+     * The fee in `unit`
+     *
+     * @param unit must be an ether unit, otherwise fatal()
+     * @return in `unit`
+     */
     public String getFee (BREthereumAmount.Unit unit) {
+        assert (!unit.isTokenUnit());
         return node.get().jniTransactionGetFee(identifier, unit.jniValue);
+    }
+
+    /**
+     * Convert the fee to fiat.
+     *
+     * As an (typical) example - assume the conversion is 600 $/ETH. `fiatPerCryto` would be
+     * 600.0 and `unitForCrypto` would be Unit.ETHER_ETHER. Assume the fee was 42000 GWEI (as
+     * 21000 gas * 2 GWEI/gas).
+     *
+     * @param fiatPerCrypto
+     * @param unitForFiatPerCrypto
+     * @return
+     */
+    public double getFeeInFiat (double fiatPerCrypto,
+                                BREthereumAmount.Unit unitForFiatPerCrypto) {
+        return fiatPerCrypto * Double.parseDouble(getFee(unitForFiatPerCrypto));
+    }
+
+    /**
+     * See `double getFeeInFiat (double, Unit)`
+     *
+     */
+    public BigDecimal getFeeInFiat (BigDecimal fiatPerCrypto,
+                                    BREthereumAmount.Unit unitForFiatPerCrypto) {
+        return fiatPerCrypto.multiply(new BigDecimal(getFee(unitForFiatPerCrypto)));
     }
 
     //
     // Gas Price, Limit, Used
     //
+
+    /**
+     * The gasPrise in GWEI
+     *
+     * @return in GWEI
+     */
     public String getGasPrice () {
-        return getGasPrice(defaultUnit);
+        return getGasPrice(BREthereumAmount.Unit.ETHER_GWEI);
     }
 
+    /**
+     * The gasPrice in `unit`
+     *
+     * @param unit unit must be an ether unit, otherwise fatal()
+     * @return in `unit`
+     */
     public String getGasPrice (BREthereumAmount.Unit unit) {
         assert (!unit.isTokenUnit());
         return node.get().jniTransactionGetGasPrice(identifier, unit.jniValue);
     }
 
+    /**
+     * The gasLimit in `gas`
+     *
+     * @return in `gas`
+     */
     public long getGasLimit () {
         return node.get().jniTransactionGetGasLimit(identifier);
     }
 
+    /**
+     * The gasUsed in `gas`
+     *
+     * @return in `gas`
+     */
     public long getGasUsed () {
         return node.get().jniTransactionGetGasUsed(identifier);
     }

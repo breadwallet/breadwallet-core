@@ -27,6 +27,8 @@ package com.breadwallet.core.ethereum;
 
 import com.breadwallet.core.BRCoreJniReference;
 
+import java.util.HashMap;
+
 public class BREthereumToken extends BRCoreJniReference {
 
     private BREthereumToken (long jniReferenceAddress) {
@@ -56,10 +58,7 @@ public class BREthereumToken extends BRCoreJniReference {
      * @return
      */
     public static BREthereumToken lookup (String address) {
-        for (BREthereumToken token : tokens)
-            if (address.equalsIgnoreCase(token.getAddress()))
-                return token;
-        return null;
+        return tokensByAddress.get(address);
     }
 
     /**
@@ -69,22 +68,25 @@ public class BREthereumToken extends BRCoreJniReference {
      * @return
      */
     protected static BREthereumToken lookupByReference (long reference) {
-        for (BREthereumToken token : tokens)
-            if (reference == token.jniReferenceAddress)
-                return token;
-        return null;
+        return tokensByReference.get(reference);
     }
 
     //
     // All Tokens
     //
-    public static final BREthereumToken[] tokens;
+    public static final HashMap<String, BREthereumToken> tokensByAddress = new HashMap<>();
+    public static final HashMap<Long, BREthereumToken> tokensByReference = new HashMap<>();
+    public static BREthereumToken[] tokens;
 
     static {
         long[] references = jniTokenAll ();
         tokens = new BREthereumToken[references.length];
-        for (int i = 0; i < references.length; i++)
-            tokens[i] = new BREthereumToken(references[i]);
+        for (int i = 0; i < references.length; i++) {
+            BREthereumToken token = new BREthereumToken(references[i]);
+            tokens[i] = token;
+            tokensByReference.put(references[i], token);
+            tokensByAddress.put (token.getAddress(), token);
+        }
     }
 
     //

@@ -199,29 +199,33 @@ tokenQuantityCompare(BREthereumTokenQuantity q1, BREthereumTokenQuantity q2, int
     }
 }
 
-// {"code":"SNGLS","colors":["FAFAFA","FAFAFA"],"name":"Singular DTV","decimal":"0","address":"0xaeC2E87E0A235266D9C5ADc9DEb4b2E29b54D009"}
-//
-// var tokensInJSONToC = function (tokens) {
-//    return "static struct BREthereumTokenRecord tokens[] = \n{" +
-//           tokens.map (function (token) {
-//        return `
-//        {
-//            "${token.address}",
-//            "${token.code}",
-//            "${token.name}",
-//            "",
-//            ${token.decimal},
-//            "${token.colors[0]}",
-//            "${token.colors[1]}",
-//            { TOKEN_BRD_DEFAULT_GAS_LIMIT },
-//            { { { .u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
-//            1
-//        }`})
-//    .join (",\n") + "\n};"
-// }
-//
-// var result = tokensInJSONToC (tokens);
-// console.log (result)
+/*
+
+{"code":"SNGLS","colors":["FAFAFA","FAFAFA"],"name":"Singular DTV","decimal":"0","address":"0xaeC2E87E0A235266D9C5ADc9DEb4b2E29b54D009"}
+
+var tokensInJSONToC = function (tokens) {
+return "static struct BREthereumTokenRecord tokens[] = \n{" +
+       tokens.map (function (token) {
+    return `
+    {
+        "${token.address}",
+        "${token.code}",
+        "${token.name}",
+        "",
+        ${token.decimal},
+        "${token.colors[0]}",
+        "${token.colors[1]}",
+        { TOKEN_BRD_DEFAULT_GAS_LIMIT },
+        { { { .u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+        1
+    }`})
+.join (",\n") + "\n};"
+}
+
+var result = tokensInJSONToC (tokens);
+console.log (result)
+
+*/
 
 //
 //
@@ -252,8 +256,8 @@ static struct BREthereumTokenRecord tokens[] = {
                 "Test Standard Token",
                 "TeST Standard Token (TST) for TeSTing (TST)",
                 18,
-                "FAFAFA",
-                "FAFAFA",
+                "#bfbfbf",
+                "#bfbfbf",
                 {TOKEN_BRD_DEFAULT_GAS_LIMIT},
                 {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
                 1
@@ -352,6 +356,19 @@ static struct BREthereumTokenRecord tokens[] = {
         },
 
         {
+                "0x622dFfCc4e83C64ba959530A5a5580687a57581b",
+                "AUTO",
+                "CUBE",
+                "",
+                18,
+                "#fab431",
+                "#fab431",
+                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
+                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+                1
+        },
+
+        {
                 "0x0D8775F648430679A709E98d2b0Cb6250d2887EF",
                 "BAT",
                 "Basic Attention",
@@ -359,6 +376,32 @@ static struct BREthereumTokenRecord tokens[] = {
                 18,
                 "#ff5000",
                 "#ff5000",
+                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
+                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+                1
+        },
+
+        {
+                "0xb3104b4b9da82025e8b9f8fb28b3553ce2f67069",
+                "BIX",
+                "BIX Token",
+                "",
+                18,
+                "#6499ea",
+                "#6499ea",
+                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
+                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+                1
+        },
+
+        {
+                "0x5732046a883704404f284ce41ffadd5b007fd668",
+                "BLZ",
+                "Bluzelle",
+                "",
+                18,
+                "#18578c",
+                "#18578c",
                 {TOKEN_BRD_DEFAULT_GAS_LIMIT},
                 {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
                 1
@@ -437,6 +480,19 @@ static struct BREthereumTokenRecord tokens[] = {
                 18,
                 "#383939",
                 "#383939",
+                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
+                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+                1
+        },
+
+        {
+                "0x46b9ad944d1059450da1163511069c718f699d31",
+                "CS",
+                "Credits",
+                "",
+                6,
+                "#262626",
+                "#262626",
                 {TOKEN_BRD_DEFAULT_GAS_LIMIT},
                 {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
                 1
@@ -547,6 +603,19 @@ static struct BREthereumTokenRecord tokens[] = {
         },
 
         {
+                "0xf0ee6b27b759c9893ce4f094b49ad28fd15a23e4",
+                "ENG",
+                "Enigma",
+                "",
+                8,
+                "#2f2f2f",
+                "#2f2f2f",
+                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
+                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+                1
+        },
+
+        {
                 "0xF629cBd94d3791C9250152BD8dfBDF380E2a3B9c",
                 "ENJ",
                 "EnjinCoin",
@@ -567,6 +636,32 @@ static struct BREthereumTokenRecord tokens[] = {
                 18,
                 "#000000",
                 "#000000",
+                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
+                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+                1
+        },
+
+        {
+                "0x5af2be193a6abca9c8817001f45744777db30756",
+                "ETHOS",
+                "Ethos",
+                "",
+                8,
+                "#00ffba",
+                "#00ffba",
+                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
+                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+                1
+        },
+
+        {
+                "0xd0352a019e9ab9d757776f532377aaebd36fd541",
+                "FSN",
+                "Fusion",
+                "",
+                18,
+                "#1d9ad7",
+                "#1d9ad7",
                 {TOKEN_BRD_DEFAULT_GAS_LIMIT},
                 {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
                 1
@@ -606,6 +701,32 @@ static struct BREthereumTokenRecord tokens[] = {
                 18,
                 "#001d57",
                 "#001d57",
+                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
+                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+                1
+        },
+
+        {
+                "0x6ec8a24cabdc339a06a172f8223ea557055adaa5",
+                "GNX",
+                "Genaro Network",
+                "",
+                9,
+                "#030a34",
+                "#030a34",
+                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
+                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+                1
+        },
+
+        {
+                "0xc5bbae50781be1669306b9e001eff57a2957b09d",
+                "GTO",
+                "Gifto",
+                "",
+                5,
+                "#7f27ff",
+                "#7f27ff",
                 {TOKEN_BRD_DEFAULT_GAS_LIMIT},
                 {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
                 1
@@ -664,6 +785,19 @@ static struct BREthereumTokenRecord tokens[] = {
         },
 
         {
+                "0xfa1a856cfa3409cfa145fa4e20eb270df3eb21ab",
+                "IOST",
+                "IOStoken",
+                "",
+                18,
+                "#1c1c1c",
+                "#1c1c1c",
+                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
+                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+                1
+        },
+
+        {
                 "0x5e6b6d9abad9093fdc861ea1600eba1b355cd940",
                 "ITC",
                 "IOT Chain",
@@ -684,6 +818,32 @@ static struct BREthereumTokenRecord tokens[] = {
                 18,
                 "#188c92",
                 "#188c92",
+                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
+                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+                1
+        },
+
+        {
+                "0x80fB784B7eD66730e8b1DBd9820aFD29931aab03",
+                "LEND",
+                "EthLend",
+                "",
+                18,
+                "#0fa9c9",
+                "#0fa9c9",
+                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
+                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+                1
+        },
+
+        {
+                "0x514910771af9ca656af840dff83e8264ecf986ca",
+                "LINK",
+                "ChainLink",
+                "",
+                18,
+                "#01a6fb",
+                "#01a6fb",
                 {TOKEN_BRD_DEFAULT_GAS_LIMIT},
                 {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
                 1
@@ -762,6 +922,32 @@ static struct BREthereumTokenRecord tokens[] = {
                 8,
                 "#1e1f25",
                 "#1e1f25",
+                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
+                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+                1
+        },
+
+        {
+                "0x5d65D971895Edc438f465c17DB6992698a52318D",
+                "NAS",
+                "Nebulas",
+                "",
+                18,
+                "#222222",
+                "#222222",
+                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
+                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+                1
+        },
+
+        {
+                "0x809826cceab68c387726af962713b64cb5cb3cca",
+                "nCash",
+                "Nucleus Vision",
+                "",
+                18,
+                "#36a9cf",
+                "#36a9cf",
                 {TOKEN_BRD_DEFAULT_GAS_LIMIT},
                 {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
                 1
@@ -911,6 +1097,19 @@ static struct BREthereumTokenRecord tokens[] = {
         },
 
         {
+                "0x618e75ac90b12c6049ba3b27f5d5f8651b0037f6",
+                "QASH",
+                "QASH",
+                "",
+                6,
+                "#1347e8",
+                "#1347e8",
+                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
+                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+                1
+        },
+
+        {
                 "0x697beac28B09E122C4332D163985e8a73121b97F",
                 "QRL",
                 "QRL",
@@ -931,6 +1130,19 @@ static struct BREthereumTokenRecord tokens[] = {
                 18,
                 "#454545",
                 "#454545",
+                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
+                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+                1
+        },
+
+        {
+                "0x48f775efbe4f5ece6e0df2f7b5932df56823b990",
+                "R",
+                "Revain",
+                "",
+                6,
+                "#771a4e",
+                "#771a4e",
                 {TOKEN_BRD_DEFAULT_GAS_LIMIT},
                 {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
                 1
@@ -1002,6 +1214,19 @@ static struct BREthereumTokenRecord tokens[] = {
         },
 
         {
+                "0xf278c1ca969095ffddded020290cf8b5c424ace2",
+                "RUFF",
+                "RUFF",
+                "",
+                18,
+                "#01c8ca",
+                "#01c8ca",
+                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
+                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+                1
+        },
+
+        {
                 "0x4156D3342D5c385a87D264F90653733592000581",
                 "SALT",
                 "SALT",
@@ -1022,6 +1247,19 @@ static struct BREthereumTokenRecord tokens[] = {
                 18,
                 "#2b77b3",
                 "#2b77b3",
+                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
+                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+                1
+        },
+
+        {
+                "0xF4134146AF2d511Dd5EA8cDB1C4AC88C57D60404",
+                "SNC",
+                "SunContract",
+                "",
+                18,
+                "#1096d4",
+                "#1096d4",
                 {TOKEN_BRD_DEFAULT_GAS_LIMIT},
                 {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
                 1
@@ -1113,19 +1351,6 @@ static struct BREthereumTokenRecord tokens[] = {
                 18,
                 "#7022eb",
                 "#7022eb",
-                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
-                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
-                1
-        },
-
-        {
-                "0xF4134146AF2d511Dd5EA8cDB1C4AC88C57D60404",
-                "SNC",
-                "SunContract",
-                "",
-                18,
-                "#1096d4",
-                "#1096d4",
                 {TOKEN_BRD_DEFAULT_GAS_LIMIT},
                 {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
                 1
@@ -1249,6 +1474,32 @@ static struct BREthereumTokenRecord tokens[] = {
         },
 
         {
+                "0xb7cb1c96db6b22b0d3d9536e0108d062bd488f74",
+                "WTC",
+                "Waltonchain",
+                "",
+                18,
+                "#8200ff",
+                "#8200ff",
+                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
+                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+                1
+        },
+
+        {
+                "0x39689fE671C01fcE173395f6BC45D4C332026666",
+                "XJP",
+                "Digital JPY",
+                "",
+                0,
+                "#f15a22",
+                "#f15a22",
+                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
+                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+                1
+        },
+
+        {
                 "0x05f4a42e251f2d52b8ed15E9FEdAacFcEF1FAD27",
                 "ZIL",
                 "Zilliqa",
@@ -1269,19 +1520,6 @@ static struct BREthereumTokenRecord tokens[] = {
                 18,
                 "#302c2c",
                 "#302c2c",
-                {TOKEN_BRD_DEFAULT_GAS_LIMIT},
-                {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
-                1
-        },
-
-        {
-                "0x39689fE671C01fcE173395f6BC45D4C332026666",
-                "XJP",
-                "Digital JPY",
-                "",
-                18,
-                "#F15A22",
-                "#F15A22",
                 {TOKEN_BRD_DEFAULT_GAS_LIMIT},
                 {{{.u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
                 1

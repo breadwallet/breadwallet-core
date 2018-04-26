@@ -82,7 +82,7 @@ extern BREthereumToken
 tokenLookup (const char *address);
 
 extern int
-tokenCount (void);
+tokenCount ();
 
 extern BREthereumToken
 tokenGet (int index);

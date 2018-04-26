@@ -267,6 +267,10 @@ extern BREthereumTransaction
 walletGetTransactionByNonce (BREthereumWallet wallet,
                              uint64_t nonce);
 
+extern BREthereumTransaction
+walletGetTransactionByIndex(BREthereumWallet wallet,
+                            uint64_t index);
+
 extern unsigned long
 walletGetTransactionCount (BREthereumWallet wallet);
     
