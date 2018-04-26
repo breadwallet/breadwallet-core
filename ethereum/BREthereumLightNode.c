@@ -539,13 +539,6 @@ lightNodeWalletSubmitTransaction(BREthereumLightNode node,
     }
 }
 
-static void
-assignToTransactions (BREthereumTransactionId *transactions,
-                      BREthereumTransaction transaction,
-                      unsigned int index) {
-    transactions[index] = index;
-}
-
 extern BREthereumTransactionId *
 lightNodeWalletGetTransactions(BREthereumLightNode node,
                                BREthereumWallet wallet) {
@@ -554,9 +547,9 @@ lightNodeWalletGetTransactions(BREthereumLightNode node,
     unsigned long count = walletGetTransactionCount(wallet);
     BREthereumTransactionId *transactions = calloc (count + 1, sizeof (BREthereumTransactionId));
 
-    walletWalkTransactions(wallet, transactions,
-                           transactionPredicateAny,
-                           (BREthereumTransactionWalker) assignToTransactions);
+    for (unsigned long index = 0; index < count; index++) {
+        transactions [index] = lightNodeLookupTransactionId(node, walletGetTransactionByIndex(wallet, index));
+    }
     transactions[count] = -1;
 
     pthread_mutex_unlock(&node->lock);
@@ -1080,10 +1073,11 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
     lightNodeUpdateBlockHeight(node, blockGetNumber(block) + blockConfirmations);
 
     // Update the status as blocked
-    walletTransactionBlocked(wallet, transaction, gasUsed,
-                             blockGetNumber(block),
-                             blockGetTimestamp(block),
-                             blockTransactionIndex);
+    if (TRANSACTION_BLOCKED != status)
+        walletTransactionBlocked(wallet, transaction, gasUsed,
+                                 blockGetNumber(block),
+                                 blockGetTimestamp(block),
+                                 blockTransactionIndex);
 
     // Announce a transaction event.  If already 'BLOCKED', then update CONFIRMATIONS.
     lightNodeListenerAnnounceTransactionEvent(node, wid, tid,
@@ -1204,10 +1198,11 @@ lightNodeAnnounceLog (BREthereumLightNode node,
     lightNodeUpdateBlockHeight(node, blockGetNumber(block));
 
     // Update the status as blocked
-    walletTransactionBlocked(wallet, transaction, gasUsed,
-                             blockGetNumber(block),
-                             blockGetTimestamp(block),
-                             blockTransactionIndex);
+    if (TRANSACTION_BLOCKED != status)
+        walletTransactionBlocked(wallet, transaction, gasUsed,
+                                 blockGetNumber(block),
+                                 blockGetTimestamp(block),
+                                 blockTransactionIndex);
 
     // Announce a transaction event.  If already 'BLOCKED', then update CONFIRMATIONS.
     lightNodeListenerAnnounceTransactionEvent(node, wid, tid,

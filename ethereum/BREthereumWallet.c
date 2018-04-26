@@ -494,13 +494,12 @@ walletGetTransactionByNonce (BREthereumWallet wallet,
     return NULL;
 }
 
-// TODO: Wrong - TID is wrong in wallet context.
-private_extern BREthereumTransaction
-walletGetTransactionById(BREthereumWallet wallet,
-                         BREthereumTransactionId tid) {
-    return 0 <= tid && tid < array_count(wallet->transactions)
-           ? wallet->transactions[tid]
-           : NULL;
+extern BREthereumTransaction
+walletGetTransactionByIndex(BREthereumWallet wallet,
+                            uint64_t index) {
+    return (0 <= index && index < array_count(wallet->transactions)
+            ? wallet->transactions[index]
+            : NULL);
 }
 
 static int // -1 if not found

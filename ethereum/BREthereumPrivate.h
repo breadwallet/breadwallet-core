@@ -37,10 +37,6 @@
 private_extern BREthereumEther
 transactionGetEffectiveAmountInEther (BREthereumTransaction transaction);
 
-private_extern BREthereumTransaction
-walletGetTransactionById (BREthereumWallet wallet,
-                          BREthereumTransactionId transactionId);
-
 private_extern void
 walletSetBalance (BREthereumWallet wallet,
                   BREthereumAmount balance);
