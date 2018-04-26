@@ -37,7 +37,7 @@
 //#include "BRKey.h"
 #include "../BRBIP39WordsEn.h"
 
-//#include "BREthereum.h"
+#include "BREthereum.h"
 #include "BREthereumPrivate.h"
 
 static void
@@ -615,7 +615,7 @@ void runRlpDecodeTest () {
     v3d.bytesCount = 3;
 
     BRRlpItem v3i = rlpGetItem(coder, v3d);
-    int v3v = rlpDecodeItemUInt64(coder, v3i);
+    uint64_t v3v = rlpDecodeItemUInt64(coder, v3i);
     assert (1024 == v3v);
 
     rlpCoderRelease(coder);
@@ -1049,48 +1049,6 @@ void testTransactionCodingToken () {
                                                     transactionGetSignature (decodedTransaction)));
 }
 
-void prepareTransaction (const char *paperKey, const char *recvAddr, const uint64_t gasPrice, const uint64_t gasLimit, const uint64_t amount) {
-    printf ("     Prepare Transaction\n");
-    
-    // START - One Time Code Block
-    BREthereumLightNodeConfiguration configuration =
-    lightNodeConfigurationCreateLES(ethereumMainnet, 0);
-    BREthereumLightNode node = createLightNode(configuration, paperKey);
-    // A wallet amount Ether
-    BREthereumWalletId wallet = lightNodeGetWallet(node);
-    // END - One Time Code Block
-    
-    // Optional - will provide listNodeWalletCreateTransactionDetailed.
-    lightNodeWalletSetDefaultGasPrice(node, wallet, WEI, gasPrice);
-    lightNodeWalletSetDefaultGasLimit(node, wallet, gasLimit);
-    
-    BREthereumAmount amountAmountInEther =
-    lightNodeCreateEtherAmountUnit(node, amount, WEI);
-    
-    BREthereumTransactionId tx1 =
-    lightNodeWalletCreateTransaction
-    (node,
-     wallet,
-     recvAddr,
-     amountAmountInEther);
-    
-    lightNodeWalletSignTransaction (node, wallet, tx1, paperKey);
-    
-    const char *rawTransactionHexEncoded =
-    lightNodeGetTransactionRawDataHexEncoded(node, wallet, tx1, "0x");
-    
-    printf ("        Raw Transaction: %s\n", rawTransactionHexEncoded);
-    
-    char *fromAddr = lightNodeGetAccountPrimaryAddress(node);
-    BREthereumTransactionId *transactions = lightNodeWalletGetTransactions(node, wallet);
-    assert (NULL != transactions && -1 != transactions[0]);
-    
-    BREthereumTransactionId transaction = transactions[0];
-    assert (0 == strcmp (fromAddr, ethereumTransactionGetSendAddress(node, transaction)) &&
-            0 == strcmp (recvAddr, ethereumTransactionGetRecvAddress(node, transaction)));
-
-    free (fromAddr);
-}
 
 //
 // Light Node JSON_RCP
@@ -1102,7 +1060,7 @@ typedef struct JsonRpcTestContextRecord {
 // Stubbed Callbacks - should actually construct JSON, invoke an Etherum JSON_RPC method,
 // get the response and return the result.
 static void
-jsonRpcGetBalance (JsonRpcContext context,
+clientGetBalance (BREthereumClientContext context,
                    BREthereumLightNode node,
                    BREthereumWalletId wid,
                    const char *address,
@@ -1111,7 +1069,7 @@ jsonRpcGetBalance (JsonRpcContext context,
 }
 
 static void
-jsonRpcGetGasPrice (JsonRpcContext context,
+clientGetGasPrice (BREthereumClientContext context,
                     BREthereumLightNode node,
                     BREthereumWalletId wid,
                     int rid) {
@@ -1119,7 +1077,7 @@ jsonRpcGetGasPrice (JsonRpcContext context,
 }
 
 static void
-jsonRpcEstimateGas (JsonRpcContext context,
+clientEstimateGas (BREthereumClientContext context,
                     BREthereumLightNode node,
                     BREthereumWalletId wid,
                     BREthereumTransactionId tid,
@@ -1131,7 +1089,7 @@ jsonRpcEstimateGas (JsonRpcContext context,
 }
 
 static void
-jsonRpcSubmitTransaction (JsonRpcContext context,
+clientSubmitTransaction (BREthereumClientContext context,
                           BREthereumLightNode node,
                           BREthereumWalletId wid,
                           BREthereumTransactionId tid,
@@ -1142,12 +1100,12 @@ jsonRpcSubmitTransaction (JsonRpcContext context,
 }
 
 static void
-jsonRpcGetTransactions (JsonRpcContext context,
+clientGetTransactions (BREthereumClientContext context,
                         BREthereumLightNode node,
                         const char *account,
                         int id) {
     // Get all the transaction, then one by one call 'announce'
-    char *address = lightNodeGetAccountPrimaryAddress(node);
+    char *address = ethereumGetAccountPrimaryAddress(node);
     lightNodeAnnounceTransaction(node, id,
                                  "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
                                  address,   // required
@@ -1169,12 +1127,12 @@ jsonRpcGetTransactions (JsonRpcContext context,
 }
 
 static void
-jsonRpcGetLogs (JsonRpcContext context,
+clientGetLogs (BREthereumClientContext context,
                 BREthereumLightNode node,
                 const char *addressIgnore,
                 const char *event,
                 int rid) {
-    char *address = lightNodeGetAccountPrimaryAddress(node);
+    char *address = ethereumGetAccountPrimaryAddress(node);
     const char *topics[] = {
         "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
         "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -1194,6 +1152,58 @@ jsonRpcGetLogs (JsonRpcContext context,
                           "0x59fa1ac9");
 }
 
+void prepareTransaction (const char *paperKey, const char *recvAddr, const uint64_t gasPrice, const uint64_t gasLimit, const uint64_t amount) {
+    printf ("     Prepare Transaction\n");
+
+    // START - One Time Code Block
+    JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
+
+    BREthereumClient client =
+    ethereumClientCreate(context,
+                         clientGetBalance,
+                         clientGetGasPrice,
+                         clientEstimateGas,
+                         clientSubmitTransaction,
+                         clientGetTransactions,
+                         clientGetLogs);
+
+    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey);
+    // A wallet amount Ether
+    BREthereumWalletId wallet = ethereumGetWallet(node);
+    // END - One Time Code Block
+
+    // Optional - will provide listNodeWalletCreateTransactionDetailed.
+    ethereumWalletSetDefaultGasPrice(node, wallet, WEI, gasPrice);
+    ethereumWalletSetDefaultGasLimit(node, wallet, gasLimit);
+
+    BREthereumAmount amountAmountInEther =
+    ethereumCreateEtherAmountUnit(node, amount, WEI);
+
+    BREthereumTransactionId tx1 =
+    ethereumWalletCreateTransaction
+    (node,
+     wallet,
+     recvAddr,
+     amountAmountInEther);
+
+    ethereumWalletSignTransaction (node, wallet, tx1, paperKey);
+
+    const char *rawTransactionHexEncoded =
+    lightNodeGetTransactionRawDataHexEncoded(node, wallet, tx1, "0x");
+
+    printf ("        Raw Transaction: %s\n", rawTransactionHexEncoded);
+
+    char *fromAddr = ethereumGetAccountPrimaryAddress(node);
+    BREthereumTransactionId *transactions = ethereumWalletGetTransactions(node, wallet);
+    assert (NULL != transactions && -1 != transactions[0]);
+
+    BREthereumTransactionId transaction = transactions[0];
+    assert (0 == strcmp (fromAddr, ethereumTransactionGetSendAddress(node, transaction)) &&
+            0 == strcmp (recvAddr, ethereumTransactionGetRecvAddress(node, transaction)));
+
+    free (fromAddr);
+}
+
 static void
 runLightNode_JSON_RPC_test (const char *paperKey) {
     printf ("     JSON_RCP\n");
@@ -1201,61 +1211,60 @@ runLightNode_JSON_RPC_test (const char *paperKey) {
     BRCoreParseStatus status;
     JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
     
-    BREthereumLightNodeConfiguration configuration =
-    lightNodeConfigurationCreateJSON_RPC(ethereumMainnet,
-                                         context,
-                                         jsonRpcGetBalance,
-                                         jsonRpcGetGasPrice,
-                                         jsonRpcEstimateGas,
-                                         jsonRpcSubmitTransaction,
-                                         jsonRpcGetTransactions,
-                                         jsonRpcGetLogs);
+    BREthereumClient configuration =
+            ethereumClientCreate(context,
+                                         clientGetBalance,
+                                         clientGetGasPrice,
+                                         clientEstimateGas,
+                                         clientSubmitTransaction,
+                                         clientGetTransactions,
+                                         clientGetLogs);
     
-    BREthereumLightNode node = createLightNode(configuration, paperKey);
-    BREthereumWalletId wallet = lightNodeGetWallet(node);
+    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey);
+    BREthereumWalletId wallet = ethereumGetWallet(node);
     
-    lightNodeConnect(node);
+    ethereumConnect(node, configuration);
 
     sleep (2);  // let connect 'take'
 
     // Callback to JSON_RPC for 'getBalanance'&
     //    lightNodeUpdateWalletBalance (node, wallet, &status);
-    BREthereumAmount balance = lightNodeWalletGetBalance (node, wallet);
+    BREthereumAmount balance = ethereumWalletGetBalance (node, wallet);
     BREthereumEther expectedBalance = etherCreate(createUInt256Parse("0x123f", 16, &status));
     assert (CORE_PARSE_OK == status
             && AMOUNT_ETHER == amountGetType(balance)
             && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (expectedBalance, amountGetEther(balance)));
     
 //    lightNodeUpdateTransactions(node);
-    lightNodeDisconnect(node);
+    ethereumDisconnect(node);
 }
 
 //
 // Listener
 //
 static void
-walletEventHandler (BREthereumLightNodeListenerContext context,
+walletEventHandler (BREthereumListenerContext context,
                     BREthereumLightNode node,
                     BREthereumWalletId wid,
-                    BREthereumLightNodeWalletEvent event) {
+                    BREthereumWalletEvent event) {
     fprintf (stdout, "        WalletEvent: wid=%d, ev=%d\n", wid, event);
 }
 
 static void
-blockEventHandler (BREthereumLightNodeListenerContext context,
+blockEventHandler (BREthereumListenerContext context,
               BREthereumLightNode node,
               BREthereumBlockId bid,
-              BREthereumLightNodeBlockEvent event) {
+              BREthereumBlockEvent event) {
     fprintf (stdout, "         BlockEvent: bid=%d, ev=%d\n", bid, event);
 
 }
 
 static void
-transactionEventHandler (BREthereumLightNodeListenerContext context,
+transactionEventHandler (BREthereumListenerContext context,
                     BREthereumLightNode node,
                     BREthereumWalletId wid,
                     BREthereumTransactionId tid,
-                    BREthereumLightNodeTransactionEvent event) {
+                    BREthereumTransactionEvent event) {
     fprintf (stdout, "         TransEvent: tid=%d, ev=%d\n", tid, event);
 }
 
@@ -1266,40 +1275,39 @@ runLightNode_LISTENER_test (const char *paperKey) {
     BRCoreParseStatus status;
     JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
-    BREthereumLightNodeConfiguration configuration =
-    lightNodeConfigurationCreateJSON_RPC(ethereumMainnet,
-                                         context,
-                                         jsonRpcGetBalance,
-                                         jsonRpcGetGasPrice,
-                                         jsonRpcEstimateGas,
-                                         jsonRpcSubmitTransaction,
-                                         jsonRpcGetTransactions,
-                                         jsonRpcGetLogs);
+    BREthereumClient configuration =
+    ethereumClientCreate(context,
+                         clientGetBalance,
+                         clientGetGasPrice,
+                         clientEstimateGas,
+                         clientSubmitTransaction,
+                         clientGetTransactions,
+                         clientGetLogs);
 
-    BREthereumLightNode node = createLightNode(configuration, paperKey);
+    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey);
 
     BREthereumListenerId lid = lightNodeAddListener(node,
-                                                             (BREthereumLightNodeListenerContext) NULL,
-                                                             walletEventHandler,
-                                                             blockEventHandler,
-                                                             transactionEventHandler);
+                                                    (BREthereumListenerContext) NULL,
+                                                    walletEventHandler,
+                                                    blockEventHandler,
+                                                    transactionEventHandler);
 
-    BREthereumWalletId wallet = lightNodeGetWallet(node);
+    BREthereumWalletId wallet = ethereumGetWallet(node);
 
-    lightNodeConnect(node);
+    ethereumConnect(node, configuration);
 
-    sleep (2);  // let connect 'take'
+    sleep (5);  // let connect 'take'
 
     // Callback to JSON_RPC for 'getBalanance'&
     //    lightNodeUpdateWalletBalance (node, wallet, &status);
-    BREthereumAmount balance = lightNodeWalletGetBalance (node, wallet);
+    BREthereumAmount balance = ethereumWalletGetBalance (node, wallet);
     BREthereumEther expectedBalance = etherCreate(createUInt256Parse("0x123f", 16, &status));
     assert (CORE_PARSE_OK == status
             && AMOUNT_ETHER == amountGetType(balance)
             && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (expectedBalance, amountGetEther(balance)));
 
     //    lightNodeUpdateTransactions(node);
-    lightNodeDisconnect(node);
+    ethereumDisconnect(node);
 }
 
 // Unsigned Result: 0xf864010082c35094558ec3152e2eb2174905cd19aea4e34a23de9ad680b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000000000000000000000000018080
@@ -1310,15 +1318,15 @@ runLightNode_TOKEN_test (const char *paperKey) {
     
     BRCoreParseStatus status;
     
-    BREthereumLightNode node = createLightNode (lightNodeConfigurationCreateLES(ethereumMainnet, 0), paperKey);
-    BREthereumWalletId wallet = lightNodeCreateWalletHoldingToken(node, tokenBRD);
+    BREthereumLightNode node = ethereumCreate (ethereumMainnet, paperKey);
+    BREthereumWalletId wallet = ethereumGetWalletHoldingToken(node, tokenBRD);
     
-    BREthereumAmount amount = lightNodeCreateTokenAmountString(node, tokenBRD,
+    BREthereumAmount amount = ethereumCreateTokenAmountString(node, tokenBRD,
                                                                TEST_TRANS3_DECIMAL_AMOUNT,
                                                                TOKEN_QUANTITY_TYPE_DECIMAL,
                                                                &status);
     BREthereumTransactionId transaction =
-    lightNodeWalletCreateTransaction (node, wallet,
+    ethereumWalletCreateTransaction (node, wallet,
                                       TEST_TRANS3_TARGET_ADDRESS,
                                       amount);
     
@@ -1327,7 +1335,7 @@ runLightNode_TOKEN_test (const char *paperKey) {
     // No match: nonce, gasLimit, gasPrice differ
     // assert (0 == strcasecmp(&rawTxUnsigned[2], TEST_TRANS3_UNSIGNED_TX));
     
-    lightNodeWalletSignTransaction(node, wallet, transaction, paperKey);
+    ethereumWalletSignTransaction(node, wallet, transaction, paperKey);
     const char *rawTxSigned = lightNodeGetTransactionRawDataHexEncoded(node, wallet, transaction, "0x");
     printf ("        RawTx  Signed: %s\n", rawTxSigned);
     
@@ -1337,12 +1345,12 @@ static void
 runLightNode_PUBLIC_KEY_test (const char *paperKey) {
     printf ("     PUBLIC KEY\n");
 
-    BREthereumLightNode node1 = createLightNode (lightNodeConfigurationCreateLES(ethereumMainnet, 0), paperKey);
-    char *addr1 = lightNodeGetAccountPrimaryAddress (node1);
+    BREthereumLightNode node1 = ethereumCreate (ethereumMainnet, paperKey);
+    char *addr1 = ethereumGetAccountPrimaryAddress (node1);
 
-    BRKey publicKey = lightNodeGetAccountPrimaryAddressPublicKey (node1);
-    BREthereumLightNode node2 = createLightNodeWithPublicKey (lightNodeConfigurationCreateLES(ethereumMainnet, 0), publicKey);
-    char *addr2 = lightNodeGetAccountPrimaryAddress (node2);
+    BRKey publicKey = ethereumGetAccountPrimaryAddressPublicKey (node1);
+    BREthereumLightNode node2 = ethereumCreateWithPublicKey (ethereumMainnet, publicKey);
+    char *addr2 = ethereumGetAccountPrimaryAddress (node2);
 
     assert (0 == strcmp (addr1, addr2));
 

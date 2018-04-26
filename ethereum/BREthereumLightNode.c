@@ -69,37 +69,25 @@ typedef struct  {
 
 
 //
-// Light Node Configuration
+// Light Node Client
 //
-extern BREthereumConfiguration
-ethereumConfigurationCreateLES(BREthereumNetwork network /* ... */, int foo) {
-    BREthereumConfiguration configuration;
-    configuration.network = network;
-    configuration.type = NODE_TYPE_LES;
-    configuration.u.les.foo = foo;
-    return configuration;
-}
-
-extern BREthereumConfiguration
-ethereumConfigurationCreateJSON_RPC(BREthereumNetwork network,
-                                    JsonRpcContext context,
-                                    JsonRpcGetBalance funcGetBalance,
-                                    JsonRpcGetGasPrice funcGetGasPrice,
-                                    JsonRpcEstimateGas funcEstimateGas,
-                                    JsonRpcSubmitTransaction funcSubmitTransaction,
-                                    JsonRpcGetTransactions funcGetTransactions,
-                                    JsonRpcGetLogs funcGetLogs) {
-    BREthereumConfiguration configuration;
-    configuration.network = network;
-    configuration.type = NODE_TYPE_JSON_RPC;
-    configuration.u.json_rpc.funcContext = context;
-    configuration.u.json_rpc.funcGetBalance = funcGetBalance;
-    configuration.u.json_rpc.funcGetGasPrice = funcGetGasPrice;
-    configuration.u.json_rpc.funcEstimateGas = funcEstimateGas;
-    configuration.u.json_rpc.funcSubmitTransaction = funcSubmitTransaction;
-    configuration.u.json_rpc.funcGetTransactions = funcGetTransactions;
-    configuration.u.json_rpc.funcGetLogs = funcGetLogs;
-    return configuration;
+extern BREthereumClient
+ethereumClientCreate(BREthereumClientContext context,
+                     BREthereumClientHandlerGetBalance funcGetBalance,
+                     BREthereumClientHandlerGetGasPrice funcGetGasPrice,
+                     BREthereumClientHandlerEstimateGas funcEstimateGas,
+                     BREthereumClientHandlerSubmitTransaction funcSubmitTransaction,
+                     BREthereumClientHandlerGetTransactions funcGetTransactions,
+                     BREthereumClientHandlerGetLogs funcGetLogs) {
+    BREthereumClient client;
+    client.funcContext = context;
+    client.funcGetBalance = funcGetBalance;
+    client.funcGetGasPrice = funcGetGasPrice;
+    client.funcEstimateGas = funcEstimateGas;
+    client.funcSubmitTransaction = funcSubmitTransaction;
+    client.funcGetTransactions = funcGetTransactions;
+    client.funcGetLogs = funcGetLogs;
+    return client;
 }
 
 //
@@ -123,10 +111,18 @@ typedef enum {
  *
  */
 struct BREthereumLightNodeRecord {
+
     /**
-     * The Configuration defining this Light Node
+     * The Type of this Light Node
      */
-    BREthereumConfiguration configuration;
+    BREthereumType type;
+
+    BREthereumNetwork network;
+    
+    /**
+     * The Client supporting this Light Node
+     */
+    BREthereumClient client;
 
     /**
      * The account
@@ -168,11 +164,12 @@ struct BREthereumLightNodeRecord {
 };
 
 extern BREthereumLightNode
-createLightNode (BREthereumConfiguration configuration,
-                         BREthereumAccount account) {
+createLightNode (BREthereumNetwork network,
+                 BREthereumAccount account) {
     BREthereumLightNode node = (BREthereumLightNode) calloc (1, sizeof (struct BREthereumLightNodeRecord));
     node->state = LIGHT_NODE_CREATED;
-    node->configuration = configuration;
+    node->type = FIXED_LIGHT_NODE_TYPE;
+    node->network = network;
     node->account = account;
     array_new(node->wallets, DEFAULT_WALLET_CAPACITY);
     array_new(node->transactions, DEFAULT_TRANSACTION_CAPACITY);
@@ -190,7 +187,7 @@ createLightNode (BREthereumConfiguration configuration,
 
     // Create a default ETH wallet.
     node->walletHoldingEther = walletCreate(node->account,
-                                            node->configuration.network);
+                                            node->network);
     lightNodeInsertWallet(node, node->walletHoldingEther);
 
     // Create other wallets for each TOKEN?
@@ -203,6 +200,12 @@ extern BREthereumAccount
 lightNodeGetAccount (BREthereumLightNode node) {
     return node->account;
 }
+
+extern BREthereumNetwork
+lightNodeGetNetwork (BREthereumLightNode node) {
+    return node->network;
+}
+
 
 //
 // Listener
@@ -334,12 +337,17 @@ lightNodeThreadRoutine (BREthereumLightNode node) {
     }
 
     node->state = LIGHT_NODE_DISCONNECTED;
+    
+    // TODO: This was needed, but I forgot why.
+    //     node->type = NODE_TYPE_NONE;
+    
     pthread_detach(node->thread);
     return NULL;
 }
 
 extern BREthereumBoolean
-lightNodeConnect(BREthereumLightNode node) {
+lightNodeConnect(BREthereumLightNode node,
+                 BREthereumClient client) {
     pthread_attr_t attr;
 
     switch (node->state) {
@@ -365,16 +373,10 @@ lightNodeConnect(BREthereumLightNode node) {
             }
 
             node->state = LIGHT_NODE_CONNECTING;
+            node->client = client;
             return ETHEREUM_BOOLEAN_TRUE;
         }
     }
-}
-
-extern void
-lightNodeConnectAndWait (BREthereumLightNode node) {
-    ethereumConnect(node);
-    while (LIGHT_NODE_CONNECTED != node->state)
-        sleep (1);
 }
 
 extern BREthereumBoolean
@@ -382,14 +384,6 @@ lightNodeDisconnect (BREthereumLightNode node) {
     node->state = LIGHT_NODE_DISCONNECTING;
     return ETHEREUM_BOOLEAN_TRUE;
 }
-
-extern void
-lightNodeDisconnectAndWait(BREthereumLightNode node) {
-    ethereumDisconnect(node);
-    while (LIGHT_NODE_DISCONNECTED != node->state)
-        sleep (1);
-}
-
 
 //
 // Wallet Lookup & Insert
@@ -455,7 +449,7 @@ lightNodeGetWalletHoldingToken(BREthereumLightNode node,
 
     if (-1 == wid) {
         BREthereumWallet wallet = walletCreateHoldingToken(node->account,
-                                                           node->configuration.network,
+                                                           node->network,
                                                            token);
         lightNodeInsertWallet(node, wallet);
         wid = lightNodeLookupWalletId(node, wallet);
@@ -519,24 +513,28 @@ extern void // status, error
 lightNodeWalletSubmitTransaction(BREthereumLightNode node,
                                  BREthereumWallet wallet,
                                  BREthereumTransaction transaction) {
-    switch (node->configuration.type) {
-        case NODE_TYPE_JSON_RPC: {
-            char *rawTransaction = walletGetRawTransactionHexEncoded(wallet, transaction, "0x");
+    char *rawTransaction = walletGetRawTransactionHexEncoded(wallet, transaction, "0x");
 
-            node->configuration.u.json_rpc.funcSubmitTransaction
-                    (node->configuration.u.json_rpc.funcContext,
+    switch (node->type) {
+        case NODE_TYPE_LES:
+            // TODO: Fall-through on error, perhaps
+
+        case NODE_TYPE_JSON_RPC: {
+            node->client.funcSubmitTransaction
+                    (node->client.funcContext,
                      node,
                      lightNodeLookupWalletId(node, wallet),
                      lightNodeLookupTransactionId(node, transaction),
                      rawTransaction,
                      ++node->requestId);
 
-            free(rawTransaction);
             break;
         }
-        case NODE_TYPE_LES:
-            assert (0);
+
+        case NODE_TYPE_NONE:
+            break;
     }
+    free(rawTransaction);
 }
 
 extern BREthereumTransactionId *
@@ -724,12 +722,15 @@ lightNodeDeleteTransaction (BREthereumLightNode node,
  */
 extern void
 lightNodeUpdateTransactions (BREthereumLightNode node) {
-    switch (node->configuration.type) {
+    switch (node->type) {
+        case NODE_TYPE_LES:
+            // TODO: Fall-through on error, perhaps
+
         case NODE_TYPE_JSON_RPC: {
             char *address = addressAsString(accountGetPrimaryAddress(node->account));
             
-            node->configuration.u.json_rpc.funcGetTransactions
-            (node->configuration.u.json_rpc.funcContext,
+            node->client.funcGetTransactions
+            (node->client.funcContext,
              node,
              address,
              ++node->requestId);
@@ -737,8 +738,8 @@ lightNodeUpdateTransactions (BREthereumLightNode node) {
             free (address);
             break;
         }
-        case NODE_TYPE_LES:
-            //      assert (0);
+
+        case NODE_TYPE_NONE:
             break;
     }
 }
@@ -752,14 +753,17 @@ lightNodeUpdateTransactions (BREthereumLightNode node) {
  */
 extern void
 lightNodeUpdateLogs (BREthereumLightNode node, BREthereumEvent event) {
-    switch (node->configuration.type) {
+    switch (node->type) {
+        case NODE_TYPE_LES:
+            // TODO: Fall-through on error, perhaps
+
         case NODE_TYPE_JSON_RPC: {
             char *address = addressAsString(accountGetPrimaryAddress(node->account));
             char *encodedAddress =
                     eventERC20TransferEncodeAddress (event, address);
 
-            node->configuration.u.json_rpc.funcGetLogs
-            (node->configuration.u.json_rpc.funcContext,
+            node->client.funcGetLogs
+            (node->client.funcContext,
              node,
              encodedAddress,
              eventGetSelector(event),
@@ -769,8 +773,8 @@ lightNodeUpdateLogs (BREthereumLightNode node, BREthereumEvent event) {
             free (address);
             break;
         }
-        case NODE_TYPE_LES:
-            //      assert (0);
+
+        case NODE_TYPE_NONE:
             break;
     }
 }
@@ -782,12 +786,13 @@ lightNodeUpdateWalletBalance(BREthereumLightNode node,
                              BREthereumWalletId wid) {
     BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
 
-    switch (node->configuration.type) {
+    switch (node->type) {
+        case NODE_TYPE_LES:
         case NODE_TYPE_JSON_RPC: {
             char *address = addressAsString(walletGetAddress(wallet));
 
-            node->configuration.u.json_rpc.funcGetBalance
-                    (node->configuration.u.json_rpc.funcContext,
+            node->client.funcGetBalance
+                    (node->client.funcContext,
                      node,
                      wid,
                      address,
@@ -796,8 +801,9 @@ lightNodeUpdateWalletBalance(BREthereumLightNode node,
             free(address);
             break;
         }
-        case NODE_TYPE_LES:
-            assert (0);
+
+        case NODE_TYPE_NONE:
+            break;
     }
 }
 
@@ -807,7 +813,8 @@ lightNodeUpdateTransactionGasEstimate (BREthereumLightNode node,
                                        BREthereumTransactionId tid) {
     BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
     
-    switch (node->configuration.type) {
+    switch (node->type) {
+        case NODE_TYPE_LES:
         case NODE_TYPE_JSON_RPC: {
             // This will be ZERO if transaction amount is in TOKEN.
             BREthereumEther amountInEther = transactionGetEffectiveAmountInEther (transaction);
@@ -815,8 +822,8 @@ lightNodeUpdateTransactionGasEstimate (BREthereumLightNode node,
             char *amount = coerceString(amountInEther.valueInWEI, 16);
             char *data = (char *) transactionGetData(transaction);
             
-            node->configuration.u.json_rpc.funcEstimateGas
-            (node->configuration.u.json_rpc.funcContext,
+            node->client.funcEstimateGas
+            (node->client.funcContext,
              node,
              wid,
              tid,
@@ -832,25 +839,29 @@ lightNodeUpdateTransactionGasEstimate (BREthereumLightNode node,
             
             break;
         }
-        case NODE_TYPE_LES:
             assert (0);
+
+        case NODE_TYPE_NONE:
+            break;
     }
 }
 
 extern void
 lightNodeUpdateWalletDefaultGasPrice (BREthereumLightNode node,
                                       BREthereumWalletId wid) {
-    switch (node->configuration.type) {
+    switch (node->type) {
+        case NODE_TYPE_LES:
         case NODE_TYPE_JSON_RPC: {
-            node->configuration.u.json_rpc.funcGetGasPrice
-            (node->configuration.u.json_rpc.funcContext,
+            node->client.funcGetGasPrice
+            (node->client.funcContext,
              node,
              wid,
              ++node->requestId);
             break;
         }
-        case NODE_TYPE_LES:
-            assert (0);
+
+        case NODE_TYPE_NONE:
+            break;
     }
 }
 
