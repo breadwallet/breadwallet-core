@@ -744,6 +744,7 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateTransaction
                               ? amountCreateEtherString(amountChars, amountUnit, &status)
                               : amountCreateTokenQuantityString(token, amountChars, amountUnit,
                                                                 &status);
+    (*env)->ReleaseStringUTFChars (env, amountObject, amountChars);
 
     const char *to = (*env)->GetStringUTFChars(env, toObject, 0);
     BREthereumTransactionId tid =
@@ -1261,10 +1262,15 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_initializeNative
 //
 static jmethodID
 lookupListenerMethod (JNIEnv *env, jobject listener, char *name, char *type) {
-    return (*env)->GetMethodID(env,
-                               (*env)->GetObjectClass(env, listener),
-                               name,
-                               type);
+    // Class with desired method.
+    jclass listenerClass = (*env)->GetObjectClass(env, listener);
+
+    // Method, if found.
+    jmethodID listenerMethod = (*env)->GetMethodID(env, listenerClass, name, type);
+
+    // Clean up and return.
+    (*env)->DeleteLocalRef (env, listenerClass);
+    return listenerMethod;
 }
 
 
