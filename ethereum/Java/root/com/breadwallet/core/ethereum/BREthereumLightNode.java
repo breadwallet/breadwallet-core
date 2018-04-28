@@ -403,6 +403,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     protected void trampolineWalletEvent (long wid, long event) {
         Listener l =  getListener();
         if (null == l) return;
+        if (event < 0 || event > 6) return; // TODO: Resolve bug
 
         // Lookup the wallet - this will create the wallet if it doesn't exist.  Thus, if the
         // `event` is `create`, we get a wallet; and even, if the `event` is `delete`, we get a
@@ -416,6 +417,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     protected void trampolineBlockEvent (long bid, long event) {
         Listener l = getListener();
         if (null == l) return;
+        if (event < 0 || event > 2) return; // TODO: Resolve bug
 
         // Nothing, at this point
     }
@@ -423,6 +425,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     protected void trampolineTransactionEvent (long wid, long tid, long event) {
         Listener l =  getListener();
         if (null == l) return;
+        if (event < 0 || event > 6) return; // TODO: Resolve bug
 
         BREthereumWallet wallet = walletLookupOrCreate(wid, null);
         BREthereumTransaction transaction = transactionLookupOrCreate (tid);
