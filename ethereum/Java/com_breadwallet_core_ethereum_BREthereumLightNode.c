@@ -1296,9 +1296,9 @@ jsonRpcGetBalance(JsonRpcContext context,
     jobject accountObject = (*env)->NewStringUTF(env, account);
 
     (*env)->CallVoidMethod(env, listener, listenerMethod,
-                           wid,
+                           (jint) wid,
                            accountObject,
-                           id);
+                           (jint) id);
 
     (*env)->DeleteLocalRef(env, listener);
     (*env)->DeleteLocalRef(env, accountObject);
@@ -1323,8 +1323,8 @@ jsonRpcGetGasPrice(JsonRpcContext context,
     assert (NULL != listenerMethod);
 
     (*env)->CallVoidMethod(env, listener, listenerMethod,
-                           wid,
-                           id);
+                           (jint) wid,
+                           (jint) id);
 
     (*env)->DeleteLocalRef(env, listener);
 }
@@ -1355,12 +1355,12 @@ jsonRpcEstimateGas(JsonRpcContext context, BREthereumLightNode node,
     jobject dataObject = (*env)->NewStringUTF(env, data);
 
     (*env)->CallVoidMethod(env, listener, listenerMethod,
-                           wid,
-                           tid,
+                           (jint) wid,
+                           (jint) tid,
                            toObject,
                            amountObject,
                            dataObject,
-                           id);
+                           (jint) id);
 
     (*env)->DeleteLocalRef(env, dataObject);
     (*env)->DeleteLocalRef(env, amountObject);
@@ -1391,10 +1391,10 @@ jsonRpcSubmitTransaction(JsonRpcContext context,
     jobject transactionObject = (*env)->NewStringUTF(env, transaction);
 
     (*env)->CallVoidMethod(env, listener, listenerMethod,
-                             wid,
-                             tid,
-                             transactionObject,
-                             id);
+                           (jint) wid,
+                           (jint) tid,
+                           transactionObject,
+                           (jint) id);
 
     (*env)->DeleteLocalRef(env, transactionObject);
     (*env)->DeleteLocalRef(env, listener);
@@ -1429,7 +1429,7 @@ jsonRpcGetTransactions(JsonRpcContext context,
 
     (*env)->CallVoidMethod(env, listener, listenerMethod,
                            addressObject,
-                           id);
+                           (jint) id);
 
     (*env)->DeleteLocalRef(env, addressObject);
     (*env)->DeleteLocalRef(env, listener);
@@ -1460,7 +1460,7 @@ jsonRpcGetLogs(JsonRpcContext context,
     (*env)->CallVoidMethod(env, listener, listenerMethod,
                            addressObject,
                            eventObject,
-                           id);
+                           (jint) id);
 
     (*env)->DeleteLocalRef(env, eventObject);
     (*env)->DeleteLocalRef(env, addressObject);
@@ -1485,11 +1485,13 @@ listenerWalletEventHandler(BREthereumListenerContext context,
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
                                  "trampolineWalletEvent",
-                                 "(JJ)V");
+                                 "(II)V");
     assert (NULL != listenerMethod);
 
     // Callback
-    (*env)->CallVoidMethod(env, listener, listenerMethod, wid, event);
+    (*env)->CallVoidMethod(env, listener, listenerMethod,
+                           (jint) wid,
+                           (jint) event);
 
     // Cleanup
     (*env)->DeleteLocalRef(env, listener);
@@ -1510,11 +1512,13 @@ listenerBlockEventHandler(BREthereumListenerContext context,
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
                                  "trampolineBlockEvent",
-                                 "(JJ)V");
+                                 "(II)V");
     assert (NULL != listenerMethod);
 
     // Callback
-    (*env)->CallVoidMethod(env, listener, listenerMethod, bid, event);
+    (*env)->CallVoidMethod(env, listener, listenerMethod,
+                           (jint) bid,
+                           (jint) event);
 
     // Cleanup
     (*env)->DeleteLocalRef(env, listener);
@@ -1535,11 +1539,14 @@ listenerTransactionEventHandler(BREthereumListenerContext context,
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
                                  "trampolineTransactionEvent",
-                                 "(JJJ)V");
+                                 "(III)V");
     assert (NULL != listenerMethod);
 
     // Callback
-    (*env)->CallVoidMethod(env, listener, listenerMethod, wid, tid, event);
+    (*env)->CallVoidMethod(env, listener, listenerMethod,
+                           (jint) wid,
+                           (jint) tid,
+                           (jint) event);
 
     // Cleanup
     (*env)->DeleteLocalRef(env, listener);

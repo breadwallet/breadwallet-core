@@ -436,7 +436,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     // These methods also give us a chance to convert the `event`, as a `long`, to the Event.
     //
-    protected void trampolineWalletEvent (long wid, long event) {
+    protected void trampolineWalletEvent (int wid, int event) {
         Listener l =  getListener();
         if (null == l) return;
         if (event < 0 || event > 6) return; // TODO: Resolve bug
@@ -450,7 +450,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
         l.handleWalletEvent(wallet, Listener.WalletEvent.values()[(int) event]);
     }
 
-    protected void trampolineBlockEvent (long bid, long event) {
+    protected void trampolineBlockEvent (int bid, int event) {
         Listener l = getListener();
         if (null == l) return;
         if (event < 0 || event > 2) return; // TODO: Resolve bug
@@ -458,7 +458,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
         // Nothing, at this point
     }
 
-    protected void trampolineTransactionEvent (long wid, long tid, long event) {
+    protected void trampolineTransactionEvent (int wid, int tid, int event) {
         Listener l =  getListener();
         if (null == l) return;
         if (event < 0 || event > 6) return; // TODO: Resolve bug
