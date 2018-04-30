@@ -249,7 +249,7 @@ int _readAuth(BREthereumHandshakeContext * ctx) {
 
         UInt256 sharedSecret;
         
-        etheruemECDHAgree(ctx->key, ctx->remotePubKey.u8, &sharedSecret);
+        etheruemECDHAgree(ctx->key, (UInt512*) ctx->remotePubKey.u8, &sharedSecret);
         
         UInt256 xOrSharedSecret;
         ethereumXORBytes(sharedSecret.u8, ctx->remoteNonce.u8, xOrSharedSecret.u8, sizeof(xOrSharedSecret.u8));

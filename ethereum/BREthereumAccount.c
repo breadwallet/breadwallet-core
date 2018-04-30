@@ -26,7 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <BRKey.h>
+#include "BRKey.h"
 #include "BRBIP32Sequence.h"
 #include "BRBIP39Mnemonic.h"
 #include "BRCrypto.h"

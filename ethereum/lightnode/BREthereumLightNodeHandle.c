@@ -44,6 +44,8 @@ static void
 lightNodeHandleBalanceEventDispatcher(BREventHandler ignore,
                                       BREthereumHandleBalanceEvent *event) {
     BREthereumLightNode node = event->node;
+    pthread_mutex_lock(&node->lock);
+
     BREthereumWalletId wid = (AMOUNT_ETHER == amountGetType(event->amount)
                               ? lightNodeGetWallet(node)
                               : lightNodeGetWalletHoldingToken(node, amountGetToken (event->amount)));
@@ -55,6 +57,8 @@ lightNodeHandleBalanceEventDispatcher(BREventHandler ignore,
     lightNodeListenerAnnounceWalletEvent(node, wid, WALLET_EVENT_BALANCE_UPDATED,
                                          SUCCESS,
                                          NULL);
+
+    pthread_mutex_unlock(&node->lock);
 }
 
 BREventType handleBalanceEventType = {
@@ -83,11 +87,14 @@ static void
 lightNodeHandleNonceEventDispatcher(BREventHandler ignore,
                                     BREthereumHandleNonceEvent *event) {
     BREthereumLightNode node = event->node;
+    pthread_mutex_lock(&node->lock);
+
     BREthereumEncodedAddress address = accountGetPrimaryAddress(lightNodeGetAccount(node));
 
     addressSetNonce(address, event->nonce);
 
     // lightNodeListenerAnnounce ...
+    pthread_mutex_unlock(&node->lock);
 }
 
 BREventType handleNonceEventType = {
@@ -117,6 +124,8 @@ static void
 lightNodeHandleTransactionStatusEventDispatcher(BREventHandler ignore,
                                                 BREthereumHandleTransactionStatusEvent *event) {
     BREthereumLightNode node = event->node;
+    pthread_mutex_lock(&node->lock);
+
     BREthereumTransaction transaction = lightNodeLookupTransactionByHash(node, event->transactionHash);
 
     if (NULL == transaction) return;
@@ -137,6 +146,7 @@ lightNodeHandleTransactionStatusEventDispatcher(BREventHandler ignore,
     }
     //    BREthereumAddress address = accountGetPrimaryAddress(lightNodeGetAccount(node));
     //    addressSetNonce(address, event->nonce);
+    pthread_mutex_unlock(&node->lock);
 
     //lightNodeListenerAnnounceTransactionEvent(node, wid, tid, TRANSACTION_EVENT_BLOCKED, SUCCESS, NULL));
 }

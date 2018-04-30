@@ -678,18 +678,19 @@ void runAddressTests (BREthereumAccount account) {
     printf ("        String: %p\n", address);
     
     printf ("      PaperKey: %p, %s\n", TEST_PAPER_KEY, TEST_PAPER_KEY);
-    
+
+#if defined (DEBUG)
     const char *publicKeyString = addressPublicKeyAsString (address, 1);
     printf ("    Public Key: %p, %s\n", publicKeyString, publicKeyString);
     assert (0 == strcmp (TEST_ETH_PUBKEY, publicKeyString));
+    free ((void *) publicKeyString);
+#endif
     
     const char *addressString = addressAsString (address);
     printf ("       Address: %s\n", addressString);
     assert (0 == strcmp (TEST_ETH_ADDR, addressString) ||
             0 == strcmp (TEST_ETH_ADDR_CHK, addressString));
-    
     free ((void *) addressString);
-    free ((void *) publicKeyString);
 }
 
 //

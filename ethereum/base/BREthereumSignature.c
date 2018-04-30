@@ -82,7 +82,9 @@ signatureCreate(BREthereumSignatureType type,
 
 extern BREthereumBoolean
 signatureEqual (BREthereumSignature s1, BREthereumSignature s2) {
-    return (0 == memcmp(&s1, &s2, sizeof (BREthereumSignature))
+    return (s1.sig.recoverable.v == s2.sig.recoverable.v &&
+            0 == memcmp (s1.sig.recoverable.r, s2.sig.recoverable.r, 32) &&
+            0 == memcmp (s1.sig.recoverable.s, s2.sig.recoverable.s, 32)
             ? ETHEREUM_BOOLEAN_TRUE
             : ETHEREUM_BOOLEAN_FALSE);
 }

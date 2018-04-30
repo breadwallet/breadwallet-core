@@ -31,7 +31,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include "BRArray.h"
-#include <BRBIP39Mnemonic.h>
+#include "BRBIP39Mnemonic.h"
 
 #include "BREthereumPrivate.h"
 #include "BREthereumLightNodePrivate.h"
