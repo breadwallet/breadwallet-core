@@ -37,6 +37,7 @@
 #include "BREthereumHandshake.h"
 #include "BREthereumNode.h"
 #include "BREthereumLESBase.h"
+#include "BRRlpCoder.h"
 
 #ifndef MSG_NOSIGNAL   // linux based systems have a MSG_NOSIGNAL send flag, useful for supressing SIGPIPE signals
 #define MSG_NOSIGNAL 0 // set to 0 if undefined (BSD has the SO_NOSIGPIPE sockopt, and windows has no signals at all)
@@ -47,6 +48,8 @@
 #define HEPUBLIC_BYTES      64
 #define NONCE_BYTES         64
 
+
+
 static const ssize_t authBufLen = SIG_SIZE_BYTES + HEPUBLIC_BYTES + PUBLIC_SIZE_BYTES + NONCE_BYTES + 1;
 static const ssize_t ackBufLen = PUBLIC_SIZE_BYTES + NONCE_BYTES + 1;
 
@@ -54,6 +57,9 @@ typedef struct {
 
     //A weak reference to the remote peer information
     BREthereumPeer* peer;
+    
+    //The header information to exchange with the peer.
+    BREthereumLESHeader header;
     
     //The next state of the handshake
     BREthereumHandshakeStatus nextState;
@@ -86,13 +92,6 @@ typedef struct {
 
 
 /*** Private functions **/
-void _xorBRInt256(UInt256 * opr1, UInt256 * opr2, UInt256 * result)
-{
-    for (unsigned int i = 0; i < sizeof(opr1->u8); ++i) {
-        result->u8[i] = opr1->u8[i] ^ opr2->u8[i];
-    }
-}
-
 int _readBuffer(BREthereumHandshakeContext* handshakeCtx, uint8_t * buf, size_t bufSize, const char * type){
 
     BREthereumPeer * peerCtx = handshakeCtx->peer;
@@ -251,6 +250,68 @@ int _writeLESStatus(BREthereumHandshakeContext * ctx){
     
     bre_peer_log(peer, "sending status message with capabilities handshake");
     
+    BRRlpCoder coder = rlpCoderCreate();
+
+    BRRlpItem headerItems[10];
+    size_t itemsCount = 0;
+
+    /**
+        [+0x00, [key_0, value_0], [key_1, value_1], …]
+        “protocolVersion” P: is 1 for the LPV1 protocol version.
+        “networkId” P: should be 0 for testnet, 1 for mainnet.
+        “headTd” P: Total Difficulty of the best chain. Integer, as found in block header.
+        “headHash” B_32: the hash of the best (i.e. highest TD) known block.
+        “headNum” P: the number of the best (i.e. highest TD) known block.
+        “genesisHash” B_32: the hash of the Genesis block.
+        “serveHeaders” (no value): present if the peer can serve header chain downloads.
+        “serveChainSince” P: present if the peer can serve Body/Receipts ODR requests starting from the given block number.
+        “serveStateSince” P: present if the peer can serve Proof/Code ODR requests starting from the given block number.
+        “txRelay” (no value): present if the peer can relay transactions to the ETH network.
+        “flowControl/BL”, “flowControl/MRC”, “flowControl/MRR”: see Client Side Flow Control
+    */
+    
+    headerItems[0] = rlpEncodeItemUInt64(coder, 0x00);
+    
+    //protocolVersion
+    BRRlpItem keyPair [2];
+    keyPair[0] = rlpEncodeItemString(coder, "protocolVersion");
+    keyPair[1] = rlpEncodeItemUInt64(coder, 1);
+    headerItems[1] = rlpEncodeListItems(coder, keyPair, 2);
+    
+    //networkId
+    keyPair[0] = rlpEncodeItemString(coder, "networkId");
+    keyPair[1] = rlpEncodeItemUInt64(coder, ctx->header.chainId);
+    headerItems[2] = rlpEncodeListItems(coder, keyPair, 2);
+
+    //headTd
+    keyPair[0] = rlpEncodeItemString(coder, "headTd");
+    keyPair[1] = rlpEncodeItemUInt64(coder, ctx->header.headerTd);
+    headerItems[3] = rlpEncodeListItems(coder, keyPair, 2);
+    
+    //headHash
+    keyPair[0] = rlpEncodeItemString(coder, "headHash");
+    keyPair[1] = rlpEncodeItemBytes(coder, ctx->header.headHash, sizeof(ctx->header.headHash));
+    headerItems[4] = rlpEncodeListItems(coder, keyPair, 2);
+    
+    //headNum
+    keyPair[0] = rlpEncodeItemString(coder, "headNum");
+    keyPair[1] = rlpEncodeItemUInt64(coder, ctx->header.headerTd);
+    headerItems[5] = rlpEncodeListItems(coder, keyPair, 2);
+    
+    //genesisHash
+    keyPair[0] = rlpEncodeItemString(coder, "genesisHash");
+    keyPair[1] = rlpEncodeItemBytes(coder, ctx->header.genesisHash, sizeof(ctx->header.genesisHash));
+    headerItems[6] = rlpEncodeListItems(coder, keyPair, 2);
+    
+    BRRlpItem encoding = rlpEncodeListItems(coder, headerItems, itemsCount);
+    BRRlpData result;
+
+    rlpDataExtract(coder, encoding, &result.bytes, &result.bytesCount);
+    
+    _sendBuffer(ctx, result.bytes, result.bytesCount, "write status");
+    
+    rlpCoderRelease(coder);
+
     return 0;
 }
 int _readLESStatus(BREthereumHandshakeContext * ctx) {
@@ -260,19 +321,54 @@ int _readLESStatus(BREthereumHandshakeContext * ctx) {
     bre_peer_log(peer, "sending status message with capabilities handshake");
     
     //TODO: Make sure to authenticate the header with original status message
+    
+    /*
+    _readBuffer(ctx, <#uint8_t *buf#>, <#size_t bufSize#>, <#const char *type#>); 
+    
+    
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem item = rlpGetItem (coder, data);
+
+    size_t itemsCount = 0;
+    const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
+    assert (9 == itemsCount);
+
+    transaction->nonce = transactionDecodeNonce(items[0], coder);
+    transaction->gasPrice = gasPriceRlpDecode(items[1], coder);
+    transaction->gasLimit = gasRlpDecode(items[2], coder);
+
+    char *strData = rlpDecodeItemHexString (coder, items[5], "0x");
+    assert (NULL != strData);
+    if ('\0' == strData[0] || 0 == strcmp (strData, "0x")) {
+        // This is a ETHER transfer
+        transaction->targetAddress = addressRlpDecode(items[3], coder);
+        transaction->amount = amountRlpDecodeAsEther(items[4], coder);
+        transaction->data = strData;
+    }
+    */
+
 
     return 0;
 }
 /*** Public functions ***/
-BREthereumHandShake ethereumHandshakeCreate(BREthereumPeer * peer, BRKey* nodeKey, BREthereumBoolean didOriginate) {
+BREthereumHandShake ethereumHandshakeCreate(BREthereumPeer * peer,
+                                            BRKey* nodeKey,
+                                            BREthereumBoolean didOriginate,
+                                            BREthereumLESHeader* header) {
 
     BREthereumHandshakeContext * ctx =  ( BREthereumHandshakeContext *) calloc (1, sizeof(*ctx));
     ctx->peer = peer;
     ctx->nextState = BRE_HANDSHAKE_NEW;
     ctx->key = nodeKey;
     ctx->didOriginate = didOriginate;
+    memcpy(&ctx->header, header, sizeof(ctx->header));
     //ctx->nonce = ((uint64_t)BRRand(0) << 32) | (uint64_t)BRRand(0); // random nonce
     return (BREthereumHandShake)ctx;
+}
+void ethereumHandshakePeerStatus(BREthereumHandShake handshake, BREthereumLESHeader* oHeader) {
+
+    BREthereumHandshakeContext* ctx = (BREthereumHandshakeContext *)handshake;
+    memcpy(oHeader, &ctx->header, sizeof(ctx->header));
 }
 BREthereumHandshakeStatus ethereumHandshakeTransition(BREthereumHandShake handshake){
 
