@@ -250,7 +250,7 @@ public class BREthereumLightNodeClientTest implements
 
         asserting("0".equals(walletEther.getBalance()));
 
-        BREthereumWallet walletToken = node.getWallet(BREthereumToken.tokenBRD);
+        BREthereumWallet walletToken = node.getWallet(node.tokenBRD);
         asserting(null != walletToken.getToken()
                 && walletToken.getToken().getSymbol().equals("BRD"));
         walletToken.setDefaultUnit(BREthereumAmount.Unit.TOKEN_DECIMAL);
@@ -318,8 +318,8 @@ public class BREthereumLightNodeClientTest implements
                     "\n   nonce: " + transaction.getNonce() +
                     "\n\n");
         }
-        BREthereumToken t1 = BREthereumToken.lookup(BREthereumToken.tokenBRD.getAddress());
-        asserting (t1.getSymbol().equals(BREthereumToken.tokenBRD.getSymbol()));
+        BREthereumToken t1 = node.lookupToken(node.tokenBRD.getAddress());
+        asserting (t1.getSymbol().equals(node.tokenBRD.getSymbol()));
 
         // Wait until balance updates.
         String etherBalanceWEI = "4671"; // 0x123f
@@ -349,7 +349,7 @@ public class BREthereumLightNodeClientTest implements
 
         // Tokens
         //
-        for (BREthereumToken token : BREthereumToken.tokens)
+        for (BREthereumToken token : node.tokens)
             System.out.println("Token: " + token.getSymbol() + ", " + token.getName() +
                     ", " + token.getAddress() +
                     ", " + token.getDecimals());

@@ -29,6 +29,9 @@ import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.breadwallet.core.ethereum.BREthereumToken.jniGetTokenBRD;
+import static com.breadwallet.core.ethereum.BREthereumToken.jniTokenAll;
+
 /**
  *
  */
@@ -272,7 +275,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     protected Map<Long, BREthereumWallet> wallets = new HashMap<>();
 
-    protected BREthereumWallet walletLookupOrCreate(long wid, BREthereumToken token) {
+    protected synchronized BREthereumWallet walletLookupOrCreate(long wid, BREthereumToken token) {
         BREthereumWallet wallet = wallets.get(wid);
 
         // If we never had a wallet, then create one.
@@ -282,7 +285,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
             if (null == token) {
                 long tokenRef = jniLightNodeWalletGetToken(wid);
                 if (0 != tokenRef)
-                    token = BREthereumToken.lookupByReference (tokenRef);
+                    token = lookupTokenByReference (tokenRef);
             }
 
             wallet = (null == token
@@ -318,7 +321,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     protected Map<Long, WeakReference<BREthereumTransaction>> transactions = new HashMap<>();
 
-    protected BREthereumTransaction transactionLookupOrCreate(long tid) {
+    protected synchronized BREthereumTransaction transactionLookupOrCreate(long tid) {
         WeakReference<BREthereumTransaction> transactionRef = transactions.get(tid);
 
         if (null == transactionRef || null == transactionRef.get()) {
@@ -340,7 +343,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     protected Map<Long, BREthereumBlock> blocks = new HashMap<>();
 
-    protected BREthereumBlock blockLookupOrCreate (long bid) {
+    protected synchronized BREthereumBlock blockLookupOrCreate (long bid) {
         BREthereumBlock block = blocks.get(bid);
 
         if (null == block) {
@@ -352,6 +355,38 @@ public class BREthereumLightNode extends BRCoreJniReference {
 
     public long getBlockHeight () {
         return jniLightNodeGetBlockHeight();
+    }
+
+    //
+    // Tokens
+    //
+    protected final HashMap<String, BREthereumToken> tokensByAddress = new HashMap<>();
+    protected final HashMap<Long, BREthereumToken> tokensByReference = new HashMap<>();
+    public BREthereumToken[] tokens = null;
+    public BREthereumToken tokenBRD;
+
+    protected void initializeTokens () {
+        long[] references =  jniTokenAll ();
+        tokens = new BREthereumToken[references.length];
+
+        for (int i = 0; i < references.length; i++)
+            tokens[i] = new BREthereumToken(references[i]);
+
+        for (BREthereumToken token : tokens) {
+            System.err.println ("Token: " + token.getSymbol());
+            tokensByReference.put(token.getIdentifier(), token);
+            tokensByAddress.put (token.getAddress().toLowerCase(), token);
+        }
+
+        tokenBRD = lookupTokenByReference(jniGetTokenBRD());
+    }
+
+     public BREthereumToken lookupToken (String address) {
+        return tokensByAddress.get(address.toLowerCase());
+    }
+
+    protected BREthereumToken lookupTokenByReference (long reference) {
+        return tokensByReference.get(reference);
     }
 
     //
@@ -367,6 +402,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
         this.client = new WeakReference<Client>(client);
         this.network = network;
         this.account = new BREthereumAccount(this, jniLightNodeGetAccount());
+        initializeTokens ();
         client.assignNode(this);
     }
 
