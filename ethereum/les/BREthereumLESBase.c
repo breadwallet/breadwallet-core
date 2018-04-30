@@ -27,12 +27,15 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <assert.h>
+#include "BRKey.h"
 #include "secp256k1.h"
 #include "secp256k1_ecdh.h"
+#include "secp256k1/src/hash.h"
 #include "BREthereumLESBase.h"
-#include "BRKey.h"
 #include "BREthereumBase.h"
 #include "BRCrypto.h"
+#include "aes.h"
+
 
 #define PRI_KEY_BYTES_SIZE 32
 #define PUB_KEY_BYTES_SIZE 65
@@ -110,9 +113,21 @@ BREthereumBoolean ethereumGenRandomPriKey(BRKey ** key) {
     
     return ETHEREUM_BOOLEAN_TRUE;
 }
+void _kdf(UInt256* priKey, uint8_t* bytes, size_t len, uint8_t * dst) {
+    /**
+     * KDF implementation
+     * @cite: modification from the cpp-ethereum project defined in /devcrypto/Common.cpp (bytes ecies::kdf)
+  
+    */
+}
+void ethereumXORBytes(uint8_t * op1, uint8_t* op2, uint8_t* result, size_t len) {
+    for (unsigned int i = 0; i < len;  ++i) {
+        result[i] = opr1[i] ^ opr2[i];
+    }
 
-BREthereumBoolean etheruemECDHAgree(BRKey* key, UInt512* pubKey, UInt256* outSecret)
-{
+}
+
+BREthereumBoolean etheruemECDHAgree(BRKey* key, UInt512* pubKey, UInt256* outSecret) {
     secp256k1_context* ctx = _ctx;
     secp256k1_pubkey rawPubKey;
     
@@ -133,14 +148,18 @@ BREthereumBoolean etheruemECDHAgree(BRKey* key, UInt512* pubKey, UInt256* outSec
     return ETHEREUM_BOOLEAN_TRUE;
 }
 BREthereumBoolean ethereumEncryptECIES(UInt512* pubKey, uint8_t * plain, uint8_t * cipher, ssize_t len){
-
-    //TODO: Implement encrypt ECIES
-    /** Encrypt data with ECIES method to the given public key
+   
+    /**
+     *  Algorithm is
+     * Encrypt data with ECIES method to the given public key
     1) generate r = random value
     2) generate shared-secret = kdf( ecdhAgree(r, P) )
     3) generate R = rG [same op as generating a public key]
     4) 0x04 || R || AsymmetricEncrypt(shared-secret, plaintext) || tag
     **/
+    
+
+
     memcpy(cipher, plain, len);
     
     return ETHEREUM_BOOLEAN_TRUE; 
@@ -157,8 +176,6 @@ BREthereumBoolean ethereumDecryptECIES(UInt256* priKey, uint8_t * plain, uint8_t
     ecdhAgree(r, recipientPublic) == ecdhAgree(recipientPrivate, R)
     [where R = r*G, and recipientPublic = recipientPrivate*G]
     **/
-    
     memcpy(cipher, plain, len);
-    
     return ETHEREUM_BOOLEAN_TRUE;
 }
