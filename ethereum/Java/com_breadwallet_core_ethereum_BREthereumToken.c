@@ -131,7 +131,7 @@ JNIEXPORT jlongArray JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumToken_jniTokenAll
         (JNIEnv *env, jclass thisClass) {
     int count = tokenCount();
-    long references[count];
+    jlong references[count];
 
     for (int i = 0; i < count; i++)
         references[i] = (jlong) tokenGet (i);
