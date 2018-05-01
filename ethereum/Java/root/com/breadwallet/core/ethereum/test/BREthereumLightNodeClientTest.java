@@ -213,19 +213,26 @@ public class BREthereumLightNodeClientTest implements
 
     @Override
     public void handleWalletEvent(BREthereumWallet wallet,
-                                  WalletEvent event) {
+                                  WalletEvent event,
+                                  Status status,
+                                  String errorDescription) {
         System.err.println ("WalletEvent: " + event);
     }
 
     @Override
-    public void handleBlockEvent(BREthereumBlock block, BlockEvent event) {
+    public void handleBlockEvent(BREthereumBlock block,
+                                 BlockEvent event,
+                                 Status status,
+                                 String errorDescription) {
         System.err.println ("BlockEvent: " + event);
     }
 
     @Override
     public void handleTransactionEvent(BREthereumWallet wallet,
                                        BREthereumTransaction transaction,
-                                       TransactionEvent event) {
+                                       TransactionEvent event,
+                                       Status status,
+                                       String errorDescription) {
         System.err.println ("TransactionEvent: " + event);
     }
 
@@ -244,7 +251,7 @@ public class BREthereumLightNodeClientTest implements
 
         asserting("0".equals(walletEther.getBalance()));
 
-        BREthereumWallet walletToken = node.getWallet(BREthereumToken.tokenBRD);
+        BREthereumWallet walletToken = node.getWallet(node.tokenBRD);
         asserting(null != walletToken.getToken()
                 && walletToken.getToken().getSymbol().equals("BRD"));
         walletToken.setDefaultUnit(BREthereumAmount.Unit.TOKEN_DECIMAL);
@@ -257,11 +264,11 @@ public class BREthereumLightNodeClientTest implements
                 "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
                 "11113000000000",
                 BREthereumAmount.Unit.ETHER_WEI);
-        System.out.println("X1");
+        asserting (-1 == trans1.getNonce());
+        asserting ("".equals(trans1.getHash()));
+
         walletEther.sign(trans1, USABLE_PAPER_KEY);
-        System.out.println("X2");
         walletEther.submit(trans1);
-        System.out.println("X3");
 
         asserting("11113000000000".equals(trans1.getAmount()));
         asserting("11113.000000000".equals(trans1.getAmount(ETHER_GWEI)));
@@ -269,12 +276,10 @@ public class BREthereumLightNodeClientTest implements
         asserting(21000 == trans1.getGasLimit());
         asserting("0.500000000".equals(trans1.getGasPrice(ETHER_GWEI)));
         asserting("10500.000000000".equals(trans1.getFee(ETHER_GWEI)));
-        System.out.println("X4");
 
         // Fee for 1 WEI is 840000 GWEI
         asserting("10500000000000".equals(walletEther.transactionEstimatedFee("1")));
         asserting("10500.000000000".equals(walletEther.transactionEstimatedFee("1", ETHER_ETHER, ETHER_GWEI)));
-        System.out.println("X4");
 
         System.out.println("==== Ether ====\n");
         for (BREthereumTransaction transaction : walletEther.getTransactions()) {
@@ -312,8 +317,8 @@ public class BREthereumLightNodeClientTest implements
                     "\n   nonce: " + transaction.getNonce() +
                     "\n\n");
         }
-        BREthereumToken t1 = BREthereumToken.lookup(BREthereumToken.tokenBRD.getAddress());
-        asserting (t1.getSymbol().equals(BREthereumToken.tokenBRD.getSymbol()));
+        BREthereumToken t1 = node.lookupToken(node.tokenBRD.getAddress());
+        asserting (t1.getSymbol().equals(node.tokenBRD.getSymbol()));
 
         // Wait until balance updates.
         String etherBalanceWEI = "4671"; // 0x123f
@@ -343,7 +348,7 @@ public class BREthereumLightNodeClientTest implements
 
         // Tokens
         //
-        for (BREthereumToken token : BREthereumToken.tokens)
+        for (BREthereumToken token : node.tokens)
             System.out.println("Token: " + token.getSymbol() + ", " + token.getName() +
                     ", " + token.getAddress() +
                     ", " + token.getDecimals());

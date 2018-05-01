@@ -31,7 +31,7 @@ import java.util.HashMap;
 
 public class BREthereumToken extends BRCoreJniReference {
 
-    private BREthereumToken (long jniReferenceAddress) {
+    protected BREthereumToken (long jniReferenceAddress) {
         super (jniReferenceAddress);
     }
 
@@ -47,53 +47,6 @@ public class BREthereumToken extends BRCoreJniReference {
         return jniReferenceAddress;
     }
 
-    //
-    // Lookup with an Address (the Contract)
-    //
-
-    /**
-     * Return the token having `address` or `null` is `address` is unknown.
-     *
-     * @param address
-     * @return
-     */
-    public static BREthereumToken lookup (String address) {
-        return tokensByAddress.get(address.toLowerCase());
-    }
-
-    /**
-     * Return the token having `reference` or `null` if `reference` is unknown.
-     *
-     * @param reference
-     * @return
-     */
-    protected static BREthereumToken lookupByReference (long reference) {
-        return tokensByReference.get(reference);
-    }
-
-    //
-    // All Tokens
-    //
-    public static final HashMap<String, BREthereumToken> tokensByAddress = new HashMap<>();
-    public static final HashMap<Long, BREthereumToken> tokensByReference = new HashMap<>();
-    public static BREthereumToken[] tokens;
-
-    static {
-        long[] references = jniTokenAll ();
-        tokens = new BREthereumToken[references.length];
-        for (int i = 0; i < references.length; i++) {
-            BREthereumToken token = new BREthereumToken(references[i]);
-            tokens[i] = token;
-            tokensByReference.put(references[i], token);
-            tokensByAddress.put (token.getAddress().toLowerCase(), token);
-        }
-    }
-
-    //
-    // The BRD Token
-    //
-    public static BREthereumToken tokenBRD =
-            BREthereumToken.lookupByReference(jniGetTokenBRD());
 
     protected static native long jniGetTokenBRD ();
     protected static native long[] jniTokenAll ();
@@ -101,5 +54,10 @@ public class BREthereumToken extends BRCoreJniReference {
     @Override
     public int hashCode() {
         return getAddress().toLowerCase().hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return "BREthereumToken{" + getSymbol() + "}";
     }
 }

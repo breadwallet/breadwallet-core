@@ -1049,6 +1049,48 @@ void testTransactionCodingToken () {
                                                     transactionGetSignature (decodedTransaction)));
 }
 
+void prepareTransaction (const char *paperKey, const char *recvAddr, const uint64_t gasPrice, const uint64_t gasLimit, const uint64_t amount) {
+    printf ("     Prepare Transaction\n");
+    
+    // START - One Time Code Block
+    BREthereumConfiguration configuration =
+    ethereumConfigurationCreateLES(ethereumMainnet, 0);
+    BREthereumLightNode node = ethereumCreate(configuration, paperKey);
+    // A wallet amount Ether
+    BREthereumWalletId wallet = ethereumGetWallet(node);
+    // END - One Time Code Block
+    
+    // Optional - will provide listNodeWalletCreateTransactionDetailed.
+    ethereumWalletSetDefaultGasPrice(node, wallet, WEI, gasPrice);
+    ethereumWalletSetDefaultGasLimit(node, wallet, gasLimit);
+    
+    BREthereumAmount amountAmountInEther =
+    ethereumCreateEtherAmountUnit(node, amount, WEI);
+    
+    BREthereumTransactionId tx1 =
+    ethereumWalletCreateTransaction
+    (node,
+     wallet,
+     recvAddr,
+     amountAmountInEther);
+    
+    ethereumWalletSignTransaction (node, wallet, tx1, paperKey);
+    
+    const char *rawTransactionHexEncoded =
+    lightNodeGetTransactionRawDataHexEncoded(node, wallet, tx1, "0x");
+    
+    printf ("        Raw Transaction: %s\n", rawTransactionHexEncoded);
+    
+    char *fromAddr = ethereumGetAccountPrimaryAddress(node);
+    BREthereumTransactionId *transactions = ethereumWalletGetTransactions(node, wallet);
+    assert (NULL != transactions && -1 != transactions[0]);
+    
+    BREthereumTransactionId transaction = transactions[0];
+    assert (0 == strcmp (fromAddr, ethereumTransactionGetSendAddress(node, transaction)) &&
+            0 == strcmp (recvAddr, ethereumTransactionGetRecvAddress(node, transaction)));
+
+    free (fromAddr);
+}
 
 //
 // Light Node JSON_RCP
@@ -1306,7 +1348,7 @@ runLightNode_LISTENER_test (const char *paperKey) {
             && AMOUNT_ETHER == amountGetType(balance)
             && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (expectedBalance, amountGetEther(balance)));
 
-    //    lightNodeUpdateTransactions(node);
+    //    ethereumUpdateTransactions(node);
     ethereumDisconnect(node);
 }
 

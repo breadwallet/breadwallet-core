@@ -29,6 +29,9 @@ import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.breadwallet.core.ethereum.BREthereumToken.jniGetTokenBRD;
+import static com.breadwallet.core.ethereum.BREthereumToken.jniTokenAll;
+
 /**
  *
  */
@@ -152,6 +155,35 @@ public class BREthereumLightNode extends BRCoreJniReference {
     // BREthereumLightNode.h - the enumerations values/indices must be identical.
     //
     public interface Listener {
+        enum Status {
+            SUCCESS,
+
+            // Reference access
+            ERROR_UNKNOWN_NODE,
+            ERROR_UNKNOWN_TRANSACTION,
+            ERROR_UNKNOWN_ACCOUNT,
+            ERROR_UNKNOWN_WALLET,
+            ERROR_UNKNOWN_BLOCK,
+            ERROR_UNKNOWN_LISTENER,
+
+            // Node
+            ERROR_NODE_NOT_CONNECTED,
+
+            // Transaction
+            ERROR_TRANSACTION_X,
+
+            // Acount
+            // Wallet
+            // Block
+            // Listener
+
+            // Numeric
+            ERROR_NUMERIC_PARSE,
+        }
+
+        //
+        // Wallet
+        //
         enum WalletEvent {
             CREATED,
             BALANCE_UPDATED,
@@ -162,15 +194,25 @@ public class BREthereumLightNode extends BRCoreJniReference {
             DELETED
         }
 
-        void handleWalletEvent (BREthereumWallet wallet, WalletEvent event);
+        void handleWalletEvent(BREthereumWallet wallet, WalletEvent event,
+                               Status status,
+                               String errorDescription);
 
+        //
+        // Block
+        //
         enum BlockEvent {
             CREATED,
             DELETED
         }
 
-        void handleBlockEvent (BREthereumBlock block, BlockEvent event);
+        void handleBlockEvent(BREthereumBlock block, BlockEvent event,
+                              Status status,
+                              String errorDescription);
 
+        //
+        // Transaction
+        //
         enum TransactionEvent {
             CREATED,
             SIGNED,
@@ -181,7 +223,11 @@ public class BREthereumLightNode extends BRCoreJniReference {
             BLOCK_CONFIRMATIONS_UPDATED
         }
 
-        void handleTransactionEvent (BREthereumWallet wallet, BREthereumTransaction transaction, TransactionEvent event);
+        void handleTransactionEvent(BREthereumWallet wallet,
+                                    BREthereumTransaction transaction,
+                                    TransactionEvent event,
+                                    Status status,
+                                    String errorDescription);
     }
 
     //
@@ -236,7 +282,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     protected Map<Long, BREthereumWallet> wallets = new HashMap<>();
 
-    protected BREthereumWallet walletLookupOrCreate(long wid, BREthereumToken token) {
+    protected synchronized BREthereumWallet walletLookupOrCreate(long wid, BREthereumToken token) {
         BREthereumWallet wallet = wallets.get(wid);
 
         // If we never had a wallet, then create one.
@@ -246,7 +292,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
             if (null == token) {
                 long tokenRef = jniLightNodeWalletGetToken(wid);
                 if (0 != tokenRef)
-                    token = BREthereumToken.lookupByReference (tokenRef);
+                    token = lookupTokenByReference (tokenRef);
             }
 
             wallet = (null == token
@@ -282,7 +328,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     protected Map<Long, WeakReference<BREthereumTransaction>> transactions = new HashMap<>();
 
-    protected BREthereumTransaction transactionLookupOrCreate(long tid) {
+    protected synchronized BREthereumTransaction transactionLookupOrCreate(long tid) {
         WeakReference<BREthereumTransaction> transactionRef = transactions.get(tid);
 
         if (null == transactionRef || null == transactionRef.get()) {
@@ -304,7 +350,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     protected Map<Long, BREthereumBlock> blocks = new HashMap<>();
 
-    protected BREthereumBlock blockLookupOrCreate (long bid) {
+    protected synchronized BREthereumBlock blockLookupOrCreate (long bid) {
         BREthereumBlock block = blocks.get(bid);
 
         if (null == block) {
@@ -316,6 +362,38 @@ public class BREthereumLightNode extends BRCoreJniReference {
 
     public long getBlockHeight () {
         return jniLightNodeGetBlockHeight();
+    }
+
+    //
+    // Tokens
+    //
+    protected final HashMap<String, BREthereumToken> tokensByAddress = new HashMap<>();
+    protected final HashMap<Long, BREthereumToken> tokensByReference = new HashMap<>();
+    public BREthereumToken[] tokens = null;
+    public BREthereumToken tokenBRD;
+
+    protected void initializeTokens () {
+        long[] references =  jniTokenAll ();
+        tokens = new BREthereumToken[references.length];
+
+        for (int i = 0; i < references.length; i++)
+            tokens[i] = new BREthereumToken(references[i]);
+
+        for (BREthereumToken token : tokens) {
+            System.err.println ("Token: " + token.getSymbol());
+            tokensByReference.put(token.getIdentifier(), token);
+            tokensByAddress.put (token.getAddress().toLowerCase(), token);
+        }
+
+        tokenBRD = lookupTokenByReference(jniGetTokenBRD());
+    }
+
+     public BREthereumToken lookupToken (String address) {
+        return tokensByAddress.get(address.toLowerCase());
+    }
+
+    protected BREthereumToken lookupTokenByReference (long reference) {
+        return tokensByReference.get(reference);
     }
 
     //
@@ -342,6 +420,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
         this.client = new WeakReference<>(client);
         this.network = network;
         this.account = new BREthereumAccount(this, jniLightNodeGetAccount());
+        initializeTokens ();
     }
 
 
@@ -372,9 +451,12 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     // These methods also give us a chance to convert the `event`, as a `long`, to the Event.
     //
-    protected void trampolineWalletEvent (long wid, long event) {
+    protected void trampolineWalletEvent (int wid, int event, int status, String errorDescription) {
         Listener l =  getListener();
         if (null == l) return;
+        // TODO: Resolve Bug
+        if (event < 0 || event >= Listener.WalletEvent.values().length) return;
+        if (status < 0 || status >= Listener.Status.values().length) return;
 
         // Lookup the wallet - this will create the wallet if it doesn't exist.  Thus, if the
         // `event` is `create`, we get a wallet; and even, if the `event` is `delete`, we get a
@@ -382,24 +464,42 @@ public class BREthereumLightNode extends BRCoreJniReference {
         BREthereumWallet wallet = walletLookupOrCreate(wid, null);
 
         // Invoke handler
-        l.handleWalletEvent(wallet, Listener.WalletEvent.values()[(int) event]);
+        l.handleWalletEvent(wallet,
+                Listener.WalletEvent.values()[(int) event],
+                Listener.Status.values()[(int) status],
+                errorDescription);
     }
 
-    protected void trampolineBlockEvent (long bid, long event) {
+    protected void trampolineBlockEvent (int bid, int event, int status, String errorDescription) {
         Listener l = getListener();
         if (null == l) return;
+        // TODO: Resolve Bug
+        if (event < 0 || event >= Listener.BlockEvent.values().length) return;
+        if (status < 0 || status >= Listener.Status.values().length) return;
 
         // Nothing, at this point
+        BREthereumBlock block = blockLookupOrCreate(bid);
+
+        l.handleBlockEvent (block,
+                Listener.BlockEvent.values()[(int) event],
+                Listener.Status.values()[(int) status],
+                errorDescription);
     }
 
-    protected void trampolineTransactionEvent (long wid, long tid, long event) {
+    protected void trampolineTransactionEvent (int wid, int tid, int event, int status, String errorDescription) {
         Listener l =  getListener();
         if (null == l) return;
+        // TODO: Resolve Bug
+        if (event < 0 || event >= Listener.TransactionEvent.values().length) return;
+        if (status < 0 || status >= Listener.Status.values().length) return;
 
         BREthereumWallet wallet = walletLookupOrCreate(wid, null);
         BREthereumTransaction transaction = transactionLookupOrCreate (tid);
 
-        l.handleTransactionEvent(wallet, transaction, Listener.TransactionEvent.values()[(int) event]);
+        l.handleTransactionEvent(wallet, transaction,
+                Listener.TransactionEvent.values()[(int) event],
+                Listener.Status.values()[(int) status],
+                errorDescription);
     }
 
      protected void trampolineGetBalance(int wid, String address, int rid) {
