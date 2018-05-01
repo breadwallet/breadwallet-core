@@ -85,21 +85,27 @@ static void
 listenerWalletEventHandler(BREthereumListenerContext context,
                            BREthereumLightNode node,
                            BREthereumWalletId wid,
-                           BREthereumWalletEvent event);
+                           BREthereumWalletEvent event,
+                           BREthereumStatus status,
+                           const char *errorDescription);
 
 
 static void
 listenerBlockEventHandler(BREthereumListenerContext context,
                           BREthereumLightNode node,
                           BREthereumBlockId bid,
-                          BREthereumBlockEvent event);
+                          BREthereumBlockEvent event,
+                          BREthereumStatus status,
+                          const char *errorDescription);
 
 static void
 listenerTransactionEventHandler(BREthereumListenerContext context,
                                 BREthereumLightNode node,
                                 BREthereumWalletId wid,
                                 BREthereumTransactionId tid,
-                                BREthereumTransactionEvent event);
+                                BREthereumTransactionEvent event,
+                                BREthereumStatus status,
+                                const char *errorDescription);
 
 static jstring
 asJniString(JNIEnv *env, char *string) {
@@ -675,7 +681,7 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceGasPrice
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
     const char *strGasPrice = (*env)->GetStringUTFChars (env, gasPrice, 0);
     lightNodeAnnounceGasPrice(node,
-                              wid,
+                              (BREthereumWalletId) wid,
                               strGasPrice,
                               rid);
     (*env)->ReleaseStringUTFChars (env, gasPrice, strGasPrice);
@@ -1475,7 +1481,9 @@ static void
 listenerWalletEventHandler(BREthereumListenerContext context,
                            BREthereumLightNode node,
                            BREthereumWalletId wid,
-                           BREthereumWalletEvent event) {
+                           BREthereumWalletEvent event,
+                           BREthereumStatus status,
+                           const char *errorDescription) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
@@ -1485,15 +1493,22 @@ listenerWalletEventHandler(BREthereumListenerContext context,
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
                                  "trampolineWalletEvent",
-                                 "(II)V");
+                                 "(IIILjava/lang/String;)V");
     assert (NULL != listenerMethod);
+
+    jstring errorDescriptionString = (NULL == errorDescription
+                                      ? NULL
+                                      : (*env)->NewStringUTF(env, errorDescription));
 
     // Callback
     (*env)->CallVoidMethod(env, listener, listenerMethod,
                            (jint) wid,
-                           (jint) event);
+                           (jint) event,
+                           (jint) status,
+                           errorDescriptionString);
 
     // Cleanup
+    if (NULL != errorDescriptionString) (*env)->DeleteLocalRef(env, errorDescriptionString);
     (*env)->DeleteLocalRef(env, listener);
 }
 
@@ -1502,7 +1517,9 @@ static void
 listenerBlockEventHandler(BREthereumListenerContext context,
                           BREthereumLightNode node,
                           BREthereumBlockId bid,
-                          BREthereumBlockEvent event) {
+                          BREthereumBlockEvent event,
+                          BREthereumStatus status,
+                          const char *errorDescription) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
@@ -1512,15 +1529,22 @@ listenerBlockEventHandler(BREthereumListenerContext context,
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
                                  "trampolineBlockEvent",
-                                 "(II)V");
+                                 "(IIILjava/lang/String;)V");
     assert (NULL != listenerMethod);
+
+    jstring errorDescriptionString = (NULL == errorDescription
+                                      ? NULL
+                                      : (*env)->NewStringUTF(env, errorDescription));
 
     // Callback
     (*env)->CallVoidMethod(env, listener, listenerMethod,
                            (jint) bid,
-                           (jint) event);
+                           (jint) event,
+                           (jint) status,
+                           errorDescriptionString);
 
     // Cleanup
+    if (NULL != errorDescriptionString) (*env)->DeleteLocalRef(env, errorDescriptionString);
     (*env)->DeleteLocalRef(env, listener);
 }
 
@@ -1529,7 +1553,9 @@ listenerTransactionEventHandler(BREthereumListenerContext context,
                                 BREthereumLightNode node,
                                 BREthereumWalletId wid,
                                 BREthereumTransactionId tid,
-                                BREthereumTransactionEvent event) {
+                                BREthereumTransactionEvent event,
+                                BREthereumStatus status,
+                                const char *errorDescription) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
@@ -1539,15 +1565,22 @@ listenerTransactionEventHandler(BREthereumListenerContext context,
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
                                  "trampolineTransactionEvent",
-                                 "(III)V");
+                                 "(IIIILjava/lang/String;)V");
     assert (NULL != listenerMethod);
+
+    jstring errorDescriptionString = (NULL == errorDescription
+                                      ? NULL
+                                      : (*env)->NewStringUTF(env, errorDescription));
 
     // Callback
     (*env)->CallVoidMethod(env, listener, listenerMethod,
                            (jint) wid,
                            (jint) tid,
-                           (jint) event);
+                           (jint) event,
+                           (jint) status,
+                           errorDescriptionString);
 
     // Cleanup
+    if (NULL != errorDescriptionString) (*env)->DeleteLocalRef(env, errorDescriptionString);
     (*env)->DeleteLocalRef(env, listener);
 }

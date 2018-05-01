@@ -56,25 +56,31 @@ typedef int32_t BREthereumListenerId;
 // Errors - Right Up Front - 'The Emperor Has No Clothes' ??
 //
 typedef enum {
-    NODE_ERROR_UNKNOWN_NODE,
-    NODE_ERROR_UNKNOWN_TRANSACTION,
-    NODE_ERROR_UNKNOWN_ACCOUNT,
-    NODE_ERROR_UNKNOWN_WALLET,
-    NODE_ERROR_UNKNOWN_BLOCK,
-    NODE_ERROR_UNKNOWN_LISTENER,
+    SUCCESS,
+
+    // Reference access
+    ERROR_UNKNOWN_NODE,
+    ERROR_UNKNOWN_TRANSACTION,
+    ERROR_UNKNOWN_ACCOUNT,
+    ERROR_UNKNOWN_WALLET,
+    ERROR_UNKNOWN_BLOCK,
+    ERROR_UNKNOWN_LISTENER,
 
     // Node
-    NODE_ERROR_NODE_X,
-
+    ERROR_NODE_NOT_CONNECTED,
 
     // Transaction
-    NODE_ERROR_TRANSACTION_X,
+    ERROR_TRANSACTION_X,
 
     // Acount
     // Wallet
     // Block
     // Listener
-} BREthereumError;
+
+    // Numeric
+    ERROR_NUMERIC_PARSE,
+
+} BREthereumStatus;
 
 //
 // Listener
@@ -110,18 +116,24 @@ typedef void *BREthereumListenerContext;
 typedef void (*BREthereumListenerWalletEventHandler)(BREthereumListenerContext context,
                                                      BREthereumLightNode node,
                                                      BREthereumWalletId wid,
-                                                     BREthereumWalletEvent event);
+                                                     BREthereumWalletEvent event,
+                                                     BREthereumStatus status,
+                                                     const char *errorDescription);
 
 typedef void (*BREthereumListenerBlockEventHandler)(BREthereumListenerContext context,
                                                     BREthereumLightNode node,
                                                     BREthereumBlockId bid,
-                                                    BREthereumBlockEvent event);
+                                                    BREthereumBlockEvent event,
+                                                    BREthereumStatus status,
+                                                    const char *errorDescription);
 
 typedef void (*BREthereumListenerTransactionEventHandler)(BREthereumListenerContext context,
                                                           BREthereumLightNode node,
                                                           BREthereumWalletId wid,
                                                           BREthereumTransactionId tid,
-                                                          BREthereumTransactionEvent event);
+                                                          BREthereumTransactionEvent event,
+                                                          BREthereumStatus status,
+                                                          const char *errorDescription);
 //
 // JSON RPC Support
 //

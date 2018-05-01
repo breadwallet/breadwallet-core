@@ -219,19 +219,26 @@ public class BREthereumLightNodeClientTest implements
 
     @Override
     public void handleWalletEvent(BREthereumWallet wallet,
-                                  WalletEvent event) {
+                                  WalletEvent event,
+                                  Status status,
+                                  String errorDescription) {
         System.err.println ("WalletEvent: " + event);
     }
 
     @Override
-    public void handleBlockEvent(BREthereumBlock block, BlockEvent event) {
+    public void handleBlockEvent(BREthereumBlock block,
+                                 BlockEvent event,
+                                 Status status,
+                                 String errorDescription) {
         System.err.println ("BlockEvent: " + event);
     }
 
     @Override
     public void handleTransactionEvent(BREthereumWallet wallet,
                                        BREthereumTransaction transaction,
-                                       TransactionEvent event) {
+                                       TransactionEvent event,
+                                       Status status,
+                                       String errorDescription) {
         System.err.println ("TransactionEvent: " + event);
     }
 
