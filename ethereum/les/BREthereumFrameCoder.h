@@ -27,7 +27,6 @@
 #define BR_Ethereum_Frame_Coder_h
 
 #include <inttypes.h>
-#include "BREthereumHandshake.h"
 #include "BRKey.h"
 #include "BRInt.h"
 #include "BREthereumBase.h"

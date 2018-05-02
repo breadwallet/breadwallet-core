@@ -32,6 +32,8 @@
 #include "BREthereumNode.h"
 #include "BRKey.h"
 #include "BREthereumBase.h"
+#include "BREthereumLES.h"
+#include "BREthereumFrameCoder.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,27 +52,6 @@ typedef enum {
 }BREthereumHandshakeStatus;
 
 /**
- * Header Context information for the LES handshake
- */
-typedef struct {
-    
-    uint64_t protocolVersion;
-    uint64_t chainId;
-    uint64_t headerTd;
-    uint8_t headHash[32];
-    uint64_t headNum;
-    uint8_t genesisHash[32];
-    // Note: The below fields are optional LPV1
-    BREthereumBoolean* serveHeaders;
-    uint64_t* serveChainSince;
-    uint64_t* serveStateSince;
-    BREthereumBoolean* txRelay;
-    uint64_t*flowControlBL;
-    uint64_t*flowControlMRC;
-    uint64_t*flowControlMRR;
-}BREthereumLESHeader;
-
-/**
  * The context for the ethereum handhsake
  *
  */
@@ -84,7 +65,9 @@ typedef struct BREthereumHandshakeContext* BREthereumHandShake;
 extern BREthereumHandShake ethereumHandshakeCreate(BREthereumPeer * peer,
                                                    BRKey* nodeKey,
                                                    BREthereumBoolean didOriginate,
-                                                   BREthereumLESHeader* header);
+                                                   uint8_t* statusMessage,
+                                                   size_t statusMessageLen,
+                                                   BREthereumFrameCoder code);
 
 /**
  * Checks whether the state of the handhsake needs to be updated based on recieving/sending messages
@@ -96,19 +79,12 @@ extern BREthereumHandshakeStatus ethereumHandshakeTransition(BREthereumHandShake
 
 
 /**
- * Retrieves and copies the remote peer's status header
- *
- */
-extern void ethereumHandshakePeerStatus(BREthereumHandShake handshake, BREthereumLESHeader* oHeader);
-
-
-/**
  * Deletes the memory of a handshake context
  *
  * @param handshakeCxt - the hande shake context information to delete
  */
 extern void ethereumHandshakeFree(BREthereumHandShake handshake);
-    
+
 #ifdef __cplusplus
 }
 #endif
