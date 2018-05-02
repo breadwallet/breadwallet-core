@@ -816,11 +816,11 @@ lightNodeUpdateWalletBalance(BREthereumLightNode node,
                                              NULL);
 
     }
-    else if (LIGHT_NODE_CONNECTED != node->state) {
-        lightNodeListenerAnnounceWalletEvent(node, wid, WALLET_EVENT_BALANCE_UPDATED,
-                                             ERROR_NODE_NOT_CONNECTED,
-                                             NULL);
-    }
+//    else if (LIGHT_NODE_CONNECTED != node->state) {
+//        lightNodeListenerAnnounceWalletEvent(node, wid, WALLET_EVENT_BALANCE_UPDATED,
+//                                             ERROR_NODE_NOT_CONNECTED,
+//                                             NULL);
+//    }
     else {
         switch (node->configuration.type) {
             case NODE_TYPE_JSON_RPC: {
@@ -854,11 +854,11 @@ lightNodeUpdateTransactionGasEstimate (BREthereumLightNode node,
                                              NULL);
 
     }
-    else if (LIGHT_NODE_CONNECTED != node->state) {
-        lightNodeListenerAnnounceTransactionEvent(node, wid, tid, TRANSACTION_EVENT_GAS_ESTIMATE_UPDATED,
-                                             ERROR_NODE_NOT_CONNECTED,
-                                             NULL);
-    }
+//    else if (LIGHT_NODE_CONNECTED != node->state) {
+//        lightNodeListenerAnnounceTransactionEvent(node, wid, tid, TRANSACTION_EVENT_GAS_ESTIMATE_UPDATED,
+//                                             ERROR_NODE_NOT_CONNECTED,
+//                                             NULL);
+//    }
     else {
         switch (node->configuration.type) {
             case NODE_TYPE_JSON_RPC: {
@@ -903,11 +903,11 @@ lightNodeUpdateWalletDefaultGasPrice (BREthereumLightNode node,
                                              NULL);
 
     }
-    else if (LIGHT_NODE_CONNECTED != node->state) {
-        lightNodeListenerAnnounceWalletEvent(node, wid, WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
-                                             ERROR_NODE_NOT_CONNECTED,
-                                             NULL);
-    }
+//    else if (LIGHT_NODE_CONNECTED != node->state) {
+//        lightNodeListenerAnnounceWalletEvent(node, wid, WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
+//                                             ERROR_NODE_NOT_CONNECTED,
+//                                             NULL);
+//    }
     else {
         switch (node->configuration.type) {
             case NODE_TYPE_JSON_RPC: {
@@ -1388,7 +1388,7 @@ lightNodeAnnounceGasPrice(BREthereumLightNode node,
     const char *eventErrorDescription = NULL;
 
     BRCoreParseStatus status;
-    UInt256 amount = createUInt256Parse(&gasPrice[2], 0, &status);
+    UInt256 amount = createUInt256Parse(gasPrice, 0, &status);
 
     if (CORE_PARSE_OK != status) {
         eventStatus = ERROR_NUMERIC_PARSE;
@@ -1421,7 +1421,7 @@ lightNodeAnnounceGasEstimate (BREthereumLightNode node,
     const char *eventErrorDescription = NULL;
 
     BRCoreParseStatus status = CORE_PARSE_OK;
-    UInt256 gas = createUInt256Parse(&gasEstimate[2], 0, &status);
+    UInt256 gas = createUInt256Parse(gasEstimate, 0, &status);
 
     if (CORE_PARSE_OK != status ||
         0 != gas.u64[1] || 0 != gas.u64[2] || 0 != gas.u64[3]) {
