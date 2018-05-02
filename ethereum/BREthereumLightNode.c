@@ -1388,7 +1388,7 @@ lightNodeAnnounceGasPrice(BREthereumLightNode node,
     const char *eventErrorDescription = NULL;
 
     BRCoreParseStatus status;
-    UInt256 amount = createUInt256Parse(&gasPrice[2], 0, &status);
+    UInt256 amount = createUInt256Parse(gasPrice, 0, &status);
 
     if (CORE_PARSE_OK != status) {
         eventStatus = ERROR_NUMERIC_PARSE;
@@ -1421,7 +1421,7 @@ lightNodeAnnounceGasEstimate (BREthereumLightNode node,
     const char *eventErrorDescription = NULL;
 
     BRCoreParseStatus status = CORE_PARSE_OK;
-    UInt256 gas = createUInt256Parse(&gasEstimate[2], 0, &status);
+    UInt256 gas = createUInt256Parse(gasEstimate, 0, &status);
 
     if (CORE_PARSE_OK != status ||
         0 != gas.u64[1] || 0 != gas.u64[2] || 0 != gas.u64[3]) {

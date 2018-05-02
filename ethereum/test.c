@@ -39,6 +39,7 @@
 
 #include "BREthereum.h"
 #include "BREthereumPrivate.h"
+#include "BREthereumAccount.h"
 
 static void
 showHex (uint8_t *source, size_t sourceLen) {
@@ -1288,25 +1289,31 @@ static void
 walletEventHandler (BREthereumListenerContext context,
                     BREthereumLightNode node,
                     BREthereumWalletId wid,
-                    BREthereumWalletEvent event) {
+                    BREthereumWalletEvent event,
+                    BREthereumStatus status,
+                    const char *errorDescription) {
     fprintf (stdout, "        WalletEvent: wid=%d, ev=%d\n", wid, event);
 }
 
 static void
 blockEventHandler (BREthereumListenerContext context,
-              BREthereumLightNode node,
-              BREthereumBlockId bid,
-              BREthereumBlockEvent event) {
+                   BREthereumLightNode node,
+                   BREthereumBlockId bid,
+                   BREthereumBlockEvent event,
+                   BREthereumStatus status,
+                   const char *errorDescription) {
     fprintf (stdout, "         BlockEvent: bid=%d, ev=%d\n", bid, event);
-
+    
 }
 
 static void
 transactionEventHandler (BREthereumListenerContext context,
-                    BREthereumLightNode node,
-                    BREthereumWalletId wid,
-                    BREthereumTransactionId tid,
-                    BREthereumTransactionEvent event) {
+                         BREthereumLightNode node,
+                         BREthereumWalletId wid,
+                         BREthereumTransactionId tid,
+                         BREthereumTransactionEvent event,
+                         BREthereumStatus status,
+                         const char *errorDescription) {
     fprintf (stdout, "         TransEvent: tid=%d, ev=%d\n", tid, event);
 }
 

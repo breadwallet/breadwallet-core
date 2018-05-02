@@ -497,7 +497,7 @@ walletGetTransactionByNonce (BREthereumWallet wallet,
 extern BREthereumTransaction
 walletGetTransactionByIndex(BREthereumWallet wallet,
                             uint64_t index) {
-    return (0 <= index && index < array_count(wallet->transactions)
+    return (index < array_count(wallet->transactions)
             ? wallet->transactions[index]
             : NULL);
 }
