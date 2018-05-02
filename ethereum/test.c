@@ -528,7 +528,7 @@ void rlpCheckString (BRRlpCoder coder, const char *string, uint8_t *result, size
 
 void rlpCheckInt (BRRlpCoder coder, uint64_t value, uint8_t *result, size_t resultSize) {
     printf ("  %llu", value);
-    rlpCheck(coder, rlpEncodeItemUInt64(coder, value), result, resultSize);
+    rlpCheck(coder, rlpEncodeItemUInt64(coder, value, 0), result, resultSize);
 }
 
 void runRlpEncodeTest () {
@@ -564,7 +564,7 @@ void runRlpEncodeTest () {
     BRCoreParseStatus status = CORE_PARSE_OK;
     char *value = "5968770000000000000000";
     UInt256 r = createUInt256Parse(value, 10, &status);
-    BRRlpItem item = rlpEncodeItemUInt256(coder, r);
+    BRRlpItem item = rlpEncodeItemUInt256(coder, r, 0);
     BRRlpData data;
     rlpDataExtract(coder, item, &data.bytes, &data.bytesCount);
     printf ("  %s\n    => ", value); showHex (data.bytes, data.bytesCount);
@@ -616,7 +616,7 @@ void runRlpDecodeTest () {
     v3d.bytesCount = 3;
 
     BRRlpItem v3i = rlpGetItem(coder, v3d);
-    uint64_t v3v = rlpDecodeItemUInt64(coder, v3i);
+    uint64_t v3v = rlpDecodeItemUInt64(coder, v3i, 0);
     assert (1024 == v3v);
 
     rlpCoderRelease(coder);

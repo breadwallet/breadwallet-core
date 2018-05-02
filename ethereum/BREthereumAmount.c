@@ -96,7 +96,7 @@ amountRlpEncode(BREthereumAmount amount, BRRlpCoder coder) {
             
         case AMOUNT_TOKEN:
             // We do not encode a 'number 0', we encode an empty string - it seems from ethereumio
-            return rlpEncodeItemString(coder, ""); // rlpEncodeItemUInt64(coder, 0);
+            return rlpEncodeItemUInt64(coder, 0, 1);
     }
 }
 
@@ -107,7 +107,7 @@ amountRlpDecodeAsEther (BRRlpItem item, BRRlpCoder coder) {
 
 extern BREthereumAmount
 amountRlpDecodeAsToken (BRRlpItem item, BRRlpCoder coder, BREthereumToken token) {
-    return amountCreateToken(createTokenQuantity(token, rlpDecodeItemUInt256 (coder, item)));
+    return amountCreateToken(createTokenQuantity(token, rlpDecodeItemUInt256(coder, item, 1)));
 }
  
 //

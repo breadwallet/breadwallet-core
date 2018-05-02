@@ -423,20 +423,13 @@ static BRRlpItem
 transactionEncodeNonce (BREthereumTransaction transaction,
                         uint64_t nonce,
                         BRRlpCoder coder) {
-    return (0 == nonce
-            ? rlpEncodeItemString(coder, "")
-            : rlpEncodeItemUInt64(coder, nonce));
+    return rlpEncodeItemUInt64(coder, nonce, 1);
 }
 
 static uint64_t
 transactionDecodeNonce (BRRlpItem item,
                         BRRlpCoder coder) {
-    if (rlpDecodeItemIsString (coder, item)) {
-        const char *string = rlpDecodeItemString (coder, item);
-        assert (NULL != string && '\0' == string[0]);
-        return 0;
-    }
-    else return rlpDecodeItemUInt64 (coder, item);
+    return rlpDecodeItemUInt64(coder, item, 1);
 }
 
 //
@@ -473,7 +466,7 @@ transactionEncodeRLP (BREthereumTransaction transaction,
     switch (type) {
         case TRANSACTION_RLP_UNSIGNED:
             // For EIP-155, encode { v, r, s } with v as the chainId and both r and s as empty.
-            items[6] = rlpEncodeItemUInt64(coder, transaction->chainId);
+            items[6] = rlpEncodeItemUInt64(coder, transaction->chainId, 1);
             items[7] = rlpEncodeItemString(coder, "");
             items[8] = rlpEncodeItemString(coder, "");
             itemsCount += 3;
@@ -481,7 +474,8 @@ transactionEncodeRLP (BREthereumTransaction transaction,
 
         case TRANSACTION_RLP_SIGNED:
             // For EIP-155, encode v with the chainID.
-            items[6] = rlpEncodeItemUInt64(coder, transaction->signature.sig.recoverable.v + 8 + 2 * transaction->chainId);
+            items[6] = rlpEncodeItemUInt64(coder, transaction->signature.sig.recoverable.v + 8 +
+                                                  2 * transaction->chainId, 1);
 
             items[7] = rlpEncodeItemBytes (coder,
                                            transaction->signature.sig.recoverable.r,
@@ -506,6 +500,7 @@ transactionEncodeRLP (BREthereumTransaction transaction,
 //
 // Tranaction RLP Decode
 //
+
 extern BREthereumTransaction
 transactionDecodeRLP (BREthereumNetwork network,
                       BREthereumTransactionRLPType type,
@@ -562,7 +557,7 @@ transactionDecodeRLP (BREthereumNetwork network,
 
     transaction->chainId = networkGetChainId(network);
 
-    uint64_t eipChainId = rlpDecodeItemUInt64 (coder, items[6]);
+    uint64_t eipChainId = rlpDecodeItemUInt64(coder, items[6], 1);
 
     if (eipChainId == transaction->chainId) {
         // TRANSACTION_RLP_UNSIGNED
