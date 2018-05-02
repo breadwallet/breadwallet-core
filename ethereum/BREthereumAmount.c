@@ -107,7 +107,7 @@ amountRlpDecodeAsEther (BRRlpItem item, BRRlpCoder coder) {
 
 extern BREthereumAmount
 amountRlpDecodeAsToken (BRRlpItem item, BRRlpCoder coder, BREthereumToken token) {
-    return amountCreateToken(createTokenQuantity(token, rlpDecodeItemUInt256 (coder, item)));
+    return amountCreateToken(createTokenQuantity(token, rlpDecodeItemUInt256(coder, item, 1)));
 }
  
 //

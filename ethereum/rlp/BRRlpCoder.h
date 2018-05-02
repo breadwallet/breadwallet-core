@@ -56,19 +56,19 @@ rlpCoderRelease (BRRlpCoder coder);
 // UInt64
 //
 extern BRRlpItem
-rlpEncodeItemUInt64 (BRRlpCoder coder, uint64_t value);
+rlpEncodeItemUInt64(BRRlpCoder coder, uint64_t value, int zeroAsEmptyString);
 
 extern uint64_t
-rlpDecodeItemUInt64(BRRlpCoder coder, BRRlpItem item);
+rlpDecodeItemUInt64(BRRlpCoder coder, BRRlpItem item, int zeroAsEmptyString);
 
 //
 // UInt256
 //
 extern BRRlpItem
-rlpEncodeItemUInt256 (BRRlpCoder coder, UInt256 value);
+rlpEncodeItemUInt256(BRRlpCoder coder, UInt256 value, int zeroAsEmptyString);
 
 extern UInt256
-rlpDecodeItemUInt256 (BRRlpCoder coder, BRRlpItem item);
+rlpDecodeItemUInt256(BRRlpCoder coder, BRRlpItem item, int zeroAsEmptyString);
 
 //
 // Bytes

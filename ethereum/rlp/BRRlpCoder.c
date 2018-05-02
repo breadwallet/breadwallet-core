@@ -30,6 +30,9 @@
 #include "BRRlpCoder.h"
 #include "BRUtil.h"
 
+static int
+rlpDecodeItemIsEmptyString (BRRlpCoder coder, BRRlpItem item);
+
 /**
  * An RLP Encoding is comprised of two types: an ITEM and a LIST (of ITEM).
  *
@@ -463,26 +466,34 @@ rlpCoderRelease (BRRlpCoder coder) {
 // UInt64
 //
 extern BRRlpItem
-rlpEncodeItemUInt64(BRRlpCoder coder, uint64_t value) {
-    return coderAddContext(coder, coderEncodeUInt64(coder, value));
+rlpEncodeItemUInt64(BRRlpCoder coder, uint64_t value, int zeroAsEmptyString) {
+    return (1 == zeroAsEmptyString && 0 == value
+            ? rlpEncodeItemString(coder, "")
+            : coderAddContext(coder, coderEncodeUInt64(coder, value)));
 }
 
 extern uint64_t
-rlpDecodeItemUInt64(BRRlpCoder coder, BRRlpItem item) {
-    return coderDecodeUInt64(coder, coderLookupContext(coder, item));
+rlpDecodeItemUInt64(BRRlpCoder coder, BRRlpItem item, int zeroAsEmptyString) {
+    return (1 == zeroAsEmptyString &&  rlpDecodeItemIsEmptyString (coder, item)
+            ? 0
+            : coderDecodeUInt64(coder, coderLookupContext(coder, item)));
 }
 
 //
 // UInt256
 //
 extern BRRlpItem
-rlpEncodeItemUInt256(BRRlpCoder coder, UInt256 value) {
-    return coderAddContext(coder, coderEncodeUInt256(coder, value));
+rlpEncodeItemUInt256(BRRlpCoder coder, UInt256 value, int zeroAsEmptyString) {
+    return (1 == zeroAsEmptyString && 0 == compareUInt256 (value, UINT256_ZERO)
+            ? rlpEncodeItemString(coder, "")
+            : coderAddContext(coder, coderEncodeUInt256(coder, value)));
 }
 
 extern UInt256
-rlpDecodeItemUInt256 (BRRlpCoder coder, BRRlpItem item) {
-    return coderDecodeUInt256(coder, coderLookupContext(coder, item));
+rlpDecodeItemUInt256(BRRlpCoder coder, BRRlpItem item, int zeroAsEmptyString) {
+    return (1 == zeroAsEmptyString &&  rlpDecodeItemIsEmptyString (coder, item)
+            ? UINT256_ZERO
+            : coderDecodeUInt256(coder, coderLookupContext(coder, item)));
 }
 
 //
@@ -541,6 +552,15 @@ rlpDecodeItemIsString (BRRlpCoder coder, BRRlpItem item) {
             && 0 != context.bytesCount
             && RLP_PREFIX_BYTES <= context.bytes[0]
             && context.bytes[0] <  RLP_PREFIX_LIST);
+}
+
+static int
+rlpDecodeItemIsEmptyString (BRRlpCoder coder, BRRlpItem item) {
+    assert (coderIsValidItem(coder, item));
+    BRRlpContext context = coderLookupContext(coder, item);
+    return (CODER_ITEM == context.type
+            && 1 == context.bytesCount
+            && RLP_PREFIX_BYTES <= context.bytes[0]);
 }
 
 //
