@@ -26,7 +26,10 @@
 #ifndef BR_Ethereum_NodeManager_h
 #define BR_Ethereum_NodeManager_h
 
-#include  "BREthereumNode.h"
+#include "BREthereumNode.h"
+#include "BREthereumNetwork.h"
+#include <inttypes.h>
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -34,42 +37,78 @@ extern "C" {
 
 typedef struct BREthereumNodeMangerContext* BREthereumNodeManager;
 
+//
+// Ethereum Node Manager management functions
+//
+
 /**
  * Creates a new Ethereum Node manager.
- * @postcondition: Must be freed by a calling freeEthereumNodeManager()
+ * @post: Must be released by a calling ethereumNodeManagerRelease(manager)
+ * @param network the Ethereum network to connect to remote peers
  */
-BREthereumNodeManager createEthereumNodeManager(void);
+extern BREthereumNodeManager ethereumNodeManagerCreate(BREthereumNetwork network);
 
 /**
  * Frees the memory assoicated with the given node manager.
- * @param manager - the node manager to free
+ * @param manager - the node manager to release
  */
-void freeEthereumNodeManager(BREthereumNodeManager manager);
+extern void ethereumNodeManagerRelease(BREthereumNodeManager manager);
 
 /**
  * Determines whether one of the nodes is connected to a remote node
+ * @param manager - the node manager
+ * @return  the status of the node manager
  */
- BREthereumNodeStatus ethereumNodeManagerStatus(BREthereumNodeManager manager);
+extern BREthereumNodeStatus ethereumNodeManagerStatus(BREthereumNodeManager manager);
  
  /**
   * Connects to the ethereum peer-to-peer network.
   * @param manager - the node manager context
   */
-void connectEthereumNodeManager(BREthereumNodeManager manager);
+extern void ethereumNodeMangerConnect(BREthereumNodeManager manager);
 
 /**
  * Disconnects from the ethereum peer-to-peer network.
  * @param manager - the node manager context
  */
- void disconnectEthereumNodeManager(BREthereumNodeManager manager);
+extern void ethereumNodeManagerDisconnect(BREthereumNodeManager manager);
  
 /**
- * Returns the number of remote peers the nodes are connected to
+ * Determines the number of remote peers that are successfully connected to the manager
  * @param manager - the node manager context
+ * @return the number of connected remote peers
  */
- size_t peerCountForEthereumNodeManager(BREthereumNodeManager manager);
- 
- 
+extern size_t ethereumNodeMangerPeerCount(BREthereumNodeManager manager);
+
+//
+// Ethereum Node Manager LES functions
+//
+
+//A structure to hold the transactions that are submited/received from the ETH network 
+typedef struct {
+    //The raw transaction data to submit to the ETH network
+    uint8_t * rawTransaction;
+    //The size (in bytes) of the transaction data
+    size_t size;
+}BREthereumTransactionData;
+
+/**
+ * Requets a remote peer to submit a set of transactions into its transaction pool and relay them to the ETH network.
+ * @pre The transactions inside the input array are already RLP encoded
+ * @param transactions - an array that contains that tranactions to submit
+ * @param size - the number of transactions in the input array
+ * @return ETHEREUM_BOOLEAN_TRUE, if the transaction was successfully submited to the peer. Otherwise, ETHEREUM_BOOLEAN_FALSE is returned on error.
+ */
+extern BREthereumBoolean ethereumNodeManagerSubmitTransaction(BREthereumNodeManager manager,
+                                                              const BREthereumTransactionData* transactions,
+                                                              const size_t transactionsSize);
+
+
+
+
+
+
+
 #ifdef __cplusplus
 }
 #endif

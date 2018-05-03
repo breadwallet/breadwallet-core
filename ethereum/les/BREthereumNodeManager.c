@@ -28,6 +28,7 @@
 #include "BREthereumNodeManager.h"
 #include "BREthereumNode.h"
 #include "BRArray.h"
+#include "BREthereumNetwork.h"
 
 typedef struct {
 
@@ -44,45 +45,81 @@ typedef struct {
 }BREthereumNodeManagerContext;
 
 #define ETHEREUMN_PEER_MAX_CONNECTIONS 5
+#define BOOTSTRAP_NODE_IDX 0
 
-BREthereumNodeManager createEthereumNodeManager(void) {
+const BREthereumPeer _bootstrap_peer = {UINT128_ZERO, 30303, "eth-mainnet.breadwallet.com", -1, UINT512_ZERO};
+
+BREthereumNodeManager ethereumNodeManagerCreate(BREthereumNetwork network) {
 
     BREthereumNodeManagerContext* manager= (BREthereumNodeManagerContext*) calloc(1, sizeof (BREthereumNodeManagerContext));
     
-    array_new(manager->nodes, ETHEREUMN_PEER_MAX_CONNECTIONS);
-    array_new(manager->connectedNodes, ETHEREUMN_PEER_MAX_CONNECTIONS);
-    
-    pthread_mutex_init(&manager->lock, NULL);
-    
-    return (BREthereumNodeManager)manager;
+    if(manager != NULL) {
+        array_new(manager->nodes, ETHEREUMN_PEER_MAX_CONNECTIONS);
+        array_new(manager->connectedNodes, ETHEREUMN_PEER_MAX_CONNECTIONS);
+        pthread_mutex_init(&manager->lock, NULL);
+        return (BREthereumNodeManager)manager;
+    }
+    return NULL;
 }
-void freeEthereumNodeManager(BREthereumNodeManager manager) {
-    
-    BREthereumNodeManagerContext* manager= (BREthereumNodeManagerContext*) manager;
-    array_free(manager->nodes);
-    array_free(manager->connectedNodes);
+void ethereumNodeMangerRelease(BREthereumNodeManager manager) {
+    assert(manager != NULL);
+    BREthereumNodeManagerContext* ctx = (BREthereumNodeManagerContext*) manager;
+    array_free(ctx->nodes);
+    array_free(ctx->connectedNodes);
     free(manager);
 }
-BREthereumLESNodeStatus ethereumNodeManagerStatus(BREthereumNodeManager manager){
- 
-    return BRE_LESNODE_DISCONNECTED;
+BREthereumNodeStatus ethereumNodeManagerStatus(BREthereumNodeManager manager){
+    assert(manager != NULL);
+    BREthereumNodeManagerContext* ctx = (BREthereumNodeManagerContext*) manager;
+    BREthereumNodeStatus status = BRE_NODE_DISCONNECTED;
+    pthread_mutex_lock(&ctx->lock);
+    BREthereumNode* bootstrapNode = ctx->connectedNodes[BOOTSTRAP_NODE_IDX];
+    if( bootstrapNode != NULL ) {
+        status = ethereumNodeStatus(*bootstrapNode);
+    }
+    pthread_mutex_unlock(&ctx->lock);
+    return status;
+}
+void ethereumNodeMangerConnect(BREthereumNodeManager manager) {
+    assert(manager != NULL);
+    BREthereumNodeManagerContext* ctx = (BREthereumNodeManagerContext*) manager;
+    pthread_mutex_lock(&ctx->lock);
+    BREthereumNode* bootstrapNodePtr = ctx->connectedNodes[BOOTSTRAP_NODE_IDX];
+    if(bootstrapNodePtr == NULL) {
+        BREthereumNode bootstrapNode = ethereumNodeCreate(_bootstrap_peer, ETHEREUM_BOOLEAN_TRUE);
+        if(bootstrapNode != NULL){
+            array_insert(ctx->nodes, BOOTSTRAP_NODE_IDX, bootstrapNode);
+            array_insert(ctx->connectedNodes, BOOTSTRAP_NODE_IDX, ctx->nodes);
+            ethereumNodeConnect(bootstrapNode);
+        }
+    }
+    pthread_mutex_unlock(&ctx->lock);
+}
+void ethereumNodeMangerDisconnect(BREthereumNodeManager manager) {
+
+    assert(manager != NULL);
+    BREthereumNodeManagerContext* ctx = (BREthereumNodeManagerContext*) manager;
+    pthread_mutex_lock(&ctx->lock);
+    BREthereumNode* bootstrapNodePtr = ctx->connectedNodes[BOOTSTRAP_NODE_IDX];
+    if(bootstrapNodePtr != NULL && ethereumNodeStatus(*bootstrapNodePtr) != BRE_NODE_DISCONNECTED){
+        ethereumNodeDisconnect(*bootstrapNodePtr);
+    }
+    pthread_mutex_unlock(&ctx->lock);
+}
+size_t ethereumNodeMangerPeerCount(BREthereumNodeManager manager) {
+
+    BREthereumNodeManagerContext* ctx = (BREthereumNodeManagerContext*) manager;
+    size_t count = 0;
     
+    pthread_mutex_lock(&ctx->lock);
+    count = array_count(ctx->connectedNodes);
+    pthread_mutex_unlock(&ctx->lock);
+    
+    return count;
 }
-void connectEthereumNodeManager(BREthereumNodeManager manager) {
-
-    //TODO: Implement the connection to remote ethereum nodes
-    // 1. Discover Nodes to connect to
-    // 2. Create BREthernumNodes to connect to discovered nodes
-
-}
-void disconnectEthereumNodeManager(BREthereumNodeManager manager) {
-
-    //TODO: Implement a disconnection to remote ethereum nodes
-    // 1.
-
-}
-size_t peerCountForEthereumNodeManager(BREthereumNodeManager manager) {
-
-    BREthereumNodeManagerContext* manager= (BREthereumNodeManagerContext*) manager;
-    return (size-t) array_count(manager->connected);
+BREthereumBoolean ethereumNodeManagerSubmitTransaction(BREthereumNodeManager manager,
+                                                              const BREthereumTransactionData* transactions,
+                                                              const size_t transactionsSize) {
+    
+      return ETHEREUM_BOOLEAN_FALSE;
 }
