@@ -26,7 +26,6 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
-#include <regex.h>
 #include <math.h>
 #include "BRUtil.h"
 #include "BRRlp.h"

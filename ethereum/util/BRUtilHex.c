@@ -25,7 +25,8 @@
 
 #include <stdlib.h>
 #include <assert.h>
-#include <regex.h>
+#include <ctype.h>
+#include <string.h>
 #include "BRInt.h"
 #include "BRUtilHex.h"
 
@@ -84,19 +85,12 @@ encodeHexCreate (size_t *targetLen, uint8_t *source, size_t sourceLen) {
     return target;
 }
 
-#define HEX_REGEX "^([0-9A-Fa-f]{2})+$" // "^[0-9A-Fa-f]+$"
-
 extern int
-encodeHexValidate (const char *string) {
-    static regex_t hexCharRegex;
-    static int hexCharRegexInitialized = 0;
-    
-    if (!hexCharRegexInitialized) {
-        // Has pairs of hex digits
-        //regcomp(&hexCharRegex, "^([0-9A-Fa-f]{2})+$", REG_BASIC);
-        regcomp(&hexCharRegex, HEX_REGEX, REG_EXTENDED);
-        hexCharRegexInitialized = 1;
-    }
-    
-    return 0 == regexec (&hexCharRegex, string, 0, NULL, 0);
+encodeHexValidate (const char *number) {
+    // Number contains only hex digits, has an even number and has at least two.
+    if (NULL == number || '\0' == *number || 0 != strlen(number) % 2) return 0;
+
+    while (*number)
+        if (!isxdigit (*number++)) return 0;
+    return 1;
 }
