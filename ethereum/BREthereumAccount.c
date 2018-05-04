@@ -26,7 +26,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include <regex.h>
 #include <ctype.h>
 #include <BRKey.h>
 #include "BRBIP32Sequence.h"

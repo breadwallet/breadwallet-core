@@ -27,44 +27,35 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
-#include <regex.h>
+#include <ctype.h>
 #include "BRUtil.h"
 
 //
 // Parsing
 //
 
-#define INTEGER_REGEX "^[0-9]+$"
-#define DECIMAL_REGEX "^[0-9]+\\.[0-9]*$"
+extern BRCoreParseStatus
+parseIsInteger(const char *number) {
+    // Number contains only digits and has at least one digit
+    if (NULL == number || '\0' == *number) return CORE_PARSE_STRANGE_DIGITS;
+    while (*number)
+        if (!isdigit (*number++)) return CORE_PARSE_STRANGE_DIGITS;
+    return CORE_PARSE_OK;
+ }
 
 extern BRCoreParseStatus
-parseIsInteger (const char *number) {
-    static regex_t regex;
-    static int regexInitialized = 0;
-    
-    if (!regexInitialized) {
-        regcomp(&regex, INTEGER_REGEX, REG_EXTENDED);
-        regexInitialized = 1;
-    }
-    
-    return (0 == regexec (&regex, number, 0, NULL, 0)
-            ? CORE_PARSE_OK
-            : CORE_PARSE_STRANGE_DIGITS);
-}
+parseIsDecimal(const char *number) {
+    // Number contains one or more digits, a optional decimal point, and then digits.
+    if (NULL == number || '\0' == *number || '.' == *number) return CORE_PARSE_STRANGE_DIGITS;
 
-extern BRCoreParseStatus
-parseIsDecimal (const char *number) {
-    static regex_t regex;
-    static int regexInitialized = 0;
-    
-    if (!regexInitialized) {
-        regcomp(&regex, DECIMAL_REGEX, REG_EXTENDED);
-        regexInitialized = 1;
+    int decimalCount = 0;
+    for (; *number; number++) {
+        if (!isdigit(*number) && '.' != *number) return CORE_PARSE_STRANGE_DIGITS;
+        if ('.' == *number) decimalCount++;
     }
-    
-    return (0 == regexec (&regex, number, 0, NULL, 0)
-            ? CORE_PARSE_OK
-            : parseIsInteger (number));
+    return (decimalCount > 1
+            ? CORE_PARSE_STRANGE_DIGITS
+            : CORE_PARSE_OK);
 }
 
 

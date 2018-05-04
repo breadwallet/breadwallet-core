@@ -31,7 +31,6 @@
 #include <time.h>
 #include <unistd.h>
 #include <assert.h>
-#include <regex.h>
 #include "BRCrypto.h"
 #include "BRInt.h"
 //#include "BRKey.h"
@@ -294,6 +293,37 @@ runMathParseTests () {
     BRCoreParseStatus status;
     UInt256 r = UINT256_ZERO;
     UInt256 a = UINT256_ZERO;
+
+    assert (CORE_PARSE_OK == parseIsInteger("0"));
+    assert (CORE_PARSE_OK == parseIsInteger("0123456789"));
+    assert (CORE_PARSE_OK != parseIsInteger("0123456789."));
+    assert (CORE_PARSE_OK != parseIsInteger(""));
+    assert (CORE_PARSE_OK != parseIsInteger("."));
+    assert (CORE_PARSE_OK != parseIsInteger("1."));
+    assert (CORE_PARSE_OK != parseIsInteger(".0"));
+    assert (CORE_PARSE_OK != parseIsInteger("a"));
+
+    assert (CORE_PARSE_OK == parseIsDecimal ("1"));
+    assert (CORE_PARSE_OK == parseIsDecimal ("1."));
+    assert (CORE_PARSE_OK == parseIsDecimal ("1.1"));
+    assert (CORE_PARSE_OK == parseIsDecimal ("0.12"));
+    assert (CORE_PARSE_OK != parseIsDecimal (NULL));
+    assert (CORE_PARSE_OK != parseIsDecimal (""));
+    assert (CORE_PARSE_OK != parseIsDecimal (".12"));
+    assert (CORE_PARSE_OK != parseIsDecimal ("0.12."));
+    assert (CORE_PARSE_OK != parseIsDecimal ("0.12.34"));
+    assert (CORE_PARSE_OK != parseIsDecimal ("a"));
+
+
+    assert (1 == encodeHexValidate("ab"));
+    assert (1 == encodeHexValidate("ab01"));
+    assert (1 != encodeHexValidate(NULL));
+    assert (1 != encodeHexValidate(""));
+    assert (1 != encodeHexValidate("0"));
+    assert (1 != encodeHexValidate("f"));
+    assert (1 != encodeHexValidate("ff0"));
+    assert (1 != encodeHexValidate("1g"));
+	    
     
     // "0x09184e72a000" // 10000000000000
     r = createUInt256Parse("09184e72a000", 16, &status);
@@ -1050,49 +1080,6 @@ void testTransactionCodingToken () {
                                                     transactionGetSignature (decodedTransaction)));
 }
 
-void prepareTransaction (const char *paperKey, const char *recvAddr, const uint64_t gasPrice, const uint64_t gasLimit, const uint64_t amount) {
-    printf ("     Prepare Transaction\n");
-    
-    // START - One Time Code Block
-    BREthereumConfiguration configuration =
-    ethereumConfigurationCreateLES(ethereumMainnet, 0);
-    BREthereumLightNode node = ethereumCreate(configuration, paperKey);
-    // A wallet amount Ether
-    BREthereumWalletId wallet = ethereumGetWallet(node);
-    // END - One Time Code Block
-    
-    // Optional - will provide listNodeWalletCreateTransactionDetailed.
-    ethereumWalletSetDefaultGasPrice(node, wallet, WEI, gasPrice);
-    ethereumWalletSetDefaultGasLimit(node, wallet, gasLimit);
-    
-    BREthereumAmount amountAmountInEther =
-    ethereumCreateEtherAmountUnit(node, amount, WEI);
-    
-    BREthereumTransactionId tx1 =
-    ethereumWalletCreateTransaction
-    (node,
-     wallet,
-     recvAddr,
-     amountAmountInEther);
-    
-    ethereumWalletSignTransaction (node, wallet, tx1, paperKey);
-    
-    const char *rawTransactionHexEncoded =
-    lightNodeGetTransactionRawDataHexEncoded(node, wallet, tx1, "0x");
-    
-    printf ("        Raw Transaction: %s\n", rawTransactionHexEncoded);
-    
-    char *fromAddr = ethereumGetAccountPrimaryAddress(node);
-    BREthereumTransactionId *transactions = ethereumWalletGetTransactions(node, wallet);
-    assert (NULL != transactions && -1 != transactions[0]);
-    
-    BREthereumTransactionId transaction = transactions[0];
-    assert (0 == strcmp (fromAddr, ethereumTransactionGetSendAddress(node, transaction)) &&
-            0 == strcmp (recvAddr, ethereumTransactionGetRecvAddress(node, transaction)));
-
-    free (fromAddr);
-}
-
 //
 // Light Node JSON_RCP
 //
@@ -1426,8 +1413,10 @@ void runTokenTests () {
     token = tokenLookup ("0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"); // BRD
     assert (NULL != token);
 
+#if defined (BITCOIN_DEBUG)
     token = tokenLookup("0x3efd578b271d034a69499e4a2d933c631d44b9ad"); // TST: mainnet
     assert (NULL != token);
+#endif
 
     token = tokenLookup("0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0"); // EOI
     assert (NULL != token);
