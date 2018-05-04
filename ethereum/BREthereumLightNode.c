@@ -45,7 +45,7 @@ static BREthereumWalletId
 lightNodeLookupWalletId(BREthereumLightNode node,
                         BREthereumWallet wallet);
 
-static void
+static BREthereumTransactionId
 lightNodeInsertTransaction (BREthereumLightNode node,
                             BREthereumTransaction transaction);
 
@@ -478,21 +478,20 @@ lightNodeWalletCreateTransaction(BREthereumLightNode node,
                                  const char *recvAddress,
                                  BREthereumAmount amount) {
     BREthereumTransactionId tid = -1;
+    BREthereumWalletId wid = -1;
 
     pthread_mutex_lock(&node->lock);
 
     BREthereumTransaction transaction =
       walletCreateTransaction(wallet, createAddress(recvAddress), amount);
 
-    lightNodeInsertTransaction(node, transaction);
-    tid = lightNodeLookupTransactionId(node, transaction);
-
-    BREthereumWalletId wid = lightNodeLookupWalletId(node, wallet);
+    tid = lightNodeInsertTransaction(node, transaction);
+    wid = lightNodeLookupWalletId(node, wallet);
 
     pthread_mutex_unlock(&node->lock);
 
     lightNodeListenerAnnounceTransactionEvent(node, wid, tid, TRANSACTION_EVENT_CREATED, SUCCESS, NULL);
-    lightNodeListenerAnnounceWalletEvent(node, wid, WALLET_EVENT_TRANSACTION_ADDED, SUCCESS, NULL);
+    lightNodeListenerAnnounceTransactionEvent(node, wid, tid, TRANSACTION_EVENT_ADDED, SUCCESS, NULL);
 
     return tid;
 }
@@ -708,26 +707,32 @@ lightNodeLookupTransactionId(BREthereumLightNode node,
     return tid;
 }
 
-static void
+static BREthereumTransactionId
 lightNodeInsertTransaction (BREthereumLightNode node,
                             BREthereumTransaction transaction) {
+    BREthereumTransactionId tid;
+
     pthread_mutex_lock(&node->lock);
     array_add (node->transactions, transaction);
+    tid = (BREthereumTransactionId) (array_count(node->transactions) - 1);
     pthread_mutex_unlock(&node->lock);
+
+    return tid;
 }
 
 static void
 lightNodeDeleteTransaction (BREthereumLightNode node,
                              BREthereumTransaction transaction) {
+    BREthereumTransactionId tid = lightNodeLookupTransactionId(node, transaction);
+
     // Remove from any (and all - should be but one) wallet
     for (int wid = 0; wid < array_count(node->wallets); wid++)
         if (walletHasTransaction(node->wallets[wid], transaction)) {
             walletUnhandleTransaction(node->wallets[wid], transaction);
-            lightNodeListenerAnnounceWalletEvent (node, wid, WALLET_EVENT_TRANSACTION_REMOVED, SUCCESS, NULL);
+            lightNodeListenerAnnounceTransactionEvent(node, wid, tid, TRANSACTION_EVENT_REMOVED, SUCCESS, NULL);
         }
 
     // Null the node's `tid` - MUST NOT array_rm() as all `tid` holders will be dead.
-    BREthereumTransactionId tid = lightNodeLookupTransactionId (node, transaction);
     node->transactions[tid] = NULL;
 }
 
@@ -1050,7 +1055,8 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
                              const char *strBlockTransactionIndex,
                              const char *blockTimestamp,
                              const char *isError) {
-    BREthereumTransaction transaction = NULL;
+    BREthereumTransactionId tid = -1;
+
     BREthereumAddress primaryAddress = accountGetPrimaryAddress(node->account);
 
     assert (ETHEREUM_BOOLEAN_IS_TRUE(addressHasString(primaryAddress, from))
@@ -1083,7 +1089,7 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
     BREthereumHash hash = hashCreate(hashString);
 
     // Look for a pre-existing transaction
-    transaction = walletGetTransactionByHash(wallet, hash);
+    BREthereumTransaction transaction = walletGetTransactionByHash(wallet, hash);
 
     // If we did not have a transaction for 'hash' it might be (might likely be) a newly submitted
     // transaction that we are holding but that doesn't have a hash yet.  This will *only* apply
@@ -1124,21 +1130,22 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
         // With a new transaction:
         //
         //   a) add to the light node
-        lightNodeInsertTransaction(node, transaction);
+        tid = lightNodeInsertTransaction(node, transaction);
         //
         //  b) add to the wallet
         walletHandleTransaction(wallet, transaction);
         //
         //  c) announce the wallet update
-        lightNodeListenerAnnounceWalletEvent(node, wid, WALLET_EVENT_TRANSACTION_ADDED,
-                                             SUCCESS,
-                                             NULL);
+        lightNodeListenerAnnounceTransactionEvent(node, wid, tid,
+                                                  TRANSACTION_EVENT_ADDED,
+                                                  SUCCESS, NULL);
         //
         //  d) announce as submitted (=> there is a hash, submitted by 'us' or 'them')
         walletTransactionSubmitted(wallet, transaction, hash);
 
     }
-    BREthereumTransactionId tid = lightNodeLookupTransactionId(node, transaction);
+    if (-1 == tid)
+        tid = lightNodeLookupTransactionId(node, transaction);
 
     BREthereumGas gasUsed = gasCreate(strtoull(strGasUsed, NULL, 0));
 
@@ -1209,6 +1216,7 @@ lightNodeAnnounceLog (BREthereumLightNode node,
                       const char *strBlockNumber,
                       const char *strBlockTransactionIndex,
                       const char *strBlockTimestamp) {
+    BREthereumTransactionId tid = -1;
 
     pthread_mutex_lock(&node->lock);
 
@@ -1261,21 +1269,22 @@ lightNodeAnnounceLog (BREthereumLightNode node,
         // With a new transaction:
         //
         //   a) add to the light node
-        lightNodeInsertTransaction(node, transaction);
+        tid = lightNodeInsertTransaction(node, transaction);
         //
         //  b) add to the wallet
         walletHandleTransaction(wallet, transaction);
         //
         //  c) announce the wallet update
-        lightNodeListenerAnnounceWalletEvent(node, wid, WALLET_EVENT_TRANSACTION_ADDED,
-                                             SUCCESS,
-                                             NULL);
+        lightNodeListenerAnnounceTransactionEvent(node, wid, tid, TRANSACTION_EVENT_ADDED, SUCCESS, NULL);
+
         //
         //  d) announce as submitted.
         walletTransactionSubmitted(wallet, transaction, hash);
 
     }
-    BREthereumTransactionId tid = lightNodeLookupTransactionId(node, transaction);
+
+    if (-1 == tid)
+        tid = lightNodeLookupTransactionId(node, transaction);
 
     // TODO: Process 'state' properly - errors?
 

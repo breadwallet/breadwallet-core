@@ -180,6 +180,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
             // Numeric
             ERROR_NUMERIC_PARSE,
         }
+        int NUMBER_OF_STATUS_EVENTS = 10;
 
         //
         // Wallet
@@ -189,10 +190,9 @@ public class BREthereumLightNode extends BRCoreJniReference {
             BALANCE_UPDATED,
             DEFAULT_GAS_LIMIT_UPDATED,
             DEFAULT_GAS_PRICE_UPDATED,
-            TRANSACTION_ADDED,
-            TRANSACTION_REMOVED,
             DELETED
         }
+        int NUMBER_OF_WALLET_EVENTS = 5;
 
         void handleWalletEvent(BREthereumWallet wallet, WalletEvent event,
                                Status status,
@@ -205,6 +205,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
             CREATED,
             DELETED
         }
+        int NUMBER_OF_BLOCK_EVENT = 2;
 
         void handleBlockEvent(BREthereumBlock block, BlockEvent event,
                               Status status,
@@ -214,6 +215,9 @@ public class BREthereumLightNode extends BRCoreJniReference {
         // Transaction
         //
         enum TransactionEvent {
+            ADDED,
+            REMOVED,
+
             CREATED,
             SIGNED,
             SUBMITTED,
@@ -222,6 +226,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
             GAS_ESTIMATE_UPDATED,
             BLOCK_CONFIRMATIONS_UPDATED
         }
+        int NUMBER_OF_TRANSACTION_EVENTS = 9;
 
         void handleTransactionEvent(BREthereumWallet wallet,
                                     BREthereumTransaction transaction,
@@ -455,8 +460,8 @@ public class BREthereumLightNode extends BRCoreJniReference {
         Listener l =  getListener();
         if (null == l) return;
         // TODO: Resolve Bug
-        if (event < 0 || event >= Listener.WalletEvent.values().length) return;
-        if (status < 0 || status >= Listener.Status.values().length) return;
+        if (event < 0 || event >= Listener.NUMBER_OF_WALLET_EVENTS) return;
+        if (status < 0 || status >= Listener.NUMBER_OF_STATUS_EVENTS) return;
 
         // Lookup the wallet - this will create the wallet if it doesn't exist.  Thus, if the
         // `event` is `create`, we get a wallet; and even, if the `event` is `delete`, we get a
@@ -474,8 +479,8 @@ public class BREthereumLightNode extends BRCoreJniReference {
         Listener l = getListener();
         if (null == l) return;
         // TODO: Resolve Bug
-        if (event < 0 || event >= Listener.BlockEvent.values().length) return;
-        if (status < 0 || status >= Listener.Status.values().length) return;
+        if (event < 0 || event >= Listener.NUMBER_OF_BLOCK_EVENT) return;
+        if (status < 0 || status >= Listener.NUMBER_OF_STATUS_EVENTS) return;
 
         // Nothing, at this point
         BREthereumBlock block = blockLookupOrCreate(bid);
@@ -490,8 +495,8 @@ public class BREthereumLightNode extends BRCoreJniReference {
         Listener l =  getListener();
         if (null == l) return;
         // TODO: Resolve Bug
-        if (event < 0 || event >= Listener.TransactionEvent.values().length) return;
-        if (status < 0 || status >= Listener.Status.values().length) return;
+        if (event < 0 || event >= Listener.NUMBER_OF_TRANSACTION_EVENTS) return;
+        if (status < 0 || status >= Listener.NUMBER_OF_STATUS_EVENTS) return;
 
         BREthereumWallet wallet = walletLookupOrCreate(wid, null);
         BREthereumTransaction transaction = transactionLookupOrCreate (tid);
