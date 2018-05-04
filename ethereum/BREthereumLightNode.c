@@ -1461,7 +1461,7 @@ lightNodeAnnounceSubmitTransaction(BREthereumLightNode node,
     if (NULL == wallet) {
         eventStatus = ERROR_UNKNOWN_WALLET;
     }
-    else if (NULL != transaction) {
+    else if (NULL == transaction) {
         eventStatus = ERROR_UNKNOWN_TRANSACTION;
     }
     else {
