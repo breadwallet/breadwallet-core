@@ -68,17 +68,41 @@ void ethereumNodeMangerRelease(BREthereumNodeManager manager) {
     array_free(ctx->connectedNodes);
     free(manager);
 }
-BREthereumNodeStatus ethereumNodeManagerStatus(BREthereumNodeManager manager){
+BREthereumNodeManagerStatus ethereumNodeManagerStatus(BREthereumNodeManager manager){
     assert(manager != NULL);
     BREthereumNodeManagerContext* ctx = (BREthereumNodeManagerContext*) manager;
-    BREthereumNodeStatus status = BRE_NODE_DISCONNECTED;
+    BREthereumNodeManagerStatus retStatus = BRE_MANAGER_DISCONNECTED;
     pthread_mutex_lock(&ctx->lock);
     BREthereumNode* bootstrapNode = ctx->connectedNodes[BOOTSTRAP_NODE_IDX];
     if( bootstrapNode != NULL ) {
-        status = ethereumNodeStatus(*bootstrapNode);
+        BREthereumNodeStatus status = ethereumNodeStatus(*bootstrapNode);
+        switch (status) {
+        case BRE_NODE_ERROR:
+        {
+            retStatus = BRE_MANAGER_ERROR;
+        }
+        break;
+        case BRE_NODE_CONNECTED:
+        {
+            retStatus = BRE_MANAGER_CONNECTED;
+        }
+        break;
+        case BRE_NODE_PERFORMING_HANDSHAKE:
+        case BRE_NODE_CONNECTING:
+        {
+            retStatus = BRE_MANAGER_CONNECTING;
+        }
+        break;
+        case BRE_NODE_DISCONNECTED:
+        default:
+        {
+            retStatus = BRE_MANAGER_DISCONNECTED;
+        }
+        break;
+        }
     }
     pthread_mutex_unlock(&ctx->lock);
-    return status;
+    return retStatus;
 }
 void ethereumNodeMangerConnect(BREthereumNodeManager manager) {
     assert(manager != NULL);
@@ -118,8 +142,17 @@ size_t ethereumNodeMangerPeerCount(BREthereumNodeManager manager) {
     return count;
 }
 BREthereumBoolean ethereumNodeManagerSubmitTransaction(BREthereumNodeManager manager,
-                                                       const uint8_t* rlpTransaction,
-                                                       const size_t transactionsSize) {
+                                                       const BREthereumTransaction transaction,
+                                                       const int requestId) {
     
-      return ETHEREUM_BOOLEAN_FALSE;
+    return ETHEREUM_BOOLEAN_TRUE;
+}
+
+
+
+void ethereumNodeManagerGetTransaction(BREthereumNodeManager manager,
+                                              const char *address,
+                                              const int requestId,
+                                              BRLESGetTransactions callback) {
+    return;
 }

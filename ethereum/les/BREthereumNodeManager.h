@@ -28,6 +28,7 @@
 
 #include "BREthereumNode.h"
 #include "BREthereumNetwork.h"
+#include "BREthereumTransaction.h"
 #include <inttypes.h>
 
 
@@ -36,6 +37,16 @@ extern "C" {
 #endif
 
 typedef struct BREthereumNodeMangerContext* BREthereumNodeManager;
+
+/**
+ * Ehtereum Manager Node Connection Status - Connection states for Manager
+ */
+typedef enum {
+    BRE_MANAGER_ERROR = -1,
+    BRE_MANAGER_DISCONNECTED,  //Manager is not connected to any remote node(s)
+    BRE_MANAGER_CONNECTING,    //Manager is trying to connect to remote node(s)
+    BRE_MANAGER_CONNECTED      //Manager is connected to a remote node(s) 
+} BREthereumNodeManagerStatus;
 
 //
 // Ethereum Node Manager management functions
@@ -59,7 +70,7 @@ extern void ethereumNodeManagerRelease(BREthereumNodeManager manager);
  * @param manager - the node manager
  * @return  the status of the node manager
  */
-extern BREthereumNodeStatus ethereumNodeManagerStatus(BREthereumNodeManager manager);
+extern BREthereumNodeManagerStatus ethereumNodeManagerStatus(BREthereumNodeManager manager);
  
  /**
   * Connects to the ethereum peer-to-peer network.
@@ -81,19 +92,36 @@ extern void ethereumNodeManagerDisconnect(BREthereumNodeManager manager);
 extern size_t ethereumNodeMangerPeerCount(BREthereumNodeManager manager);
 
 //
-// Ethereum Node Manager LES functions
+// Ethereum Node Manager LES types and functions
 //
 
+//Callback definitions for the LES functions
+typedef void (*BRLESGetTransactions)(BREthereumTransaction* transactions,
+                                     size_t transactionsSize,
+                                     unsigned int requestId);
+    
+    
 /**
  * Requets a remote peer to submit a transaction into its transaction pool and relay them to the ETH network.
- * @pre The transaction needs to be already RLP encoded
  * @param transaction - the tranaction to submit
- * @param size - the size (in bytes) of the transactionBe
+ * @param requestId - a unique id for this transaction submission.
  * @return ETHEREUM_BOOLEAN_TRUE, if the transaction was successfully submited to the peer. Otherwise, ETHEREUM_BOOLEAN_FALSE is returned on error.
  */
 extern BREthereumBoolean ethereumNodeManagerSubmitTransaction(BREthereumNodeManager manager,
-                                                              const uint8_t* rlpTransaction,
-                                                              const size_t transactionsSize);
+                                                              const BREthereumTransaction transaction,
+                                                              const int requestId);
+
+
+/**
+ * Requets a remote peer to retrieve transactions from the remote-peer
+ * @param address - the primary wallet address
+ * @param a unique id for this transaction request.
+ * @param callback - the callback function which will be caleld once the transactions are received from the network
+ */
+extern void ethereumNodeManagerGetTransaction(BREthereumNodeManager manager,
+                                              const char *address,
+                                              const int requestId,
+                                              BRLESGetTransactions callback);
 
 
 #ifdef __cplusplus
