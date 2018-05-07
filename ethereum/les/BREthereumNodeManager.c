@@ -118,8 +118,8 @@ size_t ethereumNodeMangerPeerCount(BREthereumNodeManager manager) {
     return count;
 }
 BREthereumBoolean ethereumNodeManagerSubmitTransaction(BREthereumNodeManager manager,
-                                                              const BREthereumTransactionData* transactions,
-                                                              const size_t transactionsSize) {
+                                                       const uint8_t* rlpTransaction,
+                                                       const size_t transactionsSize) {
     
       return ETHEREUM_BOOLEAN_FALSE;
 }

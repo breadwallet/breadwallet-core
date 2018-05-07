@@ -84,29 +84,16 @@ extern size_t ethereumNodeMangerPeerCount(BREthereumNodeManager manager);
 // Ethereum Node Manager LES functions
 //
 
-//A structure to hold the transactions that are submited/received from the ETH network 
-typedef struct {
-    //The raw transaction data to submit to the ETH network
-    uint8_t * rawTransaction;
-    //The size (in bytes) of the transaction data
-    size_t size;
-}BREthereumTransactionData;
-
 /**
- * Requets a remote peer to submit a set of transactions into its transaction pool and relay them to the ETH network.
- * @pre The transactions inside the input array are already RLP encoded
- * @param transactions - an array that contains that tranactions to submit
- * @param size - the number of transactions in the input array
+ * Requets a remote peer to submit a transaction into its transaction pool and relay them to the ETH network.
+ * @pre The transaction needs to be already RLP encoded
+ * @param transaction - the tranaction to submit
+ * @param size - the size (in bytes) of the transactionBe
  * @return ETHEREUM_BOOLEAN_TRUE, if the transaction was successfully submited to the peer. Otherwise, ETHEREUM_BOOLEAN_FALSE is returned on error.
  */
 extern BREthereumBoolean ethereumNodeManagerSubmitTransaction(BREthereumNodeManager manager,
-                                                              const BREthereumTransactionData* transactions,
+                                                              const uint8_t* rlpTransaction,
                                                               const size_t transactionsSize);
-
-
-
-
-
 
 
 #ifdef __cplusplus
