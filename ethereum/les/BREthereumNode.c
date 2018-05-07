@@ -187,7 +187,7 @@ static void *_nodeThreadRunFunc(void *arg) {
             break;
             case BRE_NODE_CONNECTING:
             {
-                ctx->handshake = ethereumHandshakeCreate(&ctx->peer, &ctx->key, ctx->shouldOriginate);
+             //   ctx->handshake = ethereumHandshakeCreate(&ctx->peer, &ctx->key, ctx->shouldOriginate);
                 ctx->status = BRE_NODE_PERFORMING_HANDSHAKE;
             }
             break;
