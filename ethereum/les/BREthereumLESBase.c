@@ -61,6 +61,10 @@ uint8_t _randomSecure(int rangeLow, int rangeHigh) {
     return rangeLow + x / (secureMax / range);
 }
 
+UInt256 ethereumGetNonce(void){
+
+    return UINT256_ZERO; 
+}
 BREthereumBoolean ethereumGenRandomPriKey(BRKey ** key) {
     
     assert(key != NULL);
@@ -122,13 +126,13 @@ void _kdf(UInt256* priKey, uint8_t* bytes, size_t len, uint8_t * dst) {
 }
 void ethereumXORBytes(uint8_t * op1, uint8_t* op2, uint8_t* result, size_t len) {
     for (unsigned int i = 0; i < len;  ++i) {
-        result[i] = opr1[i] ^ opr2[i];
+        result[i] = op1[i] ^ op2[i];
     }
 
 }
 
 BREthereumBoolean etheruemECDHAgree(BRKey* key, UInt512* pubKey, UInt256* outSecret) {
-    secp256k1_context* ctx = _ctx;
+   /* secp256k1_context* ctx = _ctx;
     secp256k1_pubkey rawPubKey;
     
     unsigned char compressedPoint[33];
@@ -145,6 +149,8 @@ BREthereumBoolean etheruemECDHAgree(BRKey* key, UInt512* pubKey, UInt256* outSec
     memcpy(outSecret->u8, &compressedPoint[1], sizeof(outSecret->u8));
     secp256k1_context_destroy(ctx);
     
+    return ETHEREUM_BOOLEAN_TRUE;
+    */
     return ETHEREUM_BOOLEAN_TRUE;
 }
 BREthereumBoolean ethereumEncryptECIES(UInt512* pubKey, uint8_t * plain, uint8_t * cipher, ssize_t len){
