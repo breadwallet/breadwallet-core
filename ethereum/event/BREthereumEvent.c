@@ -28,6 +28,23 @@
 #include "BREthereumEvent.h"
 #include "BREthereumEventQueue.h"
 
+#if defined (__ANDROID__)
+static int
+pthread_cond_timedwait_relative_np(pthread_cond_t *cond,
+                                   pthread_mutex_t *lock,
+                                   const struct timespec *time) {
+    struct timeval  now;
+    struct timespec timeout;
+
+    gettimeofday(&now, NULL);
+
+    timeout.tv_sec = now.tv_sec + time->tv_sec;
+    timeout.tv_nsec = 1000 * now.tv_usec + time->tv_nsec;
+
+    return pthread_cond_timedwait(cond, lock, &timeout);
+}
+#endif // defined (__ANDROID__)
+
 /* Forward Declarations */
 static void *
 eventHandlerThread (BREthereumEventHandler handler);
