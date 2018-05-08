@@ -29,6 +29,8 @@
 #include "BREthereumNode.h"
 #include "BREthereumNetwork.h"
 #include "BREthereumTransaction.h"
+#include "BREthereumBlock.h"
+#include "BREthereumLES.h"
 #include <inttypes.h>
 
 
@@ -48,17 +50,79 @@ typedef enum {
     BRE_MANAGER_CONNECTED      //Manager is connected to a remote node(s) 
 } BREthereumNodeManagerStatus;
 
+
+/**
+ *  Current status of the sent/queried transactions
+ */
+typedef enum {
+    BRE_LES_TRANSACTION_STATUS_Unknown  = 0,  // (0): transaction is unknown
+    BRE_LES_TRANSACTION_STATUS_Queued   = 1,  // (1): transaction is queued (not processable yet)
+    BRE_LES_TRANSACTION_STATUS_Pending  = 2,  // (2): transaction is pending (processable)
+    BRE_LES_TRANSACTION_STATUS_Included = 3,  // (3): transaction is already included in the canonical chain. data contains an RLP-encoded [blockHash: B_32, blockNumber: P, txIndex: P] structure
+    BRE_LES_TRANSACTION_STATUS_Error    = 4   // (4): transaction sending failed. data contains a text error message
+} BREthereumLESTransactionStatus;
+
+/**
+ *
+ */
+typedef struct {
+    UInt128 address;    //ipv6 address of the peer
+    uint16_t port;      //port number of peer connection
+    uint64_t timestamp; // timestamp reported by peer
+    uint8_t flags;      //scratch variable
+}BREthereumPeerInfo;
+
+
 //
 // Ethereum Node Manager management functions
 //
 
+// Callback definitions for the Manager
+typedef void* BREthereumNodeMangerInfo;
+typedef void (*BRNodeManagerTransactionStatus)(BREthereumNodeMangerInfo info,
+                                               BREthereumTransaction transaction,
+                                               BREthereumLESTransactionStatus status);
+    
+typedef void (*BRNodeManagerBlocks)(BREthereumNodeMangerInfo info,
+                                    BREthereumBlock blocks[],
+                                    size_t blocksCount);
+    
+typedef void (*BRNodeManagerPeers)(BREthereumNodeMangerInfo info,
+                                   BREthereumPeerInfo peers[],
+                                   size_t peersCount);
+    
+
 /**
  * Creates a new Ethereum Node manager.
  * @post: Must be released by a calling ethereumNodeManagerRelease(manager)
- * @param network the Ethereum network to connect to remote peers
+ * @param network - the Ethereum network to connect to remote peers
+ * @param account - The account of interest
+ * @param blocks - known blocks that are of interest to the account
+ * @param blocksCount - the number of blocks in the blcoks argument.
+ * @param peers - known peers that are reliable and should try to connect to first
+ * @param peersCount - the number of peers in the peers argument
  */
-extern BREthereumNodeManager ethereumNodeManagerCreate(BREthereumNetwork network);
+extern BREthereumNodeManager ethereumNodeManagerCreate(BREthereumNetwork network,
+                                                       BREthereumAccount account,
+                                                       BREthereumBlock block,
+                                                       size_t blockCount, 
+                                                       BREthereumPeerInfo peers[],
+                                                       size_t peersCount);
 
+/**
+ * Sets the callbacks for the ethereum node manager
+ * @pre: Set callbacks once before calling ethereumNodeMangerConnect()
+ * @param info - a BREthereumNodeMangerInfo (i.e., a void pointer) that will be passed along with each callback call
+ * @param funcTransStatus - called when transaction status may have changed such as when a new block arrives
+ * @param funcNewBlocks - called when blocks that are of interest to the account
+ * @param funcNewPeers - called when peers should be saved to the persistent store, for
+ */
+extern void ethereumNodeManagerSetCallbacks(BREthereumNodeManager manager,
+                                            BREthereumNodeMangerInfo info,
+                                            BRNodeManagerTransactionStatus funcTransStatus,
+                                            BRNodeManagerBlocks funcNewBlocks,
+                                            BRNodeManagerPeers funcNewPeers);
+    
 /**
  * Frees the memory assoicated with the given node manager.
  * @param manager - the node manager to release
@@ -91,6 +155,7 @@ extern void ethereumNodeManagerDisconnect(BREthereumNodeManager manager);
  */
 extern size_t ethereumNodeMangerPeerCount(BREthereumNodeManager manager);
 
+
 //
 // Ethereum Node Manager LES types and functions
 //
@@ -114,12 +179,10 @@ extern BREthereumBoolean ethereumNodeManagerSubmitTransaction(BREthereumNodeMana
 
 /**
  * Requets a remote peer to retrieve transactions from the remote-peer
- * @param address - the primary wallet address
  * @param a unique id for this transaction request.
  * @param callback - the callback function which will be caleld once the transactions are received from the network
  */
 extern void ethereumNodeManagerGetTransaction(BREthereumNodeManager manager,
-                                              const char *address,
                                               const int requestId,
                                               BRLESGetTransactions callback);
 

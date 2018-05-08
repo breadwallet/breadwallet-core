@@ -49,13 +49,19 @@ typedef struct {
 
 const BREthereumPeer _bootstrap_peer = {UINT128_ZERO, 30303, "eth-mainnet.breadwallet.com", -1, UINT512_ZERO};
 
-BREthereumNodeManager ethereumNodeManagerCreate(BREthereumNetwork network) {
+BREthereumNodeManager ethereumNodeManagerCreate(BREthereumNetwork network,
+                                                BREthereumAccount account,
+                                                BREthereumBlock block,
+                                                size_t blockCount,
+                                                BREthereumPeerInfo peers[],
+                                                size_t peersCount) {
 
     BREthereumNodeManagerContext* manager= (BREthereumNodeManagerContext*) calloc(1, sizeof (BREthereumNodeManagerContext));
     
     if(manager != NULL) {
         array_new(manager->nodes, ETHEREUMN_PEER_MAX_CONNECTIONS);
         array_new(manager->connectedNodes, ETHEREUMN_PEER_MAX_CONNECTIONS);
+        array_add(manager->connectedNodes, NULL);
         pthread_mutex_init(&manager->lock, NULL);
         return (BREthereumNodeManager)manager;
     }
@@ -148,11 +154,17 @@ BREthereumBoolean ethereumNodeManagerSubmitTransaction(BREthereumNodeManager man
     return ETHEREUM_BOOLEAN_TRUE;
 }
 
-
+void ethereumNodeManagerSetCallbacks(BREthereumNodeManager manager,
+                                     BREthereumNodeMangerInfo info,
+                                     BRNodeManagerTransactionStatus funcTransStatus,
+                                     BRNodeManagerBlocks funcNewBlocks,
+                                     BRNodeManagerPeers funcNewPeers) {
+    
+    //TODO: Implement function
+}
 
 void ethereumNodeManagerGetTransaction(BREthereumNodeManager manager,
-                                              const char *address,
-                                              const int requestId,
-                                              BRLESGetTransactions callback) {
-    return;
+                                       const int requestId,
+                                       BRLESGetTransactions callback) {
+    //TODO: Implement function 
 }

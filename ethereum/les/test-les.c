@@ -133,11 +133,9 @@ void runEthereumNodeEventHandlerTests() {
 void runEthereumManagerTests() {
 
     //TODO: Write tests for EthereumManagerTests;
-    BREthereumNodeManager manager = ethereumNodeManagerCreate(ethereumMainnet);
-    assert(manager != NULL);
-    
-    ethereumNodeMangerConnect(manager);
-    
+    //BREthereumNodeManager manager = ethereumNodeManagerCreate(ethereumMainnet);
+    //assert(manager != NULL);
+    //ethereumNodeMangerConnect(manager);
     //Wait for up to 24 seconds, to give the node manager time to connect to a remote node.
     sleep(24);
     
