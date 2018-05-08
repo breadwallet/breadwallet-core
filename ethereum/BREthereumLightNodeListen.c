@@ -30,7 +30,7 @@
 // Wallet Event
 //
 typedef struct {
-    BREthereumEvent base;
+    BREvent base;
     BREthereumLightNode node;
     BREthereumWalletId wid;
     BREthereumWalletEvent event;
@@ -42,7 +42,7 @@ typedef struct {
 { { NULL, &listenerWalletEventType }, (node), (wid), (event), (status), (desc) }
 
 static void
-lightNodeListenerWalletEventDispatcher(BREthereumEventHandler ignore,
+lightNodeListenerWalletEventDispatcher(BREventHandler ignore,
                                       BREthereumListenerWalletEvent *event) {
     BREthereumLightNode node = event->node;
     
@@ -59,10 +59,10 @@ lightNodeListenerWalletEventDispatcher(BREthereumEventHandler ignore,
     }
 }
 
-BREthereumEventType listenerWalletEventType = {
+BREventType listenerWalletEventType = {
     "Listener Wallet Event",
     sizeof (BREthereumListenerWalletEvent),
-    (BREthereumEventDispatcher) lightNodeListenerWalletEventDispatcher
+    (BREventDispatcher) lightNodeListenerWalletEventDispatcher
 };
 
 extern void
@@ -73,14 +73,14 @@ lightNodeListenerAnnounceWalletEvent(BREthereumLightNode node,
                                      const char *errorDescription) {
     BREthereumListenerWalletEvent message =
     LISTENER_WALLET_EVENT_INITIALIZER (node, wid, event, status, errorDescription);
-    eventHandlerSignalEvent(node->handlerForListener, (BREthereumEvent*) &message);
+    eventHandlerSignalEvent(node->handlerForListener, (BREvent*) &message);
 }
 
 //
 // Block Event
 //
 typedef struct {
-    BREthereumEvent base;
+    BREvent base;
     BREthereumLightNode node;
     BREthereumBlockId bid;
     BREthereumBlockEvent event;
@@ -92,7 +92,7 @@ typedef struct {
     { { NULL, &listenerBlockEventType }, (node), (bid), (event), (status), (desc) }
 
 static void
-lightNodeListenerBlockEventDispatcher(BREthereumEventHandler ignore,
+lightNodeListenerBlockEventDispatcher(BREventHandler ignore,
                                       BREthereumListenerBlockEvent *event) {
     BREthereumLightNode node = event->node;
 
@@ -109,10 +109,10 @@ lightNodeListenerBlockEventDispatcher(BREthereumEventHandler ignore,
     }
 }
 
-BREthereumEventType listenerBlockEventType = {
+BREventType listenerBlockEventType = {
     "Listener Block Event",
     sizeof (BREthereumListenerBlockEvent),
-    (BREthereumEventDispatcher) lightNodeListenerBlockEventDispatcher
+    (BREventDispatcher) lightNodeListenerBlockEventDispatcher
 };
 
 extern void
@@ -123,14 +123,14 @@ lightNodeListenerAnnounceBlockEvent(BREthereumLightNode node,
                                     const char *errorDescription) {
     BREthereumListenerBlockEvent message =
     LISTENER_BLOCK_EVENT_INITIALIZER (node, bid, event, status, errorDescription);
-    eventHandlerSignalEvent(node->handlerForListener, (BREthereumEvent*) &message);
+    eventHandlerSignalEvent(node->handlerForListener, (BREvent*) &message);
 }
 
 //
 // Transaction Event
 //
 typedef struct {
-    struct BREthereumEventRecord base;
+    struct BREventRecord base;
     BREthereumLightNode node;
     BREthereumWalletId wid;
     BREthereumTransactionId tid;
@@ -143,7 +143,7 @@ typedef struct {
     { { NULL, &listenerTransactionEventType }, (node), (wid), (tid), (event), (status), (desc) }
 
 static void
-lightNodeListenerTransactionEventDispatcher(BREthereumEventHandler ignore,
+lightNodeListenerTransactionEventDispatcher(BREventHandler ignore,
                                             BREthereumListenerTransactionEvent *event) {
     BREthereumLightNode node = event->node;
 
@@ -161,10 +161,10 @@ lightNodeListenerTransactionEventDispatcher(BREthereumEventHandler ignore,
     }
 }
 
-BREthereumEventType listenerTransactionEventType = {
+BREventType listenerTransactionEventType = {
     "Listener Transaction Event",
     sizeof (BREthereumListenerTransactionEvent),
-    (BREthereumEventDispatcher) lightNodeListenerTransactionEventDispatcher
+    (BREventDispatcher) lightNodeListenerTransactionEventDispatcher
 };
 
 extern void
@@ -176,10 +176,10 @@ lightNodeListenerAnnounceTransactionEvent(BREthereumLightNode node,
                                           const char *errorDescription) {
     BREthereumListenerTransactionEvent message =
     LISTENER_TRANSACTION_EVENT_INITIALIZER (node, wid, tid, event, status, errorDescription);
-    eventHandlerSignalEvent(node->handlerForListener, (BREthereumEvent*) &message);
+    eventHandlerSignalEvent(node->handlerForListener, (BREvent*) &message);
 }
 
-const BREthereumEventType *listenerEventTypes[] = {
+const BREventType *listenerEventTypes[] = {
     &listenerWalletEventType,
     &listenerBlockEventType,
     &listenerTransactionEventType

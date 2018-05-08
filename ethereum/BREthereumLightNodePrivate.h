@@ -27,7 +27,7 @@
 #define BR_Ethereum_Light_Node_Private_H
 
 #include "BREthereumLightNode.h"
-#include "event/BREthereumEvent.h"
+#include "event/BREvent.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -65,7 +65,7 @@ lightNodeListenerAnnounceTransactionEvent(BREthereumLightNode node,
                                           BREthereumStatus status,
                                           const char *errorDescription);
 
-extern const BREthereumEventType *listenerEventTypes[];
+extern const BREventType *listenerEventTypes[];
 extern const unsigned int listenerEventTypesCount;
 
 //
@@ -154,7 +154,7 @@ struct BREthereumLightNodeRecord {
      * An EventHandler for Listeners.  All callbacks to the Listener interface occur on a
      * separate thread.
      */
-    BREthereumEventHandler handlerForListener;
+    BREventHandler handlerForListener;
 
     /**
      * The Thread handling 'announcements' and periodic 'updates'.  Announcements are made by

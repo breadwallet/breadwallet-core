@@ -1,5 +1,5 @@
 //
-//  BREthereumEventQueue.c
+//  BREventQueue.c
 //  BRCore
 //
 //  Created by Ed Gamble on 5/7/18.
@@ -26,16 +26,16 @@
 
 #include <string.h>
 #include <pthread.h>
-#include "BREthereumEventQueue.h"
+#include "BREventQueue.h"
 
 #define EVENT_QUEUE_DEFAULT_INITIAL_CAPACITY   (1)
 
-struct BREthereumEventQueueRecord {
+struct BREventQueueRecord {
     // A linked-list (through event->next) of pending events.
-    BREthereumEvent *pending;
+    BREvent *pending;
 
     // A linked-list (through event->next) of available events
-    BREthereumEvent *available;
+    BREvent *available;
 
     // A lock for exclusive access when queueing/dequeueing events.
     pthread_mutex_t lock;
@@ -47,16 +47,16 @@ struct BREthereumEventQueueRecord {
     size_t size;
 };
 
-extern BREthereumEventQueue
+extern BREventQueue
 eventQueueCreate (size_t size, pthread_mutex_t *lock) {
-    BREthereumEventQueue queue = calloc (1, sizeof (struct BREthereumEventQueueRecord));
+    BREventQueue queue = calloc (1, sizeof (struct BREventQueueRecord));
 
     queue->pending = NULL;
     queue->available = NULL;
     queue->size = size;
 
     for (int i = 0; i < EVENT_QUEUE_DEFAULT_INITIAL_CAPACITY; i++) {
-        BREthereumEvent *event = calloc (1, queue->size);
+        BREvent *event = calloc (1, queue->size);
         event->next = queue->available;
         queue->available = event;
     }
@@ -79,12 +79,12 @@ eventQueueCreate (size_t size, pthread_mutex_t *lock) {
 }
 
 extern void
-eventQueueDestroy (BREthereumEventQueue queue) {
+eventQueueDestroy (BREventQueue queue) {
     pthread_mutex_lock(&queue->lock);
 
     // Move pending to available
     if (NULL != queue->pending) {
-        BREthereumEvent *next, *this = queue->pending;
+        BREvent *next, *this = queue->pending;
         while (NULL != this->next) {
             next = this->next;
             this->next = queue->available;
@@ -96,7 +96,7 @@ eventQueueDestroy (BREthereumEventQueue queue) {
 
     // Free available
     if (NULL != queue->available) {
-        BREthereumEvent *next, *this = queue->available;
+        BREvent *next, *this = queue->available;
         while (NULL != this->next) {
             next = this->next;
             free (this);
@@ -110,18 +110,18 @@ eventQueueDestroy (BREthereumEventQueue queue) {
     if (queue->lockOwner)
         pthread_mutex_destroy(&queue->lock);
 
-    memset (queue, 0, sizeof (struct BREthereumEventQueueRecord));
+    memset (queue, 0, sizeof (struct BREventQueueRecord));
 }
 
 extern void
-eventQueueEnqueue (BREthereumEventQueue queue,
-                   const BREthereumEvent *event) {
+eventQueueEnqueue (BREventQueue queue,
+                   const BREvent *event) {
     pthread_mutex_lock(&queue->lock);
 
     // Get the next available event
-    BREthereumEvent *this = queue->available;
+    BREvent *this = queue->available;
     if (NULL == this) {
-        this = (BREthereumEvent*) calloc (1, queue->size);
+        this = (BREvent*) calloc (1, queue->size);
         this->next = NULL;
     }
     // Make the next event no longer available.
@@ -136,7 +136,7 @@ eventQueueEnqueue (BREthereumEventQueue queue,
         queue->pending = this;
     else {
         // Find the last event
-        BREthereumEvent *last = queue->pending;
+        BREvent *last = queue->pending;
         while (NULL != last->next) last = last->next;
         last->next = this;
     }
@@ -144,10 +144,10 @@ eventQueueEnqueue (BREthereumEventQueue queue,
     pthread_mutex_unlock(&queue->lock);
 }
 
-extern BRethereumEventStatus
-eventQueueDequeue (BREthereumEventQueue queue,
-                   BREthereumEvent *event) {
-    BRethereumEventStatus status = EVENT_STATUS_SUCCESS;
+extern BREventStatus
+eventQueueDequeue (BREventQueue queue,
+                   BREvent *event) {
+    BREventStatus status = EVENT_STATUS_SUCCESS;
     
     if (NULL == event)
         return EVENT_STATUS_NULL_EVENT;
@@ -155,7 +155,7 @@ eventQueueDequeue (BREthereumEventQueue queue,
     pthread_mutex_lock(&queue->lock);
     
     // Get the next pending event
-    BREthereumEvent *this = queue->pending;
+    BREvent *this = queue->pending;
     
     // there is none, just return
     if (NULL == this)
@@ -180,7 +180,7 @@ eventQueueDequeue (BREthereumEventQueue queue,
 }
 
 extern int
-eventQueueHasPending (BREthereumEventQueue queue) {
+eventQueueHasPending (BREventQueue queue) {
     int pending = 0;
     pthread_mutex_lock(&queue->lock);
     pending = NULL != queue->pending;

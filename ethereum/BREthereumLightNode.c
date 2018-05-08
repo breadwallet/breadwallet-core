@@ -35,7 +35,7 @@
 
 #include "BREthereumPrivate.h"
 #include "BREthereumLightNodePrivate.h"
-#include "event/BREthereumEvent.h"
+#include "event/BREvent.h"
 
 
 //

@@ -1,5 +1,5 @@
 //
-//  BREthereumEvent.c
+//  BREvent.c
 //  BRCore
 //
 //  Created by Ed Gamble on 5/7/18.
@@ -25,8 +25,8 @@
 
 #include <errno.h>
 #include <pthread.h>
-#include "BREthereumEvent.h"
-#include "BREthereumEventQueue.h"
+#include "BREvent.h"
+#include "BREventQueue.h"
 
 #if defined (__ANDROID__)
 static int
@@ -47,7 +47,7 @@ pthread_cond_timedwait_relative_np(pthread_cond_t *cond,
 
 /* Forward Declarations */
 static void *
-eventHandlerThread (BREthereumEventHandler handler);
+eventHandlerThread (BREventHandler handler);
 
 //
 // Event Handler Thread Status
@@ -57,36 +57,36 @@ typedef enum  {
     EVENT_HANDLER_THREAD_STATUS_RUNNING,
     EVENT_HANDLER_THREAD_STATUS_STOPPING,
     EVENT_HANDLER_THREAD_STATUS_STOPPED
-} BREthereumEventHandlerThreadStatus;
+} BREventHandlerThreadStatus;
 
 //
 // Event Handler
 //
-struct BREthereumEventHandlerRecord {
+struct BREventHandlerRecord {
     // Types
     size_t typesCount;
-    const BREthereumEventType **types;
+    const BREventType **types;
 
     // Queue
     size_t eventSize;
-    BREthereumEventQueue queue;
-    BREthereumEvent *scratch;
+    BREventQueue queue;
+    BREvent *scratch;
 
     // (Optional) Timeout
     struct timespec timeout;
-    BREthereumEventDispatcher timeoutDispatcher;
+    BREventDispatcher timeoutDispatcher;
 
     // Thread
     pthread_t thread;
     pthread_cond_t cond;
     pthread_mutex_t lock;
 
-    BREthereumEventHandlerThreadStatus status;
+    BREventHandlerThreadStatus status;
 };
 
-extern BREthereumEventHandler
-eventHandlerCreate (const BREthereumEventType *types[], unsigned int typesCount) {
-    BREthereumEventHandler handler = calloc (1, sizeof (struct BREthereumEventHandlerRecord));
+extern BREventHandler
+eventHandlerCreate (const BREventType *types[], unsigned int typesCount) {
+    BREventHandler handler = calloc (1, sizeof (struct BREventHandlerRecord));
 
     handler->status = EVENT_HANDLER_THREAD_STATUS_STOPPED;
     handler->typesCount = typesCount;
@@ -95,7 +95,7 @@ eventHandlerCreate (const BREthereumEventType *types[], unsigned int typesCount)
 
     // Update `eventSize` with the largest sized event
     for (int i = 0; i < handler->typesCount; i++) {
-        const BREthereumEventType *type = handler->types[i];
+        const BREventType *type = handler->types[i];
 
         if (handler->eventSize < type->eventSize)
             handler->eventSize = type->eventSize;
@@ -119,16 +119,16 @@ eventHandlerCreate (const BREthereumEventType *types[], unsigned int typesCount)
         pthread_mutexattr_destroy(&attr);
     }
 
-    handler->scratch = (BREthereumEvent*) calloc (1, handler->eventSize);
+    handler->scratch = (BREvent*) calloc (1, handler->eventSize);
     handler->queue = eventQueueCreate(handler->eventSize, &handler->lock);
 
     return handler;
 }
 
 extern void
-eventHandlerSetTimeoutDispatcher (BREthereumEventHandler handler,
+eventHandlerSetTimeoutDispatcher (BREventHandler handler,
                                   unsigned int timeInMilliseconds,
-                                  BREthereumEventDispatcher dispatcher) {
+                                  BREventDispatcher dispatcher) {
     pthread_mutex_lock(&handler->lock);
     handler->timeout.tv_sec = timeInMilliseconds / 1000;
     handler->timeout.tv_nsec = 1000000 * (timeInMilliseconds % 1000);
@@ -145,7 +145,7 @@ eventHandlerSetTimeoutDispatcher (BREthereumEventHandler handler,
 typedef void* (*ThreadRoutine) (void*);
 
 static void *
-eventHandlerThread (BREthereumEventHandler handler) {
+eventHandlerThread (BREventHandler handler) {
 //    node->state = LIGHT_NODE_CONNECTED;
 
     pthread_mutex_lock(&handler->lock);
@@ -157,7 +157,7 @@ eventHandlerThread (BREthereumEventHandler handler) {
             // ... then handle it
             switch (eventQueueDequeue(handler->queue, handler->scratch)) {
                 case EVENT_STATUS_SUCCESS: {
-                    BREthereumEventType *type = handler->scratch->type;
+                    BREventType *type = handler->scratch->type;
                     type->eventDispatcher (handler, handler->scratch);
                     break;
                 }
@@ -188,7 +188,7 @@ eventHandlerThread (BREthereumEventHandler handler) {
 }
 
 extern void
-eventHandlerDestroy (BREthereumEventHandler handler) {
+eventHandlerDestroy (BREventHandler handler) {
     pthread_kill(handler->thread, 0);
     pthread_cond_destroy(&handler->cond);
     pthread_mutex_destroy(&handler->lock);
@@ -202,7 +202,7 @@ eventHandlerDestroy (BREthereumEventHandler handler) {
 // Start / Stop
 //
 extern void
-eventHandlerStart (BREthereumEventHandler handler) {
+eventHandlerStart (BREventHandler handler) {
     switch (handler->status) {
         case EVENT_HANDLER_THREAD_STATUS_RUNNING:
         case EVENT_HANDLER_THREAD_STATUS_STARTING:
@@ -226,7 +226,7 @@ eventHandlerStart (BREthereumEventHandler handler) {
 }
 
 extern void
-eventHandlerStop (BREthereumEventHandler handler) {
+eventHandlerStop (BREventHandler handler) {
     switch (handler->status) {
         case EVENT_HANDLER_THREAD_STATUS_RUNNING:
         case EVENT_HANDLER_THREAD_STATUS_STARTING:
@@ -239,9 +239,9 @@ eventHandlerStop (BREthereumEventHandler handler) {
     }
 }
 
-extern BRethereumEventStatus
-eventHandlerSignalEvent (BREthereumEventHandler handler,
-                         BREthereumEvent *event) {
+extern BREventStatus
+eventHandlerSignalEvent (BREventHandler handler,
+                         BREvent *event) {
     eventQueueEnqueue(handler->queue, event);
     pthread_cond_signal(&handler->cond);
     return EVENT_STATUS_SUCCESS;

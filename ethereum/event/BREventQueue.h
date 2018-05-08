@@ -1,5 +1,5 @@
 //
-//  BREthereumEventQueue.h
+//  BREventQueue.h
 //  BRCore
 //
 //  Created by Ed Gamble on 5/7/18.
@@ -24,40 +24,40 @@
 //  THE SOFTWARE.
 //
 
-#ifndef BR_Ethereum_Event_Queue_H
-#define BR_Ethereum_Event_Queue_H
+#ifndef BR_Event_Queue_H
+#define BR_Event_Queue_H
 
-#include "BREthereumEvent.h"
+#include "BREvent.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct BREthereumEventQueueRecord *BREthereumEventQueue;
+typedef struct BREventQueueRecord *BREventQueue;
 
 /**
  * Create an Event Queue with `size` as the maximum event size and with the
  * optional `lock`.
  */
-extern BREthereumEventQueue
+extern BREventQueue
 eventQueueCreate (size_t size, pthread_mutex_t *lock);
 
 extern void
-eventQueueDestroy (BREthereumEventQueue queue);
+eventQueueDestroy (BREventQueue queue);
 
 extern void
-eventQueueEnqueue (BREthereumEventQueue queue,
-                   const BREthereumEvent *event);
+eventQueueEnqueue (BREventQueue queue,
+                   const BREvent *event);
 
-extern BRethereumEventStatus
-eventQueueDequeue (BREthereumEventQueue queue,
-                   BREthereumEvent *event);
+extern BREventStatus
+eventQueueDequeue (BREventQueue queue,
+                   BREvent *event);
 
 extern int
-eventQueueHasPending (BREthereumEventQueue queue);
+eventQueueHasPending (BREventQueue queue);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* BR_Ethereum_Event_Queue_H */
+#endif /* BR_Event_Queue_H */
