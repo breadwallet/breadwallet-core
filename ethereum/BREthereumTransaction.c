@@ -534,7 +534,7 @@ transactionDecodeRLP (BREthereumNetwork network,
         BREthereumToken token = tokenLookup(addressAsString (contractAddr));
 
         // Confirm `strData` encodes functionERC20Transfer
-        BREthereumFunction function = contractLookupFunctionForEncoding(contractERC20, strData);
+        BREthereumContractFunction function = contractLookupFunctionForEncoding(contractERC20, strData);
         if (NULL == token || function != functionERC20Transfer) {
             free (transaction);
             return NULL;

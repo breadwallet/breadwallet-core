@@ -30,20 +30,20 @@
 extern "C" {
 #endif
 
-typedef struct BREthereumFunctionRecord *BREthereumFunction;
-typedef struct BREthereumEventRecord *BREthereumEvent;
+typedef struct BREthereumFunctionRecord *BREthereumContractFunction;
+typedef struct BREthereumEventRecord *BREthereumContractEvent;
 typedef struct BREthereumContractRecord *BREthereumContract;
 
 
 extern BREthereumContract contractERC20;
-extern BREthereumFunction functionERC20Transfer; // "transfer(address,uint256)"
-extern BREthereumEvent eventERC20Transfer;       // "Transfer(address indexed _from, address indexed _to, uint256 _value)"
+extern BREthereumContractFunction functionERC20Transfer; // "transfer(address,uint256)"
+extern BREthereumContractEvent eventERC20Transfer;       // "Transfer(address indexed _from, address indexed _to, uint256 _value)"
 
 /**
  *
  */
 extern const char *
-eventGetSelector (BREthereumEvent event);
+eventGetSelector (BREthereumContractEvent event);
 
 /**
  * Encode an Ehtereum function with arguments.  The specific arguments and their types are
@@ -62,7 +62,7 @@ eventGetSelector (BREthereumEvent event);
  * free (encoding);
  */
 extern const char *
-contractEncode (BREthereumContract contract, BREthereumFunction function, ...);
+contractEncode (BREthereumContract contract, BREthereumContractFunction function, ...);
 
 /**
  * Return the function for `encodeing` or NULL.
@@ -71,10 +71,10 @@ contractEncode (BREthereumContract contract, BREthereumFunction function, ...);
  * @param encoding
  * @return
  */
-extern BREthereumFunction
+extern BREthereumContractFunction
 contractLookupFunctionForEncoding (BREthereumContract contract, const char *encoding);
 
-extern BREthereumEvent
+extern BREthereumContractEvent
 contractLookupEventForTopic (BREthereumContract contract, const char *topic);
 
 #ifdef __cplusplus

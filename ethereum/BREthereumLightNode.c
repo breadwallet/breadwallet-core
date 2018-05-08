@@ -781,7 +781,7 @@ lightNodeUpdateTransactions (BREthereumLightNode node) {
  * @param node
  */
 extern void
-lightNodeUpdateLogs (BREthereumLightNode node, BREthereumEvent event) {
+lightNodeUpdateLogs (BREthereumLightNode node, BREthereumContractEvent event) {
     if (LIGHT_NODE_CONNECTED != node->state) {
         // Nothing to announce
         return;
@@ -1010,7 +1010,7 @@ lightNodeAnnounceToken (BREthereumLightNode node,
     if (lightNodeDataIsEmpty(node, data)) return NULL;
     
     // There is contract data; see if it is a ERC20 function.
-    BREthereumFunction function = contractLookupFunctionForEncoding(contractERC20, data);
+    BREthereumContractFunction function = contractLookupFunctionForEncoding(contractERC20, data);
     
     // Not an ERC20 token
     if (NULL == function) return NULL;
@@ -1225,7 +1225,7 @@ lightNodeAnnounceLog (BREthereumLightNode node,
     if (NULL == token) { pthread_mutex_unlock(&node->lock); return; } // uninteresting token
 
     // Event of interest
-    BREthereumEvent event = contractLookupEventForTopic (contractERC20, arrayTopics[0]);
+    BREthereumContractEvent event = contractLookupEventForTopic (contractERC20, arrayTopics[0]);
     if (NULL == event || event != eventERC20Transfer) { pthread_mutex_unlock(&node->lock); return; }; // uninteresting event
 
     // Find or create a block.  No point in doing this until we have a transaction of interest
