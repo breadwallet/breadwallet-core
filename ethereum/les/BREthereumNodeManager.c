@@ -57,7 +57,7 @@ BREthereumNodeManager ethereumNodeManagerCreate(BREthereumNetwork network,
                                                 size_t peersCount) {
 
     BREthereumNodeManagerContext* manager= (BREthereumNodeManagerContext*) calloc(1, sizeof (BREthereumNodeManagerContext));
-    return manager;
+    return (BREthereumNodeManager)manager;
     /*
     if(manager != NULL) {
         array_new(manager->nodes, ETHEREUMN_PEER_MAX_CONNECTIONS);
@@ -74,7 +74,7 @@ void ethereumNodeMangerRelease(BREthereumNodeManager manager) {
     BREthereumNodeManagerContext* ctx = (BREthereumNodeManagerContext*) manager;
     //array_free(ctx->nodes);
     //array_free(ctx->connectedNodes);
-    free(manager);
+    free(ctx);
 }
 BREthereumNodeManagerStatus ethereumNodeManagerStatus(BREthereumNodeManager manager){
     assert(manager != NULL);
