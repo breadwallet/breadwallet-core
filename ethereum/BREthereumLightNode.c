@@ -34,38 +34,8 @@
 #include <BRBIP39Mnemonic.h>
 
 #include "BREthereumPrivate.h"
-#include "BREthereumLightNode.h"
-
-// Forward declaration
-static void
-lightNodeInsertWallet (BREthereumLightNode node,
-                       BREthereumWallet wallet);
-
-static BREthereumWalletId
-lightNodeLookupWalletId(BREthereumLightNode node,
-                        BREthereumWallet wallet);
-
-static BREthereumTransactionId
-lightNodeInsertTransaction (BREthereumLightNode node,
-                            BREthereumTransaction transaction);
-
-static BREthereumTransactionId
-lightNodeLookupTransactionId(BREthereumLightNode node,
-                             BREthereumTransaction transaction);
-
-static BREthereumBlockId
-lightNodeLookupBlockId (BREthereumLightNode node,
-                        BREthereumBlock block);
-
-//
-// Light Node Listener
-//
-typedef struct  {
-    BREthereumListenerContext context;
-    BREthereumListenerWalletEventHandler walletEventHandler;
-    BREthereumListenerBlockEventHandler blockEventHandler;
-    BREthereumListenerTransactionEventHandler transactionEventHandler;
-} BREthereumLightNodeListener;
+#include "BREthereumLightNodePrivate.h"
+#include "event/BREvent.h"
 
 
 //
@@ -93,76 +63,6 @@ ethereumClientCreate(BREthereumClientContext context,
 //
 // Light Node
 //
-#define DEFAULT_LISTENER_CAPACITY 3
-#define DEFAULT_WALLET_CAPACITY 10
-#define DEFAULT_BLOCK_CAPACITY 100
-#define DEFAULT_TRANSACTION_CAPACITY 1000
-
-typedef enum {
-    LIGHT_NODE_CREATED,
-    LIGHT_NODE_CONNECTING,
-    LIGHT_NODE_CONNECTED,
-    LIGHT_NODE_DISCONNECTING,
-    LIGHT_NODE_DISCONNECTED,
-    LIGHT_NODE_ERRORED
-} BREthereumLightNodeState;
-
-/**
- *
- */
-struct BREthereumLightNodeRecord {
-
-    /**
-     * The Type of this Light Node
-     */
-    BREthereumType type;
-
-    BREthereumNetwork network;
-    
-    /**
-     * The Client supporting this Light Node
-     */
-    BREthereumClient client;
-
-    /**
-     * The account
-     */
-    BREthereumAccount account;
-    
-    /**
-     * The wallets 'managed/handled' by this node.  There can be only one wallet holding ETHER;
-     * all the other wallets hold TOKENs and only one wallet per TOKEN.
-     */
-    BREthereumWallet *wallets;  // for now
-    BREthereumWallet  walletHoldingEther;
-    
-    /**
-     * The transactions seen/handled by this node.  These are used *solely* for the TransactionId
-     * interface in LightNode.  *All* transactions must be accesses through their wallet.
-     */
-    BREthereumTransaction *transactions; // BRSet
-    
-    /**
-     * The blocks handled by this node.  [This is currently just those handled for transactions
-     * (both Ethererum transactions and logs.  It is unlikely that the current block is here.]
-     */
-    BREthereumBlock *blocks; // BRSet
-
-    /**
-     * The BlockHeight is the largest block number seen (or computed).
-     */
-    uint64_t blockHeight;
-    //
-    unsigned int requestId;
-
-    BREthereumLightNodeState state;
-
-    BREthereumLightNodeListener *listeners; // BRArray
-
-    pthread_t thread;
-    pthread_mutex_t lock;
-};
-
 extern BREthereumLightNode
 createLightNode (BREthereumNetwork network,
                  BREthereumAccount account) {
@@ -185,15 +85,16 @@ createLightNode (BREthereumNetwork network,
         pthread_mutexattr_destroy(&attr);
     }
 
-    // Create a default ETH wallet.
+    // Create and then start the eventHandler
+    node->handlerForListener = eventHandlerCreate(listenerEventTypes, listenerEventTypesCount);
+    eventHandlerStart(node->handlerForListener);
+    
+    // Create a default ETH wallet; other wallets will be created 'on demand'
     node->walletHoldingEther = walletCreate(node->account,
                                             node->network);
     lightNodeInsertWallet(node, node->walletHoldingEther);
 
-    // Create other wallets for each TOKEN?
-
     return node;
-
 }
 
 extern BREthereumAccount
@@ -205,7 +106,6 @@ extern BREthereumNetwork
 lightNodeGetNetwork (BREthereumLightNode node) {
     return node->network;
 }
-
 
 //
 // Listener
@@ -252,65 +152,6 @@ lightNodeRemoveListener (BREthereumLightNode node,
         return ETHEREUM_BOOLEAN_TRUE;
     }
     return ETHEREUM_BOOLEAN_FALSE;
-}
-
-extern void
-lightNodeListenerAnnounceWalletEvent(BREthereumLightNode node,
-                                     BREthereumWalletId wid,
-                                     BREthereumWalletEvent event,
-                                     BREthereumStatus status,
-                                     const char *errorDescription) {
-    int count = (int) array_count(node->listeners);
-    for (int i = 0; i < count; i++) {
-        if (NULL != node->listeners[i].walletEventHandler)
-            node->listeners[i].walletEventHandler
-                    (node->listeners[i].context,
-                     node,
-                     wid,
-                     event,
-                     status,
-                     errorDescription);
-    }
-}
-
-extern void
-lightNodeListenerAnnounceBlockEvent(BREthereumLightNode node,
-                                    BREthereumBlockId bid,
-                                    BREthereumBlockEvent event,
-                                    BREthereumStatus status,
-                                    const char *errorDescription) {
-    int count = (int) array_count(node->listeners);
-    for (int i = 0; i < count; i++) {
-        if (NULL != node->listeners[i].blockEventHandler)
-            node->listeners[i].blockEventHandler
-                    (node->listeners[i].context,
-                     node,
-                     bid,
-                     event,
-                     status,
-                     errorDescription);
-    }
-}
-
-extern void
-lightNodeListenerAnnounceTransactionEvent(BREthereumLightNode node,
-                                          BREthereumWalletId wid,
-                                          BREthereumTransactionId tid,
-                                          BREthereumTransactionEvent event,
-                                          BREthereumStatus status,
-                                          const char *errorDescription) {
-    int count = (int) array_count(node->listeners);
-    for (int i = 0; i < count; i++) {
-        if (NULL != node->listeners[i].transactionEventHandler)
-            node->listeners[i].transactionEventHandler
-                    (node->listeners[i].context,
-                     node,
-                     wid,
-                     tid,
-                     event,
-                     status,
-                     errorDescription);
-    }
 }
 
 //
@@ -413,7 +254,7 @@ lightNodeLookupWallet(BREthereumLightNode node,
     return wallet;
 }
 
-static BREthereumWalletId
+extern BREthereumWalletId
 lightNodeLookupWalletId(BREthereumLightNode node,
                         BREthereumWallet wallet) {
     BREthereumWalletId wid = -1;
@@ -428,7 +269,7 @@ lightNodeLookupWalletId(BREthereumLightNode node,
     return wid;
 }
 
-static void
+extern void
 lightNodeInsertWallet (BREthereumLightNode node,
                        BREthereumWallet wallet) {
     BREthereumWalletId wid = -1;
@@ -636,8 +477,7 @@ lightNodeLookupBlock(BREthereumLightNode node,
     return block;
 }
 
-
-static BREthereumBlockId
+extern BREthereumBlockId
 lightNodeLookupBlockId (BREthereumLightNode node,
                         BREthereumBlock block) {
     BREthereumBlockId bid = -1;
@@ -652,7 +492,7 @@ lightNodeLookupBlockId (BREthereumLightNode node,
     return bid;
 }
 
-static void
+extern void
 lightNodeInsertBlock (BREthereumLightNode node,
                       BREthereumBlock block) {
     BREthereumBlockId bid = -1;
@@ -662,6 +502,9 @@ lightNodeInsertBlock (BREthereumLightNode node,
     pthread_mutex_unlock(&node->lock);
     lightNodeListenerAnnounceBlockEvent(node, bid, BLOCK_EVENT_CREATED, SUCCESS, NULL);
 }
+
+
+
 
 
 extern uint64_t
@@ -692,7 +535,7 @@ lightNodeLookupTransaction(BREthereumLightNode node,
     return transaction;
 }
 
-static BREthereumTransactionId
+extern BREthereumTransactionId
 lightNodeLookupTransactionId(BREthereumLightNode node,
                            BREthereumTransaction transaction) {
     BREthereumTransactionId tid = -1;
@@ -707,7 +550,7 @@ lightNodeLookupTransactionId(BREthereumLightNode node,
     return tid;
 }
 
-static BREthereumTransactionId
+extern BREthereumTransactionId
 lightNodeInsertTransaction (BREthereumLightNode node,
                             BREthereumTransaction transaction) {
     BREthereumTransactionId tid;
@@ -776,12 +619,13 @@ lightNodeUpdateTransactions (BREthereumLightNode node) {
 //
 // Logs
 //
+
 /**
  *
  * @param node
  */
 extern void
-lightNodeUpdateLogs (BREthereumLightNode node, BREthereumEvent event) {
+lightNodeUpdateLogs (BREthereumLightNode node, BREthereumContractEvent event) {
     if (LIGHT_NODE_CONNECTED != node->state) {
         // Nothing to announce
         return;
@@ -811,8 +655,6 @@ lightNodeUpdateLogs (BREthereumLightNode node, BREthereumEvent event) {
             break;
     }
 }
-
-
 
 extern void
 lightNodeUpdateWalletBalance(BREthereumLightNode node,
@@ -966,6 +808,7 @@ lightNodeGetTransactionRawDataHexEncoded(BREthereumLightNode node,
     return walletGetRawTransactionHexEncoded(wallet, transaction, prefix);
 }
 
+#if 0
 static BREthereumBlock
 lightNodeAnnounceBlock(BREthereumLightNode node,
                        const char *strBlockNumber,
@@ -1010,7 +853,7 @@ lightNodeAnnounceToken (BREthereumLightNode node,
     if (lightNodeDataIsEmpty(node, data)) return NULL;
     
     // There is contract data; see if it is a ERC20 function.
-    BREthereumFunction function = contractLookupFunctionForEncoding(contractERC20, data);
+    BREthereumContractFunction function = contractLookupFunctionForEncoding(contractERC20, data);
     
     // Not an ERC20 token
     if (NULL == function) return NULL;
@@ -1225,7 +1068,7 @@ lightNodeAnnounceLog (BREthereumLightNode node,
     if (NULL == token) { pthread_mutex_unlock(&node->lock); return; } // uninteresting token
 
     // Event of interest
-    BREthereumEvent event = contractLookupEventForTopic (contractERC20, arrayTopics[0]);
+    BREthereumContractEvent event = contractLookupEventForTopic (contractERC20, arrayTopics[0]);
     if (NULL == event || event != eventERC20Transfer) { pthread_mutex_unlock(&node->lock); return; }; // uninteresting event
 
     // Find or create a block.  No point in doing this until we have a transaction of interest
@@ -1484,6 +1327,7 @@ lightNodeAnnounceSubmitTransaction(BREthereumLightNode node,
                                               eventStatus,
                                               eventErrorDescription);
 }
+#endif
 
 #endif // ETHEREUM_LIGHT_NODE_USE_JSON_RPC
 

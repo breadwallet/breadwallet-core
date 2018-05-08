@@ -625,7 +625,7 @@ lightNodeUpdateTransactions (BREthereumLightNode node);
 
 extern void
 lightNodeUpdateLogs (BREthereumLightNode node,
-                     BREthereumEvent event);
+                     BREthereumContractEvent event);
 
 //
 // Wallet Updates
