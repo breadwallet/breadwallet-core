@@ -24,8 +24,8 @@
 //  THE SOFTWARE.
 
 #include <stdlib.h>
-#include "aes.h"
-#include "sha3.h"
+//#include "aes.h"
+//#include "sha3.h"
 #include "BRCrypto.h"
 #include "BRKey.h"
 #include "BREthereumFrameCoder.h"
@@ -42,19 +42,19 @@
 typedef struct {
 
     //Encryption for frame
-    struct aes256_ctx frameEncrypt;
+   // struct aes256_ctx frameEncrypt;
     
     //Decryption for frame
-    struct aes256_ctx frameDecrypt;
+  //  struct aes256_ctx frameDecrypt;
     
     //Encryption for Mac
-    struct aes256_ctx macEncrypt;
+  //  struct aes256_ctx macEncrypt;
     
     // Ingress ciphertext
-    struct sha3_256_ctx ingressMac;
+   // struct sha3_256_ctx ingressMac;
     
     // Egress ciphertext
-    struct sha3_256_ctx egressMac;
+  //  struct sha3_256_ctx egressMac;
     
 }BREthereumFrameCoderContext;
 
@@ -64,30 +64,30 @@ typedef struct {
 void _egressDigest(BREthereumFrameCoderContext* ctx, UInt128 * digest)
 {
 
-    struct sha3_256_ctx curEgressMacH;
-    memcpy(&curEgressMacH, &ctx->egressMac, sizeof(struct sha3_256_ctx));
-    sha3_256_digest(&curEgressMacH, sizeof(digest->u8), digest->u8);
+  //  struct sha3_256_ctx curEgressMacH;
+ //   memcpy(&curEgressMacH, &ctx->egressMac, sizeof(struct sha3_256_ctx));
+  //  sha3_256_digest(&curEgressMacH, sizeof(digest->u8), digest->u8);
 }
 void _ingressDigest(BREthereumFrameCoderContext* ctx, UInt128 * digest)
 {
-    struct sha3_256_ctx curIngressMacH;
-    memcpy(&curIngressMacH, &ctx->ingressMac, sizeof(struct sha3_256_ctx));
-    sha3_256_digest(&curIngressMacH, sizeof(digest->u8), digest->u8);
+//    struct sha3_256_ctx curIngressMacH;
+//    memcpy(&curIngressMacH, &ctx->ingressMac, sizeof(struct sha3_256_ctx));
+//    sha3_256_digest(&curIngressMacH, sizeof(digest->u8), digest->u8);
 }
 void _updateMac(BREthereumFrameCoderContext* ctx, struct sha3_256_ctx* mac, uint8_t* sData, size_t sDataSize) {
 
     //Peform check for sData size is h1238 _seed.size() && _seed.size() != h128::size)
-    struct sha3_256_ctx prevDigest;
-    memcpy(&prevDigest, mac, sizeof(struct sha3_256_ctx));
+//    struct sha3_256_ctx prevDigest;
+//    memcpy(&prevDigest, mac, sizeof(struct sha3_256_ctx));
     UInt128 encDigest;
     
-    sha3_256_digest(&prevDigest, 16, encDigest.u8);
+  //  sha3_256_digest(&prevDigest, 16, encDigest.u8);
     
     UInt128 pDigest;
     
     memcpy(&pDigest.u8, &encDigest.u8, 16);
     
-    aes256_encrypt(&ctx->macEncrypt, 16, encDigest.u8, encDigest.u8);
+//    aes256_encrypt(&ctx->macEncrypt, 16, encDigest.u8, encDigest.u8);
 
     UInt128 xOrDigest;
     
@@ -98,7 +98,7 @@ void _updateMac(BREthereumFrameCoderContext* ctx, struct sha3_256_ctx* mac, uint
         ethereumXORBytes(encDigest.u8, pDigest.u8, xOrDigest.u8, 128);
     }
 
-    sha3_256_update(mac, sizeof(encDigest.u8), encDigest.u8);
+//    sha3_256_update(mac, sizeof(encDigest.u8), encDigest.u8);
     
 }
 void _writeFrame(BREthereumFrameCoderContext* ctx, BRRlpData * headerData, uint8_t* payload, size_t payloadSize, uint8_t** oBytes, size_t * oBytesSize)
@@ -108,9 +108,9 @@ void _writeFrame(BREthereumFrameCoderContext* ctx, BRRlpData * headerData, uint8
     uint8_t headerMac[uint256_size];
     memcpy(headerMac, headerData->bytes, headerData->bytesCount);
     
-    aes256_encrypt(&ctx->frameEncrypt, 16, headerMac, headerMac);
+   // aes256_encrypt(&ctx->frameEncrypt, 16, headerMac, headerMac);
     
-    _updateMac(ctx, &ctx->egressMac, headerMac, 16);
+  //  _updateMac(ctx, &ctx->egressMac, headerMac, 16);
     UInt128 egressDigest;
     
     _egressDigest(ctx, &egressDigest);
@@ -126,15 +126,15 @@ void _writeFrame(BREthereumFrameCoderContext* ctx, BRRlpData * headerData, uint8
     
     memcpy(oBytesPtr, headerMac, sizeof(headerMac));
     
-    aes256_encrypt(&ctx->frameEncrypt, payloadSize, &oBytesPtr[32], payload);
+    //aes256_encrypt(&ctx->frameEncrypt, payloadSize, &oBytesPtr[32], payload);
 
     if (padding) {
-        aes256_encrypt(&ctx->frameEncrypt, padding, &oBytesPtr[32 + payloadSize], &oBytesPtr[32 + payloadSize]);
+   //     aes256_encrypt(&ctx->frameEncrypt, padding, &oBytesPtr[32 + payloadSize], &oBytesPtr[32 + payloadSize]);
     }
     
     
-    sha3_256_update(&ctx->egressMac, payloadSize + padding, &oBytesPtr[32]);
-    _updateMac(ctx, &ctx->egressMac, NULL, 0);
+   // sha3_256_update(&ctx->egressMac, payloadSize + padding, &oBytesPtr[32]);
+  //  _updateMac(ctx, &ctx->egressMac, NULL, 0);
     
     UInt128 egressDigestFrame;
     _egressDigest(ctx, &egressDigestFrame);
@@ -196,13 +196,13 @@ BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fCoder,
     // aes-secret = sha3(ecdhe-shared-secret || shared-secret)
     BRKeccak256(&keyMaterial[uint256_size], &keyMaterial[uint256_size], uint256_size);
     
-    aes256_set_encrypt_key(&ctx->frameEncrypt, &keyMaterial[uint256_size]);
-    aes256_set_encrypt_key(&ctx->frameDecrypt, &keyMaterial[uint256_size]);
+ //  aes256_set_encrypt_key(&ctx->frameEncrypt, &keyMaterial[uint256_size]);
+ //   aes256_set_encrypt_key(&ctx->frameDecrypt, &keyMaterial[uint256_size]);
     
 
     // mac-secret = sha3(ecdhe-shared-secret || aes-secret)
-    BRKeccak256(&keyMaterial[uint256_size], &keyMaterial[uint256_size], uint256_size);
-    aes256_set_encrypt_key(&ctx->macEncrypt, &keyMaterial[uint256_size]);
+     BRKeccak256(&keyMaterial[uint256_size], &keyMaterial[uint256_size], uint256_size);
+ //   aes256_set_encrypt_key(&ctx->macEncrypt, &keyMaterial[uint256_size]);
 
 
     // Initiator egress-mac: sha3(mac-secret^recipient-nonce || auth-sent-init)
@@ -237,9 +237,9 @@ BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fCoder,
     array_new(gressBytes, egressBytesLen);
     array_add_array(gressBytes, keyMaterial, uint256_size);
     array_insert_array(gressBytes, uint256_size, egressCipher, egressCipherLen);
-    sha3_256_init(&ctx->egressMac);
+ //   sha3_256_init(&ctx->egressMac);
     
-    sha3_256_update(&ctx->egressMac, egressBytesLen, gressBytes);
+ //   sha3_256_update(&ctx->egressMac, egressBytesLen, gressBytes);
     
     // recover mac-secret by re-xoring remoteNonce
     UInt256 xOrMacSecret;
@@ -249,8 +249,8 @@ BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fCoder,
     array_set_capacity(gressBytes, ingressBytesLen);
     array_insert_array(gressBytes, 0, xOrMacSecret.u8, uint256_size);
     array_insert_array(gressBytes, uint256_size, ingressCipher, ingressBytesLen);
-    sha3_256_init(&ctx->ingressMac);
-    sha3_256_update(&ctx->ingressMac, ingressBytesLen, gressBytes);
+//    sha3_256_init(&ctx->ingressMac);
+//    sha3_256_update(&ctx->ingressMac, ingressBytesLen, gressBytes);
 
     array_free(gressBytes);
     
@@ -291,7 +291,7 @@ BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fCoder, u
         return ETHEREUM_BOOLEAN_FALSE;
     }
     
-    _updateMac(ctx, &ctx->ingressMac, oBytes, 16);
+//    _updateMac(ctx, &ctx->ingressMac, oBytes, 16);
     
     UInt128 expected;
     _ingressDigest(ctx,&expected);
@@ -300,7 +300,7 @@ BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fCoder, u
         return ETHEREUM_BOOLEAN_FALSE;
     }
 
-    aes256_encrypt(&ctx->frameEncrypt, 16, oBytes, oBytes);
+//    aes256_encrypt(&ctx->frameEncrypt, 16, oBytes, oBytes);
     
     return ETHEREUM_BOOLEAN_TRUE;
 }
@@ -309,8 +309,8 @@ BREthereumBoolean ethereumFrameCoderDecryptFrame(BREthereumFrameCoder fCoder, ui
     BREthereumFrameCoderContext* ctx = (BREthereumFrameCoderContext*) fCoder;
     size_t cipherLen = outSize - 16;
     uint8_t cipher[cipherLen];
-    sha3_256_update(&ctx->ingressMac, cipherLen, cipher);
-    _updateMac(ctx, &ctx->ingressMac, NULL, 0);
+ //   sha3_256_update(&ctx->ingressMac, cipherLen, cipher);
+ //   _updateMac(ctx, &ctx->ingressMac, NULL, 0);
 
     UInt128 expected;
     _ingressDigest(ctx,&expected);
@@ -319,7 +319,7 @@ BREthereumBoolean ethereumFrameCoderDecryptFrame(BREthereumFrameCoder fCoder, ui
         return ETHEREUM_BOOLEAN_FALSE;
     }
     
-    aes256_encrypt(&ctx->frameEncrypt, outSize, oBytes, oBytes);
+//    aes256_encrypt(&ctx->frameEncrypt, outSize, oBytes, oBytes);
     
     return ETHEREUM_BOOLEAN_TRUE;
 }
