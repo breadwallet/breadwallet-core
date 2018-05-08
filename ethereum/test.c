@@ -30,15 +30,16 @@
 #include <errno.h>
 #include <time.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 #include <assert.h>
 #include "BRCrypto.h"
 #include "BRInt.h"
 //#include "BRKey.h"
 #include "../BRBIP39WordsEn.h"
-
 #include "BREthereum.h"
 #include "BREthereumPrivate.h"
 #include "BREthereumAccount.h"
+#include "test-les.h"
 
 static void
 showHex (uint8_t *source, size_t sourceLen) {
@@ -784,7 +785,6 @@ void runSignatureTests (BREthereumAccount account) {
     printf ("\n      Hex: %s\n", digestString2);
     assert (0 == strcmp (digestString2, signingHash));
 }
-
 //
 // Transaction Tests
 //
@@ -1460,6 +1460,7 @@ runTests (void) {
     runAccountTests();
     runTokenTests ();
     runLightNodeTests();
+    runLEStests();
     //    reallySend();
     printf ("Done\n");
 }
