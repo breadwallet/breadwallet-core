@@ -310,17 +310,17 @@ void _decodeStatus (BREthereumLESHeader* header,
     char* key = rlpDecodeItemString(coder, items[0]);
     
     if(strcmp(key, "protocolVersion") == 0) {
-        header->protocolVersion = rlpDecodeItemUInt64(coder, items[1]);
+        header->protocolVersion = rlpDecodeItemUInt64(coder, items[1], 0);
     }else if (strcmp(key, "networkID") == 0) {
-        header->chainId = rlpDecodeItemUInt64(coder, items[1]);
+        header->chainId = rlpDecodeItemUInt64(coder, items[1], 0);
     }else if (strcmp(key, "headTd") == 0) {
-        header->headerTd = rlpDecodeItemUInt64(coder, items[1]);
+        header->headerTd = rlpDecodeItemUInt64(coder, items[1], 0);
     }else if (strcmp(key, "headHash") == 0) {
         BRRlpData hashData = rlpDecodeItemBytes(coder, items[1]);
         memcpy(header->headHash, hashData.bytes, hashData.bytesCount);
         rlpDataRelease(hashData);
     }else if (strcmp(key, "headNum") == 0) {
-        header->headerTd = rlpDecodeItemUInt64(coder, items[1]);
+        header->headerTd = rlpDecodeItemUInt64(coder, items[1], 0);
     }else if (strcmp(key, "genesisHash") == 0) {
         BRRlpData hashData = rlpDecodeItemBytes(coder, items[1]);
         memcpy(header->genesisHash, hashData.bytes, hashData.bytesCount);
@@ -333,10 +333,10 @@ void _decodeStatus (BREthereumLESHeader* header,
         *(header->serveHeaders) = ETHEREUM_BOOLEAN_TRUE;
     }else if (strcmp(key, "serveChainSince") == 0) {
         header->serveChainSince = malloc(sizeof(uint64_t));
-        *(header->serveChainSince) = rlpDecodeItemUInt64(coder, items[1]);
+        *(header->serveChainSince) = rlpDecodeItemUInt64(coder, items[1], 0);
     }else if (strcmp(key, "serveStateSince") == 0) {
         header->serveStateSince = malloc(sizeof(uint64_t));
-        *(header->serveStateSince) = rlpDecodeItemUInt64(coder, items[1]);
+        *(header->serveStateSince) = rlpDecodeItemUInt64(coder, items[1], 0);
     }else if (strcmp(key, "txRelay") == 0) {
         header->txRelay = malloc(sizeof(BREthereumBoolean));
         *(header->txRelay) = ETHEREUM_BOOLEAN_TRUE;
@@ -406,7 +406,7 @@ int _readStatus(BREthereumHandshakeContext * ctx) {
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     
-    uint64_t packetTypeMsg = rlpDecodeItemUInt64(coder, items[0]);
+    uint64_t packetTypeMsg = rlpDecodeItemUInt64(coder, items[0], 0);
 
     if(packetTypeMsg != 0x00){
         bre_peer_log(peer, "Packet type in message is incorrect");
