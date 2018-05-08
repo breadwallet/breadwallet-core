@@ -1158,10 +1158,11 @@ clientGetTransactions (BREthereumClientContext context,
 
 static void
 clientGetLogs (BREthereumClientContext context,
-                BREthereumLightNode node,
-                const char *addressIgnore,
-                const char *event,
-                int rid) {
+               BREthereumLightNode node,
+               const char *contract,
+               const char *addressIgnore,
+               const char *event,
+               int rid) {
     char *address = ethereumGetAccountPrimaryAddress(node);
     const char *topics[] = {
         "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",

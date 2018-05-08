@@ -26,6 +26,7 @@
 #ifndef BR_Ethereum_Light_Node_Private_H
 #define BR_Ethereum_Light_Node_Private_H
 
+#include <pthread.h>
 #include "BREthereumLightNode.h"
 #include "event/BREvent.h"
 
