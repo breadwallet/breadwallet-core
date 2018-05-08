@@ -1378,15 +1378,17 @@ runLightNode_TOKEN_test (const char *paperKey) {
 }
 
 static void
-runLightNode_PUBLIC_KEY_test (const char *paperKey) {
+runLightNode_PUBLIC_KEY_test (BREthereumNetwork network, const char *paperKey) {
     printf ("     PUBLIC KEY\n");
 
-    BREthereumLightNode node1 = ethereumCreate (ethereumMainnet, paperKey);
+    BREthereumLightNode node1 = ethereumCreate (network, paperKey);
     char *addr1 = ethereumGetAccountPrimaryAddress (node1);
+    BRKey key = ethereumGetAccountPrimaryAddressPrivateKey(node1, paperKey);
 
     BRKey publicKey = ethereumGetAccountPrimaryAddressPublicKey (node1);
-    BREthereumLightNode node2 = ethereumCreateWithPublicKey (ethereumMainnet, publicKey);
+    BREthereumLightNode node2 = ethereumCreateWithPublicKey (network, publicKey);
     char *addr2 = ethereumGetAccountPrimaryAddress (node2);
+
 
     assert (0 == strcmp (addr1, addr2));
 
@@ -1402,7 +1404,8 @@ void runLightNodeTests () {
     runLightNode_JSON_RPC_test(NODE_PAPER_KEY);
     runLightNode_TOKEN_test (NODE_PAPER_KEY);
     runLightNode_LISTENER_test (NODE_PAPER_KEY);
-    runLightNode_PUBLIC_KEY_test (NODE_PAPER_KEY);
+    runLightNode_PUBLIC_KEY_test (ethereumMainnet, NODE_PAPER_KEY);
+    runLightNode_PUBLIC_KEY_test (ethereumTestnet, "ocean robust idle system close inject bronze mutual occur scale blast year");
 }
 
 void runTokenTests () {
