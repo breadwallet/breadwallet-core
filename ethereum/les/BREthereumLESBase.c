@@ -26,6 +26,7 @@
 #include <pthread.h>
 #include <inttypes.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <assert.h>
 #include "BRKey.h"
 #include "secp256k1.h"
@@ -34,7 +35,6 @@
 #include "BREthereumLESBase.h"
 #include "BREthereumBase.h"
 #include "BRCrypto.h"
-#include "aes.h"
 
 
 #define PRI_KEY_BYTES_SIZE 32
@@ -153,7 +153,7 @@ BREthereumBoolean etheruemECDHAgree(BRKey* key, UInt512* pubKey, UInt256* outSec
     */
     return ETHEREUM_BOOLEAN_TRUE;
 }
-BREthereumBoolean ethereumEncryptECIES(UInt512* pubKey, uint8_t * plain, uint8_t * cipher, ssize_t len){
+BREthereumBoolean ethereumEncryptECIES(UInt512* pubKey, uint8_t * plain, uint8_t * cipher, size_t len){
    
     /**
      *  Algorithm is
@@ -171,7 +171,7 @@ BREthereumBoolean ethereumEncryptECIES(UInt512* pubKey, uint8_t * plain, uint8_t
     return ETHEREUM_BOOLEAN_TRUE; 
     
 }
-BREthereumBoolean ethereumDecryptECIES(UInt256* priKey, uint8_t * plain, uint8_t * cipher, ssize_t len)
+BREthereumBoolean ethereumDecryptECIES(UInt256* priKey, uint8_t * plain, uint8_t * cipher, size_t len)
 {
     //TODO: Implement decrypt ECIES
     

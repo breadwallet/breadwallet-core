@@ -177,7 +177,7 @@ lightNodeThreadRoutine (BREthereumLightNode node) {
 
         // Similarly, we'll query all logs for this node's account.  We'll process these into
         // (token) transactions and associate with their wallet.
-        lightNodeUpdateLogs(node, eventERC20Transfer);
+        lightNodeUpdateLogs(node, -1, eventERC20Transfer);
 
         // For all the known wallets, get their balance.
         for (int i = 0; i < array_count(node->wallets); i++)
@@ -624,8 +624,19 @@ lightNodeUpdateTransactions (BREthereumLightNode node) {
  *
  * @param node
  */
+static const char *
+lightNodeGetWalletContractAddress (BREthereumLightNode node, BREthereumWalletId wid) {
+    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
+    if (NULL == wallet) return NULL;
+
+    BREthereumToken token = walletGetToken(wallet);
+    return (NULL == token ? NULL : tokenGetAddress(token));
+}
+
 extern void
-lightNodeUpdateLogs (BREthereumLightNode node, BREthereumContractEvent event) {
+lightNodeUpdateLogs (BREthereumLightNode node,
+                     BREthereumWalletId wid,
+                     BREthereumContractEvent event) {
     if (LIGHT_NODE_CONNECTED != node->state) {
         // Nothing to announce
         return;
@@ -638,10 +649,12 @@ lightNodeUpdateLogs (BREthereumLightNode node, BREthereumContractEvent event) {
             char *address = addressAsString(accountGetPrimaryAddress(node->account));
             char *encodedAddress =
                     eventERC20TransferEncodeAddress (event, address);
+            const char *contract =lightNodeGetWalletContractAddress(node, wid);
 
             node->client.funcGetLogs
             (node->client.funcContext,
              node,
+             contract,
              encodedAddress,
              eventGetSelector(event),
              ++node->requestId);
