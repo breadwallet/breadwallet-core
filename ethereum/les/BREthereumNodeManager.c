@@ -57,7 +57,8 @@ BREthereumNodeManager ethereumNodeManagerCreate(BREthereumNetwork network,
                                                 size_t peersCount) {
 
     BREthereumNodeManagerContext* manager= (BREthereumNodeManagerContext*) calloc(1, sizeof (BREthereumNodeManagerContext));
-    
+    return manager;
+    /*
     if(manager != NULL) {
         array_new(manager->nodes, ETHEREUMN_PEER_MAX_CONNECTIONS);
         array_new(manager->connectedNodes, ETHEREUMN_PEER_MAX_CONNECTIONS);
@@ -66,17 +67,19 @@ BREthereumNodeManager ethereumNodeManagerCreate(BREthereumNetwork network,
         return (BREthereumNodeManager)manager;
     }
     return NULL;
+    */
 }
 void ethereumNodeMangerRelease(BREthereumNodeManager manager) {
     assert(manager != NULL);
     BREthereumNodeManagerContext* ctx = (BREthereumNodeManagerContext*) manager;
-    array_free(ctx->nodes);
-    array_free(ctx->connectedNodes);
+    //array_free(ctx->nodes);
+    //array_free(ctx->connectedNodes);
     free(manager);
 }
 BREthereumNodeManagerStatus ethereumNodeManagerStatus(BREthereumNodeManager manager){
     assert(manager != NULL);
-    BREthereumNodeManagerContext* ctx = (BREthereumNodeManagerContext*) manager;
+    return BRE_MANAGER_DISCONNECTED;
+    /*BREthereumNodeManagerContext* ctx = (BREthereumNodeManagerContext*) manager;
     BREthereumNodeManagerStatus retStatus = BRE_MANAGER_DISCONNECTED;
     pthread_mutex_lock(&ctx->lock);
     BREthereumNode* bootstrapNode = ctx->connectedNodes[BOOTSTRAP_NODE_IDX];
@@ -109,10 +112,11 @@ BREthereumNodeManagerStatus ethereumNodeManagerStatus(BREthereumNodeManager mana
     }
     pthread_mutex_unlock(&ctx->lock);
     return retStatus;
+    */
 }
 void ethereumNodeMangerConnect(BREthereumNodeManager manager) {
     assert(manager != NULL);
-    BREthereumNodeManagerContext* ctx = (BREthereumNodeManagerContext*) manager;
+    /* BREthereumNodeManagerContext* ctx = (BREthereumNodeManagerContext*) manager;
     pthread_mutex_lock(&ctx->lock);
     BREthereumNode* bootstrapNodePtr = ctx->connectedNodes[BOOTSTRAP_NODE_IDX];
     if(bootstrapNodePtr == NULL) {
@@ -124,10 +128,12 @@ void ethereumNodeMangerConnect(BREthereumNodeManager manager) {
         }
     }
     pthread_mutex_unlock(&ctx->lock);
+    */
 }
 void ethereumNodeMangerDisconnect(BREthereumNodeManager manager) {
 
     assert(manager != NULL);
+    /*
     BREthereumNodeManagerContext* ctx = (BREthereumNodeManagerContext*) manager;
     pthread_mutex_lock(&ctx->lock);
     BREthereumNode* bootstrapNodePtr = ctx->connectedNodes[BOOTSTRAP_NODE_IDX];
@@ -135,9 +141,12 @@ void ethereumNodeMangerDisconnect(BREthereumNodeManager manager) {
         ethereumNodeDisconnect(*bootstrapNodePtr);
     }
     pthread_mutex_unlock(&ctx->lock);
+    */
 }
 size_t ethereumNodeMangerPeerCount(BREthereumNodeManager manager) {
 
+    return 0;
+    /*
     BREthereumNodeManagerContext* ctx = (BREthereumNodeManagerContext*) manager;
     size_t count = 0;
     
@@ -146,12 +155,13 @@ size_t ethereumNodeMangerPeerCount(BREthereumNodeManager manager) {
     pthread_mutex_unlock(&ctx->lock);
     
     return count;
+    */
 }
 BREthereumBoolean ethereumNodeManagerSubmitTransaction(BREthereumNodeManager manager,
                                                        const BREthereumTransaction transaction,
                                                        const int requestId) {
     
-    return ETHEREUM_BOOLEAN_TRUE;
+    return ETHEREUM_BOOLEAN_FALSE;
 }
 
 void ethereumNodeManagerSetCallbacks(BREthereumNodeManager manager,
