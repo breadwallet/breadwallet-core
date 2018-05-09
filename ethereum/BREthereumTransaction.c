@@ -42,39 +42,6 @@ static void
 provideGasEstimate (BREthereumTransaction transaction);
 
 //
-// Transaction Hash
-//
-extern BREthereumHash
-hashCreate (const char *string) {
-    return strdup (string);
-}
-
-extern BREthereumHash
-hashCreateEmpty (void) {
-    return "";
-}
-
-extern BREthereumBoolean
-hashExists (BREthereumHash hash) {
-    return '\0' != hash[0];
-}
-
-extern BREthereumHash
-hashCopy(const BREthereumHash hash) {
-    return strdup (hash);
-}
-
-extern BREthereumComparison
- hashCompare(BREthereumHash hash1, BREthereumHash hash2) {
-    int result = strcasecmp(hash1, hash2);
-    return (result == 0
-            ? ETHEREUM_COMPARISON_EQ
-            : (result < 0
-               ? ETHEREUM_COMPARISON_LT
-               : ETHEREUM_COMPARISON_GT));
-}
-
-//
 // Transaction State
 //
 typedef struct {

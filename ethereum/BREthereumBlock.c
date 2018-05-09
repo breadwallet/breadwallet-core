@@ -30,7 +30,7 @@
 #include "BREthereumPrivate.h"
 
 struct BREthereumBlockRecord {
-    char *hash;
+    BREthereumHash hash;
     uint64_t number;
     uint64_t confirmations;  // NO NO NO
     uint64_t timestamp;
@@ -67,6 +67,5 @@ blockGetTimestamp (BREthereumBlock block) {
 
 private_extern void
 blockFree (BREthereumBlock block) {
-    free (block->hash);
     free (block);
 }
