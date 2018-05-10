@@ -98,6 +98,15 @@ hashCopy(BREthereumHash hash);
 extern BREthereumComparison
 hashCompare(BREthereumHash hash1, BREthereumHash hash2);
 
+extern BREthereumBoolean
+hashEqual (BREthereumHash hash1, BREthereumHash hash2);
+
+extern BRRlpItem
+hashRlpEncode(BREthereumHash hash, BRRlpCoder coder);
+
+extern BREthereumHash
+hashRlpDecode (BRRlpItem item, BRRlpCoder coder);
+    
 #ifdef __cplusplus
 }
 #endif

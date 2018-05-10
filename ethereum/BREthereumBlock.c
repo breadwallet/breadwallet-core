@@ -26,46 +26,309 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include "BRArray.h"
 #include "BREthereumBlock.h"
 #include "BREthereumPrivate.h"
 
-struct BREthereumBlockRecord {
-    BREthereumHash hash;
+typedef struct {
+    uint8_t bytes[20];
+} BREthereumAddressRaw;
+
+static BREthereumAddressRaw
+addressRawRlpDecode (BRRlpItem item, BRRlpCoder coder) {
+    BREthereumAddressRaw address;
+
+    BRRlpData data = rlpDecodeItemBytes(coder, item);
+    assert (20 == data.bytesCount);
+
+    memcpy (address.bytes, data.bytes, 20);
+    return address;
+}
+
+//
+// Bloom Filter
+//
+typedef struct {
+    uint8_t bytes[256];
+} BREthereumBloomFilter;
+
+extern BRRlpItem
+bloomFilterRlpEncode(BREthereumBloomFilter filter, BRRlpCoder coder) {
+    return rlpEncodeItemBytes(coder, filter.bytes, 256);
+}
+
+extern BREthereumBloomFilter
+bloomFilterRlpDecode (BRRlpItem item, BRRlpCoder coder) {
+    BREthereumBloomFilter filter;
+
+    BRRlpData data = rlpDecodeItemBytes(coder, item);
+    assert (256 == data.bytesCount);
+
+    memcpy (filter.bytes, data.bytes, 256);
+    return filter;
+}
+
+/**
+ * An Ethereum Block header.
+ *
+ * As per (2018-05-04 https://ethereum.github.io/yellowpaper/paper.pdf). [Documentation from
+ * that reference]
+ */
+struct BREthereumBlockHeaderRecord {
+    // The Keccak256-bit hash of the parent block’s header, in its entirety; formally Hp.
+    BREthereumHash parentHash;
+
+    // The Keccak 256-bit hash of the om- mers list portion of this block; formally Ho.
+    BREthereumHash ommersHash;
+
+    // The 160-bit address to which all fees collected from the successful mining of this block
+    // be transferred; formally Hc.
+    BREthereumAddressRaw beneficiary;
+
+    // The Keccak 256-bit hash of the root node of the state trie, after all transactions are
+    // executed and finalisations applied; formally Hr.
+    BREthereumHash stateRoot;
+
+    // The Keccak 256-bit hash of the root node of the trie structure populated with each
+    // transaction in the transactions list portion of the block; formally Ht.
+    BREthereumHash transactionsRoot;
+
+    // The Keccak 256-bit hash of the root node of the trie structure populated with the receipts
+    // of each transaction in the transactions list portion of the block; formally He.
+    BREthereumHash receiptsRoot;
+
+    // The Bloom filter composed from index- able information (logger address and log topics)
+    // contained in each log entry from the receipt of each transaction in the transactions list;
+    // formally Hb.
+    BREthereumBloomFilter logsBloom;
+
+    // A scalar value corresponding to the difficulty level of this block. This can be calculated
+    // from the previous block’s difficulty level and the timestamp; formally Hd.
+    uint64_t difficulty;
+
+    // A scalar value equal to the number of ancestor blocks. The genesis block has a number of
+    // zero; formally Hi.
     uint64_t number;
-    uint64_t confirmations;  // NO NO NO
+
+    // A scalar value equal to the current limit of gas expenditure per block; formally Hl.
+    uint64_t gasLimit;
+
+    // A scalar value equal to the total gas used in transactions in this block; formally Hg.
+    uint64_t gasUsed;
+
+    // A scalar value equal to the reasonable output of Unix’s time() at this block’s inception;
+    // formally Hs.
     uint64_t timestamp;
+
+    // An arbitrary byte array containing data relevant to this block. This must be 32 bytes or
+    // fewer; formally Hx.
+    uint8_t extraData [32];
+    uint8_t extraDataCount;
+
+    // A 256-bit hash which, combined with the nonce, proves that a sufficient amount of
+    // computation has been carried out on this block; formally Hm.
+    BREthereumHash mixHash;
+
+    // A 64-bitvaluewhich, combined with the mixHash, proves that a sufficient amount of
+    // computation has been carried out on this block; formally Hn.
+    uint64_t nonce;
+
+    // The Keccak256-bit hash (of this Block).
+    BREthereumHash hash;
+};
+
+static BREthereumBlockHeader
+createBlockHeaderMinimal (BREthereumHash hash, uint64_t number, uint64_t timestamp) {
+    BREthereumBlockHeader header = (BREthereumBlockHeader) calloc (1, sizeof (struct BREthereumBlockHeaderRecord));
+    header->number = number;
+    header->timestamp = timestamp;
+    header->hash = hash;
+    return header;
+}
+
+static BREthereumBlockHeader
+createBlockHeader (void) {
+    BREthereumBlockHeader header = (BREthereumBlockHeader) calloc (1, sizeof (struct BREthereumBlockHeaderRecord));
+
+    //         EMPTY_DATA_HASH = sha3(EMPTY_BYTE_ARRAY);
+    //         EMPTY_LIST_HASH = sha3(RLP.encodeList());
+
+    // transactionRoot, receiptsRoot
+    //         EMPTY_TRIE_HASH = sha3(RLP.encodeElement(EMPTY_BYTE_ARRAY));
+    return header;
+}
+
+static void
+blockHeaderFree (BREthereumBlockHeader header) {
+    free (header);
+}
+
+//
+// Block Header RLP Encode / Decode
+//
+//
+
+extern BRRlpData
+blockHeaderEncodeRLP (BREthereumBlockHeader header, BREthereumBoolean withNonce) {
+    BRRlpCoder coder = rlpCoderCreate();
+
+    BRRlpItem items[15];
+    size_t itemsCount = ETHEREUM_BOOLEAN_IS_TRUE(withNonce) ? 15 : 13;
+
+    items[ 0] = hashRlpEncode(header->parentHash, coder);
+    items[ 1] = hashRlpEncode(header->ommersHash, coder);
+    items[ 2] = rlpEncodeItemBytes(coder, header->beneficiary.bytes, 20);
+    items[ 3] = hashRlpEncode(header->stateRoot, coder);
+    items[ 4] = hashRlpEncode(header->transactionsRoot, coder);
+    items[ 5] = hashRlpEncode(header->receiptsRoot, coder);
+    items[ 6] = bloomFilterRlpEncode(header->logsBloom, coder);
+    items[ 7] = rlpEncodeItemUInt64(coder, header->difficulty, 0);
+    items[ 8] = rlpEncodeItemUInt64(coder, header->number, 0);
+    items[ 9] = rlpEncodeItemUInt64(coder, header->gasLimit, 0);
+    items[10] = rlpEncodeItemUInt64(coder, header->gasUsed, 0);
+    items[11] = rlpEncodeItemUInt64(coder, header->timestamp, 0);
+    items[12] = rlpEncodeItemBytes(coder, header->extraData, header->extraDataCount);
+
+    if (ETHEREUM_BOOLEAN_IS_TRUE(withNonce)) {
+        items[13] = hashRlpEncode(header->mixHash, coder);
+        items[14] = rlpEncodeItemUInt64(coder, header->nonce, 0);
+    }
+
+    BRRlpItem encoding = rlpEncodeListItems(coder, items, itemsCount);
+    BRRlpData result;
+
+    rlpDataExtract(coder, encoding, &result.bytes, &result.bytesCount);
+    rlpCoderRelease(coder);
+
+    return result;
+}
+
+extern BREthereumBlockHeader
+blockHeaderDecodeRLP (BRRlpData data) {
+    BREthereumBlockHeader header = (BREthereumBlockHeader) calloc (1, sizeof(struct BREthereumBlockHeaderRecord));
+
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem item = rlpGetItem (coder, data);
+
+    size_t itemsCount = 0;
+    const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
+    assert (13 == itemsCount || 15 == itemsCount);
+
+    header->parentHash = hashRlpDecode(items[0], coder);
+    header->ommersHash = hashRlpDecode(items[1], coder);
+    header->beneficiary = addressRawRlpDecode(items[2], coder);
+    header->stateRoot = hashRlpDecode(items[3], coder);
+    header->transactionsRoot = hashRlpDecode(items[4], coder);
+    header->receiptsRoot = hashRlpDecode(items[5], coder);
+    header->logsBloom = bloomFilterRlpDecode(items[6], coder);
+    header->difficulty = rlpDecodeItemUInt64(coder, items[7], 0);
+    header->number = rlpDecodeItemUInt64(coder, items[8], 0);
+    header->gasLimit = rlpDecodeItemUInt64(coder, items[9], 0);
+    header->gasUsed = rlpDecodeItemUInt64(coder, items[10], 0);
+    header->timestamp = rlpDecodeItemUInt64(coder, items[11], 0);
+
+    BRRlpData extraData = rlpDecodeItemBytes(coder, items[12]);
+    memset (header->extraData, 0, 32);
+    memcpy (header->extraData, extraData.bytes, extraData.bytesCount);
+    header->extraDataCount = extraData.bytesCount;
+
+    if (15 == itemsCount) {
+        header->mixHash = hashRlpDecode(items[13], coder);
+        header->nonce = rlpDecodeItemUInt64(coder, items[14], 0);
+    }
+
+    rlpCoderRelease(coder);
+    return header;
+}
+
+//
+// An Ethereum Block
+//
+// The block in Ethereum is the collection of relevant pieces of information (known as the
+// block header), H, together with information corresponding to the comprised transactions, T,
+// and a set of other block headers U that are known to have a parent equal to the present block’s
+// parent’s parent (such blocks are known as ommers).
+//
+struct BREthereumBlockRecord {
+    BREthereumBlockHeader header;
+    BREthereumBlockHeader *ommers;
+    BREthereumTransaction *transactions;
 };
 
 extern BREthereumBlock
-createBlock(BREthereumHash hash, uint64_t number, uint64_t timestamp) {
-    BREthereumBlock block = (BREthereumBlock) malloc (sizeof (struct BREthereumBlockRecord));
-    block->hash = hashCopy(hash);
-    block->number = number;
-    block->timestamp = timestamp;
+createBlockMinimal(BREthereumHash hash, uint64_t number, uint64_t timestamp) {
+    BREthereumBlock block = (BREthereumBlock) calloc (1, sizeof (struct BREthereumBlockRecord));
+    block->header = createBlockHeaderMinimal(hash, number, timestamp);
+    array_new(block->ommers, 0);
+    array_new(block->transactions, 0);
+    return block;
+}
+
+extern BREthereumBlock
+createBlock (BREthereumBlockHeader header,
+             BREthereumBlockHeader ommers[], size_t ommersCount,
+             BREthereumTransaction transactions[], size_t transactionCount) {
+    BREthereumBlock block = (BREthereumBlock) calloc (1, sizeof (struct BREthereumBlockRecord));
+
+    array_new (block->ommers, ommersCount);
+    for (int i = 0; i < ommersCount; i++)
+        array_add (block->ommers, ommers[i]);
+
+    array_new(block->transactions, transactionCount);
+    for (int i = 0; i < transactionCount; i++)
+        array_add (block->transactions, transactions[i]);
+
     return block;
 }
 
 extern BREthereumHash
 blockGetHash (BREthereumBlock block) {
-    return hashCopy(block->hash);
+    return  block->header->hash;
 }
 
 extern uint64_t
 blockGetNumber (BREthereumBlock block) {
-    return block->number;
-}
-
-extern uint64_t
-blockGetConfirmations (BREthereumBlock block) {
-    return block->confirmations;
+    return block->header->number;
 }
 
 extern uint64_t
 blockGetTimestamp (BREthereumBlock block) {
-    return block->timestamp;
+    return block->header->timestamp;
 }
 
 private_extern void
 blockFree (BREthereumBlock block) {
+    blockHeaderFree(block->header);
     free (block);
+}
+
+//
+// Block RLP Encode / Decode
+//
+static BRRlpItem
+blockTransactionsRlpEncode (BREthereumBlock block, BRRlpCoder coder) {
+//    size_t itemsCount = array_count(block->transactions);
+//    BRRlpItem items[itemsCount];
+//
+//    for (int i = 0; i < itemsCount; i++)
+//        items[i] = transaction;
+//
+    return rlpEncodeItemString(coder, "");
+}
+
+extern BRRlpData
+blockEncodeRLP (BREthereumBlock block) {
+//    BRRlpCoder coder = rlpCoderCreate();
+//
+//    BRRlpItem items[3];
+//
+//
+//    BRRlpItem encoding = rlpEncodeListItems(coder, items, itemsCount);
+    BRRlpData result;
+//
+//    rlpDataExtract(coder, encoding, &result.bytes, &result.bytesCount);
+//    rlpCoderRelease(coder);
+//
+    return result;
+
 }

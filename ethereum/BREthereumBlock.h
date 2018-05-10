@@ -27,16 +27,23 @@
 #define BR_Ethereum_Block_H
 
 #include "BREthereumBase.h"
+#include "BREthereumTransaction.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+typedef struct BREthereumBlockHeaderRecord *BREthereumBlockHeader;
 typedef struct BREthereumBlockRecord *BREthereumBlock;
 
 extern BREthereumBlock
-createBlock(BREthereumHash hash,
+createBlockMinimal(BREthereumHash hash,
             uint64_t number,
             uint64_t timestamp);
+
+extern BREthereumBlock
+createBlock (BREthereumBlockHeader header,
+             BREthereumBlockHeader ommers[], size_t ommersCount,
+             BREthereumTransaction transactions[], size_t transactionCount);
 
 extern BREthereumHash
 blockGetHash (BREthereumBlock block);

@@ -552,6 +552,7 @@ transactionDecodeRLP (BREthereumNetwork network,
 //    items[4] = amountRlpEncode(transaction->amount, coder);
 //    items[5] = transactionEncodeDataForHolding(transaction, transaction->amount, coder);
 
+    rlpCoderRelease(coder);
     return transaction;
 }
 

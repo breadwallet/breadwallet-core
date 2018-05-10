@@ -179,7 +179,7 @@ lightNodeAnnounceBlock(BREthereumLightNode node,
         uint64_t blockNumber = strtoull(strBlockNumber, NULL, 0);
         uint64_t blockTimestamp = strtoull(strBlockTimestamp, NULL, 0);
 
-        block = createBlock(blockHash, blockNumber, blockTimestamp);
+        block = createBlockMinimal(blockHash, blockNumber, blockTimestamp);
         lightNodeInsertBlock(node, block);
 
         BREthereumTransactionId bid = lightNodeLookupBlockId(node, block);

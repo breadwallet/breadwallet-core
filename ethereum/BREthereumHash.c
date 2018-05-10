@@ -87,3 +87,19 @@ extern BREthereumBoolean
 hashEqual (BREthereumHash hash1, BREthereumHash hash2) {
     return 0 == memcmp (hash1.bytes, hash2.bytes, ETHEREUM_HASH_BYTES);
 }
+
+extern BRRlpItem
+hashRlpEncode(BREthereumHash hash, BRRlpCoder coder) {
+    return rlpEncodeItemBytes(coder, hash.bytes, ETHEREUM_HASH_BYTES);
+}
+
+extern BREthereumHash
+hashRlpDecode (BRRlpItem item, BRRlpCoder coder) {
+    BREthereumHash hash;
+
+    BRRlpData data = rlpDecodeItemBytes(coder, item);
+    assert (ETHEREUM_HASH_BYTES == data.bytesCount);
+
+    memcpy (hash.bytes, data.bytes, ETHEREUM_HASH_BYTES);
+    return hash;
+}
