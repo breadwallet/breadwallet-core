@@ -28,13 +28,26 @@
 
 #include <inttypes.h>
 #include "BREthereumBase.h"
-#include "BRTransaction.h"
+#include "BREthereumTransaction.h"
 #include "BREthereumBlock.h"
 #include "BRInt.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef enum {
+    BRE_LES_SUCCESS=0,
+    BRE_LES_INVALID_MSG_ID_ERROR,
+    BRE_LES_INVALID_STATUS_KEY_PAIR, 
+    BRE_LES_UNABLE_TO_DECODE_ERROR,
+}BREthereumLESDecodeStatus;
+
+typedef struct {
+    uint64_t msgCode;
+    uint64_t baseCost;
+    uint64_t reqCost;
+}BREthereumLESMRC;
 
 //
 // LES Status Structures
@@ -48,12 +61,13 @@ typedef struct {
     uint64_t headNum;
     uint8_t genesisHash[32];
     // Note: The below fields are optional LPV1
-    BREthereumBoolean* serveHeaders;
+    BREthereumBoolean serveHeaders;
     uint64_t* serveChainSince;
     uint64_t* serveStateSince;
-    BREthereumBoolean* txRelay;
+    BREthereumBoolean txRelay;
     uint64_t*flowControlBL;
-    uint64_t*flowControlMRC;
+    BREthereumLESMRC*flowControlMRC;
+    size_t* flowControlMRCCount;
     uint64_t*flowControlMRR;
 }BREthereumLESHeader;
 
@@ -67,17 +81,18 @@ typedef struct {
     uint64_t headNum;
     uint8_t genesisHash[32];
     // Note: The below fields are optional LPV1
-    BREthereumBoolean* serveHeaders;
+    BREthereumBoolean serveHeaders;
     uint64_t* serveChainSince;
     uint64_t* serveStateSince;
-    BREthereumBoolean* txRelay;
+    BREthereumBoolean txRelay;
     uint64_t*flowControlBL;
-    uint64_t*flowControlMRC;
+    BREthereumLESMRC*flowControlMRC;
+    size_t* flowControlMRCCount;
     uint64_t*flowControlMRR;
 }BREthereumLESStatusV1;
 
 typedef struct {
-    BREthereumLESStatusV1 v1Header;
+    BREthereumLESStatusV1 v1Status;
     uint64_t announceType;
 }BREthereumLESStatusV2;
 
@@ -176,32 +191,27 @@ typedef struct {
 }BREthereumGetHelperTrieProofsRequest;
 
 
-
-//TODO: Write Encode functions for the reply messages: BlockBodies, Receipts, BlockHeaders, Proofs, ContractCodes, HeaderProofs, ProofsV2, HelperTrieProofs, TxtStatus
-
-
 //
 // Handshake messages
 //
 /**
  * Encode a status message (LES V1)
  */
-extern void ethereumLESEncodeV1Status(BREthereumLESStatusV1 header, uint8_t**rlpBytes, size_t* rlpByesSize);
+extern void ethereumLESEncodeV1Status(BREthereumLESStatusV1* status, uint8_t**rlpBytes, size_t* rlpBytesSize);
 
 /**
  * Encode a status message (LES V2)
  */
-extern void ethereumLESEncodeLESV2Status(BREthereumLESStatusV2 header, uint8_t**rlpBytes, size_t* rlpByesSize);
-
+extern void ethereumLESEncodeLESV2Status(BREthereumLESStatusV2* header, uint8_t**rlpBytes, size_t* rlpBytesSize);
 /**
  * Decode a status message (LES V1) reply
  */
-extern void ethereumLESDecodeV1Status(uint8_t*rlpBytes, BREthereumLESStatusV1* header);
+extern BREthereumLESDecodeStatus ethereumLESDecodeV1Status(uint8_t*rlpBytes, size_t rlpBytesSize, BREthereumLESStatusV1* status);
 
 /**
  * Decode a status message (LES V2) reply
  */
-extern void ethereumLESDecodeLESV2Status(uint8_t*rlpBytes, BREthereumLESStatusV2* header);
+extern BREthereumLESDecodeStatus ethereumLESDecodeLESV2Status(uint8_t*rlpBytes, size_t rlpBytesSize, BREthereumLESStatusV2* status);
 
 /*********/
 
