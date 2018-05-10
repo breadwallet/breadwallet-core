@@ -68,6 +68,8 @@ bloomFilterRlpDecode (BRRlpItem item, BRRlpCoder coder) {
     return filter;
 }
 
+#define FOO 1
+
 /**
  * An Ethereum Block header.
  *
@@ -125,6 +127,9 @@ struct BREthereumBlockHeaderRecord {
     uint8_t extraData [32];
     uint8_t extraDataCount;
 
+#if FOO == 1
+    BREthereumHash seedHash;
+#endif
     // A 256-bit hash which, combined with the nonce, proves that a sufficient amount of
     // computation has been carried out on this block; formally Hm.
     BREthereumHash mixHash;
@@ -163,6 +168,18 @@ blockHeaderFree (BREthereumBlockHeader header) {
     free (header);
 }
 
+extern BREthereumHash
+blockHeaderGetParentHash (BREthereumBlockHeader header) {
+    return header->parentHash;
+}
+
+// ...
+
+extern uint64_t
+blockHeaderGetNonce (BREthereumBlockHeader header) {
+    return header->nonce;
+}
+
 //
 // Block Header RLP Encode / Decode
 //
@@ -172,8 +189,8 @@ extern BRRlpData
 blockHeaderEncodeRLP (BREthereumBlockHeader header, BREthereumBoolean withNonce) {
     BRRlpCoder coder = rlpCoderCreate();
 
-    BRRlpItem items[15];
-    size_t itemsCount = ETHEREUM_BOOLEAN_IS_TRUE(withNonce) ? 15 : 13;
+    BRRlpItem items[15 + FOO];
+    size_t itemsCount = ETHEREUM_BOOLEAN_IS_TRUE(withNonce) ? (15 + FOO) : 13;
 
     items[ 0] = hashRlpEncode(header->parentHash, coder);
     items[ 1] = hashRlpEncode(header->ommersHash, coder);
@@ -190,8 +207,11 @@ blockHeaderEncodeRLP (BREthereumBlockHeader header, BREthereumBoolean withNonce)
     items[12] = rlpEncodeItemBytes(coder, header->extraData, header->extraDataCount);
 
     if (ETHEREUM_BOOLEAN_IS_TRUE(withNonce)) {
-        items[13] = hashRlpEncode(header->mixHash, coder);
-        items[14] = rlpEncodeItemUInt64(coder, header->nonce, 0);
+#if FOO == 1
+        items[13] = hashRlpEncode(header->seedHash, coder);
+#endif
+        items[13 + FOO] = hashRlpEncode(header->mixHash, coder);
+        items[14 + FOO] = rlpEncodeItemUInt64(coder, header->nonce, 0);
     }
 
     BRRlpItem encoding = rlpEncodeListItems(coder, items, itemsCount);
@@ -212,8 +232,10 @@ blockHeaderDecodeRLP (BRRlpData data) {
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
-    assert (13 == itemsCount || 15 == itemsCount);
+    assert (13 == itemsCount || (15 + FOO) == itemsCount);
 
+    header->hash = hashCreateEmpty();
+    
     header->parentHash = hashRlpDecode(items[0], coder);
     header->ommersHash = hashRlpDecode(items[1], coder);
     header->beneficiary = addressRawRlpDecode(items[2], coder);
@@ -232,9 +254,16 @@ blockHeaderDecodeRLP (BRRlpData data) {
     memcpy (header->extraData, extraData.bytes, extraData.bytesCount);
     header->extraDataCount = extraData.bytesCount;
 
-    if (15 == itemsCount) {
-        header->mixHash = hashRlpDecode(items[13], coder);
-        header->nonce = rlpDecodeItemUInt64(coder, items[14], 0);
+    if (15 + FOO == itemsCount) {
+#if FOO == 1
+        header->seedHash = hashRlpDecode(items[13], coder);
+#endif
+        header->mixHash = hashRlpDecode(items[13 + FOO], coder);
+        header->nonce = rlpDecodeItemUInt64(coder, items[14 + FOO], 0);
+
+        // The Block/BlockHeader Hash is the KECCAK hash of the RLP encoding of the
+        // BlockHeader with nonce.
+        header->hash = hashCreateFromData (data);
     }
 
     rlpCoderRelease(coder);

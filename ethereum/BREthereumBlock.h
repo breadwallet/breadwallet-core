@@ -35,6 +35,26 @@ extern "C" {
 typedef struct BREthereumBlockHeaderRecord *BREthereumBlockHeader;
 typedef struct BREthereumBlockRecord *BREthereumBlock;
 
+//
+// Block Header
+//
+extern BREthereumBlockHeader
+blockHeaderDecodeRLP (BRRlpData data);
+
+extern BRRlpData
+blockHeaderEncodeRLP (BREthereumBlockHeader header, BREthereumBoolean withNonce);
+
+extern BREthereumHash
+blockHeaderGetParentHash (BREthereumBlockHeader header);
+
+// ...
+
+extern uint64_t
+blockHeaderGetNonce (BREthereumBlockHeader header);
+
+//
+// Block
+//
 extern BREthereumBlock
 createBlockMinimal(BREthereumHash hash,
             uint64_t number,

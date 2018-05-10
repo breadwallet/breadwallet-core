@@ -55,10 +55,10 @@ hashCreateFromData (BRRlpData data) {
  */
 extern char *
 hashAsString (BREthereumHash hash) {
-    char result [2 + 2 * ETHEREUM_HASH_BYTES];
+    char result [2 + 2 * ETHEREUM_HASH_BYTES + 1];
     result[0] = '0';
     result[1] = 'x';
-    encodeHex(&result[2], 2 * ETHEREUM_HASH_BYTES, hash.bytes, ETHEREUM_HASH_BYTES);
+    encodeHex(&result[2], 2 * ETHEREUM_HASH_BYTES + 1, hash.bytes, ETHEREUM_HASH_BYTES);
     return strdup (result);
 }
 
