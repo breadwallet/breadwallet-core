@@ -42,7 +42,8 @@ extern BREthereumBlockHeader
 blockHeaderDecodeRLP (BRRlpData data);
 
 extern BRRlpData
-blockHeaderEncodeRLP (BREthereumBlockHeader header, BREthereumBoolean withNonce);
+blockHeaderEncodeRLP (BREthereumBlockHeader header,
+                      BREthereumBoolean withNonce);
 
 extern BREthereumHash
 blockHeaderGetParentHash (BREthereumBlockHeader header);
@@ -65,6 +66,21 @@ createBlock (BREthereumBlockHeader header,
              BREthereumBlockHeader ommers[], size_t ommersCount,
              BREthereumTransaction transactions[], size_t transactionCount);
 
+extern BREthereumBlockHeader
+blockGetHeader (BREthereumBlock block);
+
+extern unsigned int
+blockGetTransactionsCount (BREthereumBlock block);
+
+extern BREthereumTransaction
+blockGetTransaction (BREthereumBlock block, unsigned int index);
+
+extern unsigned int
+blockGetOmmersCount (BREthereumBlock block);
+
+extern BREthereumBlockHeader
+blockGetOmmer (BREthereumBlock block, unsigned int index);
+
 extern BREthereumHash
 blockGetHash (BREthereumBlock block);
 
@@ -77,6 +93,15 @@ blockGetConfirmations (BREthereumBlock block);
 extern uint64_t
 blockGetTimestamp (BREthereumBlock block);
 
+extern BRRlpData
+blockEncodeRLP (BREthereumBlock block,
+                BREthereumNetwork network);
+
+extern BREthereumBlock
+blockDecodeRLP (BRRlpData data,
+                BREthereumNetwork network);
+
+    
 #ifdef __cplusplus
 }
 #endif

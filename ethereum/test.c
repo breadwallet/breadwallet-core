@@ -1500,6 +1500,13 @@ reallySend () {
 extern void
 runBlockTests (void) {
     BRRlpData data;
+    BRRlpData encodeData;
+
+    int typeMismatch;
+
+    //
+    // Block Header
+    //
     data.bytes = decodeHexCreate(&data.bytesCount, BLOCK_HEADER_1_RLP, strlen (BLOCK_HEADER_1_RLP));
 
     BREthereumBlockHeader blockHeader_1 = blockHeaderDecodeRLP (data);
@@ -1508,9 +1515,42 @@ runBlockTests (void) {
                          "0xafa4726a3d669141a00e70b2bf07f313abbb65140ca045803d4f0ef8dc426274"));
     assert (0x0a6f958326b74cc5 == blockHeaderGetNonce(blockHeader_1));
 
-    BRRlpData encodeData = blockHeaderEncodeRLP(blockHeader_1, ETHEREUM_BOOLEAN_TRUE);
+    encodeData = blockHeaderEncodeRLP(blockHeader_1, ETHEREUM_BOOLEAN_TRUE);
     assert (data.bytesCount == encodeData.bytesCount
             && 0 == memcmp (data.bytes, encodeData.bytes, encodeData.bytesCount));
+
+    rlpDataRelease(encodeData);
+    rlpDataRelease(data);
+
+    //
+    // Block
+    //
+    data.bytes = decodeHexCreate(&data.bytesCount, BLOCK_1_RLP, strlen (BLOCK_1_RLP));
+
+    BREthereumBlock block = blockDecodeRLP(data, ethereumMainnet);
+    blockHeader_1 = blockGetHeader(block);
+    assert (0 == strcmp (hashAsString (blockHeaderGetParentHash(blockHeader_1)),
+                         "0xafa4726a3d669141a00e70b2bf07f313abbb65140ca045803d4f0ef8dc426274"));
+    assert (0x0a6f958326b74cc5 == blockHeaderGetNonce(blockHeader_1));
+
+    assert (1 == blockGetTransactionsCount(block));
+    BREthereumTransaction transaction = blockGetTransaction (block, 0);
+    assert (0 == transactionGetNonce(transaction));
+    assert (0 == strcmp ("0x", transactionGetData(transaction)));
+    assert (ETHEREUM_COMPARISON_EQ == gasCompare(transactionGetGasLimit(transaction), gasCreate(50000)));
+    assert (ETHEREUM_COMPARISON_EQ == gasPriceCompare(transactionGetGasPrice(transaction), gasPriceCreate(etherCreateNumber(10, WEI))));
+    assert (ETHEREUM_COMPARISON_EQ == amountCompare(transactionGetAmount(transaction),
+                                                    amountCreateEther(etherCreateNumber(5000000000, WEI)),
+                                                    &typeMismatch));
+
+    assert (0 == blockGetOmmersCount(block));
+
+    encodeData = blockEncodeRLP(block, ethereumMainnet);
+    assert (data.bytesCount == encodeData.bytesCount
+            && 0 == memcmp (data.bytes, encodeData.bytes, encodeData.bytesCount));
+
+    rlpDataRelease(encodeData);
+    rlpDataRelease(data);
 }
 
 //

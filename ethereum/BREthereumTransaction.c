@@ -402,13 +402,11 @@ transactionDecodeNonce (BRRlpItem item,
 //
 // Tranaction RLP Encode
 //
-extern BRRlpData
-transactionEncodeRLP (BREthereumTransaction transaction,
-                      BREthereumNetwork network,
-                      BREthereumTransactionRLPType type) {
-
-    BRRlpCoder coder = rlpCoderCreate();
-
+extern BRRlpItem
+transactionRlpEncodeItem(BREthereumTransaction transaction,
+                         BREthereumNetwork network,
+                         BREthereumTransactionRLPType type,
+                         BRRlpCoder coder) {
     BRRlpItem items[10];
     size_t itemsCount = 0;
 
@@ -442,7 +440,7 @@ transactionEncodeRLP (BREthereumTransaction transaction,
         case TRANSACTION_RLP_SIGNED:
             // For EIP-155, encode v with the chainID.
             items[6] = rlpEncodeItemUInt64(coder, transaction->signature.sig.recoverable.v + 8 +
-                                                  2 * transaction->chainId, 1);
+                                           2 * transaction->chainId, 1);
 
             items[7] = rlpEncodeItemBytes (coder,
                                            transaction->signature.sig.recoverable.r,
@@ -455,8 +453,19 @@ transactionEncodeRLP (BREthereumTransaction transaction,
             break;
     }
 
-    BRRlpItem encoding = rlpEncodeListItems(coder, items, itemsCount);
+    return rlpEncodeListItems(coder, items, itemsCount);
+}
+
+
+
+extern BRRlpData
+transactionEncodeRLP (BREthereumTransaction transaction,
+                      BREthereumNetwork network,
+                      BREthereumTransactionRLPType type) {
     BRRlpData result;
+
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem encoding = transactionRlpEncodeItem(transaction, network, type, coder);
 
     rlpDataExtract(coder, encoding, &result.bytes, &result.bytesCount);
     rlpCoderRelease(coder);
@@ -467,20 +476,26 @@ transactionEncodeRLP (BREthereumTransaction transaction,
 //
 // Tranaction RLP Decode
 //
-
 extern BREthereumTransaction
-transactionDecodeRLP (BREthereumNetwork network,
-                      BREthereumTransactionRLPType type,
-                      BRRlpData data) {
+transactionRlpDecodeItem (BRRlpItem item,
+                          BREthereumNetwork network,
+                          BREthereumTransactionRLPType type,
+                          BRRlpCoder coder) {
+
     BREthereumTransaction transaction = malloc (sizeof(struct BREthereumTransactionRecord));
     memset (transaction, 0, sizeof(struct BREthereumTransactionRecord));
-
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = rlpGetItem (coder, data);
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     assert (9 == itemsCount);
+
+    // Encoded as:
+    //    items[0] = transactionEncodeNonce(transaction, transaction->nonce, coder);
+    //    items[1] = gasPriceRlpEncode(transaction->gasPrice, coder);
+    //    items[2] = gasRlpEncode(transaction->gasLimit, coder);
+    //    items[3] = transactionEncodeAddressForHolding(transaction, transaction->amount, coder);
+    //    items[4] = amountRlpEncode(transaction->amount, coder);
+    //    items[5] = transactionEncodeDataForHolding(transaction, transaction->amount, coder);
 
     transaction->nonce = transactionDecodeNonce(items[0], coder);
     transaction->gasPrice = gasPriceRlpDecode(items[1], coder);
@@ -515,7 +530,7 @@ transactionDecodeRLP (BREthereumNetwork network,
             free (transaction);
             return NULL;
         }
-        
+
         transaction->amount = amountCreateToken(createTokenQuantity(token, amount));
         transaction->targetAddress = createAddress(recvAddr);
 
@@ -545,12 +560,18 @@ transactionDecodeRLP (BREthereumNetwork network,
         memcpy (transaction->signature.sig.recoverable.s, sData.bytes, sData.bytesCount);
     }
 
-//    items[0] = transactionEncodeNonce(transaction, transaction->nonce, coder);
-//    items[1] = gasPriceRlpEncode(transaction->gasPrice, coder);
-//    items[2] = gasRlpEncode(transaction->gasLimit, coder);
-//    items[3] = transactionEncodeAddressForHolding(transaction, transaction->amount, coder);
-//    items[4] = amountRlpEncode(transaction->amount, coder);
-//    items[5] = transactionEncodeDataForHolding(transaction, transaction->amount, coder);
+    return transaction;
+}
+
+
+extern BREthereumTransaction
+transactionDecodeRLP (BREthereumNetwork network,
+                      BREthereumTransactionRLPType type,
+                      BRRlpData data) {
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem item = rlpGetItem (coder, data);
+
+    BREthereumTransaction transaction = transactionRlpDecodeItem(item, network, type, coder);
 
     rlpCoderRelease(coder);
     return transaction;
