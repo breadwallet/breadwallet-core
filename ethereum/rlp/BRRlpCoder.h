@@ -34,16 +34,9 @@
 extern "C" {
 #endif
 
-typedef struct {
-    size_t bytesCount;
-    uint8_t *bytes;
-} BRRlpData;
-
-typedef struct {
-  void *identifier;
-  unsigned long indexer;
-} BRRlpItem;
-
+//
+// RLP Coder
+//
 typedef struct BRRlpCoderRecord *BRRlpCoder;
 
 extern BRRlpCoder
@@ -51,6 +44,31 @@ rlpCoderCreate (void);
 
 extern void
 rlpCoderRelease (BRRlpCoder coder);
+
+//
+// RLP Data
+//
+typedef struct {
+    size_t bytesCount;
+    uint8_t *bytes;
+} BRRlpData;
+
+extern BRRlpData
+createRlpDataEmpty (void);
+
+extern void
+rlpDataRelease (BRRlpData data);
+
+//
+// RLP Item
+//
+typedef struct {
+  void *identifier;
+  unsigned long indexer;
+} BRRlpItem;
+
+extern BRRlpItem
+rlpGetItem (BRRlpCoder coder, BRRlpData data);
 
 //
 // UInt64
@@ -122,18 +140,6 @@ rlpDecodeList (BRRlpCoder coder, BRRlpItem item, size_t *itemsCount);
 // will not have 'context'
 extern void
 rlpDataExtract (BRRlpCoder coder, BRRlpItem item, uint8_t **bytes, size_t *bytesCount);
-
-    //
-    // RLPData
-    //
-extern BRRlpData
-createRlpDataEmpty (void);
-
-extern void
-rlpDataRelease (BRRlpData data);
-
-extern BRRlpItem
-rlpGetItem (BRRlpCoder coder, BRRlpData data);
 
 #ifdef __cplusplus
 }

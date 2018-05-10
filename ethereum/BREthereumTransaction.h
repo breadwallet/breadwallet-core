@@ -145,6 +145,23 @@ transactionDecodeRLP (BREthereumNetwork network,
                       BREthereumTransactionRLPType type,
                       BRRlpData data);
 
+/**
+ * [QUASI-INTERNAL - used by BREthereumBlock]
+ */
+extern BREthereumTransaction
+transactionRlpDecodeItem (BRRlpItem item,
+                          BREthereumNetwork network,
+                          BREthereumTransactionRLPType type,
+                          BRRlpCoder coder);
+/**
+ * [QUASI-INTERNAL - used by BREthereumBlock]
+ */
+extern BRRlpItem
+transactionRlpEncodeItem(BREthereumTransaction transaction,
+                         BREthereumNetwork network,
+                         BREthereumTransactionRLPType type,
+                         BRRlpCoder coder);
+
 //
 // Transaction Comparison
 //
