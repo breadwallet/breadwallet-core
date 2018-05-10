@@ -31,6 +31,7 @@
 #include "BREthereumTransaction.h"
 #include "BREthereumBlock.h"
 #include "BRInt.h"
+#include "BREthereumNetwork.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -143,7 +144,15 @@ typedef struct {
 
 typedef struct {
     uint64_t status;
-    void* data;
+    union {
+        //Included data
+        struct {
+           uint8_t  blockHash[32];
+           uint64_t blockNumber;
+           uint64_t txIndex;
+        }included_data;
+        char* error_message;
+    } u;
 }BREthereumTransactionStatusReply;
 
 
@@ -360,27 +369,27 @@ extern void ethereumLESDecodeHelperTrieProofs(uint8_t*rlpBytes,  uint64_t totalA
 /**
  * Encode a SendTxt message
  */
-extern void ethereumLESSendTxt(uint64_t reqId, BREthereumTransaction* transactions, size_t transactionsCount, uint8_t**rlpBytes, size_t* rlpByesSize);
+extern void ethereumLESSendTxt(uint64_t reqId, BREthereumTransaction* transactions, size_t transactionsCount, BREthereumNetwork network, BREthereumTransactionRLPType type, uint8_t**rlpBytes, size_t* rlpBytesSize);
 
 /**
  * Encode a SendTxtV2 message
  */
-extern void ethereumLESSendTxtV2(uint64_t reqId, BREthereumTransaction* transactions, size_t transactionsCount, uint8_t**rlpBytes, size_t* rlpByesSize);
+extern void ethereumLESSendTxtV2(uint64_t reqId, BREthereumTransaction* transactions, size_t transactionsCount, BREthereumNetwork network, BREthereumTransactionRLPType type, uint8_t**rlpBytes, size_t* rlpBytesSize);
 
 /**
  * Encode a GetTxStatus message
  */
-extern void ethereumLESGetTxStatus(uint64_t reqId, BREthereumTransaction* transaction, size_t txCount, uint8_t**rlpBytes, size_t* rlpByesSize);
+extern void ethereumLESGetTxStatus(uint64_t reqId, BREthereumTransaction* transactions, size_t transactionsCount, uint8_t**rlpBytes, size_t* rlpBytesSize);
 
 /**
  * Decode a GetTxStatus request message
  */
-extern void ethereumLESDecodeTxStatus(uint8_t*rlpBytes, uint64_t* reqId, uint64_t* bv, BREthereumTransactionStatusReply** replies, size_t* repliesCount);
+extern BREthereumLESDecodeStatus ethereumLESDecodeTxStatus(uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv, BREthereumTransactionStatusReply** replies, size_t* repliesCount);
 
 /**
  * Encode a TxStatus message
  */
-extern void ethereumLESTxStatus( uint64_t reqId, uint64_t bv, BREthereumTransactionStatusReply* replies, size_t repliesCount, uint8_t**rlpBytes, size_t* rlpByesSize);
+extern void ethereumLESTxStatus( uint64_t reqId, uint64_t bv, BREthereumTransactionStatusReply* replies, size_t repliesCount, uint8_t**rlpBytes, size_t* rlpBytesSize);
 
 
 
