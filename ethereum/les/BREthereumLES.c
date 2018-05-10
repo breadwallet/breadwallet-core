@@ -539,7 +539,7 @@ void ethereumLESGetTxStatus(uint64_t reqId, BREthereumTransaction* transactions,
     BRRlpItem* txtsItems = (BRRlpItem*)malloc(sizeof(BRRlpItem)* transactionsCount);
     for(int i = 0; i < transactionsCount; ++i){
         const BREthereumHash hash = transactionGetHash(transactions[i]);
-        txtsItems[i] = rlpEncodeItemString(coder, hash);
+        txtsItems[i] = rlpEncodeItemBytes(coder, (uint8_t*)hash.bytes, sizeof(hash.bytes)); 
     }
     items[idx++] = rlpEncodeListItems(coder, txtsItems, transactionsCount);
 

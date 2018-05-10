@@ -101,24 +101,6 @@ typedef struct {
 //
 // LES Reply Structures
 //
- typedef struct {
-    UInt256 parentHash;
-    UInt256 ommersHash;
-    uint8_t beneficiary[160];
-    UInt256 stateRoot;
-    UInt256 transactionsRoot;
-    UInt256 receiptsRoot;
-    UInt256 logsBloom;
-    uint64_t diffculty;
-    uint64_t number;
-    uint64_t gasLimt;
-    uint64_t gasUsed;
-    uint64_t timeStamp;
-    uint8_t extraData[32];
-    UInt256 mixHash;
-    uint8_t nonce[64];
-}BREthereumBlockHeader;
-
 typedef struct {
     UInt256* transaction;
     UInt256* uncle;
