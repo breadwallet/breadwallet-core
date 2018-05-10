@@ -222,9 +222,9 @@ extern BREthereumLESDecodeStatus ethereumLESDecodeLESV2Status(uint8_t*rlpBytes, 
 /**
  * Encode an Announce message
  */
-extern void ethereumLESAnnounce(UInt256 headHash, uint64_t headNumber, uint64_t headTd, uint64_t reorgDepth,
+extern void ethereumLESAnnounce(UInt256 headHash, uint64_t headNumber, uint64_t headTd, uint64_t reorgDepth, size_t flowControlMRRCount,
                                BREthereumAnnounceRequest* handshakeVals, size_t handshakeValsCount,
-                               uint8_t**rlpBytes, size_t* rlpByesSize);
+                               uint8_t**rlpBytes, size_t* rlpByesSize) ;
 
 /**
  * Encode a GetBlockHeaders message

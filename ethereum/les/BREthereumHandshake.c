@@ -304,7 +304,7 @@ int _writeStatus(BREthereumHandshakeContext * ctx){
 void _decodeStatus (BREthereumLESHeader* header,
                    BRRlpCoder coder,
                    BRRlpItem item ) {
-    
+    /*
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     char* key = rlpDecodeItemString(coder, items[0]);
@@ -341,6 +341,7 @@ void _decodeStatus (BREthereumLESHeader* header,
         header->txRelay = malloc(sizeof(BREthereumBoolean));
         *(header->txRelay) = ETHEREUM_BOOLEAN_TRUE;
     }
+    */
     //TODO: Add client side flow control model
     
 }

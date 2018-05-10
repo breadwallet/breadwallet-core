@@ -31,6 +31,58 @@
 //
 // Handshake messages
 //
+static void _encodeKeyValueStatus(BRRlpCoder coder, BRRlpItem* keyPair, char* key, void* value, size_t auxValueCount) {
+
+    if(strcmp(key, "protocolVersion") == 0) {
+        keyPair[0] = rlpEncodeItemString(coder, "protocolVersion");
+        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),0);
+    }else if (strcmp(key, "networkID") == 0) {
+        keyPair[0] = rlpEncodeItemString(coder, "networkId");
+        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),0);
+    }else if (strcmp(key, "headTd") == 0) {
+        keyPair[0] = rlpEncodeItemString(coder, "headTd");
+        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),0);
+    }else if (strcmp(key, "headHash") == 0) {
+        keyPair[0] = rlpEncodeItemString(coder, "headHash");
+        keyPair[1] = rlpEncodeItemBytes(coder, ((uint8_t *)value), 32);
+    }else if (strcmp(key, "headNum") == 0) {
+        keyPair[0] = rlpEncodeItemString(coder, "headNum");
+        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),0);
+    }else if (strcmp(key, "genesisHash") == 0) {
+        keyPair[0] = rlpEncodeItemString(coder, "genesisHash");
+        keyPair[1] = rlpEncodeItemBytes(coder, ((uint8_t *)value), 32);
+    }else if (strcmp(key, "serveHeaders") == 0) {
+        keyPair[0] = rlpEncodeItemString(coder, "serveHeaders");
+    }else if (strcmp(key, "serveChainSince") == 0) {
+        keyPair[0] = rlpEncodeItemString(coder, "serveChainSince");
+        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),0);
+    }else if (strcmp(key, "serveStateSince") == 0) {
+        keyPair[0] = rlpEncodeItemString(coder, "serveStateSince");
+        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),0);
+    }else if (strcmp(key, "txRelay") == 0) {
+        keyPair[0] = rlpEncodeItemString(coder, "txRelay");
+    }else if (strcmp(key, "flowControl/BL") == 0) {
+        keyPair[0] = rlpEncodeItemString(coder, "flowControl/BL");
+        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),0);
+    }else if (strcmp(key, "flowControl/MRR") == 0) {
+        keyPair[0] = rlpEncodeItemString(coder, "flowControl/MRC");
+        size_t count = auxValueCount;
+        BRRlpItem mrcItems[count];
+        for(int idx = 0; idx < count; ++idx){
+            BRRlpItem mrcElements [3];
+            BREthereumLESMRC* flowControlMRC = ((BREthereumLESMRC *)value);
+            mrcElements[0] = rlpEncodeItemUInt64(coder,flowControlMRC[idx].msgCode,0);
+            mrcElements[1] = rlpEncodeItemUInt64(coder,flowControlMRC[idx].baseCost,0);
+            mrcElements[2] = rlpEncodeItemUInt64(coder,flowControlMRC[idx].reqCost,0);
+            mrcItems[idx] = rlpEncodeListItems(coder, mrcElements, 3);
+        }
+        keyPair[1] = rlpEncodeListItems(coder, mrcItems, count);
+    }else if (strcmp(key, "flowControl/MRR") == 0) {
+        keyPair[0] = rlpEncodeItemString(coder, "flowControl/MRR");
+        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),0);
+    }
+}
+
 static void _encodeV1Status(BREthereumLESStatusV1* status, BRRlpCoder coder, BRRlpItem* statusItems, int* ioIdx) {
 
     int curIdx = *ioIdx;
@@ -54,7 +106,7 @@ static void _encodeV1Status(BREthereumLESStatusV1* status, BRRlpCoder coder, BRR
     //headHash
     keyPair[0] = rlpEncodeItemString(coder, "headHash");
     keyPair[1] = rlpEncodeItemBytes(coder, status->headHash, sizeof(status->headHash));
-    statusItems[4] = rlpEncodeListItems(coder, keyPair, 2);
+    statusItems[curIdx++] = rlpEncodeListItems(coder, keyPair, 2);
  
     //headNum
     keyPair[0] = rlpEncodeItemString(coder, "headNum");
@@ -278,13 +330,36 @@ BREthereumLESDecodeStatus ethereumLESDecodeLESV2Status(uint8_t*rlpBytes, size_t 
 //  Header synchronisation
 //
 
-void ethereumLESAnnounce(UInt256 headHash, uint64_t headNumber, uint64_t headTd, uint64_t reorgDepth,
+void ethereumLESAnnounce(UInt256 headHash, uint64_t headNumber, uint64_t headTd, uint64_t reorgDepth, size_t flowControlMRRCount,
                                BREthereumAnnounceRequest* handshakeVals, size_t handshakeValsCount,
-                               uint8_t**rlpBytes, size_t* rlpByesSize) {
+                               uint8_t**rlpBytes, size_t* rlpBytesSize) {
     
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem* items = (BRRlpItem*)malloc(sizeof(BRRlpItem)* (handshakeValsCount + 5));
+    int idx = 0;
     
+    items[idx++] = rlpEncodeItemUInt64(coder, 0x01,0);
+    items[idx++] = rlpEncodeItemBytes(coder, headHash.u8, sizeof(headHash.u8));
+    items[idx++] = rlpEncodeItemUInt64(coder, headNumber,0);
+    items[idx++] = rlpEncodeItemUInt64(coder, headTd,0);
+    items[idx++] = rlpEncodeItemUInt64(coder, reorgDepth,0);
     
-    
+    for(int i = 0; i < handshakeValsCount; ++i){
+        BREthereumAnnounceRequest* keyPair = &handshakeVals[i];
+        BRRlpItem keyPairItem[2];
+        keyPairItem[0] = rlpEncodeItemString(coder, keyPair->key);
+        keyPairItem[1] = rlpEncodeItemString(coder, keyPair->key);
+        _encodeKeyValueStatus(coder, keyPairItem,keyPair->key, keyPair->value, flowControlMRRCount);
+        if (strcmp(keyPair->key, "txRelay") == 0 || strcmp(keyPair->key, "serveHeaders") == 0) {
+            items[idx++] = rlpEncodeListItems(coder, keyPairItem, 1);
+        }else {
+            items[idx++] = rlpEncodeListItems(coder, keyPairItem, 2);
+        }
+    }
+    BRRlpItem encoding = rlpEncodeListItems(coder, items, idx);
+    rlpDataExtract(coder, encoding, rlpBytes, rlpBytesSize);
+    rlpCoderRelease(coder);
+    free(items);
 }
 
 void ethereumLESGetBlockHeaders(uint64_t reqId,
@@ -294,18 +369,19 @@ void ethereumLESGetBlockHeaders(uint64_t reqId,
                                       uint64_t reverse,
                                       uint8_t**rlpBytes, size_t* rlpByesSize) {
     
-    
-    
-    
+        //TODO: Encode the rlp header from EthereumBlock.h once implemented
 }
 
 void ethereumLESDecodeBlockHeaders(uint8_t*rlpBytes, BREthereumBlockHeader* blockHeader) {
 
+    
+       //TODO: Decode the rlp header from EthereumBlock.h once implemented
 
 }
 
 void ethereumLESBlockHeaders(uint64_t reqId, uint64_t bv, const BREthereumBlockHeader* blockHeader,  uint8_t**rlpBytes, size_t* rlpByesSize) {
 
+       //TODO: Decode the rlp header from EthereumBlock.h once implemented
 
 }
 
