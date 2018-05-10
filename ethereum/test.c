@@ -39,6 +39,8 @@
 #include "BREthereum.h"
 #include "BREthereumPrivate.h"
 #include "BREthereumAccount.h"
+#include "BREthereumTransactionReceipt.h"
+#include "BREthereumLog.h"
 #include "test-les.h"
 
 static void
@@ -1499,6 +1501,8 @@ reallySend () {
 
 extern void
 runBlockTests (void) {
+    printf ("==== Block\n");
+
     BRRlpData data;
     BRRlpData encodeData;
 
@@ -1553,6 +1557,82 @@ runBlockTests (void) {
     rlpDataRelease(data);
 }
 
+/*  Ehtereum Java
+byte[] rlp = Hex.decode("f85a94d5ccd26ba09ce1d85148b5081fa3ed77949417bef842a0000000000000000000000000459d3a7595df9eba241365f4676803586d7d199ca0436f696e7300000000000000000000000000000000000000000000000000000080");
+LogInfo logInfo = new LogInfo(rlp);
+
+assertEquals("d5ccd26ba09ce1d85148b5081fa3ed77949417be",
+             Hex.toHexString(logInfo.getAddress()));
+assertEquals("", Hex.toHexString(logInfo.getData()));
+
+assertEquals("000000000000000000000000459d3a7595df9eba241365f4676803586d7d199c",
+             logInfo.getTopics().get(0).toString());
+assertEquals("436f696e73000000000000000000000000000000000000000000000000000000",
+             logInfo.getTopics().get(1).toString());
+
+*/
+
+#define LOG_1_RLP "f85a94d5ccd26ba09ce1d85148b5081fa3ed77949417bef842a0000000000000000000000000459d3a7595df9eba241365f4676803586d7d199ca0436f696e7300000000000000000000000000000000000000000000000000000080"
+#define LOG_1_ADDRESS "d5ccd26ba09ce1d85148b5081fa3ed77949417be"
+#define LOG_1_TOPIC_0 "000000000000000000000000459d3a7595df9eba241365f4676803586d7d199c"
+#define LOG_1_TOPIC_1 "436f696e73000000000000000000000000000000000000000000000000000000"
+
+extern void
+runLogTests (void) {
+    printf ("==== Log\n");
+
+    BRRlpData data;
+    BRRlpData encodeData;
+
+    // Log
+    data.bytes = decodeHexCreate(&data.bytesCount, LOG_1_RLP, strlen (LOG_1_RLP));
+
+    BREthereumLog log = logDecodeRLP(data);
+
+    BREthereumAddressRaw address = logGetAddress(log);
+    size_t addressBytesCount;
+    uint8_t *addressBytes = decodeHexCreate(&addressBytesCount, LOG_1_ADDRESS, strlen(LOG_1_ADDRESS));
+    assert (addressBytesCount == sizeof (address.bytes));
+    assert (0 == memcmp (address.bytes, addressBytes, addressBytesCount));
+    free (addressBytes);
+
+    // topic-0
+    // topic-1
+
+    encodeData = logEncodeRLP(log);
+    assert (data.bytesCount == encodeData.bytesCount
+            && 0 == memcmp (data.bytes, encodeData.bytes, encodeData.bytesCount));
+
+    rlpDataRelease(encodeData);
+    rlpDataRelease(data);
+}
+
+
+// From Ethereum Java - a 'six item' RLP Encoding.
+#define RECEIPT_1_RLP "f88aa0966265cc49fa1f10f0445f035258d116563931022a3570a640af5d73a214a8da822b6fb84000000010000000010000000000008000000000000000000000000000000000000000000000000000000000020000000000000014000000000400000000000440d8d7948513d39a34a1a8570c9c9f0af2cba79ac34e0ac8c0808301e24086873423437898"
+
+extern void
+runTransactionReceiptTests (void) {
+    printf ("==== Transaction Receipt\n");
+    BRRlpData data;
+    BRRlpData encodeData;
+
+    /*
+    // Log
+    data.bytes = decodeHexCreate(&data.bytesCount, RECEIPT_1_RLP, strlen (RECEIPT_1_RLP));
+
+    BREthereumTransactionReceipt receipt = transactionReceiptDecodeRLP(data);
+    // assert
+
+    encodeData = transactionReceiptEncodeRLP(receipt);
+    assert (data.bytesCount == encodeData.bytesCount
+            && 0 == memcmp (data.bytes, encodeData.bytes, encodeData.bytesCount));
+
+    rlpDataRelease(encodeData);
+    rlpDataRelease(data);
+     */
+}
+
 //
 // All Tests
 //
@@ -1568,6 +1648,8 @@ runTests (void) {
     runTokenTests ();
     runLightNodeTests();
     runBlockTests();
+    runLogTests();
+    runTransactionReceiptTests();
     
 //    runLEStests();
     //    reallySend();

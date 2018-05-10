@@ -342,6 +342,26 @@ addressRlpDecode (BRRlpItem item, BRRlpCoder coder) {
 }
 
 //
+// Address Raw
+//
+extern BREthereumAddressRaw
+addressRawRlpDecode (BRRlpItem item, BRRlpCoder coder) {
+    BREthereumAddressRaw address;
+
+    BRRlpData data = rlpDecodeItemBytes(coder, item);
+    assert (20 == data.bytesCount);
+
+    memcpy (address.bytes, data.bytes, 20);
+    return address;
+}
+
+extern BRRlpItem
+addressRawRlpEncode(BREthereumAddressRaw address,
+                    BRRlpCoder coder) {
+    return rlpEncodeItemBytes(coder, address.bytes, 20);
+}
+
+//
 // Account
 //
 struct BREthereumAccountRecord {

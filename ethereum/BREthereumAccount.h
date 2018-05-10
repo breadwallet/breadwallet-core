@@ -102,6 +102,21 @@ extern BREthereumAddress
 addressRlpDecode (BRRlpItem item, BRRlpCoder coder);
 
 //
+// Address Raw (QUASI-INTERNAL - currently used for Block/Log Encoding/Decoding
+//
+typedef struct {
+    uint8_t bytes[20];
+} BREthereumAddressRaw;
+
+extern BREthereumAddressRaw
+addressRawRlpDecode (BRRlpItem item,
+                     BRRlpCoder coder);
+
+extern BRRlpItem
+addressRawRlpEncode(BREthereumAddressRaw address,
+                    BRRlpCoder coder);
+
+//
 // Account
 //
 
