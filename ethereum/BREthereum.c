@@ -278,8 +278,7 @@ extern char *
 ethereumBlockGetHash (BREthereumLightNode node,
                       BREthereumBlockId bid) {
     BREthereumBlock block = lightNodeLookupBlock(node, bid);
-    BREthereumHash  hash = blockGetHash(block);
-    return strdup (hash);
+    return hashAsString (blockGetHash(block));
 }
 
 //
@@ -303,7 +302,7 @@ extern char *
 ethereumTransactionGetHash(BREthereumLightNode node,
                            BREthereumTransactionId tid) {
     BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
-    return strdup (transactionGetHash(transaction));
+    return hashAsString (transactionGetHash(transaction));
 }
 
 extern char *
