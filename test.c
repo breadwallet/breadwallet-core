@@ -28,6 +28,7 @@
 #include "BRWallet.h"
 #include "BRKey.h"
 #include "BRBIP38Key.h"
+#include "BRKeyECIES.h"
 #include "BRAddress.h"
 #include "BRBase58.h"
 #include "BRBech32.h"
@@ -1395,6 +1396,42 @@ int BRBIP38KeyTests()
     return r;
 }
 
+int BRKeyECIESTests()
+{
+    int r = 1;
+    BRKey key, ephem;
+    size_t len;
+
+    char plain[] = "All decent, reasonable men are horrified by the idea that the government might control the press. "
+    "None of them seem concerned at all that the press might control the government.";
+    
+    BRKeySetSecret(&key, &uint256("0000000000000000000000000000000000000000000000000000000000000001"), 0);
+    BRKeySetSecret(&ephem, &uint256("0000000000000000000000000000000000000000000000000000000000000002"), 0);
+    char dec[sizeof(plain)], cipher[sizeof(plain) + 65 + 16 + 32];
+    
+    len = BRKeyECIESAES128SHA256Encrypt(&key, cipher, sizeof(cipher), &ephem, plain, sizeof(plain) - 1);
+    if (len == 0) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRKeyECIESAES128SHA256Encrypt() test 1", __func__);
+
+    len = BRKeyECIESAES128SHA256Decrypt(&key, dec, sizeof(dec), cipher, len);
+    if (len != sizeof(plain) - 1 || strncmp(dec, plain, len) != 0)
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRKeyECIESAES128SHA256Decrypt() test 1", __func__);
+    
+    char cipher2[] = "\x04\xff\x2c\x87\x4d\x0a\x47\x91\x7c\x84\xee\xa0\xb2\xa4\x14\x1c\xa9\x52\x33\x72\x0b\x5c\x70\xf8"
+    "\x1a\x84\x15\xba\xe1\xdc\x7b\x74\x6b\x61\xdf\x75\x58\x81\x1c\x1d\x60\x54\x33\x39\x07\x33\x3e\xf9\xbb\x0c\xc2\xfb"
+    "\xf8\xb3\x4a\xbb\x97\x30\xd1\x4e\x01\x40\xf4\x55\x3f\x4b\x15\xd7\x05\x12\x0a\xf4\x6c\xf6\x53\xa1\xdc\x5b\x95\xb3"
+    "\x12\xcf\x84\x44\x71\x4f\x95\xa4\xf7\xa0\x42\x5b\x67\xfc\x06\x4d\x18\xf4\xd0\xa5\x28\x76\x15\x65\xca\x02\xd9\x7f"
+    "\xaf\xfd\xac\x23\xde\x10";
+    char dec2[2];
+        
+    BRKeySetSecret(&key, &uint256("57baf2c62005ddec64c357d96183ebc90bf9100583280e848aa31d683cad73cb"), 0);
+    len = BRKeyECIESAES128SHA256Decrypt(&key, dec2, sizeof(dec2), cipher2, sizeof(cipher2) - 1);
+    if (len != 1 || strncmp(dec2, "a", 1) != 0)
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRKeyECIESAES128SHA256Decrypt() test2", __func__);
+    
+    if (! r) fprintf(stderr, "\n                                    ");
+    return r;
+}
+
 int BRAddressTests()
 {
     int r = 1;
@@ -1666,18 +1703,18 @@ static int BRTransactionEqual (BRTransaction *tx1, BRTransaction *tx2) {
         || tx1->lockTime != tx2->lockTime
         || tx1->blockHeight != tx2->blockHeight
         || tx1->timestamp != tx2->timestamp
-        || array_count(tx1->inputs) != array_count(tx2->inputs)
-        || array_count(tx1->outputs) != array_count(tx2->outputs))
+        || tx1->inCount != tx2->inCount
+        || tx1->outCount != tx2->outCount)
         return 0;
 
     // Inputs
     if (NULL != tx1->inputs)
-        for (int i = 0; i < array_count(tx1->inputs); i++)
+        for (int i = 0; i < tx1->inCount; i++)
             if (!BRTxInputEqual(&tx1->inputs[i], &tx2->inputs[i]))
                 return 0;
     // Outputs
     if (NULL != tx1->outputs)
-        for (int i = 0; i < array_count(tx1->outputs); i++)
+        for (int i = 0; i < tx1->outCount; i++)
             if (!BRTxOutputEqual(&tx1->outputs[i], &tx2->outputs[i]))
                 return 0;
 
@@ -2653,6 +2690,8 @@ int BRRunTests()
 #else
     printf("%s\n", (BRBIP38KeyTests()) ? "success" : (fail++, "***FAIL***"));
 #endif
+    printf("BRKeyECIESTests...                  ");
+    printf("%s\n", (BRKeyECIESTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRAddressTests...                   ");
     printf("%s\n", (BRAddressTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRBIP39MnemonicTests...             ");
@@ -2698,7 +2737,7 @@ void txStatusUpdate(void *info)
 int main(int argc, const char *argv[])
 {
     int r = BRRunTests();
-    
+
 //    int err = 0;
 //    UInt512 seed = UINT512_ZERO;
 //    BRMasterPubKey mpk = BR_MASTER_PUBKEY_NONE;

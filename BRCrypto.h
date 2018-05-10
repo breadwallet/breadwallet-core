@@ -35,36 +35,36 @@ extern "C" {
 #endif
 
 // sha-1 - not recommended for cryptographic use
-void BRSHA1(void *md20, const void *data, size_t len);
+void BRSHA1(void *md20, const void *data, size_t dataLen);
 
-void BRSHA256(void *md32, const void *data, size_t len);
+void BRSHA256(void *md32, const void *data, size_t dataLen);
 
-void BRSHA224(void *md28, const void *data, size_t len);
+void BRSHA224(void *md28, const void *data, size_t dataLen);
 
 // double-sha-256 = sha-256(sha-256(x))
-void BRSHA256_2(void *md32, const void *data, size_t len);
+void BRSHA256_2(void *md32, const void *data, size_t dataLen);
 
-void BRSHA384(void *md48, const void *data, size_t len);
+void BRSHA384(void *md48, const void *data, size_t dataLen);
 
-void BRSHA512(void *md64, const void *data, size_t len);
+void BRSHA512(void *md64, const void *data, size_t dataLen);
 
 // ripemd-160: http://homes.esat.kuleuven.be/~bosselae/ripemd160.html
-void BRRMD160(void *md20, const void *data, size_t len);
+void BRRMD160(void *md20, const void *data, size_t dataLen);
 
 // bitcoin hash-160 = ripemd-160(sha-256(x))
-void BRHash160(void *md20, const void *data, size_t len);
+void BRHash160(void *md20, const void *data, size_t dataLen);
 
 // sha3-256: http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.202.pdf
-void BRSHA3_256(void *md32, const void *data, size_t len);
+void BRSHA3_256(void *md32, const void *data, size_t dataLen);
 
 // keccak-256: https://keccak.team/files/Keccak-submission-3.pdf
-void BRKeccak256(void *md32, const void *data, size_t len);
+void BRKeccak256(void *md32, const void *data, size_t dataLen);
 
 // md5 - for non-cryptographic use only
-void BRMD5(void *md16, const void *data, size_t len);
+void BRMD5(void *md16, const void *data, size_t dataLen);
 
 // murmurHash3 (x86_32): https://code.google.com/p/smhasher/ - for non cryptographic use only
-uint32_t BRMurmur3_32(const void *data, size_t len, uint32_t seed);
+uint32_t BRMurmur3_32(const void *data, size_t dataLen, uint32_t seed);
 
 void BRHMAC(void *mac, void (*hash)(void *, const void *, size_t), size_t hashLen, const void *key, size_t keyLen,
             const void *data, size_t dataLen);
@@ -77,10 +77,10 @@ void BRHMACDRBG(void *out, size_t outLen, void *K, void *V, void (*hash)(void *,
 
 // poly1305 authenticator: https://tools.ietf.org/html/rfc7539
 // NOTE: must use constant time mem comparison when verifying mac to defend against timing attacks
-void BRPoly1305(void *mac16, const void *key32, const void *data, size_t len);
+void BRPoly1305(void *mac16, const void *key32, const void *data, size_t dataLen);
 
 // chacha20 stream cypher: https://cr.yp.to/chacha.html
-void BRChacha20(void *out, const void *key32, const void *iv8, const void *data, size_t len, uint64_t counter);
+void BRChacha20(void *out, const void *key32, const void *iv8, const void *data, size_t dataLen, uint64_t counter);
     
 // chacha20-poly1305 authenticated encryption with associated data (AEAD): https://tools.ietf.org/html/rfc7539
 size_t BRChacha20Poly1305AEADEncrypt(void *out, size_t outLen, const void *key32, const void *nonce12,
