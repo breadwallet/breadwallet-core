@@ -75,9 +75,6 @@ createUInt256ParseDecimal (const char *string, int decimals, BRCoreParseStatus *
     if (CORE_PARSE_OK != *status)
         return UINT256_ZERO;
     
-    if (CORE_PARSE_OK == parseIsInteger(string))
-        return createUInt256Parse(string, 10, status);
-    
     // Get a 'new' string so strsep() can overwrite it.
     char splitterA [SURELY_ENOUGH_CHARS];
     char *splitter = splitterA;

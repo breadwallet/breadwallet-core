@@ -429,7 +429,7 @@ lightNodeAnnounceLog (BREthereumLightNode node,
     if (NULL == event || event != eventERC20Transfer) { pthread_mutex_unlock(&node->lock); return; }; // uninteresting event
 
     // Find or create a block.  No point in doing this until we have a transaction of interest
-    const char *strBlockHash = strBlockNumber;  // TODO: actual hash argument
+    const char *strBlockHash = strHash;  // TODO: actual hash argument; utterly wrong.
     BREthereumBlock block = lightNodeAnnounceBlock(node, strBlockNumber, strBlockHash, strBlockTimestamp);
     assert (NULL != block);
 
