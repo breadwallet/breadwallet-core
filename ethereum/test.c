@@ -406,6 +406,8 @@ runMathParseTests () {
     r = createUInt256ParseDecimal("01.", 2, &status);
     assert (CORE_PARSE_OK == status && 100 == r.u64[0] && 0 == r.u64[1] && 0 == r.u64[2] && 0 == r.u64[3]);
 
+    r = createUInt256ParseDecimal("1", 2, &status);
+    assert (CORE_PARSE_OK == status && 100 == r.u64[0] && 0 == r.u64[1] && 0 == r.u64[2] && 0 == r.u64[3]);
 }
 
 static void
