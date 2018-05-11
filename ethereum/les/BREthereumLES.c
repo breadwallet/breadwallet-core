@@ -367,26 +367,71 @@ void ethereumLESAnnounce(UInt256 headHash, uint64_t headNumber, uint64_t headTd,
     free(items);
 }
 
-void ethereumLESGetBlockHeaders(uint64_t reqId,
-                                      BREthereumBlockHeaderRequest*configs, size_t configCount,
-                                      uint64_t maxHeaders,
-                                      uint64_t skip,
-                                      uint64_t reverse,
-                                      uint8_t**rlpBytes, size_t* rlpByesSize) {
+void  ethereumLESGetBlockHeaders(uint64_t reqId,
+                                 BREthereumBlock block,
+                                 uint64_t maxHeaders,
+                                 uint64_t skip,
+                                 uint64_t reverse,
+                                 uint8_t**rlpBytes, size_t* rlpBytesSize) {
     
-        //TODO: Encode the rlp header from EthereumBlock.h once implemented
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem items[3];
+    BRRlpItem blockItems[4];
+    int idx = 0;
+    
+    items[idx++] = rlpEncodeItemUInt64(coder, 0x02,0);
+    items[idx++] = rlpEncodeItemUInt64(coder, reqId,0);
+
+    BREthereumHash bHash = blockGetHash(block);
+    blockItems[0] = rlpEncodeItemBytes(coder, bHash.bytes, sizeof(bHash.bytes));
+    blockItems[1] = rlpEncodeItemUInt64(coder, maxHeaders, 0);
+    blockItems[2] = rlpEncodeItemUInt64(coder, skip, 0);
+    blockItems[3] = rlpEncodeItemUInt64(coder, reverse, 0);
+   
+    items[idx++] = rlpEncodeListItems(coder, blockItems, 4);
+    
+    BRRlpItem encoding = rlpEncodeListItems(coder, items, idx);
+    rlpDataExtract(coder, encoding, rlpBytes, rlpBytesSize);
+    rlpCoderRelease(coder);
 }
 
-void ethereumLESDecodeBlockHeaders(uint8_t*rlpBytes, BREthereumBlockHeader* blockHeader) {
+BREthereumLESDecodeStatus ethereumLESDecodeBlockHeaders(uint8_t*rlpBytes, size_t rlpBytesSize,  uint64_t* reqId, uint64_t* bv,
+                                   BREthereumBlockHeader** blockHeaders, size_t * blockHeadersCount) {
 
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpData frameData = {rlpBytesSize, rlpBytes};
+    BRRlpItem item = rlpGetItem (coder, frameData);
     
-       //TODO: Decode the rlp header from EthereumBlock.h once implemented
-
+    size_t itemsCount;
+    const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
+    uint64_t msgId = rlpDecodeItemUInt64(coder, items[0], 0);
+    if(msgId != 0x03) {
+        return BRE_LES_INVALID_MSG_ID_ERROR;
+    }
+    *reqId = rlpDecodeItemUInt64(coder, items[1], 0);
+    *bv = rlpDecodeItemUInt64(coder, items[2], 0);
+    
+    size_t blocksCount = 0;
+    const BRRlpItem *blocks = rlpDecodeList(coder, items[3], &blocksCount);
+    BREthereumBlockHeader*headers = (BREthereumBlockHeader*)malloc(sizeof(BREthereumBlockHeader) * blocksCount);
+    
+    for(int i = 0; i < blocksCount; ++i){
+        BRRlpData data;
+        rlpDataExtract(coder, blocks[i], &data.bytes, &data.bytesCount);
+        headers[i] = blockHeaderDecodeRLP(data);
+        rlpDataRelease(data);
+    }
+    rlpCoderRelease(coder);
+    
+    *blockHeaders = headers;
+    *blockHeadersCount = blocksCount;
+    
+    return BRE_LES_SUCCESS;
 }
 
 void ethereumLESBlockHeaders(uint64_t reqId, uint64_t bv, const BREthereumBlockHeader* blockHeader,  uint8_t**rlpBytes, size_t* rlpByesSize) {
 
-       //TODO: Decode the rlp header from EthereumBlock.h once implemented
+
 
 }
 
@@ -578,7 +623,7 @@ BREthereumLESDecodeStatus ethereumLESDecodeTxStatus(uint8_t*rlpBytes, size_t rlp
         retReplies[i].status = rlpDecodeItemUInt64(coder, statusData[0],0);
         if(retReplies[i].status == TXSTATUS_INCLUDED){
             size_t includeDataCount;
-            const BRRlpItem* includeData = rlpDecodeList(coder, statusData[1], &statusDataCount);
+            const BRRlpItem* includeData = rlpDecodeList(coder, statusData[1], &includeDataCount);
             BRRlpData data = rlpDecodeItemBytes(coder, includeData[0]);
             memcpy(retReplies[i].u.included_data.blockHash, data.bytes, data.bytesCount);
             rlpDataRelease(data);

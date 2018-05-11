@@ -142,14 +142,6 @@ typedef struct {
 // LES Request Structures
 //
 typedef struct {
-    BREthereumBoolean isBlockNumber;
-    union {
-        uint64_t blockNumber;
-        UInt256 blockHash;
-    }u;
-}BREthereumBlockHeaderRequest;
-
-typedef struct {
     char* key;
     void* value;
 }BREthereumAnnounceRequest;
@@ -215,22 +207,24 @@ extern BREthereumLESDecodeStatus ethereumLESDecodeLESV2Status(uint8_t*rlpBytes, 
  */
 extern void ethereumLESAnnounce(UInt256 headHash, uint64_t headNumber, uint64_t headTd, uint64_t reorgDepth, size_t flowControlMRRCount,
                                BREthereumAnnounceRequest* handshakeVals, size_t handshakeValsCount,
-                               uint8_t**rlpBytes, size_t* rlpByesSize) ;
+                               uint8_t**rlpBytes, size_t* rlpBytesSize) ;
 
 /**
  * Encode a GetBlockHeaders message
  */
 extern void ethereumLESGetBlockHeaders(uint64_t reqId,
-                                      BREthereumBlockHeaderRequest*configs, size_t configCount,
-                                      uint64_t maxHeaders,
-                                      uint64_t skip,
-                                      uint64_t reverse,
-                                      uint8_t**rlpBytes, size_t* rlpByesSize);
+                                       BREthereumBlock block,
+                                       uint64_t maxHeaders,
+                                       uint64_t skip,
+                                       uint64_t reverse,
+                                       uint8_t**rlpBytes, size_t* rlpByesSize);
 
 /**
  * Decode the reply from a GetBlockHeaders message (i.e. BlockHeaders)
  */
-extern void ethereumLESDecodeBlockHeaders(uint8_t*rlpBytes, BREthereumBlockHeader* blockHeader);
+extern BREthereumLESDecodeStatus ethereumLESDecodeBlockHeaders(uint8_t*rlpBytes, size_t rlpBytesSize,
+                                                               uint64_t* reqId, uint64_t* bv,
+                                                               BREthereumBlockHeader** blockHeaders, size_t * blockHeadersCount);
 
 /**
  * Encode a BlockHeaders
