@@ -30,43 +30,7 @@
 #include "BREthereumBlock.h"
 #include "BREthereumPrivate.h"
 
-typedef struct {
-    uint8_t bytes[20];
-} BREthereumAddressRaw;
-
-static BREthereumAddressRaw
-addressRawRlpDecode (BRRlpItem item, BRRlpCoder coder) {
-    BREthereumAddressRaw address;
-
-    BRRlpData data = rlpDecodeItemBytes(coder, item);
-    assert (20 == data.bytesCount);
-
-    memcpy (address.bytes, data.bytes, 20);
-    return address;
-}
-
-//
-// Bloom Filter
-//
-typedef struct {
-    uint8_t bytes[256];
-} BREthereumBloomFilter;
-
-extern BRRlpItem
-bloomFilterRlpEncode(BREthereumBloomFilter filter, BRRlpCoder coder) {
-    return rlpEncodeItemBytes(coder, filter.bytes, 256);
-}
-
-extern BREthereumBloomFilter
-bloomFilterRlpDecode (BRRlpItem item, BRRlpCoder coder) {
-    BREthereumBloomFilter filter;
-
-    BRRlpData data = rlpDecodeItemBytes(coder, item);
-    assert (256 == data.bytesCount);
-
-    memcpy (filter.bytes, data.bytes, 256);
-    return filter;
-}
+#include "BREthereumBloomFilter.h"
 
 #define FOO 1
 
@@ -193,7 +157,7 @@ blockHeaderRlpEncodeItem (BREthereumBlockHeader header,
 
     items[ 0] = hashRlpEncode(header->parentHash, coder);
     items[ 1] = hashRlpEncode(header->ommersHash, coder);
-    items[ 2] = rlpEncodeItemBytes(coder, header->beneficiary.bytes, 20);
+    items[ 2] = addressRawRlpEncode(header->beneficiary, coder);
     items[ 3] = hashRlpEncode(header->stateRoot, coder);
     items[ 4] = hashRlpEncode(header->transactionsRoot, coder);
     items[ 5] = hashRlpEncode(header->receiptsRoot, coder);

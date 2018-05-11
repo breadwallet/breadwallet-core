@@ -97,7 +97,7 @@ static void _BRAES256ECBEncrypt(const void *key32, void *buf16)
     memcpy(buf, buf16, sizeof(buf));
     
     for (i = 0; i < 14; i++) {
-        for (j = 0; j < 4; j++) buf[j] ^= key[j+(i & 1)*4]; // add round key
+        for (j = 0; j < 4; j++) buf[j] ^= key[j + (i & 1)*4]; // add round key
         
         for (j = 0; j < 16; j++) x[j] = sbox[x[j]]; // sub bytes
         
@@ -106,15 +106,15 @@ static void _BRAES256ECBEncrypt(const void *key32, void *buf16)
         a = x[3], x[3] = x[15], x[15] = x[11], x[11] = x[7], x[7] = a, a = x[14], x[14] = x[6], x[6] = a;
         
         for (j = 0; i < 13 && j < 16; j += 4) { // mix columns
-            a = x[j], b = x[j+1], c = x[j+2], d = x[j+3], e = a ^ b ^ c ^ d;
-            x[j] ^= e ^ xt(a ^ b), x[j+1] ^= e ^ xt(b ^ c), x[j+2] ^= e ^ xt(c ^ d), x[j+3] ^= e ^ xt(d ^ a);
+            a = x[j], b = x[j + 1], c = x[j + 2], d = x[j + 3], e = a ^ b ^ c ^ d;
+            x[j] ^= e ^ xt(a ^ b), x[j + 1] ^= e ^ xt(b ^ c), x[j + 2] ^= e ^ xt(c ^ d), x[j + 3] ^= e ^ xt(d ^ a);
         }
         
         if ((i % 2) != 0) { // expand key
             k[0] ^= sbox[k[29]] ^ r, k[1] ^= sbox[k[30]], k[2] ^= sbox[k[31]], k[3] ^= sbox[k[28]], r = xt(r);
-            for (j = 4; j < 16; j += 4) k[j] ^= k[j-4], k[j+1] ^= k[j-3], k[j+2] ^= k[j-2], k[j+3] ^= k[j-1];
+            for (j = 4; j < 16; j++) k[j] ^= k[j - 4];
             k[16] ^= sbox[k[12]], k[17] ^= sbox[k[13]], k[18] ^= sbox[k[14]], k[19] ^= sbox[k[15]];
-            for (j = 20; j < 32; j += 4) k[j] ^= k[j-4], k[j+1] ^= k[j-3], k[j+2] ^= k[j-2], k[j+3] ^= k[j-1];
+            for (j = 20; j < 32; j++) k[j] ^= k[j - 4];
         }
     }
     
@@ -136,18 +136,18 @@ static void _BRAES256ECBDecrypt(const void *key32, void *buf16)
     
     for (i = 0; i < 7; i++) { // expand key
         k[0] ^= sbox[k[29]] ^ r, k[1] ^= sbox[k[30]], k[2] ^= sbox[k[31]], k[3] ^= sbox[k[28]], r = xt(r);
-        for (j = 4; j < 16; j += 4) k[j] ^= k[j-4], k[j+1] ^= k[j-3], k[j+2] ^= k[j-2], k[j+3] ^= k[j-1];
+        for (j = 4; j < 16; j++) k[j] ^= k[j - 4];
         k[16] ^= sbox[k[12]], k[17] ^= sbox[k[13]], k[18] ^= sbox[k[14]], k[19] ^= sbox[k[15]];
-        for (j = 20; j < 32; j += 4) k[j] ^= k[j-4], k[j+1] ^= k[j-3], k[j+2] ^= k[j-2], k[j+3] ^= k[j-1];
+        for (j = 20; j < 32; j++) k[j] ^= k[j - 4];
     }
     
     for (i = 0; i < 14; i++) {
-        for (j = 0; j < 4; j++) buf[j] ^= key[j+(i & 1)*4]; // add round key
+        for (j = 0; j < 4; j++) buf[j] ^= key[j + (i & 1)*4]; // add round key
         
         for (j = 0; i > 0 && j < 16; j += 4) { // unmix columns
-            a = x[j], b = x[j+1], c = x[j+2], d = x[j+3], e = a ^ b ^ c ^ d;
+            a = x[j], b = x[j + 1], c = x[j + 2], d = x[j + 3], e = a ^ b ^ c ^ d;
             h = xt(e), f = e ^ xt(xt(h ^ a ^ c)), g = e ^ xt(xt(h ^ b ^ d));
-            x[j] ^= f ^ xt(a ^ b), x[j+1] ^= g ^ xt(b ^ c), x[j+2] ^= f ^ xt(c ^ d), x[j+3] ^= g ^ xt(d ^ a);
+            x[j] ^= f ^ xt(a ^ b), x[j + 1] ^= g ^ xt(b ^ c), x[j + 2] ^= f ^ xt(c ^ d), x[j + 3] ^= g ^ xt(d ^ a);
         }
         
         // unshift rows
@@ -157,9 +157,9 @@ static void _BRAES256ECBDecrypt(const void *key32, void *buf16)
         for (j = 0; j < 16; j++) x[j] = sboxi[x[j]]; // unsub bytes
         
         if ((i % 2) == 0) { // unexpand key
-            for (j = 28; j > 16; j -= 4) k[j] ^= k[j-4], k[j+1] ^= k[j-3], k[j+2] ^= k[j-2], k[j+3] ^= k[j-1];
+            for (j = 28; j > 16; j--) k[j + 3] ^= k[j - 1];
             k[16] ^= sbox[k[12]], k[17] ^= sbox[k[13]], k[18] ^= sbox[k[14]], k[19] ^= sbox[k[15]];
-            for (j = 12; j > 0; j -= 4) k[j] ^= k[j-4], k[j+1] ^= k[j-3], k[j+2] ^= k[j-2], k[j+3] ^= k[j-1];
+            for (j = 12; j > 0; j--) k[j + 3] ^= k[j - 1];
             r = (r >> 1) ^ ((r & 1)*0x8d);
             k[0] ^= sbox[k[29]] ^ r, k[1] ^= sbox[k[30]], k[2] ^= sbox[k[31]], k[3] ^= sbox[k[28]];
         }
@@ -355,7 +355,7 @@ size_t BRKeyBIP38Key(BRKey *key, char *bip38Key, size_t bip38KeyLen, const char 
     
     if (! bip38Key) return 43*138/100 + 2; // 43bytes*log(256)/log(58), rounded up, plus NULL terminator
 
-    assert(key != NULL);
+    assert(key != NULL && BRKeyPrivKey(key, NULL, 0) > 0);
     assert(passphrase != NULL);
    
     if (key->compressed) flag |= BIP38_COMPRESSED_FLAG;

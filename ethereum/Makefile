@@ -39,6 +39,10 @@ ETH_SRCS=./util/BRUtilMath.c \
 	./BREthereumTransaction.c \
 	./BREthereumWallet.c \
 	./BREthereum.c \
+	./BREthereumHash.c \
+	./BREthereumLog.c \
+	./BREthereumBloomFilter.c \
+	./BREthereumTransactionReceipt.c \
 	./les/BREthereumFrameCoder.c \
 	./les/BREthereumHandshake.c \
 	./les/BREthereumLES.c \
