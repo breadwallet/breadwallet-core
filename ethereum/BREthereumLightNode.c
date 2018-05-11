@@ -160,6 +160,8 @@ lightNodeRemoveListener (BREthereumLightNode node,
 #define PTHREAD_STACK_SIZE (512 * 1024)
 #define PTHREAD_SLEEP_SECONDS (15)
 
+static BREthereumClient nullClient;
+
 typedef void* (*ThreadRoutine) (void*);
 
 static void *
@@ -217,16 +219,25 @@ lightNodeConnect(BREthereumLightNode node,
                 node->state = LIGHT_NODE_ERRORED;
                 return ETHEREUM_BOOLEAN_FALSE;
             } else if (0 != pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) ||
-                       0 != pthread_attr_setstacksize(&attr, PTHREAD_STACK_SIZE) ||
-                       0 != pthread_create(&node->thread, &attr, (ThreadRoutine) lightNodeThreadRoutine, node)) {
-                // Unable to fully create the thread w/ task
+                       0 != pthread_attr_setstacksize(&attr, PTHREAD_STACK_SIZE)) {
+                // Unable to fully setup the thread w/ task
                 node->state = LIGHT_NODE_ERRORED;
                 pthread_attr_destroy(&attr);
                 return ETHEREUM_BOOLEAN_FALSE;
             }
+            else {
+                // CORE-41: Get the client set before lightNodeThreadRoutine(node) runs
+                node->client = client;
+                if  (0 != pthread_create(&node->thread, &attr, (ThreadRoutine) lightNodeThreadRoutine, node)) {
+                    node->client = nullClient;
+                    node->state = LIGHT_NODE_ERRORED;
+                    pthread_attr_destroy(&attr);
+                    return ETHEREUM_BOOLEAN_FALSE;
+                }
+            }
 
+            // Running
             node->state = LIGHT_NODE_CONNECTING;
-            node->client = client;
             return ETHEREUM_BOOLEAN_TRUE;
         }
     }
