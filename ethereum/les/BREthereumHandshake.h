@@ -55,19 +55,14 @@ typedef enum {
  * The context for the ethereum handhsake
  *
  */
-typedef struct BREthereumHandshakeContext* BREthereumHandShake;
+typedef struct BREthereumHandshakeContext* BREthereumHandshake;
 
 /**
  * Creates an etheruem handshake context
  *
- * @param peer - network information about the remote node
+ * @param node - weak reference to the node performing the handshake
  */
-extern BREthereumHandShake ethereumHandshakeCreate(BREthereumPeer * peer,
-                                                   BRKey* nodeKey,
-                                                   BREthereumBoolean didOriginate,
-                                                   uint8_t* statusMessage,
-                                                   size_t statusMessageLen,
-                                                   BREthereumFrameCoder code);
+extern BREthereumHandshake ethereumHandshakeCreate(BREthereumNode node) ;
 
 /**
  * Checks whether the state of the handhsake needs to be updated based on recieving/sending messages
@@ -75,15 +70,14 @@ extern BREthereumHandShake ethereumHandshakeCreate(BREthereumPeer * peer,
  *
  * @returns - the current state of the handshake after performing an update
  */
-extern BREthereumHandshakeStatus ethereumHandshakeTransition(BREthereumHandShake handshake);
-
+extern BREthereumHandshakeStatus ethereumHandshakeTransition(BREthereumHandshake handshake);
 
 /**
  * Deletes the memory of a handshake context
  *
  * @param handshakeCxt - the hande shake context information to delete
  */
-extern void ethereumHandshakeFree(BREthereumHandShake handshake);
+extern void ethereumHandshakeRelease(BREthereumHandshake handshake);
 
 #ifdef __cplusplus
 }

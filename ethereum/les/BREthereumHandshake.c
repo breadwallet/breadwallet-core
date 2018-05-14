@@ -39,41 +39,29 @@
 #include "BREthereumLESBase.h"
 #include "BRRlpCoder.h"
 #include "BRArray.h"
-
-#ifndef MSG_NOSIGNAL   // linux based systems have a MSG_NOSIGNAL send flag, useful for supressing SIGPIPE signals
-#define MSG_NOSIGNAL 0 // set to 0 if undefined (BSD has the SO_NOSIGPIPE sockopt, and windows has no signals at all)
-#endif
+#include "BRKeyECIES.h"
 
 #define SIG_SIZE_BYTES      65
 #define PUBLIC_SIZE_BYTES   64
-#define HEPUBLIC_BYTES      64
-#define NONCE_BYTES         64
+#define HEPUBLIC_BYTES      32
+#define NONCE_BYTES         32
 
 static const ssize_t authBufLen = SIG_SIZE_BYTES + HEPUBLIC_BYTES + PUBLIC_SIZE_BYTES + NONCE_BYTES + 1;
 static const ssize_t ackBufLen = PUBLIC_SIZE_BYTES + NONCE_BYTES + 1;
 
-typedef struct {
+struct BREthereumHandshakeContext {
 
-    //A weak reference to the remote peer information
-    BREthereumPeer* peer;
-    
-    //A weak reference to the frame coder between a node and its peer
-    BREthereumFrameCoder ioCoder;
-    
-    //The header information for a peer
-    BREthereumLESHeader peerHeader;
-    
+    //A weak reference to the ethereum node
+    BREthereumNode node;
+
     //The next state of the handshake
     BREthereumHandshakeStatus nextState;
-    
-    //A weak reference to the BREthereumNode's keypair
-    BRKey* key;
-    
+
     //A local nonce for the handshake
     UInt256 nonce;
     
    // Local Ephemeral ECDH key
-    BRKey ecdhe;
+    BRKey localEphemeral;
     
     //The plain auth buffer
     uint8_t authBuf[authBufLen];
@@ -87,338 +75,283 @@ typedef struct {
     //The cipher ack buffer
     uint8_t ackBufCipher[ackBufLen];
     
-    //Represents whether remote peer or node initiated the handshake
-    BREthereumBoolean didOriginate;
-    
-    //Represents the bytes of the status message to send. This is already RLP encoded
-    uint8_t * statusBytes;
-    
-    //The length of the status message
-    size_t statusBytesLen;
-    
-    // The public key for the remote peer
-    UInt512 remotePubKey;
-    
-    // The nonce for the remote peer
+    //The nonce for the remote peer
     UInt256 remoteNonce;
     
-    // The ephemeral public key of the remote peer
-    UInt512 remoteEphemeralKey;
+    //The ephemeral public key of the remote peer
+    BRKey remoteEphemeralKey;
     
-}BREthereumHandshakeContext;
+};
 
 //
 // Private functions
 //
-int _readBuffer(BREthereumHandshakeContext* handshakeCtx, uint8_t * buf, size_t bufSize, const char * type){
 
-    BREthereumPeer * peerCtx = handshakeCtx->peer;
-    ssize_t n = 0, len = 0;
-    int socket, error = 0;
-
-    bre_peer_log(peerCtx, "handshake reading: %s", type);
-
-    socket = peerCtx->socket;
-
-    if (socket < 0) error = ENOTCONN;
-
-    while (socket >= 0 && ! error && len < bufSize) {
-        n = read(socket, &buf[len], bufSize - len);
-        if (n > 0) len += n;
-        if (n == 0) error = ECONNRESET;
-        if (n < 0 && errno != EWOULDBLOCK) error = errno;
-        
-        socket = peerCtx->socket;
-    }
+// ecies-aes128-sha256 as specified in SEC 1, 5.1: http://www.secg.org/SEC1-Ver-1.0.pdf
+// NOTE: these are not implemented using constant time algorithms
+static void _BRECDH(void *out32, const BRKey *privKey, BRKey *pubKey)
+{
+    uint8_t p[65];
+    size_t pLen = BRKeyPubKey(pubKey, p, sizeof(p));
     
-    if (error) {
-        bre_peer_log(peerCtx, "%s", strerror(error));
-    }
-    return error;
+    if (pLen == 65) p[0] = (p[64] % 2) ? 0x03 : 0x02; // convert to compressed pubkey format
+    BRSecp256k1PointMul((BRECPoint *)p, &privKey->secret); // calculate shared secret ec-point
+    memcpy(out32, &p[1], 32); // unpack the x coordinate
+    mem_clean(p, sizeof(p));
 }
-int _sendBuffer(BREthereumHandshakeContext* handshakeCtx, uint8_t * buf, size_t bufSize, char* type){
+int _sendAuthInitiator(BREthereumHandshake ctx){
 
-    BREthereumPeer * peerCtx = handshakeCtx->peer;
-    ssize_t n = 0;
-    int socket, error = 0;
-
-    bre_peer_log(peerCtx, "handshake sending: %s", type);
-
-    size_t offset = 0;
-    socket = peerCtx->socket;
-
-    if (socket < 0) error = ENOTCONN;
-
-    while (socket >= 0 && !error && offset <  bufSize) {
-        n = send(socket, &buf[offset], bufSize - offset, MSG_NOSIGNAL);
-        if (n >= 0) offset += n;
-        if (n < 0 && errno != EWOULDBLOCK) error = errno;
-        socket = peerCtx->socket;
-    }
-
-    if (error) {
-        bre_peer_log(peerCtx, "%s", strerror(error));
-    }
-    return error;
-}
-int _writeAuth(BREthereumHandshakeContext * ctx){
-
-    BREthereumPeer* peer = ctx->peer;
+    BREthereumNode node = ctx->node;
     
-    bre_peer_log(peer, "sending auth");
-
-    // authInitiator -> E(remote-pubk, S(ecdhe-random, ecdh-shared-secret^nonce) || H(ecdhe-random-pubk) || pubk || nonce || 0x0)
+    bre_node_log(node, "gneerating auth initiator");
+    
+    // authInitiator -> E(remote-pubk, S(ephemeral-privk, static-shared-secret ^ nonce) || H(ephemeral-pubk) || pubk || nonce || 0x0)
     uint8_t * authBuf = ctx->authBuf;
     uint8_t * authBufCipher = ctx->authBufCipher;
 
-    uint8_t* signature = &authBuf[0];
+    uint8_t* signature = authBuf;
     uint8_t* hPubKey = &authBuf[SIG_SIZE_BYTES];
     uint8_t* pubKey = &authBuf[SIG_SIZE_BYTES + HEPUBLIC_BYTES];
-    uint8_t* nonce =  &authBuf[SIG_SIZE_BYTES + HEPUBLIC_BYTES + NONCE_BYTES];
+    uint8_t* nonce =  &authBuf[SIG_SIZE_BYTES + HEPUBLIC_BYTES + PUBLIC_SIZE_BYTES];
+    BRKey* nodeKey = ethereumNodeGetKey(node);
+    BRKey* remoteKey = ethereumNodeGetRemoteKey(node);
     
-    //ephemeral-shared-secret = ecdh.agree(ephemeral-privkey, remote-ephemeral-pubk)
-    UInt256 ephemeralSharedSecret;
+
+    //static-shared-secret = ecdh.agree(privkey, remote-pubk)
+    UInt256 staticSharedSecret;
+    _BRECDH(&staticSharedSecret.u8, nodeKey, remoteKey);
     
-    etheruemECDHAgree(ctx->key, &ctx->peer->remoteId, &ephemeralSharedSecret);
-    
-    //ecdh-shared-secret^nonce
+    //static-shared-secret ^ nonce
     UInt256 xorStaticNonce;
-    ethereumXORBytes(ephemeralSharedSecret.u8, ctx->nonce.u8, xorStaticNonce.u8, sizeof(ctx->nonce.u8));
+    ethereumXORBytes(staticSharedSecret.u8, ctx->nonce.u8, xorStaticNonce.u8, sizeof(ctx->nonce.u8));
     
-    // S(ecdhe-random, ecdh-shared-secret^nonce)
-    BRKeySign(&ctx->ecdhe, signature, SIG_SIZE_BYTES, xorStaticNonce);
-    // || H(ecdhe-random-pubk) ||
-    BRKeccak256(hPubKey, ctx->ecdhe.pubKey, 32);
+    // S(ephemeral-privk, static-shared-secret ^ nonce)
+    BRKeySign(&ctx->localEphemeral, signature, SIG_SIZE_BYTES, xorStaticNonce);
+    
+    // || H(ephemeral-pubk)||
     memset(&hPubKey[32], 0, 32);
+    uint8_t ephPublicKey[65];
+    size_t ephPubKeyLength = BRKeyPubKey(&ctx->localEphemeral, ephPublicKey, 0);
+    BRKeccak256(hPubKey, &ephPublicKey[1], ephPubKeyLength);
     // || pubK ||
-    memcpy(pubKey, ctx->key->pubKey, sizeof(ctx->key->pubKey));
+    uint8_t nodePublicKey[65];
+    BRKeyPubKey(nodeKey, nodePublicKey, 0);
+    memcpy(pubKey, &nodePublicKey[1], PUBLIC_SIZE_BYTES);
     // || nonce ||
     memcpy(nonce, ctx->nonce.u8, sizeof(ctx->nonce.u8));
     // || 0x0   ||
     authBuf[authBufLen - 1] = 0x0;
 
-    //E(remote-pubk, S(ecdhe-random, ecdh-shared-secret^nonce) || H(ecdhe-random-pubk) || pubk || nonce || 0x0)
-    ethereumEncryptECIES(&ctx->peer->remoteId, authBuf, authBufCipher, authBufLen);
+    // E(remote-pubk, S(ephemeral-privk, static-shared-secret ^ nonce) || H(ephemeral-pubk) || pubk || nonce || 0x0)
+    BRKeyECIESAES128SHA256Encrypt(remoteKey, authBufCipher, authBufLen, &ctx->localEphemeral, authBuf, sizeof(authBuf));
     
-    return _sendBuffer(ctx, authBufCipher, authBufLen, "writeAuth");
-
+    return ethereumNodeWriteToPeer(node, authBufCipher, authBufLen, "sending auth initiator");
 }
-void _writeAck(BREthereumHandshakeContext * ctx) {
-
-    BREthereumPeer* peer = ctx->peer;
+int _readAuthFromInitiator(BREthereumHandshake ctx) {
     
-    bre_peer_log(peer, "sending ack");
+    BREthereumNode node = ctx->node;
+    BRKey* nodeKey = ethereumNodeGetKey(node);
+    bre_node_log(node, "receiving auth from initiator");
+    
+    int ec = ethereumNodeReadFromPeer(node, ctx->authBufCipher, authBufLen, "auth");
+    
+    if (ec) {
+        return ec;
+    }
+    
+    size_t len = BRKeyECIESAES128SHA256Decrypt(nodeKey, ctx->authBuf, authBufLen, ctx->authBufCipher, authBufLen);
 
-    // ack -> E( epubk || nonce || 0x0)
+    if (len != authBufLen - 1){
+        //TODO: call _readAuthFromInitiatorEIP8...
+    }else {
+         //copy remote nonce
+        memcpy(ctx->remoteNonce.u8, &ctx->authBuf[SIG_SIZE_BYTES + HEPUBLIC_BYTES + PUBLIC_SIZE_BYTES], sizeof(ctx->remoteNonce.u8));
+        
+        //copy remote public key
+        uint8_t remotePubKey[65];
+        remotePubKey[0] = 0x04;
+        BRKey* remoteKey = ethereumNodeGetRemoteKey(node);
+        memcpy(remotePubKey, &ctx->authBuf[SIG_SIZE_BYTES + HEPUBLIC_BYTES], PUBLIC_SIZE_BYTES);
+        BRKeySetPubKey(remoteKey, remotePubKey, 65);
+        
+
+        UInt256 sharedSecret;
+        _BRECDH(&sharedSecret.u8, nodeKey, remoteKey);
+
+        UInt256 xOrSharedSecret;
+        ethereumXORBytes(sharedSecret.u8, ctx->remoteNonce.u8, xOrSharedSecret.u8, sizeof(xOrSharedSecret.u8));
+        
+        // The ephemeral public key of the remote peer
+        BRKeyRecoverPubKey(&ctx->remoteEphemeralKey, xOrSharedSecret, ctx->authBuf, SIG_SIZE_BYTES);
+    }
+    return ec;
+}
+void _sendAuthAckToInitiator(BREthereumHandshake ctx) {
+
+    BREthereumNode node = ctx->node;
+    
+    bre_node_log(node, "generating auth ack for initiator");
+
+    // authRecipient -> E(remote-pubk, remote-ephemeral-pubk || nonce || 0x0)
     uint8_t* ackBuf = ctx->ackBuf;
     uint8_t* ackBufCipher = ctx->ackBufCipher;
-
+    BRKey* remoteKey = ethereumNodeGetRemoteKey(node);
+    
     uint8_t* pubKey = &ackBuf[0];
     uint8_t* nonce =  &ackBuf[PUBLIC_SIZE_BYTES];
     
     // || epubK ||
-    memcpy(pubKey, ctx->ecdhe.pubKey, sizeof(ctx->ecdhe.pubKey));
+    uint8_t remoteEphPublicKey[65];
+    size_t ephPubKeyLength = BRKeyPubKey(&ctx->remoteEphemeralKey, remoteEphPublicKey, 0);
+    memcpy(pubKey, &remoteEphPublicKey[1], 64);
+
     // || nonce ||
     memcpy(nonce, ctx->nonce.u8, sizeof(ctx->nonce.u8));
     // || 0x0   ||
     ackBuf[ackBufLen- 1] = 0x0;
 
-    //E( epubk || nonce || 0x0)
-    ethereumEncryptECIES(&ctx->peer->remoteId, ackBuf, ackBufCipher, ackBufLen);
-    
-    _sendBuffer(ctx, ackBufCipher, ackBufLen, "writeAuck");
-}
-int _readAuth(BREthereumHandshakeContext * ctx) {
+    //E(remote-pubk, remote-ephemeral-pubk || nonce || 0x0)
+    BRKeyECIESAES128SHA256Encrypt(remoteKey, ackBufCipher, ackBufLen, &ctx->localEphemeral, ackBuf, ackBufLen);
 
-    BREthereumPeer* peer = ctx->peer;
+    ethereumNodeWriteToPeer(node, ackBufCipher, ackBufLen, "sending auth ack to initiator");
     
-    bre_peer_log(peer, "receiving auth");
+}
+int _readAuthAckFromRecipient(BREthereumHandshake ctx) {
+
+    BREthereumNode node = ctx->node;
+    BRKey* nodeKey = ethereumNodeGetKey(node);
     
-    int ec = _readBuffer(ctx, ctx->authBufCipher, authBufLen, "auth");
+    bre_node_log(node, "receiving auth ack from recipient");
+    
+    int ec = ethereumNodeReadFromPeer(node, ctx->ackBufCipher, ackBufLen, "reading auth ack now");
     
     if (ec) {
         return ec;
     }
-    else if (ethereumDecryptECIES(&ctx->key->secret, ctx->authBufCipher, ctx->authBuf, authBufLen))
-    {
-        //copy remote nonce
-        memcpy(ctx->remoteNonce.u8, &ctx->authBuf[SIG_SIZE_BYTES + HEPUBLIC_BYTES + PUBLIC_SIZE_BYTES], sizeof(ctx->remoteNonce.u8));
-        
-        //copy remote public key
-        memcpy(ctx->remotePubKey.u8, &ctx->authBuf[SIG_SIZE_BYTES + HEPUBLIC_BYTES], sizeof(ctx->remotePubKey.u8));
+    
+    size_t len = BRKeyECIESAES128SHA256Decrypt(nodeKey, ctx->ackBuf, ackBufLen, ctx->ackBufCipher, ackBufLen);
 
-        UInt256 sharedSecret;
-        
-        etheruemECDHAgree(ctx->key, ctx->remotePubKey.u8, &sharedSecret);
-        
-        UInt256 xOrSharedSecret;
-        ethereumXORBytes(sharedSecret.u8, ctx->remoteNonce.u8, xOrSharedSecret.u8, sizeof(xOrSharedSecret.u8));
-        
-        BRKey key;
-        BRKeyRecoverPubKey(&key, xOrSharedSecret, ctx->authBuf, SIG_SIZE_BYTES);
-        
-        // The ephemeral public key of the remote peer
-        memcpy(ctx->remoteEphemeralKey.u8, key.pubKey, sizeof(ctx->remoteEphemeralKey.u8));
-        
+    if (len != authBufLen - 1){
+        //TODO: call _readAckAuthFromRecipientEIP8...
     }
-    return ec;
-}
-int _readAck(BREthereumHandshakeContext * ctx) {
-
-    BREthereumPeer* peer = ctx->peer;
-    
-    bre_peer_log(peer, "receiving ack");
-    
-    int ec = _readBuffer(ctx, ctx->ackBufCipher, ackBufLen, "ack");
-    
-    if (ec) {
-        return ec;
-    }
-    else if (ethereumDecryptECIES(&ctx->key->secret, ctx->ackBufCipher, ctx->ackBuf, ackBufLen))
+    else
     {
         //copy remote nonce key
-        memcpy(ctx->remoteNonce.u8, &ctx->authBuf[HEPUBLIC_BYTES], sizeof(ctx->remoteNonce.u8));
+        memcpy(ctx->remoteNonce.u8, &ctx->ackBuf[HEPUBLIC_BYTES], sizeof(ctx->remoteNonce.u8));
         
         //copy ephemeral public key of the remote peer
-        memcpy(ctx->remoteEphemeralKey.u8, &ctx->authBuf, sizeof(ctx->remoteEphemeralKey.u8));
+        uint8_t remoteEPubKey[65];
+        remoteEPubKey[0] = 0x04;
+        memcpy(&remoteEPubKey[1], ctx->ackBuf, PUBLIC_SIZE_BYTES);
+        BRKeySetPubKey(&ctx->remoteEphemeralKey, remoteEPubKey, 65);
     }
     return ec;
 }
-int _writeStatus(BREthereumHandshakeContext * ctx){
+int _sendProtocoolStatus(BREthereumHandshake ctx){
     
-    BREthereumPeer* peer = ctx->peer;
+    BREthereumNode node = ctx->node;
     
-    bre_peer_log(peer, "sending status message with capabilities handshake");
+    bre_node_log(node, "sending status message with capabilities handshake");
+   
+    BRRlpData data = ethereumNodeGetStatusData(node);
     
     uint8_t* statusBuffer;
     size_t statusBufferSize;
     
-    ethereumFrameCoderWrite(ctx->ioCoder, 0x00, ctx->statusBytes, ctx->statusBytesLen, &statusBuffer, &statusBufferSize);
+    BREthereumFrameCoder coder = ethereumNodeGetFrameCoder(node);
     
-    _sendBuffer(ctx,statusBuffer, statusBufferSize, "write status");
+    ethereumFrameCoderWrite(coder, 0x00, data.bytes, data.bytesCount, &statusBuffer, &statusBufferSize);
     
+    int ec = ethereumNodeWriteToPeer(node, statusBuffer, statusBufferSize, "sending status message to remote peer");
+    
+    rlpDataRelease(data);
     free(statusBuffer);
     
-    return 0;
+    return ec;
 }
-void _decodeStatus (BREthereumLESHeader* header,
-                   BRRlpCoder coder,
-                   BRRlpItem item ) {
-    /*
-    size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
-    char* key = rlpDecodeItemString(coder, items[0]);
-    
-    if(strcmp(key, "protocolVersion") == 0) {
-        header->protocolVersion = rlpDecodeItemUInt64(coder, items[1], 0);
-    }else if (strcmp(key, "networkID") == 0) {
-        header->chainId = rlpDecodeItemUInt64(coder, items[1], 0);
-    }else if (strcmp(key, "headTd") == 0) {
-        header->headerTd = rlpDecodeItemUInt64(coder, items[1], 0);
-    }else if (strcmp(key, "headHash") == 0) {
-        BRRlpData hashData = rlpDecodeItemBytes(coder, items[1]);
-        memcpy(header->headHash, hashData.bytes, hashData.bytesCount);
-        rlpDataRelease(hashData);
-    }else if (strcmp(key, "headNum") == 0) {
-        header->headerTd = rlpDecodeItemUInt64(coder, items[1], 0);
-    }else if (strcmp(key, "genesisHash") == 0) {
-        BRRlpData hashData = rlpDecodeItemBytes(coder, items[1]);
-        memcpy(header->genesisHash, hashData.bytes, hashData.bytesCount);
-        rlpDataRelease(hashData);
-    }else if (strcmp(key, "serveHeaders") == 0) {
-        header->serveHeaders = malloc(sizeof(BREthereumBoolean));
-        *(header->serveHeaders) = ETHEREUM_BOOLEAN_TRUE;
-    }else if (strcmp(key, "serveHeaders") == 0) {
-        header->serveHeaders = malloc(sizeof(BREthereumBoolean));
-        *(header->serveHeaders) = ETHEREUM_BOOLEAN_TRUE;
-    }else if (strcmp(key, "serveChainSince") == 0) {
-        header->serveChainSince = malloc(sizeof(uint64_t));
-        *(header->serveChainSince) = rlpDecodeItemUInt64(coder, items[1], 0);
-    }else if (strcmp(key, "serveStateSince") == 0) {
-        header->serveStateSince = malloc(sizeof(uint64_t));
-        *(header->serveStateSince) = rlpDecodeItemUInt64(coder, items[1], 0);
-    }else if (strcmp(key, "txRelay") == 0) {
-        header->txRelay = malloc(sizeof(BREthereumBoolean));
-        *(header->txRelay) = ETHEREUM_BOOLEAN_TRUE;
-    }
-    */
-    //TODO: Add client side flow control model
-    
-}
-int _readStatus(BREthereumHandshakeContext * ctx) {
+int _readProtocoolStatus(BREthereumHandshake ctx) {
 
-    BREthereumPeer* peer = ctx->peer;
+    BREthereumNode node = ctx->node;
 
-    bre_peer_log(peer, "reading status message with capabilities handshake");
+    bre_node_log(node, "generating status message with capabilities handshake from remote peer");
+
+    uint8_t remoteStatus[32];
     
-    uint8_t header[32];
+    int ec = ethereumNodeReadFromPeer(node, remoteStatus, 32, "reading status message header from remote peer ");
     
-    if(_readBuffer(ctx, header, 32, "reading in header")){
+    if(ec){
+        bre_node_log(node, "Error: reading in status message from remote peer");
         return BRE_HANDSHAKE_ERROR;
     }
     
     // authenticate and decrypt header
-    if(ETHEREUM_BOOLEAN_IS_FALSE(ethereumFrameCoderDecryptHeader(ctx->ioCoder, header, 32)))
+    BREthereumFrameCoder coder = ethereumNodeGetFrameCoder(node);
+    
+    if(ETHEREUM_BOOLEAN_IS_FALSE(ethereumFrameCoderDecryptHeader(coder, remoteStatus, 32)))
     {
+        bre_node_log(node, "Error: Decryption of header from peer failed.");
         return BRE_HANDSHAKE_ERROR;
     }
-    bre_peer_log(peer, "reacieved header message");
+    bre_node_log(node, "reaceived/descrypted status message");
 
     //Get frame size
-    uint32_t frameSize = (uint32_t)(header[2]) | (uint32_t)(header[1])<<8 | (uint32_t)(header[0])<<16;
+    uint32_t frameSize = (uint32_t)(remoteStatus[2]) | (uint32_t)(remoteStatus[1])<<8 | (uint32_t)(remoteStatus[0])<<16;
     
     if(frameSize > 1024){
-        bre_peer_log(peer, "status message is too large");
+        bre_node_log(node, "Error: status message is too large");
         return BRE_HANDSHAKE_ERROR;
     }
     
     uint32_t fullFrameSize = frameSize + ((16 - (frameSize % 16)) % 16) + 16;
-    
     uint8_t* body;
     
     array_new(body, fullFrameSize);
     
-    if(_readBuffer(ctx, body, fullFrameSize, "reading in frame body (packet type, packet-data)")) {
+    ec = ethereumNodeReadFromPeer(node, body, fullFrameSize, "reading in status message: frame body (packet type, packet-data)");
+    
+    if(ec) {
+        bre_node_log(node, "Error: Reading in full body message from remote peer");
         return BRE_HANDSHAKE_ERROR;
     }
     
     // authenticate and decrypt frame
-    if(ETHEREUM_BOOLEAN_IS_FALSE(ethereumFrameCoderDecryptFrame(ctx->ioCoder, body, fullFrameSize)))
+    if(ETHEREUM_BOOLEAN_IS_FALSE(ethereumFrameCoderDecryptFrame(coder, body, fullFrameSize)))
     {
+        bre_node_log(node, "Error: failed to decrypt frame from remote peer");
         return BRE_HANDSHAKE_ERROR;
     }
     
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpData frameData = {1, body};
-    BRRlpItem item = rlpGetItem (coder, frameData);
+    BRRlpCoder rlpCoder = rlpCoderCreate();
+    BRRlpData framePacketTypeData = {1, body};
+    BRRlpItem item = rlpGetItem (rlpCoder, framePacketTypeData);
     
-    BRRlpData packetType = rlpDecodeItemBytes(coder, item);
-    
-    if(packetType.bytes[0] != 0x00){
-        bre_peer_log(peer, "invalid packet type. Expected: Status packet");
+    uint64_t packetTypeMsg = rlpDecodeItemUInt64(rlpCoder, item, 0);
+
+    if(packetTypeMsg != 0x00){
+        bre_node_log(node, "invalid packet type. Expected: Status Message, got:%" PRIu64, packetTypeMsg);
         return BRE_HANDSHAKE_ERROR;
     }
-    frameData.bytesCount = frameSize - 1;
-    frameData.bytes = &body[1];
-    
-    //Get the status information
-    item = rlpGetItem (coder, frameData);
-    
-    size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
+
+/*    size_t itemsCount = 0;
+    BRRlpData framePacketData = {frameSize-1, body};
+    item = rlpGetItem (rlpCoder, framePacketData);
+    const BRRlpItem *items = rlpDecodeList(rlpCoder, item, &itemsCount);
     
     uint64_t packetTypeMsg = rlpDecodeItemUInt64(coder, items[0], 0);
 
     if(packetTypeMsg != 0x00){
-        bre_peer_log(peer, "Packet type in message is incorrect");
+        bre_node_log(node, "Error: message id is incorrect");
         return BRE_HANDSHAKE_ERROR;
     }
-    
-    for(unsigned int i = 1; i < itemsCount; ++i){
-       _decodeStatus(&ctx->peerHeader, coder, items[i]);
+*/
+    BREthereumLESStatus* remoteStatusHeader = ethereumNodeGetPeerStatus(node); 
+    BREthereumLESDecodeStatus lesEC = ethereumLESDecodeStatus(body, frameSize-1, remoteStatusHeader);
+    if(lesEC != BRE_LES_SUCCESS){
+        bre_node_log(node, "Error: could not rlp decode LES status message got LES error code:%d", lesEC);
+        return BRE_HANDSHAKE_ERROR;
     }
-
-    rlpCoderRelease(coder);
+    array_free(body);
+    rlpCoderRelease(rlpCoder);
     
     return 0;
 }
@@ -426,71 +359,55 @@ int _readStatus(BREthereumHandshakeContext * ctx) {
 //
 // Public functions
 //
-BREthereumHandShake ethereumHandshakeCreate(BREthereumPeer* peer,
-                                            BRKey* nodeKey,
-                                            BREthereumBoolean didOriginate,
-                                            uint8_t* statusMessage,
-                                            size_t statusMessageLen,
-                                            BREthereumFrameCoder coder) {
+BREthereumHandshake ethereumHandshakeCreate(BREthereumNode node) {
 
-    BREthereumHandshakeContext * ctx =  ( BREthereumHandshakeContext *) calloc (1, sizeof(*ctx));
-    ctx->peer = peer;
-    ctx->ioCoder = coder;
+    BREthereumHandshake ctx =  (BREthereumHandshake) calloc (1, sizeof(struct BREthereumHandshakeContext));
     ctx->nextState = BRE_HANDSHAKE_NEW;
-    ctx->key = nodeKey;
-    ctx->didOriginate = didOriginate;
-    ctx->statusBytes = (uint8_t *)calloc(statusMessageLen, sizeof(uint8_t));
-    memcpy(ctx->statusBytes, statusMessage, statusMessageLen);
-    ctx->statusBytesLen = statusMessageLen;
-    ctx->nonce = ethereumGetNonce();
-    return (BREthereumHandShake)ctx;
+    ctx->nonce = UINT256_ZERO; //TODO: Get Random Nonce;
+    /// TODO GET RANDOM KEY ctx->localEphemeral = BRKEY
+    return ctx;
 }
-BREthereumHandshakeStatus ethereumHandshakeTransition(BREthereumHandShake handshake){
+BREthereumHandshakeStatus ethereumHandshakeTransition(BREthereumHandshake handshake){
 
-    BREthereumHandshakeContext* ctx = (BREthereumHandshakeContext *)handshake;
-    
-    if (ctx->nextState == BRE_HANDSHAKE_NEW)
+    BREthereumBoolean originated = ethereumNodeDidOriginate(handshake->node);
+
+    if (handshake->nextState == BRE_HANDSHAKE_NEW)
     {
-        ctx->nextState = BRE_HANDSHAKE_ACKAUTH;
-        if (ETHEREUM_BOOLEAN_IS_TRUE(ctx->didOriginate))
+        handshake->nextState = BRE_HANDSHAKE_ACKAUTH;
+        if (ETHEREUM_BOOLEAN_IS_TRUE(originated))
         {
-            _writeAuth(ctx);
+            _sendAuthInitiator(handshake);
         }
         else
         {
-            _readAuth(ctx);
+            _readAuthFromInitiator(handshake);
         }
     }
-    else if (ctx->nextState == BRE_HANDSHAKE_ACKAUTH)
+    else if (handshake->nextState == BRE_HANDSHAKE_ACKAUTH)
     {
-        ctx->nextState = BRE_HANDSHAKE_WRITESTATUS;
-        if (ETHEREUM_BOOLEAN_IS_TRUE(ctx->didOriginate))
+        handshake->nextState = BRE_HANDSHAKE_WRITESTATUS;
+        if (ETHEREUM_BOOLEAN_IS_TRUE(originated))
         {
-            _readAck(ctx);
+            _readAuthAckFromRecipient(handshake);
         }
         else
         {
-            _writeAck(ctx);
+            _sendAuthAckToInitiator(handshake);
         }
     }
-    else if (ctx->nextState == BRE_HANDSHAKE_WRITESTATUS)
+    else if (handshake->nextState == BRE_HANDSHAKE_WRITESTATUS)
     {
-        ctx->nextState = BRE_HANDSHAKE_READSTATUS;
-       _writeStatus(ctx);
-       
+        handshake->nextState = BRE_HANDSHAKE_READSTATUS;
+       _sendProtocoolStatus(handshake);
     }
-    else if (ctx->nextState == BRE_HANDSHAKE_READSTATUS)
+    else if (handshake->nextState == BRE_HANDSHAKE_READSTATUS)
     {
         // Authenticate and decrypt initial hello frame with initial RLPXFrameCoder
-        _readStatus (ctx);
-        ctx->nextState = BRE_HANDSHAKE_FINISHED;
+        _readProtocoolStatus (handshake);
+        handshake->nextState = BRE_HANDSHAKE_FINISHED;
     }
-    
-    return ctx->nextState;
+    return handshake->nextState;
 }
-void ethereumHandshakeFree(BREthereumHandShake handshake) {
-
-    BREthereumHandshakeContext * ctx =  (BREthereumHandshakeContext *) handshake;
-    free(ctx->statusBytes);
-    free(ctx);
+void ethereumHandshakeRelease(BREthereumHandshake handshake) {
+    free(handshake);
 }
