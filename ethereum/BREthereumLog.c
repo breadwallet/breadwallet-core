@@ -28,6 +28,38 @@
 #include "BREthereumBase.h"
 #include "BREthereumLog.h"
 
+static BREthereumLogTopic empty;
+
+//
+// Log Topic
+//
+static BREthereumLogTopic
+logTopicCreateAddress (BREthereumAddressRaw raw) {
+    BREthereumLogTopic topic = empty;
+    unsigned int addressBytes = sizeof (raw.bytes);
+    unsigned int topicBytes = sizeof (topic.bytes);
+    assert (topicBytes >= addressBytes);
+
+    memcpy (&topic.bytes[topicBytes - addressBytes], raw.bytes, addressBytes);
+    return topic;
+}
+
+extern BREthereumBloomFilter
+logTopicGetBloomFilter (BREthereumLogTopic topic) {
+    BRRlpData data;
+    data.bytes = topic.bytes;
+    data.bytesCount = sizeof (topic.bytes);
+    return bloomFilterCreateData(data);
+}
+
+extern BREthereumBloomFilter
+logTopicGetBloomFilterAddress (BREthereumAddressRaw address) {
+    return logTopicGetBloomFilter (logTopicCreateAddress(address));
+}
+
+//
+// Support
+//
 static BREthereumLogTopic
 logTopicRlpDecodeItem (BRRlpItem item,
                        BRRlpCoder coder) {

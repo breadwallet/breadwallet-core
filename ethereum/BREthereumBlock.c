@@ -28,6 +28,7 @@
 #include <assert.h>
 #include "BRArray.h"
 #include "BREthereumBlock.h"
+#include "BREthereumLog.h"
 #include "BREthereumPrivate.h"
 
 #include "BREthereumBloomFilter.h"
@@ -63,7 +64,7 @@ struct BREthereumBlockHeaderRecord {
     // of each transaction in the transactions list portion of the block; formally He.
     BREthereumHash receiptsRoot;
 
-    // The Bloom filter composed from index- able information (logger address and log topics)
+    // The Bloom filter composed from indexable information (logger address and log topics)
     // contained in each log entry from the receipt of each transaction in the transactions list;
     // formally Hb.
     BREthereumBloomFilter logsBloom;
@@ -142,6 +143,21 @@ blockHeaderGetParentHash (BREthereumBlockHeader header) {
 extern uint64_t
 blockHeaderGetNonce (BREthereumBlockHeader header) {
     return header->nonce;
+}
+
+extern BREthereumBoolean
+blockHeaderMatch (BREthereumBlockHeader header,
+                  BREthereumBloomFilter filter) {
+    return bloomFilterMatch(header->logsBloom, filter);
+}
+
+extern BREthereumBoolean
+blockHeaderMatchAddress (BREthereumBlockHeader header,
+                         BREthereumAddressRaw address) {
+    return (ETHEREUM_BOOLEAN_IS_TRUE(blockHeaderMatch(header, bloomFilterCreateAddress(address)))
+            || ETHEREUM_BOOLEAN_IS_TRUE(blockHeaderMatch(header, logTopicGetBloomFilterAddress(address)))
+            ? ETHEREUM_BOOLEAN_TRUE
+            : ETHEREUM_BOOLEAN_FALSE);
 }
 
 //
@@ -295,7 +311,7 @@ blockGetHeader (BREthereumBlock block) {
     return block->header;
 }
 
-extern unsigned int
+extern unsigned long
 blockGetTransactionsCount (BREthereumBlock block) {
     return array_count(block->transactions);
 }
@@ -307,7 +323,7 @@ blockGetTransaction (BREthereumBlock block, unsigned int index) {
             : NULL);
 }
 
-extern unsigned int
+extern unsigned long
 blockGetOmmersCount (BREthereumBlock block) {
     return array_count(block->ommers);
 }

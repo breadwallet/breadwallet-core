@@ -36,6 +36,14 @@ extern "C" {
 
 typedef struct BREthereumTransactionReceiptRecord *BREthereumTransactionReceipt;
 
+extern BREthereumBoolean
+transactionReceiptMatch (BREthereumTransactionReceipt receipt,
+                     BREthereumBloomFilter filter);
+
+extern BREthereumBoolean
+transactionReceiptMatchAddress (BREthereumTransactionReceipt receipt,
+                                BREthereumAddressRaw address);
+
 extern BREthereumTransactionReceipt
 transactionReceiptDecodeRLP (BRRlpData data);
 

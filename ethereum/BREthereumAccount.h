@@ -109,6 +109,9 @@ typedef struct {
 } BREthereumAddressRaw;
 
 extern BREthereumAddressRaw
+addressRawCreate (const char *address);
+
+extern BREthereumAddressRaw
 addressRawRlpDecode (BRRlpItem item,
                      BRRlpCoder coder);
 
