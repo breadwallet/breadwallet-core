@@ -88,7 +88,7 @@ static void _encodeKeyValueStatus(BRRlpCoder coder, BRRlpItem* keyPair, char* ke
     }
 }
 
-static void _encodeV1Status(BREthereumLESStatusV1* status, BRRlpCoder coder, BRRlpItem* statusItems, int* ioIdx) {
+static void _encodeStatus(BREthereumLESStatus* status, BRRlpCoder coder, BRRlpItem* statusItems, int* ioIdx) {
 
     int curIdx = *ioIdx;
 
@@ -180,40 +180,27 @@ static void _encodeV1Status(BREthereumLESStatusV1* status, BRRlpCoder coder, BRR
     }
     *ioIdx = curIdx;
 }
-void ethereumLESEncodeV1Status(BREthereumLESStatusV1* status, uint8_t**rlpBytes, size_t* rlpBytesSize) {
-
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem statusItems[14];
-    int ioIdx = 0;
-    
-    statusItems[ioIdx++] = rlpEncodeItemUInt64(coder, 0x00,0);
-    _encodeV1Status(status,coder,statusItems,&ioIdx);
-    BRRlpItem encoding = rlpEncodeListItems(coder, statusItems, ioIdx);
-    rlpDataExtract(coder, encoding, rlpBytes, rlpBytesSize);
-    rlpCoderRelease(coder);
-}
-
-void ethereumLESEncodeLESV2Status(BREthereumLESStatusV2* status, uint8_t**rlpBytes, size_t* rlpBytesSize) {
+void ethereumLESEncodeLESStatus(BREthereumLESStatus* status, uint8_t**rlpBytes, size_t* rlpBytesSize) {
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem statusItems[15];
     int ioIdx = 0;
     
     statusItems[ioIdx++] = rlpEncodeItemUInt64(coder, 0x00,0);
-    _encodeV1Status(&status->v1Status,coder,statusItems,&ioIdx);
+    _encodeStatus(status,coder,statusItems,&ioIdx);
     
     //announceType
-    BRRlpItem keyPair [2];
-    keyPair[0] = rlpEncodeItemString(coder, "announceType");
-    keyPair[1] = rlpEncodeItemUInt64(coder, status->announceType,0);
-    statusItems[ioIdx++] = rlpEncodeListItems(coder, keyPair, 2);
-
+    if(status->protocolVersion == 0x02){
+        BRRlpItem keyPair [2];
+        keyPair[0] = rlpEncodeItemString(coder, "announceType");
+        keyPair[1] = rlpEncodeItemUInt64(coder, status->announceType,0);
+        statusItems[ioIdx++] = rlpEncodeListItems(coder, keyPair, 2);
+    }
     BRRlpItem encoding = rlpEncodeListItems(coder, statusItems, ioIdx);
     rlpDataExtract(coder, encoding, rlpBytes, rlpBytesSize);
     rlpCoderRelease(coder);
-
 }
-static BREthereumLESDecodeStatus _decodeStatus(BRRlpCoder coder, const BRRlpItem *items, size_t itemsCount, BREthereumLESStatusV1* header){
+static BREthereumLESDecodeStatus _decodeStatus(BRRlpCoder coder, const BRRlpItem *items, size_t itemsCount, BREthereumLESStatus* header){
 
     uint64_t messageId = rlpDecodeItemUInt64(coder, items[0],0);
     if(messageId != 0x00){
@@ -234,6 +221,8 @@ static BREthereumLESDecodeStatus _decodeStatus(BRRlpCoder coder, const BRRlpItem
                 BRRlpData hashData = rlpDecodeItemBytes(coder, keyPairs[1]);
                 memcpy(header->headHash, hashData.bytes, hashData.bytesCount);
                 rlpDataRelease(hashData);
+            }else if (strcmp(key, "announceType") == 0) {
+                header->announceType = rlpDecodeItemUInt64(coder, keyPairs[1], 0);
             }else if (strcmp(key, "headNum") == 0) {
                 header->headerTd = rlpDecodeItemUInt64(coder, keyPairs[1], 0);
             }else if (strcmp(key, "genesisHash") == 0) {
@@ -279,9 +268,8 @@ static BREthereumLESDecodeStatus _decodeStatus(BRRlpCoder coder, const BRRlpItem
     }
     return BRE_LES_SUCCESS;
 }
-BREthereumLESDecodeStatus ethereumLESDecodeV1Status(uint8_t*rlpBytes, size_t rlpBytesSize, BREthereumLESStatusV1* status) {
-
-    
+ BREthereumLESDecodeStatus ethereumLESDecodeStatus(uint8_t*rlpBytes, size_t rlpBytesSize, BREthereumLESStatus* status) {
+ 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpData frameData = {rlpBytesSize, rlpBytes};
     BRRlpItem item = rlpGetItem (coder, frameData);
@@ -300,37 +288,12 @@ BREthereumLESDecodeStatus ethereumLESDecodeV1Status(uint8_t*rlpBytes, size_t rlp
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     
     BREthereumLESDecodeStatus retStatus = _decodeStatus(coder, items, itemsCount, status);
-    
+
     rlpCoderRelease(coder);
     
     return retStatus;
-}
-BREthereumLESDecodeStatus ethereumLESDecodeLESV2Status(uint8_t*rlpBytes, size_t rlpBytesSize, BREthereumLESStatusV2* status) {
-
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpData data = {rlpBytesSize, rlpBytes};
-    BRRlpItem item = rlpGetItem (coder, data);
-    
-    //Set default values for optional status values
-    status->v1Status.serveHeaders = ETHEREUM_BOOLEAN_FALSE;
-    status->v1Status.flowControlBL = NULL;
-    status->v1Status.flowControlMRC = NULL;
-    status->v1Status.flowControlMRCCount = NULL;
-    status->v1Status.flowControlMRR = NULL;
-    status->v1Status.txRelay = ETHEREUM_BOOLEAN_FALSE;
-    status->v1Status.serveChainSince = NULL;
-    status->v1Status.serveStateSince = NULL;
-    
-    size_t itemsCount;
-    const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
-    
-    BREthereumLESDecodeStatus retStatus = _decodeStatus(coder, items, itemsCount, &status->v1Status);
-    
-    rlpCoderRelease(coder);
-    
-    return retStatus;
-}
-
+ 
+ }
 //
 //  Header synchronisation
 //

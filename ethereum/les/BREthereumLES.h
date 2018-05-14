@@ -50,11 +50,11 @@ typedef struct {
     uint64_t reqCost;
 }BREthereumLESMRC;
 
+
 //
 // LES Status Structures
 //
 typedef struct {
-    
     uint64_t protocolVersion;
     uint64_t chainId;
     uint64_t headerTd;
@@ -70,33 +70,8 @@ typedef struct {
     BREthereumLESMRC*flowControlMRC;
     size_t* flowControlMRCCount;
     uint64_t*flowControlMRR;
-}BREthereumLESHeader;
-
-
-typedef struct {
-    
-    uint64_t protocolVersion;
-    uint64_t chainId;
-    uint64_t headerTd;
-    uint8_t headHash[32];
-    uint64_t headNum;
-    uint8_t genesisHash[32];
-    // Note: The below fields are optional LPV1
-    BREthereumBoolean serveHeaders;
-    uint64_t* serveChainSince;
-    uint64_t* serveStateSince;
-    BREthereumBoolean txRelay;
-    uint64_t*flowControlBL;
-    BREthereumLESMRC*flowControlMRC;
-    size_t* flowControlMRCCount;
-    uint64_t*flowControlMRR;
-}BREthereumLESStatusV1;
-
-typedef struct {
-    BREthereumLESStatusV1 v1Status;
     uint64_t announceType;
-}BREthereumLESStatusV2;
-
+}BREthereumLESStatus;
 
 //
 // LES Reply Structures
@@ -178,23 +153,14 @@ typedef struct {
 // Handshake messages
 //
 /**
- * Encode a status message (LES V1)
+ * Encode a status message
  */
-extern void ethereumLESEncodeV1Status(BREthereumLESStatusV1* status, uint8_t**rlpBytes, size_t* rlpBytesSize);
+extern void ethereumLESEncodeStatus(BREthereumLESStatus* status, uint8_t**rlpBytes, size_t* rlpBytesSize);
 
-/**
- * Encode a status message (LES V2)
- */
-extern void ethereumLESEncodeLESV2Status(BREthereumLESStatusV2* header, uint8_t**rlpBytes, size_t* rlpBytesSize);
 /**
  * Decode a status message (LES V1) reply
  */
-extern BREthereumLESDecodeStatus ethereumLESDecodeV1Status(uint8_t*rlpBytes, size_t rlpBytesSize, BREthereumLESStatusV1* status);
-
-/**
- * Decode a status message (LES V2) reply
- */
-extern BREthereumLESDecodeStatus ethereumLESDecodeLESV2Status(uint8_t*rlpBytes, size_t rlpBytesSize, BREthereumLESStatusV2* status);
+extern BREthereumLESDecodeStatus ethereumLESDecodeStatus(uint8_t*rlpBytes, size_t rlpBytesSize, BREthereumLESStatus* status);
 
 /*********/
 
