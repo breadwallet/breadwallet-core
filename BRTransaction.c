@@ -513,11 +513,11 @@ size_t BRTransactionSize(const BRTransaction *tx)
     return size;
 }
 
-// minimum transaction fee needed for tx to relay across the bitcoin network
+// minimum transaction fee needed for tx to relay across the bitcoin network (bitcoind 0.12 default min-relay fee-rate)
 uint64_t BRTransactionStandardFee(const BRTransaction *tx)
 {
     assert(tx != NULL);
-    return ((BRTransactionSize(tx) + 999)/1000)*TX_FEE_PER_KB;
+    return BRTransactionSize(tx)*TX_FEE_PER_KB;
 }
 
 // checks if all signatures exist, but does not verify them
