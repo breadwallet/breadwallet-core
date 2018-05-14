@@ -108,6 +108,10 @@ typedef struct {
     uint8_t bytes[20];
 } BREthereumAddressRaw;
 
+#define EMPTY_ADDRESS_INIT   { \
+    0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0 \
+}
+
 extern BREthereumAddressRaw
 addressRawCreate (const char *address);
 

@@ -64,6 +64,11 @@ typedef struct {
     uint8_t bytes[ETHEREUM_HASH_BYTES];
 } BREthereumHash;
 
+#define EMPTY_HASH_INIT   { \
+    0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0, \
+    0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0  \
+}
+
 /**
  * Create a Hash by converting from a hex-encoded string of a hash.  The string must
  * begin with '0x'.

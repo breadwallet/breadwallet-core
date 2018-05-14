@@ -111,6 +111,15 @@ extern BREthereumBlock
 blockDecodeRLP (BRRlpData data,
                 BREthereumNetwork network);
 
+//
+// Genesis Blocks
+//
+extern const BREthereumBlockHeader ethereumMainnetBlockHeader;
+extern const BREthereumBlockHeader ethereumTestnetBlockHeader;
+extern const BREthereumBlockHeader ethereumRinkebyBlockHeader;
+
+extern const BREthereumBlockHeader
+networkGetGenesisBlockHeader (BREthereumNetwork network);
     
 #ifdef __cplusplus
 }

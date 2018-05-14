@@ -33,7 +33,7 @@
 
 #include "BREthereumBloomFilter.h"
 
-#define FOO 1
+#define BLOCK_HEADER_NEEDS_SEED_HASH   1
 
 /**
  * An Ethereum Block header.
@@ -92,7 +92,7 @@ struct BREthereumBlockHeaderRecord {
     uint8_t extraData [32];
     uint8_t extraDataCount;
 
-#if FOO == 1
+#if BLOCK_HEADER_NEEDS_SEED_HASH == 1
     BREthereumHash seedHash;
 #endif
     // A 256-bit hash which, combined with the nonce, proves that a sufficient amount of
@@ -168,8 +168,8 @@ static BRRlpItem
 blockHeaderRlpEncodeItem (BREthereumBlockHeader header,
                           BREthereumBoolean withNonce,
                           BRRlpCoder coder) {
-    BRRlpItem items[15 + FOO];
-    size_t itemsCount = ETHEREUM_BOOLEAN_IS_TRUE(withNonce) ? (15 + FOO) : 13;
+    BRRlpItem items[15 + BLOCK_HEADER_NEEDS_SEED_HASH];
+    size_t itemsCount = ETHEREUM_BOOLEAN_IS_TRUE(withNonce) ? (15 + BLOCK_HEADER_NEEDS_SEED_HASH) : 13;
 
     items[ 0] = hashRlpEncode(header->parentHash, coder);
     items[ 1] = hashRlpEncode(header->ommersHash, coder);
@@ -186,11 +186,11 @@ blockHeaderRlpEncodeItem (BREthereumBlockHeader header,
     items[12] = rlpEncodeItemBytes(coder, header->extraData, header->extraDataCount);
 
     if (ETHEREUM_BOOLEAN_IS_TRUE(withNonce)) {
-#if FOO == 1
+#if BLOCK_HEADER_NEEDS_SEED_HASH == 1
         items[13] = hashRlpEncode(header->seedHash, coder);
 #endif
-        items[13 + FOO] = hashRlpEncode(header->mixHash, coder);
-        items[14 + FOO] = rlpEncodeItemUInt64(coder, header->nonce, 0);
+        items[13 + BLOCK_HEADER_NEEDS_SEED_HASH] = hashRlpEncode(header->mixHash, coder);
+        items[14 + BLOCK_HEADER_NEEDS_SEED_HASH] = rlpEncodeItemUInt64(coder, header->nonce, 0);
     }
 
     return rlpEncodeListItems(coder, items, itemsCount);
@@ -215,7 +215,7 @@ blockHeaderRlpDecodeItem (BRRlpItem item, BRRlpCoder coder) {
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
-    assert (13 == itemsCount || (15 + FOO) == itemsCount);
+    assert (13 == itemsCount || (15 + BLOCK_HEADER_NEEDS_SEED_HASH) == itemsCount);
 
     header->hash = hashCreateEmpty();
 
@@ -237,12 +237,12 @@ blockHeaderRlpDecodeItem (BRRlpItem item, BRRlpCoder coder) {
     memcpy (header->extraData, extraData.bytes, extraData.bytesCount);
     header->extraDataCount = extraData.bytesCount;
 
-    if (15 + FOO == itemsCount) {
-#if FOO == 1
+    if (15 + BLOCK_HEADER_NEEDS_SEED_HASH == itemsCount) {
+#if BLOCK_HEADER_NEEDS_SEED_HASH == 1
         header->seedHash = hashRlpDecode(items[13], coder);
 #endif
-        header->mixHash = hashRlpDecode(items[13 + FOO], coder);
-        header->nonce = rlpDecodeItemUInt64(coder, items[14 + FOO], 0);
+        header->mixHash = hashRlpDecode(items[13 + BLOCK_HEADER_NEEDS_SEED_HASH], coder);
+        header->nonce = rlpDecodeItemUInt64(coder, items[14 + BLOCK_HEADER_NEEDS_SEED_HASH], 0);
     }
 
     return header;
@@ -488,4 +488,99 @@ blockDecodeRLP (BRRlpData data,
 
     rlpCoderRelease(coder);
     return block;
+}
+
+//
+// Genesis Block
+//
+// We should extract these blocks from the Ethereum Blockchain so as to have the definitive
+// data.  
+
+/*
+ Appendix I. Genesis Block and is specified thus:
+ The genesis block is 15 items,
+ (0-256 , KEC(RLP()), 0-160 , stateRoot, 0, 0, 0-2048 , 2^17 , 0, 0, 3141592, time, 0, 0-256 , KEC(42), (), ()􏰂
+ Where 0256 refers to the parent hash, a 256-bit hash which is all zeroes; 0160 refers to the
+ beneficiary address, a 160-bit hash which is all zeroes; 02048 refers to the log bloom,
+ 2048-bit of all zeros; 217 refers to the difficulty; the transaction trie root, receipt
+ trie root, gas used, block number and extradata are both 0, being equivalent to the empty
+ byte array. The sequences of both ommers and transactions are empty and represented by
+ (). KEC(42) refers to the Keccak hash of a byte array of length one whose first and only byte
+ is of value 42, used for the nonce. KEC(RLP()) value refers to the hash of the ommer list in
+ RLP, both empty lists.
+
+ The proof-of-concept series include a development premine, making the state root hash some
+ value stateRoot. Also time will be set to the initial timestamp of the genesis block. The
+ latest documentation should be consulted for those values.
+ */
+
+// One Block Header To Rule Them All... until we extract the actual genesis headers.
+static struct BREthereumBlockHeaderRecord genesisHeaderRecord = {
+    // BREthereumHash parentHash;
+    EMPTY_HASH_INIT,
+
+    // BREthereumHash ommersHash;
+    EMPTY_HASH_INIT,
+
+    // BREthereumAddressRaw beneficiary;
+    EMPTY_ADDRESS_INIT,
+
+    // BREthereumHash stateRoot;
+    EMPTY_HASH_INIT,
+
+    // BREthereumHash transactionsRoot;
+    EMPTY_HASH_INIT,
+
+    // BREthereumHash receiptsRoot;
+    EMPTY_HASH_INIT,
+
+    // BREthereumBloomFilter logsBloom;
+    EMPTY_BLOOM_FILTER_INIT,
+
+    // uint64_t difficulty;
+    1 << 17,
+
+    // uint64_t number;
+    0,
+
+    // uint64_t gasLimit;
+    0x2fefd8,
+
+    // uint64_t gasUsed;
+    0,
+
+    // uint64_t timestamp;
+    0,
+
+    // uint8_t extraData [32];
+    { 0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,
+      0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0 },
+
+    // uint8_t extraDataCount;
+    0,
+
+#if BLOCK_HEADER_NEEDS_SEED_HASH == 1
+//    BREthereumHash seedHash;
+    EMPTY_HASH_INIT,
+#endif
+
+    // BREthereumHash mixHash;
+    EMPTY_HASH_INIT,
+
+    // uint64_t nonce;
+    0x000000000000002a,
+
+    // BREthereumHash hash;
+    EMPTY_HASH_INIT
+};
+const BREthereumBlockHeader ethereumMainnetBlockHeader = &genesisHeaderRecord;
+const BREthereumBlockHeader ethereumTestnetBlockHeader = &genesisHeaderRecord;
+const BREthereumBlockHeader ethereumRinkebyBlockHeader = &genesisHeaderRecord;
+
+extern const BREthereumBlockHeader
+networkGetGenesisBlockHeader (BREthereumNetwork network) {
+    if (network == ethereumMainnet) return ethereumMainnetBlockHeader;
+    if (network == ethereumTestnet) return ethereumTestnetBlockHeader;
+    if (network == ethereumRinkeby) return ethereumRinkebyBlockHeader;
+    assert (0);
 }
