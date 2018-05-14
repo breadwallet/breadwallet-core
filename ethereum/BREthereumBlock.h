@@ -28,6 +28,8 @@
 
 #include "BREthereumBase.h"
 #include "BREthereumTransaction.h"
+#include "BREthereumBloomFilter.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -53,6 +55,14 @@ blockHeaderGetParentHash (BREthereumBlockHeader header);
 extern uint64_t
 blockHeaderGetNonce (BREthereumBlockHeader header);
 
+extern BREthereumBoolean
+blockHeaderMatch (BREthereumBlockHeader header,
+            BREthereumBloomFilter filter);
+
+extern BREthereumBoolean
+blockHeaderMatchAddress (BREthereumBlockHeader header,
+                   BREthereumAddressRaw address);
+
 //
 // Block
 //
@@ -69,13 +79,13 @@ createBlock (BREthereumBlockHeader header,
 extern BREthereumBlockHeader
 blockGetHeader (BREthereumBlock block);
 
-extern unsigned int
+extern unsigned long
 blockGetTransactionsCount (BREthereumBlock block);
 
 extern BREthereumTransaction
 blockGetTransaction (BREthereumBlock block, unsigned int index);
 
-extern unsigned int
+extern unsigned long
 blockGetOmmersCount (BREthereumBlock block);
 
 extern BREthereumBlockHeader

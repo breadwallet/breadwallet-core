@@ -1453,6 +1453,30 @@ reallySend () {
 }
 
 //
+// Bloom Test
+//
+#define BLOOM_ADDR_1 "095e7baea6a6c7c4c2dfeb977efac326af552d87"
+#define BLOOM_ADDR_2 "0000000000000000000000000000000000000000"  // topic
+#define BLOOM_ADDR_1_OR_2_RESULT "00000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000040000000000000000000000000000000000000000000000000000000"
+extern void
+runBloomTests (void) {
+    printf ("==== Bloom\n");
+
+    BREthereumBloomFilter filter1 = bloomFilterCreateAddress(addressRawCreate(BLOOM_ADDR_1));
+    BREthereumBloomFilter filter2 = logTopicGetBloomFilterAddress(addressRawCreate(BLOOM_ADDR_2));
+
+    BREthereumBloomFilter filter = bloomFilterOr(filter1, filter2);
+    char *filterAsString = bloomFilterAsString(filter);
+    assert (0 == strcmp (filterAsString, BLOOM_ADDR_1_OR_2_RESULT));
+
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(bloomFilterMatch(filter, filter1)));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(bloomFilterMatch(filter, filter2)));
+    assert (ETHEREUM_BOOLEAN_IS_FALSE(bloomFilterMatch(filter, bloomFilterCreateAddress(addressRawCreate("195e7baea6a6c7c4c2dfeb977efac326af552d87")))));
+
+}
+
+
+//
 // block Test
 //
 /*
@@ -1520,6 +1544,9 @@ runBlockTests (void) {
     assert (0 == strcmp (hashAsString (blockHeaderGetParentHash(blockHeader_1)),
                          "0xafa4726a3d669141a00e70b2bf07f313abbb65140ca045803d4f0ef8dc426274"));
     assert (0x0a6f958326b74cc5 == blockHeaderGetNonce(blockHeader_1));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(blockHeaderMatchAddress(blockHeader_1, addressRawCreate(BLOOM_ADDR_2))));
+    assert (ETHEREUM_BOOLEAN_IS_FALSE(blockHeaderMatchAddress(blockHeader_1, addressRawCreate("195e7baea6a6c7c4c2dfeb977efac326af552d87"))));
+
 
     encodeData = blockHeaderEncodeRLP(blockHeader_1, ETHEREUM_BOOLEAN_TRUE);
     assert (data.bytesCount == encodeData.bytesCount
@@ -1649,6 +1676,7 @@ runTests (void) {
     runAccountTests();
     runTokenTests ();
     runLightNodeTests();
+    runBloomTests();
     runBlockTests();
     runLogTests();
     runTransactionReceiptTests();

@@ -345,6 +345,13 @@ addressRlpDecode (BRRlpItem item, BRRlpCoder coder) {
 // Address Raw
 //
 extern BREthereumAddressRaw
+addressRawCreate (const char *address) {
+    BREthereumAddressRaw raw;
+    decodeHex(raw.bytes, sizeof(raw.bytes), address, strlen(address));
+    return raw;
+}
+
+extern BREthereumAddressRaw
 addressRawRlpDecode (BRRlpItem item, BRRlpCoder coder) {
     BREthereumAddressRaw address;
 

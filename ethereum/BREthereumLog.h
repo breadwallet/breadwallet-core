@@ -28,15 +28,28 @@
 
 #include "BREthereumBase.h"
 #include "BREthereumAccount.h"
+#include "BREthereumBloomFilter.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-    typedef struct {
-        uint8_t bytes[32];
-    } BREthereumLogTopic;
+    //
+    // Log Topic
+    //
+typedef struct {
+    uint8_t bytes[32];
+} BREthereumLogTopic;
 
+extern BREthereumBloomFilter
+logTopicGetBloomFilter (BREthereumLogTopic topic);
+
+extern BREthereumBloomFilter
+logTopicGetBloomFilterAddress (BREthereumAddressRaw address);
+
+    //
+    // Log
+    //
 typedef struct BREthereumLogRecord *BREthereumLog;
 
 extern BREthereumAddressRaw
