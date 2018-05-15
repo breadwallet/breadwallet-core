@@ -85,7 +85,7 @@ hashCompare(BREthereumHash hash1, BREthereumHash hash2) {
 
 extern BREthereumBoolean
 hashEqual (BREthereumHash hash1, BREthereumHash hash2) {
-    return 0 == memcmp (hash1.bytes, hash2.bytes, ETHEREUM_HASH_BYTES);
+    return AS_ETHEREUM_BOOLEAN (0 == memcmp (hash1.bytes, hash2.bytes, ETHEREUM_HASH_BYTES));
 }
 
 extern BRRlpItem
