@@ -70,7 +70,7 @@ bloomFilterCreateData (const BRRlpData data) {
 extern BREthereumBloomFilter
 bloomFilterCreateAddress (const BREthereumAddressRaw address) {
     BRRlpData data;
-    data.bytes = address.bytes;
+    data.bytes = (uint8_t *)  address.bytes;
     data.bytesCount = sizeof (address.bytes);
     return bloomFilterCreateHash(hashCreateFromData(data));
 }
