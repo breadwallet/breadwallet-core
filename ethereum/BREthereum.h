@@ -86,30 +86,40 @@ typedef enum {
 // Listener
 //
 typedef enum {
-    WALLET_EVENT_CREATED,
+    WALLET_EVENT_CREATED = 0,
     WALLET_EVENT_BALANCE_UPDATED,
     WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED,
     WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
-    WALLET_EVENT_TRANSACTION_ADDED,
-    WALLET_EVENT_TRANSACTION_REMOVED,
     WALLET_EVENT_DELETED
 } BREthereumWalletEvent;
 
+#define WALLET_NUMBER_OF_EVENTS  (1 + WALLET_EVENT_DELETED)
+
 typedef enum {
-    BLOCK_EVENT_CREATED,
+    BLOCK_EVENT_CREATED = 0,
     BLOCK_EVENT_DELETED
 } BREthereumBlockEvent;
 
+#define BLOCK_NUMBER_OF_EVENTS (1 + BLOCK_EVENT_DELETED)
+
 typedef enum {
+    // Added/Removed from Wallet
+    TRANSACTION_EVENT_ADDED = 0,
+    TRANSACTION_EVENT_REMOVED,
+
+    // Transaction State
     TRANSACTION_EVENT_CREATED,
     TRANSACTION_EVENT_SIGNED,
     TRANSACTION_EVENT_SUBMITTED,
     TRANSACTION_EVENT_BLOCKED,  // aka confirmed
     TRANSACTION_EVENT_ERRORED,
 
+
     TRANSACTION_EVENT_GAS_ESTIMATE_UPDATED,
     TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED
 } BREthereumTransactionEvent;
+
+#define TRANSACTION_NUMBER_OF_EVENTS (1 + TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED)
 
 typedef void *BREthereumListenerContext;
 
@@ -134,64 +144,60 @@ typedef void (*BREthereumListenerTransactionEventHandler)(BREthereumListenerCont
                                                           BREthereumTransactionEvent event,
                                                           BREthereumStatus status,
                                                           const char *errorDescription);
+
 //
-// JSON RPC Support
+// BREthereumClient
 //
-#if defined (SUPPORT_JSON_RPC)
+// Type definitions for callback functions.  When configuring a LightNode these functions must be
+// provided.  A LightNode has limited cababilities; these callbacks provide data back into the
+// LightNode.
+//
+    typedef void *BREthereumClientContext;
 
-// Type defintions for callback functions.  When configuring a LightNode to use JSON_RPC these
-// functions must be provided.  The functions will use the provided arguments to create a JSON_RPC
-// Ethereum call; block until the call returns, unpack the response and then provide the result
-// (as a newly allocated string - the Ethereum Core will own it and free() it.)
-
-typedef void *JsonRpcContext;
-typedef void (*JsonRpcGetBalance) (JsonRpcContext context,
-                                   BREthereumLightNode node,
-                                   BREthereumWalletId wid,
-                                   const char *address,
-                                   int rid);
-
-typedef void (*JsonRpcGetGasPrice) (JsonRpcContext context,
-                                    BREthereumLightNode node,
-                                    BREthereumWalletId wid,
-                                    int rid);
-
-typedef void (*JsonRpcEstimateGas) (JsonRpcContext context,
-                                    BREthereumLightNode node,
-                                    BREthereumWalletId wid,
-                                    BREthereumTransactionId tid,
-                                    const char *to,
-                                    const char *amount,
-                                    const char *data,
-                                    int rid);
-
-typedef void (*JsonRpcSubmitTransaction) (JsonRpcContext context,
+    typedef void
+    (*BREthereumClientHandlerGetBalance) (BREthereumClientContext context,
                                           BREthereumLightNode node,
                                           BREthereumWalletId wid,
-                                          BREthereumTransactionId tid,
-                                          const char *transaction,
+                                          const char *address,
                                           int rid);
-
-typedef void (*JsonRpcGetTransactions) (JsonRpcContext context,
-                                        BREthereumLightNode node,
-                                        const char *address,
-                                        int rid);
-
-typedef void (*JsonRpcGetLogs) (JsonRpcContext context,
-                                BREthereumLightNode node,
-                                const char *address,
-                                const char *event,
-                                int rid);
-
-#endif // defined (SUPPORT_JSON_RPC)
-
-//
-// Two types of LightNode - JSON_RPC or LES (Light Ethereum Subprotocol).
-//
-typedef enum {
-    NODE_TYPE_JSON_RPC,
-    NODE_TYPE_LES
-} BREthereumType;
+    
+    typedef void
+    (*BREthereumClientHandlerGetGasPrice) (BREthereumClientContext context,
+                                           BREthereumLightNode node,
+                                           BREthereumWalletId wid,
+                                           int rid);
+    
+    typedef void
+    (*BREthereumClientHandlerEstimateGas) (BREthereumClientContext context,
+                                           BREthereumLightNode node,
+                                           BREthereumWalletId wid,
+                                           BREthereumTransactionId tid,
+                                           const char *to,
+                                           const char *amount,
+                                           const char *data,
+                                           int rid);
+    
+    typedef void
+    (*BREthereumClientHandlerSubmitTransaction) (BREthereumClientContext context,
+                                                 BREthereumLightNode node,
+                                                 BREthereumWalletId wid,
+                                                 BREthereumTransactionId tid,
+                                                 const char *transaction,
+                                                 int rid);
+    
+    typedef void
+    (*BREthereumClientHandlerGetTransactions) (BREthereumClientContext context,
+                                               BREthereumLightNode node,
+                                               const char *address,
+                                               int rid);
+    
+    typedef void
+    (*BREthereumClientHandlerGetLogs) (BREthereumClientContext context,
+                                       BREthereumLightNode node,
+                                       const char *contract,
+                                       const char *address,
+                                       const char *event,
+                                       int rid);
 
 //
 // Light Node Configuration
@@ -201,27 +207,16 @@ typedef enum {
 // type.
 //
 typedef struct {
-    BREthereumNetwork network;
-    BREthereumType type;
-    union {
-        //
-        struct {
-#if defined (SUPPORT_JSON_RPC)
-            JsonRpcContext funcContext;
-            JsonRpcGetBalance funcGetBalance;
-            JsonRpcGetGasPrice funcGetGasPrice;
-            JsonRpcEstimateGas funcEstimateGas;
-            JsonRpcSubmitTransaction funcSubmitTransaction;
-            JsonRpcGetTransactions funcGetTransactions;
-            JsonRpcGetLogs funcGetLogs;
-#endif
-        } json_rpc;
-        //
-        struct {
-            int foo;
-        } les;
-    } u;
-} BREthereumConfiguration;
+//    BREthereumType type;
+//    BREthereumNetwork network;
+    BREthereumClientContext funcContext;
+    BREthereumClientHandlerGetBalance funcGetBalance;
+    BREthereumClientHandlerGetGasPrice funcGetGasPrice;
+    BREthereumClientHandlerEstimateGas funcEstimateGas;
+    BREthereumClientHandlerSubmitTransaction funcSubmitTransaction;
+    BREthereumClientHandlerGetTransactions funcGetTransactions;
+    BREthereumClientHandlerGetLogs funcGetLogs;
+} BREthereumClient;
 
 
 //
@@ -229,25 +224,16 @@ typedef struct {
 //
 
 /**
- * Create a LES configuration
+ * Create a Client
  */
-extern BREthereumConfiguration
-ethereumConfigurationCreateLES(BREthereumNetwork network,
-                               int foo);
-
-/**
- * Create a JSON_RPC configuration w/ the set of functions needed to perform JSON RPC calls
- * and to process the result.
- */
-extern BREthereumConfiguration
-ethereumConfigurationCreateJSON_RPC(BREthereumNetwork network,
-                                    JsonRpcContext context,
-                                    JsonRpcGetBalance funcGetBalance,
-                                    JsonRpcGetGasPrice functGetGasPrice,
-                                    JsonRpcEstimateGas funcEstimateGas,
-                                    JsonRpcSubmitTransaction funcSubmitTransaction,
-                                    JsonRpcGetTransactions funcGetTransactions,
-                                    JsonRpcGetLogs funcGetLogs);
+extern BREthereumClient
+ethereumClientCreate(BREthereumClientContext context,
+                     BREthereumClientHandlerGetBalance funcGetBalance,
+                     BREthereumClientHandlerGetGasPrice functGetGasPrice,
+                     BREthereumClientHandlerEstimateGas funcEstimateGas,
+                     BREthereumClientHandlerSubmitTransaction funcSubmitTransaction,
+                     BREthereumClientHandlerGetTransactions funcGetTransactions,
+                     BREthereumClientHandlerGetLogs funcGetLogs);
 
 /**
  * Install 'wordList' as the default BIP39 Word List.  THIS IS SHARED MEMORY; DO NOT FREE wordList.
@@ -270,7 +256,7 @@ installSharedWordList (const char *wordList[], int wordListLength);
  * this node's account.
  */
 extern BREthereumLightNode
-ethereumCreate(BREthereumConfiguration configuration,
+ethereumCreate(BREthereumNetwork network,
                const char *paperKey);
 
 /**
@@ -279,7 +265,7 @@ ethereumCreate(BREthereumConfiguration configuration,
  * ethereumGetAccountPrimaryAddressPublicKey().
  */
 extern BREthereumLightNode
-ethereumCreateWithPublicKey(BREthereumConfiguration configuration,
+ethereumCreateWithPublicKey(BREthereumNetwork network,
                             const BRKey publicKey);
 
 /**
@@ -363,19 +349,14 @@ ethereumCoerceTokenAmountToString(BREthereumLightNode node,
  * @return
  */
 extern BREthereumBoolean
-ethereumConnect(BREthereumLightNode node);
+ethereumConnect(BREthereumLightNode node,
+                BREthereumClient client);
 
 extern BREthereumBoolean
 ethereumDisconnect (BREthereumLightNode node);
 
-// Really, really bad form...
-extern void
-ethereumConnectAndWait (BREthereumLightNode node);
-
-// ... and this too, but slightly less so.
-extern void
-ethereumDisconnectAndWait(BREthereumLightNode node);
-
+extern BREthereumNetwork
+ethereumGetNetwork (BREthereumLightNode node);
 
 //
 // Wallet
@@ -644,7 +625,7 @@ typedef enum {
 #if defined(SUPPORT_JSON_RPC)
 /**
  * Update the transactions for the node's account.  A JSON_RPC light node will call out to
- * JsonRpcGetTransactions which is expected to query all transactions associated with the
+ * BREthereumClientHandlerGetTransactions which is expected to query all transactions associated with the
  * accounts address and then the call out is to call back the 'announce transaction' callback.
  */
 extern void
@@ -652,7 +633,8 @@ lightNodeUpdateTransactions (BREthereumLightNode node);
 
 extern void
 lightNodeUpdateLogs (BREthereumLightNode node,
-                     BREthereumEvent event);
+                     BREthereumWalletId wid,
+                     BREthereumContractEvent event);
 
 //
 // Wallet Updates

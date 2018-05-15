@@ -42,39 +42,6 @@ static void
 provideGasEstimate (BREthereumTransaction transaction);
 
 //
-// Transaction Hash
-//
-extern BREthereumHash
-hashCreate (const char *string) {
-    return strdup (string);
-}
-
-extern BREthereumHash
-hashCreateEmpty (void) {
-    return "";
-}
-
-extern BREthereumBoolean
-hashExists (BREthereumHash hash) {
-    return '\0' != hash[0];
-}
-
-extern BREthereumHash
-hashCopy(const BREthereumHash hash) {
-    return strdup (hash);
-}
-
-extern BREthereumComparison
- hashCompare(BREthereumHash hash1, BREthereumHash hash2) {
-    int result = strcasecmp(hash1, hash2);
-    return (result == 0
-            ? ETHEREUM_COMPARISON_EQ
-            : (result < 0
-               ? ETHEREUM_COMPARISON_LT
-               : ETHEREUM_COMPARISON_GT));
-}
-
-//
 // Transaction State
 //
 typedef struct {
@@ -190,11 +157,6 @@ struct BREthereumTransactionRecord {
      */
     BREthereumSignature signature;
 
-    /**
-     * The signing account, if signed.  NULL if not signed.
-     */
-    BREthereumAccount signer;
-
     //
     // State
     //
@@ -218,7 +180,6 @@ transactionCreate(BREthereumAddress sourceAddress,
     transaction->gasLimit = gasLimit;
     transaction->nonce = nonce;
     transaction->chainId = 0;
-    transaction->signer = NULL;
     transaction->hash = hashCreateEmpty();
 
     provideData(transaction);
@@ -358,7 +319,6 @@ transactionSign(BREthereumTransaction transaction,
                 BREthereumAccount account,
                 BREthereumSignature signature) {
     transactionStateSigned(&transaction->state);
-    transaction->signer = account;
     transaction->signature = signature;
 
     // The signature algorithm does not account for EIP-155 and thus the chainID.  We are signing
@@ -368,16 +328,14 @@ transactionSign(BREthereumTransaction transaction,
     assert (27 == signature.sig.recoverable.v || 28 == signature.sig.recoverable.v);
 }
 
-extern BREthereumAccount
-transactionGetSigner (BREthereumTransaction transaction) {
-    return transaction->signer; // NULL is not signed.
-}
-
 extern BREthereumBoolean
 transactionIsSigned (BREthereumTransaction transaction) {
-    return (NULL != transactionGetSigner (transaction)
-            ? ETHEREUM_BOOLEAN_TRUE
-            : ETHEREUM_BOOLEAN_FALSE);
+    switch (transaction->signature.type) {
+        case SIGNATURE_TYPE_FOO:
+            return AS_ETHEREUM_BOOLEAN (transaction->signature.sig.foo.ignore != 0);
+        case SIGNATURE_TYPE_RECOVERABLE:
+            return AS_ETHEREUM_BOOLEAN (transaction->signature.sig.recoverable.v != 0);
+    }
 }
 
 extern const BREthereumHash
@@ -388,6 +346,23 @@ transactionGetHash (BREthereumTransaction transaction) {
 extern BREthereumSignature
 transactionGetSignature (BREthereumTransaction transaction) {
     return transaction->signature;
+}
+
+static BREthereumAddress emptyAddress;
+
+extern BREthereumAddress
+transactionExtractAddress (BREthereumTransaction transaction,
+                           BREthereumNetwork network)
+{
+    if (ETHEREUM_BOOLEAN_IS_FALSE (transactionIsSigned(transaction))) return emptyAddress;
+
+    int success = 1;
+    BRRlpData unsignedRLPData = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
+
+    return signatureExtractAddress(transaction->signature,
+                                   unsignedRLPData.bytes,
+                                   unsignedRLPData.bytesCount,
+                                   &success);
 }
 
 //
@@ -423,32 +398,23 @@ static BRRlpItem
 transactionEncodeNonce (BREthereumTransaction transaction,
                         uint64_t nonce,
                         BRRlpCoder coder) {
-    return (0 == nonce
-            ? rlpEncodeItemString(coder, "")
-            : rlpEncodeItemUInt64(coder, nonce));
+    return rlpEncodeItemUInt64(coder, nonce, 1);
 }
 
 static uint64_t
 transactionDecodeNonce (BRRlpItem item,
                         BRRlpCoder coder) {
-    if (rlpDecodeItemIsString (coder, item)) {
-        const char *string = rlpDecodeItemString (coder, item);
-        assert (NULL != string && '\0' == string[0]);
-        return 0;
-    }
-    else return rlpDecodeItemUInt64 (coder, item);
+    return rlpDecodeItemUInt64(coder, item, 1);
 }
 
 //
 // Tranaction RLP Encode
 //
-extern BRRlpData
-transactionEncodeRLP (BREthereumTransaction transaction,
-                      BREthereumNetwork network,
-                      BREthereumTransactionRLPType type) {
-
-    BRRlpCoder coder = rlpCoderCreate();
-
+extern BRRlpItem
+transactionRlpEncodeItem(BREthereumTransaction transaction,
+                         BREthereumNetwork network,
+                         BREthereumTransactionRLPType type,
+                         BRRlpCoder coder) {
     BRRlpItem items[10];
     size_t itemsCount = 0;
 
@@ -473,7 +439,7 @@ transactionEncodeRLP (BREthereumTransaction transaction,
     switch (type) {
         case TRANSACTION_RLP_UNSIGNED:
             // For EIP-155, encode { v, r, s } with v as the chainId and both r and s as empty.
-            items[6] = rlpEncodeItemUInt64(coder, transaction->chainId);
+            items[6] = rlpEncodeItemUInt64(coder, transaction->chainId, 1);
             items[7] = rlpEncodeItemString(coder, "");
             items[8] = rlpEncodeItemString(coder, "");
             itemsCount += 3;
@@ -481,7 +447,8 @@ transactionEncodeRLP (BREthereumTransaction transaction,
 
         case TRANSACTION_RLP_SIGNED:
             // For EIP-155, encode v with the chainID.
-            items[6] = rlpEncodeItemUInt64(coder, transaction->signature.sig.recoverable.v + 8 + 2 * transaction->chainId);
+            items[6] = rlpEncodeItemUInt64(coder, transaction->signature.sig.recoverable.v + 8 +
+                                           2 * transaction->chainId, 1);
 
             items[7] = rlpEncodeItemBytes (coder,
                                            transaction->signature.sig.recoverable.r,
@@ -494,8 +461,19 @@ transactionEncodeRLP (BREthereumTransaction transaction,
             break;
     }
 
-    BRRlpItem encoding = rlpEncodeListItems(coder, items, itemsCount);
+    return rlpEncodeListItems(coder, items, itemsCount);
+}
+
+
+
+extern BRRlpData
+transactionEncodeRLP (BREthereumTransaction transaction,
+                      BREthereumNetwork network,
+                      BREthereumTransactionRLPType type) {
     BRRlpData result;
+
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem encoding = transactionRlpEncodeItem(transaction, network, type, coder);
 
     rlpDataExtract(coder, encoding, &result.bytes, &result.bytesCount);
     rlpCoderRelease(coder);
@@ -507,18 +485,24 @@ transactionEncodeRLP (BREthereumTransaction transaction,
 // Tranaction RLP Decode
 //
 extern BREthereumTransaction
-transactionDecodeRLP (BREthereumNetwork network,
-                      BREthereumTransactionRLPType type,
-                      BRRlpData data) {
-    BREthereumTransaction transaction = malloc (sizeof(struct BREthereumTransactionRecord));
-    memset (transaction, 0, sizeof(struct BREthereumTransactionRecord));
+transactionRlpDecodeItem (BRRlpItem item,
+                          BREthereumNetwork network,
+                          BREthereumTransactionRLPType type,
+                          BRRlpCoder coder) {
 
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = rlpGetItem (coder, data);
+    BREthereumTransaction transaction = calloc (1, sizeof(struct BREthereumTransactionRecord));
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     assert (9 == itemsCount);
+
+    // Encoded as:
+    //    items[0] = transactionEncodeNonce(transaction, transaction->nonce, coder);
+    //    items[1] = gasPriceRlpEncode(transaction->gasPrice, coder);
+    //    items[2] = gasRlpEncode(transaction->gasLimit, coder);
+    //    items[3] = transactionEncodeAddressForHolding(transaction, transaction->amount, coder);
+    //    items[4] = amountRlpEncode(transaction->amount, coder);
+    //    items[5] = transactionEncodeDataForHolding(transaction, transaction->amount, coder);
 
     transaction->nonce = transactionDecodeNonce(items[0], coder);
     transaction->gasPrice = gasPriceRlpDecode(items[1], coder);
@@ -539,7 +523,7 @@ transactionDecodeRLP (BREthereumNetwork network,
         BREthereumToken token = tokenLookup(addressAsString (contractAddr));
 
         // Confirm `strData` encodes functionERC20Transfer
-        BREthereumFunction function = contractLookupFunctionForEncoding(contractERC20, strData);
+        BREthereumContractFunction function = contractLookupFunctionForEncoding(contractERC20, strData);
         if (NULL == token || function != functionERC20Transfer) {
             free (transaction);
             return NULL;
@@ -553,7 +537,7 @@ transactionDecodeRLP (BREthereumNetwork network,
             free (transaction);
             return NULL;
         }
-        
+
         transaction->amount = amountCreateToken(createTokenQuantity(token, amount));
         transaction->targetAddress = createAddress(recvAddr);
 
@@ -562,17 +546,21 @@ transactionDecodeRLP (BREthereumNetwork network,
 
     transaction->chainId = networkGetChainId(network);
 
-    uint64_t eipChainId = rlpDecodeItemUInt64 (coder, items[6]);
+    uint64_t eipChainId = rlpDecodeItemUInt64(coder, items[6], 1);
 
     if (eipChainId == transaction->chainId) {
         // TRANSACTION_RLP_UNSIGNED
-        transaction->signer = NULL;
+        transaction->signature.type = SIGNATURE_TYPE_RECOVERABLE;
     }
     else {
         // TRANSACTION_RLP_SIGNED
-        transaction->signer = NULL;  // wallet, account
         transaction->signature.type = SIGNATURE_TYPE_RECOVERABLE;
-        transaction->signature.sig.recoverable.v = eipChainId - 8 - 2 * transaction->chainId;
+
+        // If we are RLP decoding a transactino prior to EIP-xxx, then the eipChainId will
+        // not be encoded with the chainId.  In that case, just use the eipChainId
+        transaction->signature.sig.recoverable.v = (eipChainId > 30
+                                                    ? eipChainId - 8 - 2 * transaction->chainId
+                                                    : eipChainId);
 
         BRRlpData rData = rlpDecodeItemBytes (coder, items[7]);
         assert (32 == rData.bytesCount);
@@ -581,15 +569,25 @@ transactionDecodeRLP (BREthereumNetwork network,
         BRRlpData sData = rlpDecodeItemBytes (coder, items[8]);
         assert (32 == sData.bytesCount);
         memcpy (transaction->signature.sig.recoverable.s, sData.bytes, sData.bytesCount);
+
+        // :fingers-crossed:
+        transaction->sourceAddress = transactionExtractAddress(transaction, network);
     }
 
-//    items[0] = transactionEncodeNonce(transaction, transaction->nonce, coder);
-//    items[1] = gasPriceRlpEncode(transaction->gasPrice, coder);
-//    items[2] = gasRlpEncode(transaction->gasLimit, coder);
-//    items[3] = transactionEncodeAddressForHolding(transaction, transaction->amount, coder);
-//    items[4] = amountRlpEncode(transaction->amount, coder);
-//    items[5] = transactionEncodeDataForHolding(transaction, transaction->amount, coder);
+    return transaction;
+}
 
+
+extern BREthereumTransaction
+transactionDecodeRLP (BREthereumNetwork network,
+                      BREthereumTransactionRLPType type,
+                      BRRlpData data) {
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem item = rlpGetItem (coder, data);
+
+    BREthereumTransaction transaction = transactionRlpDecodeItem(item, network, type, coder);
+
+    rlpCoderRelease(coder);
     return transaction;
 }
 

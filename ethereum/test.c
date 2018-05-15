@@ -30,16 +30,18 @@
 #include <errno.h>
 #include <time.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 #include <assert.h>
-#include <regex.h>
 #include "BRCrypto.h"
 #include "BRInt.h"
 //#include "BRKey.h"
 #include "../BRBIP39WordsEn.h"
-
-//#include "BREthereum.h"
+#include "BREthereum.h"
 #include "BREthereumPrivate.h"
 #include "BREthereumAccount.h"
+#include "BREthereumTransactionReceipt.h"
+#include "BREthereumLog.h"
+#include "BREthereumAccountState.h"
 
 static void
 showHex (uint8_t *source, size_t sourceLen) {
@@ -294,6 +296,37 @@ runMathParseTests () {
     BRCoreParseStatus status;
     UInt256 r = UINT256_ZERO;
     UInt256 a = UINT256_ZERO;
+
+    assert (CORE_PARSE_OK == parseIsInteger("0"));
+    assert (CORE_PARSE_OK == parseIsInteger("0123456789"));
+    assert (CORE_PARSE_OK != parseIsInteger("0123456789."));
+    assert (CORE_PARSE_OK != parseIsInteger(""));
+    assert (CORE_PARSE_OK != parseIsInteger("."));
+    assert (CORE_PARSE_OK != parseIsInteger("1."));
+    assert (CORE_PARSE_OK != parseIsInteger(".0"));
+    assert (CORE_PARSE_OK != parseIsInteger("a"));
+
+    assert (CORE_PARSE_OK == parseIsDecimal ("1"));
+    assert (CORE_PARSE_OK == parseIsDecimal ("1."));
+    assert (CORE_PARSE_OK == parseIsDecimal ("1.1"));
+    assert (CORE_PARSE_OK == parseIsDecimal ("0.12"));
+    assert (CORE_PARSE_OK != parseIsDecimal (NULL));
+    assert (CORE_PARSE_OK != parseIsDecimal (""));
+    assert (CORE_PARSE_OK != parseIsDecimal (".12"));
+    assert (CORE_PARSE_OK != parseIsDecimal ("0.12."));
+    assert (CORE_PARSE_OK != parseIsDecimal ("0.12.34"));
+    assert (CORE_PARSE_OK != parseIsDecimal ("a"));
+
+
+    assert (1 == encodeHexValidate("ab"));
+    assert (1 == encodeHexValidate("ab01"));
+    assert (1 != encodeHexValidate(NULL));
+    assert (1 != encodeHexValidate(""));
+    assert (1 != encodeHexValidate("0"));
+    assert (1 != encodeHexValidate("f"));
+    assert (1 != encodeHexValidate("ff0"));
+    assert (1 != encodeHexValidate("1g"));
+	    
     
     // "0x09184e72a000" // 10000000000000
     r = createUInt256Parse("09184e72a000", 16, &status);
@@ -373,6 +406,8 @@ runMathParseTests () {
     r = createUInt256ParseDecimal("01.", 2, &status);
     assert (CORE_PARSE_OK == status && 100 == r.u64[0] && 0 == r.u64[1] && 0 == r.u64[2] && 0 == r.u64[3]);
 
+    r = createUInt256ParseDecimal("1", 2, &status);
+    assert (CORE_PARSE_OK == status && 100 == r.u64[0] && 0 == r.u64[1] && 0 == r.u64[2] && 0 == r.u64[3]);
 }
 
 static void
@@ -528,7 +563,7 @@ void rlpCheckString (BRRlpCoder coder, const char *string, uint8_t *result, size
 
 void rlpCheckInt (BRRlpCoder coder, uint64_t value, uint8_t *result, size_t resultSize) {
     printf ("  %llu", value);
-    rlpCheck(coder, rlpEncodeItemUInt64(coder, value), result, resultSize);
+    rlpCheck(coder, rlpEncodeItemUInt64(coder, value, 0), result, resultSize);
 }
 
 void runRlpEncodeTest () {
@@ -564,7 +599,7 @@ void runRlpEncodeTest () {
     BRCoreParseStatus status = CORE_PARSE_OK;
     char *value = "5968770000000000000000";
     UInt256 r = createUInt256Parse(value, 10, &status);
-    BRRlpItem item = rlpEncodeItemUInt256(coder, r);
+    BRRlpItem item = rlpEncodeItemUInt256(coder, r, 0);
     BRRlpData data;
     rlpDataExtract(coder, item, &data.bytes, &data.bytesCount);
     printf ("  %s\n    => ", value); showHex (data.bytes, data.bytesCount);
@@ -616,7 +651,7 @@ void runRlpDecodeTest () {
     v3d.bytesCount = 3;
 
     BRRlpItem v3i = rlpGetItem(coder, v3d);
-    int v3v = rlpDecodeItemUInt64(coder, v3i);
+    uint64_t v3v = rlpDecodeItemUInt64(coder, v3i, 0);
     assert (1024 == v3v);
 
     rlpCoderRelease(coder);
@@ -754,7 +789,6 @@ void runSignatureTests (BREthereumAccount account) {
     printf ("\n      Hex: %s\n", digestString2);
     assert (0 == strcmp (digestString2, signingHash));
 }
-
 //
 // Transaction Tests
 //
@@ -1006,6 +1040,13 @@ void testTransactionCodingEther () {
     // Signature
     assert (ETHEREUM_BOOLEAN_TRUE == signatureEqual(transactionGetSignature (transaction),
                                                     transactionGetSignature (decodedTransaction)));
+
+    // Address recovery
+    BREthereumAddress transactionSourceAddress = transactionGetSourceAddress(transaction);
+    BREthereumAddress decodedTransactionSourceAddress = transactionGetSourceAddress(decodedTransaction);
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(transactionSourceAddress, decodedTransactionSourceAddress)));
+
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(accountHasAddress(account, transactionSourceAddress)));
 }
 
 void testTransactionCodingToken () {
@@ -1050,49 +1091,6 @@ void testTransactionCodingToken () {
                                                     transactionGetSignature (decodedTransaction)));
 }
 
-void prepareTransaction (const char *paperKey, const char *recvAddr, const uint64_t gasPrice, const uint64_t gasLimit, const uint64_t amount) {
-    printf ("     Prepare Transaction\n");
-    
-    // START - One Time Code Block
-    BREthereumConfiguration configuration =
-    ethereumConfigurationCreateLES(ethereumMainnet, 0);
-    BREthereumLightNode node = ethereumCreate(configuration, paperKey);
-    // A wallet amount Ether
-    BREthereumWalletId wallet = ethereumGetWallet(node);
-    // END - One Time Code Block
-    
-    // Optional - will provide listNodeWalletCreateTransactionDetailed.
-    ethereumWalletSetDefaultGasPrice(node, wallet, WEI, gasPrice);
-    ethereumWalletSetDefaultGasLimit(node, wallet, gasLimit);
-    
-    BREthereumAmount amountAmountInEther =
-    ethereumCreateEtherAmountUnit(node, amount, WEI);
-    
-    BREthereumTransactionId tx1 =
-    ethereumWalletCreateTransaction
-    (node,
-     wallet,
-     recvAddr,
-     amountAmountInEther);
-    
-    ethereumWalletSignTransaction (node, wallet, tx1, paperKey);
-    
-    const char *rawTransactionHexEncoded =
-    lightNodeGetTransactionRawDataHexEncoded(node, wallet, tx1, "0x");
-    
-    printf ("        Raw Transaction: %s\n", rawTransactionHexEncoded);
-    
-    char *fromAddr = ethereumGetAccountPrimaryAddress(node);
-    BREthereumTransactionId *transactions = ethereumWalletGetTransactions(node, wallet);
-    assert (NULL != transactions && -1 != transactions[0]);
-    
-    BREthereumTransactionId transaction = transactions[0];
-    assert (0 == strcmp (fromAddr, ethereumTransactionGetSendAddress(node, transaction)) &&
-            0 == strcmp (recvAddr, ethereumTransactionGetRecvAddress(node, transaction)));
-
-    free (fromAddr);
-}
-
 //
 // Light Node JSON_RCP
 //
@@ -1103,7 +1101,7 @@ typedef struct JsonRpcTestContextRecord {
 // Stubbed Callbacks - should actually construct JSON, invoke an Etherum JSON_RPC method,
 // get the response and return the result.
 static void
-jsonRpcGetBalance (JsonRpcContext context,
+clientGetBalance (BREthereumClientContext context,
                    BREthereumLightNode node,
                    BREthereumWalletId wid,
                    const char *address,
@@ -1112,7 +1110,7 @@ jsonRpcGetBalance (JsonRpcContext context,
 }
 
 static void
-jsonRpcGetGasPrice (JsonRpcContext context,
+clientGetGasPrice (BREthereumClientContext context,
                     BREthereumLightNode node,
                     BREthereumWalletId wid,
                     int rid) {
@@ -1120,7 +1118,7 @@ jsonRpcGetGasPrice (JsonRpcContext context,
 }
 
 static void
-jsonRpcEstimateGas (JsonRpcContext context,
+clientEstimateGas (BREthereumClientContext context,
                     BREthereumLightNode node,
                     BREthereumWalletId wid,
                     BREthereumTransactionId tid,
@@ -1132,7 +1130,7 @@ jsonRpcEstimateGas (JsonRpcContext context,
 }
 
 static void
-jsonRpcSubmitTransaction (JsonRpcContext context,
+clientSubmitTransaction (BREthereumClientContext context,
                           BREthereumLightNode node,
                           BREthereumWalletId wid,
                           BREthereumTransactionId tid,
@@ -1143,7 +1141,7 @@ jsonRpcSubmitTransaction (JsonRpcContext context,
 }
 
 static void
-jsonRpcGetTransactions (JsonRpcContext context,
+clientGetTransactions (BREthereumClientContext context,
                         BREthereumLightNode node,
                         const char *account,
                         int id) {
@@ -1170,11 +1168,12 @@ jsonRpcGetTransactions (JsonRpcContext context,
 }
 
 static void
-jsonRpcGetLogs (JsonRpcContext context,
-                BREthereumLightNode node,
-                const char *addressIgnore,
-                const char *event,
-                int rid) {
+clientGetLogs (BREthereumClientContext context,
+               BREthereumLightNode node,
+               const char *contract,
+               const char *addressIgnore,
+               const char *event,
+               int rid) {
     char *address = ethereumGetAccountPrimaryAddress(node);
     const char *topics[] = {
         "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
@@ -1195,6 +1194,58 @@ jsonRpcGetLogs (JsonRpcContext context,
                           "0x59fa1ac9");
 }
 
+void prepareTransaction (const char *paperKey, const char *recvAddr, const uint64_t gasPrice, const uint64_t gasLimit, const uint64_t amount) {
+    printf ("     Prepare Transaction\n");
+
+    // START - One Time Code Block
+    JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
+
+    BREthereumClient client =
+    ethereumClientCreate(context,
+                         clientGetBalance,
+                         clientGetGasPrice,
+                         clientEstimateGas,
+                         clientSubmitTransaction,
+                         clientGetTransactions,
+                         clientGetLogs);
+
+    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey);
+    // A wallet amount Ether
+    BREthereumWalletId wallet = ethereumGetWallet(node);
+    // END - One Time Code Block
+
+    // Optional - will provide listNodeWalletCreateTransactionDetailed.
+    ethereumWalletSetDefaultGasPrice(node, wallet, WEI, gasPrice);
+    ethereumWalletSetDefaultGasLimit(node, wallet, gasLimit);
+
+    BREthereumAmount amountAmountInEther =
+    ethereumCreateEtherAmountUnit(node, amount, WEI);
+
+    BREthereumTransactionId tx1 =
+    ethereumWalletCreateTransaction
+    (node,
+     wallet,
+     recvAddr,
+     amountAmountInEther);
+
+    ethereumWalletSignTransaction (node, wallet, tx1, paperKey);
+
+    const char *rawTransactionHexEncoded =
+    lightNodeGetTransactionRawDataHexEncoded(node, wallet, tx1, "0x");
+
+    printf ("        Raw Transaction: %s\n", rawTransactionHexEncoded);
+
+    char *fromAddr = ethereumGetAccountPrimaryAddress(node);
+    BREthereumTransactionId *transactions = ethereumWalletGetTransactions(node, wallet);
+    assert (NULL != transactions && -1 != transactions[0]);
+
+    BREthereumTransactionId transaction = transactions[0];
+    assert (0 == strcmp (fromAddr, ethereumTransactionGetSendAddress(node, transaction)) &&
+            0 == strcmp (recvAddr, ethereumTransactionGetRecvAddress(node, transaction)));
+
+    free (fromAddr);
+}
+
 static void
 runLightNode_JSON_RPC_test (const char *paperKey) {
     printf ("     JSON_RCP\n");
@@ -1202,20 +1253,19 @@ runLightNode_JSON_RPC_test (const char *paperKey) {
     BRCoreParseStatus status;
     JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
     
-    BREthereumConfiguration configuration =
-    ethereumConfigurationCreateJSON_RPC(ethereumMainnet,
-                                         context,
-                                         jsonRpcGetBalance,
-                                         jsonRpcGetGasPrice,
-                                         jsonRpcEstimateGas,
-                                         jsonRpcSubmitTransaction,
-                                         jsonRpcGetTransactions,
-                                         jsonRpcGetLogs);
+    BREthereumClient configuration =
+            ethereumClientCreate(context,
+                                         clientGetBalance,
+                                         clientGetGasPrice,
+                                         clientEstimateGas,
+                                         clientSubmitTransaction,
+                                         clientGetTransactions,
+                                         clientGetLogs);
     
-    BREthereumLightNode node = ethereumCreate(configuration, paperKey);
+    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey);
     BREthereumWalletId wallet = ethereumGetWallet(node);
     
-    ethereumConnect(node);
+    ethereumConnect(node, configuration);
 
     sleep (2);  // let connect 'take'
 
@@ -1273,29 +1323,28 @@ runLightNode_LISTENER_test (const char *paperKey) {
     BRCoreParseStatus status;
     JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
-    BREthereumConfiguration configuration =
-    ethereumConfigurationCreateJSON_RPC(ethereumMainnet,
-                                         context,
-                                         jsonRpcGetBalance,
-                                         jsonRpcGetGasPrice,
-                                         jsonRpcEstimateGas,
-                                         jsonRpcSubmitTransaction,
-                                         jsonRpcGetTransactions,
-                                         jsonRpcGetLogs);
+    BREthereumClient configuration =
+    ethereumClientCreate(context,
+                         clientGetBalance,
+                         clientGetGasPrice,
+                         clientEstimateGas,
+                         clientSubmitTransaction,
+                         clientGetTransactions,
+                         clientGetLogs);
 
-    BREthereumLightNode node = ethereumCreate(configuration, paperKey);
+    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey);
 
     BREthereumListenerId lid = lightNodeAddListener(node,
-                                                             (BREthereumListenerContext) NULL,
-                                                             walletEventHandler,
-                                                             blockEventHandler,
-                                                             transactionEventHandler);
+                                                    (BREthereumListenerContext) NULL,
+                                                    walletEventHandler,
+                                                    blockEventHandler,
+                                                    transactionEventHandler);
 
     BREthereumWalletId wallet = ethereumGetWallet(node);
 
-    ethereumConnect(node);
+    ethereumConnect(node, configuration);
 
-    sleep (2);  // let connect 'take'
+    sleep (5);  // let connect 'take'
 
     // Callback to JSON_RPC for 'getBalanance'&
     //    lightNodeUpdateWalletBalance (node, wallet, &status);
@@ -1317,7 +1366,7 @@ runLightNode_TOKEN_test (const char *paperKey) {
     
     BRCoreParseStatus status;
     
-    BREthereumLightNode node = ethereumCreate (ethereumConfigurationCreateLES(ethereumMainnet, 0), paperKey);
+    BREthereumLightNode node = ethereumCreate (ethereumMainnet, paperKey);
     BREthereumWalletId wallet = ethereumGetWalletHoldingToken(node, tokenBRD);
     
     BREthereumAmount amount = ethereumCreateTokenAmountString(node, tokenBRD,
@@ -1341,15 +1390,17 @@ runLightNode_TOKEN_test (const char *paperKey) {
 }
 
 static void
-runLightNode_PUBLIC_KEY_test (const char *paperKey) {
+runLightNode_PUBLIC_KEY_test (BREthereumNetwork network, const char *paperKey) {
     printf ("     PUBLIC KEY\n");
 
-    BREthereumLightNode node1 = ethereumCreate (ethereumConfigurationCreateLES(ethereumMainnet, 0), paperKey);
+    BREthereumLightNode node1 = ethereumCreate (network, paperKey);
     char *addr1 = ethereumGetAccountPrimaryAddress (node1);
+    BRKey key = ethereumGetAccountPrimaryAddressPrivateKey(node1, paperKey);
 
     BRKey publicKey = ethereumGetAccountPrimaryAddressPublicKey (node1);
-    BREthereumLightNode node2 = ethereumCreateWithPublicKey (ethereumConfigurationCreateLES(ethereumMainnet, 0), publicKey);
+    BREthereumLightNode node2 = ethereumCreateWithPublicKey (network, publicKey);
     char *addr2 = ethereumGetAccountPrimaryAddress (node2);
+
 
     assert (0 == strcmp (addr1, addr2));
 
@@ -1365,7 +1416,8 @@ void runLightNodeTests () {
     runLightNode_JSON_RPC_test(NODE_PAPER_KEY);
     runLightNode_TOKEN_test (NODE_PAPER_KEY);
     runLightNode_LISTENER_test (NODE_PAPER_KEY);
-    runLightNode_PUBLIC_KEY_test (NODE_PAPER_KEY);
+    runLightNode_PUBLIC_KEY_test (ethereumMainnet, NODE_PAPER_KEY);
+    runLightNode_PUBLIC_KEY_test (ethereumTestnet, "ocean robust idle system close inject bronze mutual occur scale blast year");
 }
 
 void runTokenTests () {
@@ -1376,8 +1428,10 @@ void runTokenTests () {
     token = tokenLookup ("0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"); // BRD
     assert (NULL != token);
 
-    //    token = tokenLookup("0x3efd578b271d034a69499e4a2d933c631d44b9ad"); // TST: mainnet
-    //    assert (NULL != token);
+#if defined (BITCOIN_DEBUG)
+    token = tokenLookup("0x3efd578b271d034a69499e4a2d933c631d44b9ad"); // TST: mainnet
+    assert (NULL != token);
+#endif
 
     token = tokenLookup("0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0"); // EOI
     assert (NULL != token);
@@ -1404,6 +1458,264 @@ reallySend () {
     // 0.001/2 ETH
     prepareTransaction(paperKey, recvAddress, GAS_PRICE_5_GWEI, GAS_LIMIT_DEFAULT, 1000000000000000000 / 1000 / 2);
 }
+
+//
+// Bloom Test
+//
+#define BLOOM_ADDR_1 "095e7baea6a6c7c4c2dfeb977efac326af552d87"
+#define BLOOM_ADDR_2 "0000000000000000000000000000000000000000"  // topic
+#define BLOOM_ADDR_1_OR_2_RESULT "00000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000040000000000000000000000000000000000000000000000000000000"
+extern void
+runBloomTests (void) {
+    printf ("==== Bloom\n");
+
+    BREthereumBloomFilter filter1 = bloomFilterCreateAddress(addressRawCreate(BLOOM_ADDR_1));
+    BREthereumBloomFilter filter2 = logTopicGetBloomFilterAddress(addressRawCreate(BLOOM_ADDR_2));
+
+    BREthereumBloomFilter filter = bloomFilterOr(filter1, filter2);
+    char *filterAsString = bloomFilterAsString(filter);
+    assert (0 == strcmp (filterAsString, BLOOM_ADDR_1_OR_2_RESULT));
+
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(bloomFilterMatch(filter, filter1)));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(bloomFilterMatch(filter, filter2)));
+    assert (ETHEREUM_BOOLEAN_IS_FALSE(bloomFilterMatch(filter, bloomFilterCreateAddress(addressRawCreate("195e7baea6a6c7c4c2dfeb977efac326af552d87")))));
+
+}
+
+
+//
+// block Test
+//
+/*
+{
+    "blockHeader" : {
+        "bloom" : "00000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000040000000000000000000000000000000000000000000000000000000",
+        "coinbase" : "0000000000000000000000000000000000000000",
+        "difficulty" : "131072",
+        "extraData" : "0x42",
+        "gasLimit" : "125000",
+        "gasUsed" : "22027",
+        "hash" : "535755d932eda9ff3984d2c779c562a924497f6549df2d1ebff5350bc9ebdffc",
+        "mixHash" : "c7f14dcfe22dd19b5e00e1827dea4525f9a7d1cbe319520b59f6875cfcf839c2",
+        "nonce" : "0a6f958326b74cc5",  // 751984053316963525
+        "number" : "1",
+        "parentHash" : "afa4726a3d669141a00e70b2bf07f313abbb65140ca045803d4f0ef8dc426274",
+        "receiptTrie" : "f315ec0a9ad4f2db3303623360931df1d08bfdd9e0bd4cbbc2d64b5b1de4304b",
+        "seedHash" : "56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+        "stateRoot" : "2debf71e4cc78eaacdd660ebc93f641c09fc19a49caf6b159171f5ba9d4928cb",
+        "timestamp" : "1425552830",
+        "transactionsTrie" : "5259d6e3b135d378cc542b5f5b9587861e965e8efa156948f161a0fba6adf47d",
+        "uncleHash" : "1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347"
+    },
+    "rlp" : "0xf90286f9021aa0afa4726a3d669141a00e70b2bf07f313abbb65140ca045803d4f0ef8dc426274a01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347940000000000000000000000000000000000000000a02debf71e4cc78eaacdd660ebc93f641c09fc19a49caf6b159171f5ba9d4928cba05259d6e3b135d378cc542b5f5b9587861e965e8efa156948f161a0fba6adf47da0f315ec0a9ad4f2db3303623360931df1d08bfdd9e0bd4cbbc2d64b5b1de4304bb901000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000004000000000000000000000000000000000000000000000000000000083020000018301e84882560b8454f835be42a056e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421a0c7f14dcfe22dd19b5e00e1827dea4525f9a7d1cbe319520b59f6875cfcf839c2880a6f958326b74cc5f866f864800a82c35094095e7baea6a6c7c4c2dfeb977efac326af552d8785012a05f200801ba042b9d6700235542229ba4942f6c7f975a50515be4d1f092cba4a98730300529ca0f7def4fa32fb4cac965f111ff02c56362ab140c90c3b62361cb65526ba6dcc3dc0",
+    "transactions" : [
+                      {
+                      "data" : "0x",
+                      "gasLimit" : "50000",
+                      "gasPrice" : "10",
+                      "nonce" : "0",
+                      "r" : "0x42b9d6700235542229ba4942f6c7f975a50515be4d1f092cba4a98730300529c",
+                      "s" : "0xf7def4fa32fb4cac965f111ff02c56362ab140c90c3b62361cb65526ba6dcc3d",
+                      "to" : "095e7baea6a6c7c4c2dfeb977efac326af552d87",
+                      "v" : "27",
+                      "value" : "5000000000"
+                      }
+                      ],
+    "uncleHeaders" : [
+    ]
+}
+*/
+
+// The following block differs from the above.  We are doing a decode/encode - the decode will
+// recognize a pre-EIP-155 RLP sequence (so we can recover the address from the signature); the
+// encode always encodes with EIP-155 - thus the signature.v value will differ - the difference
+// is 10 if using mainnet.
+//
+// So we found the two characters in the transactions signature encoding an changed them from
+// 0x1b 27) to 0x2a (37)
+#define BLOCK_1_RLP "f90286f9021aa0afa4726a3d669141a00e70b2bf07f313abbb65140ca045803d4f0ef8dc426274a01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347940000000000000000000000000000000000000000a02debf71e4cc78eaacdd660ebc93f641c09fc19a49caf6b159171f5ba9d4928cba05259d6e3b135d378cc542b5f5b9587861e965e8efa156948f161a0fba6adf47da0f315ec0a9ad4f2db3303623360931df1d08bfdd9e0bd4cbbc2d64b5b1de4304bb901000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000004000000000000000000000000000000000000000000000000000000083020000018301e84882560b8454f835be42a056e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421a0c7f14dcfe22dd19b5e00e1827dea4525f9a7d1cbe319520b59f6875cfcf839c2880a6f958326b74cc5f866f864800a82c35094095e7baea6a6c7c4c2dfeb977efac326af552d8785012a05f2008025a042b9d6700235542229ba4942f6c7f975a50515be4d1f092cba4a98730300529ca0f7def4fa32fb4cac965f111ff02c56362ab140c90c3b62361cb65526ba6dcc3dc0"
+#define BLOCK_HEADER_1_RLP "f9021aa0afa4726a3d669141a00e70b2bf07f313abbb65140ca045803d4f0ef8dc426274a01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347940000000000000000000000000000000000000000a02debf71e4cc78eaacdd660ebc93f641c09fc19a49caf6b159171f5ba9d4928cba05259d6e3b135d378cc542b5f5b9587861e965e8efa156948f161a0fba6adf47da0f315ec0a9ad4f2db3303623360931df1d08bfdd9e0bd4cbbc2d64b5b1de4304bb901000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000000000000080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002000000000004000000000000000000000000000000000000000000000000000000083020000018301e84882560b8454f835be42a056e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421a0c7f14dcfe22dd19b5e00e1827dea4525f9a7d1cbe319520b59f6875cfcf839c2880a6f958326b74cc5"                                                                     // 1b -> 25 (27 + 10 => chainID EIP-155)
+// 0xf90286 f9021a a0afa4726a3d669141a00e70b2bf07f313abbb65140ca045803d4f0ef8dc426274 a01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347 940000000000000000000000000000000000000000 a02debf71e4cc78eaacdd660ebc93f641c09fc19a49caf6b159171f5ba9d4928cb a05259d6e3b135d378cc542b5f5b9587861e965e8efa156948f161a0fba6adf47d a0f315ec0a9ad4f2db3303623360931df1d08bfdd9e0bd4cbbc2d64b5b1de4304b b9010000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000040000000000000000000000000000000000000000000000000000000 83,020000 01 83,01e848 82,560b 84,54f835be 42 a056e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421 a0c7f14dcfe22dd19b5e00e1827dea4525f9a7d1cbe319520b59f6875cfcf839c2 88,0a6f958326b74cc5 f866f864800a82c35094095e7baea6a6c7c4c2dfeb977efac326af552d8785012a05f200801ba042b9d6700235542229ba4942f6c7f975a50515be4d1f092cba4a98730300529ca0f7def4fa32fb4cac965f111ff02c56362ab140c90c3b62361cb65526ba6dcc3dc0
+//  Block   Header:           parentHash                                                ommersHash                                                          beneficiary                                 stateRoot                                                       transactionRoot                                                     receiptsRoot                                                        logsBloom                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           Diff     Num    gLimit  gUsed   Timestamp  Extra    seedHash??                                                      mixHash                                                             nonce                   <transacdtions>
+#define GENESIS_RLP "f901f8f901f3a00000000000000000000000000000000000000000000000000000000000000000a01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347940000000000000000000000000000000000000000a09178d0f23c965d81f0834a4c72c6253ce6830f4022b1359aaebfc1ecba442d4ea056e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421a056e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421b90100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008302000080832fefd8808080a0000000000000000000000000000000000000000000000000000000000000000088000000000000002ac0c0";
+
+extern void
+runBlockTests (void) {
+    printf ("==== Block\n");
+
+    BRRlpData data;
+    BRRlpData encodeData;
+
+    int typeMismatch;
+
+    //
+    // Block Header
+    //
+    data.bytes = decodeHexCreate(&data.bytesCount, BLOCK_HEADER_1_RLP, strlen (BLOCK_HEADER_1_RLP));
+
+    BREthereumBlockHeader blockHeader_1 = blockHeaderDecodeRLP (data);
+
+    assert (0 == strcmp (hashAsString (blockHeaderGetParentHash(blockHeader_1)),
+                         "0xafa4726a3d669141a00e70b2bf07f313abbb65140ca045803d4f0ef8dc426274"));
+    assert (0x0a6f958326b74cc5 == blockHeaderGetNonce(blockHeader_1));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(blockHeaderMatchAddress(blockHeader_1, addressRawCreate(BLOOM_ADDR_2))));
+    assert (ETHEREUM_BOOLEAN_IS_FALSE(blockHeaderMatchAddress(blockHeader_1, addressRawCreate("195e7baea6a6c7c4c2dfeb977efac326af552d87"))));
+
+
+    encodeData = blockHeaderEncodeRLP(blockHeader_1, ETHEREUM_BOOLEAN_TRUE);
+    assert (data.bytesCount == encodeData.bytesCount
+            && 0 == memcmp (data.bytes, encodeData.bytes, encodeData.bytesCount));
+
+    rlpDataRelease(encodeData);
+    rlpDataRelease(data);
+
+    //
+    // Block
+    //
+    data.bytes = decodeHexCreate(&data.bytesCount, BLOCK_1_RLP, strlen (BLOCK_1_RLP));
+
+    BREthereumBlock block = blockDecodeRLP(data, ethereumMainnet);
+    blockHeader_1 = blockGetHeader(block);
+    assert (0 == strcmp (hashAsString (blockHeaderGetParentHash(blockHeader_1)),
+                         "0xafa4726a3d669141a00e70b2bf07f313abbb65140ca045803d4f0ef8dc426274"));
+    assert (0x0a6f958326b74cc5 == blockHeaderGetNonce(blockHeader_1));
+
+    assert (1 == blockGetTransactionsCount(block));
+    BREthereumTransaction transaction = blockGetTransaction (block, 0);
+    assert (0 == transactionGetNonce(transaction));
+    assert (0 == strcmp ("0x", transactionGetData(transaction)));
+    assert (ETHEREUM_COMPARISON_EQ == gasCompare(transactionGetGasLimit(transaction), gasCreate(50000)));
+    assert (ETHEREUM_COMPARISON_EQ == gasPriceCompare(transactionGetGasPrice(transaction), gasPriceCreate(etherCreateNumber(10, WEI))));
+    assert (ETHEREUM_COMPARISON_EQ == amountCompare(transactionGetAmount(transaction),
+                                                    amountCreateEther(etherCreateNumber(5000000000, WEI)),
+                                                    &typeMismatch));
+    assert (0 == blockGetOmmersCount(block));
+
+    encodeData = blockEncodeRLP(block, ethereumMainnet);
+    assert (data.bytesCount == encodeData.bytesCount
+            && 0 == memcmp (data.bytes, encodeData.bytes, encodeData.bytesCount));
+
+    rlpDataRelease(encodeData);
+    rlpDataRelease(data);
+}
+
+/*  Ehtereum Java
+byte[] rlp = Hex.decode("f85a94d5ccd26ba09ce1d85148b5081fa3ed77949417bef842a0000000000000000000000000459d3a7595df9eba241365f4676803586d7d199ca0436f696e7300000000000000000000000000000000000000000000000000000080");
+LogInfo logInfo = new LogInfo(rlp);
+
+assertEquals("d5ccd26ba09ce1d85148b5081fa3ed77949417be",
+             Hex.toHexString(logInfo.getAddress()));
+assertEquals("", Hex.toHexString(logInfo.getData()));
+
+assertEquals("000000000000000000000000459d3a7595df9eba241365f4676803586d7d199c",
+             logInfo.getTopics().get(0).toString());
+assertEquals("436f696e73000000000000000000000000000000000000000000000000000000",
+             logInfo.getTopics().get(1).toString());
+
+*/
+
+#define LOG_1_RLP "f85a94d5ccd26ba09ce1d85148b5081fa3ed77949417bef842a0000000000000000000000000459d3a7595df9eba241365f4676803586d7d199ca0436f696e7300000000000000000000000000000000000000000000000000000080"
+#define LOG_1_ADDRESS "d5ccd26ba09ce1d85148b5081fa3ed77949417be"
+#define LOG_1_TOPIC_0 "000000000000000000000000459d3a7595df9eba241365f4676803586d7d199c"
+#define LOG_1_TOPIC_1 "436f696e73000000000000000000000000000000000000000000000000000000"
+
+extern void
+runLogTests (void) {
+    printf ("==== Log\n");
+
+    BRRlpData data;
+    BRRlpData encodeData;
+
+    // Log
+    data.bytes = decodeHexCreate(&data.bytesCount, LOG_1_RLP, strlen (LOG_1_RLP));
+
+    BREthereumLog log = logDecodeRLP(data);
+
+    BREthereumAddressRaw address = logGetAddress(log);
+    size_t addressBytesCount;
+    uint8_t *addressBytes = decodeHexCreate(&addressBytesCount, LOG_1_ADDRESS, strlen(LOG_1_ADDRESS));
+    assert (addressBytesCount == sizeof (address.bytes));
+    assert (0 == memcmp (address.bytes, addressBytes, addressBytesCount));
+    free (addressBytes);
+
+    // topic-0
+    // topic-1
+
+    encodeData = logEncodeRLP(log);
+    assert (data.bytesCount == encodeData.bytesCount
+            && 0 == memcmp (data.bytes, encodeData.bytes, encodeData.bytesCount));
+
+    rlpDataRelease(encodeData);
+    rlpDataRelease(data);
+}
+
+//
+// Acount State
+//
+#define ACCOUNT_STATE_NONCE  1234
+#define ACCOUNT_STATE_BALANCE   5000000000
+
+extern BREthereumAccountState
+accountStateCreate (uint64_t nonce,
+                    BREthereumEther balance,
+                    BREthereumHash storageRoot,
+                    BREthereumHash codeHash);
+
+static BREthereumHash emptyHash;
+extern void
+runAccountStateTests (void) {
+    printf ("==== Account State\n");
+
+    BREthereumAccountState state = accountStateCreate(ACCOUNT_STATE_NONCE,
+                                                      etherCreateNumber(ACCOUNT_STATE_BALANCE, WEI),
+                                                      emptyHash,
+                                                      emptyHash);
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem encoding = accountStateRlpEncodeItem(state, coder);
+
+    BREthereumAccountState decodedState = accountStateRlpDecodeItem(encoding, coder);
+
+    assert (accountStateGetNonce(state) == accountStateGetNonce(decodedState));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(etherIsEQ(accountStateGetBalance(state),
+                                               accountStateGetBalance(decodedState))));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(accountStateGetStorageRoot(state),
+                                               accountStateGetStorageRoot(decodedState))));
+    
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(accountStateGetCodeHash(state),
+                                               accountStateGetCodeHash(decodedState))));
+
+    rlpCoderRelease(coder);
+}
+
+//
+// Transaction Receipt
+//
+
+// From Ethereum Java - a 'six item' RLP Encoding.
+#define RECEIPT_1_RLP "f88aa0966265cc49fa1f10f0445f035258d116563931022a3570a640af5d73a214a8da822b6fb84000000010000000010000000000008000000000000000000000000000000000000000000000000000000000020000000000000014000000000400000000000440d8d7948513d39a34a1a8570c9c9f0af2cba79ac34e0ac8c0808301e24086873423437898"
+
+extern void
+runTransactionReceiptTests (void) {
+    printf ("==== Transaction Receipt\n");
+    BRRlpData data;
+    BRRlpData encodeData;
+
+    /*
+    // Log
+    data.bytes = decodeHexCreate(&data.bytesCount, RECEIPT_1_RLP, strlen (RECEIPT_1_RLP));
+
+    BREthereumTransactionReceipt receipt = transactionReceiptDecodeRLP(data);
+    // assert
+
+    encodeData = transactionReceiptEncodeRLP(receipt);
+    assert (data.bytesCount == encodeData.bytesCount
+            && 0 == memcmp (data.bytes, encodeData.bytes, encodeData.bytesCount));
+
+    rlpDataRelease(encodeData);
+    rlpDataRelease(data);
+     */
+}
+
 //
 // All Tests
 //
@@ -1418,6 +1730,13 @@ runTests (void) {
     runAccountTests();
     runTokenTests ();
     runLightNodeTests();
+    runBloomTests();
+    runBlockTests();
+    runLogTests();
+    runAccountStateTests();
+    runTransactionReceiptTests();
+    
+//    runLEStests();
     //    reallySend();
     printf ("Done\n");
 }

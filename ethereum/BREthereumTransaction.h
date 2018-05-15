@@ -114,15 +114,18 @@ transactionSign(BREthereumTransaction transaction,
                 BREthereumAccount account,
                 BREthereumSignature signature);
 
-extern BREthereumAccount
-transactionGetSigner (BREthereumTransaction transaction);
-
 extern BREthereumBoolean
 transactionIsSigned (BREthereumTransaction transaction);
 
 extern BREthereumSignature
 transactionGetSignature (BREthereumTransaction transaction);
 
+    /**
+     * Extract the signer's address.  If not signed, an empty address is returned.
+     */
+extern BREthereumAddress
+transactionExtractAddress (BREthereumTransaction transaction,
+                           BREthereumNetwork network);
 //
 // Transaction RLP Encoding
 //
@@ -144,6 +147,23 @@ extern BREthereumTransaction
 transactionDecodeRLP (BREthereumNetwork network,
                       BREthereumTransactionRLPType type,
                       BRRlpData data);
+
+/**
+ * [QUASI-INTERNAL - used by BREthereumBlock]
+ */
+extern BREthereumTransaction
+transactionRlpDecodeItem (BRRlpItem item,
+                          BREthereumNetwork network,
+                          BREthereumTransactionRLPType type,
+                          BRRlpCoder coder);
+/**
+ * [QUASI-INTERNAL - used by BREthereumBlock]
+ */
+extern BRRlpItem
+transactionRlpEncodeItem(BREthereumTransaction transaction,
+                         BREthereumNetwork network,
+                         BREthereumTransactionRLPType type,
+                         BRRlpCoder coder);
 
 //
 // Transaction Comparison

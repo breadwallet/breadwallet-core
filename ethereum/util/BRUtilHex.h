@@ -42,7 +42,7 @@ extern "C" {
  * @param sourceLen Must be even and 2*targetLen
  */
 extern void
-decodeHex (uint8_t *target, size_t targetLen, char *source, size_t sourceLen);
+decodeHex (uint8_t *target, size_t targetLen, const char *source, size_t sourceLen);
 
 /**
  * Return the number `uint8_t *' elements needed to decode stringLen characters.  The provided
@@ -56,7 +56,7 @@ extern size_t
 decodeHexLength (size_t stringLen);
 
 extern uint8_t *
-decodeHexCreate (size_t *targetLen, char *source, size_t sourceLen);
+decodeHexCreate (size_t *targetLen, const char *source, size_t sourceLen);
 
 /**
  * Convert a 'uint8_t *' byte array into a 'char *' string.  Two characters are produced for each
@@ -71,7 +71,7 @@ decodeHexCreate (size_t *targetLen, char *source, size_t sourceLen);
  * @param sourceLen
  */
 extern void
-encodeHex (char *target, size_t targetLen, uint8_t *source, size_t sourceLen);
+encodeHex (char *target, size_t targetLen, const uint8_t *source, size_t sourceLen);
 
 /**
  * Return the number of 'char *' elements needs to encode byteArrayLen bytes.  The return value
@@ -85,7 +85,7 @@ extern size_t
 encodeHexLength(size_t byteArrayLen);
 
 extern char *
-encodeHexCreate (size_t *targetLen, uint8_t *source, size_t sourceLen);
+encodeHexCreate (size_t *targetLen, const uint8_t *source, size_t sourceLen);
 
 /**
  * Return TRUE/1 if `string` is an encoded-hex string.

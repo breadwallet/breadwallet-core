@@ -41,7 +41,7 @@ import static java.lang.Thread.sleep;
  *
  */
 public class BREthereumLightNodeClientTest implements
-        BREthereumLightNode.ClientJSON_RPC,
+        BREthereumLightNode.Client,
         BREthereumLightNode.Listener {
     static {
         if (System.getProperties().containsKey("light.node.test"))
@@ -54,15 +54,9 @@ public class BREthereumLightNodeClientTest implements
     private static final String USABLE_PAPER_KEY =
             "ginger settle marine tissue robot crane night number ramp coast roast critic";
 
-    protected BREthereumLightNode.JSON_RPC node;
+    protected BREthereumLightNode node;
 
     public BREthereumLightNodeClientTest() {
-    }
-
-    @Override
-    public void assignNode(BREthereumLightNode node) {
-        asserting(node instanceof BREthereumLightNode.JSON_RPC);
-        this.node = (BREthereumLightNode.JSON_RPC) node;
     }
 
     @Override
@@ -191,7 +185,7 @@ public class BREthereumLightNodeClientTest implements
     }
 
     @Override
-    public void getLogs(String address, String event, int rid) {
+    public void getLogs(String contract, String address, String event, int rid) {
         String[] topics = {
                 "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
                 "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -244,7 +238,7 @@ public class BREthereumLightNodeClientTest implements
 
     protected void runTest() {
         // Create the node; reference through this.node
-        new BREthereumLightNode.JSON_RPC(this, BREthereumNetwork.testnet, USABLE_PAPER_KEY, words);
+        node = new BREthereumLightNode (this, BREthereumNetwork.testnet, USABLE_PAPER_KEY, words);
         node.addListener(this);
 
 
@@ -362,12 +356,8 @@ public class BREthereumLightNodeClientTest implements
         //
         // Disconnect
         //
-        System.out.println("Disconnect (wait...)");
-        node.disconnectAndWait();
-        try {
-            sleep(1000);
-        } catch (Exception ex) {
-        }
+        System.out.println ("Disconnect (wait...)");
+        node.disconnect();
 
         //
         // Public Key
@@ -376,8 +366,8 @@ public class BREthereumLightNodeClientTest implements
         asserting(65 == publicKey.length);
 
         BREthereumLightNode node1 = this.node;
-        BREthereumLightNode node2 = new BREthereumLightNode.JSON_RPC(this, BREthereumNetwork.testnet, publicKey);
-        asserting(node1.getAddress().equals(node2.getAddress()));
+        BREthereumLightNode node2 = new BREthereumLightNode (this, BREthereumNetwork.testnet, publicKey);
+        asserting (node1.getAddress().equals(node2.getAddress()));
 
         this.node = null;
     }

@@ -25,7 +25,8 @@
 
 #include <stdlib.h>
 #include <assert.h>
-#include <regex.h>
+#include <ctype.h>
+#include <string.h>
 #include "BRInt.h"
 #include "BRUtilHex.h"
 
@@ -34,7 +35,7 @@
 //
 
 extern void
-decodeHex (uint8_t *target, size_t targetLen, char *source, size_t sourceLen) {
+decodeHex (uint8_t *target, size_t targetLen, const char *source, size_t sourceLen) {
     //
     assert (0 == sourceLen % 2);
     assert (2 * targetLen == sourceLen);
@@ -51,7 +52,7 @@ decodeHexLength (size_t stringLen) {
 }
 
 extern uint8_t *
-decodeHexCreate (size_t *targetLen, char *source, size_t sourceLen) {
+decodeHexCreate (size_t *targetLen, const char *source, size_t sourceLen) {
     size_t length = decodeHexLength(sourceLen);
     if (NULL != targetLen) *targetLen = length;
     uint8_t *target = malloc (length);
@@ -60,7 +61,7 @@ decodeHexCreate (size_t *targetLen, char *source, size_t sourceLen) {
 }
 
 extern void
-encodeHex (char *target, size_t targetLen, uint8_t *source, size_t sourceLen) {
+encodeHex (char *target, size_t targetLen, const uint8_t *source, size_t sourceLen) {
     assert (targetLen == 2 * sourceLen  + 1);
     
     for (int i = 0; i < sourceLen; i++) {
@@ -76,7 +77,7 @@ encodeHexLength(size_t byteArrayLen) {
 }
 
 extern char *
-encodeHexCreate (size_t *targetLen, uint8_t *source, size_t sourceLen) {
+encodeHexCreate (size_t *targetLen, const uint8_t *source, size_t sourceLen) {
     size_t length = encodeHexLength(sourceLen);
     if (NULL != targetLen) *targetLen = length;
     char *target = malloc (length);
@@ -84,19 +85,12 @@ encodeHexCreate (size_t *targetLen, uint8_t *source, size_t sourceLen) {
     return target;
 }
 
-#define HEX_REGEX "^([0-9A-Fa-f]{2})+$" // "^[0-9A-Fa-f]+$"
-
 extern int
-encodeHexValidate (const char *string) {
-    static regex_t hexCharRegex;
-    static int hexCharRegexInitialized = 0;
-    
-    if (!hexCharRegexInitialized) {
-        // Has pairs of hex digits
-        //regcomp(&hexCharRegex, "^([0-9A-Fa-f]{2})+$", REG_BASIC);
-        regcomp(&hexCharRegex, HEX_REGEX, REG_EXTENDED);
-        hexCharRegexInitialized = 1;
-    }
-    
-    return 0 == regexec (&hexCharRegex, string, 0, NULL, 0);
+encodeHexValidate (const char *number) {
+    // Number contains only hex digits, has an even number and has at least two.
+    if (NULL == number || '\0' == *number || 0 != strlen(number) % 2) return 0;
+
+    while (*number)
+        if (!isxdigit (*number++)) return 0;
+    return 1;
 }

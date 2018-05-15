@@ -47,12 +47,12 @@ gasCompare (BREthereumGas e1, BREthereumGas e2) {
 
 extern BRRlpItem
 gasRlpEncode (BREthereumGas gas, BRRlpCoder coder) {
-    return rlpEncodeItemUInt64(coder, gas.amountOfGas);
+    return rlpEncodeItemUInt64(coder, gas.amountOfGas, 1);
 }
 
 extern BREthereumGas
 gasRlpDecode (BRRlpItem item, BRRlpCoder coder) {
-    return gasCreate(rlpDecodeItemUInt64 (coder, item));
+    return gasCreate(rlpDecodeItemUInt64(coder, item, 1));
 }
 
 //

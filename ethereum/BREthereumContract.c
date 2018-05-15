@@ -36,7 +36,7 @@ static void
 encodeReverseBytes (uint8_t *t, const uint8_t *s, size_t slen);
 
 static int
-functionIsEncodedInData (BREthereumFunction function, const char *data);
+functionIsEncodedInData (BREthereumContractFunction function, const char *data);
 
 // https://medium.com/@jgm.orinoco/understanding-erc-20-token-contracts-a809a7310aa5
 // https://github.com/ethereum/wiki/wiki/Ethereum-Contract-ABI
@@ -152,7 +152,7 @@ static void
 topicDecodeUInt256 (void) {}
 
 private_extern char *
-eventERC20TransferDecodeAddress (BREthereumEvent event,
+eventERC20TransferDecodeAddress (BREthereumContractEvent event,
                                  const char *topic) {
     assert (event == eventERC20Transfer);
     // Second argument - skip selector + 1st argument
@@ -165,7 +165,7 @@ eventERC20TransferDecodeAddress (BREthereumEvent event,
 }
 
 private_extern char *
-eventERC20TransferEncodeAddress (BREthereumEvent event,
+eventERC20TransferEncodeAddress (BREthereumContractEvent event,
                                  const char *address) {
     assert (event == eventERC20Transfer);
     assert ('0' == address[0] && 'x' == address[1] && 42 == strlen (address));
@@ -185,14 +185,14 @@ eventERC20TransferEncodeAddress (BREthereumEvent event,
 }
 
 private_extern UInt256
-eventERC20TransferDecodeUInt256 (BREthereumEvent event,
+eventERC20TransferDecodeUInt256 (BREthereumContractEvent event,
                                  const char *number,
                                  BRCoreParseStatus *status) {
     return createUInt256Parse(number, 16, status);
 }
 
 extern const char *
-eventGetSelector (BREthereumEvent event) {
+eventGetSelector (BREthereumContractEvent event) {
     return event->selector;
 }
 
@@ -329,10 +329,10 @@ static struct BREthereumContractRecord contractRecordERC20 = {
 };
 
 BREthereumContract contractERC20 = &contractRecordERC20;
-BREthereumFunction functionERC20Transfer = &contractRecordERC20.functions[2];
-BREthereumEvent eventERC20Transfer = &contractRecordERC20.events[0];
+BREthereumContractFunction functionERC20Transfer = &contractRecordERC20.functions[2];
+BREthereumContractEvent eventERC20Transfer = &contractRecordERC20.events[0];
 
-extern BREthereumFunction
+extern BREthereumContractFunction
 contractLookupFunctionForEncoding (BREthereumContract contract, const char *encoding) {
     for (int i = 0; i < contract->functionsCount; i++)
         if (functionIsEncodedInData(&contract->functions[i], encoding))
@@ -340,7 +340,7 @@ contractLookupFunctionForEncoding (BREthereumContract contract, const char *enco
     return NULL;
 }
 
-extern BREthereumEvent
+extern BREthereumContractEvent
 contractLookupEventForTopic (BREthereumContract contract, const char *topic) {
     for (int i = 0; i < contract->eventsCount; i++)
         if (0 == strcmp (topic, contract->events[i].selector))
@@ -349,7 +349,7 @@ contractLookupEventForTopic (BREthereumContract contract, const char *topic) {
 }
 
 private_extern UInt256
-functionERC20TransferDecodeAmount (BREthereumFunction function,
+functionERC20TransferDecodeAmount (BREthereumContractFunction function,
                                    const char *data,
                                    BRCoreParseStatus *status) {
     assert (function == functionERC20Transfer);
@@ -359,7 +359,7 @@ functionERC20TransferDecodeAmount (BREthereumFunction function,
 }
 
 private_extern char *
-functionERC20TransferDecodeAddress (BREthereumFunction function,
+functionERC20TransferDecodeAddress (BREthereumContractFunction function,
                                     const char *data) {
     assert (function == functionERC20Transfer);
     // Second argument - skip selector + 1st argument
@@ -374,7 +374,7 @@ functionERC20TransferDecodeAddress (BREthereumFunction function,
 /**
  */
 extern const char *
-contractEncode (BREthereumContract contract, BREthereumFunction function, ...) {
+contractEncode (BREthereumContract contract, BREthereumContractFunction function, ...) {
     // We'll require VAR ARGS
     unsigned int argsCount = function->argumentCount;
     
@@ -417,7 +417,7 @@ encodeReverseBytes (uint8_t *t, const uint8_t *s, size_t slen) {
 }
 
 static int
-functionIsEncodedInData (BREthereumFunction function, const char *data) {
+functionIsEncodedInData (BREthereumContractFunction function, const char *data) {
     return NULL != data &&
     0 == strncmp (function->selector, data, strlen(function->selector));
 }
