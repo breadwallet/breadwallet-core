@@ -41,6 +41,7 @@
 #include "BREthereumAccount.h"
 #include "BREthereumTransactionReceipt.h"
 #include "BREthereumLog.h"
+#include "BREthereumAccountState.h"
 #include "test-les.h"
 
 static void
@@ -1649,6 +1650,47 @@ runLogTests (void) {
     rlpDataRelease(data);
 }
 
+//
+// Acount State
+//
+#define ACCOUNT_STATE_NONCE  1234
+#define ACCOUNT_STATE_BALANCE   5000000000
+
+extern BREthereumAccountState
+accountStateCreate (uint64_t nonce,
+                    BREthereumEther balance,
+                    BREthereumHash storageRoot,
+                    BREthereumHash codeHash);
+
+static BREthereumHash emptyHash;
+extern void
+runAccountStateTests (void) {
+    printf ("==== Account State\n");
+
+    BREthereumAccountState state = accountStateCreate(ACCOUNT_STATE_NONCE,
+                                                      etherCreateNumber(ACCOUNT_STATE_BALANCE, WEI),
+                                                      emptyHash,
+                                                      emptyHash);
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem encoding = accountStateRlpEncodeItem(state, coder);
+
+    BREthereumAccountState decodedState = accountStateRlpDecodeItem(encoding, coder);
+
+    assert (accountStateGetNonce(state) == accountStateGetNonce(decodedState));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(etherIsEQ(accountStateGetBalance(state),
+                                               accountStateGetBalance(decodedState))));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(accountStateGetStorageRoot(state),
+                                               accountStateGetStorageRoot(decodedState))));
+    
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(accountStateGetCodeHash(state),
+                                               accountStateGetCodeHash(decodedState))));
+
+    rlpCoderRelease(coder);
+}
+
+//
+// Transaction Receipt
+//
 
 // From Ethereum Java - a 'six item' RLP Encoding.
 #define RECEIPT_1_RLP "f88aa0966265cc49fa1f10f0445f035258d116563931022a3570a640af5d73a214a8da822b6fb84000000010000000010000000000008000000000000000000000000000000000000000000000000000000000020000000000000014000000000400000000000440d8d7948513d39a34a1a8570c9c9f0af2cba79ac34e0ac8c0808301e24086873423437898"
@@ -1692,6 +1734,7 @@ runTests (void) {
     runBloomTests();
     runBlockTests();
     runLogTests();
+    runAccountStateTests();
     runTransactionReceiptTests();
     
 //    runLEStests();
