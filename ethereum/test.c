@@ -42,7 +42,6 @@
 #include "BREthereumTransactionReceipt.h"
 #include "BREthereumLog.h"
 #include "BREthereumAccountState.h"
-#include "test-les.h"
 
 static void
 showHex (uint8_t *source, size_t sourceLen) {
