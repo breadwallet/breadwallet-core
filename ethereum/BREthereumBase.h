@@ -45,6 +45,8 @@ typedef enum {
 #define ETHEREUM_BOOLEAN_IS_TRUE(x)  ((x) == ETHEREUM_BOOLEAN_TRUE)
 #define ETHEREUM_BOOLEAN_IS_FALSE(x) ((x) == ETHEREUM_BOOLEAN_FALSE)
 
+#define AS_ETHEREUM_BOOLEAN(x)    ((x) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE)
+
 //
 // Ethereum Comparison
 //
