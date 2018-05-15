@@ -24,302 +24,442 @@
 //  THE SOFTWARE.
 
 #include <stdlib.h>
-//#include "aes.h"
-//#include "sha3.h"
+#include "BREthereumNode.h"
 #include "BRCrypto.h"
 #include "BRKey.h"
 #include "BREthereumFrameCoder.h"
 #include "BREthereumLESBase.h"
 #include "BRRlpCoder.h"
 #include "BRArray.h"
-
+#include "BRBIP38Key.h"
 #define UINT256_SIZE 32
 
+#define HEADER_LEN 16
+#define MAC_LEN 16
 /**
  *
  * The context for a frame coder
  */
-typedef struct {
+struct BREthereumFrameCoderContext {
 
-    //Encryption for frame
-   // struct aes256_ctx frameEncrypt;
-    
-    //Decryption for frame
-  //  struct aes256_ctx frameDecrypt;
-    
     //Encryption for Mac
-  //  struct aes256_ctx macEncrypt;
+    UInt256 macSecretKey;
     
     // Ingress ciphertext
-   // struct sha3_256_ctx ingressMac;
+    uint8_t* ingressMac;
+    
+    // Ingress ciphertext size
+    size_t ingressMacSize;
     
     // Egress ciphertext
-  //  struct sha3_256_ctx egressMac;
+    uint8_t* egressMac;
     
-}BREthereumFrameCoderContext;
+    // Egress ciphertext size
+    size_t egressMacSize;
+};
 
 //
 // Private Functions
 //
-void _egressDigest(BREthereumFrameCoderContext* ctx, UInt128 * digest)
+
+// ecies-aes128-sha256 as specified in SEC 1, 5.1: http://www.secg.org/SEC1-Ver-1.0.pdf
+// NOTE: these are not implemented using constant time algorithms
+static void _BRECDH(void *out32, const BRKey *privKey, BRKey *pubKey)
 {
-
-  //  struct sha3_256_ctx curEgressMacH;
- //   memcpy(&curEgressMacH, &ctx->egressMac, sizeof(struct sha3_256_ctx));
-  //  sha3_256_digest(&curEgressMacH, sizeof(digest->u8), digest->u8);
+    uint8_t p[65];
+    size_t pLen = BRKeyPubKey(pubKey, p, sizeof(p));
+    
+    if (pLen == 65) p[0] = (p[64] % 2) ? 0x03 : 0x02; // convert to compressed pubkey format
+    BRSecp256k1PointMul((BRECPoint *)p, &privKey->secret); // calculate shared secret ec-point
+    memcpy(out32, &p[1], 32); // unpack the x coordinate
+    mem_clean(p, sizeof(p));
 }
-void _ingressDigest(BREthereumFrameCoderContext* ctx, UInt128 * digest)
+
+
+// BIP38 is a method for encrypting private keys with a passphrase
+// https://github.com/bitcoin/bips/blob/master/bip-0038.mediawiki
+static const uint8_t sbox[256] = {
+    0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76,
+    0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0,
+    0xb7, 0xfd, 0x93, 0x26, 0x36, 0x3f, 0xf7, 0xcc, 0x34, 0xa5, 0xe5, 0xf1, 0x71, 0xd8, 0x31, 0x15,
+    0x04, 0xc7, 0x23, 0xc3, 0x18, 0x96, 0x05, 0x9a, 0x07, 0x12, 0x80, 0xe2, 0xeb, 0x27, 0xb2, 0x75,
+    0x09, 0x83, 0x2c, 0x1a, 0x1b, 0x6e, 0x5a, 0xa0, 0x52, 0x3b, 0xd6, 0xb3, 0x29, 0xe3, 0x2f, 0x84,
+    0x53, 0xd1, 0x00, 0xed, 0x20, 0xfc, 0xb1, 0x5b, 0x6a, 0xcb, 0xbe, 0x39, 0x4a, 0x4c, 0x58, 0xcf,
+    0xd0, 0xef, 0xaa, 0xfb, 0x43, 0x4d, 0x33, 0x85, 0x45, 0xf9, 0x02, 0x7f, 0x50, 0x3c, 0x9f, 0xa8,
+    0x51, 0xa3, 0x40, 0x8f, 0x92, 0x9d, 0x38, 0xf5, 0xbc, 0xb6, 0xda, 0x21, 0x10, 0xff, 0xf3, 0xd2,
+    0xcd, 0x0c, 0x13, 0xec, 0x5f, 0x97, 0x44, 0x17, 0xc4, 0xa7, 0x7e, 0x3d, 0x64, 0x5d, 0x19, 0x73,
+    0x60, 0x81, 0x4f, 0xdc, 0x22, 0x2a, 0x90, 0x88, 0x46, 0xee, 0xb8, 0x14, 0xde, 0x5e, 0x0b, 0xdb,
+    0xe0, 0x32, 0x3a, 0x0a, 0x49, 0x06, 0x24, 0x5c, 0xc2, 0xd3, 0xac, 0x62, 0x91, 0x95, 0xe4, 0x79,
+    0xe7, 0xc8, 0x37, 0x6d, 0x8d, 0xd5, 0x4e, 0xa9, 0x6c, 0x56, 0xf4, 0xea, 0x65, 0x7a, 0xae, 0x08,
+    0xba, 0x78, 0x25, 0x2e, 0x1c, 0xa6, 0xb4, 0xc6, 0xe8, 0xdd, 0x74, 0x1f, 0x4b, 0xbd, 0x8b, 0x8a,
+    0x70, 0x3e, 0xb5, 0x66, 0x48, 0x03, 0xf6, 0x0e, 0x61, 0x35, 0x57, 0xb9, 0x86, 0xc1, 0x1d, 0x9e,
+    0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf,
+    0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16
+};
+
+static const uint8_t sboxi[256] = {
+    0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb,
+    0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f, 0xff, 0x87, 0x34, 0x8e, 0x43, 0x44, 0xc4, 0xde, 0xe9, 0xcb,
+    0x54, 0x7b, 0x94, 0x32, 0xa6, 0xc2, 0x23, 0x3d, 0xee, 0x4c, 0x95, 0x0b, 0x42, 0xfa, 0xc3, 0x4e,
+    0x08, 0x2e, 0xa1, 0x66, 0x28, 0xd9, 0x24, 0xb2, 0x76, 0x5b, 0xa2, 0x49, 0x6d, 0x8b, 0xd1, 0x25,
+    0x72, 0xf8, 0xf6, 0x64, 0x86, 0x68, 0x98, 0x16, 0xd4, 0xa4, 0x5c, 0xcc, 0x5d, 0x65, 0xb6, 0x92,
+    0x6c, 0x70, 0x48, 0x50, 0xfd, 0xed, 0xb9, 0xda, 0x5e, 0x15, 0x46, 0x57, 0xa7, 0x8d, 0x9d, 0x84,
+    0x90, 0xd8, 0xab, 0x00, 0x8c, 0xbc, 0xd3, 0x0a, 0xf7, 0xe4, 0x58, 0x05, 0xb8, 0xb3, 0x45, 0x06,
+    0xd0, 0x2c, 0x1e, 0x8f, 0xca, 0x3f, 0x0f, 0x02, 0xc1, 0xaf, 0xbd, 0x03, 0x01, 0x13, 0x8a, 0x6b,
+    0x3a, 0x91, 0x11, 0x41, 0x4f, 0x67, 0xdc, 0xea, 0x97, 0xf2, 0xcf, 0xce, 0xf0, 0xb4, 0xe6, 0x73,
+    0x96, 0xac, 0x74, 0x22, 0xe7, 0xad, 0x35, 0x85, 0xe2, 0xf9, 0x37, 0xe8, 0x1c, 0x75, 0xdf, 0x6e,
+    0x47, 0xf1, 0x1a, 0x71, 0x1d, 0x29, 0xc5, 0x89, 0x6f, 0xb7, 0x62, 0x0e, 0xaa, 0x18, 0xbe, 0x1b,
+    0xfc, 0x56, 0x3e, 0x4b, 0xc6, 0xd2, 0x79, 0x20, 0x9a, 0xdb, 0xc0, 0xfe, 0x78, 0xcd, 0x5a, 0xf4,
+    0x1f, 0xdd, 0xa8, 0x33, 0x88, 0x07, 0xc7, 0x31, 0xb1, 0x12, 0x10, 0x59, 0x27, 0x80, 0xec, 0x5f,
+    0x60, 0x51, 0x7f, 0xa9, 0x19, 0xb5, 0x4a, 0x0d, 0x2d, 0xe5, 0x7a, 0x9f, 0x93, 0xc9, 0x9c, 0xef,
+    0xa0, 0xe0, 0x3b, 0x4d, 0xae, 0x2a, 0xf5, 0xb0, 0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61,
+    0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d
+};
+
+#define xt(x) (((x) << 1) ^ ((((x) >> 7) & 1)*0x1b))
+
+static void _BRAES256ECBEncrypt(const void *key32, void *buf16)
 {
-//    struct sha3_256_ctx curIngressMacH;
-//    memcpy(&curIngressMacH, &ctx->ingressMac, sizeof(struct sha3_256_ctx));
-//    sha3_256_digest(&curIngressMacH, sizeof(digest->u8), digest->u8);
-}
-void _updateMac(BREthereumFrameCoderContext* ctx, struct sha3_256_ctx* mac, uint8_t* sData, size_t sDataSize) {
-
-    //Peform check for sData size is h1238 _seed.size() && _seed.size() != h128::size)
-//    struct sha3_256_ctx prevDigest;
-//    memcpy(&prevDigest, mac, sizeof(struct sha3_256_ctx));
-    UInt128 encDigest;
+    size_t i, j;
+    uint32_t key[32/4], buf[16/4];
+    uint8_t *x = (uint8_t *)buf, *k = (uint8_t *)key, r = 1, a, b, c, d, e;
     
-  //  sha3_256_digest(&prevDigest, 16, encDigest.u8);
+    memcpy(key, key32, sizeof(key));
+    memcpy(buf, buf16, sizeof(buf));
     
-    UInt128 pDigest;
-    
-    memcpy(&pDigest.u8, &encDigest.u8, 16);
-    
-//    aes256_encrypt(&ctx->macEncrypt, 16, encDigest.u8, encDigest.u8);
-
-    UInt128 xOrDigest;
-    
-    if (sDataSize){
-        ethereumXORBytes(encDigest.u8, sData, xOrDigest.u8, 128);
+    for (i = 0; i < 14; i++) {
+        for (j = 0; j < 4; j++) buf[j] ^= key[j + (i & 1)*4]; // add round key
+        
+        for (j = 0; j < 16; j++) x[j] = sbox[x[j]]; // sub bytes
+        
+        // shift rows
+        a = x[1], x[1] = x[5], x[5] = x[9], x[9] = x[13], x[13] = a, a = x[10], x[10] = x[2], x[2] = a;
+        a = x[3], x[3] = x[15], x[15] = x[11], x[11] = x[7], x[7] = a, a = x[14], x[14] = x[6], x[6] = a;
+        
+        for (j = 0; i < 13 && j < 16; j += 4) { // mix columns
+            a = x[j], b = x[j + 1], c = x[j + 2], d = x[j + 3], e = a ^ b ^ c ^ d;
+            x[j] ^= e ^ xt(a ^ b), x[j + 1] ^= e ^ xt(b ^ c), x[j + 2] ^= e ^ xt(c ^ d), x[j + 3] ^= e ^ xt(d ^ a);
+        }
+        
+        if ((i % 2) != 0) { // expand key
+            k[0] ^= sbox[k[29]] ^ r, k[1] ^= sbox[k[30]], k[2] ^= sbox[k[31]], k[3] ^= sbox[k[28]], r = xt(r);
+            for (j = 4; j < 16; j++) k[j] ^= k[j - 4];
+            k[16] ^= sbox[k[12]], k[17] ^= sbox[k[13]], k[18] ^= sbox[k[14]], k[19] ^= sbox[k[15]];
+            for (j = 20; j < 32; j++) k[j] ^= k[j - 4];
+        }
     }
-    else{
-        ethereumXORBytes(encDigest.u8, pDigest.u8, xOrDigest.u8, 128);
-    }
-
-//    sha3_256_update(mac, sizeof(encDigest.u8), encDigest.u8);
     
+    var_clean(&r, &a, &b, &c, &d, &e);
+    for (i = 0; i < 4; i++) buf[i] ^= key[i]; // final add round key
+    mem_clean(key, sizeof(key));
+    memcpy(buf16, buf, sizeof(buf));
+    mem_clean(buf, sizeof(buf));
 }
-void _writeFrame(BREthereumFrameCoderContext* ctx, BRRlpData * headerData, uint8_t* payload, size_t payloadSize, uint8_t** oBytes, size_t * oBytesSize)
+
+static void _BRAES256ECBDecrypt(const void *key32, void *buf16)
 {
-    // TODO: SECURITY check header values && header <= 16 bytes
-    size_t uint256_size = 32;
-    uint8_t headerMac[uint256_size];
-    memcpy(headerMac, headerData->bytes, headerData->bytesCount);
+    size_t i, j;
+    uint32_t key[32/4], buf[16/4];
+    uint8_t *x = (uint8_t *)buf, *k = (uint8_t *)key, r = 1, a, b, c, d, e, f, g, h;
     
-   // aes256_encrypt(&ctx->frameEncrypt, 16, headerMac, headerMac);
+    memcpy(key, key32, sizeof(key));
+    memcpy(buf, buf16, sizeof(buf));
     
-  //  _updateMac(ctx, &ctx->egressMac, headerMac, 16);
-    UInt128 egressDigest;
-    
-    _egressDigest(ctx, &egressDigest);
-    
-    
-    memcpy(&headerMac[16], egressDigest.u8, sizeof(egressDigest.u8));
-    
-    uint32_t padding = (16 - (payloadSize % 16)) % 16;
-    
-
-    size_t oBytesPtrSize = 32 + payloadSize + padding + 16;
-    uint8_t* oBytesPtr = (uint8_t *)calloc(oBytesPtrSize, sizeof(uint8_t));
-    
-    memcpy(oBytesPtr, headerMac, sizeof(headerMac));
-    
-    //aes256_encrypt(&ctx->frameEncrypt, payloadSize, &oBytesPtr[32], payload);
-
-    if (padding) {
-   //     aes256_encrypt(&ctx->frameEncrypt, padding, &oBytesPtr[32 + payloadSize], &oBytesPtr[32 + payloadSize]);
+    for (i = 0; i < 7; i++) { // expand key
+        k[0] ^= sbox[k[29]] ^ r, k[1] ^= sbox[k[30]], k[2] ^= sbox[k[31]], k[3] ^= sbox[k[28]], r = xt(r);
+        for (j = 4; j < 16; j++) k[j] ^= k[j - 4];
+        k[16] ^= sbox[k[12]], k[17] ^= sbox[k[13]], k[18] ^= sbox[k[14]], k[19] ^= sbox[k[15]];
+        for (j = 20; j < 32; j++) k[j] ^= k[j - 4];
     }
     
+    for (i = 0; i < 14; i++) {
+        for (j = 0; j < 4; j++) buf[j] ^= key[j + (i & 1)*4]; // add round key
+        
+        for (j = 0; i > 0 && j < 16; j += 4) { // unmix columns
+            a = x[j], b = x[j + 1], c = x[j + 2], d = x[j + 3], e = a ^ b ^ c ^ d;
+            h = xt(e), f = e ^ xt(xt(h ^ a ^ c)), g = e ^ xt(xt(h ^ b ^ d));
+            x[j] ^= f ^ xt(a ^ b), x[j + 1] ^= g ^ xt(b ^ c), x[j + 2] ^= f ^ xt(c ^ d), x[j + 3] ^= g ^ xt(d ^ a);
+        }
+        
+        // unshift rows
+        a = x[1], x[1] = x[13], x[13] = x[9], x[9] = x[5], x[5] = a, a = x[2], x[2] = x[10], x[10] = a;
+        a = x[3], x[3] = x[7], x[7] = x[11], x[11] = x[15], x[15] = a, a = x[6], x[6] = x[14], x[14] = a;
+        
+        for (j = 0; j < 16; j++) x[j] = sboxi[x[j]]; // unsub bytes
+        
+        if ((i % 2) == 0) { // unexpand key
+            for (j = 28; j > 16; j--) k[j + 3] ^= k[j - 1];
+            k[16] ^= sbox[k[12]], k[17] ^= sbox[k[13]], k[18] ^= sbox[k[14]], k[19] ^= sbox[k[15]];
+            for (j = 12; j > 0; j--) k[j + 3] ^= k[j - 1];
+            r = (r >> 1) ^ ((r & 1)*0x8d);
+            k[0] ^= sbox[k[29]] ^ r, k[1] ^= sbox[k[30]], k[2] ^= sbox[k[31]], k[3] ^= sbox[k[28]];
+        }
+    }
     
-   // sha3_256_update(&ctx->egressMac, payloadSize + padding, &oBytesPtr[32]);
-  //  _updateMac(ctx, &ctx->egressMac, NULL, 0);
-    
-    UInt128 egressDigestFrame;
-    _egressDigest(ctx, &egressDigestFrame);
-    memcpy(&oBytesPtr[32 + payloadSize + padding], egressDigestFrame.u8, sizeof(egressDigestFrame.u8));
-    
-    *oBytes = oBytesPtr;
-    *oBytesSize = oBytesPtrSize;
+    var_clean(&r, &a, &b, &c, &d, &e, &f, &g, &h);
+    for (i = 0; i < 4; i++) buf[i] ^= key[i]; // final add round key
+    mem_clean(key, sizeof(key));
+    memcpy(buf16, buf, sizeof(buf));
+    mem_clean(buf, sizeof(buf));
 }
 //
 // Public Functions
 //
 BREthereumFrameCoder ethereumFrameCoderCreate(void) {
     
-    BREthereumFrameCoderContext * ctx = (BREthereumFrameCoderContext*) calloc (1, sizeof(*ctx));
-    return (BREthereumFrameCoder)ctx;
+    BREthereumFrameCoder coder = (BREthereumFrameCoder) calloc (1, sizeof(struct BREthereumFrameCoderContext));
+    return coder;
 }
-BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fCoder,
-                            UInt512* remoteEphemeral,
-                            UInt256* remoteNonce,
-                            BRKey* ecdheLocal,
-                            UInt256* localNonce,
-                            uint8_t* aukCipher,
-                            size_t aukCipherLen,
-                            uint8_t* authCiper,
-                            size_t authCipherLen,
-                            BREthereumBoolean didOriginate) {
-    
-    BREthereumFrameCoderContext * ctx = (BREthereumFrameCoderContext*) fCoder;
+BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fcoder,
+                                         BRKey* remoteEphemeral,
+                                         UInt256* remoteNonce,
+                                         BRKey* localEphemeral,
+                                         UInt256* localNonce,
+                                         uint8_t* aukCipher,
+                                         size_t aukCipherLen,
+                                         uint8_t* authCiper,
+                                         size_t authCipherLen,
+                                         BREthereumBoolean didOriginate) {
     uint8_t keyMaterial[64];
-    size_t uint256_size = 32;
     
-    // shared-secret = sha3(ecdhe-shared-secret || sha3(nonce || initiator-nonce))
+    // ephemeral-shared-secret = ecdh.agree(ephemeral-privkey, remote-ephemeral-pubk)
     UInt256 ephemeralShared;
+    _BRECDH(ephemeralShared.u8, localEphemeral, remoteEphemeral);
     
-    if(etheruemECDHAgree(ecdheLocal, remoteEphemeral, &ephemeralShared)){
-        return ETHEREUM_BOOLEAN_FALSE;
-    }
-    
-    memcpy(keyMaterial, &ephemeralShared, uint256_size);
+    memcpy(keyMaterial, ephemeralShared.u8, 32);
 
     UInt512 nonceMaterial;
     
+
     UInt256* lNonce = ETHEREUM_BOOLEAN_IS_TRUE(didOriginate) ? remoteNonce : localNonce;
-    memcpy(nonceMaterial.u8, lNonce->u8, uint256_size);
-
-
+    memcpy(nonceMaterial.u8, lNonce->u8, 32);
+    
     UInt256* rNonce = ETHEREUM_BOOLEAN_IS_TRUE(didOriginate)  ? localNonce : remoteNonce;
-    memcpy(&nonceMaterial.u8[sizeof(lNonce->u8)], rNonce->u8, uint256_size);
+    memcpy(&nonceMaterial.u8[32], rNonce->u8, 32);
 
     
     // sha3(nonce || initiator-nonce)
-    BRKeccak256(&keyMaterial[sizeof(lNonce->u8)], &nonceMaterial.u8,uint256_size);
+    BRKeccak256(&keyMaterial[32], nonceMaterial.u8, 32);
     
     
     // shared-secret = sha3(ecdhe-shared-secret || sha3(nonce || initiator-nonce))
-    BRKeccak256(&keyMaterial[uint256_size], keyMaterial, uint256_size);
+    BRKeccak256(&keyMaterial[32], keyMaterial, 32);
 
 
     // aes-secret = sha3(ecdhe-shared-secret || shared-secret)
-    BRKeccak256(&keyMaterial[uint256_size], &keyMaterial[uint256_size], uint256_size);
+    BRKeccak256(&keyMaterial[32], &keyMaterial[32], 32);
+    // TODO:  Maybe, I might need an encryption/decryption frame?
     
- //  aes256_set_encrypt_key(&ctx->frameEncrypt, &keyMaterial[uint256_size]);
- //   aes256_set_encrypt_key(&ctx->frameDecrypt, &keyMaterial[uint256_size]);
-    
-
     // mac-secret = sha3(ecdhe-shared-secret || aes-secret)
-     BRKeccak256(&keyMaterial[uint256_size], &keyMaterial[uint256_size], uint256_size);
- //   aes256_set_encrypt_key(&ctx->macEncrypt, &keyMaterial[uint256_size]);
+    BRKeccak256(&keyMaterial[32], &keyMaterial[32], 32);
+    memcpy(fcoder->macSecretKey.u8,&keyMaterial[32], 32);
+    
+    
+    // Initiator:
+    // egress-mac = sha3.update(mac-secret ^ recipient-nonce || auth-sent-init)
+    // # destroy nonce
+    // ingress-mac = sha3.update(mac-secret ^ initiator-nonce || auth-recvd-ack)
+    // # destroy remote-nonce
 
+    // Recipient:
+    // egress-mac = sha3.update(mac-secret ^ initiator-nonce || auth-sent-ack)
+    // # destroy nonce
+    // ingress-mac = sha3.update(mac-secret ^ recipient-nonce || auth-recvd-init)
+    // # destroy remote-nonce
+    
+    UInt256 xORMacNonceEgress;
+    ethereumXORBytes(fcoder->macSecretKey.u8, remoteNonce->u8, xORMacNonceEgress.u8, 32);
+    
+    UInt256 xORMacNonceIngress;
+    ethereumXORBytes(fcoder->macSecretKey.u8, localNonce->u8, xORMacNonceIngress.u8, 32);
 
-    // Initiator egress-mac: sha3(mac-secret^recipient-nonce || auth-sent-init)
-    //           ingress-mac: sha3(mac-secret^initiator-nonce || auth-recvd-ack)
-    // Recipient egress-mac: sha3(mac-secret^initiator-nonce || auth-sent-ack)
-    //           ingress-mac: sha3(mac-secret^recipient-nonce || auth-recvd-init)
-    UInt256 xORMacRemoteNonce;
-    ethereumXORBytes(&keyMaterial[uint256_size], remoteNonce->u8, xORMacRemoteNonce.u8, uint256_size);
-    memcpy(keyMaterial, xORMacRemoteNonce.u8, uint256_size);
+    
     uint8_t* egressCipher, *ingressCipher;
     size_t egressCipherLen, ingressCipherLen;
+    uint8_t* gressBytes;
     
-    if(didOriginate)
+    
+    if(ETHEREUM_BOOLEAN_IS_TRUE(didOriginate))
     {
-        egressCipher = aukCipher;
-        egressCipherLen = aukCipherLen;
+        egressCipher = authCiper;
+        egressCipherLen = authCipherLen;
         ingressCipher = aukCipher;
         ingressCipherLen = aukCipherLen;
     }
     else
     {
-        egressCipher = authCiper;
-        egressCipherLen = authCipherLen;
+        egressCipher = aukCipher;
+        egressCipherLen = aukCipherLen;
         ingressCipher = authCiper;
         ingressCipherLen = authCipherLen;
     }
     
-    uint8_t* gressBytes;
-    size_t egressBytesLen = uint256_size + egressCipherLen;
-    
-    
+    size_t egressBytesLen = 32 + egressCipherLen;
     array_new(gressBytes, egressBytesLen);
-    array_add_array(gressBytes, keyMaterial, uint256_size);
-    array_insert_array(gressBytes, uint256_size, egressCipher, egressCipherLen);
- //   sha3_256_init(&ctx->egressMac);
+    array_add_array(gressBytes, xORMacNonceEgress.u8, 32);
+    array_insert_array(gressBytes, 32, egressCipher, egressCipherLen);
     
- //   sha3_256_update(&ctx->egressMac, egressBytesLen, gressBytes);
+    // egress-mac = sha3.update(mac-secret ^ initiator-nonce || auth-sent-ack)
+    array_new(fcoder->egressMac, egressBytesLen);
+    array_add_array(fcoder->egressMac, gressBytes, egressBytesLen);
+    fcoder->egressMacSize = egressBytesLen;
     
-    // recover mac-secret by re-xoring remoteNonce
-    UInt256 xOrMacSecret;
-    ethereumXORBytes(xORMacRemoteNonce.u8, localNonce->u8, xOrMacSecret.u8, uint256_size);
-    size_t ingressBytesLen = uint256_size + egressCipherLen;
-
+    
+    size_t ingressBytesLen = 32 + ingressCipherLen;
     array_set_capacity(gressBytes, ingressBytesLen);
-    array_insert_array(gressBytes, 0, xOrMacSecret.u8, uint256_size);
-    array_insert_array(gressBytes, uint256_size, ingressCipher, ingressBytesLen);
-//    sha3_256_init(&ctx->ingressMac);
-//    sha3_256_update(&ctx->ingressMac, ingressBytesLen, gressBytes);
-
+    array_insert_array(gressBytes, 0, xORMacNonceIngress.u8, 32);
+    array_insert_array(gressBytes, 32, ingressCipher, ingressCipherLen);
+    
+    // ingress-mac = sha3.update(mac-secret ^ recipient-nonce || auth-recvd-init)
+    array_new(fcoder->ingressMac, ingressBytesLen);
+    array_add_array(fcoder->ingressMac, gressBytes, ingressBytesLen);
+    fcoder->ingressMacSize = ingressBytesLen;
+    
+    //Destroy secrets & nonces.
+    var_clean(localNonce->u8,remoteNonce->u8, keyMaterial);
     array_free(gressBytes);
     
     return ETHEREUM_BOOLEAN_TRUE; 
 }
-void ethereumFrameCoderFree(BREthereumFrameCoder coder) {
+void ethereumFrameCoderRelease(BREthereumFrameCoder coder) {
 
-    BREthereumFrameCoderContext* ctx = (BREthereumFrameCoderContext*)coder;
-    free(ctx);
+    free(coder);
 }
-void ethereumFrameCoderWrite(BREthereumFrameCoder fCoder, uint8_t msgId,  uint8_t* payload, size_t payloadSize, uint8_t** oBytes, size_t * oBytesSize) {
-
-    BREthereumFrameCoderContext* ctx = (BREthereumFrameCoderContext*) fCoder;
+void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, size_t payloadSize, uint8_t** rlpBytes, size_t * rlpBytesSize) {
 
     BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem headerPlainItem;
+    uint8_t headerPlain[16] = {(uint8_t)((payloadSize >> 16) & 0xff), (uint8_t)((payloadSize >> 8) & 0xff), (uint8_t)(payloadSize & 0xff)};
+    headerPlainItem = rlpEncodeItemBytes(coder, headerPlain, sizeof(headerPlain));
+    
+    BRRlpData headerCipher;
+    rlpDataExtract(coder, headerPlainItem, &headerCipher.bytes, &headerCipher.bytesCount);
 
-    BRRlpItem headerItem;
-    
-    uint32_t frameSize =  (uint32_t)(sizeof(msgId) + payloadSize);
-    
-    uint8_t header[4] = {(uint8_t)((frameSize >> 16) & 0xff), (uint8_t)((frameSize >> 8) & 0xff), (uint8_t)(frameSize & 0xff), msgId};
-    
-    headerItem = rlpEncodeItemBytes(coder, header, sizeof(header));
-    
-    BRRlpData headerData;
 
-    rlpDataExtract(coder, headerItem, &headerData.bytes, &headerData.bytesCount);
-
-    _writeFrame(ctx, &headerData, payload, payloadSize, oBytes, oBytesSize);
+   // TODO: Need AES-CTRL encryption to headerCipher
+   // aes256_encrypt(&ctx->aes_sercret, 16, headerCipher.bytes, headerCipher.bytes);
+   
+    // Encrypt HEADER-MAC
+    UInt256 egressDigest;
+    BRKeccak256(egressDigest.u8, fCoder->egressMac , fCoder->egressMacSize);
     
+    uint8_t macSecret[16];
+    memcpy(macSecret, egressDigest.u8, 16);
+   _BRAES256ECBEncrypt(fCoder->macSecretKey.u8, macSecret);
+    uint8_t xORMacCipher[16];
+    ethereumXORBytes(macSecret, headerCipher.bytes, xORMacCipher, 16);
+    array_add_array(fCoder->egressMac, xORMacCipher, 16);
+    fCoder->egressMacSize += 16;
+    
+    BRKeccak256(egressDigest.u8, fCoder->egressMac , fCoder->egressMacSize);
+    uint8_t headerMac[16];
+    memcpy(headerMac, egressDigest.u8, 16);
+
+    //Allocate the oBytes and oBytesSize
+    size_t payloadPadding = (16 - (payloadSize % 16)) % 16;
+    size_t oBytesSize = 32 + payloadSize + payloadPadding + 16; // header_cipher + headerMac + payload + padding + frameMac
+    uint8_t * oBytes = (uint8_t*)malloc(oBytesSize);
+
+    memcpy(oBytes, headerCipher.bytes, headerCipher.bytesCount);
+    memcpy(&oBytes[16], headerMac, 16);
+    
+    uint8_t * frameCipher = &oBytes[32];
+    
+    // TODO: Need AES-CTRL encryption to frameCipher
+    memcpy(frameCipher, payload, payloadSize);
+    if(payloadPadding){
+        memset(&frameCipher[payloadSize], 0, payloadPadding);
+        // aes256_encrypt(&fCoder->aes_sercret, payloadPadding + payloadSize, frameCipher, frameCipher);
+
+    }else {
+        // aes256_encrypt(&fCoder->aes_sercret, payloadSize, frameCipher, frameCipher);
+    }
+    array_add_array(fCoder->egressMac, frameCipher, payloadSize + payloadPadding);
+    fCoder->egressMacSize += (payloadPadding + payloadSize);
+
+    BRKeccak256(egressDigest.u8, fCoder->egressMac , fCoder->egressMacSize);
+    uint8_t fmac_seed[16];
+    memcpy(fmac_seed, egressDigest.u8, 16);
+    memcpy(macSecret, egressDigest.u8, 16);
+    _BRAES256ECBEncrypt(fCoder->macSecretKey.u8, macSecret);
+    ethereumXORBytes(macSecret, fmac_seed, xORMacCipher, 16);
+    array_add_array(fCoder->egressMac, xORMacCipher, 16);
+    fCoder->egressMacSize += 16;
+
+    BRKeccak256(egressDigest.u8, fCoder->egressMac , fCoder->egressMacSize);
+    memcpy(&oBytes[32 + payloadSize + payloadPadding],egressDigest.u8, 16);
+    
+    *rlpBytes = oBytes;
+    *rlpBytesSize = oBytesSize;
+    
+    rlpDataRelease(headerCipher);
     rlpCoderRelease(coder);
 }
 BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fCoder, uint8_t * oBytes, size_t outSize) {
 
-    BREthereumFrameCoderContext* ctx = (BREthereumFrameCoderContext*) fCoder;
-
-    if(outSize != UINT256_SIZE) {
+    if(outSize != HEADER_LEN + MAC_LEN) {
+        return ETHEREUM_BOOLEAN_FALSE;
+    }
+    uint8_t* headerCipher = oBytes;
+    uint8_t* headerMac = &oBytes[HEADER_LEN];
+    
+    UInt256 ingressDigest;
+    BRKeccak256(ingressDigest.u8, fCoder->ingressMac , fCoder->ingressMacSize);
+    int8_t macSecret[16];
+    memcpy(macSecret, ingressDigest.u8, HEADER_LEN);
+    uint8_t xORMacCipher[16];
+    _BRAES256ECBEncrypt(fCoder->macSecretKey.u8, macSecret);
+    ethereumXORBytes(macSecret, headerCipher, xORMacCipher, 16);
+    array_add_array(fCoder->ingressMac, xORMacCipher, 16);
+    fCoder->ingressMac += 16;
+    
+    uint8_t headerMacExpected[16];
+    BRKeccak256(ingressDigest.u8, fCoder->ingressMac , fCoder->ingressMacSize);
+    memcpy(headerMacExpected, ingressDigest.u8, 16);
+    
+    if(memcmp(headerMacExpected, headerMac, 16)) {
         return ETHEREUM_BOOLEAN_FALSE;
     }
     
-//    _updateMac(ctx, &ctx->ingressMac, oBytes, 16);
-    
-    UInt128 expected;
-    _ingressDigest(ctx,&expected);
-    
-    if(memcmp(&oBytes[outSize], expected.u8, 16)) {
-        return ETHEREUM_BOOLEAN_FALSE;
-    }
+    // TODO: AES-CTR decryption function
+    // aes256_decrypt(&fCoder->aes_sercret, 16, oBytes);
 
-//    aes256_encrypt(&ctx->frameEncrypt, 16, oBytes, oBytes);
-    
     return ETHEREUM_BOOLEAN_TRUE;
+    
 }
 BREthereumBoolean ethereumFrameCoderDecryptFrame(BREthereumFrameCoder fCoder, uint8_t * oBytes, size_t outSize) {
 
-    BREthereumFrameCoderContext* ctx = (BREthereumFrameCoderContext*) fCoder;
-    size_t cipherLen = outSize - 16;
-    uint8_t cipher[cipherLen];
- //   sha3_256_update(&ctx->ingressMac, cipherLen, cipher);
- //   _updateMac(ctx, &ctx->ingressMac, NULL, 0);
 
-    UInt128 expected;
-    _ingressDigest(ctx,&expected);
+    uint8_t* frameCipherText = oBytes;
+    uint8_t* frameMac = &oBytes[outSize - 16];
+    array_add_array(fCoder->ingressMac, frameCipherText, outSize - 16);
+    fCoder->ingressMac += (outSize - 16);
     
-    if(memcmp(&oBytes[cipherLen], expected.u8, 16)) {
+    uint8_t fmacSeed[16];
+    uint8_t fmacSeedEncrypt[16];
+
+    UInt256 ingressDigest;
+    BRKeccak256(ingressDigest.u8, fCoder->ingressMac , fCoder->ingressMacSize);
+    memcpy(fmacSeed, ingressDigest.u8, 16);
+    memcpy(fmacSeedEncrypt, ingressDigest.u8, 16);
+
+     uint8_t xORMacCipher[16];
+    _BRAES256ECBEncrypt(fCoder->macSecretKey.u8, fmacSeedEncrypt);
+    ethereumXORBytes(fmacSeedEncrypt,fmacSeed, xORMacCipher, 16);
+    array_add_array(fCoder->ingressMac, xORMacCipher, 16);
+    fCoder->ingressMac += 16;
+    
+
+    uint8_t framMacExpected[16];
+    BRKeccak256(ingressDigest.u8, fCoder->ingressMac , fCoder->ingressMacSize);
+    memcpy(framMacExpected, ingressDigest.u8, 16);
+    
+    if(memcmp(framMacExpected, frameMac, 16)) {
         return ETHEREUM_BOOLEAN_FALSE;
     }
     
-//    aes256_encrypt(&ctx->frameEncrypt, outSize, oBytes, oBytes);
+    // TODO: AES-CTR decryption function
+    //    aes256_encrypt.update(&fCoder->aes_sercret,, outSize, oBytes, oBytes);
     
     return ETHEREUM_BOOLEAN_TRUE;
 }
