@@ -74,14 +74,25 @@ public class BRCoreWalletManager implements
     }
 
     /**
-     * Factory method to create a BRCoreWallet (or subtype).
+     * Factory method to create a BRCoreWallet (or subtype).  This can fail if loadTransaction()
+     * contains transactions that do not belong to wallet's masterPubKey.  In that case the proper
+     * response is to zero out the transactions, create the wallet, and then sync.
      *
      * @return The BRCoreWallet managed by this BRCoreWalletManager
      */
 
     protected BRCoreWallet createWallet () {
-        return new BRCoreWallet (loadTransactions(), masterPubKey,
-                createWalletListener());
+        try {
+            return new BRCoreWallet(loadTransactions(), masterPubKey,
+                    createWalletListener());
+        }
+        catch (BRCoreWallet.WalletExecption ex) {
+            return createWalletRetry ();
+        }
+    }
+
+    protected BRCoreWallet createWalletRetry () {
+        return null;
     }
 
     /**

@@ -284,6 +284,8 @@ JNIEXPORT jobjectArray JNICALL Java_com_breadwallet_core_BRCorePaymentProtocolRe
 
     jobjectArray result = (*env)->NewObjectArray (env, (jsize) numberOfCerts, byteArrayClass, 0);
 
+    (*env)->DeleteLocalRef (env, byteArrayClass);
+
     for (size_t index = 0; index < numberOfCerts; index++) {
         size_t certLen = (size_t) BRPaymentProtocolRequestCert (request, NULL, 0, index);
         jbyteArray certByteArray = (*env)->NewByteArray (env, (jsize) certLen);

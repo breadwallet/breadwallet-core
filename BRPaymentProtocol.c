@@ -547,7 +547,7 @@ BRPaymentProtocolRequest *BRPaymentProtocolRequestParse(const uint8_t *buf, size
             case request_version: req->version = (uint32_t)i, ctx->defaults[request_version] = 0; break;
             case request_pki_type: _ProtoBufString(&req->pkiType, data, dataLen); break;
             case request_pki_data: req->pkiDataLen = _ProtoBufBytes(&req->pkiData, data, dataLen); break;
-            case request_details: req->details = BRPaymentProtocolDetailsParse(data, dataLen); break;
+            case request_details: req->details = (data) ? BRPaymentProtocolDetailsParse(data, dataLen) : NULL; break;
             case request_signature: req->sigLen = _ProtoBufBytes(&req->signature, data, dataLen); break;
             default: _ProtoBufUnknown(&ctx->unknown, key, i, data, dataLen); break;
         }
@@ -736,7 +736,7 @@ BRPaymentProtocolPayment *BRPaymentProtocolPaymentParse(const uint8_t *buf, size
         uint64_t i = 0, key = _ProtoBufField(&i, &data, buf, &dLen, &off);
         
         switch (key >> 3) {
-            case payment_transactions: tx = BRTransactionParse(data, dLen); break;
+            case payment_transactions: tx = (data) ? BRTransactionParse(data, dLen) : NULL; break;
             case payment_refund_to: out = _BRPaymentProtocolOutputParse(data, dLen); break;
             case payment_memo: _ProtoBufString(&payment->memo, data, dLen); break;
             case payment_merch_data: payment->merchDataLen = _ProtoBufBytes(&payment->merchantData, data, dLen); break;
@@ -851,7 +851,7 @@ BRPaymentProtocolACK *BRPaymentProtocolACKParse(const uint8_t *buf, size_t bufLe
         uint64_t i = 0, key = _ProtoBufField(&i, &data, buf, &dataLen, &off);
         
         switch (key >> 3) {
-            case ack_payment: ack->payment = BRPaymentProtocolPaymentParse(data, dataLen); break;
+            case ack_payment: ack->payment = (data) ? BRPaymentProtocolPaymentParse(data, dataLen) : NULL; break;
             case ack_memo: _ProtoBufString(&ack->memo, data, dataLen); break;
             default: _ProtoBufUnknown(&ctx->unknown, key, i, data, dataLen); break;
         }
