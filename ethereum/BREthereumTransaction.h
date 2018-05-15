@@ -114,15 +114,18 @@ transactionSign(BREthereumTransaction transaction,
                 BREthereumAccount account,
                 BREthereumSignature signature);
 
-extern BREthereumAccount
-transactionGetSigner (BREthereumTransaction transaction);
-
 extern BREthereumBoolean
 transactionIsSigned (BREthereumTransaction transaction);
 
 extern BREthereumSignature
 transactionGetSignature (BREthereumTransaction transaction);
 
+    /**
+     * Extract the signer's address.  If not signed, an empty address is returned.
+     */
+extern BREthereumAddress
+transactionExtractAddress (BREthereumTransaction transaction,
+                           BREthereumNetwork network);
 //
 // Transaction RLP Encoding
 //
