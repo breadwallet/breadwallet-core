@@ -32,6 +32,7 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <netinet/in.h>
+#include <assert.h>
 
 #include <string.h>
 #include "BREthereumNode.h"
@@ -72,6 +73,12 @@ typedef struct {
     
     //Timestamp reported by the peer
     uint64_t timestamp;
+    
+    //The nonce for the remote peer
+    UInt256 nonce;
+    
+    //The ephemeral public key of the remote peer
+    BRKey ephemeral;
 
 }BREthereumPeer;
 
@@ -112,6 +119,12 @@ struct BREthereumNodeContext {
     
     //The status information for the remote peer
     BREthereumLESStatus remoteStatus;
+    
+    //A local nonce for the handshake
+    UInt256 nonce;
+    
+    // Local Ephemeral ECDH key
+    BRKey ephemeral;
     
     //The thread representing this node
     pthread_t thread;
@@ -321,6 +334,8 @@ BREthereumNode ethereumNodeCreate (BREthereumPeerConfig config,
     node->status = BRE_NODE_DISCONNECTED;
     node->handshake = NULL;
     node->shouldOriginate = originate;
+        //ctx->nonce = UINT256_ZERO; //TODO: Get Random Nonce;
+    /// TODO GET RANDOM KEY ctx->localEphemeral = BRKEY
     node->eventHandler = ethereumNodeEventHandlerCreate();
     memcpy(node->peer.address.u8, config.address.u8, sizeof(config.address.u8));
     node->peer.port = config.port;
@@ -404,20 +419,89 @@ BRRlpData ethereumNodeGetStatusData(BREthereumNode node) {
     return data;
 }
 BREthereumBoolean ethereumNodeDidOriginate(BREthereumNode node){
-
-    return node->shouldOriginate; 
+    return node->shouldOriginate;
 }
 BREthereumLESStatus* BREthereumNodeGetPeerStatus(BREthereumNode node) {
     return &node->remoteStatus;
 }
 BREthereumPeer ethereumNodeGetPeer(BREthereumNode node) {
-    
     return node->peer;
+}
+BRKey* ethereumNodeGetEphemeral(BREthereumNode node) {
+    return &node->ephemeral;
+}
+BRKey* ethereumNodeGetPeerEphemeral(BREthereumNode node) {
+    return &node->peer.ephemeral;
+}
+UInt256* ethereumNodeGetNonce(BREthereumNode node) {
+    return &node->nonce;
+}
+UInt256* ethereumNodeGetPeerNonce(BREthereumNode node) {
+    return &node->peer.nonce;
 }
 void ethereumNodeFree(BREthereumNode node) {
 
     node->shouldFree = ETHEREUM_BOOLEAN_TRUE;
     free(node);
+}
+BRRlpData ethereumNodeGetEncodedHelloData(BREthereumNode node) {
+
+    bre_node_log(node, "encoding hello message");
+    
+    BRRlpData data;
+    
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem helloItems[2];
+    BRRlpItem helloDataItems[5];
+    
+    /**
+            Hello 0x00 [p2pVersion: P, clientId: B, [[cap1: B_3, capVersion1: P], [cap2: B_3, capVersion2: P], ...], listenPort: P, nodeId: B_64] First packet sent over the connection, and sent once by both sides. No other messages may be sent until a Hello is received.
+
+            p2pVersion Specifies the implemented version of the P2P protocol. Now must be 1.
+            clientId Specifies the client software identity, as a human-readable string (e.g. "Ethereum(++)/1.0.0").
+            cap Specifies a peer capability name as a length-3 ASCII string. Current supported capabilities are eth, shh.
+            capVersion Specifies a peer capability version as a positive integer. Current supported versions are 34 for eth, and 1 for shh.
+            listenPort specifies the port that the client is listening on (on the interface that the present connection traverses). If 0 it indicates the client is not listening.
+            nodeId is the Unique Identity of the node and specifies a 512-bit hash that identifies this node.
+    **/
+    /** Encode the following : [[cap1: B_3, capVersion1: P], [cap2: B_3, capVersion2: P], ...], */
+    BRRlpItem ethCapItems[2];
+    ethCapItems[0] = rlpEncodeItemString(coder, "eth");
+    ethCapItems[1] = rlpEncodeItemUInt64(coder, 34, 0);
+    BRRlpItem etheCapItemsEncoding = rlpEncodeListItems(coder, ethCapItems, 2);
+    BRRlpItem capItems[1];
+    capItems[0] = etheCapItemsEncoding;
+    BRRlpItem capsItem = rlpEncodeListItems(coder, capItems, 1);
+
+
+    /** Encode the following : [p2pVersion: P, clientId: B, [[cap1: B_3, capVersion1: P], [cap2: B_3, capVersion2: P], ...], listenPort: P, nodeId: B_64] */
+    helloDataItems[0] = rlpEncodeItemUInt64(coder, 0x00,0);
+    helloDataItems[1] = rlpEncodeItemString(coder, "Ethereum(++)/1.0.0");
+    helloDataItems[2] = capsItem;
+    helloDataItems[3] = rlpEncodeItemUInt64(coder, 0,0);
+    uint8_t pubKey[65];
+    size_t pubKeyLength = BRKeyPubKey(&node->key, pubKey, 0);
+    assert(pubKeyLength == 65);
+    helloDataItems[4] = rlpEncodeItemBytes(coder, &pubKey[1], 64);
+
+    /** Encode the following :  Hello 0x00 [p2pVersion: P, clientId: B, [[cap1: B_3, capVersion1: P], [cap2: B_3, capVersion2: P], ...], listenPort: P, nodeId: B_64] */
+    BRRlpData listData, idData;
+    rlpDataExtract(coder, rlpEncodeItemUInt64(coder, 0x00,0),&idData.bytes, &idData.bytesCount);
+    rlpDataExtract(coder, rlpEncodeListItems(coder, helloDataItems, 5), &listData.bytes, &listData.bytesCount);
+    
+    uint8_t * rlpData = malloc(idData.bytesCount + listData.bytesCount);
+    memcpy(rlpData, idData.bytes, idData.bytesCount);
+    memcpy(&rlpData[idData.bytesCount], listData.bytes, listData.bytesCount);
+
+    data.bytes = rlpData;
+    data.bytesCount = idData.bytesCount + listData.bytesCount;
+    
+    rlpDataRelease(listData);
+    rlpDataRelease(idData);
+    rlpCoderRelease(coder);
+    
+    
+    return data;
 }
 uint16_t ethereumNodeGetPeerPort(BREthereumNode node) {
     return node->peer.port;

@@ -33,9 +33,8 @@
 #include "BREthereumBase.h"
 #include "BREthereumNodeEventHandler.h"
 #include "BRKey.h"
-#include "BREthereumFrameCoder.h"
 #include "BREthereumLES.h"
-
+#include "BREthereumFrameCoder.h"
 // Note:: Duplicated this logging code from Aaron's BRPeer.h file
 // TODO: May want to move this code into it's own library
 #define bre_node_log(node, ...) _bre_node_log("%s:%"PRIu16" " _va_first(__VA_ARGS__, NULL) "\n", ethereumNodeGetPeerHost(node),\
@@ -90,7 +89,7 @@ typedef struct {
  * an auth message first. 
  */ 
 extern BREthereumNode ethereumNodeCreate(BREthereumPeerConfig config,
-                                          BREthereumBoolean originate);
+                                         BREthereumBoolean originate);
 
 /**
  * Retrieves the status of an ethereum node
@@ -141,6 +140,31 @@ extern BREthereumBoolean ethereumNodeDidOriginate(BREthereumNode node);
  * Retrives a reference to the remote status for the remote peer
  */
 extern BREthereumLESStatus* ethereumNodeGetPeerStatus(BREthereumNode node);
+
+/**
+ * Retrieves a reference to the local ephemeral
+ */
+extern BRKey* ethereumNodeGetEphemeral(BREthereumNode node);
+
+/**
+ * Retrieves a reference to the remote ephemeral
+ */
+extern BRKey* ethereumNodeGetPeerEphemeral(BREthereumNode node);
+
+/**
+ * Retrieves a reference to the local nonce
+ */
+extern UInt256* ethereumNodeGetNonce(BREthereumNode node);
+
+/**
+ * Retrieves a reference to the remote nonce
+ */
+extern UInt256* ethereumNodeGetPeerNonce(BREthereumNode node);
+
+/**
+ * Retrieve the Hello Message for the node
+ */
+extern BRRlpData ethereumNodeGetEncodedHelloData(BREthereumNode node);
 
 /**
  * Announces an event to the node
