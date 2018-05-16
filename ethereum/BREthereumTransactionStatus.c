@@ -23,10 +23,12 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
+#include <stdlib.h>
+#include <assert.h>
 #include "BREthereumTransactionStatus.h"
 
 extern void
-transactionStatusRelease (BREthereumTransactionStatus status) {
+transactionStatusRelease (BREthereumTransactionStatusLES status) {
     switch (status.type) {
         case TRANSACTION_STATUS_ERROR:
             if (NULL != status.u.error.message)
@@ -37,16 +39,16 @@ transactionStatusRelease (BREthereumTransactionStatus status) {
     }
 }
 
-extern BREthereumTransactionStatus
+extern BREthereumTransactionStatusLES
 transactionStatusRLPDecodeItem (BRRlpItem item,
                                 BRRlpCoder coder) {
-    BREthereumTransactionStatus status;
+    BREthereumTransactionStatusLES status;
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     assert (2 == itemsCount);
 
-    status.type = rlpDecodeItemUInt64(coder, item[0], 0);
+    status.type = (BREthereumTransactionStatusLESType) rlpDecodeItemUInt64(coder, items[0], 0);
     switch (status.type) {
         case TRANSACTION_STATUS_UNKNOWN:
         case TRANSACTION_STATUS_QUEUED:
@@ -65,7 +67,7 @@ transactionStatusRLPDecodeItem (BRRlpItem item,
         }
 
         case TRANSACTION_STATUS_ERROR:
-            status.u.error.message = rlpDecodeItemString(coder, item[1]);
+            status.u.error.message = rlpDecodeItemString(coder, items[1]);
     }
 
     return status;

@@ -43,14 +43,14 @@ typedef enum {
 
     // Included (3): transaction is already included in the canonical chain. data contains an
     // RLP-encoded [blockHash: B_32, blockNumber: P, txIndex: P] structure.
-    TRANSACTION_STATUS_INCLUDED = 1,
+    TRANSACTION_STATUS_INCLUDED = 3,
 
     // Error (4): transaction sending failed. data contains a text error message
-    TRANSACTION_STATUS_ERROR = 1,
-} BREthereumTransactionStatusType;
+    TRANSACTION_STATUS_ERROR = 4,
+} BREthereumTransactionStatusLESType;
 
-typedef struct BREthereumTransactionStatusRecord {
-    BREthereumTransactionStatusType type;
+typedef struct BREthereumTransactionStatusLESRecord {
+    BREthereumTransactionStatusLESType type;
     union {
         struct {
             BREthereumHash blockHash;
@@ -62,17 +62,17 @@ typedef struct BREthereumTransactionStatusRecord {
             char *message;
         } error;
     } u;
-} BREthereumTransactionStatus;
+} BREthereumTransactionStatusLES;
 
-    /**
-     * Caution - on error need to release.  Best only be one Status struct.
-     */
+/**
+ * Caution - on error need to release.  Best only be one Status struct.
+ */
 extern void
-transactionStatusRelease (BREthereumTransactionStatus status);
+transactionStatusRelease (BREthereumTransactionStatusLES status);
 
-extern BREthereumTransactionStatus
+extern BREthereumTransactionStatusLES
 transactionStatusRLPDecodeItem (BRRlpItem item,
-                                 BRRlpCoder coder);
+                                BRRlpCoder coder);
 
 
 #ifdef __cplusplus
