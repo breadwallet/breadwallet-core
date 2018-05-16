@@ -42,6 +42,7 @@
 #include "BREthereumTransactionReceipt.h"
 #include "BREthereumLog.h"
 #include "BREthereumAccountState.h"
+#include "BREthereumTransactionStatus.h"
 
 static void
 showHex (uint8_t *source, size_t sourceLen) {
@@ -1688,10 +1689,22 @@ runAccountStateTests (void) {
 }
 
 //
+// Transaction Status
+//
+extern void
+runTransactionStatusTests (void) {
+    printf ("==== Transaction Status\n");
+    BREthereumTransactionStatusLES status;
+
+    // We only decode... and we have no RLP do decode yet.
+}
+
+//
 // Transaction Receipt
 //
 
-// From Ethereum Java - a 'six item' RLP Encoding.
+// From Ethereum Java - a 'six item' RLP Encoding - but expecting only 'four items'.  Java
+// apparently tests w/ 'six' because the encoding includes additiona element for serialization.
 #define RECEIPT_1_RLP "f88aa0966265cc49fa1f10f0445f035258d116563931022a3570a640af5d73a214a8da822b6fb84000000010000000010000000000008000000000000000000000000000000000000000000000000000000000020000000000000014000000000400000000000440d8d7948513d39a34a1a8570c9c9f0af2cba79ac34e0ac8c0808301e24086873423437898"
 
 extern void
@@ -1734,6 +1747,7 @@ runTests (void) {
     runBlockTests();
     runLogTests();
     runAccountStateTests();
+    runTransactionStatusTests();
     runTransactionReceiptTests();
     
 //    runLEStests();
