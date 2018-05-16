@@ -517,7 +517,7 @@ size_t BRTransactionSize(const BRTransaction *tx)
 uint64_t BRTransactionStandardFee(const BRTransaction *tx)
 {
     assert(tx != NULL);
-    return BRTransactionSize(tx)*TX_FEE_PER_KB;
+    return BRTransactionSize(tx)*TX_FEE_PER_KB/1000;
 }
 
 // checks if all signatures exist, but does not verify them
