@@ -775,6 +775,62 @@ rlpGetItem (BRRlpCoder coder, BRRlpData data) {
     }
 }
 
+//
+// Show
+//
+#define RLP_SHOW_INDENT_INCREMENT  2
+
+static void
+rlpShowItemInternal (BRRlpCoder coder, BRRlpContext context, const char *topic, int indent) {
+    if (indent > 256) indent = 256;
+    char spaces [257];
+    memset (spaces, ' ', indent);
+    spaces[indent] = '\0';
+
+    switch (context.type) {
+        case CODER_LIST:
+            if (0 == context.itemsCount)
+                eth_log(topic, "%sL  0: []", spaces);
+            else {
+                eth_log(topic, "%sL%3zu: [", spaces, context.itemsCount);
+                for (int i = 0; i < context.itemsCount; i++)
+                    rlpShowItemInternal(coder,
+                                        coderLookupContext(coder, context.items[i]),
+                                        topic,
+                                        indent + RLP_SHOW_INDENT_INCREMENT);
+                eth_log(topic, "%s]", spaces);
+            }
+            break;
+        case CODER_ITEM: {
+            // We'll display this as hex-encoded bytes; we could use rlpDecodeItemBytes() but
+            // that allocates memory, which we don't need so critically herein.
+            uint8_t offset = 0;
+            uint64_t length = coderDecodeLength(coder, context.bytes, RLP_PREFIX_BYTES, &offset);
+
+            // We'll limit the display to a string of 1024 characters.
+            size_t bytesCount = length > 512 ? 512 : length;
+            char string[1024 + 1];
+            encodeHex(string, 2 * bytesCount + 1, &context.bytes[offset], bytesCount);
+
+            eth_log(topic, "%sI%3llu: 0x%s%s", spaces, length, string,
+                    (bytesCount == length ? "" : "..."));
+            break;
+        }
+    }
+}
+
+extern void
+rlpShowItem (BRRlpCoder coder, BRRlpItem item, const char *topic) {
+    rlpShowItemInternal(coder, coderLookupContext(coder, item), topic, 0);
+}
+
+extern void
+rlpShow (BRRlpData data, const char *topic) {
+    BRRlpCoder coder = rlpCoderCreate();
+    rlpShowItem (coder, rlpGetItem(coder, data), topic);
+    coderRelease(coder);
+}
+
 /*
 def rlp_decode(input):
   if len(input) == 0:

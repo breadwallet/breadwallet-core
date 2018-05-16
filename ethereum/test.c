@@ -883,12 +883,18 @@ void runTransactionTests2 (BREthereumAccount account, BREthereumNetwork network)
      TEST_TRANS2_NONCE);
     
     assert (1 == networkGetChainId(network));
-    BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
+    BRRlpData data = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
     
-    char result[2 * dataUnsignedTransaction.bytesCount + 1];
-    encodeHex(result, 2 * dataUnsignedTransaction.bytesCount + 1, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
+    char result[2 * data.bytesCount + 1];
+    encodeHex(result, 2 * data.bytesCount + 1, data.bytes, data.bytesCount);
     printf ("       Tx2 Raw (unsigned): %s\n", result);
     assert (0 == strcmp (result, TEST_TRANS2_RESULT_UNSIGNED));
+    rlpDataRelease(data);
+
+    data.bytes = decodeHexCreate(&data.bytesCount, TEST_TRANS2_RESULT_SIGNED, strlen (TEST_TRANS2_RESULT_SIGNED));
+    rlpShow(data, "Trans2Test");
+    rlpDataRelease(data);
+
 }
 
 /*
@@ -1596,6 +1602,7 @@ runBlockTests (void) {
     assert (data.bytesCount == encodeData.bytesCount
             && 0 == memcmp (data.bytes, encodeData.bytes, encodeData.bytesCount));
 
+    rlpShow(data, "BlockTest");
     rlpDataRelease(encodeData);
     rlpDataRelease(data);
 }
@@ -1646,6 +1653,7 @@ runLogTests (void) {
     assert (data.bytesCount == encodeData.bytesCount
             && 0 == memcmp (data.bytes, encodeData.bytes, encodeData.bytesCount));
 
+    rlpShow(data, "LogTest");
     rlpDataRelease(encodeData);
     rlpDataRelease(data);
 }
