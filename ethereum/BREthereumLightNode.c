@@ -488,10 +488,6 @@ lightNodeInsertBlock (BREthereumLightNode node,
     lightNodeListenerAnnounceBlockEvent(node, bid, BLOCK_EVENT_CREATED, SUCCESS, NULL);
 }
 
-
-
-
-
 extern uint64_t
 lightNodeGetBlockHeight(BREthereumLightNode node) {
     return node->blockHeight;
@@ -516,6 +512,21 @@ lightNodeLookupTransaction(BREthereumLightNode node,
     transaction = (0 <= tid && tid < array_count(node->transactions)
                    ? node->transactions[tid]
                    : NULL);
+    pthread_mutex_unlock(&node->lock);
+    return transaction;
+}
+
+extern BREthereumTransaction
+lightNodeLookupTransactionByHash(BREthereumLightNode node,
+                           const BREthereumHash hash) {
+    BREthereumTransaction transaction = NULL;
+
+    pthread_mutex_lock(&node->lock);
+    for (int i = 0; i < array_count(node->transactions); i++)
+        if (ETHEREUM_COMPARISON_EQ == hashCompare(hash, transactionGetHash(node->transactions[i]))) {
+            transaction = node->transactions[i];
+            break;
+        }
     pthread_mutex_unlock(&node->lock);
     return transaction;
 }

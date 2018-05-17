@@ -89,6 +89,10 @@ extern BREthereumTransaction
 lightNodeLookupTransaction(BREthereumLightNode node,
                            BREthereumTransactionId tid);
 
+extern BREthereumTransaction
+lightNodeLookupTransactionByHash(BREthereumLightNode node,
+                                 const BREthereumHash hash);
+
 //
 // Wallet
 //
