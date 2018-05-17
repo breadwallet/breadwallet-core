@@ -103,7 +103,7 @@ typedef void (*BRNodeManagerPeers)(BREthereumNodeMangerInfo info,
  * @param peersCount - the number of peers in the peers argument
  */
 extern BREthereumNodeManager ethereumNodeManagerCreate(BREthereumNetwork network,
-                                                       BREthereumAccount account,
+                                                       BREthereumAddress address,
                                                        BREthereumBlock block,
                                                        size_t blockCount, 
                                                        BREthereumPeerInfo peers[],

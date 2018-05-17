@@ -26,8 +26,8 @@
 #include <string.h>
 #include <assert.h>
 #include "BREthereum.h"
-#include "BREthereumTransaction.h"
-#include "BREthereumBlock.h"
+#include "blockchain/BREthereumTransaction.h"
+#include "blockchain/BREthereumBlock.h"
 #include "BREthereumWallet.h"
 #include "BREthereumLightNode.h"
 

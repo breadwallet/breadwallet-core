@@ -26,7 +26,7 @@
 #ifndef BR_Ethereum_Block_H
 #define BR_Ethereum_Block_H
 
-#include "BREthereumBase.h"
+#include "../base/BREthereumBase.h"
 #include "BREthereumTransaction.h"
 #include "BREthereumBloomFilter.h"
 

@@ -1,8 +1,8 @@
 //
-//  BREthereumAccountState.h
+//  BREthereumLog.h
 //  BRCore
 //
-//  Created by Ed Gamble on 5/15/18.
+//  Created by Ed Gamble on 5/10/18.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,38 +23,64 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_AccountState_H
-#define BR_Ethereum_AccountState_H
+#ifndef BR_Ethereum_Log_h
+#define BR_Ethereum_Log_h
 
-#include "BREthereumEther.h"
-#include "BREthereumBase.h"
+#include "../base/BREthereumBase.h"
+#include "BREthereumBloomFilter.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct BREthereumAccountStateRecord *BREthereumAccountState;
+    //
+    // Log Topic
+    //
+typedef struct {
+    uint8_t bytes[32];
+} BREthereumLogTopic;
 
-extern uint64_t
-accountStateGetNonce (BREthereumAccountState state);
+extern BREthereumBloomFilter
+logTopicGetBloomFilter (BREthereumLogTopic topic);
 
-extern BREthereumEther
-accountStateGetBalance (BREthereumAccountState state);
+extern BREthereumBloomFilter
+logTopicGetBloomFilterAddress (BREthereumAddress address);
 
-extern BREthereumHash
-accountStateGetStorageRoot (BREthereumAccountState state);
+    //
+    // Log
+    //
+typedef struct BREthereumLogRecord *BREthereumLog;
 
-extern BREthereumHash
-accountStateGetCodeHash (BREthereumAccountState state);
+extern BREthereumAddress
+logGetAddress (BREthereumLog log);
 
+extern size_t
+logGetTopicsCount (BREthereumLog log);
+
+extern  BREthereumLogTopic
+logGetTopic (BREthereumLog log, size_t index);
+
+extern BRRlpData
+logGetData (BREthereumLog log);
+    
+extern BREthereumLog
+logRlpDecodeItem (BRRlpItem item,
+                  BRRlpCoder coder);
+/**
+ * [QUASI-INTERNAL - used by BREthereumBlock]
+ */
 extern BRRlpItem
-accountStateRlpEncodeItem (BREthereumAccountState state, BRRlpCoder coder);
+logRlpEncodeItem(BREthereumLog log,
+                 BRRlpCoder coder);
 
-extern BREthereumAccountState
-accountStateRlpDecodeItem (BRRlpItem item, BRRlpCoder coder);
+extern BRRlpData
+logEncodeRLP (BREthereumLog log);
+
+extern BREthereumLog
+logDecodeRLP (BRRlpData data);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* BR_Ethereum_AccountState_H */
+#endif /* BR_Ethereum_Log_h */

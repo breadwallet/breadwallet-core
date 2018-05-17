@@ -1,8 +1,8 @@
 //
-//  BREthereumLES.h
-//  breadwallet-core Ethereum
+//  BREthereumAccountState.h
+//  BRCore
 //
-//  Created by Lamont Samuels on 5/01/18.
+//  Created by Ed Gamble on 5/15/18.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,41 +23,37 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_LES_h
-#define BR_Ethereum_LES_h
+#ifndef BR_Ethereum_AccountState_H
+#define BR_Ethereum_AccountState_H
 
-#include <inttypes.h>
 #include "../base/BREthereumBase.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+typedef struct BREthereumAccountStateRecord *BREthereumAccountState;
 
-/**
- * Status Header information for the LES handshake
- */
-typedef struct {
-    
-    uint64_t protocolVersion;
-    uint64_t chainId;
-    uint64_t headerTd;
-    uint8_t headHash[32];
-    uint64_t headNum;
-    uint8_t genesisHash[32];
-    // Note: The below fields are optional LPV1
-    BREthereumBoolean* serveHeaders;
-    uint64_t* serveChainSince;
-    uint64_t* serveStateSince;
-    BREthereumBoolean* txRelay;
-    uint64_t*flowControlBL;
-    uint64_t*flowControlMRC;
-    uint64_t*flowControlMRR;
-}BREthereumLESHeader;
+extern uint64_t
+accountStateGetNonce (BREthereumAccountState state);
 
+extern BREthereumEther
+accountStateGetBalance (BREthereumAccountState state);
+
+extern BREthereumHash
+accountStateGetStorageRoot (BREthereumAccountState state);
+
+extern BREthereumHash
+accountStateGetCodeHash (BREthereumAccountState state);
+
+extern BRRlpItem
+accountStateRlpEncodeItem (BREthereumAccountState state, BRRlpCoder coder);
+
+extern BREthereumAccountState
+accountStateRlpDecodeItem (BRRlpItem item, BRRlpCoder coder);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* BR_Ethereum_LES_h */
+#endif /* BR_Ethereum_AccountState_H */

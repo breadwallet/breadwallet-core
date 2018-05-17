@@ -26,11 +26,9 @@
 #ifndef BR_Ethereum_Transaction_H
 #define BR_Ethereum_Transaction_H
 
-#include "base/BREthereumBase.h"
+#include "../base/BREthereumBase.h"
+#include "../BREthereumAmount.h"
 #include "BREthereumNetwork.h"
-#include "BREthereumAccount.h"
-#include "BREthereumAmount.h"
-#include "rlp/BRRlp.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -110,7 +108,6 @@ transactionGetToken (BREthereumTransaction transaction);
 //
 extern void
 transactionSign(BREthereumTransaction transaction,
-                BREthereumAccount account,
                 BREthereumSignature signature);
 
 extern BREthereumBoolean

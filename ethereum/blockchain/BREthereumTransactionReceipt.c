@@ -26,6 +26,7 @@
 #include <string.h>
 #include <assert.h>
 #include "BRArray.h"
+#include "BREthereumLog.h"
 #include "BREthereumTransactionReceipt.h"
 
 // The transaction receipt, R, is a tuple of four items comprising: ...

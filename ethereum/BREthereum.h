@@ -31,8 +31,8 @@
 #include <stdint.h>
 #include "BRKey.h"
 #include "base/BREthereumBase.h"
-#include "BREthereumAmount.h"
-#include "BREthereumNetwork.h"
+#include "blockchain/BREthereumAmount.h"
+#include "blockchain/BREthereumNetwork.h"
 
 #ifdef __cplusplus
 extern "C" {

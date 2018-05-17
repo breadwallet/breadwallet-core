@@ -26,11 +26,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-
 #include "BREthereumTransaction.h"
-#include "BREthereumAmount.h"
-#include "BREthereumAccount.h"
-#include "BREthereumPrivate.h"
+#include "../BREthereumPrivate.h"
 
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 
@@ -316,7 +313,6 @@ provideData (BREthereumTransaction transaction) {
 //
 extern void
 transactionSign(BREthereumTransaction transaction,
-                BREthereumAccount account,
                 BREthereumSignature signature) {
     transactionStateSigned(&transaction->state);
     transaction->signature = signature;

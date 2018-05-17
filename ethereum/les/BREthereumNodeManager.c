@@ -50,7 +50,7 @@ typedef struct {
 const BREthereumPeer _bootstrap_peer = {UINT128_ZERO, 30303, "eth-mainnet.breadwallet.com", -1, UINT512_ZERO};
 
 BREthereumNodeManager ethereumNodeManagerCreate(BREthereumNetwork network,
-                                                BREthereumAccount account,
+                                                BREthereumAddress address,
                                                 BREthereumBlock block,
                                                 size_t blockCount,
                                                 BREthereumPeerInfo peers[],

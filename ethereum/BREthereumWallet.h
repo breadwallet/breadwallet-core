@@ -26,12 +26,9 @@
 #ifndef BR_Ethereum_Wallet_H
 #define BR_Ethereum_Wallet_H
 
-#include "BREthereumEther.h"
-#include "BREthereumGas.h"
-#include "BREthereumAmount.h"
+#include "base/BREthereumBase.h"
+#include "blockchain/BREthereumBlockChain.h"
 #include "BREthereumAccount.h"
-#include "BREthereumNetwork.h"
-#include "BREthereumTransaction.h"
 
 #ifdef __cplusplus
 extern "C" {

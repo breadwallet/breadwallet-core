@@ -29,9 +29,8 @@
 #include "BRArray.h"
 #include "BREthereumBlock.h"
 #include "BREthereumLog.h"
-#include "BREthereumPrivate.h"
+#include "../BREthereumPrivate.h"
 
-#include "BREthereumBloomFilter.h"
 
 #define BLOCK_HEADER_NEEDS_SEED_HASH   1
 

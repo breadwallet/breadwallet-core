@@ -307,7 +307,7 @@ walletSignTransaction(BREthereumWallet wallet,
      paperKey);
     
     // Attach the signature
-    transactionSign(transaction, wallet->account, signature);
+    transactionSign(transaction, signature);
 }
 
 // For now.
@@ -336,7 +336,7 @@ walletSignTransactionWithPrivateKey(BREthereumWallet wallet,
      privateKey);
 
     // Attach the signature
-    transactionSign(transaction, wallet->account, signature);
+    transactionSign(transaction, signature);
 
 }
 

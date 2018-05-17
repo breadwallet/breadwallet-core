@@ -26,8 +26,7 @@
 #ifndef BR_Ethereum_Bloom_Filter_h
 #define BR_Ethereum_Bloom_Filter_h
 
-#include "BREthereumBase.h"
-#include "BREthereumAccount.h"
+#include "../base/BREthereumBase.h"
 
 #ifdef __cplusplus
 extern "C" {

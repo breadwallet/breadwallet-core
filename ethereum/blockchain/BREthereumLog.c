@@ -24,8 +24,6 @@
 //  THE SOFTWARE.
 
 #include "BRArray.h"
-#include "BREthereumAccount.h"
-#include "BREthereumBase.h"
 #include "BREthereumLog.h"
 
 static BREthereumLogTopic empty;
