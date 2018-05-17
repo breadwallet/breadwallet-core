@@ -34,7 +34,7 @@ static BREthereumLogTopic empty;
 // Log Topic
 //
 static BREthereumLogTopic
-logTopicCreateAddress (BREthereumAddressRaw raw) {
+logTopicCreateAddress (BREthereumAddress raw) {
     BREthereumLogTopic topic = empty;
     unsigned int addressBytes = sizeof (raw.bytes);
     unsigned int topicBytes = sizeof (topic.bytes);
@@ -53,7 +53,7 @@ logTopicGetBloomFilter (BREthereumLogTopic topic) {
 }
 
 extern BREthereumBloomFilter
-logTopicGetBloomFilterAddress (BREthereumAddressRaw address) {
+logTopicGetBloomFilterAddress (BREthereumAddress address) {
     return logTopicGetBloomFilter (logTopicCreateAddress(address));
 }
 
@@ -86,7 +86,7 @@ static BREthereumLogTopic emptyTopic;
 // A log entry, O, is:
 struct BREthereumLogRecord {
     // a tuple of the logger’s address, Oa;
-    BREthereumAddressRaw address;
+    BREthereumAddress address;
 
     // a series of 32-byte log topics, Ot;
     BREthereumLogTopic *topics;
@@ -96,7 +96,7 @@ struct BREthereumLogRecord {
     uint8_t dataCount;
 };
 
-extern BREthereumAddressRaw
+extern BREthereumAddress
 logGetAddress (BREthereumLog log) {
     return log->address;
 }

@@ -10,8 +10,8 @@
 #include <string.h>
 #include <assert.h>
 #include "BRCrypto.h"
-#include "util/BRUtil.h"
-#include "BREthereumBase.h"
+#include "../util/BRUtil.h"
+#include "BREthereumHash.h"
 
 static BREthereumHash emptyHash;
 

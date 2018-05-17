@@ -26,9 +26,9 @@
 #ifndef BR_Ethereum_Ether_H
 #define BR_Ethereum_Ether_H
 
-#include "rlp/BRRlp.h"
-#include "util/BRUtil.h"
-#include "BREthereumBase.h"
+#include "../rlp/BRRlp.h"
+#include "../util/BRUtil.h"
+#include "BREthereumLogic.h"
 
 #ifdef __cplusplus
 extern "C" {

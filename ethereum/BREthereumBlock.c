@@ -89,7 +89,7 @@ struct BREthereumBlockHeaderRecord {
 
     // The 160-bit address to which all fees collected from the successful mining of this block
     // be transferred; formally Hc.
-    BREthereumAddressRaw beneficiary;
+    BREthereumAddress beneficiary;
 
     // The Keccak 256-bit hash of the root node of the state trie, after all transactions are
     // executed and finalisations applied; formally Hr.
@@ -192,7 +192,7 @@ blockHeaderMatch (BREthereumBlockHeader header,
 
 extern BREthereumBoolean
 blockHeaderMatchAddress (BREthereumBlockHeader header,
-                         BREthereumAddressRaw address) {
+                         BREthereumAddress address) {
     return (ETHEREUM_BOOLEAN_IS_TRUE(blockHeaderMatch(header, bloomFilterCreateAddress(address)))
             || ETHEREUM_BOOLEAN_IS_TRUE(blockHeaderMatch(header, logTopicGetBloomFilterAddress(address)))
             ? ETHEREUM_BOOLEAN_TRUE

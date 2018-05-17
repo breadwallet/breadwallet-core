@@ -26,7 +26,6 @@
 #include <string.h>
 #include "BRArray.h"
 #include "BREthereumToken.h"
-#include "BREthereum.h"
 
 // For tokenBRD define defaults for Gas Limit and Price.  These are arguably never up to date
 // and thus should be changed in programmatically using walletSetDefaultGas{Price,Limit}().
@@ -36,7 +35,6 @@
 //
 // Token
 //
-
 struct BREthereumTokenRecord {
     /**
      * An Ethereum '0x' address for the token's contract.

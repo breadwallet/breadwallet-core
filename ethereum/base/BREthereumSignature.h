@@ -1,8 +1,8 @@
 //
-//  BREthereumLog.h
+//  BREthereumSignature.h
 //  BRCore
 //
-//  Created by Ed Gamble on 5/10/18.
+//  Created by Ed Gamble on 5/17/18.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,65 +23,58 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_Log_h
-#define BR_Ethereum_Log_h
+#ifndef BR_Ethereum_Signature_H
+#define BR_Ethereum_Signature_H
 
-#include "BREthereumBase.h"
-#include "BREthereumAccount.h"
-#include "BREthereumBloomFilter.h"
+#include <stdlib.h>
+#include "BREthereumLogic.h"
+#include "BREthereumAddress.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-    //
-    // Log Topic
-    //
+//
+// Signature
+//
+
+typedef enum {
+    SIGNATURE_TYPE_FOO,
+    SIGNATURE_TYPE_RECOVERABLE
+} BREthereumSignatureType;
+
 typedef struct {
-    uint8_t bytes[32];
-} BREthereumLogTopic;
+    BREthereumSignatureType type;
+    union {
+        struct {
+            int ignore;
+        } foo;
 
-extern BREthereumBloomFilter
-logTopicGetBloomFilter (BREthereumLogTopic topic);
+        struct {
+            uint8_t v;
+            uint8_t r[32];
+            uint8_t s[32];
+        } recoverable;
+    } sig;
+} BREthereumSignature;
 
-extern BREthereumBloomFilter
-logTopicGetBloomFilterAddress (BREthereumAddress address);
+extern BREthereumSignature
+signatureCreate (BREthereumSignatureType type,
+                 uint8_t *bytes,
+                 size_t bytesCount,
+                 BRKey privateKeyUncompressed);
 
-    //
-    // Log
-    //
-typedef struct BREthereumLogRecord *BREthereumLog;
+extern BREthereumEncodedAddress
+signatureExtractAddress (const BREthereumSignature signature,
+                         const uint8_t *bytes,
+                         size_t bytesCount,
+                         int *success);
 
-extern BREthereumAddress
-logGetAddress (BREthereumLog log);
-
-extern size_t
-logGetTopicsCount (BREthereumLog log);
-
-extern  BREthereumLogTopic
-logGetTopic (BREthereumLog log, size_t index);
-
-extern BRRlpData
-logGetData (BREthereumLog log);
-    
-extern BREthereumLog
-logRlpDecodeItem (BRRlpItem item,
-                  BRRlpCoder coder);
-/**
- * [QUASI-INTERNAL - used by BREthereumBlock]
- */
-extern BRRlpItem
-logRlpEncodeItem(BREthereumLog log,
-                 BRRlpCoder coder);
-
-extern BRRlpData
-logEncodeRLP (BREthereumLog log);
-
-extern BREthereumLog
-logDecodeRLP (BRRlpData data);
+extern BREthereumBoolean
+signatureEqual (BREthereumSignature s1, BREthereumSignature s2);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* BR_Ethereum_Log_h */
+#endif /* BR_Ethereum_Signature_H */

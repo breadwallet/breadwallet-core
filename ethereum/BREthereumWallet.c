@@ -65,7 +65,7 @@ struct BREthereumWalletRecord {
      * The wallet's primary address - perhaps the sole address.  Must be an address
      * from the wallet's account.
      */
-    BREthereumAddress address;      // Primary Address
+    BREthereumEncodedAddress address;      // Primary Address
     
     /**
      * The wallet's network.
@@ -119,7 +119,7 @@ struct BREthereumWalletRecord {
 //
 static BREthereumWallet
 walletCreateDetailed (BREthereumAccount account,
-                      BREthereumAddress address,
+                      BREthereumEncodedAddress address,
                       BREthereumNetwork network,
                       BREthereumAmountType type,
                       BREthereumToken optionalToken) {
@@ -164,7 +164,7 @@ walletCreate(BREthereumAccount account,
 
 extern BREthereumWallet
 walletCreateWithAddress(BREthereumAccount account,
-                        BREthereumAddress address,
+                        BREthereumEncodedAddress address,
                         BREthereumNetwork network) {
     return walletCreateDetailed
     (account,
@@ -219,7 +219,7 @@ walletEstimateTransactionFeeDetailed (BREthereumWallet wallet,
 //
 extern BREthereumTransaction
 walletCreateTransaction(BREthereumWallet wallet,
-                        BREthereumAddress recvAddress,
+                        BREthereumEncodedAddress recvAddress,
                         BREthereumAmount amount) {
     
     return walletCreateTransactionDetailed
@@ -233,7 +233,7 @@ walletCreateTransaction(BREthereumWallet wallet,
 
 extern BREthereumTransaction
 walletCreateTransactionDetailed(BREthereumWallet wallet,
-                                BREthereumAddress recvAddress,
+                                BREthereumEncodedAddress recvAddress,
                                 BREthereumAmount amount,
                                 BREthereumGasPrice gasPrice,
                                 BREthereumGas gasLimit,
@@ -376,7 +376,7 @@ walletGetRawTransactionHexEncoded (BREthereumWallet wallet,
 // Wallet 'Field' Accessors
 //
 
-extern BREthereumAddress
+extern BREthereumEncodedAddress
 walletGetAddress (BREthereumWallet wallet) {
     return wallet->address;
 }

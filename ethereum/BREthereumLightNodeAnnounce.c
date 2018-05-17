@@ -252,7 +252,7 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
                              const char *isError) {
     BREthereumTransactionId tid = -1;
 
-    BREthereumAddress primaryAddress = accountGetPrimaryAddress(node->account);
+    BREthereumEncodedAddress primaryAddress = accountGetPrimaryAddress(node->account);
 
     assert (ETHEREUM_BOOLEAN_IS_TRUE(addressHasString(primaryAddress, from))
             || ETHEREUM_BOOLEAN_IS_TRUE(addressHasString(primaryAddress, to)));
@@ -297,10 +297,10 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
         // TODO: Handle Status Error
         BRCoreParseStatus status;
 
-        BREthereumAddress sourceAddr =
+        BREthereumEncodedAddress sourceAddr =
         (ETHEREUM_BOOLEAN_IS_TRUE(isSource) ? primaryAddress : createAddress(from));
 
-        BREthereumAddress targetAddr =
+        BREthereumEncodedAddress targetAddr =
         (ETHEREUM_BOOLEAN_IS_TRUE(isSource) ? createAddress(to) : primaryAddress);
 
         // Get the amount; this will be '0' if this is a token transfer
@@ -444,10 +444,10 @@ lightNodeAnnounceLog (BREthereumLightNode node,
     if (NULL == transaction) {
 
         // Parse the topic data - we fake it becasue we 'know' topics indices
-        BREthereumAddress sourceAddr =
+        BREthereumEncodedAddress sourceAddr =
         createAddress(eventERC20TransferDecodeAddress(event, arrayTopics[1]));
 
-        BREthereumAddress targetAddr =
+        BREthereumEncodedAddress targetAddr =
         createAddress(eventERC20TransferDecodeAddress(event, arrayTopics[2]));
 
         BRCoreParseStatus status = CORE_PARSE_OK;

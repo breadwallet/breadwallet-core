@@ -30,8 +30,7 @@
 
 #include <stdint.h>
 #include "BRKey.h"
-#include "BREthereumEther.h"
-#include "BREthereumGas.h"
+#include "base/BREthereumBase.h"
 #include "BREthereumAmount.h"
 #include "BREthereumNetwork.h"
 

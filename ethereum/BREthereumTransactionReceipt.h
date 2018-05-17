@@ -42,7 +42,7 @@ transactionReceiptMatch (BREthereumTransactionReceipt receipt,
 
 extern BREthereumBoolean
 transactionReceiptMatchAddress (BREthereumTransactionReceipt receipt,
-                                BREthereumAddressRaw address);
+                                BREthereumAddress address);
 
 extern BREthereumTransactionReceipt
 transactionReceiptDecodeRLP (BRRlpData data);

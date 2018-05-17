@@ -118,12 +118,12 @@ struct BREthereumTransactionRecord {
     //
     //
     //
-    BREthereumAddress sourceAddress;
+    BREthereumEncodedAddress sourceAddress;
 
     //
     //
     //
-    BREthereumAddress targetAddress;
+    BREthereumEncodedAddress targetAddress;
 
     /**
      * The amount transferred from sourceAddress to targetAddress.  Note that this is not
@@ -164,8 +164,8 @@ struct BREthereumTransactionRecord {
 };
 
 extern BREthereumTransaction
-transactionCreate(BREthereumAddress sourceAddress,
-                  BREthereumAddress targetAddress,
+transactionCreate(BREthereumEncodedAddress sourceAddress,
+                  BREthereumEncodedAddress targetAddress,
                   BREthereumAmount amount,
                   BREthereumGasPrice gasPrice,
                   BREthereumGas gasLimit,
@@ -188,12 +188,12 @@ transactionCreate(BREthereumAddress sourceAddress,
     return transaction;
 }
 
-extern BREthereumAddress
+extern BREthereumEncodedAddress
 transactionGetSourceAddress(BREthereumTransaction transaction) {
     return transaction->sourceAddress;
 }
 
-extern BREthereumAddress
+extern BREthereumEncodedAddress
 transactionGetTargetAddress(BREthereumTransaction transaction) {
     return transaction->targetAddress;
 }
@@ -348,9 +348,7 @@ transactionGetSignature (BREthereumTransaction transaction) {
     return transaction->signature;
 }
 
-static BREthereumAddress emptyAddress;
-
-extern BREthereumAddress
+extern BREthereumEncodedAddress
 transactionExtractAddress (BREthereumTransaction transaction,
                            BREthereumNetwork network)
 {
@@ -386,7 +384,7 @@ transactionEncodeAddressForHolding (BREthereumTransaction transaction,
             return addressRlpEncode(transaction->targetAddress, coder);
         case AMOUNT_TOKEN: {
             BREthereumToken token = tokenQuantityGetToken (amountGetTokenQuantity(holding));
-            BREthereumAddress contractAddress = createAddress(tokenGetAddress(token));
+            BREthereumEncodedAddress contractAddress = createAddress(tokenGetAddress(token));
             BRRlpItem result = addressRlpEncode(contractAddress, coder);
             addressFree(contractAddress);
             return result;
@@ -519,7 +517,7 @@ transactionRlpDecodeItem (BRRlpItem item,
     else {
         // This is a TOKEN transfer.
 
-        BREthereumAddress contractAddr = addressRlpDecode(items[3], coder);
+        BREthereumEncodedAddress contractAddr = addressRlpDecode(items[3], coder);
         BREthereumToken token = tokenLookup(addressAsString (contractAddr));
 
         // Confirm `strData` encodes functionERC20Transfer

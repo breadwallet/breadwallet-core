@@ -70,7 +70,7 @@ walletCreate(BREthereumAccount account,
  */
 extern BREthereumWallet
 walletCreateWithAddress(BREthereumAccount account,
-                        BREthereumAddress address,
+                        BREthereumEncodedAddress address,
                         BREthereumNetwork network);
 
 /**
@@ -113,7 +113,7 @@ walletEstimateTransactionFeeDetailed (BREthereumWallet wallet,
  */
 extern BREthereumTransaction
 walletCreateTransaction(BREthereumWallet wallet,
-                        BREthereumAddress recvAddress,
+                        BREthereumEncodedAddress recvAddress,
                         BREthereumAmount amount);
 
 /**
@@ -137,7 +137,7 @@ walletCreateTransaction(BREthereumWallet wallet,
  */
 extern BREthereumTransaction
 walletCreateTransactionDetailed(BREthereumWallet wallet,
-                                BREthereumAddress recvAddress,
+                                BREthereumEncodedAddress recvAddress,
                                 BREthereumAmount amount,
                                 BREthereumGasPrice gasPrice,
                                 BREthereumGas gasLimit,
@@ -178,7 +178,7 @@ walletGetRawTransactionHexEncoded (BREthereumWallet wallet,
 /**
  *
  */
-extern BREthereumAddress
+extern BREthereumEncodedAddress
 walletGetAddress (BREthereumWallet wallet);
 
 /**

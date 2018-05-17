@@ -84,7 +84,7 @@ static void
 lightNodeHandleNonceEventDispatcher(BREventHandler ignore,
                                     BREthereumHandleNonceEvent *event) {
     BREthereumLightNode node = event->node;
-    BREthereumAddress address = accountGetPrimaryAddress(lightNodeGetAccount(node));
+    BREthereumEncodedAddress address = accountGetPrimaryAddress(lightNodeGetAccount(node));
 
     addressSetNonce(address, event->nonce);
 

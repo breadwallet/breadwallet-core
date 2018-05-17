@@ -75,11 +75,11 @@ walletHasTransaction (BREthereumWallet wallet,
 //
 
 private_extern void
-addressSetNonce(BREthereumAddress address,
+addressSetNonce(BREthereumEncodedAddress address,
                 uint64_t nonce);
 
 private_extern uint64_t
-addressGetThenIncrementNonce(BREthereumAddress address);
+addressGetThenIncrementNonce(BREthereumEncodedAddress address);
 
 //
 // Token Lookup

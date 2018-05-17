@@ -1,8 +1,8 @@
 //
-//  BREthereumLog.h
-//  BRCore
+//  BREthereumBase
+//  breadwallet-core Ethereum
 //
-//  Created by Ed Gamble on 5/10/18.
+//  Created by Ed Gamble on 3/22/18.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,65 +23,24 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_Log_h
-#define BR_Ethereum_Log_h
-
-#include "BREthereumBase.h"
-#include "BREthereumAccount.h"
-#include "BREthereumBloomFilter.h"
+#ifndef BR_Ethereum_Base_H
+#define BR_Ethereum_Base_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-    //
-    // Log Topic
-    //
-typedef struct {
-    uint8_t bytes[32];
-} BREthereumLogTopic;
-
-extern BREthereumBloomFilter
-logTopicGetBloomFilter (BREthereumLogTopic topic);
-
-extern BREthereumBloomFilter
-logTopicGetBloomFilterAddress (BREthereumAddress address);
-
-    //
-    // Log
-    //
-typedef struct BREthereumLogRecord *BREthereumLog;
-
-extern BREthereumAddress
-logGetAddress (BREthereumLog log);
-
-extern size_t
-logGetTopicsCount (BREthereumLog log);
-
-extern  BREthereumLogTopic
-logGetTopic (BREthereumLog log, size_t index);
-
-extern BRRlpData
-logGetData (BREthereumLog log);
-    
-extern BREthereumLog
-logRlpDecodeItem (BRRlpItem item,
-                  BRRlpCoder coder);
-/**
- * [QUASI-INTERNAL - used by BREthereumBlock]
- */
-extern BRRlpItem
-logRlpEncodeItem(BREthereumLog log,
-                 BRRlpCoder coder);
-
-extern BRRlpData
-logEncodeRLP (BREthereumLog log);
-
-extern BREthereumLog
-logDecodeRLP (BRRlpData data);
+#include "../util/BRUtil.h"
+#include "../rlp/BRRlp.h"
+#include "BREthereumLogic.h"
+#include "BREthereumEther.h"
+#include "BREthereumGas.h"
+#include "BREthereumHash.h"
+#include "BREthereumAddress.h"
+#include "BREthereumSignature.h"
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* BR_Ethereum_Log_h */
+#endif /* BR_Ethereum_Base_H */

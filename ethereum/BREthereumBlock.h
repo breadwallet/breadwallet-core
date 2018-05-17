@@ -61,7 +61,7 @@ blockHeaderMatch (BREthereumBlockHeader header,
 
 extern BREthereumBoolean
 blockHeaderMatchAddress (BREthereumBlockHeader header,
-                   BREthereumAddressRaw address);
+                   BREthereumAddress address);
 
 //
 // Block

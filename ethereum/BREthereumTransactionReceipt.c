@@ -58,7 +58,7 @@ transactionReceiptMatch (BREthereumTransactionReceipt receipt,
 
 extern BREthereumBoolean
 transactionReceiptMatchAddress (BREthereumTransactionReceipt receipt,
-                                BREthereumAddressRaw address) {
+                                BREthereumAddress address) {
     return transactionReceiptMatch(receipt, logTopicGetBloomFilterAddress(address));
 }
 

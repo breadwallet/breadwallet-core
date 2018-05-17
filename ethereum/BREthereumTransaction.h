@@ -26,10 +26,9 @@
 #ifndef BR_Ethereum_Transaction_H
 #define BR_Ethereum_Transaction_H
 
+#include "base/BREthereumBase.h"
 #include "BREthereumNetwork.h"
 #include "BREthereumAccount.h"
-#include "BREthereumEther.h"
-#include "BREthereumGas.h"
 #include "BREthereumAmount.h"
 #include "rlp/BRRlp.h"
 
@@ -43,17 +42,17 @@ extern "C" {
 typedef struct BREthereumTransactionRecord *BREthereumTransaction;
 
 extern BREthereumTransaction
-transactionCreate(BREthereumAddress sourceAddress,
-                  BREthereumAddress targetAddress,
+transactionCreate(BREthereumEncodedAddress sourceAddress,
+                  BREthereumEncodedAddress targetAddress,
                   BREthereumAmount amount,
                   BREthereumGasPrice gasPrice,
                   BREthereumGas gasLimit,
                   uint64_t nonce);
 
-extern BREthereumAddress
+extern BREthereumEncodedAddress
 transactionGetSourceAddress(BREthereumTransaction transaction);
 
-extern BREthereumAddress
+extern BREthereumEncodedAddress
 transactionGetTargetAddress(BREthereumTransaction transaction);
 
 extern BREthereumAmount
@@ -123,7 +122,7 @@ transactionGetSignature (BREthereumTransaction transaction);
     /**
      * Extract the signer's address.  If not signed, an empty address is returned.
      */
-extern BREthereumAddress
+extern BREthereumEncodedAddress
 transactionExtractAddress (BREthereumTransaction transaction,
                            BREthereumNetwork network);
 //

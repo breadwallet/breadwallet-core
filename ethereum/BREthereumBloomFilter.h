@@ -81,7 +81,7 @@ bloomFilterCreateData (const BRRlpData data);
  * Create a BloomFilter from `address` - computes the hash of `address`
  */
 extern BREthereumBloomFilter
-bloomFilterCreateAddress (const BREthereumAddressRaw address);
+bloomFilterCreateAddress (const BREthereumAddress address);
 
 extern BREthereumBloomFilter
 bloomFilterOr (const BREthereumBloomFilter filter1, const BREthereumBloomFilter filter2);

@@ -28,8 +28,7 @@
 #include <memory.h>
 #include <assert.h>
 #include "BREthereumContract.h"
-#include "BREthereumBase.h"
-#include "BRUtil.h"
+#include "../base/BREthereumBase.h"
 
 /* Forward Declarations */
 static void
