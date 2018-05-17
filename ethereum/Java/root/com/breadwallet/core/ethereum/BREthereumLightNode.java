@@ -84,7 +84,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
         //                                const char *address,
         //                                const char *event,
         //                                int rid);
-        void getLogs (String address, String event, int rid);
+        void getLogs (String contract, String address, String event, int rid);
     }
 
     //
@@ -527,8 +527,8 @@ public class BREthereumLightNode extends BRCoreJniReference {
         client.get().getTransactions(address, rid);
     }
 
-    protected void trampolineGetLogs (String address, String event, int rid) {
-        client.get().getLogs(address, event, rid);
+    protected void trampolineGetLogs (String contract, String address, String event, int rid) {
+        client.get().getLogs(contract, address, event, rid);
     }
 
     //

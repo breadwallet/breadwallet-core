@@ -74,9 +74,11 @@ clientGetTransactions(BREthereumClientContext context,
 static void
 clientGetLogs(BREthereumClientContext context,
               BREthereumLightNode node,
+              const char *contract,
               const char *address,
               const char *event,
-              int id);
+              int rid);
+
 
 //
 // Forward Declarations - Listener
@@ -1431,9 +1433,10 @@ clientGetTransactions(BREthereumClientContext context,
 static void
 clientGetLogs(BREthereumClientContext context,
               BREthereumLightNode node,
+              const char *contract,
               const char *address,
               const char *event,
-              int id) {
+              int rid) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
@@ -1444,19 +1447,22 @@ clientGetLogs(BREthereumClientContext context,
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
                                  "trampolineGetLogs",
-                                 "(Ljava/lang/String;Ljava/lang/String;I)V");
+                                 "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V");
     assert (NULL != listenerMethod);
 
+    jobject contractObject = (*env)->NewStringUTF(env, contract);
     jobject addressObject = (*env)->NewStringUTF(env, address);
     jobject eventObject = (*env)->NewStringUTF(env, event);
 
     (*env)->CallVoidMethod(env, listener, listenerMethod,
+                           contractObject,
                            addressObject,
                            eventObject,
-                           (jint) id);
+                           (jint) rid);
 
     (*env)->DeleteLocalRef(env, eventObject);
     (*env)->DeleteLocalRef(env, addressObject);
+    (*env)->DeleteLocalRef(env, contractObject);
     (*env)->DeleteLocalRef(env, listener);
 }
 

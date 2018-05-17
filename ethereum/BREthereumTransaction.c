@@ -157,11 +157,6 @@ struct BREthereumTransactionRecord {
      */
     BREthereumSignature signature;
 
-    /**
-     * The signing account, if signed.  NULL if not signed.
-     */
-    BREthereumAccount signer;
-
     //
     // State
     //
@@ -185,7 +180,6 @@ transactionCreate(BREthereumAddress sourceAddress,
     transaction->gasLimit = gasLimit;
     transaction->nonce = nonce;
     transaction->chainId = 0;
-    transaction->signer = NULL;
     transaction->hash = hashCreateEmpty();
 
     provideData(transaction);
@@ -325,7 +319,6 @@ transactionSign(BREthereumTransaction transaction,
                 BREthereumAccount account,
                 BREthereumSignature signature) {
     transactionStateSigned(&transaction->state);
-    transaction->signer = account;
     transaction->signature = signature;
 
     // The signature algorithm does not account for EIP-155 and thus the chainID.  We are signing
@@ -335,16 +328,14 @@ transactionSign(BREthereumTransaction transaction,
     assert (27 == signature.sig.recoverable.v || 28 == signature.sig.recoverable.v);
 }
 
-extern BREthereumAccount
-transactionGetSigner (BREthereumTransaction transaction) {
-    return transaction->signer; // NULL is not signed.
-}
-
 extern BREthereumBoolean
 transactionIsSigned (BREthereumTransaction transaction) {
-    return (NULL != transactionGetSigner (transaction)
-            ? ETHEREUM_BOOLEAN_TRUE
-            : ETHEREUM_BOOLEAN_FALSE);
+    switch (transaction->signature.type) {
+        case SIGNATURE_TYPE_FOO:
+            return AS_ETHEREUM_BOOLEAN (transaction->signature.sig.foo.ignore != 0);
+        case SIGNATURE_TYPE_RECOVERABLE:
+            return AS_ETHEREUM_BOOLEAN (transaction->signature.sig.recoverable.v != 0);
+    }
 }
 
 extern const BREthereumHash
@@ -355,6 +346,23 @@ transactionGetHash (BREthereumTransaction transaction) {
 extern BREthereumSignature
 transactionGetSignature (BREthereumTransaction transaction) {
     return transaction->signature;
+}
+
+static BREthereumAddress emptyAddress;
+
+extern BREthereumAddress
+transactionExtractAddress (BREthereumTransaction transaction,
+                           BREthereumNetwork network)
+{
+    if (ETHEREUM_BOOLEAN_IS_FALSE (transactionIsSigned(transaction))) return emptyAddress;
+
+    int success = 1;
+    BRRlpData unsignedRLPData = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
+
+    return signatureExtractAddress(transaction->signature,
+                                   unsignedRLPData.bytes,
+                                   unsignedRLPData.bytesCount,
+                                   &success);
 }
 
 //
@@ -482,8 +490,7 @@ transactionRlpDecodeItem (BRRlpItem item,
                           BREthereumTransactionRLPType type,
                           BRRlpCoder coder) {
 
-    BREthereumTransaction transaction = malloc (sizeof(struct BREthereumTransactionRecord));
-    memset (transaction, 0, sizeof(struct BREthereumTransactionRecord));
+    BREthereumTransaction transaction = calloc (1, sizeof(struct BREthereumTransactionRecord));
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
@@ -543,13 +550,17 @@ transactionRlpDecodeItem (BRRlpItem item,
 
     if (eipChainId == transaction->chainId) {
         // TRANSACTION_RLP_UNSIGNED
-        transaction->signer = NULL;
+        transaction->signature.type = SIGNATURE_TYPE_RECOVERABLE;
     }
     else {
         // TRANSACTION_RLP_SIGNED
-        transaction->signer = NULL;  // wallet, account
         transaction->signature.type = SIGNATURE_TYPE_RECOVERABLE;
-        transaction->signature.sig.recoverable.v = eipChainId - 8 - 2 * transaction->chainId;
+
+        // If we are RLP decoding a transactino prior to EIP-xxx, then the eipChainId will
+        // not be encoded with the chainId.  In that case, just use the eipChainId
+        transaction->signature.sig.recoverable.v = (eipChainId > 30
+                                                    ? eipChainId - 8 - 2 * transaction->chainId
+                                                    : eipChainId);
 
         BRRlpData rData = rlpDecodeItemBytes (coder, items[7]);
         assert (32 == rData.bytesCount);
@@ -558,6 +569,9 @@ transactionRlpDecodeItem (BRRlpItem item,
         BRRlpData sData = rlpDecodeItemBytes (coder, items[8]);
         assert (32 == sData.bytesCount);
         memcpy (transaction->signature.sig.recoverable.s, sData.bytes, sData.bytesCount);
+
+        // :fingers-crossed:
+        transaction->sourceAddress = transactionExtractAddress(transaction, network);
     }
 
     return transaction;

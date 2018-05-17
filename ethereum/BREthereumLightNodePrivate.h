@@ -28,6 +28,7 @@
 
 #include <pthread.h>
 #include "BREthereumLightNode.h"
+#include "BREthereumTransactionStatus.h"
 #include "event/BREvent.h"
 
 #ifdef __cplusplus
@@ -39,6 +40,8 @@ extern "C" {
 //
 typedef struct  {
     BREthereumListenerContext context;
+    BREthereumListenerLightNodeEventHandler lightNodeEventHandler;
+    BREthereumListenerPeerEventHandler peerEventHandler;
     BREthereumListenerWalletEventHandler walletEventHandler;
     BREthereumListenerBlockEventHandler blockEventHandler;
     BREthereumListenerTransactionEventHandler transactionEventHandler;
@@ -158,6 +161,11 @@ struct BREthereumLightNodeRecord {
     BREventHandler handlerForListener;
 
     /**
+     * An EventHandler for Main.  All 'announcements' (via LES (or JSON_RPC) hit here.
+     */
+    BREventHandler handlerForMain;
+
+    /**
      * The Thread handling 'announcements' and periodic 'updates'.  Announcements are made by
      * the Client to report new data, typically via a JSON_RPC call, back to the Node.  Updates
      * are make periodically to call the JSON_RCP interface thereby prompting an announcement.
@@ -193,6 +201,25 @@ lightNodeLookupTransactionId(BREthereumLightNode node,
 extern BREthereumTransactionId
 lightNodeInsertTransaction (BREthereumLightNode node,
                             BREthereumTransaction transaction);
+
+//
+// Handlers
+//
+extern const BREventType *handlerEventTypes[];
+extern const unsigned int handlerEventTypesCount;
+
+extern void
+lightNodeHandleBalance (BREthereumLightNode node,
+                        BREthereumAmount amount);
+
+extern void
+lightNodeHandleNonce (BREthereumLightNode node,
+                      uint64_t nonce);
+
+extern void
+lightNodeHandleTransactionStatus (BREthereumLightNode node,
+                                  BREthereumHash transactionHash,
+                                  BREthereumTransactionStatusLES status);
 
 #ifdef __cplusplus
 }

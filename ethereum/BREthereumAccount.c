@@ -118,6 +118,8 @@ struct BREthereumAddressRecord {
     uint64_t nonce;
 };
 
+static struct BREthereumAddressRecord emptyAddressRecord;
+
 extern BREthereumAddress
 createAddress (const char *string) {
     if (ETHEREUM_BOOLEAN_IS_FALSE(validateAddressString(string))) return NULL;
@@ -345,6 +347,13 @@ addressRlpDecode (BRRlpItem item, BRRlpCoder coder) {
 // Address Raw
 //
 extern BREthereumAddressRaw
+addressRawCreate (const char *address) {
+    BREthereumAddressRaw raw;
+    decodeHex(raw.bytes, sizeof(raw.bytes), address, strlen(address));
+    return raw;
+}
+
+extern BREthereumAddressRaw
 addressRawRlpDecode (BRRlpItem item, BRRlpCoder coder) {
     BREthereumAddressRaw address;
 
@@ -443,6 +452,12 @@ accountGetPrimaryAddressPrivateKey (BREthereumAccount account,
                                  account->primaryAddress->index);
 }
 
+extern BREthereumBoolean
+accountHasAddress (BREthereumAccount account,
+                   BREthereumAddress address) {
+    return addressEqual(account->primaryAddress, address);
+}
+
 static BREthereumAddress
 accountCreateAddress (BREthereumAccount account, UInt512 seed, uint32_t index) {
     BRKey privateKey = derivePrivateKeyFromSeed (seed, index);
@@ -477,6 +492,32 @@ signatureEqual (BREthereumSignature s1, BREthereumSignature s2) {
     return (0 == memcmp(&s1, &s2, sizeof (BREthereumSignature))
             ? ETHEREUM_BOOLEAN_TRUE
             : ETHEREUM_BOOLEAN_FALSE);
+}
+
+extern BREthereumAddress
+signatureExtractAddress (const BREthereumSignature signature,
+                         const uint8_t *bytes,
+                         size_t bytesCount,
+                         int *success) {
+    assert (NULL != success);
+
+    if (SIGNATURE_TYPE_RECOVERABLE != signature.type) {
+        *success = 0;
+        return &emptyAddressRecord;
+    }
+
+    UInt256 digest;
+    BRKeccak256 (&digest, bytes, bytesCount);
+
+    BRKey key;
+    *success = BRKeyRecoverPubKey(&key, digest,
+                                  &signature.sig.recoverable,
+                                  sizeof (signature.sig.recoverable));
+
+    if (0 == *success)
+        return &emptyAddressRecord;
+
+    return createAddressDerived (key.pubKey, 0);
 }
 
 extern BREthereumSignature

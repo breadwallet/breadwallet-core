@@ -31,6 +31,7 @@
 #include "BREthereumAccount.h"
 #include "BREthereumTransaction.h"
 #include "BREthereumBlock.h"
+#include "BREthereumLog.h"
 #include "BREthereumWallet.h"
 
 #ifdef __cplusplus

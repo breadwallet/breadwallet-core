@@ -108,6 +108,13 @@ typedef struct {
     uint8_t bytes[20];
 } BREthereumAddressRaw;
 
+#define EMPTY_ADDRESS_INIT   { \
+    0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0 \
+}
+
+extern BREthereumAddressRaw
+addressRawCreate (const char *address);
+
 extern BREthereumAddressRaw
 addressRawRlpDecode (BRRlpItem item,
                      BRRlpCoder coder);
@@ -187,6 +194,10 @@ accountGetPrimaryAddressPublicKey (BREthereumAccount account);
 extern BRKey
 accountGetPrimaryAddressPrivateKey (BREthereumAccount account,
                                     const char *paperKey);
+
+extern BREthereumBoolean
+accountHasAddress (BREthereumAccount account,
+                   BREthereumAddress address);
     
 //
 // Signature
@@ -214,6 +225,12 @@ typedef struct {
 
 extern BREthereumBoolean
 signatureEqual (BREthereumSignature s1, BREthereumSignature s2);
+
+extern BREthereumAddress
+signatureExtractAddress (const BREthereumSignature signature,
+                         const uint8_t *bytes,
+                         size_t bytesCount,
+                         int *success);
 
 /**
  * Sign an arbitrary array of bytes with the account's private key using the signature algorithm

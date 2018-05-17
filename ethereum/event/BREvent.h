@@ -43,7 +43,7 @@ typedef struct BREventRecord BREvent;
  * generally be short in duration.
  */
 typedef void (*BREventDispatcher) (BREventHandler handler,
-                                           BREvent *event);
+                                   BREvent *event);
 
 /**
  * An EventType defines the types of events that will be handled.  Each individual Event will hold
@@ -62,6 +62,8 @@ struct BREventTypeRecord{
 struct BREventRecord {
     struct BREventRecord *next;
     BREventType *type;
+    // Add 'context'
+    
     // arguments
 };
 
@@ -75,6 +77,15 @@ typedef enum {
     EVENT_STATUS_NULL_EVENT,
     EVENT_STATUS_NONE_PENDING
 } BREventStatus;
+
+//
+// Timeout Event
+//
+typedef struct {
+    struct BREventRecord base;
+    void *context;
+    struct timespec time;
+} BRTimeoutEvent;
 
 //
 // Event Handler
@@ -93,7 +104,8 @@ eventHandlerCreate (const BREventType *types[], unsigned int typesCount);
 extern void
 eventHandlerSetTimeoutDispatcher (BREventHandler handler,
                                   unsigned int timeInMilliseconds,
-                                  BREventDispatcher dispatcher);
+                                  BREventDispatcher dispatcher,
+                                  void *context);
 
 extern void
 eventHandlerDestroy (BREventHandler handler);

@@ -48,6 +48,21 @@ struct BREthereumTransactionReceiptRecord {
 };
 
 //
+// Bloom Filter Matches
+//
+extern BREthereumBoolean
+transactionReceiptMatch (BREthereumTransactionReceipt receipt,
+                         BREthereumBloomFilter filter) {
+    return bloomFilterMatch(receipt->bloomFilter, filter);
+}
+
+extern BREthereumBoolean
+transactionReceiptMatchAddress (BREthereumTransactionReceipt receipt,
+                                BREthereumAddressRaw address) {
+    return transactionReceiptMatch(receipt, logTopicGetBloomFilterAddress(address));
+}
+
+//
 // Transaction Receipt Logs - RLP Encode/Decode
 //
 static BRRlpItem

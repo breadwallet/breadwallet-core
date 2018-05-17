@@ -65,6 +65,12 @@ amountGetTokenQuantity (BREthereumAmount amount) {
     return amount.u.tokenQuantity;
 }
 
+extern BREthereumToken
+amountGetToken (BREthereumAmount amount) {
+    assert (amount.type == AMOUNT_TOKEN);
+    return amount.u.tokenQuantity.token;
+}
+
 extern BREthereumComparison
 amountCompare (BREthereumAmount a1, BREthereumAmount a2, int *typeMismatch) {
     assert (NULL != typeMismatch);

@@ -75,6 +75,9 @@ amountGetEther (BREthereumAmount amount);
 extern BREthereumTokenQuantity
 amountGetTokenQuantity (BREthereumAmount amount);
 
+extern BREthereumToken
+amountGetToken (BREthereumAmount amount);
+    
 extern BREthereumComparison
 amountCompare (BREthereumAmount a1, BREthereumAmount a2, int *typeMismatch);
 

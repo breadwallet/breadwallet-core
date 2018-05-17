@@ -141,6 +141,15 @@ rlpDecodeList (BRRlpCoder coder, BRRlpItem item, size_t *itemsCount);
 extern void
 rlpDataExtract (BRRlpCoder coder, BRRlpItem item, uint8_t **bytes, size_t *bytesCount);
 
+//
+// Show
+//
+extern void
+rlpShowItem (BRRlpCoder coder, BRRlpItem item, const char *topic);
+
+extern void
+rlpShow (BRRlpData data, const char *topic);
+    
 #ifdef __cplusplus
 }
 #endif

@@ -13,6 +13,7 @@
 #include "util/BRUtil.h"
 #include "BREthereumBase.h"
 
+static BREthereumHash emptyHash;
 
 /**
  * Create a Hash by converting from a hex-encoded string of a hash.  The string must
@@ -35,13 +36,11 @@ hashCreate (const char *string) {
  */
 extern BREthereumHash
 hashCreateEmpty (void) {
-    BREthereumHash hash;
-    memset (hash.bytes, 0, sizeof (BREthereumHash));
-    return hash;
+    return emptyHash;
 }
 
 /**
- * Creata a Hash by computing it from a arbitrary data set
+ * Creata a Hash by computing it from a arbitrary data set (using Keccak256)
  */
 extern BREthereumHash
 hashCreateFromData (BRRlpData data) {
@@ -62,13 +61,6 @@ hashAsString (BREthereumHash hash) {
     return strdup (result);
 }
 
-extern BREthereumBoolean
-hashExists (BREthereumHash hash) {
-    for (int i = 0; i < ETHEREUM_HASH_BYTES; i++)
-        if (0 != hash.bytes[i]) return ETHEREUM_BOOLEAN_TRUE;
-    return ETHEREUM_BOOLEAN_FALSE;
-}
-
 extern BREthereumHash
 hashCopy(BREthereumHash hash) {
     return hash;
@@ -85,7 +77,7 @@ hashCompare(BREthereumHash hash1, BREthereumHash hash2) {
 
 extern BREthereumBoolean
 hashEqual (BREthereumHash hash1, BREthereumHash hash2) {
-    return 0 == memcmp (hash1.bytes, hash2.bytes, ETHEREUM_HASH_BYTES);
+    return AS_ETHEREUM_BOOLEAN (0 == memcmp (hash1.bytes, hash2.bytes, ETHEREUM_HASH_BYTES));
 }
 
 extern BRRlpItem

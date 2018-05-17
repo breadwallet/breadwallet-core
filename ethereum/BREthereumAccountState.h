@@ -1,8 +1,8 @@
 //
-//  BBRUtil.h
-//  breadwallet-core Ethereum
+//  BREthereumAccountState.h
+//  BRCore
 //
-//  Created by Ed Gamble on 3/16/2018.
+//  Created by Ed Gamble on 5/15/18.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,23 +23,38 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Util_H
-#define BR_Util_H
+#ifndef BR_Ethereum_AccountState_H
+#define BR_Ethereum_AccountState_H
 
-#include "BRUtilHex.h"
-#include "BRUtilMath.h"
+#include "BREthereumEther.h"
+#include "BREthereumBase.h"
 
-#define eth_log(topic, formatter, ...)   _eth_log("ETH: %s: " formatter "\n", (topic), __VA_ARGS__)
-
-#if defined(TARGET_OS_MAC)
-#  include <Foundation/Foundation.h>
-#  define _eth_log(...) NSLog(__VA_ARGS__)
-#elif defined(__ANDROID__)
-#  include <android/log.h>
-#  define _eth_log(...) __android_log_print(ANDROID_LOG_INFO, "", __VA_ARGS__)
-#else
-#  include <stdio.h>
-#  define _eth_log(...) printf(__VA_ARGS__)
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-#endif // BR_Util_H
+typedef struct BREthereumAccountStateRecord *BREthereumAccountState;
+
+extern uint64_t
+accountStateGetNonce (BREthereumAccountState state);
+
+extern BREthereumEther
+accountStateGetBalance (BREthereumAccountState state);
+
+extern BREthereumHash
+accountStateGetStorageRoot (BREthereumAccountState state);
+
+extern BREthereumHash
+accountStateGetCodeHash (BREthereumAccountState state);
+
+extern BRRlpItem
+accountStateRlpEncodeItem (BREthereumAccountState state, BRRlpCoder coder);
+
+extern BREthereumAccountState
+accountStateRlpDecodeItem (BRRlpItem item, BRRlpCoder coder);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* BR_Ethereum_AccountState_H */

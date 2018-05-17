@@ -83,7 +83,17 @@ typedef enum {
 } BREthereumStatus;
 
 //
-// Listener
+// Ethereum Listener
+//
+// Client Code, in IOS & Andriod, will provide handlers to listen in on Core Ethereum events.
+// Such events are  signalled when notable LightNode state changes.  Client code should use
+// the provide event type and data to update UI, or other, state.
+
+// Client Context - provide when adding a listener, get in every callback.
+typedef void *BREthereumListenerContext;
+
+//
+// Wallet Event
 //
 typedef enum {
     WALLET_EVENT_CREATED = 0,
@@ -95,13 +105,35 @@ typedef enum {
 
 #define WALLET_NUMBER_OF_EVENTS  (1 + WALLET_EVENT_DELETED)
 
+typedef void (*BREthereumListenerWalletEventHandler)(BREthereumListenerContext context,
+                                                     BREthereumLightNode node,
+                                                     BREthereumWalletId wid,
+                                                     BREthereumWalletEvent event,
+                                                     BREthereumStatus status,
+                                                     const char *errorDescription);
+
+//
+// Block Event
+//
 typedef enum {
     BLOCK_EVENT_CREATED = 0,
+    // BLOCK_EVENT_SYNC_START,
+    // BLOCK_EVENT_SYNC_COMPLETE,
     BLOCK_EVENT_DELETED
 } BREthereumBlockEvent;
 
 #define BLOCK_NUMBER_OF_EVENTS (1 + BLOCK_EVENT_DELETED)
 
+typedef void (*BREthereumListenerBlockEventHandler)(BREthereumListenerContext context,
+                                                    BREthereumLightNode node,
+                                                    BREthereumBlockId bid,
+                                                    BREthereumBlockEvent event,
+                                                    BREthereumStatus status,
+                                                    const char *errorDescription);
+
+//
+// Transaction Event
+//
 typedef enum {
     // Added/Removed from Wallet
     TRANSACTION_EVENT_ADDED = 0,
@@ -121,22 +153,6 @@ typedef enum {
 
 #define TRANSACTION_NUMBER_OF_EVENTS (1 + TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED)
 
-typedef void *BREthereumListenerContext;
-
-typedef void (*BREthereumListenerWalletEventHandler)(BREthereumListenerContext context,
-                                                     BREthereumLightNode node,
-                                                     BREthereumWalletId wid,
-                                                     BREthereumWalletEvent event,
-                                                     BREthereumStatus status,
-                                                     const char *errorDescription);
-
-typedef void (*BREthereumListenerBlockEventHandler)(BREthereumListenerContext context,
-                                                    BREthereumLightNode node,
-                                                    BREthereumBlockId bid,
-                                                    BREthereumBlockEvent event,
-                                                    BREthereumStatus status,
-                                                    const char *errorDescription);
-
 typedef void (*BREthereumListenerTransactionEventHandler)(BREthereumListenerContext context,
                                                           BREthereumLightNode node,
                                                           BREthereumWalletId wid,
@@ -146,58 +162,111 @@ typedef void (*BREthereumListenerTransactionEventHandler)(BREthereumListenerCont
                                                           const char *errorDescription);
 
 //
+// Peer Event
+//
+typedef enum {
+    PEER_EVENT_X,
+    PEER_EVENT_Y
+} BREthereumPeerEvent;
+
+#define PEER_NUMBER_OF_EVENTS   (1 + PEER_EVENT_Y)
+
+typedef void (*BREthereumListenerPeerEventHandler)(BREthereumListenerContext context,
+                                                   BREthereumLightNode node,
+                                                   // BREthereumWalletId wid,
+                                                   // BREthereumTransactionId tid,
+                                                   BREthereumPeerEvent event,
+                                                   BREthereumStatus status,
+                                                   const char *errorDescription);
+//
+// Light Node Event
+//
+typedef enum {
+    LIGHT_NODE_EVENT_X,
+    LIGHT_NODE_EVENT_Y
+} BREthereumLightNodeEvent;
+
+#define LIGHT_NODE_NUMBER_OF_EVENTS   (1 + LIGHTNODE_EVENT_Y)
+
+typedef void (*BREthereumListenerLightNodeEventHandler)(BREthereumListenerContext context,
+                                                        BREthereumLightNode node,
+                                                        // BREthereumWalletId wid,
+                                                        // BREthereumTransactionId tid,
+                                                        BREthereumLightNodeEvent event,
+                                                        BREthereumStatus status,
+                                                        const char *errorDescription);
+
+extern BREthereumListenerId
+lightNodeAddListener (BREthereumLightNode node,
+                      BREthereumListenerContext context,
+                      BREthereumListenerLightNodeEventHandler lightNodeEventHandler,
+                      BREthereumListenerPeerEventHandler peerEventHandler,
+                      BREthereumListenerWalletEventHandler walletEventHandler,
+                      BREthereumListenerBlockEventHandler blockEventHandler,
+                      BREthereumListenerTransactionEventHandler transactionEventHandler);
+
+extern BREthereumBoolean
+lightNodeHasListener (BREthereumLightNode node,
+                      BREthereumListenerId lid);
+
+extern BREthereumBoolean
+lightNodeRemoveListener (BREthereumLightNode node,
+                         BREthereumListenerId lid);
+
+
+//
 // BREthereumClient
 //
 // Type definitions for callback functions.  When configuring a LightNode these functions must be
 // provided.  A LightNode has limited cababilities; these callbacks provide data back into the
 // LightNode.
 //
-    typedef void *BREthereumClientContext;
+typedef void *BREthereumClientContext;
 
-    typedef void
-    (*BREthereumClientHandlerGetBalance) (BREthereumClientContext context,
-                                          BREthereumLightNode node,
-                                          BREthereumWalletId wid,
-                                          const char *address,
-                                          int rid);
-    
-    typedef void
-    (*BREthereumClientHandlerGetGasPrice) (BREthereumClientContext context,
-                                           BREthereumLightNode node,
-                                           BREthereumWalletId wid,
-                                           int rid);
-    
-    typedef void
-    (*BREthereumClientHandlerEstimateGas) (BREthereumClientContext context,
-                                           BREthereumLightNode node,
-                                           BREthereumWalletId wid,
-                                           BREthereumTransactionId tid,
-                                           const char *to,
-                                           const char *amount,
-                                           const char *data,
-                                           int rid);
-    
-    typedef void
-    (*BREthereumClientHandlerSubmitTransaction) (BREthereumClientContext context,
-                                                 BREthereumLightNode node,
-                                                 BREthereumWalletId wid,
-                                                 BREthereumTransactionId tid,
-                                                 const char *transaction,
-                                                 int rid);
-    
-    typedef void
-    (*BREthereumClientHandlerGetTransactions) (BREthereumClientContext context,
-                                               BREthereumLightNode node,
-                                               const char *address,
-                                               int rid);
-    
-    typedef void
-    (*BREthereumClientHandlerGetLogs) (BREthereumClientContext context,
+typedef void
+(*BREthereumClientHandlerGetBalance) (BREthereumClientContext context,
+                                      BREthereumLightNode node,
+                                      BREthereumWalletId wid,
+                                      const char *address,
+                                      int rid);
+
+typedef void
+(*BREthereumClientHandlerGetGasPrice) (BREthereumClientContext context,
                                        BREthereumLightNode node,
-                                       const char *contract,
-                                       const char *address,
-                                       const char *event,
+                                       BREthereumWalletId wid,
                                        int rid);
+
+typedef void
+(*BREthereumClientHandlerEstimateGas) (BREthereumClientContext context,
+                                       BREthereumLightNode node,
+                                       BREthereumWalletId wid,
+                                       BREthereumTransactionId tid,
+                                       const char *to,
+                                       const char *amount,
+                                       const char *data,
+                                       int rid);
+
+typedef void
+(*BREthereumClientHandlerSubmitTransaction) (BREthereumClientContext context,
+                                             BREthereumLightNode node,
+                                             BREthereumWalletId wid,
+                                             BREthereumTransactionId tid,
+                                             const char *transaction,
+                                             int rid);
+
+typedef void
+(*BREthereumClientHandlerGetTransactions) (BREthereumClientContext context,
+                                           BREthereumLightNode node,
+                                           const char *address,
+                                           int rid);
+
+typedef void
+(*BREthereumClientHandlerGetLogs) (BREthereumClientContext context,
+                                   BREthereumLightNode node,
+                                   const char *contract,
+                                   const char *address,
+                                   const char *event,
+                                   int rid);
 
 //
 // Light Node Configuration
@@ -207,8 +276,6 @@ typedef void (*BREthereumListenerTransactionEventHandler)(BREthereumListenerCont
 // type.
 //
 typedef struct {
-//    BREthereumType type;
-//    BREthereumNetwork network;
     BREthereumClientContext funcContext;
     BREthereumClientHandlerGetBalance funcGetBalance;
     BREthereumClientHandlerGetGasPrice funcGetGasPrice;
@@ -745,29 +812,6 @@ lightNodeAnnounceSubmitTransaction(BREthereumLightNode node,
                                    int rid);
 
 #endif // ETHEREUM_LIGHT_NODE_USE_JSON_RPC
-
-// ==========================
-//
-// Temporary
-//
-// ====================
-//
-// Listener
-//
-extern BREthereumListenerId
-lightNodeAddListener (BREthereumLightNode node,
-                      BREthereumListenerContext context,
-                      BREthereumListenerWalletEventHandler walletEventHandler,
-                      BREthereumListenerBlockEventHandler blockEventHandler,
-                      BREthereumListenerTransactionEventHandler transactionEventHandler);
-
-extern BREthereumBoolean
-lightNodeHasListener (BREthereumLightNode node,
-                      BREthereumListenerId lid);
-
-extern BREthereumBoolean
-lightNodeRemoveListener (BREthereumLightNode node,
-                         BREthereumListenerId lid);
 
 #ifdef __cplusplus
 }

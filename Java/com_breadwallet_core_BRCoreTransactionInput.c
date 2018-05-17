@@ -38,27 +38,33 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreTransactionInput_createT
          jbyteArray scriptByteArray,
          jbyteArray signatureByteArray,
          jlong sequence) {
-    BRTxInput *input = (BRTxInput *) calloc (1, sizeof (BRTxInput));
+    BRTxInput *input = (BRTxInput *) calloc(1, sizeof(BRTxInput));
 
-    size_t hashLen = (size_t) (*env)->GetArrayLength (env, hashByteArray);
-    const uint8_t *hashData = (const uint8_t *) (*env)->GetByteArrayElements (env, hashByteArray, 0);
+    size_t hashLen = (size_t) (*env)->GetArrayLength(env, hashByteArray);
+    const uint8_t *hashData = (const uint8_t *) (*env)->GetByteArrayElements(env, hashByteArray, 0);
     assert (32 == hashLen);
 
     input->txHash = UInt256Get((const void *) hashData);
-    input->index  = (uint32_t) index;
+    input->index = (uint32_t) index;
     input->amount = (uint32_t) amount;
 
     // script
     input->script = NULL;
-    size_t scriptLen = (size_t) (*env)->GetArrayLength (env, scriptByteArray);
-    const uint8_t *script = (const uint8_t *) (*env)->GetByteArrayElements (env, scriptByteArray, 0);
+    size_t scriptLen = (size_t) (*env)->GetArrayLength(env, scriptByteArray);
+    const uint8_t *script = (const uint8_t *)
+            (0 == scriptLen
+             ? NULL
+             : (*env)->GetByteArrayElements(env, scriptByteArray, 0));
     BRTxInputSetScript(input, script, scriptLen);
 
     // signature
     input->signature = NULL;
-    size_t signatureLen = (size_t) (*env)->GetArrayLength (env, signatureByteArray);
-    const uint8_t *signature = (const uint8_t *) (*env)->GetByteArrayElements (env, signatureByteArray, 0);
-    BRTxInputSetSignature (input, signature, signatureLen);
+    size_t signatureLen = (size_t) (*env)->GetArrayLength(env, signatureByteArray);
+    const uint8_t *signature = (const uint8_t *)
+            (0 == signatureLen
+             ? NULL
+             : (*env)->GetByteArrayElements(env, signatureByteArray, 0));
+    BRTxInputSetSignature(input, signature, signatureLen);
 
     input->sequence = (uint32_t) (sequence == -1 ? TXIN_SEQUENCE : sequence);
 

@@ -45,6 +45,8 @@ typedef enum {
 #define ETHEREUM_BOOLEAN_IS_TRUE(x)  ((x) == ETHEREUM_BOOLEAN_TRUE)
 #define ETHEREUM_BOOLEAN_IS_FALSE(x) ((x) == ETHEREUM_BOOLEAN_FALSE)
 
+#define AS_ETHEREUM_BOOLEAN(x)    ((x) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE)
+
 //
 // Ethereum Comparison
 //
@@ -63,6 +65,11 @@ typedef enum {
 typedef struct {
     uint8_t bytes[ETHEREUM_HASH_BYTES];
 } BREthereumHash;
+
+#define EMPTY_HASH_INIT   { \
+    0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0, \
+    0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0  \
+}
 
 /**
  * Create a Hash by converting from a hex-encoded string of a hash.  The string must
@@ -88,9 +95,6 @@ hashCreateFromData (BRRlpData data);
  */
 extern char *
 hashAsString (BREthereumHash hash);
-
-extern BREthereumBoolean
-hashExists (BREthereumHash hash);
 
 extern BREthereumHash
 hashCopy(BREthereumHash hash);

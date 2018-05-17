@@ -25,8 +25,23 @@
 
 #include <errno.h>
 #include <pthread.h>
+#include <sys/time.h>
 #include "BREvent.h"
 #include "BREventQueue.h"
+
+static struct timespec
+getTime () {
+    struct timeval  now;
+    struct timespec time;
+
+    gettimeofday(&now, NULL);
+
+    time.tv_sec = now.tv_sec;
+    time.tv_nsec = 1000 * now.tv_usec;
+
+    return time;
+}
+
 
 #if defined (__ANDROID__)
 static int
@@ -59,6 +74,12 @@ typedef enum  {
     EVENT_HANDLER_THREAD_STATUS_STOPPED
 } BREventHandlerThreadStatus;
 
+static BREventType timeoutEventType = {
+    "Timeout Event",
+    sizeof (BRTimeoutEvent),
+    (BREventDispatcher) NULL
+};
+
 //
 // Event Handler
 //
@@ -75,6 +96,7 @@ struct BREventHandlerRecord {
     // (Optional) Timeout
     struct timespec timeout;
     BREventDispatcher timeoutDispatcher;
+    void *timeoutContext;
 
     // Thread
     pthread_t thread;
@@ -91,7 +113,7 @@ eventHandlerCreate (const BREventType *types[], unsigned int typesCount) {
     handler->status = EVENT_HANDLER_THREAD_STATUS_STOPPED;
     handler->typesCount = typesCount;
     handler->types = types;
-    handler->eventSize = 0;
+    handler->eventSize = timeoutEventType.eventSize;
 
     // Update `eventSize` with the largest sized event
     for (int i = 0; i < handler->typesCount; i++) {
@@ -128,13 +150,14 @@ eventHandlerCreate (const BREventType *types[], unsigned int typesCount) {
 extern void
 eventHandlerSetTimeoutDispatcher (BREventHandler handler,
                                   unsigned int timeInMilliseconds,
-                                  BREventDispatcher dispatcher) {
+                                  BREventDispatcher dispatcher,
+                                  void *context) {
     pthread_mutex_lock(&handler->lock);
     handler->timeout.tv_sec = timeInMilliseconds / 1000;
     handler->timeout.tv_nsec = 1000000 * (timeInMilliseconds % 1000);
     handler->timeoutDispatcher = dispatcher;
+    handler->timeoutContext = context;
     pthread_mutex_unlock(&handler->lock);
-
 
     pthread_cond_signal(&handler->cond);
 }
@@ -178,8 +201,11 @@ eventHandlerThread (BREventHandler handler) {
         // ... or for a timeout.
         else if (ETIMEDOUT == pthread_cond_timedwait_relative_np(&handler->cond,
                                                                  &handler->lock,
-                                                                 &handler->timeout))
-            handler->timeoutDispatcher (handler, NULL);
+                                                                 &handler->timeout)) {
+            BRTimeoutEvent event =
+                { { NULL, &timeoutEventType}, handler->timeoutContext, getTime() };
+            handler->timeoutDispatcher (handler, (BREvent *) &event);
+        }
     }
 
     handler->status = EVENT_HANDLER_THREAD_STATUS_STOPPED;
