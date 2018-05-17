@@ -128,7 +128,7 @@ eventQueueEnqueue (BREventQueue queue,
     queue->available = this->next;
 
     // Fill in `this` with event
-    memcpy (this, event, queue->size);
+    memcpy (this, event, event->type->eventSize);
     this->next = NULL;
 
     // Add to the end of pending

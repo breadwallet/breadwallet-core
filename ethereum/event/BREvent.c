@@ -74,6 +74,12 @@ typedef enum  {
     EVENT_HANDLER_THREAD_STATUS_STOPPED
 } BREventHandlerThreadStatus;
 
+static BREventType timeoutEventType = {
+    "Timeout Event",
+    sizeof (BRTimeoutEvent),
+    (BREventDispatcher) NULL
+};
+
 //
 // Event Handler
 //
@@ -107,7 +113,7 @@ eventHandlerCreate (const BREventType *types[], unsigned int typesCount) {
     handler->status = EVENT_HANDLER_THREAD_STATUS_STOPPED;
     handler->typesCount = typesCount;
     handler->types = types;
-    handler->eventSize = 0;
+    handler->eventSize = timeoutEventType.eventSize;
 
     // Update `eventSize` with the largest sized event
     for (int i = 0; i < handler->typesCount; i++) {
@@ -155,13 +161,6 @@ eventHandlerSetTimeoutDispatcher (BREventHandler handler,
 
     pthread_cond_signal(&handler->cond);
 }
-
-static BREventType timeoutEventType = {
-    "Timeout Event",
-    sizeof (BRTimeoutEvent),
-    (BREventDispatcher) NULL
-};
-
 
 #define PTHREAD_STACK_SIZE (512 * 1024)
 #define PTHREAD_SLEEP_SECONDS (15)

@@ -96,9 +96,6 @@ hashCreateFromData (BRRlpData data);
 extern char *
 hashAsString (BREthereumHash hash);
 
-extern BREthereumBoolean
-hashExists (BREthereumHash hash);
-
 extern BREthereumHash
 hashCopy(BREthereumHash hash);
 
