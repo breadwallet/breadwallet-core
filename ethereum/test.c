@@ -1274,7 +1274,8 @@ runLightNode_JSON_RPC_test (const char *paperKey) {
     
     ethereumConnect(node, configuration);
 
-    sleep (2);  // let connect 'take'
+    printf ("       Waiting for Balance\n");
+    sleep (10);  // let connect 'take'
 
     // Callback to JSON_RPC for 'getBalanance'&
     //    lightNodeUpdateWalletBalance (node, wallet, &status);
@@ -1324,6 +1325,28 @@ transactionEventHandler (BREthereumListenerContext context,
 }
 
 static void
+peerEventHandler (BREthereumListenerContext context,
+                  BREthereumLightNode node,
+                  //BREthereumWalletId wid,
+                  //BREthereumTransactionId tid,
+                  BREthereumPeerEvent event,
+                  BREthereumStatus status,
+                  const char *errorDescription) {
+    fprintf (stdout, "         PeerEvent: ev=%d\n", event);
+}
+
+static void
+lightNodeEventHandler (BREthereumListenerContext context,
+                       BREthereumLightNode node,
+                       //BREthereumWalletId wid,
+                       //BREthereumTransactionId tid,
+                       BREthereumLightNodeEvent event,
+                       BREthereumStatus status,
+                       const char *errorDescription) {
+    fprintf (stdout, "         LightNodeEvent: ev=%d\n", event);
+}
+
+static void
 runLightNode_LISTENER_test (const char *paperKey) {
     printf ("     LISTENER\n");
 
@@ -1343,6 +1366,8 @@ runLightNode_LISTENER_test (const char *paperKey) {
 
     BREthereumListenerId lid = lightNodeAddListener(node,
                                                     (BREthereumListenerContext) NULL,
+                                                    lightNodeEventHandler,
+                                                    peerEventHandler,
                                                     walletEventHandler,
                                                     blockEventHandler,
                                                     transactionEventHandler);
@@ -1351,7 +1376,7 @@ runLightNode_LISTENER_test (const char *paperKey) {
 
     ethereumConnect(node, configuration);
 
-    sleep (5);  // let connect 'take'
+    sleep (10);  // let connect 'take'
 
     // Callback to JSON_RPC for 'getBalanance'&
     //    lightNodeUpdateWalletBalance (node, wallet, &status);

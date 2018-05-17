@@ -37,6 +37,12 @@
 #include "BREthereumLightNodePrivate.h"
 #include "event/BREvent.h"
 
+#define LIGHT_NODE_SLEEP_SECONDS (5)
+
+/* Forward Declaration */
+static void
+lightNodePeriodicDispatcher (BREventHandler handler,
+                             BRTimeoutEvent *event);
 
 //
 // Light Node Client
@@ -88,6 +94,13 @@ createLightNode (BREthereumNetwork network,
     // Create and then start the eventHandler
     node->handlerForListener = eventHandlerCreate(listenerEventTypes, listenerEventTypesCount);
     eventHandlerStart(node->handlerForListener);
+
+    node->handlerForMain = eventHandlerCreate(handlerEventTypes, handlerEventTypesCount);
+    eventHandlerSetTimeoutDispatcher(node->handlerForMain,
+                                     1000 * LIGHT_NODE_SLEEP_SECONDS,
+                                     (BREventDispatcher)lightNodePeriodicDispatcher,
+                                     (void*) node);
+    eventHandlerStart(node->handlerForMain);
     
     // Create a default ETH wallet; other wallets will be created 'on demand'
     node->walletHoldingEther = walletCreate(node->account,
@@ -113,6 +126,8 @@ lightNodeGetNetwork (BREthereumLightNode node) {
 extern BREthereumListenerId
 lightNodeAddListener (BREthereumLightNode node,
                       BREthereumListenerContext context,
+                      BREthereumListenerLightNodeEventHandler lightNodeEventHandler,
+                      BREthereumListenerPeerEventHandler peerEventHandler,
                       BREthereumListenerWalletEventHandler walletEventHandler,
                       BREthereumListenerBlockEventHandler blockEventHandler,
                       BREthereumListenerTransactionEventHandler transactionEventHandler) {
@@ -120,6 +135,8 @@ lightNodeAddListener (BREthereumLightNode node,
     BREthereumLightNodeListener listener;
 
     listener.context = context;
+    listener.lightNodeEventHandler = lightNodeEventHandler;
+    listener.peerEventHandler = peerEventHandler;
     listener.walletEventHandler = walletEventHandler;
     listener.blockEventHandler = blockEventHandler;
     listener.transactionEventHandler = transactionEventHandler;
@@ -157,54 +174,33 @@ lightNodeRemoveListener (BREthereumLightNode node,
 //
 // Connect // Disconnect
 //
-#define PTHREAD_STACK_SIZE (512 * 1024)
-#define PTHREAD_SLEEP_SECONDS (15)
 
-static BREthereumClient nullClient;
+static void
+lightNodePeriodicDispatcher (BREventHandler handler,
+                             BRTimeoutEvent *event) {
+    BREthereumLightNode node = (BREthereumLightNode) event->context;
 
-typedef void* (*ThreadRoutine) (void*);
+    if (node->state != LIGHT_NODE_CONNECTED) return;
 
-static void *
-lightNodeThreadRoutine (BREthereumLightNode node) {
-    node->state = LIGHT_NODE_CONNECTED;
+    // We'll query all transactions for this node's account.  That will give us a shot at
+    // getting the nonce for the account's address correct.  We'll save all the transactions and
+    // then process them into wallet as wallets exist.
+    lightNodeUpdateTransactions(node);
 
-    while (1) {
-        if (LIGHT_NODE_DISCONNECTING == node->state) break;
-        pthread_mutex_lock(&node->lock);
+    // Similarly, we'll query all logs for this node's account.  We'll process these into
+    // (token) transactions and associate with their wallet.
+    lightNodeUpdateLogs(node, -1, eventERC20Transfer);
 
-        // We'll query all transactions for this node's account.  That will give us a shot at
-        // getting the nonce for the account's address correct.  We'll save all the transactions and
-        // then process them into wallet as wallets exist.
-        lightNodeUpdateTransactions(node);
-
-        // Similarly, we'll query all logs for this node's account.  We'll process these into
-        // (token) transactions and associate with their wallet.
-        lightNodeUpdateLogs(node, -1, eventERC20Transfer);
-
-        // For all the known wallets, get their balance.
-        for (int i = 0; i < array_count(node->wallets); i++)
-            lightNodeUpdateWalletBalance (node, i);
-
-        pthread_mutex_unlock(&node->lock);
-
-        if (LIGHT_NODE_DISCONNECTING == node->state) break;
-        if (1 == sleep (PTHREAD_SLEEP_SECONDS)) {}
-    }
-
-    node->state = LIGHT_NODE_DISCONNECTED;
-    
-    // TODO: This was needed, but I forgot why.
-    //     node->type = NODE_TYPE_NONE;
-    
-    pthread_detach(node->thread);
-    return NULL;
+    // For all the known wallets, get their balance.
+    for (int i = 0; i < array_count(node->wallets); i++)
+        lightNodeUpdateWalletBalance (node, i);
 }
+
+//static BREthereumClient nullClient;
 
 extern BREthereumBoolean
 lightNodeConnect(BREthereumLightNode node,
                  BREthereumClient client) {
-    pthread_attr_t attr;
-
     switch (node->state) {
         case LIGHT_NODE_CONNECTING:
         case LIGHT_NODE_CONNECTED:
@@ -214,30 +210,8 @@ lightNodeConnect(BREthereumLightNode node,
         case LIGHT_NODE_CREATED:
         case LIGHT_NODE_DISCONNECTED:
         case LIGHT_NODE_ERRORED: {
-            if (0 != pthread_attr_init(&attr)) {
-                // Unable to initialize attr
-                node->state = LIGHT_NODE_ERRORED;
-                return ETHEREUM_BOOLEAN_FALSE;
-            } else if (0 != pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) ||
-                       0 != pthread_attr_setstacksize(&attr, PTHREAD_STACK_SIZE)) {
-                // Unable to fully setup the thread w/ task
-                node->state = LIGHT_NODE_ERRORED;
-                pthread_attr_destroy(&attr);
-                return ETHEREUM_BOOLEAN_FALSE;
-            }
-            else {
-                // CORE-41: Get the client set before lightNodeThreadRoutine(node) runs
-                node->client = client;
-                if  (0 != pthread_create(&node->thread, &attr, (ThreadRoutine) lightNodeThreadRoutine, node)) {
-                    node->client = nullClient;
-                    node->state = LIGHT_NODE_ERRORED;
-                    pthread_attr_destroy(&attr);
-                    return ETHEREUM_BOOLEAN_FALSE;
-                }
-            }
-
-            // Running
-            node->state = LIGHT_NODE_CONNECTING;
+            node->client = client;
+            node->state = LIGHT_NODE_CONNECTED;
             return ETHEREUM_BOOLEAN_TRUE;
         }
     }
@@ -245,7 +219,7 @@ lightNodeConnect(BREthereumLightNode node,
 
 extern BREthereumBoolean
 lightNodeDisconnect (BREthereumLightNode node) {
-    node->state = LIGHT_NODE_DISCONNECTING;
+    node->state = LIGHT_NODE_DISCONNECTED;
     return ETHEREUM_BOOLEAN_TRUE;
 }
 

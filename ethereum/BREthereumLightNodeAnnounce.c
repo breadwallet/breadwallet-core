@@ -30,8 +30,6 @@
 #include "BRArray.h"
 #include "BREthereumPrivate.h"
 #include "BREthereumLightNodePrivate.h"
-
-
 //
 //
 //
@@ -40,6 +38,8 @@ lightNodeAnnounceBalance (BREthereumLightNode node,
                           BREthereumWalletId wid,
                           const char *balance,
                           int rid) {
+    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
+
     BREthereumStatus eventStatus = SUCCESS;
     const char *eventErrorDescription = NULL;
 
@@ -47,29 +47,24 @@ lightNodeAnnounceBalance (BREthereumLightNode node,
     BRCoreParseStatus status;
     UInt256 value = createUInt256Parse(balance, 0, &status);
 
-    if (CORE_PARSE_OK != status) {
-        eventStatus = ERROR_NUMERIC_PARSE;
-    }
+    if (CORE_PARSE_OK != status)
+        lightNodeListenerAnnounceWalletEvent(node, wid, WALLET_EVENT_BALANCE_UPDATED,
+                                             ERROR_NUMERIC_PARSE,
+                                             NULL);
+
+    else if (NULL == wallet)
+        lightNodeListenerAnnounceWalletEvent(node, wid, WALLET_EVENT_BALANCE_UPDATED,
+                                             ERROR_UNKNOWN_WALLET,
+                                             NULL);
+
     else {
-        pthread_mutex_lock(&node->lock);
-
-        BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
-        if (NULL == wallet) {
-            eventStatus = ERROR_UNKNOWN_WALLET;
-        }
-        else {
-            BREthereumAmount amount = (AMOUNT_ETHER == walletGetAmountType(wallet)
-                                       ? amountCreateEther(etherCreate(value))
-                                       : amountCreateToken(
-                                                           createTokenQuantity(walletGetToken(wallet), value)));
-            walletSetBalance(wallet, amount);
-        }
-        pthread_mutex_unlock(&node->lock);
+        BREthereumAmount amount =
+        (AMOUNT_ETHER == walletGetAmountType(wallet)
+         ? amountCreateEther(etherCreate(value))
+         : amountCreateToken(createTokenQuantity(walletGetToken(wallet), value)));
+        
+        lightNodeHandleBalance(node, amount);
     }
-
-    lightNodeListenerAnnounceWalletEvent(node, wid, WALLET_EVENT_BALANCE_UPDATED,
-                                         eventStatus,
-                                         eventErrorDescription);
 }
 
 extern void
@@ -449,10 +444,11 @@ lightNodeAnnounceLog (BREthereumLightNode node,
     if (NULL == transaction) {
 
         // Parse the topic data - we fake it becasue we 'know' topics indices
-        BREthereumAddress sourceAddr = createAddress(
-                                                     eventERC20TransferDecodeAddress(event, arrayTopics[1]));
-        BREthereumAddress targetAddr = createAddress(
-                                                     eventERC20TransferDecodeAddress(event, arrayTopics[2]));
+        BREthereumAddress sourceAddr =
+        createAddress(eventERC20TransferDecodeAddress(event, arrayTopics[1]));
+
+        BREthereumAddress targetAddr =
+        createAddress(eventERC20TransferDecodeAddress(event, arrayTopics[2]));
 
         BRCoreParseStatus status = CORE_PARSE_OK;
 

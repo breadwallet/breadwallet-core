@@ -179,9 +179,120 @@ lightNodeListenerAnnounceTransactionEvent(BREthereumLightNode node,
     eventHandlerSignalEvent(node->handlerForListener, (BREvent*) &message);
 }
 
+//
+// Peer Event
+//
+typedef struct {
+    struct BREventRecord base;
+    BREthereumLightNode node;
+    // BREthereumWalletId wid;
+    // BREthereumTransactionId tid;
+    BREthereumPeerEvent event;
+    BREthereumStatus status;
+    const char *errorDescription;
+} BREthereumListenerPeerEvent;
+
+#define LISTENER_PEER_EVENT_INITIALIZER(node, /* wid, tid,*/ event, status, desc)  \
+{ { NULL, &listenerPeerEventType }, (node), /*(wid), (tid),*/ (event), (status), (desc) }
+
+static void
+lightNodeListenerPeerEventDispatcher(BREventHandler ignore,
+                                            BREthereumListenerPeerEvent *event) {
+    BREthereumLightNode node = event->node;
+
+    int count = (int) array_count(node->listeners);
+    for (int i = 0; i < count; i++) {
+        if (NULL != node->listeners[i].peerEventHandler)
+            node->listeners[i].peerEventHandler
+            (node->listeners[i].context,
+             node,
+             // event->wid,
+             // event->tid,
+             event->event,
+             event->status,
+             event->errorDescription);
+    }
+}
+
+BREventType listenerPeerEventType = {
+    "Listener Peer Event",
+    sizeof (BREthereumListenerPeerEvent),
+    (BREventDispatcher) lightNodeListenerPeerEventDispatcher
+};
+
+extern void
+lightNodeListenerAnnouncePeerEvent(BREthereumLightNode node,
+                                          // BREthereumWalletId wid,
+                                          // BREthereumTransactionId tid,
+                                          BREthereumPeerEvent event,
+                                          BREthereumStatus status,
+                                          const char *errorDescription) {
+    BREthereumListenerPeerEvent message =
+    LISTENER_PEER_EVENT_INITIALIZER (node, /* wid, tid,*/ event, status, errorDescription);
+    eventHandlerSignalEvent(node->handlerForListener, (BREvent*) &message);
+}
+
+//
+// LightNode Event
+//
+typedef struct {
+    struct BREventRecord base;
+    BREthereumLightNode node;
+    // BREthereumWalletId wid;
+    // BREthereumTransactionId tid;
+    BREthereumLightNodeEvent event;
+    BREthereumStatus status;
+    const char *errorDescription;
+} BREthereumListenerLightNodeEvent;
+
+#define LISTENER_LIGHT_NODE_EVENT_INITIALIZER(node, /* wid, tid,*/ event, status, desc)  \
+{ { NULL, &listenerLightNodeEventType }, (node), /*(wid), (tid),*/ (event), (status), (desc) }
+
+static void
+lightNodeListenerLightNodeEventDispatcher(BREventHandler ignore,
+                                          BREthereumListenerLightNodeEvent *event) {
+    BREthereumLightNode node = event->node;
+
+    int count = (int) array_count(node->listeners);
+    for (int i = 0; i < count; i++) {
+        if (NULL != node->listeners[i].lightNodeEventHandler)
+            node->listeners[i].lightNodeEventHandler
+            (node->listeners[i].context,
+             node,
+             //event->wid,
+             // event->tid,
+             event->event,
+             event->status,
+             event->errorDescription);
+    }
+}
+
+BREventType listenerLightNodeEventType = {
+    "Listener LightNode Event",
+    sizeof (BREthereumListenerLightNodeEvent),
+    (BREventDispatcher) lightNodeListenerLightNodeEventDispatcher
+};
+
+extern void
+lightNodeListenerAnnounceLightNodeEvent(BREthereumLightNode node,
+                                        // BREthereumWalletId wid,
+                                        // BREthereumTransactionId tid,
+                                        BREthereumLightNodeEvent event,
+                                        BREthereumStatus status,
+                                        const char *errorDescription) {
+    BREthereumListenerLightNodeEvent message =
+    LISTENER_LIGHT_NODE_EVENT_INITIALIZER (node, /* wid, tid,*/ event, status, errorDescription);
+    eventHandlerSignalEvent(node->handlerForListener, (BREvent*) &message);
+}
+
+//
+// All Listener Event Types
+//
 const BREventType *listenerEventTypes[] = {
     &listenerWalletEventType,
     &listenerBlockEventType,
-    &listenerTransactionEventType
+    &listenerTransactionEventType,
+    &listenerPeerEventType,
+    &listenerLightNodeEventType
 };
-const unsigned int listenerEventTypesCount = 3;
+const unsigned int listenerEventTypesCount = 5;
