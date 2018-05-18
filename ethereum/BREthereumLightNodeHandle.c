@@ -30,7 +30,6 @@
 #include "BRArray.h"
 #include "BREthereumPrivate.h"
 #include "BREthereumLightNodePrivate.h"
-#include "BREthereumTransactionStatus.h"
 
 //
 // Handle Balance

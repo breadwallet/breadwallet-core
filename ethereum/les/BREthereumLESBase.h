@@ -34,7 +34,7 @@
 #include <inttypes.h>
 #include "BRKey.h"
 #include "BRInt.h"
-#include "BREthereumBase.h"
+#include "../base/BREthereumBase.h"
 
 #ifdef __cplusplus
 extern "C" {

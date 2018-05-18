@@ -28,7 +28,7 @@
 
 #include <pthread.h>
 #include "BREthereumLightNode.h"
-#include "BREthereumTransactionStatus.h"
+#include "blockchain/BREthereumBlockChain.h"
 #include "event/BREvent.h"
 
 #ifdef __cplusplus

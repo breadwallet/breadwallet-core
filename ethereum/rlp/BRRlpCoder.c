@@ -28,7 +28,7 @@
 #include <memory.h>
 #include <assert.h>
 #include "BRRlpCoder.h"
-#include "BRUtil.h"
+#include "../util/BRUtil.h"
 
 static int
 rlpDecodeItemIsEmptyString (BRRlpCoder coder, BRRlpItem item);

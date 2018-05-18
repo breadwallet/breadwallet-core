@@ -36,7 +36,7 @@
 #include <string.h>
 #include "BREthereumNode.h"
 #include "BREthereumHandshake.h"
-#include "BREthereumBase.h"
+#include "../base/BREthereumBase.h"
 #include "BRKey.h"
 
 

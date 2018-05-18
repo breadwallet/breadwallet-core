@@ -27,9 +27,9 @@
 #define BR_Ethereum_NodeManager_h
 
 #include "BREthereumNode.h"
-#include "BREthereumNetwork.h"
-#include "BREthereumTransaction.h"
-#include "BREthereumBlock.h"
+#include "../blockchain/BREthereumNetwork.h"
+#include "../blockchain/BREthereumTransaction.h"
+#include "../blockchain/BREthereumBlock.h"
 #include "BREthereumLES.h"
 #include <inttypes.h>
 

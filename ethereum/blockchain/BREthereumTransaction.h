@@ -27,7 +27,7 @@
 #define BR_Ethereum_Transaction_H
 
 #include "../base/BREthereumBase.h"
-#include "../BREthereumAmount.h"
+#include "BREthereumAmount.h"
 #include "BREthereumNetwork.h"
 
 #ifdef __cplusplus

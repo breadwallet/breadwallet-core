@@ -28,7 +28,7 @@
 #include <string.h>
 #include <math.h>
 #include "BRUtil.h"
-#include "BRRlp.h"
+#include "../rlp/BRRlp.h"
 
 #define AS_UINT64(x)  ((uint64_t) (x))
 

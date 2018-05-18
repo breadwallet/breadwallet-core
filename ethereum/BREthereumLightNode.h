@@ -29,9 +29,9 @@
 #include <stdint.h>
 #include "BREthereum.h"
 #include "BREthereumAccount.h"
-#include "BREthereumTransaction.h"
-#include "BREthereumBlock.h"
-#include "BREthereumLog.h"
+#include "blockchain/BREthereumTransaction.h"
+#include "blockchain/BREthereumBlock.h"
+#include "blockchain/BREthereumLog.h"
 #include "BREthereumWallet.h"
 
 #ifdef __cplusplus

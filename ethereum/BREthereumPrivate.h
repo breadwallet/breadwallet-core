@@ -27,8 +27,8 @@
 #define BR_Ethereum_Private_H
 
 #include "BREthereum.h"
-#include "BREthereumTransaction.h"
-#include "BREthereumBlock.h"
+#include "blockchain/BREthereumTransaction.h"
+#include "blockchain/BREthereumBlock.h"
 #include "BREthereumWallet.h"
 
 // Returns Ether appropriate for encoding a transaction.  If the transaction is for a TOKEN,

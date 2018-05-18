@@ -34,6 +34,6 @@
 #include "BREthereumTransaction.h"
 #include "BREthereumTransactionStatus.h"
 #include "BREthereumTransactionReceipt.h"
-#include "BBREthereumBlock.h"
+#include "BREthereumBlock.h"
 
 #endif // BR_Ethereum_Blochchain_h

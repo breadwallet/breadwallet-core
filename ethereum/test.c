@@ -39,10 +39,7 @@
 #include "BREthereum.h"
 #include "BREthereumPrivate.h"
 #include "BREthereumAccount.h"
-#include "BREthereumTransactionReceipt.h"
-#include "BREthereumLog.h"
-#include "BREthereumAccountState.h"
-#include "BREthereumTransactionStatus.h"
+#include "blockchain/BREthereumBlockChain.h"
 
 static void
 showHex (uint8_t *source, size_t sourceLen) {

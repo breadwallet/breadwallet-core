@@ -25,25 +25,29 @@ ETH_SRCS=./util/BRUtilMath.c \
 	./rlp/BRRlpCoder.c \
 	./event/BREvent.c \
 	./event/BREventQueue.c \
-	./BREthereumAccount.c \
-	./BREthereumAmount.c \
-	./BREthereumBlock.c \
-	./BREthereumContract.c \
-	./BREthereumEther.c \
-	./BREthereumGas.c \
+        ./base/BREthereumEther.c \
+        ./base/BREthereumGas.c \
+        ./base/BREthereumHash.c \
+        ./base/BREthereumAddress.c \
+        ./base/BREthereumSignature.c \
+        ./contract/BREthereumToken.c \
+        ./contract/BREthereumContract.c \
+        ./blockchain/BREthereumNetwork.c \
+        ./blockchain/BREthereumAmount.c \
+        ./blockchain/BREthereumAccountState.c \
+        ./blockchain/BREthereumBloomFilter.c \
+        ./blockchain/BREthereumLog.c \
+        ./blockchain/BREthereumTransaction.c \
+        ./blockchain/BREthereumTransactionStatus.c \
+        ./blockchain/BREthereumTransactionReceipt.c \
+	./blockchain/BREthereumBlock.c \
 	./BREthereumLightNode.c \
 	./BREthereumLightNodeAnnounce.c \
-	./BREthereumLightNodeListen.c \
-	./BREthereumNetwork.c \
-	./BREthereumToken.c \
-	./BREthereumTransaction.c \
-	./BREthereumWallet.c \
-	./BREthereum.c \
-	./BREthereumHash.c \
-	./BREthereumLog.c \
-	./BREthereumBloomFilter.c \
-	./BREthereumAccountState.c \
-	./BREthereumTransactionReceipt.c \
+        ./BREthereumLightNodeListen.c \
+        ./BREthereumLightNodeHandle.c \
+        ./BREthereum.c \
+        ./BREthereumAccount.c \
+        ./BREthereumWallet.c \
 	./les/BREthereumFrameCoder.c \
 	./les/BREthereumHandshake.c \
 	./les/BREthereumLES.c \
@@ -60,7 +64,7 @@ test:	build
 build: clean
 	cc -o test -Wno-format-extra-args -Wno-nullability-completeness -Wno-unknown-warning-option \
 		-I/usr/include -I/usr/include/malloc -I/usr/include/machine -I../secp256k1 -I.. \
-		-I. -I./util -I./rlp -I./event -I./les -I../secp256k1/include \
+		-I. -I../secp256k1/include \
 		-DDEBUG -DTEST_ETHEREUM_NEED_MAIN $(CORE_SRCS) $(ETH_SRCS) les/test-les.c test.c -lc
 
 clean:
