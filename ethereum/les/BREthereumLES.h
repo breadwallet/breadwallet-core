@@ -27,7 +27,7 @@
 #define BR_Ethereum_LES_h
 
 #include <inttypes.h>
-#include "BREthereumBase.h"
+#include "../base/BREthereumBase.h"
 
 #ifdef __cplusplus
 extern "C" {

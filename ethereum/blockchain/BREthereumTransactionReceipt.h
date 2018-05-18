@@ -1,5 +1,5 @@
 //
-//  BREthereumLog.h
+//  BREthereumTransactionReceipt.h
 //  BRCore
 //
 //  Created by Ed Gamble on 5/10/18.
@@ -23,65 +23,34 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_Log_h
-#define BR_Ethereum_Log_h
+#ifndef BR_Ethereum_Transaction_Receipt_h
+#define BR_Ethereum_Transaction_Receipt_h
 
-#include "BREthereumBase.h"
-#include "BREthereumAccount.h"
+#include "../base/BREthereumBase.h"
 #include "BREthereumBloomFilter.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-    //
-    // Log Topic
-    //
-typedef struct {
-    uint8_t bytes[32];
-} BREthereumLogTopic;
+typedef struct BREthereumTransactionReceiptRecord *BREthereumTransactionReceipt;
 
-extern BREthereumBloomFilter
-logTopicGetBloomFilter (BREthereumLogTopic topic);
+extern BREthereumBoolean
+transactionReceiptMatch (BREthereumTransactionReceipt receipt,
+                         BREthereumBloomFilter filter);
 
-extern BREthereumBloomFilter
-logTopicGetBloomFilterAddress (BREthereumAddressRaw address);
+extern BREthereumBoolean
+transactionReceiptMatchAddress (BREthereumTransactionReceipt receipt,
+                                BREthereumAddress address);
 
-    //
-    // Log
-    //
-typedef struct BREthereumLogRecord *BREthereumLog;
-
-extern BREthereumAddressRaw
-logGetAddress (BREthereumLog log);
-
-extern size_t
-logGetTopicsCount (BREthereumLog log);
-
-extern  BREthereumLogTopic
-logGetTopic (BREthereumLog log, size_t index);
+extern BREthereumTransactionReceipt
+transactionReceiptDecodeRLP (BRRlpData data);
 
 extern BRRlpData
-logGetData (BREthereumLog log);
-    
-extern BREthereumLog
-logRlpDecodeItem (BRRlpItem item,
-                  BRRlpCoder coder);
-/**
- * [QUASI-INTERNAL - used by BREthereumBlock]
- */
-extern BRRlpItem
-logRlpEncodeItem(BREthereumLog log,
-                 BRRlpCoder coder);
-
-extern BRRlpData
-logEncodeRLP (BREthereumLog log);
-
-extern BREthereumLog
-logDecodeRLP (BRRlpData data);
+transactionReceiptEncodeRLP (BREthereumTransactionReceipt receipt);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* BR_Ethereum_Log_h */
+#endif /* BR_Ethereum_Transaction_Receipt_h */

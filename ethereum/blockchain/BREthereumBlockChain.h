@@ -1,8 +1,8 @@
 //
-//  BREthereumTransactionReceipt.h
+//  BREthereumBlockChain.h
 //  BRCore
 //
-//  Created by Ed Gamble on 5/10/18.
+//  Created by Ed Gamble on 5/17/18.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,35 +23,17 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_Transaction_Receipt_h
-#define BR_Ethereum_Transaction_Receipt_h
+#ifndef BR_Ethereum_Blochchain_h
+#define BR_Ethereum_Blochchain_h
 
-#include "BREthereumBase.h"
+#include "BREthereumNetwork.h"
+#include "BREthereumAmount.h"
+#include "BREthereumAccountState.h"
 #include "BREthereumBloomFilter.h"
 #include "BREthereumLog.h"
+#include "BREthereumTransaction.h"
+#include "BREthereumTransactionStatus.h"
+#include "BREthereumTransactionReceipt.h"
+#include "BREthereumBlock.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-typedef struct BREthereumTransactionReceiptRecord *BREthereumTransactionReceipt;
-
-extern BREthereumBoolean
-transactionReceiptMatch (BREthereumTransactionReceipt receipt,
-                     BREthereumBloomFilter filter);
-
-extern BREthereumBoolean
-transactionReceiptMatchAddress (BREthereumTransactionReceipt receipt,
-                                BREthereumAddressRaw address);
-
-extern BREthereumTransactionReceipt
-transactionReceiptDecodeRLP (BRRlpData data);
-
-extern BRRlpData
-transactionReceiptEncodeRLP (BREthereumTransactionReceipt receipt);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* BR_Ethereum_Transaction_Receipt_h */
+#endif // BR_Ethereum_Blochchain_h

@@ -33,7 +33,7 @@
 #include "secp256k1_ecdh.h"
 #include "secp256k1/src/hash.h"
 #include "BREthereumLESBase.h"
-#include "BREthereumBase.h"
+#include "../base/BREthereumBase.h"
 #include "BRCrypto.h"
 
 

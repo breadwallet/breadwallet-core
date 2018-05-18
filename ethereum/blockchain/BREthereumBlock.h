@@ -26,7 +26,7 @@
 #ifndef BR_Ethereum_Block_H
 #define BR_Ethereum_Block_H
 
-#include "BREthereumBase.h"
+#include "../base/BREthereumBase.h"
 #include "BREthereumTransaction.h"
 #include "BREthereumBloomFilter.h"
 
@@ -61,7 +61,7 @@ blockHeaderMatch (BREthereumBlockHeader header,
 
 extern BREthereumBoolean
 blockHeaderMatchAddress (BREthereumBlockHeader header,
-                   BREthereumAddressRaw address);
+                   BREthereumAddress address);
 
 //
 // Block

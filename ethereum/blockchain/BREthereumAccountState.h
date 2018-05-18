@@ -1,8 +1,8 @@
 //
-//  BREthereumLESBase.h
-//  breadwallet-core Ethereum
+//  BREthereumAccountState.h
+//  BRCore
 //
-//  Created by Lamont Samuels on 4/24/18.
+//  Created by Ed Gamble on 5/15/18.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,40 +23,37 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-/**
- *
- * Etheruem LES specific data structures & algorithms needed for the p2p network.
- *
- */
-#ifndef BR_Ethereum_LES_Base_h
-#define BR_Ethereum_LES_Base_h
+#ifndef BR_Ethereum_AccountState_H
+#define BR_Ethereum_AccountState_H
 
-#include <inttypes.h>
-#include "BRKey.h"
-#include "BRInt.h"
 #include "../base/BREthereumBase.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern BREthereumBoolean ethereumGenRandomPriKey(BRKey ** key);
+typedef struct BREthereumAccountStateRecord *BREthereumAccountState;
 
-extern UInt256 ethereumGetNonce(void); 
+extern uint64_t
+accountStateGetNonce (BREthereumAccountState state);
 
-extern BREthereumBoolean etheruemECDHAgree(BRKey* key, UInt512* pubKey, UInt256* outSecret);
+extern BREthereumEther
+accountStateGetBalance (BREthereumAccountState state);
 
-extern BREthereumBoolean ethereumEncryptECIES(UInt512* pubKey, uint8_t * plain, uint8_t * cipher, size_t len);
+extern BREthereumHash
+accountStateGetStorageRoot (BREthereumAccountState state);
 
-extern BREthereumBoolean ethereumDecryptECIES(UInt256* priKey, uint8_t * plain, uint8_t * cipher, size_t len);
+extern BREthereumHash
+accountStateGetCodeHash (BREthereumAccountState state);
 
-extern void ethereumXORBytes(uint8_t * op1, uint8_t* op2, uint8_t* result, size_t len);
+extern BRRlpItem
+accountStateRlpEncodeItem (BREthereumAccountState state, BRRlpCoder coder);
 
-
+extern BREthereumAccountState
+accountStateRlpDecodeItem (BRRlpItem item, BRRlpCoder coder);
 
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif /* BR_Ethereum_LES_Base_h */
+#endif /* BR_Ethereum_AccountState_H */

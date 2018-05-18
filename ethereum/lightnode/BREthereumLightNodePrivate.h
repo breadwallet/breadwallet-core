@@ -28,8 +28,8 @@
 
 #include <pthread.h>
 #include "BREthereumLightNode.h"
-#include "BREthereumTransactionStatus.h"
-#include "event/BREvent.h"
+#include "../blockchain/BREthereumBlockChain.h"
+#include "../event/BREvent.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,8 +1,8 @@
 //
-//  BREthereumLESBase.h
-//  breadwallet-core Ethereum
+//  BREthereumSignature.h
+//  BRCore
 //
-//  Created by Lamont Samuels on 4/24/18.
+//  Created by Ed Gamble on 5/17/18.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,40 +23,58 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-/**
- *
- * Etheruem LES specific data structures & algorithms needed for the p2p network.
- *
- */
-#ifndef BR_Ethereum_LES_Base_h
-#define BR_Ethereum_LES_Base_h
+#ifndef BR_Ethereum_Signature_H
+#define BR_Ethereum_Signature_H
 
-#include <inttypes.h>
-#include "BRKey.h"
-#include "BRInt.h"
-#include "../base/BREthereumBase.h"
+#include <stdlib.h>
+#include "BREthereumLogic.h"
+#include "BREthereumAddress.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern BREthereumBoolean ethereumGenRandomPriKey(BRKey ** key);
+//
+// Signature
+//
 
-extern UInt256 ethereumGetNonce(void); 
+typedef enum {
+    SIGNATURE_TYPE_FOO,
+    SIGNATURE_TYPE_RECOVERABLE
+} BREthereumSignatureType;
 
-extern BREthereumBoolean etheruemECDHAgree(BRKey* key, UInt512* pubKey, UInt256* outSecret);
+typedef struct {
+    BREthereumSignatureType type;
+    union {
+        struct {
+            int ignore;
+        } foo;
 
-extern BREthereumBoolean ethereumEncryptECIES(UInt512* pubKey, uint8_t * plain, uint8_t * cipher, size_t len);
+        struct {
+            uint8_t v;
+            uint8_t r[32];
+            uint8_t s[32];
+        } recoverable;
+    } sig;
+} BREthereumSignature;
 
-extern BREthereumBoolean ethereumDecryptECIES(UInt256* priKey, uint8_t * plain, uint8_t * cipher, size_t len);
+extern BREthereumSignature
+signatureCreate (BREthereumSignatureType type,
+                 uint8_t *bytes,
+                 size_t bytesCount,
+                 BRKey privateKeyUncompressed);
 
-extern void ethereumXORBytes(uint8_t * op1, uint8_t* op2, uint8_t* result, size_t len);
+extern BREthereumEncodedAddress
+signatureExtractAddress (const BREthereumSignature signature,
+                         const uint8_t *bytes,
+                         size_t bytesCount,
+                         int *success);
 
-
+extern BREthereumBoolean
+signatureEqual (BREthereumSignature s1, BREthereumSignature s2);
 
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif /* BR_Ethereum_LES_Base_h */
+#endif /* BR_Ethereum_Signature_H */

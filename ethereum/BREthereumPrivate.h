@@ -27,8 +27,8 @@
 #define BR_Ethereum_Private_H
 
 #include "BREthereum.h"
-#include "BREthereumTransaction.h"
-#include "BREthereumBlock.h"
+#include "blockchain/BREthereumTransaction.h"
+#include "blockchain/BREthereumBlock.h"
 #include "BREthereumWallet.h"
 
 // Returns Ether appropriate for encoding a transaction.  If the transaction is for a TOKEN,
@@ -75,11 +75,11 @@ walletHasTransaction (BREthereumWallet wallet,
 //
 
 private_extern void
-addressSetNonce(BREthereumAddress address,
+addressSetNonce(BREthereumEncodedAddress address,
                 uint64_t nonce);
 
 private_extern uint64_t
-addressGetThenIncrementNonce(BREthereumAddress address);
+addressGetThenIncrementNonce(BREthereumEncodedAddress address);
 
 //
 // Token Lookup

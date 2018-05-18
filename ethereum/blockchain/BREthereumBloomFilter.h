@@ -26,8 +26,7 @@
 #ifndef BR_Ethereum_Bloom_Filter_h
 #define BR_Ethereum_Bloom_Filter_h
 
-#include "BREthereumBase.h"
-#include "BREthereumAccount.h"
+#include "../base/BREthereumBase.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -81,7 +80,7 @@ bloomFilterCreateData (const BRRlpData data);
  * Create a BloomFilter from `address` - computes the hash of `address`
  */
 extern BREthereumBloomFilter
-bloomFilterCreateAddress (const BREthereumAddressRaw address);
+bloomFilterCreateAddress (const BREthereumAddress address);
 
 extern BREthereumBloomFilter
 bloomFilterOr (const BREthereumBloomFilter filter1, const BREthereumBloomFilter filter2);

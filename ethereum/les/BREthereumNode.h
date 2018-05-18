@@ -30,7 +30,7 @@
 #include <inttypes.h>
 #include <arpa/inet.h>
 #include "BRInt.h"
-#include "BREthereumBase.h"
+#include "../base/BREthereumBase.h"
 
 // Note:: Duplicated this logging code from Aaron's BRPeer.h file
 // TODO: May want to move this code into it's own library

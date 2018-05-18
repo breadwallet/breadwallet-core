@@ -26,12 +26,9 @@
 #ifndef BR_Ethereum_Wallet_H
 #define BR_Ethereum_Wallet_H
 
-#include "BREthereumEther.h"
-#include "BREthereumGas.h"
-#include "BREthereumAmount.h"
+#include "base/BREthereumBase.h"
+#include "blockchain/BREthereumBlockChain.h"
 #include "BREthereumAccount.h"
-#include "BREthereumNetwork.h"
-#include "BREthereumTransaction.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -70,7 +67,7 @@ walletCreate(BREthereumAccount account,
  */
 extern BREthereumWallet
 walletCreateWithAddress(BREthereumAccount account,
-                        BREthereumAddress address,
+                        BREthereumEncodedAddress address,
                         BREthereumNetwork network);
 
 /**
@@ -113,7 +110,7 @@ walletEstimateTransactionFeeDetailed (BREthereumWallet wallet,
  */
 extern BREthereumTransaction
 walletCreateTransaction(BREthereumWallet wallet,
-                        BREthereumAddress recvAddress,
+                        BREthereumEncodedAddress recvAddress,
                         BREthereumAmount amount);
 
 /**
@@ -137,7 +134,7 @@ walletCreateTransaction(BREthereumWallet wallet,
  */
 extern BREthereumTransaction
 walletCreateTransactionDetailed(BREthereumWallet wallet,
-                                BREthereumAddress recvAddress,
+                                BREthereumEncodedAddress recvAddress,
                                 BREthereumAmount amount,
                                 BREthereumGasPrice gasPrice,
                                 BREthereumGas gasLimit,
@@ -178,7 +175,7 @@ walletGetRawTransactionHexEncoded (BREthereumWallet wallet,
 /**
  *
  */
-extern BREthereumAddress
+extern BREthereumEncodedAddress
 walletGetAddress (BREthereumWallet wallet);
 
 /**

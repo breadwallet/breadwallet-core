@@ -26,7 +26,8 @@
 #ifndef BR_Ethereum_Transaction_Status_h
 #define BR_Ethereum_Transaction_Status_h
 
-#include "BREthereum.h"
+#include "../base/BREthereumBase.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

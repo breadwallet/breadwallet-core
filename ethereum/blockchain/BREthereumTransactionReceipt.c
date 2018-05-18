@@ -26,6 +26,7 @@
 #include <string.h>
 #include <assert.h>
 #include "BRArray.h"
+#include "BREthereumLog.h"
 #include "BREthereumTransactionReceipt.h"
 
 // The transaction receipt, R, is a tuple of four items comprising: ...
@@ -58,7 +59,7 @@ transactionReceiptMatch (BREthereumTransactionReceipt receipt,
 
 extern BREthereumBoolean
 transactionReceiptMatchAddress (BREthereumTransactionReceipt receipt,
-                                BREthereumAddressRaw address) {
+                                BREthereumAddress address) {
     return transactionReceiptMatch(receipt, logTopicGetBloomFilterAddress(address));
 }
 

@@ -26,8 +26,7 @@
 #ifndef BR_Ethereum_Token_H
 #define BR_Ethereum_Token_H
 
-#include "BREthereumEther.h"
-#include "BREthereumGas.h"
+#include "../base/BREthereumBase.h"
 #include "BREthereumContract.h"
 
 #ifdef __cplusplus
