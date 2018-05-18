@@ -28,8 +28,8 @@
 #include "BREthereum.h"
 #include "blockchain/BREthereumTransaction.h"
 #include "blockchain/BREthereumBlock.h"
+#include "lightnode/BREthereumLightNode.h"
 #include "BREthereumWallet.h"
-#include "BREthereumLightNode.h"
 
 //
 //

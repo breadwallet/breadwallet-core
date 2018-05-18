@@ -41,20 +41,20 @@ ETH_SRCS=./util/BRUtilMath.c \
         ./blockchain/BREthereumTransactionStatus.c \
         ./blockchain/BREthereumTransactionReceipt.c \
 	./blockchain/BREthereumBlock.c \
-	./BREthereumLightNode.c \
-	./BREthereumLightNodeAnnounce.c \
-        ./BREthereumLightNodeListen.c \
-        ./BREthereumLightNodeHandle.c \
-        ./BREthereum.c \
+        ./les/BREthereumFrameCoder.c \
+        ./les/BREthereumHandshake.c \
+        ./les/BREthereumLES.c \
+        ./les/BREthereumLESBase.c \
+        ./les/BREthereumNode.c \
+        ./les/BREthereumNodeEventHandler.c \
+        ./les/BREthereumNodeManager.c \
+	./lightnode/BREthereumLightNode.c \
+	./lightnode/BREthereumLightNodeAnnounce.c \
+        ./lightnode/BREthereumLightNodeListen.c \
+        ./lightnode/BREthereumLightNodeHandle.c \
         ./BREthereumAccount.c \
         ./BREthereumWallet.c \
-	./les/BREthereumFrameCoder.c \
-	./les/BREthereumHandshake.c \
-	./les/BREthereumLES.c \
-	./les/BREthereumLESBase.c \
-	./les/BREthereumNode.c \
-	./les/BREthereumNodeEventHandler.c \
-	./les/BREthereumNodeManager.c
+        ./BREthereum.c
 
 ETH_OBJS=$(ETH_SRCS:.c=.o)
 
@@ -65,7 +65,8 @@ build: clean
 	cc -o test -Wno-format-extra-args -Wno-nullability-completeness -Wno-unknown-warning-option \
 		-I/usr/include -I/usr/include/malloc -I/usr/include/machine -I../secp256k1 -I.. \
 		-I. -I../secp256k1/include \
-		-DDEBUG -DTEST_ETHEREUM_NEED_MAIN $(CORE_SRCS) $(ETH_SRCS) les/test-les.c test.c -lc
+		-DDEBUG -DBITCOIN_DEBUG=1 -DTEST_ETHEREUM_NEED_MAIN \
+                $(CORE_SRCS) $(ETH_SRCS) les/test-les.c test.c -lc
 
 clean:
 	rm -rf $(CORE_OBJS) $(ETH_OBJS)

@@ -35,7 +35,7 @@
 
 #include "BREthereumPrivate.h"
 #include "BREthereumLightNodePrivate.h"
-#include "event/BREvent.h"
+#include "../event/BREvent.h"
 
 #define LIGHT_NODE_SLEEP_SECONDS (5)
 
