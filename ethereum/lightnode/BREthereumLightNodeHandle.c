@@ -117,8 +117,24 @@ static void
 lightNodeHandleTransactionStatusEventDispatcher(BREventHandler ignore,
                                                 BREthereumHandleTransactionStatusEvent *event) {
     BREthereumLightNode node = event->node;
+    BREthereumTransaction transaction = lightNodeLookupTransactionByHash(node, event->transactionHash);
 
+    if (NULL == transaction) return;
 
+    switch (event->status.type) {
+        case TRANSACTION_STATUS_ERROR:
+        case TRANSACTION_STATUS_QUEUED:
+        case TRANSACTION_STATUS_PENDING:
+        case TRANSACTION_STATUS_UNKNOWN:
+            break;
+        case TRANSACTION_STATUS_INCLUDED: {
+            BREthereumBlock block = lightNodeLookupBlockByHash(node, event->status.u.included.blockHash);
+            if (NULL == block) return;
+
+            
+        }
+
+    }
     //    BREthereumAddress address = accountGetPrimaryAddress(lightNodeGetAccount(node));
     //    addressSetNonce(address, event->nonce);
 
