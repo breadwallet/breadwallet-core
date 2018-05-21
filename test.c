@@ -367,34 +367,34 @@ int BRHashTests()
     s = "Free online SHA1 Calculator, type text here...";
     BRSHA1(md, s, strlen(s));
     if (! UInt160Eq(*(UInt160 *)"\x6f\xc2\xe2\x51\x72\xcb\x15\x19\x3c\xb1\xc6\xd4\x8f\x60\x7d\x42\xc1\xd2\xa2\x15",
-                    *(UInt160 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRSHA1() test 1\n", __func__);
+                    *(UInt160 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRSHA1() test 1", __func__);
         
     s = "this is some text to test the sha1 implementation with more than 64bytes of data since it's internal digest "
         "buffer is 64bytes in size";
     BRSHA1(md, s, strlen(s));
     if (! UInt160Eq(*(UInt160 *)"\x08\x51\x94\x65\x8a\x92\x35\xb2\x95\x1a\x83\xd1\xb8\x26\xb9\x87\xe9\x38\x5a\xa3",
-                    *(UInt160 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRSHA1() test 2\n", __func__);
+                    *(UInt160 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRSHA1() test 2", __func__);
         
     s = "123456789012345678901234567890123456789012345678901234567890";
     BRSHA1(md, s, strlen(s));
     if (! UInt160Eq(*(UInt160 *)"\x24\x5b\xe3\x00\x91\xfd\x39\x2f\xe1\x91\xf4\xbf\xce\xc2\x2d\xcb\x30\xa0\x3a\xe6",
-                    *(UInt160 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRSHA1() test 3\n", __func__);
+                    *(UInt160 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRSHA1() test 3", __func__);
     
     // a message exactly 64bytes long (internal buffer size)
     s = "1234567890123456789012345678901234567890123456789012345678901234";
     BRSHA1(md, s, strlen(s));
     if (! UInt160Eq(*(UInt160 *)"\xc7\x14\x90\xfc\x24\xaa\x3d\x19\xe1\x12\x82\xda\x77\x03\x2d\xd9\xcd\xb3\x31\x03",
-                    *(UInt160 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRSHA1() test 4\n", __func__);
+                    *(UInt160 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRSHA1() test 4", __func__);
     
     s = ""; // empty
     BRSHA1(md, s, strlen(s));
     if (! UInt160Eq(*(UInt160 *)"\xda\x39\xa3\xee\x5e\x6b\x4b\x0d\x32\x55\xbf\xef\x95\x60\x18\x90\xaf\xd8\x07\x09",
-                    *(UInt160 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRSHA1() test 5\n", __func__);
+                    *(UInt160 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRSHA1() test 5", __func__);
     
     s = "a";
     BRSHA1(md, s, strlen(s));
     if (! UInt160Eq(*(UInt160 *)"\x86\xf7\xe4\x37\xfa\xa5\xa7\xfc\xe1\x5d\x1d\xdc\xb9\xea\xea\xea\x37\x76\x67\xb8",
-                    *(UInt160 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRSHA1() test 6\n", __func__);
+                    *(UInt160 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRSHA1() test 6", __func__);
 
     // test sha256
     
@@ -402,39 +402,39 @@ int BRHashTests()
     BRSHA256(md, s, strlen(s));
     if (! UInt256Eq(*(UInt256 *)"\x43\xfd\x9d\xeb\x93\xf6\xe1\x4d\x41\x82\x66\x04\x51\x4e\x3d\x78\x73\xa5\x49\xac"
                     "\x87\xae\xbe\xbf\x3d\x1c\x10\xad\x6e\xb0\x57\xd0", *(UInt256 *)md))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRSHA256() test 1\n", __func__);
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRSHA256() test 1", __func__);
         
     s = "this is some text to test the sha256 implementation with more than 64bytes of data since it's internal "
         "digest buffer is 64bytes in size";
     BRSHA256(md, s, strlen(s));
     if (! UInt256Eq(*(UInt256 *)"\x40\xfd\x09\x33\xdf\x2e\x77\x47\xf1\x9f\x7d\x39\xcd\x30\xe1\xcb\x89\x81\x0a\x7e"
                     "\x47\x06\x38\xa5\xf6\x23\x66\x9f\x3d\xe9\xed\xd4", *(UInt256 *)md))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRSHA256() test 2\n", __func__);
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRSHA256() test 2", __func__);
     
     s = "123456789012345678901234567890123456789012345678901234567890";
     BRSHA256(md, s, strlen(s));
     if (! UInt256Eq(*(UInt256 *)"\xde\xcc\x53\x8c\x07\x77\x86\x96\x6a\xc8\x63\xb5\x53\x2c\x40\x27\xb8\x58\x7f\xf4"
                     "\x0f\x6e\x31\x03\x37\x9a\xf6\x2b\x44\xea\xe4\x4d", *(UInt256 *)md))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRSHA256() test 3\n", __func__);
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRSHA256() test 3", __func__);
     
     // a message exactly 64bytes long (internal buffer size)
     s = "1234567890123456789012345678901234567890123456789012345678901234";
     BRSHA256(md, s, strlen(s));
     if (! UInt256Eq(*(UInt256 *)"\x67\x64\x91\x96\x5e\xd3\xec\x50\xcb\x7a\x63\xee\x96\x31\x54\x80\xa9\x5c\x54\x42"
                     "\x6b\x0b\x72\xbc\xa8\xa0\xd4\xad\x12\x85\xad\x55", *(UInt256 *)md))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRSHA256() test 4\n", __func__);
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRSHA256() test 4", __func__);
     
     s = ""; // empty
     BRSHA256(md, s, strlen(s));
     if (! UInt256Eq(*(UInt256 *)"\xe3\xb0\xc4\x42\x98\xfc\x1c\x14\x9a\xfb\xf4\xc8\x99\x6f\xb9\x24\x27\xae\x41\xe4"
                     "\x64\x9b\x93\x4c\xa4\x95\x99\x1b\x78\x52\xb8\x55", *(UInt256 *)md))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRSHA256() test 5\n", __func__);
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRSHA256() test 5", __func__);
     
     s = "a";
     BRSHA256(md, s, strlen(s));
     if (! UInt256Eq(*(UInt256 *)"\xca\x97\x81\x12\xca\x1b\xbd\xca\xfa\xc2\x31\xb3\x9a\x23\xdc\x4d\xa7\x86\xef\xf8"
                     "\x14\x7c\x4e\x72\xb9\x80\x77\x85\xaf\xee\x48\xbb", *(UInt256 *)md))
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRSHA256() test 6\n", __func__);
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: BRSHA256() test 6", __func__);
 
     // test sha512
     
@@ -443,7 +443,7 @@ int BRHashTests()
     if (! UInt512Eq(*(UInt512 *)"\x04\xf1\x15\x41\x35\xee\xcb\xe4\x2e\x9a\xdc\x8e\x1d\x53\x2f\x9c\x60\x7a\x84\x47"
                     "\xb7\x86\x37\x7d\xb8\x44\x7d\x11\xa5\xb2\x23\x2c\xdd\x41\x9b\x86\x39\x22\x4f\x78\x7a\x51"
                     "\xd1\x10\xf7\x25\x91\xf9\x64\x51\xa1\xbb\x51\x1c\x4a\x82\x9e\xd0\xa2\xec\x89\x13\x21\xf3",
-                    *(UInt512 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRSHA512() test 1\n", __func__);
+                    *(UInt512 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRSHA512() test 1", __func__);
     
     s = "this is some text to test the sha512 implementation with more than 128bytes of data since it's internal "
         "digest buffer is 128bytes in size";
@@ -451,7 +451,7 @@ int BRHashTests()
     if (! UInt512Eq(*(UInt512 *)"\x9b\xd2\xdc\x7b\x05\xfb\xbe\x99\x34\xcb\x32\x89\xb6\xe0\x6b\x8c\xa9\xfd\x7a\x55"
                     "\xe6\xde\x5d\xb7\xe1\xe4\xee\xdd\xc6\x62\x9b\x57\x53\x07\x36\x7c\xd0\x18\x3a\x44\x61\xd7"
                     "\xeb\x2d\xfc\x6a\x27\xe4\x1e\x8b\x70\xf6\x59\x8e\xbc\xc7\x71\x09\x11\xd4\xfb\x16\xa3\x90",
-                    *(UInt512 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRSHA512() test 2\n", __func__);
+                    *(UInt512 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRSHA512() test 2", __func__);
     
     s = "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567"
         "8901234567890";
@@ -459,7 +459,7 @@ int BRHashTests()
     if (! UInt512Eq(*(UInt512 *)"\x0d\x9a\x7d\xf5\xb6\xa6\xad\x20\xda\x51\x9e\xff\xda\x88\x8a\x73\x44\xb6\xc0\xc7"
                     "\xad\xcc\x8e\x2d\x50\x4b\x4a\xf2\x7a\xaa\xac\xd4\xe7\x11\x1c\x71\x3f\x71\x76\x95\x39\x62"
                     "\x94\x63\xcb\x58\xc8\x61\x36\xc5\x21\xb0\x41\x4a\x3c\x0e\xdf\x7d\xc6\x34\x9c\x6e\xda\xf3",
-                    *(UInt512 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRSHA512() test 3\n", __func__);
+                    *(UInt512 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRSHA512() test 3", __func__);
     
     //exactly 128bytes (internal buf size)
     s = "12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567"
@@ -468,89 +468,89 @@ int BRHashTests()
     if (! UInt512Eq(*(UInt512 *)"\x22\x2b\x2f\x64\xc2\x85\xe6\x69\x96\x76\x9b\x5a\x03\xef\x86\x3c\xfd\x3b\x63\xdd"
                     "\xb0\x72\x77\x88\x29\x16\x95\xe8\xfb\x84\x57\x2e\x4b\xfe\x5a\x80\x67\x4a\x41\xfd\x72\xee"
                     "\xb4\x85\x92\xc9\xc7\x9f\x44\xae\x99\x2c\x76\xed\x1b\x0d\x55\xa6\x70\xa8\x3f\xc9\x9e\xc6",
-                    *(UInt512 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRSHA512() test 4\n", __func__);
+                    *(UInt512 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRSHA512() test 4", __func__);
     
     s = ""; // empty
     BRSHA512(md, s, strlen(s));
     if (! UInt512Eq(*(UInt512 *)"\xcf\x83\xe1\x35\x7e\xef\xb8\xbd\xf1\x54\x28\x50\xd6\x6d\x80\x07\xd6\x20\xe4\x05"
                     "\x0b\x57\x15\xdc\x83\xf4\xa9\x21\xd3\x6c\xe9\xce\x47\xd0\xd1\x3c\x5d\x85\xf2\xb0\xff\x83"
                     "\x18\xd2\x87\x7e\xec\x2f\x63\xb9\x31\xbd\x47\x41\x7a\x81\xa5\x38\x32\x7a\xf9\x27\xda\x3e",
-                    *(UInt512 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRSHA512() test 5\n", __func__);
+                    *(UInt512 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRSHA512() test 5", __func__);
     
     s = "a";
     BRSHA512(md, s, strlen(s));
     if (! UInt512Eq(*(UInt512 *)"\x1f\x40\xfc\x92\xda\x24\x16\x94\x75\x09\x79\xee\x6c\xf5\x82\xf2\xd5\xd7\xd2\x8e"
                     "\x18\x33\x5d\xe0\x5a\xbc\x54\xd0\x56\x0e\x0f\x53\x02\x86\x0c\x65\x2b\xf0\x8d\x56\x02\x52"
                     "\xaa\x5e\x74\x21\x05\x46\xf3\x69\xfb\xbb\xce\x8c\x12\xcf\xc7\x95\x7b\x26\x52\xfe\x9a\x75",
-                    *(UInt512 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRSHA512() test 6\n", __func__);
+                    *(UInt512 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRSHA512() test 6", __func__);
     
     // test ripemd160
     
     s = "Free online RIPEMD160 Calculator, type text here...";
     BRRMD160(md, s, strlen(s));
     if (! UInt160Eq(*(UInt160 *)"\x95\x01\xa5\x6f\xb8\x29\x13\x2b\x87\x48\xf0\xcc\xc4\x91\xf0\xec\xbc\x7f\x94\x5b",
-                    *(UInt160 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRRMD160() test 1\n", __func__);
+                    *(UInt160 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRRMD160() test 1", __func__);
     
     s = "this is some text to test the ripemd160 implementation with more than 64bytes of data since it's internal "
         "digest buffer is 64bytes in size";
     BRRMD160(md, s, strlen(s));
     if (! UInt160Eq(*(UInt160 *)"\x44\x02\xef\xf4\x21\x57\x10\x6a\x5d\x92\xe4\xd9\x46\x18\x58\x56\xfb\xc5\x0e\x09",
-                    *(UInt160 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRRMD160() test 2\n", __func__);
+                    *(UInt160 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRRMD160() test 2", __func__);
     
     s = "123456789012345678901234567890123456789012345678901234567890";
     BRRMD160(md, s, strlen(s));
     if (! UInt160Eq(*(UInt160 *)"\x00\x26\x3b\x99\x97\x14\xe7\x56\xfa\x5d\x02\x81\x4b\x84\x2a\x26\x34\xdd\x31\xac",
-                    *(UInt160 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRRMD160() test 3\n", __func__);
+                    *(UInt160 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRRMD160() test 3", __func__);
     
     // a message exactly 64bytes long (internal buffer size)
     s = "1234567890123456789012345678901234567890123456789012345678901234";
     BRRMD160(md, s, strlen(s));
     if (! UInt160Eq(*(UInt160 *)"\xfa\x8c\x1a\x78\xeb\x76\x3b\xb9\x7d\x5e\xa1\x4c\xe9\x30\x3d\x1c\xe2\xf3\x34\x54",
-                    *(UInt160 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRRMD160() test 4\n", __func__);
+                    *(UInt160 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRRMD160() test 4", __func__);
     
     s = ""; // empty
     BRRMD160(md, s, strlen(s));
     if (! UInt160Eq(*(UInt160 *)"\x9c\x11\x85\xa5\xc5\xe9\xfc\x54\x61\x28\x08\x97\x7e\xe8\xf5\x48\xb2\x25\x8d\x31",
-                    *(UInt160 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRRMD160() test 5\n", __func__);
+                    *(UInt160 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRRMD160() test 5", __func__);
     
     s = "a";
     BRRMD160(md, s, strlen(s));
     if (! UInt160Eq(*(UInt160 *)"\x0b\xdc\x9d\x2d\x25\x6b\x3e\xe9\xda\xae\x34\x7b\xe6\xf4\xdc\x83\x5a\x46\x7f\xfe",
-                    *(UInt160 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRRMD160() test 6\n", __func__);
+                    *(UInt160 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRRMD160() test 6", __func__);
 
     // test md5
     
     s = "Free online MD5 Calculator, type text here...";
     BRMD5(md, s, strlen(s));
     if (! UInt128Eq(*(UInt128 *)"\x0b\x3b\x20\xea\xf1\x69\x64\x62\xf5\x0d\x1a\x3b\xbd\xd3\x0c\xef",
-                    *(UInt128 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRMD5() test 1\n", __func__);
+                    *(UInt128 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRMD5() test 1", __func__);
     
     s = "this is some text to test the md5 implementation with more than 64bytes of data since it's internal digest "
           "buffer is 64bytes in size";
     BRMD5(md, s, strlen(s));
     if (! UInt128Eq(*(UInt128 *)"\x56\xa1\x61\xf2\x41\x50\xc6\x2d\x78\x57\xb7\xf3\x54\x92\x7e\xbe",
-                    *(UInt128 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRMD5() test 2\n", __func__);
+                    *(UInt128 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRMD5() test 2", __func__);
     
     s = "123456789012345678901234567890123456789012345678901234567890";
     BRMD5(md, s, strlen(s));
     if (! UInt128Eq(*(UInt128 *)"\xc5\xb5\x49\x37\x7c\x82\x6c\xc3\x71\x24\x18\xb0\x64\xfc\x41\x7e",
-                    *(UInt128 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRMD5() test 3\n", __func__);
+                    *(UInt128 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRMD5() test 3", __func__);
     
     // a message exactly 64bytes long (internal buffer size)
     s = "1234567890123456789012345678901234567890123456789012345678901234";
     BRMD5(md, s, strlen(s));
     if (! UInt128Eq(*(UInt128 *)"\xeb\x6c\x41\x79\xc0\xa7\xc8\x2c\xc2\x82\x8c\x1e\x63\x38\xe1\x65",
-                    *(UInt128 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRMD5() test 4\n", __func__);
+                    *(UInt128 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRMD5() test 4", __func__);
     
     s = ""; // empty
     BRMD5(md, s, strlen(s));
     if (! UInt128Eq(*(UInt128 *)"\xd4\x1d\x8c\xd9\x8f\x00\xb2\x04\xe9\x80\x09\x98\xec\xf8\x42\x7e",
-                    *(UInt128 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRMD5() test 5\n", __func__);
+                    *(UInt128 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRMD5() test 5", __func__);
     
     s = "a";
     BRMD5(md, s, strlen(s));
     if (! UInt128Eq(*(UInt128 *)"\x0c\xc1\x75\xb9\xc0\xf1\xb6\xa8\x31\xc3\x99\xe2\x69\x77\x26\x61",
-                    *(UInt128 *)md)) r = 0, fprintf(stderr, "***FAILED*** %s: BRMD5() test 6\n", __func__);
+                    *(UInt128 *)md)) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRMD5() test 6", __func__);
     
     // test sha3-256
     
@@ -558,20 +558,20 @@ int BRHashTests()
     BRSHA3_256(md, s, strlen(s));
     if (! UInt256Eq(*(UInt256 *)"\xa7\xff\xc6\xf8\xbf\x1e\xd7\x66\x51\xc1\x47\x56\xa0\x61\xd6\x62\xf5\x80\xff\x4d\xe4"
                     "\x3b\x49\xfa\x82\xd8\x0a\x4b\x80\xf8\x43\x4a", *(UInt256 *)md))
-        r = 0, fprintf(stderr, "***FAILED*** %s: SHA3-256() test 7\n", __func__);
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: SHA3-256() test 7", __func__);
     
     s = "abc";
     BRSHA3_256(md, s, strlen(s));
     if (! UInt256Eq(*(UInt256 *)"\x3a\x98\x5d\xa7\x4f\xe2\x25\xb2\x04\x5c\x17\x2d\x6b\xd3\x90\xbd\x85\x5f\x08\x6e\x3e"
                     "\x9d\x52\x5b\x46\xbf\xe2\x45\x11\x43\x15\x32", *(UInt256 *)md))
-        r = 0, fprintf(stderr, "***FAILED*** %s: SHA3-256() test 8\n", __func__);
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: SHA3-256() test 8", __func__);
     
     s =
     "abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu";
     BRSHA3_256(md, s, strlen(s));
     if (! UInt256Eq(*(UInt256 *)"\x91\x6f\x60\x61\xfe\x87\x97\x41\xca\x64\x69\xb4\x39\x71\xdf\xdb\x28\xb1\xa3\x2d\xc3"
                     "\x6c\xb3\x25\x4e\x81\x2b\xe2\x7a\xad\x1d\x18", *(UInt256 *)md))
-        r = 0, fprintf(stderr, "***FAILED*** %s: SHA3-256() test 9\n", __func__);
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: SHA3-256() test 9", __func__);
     
     // test keccak-256
     
@@ -579,8 +579,9 @@ int BRHashTests()
     BRKeccak256(md, s, strlen(s));
     if (! UInt256Eq(*(UInt256 *)"\xc5\xd2\x46\x01\x86\xf7\x23\x3c\x92\x7e\x7d\xb2\xdc\xc7\x03\xc0\xe5\x00\xb6\x53\xca"
                     "\x82\x27\x3b\x7b\xfa\xd8\x04\x5d\x85\xa4\x70", *(UInt256 *)md))
-        r = 0, fprintf(stderr, "***FAILED*** %s: Keccak-256() test 10\n", __func__);
+        r = 0, fprintf(stderr, "\n***FAILED*** %s: Keccak-256() test 10", __func__);
     
+    if (! r) fprintf(stderr, "\n                                    ");
     return r;
 }
 
@@ -879,7 +880,7 @@ int BRDrbgTests()
     return r;
 }
 
-int BRCypherTests()
+int BRChachaTests()
 {
     int r = 1;
     const char key[] = "\0\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16"
@@ -887,7 +888,7 @@ int BRCypherTests()
     iv[] = "\0\0\0\x4a\0\0\0\0",
     msg[] = "Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen "
     "would be it.",
-    cypher[] = "\x6e\x2e\x35\x9a\x25\x68\xf9\x80\x41\xba\x07\x28\xdd\x0d\x69\x81\xe9\x7e\x7a\xec\x1d\x43\x60\xc2\x0a"
+    cipher[] = "\x6e\x2e\x35\x9a\x25\x68\xf9\x80\x41\xba\x07\x28\xdd\x0d\x69\x81\xe9\x7e\x7a\xec\x1d\x43\x60\xc2\x0a"
     "\x27\xaf\xcc\xfd\x9f\xae\x0b\xf9\x1b\x65\xc5\x52\x47\x33\xab\x8f\x59\x3d\xab\xcd\x62\xb3\x57\x16\x39\xd6\x24\xe6"
     "\x51\x52\xab\x8f\x53\x0c\x35\x9f\x08\x61\xd8\x07\xca\x0d\xbf\x50\x0d\x6a\x61\x56\xa3\x8e\x08\x8a\x22\xb6\x5e\x52"
     "\xbc\x51\x4d\x16\xcc\xf8\x06\x81\x8c\xe9\x1a\xb7\x79\x37\x36\x5a\xf9\x0b\xbf\x74\xa3\x5b\xe6\xb4\x0b\x8e\xed\xf2"
@@ -895,29 +896,29 @@ int BRCypherTests()
     uint8_t out[sizeof(msg) - 1];
 
     BRChacha20(out, key, iv, msg, sizeof(msg) - 1, 1);
-    if (memcmp(cypher, out, sizeof(out)) != 0)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() cypher test 0\n", __func__);
+    if (memcmp(cipher, out, sizeof(out)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() cipher test 0\n", __func__);
 
     BRChacha20(out, key, iv, out, sizeof(out), 1);
     if (memcmp(msg, out, sizeof(out)) != 0)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() de-cypher test 0\n", __func__);
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() de-cipher test 0\n", __func__);
 
     const char key1[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0",
     iv1[] = "\0\0\0\0\0\0\0\0",
     msg1[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
     "\0\0\0\0\0\0\0\0\0\0\0\0",
-    cypher1[] = "\x76\xb8\xe0\xad\xa0\xf1\x3d\x90\x40\x5d\x6a\xe5\x53\x86\xbd\x28\xbd\xd2\x19\xb8\xa0\x8d\xed\x1a\xa8"
+    cipher1[] = "\x76\xb8\xe0\xad\xa0\xf1\x3d\x90\x40\x5d\x6a\xe5\x53\x86\xbd\x28\xbd\xd2\x19\xb8\xa0\x8d\xed\x1a\xa8"
     "\x36\xef\xcc\x8b\x77\x0d\xc7\xda\x41\x59\x7c\x51\x57\x48\x8d\x77\x24\xe0\x3f\xb8\xd8\x4a\x37\x6a\x43\xb8\xf4\x15"
     "\x18\xa1\x1c\xc3\x87\xb6\x69\xb2\xee\x65\x86";
     uint8_t out1[sizeof(msg1) - 1];
     
     BRChacha20(out1, key1, iv1, msg1, sizeof(msg1) - 1, 0);
-    if (memcmp(cypher1, out1, sizeof(out1)) != 0)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() cypher test 1\n", __func__);
+    if (memcmp(cipher1, out1, sizeof(out1)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() cipher test 1\n", __func__);
     
     BRChacha20(out1, key1, iv1, out1, sizeof(out1), 0);
     if (memcmp(msg1, out1, sizeof(out1)) != 0)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() de-cypher test 1\n", __func__);
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() de-cipher test 1\n", __func__);
 
     const char key2[] = "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\x01",
     iv2[] = "\0\0\0\0\0\0\0\x02",
@@ -925,7 +926,7 @@ int BRCypherTests()
     "Internet-Draft or RFC and any statement made within the context of an IETF activity is considered an \"IETF "
     "Contribution\". Such statements include oral statements in IETF sessions, as well as written and electronic "
     "communications made at any time or place, which are addressed to",
-    cypher2[] = "\xa3\xfb\xf0\x7d\xf3\xfa\x2f\xde\x4f\x37\x6c\xa2\x3e\x82\x73\x70\x41\x60\x5d\x9f\x4f\x4f\x57\xbd\x8c"
+    cipher2[] = "\xa3\xfb\xf0\x7d\xf3\xfa\x2f\xde\x4f\x37\x6c\xa2\x3e\x82\x73\x70\x41\x60\x5d\x9f\x4f\x4f\x57\xbd\x8c"
     "\xff\x2c\x1d\x4b\x79\x55\xec\x2a\x97\x94\x8b\xd3\x72\x29\x15\xc8\xf3\xd3\x37\xf7\xd3\x70\x05\x0e\x9e\x96\xd6\x47"
     "\xb7\xc3\x9f\x56\xe0\x31\xca\x5e\xb6\x25\x0d\x40\x42\xe0\x27\x85\xec\xec\xfa\x4b\x4b\xb5\xe8\xea\xd0\x44\x0e\x20"
     "\xb6\xe8\xdb\x09\xd8\x81\xa7\xc6\x13\x2f\x42\x0e\x52\x79\x50\x42\xbd\xfa\x77\x73\xd8\xa9\x05\x14\x47\xb3\x29\x1c"
@@ -942,19 +943,19 @@ int BRCypherTests()
     uint8_t out2[sizeof(msg2) - 1];
     
     BRChacha20(out2, key2, iv2, msg2, sizeof(msg2) - 1, 1);
-    if (memcmp(cypher2, out2, sizeof(out2)) != 0)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() cypher test 2\n", __func__);
+    if (memcmp(cipher2, out2, sizeof(out2)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() cipher test 2\n", __func__);
     
     BRChacha20(out2, key2, iv2, out2, sizeof(out2), 1);
     if (memcmp(msg2, out2, sizeof(out2)) != 0)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() de-cypher test 2\n", __func__);
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() de-cipher test 2\n", __func__);
     
     const char key3[] = "\x1c\x92\x40\xa5\xeb\x55\xd3\x8a\xf3\x33\x88\x86\x04\xf6\xb5\xf0\x47\x39\x17\xc1\x40\x2b\x80"
     "\x09\x9d\xca\x5c\xbc\x20\x70\x75\xc0",
     iv3[] = "\0\0\0\0\0\0\0\x02",
     msg3[] = "'Twas brillig, and the slithy toves\nDid gyre and gimble in the wabe:\nAll mimsy were the borogoves,\n"
     "And the mome raths outgrabe.",
-    cypher3[] = "\x62\xe6\x34\x7f\x95\xed\x87\xa4\x5f\xfa\xe7\x42\x6f\x27\xa1\xdf\x5f\xb6\x91\x10\x04\x4c\x0d\x73\x11"
+    cipher3[] = "\x62\xe6\x34\x7f\x95\xed\x87\xa4\x5f\xfa\xe7\x42\x6f\x27\xa1\xdf\x5f\xb6\x91\x10\x04\x4c\x0d\x73\x11"
     "\x8e\xff\xa9\x5b\x01\xe5\xcf\x16\x6d\x3d\xf2\xd7\x21\xca\xf9\xb2\x1e\x5f\xb1\x4c\x61\x68\x71\xfd\x84\xc5\x4f\x9d"
     "\x65\xb2\x83\x19\x6c\x7f\xe4\xf6\x05\x53\xeb\xf3\x9c\x64\x02\xc4\x22\x34\xe3\x2a\x35\x6b\x3e\x76\x43\x12\xa6\x1a"
     "\x55\x32\x05\x57\x16\xea\xd6\x96\x25\x68\xf8\x7d\x3f\x3f\x77\x04\xc6\xa8\xd1\xbc\xd1\xbf\x4d\x50\xd6\x15\x4b\x6d"
@@ -962,12 +963,12 @@ int BRCypherTests()
     uint8_t out3[sizeof(msg3) - 1];
     
     BRChacha20(out3, key3, iv3, msg3, sizeof(msg3) - 1, 42);
-    if (memcmp(cypher3, out3, sizeof(out3)) != 0)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() cypher test 3\n", __func__);
+    if (memcmp(cipher3, out3, sizeof(out3)) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() cipher test 3\n", __func__);
     
     BRChacha20(out3, key3, iv3, out3, sizeof(out3), 42);
     if (memcmp(msg3, out3, sizeof(out3)) != 0)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() de-cypher test 3\n", __func__);
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20() de-cipher test 3\n", __func__);
 
     return r;
 }
@@ -981,7 +982,7 @@ int BRAuthEncryptTests()
     key1[] = "\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99"
     "\x9a\x9b\x9c\x9d\x9e\x9f",
     nonce1[] = "\x07\x00\x00\x00\x40\x41\x42\x43\x44\x45\x46\x47",
-    cypher1[] = "\xd3\x1a\x8d\x34\x64\x8e\x60\xdb\x7b\x86\xaf\xbc\x53\xef\x7e\xc2\xa4\xad\xed\x51\x29\x6e\x08\xfe\xa9"
+    cipher1[] = "\xd3\x1a\x8d\x34\x64\x8e\x60\xdb\x7b\x86\xaf\xbc\x53\xef\x7e\xc2\xa4\xad\xed\x51\x29\x6e\x08\xfe\xa9"
     "\xe2\xb5\xa7\x36\xee\x62\xd6\x3d\xbe\xa4\x5e\x8c\xa9\x67\x12\x82\xfa\xfb\x69\xda\x92\x72\x8b\x1a\x71\xde\x0a\x9e"
     "\x06\x0b\x29\x05\xd6\xa5\xb6\x7e\xcd\x3b\x36\x92\xdd\xbd\x7f\x2d\x77\x8b\x8c\x98\x03\xae\xe3\x28\x09\x1b\x58\xfa"
     "\xb3\x24\xe4\xfa\xd6\x75\x94\x55\x85\x80\x8b\x48\x31\xd7\xbc\x3f\xf4\xde\xf0\x8e\x4b\x7a\x9d\xe5\x76\xd2\x65\x86"
@@ -990,13 +991,13 @@ int BRAuthEncryptTests()
     size_t len;
 
     len = BRChacha20Poly1305AEADEncrypt(out1, sizeof(out1), key1, nonce1, msg1, sizeof(msg1) - 1, ad1, sizeof(ad1) - 1);
-    if (len != sizeof(cypher1) - 1 || memcmp(cypher1, out1, len) != 0)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20Poly1305AEADEncrypt() cypher test 1\n", __func__);
+    if (len != sizeof(cipher1) - 1 || memcmp(cipher1, out1, len) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20Poly1305AEADEncrypt() cipher test 1\n", __func__);
     
-    len = BRChacha20Poly1305AEADDecrypt(out1, sizeof(out1), key1, nonce1, cypher1, sizeof(cypher1) - 1, ad1,
+    len = BRChacha20Poly1305AEADDecrypt(out1, sizeof(out1), key1, nonce1, cipher1, sizeof(cipher1) - 1, ad1,
                                         sizeof(ad1) - 1);
     if (len != sizeof(msg1) - 1 || memcmp(msg1, out1, len) != 0)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20Poly1305AEADDecrypt() cypher test 1\n", __func__);
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20Poly1305AEADDecrypt() cipher test 1\n", __func__);
     
     const char msg2[] = "Internet-Drafts are draft documents valid for a maximum of six months and may be updated, "
     "replaced, or obsoleted by other documents at any time. It is inappropriate to use Internet-Drafts as reference "
@@ -1005,7 +1006,7 @@ int BRAuthEncryptTests()
     key2[] = "\x1c\x92\x40\xa5\xeb\x55\xd3\x8a\xf3\x33\x88\x86\x04\xf6\xb5\xf0\x47\x39\x17\xc1\x40\x2b\x80\x09\x9d\xca"
     "\x5c\xbc\x20\x70\x75\xc0",
     nonce2[] = "\0\0\0\0\x01\x02\x03\x04\x05\x06\x07\x08",
-    cypher2[] = "\x64\xa0\x86\x15\x75\x86\x1a\xf4\x60\xf0\x62\xc7\x9b\xe6\x43\xbd\x5e\x80\x5c\xfd\x34\x5c\xf3\x89\xf1"
+    cipher2[] = "\x64\xa0\x86\x15\x75\x86\x1a\xf4\x60\xf0\x62\xc7\x9b\xe6\x43\xbd\x5e\x80\x5c\xfd\x34\x5c\xf3\x89\xf1"
     "\x08\x67\x0a\xc7\x6c\x8c\xb2\x4c\x6c\xfc\x18\x75\x5d\x43\xee\xa0\x9e\xe9\x4e\x38\x2d\x26\xb0\xbd\xb7\xb7\x3c\x32"
     "\x1b\x01\x00\xd4\xf0\x3b\x7f\x35\x58\x94\xcf\x33\x2f\x83\x0e\x71\x0b\x97\xce\x98\xc8\xa8\x4a\xbd\x0b\x94\x81\x14"
     "\xad\x17\x6e\x00\x8d\x33\xbd\x60\xf9\x82\xb1\xff\x37\xc8\x55\x97\x97\xa0\x6e\xf4\xf0\xef\x61\xc1\x86\x32\x4e\x2b"
@@ -1016,17 +1017,81 @@ int BRAuthEncryptTests()
     "\x09\x7a\x10\x49\xe6\x17\xd9\x1d\x36\x10\x94\xfa\x68\xf0\xff\x77\x98\x71\x30\x30\x5b\xea\xba\x2e\xda\x04\xdf\x99"
     "\x7b\x71\x4d\x6c\x6f\x2c\x29\xa6\xad\x5c\xb4\x02\x2b\x02\x70\x9b\xee\xad\x9d\x67\x89\x0c\xbb\x22\x39\x23\x36\xfe"
     "\xa1\x85\x1f\x38";
-    uint8_t out2[sizeof(cypher2) - 1];
+    uint8_t out2[sizeof(cipher2) - 1];
 
-    len = BRChacha20Poly1305AEADDecrypt(out2, sizeof(out2), key2, nonce2, cypher2, sizeof(cypher2) - 1, ad2,
+    len = BRChacha20Poly1305AEADDecrypt(out2, sizeof(out2), key2, nonce2, cipher2, sizeof(cipher2) - 1, ad2,
                                         sizeof(ad2) - 1);
     if (len != sizeof(msg2) - 1 || memcmp(msg2, out2, len) != 0)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20Poly1305AEADDecrypt() cypher test 2\n", __func__);
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20Poly1305AEADDecrypt() cipher test 2\n", __func__);
 
     len = BRChacha20Poly1305AEADEncrypt(out2, sizeof(out2), key2, nonce2, msg2, sizeof(msg2) - 1, ad2, sizeof(ad2) - 1);
-    if (len != sizeof(cypher2) - 1 || memcmp(cypher2, out2, len) != 0)
-        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20Poly1305AEADEncrypt() cypher test 2\n", __func__);
+    if (len != sizeof(cipher2) - 1 || memcmp(cipher2, out2, len) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRChacha20Poly1305AEADEncrypt() cipher test 2\n", __func__);
 
+    return r;
+}
+
+int BRAesTests()
+{
+    int r = 1;
+    
+    const char iv[] = "\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff";
+    const char plain[] = "\x6b\xc1\xbe\xe2\x2e\x40\x9f\x96\xe9\x3d\x7e\x11\x73\x93\x17\x2a\xae\x2d\x8a\x57\x1e\x03\xac"
+    "\x9c\x9e\xb7\x6f\xac\x45\xaf\x8e\x51\x30\xc8\x1c\x46\xa3\x5c\xe4\x11\xe5\xfb\xc1\x19\x1a\x0a\x52\xef\xf6\x9f\x24"
+    "\x45\xdf\x4f\x9b\x17\xad\x2b\x41\x7b\xe6\x6c\x37\x10";
+    char buf[sizeof(plain)];
+    UInt256 key1 = uint256("2b7e151628aed2a6abf7158809cf4f3c00000000000000000000000000000000");
+    const char cipher1[] = "\x3a\xd7\x7b\xb4\x0d\x7a\x36\x60\xa8\x9e\xca\xf3\x24\x66\xef\x97";
+    const char in1[] = "\x87\x4d\x61\x91\xb6\x20\xe3\x26\x1b\xef\x68\x64\x99\x0d\xb6\xce\x98\x06\xf6\x6b\x79\x70\xfd"
+    "\xff\x86\x17\x18\x7b\xb9\xff\xfd\xff\x5a\xe4\xdf\x3e\xdb\xd5\xd3\x5e\x5b\x4f\x09\x02\x0d\xb0\x3e\xab\x1e\x03\x1d"
+    "\xda\x2f\xbe\x03\xd1\x79\x21\x70\xa0\xf3\x00\x9c\xee";
+    
+    memcpy(buf, plain, 16);
+    BRAESECBEncrypt(buf, &key1, 16);
+    if (memcmp(buf, cipher1, 16) != 0) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRAESECBEncrypt() test 1", __func__);
+
+    memcpy(buf, cipher1, 16);
+    BRAESECBDecrypt(buf, &key1, 16);
+    if (memcmp(buf, plain, 16) != 0) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRAESECBDecrypt() test 1", __func__);
+
+    BRAESCTR(buf, &key1, 16, iv, in1, 64);
+    if (memcmp(buf, plain, 64) != 0) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRAESCTR() test 1", __func__);
+    
+    UInt256 key2 = uint256("8e73b0f7da0e6452c810f32b809079e562f8ead2522c6b7b0000000000000000");
+    const char cipher2[] = "\xbd\x33\x4f\x1d\x6e\x45\xf2\x5f\xf7\x12\xa2\x14\x57\x1f\xa5\xcc";
+    const char in2[] = "\x1a\xbc\x93\x24\x17\x52\x1c\xa2\x4f\x2b\x04\x59\xfe\x7e\x6e\x0b\x09\x03\x39\xec\x0a\xa6\xfa"
+    "\xef\xd5\xcc\xc2\xc6\xf4\xce\x8e\x94\x1e\x36\xb2\x6b\xd1\xeb\xc6\x70\xd1\xbd\x1d\x66\x56\x20\xab\xf7\x4f\x78\xa7"
+    "\xf6\xd2\x98\x09\x58\x5a\x97\xda\xec\x58\xc6\xb0\x50";
+    
+    memcpy(buf, plain, 16);
+    BRAESECBEncrypt(buf, &key2, 24);
+    if (memcmp(buf, cipher2, 16) != 0) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRAESECBEncrypt() test 2", __func__);
+
+    memcpy(buf, cipher2, 16);
+    BRAESECBDecrypt(buf, &key2, 24);
+    if (memcmp(buf, plain, 16) != 0) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRAESECBDecrypt() test 2", __func__);
+
+    BRAESCTR(buf, &key2, 24, iv, in2, 64);
+    if (memcmp(buf, plain, 64) != 0) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRAESCTR() test 2", __func__);
+
+    UInt256 key3 = uint256("603deb1015ca71be2b73aef0857d77811f352c073b6108d72d9810a30914dff4");
+    const char cipher3[] = "\xf3\xee\xd1\xbd\xb5\xd2\xa0\x3c\x06\x4b\x5a\x7e\x3d\xb1\x81\xf8";
+    const char in3[] = "\x60\x1e\xc3\x13\x77\x57\x89\xa5\xb7\xa7\xf5\x04\xbb\xf3\xd2\x28\xf4\x43\xe3\xca\x4d\x62\xb5"
+    "\x9a\xca\x84\xe9\x90\xca\xca\xf5\xc5\x2b\x09\x30\xda\xa2\x3d\xe9\x4c\xe8\x70\x17\xba\x2d\x84\x98\x8d\xdf\xc9\xc5"
+    "\x8d\xb6\x7a\xad\xa6\x13\xc2\xdd\x08\x45\x79\x41\xa6";
+    
+    memcpy(buf, plain, 16);
+    BRAESECBEncrypt(buf, &key3, 32);
+    if (memcmp(buf, cipher3, 16) != 0) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRAESECBEncrypt() test 3", __func__);
+
+    memcpy(buf, cipher3, 16);
+    BRAESECBDecrypt(buf, &key3, 32);
+    if (memcmp(buf, plain, 16) != 0) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRAESECBDecrypt() test 3", __func__);
+
+    BRAESCTR(buf, &key3, 32, iv, in3, 64);
+    if (memcmp(buf, plain, 64) != 0) r = 0, fprintf(stderr, "\n***FAILED*** %s: BRAESCTR() test 3", __func__);
+    
+    if (! r) fprintf(stderr, "\n                                    ");
     return r;
 }
 
@@ -2678,10 +2743,12 @@ int BRRunTests()
     printf("%s\n", (BRMacTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRDrbgTests...                      ");
     printf("%s\n", (BRDrbgTests()) ? "success" : (fail++, "***FAIL***"));
-    printf("BRCypherTests...                    ");
-    printf("%s\n", (BRCypherTests()) ? "success" : (fail++, "***FAIL***"));
+    printf("BRChachaTests...                    ");
+    printf("%s\n", (BRChachaTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRAuthEncryptTests...               ");
     printf("%s\n", (BRAuthEncryptTests()) ? "success" : (fail++, "***FAIL***"));
+    printf("BRAesTests...                       ");
+    printf("%s\n", (BRAesTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRKeyTests...                       ");
     printf("%s\n", (BRKeyTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRBIP38KeyTests...                  ");
@@ -2737,7 +2804,7 @@ void txStatusUpdate(void *info)
 int main(int argc, const char *argv[])
 {
     int r = BRRunTests();
-
+    
 //    int err = 0;
 //    UInt512 seed = UINT512_ZERO;
 //    BRMasterPubKey mpk = BR_MASTER_PUBKEY_NONE;
