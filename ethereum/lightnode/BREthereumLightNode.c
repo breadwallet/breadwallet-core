@@ -71,10 +71,13 @@ ethereumClientCreate(BREthereumClientContext context,
 //
 extern BREthereumLightNode
 createLightNode (BREthereumNetwork network,
-                 BREthereumAccount account) {
+                 BREthereumAccount account,
+                 BREthereumType type,
+                 BREthereumSyncMode syncMode) {
     BREthereumLightNode node = (BREthereumLightNode) calloc (1, sizeof (struct BREthereumLightNodeRecord));
     node->state = LIGHT_NODE_CREATED;
-    node->type = FIXED_LIGHT_NODE_TYPE;
+    node->type = type;
+    node->syncMode = syncMode;
     node->network = network;
     node->account = account;
     array_new(node->wallets, DEFAULT_WALLET_CAPACITY);
