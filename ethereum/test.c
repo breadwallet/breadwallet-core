@@ -39,10 +39,7 @@
 #include "BREthereum.h"
 #include "BREthereumPrivate.h"
 #include "BREthereumAccount.h"
-#include "BREthereumTransactionReceipt.h"
-#include "BREthereumLog.h"
-#include "BREthereumAccountState.h"
-#include "BREthereumTransactionStatus.h"
+#include "blockchain/BREthereumBlockChain.h"
 
 static void
 showHex (uint8_t *source, size_t sourceLen) {
@@ -675,24 +672,25 @@ void runRlpTest () {
 #define TEST_ETH_PRIKEY   "0x73bf21bf06769f98dabcfac16c2f74e852da823effed12794e56876ede02d45d"
 
 void runAddressTests (BREthereumAccount account) {
-    BREthereumAddress address = accountGetPrimaryAddress(account);
+    BREthereumEncodedAddress address = accountGetPrimaryAddress(account);
     
     printf ("== Address\n");
     printf ("        String: %p\n", address);
     
     printf ("      PaperKey: %p, %s\n", TEST_PAPER_KEY, TEST_PAPER_KEY);
-    
+
+#if defined (DEBUG)
     const char *publicKeyString = addressPublicKeyAsString (address, 1);
     printf ("    Public Key: %p, %s\n", publicKeyString, publicKeyString);
     assert (0 == strcmp (TEST_ETH_PUBKEY, publicKeyString));
+    free ((void *) publicKeyString);
+#endif
     
     const char *addressString = addressAsString (address);
     printf ("       Address: %s\n", addressString);
     assert (0 == strcmp (TEST_ETH_ADDR, addressString) ||
             0 == strcmp (TEST_ETH_ADDR_CHK, addressString));
-    
     free ((void *) addressString);
-    free ((void *) publicKeyString);
 }
 
 //
@@ -1013,7 +1011,7 @@ void testTransactionCodingEther () {
     BREthereumAccount account = createAccount (NODE_PAPER_KEY);
     BREthereumWallet wallet = walletCreate(account, ethereumMainnet);
 
-    BREthereumAddress txRecvAddr = createAddress(NODE_RECV_ADDR);
+    BREthereumEncodedAddress txRecvAddr = createAddress(NODE_RECV_ADDR);
     BREthereumAmount txAmount = amountCreateEther(etherCreate(createUInt256(NODE_ETHER_AMOUNT)));
     BREthereumGasPrice txGasPrice = gasPriceCreate(etherCreate(createUInt256(NODE_GAS_PRICE_VALUE)));
     BREthereumGas txGas = gasCreate(NODE_GAS_LIMIT);
@@ -1049,8 +1047,8 @@ void testTransactionCodingEther () {
                                                     transactionGetSignature (decodedTransaction)));
 
     // Address recovery
-    BREthereumAddress transactionSourceAddress = transactionGetSourceAddress(transaction);
-    BREthereumAddress decodedTransactionSourceAddress = transactionGetSourceAddress(decodedTransaction);
+    BREthereumEncodedAddress transactionSourceAddress = transactionGetSourceAddress(transaction);
+    BREthereumEncodedAddress decodedTransactionSourceAddress = transactionGetSourceAddress(decodedTransaction);
     assert (ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(transactionSourceAddress, decodedTransactionSourceAddress)));
 
     assert (ETHEREUM_BOOLEAN_IS_TRUE(accountHasAddress(account, transactionSourceAddress)));
@@ -1062,7 +1060,7 @@ void testTransactionCodingToken () {
     BREthereumAccount account = createAccount (NODE_PAPER_KEY);
     BREthereumWallet wallet = walletCreateHoldingToken(account, ethereumMainnet, tokenBRD);
 
-    BREthereumAddress txRecvAddr = createAddress(NODE_RECV_ADDR);
+    BREthereumEncodedAddress txRecvAddr = createAddress(NODE_RECV_ADDR);
     BREthereumAmount txAmount = amountCreateToken(createTokenQuantity(tokenBRD, createUInt256(NODE_ETHER_AMOUNT)));
     BREthereumGasPrice txGasPrice = gasPriceCreate(etherCreate(createUInt256(NODE_GAS_PRICE_VALUE)));
     BREthereumGas txGas = gasCreate(NODE_GAS_LIMIT);
@@ -1664,7 +1662,7 @@ runLogTests (void) {
 
     BREthereumLog log = logDecodeRLP(data);
 
-    BREthereumAddressRaw address = logGetAddress(log);
+    BREthereumAddress address = logGetAddress(log);
     size_t addressBytesCount;
     uint8_t *addressBytes = decodeHexCreate(&addressBytesCount, LOG_1_ADDRESS, strlen(LOG_1_ADDRESS));
     assert (addressBytesCount == sizeof (address.bytes));

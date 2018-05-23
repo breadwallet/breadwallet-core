@@ -23,7 +23,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include "bcash/BRBCashAddr.h"
+#include "BRBCashAddr.h"
 #include "BRAddress.h"
 #include "BRBase58.h"
 #include "BRCrypto.h"

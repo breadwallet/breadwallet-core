@@ -31,13 +31,13 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include "BRInt.h"
-#include "BREthereumBase.h"
+#include "../base/BREthereumBase.h"
 #include "BRKey.h"
 #include "BRCrypto.h"
 #include "BREthereumHandshake.h"
 #include "BREthereumNode.h"
 #include "BREthereumLESBase.h"
-#include "BRRlpCoder.h"
+#include "../rlp/BRRlpCoder.h"
 #include "BRArray.h"
 
 #ifndef MSG_NOSIGNAL   // linux based systems have a MSG_NOSIGNAL send flag, useful for supressing SIGPIPE signals
@@ -249,7 +249,7 @@ int _readAuth(BREthereumHandshakeContext * ctx) {
 
         UInt256 sharedSecret;
         
-        etheruemECDHAgree(ctx->key, ctx->remotePubKey.u8, &sharedSecret);
+        etheruemECDHAgree(ctx->key, (UInt512*) ctx->remotePubKey.u8, &sharedSecret);
         
         UInt256 xOrSharedSecret;
         ethereumXORBytes(sharedSecret.u8, ctx->remoteNonce.u8, xOrSharedSecret.u8, sizeof(xOrSharedSecret.u8));

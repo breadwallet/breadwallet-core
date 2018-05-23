@@ -31,7 +31,7 @@
 #include "BRInt.h"
 #include "BREthereumNode.h"
 #include "BRKey.h"
-#include "BREthereumBase.h"
+#include "../base/BREthereumBase.h"
 #include "BREthereumLES.h"
 #include "BREthereumFrameCoder.h"
 

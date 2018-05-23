@@ -30,7 +30,7 @@
 #include "BRKey.h"
 #include "BREthereumFrameCoder.h"
 #include "BREthereumLESBase.h"
-#include "BRRlpCoder.h"
+#include "../rlp/BRRlpCoder.h"
 #include "BRArray.h"
 
 #define UINT256_SIZE 32
@@ -74,6 +74,7 @@ void _ingressDigest(BREthereumFrameCoderContext* ctx, UInt128 * digest)
 //    memcpy(&curIngressMacH, &ctx->ingressMac, sizeof(struct sha3_256_ctx));
 //    sha3_256_digest(&curIngressMacH, sizeof(digest->u8), digest->u8);
 }
+
 void _updateMac(BREthereumFrameCoderContext* ctx, struct sha3_256_ctx* mac, uint8_t* sData, size_t sDataSize) {
 
     //Peform check for sData size is h1238 _seed.size() && _seed.size() != h128::size)

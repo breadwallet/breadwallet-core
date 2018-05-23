@@ -26,6 +26,8 @@
 #ifndef BR_Util_Hex_H
 #define BR_Util_Hex_H
 
+#include <stdlib.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

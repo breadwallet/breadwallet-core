@@ -29,11 +29,11 @@
 #include <stdarg.h>
 #include <assert.h>
 #include "BRKey.h"
-#include "secp256k1.h"
-#include "secp256k1_ecdh.h"
-#include "secp256k1/src/hash.h"
+#include "../secp256k1/include/secp256k1.h"
+#include "../secp256k1/include/secp256k1_ecdh.h"
+#include "../secp256k1/src/hash.h"
 #include "BREthereumLESBase.h"
-#include "BREthereumBase.h"
+#include "../base/BREthereumBase.h"
 #include "BRCrypto.h"
 
 

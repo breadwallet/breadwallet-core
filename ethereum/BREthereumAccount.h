@@ -32,96 +32,7 @@ extern "C" {
 
 #include "BRKey.h"
 #include "BRInt.h"
-#include "rlp/BRRlpCoder.h"
-#include "BREthereumEther.h"
-
-//
-// Address
-//
-
-/**
- *
- */
-typedef struct BREthereumAddressRecord *BREthereumAddress;
-
-/**
- * Create an address from the external representation of an address.  The provided address *must*
- * include a prefix of "Ox" and pass the validateAddressString() function; otherwise NULL is
- * returned.
- *
- * @param string
- * @return
- */
-extern BREthereumAddress
-createAddress (const char *string);
-
-/**
- * Validate `string` as an Ethereum address.  The validation is minimal - based solely on the
- * `string` content.  Said another way, the Ethereum Network is not used for validation.
- *
- * At a minimum `string` must start with "0x", have a total of 42 characters and by a 'hex' string
- * (as if a result of encodeHex(); containing characters [0-9,a-f])
- *
- * @param string
- * @return
- */
-extern BREthereumBoolean
-validateAddressString(const char *string);
-
-extern uint64_t
-addressGetNonce(BREthereumAddress address);
-
-extern void
-addressFree (BREthereumAddress address);
-
-extern BREthereumBoolean
-addressHasString (BREthereumAddress address,
-                  const char *string);
-
-extern BREthereumBoolean
-addressEqual (BREthereumAddress a1, BREthereumAddress a2);
-
-/**
- * Returns a string representation of the address, newly allocated.  YOU OWN THIS.
- */
-extern char *
-addressAsString (BREthereumAddress address);
-
-extern BRKey
-addressGetPublicKey (BREthereumAddress address);
-
-#if defined (DEBUG)
-extern const char *
-addressPublicKeyAsString (BREthereumAddress address, int compressed);
-#endif
-
-extern BRRlpItem
-addressRlpEncode (BREthereumAddress address, BRRlpCoder coder);
-
-extern BREthereumAddress
-addressRlpDecode (BRRlpItem item, BRRlpCoder coder);
-
-//
-// Address Raw (QUASI-INTERNAL - currently used for Block/Log Encoding/Decoding
-//
-typedef struct {
-    uint8_t bytes[20];
-} BREthereumAddressRaw;
-
-#define EMPTY_ADDRESS_INIT   { \
-    0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0 \
-}
-
-extern BREthereumAddressRaw
-addressRawCreate (const char *address);
-
-extern BREthereumAddressRaw
-addressRawRlpDecode (BRRlpItem item,
-                     BRRlpCoder coder);
-
-extern BRRlpItem
-addressRawRlpEncode(BREthereumAddressRaw address,
-                    BRRlpCoder coder);
+#include "base/BREthereumBase.h"
 
 //
 // Account
@@ -179,7 +90,7 @@ createAccountDetailed(const char *paperKey, const char *wordList[], const int wo
  * @param account
  * @return
  */
-extern BREthereumAddress
+extern BREthereumEncodedAddress
 accountGetPrimaryAddress (BREthereumAccount account);
 
 /**
@@ -197,41 +108,8 @@ accountGetPrimaryAddressPrivateKey (BREthereumAccount account,
 
 extern BREthereumBoolean
 accountHasAddress (BREthereumAccount account,
-                   BREthereumAddress address);
+                   BREthereumEncodedAddress address);
     
-//
-// Signature
-//
-
-typedef enum {
-    SIGNATURE_TYPE_FOO,
-    SIGNATURE_TYPE_RECOVERABLE
-} BREthereumSignatureType;
-
-typedef struct {
-    BREthereumSignatureType type;
-    union {
-        struct {
-            int ignore;
-        } foo;
-
-        struct {
-            uint8_t v;
-            uint8_t r[32];
-            uint8_t s[32];
-        } recoverable;
-    } sig;
-} BREthereumSignature;
-
-extern BREthereumBoolean
-signatureEqual (BREthereumSignature s1, BREthereumSignature s2);
-
-extern BREthereumAddress
-signatureExtractAddress (const BREthereumSignature signature,
-                         const uint8_t *bytes,
-                         size_t bytesCount,
-                         int *success);
-
 /**
  * Sign an arbitrary array of bytes with the account's private key using the signature algorithm
  * specified by `type`.
@@ -244,7 +122,7 @@ signatureExtractAddress (const BREthereumSignature signature,
  */
 extern BREthereumSignature
 accountSignBytesWithPrivateKey(BREthereumAccount account,
-                 BREthereumAddress address,
+                 BREthereumEncodedAddress address,
                  BREthereumSignatureType type,
                  uint8_t *bytes,
                  size_t bytesCount,
@@ -252,7 +130,7 @@ accountSignBytesWithPrivateKey(BREthereumAccount account,
 
 extern BREthereumSignature
 accountSignBytes(BREthereumAccount account,
-                 BREthereumAddress address,
+                 BREthereumEncodedAddress address,
                  BREthereumSignatureType type,
                  uint8_t *bytes,
                  size_t bytesCount,

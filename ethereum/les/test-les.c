@@ -38,7 +38,7 @@
 #include "BREthereumNode.h"
 #include "BREthereumNodeEventHandler.h"
 #include "BREthereumNodeManager.h"
-#include "BREthereumNetwork.h"
+#include "../blockchain/BREthereumNetwork.h"
 // LES Tests
 
 

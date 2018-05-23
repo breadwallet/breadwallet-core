@@ -32,8 +32,8 @@
 *.dSYM/
 
 # IDE files
-*.xcworkspace
-*.xcodeproj
+xcuserdata/
+
 
 .idea/
 
