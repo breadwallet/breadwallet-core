@@ -245,6 +245,28 @@ lightNodeHandleTransactionStatus (BREthereumLightNode node,
                                   BREthereumHash transactionHash,
                                   BREthereumTransactionStatusLES status);
 
+extern void
+lightNodeHandleTransactionReceipt (BREthereumLightNode node,
+                                   BREthereumHash blockHash,
+                                   BREthereumTransactionReceipt receipt,
+                                   unsigned int receiptIndex);
+
+extern void
+lightNodeHandleAnnounce (BREthereumLightNode node,
+                         BREthereumHash headHash,
+                         uint64_t headNumber,
+                         uint64_t headTotalDifficulty);
+
+extern void
+lightNodeHandleBlockHeader (BREthereumLightNode node,
+                            BREthereumBlockHeader header);
+
+extern void
+lightNodeHandleBlockBodies (BREthereumLightNode node,
+                            BREthereumHash blockHash,
+                            BREthereumTransaction transactions[],
+                            BREthereumHash ommers[]);
+    
 #ifdef __cplusplus
 }
 #endif

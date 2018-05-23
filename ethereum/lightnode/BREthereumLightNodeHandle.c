@@ -35,6 +35,7 @@
  * Define the Events handled on the LightNode's Main queue.
  */
 
+// ==============================================================================================
 //
 // Handle Balance
 //
@@ -78,6 +79,7 @@ lightNodeHandleBalance (BREthereumLightNode node,
     eventHandlerSignalEvent(node->handlerForMain, (BREvent*) &event);
 }
 
+// ==============================================================================================
 //
 // Handle Nonce
 //
@@ -114,6 +116,7 @@ lightNodeHandleNonce (BREthereumLightNode node,
     eventHandlerSignalEvent(node->handlerForMain, (BREvent*) &event);
 }
 
+// ==============================================================================================
 //
 // Handle Gas Price
 //
@@ -154,6 +157,7 @@ lightNodeHandleGasPrice (BREthereumLightNode node,
     eventHandlerSignalEvent(node->handlerForMain, (BREvent*) &event);
 }
 
+// ==============================================================================================
 //
 // Handle Gas Estimate
 //
@@ -197,6 +201,7 @@ lightNodeHandleGasEstimate (BREthereumLightNode node,
     eventHandlerSignalEvent(node->handlerForMain, (BREvent*) &event);
 }
 
+// ==============================================================================================
 //
 // Handle Transaction Status
 //
@@ -280,6 +285,7 @@ lightNodeHandleTransactionStatus (BREthereumLightNode node,
 }
 
 
+// ==============================================================================================
 //
 // Handle Transaction Receipt
 //
@@ -339,6 +345,123 @@ lightNodeHandleTransactionReceipt (BREthereumLightNode node,
     eventHandlerSignalEvent(node->handlerForMain, (BREvent*) &event);
 }
 
+// ==============================================================================================
+//
+// Handle Announce
+//
+typedef struct {
+    BREvent base;
+    BREthereumLightNode node;
+    BREthereumHash headHash;
+    uint64_t headNumber;
+    uint64_t headTotalDifficulty;
+} BREthereumHandleAnnounceEvent;
+
+static void
+lightNodeHandleAnnounceEventDispatcher (BREventHandler ignore,
+                                        BREthereumHandleAnnounceEvent *event) {
+    BREthereumLightNode node = event->node;
+    pthread_mutex_lock(&node->lock);
+
+    // Request the block.
+
+    pthread_mutex_unlock(&node->lock);
+}
+
+BREventType handleAnnounceEventType = {
+    "Handle Announce Event",
+    sizeof (BREthereumHandleAnnounceEvent),
+    (BREventDispatcher) lightNodeHandleAnnounceEventDispatcher
+};
+
+extern void
+lightNodeHandleAnnounce (BREthereumLightNode node,
+                         BREthereumHash headHash,
+                         uint64_t headNumber,
+                         uint64_t headTotalDifficulty) {
+    BREthereumHandleAnnounceEvent event =
+        { { NULL, &handleAnnounceEventType}, node, headHash, headNumber, headTotalDifficulty};
+    eventHandlerSignalEvent(node->handlerForMain, (BREvent *) &event);
+}
+
+// ==============================================================================================
+//
+// Handle Block Header
+//
+typedef struct {
+    BREvent base;
+    BREthereumLightNode node;
+    BREthereumBlockHeader header;
+} BREthereumHandleBlockHeaderEvent;
+
+static void
+lightNodeHandleBlockHeaderDispatcher (BREventHandler ignore,
+                                      BREthereumHandleBlockHeaderEvent *event) {
+    BREthereumLightNode node = event->node;
+    pthread_mutex_lock(&node->lock);
+
+    // Request the block.
+
+    pthread_mutex_unlock(&node->lock);
+
+}
+
+BREventType handleBlockHeaderEventType = {
+    "Handle Block Header Event",
+    sizeof (BREthereumHandleBlockHeaderEvent),
+    (BREventDispatcher) lightNodeHandleBlockHeaderDispatcher
+};
+
+extern void
+lightNodeHandleBlockHeader (BREthereumLightNode node,
+                            BREthereumBlockHeader header) {
+    BREthereumHandleBlockHeaderEvent event =
+    { { NULL, &handleBlockHeaderEventType}, node, header };
+    eventHandlerSignalEvent(node->handlerForMain, (BREvent *) &event);
+}
+
+// ==============================================================================================
+//
+// Handle Block Bodies
+//
+typedef struct {
+    BREvent base;
+    BREthereumLightNode node;
+    BREthereumHash blockHash;
+    BREthereumTransaction *transactions;
+    BREthereumHash *ommer;
+} BREthereumHandleBlockBodiesEvent;
+
+static void
+lightNodeHandleBlockBodiesDispatcher (BREventHandler ignore,
+                                      BREthereumHandleBlockBodiesEvent *event) {
+    BREthereumLightNode node = event->node;
+    pthread_mutex_lock(&node->lock);
+
+    // Request the block.
+
+    pthread_mutex_unlock(&node->lock);
+
+}
+
+BREventType handleBlockBodiesEventType = {
+    "Handle Block Bodies Event",
+    sizeof (BREthereumHandleBlockBodiesEvent),
+    (BREventDispatcher) lightNodeHandleBlockBodiesDispatcher
+};
+
+extern void
+lightNodeHandleBlockBodies (BREthereumLightNode node,
+                            BREthereumHash blockHash,
+                            BREthereumTransaction transactions[],
+                            BREthereumHash ommers[]) {
+    BREthereumHandleBlockBodiesEvent event =
+    { { NULL, &handleBlockBodiesEventType}, node, blockHash, transactions, ommers };
+    eventHandlerSignalEvent(node->handlerForMain, (BREvent *) &event);
+}
+
+
+// ==============================================================================================
 //
 // All Handler Event Types
 //
@@ -348,9 +471,12 @@ const BREventType *handlerEventTypes[] = {
     &handleGasPriceEventType,
     &handleGasEstimateEventType,
     &handleTransactionStatusEventType,
-    &handleTransactionReceiptEventType
+    &handleTransactionReceiptEventType,
+    &handleAnnounceEventType,
+    &handleBlockHeaderEventType,
+    &handleBlockBodiesEventType
 };
-const unsigned int handlerEventTypesCount = 5;
+const unsigned int handlerEventTypesCount = 9;
 
 ///////////
 
