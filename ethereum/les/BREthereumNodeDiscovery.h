@@ -35,59 +35,37 @@
 extern "C" {
 #endif
 
-typedef enum {
-    BRE_PACKET_TYPE_PING = 0x01,
-    BRE_PACKET_TYPE_PONG = 0x02,
-    BRE_PACKET_TYPE_FIND_NEIGHBORS = 0x03,
-    BRE_PACKET_TYPE_NEIGHBORS = 0x04
-}BREthereumDiscoveryPacketType;
+/**
+ * Declaration for a BREthereumPingNode
+ */
+typedef struct BREthereumPingNodeContext* BREthereumPingNode;
 
-typedef struct {
-    UInt128 address; // BE encoded 4-byte or 16-byte address (size determines ipv4 vs ipv6)
-    uint16_t udpPort; // BE encoded 16-bit unsigned
-    uint16_t tcpPort; // BE encoded 16-bit unsigned
-}BREthereumEndpoint;
-
-typedef struct
-{
-    UInt256 version; // This should always be 0x3
-    BREthereumEndpoint from;
-    BREthereumEndpoint to;
-    uint32_t timestamp;
-}BREthereumPingNode;
-
-typedef struct
-{
-    BREthereumEndpoint to;
-    UInt256 echo;
-    uint32_t timestamp;
-}BREthereumPongNode;
-
-typedef struct
-{
-    UInt512 target; // Id of a node. The responding node will send back nodes closest to the target.
-    uint32_t timestamp;
-}BREthereumFindNeighbours;
+/**
+ * Declaration for a BREthereumEndpoint
+ */
+typedef struct BREthereumEndpointContext* BREthereumEndpoint;
 
 
-typedef struct
-{
-    BREthereumEndpoint endpoint;
-    BREthereumNodeId node;
-}BREthereumNeighborRequest;
+/**
+ * Declaration for a BREthereumPongNode
+ */
+typedef struct BREthereumPongNodeContext* BREthereumPongNode;
 
-typedef struct
-{
-    BREthereumNeighborRequest* requests;
-    size_t requestCount;
-    uint32_t timestamp;
-}BREthereumNeighbours;
 
+/**
+ * Creates a Ping Node
+ */
+extern BREthereumPingNode ethereumNodeDiscoveryCreatePing(BREthereumEndpoint to, BREthereumEndpoint from);
+
+/**
+ * Create a Endpoint Node
+ */
+extern BREthereumEndpoint ethereumNodeDiscoveryCreateEndpoint(int addr_family, char*address, uint16_t udpPort, uint16_t tcpPort);
 
 /**
  * Send a Ping Packet
  */
-extern int ethereumNodeDiscoveryPing(BRKey* nodeKey, BREthereumPingNode message, BREthereumPongNode* reply, BRKey* remoteId);
+extern int ethereumNodeDiscoveryPing(BRKey* nodeKey, BREthereumPingNode message, BREthereumPongNode node, BRKey* remotePubKey);
 
 #ifdef __cplusplus
 }
