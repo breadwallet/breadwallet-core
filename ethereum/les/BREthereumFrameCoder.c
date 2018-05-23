@@ -56,6 +56,22 @@ struct BREthereumFrameCoderContext {
     
     // Egress ciphertext size
     size_t egressMacSize;
+    
+    //IV for the AES-CTR
+    UInt128 iv;
+    
+    //Encrpty Key for AES-CTR frame
+    uint8_t* aesEncryptKey;
+    
+    //Decrypty Key for AES-CTR frame
+    uint8_t* aesDecryptKey;
+    
+    //Cipher for AES-CTR encryption
+    uint8_t* aesEncryptCipher;
+    
+    //Cipher for AES-CTR decryption
+    uint8_t* aesDecryptCipher;
+    
 };
 
 //
@@ -248,8 +264,20 @@ BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fcoder,
 
     // aes-secret = sha3(ecdhe-shared-secret || shared-secret)
     BRKeccak256(&keyMaterial[32], &keyMaterial[32], 32);
-    // TODO:  Maybe, I might need an encryption/decryption frame?
+
+    // ase-crt iv: 1
+    memset(fcoder->iv.u8, 0, 16);
+    array_new(fcoder->aesDecryptKey, 32);
+    array_new(fcoder->aesEncryptKey, 32);
+    array_new(fcoder->aesDecryptCipher, 32);
+    array_new(fcoder->aesEncryptCipher, 32);
+
+    array_add_array(fcoder->aesDecryptKey, &keyMaterial[32], 32);
+    array_add_array(fcoder->aesEncryptKey, &keyMaterial[32], 32);
+    array_add_array(fcoder->aesDecryptCipher, &keyMaterial[32], 32);
+    array_add_array(fcoder->aesEncryptKey, &keyMaterial[32], 32);
     
+
     // mac-secret = sha3(ecdhe-shared-secret || aes-secret)
     BRKeccak256(&keyMaterial[32], &keyMaterial[32], 32);
     memcpy(fcoder->macSecretKey.u8,&keyMaterial[32], 32);
@@ -332,13 +360,15 @@ void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, si
     uint8_t headerPlain[16] = {(uint8_t)((payloadSize >> 16) & 0xff), (uint8_t)((payloadSize >> 8) & 0xff), (uint8_t)(payloadSize & 0xff)};
     headerPlainItem = rlpEncodeItemBytes(coder, headerPlain, sizeof(headerPlain));
     
-    BRRlpData headerCipher;
-    rlpDataExtract(coder, headerPlainItem, &headerCipher.bytes, &headerCipher.bytesCount);
-
+    BRRlpData headerPlainData;
+    rlpDataExtract(coder, headerPlainItem, &headerPlainData.bytes, &headerPlainData.bytesCount);
 
    // TODO: Need AES-CTRL encryption to headerCipher
    // aes256_encrypt(&ctx->aes_sercret, 16, headerCipher.bytes, headerCipher.bytes);
-   
+    uint8_t headerCipher[headerPlainData.bytesCount];
+    BRAESCTR(headerCipher, fCoder->aesEncryptKey, 32, fCoder->iv.u8, headerPlainData.bytes, headerPlainData.bytesCount);
+    array_add_array(fCoder->aesEncryptCipher, headerPlainData.bytes, headerPlainData.bytesCount);
+    
     // Encrypt HEADER-MAC
     UInt256 egressDigest;
     BRKeccak256(egressDigest.u8, fCoder->egressMac , fCoder->egressMacSize);
@@ -347,7 +377,7 @@ void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, si
     memcpy(macSecret, egressDigest.u8, 16);
    _BRAES256ECBEncrypt(fCoder->macSecretKey.u8, macSecret);
     uint8_t xORMacCipher[16];
-    ethereumXORBytes(macSecret, headerCipher.bytes, xORMacCipher, 16);
+    ethereumXORBytes(macSecret, headerCipher, xORMacCipher, 16);
     array_add_array(fCoder->egressMac, xORMacCipher, 16);
     fCoder->egressMacSize += 16;
     
@@ -360,19 +390,22 @@ void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, si
     size_t oBytesSize = 32 + payloadSize + payloadPadding + 16; // header_cipher + headerMac + payload + padding + frameMac
     uint8_t * oBytes = (uint8_t*)malloc(oBytesSize);
 
-    memcpy(oBytes, headerCipher.bytes, headerCipher.bytesCount);
+    memcpy(oBytes, headerCipher, headerPlainData.bytesCount);
     memcpy(&oBytes[16], headerMac, 16);
     
     uint8_t * frameCipher = &oBytes[32];
     
     // TODO: Need AES-CTRL encryption to frameCipher
-    memcpy(frameCipher, payload, payloadSize);
+    uint8_t frameData[payloadPadding + payloadSize];
+    memcpy(frameData, payload, payloadSize);
+    
     if(payloadPadding){
-        memset(&frameCipher[payloadSize], 0, payloadPadding);
+        memset(&frameData[payloadSize], 0, payloadPadding);
         // aes256_encrypt(&fCoder->aes_sercret, payloadPadding + payloadSize, frameCipher, frameCipher);
-
+        BRAESCTR(frameCipher, fCoder->aesEncryptKey, 32, fCoder->iv.u8, frameData, payloadPadding + payloadSize);
     }else {
         // aes256_encrypt(&fCoder->aes_sercret, payloadSize, frameCipher, frameCipher);
+        BRAESCTR(frameCipher, fCoder->aesEncryptKey, 32, fCoder->iv.u8, frameData, payloadSize);
     }
     array_add_array(fCoder->egressMac, frameCipher, payloadSize + payloadPadding);
     fCoder->egressMacSize += (payloadPadding + payloadSize);
@@ -392,7 +425,7 @@ void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, si
     *rlpBytes = oBytes;
     *rlpBytesSize = oBytesSize;
     
-    rlpDataRelease(headerCipher);
+    rlpDataRelease(headerPlainData);
     rlpCoderRelease(coder);
 }
 BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fCoder, uint8_t * oBytes, size_t outSize) {
@@ -423,6 +456,10 @@ BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fCoder, u
     
     // TODO: AES-CTR decryption function
     // aes256_decrypt(&fCoder->aes_sercret, 16, oBytes);
+    uint8_t cipher[outSize];
+    memcpy(cipher, oBytes, outSize);
+    BRAESCTR(oBytes, fCoder->aesDecryptKey, 32, fCoder->iv.u8, cipher, outSize);
+
 
     return ETHEREUM_BOOLEAN_TRUE;
     
@@ -459,7 +496,10 @@ BREthereumBoolean ethereumFrameCoderDecryptFrame(BREthereumFrameCoder fCoder, ui
     }
     
     // TODO: AES-CTR decryption function
-    //    aes256_encrypt.update(&fCoder->aes_sercret,, outSize, oBytes, oBytes);
+    //aes256_encrypt.update(&fCoder->aes_sercret,, outSize, oBytes, oBytes);
+    uint8_t cipher[outSize];
+    memcpy(cipher, oBytes, outSize);
+    BRAESCTR(oBytes, fCoder->aesDecryptKey, 32, fCoder->iv.u8, cipher, outSize);
     
     return ETHEREUM_BOOLEAN_TRUE;
 }
