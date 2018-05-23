@@ -54,6 +54,8 @@ typedef struct {
 
         struct {
             BREthereumGas gasUsed;
+            // TODO: BREthereumHash hash;
+            // TODO: skip 'timestamp', maybe 'number'; derive from Block for hash.
             uint64_t number;
             uint64_t timestamp;
             uint64_t transactionIndex;
@@ -89,7 +91,7 @@ transactionStateBlocked(BREthereumTransactionState *state,
                         BREthereumGas gasUsed,
                         uint64_t blockNumber,
                         uint64_t blockTimestamp,
-                         uint64_t blockTransactionIndex) {
+                        uint64_t blockTransactionIndex) {
 
     // Ensure blockConfirmations is the maximum seen.
 
@@ -471,6 +473,10 @@ transactionEncodeRLP (BREthereumTransaction transaction,
 
     rlpDataExtract(coder, encoding, &result.bytes, &result.bytesCount);
     rlpCoderRelease(coder);
+
+    // With a SIGNED RLP encoding, we can compute the hash.
+    if (TRANSACTION_RLP_SIGNED == type)
+        transaction->hash = hashCreateFromData(result);
 
     return result;
 }

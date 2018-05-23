@@ -26,6 +26,16 @@
 #include "BRArray.h"
 #include "BREthereumLightNodePrivate.h"
 
+/*!
+ * A LightNode has Listeners 'subscribed' to Events - Wallet, Transaction, Block, Peer and
+ * LightNode Events.  The subscribed listeners should not run on the 'main' LightNode queue;
+ * instead we run listeners on their own queue.
+ *
+ * Herein we define Listener Events, the Dispatcher to handle Events (which turns around and
+ * invokes the subscribed method, and a convenience function to queue an event on the
+ * 'listener' queue.
+ */
+
 //
 // Wallet Event
 //
@@ -43,7 +53,7 @@ typedef struct {
 
 static void
 lightNodeListenerWalletEventDispatcher(BREventHandler ignore,
-                                      BREthereumListenerWalletEvent *event) {
+                                       BREthereumListenerWalletEvent *event) {
     BREthereumLightNode node = event->node;
     
     int count = (int) array_count(node->listeners);
@@ -65,6 +75,9 @@ BREventType listenerWalletEventType = {
     (BREventDispatcher) lightNodeListenerWalletEventDispatcher
 };
 
+/*!
+ * Add a WalletEvent to the LightNode's Listener Queue
+ */
 extern void
 lightNodeListenerAnnounceWalletEvent(BREthereumLightNode node,
                                      BREthereumWalletId wid,
@@ -89,7 +102,7 @@ typedef struct {
 } BREthereumListenerBlockEvent;
 
 #define LISTENER_BLOCK_EVENT_INITIALIZER(node, bid, event, status, desc)  \
-    { { NULL, &listenerBlockEventType }, (node), (bid), (event), (status), (desc) }
+{ { NULL, &listenerBlockEventType }, (node), (bid), (event), (status), (desc) }
 
 static void
 lightNodeListenerBlockEventDispatcher(BREventHandler ignore,
@@ -115,6 +128,9 @@ BREventType listenerBlockEventType = {
     (BREventDispatcher) lightNodeListenerBlockEventDispatcher
 };
 
+/*!
+ * Add a BlockEvent to the LightNode's Listener Queue
+ */
 extern void
 lightNodeListenerAnnounceBlockEvent(BREthereumLightNode node,
                                     BREthereumBlockId bid,
@@ -140,7 +156,7 @@ typedef struct {
 } BREthereumListenerTransactionEvent;
 
 #define LISTENER_TRANSACTION_EVENT_INITIALIZER(node, wid, tid, event, status, desc)  \
-    { { NULL, &listenerTransactionEventType }, (node), (wid), (tid), (event), (status), (desc) }
+{ { NULL, &listenerTransactionEventType }, (node), (wid), (tid), (event), (status), (desc) }
 
 static void
 lightNodeListenerTransactionEventDispatcher(BREventHandler ignore,
@@ -167,6 +183,9 @@ BREventType listenerTransactionEventType = {
     (BREventDispatcher) lightNodeListenerTransactionEventDispatcher
 };
 
+/*!
+ * Add a TransactionEvent to the LightNode's Listener Queue
+ */
 extern void
 lightNodeListenerAnnounceTransactionEvent(BREthereumLightNode node,
                                           BREthereumWalletId wid,
@@ -197,7 +216,7 @@ typedef struct {
 
 static void
 lightNodeListenerPeerEventDispatcher(BREventHandler ignore,
-                                            BREthereumListenerPeerEvent *event) {
+                                     BREthereumListenerPeerEvent *event) {
     BREthereumLightNode node = event->node;
 
     int count = (int) array_count(node->listeners);
@@ -220,13 +239,16 @@ BREventType listenerPeerEventType = {
     (BREventDispatcher) lightNodeListenerPeerEventDispatcher
 };
 
+/*!
+ * Add a PeerEvent to the LightNode's Listener Queue
+ */
 extern void
 lightNodeListenerAnnouncePeerEvent(BREthereumLightNode node,
-                                          // BREthereumWalletId wid,
-                                          // BREthereumTransactionId tid,
-                                          BREthereumPeerEvent event,
-                                          BREthereumStatus status,
-                                          const char *errorDescription) {
+                                   // BREthereumWalletId wid,
+                                   // BREthereumTransactionId tid,
+                                   BREthereumPeerEvent event,
+                                   BREthereumStatus status,
+                                   const char *errorDescription) {
     BREthereumListenerPeerEvent message =
     LISTENER_PEER_EVENT_INITIALIZER (node, /* wid, tid,*/ event, status, errorDescription);
     eventHandlerSignalEvent(node->handlerForListener, (BREvent*) &message);
@@ -273,6 +295,9 @@ BREventType listenerLightNodeEventType = {
     (BREventDispatcher) lightNodeListenerLightNodeEventDispatcher
 };
 
+/*!
+ * Add a LightNodeEvent to the LightNode's Listener Queue
+ */
 extern void
 lightNodeListenerAnnounceLightNodeEvent(BREthereumLightNode node,
                                         // BREthereumWalletId wid,

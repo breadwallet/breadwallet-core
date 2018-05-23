@@ -31,6 +31,10 @@
 #include "BREthereumPrivate.h"
 #include "BREthereumLightNodePrivate.h"
 
+/*!
+ * Define the Events handled on the LightNode's Main queue.
+ */
+
 //
 // Handle Balance
 //
@@ -111,6 +115,89 @@ lightNodeHandleNonce (BREthereumLightNode node,
 }
 
 //
+// Handle Gas Price
+//
+typedef struct {
+    BREvent base;
+    BREthereumLightNode node;
+    BREthereumWallet wallet;
+    BREthereumGasPrice gasPrice;
+} BREthereumHandleGasPriceEvent;
+
+static void
+lightNodeHandleGasPriceEventDispatcher(BREventHandler ignore,
+                                       BREthereumHandleGasPriceEvent *event) {
+    BREthereumLightNode node = event->node;
+    pthread_mutex_lock(&node->lock);
+
+    walletSetDefaultGasPrice(event->wallet, event->gasPrice);
+
+    lightNodeListenerAnnounceWalletEvent(node,
+                                         lightNodeLookupWalletId(node, event->wallet),
+                                         WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
+                                         SUCCESS, NULL);
+
+    pthread_mutex_unlock(&node->lock);
+}
+
+BREventType handleGasPriceEventType = {
+    "Handle GasPrice Event",
+    sizeof (BREthereumHandleGasPriceEvent),
+    (BREventDispatcher) lightNodeHandleGasPriceEventDispatcher
+};
+
+extern void
+lightNodeHandleGasPrice (BREthereumLightNode node,
+                         BREthereumWallet wallet,
+                         BREthereumGasPrice gasPrice) {
+    BREthereumHandleGasPriceEvent event = { { NULL, &handleGasPriceEventType }, node, wallet, gasPrice };
+    eventHandlerSignalEvent(node->handlerForMain, (BREvent*) &event);
+}
+
+//
+// Handle Gas Estimate
+//
+typedef struct {
+    BREvent base;
+    BREthereumLightNode node;
+    BREthereumWallet wallet;
+    BREthereumTransaction transaction;
+    BREthereumGas gasEstimate;
+} BREthereumHandleGasEstimateEvent;
+
+static void
+lightNodeHandleGasEstimateEventDispatcher(BREventHandler ignore,
+                                       BREthereumHandleGasEstimateEvent *event) {
+    BREthereumLightNode node = event->node;
+    pthread_mutex_lock(&node->lock);
+
+    transactionSetGasEstimate(event->transaction, event->gasEstimate);
+
+    lightNodeListenerAnnounceTransactionEvent(node,
+                                         lightNodeLookupWalletId(node, event->wallet),
+                                         lightNodeLookupTransactionId (node, event->transaction),
+                                         TRANSACTION_EVENT_GAS_ESTIMATE_UPDATED,
+                                         SUCCESS, NULL);
+
+    pthread_mutex_unlock(&node->lock);
+}
+
+BREventType handleGasEstimateEventType = {
+    "Handle GasEstimate Event",
+    sizeof (BREthereumHandleGasEstimateEvent),
+    (BREventDispatcher) lightNodeHandleGasEstimateEventDispatcher
+};
+
+extern void
+lightNodeHandleGasEstimate (BREthereumLightNode node,
+                            BREthereumWallet wallet,
+                            BREthereumTransaction transaction,
+                            BREthereumGas gasEstimate) {
+    BREthereumHandleGasEstimateEvent event = { { NULL, &handleGasEstimateEventType }, node, wallet, transaction, gasEstimate };
+    eventHandlerSignalEvent(node->handlerForMain, (BREvent*) &event);
+}
+
+//
 // Handle Transaction Status
 //
 typedef struct {
@@ -127,28 +214,54 @@ lightNodeHandleTransactionStatusEventDispatcher(BREventHandler ignore,
     pthread_mutex_lock(&node->lock);
 
     BREthereumTransaction transaction = lightNodeLookupTransactionByHash(node, event->transactionHash);
+    BREthereumWallet wallet = (NULL == transaction ? NULL : lightNodeLookupWalletByTransaction(node, transaction));
 
-    if (NULL == transaction) return;
+    // Strict, for now.
+    assert (NULL != transaction);
+    assert (NULL != wallet);
 
     switch (event->status.type) {
-        case TRANSACTION_STATUS_ERROR:
-        case TRANSACTION_STATUS_QUEUED:
-        case TRANSACTION_STATUS_PENDING:
         case TRANSACTION_STATUS_UNKNOWN:
             break;
-        case TRANSACTION_STATUS_INCLUDED: {
-            BREthereumBlock block = lightNodeLookupBlockByHash(node, event->status.u.included.blockHash);
-            if (NULL == block) return;
+        case TRANSACTION_STATUS_QUEUED:
+            break;
+        case TRANSACTION_STATUS_PENDING:
+            walletTransactionSubmitted(wallet, transaction, event->transactionHash);
+            lightNodeListenerAnnounceTransactionEvent(node,
+                                                      lightNodeLookupWalletId(node, wallet),
+                                                      lightNodeLookupTransactionId (node, transaction),
+                                                      TRANSACTION_EVENT_SUBMITTED,
+                                                      SUCCESS, NULL);
+            break;
 
-            
+        case TRANSACTION_STATUS_INCLUDED: {
+            // TODO: DO NOTHING - should get a TransactionReceipt message with *all* needed data.
+            BREthereumBlock block = lightNodeLookupBlockByHash(node, event->status.u.included.blockHash);
+            assert (NULL != block);
+
+            walletTransactionBlocked(wallet, transaction,
+                                     gasCreate(0),
+                                     event->status.u.included.blockNumber,
+                                     0,
+                                     event->status.u.included.transactionIndex);
+            lightNodeListenerAnnounceTransactionEvent(node,
+                                                      lightNodeLookupWalletId(node, wallet),
+                                                      lightNodeLookupTransactionId (node, transaction),
+                                                      TRANSACTION_EVENT_BLOCKED,
+                                                      SUCCESS, NULL);
+            break;
         }
 
+        case TRANSACTION_STATUS_ERROR:
+            lightNodeListenerAnnounceTransactionEvent(node,
+                                                      lightNodeLookupWalletId(node, wallet),
+                                                      lightNodeLookupTransactionId (node, transaction),
+                                                      TRANSACTION_EVENT_SUBMITTED,
+                                                      ERROR_TRANSACTION_SUBMISSION,
+                                                      event->status.u.error.message);
+            break;
     }
-    //    BREthereumAddress address = accountGetPrimaryAddress(lightNodeGetAccount(node));
-    //    addressSetNonce(address, event->nonce);
     pthread_mutex_unlock(&node->lock);
-
-    //lightNodeListenerAnnounceTransactionEvent(node, wid, tid, TRANSACTION_EVENT_BLOCKED, SUCCESS, NULL));
 }
 
 BREventType handleTransactionStatusEventType = {
@@ -166,15 +279,78 @@ lightNodeHandleTransactionStatus (BREthereumLightNode node,
     eventHandlerSignalEvent(node->handlerForMain, (BREvent*) &event);
 }
 
+
+//
+// Handle Transaction Receipt
+//
+typedef struct {
+    BREvent base;
+    BREthereumLightNode node;
+    BREthereumHash blockHash;
+    BREthereumTransactionReceipt receipt;
+    unsigned int receiptIndex;
+} BREthereumHandleTransactionReceiptEvent;
+
+static void
+lightNodeHandleTransactionReceiptEventDispatcher(BREventHandler ignore,
+                                                 BREthereumHandleTransactionReceiptEvent *event) {
+    BREthereumLightNode node = event->node;
+    pthread_mutex_lock(&node->lock);
+
+    BREthereumBlock block = lightNodeLookupBlockByHash(node, event->blockHash);
+    assert (NULL != block);
+
+    BREthereumTransaction transaction = blockGetTransaction(block, event->receiptIndex);
+    assert (NULL != transaction);
+
+    BREthereumWallet wallet = lightNodeLookupWalletByTransaction(node, transaction);
+    assert (NULL != wallet);
+
+    walletTransactionBlocked(wallet, transaction,
+                             gasCreate (transactionReceiptGetGasUsed(event->receipt)),
+                             blockGetNumber(block),
+                             blockGetTimestamp(block),
+                             event->receiptIndex);
+    
+    lightNodeListenerAnnounceTransactionEvent(node,
+                                              lightNodeLookupWalletId(node, wallet),
+                                              lightNodeLookupTransactionId (node, transaction),
+                                              TRANSACTION_EVENT_BLOCKED,
+                                              SUCCESS, NULL);
+
+    // TODO: Check if the bloom filter matches; if so, handle Logs.
+
+    pthread_mutex_unlock(&node->lock);
+}
+
+BREventType handleTransactionReceiptEventType = {
+    "Handle TransactionReceipt Event",
+    sizeof (BREthereumHandleTransactionReceiptEvent),
+    (BREventDispatcher) lightNodeHandleTransactionReceiptEventDispatcher
+};
+
+extern void
+lightNodeHandleTransactionReceipt (BREthereumLightNode node,
+                                   BREthereumHash blockHash,
+                                   BREthereumTransactionReceipt receipt,
+                                   unsigned int receiptIndex) {
+    BREthereumHandleTransactionReceiptEvent event =
+        { { NULL, &handleTransactionReceiptEventType }, node, blockHash, receipt, receiptIndex };
+    eventHandlerSignalEvent(node->handlerForMain, (BREvent*) &event);
+}
+
 //
 // All Handler Event Types
 //
 const BREventType *handlerEventTypes[] = {
     &handleBalanceEventType,
     &handleNonceEventType,
-    &handleTransactionStatusEventType
+    &handleGasPriceEventType,
+    &handleGasEstimateEventType,
+    &handleTransactionStatusEventType,
+    &handleTransactionReceiptEventType
 };
-const unsigned int handlerEventTypesCount = 3;
+const unsigned int handlerEventTypesCount = 5;
 
 ///////////
 

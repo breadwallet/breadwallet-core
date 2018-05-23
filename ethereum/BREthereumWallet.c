@@ -546,10 +546,11 @@ walletTransactionSubmitted (BREthereumWallet wallet,
 }
 
 private_extern void
-walletTransactionBlocked(BREthereumWallet wallet, BREthereumTransaction transaction,
-                         BREthereumGas gasUsed, uint64_t
-                         blockNumber, uint64_t
-                         blockTimestamp,
+walletTransactionBlocked(BREthereumWallet wallet,
+                         BREthereumTransaction transaction,
+                         BREthereumGas gasUsed,
+                         uint64_t blockNumber,
+                         uint64_t blockTimestamp,
                          uint64_t blockTransactionIndex) {
     transactionAnnounceBlocked(transaction, gasUsed,
                                blockNumber,

@@ -69,6 +69,22 @@ lightNodeListenerAnnounceTransactionEvent(BREthereumLightNode node,
                                           BREthereumStatus status,
                                           const char *errorDescription);
 
+extern void
+lightNodeListenerAnnouncePeerEvent(BREthereumLightNode node,
+                                   // BREthereumWalletId wid,
+                                   // BREthereumTransactionId tid,
+                                   BREthereumPeerEvent event,
+                                   BREthereumStatus status,
+                                   const char *errorDescription);
+
+extern void
+lightNodeListenerAnnounceLightNodeEvent(BREthereumLightNode node,
+                                        // BREthereumWalletId wid,
+                                        // BREthereumTransactionId tid,
+                                        BREthereumLightNodeEvent event,
+                                        BREthereumStatus status,
+                                        const char *errorDescription);
+
 extern const BREventType *listenerEventTypes[];
 extern const unsigned int listenerEventTypesCount;
 
@@ -166,13 +182,6 @@ struct BREthereumLightNodeRecord {
     BREventHandler handlerForMain;
 
     /**
-     * The Thread handling 'announcements' and periodic 'updates'.  Announcements are made by
-     * the Client to report new data, typically via a JSON_RPC call, back to the Node.  Updates
-     * are make periodically to call the JSON_RCP interface thereby prompting an announcement.
-     */
-    pthread_t thread;
-
-    /**
      * The Lock ensuring single thread access to Node state.
      */
     pthread_mutex_t lock;
@@ -182,7 +191,11 @@ extern BREthereumWalletId
 lightNodeLookupWalletId(BREthereumLightNode node,
                         BREthereumWallet wallet);
 
-extern void
+extern BREthereumWallet
+lightNodeLookupWalletByTransaction (BREthereumLightNode node,
+                                    BREthereumTransaction transaction);
+    
+extern BREthereumWalletId
 lightNodeInsertWallet (BREthereumLightNode node,
                        BREthereumWallet wallet);
 
@@ -190,7 +203,7 @@ extern BREthereumBlockId
 lightNodeLookupBlockId (BREthereumLightNode node,
                         BREthereumBlock block);
 
-extern void
+extern BREthereumBlockId
 lightNodeInsertBlock (BREthereumLightNode node,
                       BREthereumBlock block);
 
@@ -215,6 +228,17 @@ lightNodeHandleBalance (BREthereumLightNode node,
 extern void
 lightNodeHandleNonce (BREthereumLightNode node,
                       uint64_t nonce);
+
+extern void
+lightNodeHandleGasPrice (BREthereumLightNode node,
+                         BREthereumWallet wallet,
+                         BREthereumGasPrice gasPrice);
+
+extern void
+lightNodeHandleGasEstimate (BREthereumLightNode node,
+                            BREthereumWallet wallet,
+                            BREthereumTransaction transaction,
+                            BREthereumGas gasEstimate);
 
 extern void
 lightNodeHandleTransactionStatus (BREthereumLightNode node,

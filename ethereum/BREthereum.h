@@ -69,7 +69,8 @@ typedef enum {
     ERROR_NODE_NOT_CONNECTED,
 
     // Transaction
-    ERROR_TRANSACTION_X,
+    ERROR_TRANSACTION_HASH_MISMATCH,
+    ERROR_TRANSACTION_SUBMISSION,
 
     // Acount
     // Wallet

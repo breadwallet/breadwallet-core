@@ -81,6 +81,7 @@
 		3CAB613020B347B300810CE4 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB612720B347B200810CE4 /* Constants.swift */; };
 		3CAB613220B34EFF00810CE4 /* BREthereumEther.h in Headers */ = {isa = PBXBuildFile; fileRef = 3C2A53AD20AF595400C430F6 /* BREthereumEther.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		3CAB613320B3536000810CE4 /* test-les.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A538920AF595400C430F6 /* test-les.c */; };
+		3CB8DF4A20B4BBF600E92316 /* BREthereumLightNodeUpdate.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CB8DF4920B4BBF600E92316 /* BREthereumLightNodeUpdate.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -265,6 +266,7 @@
 		3CAB612520B347B200810CE4 /* Support.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Support.swift; path = BRCore/Support.swift; sourceTree = SOURCE_ROOT; };
 		3CAB612620B347B200810CE4 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = BRCore/Info.plist; sourceTree = SOURCE_ROOT; };
 		3CAB612720B347B200810CE4 /* Constants.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Constants.swift; path = BRCore/Constants.swift; sourceTree = SOURCE_ROOT; };
+		3CB8DF4920B4BBF600E92316 /* BREthereumLightNodeUpdate.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumLightNodeUpdate.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -342,20 +344,20 @@
 		3C2A537F20AF595400C430F6 /* les */ = {
 			isa = PBXGroup;
 			children = (
+				3C2A538820AF595400C430F6 /* BREthereumHandshake.h */,
 				3C2A538020AF595400C430F6 /* BREthereumHandshake.c */,
 				3C2A538120AF595400C430F6 /* BREthereumNodeEventHandler.h */,
-				3C2A538320AF595400C430F6 /* BREthereumNode.h */,
-				3C2A538420AF595400C430F6 /* BREthereumFrameCoder.h */,
-				3C2A538520AF595400C430F6 /* BREthereumNodeManager.c */,
-				3C2A538620AF595400C430F6 /* BREthereumLES.c */,
-				3C2A538720AF595400C430F6 /* BREthereumLESBase.h */,
-				3C2A538820AF595400C430F6 /* BREthereumHandshake.h */,
 				3C2A538A20AF595400C430F6 /* BREthereumNodeEventHandler.c */,
-				3C2A538B20AF595400C430F6 /* BREthereumFrameCoder.c */,
+				3C2A538320AF595400C430F6 /* BREthereumNode.h */,
 				3C2A538C20AF595400C430F6 /* BREthereumNode.c */,
+				3C2A538420AF595400C430F6 /* BREthereumFrameCoder.h */,
+				3C2A538B20AF595400C430F6 /* BREthereumFrameCoder.c */,
+				3C2A538F20AF595400C430F6 /* BREthereumNodeManager.h */,
+				3C2A538520AF595400C430F6 /* BREthereumNodeManager.c */,
+				3C2A538720AF595400C430F6 /* BREthereumLESBase.h */,
 				3C2A538D20AF595400C430F6 /* BREthereumLESBase.c */,
 				3C2A538E20AF595400C430F6 /* BREthereumLES.h */,
-				3C2A538F20AF595400C430F6 /* BREthereumNodeManager.h */,
+				3C2A538620AF595400C430F6 /* BREthereumLES.c */,
 				3C2A538220AF595400C430F6 /* test-les.h */,
 				3C2A538920AF595400C430F6 /* test-les.c */,
 			);
@@ -395,6 +397,7 @@
 				3C2A539F20AF595400C430F6 /* BREthereumLightNodeAnnounce.c */,
 				3C2A53A120AF595400C430F6 /* BREthereumLightNodeListen.c */,
 				3C2A53A420AF595400C430F6 /* BREthereumLightNodeHandle.c */,
+				3CB8DF4920B4BBF600E92316 /* BREthereumLightNodeUpdate.c */,
 			);
 			name = lightnode;
 			path = ../../ethereum/lightnode;
@@ -435,25 +438,25 @@
 		3C2A53BA20AF595500C430F6 /* blockchain */ = {
 			isa = PBXGroup;
 			children = (
-				3C2A53BB20AF595500C430F6 /* BREthereumTransaction.c */,
 				3C2A53BC20AF595500C430F6 /* BREthereumBlockChain.h */,
-				3C2A53BD20AF595500C430F6 /* BREthereumLog.h */,
-				3C2A53BE20AF595500C430F6 /* BREthereumAccountState.h */,
-				3C2A53BF20AF595500C430F6 /* BREthereumBloomFilter.c */,
-				3C2A53C020AF595500C430F6 /* BREthereumTransactionStatus.h */,
-				3C2A53C120AF595500C430F6 /* BREthereumNetwork.c */,
-				3C2A53C220AF595500C430F6 /* BREthereumTransactionReceipt.c */,
-				3C2A53C320AF595500C430F6 /* BREthereumBlock.h */,
 				3C2A53C420AF595500C430F6 /* BREthereumAmount.h */,
+				3C2A53CD20AF595500C430F6 /* BREthereumAmount.c */,
+				3C2A53BE20AF595500C430F6 /* BREthereumAccountState.h */,
 				3C2A53C520AF595500C430F6 /* BREthereumAccountState.c */,
+				3C2A53C820AF595500C430F6 /* BREthereumNetwork.h */,
+				3C2A53C120AF595500C430F6 /* BREthereumNetwork.c */,
+				3C2A53CA20AF595500C430F6 /* BREthereumBloomFilter.h */,
+				3C2A53BF20AF595500C430F6 /* BREthereumBloomFilter.c */,
+				3C2A53BD20AF595500C430F6 /* BREthereumLog.h */,
 				3C2A53C620AF595500C430F6 /* BREthereumLog.c */,
 				3C2A53C720AF595500C430F6 /* BREthereumTransaction.h */,
-				3C2A53C820AF595500C430F6 /* BREthereumNetwork.h */,
+				3C2A53BB20AF595500C430F6 /* BREthereumTransaction.c */,
+				3C2A53C020AF595500C430F6 /* BREthereumTransactionStatus.h */,
 				3C2A53C920AF595500C430F6 /* BREthereumTransactionStatus.c */,
-				3C2A53CA20AF595500C430F6 /* BREthereumBloomFilter.h */,
-				3C2A53CB20AF595500C430F6 /* BREthereumBlock.c */,
 				3C2A53CC20AF595500C430F6 /* BREthereumTransactionReceipt.h */,
-				3C2A53CD20AF595500C430F6 /* BREthereumAmount.c */,
+				3C2A53C220AF595500C430F6 /* BREthereumTransactionReceipt.c */,
+				3C2A53C320AF595500C430F6 /* BREthereumBlock.h */,
+				3C2A53CB20AF595500C430F6 /* BREthereumBlock.c */,
 			);
 			name = blockchain;
 			path = ../../ethereum/blockchain;
@@ -804,6 +807,7 @@
 				3CAB60DC20AF8D1A00810CE4 /* BRBloomFilter.c in Sources */,
 				3CAB60DD20AF8D1A00810CE4 /* BRCrypto.c in Sources */,
 				3CAB60DE20AF8D1A00810CE4 /* BRKeyECIES.c in Sources */,
+				3CB8DF4A20B4BBF600E92316 /* BREthereumLightNodeUpdate.c in Sources */,
 				3CAB60DF20AF8D1A00810CE4 /* BRKey.c in Sources */,
 				3CAB60E020AF8D1A00810CE4 /* BRMerkleBlock.c in Sources */,
 				3CAB60E120AF8D1A00810CE4 /* BRPaymentProtocol.c in Sources */,
