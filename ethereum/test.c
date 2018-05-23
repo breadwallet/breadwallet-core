@@ -1214,7 +1214,7 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
                          clientGetTransactions,
                          clientGetLogs);
 
-    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey);
+    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
     // A wallet amount Ether
     BREthereumWalletId wallet = ethereumGetWallet(node);
     // END - One Time Code Block
@@ -1267,7 +1267,7 @@ runLightNode_JSON_RPC_test (const char *paperKey) {
                                          clientGetTransactions,
                                          clientGetLogs);
     
-    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey);
+    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
     BREthereumWalletId wallet = ethereumGetWallet(node);
     
     ethereumConnect(node, configuration);
@@ -1360,7 +1360,7 @@ runLightNode_LISTENER_test (const char *paperKey) {
                          clientGetTransactions,
                          clientGetLogs);
 
-    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey);
+    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
 
     BREthereumListenerId lid = lightNodeAddListener(node,
                                                     (BREthereumListenerContext) NULL,
@@ -1396,7 +1396,7 @@ runLightNode_TOKEN_test (const char *paperKey) {
     
     BRCoreParseStatus status;
     
-    BREthereumLightNode node = ethereumCreate (ethereumMainnet, paperKey);
+    BREthereumLightNode node = ethereumCreate (ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
     BREthereumWalletId wallet = ethereumGetWalletHoldingToken(node, tokenBRD);
     
     BREthereumAmount amount = ethereumCreateTokenAmountString(node, tokenBRD,
@@ -1423,12 +1423,12 @@ static void
 runLightNode_PUBLIC_KEY_test (BREthereumNetwork network, const char *paperKey) {
     printf ("     PUBLIC KEY\n");
 
-    BREthereumLightNode node1 = ethereumCreate (network, paperKey);
+    BREthereumLightNode node1 = ethereumCreate (network, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
     char *addr1 = ethereumGetAccountPrimaryAddress (node1);
     BRKey key = ethereumGetAccountPrimaryAddressPrivateKey(node1, paperKey);
 
     BRKey publicKey = ethereumGetAccountPrimaryAddressPublicKey (node1);
-    BREthereumLightNode node2 = ethereumCreateWithPublicKey (network, publicKey);
+    BREthereumLightNode node2 = ethereumCreateWithPublicKey (network, publicKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
     char *addr2 = ethereumGetAccountPrimaryAddress (node2);
 
 
