@@ -54,19 +54,11 @@ typedef struct {
 static void
 lightNodeListenerWalletEventDispatcher(BREventHandler ignore,
                                        BREthereumListenerWalletEvent *event) {
-    BREthereumLightNode node = event->node;
-    
-    int count = (int) array_count(node->listeners);
-    for (int i = 0; i < count; i++) {
-        if (NULL != node->listeners[i].walletEventHandler)
-            node->listeners[i].walletEventHandler
-            (node->listeners[i].context,
-             node,
-             event->wid,
-             event->event,
-             event->status,
-             event->errorDescription);
-    }
+    lightNodeListenerHandleWalletEvent(event->node,
+                                       event->wid,
+                                       event->event,
+                                       event->status,
+                                       event->errorDescription);
 }
 
 BREventType listenerWalletEventType = {
@@ -79,7 +71,7 @@ BREventType listenerWalletEventType = {
  * Add a WalletEvent to the LightNode's Listener Queue
  */
 extern void
-lightNodeListenerAnnounceWalletEvent(BREthereumLightNode node,
+lightNodeListenerSignalWalletEvent(BREthereumLightNode node,
                                      BREthereumWalletId wid,
                                      BREthereumWalletEvent event,
                                      BREthereumStatus status,
@@ -107,19 +99,11 @@ typedef struct {
 static void
 lightNodeListenerBlockEventDispatcher(BREventHandler ignore,
                                       BREthereumListenerBlockEvent *event) {
-    BREthereumLightNode node = event->node;
-
-    int count = (int) array_count(node->listeners);
-    for (int i = 0; i < count; i++) {
-        if (NULL != node->listeners[i].blockEventHandler)
-            node->listeners[i].blockEventHandler
-            (node->listeners[i].context,
-             node,
-             event->bid,
-             event->event,
-             event->status,
-             event->errorDescription);
-    }
+    lightNodeListenerHandleBlockEvent(event->node,
+                                      event->bid,
+                                      event->event,
+                                      event->status,
+                                      event->errorDescription);
 }
 
 BREventType listenerBlockEventType = {
@@ -132,7 +116,7 @@ BREventType listenerBlockEventType = {
  * Add a BlockEvent to the LightNode's Listener Queue
  */
 extern void
-lightNodeListenerAnnounceBlockEvent(BREthereumLightNode node,
+lightNodeListenerSignalBlockEvent(BREthereumLightNode node,
                                     BREthereumBlockId bid,
                                     BREthereumBlockEvent event,
                                     BREthereumStatus status,
@@ -161,20 +145,12 @@ typedef struct {
 static void
 lightNodeListenerTransactionEventDispatcher(BREventHandler ignore,
                                             BREthereumListenerTransactionEvent *event) {
-    BREthereumLightNode node = event->node;
-
-    int count = (int) array_count(node->listeners);
-    for (int i = 0; i < count; i++) {
-        if (NULL != node->listeners[i].transactionEventHandler)
-            node->listeners[i].transactionEventHandler
-            (node->listeners[i].context,
-             node,
-             event->wid,
-             event->tid,
-             event->event,
-             event->status,
-             event->errorDescription);
-    }
+    lightNodeListenerHandleTransactionEvent(event->node,
+                                            event->wid,
+                                            event->tid,
+                                            event->event,
+                                            event->status,
+                                            event->errorDescription);
 }
 
 BREventType listenerTransactionEventType = {
@@ -187,7 +163,7 @@ BREventType listenerTransactionEventType = {
  * Add a TransactionEvent to the LightNode's Listener Queue
  */
 extern void
-lightNodeListenerAnnounceTransactionEvent(BREthereumLightNode node,
+lightNodeListenerSignalTransactionEvent(BREthereumLightNode node,
                                           BREthereumWalletId wid,
                                           BREthereumTransactionId tid,
                                           BREthereumTransactionEvent event,
@@ -217,20 +193,7 @@ typedef struct {
 static void
 lightNodeListenerPeerEventDispatcher(BREventHandler ignore,
                                      BREthereumListenerPeerEvent *event) {
-    BREthereumLightNode node = event->node;
-
-    int count = (int) array_count(node->listeners);
-    for (int i = 0; i < count; i++) {
-        if (NULL != node->listeners[i].peerEventHandler)
-            node->listeners[i].peerEventHandler
-            (node->listeners[i].context,
-             node,
-             // event->wid,
-             // event->tid,
-             event->event,
-             event->status,
-             event->errorDescription);
-    }
+    lightNodeListenerHandlePeerEvent(event->node, event->event, event->status, event->errorDescription);
 }
 
 BREventType listenerPeerEventType = {
@@ -243,7 +206,7 @@ BREventType listenerPeerEventType = {
  * Add a PeerEvent to the LightNode's Listener Queue
  */
 extern void
-lightNodeListenerAnnouncePeerEvent(BREthereumLightNode node,
+lightNodeListenerSignalPeerEvent(BREthereumLightNode node,
                                    // BREthereumWalletId wid,
                                    // BREthereumTransactionId tid,
                                    BREthereumPeerEvent event,
@@ -273,20 +236,7 @@ typedef struct {
 static void
 lightNodeListenerLightNodeEventDispatcher(BREventHandler ignore,
                                           BREthereumListenerLightNodeEvent *event) {
-    BREthereumLightNode node = event->node;
-
-    int count = (int) array_count(node->listeners);
-    for (int i = 0; i < count; i++) {
-        if (NULL != node->listeners[i].lightNodeEventHandler)
-            node->listeners[i].lightNodeEventHandler
-            (node->listeners[i].context,
-             node,
-             //event->wid,
-             // event->tid,
-             event->event,
-             event->status,
-             event->errorDescription);
-    }
+    lightNodeListenerHandleLightNodeEvent(event->node, event->event, event->status, event->errorDescription);
 }
 
 BREventType listenerLightNodeEventType = {
@@ -299,7 +249,7 @@ BREventType listenerLightNodeEventType = {
  * Add a LightNodeEvent to the LightNode's Listener Queue
  */
 extern void
-lightNodeListenerAnnounceLightNodeEvent(BREthereumLightNode node,
+lightNodeListenerSignalLightNodeEvent(BREthereumLightNode node,
                                         // BREthereumWalletId wid,
                                         // BREthereumTransactionId tid,
                                         BREthereumLightNodeEvent event,
@@ -321,3 +271,176 @@ const BREventType *listenerEventTypes[] = {
     &listenerLightNodeEventType
 };
 const unsigned int listenerEventTypesCount = 5;
+
+// ==============================================================================================
+// ==============================================================================================
+
+/*!
+ * Define the Events handled on the LightNode's Main queue.
+ */
+
+// ==============================================================================================
+//
+// Handle Balance
+//
+typedef struct {
+    BREvent base;
+    BREthereumLightNode node;
+    BREthereumAmount amount;
+} BREthereumHandleBalanceEvent;
+
+static void
+lightNodeHandleBalanceEventDispatcher(BREventHandler ignore,
+                                      BREthereumHandleBalanceEvent *event) {
+    lightNodeHandleBalance(event->node, event->amount);
+}
+
+BREventType handleBalanceEventType = {
+    "Handle Balance Event",
+    sizeof (BREthereumHandleBalanceEvent),
+    (BREventDispatcher) lightNodeHandleBalanceEventDispatcher
+};
+
+extern void
+lightNodeSignalBalance (BREthereumLightNode node,
+                        BREthereumAmount amount) {
+    BREthereumHandleBalanceEvent event = { { NULL, &handleBalanceEventType }, node, amount };
+    eventHandlerSignalEvent(node->handlerForMain, (BREvent*) &event);
+}
+
+// ==============================================================================================
+//
+// Handle Nonce
+//
+typedef struct {
+    BREvent base;
+    BREthereumLightNode node;
+    uint64_t nonce;
+} BREthereumHandleNonceEvent;
+
+static void
+lightNodeHandleNonceEventDispatcher(BREventHandler ignore,
+                                    BREthereumHandleNonceEvent *event) {
+    lightNodeHandleNonce(event->node, event->nonce);
+}
+
+BREventType handleNonceEventType = {
+    "Handle Nonce Event",
+    sizeof (BREthereumHandleNonceEvent),
+    (BREventDispatcher) lightNodeHandleNonceEventDispatcher
+};
+
+extern void
+lightNodeSignalNonce (BREthereumLightNode node,
+                      uint64_t nonce) {
+    BREthereumHandleNonceEvent event = { { NULL, &handleNonceEventType }, node, nonce };
+    eventHandlerSignalEvent(node->handlerForMain, (BREvent*) &event);
+}
+
+// ==============================================================================================
+//
+// Handle Gas Price
+//
+typedef struct {
+    BREvent base;
+    BREthereumLightNode node;
+    BREthereumWallet wallet;
+    BREthereumGasPrice gasPrice;
+} BREthereumHandleGasPriceEvent;
+
+static void
+lightNodeHandleGasPriceEventDispatcher(BREventHandler ignore,
+                                       BREthereumHandleGasPriceEvent *event) {
+    lightNodeHandleGasPrice(event->node, event->wallet, event->gasPrice);
+}
+
+BREventType handleGasPriceEventType = {
+    "Handle GasPrice Event",
+    sizeof (BREthereumHandleGasPriceEvent),
+    (BREventDispatcher) lightNodeHandleGasPriceEventDispatcher
+};
+
+extern void
+lightNodeSignalGasPrice (BREthereumLightNode node,
+                         BREthereumWallet wallet,
+                         BREthereumGasPrice gasPrice) {
+    BREthereumHandleGasPriceEvent event = { { NULL, &handleGasPriceEventType }, node, wallet, gasPrice };
+    eventHandlerSignalEvent(node->handlerForMain, (BREvent*) &event);
+}
+
+// ==============================================================================================
+//
+// Handle Gas Estimate
+//
+typedef struct {
+    BREvent base;
+    BREthereumLightNode node;
+    BREthereumWallet wallet;
+    BREthereumTransaction transaction;
+    BREthereumGas gasEstimate;
+} BREthereumHandleGasEstimateEvent;
+
+static void
+lightNodeHandleGasEstimateEventDispatcher(BREventHandler ignore,
+                                          BREthereumHandleGasEstimateEvent *event) {
+    lightNodeHandleGasEstimate(event->node, event->wallet, event->transaction, event->gasEstimate);
+}
+
+BREventType handleGasEstimateEventType = {
+    "Handle GasEstimate Event",
+    sizeof (BREthereumHandleGasEstimateEvent),
+    (BREventDispatcher) lightNodeHandleGasEstimateEventDispatcher
+};
+
+extern void
+lightNodeSignalGasEstimate (BREthereumLightNode node,
+                            BREthereumWallet wallet,
+                            BREthereumTransaction transaction,
+                            BREthereumGas gasEstimate) {
+    BREthereumHandleGasEstimateEvent event = { { NULL, &handleGasEstimateEventType }, node, wallet, transaction, gasEstimate };
+    eventHandlerSignalEvent(node->handlerForMain, (BREvent*) &event);
+}
+
+// ==============================================================================================
+//
+// Handle Transaction
+//
+typedef struct {
+    BREvent base;
+    BREthereumLightNode node;
+    BREthereumTransaction transaction;
+} BREthereumHandleTransactionEvent;
+
+static void
+lightNodeHandleTransactionEventDispatcher(BREventHandler ignore,
+                                          BREthereumHandleTransactionEvent *event) {
+    lightNodeHandleTransaction(event->node, event->transaction);
+}
+
+BREventType handleTransactionEventType = {
+    "Handle Transaction Event",
+    sizeof (BREthereumHandleTransactionEvent),
+    (BREventDispatcher) lightNodeHandleTransactionEventDispatcher
+};
+
+extern void
+lightNodeSignalTransaction (BREthereumLightNode node,
+                            BREthereumTransaction transaction) {
+    BREthereumHandleTransactionEvent event = { { NULL, &handleTransactionEventType }, node, transaction };
+    eventHandlerSignalEvent(node->handlerForMain, (BREvent*) &event);
+}
+
+
+// ==============================================================================================
+//
+// All Handler Event Types
+//
+const BREventType *handlerEventTypes[] = {
+    &handleBalanceEventType,
+    &handleNonceEventType,
+    &handleGasPriceEventType,
+    &handleGasEstimateEventType,
+    &handleTransactionEventType
+};
+const unsigned int handlerEventTypesCount = 5;
+

@@ -636,13 +636,13 @@ extern uint64_t
 ethereumTransactionGetNonce(BREthereumLightNode node,
                             BREthereumTransactionId transaction);
 
+extern BREthereumHash
+ethereumTransactionGetBlockHasn(BREthereumLightNode node,
+                                BREthereumTransactionId tid);
+
 extern uint64_t
 ethereumTransactionGetBlockNumber(BREthereumLightNode node,
                                   BREthereumTransactionId tid);
-
-extern uint64_t
-ethereumTransactionGetBlockTimestamp(BREthereumLightNode node,
-                                     BREthereumTransactionId tid);
 
 extern uint64_t
 ethereumTransactionGetBlockConfirmations(BREthereumLightNode node,
@@ -669,20 +669,6 @@ extern BREthereumEther
 ethereumTransactionGetFee(BREthereumLightNode node,
                           BREthereumTransactionId tid,
                           int *overflow);
-
-// Pending
-
-/**
- * Light Node Transaction Status - these are Ethereum defined.
- */
-typedef enum {
-    NODE_TRANSACTION_STATUS_Unknown  = 0,  // (0): transaction is unknown
-    NODE_TRANSACTION_STATUS_Queued   = 1,  // (1): transaction is queued (not processable yet)
-    NODE_TRANSACTION_STATUS_Pending  = 2,  // (2): transaction is pending (processable)
-    NODE_TRANSACTION_STATUS_Included = 3,  // (3): transaction is already included in the canonical chain. data contains an RLP-encoded [blockHash: B_32, blockNumber: P, txIndex: P] structure
-    NODE_TRANSACTION_STATUS_Error    = 4   // (4): transaction sending failed. data contains a text error message
-} BREthereumLightNodeTransactionStatus;
-
 
 // ===================================
 //
@@ -811,7 +797,7 @@ lightNodeAnnounceSubmitTransaction(BREthereumLightNode node,
                                    const char *hash,
                                    int rid);
 
-#endif // ETHEREUM_LIGHT_NODE_USE_JSON_RPC
+#endif // defined(SUPPORT_JSON_RPC)
 
 #ifdef __cplusplus
 }

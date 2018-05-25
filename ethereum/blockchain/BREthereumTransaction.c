@@ -54,10 +54,8 @@ typedef struct {
 
         struct {
             BREthereumGas gasUsed;
-            // TODO: BREthereumHash hash;
-            // TODO: skip 'timestamp', maybe 'number'; derive from Block for hash.
+            BREthereumHash hash;
             uint64_t number;
-            uint64_t timestamp;
             uint64_t transactionIndex;
         } blocked;
 
@@ -89,16 +87,16 @@ transactionStateSubmitted (BREthereumTransactionState *state /* ... */) {
 static void
 transactionStateBlocked(BREthereumTransactionState *state,
                         BREthereumGas gasUsed,
+                        BREthereumHash blockHash,
                         uint64_t blockNumber,
-                        uint64_t blockTimestamp,
                         uint64_t blockTransactionIndex) {
 
     // Ensure blockConfirmations is the maximum seen.
 
     state->status = TRANSACTION_BLOCKED;
     state->u.blocked.gasUsed = gasUsed;
+    state->u.blocked.hash = blockHash;
     state->u.blocked.number = blockNumber;
-    state->u.blocked.timestamp = blockTimestamp;
     state->u.blocked.transactionIndex = blockTransactionIndex;
 }
 
@@ -195,6 +193,15 @@ transactionGetSourceAddress(BREthereumTransaction transaction) {
 extern BREthereumEncodedAddress
 transactionGetTargetAddress(BREthereumTransaction transaction) {
     return transaction->targetAddress;
+}
+
+extern BREthereumBoolean
+transactionHasAddress (BREthereumTransaction transaction,
+                       BREthereumAddress address) {
+    return (ETHEREUM_BOOLEAN_IS_TRUE(addressRawEqual(address, addressGetRawAddress(transaction->targetAddress)))
+            || ETHEREUM_BOOLEAN_IS_TRUE(addressRawEqual(address, addressGetRawAddress(transaction->targetAddress)))
+            ? ETHEREUM_BOOLEAN_TRUE
+            : ETHEREUM_BOOLEAN_FALSE);
 }
 
 extern BREthereumAmount
@@ -632,12 +639,12 @@ transactionIsSubmitted (BREthereumTransaction transaction) {
 extern void
 transactionAnnounceBlocked(BREthereumTransaction transaction,
                            BREthereumGas gasUsed,
+                           BREthereumHash blockHash,
                            uint64_t blockNumber,
-                           uint64_t blockTimestamp,
                            uint64_t blockTransactionIndex) {
     transactionStateBlocked(&transaction->state, gasUsed,
+                            blockHash,
                             blockNumber,
-                            blockTimestamp,
                             blockTransactionIndex);
 }
 
@@ -661,16 +668,17 @@ transactionHasStatus(BREthereumTransaction transaction,
 }
 
 extern int
-transactionExtractBlocked(BREthereumTransaction transaction, BREthereumGas *gas,
+transactionExtractBlocked(BREthereumTransaction transaction,
+                          BREthereumGas *gas,
+                          BREthereumHash *blockHash,
                           uint64_t *blockNumber,
-                          uint64_t *blockTimestamp,
                           uint64_t *blockTransactionIndex) {
     if (!transactionHasStatus(transaction, TRANSACTION_BLOCKED))
         return 0;
 
     if (NULL != gas) *gas = transaction->state.u.blocked.gasUsed;
+    if (NULL != blockHash) *blockHash = transaction->state.u.blocked.hash;
     if (NULL != blockNumber) *blockNumber = transaction->state.u.blocked.number;
-    if (NULL != blockTimestamp) *blockTimestamp = transaction->state.u.blocked.timestamp;
     if (NULL != blockTransactionIndex) *blockTransactionIndex = transaction->state.u.blocked.transactionIndex;
 
     return 1;

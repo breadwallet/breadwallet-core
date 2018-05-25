@@ -48,6 +48,15 @@ blockHeaderEncodeRLP (BREthereumBlockHeader header,
                       BREthereumBoolean withNonce);
 
 extern BREthereumHash
+blockHeaderGetHash (BREthereumBlockHeader header);
+
+extern uint64_t
+blockHeaderGetNumber (BREthereumBlockHeader header);
+
+extern uint64_t
+blockHeaderGetTimestamp (BREthereumBlockHeader header);
+
+extern BREthereumHash
 blockHeaderGetParentHash (BREthereumBlockHeader header);
 
 // ...
@@ -57,11 +66,11 @@ blockHeaderGetNonce (BREthereumBlockHeader header);
 
 extern BREthereumBoolean
 blockHeaderMatch (BREthereumBlockHeader header,
-            BREthereumBloomFilter filter);
+                  BREthereumBloomFilter filter);
 
 extern BREthereumBoolean
 blockHeaderMatchAddress (BREthereumBlockHeader header,
-                   BREthereumAddress address);
+                         BREthereumAddress address);
 
 //
 // Block

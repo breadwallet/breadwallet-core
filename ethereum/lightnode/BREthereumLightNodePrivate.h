@@ -29,6 +29,8 @@
 #include <pthread.h>
 #include "BREthereumLightNode.h"
 #include "../blockchain/BREthereumBlockChain.h"
+#include "../les/BREthereumLESInterface.h"
+#include "../bcs/BREthereumBCS.h"
 #include "../event/BREvent.h"
 
 #ifdef __cplusplus
@@ -46,47 +48,6 @@ typedef struct  {
     BREthereumListenerBlockEventHandler blockEventHandler;
     BREthereumListenerTransactionEventHandler transactionEventHandler;
 } BREthereumLightNodeListener;
-
-extern void
-lightNodeListenerAnnounceWalletEvent(BREthereumLightNode node,
-                                     BREthereumWalletId wid,
-                                     BREthereumWalletEvent event,
-                                     BREthereumStatus status,
-                                     const char *errorDescription);
-
-extern void
-lightNodeListenerAnnounceBlockEvent(BREthereumLightNode node,
-                                    BREthereumBlockId bid,
-                                    BREthereumBlockEvent event,
-                                    BREthereumStatus status,
-                                    const char *errorDescription);
-
-extern void
-lightNodeListenerAnnounceTransactionEvent(BREthereumLightNode node,
-                                          BREthereumWalletId wid,
-                                          BREthereumTransactionId tid,
-                                          BREthereumTransactionEvent event,
-                                          BREthereumStatus status,
-                                          const char *errorDescription);
-
-extern void
-lightNodeListenerAnnouncePeerEvent(BREthereumLightNode node,
-                                   // BREthereumWalletId wid,
-                                   // BREthereumTransactionId tid,
-                                   BREthereumPeerEvent event,
-                                   BREthereumStatus status,
-                                   const char *errorDescription);
-
-extern void
-lightNodeListenerAnnounceLightNodeEvent(BREthereumLightNode node,
-                                        // BREthereumWalletId wid,
-                                        // BREthereumTransactionId tid,
-                                        BREthereumLightNodeEvent event,
-                                        BREthereumStatus status,
-                                        const char *errorDescription);
-
-extern const BREventType *listenerEventTypes[];
-extern const unsigned int listenerEventTypesCount;
 
 //
 // Light Node
@@ -155,6 +116,16 @@ struct BREthereumLightNodeRecord {
     BREthereumBlock *blocks; // BRSet
 
     /**
+     * The BCS Interface
+     */
+    BREthereumBCS bcs;
+    
+    /**
+     * The LES Interface
+     */
+    BREthereumLES les;              // <== optional, perhaps.
+
+    /**
      * The BlockHeight is the largest block number seen or computed.  [Note: the blockHeight may
      * be computed from a Log event as (log block number + log confirmations).
      */
@@ -215,58 +186,168 @@ extern BREthereumTransactionId
 lightNodeInsertTransaction (BREthereumLightNode node,
                             BREthereumTransaction transaction);
 
+// =============================================================================================
 //
-// Handlers
+// LES(BCS)/JSON_RPC Callbacks
 //
 extern const BREventType *handlerEventTypes[];
 extern const unsigned int handlerEventTypesCount;
 
+//
+// Signal/Handle Balance
 extern void
 lightNodeHandleBalance (BREthereumLightNode node,
                         BREthereumAmount amount);
 
 extern void
+lightNodeSignalBalance (BREthereumLightNode node,
+                        BREthereumAmount amount);
+
+//
+// Signal/Handle Nonce
+//
+extern void
 lightNodeHandleNonce (BREthereumLightNode node,
                       uint64_t nonce);
 
 extern void
+lightNodeSignalNonce (BREthereumLightNode node,
+                      uint64_t nonce);
+
+//
+// Signal/Handle GasPrice
+//
+extern void
 lightNodeHandleGasPrice (BREthereumLightNode node,
                          BREthereumWallet wallet,
                          BREthereumGasPrice gasPrice);
+extern void
+lightNodeSignalGasPrice (BREthereumLightNode node,
+                         BREthereumWallet wallet,
+                         BREthereumGasPrice gasPrice);
 
+//
+// Signal/Handle GasEstimate
+//
 extern void
 lightNodeHandleGasEstimate (BREthereumLightNode node,
                             BREthereumWallet wallet,
                             BREthereumTransaction transaction,
                             BREthereumGas gasEstimate);
+extern void
+lightNodeSignalGasEstimate (BREthereumLightNode node,
+                            BREthereumWallet wallet,
+                            BREthereumTransaction transaction,
+                            BREthereumGas gasEstimate);
+
+//
+// Signal/Handle Transaction
+//
+extern void
+lightNodeHandleTransaction (BREthereumLightNode node,
+                            BREthereumTransaction transaction);
 
 extern void
-lightNodeHandleTransactionStatus (BREthereumLightNode node,
-                                  BREthereumHash transactionHash,
-                                  BREthereumTransactionStatusLES status);
+lightNodeSignalTransaction (BREthereumLightNode node,
+                            BREthereumTransaction transaction);
+
+// =============================================================================================
+//
+// Listener Callbacks
+//
+extern const BREventType *listenerEventTypes[];
+extern const unsigned int listenerEventTypesCount;
+
+//
+// Signal/Handle Wallet Event
+extern void
+lightNodeListenerHandleWalletEvent(BREthereumLightNode node,
+                                   BREthereumWalletId wid,
+                                   BREthereumWalletEvent event,
+                                   BREthereumStatus status,
+                                   const char *errorDescription);
 
 extern void
-lightNodeHandleTransactionReceipt (BREthereumLightNode node,
-                                   BREthereumHash blockHash,
-                                   BREthereumTransactionReceipt receipt,
-                                   unsigned int receiptIndex);
+lightNodeListenerSignalWalletEvent(BREthereumLightNode node,
+                                   BREthereumWalletId wid,
+                                   BREthereumWalletEvent event,
+                                   BREthereumStatus status,
+                                   const char *errorDescription);
+
+//
+// Signal/Handle Block Event
+//
+extern void
+lightNodeListenerSignalBlockEvent(BREthereumLightNode node,
+                                  BREthereumBlockId bid,
+                                  BREthereumBlockEvent event,
+                                  BREthereumStatus status,
+                                  const char *errorDescription);
 
 extern void
-lightNodeHandleAnnounce (BREthereumLightNode node,
-                         BREthereumHash headHash,
-                         uint64_t headNumber,
-                         uint64_t headTotalDifficulty);
+lightNodeListenerHandleBlockEvent(BREthereumLightNode node,
+                                  BREthereumBlockId bid,
+                                  BREthereumBlockEvent event,
+                                  BREthereumStatus status,
+                                  const char *errorDescription);
+
+//
+// Signal/Handle Transaction Event
+//
+extern void
+lightNodeListenerSignalTransactionEvent(BREthereumLightNode node,
+                                        BREthereumWalletId wid,
+                                        BREthereumTransactionId tid,
+                                        BREthereumTransactionEvent event,
+                                        BREthereumStatus status,
+                                        const char *errorDescription);
 
 extern void
-lightNodeHandleBlockHeader (BREthereumLightNode node,
-                            BREthereumBlockHeader header);
+lightNodeListenerHandleTransactionEvent(BREthereumLightNode node,
+                                        BREthereumWalletId wid,
+                                        BREthereumTransactionId tid,
+                                        BREthereumTransactionEvent event,
+                                        BREthereumStatus status,
+                                        const char *errorDescription);
+
+//
+// Signal/Handle Peer Event
+//
+extern void
+lightNodeListenerSignalPeerEvent(BREthereumLightNode node,
+                                 // BREthereumWalletId wid,
+                                 // BREthereumTransactionId tid,
+                                 BREthereumPeerEvent event,
+                                 BREthereumStatus status,
+                                 const char *errorDescription);
 
 extern void
-lightNodeHandleBlockBodies (BREthereumLightNode node,
-                            BREthereumHash blockHash,
-                            BREthereumTransaction transactions[],
-                            BREthereumHash ommers[]);
-    
+lightNodeListenerHandlePeerEvent(BREthereumLightNode node,
+                                 // BREthereumWalletId wid,
+                                 // BREthereumTransactionId tid,
+                                 BREthereumPeerEvent event,
+                                 BREthereumStatus status,
+                                 const char *errorDescription);
+
+//
+// Signal/Handle LightNode Event
+//
+extern void
+lightNodeListenerSignalLightNodeEvent(BREthereumLightNode node,
+                                      // BREthereumWalletId wid,
+                                      // BREthereumTransactionId tid,
+                                      BREthereumLightNodeEvent event,
+                                      BREthereumStatus status,
+                                      const char *errorDescription);
+
+extern void
+lightNodeListenerHandleLightNodeEvent(BREthereumLightNode node,
+                                      // BREthereumWalletId wid,
+                                      // BREthereumTransactionId tid,
+                                      BREthereumLightNodeEvent event,
+                                      BREthereumStatus status,
+                                      const char *errorDescription);
+
 #ifdef __cplusplus
 }
 #endif

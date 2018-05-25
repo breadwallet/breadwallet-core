@@ -53,6 +53,10 @@ transactionGetSourceAddress(BREthereumTransaction transaction);
 extern BREthereumEncodedAddress
 transactionGetTargetAddress(BREthereumTransaction transaction);
 
+extern BREthereumBoolean
+transactionHasAddress (BREthereumTransaction transaction,
+                       BREthereumAddress address);
+    
 extern BREthereumAmount
 transactionGetAmount(BREthereumTransaction transaction);
 
@@ -192,8 +196,8 @@ transactionIsSubmitted (BREthereumTransaction transaction);
 extern void
 transactionAnnounceBlocked(BREthereumTransaction transaction,
                            BREthereumGas gasUsed,
+                           BREthereumHash blockHash,
                            uint64_t blockNumber,
-                           uint64_t blockTimestamp,
                            uint64_t blockTransactionIndex);
 
 extern void
@@ -207,10 +211,9 @@ transactionAnnounceSubmitted (BREthereumTransaction transaction,
 extern int
 transactionExtractBlocked(BREthereumTransaction transaction,
                           BREthereumGas *gas,
+                          BREthereumHash *blockHash,
                           uint64_t *blockNumber,
-                          uint64_t *blockTimestamp,
                           uint64_t *blockTransactionIndex);
-
 //
 // Transaction Result
 //

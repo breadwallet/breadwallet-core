@@ -233,7 +233,7 @@ lesGetReceiptsOne (BREthereumLES les,
 typedef void* BREthereumLESTransactionStatusContext;
 
 typedef void
-(BREthereumLESTransactionStatusCallback) (BREthereumLESTransactionStatusContext context,
+(*BREthereumLESTransactionStatusCallback) (BREthereumLESTransactionStatusContext context,
                                           BREthereumHash transaction,
                                           BREthereumTransactionStatusLES status);
 

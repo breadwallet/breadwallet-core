@@ -66,6 +66,9 @@ extern BRRlpItem
 addressRawRlpEncode(BREthereumAddress address,
                     BRRlpCoder coder);
 
+extern BREthereumBoolean
+addressRawEqual (BREthereumAddress address1,
+                 BREthereumAddress address2);
 
 //
 // Address
@@ -103,6 +106,9 @@ createAddressDerived (const BRKey *key, uint32_t index);
 extern BREthereumBoolean
 validateAddressString(const char *string);
 
+extern BREthereumAddress
+addressGetRawAddress (BREthereumEncodedAddress address);
+    
 extern uint32_t
 addressGetIndex (BREthereumEncodedAddress address);
     

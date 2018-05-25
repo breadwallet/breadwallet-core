@@ -172,8 +172,23 @@ blockHeaderFree (BREthereumBlockHeader header) {
 }
 
 extern BREthereumHash
+blockHeaderGetHash (BREthereumBlockHeader header) {
+    return header->hash;
+}
+
+extern BREthereumHash
 blockHeaderGetParentHash (BREthereumBlockHeader header) {
     return header->parentHash;
+}
+
+extern uint64_t
+blockHeaderGetNumber (BREthereumBlockHeader header) {
+    return header->number;
+}
+
+extern uint64_t
+blockHeaderGetTimestamp (BREthereumBlockHeader header) {
+    return header->timestamp;
 }
 
 // ...
