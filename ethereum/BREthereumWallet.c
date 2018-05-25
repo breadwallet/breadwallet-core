@@ -476,10 +476,10 @@ walletWalkTransactions (BREthereumWallet wallet,
 extern BREthereumTransaction
 walletGetTransactionByHash (BREthereumWallet wallet,
                             BREthereumHash hash) {
-    if (hashExists(hash))
+    if (ETHEREUM_BOOLEAN_IS_TRUE (hashExists(hash)))
         for (int i = 0; i < array_count(wallet->transactions); i++) {
             BREthereumHash transactionHash = transactionGetHash(wallet->transactions[i]);
-            if (hashExists(transactionHash) && ETHEREUM_COMPARISON_EQ == hashCompare(hash, transactionHash))
+            if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(hash, transactionHash)))
                 return wallet->transactions[i];
         }
     return NULL;
