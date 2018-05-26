@@ -206,7 +206,11 @@ public class BREthereumLightNodeClientTest implements
                 "0x59fa1ac9");
     }
 
-    //
+    @Override
+    public void getBlockNumber(int rid) {
+        node.announceBlockNumber("2627500", rid);
+    }
+//
     // Listener
     //
 

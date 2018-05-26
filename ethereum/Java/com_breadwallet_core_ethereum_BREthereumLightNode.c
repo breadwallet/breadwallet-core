@@ -79,6 +79,10 @@ clientGetLogs(BREthereumClientContext context,
               const char *event,
               int rid);
 
+static void
+clientGetBlockNumber(BREthereumClientContext context,
+                     BREthereumLightNode node,
+                     int id);
 
 //
 // Forward Declarations - Listener
@@ -708,6 +712,21 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceSubmitTransact
     (*env)->ReleaseStringUTFChars (env, hash, hashStr);
 }
 
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniAnnounceBlockNumber
+ * Signature: (Ljava/lang/String;I)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceBlockNumber
+        (JNIEnv *env, jobject thisObject,
+         jstring blockNumber,
+         jint rid) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+    const char *strBlockNumber = (*env)->GetStringUTFChars(env, blockNumber, 0);
+    lightNodeAnnounceBlockNumber(node, strBlockNumber, rid);
+    (*env)->ReleaseStringUTFChars(env, blockNumber, strBlockNumber);
+}
+
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
@@ -1220,7 +1239,8 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeConnect
                      clientEstimateGas,
                      clientSubmitTransaction,
                      clientGetTransactions,
-                     clientGetLogs);
+                     clientGetLogs,
+                     clientGetBlockNumber);
 
 
     return (jboolean) (ETHEREUM_BOOLEAN_TRUE == ethereumConnect(node, client) ? JNI_TRUE : JNI_FALSE);
@@ -1463,6 +1483,29 @@ clientGetLogs(BREthereumClientContext context,
     (*env)->DeleteLocalRef(env, eventObject);
     (*env)->DeleteLocalRef(env, addressObject);
     (*env)->DeleteLocalRef(env, contractObject);
+    (*env)->DeleteLocalRef(env, listener);
+}
+
+static void
+clientGetBlockNumber(BREthereumClientContext context,
+                     BREthereumLightNode node,
+                     int id) {
+    JNIEnv *env = getEnv();
+    if (NULL == env) return;
+
+    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
+    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
+
+    // String getGasEstimate (int id, String to, String amount, String data);
+    jmethodID listenerMethod =
+            lookupListenerMethod(env, listener,
+                                 "trampolineGetBlockNumber",
+                                 "(I)V");
+    assert (NULL != listenerMethod);
+
+    (*env)->CallVoidMethod(env, listener, listenerMethod,
+                            (jint) id);
+
     (*env)->DeleteLocalRef(env, listener);
 }
 

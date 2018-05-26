@@ -36,6 +36,8 @@
 #include "BREthereumPrivate.h"
 #include "BREthereumLightNodePrivate.h"
 #include "event/BREvent.h"
+#include "BREthereum.h"
+#include "BREthereumLightNode.h"
 
 
 //
@@ -48,7 +50,8 @@ ethereumClientCreate(BREthereumClientContext context,
                      BREthereumClientHandlerEstimateGas funcEstimateGas,
                      BREthereumClientHandlerSubmitTransaction funcSubmitTransaction,
                      BREthereumClientHandlerGetTransactions funcGetTransactions,
-                     BREthereumClientHandlerGetLogs funcGetLogs) {
+                     BREthereumClientHandlerGetLogs funcGetLogs,
+                     BREthereumClientHandlerGetBlockNumber funcGetBlockNumber) {
     BREthereumClient client;
     client.funcContext = context;
     client.funcGetBalance = funcGetBalance;
@@ -57,6 +60,7 @@ ethereumClientCreate(BREthereumClientContext context,
     client.funcSubmitTransaction = funcSubmitTransaction;
     client.funcGetTransactions = funcGetTransactions;
     client.funcGetLogs = funcGetLogs;
+    client.funcGetBlockNumber = funcGetBlockNumber;
     return client;
 }
 
@@ -171,6 +175,8 @@ lightNodeThreadRoutine (BREthereumLightNode node) {
     while (1) {
         if (LIGHT_NODE_DISCONNECTING == node->state) break;
         pthread_mutex_lock(&node->lock);
+
+        lightNodeUpdateBlockNumber(node);
 
         // We'll query all transactions for this node's account.  That will give us a shot at
         // getting the nonce for the account's address correct.  We'll save all the transactions and
@@ -595,6 +601,24 @@ lightNodeDeleteTransaction (BREthereumLightNode node,
 //
 #if defined(SUPPORT_JSON_RPC)
 
+extern void
+lightNodeUpdateBlockNumber (BREthereumLightNode node) {
+    if (LIGHT_NODE_CONNECTED != node->state) return;
+    switch (node->type) {
+        case NODE_TYPE_LES:
+            // TODO: Fall-through on error, perhaps
+
+        case NODE_TYPE_JSON_RPC:
+            node->client.funcGetBlockNumber
+                    (node->client.funcContext,
+                    node,
+                    ++node->requestId);
+            break;
+
+        case NODE_TYPE_NONE:
+            break;
+    }
+}
 /**
  *
  * @param node

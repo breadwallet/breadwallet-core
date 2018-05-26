@@ -81,6 +81,14 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jn
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniAnnounceBlockNumber
+ * Signature: (Ljava/lang/String;I)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceBlockNumber
+  (JNIEnv *, jobject, jstring, jint);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniLightNodeGetAccount
  * Signature: ()J
  */
