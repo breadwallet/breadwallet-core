@@ -457,10 +457,10 @@ transactionPredicateAny (void *ignore,
 }
 
 extern int
-transactionPredicateStatus (BREthereumTransactionStatus status,
+transactionPredicateStatus (BREthereumTransactionStatusType type,
                             BREthereumTransaction transaction,
                             unsigned int index) {
-    return status == transactionGetStatus(transaction);
+    return type == transactionGetStatus(transaction).type;
 }
 
 extern void

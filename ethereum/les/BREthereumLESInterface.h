@@ -233,26 +233,26 @@ lesGetReceiptsOne (BREthereumLES les,
 typedef void* BREthereumLESTransactionStatusContext;
 
 typedef void
-(*BREthereumLESTransactionStatusCallback) (BREthereumLESTransactionStatusContext context,
+(*BREthereumTransactionStatusCallback) (BREthereumLESTransactionStatusContext context,
                                           BREthereumHash transaction,
-                                          BREthereumTransactionStatusLES status);
+                                          BREthereumTransactionStatus status);
 
 extern void
 lesGetTransactionStatus (BREthereumLES les,
                          BREthereumLESTransactionStatusContext context,
-                         BREthereumLESTransactionStatusCallback callback,
+                         BREthereumTransactionStatusCallback callback,
                          BREthereumHash transactions[]);
 
 extern void
 lesGetTransactionStatusOne (BREthereumLES les,
                             BREthereumLESTransactionStatusContext context,
-                            BREthereumLESTransactionStatusCallback callback,
+                            BREthereumTransactionStatusCallback callback,
                             BREthereumHash transaction);
 
 extern void
 lesSubmitTransaction (BREthereumLES les,
                       BREthereumLESTransactionStatusContext context,
-                      BREthereumLESTransactionStatusCallback callback,
+                      BREthereumTransactionStatusCallback callback,
                       BREthereumTransaction transaction,
                       unsigned int transactionStatusPeriodInMilliseconds);
 

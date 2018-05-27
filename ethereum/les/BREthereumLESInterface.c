@@ -104,7 +104,7 @@ lesGetReceiptsOne (BREthereumLES les,
 extern void
 lesGetTransactionStatus (BREthereumLES les,
                          BREthereumLESTransactionStatusContext context,
-                         BREthereumLESTransactionStatusCallback callback,
+                         BREthereumTransactionStatusCallback callback,
                          BREthereumHash transactions[]) {
 
 }
@@ -112,7 +112,7 @@ lesGetTransactionStatus (BREthereumLES les,
 extern void
 lesGetTransactionStatusOne (BREthereumLES les,
                             BREthereumLESTransactionStatusContext context,
-                            BREthereumLESTransactionStatusCallback callback,
+                            BREthereumTransactionStatusCallback callback,
                             BREthereumHash transaction) {
 
 }
@@ -120,7 +120,7 @@ lesGetTransactionStatusOne (BREthereumLES les,
 extern void
 lesSubmitTransaction (BREthereumLES les,
                       BREthereumLESTransactionStatusContext context,
-                      BREthereumLESTransactionStatusCallback callback,
+                      BREthereumTransactionStatusCallback callback,
                       BREthereumTransaction transaction,
                       unsigned int transactionStatusPeriodInMilliseconds) {
     assert (ETHEREUM_BOOLEAN_IS_TRUE (transactionIsSigned(transaction)));

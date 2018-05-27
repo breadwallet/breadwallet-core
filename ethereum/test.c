@@ -1725,7 +1725,7 @@ runAccountStateTests (void) {
 extern void
 runTransactionStatusTests (void) {
     printf ("==== Transaction Status\n");
-    BREthereumTransactionStatusLES status;
+    BREthereumTransactionStatus status;
 
     // We only decode... and we have no RLP do decode yet.
 }

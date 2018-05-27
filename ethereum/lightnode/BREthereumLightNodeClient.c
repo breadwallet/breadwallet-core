@@ -486,7 +486,7 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
     lightNodeUpdateBlockHeight(node, blockGetNumber(block) + blockConfirmations);
 
     // Update the status as blocked
-    if (TRANSACTION_BLOCKED != status)
+    if (TRANSACTION_STATUS_INCLUDED != status.type)
         walletTransactionBlocked(wallet, transaction, gasUsed,
                                  blockGetHash(block),
                                  blockGetNumber(block),
@@ -494,7 +494,7 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
 
     // Announce a transaction event.  If already 'BLOCKED', then update CONFIRMATIONS.
     lightNodeListenerSignalTransactionEvent(node, wid, tid,
-                                              (TRANSACTION_BLOCKED == status
+                                              (TRANSACTION_STATUS_INCLUDED == status.type
                                                ? TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED
                                                : TRANSACTION_EVENT_BLOCKED),
                                               SUCCESS,
@@ -671,7 +671,7 @@ lightNodeAnnounceLog (BREthereumLightNode node,
     lightNodeUpdateBlockHeight(node, blockGetNumber(block));
 
     // Update the status as blocked
-    if (TRANSACTION_BLOCKED != status)
+    if (TRANSACTION_STATUS_INCLUDED != status.type)
         walletTransactionBlocked(wallet, transaction, gasUsed,
                                  blockGetHash(block),
                                  blockGetNumber(block),
@@ -679,7 +679,7 @@ lightNodeAnnounceLog (BREthereumLightNode node,
 
     // Announce a transaction event.  If already 'BLOCKED', then update CONFIRMATIONS.
     lightNodeListenerSignalTransactionEvent(node, wid, tid,
-                                              (TRANSACTION_BLOCKED == status
+                                              (TRANSACTION_STATUS_INCLUDED == status.type
                                                ? TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED
                                                : TRANSACTION_EVENT_BLOCKED),
                                               SUCCESS,
@@ -757,7 +757,7 @@ lightNodeAnnounceSubmitTransaction(BREthereumLightNode node,
                                                 ERROR_TRANSACTION_HASH_MISMATCH, NULL);
     }
     else {
-        BREthereumTransactionStatusLES status;
+        BREthereumTransactionStatus status;
         status.type = TRANSACTION_STATUS_PENDING;
 
         bcsSignalTransactionStatus(node->bcs, hash, status);

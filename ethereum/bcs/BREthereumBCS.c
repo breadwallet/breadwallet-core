@@ -26,12 +26,6 @@
 #include <stdlib.h>
 #include "BREthereumBCSPrivate.h"
 
-extern void
-bcsHandleLESAnnounceCallback (BREthereumBCS bcs,
-                              BREthereumHash headHash,
-                              uint64_t headNumber,
-                              uint64_t headTotalDifficulty);
-
 extern BREthereumBCS
 bcsCreate (BREthereumNetwork network,
            BREthereumAccount account,
@@ -50,7 +44,7 @@ bcsCreate (BREthereumNetwork network,
 
     bcs->les = lesCreate(network,
                          (BREthereumLESAnnounceContext) bcs,
-                         (BREthereumLESAnnounceCallback) bcsHandleLESAnnounceCallback,
+                         (BREthereumLESAnnounceCallback) bcsSignalAnnounce,
                          hashCreateEmpty(),
                          0, 0,
                          hashCreateEmpty());
@@ -87,7 +81,7 @@ bcsSendTransaction (BREthereumBCS bcs,
                     BREthereumTransaction transaction) {
     lesSubmitTransaction(bcs->les,
                          (BREthereumLESTransactionStatusContext) bcs,
-                         (BREthereumLESTransactionStatusCallback) NULL,
+                         (BREthereumTransactionStatusCallback) NULL,
                          transaction,
                          1000 * BCS_TRANSACTION_CHECK_STATUS_SECONDS);
 }
@@ -176,7 +170,7 @@ bcsHandleTransaction (BREthereumBCS bcs,
 extern void
 bcsHandleTransactionStatus (BREthereumBCS bcs,
                             BREthereumHash transactionHash,
-                            BREthereumTransactionStatusLES status) {
+                            BREthereumTransactionStatus status) {
     BREthereumTransaction transaction = NULL;
 
     //
@@ -207,6 +201,12 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
         case TRANSACTION_STATUS_ERROR:
             transactionAnnounceDropped(transaction, 0);
             // TRANSACTION_EVENT_SUBMITTED, ERROR_TRANSACTION_SUBMISSION, event->status.u.error.message
+            break;
+
+        case TRANSACTION_STATUS_CREATED:
+        case TRANSACTION_STATUS_SIGNED:
+        case TRANSACTION_STATUS_SUBMITTED:
+            // TODO: DO
             break;
     }
     bcs->listener.transactionCallback (bcs->listener.context, transaction);

@@ -246,7 +246,7 @@ transactionPredicateAny (void *ignore,
                          unsigned int index);
 
 extern int
-transactionPredicateStatus (BREthereumTransactionStatus status,
+transactionPredicateStatus (BREthereumTransactionStatusType type,
                             BREthereumTransaction transaction,
                             unsigned int index);
 

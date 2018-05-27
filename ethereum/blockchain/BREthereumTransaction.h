@@ -29,6 +29,7 @@
 #include "../base/BREthereumBase.h"
 #include "BREthereumAmount.h"
 #include "BREthereumNetwork.h"
+#include "BREthereumTransactionStatus.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -171,17 +172,6 @@ transactionRlpEncodeItem(BREthereumTransaction transaction,
 extern BREthereumComparison
 transactionCompare (BREthereumTransaction t1,
                     BREthereumTransaction t2);
-
-//
-// Transaction Status
-//
-typedef enum {
-  TRANSACTION_CREATED,
-  TRANSACTION_SIGNED,
-  TRANSACTION_SUBMITTED,  // more than just 'sent'; in one 'mempool'; has hash
-  TRANSACTION_BLOCKED,
-  TRANSACTION_DROPPED     // not in any 'mempool'
-} BREthereumTransactionStatus;
 
 extern BREthereumTransactionStatus
 transactionGetStatus (BREthereumTransaction transaction);

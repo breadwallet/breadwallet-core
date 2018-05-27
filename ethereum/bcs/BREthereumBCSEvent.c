@@ -169,7 +169,7 @@ typedef struct {
     BREvent base;
     BREthereumBCS bcs;
     BREthereumHash transactionHash;
-    BREthereumTransactionStatusLES status;
+    BREthereumTransactionStatus status;
 } BREthereumHandleTransactionStatusEvent;
 
 static void
@@ -187,7 +187,7 @@ BREventType handleTransactionStatusEventType = {
 extern void
 bcsSignalTransactionStatus (BREthereumBCS bcs,
                                   BREthereumHash transactionHash,
-                                  BREthereumTransactionStatusLES status) {
+                                  BREthereumTransactionStatus status) {
     BREthereumHandleTransactionStatusEvent event =
     { { NULL, &handleTransactionStatusEventType }, bcs, transactionHash, status };
     eventHandlerSignalEvent(bcs->handler, (BREvent*) &event);

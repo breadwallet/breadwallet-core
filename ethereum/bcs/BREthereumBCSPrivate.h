@@ -111,12 +111,12 @@ bcsSignalTransaction (BREthereumBCS bcs,
 extern void
 bcsHandleTransactionStatus (BREthereumBCS bcs,
                             BREthereumHash transactionHash,
-                            BREthereumTransactionStatusLES status);
+                            BREthereumTransactionStatus status);
 
 extern void
 bcsSignalTransactionStatus (BREthereumBCS bcs,
                             BREthereumHash transactionHash,
-                            BREthereumTransactionStatusLES status);
+                            BREthereumTransactionStatus status);
 
 //
 // Transaction Receipt
