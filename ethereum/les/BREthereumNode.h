@@ -31,28 +31,12 @@
 #include <arpa/inet.h>
 #include "BRInt.h"
 #include "BREthereumBase.h"
+#include "BREthereumAccount.h"
+#include "BREthereumNodeDiscovery.h"
 #include "BREthereumNodeEventHandler.h"
 #include "BRKey.h"
 #include "BREthereumLES.h"
 #include "BREthereumFrameCoder.h"
-// Note:: Duplicated this logging code from Aaron's BRPeer.h file
-// TODO: May want to move this code into it's own library
-#define bre_node_log(node, ...) _bre_node_log("%s:%"PRIu16" " _va_first(__VA_ARGS__, NULL) "\n", ethereumNodeGetPeerHost(node),\
-ethereumNodeGetPeerPort(node), _va_rest(__VA_ARGS__, NULL))
-#define _va_first(first, ...) first
-#define _va_rest(first, ...) __VA_ARGS__
-
-#if defined(TARGET_OS_MAC)
-#include <Foundation/Foundation.h>
-#include <stdio.h> 
-#define _bre_node_log(...) printf(__VA_ARGS__)
-#elif defined(__ANDROID__)
-#include <android/log.h>
-#define _bre_node_log(...) __android_log_print(ANDROID_LOG_INFO, "bread", __VA_ARGS__)
-#else
-#include <stdio.h>
-#define _bre_node_log(...) printf(__VA_ARGS__)
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -70,6 +54,7 @@ typedef struct BREthereumNodeContext* BREthereumNode;
 typedef enum {
     BRE_NODE_ERROR = -1, 
     BRE_NODE_DISCONNECTED,
+    BRE_NODE_DICONNECTING, 
     BRE_NODE_CONNECTING,
     BRE_NODE_PERFORMING_HANDSHAKE,
     BRE_NODE_CONNECTED
@@ -79,17 +64,47 @@ typedef enum {
  * BREthereumPeerConfig - the initial data needed to begin a connection to a remote node
  */
 typedef struct {
-    UInt128 address;    // IPv6 address of peer
-    uint16_t port;      // port number for peer connection
-    uint64_t timestamp; // timestamp reported by peer
+    BREthereumEndpoint endpoint; //endpoint information for the remote
+    uint64_t timestamp; // the timestamp of peer configuration
+    BRKey* remoteKey;   // the remote public key for the remote peer
 } BREthereumPeerConfig;
 
+
+typedef enum {
+    BRE_DISCONNECT_REQUESTED = 0x00, //0x00 Disconnect requested
+    BRE_TCP_ERROR,                   //0x01 TCP sub-system error
+    BRE_BREACH_PROTO,                //0x02 Breach of protocol, e.g. a malformed message, bad RLP, incorrect magic number &c.
+    BRE_USELESS_PEER,                //0x03 Useless peer
+    BRE_TOO_MANY_PEERS,              //0x04 Too many peers
+    BRE_ALREADY_CONNECTED,           //0x05 Already connected
+    BRE_INCOMPATIBLE_P2P,            //0x06 Incompatible P2P protocol version
+    BRE_NULL_NODE,                   //0x07 Null node identity received - this is automatically invalid
+    BRE_CLIENT_QUIT,                 //0x08 Client quitting
+    BRE_UNEXPECTED_ID,               //0x09 Unexpected identity (i.e. a different identity to a previous connection/what a trusted peer told us)
+    BRE_ID_SAME,                     //0x0a Identity is the same as this node (i.e. connected to itself);
+    BRE_TIMEOUT,                     //0x0b Timeout on receiving a message (i.e. nothing received since sending last ping);
+    BRE_UNKNOWN                      //0x10 Some other reason specific to a subprotocol.
+}BREthereumDisconnect;
+
+
+typedef void (*BRPeerDisconnectCallback)(BREthereumDisconnect reason);
+    
 /**
  * Creates an ethereum node with the remote peer information and whether the node should send
  * an auth message first. 
  */ 
 extern BREthereumNode ethereumNodeCreate(BREthereumPeerConfig config,
+                                         BRKey* key,
+                                         UInt256 nonce,
+                                         BRKey* ephemeral,
+                                         BRPeerDisconnectCallback disconnectFunc,
                                          BREthereumBoolean originate);
+
+/**
+ * Deletes the memory of the ethereum node
+ */
+extern BREthereumBoolean ethereumNodeRelease(BREthereumNode node);
+
 
 /**
  * Retrieves the status of an ethereum node
@@ -99,12 +114,12 @@ extern BREthereumNodeStatus ethereumNodeStatus(BREthereumNode node);
 /**
  * Connects to the ethereum node to a remote node
  */
-extern void ethereumNodeConnect(BREthereumNode node);
+extern int ethereumNodeConnect(BREthereumNode node);
 
 /**
  * Disconnects the ethereum node from a remote node
  */
-extern void ethereumNodeDisconnect(BREthereumNode node);
+extern void ethereumNodeDisconnect(BREthereumNode node, BREthereumDisconnect reason);
 
 /**
  * Retrieves the key for this node
@@ -114,17 +129,12 @@ extern void ethereumNodeDisconnect(BREthereumNode node);
 /**
  * Retrieves the remote key that this node is connected to
  */
- extern BRKey* ethereumNodeGetRemoteKey(BREthereumNode node);
+ extern BRKey* ethereumNodeGetPeerKey(BREthereumNode node);
 
 /**
  * Retrieves the frame coder for this node
  */
 extern BREthereumFrameCoder ethereumNodeGetFrameCoder(BREthereumNode node); 
-
-/**
- * Deletes the memory of the ethereum node
- */
-extern void ethereumNodeFree(BREthereumNode node);
 
 /**
  * Retrieves the RLP encoded status message for this node
@@ -181,15 +191,6 @@ extern int ethereumNodeReadFromPeer(BREthereumNode node, uint8_t * buf, size_t b
  */
 extern int ethereumNodeWriteToPeer(BREthereumNode node, uint8_t * buf, size_t bufSize, char* type);
 
-/**
- * Retrieves the string representation of the remot peer address
- */ 
-extern const char * ethereumNodeGetPeerHost(BREthereumNode node);
-
-/**
- * Retrieves the port of the remot peer address
- */
-extern uint16_t ethereumNodeGetPeerPort(BREthereumNode node);
 
 #ifdef __cplusplus
 }
