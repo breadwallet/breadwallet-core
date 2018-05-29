@@ -40,15 +40,7 @@
 extern "C" {
 #endif
 
-extern BREthereumBoolean ethereumGenRandomPriKey(BRKey ** key);
-
-extern UInt256 ethereumGetNonce(void); 
-
-extern BREthereumBoolean etheruemECDHAgree(BRKey* key, UInt512* pubKey, UInt256* outSecret);
-
 extern void ethereumXORBytes(uint8_t * op1, uint8_t* op2, uint8_t* result, size_t len);
-
-
 
 #ifdef __cplusplus
 }
