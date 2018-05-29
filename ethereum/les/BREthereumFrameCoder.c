@@ -255,15 +255,15 @@ BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fcoder,
 
     
     // sha3(nonce || initiator-nonce)
-    BRKeccak256(&keyMaterial[32], nonceMaterial.u8, 32);
+    BRKeccak256(&keyMaterial[32], nonceMaterial.u8, 64);
     
     
     // shared-secret = sha3(ecdhe-shared-secret || sha3(nonce || initiator-nonce))
-    BRKeccak256(&keyMaterial[32], keyMaterial, 32);
+    BRKeccak256(&keyMaterial[32], keyMaterial, 64);
 
 
     // aes-secret = sha3(ecdhe-shared-secret || shared-secret)
-    BRKeccak256(&keyMaterial[32], &keyMaterial[32], 32);
+    BRKeccak256(&keyMaterial[32], keyMaterial, 64);
 
     // ase-crt iv: 1
     memset(fcoder->iv.u8, 0, 16);
@@ -279,7 +279,7 @@ BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fcoder,
     
 
     // mac-secret = sha3(ecdhe-shared-secret || aes-secret)
-    BRKeccak256(&keyMaterial[32], &keyMaterial[32], 32);
+    BRKeccak256(&keyMaterial[32], keyMaterial, 64);
     memcpy(fcoder->macSecretKey.u8,&keyMaterial[32], 32);
     
     
@@ -325,16 +325,14 @@ BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fcoder,
     size_t egressBytesLen = 32 + egressCipherLen;
     array_new(gressBytes, egressBytesLen);
     array_add_array(gressBytes, xORMacNonceEgress.u8, 32);
-    array_insert_array(gressBytes, 32, egressCipher, egressCipherLen);
+    array_add_array(gressBytes, egressCipher, egressCipherLen);
     
     // egress-mac = sha3.update(mac-secret ^ initiator-nonce || auth-sent-ack)
     array_new(fcoder->egressMac, egressBytesLen);
     array_add_array(fcoder->egressMac, gressBytes, egressBytesLen);
     fcoder->egressMacSize = egressBytesLen;
     
-    
     size_t ingressBytesLen = 32 + ingressCipherLen;
-    array_set_capacity(gressBytes, ingressBytesLen);
     array_insert_array(gressBytes, 0, xORMacNonceIngress.u8, 32);
     array_insert_array(gressBytes, 32, ingressCipher, ingressCipherLen);
     
@@ -466,7 +464,6 @@ BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fCoder, u
 }
 BREthereumBoolean ethereumFrameCoderDecryptFrame(BREthereumFrameCoder fCoder, uint8_t * oBytes, size_t outSize) {
 
-
     uint8_t* frameCipherText = oBytes;
     uint8_t* frameMac = &oBytes[outSize - 16];
     array_add_array(fCoder->ingressMac, frameCipherText, outSize - 16);
@@ -502,4 +499,84 @@ BREthereumBoolean ethereumFrameCoderDecryptFrame(BREthereumFrameCoder fCoder, ui
     BRAESCTR(oBytes, fCoder->aesDecryptKey, 32, fCoder->iv.u8, cipher, outSize);
     
     return ETHEREUM_BOOLEAN_TRUE;
+}
+
+//
+// Private Test function
+//
+//This data comes from https://gist.github.com/fjl/3a78780d17c755d22df2
+#define ECDHE_SHARED_SECRET "e3f407f83fc012470c26a93fdff534100f2c6f736439ce0ca90e9914f7d1c381"
+#define AES_SECRET "c0458fa97a5230830e05f4f20b7c755c1d4e54b1ce5cf43260bb191eef4e418d"
+#define MAC_SECRET  "48c938884d5067a1598272fcddaa4b833cd5e7d92e8228c0ecdfabbe68aef7f1"
+#define TOKEN "3f9ec2592d1554852b1f54d228f042ed0a9310ea86d038dc2b401ba8cd7fdac4"
+#define INITIAL_EGRESS_MAC  "09771e93b1a6109e97074cbe2d2b0cf3d3878efafe68f53c41bb60c0ec49097e"
+#define INITIAL_INGRESS_MAC "75823d96e23136c89666ee025fb21a432be906512b3dd4a3049e898adb433847"
+
+extern int testFrameCoderInitiator(BREthereumFrameCoder fCoder) {
+
+    //Check to ensure AES_SECRET is valid
+    uint8_t aesSecret[32];
+    decodeHex(aesSecret, 32, AES_SECRET, 64);
+    assert(memcmp(aesSecret, fCoder->aesDecryptKey, 32) == 0);
+
+    
+    //MAC_SECRET
+    uint8_t macSecret[32];
+    decodeHex(macSecret, 32, MAC_SECRET, 64);
+    assert(memcmp(macSecret, fCoder->macSecretKey.u8, 32) == 0);
+
+    //TOKEN
+    //uint8_t token[32];
+    //decodeHex(token, 32, TOKEN, 64);
+    
+    //INITIAL_EGRESS_MAC
+    uint8_t initialEgressMac[32];
+    decodeHex(initialEgressMac, 32, INITIAL_EGRESS_MAC, 64);
+    UInt256 egressDigest;
+    BRKeccak256(egressDigest.u8, fCoder->egressMac , fCoder->egressMacSize);
+    assert(memcmp(initialEgressMac,egressDigest.u8, 32) == 0);
+    
+
+    //INITIAL_INGRESS_MAC
+    uint8_t initialIngressMac[32];
+    decodeHex(initialIngressMac, 32, INITIAL_INGRESS_MAC, 64);
+    UInt256 ingressDigest;
+    BRKeccak256(ingressDigest.u8, fCoder->ingressMac , fCoder->ingressMacSize);
+    assert(memcmp(initialIngressMac,ingressDigest.u8, 32) == 0);
+
+    return 0;
+}
+extern int testFrameCoderReceiver(BREthereumFrameCoder fCoder) {
+
+    //Check to ensure AES_SECRET is valid
+    uint8_t aesSecret[32];
+    decodeHex(aesSecret, 32, AES_SECRET, 64);
+    assert(memcmp(aesSecret, fCoder->aesDecryptKey, 32) == 0);
+
+    
+    //MAC_SECRET
+    uint8_t macSecret[32];
+    decodeHex(macSecret, 32, MAC_SECRET, 64);
+    assert(memcmp(macSecret, fCoder->macSecretKey.u8, 32) == 0);
+
+    //TOKEN
+    //uint8_t token[32];
+    //decodeHex(token, 32, TOKEN, 64);
+    
+    //INITIAL_EGRESS_MAC
+    uint8_t initialEgressMac[32];
+    decodeHex(initialEgressMac, 32, INITIAL_INGRESS_MAC, 64);
+    UInt256 egressDigest;
+    BRKeccak256(egressDigest.u8, fCoder->egressMac , fCoder->egressMacSize);
+    assert(memcmp(initialEgressMac,egressDigest.u8, 32) == 0);
+    
+
+    //INITIAL_INGRESS_MAC
+    uint8_t initialIngressMac[32];
+    decodeHex(initialIngressMac, 32, INITIAL_EGRESS_MAC, 64);
+    UInt256 ingressDigest;
+    BRKeccak256(ingressDigest.u8, fCoder->ingressMac , fCoder->ingressMacSize);
+    assert(memcmp(initialIngressMac,ingressDigest.u8, 32) == 0);
+
+    return 0;
 }

@@ -59,7 +59,7 @@ extern BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fcoder,
                                                 size_t aukCipherLen,
                                                 uint8_t* authCiper,
                                                 size_t authCipherLen,
-                                                BREthereumBoolean didOriginate) ;
+                                                BREthereumBoolean didOriginate);
     
 /**
  * Frees the memory of the frame coder 
@@ -81,6 +81,12 @@ extern BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fC
  */
 extern BREthereumBoolean ethereumFrameCoderDecryptFrame(BREthereumFrameCoder fCoder, uint8_t * oBytes, size_t outSize);
   
+ 
+ 
+extern int testFrameCoderInitiator(BREthereumFrameCoder fCoder);
+extern int testFrameCoderReceiver(BREthereumFrameCoder fCoder);
+
+
  
 #ifdef __cplusplus
 }
