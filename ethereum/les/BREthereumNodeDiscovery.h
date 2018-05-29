@@ -29,6 +29,7 @@
 #include "BRKey.h"
 #include "BRInt.h"
 #include "BREthereumLESBase.h"
+#include "BREthereumEndpoint.h"
 #include <inttypes.h>
 
 #ifdef __cplusplus
@@ -39,11 +40,6 @@ extern "C" {
  * Declaration for a BREthereumPingNode
  */
 typedef struct BREthereumPingNodeContext* BREthereumPingNode;
-
-/**
- * Declaration for a BREthereumEndpoint
- */
-typedef struct BREthereumEndpointContext* BREthereumEndpoint;
 
 
 /**
@@ -61,6 +57,8 @@ extern BREthereumPingNode ethereumNodeDiscoveryCreatePing(BREthereumEndpoint to,
  * Create a Endpoint Node
  */
 extern BREthereumEndpoint ethereumNodeDiscoveryCreateEndpoint(int addr_family, char*address, uint16_t udpPort, uint16_t tcpPort);
+
+
 
 /**
  * Send a Ping Packet
