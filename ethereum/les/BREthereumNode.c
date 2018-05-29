@@ -35,12 +35,19 @@
 #include <assert.h>
 
 #include <string.h>
+#include "BRInt.h"
+#include "BRCrypto.h"
+#include "BREthereumLog.h"
 #include "BREthereumNode.h"
 #include "BREthereumHandshake.h"
 #include "BREthereumBase.h"
+#include "BREthereumNodeDiscovery.h"
+#include "BREthereumAccount.h"
 #include "BRKey.h"
 #include "BREthereumNodeEventHandler.h"
+#include "BREthereumEndpoint.h"
 #include "BREthereumFrameCoder.h"
+#include "BREthereumNodeDiscovery.h"
 
 #ifndef MSG_NOSIGNAL   // linux based systems have a MSG_NOSIGNAL send flag, useful for supressing SIGPIPE signals
 #define MSG_NOSIGNAL 0 // set to 0 if undefined (BSD has the SO_NOSIGPIPE sockopt, and windows has no signals at all)
@@ -48,28 +55,23 @@
 
 #define PTHREAD_STACK_SIZE  (512 * 1024)
 #define CONNECTION_TIME 3.0
-#define DEFAULT_LES_PORT 30303
-
+#define DEFAULT_UDP_PORT 30303
+#define DEFAULT_TCP_PORT 30303
+#define ETH_LOG_TOPIC "BREthereumNode"
 
 /**
  * BREthereumPeerContext - holds information about the remote peer
  */
 typedef struct {
 
-    //ipv6 address of the peer
-    UInt128 address;
-    
-    //port number of peer connection
-    uint16_t port;
-    
-    //The name for a host
-    char host[INET6_ADDRSTRLEN];
+    //the endpoint for the node
+    BREthereumEndpoint endpoint;
     
     //socket used for communicating with a peer
     volatile int socket;
     
     //The KeyPair for the remote node
-    BRKey remoteKey;
+    BRKey* remoteKey;
     
     //Timestamp reported by the peer
     uint64_t timestamp;
@@ -91,7 +93,7 @@ struct BREthereumNodeContext {
     BREthereumPeer peer;
     
     //The Key for for a node
-    BRKey key; 
+    BRKey* key;
     
     //The current connection status of a node
     BREthereumNodeStatus status;
@@ -124,24 +126,27 @@ struct BREthereumNodeContext {
     UInt256 nonce;
     
     // Local Ephemeral ECDH key
-    BRKey ephemeral;
+    BRKey* ephemeral;
     
     //The thread representing this node
     pthread_t thread;
     
     //Lock to handle shared resources in the node
     pthread_mutex_t lock;
+    
+    //The callback function to call when a disconnect from the remote peer happens
+    BRPeerDisconnectCallback disconnectCallback;
+    
+    //The reason to disconnect from a peer
+    BREthereumDisconnect disconnectReason;
 };
 
 
-
-
-/**** Private functions ****/
-static BREthereumBoolean _isAddressIPv4(UInt128 address);
+//
+// Private Functions
+//
 static int _openEtheruemPeerSocket(BREthereumNode node, int domain, double timeout, int *error);
-//static void _updateStatus(BREthereumNodeContext * node, BREthereumNodeStatus status);
 static void *_nodeThreadRunFunc(void *arg);
-
 
 /**
  * Note: This function is a direct copy of Aaron's _BRPeerOpenSocket function with a few modifications to
@@ -180,21 +185,26 @@ static int _openEtheruemPeerSocket(BREthereumNode node, int domain, double timeo
 
     if (r) {
         memset(&addr, 0, sizeof(addr));
+        uint16_t port = ethereumEndpointGetTCP(node->peer.endpoint);
+        const char* address = ethereumEndpointGetHost(node->peer.endpoint);
         
         if (domain == PF_INET6) {
-            ((struct sockaddr_in6 *)&addr)->sin6_family = AF_INET6;
-            ((struct sockaddr_in6 *)&addr)->sin6_addr = *(struct in6_addr *)&peer->address;
-            ((struct sockaddr_in6 *)&addr)->sin6_port = htons(peer->port);
+            struct sockaddr_in6 * addr_in6 = ((struct sockaddr_in6 *)&addr);
+            addr_in6->sin6_family = AF_INET6;
+            inet_pton(AF_INET6, address, &(addr_in6->sin6_addr));
+            addr_in6->sin6_port = htons(port);
             addrLen = sizeof(struct sockaddr_in6);
         }
         else {
-            ((struct sockaddr_in *)&addr)->sin_family = AF_INET;
-            ((struct sockaddr_in *)&addr)->sin_addr = *(struct in_addr *)&peer->address.u32[3];
-            ((struct sockaddr_in *)&addr)->sin_port = htons(peer->port);
+            struct sockaddr_in* addr_in4 = ((struct sockaddr_in *)&addr);
+            addr_in4->sin_family = AF_INET;
+            inet_pton(AF_INET, address, &(addr_in4->sin_addr));
+            addr_in4->sin_port = htons(port);
             addrLen = sizeof(struct sockaddr_in);
         }
-        
-        if (connect(peer->socket, (struct sockaddr *)&addr, addrLen) < 0) err = errno;
+        if (connect(peer->socket, (struct sockaddr *)&addr, addrLen) < 0) {
+            err = errno;
+        }
         
         if (err == EINPROGRESS) {
             err = 0;
@@ -211,19 +221,19 @@ static int _openEtheruemPeerSocket(BREthereumNode node, int domain, double timeo
                 r = 0;
             }
         }
-        else if (err && domain == PF_INET6 && ETHEREUM_BOOLEAN_IS_TRUE(_isAddressIPv4(peer->address))) {
-            return _openEtheruemPeerSocket(node, PF_INET, timeout, error); // fallback to IPv4
+        else if (err && domain == PF_INET && ETHEREUM_BOOLEAN_IS_TRUE(ethereumEndpointIsIPV4(node->peer.endpoint))) {
+            return _openEtheruemPeerSocket(node, PF_INET6, timeout, error); // fallback to IPv4
         }
         else if (err) r = 0;
 
         if (r) {
-            bre_node_log(node, "ethereum socket connected");
+            eth_log(ETH_LOG_TOPIC,"%s","ethereum socket connected");
         }
         fcntl(node->peer.socket, F_SETFL, arg); // restore socket non-blocking status
     }
 
     if (! r && err) {
-         bre_node_log(node, "ethereum connect error: %s", strerror(err));
+         eth_log(ETH_LOG_TOPIC, "ethereum connect error: %s", strerror(err));
     }
     if (error && err) *error = err;
     return r;
@@ -232,7 +242,11 @@ static BREthereumNodeStatus _readStatus(BREthereumNode node){
 
     BREthereumNodeStatus ret;
     pthread_mutex_lock(&node->lock);
-    ret = node->status;
+    if(ETHEREUM_BOOLEAN_IS_TRUE( node->shouldFree) || (ETHEREUM_BOOLEAN_IS_TRUE(node->shouldDisconnect) &&  node->status != BRE_NODE_DISCONNECTED)){
+        ret = BRE_NODE_DICONNECTING;
+    }else {
+        ret = node->status;
+    }
     pthread_mutex_unlock(&node->lock);
     return ret;
 }
@@ -243,6 +257,21 @@ static void _updateStatus(BREthereumNode node, BREthereumNodeStatus status){
     pthread_mutex_unlock(&node->lock);
     
 }
+static void _disconnect(BREthereumNode node) {
+   
+    //TODO: Check if you're connected.
+    node->status = BRE_NODE_DISCONNECTED;
+    int socket = node->peer.socket;
+    node->shouldDisconnect = ETHEREUM_BOOLEAN_TRUE;
+    if (socket >= 0) {
+        node->peer.socket = -1;
+        if (shutdown(socket, SHUT_RDWR) < 0){
+            eth_log(ETH_LOG_TOPIC, "%s", strerror(errno));
+        }
+        close(socket);
+    }
+}
+
 static void _processEvent(BREthereumNode node){
 
     
@@ -259,37 +288,30 @@ static void *_nodeThreadRunFunc(void *arg) {
     BREthereumNode node = (BREthereumNode)arg;
     BREthereumNodeStatus status;
 
-    while((status = _readStatus(node)) != BRE_NODE_DISCONNECTED)
+    while(node != NULL && (status = _readStatus(node)) != BRE_NODE_DISCONNECTED)
     {
-    
-        if(node->shouldFree && status != BRE_NODE_DISCONNECTED){
-            //TODO: Implement
-                // 1. Disconnect from the remote-peer
-                // 2. Free resources  i.e. context
 
-        }
-        else if (node->shouldDisconnect && status != BRE_NODE_DISCONNECTED){
+        if (ETHEREUM_BOOLEAN_IS_TRUE(node->shouldDisconnect)){
             //TODO: Implement
-                // 1. Disconnect from the remote-peer
+            _disconnect(node);
+            _updateStatus(node, BRE_NODE_DISCONNECTED);
+            break;
         }
         else
         {
-        
             switch (status) {
-                case BRE_NODE_DISCONNECTED:
-                {
-                    continue;
-                }
-                break;
                 case BRE_NODE_CONNECTING:
                 {
-                 //   ctx->handshake = ethereumHandshakeCreate(&ctx->peer, &ctx->key, ctx->shouldOriginate);
+                    node->handshake = ethereumHandshakeCreate(node);
                     _updateStatus(node, BRE_NODE_PERFORMING_HANDSHAKE);
                 }
                 break;
                 case BRE_NODE_PERFORMING_HANDSHAKE:
                 {
                     if(ethereumHandshakeTransition(node->handshake) == BRE_HANDSHAKE_FINISHED) {
+                        eth_log(ETH_LOG_TOPIC, "%s", "Handshake completed with");
+                        eth_log(ETH_LOG_TOPIC, "Initiating LES Status Message completed (%d)", BRE_HANDSHAKE_FINISHED);
+                        
                         _updateStatus(node,BRE_NODE_CONNECTED);
                         // TODO: Get information about the status of the remote node before
                         //ethereumHandshakeFree(node->handshake);
@@ -306,9 +328,6 @@ static void *_nodeThreadRunFunc(void *arg) {
                      * 5.) Jump back to step 1.
                     */
                     //_proccessEvent(ctx);
-                    
-                    
-                    
                 }
                 break;
                 default:
@@ -318,28 +337,29 @@ static void *_nodeThreadRunFunc(void *arg) {
     }
     return NULL;
 }
-static BREthereumBoolean _isAddressIPv4(UInt128 address)
-{
-    return (address.u64[0] == 0 && address.u16[4] == 0 && address.u16[5] == 0xffff) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
-}
-
-
 //
 // Public functions
 //
-BREthereumNode ethereumNodeCreate (BREthereumPeerConfig config,
-                                   BREthereumBoolean originate) {
+BREthereumNode ethereumNodeCreate(BREthereumPeerConfig config,
+                                  BRKey* key,
+                                  UInt256 nonce,
+                                  BRKey* ephemeral,
+                                  BRPeerDisconnectCallback disconnectFunc,
+                                  BREthereumBoolean originate) {
 
     BREthereumNode node = (BREthereumNode) calloc (1, sizeof(struct BREthereumNodeContext));
     node->status = BRE_NODE_DISCONNECTED;
     node->handshake = NULL;
     node->shouldOriginate = originate;
-        //ctx->nonce = UINT256_ZERO; //TODO: Get Random Nonce;
-    /// TODO GET RANDOM KEY ctx->localEphemeral = BRKEY
+    node->key = key;
+    node->nonce = nonce;
+    node->ephemeral = ephemeral;
     node->eventHandler = ethereumNodeEventHandlerCreate();
-    memcpy(node->peer.address.u8, config.address.u8, sizeof(config.address.u8));
-    node->peer.port = config.port;
+    node->ioCoder = ethereumFrameCoderCreate(); 
+    node->disconnectCallback = disconnectFunc;
+    node->peer.endpoint = config.endpoint;
     node->peer.timestamp = config.timestamp;
+    node->peer.remoteKey = config.remoteKey;
     
     //Initiliaze thread information
     {
@@ -350,11 +370,9 @@ BREthereumNode ethereumNodeCreate (BREthereumPeerConfig config,
         pthread_mutex_init(&node->lock, &attr);
         pthread_mutexattr_destroy(&attr);
     }
-    
-    return (BREthereumNode)node;
-
+    return node;
 }
-void ethereumNodeConnect(BREthereumNode node) {
+int ethereumNodeConnect(BREthereumNode node) {
 
     int error = 0;
     pthread_attr_t attr;
@@ -362,54 +380,57 @@ void ethereumNodeConnect(BREthereumNode node) {
     node->shouldDisconnect = ETHEREUM_BOOLEAN_FALSE;
     node->shouldFree = ETHEREUM_BOOLEAN_FALSE;
     
-    if(_openEtheruemPeerSocket(node, PF_INET6, CONNECTION_TIME, &error)) {
+    if(!error && _openEtheruemPeerSocket(node, PF_INET, CONNECTION_TIME, &error)) {
 
         if (node->status == BRE_NODE_DISCONNECTED) {
             node->status = BRE_NODE_CONNECTING;
             
             if (pthread_attr_init(&attr) != 0) {
                 error = ENOMEM;
-                bre_node_log(node, "error creating thread");
+                eth_log(ETH_LOG_TOPIC, "%s", "error creating thread");
                 node->status = BRE_NODE_DISCONNECTED;
             }
             else if (pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED) != 0 ||
                      pthread_attr_setstacksize(&attr, PTHREAD_STACK_SIZE) != 0 ||
                      pthread_create(&node->thread, &attr, _nodeThreadRunFunc, node) != 0) {
                 error = EAGAIN;
-                bre_node_log(node, "error creating thread");
+                eth_log(ETH_LOG_TOPIC, "%s", "error creating thread");
                 pthread_attr_destroy(&attr);
                 node->status = BRE_NODE_DISCONNECTED;
             }
         }
     }
+    return error;
 }
 BREthereumNodeStatus ethereumNodeStatus(BREthereumNode node){
 
     return _readStatus(node);
 }
-void ethereumNodeDisconnect(BREthereumNode node) {
-    
-    node->status = BRE_NODE_DISCONNECTED;
-    int socket = node->peer.socket;
+void ethereumNodeDisconnect(BREthereumNode node, BREthereumDisconnect reason) {
+
     node->shouldDisconnect = ETHEREUM_BOOLEAN_TRUE;
-    if (socket >= 0) {
-        node->peer.socket = -1;
-        if (shutdown(socket, SHUT_RDWR) < 0){
-            bre_node_log(node, "%s", strerror(errno));
-        }
-        close(socket);
+    node->disconnectReason = reason;
+}
+BREthereumBoolean ethereumNodeRelease(BREthereumNode node){
+
+    BREthereumNodeStatus status =  _readStatus(node);
+    
+    if(status == BRE_NODE_DISCONNECTED){
+        free(node);
+        return ETHEREUM_BOOLEAN_TRUE;
     }
+    return ETHEREUM_BOOLEAN_FALSE;
 }
 BREthereumFrameCoder ethereumNodeGetFrameCoder(BREthereumNode node) {
     return node->ioCoder;
 }
 BRKey* ethereumNodeGetKey(BREthereumNode node){
-    return &node->key;
+    return node->key;
  }
 
-BRKey* ethereumNodeGetRemoteKey(BREthereumNode node) {
+BRKey* ethereumNodeGetPeerKey(BREthereumNode node) {
 
-    return &node->peer.remoteKey;
+    return node->peer.remoteKey;
     
  }
 BRRlpData ethereumNodeGetStatusData(BREthereumNode node) {
@@ -428,9 +449,10 @@ BREthereumPeer ethereumNodeGetPeer(BREthereumNode node) {
     return node->peer;
 }
 BRKey* ethereumNodeGetEphemeral(BREthereumNode node) {
-    return &node->ephemeral;
+    return node->ephemeral;
 }
 BRKey* ethereumNodeGetPeerEphemeral(BREthereumNode node) {
+
     return &node->peer.ephemeral;
 }
 UInt256* ethereumNodeGetNonce(BREthereumNode node) {
@@ -439,19 +461,13 @@ UInt256* ethereumNodeGetNonce(BREthereumNode node) {
 UInt256* ethereumNodeGetPeerNonce(BREthereumNode node) {
     return &node->peer.nonce;
 }
-void ethereumNodeFree(BREthereumNode node) {
-
-    node->shouldFree = ETHEREUM_BOOLEAN_TRUE;
-    free(node);
-}
 BRRlpData ethereumNodeGetEncodedHelloData(BREthereumNode node) {
 
-    bre_node_log(node, "encoding hello message");
+    eth_log(ETH_LOG_TOPIC, "%s", "encoding hello message");
     
     BRRlpData data;
     
     BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem helloItems[2];
     BRRlpItem helloDataItems[5];
     
     /**
@@ -480,7 +496,7 @@ BRRlpData ethereumNodeGetEncodedHelloData(BREthereumNode node) {
     helloDataItems[2] = capsItem;
     helloDataItems[3] = rlpEncodeItemUInt64(coder, 0,0);
     uint8_t pubKey[65];
-    size_t pubKeyLength = BRKeyPubKey(&node->key, pubKey, 0);
+    size_t pubKeyLength = BRKeyPubKey(node->key, pubKey, 0);
     assert(pubKeyLength == 65);
     helloDataItems[4] = rlpEncodeItemBytes(coder, &pubKey[1], 64);
 
@@ -503,29 +519,13 @@ BRRlpData ethereumNodeGetEncodedHelloData(BREthereumNode node) {
     
     return data;
 }
-uint16_t ethereumNodeGetPeerPort(BREthereumNode node) {
-    return node->peer.port;
-}
-const char * ethereumNodeGetPeerHost(BREthereumNode node){
-    
-    BREthereumPeer * peerCtx =  &node->peer;
-    
-    if( peerCtx->host[0] == '\0') {
-        if (ETHEREUM_BOOLEAN_IS_TRUE(_isAddressIPv4(peerCtx->address))) {
-            inet_ntop(AF_INET, &peerCtx->address.u32[3], peerCtx->host, sizeof(peerCtx->host));
-        }else {
-            inet_ntop(AF_INET6, &peerCtx->address, peerCtx->host, sizeof(peerCtx->host));
-        }
-    }
-    return peerCtx->host;
-}
 int ethereumNodeReadFromPeer(BREthereumNode node, uint8_t * buf, size_t bufSize, const char * type){
 
     BREthereumPeer* peerCtx = &node->peer;
     ssize_t n = 0, len = 0;
     int socket, error = 0;
 
-    bre_node_log(node, "now reading from peer: %s", type);
+    eth_log(ETH_LOG_TOPIC, "now reading from peer: %s", type);
 
     socket = peerCtx->socket;
 
@@ -541,7 +541,7 @@ int ethereumNodeReadFromPeer(BREthereumNode node, uint8_t * buf, size_t bufSize,
     }
     
     if (error) {
-        bre_node_log(node, "%s", strerror(error));
+        eth_log(ETH_LOG_TOPIC, "%s", strerror(error));
     }
     return error;
 }
@@ -551,7 +551,8 @@ int ethereumNodeWriteToPeer(BREthereumNode node, uint8_t * buf, size_t bufSize, 
     ssize_t n = 0;
     int socket, error = 0;
 
-    bre_node_log(node, "now sending to peer: %s", type);
+    const char* hostAddress = ethereumEndpointGetHost(peerCtx->endpoint);
+    eth_log(ETH_LOG_TOPIC, "now sending (%zu bytes) to peer[%s]: %s", bufSize, hostAddress, type);
 
     size_t offset = 0;
     socket = peerCtx->socket;
@@ -566,7 +567,7 @@ int ethereumNodeWriteToPeer(BREthereumNode node, uint8_t * buf, size_t bufSize, 
     }
 
     if (error) {
-        bre_node_log(node, "%s", strerror(error));
+        eth_log(ETH_LOG_TOPIC, "%s", strerror(error));
     }
     return error;
 }

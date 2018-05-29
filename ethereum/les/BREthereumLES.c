@@ -180,7 +180,7 @@ static void _encodeStatus(BREthereumLESStatus* status, BRRlpCoder coder, BRRlpIt
     }
     *ioIdx = curIdx;
 }
-void ethereumLESEncodeLESStatus(BREthereumLESStatus* status, uint8_t**rlpBytes, size_t* rlpBytesSize) {
+void ethereumLESEncodeStatus(BREthereumLESStatus* status, uint8_t**rlpBytes, size_t* rlpBytesSize) {
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem statusItems[15];
