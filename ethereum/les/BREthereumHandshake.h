@@ -62,7 +62,7 @@ typedef struct BREthereumHandshakeContext* BREthereumHandshake;
  *
  * @param node - weak reference to the node performing the handshake
  */
-extern BREthereumHandshake ethereumHandshakeCreate(BREthereumNode node) ;
+extern BREthereumHandshake ethereumHandshakeCreate(BREthereumNode node);
 
 /**
  * Checks whether the state of the handhsake needs to be updated based on recieving/sending messages
@@ -78,6 +78,11 @@ extern BREthereumHandshakeStatus ethereumHandshakeTransition(BREthereumHandshake
  * @param handshakeCxt - the hande shake context information to delete
  */
 extern void ethereumHandshakeRelease(BREthereumHandshake handshake);
+
+
+extern int testInitatorHandshake(BREthereumHandshake ctx, BRKey*);
+extern int testReceiverHandshake(BREthereumHandshake ctx, BRKey*, BRKey*);
+
 
 #ifdef __cplusplus
 }
