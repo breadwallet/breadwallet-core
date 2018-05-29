@@ -71,7 +71,7 @@ typedef struct {
     volatile int socket;
     
     //The KeyPair for the remote node
-    BRKey* remoteKey;
+    BRKey remoteKey;
     
     //Timestamp reported by the peer
     uint64_t timestamp;
@@ -359,7 +359,11 @@ BREthereumNode ethereumNodeCreate(BREthereumPeerConfig config,
     node->disconnectCallback = disconnectFunc;
     node->peer.endpoint = config.endpoint;
     node->peer.timestamp = config.timestamp;
-    node->peer.remoteKey = config.remoteKey;
+    if(config.remoteKey != NULL){
+        uint8_t remotePubRawKey[65];
+        size_t pLen = BRKeyPubKey(config.remoteKey, remotePubRawKey, sizeof(remotePubRawKey));
+        memcpy(&node->peer.remoteKey, remotePubRawKey, pLen);
+    }
     
     //Initiliaze thread information
     {
@@ -430,7 +434,7 @@ BRKey* ethereumNodeGetKey(BREthereumNode node){
 
 BRKey* ethereumNodeGetPeerKey(BREthereumNode node) {
 
-    return node->peer.remoteKey;
+    return &node->peer.remoteKey;
     
  }
 BRRlpData ethereumNodeGetStatusData(BREthereumNode node) {

@@ -355,6 +355,10 @@ void runAuthTests() {
     _createPrivKey(&recvPrivKey, RECEIVER_PRIVATE_KEY, 64);
     _createPrivKey(&initEphemeralKey, INITIATOR_EPHEMERAL_PRIVATE_KEY, 64);
     _createPrivKey(&recvEphemeralKey, RECEIVER_EPHEMERAL_PRIVATE_KEY, 64);
+    decodeHex(receiverNonce.u8, 32, RECEIVER_NONCE, 64);
+    decodeHex(initNonce.u8, 32, INITIATOR_NONCE, 64);
+    
+    config.remoteKey = NULL;
     BREthereumNode responder = ethereumNodeCreate(config, &recvPrivKey, receiverNonce, &recvEphemeralKey, _disconnectFailFunc, ETHEREUM_BOOLEAN_FALSE);
     
     //Create a handhsake for testing
@@ -362,8 +366,6 @@ void runAuthTests() {
     testReceiverHandshake(handshake2, &initPrivKey, &initEphemeralKey);
     
     
-
-
 
 /*
     //INITIAL_HELLO_PACKET
