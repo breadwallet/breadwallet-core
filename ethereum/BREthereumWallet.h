@@ -265,6 +265,7 @@ walletGetTransactionByHash (BREthereumWallet wallet,
 
 extern BREthereumTransaction
 walletGetTransactionByNonce (BREthereumWallet wallet,
+                             BREthereumAddress sourceAddress,
                              uint64_t nonce);
 
 extern BREthereumTransaction

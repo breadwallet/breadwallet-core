@@ -487,9 +487,11 @@ walletGetTransactionByHash (BREthereumWallet wallet,
 
 extern BREthereumTransaction
 walletGetTransactionByNonce (BREthereumWallet wallet,
+                             BREthereumAddress sourceAddress,
                              uint64_t nonce) {
     for (int i = 0; i < array_count(wallet->transactions); i++)
-        if (nonce == transactionGetNonce (wallet->transactions[i]))
+        if (nonce == transactionGetNonce (wallet->transactions[i])
+            && ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(sourceAddress, transactionGetSourceAddress(wallet->transactions[i]))))
             return wallet->transactions [i];
     return NULL;
 }

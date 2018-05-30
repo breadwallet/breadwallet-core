@@ -986,7 +986,7 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
     // transaction that we are holding but that doesn't have a hash yet.  This will *only* apply
     // if we are the source.
     if (NULL == transaction && ETHEREUM_BOOLEAN_IS_TRUE(isSource))
-        transaction = walletGetTransactionByNonce(wallet, nonce);
+        transaction = walletGetTransactionByNonce(wallet, primaryAddress, nonce);
 
     // If we still don't have a transaction (with 'hash' or 'nonce'); then create one.
     if (NULL == transaction) {
