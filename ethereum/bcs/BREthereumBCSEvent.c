@@ -202,29 +202,27 @@ typedef struct {
     BREvent base;
     BREthereumBCS bcs;
     BREthereumHash blockHash;
-    BREthereumTransactionReceipt receipt;
-    unsigned int receiptIndex;
+    BREthereumTransactionReceipt *receipts;
 } BREthereumHandleTransactionReceiptEvent;
 
 static void
-bcsHandleTransactionReceiptDispatcher(BREventHandler ignore,
-                                                 BREthereumHandleTransactionReceiptEvent *event) {
-    bcsHandleTransactionReceipt(event->bcs, event->blockHash, event->receipt, event->receiptIndex);
+bcsHandleTransactionReceiptsDispatcher(BREventHandler ignore,
+                                       BREthereumHandleTransactionReceiptEvent *event) {
+    bcsHandleTransactionReceipts(event->bcs, event->blockHash, event->receipts);
 }
 
 BREventType handleTransactionReceiptEventType = {
     "Handle TransactionReceipt Event",
     sizeof (BREthereumHandleTransactionReceiptEvent),
-    (BREventDispatcher) bcsHandleTransactionReceiptDispatcher
+    (BREventDispatcher) bcsHandleTransactionReceiptsDispatcher
 };
 
 extern void
-bcsSignalTransactionReceipt (BREthereumBCS bcs,
-                                   BREthereumHash blockHash,
-                                   BREthereumTransactionReceipt receipt,
-                                   unsigned int receiptIndex) {
+bcsSignalTransactionReceipts (BREthereumBCS bcs,
+                              BREthereumHash blockHash,
+                              BREthereumTransactionReceipt *receipts) {
     BREthereumHandleTransactionReceiptEvent event =
-    { { NULL, &handleTransactionReceiptEventType }, bcs, blockHash, receipt, receiptIndex };
+    { { NULL, &handleTransactionReceiptEventType }, bcs, blockHash, receipts };
     eventHandlerSignalEvent(bcs->handler, (BREvent*) &event);
 }
 

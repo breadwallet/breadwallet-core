@@ -72,6 +72,14 @@ extern BREthereumBoolean
 blockHeaderMatchAddress (BREthereumBlockHeader header,
                          BREthereumAddress address);
 
+// Support BRSet
+extern size_t
+blockHeaderHashValue (const void *h);
+
+// Support BRSet
+extern int
+blockHeaderHashEqual (const void *h1, const void *h2);    
+
 //
 // Block
 //

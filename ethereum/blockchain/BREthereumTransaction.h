@@ -108,6 +108,14 @@ transactionGetData (BREthereumTransaction transaction);
 extern BREthereumToken // or null
 transactionGetToken (BREthereumTransaction transaction);
 
+// Support BRSet
+extern size_t
+transactionHashValue (const void *h);
+
+// Support BRSet
+extern int
+transactionHashEqual (const void *h1, const void *h2);
+
 //
 // Transaction Signing
 //

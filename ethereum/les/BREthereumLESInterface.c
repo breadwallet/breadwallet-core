@@ -104,7 +104,7 @@ lesGetReceiptsOne (BREthereumLES les,
 extern void
 lesGetTransactionStatus (BREthereumLES les,
                          BREthereumLESTransactionStatusContext context,
-                         BREthereumTransactionStatusCallback callback,
+                         BREthereumLESTransactionStatusCallback callback,
                          BREthereumHash transactions[]) {
 
 }
@@ -112,7 +112,7 @@ lesGetTransactionStatus (BREthereumLES les,
 extern void
 lesGetTransactionStatusOne (BREthereumLES les,
                             BREthereumLESTransactionStatusContext context,
-                            BREthereumTransactionStatusCallback callback,
+                            BREthereumLESTransactionStatusCallback callback,
                             BREthereumHash transaction) {
 
 }
@@ -120,9 +120,8 @@ lesGetTransactionStatusOne (BREthereumLES les,
 extern void
 lesSubmitTransaction (BREthereumLES les,
                       BREthereumLESTransactionStatusContext context,
-                      BREthereumTransactionStatusCallback callback,
-                      BREthereumTransaction transaction,
-                      unsigned int transactionStatusPeriodInMilliseconds) {
+                      BREthereumLESTransactionStatusCallback callback,
+                      BREthereumTransaction transaction) {
     assert (ETHEREUM_BOOLEAN_IS_TRUE (transactionIsSigned(transaction)));
     BREthereumHash hash = transactionGetHash(transaction);
     BRRlpData data = transactionEncodeRLP(transaction, les->network, TRANSACTION_RLP_SIGNED);

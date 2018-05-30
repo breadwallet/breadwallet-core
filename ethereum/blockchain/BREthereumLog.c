@@ -55,6 +55,19 @@ logTopicGetBloomFilterAddress (BREthereumAddress address) {
     return logTopicGetBloomFilter (logTopicCreateAddress(address));
 }
 
+static int
+logTopicMatchesAddressBool (BREthereumLogTopic topic,
+                        BREthereumAddress address) {
+    return (0 == memcmp (&topic.bytes[0], &empty.bytes[0], 12)
+            && 0 == memcmp (&topic.bytes[12], &address.bytes[0], 20));
+}
+
+extern BREthereumBoolean
+logTopicMatchesAddress (BREthereumLogTopic topic,
+                        BREthereumAddress address) {
+    return AS_ETHEREUM_BOOLEAN(logTopicMatchesAddressBool(topic, address));
+}
+
 //
 // Support
 //
@@ -83,6 +96,9 @@ static BREthereumLogTopic emptyTopic;
 //
 // A log entry, O, is:
 struct BREthereumLogRecord {
+    // THIS MUST BE FIRST to support BRSet operations.
+    BREthereumHash hash;
+
     // a tuple of the logger’s address, Oa;
     BREthereumAddress address;
 
@@ -94,9 +110,26 @@ struct BREthereumLogRecord {
     uint8_t dataCount;
 };
 
+extern BREthereumHash
+logGetHash (BREthereumLog log) {
+    return log->hash;
+}
+
+extern void
+logSetHash (BREthereumLog log,
+            BREthereumHash hash) {
+    log->hash = hash;
+}
+
 extern BREthereumAddress
 logGetAddress (BREthereumLog log) {
     return log->address;
+}
+
+extern BREthereumBoolean
+logHasAddress (BREthereumLog log,
+               BREthereumAddress address) {
+    return addressRawEqual(log->address, address);
 }
 
 extern size_t
@@ -120,6 +153,34 @@ logGetData (BREthereumLog log) {
     memcpy (data.bytes, log->data, data.bytesCount);
 
     return data;
+}
+
+extern BREthereumBoolean
+logMatchesAddress (BREthereumLog log,
+                   BREthereumAddress address,
+                   BREthereumBoolean topicsOnly) {
+    int match = 0;
+    size_t count = logGetTopicsCount(log);
+    for (int i = 0; i < count; i++)
+        match |= logTopicMatchesAddressBool(log->topics[i], address);
+
+    return (ETHEREUM_BOOLEAN_IS_TRUE(topicsOnly)
+            ? AS_ETHEREUM_BOOLEAN(match)
+            : AS_ETHEREUM_BOOLEAN(match | ETHEREUM_BOOLEAN_IS_TRUE(logHasAddress(log, address))));
+
+}
+
+// Support BRSet
+extern size_t
+logHashValue (const void *l) {
+    return hashSetValue(&((BREthereumLog) l)->hash);
+}
+
+// Support BRSet
+extern int
+logHashEqual (const void *l1, const void *l2) {
+    return hashSetEqual(&((BREthereumLog) l1)->hash,
+                        &((BREthereumLog) l2)->hash);
 }
 
 //

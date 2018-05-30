@@ -80,6 +80,11 @@ func (h *Header) HashNoNonce() common.Hash {
  * that reference]
  */
 struct BREthereumBlockHeaderRecord {
+    // THIS MUST BE FIRST to support BRSet operations.
+    //
+    // The Keccak256-bit hash (of this Block).
+    BREthereumHash hash;
+
     // The Keccak256-bit hash of the parent block’s header, in its entirety; formally Hp.
     BREthereumHash parentHash;
 
@@ -140,9 +145,6 @@ struct BREthereumBlockHeaderRecord {
     // A 64-bitvaluewhich, combined with the mixHash, proves that a sufficient amount of
     // computation has been carried out on this block; formally Hn.
     uint64_t nonce;
-
-    // The Keccak256-bit hash (of this Block).
-    BREthereumHash hash;
 };
 
 static BREthereumBlockHeader
@@ -211,6 +213,18 @@ blockHeaderMatchAddress (BREthereumBlockHeader header,
             || ETHEREUM_BOOLEAN_IS_TRUE(blockHeaderMatch(header, logTopicGetBloomFilterAddress(address)))
             ? ETHEREUM_BOOLEAN_TRUE
             : ETHEREUM_BOOLEAN_FALSE);
+}
+
+extern size_t
+blockHeaderHashValue (const void *h)
+{
+    return hashSetValue(&((BREthereumBlockHeader) h)->hash);
+}
+
+extern int
+blockHeaderHashEqual (const void *h1, const void *h2) {
+    return hashSetEqual(&((BREthereumBlockHeader) h1)->hash,
+                        &((BREthereumBlockHeader) h2)->hash);
 }
 
 //
@@ -569,6 +583,10 @@ blockDecodeRLP (BRRlpData data,
 
 // One Block Header To Rule Them All... until we extract the actual genesis headers.
 static struct BREthereumBlockHeaderRecord genesisHeaderRecord = {
+
+    // BREthereumHash hash;
+    EMPTY_HASH_INIT,
+
     // BREthereumHash parentHash;
     EMPTY_HASH_INIT,
 
@@ -621,10 +639,7 @@ static struct BREthereumBlockHeaderRecord genesisHeaderRecord = {
     EMPTY_HASH_INIT,
 
     // uint64_t nonce;
-    0x000000000000002a,
-
-    // BREthereumHash hash;
-    EMPTY_HASH_INIT
+    0x000000000000002a
 };
 const BREthereumBlockHeader ethereumMainnetBlockHeader = &genesisHeaderRecord;
 const BREthereumBlockHeader ethereumTestnetBlockHeader = &genesisHeaderRecord;

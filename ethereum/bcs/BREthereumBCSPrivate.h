@@ -26,6 +26,8 @@
 #ifndef BR_Ethereum_BCS_Private_h
 #define BR_Ethereum_BCS_Private_h
 
+#include "BRSet.h"
+#include "BRArray.h"
 #include "BREthereumBCS.h"
 #include "../blockchain/BREthereumBlockChain.h"
 #include "../event/BREvent.h"
@@ -44,8 +46,16 @@ struct BREthereumBCSStruct {
     BREthereumLES les;
     BREventHandler handler;
 
-    // chain (block header)
-    // orphans 
+    BRSet *headers;
+    BREthereumBlockHeader chain;
+    BREthereumBlockHeader *orphans;
+
+    // Array of Hashes (for lesGetTransactionStatus) but better as Transactions.
+    BREthereumHash *pendingTransactions;
+
+    // Ours...
+    BRSet *transactions;
+    BRSet *logs;
 };
 
 extern const BREventType *bcsEventTypes[];
@@ -122,16 +132,14 @@ bcsSignalTransactionStatus (BREthereumBCS bcs,
 // Transaction Receipt
 //
 extern void
-bcsHandleTransactionReceipt (BREthereumBCS bcs,
-                             BREthereumHash blockHash,
-                             BREthereumTransactionReceipt receipt,
-                             unsigned int receiptIndex);
+bcsHandleTransactionReceipts (BREthereumBCS bcs,
+                              BREthereumHash blockHash,
+                              BREthereumTransactionReceipt receipts[]);
 
 extern void
-bcsSignalTransactionReceipt (BREthereumBCS bcs,
-                             BREthereumHash blockHash,
-                             BREthereumTransactionReceipt receipt,
-                             unsigned int receiptIndex);
+bcsSignalTransactionReceipts (BREthereumBCS bcs,
+                              BREthereumHash blockHash,
+                              BREthereumTransactionReceipt receipts[]);
 
 //
 // Logs

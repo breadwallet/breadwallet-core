@@ -378,50 +378,97 @@ lightNodeHandleTransaction (BREthereumLightNode node,
 
     BREthereumWalletId wid = (NULL == token ? 0 : lightNodeGetWalletHoldingToken(node, token));
     BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
+    assert (NULL != wallet);
 
     BREthereumTransactionId tid = lightNodeLookupTransactionId(node, transaction);
 
-    // With a new transaction:
-    if (-1 == tid) {
-        //
-        //   a) add to the light node
+    // If `transaction` is new, then add it to the light node
+    if (-1 == tid)
         tid = lightNodeInsertTransaction(node, transaction);
+
+    // We have a hash?  We had a hash all along?
+    // walletTransactionSubmitted(wallet, transaction, transactionGetHash(transaction));
+
+    // If `transaction` is not yet held in `wallet`
+    if (!walletHasTransaction(wallet, transaction)) {
         //
-        //  b) add to the wallet
+        //  a) add to the wallet
         walletHandleTransaction(wallet, transaction);
         //
-        //  c) announce the wallet update
+        //  b) announce the wallet update
+        //  TODO: Need a hash here?
         lightNodeListenerSignalTransactionEvent(node, wid, tid,
                                                 TRANSACTION_EVENT_ADDED,
                                                 SUCCESS, NULL);
-        //
-        //  d) announce as submitted (=> there is a hash, submitted by 'us' or 'them')
-        walletTransactionSubmitted(wallet, transaction, transactionGetHash(transaction));
-
-        //
-        //
-//        walletTransactionBlocked(wallet, transaction, gasUsed,
-//                                 blockGetNumber(block),
-//                                 blockGetTimestamp(block),
-//                                 blockTransactionIndex);
-
     }
 
+    BREthereumTransactionStatus status = transactionGetStatus(transaction);
+    switch (status.type) {
+        case TRANSACTION_STATUS_UNKNOWN:
+            break;
+        case TRANSACTION_STATUS_QUEUED:
+        case TRANSACTION_STATUS_PENDING:
+            break;
+        case TRANSACTION_STATUS_INCLUDED:
+            lightNodeListenerSignalTransactionEvent(node, wid, tid,
+                                                    (lightNodeGetBlockHeight(node) == status.u.included.blockNumber
+                                                     ? TRANSACTION_EVENT_BLOCKED
+                                                     : TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED),
+                                                    SUCCESS, NULL);
+            break;
+        case TRANSACTION_STATUS_ERROR:
+            lightNodeListenerSignalTransactionEvent(node, wid, tid,
+                                                    (lightNodeGetBlockHeight(node) == status.u.included.blockNumber
+                                                     ? TRANSACTION_EVENT_BLOCKED
+                                                     : TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED),
+                                                    ERROR_TRANSACTION_SUBMISSION,
+                                                    status.u.error.message);
+            break;
 
-    if (!walletHasTransaction(wallet, transaction)) {
-        // add transaction
-
-        // signal added
+        case TRANSACTION_STATUS_CREATED:
+        case TRANSACTION_STATUS_SIGNED:
+        case TRANSACTION_STATUS_SUBMITTED:
+            break;
     }
+/*
+    //
+    // TODO: Do we get 'included' before or after we see transaction, in the block body?
+    //  If we get 'included' we should ignore because a) we'll see the transaction
+    //  later and b) we don't have any block information to provide in transaction anyway.
+    //
+    switch (status.type) {
+        case TRANSACTION_STATUS_UNKNOWN:
+            break;
+        case TRANSACTION_STATUS_QUEUED:
+            break;
+        case TRANSACTION_STATUS_PENDING:
+            transactionAnnounceSubmitted(transaction, transactionHash);
+            // TRANSACTION_EVENT_SUBMITTED, SUCCESS
+            break;
 
-    // from transaction state, signal event
-    lightNodeListenerSignalTransactionEvent(node,
-                                            lightNodeLookupWalletId(node, wallet),
-                                            lightNodeLookupTransactionId(node, transaction),
-                                            TRANSACTION_EVENT_BLOCKED,
-                                            SUCCESS, NULL);
+        case TRANSACTION_STATUS_INCLUDED: {
+            BREthereumBlockHeader header = NULL; // status.u.included.blockHash
+            transactionAnnounceBlocked(transaction,
+                                       gasCreate(0),
+                                       status.u.included.blockHash,
+                                       status.u.included.blockNumber,
+                                       status.u.included.transactionIndex);
+        }
+            break;
+
+        case TRANSACTION_STATUS_ERROR:
+            transactionAnnounceDropped(transaction, 0);
+            // TRANSACTION_EVENT_SUBMITTED, ERROR_TRANSACTION_SUBMISSION, event->status.u.error.message
+            break;
+
+        case TRANSACTION_STATUS_CREATED:
+        case TRANSACTION_STATUS_SIGNED:
+        case TRANSACTION_STATUS_SUBMITTED:
+            // TODO: DO
+            break;
+    }
+*/
 }
-
 
 //
 // Connect // Disconnect

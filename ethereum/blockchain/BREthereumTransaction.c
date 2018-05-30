@@ -80,6 +80,13 @@ transactionStateDropped (BREthereumTransactionStatus *status /* ... */) {
  *
  */
 struct BREthereumTransactionRecord {
+    // THIS MUST BE FIRST to support BRSet operations.
+
+    /**
+     * The transaction's hash.   This will be 'empty' until the transaction is submitted.
+     */
+    BREthereumHash hash;
+
 
     //
     //
@@ -107,11 +114,6 @@ struct BREthereumTransactionRecord {
      *
      */
     char *data;
-
-    /**
-     * The transaction's hash.   This will be 'empty' until the transaction is submitted.
-     */
-    BREthereumHash hash;
 
     /**
      * The estimated amount of Gas needed to process this transaction.
@@ -250,6 +252,18 @@ transactionGetToken (BREthereumTransaction transaction) {
     return (AMOUNT_ETHER == amountGetType(transaction->amount)
             ? NULL
             : tokenQuantityGetToken(amountGetTokenQuantity(transaction->amount)));
+}
+
+extern size_t
+transactionHashValue (const void *t)
+{
+    return hashSetValue(&((BREthereumTransaction) t)->hash);
+}
+
+extern int
+transactionHashEqual (const void *t1, const void *t2) {
+    return hashSetEqual(&((BREthereumTransaction) t1)->hash,
+                        &((BREthereumTransaction) t2)->hash);
 }
 
 //

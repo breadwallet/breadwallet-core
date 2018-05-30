@@ -68,6 +68,12 @@ transactionStatusRLPDecodeItem (BRRlpItem item,
 
         case TRANSACTION_STATUS_ERROR:
             status.u.error.message = rlpDecodeItemString(coder, items[1]);
+            break;
+
+        case TRANSACTION_STATUS_CREATED:
+        case TRANSACTION_STATUS_SIGNED:
+        case TRANSACTION_STATUS_SUBMITTED:
+            break;
     }
 
     return status;

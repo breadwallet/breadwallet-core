@@ -33,9 +33,9 @@
 extern "C" {
 #endif
 
-    //
-    // Log Topic
-    //
+//
+// Log Topic
+//
 typedef struct {
     uint8_t bytes[32];
 } BREthereumLogTopic;
@@ -46,13 +46,28 @@ logTopicGetBloomFilter (BREthereumLogTopic topic);
 extern BREthereumBloomFilter
 logTopicGetBloomFilterAddress (BREthereumAddress address);
 
-    //
-    // Log
-    //
+extern BREthereumBoolean
+logTopicMatchesAddress (BREthereumLogTopic topic,
+                        BREthereumAddress address);
+
+//
+// Log
+//
 typedef struct BREthereumLogRecord *BREthereumLog;
+
+extern BREthereumHash
+logGetHash (BREthereumLog log);
+
+extern void
+logSetHash (BREthereumLog log,
+            BREthereumHash hash);
 
 extern BREthereumAddress
 logGetAddress (BREthereumLog log);
+
+extern BREthereumBoolean
+logHasAddress (BREthereumLog log,
+               BREthereumAddress address);
 
 extern size_t
 logGetTopicsCount (BREthereumLog log);
@@ -62,7 +77,20 @@ logGetTopic (BREthereumLog log, size_t index);
 
 extern BRRlpData
 logGetData (BREthereumLog log);
-    
+
+extern BREthereumBoolean
+logMatchesAddress (BREthereumLog log,
+                   BREthereumAddress address,
+                   BREthereumBoolean topicsOnly);
+
+// Support BRSet
+extern size_t
+logHashValue (const void *h);
+
+// Support BRSet
+extern int
+logHashEqual (const void *h1, const void *h2);
+
 extern BREthereumLog
 logRlpDecodeItem (BRRlpItem item,
                   BRRlpCoder coder);
