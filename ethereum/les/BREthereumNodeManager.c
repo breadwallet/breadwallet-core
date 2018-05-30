@@ -29,152 +29,218 @@
 #include "BREthereumNode.h"
 #include "BRArray.h"
 #include "BREthereumNetwork.h"
+#include "BREthereumEndpoint.h"
+#include "BREthereumRandom.h"
+#include "BRUtil.h"
 
-typedef struct {
+struct BREthereumNodeManagerContext {
 
-    //The array of ethereum node
-    BREthereumNode* nodes;
+    //The network chain for this manager
+    BREthereumNetwork network;
     
-    //The array of pointers that point to the nodes that
-    // are connected in the "nodes" field
-    BREthereumNode** connectedNodes;
+    //The hash for the head block
+    BREthereumHash headHash;
+    
+    //The head number for the head block
+    uint64_t headNumber;
+    
+    //The head total diffculty
+    uint64_t headTotalDifficulty;
+    
+    //The head  has for the genesis node
+    BREthereumHash genesisHash;
+    
+    //The callbacks for the subprotocool
+    BREthereumSubProtoCallbacks  subprotoCallbacks;
+    
+    //The callback functions that are passed to nodes
+    BREthereumManagerCallback managerCallbacks;
+    
+    //The remote peers that the manager can connect to
+    BREthereumPeerConfig* peers;
+    
+    //The currently connected nodes
+    BREthereumNode* connectedNodes;
 
-   // A lock for the manager context
-   pthread_mutex_t lock;
-   
-}BREthereumNodeManagerContext;
+    //The random context for generating random data
+    BREthereumRandomContext randomContext;
 
-#define ETHEREUMN_PEER_MAX_CONNECTIONS 5
+    // A lock for the manager context
+    pthread_mutex_t lock;
+};
+
+#define PEERS_THRESHOLD 100
+#define ETHEREUM_PEER_MAX_CONNECTIONS 5
 #define BOOTSTRAP_NODE_IDX 0
+#define ETH_LOG_TOPIC "BREthereumManager"
 
-const BREthereumPeer _bootstrap_peer = {UINT128_ZERO, 30303, "eth-mainnet.breadwallet.com", -1, UINT512_ZERO};
+//
+// Private Functions & types
+BREthereumEndpoint _brd_bootstrap_peer;
 
-BREthereumNodeManager ethereumNodeManagerCreate(BREthereumNetwork network,
-                                                BREthereumAccount account,
-                                                BREthereumBlock block,
-                                                size_t blockCount,
-                                                BREthereumPeerInfo peers[],
-                                                size_t peersCount) {
+void _disconnectCallback(BREthereumManagerCallbackContext info, BREthereumNode node, BREthereumDisconnect reason) {
 
-    BREthereumNodeManagerContext* manager= (BREthereumNodeManagerContext*) calloc(1, sizeof (BREthereumNodeManagerContext));
-    return (BREthereumNodeManager)manager;
-    /*
-    if(manager != NULL) {
-        array_new(manager->nodes, ETHEREUMN_PEER_MAX_CONNECTIONS);
-        array_new(manager->connectedNodes, ETHEREUMN_PEER_MAX_CONNECTIONS);
-        array_add(manager->connectedNodes, NULL);
-        pthread_mutex_init(&manager->lock, NULL);
-        return (BREthereumNodeManager)manager;
+    BREthereumNodeManager manager = (BREthereumNodeManager)info;
+    pthread_mutex_lock(&manager->lock);
+    for(int i = 0; i < array_count(manager->connectedNodes); ++i) {
+    
+        if(ETHEREUM_BOOLEAN_IS_TRUE(ethereumNodeEQ(node, manager->connectedNodes[i]))){
+            array_rm(manager->connectedNodes, i);
+            break;
+        }
     }
-    return NULL;
-    */
+    pthread_mutex_unlock(&manager->lock);
+}
+void _receivedMessageCallback(BREthereumManagerCallbackContext info, BREthereumNode node, uint8_t* message, size_t messageSize) {
+
+    BREthereumNodeManager manager = (BREthereumNodeManager)info;
+    manager->subprotoCallbacks.messageRecFunc(manager->subprotoCallbacks.info, message, messageSize);
+}
+void _connectedCallback(BREthereumManagerCallbackContext info, BREthereumNode node) {
+
+    BREthereumNodeManager manager = (BREthereumNodeManager)info;
+    manager->subprotoCallbacks.connectedFunc(manager->subprotoCallbacks.info);
+}
+void _networkReachableCallback(BREthereumManagerCallbackContext info, BREthereumNode node, BREthereumBoolean isReachable) {
+
+    BREthereumNodeManager manager = (BREthereumNodeManager)info;
+    manager->subprotoCallbacks.networkReachFunc(manager->subprotoCallbacks.info, isReachable);
+}
+BREthereumBoolean _findPeers(void) {
+
+    //_brd_bootstrap_peer =  ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "eth-mainnet.breadwallet.com", 30303, 30303);
+
+    return ETHEREUM_BOOLEAN_FALSE; 
+}
+
+
+
+
+//
+// Public Functions
+//
+BREthereumNodeManager ethereumNodeManagerCreate(BREthereumNetwork network,
+                                                BRKey* key,
+                                                BREthereumHash headHash,
+                                                uint64_t headNumber,
+                                                uint64_t headTotalDifficulty,
+                                                BREthereumHash genesisHash,
+                                                BREthereumSubProtoCallbacks  subprotoCallbacks){
+
+    BREthereumNodeManager manager= (BREthereumNodeManager) calloc(1, sizeof (struct BREthereumNodeManagerContext));
+    
+    if(manager != NULL) {
+        array_new(manager->connectedNodes, ETHEREUM_PEER_MAX_CONNECTIONS);
+        array_new(manager->peers, PEERS_THRESHOLD);
+        pthread_mutex_init(&manager->lock, NULL);
+        manager->network = network;
+        manager->headHash = headHash;
+        manager->headNumber = headNumber;
+        manager->headTotalDifficulty = headTotalDifficulty;
+        manager->genesisHash = genesisHash;
+        manager->subprotoCallbacks = subprotoCallbacks;
+        manager->randomContext = ethereumRandomCreate(key->secret.u8, 32);
+        manager->managerCallbacks.info = manager; 
+        manager->managerCallbacks.connectedFuc = _connectedCallback;
+        manager->managerCallbacks.disconnectFunc = _disconnectCallback;
+        manager->managerCallbacks.receivedMsgFunc = _receivedMessageCallback;
+        manager->managerCallbacks.networkReachableFunc = _networkReachableCallback;
+    }
+    return manager;
 }
 void ethereumNodeMangerRelease(BREthereumNodeManager manager) {
     assert(manager != NULL);
-    BREthereumNodeManagerContext* ctx = (BREthereumNodeManagerContext*) manager;
-    //array_free(ctx->nodes);
-    //array_free(ctx->connectedNodes);
-    free(ctx);
+    array_free(manager->connectedNodes);
+    array_free(manager->peers);
+    ethereumRandomRelease(manager->randomContext);
+    free(manager);
 }
 BREthereumNodeManagerStatus ethereumNodeManagerStatus(BREthereumNodeManager manager){
     assert(manager != NULL);
-    return BRE_MANAGER_DISCONNECTED;
-    /*BREthereumNodeManagerContext* ctx = (BREthereumNodeManagerContext*) manager;
     BREthereumNodeManagerStatus retStatus = BRE_MANAGER_DISCONNECTED;
-    pthread_mutex_lock(&ctx->lock);
-    BREthereumNode* bootstrapNode = ctx->connectedNodes[BOOTSTRAP_NODE_IDX];
-    if( bootstrapNode != NULL ) {
-        BREthereumNodeStatus status = ethereumNodeStatus(*bootstrapNode);
-        switch (status) {
-        case BRE_NODE_ERROR:
-        {
-            retStatus = BRE_MANAGER_ERROR;
-        }
-        break;
-        case BRE_NODE_CONNECTED:
-        {
+    pthread_mutex_lock(&manager->lock);
+    for(int i = 0; i < array_count(manager->connectedNodes); ++i) {
+    
+        BREthereumNodeStatus status = ethereumNodeStatus(manager->connectedNodes[i]);
+        
+        if(status == BRE_NODE_CONNECTED) {
             retStatus = BRE_MANAGER_CONNECTED;
+            break;
         }
-        break;
-        case BRE_NODE_PERFORMING_HANDSHAKE:
-        case BRE_NODE_CONNECTING:
-        {
+        else if (status == BRE_NODE_CONNECTING) {
             retStatus = BRE_MANAGER_CONNECTING;
         }
-        break;
-        case BRE_NODE_DISCONNECTED:
-        default:
-        {
-            retStatus = BRE_MANAGER_DISCONNECTED;
-        }
-        break;
-        }
     }
-    pthread_mutex_unlock(&ctx->lock);
+    pthread_mutex_unlock(&manager->lock);
     return retStatus;
-    */
 }
-void ethereumNodeMangerConnect(BREthereumNodeManager manager) {
+int ethereumNodeMangerConnect(BREthereumNodeManager manager) {
     assert(manager != NULL);
-    /* BREthereumNodeManagerContext* ctx = (BREthereumNodeManagerContext*) manager;
-    pthread_mutex_lock(&ctx->lock);
-    BREthereumNode* bootstrapNodePtr = ctx->connectedNodes[BOOTSTRAP_NODE_IDX];
-    if(bootstrapNodePtr == NULL) {
-        BREthereumNode bootstrapNode = ethereumNodeCreate(_bootstrap_peer, ETHEREUM_BOOLEAN_TRUE);
-        if(bootstrapNode != NULL){
-            array_insert(ctx->nodes, BOOTSTRAP_NODE_IDX, bootstrapNode);
-            array_insert(ctx->connectedNodes, BOOTSTRAP_NODE_IDX, ctx->nodes);
-            ethereumNodeConnect(bootstrapNode);
+    pthread_mutex_lock(&manager->lock);
+    int retValue = 0;
+    int connectedCount = 0;
+    if(array_count(manager->connectedNodes) < ETHEREUM_PEER_MAX_CONNECTIONS)
+    {
+        if(ETHEREUM_BOOLEAN_IS_TRUE(_findPeers())){
+            
+            int peerIdx = 0;
+            while(array_count(manager->peers) > 0 && array_count(manager->connectedNodes) < ETHEREUM_PEER_MAX_CONNECTIONS)
+            {
+                BRKey* nodeKey = (BRKey*)calloc(1,sizeof(BRKey));
+                BRKey* ephemeralKey = (BRKey*)calloc(1,sizeof(BRKey));
+                UInt256* nonce = (UInt256*)calloc(1,sizeof(UInt256));
+            
+                ethereumRandomGenPriKey(manager->randomContext, nodeKey);
+                ethereumRandomGenPriKey(manager->randomContext, ephemeralKey);
+                ethereumRandomGenUInt256(manager->randomContext, nonce);
+            
+                BREthereumNode node = ethereumNodeCreate(manager->peers[peerIdx], nodeKey, nonce, ephemeralKey, manager->managerCallbacks, ETHEREUM_BOOLEAN_TRUE);
+                if(ethereumNodeConnect(node))
+                {
+                   //We could not connect to the remote peer so free the memory
+                   ethereumNodeRelease(node);
+                }
+                else
+                {
+                  connectedCount++;
+                  array_add(manager->connectedNodes, node);
+                }
+                array_rm(manager->peers, peerIdx);
+            }
+        }
+        else
+        {
+            eth_log(ETH_LOG_TOPIC, "%s", "Could not find any remote peers to connect to");
+            retValue = 1;
         }
     }
-    pthread_mutex_unlock(&ctx->lock);
-    */
+    pthread_mutex_unlock(&manager->lock);
+    
+    if(connectedCount <= 0) {
+        eth_log(ETH_LOG_TOPIC, "%s", "Could not succesfully open a connection to any remote peers");
+        retValue = 1;
+    }
+    return retValue;
 }
 void ethereumNodeMangerDisconnect(BREthereumNodeManager manager) {
-
     assert(manager != NULL);
-    /*
-    BREthereumNodeManagerContext* ctx = (BREthereumNodeManagerContext*) manager;
-    pthread_mutex_lock(&ctx->lock);
-    BREthereumNode* bootstrapNodePtr = ctx->connectedNodes[BOOTSTRAP_NODE_IDX];
-    if(bootstrapNodePtr != NULL && ethereumNodeStatus(*bootstrapNodePtr) != BRE_NODE_DISCONNECTED){
-        ethereumNodeDisconnect(*bootstrapNodePtr);
+    pthread_mutex_lock(&manager->lock);
+    for(int i = 0; i < array_count(manager->connectedNodes); ++i) {
+        ethereumNodeDisconnect(manager->connectedNodes[i], BRE_UNKNOWN);
     }
-    pthread_mutex_unlock(&ctx->lock);
-    */
+    array_clear(manager->connectedNodes);
+    pthread_mutex_unlock(&manager->lock);
 }
-size_t ethereumNodeMangerPeerCount(BREthereumNodeManager manager) {
-
-    return 0;
-    /*
-    BREthereumNodeManagerContext* ctx = (BREthereumNodeManagerContext*) manager;
-    size_t count = 0;
+BREthereumBoolean ethereumNodeManagerSendMessage(BREthereumNodeManager manager, uint64_t packetType, uint8_t* payload, size_t payloadSize){
     
-    pthread_mutex_lock(&ctx->lock);
-    count = array_count(ctx->connectedNodes);
-    pthread_mutex_unlock(&ctx->lock);
-    
-    return count;
-    */
-}
-BREthereumBoolean ethereumNodeManagerSubmitTransaction(BREthereumNodeManager manager,
-                                                       const BREthereumTransaction transaction,
-                                                       const int requestId) {
-    
-    return ETHEREUM_BOOLEAN_FALSE;
-}
-
-void ethereumNodeManagerSetCallbacks(BREthereumNodeManager manager,
-                                     BREthereumNodeMangerInfo info,
-                                     BRNodeManagerTransactionStatus funcTransStatus,
-                                     BRNodeManagerBlocks funcNewBlocks,
-                                     BRNodeManagerPeers funcNewPeers) {
-    
-    //TODO: Implement function
-}
-
-void ethereumNodeManagerGetTransaction(BREthereumNodeManager manager,
-                                       const int requestId,
-                                       BRLESGetTransactions callback) {
-    //TODO: Implement function 
+    assert(manager != NULL);
+    pthread_mutex_lock(&manager->lock);
+    BREthereumBoolean retStatus = ETHEREUM_BOOLEAN_FALSE;
+    for(int i = 0; i < array_count(manager->connectedNodes); ++i) {
+        if(ETHEREUM_BOOLEAN_IS_TRUE(ethereumNodeSendMessage(manager->connectedNodes[i], packetType, payload, payloadSize))){
+            retStatus = ETHEREUM_BOOLEAN_TRUE;
+        }
+    }
+    pthread_mutex_unlock(&manager->lock);
+    return retStatus;
 }

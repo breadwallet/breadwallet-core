@@ -30,67 +30,35 @@
 #include "BREthereumNetwork.h"
 #include "BREthereumTransaction.h"
 #include "BREthereumBlock.h"
-#include "BREthereumLES.h"
 #include <inttypes.h>
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct BREthereumNodeMangerContext* BREthereumNodeManager;
+typedef struct BREthereumNodeManagerContext* BREthereumNodeManager;
+
 
 /**
  * Ehtereum Manager Node Connection Status - Connection states for Manager
  */
 typedef enum {
-    BRE_MANAGER_ERROR = -1,
-    BRE_MANAGER_DISCONNECTED,  //Manager is not connected to any remote node(s)
+    BRE_MANAGER_DISCONNECTED =0,  //Manager is not connected to any remote node(s)
     BRE_MANAGER_CONNECTING,    //Manager is trying to connect to remote node(s)
     BRE_MANAGER_CONNECTED      //Manager is connected to a remote node(s) 
 } BREthereumNodeManagerStatus;
 
+typedef void* BREthereumSubProtoContext;
+typedef void (*BREthereumSubProtoRecMsgCallback)(BREthereumSubProtoContext info, uint8_t* message, size_t messageSize);
+typedef void (*BREthereumSubProtoConnectedCallback)(BREthereumSubProtoContext info);
+typedef void (*BREthereumSubProtoNetworkReachableCallback)(BREthereumSubProtoContext info, BREthereumBoolean isReachable);
 
-/**
- *  Current status of the sent/queried transactions
- */
-typedef enum {
-    BRE_LES_TRANSACTION_STATUS_Unknown  = 0,  // (0): transaction is unknown
-    BRE_LES_TRANSACTION_STATUS_Queued   = 1,  // (1): transaction is queued (not processable yet)
-    BRE_LES_TRANSACTION_STATUS_Pending  = 2,  // (2): transaction is pending (processable)
-    BRE_LES_TRANSACTION_STATUS_Included = 3,  // (3): transaction is already included in the canonical chain. data contains an RLP-encoded [blockHash: B_32, blockNumber: P, txIndex: P] structure
-    BRE_LES_TRANSACTION_STATUS_Error    = 4   // (4): transaction sending failed. data contains a text error message
-} BREthereumLESTransactionStatus;
-
-/**
- *
- */
 typedef struct {
-    UInt128 address;    //ipv6 address of the peer
-    uint16_t port;      //port number of peer connection
-    uint64_t timestamp; // timestamp reported by peer
-    uint8_t flags;      //scratch variable
-}BREthereumPeerInfo;
-
-
-//
-// Ethereum Node Manager management functions
-//
-
-// Callback definitions for the Manager
-typedef void* BREthereumNodeMangerInfo;
-typedef void (*BRNodeManagerTransactionStatus)(BREthereumNodeMangerInfo info,
-                                               BREthereumTransaction transaction,
-                                               BREthereumLESTransactionStatus status);
-    
-typedef void (*BRNodeManagerBlocks)(BREthereumNodeMangerInfo info,
-                                    BREthereumBlock blocks[],
-                                    size_t blocksCount);
-    
-typedef void (*BRNodeManagerPeers)(BREthereumNodeMangerInfo info,
-                                   BREthereumPeerInfo peers[],
-                                   size_t peersCount);
-    
+    BREthereumSubProtoContext info;
+    BREthereumSubProtoRecMsgCallback messageRecFunc;
+    BREthereumSubProtoConnectedCallback connectedFunc;
+    BREthereumSubProtoNetworkReachableCallback networkReachFunc;
+}BREthereumSubProtoCallbacks;
 
 /**
  * Creates a new Ethereum Node manager.
@@ -102,26 +70,14 @@ typedef void (*BRNodeManagerPeers)(BREthereumNodeMangerInfo info,
  * @param peers - known peers that are reliable and should try to connect to first
  * @param peersCount - the number of peers in the peers argument
  */
-extern BREthereumNodeManager ethereumNodeManagerCreate(BREthereumNetwork network,
-                                                       BREthereumAccount account,
-                                                       BREthereumBlock block,
-                                                       size_t blockCount, 
-                                                       BREthereumPeerInfo peers[],
-                                                       size_t peersCount);
-
-/**
- * Sets the callbacks for the ethereum node manager
- * @pre: Set callbacks once before calling ethereumNodeMangerConnect()
- * @param info - a BREthereumNodeMangerInfo (i.e., a void pointer) that will be passed along with each callback call
- * @param funcTransStatus - called when transaction status may have changed such as when a new block arrives
- * @param funcNewBlocks - called when blocks that are of interest to the account
- * @param funcNewPeers - called when peers should be saved to the persistent store, for
- */
-extern void ethereumNodeManagerSetCallbacks(BREthereumNodeManager manager,
-                                            BREthereumNodeMangerInfo info,
-                                            BRNodeManagerTransactionStatus funcTransStatus,
-                                            BRNodeManagerBlocks funcNewBlocks,
-                                            BRNodeManagerPeers funcNewPeers);
+extern BREthereumNodeManager
+ethereumNodeManagerCreate(BREthereumNetwork network,
+                          BRKey* key,
+                          BREthereumHash headHash,
+                          uint64_t headNumber,
+                          uint64_t headTotalDifficulty,
+                          BREthereumHash genesisHash,
+                          BREthereumSubProtoCallbacks callbacks);
     
 /**
  * Frees the memory assoicated with the given node manager.
@@ -140,52 +96,19 @@ extern BREthereumNodeManagerStatus ethereumNodeManagerStatus(BREthereumNodeManag
   * Connects to the ethereum peer-to-peer network.
   * @param manager - the node manager context
   */
-extern void ethereumNodeMangerConnect(BREthereumNodeManager manager);
+extern int ethereumNodeMangerConnect(BREthereumNodeManager manager);
 
 /**
  * Disconnects from the ethereum peer-to-peer network.
  * @param manager - the node manager context
  */
 extern void ethereumNodeManagerDisconnect(BREthereumNodeManager manager);
+
+/**
+ * Sends a message to a remote node
+ */
+extern BREthereumBoolean ethereumNodeManagerSendMessage(BREthereumNodeManager manager, uint64_t packetType, uint8_t* payload, size_t payloadSize);
  
-/**
- * Determines the number of remote peers that are successfully connected to the manager
- * @param manager - the node manager context
- * @return the number of connected remote peers
- */
-extern size_t ethereumNodeMangerPeerCount(BREthereumNodeManager manager);
-
-
-//
-// Ethereum Node Manager LES types and functions
-//
-
-//Callback definitions for the LES functions
-typedef void (*BRLESGetTransactions)(BREthereumTransaction* transactions,
-                                     size_t transactionsSize,
-                                     unsigned int requestId);
-    
-    
-/**
- * Requets a remote peer to submit a transaction into its transaction pool and relay them to the ETH network.
- * @param transaction - the tranaction to submit
- * @param requestId - a unique id for this transaction submission.
- * @return ETHEREUM_BOOLEAN_TRUE, if the transaction was successfully submited to the peer. Otherwise, ETHEREUM_BOOLEAN_FALSE is returned on error.
- */
-extern BREthereumBoolean ethereumNodeManagerSubmitTransaction(BREthereumNodeManager manager,
-                                                              const BREthereumTransaction transaction,
-                                                              const int requestId);
-
-
-/**
- * Requets a remote peer to retrieve transactions from the remote-peer
- * @param a unique id for this transaction request.
- * @param callback - the callback function which will be caleld once the transactions are received from the network
- */
-extern void ethereumNodeManagerGetTransaction(BREthereumNodeManager manager,
-                                              const int requestId,
-                                              BRLESGetTransactions callback);
-
 
 #ifdef __cplusplus
 }
