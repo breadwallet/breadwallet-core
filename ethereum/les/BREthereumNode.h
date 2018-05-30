@@ -37,7 +37,6 @@
 #include "BRKey.h"
 #include "BREthereumLES.h"
 #include "BREthereumFrameCoder.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -69,7 +68,6 @@ typedef struct {
     BRKey* remoteKey;   // the remote public key for the remote peer
 } BREthereumPeerConfig;
 
-
 typedef enum {
     BRE_DISCONNECT_REQUESTED = 0x00, //0x00 Disconnect requested
     BRE_TCP_ERROR,                   //0x01 TCP sub-system error
@@ -86,24 +84,35 @@ typedef enum {
     BRE_UNKNOWN                      //0x10 Some other reason specific to a subprotocol.
 }BREthereumDisconnect;
 
+typedef void* BREthereumManagerCallbackContext;
+typedef void (*BREthereumManagerDisconnectCallback)(BREthereumManagerCallbackContext info, BREthereumNode node, BREthereumDisconnect reason);
+typedef void (*BREthereumManagerRecMsgCallback)(BREthereumManagerCallbackContext info, BREthereumNode node, uint8_t* message, size_t messageSize);
+typedef void (*BREthereumManagerConnectedCallback)(BREthereumManagerCallbackContext info, BREthereumNode node);
+typedef void (*BREthereumManagerNetworkReachableCallback)(BREthereumManagerCallbackContext info, BREthereumNode node, BREthereumBoolean isReachable);
 
-typedef void (*BRPeerDisconnectCallback)(BREthereumDisconnect reason);
-    
+typedef struct {
+    BREthereumManagerCallbackContext info;
+    BREthereumManagerDisconnectCallback disconnectFunc;
+    BREthereumManagerRecMsgCallback receivedMsgFunc;
+    BREthereumManagerConnectedCallback connectedFuc;
+    BREthereumManagerNetworkReachableCallback networkReachableFunc;
+}BREthereumManagerCallback;
+
 /**
  * Creates an ethereum node with the remote peer information and whether the node should send
  * an auth message first. 
  */ 
 extern BREthereumNode ethereumNodeCreate(BREthereumPeerConfig config,
                                          BRKey* key,
-                                         UInt256 nonce,
+                                         UInt256* nonce,
                                          BRKey* ephemeral,
-                                         BRPeerDisconnectCallback disconnectFunc,
+                                         BREthereumManagerCallback callbacks,
                                          BREthereumBoolean originate);
 
 /**
  * Deletes the memory of the ethereum node
  */
-extern BREthereumBoolean ethereumNodeRelease(BREthereumNode node);
+extern void ethereumNodeRelease(BREthereumNode node);
 
 
 /**
@@ -120,6 +129,16 @@ extern int ethereumNodeConnect(BREthereumNode node);
  * Disconnects the ethereum node from a remote node
  */
 extern void ethereumNodeDisconnect(BREthereumNode node, BREthereumDisconnect reason);
+
+/**
+ * Sends a message to the remote node
+ */
+extern BREthereumBoolean ethereumNodeSendMessage(BREthereumNode node, uint64_t packetType, uint8_t* payload, size_t payloadSize);
+
+/**
+ * Determines if the given BREthereumNode is the same as t
+ */
+extern BREthereumBoolean ethereumNodeEQ(BREthereumNode node1, BREthereumNode node2); 
 
 /**
  * Retrieves the key for this node
@@ -149,7 +168,7 @@ extern BREthereumBoolean ethereumNodeDidOriginate(BREthereumNode node);
 /**
  * Retrives a reference to the remote status for the remote peer
  */
-extern BREthereumLESStatus* ethereumNodeGetPeerStatus(BREthereumNode node);
+//extern BREthereumLESStatus* ethereumNodeGetPeerStatus(BREthereumNode node);
 
 /**
  * Retrieves a reference to the local ephemeral

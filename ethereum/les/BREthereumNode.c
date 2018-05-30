@@ -53,6 +53,7 @@
 #define MSG_NOSIGNAL 0 // set to 0 if undefined (BSD has the SO_NOSIGPIPE sockopt, and windows has no signals at all)
 #endif
 
+#define HEADER_LEN 32
 #define PTHREAD_STACK_SIZE  (512 * 1024)
 #define CONNECTION_TIME 3.0
 #define DEFAULT_UDP_PORT 30303
@@ -98,9 +99,6 @@ struct BREthereumNodeContext {
     //The current connection status of a node
     BREthereumNodeStatus status;
     
-    //Information about the protocool this node supports
-    BREthereumLESStatus lesStatusInfo;
-    
     //Framecoder for this node context
     BREthereumFrameCoder ioCoder;
     
@@ -110,20 +108,14 @@ struct BREthereumNodeContext {
     //Represents whether this ndoe should start the handshake or wait for auth
     BREthereumBoolean shouldOriginate;
     
-    //Represents the event handler for the node
-    BREthereumNodeEventHandler eventHandler;
-    
     //Flag to notify the processing thread to free the context
     BREthereumBoolean shouldFree;
     
     //Flag to notify the processing thread to disconnect from remote peer.
     BREthereumBoolean shouldDisconnect;
     
-    //The status information for the remote peer
-    BREthereumLESStatus remoteStatus;
-    
     //A local nonce for the handshake
-    UInt256 nonce;
+    UInt256* nonce;
     
     // Local Ephemeral ECDH key
     BRKey* ephemeral;
@@ -134,10 +126,19 @@ struct BREthereumNodeContext {
     //Lock to handle shared resources in the node
     pthread_mutex_t lock;
     
-    //The callback function to call when a disconnect from the remote peer happens
-    BRPeerDisconnectCallback disconnectCallback;
+    //The header buffer for this node
+    uint8_t header[HEADER_LEN];
     
-    //The reason to disconnect from a peer
+    //The message body for a receiving message coming peer
+    uint8_t* body;
+    
+    //The size of the body for a receiving message coming from peer
+    size_t bodySize;
+    
+    //Represents the callback functions for this node.
+    BREthereumManagerCallback callbacks;
+    
+    //The reason why the node needs to disconnect from the remote peer
     BREthereumDisconnect disconnectReason;
 };
 
@@ -271,13 +272,63 @@ static void _disconnect(BREthereumNode node) {
         close(socket);
     }
 }
+static BREthereumBoolean _isP2PMessage(BREthereumNode node){
 
-static void _processEvent(BREthereumNode node){
 
-    
+
+    return ETHEREUM_BOOLEAN_TRUE;
 }
+static int _readMessage(BREthereumNode node) {
 
+    eth_log(ETH_LOG_TOPIC, "%s", "reading message from peer");
+    
+    int ec = ethereumNodeReadFromPeer(node, node->header, 32, "");
+    
+    if(ec){
+        eth_log(ETH_LOG_TOPIC, "%s","Error: reading in message from remote peer");
+        return 1;
+    }
+    
+    // authenticate and decrypt header
+    if(ETHEREUM_BOOLEAN_IS_FALSE(ethereumFrameCoderDecryptHeader(node->ioCoder, node->header, 32)))
+    {
+        eth_log(ETH_LOG_TOPIC, "%s", "Error: Decryption of hello header from peer failed.");
+        return 1;
+    }
 
+    //Get frame size
+    uint32_t frameSize = (uint32_t)(node->header[2]) | (uint32_t)(node->header[1])<<8 | (uint32_t)(node->header[0])<<16;
+    
+    if(frameSize > 1024){
+        eth_log(ETH_LOG_TOPIC, "%s", "Error: message frame size is too large");
+        return 1;
+    }
+    
+    uint32_t fullFrameSize = frameSize + ((16 - (frameSize % 16)) % 16) + 16;
+    
+    if(node->body == NULL){
+        array_new(node->body, fullFrameSize);
+    }else {
+        array_set_capacity(node->body, fullFrameSize);
+    }
+    ec = ethereumNodeReadFromPeer(node, node->body, fullFrameSize, "");
+    
+    if(ec) {
+        eth_log(ETH_LOG_TOPIC, "%s", "Error: Reading in full body message from remote peer");
+        return 1;
+    }
+    
+    // authenticate and decrypt frame
+    if(ETHEREUM_BOOLEAN_IS_FALSE(ethereumFrameCoderDecryptFrame(node->ioCoder, node->body, fullFrameSize)))
+    {
+        eth_log(ETH_LOG_TOPIC, "%s","Error: failed to decrypt frame from remote peer");
+        return 1;
+    }
+    
+    node->bodySize = fullFrameSize;
+    
+    return 0;
+}
 /**
  * This is the theard run functions for an ethereum function. This function is called
  * when a node needs to begin connecting to a remote peer and start sending messages to the
@@ -310,24 +361,20 @@ static void *_nodeThreadRunFunc(void *arg) {
                 {
                     if(ethereumHandshakeTransition(node->handshake) == BRE_HANDSHAKE_FINISHED) {
                         eth_log(ETH_LOG_TOPIC, "%s", "Handshake completed with");
-                        eth_log(ETH_LOG_TOPIC, "Initiating LES Status Message completed (%d)", BRE_HANDSHAKE_FINISHED);
-                        
                         _updateStatus(node,BRE_NODE_CONNECTED);
-                        // TODO: Get information about the status of the remote node before
-                        //ethereumHandshakeFree(node->handshake);
+                        ethereumHandshakeRelease(node->handshake);
+                        node->callbacks.connectedFuc(node->callbacks.info, node);
                     }
                 }
                 break;
                 case BRE_NODE_CONNECTED:
                 {
-                    /** Steps to take once connected to a remote node
-                     * 1.) Read from the event queue
-                     *     1.a) Send request to peer if needed
-                     * 3.) Read response from the peer, or timeout if its taking too long
-                     * 4.) If received response then notify the NodeManger and pass the receipt to manager
-                     * 5.) Jump back to step 1.
-                    */
-                    //_proccessEvent(ctx);
+                    //Read message from peer
+                    _readMessage(node);
+                    if(ETHEREUM_BOOLEAN_IS_FALSE(_isP2PMessage(node)))
+                    {
+                        node->callbacks.receivedMsgFunc(node->callbacks.info, node, node->body, node->bodySize);
+                    }
                 }
                 break;
                 default:
@@ -342,21 +389,21 @@ static void *_nodeThreadRunFunc(void *arg) {
 //
 BREthereumNode ethereumNodeCreate(BREthereumPeerConfig config,
                                   BRKey* key,
-                                  UInt256 nonce,
+                                  UInt256* nonce,
                                   BRKey* ephemeral,
-                                  BRPeerDisconnectCallback disconnectFunc,
+                                  BREthereumManagerCallback callbacks,
                                   BREthereumBoolean originate) {
 
     BREthereumNode node = (BREthereumNode) calloc (1, sizeof(struct BREthereumNodeContext));
     node->status = BRE_NODE_DISCONNECTED;
     node->handshake = NULL;
-    node->shouldOriginate = originate;
     node->key = key;
     node->nonce = nonce;
     node->ephemeral = ephemeral;
-    node->eventHandler = ethereumNodeEventHandlerCreate();
-    node->ioCoder = ethereumFrameCoderCreate(); 
-    node->disconnectCallback = disconnectFunc;
+    node->ioCoder = ethereumFrameCoderCreate();
+    node->callbacks = callbacks;
+    node->body = NULL;
+    node->bodySize = 0;
     node->peer.endpoint = config.endpoint;
     node->peer.timestamp = config.timestamp;
     if(config.remoteKey != NULL){
@@ -364,7 +411,7 @@ BREthereumNode ethereumNodeCreate(BREthereumPeerConfig config,
         size_t pLen = BRKeyPubKey(config.remoteKey, remotePubRawKey, sizeof(remotePubRawKey));
         memcpy(&node->peer.remoteKey, remotePubRawKey, pLen);
     }
-    
+    node->shouldOriginate = originate;
     //Initiliaze thread information
     {
         pthread_mutexattr_t attr;
@@ -385,7 +432,7 @@ int ethereumNodeConnect(BREthereumNode node) {
     node->shouldFree = ETHEREUM_BOOLEAN_FALSE;
     
     if(!error && _openEtheruemPeerSocket(node, PF_INET, CONNECTION_TIME, &error)) {
-
+        
         if (node->status == BRE_NODE_DISCONNECTED) {
             node->status = BRE_NODE_CONNECTING;
             
@@ -415,16 +462,41 @@ void ethereumNodeDisconnect(BREthereumNode node, BREthereumDisconnect reason) {
     node->shouldDisconnect = ETHEREUM_BOOLEAN_TRUE;
     node->disconnectReason = reason;
 }
-BREthereumBoolean ethereumNodeRelease(BREthereumNode node){
+void ethereumNodeRelease(BREthereumNode node){
+   ethereumEndpointRelease(node->peer.endpoint);
+   array_free(node->body);
+   ethereumFrameCoderRelease(node->ioCoder);
+   free(node->key);
+   free(node->ephemeral);
+   free(node);
+}
+BREthereumBoolean ethereumNodeEQ(BREthereumNode node1, BREthereumNode node2) {
 
-    BREthereumNodeStatus status =  _readStatus(node);
-    
-    if(status == BRE_NODE_DISCONNECTED){
-        free(node);
+    if(memcmp(node1->key->secret.u8, node2->key->secret.u8, 32) == 0) {
         return ETHEREUM_BOOLEAN_TRUE;
     }
+    
     return ETHEREUM_BOOLEAN_FALSE;
 }
+BREthereumBoolean ethereumNodeSendMessage(BREthereumNode node, uint64_t packetType, uint8_t* payload, size_t payloadSize) {
+ 
+    assert(node != NULL);
+    
+    BREthereumNodeStatus status =  _readStatus(node);
+    BREthereumBoolean retStatus = ETHEREUM_BOOLEAN_FALSE;
+    
+    if(status == BRE_NODE_CONNECTED){
+        uint8_t* bytes;
+        size_t bytesCount;
+        ethereumFrameCoderEncrypt(node->ioCoder, payload, payloadSize, &bytes, &bytesCount);
+        if(!ethereumNodeWriteToPeer(node, bytes, bytesCount, "sending message")){
+            retStatus = ETHEREUM_BOOLEAN_TRUE;
+        }
+        free(bytes);
+    }
+    return retStatus;
+}
+
 BREthereumFrameCoder ethereumNodeGetFrameCoder(BREthereumNode node) {
     return node->ioCoder;
 }
@@ -433,21 +505,10 @@ BRKey* ethereumNodeGetKey(BREthereumNode node){
  }
 
 BRKey* ethereumNodeGetPeerKey(BREthereumNode node) {
-
     return &node->peer.remoteKey;
-    
- }
-BRRlpData ethereumNodeGetStatusData(BREthereumNode node) {
-
-    BRRlpData data;
-    ethereumLESEncodeStatus(&node->lesStatusInfo, &data.bytes, &data.bytesCount);
-    return data;
 }
 BREthereumBoolean ethereumNodeDidOriginate(BREthereumNode node){
     return node->shouldOriginate;
-}
-BREthereumLESStatus* BREthereumNodeGetPeerStatus(BREthereumNode node) {
-    return &node->remoteStatus;
 }
 BREthereumPeer ethereumNodeGetPeer(BREthereumNode node) {
     return node->peer;
@@ -574,7 +635,4 @@ int ethereumNodeWriteToPeer(BREthereumNode node, uint8_t * buf, size_t bufSize, 
         eth_log(ETH_LOG_TOPIC, "%s", strerror(error));
     }
     return error;
-}
-void ethereumNodeAnnounceEvent(BREthereumNode node, BREthereumNodeEvent evt){
-    ethereumNodeEventHandlerEnqueue(node->eventHandler, evt);
 }
