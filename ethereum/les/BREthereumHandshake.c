@@ -382,7 +382,7 @@ BREthereumHandshakeStatus ethereumHandshakeTransition(BREthereumHandshake handsh
     }
     else if (handshake->nextState == BRE_HANDSHAKE_ACKAUTH)
     {
-        handshake->nextState = BRE_HANDSHAKE_WRITESTATUS;
+        handshake->nextState = BRE_HANDSHAKE_WRITEHELLO;
         if (ETHEREUM_BOOLEAN_IS_TRUE(originated))
         {
             int ec = ethereumNodeReadFromPeer(node, handshake->ackBufCipher, ackBufLen, "reading auth ack now");
@@ -399,9 +399,9 @@ BREthereumHandshakeStatus ethereumHandshakeTransition(BREthereumHandshake handsh
         //Now we need to initilize the frameCoder with the information from the auth
         _initFrameCoder(handshake);
     }
-    else if (handshake->nextState == BRE_HANDSHAKE_WRITESTATUS)
+    else if (handshake->nextState == BRE_HANDSHAKE_WRITEHELLO)
     {
-        handshake->nextState = BRE_HANDSHAKE_READSTATUS;
+        handshake->nextState = BRE_HANDSHAKE_READHELLO;
         uint8_t* encryptedHello;
         size_t encryptedHelloSize;
         _sendHelloMessage(handshake, encryptedHello, encryptedHelloSize);
@@ -411,7 +411,7 @@ BREthereumHandshakeStatus ethereumHandshakeTransition(BREthereumHandshake handsh
         }
         free(encryptedHello);
     }
-    else if (handshake->nextState == BRE_HANDSHAKE_READSTATUS)
+    else if (handshake->nextState == BRE_HANDSHAKE_READHELLO)
     {
         // Authenticate and decrypt initial hello frame with initial RLPXFrameCoder
         _readHelloMessage (handshake);
