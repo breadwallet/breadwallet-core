@@ -29,313 +29,279 @@
 #include <inttypes.h>
 #include "BREthereumBase.h"
 #include "BREthereumTransaction.h"
+#include "BREthereumTransactionReceipt.h"
+#include "BREthereumTransactionStatus.h"
 #include "BREthereumBlock.h"
-#include "BRInt.h"
+#include "BRKey.h"
+#include "BRArray.h"
 #include "BREthereumNetwork.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+
+/*!
+ * @typedef BREthereumLES
+ *
+ * @abstract
+ * An instance to handle LES functionalty.
+ */
+typedef struct BREthereumLESContext *BREthereumLES;
+
+/*!
+ *@typedef BREthereumLESError
+ *
+ * @abstract
+ * An enumeration for deteremining the error that occured when submitting messages using LES
+ */
 typedef enum {
-    BRE_LES_SUCCESS=0,
-    BRE_LES_INVALID_MSG_ID_ERROR,
-    BRE_LES_INVALID_STATUS_KEY_PAIR, 
-    BRE_LES_UNABLE_TO_DECODE_ERROR,
-}BREthereumLESDecodeStatus;
+    LES_ERROR_NETWORK = 0x00 // Error is thrown when the LES context can not connect to the ethereum network
+}BREthereumLESError;
 
-typedef struct {
-    uint64_t msgCode;
-    uint64_t baseCost;
-    uint64_t reqCost;
-}BREthereumLESMRC;
+
+
+/*!
+ * @typedef BREthereumLESAnnounceContext
+ *
+ * @abstract
+ * The context to use for handling a LES 'Announce' message
+ */
+typedef void* BREthereumLESAnnounceContext;
+
+/*!
+ * @typedef BREthereumLESAnnounceCallback
+ *
+ * @abstract
+ * The callback to use for handling a LES 'Announce' message.
+ */
+typedef void
+(*BREthereumLESAnnounceCallback) (BREthereumLESAnnounceContext context,
+                                  BREthereumHash headHash,
+                                  uint64_t headNumber,
+                                  uint64_t headTotalDifficulty);
+
+
+/*!
+ * @function lesCreate
+ *
+ * @abstract
+ * Create an instance to handle the LES interface.  Will connect to the provided `network` and
+ * begin getting block headers.
+ *
+ * @param network
+ * The network to connect with.
+ *
+ * @param announceContext
+ * The context to use when handling a LES 'Announce' message
+ *
+ * @param announceCallback
+ * The callback to use when handling a LES 'Announce' message
+ *
+ * ...
+ *
+ * @result
+ * A new LES interface handler.
+ */
+extern BREthereumLES
+lesCreate (BREthereumNetwork network,
+           BREthereumLESAnnounceContext announceContext,
+           BREthereumLESAnnounceCallback announceCallback,
+           BREthereumHash headHash,
+           uint64_t headNumber,
+           uint64_t headTotalDifficulty,
+           BREthereumHash genesisHash);
+
+
+/*!
+ * @function lesConnect
+ *
+ * @abstract
+ * Connects to the ethereum network to begin sending/receiving LES messages
+ */
+ 
+extern void lesConnect(BREthereumLES les);
+
+/*!
+ * @function lesConnect
+ *
+ * @abstract
+ * Disconnects from the ethereum network 
+ */
+ 
+extern void lesDisconnect(BREthereumLES les);
+
+/*!
+ * @function lesConnect
+ *
+ * @abstract
+ * Disconnects from the ethereum network
+ */
+ 
+extern void lesDisconnect(BREthereumLES les);
+
+/*!
+ * @function lesRelease
+ *
+ * @abstract
+ * Releases the les context
+ */
+extern void
+lesRelease(BREthereumLES les);
+
+
+
+
+///////
+//
+// LES Message functions
+//
+////
+
 
 
 //
-// LES Status Structures
+// LES GetBlockHeaders
 //
-typedef struct {
-    uint64_t protocolVersion;
-    uint64_t chainId;
-    uint64_t headerTd;
-    uint8_t headHash[32];
-    uint64_t headNum;
-    uint8_t genesisHash[32];
-    // Note: The below fields are optional LPV1
-    BREthereumBoolean serveHeaders;
-    uint64_t* serveChainSince;
-    uint64_t* serveStateSince;
-    BREthereumBoolean txRelay;
-    uint64_t*flowControlBL;
-    BREthereumLESMRC*flowControlMRC;
-    size_t* flowControlMRCCount;
-    uint64_t*flowControlMRR;
-    uint64_t announceType;
-}BREthereumLESStatus;
+
+/*!
+ * @typedef BREthereumLESBlockHeadersContext
+ *
+ * @abstract
+ * A context for the BlockHeaders callback
+ */
+typedef void* BREthereumLESBlockHeadersContext;
+
+/*!
+ * @typedef BREthereumLESBlockHeadersCallback
+ *
+ * @abstract
+ * A callback for handling a BlockHeaders result.  Passed the `context` and `header`.
+ */
+typedef void
+(*BREthereumLESBlockHeadersCallback) (BREthereumLESBlockHeadersContext context,
+                                      BREthereumBlockHeader header);
+
+
+
+
+/*!
+ * @function lesGetBlockHeaders
+ *
+ * @abstract
+ * Make a LES GetBlockHeaders requests.  The result will be an array of BREthereumBlockHeader;
+ * the callback will be applied one-by-one to each header.
+ *
+ * @param context
+ * The context to use for the callback.
+ *
+ * @param callback
+ * The callback to use when handling each BREthereumBlockHeader.
+ *
+ * @param blockNumber
+ * The starting blockNumber
+ *
+ * @param maxBlockCount
+ * The maximum blocks to return.
+ *
+ * @param skip
+ * The number of blocks to skip.  Should be '0' to get every block between `blockNumber` and
+ * `blockNumber + maxBlockCount`.
+ *
+ * @param reverse
+ * If ETHEREUM_BOOLEAN_TRUE the returned headers will be in reverse order; otherwise the
+ * first header will have `blockNumber`.
+ */
+extern void
+lesGetBlockHeaders (BREthereumLES les,
+                    BREthereumLESBlockHeadersContext context,
+                    BREthereumLESBlockHeadersCallback callback,
+                    uint64_t blockNumber,
+                    size_t maxBlockCount,
+                    uint64_t skip,
+                    BREthereumBoolean reverse);
 
 //
-// LES Reply Structures
+// LES GetBlockBodies
 //
-typedef struct {
-    UInt256* transaction;
-    UInt256* uncle;
-}BREthereumBlockBody;
+typedef void* BREthereumLESBlockBodiesContext;
 
-typedef struct {
-    BREthereumBlockHeader blockHeader;
-    uint8_t* node;
-}BREthereumHeaderProof;
+typedef void
+(*BREthereumLESBlockBodiesCallback) (BREthereumLESBlockBodiesContext context,
+                                     BREthereumHash block, // BREthereumBlockHeader?
+                                     BREthereumTransaction transactions[],
+                                     BREthereumHash ommers[]);
 
-typedef struct {
-    uint8_t* node;
-}BREthereumProofNode;
+extern void
+lesGetBlockBodies (BREthereumLES les,
+                   BREthereumLESBlockBodiesContext context,
+                   BREthereumLESBlockBodiesCallback callback,
+                   BREthereumHash blocks[]);
 
-typedef struct {
-    int foo;
-}BREthereumReceipt;
+extern void
+lesGetBlockBodiesOne (BREthereumLES les,
+                      BREthereumLESBlockBodiesContext context,
+                      BREthereumLESBlockBodiesCallback callback,
+                      BREthereumHash block);
 
-typedef struct {
-    uint8_t** node;
-    uint8_t** auxData;
-}BREthereumHelperTrieProofs;
-
-typedef struct {
-    uint64_t status;
-    union {
-        //Included data
-        struct {
-           uint8_t  blockHash[32];
-           uint64_t blockNumber;
-           uint64_t txIndex;
-        }included_data;
-        char* error_message;
-    } u;
-}BREthereumTransactionStatusReply;
-
-
-//
-// LES Request Structures
-//
-typedef struct {
-    char* key;
-    void* value;
-}BREthereumAnnounceRequest;
-
-
-typedef struct {
-    UInt256 blockHash;
-    UInt256 key;
-    UInt256 key2;
-    uint64_t fromLevel;
-}BREthereumProofsRequest;
-
-typedef struct {
-    UInt256 blockHash;
-    UInt256 key;
-}BREthereumContractCodesRequest;
-
-typedef struct {
-    uint64_t chtNumber;
-    uint64_t blockNumber;
-    uint64_t fromLevel;
-}BREthereumHeaderProofRequest;
-
-typedef struct {
-    uint64_t subType;
-    uint64_t sectionIdx;
-    uint8_t key;
-    uint64_t fromLevel;
-    uint64_t auxReq;
-}BREthereumGetHelperTrieProofsRequest;
 
 
 //
-// Handshake messages
+// LES GetReceipts
 //
-/**
- * Encode a status message
- */
-extern void ethereumLESEncodeStatus(BREthereumLESStatus* status, uint8_t**rlpBytes, size_t* rlpBytesSize);
+typedef void* BREthereumLESReceiptsContext;
 
-/**
- * Decode a status message (LES V1) reply
- */
-extern BREthereumLESDecodeStatus ethereumLESDecodeStatus(uint8_t*rlpBytes, size_t rlpBytesSize, BREthereumLESStatus* status);
+typedef void
+(*BREthereumLESReceiptsCallback) (BREthereumLESBlockBodiesContext context,
+                                  BREthereumHash block,
+                                  BREthereumTransactionReceipt receipts[]);
 
-/*********/
+extern void
+lesGetReceipts (BREthereumLES les,
+                BREthereumLESReceiptsContext context,
+                BREthereumLESReceiptsCallback callback,
+                BREthereumHash blocks[]);
 
-//
-//  Header synchronisation
-//
-
-/**
- * Encode an Announce message
- */
-extern void ethereumLESAnnounce(UInt256 headHash, uint64_t headNumber, uint64_t headTd, uint64_t reorgDepth, size_t flowControlMRRCount,
-                               BREthereumAnnounceRequest* handshakeVals, size_t handshakeValsCount,
-                               uint8_t**rlpBytes, size_t* rlpBytesSize) ;
-
-/**
- * Encode a GetBlockHeaders message
- */
-extern void ethereumLESGetBlockHeaders(uint64_t reqId,
-                                       BREthereumBlock block,
-                                       uint64_t maxHeaders,
-                                       uint64_t skip,
-                                       uint64_t reverse,
-                                       uint8_t**rlpBytes, size_t* rlpByesSize);
-
-/**
- * Decode the reply from a GetBlockHeaders message (i.e. BlockHeaders)
- */
-extern BREthereumLESDecodeStatus ethereumLESDecodeBlockHeaders(uint8_t*rlpBytes, size_t rlpBytesSize,
-                                                               uint64_t* reqId, uint64_t* bv,
-                                                               BREthereumBlockHeader** blockHeaders, size_t * blockHeadersCount);
-
-/**
- * Encode a BlockHeaders
- */
-extern void ethereumLESBlockHeaders(uint64_t reqId, uint64_t bv, const BREthereumBlockHeader* blockHeader,  uint8_t**rlpBytes, size_t* rlpByesSize);
-
-
-/*********/
+extern void
+lesGetReceiptsOne (BREthereumLES les,
+                   BREthereumLESReceiptsContext context,
+                   BREthereumLESReceiptsCallback callback,
+                   BREthereumHash block);
 
 //
-// On-demand data retrieval
+// Proofs
 //
-/**
- * Encode a GetBlockBodies  message
- */
-extern void ethereumLESGetBlockBodies(UInt256* blockHashes, size_t blockHashesCount, uint8_t**rlpBytes, size_t* rlpByesSize);
 
-/**
- * Decode the reply from a GetBlockBodies message (i.e. BlockBodies)
- */
-extern void ethereumLESDecodeBlockBodies(uint8_t*rlpBytes, uint64_t* reqId, uint64_t* bv, BREthereumBlockBody** blockBodies, size_t* blockBodiesCount);
-
-/**
- * Encode a BlockBodies message
- */
-extern void ethereumLESBlockBodies(uint64_t reqId, uint64_t bv, const BREthereumBlockBody* blockBodies, size_t blockBoidesCount, uint8_t**rlpBytes, size_t* rlpByesSize);
-
-/**
- * Encode a GetReceipts message
- */
-extern void ethereumLESGetReceipts(uint64_t reqId, UInt256* receipts, size_t receiptsCount, uint8_t**rlpBytes, size_t* rlpByesSize);
-
-/**
- * Decode the reply from a GetReceipts message (i.e. Receipts)
- */
-extern void ethereumLESDecodeReceipts(uint8_t*rlpBytes, uint64_t* reqId, uint64_t* bv, BREthereumReceipt**receipts, size_t* receiptsCount);
-
-/**
- * Encode a Receipts message
- */
-extern void ethereumLESReceipts(uint64_t reqId, uint64_t bv, BREthereumReceipt* receipts, size_t receiptsCount, uint8_t**rlpBytes, size_t* rlpByesSize);
-
-/**
- * Encode a GetProofs message
- */
-extern void ethereumLESGetProofs(uint64_t reqId, BREthereumProofsRequest* proofs, size_t proofsCount,  uint8_t**rlpBytes, size_t* rlpByesSize);
-
-/**
- * Decode the reply from a GetProofs message (i.e. Proofs)
- */
-extern void ethereumLESDecodeProofs(uint8_t*rlpBytes, uint64_t* reqId, uint64_t* bv,  BREthereumProofNode** proofs, size_t* proofsCount);
-
-/**
- * Encode a GetContractCodes message
- */
-extern void ethereumLESGetContractCodes(uint64_t reqId,BREthereumContractCodesRequest* contractCodes, size_t contractCodesCount);
-
-/**
- * Decode ther reply from a GetContractCodes message (i.e. ContractCodes)
- */
-extern void ethereumLESDecodeContractCodes(uint8_t*rlpBytes, uint64_t* reqId, uint64_t* bv,  uint8_t** contractCodes, size_t* contractCodesCount);
-
-/**
- * Encode a ContractCodes message
- */
-extern void ethereumLESContractCodes(uint64_t reqId, uint64_t bv, uint8_t* contractCodes, size_t contractCodesCount, uint8_t**rlpBytes, size_t* rlpByesSize);
-
-/**
- * Encode a GetHeaderProofs message
- */
-extern void ethereumLESGetHeaderProofs(uint64_t reqId, BREthereumHeaderProofRequest* headerProofs, size_t headerProofsCount);
-
-/**
- * Decode the reply from a GetHeaderProofs message (i.e. HeaderProofs)
- */
-extern void ethereumLESDecodeHeaderProofs(uint8_t*rlpBytes, uint64_t* reqId, uint64_t* bv, BREthereumHeaderProof** headerProofs, size_t* headerProofsCount);
-
-/**
- * Encode a HeaderProofs message
- */
-extern void ethereumLESHeaderProofs(uint64_t reqId, uint64_t bv, BREthereumHeaderProof* headerProofs, size_t headerProofsCount,uint8_t**rlpBytes, size_t* rlpByesSize);
-
-/**
- * Encode a GetProofsV2 message
- */
-extern void ethereumLESGetProofsV2(uint64_t reqId, BREthereumProofsRequest* proofs, size_t proofsCount,  uint8_t**rlpBytes, size_t* rlpByesSize);
-
-/**
- * Decode ther reply from a GetProofsV2 message (i.e. ProofsV2)
- */
-extern void ethereumLESDecodeProofsV2(uint8_t*rlpBytes, uint64_t* reqId, uint64_t* bv,  BREthereumProofNode** proofs, size_t* proofsCount);
-
-/**
- * Encode a ProofsV2 message
- */
-extern void ethereumLESProofsV2(uint64_t reqId, uint64_t bv,  BREthereumProofNode* proofs, size_t proofsCount,uint8_t**rlpBytes, size_t* rlpByesSize);
-
-
-/**
- * Encode a GetHelperTrieProofs messsage
- */
-extern void ethereumLESGetHelperTrieProofs(uint64_t reqId, BREthereumGetHelperTrieProofsRequest* trieProofs, size_t trieProofsCount,  uint8_t**rlpBytes, size_t* rlpByesSize);
-
-/**
- * Decode the reply from a GetHelperTrieProofs message (i.e. HelperTrieProofs)
- */
-extern void ethereumLESDecodeHelperTrieProofs(uint8_t*rlpBytes,  uint64_t totalAuxReqs, uint64_t* reqId, uint64_t* bv, BREthereumHelperTrieProofs** proofs,  size_t* trieProofsCount);
-
-/**
- * Encode a HelperTrieProofs message
- */
- extern void ethereumLESHelperTrieProofs(uint64_t reqId, uint64_t bv,  BREthereumHelperTrieProofs* proofs,  size_t trieProofsCount, uint8_t**rlpBytes, size_t* rlpByesSize);
-
+// ... omit ...
 
 //
-// Transaction relaying and status retrieval
+// LES GetTxStatus
 //
-/**
- * Encode a SendTxt message
- */
-extern void ethereumLESSendTxt(uint64_t reqId, BREthereumTransaction* transactions, size_t transactionsCount, BREthereumNetwork network, BREthereumTransactionRLPType type, uint8_t**rlpBytes, size_t* rlpBytesSize);
+typedef void* BREthereumLESTransactionStatusContext;
 
-/**
- * Encode a SendTxtV2 message
- */
-extern void ethereumLESSendTxtV2(uint64_t reqId, BREthereumTransaction* transactions, size_t transactionsCount, BREthereumNetwork network, BREthereumTransactionRLPType type, uint8_t**rlpBytes, size_t* rlpBytesSize);
+typedef void
+(BREthereumLESTransactionStatusCallback) (BREthereumLESTransactionStatusContext context,
+                                          BREthereumHash transaction,
+                                          BREthereumTransactionStatusLES status);
 
-/**
- * Encode a GetTxStatus message
- */
-extern void ethereumLESGetTxStatus(uint64_t reqId, BREthereumTransaction* transactions, size_t transactionsCount, uint8_t**rlpBytes, size_t* rlpBytesSize);
+extern void
+lesGetTransactionStatus (BREthereumLES les,
+                         BREthereumLESTransactionStatusContext context,
+                         BREthereumLESTransactionStatusCallback callback,
+                         BREthereumHash transactions[]);
 
-/**
- * Decode a GetTxStatus request message
- */
-extern BREthereumLESDecodeStatus ethereumLESDecodeTxStatus(uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv, BREthereumTransactionStatusReply** replies, size_t* repliesCount);
+extern void
+lesGetTransactionStatusOne (BREthereumLES les,
+                            BREthereumLESTransactionStatusContext context,
+                            BREthereumLESTransactionStatusCallback callback,
+                            BREthereumHash transaction);
 
-/**
- * Encode a TxStatus message
- */
-extern void ethereumLESTxStatus( uint64_t reqId, uint64_t bv, BREthereumTransactionStatusReply* replies, size_t repliesCount, uint8_t**rlpBytes, size_t* rlpBytesSize);
-
-
-
-/*********/
+extern void
+lesSubmitTransaction (BREthereumLES les,
+                      BREthereumLESTransactionStatusContext context,
+                      BREthereumLESTransactionStatusCallback callback,
+                      BREthereumTransaction transaction,
+                      unsigned int transactionStatusPeriodInMilliseconds);
 
 
 #ifdef __cplusplus
