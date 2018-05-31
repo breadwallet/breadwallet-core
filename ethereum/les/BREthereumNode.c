@@ -361,9 +361,23 @@ static void *_nodeThreadRunFunc(void *arg) {
                 {
                     if(ethereumHandshakeTransition(node->handshake) == BRE_HANDSHAKE_FINISHED) {
                         eth_log(ETH_LOG_TOPIC, "%s", "Handshake completed with");
-                        _updateStatus(node,BRE_NODE_CONNECTED);
+                        uint8_t* status;
+                        size_t statusSize;
+                        //Notify the node manager that node finished its handshake connection and is ready to send
+                        //sub protocool status message;
+                        node->callbacks.connectedFuc(node->callbacks.info, node, &status, &statusSize);
+                        //Check to see if we need to send a status message
+                        if(status != NULL && statusSize > 0){
+                            eth_log(ETH_LOG_TOPIC, "%s", "Generated sub protocool status message to be sent");
+                            uint8_t* statusPayload;
+                            size_t statusPayloadSize;
+                            ethereumFrameCoderEncrypt(node->ioCoder, status, statusSize, &statusPayload, &statusPayloadSize);
+                            ethereumNodeWriteToPeer(node, statusPayload, statusPayloadSize, "sending status message to remote peer");
+                            free(statusPayload);
+                            free(status);
+                        }
                         ethereumHandshakeRelease(node->handshake);
-                        node->callbacks.connectedFuc(node->callbacks.info, node);
+                        _updateStatus(node,BRE_NODE_CONNECTED);
                     }
                 }
                 break;
@@ -521,7 +535,7 @@ BRKey* ethereumNodeGetPeerEphemeral(BREthereumNode node) {
     return &node->peer.ephemeral;
 }
 UInt256* ethereumNodeGetNonce(BREthereumNode node) {
-    return &node->nonce;
+    return node->nonce;
 }
 UInt256* ethereumNodeGetPeerNonce(BREthereumNode node) {
     return &node->peer.nonce;

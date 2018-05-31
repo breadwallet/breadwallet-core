@@ -87,7 +87,7 @@ typedef enum {
 typedef void* BREthereumManagerCallbackContext;
 typedef void (*BREthereumManagerDisconnectCallback)(BREthereumManagerCallbackContext info, BREthereumNode node, BREthereumDisconnect reason);
 typedef void (*BREthereumManagerRecMsgCallback)(BREthereumManagerCallbackContext info, BREthereumNode node, uint8_t* message, size_t messageSize);
-typedef void (*BREthereumManagerConnectedCallback)(BREthereumManagerCallbackContext info, BREthereumNode node);
+typedef void (*BREthereumManagerConnectedCallback)(BREthereumManagerCallbackContext info, BREthereumNode node, uint8_t** status, size_t* statusSize);
 typedef void (*BREthereumManagerNetworkReachableCallback)(BREthereumManagerCallbackContext info, BREthereumNode node, BREthereumBoolean isReachable);
 
 typedef struct {
