@@ -436,7 +436,7 @@ BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fCoder, u
     
     UInt256 ingressDigest;
     BRKeccak256(ingressDigest.u8, fCoder->ingressMac , fCoder->ingressMacSize);
-    int8_t macSecret[16];
+    uint8_t macSecret[16];
     memcpy(macSecret, ingressDigest.u8, HEADER_LEN);
     uint8_t xORMacCipher[16];
     _BRAES256ECBEncrypt(fCoder->macSecretKey.u8, macSecret);
