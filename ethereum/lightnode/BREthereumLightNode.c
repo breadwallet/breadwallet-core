@@ -180,49 +180,26 @@ lightNodeRemoveListener (BREthereumLightNode node,
 //
 // Connect // Disconnect
 //
-#define PTHREAD_STACK_SIZE (512 * 1024)
-#define PTHREAD_SLEEP_SECONDS (15)
 
-static BREthereumClient nullClient;
+static void
+lightNodePeriodicDispatcher (BREventHandler handler,
+                             BRTimeoutEvent *event) {
+    BREthereumLightNode node = (BREthereumLightNode) event->context;
 
-typedef void* (*ThreadRoutine) (void*);
+    if (node->state != LIGHT_NODE_CONNECTED) return;
 
-static void *
-lightNodeThreadRoutine (BREthereumLightNode node) {
-    node->state = LIGHT_NODE_CONNECTED;
+    // We'll query all transactions for this node's account.  That will give us a shot at
+    // getting the nonce for the account's address correct.  We'll save all the transactions and
+    // then process them into wallet as wallets exist.
+    lightNodeUpdateTransactions(node);
 
-    while (1) {
-        if (LIGHT_NODE_DISCONNECTING == node->state) break;
-        pthread_mutex_lock(&node->lock);
+    // Similarly, we'll query all logs for this node's account.  We'll process these into
+    // (token) transactions and associate with their wallet.
+    lightNodeUpdateLogs(node, -1, eventERC20Transfer);
 
-        lightNodeUpdateBlockNumber(node);
-
-        // We'll query all transactions for this node's account.  That will give us a shot at
-        // getting the nonce for the account's address correct.  We'll save all the transactions and
-        // then process them into wallet as wallets exist.
-        lightNodeUpdateTransactions(node);
-
-        // Similarly, we'll query all logs for this node's account.  We'll process these into
-        // (token) transactions and associate with their wallet.
-        lightNodeUpdateLogs(node, -1, eventERC20Transfer);
-
-        // For all the known wallets, get their balance.
-        for (int i = 0; i < array_count(node->wallets); i++)
-            lightNodeUpdateWalletBalance (node, i);
-
-        pthread_mutex_unlock(&node->lock);
-
-        if (LIGHT_NODE_DISCONNECTING == node->state) break;
-        if (1 == sleep (PTHREAD_SLEEP_SECONDS)) {}
-    }
-
-    node->state = LIGHT_NODE_DISCONNECTED;
-    
-    // TODO: This was needed, but I forgot why.
-    //     node->type = NODE_TYPE_NONE;
-    
-    pthread_detach(node->thread);
-    return NULL;
+    // For all the known wallets, get their balance.
+    for (int i = 0; i < array_count(node->wallets); i++)
+        lightNodeUpdateWalletBalance (node, i);
 }
 
 //static BREthereumClient nullClient;
@@ -994,7 +971,7 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
     // transaction that we are holding but that doesn't have a hash yet.  This will *only* apply
     // if we are the source.
     if (NULL == transaction && ETHEREUM_BOOLEAN_IS_TRUE(isSource))
-        transaction = walletGetTransactionByNonce(wallet, nonce);
+        transaction = walletGetTransactionByNonce(wallet, primaryAddress, nonce);
 
     // If we still don't have a transaction (with 'hash' or 'nonce'); then create one.
     if (NULL == transaction) {
