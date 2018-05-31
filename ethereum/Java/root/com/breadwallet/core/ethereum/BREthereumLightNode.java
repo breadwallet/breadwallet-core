@@ -81,10 +81,16 @@ public class BREthereumLightNode extends BRCoreJniReference {
 
         //        typedef void (*BREthereumClientHandlerGetLogs) (BREthereumClientContext context,
         //                                BREthereumLightNode node,
+        //                                const char *contract,
         //                                const char *address,
         //                                const char *event,
         //                                int rid);
         void getLogs (String contract, String address, String event, int rid);
+
+        //        typedef void (*BREthereumClientHandlerGetBlockNumber) (BREthereumClientContext context,
+        //                                                    BREthereumLightNode node,
+        //                                                    int rid);
+        void getBlockNumber (int rid);
     }
 
     //
@@ -147,6 +153,9 @@ public class BREthereumLightNode extends BRCoreJniReference {
                 blockNumber, blockTransactionIndex, blockTimestamp);
     }
 
+    public void announceBlockNumber (String blockNumber, int rid) {
+        jniAnnounceBlockNumber (blockNumber, rid);
+    }
 
     //
     // Listener
@@ -531,6 +540,10 @@ public class BREthereumLightNode extends BRCoreJniReference {
         client.get().getLogs(contract, address, event, rid);
     }
 
+    protected void trampolineGetBlockNumber (int rid) {
+        client.get().getBlockNumber(rid);
+    }
+
     //
     // JNI: Constructors
     //
@@ -579,6 +592,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     protected native void jniAnnounceGasPrice (int wid, String gasPrice, int rid);
     protected native void jniAnnounceGasEstimate (int wid, int tid, String gasEstimate, int rid);
     protected native void jniAnnounceSubmitTransaction (int wid, int tid, String hash, int rid);
+    protected native void jniAnnounceBlockNumber (String blockNumber, int rid);
 
 
     // JNI: Account & Address

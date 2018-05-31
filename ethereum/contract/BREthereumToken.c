@@ -1136,7 +1136,7 @@ static struct BREthereumTokenRecord tokens[] = {
         "R",
         "Revain",
         "",
-        6,
+        0,
         "#771a4e",
         "#771a4e",
         { TOKEN_BRD_DEFAULT_GAS_LIMIT },

@@ -135,6 +135,14 @@ lightNodeAnnounceGasEstimate (BREthereumLightNode node,
 }
 
 extern void
+lightNodeAnnounceBlockNumber (BREthereumLightNode node,
+                              const char *strBlockNumber,
+                              int rid) {
+    uint64_t blockNumber = strtoull(strBlockNumber, NULL, 0);
+    lightNodeUpdateBlockHeight(node, blockNumber);
+}
+
+extern void
 lightNodeAnnounceSubmitTransaction(BREthereumLightNode node,
                                    BREthereumWalletId wid,
                                    BREthereumTransactionId tid,
@@ -349,11 +357,6 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
     // Get the current status.
     BREthereumTransactionStatus status = transactionGetStatus(transaction);
 
-    // See if the block confirmations have changed.
-    uint64_t blockConfirmations = strtoull(strBlockConfirmations, NULL, 0);
-    // There is an implied update to the node's block height
-    lightNodeUpdateBlockHeight(node, blockGetNumber(block) + blockConfirmations);
-
     // Update the status as blocked
     if (TRANSACTION_BLOCKED != status)
         walletTransactionBlocked(wallet, transaction, gasUsed,
@@ -486,9 +489,6 @@ lightNodeAnnounceLog (BREthereumLightNode node,
 
     // Get the current status.
     BREthereumTransactionStatus status = transactionGetStatus(transaction);
-
-    // Try hard to figure out the confirmations.
-    lightNodeUpdateBlockHeight(node, blockGetNumber(block));
 
     // Update the status as blocked
     if (TRANSACTION_BLOCKED != status)

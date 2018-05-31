@@ -267,6 +267,11 @@ typedef void
                                    const char *event,
                                    int rid);
 
+    typedef void
+    (*BREthereumClientHandlerGetBlockNumber) (BREthereumClientContext context,
+                                              BREthereumLightNode node,
+                                              int rid);
+
 //
 // Light Node Configuration
 //
@@ -282,6 +287,7 @@ typedef struct {
     BREthereumClientHandlerSubmitTransaction funcSubmitTransaction;
     BREthereumClientHandlerGetTransactions funcGetTransactions;
     BREthereumClientHandlerGetLogs funcGetLogs;
+    BREthereumClientHandlerGetBlockNumber funcGetBlockNumber;
 } BREthereumClient;
 
 
@@ -299,7 +305,8 @@ ethereumClientCreate(BREthereumClientContext context,
                      BREthereumClientHandlerEstimateGas funcEstimateGas,
                      BREthereumClientHandlerSubmitTransaction funcSubmitTransaction,
                      BREthereumClientHandlerGetTransactions funcGetTransactions,
-                     BREthereumClientHandlerGetLogs funcGetLogs);
+                     BREthereumClientHandlerGetLogs funcGetLogs,
+                     BREthereumClientHandlerGetBlockNumber funcGetBlockNumber);
 
 /**
  * Install 'wordList' as the default BIP39 Word List.  THIS IS SHARED MEMORY; DO NOT FREE wordList.
@@ -718,6 +725,10 @@ typedef enum {
 //
 //
 #if defined(SUPPORT_JSON_RPC)
+
+extern void
+lightNodeUpdateBlockNumber (BREthereumLightNode node);
+
 /**
  * Update the transactions for the node's account.  A JSON_RPC light node will call out to
  * BREthereumClientHandlerGetTransactions which is expected to query all transactions associated with the
@@ -771,6 +782,11 @@ lightNodeGetTransactionRawDataHexEncoded(BREthereumLightNode node,
                                          BREthereumWalletId wid,
                                          BREthereumTransactionId tid,
                                          const char *prefix);
+
+extern void
+lightNodeAnnounceBlockNumber (BREthereumLightNode node,
+                              const char *blockNumber,
+                              int rid);
 
 // Some JSON_RPC call will occur to get all transactions associated with an account.  We'll
 // process these transactions into the LightNode (associated with a wallet).  Thereafter

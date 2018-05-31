@@ -35,6 +35,7 @@
 
 #include "BREthereumPrivate.h"
 #include "BREthereumLightNodePrivate.h"
+#include "BREthereumLightNode.h"
 #include "../event/BREvent.h"
 
 #define LIGHT_NODE_SLEEP_SECONDS (5)
@@ -54,7 +55,8 @@ ethereumClientCreate(BREthereumClientContext context,
                      BREthereumClientHandlerEstimateGas funcEstimateGas,
                      BREthereumClientHandlerSubmitTransaction funcSubmitTransaction,
                      BREthereumClientHandlerGetTransactions funcGetTransactions,
-                     BREthereumClientHandlerGetLogs funcGetLogs) {
+                     BREthereumClientHandlerGetLogs funcGetLogs,
+                     BREthereumClientHandlerGetBlockNumber funcGetBlockNumber) {
     BREthereumClient client;
     client.funcContext = context;
     client.funcGetBalance = funcGetBalance;
@@ -63,6 +65,7 @@ ethereumClientCreate(BREthereumClientContext context,
     client.funcSubmitTransaction = funcSubmitTransaction;
     client.funcGetTransactions = funcGetTransactions;
     client.funcGetLogs = funcGetLogs;
+    client.funcGetBlockNumber = funcGetBlockNumber;
     return client;
 }
 
@@ -177,26 +180,49 @@ lightNodeRemoveListener (BREthereumLightNode node,
 //
 // Connect // Disconnect
 //
+#define PTHREAD_STACK_SIZE (512 * 1024)
+#define PTHREAD_SLEEP_SECONDS (15)
 
-static void
-lightNodePeriodicDispatcher (BREventHandler handler,
-                             BRTimeoutEvent *event) {
-    BREthereumLightNode node = (BREthereumLightNode) event->context;
+static BREthereumClient nullClient;
 
-    if (node->state != LIGHT_NODE_CONNECTED) return;
+typedef void* (*ThreadRoutine) (void*);
 
-    // We'll query all transactions for this node's account.  That will give us a shot at
-    // getting the nonce for the account's address correct.  We'll save all the transactions and
-    // then process them into wallet as wallets exist.
-    lightNodeUpdateTransactions(node);
+static void *
+lightNodeThreadRoutine (BREthereumLightNode node) {
+    node->state = LIGHT_NODE_CONNECTED;
 
-    // Similarly, we'll query all logs for this node's account.  We'll process these into
-    // (token) transactions and associate with their wallet.
-    lightNodeUpdateLogs(node, -1, eventERC20Transfer);
+    while (1) {
+        if (LIGHT_NODE_DISCONNECTING == node->state) break;
+        pthread_mutex_lock(&node->lock);
 
-    // For all the known wallets, get their balance.
-    for (int i = 0; i < array_count(node->wallets); i++)
-        lightNodeUpdateWalletBalance (node, i);
+        lightNodeUpdateBlockNumber(node);
+
+        // We'll query all transactions for this node's account.  That will give us a shot at
+        // getting the nonce for the account's address correct.  We'll save all the transactions and
+        // then process them into wallet as wallets exist.
+        lightNodeUpdateTransactions(node);
+
+        // Similarly, we'll query all logs for this node's account.  We'll process these into
+        // (token) transactions and associate with their wallet.
+        lightNodeUpdateLogs(node, -1, eventERC20Transfer);
+
+        // For all the known wallets, get their balance.
+        for (int i = 0; i < array_count(node->wallets); i++)
+            lightNodeUpdateWalletBalance (node, i);
+
+        pthread_mutex_unlock(&node->lock);
+
+        if (LIGHT_NODE_DISCONNECTING == node->state) break;
+        if (1 == sleep (PTHREAD_SLEEP_SECONDS)) {}
+    }
+
+    node->state = LIGHT_NODE_DISCONNECTED;
+    
+    // TODO: This was needed, but I forgot why.
+    //     node->type = NODE_TYPE_NONE;
+    
+    pthread_detach(node->thread);
+    return NULL;
 }
 
 //static BREthereumClient nullClient;
@@ -583,6 +609,24 @@ lightNodeDeleteTransaction (BREthereumLightNode node,
 //
 #if defined(SUPPORT_JSON_RPC)
 
+extern void
+lightNodeUpdateBlockNumber (BREthereumLightNode node) {
+    if (LIGHT_NODE_CONNECTED != node->state) return;
+    switch (node->type) {
+        case NODE_TYPE_LES:
+            // TODO: Fall-through on error, perhaps
+
+        case NODE_TYPE_JSON_RPC:
+            node->client.funcGetBlockNumber
+                    (node->client.funcContext,
+                    node,
+                    ++node->requestId);
+            break;
+
+        case NODE_TYPE_NONE:
+            break;
+    }
+}
 /**
  *
  * @param node
