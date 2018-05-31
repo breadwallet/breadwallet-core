@@ -50,15 +50,16 @@ extern "C" {
 typedef struct BREthereumLESContext *BREthereumLES;
 
 /*!
- *@typedef BREthereumLESError
+ *@typedef BREthereumLESStatus
  *
  * @abstract
  * An enumeration for deteremining the error that occured when submitting messages using LES
  */
 typedef enum {
-    LES_ERROR_NETWORK = 0x00 // Error is thrown when the LES context can not connect to the ethereum network
-}BREthereumLESError;
-
+    LES_SUCCESS  = 0x00,            // No error was generated after submtting a message using LES
+    LES_NETWORK_UNREACHABLE = 0x01, // Error is thrown when the LES context can not connect to the ethereum network
+    LES_UNKNOWN_ERROR = 0x02        // Error is thrown but it's unknown what caused it. 
+}BREthereumLESStatus;
 
 
 /*!
@@ -113,31 +114,6 @@ lesCreate (BREthereumNetwork network,
            BREthereumHash genesisHash);
 
 
-/*!
- * @function lesConnect
- *
- * @abstract
- * Connects to the ethereum network to begin sending/receiving LES messages
- */
- 
-extern void lesConnect(BREthereumLES les);
-
-/*!
- * @function lesConnect
- *
- * @abstract
- * Disconnects from the ethereum network 
- */
- 
-extern void lesDisconnect(BREthereumLES les);
-
-/*!
- * @function lesConnect
- *
- * @abstract
- * Disconnects from the ethereum network
- */
- 
 extern void lesDisconnect(BREthereumLES les);
 
 /*!
@@ -157,7 +133,6 @@ lesRelease(BREthereumLES les);
 // LES Message functions
 //
 ////
-
 
 
 //
@@ -212,7 +187,7 @@ typedef void
  * If ETHEREUM_BOOLEAN_TRUE the returned headers will be in reverse order; otherwise the
  * first header will have `blockNumber`.
  */
-extern void
+extern BREthereumLESStatus
 lesGetBlockHeaders (BREthereumLES les,
                     BREthereumLESBlockHeadersContext context,
                     BREthereumLESBlockHeadersCallback callback,
@@ -232,13 +207,13 @@ typedef void
                                      BREthereumTransaction transactions[],
                                      BREthereumHash ommers[]);
 
-extern void
+extern BREthereumLESStatus
 lesGetBlockBodies (BREthereumLES les,
                    BREthereumLESBlockBodiesContext context,
                    BREthereumLESBlockBodiesCallback callback,
                    BREthereumHash blocks[]);
 
-extern void
+extern BREthereumLESStatus
 lesGetBlockBodiesOne (BREthereumLES les,
                       BREthereumLESBlockBodiesContext context,
                       BREthereumLESBlockBodiesCallback callback,
@@ -256,13 +231,13 @@ typedef void
                                   BREthereumHash block,
                                   BREthereumTransactionReceipt receipts[]);
 
-extern void
+extern BREthereumLESStatus
 lesGetReceipts (BREthereumLES les,
                 BREthereumLESReceiptsContext context,
                 BREthereumLESReceiptsCallback callback,
                 BREthereumHash blocks[]);
 
-extern void
+extern BREthereumLESStatus
 lesGetReceiptsOne (BREthereumLES les,
                    BREthereumLESReceiptsContext context,
                    BREthereumLESReceiptsCallback callback,
@@ -280,28 +255,28 @@ lesGetReceiptsOne (BREthereumLES les,
 typedef void* BREthereumLESTransactionStatusContext;
 
 typedef void
-(BREthereumLESTransactionStatusCallback) (BREthereumLESTransactionStatusContext context,
+(*BREthereumLESTransactionStatusCallback) (BREthereumLESTransactionStatusContext context,
                                           BREthereumHash transaction,
                                           BREthereumTransactionStatusLES status);
 
-extern void
+extern BREthereumLESStatus
 lesGetTransactionStatus (BREthereumLES les,
                          BREthereumLESTransactionStatusContext context,
                          BREthereumLESTransactionStatusCallback callback,
                          BREthereumHash transactions[]);
 
-extern void
+extern BREthereumLESStatus
 lesGetTransactionStatusOne (BREthereumLES les,
                             BREthereumLESTransactionStatusContext context,
                             BREthereumLESTransactionStatusCallback callback,
                             BREthereumHash transaction);
 
-extern void
+extern BREthereumLESStatus
 lesSubmitTransaction (BREthereumLES les,
                       BREthereumLESTransactionStatusContext context,
                       BREthereumLESTransactionStatusCallback callback,
-                      BREthereumTransaction transaction,
-                      unsigned int transactionStatusPeriodInMilliseconds);
+                      BREthereumTransactionRLPType type,
+                      BREthereumTransaction transaction);
 
 
 #ifdef __cplusplus
