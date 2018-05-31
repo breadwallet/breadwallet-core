@@ -82,6 +82,11 @@ struct BREthereumLightNodeRecord {
     BREthereumType type;
 
     /**
+     * The SyncMode of this Light Node
+     */
+    BREthereumSyncMode syncMode;
+
+    /**
      * The network
      */
     BREthereumNetwork network;

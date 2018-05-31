@@ -36,14 +36,18 @@
 //
 extern BREthereumLightNode
 ethereumCreate(BREthereumNetwork network,
-               const char *paperKey) {
-    return createLightNode (network, createAccount(paperKey));
+               const char *paperKey,
+               BREthereumType type,
+               BREthereumSyncMode syncMode) {
+    return createLightNode (network, createAccount(paperKey), type, syncMode);
 }
 
 extern BREthereumLightNode
 ethereumCreateWithPublicKey(BREthereumNetwork network,
-                            const BRKey publicKey) { // 65 byte, 0x04-prefixed, uncompressed public key
-    return createLightNode (network, createAccountWithPublicKey (publicKey));
+                            const BRKey publicKey,
+                            BREthereumType type,
+                            BREthereumSyncMode syncMode) { // 65 byte, 0x04-prefixed, uncompressed public key
+    return createLightNode (network, createAccountWithPublicKey (publicKey), type, syncMode);
 }
 
 extern BREthereumBoolean

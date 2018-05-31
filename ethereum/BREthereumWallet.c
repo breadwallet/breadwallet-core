@@ -476,17 +476,21 @@ walletWalkTransactions (BREthereumWallet wallet,
 extern BREthereumTransaction
 walletGetTransactionByHash (BREthereumWallet wallet,
                             BREthereumHash hash) {
-    for (int i = 0; i < array_count(wallet->transactions); i++)
-        if (ETHEREUM_COMPARISON_EQ == hashCompare(hash, transactionGetHash(wallet->transactions[i])))
+    for (int i = 0; i < array_count(wallet->transactions); i++) {
+        BREthereumHash transactionHash = transactionGetHash(wallet->transactions[i]);
+        if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(hash, transactionHash)))
             return wallet->transactions[i];
+    }
     return NULL;
 }
 
 extern BREthereumTransaction
 walletGetTransactionByNonce (BREthereumWallet wallet,
+                             BREthereumEncodedAddress sourceAddress,
                              uint64_t nonce) {
     for (int i = 0; i < array_count(wallet->transactions); i++)
-        if (nonce == transactionGetNonce (wallet->transactions[i]))
+        if (nonce == transactionGetNonce (wallet->transactions[i])
+            && ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(sourceAddress, transactionGetSourceAddress(wallet->transactions[i]))))
             return wallet->transactions [i];
     return NULL;
 }

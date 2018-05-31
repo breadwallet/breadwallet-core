@@ -268,6 +268,11 @@ typedef void
                                    const char *event,
                                    int rid);
 
+    typedef void
+    (*BREthereumClientHandlerGetBlockNumber) (BREthereumClientContext context,
+                                              BREthereumLightNode node,
+                                              int rid);
+
 //
 // Light Node Configuration
 //
@@ -283,6 +288,7 @@ typedef struct {
     BREthereumClientHandlerSubmitTransaction funcSubmitTransaction;
     BREthereumClientHandlerGetTransactions funcGetTransactions;
     BREthereumClientHandlerGetLogs funcGetLogs;
+    BREthereumClientHandlerGetBlockNumber funcGetBlockNumber;
 } BREthereumClient;
 
 
@@ -300,7 +306,8 @@ ethereumClientCreate(BREthereumClientContext context,
                      BREthereumClientHandlerEstimateGas funcEstimateGas,
                      BREthereumClientHandlerSubmitTransaction funcSubmitTransaction,
                      BREthereumClientHandlerGetTransactions funcGetTransactions,
-                     BREthereumClientHandlerGetLogs funcGetLogs);
+                     BREthereumClientHandlerGetLogs funcGetLogs,
+                     BREthereumClientHandlerGetBlockNumber funcGetBlockNumber);
 
 /**
  * Install 'wordList' as the default BIP39 Word List.  THIS IS SHARED MEMORY; DO NOT FREE wordList.
@@ -316,6 +323,31 @@ installSharedWordList (const char *wordList[], int wordListLength);
 // Light Node
 //
 
+/*!
+* @typedef BREthereumType
+*
+* @abstract
+* Two types of LightNode - JSON_RPC or LES (Light Ethereum Subprotocol).  For a LES LightNode
+* some of the Client callbacks will only be used as a fallback.
+*/
+typedef enum {
+    NODE_TYPE_NONE,
+    NODE_TYPE_JSON_RPC,
+    NODE_TYPE_LES
+} BREthereumType;
+
+/*!
+ * @typedef BREthereumSyncMode
+ *
+ * @abstract When starting the lightNode we can prime the transaction synchronization with
+ * transactions queried from the Bread endpoint or we can use a full blockchain
+ * synchronization.  (After the first full sync, partial syncs are used).
+ */
+typedef enum {
+    SYNC_MODE_FULL_BLOCKCHAIN,
+    SYNC_MODE_PRIME_WITH_ENDPOINT
+} BREthereumSyncMode;
+
 /**
  * Create a LightNode managing the account associated with the paperKey.  (The `paperKey` must
  * use words from the defaul wordList (Use installSharedWordList).  The `paperKey` is used for
@@ -324,7 +356,9 @@ installSharedWordList (const char *wordList[], int wordListLength);
  */
 extern BREthereumLightNode
 ethereumCreate(BREthereumNetwork network,
-               const char *paperKey);
+               const char *paperKey,
+               BREthereumType type,
+               BREthereumSyncMode syncMode);
 
 /**
  * Create a LightNode managing the account associated with the publicKey.  Public key is a
@@ -333,7 +367,9 @@ ethereumCreate(BREthereumNetwork network,
  */
 extern BREthereumLightNode
 ethereumCreateWithPublicKey(BREthereumNetwork network,
-                            const BRKey publicKey);
+                            const BRKey publicKey,
+                            BREthereumType type,
+                            BREthereumSyncMode syncMode);
 
 /**
  * Create an Ethereum Account using `paperKey` for BIP-32 generation of keys.  The same paper key
@@ -676,6 +712,10 @@ ethereumTransactionGetFee(BREthereumLightNode node,
 //
 //
 #if defined(SUPPORT_JSON_RPC)
+
+extern void
+lightNodeUpdateBlockNumber (BREthereumLightNode node);
+
 /**
  * Update the transactions for the node's account.  A JSON_RPC light node will call out to
  * BREthereumClientHandlerGetTransactions which is expected to query all transactions associated with the
@@ -729,6 +769,11 @@ lightNodeGetTransactionRawDataHexEncoded(BREthereumLightNode node,
                                          BREthereumWalletId wid,
                                          BREthereumTransactionId tid,
                                          const char *prefix);
+
+extern void
+lightNodeAnnounceBlockNumber (BREthereumLightNode node,
+                              const char *blockNumber,
+                              int rid);
 
 // Some JSON_RPC call will occur to get all transactions associated with an account.  We'll
 // process these transactions into the LightNode (associated with a wallet).  Thereafter

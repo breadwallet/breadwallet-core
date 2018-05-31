@@ -51,7 +51,7 @@ struct BRWalletStruct {
 
 inline static uint64_t _txFee(uint64_t feePerKb, size_t size)
 {
-    uint64_t standardFee = size*TX_FEE_PER_KB,            // standard fee based on tx size
+    uint64_t standardFee = size*TX_FEE_PER_KB/1000,       // standard fee based on tx size
              fee = (((size*feePerKb/1000) + 99)/100)*100; // fee using feePerKb, rounded up to nearest 100 satoshi
     
     return (fee > standardFee) ? fee : standardFee;

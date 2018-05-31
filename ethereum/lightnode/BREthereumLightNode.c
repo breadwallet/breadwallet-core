@@ -35,6 +35,7 @@
 
 #include "BREthereumPrivate.h"
 #include "BREthereumLightNodePrivate.h"
+#include "BREthereumLightNode.h"
 #include "../event/BREvent.h"
 
 #define LIGHT_NODE_SLEEP_SECONDS (5)
@@ -62,7 +63,8 @@ ethereumClientCreate(BREthereumClientContext context,
                      BREthereumClientHandlerEstimateGas funcEstimateGas,
                      BREthereumClientHandlerSubmitTransaction funcSubmitTransaction,
                      BREthereumClientHandlerGetTransactions funcGetTransactions,
-                     BREthereumClientHandlerGetLogs funcGetLogs) {
+                     BREthereumClientHandlerGetLogs funcGetLogs,
+                     BREthereumClientHandlerGetBlockNumber funcGetBlockNumber) {
     BREthereumClient client;
     client.funcContext = context;
     client.funcGetBalance = funcGetBalance;
@@ -71,6 +73,7 @@ ethereumClientCreate(BREthereumClientContext context,
     client.funcSubmitTransaction = funcSubmitTransaction;
     client.funcGetTransactions = funcGetTransactions;
     client.funcGetLogs = funcGetLogs;
+    client.funcGetBlockNumber = funcGetBlockNumber;
     return client;
 }
 
@@ -79,10 +82,13 @@ ethereumClientCreate(BREthereumClientContext context,
 //
 extern BREthereumLightNode
 createLightNode (BREthereumNetwork network,
-                 BREthereumAccount account) {
+                 BREthereumAccount account,
+                 BREthereumType type,
+                 BREthereumSyncMode syncMode) {
     BREthereumLightNode node = (BREthereumLightNode) calloc (1, sizeof (struct BREthereumLightNodeRecord));
     node->state = LIGHT_NODE_CREATED;
-    node->type = FIXED_LIGHT_NODE_TYPE;
+    node->type = type;
+    node->syncMode = syncMode;
     node->network = network;
     node->account = account;
 
