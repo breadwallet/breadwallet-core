@@ -402,8 +402,8 @@ BREthereumHandshakeStatus ethereumHandshakeTransition(BREthereumHandshake handsh
     else if (handshake->nextState == BRE_HANDSHAKE_WRITEHELLO)
     {
         handshake->nextState = BRE_HANDSHAKE_READHELLO;
-        uint8_t* encryptedHello;
-        size_t encryptedHelloSize;
+        uint8_t* encryptedHello = NULL;
+        size_t encryptedHelloSize = 0;
         _sendHelloMessage(handshake, encryptedHello, encryptedHelloSize);
         int ec = ethereumNodeWriteToPeer(node, encryptedHello, encryptedHelloSize, "sending hello message to remote peer");
         if(ec) {
