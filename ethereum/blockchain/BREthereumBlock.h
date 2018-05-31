@@ -54,6 +54,12 @@ extern uint64_t
 blockHeaderGetNumber (BREthereumBlockHeader header);
 
 extern uint64_t
+blockHeaderGetDifficulty (BREthereumBlockHeader header);
+
+extern uint64_t
+blockHeaderGetGasUsed (BREthereumBlockHeader header);
+
+extern uint64_t
 blockHeaderGetTimestamp (BREthereumBlockHeader header);
 
 extern BREthereumHash

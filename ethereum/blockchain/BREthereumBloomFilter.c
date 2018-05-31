@@ -76,6 +76,13 @@ bloomFilterCreateAddress (const BREthereumAddress address) {
 }
 
 extern BREthereumBloomFilter
+bloomFilterCreateString (const char *string) {
+    BREthereumBloomFilter filter;
+    decodeHex (filter.bytes, sizeof (filter.bytes), string, strlen(string));
+    return filter;
+}
+
+extern BREthereumBloomFilter
 bloomFilterOr (const BREthereumBloomFilter filter1, const BREthereumBloomFilter filter2) {
     BREthereumBloomFilter result = empty;
     for (int i = 0; i < ETHEREUM_BLOOM_FILTER_BYTES; i++)
