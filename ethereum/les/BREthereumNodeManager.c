@@ -96,10 +96,10 @@ void _receivedMessageCallback(BREthereumManagerCallbackContext info, BREthereumN
     BREthereumNodeManager manager = (BREthereumNodeManager)info;
     manager->subprotoCallbacks.messageRecFunc(manager->subprotoCallbacks.info, message, messageSize);
 }
-void _connectedCallback(BREthereumManagerCallbackContext info, BREthereumNode node) {
+void _connectedCallback(BREthereumManagerCallbackContext info, BREthereumNode node, uint8_t**status, size_t* statusSize) {
 
     BREthereumNodeManager manager = (BREthereumNodeManager)info;
-    manager->subprotoCallbacks.connectedFunc(manager->subprotoCallbacks.info);
+    manager->subprotoCallbacks.connectedFunc(manager->subprotoCallbacks.info, status,statusSize);
 }
 void _networkReachableCallback(BREthereumManagerCallbackContext info, BREthereumNode node, BREthereumBoolean isReachable) {
 
@@ -176,6 +176,7 @@ BREthereumNodeManagerStatus ethereumNodeManagerStatus(BREthereumNodeManager mana
 }
 int ethereumNodeMangerConnect(BREthereumNodeManager manager) {
     assert(manager != NULL);
+        
     pthread_mutex_lock(&manager->lock);
     int retValue = 0;
     int connectedCount = 0;

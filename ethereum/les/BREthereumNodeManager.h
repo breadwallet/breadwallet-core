@@ -50,7 +50,7 @@ typedef enum {
 
 typedef void* BREthereumSubProtoContext;
 typedef void (*BREthereumSubProtoRecMsgCallback)(BREthereumSubProtoContext info, uint8_t* message, size_t messageSize);
-typedef void (*BREthereumSubProtoConnectedCallback)(BREthereumSubProtoContext info);
+typedef void (*BREthereumSubProtoConnectedCallback)(BREthereumSubProtoContext info, uint8_t** statusBytes, size_t* statusSize);
 typedef void (*BREthereumSubProtoNetworkReachableCallback)(BREthereumSubProtoContext info, BREthereumBoolean isReachable);
 
 typedef struct {
