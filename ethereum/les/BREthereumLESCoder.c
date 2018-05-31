@@ -6,56 +6,17 @@
 //  Copyright © 2018 breadwallet LLC. All rights reserved.
 //
 
+#include "BREthereumTransactionStatus.h"
 #include "BREthereumLESCoder.h"
 
 
 #define TXSTATUS_INCLUDED 3
 #define TXSTATUS_ERROR 4
 
-typedef enum {
-    BRE_LES_SUCCESS=0,
-    BRE_LES_INVALID_MSG_ID_ERROR,
-    BRE_LES_INVALID_STATUS_KEY_PAIR,
-    BRE_LES_UNABLE_TO_DECODE_ERROR,
-}BREthereumLESDecodeStatus;
-
-typedef struct {
-    uint64_t msgCode;
-    uint64_t baseCost;
-    uint64_t reqCost;
-}BREthereumLESMRC;
-
-
-//
-// LES Status Structures
-//
-typedef struct {
-    uint64_t protocolVersion;
-    uint64_t chainId;
-    uint64_t headerTd;
-    uint8_t headHash[32];
-    uint64_t headNum;
-    uint8_t genesisHash[32];
-    // Note: The below fields are optional LPV1
-    BREthereumBoolean serveHeaders;
-    uint64_t* serveChainSince;
-    uint64_t* serveStateSince;
-    BREthereumBoolean txRelay;
-    uint64_t*flowControlBL;
-    BREthereumLESMRC*flowControlMRC;
-    size_t* flowControlMRCCount;
-    uint64_t*flowControlMRR;
-    uint64_t announceType;
-}BREthereumLESStatus;
-
 //
 // LES Reply Structures
 //
-typedef struct {
-    UInt256* transaction;
-    UInt256* uncle;
-}BREthereumBlockBody;
-
+/*
 typedef struct {
     BREthereumBlockHeader blockHeader;
     uint8_t* node;
@@ -73,30 +34,13 @@ typedef struct {
     uint8_t** node;
     uint8_t** auxData;
 }BREthereumHelperTrieProofs;
-
-typedef struct {
-    uint64_t status;
-    union {
-        //Included data
-        struct {
-           uint8_t  blockHash[32];
-           uint64_t blockNumber;
-           uint64_t txIndex;
-        }included_data;
-        char* error_message;
-    } u;
-}BREthereumTransactionStatusReply;
+*/
 
 
 //
 // LES Request Structures
 //
-typedef struct {
-    char* key;
-    void* value;
-}BREthereumAnnounceRequest;
-
-
+/*
 typedef struct {
     UInt256 blockHash;
     UInt256 key;
@@ -122,6 +66,7 @@ typedef struct {
     uint64_t fromLevel;
     uint64_t auxReq;
 }BREthereumGetHelperTrieProofsRequest;
+*/
 
 //
 // Handshake messages
@@ -178,7 +123,7 @@ static void _encodeKeyValueStatus(BRRlpCoder coder, BRRlpItem* keyPair, char* ke
     }
 }
 
-static void _encodeStatus(BREthereumLESStatus* status, BRRlpCoder coder, BRRlpItem* statusItems, int* ioIdx) {
+static void _encodeStatus(BREthereumLESStatusMessage* status, BRRlpCoder coder, BRRlpItem* statusItems, int* ioIdx) {
 
     int curIdx = *ioIdx;
 
@@ -270,7 +215,11 @@ static void _encodeStatus(BREthereumLESStatus* status, BRRlpCoder coder, BRRlpIt
     }
     *ioIdx = curIdx;
 }
-void ethereumLESEncodeStatus(BREthereumLESStatus* status, uint8_t**rlpBytes, size_t* rlpBytesSize) {
+
+//
+// Status Message 
+//
+void ethereumLESEncodeStatus(BREthereumLESStatusMessage* status, uint8_t**rlpBytes, size_t* rlpBytesSize) {
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem statusItems[15];
@@ -290,11 +239,11 @@ void ethereumLESEncodeStatus(BREthereumLESStatus* status, uint8_t**rlpBytes, siz
     rlpDataExtract(coder, encoding, rlpBytes, rlpBytesSize);
     rlpCoderRelease(coder);
 }
-static BREthereumLESDecodeStatus _decodeStatus(BRRlpCoder coder, const BRRlpItem *items, size_t itemsCount, BREthereumLESStatus* header){
+static BREthereumLESDecodeStatus _decodeStatus(BRRlpCoder coder, const BRRlpItem *items, size_t itemsCount, BREthereumLESStatusMessage* header){
 
     uint64_t messageId = rlpDecodeItemUInt64(coder, items[0],0);
     if(messageId != 0x00){
-        return BRE_LES_INVALID_MSG_ID_ERROR;
+        return BRE_LES_CODER_INVALID_MSG_ID_ERROR;
     }
     for(int i= 1; i < itemsCount; ++i) {
         size_t keyPairCount;
@@ -353,12 +302,12 @@ static BREthereumLESDecodeStatus _decodeStatus(BRRlpCoder coder, const BRRlpItem
                 *(header->flowControlMRR) = rlpDecodeItemUInt64(coder, keyPairs[1], 0);
             }
         }else {
-            return BRE_LES_INVALID_STATUS_KEY_PAIR;
+            return BRE_LES_CODER_INVALID_STATUS_KEY_PAIR;
         }
     }
-    return BRE_LES_SUCCESS;
+    return BRE_LES_CODER_SUCCESS;
 }
-BREthereumLESDecodeStatus ethereumLESDecodeStatus(uint8_t*rlpBytes, size_t rlpBytesSize, BREthereumLESStatus* status) {
+BREthereumLESDecodeStatus ethereumLESDecodeStatus(uint8_t*rlpBytes, size_t rlpBytesSize, BREthereumLESStatusMessage* status) {
  
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpData frameData = {rlpBytesSize, rlpBytes};
@@ -458,7 +407,7 @@ BREthereumLESDecodeStatus ethereumLESDecodeBlockHeaders(uint8_t*rlpBytes, size_t
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     uint64_t msgId = rlpDecodeItemUInt64(coder, items[0], 0);
     if(msgId != 0x03) {
-        return BRE_LES_INVALID_MSG_ID_ERROR;
+        return BRE_LES_CODER_INVALID_MSG_ID_ERROR;
     }
     *reqId = rlpDecodeItemUInt64(coder, items[1], 0);
     *bv = rlpDecodeItemUInt64(coder, items[2], 0);
@@ -478,7 +427,7 @@ BREthereumLESDecodeStatus ethereumLESDecodeBlockHeaders(uint8_t*rlpBytes, size_t
     *blockHeaders = headers;
     *blockHeadersCount = blocksCount;
     
-    return BRE_LES_SUCCESS;
+    return BRE_LES_CODER_SUCCESS;
 }
 
 void ethereumLESBlockHeaders(uint64_t reqId, uint64_t bv, const BREthereumBlockHeader* blockHeader,  uint8_t**rlpBytes, size_t* rlpByesSize) {
@@ -491,41 +440,44 @@ void ethereumLESBlockHeaders(uint64_t reqId, uint64_t bv, const BREthereumBlockH
 //
 void ethereumLESGetBlockBodies(UInt256* blockHashes, size_t blockHashesCount, uint8_t**rlpBytes, size_t* rlpByesSize) {
 
-       //TODO: Decode the rlp header from EthereumBlock.h once implemented
+    //TODO: Decode the rlp header from EthereumBlock.h once implemented
 
 
 }
 
 void ethereumLESDecodeBlockBodies(uint8_t*rlpBytes, uint64_t* reqId, uint64_t* bv, BREthereumBlockBody** blockBodies, size_t* blockBodiesCount) {
 
-       //TODO: Decode the rlp header from EthereumBlock.h once implemented
+    //TODO: Decode the rlp header from EthereumBlock.h once implemented
 
 }
 
 void ethereumLESBlockBodies(uint64_t reqId, uint64_t bv, const BREthereumBlockBody* blockBodies, size_t blockBoidesCount, uint8_t**rlpBytes, size_t* rlpByesSize) {
 
-       //TODO: Decode the rlp header from EthereumBlock.h once implemented
+    //TODO: Decode the rlp header from EthereumBlock.h once implemented
 
 }
 void ethereumLESGetReceipts(uint64_t reqId, UInt256* receipts, size_t receiptsCount, uint8_t**rlpBytes, size_t* rlpByesSize) {
 
-
+    //TODO: Implement GetReceipts
 
 }
 void ethereumLESDecodeReceipts(uint8_t*rlpBytes, uint64_t* reqId, uint64_t* bv, BREthereumReceipt**receipts, size_t* receiptsCount) {
 
+    //TODO: Implement DecodeReceipts
 
 }
 
 void ethereumLESReceipts(uint64_t reqId, uint64_t bv, BREthereumReceipt* receipts, size_t receiptsCount, uint8_t**rlpBytes, size_t* rlpByesSize) {
 
+    //TODO: Implement Receipts
 
 }
 //
 // Transaction relaying and status retrieval
 //
-static void _encodeTxts(uint64_t msgId, uint64_t reqId, BREthereumTransaction* transactions, size_t transactionsCount, BREthereumNetwork network, BREthereumTransactionRLPType type,  uint8_t**rlpBytes, size_t* rlpBytesSize) {
+static void _encodeTxts(uint64_t msgId, uint64_t reqId, BREthereumTransaction transactions[], BREthereumNetwork network, BREthereumTransactionRLPType type,  uint8_t**rlpBytes, size_t* rlpBytesSize) {
 
+    size_t transactionsCount = array_count(transactions);
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem* items = (BRRlpItem*)malloc(sizeof(BRRlpItem)* (transactionsCount + 1));
     int idx = 0;
@@ -535,7 +487,7 @@ static void _encodeTxts(uint64_t msgId, uint64_t reqId, BREthereumTransaction* t
 
     BRRlpItem* txtsItems = (BRRlpItem*)malloc(sizeof(BRRlpItem)* transactionsCount);
     for(int i = 0; i < transactionsCount; ++i){
-        BRRlpData data = transactionEncodeRLP(transactions[i], network,type);
+        BRRlpData data = transactionEncodeRLP(transactions[i], network, type);
         txtsItems[i] = rlpEncodeItemBytes(coder, data.bytes, data.bytesCount);
         rlpDataRelease(data);
     }
@@ -548,17 +500,18 @@ static void _encodeTxts(uint64_t msgId, uint64_t reqId, BREthereumTransaction* t
     free(txtsItems);
 }
 
-void ethereumLESSendTxt(uint64_t reqId, BREthereumTransaction* transactions, size_t transactionsCount, BREthereumNetwork network, BREthereumTransactionRLPType type,  uint8_t**rlpBytes, size_t* rlpBytesSize) {
+void ethereumLESSendTxt(uint64_t reqId, BREthereumTransaction transactions[], BREthereumNetwork network, BREthereumTransactionRLPType type,  uint8_t**rlpBytes, size_t* rlpBytesSize) {
     
-    _encodeTxts(0x0c,reqId, transactions,transactionsCount,network,type,rlpBytes,rlpBytesSize);
+    _encodeTxts(0x0c,reqId, transactions,network,type,rlpBytes,rlpBytesSize);
 }
-void ethereumLESSendTxtV2(uint64_t reqId, BREthereumTransaction* transactions, size_t transactionsCount, BREthereumNetwork network, BREthereumTransactionRLPType type, uint8_t**rlpBytes, size_t* rlpBytesSize) {
+void ethereumLESSendTxtV2(uint64_t reqId, BREthereumTransaction transactions[], BREthereumNetwork network, BREthereumTransactionRLPType type, uint8_t**rlpBytes, size_t* rlpBytesSize) {
 
-    _encodeTxts(0x13,reqId, transactions,transactionsCount,network,type,rlpBytes,rlpBytesSize);
+    _encodeTxts(0x13,reqId, transactions,network,type,rlpBytes,rlpBytesSize);
 }
-void ethereumLESGetTxStatus(uint64_t reqId, BREthereumTransaction* transactions, size_t transactionsCount, uint8_t**rlpBytes, size_t* rlpBytesSize) {
+void ethereumLESGetTxStatus(uint64_t reqId, BREthereumHash transactions[], uint8_t**rlpBytes, size_t* rlpBytesSize) {
 
     BRRlpCoder coder = rlpCoderCreate();
+    size_t transactionsCount = array_count(transactions);
     BRRlpItem* items = (BRRlpItem*)malloc(sizeof(BRRlpItem)* (transactionsCount + 1));
     int idx = 0;
     
@@ -567,8 +520,7 @@ void ethereumLESGetTxStatus(uint64_t reqId, BREthereumTransaction* transactions,
 
     BRRlpItem* txtsItems = (BRRlpItem*)malloc(sizeof(BRRlpItem)* transactionsCount);
     for(int i = 0; i < transactionsCount; ++i){
-        const BREthereumHash hash = transactionGetHash(transactions[i]);
-        txtsItems[i] = rlpEncodeItemBytes(coder, (uint8_t*)hash.bytes, sizeof(hash.bytes));
+        txtsItems[i] = rlpEncodeItemBytes(coder, transactions[i].bytes, sizeof(transactions[i].bytes));
     }
     items[idx++] = rlpEncodeListItems(coder, txtsItems, transactionsCount);
 
@@ -580,7 +532,7 @@ void ethereumLESGetTxStatus(uint64_t reqId, BREthereumTransaction* transactions,
 
 
 }
-BREthereumLESDecodeStatus ethereumLESDecodeTxStatus(uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv, BREthereumTransactionStatusReply** replies, size_t* repliesCount){
+BREthereumLESDecodeStatus ethereumLESDecodeTxStatus(uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv, BREthereumTransactionStatusLES** replies, size_t* repliesCount){
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpData data = {rlpBytesSize, rlpBytes};
@@ -593,41 +545,30 @@ BREthereumLESDecodeStatus ethereumLESDecodeTxStatus(uint8_t*rlpBytes, size_t rlp
 
     uint64_t messageId = rlpDecodeItemUInt64(coder, items[0],0);
     if(messageId != 0x15){
-        return BRE_LES_INVALID_MSG_ID_ERROR;
+        return BRE_LES_CODER_INVALID_MSG_ID_ERROR;
     }
     *reqId = rlpDecodeItemUInt64(coder, items[1],0);
     *bv = rlpDecodeItemUInt64(coder, items[2],0);
     size_t statusesCount;
     const BRRlpItem *statuses = rlpDecodeList(coder, items[2], &statusesCount);
     
-    BREthereumTransactionStatusReply*retReplies = (BREthereumTransactionStatusReply*)malloc(sizeof(BREthereumTransactionStatusReply) * statusesCount);
+    BREthereumTransactionStatusLES*retReplies = (BREthereumTransactionStatusLES*)malloc(sizeof(BREthereumTransactionStatusLES) * statusesCount);
     for(int i = 0; i < statusesCount; ++i){
         size_t statusDataCount;
         const BRRlpItem* statusData = rlpDecodeList(coder, statuses[i], &statusDataCount);
-        retReplies[i].status = rlpDecodeItemUInt64(coder, statusData[0],0);
-        if(retReplies[i].status == TXSTATUS_INCLUDED){
-            size_t includeDataCount;
-            const BRRlpItem* includeData = rlpDecodeList(coder, statusData[1], &includeDataCount);
-            BRRlpData data = rlpDecodeItemBytes(coder, includeData[0]);
-            memcpy(retReplies[i].u.included_data.blockHash, data.bytes, data.bytesCount);
-            rlpDataRelease(data);
-            retReplies[i].u.included_data.blockNumber = rlpDecodeItemUInt64(coder, includeData[1],0);
-            retReplies[i].u.included_data.txIndex = rlpDecodeItemUInt64(coder, includeData[2],0);
-        }else if(retReplies[i].status == TXSTATUS_ERROR) {
-            retReplies[i].u.error_message = rlpDecodeItemString(coder, statusData[1]);
-        }
+        retReplies[i] = transactionStatusRLPDecodeItem(statusData[i], coder);
     }
     rlpCoderRelease(coder);
 
     *replies = retReplies;
     *repliesCount = statusesCount;
 
-    return BRE_LES_SUCCESS;
+    return BRE_LES_CODER_SUCCESS;
 
 }
-void ethereumLESTxStatus( uint64_t reqId, uint64_t bv, BREthereumTransactionStatusReply* replies, size_t repliesCount, uint8_t**rlpBytes, size_t* rlpBytesSize){
+void ethereumLESTxStatus( uint64_t reqId, uint64_t bv, BREthereumTransactionStatusLES* replies, size_t repliesCount, uint8_t**rlpBytes, size_t* rlpBytesSize){
 
-    BRRlpCoder coder = rlpCoderCreate();
+  /*  BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem* items = (BRRlpItem*)malloc(sizeof(BRRlpItem)* (repliesCount + 3));
     int idx = 0;
     
@@ -661,4 +602,5 @@ void ethereumLESTxStatus( uint64_t reqId, uint64_t bv, BREthereumTransactionStat
     rlpCoderRelease(coder);
     free(items);
     free(txtsItems);
+    */
 }

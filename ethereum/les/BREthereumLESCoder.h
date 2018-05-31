@@ -44,10 +44,10 @@ extern "C" {
 #define TXSTATUS_ERROR 4
 
 typedef enum {
-    BRE_LES_SUCCESS=0,
-    BRE_LES_INVALID_MSG_ID_ERROR,
-    BRE_LES_INVALID_STATUS_KEY_PAIR,
-    BRE_LES_UNABLE_TO_DECODE_ERROR,
+    BRE_LES_CODER_SUCCESS=0,
+    BRE_LES_CODER_INVALID_MSG_ID_ERROR,
+    BRE_LES_CODER_INVALID_STATUS_KEY_PAIR,
+    BRE_LES_CODER_UNABLE_TO_DECODE_ERROR,
 }BREthereumLESDecodeStatus;
 
 typedef struct {
@@ -77,7 +77,7 @@ typedef struct {
     size_t* flowControlMRCCount;
     uint64_t*flowControlMRR;
     uint64_t announceType;
-}BREthereumLESStatus;
+}BREthereumLESStatusMessage;
 
 //
 // LES Reply Structures
@@ -87,31 +87,11 @@ typedef struct {
     UInt256* uncle;
 }BREthereumBlockBody;
 
-typedef struct {
-    BREthereumBlockHeader blockHeader;
-    uint8_t* node;
-}BREthereumHeaderProof;
-
-
 
 typedef struct {
     int foo;
 }BREthereumReceipt;
 
-
-
-typedef struct {
-    uint64_t status;
-    union {
-        //Included data
-        struct {
-           uint8_t  blockHash[32];
-           uint64_t blockNumber;
-           uint64_t txIndex;
-        }included_data;
-        char* error_message;
-    } u;
-}BREthereumTransactionStatusReply;
 
 
 //
@@ -122,6 +102,25 @@ typedef struct {
     void* value;
 }BREthereumAnnounceRequest;
 
+
+//
+// Status Message
+//
+extern void ethereumLESEncodeStatus(BREthereumLESStatusMessage* status, uint8_t**rlpBytes, size_t* rlpBytesSize);
+extern BREthereumLESDecodeStatus ethereumLESDecodeStatus(uint8_t*rlpBytes, size_t rlpBytesSize, BREthereumLESStatusMessage* status);
+
+//
+// Transaction relaying and status retrieval
+//
+extern void ethereumLESSendTxt(uint64_t reqId, BREthereumTransaction transactions[], BREthereumNetwork network, BREthereumTransactionRLPType type,  uint8_t**rlpBytes, size_t* rlpBytesSize);
+
+extern void ethereumLESSendTxtV2(uint64_t reqId, BREthereumTransaction transactions[], BREthereumNetwork network, BREthereumTransactionRLPType type, uint8_t**rlpBytes, size_t* rlpBytesSize);
+
+extern void ethereumLESGetTxStatus(uint64_t reqId, BREthereumHash transactions[], uint8_t**rlpBytes, size_t* rlpBytesSize);
+
+extern BREthereumLESDecodeStatus ethereumLESDecodeTxStatus(uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv, BREthereumTransactionStatusLES** replies, size_t* repliesCount);
+
+extern void ethereumLESTxStatus( uint64_t reqId, uint64_t bv, BREthereumTransactionStatusLES* replies, size_t repliesCount, uint8_t**rlpBytes, size_t* rlpBytesSize);
 
 
 
