@@ -156,6 +156,28 @@ Java_com_breadwallet_core_BRCorePeerManager_rescan
 
 /*
  * Class:     com_breadwallet_core_BRCorePeerManager
+ * Method:    rescanFromBlock
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCorePeerManager_rescanFromBlock
+        (JNIEnv *env, jobject thisObject, jlong blockNumber) {
+    BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
+    BRPeerManagerRescanFromBlockNumber(peerManager, blockNumber);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePeerManager
+ * Method:    rescanFromCheckPoint
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCorePeerManager_rescanFromCheckPoint
+        (JNIEnv *env, jobject thisObject) {
+    BRPeerManager *peerManager = (BRPeerManager *) getJNIReference(env, thisObject);
+    BRPeerManagerRescanFromLastHardcodedCheckpoint(peerManager);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCorePeerManager
  * Method:    getEstimatedBlockHeight
  * Signature: ()J
  */
