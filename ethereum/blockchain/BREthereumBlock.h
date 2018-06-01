@@ -40,6 +40,9 @@ typedef struct BREthereumBlockRecord *BREthereumBlock;
 //
 // Block Header
 //
+extern BREthereumBoolean
+blockHeaderIsValid (BREthereumBlockHeader header);
+
 extern BREthereumBlockHeader
 blockHeaderDecodeRLP (BRRlpData data);
 
@@ -98,6 +101,10 @@ extern BREthereumBlock
 createBlock (BREthereumBlockHeader header,
              BREthereumBlockHeader ommers[], size_t ommersCount,
              BREthereumTransaction transactions[], size_t transactionCount);
+
+extern BREthereumBoolean
+blockIsValid (BREthereumBlock block,
+              BREthereumBoolean skipHeaderValidation);
 
 extern BREthereumBlockHeader
 blockGetHeader (BREthereumBlock block);

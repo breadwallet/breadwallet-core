@@ -43,8 +43,6 @@ static void
 bcsPeriodicDispatcher (BREventHandler handler,
                        BRTimeoutEvent *event);
 
-
-
 extern BREthereumBCS
 bcsCreate (BREthereumNetwork network,
            BREthereumAccount account,
@@ -52,9 +50,7 @@ bcsCreate (BREthereumNetwork network,
            BREthereumBCSListener listener) {
     BREthereumBCS bcs = (BREthereumBCS) calloc (1, sizeof(struct BREthereumBCSStruct));
 
-    // From headers: extract headhash, headNumber, headTotalDifficulty
-    // From network: extract genesisHash
-
+    bcs->network = network;
     bcs->account = account;
     bcs->address = addressGetRawAddress(accountGetPrimaryAddress(account));
     bcs->filter = bloomFilterCreateAddress(bcs->address);
@@ -64,10 +60,10 @@ bcsCreate (BREthereumNetwork network,
     //
     // Initialize the `headers`, `chain, and `orphans`
     //
+    bcs->chain = NULL;
     bcs->headers = BRSetNew(blockHeaderHashValue,
                             blockHeaderHashEqual,
                             BCS_HEADERS_INITIAL_CAPACITY);
-    bcs->chain = NULL;
     array_new (bcs->orphans, BCS_ORPHAN_HEADERS_INITIAL_CAPACITY);
 
     //
@@ -86,9 +82,16 @@ bcsCreate (BREthereumNetwork network,
     //
     array_new (bcs->pendingTransactions, BCS_PENDING_TRANSACTION_INITIAL_CAPACITY);
 
+    // Our genesis block (header).
+    BREthereumBlockHeader genesis = networkGetGenesisBlockHeader(network);
+
     //
     // Chain `headers` into bcs->headers, bcs->chain.
     //
+    bcs->chain = genesis;
+    if (NULL != headers) {
+    }
+
 
     // Create but don't start the event handler.  Ensure that a fast-acting lesCreate()
     // can signal events (by queuing; they won't be handled until the event queue is started).
@@ -101,9 +104,10 @@ bcsCreate (BREthereumNetwork network,
     bcs->les = lesCreate(network,
                          (BREthereumLESAnnounceContext) bcs,
                          (BREthereumLESAnnounceCallback) bcsSignalAnnounce,
-                         hashCreateEmpty(),
-                         0, 0,
-                         hashCreateEmpty());
+                         blockHeaderGetHash(bcs->chain),
+                         blockHeaderGetNumber(bcs->chain),
+                         blockHeaderGetDifficulty(bcs->chain),
+                         blockHeaderGetHash(genesis));
 
     // Start handling events.
     eventHandlerStart(bcs->handler);
@@ -131,15 +135,35 @@ bcsSync (BREthereumBCS bcs,
 extern void
 bcsSendTransaction (BREthereumBCS bcs,
                     BREthereumTransaction transaction) {
+    bcsSignalSubmitTransaction(bcs, transaction);
+}
+
+extern void
+bcsHandleSubmitTransaction (BREthereumBCS bcs,
+                            BREthereumTransaction transaction) {
 
     // Mark `transaction` as pending; we'll perodically request status until finalized.
     array_add(bcs->pendingTransactions, transactionGetHash(transaction));
 
     // Use LES to submit the transaction; provide our transactionStatus callback.
+
+    BREThereumLESStatus lesStatus =
     lesSubmitTransaction(bcs->les,
                          (BREthereumLESTransactionStatusContext) bcs,
                          (BREthereumLESTransactionStatusCallback) bcsSignalTransactionStatus,
                          transaction);
+
+    switch (lesStatus) {
+        case LES_STATUS_SUCCESS:
+            break;
+        case LES_STATUS_ERROR: {
+            BREthereumTransactionStatus status;
+            status.type = TRANSACTION_STATUS_ERROR;
+            status.u.error.message = "LES Submit Failed";
+            bcsSignalTransactionStatus(bcs, transactionGetHash(transaction), status);
+            break;
+        }
+    }
 }
 
 /*!
@@ -171,39 +195,121 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
 
     // Ignore the header if we have seen it before.  Given an identical hash, *nothing*, at any
     // level (transactions, receipts, logs), could have changed and thus no processing is needed.
+    if (NULL != BRSetGet(bcs->headers, header)) return;
+
+    // Ignore the header if it is not valid.  We might 'ping' the PeerManager or better
+    // maybe the PeerManager does this test so as to only send 'textually' valid header.
+    if (ETHEREUM_BOOLEAN_IS_FALSE(blockHeaderIsValid (header))) return;
+
+    // Lookup `headerParent`
+    BREthereumHash headerParentHash = blockHeaderGetParentHash(header);
+    BREthereumBlockHeader headerParent = BRSetGet(bcs->headers, &headerParentHash);
+
+    // If we have a parent, but the block numbers are not consistent, then ignore `header`
+    if (NULL != headerParent && blockHeaderGetNumber(header) != 1 + blockHeaderGetNumber(headerParent))
+        return;
+
+    // Other checks.
 
     // Add `header` to the set of headers
-    // Put `header` in the chain
-    //   first, move 'conflicting' headers to `orphans`
-    //   then, extend as the new head
+    BRSetAdd(bcs->headers, header);
 
-    // Handle transactions (and logs) that now are included but with an orphaned block
-    //   Move to pending?
-    //
+    // Put `header` in the `chain`
 
-    // check the bloomFilter for a match - note this *must* match any of a) transaction
-    // source/target addresses and b) log source/target addresses.  If the header's bloom filter
-    // does not match both transactions and logs then we *must* get the block bodies and the
-    // transactions receipts to check for matches one-by-one.
-    //
-    // If the header's bloom filter only matches addresses in transactions then alternatively
-    // we can look for a match with any contract address that we are interested in.  If a
-    // contract matches, then we must get the transaction receipts to check for any log with
-    // an address match.
-    if (ETHEREUM_BOOLEAN_IS_TRUE (blockHeaderMatch(header, bcs->filter))) {
+    // If we don't have a parent for `header` then `header` is an orphan.  Skip out.
+    if (NULL == headerParent) {
+        array_add(bcs->orphans, header);
+        return;
+    }
+
+    // If the parent is an orphan then `header` is an orphan.  Skip out.
+    for (int i = 0; i < array_count(bcs->orphans); i++)
+        if (headerParent == bcs->orphans[i]) {
+            array_add (bcs->orphans, header);
+            return;
+        }
+
+    // Can we assert that `headerParent` is in `chain`
+
+    // TODO: He we actually have a linked-list of blockHeader?  Or just parent hashes?
+    //   Well, yeah - figure that out.
+
+    // Every header between `chain` and `headerParent` is now an orphan
+    while (NULL != bcs->chain && headerParent != bcs->chain) {
+        BREthereumHash chainParentHash = blockHeaderGetParentHash(bcs->chain);
+        // Make an orphan from an existing chain element
+        // TODO: Handle unchained transactions, logs
+        array_add (bcs->orphans, bcs->chain);
+
+        // continue back.
+        bcs->chain = BRSetGet(bcs->headers, &chainParentHash);
+    }
+
+    // Must be there; right?
+    assert (NULL != bcs->chain);
+
+    // Extend the chain
+    bcs->chain = header;
+
+    // Orphans may now be chained - one-by-one if their parent matches bcs->chain
+    int keepLooking = 1;
+    while (keepLooking) {
+        keepLooking = 0;
+        for (int i = 0; i <array_count (bcs->orphans); i++) {
+            if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(blockHeaderGetHash (bcs->chain),
+                                                   blockHeaderGetParentHash(bcs->orphans[i])))) {
+                // Extend the chain.
+                bcs->chain = bcs->orphans[i];
+
+                // No longer an orphan
+                array_rm(bcs->orphans, i);
+
+                // Skip out (of `for`) but keep looking.
+                keepLooking = 1;
+                break;
+            }
+        }
+    }
+
+    // We need block info for every header between bcs->chain and headerParent - because we
+    // added orphans - or might have
+    BREthereumHash *headerHashes;
+    array_new (headerHashes, 5);
+    header = bcs->chain;
+    while (NULL != header && header != headerParent) {
+        // check the bloomFilter for a match - note this *must* match any of a) transaction
+        // source/target addresses and b) log source/target addresses.  If the header's bloom filter
+        // does not match both transactions and logs then we *must* get the block bodies and the
+        // transactions receipts to check for matches one-by-one.
+        //
+        // If the header's bloom filter only matches addresses in transactions then alternatively
+        // we can look for a match with any contract address that we are interested in.  If a
+        // contract matches, then we must get the transaction receipts to check for any log with
+        // an address match.
+        if (ETHEREUM_BOOLEAN_IS_TRUE(blockHeaderMatch(header, bcs->filter))) {
+            array_insert (headerHashes, 0, blockHeaderGetHash(header));
+        }
+        // Did the bloom filter match from/to and contract from/to?
+        else if (ETHEREUM_BOOLEAN_IS_TRUE(ETHEREUM_BOOLEAN_FALSE)) {
+
+        }
+
+        // Next header...
+        headerParentHash = blockHeaderGetParentHash(header);
+        header = BRSetGet(bcs->headers, &headerParentHash);
+    }
+
+    // If he have matching headers, then we'll request blockBodies.
+    if (array_count(headerHashes) > 0) {
         // Get the blockbody
-        lesGetBlockBodiesOne(bcs->les,
-                             (BREthereumLESBlockBodiesContext) bcs,
-                             (BREthereumLESBlockBodiesCallback) bcsSignalBlockBodies,
-                             blockHeaderGetHash(header));
+        lesGetBlockBodies(bcs->les,
+                          (BREthereumLESBlockBodiesContext) bcs,
+                          (BREthereumLESBlockBodiesCallback) bcsSignalBlockBodies,
+                          headerHashes);
     }
+    else array_free(headerHashes);
 
-    // Did the bloom filter match from/to and contract from/to?
-    else if (ETHEREUM_BOOLEAN_IS_TRUE(ETHEREUM_BOOLEAN_FALSE)) {
-
-    }
-
-    // Save blocks
+    // Save blocks ??
 }
 
 /*!

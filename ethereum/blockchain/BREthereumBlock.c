@@ -167,6 +167,11 @@ blockHeaderFree (BREthereumBlockHeader header) {
     free (header);
 }
 
+extern BREthereumBoolean
+blockHeaderIsValid (BREthereumBlockHeader header) {
+    return ETHEREUM_BOOLEAN_TRUE;
+}
+
 extern BREthereumHash
 blockHeaderGetHash (BREthereumBlockHeader header) {
     return header->hash;
@@ -369,6 +374,17 @@ createBlock (BREthereumBlockHeader header,
         array_add (block->transactions, transactions[i]);
 
     return block;
+}
+
+extern BREthereumBoolean
+blockIsValid (BREthereumBlock block,
+              BREthereumBoolean skipHeaderValidation) {
+    if (ETHEREUM_BOOLEAN_IS_FALSE(skipHeaderValidation)
+        && ETHEREUM_BOOLEAN_IS_FALSE(blockHeaderIsValid(blockGetHeader(block))))
+        return ETHEREUM_BOOLEAN_FALSE;
+
+    // TODO: Validate transactions - Merkle Root
+    return ETHEREUM_BOOLEAN_TRUE;
 }
 
 extern BREthereumBlockHeader

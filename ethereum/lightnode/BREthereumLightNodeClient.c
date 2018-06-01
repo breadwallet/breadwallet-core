@@ -262,7 +262,7 @@ lightNodeAnnounceGasEstimate (BREthereumLightNode node,
 
 // ==============================================================================================
 //
-// Get Transactions
+// Get Block Number
 //
 extern void
 lightNodeAnnounceBlockNumber (BREthereumLightNode node,
@@ -272,6 +272,10 @@ lightNodeAnnounceBlockNumber (BREthereumLightNode node,
     lightNodeUpdateBlockHeight(node, blockNumber);
 }
 
+// ==============================================================================================
+//
+// Get Transactions
+//
 extern void
 lightNodeUpdateTransactions (BREthereumLightNode node) {
     if (LIGHT_NODE_CONNECTED != node->state) {
@@ -299,7 +303,6 @@ lightNodeUpdateTransactions (BREthereumLightNode node) {
             break;
     }
 }
-
 
 static BREthereumBlock
 lightNodeAnnounceBlock(BREthereumLightNode node,

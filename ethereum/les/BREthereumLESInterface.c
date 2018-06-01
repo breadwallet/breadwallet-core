@@ -117,7 +117,7 @@ lesGetTransactionStatusOne (BREthereumLES les,
 
 }
 
-extern void
+extern BREThereumLESStatus
 lesSubmitTransaction (BREthereumLES les,
                       BREthereumLESTransactionStatusContext context,
                       BREthereumLESTransactionStatusCallback callback,
@@ -128,5 +128,6 @@ lesSubmitTransaction (BREthereumLES les,
 
     // Prepare to handle status...
     // Call SendTxV2
+    return LES_STATUS_ERROR;
 }
 

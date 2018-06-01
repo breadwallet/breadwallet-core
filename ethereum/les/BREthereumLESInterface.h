@@ -249,7 +249,12 @@ lesGetTransactionStatusOne (BREthereumLES les,
                             BREthereumLESTransactionStatusCallback callback,
                             BREthereumHash transaction);
 
-extern void
+typedef enum {
+    LES_STATUS_SUCCESS,
+    LES_STATUS_ERROR,
+} BREThereumLESStatus;
+
+extern BREThereumLESStatus
 lesSubmitTransaction (BREthereumLES les,
                       BREthereumLESTransactionStatusContext context,
                       BREthereumLESTransactionStatusCallback callback,

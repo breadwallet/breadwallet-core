@@ -37,6 +37,7 @@ extern "C" {
 #endif
 
 struct BREthereumBCSStruct {
+    BREthereumNetwork network;
     BREthereumAccount account;
     BREthereumAddress address;
     BREthereumBloomFilter filter;
@@ -60,6 +61,17 @@ struct BREthereumBCSStruct {
 
 extern const BREventType *bcsEventTypes[];
 extern const unsigned int bcsEventTypesCount;
+
+//
+// Submit Transaction
+//
+extern void
+bcsSignalSubmitTransaction (BREthereumBCS bcs,
+                            BREthereumTransaction transaction);
+
+extern void
+bcsHandleSubmitTransaction (BREthereumBCS bcs,
+                            BREthereumTransaction transaction);
 
 //
 // Announce

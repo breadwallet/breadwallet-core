@@ -28,6 +28,38 @@
 
 // ==============================================================================================
 //
+// Signal/Handle Transaction
+//
+typedef struct {
+    BREvent base;
+    BREthereumBCS bcs;
+    BREthereumTransaction transaction;
+} BREthereumHandleSubmitTransactionEvent;
+
+static void
+bcsHandleSubmitTransactionDispatcher (BREventHandler ignore,
+                                      BREthereumHandleSubmitTransactionEvent *event) {
+    bcsHandleSubmitTransaction(event->bcs,
+                               event->transaction);
+}
+
+BREventType handleSubmitTransactionEventType = {
+    "Handle Submit Transaction Event",
+    sizeof (BREthereumHandleSubmitTransactionEvent),
+    (BREventDispatcher) bcsHandleSubmitTransactionDispatcher
+};
+
+extern void
+bcsSignalSubmitTransaction (BREthereumBCS bcs,
+                            BREthereumTransaction transaction) {
+    BREthereumHandleSubmitTransactionEvent event =
+    { { NULL, &handleSubmitTransactionEventType}, bcs, transaction };
+    eventHandlerSignalEvent(bcs->handler, (BREvent *) &event);
+}
+
+
+// ==============================================================================================
+//
 // Signal/Handle Announce
 //
 typedef struct {
@@ -174,7 +206,7 @@ typedef struct {
 
 static void
 bcsHandleTransactionStatusDispatcher(BREventHandler ignore,
-                                                BREthereumHandleTransactionStatusEvent *event) {
+                                     BREthereumHandleTransactionStatusEvent *event) {
     bcsHandleTransactionStatus(event->bcs, event->transactionHash, event->status);
 }
 
@@ -186,8 +218,8 @@ BREventType handleTransactionStatusEventType = {
 
 extern void
 bcsSignalTransactionStatus (BREthereumBCS bcs,
-                                  BREthereumHash transactionHash,
-                                  BREthereumTransactionStatus status) {
+                            BREthereumHash transactionHash,
+                            BREthereumTransactionStatus status) {
     BREthereumHandleTransactionStatusEvent event =
     { { NULL, &handleTransactionStatusEventType }, bcs, transactionHash, status };
     eventHandlerSignalEvent(bcs->handler, (BREvent*) &event);
