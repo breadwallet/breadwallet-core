@@ -210,7 +210,13 @@ public class BREthereumLightNodeClientTest implements
     public void getBlockNumber(int rid) {
         node.announceBlockNumber("2627500", rid);
     }
-//
+
+    @Override
+    public void getNonce(String address, int rid) {
+        node.announceNonce(address, "120", rid);
+    }
+
+    //
     // Listener
     //
 

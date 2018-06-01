@@ -84,6 +84,12 @@ clientGetBlockNumber(BREthereumClientContext context,
                      BREthereumLightNode node,
                      int id);
 
+static void
+clientGetNonce(BREthereumClientContext context,
+               BREthereumLightNode node,
+               const char *address,
+               int id);
+
 //
 // Forward Declarations - Listener
 //
@@ -727,6 +733,23 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jn
     (*env)->ReleaseStringUTFChars(env, blockNumber, strBlockNumber);
 }
 
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniAnnounceNonce
+ * Signature: (Ljava/lang/String;Ljava/lang/String;I)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceNonce
+        (JNIEnv *env, jobject thisObject,
+         jstring address,
+         jstring nonce,
+         jint rid) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+    const char *strAddress = (*env)->GetStringUTFChars(env, address, 0);
+    const char *strNonce = (*env)->GetStringUTFChars(env, nonce, 0);
+    lightNodeAnnounceNonce(node, strAddress, strNonce, rid);
+    (*env)->ReleaseStringUTFChars(env, address, strAddress);
+    (*env)->ReleaseStringUTFChars(env, nonce, strNonce);
+}
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
@@ -1240,10 +1263,13 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeConnect
                      clientSubmitTransaction,
                      clientGetTransactions,
                      clientGetLogs,
-                     clientGetBlockNumber);
+                     clientGetBlockNumber,
+                     clientGetNonce);
 
 
-    return (jboolean) (ETHEREUM_BOOLEAN_TRUE == ethereumConnect(node, client) ? JNI_TRUE : JNI_FALSE);
+    return (jboolean) (ETHEREUM_BOOLEAN_TRUE == ethereumConnect(node, client)
+                       ? JNI_TRUE
+                       : JNI_FALSE);
 }
 
 /*
@@ -1496,7 +1522,6 @@ clientGetBlockNumber(BREthereumClientContext context,
     jobject listener = (*env)->NewLocalRef(env, (jobject) context);
     if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
 
-    // String getGasEstimate (int id, String to, String amount, String data);
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
                                  "trampolineGetBlockNumber",
@@ -1509,6 +1534,33 @@ clientGetBlockNumber(BREthereumClientContext context,
     (*env)->DeleteLocalRef(env, listener);
 }
 
+static void
+clientGetNonce(BREthereumClientContext context,
+               BREthereumLightNode node,
+               const char *address,
+               int id) {
+    JNIEnv *env = getEnv();
+    if (NULL == env) return;
+
+    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
+    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
+
+    jmethodID listenerMethod =
+            lookupListenerMethod(env, listener,
+                                 "trampolineGetNonce",
+                                 "(Ljava/lang/String;I)V");
+    assert (NULL != listenerMethod);
+
+    jobject addressObject = (*env)->NewStringUTF(env, address);
+
+    (*env)->CallVoidMethod(env, listener, listenerMethod,
+                           addressObject,
+                           (jint) id);
+
+    (*env)->DeleteLocalRef(env, addressObject);
+    (*env)->DeleteLocalRef(env, listener);
+
+}
 
 //
 // Listener Callbacks

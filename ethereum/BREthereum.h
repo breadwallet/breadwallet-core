@@ -204,6 +204,12 @@ typedef void (*BREthereumListenerTransactionEventHandler)(BREthereumListenerCont
                                               BREthereumLightNode node,
                                               int rid);
 
+    typedef void
+    (*BREthereumClientHandlerGetNonce) (BREthereumClientContext context,
+                                        BREthereumLightNode node,
+                                        const char *address,
+                                        int rid);
+
 //
 // Light Node Configuration
 //
@@ -220,6 +226,7 @@ typedef struct {
     BREthereumClientHandlerGetTransactions funcGetTransactions;
     BREthereumClientHandlerGetLogs funcGetLogs;
     BREthereumClientHandlerGetBlockNumber funcGetBlockNumber;
+    BREthereumClientHandlerGetNonce funcGetNonce;
 } BREthereumClient;
 
 
@@ -238,7 +245,8 @@ ethereumClientCreate(BREthereumClientContext context,
                      BREthereumClientHandlerSubmitTransaction funcSubmitTransaction,
                      BREthereumClientHandlerGetTransactions funcGetTransactions,
                      BREthereumClientHandlerGetLogs funcGetLogs,
-                     BREthereumClientHandlerGetBlockNumber funcGetBlockNumber);
+                     BREthereumClientHandlerGetBlockNumber funcGetBlockNumber,
+                     BREthereumClientHandlerGetNonce funcGetNonce);
 
 /**
  * Install 'wordList' as the default BIP39 Word List.  THIS IS SHARED MEMORY; DO NOT FREE wordList.
@@ -632,6 +640,9 @@ typedef enum {
 extern void
 lightNodeUpdateBlockNumber (BREthereumLightNode node);
 
+extern void
+lightNodeUpdateNonce (BREthereumLightNode node);
+
 /**
  * Update the transactions for the node's account.  A JSON_RPC light node will call out to
  * BREthereumClientHandlerGetTransactions which is expected to query all transactions associated with the
@@ -690,6 +701,13 @@ extern void
 lightNodeAnnounceBlockNumber (BREthereumLightNode node,
                               const char *blockNumber,
                               int rid);
+
+extern void
+lightNodeAnnounceNonce (BREthereumLightNode node,
+                        const char *strAddress,
+                        const char *strNonce,
+                        int rid);
+
 
 // Some JSON_RPC call will occur to get all transactions associated with an account.  We'll
 // process these transactions into the LightNode (associated with a wallet).  Thereafter

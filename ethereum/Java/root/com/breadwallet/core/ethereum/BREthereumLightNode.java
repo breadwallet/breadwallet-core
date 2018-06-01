@@ -91,6 +91,13 @@ public class BREthereumLightNode extends BRCoreJniReference {
         //                                                    BREthereumLightNode node,
         //                                                    int rid);
         void getBlockNumber (int rid);
+
+        //        typedef void (*BREthereumClientHandlerGetNonce) (BREthereumClientContext context,
+        //                                                        BREthereumLightNode node,
+        //                                                        const char *address,
+        //                                                        int rid);
+        void getNonce (String address, int rid);
+
     }
 
     //
@@ -155,6 +162,10 @@ public class BREthereumLightNode extends BRCoreJniReference {
 
     public void announceBlockNumber (String blockNumber, int rid) {
         jniAnnounceBlockNumber (blockNumber, rid);
+    }
+
+    public void announceNonce (String address, String nonce, int rid) {
+        jniAnnounceNonce(address, nonce, rid);
     }
 
     //
@@ -544,6 +555,10 @@ public class BREthereumLightNode extends BRCoreJniReference {
         client.get().getBlockNumber(rid);
     }
 
+    protected void trampolineGetNonce (String address, int rid) {
+        client.get().getNonce(address, rid);
+    }
+
     //
     // JNI: Constructors
     //
@@ -593,6 +608,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     protected native void jniAnnounceGasEstimate (int wid, int tid, String gasEstimate, int rid);
     protected native void jniAnnounceSubmitTransaction (int wid, int tid, String hash, int rid);
     protected native void jniAnnounceBlockNumber (String blockNumber, int rid);
+    protected native void jniAnnounceNonce (String address, String nonce, int rid);
 
 
     // JNI: Account & Address
