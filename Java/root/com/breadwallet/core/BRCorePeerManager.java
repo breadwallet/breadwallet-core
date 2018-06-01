@@ -143,6 +143,8 @@ public class BRCorePeerManager extends BRCoreJniReference {
      *
      */
     public native void rescan ();
+    public native void rescanFromBlock (long blockNumber);
+    public native void rescanFromCheckPoint ();
 
     /**
      *
