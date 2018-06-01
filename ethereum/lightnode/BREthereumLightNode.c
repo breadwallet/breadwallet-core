@@ -56,7 +56,9 @@ ethereumClientCreate(BREthereumClientContext context,
                      BREthereumClientHandlerSubmitTransaction funcSubmitTransaction,
                      BREthereumClientHandlerGetTransactions funcGetTransactions,
                      BREthereumClientHandlerGetLogs funcGetLogs,
-                     BREthereumClientHandlerGetBlockNumber funcGetBlockNumber) {
+                     BREthereumClientHandlerGetBlockNumber funcGetBlockNumber,
+                     BREthereumClientHandlerGetNonce funcGetNonce) {
+
     BREthereumClient client;
     client.funcContext = context;
     client.funcGetBalance = funcGetBalance;
@@ -66,6 +68,7 @@ ethereumClientCreate(BREthereumClientContext context,
     client.funcGetTransactions = funcGetTransactions;
     client.funcGetLogs = funcGetLogs;
     client.funcGetBlockNumber = funcGetBlockNumber;
+    client.funcGetNonce = funcGetNonce;
     return client;
 }
 
@@ -188,6 +191,9 @@ lightNodePeriodicDispatcher (BREventHandler handler,
 
     if (node->state != LIGHT_NODE_CONNECTED) return;
 
+    lightNodeUpdateBlockNumber(node);
+    lightNodeUpdateNonce(node);
+    
     // We'll query all transactions for this node's account.  That will give us a shot at
     // getting the nonce for the account's address correct.  We'll save all the transactions and
     // then process them into wallet as wallets exist.
@@ -604,6 +610,31 @@ lightNodeUpdateBlockNumber (BREthereumLightNode node) {
             break;
     }
 }
+
+extern void
+lightNodeUpdateNonce (BREthereumLightNode node) {
+    if (LIGHT_NODE_CONNECTED != node->state) return;
+    switch (node->type) {
+        case NODE_TYPE_LES:
+            // TODO: Fall-through on error, perhaps
+
+        case NODE_TYPE_JSON_RPC: {
+            char *address = addressAsString(accountGetPrimaryAddress(node->account));
+
+            node->client.funcGetNonce
+            (node->client.funcContext,
+             node,
+             address,
+             ++node->requestId);
+
+            free (address);
+            break;
+        }
+        case NODE_TYPE_NONE:
+            break;
+    }
+}
+
 /**
  *
  * @param node

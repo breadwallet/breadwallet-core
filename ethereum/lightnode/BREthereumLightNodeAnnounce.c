@@ -143,6 +143,17 @@ lightNodeAnnounceBlockNumber (BREthereumLightNode node,
 }
 
 extern void
+lightNodeAnnounceNonce (BREthereumLightNode node,
+                        const char *strAddress,
+                        const char *strNonce,
+                        int rid) {
+    uint64_t nonce = strtoull (strNonce, NULL, 0);
+    BREthereumAddress address = accountGetPrimaryAddress (lightNodeGetAccount(node));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE (addressHasString(address, strAddress)));
+    addressSetNonce(address, nonce);
+}
+
+extern void
 lightNodeAnnounceSubmitTransaction(BREthereumLightNode node,
                                    BREthereumWalletId wid,
                                    BREthereumTransactionId tid,
@@ -272,10 +283,6 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
     uint64_t nonce = strtoull(strNonce, NULL, 10); // TODO: Assumes `nonce` is uint64_t; which it is for now
 
     pthread_mutex_lock(&node->lock);
-
-    // If `isSource` then the nonce is 'ours'.
-    if (ETHEREUM_BOOLEAN_IS_TRUE(isSource) && nonce >= addressGetNonce(primaryAddress))
-        addressSetNonce(primaryAddress, nonce + 1);  // next
 
     // Find or create a block.  No point in doing this until we have a transaction of interest
     BREthereumBlock block = lightNodeAnnounceBlock(node, blockNumber, blockHash, blockTimestamp);
