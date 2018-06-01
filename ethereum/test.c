@@ -1,3 +1,4 @@
+
 //
 //  test
 //  breadwallet-core Ethereum
@@ -1229,6 +1230,15 @@ clientGetBlockNumber (BREthereumClientContext context,
                       int rid) {
     lightNodeAnnounceBlockNumber(node, "0x1e487e", rid);
 }
+
+static void
+clientGetNonce (BREthereumClientContext context,
+                      BREthereumLightNode node,
+                const char *address,
+                      int rid) {
+    lightNodeAnnounceNonce(node, address, "0x4", rid);
+}
+
 void prepareTransaction (const char *paperKey, const char *recvAddr, const uint64_t gasPrice, const uint64_t gasLimit, const uint64_t amount) {
     printf ("     Prepare Transaction\n");
 
@@ -1243,7 +1253,8 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
                          clientSubmitTransaction,
                          clientGetTransactions,
                          clientGetLogs,
-                         clientGetBlockNumber);
+                         clientGetBlockNumber,
+                         clientGetNonce);
 
     BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
     // A wallet amount Ether
@@ -1297,7 +1308,8 @@ runLightNode_JSON_RPC_test (const char *paperKey) {
                          clientSubmitTransaction,
                          clientGetTransactions,
                          clientGetLogs,
-                         clientGetBlockNumber);
+                         clientGetBlockNumber,
+                         clientGetNonce);
     
     BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
     BREthereumWalletId wallet = ethereumGetWallet(node);
@@ -1394,7 +1406,8 @@ runLightNode_LISTENER_test (const char *paperKey) {
                          clientSubmitTransaction,
                          clientGetTransactions,
                          clientGetLogs,
-                         clientGetBlockNumber);
+                         clientGetBlockNumber,
+                         clientGetNonce);
 
     BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
 

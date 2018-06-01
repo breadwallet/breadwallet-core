@@ -265,11 +265,69 @@ lightNodeAnnounceGasEstimate (BREthereumLightNode node,
 // Get Block Number
 //
 extern void
+lightNodeUpdateBlockNumber (BREthereumLightNode node) {
+    if (LIGHT_NODE_CONNECTED != node->state) return;
+    switch (node->type) {
+        case NODE_TYPE_LES:
+            // TODO: Fall-through on error, perhaps
+            
+        case NODE_TYPE_JSON_RPC:
+            node->client.funcGetBlockNumber
+            (node->client.funcContext,
+             node,
+             ++node->requestId);
+            break;
+            
+        case NODE_TYPE_NONE:
+            break;
+    }
+}
+
+extern void
 lightNodeAnnounceBlockNumber (BREthereumLightNode node,
                               const char *strBlockNumber,
                               int rid) {
     uint64_t blockNumber = strtoull(strBlockNumber, NULL, 0);
     lightNodeUpdateBlockHeight(node, blockNumber);
+}
+
+// ==============================================================================================
+//
+// Get Nonce
+//
+extern void
+lightNodeUpdateNonce (BREthereumLightNode node) {
+    if (LIGHT_NODE_CONNECTED != node->state) return;
+    switch (node->type) {
+        case NODE_TYPE_LES:
+            // TODO: Fall-through on error, perhaps
+            
+        case NODE_TYPE_JSON_RPC: {
+            char *address = addressAsString(accountGetPrimaryAddress(node->account));
+            
+            node->client.funcGetNonce
+            (node->client.funcContext,
+             node,
+             address,
+             ++node->requestId);
+            
+            free (address);
+            break;
+        }
+        case NODE_TYPE_NONE:
+            break;
+    }
+}
+
+extern void
+lightNodeAnnounceNonce (BREthereumLightNode node,
+                        const char *strAddress,
+                        const char *strNonce,
+                        int rid) {
+    uint64_t nonce = strtoull (strNonce, NULL, 0);
+    BREthereumEncodedAddress address = accountGetPrimaryAddress (lightNodeGetAccount(node));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE (addressHasString(address, strAddress)));
+    addressSetNonce(address, nonce);
 }
 
 // ==============================================================================================
@@ -406,10 +464,6 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
     uint64_t nonce = strtoull(strNonce, NULL, 10); // TODO: Assumes `nonce` is uint64_t; which it is for now
 
     pthread_mutex_lock(&node->lock);
-
-    // If `isSource` then the nonce is 'ours'.
-    if (ETHEREUM_BOOLEAN_IS_TRUE(isSource) && nonce >= addressGetNonce(primaryAddress))
-        addressSetNonce(primaryAddress, nonce + 1);  // next
 
     // Find or create a block.  No point in doing this until we have a transaction of interest
     BREthereumBlock block = lightNodeAnnounceBlock(node, blockNumber, blockHash, blockTimestamp);
