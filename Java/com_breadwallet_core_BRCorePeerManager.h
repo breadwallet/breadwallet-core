@@ -57,6 +57,22 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCorePeerManager_rescan
 
 /*
  * Class:     com_breadwallet_core_BRCorePeerManager
+ * Method:    rescanFromBlock
+ * Signature: (J)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCorePeerManager_rescanFromBlock
+  (JNIEnv *, jobject, jlong);
+
+/*
+ * Class:     com_breadwallet_core_BRCorePeerManager
+ * Method:    rescanFromCheckPoint
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCorePeerManager_rescanFromCheckPoint
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     com_breadwallet_core_BRCorePeerManager
  * Method:    getEstimatedBlockHeight
  * Signature: ()J
  */
