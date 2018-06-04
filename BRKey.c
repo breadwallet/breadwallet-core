@@ -374,7 +374,53 @@ size_t BRKeyCompactSign(const BRKey *key, void *compactSig, size_t sigLen, UInt2
     
     return r;
 }
+// Pieter Wuille's compact signature encoding used for bitcoin message signing
+// to verify a compact signature, recover a public key from the signature and verify that it matches the signer's pubkey
+size_t BRKeyCompactSignEthereum(const BRKey *key, void *compactSig, size_t sigLen, UInt256 md)
+{
+    size_t r = 0;
+    int recid = 0;
+    secp256k1_ecdsa_recoverable_signature s;
 
+    assert(key != NULL);
+    assert(sigLen >= 65 || compactSig == NULL);
+
+    if (! UInt256IsZero(key->secret)) { // can't sign with a public key
+        if (compactSig && sigLen >= 65 &&
+            secp256k1_ecdsa_sign_recoverable(_ctx, &s, md.u8, key->secret.u8, secp256k1_nonce_function_rfc6979, NULL) &&
+            secp256k1_ecdsa_recoverable_signature_serialize_compact(_ctx, (uint8_t *)compactSig, &recid, &s)) {
+            ((uint8_t *)compactSig)[64] = recid;
+            r = 65;
+        }
+        else if (! compactSig) r = 65;
+    }
+    return r;
+}
+// assigns pubKey recovered from compactSig to key and returns true on success
+int BRKeyRecoverPubKeyEthereum(BRKey *key, UInt256 md, const void *compactSig, size_t sigLen)
+{
+    int r = 0, compressed = 0, recid = 0;
+    uint8_t pubKey[65];
+    size_t len = sizeof(pubKey);
+    secp256k1_ecdsa_recoverable_signature s;
+    secp256k1_pubkey pk;
+    
+    assert(key != NULL);
+    assert(compactSig != NULL);
+    assert(sigLen == 65);
+    
+    if (sigLen == 65) {
+        compressed = 0;
+        recid = ((uint8_t *)compactSig)[64];
+        if (secp256k1_ecdsa_recoverable_signature_parse_compact(_ctx, &s, (const uint8_t *)compactSig, recid) &&
+            secp256k1_ecdsa_recover(_ctx, &pk, &s, md.u8) &&
+            secp256k1_ec_pubkey_serialize(_ctx, pubKey, &len, &pk, SECP256K1_EC_UNCOMPRESSED)) {
+            r = BRKeySetPubKey(key, pubKey, len);
+        }
+    }
+
+    return r;
+}
 // assigns pubKey recovered from compactSig to key and returns true on success
 int BRKeyRecoverPubKey(BRKey *key, UInt256 md, const void *compactSig, size_t sigLen)
 {
