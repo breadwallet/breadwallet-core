@@ -40,6 +40,7 @@
 #include <regex.h>
 #include "test-les.h"
 #include "BRInt.h"
+#include "BREthereumLES.h"
 #include "BREthereumNode.h"
 #include "BREthereumNodeEventHandler.h"
 #include "BREthereumNodeManager.h"
@@ -226,19 +227,9 @@ void runEthereumManagerTests() {
     sleep(24);
 
 }
-void runEthereumNodeSendTransactionTests() {
-
-
-
-
-}
-void _disconnectFailFunc(BREthereumDisconnect reason){
-
-    assert(1);
-}
 
 void runEthereumNodeTests() {
-    
+    /*
     BREthereumAccount account = createAccount(TEST_PAPER_KEY);
     BRKey key = accountGetPrimaryAddressPrivateKey (account,TEST_PAPER_KEY);
 //35.232.131.113
@@ -266,6 +257,12 @@ void runEthereumNodeTests() {
     ethereumRandomGenUInt256(ctx, &nonce);
 
     //Create the ethereum node
+    BREthereumManagerCallback callbacks;
+    callbacks.connectedFuc = _connectedCallback;
+    callbacks.disconnectFunc = _disconnetCallback;
+    callbacks.networkReachableFunc = _networkReachableCallback;
+    callbacks.receivedMsgFunc = _receivedMessageCallback;
+    ethereumNodeCreate(key, &nonce, &ephemeral, callbacks);
     BREthereumNode node = ethereumNodeCreate(config, &key, nonce, &ephemeral, _disconnectFailFunc, ETHEREUM_BOOLEAN_TRUE);
     
     //Connect to the endpoint
@@ -281,6 +278,19 @@ void runEthereumNodeTests() {
     ethereumEndpointRelease(to);
     accountFree(account);
     free(pubKey);
+    */
+}
+void _disconnect(BREthereumManagerCallbackContext info, BREthereumNode node, BREthereumDisconnect reason) {
+
+}
+void _receievedMessage(BREthereumManagerCallbackContext info, BREthereumNode node, uint8_t* message, size_t messageSize){
+
+}
+void _connect(BREthereumManagerCallbackContext info, BREthereumNode node, uint8_t** status, size_t* statusSize){
+
+}
+void _reachable(BREthereumManagerCallbackContext info, BREthereumNode node, BREthereumBoolean isReachable){
+
 }
 
 //This data comes from https://gist.github.com/fjl/3a78780d17c755d22df2
@@ -338,17 +348,24 @@ void runAuthTests() {
     UInt256 initNonce;
     decodeHex(initNonce.u8, 32, INITIATOR_NONCE, 64);
     
+
     //RECEIVER_NONCE
     UInt256 receiverNonce;
     decodeHex(receiverNonce.u8, 32, RECEIVER_NONCE, 64);
     
-    
     //Create the ethereum node for the initiator
-    BREthereumNode initiator = ethereumNodeCreate(config, &initPrivKey, initNonce, &initEphemeralKey, _disconnectFailFunc, ETHEREUM_BOOLEAN_TRUE);
+    BREthereumManagerCallback callbacks;
+    callbacks.connectedFuc = _connect;
+    callbacks.disconnectFunc = _disconnect;
+    callbacks.networkReachableFunc = _reachable;
+    callbacks.receivedMsgFunc = _receievedMessage;
+    
+    BREthereumNode initiator = ethereumNodeCreate(config, &initPrivKey, &initNonce, &initEphemeralKey, callbacks, ETHEREUM_BOOLEAN_TRUE);
     
     //Create a handhsake for testing
     BREthereumHandshake handshake = ethereumHandshakeCreate(initiator);
-    testInitatorHandshake(handshake, &recvEphemeralKey);
+ //   testInitatorHandshake(handshake, &recvEphemeralKey);
+        
     
     //Create the ethereum node for the initiator
     _createPrivKey(&initPrivKey, INITIATOR_PRIVATE_KEY, 64);
@@ -359,39 +376,78 @@ void runAuthTests() {
     decodeHex(initNonce.u8, 32, INITIATOR_NONCE, 64);
     
     config.remoteKey = NULL;
-    BREthereumNode responder = ethereumNodeCreate(config, &recvPrivKey, receiverNonce, &recvEphemeralKey, _disconnectFailFunc, ETHEREUM_BOOLEAN_FALSE);
+    BREthereumNode responder = ethereumNodeCreate(config, &recvPrivKey, &receiverNonce, &recvEphemeralKey, callbacks, ETHEREUM_BOOLEAN_FALSE);
     
     //Create a handhsake for testing
     BREthereumHandshake handshake2 = ethereumHandshakeCreate(responder);
     testReceiverHandshake(handshake2, &initPrivKey, &initEphemeralKey);
     
-    
-
-/*
-    //INITIAL_HELLO_PACKET
-    size_t initHelloPacketHexSize = strlen(INITIATOR_HELLO_PACKET);
-    size_t initHelloPacketSize = initHelloPacketHexSize/2;
-    
-    uint8_t* initHelloPacket[initHelloPacketSize];
-    decodeHex(initHelloPacket, initHelloPacketSize, INITIATOR_HELLO_PACKET, initHelloPacketHexSize);
-
+    /*
     //RECEIVER_HELLO_PACKET
     size_t recvHelloPacketHexSize = strlen(RECEIVER_HELLO_PACKET);
     size_t recvHelloPacketSize = recvHelloPacketHexSize/2;
     
     uint8_t* recvHelloPacket[recvHelloPacketSize];
     decodeHex(recvHelloPacket, recvHelloPacketSize, RECEIVER_HELLO_PACKET, recvHelloPacketHexSize);
-*/
-
+    */
+}
+void _announceCallback (BREthereumLESAnnounceContext context,
+                                  BREthereumHash headHash,
+                                  uint64_t headNumber,
+                                  uint64_t headTotalDifficulty) {
+    
+ 
+}
+void transactionStatusCallback(BREthereumLESTransactionStatusContext context,
+                               BREthereumHash transaction,
+                               BREthereumTransactionStatusLES status){
+    
+    char transactionHashStr[] = "c070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c";
+    BREthereumHash transactionHash;
+    decodeHex(transactionHash.bytes, 32, transactionHashStr, strlen(transactionHashStr));
+    
+    assert(memcmp(transaction.bytes, transactionHash.bytes, 32) == 0);
+    assert(status.type == TRANSACTION_STATUS_INCLUDED);
 }
 
-void runLEStests(void) {
+void runLESTest() {
 
-   // runEthereumNodeTests();
-  //  runEthereumNodeEventHandlerTests();
-   // runEthereumNodeDiscoveryTests();
-    runAuthTests();
- //   runEthereumNodeTests();
+    //Prepare values to be given to an les context
+    BREthereumHash headHash;
+    char headHashStr[] = "d4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3";
+    assert(32 == (strlen(headHashStr)/2));
+    decodeHex(headHash.bytes, 32, headHashStr, strlen(headHashStr));
+
+    uint64_t headNumber = 0;
+    uint64_t headTD = 0x400000000;
+
+    BREthereumHash genesisHash;
+    decodeHex(genesisHash.bytes, 32, headHashStr, strlen(headHashStr));
+
+    // Create an LES context
+    BREthereumLES les = lesCreate(ethereumMainnet, NULL, _announceCallback, headHash, headNumber, headTD, genesisHash);
+  
+    //Sleep for a bit to allow the les context to connect to the network
+    sleep(20);
+  
+    // Prepare values to be given to a send tranactions status message
+    char transactionHashStr[] = "c070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c";
+    assert(32 == (strlen(transactionHashStr)/2));
+    BREthereumHash transactionHash;
+    decodeHex(transactionHash.bytes, 32, headHashStr, strlen(headHashStr));
+    
+    assert(lesGetTransactionStatusOne(les, NULL, transactionStatusCallback, transactionHash) == LES_SUCCESS);
+    
+    
+}
+void runLEStests(void) {
+    
+     runLESTest();
+  // runEthereumNodeTests();
+  // runEthereumNodeEventHandlerTests();
+  // runEthereumNodeDiscoveryTests();
+  // runAuthTests();
+  // runEthereumNodeTests();
 
 
 }
