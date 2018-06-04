@@ -36,6 +36,7 @@
 #include "BREthereumNodeEventHandler.h"
 #include "BRKey.h"
 #include "BREthereumLES.h"
+#include "BREthereumP2PCoder.h"
 #include "BREthereumFrameCoder.h"
 #ifdef __cplusplus
 extern "C" {
@@ -68,21 +69,6 @@ typedef struct {
     BRKey* remoteKey;   // the remote public key for the remote peer
 } BREthereumPeerConfig;
 
-typedef enum {
-    BRE_DISCONNECT_REQUESTED = 0x00, //0x00 Disconnect requested
-    BRE_TCP_ERROR,                   //0x01 TCP sub-system error
-    BRE_BREACH_PROTO,                //0x02 Breach of protocol, e.g. a malformed message, bad RLP, incorrect magic number &c.
-    BRE_USELESS_PEER,                //0x03 Useless peer
-    BRE_TOO_MANY_PEERS,              //0x04 Too many peers
-    BRE_ALREADY_CONNECTED,           //0x05 Already connected
-    BRE_INCOMPATIBLE_P2P,            //0x06 Incompatible P2P protocol version
-    BRE_NULL_NODE,                   //0x07 Null node identity received - this is automatically invalid
-    BRE_CLIENT_QUIT,                 //0x08 Client quitting
-    BRE_UNEXPECTED_ID,               //0x09 Unexpected identity (i.e. a different identity to a previous connection/what a trusted peer told us)
-    BRE_ID_SAME,                     //0x0a Identity is the same as this node (i.e. connected to itself);
-    BRE_TIMEOUT,                     //0x0b Timeout on receiving a message (i.e. nothing received since sending last ping);
-    BRE_UNKNOWN                      //0x10 Some other reason specific to a subprotocol.
-}BREthereumDisconnect;
 
 typedef void* BREthereumManagerCallbackContext;
 typedef void (*BREthereumManagerDisconnectCallback)(BREthereumManagerCallbackContext info, BREthereumNode node, BREthereumDisconnect reason);
@@ -166,11 +152,6 @@ extern BRRlpData ethereumNodeGetStatusData(BREthereumNode node);
 extern BREthereumBoolean ethereumNodeDidOriginate(BREthereumNode node);
 
 /**
- * Retrives a reference to the remote status for the remote peer
- */
-//extern BREthereumLESStatus* ethereumNodeGetPeerStatus(BREthereumNode node);
-
-/**
  * Retrieves a reference to the local ephemeral
  */
 extern BRKey* ethereumNodeGetEphemeral(BREthereumNode node);
@@ -193,7 +174,12 @@ extern UInt256* ethereumNodeGetPeerNonce(BREthereumNode node);
 /**
  * Retrieve the Hello Message for the node
  */
-extern BRRlpData ethereumNodeGetEncodedHelloData(BREthereumNode node);
+extern BRRlpData ethereumNodeRLPP2PHello(BREthereumNode node);
+
+/**
+ * Decode the Hello Message from the peer
+ */
+extern BREthereumBoolean ethereumNodePeerP2PHello(BREthereumNode node);
 
 /**
  * Announces an event to the node

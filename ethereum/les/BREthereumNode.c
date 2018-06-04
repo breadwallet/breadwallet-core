@@ -44,10 +44,12 @@
 #include "BREthereumNodeDiscovery.h"
 #include "BREthereumAccount.h"
 #include "BRKey.h"
+#include "BREthereumLESCoder.h"
 #include "BREthereumNodeEventHandler.h"
 #include "BREthereumEndpoint.h"
 #include "BREthereumFrameCoder.h"
 #include "BREthereumNodeDiscovery.h"
+#include "BREthereumP2PCoder.h"
 
 #ifndef MSG_NOSIGNAL   // linux based systems have a MSG_NOSIGNAL send flag, useful for supressing SIGPIPE signals
 #define MSG_NOSIGNAL 0 // set to 0 if undefined (BSD has the SO_NOSIGPIPE sockopt, and windows has no signals at all)
@@ -59,6 +61,7 @@
 #define DEFAULT_UDP_PORT 30303
 #define DEFAULT_TCP_PORT 30303
 #define ETH_LOG_TOPIC "BREthereumNode"
+
 
 /**
  * BREthereumPeerContext - holds information about the remote peer
@@ -140,6 +143,9 @@ struct BREthereumNodeContext {
     
     //The reason why the node needs to disconnect from the remote peer
     BREthereumDisconnect disconnectReason;
+    
+    //The information about the P2P context for this node;
+    BREthereumP2PHello helloData;
 };
 
 
@@ -261,9 +267,7 @@ static void _updateStatus(BREthereumNode node, BREthereumNodeStatus status){
 static void _disconnect(BREthereumNode node) {
    
     //TODO: Check if you're connected.
-    node->status = BRE_NODE_DISCONNECTED;
     int socket = node->peer.socket;
-    node->shouldDisconnect = ETHEREUM_BOOLEAN_TRUE;
     if (socket >= 0) {
         node->peer.socket = -1;
         if (shutdown(socket, SHUT_RDWR) < 0){
@@ -274,9 +278,48 @@ static void _disconnect(BREthereumNode node) {
 }
 static BREthereumBoolean _isP2PMessage(BREthereumNode node){
 
+    BRRlpCoder rlpCoder = rlpCoderCreate();
+    BRRlpData framePacketTypeData = {1, node->body};
+    BRRlpItem item = rlpGetItem (rlpCoder, framePacketTypeData);
+    
+    uint64_t packetTypeMsg = rlpDecodeItemUInt64(rlpCoder, item, 0);
 
-
-    return ETHEREUM_BOOLEAN_TRUE;
+    BREthereumBoolean retStatus = ETHEREUM_BOOLEAN_FALSE;
+    BRRlpData mesageBody = {node->bodySize - 1, &node->body[1]};
+    switch (packetTypeMsg) {
+        case BRE_P2P_HELLO:
+        {
+            BRRlpData mesageBody = {node->bodySize - 1, &node->body[1]};
+            BREthereumP2PHello remoteHello = ethereumP2PHelloDecode(rlpCoder, mesageBody);
+            //TODO: Check over capabalities of the message
+            retStatus = ETHEREUM_BOOLEAN_TRUE;
+        }
+        break;
+        case  BRE_P2P_DISCONNECT:
+        {
+            BREthereumDisconnect reason = ethereumP2PDisconnectDecode(rlpCoder, mesageBody);
+            eth_log(ETH_LOG_TOPIC, "Remote Peer requested to disconnect:%s", ethereumP2PDisconnectToString(reason));
+            node->disconnectReason = reason;
+            node->shouldDisconnect = ETHEREUM_BOOLEAN_TRUE;
+            retStatus = ETHEREUM_BOOLEAN_TRUE;
+        }
+        break;
+        case  BRE_P2P_PING:
+        {
+            BRRlpData data = ethereumP2PPongEncode();
+            uint8_t* frame;
+            size_t frameSize;
+            ethereumFrameCoderEncrypt(node->ioCoder, data.bytes, data.bytesCount, &frame, &frameSize);
+            ethereumNodeWriteToPeer(node, frame, frameSize, "P2P Pong");
+            rlpDataRelease(data);
+            free(frame);
+        }
+        break;
+        default:
+        break;
+    }
+    rlpCoderRelease(rlpCoder);
+    return retStatus;
 }
 static int _readMessage(BREthereumNode node) {
 
@@ -343,7 +386,6 @@ static void *_nodeThreadRunFunc(void *arg) {
     {
 
         if (ETHEREUM_BOOLEAN_IS_TRUE(node->shouldDisconnect)){
-            //TODO: Implement
             _disconnect(node);
             _updateStatus(node, BRE_NODE_DISCONNECTED);
             break;
@@ -359,7 +401,9 @@ static void *_nodeThreadRunFunc(void *arg) {
                 break;
                 case BRE_NODE_PERFORMING_HANDSHAKE:
                 {
-                    if(ethereumHandshakeTransition(node->handshake) == BRE_HANDSHAKE_FINISHED) {
+                    BREthereumHandshakeStatus handshakeStatus = ethereumHandshakeTransition(node->handshake);
+                    
+                    if(handshakeStatus == BRE_HANDSHAKE_FINISHED) {
                         eth_log(ETH_LOG_TOPIC, "%s", "Handshake completed with");
                         uint8_t* status;
                         size_t statusSize;
@@ -379,12 +423,16 @@ static void *_nodeThreadRunFunc(void *arg) {
                         ethereumHandshakeRelease(node->handshake);
                         _updateStatus(node,BRE_NODE_CONNECTED);
                     }
+                    else if (handshakeStatus ==  BRE_HANDSHAKE_ERROR) {
+                        node->shouldDisconnect = ETHEREUM_BOOLEAN_TRUE;
+                    }
                 }
                 break;
                 case BRE_NODE_CONNECTED:
                 {
                     //Read message from peer
                     _readMessage(node);
+                    //Check if the message is a P2P message before broadcasting the message
                     if(ETHEREUM_BOOLEAN_IS_FALSE(_isP2PMessage(node)))
                     {
                         node->callbacks.receivedMsgFunc(node->callbacks.info, node, node->body, node->bodySize);
@@ -425,6 +473,23 @@ BREthereumNode ethereumNodeCreate(BREthereumPeerConfig config,
         size_t pLen = BRKeyPubKey(config.remoteKey, remotePubRawKey, sizeof(remotePubRawKey));
         memcpy(&node->peer.remoteKey, remotePubRawKey, pLen);
     }
+    //Initialize p2p data
+    node->helloData.version = 0x01;
+    char clientId[] = "Ethereum(++)/1.0.0";
+    node->helloData.clientId = malloc(strlen(clientId) + 1);
+    strcpy(node->helloData.clientId, clientId);
+    node->helloData.listenPort = 0;
+    array_new(node->helloData.caps, 1);
+    BREthereumCapabilities cap;
+    char capStr[] = "eth";
+    cap.cap = malloc(strlen(capStr) + 1);
+    strcpy(cap.cap, capStr);
+    cap.capVersion = 34;
+    array_add(node->helloData.caps, cap);
+    uint8_t pubRawKey[65];
+    size_t pLen = BRKeyPubKey(key, pubRawKey, sizeof(pubRawKey));
+    memcpy(node->helloData.nodeId.u8, &pubRawKey[1], pLen - 1);
+    
     node->shouldOriginate = originate;
     //Initiliaze thread information
     {
@@ -473,8 +538,16 @@ BREthereumNodeStatus ethereumNodeStatus(BREthereumNode node){
 }
 void ethereumNodeDisconnect(BREthereumNode node, BREthereumDisconnect reason) {
 
+    eth_log(ETH_LOG_TOPIC, "Local node disconnecting from remote peer:%s", ethereumP2PDisconnectToString(reason));
+    BRRlpData data = ethereumP2PDisconnectEncode(reason);
+    uint8_t* frame;
+    size_t frameSize;
+    ethereumFrameCoderEncrypt(node->ioCoder, data.bytes, data.bytesCount, &frame, &frameSize);
+    ethereumNodeWriteToPeer(node, frame, frameSize, "P2P Local Disconnect");
     node->shouldDisconnect = ETHEREUM_BOOLEAN_TRUE;
     node->disconnectReason = reason;
+    rlpDataRelease(data);
+    free(frame);
 }
 void ethereumNodeRelease(BREthereumNode node){
    ethereumEndpointRelease(node->peer.endpoint);
@@ -540,63 +613,9 @@ UInt256* ethereumNodeGetNonce(BREthereumNode node) {
 UInt256* ethereumNodeGetPeerNonce(BREthereumNode node) {
     return &node->peer.nonce;
 }
-BRRlpData ethereumNodeGetEncodedHelloData(BREthereumNode node) {
+BRRlpData ethereumNodeRLPP2PHello(BREthereumNode node) {
 
-    eth_log(ETH_LOG_TOPIC, "%s", "encoding hello message");
-    
-    BRRlpData data;
-    
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem helloDataItems[5];
-    
-    /**
-            Hello 0x00 [p2pVersion: P, clientId: B, [[cap1: B_3, capVersion1: P], [cap2: B_3, capVersion2: P], ...], listenPort: P, nodeId: B_64] First packet sent over the connection, and sent once by both sides. No other messages may be sent until a Hello is received.
-
-            p2pVersion Specifies the implemented version of the P2P protocol. Now must be 1.
-            clientId Specifies the client software identity, as a human-readable string (e.g. "Ethereum(++)/1.0.0").
-            cap Specifies a peer capability name as a length-3 ASCII string. Current supported capabilities are eth, shh.
-            capVersion Specifies a peer capability version as a positive integer. Current supported versions are 34 for eth, and 1 for shh.
-            listenPort specifies the port that the client is listening on (on the interface that the present connection traverses). If 0 it indicates the client is not listening.
-            nodeId is the Unique Identity of the node and specifies a 512-bit hash that identifies this node.
-    **/
-    /** Encode the following : [[cap1: B_3, capVersion1: P], [cap2: B_3, capVersion2: P], ...], */
-    BRRlpItem ethCapItems[2];
-    ethCapItems[0] = rlpEncodeItemString(coder, "eth");
-    ethCapItems[1] = rlpEncodeItemUInt64(coder, 34, 0);
-    BRRlpItem etheCapItemsEncoding = rlpEncodeListItems(coder, ethCapItems, 2);
-    BRRlpItem capItems[1];
-    capItems[0] = etheCapItemsEncoding;
-    BRRlpItem capsItem = rlpEncodeListItems(coder, capItems, 1);
-
-
-    /** Encode the following : [p2pVersion: P, clientId: B, [[cap1: B_3, capVersion1: P], [cap2: B_3, capVersion2: P], ...], listenPort: P, nodeId: B_64] */
-    helloDataItems[0] = rlpEncodeItemUInt64(coder, 0x00,0);
-    helloDataItems[1] = rlpEncodeItemString(coder, "Ethereum(++)/1.0.0");
-    helloDataItems[2] = capsItem;
-    helloDataItems[3] = rlpEncodeItemUInt64(coder, 0,0);
-    uint8_t pubKey[65];
-    size_t pubKeyLength = BRKeyPubKey(node->key, pubKey, 0);
-    assert(pubKeyLength == 65);
-    helloDataItems[4] = rlpEncodeItemBytes(coder, &pubKey[1], 64);
-
-    /** Encode the following :  Hello 0x00 [p2pVersion: P, clientId: B, [[cap1: B_3, capVersion1: P], [cap2: B_3, capVersion2: P], ...], listenPort: P, nodeId: B_64] */
-    BRRlpData listData, idData;
-    rlpDataExtract(coder, rlpEncodeItemUInt64(coder, 0x00,0),&idData.bytes, &idData.bytesCount);
-    rlpDataExtract(coder, rlpEncodeListItems(coder, helloDataItems, 5), &listData.bytes, &listData.bytesCount);
-    
-    uint8_t * rlpData = malloc(idData.bytesCount + listData.bytesCount);
-    memcpy(rlpData, idData.bytes, idData.bytesCount);
-    memcpy(&rlpData[idData.bytesCount], listData.bytes, listData.bytesCount);
-
-    data.bytes = rlpData;
-    data.bytesCount = idData.bytesCount + listData.bytesCount;
-    
-    rlpDataRelease(listData);
-    rlpDataRelease(idData);
-    rlpCoderRelease(coder);
-    
-    
-    return data;
+    return ethereumP2PHelloEncode(&node->helloData);
 }
 int ethereumNodeReadFromPeer(BREthereumNode node, uint8_t * buf, size_t bufSize, const char * type){
 
@@ -604,7 +623,7 @@ int ethereumNodeReadFromPeer(BREthereumNode node, uint8_t * buf, size_t bufSize,
     ssize_t n = 0, len = 0;
     int socket, error = 0;
 
-    eth_log(ETH_LOG_TOPIC, "now reading from peer: %s", type);
+    const char* hostAddress = ethereumEndpointGetHost(peerCtx->endpoint);
 
     socket = peerCtx->socket;
 
@@ -620,7 +639,10 @@ int ethereumNodeReadFromPeer(BREthereumNode node, uint8_t * buf, size_t bufSize,
     }
     
     if (error) {
-        eth_log(ETH_LOG_TOPIC, "%s", strerror(error));
+        eth_log(ETH_LOG_TOPIC, "[READ FROM PEER ERROR]:%s", strerror(error));
+    }else {
+        eth_log(ETH_LOG_TOPIC, "read (%zu bytes) from peer[%s], contents: %s", len, hostAddress, type);
+
     }
     return error;
 }
@@ -631,8 +653,7 @@ int ethereumNodeWriteToPeer(BREthereumNode node, uint8_t * buf, size_t bufSize, 
     int socket, error = 0;
 
     const char* hostAddress = ethereumEndpointGetHost(peerCtx->endpoint);
-    eth_log(ETH_LOG_TOPIC, "now sending (%zu bytes) to peer[%s]: %s", bufSize, hostAddress, type);
-
+    
     size_t offset = 0;
     socket = peerCtx->socket;
 
@@ -646,7 +667,9 @@ int ethereumNodeWriteToPeer(BREthereumNode node, uint8_t * buf, size_t bufSize, 
     }
 
     if (error) {
-        eth_log(ETH_LOG_TOPIC, "%s", strerror(error));
+        eth_log(ETH_LOG_TOPIC, "[WRITE TO PEER ERROR]:%s", strerror(error));
+    }else {
+        eth_log(ETH_LOG_TOPIC, "sent (%zu bytes) to peer[%s], contents: %s", offset, hostAddress, type);
     }
     return error;
 }
