@@ -40,7 +40,7 @@
 //
 void ethereumXORBytes(uint8_t * op1, uint8_t* op2, uint8_t* result, size_t len) {
     for (unsigned int i = 0; i < len;  ++i) {
-        result[i] = op2[i] ^ op1[i];
+        result[i] = op1[i] ^ op2[i];
     }
 
 }
