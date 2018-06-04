@@ -40,6 +40,7 @@
 #include "BRRlpCoder.h"
 #include "BRArray.h"
 #include "BRKeyECIES.h"
+#include "BREthereumP2PCoder.h"
 
 #define SIG_SIZE_BYTES      65
 #define PUBLIC_SIZE_BYTES   64
@@ -249,7 +250,7 @@ void _sendHelloMessage(BREthereumHandshake ctx, uint8_t* encryptedHello, size_t 
     
     eth_log(HANDSHAKE_LOG_TOPIC, "%s", "sending hello message with capabilities handshake");
    
-    BRRlpData data = ethereumNodeGetEncodedHelloData(node);
+    BRRlpData data = ethereumNodeRLPP2PHello(node);
     
     BREthereumFrameCoder coder = ethereumNodeGetFrameCoder(node);
     
@@ -257,6 +258,74 @@ void _sendHelloMessage(BREthereumHandshake ctx, uint8_t* encryptedHello, size_t 
     
     rlpDataRelease(data);
     
+}
+int _decryptMessageHelloHeader(BREthereumHandshake ctx, uint8_t* header, size_t headerSize, size_t* payloadSize) {
+
+    // authenticate and decrypt header
+    BREthereumFrameCoder coder = ethereumNodeGetFrameCoder(ctx->node);
+    
+    if(ETHEREUM_BOOLEAN_IS_FALSE(ethereumFrameCoderDecryptHeader(coder, header, headerSize)))
+    {
+         eth_log(HANDSHAKE_LOG_TOPIC, "%s", "Error: Decryption of hello header from peer failed.");
+        return BRE_HANDSHAKE_ERROR;
+    }
+     eth_log(HANDSHAKE_LOG_TOPIC, "%s", "reaceived/descrypted hello message");
+
+    //Get frame size
+    uint32_t framePayloadSize = (uint32_t)(header[2]) | (uint32_t)(header[1])<<8 | (uint32_t)(header[0])<<16;
+    
+    if(framePayloadSize > 1024){
+        eth_log(HANDSHAKE_LOG_TOPIC, "%s", "Error: hello message is too large");
+        return BRE_HANDSHAKE_ERROR;
+    }
+    
+     *payloadSize = framePayloadSize;
+
+    return 0;
+}
+int _decryptMessageHelloFrame(BREthereumHandshake ctx, uint8_t* frame, size_t frameSize, size_t payloadSize, BREthereumP2PHello* peerHello) {
+
+    // authenticate and decrypt frame
+    BREthereumFrameCoder coder = ethereumNodeGetFrameCoder(ctx->node);
+    
+    printf("\nFrame-Before(%d)*********\n", frameSize);
+    for(int i = 0; i < frameSize; ++i){
+        printf("%02x ", frame[i]);
+    }
+    printf("\n");
+    
+    if(ETHEREUM_BOOLEAN_IS_FALSE(ethereumFrameCoderDecryptFrame(coder, frame, frameSize)))
+    {
+        eth_log(HANDSHAKE_LOG_TOPIC, "%s","Error: failed to decrypt hello frame from remote peer");
+        return BRE_HANDSHAKE_ERROR;
+    }
+    printf("\nFrame-After(%d)*********\n", frameSize);
+    for(int i = 0; i < frameSize; ++i){
+        printf("%02x ", frame[i]);
+    }
+    printf("\n");
+    BRRlpCoder rlpCoder = rlpCoderCreate();
+    BRRlpData framePacketTypeData = {1, &frame[0]};
+    BRRlpItem item = rlpGetItem (rlpCoder, framePacketTypeData);
+    
+    uint64_t packetTypeMsg = rlpDecodeItemUInt64(rlpCoder, item, 0);
+
+    if(packetTypeMsg != 0x00){
+        eth_log(HANDSHAKE_LOG_TOPIC, "invalid packet type. Expected: Hello Message 0x80, got:%" PRIu64, packetTypeMsg);
+        return BRE_HANDSHAKE_ERROR;
+    }
+    rlpCoderRelease(rlpCoder);
+    
+    rlpCoder  = rlpCoderCreate();
+    BRRlpData frameData = {payloadSize - 1, &frame[1]};
+    
+    rlpShow(frameData, "Testing");
+    
+    *peerHello = ethereumP2PHelloDecode(rlpCoder, frameData);
+
+    rlpCoderRelease(rlpCoder);
+    
+    return 0;
 }
 int _readHelloMessage(BREthereumHandshake ctx) {
 
@@ -369,13 +438,13 @@ BREthereumHandshakeStatus ethereumHandshakeTransition(BREthereumHandshake handsh
         if (ETHEREUM_BOOLEAN_IS_TRUE(originated))
         {
             _sendAuthInitiator(handshake);
-            ethereumNodeWriteToPeer(node, handshake->authBufCipher, authBufLen, "sending auth initiator");
+            ethereumNodeWriteToPeer(node, handshake->authBufCipher, authBufLen, "auth initiator");
         }
         else
         {
-            int ec = ethereumNodeReadFromPeer(node, handshake->authBufCipher, authBufLen, "auth");
+            int ec = ethereumNodeReadFromPeer(node, handshake->authBufCipher, authBufLen, "auth from receiver");
             if (ec) {
-                return ec;
+                return BRE_HANDSHAKE_ERROR;
             }
             _readAuthFromInitiator(handshake);
         }
@@ -385,16 +454,16 @@ BREthereumHandshakeStatus ethereumHandshakeTransition(BREthereumHandshake handsh
         handshake->nextState = BRE_HANDSHAKE_WRITEHELLO;
         if (ETHEREUM_BOOLEAN_IS_TRUE(originated))
         {
-            int ec = ethereumNodeReadFromPeer(node, handshake->ackBufCipher, ackBufLen, "reading auth ack now");
+            int ec = ethereumNodeReadFromPeer(node, handshake->ackBufCipher, ackBufLen, "auth ack from receivier");
             if (ec) {
-                return ec;
+                return BRE_HANDSHAKE_ERROR;
             }
             _readAuthAckFromRecipient(handshake);
         }
         else
         {
             _sendAuthAckToInitiator(handshake);
-            ethereumNodeWriteToPeer(node, handshake->ackBufCipher, ackBufLen, "sending auth ack to initiator");
+            ethereumNodeWriteToPeer(node, handshake->ackBufCipher, ackBufLen, "auth ack to initiator");
         }
         //Now we need to initilize the frameCoder with the information from the auth
         _initFrameCoder(handshake);
@@ -404,8 +473,9 @@ BREthereumHandshakeStatus ethereumHandshakeTransition(BREthereumHandshake handsh
         handshake->nextState = BRE_HANDSHAKE_READHELLO;
         uint8_t* encryptedHello = NULL;
         size_t encryptedHelloSize = 0;
+        
         _sendHelloMessage(handshake, encryptedHello, encryptedHelloSize);
-        int ec = ethereumNodeWriteToPeer(node, encryptedHello, encryptedHelloSize, "sending hello message to remote peer");
+        int ec = ethereumNodeWriteToPeer(node, encryptedHello, encryptedHelloSize, "hello message to remote peer");
         if(ec) {
             return ec;
         }
@@ -414,7 +484,33 @@ BREthereumHandshakeStatus ethereumHandshakeTransition(BREthereumHandshake handsh
     else if (handshake->nextState == BRE_HANDSHAKE_READHELLO)
     {
         // Authenticate and decrypt initial hello frame with initial RLPXFrameCoder
-        _readHelloMessage (handshake);
+        uint8_t header[32];
+        int ec = ethereumNodeReadFromPeer(node, header, 32, "hello message header from remote peer ");
+    
+        if(ec){
+            eth_log(HANDSHAKE_LOG_TOPIC, "%s","Error: reading in hello message from remote peer");
+            return BRE_HANDSHAKE_ERROR;
+        }
+        size_t payloadSize = 0;
+        
+        _decryptMessageHelloHeader(handshake, header, 32, &payloadSize);
+        
+        size_t frameSize = payloadSize + ((16 - (payloadSize % 16)) % 16) + 16;
+        
+        uint8_t* frame;
+        array_new(frame, frameSize);
+        
+        ec = ethereumNodeReadFromPeer(node, frame, frameSize, "reading hello message body from remote peer ");
+    
+        if(ec){
+            eth_log(HANDSHAKE_LOG_TOPIC, "%s","Error: reading in hello message from remote peer");
+            return BRE_HANDSHAKE_ERROR;
+        }
+        
+        BREthereumP2PHello remoteHello;
+        
+        _decryptMessageHelloFrame(handshake, frame, frameSize,payloadSize,  &remoteHello);
+        
         handshake->nextState = BRE_HANDSHAKE_FINISHED;
     }
     return handshake->nextState;
@@ -441,7 +537,7 @@ BREthereumHandshakeStatus ethereumHandshakeTransition(BREthereumHandshake handsh
 #define INITIAL_EGRESS_MAC "09771e93b1a6109e97074cbe2d2b0cf3d3878efafe68f53c41bb60c0ec49097e"
 #define INITIAL_INGRESS_MAC "75823d96e23136c89666ee025fb21a432be906512b3dd4a3049e898adb433847"
 #define INITIATOR_HELLO_PACKET  "6ef23fcf1cec7312df623f9ae701e63b550cdb8517fefd8dd398fc2acd1d935e6e0434a2b96769078477637347b7b01924fff9ff1c06df2f804df3b0402bbb9f87365b3c6856b45e1e2b6470986813c3816a71bff9d69dd297a5dbd935ab578f6e5d7e93e4506a44f307c332d95e8a4b102585fd8ef9fc9e3e055537a5cec2e9"
-#define RECEIVER_HELLO_PACKET "6ef23fcf1cec7312df623f9ae701e63be36a1cdd1b19179146019984f3625d4a6e0434a2b96769050577657247b7b02bc6c314470eca7e3ef650b98c83e9d7dd4830b3f718ff562349aead2530a8d28a8484604f92e5fced2c6183f304344ab0e7c301a0c05559f4c25db65e36820b4b909a226171a60ac6cb7beea09376d6d8"
+#define RECEIVER_HELLO_PACKET   "6ef23fcf1cec7312df623f9ae701e63be36a1cdd1b19179146019984f3625d4a6e0434a2b96769050577657247b7b02bc6c314470eca7e3ef650b98c83e9d7dd4830b3f718ff562349aead2530a8d28a8484604f92e5fced2c6183f304344ab0e7c301a0c05559f4c25db65e36820b4b909a226171a60ac6cb7beea09376d6d8"
 
 extern int testInitatorHandshake(BREthereumHandshake ctx, BRKey* remoteEph) {
 
@@ -511,6 +607,51 @@ extern int testInitatorHandshake(BREthereumHandshake ctx, BRKey* remoteEph) {
     BREthereumFrameCoder coder = ethereumNodeGetFrameCoder(ctx->node);
     testFrameCoderInitiator(coder);
     
+   // testEncryptionAndDecryption(ctx);
+    
+    //Send the Hello Packet
+    size_t initHelloPacketHexSize = strlen(RECEIVER_HELLO_PACKET);
+    size_t initHelloPacketSize = initHelloPacketHexSize/2;
+    
+    uint8_t initHelloPacket[initHelloPacketSize];
+    decodeHex(initHelloPacket, initHelloPacketSize, RECEIVER_HELLO_PACKET, initHelloPacketHexSize);
+    
+    uint8_t header[32];
+    size_t payloadSize;
+    memcpy(header, initHelloPacket, 32);
+    assert(ETHEREUM_BOOLEAN_IS_TRUE(_decryptMessageHelloHeader(ctx, header, 32, &payloadSize)));
+    
+    size_t  frameSize = payloadSize + ((16 - (payloadSize % 16)) % 16) + 16;
+    
+    uint8_t* frame;
+    array_new(frame, frameSize);
+
+    memcpy(frame, &initHelloPacket[32], frameSize);
+
+    BREthereumP2PHello remoteP2P;
+    
+ /*   BRRlpData data = ethereumNodeRLPP2PHello(ctx->node);
+    BRRlpCoder rlpCoder = rlpCoderCreate();
+    BRRlpData frameData = {data.bytesCount - 1, &data.bytes[1]};
+    BREthereumP2PHello remoteP2P = ethereumP2PHelloDecode(rlpCoder, frameData);
+    rlpCoderRelease(rlpCoder);
+
+  */
+    assert(ETHEREUM_BOOLEAN_IS_TRUE(_decryptMessageHelloFrame(ctx, frame, frameSize, payloadSize, &remoteP2P)));
+
+
+    eth_log(HANDSHAKE_LOG_TOPIC,"p2pVersion = %llu\n", remoteP2P.version);
+    eth_log(HANDSHAKE_LOG_TOPIC,"clientID=%s\n", remoteP2P.clientId);
+    eth_log(HANDSHAKE_LOG_TOPIC,"listenPort =%llu\n", remoteP2P.listenPort);
+    for(int i = 0; i < array_count(remoteP2P.caps); ++i){
+        eth_log(HANDSHAKE_LOG_TOPIC,"\tcap=%s\n", remoteP2P.caps[i].cap);
+        eth_log(HANDSHAKE_LOG_TOPIC,"\tcap version=%llu\n", remoteP2P.caps[i].capVersion);
+    }
+    size_t targetLen = 64 * 2 + 1;
+    char target[targetLen];
+    encodeHex(target, targetLen, remoteP2P.nodeId.u8, 64);
+    eth_log(HANDSHAKE_LOG_TOPIC,"Node id=%s", target);
+
     return 0;
 }
 extern int testReceiverHandshake(BREthereumHandshake ctx, BRKey* remoteKeyExpected, BRKey*remoteEph) {
@@ -573,6 +714,38 @@ extern int testReceiverHandshake(BREthereumHandshake ctx, BRKey* remoteKeyExpect
     _initFrameCoder(ctx);
     BREthereumFrameCoder coder = ethereumNodeGetFrameCoder(ctx->node);
     testFrameCoderReceiver(coder);
+    
+    
+    size_t initHelloPacketHexSize = strlen(INITIATOR_HELLO_PACKET);
+    size_t initHelloPacketSize = initHelloPacketHexSize/2;
+    
+    uint8_t initHelloPacket[initHelloPacketSize];
+    decodeHex(initHelloPacket, initHelloPacketSize, INITIATOR_HELLO_PACKET, initHelloPacketHexSize);
+    
+    uint8_t header[32];
+    size_t payloadSize;
+    memcpy(header, initHelloPacket, 32);
+    assert(ETHEREUM_BOOLEAN_IS_TRUE(_decryptMessageHelloHeader(ctx, header, 32, &payloadSize)));
+    
+    size_t  frameSize = payloadSize + ((16 - (payloadSize % 16)) % 16) + 16;
+    
+    uint8_t* frame;
+    array_new(frame, frameSize);
+
+    memcpy(frame, &initHelloPacket[32], frameSize);
+
+    BREthereumP2PHello remoteP2P;
+    
+ /*   BRRlpData data = ethereumNodeRLPP2PHello(ctx->node);
+    BRRlpCoder rlpCoder = rlpCoderCreate();
+    BRRlpData frameData = {data.bytesCount - 1, &data.bytes[1]};
+    BREthereumP2PHello remoteP2P = ethereumP2PHelloDecode(rlpCoder, frameData);
+    rlpCoderRelease(rlpCoder);
+
+  */
+    assert(ETHEREUM_BOOLEAN_IS_TRUE(_decryptMessageHelloFrame(ctx, frame, frameSize, payloadSize, &remoteP2P)));
+
+    
 
     return 0;
 }
