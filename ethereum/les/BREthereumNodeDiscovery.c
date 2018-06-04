@@ -135,10 +135,11 @@ typedef struct
 //
 // Private functions
 //
-static BREthereumBoolean _isAddressIPv4(UInt128 address)
+/*static BREthereumBoolean _isAddressIPv4(UInt128 address)
 {
     return (address.u64[0] == 0 && address.u16[4] == 0 && address.u16[5] == 0xffff) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
-}
+}*/
+
 static int _openUDPSocket(BREthereumEndpoint endpoint, int domain,  double timeout, int* retSocket, int *error){
 
     struct sockaddr_in addr;
@@ -193,9 +194,9 @@ static int _openUDPSocket(BREthereumEndpoint endpoint, int domain,  double timeo
  * work for the Ethereum Core.
  * TODO: May want to make this more modular to work for both etheruem and bitcoin
  */
+ /*
 static int _openSocket(BREthereumNodeDiscoveryContext* ctx, int domain, double timeout, int *error)
 {
-    /*
     struct sockaddr_storage addr;
     struct timeval tv;
     fd_set fds;
@@ -277,9 +278,9 @@ static int _openSocket(BREthereumNodeDiscoveryContext* ctx, int domain, double t
         *error = err;
     }
     return r;
-    */
     return 0;
 }
+*/
 static BRRlpItem _encodeEndpoint(BRRlpCoder coder, BREthereumEndpoint endpoint) {
 
     BRRlpItem items[3];
@@ -352,7 +353,7 @@ static int _decodePong(uint8_t*packet, size_t packetSize, BREthereumPongNode pon
     uint8_t* hashPtr       = packet;
     uint8_t* signaturePtr  = &packet[HASH_BYTES_SIZE];
     uint8_t* packetTypePtr = &packet[HASH_BYTES_SIZE + SIGNATURE_BYTES_SIZE];
-    uint8_t* packetDataPtr = &packet[HASH_BYTES_SIZE + SIGNATURE_BYTES_SIZE + PACKET_TYPE_BYTES_SIZE];
+    //uint8_t* packetDataPtr = &packet[HASH_BYTES_SIZE + SIGNATURE_BYTES_SIZE + PACKET_TYPE_BYTES_SIZE];
 
     //verify the hash
     UInt256 digest;
