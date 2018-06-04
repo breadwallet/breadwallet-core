@@ -570,7 +570,7 @@ public class EthereumLightNode {
           listener: EthereumListener?,
           network : EthereumNetwork,
           paperKey : String) {
-        self.init (core: ethereumCreate (network.core, paperKey),
+        self.init (core: ethereumCreate (network.core, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN),
                     client: client,
                     listener: listener,
                     network: network)
@@ -580,7 +580,7 @@ public class EthereumLightNode {
           listener: EthereumListener?,
           network : EthereumNetwork,
           publicKey : BRKey) {
-        self.init (core: ethereumCreateWithPublicKey (network.core, publicKey),
+        self.init (core: ethereumCreateWithPublicKey (network.core, publicKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN),
                     client: client,
                     listener: listener,
                     network: network)
@@ -833,7 +833,12 @@ public class EthereumLightNode {
                                     event: asUTF8String(event!),
                                     rid: rid)
                 }
-        })
+        },
+
+            { (this, core, rid) in return },
+            { (this, core, address, rid) in return }
+
+        )
     }
 
     //
