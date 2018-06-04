@@ -26,7 +26,7 @@
 #define BR_Ethereum_Node_Event_Handler_h
 
 #include <inttypes.h>
-#include "BREthereumNode.h"
+#include "BREthereumTransaction.h"
 
 
 #ifdef __cplusplus
@@ -39,9 +39,11 @@ typedef struct BREthereumNodeEventHandlerContext* BREthereumNodeEventHandler;
 // The type of events that can be enqueued
 //
 typedef enum {
-    BRE_NODE_EVENT_DISCONNECT = 0,
     BRE_NODE_EVENT_FREE,
-    BRE_NODE_EVENT_SUBMIT_TRANSACTION
+    BRE_NODE_EVENT_DISCONNECT,
+    BRE_NODE_EVENT_SUBMIT_TRANSACTION,
+    BRE_NODE_EVENT_RECEIVED_BLOCK, 
+    BRE_NODE_EVENT_RECEIVED_TRANSACTION,
 }BREthereumNodeEventType;
 
 typedef struct {
