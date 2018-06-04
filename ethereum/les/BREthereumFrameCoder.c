@@ -45,6 +45,9 @@ struct BREthereumFrameCoderContext {
     //Encryption for Mac
     UInt256 macSecretKey;
     
+    //CipherText for Mac
+    uint8_t* macEncrypt;
+    
     // Ingress ciphertext
     uint8_t* ingressMac;
     
@@ -281,7 +284,8 @@ BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fcoder,
     // mac-secret = sha3(ecdhe-shared-secret || aes-secret)
     BRKeccak256(&keyMaterial[32], keyMaterial, 64);
     memcpy(fcoder->macSecretKey.u8,&keyMaterial[32], 32);
-    
+    array_new(fcoder->macEncrypt, 32);
+    array_add_array(fcoder->macEncrypt,&keyMaterial[32], 32);
     
     // Initiator:
     // egress-mac = sha3.update(mac-secret ^ recipient-nonce || auth-sent-init)
@@ -353,26 +357,20 @@ void ethereumFrameCoderRelease(BREthereumFrameCoder coder) {
 }
 void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, size_t payloadSize, uint8_t** rlpBytes, size_t * rlpBytesSize) {
 
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem headerPlainItem;
-    uint8_t headerPlain[16] = {(uint8_t)((payloadSize >> 16) & 0xff), (uint8_t)((payloadSize >> 8) & 0xff), (uint8_t)(payloadSize & 0xff)};
-    headerPlainItem = rlpEncodeItemBytes(coder, headerPlain, sizeof(headerPlain));
+    uint8_t headerPlain[HEADER_LEN] = {(uint8_t)((payloadSize >> 16) & 0xff), (uint8_t)((payloadSize >> 8) & 0xff), (uint8_t)(payloadSize & 0xff)};
+    //header.appendRaw(bytes({0xc2,0x80,0x80}));
     
-    BRRlpData headerPlainData;
-    rlpDataExtract(coder, headerPlainItem, &headerPlainData.bytes, &headerPlainData.bytesCount);
-
    // TODO: Need AES-CTRL encryption to headerCipher
    // aes256_encrypt(&ctx->aes_sercret, 16, headerCipher.bytes, headerCipher.bytes);
-    uint8_t headerCipher[headerPlainData.bytesCount];
-    BRAESCTR(headerCipher, fCoder->aesEncryptKey, 32, fCoder->iv.u8, headerPlainData.bytes, headerPlainData.bytesCount);
-    array_add_array(fCoder->aesEncryptCipher, headerPlainData.bytes, headerPlainData.bytesCount);
+    uint8_t headerCipher[HEADER_LEN];
+    BRAESCTR(headerCipher, fCoder->aesEncryptKey, 32, fCoder->iv.u8, headerPlain, HEADER_LEN);
     
     // Encrypt HEADER-MAC
     UInt256 egressDigest;
     BRKeccak256(egressDigest.u8, fCoder->egressMac , fCoder->egressMacSize);
     
-    uint8_t macSecret[16];
-    memcpy(macSecret, egressDigest.u8, 16);
+    uint8_t macSecret[HEADER_LEN];
+    memcpy(macSecret, egressDigest.u8, HEADER_LEN);
    _BRAES256ECBEncrypt(fCoder->macSecretKey.u8, macSecret);
     uint8_t xORMacCipher[16];
     ethereumXORBytes(macSecret, headerCipher, xORMacCipher, 16);
@@ -388,8 +386,8 @@ void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, si
     size_t oBytesSize = 32 + payloadSize + payloadPadding + 16; // header_cipher + headerMac + payload + padding + frameMac
     uint8_t * oBytes = (uint8_t*)malloc(oBytesSize);
 
-    memcpy(oBytes, headerCipher, headerPlainData.bytesCount);
-    memcpy(&oBytes[16], headerMac, 16);
+    memcpy(oBytes, headerCipher, HEADER_LEN);
+    memcpy(&oBytes[HEADER_LEN], headerMac, HEADER_LEN);
     
     uint8_t * frameCipher = &oBytes[32];
     
@@ -423,8 +421,6 @@ void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, si
     *rlpBytes = oBytes;
     *rlpBytesSize = oBytesSize;
     
-    rlpDataRelease(headerPlainData);
-    rlpCoderRelease(coder);
 }
 BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fCoder, uint8_t * oBytes, size_t outSize) {
 
@@ -434,40 +430,59 @@ BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fCoder, u
     uint8_t* headerCipher = oBytes;
     uint8_t* headerMac = &oBytes[HEADER_LEN];
     
+    uint8_t mac_secret[HEADER_LEN];
     UInt256 ingressDigest;
     BRKeccak256(ingressDigest.u8, fCoder->ingressMac , fCoder->ingressMacSize);
-    uint8_t macSecret[16];
-    memcpy(macSecret, ingressDigest.u8, HEADER_LEN);
-    uint8_t xORMacCipher[16];
-    _BRAES256ECBEncrypt(fCoder->macSecretKey.u8, macSecret);
-    ethereumXORBytes(macSecret, headerCipher, xORMacCipher, 16);
-    array_add_array(fCoder->ingressMac, xORMacCipher, 16);
-    fCoder->ingressMac += 16;
+    memcpy(mac_secret, ingressDigest.u8, HEADER_LEN);
+
+    _BRAES256ECBEncrypt(fCoder->macSecretKey.u8, mac_secret);
+
+    uint8_t xORMacCipher[HEADER_LEN];
+    ethereumXORBytes(mac_secret, headerCipher, xORMacCipher, HEADER_LEN);
+    array_add_array(fCoder->ingressMac, xORMacCipher, HEADER_LEN);
+    fCoder->ingressMacSize += HEADER_LEN;
     
-    uint8_t headerMacExpected[16];
+    uint8_t headerMacExpected[HEADER_LEN];
     BRKeccak256(ingressDigest.u8, fCoder->ingressMac , fCoder->ingressMacSize);
-    memcpy(headerMacExpected, ingressDigest.u8, 16);
+    memcpy(headerMacExpected, ingressDigest.u8, HEADER_LEN);
     
-    if(memcmp(headerMacExpected, headerMac, 16)) {
+    if(memcmp(headerMacExpected, headerMac, HEADER_LEN) != 0) {
         return ETHEREUM_BOOLEAN_FALSE;
     }
     
     // TODO: AES-CTR decryption function
     // aes256_decrypt(&fCoder->aes_sercret, 16, oBytes);
     uint8_t cipher[outSize];
-    memcpy(cipher, oBytes, outSize);
-    BRAESCTR(oBytes, fCoder->aesDecryptKey, 32, fCoder->iv.u8, cipher, outSize);
-
+    memcpy(cipher, oBytes, HEADER_LEN);
+    BRAESCTR(oBytes, fCoder->aesDecryptKey, 32, fCoder->iv.u8, cipher, HEADER_LEN);
 
     return ETHEREUM_BOOLEAN_TRUE;
     
 }
 BREthereumBoolean ethereumFrameCoderDecryptFrame(BREthereumFrameCoder fCoder, uint8_t * oBytes, size_t outSize) {
 
+/*
+        read_size = roundup_16(body_size)
+        if len(data) < read_size + MAC_LEN:
+            raise ValueError('Insufficient body length; Got {}, wanted {}'.format(
+                len(data), (read_size + MAC_LEN)))
+
+        frame_ciphertext = data[:read_size]
+        frame_mac = data[read_size:read_size + MAC_LEN]
+
+        self.ingress_mac.update(frame_ciphertext)
+        fmac_seed = self.ingress_mac.digest()[:MAC_LEN]
+        self.ingress_mac.update(sxor(self.mac_enc(fmac_seed), fmac_seed))
+        expected_frame_mac = self.ingress_mac.digest()[:MAC_LEN]
+        if not bytes_eq(expected_frame_mac, frame_mac):
+            raise AuthenticationError('Invalid frame mac')
+        return self.aes_dec.update(frame_ciphertext)[:body_size]
+        
+        */
     uint8_t* frameCipherText = oBytes;
-    uint8_t* frameMac = &oBytes[outSize - 16];
-    array_add_array(fCoder->ingressMac, frameCipherText, outSize - 16);
-    fCoder->ingressMac += (outSize - 16);
+    uint8_t* frameMac = &oBytes[outSize - MAC_LEN];
+    array_add_array(fCoder->ingressMac, frameCipherText, outSize - MAC_LEN);
+    fCoder->ingressMacSize += (outSize - MAC_LEN);
     
     uint8_t fmacSeed[16];
     uint8_t fmacSeedEncrypt[16];
@@ -481,22 +496,22 @@ BREthereumBoolean ethereumFrameCoderDecryptFrame(BREthereumFrameCoder fCoder, ui
     _BRAES256ECBEncrypt(fCoder->macSecretKey.u8, fmacSeedEncrypt);
     ethereumXORBytes(fmacSeedEncrypt,fmacSeed, xORMacCipher, 16);
     array_add_array(fCoder->ingressMac, xORMacCipher, 16);
-    fCoder->ingressMac += 16;
+    fCoder->ingressMacSize += 16;
     
 
     uint8_t framMacExpected[16];
     BRKeccak256(ingressDigest.u8, fCoder->ingressMac , fCoder->ingressMacSize);
     memcpy(framMacExpected, ingressDigest.u8, 16);
     
-    if(memcmp(framMacExpected, frameMac, 16)) {
+    if(memcmp(framMacExpected, frameMac, 16) != 0) {
         return ETHEREUM_BOOLEAN_FALSE;
     }
     
     // TODO: AES-CTR decryption function
     //aes256_encrypt.update(&fCoder->aes_sercret,, outSize, oBytes, oBytes);
-    uint8_t cipher[outSize];
-    memcpy(cipher, oBytes, outSize);
-    BRAESCTR(oBytes, fCoder->aesDecryptKey, 32, fCoder->iv.u8, cipher, outSize);
+    uint8_t cipher[outSize - MAC_LEN];
+    memcpy(cipher, oBytes, outSize - MAC_LEN);
+    BRAESCTR(oBytes, fCoder->aesDecryptKey, 32, fCoder->iv.u8, cipher, outSize - MAC_LEN);
     
     return ETHEREUM_BOOLEAN_TRUE;
 }
