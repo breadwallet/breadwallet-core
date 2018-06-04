@@ -73,6 +73,8 @@ struct BREthereumNodeManagerContext {
 #define ETHEREUM_PEER_MAX_CONNECTIONS 5
 #define BOOTSTRAP_NODE_IDX 0
 #define ETH_LOG_TOPIC "BREthereumManager"
+#define DEFAULT_TCPPORT 30303
+#define DEFAULT_UDPPORT 30303
 
 //
 // Private Functions & types
@@ -106,14 +108,28 @@ void _networkReachableCallback(BREthereumManagerCallbackContext info, BREthereum
     BREthereumNodeManager manager = (BREthereumNodeManager)info;
     manager->subprotoCallbacks.networkReachFunc(manager->subprotoCallbacks.info, isReachable);
 }
-BREthereumBoolean _findPeers(void) {
+BREthereumBoolean _findPeers(BREthereumNodeManager manager) {
 
-    //_brd_bootstrap_peer =  ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "eth-mainnet.breadwallet.com", 30303, 30303);
+    //Note: This function should be called from within the lock of the les context
+    //For testing purposes, we will only connect to our remote node known
+    BREthereumBoolean ret = ETHEREUM_BOOLEAN_FALSE;
 
-    return ETHEREUM_BOOLEAN_FALSE; 
+    if(array_count(manager->connectedNodes) == 0)
+    {
+        BREthereumPeerConfig config;
+        config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "35.226.131.157", DEFAULT_TCPPORT, DEFAULT_UDPPORT);
+        BRKey* remoteKey = malloc(sizeof(BRKey));
+        uint8_t pubKey[64];
+        decodeHex (pubKey, 64, "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851", 128);
+        remoteKey->pubKey[0] = 0x04;
+        memcpy(&remoteKey->pubKey[1], pubKey, 64);
+        remoteKey->compressed = 0;
+        config.remoteKey = remoteKey;
+        array_add(manager->peers, config);
+        ret = ETHEREUM_BOOLEAN_TRUE;
+    }
+    return ret;
 }
-
-
 
 
 //
@@ -148,7 +164,7 @@ BREthereumNodeManager ethereumNodeManagerCreate(BREthereumNetwork network,
     }
     return manager;
 }
-void ethereumNodeMangerRelease(BREthereumNodeManager manager) {
+void ethereumNodeManagerRelease(BREthereumNodeManager manager) {
     assert(manager != NULL);
     array_free(manager->connectedNodes);
     array_free(manager->peers);
@@ -182,7 +198,7 @@ int ethereumNodeMangerConnect(BREthereumNodeManager manager) {
     int connectedCount = 0;
     if(array_count(manager->connectedNodes) < ETHEREUM_PEER_MAX_CONNECTIONS)
     {
-        if(ETHEREUM_BOOLEAN_IS_TRUE(_findPeers())){
+        if(ETHEREUM_BOOLEAN_IS_TRUE(_findPeers(manager))){
             
             int peerIdx = 0;
             while(array_count(manager->peers) > 0 && array_count(manager->connectedNodes) < ETHEREUM_PEER_MAX_CONNECTIONS)
@@ -223,7 +239,7 @@ int ethereumNodeMangerConnect(BREthereumNodeManager manager) {
     }
     return retValue;
 }
-void ethereumNodeMangerDisconnect(BREthereumNodeManager manager) {
+void ethereumNodeManagerDisconnect(BREthereumNodeManager manager) {
     assert(manager != NULL);
     pthread_mutex_lock(&manager->lock);
     for(int i = 0; i < array_count(manager->connectedNodes); ++i) {
