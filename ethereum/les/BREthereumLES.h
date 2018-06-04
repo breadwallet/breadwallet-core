@@ -58,7 +58,7 @@ typedef struct BREthereumLESContext *BREthereumLES;
 typedef enum {
     LES_SUCCESS  = 0x00,            // No error was generated after submtting a message using LES
     LES_NETWORK_UNREACHABLE = 0x01, // Error is thrown when the LES context can not connect to the ethereum network
-    LES_UNKNOWN_ERROR = 0x02        // Error is thrown but it's unknown what caused it. 
+    LES_UNKNOWN_ERROR = 0x02        // Error is thrown but it's unknown what caused it.
 }BREthereumLESStatus;
 
 
@@ -113,9 +113,6 @@ lesCreate (BREthereumNetwork network,
            uint64_t headTotalDifficulty,
            BREthereumHash genesisHash);
 
-
-extern void lesDisconnect(BREthereumLES les);
-
 /*!
  * @function lesRelease
  *
@@ -124,8 +121,6 @@ extern void lesDisconnect(BREthereumLES les);
  */
 extern void
 lesRelease(BREthereumLES les);
-
-
 
 
 ///////

@@ -94,6 +94,7 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint8_t* me
             BREthereumLESStatusMessage remotePeer;
             BREthereumLESDecodeStatus status = ethereumLESDecodeStatus(message, messageSize, &remotePeer);
             eth_log(ETH_LOG_TOPIC, "%s", "Received Status message from Remote peer");
+            les->startSendingMessages = ETHEREUM_BOOLEAN_TRUE;
         }
         case BRE_LES_ID_TX_STATUS:
         {
@@ -159,7 +160,6 @@ static BREthereumLESStatus _sendMessage(BREthereumLES les, uint8_t packetType, u
             }
         }
     }
-    free(payload);
     return retStatus;
 }
 //
@@ -216,6 +216,7 @@ lesCreate (BREthereumNetwork network,
     return les;
 }
 extern void lesRelease(BREthereumLES les) {
+    ethereumNodeManagerDisconnect(les->nodeManager); 
     ethereumNodeManagerRelease(les->nodeManager);
     free(les);
 }
@@ -229,24 +230,29 @@ lesGetTransactionStatus (BREthereumLES les,
                          BREthereumHash transactions[]) {
     uint8_t* rlpBytes;
     size_t rlpBytesSize;
-    
+    BREthereumBoolean shouldSend;
     pthread_mutex_lock(&les->lock);
+    shouldSend = les->startSendingMessages;
     uint64_t reqId = les->requestIdCount++;
-    LESRequestRecord record;
-    record.messageId = BRE_LES_ID_GET_TX_STATUS;
-    record.requestId = reqId;
-    record.u.transaction_status.callback = callback;
-    record.u.transaction_status.ctx = context;
-    record.u.transaction_status.transaction = malloc(sizeof(BREthereumHash) * array_count(transactions));
-    record.u.transaction_status.transactionCount = array_count(transactions);
-    for(int i = 0; i < array_count(transactions); ++i) {
-        memcpy(record.u.transaction_status.transaction[i].bytes, transactions[i].bytes, sizeof(transactions[0].bytes));
-    }
     pthread_mutex_unlock(&les->lock);
-    
-    ethereumLESGetTxStatus(reqId, transactions, &rlpBytes, &rlpBytesSize);
-    
-    return _sendMessage(les, BRE_LES_ID_GET_TX_STATUS, rlpBytes, rlpBytesSize);
+    if(ETHEREUM_BOOLEAN_IS_TRUE(shouldSend))
+    {
+        LESRequestRecord record;
+        record.messageId = BRE_LES_ID_GET_TX_STATUS;
+        record.requestId = reqId;
+        record.u.transaction_status.callback = callback;
+        record.u.transaction_status.ctx = context;
+        record.u.transaction_status.transaction = malloc(sizeof(BREthereumHash) * array_count(transactions));
+        record.u.transaction_status.transactionCount = array_count(transactions);
+        for(int i = 0; i < array_count(transactions); ++i) {
+            memcpy(record.u.transaction_status.transaction[i].bytes, transactions[i].bytes, sizeof(transactions[0].bytes));
+        }
+        ethereumLESGetTxStatus(reqId, transactions, &rlpBytes, &rlpBytesSize);
+        return _sendMessage(les, BRE_LES_ID_GET_TX_STATUS, rlpBytes, rlpBytesSize);
+    }
+    else {
+        return LES_NETWORK_UNREACHABLE;
+    }
 }
 
 extern BREthereumLESStatus
@@ -257,28 +263,35 @@ lesGetTransactionStatusOne (BREthereumLES les,
     
     uint8_t* rlpBytes;
     size_t rlpBytesSize;
-    
+    BREthereumBoolean shouldSend;
+
     pthread_mutex_lock(&les->lock);
     uint64_t reqId = les->requestIdCount++;
-    LESRequestRecord record;
-    record.messageId = BRE_LES_ID_GET_TX_STATUS;
-    record.requestId = reqId;
-    record.u.transaction_status.callback = callback;
-    record.u.transaction_status.ctx = context;
-    record.u.transaction_status.transaction = malloc(sizeof(BREthereumHash));
-    memcpy(record.u.transaction_status.transaction->bytes, transaction.bytes, sizeof(transaction.bytes));
-    record.u.transaction_status.transactionCount = 1;
+    shouldSend = les->startSendingMessages;
     pthread_mutex_unlock(&les->lock);
-    
-    BREthereumHash* transactionArr;
-    array_new(transactionArr, 1);
-    array_add(transactionArr, transaction);
-    
-    ethereumLESGetTxStatus(reqId, transactionArr, &rlpBytes, &rlpBytesSize);
-    BREthereumLESStatus status =  _sendMessage(les, BRE_LES_ID_GET_TX_STATUS, rlpBytes, rlpBytesSize);
-    
-    free(transactionArr);
-    return status;
+
+    if(ETHEREUM_BOOLEAN_IS_TRUE(shouldSend)) {
+        LESRequestRecord record;
+        record.messageId = BRE_LES_ID_GET_TX_STATUS;
+        record.requestId = reqId;
+        record.u.transaction_status.callback = callback;
+        record.u.transaction_status.ctx = context;
+        record.u.transaction_status.transaction = malloc(sizeof(BREthereumHash));
+        memcpy(record.u.transaction_status.transaction->bytes, transaction.bytes, sizeof(transaction.bytes));
+        record.u.transaction_status.transactionCount = 1;
+        
+        BREthereumHash* transactionArr;
+        array_new(transactionArr, 1);
+        array_add(transactionArr, transaction);
+        
+        ethereumLESGetTxStatus(reqId, transactionArr, &rlpBytes, &rlpBytesSize);
+        BREthereumLESStatus status =  _sendMessage(les, BRE_LES_ID_GET_TX_STATUS, rlpBytes, rlpBytesSize);
+        
+        array_free(transactionArr);
+        return status;
+    }else {
+        return LES_NETWORK_UNREACHABLE; 
+    }
 }
 
 extern BREthereumLESStatus
@@ -290,25 +303,25 @@ lesSubmitTransaction (BREthereumLES les,
     
     uint8_t* rlpBytes;
     size_t rlpBytesSize;
-    
+    BREthereumBoolean shouldSend;
+
     pthread_mutex_lock(&les->lock);
     uint64_t reqId = les->requestIdCount++;
-    
+    shouldSend = les->startSendingMessages;
     pthread_mutex_unlock(&les->lock);
     
-    BREthereumTransaction* transactionArr;
-    
-    array_new(transactionArr, 1);
-    array_add(transactionArr, transaction);
-    
-    ethereumLESSendTxt(reqId, transactionArr, les->network, type, &rlpBytes, &rlpBytesSize); 
-   
-   
-   
-    BREthereumLESStatus status =  _sendMessage(les, BRE_LES_ID_GET_TX_STATUS, rlpBytes, rlpBytesSize);
-    
-    array_free(transactionArr);
-    return status;
+    if(ETHEREUM_BOOLEAN_IS_TRUE(shouldSend)) {
+        BREthereumTransaction* transactionArr;
+        array_new(transactionArr, 1);
+        array_add(transactionArr, transaction);
+        ethereumLESSendTxt(reqId, transactionArr, les->network, type, &rlpBytes, &rlpBytesSize);
+        BREthereumLESStatus status =  _sendMessage(les, BRE_LES_ID_GET_TX_STATUS, rlpBytes, rlpBytesSize);
+        array_free(transactionArr);
+        return status;
+    }
+    else {
+        return LES_NETWORK_UNREACHABLE;
+    }
 }
 extern BREthereumLESStatus
 lesGetReceipts (BREthereumLES les,
