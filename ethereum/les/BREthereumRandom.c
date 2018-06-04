@@ -76,7 +76,7 @@ extern void ethereumRandomGenData(BREthereumRandomContext ctx, uint8_t* data, si
 }
 extern void ethereumRandomGenPriKey(BREthereumRandomContext ctx, BRKey* key) {
 
-    assert(key != NULL && BRKeyPrivKey(key, NULL, 0) > 0);
+    assert(key != NULL);
     UInt256 secret;
     BRHMACDRBG(secret.u8, 32, ctx->k, ctx->v, BRKeccak256, KECCAK_HASH_SIZE, NULL, 0, NULL, 0, NULL, 0);
     BRKeySetSecret(key, &secret, 0);
