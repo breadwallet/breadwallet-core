@@ -1,8 +1,8 @@
 //
-//  BREthereumLESBase.h
+//  BREthereumNodeDiscovery.h
 //  breadwallet-core Ethereum
 //
-//  Created by Lamont Samuels on 4/24/18.
+//  Created by Lamont Samuels on 5/15/18.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,28 +23,50 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-/**
- *
- * Etheruem LES specific data structures & algorithms needed for the p2p network.
- *
- */
-#ifndef BR_Ethereum_LES_Base_h
-#define BR_Ethereum_LES_Base_h
+#ifndef BR_Ethereum_Node_Discovery_h
+#define BR_Ethereum_Node_Discovery_h
 
-#include <inttypes.h>
 #include "BRKey.h"
 #include "BRInt.h"
-#include "../base/BREthereumBase.h"
+#include "BREthereumLESBase.h"
+#include "BREthereumEndpoint.h"
+#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern void ethereumXORBytes(uint8_t * op1, uint8_t* op2, uint8_t* result, size_t len);
+/**
+ * Declaration for a BREthereumPingNode
+ */
+typedef struct BREthereumPingNodeContext* BREthereumPingNode;
+
+
+/**
+ * Declaration for a BREthereumPongNode
+ */
+typedef struct BREthereumPongNodeContext* BREthereumPongNode;
+
+
+/**
+ * Creates a Ping Node
+ */
+extern BREthereumPingNode ethereumNodeDiscoveryCreatePing(BREthereumEndpoint to, BREthereumEndpoint from);
+
+/**
+ * Create a Endpoint Node
+ */
+extern BREthereumEndpoint ethereumNodeDiscoveryCreateEndpoint(int addr_family, char*address, uint16_t udpPort, uint16_t tcpPort);
+
+
+
+/**
+ * Send a Ping Packet
+ */
+extern int ethereumNodeDiscoveryPing(BRKey* nodeKey, BREthereumPingNode message, BREthereumPongNode node, BRKey* remotePubKey);
 
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif /* BR_Ethereum_LES_Base_h */
+#endif /* BR_Ethereum_Node_Discovery_h */

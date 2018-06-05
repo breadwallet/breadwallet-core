@@ -27,33 +27,251 @@
 #define BR_Ethereum_LES_h
 
 #include <inttypes.h>
-#include "../base/BREthereumBase.h"
+#include "BREthereumBase.h"
+#include "BREthereumTransaction.h"
+#include "BREthereumTransactionReceipt.h"
+#include "BREthereumTransactionStatus.h"
+#include "BREthereumBlock.h"
+#include "BRKey.h"
+#include "BRArray.h"
+#include "BREthereumNetwork.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-/**
- * Status Header information for the LES handshake
+/*!
+ * @typedef BREthereumLES
+ *
+ * @abstract
+ * An instance to handle LES functionalty.
  */
-typedef struct {
-    
-    uint64_t protocolVersion;
-    uint64_t chainId;
-    uint64_t headerTd;
-    uint8_t headHash[32];
-    uint64_t headNum;
-    uint8_t genesisHash[32];
-    // Note: The below fields are optional LPV1
-    BREthereumBoolean* serveHeaders;
-    uint64_t* serveChainSince;
-    uint64_t* serveStateSince;
-    BREthereumBoolean* txRelay;
-    uint64_t*flowControlBL;
-    uint64_t*flowControlMRC;
-    uint64_t*flowControlMRR;
-}BREthereumLESHeader;
+typedef struct BREthereumLESContext *BREthereumLES;
+
+/*!
+ *@typedef BREthereumLESStatus
+ *
+ * @abstract
+ * An enumeration for deteremining the error that occured when submitting messages using LES
+ */
+typedef enum {
+    LES_SUCCESS  = 0x00,            // No error was generated after submtting a message using LES
+    LES_NETWORK_UNREACHABLE = 0x01, // Error is thrown when the LES context can not connect to the ethereum network
+    LES_UNKNOWN_ERROR = 0x02        // Error is thrown but it's unknown what caused it.
+}BREthereumLESStatus;
+
+
+/*!
+ * @typedef BREthereumLESAnnounceContext
+ *
+ * @abstract
+ * The context to use for handling a LES 'Announce' message
+ */
+typedef void* BREthereumLESAnnounceContext;
+
+/*!
+ * @typedef BREthereumLESAnnounceCallback
+ *
+ * @abstract
+ * The callback to use for handling a LES 'Announce' message.
+ */
+typedef void
+(*BREthereumLESAnnounceCallback) (BREthereumLESAnnounceContext context,
+                                  BREthereumHash headHash,
+                                  uint64_t headNumber,
+                                  uint64_t headTotalDifficulty);
+
+
+/*!
+ * @function lesCreate
+ *
+ * @abstract
+ * Create an instance to handle the LES interface.  Will connect to the provided `network` and
+ * begin getting block headers.
+ *
+ * @param network
+ * The network to connect with.
+ *
+ * @param announceContext
+ * The context to use when handling a LES 'Announce' message
+ *
+ * @param announceCallback
+ * The callback to use when handling a LES 'Announce' message
+ *
+ * ...
+ *
+ * @result
+ * A new LES interface handler.
+ */
+extern BREthereumLES
+lesCreate (BREthereumNetwork network,
+           BREthereumLESAnnounceContext announceContext,
+           BREthereumLESAnnounceCallback announceCallback,
+           BREthereumHash headHash,
+           uint64_t headNumber,
+           uint64_t headTotalDifficulty,
+           BREthereumHash genesisHash);
+
+/*!
+ * @function lesRelease
+ *
+ * @abstract
+ * Releases the les context
+ */
+extern void
+lesRelease(BREthereumLES les);
+
+
+///////
+//
+// LES Message functions
+//
+////
+
+
+//
+// LES GetBlockHeaders
+//
+
+/*!
+ * @typedef BREthereumLESBlockHeadersContext
+ *
+ * @abstract
+ * A context for the BlockHeaders callback
+ */
+typedef void* BREthereumLESBlockHeadersContext;
+
+/*!
+ * @typedef BREthereumLESBlockHeadersCallback
+ *
+ * @abstract
+ * A callback for handling a BlockHeaders result.  Passed the `context` and `header`.
+ */
+typedef void
+(*BREthereumLESBlockHeadersCallback) (BREthereumLESBlockHeadersContext context,
+                                      BREthereumBlockHeader header);
+
+
+
+
+/*!
+ * @function lesGetBlockHeaders
+ *
+ * @abstract
+ * Make a LES GetBlockHeaders requests.  The result will be an array of BREthereumBlockHeader;
+ * the callback will be applied one-by-one to each header.
+ *
+ * @param context
+ * The context to use for the callback.
+ *
+ * @param callback
+ * The callback to use when handling each BREthereumBlockHeader.
+ *
+ * @param blockNumber
+ * The starting blockNumber
+ *
+ * @param maxBlockCount
+ * The maximum blocks to return.
+ *
+ * @param skip
+ * The number of blocks to skip.  Should be '0' to get every block between `blockNumber` and
+ * `blockNumber + maxBlockCount`.
+ *
+ * @param reverse
+ * If ETHEREUM_BOOLEAN_TRUE the returned headers will be in reverse order; otherwise the
+ * first header will have `blockNumber`.
+ */
+extern BREthereumLESStatus
+lesGetBlockHeaders (BREthereumLES les,
+                    BREthereumLESBlockHeadersContext context,
+                    BREthereumLESBlockHeadersCallback callback,
+                    uint64_t blockNumber,
+                    size_t maxBlockCount,
+                    uint64_t skip,
+                    BREthereumBoolean reverse);
+
+//
+// LES GetBlockBodies
+//
+typedef void* BREthereumLESBlockBodiesContext;
+
+typedef void
+(*BREthereumLESBlockBodiesCallback) (BREthereumLESBlockBodiesContext context,
+                                     BREthereumHash block, // BREthereumBlockHeader?
+                                     BREthereumTransaction transactions[],
+                                     BREthereumHash ommers[]);
+
+extern BREthereumLESStatus
+lesGetBlockBodies (BREthereumLES les,
+                   BREthereumLESBlockBodiesContext context,
+                   BREthereumLESBlockBodiesCallback callback,
+                   BREthereumHash blocks[]);
+
+extern BREthereumLESStatus
+lesGetBlockBodiesOne (BREthereumLES les,
+                      BREthereumLESBlockBodiesContext context,
+                      BREthereumLESBlockBodiesCallback callback,
+                      BREthereumHash block);
+
+
+
+//
+// LES GetReceipts
+//
+typedef void* BREthereumLESReceiptsContext;
+
+typedef void
+(*BREthereumLESReceiptsCallback) (BREthereumLESBlockBodiesContext context,
+                                  BREthereumHash block,
+                                  BREthereumTransactionReceipt receipts[]);
+
+extern BREthereumLESStatus
+lesGetReceipts (BREthereumLES les,
+                BREthereumLESReceiptsContext context,
+                BREthereumLESReceiptsCallback callback,
+                BREthereumHash blocks[]);
+
+extern BREthereumLESStatus
+lesGetReceiptsOne (BREthereumLES les,
+                   BREthereumLESReceiptsContext context,
+                   BREthereumLESReceiptsCallback callback,
+                   BREthereumHash block);
+
+//
+// Proofs
+//
+
+// ... omit ...
+
+//
+// LES GetTxStatus
+//
+typedef void* BREthereumLESTransactionStatusContext;
+
+typedef void
+(*BREthereumLESTransactionStatusCallback) (BREthereumLESTransactionStatusContext context,
+                                          BREthereumHash transaction,
+                                          BREthereumTransactionStatusLES status);
+
+extern BREthereumLESStatus
+lesGetTransactionStatus (BREthereumLES les,
+                         BREthereumLESTransactionStatusContext context,
+                         BREthereumLESTransactionStatusCallback callback,
+                         BREthereumHash transactions[]);
+
+extern BREthereumLESStatus
+lesGetTransactionStatusOne (BREthereumLES les,
+                            BREthereumLESTransactionStatusContext context,
+                            BREthereumLESTransactionStatusCallback callback,
+                            BREthereumHash transaction);
+
+extern BREthereumLESStatus
+lesSubmitTransaction (BREthereumLES les,
+                      BREthereumLESTransactionStatusContext context,
+                      BREthereumLESTransactionStatusCallback callback,
+                      BREthereumTransactionRLPType type,
+                      BREthereumTransaction transaction);
 
 
 #ifdef __cplusplus

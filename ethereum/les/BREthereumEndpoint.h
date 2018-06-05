@@ -1,8 +1,8 @@
 //
-//  BREthereumLESBase.h
+//  BREthereumEndpoint.h
 //  breadwallet-core Ethereum
 //
-//  Created by Lamont Samuels on 4/24/18.
+//  Created by Lamont Samuels on 5/23/18.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,28 +23,59 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-/**
- *
- * Etheruem LES specific data structures & algorithms needed for the p2p network.
- *
- */
-#ifndef BR_Ethereum_LES_Base_h
-#define BR_Ethereum_LES_Base_h
+#ifndef BR_Ethereum_Endpoint_h
+#define BR_Ethereum_Endpoint_h
 
-#include <inttypes.h>
 #include "BRKey.h"
 #include "BRInt.h"
-#include "../base/BREthereumBase.h"
+#include "BREthereumLESBase.h"
+#include "BREthereumBase.h"
+#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern void ethereumXORBytes(uint8_t * op1, uint8_t* op2, uint8_t* result, size_t len);
+/**
+ * Declaration for a BREthereumEndpoint
+ */
+typedef struct BREthereumEndpointContext* BREthereumEndpoint;
+
+
+/**
+ * Create an Endpoint
+ */
+extern BREthereumEndpoint ethereumEndpointCreate(BREthereumBoolean isIPV4Address, char*address, uint16_t udpPort, uint16_t tcpPort);
+
+/**
+ * Release an Endpoint
+ */
+extern void ethereumEndpointRelease(BREthereumEndpoint endpoint);
+
+/**
+ * Retrieve the tcpPort of an endpoint
+ */
+extern uint16_t ethereumEndpointGetTCP(BREthereumEndpoint endpoint);
+
+/**
+ * Retrieve the udport of an endpoint
+ */
+extern uint16_t ethereumEndpointGetUDP(BREthereumEndpoint endpoint);
+
+/**
+ * Retrieve the host address of an endpoint
+ */
+extern const char* ethereumEndpointGetHost(BREthereumEndpoint endpoint);
+
+/**
+ * Determines whether the endpoint contains a IPV4 address or not
+ */
+extern BREthereumBoolean ethereumEndpointIsIPV4(BREthereumEndpoint endpoint);
+
+
 
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif /* BR_Ethereum_LES_Base_h */
+#endif /* BREthereumEndpoint_h */

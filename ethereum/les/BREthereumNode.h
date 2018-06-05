@@ -30,26 +30,14 @@
 #include <inttypes.h>
 #include <arpa/inet.h>
 #include "BRInt.h"
-#include "../base/BREthereumBase.h"
-
-// Note:: Duplicated this logging code from Aaron's BRPeer.h file
-// TODO: May want to move this code into it's own library
-#define bre_peer_log(peer, ...) _bre_peer_log("%s:%"PRIu16" " _va_first(__VA_ARGS__, NULL) "\n", ethereumPeerGetHost(peer),\
-(peer)->port, _va_rest(__VA_ARGS__, NULL))
-#define _va_first(first, ...) first
-#define _va_rest(first, ...) __VA_ARGS__
-
-#if defined(TARGET_OS_MAC)
-#include <Foundation/Foundation.h>
-#define _bre_peer_log(...) NSLog(__VA_ARGS__)
-#elif defined(__ANDROID__)
-#include <android/log.h>
-#define _bre_peer_log(...) __android_log_print(ANDROID_LOG_INFO, "bread", __VA_ARGS__)
-#else
-#include <stdio.h>
-#define _bre_peer_log(...) printf(__VA_ARGS__)
-#endif
-
+#include "BREthereumBase.h"
+#include "BREthereumAccount.h"
+#include "BREthereumNodeDiscovery.h"
+#include "BREthereumNodeEventHandler.h"
+#include "BRKey.h"
+#include "BREthereumLES.h"
+#include "BREthereumP2PCoder.h"
+#include "BREthereumFrameCoder.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -58,7 +46,7 @@ extern "C" {
  * An Ethereum LES Node
  *
  */
-typedef struct BREthereumNodeContext *BREthereumNode;
+typedef struct BREthereumNodeContext* BREthereumNode;
 
 /**
  * Ehtereum Node Connection Status - Connection states for a node
@@ -66,38 +54,52 @@ typedef struct BREthereumNodeContext *BREthereumNode;
 typedef enum {
     BRE_NODE_ERROR = -1, 
     BRE_NODE_DISCONNECTED,
+    BRE_NODE_DICONNECTING, 
     BRE_NODE_CONNECTING,
     BRE_NODE_PERFORMING_HANDSHAKE,
     BRE_NODE_CONNECTED
 } BREthereumNodeStatus;
 
 /**
- * BREthereumPeer - holds information about the remote peer
+ * BREthereumPeerConfig - the initial data needed to begin a connection to a remote node
  */
 typedef struct {
+    BREthereumEndpoint endpoint; //endpoint information for the remote
+    uint64_t timestamp; // the timestamp of peer configuration
+    BRKey* remoteKey;   // the remote public key for the remote peer
+} BREthereumPeerConfig;
 
-    //ipv6 address of the peer
-    UInt128 address;
-    
-    //port number of peer connection
-    uint16_t port;
-    
-    //The name for a host
-    char host[INET6_ADDRSTRLEN];
-    
-    //socket used for communicating with a peer
-    volatile int socket;
-    
-    //The public address for the remote node
-    UInt512 remoteId;
-    
-}BREthereumPeer;
+
+typedef void* BREthereumManagerCallbackContext;
+typedef void (*BREthereumManagerDisconnectCallback)(BREthereumManagerCallbackContext info, BREthereumNode node, BREthereumDisconnect reason);
+typedef void (*BREthereumManagerRecMsgCallback)(BREthereumManagerCallbackContext info, BREthereumNode node, uint8_t* message, size_t messageSize);
+typedef void (*BREthereumManagerConnectedCallback)(BREthereumManagerCallbackContext info, BREthereumNode node, uint8_t** status, size_t* statusSize);
+typedef void (*BREthereumManagerNetworkReachableCallback)(BREthereumManagerCallbackContext info, BREthereumNode node, BREthereumBoolean isReachable);
+
+typedef struct {
+    BREthereumManagerCallbackContext info;
+    BREthereumManagerDisconnectCallback disconnectFunc;
+    BREthereumManagerRecMsgCallback receivedMsgFunc;
+    BREthereumManagerConnectedCallback connectedFuc;
+    BREthereumManagerNetworkReachableCallback networkReachableFunc;
+}BREthereumManagerCallback;
 
 /**
  * Creates an ethereum node with the remote peer information and whether the node should send
  * an auth message first. 
  */ 
-extern BREthereumNode  ethereumNodeCreate(BREthereumPeer peer, BREthereumBoolean originate);
+extern BREthereumNode ethereumNodeCreate(BREthereumPeerConfig config,
+                                         BRKey* key,
+                                         UInt256* nonce,
+                                         BRKey* ephemeral,
+                                         BREthereumManagerCallback callbacks,
+                                         BREthereumBoolean originate);
+
+/**
+ * Deletes the memory of the ethereum node
+ */
+extern void ethereumNodeRelease(BREthereumNode node);
+
 
 /**
  * Retrieves the status of an ethereum node
@@ -107,22 +109,92 @@ extern BREthereumNodeStatus ethereumNodeStatus(BREthereumNode node);
 /**
  * Connects to the ethereum node to a remote node
  */
-extern void ethereumNodeConnect(BREthereumNode node);
+extern int ethereumNodeConnect(BREthereumNode node);
 
 /**
  * Disconnects the ethereum node from a remote node
  */
-extern void ethereumNodeDisconnect(BREthereumNode node);
+extern void ethereumNodeDisconnect(BREthereumNode node, BREthereumDisconnect reason);
 
 /**
- * Deletes the memory of the ethereum node
+ * Sends a message to the remote node
  */
-extern void ethereumNodeFree(BREthereumNode node);
+extern BREthereumBoolean ethereumNodeSendMessage(BREthereumNode node, uint64_t packetType, uint8_t* payload, size_t payloadSize);
 
 /**
- * Retrieves the string representation of the remot peer address
- */ 
-extern const char * ethereumPeerGetHost(BREthereumPeer* peer);
+ * Determines if the given BREthereumNode is the same as t
+ */
+extern BREthereumBoolean ethereumNodeEQ(BREthereumNode node1, BREthereumNode node2); 
+
+/**
+ * Retrieves the key for this node
+ */
+ extern BRKey* ethereumNodeGetKey(BREthereumNode node);
+ 
+/**
+ * Retrieves the remote key that this node is connected to
+ */
+ extern BRKey* ethereumNodeGetPeerKey(BREthereumNode node);
+
+/**
+ * Retrieves the frame coder for this node
+ */
+extern BREthereumFrameCoder ethereumNodeGetFrameCoder(BREthereumNode node); 
+
+/**
+ * Retrieves the RLP encoded status message for this node
+ */
+extern BRRlpData ethereumNodeGetStatusData(BREthereumNode node);
+
+/**
+ * Determines whether this node is originating the connection
+ */
+extern BREthereumBoolean ethereumNodeDidOriginate(BREthereumNode node);
+
+/**
+ * Retrieves a reference to the local ephemeral
+ */
+extern BRKey* ethereumNodeGetEphemeral(BREthereumNode node);
+
+/**
+ * Retrieves a reference to the remote ephemeral
+ */
+extern BRKey* ethereumNodeGetPeerEphemeral(BREthereumNode node);
+
+/**
+ * Retrieves a reference to the local nonce
+ */
+extern UInt256* ethereumNodeGetNonce(BREthereumNode node);
+
+/**
+ * Retrieves a reference to the remote nonce
+ */
+extern UInt256* ethereumNodeGetPeerNonce(BREthereumNode node);
+
+/**
+ * Retrieve the Hello Message for the node
+ */
+extern BRRlpData ethereumNodeRLPP2PHello(BREthereumNode node);
+
+/**
+ * Decode the Hello Message from the peer
+ */
+extern BREthereumBoolean ethereumNodePeerP2PHello(BREthereumNode node);
+
+/**
+ * Announces an event to the node
+ */
+extern void ethereumNodeAnnounceEvent(BREthereumNode node, BREthereumNodeEvent evt);
+
+/**
+ * Reads information from the peer
+ */
+extern int ethereumNodeReadFromPeer(BREthereumNode node, uint8_t * buf, size_t bufSize, const char * type);
+
+/**
+ * Writes information to the peer
+ */
+extern int ethereumNodeWriteToPeer(BREthereumNode node, uint8_t * buf, size_t bufSize, char* type);
 
 
 #ifdef __cplusplus

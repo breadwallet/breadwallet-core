@@ -50,26 +50,26 @@ extern BREthereumFrameCoder ethereumFrameCoderCreate(void);
 /**
  * Initilaize a frame coder
  */
-extern BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fCoder,
-                                               UInt512* remoteEphemeral,
-                                               UInt256* remoteNonce,
-                                               BRKey* ecdheLocal,
-                                               UInt256* localNonce,
-                                               uint8_t* aukCipher,
-                                               size_t aukCipherLen,
-                                               uint8_t* authCiper,
-                                               size_t authCipherLen,
-                                               BREthereumBoolean didOriginate);
+extern BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fcoder,
+                                                BRKey* remoteEphemeral,
+                                                UInt256* remoteNonce,
+                                                BRKey* localEphemeral,
+                                                UInt256* localNonce,
+                                                uint8_t* aukCipher,
+                                                size_t aukCipherLen,
+                                                uint8_t* authCiper,
+                                                size_t authCipherLen,
+                                                BREthereumBoolean didOriginate);
     
 /**
  * Frees the memory of the frame coder 
  */
-extern void ethereumFrameCoderFree(BREthereumFrameCoder coder);
+extern void ethereumFrameCoderRelease(BREthereumFrameCoder coder);
 
 /**
  * Writes a single frame to the coder
  */
- extern void ethereumFrameCoderWrite(BREthereumFrameCoder fCoder, uint8_t msgId,  uint8_t* payload, size_t payloadSize, uint8_t** oBytes, size_t * oBytesSize);
+ extern void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, size_t payloadSize, uint8_t** rlpBytes, size_t * rlpBytesSize);
 
 /**
  * Authenticates and descrptys the header 
@@ -81,6 +81,12 @@ extern BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fC
  */
 extern BREthereumBoolean ethereumFrameCoderDecryptFrame(BREthereumFrameCoder fCoder, uint8_t * oBytes, size_t outSize);
   
+ 
+ 
+extern int testFrameCoderInitiator(BREthereumFrameCoder fCoder);
+extern int testFrameCoderReceiver(BREthereumFrameCoder fCoder);
+
+
  
 #ifdef __cplusplus
 }

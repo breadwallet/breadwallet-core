@@ -41,6 +41,7 @@
 #include "BREthereumPrivate.h"
 #include "BREthereumAccount.h"
 #include "blockchain/BREthereumBlockChain.h"
+#include "les/test-les.h"
 
 static void
 showHex (uint8_t *source, size_t sourceLen) {
@@ -1826,9 +1827,8 @@ runTests (void) {
     runAccountStateTests();
     runTransactionStatusTests();
     runTransactionReceiptTests();
-    
-//    runLEStests();
-    //    reallySend();
+    //    reallySend();*/
+    runLEStests(); 
     printf ("Done\n");
 }
 
