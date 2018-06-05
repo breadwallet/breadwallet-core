@@ -414,10 +414,6 @@ public struct EthereumTransaction : EthereumReferenceWithDefaultUnit {
         return ethereumTransactionGetBlockNumber (self.node!.core, self.identifier)
     }
 
-    var blockTimestamp : UInt64 {
-        return ethereumTransactionGetBlockTimestamp (self.node!.core, self.identifier)
-    }
-
     // State
 }
 
