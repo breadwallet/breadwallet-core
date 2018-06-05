@@ -147,16 +147,18 @@ bcsHandleSubmitTransaction (BREthereumBCS bcs,
 
     // Use LES to submit the transaction; provide our transactionStatus callback.
 
-    BREThereumLESStatus lesStatus =
+    BREthereumLESStatus lesStatus =
     lesSubmitTransaction(bcs->les,
                          (BREthereumLESTransactionStatusContext) bcs,
                          (BREthereumLESTransactionStatusCallback) bcsSignalTransactionStatus,
+                         TRANSACTION_RLP_SIGNED,
                          transaction);
 
     switch (lesStatus) {
-        case LES_STATUS_SUCCESS:
+        case LES_SUCCESS:
             break;
-        case LES_STATUS_ERROR: {
+        case LES_UNKNOWN_ERROR:
+        case LES_NETWORK_UNREACHABLE: {
             BREthereumTransactionStatus status;
             status.type = TRANSACTION_STATUS_ERROR;
             status.u.error.message = "LES Submit Failed";

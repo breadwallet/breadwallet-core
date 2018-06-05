@@ -29,7 +29,7 @@
 #include <pthread.h>
 #include "BREthereumLightNode.h"
 #include "../blockchain/BREthereumBlockChain.h"
-#include "../les/BREthereumLESInterface.h"
+#include "../les/BREthereumLES.h"
 #include "../bcs/BREthereumBCS.h"
 #include "../event/BREvent.h"
 

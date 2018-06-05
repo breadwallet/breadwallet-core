@@ -27,7 +27,7 @@
 #define BR_Ethereum_BCS_h
 
 #include "../base/BREthereumBase.h"
-#include "../les/BREthereumLESInterface.h"
+#include "../les/BREthereumLES.h"
 #include "../BREthereumAccount.h"
 
 #ifdef __cplusplus
