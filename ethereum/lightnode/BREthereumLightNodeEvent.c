@@ -62,7 +62,7 @@ lightNodeListenerWalletEventDispatcher(BREventHandler ignore,
 }
 
 BREventType listenerWalletEventType = {
-    "Listener Wallet Event",
+    "LN: Listener Wallet Event",
     sizeof (BREthereumListenerWalletEvent),
     (BREventDispatcher) lightNodeListenerWalletEventDispatcher
 };
@@ -107,7 +107,7 @@ lightNodeListenerBlockEventDispatcher(BREventHandler ignore,
 }
 
 BREventType listenerBlockEventType = {
-    "Listener Block Event",
+    "LN: Listener Block Event",
     sizeof (BREthereumListenerBlockEvent),
     (BREventDispatcher) lightNodeListenerBlockEventDispatcher
 };
@@ -154,7 +154,7 @@ lightNodeListenerTransactionEventDispatcher(BREventHandler ignore,
 }
 
 BREventType listenerTransactionEventType = {
-    "Listener Transaction Event",
+    "LN: Listener Transaction Event",
     sizeof (BREthereumListenerTransactionEvent),
     (BREventDispatcher) lightNodeListenerTransactionEventDispatcher
 };
@@ -197,7 +197,7 @@ lightNodeListenerPeerEventDispatcher(BREventHandler ignore,
 }
 
 BREventType listenerPeerEventType = {
-    "Listener Peer Event",
+    "LN: Listener Peer Event",
     sizeof (BREthereumListenerPeerEvent),
     (BREventDispatcher) lightNodeListenerPeerEventDispatcher
 };
@@ -240,7 +240,7 @@ lightNodeListenerLightNodeEventDispatcher(BREventHandler ignore,
 }
 
 BREventType listenerLightNodeEventType = {
-    "Listener LightNode Event",
+    "LN: Listener LightNode Event",
     sizeof (BREthereumListenerLightNodeEvent),
     (BREventDispatcher) lightNodeListenerLightNodeEventDispatcher
 };
@@ -296,7 +296,7 @@ lightNodeHandleBalanceEventDispatcher(BREventHandler ignore,
 }
 
 BREventType handleBalanceEventType = {
-    "Handle Balance Event",
+    "LN: Handle Balance Event",
     sizeof (BREthereumHandleBalanceEvent),
     (BREventDispatcher) lightNodeHandleBalanceEventDispatcher
 };
@@ -325,7 +325,7 @@ lightNodeHandleNonceEventDispatcher(BREventHandler ignore,
 }
 
 BREventType handleNonceEventType = {
-    "Handle Nonce Event",
+    "LN: Handle Nonce Event",
     sizeof (BREthereumHandleNonceEvent),
     (BREventDispatcher) lightNodeHandleNonceEventDispatcher
 };
@@ -355,7 +355,7 @@ lightNodeHandleGasPriceEventDispatcher(BREventHandler ignore,
 }
 
 BREventType handleGasPriceEventType = {
-    "Handle GasPrice Event",
+    "LN: Handle GasPrice Event",
     sizeof (BREthereumHandleGasPriceEvent),
     (BREventDispatcher) lightNodeHandleGasPriceEventDispatcher
 };
@@ -387,7 +387,7 @@ lightNodeHandleGasEstimateEventDispatcher(BREventHandler ignore,
 }
 
 BREventType handleGasEstimateEventType = {
-    "Handle GasEstimate Event",
+    "LN: Handle GasEstimate Event",
     sizeof (BREthereumHandleGasEstimateEvent),
     (BREventDispatcher) lightNodeHandleGasEstimateEventDispatcher
 };
@@ -418,7 +418,7 @@ lightNodeHandleTransactionEventDispatcher(BREventHandler ignore,
 }
 
 BREventType handleTransactionEventType = {
-    "Handle Transaction Event",
+    "LN: Handle Transaction Event",
     sizeof (BREthereumHandleTransactionEvent),
     (BREventDispatcher) lightNodeHandleTransactionEventDispatcher
 };

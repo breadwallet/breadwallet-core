@@ -169,7 +169,9 @@ typedef void* (*ThreadRoutine) (void*);
 
 static void *
 eventHandlerThread (BREventHandler handler) {
-//    node->state = LIGHT_NODE_CONNECTED;
+#if ! defined (__ANDROID__)
+    pthread_setname_np("Core Ethereum Event");
+#endif
 
     pthread_mutex_lock(&handler->lock);
     handler->status = EVENT_HANDLER_THREAD_STATUS_RUNNING;

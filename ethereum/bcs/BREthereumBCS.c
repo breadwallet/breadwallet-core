@@ -115,6 +115,26 @@ bcsCreate (BREthereumNetwork network,
     return bcs;
 }
 
+extern void
+bcsDestroy (BREthereumBCS bcs) {
+    // Stop LES - avoiding any more callbacks.
+    lesRelease (bcs->les);
+
+    // Stop the event handler - allows events to pile up.
+    eventHandlerStop(bcs->handler);
+
+    // Free internal state.
+    BRSetFree(bcs->headers);
+    array_free(bcs->orphans);
+    BRSetFree(bcs->transactions);
+    BRSetFree(bcs->logs);
+    array_free(bcs->pendingTransactions);
+
+    // Destroy the Event w/ queue
+    eventHandlerDestroy(bcs->handler);
+    free (bcs);
+}
+
 extern BREthereumLES
 bcsGetLES (BREthereumBCS bcs) {
     return bcs->les;

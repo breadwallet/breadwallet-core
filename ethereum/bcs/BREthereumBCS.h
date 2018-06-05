@@ -77,6 +77,9 @@ bcsCreate (BREthereumNetwork network,
            BREthereumBlockHeader *headers,
            BREthereumBCSListener listener);
 
+extern void
+bcsDestroy (BREthereumBCS bcs);
+
 // Should be unneeded
 extern BREthereumLES
 bcsGetLES (BREthereumBCS bcs);

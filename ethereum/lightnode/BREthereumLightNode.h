@@ -44,6 +44,9 @@ createLightNode (BREthereumNetwork network,
                  BREthereumType type,
                  BREthereumSyncMode syncMode);
 
+extern void
+lightNodeDestroy (BREthereumLightNode node);
+    
 extern BREthereumAccount
 lightNodeGetAccount (BREthereumLightNode node);
 
