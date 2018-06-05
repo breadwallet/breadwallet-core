@@ -61,6 +61,11 @@ ethereumDisconnect (BREthereumLightNode node) {
     return lightNodeDisconnect(node);
 }
 
+extern void
+ethereumDestroy (BREthereumLightNode node) {
+    lightNodeDestroy(node);
+}
+
 extern BREthereumAccountId
 ethereumGetAccount(BREthereumLightNode node) {
     return 0;

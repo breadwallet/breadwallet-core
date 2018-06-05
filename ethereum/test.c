@@ -1292,6 +1292,7 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
             0 == strcmp (recvAddr, ethereumTransactionGetRecvAddress(node, transaction)));
 
     free (fromAddr);
+    ethereumDestroy(node);
 }
 
 static void
@@ -1333,6 +1334,7 @@ runLightNode_JSON_RPC_test (const char *paperKey) {
 
 //    lightNodeUpdateTransactions(node);
     ethereumDisconnect(node);
+    ethereumDestroy(node);
 }
 
 //
@@ -1436,6 +1438,7 @@ runLightNode_LISTENER_test (const char *paperKey) {
 
     //    ethereumUpdateTransactions(node);
     ethereumDisconnect(node);
+    ethereumDestroy(node);
 }
 
 // Unsigned Result: 0xf864010082c35094558ec3152e2eb2174905cd19aea4e34a23de9ad680b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000000000000000000000000018080
@@ -1466,7 +1469,8 @@ runLightNode_TOKEN_test (const char *paperKey) {
     ethereumWalletSignTransaction(node, wallet, transaction, paperKey);
     const char *rawTxSigned = lightNodeGetTransactionRawDataHexEncoded(node, wallet, transaction, "0x");
     printf ("        RawTx  Signed: %s\n", rawTxSigned);
-    
+
+    ethereumDestroy(node);
 }
 
 static void
@@ -1485,6 +1489,8 @@ runLightNode_PUBLIC_KEY_test (BREthereumNetwork network, const char *paperKey) {
 
     free (addr1);
     free (addr2);
+    ethereumDestroy(node1);
+    ethereumDestroy(node2);
 }
 
 void runLightNodeTests () {

@@ -466,6 +466,9 @@ ethereumConnect(BREthereumLightNode node,
 extern BREthereumBoolean
 ethereumDisconnect (BREthereumLightNode node);
 
+extern void
+ethereumDestroy (BREthereumLightNode node);
+    
 extern BREthereumNetwork
 ethereumGetNetwork (BREthereumLightNode node);
 

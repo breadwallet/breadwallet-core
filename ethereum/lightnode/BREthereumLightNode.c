@@ -139,6 +139,24 @@ createLightNode (BREthereumNetwork network,
     return node;
 }
 
+extern void
+lightNodeDestroy (BREthereumLightNode node) {
+    // Stop BCS processing
+    bcsDestroy(node->bcs);
+
+    eventHandlerStop(node->handlerForListener);
+    eventHandlerStop(node->handlerForMain);
+
+    // wallets
+    // transactions
+    // blocks
+    // listeners
+
+    eventHandlerDestroy(node->handlerForListener);
+    eventHandlerDestroy(node->handlerForMain);
+    free (node);
+}
+
 extern BREthereumAccount
 lightNodeGetAccount (BREthereumLightNode node) {
     return node->account;
