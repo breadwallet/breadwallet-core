@@ -99,7 +99,7 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint8_t* me
         case BRE_LES_ID_TX_STATUS:
         {
             uint64_t reqId = -1, bv = -1;
-            BREthereumTransactionStatusLES* replies;
+            BREthereumTransactionStatus* replies;
             size_t repliesCount;
             BREthereumLESDecodeStatus status = ethereumLESDecodeTxStatus(message, messageSize, &reqId, &bv, &replies, &repliesCount);
             int requestIndexRm = 0;
@@ -357,5 +357,16 @@ lesGetBlockBodiesOne (BREthereumLES les,
                       BREthereumLESBlockBodiesCallback callback,
                       BREthereumHash block) {
     
+    return LES_UNKNOWN_ERROR;
+}
+
+extern BREthereumLESStatus
+lesGetBlockHeaders (BREthereumLES les,
+                    BREthereumLESBlockHeadersContext context,
+                    BREthereumLESBlockHeadersCallback callback,
+                    uint64_t blockNumber,
+                    size_t maxBlockCount,
+                    uint64_t skip,
+                    BREthereumBoolean reverse) {
     return LES_UNKNOWN_ERROR;
 }

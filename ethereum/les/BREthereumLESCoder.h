@@ -118,9 +118,9 @@ extern void ethereumLESSendTxtV2(uint64_t reqId, BREthereumTransaction transacti
 
 extern void ethereumLESGetTxStatus(uint64_t reqId, BREthereumHash transactions[], uint8_t**rlpBytes, size_t* rlpBytesSize);
 
-extern BREthereumLESDecodeStatus ethereumLESDecodeTxStatus(uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv, BREthereumTransactionStatusLES** replies, size_t* repliesCount);
+extern BREthereumLESDecodeStatus ethereumLESDecodeTxStatus(uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv, BREthereumTransactionStatus** replies, size_t* repliesCount);
 
-extern void ethereumLESTxStatus( uint64_t reqId, uint64_t bv, BREthereumTransactionStatusLES* replies, size_t repliesCount, uint8_t**rlpBytes, size_t* rlpBytesSize);
+extern void ethereumLESTxStatus( uint64_t reqId, uint64_t bv, BREthereumTransactionStatus* replies, size_t repliesCount, uint8_t**rlpBytes, size_t* rlpBytesSize);
 
 
 

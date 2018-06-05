@@ -457,10 +457,10 @@ transactionPredicateAny (void *ignore,
 }
 
 extern int
-transactionPredicateStatus (BREthereumTransactionStatus status,
+transactionPredicateStatus (BREthereumTransactionStatusType type,
                             BREthereumTransaction transaction,
                             unsigned int index) {
-    return status == transactionGetStatus(transaction);
+    return type == transactionGetStatus(transaction).type;
 }
 
 extern void
@@ -550,14 +550,15 @@ walletTransactionSubmitted (BREthereumWallet wallet,
 }
 
 private_extern void
-walletTransactionBlocked(BREthereumWallet wallet, BREthereumTransaction transaction,
-                         BREthereumGas gasUsed, uint64_t
-                         blockNumber, uint64_t
-                         blockTimestamp,
+walletTransactionBlocked(BREthereumWallet wallet,
+                         BREthereumTransaction transaction,
+                         BREthereumGas gasUsed,
+                         BREthereumHash blockHash,
+                         uint64_t blockNumber,
                          uint64_t blockTransactionIndex) {
     transactionAnnounceBlocked(transaction, gasUsed,
+                               blockHash,
                                blockNumber,
-                               blockTimestamp,
                                blockTransactionIndex);
     walletUpdateTransactionSorted(wallet, transaction);
 }

@@ -29,6 +29,7 @@
 #include "../base/BREthereumBase.h"
 #include "BREthereumAmount.h"
 #include "BREthereumNetwork.h"
+#include "BREthereumTransactionStatus.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -53,6 +54,10 @@ transactionGetSourceAddress(BREthereumTransaction transaction);
 extern BREthereumEncodedAddress
 transactionGetTargetAddress(BREthereumTransaction transaction);
 
+extern BREthereumBoolean
+transactionHasAddress (BREthereumTransaction transaction,
+                       BREthereumAddress address);
+    
 extern BREthereumAmount
 transactionGetAmount(BREthereumTransaction transaction);
 
@@ -102,6 +107,14 @@ transactionGetData (BREthereumTransaction transaction);
 
 extern BREthereumToken // or null
 transactionGetToken (BREthereumTransaction transaction);
+
+// Support BRSet
+extern size_t
+transactionHashValue (const void *h);
+
+// Support BRSet
+extern int
+transactionHashEqual (const void *h1, const void *h2);
 
 //
 // Transaction Signing
@@ -168,17 +181,6 @@ extern BREthereumComparison
 transactionCompare (BREthereumTransaction t1,
                     BREthereumTransaction t2);
 
-//
-// Transaction Status
-//
-typedef enum {
-  TRANSACTION_CREATED,
-  TRANSACTION_SIGNED,
-  TRANSACTION_SUBMITTED,  // more than just 'sent'; in one 'mempool'; has hash
-  TRANSACTION_BLOCKED,
-  TRANSACTION_DROPPED     // not in any 'mempool'
-} BREthereumTransactionStatus;
-
 extern BREthereumTransactionStatus
 transactionGetStatus (BREthereumTransaction transaction);
 
@@ -192,8 +194,8 @@ transactionIsSubmitted (BREthereumTransaction transaction);
 extern void
 transactionAnnounceBlocked(BREthereumTransaction transaction,
                            BREthereumGas gasUsed,
+                           BREthereumHash blockHash,
                            uint64_t blockNumber,
-                           uint64_t blockTimestamp,
                            uint64_t blockTransactionIndex);
 
 extern void
@@ -207,10 +209,9 @@ transactionAnnounceSubmitted (BREthereumTransaction transaction,
 extern int
 transactionExtractBlocked(BREthereumTransaction transaction,
                           BREthereumGas *gas,
+                          BREthereumHash *blockHash,
                           uint64_t *blockNumber,
-                          uint64_t *blockTimestamp,
                           uint64_t *blockTransactionIndex);
-
 //
 // Transaction Result
 //

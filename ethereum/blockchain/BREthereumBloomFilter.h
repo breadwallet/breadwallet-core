@@ -82,6 +82,12 @@ bloomFilterCreateData (const BRRlpData data);
 extern BREthereumBloomFilter
 bloomFilterCreateAddress (const BREthereumAddress address);
 
+/**
+ * Create a BloomFilter from a hex-encoded, non-0x-prefaced string.
+ */
+extern BREthereumBloomFilter
+bloomFilterCreateString (const char *string);
+
 extern BREthereumBloomFilter
 bloomFilterOr (const BREthereumBloomFilter filter1, const BREthereumBloomFilter filter2);
 

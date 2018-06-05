@@ -163,6 +163,13 @@ addressRawRlpEncode(BREthereumAddress address,
     return rlpEncodeItemBytes(coder, address.bytes, 20);
 }
 
+extern BREthereumBoolean
+addressRawEqual (BREthereumAddress address1,
+                 BREthereumAddress address2) {
+    return (0 == memcmp(address1.bytes, address2.bytes, 20)
+            ? ETHEREUM_BOOLEAN_TRUE
+            : ETHEREUM_BOOLEAN_FALSE);
+}
 
 //
 // Address
@@ -243,6 +250,11 @@ validateAddressString(const char *string) {
     && encodeHexValidate (&string[2])
     ? ETHEREUM_BOOLEAN_TRUE
     : ETHEREUM_BOOLEAN_FALSE;
+}
+
+extern BREthereumAddress
+addressGetRawAddress (BREthereumEncodedAddress address) {
+    return address->raw;
 }
 
 extern void

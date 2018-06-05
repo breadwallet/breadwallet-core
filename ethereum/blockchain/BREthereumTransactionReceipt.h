@@ -28,12 +28,28 @@
 
 #include "../base/BREthereumBase.h"
 #include "BREthereumBloomFilter.h"
+#include "BREthereumLog.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/*!
+ * The Result of a LES 'GetReceipts' request
+ */
 typedef struct BREthereumTransactionReceiptRecord *BREthereumTransactionReceipt;
+
+extern uint64_t
+transactionReceiptGetGasUsed (BREthereumTransactionReceipt receipt);
+
+extern size_t
+transactionReceiptGetLogsCount (BREthereumTransactionReceipt receipt);
+
+extern BREthereumLog
+transactionReceiptGetLog (BREthereumTransactionReceipt receipt, size_t index);
+
+extern BREthereumBloomFilter
+transactionReceiptGetBloomFilter (BREthereumTransactionReceipt receipt);
 
 extern BREthereumBoolean
 transactionReceiptMatch (BREthereumTransactionReceipt receipt,

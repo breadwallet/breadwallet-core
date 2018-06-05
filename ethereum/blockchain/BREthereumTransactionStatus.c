@@ -28,7 +28,7 @@
 #include "BREthereumTransactionStatus.h"
 
 extern void
-transactionStatusRelease (BREthereumTransactionStatusLES status) {
+transactionStatusRelease (BREthereumTransactionStatus status) {
     switch (status.type) {
         case TRANSACTION_STATUS_ERROR:
             if (NULL != status.u.error.message)
@@ -39,16 +39,16 @@ transactionStatusRelease (BREthereumTransactionStatusLES status) {
     }
 }
 
-extern BREthereumTransactionStatusLES
+extern BREthereumTransactionStatus
 transactionStatusRLPDecodeItem (BRRlpItem item,
                                 BRRlpCoder coder) {
-    BREthereumTransactionStatusLES status;
+    BREthereumTransactionStatus status;
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     assert (2 == itemsCount);
 
-    status.type = (BREthereumTransactionStatusLESType) rlpDecodeItemUInt64(coder, items[0], 0);
+    status.type = (BREthereumTransactionStatusType) rlpDecodeItemUInt64(coder, items[0], 0);
     switch (status.type) {
         case TRANSACTION_STATUS_UNKNOWN:
         case TRANSACTION_STATUS_QUEUED:
@@ -68,6 +68,12 @@ transactionStatusRLPDecodeItem (BRRlpItem item,
 
         case TRANSACTION_STATUS_ERROR:
             status.u.error.message = rlpDecodeItemString(coder, items[1]);
+            break;
+
+        case TRANSACTION_STATUS_CREATED:
+        case TRANSACTION_STATUS_SIGNED:
+        case TRANSACTION_STATUS_SUBMITTED:
+            break;
     }
 
     return status;

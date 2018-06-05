@@ -40,12 +40,30 @@ typedef struct BREthereumBlockRecord *BREthereumBlock;
 //
 // Block Header
 //
+extern BREthereumBoolean
+blockHeaderIsValid (BREthereumBlockHeader header);
+
 extern BREthereumBlockHeader
 blockHeaderDecodeRLP (BRRlpData data);
 
 extern BRRlpData
 blockHeaderEncodeRLP (BREthereumBlockHeader header,
                       BREthereumBoolean withNonce);
+
+extern BREthereumHash
+blockHeaderGetHash (BREthereumBlockHeader header);
+
+extern uint64_t
+blockHeaderGetNumber (BREthereumBlockHeader header);
+
+extern uint64_t
+blockHeaderGetDifficulty (BREthereumBlockHeader header);
+
+extern uint64_t
+blockHeaderGetGasUsed (BREthereumBlockHeader header);
+
+extern uint64_t
+blockHeaderGetTimestamp (BREthereumBlockHeader header);
 
 extern BREthereumHash
 blockHeaderGetParentHash (BREthereumBlockHeader header);
@@ -57,11 +75,19 @@ blockHeaderGetNonce (BREthereumBlockHeader header);
 
 extern BREthereumBoolean
 blockHeaderMatch (BREthereumBlockHeader header,
-            BREthereumBloomFilter filter);
+                  BREthereumBloomFilter filter);
 
 extern BREthereumBoolean
 blockHeaderMatchAddress (BREthereumBlockHeader header,
-                   BREthereumAddress address);
+                         BREthereumAddress address);
+
+// Support BRSet
+extern size_t
+blockHeaderHashValue (const void *h);
+
+// Support BRSet
+extern int
+blockHeaderHashEqual (const void *h1, const void *h2);    
 
 //
 // Block
@@ -75,6 +101,10 @@ extern BREthereumBlock
 createBlock (BREthereumBlockHeader header,
              BREthereumBlockHeader ommers[], size_t ommersCount,
              BREthereumTransaction transactions[], size_t transactionCount);
+
+extern BREthereumBoolean
+blockIsValid (BREthereumBlock block,
+              BREthereumBoolean skipHeaderValidation);
 
 extern BREthereumBlockHeader
 blockGetHeader (BREthereumBlock block);

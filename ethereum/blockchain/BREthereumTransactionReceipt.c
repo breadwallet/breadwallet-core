@@ -29,6 +29,9 @@
 #include "BREthereumLog.h"
 #include "BREthereumTransactionReceipt.h"
 
+//
+// The Result of a LES 'GetReceipts' request
+//
 // The transaction receipt, R, is a tuple of four items comprising: ...
 //
 // However, there appears to be a change in interpretation for 'status code' and the
@@ -47,6 +50,28 @@ struct BREthereumTransactionReceiptRecord {
     // and the status code of the transaction, Rz
     BRRlpData stateRoot;
 };
+
+extern uint64_t
+transactionReceiptGetGasUsed (BREthereumTransactionReceipt receipt) {
+    return receipt->gasUsed;
+}
+
+extern size_t
+transactionReceiptGetLogsCount (BREthereumTransactionReceipt receipt) {
+    return array_count(receipt->logs);
+}
+
+extern BREthereumLog
+transactionReceiptGetLog (BREthereumTransactionReceipt receipt, size_t index) {
+    return (index < array_count(receipt->logs)
+            ? receipt->logs[index]
+            : NULL);
+}
+
+extern BREthereumBloomFilter
+transactionReceiptGetBloomFilter (BREthereumTransactionReceipt receipt) {
+    return receipt->bloomFilter;
+}
 
 //
 // Bloom Filter Matches

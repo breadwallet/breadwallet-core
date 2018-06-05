@@ -26,6 +26,8 @@
 #ifndef BR_Ethereum_Hash_H
 #define BR_Ethereum_Hash_H
 
+#include <stdlib.h>
+#include <memory.h>
 #include "../rlp/BRRlp.h"
 #include "BREthereumLogic.h"
 #include "BREthereumHash.h"
@@ -34,60 +36,73 @@
 extern "C" {
 #endif
 
-    //
-    // Hash - An Ethereum 256-bit Keccak hash
-    //
+//
+// Hash - An Ethereum 256-bit Keccak hash
+//
 
 #define ETHEREUM_HASH_BYTES    (256/8)
 
-    typedef struct {
-        uint8_t bytes[ETHEREUM_HASH_BYTES];
-    } BREthereumHash;
+typedef struct {
+    uint8_t bytes[ETHEREUM_HASH_BYTES];
+} BREthereumHash;
 
 #define EMPTY_HASH_INIT   { \
 0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0, \
 0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0  \
 }
 
-    /**
-     * Create a Hash by converting from a hex-encoded string of a hash.  The string must
-     * begin with '0x'.
-     */
-    extern BREthereumHash
-    hashCreate (const char *string);
+/**
+ * Create a Hash by converting from a hex-encoded string of a hash.  The string must
+ * begin with '0x'.
+ */
+extern BREthereumHash
+hashCreate (const char *string);
 
-    /**
-     * Create an empty (all zeros) Hash
-     */
-    extern BREthereumHash
-    hashCreateEmpty (void);
+/**
+ * Create an empty (all zeros) Hash
+ */
+extern BREthereumHash
+hashCreateEmpty (void);
 
-    /**
-     * Creata a Hash by computing it from a arbitrary data set
-     */
-    extern BREthereumHash
-    hashCreateFromData (BRRlpData data);
+/**
+ * Creata a Hash by computing it from a arbitrary data set
+ */
+extern BREthereumHash
+hashCreateFromData (BRRlpData data);
 
-    /**
-     * Return the hex-encoded string
-     */
-    extern char *
-    hashAsString (BREthereumHash hash);
+/**
+ * Return the hex-encoded string
+ */
+extern char *
+hashAsString (BREthereumHash hash);
 
-    extern BREthereumHash
-    hashCopy(BREthereumHash hash);
+extern BREthereumHash
+hashCopy(BREthereumHash hash);
 
-    extern BREthereumComparison
-    hashCompare(BREthereumHash hash1, BREthereumHash hash2);
+extern BREthereumComparison
+hashCompare(BREthereumHash hash1, BREthereumHash hash2);
 
-    extern BREthereumBoolean
-    hashEqual (BREthereumHash hash1, BREthereumHash hash2);
+extern BREthereumBoolean
+hashEqual (BREthereumHash hash1, BREthereumHash hash2);
 
-    extern BRRlpItem
-    hashRlpEncode(BREthereumHash hash, BRRlpCoder coder);
+extern BRRlpItem
+hashRlpEncode(BREthereumHash hash, BRRlpCoder coder);
 
-    extern BREthereumHash
-    hashRlpDecode (BRRlpItem item, BRRlpCoder coder);
+extern BREthereumHash
+hashRlpDecode (BRRlpItem item, BRRlpCoder coder);
+
+// BRSet Support
+inline static int
+hashSetValue (const BREthereumHash *hash) {
+    return ((UInt256 *) hash->bytes)->u32[0];
+}
+
+// BRSet Support
+inline static int
+hashSetEqual (const BREthereumHash *hash1,
+              const BREthereumHash *hash2) {
+    return hash1 == hash2 || 0 == memcmp (hash1->bytes, hash2->bytes, ETHEREUM_HASH_BYTES);
+}
 
 #ifdef __cplusplus
 }

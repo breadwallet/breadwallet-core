@@ -400,7 +400,7 @@ void _announceCallback (BREthereumLESAnnounceContext context,
 }
 void transactionStatusCallback(BREthereumLESTransactionStatusContext context,
                                BREthereumHash transaction,
-                               BREthereumTransactionStatusLES status){
+                               BREthereumTransactionStatus status){
     
     char transactionHashStr[] = "c070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c";
     BREthereumHash transactionHash;

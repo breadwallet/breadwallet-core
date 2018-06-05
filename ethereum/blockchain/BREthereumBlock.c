@@ -31,9 +31,6 @@
 #include "BREthereumLog.h"
 #include "../BREthereumPrivate.h"
 
-
-#define BLOCK_HEADER_NEEDS_SEED_HASH   1
-
 // GETH:
 /*
  type Header struct {
@@ -80,6 +77,11 @@ func (h *Header) HashNoNonce() common.Hash {
  * that reference]
  */
 struct BREthereumBlockHeaderRecord {
+    // THIS MUST BE FIRST to support BRSet operations.
+    //
+    // The Keccak256-bit hash (of this Block).
+    BREthereumHash hash;
+
     // The Keccak256-bit hash of the parent block’s header, in its entirety; formally Hp.
     BREthereumHash parentHash;
 
@@ -130,9 +132,6 @@ struct BREthereumBlockHeaderRecord {
     uint8_t extraData [32];
     uint8_t extraDataCount;
 
-#if BLOCK_HEADER_NEEDS_SEED_HASH == 1
-    BREthereumHash seedHash;
-#endif
     // A 256-bit hash which, combined with the nonce, proves that a sufficient amount of
     // computation has been carried out on this block; formally Hm.
     BREthereumHash mixHash;
@@ -140,9 +139,6 @@ struct BREthereumBlockHeaderRecord {
     // A 64-bitvaluewhich, combined with the mixHash, proves that a sufficient amount of
     // computation has been carried out on this block; formally Hn.
     uint64_t nonce;
-
-    // The Keccak256-bit hash (of this Block).
-    BREthereumHash hash;
 };
 
 static BREthereumBlockHeader
@@ -171,9 +167,39 @@ blockHeaderFree (BREthereumBlockHeader header) {
     free (header);
 }
 
+extern BREthereumBoolean
+blockHeaderIsValid (BREthereumBlockHeader header) {
+    return ETHEREUM_BOOLEAN_TRUE;
+}
+
+extern BREthereumHash
+blockHeaderGetHash (BREthereumBlockHeader header) {
+    return header->hash;
+}
+
 extern BREthereumHash
 blockHeaderGetParentHash (BREthereumBlockHeader header) {
     return header->parentHash;
+}
+
+extern uint64_t
+blockHeaderGetNumber (BREthereumBlockHeader header) {
+    return header->number;
+}
+
+extern uint64_t
+blockHeaderGetTimestamp (BREthereumBlockHeader header) {
+    return header->timestamp;
+}
+
+extern uint64_t
+blockHeaderGetDifficulty (BREthereumBlockHeader header) {
+    return header->difficulty;
+}
+
+extern uint64_t
+blockHeaderGetGasUsed (BREthereumBlockHeader header) {
+    return header->gasUsed;
 }
 
 // ...
@@ -198,6 +224,18 @@ blockHeaderMatchAddress (BREthereumBlockHeader header,
             : ETHEREUM_BOOLEAN_FALSE);
 }
 
+extern size_t
+blockHeaderHashValue (const void *h)
+{
+    return hashSetValue(&((BREthereumBlockHeader) h)->hash);
+}
+
+extern int
+blockHeaderHashEqual (const void *h1, const void *h2) {
+    return hashSetEqual(&((BREthereumBlockHeader) h1)->hash,
+                        &((BREthereumBlockHeader) h2)->hash);
+}
+
 //
 // Block Header RLP Encode / Decode
 //
@@ -206,8 +244,8 @@ static BRRlpItem
 blockHeaderRlpEncodeItem (BREthereumBlockHeader header,
                           BREthereumBoolean withNonce,
                           BRRlpCoder coder) {
-    BRRlpItem items[15 + BLOCK_HEADER_NEEDS_SEED_HASH];
-    size_t itemsCount = ETHEREUM_BOOLEAN_IS_TRUE(withNonce) ? (15 + BLOCK_HEADER_NEEDS_SEED_HASH) : 13;
+    BRRlpItem items[15];
+    size_t itemsCount = ETHEREUM_BOOLEAN_IS_TRUE(withNonce) ? 15 : 13;
 
     items[ 0] = hashRlpEncode(header->parentHash, coder);
     items[ 1] = hashRlpEncode(header->ommersHash, coder);
@@ -224,11 +262,8 @@ blockHeaderRlpEncodeItem (BREthereumBlockHeader header,
     items[12] = rlpEncodeItemBytes(coder, header->extraData, header->extraDataCount);
 
     if (ETHEREUM_BOOLEAN_IS_TRUE(withNonce)) {
-#if BLOCK_HEADER_NEEDS_SEED_HASH == 1
-        items[13] = hashRlpEncode(header->seedHash, coder);
-#endif
-        items[13 + BLOCK_HEADER_NEEDS_SEED_HASH] = hashRlpEncode(header->mixHash, coder);
-        items[14 + BLOCK_HEADER_NEEDS_SEED_HASH] = rlpEncodeItemUInt64(coder, header->nonce, 0);
+        items[13] = hashRlpEncode(header->mixHash, coder);
+        items[14] = rlpEncodeItemUInt64(coder, header->nonce, 0);
     }
 
     return rlpEncodeListItems(coder, items, itemsCount);
@@ -253,7 +288,7 @@ blockHeaderRlpDecodeItem (BRRlpItem item, BRRlpCoder coder) {
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
-    assert (13 == itemsCount || (15 + BLOCK_HEADER_NEEDS_SEED_HASH) == itemsCount);
+    assert (13 == itemsCount || 15 == itemsCount);
 
     header->hash = hashCreateEmpty();
 
@@ -275,12 +310,9 @@ blockHeaderRlpDecodeItem (BRRlpItem item, BRRlpCoder coder) {
     memcpy (header->extraData, extraData.bytes, extraData.bytesCount);
     header->extraDataCount = extraData.bytesCount;
 
-    if (15 + BLOCK_HEADER_NEEDS_SEED_HASH == itemsCount) {
-#if BLOCK_HEADER_NEEDS_SEED_HASH == 1
-        header->seedHash = hashRlpDecode(items[13], coder);
-#endif
-        header->mixHash = hashRlpDecode(items[13 + BLOCK_HEADER_NEEDS_SEED_HASH], coder);
-        header->nonce = rlpDecodeItemUInt64(coder, items[14 + BLOCK_HEADER_NEEDS_SEED_HASH], 0);
+    if (15 == itemsCount) {
+        header->mixHash = hashRlpDecode(items[13], coder);
+        header->nonce = rlpDecodeItemUInt64(coder, items[14], 0);
     }
 
     return header;
@@ -342,6 +374,17 @@ createBlock (BREthereumBlockHeader header,
         array_add (block->transactions, transactions[i]);
 
     return block;
+}
+
+extern BREthereumBoolean
+blockIsValid (BREthereumBlock block,
+              BREthereumBoolean skipHeaderValidation) {
+    if (ETHEREUM_BOOLEAN_IS_FALSE(skipHeaderValidation)
+        && ETHEREUM_BOOLEAN_IS_FALSE(blockHeaderIsValid(blockGetHeader(block))))
+        return ETHEREUM_BOOLEAN_FALSE;
+
+    // TODO: Validate transactions - Merkle Root
+    return ETHEREUM_BOOLEAN_TRUE;
 }
 
 extern BREthereumBlockHeader
@@ -552,8 +595,16 @@ blockDecodeRLP (BRRlpData data,
  latest documentation should be consulted for those values.
  */
 
-// One Block Header To Rule Them All... until we extract the actual genesis headers.
-static struct BREthereumBlockHeaderRecord genesisHeaderRecord = {
+// Ideally, we'd statically initialize the Genesis blocks.  But, we don't have static
+// initializer for BREthereumHash, BREthereumAddress nor BREthereumBlookFilter.  Therefore,
+// will define `initializeGenesisBlocks(void)` to convert hex-strings into the binary values.
+//
+// The following is expanded for illustration only; it is filled below.
+static struct BREthereumBlockHeaderRecord genesisMainnetBlockHeaderRecord = {
+
+    // BREthereumHash hash;
+    EMPTY_HASH_INIT,
+
     // BREthereumHash parentHash;
     EMPTY_HASH_INIT,
 
@@ -582,7 +633,7 @@ static struct BREthereumBlockHeaderRecord genesisHeaderRecord = {
     0,
 
     // uint64_t gasLimit;
-    0x2fefd8,
+    0x1388,
 
     // uint64_t gasUsed;
     0,
@@ -606,19 +657,170 @@ static struct BREthereumBlockHeaderRecord genesisHeaderRecord = {
     EMPTY_HASH_INIT,
 
     // uint64_t nonce;
-    0x000000000000002a,
-
-    // BREthereumHash hash;
-    EMPTY_HASH_INIT
+    0x0000000000000042
 };
-const BREthereumBlockHeader ethereumMainnetBlockHeader = &genesisHeaderRecord;
-const BREthereumBlockHeader ethereumTestnetBlockHeader = &genesisHeaderRecord;
-const BREthereumBlockHeader ethereumRinkebyBlockHeader = &genesisHeaderRecord;
+static struct BREthereumBlockHeaderRecord genesisTestnetBlockHeaderRecord;
+static struct BREthereumBlockHeaderRecord genesisRinkebyBlockHeaderRecord;
+
+const BREthereumBlockHeader ethereumMainnetBlockHeader = &genesisMainnetBlockHeaderRecord;
+const BREthereumBlockHeader ethereumTestnetBlockHeader = &genesisTestnetBlockHeaderRecord;
+const BREthereumBlockHeader ethereumRinkebyBlockHeader = &genesisRinkebyBlockHeaderRecord;
+
+static void
+initializeGenesisBlocks (void);
 
 extern const BREthereumBlockHeader
 networkGetGenesisBlockHeader (BREthereumNetwork network) {
+    static int needInitializeGenesisBlocks = 1;
+
+    if (needInitializeGenesisBlocks) {
+        needInitializeGenesisBlocks = 0;
+        initializeGenesisBlocks();
+    }
+
     if (network == ethereumMainnet) return ethereumMainnetBlockHeader;
     if (network == ethereumTestnet) return ethereumTestnetBlockHeader;
     if (network == ethereumRinkeby) return ethereumRinkebyBlockHeader;
     assert (0);
+}
+
+static void
+initializeGenesisBlocks (void) {
+    BREthereumBlockHeader header;
+
+    // Mainnet
+    /*
+    {"jsonrpc":"2.0","id":1,"result":
+        {
+            "hash":"0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3",
+            "parentHash":"0x0000000000000000000000000000000000000000000000000000000000000000",
+            "sha3Uncles":"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "miner":"0x0000000000000000000000000000000000000000",
+            "stateRoot":"0xd7f8974fb5ac78d9ac099b9ad5018bedc2ce0a72dad1827a1709da30580f0544",
+            "transactionsRoot":"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptsRoot":"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "logsBloom":"0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+
+            "difficulty":"0x400000000",
+            "number":"0x0",
+            "gasLimit":"0x1388",
+            "gasUsed":"0x0",
+            "timestamp":"0x0",
+
+            "extraData":"0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa",
+            "mixHash":"0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce":"0x0000000000000042",
+
+            "size":"0x21c",
+            "totalDifficulty":"0x400000000",
+
+            "transactions":[],
+            "uncles":[]
+        }}
+     */
+    header = &genesisMainnetBlockHeaderRecord;
+    header->hash = hashCreate("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3");
+    header->parentHash = hashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
+    header->ommersHash = hashCreate("0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347");
+    header->beneficiary = addressRawCreate("0x0000000000000000000000000000000000000000");
+    header->stateRoot = hashCreate("0xd7f8974fb5ac78d9ac099b9ad5018bedc2ce0a72dad1827a1709da30580f0544");
+    header->transactionsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
+    header->receiptsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
+    header->logsBloom = bloomFilterCreateString("00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
+    header->difficulty = 0x400000000;
+    header->number = 0x0;
+    header->gasLimit = 0x1388;
+    header->gasUsed = 0x0;
+    header->timestamp = 0x0;
+    decodeHex(header->extraData, 32, "11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa", 64);
+    header->extraDataCount = 32;
+    header->mixHash = hashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
+    header->nonce = 0x0000000000000042;
+
+    // Testnet
+    /*
+    {"jsonrpc":"2.0","id":1,"result":
+        {"difficulty":"0x100000",
+            "extraData":"0x3535353535353535353535353535353535353535353535353535353535353535",
+            "gasLimit":"0x1000000",
+            "gasUsed":"0x0",
+            "hash":"0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d",
+            "logsBloom":"0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "miner":"0x0000000000000000000000000000000000000000",
+            "mixHash":"0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce":"0x0000000000000042",
+            "number":"0x0",
+            "parentHash":"0x0000000000000000000000000000000000000000000000000000000000000000",
+            "receiptsRoot":"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "sha3Uncles":"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "size":"0x21c",
+            "stateRoot":"0x217b0bbcfb72e2d57e28f33cb361b9983513177755dc3f33ce3e7022ed62b77b",
+            "timestamp":"0x0",
+            "totalDifficulty":"0x100000",
+            "transactions":[],
+            "transactionsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "uncles":[]}}
+     */
+    header = &genesisTestnetBlockHeaderRecord;
+    header->hash = hashCreate("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d");
+    header->parentHash = hashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
+    header->ommersHash = hashCreate("0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347");
+    header->beneficiary = addressRawCreate("0x0000000000000000000000000000000000000000");
+    header->stateRoot = hashCreate("0x217b0bbcfb72e2d57e28f33cb361b9983513177755dc3f33ce3e7022ed62b77b");
+    header->transactionsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
+    header->receiptsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
+    header->logsBloom = bloomFilterCreateString("00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
+    header->difficulty = 0x100000;
+    header->number = 0x0;
+    header->gasLimit = 0x1000000;
+    header->gasUsed = 0x0;
+    header->timestamp = 0x0;
+    decodeHex(header->extraData, 32, "3535353535353535353535353535353535353535353535353535353535353535", 64);
+    header->extraDataCount = 32;
+    header->mixHash = hashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
+    header->nonce = 0x0000000000000042;
+
+    // Rinkeby
+    /*
+    {"jsonrpc":"2.0","id":1,"result":
+        {"difficulty":"0x1",
+            "extraData":"0x52657370656374206d7920617574686f7269746168207e452e436172746d616e42eb768f2244c8811c63729a21a3569731535f067ffc57839b00206d1ad20c69a1981b489f772031b279182d99e65703f0076e4812653aab85fca0f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "gasLimit":"0x47b760",
+            "gasUsed":"0x0",
+            "hash":"0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177",
+            "logsBloom":"0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "miner":"0x0000000000000000000000000000000000000000",
+            "mixHash":"0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce":"0x0000000000000000",
+            "number":"0x0",
+            "parentHash":"0x0000000000000000000000000000000000000000000000000000000000000000",
+            "receiptsRoot":"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "sha3Uncles":"0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "size":"0x29a",
+            "stateRoot":"0x53580584816f617295ea26c0e17641e0120cab2f0a8ffb53a866fd53aa8e8c2d",
+            "timestamp":"0x58ee40ba",
+            "totalDifficulty":"0x1",
+            "transactions":[],
+            "transactionsRoot":"0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "uncles":[]}}
+     */
+    header = &genesisRinkebyBlockHeaderRecord;
+    header->hash = hashCreate("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177");
+    header->parentHash = hashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
+    header->ommersHash = hashCreate("0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347");
+    header->beneficiary = addressRawCreate("0x0000000000000000000000000000000000000000");
+    header->stateRoot = hashCreate("0x53580584816f617295ea26c0e17641e0120cab2f0a8ffb53a866fd53aa8e8c2d");
+    header->transactionsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
+    header->receiptsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
+    header->logsBloom = bloomFilterCreateString("00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
+    header->difficulty = 0x1;
+    header->number = 0x0;
+    header->gasLimit = 0x47b760;
+    header->gasUsed = 0x0;
+    header->timestamp = 0x58ee40ba;
+    // TODO: Rinkeby ExtraData is oversized... ignore.
+    decodeHex(header->extraData, 32, "3535353535353535353535353535353535353535353535353535353535353535", 64);
+    header->extraDataCount = 32;
+    header->mixHash = hashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
+    header->nonce = 0x0000000000000000;
 }

@@ -38,71 +38,40 @@ provideData (BREthereumTransaction transaction);
 static void
 provideGasEstimate (BREthereumTransaction transaction);
 
-//
-// Transaction State
-//
-typedef struct {
-    BREthereumTransactionStatus status;
-    union {
-        struct {
-            int foo;
-        } created;
-
-        struct {
-            int foo;
-        } _signed;
-
-        struct {
-            BREthereumGas gasUsed;
-            uint64_t number;
-            uint64_t timestamp;
-            uint64_t transactionIndex;
-        } blocked;
-
-        struct {
-            int foo;
-        } dropped;
-
-        struct {
-            int foo;
-        } submitted;
-    } u;
-} BREthereumTransactionState;
-
 static void
-transactionStateCreated (BREthereumTransactionState *state /* ... */) {
-    state->status = TRANSACTION_CREATED;
+transactionStatusCreated (BREthereumTransactionStatus *status /* ... */) {
+    status->type = TRANSACTION_STATUS_CREATED;
 }
 
 static void
-transactionStateSigned (BREthereumTransactionState *state /* ... */) {
-    state->status = TRANSACTION_SIGNED;
+transactionStatusSigned (BREthereumTransactionStatus *status /* ... */) {
+    status->type = TRANSACTION_STATUS_SIGNED;
 }
 
 static void
-transactionStateSubmitted (BREthereumTransactionState *state /* ... */) {
-    state->status = TRANSACTION_SUBMITTED;
+transactionStatusSubmitted (BREthereumTransactionStatus *status /* ... */) {
+    status->type = TRANSACTION_STATUS_SUBMITTED;
 }
 
 static void
-transactionStateBlocked(BREthereumTransactionState *state,
+transactionStatusIncluded(BREthereumTransactionStatus *status,
                         BREthereumGas gasUsed,
+                        BREthereumHash blockHash,
                         uint64_t blockNumber,
-                        uint64_t blockTimestamp,
-                         uint64_t blockTransactionIndex) {
+                        uint64_t blockTransactionIndex) {
 
     // Ensure blockConfirmations is the maximum seen.
 
-    state->status = TRANSACTION_BLOCKED;
-    state->u.blocked.gasUsed = gasUsed;
-    state->u.blocked.number = blockNumber;
-    state->u.blocked.timestamp = blockTimestamp;
-    state->u.blocked.transactionIndex = blockTransactionIndex;
+    status->type = TRANSACTION_STATUS_INCLUDED;
+    status->u.included.gasUsed = gasUsed;
+    status->u.included.blockHash = blockHash;
+    status->u.included.blockNumber = blockNumber;
+    status->u.included.transactionIndex = blockTransactionIndex;
 }
 
 static void
-transactionStateDropped (BREthereumTransactionState *state /* ... */) {
-    state->status = TRANSACTION_DROPPED;
+transactionStateDropped (BREthereumTransactionStatus *status /* ... */) {
+    status->type = TRANSACTION_STATUS_UNKNOWN;
 }
 
 
@@ -111,6 +80,13 @@ transactionStateDropped (BREthereumTransactionState *state /* ... */) {
  *
  */
 struct BREthereumTransactionRecord {
+    // THIS MUST BE FIRST to support BRSet operations.
+
+    /**
+     * The transaction's hash.   This will be 'empty' until the transaction is submitted.
+     */
+    BREthereumHash hash;
+
 
     //
     //
@@ -140,11 +116,6 @@ struct BREthereumTransactionRecord {
     char *data;
 
     /**
-     * The transaction's hash.   This will be 'empty' until the transaction is submitted.
-     */
-    BREthereumHash hash;
-
-    /**
      * The estimated amount of Gas needed to process this transaction.
      */
     BREthereumGas gasEstimate;
@@ -157,7 +128,7 @@ struct BREthereumTransactionRecord {
     //
     // State
     //
-    BREthereumTransactionState state;
+    BREthereumTransactionStatus status;
 };
 
 extern BREthereumTransaction
@@ -169,7 +140,7 @@ transactionCreate(BREthereumEncodedAddress sourceAddress,
                   uint64_t nonce) {
     BREthereumTransaction transaction = calloc (1, sizeof (struct BREthereumTransactionRecord));
 
-    transactionStateCreated(&transaction->state);
+    transactionStatusCreated(&transaction->status);
     transaction->sourceAddress = sourceAddress;
     transaction->targetAddress = targetAddress;
     transaction->amount = amount;
@@ -195,6 +166,15 @@ transactionGetTargetAddress(BREthereumTransaction transaction) {
     return transaction->targetAddress;
 }
 
+extern BREthereumBoolean
+transactionHasAddress (BREthereumTransaction transaction,
+                       BREthereumAddress address) {
+    return (ETHEREUM_BOOLEAN_IS_TRUE(addressRawEqual(address, addressGetRawAddress(transaction->targetAddress)))
+            || ETHEREUM_BOOLEAN_IS_TRUE(addressRawEqual(address, addressGetRawAddress(transaction->targetAddress)))
+            ? ETHEREUM_BOOLEAN_TRUE
+            : ETHEREUM_BOOLEAN_FALSE);
+}
+
 extern BREthereumAmount
 transactionGetAmount(BREthereumTransaction transaction) {
     return transaction->amount;
@@ -205,7 +185,7 @@ transactionGetFee (BREthereumTransaction transaction, int *overflow) {
     return etherCreate
     (mulUInt256_Overflow(transaction->gasPrice.etherPerGas.valueInWEI,
                          createUInt256 (ETHEREUM_BOOLEAN_IS_TRUE(transactionIsConfirmed(transaction))
-                                        ? transaction->state.u.blocked.gasUsed.amountOfGas
+                                        ? transaction->status.u.included.gasUsed.amountOfGas
                                         : transaction->gasEstimate.amountOfGas),
                          overflow));
 }
@@ -274,6 +254,18 @@ transactionGetToken (BREthereumTransaction transaction) {
             : tokenQuantityGetToken(amountGetTokenQuantity(transaction->amount)));
 }
 
+extern size_t
+transactionHashValue (const void *t)
+{
+    return hashSetValue(&((BREthereumTransaction) t)->hash);
+}
+
+extern int
+transactionHashEqual (const void *t1, const void *t2) {
+    return hashSetEqual(&((BREthereumTransaction) t1)->hash,
+                        &((BREthereumTransaction) t2)->hash);
+}
+
 //
 // Data
 //
@@ -314,7 +306,7 @@ provideData (BREthereumTransaction transaction) {
 extern void
 transactionSign(BREthereumTransaction transaction,
                 BREthereumSignature signature) {
-    transactionStateSigned(&transaction->state);
+    transactionStatusSigned(&transaction->status);
     transaction->signature = signature;
 
     // The signature algorithm does not account for EIP-155 and thus the chainID.  We are signing
@@ -472,6 +464,10 @@ transactionEncodeRLP (BREthereumTransaction transaction,
     rlpDataExtract(coder, encoding, &result.bytes, &result.bytesCount);
     rlpCoderRelease(coder);
 
+    // With a SIGNED RLP encoding, we can compute the hash.
+    if (TRANSACTION_RLP_SIGNED == type)
+        transaction->hash = hashCreateFromData(result);
+
     return result;
 }
 
@@ -600,25 +596,22 @@ transactionGetEffectiveAmountInEther (BREthereumTransaction transaction) {
 
 extern BREthereumTransactionStatus
 transactionGetStatus (BREthereumTransaction transaction) {
-    return transaction->state.status;
+    return transaction->status;
 }
 
 extern BREthereumBoolean
 transactionIsConfirmed (BREthereumTransaction transaction) {
-    return (transaction->state.status == TRANSACTION_BLOCKED
+    return (transaction->status.type == TRANSACTION_STATUS_INCLUDED
             ? ETHEREUM_BOOLEAN_TRUE
             : ETHEREUM_BOOLEAN_FALSE);
 }
 
 extern BREthereumBoolean
 transactionIsSubmitted (BREthereumTransaction transaction) {
-    switch (transaction->state.status) {
-        case TRANSACTION_CREATED:
+    switch (transaction->status.type) {
+        case TRANSACTION_STATUS_CREATED:
             return ETHEREUM_BOOLEAN_FALSE;
-        case TRANSACTION_SIGNED:
-        case TRANSACTION_SUBMITTED:
-        case TRANSACTION_BLOCKED:
-        case TRANSACTION_DROPPED:
+        default:
             return ETHEREUM_BOOLEAN_TRUE;
     }
 }
@@ -626,46 +619,47 @@ transactionIsSubmitted (BREthereumTransaction transaction) {
 extern void
 transactionAnnounceBlocked(BREthereumTransaction transaction,
                            BREthereumGas gasUsed,
+                           BREthereumHash blockHash,
                            uint64_t blockNumber,
-                           uint64_t blockTimestamp,
                            uint64_t blockTransactionIndex) {
-    transactionStateBlocked(&transaction->state, gasUsed,
+    transactionStatusIncluded(&transaction->status, gasUsed,
+                            blockHash,
                             blockNumber,
-                            blockTimestamp,
                             blockTransactionIndex);
 }
 
 extern void
 transactionAnnounceDropped (BREthereumTransaction transaction,
                             int foo) {
-    transactionStateDropped(&transaction->state);
+    transactionStateDropped(&transaction->status);
 }
 
 extern void
 transactionAnnounceSubmitted (BREthereumTransaction transaction,
                               BREthereumHash hash) {
-    transactionStateSubmitted(&transaction->state);
+    transactionStatusSubmitted(&transaction->status);
     transaction->hash = hashCopy(hash);
 }
 
 static int
 transactionHasStatus(BREthereumTransaction transaction,
-                     BREthereumTransactionStatus status) {
-    return status == transaction->state.status;
+                     BREthereumTransactionStatusType type) {
+    return type == transaction->status.type;
 }
 
 extern int
-transactionExtractBlocked(BREthereumTransaction transaction, BREthereumGas *gas,
+transactionExtractBlocked(BREthereumTransaction transaction,
+                          BREthereumGas *gas,
+                          BREthereumHash *blockHash,
                           uint64_t *blockNumber,
-                          uint64_t *blockTimestamp,
                           uint64_t *blockTransactionIndex) {
-    if (!transactionHasStatus(transaction, TRANSACTION_BLOCKED))
+    if (!transactionHasStatus(transaction, TRANSACTION_STATUS_INCLUDED))
         return 0;
 
-    if (NULL != gas) *gas = transaction->state.u.blocked.gasUsed;
-    if (NULL != blockNumber) *blockNumber = transaction->state.u.blocked.number;
-    if (NULL != blockTimestamp) *blockTimestamp = transaction->state.u.blocked.timestamp;
-    if (NULL != blockTransactionIndex) *blockTransactionIndex = transaction->state.u.blocked.transactionIndex;
+    if (NULL != gas) *gas = transaction->status.u.included.gasUsed;
+    if (NULL != blockHash) *blockHash = transaction->status.u.included.blockHash;
+    if (NULL != blockNumber) *blockNumber = transaction->status.u.included.blockNumber;
+    if (NULL != blockTransactionIndex) *blockTransactionIndex = transaction->status.u.included.transactionIndex;
 
     return 1;
 }
@@ -679,17 +673,17 @@ transactionExtractBlocked(BREthereumTransaction transaction, BREthereumGas *gas,
 extern BREthereumComparison
 transactionCompare(BREthereumTransaction t1,
                    BREthereumTransaction t2) {
-    int t1Blocked = transactionHasStatus(t1, TRANSACTION_BLOCKED);
-    int t2Blocked = transactionHasStatus(t2, TRANSACTION_BLOCKED);
+    int t1Blocked = transactionHasStatus(t1, TRANSACTION_STATUS_INCLUDED);
+    int t2Blocked = transactionHasStatus(t2, TRANSACTION_STATUS_INCLUDED);
 
     if (t1Blocked && t2Blocked)
-        return (t1->state.u.blocked.number < t2->state.u.blocked.number
+        return (t1->status.u.included.blockNumber < t2->status.u.included.blockNumber
                 ? ETHEREUM_COMPARISON_LT
-                : (t1->state.u.blocked.number > t2->state.u.blocked.number
+                : (t1->status.u.included.blockNumber > t2->status.u.included.blockNumber
                    ? ETHEREUM_COMPARISON_GT
-                   : (t1->state.u.blocked.transactionIndex < t2->state.u.blocked.transactionIndex
+                   : (t1->status.u.included.transactionIndex < t2->status.u.included.transactionIndex
                       ? ETHEREUM_COMPARISON_LT
-                      : (t1->state.u.blocked.transactionIndex > t2->state.u.blocked.transactionIndex
+                      : (t1->status.u.included.transactionIndex > t2->status.u.included.transactionIndex
                          ? ETHEREUM_COMPARISON_GT
                          : ETHEREUM_COMPARISON_EQ))));
 

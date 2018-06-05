@@ -48,12 +48,24 @@ typedef enum {
 
     // Error (4): transaction sending failed. data contains a text error message
     TRANSACTION_STATUS_ERROR = 4,
-} BREthereumTransactionStatusLESType;
+
+    // Internal
+
+    // Created (16): transaction created in local memory
+    TRANSACTION_STATUS_CREATED   = 0x10 | 0,
+
+    // Signed (17): transaction signed
+    TRANSACTION_STATUS_SIGNED    = 0x10 | 1,
+
+    // Submitted (18): transaction submitted
+    TRANSACTION_STATUS_SUBMITTED = 0x10 | 2,  // more than just 'sent'; in one 'mempool'; has hash
+} BREthereumTransactionStatusType;
 
 typedef struct BREthereumTransactionStatusLESRecord {
-    BREthereumTransactionStatusLESType type;
+    BREthereumTransactionStatusType type;
     union {
         struct {
+            BREthereumGas gasUsed;      // Internal
             BREthereumHash blockHash;
             uint64_t blockNumber;
             uint64_t transactionIndex;
@@ -63,15 +75,15 @@ typedef struct BREthereumTransactionStatusLESRecord {
             char *message;
         } error;
     } u;
-} BREthereumTransactionStatusLES;
+} BREthereumTransactionStatus;
 
 /**
  * Caution - on error need to release.  Best only be one Status struct.
  */
 extern void
-transactionStatusRelease (BREthereumTransactionStatusLES status);
+transactionStatusRelease (BREthereumTransactionStatus status);
 
-extern BREthereumTransactionStatusLES
+extern BREthereumTransactionStatus
 transactionStatusRLPDecodeItem (BRRlpItem item,
                                 BRRlpCoder coder);
 
