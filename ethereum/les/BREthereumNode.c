@@ -468,11 +468,7 @@ BREthereumNode ethereumNodeCreate(BREthereumPeerConfig config,
     node->bodySize = 0;
     node->peer.endpoint = config.endpoint;
     node->peer.timestamp = config.timestamp;
-    if(config.remoteKey != NULL){
-        uint8_t remotePubRawKey[65];
-        size_t pLen = BRKeyPubKey(config.remoteKey, remotePubRawKey, sizeof(remotePubRawKey));
-        memcpy(&node->peer.remoteKey, remotePubRawKey, pLen);
-    }
+    node->peer.remoteKey =  *(config.remoteKey);
     //Initialize p2p data
     node->helloData.version = 0x01;
     char clientId[] = "Ethereum(++)/1.0.0";

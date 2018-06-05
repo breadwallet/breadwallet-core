@@ -45,9 +45,6 @@ struct BREthereumFrameCoderContext {
     //Encryption for Mac
     UInt256 macSecretKey;
     
-    //CipherText for Mac
-    uint8_t* macEncrypt;
-    
     // Ingress ciphertext
     uint8_t* ingressMac;
     
@@ -68,13 +65,6 @@ struct BREthereumFrameCoderContext {
     
     //Decrypty Key for AES-CTR frame
     uint8_t* aesDecryptKey;
-    
-    //Cipher for AES-CTR encryption
-    uint8_t* aesEncryptCipher;
-    
-    //Cipher for AES-CTR decryption
-    uint8_t* aesDecryptCipher;
-    
 };
 
 //
@@ -272,20 +262,14 @@ BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fcoder,
     memset(fcoder->iv.u8, 0, 16);
     array_new(fcoder->aesDecryptKey, 32);
     array_new(fcoder->aesEncryptKey, 32);
-    array_new(fcoder->aesDecryptCipher, 32);
-    array_new(fcoder->aesEncryptCipher, 32);
-
     array_add_array(fcoder->aesDecryptKey, &keyMaterial[32], 32);
     array_add_array(fcoder->aesEncryptKey, &keyMaterial[32], 32);
-    array_add_array(fcoder->aesDecryptCipher, &keyMaterial[32], 32);
-    array_add_array(fcoder->aesEncryptKey, &keyMaterial[32], 32);
     
-
     // mac-secret = sha3(ecdhe-shared-secret || aes-secret)
     BRKeccak256(&keyMaterial[32], keyMaterial, 64);
     memcpy(fcoder->macSecretKey.u8,&keyMaterial[32], 32);
-    array_new(fcoder->macEncrypt, 32);
-    array_add_array(fcoder->macEncrypt,&keyMaterial[32], 32);
+ //   array_new(fcoder->macEncrypt, 32);
+ //   array_add_array(fcoder->macEncrypt,&keyMaterial[32], 32);
     
     // Initiator:
     // egress-mac = sha3.update(mac-secret ^ recipient-nonce || auth-sent-init)
@@ -357,8 +341,7 @@ void ethereumFrameCoderRelease(BREthereumFrameCoder coder) {
 }
 void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, size_t payloadSize, uint8_t** rlpBytes, size_t * rlpBytesSize) {
 
-    uint8_t headerPlain[HEADER_LEN] = {(uint8_t)((payloadSize >> 16) & 0xff), (uint8_t)((payloadSize >> 8) & 0xff), (uint8_t)(payloadSize & 0xff)};
-    //header.appendRaw(bytes({0xc2,0x80,0x80}));
+    uint8_t headerPlain[HEADER_LEN] = {(uint8_t)((payloadSize >> 16) & 0xff), (uint8_t)((payloadSize >> 8) & 0xff), (uint8_t)(payloadSize & 0xff), 0xc2, 0x80, 0x80, 0};
     
    // TODO: Need AES-CTRL encryption to headerCipher
    // aes256_encrypt(&ctx->aes_sercret, 16, headerCipher.bytes, headerCipher.bytes);
@@ -452,7 +435,7 @@ BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fCoder, u
     
     // TODO: AES-CTR decryption function
     // aes256_decrypt(&fCoder->aes_sercret, 16, oBytes);
-    uint8_t cipher[outSize];
+    uint8_t cipher[HEADER_LEN];
     memcpy(cipher, oBytes, HEADER_LEN);
     BRAESCTR(oBytes, fCoder->aesDecryptKey, 32, fCoder->iv.u8, cipher, HEADER_LEN);
 

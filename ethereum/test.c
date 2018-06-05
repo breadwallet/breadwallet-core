@@ -41,6 +41,7 @@
 #include "BREthereumAccount.h"
 #include "BREthereumTransactionReceipt.h"
 #include "BREthereumLog.h"
+#include "test-les.h"
 
 static void
 showHex (uint8_t *source, size_t sourceLen) {
@@ -1639,7 +1640,7 @@ runTransactionReceiptTests (void) {
 extern void
 runTests (void) {
     installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
-    runMathTests();
+  /*  runMathTests();
     runEtherParseTests();
     runTokenParseTests();
     runRlpTest();
@@ -1649,7 +1650,8 @@ runTests (void) {
     runBlockTests();
     runLogTests();
     runTransactionReceiptTests();
-    //    reallySend();
+    //    reallySend();*/
+    runLEStests(); 
     printf ("Done\n");
 }
 

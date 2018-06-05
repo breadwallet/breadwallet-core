@@ -364,7 +364,7 @@ void runAuthTests() {
     
     //Create a handhsake for testing
     BREthereumHandshake handshake = ethereumHandshakeCreate(initiator);
- //   testInitatorHandshake(handshake, &recvEphemeralKey);
+   testInitatorHandshake(handshake, &recvEphemeralKey);
         
     
     //Create the ethereum node for the initiator
@@ -375,7 +375,7 @@ void runAuthTests() {
     decodeHex(receiverNonce.u8, 32, RECEIVER_NONCE, 64);
     decodeHex(initNonce.u8, 32, INITIATOR_NONCE, 64);
     
-    config.remoteKey = NULL;
+    config.remoteKey = &initPrivKey;
     BREthereumNode responder = ethereumNodeCreate(config, &recvPrivKey, &receiverNonce, &recvEphemeralKey, callbacks, ETHEREUM_BOOLEAN_FALSE);
     
     //Create a handhsake for testing
@@ -428,7 +428,7 @@ void runLESTest() {
     BREthereumLES les = lesCreate(ethereumMainnet, NULL, _announceCallback, headHash, headNumber, headTD, genesisHash);
   
     //Sleep for a bit to allow the les context to connect to the network
-    sleep(20);
+    sleep(480);
   
     // Prepare values to be given to a send tranactions status message
     char transactionHashStr[] = "c070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c";
@@ -438,7 +438,6 @@ void runLESTest() {
     
     assert(lesGetTransactionStatusOne(les, NULL, transactionStatusCallback, transactionHash) == LES_SUCCESS);
     
-    
 }
 void runLEStests(void) {
     
@@ -446,9 +445,9 @@ void runLEStests(void) {
   // runEthereumNodeTests();
   // runEthereumNodeEventHandlerTests();
   // runEthereumNodeDiscoveryTests();
-  // runAuthTests();
+  //  runAuthTests();
   // runEthereumNodeTests();
-
+  //   runLESMessagesTest();
 
 }
 
