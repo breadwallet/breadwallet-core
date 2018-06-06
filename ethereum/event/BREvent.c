@@ -172,7 +172,9 @@ eventHandlerThread (BREventHandler handler) {
 #if ! defined (__ANDROID__)
     pthread_setname_np("Core Ethereum Event");
 #endif
-
+    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+    pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
+    
     pthread_mutex_lock(&handler->lock);
     handler->status = EVENT_HANDLER_THREAD_STATUS_RUNNING;
 
@@ -200,7 +202,7 @@ eventHandlerThread (BREventHandler handler) {
         // ... otherwise wait for an event ...
         else if (NULL == handler->timeoutDispatcher)
             pthread_cond_wait(&handler->cond, &handler->lock);
-        // ... or for a timeout.
+        // ... or for an event or a timeout.
         else if (ETIMEDOUT == pthread_cond_timedwait_relative_np(&handler->cond,
                                                                  &handler->lock,
                                                                  &handler->timeout)) {
@@ -217,6 +219,7 @@ eventHandlerThread (BREventHandler handler) {
 
 extern void
 eventHandlerDestroy (BREventHandler handler) {
+    // stop, then ...
     pthread_kill(handler->thread, 0);
     pthread_cond_destroy(&handler->cond);
     pthread_mutex_destroy(&handler->lock);
@@ -238,6 +241,7 @@ eventHandlerStart (BREventHandler handler) {
 
         case EVENT_HANDLER_THREAD_STATUS_STOPPED:
         case EVENT_HANDLER_THREAD_STATUS_STOPPING: {
+            // Mini-RACE with eventHandlerThread actually stopping
             handler->status = EVENT_HANDLER_THREAD_STATUS_STARTING;
 
             // if (0 != pthread_attr_t (...) && 0 != pthread_attr_...() && ...
@@ -255,6 +259,10 @@ eventHandlerStart (BREventHandler handler) {
 
 extern void
 eventHandlerStop (BREventHandler handler) {
+    pthread_cancel(handler->thread);
+//    int joinResult = pthread_join(handler->thread, NULL);
+    handler->status = EVENT_HANDLER_THREAD_STATUS_STOPPED;
+/*
     switch (handler->status) {
         case EVENT_HANDLER_THREAD_STATUS_RUNNING:
         case EVENT_HANDLER_THREAD_STATUS_STARTING:
@@ -265,6 +273,7 @@ eventHandlerStop (BREventHandler handler) {
         case EVENT_HANDLER_THREAD_STATUS_STOPPING:
             break;
     }
+ */
 }
 
 extern BREventStatus

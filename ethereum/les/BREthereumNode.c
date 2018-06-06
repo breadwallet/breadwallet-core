@@ -547,7 +547,9 @@ void ethereumNodeDisconnect(BREthereumNode node, BREthereumDisconnect reason) {
 }
 void ethereumNodeRelease(BREthereumNode node){
    ethereumEndpointRelease(node->peer.endpoint);
-   array_free(node->body);
+    if(node->body != NULL){
+    array_free(node->body);
+    }
    ethereumFrameCoderRelease(node->ioCoder);
    free(node->key);
    free(node->ephemeral);

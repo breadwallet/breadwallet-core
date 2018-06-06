@@ -33,6 +33,8 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <assert.h>
+#include <pthread.h>
+
 #include "BRCrypto.h"
 #include "BRInt.h"
 //#include "BRKey.h"
@@ -1101,12 +1103,57 @@ void testTransactionCodingToken () {
                                                     transactionGetSignature (decodedTransaction)));
 }
 
+
 //
-// Light Node JSON_RCP
+// Light Node CONNECT
 //
 typedef struct JsonRpcTestContextRecord {
-    int ignore;
+    pthread_cond_t  cond;
+    pthread_mutex_t lock;
 } *JsonRpcTestContext;
+
+static JsonRpcTestContext
+createTestContext (void) {
+    JsonRpcTestContext context = malloc (sizeof (struct JsonRpcTestContextRecord));
+    // Create the PTHREAD CONDition variable
+    {
+        pthread_condattr_t attr;
+        pthread_condattr_init(&attr);
+        pthread_cond_init(&context->cond, &attr);
+        pthread_condattr_destroy(&attr);
+    }
+
+    // Create the PTHREAD LOCK variable
+    {
+        // The cacheLock is a normal, non-recursive lock
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+        pthread_mutex_init(&context->lock, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
+    pthread_mutex_lock(&context->lock);
+
+    return context;
+}
+
+static void
+freeTestContext (JsonRpcTestContext context) {
+    pthread_cond_destroy(&context->cond);
+    pthread_mutex_destroy(&context->lock);
+    free (context);
+}
+
+static void
+signalBalance (JsonRpcTestContext context) {
+    pthread_cond_signal(&context->cond);
+
+}
+
+static void
+waitForBalance (JsonRpcTestContext context) {
+    pthread_cond_wait(&context->cond, &context->lock);
+}
 
 // Stubbed Callbacks - should actually construct JSON, invoke an Etherum JSON_RPC method,
 // get the response and return the result.
@@ -1240,6 +1287,128 @@ clientGetNonce (BREthereumClientContext context,
     lightNodeAnnounceNonce(node, address, "0x4", rid);
 }
 
+//
+// Listener
+//
+static void
+walletEventHandler (BREthereumListenerContext context,
+                    BREthereumLightNode node,
+                    BREthereumWalletId wid,
+                    BREthereumWalletEvent event,
+                    BREthereumStatus status,
+                    const char *errorDescription) {
+    fprintf (stdout, "        WalletEvent: wid=%d, ev=%d\n", wid, event);
+    switch (event) {
+        case WALLET_EVENT_BALANCE_UPDATED:
+            signalBalance(context);
+            break;
+        default:
+            break;
+    }
+}
+
+static void
+blockEventHandler (BREthereumListenerContext context,
+                   BREthereumLightNode node,
+                   BREthereumBlockId bid,
+                   BREthereumBlockEvent event,
+                   BREthereumStatus status,
+                   const char *errorDescription) {
+    fprintf (stdout, "         BlockEvent: bid=%d, ev=%d\n", bid, event);
+
+}
+
+static void
+transactionEventHandler (BREthereumListenerContext context,
+                         BREthereumLightNode node,
+                         BREthereumWalletId wid,
+                         BREthereumTransactionId tid,
+                         BREthereumTransactionEvent event,
+                         BREthereumStatus status,
+                         const char *errorDescription) {
+    fprintf (stdout, "         TransEvent: tid=%d, ev=%d\n", tid, event);
+}
+
+static void
+peerEventHandler (BREthereumListenerContext context,
+                  BREthereumLightNode node,
+                  //BREthereumWalletId wid,
+                  //BREthereumTransactionId tid,
+                  BREthereumPeerEvent event,
+                  BREthereumStatus status,
+                  const char *errorDescription) {
+    fprintf (stdout, "         PeerEvent: ev=%d\n", event);
+}
+
+static void
+lightNodeEventHandler (BREthereumListenerContext context,
+                       BREthereumLightNode node,
+                       //BREthereumWalletId wid,
+                       //BREthereumTransactionId tid,
+                       BREthereumLightNodeEvent event,
+                       BREthereumStatus status,
+                       const char *errorDescription) {
+    fprintf (stdout, "         LightNodeEvent: ev=%d\n", event);
+}
+
+
+//
+//
+//
+static void
+runLightNode_CONNECT_test (const char *paperKey) {
+    printf ("     JSON_RCP\n");
+    
+    BRCoreParseStatus status;
+    JsonRpcTestContext context = createTestContext();
+    
+    BREthereumClient configuration =
+    ethereumClientCreate(context,
+                         clientGetBalance,
+                         clientGetGasPrice,
+                         clientEstimateGas,
+                         clientSubmitTransaction,
+                         clientGetTransactions,
+                         clientGetLogs,
+                         clientGetBlockNumber,
+                         clientGetNonce);
+    
+    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
+
+    BREthereumListenerId lid = lightNodeAddListener(node,
+                                                    (BREthereumListenerContext) context,
+                                                    lightNodeEventHandler,
+                                                    peerEventHandler,
+                                                    walletEventHandler,
+                                                    blockEventHandler,
+                                                    transactionEventHandler);
+    BREthereumWalletId wallet = ethereumGetWallet(node);
+    
+    ethereumConnect(node, configuration);
+
+    printf ("       Waiting for Balance\n");
+    waitForBalance(context);
+//    sleep (20);  // let connect 'take'
+
+    // Callback to JSON_RPC for 'getBalanance'&
+    //    lightNodeUpdateWalletBalance (node, wallet, &status);
+    BREthereumAmount balance = ethereumWalletGetBalance (node, wallet);
+    BREthereumEther expectedBalance = etherCreate(createUInt256Parse("0x123f", 16, &status));
+    assert (CORE_PARSE_OK == status
+            && AMOUNT_ETHER == amountGetType(balance)
+            && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (expectedBalance, amountGetEther(balance)));
+
+    int count = ethereumWalletGetTransactionCount(node, wallet);
+    assert (2 == count);
+
+//    lightNodeUpdateTransactions(node);
+    ethereumDisconnect(node);
+    ethereumDestroy(node);
+}
+
+//
+//
+//
 void prepareTransaction (const char *paperKey, const char *recvAddr, const uint64_t gasPrice, const uint64_t gasLimit, const uint64_t amount) {
     printf ("     Prepare Transaction\n");
 
@@ -1295,151 +1464,31 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
     ethereumDestroy(node);
 }
 
-static void
-runLightNode_JSON_RPC_test (const char *paperKey) {
-    printf ("     JSON_RCP\n");
-    
-    BRCoreParseStatus status;
-    JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
-    
-    BREthereumClient configuration =
-    ethereumClientCreate(context,
-                         clientGetBalance,
-                         clientGetGasPrice,
-                         clientEstimateGas,
-                         clientSubmitTransaction,
-                         clientGetTransactions,
-                         clientGetLogs,
-                         clientGetBlockNumber,
-                         clientGetNonce);
-    
-    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
-    BREthereumWalletId wallet = ethereumGetWallet(node);
-    
-    ethereumConnect(node, configuration);
+// Local (PaperKey) -> LocalTest @ 5 GWEI gasPrice @ 21000 gasLimit & 0.0001/2 ETH
+#define ACTUAL_RAW_TX "f86a01841dcd65008252089422583f6c7dae5032f4d72a10b9e9fa977cbfc5f68701c6bf52634000801ca05d27cbd6a84e5d34bb20ce7dade4a21efb4da7507958c17d7f92cfa99a4a9eb6a005fcb9a61e729b3c6b0af3bad307ef06cdf5c5578615fedcc4163a2aa2812260"
+// eth.sendRawTran ('0xf86a01841dcd65008252089422583f6c7dae5032f4d72a10b9e9fa977cbfc5f68701c6bf52634000801ca05d27cbd6a84e5d34bb20ce7dade4a21efb4da7507958c17d7f92cfa99a4a9eb6a005fcb9a61e729b3c6b0af3bad307ef06cdf5c5578615fedcc4163a2aa2812260', function (err, hash) { if (!err) console.log(hash); });
+extern void
+reallySend () {
+    char paperKey[1024];
+    char recvAddress[1024];
 
-    printf ("       Waiting for Balance\n");
-    sleep (10);  // let connect 'take'
+    fputs("PaperKey: ", stdout);
+    fgets (paperKey, 1024, stdin);
+    paperKey[strlen(paperKey) - 1] = '\0';
 
-    // Callback to JSON_RPC for 'getBalanance'&
-    //    lightNodeUpdateWalletBalance (node, wallet, &status);
-    BREthereumAmount balance = ethereumWalletGetBalance (node, wallet);
-    BREthereumEther expectedBalance = etherCreate(createUInt256Parse("0x123f", 16, &status));
-    assert (CORE_PARSE_OK == status
-            && AMOUNT_ETHER == amountGetType(balance)
-            && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (expectedBalance, amountGetEther(balance)));
+    fputs("Address: ", stdout);
+    fgets (recvAddress, 1024, stdin);
+    recvAddress[strlen(recvAddress) - 1] = '\0';
 
-    int count = ethereumWalletGetTransactionCount(node, wallet);
-    assert (2 == count);
+    printf ("PaperKey: '%s'\nAddress: '%s'\n", paperKey, recvAddress);
 
-//    lightNodeUpdateTransactions(node);
-    ethereumDisconnect(node);
-    ethereumDestroy(node);
+    // 0.001/2 ETH
+    prepareTransaction(paperKey, recvAddress, GAS_PRICE_5_GWEI, GAS_LIMIT_DEFAULT, 1000000000000000000 / 1000 / 2);
 }
 
 //
-// Listener
 //
-static void
-walletEventHandler (BREthereumListenerContext context,
-                    BREthereumLightNode node,
-                    BREthereumWalletId wid,
-                    BREthereumWalletEvent event,
-                    BREthereumStatus status,
-                    const char *errorDescription) {
-    fprintf (stdout, "        WalletEvent: wid=%d, ev=%d\n", wid, event);
-}
-
-static void
-blockEventHandler (BREthereumListenerContext context,
-                   BREthereumLightNode node,
-                   BREthereumBlockId bid,
-                   BREthereumBlockEvent event,
-                   BREthereumStatus status,
-                   const char *errorDescription) {
-    fprintf (stdout, "         BlockEvent: bid=%d, ev=%d\n", bid, event);
-    
-}
-
-static void
-transactionEventHandler (BREthereumListenerContext context,
-                         BREthereumLightNode node,
-                         BREthereumWalletId wid,
-                         BREthereumTransactionId tid,
-                         BREthereumTransactionEvent event,
-                         BREthereumStatus status,
-                         const char *errorDescription) {
-    fprintf (stdout, "         TransEvent: tid=%d, ev=%d\n", tid, event);
-}
-
-static void
-peerEventHandler (BREthereumListenerContext context,
-                  BREthereumLightNode node,
-                  //BREthereumWalletId wid,
-                  //BREthereumTransactionId tid,
-                  BREthereumPeerEvent event,
-                  BREthereumStatus status,
-                  const char *errorDescription) {
-    fprintf (stdout, "         PeerEvent: ev=%d\n", event);
-}
-
-static void
-lightNodeEventHandler (BREthereumListenerContext context,
-                       BREthereumLightNode node,
-                       //BREthereumWalletId wid,
-                       //BREthereumTransactionId tid,
-                       BREthereumLightNodeEvent event,
-                       BREthereumStatus status,
-                       const char *errorDescription) {
-    fprintf (stdout, "         LightNodeEvent: ev=%d\n", event);
-}
-
-static void
-runLightNode_LISTENER_test (const char *paperKey) {
-    printf ("     LISTENER\n");
-
-    BRCoreParseStatus status;
-    JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
-
-    BREthereumClient configuration =
-    ethereumClientCreate(context,
-                         clientGetBalance,
-                         clientGetGasPrice,
-                         clientEstimateGas,
-                         clientSubmitTransaction,
-                         clientGetTransactions,
-                         clientGetLogs,
-                         clientGetBlockNumber,
-                         clientGetNonce);
-
-    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
-
-    BREthereumListenerId lid = lightNodeAddListener(node,
-                                                    (BREthereumListenerContext) NULL,
-                                                    lightNodeEventHandler,
-                                                    peerEventHandler,
-                                                    walletEventHandler,
-                                                    blockEventHandler,
-                                                    transactionEventHandler);
-
-    BREthereumWalletId wallet = ethereumGetWallet(node);
-
-    ethereumConnect(node, configuration);
-
-    sleep (10);  // let connect 'take'
-
-    // Callback to JSON_RPC for 'getBalanance'&
-    //    lightNodeUpdateWalletBalance (node, wallet, &status);
-    BREthereumAmount balance = ethereumWalletGetBalance (node, wallet);
-    BREthereumEther expectedBalance = etherCreate(createUInt256Parse("0x123f", 16, &status));
-    assert (CORE_PARSE_OK == status
-            && AMOUNT_ETHER == amountGetType(balance)
-            && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (expectedBalance, amountGetEther(balance)));
-
-    //    ethereumUpdateTransactions(node);
-    ethereumDisconnect(node);
-    ethereumDestroy(node);
-}
+//
 
 // Unsigned Result: 0xf864010082c35094558ec3152e2eb2174905cd19aea4e34a23de9ad680b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000000000000000000000000018080
 //   Signed Result: 0xf8a4010082c35094558ec3152e2eb2174905cd19aea4e34a23de9ad680b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c000000000000000000000000000000000000000000000000000000000000000025a0b729de661448a377bee9ef3f49f8ec51f6c5810cf177a8162d31e9611a940a18a030b44adbe0253fe6176ccd8b585745e60f411b009ec73815f201fff0f540fc4d
@@ -1498,9 +1547,8 @@ void runLightNodeTests () {
 //    prepareTransaction(NODE_PAPER_KEY, NODE_RECV_ADDR, TEST_TRANS2_GAS_PRICE_VALUE, GAS_LIMIT_DEFAULT, NODE_ETHER_AMOUNT);
     testTransactionCodingEther ();
     testTransactionCodingToken ();
-    runLightNode_JSON_RPC_test(NODE_PAPER_KEY);
+    runLightNode_CONNECT_test(NODE_PAPER_KEY);
     runLightNode_TOKEN_test (NODE_PAPER_KEY);
-    runLightNode_LISTENER_test (NODE_PAPER_KEY);
     runLightNode_PUBLIC_KEY_test (ethereumMainnet, NODE_PAPER_KEY);
     runLightNode_PUBLIC_KEY_test (ethereumTestnet, "ocean robust idle system close inject bronze mutual occur scale blast year");
 }
@@ -1522,28 +1570,6 @@ void runTokenTests () {
     assert (NULL != token);
 }
 
-// Local (PaperKey) -> LocalTest @ 5 GWEI gasPrice @ 21000 gasLimit & 0.0001/2 ETH
-#define ACTUAL_RAW_TX "f86a01841dcd65008252089422583f6c7dae5032f4d72a10b9e9fa977cbfc5f68701c6bf52634000801ca05d27cbd6a84e5d34bb20ce7dade4a21efb4da7507958c17d7f92cfa99a4a9eb6a005fcb9a61e729b3c6b0af3bad307ef06cdf5c5578615fedcc4163a2aa2812260"
-// eth.sendRawTran ('0xf86a01841dcd65008252089422583f6c7dae5032f4d72a10b9e9fa977cbfc5f68701c6bf52634000801ca05d27cbd6a84e5d34bb20ce7dade4a21efb4da7507958c17d7f92cfa99a4a9eb6a005fcb9a61e729b3c6b0af3bad307ef06cdf5c5578615fedcc4163a2aa2812260', function (err, hash) { if (!err) console.log(hash); });
-extern void
-reallySend () {
-    char paperKey[1024];
-    char recvAddress[1024];
-    
-    fputs("PaperKey: ", stdout);
-    fgets (paperKey, 1024, stdin);
-    paperKey[strlen(paperKey) - 1] = '\0';
-    
-    fputs("Address: ", stdout);
-    fgets (recvAddress, 1024, stdin);
-    recvAddress[strlen(recvAddress) - 1] = '\0';
-    
-    printf ("PaperKey: '%s'\nAddress: '%s'\n", paperKey, recvAddress);
-    
-    // 0.001/2 ETH
-    prepareTransaction(paperKey, recvAddress, GAS_PRICE_5_GWEI, GAS_LIMIT_DEFAULT, 1000000000000000000 / 1000 / 2);
-}
-
 //
 // Bloom Test
 //
@@ -1560,6 +1586,9 @@ runBloomTests (void) {
     BREthereumBloomFilter filter = bloomFilterOr(filter1, filter2);
     char *filterAsString = bloomFilterAsString(filter);
     assert (0 == strcmp (filterAsString, BLOOM_ADDR_1_OR_2_RESULT));
+
+    BREthereumBloomFilter filterx = bloomFilterCreateString(BLOOM_ADDR_1_OR_2_RESULT);
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(bloomFilterEqual(filter, filterx)));
 
     assert (ETHEREUM_BOOLEAN_IS_TRUE(bloomFilterMatch(filter, filter1)));
     assert (ETHEREUM_BOOLEAN_IS_TRUE(bloomFilterMatch(filter, filter2)));
@@ -1596,7 +1625,7 @@ runBloomTests (void) {
 #define GENESIS_RLP "f901f8f901f3a00000000000000000000000000000000000000000000000000000000000000000a01dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347940000000000000000000000000000000000000000a09178d0f23c965d81f0834a4c72c6253ce6830f4022b1359aaebfc1ecba442d4ea056e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421a056e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421b90100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008302000080832fefd8808080a0000000000000000000000000000000000000000000000000000000000000000088000000000000002ac0c0"
 
 extern void
-runBlockTests (void) {
+runBlockTest0 (void) {
     printf ("==== Block\n");
 
     BRRlpData data;
@@ -1642,6 +1671,71 @@ runBlockTests (void) {
     rlpShow(data, "BlockTest");
     rlpDataRelease(encodeData);
     rlpDataRelease(data);
+}
+
+/*
+ * What does the Block's LogBloomFilter hold?  Source, Target, Contract?
+ */
+#define BLOCK_1_NUMBER 0x50FCD2
+#define BLOCK_1_BLOOM "0006b02423400010043a0d004a40cf191040184040501110ea204d020268010ca04444107c040b381880d24c166084a302201a4020819062161862318029804e050844c139320cb1815c4c1e25082202660300c8542904084021b9020104228401a228216e60128cd04840a04a480c4145400620080740004820a09002a0e0c46b20a8818195067428080c0494948016018100a0031185b108021304002030140e47800908401c82962040304448e606315294a92009902128108221114480114882250a01ae800212c29260021d4002e60ba0e55a88a88809b8102c2280a8d480d491ccc0468400c04900cd0400e29d10a0007329302819832c140412801588"
+#define BLOCK_1_HASH "19f2c349b015df2d509d849af885f6f95dfe6713ac907311e5362b41ef50273a"
+#define BLOCK_1_TX_132 "0xe530827e823590dd3f227f43c8b3a9fbd029842bdc39df44bd91ee7de489601a"
+#define BLOCK_1_TX_132_SOURCE "0xc587d7c282bc85bcfd21af63883fa7319dbcff68"
+#define BLOCK_1_TX_132_TARGET "0xb18c54a48f698199bca52dc68e58cd0fcd6cbdd2"
+#define BLOCK_1_TX_132_TOKENC "0x358d12436080a01a16f711014610f8a4c2c2d233"
+
+#define BLOCK_2_NUMBER 0x5778A9
+#define BLOCK_2_BLOOM "0x00a61039e24688a200002e10102021116002220040204048308206009928412802041520200201115014888000c00080020a002021308850c60d020d00200188062900c83288401115821a1c101200d00318080088df000830c1938002a018040420002a22201000680a391c91610e4884682a00910446003da000b9501020009c008205091c0b04108c000410608061a07042141001820440d404042002a4234f00090845c1544820140430552592100352140400039000108e052110088800000340422064301701c8212008820c4648a020a482e90a0268480000400021800110414680020205002400808012c6248120027c4121119802240010a2181983"
+#define BLOCK_2_HASH "0x0a89dd55d38929468c1303b92ab43ca57269ac864175fc6208ae739ffcc17c9b"
+#define BLOCK_2_TX_53 "0x3063e073c0b90693639fad94258797baf39c1e2b2a6e56b2e85010e5c963f3b3"
+#define BLOCK_2_TX_53_SOURCE "0x49f4c50d9bcc7afdbcf77e0d6e364c29d5a660df"
+#define BLOCK_2_TX_53_TARGET "0xb0f225defec7625c6b5e43126bdde398bd90ef62"
+#define BLOCK_2_TX_53_TOKENC "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"
+
+
+extern void
+runBlockTest1 () {
+    // BLOCK_1
+    {
+        BREthereumBloomFilter filter = bloomFilterCreateString(BLOCK_1_BLOOM);
+
+        BREthereumAddress addressSource = addressRawCreate(BLOCK_1_TX_132_SOURCE);
+        BREthereumAddress addressTarget = addressRawCreate(BLOCK_1_TX_132_TARGET);
+        BREthereumAddress addressTokenC = addressRawCreate(BLOCK_1_TX_132_TOKENC);
+
+        // 'LogsBloom' holds contact and topic info ...
+        assert (ETHEREUM_BOOLEAN_IS_TRUE (bloomFilterMatch(filter, bloomFilterCreateAddress(addressTokenC))));
+        assert (ETHEREUM_BOOLEAN_IS_TRUE (bloomFilterMatch(filter, logTopicGetBloomFilterAddress(addressSource))));
+        assert (ETHEREUM_BOOLEAN_IS_TRUE (bloomFilterMatch(filter, logTopicGetBloomFilterAddress(addressTarget))));
+
+        // It does not contain transaction address info.
+        assert (ETHEREUM_BOOLEAN_IS_FALSE (bloomFilterMatch(filter, bloomFilterCreateAddress(addressSource))));
+        assert (ETHEREUM_BOOLEAN_IS_FALSE (bloomFilterMatch(filter, bloomFilterCreateAddress(addressTarget))));
+    }
+
+    // BLOCK_2
+    {
+        BREthereumBloomFilter filter = bloomFilterCreateString(BLOCK_2_BLOOM);
+
+        BREthereumAddress addressSource = addressRawCreate(BLOCK_2_TX_53_SOURCE);
+        BREthereumAddress addressTarget = addressRawCreate(BLOCK_2_TX_53_TARGET);
+        BREthereumAddress addressTokenC = addressRawCreate(BLOCK_2_TX_53_TOKENC);
+
+        // 'LogsBloom' holds contact and topic info ...
+        assert (ETHEREUM_BOOLEAN_IS_TRUE (bloomFilterMatch(filter, bloomFilterCreateAddress(addressTokenC))));
+        assert (ETHEREUM_BOOLEAN_IS_TRUE (bloomFilterMatch(filter, logTopicGetBloomFilterAddress(addressSource))));
+        assert (ETHEREUM_BOOLEAN_IS_TRUE (bloomFilterMatch(filter, logTopicGetBloomFilterAddress(addressTarget))));
+
+        // It does not contain transaction address info.
+        assert (ETHEREUM_BOOLEAN_IS_FALSE (bloomFilterMatch(filter, bloomFilterCreateAddress(addressSource))));
+        assert (ETHEREUM_BOOLEAN_IS_FALSE (bloomFilterMatch(filter, bloomFilterCreateAddress(addressTarget))));
+    }
+}
+
+extern void
+runBlockTests (void) {
+    runBlockTest0();
+    runBlockTest1();
 }
 
 /*  Ehtereum Java
@@ -1794,8 +1888,6 @@ runTests (void) {
     runAccountStateTests();
     runTransactionStatusTests();
     runTransactionReceiptTests();
-    //    reallySend();*/
-    runLEStests(); 
     printf ("Done\n");
 }
 

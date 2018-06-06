@@ -101,24 +101,41 @@ bcsCreate (BREthereumNetwork network,
                                      (BREventDispatcher)bcsPeriodicDispatcher,
                                      (void*) bcs);
 
-    bcs->les = lesCreate(network,
+    return bcs;
+}
+
+extern void
+bcsStart (BREthereumBCS bcs) {
+    BREthereumBlockHeader genesis = networkGetGenesisBlockHeader(bcs->network);
+
+    eventHandlerStart(bcs->handler);
+    bcs->les = lesCreate(bcs->network,
                          (BREthereumLESAnnounceContext) bcs,
                          (BREthereumLESAnnounceCallback) bcsSignalAnnounce,
                          blockHeaderGetHash(bcs->chain),
                          blockHeaderGetNumber(bcs->chain),
                          blockHeaderGetDifficulty(bcs->chain),
                          blockHeaderGetHash(genesis));
+}
 
-    // Start handling events.
-    eventHandlerStart(bcs->handler);
+extern void
+bcsStop (BREthereumBCS bcs) {
+    eventHandlerStop (bcs->handler);
+    if (NULL != bcs->les) {
+        lesRelease(bcs->les);
+        bcs->les = NULL;
+    }
+}
 
-    return bcs;
+extern BREthereumBoolean
+bcsIsStarted (BREthereumBCS bcs) {
+    return AS_ETHEREUM_BOOLEAN(NULL != bcs->les);
 }
 
 extern void
 bcsDestroy (BREthereumBCS bcs) {
     // Stop LES - avoiding any more callbacks.
-    lesRelease (bcs->les);
+//    lesRelease (bcs->les);
 
     // Stop the event handler - allows events to pile up.
     eventHandlerStop(bcs->handler);

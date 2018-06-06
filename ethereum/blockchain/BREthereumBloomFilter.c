@@ -78,6 +78,7 @@ bloomFilterCreateAddress (const BREthereumAddress address) {
 extern BREthereumBloomFilter
 bloomFilterCreateString (const char *string) {
     BREthereumBloomFilter filter;
+    if (0 == strncmp ("0x", string, 2)) string = &string[2];
     decodeHex (filter.bytes, sizeof (filter.bytes), string, strlen(string));
     return filter;
 }
