@@ -508,17 +508,17 @@ void ethereumLESSendTxtV2(uint64_t reqId, BREthereumTransaction transactions[], 
 
     _encodeTxts(0x13,reqId, transactions,network,type,rlpBytes,rlpBytesSize);
 }
-void ethereumLESGetTxStatus(uint64_t reqId, BREthereumHash transactions[], uint8_t**rlpBytes, size_t* rlpBytesSize) {
+void ethereumLESGetTxStatus(uint64_t reqId, BREthereumHash* transactions, uint8_t**rlpBytes, size_t* rlpBytesSize) {
 
     BRRlpCoder coder = rlpCoderCreate();
     size_t transactionsCount = array_count(transactions);
-    BRRlpItem* items = (BRRlpItem*)malloc(sizeof(BRRlpItem)* (transactionsCount + 1));
+    BRRlpItem items[transactionsCount + 1];
     int idx = 0;
     
     items[idx++] = rlpEncodeItemUInt64(coder, 0x14,0);
     items[idx++] = rlpEncodeItemUInt64(coder, reqId,0);
 
-    BRRlpItem* txtsItems = (BRRlpItem*)malloc(sizeof(BRRlpItem)* transactionsCount);
+    BRRlpItem txtsItems[transactionsCount];
     for(int i = 0; i < transactionsCount; ++i){
         txtsItems[i] = rlpEncodeItemBytes(coder, transactions[i].bytes, sizeof(transactions[i].bytes));
     }
@@ -527,9 +527,6 @@ void ethereumLESGetTxStatus(uint64_t reqId, BREthereumHash transactions[], uint8
     BRRlpItem encoding = rlpEncodeListItems(coder, items, idx);
     rlpDataExtract(coder, encoding, rlpBytes, rlpBytesSize);
     rlpCoderRelease(coder);
-    free(items);
-    free(txtsItems);
-
 
 }
 BREthereumLESDecodeStatus ethereumLESDecodeTxStatus(uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv, BREthereumTransactionStatusLES** replies, size_t* repliesCount){

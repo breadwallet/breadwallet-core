@@ -71,7 +71,7 @@ extern BRRlpData ethereumP2PHelloEncode(BREthereumP2PHello* message) {
 
     /** Encode the following :  Hello 0x00 [p2pVersion: P, clientId: B, [[cap1: B_3, capVersion1: P], [cap2: B_3, capVersion2: P], ...], listenPort: P, nodeId: B_64] */
     BRRlpData listData, idData;
-    rlpDataExtract(coder, rlpEncodeItemUInt64(coder, 0x00,0),&idData.bytes, &idData.bytesCount);
+    rlpDataExtract(coder, rlpEncodeItemUInt64(coder, 0x00,1),&idData.bytes, &idData.bytesCount);
     
     rlpDataExtract(coder, rlpEncodeListItems(coder, helloDataItems, 5), &listData.bytes, &listData.bytesCount);
     
@@ -81,6 +81,14 @@ extern BRRlpData ethereumP2PHelloEncode(BREthereumP2PHello* message) {
 
     data.bytes = rlpData;
     data.bytesCount = idData.bytesCount + listData.bytesCount;
+    
+    printf("\ndata(%d)*********\n", data.bytesCount);
+    for(int i = 0; i < data.bytesCount; ++i){
+        printf("%02x ", data.bytes[i]);
+    }
+    printf("\n");
+
+    
     
     rlpDataRelease(listData);
     rlpDataRelease(idData);

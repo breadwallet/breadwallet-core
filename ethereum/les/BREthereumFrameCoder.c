@@ -367,6 +367,10 @@ void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, si
     //Allocate the oBytes and oBytesSize
     size_t payloadPadding = (16 - (payloadSize % 16)) % 16;
     size_t oBytesSize = 32 + payloadSize + payloadPadding + 16; // header_cipher + headerMac + payload + padding + frameMac
+    eth_log("FrameCoder", "Frame PayloadSize:%d", payloadSize);
+    eth_log("FrameCoder", "Frame Padding:%d", payloadPadding);
+    eth_log("FrameCoder", "Frame Total:%d", oBytesSize);
+    
     uint8_t * oBytes = (uint8_t*)malloc(oBytesSize);
 
     memcpy(oBytes, headerCipher, HEADER_LEN);
@@ -381,7 +385,21 @@ void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, si
     if(payloadPadding){
         memset(&frameData[payloadSize], 0, payloadPadding);
         // aes256_encrypt(&fCoder->aes_sercret, payloadPadding + payloadSize, frameCipher, frameCipher);
+        printf("\nFrameData:%d[", payloadSize + payloadPadding);
+        for(int i = 0; i < payloadPadding + payloadSize; ++i){
+            printf("%02x ", frameData[i]);
+        }
+        printf("]\n");
+    
         BRAESCTR(frameCipher, fCoder->aesEncryptKey, 32, fCoder->iv.u8, frameData, payloadPadding + payloadSize);
+        
+        printf("\nFrameCipher:%d[", payloadSize + payloadPadding);
+        for(int i = 0; i < payloadPadding + payloadSize; ++i){
+            printf("%02x ", frameCipher[i]);
+        }
+        printf("]\n");
+        
+        
     }else {
         // aes256_encrypt(&fCoder->aes_sercret, payloadSize, frameCipher, frameCipher);
         BRAESCTR(frameCipher, fCoder->aesEncryptKey, 32, fCoder->iv.u8, frameData, payloadSize);

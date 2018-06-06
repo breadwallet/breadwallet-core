@@ -477,10 +477,10 @@ BREthereumNode ethereumNodeCreate(BREthereumPeerConfig config,
     node->helloData.listenPort = 0;
     array_new(node->helloData.caps, 1);
     BREthereumCapabilities cap;
-    char capStr[] = "eth";
+    char capStr[] = "les";
     cap.cap = malloc(strlen(capStr) + 1);
     strcpy(cap.cap, capStr);
-    cap.capVersion = 34;
+    cap.capVersion = 2;
     array_add(node->helloData.caps, cap);
     uint8_t pubRawKey[65];
     size_t pLen = BRKeyPubKey(key, pubRawKey, sizeof(pubRawKey));

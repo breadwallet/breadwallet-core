@@ -92,7 +92,7 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint8_t* me
         case BRE_LES_ID_STATUS:
         {
             BREthereumLESStatusMessage remotePeer;
-            BREthereumLESDecodeStatus status = ethereumLESDecodeStatus(message, messageSize, &remotePeer);
+            BREthereumLESDecodeStatus remoteStatus = ethereumLESDecodeStatus(message, messageSize, &remotePeer);
             eth_log(ETH_LOG_TOPIC, "%s", "Received Status message from Remote peer");
             les->startSendingMessages = ETHEREUM_BOOLEAN_TRUE;
         }
@@ -143,7 +143,8 @@ static BREthereumLESStatus _sendMessage(BREthereumLES les, uint8_t packetType, u
     BREthereumLESStatus retStatus = LES_NETWORK_UNREACHABLE;
     
     if(ETHEREUM_BOOLEAN_IS_TRUE(les->startSendingMessages)){
-        if(status == BRE_MANAGER_CONNECTED)
+      
+       if(status == BRE_MANAGER_CONNECTED)
         {
             if(ETHEREUM_BOOLEAN_IS_TRUE(ethereumNodeManagerSendMessage(les->nodeManager, packetType, payload, payloadSize))){
                 retStatus = LES_SUCCESS;
@@ -187,7 +188,7 @@ lesCreate (BREthereumNetwork network,
         uint8_t data[32] = {3,4,5,0};
         memcpy(les->key->secret.u8,data,32);
         les->key->compressed = 0;
-        les->startSendingMessages = ETHEREUM_BOOLEAN_FALSE;
+        les->startSendingMessages = ETHEREUM_BOOLEAN_TRUE;
         les->network = network;
         //Define the status message
         les->statusMsg.protocolVersion = 0x02;

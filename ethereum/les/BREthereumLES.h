@@ -198,7 +198,7 @@ typedef void* BREthereumLESBlockBodiesContext;
 
 typedef void
 (*BREthereumLESBlockBodiesCallback) (BREthereumLESBlockBodiesContext context,
-                                     BREthereumHash block, // BREthereumBlockHeader?
+                                     BREthereumBlockHeader block, // BREthereumBlockHeader?
                                      BREthereumTransaction transactions[],
                                      BREthereumHash ommers[]);
 
