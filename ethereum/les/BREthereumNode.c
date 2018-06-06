@@ -470,7 +470,7 @@ BREthereumNode ethereumNodeCreate(BREthereumPeerConfig config,
     node->peer.timestamp = config.timestamp;
     node->peer.remoteKey =  *(config.remoteKey);
     //Initialize p2p data
-    node->helloData.version = 0x01;
+    node->helloData.version = 0x03;
     char clientId[] = "Ethereum(++)/1.0.0";
     node->helloData.clientId = malloc(strlen(clientId) + 1);
     strcpy(node->helloData.clientId, clientId);
@@ -547,7 +547,9 @@ void ethereumNodeDisconnect(BREthereumNode node, BREthereumDisconnect reason) {
 }
 void ethereumNodeRelease(BREthereumNode node){
    ethereumEndpointRelease(node->peer.endpoint);
-   array_free(node->body);
+   if(node->body != NULL){
+    array_free(node->body);
+   }
    ethereumFrameCoderRelease(node->ioCoder);
    free(node->key);
    free(node->ephemeral);

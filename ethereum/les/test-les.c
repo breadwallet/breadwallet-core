@@ -420,7 +420,7 @@ void runLESTest() {
 
     uint64_t headNumber = 0;
     uint64_t headTD = 0x400000000;
-
+    
     BREthereumHash genesisHash;
     decodeHex(genesisHash.bytes, 32, headHashStr, strlen(headHashStr));
 
@@ -441,11 +441,11 @@ void runLESTest() {
 }
 void runLEStests(void) {
     
-     runLESTest();
+    runLESTest();
   // runEthereumNodeTests();
   // runEthereumNodeEventHandlerTests();
   // runEthereumNodeDiscoveryTests();
-  //  runAuthTests();
+  //    runAuthTests();
   // runEthereumNodeTests();
   //   runLESMessagesTest();
 
