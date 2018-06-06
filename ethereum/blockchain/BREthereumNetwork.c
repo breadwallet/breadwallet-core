@@ -26,20 +26,44 @@
 #include <stdlib.h>
 #include "BREthereumNetwork.h"
 
+static void
+networkInitilizeAllIfAppropriate (void);
+
 struct BREthereumNetworkRecord {
     int chainId;
+    BREthereumHash genesisBlockHeaderHash;
+    BREthereumHash trustedCheckpointBlockHeaderHash;
 };
 
 extern BREthereumChainId
 networkGetChainId (BREthereumNetwork network) {
+    networkInitilizeAllIfAppropriate();
     return network->chainId;
 }
+
+extern BREthereumHash
+networkGetGenesisBlockHeaderHash (BREthereumNetwork network) {
+    networkInitilizeAllIfAppropriate();
+    return network->genesisBlockHeaderHash;
+}
+
+extern BREthereumHash
+networkGetTrustedCheckpointBlockHeaderHash (BREthereumNetwork network) {
+    networkInitilizeAllIfAppropriate();
+    return network->trustedCheckpointBlockHeaderHash;
+}
+
+//
+// MARK: - Static Network Definitions
+//
 
 //
 // Mainnet
 //
 static struct BREthereumNetworkRecord ethereumMainnetRecord = {
-    1
+    1,
+    EMPTY_HASH_INIT,
+    EMPTY_HASH_INIT
 };
 const BREthereumNetwork ethereumMainnet = &ethereumMainnetRecord;
 
@@ -63,7 +87,9 @@ MainnetChainConfig = &ChainConfig{
 // Testnet
 //
 static struct BREthereumNetworkRecord ethereumTestnetRecord = {
-    3
+    3,
+    EMPTY_HASH_INIT,
+    EMPTY_HASH_INIT
 };
 const BREthereumNetwork ethereumTestnet = &ethereumTestnetRecord;
 
@@ -86,7 +112,9 @@ TestnetChainConfig = &ChainConfig{
 // Rinkeby
 //
 static struct BREthereumNetworkRecord ethereumRinkebyRecord = {
-    4
+    4,
+    EMPTY_HASH_INIT,
+    EMPTY_HASH_INIT
 };
 const BREthereumNetwork ethereumRinkeby = &ethereumRinkebyRecord;
 
@@ -108,3 +136,82 @@ RinkebyChainConfig = &ChainConfig{
   },
 }
 */
+
+//
+// MARK: - Trusted Checkpoints
+//
+
+/*
+// trustedCheckpoint represents a set of post-processed trie roots (CHT and BloomTrie) associated with
+// the appropriate section index and head hash. It is used to start light syncing from this checkpoint
+// and avoid downloading the entire header chain while still being able to securely access old headers/logs.
+type trustedCheckpoint struct {
+    name                                string
+    sectionIdx                          uint64
+    sectionHead, chtRoot, bloomTrieRoot common.Hash
+}
+
+var (
+     mainnetCheckpoint = trustedCheckpoint{
+     name:          "mainnet",
+     sectionIdx:    153,
+     sectionHead:   common.HexToHash("04c2114a8cbe49ba5c37a03cc4b4b8d3adfc0bd2c78e0e726405dd84afca1d63"),
+     chtRoot:       common.HexToHash("d7ec603e5d30b567a6e894ee7704e4603232f206d3e5a589794cec0c57bf318e"),
+     bloomTrieRoot: common.HexToHash("0b139b8fb692e21f663ff200da287192201c28ef5813c1ac6ba02a0a4799eef9"),
+     }
+
+     ropstenCheckpoint = trustedCheckpoint{
+     name:          "ropsten",
+     sectionIdx:    79,
+     sectionHead:   common.HexToHash("1b1ba890510e06411fdee9bb64ca7705c56a1a4ce3559ddb34b3680c526cb419"),
+     chtRoot:       common.HexToHash("71d60207af74e5a22a3e1cfbfc89f9944f91b49aa980c86fba94d568369eaf44"),
+     bloomTrieRoot: common.HexToHash("70aca4b3b6d08dde8704c95cedb1420394453c1aec390947751e69ff8c436360"),
+     }
+     )
+
+// trustedCheckpoints associates each known checkpoint with the genesis hash of the chain it belongs to
+var trustedCheckpoints = map[common.Hash]trustedCheckpoint{
+    params.MainnetGenesisHash: mainnetCheckpoint,
+    params.TestnetGenesisHash: ropstenCheckpoint,
+}
+
+ // Rinkeby: genesis for all intents and purposes.
+ // > INFO [06-06|11:34:07] Block synchronisation started
+ // INFO [06-06|11:34:08] Imported new block headers               count=192 elapsed=76.267ms number=192 hash=8c570c…ba360c ignored=0
+
+*/
+static void
+networkInitilizeAllIfAppropriate (void) {
+    static int needsInitialization = 1;
+
+    if (needsInitialization) {
+
+        // Mainnet
+
+        ethereumMainnetRecord.genesisBlockHeaderHash =
+        hashCreate ("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3");
+
+        ethereumMainnetRecord.trustedCheckpointBlockHeaderHash =
+        hashCreate("0x04c2114a8cbe49ba5c37a03cc4b4b8d3adfc0bd2c78e0e726405dd84afca1d63");
+
+        // Testnet / 'Ropsten'
+
+        ethereumTestnetRecord.genesisBlockHeaderHash =
+        hashCreate("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d");
+
+        ethereumTestnetRecord.trustedCheckpointBlockHeaderHash =
+        hashCreate("0x1b1ba890510e06411fdee9bb64ca7705c56a1a4ce3559ddb34b3680c526cb419");
+
+        // Rinkeby
+
+        ethereumRinkebyRecord.genesisBlockHeaderHash =
+        hashCreate("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177");
+        
+        ethereumRinkebyRecord.trustedCheckpointBlockHeaderHash =
+        hashCreate("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177");
+
+        // Notable RACE
+        needsInitialization = 0;
+
+    }
+}

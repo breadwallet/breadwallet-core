@@ -58,14 +58,30 @@ logTopicGetBloomFilterAddress (BREthereumAddress address) {
 static int
 logTopicMatchesAddressBool (BREthereumLogTopic topic,
                         BREthereumAddress address) {
-    return (0 == memcmp (&topic.bytes[0], &empty.bytes[0], 12)
-            && 0 == memcmp (&topic.bytes[12], &address.bytes[0], 20));
+    return (0 == memcmp (&topic.bytes[0], &empty.bytes[0], 12) &&
+            0 == memcmp (&topic.bytes[12], &address.bytes[0], 20));
 }
 
 extern BREthereumBoolean
 logTopicMatchesAddress (BREthereumLogTopic topic,
                         BREthereumAddress address) {
     return AS_ETHEREUM_BOOLEAN(logTopicMatchesAddressBool(topic, address));
+}
+
+extern BREthereumLogTopicString
+logTopicAsString (BREthereumLogTopic topic) {
+    BREthereumLogTopicString string;
+    string.chars[0] = '0';
+    string.chars[1] = 'x';
+    encodeHex(&string.chars[2], 64, topic.bytes, 32);
+    return string;
+}
+
+extern BREthereumAddress
+logTopicAsAddress (BREthereumLogTopic topic) {
+    BREthereumAddress address;
+    memcpy (address.bytes, &topic.bytes[12], 20);
+    return address;
 }
 
 //

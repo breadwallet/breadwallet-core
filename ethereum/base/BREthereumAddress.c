@@ -252,6 +252,20 @@ validateAddressString(const char *string) {
     : ETHEREUM_BOOLEAN_FALSE;
 }
 
+extern BREthereumEncodedAddress
+createAddressRaw (BREthereumAddress raw) {
+    BREthereumEncodedAddress address = malloc (sizeof (struct BREthereumEncodedAddressRecord));
+
+    address->type = ADDRESS_PROVIDED;
+    address->nonce = 0;
+    address->raw = raw;
+    address->string[0] = '0';
+    address->string[1] = 'x';
+    encodeHex(&address->string[2], 40 + 1, raw.bytes, 20);
+
+    return address;
+}
+
 extern BREthereumAddress
 addressGetRawAddress (BREthereumEncodedAddress address) {
     return address->raw;
