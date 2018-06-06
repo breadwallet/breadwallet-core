@@ -420,11 +420,11 @@
 		3C2A539E20AF595400C430F6 /* lightnode */ = {
 			isa = PBXGroup;
 			children = (
-				3C386DD120C6F6060065E355 /* BREthereumLightNodeClient.c */,
-				3C386DD220C6F6070065E355 /* BREthereumLightNodeEvent.c */,
 				3C2A53A020AF595400C430F6 /* BREthereumLightNode.h */,
 				3C2A53A320AF595400C430F6 /* BREthereumLightNodePrivate.h */,
 				3C2A53A220AF595400C430F6 /* BREthereumLightNode.c */,
+				3C386DD120C6F6060065E355 /* BREthereumLightNodeClient.c */,
+				3C386DD220C6F6070065E355 /* BREthereumLightNodeEvent.c */,
 			);
 			name = lightnode;
 			path = ../../ethereum/lightnode;
@@ -465,25 +465,25 @@
 		3C2A53BA20AF595500C430F6 /* blockchain */ = {
 			isa = PBXGroup;
 			children = (
-				3C2A53BB20AF595500C430F6 /* BREthereumTransaction.c */,
 				3C2A53BC20AF595500C430F6 /* BREthereumBlockChain.h */,
-				3C2A53BD20AF595500C430F6 /* BREthereumLog.h */,
+				3C2A53C820AF595500C430F6 /* BREthereumNetwork.h */,
+				3C2A53C120AF595500C430F6 /* BREthereumNetwork.c */,
+				3C2A53C420AF595500C430F6 /* BREthereumAmount.h */,
+				3C2A53CD20AF595500C430F6 /* BREthereumAmount.c */,
 				3C2A53BE20AF595500C430F6 /* BREthereumAccountState.h */,
+				3C2A53C520AF595500C430F6 /* BREthereumAccountState.c */,
+				3C2A53CA20AF595500C430F6 /* BREthereumBloomFilter.h */,
 				3C2A53BF20AF595500C430F6 /* BREthereumBloomFilter.c */,
 				3C2A53C020AF595500C430F6 /* BREthereumTransactionStatus.h */,
-				3C2A53C120AF595500C430F6 /* BREthereumNetwork.c */,
-				3C2A53C220AF595500C430F6 /* BREthereumTransactionReceipt.c */,
-				3C2A53C320AF595500C430F6 /* BREthereumBlock.h */,
-				3C2A53C420AF595500C430F6 /* BREthereumAmount.h */,
-				3C2A53C520AF595500C430F6 /* BREthereumAccountState.c */,
-				3C2A53C620AF595500C430F6 /* BREthereumLog.c */,
-				3C2A53C720AF595500C430F6 /* BREthereumTransaction.h */,
-				3C2A53C820AF595500C430F6 /* BREthereumNetwork.h */,
 				3C2A53C920AF595500C430F6 /* BREthereumTransactionStatus.c */,
-				3C2A53CA20AF595500C430F6 /* BREthereumBloomFilter.h */,
-				3C2A53CB20AF595500C430F6 /* BREthereumBlock.c */,
 				3C2A53CC20AF595500C430F6 /* BREthereumTransactionReceipt.h */,
-				3C2A53CD20AF595500C430F6 /* BREthereumAmount.c */,
+				3C2A53C220AF595500C430F6 /* BREthereumTransactionReceipt.c */,
+				3C2A53C720AF595500C430F6 /* BREthereumTransaction.h */,
+				3C2A53BB20AF595500C430F6 /* BREthereumTransaction.c */,
+				3C2A53BD20AF595500C430F6 /* BREthereumLog.h */,
+				3C2A53C620AF595500C430F6 /* BREthereumLog.c */,
+				3C2A53C320AF595500C430F6 /* BREthereumBlock.h */,
+				3C2A53CB20AF595500C430F6 /* BREthereumBlock.c */,
 			);
 			name = blockchain;
 			path = ../../ethereum/blockchain;
@@ -492,11 +492,11 @@
 		3C386DC920C6F5E40065E355 /* bcs */ = {
 			isa = PBXGroup;
 			children = (
-				3C386DCA20C6F5E40065E355 /* BREthereumBCS.c */,
 				3C386DCB20C6F5E40065E355 /* BREthereumBlockChainSlice.h */,
-				3C386DCC20C6F5E40065E355 /* BREthereumBCSPrivate.h */,
-				3C386DCD20C6F5E40065E355 /* BREthereumBCSEvent.c */,
 				3C386DCE20C6F5E40065E355 /* BREthereumBCS.h */,
+				3C386DCC20C6F5E40065E355 /* BREthereumBCSPrivate.h */,
+				3C386DCA20C6F5E40065E355 /* BREthereumBCS.c */,
+				3C386DCD20C6F5E40065E355 /* BREthereumBCSEvent.c */,
 			);
 			name = bcs;
 			path = ../../ethereum/bcs;

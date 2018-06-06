@@ -15,5 +15,5 @@ FOUNDATION_EXPORT double BRCoreVersionNumber;
 FOUNDATION_EXPORT const unsigned char BRCoreVersionString[];
 
 // In this header, you should import all the public headers of your framework using statements like #import <BRCore2/PublicHeader.h>
-#import <BRCore/BREthereumEther.h>
+//#import <BRCore/BREthereumEther.h>
 

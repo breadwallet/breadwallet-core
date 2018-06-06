@@ -126,11 +126,6 @@ struct BREthereumLightNodeRecord {
     BREthereumBCS bcs;
     
     /**
-     * The LES Interface
-     */
-    BREthereumLES les;              // <== optional, perhaps.
-
-    /**
      * The BlockHeight is the largest block number seen or computed.  [Note: the blockHeight may
      * be computed from a Log event as (log block number + log confirmations).
      */

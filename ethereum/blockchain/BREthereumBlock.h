@@ -40,6 +40,9 @@ typedef struct BREthereumBlockRecord *BREthereumBlock;
 //
 // Block Header
 //
+extern void
+blockHeaderRelease (BREthereumBlockHeader header);
+    
 extern BREthereumBoolean
 blockHeaderIsValid (BREthereumBlockHeader header);
 
@@ -101,6 +104,9 @@ extern BREthereumBlock
 createBlock (BREthereumBlockHeader header,
              BREthereumBlockHeader ommers[], size_t ommersCount,
              BREthereumTransaction transactions[], size_t transactionCount);
+
+extern void
+blockRelease (BREthereumBlock block);
 
 extern BREthereumBoolean
 blockIsValid (BREthereumBlock block,

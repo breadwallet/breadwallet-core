@@ -33,6 +33,8 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <assert.h>
+#include <pthread.h>
+
 #include "BRCrypto.h"
 #include "BRInt.h"
 //#include "BRKey.h"
@@ -1101,12 +1103,57 @@ void testTransactionCodingToken () {
                                                     transactionGetSignature (decodedTransaction)));
 }
 
+
 //
-// Light Node JSON_RCP
+// Light Node CONNECT
 //
 typedef struct JsonRpcTestContextRecord {
-    int ignore;
+    pthread_cond_t  cond;
+    pthread_mutex_t lock;
 } *JsonRpcTestContext;
+
+static JsonRpcTestContext
+createTestContext (void) {
+    JsonRpcTestContext context = malloc (sizeof (struct JsonRpcTestContextRecord));
+    // Create the PTHREAD CONDition variable
+    {
+        pthread_condattr_t attr;
+        pthread_condattr_init(&attr);
+        pthread_cond_init(&context->cond, &attr);
+        pthread_condattr_destroy(&attr);
+    }
+
+    // Create the PTHREAD LOCK variable
+    {
+        // The cacheLock is a normal, non-recursive lock
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+        pthread_mutex_init(&context->lock, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
+    pthread_mutex_lock(&context->lock);
+
+    return context;
+}
+
+static void
+freeTestContext (JsonRpcTestContext context) {
+    pthread_cond_destroy(&context->cond);
+    pthread_mutex_destroy(&context->lock);
+    free (context);
+}
+
+static void
+signalBalance (JsonRpcTestContext context) {
+    pthread_cond_signal(&context->cond);
+
+}
+
+static void
+waitForBalance (JsonRpcTestContext context) {
+    pthread_cond_wait(&context->cond, &context->lock);
+}
 
 // Stubbed Callbacks - should actually construct JSON, invoke an Etherum JSON_RPC method,
 // get the response and return the result.
@@ -1240,6 +1287,128 @@ clientGetNonce (BREthereumClientContext context,
     lightNodeAnnounceNonce(node, address, "0x4", rid);
 }
 
+//
+// Listener
+//
+static void
+walletEventHandler (BREthereumListenerContext context,
+                    BREthereumLightNode node,
+                    BREthereumWalletId wid,
+                    BREthereumWalletEvent event,
+                    BREthereumStatus status,
+                    const char *errorDescription) {
+    fprintf (stdout, "        WalletEvent: wid=%d, ev=%d\n", wid, event);
+    switch (event) {
+        case WALLET_EVENT_BALANCE_UPDATED:
+            signalBalance(context);
+            break;
+        default:
+            break;
+    }
+}
+
+static void
+blockEventHandler (BREthereumListenerContext context,
+                   BREthereumLightNode node,
+                   BREthereumBlockId bid,
+                   BREthereumBlockEvent event,
+                   BREthereumStatus status,
+                   const char *errorDescription) {
+    fprintf (stdout, "         BlockEvent: bid=%d, ev=%d\n", bid, event);
+
+}
+
+static void
+transactionEventHandler (BREthereumListenerContext context,
+                         BREthereumLightNode node,
+                         BREthereumWalletId wid,
+                         BREthereumTransactionId tid,
+                         BREthereumTransactionEvent event,
+                         BREthereumStatus status,
+                         const char *errorDescription) {
+    fprintf (stdout, "         TransEvent: tid=%d, ev=%d\n", tid, event);
+}
+
+static void
+peerEventHandler (BREthereumListenerContext context,
+                  BREthereumLightNode node,
+                  //BREthereumWalletId wid,
+                  //BREthereumTransactionId tid,
+                  BREthereumPeerEvent event,
+                  BREthereumStatus status,
+                  const char *errorDescription) {
+    fprintf (stdout, "         PeerEvent: ev=%d\n", event);
+}
+
+static void
+lightNodeEventHandler (BREthereumListenerContext context,
+                       BREthereumLightNode node,
+                       //BREthereumWalletId wid,
+                       //BREthereumTransactionId tid,
+                       BREthereumLightNodeEvent event,
+                       BREthereumStatus status,
+                       const char *errorDescription) {
+    fprintf (stdout, "         LightNodeEvent: ev=%d\n", event);
+}
+
+
+//
+//
+//
+static void
+runLightNode_CONNECT_test (const char *paperKey) {
+    printf ("     JSON_RCP\n");
+    
+    BRCoreParseStatus status;
+    JsonRpcTestContext context = createTestContext();
+    
+    BREthereumClient configuration =
+    ethereumClientCreate(context,
+                         clientGetBalance,
+                         clientGetGasPrice,
+                         clientEstimateGas,
+                         clientSubmitTransaction,
+                         clientGetTransactions,
+                         clientGetLogs,
+                         clientGetBlockNumber,
+                         clientGetNonce);
+    
+    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
+
+    BREthereumListenerId lid = lightNodeAddListener(node,
+                                                    (BREthereumListenerContext) context,
+                                                    lightNodeEventHandler,
+                                                    peerEventHandler,
+                                                    walletEventHandler,
+                                                    blockEventHandler,
+                                                    transactionEventHandler);
+    BREthereumWalletId wallet = ethereumGetWallet(node);
+    
+    ethereumConnect(node, configuration);
+
+    printf ("       Waiting for Balance\n");
+    waitForBalance(context);
+//    sleep (20);  // let connect 'take'
+
+    // Callback to JSON_RPC for 'getBalanance'&
+    //    lightNodeUpdateWalletBalance (node, wallet, &status);
+    BREthereumAmount balance = ethereumWalletGetBalance (node, wallet);
+    BREthereumEther expectedBalance = etherCreate(createUInt256Parse("0x123f", 16, &status));
+    assert (CORE_PARSE_OK == status
+            && AMOUNT_ETHER == amountGetType(balance)
+            && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (expectedBalance, amountGetEther(balance)));
+
+    int count = ethereumWalletGetTransactionCount(node, wallet);
+    assert (2 == count);
+
+//    lightNodeUpdateTransactions(node);
+    ethereumDisconnect(node);
+    ethereumDestroy(node);
+}
+
+//
+//
+//
 void prepareTransaction (const char *paperKey, const char *recvAddr, const uint64_t gasPrice, const uint64_t gasLimit, const uint64_t amount) {
     printf ("     Prepare Transaction\n");
 
@@ -1295,151 +1464,31 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
     ethereumDestroy(node);
 }
 
-static void
-runLightNode_JSON_RPC_test (const char *paperKey) {
-    printf ("     JSON_RCP\n");
-    
-    BRCoreParseStatus status;
-    JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
-    
-    BREthereumClient configuration =
-    ethereumClientCreate(context,
-                         clientGetBalance,
-                         clientGetGasPrice,
-                         clientEstimateGas,
-                         clientSubmitTransaction,
-                         clientGetTransactions,
-                         clientGetLogs,
-                         clientGetBlockNumber,
-                         clientGetNonce);
-    
-    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
-    BREthereumWalletId wallet = ethereumGetWallet(node);
-    
-    ethereumConnect(node, configuration);
+// Local (PaperKey) -> LocalTest @ 5 GWEI gasPrice @ 21000 gasLimit & 0.0001/2 ETH
+#define ACTUAL_RAW_TX "f86a01841dcd65008252089422583f6c7dae5032f4d72a10b9e9fa977cbfc5f68701c6bf52634000801ca05d27cbd6a84e5d34bb20ce7dade4a21efb4da7507958c17d7f92cfa99a4a9eb6a005fcb9a61e729b3c6b0af3bad307ef06cdf5c5578615fedcc4163a2aa2812260"
+// eth.sendRawTran ('0xf86a01841dcd65008252089422583f6c7dae5032f4d72a10b9e9fa977cbfc5f68701c6bf52634000801ca05d27cbd6a84e5d34bb20ce7dade4a21efb4da7507958c17d7f92cfa99a4a9eb6a005fcb9a61e729b3c6b0af3bad307ef06cdf5c5578615fedcc4163a2aa2812260', function (err, hash) { if (!err) console.log(hash); });
+extern void
+reallySend () {
+    char paperKey[1024];
+    char recvAddress[1024];
 
-    printf ("       Waiting for Balance\n");
-    sleep (10);  // let connect 'take'
+    fputs("PaperKey: ", stdout);
+    fgets (paperKey, 1024, stdin);
+    paperKey[strlen(paperKey) - 1] = '\0';
 
-    // Callback to JSON_RPC for 'getBalanance'&
-    //    lightNodeUpdateWalletBalance (node, wallet, &status);
-    BREthereumAmount balance = ethereumWalletGetBalance (node, wallet);
-    BREthereumEther expectedBalance = etherCreate(createUInt256Parse("0x123f", 16, &status));
-    assert (CORE_PARSE_OK == status
-            && AMOUNT_ETHER == amountGetType(balance)
-            && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (expectedBalance, amountGetEther(balance)));
+    fputs("Address: ", stdout);
+    fgets (recvAddress, 1024, stdin);
+    recvAddress[strlen(recvAddress) - 1] = '\0';
 
-    int count = ethereumWalletGetTransactionCount(node, wallet);
-    assert (2 == count);
+    printf ("PaperKey: '%s'\nAddress: '%s'\n", paperKey, recvAddress);
 
-//    lightNodeUpdateTransactions(node);
-    ethereumDisconnect(node);
-    ethereumDestroy(node);
+    // 0.001/2 ETH
+    prepareTransaction(paperKey, recvAddress, GAS_PRICE_5_GWEI, GAS_LIMIT_DEFAULT, 1000000000000000000 / 1000 / 2);
 }
 
 //
-// Listener
 //
-static void
-walletEventHandler (BREthereumListenerContext context,
-                    BREthereumLightNode node,
-                    BREthereumWalletId wid,
-                    BREthereumWalletEvent event,
-                    BREthereumStatus status,
-                    const char *errorDescription) {
-    fprintf (stdout, "        WalletEvent: wid=%d, ev=%d\n", wid, event);
-}
-
-static void
-blockEventHandler (BREthereumListenerContext context,
-                   BREthereumLightNode node,
-                   BREthereumBlockId bid,
-                   BREthereumBlockEvent event,
-                   BREthereumStatus status,
-                   const char *errorDescription) {
-    fprintf (stdout, "         BlockEvent: bid=%d, ev=%d\n", bid, event);
-    
-}
-
-static void
-transactionEventHandler (BREthereumListenerContext context,
-                         BREthereumLightNode node,
-                         BREthereumWalletId wid,
-                         BREthereumTransactionId tid,
-                         BREthereumTransactionEvent event,
-                         BREthereumStatus status,
-                         const char *errorDescription) {
-    fprintf (stdout, "         TransEvent: tid=%d, ev=%d\n", tid, event);
-}
-
-static void
-peerEventHandler (BREthereumListenerContext context,
-                  BREthereumLightNode node,
-                  //BREthereumWalletId wid,
-                  //BREthereumTransactionId tid,
-                  BREthereumPeerEvent event,
-                  BREthereumStatus status,
-                  const char *errorDescription) {
-    fprintf (stdout, "         PeerEvent: ev=%d\n", event);
-}
-
-static void
-lightNodeEventHandler (BREthereumListenerContext context,
-                       BREthereumLightNode node,
-                       //BREthereumWalletId wid,
-                       //BREthereumTransactionId tid,
-                       BREthereumLightNodeEvent event,
-                       BREthereumStatus status,
-                       const char *errorDescription) {
-    fprintf (stdout, "         LightNodeEvent: ev=%d\n", event);
-}
-
-static void
-runLightNode_LISTENER_test (const char *paperKey) {
-    printf ("     LISTENER\n");
-
-    BRCoreParseStatus status;
-    JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
-
-    BREthereumClient configuration =
-    ethereumClientCreate(context,
-                         clientGetBalance,
-                         clientGetGasPrice,
-                         clientEstimateGas,
-                         clientSubmitTransaction,
-                         clientGetTransactions,
-                         clientGetLogs,
-                         clientGetBlockNumber,
-                         clientGetNonce);
-
-    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
-
-    BREthereumListenerId lid = lightNodeAddListener(node,
-                                                    (BREthereumListenerContext) NULL,
-                                                    lightNodeEventHandler,
-                                                    peerEventHandler,
-                                                    walletEventHandler,
-                                                    blockEventHandler,
-                                                    transactionEventHandler);
-
-    BREthereumWalletId wallet = ethereumGetWallet(node);
-
-    ethereumConnect(node, configuration);
-
-    sleep (10);  // let connect 'take'
-
-    // Callback to JSON_RPC for 'getBalanance'&
-    //    lightNodeUpdateWalletBalance (node, wallet, &status);
-    BREthereumAmount balance = ethereumWalletGetBalance (node, wallet);
-    BREthereumEther expectedBalance = etherCreate(createUInt256Parse("0x123f", 16, &status));
-    assert (CORE_PARSE_OK == status
-            && AMOUNT_ETHER == amountGetType(balance)
-            && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (expectedBalance, amountGetEther(balance)));
-
-    //    ethereumUpdateTransactions(node);
-    ethereumDisconnect(node);
-    ethereumDestroy(node);
-}
+//
 
 // Unsigned Result: 0xf864010082c35094558ec3152e2eb2174905cd19aea4e34a23de9ad680b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000000000000000000000000018080
 //   Signed Result: 0xf8a4010082c35094558ec3152e2eb2174905cd19aea4e34a23de9ad680b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c000000000000000000000000000000000000000000000000000000000000000025a0b729de661448a377bee9ef3f49f8ec51f6c5810cf177a8162d31e9611a940a18a030b44adbe0253fe6176ccd8b585745e60f411b009ec73815f201fff0f540fc4d
@@ -1498,9 +1547,8 @@ void runLightNodeTests () {
 //    prepareTransaction(NODE_PAPER_KEY, NODE_RECV_ADDR, TEST_TRANS2_GAS_PRICE_VALUE, GAS_LIMIT_DEFAULT, NODE_ETHER_AMOUNT);
     testTransactionCodingEther ();
     testTransactionCodingToken ();
-    runLightNode_JSON_RPC_test(NODE_PAPER_KEY);
+    runLightNode_CONNECT_test(NODE_PAPER_KEY);
     runLightNode_TOKEN_test (NODE_PAPER_KEY);
-    runLightNode_LISTENER_test (NODE_PAPER_KEY);
     runLightNode_PUBLIC_KEY_test (ethereumMainnet, NODE_PAPER_KEY);
     runLightNode_PUBLIC_KEY_test (ethereumTestnet, "ocean robust idle system close inject bronze mutual occur scale blast year");
 }
@@ -1520,28 +1568,6 @@ void runTokenTests () {
 
     token = tokenLookup("0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0"); // EOI
     assert (NULL != token);
-}
-
-// Local (PaperKey) -> LocalTest @ 5 GWEI gasPrice @ 21000 gasLimit & 0.0001/2 ETH
-#define ACTUAL_RAW_TX "f86a01841dcd65008252089422583f6c7dae5032f4d72a10b9e9fa977cbfc5f68701c6bf52634000801ca05d27cbd6a84e5d34bb20ce7dade4a21efb4da7507958c17d7f92cfa99a4a9eb6a005fcb9a61e729b3c6b0af3bad307ef06cdf5c5578615fedcc4163a2aa2812260"
-// eth.sendRawTran ('0xf86a01841dcd65008252089422583f6c7dae5032f4d72a10b9e9fa977cbfc5f68701c6bf52634000801ca05d27cbd6a84e5d34bb20ce7dade4a21efb4da7507958c17d7f92cfa99a4a9eb6a005fcb9a61e729b3c6b0af3bad307ef06cdf5c5578615fedcc4163a2aa2812260', function (err, hash) { if (!err) console.log(hash); });
-extern void
-reallySend () {
-    char paperKey[1024];
-    char recvAddress[1024];
-    
-    fputs("PaperKey: ", stdout);
-    fgets (paperKey, 1024, stdin);
-    paperKey[strlen(paperKey) - 1] = '\0';
-    
-    fputs("Address: ", stdout);
-    fgets (recvAddress, 1024, stdin);
-    recvAddress[strlen(recvAddress) - 1] = '\0';
-    
-    printf ("PaperKey: '%s'\nAddress: '%s'\n", paperKey, recvAddress);
-    
-    // 0.001/2 ETH
-    prepareTransaction(paperKey, recvAddress, GAS_PRICE_5_GWEI, GAS_LIMIT_DEFAULT, 1000000000000000000 / 1000 / 2);
 }
 
 //
@@ -1862,8 +1888,6 @@ runTests (void) {
     runAccountStateTests();
     runTransactionStatusTests();
     runTransactionReceiptTests();
-    //    reallySend();*/
-    runLEStests(); 
     printf ("Done\n");
 }
 

@@ -162,8 +162,8 @@ createBlockHeader (void) {
     return header;
 }
 
-static void
-blockHeaderFree (BREthereumBlockHeader header) {
+extern void
+blockHeaderRelease (BREthereumBlockHeader header) {
     free (header);
 }
 
@@ -376,6 +376,14 @@ createBlock (BREthereumBlockHeader header,
     return block;
 }
 
+extern void
+blockRelease (BREthereumBlock block) {
+    blockHeaderRelease(block->header);
+    array_free(block->ommers);
+    array_free(block->transactions);
+    free (block);
+}
+
 extern BREthereumBoolean
 blockIsValid (BREthereumBlock block,
               BREthereumBoolean skipHeaderValidation) {
@@ -429,12 +437,6 @@ blockGetNumber (BREthereumBlock block) {
 extern uint64_t
 blockGetTimestamp (BREthereumBlock block) {
     return block->header->timestamp;
-}
-
-private_extern void
-blockFree (BREthereumBlock block) {
-    blockHeaderFree(block->header);
-    free (block);
 }
 
 //
@@ -824,3 +826,5 @@ initializeGenesisBlocks (void) {
     header->mixHash = hashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
     header->nonce = 0x0000000000000000;
 }
+
+//

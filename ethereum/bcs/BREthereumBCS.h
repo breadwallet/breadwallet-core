@@ -78,6 +78,15 @@ bcsCreate (BREthereumNetwork network,
            BREthereumBCSListener listener);
 
 extern void
+bcsStart (BREthereumBCS bcs);
+
+extern void
+bcsStop (BREthereumBCS bcs);
+
+extern BREthereumBoolean
+bcsIsStarted (BREthereumBCS bcs);
+    
+extern void
 bcsDestroy (BREthereumBCS bcs);
 
 // Should be unneeded

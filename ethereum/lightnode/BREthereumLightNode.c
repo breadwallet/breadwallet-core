@@ -104,7 +104,6 @@ createLightNode (BREthereumNetwork network,
     };
 
     node->bcs = bcsCreate(network, account, /* blockHeaders */ NULL, listener);
-    node->les = bcsGetLES(node->bcs);           // <== optional, perhaps.
 
     array_new(node->wallets, DEFAULT_WALLET_CAPACITY);
     array_new(node->transactions, DEFAULT_TRANSACTION_CAPACITY);
@@ -122,15 +121,13 @@ createLightNode (BREthereumNetwork network,
 
     // Create and then start the eventHandler
     node->handlerForListener = eventHandlerCreate(listenerEventTypes, listenerEventTypesCount);
-    eventHandlerStart(node->handlerForListener);
 
     node->handlerForMain = eventHandlerCreate(handlerEventTypes, handlerEventTypesCount);
     eventHandlerSetTimeoutDispatcher(node->handlerForMain,
                                      1000 * LIGHT_NODE_SLEEP_SECONDS,
                                      (BREventDispatcher)lightNodePeriodicDispatcher,
                                      (void*) node);
-    eventHandlerStart(node->handlerForMain);
-    
+
     // Create a default ETH wallet; other wallets will be created 'on demand'
     node->walletHoldingEther = walletCreate(node->account,
                                             node->network);
@@ -141,11 +138,8 @@ createLightNode (BREthereumNetwork network,
 
 extern void
 lightNodeDestroy (BREthereumLightNode node) {
-    // Stop BCS processing
+    lightNodeDisconnect(node);
     bcsDestroy(node->bcs);
-
-    eventHandlerStop(node->handlerForListener);
-    eventHandlerStop(node->handlerForMain);
 
     // wallets
     // transactions
@@ -530,25 +524,25 @@ lightNodePeriodicDispatcher (BREventHandler handler,
 extern BREthereumBoolean
 lightNodeConnect(BREthereumLightNode node,
                  BREthereumClient client) {
-    switch (node->state) {
-        case LIGHT_NODE_CONNECTING:
-        case LIGHT_NODE_CONNECTED:
-        case LIGHT_NODE_DISCONNECTING:
-            return ETHEREUM_BOOLEAN_FALSE;
+    if (ETHEREUM_BOOLEAN_IS_TRUE(bcsIsStarted(node->bcs)))
+        return ETHEREUM_BOOLEAN_FALSE;
 
-        case LIGHT_NODE_CREATED:
-        case LIGHT_NODE_DISCONNECTED:
-        case LIGHT_NODE_ERRORED: {
-            node->client = client;
-            node->state = LIGHT_NODE_CONNECTED;
-            return ETHEREUM_BOOLEAN_TRUE;
-        }
-    }
+    node->client = client;
+    bcsStart(node->bcs);
+    eventHandlerStart(node->handlerForListener);
+    eventHandlerStart(node->handlerForMain);
+    node->state = LIGHT_NODE_CONNECTED;
+    return ETHEREUM_BOOLEAN_TRUE;
 }
 
 extern BREthereumBoolean
 lightNodeDisconnect (BREthereumLightNode node) {
-    node->state = LIGHT_NODE_DISCONNECTED;
+    if (ETHEREUM_BOOLEAN_IS_TRUE(bcsIsStarted(node->bcs))) {
+        bcsStop(node->bcs);
+        eventHandlerStop(node->handlerForMain);
+        eventHandlerStop(node->handlerForListener);
+        node->state = LIGHT_NODE_DISCONNECTED;
+    }
     return ETHEREUM_BOOLEAN_TRUE;
 }
 
