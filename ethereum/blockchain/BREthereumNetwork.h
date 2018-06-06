@@ -27,6 +27,7 @@
 #define BR_Ethereum_Network_h
 
 #include "BRInt.h"
+#include "../base/BREthereumHash.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,6 +38,12 @@ typedef int BREthereumChainId;  // 'Officially' UInt256
 
 extern BREthereumChainId
 networkGetChainId (BREthereumNetwork network);
+
+extern BREthereumHash
+networkGetGenesisBlockHeaderHash (BREthereumNetwork network);
+
+extern BREthereumHash
+networkGetTrustedCheckpointBlockHeaderHash (BREthereumNetwork network);
 
 extern const BREthereumNetwork ethereumMainnet;
 extern const BREthereumNetwork ethereumTestnet;

@@ -40,7 +40,8 @@ struct BREthereumBCSStruct {
     BREthereumNetwork network;
     BREthereumAccount account;
     BREthereumAddress address;
-    BREthereumBloomFilter filter;
+    BREthereumBloomFilter filterForAddressOnTransactions;
+    BREthereumBloomFilter filterForAddressOnLogs;
 
     BREthereumBCSListener listener;
     

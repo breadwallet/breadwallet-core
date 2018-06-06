@@ -25,6 +25,7 @@
 
 #include <string.h>
 #include "BRArray.h"
+#include "BRSet.h"
 #include "BREthereumToken.h"
 
 // For tokenBRD define defaults for Gas Limit and Price.  These are arguably never up to date
@@ -36,6 +37,11 @@
 // Token
 //
 struct BREthereumTokenRecord {
+    /**
+     * An Ethereum raw address - for BRSet *must* be first.
+     */
+    BREthereumAddress raw;
+
     /**
      * An Ethereum '0x' address for the token's contract.
      */
@@ -134,6 +140,17 @@ tokenGetContract(BREthereumToken token) {
     return contractERC20;
 }
 
+static inline size_t
+tokenHashValue (const void *t)
+{
+    return addressRawHashValue(((BREthereumToken) t)->raw);
+}
+
+static inline int
+tokenHashEqual (const void *t1, const void *t2) {
+    return addressRawHashEqual(((BREthereumToken) t1)->raw, ((BREthereumToken) t2)->raw);
+}
+
 //
 // Token Quantity
 //
@@ -229,6 +246,7 @@ console.log (result)
 //
 static struct BREthereumTokenRecord tokens[] = {
     {
+        EMPTY_ADDRESS_INIT,
         // BRD first... so we can find it.
         "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6",
         "BRD",
@@ -243,6 +261,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
 #if defined (BITCOIN_DEBUG)
     {
+        EMPTY_ADDRESS_INIT,
         // (Optional) TST next... so we can find it too.
 #if defined (BITCOIN_TESTNET) && 1 == BITCOIN_TESTNET
         "0x722dd3f80bac40c951b51bdd28dd19d435762180", // testnet,
@@ -261,6 +280,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
 #endif // defined (BITCOIN_DEBUG)
     {
+        EMPTY_ADDRESS_INIT,
         "0xAf30D2a7E90d7DC361c8C4585e9BB7D2F6f15bc7",
         "1ST",
         "FirstBlood",
@@ -274,6 +294,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xb98d4c97425d9908e66e53a6fdf673acca0be986",
         "ABT",
         "ArcBlock",
@@ -287,6 +308,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xD0D6D6C5Fe4a677D343cC433536BB717bAe167dD",
         "ADT",
         "adToken",
@@ -300,6 +322,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x4470BB87d77b963A013DB939BE332f927f2b992e",
         "ADX",
         "AdEx",
@@ -313,6 +336,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x5ca9a71b1d01849c0a95490cc00559717fcf0d1d",
         "AE",
         "Aeternity",
@@ -326,6 +350,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x4CEdA7906a5Ed2179785Cd3A40A69ee8bc99C466",
         "AION",
         "Aion",
@@ -339,6 +364,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x960b236A07cf122663c4303350609A66A7B288C0",
         "ANT",
         "Aragon",
@@ -352,6 +378,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x622dFfCc4e83C64ba959530A5a5580687a57581b",
         "AUTO",
         "CUBE",
@@ -365,6 +392,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x0D8775F648430679A709E98d2b0Cb6250d2887EF",
         "BAT",
         "Basic Attention",
@@ -378,6 +406,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xb3104b4b9da82025e8b9f8fb28b3553ce2f67069",
         "BIX",
         "BIX Token",
@@ -391,6 +420,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x5732046a883704404f284ce41ffadd5b007fd668",
         "BLZ",
         "Bluzelle",
@@ -404,6 +434,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xb8c77482e45f1f44de1745f52c74426c631bdd52",
         "BNB",
         "Binance Coin",
@@ -417,6 +448,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C",
         "BNT",
         "Bancor",
@@ -430,6 +462,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xcb97e65f07da24d46bcdd078ebebd7c6e6e3d750",
         "BTM",
         "Bytom",
@@ -443,6 +476,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x12FEF5e57bF45873Cd9B62E9DBd7BFb99e32D73e",
         "CFI",
         "Cofound.it",
@@ -456,6 +490,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xf85fEea2FdD81d51177F6b8F35F0e6734Ce45F5F",
         "CMT",
         "CyberMiles",
@@ -469,6 +504,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xd4c435f5b09f855c3317c8524cb1f586e42795fa",
         "CND",
         "Cindicator",
@@ -482,6 +518,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x46b9ad944d1059450da1163511069c718f699d31",
         "CS",
         "Credits",
@@ -495,6 +532,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x41e5560054824ea6b0732e656e3ad64e20e94e45",
         "CVC",
         "Civic",
@@ -508,6 +546,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x3597bfd533a99c9aa083587b074434e61eb0a258",
         "DENT",
         "DENT",
@@ -521,6 +560,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xE0B7927c4aF23765Cb51314A0E0521A9645F0E2A",
         "DGD",
         "DigixDaAO",
@@ -534,6 +574,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x0abdace70d3790235af448c88547603b945604ea",
         "DNT",
         "district0x",
@@ -547,6 +588,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x419c4db4b9e25d6db2ad9691ccb832c8d9fda05e",
         "DRGN",
         "Dragon",
@@ -560,6 +602,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x08711D3B02C8758F2FB3ab4e80228418a7F8e39c",
         "EDG",
         "Edgeless",
@@ -573,6 +616,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xced4e93198734ddaff8492d525bd258d49eb388e",
         "EDO",
         "Eidoo",
@@ -586,6 +630,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xbf2179859fc6d5bee9bf9158632dc51678a4100e",
         "ELF",
         "Aelf",
@@ -599,6 +644,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xf0ee6b27b759c9893ce4f094b49ad28fd15a23e4",
         "ENG",
         "Enigma",
@@ -612,6 +658,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xF629cBd94d3791C9250152BD8dfBDF380E2a3B9c",
         "ENJ",
         "EnjinCoin",
@@ -625,6 +672,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0",
         "EOS",
         "EOS",
@@ -638,6 +686,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x5af2be193a6abca9c8817001f45744777db30756",
         "ETHOS",
         "Ethos",
@@ -651,6 +700,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xd0352a019e9ab9d757776f532377aaebd36fd541",
         "FSN",
         "Fusion",
@@ -664,6 +714,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x419D0d8BdD9aF5e606Ae2232ed285Aff190E711b",
         "FUN",
         "FunFair",
@@ -677,6 +728,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x6810e776880C02933D47DB1b9fc05908e5386b96",
         "GNO",
         "Gnosis",
@@ -690,6 +742,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xa74476443119A942dE498590Fe1f2454d7D4aC0d",
         "GNT",
         "Golem",
@@ -703,6 +756,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x6ec8a24cabdc339a06a172f8223ea557055adaa5",
         "GNX",
         "Genaro Network",
@@ -716,6 +770,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xc5bbae50781be1669306b9e001eff57a2957b09d",
         "GTO",
         "Gifto",
@@ -729,6 +784,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xf7B098298f7C69Fc14610bf71d5e02c60792894C",
         "GUP",
         "Matchpool",
@@ -742,6 +798,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x103c3A209da59d3E7C4A89307e66521e081CFDF0",
         "GVT",
         "Genesis Vision",
@@ -755,6 +812,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x888666CA69E0f178DED6D75b5726Cee99A87D698",
         "ICN",
         "ICONOMI",
@@ -768,6 +826,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xb5a5f22694352c15b00323844ad545abb2b11028",
         "ICX",
         "ICON",
@@ -781,6 +840,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xfa1a856cfa3409cfa145fa4e20eb270df3eb21ab",
         "IOST",
         "IOStoken",
@@ -794,6 +854,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x5e6b6d9abad9093fdc861ea1600eba1b355cd940",
         "ITC",
         "IOT Chain",
@@ -807,6 +868,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xdd974D5C2e2928deA5F71b9825b8b646686BD200",
         "KNC",
         "Kyber Network",
@@ -820,6 +882,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x80fB784B7eD66730e8b1DBd9820aFD29931aab03",
         "LEND",
         "EthLend",
@@ -833,6 +896,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x514910771af9ca656af840dff83e8264ecf986ca",
         "LINK",
         "ChainLink",
@@ -846,6 +910,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xa4e8c3ec456107ea67d3075bf9e3df3a75823db0",
         "LOOM",
         "Loom",
@@ -859,6 +924,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xEF68e7C694F40c8202821eDF525dE3782458639f",
         "LRC",
         "Loopring",
@@ -872,6 +938,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xfa05A73FfE78ef8f1a739473e462c54bae6567D9",
         "LUN",
         "Lunyr",
@@ -885,6 +952,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x0F5D2fB29fb7d3CFeE444a200298f468908cC942",
         "MANA",
         "Decentraland",
@@ -898,6 +966,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xB63B606Ac810a52cCa15e44bB630fd42D8d1d83d",
         "MCO",
         "Monaco",
@@ -911,6 +980,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xF433089366899D83a9f26A773D59ec7eCF30355e",
         "MTL",
         "Metal",
@@ -924,6 +994,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x5d65D971895Edc438f465c17DB6992698a52318D",
         "NAS",
         "Nebulas",
@@ -937,6 +1008,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x809826cceab68c387726af962713b64cb5cb3cca",
         "nCash",
         "Nucleus Vision",
@@ -950,6 +1022,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x1776e1F26f98b1A5dF9cD347953a26dd3Cb46671",
         "NMR",
         "Numeraire",
@@ -963,6 +1036,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xb91318f35bdb262e9423bc7c7c2a3a93dd93c92c",
         "NULS",
         "Nuls",
@@ -976,6 +1050,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xd26114cd6EE289AccF82350c8d8487fedB8A0C07",
         "OMG",
         "OmiseGO",
@@ -989,6 +1064,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x2C4e8f2D746113d0696cE89B35F0d8bF88E0AEcA",
         "OST",
         "OST",
@@ -1002,6 +1078,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xB97048628DB6B661D4C2aA833e95Dbe1A905B280",
         "PAY",
         "TenX",
@@ -1015,6 +1092,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x0e0989b1f9b8a38983c2ba8053269ca62ec9b195",
         "POE",
         "Po.et",
@@ -1028,6 +1106,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x9992eC3cF6A55b00978cdDF2b27BC6882d88D1eC",
         "POLY",
         "Polymath",
@@ -1041,6 +1120,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x595832f8fc6bf59c85c527fec3740a1b7a361269",
         "POWR",
         "Power Ledger",
@@ -1054,6 +1134,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xd4fa1460F537bb9085d22C7bcCB5DD450Ef28e3a",
         "PPT",
         "Populous",
@@ -1067,6 +1148,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x1844b21593262668b7248d0f57a220caaba46ab9",
         "PRL",
         "Oyster Pearl",
@@ -1080,6 +1162,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x8Ae4BF2C33a8e667de34B54938B0ccD03Eb8CC06",
         "PTOY",
         "Patientory",
@@ -1093,6 +1176,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x618e75ac90b12c6049ba3b27f5d5f8651b0037f6",
         "QASH",
         "QASH",
@@ -1106,6 +1190,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x697beac28B09E122C4332D163985e8a73121b97F",
         "QRL",
         "QRL",
@@ -1119,6 +1204,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x99ea4dB9EE77ACD40B119BD1dC4E33e1C070b80d",
         "QSP",
         "Quantstamp",
@@ -1132,6 +1218,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x48f775efbe4f5ece6e0df2f7b5932df56823b990",
         "R",
         "Revain",
@@ -1145,6 +1232,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xf970b8e36e23f7fc3fd752eea86f8be8d83375a6",
         "RCN",
         "Ripio Credit",
@@ -1158,6 +1246,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x255aa6df07540cb5d3d297f0d0d4d84cb52bc8e6",
         "RDN",
         "Raiden Network",
@@ -1171,6 +1260,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xE94327D07Fc17907b4DB788E5aDf2ed424adDff6",
         "REP",
         "Augur",
@@ -1184,6 +1274,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x8f8221aFbB33998d8584A2B05749bA73c37a938a",
         "REQ",
         "Request",
@@ -1197,6 +1288,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x607F4C5BB672230e8672085532f7e901544a7375",
         "RLC",
         "iExec RLC",
@@ -1210,6 +1302,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xf278c1ca969095ffddded020290cf8b5c424ace2",
         "RUFF",
         "RUFF",
@@ -1223,6 +1316,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x4156D3342D5c385a87D264F90653733592000581",
         "SALT",
         "SALT",
@@ -1236,6 +1330,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x7C5A0CE9267ED19B22F8cae653F198e3E8daf098",
         "SAN",
         "SAN",
@@ -1249,6 +1344,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xF4134146AF2d511Dd5EA8cDB1C4AC88C57D60404",
         "SNC",
         "SunContract",
@@ -1262,6 +1358,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xaeC2E87E0A235266D9C5ADc9DEb4b2E29b54D009",
         "SNGLS",
         "Singular DTV",
@@ -1275,6 +1372,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x983F6d60db79ea8cA4eB9968C6aFf8cfA04B3c63",
         "SNM",
         "SONM",
@@ -1288,6 +1386,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x744d70FDBE2Ba4CF95131626614a1763DF805B9E",
         "SNT",
         "Status",
@@ -1301,6 +1400,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x68d57c9a1C35f63E2c83eE8e49A64e9d70528D25",
         "SRN",
         "SIRIN",
@@ -1314,6 +1414,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xB64ef51C888972c908CFacf59B47C1AfBC0Ab8aC",
         "STORJ",
         "Storj",
@@ -1327,6 +1428,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xD0a4b8946Cb52f0661273bfbC6fD0E0C75Fc6433",
         "STORM",
         "Storm",
@@ -1340,6 +1442,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x006BeA43Baa3f7A6f765F14f10A1a1b08334EF45",
         "STX",
         "Stox",
@@ -1353,6 +1456,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x12480E24eb5bec1a9D4369CaB6a80caD3c0A377A",
         "SUB",
         "Substratum",
@@ -1366,6 +1470,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x3883f5e181fccaf8410fa61e12b59bad963fb645",
         "THETA",
         "Theta Token",
@@ -1379,6 +1484,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x6531f133e6DeeBe7F2dcE5A0441aA7ef330B4e53",
         "TIME",
         "Chronobank",
@@ -1392,6 +1498,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xf230b790e05390fc8295f4d3f60332c93bed42e2",
         "TRX",
         "TRON",
@@ -1405,6 +1512,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x340d2bde5eb28c1eed91b2f790723e3b160613b7",
         "VEE",
         "BLOCKv",
@@ -1418,6 +1526,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xD850942eF8811f2A866692A623011bDE52a462C1",
         "VEN",
         "VeChain",
@@ -1431,6 +1540,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x2C974B2d0BA1716E644c1FC59982a89DDD2fF724",
         "VIB",
         "Viberate",
@@ -1444,6 +1554,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x39Bb259F66E1C59d5ABEF88375979b4D20D98022",
         "WAX",
         "WAX",
@@ -1457,6 +1568,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x667088b212ce3d06a1b553a7221E1fD19000d9aF",
         "WINGS",
         "Wings",
@@ -1470,6 +1582,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xb7cb1c96db6b22b0d3d9536e0108d062bd488f74",
         "WTC",
         "Waltonchain",
@@ -1483,6 +1596,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x39689fE671C01fcE173395f6BC45D4C332026666",
         "XJP",
         "Digital JPY",
@@ -1496,6 +1610,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0x05f4a42e251f2d52b8ed15E9FEdAacFcEF1FAD27",
         "ZIL",
         "Zilliqa",
@@ -1509,6 +1624,7 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+        EMPTY_ADDRESS_INIT,
         "0xE41d2489571d322189246DaFA5ebDe1F4699F498",
         "ZRX",
         "0x",
@@ -1528,15 +1644,34 @@ const BREthereumToken tokenBRD = &tokens[0];
 const BREthereumToken tokenTST = &tokens[1];
 #endif
 
+static BRSet *tokenSet = NULL;
+
+static void
+tokenInitializeIfAppropriate (void) {
+    if (NULL == tokenSet) {
+        int count = tokenCount();
+        tokenSet = BRSetNew(tokenHashValue, tokenHashEqual, count);
+
+        for (int i = 0; i < count; i++) {
+            // TODO: Lowercase tokens[i].address ??
+            tokens[i].raw = addressRawCreate(tokens[i].address);
+            BRSetAdd(tokenSet, &tokens[i]);
+        }
+    }
+}
+
+extern BREthereumToken
+tokenLookupByAddress (BREthereumAddress address) {
+    return (BREthereumToken) BRSetGet(tokenSet, &address);
+}
+
 extern BREthereumToken
 tokenLookup(const char *address) {
-    if (NULL != address && '\0' != address[0]) {
-        int count = tokenCount();
-        for (int i = 0; i < count; i++)
-            if (0 == strcasecmp(address, tokens[i].address))
-                return &tokens[i];
-    }
-    return NULL;
+    tokenInitializeIfAppropriate();
+    return ((NULL == address || '\0' == address[0])
+            ? NULL
+            : tokenLookupByAddress(addressRawCreate(address)));    // TODO: Lowercase address ??
+
 }
 
 extern int
@@ -1546,6 +1681,7 @@ tokenCount() {
 
 extern BREthereumToken
 tokenGet(int index) {
+    tokenInitializeIfAppropriate();
     return (0 <= index && index < tokenCount()
             ? &tokens[index]
             : NULL);

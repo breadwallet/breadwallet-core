@@ -78,6 +78,9 @@ extern const BREthereumToken tokenTST;
 #endif
 
 extern BREthereumToken
+tokenLookupByAddress (BREthereumAddress address);
+    
+extern BREthereumToken
 tokenLookup (const char *address);
 
 extern int

@@ -50,6 +50,16 @@ extern BREthereumBoolean
 logTopicMatchesAddress (BREthereumLogTopic topic,
                         BREthereumAddress address);
 
+typedef struct {
+    char chars[67];
+} BREthereumLogTopicString;
+
+extern BREthereumLogTopicString
+logTopicAsString (BREthereumLogTopic topic);
+
+extern BREthereumAddress
+logTopicAsAddress (BREthereumLogTopic topic);
+
 //
 // Log
 //

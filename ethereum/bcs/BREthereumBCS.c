@@ -53,7 +53,8 @@ bcsCreate (BREthereumNetwork network,
     bcs->network = network;
     bcs->account = account;
     bcs->address = addressGetRawAddress(accountGetPrimaryAddress(account));
-    bcs->filter = bloomFilterCreateAddress(bcs->address);
+    bcs->filterForAddressOnTransactions = bloomFilterCreateAddress(bcs->address);
+    bcs->filterForAddressOnLogs = logTopicGetBloomFilterAddress(bcs->address);
 
     bcs->listener = listener;
 
@@ -226,6 +227,18 @@ bcsHandleAnnounce (BREthereumBCS bcs,
                        ETHEREUM_BOOLEAN_FALSE);
 }
 
+static BREthereumBoolean
+bcsBlockHeaderHasMatchingTransactions (BREthereumBCS bcs,
+                                       BREthereumBlockHeader header) {
+    return ETHEREUM_BOOLEAN_TRUE;
+}
+
+static BREthereumBoolean
+bcsBlockHeaderHasMatchingLogs (BREthereumBCS bcs,
+                               BREthereumBlockHeader header) {
+    return blockHeaderMatch(header, bcs->filterForAddressOnLogs);
+}
+
 /*!
  */
 extern void
@@ -270,9 +283,6 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
 
     // Can we assert that `headerParent` is in `chain`
 
-    // TODO: He we actually have a linked-list of blockHeader?  Or just parent hashes?
-    //   Well, yeah - figure that out.
-
     // Every header between `chain` and `headerParent` is now an orphan
     while (NULL != bcs->chain && headerParent != bcs->chain) {
         BREthereumHash chainParentHash = blockHeaderGetParentHash(bcs->chain);
@@ -310,45 +320,49 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
         }
     }
 
-    // We need block info for every header between bcs->chain and headerParent - because we
-    // added orphans - or might have
-    BREthereumHash *headerHashes;
-    array_new (headerHashes, 5);
+    // Examine transactions/logs to see if any are not chained or orphaned.
+    //   Change their 'confirmation status' accordingly.
+
+    // We need block bodies and transactions for every matcjhing header between bcs->chain
+    // and headerParent - because we added orphans - or might have.
+    BREthereumHash *headerHashesTransactions, *headerHashesLogs;
+    array_new (headerHashesTransactions, 5);
+    array_new (headerHashesLogs, 5);
     header = bcs->chain;
     while (NULL != header && header != headerParent) {
-        // check the bloomFilter for a match - note this *must* match any of a) transaction
-        // source/target addresses and b) log source/target addresses.  If the header's bloom filter
-        // does not match both transactions and logs then we *must* get the block bodies and the
-        // transactions receipts to check for matches one-by-one.
-        //
-        // If the header's bloom filter only matches addresses in transactions then alternatively
-        // we can look for a match with any contract address that we are interested in.  If a
-        // contract matches, then we must get the transaction receipts to check for any log with
-        // an address match.
-        if (ETHEREUM_BOOLEAN_IS_TRUE(blockHeaderMatch(header, bcs->filter))) {
-            array_insert (headerHashes, 0, blockHeaderGetHash(header));
-        }
-        // Did the bloom filter match from/to and contract from/to?
-        else if (ETHEREUM_BOOLEAN_IS_TRUE(ETHEREUM_BOOLEAN_FALSE)) {
-
+        // If `header` has matching transactions, then we'll get the block body.
+        if (ETHEREUM_BOOLEAN_IS_TRUE(bcsBlockHeaderHasMatchingTransactions(bcs, header))) {
+            array_insert (headerHashesTransactions, 0, blockHeaderGetHash(header));
         }
 
+        if (ETHEREUM_BOOLEAN_IS_TRUE(bcsBlockHeaderHasMatchingLogs(bcs, header))) {
+            array_insert (headerHashesLogs, 0, blockHeaderGetHash(header));
+        }
         // Next header...
         headerParentHash = blockHeaderGetParentHash(header);
         header = BRSetGet(bcs->headers, &headerParentHash);
     }
 
     // If he have matching headers, then we'll request blockBodies.
-    if (array_count(headerHashes) > 0) {
+    if (array_count(headerHashesTransactions) > 0) {
         // Get the blockbody
         lesGetBlockBodies(bcs->les,
                           (BREthereumLESBlockBodiesContext) bcs,
                           (BREthereumLESBlockBodiesCallback) bcsSignalBlockBodies,
-                          headerHashes);
+                          headerHashesTransactions);
     }
-    else array_free(headerHashes);
+    else array_free(headerHashesTransactions);
 
-    // Save blocks ??
+    if (array_count(headerHashesLogs) > 0) {
+        // Get the transaction receipts.
+        lesGetReceipts(bcs->les,
+                       (BREthereumLESReceiptsContext) bcs,
+                       (BREthereumLESReceiptsCallback) bcsSignalTransactionReceipts,
+                       headerHashesLogs);
+    }
+    else array_free(headerHashesLogs);
+
+    // Save blocks - on a difficulty boundry?
 }
 
 /*!
@@ -359,32 +373,46 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
                       BREthereumTransaction transactions[],
                       BREthereumHash ommers[]) {
 
-    // Only request receipts if any one transaction is of interest.
-    int needReceipts = 0;
+    BREthereumBlockHeader header = BRSetGet(bcs->headers, &blockHash);
+    if (NULL == header) return;
+
+    BREthereumBlock block = createBlock(header,
+                                        ommers, array_count(ommers),
+                                        transactions, array_count(transactions));
+
+    if (ETHEREUM_BOOLEAN_IS_FALSE(blockIsValid(block, ETHEREUM_BOOLEAN_TRUE))) {
+        blockRelease(block);
+        return;
+    }
+
+    // When there is a transaction of interest, we'll want to get account balance and nonce info.
+    int hasTransactionOfInterest = 0;
 
     // Check the transactions one-by-one.
     for (BREthereumTransaction *txs = transactions; NULL != *txs; txs++) {
         // If it is our transaction (as source or target), handle it.
         if (ETHEREUM_BOOLEAN_IS_TRUE(transactionHasAddress(*txs, bcs->address))) {
-            needReceipts = 1;
+            hasTransactionOfInterest = 1;
 
-            // Save the transaction -
-            //   a) in a BRSet and/or
-            //   b) In a Block
+            // Save the transaction
+            BRSetAdd(bcs->transactions, *txs);
 
-            // bcsHandleTransaction (bcs, blockHash, *txs);
-
-            // get the account state
-            // announce: nonce, balance
+            // Get the status explicitly; apparently this is the *only* way to get the gasUsed.
+            lesGetTransactionStatusOne(bcs->les,
+                                       (BREthereumLESTransactionStatusContext) bcs,
+                                       (BREthereumLESTransactionStatusCallback) bcsSignalTransactionStatus,
+                                       transactionGetHash(*txs));
         }
+        else /* release transaction */ ;
+
         // TODO: Handle if has a 'contract' address of interest?
     }
 
-    if (needReceipts)
-        lesGetReceiptsOne(bcs->les,
-                          (BREthereumLESReceiptsContext) bcs,
-                          (BREthereumLESReceiptsCallback) bcsSignalTransactionReceipts,
-                          blockHash);
+    if (hasTransactionOfInterest) {
+        // TODO: Something interesting for AccountState {balance, nonce}
+    }
+
+    blockRelease(block);
 }
 
 // TODO: Add transactionIndex
@@ -432,7 +460,7 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
 
         case TRANSACTION_STATUS_INCLUDED:
             transactionAnnounceBlocked(transaction,
-                                       gasCreate(0),
+                                       status.u.included.gasUsed,
                                        status.u.included.blockHash,
                                        status.u.included.blockNumber,
                                        status.u.included.transactionIndex);
@@ -452,33 +480,100 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
     bcs->listener.transactionCallback (bcs->listener.context, transaction);
 }
 
+//
+// MARK: - Transaction Receipts
+//
+
+static BREthereumTransaction
+bcsHandleLogCreateTransaction (BREthereumBCS bcs,
+                               BREthereumLog log,
+                               BREthereumToken token) {
+
+    BREthereumEncodedAddress sourceAddr = createAddressRaw(logTopicAsAddress(logGetTopic(log, 1)));
+    BREthereumEncodedAddress targetAddr = createAddressRaw(logTopicAsAddress(logGetTopic(log, 2)));
+
+    // TODO: No Way
+    BRRlpData valueData = logGetData(log);
+    UInt256 *value = (UInt256 *) &valueData.bytes[valueData.bytesCount - sizeof(UInt256)];
+    
+    BREthereumAmount amount = amountCreateToken(createTokenQuantity(token, *value));
+
+    // TODO: No Bueno
+    BREthereumGasPrice gasPrice = tokenGetGasPrice(token);
+    BREthereumGas gasLimit = tokenGetGasLimit(token);
+
+    return transactionCreate(sourceAddr,
+                      targetAddr,
+                      amount,
+                      gasPrice,
+                      gasLimit,
+                      0);
+
+}
+
+static BREthereumBoolean
+bcsHandleLogExtractInterest (BREthereumBCS bcs,
+                             BREthereumLog log,
+                             BREthereumToken *token,
+                             BREthereumContractEvent *tokenEvent) {
+    assert (NULL != token && NULL != tokenEvent);
+
+    *token = NULL;
+    *tokenEvent = NULL;
+
+    if (ETHEREUM_BOOLEAN_IS_FALSE (logMatchesAddress(log, bcs->address, ETHEREUM_BOOLEAN_TRUE)))
+        return ETHEREUM_BOOLEAN_FALSE;
+
+    *token = tokenLookupByAddress(logGetAddress(log));
+    if (NULL == *token) return ETHEREUM_BOOLEAN_FALSE;
+
+    BREthereumLogTopicString topicString = logTopicAsString(logGetTopic(log, 0));
+    *tokenEvent = contractLookupEventForTopic(contractERC20,  topicString.chars);
+    if (NULL == *tokenEvent) return ETHEREUM_BOOLEAN_FALSE;
+
+    return ETHEREUM_BOOLEAN_TRUE;
+}
+
 /*!
  */
 extern void
 bcsHandleTransactionReceipts (BREthereumBCS bcs,
-                             BREthereumHash blockHash,
+                              BREthereumHash blockHash,
                               BREthereumTransactionReceipt *receipts) {
+    BREthereumBlockHeader header = BRSetGet(bcs->headers, &blockHash);
+    BREthereumBlock block = NULL; //blockHash
+
     size_t receiptsCount = array_count(receipts);
     for (int i = 0; i < receiptsCount; i++) {
         BREthereumTransactionReceipt receipt = receipts[i];
-        if (transactionReceiptMatch(receipt, bcs->filter)) {
-            BREthereumBlock block = NULL; //blockHash
+        if (transactionReceiptMatch(receipt, bcs->filterForAddressOnLogs)) {
             BREthereumTransaction transaction = blockGetTransaction(block, i);
 
             size_t logsCount = transactionReceiptGetLogsCount(receipt);
             for (size_t index = 0; index < logsCount; index++) {
                 BREthereumLog log = transactionReceiptGetLog(receipt, index);
+                logSetHash(log, transactionGetHash(transaction));
 
-                // If `log` is of interest
-                if (ETHEREUM_BOOLEAN_IS_TRUE (logMatchesAddress(log, bcs->address, ETHEREUM_BOOLEAN_TRUE))) {
-                    // create a 'private' transaction
+                BREthereumToken token;
+                BREthereumContractEvent tokenEvent;
 
-                    // Lookup token...
-                    //   Confirm 'transfer topic'
+                // If `log` is of interest...
+                if (ETHEREUM_BOOLEAN_IS_TRUE
+                    (bcsHandleLogExtractInterest(bcs, log, &token,&tokenEvent))) {
 
-                    // something related to transaction+log maybe TRANSACTION_EVENT_BLOCKED and then
-                    // gasCreate (transactionReceiptGetGasUsed(event->receipt))
-                    // bcs->listener.transactionCallback (bcs->listener.context, bcs, transaction);
+                    BRSetAdd(bcs->logs, log);
+
+                    // Create a private transaction
+                    BREthereumTransaction logTransfer = bcsHandleLogCreateTransaction(bcs, log, token);
+
+                    // Announce the transaction
+                    transactionAnnounceBlocked(logTransfer,
+                                               gasCreate(0),
+                                               blockHeaderGetHash(header),
+                                               blockHeaderGetNumber(header),
+                                               i);
+
+                    bcs->listener.transactionCallback (bcs->listener.context, logTransfer);
                 }
             }
         }

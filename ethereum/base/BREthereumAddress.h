@@ -70,6 +70,16 @@ extern BREthereumBoolean
 addressRawEqual (BREthereumAddress address1,
                  BREthereumAddress address2);
 
+static inline int
+addressRawHashValue (BREthereumAddress address) {
+    return ((UInt160 *) &address)->u32[0];
+}
+
+static inline int
+addressRawHashEqual (BREthereumAddress address1,
+                     BREthereumAddress address2) {
+    return 0 == memcmp (address1.bytes, address2.bytes, 20);
+}
 //
 // Address
 //
@@ -92,6 +102,9 @@ createAddress (const char *string);
 
 extern BREthereumEncodedAddress
 createAddressDerived (const BRKey *key, uint32_t index);
+
+extern BREthereumEncodedAddress
+createAddressRaw (BREthereumAddress raw);
 
 /**
  * Validate `string` as an Ethereum address.  The validation is minimal - based solely on the
