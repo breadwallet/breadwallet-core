@@ -276,29 +276,21 @@ static void _disconnect(BREthereumNode node) {
         close(socket);
     }
 }
-static BREthereumBoolean _isP2PMessage(BREthereumNode node){
-
-    BRRlpCoder rlpCoder = rlpCoderCreate();
-    BRRlpData framePacketTypeData = {1, node->body};
-    BRRlpItem item = rlpGetItem (rlpCoder, framePacketTypeData);
-    
-    uint64_t packetTypeMsg = rlpDecodeItemUInt64(rlpCoder, item, 1);
+static BREthereumBoolean _isP2PMessage(BREthereumNode node, BRRlpCoder rlpCoder, uint64_t packetType, BRRlpData messageBody){
 
     BREthereumBoolean retStatus = ETHEREUM_BOOLEAN_FALSE;
-    BRRlpData mesageBody = {node->bodySize - 1, &node->body[1]};
     
-    switch (packetTypeMsg) {
+    switch (packetType) {
         case BRE_P2P_HELLO:
         {
-            BRRlpData mesageBody = {node->bodySize - 1, &node->body[1]};
-            BREthereumP2PHello remoteHello = ethereumP2PHelloDecode(rlpCoder, mesageBody);
+            BREthereumP2PHello remoteHello = ethereumP2PHelloDecode(rlpCoder, messageBody);
             //TODO: Check over capabalities of the message
             retStatus = ETHEREUM_BOOLEAN_TRUE;
         }
         break;
         case  BRE_P2P_DISCONNECT:
         {
-            BREthereumDisconnect reason = ethereumP2PDisconnectDecode(rlpCoder, mesageBody);
+            BREthereumDisconnect reason = ethereumP2PDisconnectDecode(rlpCoder, messageBody);
             eth_log(ETH_LOG_TOPIC, "Remote Peer requested to disconnect:%s", ethereumP2PDisconnectToString(reason));
             node->disconnectReason = reason;
             node->shouldDisconnect = ETHEREUM_BOOLEAN_TRUE;
@@ -319,7 +311,6 @@ static BREthereumBoolean _isP2PMessage(BREthereumNode node){
         default:
         break;
     }
-    rlpCoderRelease(rlpCoder);
     return retStatus;
 }
 static int _readMessage(BREthereumNode node) {
@@ -370,7 +361,7 @@ static int _readMessage(BREthereumNode node) {
         return 1;
     }
     
-    node->bodySize = fullFrameSize;
+    node->bodySize = frameSize;
     
     return 0;
 }
@@ -418,7 +409,7 @@ static void *_nodeThreadRunFunc(void *arg) {
                             uint8_t* statusPayload;
                             size_t statusPayloadSize;
                             ethereumFrameCoderEncrypt(node->ioCoder, status, statusSize, &statusPayload, &statusPayloadSize);
-                            ethereumNodeWriteToPeer(node, statusPayload, statusPayloadSize, "sending status message to remote peer");
+                            ethereumNodeWriteToPeer(node, statusPayload, statusPayloadSize, "status message of BRD node");
                             free(statusPayload);
                             free(status);
                         }
@@ -435,11 +426,20 @@ static void *_nodeThreadRunFunc(void *arg) {
                     //Read message from peer
                     if(!_readMessage(node))
                     {
-                        //Check if the message is a P2P message before broadcasting the message
-                        if(ETHEREUM_BOOLEAN_IS_FALSE(_isP2PMessage(node)))
+                        //Decode the Packet Type
+                        BRRlpCoder rlpCoder = rlpCoderCreate();
+                        BRRlpData framePacketTypeData = {1, node->body};
+                        BRRlpItem item = rlpGetItem (rlpCoder, framePacketTypeData);
+    
+                        uint64_t packetType = rlpDecodeItemUInt64(rlpCoder, item, 1);
+                        BRRlpData mesageBody = {node->bodySize - 1, &node->body[1]};
+                        
+                        //Check if the message is a P2P message before broadcasting the message to the manager
+                        if(ETHEREUM_BOOLEAN_IS_FALSE(_isP2PMessage(node,rlpCoder,packetType, mesageBody)))
                         {
-                            node->callbacks.receivedMsgFunc(node->callbacks.info, node, node->body, node->bodySize);
+                            node->callbacks.receivedMsgFunc(node->callbacks.info, node, packetType, mesageBody);
                         }
+                        rlpCoderRelease(rlpCoder);
                     }
                 }
                 break;

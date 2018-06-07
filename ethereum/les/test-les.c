@@ -283,7 +283,7 @@ void runEthereumNodeTests() {
 void _disconnect(BREthereumManagerCallbackContext info, BREthereumNode node, BREthereumDisconnect reason) {
 
 }
-void _receievedMessage(BREthereumManagerCallbackContext info, BREthereumNode node, uint8_t* message, size_t messageSize){
+void _receievedMessage(BREthereumManagerCallbackContext info, BREthereumNode node, uint64_t packetType, BRRlpData message){
 
 }
 void _connect(BREthereumManagerCallbackContext info, BREthereumNode node, uint8_t** status, size_t* statusSize){
@@ -428,15 +428,9 @@ void runLESTest() {
     BREthereumLES les = lesCreate(ethereumMainnet, NULL, _announceCallback, headHash, headNumber, headTD, genesisHash);
   
     //Sleep for a bit to allow the les context to connect to the network
-    //sleep(480);
+    sleep(3);
     
-    volatile int i = 0;
-    while(1){
-        i++;
-        if(i == 300){
-            i = 0; 
-        }
-    }
+    eth_log("LES-TESTS", "%s", "Sending Transaction Status Message");
   
     // Prepare values to be given to a send tranactions status message
     char transactionHashStr[] = "c070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c";
@@ -446,10 +440,12 @@ void runLESTest() {
     
     assert(lesGetTransactionStatusOne(les, NULL, transactionStatusCallback, transactionHash) == LES_SUCCESS);
     
+    //Sleep for a bit to allow the les context to connect to the network
+    //sleep(600);
 }
 void runLEStests(void) {
     
-  //  runLESTest();
+   //  runLESTest();
   // runEthereumNodeTests();
   // runEthereumNodeEventHandlerTests();
   // runEthereumNodeDiscoveryTests();
