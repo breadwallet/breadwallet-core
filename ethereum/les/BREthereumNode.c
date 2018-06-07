@@ -475,7 +475,7 @@ BREthereumNode ethereumNodeCreate(BREthereumPeerConfig config,
     node->peer.remoteKey =  *(config.remoteKey);
     //Initialize p2p data
     node->helloData.version = 0x03;
-    char clientId[] = "Ethereum(++)/1.0.0";
+    char clientId[] = "BRD Light Client";
     node->helloData.clientId = malloc(strlen(clientId) + 1);
     strcpy(node->helloData.clientId, clientId);
     node->helloData.listenPort = 0;

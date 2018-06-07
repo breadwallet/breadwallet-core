@@ -479,24 +479,6 @@ BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fCoder, u
 }
 BREthereumBoolean ethereumFrameCoderDecryptFrame(BREthereumFrameCoder fCoder, uint8_t * oBytes, size_t outSize) {
 
-/*
-        read_size = roundup_16(body_size)
-        if len(data) < read_size + MAC_LEN:
-            raise ValueError('Insufficient body length; Got {}, wanted {}'.format(
-                len(data), (read_size + MAC_LEN)))
-
-        frame_ciphertext = data[:read_size]
-        frame_mac = data[read_size:read_size + MAC_LEN]
-
-        self.ingress_mac.update(frame_ciphertext)
-        fmac_seed = self.ingress_mac.digest()[:MAC_LEN]
-        self.ingress_mac.update(sxor(self.mac_enc(fmac_seed), fmac_seed))
-        expected_frame_mac = self.ingress_mac.digest()[:MAC_LEN]
-        if not bytes_eq(expected_frame_mac, frame_mac):
-            raise AuthenticationError('Invalid frame mac')
-        return self.aes_dec.update(frame_ciphertext)[:body_size]
-        
-        */
     uint8_t* frameCipherText = oBytes;
     uint8_t* frameMac = &oBytes[outSize - MAC_LEN];
     array_add_array(fCoder->ingressMac, frameCipherText, outSize - MAC_LEN);
