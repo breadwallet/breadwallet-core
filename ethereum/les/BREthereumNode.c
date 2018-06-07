@@ -282,10 +282,11 @@ static BREthereumBoolean _isP2PMessage(BREthereumNode node){
     BRRlpData framePacketTypeData = {1, node->body};
     BRRlpItem item = rlpGetItem (rlpCoder, framePacketTypeData);
     
-    uint64_t packetTypeMsg = rlpDecodeItemUInt64(rlpCoder, item, 0);
+    uint64_t packetTypeMsg = rlpDecodeItemUInt64(rlpCoder, item, 1);
 
     BREthereumBoolean retStatus = ETHEREUM_BOOLEAN_FALSE;
     BRRlpData mesageBody = {node->bodySize - 1, &node->body[1]};
+    
     switch (packetTypeMsg) {
         case BRE_P2P_HELLO:
         {
@@ -354,6 +355,7 @@ static int _readMessage(BREthereumNode node) {
     }else {
         array_set_capacity(node->body, fullFrameSize);
     }
+    
     ec = ethereumNodeReadFromPeer(node, node->body, fullFrameSize, "");
     
     if(ec) {
@@ -404,7 +406,7 @@ static void *_nodeThreadRunFunc(void *arg) {
                     BREthereumHandshakeStatus handshakeStatus = ethereumHandshakeTransition(node->handshake);
                     
                     if(handshakeStatus == BRE_HANDSHAKE_FINISHED) {
-                        eth_log(ETH_LOG_TOPIC, "%s", "Handshake completed with");
+                        eth_log(ETH_LOG_TOPIC, "%s", "P2P Handshake completed");
                         uint8_t* status;
                         size_t statusSize;
                         //Notify the node manager that node finished its handshake connection and is ready to send
@@ -431,11 +433,13 @@ static void *_nodeThreadRunFunc(void *arg) {
                 case BRE_NODE_CONNECTED:
                 {
                     //Read message from peer
-                    _readMessage(node);
-                    //Check if the message is a P2P message before broadcasting the message
-                    if(ETHEREUM_BOOLEAN_IS_FALSE(_isP2PMessage(node)))
+                    if(!_readMessage(node))
                     {
-                        node->callbacks.receivedMsgFunc(node->callbacks.info, node, node->body, node->bodySize);
+                        //Check if the message is a P2P message before broadcasting the message
+                        if(ETHEREUM_BOOLEAN_IS_FALSE(_isP2PMessage(node)))
+                        {
+                            node->callbacks.receivedMsgFunc(node->callbacks.info, node, node->body, node->bodySize);
+                        }
                     }
                 }
                 break;
@@ -470,17 +474,17 @@ BREthereumNode ethereumNodeCreate(BREthereumPeerConfig config,
     node->peer.timestamp = config.timestamp;
     node->peer.remoteKey =  *(config.remoteKey);
     //Initialize p2p data
-    node->helloData.version = 0x01;
-    char clientId[] = "Ethereum(++)/1.0.0";
+    node->helloData.version = 0x03;
+    char clientId[] = "BRD Light Client";
     node->helloData.clientId = malloc(strlen(clientId) + 1);
     strcpy(node->helloData.clientId, clientId);
     node->helloData.listenPort = 0;
     array_new(node->helloData.caps, 1);
     BREthereumCapabilities cap;
-    char capStr[] = "eth";
+    char capStr[] = "les";
     cap.cap = malloc(strlen(capStr) + 1);
     strcpy(cap.cap, capStr);
-    cap.capVersion = 34;
+    cap.capVersion = 2;
     array_add(node->helloData.caps, cap);
     uint8_t pubRawKey[65];
     size_t pLen = BRKeyPubKey(key, pubRawKey, sizeof(pubRawKey));
@@ -547,9 +551,9 @@ void ethereumNodeDisconnect(BREthereumNode node, BREthereumDisconnect reason) {
 }
 void ethereumNodeRelease(BREthereumNode node){
    ethereumEndpointRelease(node->peer.endpoint);
-    if(node->body != NULL){
+   if(node->body != NULL){
     array_free(node->body);
-    }
+   }
    ethereumFrameCoderRelease(node->ioCoder);
    free(node->key);
    free(node->ephemeral);

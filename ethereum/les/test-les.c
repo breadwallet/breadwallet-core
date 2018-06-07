@@ -420,7 +420,7 @@ void runLESTest() {
 
     uint64_t headNumber = 0;
     uint64_t headTD = 0x400000000;
-
+    
     BREthereumHash genesisHash;
     decodeHex(genesisHash.bytes, 32, headHashStr, strlen(headHashStr));
 
@@ -428,7 +428,15 @@ void runLESTest() {
     BREthereumLES les = lesCreate(ethereumMainnet, NULL, _announceCallback, headHash, headNumber, headTD, genesisHash);
   
     //Sleep for a bit to allow the les context to connect to the network
-    sleep(480);
+    //sleep(480);
+    
+    volatile int i = 0;
+    while(1){
+        i++;
+        if(i == 300){
+            i = 0; 
+        }
+    }
   
     // Prepare values to be given to a send tranactions status message
     char transactionHashStr[] = "c070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c";
@@ -441,11 +449,11 @@ void runLESTest() {
 }
 void runLEStests(void) {
     
-     runLESTest();
+  //  runLESTest();
   // runEthereumNodeTests();
   // runEthereumNodeEventHandlerTests();
   // runEthereumNodeDiscoveryTests();
-  //  runAuthTests();
+     runAuthTests();
   // runEthereumNodeTests();
   //   runLESMessagesTest();
 
