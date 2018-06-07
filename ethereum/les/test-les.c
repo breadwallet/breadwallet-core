@@ -438,18 +438,18 @@ void runLESTest() {
     BREthereumHash transactionHash;
     decodeHex(transactionHash.bytes, 32, headHashStr, strlen(headHashStr));
     
-    assert(lesGetTransactionStatusOne(les, NULL, transactionStatusCallback, transactionHash) == LES_SUCCESS);
+ //   assert(lesGetTransactionStatusOne(les, NULL, transactionStatusCallback, transactionHash) == LES_SUCCESS);
     
     //Sleep for a bit to allow the les context to connect to the network
     //sleep(600);
 }
 void runLEStests(void) {
     
-   //  runLESTest();
+     runLESTest();
   // runEthereumNodeTests();
   // runEthereumNodeEventHandlerTests();
   // runEthereumNodeDiscoveryTests();
-     runAuthTests();
+  //   runAuthTests();
   // runEthereumNodeTests();
   //   runLESMessagesTest();
 
