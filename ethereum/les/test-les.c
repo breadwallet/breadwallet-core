@@ -453,7 +453,7 @@ void runLEStests(void) {
   // runEthereumNodeTests();
   // runEthereumNodeEventHandlerTests();
   // runEthereumNodeDiscoveryTests();
-  //    runAuthTests();
+     runAuthTests();
   // runEthereumNodeTests();
   //   runLESMessagesTest();
 

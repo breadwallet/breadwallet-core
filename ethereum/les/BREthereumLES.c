@@ -66,6 +66,7 @@ struct BREthereumLESContext {
     BREthereumNodeManager nodeManager;
     BRKey* key;
     BREthereumNetwork network;
+    BREthereumLESStatusMessage peerStatus;
     BREthereumLESStatusMessage statusMsg;
     BREthereumBoolean startSendingMessages;
     BREthereumSubProtoCallbacks callbacks;
@@ -91,8 +92,7 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint8_t* me
     {
         case BRE_LES_ID_STATUS:
         {
-            BREthereumLESStatusMessage remotePeer;
-            BREthereumLESDecodeStatus remoteStatus = ethereumLESDecodeStatus(message, messageSize, &remotePeer);
+            BREthereumLESDecodeStatus remoteStatus = ethereumLESDecodeStatus(message, messageSize, &les->peerStatus);
             eth_log(ETH_LOG_TOPIC, "%s", "Received Status message from Remote peer");
             les->startSendingMessages = ETHEREUM_BOOLEAN_TRUE;
         }
@@ -131,6 +131,7 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint8_t* me
     }
     rlpCoderRelease(coder);
 }
+
 static void _connectedToNetworkCallback(BREthereumSubProtoContext info, uint8_t** statusBytes, size_t* statusSize){
     BREthereumLES les = (BREthereumLES)info;
     ethereumLESEncodeStatus(&les->statusMsg, statusBytes, statusSize);
