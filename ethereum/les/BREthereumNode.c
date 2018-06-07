@@ -282,10 +282,11 @@ static BREthereumBoolean _isP2PMessage(BREthereumNode node){
     BRRlpData framePacketTypeData = {1, node->body};
     BRRlpItem item = rlpGetItem (rlpCoder, framePacketTypeData);
     
-    uint64_t packetTypeMsg = rlpDecodeItemUInt64(rlpCoder, item, 0);
+    uint64_t packetTypeMsg = rlpDecodeItemUInt64(rlpCoder, item, 1);
 
     BREthereumBoolean retStatus = ETHEREUM_BOOLEAN_FALSE;
     BRRlpData mesageBody = {node->bodySize - 1, &node->body[1]};
+    
     switch (packetTypeMsg) {
         case BRE_P2P_HELLO:
         {
@@ -354,6 +355,7 @@ static int _readMessage(BREthereumNode node) {
     }else {
         array_set_capacity(node->body, fullFrameSize);
     }
+    
     ec = ethereumNodeReadFromPeer(node, node->body, fullFrameSize, "");
     
     if(ec) {
@@ -404,7 +406,7 @@ static void *_nodeThreadRunFunc(void *arg) {
                     BREthereumHandshakeStatus handshakeStatus = ethereumHandshakeTransition(node->handshake);
                     
                     if(handshakeStatus == BRE_HANDSHAKE_FINISHED) {
-                        eth_log(ETH_LOG_TOPIC, "%s", "Handshake completed with");
+                        eth_log(ETH_LOG_TOPIC, "%s", "P2P Handshake completed");
                         uint8_t* status;
                         size_t statusSize;
                         //Notify the node manager that node finished its handshake connection and is ready to send
@@ -431,11 +433,13 @@ static void *_nodeThreadRunFunc(void *arg) {
                 case BRE_NODE_CONNECTED:
                 {
                     //Read message from peer
-                    _readMessage(node);
-                    //Check if the message is a P2P message before broadcasting the message
-                    if(ETHEREUM_BOOLEAN_IS_FALSE(_isP2PMessage(node)))
+                    if(!_readMessage(node))
                     {
-                        node->callbacks.receivedMsgFunc(node->callbacks.info, node, node->body, node->bodySize);
+                        //Check if the message is a P2P message before broadcasting the message
+                        if(ETHEREUM_BOOLEAN_IS_FALSE(_isP2PMessage(node)))
+                        {
+                            node->callbacks.receivedMsgFunc(node->callbacks.info, node, node->body, node->bodySize);
+                        }
                     }
                 }
                 break;
