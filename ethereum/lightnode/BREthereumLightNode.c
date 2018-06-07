@@ -381,7 +381,7 @@ lightNodeHandleNonce (BREthereumLightNode node,
 
     BREthereumEncodedAddress address = accountGetPrimaryAddress(lightNodeGetAccount(node));
 
-    addressSetNonce(address, nonce);
+    addressSetNonce(address, nonce, ETHEREUM_BOOLEAN_FALSE);
 
     // lightNodeListenerAnnounce ...
     pthread_mutex_unlock(&node->lock);

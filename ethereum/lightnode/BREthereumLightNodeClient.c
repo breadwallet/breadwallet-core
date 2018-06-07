@@ -327,7 +327,7 @@ lightNodeAnnounceNonce (BREthereumLightNode node,
     uint64_t nonce = strtoull (strNonce, NULL, 0);
     BREthereumEncodedAddress address = accountGetPrimaryAddress (lightNodeGetAccount(node));
     assert (ETHEREUM_BOOLEAN_IS_TRUE (addressHasString(address, strAddress)));
-    addressSetNonce(address, nonce);
+    addressSetNonce(address, nonce, ETHEREUM_BOOLEAN_FALSE);
 }
 
 // ==============================================================================================

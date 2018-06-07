@@ -697,6 +697,17 @@ void runAddressTests (BREthereumAccount account) {
     printf ("       Address: %s\n", addressString);
     assert (0 == strcmp (TEST_ETH_ADDR, addressString) ||
             0 == strcmp (TEST_ETH_ADDR_CHK, addressString));
+
+    assert (0 == addressGetNonce(address));
+    assert (0 == addressGetThenIncrementNonce(address));
+    assert (1 == addressGetNonce(address));
+    addressSetNonce(address, 0, ETHEREUM_BOOLEAN_FALSE);
+    assert (1 == addressGetNonce(address));
+    addressSetNonce(address, 0, ETHEREUM_BOOLEAN_TRUE);
+    assert (0 == addressGetNonce(address));
+    addressSetNonce(address, 2, ETHEREUM_BOOLEAN_FALSE);
+    assert (2 == addressGetNonce(address));
+
     free ((void *) addressString);
 }
 
@@ -1823,6 +1834,7 @@ runAccountStateTests (void) {
     
     assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(accountStateGetCodeHash(state),
                                                accountStateGetCodeHash(decodedState))));
+
 
     rlpCoderRelease(coder);
 }

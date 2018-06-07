@@ -288,8 +288,10 @@ addressGetNonce(BREthereumEncodedAddress address) {
 
 private_extern void
 addressSetNonce(BREthereumEncodedAddress address,
-                uint64_t nonce) {
-    address->nonce = nonce;
+                uint64_t nonce,
+                BREthereumBoolean force) {
+    if (ETHEREUM_BOOLEAN_IS_TRUE(force) || nonce > address->nonce)
+        address->nonce = nonce;
 }
 
 private_extern uint64_t
