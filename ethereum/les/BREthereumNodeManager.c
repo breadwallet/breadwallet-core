@@ -45,7 +45,7 @@ struct BREthereumNodeManagerContext {
     uint64_t headNumber;
     
     //The head total diffculty
-    uint64_t headTotalDifficulty;
+    UInt256 headTotalDifficulty;
     
     //The head  has for the genesis node
     BREthereumHash genesisHash;
@@ -93,10 +93,10 @@ void _disconnectCallback(BREthereumManagerCallbackContext info, BREthereumNode n
     }
     pthread_mutex_unlock(&manager->lock);
 }
-void _receivedMessageCallback(BREthereumManagerCallbackContext info, BREthereumNode node, uint8_t* message, size_t messageSize) {
+void _receivedMessageCallback(BREthereumManagerCallbackContext info, BREthereumNode node, uint64_t packetType, BRRlpData messageBody) {
 
     BREthereumNodeManager manager = (BREthereumNodeManager)info;
-    manager->subprotoCallbacks.messageRecFunc(manager->subprotoCallbacks.info, message, messageSize);
+    manager->subprotoCallbacks.messageRecFunc(manager->subprotoCallbacks.info, packetType, messageBody);
 }
 void _connectedCallback(BREthereumManagerCallbackContext info, BREthereumNode node, uint8_t**status, size_t* statusSize) {
 
@@ -117,12 +117,12 @@ BREthereumBoolean _findPeers(BREthereumNodeManager manager) {
     if(array_count(manager->connectedNodes) == 0)
     {
         BREthereumPeerConfig config;
-        config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "65.79.142.182", DEFAULT_TCPPORT, DEFAULT_UDPPORT);
-      //  config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "35.226.238.26", DEFAULT_TCPPORT, DEFAULT_UDPPORT);
+     //   config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "65.79.142.182", DEFAULT_TCPPORT, DEFAULT_UDPPORT);
+       config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "35.226.238.26", DEFAULT_TCPPORT, DEFAULT_UDPPORT);
         BRKey* remoteKey = malloc(sizeof(BRKey));
         uint8_t pubKey[64];
-        decodeHex (pubKey, 64, "c7f12332d767c12888da45044581d30de5a1bf383f68ef7b79c83eefd99c82adf2ebe3f37e472cbcdf839d52eddc34f270a7a3444ab6c1dd127bba1687140d93", 128);
-      //  decodeHex (pubKey, 64, "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851", 128);
+     //   decodeHex (pubKey, 64, "c7f12332d767c12888da45044581d30de5a1bf383f68ef7b79c83eefd99c82adf2ebe3f37e472cbcdf839d52eddc34f270a7a3444ab6c1dd127bba1687140d93", 128);
+        decodeHex (pubKey, 64, "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851", 128);
         remoteKey->pubKey[0] = 0x04;
         memcpy(&remoteKey->pubKey[1], pubKey, 64);
         remoteKey->compressed = 0;
@@ -141,7 +141,7 @@ BREthereumNodeManager ethereumNodeManagerCreate(BREthereumNetwork network,
                                                 BRKey* key,
                                                 BREthereumHash headHash,
                                                 uint64_t headNumber,
-                                                uint64_t headTotalDifficulty,
+                                                UInt256 headTotalDifficulty,
                                                 BREthereumHash genesisHash,
                                                 BREthereumSubProtoCallbacks  subprotoCallbacks){
 

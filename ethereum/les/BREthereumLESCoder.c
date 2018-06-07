@@ -140,7 +140,7 @@ static void _encodeStatus(BREthereumLESStatusMessage* status, BRRlpCoder coder, 
 
     //headTd
     keyPair[0] = rlpEncodeItemString(coder, "headTd");
-    keyPair[1] = rlpEncodeItemUInt64(coder, status->headerTd,1);
+    keyPair[1] = rlpEncodeItemUInt256(coder, status->headerTd,1);
     statusItems[curIdx++] = rlpEncodeListItems(coder, keyPair, 2);
  
     //headHash
@@ -243,7 +243,7 @@ BRRlpData ethereumLESEncodeStatus(uint64_t message_id_offset, BREthereumLESStatu
     BRRlpItem statusItems[15];
     int ioIdx = 0;
     
-    statusItems[ioIdx++] = rlpEncodeItemUInt64(coder, BRE_LES_ID_STATUS,1);
+   // statusItems[ioIdx++] = rlpEncodeItemUInt64(coder, BRE_LES_ID_STATUS,1); Apparently the first thing in the list should not be the message id!!
     _encodeStatus(status,coder,statusItems,&ioIdx);
     
     //announceType
@@ -267,21 +267,17 @@ BRRlpData ethereumLESEncodeStatus(uint64_t message_id_offset, BREthereumLESStatu
 }
 static BREthereumLESDecodeStatus _decodeStatus(BRRlpCoder coder, const BRRlpItem *items, size_t itemsCount, BREthereumLESStatusMessage* header){
 
-    uint64_t messageId = rlpDecodeItemUInt64(coder, items[0],1);
-    if(messageId != 0x00){
-        return BRE_LES_CODER_INVALID_MSG_ID_ERROR;
-    }
-    for(int i= 1; i < itemsCount; ++i) {
+    for(int i= 0; i < itemsCount; ++i) {
         size_t keyPairCount;
         const BRRlpItem *keyPairs = rlpDecodeList(coder, items[i], &keyPairCount);
         if(keyPairCount > 0){
             char * key = rlpDecodeItemString(coder, keyPairs[0]);
             if(strcmp(key, "protocolVersion") == 0) {
                 header->protocolVersion = rlpDecodeItemUInt64(coder, keyPairs[1], 1);
-            }else if (strcmp(key, "networkID") == 0) {
+            }else if (strcmp(key, "networkId") == 0) {
                 header->chainId = rlpDecodeItemUInt64(coder, keyPairs[1], 1);
             }else if (strcmp(key, "headTd") == 0) {
-                header->headerTd = rlpDecodeItemUInt64(coder, keyPairs[1], 1);
+                header->headerTd = rlpDecodeItemUInt256(coder, keyPairs[1], 1);
             }else if (strcmp(key, "headHash") == 0) {
                 BRRlpData hashData = rlpDecodeItemBytes(coder, keyPairs[1]);
                 memcpy(header->headHash, hashData.bytes, hashData.bytesCount);
@@ -289,7 +285,7 @@ static BREthereumLESDecodeStatus _decodeStatus(BRRlpCoder coder, const BRRlpItem
             }else if (strcmp(key, "announceType") == 0) {
                 header->announceType = rlpDecodeItemUInt64(coder, keyPairs[1], 1);
             }else if (strcmp(key, "headNum") == 0) {
-                header->headerTd = rlpDecodeItemUInt64(coder, keyPairs[1], 1);
+                header->headNum = rlpDecodeItemUInt64(coder, keyPairs[1], 1);
             }else if (strcmp(key, "genesisHash") == 0) {
                 BRRlpData hashData = rlpDecodeItemBytes(coder, keyPairs[1]);
                 memcpy(header->genesisHash, hashData.bytes, hashData.bytesCount);
@@ -508,7 +504,7 @@ static BRRlpData _encodeTxts(uint64_t msgId, uint64_t message_id_offset, uint64_
     BRRlpItem items[transactionsCount + 2];
     int idx = 0;
     
-    items[idx++] = rlpEncodeItemUInt64(coder, msgId,1);
+   // items[idx++] = rlpEncodeItemUInt64(coder, msgId,1);
     items[idx++] = rlpEncodeItemUInt64(coder, reqId,1);
 
     BRRlpItem txtsItems[transactionsCount];
@@ -547,7 +543,7 @@ BRRlpData ethereumLESGetTxStatus(uint64_t message_id_offset, uint64_t reqId, BRE
     BRRlpItem items[transactionsCount + 2];
     int idx = 0;
     
-    items[idx++] = rlpEncodeItemUInt64(coder, BRE_LES_ID_GET_TX_STATUS,1);
+  //  items[idx++] = rlpEncodeItemUInt64(coder, BRE_LES_ID_GET_TX_STATUS,1);
     items[idx++] = rlpEncodeItemUInt64(coder, reqId,1);
 
     BRRlpItem txtsItems[transactionsCount];
@@ -571,19 +567,17 @@ BREthereumLESDecodeStatus ethereumLESDecodeTxStatus(uint8_t*rlpBytes, size_t rlp
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpData data = {rlpBytesSize, rlpBytes};
-    BRRlpItem item = rlpGetItem (coder, data);
-    
-    //Set default values for optional status values
 
+    rlpShow(data, "TxtStatus");
+
+    BRRlpItem item = rlpGetItem (coder, data);
+  
+    //Set default values for optional status values
     size_t itemsCount;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
 
-    uint64_t messageId = rlpDecodeItemUInt64(coder, items[0],1);
-    if(messageId != 0x15){
-        return BRE_LES_CODER_INVALID_MSG_ID_ERROR;
-    }
-    *reqId = rlpDecodeItemUInt64(coder, items[1],1);
-    *bv = rlpDecodeItemUInt64(coder, items[2],1);
+    *reqId = rlpDecodeItemUInt64(coder, items[0],1);
+    *bv = rlpDecodeItemUInt64(coder, items[1],1);
     size_t statusesCount;
     const BRRlpItem *statuses = rlpDecodeList(coder, items[2], &statusesCount);
     

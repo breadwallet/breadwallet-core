@@ -36,6 +36,7 @@
 #include "BREthereumNodeManager.h"
 #include "BRRlp.h"
 #include "BRUtil.h"
+#include "BRInt.h"
 
 #define ETH_LOG_TOPIC "BREthereumLES"
 
@@ -68,63 +69,66 @@ struct BREthereumLESContext {
     uint64_t requestIdCount;
     pthread_mutex_t lock;
 };
-static void _receivedMessageCallback(BREthereumSubProtoContext info, uint8_t* message, size_t messageSize) {
+static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t messageType, BRRlpData messageBody) {
 
     BREthereumLES les = (BREthereumLES)info;
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpData data = {messageSize, message};
-    BRRlpItem item = rlpGetItem (coder, data);
-    
-    //Set default values for optional status values
-    size_t itemsCount;
-    const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
 
-    uint64_t messageId = rlpDecodeItemUInt64(coder, items[0],0);
-    
-    switch (messageId)
+    switch (messageType - les->message_id_offset)
     {
         case BRE_LES_ID_STATUS:
         {
-            BREthereumLESDecodeStatus remoteStatus = ethereumLESDecodeStatus(message, messageSize, &les->peerStatus);
-            eth_log(ETH_LOG_TOPIC, "%s", "Received Status message from Remote peer");
-            les->startSendingMessages = ETHEREUM_BOOLEAN_TRUE;
-        }
-        case BRE_LES_ID_TX_STATUS:
-        {
-            uint64_t reqId = -1, bv = -1;
-            BREthereumTransactionStatus* replies;
-            size_t repliesCount;
-            BREthereumLESDecodeStatus status = ethereumLESDecodeTxStatus(message, messageSize, &reqId, &bv, &replies, &repliesCount);
-            int requestIndexRm = 0;
-            pthread_mutex_lock(&les->lock);
-            for(int i = 0; i < array_count(les->requests); i++) {
-                if(reqId == les->requests[i].requestId){
-                    requestIndexRm = i;
-                    break;
+            BREthereumLESDecodeStatus remoteStatus = ethereumLESDecodeStatus(messageBody.bytes, messageBody.bytesCount, &les->peerStatus);
+            if(remoteStatus == BRE_LES_CODER_SUCCESS)
+            {
+                if(ETHEREUM_BOOLEAN_IS_TRUE(les->peerStatus.txRelay) &&
+                  les->peerStatus.chainId == networkGetChainId(les->network)){
+                    eth_log(ETH_LOG_TOPIC, "%s", "LES Handshake complete. Start sending messages");
+                    les->startSendingMessages = ETHEREUM_BOOLEAN_TRUE;
+                }else {
+                    eth_log(ETH_LOG_TOPIC, "%s", "Disconnecting from node. Does not meet the requirements for LES");
                 }
             }
-            pthread_mutex_unlock(&les->lock);
+        }
+        break;
+        case BRE_LES_ID_TX_STATUS:
+        {
+            uint64_t reqId = 0, bv = 0;
+            BREthereumTransactionStatus* replies;
+            size_t repliesCount;
+            BREthereumLESDecodeStatus status = ethereumLESDecodeTxStatus(messageBody.bytes, messageBody.bytesCount, &reqId, &bv, &replies, &repliesCount);
             
-            for(int i = 0; i < repliesCount; ++i){
-                les->requests[requestIndexRm].u.transaction_status.callback(les->requests[requestIndexRm].u.transaction_status.ctx,
-                                                                            les->requests[requestIndexRm].u.transaction_status.transaction[i],
-                                                                            replies[i]);
+            if(status == BRE_LES_CODER_SUCCESS)
+            {
+                eth_log(ETH_LOG_TOPIC, "%s", "Received Tranactions Status message from Remote peer");
+                
+                int requestIndexRm = 0;
+                pthread_mutex_lock(&les->lock);
+                for(int i = 0; i < array_count(les->requests); i++) {
+                    if(reqId == les->requests[i].requestId){
+                        requestIndexRm = i;
+                        break;
+                    }
+                }
+                pthread_mutex_unlock(&les->lock);
+                
+                for(int i = 0; i < repliesCount; ++i){
+                    les->requests[requestIndexRm].u.transaction_status.callback(les->requests[requestIndexRm].u.transaction_status.ctx,
+                                                                                les->requests[requestIndexRm].u.transaction_status.transaction[i],
+                                                                                replies[i]);
+                }
+                pthread_mutex_lock(&les->lock);
+                array_rm(les->requests, requestIndexRm);
+                pthread_mutex_unlock(&les->lock);
             }
-            pthread_mutex_lock(&les->lock);
-            array_rm(les->requests, requestIndexRm);
-            pthread_mutex_unlock(&les->lock);
-            eth_log(ETH_LOG_TOPIC, "%s", "Received Tranactions Status message from Remote peer");
         }
         break;
         default:
         {
-            eth_log(ETH_LOG_TOPIC, "Received Message that cannot be handled, message id:%llu", messageId);
+            eth_log(ETH_LOG_TOPIC, "Received Message that cannot be handled, message id:%llu", messageType - les->message_id_offset);
         }
         break;
     }
-    rlpCoderRelease(coder);
 }
-
 static void _connectedToNetworkCallback(BREthereumSubProtoContext info, uint8_t** statusBytes, size_t* statusSize){
     BREthereumLES les = (BREthereumLES)info;
     BRRlpData statusPayload = ethereumLESEncodeStatus(les->message_id_offset, &les->statusMsg);
@@ -189,6 +193,7 @@ lesCreate (BREthereumNetwork network,
         //Define the status message
         les->statusMsg.protocolVersion = 0x02;
         les->statusMsg.chainId = networkGetChainId(network);
+        les->statusMsg.headerTd = createUInt256(headTotalDifficulty);
         memcpy(les->statusMsg.headHash, headHash.bytes, 32);
         les->statusMsg.headNum = headNumber;
         memcpy(les->statusMsg.genesisHash, genesisHash.bytes, 32);
@@ -208,7 +213,7 @@ lesCreate (BREthereumNetwork network,
         //Define the Requests Array
         array_new(les->requests,100);
 
-        les->nodeManager = ethereumNodeManagerCreate(network, les->key, headHash, headNumber, headTotalDifficulty, genesisHash, les->callbacks);
+        les->nodeManager = ethereumNodeManagerCreate(network, les->key, headHash, headNumber, les->statusMsg.headerTd, genesisHash, les->callbacks);
         pthread_mutex_init(&les->lock, NULL);
         ethereumNodeMangerConnect(les->nodeManager);
         
@@ -266,6 +271,7 @@ lesGetTransactionStatusOne (BREthereumLES les,
 
     pthread_mutex_lock(&les->lock);
     uint64_t reqId = les->requestIdCount++;
+    pthread_mutex_unlock(&les->lock);
     shouldSend = les->startSendingMessages;
     pthread_mutex_unlock(&les->lock);
 
@@ -304,7 +310,7 @@ lesSubmitTransaction (BREthereumLES les,
 
     pthread_mutex_lock(&les->lock);
     uint64_t reqId = les->requestIdCount++;
-    shouldSend = les->startSendingMessages;
+    shouldSend = les->startSendingMessages; 
     pthread_mutex_unlock(&les->lock);
     
     if(ETHEREUM_BOOLEAN_IS_TRUE(shouldSend)) {

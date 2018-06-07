@@ -304,7 +304,15 @@ int _decryptMessageHelloFrame(BREthereumHandshake ctx, uint8_t* frame, size_t fr
     uint64_t packetTypeMsg = rlpDecodeItemUInt64(rlpCoder, item, 0);
 
     if(packetTypeMsg != 0x00){
-        eth_log(HANDSHAKE_LOG_TOPIC, "invalid packet type. Expected: Hello Message 0x80, got:%" PRIu64, packetTypeMsg);
+        if(packetTypeMsg == 0x01) {
+            //The remote node is choosing to disconnect from us and not complete the handshake 
+            BRRlpData frameData = {payloadSize - 1, &frame[1]};
+            rlpShow(frameData, "HANDSHAKE"); 
+            BREthereumDisconnect reason = ethereumP2PDisconnectDecode(rlpCoder, frameData);
+            eth_log(HANDSHAKE_LOG_TOPIC, "Remote Peer requested to disconnect:%s", ethereumP2PDisconnectToString(reason));
+        }
+        eth_log(HANDSHAKE_LOG_TOPIC, "invalid packet type. Expected: Hello Message 0x00, got:%" PRIu64, packetTypeMsg);
+        rlpCoderRelease(rlpCoder);
         return BRE_HANDSHAKE_ERROR;
     }
     rlpCoderRelease(rlpCoder);

@@ -34,6 +34,7 @@
 #include "BREthereumTransactionStatus.h"
 #include "BREthereumBlock.h"
 #include "BRKey.h"
+#include "BRInt.h"
 #include "BRArray.h"
 
 #ifdef __cplusplus
@@ -72,7 +73,7 @@ typedef struct {
 typedef struct {
     uint64_t protocolVersion;
     uint64_t chainId;
-    uint64_t headerTd;
+    UInt256 headerTd;
     uint8_t headHash[32];
     uint64_t headNum;
     uint8_t genesisHash[32];

@@ -49,7 +49,7 @@ typedef enum {
 } BREthereumNodeManagerStatus;
 
 typedef void* BREthereumSubProtoContext;
-typedef void (*BREthereumSubProtoRecMsgCallback)(BREthereumSubProtoContext info, uint8_t* message, size_t messageSize);
+typedef void (*BREthereumSubProtoRecMsgCallback)(BREthereumSubProtoContext info, uint64_t messageType, BRRlpData messageBody);
 typedef void (*BREthereumSubProtoConnectedCallback)(BREthereumSubProtoContext info, uint8_t** statusBytes, size_t* statusSize);
 typedef void (*BREthereumSubProtoNetworkReachableCallback)(BREthereumSubProtoContext info, BREthereumBoolean isReachable);
 
@@ -75,7 +75,7 @@ ethereumNodeManagerCreate(BREthereumNetwork network,
                           BRKey* key,
                           BREthereumHash headHash,
                           uint64_t headNumber,
-                          uint64_t headTotalDifficulty,
+                          UInt256 headTotalDifficulty,
                           BREthereumHash genesisHash,
                           BREthereumSubProtoCallbacks callbacks);
     
