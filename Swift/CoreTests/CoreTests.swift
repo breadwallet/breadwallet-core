@@ -27,7 +27,7 @@ class CoreTests: XCTestCase {
     }
 
     func testLES () {
-//        runLEStests()
+        runLEStests()
     }
     
     func testPerformanceExample() {

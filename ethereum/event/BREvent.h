@@ -103,6 +103,7 @@ eventHandlerCreate (const BREventType *types[], unsigned int typesCount);
      */
 extern void
 eventHandlerSetTimeoutDispatcher (BREventHandler handler,
+                                  int invokeOnStart,
                                   unsigned int timeInMilliseconds,
                                   BREventDispatcher dispatcher,
                                   void *context);

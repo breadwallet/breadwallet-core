@@ -124,6 +124,7 @@ createLightNode (BREthereumNetwork network,
 
     node->handlerForMain = eventHandlerCreate(handlerEventTypes, handlerEventTypesCount);
     eventHandlerSetTimeoutDispatcher(node->handlerForMain,
+                                     ETHEREUM_BOOLEAN_TRUE,
                                      1000 * LIGHT_NODE_SLEEP_SECONDS,
                                      (BREventDispatcher)lightNodePeriodicDispatcher,
                                      (void*) node);

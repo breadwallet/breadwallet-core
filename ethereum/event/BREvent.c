@@ -26,6 +26,8 @@
 #include <errno.h>
 #include <pthread.h>
 #include <sys/time.h>
+#include <assert.h>
+#include "../util/BRUtil.h"
 #include "BREvent.h"
 #include "BREventQueue.h"
 
@@ -94,6 +96,7 @@ struct BREventHandlerRecord {
     BREvent *scratch;
 
     // (Optional) Timeout
+    int timeoutOnStart;
     struct timespec timeout;
     BREventDispatcher timeoutDispatcher;
     void *timeoutContext;
@@ -149,17 +152,26 @@ eventHandlerCreate (const BREventType *types[], unsigned int typesCount) {
 
 extern void
 eventHandlerSetTimeoutDispatcher (BREventHandler handler,
+                                  int invokeOnStart,
                                   unsigned int timeInMilliseconds,
                                   BREventDispatcher dispatcher,
                                   void *context) {
     pthread_mutex_lock(&handler->lock);
+    handler->timeoutOnStart = invokeOnStart;
     handler->timeout.tv_sec = timeInMilliseconds / 1000;
     handler->timeout.tv_nsec = 1000000 * (timeInMilliseconds % 1000);
     handler->timeoutDispatcher = dispatcher;
     handler->timeoutContext = context;
     pthread_mutex_unlock(&handler->lock);
 
+    // Signal an event - so that the 'timedwait' starts.
     pthread_cond_signal(&handler->cond);
+}
+
+static void
+eventHandlerInvokeTimeout (BREventHandler handler) {
+    BRTimeoutEvent event = { { NULL, &timeoutEventType}, handler->timeoutContext, getTime() };
+    handler->timeoutDispatcher (handler, (BREvent *) &event);
 }
 
 #define PTHREAD_STACK_SIZE (512 * 1024)
@@ -177,6 +189,9 @@ eventHandlerThread (BREventHandler handler) {
     
     pthread_mutex_lock(&handler->lock);
     handler->status = EVENT_HANDLER_THREAD_STATUS_RUNNING;
+
+    if (handler->timeoutOnStart)
+        eventHandlerInvokeTimeout(handler);
 
     while (EVENT_HANDLER_THREAD_STATUS_RUNNING == handler->status) {
         // If there is an event pending...
@@ -205,25 +220,25 @@ eventHandlerThread (BREventHandler handler) {
         // ... or for an event or a timeout.
         else if (ETIMEDOUT == pthread_cond_timedwait_relative_np(&handler->cond,
                                                                  &handler->lock,
-                                                                 &handler->timeout)) {
-            BRTimeoutEvent event =
-                { { NULL, &timeoutEventType}, handler->timeoutContext, getTime() };
-            handler->timeoutDispatcher (handler, (BREvent *) &event);
-        }
+                                                                 &handler->timeout))
+            eventHandlerInvokeTimeout(handler);
     }
 
     handler->status = EVENT_HANDLER_THREAD_STATUS_STOPPED;
-    pthread_detach(handler->thread);
     return NULL;
 }
 
 extern void
 eventHandlerDestroy (BREventHandler handler) {
-    // stop, then ...
+    // First stop...
+    eventHandlerStop(handler);
+
+    // ... then kill
     pthread_kill(handler->thread, 0);
     pthread_cond_destroy(&handler->cond);
     pthread_mutex_destroy(&handler->lock);
 
+    // release memory
     eventQueueDestroy(handler->queue);
     free (handler->scratch);
     free (handler);
@@ -247,7 +262,7 @@ eventHandlerStart (BREventHandler handler) {
             // if (0 != pthread_attr_t (...) && 0 != pthread_attr_...() && ...
             pthread_attr_t attr;
             pthread_attr_init(&attr);
-            pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+            pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
             pthread_attr_setstacksize(&attr, PTHREAD_STACK_SIZE);
 
             pthread_create(&handler->thread, &attr, (ThreadRoutine) eventHandlerThread, handler);
@@ -259,21 +274,22 @@ eventHandlerStart (BREventHandler handler) {
 
 extern void
 eventHandlerStop (BREventHandler handler) {
-    pthread_cancel(handler->thread);
-//    int joinResult = pthread_join(handler->thread, NULL);
-    handler->status = EVENT_HANDLER_THREAD_STATUS_STOPPED;
-/*
-    switch (handler->status) {
-        case EVENT_HANDLER_THREAD_STATUS_RUNNING:
-        case EVENT_HANDLER_THREAD_STATUS_STARTING:
-            handler->status = EVENT_HANDLER_THREAD_STATUS_STOPPING;
-            break;
+    // Clean-ish shutdown.
+    handler->status = EVENT_HANDLER_THREAD_STATUS_STOPPING;
 
-        case EVENT_HANDLER_THREAD_STATUS_STOPPED:
-        case EVENT_HANDLER_THREAD_STATUS_STOPPING:
-            break;
-    }
- */
+    // Cancel, but the thread is deferred.
+    pthread_cancel(handler->thread);
+
+    // TODO: Why doesn't JOIN work?
+    // We would like to join here (change 'detachstate' to DETACHED); however, in testing
+    // we *always* simply blocked here forever.
+
+    PTHREAD_CANCELED;
+    // Wait on the actual exit - could this be long-ish?
+    int *exitStatus = NULL;
+    int joinStatus = pthread_join(handler->thread, (void**) &exitStatus);
+    eth_log ("Event", "On STOP, joinStatus: %d, exitStatus: %d", joinStatus, exitStatus);
+    assert (!joinStatus || ESRCH == joinStatus);
 }
 
 extern BREventStatus
