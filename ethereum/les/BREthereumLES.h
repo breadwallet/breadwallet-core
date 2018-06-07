@@ -251,8 +251,8 @@ typedef void* BREthereumLESTransactionStatusContext;
 
 typedef void
 (*BREthereumLESTransactionStatusCallback) (BREthereumLESTransactionStatusContext context,
-                                          BREthereumHash transaction,
-                                          BREthereumTransactionStatusLES status);
+                                           BREthereumHash transaction,
+                                           BREthereumTransactionStatusLES status);
 
 extern BREthereumLESStatus
 lesGetTransactionStatus (BREthereumLES les,
