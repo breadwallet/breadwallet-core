@@ -75,19 +75,19 @@ static void _encodeKeyValueStatus(BRRlpCoder coder, BRRlpItem* keyPair, char* ke
 
     if(strcmp(key, "protocolVersion") == 0) {
         keyPair[0] = rlpEncodeItemString(coder, "protocolVersion");
-        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),0);
+        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),1);
     }else if (strcmp(key, "networkID") == 0) {
         keyPair[0] = rlpEncodeItemString(coder, "networkId");
-        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),0);
+        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),1);
     }else if (strcmp(key, "headTd") == 0) {
         keyPair[0] = rlpEncodeItemString(coder, "headTd");
-        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),0);
+        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),1);
     }else if (strcmp(key, "headHash") == 0) {
         keyPair[0] = rlpEncodeItemString(coder, "headHash");
         keyPair[1] = rlpEncodeItemBytes(coder, ((uint8_t *)value), 32);
     }else if (strcmp(key, "headNum") == 0) {
         keyPair[0] = rlpEncodeItemString(coder, "headNum");
-        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),0);
+        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),1);
     }else if (strcmp(key, "genesisHash") == 0) {
         keyPair[0] = rlpEncodeItemString(coder, "genesisHash");
         keyPair[1] = rlpEncodeItemBytes(coder, ((uint8_t *)value), 32);
@@ -95,15 +95,15 @@ static void _encodeKeyValueStatus(BRRlpCoder coder, BRRlpItem* keyPair, char* ke
         keyPair[0] = rlpEncodeItemString(coder, "serveHeaders");
     }else if (strcmp(key, "serveChainSince") == 0) {
         keyPair[0] = rlpEncodeItemString(coder, "serveChainSince");
-        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),0);
+        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),1);
     }else if (strcmp(key, "serveStateSince") == 0) {
         keyPair[0] = rlpEncodeItemString(coder, "serveStateSince");
-        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),0);
+        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),1);
     }else if (strcmp(key, "txRelay") == 0) {
         keyPair[0] = rlpEncodeItemString(coder, "txRelay");
     }else if (strcmp(key, "flowControl/BL") == 0) {
         keyPair[0] = rlpEncodeItemString(coder, "flowControl/BL");
-        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),0);
+        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),1);
     }else if (strcmp(key, "flowControl/MRR") == 0) {
         keyPair[0] = rlpEncodeItemString(coder, "flowControl/MRC");
         size_t count = auxValueCount;
@@ -111,15 +111,15 @@ static void _encodeKeyValueStatus(BRRlpCoder coder, BRRlpItem* keyPair, char* ke
         for(int idx = 0; idx < count; ++idx){
             BRRlpItem mrcElements [3];
             BREthereumLESMRC* flowControlMRC = ((BREthereumLESMRC *)value);
-            mrcElements[0] = rlpEncodeItemUInt64(coder,flowControlMRC[idx].msgCode,0);
-            mrcElements[1] = rlpEncodeItemUInt64(coder,flowControlMRC[idx].baseCost,0);
-            mrcElements[2] = rlpEncodeItemUInt64(coder,flowControlMRC[idx].reqCost,0);
+            mrcElements[0] = rlpEncodeItemUInt64(coder,flowControlMRC[idx].msgCode,1);
+            mrcElements[1] = rlpEncodeItemUInt64(coder,flowControlMRC[idx].baseCost,1);
+            mrcElements[2] = rlpEncodeItemUInt64(coder,flowControlMRC[idx].reqCost,1);
             mrcItems[idx] = rlpEncodeListItems(coder, mrcElements, 3);
         }
         keyPair[1] = rlpEncodeListItems(coder, mrcItems, count);
     }else if (strcmp(key, "flowControl/MRR") == 0) {
         keyPair[0] = rlpEncodeItemString(coder, "flowControl/MRR");
-        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),0);
+        keyPair[1] = rlpEncodeItemUInt64(coder, *((uint64_t *)value),1);
     }
 }
 
@@ -130,17 +130,17 @@ static void _encodeStatus(BREthereumLESStatusMessage* status, BRRlpCoder coder, 
     //protocolVersion
     BRRlpItem keyPair [2];
     keyPair[0] = rlpEncodeItemString(coder, "protocolVersion");
-    keyPair[1] = rlpEncodeItemUInt64(coder, status->protocolVersion,0);
+    keyPair[1] = rlpEncodeItemUInt64(coder, status->protocolVersion,1);
     statusItems[curIdx++] = rlpEncodeListItems(coder, keyPair, 2);
     
     //networkId
     keyPair[0] = rlpEncodeItemString(coder, "networkId");
-    keyPair[1] = rlpEncodeItemUInt64(coder, status->chainId,0);
+    keyPair[1] = rlpEncodeItemUInt64(coder, status->chainId,1);
     statusItems[curIdx++] = rlpEncodeListItems(coder, keyPair, 2);
 
     //headTd
     keyPair[0] = rlpEncodeItemString(coder, "headTd");
-    keyPair[1] = rlpEncodeItemUInt64(coder, status->headerTd,0);
+    keyPair[1] = rlpEncodeItemUInt64(coder, status->headerTd,1);
     statusItems[curIdx++] = rlpEncodeListItems(coder, keyPair, 2);
  
     //headHash
@@ -150,7 +150,7 @@ static void _encodeStatus(BREthereumLESStatusMessage* status, BRRlpCoder coder, 
  
     //headNum
     keyPair[0] = rlpEncodeItemString(coder, "headNum");
-    keyPair[1] = rlpEncodeItemUInt64(coder, status->headNum,0);
+    keyPair[1] = rlpEncodeItemUInt64(coder, status->headNum,1);
     statusItems[curIdx++] = rlpEncodeListItems(coder, keyPair, 2);
  
     //genesisHash
@@ -168,14 +168,14 @@ static void _encodeStatus(BREthereumLESStatusMessage* status, BRRlpCoder coder, 
     //serveChainSince
     if(status->serveChainSince != NULL) {
         keyPair[0] = rlpEncodeItemString(coder, "serveChainSince");
-        keyPair[1] = rlpEncodeItemUInt64(coder, *(status->serveChainSince),0);
+        keyPair[1] = rlpEncodeItemUInt64(coder, *(status->serveChainSince),1);
         statusItems[curIdx++] = rlpEncodeListItems(coder, keyPair, 2);
     }
     
     //serveStateSince
     if(status->serveStateSince != NULL) {
         keyPair[0] = rlpEncodeItemString(coder, "serveStateSince");
-        keyPair[1] = rlpEncodeItemUInt64(coder, *(status->serveStateSince),0);
+        keyPair[1] = rlpEncodeItemUInt64(coder, *(status->serveStateSince),1);
         statusItems[curIdx++] = rlpEncodeListItems(coder, keyPair, 2);
     }
     
@@ -189,7 +189,7 @@ static void _encodeStatus(BREthereumLESStatusMessage* status, BRRlpCoder coder, 
     //flowControl/BL
     if(status->flowControlBL != NULL) {
         keyPair[0] = rlpEncodeItemString(coder, "flowControl/BL");
-        keyPair[1] = rlpEncodeItemUInt64(coder, *(status->flowControlBL),0);
+        keyPair[1] = rlpEncodeItemUInt64(coder, *(status->flowControlBL),1);
         statusItems[curIdx++] = rlpEncodeListItems(coder, keyPair, 2);
     }
     //flowControl/MRC
@@ -199,9 +199,9 @@ static void _encodeStatus(BREthereumLESStatusMessage* status, BRRlpCoder coder, 
         BRRlpItem mrcItems[count];
         for(int idx = 0; idx < count; ++idx){
             BRRlpItem mrcElements [3];
-            mrcElements[0] = rlpEncodeItemUInt64(coder,status->flowControlMRC[idx].msgCode,0);
-            mrcElements[1] = rlpEncodeItemUInt64(coder,status->flowControlMRC[idx].baseCost,0);
-            mrcElements[2] = rlpEncodeItemUInt64(coder,status->flowControlMRC[idx].reqCost,0);
+            mrcElements[0] = rlpEncodeItemUInt64(coder,status->flowControlMRC[idx].msgCode,1);
+            mrcElements[1] = rlpEncodeItemUInt64(coder,status->flowControlMRC[idx].baseCost,1);
+            mrcElements[2] = rlpEncodeItemUInt64(coder,status->flowControlMRC[idx].reqCost,1);
             mrcItems[idx] = rlpEncodeListItems(coder, mrcElements, 3);
         }
         keyPair[1] = rlpEncodeListItems(coder, mrcItems, count);
@@ -210,7 +210,7 @@ static void _encodeStatus(BREthereumLESStatusMessage* status, BRRlpCoder coder, 
     //flowControl/MRR
     if(status->flowControlMRR != NULL) {
         keyPair[0] = rlpEncodeItemString(coder, "flowControl/MRR");
-        keyPair[1] = rlpEncodeItemUInt64(coder, *(status->flowControlMRR),0);
+        keyPair[1] = rlpEncodeItemUInt64(coder, *(status->flowControlMRR),1);
         statusItems[curIdx++] = rlpEncodeListItems(coder, keyPair, 2);
     }
     *ioIdx = curIdx;
@@ -225,14 +225,14 @@ void ethereumLESEncodeStatus(BREthereumLESStatusMessage* status, uint8_t**rlpByt
     BRRlpItem statusItems[15];
     int ioIdx = 0;
     
-    statusItems[ioIdx++] = rlpEncodeItemUInt64(coder, 0x00,0);
+    statusItems[ioIdx++] = rlpEncodeItemUInt64(coder, 0x00,1);
     _encodeStatus(status,coder,statusItems,&ioIdx);
     
     //announceType
     if(status->protocolVersion == 0x02){
         BRRlpItem keyPair [2];
         keyPair[0] = rlpEncodeItemString(coder, "announceType");
-        keyPair[1] = rlpEncodeItemUInt64(coder, status->announceType,0);
+        keyPair[1] = rlpEncodeItemUInt64(coder, status->announceType,1);
         statusItems[ioIdx++] = rlpEncodeListItems(coder, keyPair, 2);
     }
     BRRlpItem encoding = rlpEncodeListItems(coder, statusItems, ioIdx);
@@ -241,7 +241,7 @@ void ethereumLESEncodeStatus(BREthereumLESStatusMessage* status, uint8_t**rlpByt
 }
 static BREthereumLESDecodeStatus _decodeStatus(BRRlpCoder coder, const BRRlpItem *items, size_t itemsCount, BREthereumLESStatusMessage* header){
 
-    uint64_t messageId = rlpDecodeItemUInt64(coder, items[0],0);
+    uint64_t messageId = rlpDecodeItemUInt64(coder, items[0],1);
     if(messageId != 0x00){
         return BRE_LES_CODER_INVALID_MSG_ID_ERROR;
     }
@@ -251,19 +251,19 @@ static BREthereumLESDecodeStatus _decodeStatus(BRRlpCoder coder, const BRRlpItem
         if(keyPairCount > 0){
             char * key = rlpDecodeItemString(coder, keyPairs[0]);
             if(strcmp(key, "protocolVersion") == 0) {
-                header->protocolVersion = rlpDecodeItemUInt64(coder, keyPairs[1], 0);
+                header->protocolVersion = rlpDecodeItemUInt64(coder, keyPairs[1], 1);
             }else if (strcmp(key, "networkID") == 0) {
-                header->chainId = rlpDecodeItemUInt64(coder, keyPairs[1], 0);
+                header->chainId = rlpDecodeItemUInt64(coder, keyPairs[1], 1);
             }else if (strcmp(key, "headTd") == 0) {
-                header->headerTd = rlpDecodeItemUInt64(coder, keyPairs[1], 0);
+                header->headerTd = rlpDecodeItemUInt64(coder, keyPairs[1], 1);
             }else if (strcmp(key, "headHash") == 0) {
                 BRRlpData hashData = rlpDecodeItemBytes(coder, keyPairs[1]);
                 memcpy(header->headHash, hashData.bytes, hashData.bytesCount);
                 rlpDataRelease(hashData);
             }else if (strcmp(key, "announceType") == 0) {
-                header->announceType = rlpDecodeItemUInt64(coder, keyPairs[1], 0);
+                header->announceType = rlpDecodeItemUInt64(coder, keyPairs[1], 1);
             }else if (strcmp(key, "headNum") == 0) {
-                header->headerTd = rlpDecodeItemUInt64(coder, keyPairs[1], 0);
+                header->headerTd = rlpDecodeItemUInt64(coder, keyPairs[1], 1);
             }else if (strcmp(key, "genesisHash") == 0) {
                 BRRlpData hashData = rlpDecodeItemBytes(coder, keyPairs[1]);
                 memcpy(header->genesisHash, hashData.bytes, hashData.bytesCount);
@@ -272,15 +272,15 @@ static BREthereumLESDecodeStatus _decodeStatus(BRRlpCoder coder, const BRRlpItem
                 header->serveHeaders = ETHEREUM_BOOLEAN_TRUE;
             }else if (strcmp(key, "serveChainSince") == 0) {
                 header->serveChainSince = malloc(sizeof(uint64_t));
-                *(header->serveChainSince) = rlpDecodeItemUInt64(coder, keyPairs[1], 0);
+                *(header->serveChainSince) = rlpDecodeItemUInt64(coder, keyPairs[1], 1);
             }else if (strcmp(key, "serveStateSince") == 0) {
                 header->serveStateSince = malloc(sizeof(uint64_t));
-                *(header->serveStateSince) = rlpDecodeItemUInt64(coder, keyPairs[1], 0);
+                *(header->serveStateSince) = rlpDecodeItemUInt64(coder, keyPairs[1], 1);
             }else if (strcmp(key, "txRelay") == 0) {
                 header->txRelay = ETHEREUM_BOOLEAN_TRUE;
             }else if (strcmp(key, "flowControl/BL") == 0) {
                  header->flowControlBL = malloc(sizeof(uint64_t));
-                *(header->flowControlBL) = rlpDecodeItemUInt64(coder, keyPairs[1], 0);
+                *(header->flowControlBL) = rlpDecodeItemUInt64(coder, keyPairs[1], 1);
             }else if (strcmp(key, "flowControl/MRR") == 0) {
                  header->flowControlMRR = malloc(sizeof(uint64_t));
                  size_t mrrItemsCount  = 0;
@@ -291,15 +291,15 @@ static BREthereumLESDecodeStatus _decodeStatus(BRRlpCoder coder, const BRRlpItem
                      for(int mrrIdx = 0; mrrIdx < mrrItemsCount; ++mrrIdx){
                             size_t mrrElementsCount  = 0;
                             const BRRlpItem* mrrElements = rlpDecodeList(coder, mrrItems[mrrIdx], &mrrElementsCount);
-                            mrcs[mrrIdx].msgCode =  rlpDecodeItemUInt64(coder, mrrElements[0], 0);
-                            mrcs[mrrIdx].baseCost =  rlpDecodeItemUInt64(coder, mrrElements[1], 0);
-                            mrcs[mrrIdx].reqCost =  rlpDecodeItemUInt64(coder, mrrElements[2], 0);
+                            mrcs[mrrIdx].msgCode =  rlpDecodeItemUInt64(coder, mrrElements[0], 1);
+                            mrcs[mrrIdx].baseCost =  rlpDecodeItemUInt64(coder, mrrElements[1], 1);
+                            mrcs[mrrIdx].reqCost =  rlpDecodeItemUInt64(coder, mrrElements[2], 1);
                      }
                  }
                  header->flowControlMRC = mrcs;
             }else if (strcmp(key, "flowControl/MRR") == 0) {
                  header->flowControlMRR = malloc(sizeof(uint64_t));
-                *(header->flowControlMRR) = rlpDecodeItemUInt64(coder, keyPairs[1], 0);
+                *(header->flowControlMRR) = rlpDecodeItemUInt64(coder, keyPairs[1], 1);
             }
         }else {
             return BRE_LES_CODER_INVALID_STATUS_KEY_PAIR;
@@ -344,11 +344,11 @@ void ethereumLESAnnounce(UInt256 headHash, uint64_t headNumber, uint64_t headTd,
     BRRlpItem* items = (BRRlpItem*)malloc(sizeof(BRRlpItem)* (handshakeValsCount + 5));
     int idx = 0;
     
-    items[idx++] = rlpEncodeItemUInt64(coder, 0x01,0);
+    items[idx++] = rlpEncodeItemUInt64(coder, 0x01,1);
     items[idx++] = rlpEncodeItemBytes(coder, headHash.u8, sizeof(headHash.u8));
-    items[idx++] = rlpEncodeItemUInt64(coder, headNumber,0);
-    items[idx++] = rlpEncodeItemUInt64(coder, headTd,0);
-    items[idx++] = rlpEncodeItemUInt64(coder, reorgDepth,0);
+    items[idx++] = rlpEncodeItemUInt64(coder, headNumber,1);
+    items[idx++] = rlpEncodeItemUInt64(coder, headTd,1);
+    items[idx++] = rlpEncodeItemUInt64(coder, reorgDepth,1);
     
     for(int i = 0; i < handshakeValsCount; ++i){
         BREthereumAnnounceRequest* keyPair = &handshakeVals[i];
@@ -380,14 +380,14 @@ void  ethereumLESGetBlockHeaders(uint64_t reqId,
     BRRlpItem blockItems[4];
     int idx = 0;
     
-    items[idx++] = rlpEncodeItemUInt64(coder, 0x02,0);
-    items[idx++] = rlpEncodeItemUInt64(coder, reqId,0);
+    items[idx++] = rlpEncodeItemUInt64(coder, 0x02,1);
+    items[idx++] = rlpEncodeItemUInt64(coder, reqId,1);
 
     BREthereumHash bHash = blockGetHash(block);
     blockItems[0] = rlpEncodeItemBytes(coder, bHash.bytes, sizeof(bHash.bytes));
-    blockItems[1] = rlpEncodeItemUInt64(coder, maxHeaders, 0);
-    blockItems[2] = rlpEncodeItemUInt64(coder, skip, 0);
-    blockItems[3] = rlpEncodeItemUInt64(coder, reverse, 0);
+    blockItems[1] = rlpEncodeItemUInt64(coder, maxHeaders, 1);
+    blockItems[2] = rlpEncodeItemUInt64(coder, skip, 1);
+    blockItems[3] = rlpEncodeItemUInt64(coder, reverse, 1);
    
     items[idx++] = rlpEncodeListItems(coder, blockItems, 4);
     
@@ -405,12 +405,12 @@ BREthereumLESDecodeStatus ethereumLESDecodeBlockHeaders(uint8_t*rlpBytes, size_t
     
     size_t itemsCount;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
-    uint64_t msgId = rlpDecodeItemUInt64(coder, items[0], 0);
+    uint64_t msgId = rlpDecodeItemUInt64(coder, items[0], 1);
     if(msgId != 0x03) {
         return BRE_LES_CODER_INVALID_MSG_ID_ERROR;
     }
-    *reqId = rlpDecodeItemUInt64(coder, items[1], 0);
-    *bv = rlpDecodeItemUInt64(coder, items[2], 0);
+    *reqId = rlpDecodeItemUInt64(coder, items[1], 1);
+    *bv = rlpDecodeItemUInt64(coder, items[2], 1);
     
     size_t blocksCount = 0;
     const BRRlpItem *blocks = rlpDecodeList(coder, items[3], &blocksCount);
@@ -482,8 +482,8 @@ static void _encodeTxts(uint64_t msgId, uint64_t reqId, BREthereumTransaction tr
     BRRlpItem* items = (BRRlpItem*)malloc(sizeof(BRRlpItem)* (transactionsCount + 1));
     int idx = 0;
     
-    items[idx++] = rlpEncodeItemUInt64(coder, msgId,0);
-    items[idx++] = rlpEncodeItemUInt64(coder, reqId,0);
+    items[idx++] = rlpEncodeItemUInt64(coder, msgId,1);
+    items[idx++] = rlpEncodeItemUInt64(coder, reqId,1);
 
     BRRlpItem* txtsItems = (BRRlpItem*)malloc(sizeof(BRRlpItem)* transactionsCount);
     for(int i = 0; i < transactionsCount; ++i){
@@ -515,8 +515,8 @@ void ethereumLESGetTxStatus(uint64_t reqId, BREthereumHash* transactions, uint8_
     BRRlpItem items[transactionsCount + 1];
     int idx = 0;
     
-    items[idx++] = rlpEncodeItemUInt64(coder, 0x14,0);
-    items[idx++] = rlpEncodeItemUInt64(coder, reqId,0);
+    items[idx++] = rlpEncodeItemUInt64(coder, 0x14,1);
+    items[idx++] = rlpEncodeItemUInt64(coder, reqId,1);
 
     BRRlpItem txtsItems[transactionsCount];
     for(int i = 0; i < transactionsCount; ++i){
@@ -540,12 +540,12 @@ BREthereumLESDecodeStatus ethereumLESDecodeTxStatus(uint8_t*rlpBytes, size_t rlp
     size_t itemsCount;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
 
-    uint64_t messageId = rlpDecodeItemUInt64(coder, items[0],0);
+    uint64_t messageId = rlpDecodeItemUInt64(coder, items[0],1);
     if(messageId != 0x15){
         return BRE_LES_CODER_INVALID_MSG_ID_ERROR;
     }
-    *reqId = rlpDecodeItemUInt64(coder, items[1],0);
-    *bv = rlpDecodeItemUInt64(coder, items[2],0);
+    *reqId = rlpDecodeItemUInt64(coder, items[1],1);
+    *bv = rlpDecodeItemUInt64(coder, items[2],1);
     size_t statusesCount;
     const BRRlpItem *statuses = rlpDecodeList(coder, items[2], &statusesCount);
     

@@ -66,7 +66,7 @@ extern BRRlpData ethereumP2PHelloEncode(BREthereumP2PHello* message) {
     helloDataItems[0] = rlpEncodeItemUInt64(coder, message->version,0);
     helloDataItems[1] = rlpEncodeItemString(coder, message->clientId);
     helloDataItems[2] = capsItem;
-    helloDataItems[3] = rlpEncodeItemUInt64(coder, 0,0);
+    helloDataItems[3] = rlpEncodeItemUInt64(coder, 0x00,1);
     helloDataItems[4] = rlpEncodeItemBytes(coder, message->nodeId.u8, 64);
 
     /** Encode the following :  Hello 0x00 [p2pVersion: P, clientId: B, [[cap1: B_3, capVersion1: P], [cap2: B_3, capVersion2: P], ...], listenPort: P, nodeId: B_64] */
@@ -81,14 +81,6 @@ extern BRRlpData ethereumP2PHelloEncode(BREthereumP2PHello* message) {
 
     data.bytes = rlpData;
     data.bytesCount = idData.bytesCount + listData.bytesCount;
-    
-    printf("\ndata(%d)*********\n", data.bytesCount);
-    for(int i = 0; i < data.bytesCount; ++i){
-        printf("%02x ", data.bytes[i]);
-    }
-    printf("\n");
-
-    
     
     rlpDataRelease(listData);
     rlpDataRelease(idData);
@@ -185,23 +177,26 @@ extern BREthereumP2PHello ethereumP2PHelloDecode(BRRlpCoder coder, BRRlpData dat
     size_t itemsCount;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
 
-    retHello.version      = rlpDecodeItemUInt64(coder, items[0],0);
+    retHello.version      = rlpDecodeItemUInt64(coder, items[0],1);
     retHello.clientId     = rlpDecodeItemString(coder,items[1]);
-    retHello.listenPort   = rlpDecodeItemUInt64(coder, items[3],0);
+    retHello.listenPort   = rlpDecodeItemUInt64(coder, items[3],1);
     BRRlpData nodeIdBytes = rlpDecodeItemBytes(coder, items[4]);
     memcpy(retHello.nodeId.u8, nodeIdBytes.bytes, nodeIdBytes.bytesCount);
     rlpDataRelease(nodeIdBytes);
     
     size_t capsCount;
     const BRRlpItem *capItems = rlpDecodeList(coder, items[2], &capsCount);
+    BREthereumCapabilities*caps;
     
-    BREthereumCapabilities*caps = (BREthereumCapabilities*)malloc(sizeof(BREthereumCapabilities) * capsCount);
+    array_new(caps, capsCount);
     
     for(int i = 0; i < capsCount; ++i){
         size_t capsItemCount;
         const BRRlpItem* capsItem = rlpDecodeList(coder, capItems[i], &capsItemCount);
-        caps[i].cap = rlpDecodeItemString(coder, capsItem[0]);
-        caps[i].capVersion = rlpDecodeItemUInt64(coder, capsItem[1], 0);
+        BREthereumCapabilities cap;
+        cap.cap = rlpDecodeItemString(coder, capsItem[0]);
+        cap.capVersion = rlpDecodeItemUInt64(coder, capsItem[1], 1);
+        array_add(caps, cap);
     }
     retHello.caps = caps;
     
