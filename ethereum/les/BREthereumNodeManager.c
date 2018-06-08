@@ -28,7 +28,7 @@
 #include "BREthereumNodeManager.h"
 #include "BREthereumNode.h"
 #include "BRArray.h"
-#include "BREthereumNetwork.h"
+#include "../blockchain/BREthereumNetwork.h"
 #include "BREthereumEndpoint.h"
 #include "BREthereumRandom.h"
 #include "BRUtil.h"

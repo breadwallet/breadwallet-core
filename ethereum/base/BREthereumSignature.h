@@ -64,11 +64,11 @@ signatureCreate (BREthereumSignatureType type,
                  size_t bytesCount,
                  BRKey privateKeyUncompressed);
 
-extern BREthereumEncodedAddress
-signatureExtractAddress (const BREthereumSignature signature,
-                         const uint8_t *bytes,
-                         size_t bytesCount,
-                         int *success);
+extern BREthereumAddress
+signatureExtractAddress(const BREthereumSignature signature,
+                        const uint8_t *bytes,
+                        size_t bytesCount,
+                        int *success);
 
 extern BREthereumBoolean
 signatureEqual (BREthereumSignature s1, BREthereumSignature s2);

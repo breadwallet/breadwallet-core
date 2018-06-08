@@ -6,7 +6,6 @@
 //  Copyright © 2018 breadwallet LLC. All rights reserved.
 //
 
-#include "BREthereumTransactionStatus.h"
 #include "BREthereumLESCoder.h"
 
 

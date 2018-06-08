@@ -489,8 +489,8 @@ bcsHandleLogCreateTransaction (BREthereumBCS bcs,
                                BREthereumLog log,
                                BREthereumToken token) {
 
-    BREthereumEncodedAddress sourceAddr = createAddressRaw(logTopicAsAddress(logGetTopic(log, 1)));
-    BREthereumEncodedAddress targetAddr = createAddressRaw(logTopicAsAddress(logGetTopic(log, 2)));
+    BREthereumAddress sourceAddr = logTopicAsAddress(logGetTopic(log, 1));
+    BREthereumAddress targetAddr = logTopicAsAddress(logGetTopic(log, 2));
 
     // TODO: No Way
     BRRlpData valueData = logGetData(log);

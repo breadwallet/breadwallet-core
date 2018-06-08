@@ -61,7 +61,7 @@ lightNodeUpdateWalletBalance(BREthereumLightNode node,
         switch (node->type) {
             case NODE_TYPE_LES:
             case NODE_TYPE_JSON_RPC: {
-                char *address = addressAsString(walletGetAddress(wallet));
+                char *address = addressRawGetEncodedString(walletGetAddress(wallet), 0);
 
                 node->client.funcGetBalance
                 (node->client.funcContext,
@@ -198,7 +198,7 @@ lightNodeUpdateTransactionGasEstimate (BREthereumLightNode node,
             case NODE_TYPE_JSON_RPC: {
                 // This will be ZERO if transaction amount is in TOKEN.
                 BREthereumEther amountInEther = transactionGetEffectiveAmountInEther(transaction);
-                char *to = (char *) addressAsString(transactionGetTargetAddress(transaction));
+                char *to = (char *) addressRawGetEncodedString(transactionGetTargetAddress(transaction), 0);
                 char *amount = coerceString(amountInEther.valueInWEI, 16);
                 char *data = (char *) transactionGetData(transaction);
 
@@ -303,7 +303,7 @@ lightNodeUpdateNonce (BREthereumLightNode node) {
             // TODO: Fall-through on error, perhaps
             
         case NODE_TYPE_JSON_RPC: {
-            char *address = addressAsString(accountGetPrimaryAddress(node->account));
+            char *address = addressRawGetEncodedString(accountGetPrimaryAddress(node->account), 0);
             
             node->client.funcGetNonce
             (node->client.funcContext,
@@ -325,9 +325,9 @@ lightNodeAnnounceNonce (BREthereumLightNode node,
                         const char *strNonce,
                         int rid) {
     uint64_t nonce = strtoull (strNonce, NULL, 0);
-    BREthereumEncodedAddress address = accountGetPrimaryAddress (lightNodeGetAccount(node));
-    assert (ETHEREUM_BOOLEAN_IS_TRUE (addressHasString(address, strAddress)));
-    addressSetNonce(address, nonce, ETHEREUM_BOOLEAN_FALSE);
+//    BREthereumEncodedAddress address = accountGetPrimaryAddress (lightNodeGetAccount(node));
+//    assert (ETHEREUM_BOOLEAN_IS_TRUE (addressHasString(address, strAddress)));
+    accountSetAddressNonce(node->account, accountGetPrimaryAddress(node->account), nonce, ETHEREUM_BOOLEAN_FALSE);
 }
 
 // ==============================================================================================
@@ -345,7 +345,7 @@ lightNodeUpdateTransactions (BREthereumLightNode node) {
             // TODO: Fall-through on error, perhaps
 
         case NODE_TYPE_JSON_RPC: {
-            char *address = addressAsString(accountGetPrimaryAddress(node->account));
+            char *address = addressRawGetEncodedString(accountGetPrimaryAddress(node->account), 0);
 
             node->client.funcGetTransactions
             (node->client.funcContext,
@@ -452,13 +452,15 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
                              const char *isError) {
     BREthereumTransactionId tid = -1;
 
-    BREthereumEncodedAddress primaryAddress = accountGetPrimaryAddress(node->account);
+    BREthereumAddress primaryAddress = accountGetPrimaryAddress(node->account);
+    BREthereumAddress fromAddress = addressRawCreate(from);
+    BREthereumAddress totoAddress = addressRawCreate(to);
 
-    assert (ETHEREUM_BOOLEAN_IS_TRUE(addressHasString(primaryAddress, from))
-            || ETHEREUM_BOOLEAN_IS_TRUE(addressHasString(primaryAddress, to)));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(addressRawEqual(primaryAddress, fromAddress))
+            || ETHEREUM_BOOLEAN_IS_TRUE(addressRawEqual(primaryAddress, totoAddress)));
 
     // primaryAddress is either the transaction's `source` or `target`.
-    BREthereumBoolean isSource = addressHasString(primaryAddress, from);
+    BREthereumBoolean isSource = addressRawEqual(primaryAddress, fromAddress);
 
     // Get the nonceValue
     uint64_t nonce = strtoull(strNonce, NULL, 10); // TODO: Assumes `nonce` is uint64_t; which it is for now
@@ -493,11 +495,8 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
         // TODO: Handle Status Error
         BRCoreParseStatus status;
 
-        BREthereumEncodedAddress sourceAddr =
-        (ETHEREUM_BOOLEAN_IS_TRUE(isSource) ? primaryAddress : createAddress(from));
-
-        BREthereumEncodedAddress targetAddr =
-        (ETHEREUM_BOOLEAN_IS_TRUE(isSource) ? createAddress(to) : primaryAddress);
+        BREthereumAddress sourceAddr = (ETHEREUM_BOOLEAN_IS_TRUE(isSource) ? primaryAddress : fromAddress);
+        BREthereumAddress targetAddr = (ETHEREUM_BOOLEAN_IS_TRUE(isSource) ? totoAddress : primaryAddress);
 
         // Get the amount; this will be '0' if this is a token transfer
         BREthereumAmount amount =
@@ -610,7 +609,7 @@ lightNodeUpdateLogs (BREthereumLightNode node,
             // TODO: Fall-through on error, perhaps
 
         case NODE_TYPE_JSON_RPC: {
-            char *address = addressAsString(accountGetPrimaryAddress(node->account));
+            char *address = addressRawGetEncodedString(accountGetPrimaryAddress(node->account), 0);
             char *encodedAddress =
             eventERC20TransferEncodeAddress (event, address);
             const char *contract =lightNodeGetWalletContractAddress(node, wid);
@@ -684,11 +683,11 @@ lightNodeAnnounceLog (BREthereumLightNode node,
     if (NULL == transaction) {
 
         // Parse the topic data - we fake it becasue we 'know' topics indices
-        BREthereumEncodedAddress sourceAddr =
-        createAddress(eventERC20TransferDecodeAddress(event, arrayTopics[1]));
+        BREthereumAddress sourceAddr =
+                addressRawCreate(eventERC20TransferDecodeAddress(event, arrayTopics[1]));
 
-        BREthereumEncodedAddress targetAddr =
-        createAddress(eventERC20TransferDecodeAddress(event, arrayTopics[2]));
+        BREthereumAddress targetAddr =
+                addressRawCreate(eventERC20TransferDecodeAddress(event, arrayTopics[2]));
 
         BRCoreParseStatus status = CORE_PARSE_OK;
 

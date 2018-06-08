@@ -28,11 +28,8 @@
 
 #include <stdio.h>
 #include <inttypes.h>
-#include "BREthereumBase.h"
-#include "BREthereumTransaction.h"
-#include "BREthereumTransactionReceipt.h"
-#include "BREthereumTransactionStatus.h"
-#include "BREthereumBlock.h"
+#include "../base/BREthereumBase.h"
+#include "../blockchain/BREthereumBlockChain.h"
 #include "BRKey.h"
 #include "BRInt.h"
 #include "BRArray.h"

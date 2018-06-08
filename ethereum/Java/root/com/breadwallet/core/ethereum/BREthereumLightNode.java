@@ -405,7 +405,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
             tokens[i] = new BREthereumToken(references[i]);
 
         for (BREthereumToken token : tokens) {
-            System.err.println ("Token: " + token.getSymbol());
+            // System.err.println ("Token: " + token.getSymbol());
             tokensByReference.put(token.getIdentifier(), token);
             tokensByAddress.put (token.getAddress().toLowerCase(), token);
         }

@@ -89,12 +89,14 @@ signatureEqual (BREthereumSignature s1, BREthereumSignature s2) {
             : ETHEREUM_BOOLEAN_FALSE);
 }
 
-extern BREthereumEncodedAddress
-signatureExtractAddress (const BREthereumSignature signature,
-                         const uint8_t *bytes,
-                         size_t bytesCount,
-                         int *success) {
+extern BREthereumAddress
+signatureExtractAddress(const BREthereumSignature signature,
+                        const uint8_t *bytes,
+                        size_t bytesCount,
+                        int *success) {
     assert (NULL != success);
+
+    BREthereumAddress emptyAddress = EMPTY_ADDRESS_INIT;
 
     if (SIGNATURE_TYPE_RECOVERABLE != signature.type) {
         *success = 0;
@@ -112,5 +114,5 @@ signatureExtractAddress (const BREthereumSignature signature,
     if (0 == *success)
         return emptyAddress;
 
-    return createAddressDerived (&key, 0);
+    return addressRawCreateKey(&key);
 }

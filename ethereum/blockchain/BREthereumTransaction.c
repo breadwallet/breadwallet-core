@@ -91,12 +91,12 @@ struct BREthereumTransactionRecord {
     //
     //
     //
-    BREthereumEncodedAddress sourceAddress;
+    BREthereumAddress sourceAddress;
 
     //
     //
     //
-    BREthereumEncodedAddress targetAddress;
+    BREthereumAddress targetAddress;
 
     /**
      * The amount transferred from sourceAddress to targetAddress.  Note that this is not
@@ -132,8 +132,8 @@ struct BREthereumTransactionRecord {
 };
 
 extern BREthereumTransaction
-transactionCreate(BREthereumEncodedAddress sourceAddress,
-                  BREthereumEncodedAddress targetAddress,
+transactionCreate(BREthereumAddress sourceAddress,
+                  BREthereumAddress targetAddress,
                   BREthereumAmount amount,
                   BREthereumGasPrice gasPrice,
                   BREthereumGas gasLimit,
@@ -156,12 +156,12 @@ transactionCreate(BREthereumEncodedAddress sourceAddress,
     return transaction;
 }
 
-extern BREthereumEncodedAddress
+extern BREthereumAddress
 transactionGetSourceAddress(BREthereumTransaction transaction) {
     return transaction->sourceAddress;
 }
 
-extern BREthereumEncodedAddress
+extern BREthereumAddress
 transactionGetTargetAddress(BREthereumTransaction transaction) {
     return transaction->targetAddress;
 }
@@ -169,8 +169,8 @@ transactionGetTargetAddress(BREthereumTransaction transaction) {
 extern BREthereumBoolean
 transactionHasAddress (BREthereumTransaction transaction,
                        BREthereumAddress address) {
-    return (ETHEREUM_BOOLEAN_IS_TRUE(addressRawEqual(address, addressGetRawAddress(transaction->targetAddress)))
-            || ETHEREUM_BOOLEAN_IS_TRUE(addressRawEqual(address, addressGetRawAddress(transaction->targetAddress)))
+    return (ETHEREUM_BOOLEAN_IS_TRUE(addressRawEqual(address, transaction->targetAddress))
+            || ETHEREUM_BOOLEAN_IS_TRUE(addressRawEqual(address, transaction->targetAddress))
             ? ETHEREUM_BOOLEAN_TRUE
             : ETHEREUM_BOOLEAN_FALSE);
 }
@@ -283,7 +283,7 @@ provideData (BREthereumTransaction transaction) {
                 break;
             case AMOUNT_TOKEN: {
                 UInt256 value = amountGetTokenQuantity(transaction->amount).valueAsInteger;
-                const char *address = addressAsString(transaction->targetAddress);
+                const char *address = addressRawGetEncodedString(transaction->targetAddress, 0);
 
                 // Data is a HEX ENCODED string
                 transaction->data = (char *) contractEncode
@@ -336,11 +336,14 @@ transactionGetSignature (BREthereumTransaction transaction) {
     return transaction->signature;
 }
 
-extern BREthereumEncodedAddress
-transactionExtractAddress (BREthereumTransaction transaction,
-                           BREthereumNetwork network)
+extern BREthereumAddress
+transactionExtractAddress(BREthereumTransaction transaction,
+                          BREthereumNetwork network)
 {
-    if (ETHEREUM_BOOLEAN_IS_FALSE (transactionIsSigned(transaction))) return emptyAddress;
+    if (ETHEREUM_BOOLEAN_IS_FALSE (transactionIsSigned(transaction))) {
+        BREthereumAddress emptyAddress = EMPTY_ADDRESS_INIT;
+        return emptyAddress;
+    }
 
     int success = 1;
     BRRlpData unsignedRLPData = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
@@ -369,7 +372,7 @@ transactionEncodeAddressForHolding (BREthereumTransaction transaction,
                                     BRRlpCoder coder) {
     switch (amountGetType(holding)) {
         case AMOUNT_ETHER:
-            return addressRlpEncode(transaction->targetAddress, coder);
+            return addressRawRlpEncode(transaction->targetAddress, coder);
         case AMOUNT_TOKEN: {
             BREthereumToken token = tokenQuantityGetToken (amountGetTokenQuantity(holding));
             BREthereumEncodedAddress contractAddress = createAddress(tokenGetAddress(token));
@@ -502,7 +505,7 @@ transactionRlpDecodeItem (BRRlpItem item,
     assert (NULL != strData);
     if ('\0' == strData[0] || 0 == strcmp (strData, "0x")) {
         // This is a ETHER transfer
-        transaction->targetAddress = addressRlpDecode(items[3], coder);
+        transaction->targetAddress = addressRawRlpDecode(items[3], coder);
         transaction->amount = amountRlpDecodeAsEther(items[4], coder);
         transaction->data = strData;
     }
@@ -529,7 +532,7 @@ transactionRlpDecodeItem (BRRlpItem item,
         }
 
         transaction->amount = amountCreateToken(createTokenQuantity(token, amount));
-        transaction->targetAddress = createAddress(recvAddr);
+        transaction->targetAddress = addressRawCreate(recvAddr);
 
         free (recvAddr);
     }

@@ -379,9 +379,7 @@ lightNodeHandleNonce (BREthereumLightNode node,
                       uint64_t nonce) {
     pthread_mutex_lock(&node->lock);
 
-    BREthereumEncodedAddress address = accountGetPrimaryAddress(lightNodeGetAccount(node));
-
-    addressSetNonce(address, nonce, ETHEREUM_BOOLEAN_FALSE);
+    accountSetAddressNonce(node->account, accountGetPrimaryAddress(node->account), nonce, ETHEREUM_BOOLEAN_FALSE);
 
     // lightNodeListenerAnnounce ...
     pthread_mutex_unlock(&node->lock);
@@ -646,7 +644,7 @@ lightNodeWalletCreateTransaction(BREthereumLightNode node,
     pthread_mutex_lock(&node->lock);
 
     BREthereumTransaction transaction =
-      walletCreateTransaction(wallet, createAddress(recvAddress), amount);
+      walletCreateTransaction(wallet, addressRawCreate(recvAddress), amount);
 
     tid = lightNodeInsertTransaction(node, transaction);
     wid = lightNodeLookupWalletId(node, wallet);
