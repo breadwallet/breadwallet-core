@@ -198,7 +198,7 @@ typedef void* BREthereumLESBlockBodiesContext;
 
 typedef void
 (*BREthereumLESBlockBodiesCallback) (BREthereumLESBlockBodiesContext context,
-                                     BREthereumHash block, // BREthereumBlockHeader?
+                                     BREthereumBlockHeader block,
                                      BREthereumTransaction transactions[],
                                      BREthereumHash ommers[]);
 
@@ -242,7 +242,14 @@ lesGetReceiptsOne (BREthereumLES les,
 // Proofs
 //
 
-// ... omit ...
+
+extern BREthereumLESStatus
+lesGetGetProofsV2One (BREthereumLES les,
+                     BREthereumHash blockHash,
+                     BREthereumHash key,
+                     BREthereumHash key2,
+                     uint64_t fromLevel);
+
 
 //
 // LES GetTxStatus

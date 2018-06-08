@@ -407,7 +407,6 @@ void transactionStatusCallback(BREthereumLESTransactionStatusContext context,
     decodeHex(transactionHash.bytes, 32, transactionHashStr, strlen(transactionHashStr));
     
     assert(memcmp(transaction.bytes, transactionHash.bytes, 32) == 0);
-    assert(status.type == TRANSACTION_STATUS_INCLUDED);
 }
 
 void runLESTest() {
@@ -430,18 +429,53 @@ void runLESTest() {
     //Sleep for a bit to allow the les context to connect to the network
     sleep(3);
     
-    eth_log("LES-TESTS", "%s", "Sending Transaction Status Message");
-  
     // Prepare values to be given to a send tranactions status message
     char transactionHashStr[] = "c070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c";
+   // char transactionHashStr[] = "78453edd2955e6ef6b200f5f9b98b3940d0d3f1528f902e7e855df56bf934cc5";
     assert(32 == (strlen(transactionHashStr)/2));
     BREthereumHash transactionHash;
-    decodeHex(transactionHash.bytes, 32, headHashStr, strlen(headHashStr));
+    decodeHex(transactionHash.bytes, 32, transactionHashStr, strlen(transactionHashStr));
+  
+  
+//    lesGetBlockHeaders(les, NULL, NULL, 5732521, 10, 1, ETHEREUM_BOOLEAN_FALSE);
+ 
+    BREthereumHash* blocks;
+    array_new(blocks, 2);
     
- //   assert(lesGetTransactionStatusOne(les, NULL, transactionStatusCallback, transactionHash) == LES_SUCCESS);
+    char hash1Str[] = "0a89dd55d38929468c1303b92ab43ca57269ac864175fc6208ae739ffcc17c9b";
+    assert(32 == (strlen(hash1Str)/2));
+    BREthereumHash hash1;
+    decodeHex(hash1.bytes, 32, hash1Str, strlen(hash1Str));
     
-    //Sleep for a bit to allow the les context to connect to the network
-    //sleep(600);
+    char hash2Str[] = "089a6c0b4b960261287d30ee40b1eea2da2972e7189bd381137f55540d492b2c";
+    assert(32 == (strlen(hash2Str)/2));
+    BREthereumHash hash2;
+    decodeHex(hash2.bytes, 32, hash2Str, strlen(hash2Str));
+    
+   //  array_add(blocks, hash1);
+    // array_add(blocks, hash2);
+
+  //  lesGetBlockBodies(les, NULL, NULL, blocks);
+ 
+    lesGetReceipts(les,NULL,NULL,blocks);
+ 
+ 
+//    assert(lesGetTransactionStatusOne(les, NULL, transactionStatusCallback, transactionHash) == LES_SUCCESS);
+    
+    BREthereumAddress address = addressRawCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
+    uint8_t hash[32];
+    memcpy(hash,  address.bytes, 20);
+    memset(&hash[20], 0, 32 - 20);
+    
+    //BRKeccak256(hash, address.bytes, 20);
+    
+    BREthereumHash key, key2;
+    memcpy(key.bytes, hash, 32);
+    memset(key2.bytes, 0, 32);
+    lesGetGetProofsV2One(les,hash1,key,key2, 0);
+    
+    //Sleep to allow for the results to get back from the program. 
+    sleep(600);
 }
 void runLEStests(void) {
     

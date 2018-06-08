@@ -306,6 +306,7 @@ static BREthereumBoolean _isP2PMessage(BREthereumNode node, BRRlpCoder rlpCoder,
             ethereumNodeWriteToPeer(node, frame, frameSize, "P2P Pong");
             rlpDataRelease(data);
             free(frame);
+            retStatus = ETHEREUM_BOOLEAN_TRUE;
         }
         break;
         default:
@@ -327,17 +328,17 @@ static int _readMessage(BREthereumNode node) {
     // authenticate and decrypt header
     if(ETHEREUM_BOOLEAN_IS_FALSE(ethereumFrameCoderDecryptHeader(node->ioCoder, node->header, 32)))
     {
-        eth_log(ETH_LOG_TOPIC, "%s", "Error: Decryption of hello header from peer failed.");
+        eth_log(ETH_LOG_TOPIC, "%s", "Error: Decryption of header from peer failed.");
         return 1;
     }
 
     //Get frame size
     uint32_t frameSize = (uint32_t)(node->header[2]) | (uint32_t)(node->header[1])<<8 | (uint32_t)(node->header[0])<<16;
     
-    if(frameSize > 1024){
+   /* if(frameSize > 1024){
         eth_log(ETH_LOG_TOPIC, "%s", "Error: message frame size is too large");
         return 1;
-    }
+    }*/ 
     
     uint32_t fullFrameSize = frameSize + ((16 - (frameSize % 16)) % 16) + 16;
     

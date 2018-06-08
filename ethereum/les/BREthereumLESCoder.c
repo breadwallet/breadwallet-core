@@ -390,23 +390,23 @@ void ethereumLESAnnounce(UInt256 headHash, uint64_t headNumber, uint64_t headTd,
     free(items);
 }
 
-void  ethereumLESGetBlockHeaders(uint64_t reqId,
-                                 BREthereumBlock block,
-                                 uint64_t maxHeaders,
-                                 uint64_t skip,
-                                 uint64_t reverse,
-                                 uint8_t**rlpBytes, size_t* rlpBytesSize) {
+
+BRRlpData ethereumLESGetBlockHeaders(uint64_t message_id_offset,
+                                      uint64_t reqId,
+                                      uint64_t block,
+                                      uint64_t maxHeaders,
+                                      uint64_t skip,
+                                      uint64_t reverse) {
     
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem items[3];
     BRRlpItem blockItems[4];
     int idx = 0;
     
-    items[idx++] = rlpEncodeItemUInt64(coder, 0x02,1);
+   // items[idx++] = rlpEncodeItemUInt64(coder, 0x02,1);
     items[idx++] = rlpEncodeItemUInt64(coder, reqId,1);
 
-    BREthereumHash bHash = blockGetHash(block);
-    blockItems[0] = rlpEncodeItemBytes(coder, bHash.bytes, sizeof(bHash.bytes));
+    blockItems[0] = rlpEncodeItemUInt64(coder, block, 1);
     blockItems[1] = rlpEncodeItemUInt64(coder, maxHeaders, 1);
     blockItems[2] = rlpEncodeItemUInt64(coder, skip, 1);
     blockItems[3] = rlpEncodeItemUInt64(coder, reverse, 1);
@@ -414,8 +414,17 @@ void  ethereumLESGetBlockHeaders(uint64_t reqId,
     items[idx++] = rlpEncodeListItems(coder, blockItems, 4);
     
     BRRlpItem encoding = rlpEncodeListItems(coder, items, idx);
-    rlpDataExtract(coder, encoding, rlpBytes, rlpBytesSize);
+    
+    BRRlpData messageListData;
+    
+    rlpDataExtract(coder, encoding, &messageListData.bytes, &messageListData.bytesCount);
+    
+    BRRlpData retData = _encodePayloadId(coder, messageListData, message_id_offset + BRE_LES_ID_GET_BLOCK_HEADERS);
+    
     rlpCoderRelease(coder);
+    rlpDataRelease(messageListData);
+
+    return retData;
 }
 
 BREthereumLESDecodeStatus ethereumLESDecodeBlockHeaders(uint8_t*rlpBytes, size_t rlpBytesSize,  uint64_t* reqId, uint64_t* bv,
@@ -460,11 +469,71 @@ void ethereumLESBlockHeaders(uint64_t reqId, uint64_t bv, const BREthereumBlockH
 //
 // On-demand data retrieval
 //
-void ethereumLESGetBlockBodies(UInt256* blockHashes, size_t blockHashesCount, uint8_t**rlpBytes, size_t* rlpByesSize) {
+BRRlpData ethereumLESGetBlockBodies(uint64_t message_id_offset, uint64_t reqId, BREthereumHash* blockHashes) {
 
-    //TODO: Decode the rlp header from EthereumBlock.h once implemented
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem items[2];
+    BRRlpItem blockItems[array_count(blockHashes)];
+    int idx = 0;
+    
+   // items[idx++] = rlpEncodeItemUInt64(coder, 0x02,1);
+    items[idx++] = rlpEncodeItemUInt64(coder, reqId,1);
 
+    // [+0x04, reqID: P, [hash_0: B_32, hash_1: B_32, ...]]
 
+    for(int i = 0; i < array_count(blockHashes); ++i){
+        blockItems[i] = rlpEncodeItemBytes(coder, blockHashes[i].bytes, 32);
+    }
+    items[idx++] = rlpEncodeListItems(coder, blockItems, array_count(blockHashes));
+    
+    BRRlpItem encoding = rlpEncodeListItems(coder, items, idx);
+    
+    BRRlpData messageListData;
+    
+    rlpDataExtract(coder, encoding, &messageListData.bytes, &messageListData.bytesCount);
+    
+    BRRlpData retData = _encodePayloadId(coder, messageListData, message_id_offset + BRE_LES_ID_GET_BLOCK_BODIES);
+    
+    rlpCoderRelease(coder);
+    rlpDataRelease(messageListData);
+
+    return retData;
+
+}
+BRRlpData ethereumLESGetProofsV2(uint64_t message_id_offset, uint64_t reqId, BREthereumProofsRequest* proofs) {
+
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem items[2];
+    BRRlpItem blockItems[array_count(proofs)];
+    int idx = 0;
+    
+    // items[idx++] = rlpEncodeItemUInt64(coder, 0x02,1);
+    items[idx++] = rlpEncodeItemUInt64(coder, reqId,1);
+
+    // [+0x08, reqID: P, [ [blockhash: B_32, key: B_32, key2: B_32, fromLevel: P], ...]]
+    for(int i = 0; i < array_count(proofs); ++i){
+        BRRlpItem proofItems[4];
+        proofItems[0] = rlpEncodeItemBytes(coder, proofs[i].blockHash.bytes, 32);
+        proofItems[1] = rlpEncodeItemBytes(coder, proofs[i].key.bytes, 32);
+        proofItems[2] = rlpEncodeItemBytes(coder, proofs[i].key2.bytes, 32);
+        proofItems[3] = rlpEncodeItemUInt64(coder, proofs[i].fromLevel,1);
+        blockItems[i] = rlpEncodeListItems(coder, proofItems, 4);
+    }
+    
+    items[idx++] = rlpEncodeListItems(coder, blockItems, array_count(proofs));
+    
+    BRRlpItem encoding = rlpEncodeListItems(coder, items, idx);
+    
+    BRRlpData messageListData;
+    
+    rlpDataExtract(coder, encoding, &messageListData.bytes, &messageListData.bytesCount);
+    
+    BRRlpData retData = _encodePayloadId(coder, messageListData, message_id_offset + BRE_LES_ID_GET_PROOFS_V2);
+    
+    rlpCoderRelease(coder);
+    rlpDataRelease(messageListData);
+
+    return retData;
 }
 
 void ethereumLESDecodeBlockBodies(uint8_t*rlpBytes, uint64_t* reqId, uint64_t* bv, BREthereumBlockBody** blockBodies, size_t* blockBodiesCount) {
@@ -478,9 +547,35 @@ void ethereumLESBlockBodies(uint64_t reqId, uint64_t bv, const BREthereumBlockBo
     //TODO: Decode the rlp header from EthereumBlock.h once implemented
 
 }
-void ethereumLESGetReceipts(uint64_t reqId, UInt256* receipts, size_t receiptsCount, uint8_t**rlpBytes, size_t* rlpByesSize) {
+BRRlpData ethereumLESGetReceipts(uint64_t message_id_offset, uint64_t reqId, BREthereumHash* blockHashes) {
 
-    //TODO: Implement GetReceipts
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem items[2];
+    BRRlpItem blockItems[array_count(blockHashes)];
+    int idx = 0;
+    
+   // items[idx++] = rlpEncodeItemUInt64(coder, 0x02,1);
+    items[idx++] = rlpEncodeItemUInt64(coder, reqId,1);
+
+    // [+0x04, reqID: P, [hash_0: B_32, hash_1: B_32, ...]]
+
+    for(int i = 0; i < array_count(blockHashes); ++i){
+        blockItems[i] = rlpEncodeItemBytes(coder, blockHashes[i].bytes, 32);
+    }
+    items[idx++] = rlpEncodeListItems(coder, blockItems, array_count(blockHashes));
+    
+    BRRlpItem encoding = rlpEncodeListItems(coder, items, idx);
+    
+    BRRlpData messageListData;
+    
+    rlpDataExtract(coder, encoding, &messageListData.bytes, &messageListData.bytesCount);
+    
+    BRRlpData retData = _encodePayloadId(coder, messageListData, message_id_offset + BRE_LES_ID_GET_RECEIPTS);
+    
+    rlpCoderRelease(coder);
+    rlpDataRelease(messageListData);
+
+    return retData;
 
 }
 void ethereumLESDecodeReceipts(uint8_t*rlpBytes, uint64_t* reqId, uint64_t* bv, BREthereumReceipt**receipts, size_t* receiptsCount) {
@@ -583,9 +678,7 @@ BREthereumLESDecodeStatus ethereumLESDecodeTxStatus(uint8_t*rlpBytes, size_t rlp
     
     BREthereumTransactionStatus*retReplies = (BREthereumTransactionStatus*)malloc(sizeof(BREthereumTransactionStatus) * statusesCount);
     for(int i = 0; i < statusesCount; ++i){
-        size_t statusDataCount;
-        const BRRlpItem* statusData = rlpDecodeList(coder, statuses[i], &statusDataCount);
-        retReplies[i] = transactionStatusRLPDecodeItem(statusData[i], coder);
+        retReplies[i] = transactionStatusRLPDecodeItem(statuses[i], coder);
     }
     rlpCoderRelease(coder);
 

@@ -46,7 +46,7 @@ transactionStatusRLPDecodeItem (BRRlpItem item,
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
-    assert (2 == itemsCount);
+    assert (itemsCount >= 2); //Has to have at least two items according to the spec. Can have more if desired.
 
     status.type = (BREthereumTransactionStatusType) rlpDecodeItemUInt64(coder, items[0], 0);
     switch (status.type) {
@@ -65,7 +65,7 @@ transactionStatusRLPDecodeItem (BRRlpItem item,
             status.u.included.transactionIndex = rlpDecodeItemUInt64(coder, others[2], 0);
             break;
         }
-
+        
         case TRANSACTION_STATUS_ERROR:
             status.u.error.message = rlpDecodeItemString(coder, items[1]);
             break;
