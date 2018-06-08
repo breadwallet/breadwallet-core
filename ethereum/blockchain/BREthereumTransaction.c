@@ -169,8 +169,8 @@ transactionGetTargetAddress(BREthereumTransaction transaction) {
 extern BREthereumBoolean
 transactionHasAddress (BREthereumTransaction transaction,
                        BREthereumAddress address) {
-    return (ETHEREUM_BOOLEAN_IS_TRUE(addressRawEqual(address, transaction->targetAddress))
-            || ETHEREUM_BOOLEAN_IS_TRUE(addressRawEqual(address, transaction->targetAddress))
+    return (ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(address, transaction->targetAddress))
+            || ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(address, transaction->targetAddress))
             ? ETHEREUM_BOOLEAN_TRUE
             : ETHEREUM_BOOLEAN_FALSE);
 }
@@ -283,7 +283,7 @@ provideData (BREthereumTransaction transaction) {
                 break;
             case AMOUNT_TOKEN: {
                 UInt256 value = amountGetTokenQuantity(transaction->amount).valueAsInteger;
-                const char *address = addressRawGetEncodedString(transaction->targetAddress, 0);
+                const char *address = addressGetEncodedString(transaction->targetAddress, 0);
 
                 // Data is a HEX ENCODED string
                 transaction->data = (char *) contractEncode
@@ -372,12 +372,11 @@ transactionEncodeAddressForHolding (BREthereumTransaction transaction,
                                     BRRlpCoder coder) {
     switch (amountGetType(holding)) {
         case AMOUNT_ETHER:
-            return addressRawRlpEncode(transaction->targetAddress, coder);
+            return addressRlpEncode(transaction->targetAddress, coder);
         case AMOUNT_TOKEN: {
             BREthereumToken token = tokenQuantityGetToken (amountGetTokenQuantity(holding));
-            BREthereumEncodedAddress contractAddress = createAddress(tokenGetAddress(token));
+            BREthereumAddress contractAddress = tokenGetAddressRaw(token);
             BRRlpItem result = addressRlpEncode(contractAddress, coder);
-            addressFree(contractAddress);
             return result;
         }
     }
@@ -505,15 +504,15 @@ transactionRlpDecodeItem (BRRlpItem item,
     assert (NULL != strData);
     if ('\0' == strData[0] || 0 == strcmp (strData, "0x")) {
         // This is a ETHER transfer
-        transaction->targetAddress = addressRawRlpDecode(items[3], coder);
+        transaction->targetAddress = addressRlpDecode(items[3], coder);
         transaction->amount = amountRlpDecodeAsEther(items[4], coder);
         transaction->data = strData;
     }
     else {
         // This is a TOKEN transfer.
 
-        BREthereumEncodedAddress contractAddr = addressRlpDecode(items[3], coder);
-        BREthereumToken token = tokenLookup(addressAsString (contractAddr));
+        BREthereumAddress contractAddr = addressRlpDecode(items[3], coder);
+        BREthereumToken token = tokenLookupByAddress(contractAddr);
 
         // Confirm `strData` encodes functionERC20Transfer
         BREthereumContractFunction function = contractLookupFunctionForEncoding(contractERC20, strData);
@@ -532,7 +531,7 @@ transactionRlpDecodeItem (BRRlpItem item,
         }
 
         transaction->amount = amountCreateToken(createTokenQuantity(token, amount));
-        transaction->targetAddress = addressRawCreate(recvAddr);
+        transaction->targetAddress = addressCreate(recvAddr);
 
         free (recvAddr);
     }

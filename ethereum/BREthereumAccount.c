@@ -132,15 +132,15 @@ addressDetailFillKey(BREthereumAddressDetail *address, const BRKey *key, uint32_
     memcpy(address->publicKey, &key->pubKey[1], sizeof (address->publicKey));
 
 
-    address->raw = addressRawCreateKey(key);
-    char *string = addressRawGetEncodedString(address->raw, 1);
+    address->raw = addressCreateKey(key);
+    char *string = addressGetEncodedString(address->raw, 1);
     memcpy (address->string, string, 42);
     address->string[42] = '\0';
     free (string);
 }
 
 static void
-addressDetailFillSeed (BREthereumAccount account, UInt512 seed, uint32_t index) {
+addressDetailFillSeed (BREthereumAddressDetail *address, UInt512 seed, uint32_t index) {
     BRKey key = derivePrivateKeyFromSeed (seed, index);
 
     // Seriously???
@@ -156,7 +156,7 @@ addressDetailFillSeed (BREthereumAccount account, UInt512 seed, uint32_t index) 
     // "The public key is what we need in order to derive its Ethereum address. Every EC public key
     // begins with the 0x04 prefix before giving the location of the two point on the curve. You
     // should remove this leading 0x04 byte in order to hash it correctly. ...
-    addressDetailFillKey(&account->primaryAddress, &key, index);
+    addressDetailFillKey(address, &key, index);
 }
 
 
@@ -250,10 +250,34 @@ accountGetPrimaryAddressPrivateKey (BREthereumAccount account,
                                  account->primaryAddress.index);
 }
 
+#if defined (DEBUG)
+extern const char *
+accountGetPrimaryAddressPublicKeyString (BREthereumAccount account, int compressed) {
+    // The byte array at address->publicKey has the '04' 'uncompressed' prefix removed.  Thus
+    // the value in publicKey is uncompressed and 64 bytes.  As a string, this result will have
+    // an 0x0<n> prefix where 'n' is in { 4: uncompressed, 2: compressed even, 3: compressed odd }.
+
+    // Default, uncompressed
+    char *prefix = "0x04";
+    size_t sourceLen = sizeof (account->primaryAddress.publicKey);           // 64 bytes: { x y }
+
+    if (compressed) {
+        sourceLen /= 2;  // use 'x'; skip 'y'
+        prefix = (0 == account->primaryAddress.publicKey[63] % 2 ? "0x02" : "0x03");
+    }
+
+    char *result = malloc (4 + 2 * sourceLen + 1);
+    strcpy (result, prefix);  // encode properly...
+    encodeHex(&result[4], 2 * sourceLen + 1, account->primaryAddress.publicKey, sourceLen);
+
+    return result;
+}
+#endif
+
 extern BREthereumBoolean
 accountHasAddress(BREthereumAccount account,
                   BREthereumAddress address) {
-    return addressRawEqual(account->primaryAddress.raw, address);
+    return addressEqual(account->primaryAddress.raw, address);
 }
 
 extern BREthereumSignature
@@ -322,7 +346,7 @@ accountGetAddressIndex (BREthereumAccount account,
     return account->primaryAddress.index;
 }
 
-extern uint32_t
+extern uint64_t
 accountGetAddressNonce (BREthereumAccount account,
                         BREthereumAddress address) {
     // TODO: Lookup address, assert address

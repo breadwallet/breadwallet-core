@@ -61,7 +61,7 @@ lightNodeUpdateWalletBalance(BREthereumLightNode node,
         switch (node->type) {
             case NODE_TYPE_LES:
             case NODE_TYPE_JSON_RPC: {
-                char *address = addressRawGetEncodedString(walletGetAddress(wallet), 0);
+                char *address = addressGetEncodedString(walletGetAddress(wallet), 0);
 
                 node->client.funcGetBalance
                 (node->client.funcContext,
@@ -198,7 +198,7 @@ lightNodeUpdateTransactionGasEstimate (BREthereumLightNode node,
             case NODE_TYPE_JSON_RPC: {
                 // This will be ZERO if transaction amount is in TOKEN.
                 BREthereumEther amountInEther = transactionGetEffectiveAmountInEther(transaction);
-                char *to = (char *) addressRawGetEncodedString(transactionGetTargetAddress(transaction), 0);
+                char *to = (char *) addressGetEncodedString(transactionGetTargetAddress(transaction), 0);
                 char *amount = coerceString(amountInEther.valueInWEI, 16);
                 char *data = (char *) transactionGetData(transaction);
 
@@ -303,7 +303,7 @@ lightNodeUpdateNonce (BREthereumLightNode node) {
             // TODO: Fall-through on error, perhaps
             
         case NODE_TYPE_JSON_RPC: {
-            char *address = addressRawGetEncodedString(accountGetPrimaryAddress(node->account), 0);
+            char *address = addressGetEncodedString(accountGetPrimaryAddress(node->account), 0);
             
             node->client.funcGetNonce
             (node->client.funcContext,
@@ -345,7 +345,7 @@ lightNodeUpdateTransactions (BREthereumLightNode node) {
             // TODO: Fall-through on error, perhaps
 
         case NODE_TYPE_JSON_RPC: {
-            char *address = addressRawGetEncodedString(accountGetPrimaryAddress(node->account), 0);
+            char *address = addressGetEncodedString(accountGetPrimaryAddress(node->account), 0);
 
             node->client.funcGetTransactions
             (node->client.funcContext,
@@ -453,14 +453,14 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
     BREthereumTransactionId tid = -1;
 
     BREthereumAddress primaryAddress = accountGetPrimaryAddress(node->account);
-    BREthereumAddress fromAddress = addressRawCreate(from);
-    BREthereumAddress totoAddress = addressRawCreate(to);
+    BREthereumAddress fromAddress = addressCreate(from);
+    BREthereumAddress totoAddress = addressCreate(to);
 
-    assert (ETHEREUM_BOOLEAN_IS_TRUE(addressRawEqual(primaryAddress, fromAddress))
-            || ETHEREUM_BOOLEAN_IS_TRUE(addressRawEqual(primaryAddress, totoAddress)));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(primaryAddress, fromAddress))
+            || ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(primaryAddress, totoAddress)));
 
     // primaryAddress is either the transaction's `source` or `target`.
-    BREthereumBoolean isSource = addressRawEqual(primaryAddress, fromAddress);
+    BREthereumBoolean isSource = addressEqual(primaryAddress, fromAddress);
 
     // Get the nonceValue
     uint64_t nonce = strtoull(strNonce, NULL, 10); // TODO: Assumes `nonce` is uint64_t; which it is for now
@@ -609,7 +609,7 @@ lightNodeUpdateLogs (BREthereumLightNode node,
             // TODO: Fall-through on error, perhaps
 
         case NODE_TYPE_JSON_RPC: {
-            char *address = addressRawGetEncodedString(accountGetPrimaryAddress(node->account), 0);
+            char *address = addressGetEncodedString(accountGetPrimaryAddress(node->account), 0);
             char *encodedAddress =
             eventERC20TransferEncodeAddress (event, address);
             const char *contract =lightNodeGetWalletContractAddress(node, wid);
@@ -684,10 +684,10 @@ lightNodeAnnounceLog (BREthereumLightNode node,
 
         // Parse the topic data - we fake it becasue we 'know' topics indices
         BREthereumAddress sourceAddr =
-                addressRawCreate(eventERC20TransferDecodeAddress(event, arrayTopics[1]));
+                addressCreate(eventERC20TransferDecodeAddress(event, arrayTopics[1]));
 
         BREthereumAddress targetAddr =
-                addressRawCreate(eventERC20TransferDecodeAddress(event, arrayTopics[2]));
+                addressCreate(eventERC20TransferDecodeAddress(event, arrayTopics[2]));
 
         BRCoreParseStatus status = CORE_PARSE_OK;
 

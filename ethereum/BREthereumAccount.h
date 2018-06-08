@@ -108,6 +108,11 @@ extern BRKey
 accountGetPrimaryAddressPrivateKey (BREthereumAccount account,
                                     const char *paperKey);
 
+#if defined (DEBUG)
+extern const char *
+accountGetPrimaryAddressPublicKeyString (BREthereumAccount account, int compressed);
+#endif
+
 extern BREthereumBoolean
 accountHasAddress(BREthereumAccount account,
                   BREthereumAddress address);
@@ -155,7 +160,7 @@ extern uint32_t
 accountGetAddressIndex (BREthereumAccount account,
                         BREthereumAddress address);
 
-extern uint32_t
+extern uint64_t
 accountGetAddressNonce (BREthereumAccount account,
                         BREthereumAddress address);
 

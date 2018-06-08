@@ -297,14 +297,14 @@ extern char *
 ethereumTransactionGetRecvAddress(BREthereumLightNode node,
                                   BREthereumTransactionId tid) {
     BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
-    return addressRawGetEncodedString(transactionGetTargetAddress(transaction), 1);
+    return addressGetEncodedString(transactionGetTargetAddress(transaction), 1);
 }
 
 extern char * // sender, source
 ethereumTransactionGetSendAddress(BREthereumLightNode node,
                                   BREthereumTransactionId tid) {
     BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
-    return addressRawGetEncodedString(transactionGetSourceAddress(transaction), 1);
+    return addressGetEncodedString(transactionGetSourceAddress(transaction), 1);
 }
 
 extern char *

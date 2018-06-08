@@ -644,7 +644,7 @@ lightNodeWalletCreateTransaction(BREthereumLightNode node,
     pthread_mutex_lock(&node->lock);
 
     BREthereumTransaction transaction =
-      walletCreateTransaction(wallet, addressRawCreate(recvAddress), amount);
+      walletCreateTransaction(wallet, addressCreate(recvAddress), amount);
 
     tid = lightNodeInsertTransaction(node, transaction);
     wid = lightNodeLookupWalletId(node, wallet);

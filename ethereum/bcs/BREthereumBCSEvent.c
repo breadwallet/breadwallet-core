@@ -131,7 +131,7 @@ typedef struct {
     BREthereumBCS bcs;
     BREthereumHash blockHash;
     BREthereumTransaction *transactions;
-    BREthereumHash *ommers;
+    BREthereumBlockHeader *ommers;
 } BREthereumHandleBlockBodiesEvent;
 
 static void
@@ -153,7 +153,7 @@ extern void
 bcsSignalBlockBodies (BREthereumBCS bcs,
                       BREthereumHash blockHash,
                       BREthereumTransaction transactions[],
-                      BREthereumHash ommers[]) {
+                      BREthereumBlockHeader ommers[]) {
     BREthereumHandleBlockBodiesEvent event =
     { { NULL, &handleBlockBodiesEventType}, bcs, blockHash, transactions, ommers };
     eventHandlerSignalEvent(bcs->handler, (BREvent *) &event);

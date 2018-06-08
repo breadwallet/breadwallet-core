@@ -145,7 +145,7 @@ logGetAddress (BREthereumLog log) {
 extern BREthereumBoolean
 logHasAddress (BREthereumLog log,
                BREthereumAddress address) {
-    return addressRawEqual(log->address, address);
+    return addressEqual(log->address, address);
 }
 
 extern size_t
@@ -243,7 +243,7 @@ logRlpDecodeItem (BRRlpItem item,
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     assert (3 == itemsCount);
 
-    log->address = addressRawRlpDecode(items[0], coder);
+    log->address = addressRlpDecode(items[0], coder);
     log->topics = logTopicsRlpDecodeItem (items[1], coder);
 
     BRRlpData data = rlpDecodeItemBytes(coder, items[2]);
@@ -273,7 +273,7 @@ logRlpEncodeItem(BREthereumLog log,
 
     BRRlpItem items[3];
 
-    items[0] = addressRawRlpEncode(log->address, coder);
+    items[0] = addressRlpEncode(log->address, coder);
     items[1] = logTopicsRlpEncodeItem(log, coder);
     items[2] = rlpEncodeItemBytes(coder, log->data, log->dataCount);
 

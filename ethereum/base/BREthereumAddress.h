@@ -47,36 +47,36 @@ typedef struct {
 }
 
 extern BREthereumAddress
-addressRawCreate (const char *address);
+addressCreate (const char *address);
 
 /**
  * Create an EtherumAddress from a `key` - a BRKey that already has the PubKey provided!
  */
 extern BREthereumAddress
-addressRawCreateKey (const BRKey *keyWithPubKeyProvided);
+addressCreateKey (const BRKey *keyWithPubKeyProvided);
 
 extern char *
-addressRawGetEncodedString (BREthereumAddress address, int useChecksum);
+addressGetEncodedString (BREthereumAddress address, int useChecksum);
 
 extern BREthereumAddress
-addressRawRlpDecode (BRRlpItem item,
+addressRlpDecode (BRRlpItem item,
                      BRRlpCoder coder);
 
 extern BRRlpItem
-addressRawRlpEncode(BREthereumAddress address,
+addressRlpEncode(BREthereumAddress address,
                     BRRlpCoder coder);
 
 extern BREthereumBoolean
-addressRawEqual (BREthereumAddress address1,
+addressEqual (BREthereumAddress address1,
                  BREthereumAddress address2);
 
 static inline int
-addressRawHashValue (BREthereumAddress address) {
+addressHashValue (BREthereumAddress address) {
     return ((UInt160 *) &address)->u32[0];
 }
 
 static inline int
-addressRawHashEqual (BREthereumAddress address1,
+addressHashEqual (BREthereumAddress address1,
                      BREthereumAddress address2) {
     return 0 == memcmp (address1.bytes, address2.bytes, 20);
 }

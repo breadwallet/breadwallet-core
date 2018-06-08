@@ -114,5 +114,5 @@ signatureExtractAddress(const BREthereumSignature signature,
     if (0 == *success)
         return emptyAddress;
 
-    return addressRawCreateKey(&key);
+    return addressCreateKey(&key);
 }

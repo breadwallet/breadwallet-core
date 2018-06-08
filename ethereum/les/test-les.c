@@ -462,7 +462,7 @@ void runLESTest() {
  
 //    assert(lesGetTransactionStatusOne(les, NULL, transactionStatusCallback, transactionHash) == LES_SUCCESS);
     
-    BREthereumAddress address = addressRawCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
+    BREthereumAddress address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
     uint8_t hash[32];
     memcpy(hash,  address.bytes, 20);
     memset(&hash[20], 0, 32 - 20);

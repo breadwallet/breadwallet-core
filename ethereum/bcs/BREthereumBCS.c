@@ -52,7 +52,7 @@ bcsCreate (BREthereumNetwork network,
 
     bcs->network = network;
     bcs->account = account;
-    bcs->address = addressGetRawAddress(accountGetPrimaryAddress(account));
+    bcs->address = accountGetPrimaryAddress(account);
     bcs->filterForAddressOnTransactions = bloomFilterCreateAddress(bcs->address);
     bcs->filterForAddressOnLogs = logTopicGetBloomFilterAddress(bcs->address);
 
@@ -371,7 +371,7 @@ extern void
 bcsHandleBlockBodies (BREthereumBCS bcs,
                       BREthereumHash blockHash,
                       BREthereumTransaction transactions[],
-                      BREthereumHash ommers[]) {
+                      BREthereumBlockHeader ommers[]) {
 
     BREthereumBlockHeader header = BRSetGet(bcs->headers, &blockHash);
     if (NULL == header) return;

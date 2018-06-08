@@ -35,7 +35,7 @@
 // Address Raw
 //
 extern BREthereumAddress
-addressRawCreate (const char *address) {
+addressCreate (const char *address) {
     BREthereumAddress raw;
     if (0 == strncmp ("0x", address, 2)) address = &address[2];
     decodeHex(raw.bytes, sizeof(raw.bytes), address, strlen(address));
@@ -43,7 +43,7 @@ addressRawCreate (const char *address) {
 }
 
 extern BREthereumAddress
-addressRawCreateKey (const BRKey *key) {
+addressCreateKey (const BRKey *key) {
     BREthereumAddress address;
 
     //assert ( 0 == key->compressed);
@@ -79,7 +79,7 @@ addressRawCreateKey (const BRKey *key) {
 }
 
 extern char *
-addressRawGetEncodedString (BREthereumAddress address, int useChecksum) {
+addressGetEncodedString (BREthereumAddress address, int useChecksum) {
     char *string = calloc (1, 43);
 
 
@@ -147,7 +147,7 @@ addressRawGetEncodedString (BREthereumAddress address, int useChecksum) {
 }
 
 extern BREthereumAddress
-addressRawRlpDecode (BRRlpItem item, BRRlpCoder coder) {
+addressRlpDecode (BRRlpItem item, BRRlpCoder coder) {
     BREthereumAddress address;
 
     BRRlpData data = rlpDecodeItemBytes(coder, item);
@@ -158,13 +158,13 @@ addressRawRlpDecode (BRRlpItem item, BRRlpCoder coder) {
 }
 
 extern BRRlpItem
-addressRawRlpEncode(BREthereumAddress address,
+addressRlpEncode(BREthereumAddress address,
                     BRRlpCoder coder) {
     return rlpEncodeItemBytes(coder, address.bytes, 20);
 }
 
 extern BREthereumBoolean
-addressRawEqual (BREthereumAddress address1,
+addressEqual (BREthereumAddress address1,
                  BREthereumAddress address2) {
     return (0 == memcmp(address1.bytes, address2.bytes, 20)
             ? ETHEREUM_BOOLEAN_TRUE
