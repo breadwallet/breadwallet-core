@@ -65,7 +65,7 @@ struct BREthereumWalletRecord {
      * The wallet's primary address - perhaps the sole address.  Must be an address
      * from the wallet's account.
      */
-    BREthereumEncodedAddress address;      // Primary Address
+    BREthereumAddress address;      // Primary Address
     
     /**
      * The wallet's network.
@@ -119,13 +119,13 @@ struct BREthereumWalletRecord {
 //
 static BREthereumWallet
 walletCreateDetailed (BREthereumAccount account,
-                      BREthereumEncodedAddress address,
+                      BREthereumAddress address,
                       BREthereumNetwork network,
                       BREthereumAmountType type,
                       BREthereumToken optionalToken) {
     
     assert (NULL != account);
-    assert (NULL != address);
+//    assert (NULL != address);
     assert (AMOUNT_TOKEN != type || NULL != optionalToken);
     
     BREthereumWallet wallet = calloc(1, sizeof(struct BREthereumWalletRecord));
@@ -164,7 +164,7 @@ walletCreate(BREthereumAccount account,
 
 extern BREthereumWallet
 walletCreateWithAddress(BREthereumAccount account,
-                        BREthereumEncodedAddress address,
+                        BREthereumAddress address,
                         BREthereumNetwork network) {
     return walletCreateDetailed
     (account,
@@ -219,7 +219,7 @@ walletEstimateTransactionFeeDetailed (BREthereumWallet wallet,
 //
 extern BREthereumTransaction
 walletCreateTransaction(BREthereumWallet wallet,
-                        BREthereumEncodedAddress recvAddress,
+                        BREthereumAddress recvAddress,
                         BREthereumAmount amount) {
     
     return walletCreateTransactionDetailed
@@ -233,7 +233,7 @@ walletCreateTransaction(BREthereumWallet wallet,
 
 extern BREthereumTransaction
 walletCreateTransactionDetailed(BREthereumWallet wallet,
-                                BREthereumEncodedAddress recvAddress,
+                                BREthereumAddress recvAddress,
                                 BREthereumAmount amount,
                                 BREthereumGasPrice gasPrice,
                                 BREthereumGas gasLimit,
@@ -288,7 +288,7 @@ walletSignTransaction(BREthereumWallet wallet,
                       const char *paperKey) {
 
     if (TRANSACTION_NONCE_IS_NOT_ASSIGNED == transactionGetNonce(transaction))
-        transactionSetNonce (transaction, addressGetThenIncrementNonce(wallet->address));
+        transactionSetNonce (transaction, accountGetThenIncrementAddressNonce(wallet->account, wallet->address));
 
     // TODO: This is overkill...
     //assert (transactionGetNonce(transaction) + 1 == addressGetNonce(wallet->address));
@@ -317,7 +317,7 @@ walletSignTransactionWithPrivateKey(BREthereumWallet wallet,
                                     BRKey privateKey) {
 
     if (TRANSACTION_NONCE_IS_NOT_ASSIGNED == transactionGetNonce(transaction))
-        transactionSetNonce (transaction, addressGetThenIncrementNonce(wallet->address));
+        transactionSetNonce (transaction, accountGetThenIncrementAddressNonce(wallet->account, wallet->address));
 
     // TODO: This is overkill...
     //assert (transactionGetNonce(transaction) + 1 == addressGetNonce(wallet->address));
@@ -376,8 +376,8 @@ walletGetRawTransactionHexEncoded (BREthereumWallet wallet,
 // Wallet 'Field' Accessors
 //
 
-extern BREthereumEncodedAddress
-walletGetAddress (BREthereumWallet wallet) {
+extern BREthereumAddress
+walletGetAddress(BREthereumWallet wallet) {
     return wallet->address;
 }
 
@@ -485,9 +485,9 @@ walletGetTransactionByHash (BREthereumWallet wallet,
 }
 
 extern BREthereumTransaction
-walletGetTransactionByNonce (BREthereumWallet wallet,
-                             BREthereumEncodedAddress sourceAddress,
-                             uint64_t nonce) {
+walletGetTransactionByNonce(BREthereumWallet wallet,
+                            BREthereumAddress sourceAddress,
+                            uint64_t nonce) {
     for (int i = 0; i < array_count(wallet->transactions); i++)
         if (nonce == transactionGetNonce (wallet->transactions[i])
             && ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(sourceAddress, transactionGetSourceAddress(wallet->transactions[i]))))

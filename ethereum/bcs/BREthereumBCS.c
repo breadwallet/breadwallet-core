@@ -52,7 +52,7 @@ bcsCreate (BREthereumNetwork network,
 
     bcs->network = network;
     bcs->account = account;
-    bcs->address = addressGetRawAddress(accountGetPrimaryAddress(account));
+    bcs->address = accountGetPrimaryAddress(account);
     bcs->filterForAddressOnTransactions = bloomFilterCreateAddress(bcs->address);
     bcs->filterForAddressOnLogs = logTopicGetBloomFilterAddress(bcs->address);
 
@@ -371,7 +371,7 @@ extern void
 bcsHandleBlockBodies (BREthereumBCS bcs,
                       BREthereumHash blockHash,
                       BREthereumTransaction transactions[],
-                      BREthereumHash ommers[]) {
+                      BREthereumBlockHeader ommers[]) {
 
     BREthereumBlockHeader header = BRSetGet(bcs->headers, &blockHash);
     if (NULL == header) return;
@@ -489,8 +489,8 @@ bcsHandleLogCreateTransaction (BREthereumBCS bcs,
                                BREthereumLog log,
                                BREthereumToken token) {
 
-    BREthereumEncodedAddress sourceAddr = createAddressRaw(logTopicAsAddress(logGetTopic(log, 1)));
-    BREthereumEncodedAddress targetAddr = createAddressRaw(logTopicAsAddress(logGetTopic(log, 2)));
+    BREthereumAddress sourceAddr = logTopicAsAddress(logGetTopic(log, 1));
+    BREthereumAddress targetAddr = logTopicAsAddress(logGetTopic(log, 2));
 
     // TODO: No Way
     BRRlpData valueData = logGetData(log);

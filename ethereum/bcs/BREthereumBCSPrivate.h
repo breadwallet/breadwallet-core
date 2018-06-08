@@ -107,13 +107,13 @@ extern void
 bcsHandleBlockBodies (BREthereumBCS bcs,
                       BREthereumHash blockHash,
                       BREthereumTransaction transactions[],
-                      BREthereumHash ommers[]);
+                      BREthereumBlockHeader ommers[]);
 
 extern void
 bcsSignalBlockBodies (BREthereumBCS bcs,
                       BREthereumHash blockHash,
                       BREthereumTransaction transactions[],
-                      BREthereumHash ommers[]);
+                      BREthereumBlockHeader ommers[]);
 
 //
 // Transactions

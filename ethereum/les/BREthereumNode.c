@@ -37,10 +37,10 @@
 #include <string.h>
 #include "BRInt.h"
 #include "BRCrypto.h"
-#include "BREthereumLog.h"
+#include "../blockchain/BREthereumLog.h"
 #include "BREthereumNode.h"
 #include "BREthereumHandshake.h"
-#include "BREthereumBase.h"
+#include "../base/BREthereumBase.h"
 #include "BREthereumNodeDiscovery.h"
 #include "BREthereumAccount.h"
 #include "BRKey.h"

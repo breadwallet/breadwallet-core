@@ -73,7 +73,7 @@ ethereumGetAccount(BREthereumLightNode node) {
 
 extern char *
 ethereumGetAccountPrimaryAddress(BREthereumLightNode node) {
-    return addressAsString (accountGetPrimaryAddress(lightNodeGetAccount(node)));
+    return accountGetPrimaryAddressString(lightNodeGetAccount(node));
 }
 
 extern BRKey // key.pubKey
@@ -297,14 +297,14 @@ extern char *
 ethereumTransactionGetRecvAddress(BREthereumLightNode node,
                                   BREthereumTransactionId tid) {
     BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
-    return addressAsString(transactionGetTargetAddress(transaction));
+    return addressGetEncodedString(transactionGetTargetAddress(transaction), 1);
 }
 
 extern char * // sender, source
 ethereumTransactionGetSendAddress(BREthereumLightNode node,
                                   BREthereumTransactionId tid) {
     BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
-    return addressAsString(transactionGetSourceAddress(transaction));
+    return addressGetEncodedString(transactionGetSourceAddress(transaction), 1);
 }
 
 extern char *

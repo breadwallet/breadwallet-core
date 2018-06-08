@@ -41,17 +41,17 @@ extern "C" {
 typedef struct BREthereumTransactionRecord *BREthereumTransaction;
 
 extern BREthereumTransaction
-transactionCreate(BREthereumEncodedAddress sourceAddress,
-                  BREthereumEncodedAddress targetAddress,
+transactionCreate(BREthereumAddress sourceAddress,
+                  BREthereumAddress targetAddress,
                   BREthereumAmount amount,
                   BREthereumGasPrice gasPrice,
                   BREthereumGas gasLimit,
                   uint64_t nonce);
 
-extern BREthereumEncodedAddress
+extern BREthereumAddress
 transactionGetSourceAddress(BREthereumTransaction transaction);
 
-extern BREthereumEncodedAddress
+extern BREthereumAddress
 transactionGetTargetAddress(BREthereumTransaction transaction);
 
 extern BREthereumBoolean
@@ -132,9 +132,9 @@ transactionGetSignature (BREthereumTransaction transaction);
     /**
      * Extract the signer's address.  If not signed, an empty address is returned.
      */
-extern BREthereumEncodedAddress
-transactionExtractAddress (BREthereumTransaction transaction,
-                           BREthereumNetwork network);
+extern BREthereumAddress
+transactionExtractAddress(BREthereumTransaction transaction,
+                          BREthereumNetwork network);
 //
 // Transaction RLP Encoding
 //

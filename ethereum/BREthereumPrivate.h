@@ -71,16 +71,18 @@ walletHasTransaction (BREthereumWallet wallet,
                       BREthereumTransaction transaction);
 
 //
-// Address
+// Account (Primary) Address Nonce
 //
 
 private_extern void
-addressSetNonce(BREthereumEncodedAddress address,
+accountSetAddressNonce(BREthereumAccount account,
+                       BREthereumAddress address,
                 uint64_t nonce,
                 BREthereumBoolean force);
 
 private_extern uint64_t
-addressGetThenIncrementNonce(BREthereumEncodedAddress address);
+accountGetThenIncrementAddressNonce(BREthereumAccount account,
+                                    BREthereumAddress address);
 
 //
 // Token Lookup

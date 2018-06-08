@@ -679,34 +679,33 @@ void runRlpTest () {
 #define TEST_ETH_PRIKEY   "0x73bf21bf06769f98dabcfac16c2f74e852da823effed12794e56876ede02d45d"
 
 void runAddressTests (BREthereumAccount account) {
-    BREthereumEncodedAddress address = accountGetPrimaryAddress(account);
+    BREthereumAddress address = accountGetPrimaryAddress(account);
     
     printf ("== Address\n");
-    printf ("        String: %p\n", address);
-    
+    printf ("        String: %p\n", &address);
     printf ("      PaperKey: %p, %s\n", TEST_PAPER_KEY, TEST_PAPER_KEY);
 
 #if defined (DEBUG)
-    const char *publicKeyString = addressPublicKeyAsString (address, 1);
+    const char *publicKeyString = accountGetPrimaryAddressPublicKeyString(account, 1);
     printf ("    Public Key: %p, %s\n", publicKeyString, publicKeyString);
     assert (0 == strcmp (TEST_ETH_PUBKEY, publicKeyString));
     free ((void *) publicKeyString);
 #endif
     
-    const char *addressString = addressAsString (address);
+    const char *addressString = addressGetEncodedString(address, 1);
     printf ("       Address: %s\n", addressString);
     assert (0 == strcmp (TEST_ETH_ADDR, addressString) ||
             0 == strcmp (TEST_ETH_ADDR_CHK, addressString));
 
-    assert (0 == addressGetNonce(address));
-    assert (0 == addressGetThenIncrementNonce(address));
-    assert (1 == addressGetNonce(address));
-    addressSetNonce(address, 0, ETHEREUM_BOOLEAN_FALSE);
-    assert (1 == addressGetNonce(address));
-    addressSetNonce(address, 0, ETHEREUM_BOOLEAN_TRUE);
-    assert (0 == addressGetNonce(address));
-    addressSetNonce(address, 2, ETHEREUM_BOOLEAN_FALSE);
-    assert (2 == addressGetNonce(address));
+    assert (0 == accountGetAddressNonce(account, address));
+    assert (0 == accountGetThenIncrementAddressNonce(account, address));
+    assert (1 == accountGetAddressNonce(account, address));
+    accountSetAddressNonce(account, address, 0, ETHEREUM_BOOLEAN_FALSE);
+    assert (1 == accountGetAddressNonce(account, address));
+    accountSetAddressNonce(account, address, 0, ETHEREUM_BOOLEAN_TRUE);
+    assert (0 == accountGetAddressNonce(account, address));
+    accountSetAddressNonce(account, address, 2, ETHEREUM_BOOLEAN_FALSE);
+    assert (2 == accountGetAddressNonce(account, address));
 
     free ((void *) addressString);
 }
@@ -842,7 +841,7 @@ void runTransactionTests1 (BREthereumAccount account, BREthereumNetwork network)
     
     BREthereumTransaction transaction = walletCreateTransactionDetailed
     (wallet,
-     createAddress(TEST_TRANS1_TARGET_ADDRESS),
+     addressCreate(TEST_TRANS1_TARGET_ADDRESS),
      amountCreateEther(etherCreateNumber(TEST_TRANS1_ETHER_AMOUNT, TEST_TRANS1_ETHER_AMOUNT_UNIT)),
      gasPriceCreate(etherCreateNumber(TEST_TRANS1_GAS_PRICE_VALUE, TEST_TRANS1_GAS_PRICE_UNIT)),
      gasCreate(TEST_TRANS1_GAS_LIMIT),
@@ -892,7 +891,7 @@ void runTransactionTests2 (BREthereumAccount account, BREthereumNetwork network)
     
     BREthereumTransaction transaction = walletCreateTransactionDetailed
     (wallet,
-     createAddress(TEST_TRANS2_TARGET_ADDRESS),
+     addressCreate(TEST_TRANS2_TARGET_ADDRESS),
      amountCreateEther(etherCreateNumber(TEST_TRANS2_ETHER_AMOUNT, TEST_TRANS2_ETHER_AMOUNT_UNIT)),
      gasPriceCreate(etherCreateNumber(TEST_TRANS2_GAS_PRICE_VALUE, TEST_TRANS2_GAS_PRICE_UNIT)),
      gasCreate(TEST_TRANS2_GAS_LIMIT),
@@ -947,6 +946,7 @@ void runTransactionTests2 (BREthereumAccount account, BREthereumNetwork network)
 #define TEST_TRANS3_UNSIGNED_TX "f86d83067642850ba43b74008301246a94558ec3152e2eb2174905cd19aea4e34a23de9ad680b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000001439152d319e84d0000018080"
 // Add 018080 (v,r,s); adjust header count
 // Answer: "0xf8ad 83067642 850ba43b7400 8301246a 94,558ec3152e2eb2174905cd19aea4e34a23de9ad6_80_b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000001439152d319e84d0000"
+//         "0xf86d 83067642 850ba43b7400 8301246a 94,0000000000000000000000000000000000000000_80_b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000001439152d319e84d0000018080"    0x0000000143334f20
 // Error :    f86d 83067642 850ba43b7400 8301246a 94,558ec3152e2eb2174905cd19aea4e34a23de9ad6_00_b844a9059cbb000000000000000000000000932a27e1bc84f5b74c29af3d888926b1307f4a5c0000000000000000000000000000000000000000000001439152d319e84d0000018080
 //                                                                                            **  => amount = 0 => encoded as empty bytes, not numeric 0
 
@@ -961,7 +961,7 @@ void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network)
     
     BREthereumTransaction transaction = walletCreateTransactionDetailed
     (wallet,
-     createAddress(TEST_TRANS3_TARGET_ADDRESS),
+     addressCreate(TEST_TRANS3_TARGET_ADDRESS),
      amount,
      gasPriceCreate(etherCreateNumber(TEST_TRANS3_GAS_PRICE_VALUE, TEST_TRANS3_GAS_PRICE_UNIT)),
      gasCreate(TEST_TRANS3_GAS_LIMIT),
@@ -1029,7 +1029,7 @@ void testTransactionCodingEther () {
     BREthereumAccount account = createAccount (NODE_PAPER_KEY);
     BREthereumWallet wallet = walletCreate(account, ethereumMainnet);
 
-    BREthereumEncodedAddress txRecvAddr = createAddress(NODE_RECV_ADDR);
+    BREthereumAddress txRecvAddr = addressCreate(NODE_RECV_ADDR);
     BREthereumAmount txAmount = amountCreateEther(etherCreate(createUInt256(NODE_ETHER_AMOUNT)));
     BREthereumGasPrice txGasPrice = gasPriceCreate(etherCreate(createUInt256(NODE_GAS_PRICE_VALUE)));
     BREthereumGas txGas = gasCreate(NODE_GAS_LIMIT);
@@ -1058,15 +1058,15 @@ void testTransactionCodingEther () {
                                                     &typeMismatch));
 
     assert (ETHEREUM_BOOLEAN_TRUE == addressEqual(transactionGetTargetAddress(transaction),
-                                                  transactionGetTargetAddress(decodedTransaction)));
+                                                     transactionGetTargetAddress(decodedTransaction)));
 
     // Signature
     assert (ETHEREUM_BOOLEAN_TRUE == signatureEqual(transactionGetSignature (transaction),
                                                     transactionGetSignature (decodedTransaction)));
 
     // Address recovery
-    BREthereumEncodedAddress transactionSourceAddress = transactionGetSourceAddress(transaction);
-    BREthereumEncodedAddress decodedTransactionSourceAddress = transactionGetSourceAddress(decodedTransaction);
+    BREthereumAddress transactionSourceAddress = transactionGetSourceAddress(transaction);
+    BREthereumAddress decodedTransactionSourceAddress = transactionGetSourceAddress(decodedTransaction);
     assert (ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(transactionSourceAddress, decodedTransactionSourceAddress)));
 
     assert (ETHEREUM_BOOLEAN_IS_TRUE(accountHasAddress(account, transactionSourceAddress)));
@@ -1078,7 +1078,7 @@ void testTransactionCodingToken () {
     BREthereumAccount account = createAccount (NODE_PAPER_KEY);
     BREthereumWallet wallet = walletCreateHoldingToken(account, ethereumMainnet, tokenBRD);
 
-    BREthereumEncodedAddress txRecvAddr = createAddress(NODE_RECV_ADDR);
+    BREthereumAddress txRecvAddr = addressCreate(NODE_RECV_ADDR);
     BREthereumAmount txAmount = amountCreateToken(createTokenQuantity(tokenBRD, createUInt256(NODE_ETHER_AMOUNT)));
     BREthereumGasPrice txGasPrice = gasPriceCreate(etherCreate(createUInt256(NODE_GAS_PRICE_VALUE)));
     BREthereumGas txGas = gasCreate(NODE_GAS_LIMIT);
@@ -1107,7 +1107,7 @@ void testTransactionCodingToken () {
                                                     &typeMismatch));
 
     assert (ETHEREUM_BOOLEAN_TRUE == addressEqual(transactionGetTargetAddress(transaction),
-                                                  transactionGetTargetAddress(decodedTransaction)));
+                                                     transactionGetTargetAddress(decodedTransaction)));
 
     // Signature
     assert (ETHEREUM_BOOLEAN_TRUE == signatureEqual(transactionGetSignature (transaction),
@@ -1591,8 +1591,8 @@ extern void
 runBloomTests (void) {
     printf ("==== Bloom\n");
 
-    BREthereumBloomFilter filter1 = bloomFilterCreateAddress(addressRawCreate(BLOOM_ADDR_1));
-    BREthereumBloomFilter filter2 = logTopicGetBloomFilterAddress(addressRawCreate(BLOOM_ADDR_2));
+    BREthereumBloomFilter filter1 = bloomFilterCreateAddress(addressCreate(BLOOM_ADDR_1));
+    BREthereumBloomFilter filter2 = logTopicGetBloomFilterAddress(addressCreate(BLOOM_ADDR_2));
 
     BREthereumBloomFilter filter = bloomFilterOr(filter1, filter2);
     char *filterAsString = bloomFilterAsString(filter);
@@ -1603,7 +1603,7 @@ runBloomTests (void) {
 
     assert (ETHEREUM_BOOLEAN_IS_TRUE(bloomFilterMatch(filter, filter1)));
     assert (ETHEREUM_BOOLEAN_IS_TRUE(bloomFilterMatch(filter, filter2)));
-    assert (ETHEREUM_BOOLEAN_IS_FALSE(bloomFilterMatch(filter, bloomFilterCreateAddress(addressRawCreate("195e7baea6a6c7c4c2dfeb977efac326af552d87")))));
+    assert (ETHEREUM_BOOLEAN_IS_FALSE(bloomFilterMatch(filter, bloomFilterCreateAddress(addressCreate("195e7baea6a6c7c4c2dfeb977efac326af552d87")))));
 
 }
 
@@ -1710,9 +1710,9 @@ runBlockTest1 () {
     {
         BREthereumBloomFilter filter = bloomFilterCreateString(BLOCK_1_BLOOM);
 
-        BREthereumAddress addressSource = addressRawCreate(BLOCK_1_TX_132_SOURCE);
-        BREthereumAddress addressTarget = addressRawCreate(BLOCK_1_TX_132_TARGET);
-        BREthereumAddress addressTokenC = addressRawCreate(BLOCK_1_TX_132_TOKENC);
+        BREthereumAddress addressSource = addressCreate(BLOCK_1_TX_132_SOURCE);
+        BREthereumAddress addressTarget = addressCreate(BLOCK_1_TX_132_TARGET);
+        BREthereumAddress addressTokenC = addressCreate(BLOCK_1_TX_132_TOKENC);
 
         // 'LogsBloom' holds contact and topic info ...
         assert (ETHEREUM_BOOLEAN_IS_TRUE (bloomFilterMatch(filter, bloomFilterCreateAddress(addressTokenC))));
@@ -1728,9 +1728,9 @@ runBlockTest1 () {
     {
         BREthereumBloomFilter filter = bloomFilterCreateString(BLOCK_2_BLOOM);
 
-        BREthereumAddress addressSource = addressRawCreate(BLOCK_2_TX_53_SOURCE);
-        BREthereumAddress addressTarget = addressRawCreate(BLOCK_2_TX_53_TARGET);
-        BREthereumAddress addressTokenC = addressRawCreate(BLOCK_2_TX_53_TOKENC);
+        BREthereumAddress addressSource = addressCreate(BLOCK_2_TX_53_SOURCE);
+        BREthereumAddress addressTarget = addressCreate(BLOCK_2_TX_53_TARGET);
+        BREthereumAddress addressTokenC = addressCreate(BLOCK_2_TX_53_TOKENC);
 
         // 'LogsBloom' holds contact and topic info ...
         assert (ETHEREUM_BOOLEAN_IS_TRUE (bloomFilterMatch(filter, bloomFilterCreateAddress(addressTokenC))));
@@ -1887,6 +1887,8 @@ runTransactionReceiptTests (void) {
 extern void
 runTests (void) {
     installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
+    // Initialize tokens
+    tokenGet(0);
     runMathTests();
     runEtherParseTests();
     runTokenParseTests();
