@@ -46,13 +46,14 @@ transactionStatusRLPDecodeItem (BRRlpItem item,
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
-    assert (itemsCount >= 2); //Has to have at least two items according to the spec. Can have more if desired.
+    assert (3 == itemsCount); // [type, [blockHash blockNumber, txIndex], error]
 
     status.type = (BREthereumTransactionStatusType) rlpDecodeItemUInt64(coder, items[0], 0);
     switch (status.type) {
         case TRANSACTION_STATUS_UNKNOWN:
         case TRANSACTION_STATUS_QUEUED:
         case TRANSACTION_STATUS_PENDING:
+            // assert: [] == item[1], "" == item[2]
             break;
 
         case TRANSACTION_STATUS_INCLUDED: {
@@ -67,14 +68,29 @@ transactionStatusRLPDecodeItem (BRRlpItem item,
         }
         
         case TRANSACTION_STATUS_ERROR:
-            status.u.error.message = rlpDecodeItemString(coder, items[1]);
+            status.u.error.message = rlpDecodeItemString(coder, items[2]);
             break;
 
         case TRANSACTION_STATUS_CREATED:
         case TRANSACTION_STATUS_SIGNED:
         case TRANSACTION_STATUS_SUBMITTED:
+            // Never here - these three are additions, not part of LES txStatus
             break;
     }
 
     return status;
 }
+
+/* GETH TxStatus
+ ETH: TxtStatus: L  3: [
+ ETH: TxtStatus:   I  0: 0x
+ ETH: TxtStatus:   I  4: 0x11e19aa2
+ ETH: TxtStatus:   L  1: [
+ ETH: TxtStatus:     L  3: [
+ ETH: TxtStatus:       I  0: 0x         # status: unknown (0)
+ ETH: TxtStatus:       L  0: []         # [blockHash, blockNumber, transactionIndex]: []
+ ETH: TxtStatus:       I  0: 0x         # error: ""
+ ETH: TxtStatus:     ]
+ ETH: TxtStatus:   ]
+ ETH: TxtStatus: ]
+ */
