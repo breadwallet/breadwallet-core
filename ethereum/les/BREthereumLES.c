@@ -235,7 +235,6 @@ lesCreate (BREthereumNetwork network,
         /*** Define the status message **/
         les->statusMsg.protocolVersion = 0x02;
         les->statusMsg.chainId = networkGetChainId(network);
-    //    les->statusMsg.headerTd = createUInt256(headTotalDifficulty);
         les->statusMsg.headerTd = createUInt256(headTotalDifficulty);
         memcpy(les->statusMsg.headHash, headHash.bytes, 32);
         les->statusMsg.headNum = headNumber;
@@ -372,7 +371,7 @@ lesSubmitTransaction (BREthereumLES les,
         }else {
             sendTxtData = ethereumLESSendTxt(les->message_id_offset, reqId, transactionArr, les->network, type);
         }
-        BREthereumLESStatus status =  _sendMessage(les, BRE_LES_ID_GET_TX_STATUS, sendTxtData);
+        BREthereumLESStatus status =  _sendMessage(les, BRE_LES_ID_SEND_TX2, sendTxtData);
         array_free(transactionArr);
         rlpDataRelease(sendTxtData);
         return status;

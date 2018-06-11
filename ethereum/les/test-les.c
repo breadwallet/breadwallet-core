@@ -50,6 +50,7 @@
 #include "BRCrypto.h"
 #include "BREthereum.h"
 #include "BREthereumHandshake.h"
+#include "BREthereumLightNode.h"
 
 // LES Tests
 
@@ -394,9 +395,9 @@ void runAuthTests() {
 void _announceCallback (BREthereumLESAnnounceContext context,
                                   BREthereumHash headHash,
                                   uint64_t headNumber,
-                                  uint64_t headTotalDifficulty) {
+                                  UInt256 headTotalDifficulty) {
     
- 
+    printf("RECEIVED AN ANNOUNCE MESSAGE!!!!!!\n");
 }
 void transactionStatusCallback(BREthereumLESTransactionStatusContext context,
                                BREthereumHash transaction,
@@ -407,6 +408,105 @@ void transactionStatusCallback(BREthereumLESTransactionStatusContext context,
     decodeHex(transactionHash.bytes, 32, transactionHashStr, strlen(transactionHashStr));
     
     assert(memcmp(transaction.bytes, transactionHash.bytes, 32) == 0);
+}
+static void _transactionStatus(BREthereumLESTransactionStatusContext context,
+                       BREthereumHash transaction,
+                       BREthereumTransactionStatus status){
+    
+   printf("RECEIVED AN TRANSACTION STATUS");
+}
+void prepareLESTransaction (BREthereumLES les, const char *paperKey, const char *recvAddr, const uint64_t gasPrice, const uint64_t gasLimit, const uint64_t amount) {
+    printf ("     Prepare Transaction\n");
+
+    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
+    // A wallet amount Ether
+    BREthereumWalletId wallet = ethereumGetWallet(node);
+    // END - One Time Code Block
+
+    // Optional - will provide listNodeWalletCreateTransactionDetailed.
+    ethereumWalletSetDefaultGasPrice(node, wallet, WEI, gasPrice);
+    ethereumWalletSetDefaultGasLimit(node, wallet, gasLimit);
+
+    BREthereumAmount amountAmountInEther =
+    ethereumCreateEtherAmountUnit(node, amount, WEI);
+
+    BREthereumTransactionId tx1 =
+    ethereumWalletCreateTransaction
+    (node,
+     wallet,
+     recvAddr,
+     amountAmountInEther);
+
+    ethereumWalletSignTransaction (node, wallet, tx1, paperKey);
+
+    const char *rawTransactionHexEncoded =
+    lightNodeGetTransactionRawDataHexEncoded(node, wallet, tx1, "0x");
+
+    printf ("        Raw Transaction: %s\n", rawTransactionHexEncoded);
+
+    char *fromAddr = ethereumGetAccountPrimaryAddress(node);
+    BREthereumTransactionId *transactions = ethereumWalletGetTransactions(node, wallet);
+    
+    assert (NULL != transactions && -1 != transactions[0]);
+
+    BREthereumTransactionId transaction = transactions[0];
+    assert (0 == strcmp (fromAddr, ethereumTransactionGetSendAddress(node, transaction)) &&
+            0 == strcmp (recvAddr, ethereumTransactionGetRecvAddress(node, transaction)));
+
+    BREthereumTransaction actualTransaction = lightNodeLookupTransaction(node, transaction);
+
+    assert(lesSubmitTransaction(les, NULL, _transactionStatus, TRANSACTION_RLP_SIGNED, actualTransaction) == LES_SUCCESS);
+    
+    sleep(600);
+    
+    free (fromAddr);
+    ethereumDestroy(node);
+}
+#define GAS_PRICE_20_GWEI       2000000000
+#define GAS_PRICE_10_GWEI       1000000000
+#define GAS_PRICE_5_GWEI         500000000
+#define GAS_LIMIT_DEFAULT 21000
+
+
+// Local (PaperKey) -> LocalTest @ 5 GWEI gasPrice @ 21000 gasLimit & 0.0001/2 ETH
+#define ACTUAL_RAW_TX "f86a01841dcd65008252089422583f6c7dae5032f4d72a10b9e9fa977cbfc5f68701c6bf52634000801ca05d27cbd6a84e5d34bb20ce7dade4a21efb4da7507958c17d7f92cfa99a4a9eb6a005fcb9a61e729b3c6b0af3bad307ef06cdf5c5578615fedcc4163a2aa2812260"
+// eth.sendRawTran ('0xf86a01841dcd65008252089422583f6c7dae5032f4d72a10b9e9fa977cbfc5f68701c6bf52634000801ca05d27cbd6a84e5d34bb20ce7dade4a21efb4da7507958c17d7f92cfa99a4a9eb6a005fcb9a61e729b3c6b0af3bad307ef06cdf5c5578615fedcc4163a2aa2812260', function (err, hash) { if (!err) console.log(hash); });
+extern void
+reallySendLESTransaction() {
+
+    //Prepare values to be given to an les context
+    BREthereumHash headHash;
+    char headHashStr[] = "d4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3";
+    assert(32 == (strlen(headHashStr)/2));
+    decodeHex(headHash.bytes, 32, headHashStr, strlen(headHashStr));
+
+    uint64_t headNumber = 0;
+    uint64_t headTD = 0x400000000;
+    
+    BREthereumHash genesisHash;
+    decodeHex(genesisHash.bytes, 32, headHashStr, strlen(headHashStr));
+
+    char paperKey[1024];
+    char recvAddress[1024];
+
+    fputs("PaperKey: ", stdout);
+    fgets (paperKey, 1024, stdin);
+    paperKey[strlen(paperKey) - 1] = '\0';
+
+    fputs("Address: ", stdout);
+    fgets (recvAddress, 1024, stdin);
+    recvAddress[strlen(recvAddress) - 1] = '\0';
+
+    printf ("PaperKey: '%s'\nAddress: '%s'\n", paperKey, recvAddress);
+
+    // Create an LES context
+    BREthereumLES les = lesCreate(ethereumMainnet, NULL, _announceCallback, headHash, headNumber, headTD, genesisHash);
+    
+    //
+    sleep(5);
+
+    // 0.001/2 ETH
+    prepareLESTransaction(les, paperKey, recvAddress, GAS_PRICE_5_GWEI, GAS_LIMIT_DEFAULT, 1000000000000000000 / 1000 / 2);
 }
 
 void runLESTest() {
@@ -427,7 +527,7 @@ void runLESTest() {
     BREthereumLES les = lesCreate(ethereumMainnet, NULL, _announceCallback, headHash, headNumber, headTD, genesisHash);
   
     //Sleep for a bit to allow the les context to connect to the network
-    sleep(3);
+    sleep(300);
     
     // Prepare values to be given to a send tranactions status message
     char transactionHashStr[] = "c070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c";
@@ -457,10 +557,10 @@ void runLESTest() {
 
   //  lesGetBlockBodies(les, NULL, NULL, blocks);
  
-    lesGetReceipts(les,NULL,NULL,blocks);
+  //  lesGetReceipts(les,NULL,NULL,blocks);
  
  
-//    assert(lesGetTransactionStatusOne(les, NULL, transactionStatusCallback, transactionHash) == LES_SUCCESS);
+    assert(lesGetTransactionStatusOne(les, NULL, transactionStatusCallback, transactionHash) == LES_SUCCESS);
     
     BREthereumAddress address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
     uint8_t hash[32];
@@ -472,14 +572,16 @@ void runLESTest() {
     BREthereumHash key, key2;
     memcpy(key.bytes, hash, 32);
     memset(key2.bytes, 0, 32);
-    lesGetGetProofsV2One(les,hash1,key,key2, 0);
+    //lesGetGetProofsV2One(les,hash1,key,key2, 0);
     
     //Sleep to allow for the results to get back from the program. 
     sleep(600);
 }
 void runLEStests(void) {
     
-     runLESTest();
+  //   runLESTest();
+  reallySendLESTransaction();
+  
   // runEthereumNodeTests();
   // runEthereumNodeEventHandlerTests();
   // runEthereumNodeDiscoveryTests();
