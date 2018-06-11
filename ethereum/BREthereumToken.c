@@ -472,19 +472,6 @@ static struct BREthereumTokenRecord tokens[] = {
     },
 
     {
-        "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6",
-        "BRD",
-        "BRD Token",
-        "",
-        18,
-        "#ff5193",
-        "#f9a43a",
-        { TOKEN_BRD_DEFAULT_GAS_LIMIT },
-        { { { .u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
-        1
-    },
-
-    {
         "0xcb97e65f07da24d46bcdd078ebebd7c6e6e3d750",
         "BTM",
         "Bytom",
