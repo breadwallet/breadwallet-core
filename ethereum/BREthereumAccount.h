@@ -33,7 +33,6 @@ extern "C" {
 #include "BRKey.h"
 #include "BRInt.h"
 #include "base/BREthereumBase.h"
-#include "BREthereumEncodedAddress.h"
 
 //
 // Account
