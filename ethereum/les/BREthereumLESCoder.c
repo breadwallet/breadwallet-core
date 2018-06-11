@@ -69,7 +69,7 @@ typedef struct {
 
 //
 // Handshake messages
-//
+// 
 static void _encodeKeyValueStatus(BRRlpCoder coder, BRRlpItem* keyPair, char* key, void* value, size_t auxValueCount) {
 
     if(strcmp(key, "protocolVersion") == 0) {
@@ -376,7 +376,7 @@ void ethereumLESAnnounce(UInt256 headHash, uint64_t headNumber, uint64_t headTd,
         BRRlpItem keyPairItem[2];
         keyPairItem[0] = rlpEncodeItemString(coder, keyPair->key);
         keyPairItem[1] = rlpEncodeItemString(coder, keyPair->key);
-        _encodeKeyValueStatus(coder, keyPairItem,keyPair->key, keyPair->value, flowControlMRRCount);
+       // _encodeKeyValueStatus(coder, keyPairItem,keyPair->key, keyPair->value, flowControlMRRCount);
         if (strcmp(keyPair->key, "txRelay") == 0 || strcmp(keyPair->key, "serveHeaders") == 0) {
             items[idx++] = rlpEncodeListItems(coder, keyPairItem, 1);
         }else {
@@ -388,7 +388,37 @@ void ethereumLESAnnounce(UInt256 headHash, uint64_t headNumber, uint64_t headTd,
     rlpCoderRelease(coder);
     free(items);
 }
-
+BREthereumLESDecodeStatus ethereumLESDecodeAnnounce(uint8_t*rlpBytes, size_t rlpBytesSize,
+                                                    BREthereumHash* hash,
+                                                    uint64_t* headNumber, UInt256* headTd, uint64_t* reorgDepth,
+                                                    BREthereumLESStatusMessage* status) {
+    
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpData data = {rlpBytesSize, rlpBytes};
+    BRRlpItem item = rlpGetItem (coder, data);
+    
+    size_t itemsCount;
+    const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
+   
+   // [+0x01, headHash: B_32, headNumber: P, headTd: P, reorgDepth: P, [key_0, value_0], [key_1, value_1], ...]
+    BRRlpData hashData = rlpDecodeItemBytes(coder, items[0]);
+    memcpy(hash->bytes, hashData.bytes, hashData.bytesCount);
+    rlpDataRelease(hashData);
+    
+    *headNumber = rlpDecodeItemUInt64(coder, items[1], 1);
+    *headTd = rlpDecodeItemUInt256(coder, items[2], 1);
+    *reorgDepth = rlpDecodeItemUInt64(coder, items[3], 1);
+    
+    size_t keyValuesCount = itemsCount - 4;
+    
+    for(int i = 0; i < keyValuesCount; ++i){
+         _decodeStatus(coder, &items[4 + i], 1, status);
+    }
+    rlpCoderRelease(coder);
+    
+    return BRE_LES_CODER_SUCCESS;
+}
+extern BREthereumLESDecodeStatus ethereumLESDecodeStatus(uint8_t*rlpBytes, size_t rlpBytesSize, BREthereumLESStatusMessage* status);
 
 BRRlpData ethereumLESGetBlockHeaders(uint64_t message_id_offset,
                                       uint64_t reqId,

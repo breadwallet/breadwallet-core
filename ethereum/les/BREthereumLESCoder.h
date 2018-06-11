@@ -42,6 +42,7 @@ extern "C" {
 #define TXSTATUS_ERROR 4
 
 typedef enum {
+  BRE_LES_ID_ANNOUNCE        = 0x01, 
   BRE_LES_ID_STATUS          = 0x00,
   BRE_LES_ID_SEND_TX2        = 0x13,
   BRE_LES_ID_SEND_TX         = 0x0c,
@@ -120,7 +121,14 @@ typedef struct {
 //
 typedef struct {
     char* key;
-    void* value;
+    union
+    {
+        uint64_t intValue;
+        UInt256 bigIntValue;
+        uint8_t byteValue;
+        BREthereumBoolean boolValue;
+        void* ptrValue;
+    }u;
 }BREthereumAnnounceRequest;
 
 
@@ -145,6 +153,11 @@ extern BRRlpData ethereumLESGetBlockHeaders(uint64_t message_id_offset,
                                       uint64_t maxHeaders,
                                       uint64_t skip,
                                       uint64_t reverse);
+
+BREthereumLESDecodeStatus ethereumLESDecodeAnnounce(uint8_t*rlpBytes, size_t rlpBytesSize,
+                                                    BREthereumHash* hash,
+                                                    uint64_t* headNumber, UInt256* headTd, uint64_t* reorgDepth,
+                                                    BREthereumLESStatusMessage* message);
  //
 // On-demand data retrieval
 //

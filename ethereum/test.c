@@ -1496,7 +1496,6 @@ reallySend () {
     // 0.001/2 ETH
     prepareTransaction(paperKey, recvAddress, GAS_PRICE_5_GWEI, GAS_LIMIT_DEFAULT, 1000000000000000000 / 1000 / 2);
 }
-
 //
 //
 //
