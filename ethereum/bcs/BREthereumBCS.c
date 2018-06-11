@@ -62,10 +62,13 @@ bcsCreate (BREthereumNetwork network,
     // Initialize the `headers`, `chain, and `orphans`
     //
     bcs->chain = NULL;
+    bcs->chainTail = NULL;
     bcs->headers = BRSetNew(blockHeaderHashValue,
                             blockHeaderHashEqual,
                             BCS_HEADERS_INITIAL_CAPACITY);
-    array_new (bcs->orphans, BCS_ORPHAN_HEADERS_INITIAL_CAPACITY);
+    bcs->orphans = BRSetNew(blockHeaderHashValue,
+                           blockHeaderHashEqual,
+                           BCS_ORPHAN_HEADERS_INITIAL_CAPACITY);
 
     //
     // Initialize `transactions` and `logs` sets
@@ -87,12 +90,45 @@ bcsCreate (BREthereumNetwork network,
     BREthereumBlockHeader genesis = networkGetGenesisBlockHeader(network);
 
     //
-    // Chain `headers` into bcs->headers, bcs->chain.
+    // Initialize `chain` based on `genesis`
     //
     bcs->chain = genesis;
-    if (NULL != headers) {
-    }
+    bcs->chainTail = bcs->chain;
+    BRSetAdd(bcs->headers, &bcs->chain);
 
+    // THIS SHOULD DUPLICATE 'NORMAL HEADER PROCESSING'
+
+    //
+    // Iterate over `headers` to recreate `chain`.  In general we cannot assume anything about
+    // `headers` - might have gaps (missing parent/child); might have duplicates.  Likely, we must
+    // be willing to create orphans, to discard/ignore headers, and what.
+    //
+    // We'll sort `headers` ascending by {blockNumber, timestamp}. Then we'll interate and chain
+    // them together while ignoring any duplicates/orphans.
+    if (NULL != headers) {
+        size_t sortedHeadersCount = array_count(headers);
+        BREthereumBlockHeader *sortedHeaders;
+        array_new(sortedHeaders, sortedHeadersCount);
+        array_add_array(sortedHeaders, headers, sortedHeadersCount);
+
+        // TODO: Sort
+
+        bcs->chainTail = NULL;
+        for (int i = 0; i < sortedHeadersCount; i++) {
+            // Skip header `i` if its blockNumber equals the blockNumber of `i+1`.
+            if (i + 1 < sortedHeadersCount &&
+                blockHeaderGetNumber(sortedHeaders[i]) == blockHeaderGetNumber(sortedHeaders[i+1]))
+                continue;
+
+            // TODO: Check for orpahns
+
+            BRSetAdd(bcs->headers, sortedHeaders[i]);
+            bcs->chain = sortedHeaders[i];
+
+            if (NULL == bcs->chainTail)
+                bcs->chainTail = bcs->chain;
+        }
+    }
 
     // Create but don't start the event handler.  Ensure that a fast-acting lesCreate()
     // can signal events (by queuing; they won't be handled until the event queue is started).
@@ -135,15 +171,15 @@ bcsIsStarted (BREthereumBCS bcs) {
 
 extern void
 bcsDestroy (BREthereumBCS bcs) {
-    // Stop LES - avoiding any more callbacks.
-//    lesRelease (bcs->les);
+    // Ensure we are stopped and no longer handling events (anything submitted will pile up).
+    if (ETHEREUM_BOOLEAN_IS_TRUE(bcsIsStarted(bcs)))
+        bcsStop (bcs);
 
-    // Stop the event handler - allows events to pile up.
-    eventHandlerStop(bcs->handler);
+    // TODO: We'll need to announce things to our `listener`
 
     // Free internal state.
     BRSetFree(bcs->headers);
-    array_free(bcs->orphans);
+    BRSetFree(bcs->orphans);
     BRSetFree(bcs->transactions);
     BRSetFree(bcs->logs);
     array_free(bcs->pendingTransactions);
@@ -185,7 +221,6 @@ bcsHandleSubmitTransaction (BREthereumBCS bcs,
     BRSetAdd(bcs->transactions, transaction);
 
     // Use LES to submit the transaction; provide our transactionStatus callback.
-
     BREthereumLESStatus lesStatus =
     lesSubmitTransaction(bcs->les,
                          (BREthereumLESTransactionStatusContext) bcs,
@@ -198,10 +233,9 @@ bcsHandleSubmitTransaction (BREthereumBCS bcs,
             break;
         case LES_UNKNOWN_ERROR:
         case LES_NETWORK_UNREACHABLE: {
-            BREthereumTransactionStatus status;
-            status.type = TRANSACTION_STATUS_ERROR;
-            status.u.error.message = "LES Submit Failed";
-            bcsSignalTransactionStatus(bcs, transactionGetHash(transaction), status);
+            bcsSignalTransactionStatus(bcs,
+                                       transactionGetHash(transaction),
+                                       transactionStatusCreateErrored("LES Submit Failed"));
             break;
         }
     }
@@ -250,8 +284,8 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
     // level (transactions, receipts, logs), could have changed and thus no processing is needed.
     if (NULL != BRSetGet(bcs->headers, header)) return;
 
-    // Ignore the header if it is not valid.  We might 'ping' the PeerManager or better
-    // maybe the PeerManager does this test so as to only send 'textually' valid header.
+    // Ignore the header if it is not valid.  Maybe the PeerManager does this test so as to only
+    // send 'textually' valid header.
     if (ETHEREUM_BOOLEAN_IS_FALSE(blockHeaderIsValid (header))) return;
 
     // Lookup `headerParent`
@@ -269,31 +303,27 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
 
     // Put `header` in the `chain`
 
-    // If we don't have a parent for `header` then `header` is an orphan.  Skip out.
-    if (NULL == headerParent) {
-        array_add(bcs->orphans, header);
+    // If there is no `header` parent or if  `header` parent is an orphan, then `header` is
+    // an orphan too.
+    if (NULL == headerParent || NULL != BRSetGet(bcs->orphans, headerParent)) {
+        BRSetAdd(bcs->orphans, header);
         return;
     }
-
-    // If the parent is an orphan then `header` is an orphan.  Skip out.
-    for (int i = 0; i < array_count(bcs->orphans); i++)
-        if (headerParent == bcs->orphans[i]) {
-            array_add (bcs->orphans, header);
-            return;
-        }
 
     // Can we assert that `headerParent` is in `chain`
 
     // Every header between `chain` and `headerParent` is now an orphan
     while (NULL != bcs->chain && headerParent != bcs->chain) {
         BREthereumHash chainParentHash = blockHeaderGetParentHash(bcs->chain);
+
         // Make an orphan from an existing chain element
-        // TODO: Handle unchained transactions, logs
-        array_add (bcs->orphans, bcs->chain);
+        // TODO: Handle unchained transactions, logs too
+        BRSetAdd (bcs->orphans, bcs->chain);
 
         // continue back.
         bcs->chain = BRSetGet(bcs->headers, &chainParentHash);
     }
+    // TODO: Handle bcs->chainTail
 
     // Must be there; right?
     assert (NULL != bcs->chain);
@@ -305,16 +335,18 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
     int keepLooking = 1;
     while (keepLooking) {
         keepLooking = 0;
-        for (int i = 0; i <array_count (bcs->orphans); i++) {
+        // We should look up bcs->orphans based on parentHash, see Aaron's Core code.
+        FOR_SET(BREthereumBlockHeader, orphan, bcs->orphans) {
             if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(blockHeaderGetHash (bcs->chain),
-                                                   blockHeaderGetParentHash(bcs->orphans[i])))) {
+                                                   blockHeaderGetParentHash(orphan)))) {
                 // Extend the chain.
-                bcs->chain = bcs->orphans[i];
+                bcs->chain = orphan;
 
                 // No longer an orphan
-                array_rm(bcs->orphans, i);
+                BRSetRemove(bcs->orphans, orphan);
+                // Our FOR_SET iteration is now broken, so ...
 
-                // Skip out (of `for`) but keep looking.
+                // ... skip out (of `for`) but keep looking.
                 keepLooking = 1;
                 break;
             }
@@ -323,8 +355,25 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
 
     // Examine transactions/logs to see if any are not chained or orphaned.
     //   Change their 'confirmation status' accordingly.
+    FOR_SET(BREthereumTransaction, tx, bcs->transactions) {
+        BREthereumHash blockHash;
+        if (transactionExtractIncluded(tx, NULL, &blockHash, NULL, NULL)) {
+            if (NULL != BRSetGet (bcs->orphans, &blockHash)) {
+                // TODO: Make TX an orphan
+            }
+            else if (NULL != BRSetGet (bcs->headers, &blockHash)) {
+                // TODO: Make TX included - wasn't it already
+            }
+        }
+    }
 
-    // We need block bodies and transactions for every matcjhing header between bcs->chain
+    FOR_SET(BREthereumLog, log, bcs->logs) {
+        BREthereumHash hash = logGetHash(log);
+        BREthereumTransaction transaction = BRSetGet (bcs->transactions, &hash);
+        // TODO: Mirror 'log' status as 'transaction'
+    }
+
+    // We need block bodies and transactions for every matching header between bcs->chain
     // and headerParent - because we added orphans - or might have.
     BREthereumHash *headerHashesTransactions, *headerHashesLogs;
     array_new (headerHashesTransactions, 5);
@@ -344,7 +393,7 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
         header = BRSetGet(bcs->headers, &headerParentHash);
     }
 
-    // If he have matching headers, then we'll request blockBodies.
+    // If we have matching transactions, then we'll request blockBodies.
     if (array_count(headerHashesTransactions) > 0) {
         // Get the blockbody
         lesGetBlockBodies(bcs->les,
@@ -354,6 +403,7 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
     }
     else array_free(headerHashesTransactions);
 
+    // If we have matchines logs, then we'll request transactionReceipts
     if (array_count(headerHashesLogs) > 0) {
         // Get the transaction receipts.
         lesGetReceipts(bcs->les,
@@ -364,6 +414,10 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
     else array_free(headerHashesLogs);
 
     // Save blocks - on a difficulty boundry?
+    uint64_t chainLength = blockHeaderGetNumber(bcs->chain) - blockHeaderGetNumber(bcs->chainTail);
+    if (chainLength >= 1000) {
+        // chop it down to 500
+    }
 }
 
 /*!
@@ -416,61 +470,52 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
     blockRelease(block);
 }
 
-// TODO: Add transactionIndex
-extern void
-bcsHandleTransaction (BREthereumBCS bcs,
-                      BREthereumHash blockHash,
-                      BREthereumTransaction transaction) {
-    // TODO: Get Block
-    BREthereumBlockHeader header = NULL;
-
-    BREthereumTransactionStatus status;
-    status.type = TRANSACTION_STATUS_INCLUDED;
-    status.u.included.gasUsed = gasCreate(0);
-    status.u.included.blockHash = blockHeaderGetHash(header);
-    status.u.included.blockNumber = blockHeaderGetNonce(header);
-    // TODO: Get transactionIndex
-    status.u.included.transactionIndex = 0;
-
-    bcs->listener.transactionCallback (bcs->listener.context, transaction);
-
-}
-
 /*!
  */
+static BREthereumBoolean
+bcsChainHasBlock (BREthereumBCS bcs,
+                  BREthereumHash blockHash,
+                  uint64_t blockNumber) {
+    if (blockNumber < blockHeaderGetNumber(bcs->chainTail) ||
+        blockNumber > blockHeaderGetNumber(bcs->chain))
+        return ETHEREUM_BOOLEAN_FALSE;
+
+    // TODO: Not quite - walk chain
+    return AS_ETHEREUM_BOOLEAN(NULL == BRSetGet(bcs->orphans, &blockHash));
+}
+
 extern void
 bcsHandleTransactionStatus (BREthereumBCS bcs,
                             BREthereumHash transactionHash,
                             BREthereumTransactionStatus status) {
-
-    // TODO: Get Transaction
     BREthereumTransaction transaction = BRSetGet(bcs->transactions, &transactionHash);
     if (NULL == transaction) return;
+
+    int noLongerPending = 0;
 
     //
     // TODO: Do we get 'included' before or after we see transaction, in the block body?
     //  If we get 'included' we should ignore because a) we'll see the transaction
     //  later and b) we don't have any block information to provide in transaction anyway.
-    //
+    //'
     switch (status.type) {
         case TRANSACTION_STATUS_UNKNOWN:
-        case TRANSACTION_STATUS_QUEUED:
             break;
+
+            // Awkward...
+        case TRANSACTION_STATUS_QUEUED:
         case TRANSACTION_STATUS_PENDING:
-            transactionAnnounceSubmitted(transaction, transactionHash);
+            status.type = TRANSACTION_STATUS_SUBMITTED;
             break;
 
         case TRANSACTION_STATUS_INCLUDED:
-            transactionAnnounceBlocked(transaction,
-                                       status.u.included.gasUsed,
-                                       status.u.included.blockHash,
-                                       status.u.included.blockNumber,
-                                       status.u.included.transactionIndex);
+            noLongerPending = ETHEREUM_BOOLEAN_IS_TRUE (bcsChainHasBlock (bcs,
+                                                                          status.u.included.blockHash,
+                                                                          status.u.included.blockNumber));
             break;
 
-        case TRANSACTION_STATUS_ERROR:
-            transactionAnnounceDropped(transaction, 0);
-            // TRANSACTION_EVENT_SUBMITTED, ERROR_TRANSACTION_SUBMISSION, event->status.u.error.message
+        case TRANSACTION_STATUS_ERRORED:
+            noLongerPending = 1;
             break;
 
         case TRANSACTION_STATUS_CREATED:
@@ -479,6 +524,15 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
             // TODO: DO
             break;
     }
+
+    if (noLongerPending)
+        for (int i = 0; i < array_count(bcs->pendingTransactions); i++)
+            if (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual(bcs->pendingTransactions[i], transactionHash))) {
+                array_rm(bcs->pendingTransactions, i);
+                break;
+            }
+
+    transactionSetStatus(transaction, status);
     bcs->listener.transactionCallback (bcs->listener.context, transaction);
 }
 
@@ -505,11 +559,11 @@ bcsHandleLogCreateTransaction (BREthereumBCS bcs,
     BREthereumGas gasLimit = tokenGetGasLimit(token);
 
     return transactionCreate(sourceAddr,
-                      targetAddr,
-                      amount,
-                      gasPrice,
-                      gasLimit,
-                      0);
+                             targetAddr,
+                             amount,
+                             gasPrice,
+                             gasLimit,
+                             0);
 
 }
 
@@ -569,12 +623,11 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
                     BREthereumTransaction logTransfer = bcsHandleLogCreateTransaction(bcs, log, token);
 
                     // Announce the transaction
-                    transactionAnnounceBlocked(logTransfer,
-                                               gasCreate(0),
-                                               blockHeaderGetHash(header),
-                                               blockHeaderGetNumber(header),
-                                               i);
-
+                    transactionSetStatus(logTransfer,
+                                         transactionStatusCreateIncluded(gasCreate(0),
+                                                                         blockHeaderGetHash(header),
+                                                                         blockHeaderGetNumber(header),
+                                                                         i));
                     bcs->listener.transactionCallback (bcs->listener.context, logTransfer);
                 }
             }
@@ -582,18 +635,12 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
     }
 }
 
-/*!
- */
-extern void
-bcsHandleLog (BREthereumBCS bcs,
-              BREthereumHash blockHash,
-              BREthereumHash transactionHash, // transaction?
-              BREthereumLog log) {
-}
-
+//
+// Periodicaly get the transaction status for all pending transaction
+//
 static void
 bcsPeriodicDispatcher (BREventHandler handler,
-                             BRTimeoutEvent *event) {
+                       BRTimeoutEvent *event) {
     BREthereumBCS bcs = (BREthereumBCS) event->context;
 
     // If nothing to do; simply skip out.
@@ -604,5 +651,39 @@ bcsPeriodicDispatcher (BREventHandler handler,
                              (BREthereumLESTransactionStatusContext) bcs,
                              (BREthereumLESTransactionStatusCallback) bcsSignalTransactionStatus,
                              bcs->pendingTransactions);
+}
+
+
+//
+// Unneeded
+//
+
+// TODO: Add transactionIndex
+extern void
+bcsHandleTransaction (BREthereumBCS bcs,
+                      BREthereumHash blockHash,
+                      BREthereumTransaction transaction) {
+    // TODO: Get Block
+    BREthereumBlockHeader header = NULL;
+
+    BREthereumTransactionStatus status;
+    status.type = TRANSACTION_STATUS_INCLUDED;
+    status.u.included.gasUsed = gasCreate(0);
+    status.u.included.blockHash = blockHeaderGetHash(header);
+    status.u.included.blockNumber = blockHeaderGetNonce(header);
+    // TODO: Get transactionIndex
+    status.u.included.transactionIndex = 0;
+
+    bcs->listener.transactionCallback (bcs->listener.context, transaction);
+
+}
+
+/*!
+ */
+extern void
+bcsHandleLog (BREthereumBCS bcs,
+              BREthereumHash blockHash,
+              BREthereumHash transactionHash, // transaction?
+              BREthereumLog log) {
 }
 

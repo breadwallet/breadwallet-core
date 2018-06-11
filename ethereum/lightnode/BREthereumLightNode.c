@@ -435,13 +435,13 @@ lightNodeHandleTransaction (BREthereumLightNode node,
                                                      : TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED),
                                                     SUCCESS, NULL);
             break;
-        case TRANSACTION_STATUS_ERROR:
+        case TRANSACTION_STATUS_ERRORED:
             lightNodeListenerSignalTransactionEvent(node, wid, tid,
                                                     (lightNodeGetBlockHeight(node) == status.u.included.blockNumber
                                                      ? TRANSACTION_EVENT_BLOCKED
                                                      : TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED),
                                                     ERROR_TRANSACTION_SUBMISSION,
-                                                    status.u.error.message);
+                                                    status.u.errored.reason);
             break;
 
         case TRANSACTION_STATUS_CREATED:

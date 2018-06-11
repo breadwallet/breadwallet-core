@@ -545,28 +545,31 @@ private_extern void
 walletTransactionSubmitted (BREthereumWallet wallet,
                             BREthereumTransaction transaction,
                             const BREthereumHash hash) {
-    transactionAnnounceSubmitted (transaction, hash);
+    transactionSetStatus(transaction, transactionStatusCreate (TRANSACTION_STATUS_SUBMITTED));
     // balance updated?
 }
 
 private_extern void
-walletTransactionBlocked(BREthereumWallet wallet,
+walletTransactionIncluded(BREthereumWallet wallet,
                          BREthereumTransaction transaction,
                          BREthereumGas gasUsed,
                          BREthereumHash blockHash,
                          uint64_t blockNumber,
                          uint64_t blockTransactionIndex) {
-    transactionAnnounceBlocked(transaction, gasUsed,
-                               blockHash,
-                               blockNumber,
-                               blockTransactionIndex);
+    transactionSetStatus(transaction,
+                         transactionStatusCreateIncluded(gasUsed,
+                                                         blockHash,
+                                                         blockNumber,
+                                                         blockTransactionIndex));
     walletUpdateTransactionSorted(wallet, transaction);
 }
 
 private_extern void
-walletTransactionDropped (BREthereumWallet wallet,
-                          BREthereumTransaction transaction) {
-    transactionAnnounceDropped (transaction, 0);
+walletTransactionErrored (BREthereumWallet wallet,
+                          BREthereumTransaction transaction,
+                          const char *reason) {
+    transactionSetStatus(transaction,
+                         transactionStatusCreateErrored(reason));
 }
 
 /*

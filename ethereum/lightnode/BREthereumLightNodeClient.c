@@ -546,7 +546,7 @@ lightNodeAnnounceTransaction(BREthereumLightNode node,
 
     // Update the status as blocked
     if (TRANSACTION_STATUS_INCLUDED != status.type)
-        walletTransactionBlocked(wallet, transaction, gasUsed,
+        walletTransactionIncluded(wallet, transaction, gasUsed,
                                  blockGetHash(block),
                                  blockGetNumber(block),
                                  blockTransactionIndex);
@@ -728,7 +728,7 @@ lightNodeAnnounceLog (BREthereumLightNode node,
 
     // Update the status as blocked
     if (TRANSACTION_STATUS_INCLUDED != status.type)
-        walletTransactionBlocked(wallet, transaction, gasUsed,
+        walletTransactionIncluded(wallet, transaction, gasUsed,
                                  blockGetHash(block),
                                  blockGetNumber(block),
                                  blockTransactionIndex);
