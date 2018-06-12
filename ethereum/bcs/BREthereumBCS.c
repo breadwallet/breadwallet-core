@@ -182,6 +182,7 @@ bcsHandleSubmitTransaction (BREthereumBCS bcs,
 
     // Mark `transaction` as pending; we'll perodically request status until finalized.
     array_add(bcs->pendingTransactions, transactionGetHash(transaction));
+    BRSetAdd(bcs->transactions, transaction);
 
     // Use LES to submit the transaction; provide our transactionStatus callback.
 
@@ -443,7 +444,8 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
                             BREthereumTransactionStatus status) {
 
     // TODO: Get Transaction
-    BREthereumTransaction transaction = NULL;
+    BREthereumTransaction transaction = BRSetGet(bcs->transactions, &transactionHash);
+    if (NULL == transaction) return;
 
     //
     // TODO: Do we get 'included' before or after we see transaction, in the block body?

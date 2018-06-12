@@ -393,7 +393,7 @@ lightNodeHandleTransaction (BREthereumLightNode node,
 
     // Find the wallet
     BREthereumAmount amount = transactionGetAmount(transaction);
-    BREthereumToken token = amountGetToken(amount);
+    BREthereumToken token =  (AMOUNT_TOKEN == amountGetType(amount) ? amountGetToken(amount) : NULL);
 
     BREthereumWalletId wid = (NULL == token ? 0 : lightNodeGetWalletHoldingToken(node, token));
     BREthereumWallet wallet = lightNodeLookupWallet(node, wid);

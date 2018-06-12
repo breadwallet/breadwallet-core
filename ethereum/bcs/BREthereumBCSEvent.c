@@ -309,4 +309,4 @@ const BREventType *bcsEventTypes[] = {
     &handleTransactionReceiptEventType,
     &handleLogEventType
 };
-const unsigned int bcsEventTypesCount = 3;
+const unsigned int bcsEventTypesCount = 7;

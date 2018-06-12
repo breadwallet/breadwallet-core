@@ -30,6 +30,7 @@
 #include "BRKey.h"
 #include "../rlp/BRRlp.h"
 #include "BREthereumLogic.h"
+#include "BREthereumHash.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,6 +58,9 @@ addressCreateKey (const BRKey *keyWithPubKeyProvided);
 
 extern char *
 addressGetEncodedString (BREthereumAddress address, int useChecksum);
+
+extern BREthereumHash
+addressGetHash (BREthereumAddress address);
 
 extern BREthereumAddress
 addressRlpDecode (BRRlpItem item,

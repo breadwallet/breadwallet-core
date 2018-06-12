@@ -1475,26 +1475,82 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
     ethereumDestroy(node);
 }
 
+#include "BREthereumPrivate.h"
+#include "BREthereumLightNode.h"
+
 // Local (PaperKey) -> LocalTest @ 5 GWEI gasPrice @ 21000 gasLimit & 0.0001/2 ETH
 #define ACTUAL_RAW_TX "f86a01841dcd65008252089422583f6c7dae5032f4d72a10b9e9fa977cbfc5f68701c6bf52634000801ca05d27cbd6a84e5d34bb20ce7dade4a21efb4da7507958c17d7f92cfa99a4a9eb6a005fcb9a61e729b3c6b0af3bad307ef06cdf5c5578615fedcc4163a2aa2812260"
 // eth.sendRawTran ('0xf86a01841dcd65008252089422583f6c7dae5032f4d72a10b9e9fa977cbfc5f68701c6bf52634000801ca05d27cbd6a84e5d34bb20ce7dade4a21efb4da7507958c17d7f92cfa99a4a9eb6a005fcb9a61e729b3c6b0af3bad307ef06cdf5c5578615fedcc4163a2aa2812260', function (err, hash) { if (!err) console.log(hash); });
+
 extern void
-reallySend () {
-    char paperKey[1024];
-    char recvAddress[1024];
+testReallySend (void) {
+    char buffer [1024];
 
-    fputs("PaperKey: ", stdout);
-    fgets (paperKey, 1024, stdin);
-    paperKey[strlen(paperKey) - 1] = '\0';
+    // START - One Time Code Block
+    JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
-    fputs("Address: ", stdout);
-    fgets (recvAddress, 1024, stdin);
-    recvAddress[strlen(recvAddress) - 1] = '\0';
+    BREthereumClient client =
+    ethereumClientCreate(context,
+                         clientGetBalance,
+                         clientGetGasPrice,
+                         clientEstimateGas,
+                         clientSubmitTransaction,
+                         clientGetTransactions,
+                         clientGetLogs,
+                         clientGetBlockNumber,
+                         clientGetNonce);
 
-    printf ("PaperKey: '%s'\nAddress: '%s'\n", paperKey, recvAddress);
+//    fputs("PaperKey: ", stdout);
+//    fgets (buffer, 1024, stdin);
+//    buffer[strlen(buffer) - 1] = '\0';
+//    char *paperKey = strdup(buffer);
 
-    // 0.001/2 ETH
-    prepareTransaction(paperKey, recvAddress, GAS_PRICE_5_GWEI, GAS_LIMIT_DEFAULT, 1000000000000000000 / 1000 / 2);
+    char *paperKey = "boring head harsh green empty clip fatal typical found crane dinner timber";
+
+//    fputs("Address: ", stdout);
+//    fgets (buffer, 1024, stdin);
+//    buffer[strlen(buffer) - 1] = '\0';
+//    char *recvAddr = strdup (buffer);
+    char *recvAddr = "0x49f4c50d9bcc7afdbcf77e0d6e364c29d5a660df";
+
+    char *strAmount = "0.0001"; //ETH
+    uint64_t gasPrice = 2; // GWEI
+    uint64_t gasLimit = 21000;
+    uint64_t nonce = 4;                  // Careful
+
+    printf ("PaperKey: '%s'\nAddress: '%s'\nGasLimt: %llu\nGasPrice: %llu GWEI", paperKey, recvAddr, gasLimit, gasPrice);
+
+
+    BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
+    // A wallet amount Ether
+    BREthereumWalletId wallet = ethereumGetWallet(node);
+    BREthereumAccount account = lightNodeGetAccount (node);
+    BREthereumAddress address = accountGetPrimaryAddress (account);
+
+    accountSetAddressNonce(account, address, nonce, ETHEREUM_BOOLEAN_TRUE);
+
+    // Optional - will provide listNodeWalletCreateTransactionDetailed.
+    ethereumWalletSetDefaultGasPrice(node, wallet, GWEI, gasPrice);
+    ethereumWalletSetDefaultGasLimit(node, wallet, gasLimit);
+
+    BRCoreParseStatus status;
+    BREthereumAmount amountAmountInEther =
+    ethereumCreateEtherAmountString(node, strAmount, ETHER, &status);
+
+    BREthereumTransactionId tx =
+    ethereumWalletCreateTransaction
+    (node,
+     wallet,
+     recvAddr,
+     amountAmountInEther);
+
+    ethereumWalletSignTransaction (node, wallet, tx, paperKey);
+
+    ethereumConnect(node, client);
+//    ethereumWalletSubmitTransaction(node, wallet, tx);
+    sleep (600);
+
+    return;
 }
 //
 //
@@ -1901,6 +1957,7 @@ runTests (void) {
     runAccountStateTests();
     runTransactionStatusTests();
     runTransactionReceiptTests();
+    testReallySend();
     printf ("Done\n");
 }
 

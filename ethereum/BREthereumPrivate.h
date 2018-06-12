@@ -77,8 +77,8 @@ walletHasTransaction (BREthereumWallet wallet,
 private_extern void
 accountSetAddressNonce(BREthereumAccount account,
                        BREthereumAddress address,
-                uint64_t nonce,
-                BREthereumBoolean force);
+                       uint64_t nonce,
+                       BREthereumBoolean force);
 
 private_extern uint64_t
 accountGetThenIncrementAddressNonce(BREthereumAccount account,

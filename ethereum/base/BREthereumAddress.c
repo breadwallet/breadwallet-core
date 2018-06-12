@@ -146,6 +146,12 @@ addressGetEncodedString (BREthereumAddress address, int useChecksum) {
     return string;
 }
 
+extern BREthereumHash
+addressGetHash (BREthereumAddress address) {
+    BRRlpData data = { 20, address.bytes };
+    return hashCreateFromData(data);
+}
+
 extern BREthereumAddress
 addressRlpDecode (BRRlpItem item, BRRlpCoder coder) {
     BREthereumAddress address;
