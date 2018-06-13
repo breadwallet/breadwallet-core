@@ -546,7 +546,7 @@ static void run_GetTxStatus_Tests(BREthereumLES les){
     assert(lesGetTransactionStatus(les, (void *)&_GetTxStatus_Context2, _GetTxStatus_Test2_Callback, transactions) == LES_SUCCESS);
     
     //Wait for a little bit to get a reply back from the server.
-    sleep(5);
+    sleep(300);
     
 }
 //
@@ -563,7 +563,7 @@ static void _GetBlockBodies_Callback_Test1(BREthereumLESBlockBodiesContext conte
     assert(context != NULL);
     int* context1 = (int *)context;
     
-    assert(*context1 == _GetBlockBodies_Context1); //Check to make sure the context is correct
+    assert(context1 == &_GetBlockBodies_Context1); //Check to make sure the context is correct
     
     //Check Block Hash
     assert(hashSetEqual(&block, &_blockHeaderTestData[_GetBlockBodies_Context1].hash));
@@ -593,7 +593,9 @@ static void _GetBlockBodies_Callback_Test2(BREthereumLESBlockBodiesContext conte
     
     _GetBlockBodies_Context2++;
     
-    eth_log("run_GetBlockBodies_Tests", "%s", "Test 2 Successful");
+    if(_GetBlockBodies_Context2 == 4){
+        eth_log("run_GetBlockBodies_Tests", "%s", "Test 2 Successful");
+    }
 }
 
 static void run_GetBlockBodies_Tests(BREthereumLES les){
@@ -605,11 +607,11 @@ static void run_GetBlockBodies_Tests(BREthereumLES les){
     //Request block bodies 4732522, 4732521
     _GetBlockBodies_Context2 = BLOCK_4732522_IDX;
     BREthereumHash* blockHeaders;
-    array_new(blockHeaders, 2);
+    array_new(blockHeaders, 1);
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX].hash);
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX + 1].hash);
     
-    assert(lesGetBlockBodies(les, (void *)&_GetTxStatus_Context2, _GetBlockBodies_Callback_Test2, blockHeaders) == LES_SUCCESS);
+    assert(lesGetBlockBodies(les, (void *)&_GetBlockBodies_Context2, _GetBlockBodies_Callback_Test2, blockHeaders) == LES_SUCCESS);
     
     //Wait for a little bit to get a reply back from the server.
     sleep(60);
@@ -645,16 +647,18 @@ static void _GetReceipts_Callback_Test2(BREthereumLESBlockBodiesContext context,
     assert(context != NULL);
     int* context1 = (int *)context;
     
-    assert(*context1 == _GetBlockBodies_Context1); //Check to make sure the context is correct
+    assert(*context1 == _GetReceipts_Context2); //Check to make sure the context is correct
     
     //Check Block Hash
-    assert(hashSetEqual(&block, &_blockHeaderTestData[_GetReceipts_Context1].hash));
+    assert(hashSetEqual(&block, &_blockHeaderTestData[_GetReceipts_Context2].hash));
     
     //Check to make sure we got back the right number of transactions and ommers
-    assert(array_count(receipts) == _blockHeaderTestData[_GetReceipts_Context1].transactionCount);
+    assert(array_count(receipts) == _blockHeaderTestData[_GetReceipts_Context2].transactionCount);
     
     _GetReceipts_Context2++;
-    eth_log("run_GetReceipts_Tests", "%s", "Test 2 Successful");
+    if(_GetReceipts_Context2 == 3){
+        eth_log("run_GetReceipts_Tests", "%s", "Test 2 Successful");
+    }
 }
 
 static void run_GetReceipts_Tests(BREthereumLES les){
@@ -664,14 +668,14 @@ static void run_GetReceipts_Tests(BREthereumLES les){
     assert(lesGetReceiptsOne(les, (void *)&_GetReceipts_Context1, _GetReceipts_Callback_Test1, _blockHeaderTestData[BLOCK_4732522_IDX].hash) == LES_SUCCESS);
    
     //Request receipts for block 4732522, 4732521
-    /*_GetReceipts_Context2 = BLOCK_4732522_IDX;
+    _GetReceipts_Context2 = BLOCK_4732522_IDX;
     BREthereumHash* blockHeaders;
     array_new(blockHeaders, 2);
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX].hash);
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX + 1].hash);
     
-    assert(lesGetReceipts(les, (void *)&_GetTxStatus_Context2, _GetReceipts_Callback_Test2, blockHeaders) == LES_SUCCESS);
-    */
+    assert(lesGetReceipts(les, (void *)&_GetReceipts_Context2, _GetReceipts_Callback_Test2, blockHeaders) == LES_SUCCESS);
+    
     
     //Wait for a little bit to get a reply back from the server.
     sleep(60);
@@ -733,11 +737,11 @@ void runLEStests(void) {
     
     
     //Run Tests on the LES messages
-    // run_GetTxStatus_Tests(les);
-    // run_GetBlockHeaders_Tests(les);
-     run_GetBlockBodies_Tests(les);
-    // run_GetReceipts_Tests(les);
-    // run_GetProofsV2_Tests(les);
+      run_GetTxStatus_Tests(les);
+ //      run_GetBlockHeaders_Tests(les);
+  //   run_GetBlockBodies_Tests(les);
+  //   run_GetReceipts_Tests(les);
+  //   run_GetProofsV2_Tests(les);
     
 }
 
