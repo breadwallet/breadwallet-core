@@ -693,7 +693,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     protected native long jniLightNodeGetBlockHeight ();
     protected native long jniBlockGetNumber (long bid);
-    protected native long jniBlockGetTimestamp (long bid);
+//    protected native long jniBlockGetTimestamp (long bid);
     protected native String jniBlockGetHash (long bid);
 
     //

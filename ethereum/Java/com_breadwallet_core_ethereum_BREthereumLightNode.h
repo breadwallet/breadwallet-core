@@ -417,14 +417,6 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_j
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
- * Method:    jniBlockGetTimestamp
- * Signature: (J)J
- */
-JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniBlockGetTimestamp
-  (JNIEnv *, jobject, jlong);
-
-/*
- * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniBlockGetHash
  * Signature: (J)Ljava/lang/String;
  */
