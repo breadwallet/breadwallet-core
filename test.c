@@ -579,8 +579,36 @@ int BRHashTests()
     BRKeccak256(md, s, strlen(s));
     if (! UInt256Eq(*(UInt256 *)"\xc5\xd2\x46\x01\x86\xf7\x23\x3c\x92\x7e\x7d\xb2\xdc\xc7\x03\xc0\xe5\x00\xb6\x53\xca"
                     "\x82\x27\x3b\x7b\xfa\xd8\x04\x5d\x85\xa4\x70", *(UInt256 *)md))
-        r = 0, fprintf(stderr, "***FAILED*** %s: Keccak-256() test 10\n", __func__);
+        r = 0, fprintf(stderr, "***FAILED*** %s: Keccak-256() test 1\n", __func__);
+
+    // test murmurHash3-x86_32
     
+    if (BRMurmur3_32("", 0, 0) != 0)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRMurmur3_32() test 1\n", __func__);
+
+    if (BRMurmur3_32("\xFF\xFF\xFF\xFF", 4, 0) != 0x76293b50)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRMurmur3_32() test 2\n", __func__);
+    
+    if (BRMurmur3_32("\x21\x43\x65\x87", 4, 0x5082edee) != 0x2362f9de)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRMurmur3_32() test 3\n", __func__);
+    
+    if (BRMurmur3_32("\x00", 1, 0) != 0x514e28b7)
+        r = 0, fprintf(stderr, "***FAILED*** %s: BRMurmur3_32() test 4\n", __func__);
+    
+    // test sipHash-64
+
+    const char k[] = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f";
+    const char d[] = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f";
+
+    if (BRSip64(k, d, 0) != 0x726fdb47dd0e0e31) r = 0, fprintf(stderr, "***FAILED*** %s: BRSip64() test 1\n", __func__);
+
+    if (BRSip64(k, d, 1) != 0x74f839c593dc67fd) r = 0, fprintf(stderr, "***FAILED*** %s: BRSip64() test 2\n", __func__);
+
+    if (BRSip64(k, d, 8) != 0x93f5f5799a932462) r = 0, fprintf(stderr, "***FAILED*** %s: BRSip64() test 3\n", __func__);
+
+    if (BRSip64(k, d,15) != 0xa129ca6149be45e5) r = 0, fprintf(stderr, "***FAILED*** %s: BRSip64() test 4\n", __func__);
+
+    if (! r) fprintf(stderr, "\n                                    ");
     return r;
 }
 
@@ -1422,7 +1450,7 @@ int BRKeyECIESTests()
     "\x12\xcf\x84\x44\x71\x4f\x95\xa4\xf7\xa0\x42\x5b\x67\xfc\x06\x4d\x18\xf4\xd0\xa5\x28\x76\x15\x65\xca\x02\xd9\x7f"
     "\xaf\xfd\xac\x23\xde\x10";
     char dec2[2];
-        
+    
     BRKeySetSecret(&key, &uint256("57baf2c62005ddec64c357d96183ebc90bf9100583280e848aa31d683cad73cb"), 0);
     len = BRKeyECIESAES128SHA256Decrypt(&key, dec2, sizeof(dec2), cipher2, sizeof(cipher2) - 1);
     if (len != 1 || strncmp(dec2, "a", 1) != 0)
@@ -1881,7 +1909,7 @@ int BRWalletTests()
     const char *phrase = "a random seed";                     // ""
     UInt512 seed;
 
-    BRBIP39DeriveKey(&seed, phrase, NULL); // 
+    BRBIP39DeriveKey(&seed, phrase, NULL); //
 
 
     BRMasterPubKey mpk = BRBIP32MasterPubKey(&seed, sizeof(seed));
@@ -2112,7 +2140,7 @@ int BRBloomFilterTests()
     if (len2 != sizeof(d2) - 1 || memcmp(buf2, d2, len2) != 0)
         r = 0, fprintf(stderr, "***FAILED*** %s: BRBloomFilterSerialize() test 2\n", __func__);
     
-    BRBloomFilterFree(f);    
+    BRBloomFilterFree(f);
     return r;
 }
 
@@ -2575,7 +2603,7 @@ int BRPaymentProtocolEncryptionTests()
     
     BRKeySetSecret(&senderKey, &uint256("0000000000000000000000000000000000000000000000000000000000000001"), 1);
     BRKeySetSecret(&receiverKey, &uint256("0000000000000000000000000000000000000000000000000000000000000002"), 1);
-        
+    
     BRPaymentProtocolInvoiceRequest *req = BRPaymentProtocolInvoiceRequestNew(&senderKey, 0, NULL, NULL, 0, NULL, NULL,
                                                                               NULL, 0);
     
