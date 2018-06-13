@@ -50,7 +50,33 @@ typedef struct {
          BREthereumHash* transactions;
          size_t transactionsSize;
      }transaction_status;
-    
+     
+     struct {
+        BREthereumLESBlockHeadersCallback callback;
+        BREthereumLESBlockHeadersContext context;
+        BREthereumBlockHeader header;
+     }block_headers;
+     
+     struct {
+        BREthereumLESBlockBodiesCallback callback;
+        BREthereumLESBlockBodiesContext context;
+        BREthereumHash* blocks;
+        BREthereumTransaction* transaction;
+        BREthereumHash* ommer;
+     }block_bodies;
+     
+     struct {
+        BREthereumLESReceiptsCallback callback;
+        BREthereumLESBlockBodiesContext context;
+        BREthereumHash* blocks;
+        BREthereumTransactionReceipt* receipt;
+     }receipts;
+     
+     struct {
+        BREthereumLESProofsV2Callback callback;
+        BREthereumLESProofsV2Context context;
+        BREthereumProofsRequest* proofRequests;
+     }proofsV2;
   }u;
 }LESRequestRecord;
 
@@ -70,6 +96,22 @@ struct BREthereumLESContext {
     uint64_t requestIdCount;
     pthread_mutex_t lock;
 };
+static int _findRequestId(BREthereumLES les, uint64_t reqId, uint64_t* reqLocIndex){
+
+    int ret = 0;
+
+    pthread_mutex_lock(&les->lock);
+    for(int i = 0; i < array_count(les->requests); i++) {
+        if(reqId == les->requests[i].requestId){
+            *reqLocIndex = i;
+            ret = 1;
+            break;
+        }
+    }
+    pthread_mutex_unlock(&les->lock);
+    
+    return ret;
+}
 static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t messageType, BRRlpData messageBody) {
 
     BREthereumLES les = (BREthereumLES)info;
@@ -115,52 +157,154 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t me
             
             if(status == BRE_LES_CODER_SUCCESS)
             {
-                eth_log(ETH_LOG_TOPIC, "%s", "Received Tranactions Status message from Remote peer");
+                eth_log(ETH_LOG_TOPIC, "%s", "Received [Tranactions Status] reply from remote peer");
                 
-                int requestIndexRm = 0;
-                pthread_mutex_lock(&les->lock);
-                for(int i = 0; i < array_count(les->requests); i++) {
-                    if(reqId == les->requests[i].requestId){
-                        requestIndexRm = i;
-                        break;
+                uint64_t requestIndexRm = 0;
+                
+                if(_findRequestId(les, reqId, &requestIndexRm)){
+                    pthread_mutex_lock(&les->lock);
+                    for(int i = 0; i < repliesCount; ++i){
+                        les->requests[requestIndexRm].u.transaction_status.callback(les->requests[requestIndexRm].u.transaction_status.ctx,
+                                                                                    les->requests[requestIndexRm].u.transaction_status.transactions[i],
+                                                                                    replies[i]);
                     }
+                    free(les->requests[requestIndexRm].u.transaction_status.transactions);
+                    array_rm(les->requests, requestIndexRm);
+                    pthread_mutex_unlock(&les->lock);
                 }
-                pthread_mutex_unlock(&les->lock);
-                
-                for(int i = 0; i < repliesCount; ++i){
-                    les->requests[requestIndexRm].u.transaction_status.callback(les->requests[requestIndexRm].u.transaction_status.ctx,
-                                                                                les->requests[requestIndexRm].u.transaction_status.transactions[i],
-                                                                                replies[i]);
-                }
-                pthread_mutex_lock(&les->lock);
-                free(les->requests[requestIndexRm].u.transaction_status.transactions);
-                array_rm(les->requests, requestIndexRm);
-                pthread_mutex_unlock(&les->lock);
             }
         }
         break;
         case BRE_LES_ID_BLOCK_HEADERS:
         {
-           // BRRlpCoder coder = rlpCoderCreate();
             rlpShow(messageBody, "LES-HEADERS");
+            uint64_t reqId = 0, bv = 0;
+            BREthereumBlockHeader* headers;
+            BREthereumLESDecodeStatus status = ethereumLESDecodeBlockHeaders(messageBody.bytes, messageBody.bytesCount, &reqId, &bv, &headers); 
+            
+            if(status == BRE_LES_CODER_SUCCESS)
+            {
+                eth_log(ETH_LOG_TOPIC, "%s", "Received [Block Headers] reply from remote peer");
+                
+                uint64_t requestIndexRm = 0;
+                
+                if(_findRequestId(les, reqId, &requestIndexRm)){
+                    pthread_mutex_lock(&les->lock);
+
+                    BREthereumLESBlockHeadersCallback callback = les->requests[requestIndexRm].u.block_headers.callback;
+                    BREthereumLESBlockHeadersContext context = les->requests[requestIndexRm].u.block_headers.context;
+                    
+                    for(int i = 0; i < array_count(headers); ++i){
+                        callback(context, headers[i]);
+                    }
+
+                    //free(les->requests[requestIndexRm].u.transaction_status.transactions);
+                    array_rm(les->requests, requestIndexRm);
+                    pthread_mutex_unlock(&les->lock);
+                }
+            }
     
         }
         break;
         case BRE_LES_ID_BLOCK_BODIES:
         {
             rlpShow(messageBody, "LES-BODIES");
+            uint64_t reqId = 0, bv = 0;
+            BREthereumBlockHeader** ommers;
+            BREthereumTransaction** transactions;
+            BREthereumLESDecodeStatus status = ethereumLESDecodeBlockBodies(messageBody.bytes, messageBody.bytesCount, &reqId, &bv, les->network, &ommers, &transactions);
+            
+            
+            if(status == BRE_LES_CODER_SUCCESS)
+            {
+                eth_log(ETH_LOG_TOPIC, "%s", "Received [Block Blodies] reply from remote peer");
+                
+                uint64_t requestIndexRm = 0;
+                if(_findRequestId(les, reqId, &requestIndexRm)){
+                
+                    pthread_mutex_lock(&les->lock);
+
+                    BREthereumLESBlockBodiesCallback callback = les->requests[requestIndexRm].u.block_bodies.callback;
+                    BREthereumLESBlockBodiesContext context = les->requests[requestIndexRm].u.block_bodies.context;
+                    BREthereumHash* blocks = les->requests[requestIndexRm].u.block_bodies.blocks;
+                    
+                    for(int i = 0; i < array_count(blocks); ++i){
+                        callback(context, blocks[i],transactions[i],ommers[i]);
+                    }
+                    
+                    //free(les->requests[requestIndexRm].u.transaction_status.transactions);
+                    array_rm(les->requests, requestIndexRm);
+                    pthread_mutex_unlock(&les->lock);
+                }
+            } 
+        
         }
         break;
         case BRE_LES_ID_RECEIPTS:
         {
-            size_t len = 0;
-            printf("%s", encodeHexCreate(&len, messageBody.bytes, messageBody.bytesCount));
+           // size_t len = 0;
+           // printf("%s", encodeHexCreate(&len, messageBody.bytes, messageBody.bytesCount));
             rlpShow(messageBody, "LES-RECEIPTS");
+            uint64_t reqId = 0, bv = 0;
+            BREthereumTransactionReceipt** receipts;
+            BREthereumLESDecodeStatus status = ethereumLESDecodeReceipts(messageBody.bytes, messageBody.bytesCount, &reqId, &bv, &receipts);
+        
+            if(status == BRE_LES_CODER_SUCCESS)
+            {
+                eth_log(ETH_LOG_TOPIC, "%s", "Received [RECEIPTS] reply from remote peer");
+                
+                uint64_t requestIndexRm = 0;
+                _findRequestId(les, reqId, &requestIndexRm);
+                
+                if(_findRequestId(les, reqId, &requestIndexRm)) {
+                    pthread_mutex_lock(&les->lock);
+
+                    BREthereumLESReceiptsCallback callback = les->requests[requestIndexRm].u.receipts.callback;
+                    BREthereumLESReceiptsContext context = les->requests[requestIndexRm].u.receipts.context;
+                    BREthereumHash* blocks = les->requests[requestIndexRm].u.receipts.blocks;
+                    
+                    for(int i = 0; i < array_count(blocks); ++i){
+                        callback(context, blocks[i],receipts[i]);
+                    }
+                    
+                    //free(les->requests[requestIndexRm].u.transaction_status.transactions);
+                    array_rm(les->requests, requestIndexRm);
+                    pthread_mutex_unlock(&les->lock);
+                }
+            }
+           
         }
         break;
         case BRE_LES_ID_PROOFS_V2:
         {
             rlpShow(messageBody, "LES-PROOFSV2");
+            uint64_t reqId = 0, bv = 0;
+            BREthereumLESDecodeStatus status = BRE_LES_CODER_UNABLE_TO_DECODE_ERROR; // Call Decode once we know what is returned from the full node
+        
+            if(status == BRE_LES_CODER_SUCCESS)
+            {
+                eth_log(ETH_LOG_TOPIC, "%s", "Received [RECEIPTS] reply from remote peer");
+                
+                uint64_t requestIndexRm = 0;
+                _findRequestId(les, reqId, &requestIndexRm);
+                
+                if(_findRequestId(les, reqId, &requestIndexRm)) {
+                    pthread_mutex_lock(&les->lock);
+
+                    BREthereumLESProofsV2Callback callback = les->requests[requestIndexRm].u.proofsV2.callback;
+                    BREthereumLESProofsV2Context context = les->requests[requestIndexRm].u.proofsV2.context;
+                    BREthereumProofsRequest* proofRequests = les->requests[requestIndexRm].u.proofsV2.proofRequests;
+                    
+                    for(int i = 0; i < array_count(proofRequests); ++i){
+                        //Call the callback function once we know what we are getting back. 
+                    }
+                    
+                    //free(les->requests[requestIndexRm].u.transaction_status.transactions);
+                    array_rm(les->requests, requestIndexRm);
+                    pthread_mutex_unlock(&les->lock);
+                }
+            }
+           
         }
         break;
         default:
@@ -395,6 +539,18 @@ lesGetReceipts (BREthereumLES les,
     
     if(ETHEREUM_BOOLEAN_IS_TRUE(shouldSend)) {
         BRRlpData blockBodiesData = ethereumLESGetReceipts(les->message_id_offset, reqId, blocks);
+        
+        LESRequestRecord record;
+        record.requestId = reqId;
+        record.u.receipts.callback = callback;
+        record.u.receipts.context = context;
+        array_new(record.u.receipts.blocks, array_count(blocks));
+        array_add_array(record.u.receipts.blocks, blocks, array_count(blocks));
+        
+        pthread_mutex_unlock(&les->lock);
+        array_add(les->requests, record);
+        pthread_mutex_unlock(&les->lock);
+        
         BREthereumLESStatus status =  _sendMessage(les, BRE_LES_ID_GET_RECEIPTS, blockBodiesData);
         rlpDataRelease(blockBodiesData);
         return status;
@@ -413,10 +569,20 @@ lesGetReceiptsOne (BREthereumLES les,
                    BREthereumLESReceiptsCallback callback,
                    BREthereumHash block) {
     
-    return LES_UNKNOWN_ERROR;
+    BREthereumHash* array;
+    array_new(array, 1);
+    array_add(array, block);
+    
+    BREthereumLESStatus status = lesGetReceipts(les,context,callback,array);
+    
+    array_free(array);
+    
+    return status;
 }
 extern BREthereumLESStatus
 lesGetGetProofsV2One (BREthereumLES les,
+                     BREthereumLESProofsV2Context context,
+                     BREthereumLESProofsV2Callback callback,
                      BREthereumHash blockHash,
                      BREthereumHash  key,
                      BREthereumHash key2,
@@ -438,10 +604,21 @@ lesGetGetProofsV2One (BREthereumLES les,
         request.fromLevel = fromLevel;
         array_new(proofs, 1);
         array_add(proofs, request);
+        
+        LESRequestRecord record;
+        record.requestId = reqId;
+        record.u.proofsV2.callback = callback;
+        record.u.proofsV2.context = context;
+        record.u.proofsV2.proofRequests = proofs;
+        
+        pthread_mutex_unlock(&les->lock);
+        array_add(les->requests, record);
+        pthread_mutex_unlock(&les->lock);
+        
+        
         BRRlpData proofsData = ethereumLESGetProofsV2(les->message_id_offset, reqId, proofs);
         BREthereumLESStatus status =  _sendMessage(les, BRE_LES_ID_GET_PROOFS_V2, proofsData);
         rlpDataRelease(proofsData);
-        array_free(proofs);
         return status;
     }
     else {
@@ -464,8 +641,20 @@ lesGetBlockBodies (BREthereumLES les,
     pthread_mutex_unlock(&les->lock);
     
     if(ETHEREUM_BOOLEAN_IS_TRUE(shouldSend)) {
+    
+        LESRequestRecord record;
+        record.requestId = reqId;
+        record.u.block_bodies.callback = callback;
+        record.u.block_bodies.context = context;
+        array_new(record.u.block_bodies.blocks, array_count(blocks));
+        array_add_array(record.u.block_bodies.blocks, blocks, array_count(blocks));
+        
+        pthread_mutex_unlock(&les->lock);
+        array_add(les->requests, record);
+        pthread_mutex_unlock(&les->lock);
+        
         BRRlpData blockBodiesData = ethereumLESGetBlockBodies(les->message_id_offset, reqId, blocks);
-        BREthereumLESStatus status =  _sendMessage(les, BRE_LES_ID_GET_TX_STATUS, blockBodiesData);
+        BREthereumLESStatus status =  _sendMessage(les, BRE_LES_ID_GET_BLOCK_BODIES, blockBodiesData);
         rlpDataRelease(blockBodiesData);
         return status;
     }
@@ -479,7 +668,16 @@ lesGetBlockBodiesOne (BREthereumLES les,
                       BREthereumLESBlockBodiesContext context,
                       BREthereumLESBlockBodiesCallback callback,
                       BREthereumHash block) {
-    return LES_UNKNOWN_ERROR;
+    
+    BREthereumHash* array;
+    array_new(array, 1);
+    array_add(array, block);
+    
+    BREthereumLESStatus status = lesGetBlockBodies(les,context,callback,array);
+    
+    array_free(array);
+    
+    return status;
 }
 
 extern BREthereumLESStatus
@@ -504,8 +702,18 @@ lesGetBlockHeaders (BREthereumLES les,
         if(ETHEREUM_BOOLEAN_IS_TRUE(reverse)){
             reverseInt = 1;
         }
-        BRRlpData blockHeadersData = ethereumLESGetBlockHeaders(les->message_id_offset, reqId, blockNumber, maxBlockCount, skip, reverse);
-        BREthereumLESStatus status =  _sendMessage(les, BRE_LES_ID_GET_TX_STATUS, blockHeadersData);
+        
+        LESRequestRecord record;
+        record.requestId = reqId;
+        record.u.block_headers.callback = callback;
+        record.u.block_headers.context = context;
+        
+        pthread_mutex_unlock(&les->lock);
+        array_add(les->requests, record);
+        pthread_mutex_unlock(&les->lock);
+        
+        BRRlpData blockHeadersData = ethereumLESGetBlockHeaders(les->message_id_offset, reqId, blockNumber, maxBlockCount, skip, reverseInt);
+        BREthereumLESStatus status =  _sendMessage(les, BRE_LES_ID_GET_BLOCK_HEADERS, blockHeadersData);
         rlpDataRelease(blockHeadersData);
         return status;
     }else {
