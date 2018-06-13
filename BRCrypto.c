@@ -598,6 +598,7 @@ uint32_t BRMurmur3_32(const void *data, size_t dataLen, uint32_t seed)
 #define sipround(a, b, c, d) a += b, b = rol64(b, 13) ^ a, a = rol64(a, 32), c += d, d = rol64(d, 16) ^ c,\
                              a += d, d = rol64(d, 21) ^ a, c += b, b = rol64(b, 17) ^ c, c = rol64(c, 32)
 
+// sipHash-64: https://131002.net/siphash
 uint64_t BRSip64(const void *key16, const void *data, size_t dataLen)
 {
     uint64_t x, a = 0x736f6d6570736575, b = 0x646f72616e646f6d, c = 0x6c7967656e657261, d = 0x7465646279746573;
@@ -607,7 +608,6 @@ uint64_t BRSip64(const void *key16, const void *data, size_t dataLen)
     a ^= le64(x), c ^= le64(x);
     memcpy(&x, (const uint8_t *)key16 + sizeof(x), sizeof(x));
     b ^= le64(x), d ^= le64(x);
-    //b ^= 0xee;
     
     for (i = 0; i + 7 < dataLen; i += sizeof(x)) {
         memcpy(&x, (uint8_t *)data + i, sizeof(x));
@@ -622,13 +622,7 @@ uint64_t BRSip64(const void *key16, const void *data, size_t dataLen)
     for (i = 0; i < 2; i++) sipround(a, b, c, d);
     a ^= x, c ^= 0xff;
     for (i = 0; i < 4; i++) sipround(a, b, c, d);
-    x = le64(a ^ b ^ c ^ d);
-    return x;
-//    memcpy(md16, &x, sizeof(x));
-//    b ^= 0xdd;
-//    for (i = 0; i < 4; i++) sipround(a, b, c, d);
-//    x = le64(a ^ b ^ c ^ d);
-//    memcpy((uint8_t *)md16 + sizeof(x), &x, sizeof(x));
+    return le64(a ^ b ^ c ^ d);
 }
 
 // HMAC(key, data) = hash((key xor opad) || hash((key xor ipad) || data))
