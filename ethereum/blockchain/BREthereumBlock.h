@@ -153,6 +153,25 @@ blockDecodeRLP (BRRlpData data,
                 BREthereumNetwork network);
 
 //
+// Support LES decoding of BlockBodies
+//
+
+/**
+ * Return BRArrayOf(BREthereumBlockHeader) w/ array owned by caller.
+ */
+extern BREthereumBlockHeader *
+blockOmmersRlpDecodeItem (BRRlpItem item,
+                          BREthereumNetwork network,
+                          BRRlpCoder coder);
+
+/**
+ * Return BRArrayOf(BREthereumTransaction) w/ array owned by caller
+ */
+extern BREthereumTransaction *
+blockTransactionsRlpDecodeItem (BRRlpItem item,
+                                BREthereumNetwork network,
+                                BRRlpCoder coder);
+//
 // Genesis Blocks
 //
 extern const BREthereumBlockHeader ethereumMainnetBlockHeader;

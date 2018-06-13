@@ -35,6 +35,7 @@
 #include "BRKey.h"
 #include "BRInt.h"
 #include "../base/BREthereumBase.h"
+#include "../blockchain/BREthereumBlockChain.h"
 
 #ifdef __cplusplus
 extern "C" {

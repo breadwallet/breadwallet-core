@@ -29,7 +29,7 @@
 #include "BRKey.h"
 #include "BREthereumFrameCoder.h"
 #include "BREthereumLESBase.h"
-#include "BRRlpCoder.h"
+#include "../rlp/BRRlpCoder.h"
 #include "BRArray.h"
 #include "BRBIP38Key.h"
 #define UINT256_SIZE 32

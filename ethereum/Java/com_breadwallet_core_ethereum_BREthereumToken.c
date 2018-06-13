@@ -25,7 +25,7 @@
 
 #include <BRCoreJni.h>
 #include "com_breadwallet_core_ethereum_BREthereumToken.h"
-#include "BREthereumToken.h"
+#include "../contract/BREthereumToken.h"
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumToken

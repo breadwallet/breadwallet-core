@@ -26,7 +26,7 @@
 #define BR_Ethereum_Node_Event_Handler_h
 
 #include <inttypes.h>
-#include "BREthereumTransaction.h"
+#include "../blockchain/BREthereumTransaction.h"
 
 
 #ifdef __cplusplus

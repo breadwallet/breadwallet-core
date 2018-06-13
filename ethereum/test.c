@@ -436,11 +436,12 @@ runTokenParseTests () {
     
     //  UInt256 valueParseInt = parseTokenQuantity("5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, 18, &error);
     //  UInt256 valueParseDec = parseTokenQuantity("5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, 18, &error);
-    
-    BREthereumTokenQuantity valueInt = createTokenQuantityString(tokenBRD, "5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, &status);
+
+    BREthereumToken token = tokenGet(0);
+    BREthereumTokenQuantity valueInt = createTokenQuantityString(token, "5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, &status);
     assert (CORE_PARSE_OK == status && eqUInt256(value, valueInt.valueAsInteger));
-    
-    BREthereumTokenQuantity valueDec = createTokenQuantityString(tokenBRD, "5968.77", TOKEN_QUANTITY_TYPE_DECIMAL, &status);
+
+    BREthereumTokenQuantity valueDec = createTokenQuantityString(token, "5968.77", TOKEN_QUANTITY_TYPE_DECIMAL, &status);
     assert (CORE_PARSE_OK == status && eqUInt256(valueInt.valueAsInteger, valueDec.valueAsInteger));
 }
 
@@ -954,7 +955,7 @@ void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network)
     printf ("     TEST 3\n");
     
     BRCoreParseStatus status;
-    BREthereumToken token = tokenBRD;
+    BREthereumToken token = tokenGet(0);
     BREthereumWallet wallet = walletCreateHoldingToken (account, network, token);
     UInt256 value = createUInt256Parse ("5968770000000000000000", 10, &status);
     BREthereumAmount amount = amountCreateToken(createTokenQuantity (token, value));
@@ -1075,11 +1076,12 @@ void testTransactionCodingEther () {
 void testTransactionCodingToken () {
     printf ("     Coding Transaction\n");
 
+    BREthereumToken token = tokenGet(0);
     BREthereumAccount account = createAccount (NODE_PAPER_KEY);
-    BREthereumWallet wallet = walletCreateHoldingToken(account, ethereumMainnet, tokenBRD);
+    BREthereumWallet wallet = walletCreateHoldingToken(account, ethereumMainnet, token);
 
     BREthereumAddress txRecvAddr = addressCreate(NODE_RECV_ADDR);
-    BREthereumAmount txAmount = amountCreateToken(createTokenQuantity(tokenBRD, createUInt256(NODE_ETHER_AMOUNT)));
+    BREthereumAmount txAmount = amountCreateToken(createTokenQuantity(token, createUInt256(NODE_ETHER_AMOUNT)));
     BREthereumGasPrice txGasPrice = gasPriceCreate(etherCreate(createUInt256(NODE_GAS_PRICE_VALUE)));
     BREthereumGas txGas = gasCreate(NODE_GAS_LIMIT);
     BREthereumTransaction transaction = walletCreateTransactionDetailed(wallet,
@@ -1476,7 +1478,7 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
 }
 
 #include "BREthereumPrivate.h"
-#include "BREthereumLightNode.h"
+#include "lightnode/BREthereumLightNode.h"
 
 // Local (PaperKey) -> LocalTest @ 5 GWEI gasPrice @ 21000 gasLimit & 0.0001/2 ETH
 #define ACTUAL_RAW_TX "f86a01841dcd65008252089422583f6c7dae5032f4d72a10b9e9fa977cbfc5f68701c6bf52634000801ca05d27cbd6a84e5d34bb20ce7dade4a21efb4da7507958c17d7f92cfa99a4a9eb6a005fcb9a61e729b3c6b0af3bad307ef06cdf5c5578615fedcc4163a2aa2812260"
@@ -1563,11 +1565,12 @@ runLightNode_TOKEN_test (const char *paperKey) {
     printf ("     TOKEN\n");
     
     BRCoreParseStatus status;
-    
+
+    BREthereumToken token = tokenGet(0);
     BREthereumLightNode node = ethereumCreate (ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
-    BREthereumWalletId wallet = ethereumGetWalletHoldingToken(node, tokenBRD);
+    BREthereumWalletId wallet = ethereumGetWalletHoldingToken(node, token);
     
-    BREthereumAmount amount = ethereumCreateTokenAmountString(node, tokenBRD,
+    BREthereumAmount amount = ethereumCreateTokenAmountString(node, token,
                                                                TEST_TRANS3_DECIMAL_AMOUNT,
                                                                TOKEN_QUANTITY_TYPE_DECIMAL,
                                                                &status);
@@ -1943,7 +1946,7 @@ extern void
 runTests (void) {
     installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
     // Initialize tokens
-    tokenGet(0);
+//    tokenGet(0);
     runMathTests();
     runEtherParseTests();
     runTokenParseTests();

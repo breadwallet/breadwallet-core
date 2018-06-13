@@ -169,12 +169,13 @@ typedef void* (*ThreadRoutine) (void*);
 
 static void *
 eventHandlerThread (BREventHandler handler) {
+
 #if ! defined (__ANDROID__)
     pthread_setname_np("Core Ethereum Event");
-#endif
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
     pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
-    
+#endif
+
     pthread_mutex_lock(&handler->lock);
     handler->status = EVENT_HANDLER_THREAD_STATUS_RUNNING;
 
@@ -259,7 +260,10 @@ eventHandlerStart (BREventHandler handler) {
 
 extern void
 eventHandlerStop (BREventHandler handler) {
+    // TODO: Cancel on ANDROID
+#if ! defined (__ANDROID__)
     pthread_cancel(handler->thread);
+#endif
 //    int joinResult = pthread_join(handler->thread, NULL);
     handler->status = EVENT_HANDLER_THREAD_STATUS_STOPPED;
 /*

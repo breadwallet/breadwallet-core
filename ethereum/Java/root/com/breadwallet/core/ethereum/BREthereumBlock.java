@@ -39,7 +39,7 @@ public class BREthereumBlock extends BREthereumLightNode.Reference {
         return node.get().jniBlockGetNumber(identifier);
     }
 
-    public long getTimestamp () {
-        return node.get().jniBlockGetTimestamp(identifier);
-    }
+//    public long getTimestamp () {
+//        return node.get().jniBlockGetTimestamp(identifier);
+//    }
 }
