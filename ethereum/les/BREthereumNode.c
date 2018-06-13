@@ -138,6 +138,9 @@ struct BREthereumNodeContext {
     //The size of the body for a receiving message coming from peer
     size_t bodySize;
     
+    //The capacity for the body;
+    size_t bodyCompacity;
+    
     //Represents the callback functions for this node.
     BREthereumManagerCallback callbacks;
     
@@ -343,9 +346,11 @@ static int _readMessage(BREthereumNode node) {
     uint32_t fullFrameSize = frameSize + ((16 - (frameSize % 16)) % 16) + 16;
     
     if(node->body == NULL){
-        array_new(node->body, fullFrameSize);
-    }else {
-        array_set_capacity(node->body, fullFrameSize);
+      node->body = malloc(fullFrameSize);
+      node->bodyCompacity = fullFrameSize;
+    }else if (node->bodyCompacity < fullFrameSize) {
+      node->body = realloc(node->body, fullFrameSize);
+      node->bodyCompacity = fullFrameSize;
     }
     
     ec = ethereumNodeReadFromPeer(node, node->body, fullFrameSize, "");
@@ -553,7 +558,7 @@ void ethereumNodeDisconnect(BREthereumNode node, BREthereumDisconnect reason) {
 void ethereumNodeRelease(BREthereumNode node){
    ethereumEndpointRelease(node->peer.endpoint);
    if(node->body != NULL){
-    array_free(node->body);
+     free(node->body);
    }
    ethereumFrameCoderRelease(node->ioCoder);
    free(node->key);

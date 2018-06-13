@@ -95,18 +95,7 @@ typedef struct {
     uint64_t announceType;
 }BREthereumLESStatusMessage;
 
-//
-// LES Reply Structures
-//
-typedef struct {
-    UInt256* transaction;
-    UInt256* uncle;
-}BREthereumBlockBody;
 
-
-typedef struct {
-    int foo;
-}BREthereumReceipt;
 
 typedef struct {
     BREthereumHash blockHash;
@@ -114,7 +103,6 @@ typedef struct {
     BREthereumHash key2;
     uint64_t fromLevel;
 }BREthereumProofsRequest;
-
 
 //
 // LES Request Structures
@@ -158,11 +146,20 @@ BREthereumLESDecodeStatus ethereumLESDecodeAnnounce(uint8_t*rlpBytes, size_t rlp
                                                     BREthereumHash* hash,
                                                     uint64_t* headNumber, UInt256* headTd, uint64_t* reorgDepth,
                                                     BREthereumLESStatusMessage* message);
+    
+BREthereumLESDecodeStatus ethereumLESDecodeBlockHeaders(uint8_t*rlpBytes, size_t rlpBytesSize,  uint64_t* reqId, uint64_t* bv,
+                                   BREthereumBlockHeader** blockHeaders);
+    
  //
 // On-demand data retrieval
 //
 extern BRRlpData ethereumLESGetBlockBodies(uint64_t message_id_offset, uint64_t reqId, BREthereumHash* blockHashes);
+extern BREthereumLESDecodeStatus ethereumLESDecodeBlockBodies(uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv, BREthereumNetwork network, BREthereumBlockHeader***ommers,  BREthereumTransaction***transactions);
+
 extern BRRlpData ethereumLESGetReceipts(uint64_t message_id_offset, uint64_t reqId, BREthereumHash* blockHashes);
+extern BREthereumLESDecodeStatus ethereumLESDecodeReceipts(uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv, BREthereumTransactionReceipt***receipts);
+
+
 extern BRRlpData ethereumLESGetProofsV2(uint64_t message_id_offset, uint64_t reqId, BREthereumProofsRequest* requests);
 
 
