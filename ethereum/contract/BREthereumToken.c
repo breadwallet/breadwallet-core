@@ -1667,15 +1667,15 @@ tokenInitializeIfAppropriate (void) {
 
 extern BREthereumToken
 tokenLookupByAddress (BREthereumAddress address) {
+    tokenInitializeIfAppropriate();
     return (BREthereumToken) BRSetGet(tokenSet, &address);
 }
 
 extern BREthereumToken
 tokenLookup(const char *address) {
-    tokenInitializeIfAppropriate();
     return ((NULL == address || '\0' == address[0])
             ? NULL
-            : tokenLookupByAddress(addressCreate(address)));    // TODO: Lowercase address ??
+            : tokenLookupByAddress(addressCreate(address)));
 
 }
 
