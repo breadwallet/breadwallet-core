@@ -29,7 +29,6 @@
 #include "BRKey.h"
 #include "BRInt.h"
 #include "BREthereumLESBase.h"
-#include "BREthereumBase.h"
 #include <inttypes.h>
 
 #ifdef __cplusplus

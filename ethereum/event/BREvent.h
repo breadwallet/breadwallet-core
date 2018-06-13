@@ -27,6 +27,7 @@
 #define BR_Event_h
 
 #include <stdlib.h>
+#include <time.h>
 
 #ifdef __cplusplus
 extern "C" {

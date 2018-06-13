@@ -43,7 +43,7 @@ bcsHandleSubmitTransactionDispatcher (BREventHandler ignore,
                                event->transaction);
 }
 
-BREventType handleSubmitTransactionEventType = {
+static BREventType handleSubmitTransactionEventType = {
     "BCS: Handle Submit Transaction Event",
     sizeof (BREthereumHandleSubmitTransactionEvent),
     (BREventDispatcher) bcsHandleSubmitTransactionDispatcher
@@ -76,7 +76,7 @@ bcsHandleAnnounceDispatcher (BREventHandler ignore,
     bcsHandleAnnounce(event->bcs, event->headHash, event->headNumber, event->headTotalDifficulty);
 }
 
-BREventType handleAnnounceEventType = {
+static BREventType handleAnnounceEventType = {
     "BCS: Handle Announce Event",
     sizeof (BREthereumHandleAnnounceEvent),
     (BREventDispatcher) bcsHandleAnnounceDispatcher
@@ -108,7 +108,7 @@ bcsHandleBlockHeaderDispatcher (BREventHandler ignore,
     bcsHandleBlockHeader(event->bcs, event->header);
 }
 
-BREventType handleBlockHeaderEventType = {
+static BREventType handleBlockHeaderEventType = {
     "BCS: Handle Block Header Event",
     sizeof (BREthereumHandleBlockHeaderEvent),
     (BREventDispatcher) bcsHandleBlockHeaderDispatcher
@@ -143,7 +143,7 @@ bcsHandleBlockBodiesDispatcher (BREventHandler ignore,
                          event->ommers);
 }
 
-BREventType handleBlockBodiesEventType = {
+static BREventType handleBlockBodiesEventType = {
     "BCS: Handle Block Bodies Event",
     sizeof (BREthereumHandleBlockBodiesEvent),
     (BREventDispatcher) bcsHandleBlockBodiesDispatcher
@@ -178,7 +178,7 @@ bcsHandleTransactionDispatcher (BREventHandler ignore,
                          event->transaction);
 }
 
-BREventType handleTransactionEventType = {
+static BREventType handleTransactionEventType = {
     "BCS: Handle Transaction Event",
     sizeof (BREthereumHandleTransactionEvent),
     (BREventDispatcher) bcsHandleTransactionDispatcher
@@ -210,7 +210,7 @@ bcsHandleTransactionStatusDispatcher(BREventHandler ignore,
     bcsHandleTransactionStatus(event->bcs, event->transactionHash, event->status);
 }
 
-BREventType handleTransactionStatusEventType = {
+static BREventType handleTransactionStatusEventType = {
     "BCS: Handle TransactionStatus Event",
     sizeof (BREthereumHandleTransactionStatusEvent),
     (BREventDispatcher) bcsHandleTransactionStatusDispatcher
@@ -243,7 +243,7 @@ bcsHandleTransactionReceiptsDispatcher(BREventHandler ignore,
     bcsHandleTransactionReceipts(event->bcs, event->blockHash, event->receipts);
 }
 
-BREventType handleTransactionReceiptEventType = {
+static BREventType handleTransactionReceiptEventType = {
     "BCS: Handle TransactionReceipt Event",
     sizeof (BREthereumHandleTransactionReceiptEvent),
     (BREventDispatcher) bcsHandleTransactionReceiptsDispatcher
@@ -279,7 +279,7 @@ bcsHandleLogDispatcher (BREventHandler ignore,
                  event->log);
 }
 
-BREventType handleLogEventType = {
+static BREventType handleLogEventType = {
     "BCS: Handle Log Event",
     sizeof (BREthereumHandleLogEvent),
     (BREventDispatcher) bcsHandleLogDispatcher

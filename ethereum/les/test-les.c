@@ -44,13 +44,13 @@
 #include "BREthereumNode.h"
 #include "BREthereumNodeEventHandler.h"
 #include "BREthereumNodeManager.h"
-#include "BREthereumNetwork.h"
+#include "../blockchain/BREthereumNetwork.h"
 #include "BREthereumNodeDiscovery.h"
 #include "BREthereumRandom.h"
 #include "BRCrypto.h"
 #include "BREthereum.h"
 #include "BREthereumHandshake.h"
-#include "BREthereumLightNode.h"
+#include "../lightnode/BREthereumLightNode.h"
 
 // LES Tests
 

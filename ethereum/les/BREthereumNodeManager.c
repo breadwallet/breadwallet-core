@@ -31,7 +31,7 @@
 #include "../blockchain/BREthereumNetwork.h"
 #include "BREthereumEndpoint.h"
 #include "BREthereumRandom.h"
-#include "BRUtil.h"
+#include "../util/BRUtil.h"
 
 struct BREthereumNodeManagerContext {
 

@@ -26,7 +26,6 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
-#include "BRRlpCoder.h"
 #include "BREthereumLES.h"
 #include "BREthereumLESCoder.h"
 #include "../base/BREthereumBase.h"
@@ -34,8 +33,8 @@
 #include "../blockchain/BREthereumNetwork.h"
 #include "BRArray.h"
 #include "BREthereumNodeManager.h"
-#include "BRRlp.h"
-#include "BRUtil.h"
+#include "../rlp/BRRlp.h"
+#include "../util/BRUtil.h"
 #include "BRInt.h"
 
 #define ETH_LOG_TOPIC "BREthereumLES"

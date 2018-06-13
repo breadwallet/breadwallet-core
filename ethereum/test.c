@@ -1476,7 +1476,7 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
 }
 
 #include "BREthereumPrivate.h"
-#include "BREthereumLightNode.h"
+#include "lightnode/BREthereumLightNode.h"
 
 // Local (PaperKey) -> LocalTest @ 5 GWEI gasPrice @ 21000 gasLimit & 0.0001/2 ETH
 #define ACTUAL_RAW_TX "f86a01841dcd65008252089422583f6c7dae5032f4d72a10b9e9fa977cbfc5f68701c6bf52634000801ca05d27cbd6a84e5d34bb20ce7dade4a21efb4da7507958c17d7f92cfa99a4a9eb6a005fcb9a61e729b3c6b0af3bad307ef06cdf5c5578615fedcc4163a2aa2812260"

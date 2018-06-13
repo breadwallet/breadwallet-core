@@ -36,7 +36,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <stdio.h>
-#include "BRUtil.h"
+#include "../util/BRUtil.h"
 #include "BREthereumEndpoint.h"
 
 #define ETH_LOG_TOPIC "Endpoint"

@@ -29,7 +29,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include "BRUtil.h"
+#include "../util/BRUtil.h"
 #include "BRInt.h"
 #include "../base/BREthereumBase.h"
 #include "BRKey.h"
@@ -37,7 +37,7 @@
 #include "BREthereumHandshake.h"
 #include "BREthereumNode.h"
 #include "BREthereumLESBase.h"
-#include "BRRlpCoder.h"
+#include "../rlp/BRRlpCoder.h"
 #include "BRArray.h"
 #include "BRKeyECIES.h"
 #include "BREthereumP2PCoder.h"
