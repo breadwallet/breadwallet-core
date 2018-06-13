@@ -686,7 +686,7 @@ static void run_GetProofsV2_Tests(BREthereumLES les){
 /*
     BREthereumAddress address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
     uint8_t hash[32];
-    memcpy(hash,  address.bytes, 20);
+    memcpy(hash, address.bytes, 20);
     memset(&hash[20], 0, 32 - 20);
     
     //BRKeccak256(hash, address.bytes, 20);
@@ -702,7 +702,7 @@ static void run_GetProofsV2_Tests(BREthereumLES les){
     lesGetGetProofsV2One(les,hash1,key,key2, 0)
     
     assert(lesGetReceiptsOne(les, (void *)&_GetReceipts_Context1, _GetReceipts_Callback_Test1, _blockHeaderTestData[BLOCK_4732522_IDX].hash) == LES_SUCCESS);
-   */
+*/ 
     
     //Wait for a little bit to get a reply back from the server.
     sleep(60);
@@ -735,7 +735,7 @@ void runLEStests(void) {
     //Run Tests on the LES messages
     // run_GetTxStatus_Tests(les);
     // run_GetBlockHeaders_Tests(les);
-       run_GetBlockBodies_Tests(les);
+     run_GetBlockBodies_Tests(les);
     // run_GetReceipts_Tests(les);
     // run_GetProofsV2_Tests(les);
     

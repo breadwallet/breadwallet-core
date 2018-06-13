@@ -562,47 +562,6 @@ BRRlpData ethereumLESGetProofsV2(uint64_t message_id_offset, uint64_t reqId, BRE
 
     return retData;
 }
-/*********
-   Ed, I need these to be publicly defined in the Block header file.
-********/
-static BREthereumTransaction *
-_blockTransactionsRlpDecodeItem (BRRlpItem item,
-                                BREthereumNetwork network,
-                                BRRlpCoder coder) {
-    size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
-
-    BREthereumTransaction *transactions;
-    array_new(transactions, itemsCount);
-
-    for (int i = 0; i < itemsCount; i++) {
-        BREthereumTransaction transaction = transactionRlpDecodeItem(items[i],
-                                                                     network,
-                                                                     TRANSACTION_RLP_SIGNED,
-                                                                     coder);
-        array_add(transactions, transaction);
-    }
-
-    return transactions;
-}
-static BREthereumBlockHeader *
-_blockOmmersRlpDecodeItem (BRRlpItem item,
-                                BREthereumNetwork network,
-                                BRRlpCoder coder) {
-    size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
-
-    BREthereumBlockHeader *headers;
-    array_new(headers, itemsCount);
-
-    for (int i = 0; i < itemsCount; i++) {
-        BREthereumBlockHeader header;  //= blockHeaderRlpDecodeItem(items[i], coder);
-        array_add(headers, header);
-    }
-
-    return headers;
-}
-/**********/
 BREthereumLESDecodeStatus ethereumLESDecodeBlockBodies(uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv, BREthereumNetwork network, BREthereumBlockHeader***ommers,  BREthereumTransaction***transactions) {
 
  // [+0x05, reqID: P, BV: P, [ [transactions_0, uncles_0] , ...]]
@@ -632,8 +591,8 @@ BREthereumLESDecodeStatus ethereumLESDecodeBlockBodies(uint8_t*rlpBytes, size_t 
             return BRE_LES_CODER_UNABLE_TO_DECODE_ERROR;
         }
         
-        array_add(actualTransactions,_blockTransactionsRlpDecodeItem(txtsOmmersDataItems[0],network,coder));
-        array_add(ommersHeaders, _blockOmmersRlpDecodeItem(txtsOmmersDataItems[1],network,coder));
+        array_add(actualTransactions,blockTransactionsRlpDecodeItem(txtsOmmersDataItems[0],network,coder));
+        array_add(ommersHeaders, blockOmmersRlpDecodeItem(txtsOmmersDataItems[1],network,coder));
     }
  
     rlpCoderRelease(coder);
