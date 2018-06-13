@@ -555,12 +555,14 @@ transactionRlpDecodeItem (BRRlpItem item,
                                                     : eipChainId);
 
         BRRlpData rData = rlpDecodeItemBytes (coder, items[7]);
-        assert (32 == rData.bytesCount);
-        memcpy (transaction->signature.sig.recoverable.r, rData.bytes, rData.bytesCount);
+        assert (32 >= rData.bytesCount);
+        memcpy (&transaction->signature.sig.recoverable.r[32 - rData.bytesCount],
+                rData.bytes, rData.bytesCount);
 
         BRRlpData sData = rlpDecodeItemBytes (coder, items[8]);
-        assert (32 == sData.bytesCount);
-        memcpy (transaction->signature.sig.recoverable.s, sData.bytes, sData.bytesCount);
+        assert (32 >= sData.bytesCount);
+        memcpy (&transaction->signature.sig.recoverable.s[32 - sData.bytesCount],
+                sData.bytes, sData.bytesCount);
 
         // :fingers-crossed:
         transaction->sourceAddress = transactionExtractAddress(transaction, network);
