@@ -458,7 +458,7 @@ blockTransactionsRlpEncodeItem (BREthereumBlock block,
     return rlpEncodeListItems(coder, items, itemsCount);
 }
 
-static BREthereumTransaction *
+extern BREthereumTransaction *
 blockTransactionsRlpDecodeItem (BRRlpItem item,
                                 BREthereumNetwork network,
                                 BRRlpCoder coder) {
