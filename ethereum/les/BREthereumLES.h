@@ -242,8 +242,9 @@ typedef void* BREthereumLESProofsV2Context;
 
 typedef void
 (*BREthereumLESProofsV2Callback) (BREthereumLESProofsV2Context context,
-                                  BREthereumHash block,
-                                  BREthereumTransactionReceipt receipts[]);
+                                  BREthereumHash blockHash,
+                                  BREthereumHash key,
+                                  BREthereumHash key2);
 
 extern BREthereumLESStatus
 lesGetGetProofsV2One (BREthereumLES les,
