@@ -149,6 +149,7 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t me
         break;
         case BRE_LES_ID_TX_STATUS:
         {
+            //rlpShow(messageBody, "LES-TX_STATUS");
             uint64_t reqId = 0, bv = 0;
             BREthereumTransactionStatus* replies;
             size_t repliesCount;
@@ -207,8 +208,9 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t me
         break;
         case BRE_LES_ID_BLOCK_BODIES:
         {
-            rlpShow(messageBody, "LES-BODIES");
+           // rlpShow(messageBody, "LES-BODIES");
             uint64_t reqId = 0, bv = 0;
+            
             BREthereumBlockHeader** ommers;
             BREthereumTransaction** transactions;
             BREthereumLESDecodeStatus status = ethereumLESDecodeBlockBodies(messageBody.bytes, messageBody.bytesCount, &reqId, &bv, les->network, &ommers, &transactions);
