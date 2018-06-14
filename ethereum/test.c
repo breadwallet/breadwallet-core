@@ -1550,7 +1550,7 @@ testReallySend (void) {
 
     ethereumConnect(node, client);
 //    ethereumWalletSubmitTransaction(node, wallet, tx);
-    sleep (600);
+    sleep (20 * 60); // 20 minutes
 
     return;
 }

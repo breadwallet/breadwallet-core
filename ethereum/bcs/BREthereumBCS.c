@@ -38,6 +38,11 @@
 #define BCS_TRANSACTIONS_INITIAL_CAPACITY (50)
 #define BCS_LOGS_INITIAL_CAPACITY (50)
 
+// Any orphan more then AGE_OFFSET blocks in the past will be purged.
+#define BCS_ORPHAN_AGE_OFFSET  (10)
+
+#define BCS_SAVE_BLOCKS_COUNT  (100)
+
 /* Forward Declarations */
 static void
 bcsPeriodicDispatcher (BREventHandler handler,
@@ -273,7 +278,7 @@ bcsHandleAnnounce (BREthereumBCS bcs,
 static BREthereumBoolean
 bcsBlockHeaderHasMatchingTransactions (BREthereumBCS bcs,
                                        BREthereumBlockHeader header) {
-    return ETHEREUM_BOOLEAN_TRUE;
+    return ETHEREUM_BOOLEAN_FALSE;
 }
 
 static BREthereumBoolean
@@ -281,6 +286,54 @@ bcsBlockHeaderHasMatchingLogs (BREthereumBCS bcs,
                                BREthereumBlockHeader header) {
     return blockHeaderMatch(header, bcs->filterForAddressOnLogs);
 }
+
+static void
+bcsReclaimBlock (BREthereumBCS bcs,
+                 BREthereumBlockHeader header) {
+    BRSetRemove(bcs->headers, header);
+    eth_log("BCS", "Header %llu Reclaimed", blockHeaderGetNumber(header));
+
+    // TODO: Avoid dangling references
+
+    // TODO: Can't release genesis nor checkpoints
+    if (0 != blockHeaderGetNumber(header))
+        blockHeaderRelease(header);
+}
+
+static void
+bcsReclaimAndSaveBlocksIfAppropriate (BREthereumBCS bcs) {
+    uint64_t chainBlockNumber = blockHeaderGetNumber(bcs->chain);
+    uint64_t chainBlockLength = chainBlockNumber - blockHeaderGetNumber(bcs->chainTail);
+
+    // Note, we might have chained together a number of blocks.  Thus this method might be called
+    // with bcs->chain not on a 'boundary' (currently: 0 == chainBlockNumber/BCS_SAVE_BLOCKS_COUNT)
+    if (chainBlockLength > 2 * BCS_SAVE_BLOCKS_COUNT) {
+        BREthereumBlockHeader header = bcs->chain;
+        uint64_t thisBlockNumber, reclaimFromBlockNumber = chainBlockNumber - BCS_SAVE_BLOCKS_COUNT;
+
+        // Walk bcs->chain back to BCS_SAVE_BLOCKS_COUNT, then start reclaiming.
+        while (NULL != header) {
+            BREthereumHash parentHash = blockHeaderGetParentHash(header);
+
+            thisBlockNumber = blockHeaderGetNumber(header);
+            if (thisBlockNumber == reclaimFromBlockNumber)
+                bcs->chainTail = header;
+            else if (thisBlockNumber < reclaimFromBlockNumber)
+                bcsReclaimBlock(bcs, header);
+
+            header = BRSetGet(bcs->headers, &parentHash);
+        }
+
+        header = bcs->chain;
+        while (header != NULL && header != bcs->chainTail) {
+            BREthereumHash parentHash = blockHeaderGetParentHash(header);
+            eth_log("BCS", "Header %llu Saved", blockHeaderGetNumber(header));
+            header = BRSetGet(bcs->headers, &parentHash);
+        }
+        eth_log("BCS", "Header %llu Saved", blockHeaderGetNumber(header));
+    }
+}
+
 
 /**
  * Find the minumum block number amoung orphans. I think we can use this to identify when
@@ -297,106 +350,37 @@ bcsGetOrphanBlockNumberMinimum (BREthereumBCS bcs) {
 }
 
 /**
- * Unceremoniously dump any orphans older then `blockNumber` - their time has past.
+ * Unceremoniously dump any orphans older then (`blockNumber` - AGE_OFFSET) - their time has past.
+ * Expect `blockNumber` to be the blockNumber at the head of the chain.
  */
 static void
 bcsPurgeOrphans (BREthereumBCS bcs,
                  uint64_t blockNumber) {
+    // If blockNumber is below AGE_OFFSET, then there is nothing to do.  Said another way,
+    // don't orphans when we are syncing from the genesis block.
+    if (blockNumber <= BCS_ORPHAN_AGE_OFFSET) return;
+
+    // Modify blockNumber for comparision with orphans
+    blockNumber -= BCS_ORPHAN_AGE_OFFSET;
+
+    // Look through all the orphans; remove those with old/small block numbers
     int keepLooking = 1;
     while (keepLooking) {
         keepLooking = 0;
         FOR_SET(BREthereumBlockHeader, orphan, bcs->orphans)
             if (blockHeaderGetNumber(orphan) < blockNumber) {
                 BRSetRemove(bcs->orphans, orphan);
+                eth_log("BCS", "Header %llu Purged Orphan", blockHeaderGetNumber(orphan));
                 keepLooking = 1;
                 break; // FOR_SET
             }
     }
 }
 
-/*!
- */
-extern void
-bcsHandleBlockHeader (BREthereumBCS bcs,
-                      BREthereumBlockHeader header) {
-
-    // Ignore the header if we have seen it before.  Given an identical hash, *nothing*, at any
-    // level (transactions, receipts, logs), could have changed and thus no processing is needed.
-    if (NULL != BRSetGet(bcs->headers, header)) {
-        eth_log("BCS", "Header %llu Ignored", blockHeaderGetNumber(header));
-        return;
-    }
-
-    // Ignore the header if it is not valid.  Maybe the PeerManager does this test so as to only
-    // send 'textually' valid header.
-    if (ETHEREUM_BOOLEAN_IS_FALSE(blockHeaderIsValid (header))) {
-        eth_log("BCS", "Header %llu Invald", blockHeaderGetNumber(header));
-        return;
-    }
-
-    // Lookup `headerParent`
-    BREthereumHash headerParentHash = blockHeaderGetParentHash(header);
-    BREthereumBlockHeader headerParent = BRSetGet(bcs->headers, &headerParentHash);
-
-    // If we have a parent, but the block numbers are not consistent, then ignore `header`
-    if (NULL != headerParent && blockHeaderGetNumber(header) != 1 + blockHeaderGetNumber(headerParent)) {
-        eth_log("BCS", "Header %llu Inconsistent", blockHeaderGetNumber(header));
-        return;
-    }
-
-    // Other checks.
-
-    // Add `header` to the set of headers
-    BRSetAdd(bcs->headers, header);
-
-    uint64_t chainBlockNumber = 0;
-
-    // Put `header` in the `chain` - HANDLE 3 CASES:
-
-    // 1) If we do not have any chain, then adopt `header` directly, no questions asked.  This will
-    // be used for SYNC_MODE_PRIME_WITH_ENDPOINT where we get all interesting transactions, logs,
-    // etc from the ENDPOINT and just want to process new blocks as they are announced;
-    if (NULL == bcs->chain) {
-        bcs->chain = bcs->chainTail = header;
-    }
-
-    // 2) If there is no `header` parent or if  `header` parent is an orphan, then `header` is
-    // an orphan too.  Add it to the set of orphans and RETURN (non-local exit);
-    else if (NULL == headerParent || NULL != BRSetGet(bcs->orphans, headerParent)) {
-        BRSetAdd(bcs->orphans, header);
-        eth_log("BCS", "Header %llu Orphaned", blockHeaderGetNumber(header));
-        goto sync;
-//        return;
-    }
-
-    // 3) othewise, we have a new `header` that links to a parent that is somewhere in the
-    // chain.  All headers from chain back to parent are now orphans.  In practice, there will
-    // be only one (or two or three) orphans.
-    //
-    // Can we assert that `headerParent` is in `chain` if it is not an orphan?
-    else {
-        // Every header between `chain` and `headerParent` is now an orphan
-        while (NULL != bcs->chain && headerParent != bcs->chain) {
-            BREthereumHash chainParentHash = blockHeaderGetParentHash(bcs->chain);
-
-            // Make an orphan from an existing chain element
-            // TODO: Handle unchained transactions, logs too
-            BRSetAdd (bcs->orphans, bcs->chain);
-
-            // continue back.
-            bcs->chain = BRSetGet(bcs->headers, &chainParentHash);
-        }
-        // TODO: Handle bcs->chainTail
-
-        // Must be there; right?
-        assert (NULL != bcs->chain);
-
-        // Extend the chain
-        bcs->chain = header;
-    }
-    eth_log("BCS", "Header %llu Chained", blockHeaderGetNumber(header));
-
-    // Orphans may now be chained - one-by-one if their parent matches bcs->chain
+static void
+bcsChainOrphans (BREthereumBCS bcs) {
+    // Examine bcs->orphans looking for any with a parent that is bcs->chain.
+    // TODO: Can we have two orphans with the same parent - deal with it.
     int keepLooking = 1;
     while (keepLooking) {
         keepLooking = 0;
@@ -418,11 +402,132 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
             }
         }
     }
+}
 
-    // Purge orphans that are too hold
-#define BCS_ORPHAN_AGE_OFFSET  (10)
-    chainBlockNumber = blockHeaderGetNumber(bcs->chain);
-    bcsPurgeOrphans(bcs,  chainBlockNumber - BCS_ORPHAN_AGE_OFFSET);
+static void
+bcsMakeOrphan (BREthereumBCS bcs,
+               BREthereumBlockHeader header) {
+    BRSetAdd (bcs->orphans, header);
+    eth_log ("BCS", "Header %llu Newly Orphaned", blockHeaderGetNumber(header));
+
+    // TODO: Is this the proper place to examine transactions and logs now orphaned?
+}
+
+static void
+bcsChainThenPurgeOrphans (BREthereumBCS bcs) {
+    bcsChainOrphans(bcs);
+    bcsPurgeOrphans(bcs,  blockHeaderGetNumber(bcs->chain));
+}
+
+static void
+bcsSyncFrom (BREthereumBCS bcs,
+             uint64_t chainBlockNumber) {
+    // Sync up, if need be.
+    // TODO - this won't work.... each bcsHandleBlockHeader will request the same headers
+    // but one.
+#define BCS_HEADER_REQUEST_MAXIMUM  (1)
+    uint64_t orphanBlockNumberMinumum = bcsGetOrphanBlockNumberMinimum(bcs);
+    if (UINT64_MAX != orphanBlockNumberMinumum && orphanBlockNumberMinumum > chainBlockNumber) {
+        uint64_t needHeadersCount = orphanBlockNumberMinumum - chainBlockNumber;
+        if (needHeadersCount > BCS_HEADER_REQUEST_MAXIMUM)
+            needHeadersCount = BCS_HEADER_REQUEST_MAXIMUM;
+
+        // Make the request
+        eth_log("BCS", "Header Sync {%llu, %llu}",
+                chainBlockNumber + 1,
+                chainBlockNumber + 1 + needHeadersCount);
+
+        lesGetBlockHeaders(bcs->les,
+                           (BREthereumLESBlockHeadersContext) bcs,
+                           (BREthereumLESBlockHeadersCallback) bcsSignalBlockHeader,
+                           chainBlockNumber + 1,
+                           needHeadersCount,
+                           0,
+                           ETHEREUM_BOOLEAN_FALSE);
+    }
+}
+
+/*!
+ */
+extern void
+bcsHandleBlockHeader (BREthereumBCS bcs,
+                      BREthereumBlockHeader header) {
+
+    // Ignore the header if we have seen it before.  Given an identical hash, *nothing*, at any
+    // level (transactions, receipts, logs), could have changed and thus no processing is needed.
+    if (NULL != BRSetGet(bcs->headers, header)) {
+        eth_log("BCS", "Header %llu Ignored", blockHeaderGetNumber(header));
+        return;
+    }
+
+    // Ignore the header if it is not valid.
+    if (ETHEREUM_BOOLEAN_IS_FALSE(blockHeaderIsValid (header))) {
+        eth_log("BCS", "Header %llu Invald", blockHeaderGetNumber(header));
+        return;
+    }
+
+    // Lookup `headerParent`
+    BREthereumHash headerParentHash = blockHeaderGetParentHash(header);
+    BREthereumBlockHeader headerParent = BRSetGet(bcs->headers, &headerParentHash);
+
+    // If we have a parent, but the block numbers are not consistent, then ignore `header`
+    if (NULL != headerParent && blockHeaderGetNumber(header) != 1 + blockHeaderGetNumber(headerParent)) {
+        eth_log("BCS", "Header %llu Inconsistent", blockHeaderGetNumber(header));
+        return;
+    }
+
+    // Other checks.
+
+    // Add `header` to the set of headers
+    BRSetAdd(bcs->headers, header);
+
+    // Put `header` in the `chain` - HANDLE 3 CASES:
+
+    // 1) If we do not have any chain, then adopt `header` directly, no questions asked.  This will
+    // be used for SYNC_MODE_PRIME_WITH_ENDPOINT where we get all interesting transactions, logs,
+    // etc from the ENDPOINT and just want to process new blocks as they are announced;
+    if (NULL == bcs->chain) {
+        bcs->chain = bcs->chainTail = header;
+    }
+
+    // 2) If there is no `header` parent or if  `header` parent is an orphan, then `header` is
+    // an orphan too.  Add it to the set of orphans and RETURN (non-local exit);
+    else if (NULL == headerParent || NULL != BRSetGet(bcs->orphans, headerParent)) {
+        BRSetAdd(bcs->orphans, header);
+        eth_log("BCS", "Header %llu Orphaned", blockHeaderGetNumber(header));
+
+        // TODO: Remember why we sync here... because we are not bootstrapping correctly.
+        bcsSyncFrom(bcs, 0);
+        return;
+    }
+
+    // 3) othewise, we have a new `header` that links to a parent that is somewhere in the
+    // chain.  All headers from chain back to parent are now orphans.  In practice, there will
+    // be only one (or two or three) orphans.
+    //
+    // Can we assert that `headerParent` is in `chain` if it is not an orphan?
+    else {
+        // Every header between `chain` and `headerParent` is now an orphan
+        while (NULL != bcs->chain && headerParent != bcs->chain) {
+            BREthereumHash chainParentHash = blockHeaderGetParentHash(bcs->chain);
+
+            // Make an orphan from an existing chain element
+            bcsMakeOrphan(bcs, bcs->chain);
+
+            // continue back.
+            bcs->chain = BRSetGet(bcs->headers, &chainParentHash);
+        }
+        // TODO: Handle bcs->chainTail
+
+        // Must be there; right?
+        assert (NULL != bcs->chain);
+
+        // Extend the chain
+        bcs->chain = header;
+    }
+    eth_log("BCS", "Header %llu Chained", blockHeaderGetNumber(header));
+
+    bcsChainThenPurgeOrphans (bcs);
 
     // Examine transactions/logs to see if any are not chained or orphaned.
     //   Change their 'confirmation status' accordingly.
@@ -486,40 +591,11 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
     }
     else array_free(headerHashesLogs);
 
-    // Save blocks - on a difficulty boundry?
-    uint64_t chainLength = blockHeaderGetNumber(bcs->chain) - blockHeaderGetNumber(bcs->chainTail);
-    if (chainLength >= 1000) {
-        eth_log("BCS", "Header %llu Save Blocks", blockHeaderGetNumber(header));
+    // Periodically reclaim 'excessive' blocks and save the latest.
+    bcsReclaimAndSaveBlocksIfAppropriate (bcs);
 
-        // chop it down to 500
-    }
-
-sync:
-    "continue";
-
-    // Sync up, if need be.
-    // TODO - this won't work.... each bcsHandleBlockHeader will request the same headers
-    // but one.
-#define BCS_HEADER_REQUEST_MAXIMUM  (10)
-    uint64_t orphanBlockNumberMinumum = bcsGetOrphanBlockNumberMinimum(bcs);
-    if (UINT64_MAX != orphanBlockNumberMinumum && orphanBlockNumberMinumum > chainBlockNumber) {
-        uint64_t needHeadersCount = orphanBlockNumberMinumum - chainBlockNumber;
-        if (needHeadersCount > BCS_HEADER_REQUEST_MAXIMUM)
-            needHeadersCount = BCS_HEADER_REQUEST_MAXIMUM;
-
-        // Make the request
-        eth_log("BCS", "Header %llu Sync {%llu, %llu}", blockHeaderGetNumber(header),
-                chainBlockNumber + 1,
-                chainBlockNumber + 1 + needHeadersCount);
-
-        lesGetBlockHeaders(bcs->les,
-                           (BREthereumLESBlockHeadersContext) bcs,
-                           (BREthereumLESBlockHeadersCallback) bcsSignalBlockHeader,
-                           chainBlockNumber + 1,
-                           needHeadersCount,
-                           0,
-                           ETHEREUM_BOOLEAN_FALSE);
-    }
+    // TODO: Not here, likely.
+    bcsSyncFrom (bcs, blockHeaderGetNumber(bcs->chain));
 }
 
 /*!
