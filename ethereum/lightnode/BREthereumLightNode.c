@@ -528,21 +528,24 @@ lightNodeConnect(BREthereumLightNode node,
     if (ETHEREUM_BOOLEAN_IS_TRUE(bcsIsStarted(node->bcs)))
         return ETHEREUM_BOOLEAN_FALSE;
 
+    // Set node {client,state} prior to bcs/event start.  Avoid race conditions, particularly
+    // with `lightNodePeriodicDispatcher`.
     node->client = client;
+    node->state = LIGHT_NODE_CONNECTED;
     bcsStart(node->bcs);
     eventHandlerStart(node->handlerForListener);
     eventHandlerStart(node->handlerForMain);
-    node->state = LIGHT_NODE_CONNECTED;
     return ETHEREUM_BOOLEAN_TRUE;
 }
 
 extern BREthereumBoolean
 lightNodeDisconnect (BREthereumLightNode node) {
     if (ETHEREUM_BOOLEAN_IS_TRUE(bcsIsStarted(node->bcs))) {
+        // Set node->state thereby stopping handlers (in a race with bcs/event calls).
+        node->state = LIGHT_NODE_DISCONNECTED;
         bcsStop(node->bcs);
         eventHandlerStop(node->handlerForMain);
         eventHandlerStop(node->handlerForListener);
-        node->state = LIGHT_NODE_DISCONNECTED;
     }
     return ETHEREUM_BOOLEAN_TRUE;
 }
