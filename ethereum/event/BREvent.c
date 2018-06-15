@@ -225,6 +225,7 @@ eventHandlerThread (BREventHandler handler) {
     }
 
     handler->status = EVENT_HANDLER_THREAD_STATUS_STOPPED;
+    pthread_detach(handler->thread);
     return NULL;
 }
 
@@ -262,7 +263,7 @@ eventHandlerStart (BREventHandler handler) {
             // if (0 != pthread_attr_t (...) && 0 != pthread_attr_...() && ...
             pthread_attr_t attr;
             pthread_attr_init(&attr);
-            pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+            pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
             pthread_attr_setstacksize(&attr, PTHREAD_STACK_SIZE);
 
             pthread_create(&handler->thread, &attr, (ThreadRoutine) eventHandlerThread, handler);
@@ -274,22 +275,21 @@ eventHandlerStart (BREventHandler handler) {
 
 extern void
 eventHandlerStop (BREventHandler handler) {
-    // Clean-ish shutdown.
-    handler->status = EVENT_HANDLER_THREAD_STATUS_STOPPING;
-
-    // Cancel, but the thread is deferred.
     pthread_cancel(handler->thread);
+//    int joinResult = pthread_join(handler->thread, NULL);
+    handler->status = EVENT_HANDLER_THREAD_STATUS_STOPPED;
+/*
+    switch (handler->status) {
+        case EVENT_HANDLER_THREAD_STATUS_RUNNING:
+        case EVENT_HANDLER_THREAD_STATUS_STARTING:
+            handler->status = EVENT_HANDLER_THREAD_STATUS_STOPPING;
+            break;
 
-    // TODO: Why doesn't JOIN work?
-    // We would like to join here (change 'detachstate' to DETACHED); however, in testing
-    // we *always* simply blocked here forever.
-
-    PTHREAD_CANCELED;
-    // Wait on the actual exit - could this be long-ish?
-    int *exitStatus = NULL;
-    int joinStatus = pthread_join(handler->thread, (void**) &exitStatus);
-    eth_log ("Event", "On STOP, joinStatus: %d, exitStatus: %d", joinStatus, exitStatus);
-    assert (!joinStatus || ESRCH == joinStatus);
+        case EVENT_HANDLER_THREAD_STATUS_STOPPED:
+        case EVENT_HANDLER_THREAD_STATUS_STOPPING:
+            break;
+    }
+ */
 }
 
 extern BREventStatus
