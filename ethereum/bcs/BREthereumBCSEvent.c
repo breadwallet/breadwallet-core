@@ -260,6 +260,41 @@ bcsSignalTransactionReceipts (BREthereumBCS bcs,
 
 // ==============================================================================================
 //
+// Handle Account State
+//
+typedef struct {
+    BREvent base;
+    BREthereumBCS bcs;
+    BREthereumHash blockHash;
+    BREthereumAddress address;
+    BREthereumAccountState state;
+} BREthereumHandleAccountStateEvent;
+
+static void
+bcsHandleAccountStateDispatcher(BREventHandler ignore,
+                                BREthereumHandleAccountStateEvent *event) {
+    bcsHandleAccountState(event->bcs, event->blockHash, event->address, event->state);
+}
+
+static BREventType handleAccountStateEventType = {
+    "BCS: Handle AccountState Event",
+    sizeof (BREthereumHandleAccountStateEvent),
+    (BREventDispatcher) bcsHandleAccountStateDispatcher
+};
+
+extern void
+bcsSignalAccountState (BREthereumBCS bcs,
+                       BREthereumHash blockHash,
+                       BREthereumAddress address,
+                       BREthereumAccountState state) {
+    BREthereumHandleAccountStateEvent event =
+    { { NULL, &handleAccountStateEventType }, bcs, blockHash, address, state };
+    eventHandlerSignalEvent(bcs->handler, (BREvent*) &event);
+}
+
+
+// ==============================================================================================
+//
 // Signal/Handle Log
 //
 typedef struct {

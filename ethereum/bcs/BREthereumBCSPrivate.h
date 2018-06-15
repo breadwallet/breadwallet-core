@@ -136,6 +136,11 @@ struct BREthereumBCSStruct {
      * A BRSet of logs for account.
      */
     BRSet *logs;
+
+    /**
+     * The Account State
+     */
+    BREthereumAccountState accountState;
 };
 
 extern const BREventType *bcsEventTypes[];
@@ -241,6 +246,21 @@ extern void
 bcsSignalTransactionReceipts (BREthereumBCS bcs,
                               BREthereumHash blockHash,
                               BREthereumTransactionReceipt receipts[]);
+
+//
+// Account State
+//
+extern void
+bcsHandleAccountState (BREthereumBCS bcs,
+                       BREthereumHash blockHash,
+                       BREthereumAddress address,
+                       BREthereumAccountState state);
+    
+extern void
+bcsSignalAccountState (BREthereumBCS bcs,
+                       BREthereumHash blockHash,
+                       BREthereumAddress address,
+                       BREthereumAccountState state);
 
 //
 // Logs

@@ -92,6 +92,10 @@ transactionStatusCreateIncluded (BREthereumGas gasUsed,
 extern BREthereumTransactionStatus
 transactionStatusCreateErrored (const char *reason);
 
+extern BREthereumBoolean
+transactionStatusEqual (BREthereumTransactionStatus ts1,
+                        BREthereumTransactionStatus ts2);
+
 extern BREthereumTransactionStatus
 transactionStatusRLPDecodeItem (BRRlpItem item,
                                 BRRlpCoder coder);

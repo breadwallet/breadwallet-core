@@ -57,6 +57,20 @@ transactionStatusCreateErrored (const char *reason) {
     return status;
 }
 
+extern BREthereumBoolean
+transactionStatusEqual (BREthereumTransactionStatus ts1,
+                        BREthereumTransactionStatus ts2) {
+    return AS_ETHEREUM_BOOLEAN(ts1.type == ts2.type &&
+                               ((TRANSACTION_STATUS_INCLUDED != ts1.type && TRANSACTION_STATUS_ERRORED != ts1.type) ||
+                                (TRANSACTION_STATUS_INCLUDED == ts1.type &&
+                                 ETHEREUM_COMPARISON_EQ == gasCompare(ts1.u.included.gasUsed, ts2.u.included.gasUsed) &&
+                                 ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(ts1.u.included.blockHash, ts2.u.included.blockHash)) &&
+                                 ts1.u.included.blockNumber == ts2.u.included.blockNumber &&
+                                 ts1.u.included.transactionIndex == ts2.u.included.transactionIndex) ||
+                                (TRANSACTION_STATUS_ERRORED == ts1.type &&
+                                 0 == strcmp (ts1.u.errored.reason, ts2.u.errored.reason))));
+}
+
 
 extern BREthereumTransactionStatus
 transactionStatusRLPDecodeItem (BRRlpItem item,

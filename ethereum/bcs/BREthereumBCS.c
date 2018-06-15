@@ -65,9 +65,11 @@ bcsCreate (BREthereumNetwork network,
 
     bcs->network = network;
     bcs->account = account;
+    bcs->accountState = accountStateCreateEmpty ();
     bcs->address = accountGetPrimaryAddress(account);
     bcs->filterForAddressOnTransactions = bloomFilterCreateAddress(bcs->address);
     bcs->filterForAddressOnLogs = logTopicGetBloomFilterAddress(bcs->address);
+
 
     bcs->listener = listener;
 
@@ -422,13 +424,12 @@ bcsChainThenPurgeOrphans (BREthereumBCS bcs) {
 static void
 bcsSyncFrom (BREthereumBCS bcs,
              uint64_t chainBlockNumber) {
-    // Sync up, if need be.
-    // TODO - this won't work.... each bcsHandleBlockHeader will request the same headers
-    // but one.
+    // Sync up, if need be.  We'll need to sync if the minimum orphan header is larger then
+    // the chain header (by more than just one).
 #define BCS_HEADER_REQUEST_MAXIMUM  (1)
     uint64_t orphanBlockNumberMinumum = bcsGetOrphanBlockNumberMinimum(bcs);
-    if (UINT64_MAX != orphanBlockNumberMinumum && orphanBlockNumberMinumum > chainBlockNumber) {
-        uint64_t needHeadersCount = orphanBlockNumberMinumum - chainBlockNumber;
+    if (UINT64_MAX != orphanBlockNumberMinumum && orphanBlockNumberMinumum > chainBlockNumber + 1) {
+        uint64_t needHeadersCount = orphanBlockNumberMinumum - (chainBlockNumber + 1);
         if (needHeadersCount > BCS_HEADER_REQUEST_MAXIMUM)
             needHeadersCount = BCS_HEADER_REQUEST_MAXIMUM;
 
@@ -493,11 +494,12 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
     // 2) If there is no `header` parent or if  `header` parent is an orphan, then `header` is
     // an orphan too.  Add it to the set of orphans and RETURN (non-local exit);
     else if (NULL == headerParent || NULL != BRSetGet(bcs->orphans, headerParent)) {
-        BRSetAdd(bcs->orphans, header);
-        eth_log("BCS", "Header %llu Orphaned", blockHeaderGetNumber(header));
+        bcsMakeOrphan(bcs, header);
 
-        // TODO: Remember why we sync here... because we are not bootstrapping correctly.
-        bcsSyncFrom(bcs, 0);
+        // If `header` is an orphan, then it's parent is not in bcs->chain.  That could be
+        // because there is just a fork developing or that we've fallen behind.  Attempt a
+        // sync to recover (might not actually perform a sync - attempt).
+        bcsSyncFrom(bcs, blockHeaderGetNumber(bcs->chain));
         return;
     }
 
@@ -601,6 +603,21 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
 /*!
  */
 extern void
+bcsHandleAccountState (BREthereumBCS bcs,
+                       BREthereumHash blockHash,
+                       BREthereumAddress address,
+                       BREthereumAccountState state) {
+    // If the AccountState differs, then this blockHash has transactions of interest.
+    // Otherwise, we'll skip out immediately.
+    if (ETHEREUM_BOOLEAN_IS_TRUE(accountStateEqual(bcs->accountState, state))) return;
+
+
+
+}
+
+/*!
+ */
+extern void
 bcsHandleBlockBodies (BREthereumBCS bcs,
                       BREthereumHash blockHash,
                       BREthereumTransaction transactions[],
@@ -650,69 +667,103 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
 }
 
 /*!
+ * Check if `blockHash` and `blockNumber` are in the chain.  They will be in the chain if:
+ *   a) blockNumber is smaller than the chain's earliest maintained block number, or
+ *   b1) blockNumber is not larger than the chain's latest maintained block number and
+ *   b2) blockHash is not an orphan and
+ *   b4) blockHash is known.
  */
 static BREthereumBoolean
 bcsChainHasBlock (BREthereumBCS bcs,
                   BREthereumHash blockHash,
                   uint64_t blockNumber) {
-    if (blockNumber < blockHeaderGetNumber(bcs->chainTail) ||
-        blockNumber > blockHeaderGetNumber(bcs->chain))
-        return ETHEREUM_BOOLEAN_FALSE;
-
-    // TODO: Not quite - walk chain
-    return AS_ETHEREUM_BOOLEAN(NULL == BRSetGet(bcs->orphans, &blockHash));
+    return AS_ETHEREUM_BOOLEAN(blockNumber < blockHeaderGetNumber(bcs->chainTail) ||
+                               (blockNumber <= blockHeaderGetNumber(bcs->chain) &&
+                                NULL == BRSetGet(bcs->orphans, &blockHash) &&
+                                NULL != BRSetGet(bcs->headers, &blockHash)));
 }
 
 extern void
 bcsHandleTransactionStatus (BREthereumBCS bcs,
                             BREthereumHash transactionHash,
                             BREthereumTransactionStatus status) {
+    // We only observe transaction status for transactions that we've originated.  Therefore
+    // we simply *must* have a transaction for transactionHash
     BREthereumTransaction transaction = BRSetGet(bcs->transactions, &transactionHash);
-    if (NULL == transaction) return;
+    if (NULL == transaction) return;  // And yet...
 
-    int noLongerPending = 0;
+    // We'll assume we are pending.  We generated a transaction status request from pending
+    // transactions so assuming pending is reasonable.  However, while processing a block this
+    // transaction may have been included and removed as pending.
+    int isInChain = 0;
 
-    //
-    // TODO: Do we get 'included' before or after we see transaction, in the block body?
-    //  If we get 'included' we should ignore because a) we'll see the transaction
-    //  later and b) we don't have any block information to provide in transaction anyway.
-    //'
+    // A transation in error is a 'terminal state' and the transaction won't ever be in the chain;
+    // we'll remove the transaction from pending.  Note: transaction can be resubmitted.
+    int isAnError = 0;
+
+    // Check based on the reported status.type...
     switch (status.type) {
         case TRANSACTION_STATUS_UNKNOWN:
+            status.type = TRANSACTION_STATUS_SIGNED; // Surely not just CREATED.
             break;
 
-            // Awkward...
+            // Awkward... (why have 'submitted' if 'queued/pending' indicates the same?)
         case TRANSACTION_STATUS_QUEUED:
         case TRANSACTION_STATUS_PENDING:
             status.type = TRANSACTION_STATUS_SUBMITTED;
             break;
 
         case TRANSACTION_STATUS_INCLUDED:
-            noLongerPending = ETHEREUM_BOOLEAN_IS_TRUE (bcsChainHasBlock (bcs,
-                                                                          status.u.included.blockHash,
-                                                                          status.u.included.blockNumber));
+            // With status of `included` this transaction is in a block.  However, we *will not*
+            // consider this transaction as included *until and unless* we have the transaction's
+            // included block in the chain.  At worst, this leaves the transaction pending and
+            // we'll need another couple status requests before we conclude that the transaction
+            // is in the chain.
+            isInChain = ETHEREUM_BOOLEAN_IS_TRUE (bcsChainHasBlock (bcs,
+                                                                    status.u.included.blockHash,
+                                                                    status.u.included.blockNumber));
+
+            // Even if included we'll revert to 'submitted' if not in the chain.
+            if (!isInChain) status.type = TRANSACTION_STATUS_SUBMITTED;
             break;
 
         case TRANSACTION_STATUS_ERRORED:
-            noLongerPending = 1;
+            isInChain = 0;
+            isAnError = 1;
             break;
 
         case TRANSACTION_STATUS_CREATED:
         case TRANSACTION_STATUS_SIGNED:
         case TRANSACTION_STATUS_SUBMITTED:
-            // TODO: DO
+            assert (0); // LES *cannot* report these.
             break;
     }
 
-    if (noLongerPending)
+    // If in the chain or on an error, then remove from pending
+    if (isInChain || isAnError) {
         for (int i = 0; i < array_count(bcs->pendingTransactions); i++)
             if (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual(bcs->pendingTransactions[i], transactionHash))) {
                 array_rm(bcs->pendingTransactions, i);
                 break;
             }
+    }
+    // ... but if not in chain and not an error, then add to pending.  Presumably this could occur
+    // if while processing a block we mark the transaction as included *but* owing to a fork we
+    // get a non-included status.  Just make it pending again and wait for the fork to resolve.
+    else if (!isInChain && !isAnError) {
+        array_add (bcs->pendingTransactions, transactionHash);
+    }
 
-    transactionSetStatus(transaction, status);
-    bcs->listener.transactionCallback (bcs->listener.context, transaction);
+    // If the status has changed, then report
+    if (ETHEREUM_BOOLEAN_IS_FALSE(transactionStatusEqual(status, transactionGetStatus(transaction)))) {
+        transactionSetStatus(transaction, status);
+        eth_log("BCS", "Transaction: \"0x%c%c%c%c...\", Status: %d, Included: %d",
+                _hexc (transactionHash.bytes[0] >> 4), _hexc(transactionHash.bytes[0]),
+                _hexc (transactionHash.bytes[1] >> 4), _hexc(transactionHash.bytes[1]),
+                status.type,
+                isInChain);
+        bcs->listener.transactionCallback (bcs->listener.context, transaction);
+    }
 }
 
 //
