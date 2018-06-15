@@ -26,6 +26,8 @@
 #include <errno.h>
 #include <pthread.h>
 #include <sys/time.h>
+#include <assert.h>
+#include "../util/BRUtil.h"
 #include "BREvent.h"
 #include "BREventQueue.h"
 
@@ -94,6 +96,7 @@ struct BREventHandlerRecord {
     BREvent *scratch;
 
     // (Optional) Timeout
+    int timeoutOnStart;
     struct timespec timeout;
     BREventDispatcher timeoutDispatcher;
     void *timeoutContext;
@@ -149,17 +152,26 @@ eventHandlerCreate (const BREventType *types[], unsigned int typesCount) {
 
 extern void
 eventHandlerSetTimeoutDispatcher (BREventHandler handler,
+                                  int invokeOnStart,
                                   unsigned int timeInMilliseconds,
                                   BREventDispatcher dispatcher,
                                   void *context) {
     pthread_mutex_lock(&handler->lock);
+    handler->timeoutOnStart = invokeOnStart;
     handler->timeout.tv_sec = timeInMilliseconds / 1000;
     handler->timeout.tv_nsec = 1000000 * (timeInMilliseconds % 1000);
     handler->timeoutDispatcher = dispatcher;
     handler->timeoutContext = context;
     pthread_mutex_unlock(&handler->lock);
 
+    // Signal an event - so that the 'timedwait' starts.
     pthread_cond_signal(&handler->cond);
+}
+
+static void
+eventHandlerInvokeTimeout (BREventHandler handler) {
+    BRTimeoutEvent event = { { NULL, &timeoutEventType}, handler->timeoutContext, getTime() };
+    handler->timeoutDispatcher (handler, (BREvent *) &event);
 }
 
 #define PTHREAD_STACK_SIZE (512 * 1024)
@@ -178,6 +190,9 @@ eventHandlerThread (BREventHandler handler) {
 
     pthread_mutex_lock(&handler->lock);
     handler->status = EVENT_HANDLER_THREAD_STATUS_RUNNING;
+
+    if (handler->timeoutOnStart)
+        eventHandlerInvokeTimeout(handler);
 
     while (EVENT_HANDLER_THREAD_STATUS_RUNNING == handler->status) {
         // If there is an event pending...
@@ -206,11 +221,8 @@ eventHandlerThread (BREventHandler handler) {
         // ... or for an event or a timeout.
         else if (ETIMEDOUT == pthread_cond_timedwait_relative_np(&handler->cond,
                                                                  &handler->lock,
-                                                                 &handler->timeout)) {
-            BRTimeoutEvent event =
-                { { NULL, &timeoutEventType}, handler->timeoutContext, getTime() };
-            handler->timeoutDispatcher (handler, (BREvent *) &event);
-        }
+                                                                 &handler->timeout))
+            eventHandlerInvokeTimeout(handler);
     }
 
     handler->status = EVENT_HANDLER_THREAD_STATUS_STOPPED;
@@ -220,11 +232,15 @@ eventHandlerThread (BREventHandler handler) {
 
 extern void
 eventHandlerDestroy (BREventHandler handler) {
-    // stop, then ...
+    // First stop...
+    eventHandlerStop(handler);
+
+    // ... then kill
     pthread_kill(handler->thread, 0);
     pthread_cond_destroy(&handler->cond);
     pthread_mutex_destroy(&handler->lock);
 
+    // release memory
     eventQueueDestroy(handler->queue);
     free (handler->scratch);
     free (handler);
