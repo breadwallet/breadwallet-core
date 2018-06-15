@@ -75,13 +75,21 @@ transactionStatusEqual (BREthereumTransactionStatus ts1,
 extern BREthereumTransactionStatus
 transactionStatusRLPDecodeItem (BRRlpItem item,
                                 BRRlpCoder coder) {
-    BREthereumTransactionStatusType type;
-
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     assert (3 == itemsCount); // [type, [blockHash blockNumber, txIndex], error]
 
-    type = (BREthereumTransactionStatusType) rlpDecodeItemUInt64(coder, items[0], 0);
+    // We have seen (many) cases where the `type` is `unknown` but there is an `error`.  That
+    // appears to violate the LES specfication.  Anyways, if we see an `error` we'll force the
+    // type to be TRANSACTION_STATUS_ERRORED.
+    char *reason = rlpDecodeItemString(coder, items[2]);
+    if (NULL != reason && 0 != strcmp (reason, "") && 0 != strcmp (reason, "0x")) {
+        BREthereumTransactionStatus status = transactionStatusCreateErrored(reason);
+        free (reason);
+        return status;
+    }
+
+    BREthereumTransactionStatusType type = (BREthereumTransactionStatusType) rlpDecodeItemUInt64(coder, items[0], 0);
     switch (type) {
         case TRANSACTION_STATUS_UNKNOWN:
         case TRANSACTION_STATUS_QUEUED:
@@ -101,6 +109,7 @@ transactionStatusRLPDecodeItem (BRRlpItem item,
         }
         
         case TRANSACTION_STATUS_ERRORED: {
+            // We should not be here....
             char *reason = rlpDecodeItemString(coder, items[2]);
             BREthereumTransactionStatus status = transactionStatusCreateErrored(reason);
             free (reason);

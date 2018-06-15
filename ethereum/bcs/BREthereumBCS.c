@@ -684,14 +684,28 @@ bcsChainHasBlock (BREthereumBCS bcs,
                                 NULL != BRSetGet(bcs->headers, &blockHash)));
 }
 
+static int
+bcsLookupPendingTransaction (BREthereumBCS bcs,
+                             BREthereumHash hash) {
+    for (int i = 0; i < array_count(bcs->pendingTransactions); i++)
+        if (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual(bcs->pendingTransactions[i], hash)))
+            return i;
+    return -1;
+}
+
 extern void
 bcsHandleTransactionStatus (BREthereumBCS bcs,
                             BREthereumHash transactionHash,
                             BREthereumTransactionStatus status) {
     // We only observe transaction status for transactions that we've originated.  Therefore
-    // we simply *must* have a transaction for transactionHash
+    // we simply *must* have a transaction for transactionHash.  Perhaps this is untrue -
+    // if we get a transaction sent to use but it's block is orphaned, then we will pend the
+    // transaction and start requesting status updates.
     BREthereumTransaction transaction = BRSetGet(bcs->transactions, &transactionHash);
     if (NULL == transaction) return;  // And yet...
+
+    // Get the current (aka 'old') status.
+    BREthereumTransactionStatus oldStatus = transactionGetStatus(transaction);
 
     // We'll assume we are pending.  We generated a transaction status request from pending
     // transactions so assuming pending is reasonable.  However, while processing a block this
@@ -702,9 +716,30 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
     // we'll remove the transaction from pending.  Note: transaction can be resubmitted.
     int isAnError = 0;
 
+    // We have seen back-to-back status messages on a submit transaction.  The first is
+    // an error: 'transaction underpriced'; the second is type 'unknown'.  Must be that the first
+    // status is the result of 'submit' and the second is a result of a pend update.
+    //
+    // Conclusion: if the transaction is in error, then it ain't coming back.  Change `status`
+    // to be `oldStatus` and then continue on.
+    //
+    // TODO: Confirm this on 'resubmitted' transactions.
+    if (TRANSACTION_STATUS_ERRORED == oldStatus.type)
+        status = oldStatus;
+
+    // We have also seen a type of 'pending' (felt joy) and then surprisingly, in a subsequent
+    // status result, a type of 'unknown'.  It is as if the GETH node passd on the transaction,
+    // had nothing in its 'mempool' and thus declared 'unknown'.  We'll try to handle this
+    // reasonably, if we can.
+    if (TRANSACTION_STATUS_UNKNOWN == status.type)
+        status = oldStatus;
+
     // Check based on the reported status.type...
     switch (status.type) {
         case TRANSACTION_STATUS_UNKNOWN:
+            // It appears that we can get to `unknown` from any old type.  We've seen
+            // 'pending' -> 'unknown'.  So, if status.type is 'unknown' simply adop
+
             status.type = TRANSACTION_STATUS_SIGNED; // Surely not just CREATED.
             break;
 
@@ -742,27 +777,35 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
 
     // If in the chain or on an error, then remove from pending
     if (isInChain || isAnError) {
-        for (int i = 0; i < array_count(bcs->pendingTransactions); i++)
-            if (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual(bcs->pendingTransactions[i], transactionHash))) {
-                array_rm(bcs->pendingTransactions, i);
-                break;
-            }
+        int index = bcsLookupPendingTransaction(bcs, transactionHash);
+        if (-1 != index) {
+            array_rm(bcs->pendingTransactions, index);
+            eth_log("BCS", "Transaction: \"0x%c%c%c%c...\", Pending: 0",
+                    _hexc (transactionHash.bytes[0] >> 4), _hexc(transactionHash.bytes[0]),
+                    _hexc (transactionHash.bytes[1] >> 4), _hexc(transactionHash.bytes[1]));
+        }
     }
     // ... but if not in chain and not an error, then add to pending.  Presumably this could occur
     // if while processing a block we mark the transaction as included *but* owing to a fork we
     // get a non-included status.  Just make it pending again and wait for the fork to resolve.
-    else if (!isInChain && !isAnError) {
+    else if (!isInChain && !isAnError && -1 == bcsLookupPendingTransaction(bcs, transactionHash)) {
         array_add (bcs->pendingTransactions, transactionHash);
+        eth_log("BCS", "Transaction: \"0x%c%c%c%c...\", Pending: 1",
+                _hexc (transactionHash.bytes[0] >> 4), _hexc(transactionHash.bytes[0]),
+                _hexc (transactionHash.bytes[1] >> 4), _hexc(transactionHash.bytes[1]));
     }
 
     // If the status has changed, then report
-    if (ETHEREUM_BOOLEAN_IS_FALSE(transactionStatusEqual(status, transactionGetStatus(transaction)))) {
+    if (ETHEREUM_BOOLEAN_IS_FALSE(transactionStatusEqual(status, oldStatus))) {
         transactionSetStatus(transaction, status);
-        eth_log("BCS", "Transaction: \"0x%c%c%c%c...\", Status: %d, Included: %d",
+        eth_log("BCS", "Transaction: \"0x%c%c%c%c...\", Status: %d, Included: %d, Pending: %d%s%s",
                 _hexc (transactionHash.bytes[0] >> 4), _hexc(transactionHash.bytes[0]),
                 _hexc (transactionHash.bytes[1] >> 4), _hexc(transactionHash.bytes[1]),
                 status.type,
-                isInChain);
+                isInChain,
+                -1 != bcsLookupPendingTransaction(bcs, transactionHash),
+                (TRANSACTION_STATUS_ERRORED == status.type ? ", Error: " : ""),
+                (TRANSACTION_STATUS_ERRORED == status.type ? status.u.errored.reason : ""));
         bcs->listener.transactionCallback (bcs->listener.context, transaction);
     }
 }

@@ -1549,8 +1549,12 @@ testReallySend (void) {
     ethereumWalletSignTransaction (node, wallet, tx, paperKey);
 
     ethereumConnect(node, client);
-//    ethereumWalletSubmitTransaction(node, wallet, tx);
-    sleep (20 * 60); // 20 minutes
+    printf ("***\n***\n***\n*** WAITING TO SUBMIT\n***\n");
+    sleep (10);
+    printf ("***\n***\n***\n*** SUBMITING\n***\n");
+
+    ethereumWalletSubmitTransaction(node, wallet, tx);
+    sleep (60 * 60); // 20 minutes
 
     return;
 }
@@ -1616,7 +1620,7 @@ void runLightNodeTests () {
 //    prepareTransaction(NODE_PAPER_KEY, NODE_RECV_ADDR, TEST_TRANS2_GAS_PRICE_VALUE, GAS_LIMIT_DEFAULT, NODE_ETHER_AMOUNT);
     testTransactionCodingEther ();
     testTransactionCodingToken ();
-    runLightNode_CONNECT_test(NODE_PAPER_KEY);
+//    runLightNode_CONNECT_test(NODE_PAPER_KEY);
     runLightNode_TOKEN_test (NODE_PAPER_KEY);
     runLightNode_PUBLIC_KEY_test (ethereumMainnet, NODE_PAPER_KEY);
     runLightNode_PUBLIC_KEY_test (ethereumTestnet, "ocean robust idle system close inject bronze mutual occur scale blast year");
