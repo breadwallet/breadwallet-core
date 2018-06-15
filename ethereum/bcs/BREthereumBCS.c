@@ -149,6 +149,7 @@ bcsCreate (BREthereumNetwork network,
     // can signal events (by queuing; they won't be handled until the event queue is started).
     bcs->handler = eventHandlerCreate(bcsEventTypes, bcsEventTypesCount);
     eventHandlerSetTimeoutDispatcher(bcs->handler,
+                                     ETHEREUM_BOOLEAN_FALSE,
                                      1000 * BCS_TRANSACTION_CHECK_STATUS_SECONDS,
                                      (BREventDispatcher)bcsPeriodicDispatcher,
                                      (void*) bcs);

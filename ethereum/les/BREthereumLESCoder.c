@@ -680,7 +680,6 @@ static BRRlpData _encodeTxts(uint64_t msgId, uint64_t message_id_offset, uint64_
     BRRlpItem items[2];
     int idx = 0;
     
-   // items[idx++] = rlpEncodeItemUInt64(coder, msgId,1);
     items[idx++] = rlpEncodeItemUInt64(coder, reqId,1);
 
     BRRlpItem txtsItems[transactionsCount];

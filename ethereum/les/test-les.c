@@ -61,16 +61,16 @@ void _announceCallback (BREthereumLESAnnounceContext context,
     
     printf("RECEIVED AN ANNOUNCE MESSAGE!!!!!!\n");
 }
-void transactionStatusCallback(BREthereumLESTransactionStatusContext context,
-                               BREthereumHash transaction,
-                               BREthereumTransactionStatus status){
-    
-    char transactionHashStr[] = "c070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c";
-    BREthereumHash transactionHash;
-    decodeHex(transactionHash.bytes, 32, transactionHashStr, strlen(transactionHashStr));
-    
-    assert(memcmp(transaction.bytes, transactionHash.bytes, 32) == 0);
-}
+
+
+//
+//  Testing SendTx and SendTxV2 message
+//
+#define GAS_PRICE_20_GWEI       2000000000
+#define GAS_PRICE_10_GWEI       1000000000
+#define GAS_PRICE_5_GWEI         500000000
+#define GAS_LIMIT_DEFAULT 21000
+
 static void _transactionStatus(BREthereumLESTransactionStatusContext context,
                        BREthereumHash transaction,
                        BREthereumTransactionStatus status){
@@ -124,33 +124,13 @@ void prepareLESTransaction (BREthereumLES les, const char *paperKey, const char 
     free (fromAddr);
     ethereumDestroy(node);
 }
-#define GAS_PRICE_20_GWEI       2000000000
-#define GAS_PRICE_10_GWEI       1000000000
-#define GAS_PRICE_5_GWEI         500000000
-#define GAS_LIMIT_DEFAULT 21000
 
-
-// Local (PaperKey) -> LocalTest @ 5 GWEI gasPrice @ 21000 gasLimit & 0.0001/2 ETH
-#define ACTUAL_RAW_TX "f86a01841dcd65008252089422583f6c7dae5032f4d72a10b9e9fa977cbfc5f68701c6bf52634000801ca05d27cbd6a84e5d34bb20ce7dade4a21efb4da7507958c17d7f92cfa99a4a9eb6a005fcb9a61e729b3c6b0af3bad307ef06cdf5c5578615fedcc4163a2aa2812260"
-// eth.sendRawTran ('0xf86a01841dcd65008252089422583f6c7dae5032f4d72a10b9e9fa977cbfc5f68701c6bf52634000801ca05d27cbd6a84e5d34bb20ce7dade4a21efb4da7507958c17d7f92cfa99a4a9eb6a005fcb9a61e729b3c6b0af3bad307ef06cdf5c5578615fedcc4163a2aa2812260', function (err, hash) { if (!err) console.log(hash); });
 extern void
-reallySendLESTransaction() {
+reallySendLESTransaction(BREthereumLES les) {
 
-    //Prepare values to be given to an les context
-    BREthereumHash headHash;
-    char headHashStr[] = "d4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3";
-    assert(32 == (strlen(headHashStr)/2));
-    decodeHex(headHash.bytes, 32, headHashStr, strlen(headHashStr));
-
-    uint64_t headNumber = 0;
-    uint64_t headTD = 0x400000000;
-    
-    BREthereumHash genesisHash;
-    decodeHex(genesisHash.bytes, 32, headHashStr, strlen(headHashStr));
-
-    char paperKey[1024];
-    char recvAddress[1024];
-
+    char paperKey[] = "biology just ridge kidney random donkey master employ poverty remind panel twenty";
+    char recvAddress[] = "0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF";
+/*
     fputs("PaperKey: ", stdout);
     fgets (paperKey, 1024, stdin);
     paperKey[strlen(paperKey) - 1] = '\0';
@@ -158,102 +138,11 @@ reallySendLESTransaction() {
     fputs("Address: ", stdout);
     fgets (recvAddress, 1024, stdin);
     recvAddress[strlen(recvAddress) - 1] = '\0';
-
+*/
     printf ("PaperKey: '%s'\nAddress: '%s'\n", paperKey, recvAddress);
-
-    // Create an LES context
-    BREthereumLES les = lesCreate(ethereumMainnet, NULL, _announceCallback, headHash, headNumber, headTD, genesisHash);
-    
-    //
-    sleep(5);
 
     // 0.001/2 ETH
     prepareLESTransaction(les, paperKey, recvAddress, GAS_PRICE_5_GWEI, GAS_LIMIT_DEFAULT, 1000000000000000000 / 1000 / 2);
-}
-void blockBodiesCallback  (BREthereumLESBlockBodiesContext context,
-       BREthereumHash block,
-       BREthereumTransaction transactions[],
-       BREthereumBlockHeader ommers[]) {
-    
-    eth_log("BLOCK_BODIES", "%s", "Got a block body");
-    
-}
-
-void receiptsCallback(BREthereumLESBlockBodiesContext context,
-                      BREthereumHash block,
-                      BREthereumTransactionReceipt receipts[]){
-    
-    eth_log("Receipts Callback", "%s", "Got a receipts array");
-}
-
-void runLESTest() {/*
-
-    //Prepare values to be given to an les context
-    BREthereumHash headHash;
-    char headHashStr[] = "d4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3";
-    assert(32 == (strlen(headHashStr)/2));
-    decodeHex(headHash.bytes, 32, headHashStr, strlen(headHashStr));
-
-    uint64_t headNumber = 0;
-    uint64_t headTD = 0x400000000;
-    
-    BREthereumHash genesisHash;
-    decodeHex(genesisHash.bytes, 32, headHashStr, strlen(headHashStr));
-
-    // Create an LES context
-    BREthereumLES les = lesCreate(ethereumMainnet, NULL, _announceCallback, headHash, headNumber, headTD, genesisHash);
-  
-    //Sleep for a bit to allow the les context to connect to the network
-    sleep(5);
-    
-    // Prepare values to be given to a send tranactions status message
-    char transactionHashStr[] = "c070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c";
-   // char transactionHashStr[] = "78453edd2955e6ef6b200f5f9b98b3940d0d3f1528f902e7e855df56bf934cc5";
-    assert(32 == (strlen(transactionHashStr)/2));
-    BREthereumHash transactionHash;
-    decodeHex(transactionHash.bytes, 32, transactionHashStr, strlen(transactionHashStr));
-  
-    lesGetBlockHeaders(les, NULL, headersCallback, 5732521, 10, 1, ETHEREUM_BOOLEAN_FALSE);
- 
-    BREthereumHash* blocks;
-    array_new(blocks, 2);
-    
-    char hash1Str[] = "04e59a99b84a38a4d5d47ef22acdee3853bbcc9a4186f35256a7ace512f454f2";    //Block Number: 5732522
-    assert(32 == (strlen(hash1Str)/2));
-    BREthereumHash hash1;
-    decodeHex(hash1.bytes, 32, hash1Str, strlen(hash1Str));
-    
-    char hash2Str[] = "089a6c0b4b960261287d30ee40b1eea2da2972e7189bd381137f55540d492b2c";   //Block Number: 5732521
-    assert(32 == (strlen(hash2Str)/2));
-    BREthereumHash hash2;
-    decodeHex(hash2.bytes, 32, hash2Str, strlen(hash2Str));
-    
-      array_add(blocks, hash1);
-      array_add(blocks, hash2);
-
-    lesGetBlockBodies(les, NULL, blockBodiesCallback, blocks);
- 
-  //  lesGetReceipts(les,NULL,receiptsCallback,blocks); */
- 
- /**************/
- 
- 
- //   assert(lesGetTransactionStatusOne(les, NULL, transactionStatusCallback, transactionHash) == LES_SUCCESS);
-    
-  /*  BREthereumAddress address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
-    uint8_t hash[32];
-    memcpy(hash,  address.bytes, 20);
-    memset(&hash[20], 0, 32 - 20);
-    
-    //BRKeccak256(hash, address.bytes, 20);
-    
-    BREthereumHash key, key2;
-    memcpy(key.bytes, hash, 32);
-    memset(key2.bytes, 0, 32);
-    //lesGetGetProofsV2One(les,hash1,key,key2, 0); */
-    
-    //Sleep to allow for the results to get back from the program. 
-    sleep(600);
 }
 
 //
@@ -286,7 +175,6 @@ static void _initBlockHeaderTestData(void){
     _blockHeaderTestData[0].parent = hashCreate("0x5463afdad9eb343096a6a6561d4fed4b478380d02721cdd8fab97fda058f9fa2");
     _blockHeaderTestData[0].transactionCount = 331;
     _blockHeaderTestData[0].ommersCount = 0;
-
 
     //Block Number: 4732523
     _blockHeaderTestData[1].hash = hashCreate("0x5463afdad9eb343096a6a6561d4fed4b478380d02721cdd8fab97fda058f9fa2");
@@ -546,7 +434,7 @@ static void run_GetTxStatus_Tests(BREthereumLES les){
     assert(lesGetTransactionStatus(les, (void *)&_GetTxStatus_Context2, _GetTxStatus_Test2_Callback, transactions) == LES_SUCCESS);
     
     //Wait for a little bit to get a reply back from the server.
-    sleep(300);
+    sleep(5);
     
 }
 //
@@ -563,7 +451,7 @@ static void _GetBlockBodies_Callback_Test1(BREthereumLESBlockBodiesContext conte
     assert(context != NULL);
     int* context1 = (int *)context;
     
-    assert(context1 == &_GetBlockBodies_Context1); //Check to make sure the context is correct
+    assert(*context1 == _GetBlockBodies_Context1); //Check to make sure the context is correct
     
     //Check Block Hash
     assert(hashSetEqual(&block, &_blockHeaderTestData[_GetBlockBodies_Context1].hash));
@@ -593,9 +481,7 @@ static void _GetBlockBodies_Callback_Test2(BREthereumLESBlockBodiesContext conte
     
     _GetBlockBodies_Context2++;
     
-    if(_GetBlockBodies_Context2 == 4){
-        eth_log("run_GetBlockBodies_Tests", "%s", "Test 2 Successful");
-    }
+    eth_log("run_GetBlockBodies_Tests", "%s", "Test 2 Successful");
 }
 
 static void run_GetBlockBodies_Tests(BREthereumLES les){
@@ -607,11 +493,11 @@ static void run_GetBlockBodies_Tests(BREthereumLES les){
     //Request block bodies 4732522, 4732521
     _GetBlockBodies_Context2 = BLOCK_4732522_IDX;
     BREthereumHash* blockHeaders;
-    array_new(blockHeaders, 1);
+    array_new(blockHeaders, 2);
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX].hash);
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX + 1].hash);
     
-    assert(lesGetBlockBodies(les, (void *)&_GetBlockBodies_Context2, _GetBlockBodies_Callback_Test2, blockHeaders) == LES_SUCCESS);
+    assert(lesGetBlockBodies(les, (void *)&_GetTxStatus_Context2, _GetBlockBodies_Callback_Test2, blockHeaders) == LES_SUCCESS);
     
     //Wait for a little bit to get a reply back from the server.
     sleep(60);
@@ -647,18 +533,16 @@ static void _GetReceipts_Callback_Test2(BREthereumLESBlockBodiesContext context,
     assert(context != NULL);
     int* context1 = (int *)context;
     
-    assert(*context1 == _GetReceipts_Context2); //Check to make sure the context is correct
+    assert(*context1 == _GetBlockBodies_Context1); //Check to make sure the context is correct
     
     //Check Block Hash
-    assert(hashSetEqual(&block, &_blockHeaderTestData[_GetReceipts_Context2].hash));
+    assert(hashSetEqual(&block, &_blockHeaderTestData[_GetReceipts_Context1].hash));
     
     //Check to make sure we got back the right number of transactions and ommers
-    assert(array_count(receipts) == _blockHeaderTestData[_GetReceipts_Context2].transactionCount);
+    assert(array_count(receipts) == _blockHeaderTestData[_GetReceipts_Context1].transactionCount);
     
     _GetReceipts_Context2++;
-    if(_GetReceipts_Context2 == 3){
-        eth_log("run_GetReceipts_Tests", "%s", "Test 2 Successful");
-    }
+    eth_log("run_GetReceipts_Tests", "%s", "Test 2 Successful");
 }
 
 static void run_GetReceipts_Tests(BREthereumLES les){
@@ -674,7 +558,7 @@ static void run_GetReceipts_Tests(BREthereumLES les){
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX].hash);
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX + 1].hash);
     
-    assert(lesGetReceipts(les, (void *)&_GetReceipts_Context2, _GetReceipts_Callback_Test2, blockHeaders) == LES_SUCCESS);
+    assert(lesGetReceipts(les, (void *)&_GetTxStatus_Context2, _GetReceipts_Callback_Test2, blockHeaders) == LES_SUCCESS);
     
     
     //Wait for a little bit to get a reply back from the server.
@@ -686,27 +570,32 @@ static void run_GetReceipts_Tests(BREthereumLES les){
 //
 static int _GetProofsV2_Context1 = 0;
 
+static void _GetProofs_Callback_Test1(BREthereumLESProofsV2Context context,
+                                      BREthereumHash blockHash,
+                                      BREthereumHash key,
+                                      BREthereumHash key2) {
+    
+    assert(context != NULL);
+    int* context1 = (int *)context;
+    
+    assert(*context1 == _GetProofsV2_Context1); //Check to make sure the context is correct
+    
+    eth_log("run_GetReceipts_Tests", "%s", "Test 2 Successful");
+}
+
 static void run_GetProofsV2_Tests(BREthereumLES les){
-/*
+
+    //Address to get proofs from
     BREthereumAddress address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
-    uint8_t hash[32];
-    memcpy(hash, address.bytes, 20);
-    memset(&hash[20], 0, 32 - 20);
-    
-    //BRKeccak256(hash, address.bytes, 20);
-    
+
+    //Request the proofs for block 5503921 for address above
+    BREthereumHash block_5503921 = hashCreate("0x089a6c0b4b960261287d30ee40b1eea2da2972e7189bd381137f55540d492b2c");
     BREthereumHash key, key2;
-    memcpy(key.bytes, hash, 32);
-    memset(key2.bytes, 0, 32);
-    
-    //Request the proofs for block 4732522
-    _GetProofsV2_Context1 = BLOCK_4732522_IDX
-    
-    
-    lesGetGetProofsV2One(les,hash1,key,key2, 0)
-    
-    assert(lesGetReceiptsOne(les, (void *)&_GetReceipts_Context1, _GetReceipts_Callback_Test1, _blockHeaderTestData[BLOCK_4732522_IDX].hash) == LES_SUCCESS);
-*/ 
+    BRKeccak256(key.bytes, address.bytes, sizeof(address.bytes));
+
+    memset(key.bytes, 0, 32);
+
+    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block_5503921, key, key2, 0) == LES_SUCCESS);
     
     //Wait for a little bit to get a reply back from the server.
     sleep(60);
@@ -737,11 +626,12 @@ void runLEStests(void) {
     
     
     //Run Tests on the LES messages
-      run_GetTxStatus_Tests(les);
- //      run_GetBlockHeaders_Tests(les);
-  //   run_GetBlockBodies_Tests(les);
-  //   run_GetReceipts_Tests(les);
-  //   run_GetProofsV2_Tests(les);
+    // run_GetTxStatus_Tests(les);
+    // run_GetBlockHeaders_Tests(les);
+    // run_GetBlockBodies_Tests(les);
+    // run_GetReceipts_Tests(les);
+     run_GetProofsV2_Tests(les);
+    //reallySendLESTransaction(les);
     
 }
 
