@@ -238,6 +238,8 @@ lightNodeConnect(BREthereumLightNode node,
             else {
                 // CORE-41: Get the client set before lightNodeThreadRoutine(node) runs
                 node->client = client;
+                // CORE-92, DROID-634: Get the state set to avoid a race with pthread_create().
+                node->state = LIGHT_NODE_CONNECTING;
                 if  (0 != pthread_create(&node->thread, &attr, (ThreadRoutine) lightNodeThreadRoutine, node)) {
                     node->client = nullClient;
                     node->state = LIGHT_NODE_ERRORED;
@@ -247,7 +249,6 @@ lightNodeConnect(BREthereumLightNode node,
             }
 
             // Running
-            node->state = LIGHT_NODE_CONNECTING;
             return ETHEREUM_BOOLEAN_TRUE;
         }
     }
