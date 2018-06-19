@@ -82,9 +82,11 @@ typedef enum {
 //
 // Timeout Event
 //
+typedef void *BREventTimeoutContext;
+
 typedef struct {
     struct BREventRecord base;
-    void *context;
+    BREventTimeoutContext context;
     struct timespec time;
 } BREventTimeout;
 
@@ -98,16 +100,15 @@ typedef struct {
 extern BREventHandler
 eventHandlerCreate (const BREventType *types[], unsigned int typesCount);
 
-    /**
-     * Optional specify a periodic TimeoutDispatcher.  The `dispatcher` will run every
-     * `timeInMilliseconds` (and passed a NULL event).
-     */
+/**
+ * Optional specify a periodic TimeoutDispatcher.  The `dispatcher` will run every
+ * `timeInMilliseconds` (and passed a NULL event).
+ */
 extern void
 eventHandlerSetTimeoutDispatcher (BREventHandler handler,
-                                  int invokeOnStart,
                                   unsigned int timeInMilliseconds,
                                   BREventDispatcher dispatcher,
-                                  void *context);
+                                  BREventTimeoutContext context);
 
 extern void
 eventHandlerDestroy (BREventHandler handler);

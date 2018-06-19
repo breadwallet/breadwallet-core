@@ -55,6 +55,7 @@ getTime () {
     return time;
 }
 
+/* Unused
 static inline struct timespec
 timespecAdd (struct timespec *t1, struct timespec *t2) {
     long tv_nsec = t1->tv_nsec + t2->tv_nsec;
@@ -65,6 +66,7 @@ timespecAdd (struct timespec *t1, struct timespec *t2) {
     }
     return (struct timespec) { .tv_sec = tv_sec, .tv_nsec = tv_nsec };
 }
+*/
 
 static inline void
 timespecInc (struct timespec *t1, struct timespec *t2) {
@@ -105,7 +107,11 @@ typedef struct {
     BREventAlarmType type;
     BREventAlarmContext context;
     BREventAlarmCallback callback;
+
+    /// The next expiration time.  This is updated if the alarm is periodic.
     struct timespec expiration;
+
+    /// The alarm's period.  For a ONE_SHOT alarm, this is ignored/zeroed.
     struct timespec period;
 } BREventAlarm;
 
@@ -113,8 +119,8 @@ static BREventAlarm
 alarmCreatePeriodic (BREventAlarmContext context,
                      BREventAlarmCallback callback,
                      struct timespec expiration,  // first expiration...
-                     struct timespec period,
-                     BREventAlarmId identifier) {    // ...thereafter increment
+                     struct timespec period,      // ...thereafter increment
+                     BREventAlarmId identifier) {
     return (BREventAlarm) {
         .type = ALARM_PERIODIC,
         .identifier = identifier,
@@ -137,6 +143,7 @@ alarmCreate (BREventAlarmContext context,
         .expiration = expiration,
         .period = { .tv_sec = 0, .tv_nsec = 0 } };
 }
+
 static int
 alarmIsPeriodic (BREventAlarm *alarm) {
     return ALARM_PERIODIC == alarm->type;
@@ -202,11 +209,11 @@ alarmClockCreate (void) {
 }
 
 extern void
-alarmClockCreateIfNecessary (void) {
-    if (NULL == alarmClock) {
+alarmClockCreateIfNecessary (int start) {
+    if (NULL == alarmClock)
         alarmClock = alarmClockCreate();
+    if (start)
         alarmClockStart(alarmClock);
-    }
 }
 
 extern void
@@ -240,6 +247,7 @@ typedef void* (*ThreadRoutine) (void*);
 
 static void *
 alarmClockThread (BREventAlarmClock clock) {
+    
 #if ! defined (__ANDROID__)
     pthread_setname_np("Core Ethereum Alarm Clock");
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
@@ -260,13 +268,13 @@ alarmClockThread (BREventAlarmClock clock) {
             case ETIMEDOUT: {
                 // If we timed-out, then get the alarm that has expired...
                 BREventAlarm alarm = clock->alarms[0];
-                // ... and remove it from the clock's alarms (for now if periodic)
+                // ... and remove it from the clock's alarms (for now; if periodic, add it back)
                 array_rm (clock->alarms, 0);
 
                 // Expire the alarm - invokes the callback.
                 alarmExpire(&alarm, clock);
 
-                // If perioic, update the alarm expiration and reinsert
+                // If periodic, update the alarm expiration and reinsert
                 if (alarmIsPeriodic(&alarm)) {
                     alarmPeriodUpdate(&alarm);
                     alarmClockInsertAlarm(clock, alarm);
@@ -302,13 +310,26 @@ alarmClockStop (BREventAlarmClock clock) {
 }
 
 extern BREventAlarmId
-alarmClockAddAlarmPeriodicNow (BREventAlarmClock clock,
+alarmClockAddAlarmPeriodic (BREventAlarmClock clock,
                                BREventAlarmContext context,
                                BREventAlarmCallback callback,
                                struct timespec period) {
     pthread_mutex_lock(&clock->lock);
     BREventAlarmId identifier = clock->identifier++;
     alarmClockInsertAlarm(clock, alarmCreatePeriodic(context, callback, getTime(), period, identifier));
+    pthread_cond_signal(&clock->cond);
+    pthread_mutex_unlock(&clock->lock);
+    return identifier;
+}
+
+extern BREventAlarmId
+alarmClockAddAlarm  (BREventAlarmClock clock,
+                               BREventAlarmContext context,
+                               BREventAlarmCallback callback,
+                               struct timespec expiration) {
+    pthread_mutex_lock(&clock->lock);
+    BREventAlarmId identifier = clock->identifier++;
+    alarmClockInsertAlarm(clock, alarmCreate(context, callback, expiration, identifier));
     pthread_cond_signal(&clock->cond);
     pthread_mutex_unlock(&clock->lock);
     return identifier;

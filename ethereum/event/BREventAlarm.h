@@ -43,8 +43,11 @@ typedef void (*BREventAlarmCallback) (BREventAlarmContext context,
 
 extern BREventAlarmClock alarmClock;
 
+/**
+ * Create `alarmClock` the default, and only one needed, clock.  Optionally start it.
+ */
 extern void
-alarmClockCreateIfNecessary (void);
+alarmClockCreateIfNecessary (int start);
 
 extern BREventAlarmClock
 alarmClockCreate (void);
@@ -59,10 +62,16 @@ extern void
 alarmClockStop (BREventAlarmClock clock);
 
 extern BREventAlarmId
-alarmClockAddAlarmPeriodicNow (BREventAlarmClock clock,
-                               BREventAlarmContext context,
-                               BREventAlarmCallback callback,
-                               struct timespec period);
+alarmClockAddAlarmPeriodic (BREventAlarmClock clock,
+                            BREventAlarmContext context,
+                            BREventAlarmCallback callback,
+                            struct timespec period);
+
+extern BREventAlarmId
+alarmClockAddAlarm  (BREventAlarmClock clock,
+                     BREventAlarmContext context,
+                     BREventAlarmCallback callback,
+                     struct timespec expiration);
 
 extern void
 alarmClockRemAlarm (BREventAlarmClock clock,
