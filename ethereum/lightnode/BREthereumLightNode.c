@@ -43,7 +43,7 @@
 /* Forward Declaration */
 static void
 lightNodePeriodicDispatcher (BREventHandler handler,
-                             BRTimeoutEvent *event);
+                             BREventTimeout *event);
 
 
 /* Stubbed */
@@ -124,7 +124,6 @@ createLightNode (BREthereumNetwork network,
 
     node->handlerForMain = eventHandlerCreate(handlerEventTypes, handlerEventTypesCount);
     eventHandlerSetTimeoutDispatcher(node->handlerForMain,
-                                     ETHEREUM_BOOLEAN_TRUE,
                                      1000 * LIGHT_NODE_SLEEP_SECONDS,
                                      (BREventDispatcher)lightNodePeriodicDispatcher,
                                      (void*) node);
@@ -496,7 +495,7 @@ lightNodeHandleTransaction (BREthereumLightNode node,
 
 static void
 lightNodePeriodicDispatcher (BREventHandler handler,
-                             BRTimeoutEvent *event) {
+                             BREventTimeout *event) {
     BREthereumLightNode node = (BREthereumLightNode) event->context;
 
     if (node->state != LIGHT_NODE_CONNECTED) return;

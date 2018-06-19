@@ -43,6 +43,7 @@
 #include "BREthereumPrivate.h"
 #include "BREthereumAccount.h"
 #include "blockchain/BREthereumBlockChain.h"
+#include "event/BREventAlarm.h"
 #include "les/test-les.h"
 
 static void
@@ -667,6 +668,40 @@ void runRlpTest () {
     printf ("==== RLP\n");
     runRlpEncodeTest ();
     runRlpDecodeTest ();
+}
+
+static pthread_cond_t testEventAlarmConditional = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t testEventAlarmMutex = PTHREAD_MUTEX_INITIALIZER;
+static BREventAlarmContext testEventAlarmContext = (void*) 1;
+static struct timespec testEventAlarmPeriod = { 10, 0 };
+static int testEventAlarmCount = 0;
+
+static  void
+testEventAlarmCallback (BREventAlarmContext context,
+                        struct timespec expiration,
+                        BREventAlarmClock clock) {
+    assert (clock == alarmClock);
+    assert (context == testEventAlarmContext);
+    testEventAlarmCount++;
+    pthread_cond_signal(&testEventAlarmConditional);
+}
+
+void runEventTest () {
+    alarmClockCreateIfNecessary (0);
+    assert (NULL != alarmClock);
+
+    BREventAlarmId alarm = alarmClockAddAlarmPeriodic(alarmClock, NULL, NULL, testEventAlarmPeriod);
+    alarmClockRemAlarm(alarmClock, alarm);
+
+    alarmClockStart(alarmClock);
+
+    pthread_mutex_lock(&testEventAlarmMutex);
+    alarm = alarmClockAddAlarmPeriodic(alarmClock, testEventAlarmContext, testEventAlarmCallback, testEventAlarmPeriod);
+    pthread_cond_wait(&testEventAlarmConditional, &testEventAlarmMutex);
+    alarmClockRemAlarm(alarmClock, alarm);
+    assert (1 == testEventAlarmCount);
+    alarmClockStart(alarmClock);
+    alarmClockDestroy(alarmClock);
 }
 
 //
@@ -1518,9 +1553,9 @@ testReallySend (void) {
     char *strAmount = "0.0001"; //ETH
     uint64_t gasPrice = 2; // GWEI
     uint64_t gasLimit = 21000;
-    uint64_t nonce = 4;                  // Careful
+    uint64_t nonce = 5;                  // Careful
 
-    printf ("PaperKey: '%s'\nAddress: '%s'\nGasLimt: %llu\nGasPrice: %llu GWEI", paperKey, recvAddr, gasLimit, gasPrice);
+    printf ("PaperKey: '%s'\nAddress: '%s'\nGasLimt: %llu\nGasPrice: %llu GWEI\n", paperKey, recvAddr, gasLimit, gasPrice);
 
 
     BREthereumLightNode node = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
@@ -1955,6 +1990,7 @@ runTests (void) {
     runEtherParseTests();
     runTokenParseTests();
     runRlpTest();
+    runEventTest();
     runAccountTests();
     runTokenTests ();
     runLightNodeTests();

@@ -113,9 +113,10 @@ eventQueueDestroy (BREventQueue queue) {
     memset (queue, 0, sizeof (struct BREventQueueRecord));
 }
 
-extern void
+static void
 eventQueueEnqueue (BREventQueue queue,
-                   const BREvent *event) {
+                   const BREvent *event,
+                   int tail) {
     pthread_mutex_lock(&queue->lock);
 
     // Get the next available event
@@ -131,17 +132,33 @@ eventQueueEnqueue (BREventQueue queue,
     memcpy (this, event, event->type->eventSize);
     this->next = NULL;
 
-    // Add to the end of pending
+    // Nothing pending, simply add.
     if (NULL == queue->pending)
         queue->pending = this;
-    else {
+    else if (tail) {
         // Find the last event
         BREvent *last = queue->pending;
         while (NULL != last->next) last = last->next;
         last->next = this;
     }
+    else /* (head) */ {
+        this->next = queue->pending;
+        queue->pending = this;
+    }
 
     pthread_mutex_unlock(&queue->lock);
+}
+
+extern void
+eventQueueEnqueueTail (BREventQueue queue,
+                       const BREvent *event) {
+    eventQueueEnqueue (queue, event, 1);
+}
+
+extern void
+eventQueueEnqueueHead (BREventQueue queue,
+                       const BREvent *event) {
+    eventQueueEnqueue (queue, event, 0);
 }
 
 extern BREventStatus
