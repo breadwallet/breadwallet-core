@@ -141,6 +141,11 @@ struct BREthereumBCSStruct {
      * The Account State
      */
     BREthereumAccountState accountState;
+
+    int syncActive;
+    uint64_t syncTail;
+    uint64_t syncNext;
+    uint64_t syncHead;
 };
 
 extern const BREventType *bcsEventTypes[];

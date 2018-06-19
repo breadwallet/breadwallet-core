@@ -28,7 +28,6 @@
 #include "BRSet.h"
 #include "BREthereumBCSPrivate.h"
 
-#define BCS_SYNC_BLOCK_NUMBER_COUNT  (100)
 #define BCS_TRANSACTION_CHECK_STATUS_SECONDS   (3)
 
 #define BCS_HEADERS_INITIAL_CAPACITY (1024)
@@ -41,13 +40,24 @@
 // Any orphan more then AGE_OFFSET blocks in the past will be purged.
 #define BCS_ORPHAN_AGE_OFFSET  (10)
 
-#define BCS_SAVE_BLOCKS_COUNT  (100)
+#define BCS_SAVE_BLOCKS_COUNT  (300)
+
+/**
+ * When syncing, we'll request a batch of headers
+ */
+#define BCS_SYNC_BLOCKS_COUNT  (100)
 
 /* Forward Declarations */
 static void
 bcsPeriodicDispatcher (BREventHandler handler,
                        BREventTimeout *event);
 
+static void
+bcsSyncFrom (BREthereumBCS bcs,
+             uint64_t chainBlockNumber);
+
+/**
+ */
 extern BREthereumBCS
 bcsCreate (BREthereumNetwork network,
            BREthereumAccount account,
@@ -70,6 +80,8 @@ bcsCreate (BREthereumNetwork network,
     bcs->filterForAddressOnTransactions = bloomFilterCreateAddress(bcs->address);
     bcs->filterForAddressOnLogs = logTopicGetBloomFilterAddress(bcs->address);
 
+    bcs->syncActive = 0;
+    bcs->syncHead = bcs->syncNext = bcs->syncTail = 0;
 
     bcs->listener = listener;
 
@@ -212,13 +224,7 @@ bcsGetLES (BREthereumBCS bcs) {
 extern void
 bcsSync (BREthereumBCS bcs,
          uint64_t blockNumber) {
-    lesGetBlockHeaders(bcs->les,
-                       (BREthereumLESBlockHeadersContext) bcs,
-                       (BREthereumLESBlockHeadersCallback) bcsSignalBlockHeader, // bcsSync...
-                       blockNumber,
-                       1,
-                       0,
-                       ETHEREUM_BOOLEAN_FALSE);
+    bcsSyncFrom(bcs, blockNumber);
 }
 
 extern void
@@ -422,29 +428,65 @@ bcsChainThenPurgeOrphans (BREthereumBCS bcs) {
 }
 
 static void
+bcsSyncSubmit (BREthereumBCS bcs,
+               uint64_t blockStart,
+               uint64_t blockCount) {
+    // Make the request
+    eth_log("BCS", "Header Sync {%llu, %llu}",
+            blockStart,
+            blockStart + blockCount);
+
+    lesGetBlockHeaders(bcs->les,
+                       (BREthereumLESBlockHeadersContext) bcs,
+                       (BREthereumLESBlockHeadersCallback) bcsSignalBlockHeader,
+                       blockStart,
+                       blockCount,
+                       0,
+                       ETHEREUM_BOOLEAN_FALSE);
+}
+
+static void
+bcsSyncContinue (BREthereumBCS bcs,
+                 uint64_t chainBlockNumber) {
+    // Continue a sync if a) we are syncing and b) there is more to sync.
+    bcs->syncActive &= (chainBlockNumber < bcs->syncHead);
+
+    // Reqeust the next batch when the prior batch is complete
+    if (bcs->syncActive && chainBlockNumber >= bcs->syncNext) {
+
+        uint64_t needHeadersCount = bcs->syncHead - (chainBlockNumber + 1);
+        if (needHeadersCount > BCS_SYNC_BLOCKS_COUNT)
+            needHeadersCount = BCS_SYNC_BLOCKS_COUNT;
+
+        bcs->syncNext += needHeadersCount;
+        bcsSyncSubmit(bcs, chainBlockNumber + 1, needHeadersCount);
+    }
+}
+
+static void
 bcsSyncFrom (BREthereumBCS bcs,
              uint64_t chainBlockNumber) {
-    // Sync up, if need be.  We'll need to sync if the minimum orphan header is larger then
-    // the chain header (by more than just one).
-#define BCS_HEADER_REQUEST_MAXIMUM  (1)
+    // If we are already syncing, then continue until that completes
+    if (bcs->syncActive) {
+        bcsSyncContinue(bcs, chainBlockNumber);
+        return;
+    }
+
+    // We'll need to sync if the minimum orphan header is larger then the chain header (by
+    // more than just one).
+
     uint64_t orphanBlockNumberMinumum = bcsGetOrphanBlockNumberMinimum(bcs);
     if (UINT64_MAX != orphanBlockNumberMinumum && orphanBlockNumberMinumum > chainBlockNumber + 1) {
         uint64_t needHeadersCount = orphanBlockNumberMinumum - (chainBlockNumber + 1);
-        if (needHeadersCount > BCS_HEADER_REQUEST_MAXIMUM)
-            needHeadersCount = BCS_HEADER_REQUEST_MAXIMUM;
+        if (needHeadersCount > BCS_SYNC_BLOCKS_COUNT)
+            needHeadersCount = BCS_SYNC_BLOCKS_COUNT;
 
-        // Make the request
-        eth_log("BCS", "Header Sync {%llu, %llu}",
-                chainBlockNumber + 1,
-                chainBlockNumber + 1 + needHeadersCount);
+        bcs->syncTail = chainBlockNumber + 1;
+        bcs->syncHead = orphanBlockNumberMinumum;
+        bcs->syncNext  = chainBlockNumber + needHeadersCount;
+        bcs->syncActive = 1;
 
-        lesGetBlockHeaders(bcs->les,
-                           (BREthereumLESBlockHeadersContext) bcs,
-                           (BREthereumLESBlockHeadersCallback) bcsSignalBlockHeader,
-                           chainBlockNumber + 1,
-                           needHeadersCount,
-                           0,
-                           ETHEREUM_BOOLEAN_FALSE);
+        bcsSyncSubmit(bcs, chainBlockNumber + 1, needHeadersCount);
     }
 }
 
@@ -596,8 +638,8 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
     // Periodically reclaim 'excessive' blocks and save the latest.
     bcsReclaimAndSaveBlocksIfAppropriate (bcs);
 
-    // TODO: Not here, likely.
-    bcsSyncFrom (bcs, blockHeaderGetNumber(bcs->chain));
+    // If appropriate, continue a in-process sync.
+    bcsSyncContinue (bcs, blockHeaderGetNumber(bcs->chain));
 }
 
 /*!
