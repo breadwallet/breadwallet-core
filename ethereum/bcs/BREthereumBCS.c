@@ -41,7 +41,7 @@
 /* Forward Declarations */
 static void
 bcsPeriodicDispatcher (BREventHandler handler,
-                       BRTimeoutEvent *event);
+                       BREventTimeout *event);
 
 extern BREthereumBCS
 bcsCreate (BREthereumNetwork network,
@@ -594,7 +594,7 @@ bcsHandleLog (BREthereumBCS bcs,
 
 static void
 bcsPeriodicDispatcher (BREventHandler handler,
-                             BRTimeoutEvent *event) {
+                             BREventTimeout *event) {
     BREthereumBCS bcs = (BREthereumBCS) event->context;
 
     // If nothing to do; simply skip out.

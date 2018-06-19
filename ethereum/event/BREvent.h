@@ -86,7 +86,7 @@ typedef struct {
     struct BREventRecord base;
     void *context;
     struct timespec time;
-} BRTimeoutEvent;
+} BREventTimeout;
 
 //
 // Event Handler
@@ -123,7 +123,10 @@ eventHandlerStop (BREventHandler handler);
 
 /**
  * Signal `event` by announcing/sending it to `handler`.  The handler will queue the event
- * and handle it within the hanlder's thread in a strict 'first-in, first-out' basis.
+ * at the TAIL of the queue (aka 'first-in, first-out' basis, except for OOB events). The event
+ * is handled within the handler's thread.
+ *
+ * @Note: `event` is added to the TAIL of pending events.
  *
  * This function may block as the event is queued.
  */
@@ -131,6 +134,17 @@ extern BREventStatus
 eventHandlerSignalEvent (BREventHandler handler,
                          BREvent *event);
 
+/**
+ * Signal `event` by announcing/sending it to `handler`. The handler will queue the event
+ * at the HEAD of the queue (aka 'Out-Of-Band'); thus the event will be handled immediately.  The
+ * event is handled within the handler's thread.
+ *
+ * @Note: `event` is added to the HEAD (Out-Of-Band) of pending events.
+ */
+extern BREventStatus
+eventHandlerSignalEventOOB (BREventHandler handler,
+                            BREvent *event);
+    
 #ifdef __cplusplus
 }
 #endif

@@ -43,7 +43,7 @@
 /* Forward Declaration */
 static void
 lightNodePeriodicDispatcher (BREventHandler handler,
-                             BRTimeoutEvent *event);
+                             BREventTimeout *event);
 
 
 /* Stubbed */
@@ -496,7 +496,7 @@ lightNodeHandleTransaction (BREthereumLightNode node,
 
 static void
 lightNodePeriodicDispatcher (BREventHandler handler,
-                             BRTimeoutEvent *event) {
+                             BREventTimeout *event) {
     BREthereumLightNode node = (BREthereumLightNode) event->context;
 
     if (node->state != LIGHT_NODE_CONNECTED) return;

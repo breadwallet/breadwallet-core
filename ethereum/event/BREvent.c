@@ -30,6 +30,7 @@
 #include "../util/BRUtil.h"
 #include "BREvent.h"
 #include "BREventQueue.h"
+#include "BREventAlarm.h"
 
 static struct timespec
 getTime () {
@@ -78,7 +79,7 @@ typedef enum  {
 
 static BREventType timeoutEventType = {
     "Timeout Event",
-    sizeof (BRTimeoutEvent),
+    sizeof (BREventTimeout),
     (BREventDispatcher) NULL
 };
 
@@ -168,10 +169,17 @@ eventHandlerSetTimeoutDispatcher (BREventHandler handler,
     pthread_cond_signal(&handler->cond);
 }
 
-static void
+extern void
 eventHandlerInvokeTimeout (BREventHandler handler) {
-    BRTimeoutEvent event = { { NULL, &timeoutEventType}, handler->timeoutContext, getTime() };
+    BREventTimeout event = { { NULL, &timeoutEventType}, handler->timeoutContext, getTime() };
     handler->timeoutDispatcher (handler, (BREvent *) &event);
+}
+
+static void
+eventHandlerAlarmCallback (BREventHandler handler,
+                           struct timespec expiration,
+                           BREventAlarmClock clock) {
+
 }
 
 #define PTHREAD_STACK_SIZE (512 * 1024)
@@ -191,6 +199,13 @@ eventHandlerThread (BREventHandler handler) {
     pthread_mutex_lock(&handler->lock);
     handler->status = EVENT_HANDLER_THREAD_STATUS_RUNNING;
 
+    if (NULL != handler->timeoutDispatcher) {
+        alarmClockCreateIfNecessary();
+        alarmClockAddAlarmPeriodicNow(alarmClock,
+                                      (BREventAlarmContext) handler,
+                                      (BREventAlarmCallback) eventHandlerAlarmCallback,
+                                      handler->timeout);
+    }
     if (handler->timeoutOnStart)
         eventHandlerInvokeTimeout(handler);
 
@@ -299,7 +314,15 @@ eventHandlerStop (BREventHandler handler) {
 extern BREventStatus
 eventHandlerSignalEvent (BREventHandler handler,
                          BREvent *event) {
-    eventQueueEnqueue(handler->queue, event);
+    eventQueueEnqueueTail(handler->queue, event);
+    pthread_cond_signal(&handler->cond);
+    return EVENT_STATUS_SUCCESS;
+}
+
+extern BREventStatus
+eventHandlerSignalEventOOB (BREventHandler handler,
+                            BREvent *event) {
+    eventQueueEnqueueHead(handler->queue, event);
     pthread_cond_signal(&handler->cond);
     return EVENT_STATUS_SUCCESS;
 }

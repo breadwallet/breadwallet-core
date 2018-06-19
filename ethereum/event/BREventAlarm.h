@@ -1,5 +1,5 @@
 //
-//  BREventQueue.h
+//  BREventAlarm.h
 //  BRCore
 //
 //  Created by Ed Gamble on 5/7/18.
@@ -24,8 +24,8 @@
 //  THE SOFTWARE.
 //
 
-#ifndef BR_Event_Queue_H
-#define BR_Event_Queue_H
+#ifndef BR_Event_Alarm_H
+#define BR_Event_Alarm_H
 
 #include "BREvent.h"
 
@@ -33,34 +33,44 @@
 extern "C" {
 #endif
 
-typedef struct BREventQueueRecord *BREventQueue;
+typedef struct BREventAlarmClock *BREventAlarmClock;
+typedef int BREventAlarmId;
 
-/**
- * Create an Event Queue with `size` as the maximum event size and with the
- * optional `lock`.
- */
-extern BREventQueue
-eventQueueCreate (size_t size, pthread_mutex_t *lock);
+typedef void* BREventAlarmContext;
+typedef void (*BREventAlarmCallback) (BREventAlarmContext context,
+                                      struct timespec expiration,
+                                      BREventAlarmClock clock);
 
-extern void
-eventQueueDestroy (BREventQueue queue);
+extern BREventAlarmClock alarmClock;
 
 extern void
-eventQueueEnqueueTail (BREventQueue queue,
-                       const BREvent *event);
+alarmClockCreateIfNecessary (void);
+
+extern BREventAlarmClock
+alarmClockCreate (void);
+
 extern void
-eventQueueEnqueueHead (BREventQueue queue,
-                       const BREvent *event);
+alarmClockDestroy (BREventAlarmClock clock);
 
-extern BREventStatus
-eventQueueDequeue (BREventQueue queue,
-                   BREvent *event);
+extern void
+alarmClockStart (BREventAlarmClock clock);
 
-extern int
-eventQueueHasPending (BREventQueue queue);
+extern void
+alarmClockStop (BREventAlarmClock clock);
+
+extern BREventAlarmId
+alarmClockAddAlarmPeriodicNow (BREventAlarmClock clock,
+                               BREventAlarmContext context,
+                               BREventAlarmCallback callback,
+                               struct timespec period);
+
+extern void
+alarmClockRemAlarm (BREventAlarmClock clock,
+                    BREventAlarmId identifier);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* BR_Event_Queue_H */
+#endif /* BR_Event_Alarm_H */
+
