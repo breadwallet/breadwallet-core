@@ -297,9 +297,10 @@ bcsBlockHeaderHasMatchingLogs (BREthereumBCS bcs,
 
 static void
 bcsReclaimBlock (BREthereumBCS bcs,
-                 BREthereumBlockHeader header) {
+                 BREthereumBlockHeader header,
+                 int useLog) {
     BRSetRemove(bcs->headers, header);
-    eth_log("BCS", "Header %llu Reclaimed", blockHeaderGetNumber(header));
+    if (useLog) eth_log("BCS", "Header %llu Reclaimed", blockHeaderGetNumber(header));
 
     // TODO: Avoid dangling references
 
@@ -315,9 +316,10 @@ bcsReclaimAndSaveBlocksIfAppropriate (BREthereumBCS bcs) {
 
     // Note, we might have chained together a number of blocks.  Thus this method might be called
     // with bcs->chain not on a 'boundary' (currently: 0 == chainBlockNumber/BCS_SAVE_BLOCKS_COUNT)
-    if (chainBlockLength > 2 * BCS_SAVE_BLOCKS_COUNT) {
+    if (chainBlockLength >= 2 * BCS_SAVE_BLOCKS_COUNT) {
         BREthereumBlockHeader header = bcs->chain;
-        uint64_t thisBlockNumber, reclaimFromBlockNumber = chainBlockNumber - BCS_SAVE_BLOCKS_COUNT;
+        uint64_t thisBlockNumber = blockHeaderGetNumber(header);
+        uint64_t reclaimFromBlockNumber = chainBlockNumber - BCS_SAVE_BLOCKS_COUNT;
 
         // Walk bcs->chain back to BCS_SAVE_BLOCKS_COUNT, then start reclaiming.
         while (NULL != header) {
@@ -327,18 +329,24 @@ bcsReclaimAndSaveBlocksIfAppropriate (BREthereumBCS bcs) {
             if (thisBlockNumber == reclaimFromBlockNumber)
                 bcs->chainTail = header;
             else if (thisBlockNumber < reclaimFromBlockNumber)
-                bcsReclaimBlock(bcs, header);
+                bcsReclaimBlock(bcs, header, 0);
 
             header = BRSetGet(bcs->headers, &parentHash);
         }
+        eth_log("BCS", "Headers {%llu, %llu} Reclaimed",
+                thisBlockNumber,
+                reclaimFromBlockNumber - 1);
 
         header = bcs->chain;
         while (header != NULL && header != bcs->chainTail) {
             BREthereumHash parentHash = blockHeaderGetParentHash(header);
-            eth_log("BCS", "Header %llu Saved", blockHeaderGetNumber(header));
+            // TODO: Actually Save.
+            // eth_log("BCS", "Header %llu Saved", blockHeaderGetNumber(header));
             header = BRSetGet(bcs->headers, &parentHash);
         }
-        eth_log("BCS", "Header %llu Saved", blockHeaderGetNumber(header));
+        eth_log("BCS", "Headers {%llu, %llu} Saved",
+                blockHeaderGetNumber(bcs->chainTail),
+                blockHeaderGetNumber(bcs->chain));
     }
 }
 
