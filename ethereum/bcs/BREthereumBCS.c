@@ -56,6 +56,10 @@ static void
 bcsSyncFrom (BREthereumBCS bcs,
              uint64_t chainBlockNumber);
 
+static int
+bcsLookupPendingTransaction (BREthereumBCS bcs,
+                             BREthereumHash hash);
+
 /**
  */
 extern BREthereumBCS
@@ -425,8 +429,10 @@ bcsMakeOrphan (BREthereumBCS bcs,
                BREthereumBlockHeader header) {
     BRSetAdd (bcs->orphans, header);
     eth_log ("BCS", "Header %llu Newly Orphaned", blockHeaderGetNumber(header));
-
-    // TODO: Is this the proper place to examine transactions and logs now orphaned?
+    // With `header` as an orphan we might have orphaned some transaction or log.  We'll
+    // deal with that later as: a) there maybe be others declared orphans, b) once declared
+    // some may be purched and c) some may be chained - all of which impact what transactions
+    // or logs are declared orphans themselves, or not.
 }
 
 static void
@@ -581,24 +587,39 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
 
     bcsChainThenPurgeOrphans (bcs);
 
-    // Examine transactions/logs to see if any are not chained or orphaned.
-    //   Change their 'confirmation status' accordingly.
+    // Examine transactions to see if any are now orphaned; is so, make them PENDING
     FOR_SET(BREthereumTransaction, tx, bcs->transactions) {
         BREthereumHash blockHash;
         if (transactionExtractIncluded(tx, NULL, &blockHash, NULL, NULL)) {
+            // If the transaction's blockHash is an orphan...
             if (NULL != BRSetGet (bcs->orphans, &blockHash)) {
-                // TODO: Make TX an orphan
+                // .... then return the transaction to PENDING; we'll start requesting status again.
+                bcsHandleTransactionStatus(bcs,
+                                           transactionGetHash(tx),
+                                           transactionStatusCreate(TRANSACTION_STATUS_PENDING));
             }
+
+            // but if the transaction's blockHash is not an orphan and instead included...
             else if (NULL != BRSetGet (bcs->headers, &blockHash)) {
-                // TODO: Make TX included - wasn't it already
+                // ... then is there anything to do?   The transaction's `blockHash` cannot
+                // reference a block in `headers` that was just now chained from orphans, can it?
+                // More likely the tranaction is pending; we'll get that status and see the
+                // chain now includes `blockHash` - but that isn't handled here.
+                ;
             }
         }
     }
 
+    // Examine logs to see if any are now orphaned.  Logs are seen if and only if they are
+    // in a block.  Logs don't have a status; their status is implied by their associated
+    // transaction's status.  Do we have callbacks on logs (presumably we should)?
     FOR_SET(BREthereumLog, log, bcs->logs) {
         BREthereumHash hash = logGetHash(log);
         BREthereumTransaction transaction = BRSetGet (bcs->transactions, &hash);
-        // TODO: Mirror 'log' status as 'transaction'
+        assert (NULL != transaction);
+        if (-1 != bcsLookupPendingTransaction(bcs, transactionGetHash(transaction))) {
+            // TODO: Apparently `log` is now pending?
+        }
     }
 
     // We need block bodies and transactions for every matching header between bcs->chain
