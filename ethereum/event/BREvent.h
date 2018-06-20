@@ -122,6 +122,9 @@ eventHandlerStart (BREventHandler handler);
 extern void
 eventHandlerStop (BREventHandler handler);
 
+extern int
+eventHandlerIsRunning (BREventHandler handler);
+
 /**
  * Signal `event` by announcing/sending it to `handler`.  The handler will queue the event
  * at the TAIL of the queue (aka 'first-in, first-out' basis, except for OOB events). The event

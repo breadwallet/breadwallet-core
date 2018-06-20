@@ -27,6 +27,11 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <assert.h>
+
+#if defined (__ANDROID__)
+#include "pthread_android.h"
+#endif
+
 #include "../util/BRUtil.h"
 #include "BREvent.h"
 #include "BREventQueue.h"
@@ -37,17 +42,6 @@
 /* Forward Declarations */
 static void *
 eventHandlerThread (BREventHandler handler);
-
-//
-// Event Handler Thread Status
-//
-typedef enum  {
-    EVENT_HANDLER_THREAD_STATUS_STARTING,
-    EVENT_HANDLER_THREAD_STATUS_RUNNING,
-    EVENT_HANDLER_THREAD_STATUS_STOPPING,
-    EVENT_HANDLER_THREAD_STATUS_STOPPED
-} BREventHandlerThreadStatus;
-
 
 //
 // Event Handler
@@ -84,16 +78,13 @@ struct BREventHandlerRecord {
     pthread_t thread;
     pthread_cond_t cond;
     pthread_mutex_t lock;
-
-    BREventHandlerThreadStatus status;
+    pthread_mutex_t lockOnStartStop;
 };
 
 extern BREventHandler
 eventHandlerCreate (const BREventType *types[],
                     unsigned int typesCount) {
     BREventHandler handler = calloc (1, sizeof (struct BREventHandlerRecord));
-
-    handler->status = EVENT_HANDLER_THREAD_STATUS_STOPPED;
 
     // Fill in the timeout event.  Leave the dispatcher NULL until the dispatcher is provided.
     handler->timeoutEventType.eventName = "Timeout Event";
@@ -130,6 +121,18 @@ eventHandlerCreate (const BREventType *types[],
         pthread_mutex_init(&handler->lock, &attr);
         pthread_mutexattr_destroy(&attr);
     }
+
+    // Create the PTHREAD LOCK-ON-START-STOP variable
+    {
+        // The cacheLock is a normal, non-recursive lock
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+        pthread_mutex_init(&handler->lockOnStartStop, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
+
+    handler->thread = NULL;
 
     handler->scratch = (BREvent*) calloc (1, handler->eventSize);
     handler->queue = eventQueueCreate(handler->eventSize, &handler->lock);
@@ -168,14 +171,11 @@ typedef void* (*ThreadRoutine) (void*);
 static void *
 eventHandlerThread (BREventHandler handler) {
 
-#if ! defined (__ANDROID__)
     pthread_setname_np("Core Ethereum Event");
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
     pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
-#endif
 
     pthread_mutex_lock(&handler->lock);
-    handler->status = EVENT_HANDLER_THREAD_STATUS_RUNNING;
 
     // If we have an timeout event dispatcher, then add an alarm.
     if (NULL != handler->timeoutEventType.eventDispatcher) {
@@ -186,7 +186,7 @@ eventHandlerThread (BREventHandler handler) {
                                       handler->timeout);
     }
 
-    while (EVENT_HANDLER_THREAD_STATUS_RUNNING == handler->status) {
+    while (1) {
         // Check for a queued event
         switch (eventQueueDequeue(handler->queue, handler->scratch)) {
             case EVENT_STATUS_SUCCESS: {
@@ -209,8 +209,6 @@ eventHandlerThread (BREventHandler handler) {
         }
     }
 
-    handler->status = EVENT_HANDLER_THREAD_STATUS_STOPPED;
-    pthread_detach(handler->thread);
     return NULL;
 }
 
@@ -220,9 +218,10 @@ eventHandlerDestroy (BREventHandler handler) {
     eventHandlerStop(handler);
 
     // ... then kill
-    pthread_kill(handler->thread, 0);
+    assert (NULL == handler->thread);
     pthread_cond_destroy(&handler->cond);
     pthread_mutex_destroy(&handler->lock);
+    pthread_mutex_destroy(&handler->lockOnStartStop);
 
     // release memory
     eventQueueDestroy(handler->queue);
@@ -235,49 +234,37 @@ eventHandlerDestroy (BREventHandler handler) {
 //
 extern void
 eventHandlerStart (BREventHandler handler) {
-    switch (handler->status) {
-        case EVENT_HANDLER_THREAD_STATUS_RUNNING:
-        case EVENT_HANDLER_THREAD_STATUS_STARTING:
-            break;
+    pthread_mutex_lock(&handler->lockOnStartStop);
+    if (NULL == handler->thread) {
+        // if (0 != pthread_attr_t (...) && 0 != pthread_attr_...() && ...
+        pthread_attr_t attr;
+        pthread_attr_init(&attr);
+        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+        pthread_attr_setstacksize(&attr, PTHREAD_STACK_SIZE);
 
-        case EVENT_HANDLER_THREAD_STATUS_STOPPED:
-        case EVENT_HANDLER_THREAD_STATUS_STOPPING: {
-            // Mini-RACE with eventHandlerThread actually stopping
-            handler->status = EVENT_HANDLER_THREAD_STATUS_STARTING;
-
-            // if (0 != pthread_attr_t (...) && 0 != pthread_attr_...() && ...
-            pthread_attr_t attr;
-            pthread_attr_init(&attr);
-            pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-            pthread_attr_setstacksize(&attr, PTHREAD_STACK_SIZE);
-
-            pthread_create(&handler->thread, &attr, (ThreadRoutine) eventHandlerThread, handler);
-            pthread_attr_destroy(&attr);
-            break;
-        }
+        pthread_create(&handler->thread, &attr, (ThreadRoutine) eventHandlerThread, handler);
+        pthread_attr_destroy(&attr);
     }
+    pthread_mutex_unlock(&handler->lockOnStartStop);
 }
 
 extern void
 eventHandlerStop (BREventHandler handler) {
-    // TODO: Cancel on ANDROID
-#if ! defined (__ANDROID__)
-    pthread_cancel(handler->thread);
-#endif
-//    int joinResult = pthread_join(handler->thread, NULL);
-    handler->status = EVENT_HANDLER_THREAD_STATUS_STOPPED;
-/*
-    switch (handler->status) {
-        case EVENT_HANDLER_THREAD_STATUS_RUNNING:
-        case EVENT_HANDLER_THREAD_STATUS_STARTING:
-            handler->status = EVENT_HANDLER_THREAD_STATUS_STOPPING;
-            break;
-
-        case EVENT_HANDLER_THREAD_STATUS_STOPPED:
-        case EVENT_HANDLER_THREAD_STATUS_STOPPING:
-            break;
+    pthread_mutex_lock(&handler->lockOnStartStop);
+    if (NULL != handler->thread) {
+        pthread_cancel(handler->thread);
+        pthread_cond_signal(&handler->cond);
+        pthread_join(handler->thread, NULL);
+        pthread_mutex_unlock(&handler->lock);  // ensure this for restart.
+        // A mini-race here?
+        handler->thread = NULL;
     }
- */
+    pthread_mutex_unlock(&handler->lockOnStartStop);
+}
+
+extern int
+eventHandlerIsRunning (BREventHandler handler) {
+    return NULL != handler->thread;
 }
 
 extern BREventStatus

@@ -61,6 +61,9 @@ alarmClockStart (BREventAlarmClock clock);
 extern void
 alarmClockStop (BREventAlarmClock clock);
 
+extern int
+alarmClockIsRunning (BREventAlarmClock clock);
+
 extern BREventAlarmId
 alarmClockAddAlarmPeriodic (BREventAlarmClock clock,
                             BREventAlarmContext context,

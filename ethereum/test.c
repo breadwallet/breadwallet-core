@@ -1593,6 +1593,8 @@ testReallySend (void) {
 #endif
     sleep (60 * 60); // 20 minutes
 
+    ethereumDisconnect(node);
+    ethereumDestroy(node);
     return;
 }
 //
@@ -2002,7 +2004,7 @@ runTests (void) {
     runAccountStateTests();
     runTransactionStatusTests();
     runTransactionReceiptTests();
-//    testReallySend();
+    testReallySend();
     printf ("Done\n");
 }
 
