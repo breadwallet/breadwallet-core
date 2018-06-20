@@ -17,34 +17,34 @@ public typealias EthereumBlockId = EthereumReferenceId
 public typealias EthereumListenerId = EthereumReferenceId
 
 // Access to BRCore/BREthereum types
-public typealias BRCoreEthereumLightNode = OpaquePointer
+public typealias BRCoreEWM = OpaquePointer
 
 // MARK: Reference
 
 ///
 /// Core Ethereum *does not* allow direct access to Core 'C' Memory; instead we use references
-/// within an `EthereumLightNode`.  This allows the Core to avoid multiprocessing issues arising
+/// within an `EthereumEWM`.  This allows the Core to avoid multiprocessing issues arising
 /// from Client access in arbitrary threads.  Additionally, the Core is free to manage its own
 /// memory w/o regard to a Client holding a reference (that the Core can never, even know about).
 ///
 /// Attemping to access a Core reference that no longer exists in the Core results in an error.
 /// But how so is TBD.
 ///
-/// An EthereumReference is Equatable based on the `EthereumLightNode` and the identifier (of the
+/// An EthereumReference is Equatable based on the `EthereumEWM` and the identifier (of the
 /// reference).  Generally adopters of `EthereumReference` will be structures as all their
-/// properties are computed via a C function on `EthereumLightNode`.
+/// properties are computed via a C function on `EthereumEWM`.
 ///
 public protocol EthereumReference : Equatable  {
     associatedtype ReferenceType : Equatable
 
-    var node : EthereumLightNode? { get }
+    var ewm : EthereumWalletManager? { get }
 
     var identifier : ReferenceType { get }
 }
 
 extension EthereumReference {
     static public func == (lhs: Self, rhs: Self) -> Bool {
-        return rhs.node === lhs.node && rhs.identifier == lhs.identifier
+        return rhs.ewm === lhs.ewm && rhs.identifier == lhs.identifier
     }
 }
 
@@ -82,20 +82,20 @@ public extension EthereumPointer {
 /// publicKey and PrivateKey.
 ///
 public struct EthereumAccount : EthereumReference {
-    public weak var node : EthereumLightNode?
+    public weak var ewm : EthereumWalletManager?
     public let identifier : EthereumAccountId
 
-    init (node: EthereumLightNode, identifier: EthereumAccountId) {
-        self.node = node
+    init (ewm: EthereumWalletManager, identifier: EthereumAccountId) {
+        self.ewm = ewm
         self.identifier = identifier
     }
 
     static public func == (lhs: EthereumAccount, rhs: EthereumAccount) -> Bool {
-        return lhs.node === rhs.node && lhs.identifier == rhs.identifier
+        return lhs.ewm === rhs.ewm && lhs.identifier == rhs.identifier
     }
 
     var address : String {
-        let cString = ethereumGetAccountPrimaryAddress (self.node!.core)
+        let cString = ethereumGetAccountPrimaryAddress (self.ewm!.core)
         let string = String (cString: cString!)
         free (cString)
         return string
@@ -103,11 +103,11 @@ public struct EthereumAccount : EthereumReference {
 
     // public key
     var addressPublicKey : BRKey {
-        return ethereumGetAccountPrimaryAddressPublicKey (self.node!.core)
+        return ethereumGetAccountPrimaryAddressPublicKey (self.ewm!.core)
     }
 
     func addresssPrivateKey (paperKey: String) -> BRKey {
-        return ethereumGetAccountPrimaryAddressPrivateKey (self.node!.core, paperKey)
+        return ethereumGetAccountPrimaryAddressPrivateKey (self.ewm!.core, paperKey)
     }
 }
 
@@ -204,7 +204,7 @@ public struct EthereumToken : EthereumPointer {
 /// and an Account on that network.  An `EthereumWallet` as a default unit.
 ///
 public struct EthereumWallet : EthereumReferenceWithDefaultUnit {
-    public weak var node : EthereumLightNode?
+    public weak var ewm : EthereumWalletManager?
     public let identifier : EthereumWalletId
     public let unit : EthereumAmountUnit
 
@@ -217,15 +217,15 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit {
     //
     var defaultGasLimit : UInt64 {
         get {
-            return ethereumWalletGetDefaultGasLimit (self.node!.core, self.identifier)
+            return ethereumWalletGetDefaultGasLimit (self.ewm!.core, self.identifier)
         }
         set (value) {
-            ethereumWalletSetDefaultGasLimit (self.node!.core, self.identifier, value)
+            ethereumWalletSetDefaultGasLimit (self.ewm!.core, self.identifier, value)
         }
     }
 
     func gasEstimate (transaction: EthereumTransaction) -> UInt64 {
-        return ethereumWalletGetGasEstimate (self.node!.core, self.identifier, transaction.identifier)
+        return ethereumWalletGetGasEstimate (self.ewm!.core, self.identifier, transaction.identifier)
     }
 
     //
@@ -235,11 +235,11 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit {
 
     var defaultGasPrice : UInt64 {
         get {
-            return ethereumWalletGetDefaultGasPrice (self.node!.core, self.identifier)
+            return ethereumWalletGetDefaultGasPrice (self.ewm!.core, self.identifier)
         }
         set (value) {
             precondition(value <= EthereumWallet.maximumGasPrice)
-            ethereumWalletSetDefaultGasPrice (self.node!.core, self.identifier, WEI, value)
+            ethereumWalletSetDefaultGasPrice (self.ewm!.core, self.identifier, WEI, value)
         }
     }
 
@@ -247,7 +247,7 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit {
     // Balance
     //
     var balance : EthereumAmount {
-        let amount : BREthereumAmount = ethereumWalletGetBalance (self.node!.core, self.identifier)
+        let amount : BREthereumAmount = ethereumWalletGetBalance (self.ewm!.core, self.identifier)
         return (AMOUNT_ETHER == amount.type
             ? EthereumAmount.ether(amount.u.ether.valueInWEI, unit.coreForEther)
             : EthereumAmount.token (amount.u.tokenQuantity.valueAsInteger,
@@ -258,24 +258,24 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit {
     //
     // Constructors
     //
-    internal init (node : EthereumLightNode,
+    internal init (ewm : EthereumWalletManager,
                    wid : EthereumWalletId) {
-        self.node = node
+        self.ewm = ewm
         self.identifier = wid
         self.unit = EthereumAmountUnit.defaultUnit (true)
-        self.account = node.account
-        self.network = node.network
+        self.account = ewm.account
+        self.network = ewm.network
         self.token = nil
     }
 
-    internal init (node : EthereumLightNode,
+    internal init (ewm : EthereumWalletManager,
                    wid : EthereumWalletId,
                    token : EthereumToken) {
-        self.node = node
+        self.ewm = ewm
         self.identifier = wid
         self.unit = EthereumAmountUnit.defaultUnit (false)
-        self.account =  node.account
-        self.network = node.network
+        self.account =  ewm.account
+        self.network = ewm.network
         self.token = token
     }
 
@@ -285,39 +285,39 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit {
     func createTransaction (recvAddress: String, amount: String, unit: EthereumAmountUnit) -> EthereumTransaction {
         var status : BRCoreParseStatus = CORE_PARSE_OK
         let amount = (unit.isEther
-            ? ethereumCreateEtherAmountString (self.node!.core, amount, unit.coreForEther, &status)
-            : ethereumCreateTokenAmountString (self.node!.core, token!.core, amount, unit.coreForToken, &status))
+            ? ethereumCreateEtherAmountString (self.ewm!.core, amount, unit.coreForEther, &status)
+            : ethereumCreateTokenAmountString (self.ewm!.core, token!.core, amount, unit.coreForToken, &status))
         // Sure, ignore `status`
 
-        let tid = ethereumWalletCreateTransaction (self.node!.core,
+        let tid = ethereumWalletCreateTransaction (self.ewm!.core,
                                                    self.identifier,
                                                    recvAddress,
                                                    amount)
-        return EthereumTransaction (node: self.node!, identifier: tid)
+        return EthereumTransaction (ewm: self.ewm!, identifier: tid)
     }
 
 
     func sign (transaction : EthereumTransaction, paperKey : String) {
-        ethereumWalletSignTransaction (self.node!.core, self.identifier, transaction.identifier, paperKey)
+        ethereumWalletSignTransaction (self.ewm!.core, self.identifier, transaction.identifier, paperKey)
     }
 
     func sign (transaction: EthereumTransaction, privateKey: BRKey) {
-        ethereumWalletSignTransactionWithPrivateKey (self.node!.core, self.identifier, transaction.identifier, privateKey)
+        ethereumWalletSignTransactionWithPrivateKey (self.ewm!.core, self.identifier, transaction.identifier, privateKey)
     }
 
     func submit (transaction : EthereumTransaction) {
-        ethereumWalletSubmitTransaction (self.node!.core, self.identifier, transaction.identifier)
+        ethereumWalletSubmitTransaction (self.ewm!.core, self.identifier, transaction.identifier)
     }
 
     var transactions : [EthereumTransaction] {
-        let count = ethereumWalletGetTransactionCount (self.node!.core, self.identifier)
-        let identifiers = ethereumWalletGetTransactions (self.node!.core, self.identifier)
+        let count = ethereumWalletGetTransactionCount (self.ewm!.core, self.identifier)
+        let identifiers = ethereumWalletGetTransactions (self.ewm!.core, self.identifier)
         return UnsafeBufferPointer (start: identifiers, count: Int(exactly: count)!)
-            .map { self.node!.findTransaction(identifier: $0) }
+            .map { self.ewm!.findTransaction(identifier: $0) }
     }
 
     var transactionsCount : Int {
-        return Int (exactly: ethereumWalletGetTransactionCount (self.node!.core, self.identifier))!
+        return Int (exactly: ethereumWalletGetTransactionCount (self.ewm!.core, self.identifier))!
     }
 }
 
@@ -327,24 +327,24 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit {
 /// An `EthereumBlock` represents a  ...
 //
 public struct EthereumBlock : EthereumReference {
-    public weak var node : EthereumLightNode?
+    public weak var ewm : EthereumWalletManager?
     public let identifier : EthereumWalletId
 
-    init (node: EthereumLightNode, identifier: EthereumAccountId) {
-        self.node = node
+    init (ewm: EthereumWalletManager, identifier: EthereumAccountId) {
+        self.ewm = ewm
         self.identifier = identifier
     }
 
     var number : UInt64 {
-        return ethereumBlockGetNumber (self.node!.core, identifier)
+        return ethereumBlockGetNumber (self.ewm!.core, identifier)
     }
 
     var timestamp : UInt64 {
-        return ethereumBlockGetTimestamp (self.node!.core, identifier)
+        return ethereumBlockGetTimestamp (self.ewm!.core, identifier)
     }
 
     var hash : String {
-        return asUTF8String(ethereumBlockGetHash (self.node!.core, identifier))
+        return asUTF8String(ethereumBlockGetHash (self.ewm!.core, identifier))
     }
 }
 
@@ -355,37 +355,37 @@ public struct EthereumBlock : EthereumReference {
 /// accounts.
 ///
 public struct EthereumTransaction : EthereumReferenceWithDefaultUnit {
-    public weak var node : EthereumLightNode?
+    public weak var ewm : EthereumWalletManager?
     public let identifier : EthereumWalletId
     public let unit : EthereumAmountUnit
 
-    internal init (node : EthereumLightNode, identifier : EthereumTransactionId) {
-        self.init (node: node,
+    internal init (ewm : EthereumWalletManager, identifier : EthereumTransactionId) {
+        self.init (ewm: ewm,
                    identifier: identifier,
                    unit: EthereumAmountUnit.defaultUnit(
-                    nil == ethereumTransactionGetToken (node.core, identifier)))
+                    nil == ethereumTransactionGetToken (ewm.core, identifier)))
     }
 
-    internal init (node : EthereumLightNode, identifier : EthereumTransactionId, unit: EthereumAmountUnit) {
-        self.node = node
+    internal init (ewm : EthereumWalletManager, identifier : EthereumTransactionId, unit: EthereumAmountUnit) {
+        self.ewm = ewm
         self.identifier = identifier
         self.unit = unit
     }
 
     var hash : String {
-        return asUTF8String (ethereumTransactionGetHash (self.node!.core, self.identifier), true)
+        return asUTF8String (ethereumTransactionGetHash (self.ewm!.core, self.identifier), true)
     }
 
     var sourceAddress : String {
-        return asUTF8String (ethereumTransactionGetSendAddress (self.node!.core, self.identifier), true)
+        return asUTF8String (ethereumTransactionGetSendAddress (self.ewm!.core, self.identifier), true)
     }
 
     var targetAddress : String {
-        return asUTF8String (ethereumTransactionGetRecvAddress (self.node!.core, self.identifier), true)
+        return asUTF8String (ethereumTransactionGetRecvAddress (self.ewm!.core, self.identifier), true)
     }
 
     var amount : EthereumAmount {
-        let amount : BREthereumAmount = ethereumTransactionGetAmount (self.node!.core, self.identifier)
+        let amount : BREthereumAmount = ethereumTransactionGetAmount (self.ewm!.core, self.identifier)
         return (AMOUNT_ETHER == amount.type
             ? EthereumAmount.ether(amount.u.ether.valueInWEI, unit.coreForEther)
             : EthereumAmount.token (amount.u.tokenQuantity.valueAsInteger,
@@ -394,24 +394,24 @@ public struct EthereumTransaction : EthereumReferenceWithDefaultUnit {
     }
 
     var gasPrice : EthereumAmount {
-        let price : BREthereumAmount = ethereumTransactionGetGasPriceToo (self.node!.core, self.identifier)
+        let price : BREthereumAmount = ethereumTransactionGetGasPriceToo (self.ewm!.core, self.identifier)
         return EthereumAmount.ether (price.u.ether.valueInWEI, WEI)
     }
 
     var gasLimit : UInt64 {
-        return ethereumTransactionGetGasLimit(self.node!.core, self.identifier)
+        return ethereumTransactionGetGasLimit(self.ewm!.core, self.identifier)
     }
 
     var gasUsed : UInt64 {
-        return ethereumTransactionGetGasUsed (self.node!.core, self.identifier)
+        return ethereumTransactionGetGasUsed (self.ewm!.core, self.identifier)
     }
 
     var nonce : UInt64 {
-        return ethereumTransactionGetNonce (self.node!.core, self.identifier)
+        return ethereumTransactionGetNonce (self.ewm!.core, self.identifier)
     }
 
     var blockNumber : UInt64 {
-        return ethereumTransactionGetBlockNumber (self.node!.core, self.identifier)
+        return ethereumTransactionGetBlockNumber (self.ewm!.core, self.identifier)
     }
 
     // State
@@ -421,7 +421,7 @@ public struct EthereumTransaction : EthereumReferenceWithDefaultUnit {
 
 ///
 /// An `EthereumClient` is a protocol defined with a set of functions that support an
-/// EthereumLightNode.
+/// EthereumEWM.
 ///
 public protocol EthereumClient : class {
     func getGasPrice (wid: EthereumWalletId, rid: Int32) -> Void
@@ -488,11 +488,11 @@ public enum EthereumPeerEvent : Int {
     }
 }
 
-public enum EthereumLightNodeEvent : Int {
+public enum EthereumEWMEvent : Int {
     case x
     case y
 
-    init (_ event: BREthereumLightNodeEvent) {
+    init (_ event: BREthereumEWMEvent) {
         self.init(rawValue: Int(event.rawValue))!
     }
 }
@@ -509,22 +509,22 @@ public protocol EthereumListener {
                                  event: EthereumTransactionEvent) -> Void
 
     func handlePeerEvent (event : EthereumPeerEvent) -> Void
-    func handleLightNodeEvent (event: EthereumLightNodeEvent) -> Void
+    func handleEWMEvent (event: EthereumEWMEvent) -> Void
 }
 
-// MARK: - LightNode
+// MARK: - EWM
 
 ///
-/// An `EthereumLightNode` is a SPV/LES (Simplified Payment Verification / Light Ethereum
-/// Subprotocol) node in an Ethereum Network.
+/// An `EthereumEWM` is a SPV/LES (Simplified Payment Verification / Light Ethereum
+/// Subprotocol) ewm in an Ethereum Network.
 ///
-public class EthereumLightNode {
+public class EthereumWalletManager {
 
     ///
-    /// The OpaquePointer to the 'Core Ethereum LightNode'.  We defer nearly all functions
+    /// The OpaquePointer to the 'Core Ethereum EWM'.  We defer nearly all functions
     /// to this reference.
     ///
-    let core : BRCoreEthereumLightNode //  OpaquePointer // BREthereumLightNode
+    let core : BRCoreEWM //  OpaquePointer // BREthereumEWM
 
     ///
     /// The client ...
@@ -545,11 +545,11 @@ public class EthereumLightNode {
     /// The account ....
     ///
     lazy private(set) var account : EthereumAccount = {
-        return EthereumAccount (node: self,
+        return EthereumAccount (ewm: self,
                                 identifier: ethereumGetAccount (self.core))
     }()
 
-    private init (core: BRCoreEthereumLightNode,
+    private init (core: BRCoreEWM,
                   client : EthereumClient,
                   listener: EthereumListener?,
                   network : EthereumNetwork) {
@@ -596,15 +596,15 @@ public class EthereumLightNode {
     internal func findWallet (identifier: EthereumWalletId) -> EthereumWallet {
         let token = ethereumWalletGetToken (core, identifier)
         return (nil == token
-            ? EthereumWallet (node: self, wid: identifier)
-            : EthereumWallet (node: self, wid: identifier, token: EthereumToken.lookup (core: token!)))
+            ? EthereumWallet (ewm: self, wid: identifier)
+            : EthereumWallet (ewm: self, wid: identifier, token: EthereumToken.lookup (core: token!)))
     }
 
     //
     // Block
     //
     internal func findBlock (identifier: EthereumBlockId) -> EthereumBlock {
-        return EthereumBlock (node: self, identifier: identifier);
+        return EthereumBlock (ewm: self, identifier: identifier);
     }
 
     var blockHeight : UInt64 {
@@ -615,7 +615,7 @@ public class EthereumLightNode {
     // Transactions
     //
     internal func findTransaction (identifier: EthereumTransactionId) -> EthereumTransaction {
-        return EthereumTransaction (node: self, identifier: identifier)
+        return EthereumTransaction (ewm: self, identifier: identifier)
     }
 
     //
@@ -626,44 +626,44 @@ public class EthereumLightNode {
     internal func addListenerCallbacks (listener: EthereumListener?) {
         guard (listener != nil) else { return }
 //        let anyListener = AnyEthereumListener (base: listener!)
-        lid = lightNodeAddListener (
+        lid = ewmAddListener (
             core,
             UnsafeMutableRawPointer (Unmanaged.passRetained(self).toOpaque()),
-            // handleLightNodeEvent
+            // handleEWMEvent
             { (this, core, event, status, message) in
-                if let this = this.map ({ Unmanaged<EthereumLightNode>.fromOpaque($0).takeRetainedValue() }) {
+                if let this = this.map ({ Unmanaged<EthereumWalletManager>.fromOpaque($0).takeRetainedValue() }) {
                     assert (this.core == core)
-                    this.listener?.handleLightNodeEvent (event: EthereumLightNodeEvent (event))
+                    this.listener?.handleEWMEvent (event: EthereumEWMEvent (event))
                 }
             },
 
             // handlePeerEvent
             { (this, core, event, status, message) in
-                if let this = this.map ({ Unmanaged<EthereumLightNode>.fromOpaque($0).takeRetainedValue() }) {
+                if let this = this.map ({ Unmanaged<EthereumWalletManager>.fromOpaque($0).takeRetainedValue() }) {
                     assert (this.core == core)
                     this.listener?.handlePeerEvent (event: EthereumPeerEvent (event))
                 }
             },
             // handleWalletEvent
             { (this, core, wid, event, status, message) in
-                if let this = this.map ({ Unmanaged<EthereumLightNode>.fromOpaque($0).takeRetainedValue() }) {
+                if let this = this.map ({ Unmanaged<EthereumWalletManager>.fromOpaque($0).takeRetainedValue() }) {
                     assert (this.core == core)
                     this.listener?.handleWalletEvent (wallet: this.findWallet(identifier: wid),
                                                       event: EthereumWalletEvent (rawValue: Int(event.rawValue))!)
 
                 }
-//                if let node = EthereumLightNode.lookupNode(core: core!) {
-//                    let selfy = Unmanaged<EthereumLightNode>.fromOpaque(this!).takeRetainedValue()
-//                    selfy.listener?.handleWalletEvent (wallet: node.findWallet(identifier: wid),
+//                if let ewm = EthereumEWM.lookupNode(core: core!) {
+//                    let selfy = Unmanaged<EthereumEWM>.fromOpaque(this!).takeRetainedValue()
+//                    selfy.listener?.handleWalletEvent (wallet: ewm.findWallet(identifier: wid),
 //                                                      event: event);
-////                    listener.handleWalletEvent (wallet: node.findWallet(identifier: wid),
+////                    listener.handleWalletEvent (wallet: ewm.findWallet(identifier: wid),
 ////                                                event: event)
 //                }
                 return },
 
             // handleBlockEvent
             { (this, core, bid, event, status, message) in
-                if let this = this.map ({ Unmanaged<EthereumLightNode>.fromOpaque($0).takeRetainedValue() }) {
+                if let this = this.map ({ Unmanaged<EthereumWalletManager>.fromOpaque($0).takeRetainedValue() }) {
                     assert (this.core == core)
                     this.listener?.handleBlockEvent (block: this.findBlock (identifier: bid),
                                                      event: EthereumBlockEvent (rawValue: Int(event.rawValue))!);
@@ -672,15 +672,15 @@ public class EthereumLightNode {
 
             // handleTransactionEvent
             { (this, core, wid, tid, event, status, message) in
-                if let this = this.map ({ Unmanaged<EthereumLightNode>.fromOpaque($0).takeRetainedValue() }) {
+                if let this = this.map ({ Unmanaged<EthereumWalletManager>.fromOpaque($0).takeRetainedValue() }) {
                     assert (this.core == core)
                     this.listener?.handleTransactionEvent (wallet: this.findWallet(identifier: wid),
                                                            transaction: this.findTransaction(identifier: tid),
                                                            event: EthereumTransactionEvent(rawValue: Int(event.rawValue))!)
-//                if let node = EthereumLightNode.lookupNode(core: core!) {
+//                if let ewm = EthereumEWM.lookupNode(core: core!) {
 //                    let listener = Unmanaged<AnyEthereumListener>.fromOpaque(this!).takeUnretainedValue()
-//                    listener.handleTransactionEvent (wallet: node.findWallet(identifier: wid),
-//                                                     transaction: node.findTransaction(identifier: tid),
+//                    listener.handleTransactionEvent (wallet: ewm.findWallet(identifier: wid),
+//                                                     transaction: ewm.findTransaction(identifier: tid),
 //                                                     event: event)
                 }
                 return })
@@ -709,19 +709,19 @@ public class EthereumLightNode {
     }
 
     func announceBalance (wid: EthereumWalletId, balance: String, rid: Int32) {
-        lightNodeAnnounceBalance (core, wid, balance, rid)
+        ewmAnnounceBalance (core, wid, balance, rid)
     }
 
     func announceGasPrice (wid: EthereumWalletId, gasPrice: String, rid: Int32) {
-        lightNodeAnnounceGasPrice (core, wid, gasPrice, rid)
+        ewmAnnounceGasPrice (core, wid, gasPrice, rid)
     }
 
     func announceGasEstimate (wid: EthereumWalletId, tid: EthereumTransactionId, gasEstimate: String, rid: Int32) {
-        lightNodeAnnounceGasEstimate (core, wid, tid, gasEstimate, rid)
+        ewmAnnounceGasEstimate (core, wid, tid, gasEstimate, rid)
     }
 
     func announceSubmitTransaction (wid: EthereumWalletId, tid: EthereumTransactionId, hash: String, rid: Int32) {
-        lightNodeAnnounceSubmitTransaction (core, wid, tid, hash, rid)
+        ewmAnnounceSubmitTransaction (core, wid, tid, hash, rid)
     }
 
     func announceTransaction (rid: Int32,
@@ -741,7 +741,7 @@ public class EthereumLightNode {
                               blockTransactionIndex: String,
                               blockTimestamp: String,
                               isError: String) {
-        lightNodeAnnounceTransaction (core, rid,
+        ewmAnnounceTransaction (core, rid,
                                       hash, sourceAddr, targetAddr, contractAddr,
                                       amount, gasLimit, gasPrice,
                                       data, nonce, gasUsed,
@@ -763,7 +763,7 @@ public class EthereumLightNode {
                       blockTimestamp: String) {
         var cTopics = topics.map { UnsafePointer<Int8>(strdup($0)) }
 
-        lightNodeAnnounceLog (core, rid,
+        ewmAnnounceLog (core, rid,
                               hash, contract, Int32(topics.count), &cTopics,
                               data, gasPrice, gasUsed,
                               logIndex,
@@ -772,8 +772,8 @@ public class EthereumLightNode {
     }
 
     ///
-    /// Create an BREthereumLightNodeConfiguration for a JSON_RPC client.  The configuration
-    /// will invoke Client functions for LightNode callbacks, implementing, for example,
+    /// Create an BREthereumEWMConfiguration for a JSON_RPC client.  The configuration
+    /// will invoke Client functions for EWM callbacks, implementing, for example,
     /// getTransactions().  In this case, the client is expected to make a JSON_RPC call
     /// returning a list of JSON transactions and then to processing each transaction by
     /// calling announceTransaction().
@@ -783,7 +783,7 @@ public class EthereumLightNode {
             UnsafeMutableRawPointer (Unmanaged.passUnretained(self).toOpaque()),
             //  JsonRpcGetBalance funcGetBalance,
             { (this, core, wid, address, rid) in
-                if let this = this.map ({ Unmanaged<EthereumLightNode>.fromOpaque($0).takeUnretainedValue() }) {
+                if let this = this.map ({ Unmanaged<EthereumWalletManager>.fromOpaque($0).takeUnretainedValue() }) {
                     this.client?.getBalance(wid: wid, address: asUTF8String(address!), rid: rid)
                 }
 
@@ -791,14 +791,14 @@ public class EthereumLightNode {
 
             //JsonRpcGetGasPrice functGetGasPrice
             { (this, core, wid, rid) in
-                if let this = this.map ({ Unmanaged<EthereumLightNode>.fromOpaque($0).takeUnretainedValue() }) {
+                if let this = this.map ({ Unmanaged<EthereumWalletManager>.fromOpaque($0).takeUnretainedValue() }) {
                     this.client?.getGasPrice (wid: wid, rid: rid)
                 }
         },
 
             // JsonRpcEstimateGas funcEstimateGas,
             { (this, core, wid, tid, to, amount, data, rid)  in
-                if let this = this.map ({ Unmanaged<EthereumLightNode>.fromOpaque($0).takeUnretainedValue() }) {
+                if let this = this.map ({ Unmanaged<EthereumWalletManager>.fromOpaque($0).takeUnretainedValue() }) {
                     this.client?.getGasEstimate(wid: wid, tid: tid,
                                           to: asUTF8String(to!),
                                           amount: asUTF8String(amount!),
@@ -809,7 +809,7 @@ public class EthereumLightNode {
 
             // JsonRpcSubmitTransaction funcSubmitTransaction,
             { (this, core, wid, tid, transaction, rid)  in
-                if let this = this.map ({ Unmanaged<EthereumLightNode>.fromOpaque($0).takeUnretainedValue() }) {
+                if let this = this.map ({ Unmanaged<EthereumWalletManager>.fromOpaque($0).takeUnretainedValue() }) {
                     this.client?.submitTransaction(wid: wid, tid: tid,
                                              rawTransaction: asUTF8String(transaction!),
                                              rid: rid)
@@ -818,13 +818,13 @@ public class EthereumLightNode {
 
             // JsonRpcGetTransactions funcGetTransactions
             { (this, core, address, rid) in
-                if let this = this.map ({ Unmanaged<EthereumLightNode>.fromOpaque($0).takeUnretainedValue() }) {
+                if let this = this.map ({ Unmanaged<EthereumWalletManager>.fromOpaque($0).takeUnretainedValue() }) {
                     this.client?.getTransactions(address: asUTF8String(address!), rid: rid)
                 }
         },
 
             { (this, core, contract, address, event, rid) in
-                if let this = this.map ({ Unmanaged<EthereumLightNode>.fromOpaque($0).takeUnretainedValue() }) {
+                if let this = this.map ({ Unmanaged<EthereumWalletManager>.fromOpaque($0).takeUnretainedValue() }) {
                     this.client?.getLogs (address: asUTF8String(address!),
                                     event: asUTF8String(event!),
                                     rid: rid)
@@ -841,14 +841,14 @@ public class EthereumLightNode {
     // Nodes
     //
 
-    static var nodes : [EthereumLightNode] = []
+    static var ewms : [EthereumWalletManager] = []
 
-    static func addNode (_ node: EthereumLightNode) {
-        nodes.append(node)
+    static func addNode (_ ewm: EthereumWalletManager) {
+        ewms.append(ewm)
     }
 
-    static func lookupNode (core: BRCoreEthereumLightNode) -> EthereumLightNode? {
-        return nodes.first { $0.core == core }
+    static func lookupNode (core: BRCoreEWM) -> EthereumWalletManager? {
+        return ewms.first { $0.core == core }
     }
 }
 
@@ -1056,8 +1056,8 @@ internal class AnyEthereumListener : EthereumListener {
         base.handlePeerEvent(event: event)
     }
 
-    func handleLightNodeEvent(event: EthereumLightNodeEvent) {
-        base.handleLightNodeEvent(event: event)
+    func handleEWMEvent(event: EthereumEWMEvent) {
+        base.handleEWMEvent(event: event)
     }
 
 

@@ -125,7 +125,7 @@ walletCreateDetailed (BREthereumAccount account,
                       BREthereumToken optionalToken) {
     
     assert (NULL != account);
-//    assert (NULL != address);
+    //    assert (NULL != address);
     assert (AMOUNT_TOKEN != type || NULL != optionalToken);
     
     BREthereumWallet wallet = calloc(1, sizeof(struct BREthereumWalletRecord));
@@ -286,10 +286,10 @@ extern void
 walletSignTransaction(BREthereumWallet wallet,
                       BREthereumTransaction transaction,
                       const char *paperKey) {
-
+    
     if (TRANSACTION_NONCE_IS_NOT_ASSIGNED == transactionGetNonce(transaction))
         transactionSetNonce (transaction, accountGetThenIncrementAddressNonce(wallet->account, wallet->address));
-
+    
     // TODO: This is overkill...
     //assert (transactionGetNonce(transaction) + 1 == addressGetNonce(wallet->address));
     
@@ -315,17 +315,17 @@ extern void
 walletSignTransactionWithPrivateKey(BREthereumWallet wallet,
                                     BREthereumTransaction transaction,
                                     BRKey privateKey) {
-
+    
     if (TRANSACTION_NONCE_IS_NOT_ASSIGNED == transactionGetNonce(transaction))
         transactionSetNonce (transaction, accountGetThenIncrementAddressNonce(wallet->account, wallet->address));
-
+    
     // TODO: This is overkill...
     //assert (transactionGetNonce(transaction) + 1 == addressGetNonce(wallet->address));
-
+    
     // RLP Encode the UNSIGNED transaction
     BRRlpData transactionUnsignedRLP = transactionEncodeRLP
     (transaction, wallet->network, TRANSACTION_RLP_UNSIGNED);
-
+    
     // Sign the RLP Encoded bytes.
     BREthereumSignature signature = accountSignBytesWithPrivateKey
     (wallet->account,
@@ -334,10 +334,10 @@ walletSignTransactionWithPrivateKey(BREthereumWallet wallet,
      transactionUnsignedRLP.bytes,
      transactionUnsignedRLP.bytesCount,
      privateKey);
-
+    
     // Attach the signature
     transactionSign(transaction, signature);
-
+    
 }
 
 extern BRRlpData
@@ -551,11 +551,11 @@ walletTransactionSubmitted (BREthereumWallet wallet,
 
 private_extern void
 walletTransactionIncluded(BREthereumWallet wallet,
-                         BREthereumTransaction transaction,
-                         BREthereumGas gasUsed,
-                         BREthereumHash blockHash,
-                         uint64_t blockNumber,
-                         uint64_t blockTransactionIndex) {
+                          BREthereumTransaction transaction,
+                          BREthereumGas gasUsed,
+                          BREthereumHash blockHash,
+                          uint64_t blockNumber,
+                          uint64_t blockTransactionIndex) {
     transactionSetStatus(transaction,
                          transactionStatusCreateIncluded(gasUsed,
                                                          blockHash,

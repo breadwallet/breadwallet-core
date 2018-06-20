@@ -8,6 +8,7 @@ CORE_SRCS=../BRAddress.c \
 	../BRBloomFilter.c \
 	../BRCrypto.c \
 	../BRKey.c \
+	../BRKeyECIES.c \
 	../BRMerkleBlock.c \
 	../BRPaymentProtocol.c \
 	../BRPeer.c \
@@ -15,7 +16,6 @@ CORE_SRCS=../BRAddress.c \
 	../BRSet.c \
 	../BRTransaction.c \
 	../BRWallet.c \
-	../BRKeyECIES.c \
 	../bcash/BRBCashAddr.c
 
 CORE_OBJS=$(CORE_SRCS:.c=.o)
@@ -53,11 +53,12 @@ ETH_SRCS=./BREthereum.c \
 	./les/BREthereumNodeManager.c \
 	./les/BREthereumP2PCoder.c \
 	./les/BREthereumRandom.c \
-	./lightnode/BREthereumLightNode.c \
-	./lightnode/BREthereumLightNodeClient.c \
-	./lightnode/BREthereumLightNodeEvent.c \
+	./ewm/BREthereumEWM.c \
+	./ewm/BREthereumEWMClient.c \
+	./ewm/BREthereumEWMEvent.c \
 	./event/BREvent.c \
 	./event/BREventQueue.c \
+	./event/BREventAlarm.c \
 	./rlp/BRRlpCoder.c \
 	./util/BRUtilHex.c \
 	./util/BRUtilMath.c \

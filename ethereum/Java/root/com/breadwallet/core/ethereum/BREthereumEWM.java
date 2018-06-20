@@ -1,5 +1,5 @@
 /*
- * EthereumLightNode
+ * EthereumEWM
  *
  * Created by Ed Gamble <ed@breadwallet.com> on 3/7/18.
  * Copyright (c) 2018 breadwallet LLC
@@ -35,27 +35,27 @@ import static com.breadwallet.core.ethereum.BREthereumToken.jniTokenAll;
 /**
  *
  */
-public class BREthereumLightNode extends BRCoreJniReference {
+public class BREthereumEWM extends BRCoreJniReference {
 
     //
     // Client
     //
     public interface Client {
         //        typedef void (*BREthereumClientHandlerGetBalance) (BREthereumClientContext context,
-        //                                   BREthereumLightNode node,
+        //                                   BREthereumEWM ewm,
         //                                   BREthereumWalletId wid,
         //                                   const char *address,
         //                                   int rid);
         void getBalance(int wid, String address, int rid);
 
         //        typedef void (*BREthereumClientHandlerGetGasPrice) (BREthereumClientContext context,
-        //                                    BREthereumLightNode node,
+        //                                    BREthereumEWM ewm,
         //                                    BREthereumWalletId wid,
         //                                    int rid);
         void getGasPrice(int wid, int rid);
 
         //        typedef void (*BREthereumClientHandlerEstimateGas) (BREthereumClientContext context,
-        //                                    BREthereumLightNode node,
+        //                                    BREthereumEWM ewm,
         //                                    BREthereumWalletId wid,
         //                                    BREthereumTransactionId tid,
         //                                    const char *to,
@@ -66,7 +66,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
         void getGasEstimate(int wid, int tid, String to, String amount, String data, int rid);
 
         //        typedef void (*BREthereumClientHandlerSubmitTransaction) (BREthereumClientContext context,
-        //                                          BREthereumLightNode node,
+        //                                          BREthereumEWM ewm,
         //                                          BREthereumWalletId wid,
         //                                          BREthereumTransactionId tid,
         //                                          const char *transaction,
@@ -74,13 +74,13 @@ public class BREthereumLightNode extends BRCoreJniReference {
         void submitTransaction(int wid, int tid, String rawTransaction, int rid);
 
         //        typedef void (*BREthereumClientHandlerGetTransactions) (BREthereumClientContext context,
-        //                                        BREthereumLightNode node,
+        //                                        BREthereumEWM ewm,
         //                                        const char *address,
         //                                        int rid);
         void getTransactions(String address, int rid);
 
         //        typedef void (*BREthereumClientHandlerGetLogs) (BREthereumClientContext context,
-        //                                BREthereumLightNode node,
+        //                                BREthereumEWM ewm,
         //                                const char *contract,
         //                                const char *address,
         //                                const char *event,
@@ -88,12 +88,12 @@ public class BREthereumLightNode extends BRCoreJniReference {
         void getLogs (String contract, String address, String event, int rid);
 
         //        typedef void (*BREthereumClientHandlerGetBlockNumber) (BREthereumClientContext context,
-        //                                                    BREthereumLightNode node,
+        //                                                    BREthereumEWM ewm,
         //                                                    int rid);
         void getBlockNumber (int rid);
 
         //        typedef void (*BREthereumClientHandlerGetNonce) (BREthereumClientContext context,
-        //                                                        BREthereumLightNode node,
+        //                                                        BREthereumEWM ewm,
         //                                                        const char *address,
         //                                                        int rid);
         void getNonce (String address, int rid);
@@ -172,7 +172,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     // Listener
     //
     // In the following the Event enumerations *must* match the corresponding declarations in
-    // BREthereumLightNode.h - the enumerations values/indices must be identical.
+    // BREthereumEWM.h - the enumerations values/indices must be identical.
     //
     public interface Listener {
         enum Status {
@@ -256,7 +256,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     }
 
     //
-    // Light Node
+    // EWM
     //
     WeakReference<Client> client;
     WeakReference<Listener> listener;
@@ -315,7 +315,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
 
             // If `token` is null, then lookup the token for wallet.
             if (null == token) {
-                long tokenRef = jniLightNodeWalletGetToken(wid);
+                long tokenRef = jniEWMWalletGetToken(wid);
                 if (0 != tokenRef)
                     token = lookupTokenByReference (tokenRef);
             }
@@ -332,16 +332,16 @@ public class BREthereumLightNode extends BRCoreJniReference {
     }
 
     public BREthereumWallet getWallet () {
-        long wid = jniLightNodeGetWallet();
+        long wid = jniEWMGetWallet();
         return walletLookupOrCreate (wid, null);
     }
 
     public BREthereumWallet getWallet(BREthereumToken token) {
-        long wid = jniLightNodeGetWalletToken(token.getIdentifier());
+        long wid = jniEWMGetWalletToken(token.getIdentifier());
         return walletLookupOrCreate(wid, token);
     }
 
-    // TODO: Remove once 'client callbacks' are LightNode trampolines
+    // TODO: Remove once 'client callbacks' are EWM trampolines
     public BREthereumWallet getWalletByIdentifier (long wid) {
         return walletLookupOrCreate(wid, null);
     }
@@ -386,7 +386,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     }
 
     public long getBlockHeight () {
-        return jniLightNodeGetBlockHeight();
+        return jniEWMGetBlockHeight();
     }
 
     //
@@ -425,17 +425,17 @@ public class BREthereumLightNode extends BRCoreJniReference {
     // Constructor
     //
 
-    public BREthereumLightNode(Client client, BREthereumNetwork network, String paperKey, String[] wordList) {
-        this(BREthereumLightNode.jniCreateLightNode(client, network.getIdentifier(), paperKey, wordList),
+    public BREthereumEWM(Client client, BREthereumNetwork network, String paperKey, String[] wordList) {
+        this(BREthereumEWM.jniCreateEWM(client, network.getIdentifier(), paperKey, wordList),
                 client, network);
     }
 
-    public BREthereumLightNode(Client client, BREthereumNetwork network, byte[] publicKey) {
-        this(BREthereumLightNode.jniCreateLightNode_PublicKey(client, network.getIdentifier(), publicKey),
+    public BREthereumEWM(Client client, BREthereumNetwork network, byte[] publicKey) {
+        this(BREthereumEWM.jniCreateEWM_PublicKey(client, network.getIdentifier(), publicKey),
                 client, network);
     }
 
-    private BREthereumLightNode(long identifier, Client client, BREthereumNetwork network) {
+    private BREthereumEWM(long identifier, Client client, BREthereumNetwork network) {
         super(identifier);
 
         // `this` is the JNI listener, using the `trampoline` functions to invoke
@@ -444,7 +444,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
 
         this.client = new WeakReference<>(client);
         this.network = network;
-        this.account = new BREthereumAccount(this, jniLightNodeGetAccount());
+        this.account = new BREthereumAccount(this, jniEWMGetAccount());
         initializeTokens ();
     }
 
@@ -461,10 +461,10 @@ public class BREthereumLightNode extends BRCoreJniReference {
     // Connect // Disconnect
     //
     public boolean connect () {
-        return jniLightNodeConnect ();
+        return jniEWMConnect ();
     }
     public boolean disconnect () {
-        return jniLightNodeDisconnect ();
+        return jniEWMDisconnect ();
     }
 
     //
@@ -562,8 +562,8 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     // JNI: Constructors
     //
-    protected static native long jniCreateLightNode(Client client, long network, String paperKey, String[] wordList);
-    protected static native long jniCreateLightNode_PublicKey(Client client, long network, byte[] publicKey);
+    protected static native long jniCreateEWM(Client client, long network, String paperKey, String[] wordList);
+    protected static native long jniCreateEWM_PublicKey(Client client, long network, byte[] publicKey);
 
     protected native void jniAddListener (Listener listener);
 
@@ -612,16 +612,16 @@ public class BREthereumLightNode extends BRCoreJniReference {
 
 
     // JNI: Account & Address
-    protected native long jniLightNodeGetAccount();
+    protected native long jniEWMGetAccount();
     protected native String jniGetAccountPrimaryAddress(long accountId);
     protected native byte[] jniGetAccountPrimaryAddressPublicKey(long accountId);
     protected native byte[] jniGetAccountPrimaryAddressPrivateKey(long accountId, String paperKey);
 
     // JNI: Wallet
-    protected native long jniLightNodeGetWallet();
-    protected native long jniLightNodeGetWalletToken (long tokenId);
-    protected native long jniLightNodeCreateWalletToken(long tokenId);
-    protected native long jniLightNodeWalletGetToken (long wid);
+    protected native long jniEWMGetWallet();
+    protected native long jniEWMGetWalletToken (long tokenId);
+    protected native long jniEWMCreateWalletToken(long tokenId);
+    protected native long jniEWMWalletGetToken (long wid);
 
     protected native String jniGetWalletBalance (long walletId, long unit);
     protected native void jniEstimateWalletGasPrice (long walletId);
@@ -691,7 +691,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     // JNI: Block
     //
-    protected native long jniLightNodeGetBlockHeight ();
+    protected native long jniEWMGetBlockHeight ();
     protected native long jniBlockGetNumber (long bid);
 //    protected native long jniBlockGetTimestamp (long bid);
     protected native String jniBlockGetHash (long bid);
@@ -699,8 +699,8 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     // JNI: Connect & Disconnect
     //
-    protected native boolean jniLightNodeConnect ();
-    protected native boolean jniLightNodeDisconnect ();
+    protected native boolean jniEWMConnect ();
+    protected native boolean jniEWMDisconnect ();
 
     // JNI: Initialize
     protected static native void initializeNative();
@@ -717,11 +717,11 @@ public class BREthereumLightNode extends BRCoreJniReference {
     // Reference
     //
     static class Reference {
-        WeakReference<BREthereumLightNode> node;
+        WeakReference<BREthereumEWM> ewm;
         long identifier;
 
-        Reference(BREthereumLightNode node, long identifier) {
-            this.node = new WeakReference<>(node);
+        Reference(BREthereumEWM ewm, long identifier) {
+            this.ewm = new WeakReference<>(ewm);
             this.identifier = identifier;
         }
     }
@@ -745,10 +745,10 @@ public class BREthereumLightNode extends BRCoreJniReference {
         //
         // Constructor
         //
-        protected ReferenceWithDefaultUnit (BREthereumLightNode node,
+        protected ReferenceWithDefaultUnit (BREthereumEWM ewm,
                                             long identifier,
                                             BREthereumAmount.Unit unit) {
-            super(node, identifier);
+            super(ewm, identifier);
             this.defaultUnit = unit;
             this.defaultUnitUsesToken = unit.isTokenUnit();
         }

@@ -116,7 +116,7 @@ walletCreateTransaction(BREthereumWallet wallet,
 /**
  *
  * You will have all sorts of problems with `nonce`...
-
+ 
  *   1) It needs to be derived from and consistent with the wallet's address nonce.
  *         walletSignTransaction() - the first point where the nonce is used - will fatal.
  *   2) If you create a transaction, thereby using/incrementing a nonce, but then don't submit
@@ -271,7 +271,7 @@ walletGetTransactionByIndex(BREthereumWallet wallet,
 
 extern unsigned long
 walletGetTransactionCount (BREthereumWallet wallet);
-    
+
 #ifdef __cplusplus
 }
 #endif
