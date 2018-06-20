@@ -44,9 +44,9 @@ ethereumCreate(BREthereumNetwork network,
 
 extern BREthereumLightNode
 ethereumCreateWithPublicKey(BREthereumNetwork network,
-                            const BRKey publicKey,
+                            const BRKey publicKey,      // 65 byte, 0x04-prefixed, uncompressed public key
                             BREthereumType type,
-                            BREthereumSyncMode syncMode) { // 65 byte, 0x04-prefixed, uncompressed public key
+                            BREthereumSyncMode syncMode) {
     return createLightNode (network, createAccountWithPublicKey (publicKey), type, syncMode);
 }
 

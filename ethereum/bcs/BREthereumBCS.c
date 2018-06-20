@@ -619,6 +619,7 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
         assert (NULL != transaction);
         if (-1 != bcsLookupPendingTransaction(bcs, transactionGetHash(transaction))) {
             // TODO: Apparently `log` is now pending?
+            ;
         }
     }
 
