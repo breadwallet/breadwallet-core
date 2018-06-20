@@ -24,21 +24,21 @@
  */
 package com.breadwallet.core.ethereum;
 
-public class BREthereumAccount extends BREthereumLightNode.Reference {
+public class BREthereumAccount extends BREthereumEWM.Reference {
 
-    protected BREthereumAccount(BREthereumLightNode node, long identifier) {
-        super (node, identifier);
+    protected BREthereumAccount(BREthereumEWM ewm, long identifier) {
+        super (ewm, identifier);
     }
 
     public String getPrimaryAddress () {
-        return node.get().jniGetAccountPrimaryAddress(identifier);
+        return ewm.get().jniGetAccountPrimaryAddress(identifier);
     }
 
     public byte[] getPrimaryAddressPublicKey () {
-        return node.get().jniGetAccountPrimaryAddressPublicKey(identifier);
+        return ewm.get().jniGetAccountPrimaryAddressPublicKey(identifier);
     }
 
     public byte[] getPrimaryAddressPrivateKey (String paperKey) {
-        return node.get().jniGetAccountPrimaryAddressPrivateKey(identifier, paperKey);
+        return ewm.get().jniGetAccountPrimaryAddressPrivateKey(identifier, paperKey);
     }
 }

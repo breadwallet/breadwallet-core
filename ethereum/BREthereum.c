@@ -28,120 +28,120 @@
 #include "BREthereum.h"
 #include "blockchain/BREthereumTransaction.h"
 #include "blockchain/BREthereumBlock.h"
-#include "lightnode/BREthereumLightNode.h"
+#include "ewm/BREthereumEWM.h"
 #include "BREthereumWallet.h"
 
 //
 //
 //
-extern BREthereumLightNode
+extern BREthereumEWM
 ethereumCreate(BREthereumNetwork network,
                const char *paperKey,
                BREthereumType type,
                BREthereumSyncMode syncMode) {
-    return createLightNode (network, createAccount(paperKey), type, syncMode);
+    return createEWM (network, createAccount(paperKey), type, syncMode);
 }
 
-extern BREthereumLightNode
+extern BREthereumEWM
 ethereumCreateWithPublicKey(BREthereumNetwork network,
                             const BRKey publicKey,      // 65 byte, 0x04-prefixed, uncompressed public key
                             BREthereumType type,
                             BREthereumSyncMode syncMode) {
-    return createLightNode (network, createAccountWithPublicKey (publicKey), type, syncMode);
+    return createEWM (network, createAccountWithPublicKey (publicKey), type, syncMode);
 }
 
 extern BREthereumBoolean
-ethereumConnect(BREthereumLightNode node,
+ethereumConnect(BREthereumEWM ewm,
                 BREthereumClient client) {
-    return lightNodeConnect(node, client);
+    return ewmConnect(ewm, client);
 }
 
 extern BREthereumBoolean
-ethereumDisconnect (BREthereumLightNode node) {
-    return lightNodeDisconnect(node);
+ethereumDisconnect (BREthereumEWM ewm) {
+    return ewmDisconnect(ewm);
 }
 
 extern void
-ethereumDestroy (BREthereumLightNode node) {
-    lightNodeDestroy(node);
+ethereumDestroy (BREthereumEWM ewm) {
+    ewmDestroy(ewm);
 }
 
 extern BREthereumAccountId
-ethereumGetAccount(BREthereumLightNode node) {
+ethereumGetAccount(BREthereumEWM ewm) {
     return 0;
 }
 
 extern char *
-ethereumGetAccountPrimaryAddress(BREthereumLightNode node) {
-    return accountGetPrimaryAddressString(lightNodeGetAccount(node));
+ethereumGetAccountPrimaryAddress(BREthereumEWM ewm) {
+    return accountGetPrimaryAddressString(ewmGetAccount(ewm));
 }
 
 extern BRKey // key.pubKey
-ethereumGetAccountPrimaryAddressPublicKey(BREthereumLightNode node) {
-    return accountGetPrimaryAddressPublicKey(lightNodeGetAccount(node));
+ethereumGetAccountPrimaryAddressPublicKey(BREthereumEWM ewm) {
+    return accountGetPrimaryAddressPublicKey(ewmGetAccount(ewm));
 }
 
 extern BRKey
-ethereumGetAccountPrimaryAddressPrivateKey(BREthereumLightNode node,
+ethereumGetAccountPrimaryAddressPrivateKey(BREthereumEWM ewm,
                                            const char *paperKey) {
-    return accountGetPrimaryAddressPrivateKey (lightNodeGetAccount(node), paperKey);
-
+    return accountGetPrimaryAddressPrivateKey (ewmGetAccount(ewm), paperKey);
+    
 }
 
 extern BREthereumNetwork
-ethereumGetNetwork (BREthereumLightNode node) {
-    return lightNodeGetNetwork(node);
+ethereumGetNetwork (BREthereumEWM ewm) {
+    return ewmGetNetwork(ewm);
 }
 
 
 extern BREthereumWalletId
-ethereumGetWallet(BREthereumLightNode node) {
-    return lightNodeGetWallet(node);
+ethereumGetWallet(BREthereumEWM ewm) {
+    return ewmGetWallet(ewm);
 }
 
 extern BREthereumWalletId
-ethereumGetWalletHoldingToken(BREthereumLightNode node,
+ethereumGetWalletHoldingToken(BREthereumEWM ewm,
                               BREthereumToken token) {
-    return lightNodeGetWalletHoldingToken(node, token);
+    return ewmGetWalletHoldingToken(ewm, token);
 }
 
 extern uint64_t
-ethereumWalletGetDefaultGasLimit(BREthereumLightNode node,
+ethereumWalletGetDefaultGasLimit(BREthereumEWM ewm,
                                  BREthereumWalletId wid) {
-    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
     return walletGetDefaultGasLimit(wallet).amountOfGas;
 }
 
 extern void
-ethereumWalletSetDefaultGasLimit(BREthereumLightNode node,
+ethereumWalletSetDefaultGasLimit(BREthereumEWM ewm,
                                  BREthereumWalletId wid,
                                  uint64_t gasLimit) {
-    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
-    lightNodeWalletSetDefaultGasLimit(node, wallet, gasCreate(gasLimit));
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
+    ewmWalletSetDefaultGasLimit(ewm, wallet, gasCreate(gasLimit));
 }
 
 extern uint64_t
-ethereumWalletGetGasEstimate(BREthereumLightNode node,
+ethereumWalletGetGasEstimate(BREthereumEWM ewm,
                              BREthereumWalletId wid,
                              BREthereumTransactionId tid) {
-    //  BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    //  BREthereumWallet wallet = lightewmLookupWallet(ewm, wid);
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
     return transactionGetGasEstimate(transaction).amountOfGas;
 }
 
 extern void
-ethereumWalletSetDefaultGasPrice(BREthereumLightNode node,
+ethereumWalletSetDefaultGasPrice(BREthereumEWM ewm,
                                  BREthereumWalletId wid,
                                  BREthereumEtherUnit unit,
                                  uint64_t value) {
-    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
-    lightNodeWalletSetDefaultGasPrice (node, wallet, gasPriceCreate(etherCreateNumber (value, unit)));
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
+    ewmWalletSetDefaultGasPrice (ewm, wallet, gasPriceCreate(etherCreateNumber (value, unit)));
 }
 
 extern uint64_t
-ethereumWalletGetDefaultGasPrice(BREthereumLightNode node,
+ethereumWalletGetDefaultGasPrice(BREthereumEWM ewm,
                                  BREthereumWalletId wid) {
-    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
     BREthereumGasPrice gasPrice = walletGetDefaultGasPrice(wallet);
     return (gtUInt256 (gasPrice.etherPerGas.valueInWEI, createUInt256(UINT64_MAX))
             ? 0
@@ -149,17 +149,17 @@ ethereumWalletGetDefaultGasPrice(BREthereumLightNode node,
 }
 
 extern BREthereumAmount
-ethereumWalletGetBalance(BREthereumLightNode node,
+ethereumWalletGetBalance(BREthereumEWM ewm,
                          BREthereumWalletId wid) {
-    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
     return walletGetBalance(wallet);
 }
 
 extern char *
-ethereumWalletGetBalanceEther(BREthereumLightNode node,
+ethereumWalletGetBalanceEther(BREthereumEWM ewm,
                               BREthereumWalletId wid,
                               BREthereumEtherUnit unit) {
-    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
     BREthereumAmount balance = walletGetBalance(wallet);
     return (AMOUNT_ETHER == amountGetType(balance)
             ? etherGetValueString(balance.u.ether, unit)
@@ -167,10 +167,10 @@ ethereumWalletGetBalanceEther(BREthereumLightNode node,
 }
 
 extern char *
-ethereumWalletGetBalanceTokenQuantity(BREthereumLightNode node,
+ethereumWalletGetBalanceTokenQuantity(BREthereumEWM ewm,
                                       BREthereumWalletId wid,
                                       BREthereumTokenQuantityUnit unit) {
-    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
     BREthereumAmount balance = walletGetBalance(wallet);
     return (AMOUNT_TOKEN == amountGetType(balance)
             ? tokenQuantityGetValueString(balance.u.tokenQuantity, unit)
@@ -178,83 +178,83 @@ ethereumWalletGetBalanceTokenQuantity(BREthereumLightNode node,
 }
 
 extern BREthereumEther
-ethereumWalletEstimateTransactionFee(BREthereumLightNode node,
+ethereumWalletEstimateTransactionFee(BREthereumEWM ewm,
                                      BREthereumWalletId wid,
                                      BREthereumAmount amount,
                                      int *overflow) {
-    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
     return walletEstimateTransactionFee(wallet, amount, overflow);
 }
 
 extern BREthereumTransactionId
-ethereumWalletCreateTransaction(BREthereumLightNode node,
+ethereumWalletCreateTransaction(BREthereumEWM ewm,
                                 BREthereumWalletId wid,
                                 const char *recvAddress,
                                 BREthereumAmount amount) {
-    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
-    return lightNodeWalletCreateTransaction(node, wallet, recvAddress, amount);
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
+    return ewmWalletCreateTransaction(ewm, wallet, recvAddress, amount);
 }
 
 extern void // status, error
-ethereumWalletSignTransaction(BREthereumLightNode node,
+ethereumWalletSignTransaction(BREthereumEWM ewm,
                               BREthereumWalletId wid,
                               BREthereumTransactionId tid,
                               const char *paperKey) {
-    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
-    lightNodeWalletSignTransactionWithPaperKey(node, wallet, transaction, paperKey);
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
+    ewmWalletSignTransactionWithPaperKey(ewm, wallet, transaction, paperKey);
 }
 
 extern void // status, error
-ethereumWalletSignTransactionWithPrivateKey(BREthereumLightNode node,
+ethereumWalletSignTransactionWithPrivateKey(BREthereumEWM ewm,
                                             BREthereumWalletId wid,
                                             BREthereumTransactionId tid,
                                             BRKey privateKey) {
-    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
-    lightNodeWalletSignTransaction(node, wallet, transaction, privateKey);
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
+    ewmWalletSignTransaction(ewm, wallet, transaction, privateKey);
 }
 
 extern void // status, error
-ethereumWalletSubmitTransaction(BREthereumLightNode node,
+ethereumWalletSubmitTransaction(BREthereumEWM ewm,
                                 BREthereumWalletId wid,
                                 BREthereumTransactionId tid) {
-    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
-    lightNodeWalletSubmitTransaction(node, wallet, transaction);
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
+    ewmWalletSubmitTransaction(ewm, wallet, transaction);
 }
 
 //
 //
 //
 extern BREthereumTransactionId *
-ethereumWalletGetTransactions(BREthereumLightNode node,
+ethereumWalletGetTransactions(BREthereumEWM ewm,
                               BREthereumWalletId wid) {
-    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
-    return lightNodeWalletGetTransactions(node, wallet);
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
+    return ewmWalletGetTransactions(ewm, wallet);
 }
 
 extern int
-ethereumWalletGetTransactionCount(BREthereumLightNode node,
+ethereumWalletGetTransactionCount(BREthereumEWM ewm,
                                   BREthereumWalletId wid) {
-    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
-    return lightNodeWalletGetTransactionCount(node, wallet);
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
+    return ewmWalletGetTransactionCount(ewm, wallet);
 }
 
 extern BREthereumBoolean
-ethereumWalletHoldsToken(BREthereumLightNode node,
+ethereumWalletHoldsToken(BREthereumEWM ewm,
                          BREthereumWalletId wid,
                          BREthereumToken token) {
-    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
     return (NULL != wallet && token == walletGetToken(wallet)
             ? ETHEREUM_BOOLEAN_TRUE
             : ETHEREUM_BOOLEAN_FALSE);
 }
 
 extern BREthereumToken
-ethereumWalletGetToken(BREthereumLightNode node,
+ethereumWalletGetToken(BREthereumEWM ewm,
                        BREthereumWalletId wid) {
-    BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
     return (NULL != wallet
             ? walletGetToken(wallet)
             : NULL);
@@ -264,29 +264,29 @@ ethereumWalletGetToken(BREthereumLightNode node,
 // Block
 //
 extern uint64_t
-ethereumGetBlockHeight (BREthereumLightNode node) {
-    return lightNodeGetBlockHeight(node);
+ethereumGetBlockHeight (BREthereumEWM ewm) {
+    return ewmGetBlockHeight(ewm);
 }
 
 
 extern uint64_t
-ethereumBlockGetNumber (BREthereumLightNode node,
+ethereumBlockGetNumber (BREthereumEWM ewm,
                         BREthereumBlockId bid) {
-    BREthereumBlock block = lightNodeLookupBlock(node, bid);
+    BREthereumBlock block = ewmLookupBlock(ewm, bid);
     return blockGetNumber(block);
 }
 
 extern uint64_t
-ethereumBlockGetTimestamp (BREthereumLightNode node,
+ethereumBlockGetTimestamp (BREthereumEWM ewm,
                            BREthereumBlockId bid) {
-    BREthereumBlock block = lightNodeLookupBlock(node, bid);
+    BREthereumBlock block = ewmLookupBlock(ewm, bid);
     return blockGetTimestamp(block);
 }
 
 extern char *
-ethereumBlockGetHash (BREthereumLightNode node,
+ethereumBlockGetHash (BREthereumEWM ewm,
                       BREthereumBlockId bid) {
-    BREthereumBlock block = lightNodeLookupBlock(node, bid);
+    BREthereumBlock block = ewmLookupBlock(ewm, bid);
     return hashAsString (blockGetHash(block));
 }
 
@@ -294,31 +294,31 @@ ethereumBlockGetHash (BREthereumLightNode node,
 // Transaction
 //
 extern char *
-ethereumTransactionGetRecvAddress(BREthereumLightNode node,
+ethereumTransactionGetRecvAddress(BREthereumEWM ewm,
                                   BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
     return addressGetEncodedString(transactionGetTargetAddress(transaction), 1);
 }
 
 extern char * // sender, source
-ethereumTransactionGetSendAddress(BREthereumLightNode node,
+ethereumTransactionGetSendAddress(BREthereumEWM ewm,
                                   BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
     return addressGetEncodedString(transactionGetSourceAddress(transaction), 1);
 }
 
 extern char *
-ethereumTransactionGetHash(BREthereumLightNode node,
+ethereumTransactionGetHash(BREthereumEWM ewm,
                            BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
     return hashAsString (transactionGetHash(transaction));
 }
 
 extern char *
-ethereumTransactionGetAmountEther(BREthereumLightNode node,
+ethereumTransactionGetAmountEther(BREthereumEWM ewm,
                                   BREthereumTransactionId tid,
                                   BREthereumEtherUnit unit) {
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
     BREthereumAmount amount = transactionGetAmount(transaction);
     return (AMOUNT_ETHER == amountGetType(amount)
             ? etherGetValueString(amountGetEther(amount), unit)
@@ -326,10 +326,10 @@ ethereumTransactionGetAmountEther(BREthereumLightNode node,
 }
 
 extern char *
-ethereumTransactionGetAmountTokenQuantity(BREthereumLightNode node,
+ethereumTransactionGetAmountTokenQuantity(BREthereumEWM ewm,
                                           BREthereumTransactionId tid,
                                           BREthereumTokenQuantityUnit unit) {
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
     BREthereumAmount amount = transactionGetAmount(transaction);
     return (AMOUNT_TOKEN == amountGetType(amount)
             ? tokenQuantityGetValueString(amountGetTokenQuantity(amount), unit)
@@ -337,40 +337,40 @@ ethereumTransactionGetAmountTokenQuantity(BREthereumLightNode node,
 }
 
 extern BREthereumAmount
-ethereumTransactionGetAmount(BREthereumLightNode node,
+ethereumTransactionGetAmount(BREthereumEWM ewm,
                              BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
     return transactionGetAmount(transaction);
 }
 
 extern BREthereumAmount
-ethereumTransactionGetGasPriceToo(BREthereumLightNode node,
+ethereumTransactionGetGasPriceToo(BREthereumEWM ewm,
                                   BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
     BREthereumGasPrice gasPrice = transactionGetGasPrice(transaction);
     return amountCreateEther (gasPrice.etherPerGas);
 }
 
 extern char *
-ethereumTransactionGetGasPrice(BREthereumLightNode node,
+ethereumTransactionGetGasPrice(BREthereumEWM ewm,
                                BREthereumTransactionId tid,
                                BREthereumEtherUnit unit) {
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
     BREthereumGasPrice gasPrice = transactionGetGasPrice(transaction);
     return etherGetValueString(gasPrice.etherPerGas, unit);
 }
 
 extern uint64_t
-ethereumTransactionGetGasLimit(BREthereumLightNode node,
+ethereumTransactionGetGasLimit(BREthereumEWM ewm,
                                BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
     return transactionGetGasLimit(transaction).amountOfGas;
 }
 
 extern uint64_t
-ethereumTransactionGetGasUsed(BREthereumLightNode node,
+ethereumTransactionGetGasUsed(BREthereumEWM ewm,
                               BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
     BREthereumGas gasUsed;
     return (transactionExtractIncluded(transaction, &gasUsed, NULL, NULL, NULL)
             ? gasUsed.amountOfGas
@@ -378,16 +378,16 @@ ethereumTransactionGetGasUsed(BREthereumLightNode node,
 }
 
 extern uint64_t
-ethereumTransactionGetNonce(BREthereumLightNode node,
+ethereumTransactionGetNonce(BREthereumEWM ewm,
                             BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
     return transactionGetNonce(transaction);
 }
 
 extern BREthereumHash
-ethereumTransactionGetBlockHash(BREthereumLightNode node,
+ethereumTransactionGetBlockHash(BREthereumEWM ewm,
                                 BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
     BREthereumHash blockHash;
     return (transactionExtractIncluded(transaction, NULL, &blockHash, NULL, NULL)
             ? blockHash
@@ -395,9 +395,9 @@ ethereumTransactionGetBlockHash(BREthereumLightNode node,
 }
 
 extern uint64_t
-ethereumTransactionGetBlockNumber(BREthereumLightNode node,
+ethereumTransactionGetBlockNumber(BREthereumEWM ewm,
                                   BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
     uint64_t blockNumber;
     return (transactionExtractIncluded(transaction, NULL, NULL, &blockNumber, NULL)
             ? blockNumber
@@ -405,35 +405,35 @@ ethereumTransactionGetBlockNumber(BREthereumLightNode node,
 }
 
 extern uint64_t
-ethereumTransactionGetBlockConfirmations(BREthereumLightNode node,
+ethereumTransactionGetBlockConfirmations(BREthereumEWM ewm,
                                          BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
-
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
+    
     uint64_t blockNumber = 0;
     return (transactionExtractIncluded(transaction, NULL, NULL, &blockNumber, NULL)
-            ? (lightNodeGetBlockHeight(node) - blockNumber)
+            ? (ewmGetBlockHeight(ewm) - blockNumber)
             : 0);
 }
 
 extern BREthereumBoolean
-ethereumTransactionIsConfirmed(BREthereumLightNode node,
+ethereumTransactionIsConfirmed(BREthereumEWM ewm,
                                BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
     return transactionIsConfirmed(transaction);
 }
 
 extern BREthereumBoolean
-ethereumTransactionIsSubmitted(BREthereumLightNode node,
+ethereumTransactionIsSubmitted(BREthereumEWM ewm,
                                BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
     return transactionIsSubmitted(transaction);
 }
 
 extern BREthereumBoolean
-ethereumTransactionHoldsToken(BREthereumLightNode node,
+ethereumTransactionHoldsToken(BREthereumEWM ewm,
                               BREthereumTransactionId tid,
                               BREthereumToken token) {
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
     assert (NULL != transaction);
     return (token == transactionGetToken(transaction)
             ? ETHEREUM_BOOLEAN_TRUE
@@ -441,18 +441,18 @@ ethereumTransactionHoldsToken(BREthereumLightNode node,
 }
 
 extern BREthereumToken
-ethereumTransactionGetToken(BREthereumLightNode node,
+ethereumTransactionGetToken(BREthereumEWM ewm,
                             BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
     assert (NULL != transaction);
     return transactionGetToken(transaction);
 }
 
 extern BREthereumEther
-ethereumTransactionGetFee(BREthereumLightNode node,
+ethereumTransactionGetFee(BREthereumEWM ewm,
                           BREthereumTransactionId tid,
                           int *overflow) {
-    BREthereumTransaction transaction = lightNodeLookupTransaction(node, tid);
+    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
     assert (NULL != transaction);
     return transactionGetFee(transaction, overflow);
 }
@@ -461,7 +461,7 @@ ethereumTransactionGetFee(BREthereumLightNode node,
 // Amount
 //
 extern BREthereumAmount
-ethereumCreateEtherAmountString(BREthereumLightNode node,
+ethereumCreateEtherAmountString(BREthereumEWM ewm,
                                 const char *number,
                                 BREthereumEtherUnit unit,
                                 BRCoreParseStatus *status) {
@@ -469,14 +469,14 @@ ethereumCreateEtherAmountString(BREthereumLightNode node,
 }
 
 extern BREthereumAmount
-ethereumCreateEtherAmountUnit(BREthereumLightNode node,
+ethereumCreateEtherAmountUnit(BREthereumEWM ewm,
                               uint64_t amountInUnit,
                               BREthereumEtherUnit unit) {
     return amountCreateEther (etherCreateNumber(amountInUnit, unit));
 }
 
 extern BREthereumAmount
-ethereumCreateTokenAmountString(BREthereumLightNode node,
+ethereumCreateTokenAmountString(BREthereumEWM ewm,
                                 BREthereumToken token,
                                 const char *number,
                                 BREthereumTokenQuantityUnit unit,
@@ -485,14 +485,14 @@ ethereumCreateTokenAmountString(BREthereumLightNode node,
 }
 
 extern char *
-ethereumCoerceEtherAmountToString(BREthereumLightNode node,
+ethereumCoerceEtherAmountToString(BREthereumEWM ewm,
                                   BREthereumEther ether,
                                   BREthereumEtherUnit unit) {
     return etherGetValueString(ether, unit);
 }
 
 extern char *
-ethereumCoerceTokenAmountToString(BREthereumLightNode node,
+ethereumCoerceTokenAmountToString(BREthereumEWM ewm,
                                   BREthereumTokenQuantity token,
                                   BREthereumTokenQuantityUnit unit) {
     return tokenQuantityGetValueString(token, unit);

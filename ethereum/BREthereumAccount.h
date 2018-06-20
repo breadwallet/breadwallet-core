@@ -115,7 +115,7 @@ accountGetPrimaryAddressPublicKeyString (BREthereumAccount account, int compress
 extern BREthereumBoolean
 accountHasAddress(BREthereumAccount account,
                   BREthereumAddress address);
-    
+
 /**
  * Sign an arbitrary array of bytes with the account's private key using the signature algorithm
  * specified by `type`.

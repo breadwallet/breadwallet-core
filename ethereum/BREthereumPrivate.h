@@ -48,11 +48,11 @@ walletTransactionSubmitted (BREthereumWallet wallet,
 
 private_extern void
 walletTransactionIncluded(BREthereumWallet wallet,
-                         BREthereumTransaction transaction,
-                         BREthereumGas gasUsed,
-                         BREthereumHash blockHash,
-                         uint64_t blockNumber,
-                         uint64_t blockTransactionIndex);
+                          BREthereumTransaction transaction,
+                          BREthereumGas gasUsed,
+                          BREthereumHash blockHash,
+                          uint64_t blockNumber,
+                          uint64_t blockTransactionIndex);
 
 private_extern void
 walletTransactionErrored (BREthereumWallet wallet,
@@ -102,7 +102,7 @@ blockFree (BREthereumBlock block);
 //
 private_extern void
 transactionSetNonce (BREthereumTransaction transaction,
-                    uint64_t nonce);
+                     uint64_t nonce);
 
 //
 // Contract / Function
