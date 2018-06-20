@@ -14,12 +14,16 @@
 #include <signal.h>
 
 #define SIG_CANCEL_SIGNAL SIGUSR1
-#define PTHREAD_CANCEL_ENABLE 1
-#define PTHREAD_CANCEL_DISABLE 0
+
+// From MacOS
+#define PTHREAD_CANCEL_ENABLE        0x01  /* Cancel takes place at next cancellation point */
+#define PTHREAD_CANCEL_DISABLE       0x00  /* Cancel postponed */
+#define PTHREAD_CANCEL_DEFERRED      0x02  /* Cancel waits until cancellation point */
+#define PTHREAD_CANCEL_ASYNCHRONOUS  0x00  /* Cancel occurs immediately */
 
 static inline int
 pthread_setcanceltype(int ignore1 , int *ignore2) {
-    return 0
+    return 0;
 }
 
 static int
@@ -41,11 +45,6 @@ pthread_setcancelstate(int state, int *oldstate) {
 static inline int
 pthread_cancel(pthread_t thread) {
     return pthread_kill(thread, SIG_CANCEL_SIGNAL);
-}
-
-static inline int
-pthread_setname_np(const char *ignore) {
-    return 0;
 }
 
 #endif /* defined (__ANDROID__) */

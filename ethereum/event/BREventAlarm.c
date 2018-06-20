@@ -38,6 +38,7 @@
 #include "BREvent.h"
 #include "BREventAlarm.h"
 
+#define PTHREAD_NULL   ((pthread_t) NULL)
 #define PTHREAD_STACK_SIZE   (32 * 1024)
 
 /* Explicitly import (from BREvent.c) */
@@ -229,7 +230,7 @@ alarmClockCreate (void) {
     }
 
     // No thread.
-    clock->thread = NULL;
+    clock->thread = PTHREAD_NULL;
 
     return clock;
 }
@@ -238,7 +239,7 @@ extern void
 alarmClockDestroy (BREventAlarmClock clock) {
     alarmClockStop(clock);
 
-    assert (NULL == clock->thread);
+    assert (PTHREAD_NULL == clock->thread);
     pthread_cond_destroy(&clock->cond);
     pthread_mutex_destroy(&clock->lock);
     pthread_mutex_destroy(&clock->lockOnStartStop);
@@ -266,8 +267,12 @@ typedef void* (*ThreadRoutine) (void*);
 
 static void *
 alarmClockThread (BREventAlarmClock clock) {
-    
+
+#if defined (__ANDROID__)
+    pthread_setname_np(clock->thread, "Core Ethereum Alarm Clock");
+#else
     pthread_setname_np("Core Ethereum Alarm Clock");
+#endif
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
     pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
 
@@ -308,7 +313,7 @@ alarmClockThread (BREventAlarmClock clock) {
 extern void
 alarmClockStart (BREventAlarmClock clock) {
     pthread_mutex_lock(&clock->lockOnStartStop);
-    if (NULL == clock->thread) {
+    if (PTHREAD_NULL == clock->thread) {
         pthread_attr_t attr;
         pthread_attr_init(&attr);
         pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
@@ -324,20 +329,20 @@ alarmClockStart (BREventAlarmClock clock) {
 extern void
 alarmClockStop (BREventAlarmClock clock) {
     pthread_mutex_lock(&clock->lockOnStartStop);
-    if (NULL != clock->thread) {
+    if (PTHREAD_NULL != clock->thread) {
         pthread_cancel(clock->thread);
         pthread_cond_signal(&clock->cond);
         pthread_join(clock->thread, NULL);
         pthread_mutex_unlock(&clock->lock);  // ensure this for restart.
         // A mini-race here?
-        clock->thread = NULL;
+        clock->thread = PTHREAD_NULL;
     }
     pthread_mutex_unlock(&clock->lockOnStartStop);
 }
 
 extern int
 alarmClockIsRunning (BREventAlarmClock clock) {
-    return NULL != clock->thread;
+    return PTHREAD_NULL != clock->thread;
 }
 
 extern BREventAlarmId

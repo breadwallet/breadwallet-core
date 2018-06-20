@@ -28,6 +28,8 @@
 #include <sys/time.h>
 #include <assert.h>
 
+#define PTHREAD_NULL   ((pthread_t) NULL)
+
 #if defined (__ANDROID__)
 #include "pthread_android.h"
 #endif
@@ -132,7 +134,7 @@ eventHandlerCreate (const BREventType *types[],
         pthread_mutexattr_destroy(&attr);
     }
 
-    handler->thread = NULL;
+    handler->thread = PTHREAD_NULL;
 
     handler->scratch = (BREvent*) calloc (1, handler->eventSize);
     handler->queue = eventQueueCreate(handler->eventSize, &handler->lock);
@@ -171,7 +173,11 @@ typedef void* (*ThreadRoutine) (void*);
 static void *
 eventHandlerThread (BREventHandler handler) {
 
+#if defined (__ANDROID__)
+    pthread_setname_np(handler->thread, "Core Ethereum Event");
+#else
     pthread_setname_np("Core Ethereum Event");
+#endif
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
     pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
 
@@ -218,7 +224,7 @@ eventHandlerDestroy (BREventHandler handler) {
     eventHandlerStop(handler);
 
     // ... then kill
-    assert (NULL == handler->thread);
+    assert (PTHREAD_NULL == handler->thread);
     pthread_cond_destroy(&handler->cond);
     pthread_mutex_destroy(&handler->lock);
     pthread_mutex_destroy(&handler->lockOnStartStop);
@@ -235,7 +241,7 @@ eventHandlerDestroy (BREventHandler handler) {
 extern void
 eventHandlerStart (BREventHandler handler) {
     pthread_mutex_lock(&handler->lockOnStartStop);
-    if (NULL == handler->thread) {
+    if (PTHREAD_NULL == handler->thread) {
         // if (0 != pthread_attr_t (...) && 0 != pthread_attr_...() && ...
         pthread_attr_t attr;
         pthread_attr_init(&attr);
@@ -251,20 +257,20 @@ eventHandlerStart (BREventHandler handler) {
 extern void
 eventHandlerStop (BREventHandler handler) {
     pthread_mutex_lock(&handler->lockOnStartStop);
-    if (NULL != handler->thread) {
+    if (PTHREAD_NULL != handler->thread) {
         pthread_cancel(handler->thread);
         pthread_cond_signal(&handler->cond);
         pthread_join(handler->thread, NULL);
         pthread_mutex_unlock(&handler->lock);  // ensure this for restart.
         // A mini-race here?
-        handler->thread = NULL;
+        handler->thread = PTHREAD_NULL;
     }
     pthread_mutex_unlock(&handler->lockOnStartStop);
 }
 
 extern int
 eventHandlerIsRunning (BREventHandler handler) {
-    return NULL != handler->thread;
+    return PTHREAD_NULL != handler->thread;
 }
 
 extern BREventStatus
