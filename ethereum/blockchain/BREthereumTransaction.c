@@ -35,9 +35,6 @@
 static void
 provideData (BREthereumTransaction transaction);
 
-static void
-provideGasEstimate (BREthereumTransaction transaction);
-
 /**
  * An Ethereum Transaction ...
  *
@@ -108,13 +105,13 @@ transactionCreate(BREthereumAddress sourceAddress,
     transaction->targetAddress = targetAddress;
     transaction->amount = amount;
     transaction->gasPrice = gasPrice;
-    transaction->gasLimit = gasLimit;
+    transaction->gasLimit = gasLimit;           // Must not be changed.
+    transaction->gasEstimate = gasCreate(0);    // Indicate 'no estimate'
     transaction->nonce = nonce;
     transaction->chainId = 0;
     transaction->hash = hashCreateEmpty();
 
     provideData(transaction);
-    provideGasEstimate(transaction);
 
     return transaction;
 }
@@ -192,11 +189,10 @@ extern void
 transactionSetGasEstimate (BREthereumTransaction transaction,
                            BREthereumGas gasEstimate) {
     transaction->gasEstimate = gasEstimate;
-}
-
-static void
-provideGasEstimate (BREthereumTransaction transaction) {
-    transactionSetGasEstimate(transaction, amountGetGasEstimate(transaction->amount));
+    // Ensure that the gasLimit is at least X% more than gasEstimate.
+    BREthereumGas gasLimitWithMargin = gasApplyLmitMargin(gasEstimate);
+    if (gasLimitWithMargin.amountOfGas > transaction->gasLimit.amountOfGas)
+        transaction->gasLimit = gasLimitWithMargin;
 }
 
 extern uint64_t

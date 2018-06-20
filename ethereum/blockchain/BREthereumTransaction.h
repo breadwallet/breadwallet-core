@@ -35,6 +35,14 @@
 extern "C" {
 #endif
 
+/// If we get a gasEstimate we'll want the gasLimit to have a margin over the estimate
+#define GAS_LIMIT_MARGIN_PERCENT        (20)
+
+    static inline BREthereumGas
+    gasApplyLmitMargin (BREthereumGas gas) {
+        return gasCreate(((100 + GAS_LIMIT_MARGIN_PERCENT) * gas.amountOfGas) / 100);
+    }
+    
 //
 // Transaction
 //
