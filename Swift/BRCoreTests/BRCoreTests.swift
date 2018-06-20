@@ -53,22 +53,22 @@ class BRCore2Tests: XCTestCase {
 //
 class TestLightClient : EthereumClient, EthereumListener {
     var network : EthereumNetwork
-    var node : EthereumLightNode?
+    var node : EthereumWalletManager?
 
     //
     // Constructors
     //
     init(network: EthereumNetwork, paperKey: String) {
         self.network = network
-        self.node = EthereumLightNode (client: self,
-                                       listener: self,
-                                       network: network,
-                                       paperKey: paperKey)
+        self.node = EthereumWalletManager (client: self,
+                                           listener: self,
+                                           network: network,
+                                           paperKey: paperKey)
     }
 
     //    required init(network: EthereumNetwork, publicKey: Data) {
     //        self.network = network
-    //        self.node = EthereumLightNode.JSON_RPC (client: self,
+    //        self.node = EthereumEWM.JSON_RPC (client: self,
     //                                                listener: self,
     //                                                network: network,
     //                                                publicKey: publicKey)
@@ -175,8 +175,8 @@ class TestLightClient : EthereumClient, EthereumListener {
         print ("PeerEvent: \(event)\n")
     }
 
-    func handleLightNodeEvent(event: EthereumLightNodeEvent) {
-        print ("LightNodeEvent: \(event)")
+    func handleEWMEvent(event: EthereumEWMEvent) {
+        print ("EWMEvent: \(event)")
     }
 }
 

@@ -40,6 +40,9 @@ typedef struct BREthereumBlockRecord *BREthereumBlock;
 //
 // Block Header
 //
+extern void
+blockHeaderRelease (BREthereumBlockHeader header);
+    
 extern BREthereumBoolean
 blockHeaderIsValid (BREthereumBlockHeader header);
 
@@ -89,6 +92,11 @@ blockHeaderHashValue (const void *h);
 extern int
 blockHeaderHashEqual (const void *h1, const void *h2);    
 
+// Support sorting
+extern BREthereumComparison
+blockHeaderCompare (BREthereumBlockHeader h1,
+                    BREthereumBlockHeader h2);
+    
 //
 // Block
 //
@@ -101,6 +109,9 @@ extern BREthereumBlock
 createBlock (BREthereumBlockHeader header,
              BREthereumBlockHeader ommers[], size_t ommersCount,
              BREthereumTransaction transactions[], size_t transactionCount);
+
+extern void
+blockRelease (BREthereumBlock block);
 
 extern BREthereumBoolean
 blockIsValid (BREthereumBlock block,
@@ -141,6 +152,25 @@ extern BREthereumBlock
 blockDecodeRLP (BRRlpData data,
                 BREthereumNetwork network);
 
+//
+// Support LES decoding of BlockBodies
+//
+
+/**
+ * Return BRArrayOf(BREthereumBlockHeader) w/ array owned by caller.
+ */
+extern BREthereumBlockHeader *
+blockOmmersRlpDecodeItem (BRRlpItem item,
+                          BREthereumNetwork network,
+                          BRRlpCoder coder);
+
+/**
+ * Return BRArrayOf(BREthereumTransaction) w/ array owned by caller
+ */
+extern BREthereumTransaction *
+blockTransactionsRlpDecodeItem (BRRlpItem item,
+                                BREthereumNetwork network,
+                                BRRlpCoder coder);
 //
 // Genesis Blocks
 //

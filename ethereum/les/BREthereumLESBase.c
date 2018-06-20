@@ -32,7 +32,7 @@
 #include <unistd.h>
 #include "BRKey.h"
 #include "BREthereumLESBase.h"
-#include "BREthereumBase.h"
+#include "../base/BREthereumBase.h"
 #include "BRCrypto.h"
 
 //

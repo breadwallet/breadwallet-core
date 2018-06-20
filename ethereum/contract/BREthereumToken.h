@@ -38,6 +38,9 @@ extern "C" {
  */
 typedef struct BREthereumTokenRecord *BREthereumToken;
 
+extern BREthereumAddress
+tokenGetAddressRaw (BREthereumToken token);
+    
 /**
  * Return the token address as a '0x'-prefixed string.  DO NOT FREE THIS.
  */
@@ -77,6 +80,9 @@ extern const BREthereumToken tokenBRD;
 extern const BREthereumToken tokenTST;
 #endif
 
+extern BREthereumToken
+tokenLookupByAddress (BREthereumAddress address);
+    
 extern BREthereumToken
 tokenLookup (const char *address);
 

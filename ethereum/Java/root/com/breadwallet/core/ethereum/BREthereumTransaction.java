@@ -29,37 +29,37 @@ import java.math.BigDecimal;
 /**
  *
  */
-public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefaultUnit {
+public class BREthereumTransaction extends BREthereumEWM.ReferenceWithDefaultUnit {
 
     /**
      *
-     * @param node
+     * @param ewm
      * @param identifier
      * @param unit  The transaction's unit; should be identical with that unit used to create
      *              the transaction identifier.
      */
-    protected BREthereumTransaction (BREthereumLightNode node, long identifier, BREthereumAmount.Unit unit) {
-        super(node, identifier, unit);
+    protected BREthereumTransaction (BREthereumEWM ewm, long identifier, BREthereumAmount.Unit unit) {
+        super(ewm, identifier, unit);
     }
 
     public boolean isConfirmed () {
-        return node.get().jniTransactionIsConfirmed(identifier);
+        return ewm.get().jniTransactionIsConfirmed(identifier);
     }
 
     public boolean isSubmitted () {
-        return node.get().jniTransactionIsSubmitted(identifier);
+        return ewm.get().jniTransactionIsSubmitted(identifier);
     }
 
     public String getSourceAddress () {
-        return node.get().jniTransactionSourceAddress(identifier);
+        return ewm.get().jniTransactionSourceAddress(identifier);
     }
 
     public String getTargetAddress () {
-        return node.get().jniTransactionTargetAddress(identifier);
+        return ewm.get().jniTransactionTargetAddress(identifier);
     }
 
     public String getHash () {
-        return node.get().jniTransactionGetHash (identifier);
+        return ewm.get().jniTransactionGetHash (identifier);
     }
 
     //
@@ -71,7 +71,7 @@ public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefa
 
     public String getAmount(BREthereumAmount.Unit unit) {
         validUnitOrException(unit);
-        return node.get().jniTransactionGetAmount(identifier, unit.jniValue);
+        return ewm.get().jniTransactionGetAmount(identifier, unit.jniValue);
     }
 
     /**
@@ -120,7 +120,7 @@ public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefa
      */
     public String getFee (BREthereumAmount.Unit unit) {
         assert (!unit.isTokenUnit());
-        return node.get().jniTransactionGetFee(identifier, unit.jniValue);
+        return ewm.get().jniTransactionGetFee(identifier, unit.jniValue);
     }
 
     /**
@@ -169,7 +169,7 @@ public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefa
      */
     public String getGasPrice (BREthereumAmount.Unit unit) {
         assert (!unit.isTokenUnit());
-        return node.get().jniTransactionGetGasPrice(identifier, unit.jniValue);
+        return ewm.get().jniTransactionGetGasPrice(identifier, unit.jniValue);
     }
 
     /**
@@ -178,7 +178,7 @@ public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefa
      * @return in `gas`
      */
     public long getGasLimit () {
-        return node.get().jniTransactionGetGasLimit(identifier);
+        return ewm.get().jniTransactionGetGasLimit(identifier);
     }
 
     /**
@@ -187,28 +187,28 @@ public class BREthereumTransaction extends BREthereumLightNode.ReferenceWithDefa
      * @return in `gas`
      */
     public long getGasUsed () {
-        return node.get().jniTransactionGetGasUsed(identifier);
+        return ewm.get().jniTransactionGetGasUsed(identifier);
     }
 
     //
     // Nonce
     //
     public long getNonce () {
-        return node.get().jniTransactionGetNonce(identifier);
+        return ewm.get().jniTransactionGetNonce(identifier);
     }
 
     //
     // Block Number, Timestamp
     //
     public long getBlockNumber () {
-        return node.get().jniTransactionGetBlockNumber(identifier);
+        return ewm.get().jniTransactionGetBlockNumber(identifier);
     }
 
     public long getBlockTimestamp () {
-        return node.get().jniTransactionGetBlockTimestamp(identifier);
+        return ewm.get().jniTransactionGetBlockTimestamp(identifier);
     }
 
     public long getBlockConfirmations () {
-        return node.get().jniTransactionGetBlockConfirmations(identifier);
+        return ewm.get().jniTransactionGetBlockConfirmations(identifier);
     }
 }

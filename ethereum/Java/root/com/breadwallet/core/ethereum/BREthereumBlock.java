@@ -25,21 +25,21 @@
 package com.breadwallet.core.ethereum;
 
 
-public class BREthereumBlock extends BREthereumLightNode.Reference {
+public class BREthereumBlock extends BREthereumEWM.Reference {
 
-    protected BREthereumBlock(BREthereumLightNode node, long identifier) {
-        super (node, identifier);
+    protected BREthereumBlock(BREthereumEWM ewm, long identifier) {
+        super (ewm, identifier);
     }
 
     public String getHash () {
-        return node.get().jniBlockGetHash(identifier);
+        return ewm.get().jniBlockGetHash(identifier);
     }
 
     public long getNumber () {
-        return node.get().jniBlockGetNumber(identifier);
+        return ewm.get().jniBlockGetNumber(identifier);
     }
 
-    public long getTimestamp () {
-        return node.get().jniBlockGetTimestamp(identifier);
-    }
+//    public long getTimestamp () {
+//        return node.get().jniBlockGetTimestamp(identifier);
+//    }
 }

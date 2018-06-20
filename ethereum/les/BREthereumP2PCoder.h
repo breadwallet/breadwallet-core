@@ -28,10 +28,10 @@
 
 #include <stdio.h>
 #include <inttypes.h>
-#include "BREthereumBase.h"
+#include "../base/BREthereumBase.h"
 #include "BRInt.h"
 #include "BRArray.h"
-#include "BRRlp.h"
+#include "../rlp/BRRlp.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,10 +58,10 @@ typedef enum {
 
 
 typedef enum {
-    BRE_P2P_HELLO      = 0x01,
-    BRE_P2P_DISCONNECT = 0x02,
-    BRE_P2P_PING       = 0x03,
-    BRE_P2P_PONG       = 0x04 
+    BRE_P2P_HELLO      = 0x00,
+    BRE_P2P_DISCONNECT = 0x01,
+    BRE_P2P_PING       = 0x02,
+    BRE_P2P_PONG       = 0x03
 }EthereumP2PMessages;
 
 typedef struct BREthereumCapabilitiesRecord {

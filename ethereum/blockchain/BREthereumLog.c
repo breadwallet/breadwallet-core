@@ -58,14 +58,30 @@ logTopicGetBloomFilterAddress (BREthereumAddress address) {
 static int
 logTopicMatchesAddressBool (BREthereumLogTopic topic,
                         BREthereumAddress address) {
-    return (0 == memcmp (&topic.bytes[0], &empty.bytes[0], 12)
-            && 0 == memcmp (&topic.bytes[12], &address.bytes[0], 20));
+    return (0 == memcmp (&topic.bytes[0], &empty.bytes[0], 12) &&
+            0 == memcmp (&topic.bytes[12], &address.bytes[0], 20));
 }
 
 extern BREthereumBoolean
 logTopicMatchesAddress (BREthereumLogTopic topic,
                         BREthereumAddress address) {
     return AS_ETHEREUM_BOOLEAN(logTopicMatchesAddressBool(topic, address));
+}
+
+extern BREthereumLogTopicString
+logTopicAsString (BREthereumLogTopic topic) {
+    BREthereumLogTopicString string;
+    string.chars[0] = '0';
+    string.chars[1] = 'x';
+    encodeHex(&string.chars[2], 64, topic.bytes, 32);
+    return string;
+}
+
+extern BREthereumAddress
+logTopicAsAddress (BREthereumLogTopic topic) {
+    BREthereumAddress address;
+    memcpy (address.bytes, &topic.bytes[12], 20);
+    return address;
 }
 
 //
@@ -97,6 +113,9 @@ static BREthereumLogTopic emptyTopic;
 // A log entry, O, is:
 struct BREthereumLogRecord {
     // THIS MUST BE FIRST to support BRSet operations.
+    /**
+     * The hash of the transaction that originated this log
+     */
     BREthereumHash hash;
 
     // a tuple of the logger’s address, Oa;
@@ -129,7 +148,7 @@ logGetAddress (BREthereumLog log) {
 extern BREthereumBoolean
 logHasAddress (BREthereumLog log,
                BREthereumAddress address) {
-    return addressRawEqual(log->address, address);
+    return addressEqual(log->address, address);
 }
 
 extern size_t
@@ -227,7 +246,7 @@ logRlpDecodeItem (BRRlpItem item,
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     assert (3 == itemsCount);
 
-    log->address = addressRawRlpDecode(items[0], coder);
+    log->address = addressRlpDecode(items[0], coder);
     log->topics = logTopicsRlpDecodeItem (items[1], coder);
 
     BRRlpData data = rlpDecodeItemBytes(coder, items[2]);
@@ -257,7 +276,7 @@ logRlpEncodeItem(BREthereumLog log,
 
     BRRlpItem items[3];
 
-    items[0] = addressRawRlpEncode(log->address, coder);
+    items[0] = addressRlpEncode(log->address, coder);
     items[1] = logTopicsRlpEncodeItem(log, coder);
     items[2] = rlpEncodeItemBytes(coder, log->data, log->dataCount);
 
@@ -277,4 +296,26 @@ logEncodeRLP (BREthereumLog log) {
     return result;
 }
 
+/* Log (2) w/ LogTopic (3)
+ ETH: LES-RECEIPTS:         L  2: [
+ ETH: LES-RECEIPTS:           L  3: [
+ ETH: LES-RECEIPTS:             I 20: 0x96477a1c968a0e64e53b7ed01d0d6e4a311945c2
+ ETH: LES-RECEIPTS:             L  3: [
+ ETH: LES-RECEIPTS:               I 32: 0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925
+ ETH: LES-RECEIPTS:               I 32: 0x0000000000000000000000005c0f318407f37029f2a2b6b29468b79fbd178f2a
+ ETH: LES-RECEIPTS:               I 32: 0x000000000000000000000000642ae78fafbb8032da552d619ad43f1d81e4dd7c
+ ETH: LES-RECEIPTS:             ]
+ ETH: LES-RECEIPTS:             I 32: 0x00000000000000000000000000000000000000000000000006f05b59d3b20000
+ ETH: LES-RECEIPTS:           ]
+ ETH: LES-RECEIPTS:           L  3: [
+ ETH: LES-RECEIPTS:             I 20: 0xc66ea802717bfb9833400264dd12c2bceaa34a6d
+ ETH: LES-RECEIPTS:             L  3: [
+ ETH: LES-RECEIPTS:               I 32: 0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925
+ ETH: LES-RECEIPTS:               I 32: 0x0000000000000000000000005c0f318407f37029f2a2b6b29468b79fbd178f2a
+ ETH: LES-RECEIPTS:               I 32: 0x000000000000000000000000642ae78fafbb8032da552d619ad43f1d81e4dd7c
+ ETH: LES-RECEIPTS:             ]
+ ETH: LES-RECEIPTS:             I 32: 0x00000000000000000000000000000000000000000000000006f05b59d3b20000
+ ETH: LES-RECEIPTS:           ]
+ ETH: LES-RECEIPTS:         ]
+*/
 

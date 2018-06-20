@@ -8,6 +8,7 @@ CORE_SRCS=../BRAddress.c \
 	../BRBloomFilter.c \
 	../BRCrypto.c \
 	../BRKey.c \
+	../BRKeyECIES.c \
 	../BRMerkleBlock.c \
 	../BRPaymentProtocol.c \
 	../BRPeer.c \
@@ -19,42 +20,50 @@ CORE_SRCS=../BRAddress.c \
 
 CORE_OBJS=$(CORE_SRCS:.c=.o)
 
-ETH_SRCS=./util/BRUtilMath.c \
-	./util/BRUtilMathParse.c \
-	./util/BRUtilHex.c \
-	./rlp/BRRlpCoder.c \
+ETH_SRCS=./BREthereum.c \
+	./BREthereumAccount.c \
+	./BREthereumWallet.c \
+	./base/BREthereumAddress.c \
+	./base/BREthereumEther.c \
+	./base/BREthereumGas.c \
+	./base/BREthereumHash.c \
+	./base/BREthereumSignature.c \
+	./bcs/BREthereumBCS.c \
+	./bcs/BREthereumBCSEvent.c \
+	./blockchain/BREthereumAccountState.c \
+	./blockchain/BREthereumAmount.c \
+	./blockchain/BREthereumBlock.c \
+	./blockchain/BREthereumBloomFilter.c \
+	./blockchain/BREthereumLog.c \
+	./blockchain/BREthereumNetwork.c \
+	./blockchain/BREthereumTransaction.c \
+	./blockchain/BREthereumTransactionReceipt.c \
+	./blockchain/BREthereumTransactionStatus.c \
+	./contract/BREthereumContract.c \
+	./contract/BREthereumToken.c \
+	./les/BREthereumEndpoint.c \
+	./les/BREthereumFrameCoder.c \
+	./les/BREthereumHandshake.c \
+	./les/BREthereumLES.c \
+	./les/BREthereumLESBase.c \
+	./les/BREthereumLESCoder.c \
+	./les/BREthereumNode.c \
+	./les/BREthereumNodeDiscovery.c \
+	./les/BREthereumNodeEventHandler.c \
+	./les/BREthereumNodeManager.c \
+	./les/BREthereumP2PCoder.c \
+	./les/BREthereumRandom.c \
+	./ewm/BREthereumEWM.c \
+	./ewm/BREthereumEWMClient.c \
+	./ewm/BREthereumEWMEvent.c \
 	./event/BREvent.c \
 	./event/BREventQueue.c \
-        ./base/BREthereumEther.c \
-        ./base/BREthereumGas.c \
-        ./base/BREthereumHash.c \
-        ./base/BREthereumAddress.c \
-        ./base/BREthereumSignature.c \
-        ./contract/BREthereumToken.c \
-        ./contract/BREthereumContract.c \
-        ./blockchain/BREthereumNetwork.c \
-        ./blockchain/BREthereumAmount.c \
-        ./blockchain/BREthereumAccountState.c \
-        ./blockchain/BREthereumBloomFilter.c \
-        ./blockchain/BREthereumLog.c \
-        ./blockchain/BREthereumTransaction.c \
-        ./blockchain/BREthereumTransactionStatus.c \
-        ./blockchain/BREthereumTransactionReceipt.c \
-	./blockchain/BREthereumBlock.c \
-        ./les/BREthereumFrameCoder.c \
-        ./les/BREthereumHandshake.c \
-        ./les/BREthereumLES.c \
-        ./les/BREthereumLESBase.c \
-        ./les/BREthereumNode.c \
-        ./les/BREthereumNodeEventHandler.c \
-        ./les/BREthereumNodeManager.c \
-	./lightnode/BREthereumLightNode.c \
-	./lightnode/BREthereumLightNodeAnnounce.c \
-        ./lightnode/BREthereumLightNodeListen.c \
-        ./lightnode/BREthereumLightNodeHandle.c \
-        ./BREthereumAccount.c \
-        ./BREthereumWallet.c \
-        ./BREthereum.c
+	./event/BREventAlarm.c \
+	./rlp/BRRlpCoder.c \
+	./util/BRUtilHex.c \
+	./util/BRUtilMath.c \
+	./util/BRUtilMathParse.c
+
 
 ETH_OBJS=$(ETH_SRCS:.c=.o)
 

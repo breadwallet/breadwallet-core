@@ -30,7 +30,7 @@
 #include <inttypes.h>
 #include <arpa/inet.h>
 #include "BRInt.h"
-#include "BREthereumBase.h"
+#include "../base/BREthereumBase.h"
 #include "BREthereumAccount.h"
 #include "BREthereumNodeDiscovery.h"
 #include "BREthereumNodeEventHandler.h"
@@ -72,7 +72,7 @@ typedef struct {
 
 typedef void* BREthereumManagerCallbackContext;
 typedef void (*BREthereumManagerDisconnectCallback)(BREthereumManagerCallbackContext info, BREthereumNode node, BREthereumDisconnect reason);
-typedef void (*BREthereumManagerRecMsgCallback)(BREthereumManagerCallbackContext info, BREthereumNode node, uint8_t* message, size_t messageSize);
+typedef void (*BREthereumManagerRecMsgCallback)(BREthereumManagerCallbackContext info, BREthereumNode node, uint64_t packetType, BRRlpData messageBody);
 typedef void (*BREthereumManagerConnectedCallback)(BREthereumManagerCallbackContext info, BREthereumNode node, uint8_t** status, size_t* statusSize);
 typedef void (*BREthereumManagerNetworkReachableCallback)(BREthereumManagerCallbackContext info, BREthereumNode node, BREthereumBoolean isReachable);
 

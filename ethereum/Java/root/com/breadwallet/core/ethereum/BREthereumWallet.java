@@ -33,7 +33,7 @@ import java.util.List;
 /**
  * An EthereumWallet holds either ETHER or TOKEN values.
  */
-public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUnit {
+public class BREthereumWallet extends BREthereumEWM.ReferenceWithDefaultUnit {
 
     //
     // Account
@@ -74,19 +74,19 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
     // Constructors
     //
 
-    protected BREthereumWallet (BREthereumLightNode node, long identifier,
+    protected BREthereumWallet (BREthereumEWM ewm, long identifier,
                                 BREthereumAccount account,
                                 BREthereumNetwork network) {
-        super (node, identifier, Unit.ETHER_ETHER);
+        super (ewm, identifier, Unit.ETHER_ETHER);
         this.account = account;
         this.network = network;
     }
 
-    protected BREthereumWallet (BREthereumLightNode node, long identifier,
+    protected BREthereumWallet (BREthereumEWM ewm, long identifier,
                                 BREthereumAccount account,
                                 BREthereumNetwork network,
                                 BREthereumToken token) {
-        this (node, identifier, account, network);
+        this (ewm, identifier, account, network);
         this.token = token;
         this.defaultUnit = Unit.TOKEN_DECIMAL;
         this.defaultUnitUsesToken = true;
@@ -104,22 +104,22 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
     public static final long GAS_PRICE_20_GWEI = 20000000000000L;
 
     public long getDefaultGasPrice () {
-        return node.get().jniWalletGetDefaultGasPrice(identifier);
+        return ewm.get().jniWalletGetDefaultGasPrice(identifier);
     }
 
     public void setDefaultGasPrice (long gasPrice) {
         assert (gasPrice <= MAXIMUM_DEFAULT_GAS_PRICE);
-        node.get().jniWalletSetDefaultGasPrice(identifier, gasPrice);
+        ewm.get().jniWalletSetDefaultGasPrice(identifier, gasPrice);
     }
 
     //
     // Default Gas Limit (in 'gas')
     //
     public long getDefaultGasLimit () {
-        return node.get().jniWalletGetDefaultGasLimit(identifier);
+        return ewm.get().jniWalletGetDefaultGasLimit(identifier);
     }
     public void setDefaultGasLimit (long gasLimit) {
-        node.get().jniWalletSetDefaultGasLimit (identifier, gasLimit);
+        ewm.get().jniWalletSetDefaultGasLimit (identifier, gasLimit);
     }
 
     //
@@ -142,7 +142,7 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
      */
     public String getBalance(Unit unit) {
         validUnitOrException(unit);
-        return node.get().jniGetWalletBalance(identifier, unit.jniValue);
+        return ewm.get().jniGetWalletBalance(identifier, unit.jniValue);
     }
 
     /**
@@ -176,7 +176,7 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
      * wallet's balance.  Access with getBalance().
      */
     public void updateBalance () {
-        node.get().jniForceWalletBalanceUpdate(identifier);
+        ewm.get().jniForceWalletBalanceUpdate(identifier);
     }
 
     //
@@ -187,22 +187,22 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
      * Estimate the gasPrice needed for timely processing of transactions into the blockchain.
      * This method changes the wallet's defaultGasPrice which is used then by createTransaction().
      *
-     * Estimate provided after callback BREthereumLightNode.estimateGasPrice
+     * Estimate provided after callback BREthereumEWM.estimateGasPrice
      */
     public void estimateGasPrice () {
-        node.get().jniEstimateWalletGasPrice(identifier);
+        ewm.get().jniEstimateWalletGasPrice(identifier);
     }
 
     /**
      * Updates the gasEstimate for `transaction`.  To access the estimate use:
      *   transaction.getGasEstimate().
      *
-     * Estimate provided after callback BREthereumLightNode.estimateGas
+     * Estimate provided after callback BREthereumEWM.estimateGas
      *
      * @param transaction
      */
     public void estimateGas (BREthereumTransaction transaction) {
-        node.get().jniTransactionEstimateGas(identifier, transaction.identifier);
+        ewm.get().jniTransactionEstimateGas(identifier, transaction.identifier);
     }
 
     //
@@ -222,7 +222,7 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
     public String transactionEstimatedFee (String amount,
                                            Unit amountUnit,
                                            Unit resultUnit) {
-        return node.get().jniTransactionEstimateFee(identifier, amount,
+        return ewm.get().jniTransactionEstimateFee(identifier, amount,
                 amountUnit.jniValue,
                 resultUnit.jniValue);
     }
@@ -259,7 +259,7 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
     public BREthereumTransaction createTransaction(String targetAddress,
                                                    String amount,
                                                    Unit amountUnit) {
-        BREthereumLightNode lightNode = node.get();
+        BREthereumEWM lightNode = ewm.get();
 
         // Note: The created transaction's unit will be `amountUnit`.  This unit may differ
         // from the wallet's defaultUnit - which should not be a problem.
@@ -279,7 +279,7 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
      */
     public void sign (BREthereumTransaction transaction,
                       String paperKey) {
-        node.get().jniSignTransaction(identifier, transaction.identifier, paperKey);
+        ewm.get().jniSignTransaction(identifier, transaction.identifier, paperKey);
     }
 
     /**
@@ -290,7 +290,7 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
      */
     public void signWithPrivateKey (BREthereumTransaction transaction,
                                     byte[] privateKey) {
-        node.get().jniSignTransactionWithPrivateKey(identifier, transaction.identifier, privateKey);
+        ewm.get().jniSignTransactionWithPrivateKey(identifier, transaction.identifier, privateKey);
     }
 
     /**
@@ -299,7 +299,7 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
      * @param transaction
      */
     public void submit (BREthereumTransaction transaction) {
-        node.get().jniSubmitTransaction(identifier, transaction.identifier);
+        ewm.get().jniSubmitTransaction(identifier, transaction.identifier);
     }
 
     /**
@@ -308,7 +308,7 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
      * @return
      */
     public BREthereumTransaction[] getTransactions () {
-        long[] transactionIds = node.get().jniGetTransactions(identifier);
+        long[] transactionIds = ewm.get().jniGetTransactions(identifier);
 
         // We don't know the length just yet; otherwise ...
         // BREthereumTransaction[] transactions = new BREthereumTransaction[transactionIds.length];
@@ -316,10 +316,10 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
         List<BREthereumTransaction> transactions = new LinkedList<>();
 
         for (int i = 0; i < transactionIds.length; i++)
-            if (node.get().jniTransactionIsSubmitted(transactionIds[i]))
-                // transaction = node.get().transactionLookupOrCreate (tid)
+            if (ewm.get().jniTransactionIsSubmitted(transactionIds[i]))
+                // transaction = ewm.get().transactionLookupOrCreate (tid)
                 // transaction.setDefaultUnit (defaultUnit).
-                transactions.add(new BREthereumTransaction(node.get(), transactionIds[i], defaultUnit));
+                transactions.add(new BREthereumTransaction(ewm.get(), transactionIds[i], defaultUnit));
 
         return transactions.toArray(new BREthereumTransaction[transactions.size()]);
     }

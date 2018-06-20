@@ -68,9 +68,6 @@ createAccount(const char *paperKey);
 extern BREthereumAccount
 createAccountWithPublicKey (const BRKey publicKey);
 
-extern void
-accountFree (BREthereumAccount account);
-
 /**
  * Create a new account using paperKey and the provided wordList
  *
@@ -82,16 +79,20 @@ accountFree (BREthereumAccount account);
 extern BREthereumAccount
 createAccountDetailed(const char *paperKey, const char *wordList[], const int wordListLength);
 
+extern void
+accountFree (BREthereumAccount account);
+
 /**
  * The account's primary address (aka 'address[0]').
- *
- * TODO: Copy or not
  *
  * @param account
  * @return
  */
-extern BREthereumEncodedAddress
-accountGetPrimaryAddress (BREthereumAccount account);
+extern BREthereumAddress
+accountGetPrimaryAddress(BREthereumAccount account);
+
+extern char *
+accountGetPrimaryAddressString (BREthereumAccount account);
 
 /**
  * the public key for the account's primary address
@@ -106,10 +107,15 @@ extern BRKey
 accountGetPrimaryAddressPrivateKey (BREthereumAccount account,
                                     const char *paperKey);
 
+#if defined (DEBUG)
+extern const char *
+accountGetPrimaryAddressPublicKeyString (BREthereumAccount account, int compressed);
+#endif
+
 extern BREthereumBoolean
-accountHasAddress (BREthereumAccount account,
-                   BREthereumEncodedAddress address);
-    
+accountHasAddress(BREthereumAccount account,
+                  BREthereumAddress address);
+
 /**
  * Sign an arbitrary array of bytes with the account's private key using the signature algorithm
  * specified by `type`.
@@ -122,15 +128,15 @@ accountHasAddress (BREthereumAccount account,
  */
 extern BREthereumSignature
 accountSignBytesWithPrivateKey(BREthereumAccount account,
-                 BREthereumEncodedAddress address,
-                 BREthereumSignatureType type,
-                 uint8_t *bytes,
-                 size_t bytesCount,
-                 BRKey privateKey);
+                               BREthereumAddress address,
+                               BREthereumSignatureType type,
+                               uint8_t *bytes,
+                               size_t bytesCount,
+                               BRKey privateKey);
 
 extern BREthereumSignature
 accountSignBytes(BREthereumAccount account,
-                 BREthereumEncodedAddress address,
+                 BREthereumAddress address,
                  BREthereumSignatureType type,
                  uint8_t *bytes,
                  size_t bytesCount,
@@ -144,6 +150,18 @@ deriveSeedFromPaperKey (const char *paperKey);
 
 extern BRKey
 derivePrivateKeyFromSeed (UInt512 seed, uint32_t index);
+
+
+//
+// New
+//
+extern uint32_t
+accountGetAddressIndex (BREthereumAccount account,
+                        BREthereumAddress address);
+
+extern uint64_t
+accountGetAddressNonce (BREthereumAccount account,
+                        BREthereumAddress address);
 
 #ifdef __cplusplus
 }

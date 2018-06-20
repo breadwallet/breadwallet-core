@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include "BRArray.h"
+#include "../base/BREthereumBase.h"
 #include "BREthereumNodeEventHandler.h"
 
 #define DEFAULT_EVENT_QUEUE_CAPACITY 10

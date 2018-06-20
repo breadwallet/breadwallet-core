@@ -27,9 +27,7 @@
 #define BR_Ethereum_NodeManager_h
 
 #include "BREthereumNode.h"
-#include "BREthereumNetwork.h"
-#include "BREthereumTransaction.h"
-#include "BREthereumBlock.h"
+#include "../blockchain/BREthereumBlockChain.h"
 #include <inttypes.h>
 
 #ifdef __cplusplus
@@ -49,7 +47,7 @@ typedef enum {
 } BREthereumNodeManagerStatus;
 
 typedef void* BREthereumSubProtoContext;
-typedef void (*BREthereumSubProtoRecMsgCallback)(BREthereumSubProtoContext info, uint8_t* message, size_t messageSize);
+typedef void (*BREthereumSubProtoRecMsgCallback)(BREthereumSubProtoContext info, uint64_t messageType, BRRlpData messageBody);
 typedef void (*BREthereumSubProtoConnectedCallback)(BREthereumSubProtoContext info, uint8_t** statusBytes, size_t* statusSize);
 typedef void (*BREthereumSubProtoNetworkReachableCallback)(BREthereumSubProtoContext info, BREthereumBoolean isReachable);
 
@@ -75,7 +73,7 @@ ethereumNodeManagerCreate(BREthereumNetwork network,
                           BRKey* key,
                           BREthereumHash headHash,
                           uint64_t headNumber,
-                          uint64_t headTotalDifficulty,
+                          UInt256 headTotalDifficulty,
                           BREthereumHash genesisHash,
                           BREthereumSubProtoCallbacks callbacks);
     

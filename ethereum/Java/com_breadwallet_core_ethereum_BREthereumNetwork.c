@@ -24,7 +24,7 @@
 //  THE SOFTWARE.
 
 #include "com_breadwallet_core_ethereum_BREthereumNetwork.h"
-#include "BREthereumNetwork.h"
+#include "../blockchain/BREthereumNetwork.h"
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumNetwork

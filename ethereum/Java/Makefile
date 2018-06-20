@@ -4,7 +4,7 @@ CINC_DIR=/usr/include
 
 JNI_LIB=libCore.jnilib
 
-JNI_SRCS=com_breadwallet_core_ethereum_BREthereumLightNode.c \
+JNI_SRCS=com_breadwallet_core_ethereum_BREthereumEWM.c \
 	com_breadwallet_core_ethereum_BREthereumNetwork.c \
 	com_breadwallet_core_ethereum_BREthereumToken.c
 #	BRCoreJni.c
@@ -17,13 +17,13 @@ JNI_HDRS=$(JNI_SRCS:.c=.h)
 JAVA_SRCS=../../Java/root/com/breadwallet/core/BRCoreJniReference.java \
 	root/com/breadwallet/core/ethereum/BREthereumAccount.java \
 	root/com/breadwallet/core/ethereum/BREthereumAmount.java \
-	root/com/breadwallet/core/ethereum/BREthereumLightNode.java \
+	root/com/breadwallet/core/ethereum/BREthereumEWM.java \
 	root/com/breadwallet/core/ethereum/BREthereumNetwork.java \
 	root/com/breadwallet/core/ethereum/BREthereumToken.java \
 	root/com/breadwallet/core/ethereum/BREthereumTransaction.java \
 	root/com/breadwallet/core/ethereum/BREthereumBlock.java \
 	root/com/breadwallet/core/ethereum/BREthereumWallet.java \
-	root/com/breadwallet/core/ethereum/test/BREthereumLightNodeClientTest.java \
+	root/com/breadwallet/core/ethereum/test/BREthereumEWMClientTest.java \
 
 JAVA_OBJS=$(JAVA_SRCS:.java=.class)
 
@@ -35,6 +35,7 @@ CORE_SRCS=../../BRAddress.c \
 	../../BRBloomFilter.c \
 	../../BRCrypto.c \
 	../../BRKey.c \
+	../../BRKeyECIES.c \
 	../../BRMerkleBlock.c \
 	../../BRPaymentProtocol.c \
 	../../BRBech32.c \
@@ -46,22 +47,49 @@ CORE_SRCS=../../BRAddress.c \
 	../../bcash/BRBCashAddr.c \
 	../../Java/BRCoreJni.c \
 	../../Java/com_breadwallet_core_BRCoreJniReference.c \
-	../util/BRUtilMath.c \
-	../util/BRUtilMathParse.c \
-	../util/BRUtilHex.c \
-	../rlp/BRRlpCoder.c \
+	../BREthereum.c \
 	../BREthereumAccount.c \
-	../BREthereumAmount.c \
-	../BREthereumBlock.c \
-	../BREthereumContract.c \
-	../BREthereumEther.c \
-	../BREthereumGas.c \
-	../BREthereumLightNode.c \
-	../BREthereumNetwork.c \
-	../BREthereumToken.c \
-	../BREthereumTransaction.c \
 	../BREthereumWallet.c \
-	../BREthereum.c
+	../base/BREthereumAddress.c \
+	../base/BREthereumEther.c \
+	../base/BREthereumGas.c \
+	../base/BREthereumHash.c \
+	../base/BREthereumSignature.c \
+	../bcs/BREthereumBCS.c \
+	../bcs/BREthereumBCSEvent.c \
+	../blockchain/BREthereumAccountState.c \
+	../blockchain/BREthereumAmount.c \
+	../blockchain/BREthereumBlock.c \
+	../blockchain/BREthereumBloomFilter.c \
+	../blockchain/BREthereumLog.c \
+	../blockchain/BREthereumNetwork.c \
+	../blockchain/BREthereumTransaction.c \
+	../blockchain/BREthereumTransactionReceipt.c \
+	../blockchain/BREthereumTransactionStatus.c \
+	../contract/BREthereumContract.c \
+	../contract/BREthereumToken.c \
+	../les/BREthereumEndpoint.c \
+	../les/BREthereumFrameCoder.c \
+	../les/BREthereumHandshake.c \
+	../les/BREthereumLES.c \
+	../les/BREthereumLESBase.c \
+	../les/BREthereumLESCoder.c \
+	../les/BREthereumNode.c \
+	../les/BREthereumNodeDiscovery.c \
+	../les/BREthereumNodeEventHandler.c \
+	../les/BREthereumNodeManager.c \
+	../les/BREthereumP2PCoder.c \
+	../les/BREthereumRandom.c \
+	../ewm/BREthereumEWM.c \
+	../ewm/BREthereumEWMClient.c \
+	../ewm/BREthereumEWMEvent.c \
+	../event/BREvent.c \
+	../event/BREventQueue.c \
+	../event/BREventAlarm.c \
+	../rlp/BRRlpCoder.c \
+	../util/BRUtilHex.c \
+	../util/BRUtilMath.c \
+	../util/BRUtilMathParse.c
 
 
 CORE_OBJS=$(CORE_SRCS:.c=.o)
@@ -80,12 +108,12 @@ compile: $(JNI_LIB) java_comp
 
 test: $(JNI_LIB) java_comp
 	java -Xss1m -Dlight.node.test -classpath build -Djava.library.path=. \
-		 com.breadwallet.core.ethereum.test.BREthereumLightNodeClientTest $(ARGS) # -D.
+		 com.breadwallet.core.ethereum.test.BREthereumEWMClientTest $(ARGS) # -D.
 
 debug: $(JNI_LIB) java_comp
 	java -Xss1m -Xdebug -Xrunjdwp:transport=dt_socket,address=8008,server=y,suspend=n \
 		 -Dlight.node.test -classpath build -Djava.library.path=. \
-		 com.breadwallet.core.ethereum.test.BREthereumLightNodeClientTest $(ARGS) # -D.
+		 com.breadwallet.core.ethereum.test.BREthereumEWMClientTest $(ARGS) # -D.
 
 $(JNI_LIB): $(JNI_OBJS) $(CORE_OBJS)
 	cc -dynamiclib -o $(JNI_LIB) $(JNI_OBJS) $(CORE_OBJS)

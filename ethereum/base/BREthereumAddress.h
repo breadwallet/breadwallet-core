@@ -30,6 +30,7 @@
 #include "BRKey.h"
 #include "../rlp/BRRlp.h"
 #include "BREthereumLogic.h"
+#include "BREthereumHash.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,105 +48,42 @@ typedef struct {
 }
 
 extern BREthereumAddress
-addressRawCreate (const char *address);
+addressCreate (const char *address);
 
 /**
  * Create an EtherumAddress from a `key` - a BRKey that already has the PubKey provided!
  */
 extern BREthereumAddress
-addressRawCreateKey (const BRKey *keyWithPubKeyProvided);
+addressCreateKey (const BRKey *keyWithPubKeyProvided);
 
 extern char *
-addressRawGetEncodedString (BREthereumAddress address, int useChecksum);
+addressGetEncodedString (BREthereumAddress address, int useChecksum);
+
+extern BREthereumHash
+addressGetHash (BREthereumAddress address);
 
 extern BREthereumAddress
-addressRawRlpDecode (BRRlpItem item,
+addressRlpDecode (BRRlpItem item,
                      BRRlpCoder coder);
 
 extern BRRlpItem
-addressRawRlpEncode(BREthereumAddress address,
+addressRlpEncode(BREthereumAddress address,
                     BRRlpCoder coder);
 
 extern BREthereumBoolean
-addressRawEqual (BREthereumAddress address1,
+addressEqual (BREthereumAddress address1,
                  BREthereumAddress address2);
 
-//
-// Address
-//
+static inline int
+addressHashValue (BREthereumAddress address) {
+    return ((UInt160 *) &address)->u32[0];
+}
 
-/**
- *
- */
-typedef struct BREthereumEncodedAddressRecord *BREthereumEncodedAddress;
-
-/**
- * Create an address from the external representation of an address.  The provided address *must*
- * include a prefix of "Ox" and pass the validateAddressString() function; otherwise NULL is
- * returned.
- *
- * @param string
- * @return
- */
-extern BREthereumEncodedAddress
-createAddress (const char *string);
-
-extern BREthereumEncodedAddress
-createAddressDerived (const BRKey *key, uint32_t index);
-
-/**
- * Validate `string` as an Ethereum address.  The validation is minimal - based solely on the
- * `string` content.  Said another way, the Ethereum Network is not used for validation.
- *
- * At a minimum `string` must start with "0x", have a total of 42 characters and by a 'hex' string
- * (as if a result of encodeHex(); containing characters [0-9,a-f])
- *
- * @param string
- * @return
- */
-extern BREthereumBoolean
-validateAddressString(const char *string);
-
-extern BREthereumAddress
-addressGetRawAddress (BREthereumEncodedAddress address);
-    
-extern uint32_t
-addressGetIndex (BREthereumEncodedAddress address);
-    
-extern uint64_t
-addressGetNonce(BREthereumEncodedAddress address);
-
-extern void
-addressFree (BREthereumEncodedAddress address);
-
-extern BREthereumBoolean
-addressHasString (BREthereumEncodedAddress address,
-                  const char *string);
-
-extern BREthereumBoolean
-addressEqual (BREthereumEncodedAddress a1, BREthereumEncodedAddress a2);
-
-/**
- * Returns a string representation of the address, newly allocated.  YOU OWN THIS.
- */
-extern char *
-addressAsString (BREthereumEncodedAddress address);
-
-extern BRKey
-addressGetPublicKey (BREthereumEncodedAddress address);
-
-#if defined (DEBUG)
-extern const char *
-addressPublicKeyAsString (BREthereumEncodedAddress address, int compressed);
-#endif
-
-extern BRRlpItem
-addressRlpEncode (BREthereumEncodedAddress address, BRRlpCoder coder);
-
-extern BREthereumEncodedAddress
-addressRlpDecode (BRRlpItem item, BRRlpCoder coder);
-
-extern const BREthereumEncodedAddress emptyAddress;
+static inline int
+addressHashEqual (BREthereumAddress address1,
+                     BREthereumAddress address2) {
+    return 0 == memcmp (address1.bytes, address2.bytes, 20);
+}
 
 #ifdef __cplusplus
 }

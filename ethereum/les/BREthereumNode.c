@@ -37,10 +37,10 @@
 #include <string.h>
 #include "BRInt.h"
 #include "BRCrypto.h"
-#include "BREthereumLog.h"
+#include "../blockchain/BREthereumLog.h"
 #include "BREthereumNode.h"
 #include "BREthereumHandshake.h"
-#include "BREthereumBase.h"
+#include "../base/BREthereumBase.h"
 #include "BREthereumNodeDiscovery.h"
 #include "BREthereumAccount.h"
 #include "BRKey.h"
@@ -137,6 +137,9 @@ struct BREthereumNodeContext {
     
     //The size of the body for a receiving message coming from peer
     size_t bodySize;
+    
+    //The capacity for the body;
+    size_t bodyCompacity;
     
     //Represents the callback functions for this node.
     BREthereumManagerCallback callbacks;
@@ -276,28 +279,21 @@ static void _disconnect(BREthereumNode node) {
         close(socket);
     }
 }
-static BREthereumBoolean _isP2PMessage(BREthereumNode node){
-
-    BRRlpCoder rlpCoder = rlpCoderCreate();
-    BRRlpData framePacketTypeData = {1, node->body};
-    BRRlpItem item = rlpGetItem (rlpCoder, framePacketTypeData);
-    
-    uint64_t packetTypeMsg = rlpDecodeItemUInt64(rlpCoder, item, 0);
+static BREthereumBoolean _isP2PMessage(BREthereumNode node, BRRlpCoder rlpCoder, uint64_t packetType, BRRlpData messageBody){
 
     BREthereumBoolean retStatus = ETHEREUM_BOOLEAN_FALSE;
-    BRRlpData mesageBody = {node->bodySize - 1, &node->body[1]};
-    switch (packetTypeMsg) {
+    
+    switch (packetType) {
         case BRE_P2P_HELLO:
         {
-            BRRlpData mesageBody = {node->bodySize - 1, &node->body[1]};
-            BREthereumP2PHello remoteHello = ethereumP2PHelloDecode(rlpCoder, mesageBody);
+            BREthereumP2PHello remoteHello = ethereumP2PHelloDecode(rlpCoder, messageBody);
             //TODO: Check over capabalities of the message
             retStatus = ETHEREUM_BOOLEAN_TRUE;
         }
         break;
         case  BRE_P2P_DISCONNECT:
         {
-            BREthereumDisconnect reason = ethereumP2PDisconnectDecode(rlpCoder, mesageBody);
+            BREthereumDisconnect reason = ethereumP2PDisconnectDecode(rlpCoder, messageBody);
             eth_log(ETH_LOG_TOPIC, "Remote Peer requested to disconnect:%s", ethereumP2PDisconnectToString(reason));
             node->disconnectReason = reason;
             node->shouldDisconnect = ETHEREUM_BOOLEAN_TRUE;
@@ -313,12 +309,12 @@ static BREthereumBoolean _isP2PMessage(BREthereumNode node){
             ethereumNodeWriteToPeer(node, frame, frameSize, "P2P Pong");
             rlpDataRelease(data);
             free(frame);
+            retStatus = ETHEREUM_BOOLEAN_TRUE;
         }
         break;
         default:
         break;
     }
-    rlpCoderRelease(rlpCoder);
     return retStatus;
 }
 static int _readMessage(BREthereumNode node) {
@@ -335,25 +331,28 @@ static int _readMessage(BREthereumNode node) {
     // authenticate and decrypt header
     if(ETHEREUM_BOOLEAN_IS_FALSE(ethereumFrameCoderDecryptHeader(node->ioCoder, node->header, 32)))
     {
-        eth_log(ETH_LOG_TOPIC, "%s", "Error: Decryption of hello header from peer failed.");
+        eth_log(ETH_LOG_TOPIC, "%s", "Error: Decryption of header from peer failed.");
         return 1;
     }
 
     //Get frame size
     uint32_t frameSize = (uint32_t)(node->header[2]) | (uint32_t)(node->header[1])<<8 | (uint32_t)(node->header[0])<<16;
     
-    if(frameSize > 1024){
+   /* if(frameSize > 1024){
         eth_log(ETH_LOG_TOPIC, "%s", "Error: message frame size is too large");
         return 1;
-    }
+    }*/ 
     
     uint32_t fullFrameSize = frameSize + ((16 - (frameSize % 16)) % 16) + 16;
     
     if(node->body == NULL){
-        array_new(node->body, fullFrameSize);
-    }else {
-        array_set_capacity(node->body, fullFrameSize);
+      node->body = malloc(fullFrameSize);
+      node->bodyCompacity = fullFrameSize;
+    }else if (node->bodyCompacity < fullFrameSize) {
+      node->body = realloc(node->body, fullFrameSize);
+      node->bodyCompacity = fullFrameSize;
     }
+    
     ec = ethereumNodeReadFromPeer(node, node->body, fullFrameSize, "");
     
     if(ec) {
@@ -368,7 +367,7 @@ static int _readMessage(BREthereumNode node) {
         return 1;
     }
     
-    node->bodySize = fullFrameSize;
+    node->bodySize = frameSize;
     
     return 0;
 }
@@ -404,7 +403,7 @@ static void *_nodeThreadRunFunc(void *arg) {
                     BREthereumHandshakeStatus handshakeStatus = ethereumHandshakeTransition(node->handshake);
                     
                     if(handshakeStatus == BRE_HANDSHAKE_FINISHED) {
-                        eth_log(ETH_LOG_TOPIC, "%s", "Handshake completed with");
+                        eth_log(ETH_LOG_TOPIC, "%s", "P2P Handshake completed");
                         uint8_t* status;
                         size_t statusSize;
                         //Notify the node manager that node finished its handshake connection and is ready to send
@@ -416,7 +415,7 @@ static void *_nodeThreadRunFunc(void *arg) {
                             uint8_t* statusPayload;
                             size_t statusPayloadSize;
                             ethereumFrameCoderEncrypt(node->ioCoder, status, statusSize, &statusPayload, &statusPayloadSize);
-                            ethereumNodeWriteToPeer(node, statusPayload, statusPayloadSize, "sending status message to remote peer");
+                            ethereumNodeWriteToPeer(node, statusPayload, statusPayloadSize, "status message of BRD node");
                             free(statusPayload);
                             free(status);
                         }
@@ -431,11 +430,22 @@ static void *_nodeThreadRunFunc(void *arg) {
                 case BRE_NODE_CONNECTED:
                 {
                     //Read message from peer
-                    _readMessage(node);
-                    //Check if the message is a P2P message before broadcasting the message
-                    if(ETHEREUM_BOOLEAN_IS_FALSE(_isP2PMessage(node)))
+                    if(!_readMessage(node))
                     {
-                        node->callbacks.receivedMsgFunc(node->callbacks.info, node, node->body, node->bodySize);
+                        //Decode the Packet Type
+                        BRRlpCoder rlpCoder = rlpCoderCreate();
+                        BRRlpData framePacketTypeData = {1, node->body};
+                        BRRlpItem item = rlpGetItem (rlpCoder, framePacketTypeData);
+    
+                        uint64_t packetType = rlpDecodeItemUInt64(rlpCoder, item, 1);
+                        BRRlpData mesageBody = {node->bodySize - 1, &node->body[1]};
+                        
+                        //Check if the message is a P2P message before broadcasting the message to the manager
+                        if(ETHEREUM_BOOLEAN_IS_FALSE(_isP2PMessage(node,rlpCoder,packetType, mesageBody)))
+                        {
+                            node->callbacks.receivedMsgFunc(node->callbacks.info, node, packetType, mesageBody);
+                        }
+                        rlpCoderRelease(rlpCoder);
                     }
                 }
                 break;
@@ -470,17 +480,17 @@ BREthereumNode ethereumNodeCreate(BREthereumPeerConfig config,
     node->peer.timestamp = config.timestamp;
     node->peer.remoteKey =  *(config.remoteKey);
     //Initialize p2p data
-    node->helloData.version = 0x01;
-    char clientId[] = "Ethereum(++)/1.0.0";
+    node->helloData.version = 0x03;
+    char clientId[] = "BRD Light Client";
     node->helloData.clientId = malloc(strlen(clientId) + 1);
     strcpy(node->helloData.clientId, clientId);
     node->helloData.listenPort = 0;
     array_new(node->helloData.caps, 1);
     BREthereumCapabilities cap;
-    char capStr[] = "eth";
+    char capStr[] = "les";
     cap.cap = malloc(strlen(capStr) + 1);
     strcpy(cap.cap, capStr);
-    cap.capVersion = 34;
+    cap.capVersion = 2;
     array_add(node->helloData.caps, cap);
     uint8_t pubRawKey[65];
     size_t pLen = BRKeyPubKey(key, pubRawKey, sizeof(pubRawKey));
@@ -547,7 +557,9 @@ void ethereumNodeDisconnect(BREthereumNode node, BREthereumDisconnect reason) {
 }
 void ethereumNodeRelease(BREthereumNode node){
    ethereumEndpointRelease(node->peer.endpoint);
-   array_free(node->body);
+   if(node->body != NULL){
+     free(node->body);
+   }
    ethereumFrameCoderRelease(node->ioCoder);
    free(node->key);
    free(node->ephemeral);

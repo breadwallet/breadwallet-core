@@ -81,7 +81,7 @@ extern BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fC
  */
 extern BREthereumBoolean ethereumFrameCoderDecryptFrame(BREthereumFrameCoder fCoder, uint8_t * oBytes, size_t outSize);
   
- 
+ BREthereumBoolean _test(BREthereumFrameCoder fCoder, uint8_t * oBytes, size_t outSize);
  
 extern int testFrameCoderInitiator(BREthereumFrameCoder fCoder);
 extern int testFrameCoderReceiver(BREthereumFrameCoder fCoder);

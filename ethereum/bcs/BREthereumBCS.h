@@ -69,14 +69,30 @@ typedef struct {
     // ...
 } BREthereumBCSListener;
 
-/* transaction callbacks, balance callbacks, nonce callbacks */
-/* peers/nodes - for LES */
+
+/**
+ * Create BCS (a 'BlockChain Slice`) providing a view of the Ethereum blockchain for `network`
+ * focused on the `account` primary address.  Initialize the synchronization with the previously
+ * saved `headers`.  Provide `listener` to anounce BCS 'events'.
+ *
+ * @parameters
+ * @parameter headers - is this a BRArray; assume so for now.
+ */
 extern BREthereumBCS
 bcsCreate (BREthereumNetwork network,
            BREthereumAccount account,
            BREthereumBlockHeader *headers,
            BREthereumBCSListener listener);
 
+extern void
+bcsStart (BREthereumBCS bcs);
+
+extern void
+bcsStop (BREthereumBCS bcs);
+
+extern BREthereumBoolean
+bcsIsStarted (BREthereumBCS bcs);
+    
 extern void
 bcsDestroy (BREthereumBCS bcs);
 
