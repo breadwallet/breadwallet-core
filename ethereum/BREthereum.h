@@ -684,7 +684,7 @@ ethereumTransactionGetNonce(BREthereumLightNode node,
                             BREthereumTransactionId transaction);
 
 extern BREthereumHash
-ethereumTransactionGetBlockHasn(BREthereumLightNode node,
+ethereumTransactionGetBlockHash(BREthereumLightNode node,
                                 BREthereumTransactionId tid);
 
 extern uint64_t

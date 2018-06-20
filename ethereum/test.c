@@ -699,8 +699,8 @@ void runEventTest () {
     alarm = alarmClockAddAlarmPeriodic(alarmClock, testEventAlarmContext, testEventAlarmCallback, testEventAlarmPeriod);
     pthread_cond_wait(&testEventAlarmConditional, &testEventAlarmMutex);
     alarmClockRemAlarm(alarmClock, alarm);
-    assert (1 == testEventAlarmCount);
-    alarmClockStart(alarmClock);
+    assert (0 < testEventAlarmCount);
+    alarmClockStop(alarmClock);
     alarmClockDestroy(alarmClock);
 }
 
@@ -1550,10 +1550,10 @@ testReallySend (void) {
 //    char *recvAddr = strdup (buffer);
     char *recvAddr = "0x49f4c50d9bcc7afdbcf77e0d6e364c29d5a660df";
 
-    char *strAmount = "0.0001"; //ETH
+    char *strAmount = "0.00004"; //ETH
     uint64_t gasPrice = 2; // GWEI
     uint64_t gasLimit = 21000;
-    uint64_t nonce = 5;                  // Careful
+    uint64_t nonce = 7;                  // Careful
 
     printf ("PaperKey: '%s'\nAddress: '%s'\nGasLimt: %llu\nGasPrice: %llu GWEI\n", paperKey, recvAddr, gasLimit, gasPrice);
 
@@ -1584,8 +1584,14 @@ testReallySend (void) {
     ethereumWalletSignTransaction (node, wallet, tx, paperKey);
 
     ethereumConnect(node, client);
-//    ethereumWalletSubmitTransaction(node, wallet, tx);
-    sleep (20 * 60);
+#if 0 // only submit by explicit action.
+    printf ("***\n***\n***\n*** WAITING TO SUBMIT\n***\n");
+    sleep (10);
+    printf ("***\n***\n***\n*** SUBMITING\n***\n");
+
+    ethereumWalletSubmitTransaction(node, wallet, tx);
+#endif
+    sleep (60 * 60); // 20 minutes
 
     return;
 }
@@ -1996,7 +2002,7 @@ runTests (void) {
     runAccountStateTests();
     runTransactionStatusTests();
     runTransactionReceiptTests();
-    testReallySend();
+//    testReallySend();
     printf ("Done\n");
 }
 

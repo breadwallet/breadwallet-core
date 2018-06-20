@@ -47,7 +47,7 @@ walletTransactionSubmitted (BREthereumWallet wallet,
                             const BREthereumHash hash); // ....
 
 private_extern void
-walletTransactionBlocked(BREthereumWallet wallet,
+walletTransactionIncluded(BREthereumWallet wallet,
                          BREthereumTransaction transaction,
                          BREthereumGas gasUsed,
                          BREthereumHash blockHash,
@@ -55,8 +55,9 @@ walletTransactionBlocked(BREthereumWallet wallet,
                          uint64_t blockTransactionIndex);
 
 private_extern void
-walletTransactionDropped (BREthereumWallet wallet,
-                          BREthereumTransaction transaction);
+walletTransactionErrored (BREthereumWallet wallet,
+                          BREthereumTransaction transaction,
+                          const char *reason);
 
 private_extern void
 walletHandleTransaction (BREthereumWallet wallet,

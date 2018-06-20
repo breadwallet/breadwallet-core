@@ -92,6 +92,11 @@ blockHeaderHashValue (const void *h);
 extern int
 blockHeaderHashEqual (const void *h1, const void *h2);    
 
+// Support sorting
+extern BREthereumComparison
+blockHeaderCompare (BREthereumBlockHeader h1,
+                    BREthereumBlockHeader h2);
+    
 //
 // Block
 //

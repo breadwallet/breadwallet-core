@@ -184,6 +184,10 @@ transactionCompare (BREthereumTransaction t1,
 extern BREthereumTransactionStatus
 transactionGetStatus (BREthereumTransaction transaction);
 
+extern void
+transactionSetStatus (BREthereumTransaction transaction,
+                      BREthereumTransactionStatus status);
+    
 extern BREthereumBoolean
 transactionIsConfirmed (BREthereumTransaction transaction);
 
@@ -191,23 +195,11 @@ transactionIsConfirmed (BREthereumTransaction transaction);
 extern BREthereumBoolean
 transactionIsSubmitted (BREthereumTransaction transaction);
 
-extern void
-transactionAnnounceBlocked(BREthereumTransaction transaction,
-                           BREthereumGas gasUsed,
-                           BREthereumHash blockHash,
-                           uint64_t blockNumber,
-                           uint64_t blockTransactionIndex);
-
-extern void
-transactionAnnounceDropped (BREthereumTransaction transaction,
-                            int foo); // dropped info
-
-extern void
-transactionAnnounceSubmitted (BREthereumTransaction transaction,
-                              BREthereumHash hash); // submitted info
+extern BREthereumBoolean
+transactionIsErrored (BREthereumTransaction transaction);
 
 extern int
-transactionExtractBlocked(BREthereumTransaction transaction,
+transactionExtractIncluded(BREthereumTransaction transaction,
                           BREthereumGas *gas,
                           BREthereumHash *blockHash,
                           uint64_t *blockNumber,

@@ -113,6 +113,9 @@ static BREthereumLogTopic emptyTopic;
 // A log entry, O, is:
 struct BREthereumLogRecord {
     // THIS MUST BE FIRST to support BRSet operations.
+    /**
+     * The hash of the transaction that originated this log
+     */
     BREthereumHash hash;
 
     // a tuple of the logger’s address, Oa;

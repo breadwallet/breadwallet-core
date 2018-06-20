@@ -27,58 +27,101 @@
 #include <assert.h>
 #include "BREthereumTransactionStatus.h"
 
-extern void
-transactionStatusRelease (BREthereumTransactionStatus status) {
-    switch (status.type) {
-        case TRANSACTION_STATUS_ERROR:
-            if (NULL != status.u.error.message)
-                free (status.u.error.message);
-            break;
-        default:
-            break;
-    }
+extern BREthereumTransactionStatus
+transactionStatusCreate (BREthereumTransactionStatusType type) {
+    assert (TRANSACTION_STATUS_INCLUDED != type && TRANSACTION_STATUS_ERRORED != type);
+    BREthereumTransactionStatus status;
+    status.type = type;
+    return status;
 }
+
+extern BREthereumTransactionStatus
+transactionStatusCreateIncluded (BREthereumGas gasUsed,
+                                 BREthereumHash blockHash,
+                                 uint64_t blockNumber,
+                                 uint64_t blockTransactionIndex) {
+    BREthereumTransactionStatus status;
+    status.type = TRANSACTION_STATUS_INCLUDED;
+    status.u.included.gasUsed = gasUsed;
+    status.u.included.blockHash = blockHash;
+    status.u.included.blockNumber = blockNumber;
+    status.u.included.transactionIndex = blockTransactionIndex;
+    return status;
+}
+
+extern BREthereumTransactionStatus
+transactionStatusCreateErrored (const char *reason) {
+    BREthereumTransactionStatus status;
+    status.type = TRANSACTION_STATUS_ERRORED;
+    strlcpy (status.u.errored.reason, reason, TRANSACTION_STATUS_REASON_BYTES);
+    return status;
+}
+
+extern BREthereumBoolean
+transactionStatusEqual (BREthereumTransactionStatus ts1,
+                        BREthereumTransactionStatus ts2) {
+    return AS_ETHEREUM_BOOLEAN(ts1.type == ts2.type &&
+                               ((TRANSACTION_STATUS_INCLUDED != ts1.type && TRANSACTION_STATUS_ERRORED != ts1.type) ||
+                                (TRANSACTION_STATUS_INCLUDED == ts1.type &&
+                                 ETHEREUM_COMPARISON_EQ == gasCompare(ts1.u.included.gasUsed, ts2.u.included.gasUsed) &&
+                                 ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(ts1.u.included.blockHash, ts2.u.included.blockHash)) &&
+                                 ts1.u.included.blockNumber == ts2.u.included.blockNumber &&
+                                 ts1.u.included.transactionIndex == ts2.u.included.transactionIndex) ||
+                                (TRANSACTION_STATUS_ERRORED == ts1.type &&
+                                 0 == strcmp (ts1.u.errored.reason, ts2.u.errored.reason))));
+}
+
 
 extern BREthereumTransactionStatus
 transactionStatusRLPDecodeItem (BRRlpItem item,
                                 BRRlpCoder coder) {
-    BREthereumTransactionStatus status;
-
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     assert (3 == itemsCount); // [type, [blockHash blockNumber, txIndex], error]
 
-    status.type = (BREthereumTransactionStatusType) rlpDecodeItemUInt64(coder, items[0], 0);
-    switch (status.type) {
+    // We have seen (many) cases where the `type` is `unknown` but there is an `error`.  That
+    // appears to violate the LES specfication.  Anyways, if we see an `error` we'll force the
+    // type to be TRANSACTION_STATUS_ERRORED.
+    char *reason = rlpDecodeItemString(coder, items[2]);
+    if (NULL != reason && 0 != strcmp (reason, "") && 0 != strcmp (reason, "0x")) {
+        BREthereumTransactionStatus status = transactionStatusCreateErrored(reason);
+        free (reason);
+        return status;
+    }
+
+    BREthereumTransactionStatusType type = (BREthereumTransactionStatusType) rlpDecodeItemUInt64(coder, items[0], 0);
+    switch (type) {
         case TRANSACTION_STATUS_UNKNOWN:
         case TRANSACTION_STATUS_QUEUED:
         case TRANSACTION_STATUS_PENDING:
             // assert: [] == item[1], "" == item[2]
-            break;
+            return transactionStatusCreate(type);
 
         case TRANSACTION_STATUS_INCLUDED: {
             size_t othersCount;
             const BRRlpItem *others = rlpDecodeList(coder, items[1], &othersCount);
             assert (3 == othersCount);
 
-            status.u.included.blockHash = hashRlpDecode(others[0], coder);
-            status.u.included.blockNumber = rlpDecodeItemUInt64(coder, others[1], 0);
-            status.u.included.transactionIndex = rlpDecodeItemUInt64(coder, others[2], 0);
-            break;
+            return transactionStatusCreateIncluded(gasCreate(0),
+                                                   hashRlpDecode(others[0], coder),
+                                                   rlpDecodeItemUInt64(coder, others[1], 0),
+                                                   rlpDecodeItemUInt64(coder, others[2], 0));
         }
         
-        case TRANSACTION_STATUS_ERROR:
-            status.u.error.message = rlpDecodeItemString(coder, items[2]);
-            break;
+        case TRANSACTION_STATUS_ERRORED: {
+            // We should not be here....
+            char *reason = rlpDecodeItemString(coder, items[2]);
+            BREthereumTransactionStatus status = transactionStatusCreateErrored(reason);
+            free (reason);
+            return status;
+        }
 
         case TRANSACTION_STATUS_CREATED:
         case TRANSACTION_STATUS_SIGNED:
         case TRANSACTION_STATUS_SUBMITTED:
             // Never here - these three are additions, not part of LES txStatus
-            break;
+            return transactionStatusCreate(type);
     }
-
-    return status;
 }
 
 /* GETH TxStatus

@@ -177,7 +177,7 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t me
         break;
         case BRE_LES_ID_BLOCK_HEADERS:
         {
-            rlpShow(messageBody, "LES-HEADERS");
+//            rlpShow(messageBody, "LES-HEADERS");
             uint64_t reqId = 0, bv = 0;
             BREthereumBlockHeader* headers;
             BREthereumLESDecodeStatus status = ethereumLESDecodeBlockHeaders(messageBody.bytes, messageBody.bytesCount, &reqId, &bv, &headers); 

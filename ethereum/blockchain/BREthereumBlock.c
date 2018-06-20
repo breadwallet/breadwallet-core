@@ -236,6 +236,20 @@ blockHeaderHashEqual (const void *h1, const void *h2) {
                         &((BREthereumBlockHeader) h2)->hash);
 }
 
+extern BREthereumComparison
+blockHeaderCompare (BREthereumBlockHeader h1,
+                    BREthereumBlockHeader h2) {
+    return (h1->number < h2->number
+            ? ETHEREUM_COMPARISON_LT
+            : (h1->number > h2->number
+               ? ETHEREUM_COMPARISON_GT
+               : (h1->timestamp < h2->timestamp
+                  ? ETHEREUM_COMPARISON_LT
+                  : (h1->timestamp > h2->timestamp
+                     ? ETHEREUM_COMPARISON_GT
+                     : ETHEREUM_COMPARISON_EQ))));
+}
+
 //
 // Block Header RLP Encode / Decode
 //
