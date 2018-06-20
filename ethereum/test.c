@@ -886,12 +886,18 @@ void runTransactionTests1 (BREthereumAccount account, BREthereumNetwork network)
     assert (1 == networkGetChainId(network));
     BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
     
-    assert (21000ull == transactionGetGasEstimate(transaction).amountOfGas);
-    
     char result[2 * dataUnsignedTransaction.bytesCount + 1];
     encodeHex(result, 2 * dataUnsignedTransaction.bytesCount + 1, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
     printf ("       Tx1 Raw (unsigned): %s\n", result);
     assert (0 == strcmp (result, TEST_TRANS1_RESULT));
+
+    // Check the gasLimit margin
+    assert (21000ull == transactionGetGasLimit(transaction).amountOfGas);
+    assert (0ull == transactionGetGasEstimate(transaction).amountOfGas);
+
+    // Will update gasLimt with margin
+    transactionSetGasEstimate(transaction, gasCreate(21000ull));
+    assert (((100 + GAS_LIMIT_MARGIN_PERCENT) * 21000ull /100) == transactionGetGasLimit(transaction).amountOfGas);
 }
 
 // https://etherscan.io/tx/0xc070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c
