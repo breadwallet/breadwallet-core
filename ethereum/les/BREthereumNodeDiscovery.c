@@ -38,12 +38,11 @@
 #include <arpa/inet.h>
 #include <stdio.h>
 #include "BRKey.h"
-#include "BRUtilMath.h"
 #include "BRInt.h"
-#include "BRRlp.h"
+#include "../rlp/BRRlp.h"
 #include "BRArray.h"
 #include "BRCrypto.h"
-#include "BRUtil.h"
+#include "../util/BRUtil.h"
 #include "BREthereumNodeDiscovery.h"
 
 #ifndef MSG_NOSIGNAL   // linux based systems have a MSG_NOSIGNAL send flag, useful for supressing SIGPIPE signals

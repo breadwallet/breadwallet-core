@@ -770,8 +770,9 @@ rlpGetItem (BRRlpCoder coder, BRRlpData data) {
             }
         }
 
+        BRRlpItem result = coderAddContext(coder, createContextList(coder, data.bytes, data.bytesCount, 0, items, itemsIndex));
         if (items != itemsArray) free(items);
-        return coderAddContext(coder, createContextList(coder, data.bytes, data.bytesCount, 0, items, itemsIndex));
+        return result;
     }
 }
 

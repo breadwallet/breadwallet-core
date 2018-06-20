@@ -61,7 +61,7 @@ lightNodeListenerWalletEventDispatcher(BREventHandler ignore,
                                        event->errorDescription);
 }
 
-BREventType listenerWalletEventType = {
+static BREventType listenerWalletEventType = {
     "LN: Listener Wallet Event",
     sizeof (BREthereumListenerWalletEvent),
     (BREventDispatcher) lightNodeListenerWalletEventDispatcher
@@ -106,7 +106,7 @@ lightNodeListenerBlockEventDispatcher(BREventHandler ignore,
                                       event->errorDescription);
 }
 
-BREventType listenerBlockEventType = {
+static BREventType listenerBlockEventType = {
     "LN: Listener Block Event",
     sizeof (BREthereumListenerBlockEvent),
     (BREventDispatcher) lightNodeListenerBlockEventDispatcher
@@ -153,7 +153,7 @@ lightNodeListenerTransactionEventDispatcher(BREventHandler ignore,
                                             event->errorDescription);
 }
 
-BREventType listenerTransactionEventType = {
+static BREventType listenerTransactionEventType = {
     "LN: Listener Transaction Event",
     sizeof (BREthereumListenerTransactionEvent),
     (BREventDispatcher) lightNodeListenerTransactionEventDispatcher
@@ -196,7 +196,7 @@ lightNodeListenerPeerEventDispatcher(BREventHandler ignore,
     lightNodeListenerHandlePeerEvent(event->node, event->event, event->status, event->errorDescription);
 }
 
-BREventType listenerPeerEventType = {
+static BREventType listenerPeerEventType = {
     "LN: Listener Peer Event",
     sizeof (BREthereumListenerPeerEvent),
     (BREventDispatcher) lightNodeListenerPeerEventDispatcher
@@ -239,7 +239,7 @@ lightNodeListenerLightNodeEventDispatcher(BREventHandler ignore,
     lightNodeListenerHandleLightNodeEvent(event->node, event->event, event->status, event->errorDescription);
 }
 
-BREventType listenerLightNodeEventType = {
+static BREventType listenerLightNodeEventType = {
     "LN: Listener LightNode Event",
     sizeof (BREthereumListenerLightNodeEvent),
     (BREventDispatcher) lightNodeListenerLightNodeEventDispatcher

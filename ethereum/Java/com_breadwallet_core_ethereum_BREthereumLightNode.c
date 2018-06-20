@@ -146,7 +146,9 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAddListener
                          listener,
                          listenerWalletEventHandler,
                          listenerBlockEventHandler,
-                         listenerTransactionEventHandler);
+                         listenerTransactionEventHandler,
+    NULL,
+    NULL);
 }
 
 ///*
@@ -250,7 +252,7 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateLightNode
 
     const char *paperKey = (*env)->GetStringUTFChars (env, paperKeyString, 0);
 
-    BREthereumLightNode node = ethereumCreate((BREthereumNetwork) network, paperKey);
+    BREthereumLightNode node = ethereumCreate((BREthereumNetwork) network, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
 
     (*env)->ReleaseStringUTFChars (env, paperKeyString, paperKey);
     return (jlong) node;
@@ -275,7 +277,7 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateLightNode_1Publi
 
     memcpy (key.pubKey, publicKeyBytes, 65);
     BREthereumLightNode node =
-            ethereumCreateWithPublicKey((BREthereumNetwork) network, key);
+            ethereumCreateWithPublicKey((BREthereumNetwork) network, key, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
 
 
     (*env)->ReleaseByteArrayElements(env, publicKey, publicKeyBytes, 0);
@@ -1117,20 +1119,6 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionGetBlockNum
             (node,
              (BREthereumTransactionId) transactionId);
 
-}
-
-/*
- * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
- * Method:    jniTransactionGetBlockTimestamp
- * Signature: (J)J
- */
-JNIEXPORT jlong JNICALL
-Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniTransactionGetBlockTimestamp
-        (JNIEnv *env, jobject thisObject, jlong transactionId) {
-    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
-    return (jlong) ethereumTransactionGetBlockTimestamp
-            (node,
-             (BREthereumTransactionId) transactionId);
 }
 
 /*

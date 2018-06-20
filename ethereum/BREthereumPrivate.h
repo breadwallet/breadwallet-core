@@ -47,7 +47,7 @@ walletTransactionSubmitted (BREthereumWallet wallet,
                             const BREthereumHash hash); // ....
 
 private_extern void
-walletTransactionBlocked(BREthereumWallet wallet,
+walletTransactionIncluded(BREthereumWallet wallet,
                          BREthereumTransaction transaction,
                          BREthereumGas gasUsed,
                          BREthereumHash blockHash,
@@ -55,8 +55,9 @@ walletTransactionBlocked(BREthereumWallet wallet,
                          uint64_t blockTransactionIndex);
 
 private_extern void
-walletTransactionDropped (BREthereumWallet wallet,
-                          BREthereumTransaction transaction);
+walletTransactionErrored (BREthereumWallet wallet,
+                          BREthereumTransaction transaction,
+                          const char *reason);
 
 private_extern void
 walletHandleTransaction (BREthereumWallet wallet,
@@ -71,16 +72,18 @@ walletHasTransaction (BREthereumWallet wallet,
                       BREthereumTransaction transaction);
 
 //
-// Address
+// Account (Primary) Address Nonce
 //
 
 private_extern void
-addressSetNonce(BREthereumEncodedAddress address,
-                uint64_t nonce,
-                BREthereumBoolean force);
+accountSetAddressNonce(BREthereumAccount account,
+                       BREthereumAddress address,
+                       uint64_t nonce,
+                       BREthereumBoolean force);
 
 private_extern uint64_t
-addressGetThenIncrementNonce(BREthereumEncodedAddress address);
+accountGetThenIncrementAddressNonce(BREthereumAccount account,
+                                    BREthereumAddress address);
 
 //
 // Token Lookup

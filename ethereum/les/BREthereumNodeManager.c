@@ -28,10 +28,10 @@
 #include "BREthereumNodeManager.h"
 #include "BREthereumNode.h"
 #include "BRArray.h"
-#include "BREthereumNetwork.h"
+#include "../blockchain/BREthereumNetwork.h"
 #include "BREthereumEndpoint.h"
 #include "BREthereumRandom.h"
-#include "BRUtil.h"
+#include "../util/BRUtil.h"
 
 struct BREthereumNodeManagerContext {
 
@@ -117,12 +117,19 @@ BREthereumBoolean _findPeers(BREthereumNodeManager manager) {
     if(array_count(manager->connectedNodes) == 0)
     {
         BREthereumPeerConfig config;
-     //   config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "65.79.142.182", DEFAULT_TCPPORT, DEFAULT_UDPPORT);
-       config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "35.226.238.26", DEFAULT_TCPPORT, DEFAULT_UDPPORT);
-        BRKey* remoteKey = malloc(sizeof(BRKey));
+        //   config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "65.79.142.182", 30303, 30303);
+         config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "104.197.99.24", DEFAULT_TCPPORT, DEFAULT_UDPPORT);
+        //  config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "35.226.161.198", 30303, 30303); //TestNet
+        // config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "35.184.255.33", 30303, 30303);
+
         uint8_t pubKey[64];
-     //   decodeHex (pubKey, 64, "c7f12332d767c12888da45044581d30de5a1bf383f68ef7b79c83eefd99c82adf2ebe3f37e472cbcdf839d52eddc34f270a7a3444ab6c1dd127bba1687140d93", 128);
+
+        //   decodeHex (pubKey, 64, "c7f12332d767c12888da45044581d30de5a1bf383f68ef7b79c83eefd99c82adf2ebe3f37e472cbcdf839d52eddc34f270a7a3444ab6c1dd127bba1687140d93", 128);
         decodeHex (pubKey, 64, "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851", 128);
+        //   decodeHex (pubKey, 64, "9683a29b13c7190cfd63cccba4bcb62d7b710da0b1c4bff2c4b8bcf129127d7b3f591163a58449d7f66200db3c208d06b9e9a8bea69be4a72e1728a83d703063", 128);
+        //   decodeHex (pubKey, 64, "3d0bce4775635c65733b7534f1bccd48720632f5d66a44030c1d13e2e5883262d9d22cdb8365c03137e8d5fbbf5355772acf35b08d6f9b5ad69bb24ad52a20cc", 128);
+
+        BRKey* remoteKey = malloc(sizeof(BRKey));
         remoteKey->pubKey[0] = 0x04;
         memcpy(&remoteKey->pubKey[1], pubKey, 64);
         remoteKey->compressed = 0;

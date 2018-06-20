@@ -67,7 +67,7 @@ walletCreate(BREthereumAccount account,
  */
 extern BREthereumWallet
 walletCreateWithAddress(BREthereumAccount account,
-                        BREthereumEncodedAddress address,
+                        BREthereumAddress address,
                         BREthereumNetwork network);
 
 /**
@@ -110,7 +110,7 @@ walletEstimateTransactionFeeDetailed (BREthereumWallet wallet,
  */
 extern BREthereumTransaction
 walletCreateTransaction(BREthereumWallet wallet,
-                        BREthereumEncodedAddress recvAddress,
+                        BREthereumAddress recvAddress,
                         BREthereumAmount amount);
 
 /**
@@ -134,7 +134,7 @@ walletCreateTransaction(BREthereumWallet wallet,
  */
 extern BREthereumTransaction
 walletCreateTransactionDetailed(BREthereumWallet wallet,
-                                BREthereumEncodedAddress recvAddress,
+                                BREthereumAddress recvAddress,
                                 BREthereumAmount amount,
                                 BREthereumGasPrice gasPrice,
                                 BREthereumGas gasLimit,
@@ -175,8 +175,8 @@ walletGetRawTransactionHexEncoded (BREthereumWallet wallet,
 /**
  *
  */
-extern BREthereumEncodedAddress
-walletGetAddress (BREthereumWallet wallet);
+extern BREthereumAddress
+walletGetAddress(BREthereumWallet wallet);
 
 /**
  * The wallet's amount type: ETHER or TOKEN
@@ -261,9 +261,9 @@ walletGetTransactionByHash (BREthereumWallet wallet,
                             BREthereumHash hash);
 
 extern BREthereumTransaction
-walletGetTransactionByNonce (BREthereumWallet wallet,
-                             BREthereumEncodedAddress sourceAddress,
-                             uint64_t nonce);
+walletGetTransactionByNonce(BREthereumWallet wallet,
+                            BREthereumAddress sourceAddress,
+                            uint64_t nonce);
 
 extern BREthereumTransaction
 walletGetTransactionByIndex(BREthereumWallet wallet,

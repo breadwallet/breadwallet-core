@@ -23,7 +23,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 #include "BRKey.h"
-#include "BRUtil.h"
+#include "../util/BRUtil.h"
 #include "BREthereumP2PCoder.h"
 
 #define ETH_LOG_TOPIC "BREthereumP2PCoder"

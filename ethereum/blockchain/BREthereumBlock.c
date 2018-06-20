@@ -236,6 +236,20 @@ blockHeaderHashEqual (const void *h1, const void *h2) {
                         &((BREthereumBlockHeader) h2)->hash);
 }
 
+extern BREthereumComparison
+blockHeaderCompare (BREthereumBlockHeader h1,
+                    BREthereumBlockHeader h2) {
+    return (h1->number < h2->number
+            ? ETHEREUM_COMPARISON_LT
+            : (h1->number > h2->number
+               ? ETHEREUM_COMPARISON_GT
+               : (h1->timestamp < h2->timestamp
+                  ? ETHEREUM_COMPARISON_LT
+                  : (h1->timestamp > h2->timestamp
+                     ? ETHEREUM_COMPARISON_GT
+                     : ETHEREUM_COMPARISON_EQ))));
+}
+
 //
 // Block Header RLP Encode / Decode
 //
@@ -249,7 +263,7 @@ blockHeaderRlpEncodeItem (BREthereumBlockHeader header,
 
     items[ 0] = hashRlpEncode(header->parentHash, coder);
     items[ 1] = hashRlpEncode(header->ommersHash, coder);
-    items[ 2] = addressRawRlpEncode(header->beneficiary, coder);
+    items[ 2] = addressRlpEncode(header->beneficiary, coder);
     items[ 3] = hashRlpEncode(header->stateRoot, coder);
     items[ 4] = hashRlpEncode(header->transactionsRoot, coder);
     items[ 5] = hashRlpEncode(header->receiptsRoot, coder);
@@ -294,7 +308,7 @@ blockHeaderRlpDecodeItem (BRRlpItem item, BRRlpCoder coder) {
 
     header->parentHash = hashRlpDecode(items[0], coder);
     header->ommersHash = hashRlpDecode(items[1], coder);
-    header->beneficiary = addressRawRlpDecode(items[2], coder);
+    header->beneficiary = addressRlpDecode(items[2], coder);
     header->stateRoot = hashRlpDecode(items[3], coder);
     header->transactionsRoot = hashRlpDecode(items[4], coder);
     header->receiptsRoot = hashRlpDecode(items[5], coder);
@@ -458,7 +472,7 @@ blockTransactionsRlpEncodeItem (BREthereumBlock block,
     return rlpEncodeListItems(coder, items, itemsCount);
 }
 
-static BREthereumTransaction *
+extern BREthereumTransaction *
 blockTransactionsRlpDecodeItem (BRRlpItem item,
                                 BREthereumNetwork network,
                                 BRRlpCoder coder) {
@@ -572,6 +586,80 @@ blockDecodeRLP (BRRlpData data,
     rlpCoderRelease(coder);
     return block;
 }
+/* Block Headers (10)
+ ETH: LES:   L 10: [
+ ETH: LES:     L 15: [
+ ETH: LES:       I 32: 0xb853f283c777f628e28be62a80850d98a5a5e9c4e86afb0e785f7a222ebf67f8
+ ETH: LES:       I 32: 0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347
+ ETH: LES:       I 20: 0xb2930b35844a230f00e51431acae96fe543a0347
+ ETH: LES:       I 32: 0x24dc4e9f66f026b0569270e8ef95d34c275721ff6eecab029afe11c43249e046
+ ETH: LES:       I 32: 0xa7f796d7cd98ed2f3fb70ecb9a48939825f1a3d0364eb995c49151761ce9659c
+ ETH: LES:       I 32: 0xed45b3ad4bb2b46bf1e49a7925c63042aa41d5af7372db334142152d5a7ec422
+ ETH: LES:       I256: 0x00a61039e24688a200002e10102021116002220040204048308206009928412802041520200201115014888000c00080020a002021308850c60d020d00200188062900c83288401115821a1c101200d00318080088df000830c1938002a018040420002a22201000680a391c91610e4884682a00910446003da000b9501020009c008205091c0b04108c000410608061a07042141001820440d404042002a4234f00090845c1544820140430552592100352140400039000108e052110088800000340422064301701c8212008820c4648a020a482e90a0268480000400021800110414680020205002400808012c6248120027c4121119802240010a2181983
+ ETH: LES:       I  7: 0x0baf848614eb16
+ ETH: LES:       I  3: 0x5778a9
+ ETH: LES:       I  3: 0x7a121d
+ ETH: LES:       I  3: 0x793640
+ ETH: LES:       I  4: 0x5b1596f8
+ ETH: LES:       I  5: 0x73696e6731
+ ETH: LES:       I 32: 0xbcefde2594b8b501c985c2f0f411c69baee727c4f90a74ef28b7f2b59a00f7c2
+ ETH: LES:       I  8: 0x07ab2de40005d6f7
+ ETH: LES:     ]
+ ETH: LES:     L 15: [
+ ETH: LES:       I 32: 0x8996b1f91f060302350f1cb9014a11d48fd1b42eeeacf18ce4762b94c69656fa
+ ETH: LES:       I 32: 0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347
+ ETH: LES:       I 20: 0xea674fdde714fd979de3edf0f56aa9716b898ec8
+ ETH: LES:       I 32: 0x4a91466c8a43f6c61d47ae2680072ec0ca9d4077752b947bc0913f6f52823476
+ ETH: LES:       I 32: 0xfc9df67c1dc39852692763387da8039d824e9956d936338184f51c6734e8cc9f
+ ETH: LES:       I 32: 0x2cfe437b4cac28ccbb68373b6107e4e1c8fabdbfe8941d256367d4ab9e97e3e4
+ ETH: LES:       I256: 0xe01310094f66290e1101240443c1f801110021114120280c00088524322a016c2c2212b0012302001094b000009404a10018c03040208082c600c64c01280101039141e008a2c9198186044c1882541400580c36026194088033a15a08003400c5200624020c010033453168429059cd066310252a04680618226215548466e4006180038a24544804c209e11046012c008046b100065c648050084c0a15222aba6e800030c0148c2301162034298812550c060c20018470190a4141280920c110124052001d31444a30030116a42b0001c36427a888c817281110482046a04003183121a4b00042a4c6008048208fa444200204280222cc008c148446101092
+ ETH: LES:       I  7: 0x0bab23f73e93e6
+ ETH: LES:       I  3: 0x5778a7
+ ETH: LES:       I  3: 0x7a121d
+ ETH: LES:       I  3: 0x7a0453
+ ETH: LES:       I  4: 0x5b1596ed
+ ETH: LES:       I 21: 0x65746865726d696e652d6177732d61736961312d33
+ ETH: LES:       I 32: 0x057ca051122a8e18dbd6dadaade0f7c5b877623a4ae706facce5de7d1f924858
+ ETH: LES:       I  8: 0xcd9b80400100b43c
+ ETH: LES:     ]
+ ETH: LES:    ...
+ ETH: LES:  ]
+ */
+
+
+/* BLock Bodies
+ETH: LES:   L  2: [
+ETH: LES:     L  2: [
+ETH: LES:       L117: [
+ETH: LES:         L  9: [
+ETH: LES:           I  1: 0x09
+ETH: LES:           I  5: 0x0ba43b7400
+ETH: LES:           I  2: 0x5208
+ETH: LES:           I 20: 0x5521a68d4f8253fc44bfb1490249369b3e299a4a
+ETH: LES:           I  8: 0x154f1f6cc6457c00
+ETH: LES:           I  0: 0x
+ETH: LES:           I  1: 0x26
+ETH: LES:           I 32: 0x317428668e86eedc101a2ac3344c66dca791b078557e018a4524d86da3529de2
+ETH: LES:           I 32: 0x40446aa978d382ad2a12549713ad94cbe654aa4853ab68414566a0638689f6a9
+ETH: LES:         ]
+ETH: LES:         L  9: [
+ETH: LES:           I  2: 0x0308
+ETH: LES:           I  5: 0x0ba43b7400
+ETH: LES:           I  2: 0xb78d
+ETH: LES:           I 20: 0x58a4884182d9e835597f405e5f258290e46ae7c2
+ETH: LES:           I  0: 0x
+ETH: LES:           I 68: 0xa9059cbb0000000000000000000000004a2ce805877250dd17e14f4421d66d2a9717725a0000000000000000000000000000000000000000000000273f96e31883e34000
+ETH: LES:           I  1: 0x26
+ETH: LES:           I 32: 0xf02eac3ab7c93ccdea73b6cbcc3483d0d03cdb374c07b3021461e8bb108234fa
+ETH: LES:           I 32: 0x511e4c85506e11c46198fd61982f5cc05c9c06f792aaee47f5ddf14ced764b1d
+ETH: LES:         ]
+ETH: LES:         ...
+ETH: LES:       ]
+ETH: LES:       L  0: []
+ETH: LES:     ]
+ETH: LES:    ...
+ETH: LES   ]
+*/
 
 //
 // Genesis Block
@@ -724,7 +812,7 @@ initializeGenesisBlocks (void) {
     header->hash = hashCreate("0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3");
     header->parentHash = hashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
     header->ommersHash = hashCreate("0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347");
-    header->beneficiary = addressRawCreate("0x0000000000000000000000000000000000000000");
+    header->beneficiary = addressCreate("0x0000000000000000000000000000000000000000");
     header->stateRoot = hashCreate("0xd7f8974fb5ac78d9ac099b9ad5018bedc2ce0a72dad1827a1709da30580f0544");
     header->transactionsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
     header->receiptsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
@@ -767,7 +855,7 @@ initializeGenesisBlocks (void) {
     header->hash = hashCreate("0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d");
     header->parentHash = hashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
     header->ommersHash = hashCreate("0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347");
-    header->beneficiary = addressRawCreate("0x0000000000000000000000000000000000000000");
+    header->beneficiary = addressCreate("0x0000000000000000000000000000000000000000");
     header->stateRoot = hashCreate("0x217b0bbcfb72e2d57e28f33cb361b9983513177755dc3f33ce3e7022ed62b77b");
     header->transactionsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
     header->receiptsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
@@ -810,7 +898,7 @@ initializeGenesisBlocks (void) {
     header->hash = hashCreate("0x6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177");
     header->parentHash = hashCreate("0x0000000000000000000000000000000000000000000000000000000000000000");
     header->ommersHash = hashCreate("0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347");
-    header->beneficiary = addressRawCreate("0x0000000000000000000000000000000000000000");
+    header->beneficiary = addressCreate("0x0000000000000000000000000000000000000000");
     header->stateRoot = hashCreate("0x53580584816f617295ea26c0e17641e0120cab2f0a8ffb53a866fd53aa8e8c2d");
     header->transactionsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
     header->receiptsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");

@@ -37,31 +37,129 @@ extern "C" {
 #endif
 
 struct BREthereumBCSStruct {
+    /**
+     * The network
+     */
     BREthereumNetwork network;
+
+    /**
+     * The account
+     */
     BREthereumAccount account;
+
+    /**
+     * The address is the account's primary address.  The 'slice' will focus on transactions
+     * and logs for this address.
+     */
     BREthereumAddress address;
+
+    /**
+     * A BloomFilter with address for application to transactions
+     */
     BREthereumBloomFilter filterForAddressOnTransactions;
+
+    /**
+     * A BlookFilter with address for application to logs.  For logs, the bloom filter is based
+     * on matching `LogTopic` data.
+     */
     BREthereumBloomFilter filterForAddressOnLogs;
 
+    /**
+     * The listener interested in BCS events
+     */
     BREthereumBCSListener listener;
-    
+
+    /**
+     * The LES functionality - provides 'quality' resutls to LES/2 queries.  Manages
+     * multiple peer nodes
+     */
     BREthereumLES les;
+
+    /**
+     * Our event handler
+     */
     BREventHandler handler;
 
+    /**
+     * A BRSet holding block headers.  This is *every* header that we are interested in which will
+     * be a small subset of all Ethereum headers.  This set contains:
+     *    - the last N headers in `chain`
+     *    - header checkpoints (including the genesis block)
+     *    - headers containings transactions and logs of interest
+     *    - orphaned headers
+     */
     BRSet *headers;
-    BREthereumBlockHeader chain;
-    BREthereumBlockHeader *orphans;
 
-    // Array of Hashes (for lesGetTransactionStatus) but better as Transactions.
+    /**
+     * A chain of block headers.  These are 'chained' by the `parentHash`.
+     */
+    BREthereumBlockHeader chain;
+
+    /**
+     * The block header at the tail of `chain`.  We will not have a block header for this
+     * header's parent.
+     */
+    BREthereumBlockHeader chainTail;
+
+    /**
+     * A BRSet of orphaned block headers.  These are block headers that 'conflict' with
+     * chained headers.  Typically (Exclusively) an orphan is a previously chained header
+     * that was replaced by a subsequently accounced header.
+     */
+    BRSet *orphans;
+
+    /**
+     * A BRArray of hashes for pending transactions.  A transaction is 'pending' if it's
+     * status is not 'INCLUDED' nor 'ERRORED'.  When pending, BCS will periodically (see
+     * BCS_TRANSACTION_CHECK_STATUS_SECONDS) issue a batched lesGetTransactionStatus() call
+     * to get a status update.
+     *
+     * TODO: Need to clarify how an 'INCLUDED' status interacts with block header chaining.  That
+     * is, we might see 'INCLUDED' but not yet know about the block.  Presumably we do not
+     * announe the transaction to the `listener`.  Similarly we could see the block, chained or
+     * orphaned, but not have the status.
+     *
+     * This is an array of hashes rather then a set of transactions to faclitate the call to
+     * lesGetTransactionStatus().
+     *
+     * I think we keep a transaction pending, even when INCLUDED, until its block is chained.  Thus
+     * we continue asking for status.
+     */
     BREthereumHash *pendingTransactions;
 
-    // Ours...
+    /**
+     * A BRSet of transactions for account.
+     */
     BRSet *transactions;
+
+    /**
+     * A BRSet of logs for account.
+     */
     BRSet *logs;
+
+    /**
+     * The Account State
+     */
+    BREthereumAccountState accountState;
+
+    int syncActive;
+    uint64_t syncTail;
+    uint64_t syncNext;
+    uint64_t syncHead;
 };
 
 extern const BREventType *bcsEventTypes[];
 extern const unsigned int bcsEventTypesCount;
+
+#define FOR_SET(type,var,set) \
+    for (type var = BRSetIterate(set, NULL); \
+         NULL != var; \
+         var = BRSetIterate(set, var))
+
+#define BCS_FOR_HEADERS(header)  FOR_SET(BREthereumBlockHeader, header, bcs->headers)
+//    for (BREthereumBlockHeader header = BRSetIterate (bcs->headers, NULL); \
+//         NULL != header; \
+//         header = BRSetIterate (bcs->headers, header))
 
 //
 // Submit Transaction
@@ -107,13 +205,13 @@ extern void
 bcsHandleBlockBodies (BREthereumBCS bcs,
                       BREthereumHash blockHash,
                       BREthereumTransaction transactions[],
-                      BREthereumHash ommers[]);
+                      BREthereumBlockHeader ommers[]);
 
 extern void
 bcsSignalBlockBodies (BREthereumBCS bcs,
                       BREthereumHash blockHash,
                       BREthereumTransaction transactions[],
-                      BREthereumHash ommers[]);
+                      BREthereumBlockHeader ommers[]);
 
 //
 // Transactions
@@ -153,6 +251,21 @@ extern void
 bcsSignalTransactionReceipts (BREthereumBCS bcs,
                               BREthereumHash blockHash,
                               BREthereumTransactionReceipt receipts[]);
+
+//
+// Account State
+//
+extern void
+bcsHandleAccountState (BREthereumBCS bcs,
+                       BREthereumHash blockHash,
+                       BREthereumAddress address,
+                       BREthereumAccountState state);
+    
+extern void
+bcsSignalAccountState (BREthereumBCS bcs,
+                       BREthereumHash blockHash,
+                       BREthereumAddress address,
+                       BREthereumAccountState state);
 
 //
 // Logs

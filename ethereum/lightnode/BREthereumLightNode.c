@@ -43,7 +43,7 @@
 /* Forward Declaration */
 static void
 lightNodePeriodicDispatcher (BREventHandler handler,
-                             BRTimeoutEvent *event);
+                             BREventTimeout *event);
 
 
 /* Stubbed */
@@ -124,7 +124,6 @@ createLightNode (BREthereumNetwork network,
 
     node->handlerForMain = eventHandlerCreate(handlerEventTypes, handlerEventTypesCount);
     eventHandlerSetTimeoutDispatcher(node->handlerForMain,
-                                     ETHEREUM_BOOLEAN_TRUE,
                                      1000 * LIGHT_NODE_SLEEP_SECONDS,
                                      (BREventDispatcher)lightNodePeriodicDispatcher,
                                      (void*) node);
@@ -380,9 +379,7 @@ lightNodeHandleNonce (BREthereumLightNode node,
                       uint64_t nonce) {
     pthread_mutex_lock(&node->lock);
 
-    BREthereumEncodedAddress address = accountGetPrimaryAddress(lightNodeGetAccount(node));
-
-    addressSetNonce(address, nonce, ETHEREUM_BOOLEAN_FALSE);
+    accountSetAddressNonce(node->account, accountGetPrimaryAddress(node->account), nonce, ETHEREUM_BOOLEAN_FALSE);
 
     // lightNodeListenerAnnounce ...
     pthread_mutex_unlock(&node->lock);
@@ -396,7 +393,7 @@ lightNodeHandleTransaction (BREthereumLightNode node,
 
     // Find the wallet
     BREthereumAmount amount = transactionGetAmount(transaction);
-    BREthereumToken token = amountGetToken(amount);
+    BREthereumToken token =  (AMOUNT_TOKEN == amountGetType(amount) ? amountGetToken(amount) : NULL);
 
     BREthereumWalletId wid = (NULL == token ? 0 : lightNodeGetWalletHoldingToken(node, token));
     BREthereumWallet wallet = lightNodeLookupWallet(node, wid);
@@ -438,13 +435,13 @@ lightNodeHandleTransaction (BREthereumLightNode node,
                                                      : TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED),
                                                     SUCCESS, NULL);
             break;
-        case TRANSACTION_STATUS_ERROR:
+        case TRANSACTION_STATUS_ERRORED:
             lightNodeListenerSignalTransactionEvent(node, wid, tid,
                                                     (lightNodeGetBlockHeight(node) == status.u.included.blockNumber
                                                      ? TRANSACTION_EVENT_BLOCKED
                                                      : TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED),
                                                     ERROR_TRANSACTION_SUBMISSION,
-                                                    status.u.error.message);
+                                                    status.u.errored.reason);
             break;
 
         case TRANSACTION_STATUS_CREATED:
@@ -498,7 +495,7 @@ lightNodeHandleTransaction (BREthereumLightNode node,
 
 static void
 lightNodePeriodicDispatcher (BREventHandler handler,
-                             BRTimeoutEvent *event) {
+                             BREventTimeout *event) {
     BREthereumLightNode node = (BREthereumLightNode) event->context;
 
     if (node->state != LIGHT_NODE_CONNECTED) return;
@@ -650,7 +647,7 @@ lightNodeWalletCreateTransaction(BREthereumLightNode node,
     pthread_mutex_lock(&node->lock);
 
     BREthereumTransaction transaction =
-      walletCreateTransaction(wallet, createAddress(recvAddress), amount);
+      walletCreateTransaction(wallet, addressCreate(recvAddress), amount);
 
     tid = lightNodeInsertTransaction(node, transaction);
     wid = lightNodeLookupWalletId(node, wallet);

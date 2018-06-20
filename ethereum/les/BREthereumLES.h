@@ -27,14 +27,10 @@
 #define BR_Ethereum_LES_h
 
 #include <inttypes.h>
-#include "BREthereumBase.h"
-#include "BREthereumTransaction.h"
-#include "BREthereumTransactionReceipt.h"
-#include "BREthereumTransactionStatus.h"
-#include "BREthereumBlock.h"
+#include "../base/BREthereumBase.h"
+#include "../blockchain/BREthereumBlockChain.h"
 #include "BRKey.h"
 #include "BRArray.h"
-#include "BREthereumNetwork.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -80,7 +76,7 @@ typedef void
 (*BREthereumLESAnnounceCallback) (BREthereumLESAnnounceContext context,
                                   BREthereumHash headHash,
                                   uint64_t headNumber,
-                                  uint64_t headTotalDifficulty);
+                                  UInt256 headTotalDifficulty);
 
 
 /*!
@@ -198,9 +194,9 @@ typedef void* BREthereumLESBlockBodiesContext;
 
 typedef void
 (*BREthereumLESBlockBodiesCallback) (BREthereumLESBlockBodiesContext context,
-                                     BREthereumHash block, // BREthereumBlockHeader?
+                                     BREthereumHash block,
                                      BREthereumTransaction transactions[],
-                                     BREthereumHash ommers[]);
+                                     BREthereumBlockHeader ommers[]);
 
 extern BREthereumLESStatus
 lesGetBlockBodies (BREthereumLES les,
@@ -241,9 +237,24 @@ lesGetReceiptsOne (BREthereumLES les,
 //
 // Proofs
 //
+//
+typedef void* BREthereumLESProofsV2Context;
 
-// ... omit ...
+typedef void
+(*BREthereumLESProofsV2Callback) (BREthereumLESProofsV2Context context,
+                                  BREthereumHash blockHash,
+                                  BREthereumHash key,
+                                  BREthereumHash key2);
 
+extern BREthereumLESStatus
+lesGetGetProofsV2One (BREthereumLES les,
+                     BREthereumLESProofsV2Context context,
+                     BREthereumLESProofsV2Callback callback,
+                     BREthereumHash blockHash,
+                     BREthereumHash key,
+                     BREthereumHash key2,
+                     uint64_t fromLevel);
+                     
 //
 // LES GetTxStatus
 //

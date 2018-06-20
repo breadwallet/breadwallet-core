@@ -37,10 +37,10 @@
 #include <string.h>
 #include "BRInt.h"
 #include "BRCrypto.h"
-#include "BREthereumLog.h"
+#include "../blockchain/BREthereumLog.h"
 #include "BREthereumNode.h"
 #include "BREthereumHandshake.h"
-#include "BREthereumBase.h"
+#include "../base/BREthereumBase.h"
 #include "BREthereumNodeDiscovery.h"
 #include "BREthereumAccount.h"
 #include "BRKey.h"
@@ -137,6 +137,9 @@ struct BREthereumNodeContext {
     
     //The size of the body for a receiving message coming from peer
     size_t bodySize;
+    
+    //The capacity for the body;
+    size_t bodyCompacity;
     
     //Represents the callback functions for this node.
     BREthereumManagerCallback callbacks;
@@ -306,6 +309,7 @@ static BREthereumBoolean _isP2PMessage(BREthereumNode node, BRRlpCoder rlpCoder,
             ethereumNodeWriteToPeer(node, frame, frameSize, "P2P Pong");
             rlpDataRelease(data);
             free(frame);
+            retStatus = ETHEREUM_BOOLEAN_TRUE;
         }
         break;
         default:
@@ -327,24 +331,26 @@ static int _readMessage(BREthereumNode node) {
     // authenticate and decrypt header
     if(ETHEREUM_BOOLEAN_IS_FALSE(ethereumFrameCoderDecryptHeader(node->ioCoder, node->header, 32)))
     {
-        eth_log(ETH_LOG_TOPIC, "%s", "Error: Decryption of hello header from peer failed.");
+        eth_log(ETH_LOG_TOPIC, "%s", "Error: Decryption of header from peer failed.");
         return 1;
     }
 
     //Get frame size
     uint32_t frameSize = (uint32_t)(node->header[2]) | (uint32_t)(node->header[1])<<8 | (uint32_t)(node->header[0])<<16;
     
-    if(frameSize > 1024){
+   /* if(frameSize > 1024){
         eth_log(ETH_LOG_TOPIC, "%s", "Error: message frame size is too large");
         return 1;
-    }
+    }*/ 
     
     uint32_t fullFrameSize = frameSize + ((16 - (frameSize % 16)) % 16) + 16;
     
     if(node->body == NULL){
-        array_new(node->body, fullFrameSize);
-    }else {
-        array_set_capacity(node->body, fullFrameSize);
+      node->body = malloc(fullFrameSize);
+      node->bodyCompacity = fullFrameSize;
+    }else if (node->bodyCompacity < fullFrameSize) {
+      node->body = realloc(node->body, fullFrameSize);
+      node->bodyCompacity = fullFrameSize;
     }
     
     ec = ethereumNodeReadFromPeer(node, node->body, fullFrameSize, "");
@@ -552,7 +558,7 @@ void ethereumNodeDisconnect(BREthereumNode node, BREthereumDisconnect reason) {
 void ethereumNodeRelease(BREthereumNode node){
    ethereumEndpointRelease(node->peer.endpoint);
    if(node->body != NULL){
-    array_free(node->body);
+     free(node->body);
    }
    ethereumFrameCoderRelease(node->ioCoder);
    free(node->key);

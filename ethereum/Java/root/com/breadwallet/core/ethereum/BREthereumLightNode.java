@@ -405,7 +405,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
             tokens[i] = new BREthereumToken(references[i]);
 
         for (BREthereumToken token : tokens) {
-            System.err.println ("Token: " + token.getSymbol());
+            // System.err.println ("Token: " + token.getSymbol());
             tokensByReference.put(token.getIdentifier(), token);
             tokensByAddress.put (token.getAddress().toLowerCase(), token);
         }
@@ -693,7 +693,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     protected native long jniLightNodeGetBlockHeight ();
     protected native long jniBlockGetNumber (long bid);
-    protected native long jniBlockGetTimestamp (long bid);
+//    protected native long jniBlockGetTimestamp (long bid);
     protected native String jniBlockGetHash (long bid);
 
     //

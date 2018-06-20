@@ -16,6 +16,7 @@
 		3C386DD020C6F5E40065E355 /* BREthereumBCSEvent.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C386DCD20C6F5E40065E355 /* BREthereumBCSEvent.c */; };
 		3C386DD320C6F6070065E355 /* BREthereumLightNodeClient.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C386DD120C6F6060065E355 /* BREthereumLightNodeClient.c */; };
 		3C386DD420C6F6070065E355 /* BREthereumLightNodeEvent.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C386DD220C6F6070065E355 /* BREthereumLightNodeEvent.c */; };
+		3C3B37FD20D82335004F9928 /* BREventAlarm.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C3B37FB20D82335004F9928 /* BREventAlarm.c */; };
 		3CAB60A920AF8C8500810CE4 /* CoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB60A820AF8C8500810CE4 /* CoreTests.swift */; };
 		3CAB60AB20AF8C8500810CE4 /* libCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CAB609B20AF8C5D00810CE4 /* libCore.a */; };
 		3CAB60B120AF8D1A00810CE4 /* BREthereumEther.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53B320AF595400C430F6 /* BREthereumEther.c */; };
@@ -218,6 +219,8 @@
 		3C386DCE20C6F5E40065E355 /* BREthereumBCS.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BREthereumBCS.h; sourceTree = "<group>"; };
 		3C386DD120C6F6060065E355 /* BREthereumLightNodeClient.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BREthereumLightNodeClient.c; sourceTree = "<group>"; };
 		3C386DD220C6F6070065E355 /* BREthereumLightNodeEvent.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BREthereumLightNodeEvent.c; sourceTree = "<group>"; };
+		3C3B37FB20D82335004F9928 /* BREventAlarm.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BREventAlarm.c; sourceTree = "<group>"; };
+		3C3B37FC20D82335004F9928 /* BREventAlarm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BREventAlarm.h; sourceTree = "<group>"; };
 		3C42EF512095143D000E58E0 /* module.modulemap */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
 		3C42EF8D209763AB000E58E0 /* BRDcoreTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "BRDcoreTests-Bridging-Header.h"; sourceTree = "<group>"; };
 		3C42EF8E209763AB000E58E0 /* test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = test.c; path = ../../test.c; sourceTree = "<group>"; };
@@ -373,20 +376,20 @@
 				3C386DBA20C6F4AD0065E355 /* BREthereumP2PCoder.h */,
 				3C386DC120C6F4AE0065E355 /* BREthereumRandom.c */,
 				3C386DBD20C6F4AE0065E355 /* BREthereumRandom.h */,
+				3C2A538820AF595400C430F6 /* BREthereumHandshake.h */,
 				3C2A538020AF595400C430F6 /* BREthereumHandshake.c */,
 				3C2A538120AF595400C430F6 /* BREthereumNodeEventHandler.h */,
+				3C2A538A20AF595400C430F6 /* BREthereumNodeEventHandler.c */,
 				3C2A538320AF595400C430F6 /* BREthereumNode.h */,
+				3C2A538C20AF595400C430F6 /* BREthereumNode.c */,
 				3C2A538420AF595400C430F6 /* BREthereumFrameCoder.h */,
+				3C2A538B20AF595400C430F6 /* BREthereumFrameCoder.c */,
+				3C2A538F20AF595400C430F6 /* BREthereumNodeManager.h */,
 				3C2A538520AF595400C430F6 /* BREthereumNodeManager.c */,
+				3C2A538E20AF595400C430F6 /* BREthereumLES.h */,
 				3C2A538620AF595400C430F6 /* BREthereumLES.c */,
 				3C2A538720AF595400C430F6 /* BREthereumLESBase.h */,
-				3C2A538820AF595400C430F6 /* BREthereumHandshake.h */,
-				3C2A538A20AF595400C430F6 /* BREthereumNodeEventHandler.c */,
-				3C2A538B20AF595400C430F6 /* BREthereumFrameCoder.c */,
-				3C2A538C20AF595400C430F6 /* BREthereumNode.c */,
 				3C2A538D20AF595400C430F6 /* BREthereumLESBase.c */,
-				3C2A538E20AF595400C430F6 /* BREthereumLES.h */,
-				3C2A538F20AF595400C430F6 /* BREthereumNodeManager.h */,
 				3C2A538220AF595400C430F6 /* test-les.h */,
 				3C2A538920AF595400C430F6 /* test-les.c */,
 			);
@@ -401,6 +404,8 @@
 				3C2A539220AF595400C430F6 /* BREvent.c */,
 				3C2A539320AF595400C430F6 /* BREventQueue.h */,
 				3C2A539520AF595400C430F6 /* BREventQueue.c */,
+				3C3B37FC20D82335004F9928 /* BREventAlarm.h */,
+				3C3B37FB20D82335004F9928 /* BREventAlarm.c */,
 			);
 			name = event;
 			path = ../../ethereum/event;
@@ -832,6 +837,7 @@
 				3CAB60C820AF8D1A00810CE4 /* BREthereumLES.c in Sources */,
 				3CAB60C920AF8D1A00810CE4 /* BREthereumNodeEventHandler.c in Sources */,
 				3C386DD020C6F5E40065E355 /* BREthereumBCSEvent.c in Sources */,
+				3C3B37FD20D82335004F9928 /* BREventAlarm.c in Sources */,
 				3CAB60CA20AF8D1A00810CE4 /* BREthereumFrameCoder.c in Sources */,
 				3CAB60CB20AF8D1A00810CE4 /* BREthereumNode.c in Sources */,
 				3CAB60CC20AF8D1A00810CE4 /* BREthereumLESBase.c in Sources */,

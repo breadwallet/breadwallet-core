@@ -89,6 +89,11 @@ struct BREthereumTokenRecord {
     int staticallyAllocated;
 };
 
+extern BREthereumAddress
+tokenGetAddressRaw (BREthereumToken token) {
+    return token->raw;
+}
+
 extern const char *
 tokenGetAddress(BREthereumToken token) {
     return token->address;
@@ -143,12 +148,12 @@ tokenGetContract(BREthereumToken token) {
 static inline size_t
 tokenHashValue (const void *t)
 {
-    return addressRawHashValue(((BREthereumToken) t)->raw);
+    return addressHashValue(((BREthereumToken) t)->raw);
 }
 
 static inline int
 tokenHashEqual (const void *t1, const void *t2) {
-    return addressRawHashEqual(((BREthereumToken) t1)->raw, ((BREthereumToken) t2)->raw);
+    return addressHashEqual(((BREthereumToken) t1)->raw, ((BREthereumToken) t2)->raw);
 }
 
 //
@@ -1654,7 +1659,7 @@ tokenInitializeIfAppropriate (void) {
 
         for (int i = 0; i < count; i++) {
             // TODO: Lowercase tokens[i].address ??
-            tokens[i].raw = addressRawCreate(tokens[i].address);
+            tokens[i].raw = addressCreate(tokens[i].address);
             BRSetAdd(tokenSet, &tokens[i]);
         }
     }
@@ -1662,15 +1667,15 @@ tokenInitializeIfAppropriate (void) {
 
 extern BREthereumToken
 tokenLookupByAddress (BREthereumAddress address) {
+    tokenInitializeIfAppropriate();
     return (BREthereumToken) BRSetGet(tokenSet, &address);
 }
 
 extern BREthereumToken
 tokenLookup(const char *address) {
-    tokenInitializeIfAppropriate();
     return ((NULL == address || '\0' == address[0])
             ? NULL
-            : tokenLookupByAddress(addressRawCreate(address)));    // TODO: Lowercase address ??
+            : tokenLookupByAddress(addressCreate(address)));
 
 }
 
