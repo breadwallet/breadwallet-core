@@ -1850,10 +1850,26 @@ runBlockTest1 () {
     }
 }
 
+static void
+runBlockCheckpointTest (void) {
+    const BREthereumBlockCheckpoint *cp1;
+    BREthereumBlockHeader hd1;
+
+    cp1 = blockCheckpointLookupLatest(ethereumMainnet);
+    assert (5750000 == cp1->number);
+
+    hd1 = blockCheckpointCreatePartialBlockHeader(cp1);
+    assert (cp1->number == blockHeaderGetNumber(hd1));
+    assert (cp1->timestamp == blockHeaderGetTimestamp(hd1));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(cp1->hash, blockHeaderGetHash(hd1))));
+    blockHeaderRelease(hd1);
+}
+
 extern void
 runBlockTests (void) {
     runBlockTest0();
     runBlockTest1();
+    runBlockCheckpointTest ();
 }
 
 /*  Ehtereum Java

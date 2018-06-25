@@ -93,13 +93,13 @@ transactionReceiptMatchAddress (BREthereumTransactionReceipt receipt,
 //
 static BRRlpItem
 transactionReceiptLogsRlpEncodeItem (BREthereumTransactionReceipt log,
-                        BRRlpCoder coder) {
+                                     BRRlpCoder coder) {
     size_t itemsCount = array_count(log->logs);
     BRRlpItem items[itemsCount];
-
+    
     for (int i = 0; i < itemsCount; i++)
         items[i] = logRlpEncodeItem(log->logs[i], coder);
-
+    
     return rlpEncodeListItems(coder, items, itemsCount);
 }
 
