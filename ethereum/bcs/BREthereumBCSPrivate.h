@@ -36,7 +36,25 @@
 extern "C" {
 #endif
 
+typedef enum {
+    ACTIVE_BLOCK_PENDING_BODIES,
+    ACTIVE_BLOCK_PENDING_RECEIPTS,
+    ACTIVE_BLOCK_PENDING_ACCOUNT
+} BREthereumBCSActiveBlockState;
+
+typedef struct {
+    BREthereumHash hash;
+    BREthereumBlock block;
+    BREthereumLog *logs;
+    BREthereumAccountState accountState;
+    BREthereumBCSActiveBlockState state;
+} BREthereumBCSActiveBlock;
+
+/**
+ *
+ */
 struct BREthereumBCSStruct {
+
     /**
      * The network
      */
@@ -126,6 +144,7 @@ struct BREthereumBCSStruct {
      * we continue asking for status.
      */
     BREthereumHash *pendingTransactions;
+    // TODO: pendingLogs
 
     /**
      * A BRSet of transactions for account.
@@ -141,6 +160,11 @@ struct BREthereumBCSStruct {
      * The Account State
      */
     BREthereumAccountState accountState;
+
+    /**
+     * The Array of Active Blocks
+     */
+    BREthereumBCSActiveBlock *activeBlocks;
 
     int syncActive;
     uint64_t syncTail;
@@ -281,6 +305,17 @@ bcsSignalLog (BREthereumBCS bcs,
               BREthereumHash blockHash,
               BREthereumHash transactionHash,
               BREthereumLog log);
+
+//
+// Active Block
+//
+extern BREthereumBCSActiveBlock *
+bcsLookupActiveBlock (BREthereumBCS bcs,
+                      BREthereumHash hash);
+
+extern void
+bcsReleaseActiveBlock (BREthereumBCS bcs,
+                       BREthereumHash hash);
 
 #ifdef __cplusplus
 }

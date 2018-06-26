@@ -154,9 +154,12 @@ addressGetHash (BREthereumAddress address) {
 
 extern BREthereumAddress
 addressRlpDecode (BRRlpItem item, BRRlpCoder coder) {
-    BREthereumAddress address;
+    BREthereumAddress address = EMPTY_ADDRESS_INIT;
 
     BRRlpData data = rlpDecodeItemBytes(coder, item);
+    if (0 == data.bytesCount)
+        return address;
+
     assert (20 == data.bytesCount);
 
     memcpy (address.bytes, data.bytes, 20);

@@ -1597,8 +1597,11 @@ testReallySend (void) {
 
     ethereumWalletSubmitTransaction(ewm, wallet, tx);
 #endif
-    sleep (60 * 60); // 20 minutes
-
+    unsigned int remaining = 60 * 60;
+    while (remaining) {
+        printf ("***\n*** SLEEPING: %d\n", remaining);
+        remaining = sleep(remaining);
+    }
     ethereumDisconnect(ewm);
     ethereumDestroy(ewm);
     return;
@@ -1856,7 +1859,7 @@ runBlockCheckpointTest (void) {
     BREthereumBlockHeader hd1;
 
     cp1 = blockCheckpointLookupLatest(ethereumMainnet);
-    assert (5750000 == cp1->number);
+//    assert (5750000 == cp1->number);
 
     hd1 = blockCheckpointCreatePartialBlockHeader(cp1);
     assert (cp1->number == blockHeaderGetNumber(hd1));
