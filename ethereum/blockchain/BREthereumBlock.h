@@ -125,7 +125,7 @@ extern unsigned long
 blockGetTransactionsCount (BREthereumBlock block);
 
 extern BREthereumTransaction
-blockGetTransaction (BREthereumBlock block, unsigned int index);
+blockGetTransaction (BREthereumBlock block, size_t index);
 
 extern unsigned long
 blockGetOmmersCount (BREthereumBlock block);

@@ -245,7 +245,7 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t me
         {
            // size_t len = 0;
            // printf("%s", encodeHexCreate(&len, messageBody.bytes, messageBody.bytesCount));
-            rlpShow(messageBody, "LES-RECEIPTS");
+            // rlpShow(messageBody, "LES-RECEIPTS");
             uint64_t reqId = 0, bv = 0;
             BREthereumTransactionReceipt** receipts;
             BREthereumLESDecodeStatus status = ethereumLESDecodeReceipts(messageBody.bytes, messageBody.bytesCount, &reqId, &bv, &receipts);

@@ -748,9 +748,7 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
     // Check the transactions one-by-one.
     for (int i = 0; i < array_count(transactions); i++) {
         BREthereumTransaction tx = transactions[i];
-
-        // We'll get a NULL tx if it is a token transfer that we know nothing about.
-        if (NULL == tx) continue;
+        assert (NULL != tx);
         
         // If it is our transaction (as source or target), handle it.
         if (ETHEREUM_BOOLEAN_IS_TRUE(transactionHasAddress(tx, bcs->address))) {
@@ -758,6 +756,8 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
 
             eth_log("BCS", " Bodies %llu Found Transaction at (%d)",
                     blockHeaderGetNumber(header), i);
+
+            // TODO: THIS COULD BE A DUPLICATE TRANSACTION (already in another block)
 
             // Save the transaction
             BRSetAdd(bcs->transactions, tx);
@@ -938,6 +938,7 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
 // MARK: - Transaction Receipts
 //
 
+/*
 static BREthereumTransaction
 bcsHandleLogCreateTransaction (BREthereumBCS bcs,
                                BREthereumLog log,
@@ -962,8 +963,8 @@ bcsHandleLogCreateTransaction (BREthereumBCS bcs,
                              gasPrice,
                              gasLimit,
                              0);
-
 }
+ */
 
 static BREthereumBoolean
 bcsHandleLogExtractInterest (BREthereumBCS bcs,
@@ -1011,40 +1012,32 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
             array_count(receipts));
 
     size_t receiptsCount = array_count(receipts);
-    for (int i = 0; i < receiptsCount; i++) {
+    for (size_t i = 0; i < receiptsCount; i++) {
         BREthereumTransactionReceipt receipt = receipts[i];
-        if (transactionReceiptMatch(receipt, bcs->filterForAddressOnLogs)) {
+        if (ETHEREUM_BOOLEAN_IS_TRUE (transactionReceiptMatch(receipt, bcs->filterForAddressOnLogs))) {
             BREthereumTransaction transaction = blockGetTransaction(activeBlock->block, i);
-            if (NULL == transaction) continue;
+            assert (NULL != transaction);
 
             size_t logsCount = transactionReceiptGetLogsCount(receipt);
             for (size_t index = 0; index < logsCount; index++) {
                 BREthereumLog log = transactionReceiptGetLog(receipt, index);
-                logSetHash(log, transactionGetHash(transaction));
 
-                BREthereumToken token;
-                BREthereumContractEvent tokenEvent;
+                // If `log` topics match our address....
+                if (ETHEREUM_BOOLEAN_IS_TRUE (logMatchesAddress(log, bcs->address, ETHEREUM_BOOLEAN_TRUE))) {
+                    logAssignStatus (log, transactionGetHash(transaction), index);
 
-                // If `log` is of interest...
-                if (ETHEREUM_BOOLEAN_IS_TRUE
-                    (bcsHandleLogExtractInterest(bcs, log, &token, &tokenEvent))) {
-
-                    eth_log("BCS", "Receipts %llu Found Log at (%d, %lu)",
+                    eth_log("BCS", "Receipts %llu Found Log at (%lu, %lu)",
                             blockHeaderGetNumber(header), i, index);
+
+                    // TODO: THIS COULD BE A DUPLICATE LOG (already in another block)
 
                     BRSetAdd(bcs->logs, log);
 
-                    // Create a private transaction
-                    BREthereumTransaction logTransfer = bcsHandleLogCreateTransaction(bcs, log, token);
-
-                    // Announce the transaction
-                    transactionSetStatus(logTransfer,
-                                         transactionStatusCreateIncluded(gasCreate(0),
-                                                                         blockHeaderGetHash(header),
-                                                                         blockHeaderGetNumber(header),
-                                                                         i));
-                    bcs->listener.transactionCallback (bcs->listener.context, logTransfer);
+                    bcs->listener.logCallback (bcs->listener.context, log);
                 }
+
+                // else are we intereted in contract matches?  To 'estimate Gas'?  If so, check
+                // logic elsewhere to avoid excluding logs.
             }
         }
     }

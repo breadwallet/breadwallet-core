@@ -99,6 +99,7 @@ createEWM (BREthereumNetwork network,
         (BREthereumBCSListenerNonceCallback) ewmSignalNonce,
         (BREthereumBCSListenerBalanceCallback) ewmSignalBalance,
         (BREthereumBCSListenerTransactionCallback) ewmSignalTransaction,
+        (BREthereumBCSListenerLogCallback) ewmSignalLog,
         (BREthereumBCSListenerBlockchainCallback) ewmBlockchainCallback
     };
 
@@ -496,6 +497,11 @@ ewmHandleTransaction (BREthereumEWM ewm,
      break;
      }
      */
+}
+
+extern void
+ewmHandleLog (BREthereumEWM ewm,
+                      BREthereumLog log) {
 }
 
 //

@@ -65,12 +65,13 @@ logTopicAsAddress (BREthereumLogTopic topic);
 //
 typedef struct BREthereumLogRecord *BREthereumLog;
 
+extern void
+logAssignStatus (BREthereumLog log,
+                 BREthereumHash transactionHash,
+                 size_t transactionReceiptIndex);
+    
 extern BREthereumHash
 logGetHash (BREthereumLog log);
-
-extern void
-logSetHash (BREthereumLog log,
-            BREthereumHash hash);
 
 extern BREthereumAddress
 logGetAddress (BREthereumLog log);

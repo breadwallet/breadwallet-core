@@ -26,6 +26,28 @@
 #include "BRArray.h"
 #include "BREthereumLog.h"
 
+/**
+ * A Log *cannot* be identified by its associated transaction (hash) - because one transaction
+ * can result in multiple Logs (even identical Logs: address, topics, etc).
+ *
+ * Imagine a Block that includes a Log of interest is announced and chained.  The Log is 'included'.
+ * Later another Block arrives with the same Log - the original Log is now 'pending' and the new
+ * Log is 'included'.   How do we know that the two Logs are identical?  If we can't tell, then
+ * two will be reported to the User - one as included, one as pending - when instead the pending
+ * one, being identical, should just be reported as included.
+ *
+ * We have the same issue with transactions.  When a transaction is pending and a new block is
+ * announced we search the pending transactions for a matching hash - if found we update the
+ * transation to included.
+ *
+ * Referring to the Ethereum Yellow Paper, it appears that the only way to disambiguate Logs is
+ * using the pair {Transaction-Hash, Receipt-Index}.  [One asumption here is that a given
+ * transaction's contract execution must produced Logs is an deterministic order.]
+ *
+ * General Note: We only see Logs when they are included in a Block.  For every Log we thus know:
+ * Block (hash, number, ...), TransactionHash, TransactionIndex, ReceiptIndex.  The 'same' Log
+ * my have a different Block and TransactionIndex.
+ */
 static BREthereumLogTopic empty;
 
 //
@@ -73,7 +95,7 @@ logTopicAsString (BREthereumLogTopic topic) {
     BREthereumLogTopicString string;
     string.chars[0] = '0';
     string.chars[1] = 'x';
-    encodeHex(&string.chars[2], 64, topic.bytes, 32);
+    encodeHex(&string.chars[2], 65, topic.bytes, 32);
     return string;
 }
 
@@ -108,13 +130,37 @@ logTopicRlpEncodeItem(BREthereumLogTopic topic,
 static BREthereumLogTopic emptyTopic;
 
 //
+// Etheum Log Status
+//
+typedef struct {
+    BREthereumHash transactionHash;
+    size_t transactionReceiptIndex;
+    // block hash?
+} BREthereumLogStatus;
+
+static BREthereumHash
+logStatusCreateHash (BREthereumLogStatus *status) {
+    BRRlpData data = { sizeof (BREthereumLogStatus), (uint8_t*) status };
+    return hashCreateFromData(data);
+}
+
+static void
+logStatusFill (BREthereumLogStatus *status,
+               BREthereumHash transactionHash,
+               size_t transactionReceiptIndex) {
+    status->transactionHash = transactionHash;
+    status->transactionReceiptIndex = transactionReceiptIndex;
+}
+
+//
 // Ethereum Log
 //
 // A log entry, O, is:
 struct BREthereumLogRecord {
     // THIS MUST BE FIRST to support BRSet operations.
     /**
-     * The hash of the transaction that originated this log
+     * The hash - computed from the pair {Transaction-Hash, Receipt-Index} using
+     * BREthereumLogStatus
      */
     BREthereumHash hash;
 
@@ -127,17 +173,22 @@ struct BREthereumLogRecord {
     // and some number of bytes of data, Od
     uint8_t *data;
     uint8_t dataCount;
+
+    // status
+    BREthereumLogStatus status;
 };
+
+extern void
+logAssignStatus (BREthereumLog log,
+                 BREthereumHash transactionHash,
+                 size_t transactionReceiptIndex) {
+    logStatusFill(&log->status, transactionHash, transactionReceiptIndex);
+    log->hash = logStatusCreateHash(&log->status);
+}
 
 extern BREthereumHash
 logGetHash (BREthereumLog log) {
     return log->hash;
-}
-
-extern void
-logSetHash (BREthereumLog log,
-            BREthereumHash hash) {
-    log->hash = hash;
 }
 
 extern BREthereumAddress

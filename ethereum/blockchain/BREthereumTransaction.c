@@ -335,8 +335,7 @@ transactionEncodeAddressForHolding (BREthereumTransaction transaction,
         case AMOUNT_TOKEN: {
             BREthereumToken token = tokenQuantityGetToken (amountGetTokenQuantity(holding));
             BREthereumAddress contractAddress = tokenGetAddressRaw(token);
-            BRRlpItem result = addressRlpEncode(contractAddress, coder);
-            return result;
+            return addressRlpEncode(contractAddress, coder);
         }
     }
 }
@@ -527,6 +526,14 @@ transactionRlpDecodeItem (BRRlpItem item,
         transaction->sourceAddress = transactionExtractAddress(transaction, network);
     }
 
+
+    // With a SIGNED RLP encoding, we can compute the hash.
+    if (SIGNATURE_TYPE_RECOVERABLE == transaction->signature.type) {
+        BRRlpData result;
+        rlpDataExtract(coder, item, &result.bytes, &result.bytesCount);
+        transaction->hash = hashCreateFromData(result);
+        rlpDataRelease(result);
+    }
     return transaction;
 }
 

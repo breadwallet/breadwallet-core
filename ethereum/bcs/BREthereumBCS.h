@@ -55,6 +55,10 @@ typedef void
                                              BREthereumTransaction transaction);
 
 typedef void
+(*BREthereumBCSListenerLogCallback) (BREthereumBCSListenerContext context,
+                                     BREthereumLog log);
+
+typedef void
 (*BREthereumBCSListenerBlockchainCallback) (BREthereumBCSListenerContext context,
                                             BREthereumHash headBlockHash,
                                             uint64_t headBlockNumber,
@@ -65,6 +69,7 @@ typedef struct {
     BREthereumBCSListenerNonceCallback nonceCallback;
     BREthereumBCSListenerBalanceCallback balanceCallback;
     BREthereumBCSListenerTransactionCallback transactionCallback;
+    BREthereumBCSListenerLogCallback logCallback;
     BREthereumBCSListenerBlockchainCallback blockChainCallback;
     // ...
 } BREthereumBCSListener;
@@ -82,6 +87,9 @@ extern BREthereumBCS
 bcsCreate (BREthereumNetwork network,
            BREthereumAccount account,
            BREthereumBlockHeader *headers,
+           // transactions
+           // logs
+           // peers
            BREthereumBCSListener listener);
 
 extern void
