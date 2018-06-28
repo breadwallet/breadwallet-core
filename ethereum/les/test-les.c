@@ -594,6 +594,7 @@ static void run_GetProofsV2_Tests(BREthereumLES les){
     BRKeccak256(key.bytes, address.bytes, sizeof(address.bytes));
     
     memset(key.bytes, 0, 32);
+    memset(key2.bytes, 0, 32);
     
     assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block_5503921, key, key2, 0) == LES_SUCCESS);
     

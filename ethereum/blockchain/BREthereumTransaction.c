@@ -307,10 +307,13 @@ transactionExtractAddress(BREthereumTransaction transaction,
     int success = 1;
     BRRlpData unsignedRLPData = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
 
-    return signatureExtractAddress(transaction->signature,
+    BREthereumAddress address = signatureExtractAddress(transaction->signature,
                                    unsignedRLPData.bytes,
                                    unsignedRLPData.bytesCount,
                                    &success);
+    
+    rlpDataRelease(unsignedRLPData);
+    return address;
 }
 
 //
@@ -335,8 +338,7 @@ transactionEncodeAddressForHolding (BREthereumTransaction transaction,
         case AMOUNT_TOKEN: {
             BREthereumToken token = tokenQuantityGetToken (amountGetTokenQuantity(holding));
             BREthereumAddress contractAddress = tokenGetAddressRaw(token);
-            BRRlpItem result = addressRlpEncode(contractAddress, coder);
-            return result;
+            return addressRlpEncode(contractAddress, coder);
         }
     }
 }
@@ -517,16 +519,26 @@ transactionRlpDecodeItem (BRRlpItem item,
         assert (32 >= rData.bytesCount);
         memcpy (&transaction->signature.sig.recoverable.r[32 - rData.bytesCount],
                 rData.bytes, rData.bytesCount);
+        rlpDataRelease(rData);
 
         BRRlpData sData = rlpDecodeItemBytes (coder, items[8]);
         assert (32 >= sData.bytesCount);
         memcpy (&transaction->signature.sig.recoverable.s[32 - sData.bytesCount],
                 sData.bytes, sData.bytesCount);
+        rlpDataRelease(sData);
 
         // :fingers-crossed:
         transaction->sourceAddress = transactionExtractAddress(transaction, network);
     }
 
+
+    // With a SIGNED RLP encoding, we can compute the hash.
+    if (SIGNATURE_TYPE_RECOVERABLE == transaction->signature.type) {
+        BRRlpData result;
+        rlpDataExtract(coder, item, &result.bytes, &result.bytesCount);
+        transaction->hash = hashCreateFromData(result);
+        rlpDataRelease(result);
+    }
     return transaction;
 }
 
@@ -542,6 +554,12 @@ transactionDecodeRLP (BREthereumNetwork network,
 
     rlpCoderRelease(coder);
     return transaction;
+}
+
+extern void
+transactionRelease (BREthereumTransaction transaction) {
+    if (NULL != transaction->data && '\0' != transaction->data[0]) free (transaction->data);
+    free (transaction);
 }
 
 //

@@ -251,6 +251,17 @@ extern void
 ewmSignalTransaction (BREthereumEWM ewm,
                       BREthereumTransaction transaction);
 
+//
+// Signal/Handle Log
+//
+extern void
+ewmHandleLog (BREthereumEWM ewm,
+              BREthereumLog log);
+
+extern void
+ewmSignalLog (BREthereumEWM ewm,
+              BREthereumLog log);
+
 // =============================================================================================
 //
 // Listener Callbacks

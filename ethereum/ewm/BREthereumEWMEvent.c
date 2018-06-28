@@ -430,6 +430,34 @@ ewmSignalTransaction (BREthereumEWM ewm,
     eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
 }
 
+// ==============================================================================================
+//
+// Handle Log
+//
+typedef struct {
+    BREvent base;
+    BREthereumEWM ewm;
+    BREthereumLog log;
+} BREthereumHandleLogEvent;
+
+static void
+ewmHandleLogEventDispatcher(BREventHandler ignore,
+                            BREthereumHandleLogEvent *event) {
+    ewmHandleLog(event->ewm, event->log);
+}
+
+BREventType handleLogEventType = {
+    "EWM: Handle Log Event",
+    sizeof (BREthereumHandleLogEvent),
+    (BREventDispatcher) ewmHandleLogEventDispatcher
+};
+
+extern void
+ewmSignalLog (BREthereumEWM ewm,
+              BREthereumLog log) {
+    BREthereumHandleLogEvent event = { { NULL, &handleLogEventType }, ewm, log };
+    eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
+}
 
 // ==============================================================================================
 //
@@ -440,6 +468,7 @@ const BREventType *handlerEventTypes[] = {
     &handleNonceEventType,
     &handleGasPriceEventType,
     &handleGasEstimateEventType,
+    &handleLogEventType,
     &handleTransactionEventType
 };
 const unsigned int handlerEventTypesCount = 5;

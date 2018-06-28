@@ -1018,12 +1018,27 @@ void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network)
     free (rawTx);
 }
 
+#define TEST_TRANS4_SIGNED_TX "f8a90184773594008301676094dd974d5c2e2928dea5f71b9825b8b646686bd20080b844a9059cbb00000000000000000000000049f4c50d9bcc7afdbcf77e0d6e364c29d5a660df00000000000000000000000000000000000000000000000002c68af0bb14000025a09d4477bf97f638e1007d897bfd29a2053e2187a6d92c0e186ec98d81d291bf87a07f8c9e24255970b6282d3a21aa146add70b65f74a463eac54b2b11015bc37fbe"
+#define TEST_TRANS4_HASH "0xe5a045bdd432a8edc345ff830641d1b75847ab5c9d8380241323fa4c9e6cee1e"
+
+void runTransactionTests4 (BREthereumAccount account, BREthereumNetwork network) {
+    printf ("     TEST 4\n");
+
+    BRRlpData data;
+    data.bytes = decodeHexCreate(&data.bytesCount, TEST_TRANS4_SIGNED_TX, strlen (TEST_TRANS4_SIGNED_TX));
+
+    BREthereumTransaction tx = transactionDecodeRLP(network, TRANSACTION_RLP_SIGNED, data);
+    assert (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual(transactionGetHash(tx), hashCreate(TEST_TRANS4_HASH))));
+    rlpDataRelease(data);
+}
+
 void runTransactionTests (BREthereumAccount account, BREthereumNetwork network) {
     printf ("\n== Transaction\n");
     
     runTransactionTests1 (account, network);
     runTransactionTests2 (account, network);
     runTransactionTests3 (account, network);
+    runTransactionTests4 (account, network);
 }
 
 //
@@ -1145,13 +1160,13 @@ void testTransactionCodingToken () {
     assert (ETHEREUM_COMPARISON_EQ == gasCompare(transactionGetGasLimit(transaction),
                                                  transactionGetGasLimit(decodedTransaction)));
     int typeMismatch = 0;
+#if defined (TRANSACTION_ENCODE_TOKEN)
     assert (ETHEREUM_COMPARISON_EQ == amountCompare(transactionGetAmount(transaction),
                                                     transactionGetAmount(decodedTransaction),
                                                     &typeMismatch));
-
     assert (ETHEREUM_BOOLEAN_TRUE == addressEqual(transactionGetTargetAddress(transaction),
                                                      transactionGetTargetAddress(decodedTransaction)));
-
+#endif
     // Signature
     assert (ETHEREUM_BOOLEAN_TRUE == signatureEqual(transactionGetSignature (transaction),
                                                     transactionGetSignature (decodedTransaction)));
@@ -1324,6 +1339,7 @@ clientGetLogs (BREthereumClientContext context,
                           "0x1e487e",
                           "0x",
                           "0x59fa1ac9");
+    free (address);
 }
 
 static void
@@ -1597,8 +1613,11 @@ testReallySend (void) {
 
     ethereumWalletSubmitTransaction(ewm, wallet, tx);
 #endif
-    sleep (60 * 60); // 20 minutes
-
+    unsigned int remaining = 60 * 60;
+    while (remaining) {
+        printf ("***\n*** SLEEPING: %d\n", remaining);
+        remaining = sleep(remaining);
+    }
     ethereumDisconnect(ewm);
     ethereumDestroy(ewm);
     return;
@@ -1850,10 +1869,26 @@ runBlockTest1 () {
     }
 }
 
+static void
+runBlockCheckpointTest (void) {
+    const BREthereumBlockCheckpoint *cp1;
+    BREthereumBlockHeader hd1;
+
+    cp1 = blockCheckpointLookupLatest(ethereumMainnet);
+//    assert (5750000 == cp1->number);
+
+    hd1 = blockCheckpointCreatePartialBlockHeader(cp1);
+    assert (cp1->number == blockHeaderGetNumber(hd1));
+    assert (cp1->timestamp == blockHeaderGetTimestamp(hd1));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(cp1->hash, blockHeaderGetHash(hd1))));
+    blockHeaderRelease(hd1);
+}
+
 extern void
 runBlockTests (void) {
     runBlockTest0();
     runBlockTest1();
+    runBlockCheckpointTest ();
 }
 
 /*  Ehtereum Java

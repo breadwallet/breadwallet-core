@@ -167,6 +167,7 @@ typedef void (*BREthereumListenerTransactionEventHandler)(BREthereumListenerCont
 typedef enum {
     PEER_EVENT_X,
     PEER_EVENT_Y
+    // added/removed/updated
 } BREthereumPeerEvent;
 
 #define PEER_NUMBER_OF_EVENTS   (1 + PEER_EVENT_Y)
@@ -184,6 +185,8 @@ typedef void (*BREthereumListenerPeerEventHandler)(BREthereumListenerContext con
 typedef enum {
     EWM_EVENT_X,
     EWM_EVENT_Y
+    // sync started/stopped
+    // netowrk available/unavailable
 } BREthereumEWMEvent;
 
 #define EWM_NUMBER_OF_EVENTS   (1 + EWM_EVENT_Y)
@@ -219,7 +222,7 @@ ewmRemoveListener (BREthereumEWM ewm,
 //
 // Type definitions for callback functions.  When configuring a EWM these functions must be
 // provided.  A EWM has limited cababilities; these callbacks provide data back into the
-// EWM.
+// EWM or request certain data be saved to reestablish EWM state on start.
 //
 typedef void *BREthereumClientContext;
 
@@ -292,10 +295,20 @@ typedef struct {
     BREthereumClientHandlerGetGasPrice funcGetGasPrice;
     BREthereumClientHandlerEstimateGas funcEstimateGas;
     BREthereumClientHandlerSubmitTransaction funcSubmitTransaction;
+    //
+    // announce all-at-once both transactions and logs
+    //    based on some 'DTO' (property list?  ["hash=0x....", "number=0xabc", ...]
+    //    or based on an RLP-pair [hash="0x...", data="0x<rlp>"]
+    //      with a 'helper' (values -> rlp) - enough context for 'log'??
+    //
     BREthereumClientHandlerGetTransactions funcGetTransactions;
     BREthereumClientHandlerGetLogs funcGetLogs;
     BREthereumClientHandlerGetBlockNumber funcGetBlockNumber;
     BREthereumClientHandlerGetNonce funcGetNonce;
+    // savePeers
+    // saveBlocks
+    // updateLogs  (add/rem/upd)
+    // updateTransactions (add/rem/upd)
 } BREthereumClient;
 
 

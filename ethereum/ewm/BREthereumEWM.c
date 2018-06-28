@@ -99,11 +99,22 @@ createEWM (BREthereumNetwork network,
         (BREthereumBCSListenerNonceCallback) ewmSignalNonce,
         (BREthereumBCSListenerBalanceCallback) ewmSignalBalance,
         (BREthereumBCSListenerTransactionCallback) ewmSignalTransaction,
+        (BREthereumBCSListenerLogCallback) ewmSignalLog,
         (BREthereumBCSListenerBlockchainCallback) ewmBlockchainCallback
     };
-    
-    ewm->bcs = bcsCreate(network, account, /* blockHeaders */ NULL, listener);
-    
+
+    {
+        BREthereumBlockHeader *headers;
+        BREthereumBlockHeader lastCheckpointHeader = blockCheckpointCreatePartialBlockHeader(blockCheckpointLookupLatest(network));
+
+        array_new(headers, 1);
+        array_add(headers, lastCheckpointHeader);
+
+        ewm->bcs = bcsCreate(network, account, headers, listener);
+
+        array_free(headers);
+    }
+
     array_new(ewm->wallets, DEFAULT_WALLET_CAPACITY);
     array_new(ewm->transactions, DEFAULT_TRANSACTION_CAPACITY);
     array_new(ewm->blocks, DEFAULT_BLOCK_CAPACITY);
@@ -486,6 +497,11 @@ ewmHandleTransaction (BREthereumEWM ewm,
      break;
      }
      */
+}
+
+extern void
+ewmHandleLog (BREthereumEWM ewm,
+                      BREthereumLog log) {
 }
 
 //

@@ -26,6 +26,7 @@
 #ifndef BR_Ethereum_Block_H
 #define BR_Ethereum_Block_H
 
+#include <limits.h>
 #include "../base/BREthereumBase.h"
 #include "BREthereumTransaction.h"
 #include "BREthereumBloomFilter.h"
@@ -124,7 +125,7 @@ extern unsigned long
 blockGetTransactionsCount (BREthereumBlock block);
 
 extern BREthereumTransaction
-blockGetTransaction (BREthereumBlock block, unsigned int index);
+blockGetTransaction (BREthereumBlock block, size_t index);
 
 extern unsigned long
 blockGetOmmersCount (BREthereumBlock block);
@@ -180,7 +181,33 @@ extern const BREthereumBlockHeader ethereumRinkebyBlockHeader;
 
 extern const BREthereumBlockHeader
 networkGetGenesisBlockHeader (BREthereumNetwork network);
-    
+
+//
+// Checkpoint
+//
+typedef struct {
+    uint64_t number;
+    BREthereumHash hash;
+    uint64_t timestamp;
+} BREthereumBlockCheckpoint;
+
+#define BLOCK_CHECKPOINT_LAST_NUMBER      (UINT64_MAX)
+#define BLOCK_CHECKPOINT_LAST_TIMESTAMP   (UINT64_MAX)
+
+extern const BREthereumBlockCheckpoint *
+blockCheckpointLookupLatest (BREthereumNetwork network);
+
+extern const BREthereumBlockCheckpoint *
+blockCheckpointLookupByNumber (BREthereumNetwork network,
+                               uint64_t number);
+
+extern const BREthereumBlockCheckpoint *
+blockCheckpointLookupByTimestamp (BREthereumNetwork network,
+                                  uint64_t timestamp);
+
+extern BREthereumBlockHeader
+blockCheckpointCreatePartialBlockHeader (const BREthereumBlockCheckpoint *checkpoint);
+
 #ifdef __cplusplus
 }
 #endif

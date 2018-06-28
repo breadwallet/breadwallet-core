@@ -444,6 +444,8 @@ coderEncodeList (BRRlpCoder coder, BRRlpItem *items, size_t itemsCount) {
                                                                   coderEncodeLength(coder, bytesCount, RLP_PREFIX_LIST),
                                                                   createContextItem(coder, bytes, bytesCount, 1),
                                                                   1));
+
+    if (0 == bytesCount) free (bytes);
     
     return createContextList(coder,
                              encodedBytesContext.bytes,
@@ -672,7 +674,7 @@ createRlpDataEmpty (void) {
 
 extern void
 rlpDataRelease (BRRlpData data) {
-    if (NULL != data.bytes && '\0' != data.bytes[0]) free (data.bytes);
+    if (NULL != data.bytes) free (data.bytes);
     data.bytesCount = 0;
     data.bytes = NULL;
 }
