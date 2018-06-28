@@ -31,6 +31,18 @@
 #include "BREthereumLog.h"
 #include "../BREthereumPrivate.h"
 
+#define BLOCK_LOG_ALLOC_COUNT
+
+#if defined (BLOCK_LOG_ALLOC_COUNT)
+static unsigned int blockAllocCount = 0;
+#endif
+
+#define BLOCK_HEADER_LOG_ALLOC_COUNT
+
+#if defined (BLOCK_HEADER_LOG_ALLOC_COUNT)
+static unsigned int blockHeaderAllocCount = 0;
+#endif
+
 // GETH:
 /*
  type Header struct {
@@ -147,6 +159,11 @@ createBlockHeaderMinimal (BREthereumHash hash, uint64_t number, uint64_t timesta
     header->number = number;
     header->timestamp = timestamp;
     header->hash = hash;
+
+#if defined (BLOCK_HEADER_LOG_ALLOC_COUNT)
+    eth_log ("BCS", "Block Header Create Minimal: %d", ++blockHeaderAllocCount);
+#endif
+
     return header;
 }
 
@@ -159,12 +176,36 @@ createBlockHeader (void) {
 
     // transactionRoot, receiptsRoot
     //         EMPTY_TRIE_HASH = sha3(RLP.encodeElement(EMPTY_BYTE_ARRAY));
+#if defined (BLOCK_HEADER_LOG_ALLOC_COUNT)
+    eth_log ("BCS", "Block Header Create Empty: %d", ++blockHeaderAllocCount);
+#endif
+
+    return header;
+}
+
+extern BREthereumBlockHeader
+blockHeaderCopy (BREthereumBlockHeader source) {
+    BREthereumBlockHeader header = (BREthereumBlockHeader) calloc (1, sizeof (struct BREthereumBlockHeaderRecord));
+    *header = *source;
+#if defined (BLOCK_HEADER_LOG_ALLOC_COUNT)
+    eth_log ("BCS", "Block Header Copy  %d", ++blockHeaderAllocCount);
+#endif
     return header;
 }
 
 extern void
 blockHeaderRelease (BREthereumBlockHeader header) {
+#if defined (BLOCK_HEADER_LOG_ALLOC_COUNT)
+    eth_log ("BCS", "Block Header Release %d", --blockHeaderAllocCount);
+#endif
+    assert (ETHEREUM_BOOLEAN_IS_FALSE(hashEqual(header->hash, hashCreateEmpty())));
+    memset (header, 0, sizeof(struct BREthereumBlockHeaderRecord));
     free (header);
+}
+
+extern void
+blockHeaderReleaseForSet (void *ignore, void *item) {
+    blockHeaderRelease ((BREthereumBlockHeader) item);
 }
 
 extern BREthereumBoolean
@@ -330,6 +371,14 @@ blockHeaderRlpDecodeItem (BRRlpItem item, BRRlpCoder coder) {
         header->nonce = rlpDecodeItemUInt64(coder, items[14], 0);
     }
 
+#if defined (BLOCK_HEADER_LOG_ALLOC_COUNT)
+    eth_log ("BCS", "Block Header Create RLP: %d", ++blockHeaderAllocCount);
+#endif
+
+    BRRlpData data = rlpGetDataSharedDontRelease(coder, item);
+    header->hash = hashCreateFromData(data);
+    // Safe to ignore data release.
+
     return header;
 
 }
@@ -343,8 +392,8 @@ blockHeaderDecodeRLP (BRRlpData data) {
 
     // The BlockHeader/Block hash is the KECCAK hash of the BlockerHeader's RLP encoding for
     // a BlockHeader with a nonce...
-    if (0 != header->nonce)
-        header->hash = hashCreateFromData (data);
+    //     if (0 != header->nonce)
+    //        header->hash = hashCreateFromData (data);
 
     rlpCoderRelease(coder);
 
@@ -371,6 +420,11 @@ createBlockMinimal(BREthereumHash hash, uint64_t number, uint64_t timestamp) {
     block->header = createBlockHeaderMinimal(hash, number, timestamp);
     array_new(block->ommers, 0);
     array_new(block->transactions, 0);
+
+#if defined (BLOCK_LOG_ALLOC_COUNT)
+    eth_log ("BCS", "Block Create Minimal: %d", ++blockAllocCount);
+#endif
+
     return block;
 }
 
@@ -380,6 +434,8 @@ createBlock (BREthereumBlockHeader header,
              BREthereumTransaction transactions[], size_t transactionCount) {
     BREthereumBlock block = (BREthereumBlock) calloc (1, sizeof (struct BREthereumBlockRecord));
 
+    block->header = blockHeaderCopy(header);
+    
     array_new (block->ommers, ommersCount);
     for (int i = 0; i < ommersCount; i++)
         array_add (block->ommers, ommers[i]);
@@ -387,6 +443,10 @@ createBlock (BREthereumBlockHeader header,
     array_new(block->transactions, transactionCount);
     for (int i = 0; i < transactionCount; i++)
         array_add (block->transactions, transactions[i]);
+
+#if defined (BLOCK_LOG_ALLOC_COUNT)
+    eth_log ("BCS", "Block Create: %d", ++blockAllocCount);
+#endif
 
     return block;
 }
@@ -402,6 +462,10 @@ blockRelease (BREthereumBlock block) {
     for (size_t index = 0; index < array_count(block->transactions); index++)
         transactionRelease(block->transactions[index]);
     array_free(block->transactions);
+
+#if defined (BLOCK_LOG_ALLOC_COUNT)
+    eth_log ("BCS", "Block Release: %d", --blockAllocCount);
+#endif
 
     free (block);
 }
@@ -579,6 +643,10 @@ blockRlpDecodeItem (BRRlpItem item, // network
     block->header = blockHeaderRlpDecodeItem(items[0], coder);
     block->transactions = blockTransactionsRlpDecodeItem(items[1], network, coder);
     block->ommers = blockOmmersRlpDecodeItem(items[2], network, coder);
+
+#if defined (BLOCK_LOG_ALLOC_COUNT)
+    eth_log ("BCS", "Block Create RLP: %d", ++blockAllocCount);
+#endif
 
     return block;
 }
@@ -776,10 +844,16 @@ networkGetGenesisBlockHeader (BREthereumNetwork network) {
         initializeGenesisBlocks();
     }
 
-    if (network == ethereumMainnet) return ethereumMainnetBlockHeader;
-    if (network == ethereumTestnet) return ethereumTestnetBlockHeader;
-    if (network == ethereumRinkeby) return ethereumRinkebyBlockHeader;
-    assert (0);
+    BREthereumBlockHeader genesisHeader =
+    (network == ethereumMainnet
+     ? ethereumMainnetBlockHeader
+     : (network == ethereumTestnet
+        ? ethereumTestnetBlockHeader
+        : (network == ethereumRinkeby
+           ? ethereumRinkebyBlockHeader
+           : NULL)));
+
+    return genesisHeader == NULL ? NULL : blockHeaderCopy(genesisHeader);
 }
 
 static void

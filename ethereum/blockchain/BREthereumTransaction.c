@@ -29,7 +29,13 @@
 #include "BREthereumTransaction.h"
 #include "../BREthereumPrivate.h"
 
+// #define TRANSACTION_LOG_ALLOC_COUNT
+
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
+
+#if defined (TRANSACTION_LOG_ALLOC_COUNT)
+static unsigned int transactionAllocCount = 0;
+#endif
 
 // Forward Declarations
 static void
@@ -113,6 +119,9 @@ transactionCreate(BREthereumAddress sourceAddress,
 
     provideData(transaction);
 
+#if defined (TRANSACTION_LOG_ALLOC_COUNT)
+    eth_log ("BCS", "TX Create - Count: %d", ++transactionAllocCount);
+#endif
     return transaction;
 }
 
@@ -539,6 +548,10 @@ transactionRlpDecodeItem (BRRlpItem item,
         transaction->hash = hashCreateFromData(result);
         rlpDataRelease(result);
     }
+
+#if defined (TRANSACTION_LOG_ALLOC_COUNT)
+    eth_log ("BCS", "TX RLPDecode - Count: %d", ++transactionAllocCount);
+#endif
     return transaction;
 }
 
@@ -559,7 +572,15 @@ transactionDecodeRLP (BREthereumNetwork network,
 extern void
 transactionRelease (BREthereumTransaction transaction) {
     if (NULL != transaction->data && '\0' != transaction->data[0]) free (transaction->data);
+#if defined (TRANSACTION_LOG_ALLOC_COUNT)
+    eth_log ("BCS", "TX Release - Count: %d", --transactionAllocCount);
+#endif
     free (transaction);
+}
+
+extern void
+transactionReleaseForSet (void *ignore, void *item) {
+    transactionRelease((BREthereumTransaction) item);
 }
 
 //

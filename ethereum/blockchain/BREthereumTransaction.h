@@ -185,6 +185,9 @@ transactionRlpEncodeItem(BREthereumTransaction transaction,
 extern void
 transactionRelease (BREthereumTransaction transaction);
 
+extern void
+transactionReleaseForSet (void *ignore, void *item);
+    
 //
 // Transaction Comparison
 //

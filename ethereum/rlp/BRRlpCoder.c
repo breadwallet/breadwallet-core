@@ -690,6 +690,14 @@ rlpDataExtract (BRRlpCoder coder, BRRlpItem item, uint8_t **bytes, size_t *bytes
     memcpy (*bytes, context.bytes, context.bytesCount);
 }
 
+extern BRRlpData
+rlpGetDataSharedDontRelease (BRRlpCoder coder, BRRlpItem item) {
+    assert (coderIsValidItem(coder, item));
+    BRRlpContext context = coderLookupContext(coder, item);
+    BRRlpData result = { context.bytesCount, context.bytes };
+    return result;
+}
+
 /**
  * Return `data` with `bytes` and bytesCount derived from the bytes[0] and associated length.
  */

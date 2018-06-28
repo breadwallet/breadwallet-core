@@ -294,6 +294,11 @@ logRelease (BREthereumLog log) {
     free (log);
 }
 
+extern void
+logReleaseForSet (void *ignore, void *item) {
+    logRelease((BREthereumLog) item);
+}
+
 extern BREthereumLog
 logCopy (BREthereumLog log) {
     BRRlpCoder coder = rlpCoderCreate();

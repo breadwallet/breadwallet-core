@@ -186,6 +186,11 @@ extern BREthereumTransactionId
 ewmInsertTransaction (BREthereumEWM ewm,
                       BREthereumTransaction transaction);
 
+// TODO : NO, eliminate
+extern void
+ewmDeleteTransaction (BREthereumEWM ewm,
+                      BREthereumTransactionId tid);
+    
 // =============================================================================================
 //
 // LES(BCS)/JSON_RPC Callbacks

@@ -93,6 +93,9 @@ blockHeaderHashValue (const void *h);
 extern int
 blockHeaderHashEqual (const void *h1, const void *h2);    
 
+extern void
+blockHeaderReleaseForSet (void *ignore, void *item);
+
 // Support sorting
 extern BREthereumComparison
 blockHeaderCompare (BREthereumBlockHeader h1,
@@ -110,6 +113,9 @@ extern BREthereumBlock
 createBlock (BREthereumBlockHeader header,
              BREthereumBlockHeader ommers[], size_t ommersCount,
              BREthereumTransaction transactions[], size_t transactionCount);
+
+extern BREthereumBlockHeader
+blockHeaderCopy (BREthereumBlockHeader source);
 
 extern void
 blockRelease (BREthereumBlock block);
@@ -175,10 +181,10 @@ blockTransactionsRlpDecodeItem (BRRlpItem item,
 //
 // Genesis Blocks
 //
-extern const BREthereumBlockHeader ethereumMainnetBlockHeader;
-extern const BREthereumBlockHeader ethereumTestnetBlockHeader;
-extern const BREthereumBlockHeader ethereumRinkebyBlockHeader;
 
+/**
+ * Return a newly-allocaed block header duplicating the genesis block header for `netwrok`.
+ */
 extern const BREthereumBlockHeader
 networkGetGenesisBlockHeader (BREthereumNetwork network);
 

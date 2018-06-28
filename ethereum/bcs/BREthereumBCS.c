@@ -214,10 +214,50 @@ bcsDestroy (BREthereumBCS bcs) {
     // TODO: We'll need to announce things to our `listener`
 
     // Free internal state.
+
+    // Active Block
+    for (size_t index = 0; index < array_count(bcs->activeBlocks); index++)
+        bcsReleaseActiveBlock(bcs, bcs->activeBlocks[index].hash);
+    array_free(bcs->activeBlocks);
+    
+    // Headers
+    BRSetApply(bcs->headers, NULL, blockHeaderReleaseForSet);
     BRSetFree(bcs->headers);
+
+    // Orphans (All are in 'headers')
     BRSetFree(bcs->orphans);
+
+    // Transaction
+    BRSetApply(bcs->transactions, NULL, transactionReleaseForSet);
     BRSetFree(bcs->transactions);
+
+    // Logs
+    BRSetApply(bcs->logs, NULL, logReleaseForSet);
     BRSetFree(bcs->logs);
+
+    /*
+    size_t headersToFreeCount = BRSetCount(bcs->headers);
+    BREthereumBlockHeader headersToFree [headersToFreeCount];
+    BRSetAll(bcs->headers, (void**) headersToFree, headersToFreeCount);
+    BRSetFree(bcs->headers);
+    for (size_t index = 0; index < headersToFreeCount; index++)
+        if (ETHEREUM_BOOLEAN_IS_FALSE (hashEqual(genesisHash, blockHeaderGetHash(headersToFree[index]))))
+            blockHeaderRelease(headersToFree[index]);
+*/
+        /*
+    FOR_SET(BREthereumBlockHeader, header, bcs->orphans)
+        blockHeaderRelease(header);
+    BRSetFree(bcs->orphans);
+
+    FOR_SET(BREthereumTransaction, transaction, bcs->transactions)
+        transactionRelease(transaction);
+    BRSetFree(bcs->transactions);
+
+    FOR_SET(BREthereumLog, log, bcs->logs)
+        logRelease(log);
+    BRSetFree(bcs->logs);
+*/
+    // pending transactions are in bcs->transactions; thus already released.
     array_free(bcs->pendingTransactions);
 
     // Destroy the Event w/ queue
@@ -520,12 +560,14 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
     // level (transactions, receipts, logs), could have changed and thus no processing is needed.
     if (NULL != BRSetGet(bcs->headers, header)) {
         eth_log("BCS", "Header %llu Ignored", blockHeaderGetNumber(header));
+        blockHeaderRelease(header);
         return;
     }
 
     // Ignore the header if it is not valid.
     if (ETHEREUM_BOOLEAN_IS_FALSE(blockHeaderIsValid (header))) {
         eth_log("BCS", "Header %llu Invald", blockHeaderGetNumber(header));
+        blockHeaderRelease(header);
         return;
     }
 
@@ -536,6 +578,7 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
     // If we have a parent, but the block numbers are not consistent, then ignore `header`
     if (NULL != headerParent && blockHeaderGetNumber(header) != 1 + blockHeaderGetNumber(headerParent)) {
         eth_log("BCS", "Header %llu Inconsistent", blockHeaderGetNumber(header));
+        blockHeaderRelease(header);
         return;
     }
 

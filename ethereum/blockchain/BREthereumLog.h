@@ -121,6 +121,9 @@ logDecodeRLP (BRRlpData data);
 extern void
 logRelease (BREthereumLog log);
 
+extern void
+logReleaseForSet (void *ignore, void *item);
+    
 extern BREthereumLog
 logCopy (BREthereumLog log);
 
