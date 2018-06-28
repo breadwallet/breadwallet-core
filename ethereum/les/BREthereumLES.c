@@ -198,10 +198,10 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t me
                         callback(context, headers[i]);
                     }
 
-                    //free(les->requests[requestIndexRm].u.transaction_status.transactions);
                     array_rm(les->requests, requestIndexRm);
                     pthread_mutex_unlock(&les->lock);
                 }
+                array_free (headers);
             }
     
         }
@@ -233,10 +233,12 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t me
                         callback(context, blocks[i],transactions[i],ommers[i]);
                     }
                     
-                    //free(les->requests[requestIndexRm].u.transaction_status.transactions);
+                    array_free(les->requests[requestIndexRm].u.block_bodies.blocks);
                     array_rm(les->requests, requestIndexRm);
                     pthread_mutex_unlock(&les->lock);
                 }
+                array_free (ommers);
+                array_free (transactions);
             } 
         
         }
@@ -268,10 +270,11 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t me
                         callback(context, blocks[i],receipts[i]);
                     }
                     
-                    //free(les->requests[requestIndexRm].u.transaction_status.transactions);
+                    array_free(les->requests[requestIndexRm].u.receipts.blocks);
                     array_rm(les->requests, requestIndexRm);
                     pthread_mutex_unlock(&les->lock);
                 }
+                array_free(receipts);
             }
            
         }
@@ -300,7 +303,7 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t me
                         //Call the callback function once we know what we are getting back. 
                     }
                     
-                    //free(les->requests[requestIndexRm].u.transaction_status.transactions);
+                    array_free(les->requests[requestIndexRm].u.proofsV2.proofRequests);
                     array_rm(les->requests, requestIndexRm);
                     pthread_mutex_unlock(&les->lock);
                 }

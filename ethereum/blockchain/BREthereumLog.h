@@ -118,6 +118,12 @@ logEncodeRLP (BREthereumLog log);
 extern BREthereumLog
 logDecodeRLP (BRRlpData data);
 
+extern void
+logRelease (BREthereumLog log);
+
+extern BREthereumLog
+logCopy (BREthereumLog log);
+
 #ifdef __cplusplus
 }
 #endif

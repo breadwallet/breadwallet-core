@@ -396,6 +396,7 @@ bcsPurgeOrphans (BREthereumBCS bcs,
             if (blockHeaderGetNumber(orphan) < blockNumber) {
                 BRSetRemove(bcs->orphans, orphan);
                 eth_log("BCS", "Header %llu Purged Orphan", blockHeaderGetNumber(orphan));
+                blockHeaderRelease(orphan);
                 keepLooking = 1;
                 break; // FOR_SET
             }
@@ -716,13 +717,13 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
 
     // Ensure we have a header
     BREthereumBlockHeader header = BRSetGet(bcs->headers, &blockHash);
-    if (NULL == header) return;
+    if (NULL == header) return;  // TODO: free {transactions,ommers}
 
     // Ensure we have an active Block
     BREthereumBCSActiveBlock *activeBlock = bcsLookupActiveBlock(bcs, blockHash);
     if (NULL == activeBlock) {
         eth_log ("BCS", "Active Block %llu Missed", blockHeaderGetNumber(header));
-        return;
+        return; // TODO: free {transactions, ommers}
     }
     assert (ACTIVE_BLOCK_PENDING_BODIES == activeBlock->state);
 
@@ -730,6 +731,7 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
             blockHeaderGetNumber(header),
             array_count(transactions));
 
+    // Cannot free {transactions, ommers}
     activeBlock->block = createBlock(header,
                                      ommers, array_count(ommers),
                                      transactions, array_count(transactions));
@@ -752,6 +754,7 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
         
         // If it is our transaction (as source or target), handle it.
         if (ETHEREUM_BOOLEAN_IS_TRUE(transactionHasAddress(tx, bcs->address))) {
+            // TODO: Copy transaction
             hasTransactionOfInterest = 1;
 
             eth_log("BCS", " Bodies %llu Found Transaction at (%d)",
@@ -768,10 +771,13 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
                                        (BREthereumLESTransactionStatusCallback) bcsSignalTransactionStatus,
                                        transactionGetHash(tx));
         }
-        else /* release transaction */ ;
+        //        else transactionRelease(tx);
 
         // TODO: Handle if has a 'contract' address of interest?
     }
+
+    array_free(transactions);
+    array_free(ommers);
 
     if (hasTransactionOfInterest) {
         // TODO: Something interesting for AccountState {balance, nonce}
@@ -1024,6 +1030,7 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
 
                 // If `log` topics match our address....
                 if (ETHEREUM_BOOLEAN_IS_TRUE (logMatchesAddress(log, bcs->address, ETHEREUM_BOOLEAN_TRUE))) {
+                    log = logCopy(log);
                     logAssignStatus (log, transactionGetHash(transaction), index);
 
                     eth_log("BCS", "Receipts %llu Found Log at (%lu, %lu)",
@@ -1040,7 +1047,9 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
                 // logic elsewhere to avoid excluding logs.
             }
         }
+        transactionReceiptRelease(receipt);
     }
+    array_free(receipts);
 
     bcsReleaseActiveBlock(bcs, blockHash);
 }
@@ -1118,5 +1127,8 @@ bcsReleaseActiveBlock (BREthereumBCS bcs,
 
             if (NULL != ab->block) blockRelease(ab->block);
             if (NULL != ab->logs) array_free(ab->logs);
+
+            array_rm (bcs->activeBlocks, index);
+            break;
         }
 }

@@ -118,6 +118,8 @@ logTopicRlpDecodeItem (BRRlpItem item,
     assert (32 == data.bytesCount);
 
     memcpy (topic.bytes, data.bytes, 32);
+    rlpDataRelease(data);
+
     return topic;
 }
 
@@ -283,6 +285,22 @@ logTopicsRlpDecodeItem (BRRlpItem item,
     }
 
     return topics;
+}
+
+extern void
+logRelease (BREthereumLog log) {
+    array_free(log->topics);
+    if (NULL != log->data) free (log->data);
+    free (log);
+}
+
+extern BREthereumLog
+logCopy (BREthereumLog log) {
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem item = logRlpEncodeItem(log, coder);
+    BREthereumLog copy = logRlpDecodeItem(item, coder);
+    rlpCoderRelease(coder);
+    return copy;
 }
 
 //

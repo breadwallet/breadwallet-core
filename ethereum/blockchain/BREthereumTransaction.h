@@ -182,6 +182,9 @@ transactionRlpEncodeItem(BREthereumTransaction transaction,
                          BREthereumTransactionRLPType type,
                          BRRlpCoder coder);
 
+extern void
+transactionRelease (BREthereumTransaction transaction);
+
 //
 // Transaction Comparison
 //

@@ -125,6 +125,8 @@ bloomFilterRlpDecode (BRRlpItem item, BRRlpCoder coder) {
     assert (256 == data.bytesCount);
 
     memcpy (filter.bytes, data.bytes, 256);
+    rlpDataRelease(data);
+    
     return filter;
 }
 

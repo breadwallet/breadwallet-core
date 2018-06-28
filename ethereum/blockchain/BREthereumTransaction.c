@@ -307,10 +307,13 @@ transactionExtractAddress(BREthereumTransaction transaction,
     int success = 1;
     BRRlpData unsignedRLPData = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
 
-    return signatureExtractAddress(transaction->signature,
+    BREthereumAddress address = signatureExtractAddress(transaction->signature,
                                    unsignedRLPData.bytes,
                                    unsignedRLPData.bytesCount,
                                    &success);
+    
+    rlpDataRelease(unsignedRLPData);
+    return address;
 }
 
 //
@@ -516,11 +519,13 @@ transactionRlpDecodeItem (BRRlpItem item,
         assert (32 >= rData.bytesCount);
         memcpy (&transaction->signature.sig.recoverable.r[32 - rData.bytesCount],
                 rData.bytes, rData.bytesCount);
+        rlpDataRelease(rData);
 
         BRRlpData sData = rlpDecodeItemBytes (coder, items[8]);
         assert (32 >= sData.bytesCount);
         memcpy (&transaction->signature.sig.recoverable.s[32 - sData.bytesCount],
                 sData.bytes, sData.bytesCount);
+        rlpDataRelease(sData);
 
         // :fingers-crossed:
         transaction->sourceAddress = transactionExtractAddress(transaction, network);
@@ -549,6 +554,12 @@ transactionDecodeRLP (BREthereumNetwork network,
 
     rlpCoderRelease(coder);
     return transaction;
+}
+
+extern void
+transactionRelease (BREthereumTransaction transaction) {
+    if (NULL != transaction->data && '\0' != transaction->data[0]) free (transaction->data);
+    free (transaction);
 }
 
 //

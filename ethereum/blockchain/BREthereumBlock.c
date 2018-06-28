@@ -323,6 +323,7 @@ blockHeaderRlpDecodeItem (BRRlpItem item, BRRlpCoder coder) {
     memset (header->extraData, 0, 32);
     memcpy (header->extraData, extraData.bytes, extraData.bytesCount);
     header->extraDataCount = extraData.bytesCount;
+    rlpDataRelease(extraData);
 
     if (15 == itemsCount) {
         header->mixHash = hashRlpDecode(items[13], coder);
@@ -393,8 +394,15 @@ createBlock (BREthereumBlockHeader header,
 extern void
 blockRelease (BREthereumBlock block) {
     blockHeaderRelease(block->header);
+
+    for (size_t index = 0; index < array_count(block->ommers); index++)
+        blockHeaderRelease(block->ommers[index]);
     array_free(block->ommers);
+
+    for (size_t index = 0; index < array_count(block->transactions); index++)
+        transactionRelease(block->transactions[index]);
     array_free(block->transactions);
+
     free (block);
 }
 

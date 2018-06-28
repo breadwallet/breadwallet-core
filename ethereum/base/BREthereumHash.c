@@ -93,5 +93,7 @@ hashRlpDecode (BRRlpItem item, BRRlpCoder coder) {
     assert (ETHEREUM_HASH_BYTES == data.bytesCount);
 
     memcpy (hash.bytes, data.bytes, ETHEREUM_HASH_BYTES);
+    rlpDataRelease(data);
+
     return hash;
 }

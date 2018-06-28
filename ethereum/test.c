@@ -1339,6 +1339,7 @@ clientGetLogs (BREthereumClientContext context,
                           "0x1e487e",
                           "0x",
                           "0x59fa1ac9");
+    free (address);
 }
 
 static void

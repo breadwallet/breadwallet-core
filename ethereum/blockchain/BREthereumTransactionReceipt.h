@@ -65,6 +65,9 @@ transactionReceiptDecodeRLP (BRRlpData data);
 extern BRRlpData
 transactionReceiptEncodeRLP (BREthereumTransactionReceipt receipt);
 
+extern void
+transactionReceiptRelease (BREthereumTransactionReceipt receipt);
+    
 #ifdef __cplusplus
 }
 #endif

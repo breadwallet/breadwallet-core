@@ -157,12 +157,12 @@ addressRlpDecode (BRRlpItem item, BRRlpCoder coder) {
     BREthereumAddress address = EMPTY_ADDRESS_INIT;
 
     BRRlpData data = rlpDecodeItemBytes(coder, item);
-    if (0 == data.bytesCount)
-        return address;
+    if (0 != data.bytesCount) {
+        assert (20 == data.bytesCount);
+        memcpy (address.bytes, data.bytes, 20);
+    }
 
-    assert (20 == data.bytesCount);
-
-    memcpy (address.bytes, data.bytes, 20);
+    rlpDataRelease(data);
     return address;
 }
 

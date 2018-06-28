@@ -88,6 +88,15 @@ transactionReceiptMatchAddress (BREthereumTransactionReceipt receipt,
     return transactionReceiptMatch(receipt, logTopicGetBloomFilterAddress(address));
 }
 
+extern void
+transactionReceiptRelease (BREthereumTransactionReceipt receipt) {
+    for (size_t index = 0; index < array_count(receipt->logs); index++)
+        logRelease(receipt->logs[index]);
+    array_free(receipt->logs);
+    rlpDataRelease(receipt->stateRoot);
+    free (receipt);
+}
+
 //
 // Transaction Receipt Logs - RLP Encode/Decode
 //
