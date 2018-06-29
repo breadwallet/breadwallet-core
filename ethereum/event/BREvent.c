@@ -185,7 +185,6 @@ eventHandlerThread (BREventHandler handler) {
 
     // If we have an timeout event dispatcher, then add an alarm.
     if (NULL != handler->timeoutEventType.eventDispatcher) {
-        alarmClockCreateIfNecessary(1);
         alarmClockAddAlarmPeriodic(alarmClock,
                                       (BREventAlarmContext) handler,
                                       (BREventAlarmCallback) eventHandlerAlarmCallback,
@@ -240,6 +239,7 @@ eventHandlerDestroy (BREventHandler handler) {
 //
 extern void
 eventHandlerStart (BREventHandler handler) {
+    alarmClockCreateIfNecessary(1);
     pthread_mutex_lock(&handler->lockOnStartStop);
     if (PTHREAD_NULL == handler->thread) {
         // if (0 != pthread_attr_t (...) && 0 != pthread_attr_...() && ...

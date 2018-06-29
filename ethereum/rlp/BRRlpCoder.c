@@ -153,7 +153,7 @@ struct BRRlpCoderRecord {
     size_t contextsAllocated;
 };
 
-#define CODER_DEFAULT_CONTEXTS 10
+#define CODER_DEFAULT_CONTEXTS 100
 
 extern BRRlpCoder
 rlpCoderCreate (void) {
