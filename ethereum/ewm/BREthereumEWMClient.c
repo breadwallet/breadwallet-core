@@ -374,7 +374,7 @@ ewmAnnounceBlock(BREthereumEWM ewm,
         uint64_t blockNumber = strtoull(strBlockNumber, NULL, 0);
         uint64_t blockTimestamp = strtoull(strBlockTimestamp, NULL, 0);
         
-        block = createBlockMinimal(blockHash, blockNumber, blockTimestamp);
+        block = blockCreateMinimal(blockHash, blockNumber, blockTimestamp);
         
         ewmListenerSignalBlockEvent(ewm, ewmInsertBlock(ewm, block),
                                     BLOCK_EVENT_CREATED,

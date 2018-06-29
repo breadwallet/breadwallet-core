@@ -514,6 +514,7 @@ ewmPeriodicDispatcher (BREventHandler handler,
     BREthereumEWM ewm = (BREthereumEWM) event->context;
     
     if (ewm->state != LIGHT_NODE_CONNECTED) return;
+    if (ewm->type  == NODE_TYPE_LES) return;
     
     ewmUpdateBlockNumber(ewm);
     ewmUpdateNonce(ewm);
@@ -915,11 +916,12 @@ ewmInsertTransaction (BREthereumEWM ewm,
     return tid;
 }
 
-static void
+extern void
 ewmDeleteTransaction (BREthereumEWM ewm,
-                      BREthereumTransaction transaction) {
-    BREthereumTransactionId tid = ewmLookupTransactionId(ewm, transaction);
-    
+                      BREthereumTransactionId tid) {
+    BREthereumTransaction transaction = ewm->transactions[tid];
+    if (NULL == transaction) return;
+
     // Remove from any (and all - should be but one) wallet
     for (int wid = 0; wid < array_count(ewm->wallets); wid++)
         if (walletHasTransaction(ewm->wallets[wid], transaction)) {
@@ -929,6 +931,7 @@ ewmDeleteTransaction (BREthereumEWM ewm,
     
     // Null the ewm's `tid` - MUST NOT array_rm() as all `tid` holders will be dead.
     ewm->transactions[tid] = NULL;
+    transactionRelease(transaction);
 }
 
 

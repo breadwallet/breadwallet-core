@@ -898,6 +898,9 @@ void runTransactionTests1 (BREthereumAccount account, BREthereumNetwork network)
     // Will update gasLimt with margin
     transactionSetGasEstimate(transaction, gasCreate(21000ull));
     assert (((100 + GAS_LIMIT_MARGIN_PERCENT) * 21000ull /100) == transactionGetGasLimit(transaction).amountOfGas);
+
+    walletUnhandleTransaction(wallet, transaction);
+    transactionRelease(transaction);
 }
 
 // https://etherscan.io/tx/0xc070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c
@@ -952,6 +955,8 @@ void runTransactionTests2 (BREthereumAccount account, BREthereumNetwork network)
     rlpShow(data, "Trans2Test");
     rlpDataRelease(data);
 
+    walletUnhandleTransaction(wallet, transaction);
+    transactionRelease(transaction);
 }
 
 /*
@@ -1016,6 +1021,9 @@ void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network)
     printf ("       Tx3 Raw (unsigned): %s\n", rawTx);
     assert (0 == strcasecmp(rawTx, TEST_TRANS3_UNSIGNED_TX));
     free (rawTx);
+
+    walletUnhandleTransaction(wallet, transaction);
+    transactionRelease(transaction);
 }
 
 #define TEST_TRANS4_SIGNED_TX "f8a90184773594008301676094dd974d5c2e2928dea5f71b9825b8b646686bd20080b844a9059cbb00000000000000000000000049f4c50d9bcc7afdbcf77e0d6e364c29d5a660df00000000000000000000000000000000000000000000000002c68af0bb14000025a09d4477bf97f638e1007d897bfd29a2053e2187a6d92c0e186ec98d81d291bf87a07f8c9e24255970b6282d3a21aa146add70b65f74a463eac54b2b11015bc37fbe"
@@ -1030,6 +1038,7 @@ void runTransactionTests4 (BREthereumAccount account, BREthereumNetwork network)
     BREthereumTransaction tx = transactionDecodeRLP(network, TRANSACTION_RLP_SIGNED, data);
     assert (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual(transactionGetHash(tx), hashCreate(TEST_TRANS4_HASH))));
     rlpDataRelease(data);
+    transactionRelease(tx);
 }
 
 void runTransactionTests (BREthereumAccount account, BREthereumNetwork network) {
@@ -1127,6 +1136,10 @@ void testTransactionCodingEther () {
     assert (ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(transactionSourceAddress, decodedTransactionSourceAddress)));
 
     assert (ETHEREUM_BOOLEAN_IS_TRUE(accountHasAddress(account, transactionSourceAddress)));
+
+    walletUnhandleTransaction(wallet, transaction);
+    transactionRelease(transaction);
+    transactionRelease(decodedTransaction);
 }
 
 void testTransactionCodingToken () {
@@ -1170,6 +1183,10 @@ void testTransactionCodingToken () {
     // Signature
     assert (ETHEREUM_BOOLEAN_TRUE == signatureEqual(transactionGetSignature (transaction),
                                                     transactionGetSignature (decodedTransaction)));
+
+    walletUnhandleTransaction(wallet, transaction);
+    transactionRelease(transaction);
+    transactionRelease(decodedTransaction);
 }
 
 
@@ -1613,11 +1630,13 @@ testReallySend (void) {
 
     ethereumWalletSubmitTransaction(ewm, wallet, tx);
 #endif
-    unsigned int remaining = 60 * 60;
+    unsigned int remaining = 2 * 60;
     while (remaining) {
         printf ("***\n*** SLEEPING: %d\n", remaining);
         remaining = sleep(remaining);
     }
+
+    ewmDeleteTransaction(ewm, tx);
     ethereumDisconnect(ewm);
     ethereumDestroy(ewm);
     return;
@@ -1656,6 +1675,7 @@ runEWM_TOKEN_test (const char *paperKey) {
     const char *rawTxSigned = ewmGetTransactionRawDataHexEncoded(ewm, wallet, transaction, "0x");
     printf ("        RawTx  Signed: %s\n", rawTxSigned);
 
+    ewmDeleteTransaction(ewm, transaction);
     ethereumDestroy(ewm);
 }
 
@@ -1808,6 +1828,8 @@ runBlockTest0 (void) {
     rlpShow(data, "BlockTest");
     rlpDataRelease(encodeData);
     rlpDataRelease(data);
+    blockRelease(block);
+    blockHeaderRelease (genesis);
 }
 
 /*
@@ -2046,6 +2068,7 @@ runTests (void) {
     runTransactionStatusTests();
     runTransactionReceiptTests();
     testReallySend();
+    alarmClockDestroy(alarmClock);
     printf ("Done\n");
 }
 

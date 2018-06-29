@@ -32,23 +32,12 @@
 #include "../blockchain/BREthereumBlockChain.h"
 #include "../event/BREvent.h"
 
+#define BRSetOf(type)     BRSet*
+#define BRArrayOf(type)   type*
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef enum {
-    ACTIVE_BLOCK_PENDING_BODIES,
-    ACTIVE_BLOCK_PENDING_RECEIPTS,
-    ACTIVE_BLOCK_PENDING_ACCOUNT
-} BREthereumBCSActiveBlockState;
-
-typedef struct {
-    BREthereumHash hash;
-    BREthereumBlock block;
-    BREthereumLog *logs;
-    BREthereumAccountState accountState;
-    BREthereumBCSActiveBlockState state;
-} BREthereumBCSActiveBlock;
 
 /**
  *
@@ -99,32 +88,37 @@ struct BREthereumBCSStruct {
     BREventHandler handler;
 
     /**
-     * A BRSet holding block headers.  This is *every* header that we are interested in which will
-     * be a small subset of all Ethereum headers.  This set contains:
-     *    - the last N headers in `chain`
-     *    - header checkpoints (including the genesis block)
-     *    - headers containings transactions and logs of interest
-     *    - orphaned headers
+     * A BRSet holding blocks.  This is *every* block that we are interested in which will
+     * be a small subset of all Ethereum block.  This set contains:
+     *    - the last N blocks in `chain`
+     *    - block checkpoints (including the genesis block)
+     *    - blocks containing transactions and logs of interest
+     *    - orphaned block
+     * Some of these block will be 'minimal' - headers not fully reconstituted and w/o ommers
+     * nor transactions.
+     *
+     * Note: Why keep blocks rather then blockHeaders?  We need to associate Logs with the
+     * block (or blockHeader) that generated the Log - we chose block.
      */
-    BRSet *headers;
+    BRSetOf(BREthereumBlock) blocks;
 
     /**
-     * A chain of block headers.  These are 'chained' by the `parentHash`.
+     * A chain of blocks.  These are 'chained' by the `parentHash` using the block's `next` field.
      */
-    BREthereumBlockHeader chain;
+    BREthereumBlock chain;
 
     /**
-     * The block header at the tail of `chain`.  We will not have a block header for this
-     * header's parent.
+     * The block at the tail of `chain`.  We will not have a block for this header's parent and
+     * the block's `next` field will be BLOCK_NEXT_NULL.
      */
-    BREthereumBlockHeader chainTail;
+    BREthereumBlock chainTail;
 
     /**
      * A BRSet of orphaned block headers.  These are block headers that 'conflict' with
      * chained headers.  Typically (Exclusively) an orphan is a previously chained header
      * that was replaced by a subsequently accounced header.
      */
-    BRSet *orphans;
+    BRSetOf(BREthereumBlock) orphans;
 
     /**
      * A BRArray of hashes for pending transactions.  A transaction is 'pending' if it's
@@ -143,18 +137,18 @@ struct BREthereumBCSStruct {
      * I think we keep a transaction pending, even when INCLUDED, until its block is chained.  Thus
      * we continue asking for status.
      */
-    BREthereumHash *pendingTransactions;
-    // TODO: pendingLogs
+    BRArrayOf(BREthereumHash) pendingTransactions;
+    BRArrayOf(BREthereumHash) pendingLogs;
 
     /**
      * A BRSet of transactions for account.
      */
-    BRSet *transactions;
+    BRSetOf(BREthereumTransaction) transactions;
 
     /**
      * A BRSet of logs for account.
      */
-    BRSet *logs;
+    BRSetOf(BREtherumLog) logs;
 
     /**
      * The Account State
@@ -164,8 +158,11 @@ struct BREthereumBCSStruct {
     /**
      * The Array of Active Blocks
      */
-    BREthereumBCSActiveBlock *activeBlocks;
+    BRArrayOf(BREthereumBlock) activeBlocks;
 
+    /**
+     * Sync state
+     */
     int syncActive;
     uint64_t syncTail;
     uint64_t syncNext;
@@ -180,10 +177,12 @@ extern const unsigned int bcsEventTypesCount;
          NULL != var; \
          var = BRSetIterate(set, var))
 
-#define BCS_FOR_HEADERS(header)  FOR_SET(BREthereumBlockHeader, header, bcs->headers)
-//    for (BREthereumBlockHeader header = BRSetIterate (bcs->headers, NULL); \
-//         NULL != header; \
-//         header = BRSetIterate (bcs->headers, header))
+#define BCS_FOR_BLOCK(block)  FOR_SET(BREthereumBlock, block, bcs->blocks)
+
+#define BCS_FOR_CHAIN(bcs, block)            \
+    for (BREthereumBlock block = bcs->chain; \
+         NULL != block;                      \
+         block = blockGetNext(block))
 
 //
 // Submit Transaction
@@ -309,7 +308,7 @@ bcsSignalLog (BREthereumBCS bcs,
 //
 // Active Block
 //
-extern BREthereumBCSActiveBlock *
+extern BREthereumBlock
 bcsLookupActiveBlock (BREthereumBCS bcs,
                       BREthereumHash hash);
 

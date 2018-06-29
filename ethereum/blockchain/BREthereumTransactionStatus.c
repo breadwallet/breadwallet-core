@@ -88,6 +88,7 @@ transactionStatusRLPDecodeItem (BRRlpItem item,
         free (reason);
         return status;
     }
+    if (NULL != reason) free (reason);
 
     BREthereumTransactionStatusType type = (BREthereumTransactionStatusType) rlpDecodeItemUInt64(coder, items[0], 0);
     switch (type) {

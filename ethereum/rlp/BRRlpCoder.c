@@ -153,7 +153,7 @@ struct BRRlpCoderRecord {
     size_t contextsAllocated;
 };
 
-#define CODER_DEFAULT_CONTEXTS 10
+#define CODER_DEFAULT_CONTEXTS 100
 
 extern BRRlpCoder
 rlpCoderCreate (void) {
@@ -688,6 +688,14 @@ rlpDataExtract (BRRlpCoder coder, BRRlpItem item, uint8_t **bytes, size_t *bytes
     *bytesCount = context.bytesCount;
     *bytes = malloc (*bytesCount);
     memcpy (*bytes, context.bytes, context.bytesCount);
+}
+
+extern BRRlpData
+rlpGetDataSharedDontRelease (BRRlpCoder coder, BRRlpItem item) {
+    assert (coderIsValidItem(coder, item));
+    BRRlpContext context = coderLookupContext(coder, item);
+    BRRlpData result = { context.bytesCount, context.bytes };
+    return result;
 }
 
 /**

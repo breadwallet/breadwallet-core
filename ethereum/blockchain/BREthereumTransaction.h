@@ -56,6 +56,9 @@ transactionCreate(BREthereumAddress sourceAddress,
                   BREthereumGas gasLimit,
                   uint64_t nonce);
 
+extern BREthereumTransaction
+transactionCopy (BREthereumTransaction transaction);
+    
 extern BREthereumAddress
 transactionGetSourceAddress(BREthereumTransaction transaction);
 
@@ -185,6 +188,9 @@ transactionRlpEncodeItem(BREthereumTransaction transaction,
 extern void
 transactionRelease (BREthereumTransaction transaction);
 
+extern void
+transactionReleaseForSet (void *ignore, void *item);
+    
 //
 // Transaction Comparison
 //

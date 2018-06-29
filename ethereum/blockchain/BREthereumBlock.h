@@ -29,6 +29,8 @@
 #include <limits.h>
 #include "../base/BREthereumBase.h"
 #include "BREthereumTransaction.h"
+#include "BREthereumLog.h"
+#include "BREthereumAccountState.h"
 #include "BREthereumBloomFilter.h"
 
 #ifdef __cplusplus
@@ -93,6 +95,9 @@ blockHeaderHashValue (const void *h);
 extern int
 blockHeaderHashEqual (const void *h1, const void *h2);    
 
+extern void
+blockHeaderReleaseForSet (void *ignore, void *item);
+
 // Support sorting
 extern BREthereumComparison
 blockHeaderCompare (BREthereumBlockHeader h1,
@@ -102,14 +107,25 @@ blockHeaderCompare (BREthereumBlockHeader h1,
 // Block
 //
 extern BREthereumBlock
-createBlockMinimal(BREthereumHash hash,
-            uint64_t number,
-            uint64_t timestamp);
+blockCreateMinimal(BREthereumHash hash,
+                   uint64_t number,
+                   uint64_t timestamp);
 
 extern BREthereumBlock
-createBlock (BREthereumBlockHeader header,
-             BREthereumBlockHeader ommers[], size_t ommersCount,
-             BREthereumTransaction transactions[], size_t transactionCount);
+blockCreateFull (BREthereumBlockHeader header,
+                 BREthereumBlockHeader ommers[], size_t ommersCount,
+                 BREthereumTransaction transactions[], size_t transactionCount);
+
+extern BREthereumBlock
+blockCreate (BREthereumBlockHeader header);
+
+extern void
+blockUpdateBody (BREthereumBlock block,
+                 BREthereumBlockHeader *ommers,
+                 BREthereumTransaction *transactions);
+
+extern BREthereumBlockHeader
+blockHeaderCopy (BREthereumBlockHeader source);
 
 extern void
 blockRelease (BREthereumBlock block);
@@ -153,8 +169,91 @@ extern BREthereumBlock
 blockDecodeRLP (BRRlpData data,
                 BREthereumNetwork network);
 
+// Support BRSet
+extern size_t
+blockHashValue (const void *h);
+
+// Support BRSet
+extern int
+blockHashEqual (const void *h1, const void *h2);
+
+extern void
+blockReleaseForSet (void *ignore, void *item);
+
+
 //
-// Support LES decoding of BlockBodies
+// MARK: - Block Next (Chaining)
+//
+    
+#define BLOCK_NEXT_NONE   ((BREthereumBlock) 0)
+
+extern BREthereumBlock
+blockGetNext (BREthereumBlock block);
+
+extern BREthereumBlock // old 'next'
+blockSetNext (BREthereumBlock block,
+              BREthereumBlock next);
+
+static inline BREthereumBlock // old 'next'
+blockClrNext (BREthereumBlock block) {
+    return blockSetNext(block, BLOCK_NEXT_NONE);
+}
+
+//
+// MARK: - Block Status
+//
+
+#define BLOCK_STATUS_HAS_TRANSACTIONS   (1 << 0)
+#define BLOCK_STATUS_HAS_LOGS           (1 << 1)
+#define BLOCK_STATUS_HAS_ACCOUNT_STATE  (1 << 2)
+
+typedef uint32_t BREthereumBlockStatusFlag;
+
+typedef struct {
+    BREthereumHash hash;
+    BREthereumBlockStatusFlag flags;
+    BREthereumTransaction *transactions;
+    BREthereumLog *logs;
+    BREthereumAccountState accountState;
+} BREthereumBlockStatus;
+
+extern BREthereumBoolean
+blockStatusHasFlag (BREthereumBlockStatus *status,
+                    BREthereumBlockStatusFlag flag);
+
+/**
+ * Get the block's status
+ */
+extern BREthereumBlockStatus
+blockGetStatus (BREthereumBlock block);
+
+/**
+ * Set the transactions in the block's status.  The transactions are
+ * BRArrayOf(BREthereumTransaction) and the transactions are stolen (the array is now owned
+ * by `block`; the transactions are owned by another).
+ */
+extern void
+blockReportStatusTransactions (BREthereumBlock block,
+                               BREthereumTransaction *transactions);
+
+/**
+ * Set the logs in the block's status.  Handling of `logs` is identical to handling of
+ * `transactions` - see above
+ */
+extern void
+blockReportStatusLogs (BREthereumBlock block,
+                       BREthereumLog *log);
+
+
+/**
+ * Set the account state in the block's status.
+ */
+extern void
+blockReportStatusAccountState (BREthereumBlock block,
+                               BREthereumAccountState accountState);
+
+//
+// MARK: - Block Decoding for LES
 //
 
 /**
@@ -173,18 +272,28 @@ blockTransactionsRlpDecodeItem (BRRlpItem item,
                                 BREthereumNetwork network,
                                 BRRlpCoder coder);
 //
-// Genesis Blocks
+// MARK: Genesis Blocks
 //
-extern const BREthereumBlockHeader ethereumMainnetBlockHeader;
-extern const BREthereumBlockHeader ethereumTestnetBlockHeader;
-extern const BREthereumBlockHeader ethereumRinkebyBlockHeader;
 
-extern const BREthereumBlockHeader
+/**
+ * Return a newly-allocaed block header duplicating the genesis block header for `network`.
+ */
+extern BREthereumBlockHeader
 networkGetGenesisBlockHeader (BREthereumNetwork network);
 
+/**
+ * Returh a newly-allocated block duplicating the generic block's header for `network`.
+ */
+extern BREthereumBlock
+networkGetGenesisBlock (BREthereumNetwork network);
+
 //
-// Checkpoint
+// MARK: Block Checkpoint
 //
+
+/**
+ * A Block Checkpoint ...
+ */
 typedef struct {
     uint64_t number;
     BREthereumHash hash;

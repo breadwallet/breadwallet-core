@@ -70,6 +70,9 @@ typedef struct {
 extern BRRlpItem
 rlpGetItem (BRRlpCoder coder, BRRlpData data);
 
+extern BRRlpData
+rlpGetDataSharedDontRelease (BRRlpCoder coder, BRRlpItem item);
+
 //
 // UInt64
 //
