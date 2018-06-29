@@ -731,7 +731,8 @@ BRRlpData ethereumLESGetTxStatus(uint64_t message_id_offset, uint64_t reqId, BRE
     rlpDataExtract(coder, encoding, &messageListData.bytes, &messageListData.bytesCount);
     
     BRRlpData retData = _encodePayloadId(coder, messageListData, message_id_offset + BRE_LES_ID_GET_TX_STATUS);
-    
+
+    rlpDataRelease(messageListData);
     rlpCoderRelease(coder);
     
     return retData;

@@ -56,6 +56,9 @@ transactionCreate(BREthereumAddress sourceAddress,
                   BREthereumGas gasLimit,
                   uint64_t nonce);
 
+extern BREthereumTransaction
+transactionCopy (BREthereumTransaction transaction);
+    
 extern BREthereumAddress
 transactionGetSourceAddress(BREthereumTransaction transaction);
 

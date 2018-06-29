@@ -31,17 +31,38 @@
 #include "BREthereumLog.h"
 #include "../BREthereumPrivate.h"
 
-#define BLOCK_LOG_ALLOC_COUNT
+//#define BLOCK_LOG_ALLOC_COUNT
 
 #if defined (BLOCK_LOG_ALLOC_COUNT)
 static unsigned int blockAllocCount = 0;
 #endif
 
-#define BLOCK_HEADER_LOG_ALLOC_COUNT
+//#define BLOCK_HEADER_LOG_ALLOC_COUNT
 
 #if defined (BLOCK_HEADER_LOG_ALLOC_COUNT)
 static unsigned int blockHeaderAllocCount = 0;
 #endif
+
+// MARK: - Block Status
+
+static void
+blockStatusInitialize (BREthereumBlockStatus *status,
+                       BREthereumHash hash) {
+    memset (status, 0, sizeof (BREthereumBlockStatus));
+    status->hash = hash;
+}
+
+static void
+blockStatusRelease (BREthereumBlockStatus *status) {
+    if (NULL != status->transactions) array_free(status->transactions);
+    if (NULL != status->logs) array_free(status->logs);
+}
+
+extern BREthereumBoolean
+blockStatusHasFlag (BREthereumBlockStatus *status,
+                    BREthereumBlockStatusFlag flag) {
+    return AS_ETHEREUM_BOOLEAN(0 != (flag & status->flags));
+}
 
 // GETH:
 /*
@@ -409,59 +430,94 @@ blockHeaderDecodeRLP (BRRlpData data) {
 // parent’s parent (such blocks are known as ommers).
 //
 struct BREthereumBlockRecord {
+    // THIS MUST BE FIRST to support BRSet operations. (its first field is BREthereumHash)
+    /**
+     *
+     */
+    BREthereumBlockStatus status;
+
     BREthereumBlockHeader header;
     BREthereumBlockHeader *ommers;
     BREthereumTransaction *transactions;
+
+    /**
+     *
+     */
+    BREthereumBlock next;
 };
 
 extern BREthereumBlock
-createBlockMinimal(BREthereumHash hash, uint64_t number, uint64_t timestamp) {
-    BREthereumBlock block = (BREthereumBlock) calloc (1, sizeof (struct BREthereumBlockRecord));
-    block->header = createBlockHeaderMinimal(hash, number, timestamp);
-    array_new(block->ommers, 0);
-    array_new(block->transactions, 0);
+blockCreateMinimal(BREthereumHash hash,
+                   uint64_t number,
+                   uint64_t timestamp) {
+    return blockCreate(createBlockHeaderMinimal(hash, number, timestamp));
+}
 
-#if defined (BLOCK_LOG_ALLOC_COUNT)
-    eth_log ("BCS", "Block Create Minimal: %d", ++blockAllocCount);
-#endif
+extern BREthereumBlock
+blockCreateFull (BREthereumBlockHeader header,
+                 BREthereumBlockHeader ommers[], size_t ommersCount,
+                 BREthereumTransaction transactions[], size_t transactionCount) {
+    BREthereumBlock block = blockCreate(header);
+
+    BREthereumBlockHeader *blockOmmers;
+    array_new (blockOmmers, ommersCount);
+    for (int i = 0; i < ommersCount; i++)
+        array_add (blockOmmers, ommers[i]);
+
+    BREthereumTransaction *blockTransactions;
+    array_new (blockTransactions, transactionCount);
+    for (int i = 0; i < transactionCount; i++)
+        array_add (blockTransactions,  transactions[i]);
+
+    blockUpdateBody(block, blockOmmers, blockTransactions);
 
     return block;
 }
 
 extern BREthereumBlock
-createBlock (BREthereumBlockHeader header,
-             BREthereumBlockHeader ommers[], size_t ommersCount,
-             BREthereumTransaction transactions[], size_t transactionCount) {
+blockCreate (BREthereumBlockHeader header) {
     BREthereumBlock block = (BREthereumBlock) calloc (1, sizeof (struct BREthereumBlockRecord));
 
-    block->header = blockHeaderCopy(header);
-    
-    array_new (block->ommers, ommersCount);
-    for (int i = 0; i < ommersCount; i++)
-        array_add (block->ommers, ommers[i]);
+    block->header = header;
+    block->ommers = NULL;
+    block->transactions = NULL;
 
-    array_new(block->transactions, transactionCount);
-    for (int i = 0; i < transactionCount; i++)
-        array_add (block->transactions, transactions[i]);
+    blockStatusInitialize(&block->status, blockHeaderGetHash(block->header));
+    block->next = BLOCK_NEXT_NONE;
 
 #if defined (BLOCK_LOG_ALLOC_COUNT)
     eth_log ("BCS", "Block Create: %d", ++blockAllocCount);
 #endif
-
     return block;
+}
+
+extern void
+blockUpdateBody (BREthereumBlock block,
+                 BREthereumBlockHeader *ommers,
+                 BREthereumTransaction *transactions) {
+    block->ommers = ommers;
+    block->transactions = transactions;
 }
 
 extern void
 blockRelease (BREthereumBlock block) {
     blockHeaderRelease(block->header);
 
-    for (size_t index = 0; index < array_count(block->ommers); index++)
-        blockHeaderRelease(block->ommers[index]);
-    array_free(block->ommers);
+    if (NULL != block->ommers) {
+        for (size_t index = 0; index < array_count(block->ommers); index++)
+            blockHeaderRelease(block->ommers[index]);
+        array_free(block->ommers);
+        block->ommers = NULL;
+    }
 
-    for (size_t index = 0; index < array_count(block->transactions); index++)
-        transactionRelease(block->transactions[index]);
-    array_free(block->transactions);
+    if (NULL != block->transactions) {
+        for (size_t index = 0; index < array_count(block->transactions); index++)
+            transactionRelease(block->transactions[index]);
+        array_free(block->transactions);
+        block->transactions = NULL;
+    }
+    blockStatusRelease(&block->status);
+    block->next = BLOCK_NEXT_NONE;
 
 #if defined (BLOCK_LOG_ALLOC_COUNT)
     eth_log ("BCS", "Block Release: %d", --blockAllocCount);
@@ -644,6 +700,9 @@ blockRlpDecodeItem (BRRlpItem item, // network
     block->transactions = blockTransactionsRlpDecodeItem(items[1], network, coder);
     block->ommers = blockOmmersRlpDecodeItem(items[2], network, coder);
 
+    blockStatusInitialize(&block->status, blockHeaderGetHash(block->header));
+    block->next = BLOCK_NEXT_NONE;
+
 #if defined (BLOCK_LOG_ALLOC_COUNT)
     eth_log ("BCS", "Block Create RLP: %d", ++blockAllocCount);
 #endif
@@ -662,6 +721,95 @@ blockDecodeRLP (BRRlpData data,
     rlpCoderRelease(coder);
     return block;
 }
+
+//
+// MARK: - Block As Set
+//
+extern size_t
+blockHashValue (const void *b)
+{
+    return hashSetValue(& ((BREthereumBlock) b)->status.hash);
+}
+
+extern int
+blockHashEqual (const void *b1, const void *b2) {
+    return b1 == b2 || hashSetEqual(& ((BREthereumBlock) b1)->status.hash, & ((BREthereumBlock) b2)->status.hash);
+}
+
+/*
+extern size_t
+blockHeaderHashValue (const void *h)
+{
+    return hashSetValue(&((BREthereumBlockHeader) h)->hash);
+}
+
+extern int
+blockHeaderHashEqual (const void *h1, const void *h2) {
+    return hashSetEqual(&((BREthereumBlockHeader) h1)->hash,
+                        &((BREthereumBlockHeader) h2)->hash);
+}
+*/
+//extern int
+//blockHashEqual (const void *b1, const void *b2) {
+//    return hashSetEqual(&((BREthereumBlock) b1)->header->hash,
+//                        &((BREthereumBlock) b2)->header->hash);
+//}
+
+extern void
+blockReleaseForSet (void *ignore, void *item) {
+    blockRelease((BREthereumBlock) item);
+}
+
+//
+// MARK: - Block Next (Chaining)
+//
+
+extern BREthereumBlock
+blockGetNext (BREthereumBlock block) {
+    return block->next;
+}
+
+extern BREthereumBlock // old 'next'
+blockSetNext (BREthereumBlock block,
+              BREthereumBlock newNext) {
+    BREthereumBlock oldNext = block->next;
+    block->next = newNext;
+    return oldNext;
+}
+
+//
+// MARK: - Block Status
+//
+
+extern BREthereumBlockStatus
+blockGetStatus (BREthereumBlock block) {
+    return block->status;
+}
+
+extern void
+blockReportStatusTransactions (BREthereumBlock block,
+                               BREthereumTransaction *transactions) {
+    assert (0 == (BLOCK_STATUS_HAS_TRANSACTIONS & block->status.flags));
+    block->status.transactions = transactions;
+    block->status.flags |= BLOCK_STATUS_HAS_TRANSACTIONS;
+}
+
+extern void
+blockReportStatusLogs (BREthereumBlock block,
+                       BREthereumLog *logs) {
+    assert (0 == (BLOCK_STATUS_HAS_LOGS & block->status.flags));
+    block->status.logs = logs;
+    block->status.flags |= BLOCK_STATUS_HAS_LOGS;
+}
+
+extern void
+blockReportStatusAccountState (BREthereumBlock block,
+                               BREthereumAccountState accountState) {
+    assert (0 == (BLOCK_STATUS_HAS_ACCOUNT_STATE & block->status.flags));
+    block->status.accountState = accountState;
+    block->status.flags |= BLOCK_STATUS_HAS_ACCOUNT_STATE;
+}
+
 /* Block Headers (10)
  ETH: LES:   L 10: [
  ETH: LES:     L 15: [
@@ -738,8 +886,9 @@ ETH: LES   ]
 */
 
 //
-// Genesis Block
+// MARK: Genesis Blocks
 //
+
 // We should extract these blocks from the Ethereum Blockchain so as to have the definitive
 // data.  
 
@@ -835,7 +984,7 @@ const BREthereumBlockHeader ethereumRinkebyBlockHeader = &genesisRinkebyBlockHea
 static void
 initializeGenesisBlocks (void);
 
-extern const BREthereumBlockHeader
+extern BREthereumBlockHeader
 networkGetGenesisBlockHeader (BREthereumNetwork network) {
     static int needInitializeGenesisBlocks = 1;
 
@@ -854,6 +1003,11 @@ networkGetGenesisBlockHeader (BREthereumNetwork network) {
            : NULL)));
 
     return genesisHeader == NULL ? NULL : blockHeaderCopy(genesisHeader);
+}
+
+extern BREthereumBlock
+networkGetGenesisBlock (BREthereumNetwork network) {
+    return blockCreate(networkGetGenesisBlockHeader(network));
 }
 
 static void
@@ -998,7 +1152,7 @@ initializeGenesisBlocks (void) {
 }
 
 //
-// MARK: - Checkpoint Headers
+// MARK: Block Checkpoint
 //
 
 static const BREthereumBlockCheckpoint
@@ -1015,8 +1169,8 @@ ethereumMainnetCheckpoints [] = {
     { 5795660, HASH_INIT("5eeddeff1bfdde5859a63f47fbd3a4ff929be9dc21dd48a52a8cd08d560cc3b5"),  0 }, //   11 days 21 hrs ago (Jun-15-2018 10:43:11 PM +UTC)
 
     // Head - 5860000
-    { 5860000, HASH_INIT("ef888507717b8d59d3abb24f618a7809cf58d5a723d691979769a4a4cf39f63c"),  0 }, //
-    { 5865000, HASH_INIT("9f573bfa8b0ffaca5210b45eb01c12e4d0f6ffc3a8c4d13bea8176b1266f5d53"),  0 }, //    1 hr 25 mins ago (Jun-27-2018 07:38:02 PM +UTC)
+//    { 5860000, HASH_INIT("ef888507717b8d59d3abb24f618a7809cf58d5a723d691979769a4a4cf39f63c"),  0 }, //
+//    { 5865000, HASH_INIT("9f573bfa8b0ffaca5210b45eb01c12e4d0f6ffc3a8c4d13bea8176b1266f5d53"),  0 }, //    1 hr 25 mins ago (Jun-27-2018 07:38:02 PM +UTC)
 
 };
 #define CHECKPOINT_MAINNET_COUNT      (sizeof (ethereumMainnetCheckpoints) / sizeof (BREthereumBlockCheckpoint))

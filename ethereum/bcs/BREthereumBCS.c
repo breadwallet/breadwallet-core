@@ -30,9 +30,10 @@
 
 #define BCS_TRANSACTION_CHECK_STATUS_SECONDS   (3)
 
-#define BCS_HEADERS_INITIAL_CAPACITY (1024)
-#define BCS_ORPHAN_HEADERS_INITIAL_CAPACITY (10)
+#define BCS_BLOCKS_INITIAL_CAPACITY (1024)
+#define BCS_ORPHAN_BLOCKS_INITIAL_CAPACITY (10)
 #define BCS_PENDING_TRANSACTION_INITIAL_CAPACITY  (10)
+#define BCS_PENDING_LOGS_INITIAL_CAPACITY  (10)
 
 #define BCS_TRANSACTIONS_INITIAL_CAPACITY (50)
 #define BCS_LOGS_INITIAL_CAPACITY (50)
@@ -95,12 +96,12 @@ bcsCreate (BREthereumNetwork network,
     //
     bcs->chain = NULL;
     bcs->chainTail = NULL;
-    bcs->headers = BRSetNew(blockHeaderHashValue,
-                            blockHeaderHashEqual,
-                            BCS_HEADERS_INITIAL_CAPACITY);
-    bcs->orphans = BRSetNew(blockHeaderHashValue,
-                           blockHeaderHashEqual,
-                           BCS_ORPHAN_HEADERS_INITIAL_CAPACITY);
+    bcs->blocks = BRSetNew(blockHashValue,
+                           blockHashEqual,
+                           BCS_BLOCKS_INITIAL_CAPACITY);
+    bcs->orphans = BRSetNew(blockHashValue,
+                            blockHashEqual,
+                            BCS_ORPHAN_BLOCKS_INITIAL_CAPACITY);
 
     //
     // Initialize `transactions` and `logs` sets
@@ -118,9 +119,9 @@ bcsCreate (BREthereumNetwork network,
     //
     array_new (bcs->pendingTransactions, BCS_PENDING_TRANSACTION_INITIAL_CAPACITY);
 
-    // Our genesis block (header).
-    BREthereumBlockHeader genesis = networkGetGenesisBlockHeader(network);
-    BRSetAdd(bcs->headers, genesis);
+    // Our genesis block.
+    BREthereumBlock genesis = networkGetGenesisBlock(network);
+    BRSetAdd(bcs->blocks, genesis);
 
     //
     // Initialize `activeBlocks`
@@ -132,6 +133,8 @@ bcsCreate (BREthereumNetwork network,
     bcs->chain = bcs->chainTail = genesis;
 
     if (NULL != headers) {
+        bcs->chain = bcs->chainTail = NULL;
+
         // THIS SHOULD DUPLICATE 'NORMAL HEADER PROCESSING'
         //    [Set chain to NULL; find the earliest; make all others orphans; handle the earliest]
         //    [Implies looking for transactions/logs - which we don't need.]
@@ -149,7 +152,6 @@ bcsCreate (BREthereumNetwork network,
 
         // TODO: Sort
 
-        bcs->chainTail = NULL;
         for (int i = 0; i < sortedHeadersCount; i++) {
             // Skip header `i` if its blockNumber equals the blockNumber of `i+1`.
             if (i + 1 < sortedHeadersCount &&
@@ -158,8 +160,10 @@ bcsCreate (BREthereumNetwork network,
 
             // TODO: Check for orpahns
 
-            BRSetAdd(bcs->headers, sortedHeaders[i]);
-            bcs->chain = sortedHeaders[i];
+            BREthereumBlock block = blockCreate(sortedHeaders[i]);
+            BRSetAdd(bcs->blocks, block);
+            blockSetNext(block, bcs->chain);
+            bcs->chain = block;
 
             if (NULL == bcs->chainTail)
                 bcs->chainTail = bcs->chain;
@@ -180,14 +184,15 @@ bcsCreate (BREthereumNetwork network,
 extern void
 bcsStart (BREthereumBCS bcs) {
     BREthereumBlockHeader genesis = networkGetGenesisBlockHeader(bcs->network);
+    BREthereumBlockHeader header = blockGetHeader(bcs->chain);
 
     eventHandlerStart(bcs->handler);
     bcs->les = lesCreate(bcs->network,
                          (BREthereumLESAnnounceContext) bcs,
                          (BREthereumLESAnnounceCallback) bcsSignalAnnounce,
-                         blockHeaderGetHash(bcs->chain),
-                         blockHeaderGetNumber(bcs->chain),
-                         blockHeaderGetDifficulty(bcs->chain),
+                         blockHeaderGetHash(header),
+                         blockHeaderGetNumber(header),
+                         blockHeaderGetDifficulty(header),
                          blockHeaderGetHash(genesis));
 }
 
@@ -217,12 +222,12 @@ bcsDestroy (BREthereumBCS bcs) {
 
     // Active Block
     for (size_t index = 0; index < array_count(bcs->activeBlocks); index++)
-        bcsReleaseActiveBlock(bcs, bcs->activeBlocks[index].hash);
+        bcsReleaseActiveBlock(bcs, blockGetHash (bcs->activeBlocks[index]));
     array_free(bcs->activeBlocks);
     
     // Headers
-    BRSetApply(bcs->headers, NULL, blockHeaderReleaseForSet);
-    BRSetFree(bcs->headers);
+    BRSetApply(bcs->blocks, NULL, blockReleaseForSet);
+    BRSetFree(bcs->blocks);
 
     // Orphans (All are in 'headers')
     BRSetFree(bcs->orphans);
@@ -332,70 +337,74 @@ bcsHandleAnnounce (BREthereumBCS bcs,
                        ETHEREUM_BOOLEAN_FALSE);
 }
 
+/**
+ * The wording is wrong here - if we are matching a block, then we should look at the transactions.
+ */
 static BREthereumBoolean
-bcsBlockHeaderHasMatchingTransactions (BREthereumBCS bcs,
-                                       BREthereumBlockHeader header) {
+bcsBlockHasMatchingTransactions (BREthereumBCS bcs,
+                                 BREthereumBlock block) {
+//    return ETHEREUM_BOOLEAN_TRUE;
     return ETHEREUM_BOOLEAN_FALSE;
 }
 
+/**
+ * The working is wrong here - if we are matching a block, then we should look at the logs.
+ */
 static BREthereumBoolean
-bcsBlockHeaderHasMatchingLogs (BREthereumBCS bcs,
-                               BREthereumBlockHeader header) {
-    return blockHeaderMatch(header, bcs->filterForAddressOnLogs);
+bcsBlockHasMatchingLogs (BREthereumBCS bcs,
+                         BREthereumBlock block) {
+    return blockHeaderMatch(blockGetHeader(block), bcs->filterForAddressOnLogs);
 }
 
 static void
 bcsReclaimBlock (BREthereumBCS bcs,
-                 BREthereumBlockHeader header,
+                 BREthereumBlock block,
                  int useLog) {
-    BRSetRemove(bcs->headers, header);
-    if (useLog) eth_log("BCS", "Header %llu Reclaimed", blockHeaderGetNumber(header));
+    BRSetRemove(bcs->blocks, block);
+    if (useLog) eth_log("BCS", "Block %llu Reclaimed", blockGetNumber(block));
 
     // TODO: Avoid dangling references
 
-    // TODO: Can't release genesis nor checkpoints
-    if (0 != blockHeaderGetNumber(header))
-        blockHeaderRelease(header);
+    blockRelease(block);
 }
 
 static void
 bcsReclaimAndSaveBlocksIfAppropriate (BREthereumBCS bcs) {
-    uint64_t chainBlockNumber = blockHeaderGetNumber(bcs->chain);
-    uint64_t chainBlockLength = chainBlockNumber - blockHeaderGetNumber(bcs->chainTail);
+    uint64_t chainBlockNumber = blockGetNumber(bcs->chain);
+    uint64_t chainBlockLength = chainBlockNumber - blockGetNumber(bcs->chainTail);
 
     // Note, we might have chained together a number of blocks.  Thus this method might be called
     // with bcs->chain not on a 'boundary' (currently: 0 == chainBlockNumber/BCS_SAVE_BLOCKS_COUNT)
     if (chainBlockLength >= 2 * BCS_SAVE_BLOCKS_COUNT) {
-        BREthereumBlockHeader header = bcs->chain;
-        uint64_t thisBlockNumber = blockHeaderGetNumber(header);
+        uint64_t thisBlockNumber = blockGetNumber(bcs->chain);
         uint64_t reclaimFromBlockNumber = chainBlockNumber - BCS_SAVE_BLOCKS_COUNT;
 
-        // Walk bcs->chain back to BCS_SAVE_BLOCKS_COUNT, then start reclaiming.
-        while (NULL != header) {
-            BREthereumHash parentHash = blockHeaderGetParentHash(header);
+        // Walk bcs->chain back to BCS_SAVE_BLOCKS_COUNT, then keep walking but start reclaiming.
+        for (BREthereumBlock block = bcs->chain; NULL != block;) {
+            // Save this before bcsReclaimBlock() zeros it.
+            BREthereumBlock nextBlock = blockGetNext(block);
 
-            thisBlockNumber = blockHeaderGetNumber(header);
+            thisBlockNumber = blockGetNumber(block);
             if (thisBlockNumber == reclaimFromBlockNumber)
-                bcs->chainTail = header;
+                bcs->chainTail = block;
             else if (thisBlockNumber < reclaimFromBlockNumber)
-                bcsReclaimBlock(bcs, header, 0);
+                bcsReclaimBlock(bcs, block, 0);
 
-            header = BRSetGet(bcs->headers, &parentHash);
+            block = nextBlock;
         }
-        eth_log("BCS", "Headers {%llu, %llu} Reclaimed",
+        blockClrNext(bcs->chainTail);
+
+        eth_log("BCS", "Blocks {%llu, %llu} Reclaimed",
                 thisBlockNumber,
                 reclaimFromBlockNumber - 1);
 
-        header = bcs->chain;
-        while (header != NULL && header != bcs->chainTail) {
-            BREthereumHash parentHash = blockHeaderGetParentHash(header);
-            // TODO: Actually Save.
-            // eth_log("BCS", "Header %llu Saved", blockHeaderGetNumber(header));
-            header = BRSetGet(bcs->headers, &parentHash);
+        // We'll save everything between bcs->chain and bcs->chainTail
+        BCS_FOR_CHAIN (bcs, block) {
+            // TODO: Actually save.
         }
-        eth_log("BCS", "Headers {%llu, %llu} Saved",
-                blockHeaderGetNumber(bcs->chainTail),
-                blockHeaderGetNumber(bcs->chain));
+        eth_log("BCS", "Blocks {%llu, %llu} Saved",
+                blockGetNumber(bcs->chainTail),
+                blockGetNumber(bcs->chain));
     }
 }
 
@@ -408,9 +417,9 @@ static uint64_t
 bcsGetOrphanBlockNumberMinimum (BREthereumBCS bcs) {
     // TODO: Handle the 'true orphan' case
     uint64_t number = UINT64_MAX;
-    FOR_SET(BREthereumBlockHeader, orphan, bcs->orphans)
-        if (blockHeaderGetNumber(orphan) < number)
-            number = blockHeaderGetNumber(orphan);
+    FOR_SET(BREthereumBlock, orphan, bcs->orphans)
+        if (blockGetNumber(orphan) < number)
+            number = blockGetNumber(orphan);
     return number;
 }
 
@@ -432,11 +441,11 @@ bcsPurgeOrphans (BREthereumBCS bcs,
     int keepLooking = 1;
     while (keepLooking) {
         keepLooking = 0;
-        FOR_SET(BREthereumBlockHeader, orphan, bcs->orphans)
-            if (blockHeaderGetNumber(orphan) < blockNumber) {
+        FOR_SET(BREthereumBlock, orphan, bcs->orphans)
+            if (blockGetNumber(orphan) < blockNumber) {
                 BRSetRemove(bcs->orphans, orphan);
-                eth_log("BCS", "Header %llu Purged Orphan", blockHeaderGetNumber(orphan));
-                blockHeaderRelease(orphan);
+                eth_log("BCS", "Block %llu Purged Orphan", blockGetNumber(orphan));
+                blockRelease(orphan);
                 keepLooking = 1;
                 break; // FOR_SET
             }
@@ -451,12 +460,13 @@ bcsChainOrphans (BREthereumBCS bcs) {
     while (keepLooking) {
         keepLooking = 0;
         // We should look up bcs->orphans based on parentHash, see Aaron's Core code.
-        FOR_SET(BREthereumBlockHeader, orphan, bcs->orphans) {
-            if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(blockHeaderGetHash (bcs->chain),
-                                                   blockHeaderGetParentHash(orphan)))) {
+        FOR_SET(BREthereumBlock, orphan, bcs->orphans) {
+            if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(blockGetHash (bcs->chain),
+                                                   blockHeaderGetParentHash(blockGetHeader(orphan))))) {
                 // Extend the chain.
+                blockSetNext(orphan, bcs->chain);
                 bcs->chain = orphan;
-                eth_log("BCS", "Header %llu Chained Orphan", blockHeaderGetNumber(orphan));
+                eth_log("BCS", "Block %llu Chained Orphan", blockGetNumber(orphan));
 
                 // No longer an orphan
                 BRSetRemove(bcs->orphans, orphan);
@@ -470,21 +480,23 @@ bcsChainOrphans (BREthereumBCS bcs) {
     }
 }
 
-static void
+static BREthereumBlock
 bcsMakeOrphan (BREthereumBCS bcs,
-               BREthereumBlockHeader header) {
-    BRSetAdd (bcs->orphans, header);
-    eth_log ("BCS", "Header %llu Newly Orphaned", blockHeaderGetNumber(header));
+               BREthereumBlock block) {
+    BRSetAdd (bcs->orphans, block);
+    eth_log ("BCS", "Block %llu Newly Orphaned", blockGetNumber(block));
     // With `header` as an orphan we might have orphaned some transaction or log.  We'll
     // deal with that later as: a) there maybe be others declared orphans, b) once declared
     // some may be purched and c) some may be chained - all of which impact what transactions
     // or logs are declared orphans themselves, or not.
+
+    return blockClrNext(block);
 }
 
 static void
 bcsChainThenPurgeOrphans (BREthereumBCS bcs) {
     bcsChainOrphans(bcs);
-    bcsPurgeOrphans(bcs,  blockHeaderGetNumber(bcs->chain));
+    bcsPurgeOrphans(bcs,  blockGetNumber(bcs->chain));
 }
 
 static void
@@ -492,7 +504,7 @@ bcsSyncSubmit (BREthereumBCS bcs,
                uint64_t blockStart,
                uint64_t blockCount) {
     // Make the request
-    eth_log("BCS", "Header Sync {%llu, %llu}",
+    eth_log("BCS", "Block Sync {%llu, %llu}",
             blockStart,
             blockStart + blockCount);
 
@@ -558,71 +570,72 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
 
     // Ignore the header if we have seen it before.  Given an identical hash, *nothing*, at any
     // level (transactions, receipts, logs), could have changed and thus no processing is needed.
-    if (NULL != BRSetGet(bcs->headers, header)) {
-        eth_log("BCS", "Header %llu Ignored", blockHeaderGetNumber(header));
+    BREthereumHash blockHash = blockHeaderGetHash(header);
+    if (NULL != BRSetGet(bcs->blocks, &blockHash)) {
+        eth_log("BCS", "Block %llu Ignored", blockHeaderGetNumber(header));
         blockHeaderRelease(header);
         return;
     }
 
     // Ignore the header if it is not valid.
     if (ETHEREUM_BOOLEAN_IS_FALSE(blockHeaderIsValid (header))) {
-        eth_log("BCS", "Header %llu Invald", blockHeaderGetNumber(header));
+        eth_log("BCS", "Block %llu Invald", blockHeaderGetNumber(header));
         blockHeaderRelease(header);
         return;
     }
 
     // Lookup `headerParent`
-    BREthereumHash headerParentHash = blockHeaderGetParentHash(header);
-    BREthereumBlockHeader headerParent = BRSetGet(bcs->headers, &headerParentHash);
+    BREthereumHash blockParentHash = blockHeaderGetParentHash(header);
+    BREthereumBlock blockParent = BRSetGet(bcs->blocks, &blockParentHash);
 
     // If we have a parent, but the block numbers are not consistent, then ignore `header`
-    if (NULL != headerParent && blockHeaderGetNumber(header) != 1 + blockHeaderGetNumber(headerParent)) {
-        eth_log("BCS", "Header %llu Inconsistent", blockHeaderGetNumber(header));
+    if (NULL != blockParent && blockHeaderGetNumber(header) != 1 + blockGetNumber(blockParent)) {
+        eth_log("BCS", "Block %llu Inconsistent", blockHeaderGetNumber(header));
         blockHeaderRelease(header);
         return;
     }
 
-    // Other checks.
+    // ?? Other checks ??
 
-    // Add `header` to the set of headers
-    BRSetAdd(bcs->headers, header);
+    // We have a header that appears consistent.  Create a block and work to chain it.
+    BREthereumBlock block = blockCreate(header);
+
+
+    BRSetAdd(bcs->blocks, block);
 
     // Put `header` in the `chain` - HANDLE 3 CASES:
 
-    // 1) If we do not have any chain, then adopt `header` directly, no questions asked.  This will
+    // 1) If we do not have any chain, then adopt `block` directly, no questions asked.  This will
     // be used for SYNC_MODE_PRIME_WITH_ENDPOINT where we get all interesting transactions, logs,
     // etc from the ENDPOINT and just want to process new blocks as they are announced;
     if (NULL == bcs->chain) {
-        bcs->chain = bcs->chainTail = header;
+        assert (NULL == bcs->chainTail);
+        blockSetNext(block, BLOCK_NEXT_NONE);
+        bcs->chain = bcs->chainTail = block;
     }
 
-    // 2) If there is no `header` parent or if  `header` parent is an orphan, then `header` is
+    // 2) If there is no `block` parent or if  `block` parent is an orphan, then `block` is
     // an orphan too.  Add it to the set of orphans and RETURN (non-local exit);
-    else if (NULL == headerParent || NULL != BRSetGet(bcs->orphans, headerParent)) {
-        bcsMakeOrphan(bcs, header);
+    else if (NULL == blockParent || NULL != BRSetGet(bcs->orphans, blockParent)) {
+        bcsMakeOrphan(bcs, block);
 
-        // If `header` is an orphan, then it's parent is not in bcs->chain.  That could be
+        // If `block` is an orphan, then it's parent is not in bcs->chain.  That could be
         // because there is just a fork developing or that we've fallen behind.  Attempt a
         // sync to recover (might not actually perform a sync - attempt).
-        bcsSyncFrom(bcs, blockHeaderGetNumber(bcs->chain));
+        bcsSyncFrom(bcs, blockGetNumber(bcs->chain));
         return;
     }
 
-    // 3) othewise, we have a new `header` that links to a parent that is somewhere in the
+    // 3) othewise, we have a new `block` that links to a parent that is somewhere in the
     // chain.  All headers from chain back to parent are now orphans.  In practice, there will
     // be only one (or two or three) orphans.
     //
     // Can we assert that `headerParent` is in `chain` if it is not an orphan?
     else {
-        // Every header between `chain` and `headerParent` is now an orphan
-        while (NULL != bcs->chain && headerParent != bcs->chain) {
-            BREthereumHash chainParentHash = blockHeaderGetParentHash(bcs->chain);
-
+        // Every header between `chain` and `blockParent` is now an orphan
+        while (NULL != bcs->chain && blockParent != bcs->chain) {
             // Make an orphan from an existing chain element
-            bcsMakeOrphan(bcs, bcs->chain);
-
-            // continue back.
-            bcs->chain = BRSetGet(bcs->headers, &chainParentHash);
+            bcs->chain = bcsMakeOrphan(bcs, bcs->chain);
         }
         // TODO: Handle bcs->chainTail
 
@@ -630,9 +643,10 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
         assert (NULL != bcs->chain);
 
         // Extend the chain
-        bcs->chain = header;
+        blockSetNext(block, bcs->chain);
+        bcs->chain = block;
     }
-    eth_log("BCS", "Header %llu Chained", blockHeaderGetNumber(header));
+    eth_log("BCS", "Block %llu Chained", blockHeaderGetNumber(header));
 
     bcsChainThenPurgeOrphans (bcs);
 
@@ -649,7 +663,7 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
             }
 
             // but if the transaction's blockHash is not an orphan and instead included...
-            else if (NULL != BRSetGet (bcs->headers, &blockHash)) {
+            else if (NULL != BRSetGet (bcs->blocks, &blockHash)) {
                 // ... then is there anything to do?   The transaction's `blockHash` cannot
                 // reference a block in `headers` that was just now chained from orphans, can it?
                 // More likely the tranaction is pending; we'll get that status and see the
@@ -660,79 +674,41 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
     }
 
     // Examine logs to see if any are now orphaned.  Logs are seen if and only if they are
-    // in a block.  Logs don't have a status; their status is implied by their associated
-    // transaction's status.  Do we have callbacks on logs (presumably we should)?
+    // in a block; see if that block is now an orphan and if so make the log pending.
     FOR_SET(BREthereumLog, log, bcs->logs) {
-        BREthereumHash hash = logGetHash(log);
-        BREthereumTransaction transaction = BRSetGet (bcs->transactions, &hash);
-        assert (NULL != transaction);
-        if (-1 != bcsLookupPendingTransaction(bcs, transactionGetHash(transaction))) {
-            // TODO: Apparently `log` is now pending?
-            ;
+        BREthereumHash blockHash;
+        if (logExtractIncluded(log, &blockHash, NULL) &&
+            NULL != BRSetGet (bcs->orphans, &blockHash)) {
+                array_add(bcs->pendingLogs, logGetHash(log));
         }
     }
 
-    // We need block bodies and transaction receipts for every matching header between bcs->chain
-    // and headerParent - multiple headers because we added orphans, or might have.
-    BREthereumBlockHeader *neededHeaders;
-    array_new(neededHeaders, 2);
-    header = bcs->chain;
-    while (NULL != header && header != headerParent) {
-        // If `header` has matching transactions, then we'll get the block body.
-        if (ETHEREUM_BOOLEAN_IS_TRUE(bcsBlockHeaderHasMatchingTransactions(bcs, header)) ||
-            ETHEREUM_BOOLEAN_IS_TRUE(bcsBlockHeaderHasMatchingLogs(bcs, header))) {
-            eth_log("BCS", "Header %llu Needed", blockHeaderGetNumber(header));
-            array_insert (neededHeaders, 0, header);
+    // We need block bodies and transaction receipts for every matching block between bcs->chain
+    // and blockParent - multiple blocks because we added orphans, or might have.  However,
+    // because 99% of the time it is but one needed block, we'll use the LES interface to
+    // request block bodies one-by-one.
+    BCS_FOR_CHAIN(bcs, block) {
+        if (block == blockParent) break;
+        // If `block` has matching transactions or logs, then we'll get the block body.
+        if (ETHEREUM_BOOLEAN_IS_TRUE(bcsBlockHasMatchingTransactions(bcs, block)) ||
+            ETHEREUM_BOOLEAN_IS_TRUE(bcsBlockHasMatchingLogs(bcs, block))) {
+            eth_log("BCS", "Block %llu Content Needed", blockGetNumber(block));
+
+            // This is now an active block.
+            array_add (bcs->activeBlocks, block);
+
+            lesGetBlockBodiesOne(bcs->les,
+                                 (BREthereumLESBlockBodiesContext) bcs,
+                                 (BREthereumLESBlockBodiesCallback) bcsSignalBlockBodies,
+                                 blockGetHash(block));
         }
-
-        // Next header...
-        headerParentHash = blockHeaderGetParentHash(header);
-        header = BRSetGet(bcs->headers, &headerParentHash);
     }
 
-    // If we need headers, becasue a transaction or log matches, then request block bodies
-    // and followup with receipts.  We'll request them one, by one.
-    for (int index = 0; index < array_count(neededHeaders); index++) {
-        BREthereumHash neededHash = blockHeaderGetHash(neededHeaders[index]);
-
-        BREthereumBCSActiveBlock activeBlock;
-        memset (&activeBlock, 0, sizeof (BREthereumBCSActiveBlock));
-        activeBlock.hash = neededHash;
-
-        array_add(bcs->activeBlocks, activeBlock);
-
-        lesGetBlockBodiesOne(bcs->les,
-                             (BREthereumLESBlockBodiesContext) bcs,
-                             (BREthereumLESBlockBodiesCallback) bcsSignalBlockBodies,
-                             neededHash);
-    }
-    array_free(neededHeaders);
-/*
-    // If we have matching transactions, then we'll request blockBodies.
-    if (array_count(headerHashesTransactions) > 0) {
-        // Get the blockbody
-        lesGetBlockBodies(bcs->les,
-                          (BREthereumLESBlockBodiesContext) bcs,
-                          (BREthereumLESBlockBodiesCallback) bcsSignalBlockBodies,
-                          headerHashesTransactions);
-    }
-    else array_free(headerHashesTransactions);
-
-    // If we have matchines logs, then we'll request transactionReceipts
-    if (array_count(headerHashesLogs) > 0) {
-        // Get the transaction receipts.
-        lesGetReceipts(bcs->les,
-                       (BREthereumLESReceiptsContext) bcs,
-                       (BREthereumLESReceiptsCallback) bcsSignalTransactionReceipts,
-                       headerHashesLogs);
-    }
-    else array_free(headerHashesLogs);
-*/
     // Periodically reclaim 'excessive' blocks and save the latest.
     bcsReclaimAndSaveBlocksIfAppropriate (bcs);
 
     // If appropriate, continue a in-process sync.
-    bcsSyncContinue (bcs, blockHeaderGetNumber(bcs->chain));
+    bcsSyncContinue (bcs, blockGetNumber(bcs->chain));
 }
 
 /*!
@@ -752,43 +728,61 @@ bcsHandleAccountState (BREthereumBCS bcs,
 
 /*!
  */
+static void
+bcsReleaseOmmersAndTransactionsFully (BREthereumBCS bcs,
+                                      BREthereumTransaction *transactions,
+                                      BREthereumBlockHeader *ommers) {
+    for (size_t index = 0; index < array_count(transactions); index++)
+        transactionRelease(transactions[index]);
+    array_free(transactions);
+
+    for (size_t index = 0; index < array_count(ommers); index++)
+        blockHeaderRelease(ommers[index]);
+    array_free(ommers);
+}
+
 extern void
 bcsHandleBlockBodies (BREthereumBCS bcs,
                       BREthereumHash blockHash,
                       BREthereumTransaction transactions[],
                       BREthereumBlockHeader ommers[]) {
-
-    // Ensure we have a header
-    BREthereumBlockHeader header = BRSetGet(bcs->headers, &blockHash);
-    if (NULL == header) return;  // TODO: free {transactions,ommers}
-
     // Ensure we have an active Block
-    BREthereumBCSActiveBlock *activeBlock = bcsLookupActiveBlock(bcs, blockHash);
-    if (NULL == activeBlock) {
-        eth_log ("BCS", "Active Block %llu Missed", blockHeaderGetNumber(header));
-        return; // TODO: free {transactions, ommers}
+    BREthereumBlock block = bcsLookupActiveBlock(bcs, blockHash);
+    if (NULL == block) {
+        block = BRSetGet(bcs->blocks, &blockHash);
+        eth_log ("BCS", "Active Block %llu Missed", (NULL == block ? -1 : blockGetNumber(block)));
+
+        bcsReleaseOmmersAndTransactionsFully(bcs, transactions, ommers);
+        return;
     }
-    assert (ACTIVE_BLOCK_PENDING_BODIES == activeBlock->state);
+    assert (NULL != BRSetGet (bcs->blocks, &blockHash));
+
+    // Start filling in the block status.
+    BREthereumBlockStatus activeStatus = blockGetStatus(block);
+    assert (ETHEREUM_BOOLEAN_IS_FALSE(blockStatusHasFlag(&activeStatus, BLOCK_STATUS_HAS_TRANSACTIONS)));
 
     eth_log("BCS", "Bodies %llu Count %lu",
-            blockHeaderGetNumber(header),
+            blockGetNumber(block),
             array_count(transactions));
 
-    // Cannot free {transactions, ommers}
-    activeBlock->block = createBlock(header,
-                                     ommers, array_count(ommers),
-                                     transactions, array_count(transactions));
 
-    if (ETHEREUM_BOOLEAN_IS_FALSE(blockIsValid(activeBlock->block, ETHEREUM_BOOLEAN_TRUE))) {
+    // Update `block` with the reported ommers and transactions.  Note that generally
+    // these are not used.... but we take full ownership of the memory for ommers and transactions.
+    blockUpdateBody(block, ommers, transactions);
+
+    // Having filled out `block`, ensure that it is valid.
+    if (ETHEREUM_BOOLEAN_IS_FALSE(blockIsValid(block, ETHEREUM_BOOLEAN_TRUE))) {
         bcsReleaseActiveBlock(bcs, blockHash);
+        blockRelease(block);
         return;
     }
 
     // We might optionally GetReceipts first?  Then the Active Block will be fully constituted
     // and we can process it uniformly for both transactions and logs.
     
-    // When there is a transaction of interest, we'll want to get account balance and nonce info.
-    int hasTransactionOfInterest = 0;
+    // When there is a transaction of interest, we'll want to keep all interresting transactions
+    // and get account balance and nonce info.
+    BREthereumTransaction *neededTransactions = NULL;
 
     // Check the transactions one-by-one.
     for (int i = 0; i < array_count(transactions); i++) {
@@ -797,16 +791,21 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
         
         // If it is our transaction (as source or target), handle it.
         if (ETHEREUM_BOOLEAN_IS_TRUE(transactionHasAddress(tx, bcs->address))) {
-            // TODO: Copy transaction
-            hasTransactionOfInterest = 1;
+            eth_log("BCS", "Bodies   %llu Found Transaction at (%d)",
+                    blockGetNumber(block), i);
 
-            eth_log("BCS", " Bodies %llu Found Transaction at (%d)",
-                    blockHeaderGetNumber(header), i);
+            if (NULL == neededTransactions) array_new (neededTransactions, 3);
+
+            // We copy the transaction because `transactions` are owned by `block`.
+            tx = transactionCopy(tx);
+            array_add(neededTransactions, tx);
 
             // TODO: THIS COULD BE A DUPLICATE TRANSACTION (already in another block)
 
-            // Save the transaction
+            // Save the transaction; this set now owns `tx`.
             BRSetAdd(bcs->transactions, tx);
+
+            // TODO: Extending 'status transactions'
 
             // Get the status explicitly; apparently this is the *only* way to get the gasUsed.
             lesGetTransactionStatusOne(bcs->les,
@@ -814,28 +813,26 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
                                        (BREthereumLESTransactionStatusCallback) bcsSignalTransactionStatus,
                                        transactionGetHash(tx));
         }
-        //        else transactionRelease(tx);
-
-        // TODO: Handle if has a 'contract' address of interest?
+        // else - TODO: Handle if has a 'contract' address of interest?
     }
 
-    array_free(transactions);
-    array_free(ommers);
+    // Report the block status - we'll flag as HAS_TRANSACTION but their could be none.
+    blockReportStatusTransactions(block, neededTransactions);
 
-    if (hasTransactionOfInterest) {
+    if (NULL != neededTransactions && array_count(neededTransactions) > 0) {
         // TODO: Something interesting for AccountState {balance, nonce}
     }
 
     // If there are logs of interest, get the transactions receipts...
-    if (ETHEREUM_BOOLEAN_IS_TRUE(bcsBlockHeaderHasMatchingLogs(bcs, header))) {
-        activeBlock->state = ACTIVE_BLOCK_PENDING_RECEIPTS;
+    if (ETHEREUM_BOOLEAN_IS_TRUE(bcsBlockHasMatchingLogs(bcs, block))) {
         lesGetReceiptsOne(bcs->les,
                           (BREthereumLESReceiptsContext) bcs,
                           (BREthereumLESReceiptsCallback) bcsSignalTransactionReceipts,
                           blockHash);
     }
-    // ... otherwise release active block
+    // ... otherwise report `activeBlock` as having zero logs and then release it.
     else {
+        blockReportStatusLogs(block, NULL);
         bcsReleaseActiveBlock(bcs, blockHash);
     }
 }
@@ -851,10 +848,10 @@ static BREthereumBoolean
 bcsChainHasBlock (BREthereumBCS bcs,
                   BREthereumHash blockHash,
                   uint64_t blockNumber) {
-    return AS_ETHEREUM_BOOLEAN(blockNumber < blockHeaderGetNumber(bcs->chainTail) ||
-                               (blockNumber <= blockHeaderGetNumber(bcs->chain) &&
+    return AS_ETHEREUM_BOOLEAN(blockNumber < blockGetNumber(bcs->chainTail) ||
+                               (blockNumber <= blockGetNumber(bcs->chain) &&
                                 NULL == BRSetGet(bcs->orphans, &blockHash) &&
-                                NULL != BRSetGet(bcs->headers, &blockHash)));
+                                NULL != BRSetGet(bcs->blocks, &blockHash)));
 }
 
 static int
@@ -1040,31 +1037,38 @@ bcsHandleLogExtractInterest (BREthereumBCS bcs,
 
 /*!
  */
+static void
+bcsReleaseReceiptsFully (BREthereumBCS bcs,
+                         BREthereumTransactionReceipt *receipts) {
+
+}
 extern void
 bcsHandleTransactionReceipts (BREthereumBCS bcs,
                               BREthereumHash blockHash,
                               BREthereumTransactionReceipt *receipts) {
-    // Ensure we have a header
-    BREthereumBlockHeader header = BRSetGet(bcs->headers, &blockHash);
-    if (NULL == header) return;
+    // Ensure we have an active block
+    BREthereumBlock block = bcsLookupActiveBlock(bcs, blockHash);
+    if (NULL == block) {
+        block = BRSetGet (bcs->blocks, &blockHash);
+        eth_log ("BCS", "Active Block %llu Missed",
+                 (NULL == block ? -1 : blockGetNumber(block)));
 
-    // Ensure we have an active Block
-    BREthereumBCSActiveBlock *activeBlock = bcsLookupActiveBlock(bcs, blockHash);
-    if (NULL == activeBlock) {
-        eth_log ("BCS", "Active Block %llu Missed", blockHeaderGetNumber(header));
+        bcsReleaseReceiptsFully(bcs, receipts);
         return;
     }
-    assert (ACTIVE_BLOCK_PENDING_RECEIPTS == activeBlock->state);
+        // assert (ACTIVE_BLOCK_PENDING_RECEIPTS == activeBlock->state);
 
     eth_log("BCS", "Receipts %llu Count %lu",
-            blockHeaderGetNumber(header),
+            blockGetNumber(block),
             array_count(receipts));
+
+    BREthereumLog *neededLogs = NULL;
 
     size_t receiptsCount = array_count(receipts);
     for (size_t i = 0; i < receiptsCount; i++) {
         BREthereumTransactionReceipt receipt = receipts[i];
         if (ETHEREUM_BOOLEAN_IS_TRUE (transactionReceiptMatch(receipt, bcs->filterForAddressOnLogs))) {
-            BREthereumTransaction transaction = blockGetTransaction(activeBlock->block, i);
+            BREthereumTransaction transaction = blockGetTransaction(block, i);
             assert (NULL != transaction);
 
             size_t logsCount = transactionReceiptGetLogsCount(receipt);
@@ -1073,15 +1077,19 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
 
                 // If `log` topics match our address....
                 if (ETHEREUM_BOOLEAN_IS_TRUE (logMatchesAddress(log, bcs->address, ETHEREUM_BOOLEAN_TRUE))) {
-                    log = logCopy(log);
-                    logAssignStatus (log, transactionGetHash(transaction), index);
-
                     eth_log("BCS", "Receipts %llu Found Log at (%lu, %lu)",
-                            blockHeaderGetNumber(header), i, index);
+                            blockGetNumber(block), i, index);
+
+                    log = logCopy(log);
+                    logInitializeStatus (log, transactionGetHash(transaction), index);
+
+                    if (NULL == neededLogs) array_new(neededLogs, 3);
 
                     // TODO: THIS COULD BE A DUPLICATE LOG (already in another block)
 
                     BRSetAdd(bcs->logs, log);
+
+                    array_add(neededLogs, log);
 
                     bcs->listener.logCallback (bcs->listener.context, log);
                 }
@@ -1094,6 +1102,7 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
     }
     array_free(receipts);
 
+    blockReportStatusLogs(block, neededLogs);
     bcsReleaseActiveBlock(bcs, blockHash);
 }
 
@@ -1102,7 +1111,7 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
 //
 static void
 bcsPeriodicDispatcher (BREventHandler handler,
-                             BREventTimeout *event) {
+                       BREventTimeout *event) {
     BREthereumBCS bcs = (BREthereumBCS) event->context;
 
     // If nothing to do; simply skip out.
@@ -1114,7 +1123,6 @@ bcsPeriodicDispatcher (BREventHandler handler,
                              (BREthereumLESTransactionStatusCallback) bcsSignalTransactionStatus,
                              bcs->pendingTransactions);
 }
-
 
 //
 // Unneeded
@@ -1152,12 +1160,12 @@ bcsHandleLog (BREthereumBCS bcs,
 //
 // Active Block
 //
-extern BREthereumBCSActiveBlock *
+extern BREthereumBlock
 bcsLookupActiveBlock (BREthereumBCS bcs,
                       BREthereumHash hash) {
     for (int index = 0; index < array_count (bcs->activeBlocks); index++)
-        if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(hash, bcs->activeBlocks[index].hash)))
-            return &bcs->activeBlocks[index];
+        if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(hash, blockGetHash (bcs->activeBlocks[index]))))
+            return bcs->activeBlocks[index];
     return NULL;
 }
 
@@ -1165,12 +1173,7 @@ extern void
 bcsReleaseActiveBlock (BREthereumBCS bcs,
                        BREthereumHash hash) {
     for (int index = 0; index < array_count (bcs->activeBlocks); index++)
-        if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(hash, bcs->activeBlocks[index].hash))) {
-            BREthereumBCSActiveBlock *ab = &bcs->activeBlocks[index];
-
-            if (NULL != ab->block) blockRelease(ab->block);
-            if (NULL != ab->logs) array_free(ab->logs);
-
+        if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(hash, blockGetHash (bcs->activeBlocks[index])))) {
             array_rm (bcs->activeBlocks, index);
             break;
         }

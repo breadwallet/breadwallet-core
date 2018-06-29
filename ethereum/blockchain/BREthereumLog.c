@@ -132,29 +132,6 @@ logTopicRlpEncodeItem(BREthereumLogTopic topic,
 static BREthereumLogTopic emptyTopic;
 
 //
-// Etheum Log Status
-//
-typedef struct {
-    BREthereumHash transactionHash;
-    size_t transactionReceiptIndex;
-    // block hash?
-} BREthereumLogStatus;
-
-static BREthereumHash
-logStatusCreateHash (BREthereumLogStatus *status) {
-    BRRlpData data = { sizeof (BREthereumLogStatus), (uint8_t*) status };
-    return hashCreateFromData(data);
-}
-
-static void
-logStatusFill (BREthereumLogStatus *status,
-               BREthereumHash transactionHash,
-               size_t transactionReceiptIndex) {
-    status->transactionHash = transactionHash;
-    status->transactionReceiptIndex = transactionReceiptIndex;
-}
-
-//
 // Ethereum Log
 //
 // A log entry, O, is:
@@ -181,11 +158,16 @@ struct BREthereumLogRecord {
 };
 
 extern void
-logAssignStatus (BREthereumLog log,
+logInitializeStatus (BREthereumLog log,
                  BREthereumHash transactionHash,
                  size_t transactionReceiptIndex) {
-    logStatusFill(&log->status, transactionHash, transactionReceiptIndex);
+    log->status = logStatusCreate(LOG_STATUS_PENDING, transactionHash, transactionReceiptIndex);
     log->hash = logStatusCreateHash(&log->status);
+}
+
+extern BREthereumLogStatus
+logGetStatus (BREthereumLog log) {
+    return log->status;
 }
 
 extern BREthereumHash
@@ -240,6 +222,19 @@ logMatchesAddress (BREthereumLog log,
             ? AS_ETHEREUM_BOOLEAN(match)
             : AS_ETHEREUM_BOOLEAN(match | ETHEREUM_BOOLEAN_IS_TRUE(logHasAddress(log, address))));
 
+}
+
+extern int
+logExtractIncluded(BREthereumLog log,
+                   BREthereumHash *blockHash,
+                   uint64_t *blockNumber) {
+    if (LOG_STATUS_INCLUDED != log->status.type)
+        return 0;
+
+    if (NULL != blockHash) *blockHash = log->status.u.included.blockHash;
+    if (NULL != blockNumber) *blockNumber = log->status.u.included.blockNumber;
+
+    return 1;
 }
 
 // Support BRSet

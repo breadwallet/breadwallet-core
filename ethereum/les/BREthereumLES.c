@@ -170,6 +170,7 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t me
                     }
                     free(les->requests[requestIndexRm].u.transaction_status.transactions);
                     array_rm(les->requests, requestIndexRm);
+                    free (replies);
                     pthread_mutex_unlock(&les->lock);
                 }
             }

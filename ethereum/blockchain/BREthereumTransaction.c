@@ -125,6 +125,19 @@ transactionCreate(BREthereumAddress sourceAddress,
     return transaction;
 }
 
+extern BREthereumTransaction
+transactionCopy (BREthereumTransaction transaction) {
+    BREthereumTransaction copy = calloc (1, sizeof (struct BREthereumTransactionRecord));
+    memcpy (copy, transaction, sizeof (struct BREthereumTransactionRecord));
+    copy->data = (NULL == transaction->data ? NULL : strdup(transaction->data));
+
+#if defined (TRANSACTION_LOG_ALLOC_COUNT)
+    eth_log ("BCS", "TX Copy - Count: %d", ++transactionAllocCount);
+#endif
+
+    return copy;
+}
+
 extern BREthereumAddress
 transactionGetSourceAddress(BREthereumTransaction transaction) {
     return transaction->sourceAddress;
@@ -138,7 +151,7 @@ transactionGetTargetAddress(BREthereumTransaction transaction) {
 extern BREthereumBoolean
 transactionHasAddress (BREthereumTransaction transaction,
                        BREthereumAddress address) {
-    return (ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(address, transaction->targetAddress))
+    return (ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(address, transaction->sourceAddress))
             || ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(address, transaction->targetAddress))
             ? ETHEREUM_BOOLEAN_TRUE
             : ETHEREUM_BOOLEAN_FALSE);
