@@ -483,6 +483,11 @@ transactionRlpDecodeItem (BRRlpItem item,
     transaction->gasPrice = gasPriceRlpDecode(items[1], coder);
     transaction->gasLimit = gasRlpDecode(items[2], coder);
 
+    transaction->targetAddress = addressRlpDecode(items[3], coder);
+    transaction->amount = amountRlpDecodeAsEther(items[4], coder);
+    transaction->data = rlpDecodeItemHexString (coder, items[5], "0x");
+
+#if defined (TRANSACTION_ENCODE_TOKEN)
     char *strData = rlpDecodeItemHexString (coder, items[5], "0x");
     assert (NULL != strData);
     if ('\0' == strData[0] || 0 == strcmp (strData, "0x")) {
@@ -518,7 +523,7 @@ transactionRlpDecodeItem (BRRlpItem item,
 
         free (recvAddr);
     }
-
+#endif
     transaction->chainId = networkGetChainId(network);
 
     uint64_t eipChainId = rlpDecodeItemUInt64(coder, items[6], 1);

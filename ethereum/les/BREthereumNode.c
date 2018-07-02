@@ -56,7 +56,7 @@
 #endif
 
 #define HEADER_LEN 32
-#define PTHREAD_STACK_SIZE  (512 * 1024)
+#define PTHREAD_STACK_SIZE  (16 * 1024 * 1024)
 #define CONNECTION_TIME 3.0
 #define DEFAULT_UDP_PORT 30303
 #define DEFAULT_TCP_PORT 30303
@@ -380,6 +380,12 @@ static void *_nodeThreadRunFunc(void *arg) {
 
     BREthereumNode node = (BREthereumNode)arg;
     BREthereumNodeStatus status;
+    
+#if defined (__ANDROID__)
+    pthread_setname_np(clock->thread, "Core Ethereum Node");
+#else
+    pthread_setname_np("Core Ethereum Alarm Node");
+#endif
 
     while(node != NULL && (status = _readStatus(node)) != BRE_NODE_DISCONNECTED)
     {

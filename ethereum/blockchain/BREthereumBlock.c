@@ -1169,8 +1169,11 @@ ethereumMainnetCheckpoints [] = {
     { 5795660, HASH_INIT("5eeddeff1bfdde5859a63f47fbd3a4ff929be9dc21dd48a52a8cd08d560cc3b5"),  0 }, //   11 days 21 hrs ago (Jun-15-2018 10:43:11 PM +UTC)
 
     // Head - 5860000
-//    { 5860000, HASH_INIT("ef888507717b8d59d3abb24f618a7809cf58d5a723d691979769a4a4cf39f63c"),  0 }, //
-//    { 5865000, HASH_INIT("9f573bfa8b0ffaca5210b45eb01c12e4d0f6ffc3a8c4d13bea8176b1266f5d53"),  0 }, //    1 hr 25 mins ago (Jun-27-2018 07:38:02 PM +UTC)
+    { 5860000, HASH_INIT("ef888507717b8d59d3abb24f618a7809cf58d5a723d691979769a4a4cf39f63c"),  0 }, //
+    { 5865000, HASH_INIT("9f573bfa8b0ffaca5210b45eb01c12e4d0f6ffc3a8c4d13bea8176b1266f5d53"),  0 }, //    1 hr 25 mins ago (Jun-27-2018 07:38:02 PM +UTC)
+
+    // 2018-07-02
+    { 5893500, HASH_INIT("a8ed4df2446a09d85b5867253a7c4a0870a65d858cf43539070186e180b4f7d2"),  0 },
 
 };
 #define CHECKPOINT_MAINNET_COUNT      (sizeof (ethereumMainnetCheckpoints) / sizeof (BREthereumBlockCheckpoint))
