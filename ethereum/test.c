@@ -1630,7 +1630,7 @@ testReallySend (void) {
 
     ethereumWalletSubmitTransaction(ewm, wallet, tx);
 #endif
-    unsigned int remaining = 2 * 60;
+    unsigned int remaining = 5 * 60;
     while (remaining) {
         printf ("***\n*** SLEEPING: %d\n", remaining);
         remaining = sleep(remaining);
