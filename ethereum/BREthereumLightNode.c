@@ -202,6 +202,7 @@ lightNodeThreadRoutine (BREthereumLightNode node) {
     }
 
     node->state = LIGHT_NODE_DISCONNECTED;
+//    node->client = nullClient;
     
     // TODO: This was needed, but I forgot why.
     //     node->type = NODE_TYPE_NONE;
@@ -252,6 +253,11 @@ lightNodeConnect(BREthereumLightNode node,
             return ETHEREUM_BOOLEAN_TRUE;
         }
     }
+}
+
+extern BREthereumClientContext
+lightNodeGetClientContext (BREthereumLightNode node) {
+    return node->client.funcContext;
 }
 
 extern BREthereumBoolean

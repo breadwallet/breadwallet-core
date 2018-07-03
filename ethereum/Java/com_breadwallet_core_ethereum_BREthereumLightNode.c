@@ -1266,7 +1266,6 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeConnect
                      clientGetBlockNumber,
                      clientGetNonce);
 
-
     return (jboolean) (ETHEREUM_BOOLEAN_TRUE == ethereumConnect(node, client)
                        ? JNI_TRUE
                        : JNI_FALSE);
@@ -1282,8 +1281,18 @@ Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniLightNodeDisconnect
         (JNIEnv *env, jobject thisObject) {
     BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
 
-    // TODO: Hopefully
-    (*env)->DeleteGlobalRef (env, thisObject);
+    jobject context = (jobject) ethereumGetClientContext(node);
+
+    // TODO: How to reclaim 'context'?
+    // A DeleteGlobalRef works but then a subsequent NewLocalRef (like in callbacks) or
+    // a subsequent IsSameObject() or DeleteGlobalRef (like you might think about using here)
+    // will throw an exception.
+    //
+    // If we can't delete the global ref, then we've got a memory leak because we will allocate a
+    // new context/GlobalRef on each connect.
+    //
+    // if (NULL != context && !(*env)->IsSameObject(env, context, NULL))
+    //    (*env)->DeleteGlobalRef (env, context);
 
     return (jboolean) (ETHEREUM_BOOLEAN_TRUE == ethereumDisconnect(node) ? JNI_TRUE : JNI_FALSE);
 }

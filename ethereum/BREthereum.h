@@ -365,6 +365,9 @@ extern BREthereumBoolean
 ethereumConnect(BREthereumLightNode node,
                 BREthereumClient client);
 
+extern BREthereumClientContext
+ethereumGetClientContext (BREthereumLightNode node);
+
 extern BREthereumBoolean
 ethereumDisconnect (BREthereumLightNode node);
 

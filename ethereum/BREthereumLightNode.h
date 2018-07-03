@@ -66,6 +66,9 @@ extern BREthereumBoolean
 lightNodeConnect(BREthereumLightNode node,
                  BREthereumClient client);
 
+extern BREthereumClientContext
+lightNodeGetClientContext (BREthereumLightNode node);
+
 extern BREthereumBoolean
 lightNodeDisconnect (BREthereumLightNode node);
 
