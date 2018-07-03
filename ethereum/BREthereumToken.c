@@ -748,7 +748,7 @@ static struct BREthereumTokenRecord tokens[] = {
         "GD",
         "Zilla GD",
         "",
-        18,
+        0,
         "#3C3C3B",
         "#3C3C3B",
         { TOKEN_BRD_DEFAULT_GAS_LIMIT },
