@@ -382,9 +382,9 @@ static void *_nodeThreadRunFunc(void *arg) {
     BREthereumNodeStatus status;
     
 #if defined (__ANDROID__)
-    pthread_setname_np(clock->thread, "Core Ethereum Node");
+    pthread_setname_np(clock->thread, "Core Ethereum LES Node");
 #else
-    pthread_setname_np("Core Ethereum Alarm Node");
+    pthread_setname_np("Core Ethereum LES Node");
 #endif
 
     while(node != NULL && (status = _readStatus(node)) != BRE_NODE_DISCONNECTED)

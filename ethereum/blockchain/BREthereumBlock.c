@@ -1175,6 +1175,9 @@ ethereumMainnetCheckpoints [] = {
     // 2018-07-02
     { 5893500, HASH_INIT("a8ed4df2446a09d85b5867253a7c4a0870a65d858cf43539070186e180b4f7d2"),  0 },
 
+    // 2018-07-03
+    { 5899000, HASH_INIT("e7b0051c152755f03e9e98b5f41540d79abee02c5770c22299b7250a2d647507"),  0 },
+
 };
 #define CHECKPOINT_MAINNET_COUNT      (sizeof (ethereumMainnetCheckpoints) / sizeof (BREthereumBlockCheckpoint))
 

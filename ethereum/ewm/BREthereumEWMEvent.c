@@ -281,6 +281,76 @@ const unsigned int listenerEventTypesCount = 5;
 
 // ==============================================================================================
 //
+// Handle Block Chain
+//
+typedef struct {
+    BREvent base;
+    BREthereumEWM ewm;
+    BREthereumHash headBlockHash;
+    uint64_t headBlockNumber;
+    uint64_t headBlockTimestamp;
+} BREthereumHandleBlockChainEvent;
+
+static void
+ewmHandleBlockChainEventDispatcher(BREventHandler ignore,
+                                   BREthereumHandleBlockChainEvent *event) {
+    ewmHandleBlockChain(event->ewm,
+                        event->headBlockHash,
+                        event->headBlockNumber,
+                        event->headBlockTimestamp);
+}
+
+BREventType handleBlockChainEventType = {
+    "EWM: Handle BlockChain Event",
+    sizeof (BREthereumHandleBlockChainEvent),
+    (BREventDispatcher) ewmHandleBlockChainEventDispatcher
+};
+
+extern void
+ewmSignalBlockChain (BREthereumEWM ewm,
+                     BREthereumHash headBlockHash,
+                     uint64_t headBlockNumber,
+                     uint64_t headBlockTimestamp) {
+
+    BREthereumHandleBlockChainEvent event = { { NULL, &handleBlockChainEventType }, ewm,
+        headBlockHash,
+        headBlockNumber,
+        headBlockTimestamp };
+    eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
+}
+
+
+// ==============================================================================================
+//
+// Handle AccountState
+//
+typedef struct {
+    BREvent base;
+    BREthereumEWM ewm;
+    BREthereumAccountState accountState;
+} BREthereumHandleAccountStateEvent;
+
+static void
+ewmHandleAccountStateEventDispatcher(BREventHandler ignore,
+                                BREthereumHandleAccountStateEvent *event) {
+    ewmHandleAccountState(event->ewm, event->accountState);
+}
+
+BREventType handleAccountStateEventType = {
+    "EWM: Handle AccountState Event",
+    sizeof (BREthereumHandleAccountStateEvent),
+    (BREventDispatcher) ewmHandleAccountStateEventDispatcher
+};
+
+extern void
+ewmSignalAccountState (BREthereumEWM ewm,
+                  BREthereumAccountState accountState) {
+    BREthereumHandleAccountStateEvent event = { { NULL, &handleAccountStateEventType }, ewm, accountState };
+    eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
+}
+
+// ==============================================================================================
+//
 // Handle Balance
 //
 typedef struct {
@@ -291,7 +361,7 @@ typedef struct {
 
 static void
 ewmHandleBalanceEventDispatcher(BREventHandler ignore,
-                                BREthereumHandleBalanceEvent *event) {
+                              BREthereumHandleBalanceEvent *event) {
     ewmHandleBalance(event->ewm, event->amount);
 }
 
@@ -305,35 +375,6 @@ extern void
 ewmSignalBalance (BREthereumEWM ewm,
                   BREthereumAmount amount) {
     BREthereumHandleBalanceEvent event = { { NULL, &handleBalanceEventType }, ewm, amount };
-    eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
-}
-
-// ==============================================================================================
-//
-// Handle Nonce
-//
-typedef struct {
-    BREvent base;
-    BREthereumEWM ewm;
-    uint64_t nonce;
-} BREthereumHandleNonceEvent;
-
-static void
-ewmHandleNonceEventDispatcher(BREventHandler ignore,
-                              BREthereumHandleNonceEvent *event) {
-    ewmHandleNonce(event->ewm, event->nonce);
-}
-
-BREventType handleNonceEventType = {
-    "EWM: Handle Nonce Event",
-    sizeof (BREthereumHandleNonceEvent),
-    (BREventDispatcher) ewmHandleNonceEventDispatcher
-};
-
-extern void
-ewmSignalNonce (BREthereumEWM ewm,
-                uint64_t nonce) {
-    BREthereumHandleNonceEvent event = { { NULL, &handleNonceEventType }, ewm, nonce };
     eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
 }
 
@@ -408,13 +449,14 @@ ewmSignalGasEstimate (BREthereumEWM ewm,
 typedef struct {
     BREvent base;
     BREthereumEWM ewm;
+    BREthereumBCSCallbackTransactionType type;
     BREthereumTransaction transaction;
 } BREthereumHandleTransactionEvent;
 
 static void
 ewmHandleTransactionEventDispatcher(BREventHandler ignore,
                                     BREthereumHandleTransactionEvent *event) {
-    ewmHandleTransaction(event->ewm, event->transaction);
+    ewmHandleTransaction(event->ewm, event->type, event->transaction);
 }
 
 BREventType handleTransactionEventType = {
@@ -425,8 +467,9 @@ BREventType handleTransactionEventType = {
 
 extern void
 ewmSignalTransaction (BREthereumEWM ewm,
+                      BREthereumBCSCallbackTransactionType type,
                       BREthereumTransaction transaction) {
-    BREthereumHandleTransactionEvent event = { { NULL, &handleTransactionEventType }, ewm, transaction };
+    BREthereumHandleTransactionEvent event = { { NULL, &handleTransactionEventType }, ewm, type, transaction };
     eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
 }
 
@@ -437,13 +480,14 @@ ewmSignalTransaction (BREthereumEWM ewm,
 typedef struct {
     BREvent base;
     BREthereumEWM ewm;
+    BREthereumBCSCallbackLogType type;
     BREthereumLog log;
 } BREthereumHandleLogEvent;
 
 static void
 ewmHandleLogEventDispatcher(BREventHandler ignore,
                             BREthereumHandleLogEvent *event) {
-    ewmHandleLog(event->ewm, event->log);
+    ewmHandleLog(event->ewm, event->type, event->log);
 }
 
 BREventType handleLogEventType = {
@@ -454,22 +498,129 @@ BREventType handleLogEventType = {
 
 extern void
 ewmSignalLog (BREthereumEWM ewm,
+              BREthereumBCSCallbackLogType type,
               BREthereumLog log) {
-    BREthereumHandleLogEvent event = { { NULL, &handleLogEventType }, ewm, log };
+    BREthereumHandleLogEvent event = { { NULL, &handleLogEventType }, ewm, type, log };
     eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
 }
+
+// ==============================================================================================
+//
+// Handle SaveBlocks
+//
+typedef struct {
+    BREvent base;
+    BREthereumEWM ewm;
+    BRArrayOf(BREthereumBlock) blocks;
+} BREthereumHandleSaveBlocksEvent;
+
+static void
+ewmHandleSaveBlocksEventDispatcher(BREventHandler ignore,
+                             BREthereumHandleSaveBlocksEvent *event) {
+    ewmHandleSaveBlocks(event->ewm, event->blocks);
+}
+
+BREventType handleSaveBlocksEventType = {
+    "EWM: Handle SaveBlocks Event",
+    sizeof (BREthereumHandleSaveBlocksEvent),
+    (BREventDispatcher) ewmHandleSaveBlocksEventDispatcher
+};
+
+extern void
+ewmSignalSaveBlocks (BREthereumEWM ewm,
+                     BRArrayOf(BREthereumBlock) blocks) {
+    BREthereumHandleSaveBlocksEvent event = { { NULL, &handleSaveBlocksEventType }, ewm, blocks };
+    eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
+}
+
+// ==============================================================================================
+//
+// Handle SavePeers
+//
+typedef struct {
+    BREvent base;
+    BREthereumEWM ewm;
+} BREthereumHandleSavePeersEvent;
+
+static void
+ewmHandleSavePeersEventDispatcher(BREventHandler ignore,
+                                   BREthereumHandleSavePeersEvent *event) {
+    ewmHandleSavePeers(event->ewm);
+}
+
+BREventType handleSavePeersEventType = {
+    "EWM: Handle SavePeers Event",
+    sizeof (BREthereumHandleSavePeersEvent),
+    (BREventDispatcher) ewmHandleSavePeersEventDispatcher
+};
+
+extern void
+ewmSignalSavePeers (BREthereumEWM ewm) {
+    BREthereumHandleSavePeersEvent event = { { NULL, &handleSavePeersEventType }, ewm };
+    eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
+}
+
+
+
+// ==============================================================================================
+//
+// Handle Sync
+//
+typedef struct {
+    BREvent base;
+    BREthereumEWM ewm;
+    BREthereumBCSCallbackSyncType type;
+    uint64_t blockNumberStart;
+    uint64_t blockNumberCurrent;
+    uint64_t blockNumberStop;
+
+} BREthereumHandleSyncEvent;
+
+static void
+ewmHandleSyncEventDispatcher(BREventHandler ignore,
+                            BREthereumHandleSyncEvent *event) {
+    ewmHandleSync(event->ewm, event->type,
+                  event->blockNumberStart,
+                  event->blockNumberCurrent,
+                  event->blockNumberStop);
+}
+
+BREventType handleSyncEventType = {
+    "EWM: Handle Sync Event",
+    sizeof (BREthereumHandleSyncEvent),
+    (BREventDispatcher) ewmHandleSyncEventDispatcher
+};
+
+extern void
+ewmSignalSync (BREthereumEWM ewm,
+               BREthereumBCSCallbackSyncType type,
+               uint64_t blockNumberStart,
+               uint64_t blockNumberCurrent,
+               uint64_t blockNumberStop) {
+
+    BREthereumHandleSyncEvent event = { { NULL, &handleSyncEventType }, ewm, type,
+        blockNumberStart,
+        blockNumberCurrent,
+        blockNumberStop };
+    eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
+}
+
 
 // ==============================================================================================
 //
 // All Handler Event Types
 //
 const BREventType *handlerEventTypes[] = {
+    &handleBlockChainEventType,
+    &handleAccountStateEventType,
     &handleBalanceEventType,
-    &handleNonceEventType,
     &handleGasPriceEventType,
     &handleGasEstimateEventType,
+    &handleTransactionEventType,
     &handleLogEventType,
-    &handleTransactionEventType
+    &handleSaveBlocksEventType,
+    &handleSavePeersEventType,
+    &handleSyncEventType
 };
-const unsigned int handlerEventTypesCount = 5;
+const unsigned int handlerEventTypesCount = 10;
 
