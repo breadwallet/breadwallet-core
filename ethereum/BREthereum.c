@@ -52,6 +52,11 @@ ethereumConnect(BREthereumLightNode node,
     return lightNodeConnect(node, client);
 }
 
+extern BREthereumClientContext
+ethereumGetClientContext (BREthereumLightNode node) {
+    return lightNodeGetClientContext(node);
+}
+
 extern BREthereumBoolean
 ethereumDisconnect (BREthereumLightNode node) {
     return lightNodeDisconnect(node);
