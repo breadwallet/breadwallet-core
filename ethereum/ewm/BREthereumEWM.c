@@ -79,6 +79,7 @@ extern BREthereumEWM
 createEWM (BREthereumNetwork network,
            BREthereumAccount account,
            BREthereumType type,
+           // serialized: headers, transactions, logs
            BREthereumSyncMode syncMode) {
     BREthereumEWM ewm = (BREthereumEWM) calloc (1, sizeof (struct BREthereumEWMRecord));
     ewm->state = LIGHT_NODE_CREATED;
@@ -87,18 +88,9 @@ createEWM (BREthereumNetwork network,
     ewm->network = network;
     ewm->account = account;
     
-    BREthereumBCSListener listener = {
-        (BREthereumBCSCallbackContext) ewm,
-        (BREthereumBCSCallbackBlockchain) ewmSignalBlockChain,
-        (BREthereumBCSCallbackAccountState) ewmSignalAccountState,
-        (BREthereumBCSCallbackTransaction) ewmSignalTransaction,
-        (BREthereumBCSCallbackLog) ewmSignalLog,
-        (BREthereumBCSCallbackSaveBlocks) ewmSignalSaveBlocks,
-        (BREthereumBCSCallbackSavePeers) ewmSignalSavePeers,
-        (BREthereumBCSCallbackSync) ewmSignalSync
-    };
-
-    // Create and then start the eventHandler
+    // Create the `listener` and `main` event handlers.  Do this early so that queues exist
+    // for any events/callbacks generated during initialization.  The queues won't be handled
+    // until ewmConnect().
     ewm->handlerForListener = eventHandlerCreate(listenerEventTypes, listenerEventTypesCount);
 
     ewm->handlerForMain = eventHandlerCreate(handlerEventTypes, handlerEventTypesCount);
@@ -126,6 +118,17 @@ createEWM (BREthereumNetwork network,
                                            ewm->network);
     ewmInsertWallet(ewm, ewm->walletHoldingEther);
 
+    BREthereumBCSListener listener = {
+        (BREthereumBCSCallbackContext) ewm,
+        (BREthereumBCSCallbackBlockchain) ewmSignalBlockChain,
+        (BREthereumBCSCallbackAccountState) ewmSignalAccountState,
+        (BREthereumBCSCallbackTransaction) ewmSignalTransaction,
+        (BREthereumBCSCallbackLog) ewmSignalLog,
+        (BREthereumBCSCallbackSaveBlocks) ewmSignalSaveBlocks,
+        (BREthereumBCSCallbackSavePeers) ewmSignalSavePeers,
+        (BREthereumBCSCallbackSync) ewmSignalSync
+    };
+
     // Create BCS - note: when BCS processes headers, transactions, etc callbacks will be made to
     // the EWM listener.
     {
@@ -137,8 +140,10 @@ createEWM (BREthereumNetwork network,
 
         ewm->bcs = bcsCreate(network,
                              accountGetPrimaryAddress (account),
+                             listener,
                              headers,
-                             listener);
+                             NULL,
+                             NULL);
 
         array_free(headers);
     }

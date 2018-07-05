@@ -141,11 +141,12 @@ typedef struct {
 extern BREthereumBCS
 bcsCreate (BREthereumNetwork network,
            BREthereumAddress address,
-           BREthereumBlockHeader *headers,
-           // transactions
-           // logs
+           BREthereumBCSListener listener,
+           BRArrayOf(BREthereumBlockHeader) headers,
+           BRArrayOf(BREthereumTransaction) transactions,
+           BRArrayOf(BREthereumLog) logs
            // peers
-           BREthereumBCSListener listener);
+           );
 
 extern void
 bcsStart (BREthereumBCS bcs);

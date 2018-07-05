@@ -153,7 +153,8 @@ tokenHashValue (const void *t)
 
 static inline int
 tokenHashEqual (const void *t1, const void *t2) {
-    return addressHashEqual(((BREthereumToken) t1)->raw, ((BREthereumToken) t2)->raw);
+    return t1 == t2 || addressHashEqual (((BREthereumToken) t1)->raw,
+                                         ((BREthereumToken) t2)->raw);
 }
 
 //

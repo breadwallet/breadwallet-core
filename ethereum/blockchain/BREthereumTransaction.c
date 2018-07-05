@@ -243,8 +243,8 @@ transactionHashValue (const void *t)
 
 extern int
 transactionHashEqual (const void *t1, const void *t2) {
-    return hashSetEqual(&((BREthereumTransaction) t1)->hash,
-                        &((BREthereumTransaction) t2)->hash);
+    return t1 == t2 || hashSetEqual (&((BREthereumTransaction) t1)->hash,
+                                     &((BREthereumTransaction) t2)->hash);
 }
 
 //

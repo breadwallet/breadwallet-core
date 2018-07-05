@@ -246,8 +246,8 @@ logHashValue (const void *l) {
 // Support BRSet
 extern int
 logHashEqual (const void *l1, const void *l2) {
-    return hashSetEqual(&((BREthereumLog) l1)->hash,
-                        &((BREthereumLog) l2)->hash);
+    return l1 == l2 || hashSetEqual (&((BREthereumLog) l1)->hash,
+                                     &((BREthereumLog) l2)->hash);
 }
 
 //

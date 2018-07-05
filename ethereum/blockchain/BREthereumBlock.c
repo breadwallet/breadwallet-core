@@ -294,8 +294,8 @@ blockHeaderHashValue (const void *h)
 
 extern int
 blockHeaderHashEqual (const void *h1, const void *h2) {
-    return hashSetEqual(&((BREthereumBlockHeader) h1)->hash,
-                        &((BREthereumBlockHeader) h2)->hash);
+    return h1 == h2 || hashSetEqual (&((BREthereumBlockHeader) h1)->hash,
+                                     &((BREthereumBlockHeader) h2)->hash);
 }
 
 extern BREthereumComparison
@@ -733,27 +733,9 @@ blockHashValue (const void *b)
 
 extern int
 blockHashEqual (const void *b1, const void *b2) {
-    return b1 == b2 || hashSetEqual(& ((BREthereumBlock) b1)->status.hash, & ((BREthereumBlock) b2)->status.hash);
+    return b1 == b2 || hashSetEqual (& ((BREthereumBlock) b1)->status.hash,
+                                     & ((BREthereumBlock) b2)->status.hash);
 }
-
-/*
-extern size_t
-blockHeaderHashValue (const void *h)
-{
-    return hashSetValue(&((BREthereumBlockHeader) h)->hash);
-}
-
-extern int
-blockHeaderHashEqual (const void *h1, const void *h2) {
-    return hashSetEqual(&((BREthereumBlockHeader) h1)->hash,
-                        &((BREthereumBlockHeader) h2)->hash);
-}
-*/
-//extern int
-//blockHashEqual (const void *b1, const void *b2) {
-//    return hashSetEqual(&((BREthereumBlock) b1)->header->hash,
-//                        &((BREthereumBlock) b2)->header->hash);
-//}
 
 extern void
 blockReleaseForSet (void *ignore, void *item) {
@@ -808,6 +790,25 @@ blockReportStatusAccountState (BREthereumBlock block,
     assert (0 == (BLOCK_STATUS_HAS_ACCOUNT_STATE & block->status.flags));
     block->status.accountState = accountState;
     block->status.flags |= BLOCK_STATUS_HAS_ACCOUNT_STATE;
+}
+
+extern BREthereumBoolean
+blockHasStatusTransaction (BREthereumBlock block,
+                           BREthereumTransaction transaction) {
+
+    for (size_t index = 0; index < array_count(block->status.transactions); index++)
+        if (transactionHashEqual(transaction, block->status.transactions[index]))
+            return ETHEREUM_BOOLEAN_TRUE;
+    return ETHEREUM_BOOLEAN_FALSE;
+}
+
+extern BREthereumBoolean
+blockHasStatusLog (BREthereumBlock block,
+                   BREthereumLog log) {
+    for (size_t index = 0; index < array_count(block->status.logs); index++)
+        if (logHashEqual(log, block->status.logs[index]))
+            return ETHEREUM_BOOLEAN_TRUE;
+    return ETHEREUM_BOOLEAN_FALSE;
 }
 
 /* Block Headers (10)
@@ -1173,10 +1174,10 @@ ethereumMainnetCheckpoints [] = {
     { 5865000, HASH_INIT("9f573bfa8b0ffaca5210b45eb01c12e4d0f6ffc3a8c4d13bea8176b1266f5d53"),  0 }, //    1 hr 25 mins ago (Jun-27-2018 07:38:02 PM +UTC)
 
     // 2018-07-02
-    { 5893500, HASH_INIT("a8ed4df2446a09d85b5867253a7c4a0870a65d858cf43539070186e180b4f7d2"),  0 },
+//    { 5893500, HASH_INIT("a8ed4df2446a09d85b5867253a7c4a0870a65d858cf43539070186e180b4f7d2"),  0 },
 
     // 2018-07-03
-    { 5899000, HASH_INIT("e7b0051c152755f03e9e98b5f41540d79abee02c5770c22299b7250a2d647507"),  0 },
+//    { 5899000, HASH_INIT("e7b0051c152755f03e9e98b5f41540d79abee02c5770c22299b7250a2d647507"),  0 },
 
 };
 #define CHECKPOINT_MAINNET_COUNT      (sizeof (ethereumMainnetCheckpoints) / sizeof (BREthereumBlockCheckpoint))

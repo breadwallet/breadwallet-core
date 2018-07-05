@@ -93,7 +93,7 @@ addressHashValue (BREthereumAddress address) {
 
 static inline int
 addressHashEqual (BREthereumAddress address1,
-                     BREthereumAddress address2) {
+                  BREthereumAddress address2) {
     return 0 == memcmp (address1.bytes, address2.bytes, 20);
 }
 

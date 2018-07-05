@@ -252,6 +252,14 @@ extern void
 blockReportStatusAccountState (BREthereumBlock block,
                                BREthereumAccountState accountState);
 
+extern BREthereumBoolean
+blockHasStatusTransaction (BREthereumBlock block,
+                           BREthereumTransaction transaction);
+
+extern BREthereumBoolean
+blockHasStatusLog (BREthereumBlock block,
+                   BREthereumLog log);
+
 //
 // MARK: - Block Decoding for LES
 //

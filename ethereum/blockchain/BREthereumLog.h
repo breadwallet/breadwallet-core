@@ -58,7 +58,7 @@ typedef struct {
         
         /**
          * The receipt index from the transaction's contract execution for this log.  It can't
-         * possibly be the case that this number varies, can it.  Contract execution, regarding
+         * possibly be the case that this number varies, can it - contract execution, regarding
          * event generating, must be deterministic?
          */
         size_t transactionReceiptIndex;
@@ -152,8 +152,8 @@ typedef struct BREthereumLogRecord *BREthereumLog;
 
 extern void
 logInitializeStatus (BREthereumLog log,
-                 BREthereumHash transactionHash,
-                 size_t transactionReceiptIndex);
+                     BREthereumHash transactionHash,
+                     size_t transactionReceiptIndex);
 
 extern BREthereumLogStatus
 logGetStatus (BREthereumLog log);
