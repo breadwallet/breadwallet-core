@@ -97,7 +97,7 @@ transactionStatusEqual (BREthereumTransactionStatus ts1,
                         BREthereumTransactionStatus ts2);
 
 extern BREthereumTransactionStatus
-transactionStatusRLPDecodeItem (BRRlpItem item,
+transactionStatusRLPDecode (BRRlpItem item,
                                 BRRlpCoder coder);
 
 

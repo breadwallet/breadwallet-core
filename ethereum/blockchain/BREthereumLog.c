@@ -110,7 +110,7 @@ logTopicAsAddress (BREthereumLogTopic topic) {
 // Support
 //
 static BREthereumLogTopic
-logTopicRlpDecodeItem (BRRlpItem item,
+logTopicRlpDecode (BRRlpItem item,
                        BRRlpCoder coder) {
     BREthereumLogTopic topic;
 
@@ -124,7 +124,7 @@ logTopicRlpDecodeItem (BRRlpItem item,
 }
 
 static BRRlpItem
-logTopicRlpEncodeItem(BREthereumLogTopic topic,
+logTopicRlpEncode(BREthereumLogTopic topic,
                       BRRlpCoder coder) {
     return rlpEncodeItemBytes(coder, topic.bytes, 32);
 }
@@ -254,19 +254,19 @@ logHashEqual (const void *l1, const void *l2) {
 // Log Topics - RLP Encode/Decode
 //
 static BRRlpItem
-logTopicsRlpEncodeItem (BREthereumLog log,
+logTopicsRlpEncode (BREthereumLog log,
                         BRRlpCoder coder) {
     size_t itemsCount = array_count(log->topics);
     BRRlpItem items[itemsCount];
 
     for (int i = 0; i < itemsCount; i++)
-        items[i] = logTopicRlpEncodeItem(log->topics[i], coder);
+        items[i] = logTopicRlpEncode(log->topics[i], coder);
 
     return rlpEncodeListItems(coder, items, itemsCount);
 }
 
 static BREthereumLogTopic *
-logTopicsRlpDecodeItem (BRRlpItem item,
+logTopicsRlpDecode (BRRlpItem item,
                         BRRlpCoder coder) {
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
@@ -275,7 +275,7 @@ logTopicsRlpDecodeItem (BRRlpItem item,
     array_new(topics, itemsCount);
 
     for (int i = 0; i < itemsCount; i++) {
-        BREthereumLogTopic topic = logTopicRlpDecodeItem(items[i], coder);
+        BREthereumLogTopic topic = logTopicRlpDecode(items[i], coder);
         array_add(topics, topic);
     }
 
@@ -297,8 +297,8 @@ logReleaseForSet (void *ignore, void *item) {
 extern BREthereumLog
 logCopy (BREthereumLog log) {
     BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = logRlpEncodeItem(log, coder);
-    BREthereumLog copy = logRlpDecodeItem(item, coder);
+    BRRlpItem item = logRlpEncode(log, coder);
+    BREthereumLog copy = logRlpDecode(item, coder);
     rlpCoderRelease(coder);
     return copy;
 }
@@ -307,7 +307,7 @@ logCopy (BREthereumLog log) {
 // Log - RLP Decode
 //
 extern BREthereumLog
-logRlpDecodeItem (BRRlpItem item,
+logRlpDecode (BRRlpItem item,
                   BRRlpCoder coder) {
     BREthereumLog log = (BREthereumLog) calloc (1, sizeof (struct BREthereumLogRecord));
 
@@ -316,7 +316,7 @@ logRlpDecodeItem (BRRlpItem item,
     assert (3 == itemsCount);
 
     log->address = addressRlpDecode(items[0], coder);
-    log->topics = logTopicsRlpDecodeItem (items[1], coder);
+    log->topics = logTopicsRlpDecode (items[1], coder);
 
     BRRlpData data = rlpDecodeItemBytes(coder, items[2]);
     log->data = data.bytes;
@@ -325,44 +325,20 @@ logRlpDecodeItem (BRRlpItem item,
     return log;
 }
 
-extern BREthereumLog
-logDecodeRLP (BRRlpData data) {
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = rlpGetItem (coder, data);
-
-    BREthereumLog log = logRlpDecodeItem(item, coder);
-
-    rlpCoderRelease(coder);
-    return log;
-}
-
 //
 // Log - RLP Encode
 //
 extern BRRlpItem
-logRlpEncodeItem(BREthereumLog log,
+logRlpEncode(BREthereumLog log,
                  BRRlpCoder coder) {
 
     BRRlpItem items[3];
 
     items[0] = addressRlpEncode(log->address, coder);
-    items[1] = logTopicsRlpEncodeItem(log, coder);
+    items[1] = logTopicsRlpEncode(log, coder);
     items[2] = rlpEncodeItemBytes(coder, log->data, log->dataCount);
 
     return rlpEncodeListItems(coder, items, 3);
-}
-
-extern BRRlpData
-logEncodeRLP (BREthereumLog log) {
-    BRRlpData result;
-
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem encoding = logRlpEncodeItem(log, coder);
-
-    rlpDataExtract(coder, encoding, &result.bytes, &result.bytesCount);
-    rlpCoderRelease(coder);
-
-    return result;
 }
 
 /* Log (2) w/ LogTopic (3)

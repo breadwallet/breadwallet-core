@@ -101,20 +101,20 @@ transactionReceiptRelease (BREthereumTransactionReceipt receipt) {
 // Transaction Receipt Logs - RLP Encode/Decode
 //
 static BRRlpItem
-transactionReceiptLogsRlpEncodeItem (BREthereumTransactionReceipt log,
-                                     BRRlpCoder coder) {
+transactionReceiptLogsRlpEncode (BREthereumTransactionReceipt log,
+                                 BRRlpCoder coder) {
     size_t itemsCount = array_count(log->logs);
     BRRlpItem items[itemsCount];
     
     for (int i = 0; i < itemsCount; i++)
-        items[i] = logRlpEncodeItem(log->logs[i], coder);
+        items[i] = logRlpEncode(log->logs[i], coder);
     
     return rlpEncodeListItems(coder, items, itemsCount);
 }
 
 static BREthereumLog *
-transactionReceiptLogsRlpDecodeItem (BRRlpItem item,
-                                     BRRlpCoder coder) {
+transactionReceiptLogsRlpDecode (BRRlpItem item,
+                                 BRRlpCoder coder) {
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
 
@@ -122,7 +122,7 @@ transactionReceiptLogsRlpDecodeItem (BRRlpItem item,
     array_new(logs, itemsCount);
 
     for (int i = 0; i < itemsCount; i++) {
-        BREthereumLog log = logRlpDecodeItem(items[i], coder);
+        BREthereumLog log = logRlpDecode(items[i], coder);
         array_add(logs, log);
     }
 
@@ -132,64 +132,39 @@ transactionReceiptLogsRlpDecodeItem (BRRlpItem item,
 //
 // Transaction Receipt - RLP Decode
 //
-static BREthereumTransactionReceipt
-transactionReceiptRlpDecodeItem (BRRlpItem item,
-                                 BRRlpCoder coder) {
+extern BREthereumTransactionReceipt
+transactionReceiptRlpDecode (BRRlpItem item,
+                             BRRlpCoder coder) {
     BREthereumTransactionReceipt receipt = calloc (1, sizeof(struct BREthereumTransactionReceiptRecord));
     memset (receipt, 0, sizeof(struct BREthereumTransactionReceiptRecord));
-
+    
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     assert (4 == itemsCount);
-
+    
     receipt->stateRoot = rlpDecodeItemBytes(coder, items[0]);
     receipt->gasUsed = rlpDecodeItemUInt64(coder, items[1], 0);
     receipt->bloomFilter = bloomFilterRlpDecode(items[2], coder);
-    receipt->logs = transactionReceiptLogsRlpDecodeItem(items[3], coder);
-
-    return receipt;
-}
-
-extern BREthereumTransactionReceipt
-transactionReceiptDecodeRLP (BRRlpData data) {
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = rlpGetItem (coder, data);
-
-    BREthereumTransactionReceipt receipt = transactionReceiptRlpDecodeItem(item, coder);
-
-    rlpCoderRelease(coder);
+    receipt->logs = transactionReceiptLogsRlpDecode(items[3], coder);
+    
     return receipt;
 }
 
 //
 // Transaction Receipt - RLP Encode
 //
-static BRRlpItem
-transactionReceiptRlpEncodeItem(BREthereumTransactionReceipt receipt,
-                                BRRlpCoder coder) {
+extern BRRlpItem
+transactionReceiptRlpEncode(BREthereumTransactionReceipt receipt,
+                            BRRlpCoder coder) {
     BRRlpItem items[4];
-
+    
     items[0] = rlpEncodeItemBytes(coder, receipt->stateRoot.bytes, receipt->stateRoot.bytesCount);
     items[1] = rlpEncodeItemUInt64(coder, receipt->gasUsed, 0);
     items[2] = bloomFilterRlpEncode(receipt->bloomFilter, coder);
-    items[3] = transactionReceiptLogsRlpEncodeItem(receipt, coder);
-
+    items[3] = transactionReceiptLogsRlpEncode(receipt, coder);
+    
     return rlpEncodeListItems(coder, items, 4);
 }
-
-extern BRRlpData
-transactionReceiptEncodeRLP (BREthereumTransactionReceipt receipt) {
-    BRRlpData result;
-
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem encoding = transactionReceiptRlpEncodeItem(receipt, coder);
-
-    rlpDataExtract(coder, encoding, &result.bytes, &result.bytesCount);
-    rlpCoderRelease(coder);
-
-    return result;
-}
-
 
 /*  Transaction Receipts (184)
  ETH: LES-RECEIPTS:     L184: [

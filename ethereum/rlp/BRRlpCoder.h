@@ -67,11 +67,39 @@ typedef struct {
   unsigned long indexer;
 } BRRlpItem;
 
+/**
+ * Convet the bytes in `data` into an `item`.  If `data` represents a RLP list, then `item` will
+ * represent a list (thus `data` is 'walked' to identify subitems, including sublists).
+ */
 extern BRRlpItem
 rlpGetItem (BRRlpCoder coder, BRRlpData data);
 
+/**
+ * Return the RLP data associated with `item`.  You own this data and must call
+ * rlpDataRelese().
+ */
+extern BRRlpData
+rlpGetData (BRRlpCoder coder, BRRlpItem item);
+
+/**
+ * Return the RLP data associated with `item`.  You DO NOT own this data; you must not
+ * modify the data nor release the data nor hold the data.  [The returned data is a direct
+ * pointer into the `coder` memory and will become invalid on coder release.
+ */
 extern BRRlpData
 rlpGetDataSharedDontRelease (BRRlpCoder coder, BRRlpItem item);
+
+/**
+ * Extract the `bytes` and `bytesCount` for `item`.  The returns `bytes` will be the complete
+ * RLP encoding for `item` which includes the RLP encoding of length.  Contrast this with
+ * rlpDecodeItemBytes() which only returns the RLP encoding data w/o the length.
+ * Extract the `item` data as a copy, filling `bytes` and `bytesCount`.
+ *
+ * TODO: ?? Hold onto BRRlpItem 'forever'... then try to use... will fail because 'coder'
+ * TODO: will not have 'context' ??
+ */
+extern void
+rlpDataExtract (BRRlpCoder coder, BRRlpItem item, uint8_t **bytes, size_t *bytesCount);
 
 //
 // UInt64
@@ -97,8 +125,16 @@ rlpDecodeItemUInt256(BRRlpCoder coder, BRRlpItem item, int zeroAsEmptyString);
 extern BRRlpItem
 rlpEncodeItemBytes (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount);
 
+/**
+ * Extract the `data` for `item` as the item's bytes w/o the RLP encoding of length.  Thus, if
+ * you used rlpEncodeItemBytes() to encode `bytes` and `bytesCount`, then the result of
+ * rlpDecodeItemBytes() will be `data` with exactly the same data as was encoded.
+ */
 extern BRRlpData
 rlpDecodeItemBytes (BRRlpCoder coder, BRRlpItem item);
+
+extern BRRlpData
+rlpDecodeItemBytesSharedDontRelease (BRRlpCoder coder, BRRlpItem item);
 
 //
 // String
@@ -139,11 +175,6 @@ rlpEncodeListItems (BRRlpCoder coder, BRRlpItem *items, size_t itemsCount);
 extern const BRRlpItem *
 rlpDecodeList (BRRlpCoder coder, BRRlpItem item, size_t *itemsCount);
     
-// Hold onto BRRlpItem 'forever'... then try to use... will fail because 'coder'
-// will not have 'context'
-extern void
-rlpDataExtract (BRRlpCoder coder, BRRlpItem item, uint8_t **bytes, size_t *bytesCount);
-
 //
 // Show
 //

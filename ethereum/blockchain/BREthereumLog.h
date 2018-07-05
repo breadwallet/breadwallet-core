@@ -196,20 +196,14 @@ extern int
 logHashEqual (const void *h1, const void *h2);
 
 extern BREthereumLog
-logRlpDecodeItem (BRRlpItem item,
+logRlpDecode (BRRlpItem item,
                   BRRlpCoder coder);
 /**
  * [QUASI-INTERNAL - used by BREthereumBlock]
  */
 extern BRRlpItem
-logRlpEncodeItem(BREthereumLog log,
+logRlpEncode(BREthereumLog log,
                  BRRlpCoder coder);
-
-extern BRRlpData
-logEncodeRLP (BREthereumLog log);
-
-extern BREthereumLog
-logDecodeRLP (BRRlpData data);
 
 extern void
 logRelease (BREthereumLog log);
