@@ -243,8 +243,8 @@ transactionHashValue (const void *t)
 
 extern int
 transactionHashEqual (const void *t1, const void *t2) {
-    return hashSetEqual(&((BREthereumTransaction) t1)->hash,
-                        &((BREthereumTransaction) t2)->hash);
+    return t1 == t2 || hashSetEqual (&((BREthereumTransaction) t1)->hash,
+                                     &((BREthereumTransaction) t2)->hash);
 }
 
 //
@@ -319,22 +319,24 @@ transactionGetSignature (BREthereumTransaction transaction) {
 
 extern BREthereumAddress
 transactionExtractAddress(BREthereumTransaction transaction,
-                          BREthereumNetwork network)
-{
+                          BREthereumNetwork network,
+                          BRRlpCoder coder) {
     if (ETHEREUM_BOOLEAN_IS_FALSE (transactionIsSigned(transaction))) {
         BREthereumAddress emptyAddress = EMPTY_ADDRESS_INIT;
         return emptyAddress;
     }
 
     int success = 1;
-    BRRlpData unsignedRLPData = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
+
+    BRRlpItem item = transactionRlpEncode (transaction, network, TRANSACTION_RLP_UNSIGNED, coder);
+    BRRlpData data = rlpGetData(coder, item);
 
     BREthereumAddress address = signatureExtractAddress(transaction->signature,
-                                   unsignedRLPData.bytes,
-                                   unsignedRLPData.bytesCount,
+                                   data.bytes,
+                                   data.bytesCount,
                                    &success);
     
-    rlpDataRelease(unsignedRLPData);
+    rlpDataRelease(data);
     return address;
 }
 
@@ -382,10 +384,10 @@ transactionDecodeNonce (BRRlpItem item,
 // Tranaction RLP Encode
 //
 extern BRRlpItem
-transactionRlpEncodeItem(BREthereumTransaction transaction,
-                         BREthereumNetwork network,
-                         BREthereumTransactionRLPType type,
-                         BRRlpCoder coder) {
+transactionRlpEncode(BREthereumTransaction transaction,
+                     BREthereumNetwork network,
+                     BREthereumTransactionRLPType type,
+                     BRRlpCoder coder) {
     BRRlpItem items[10];
     size_t itemsCount = 0;
 
@@ -432,26 +434,12 @@ transactionRlpEncodeItem(BREthereumTransaction transaction,
             break;
     }
 
-    return rlpEncodeListItems(coder, items, itemsCount);
-}
+    BRRlpItem result = rlpEncodeListItems(coder, items, itemsCount);
 
-
-
-extern BRRlpData
-transactionEncodeRLP (BREthereumTransaction transaction,
-                      BREthereumNetwork network,
-                      BREthereumTransactionRLPType type) {
-    BRRlpData result;
-
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem encoding = transactionRlpEncodeItem(transaction, network, type, coder);
-
-    rlpDataExtract(coder, encoding, &result.bytes, &result.bytesCount);
-    rlpCoderRelease(coder);
-
-    // With a SIGNED RLP encoding, we can compute the hash.
-    if (TRANSACTION_RLP_SIGNED == type)
-        transaction->hash = hashCreateFromData(result);
+    if (TRANSACTION_RLP_SIGNED == type) {
+        BRRlpData data = rlpGetDataSharedDontRelease(coder, result);
+        transaction->hash = hashCreateFromData(data);
+    }
 
     return result;
 }
@@ -460,10 +448,10 @@ transactionEncodeRLP (BREthereumTransaction transaction,
 // Tranaction RLP Decode
 //
 extern BREthereumTransaction
-transactionRlpDecodeItem (BRRlpItem item,
-                          BREthereumNetwork network,
-                          BREthereumTransactionRLPType type,
-                          BRRlpCoder coder) {
+transactionRlpDecode (BRRlpItem item,
+                      BREthereumNetwork network,
+                      BREthereumTransactionRLPType type,
+                      BRRlpCoder coder) {
 
     BREthereumTransaction transaction = calloc (1, sizeof(struct BREthereumTransactionRecord));
 
@@ -542,48 +530,29 @@ transactionRlpDecodeItem (BRRlpItem item,
                                                     ? eipChainId - 8 - 2 * transaction->chainId
                                                     : eipChainId);
 
-        BRRlpData rData = rlpDecodeItemBytes (coder, items[7]);
+        BRRlpData rData = rlpDecodeItemBytesSharedDontRelease (coder, items[7]);
         assert (32 >= rData.bytesCount);
         memcpy (&transaction->signature.sig.recoverable.r[32 - rData.bytesCount],
                 rData.bytes, rData.bytesCount);
-        rlpDataRelease(rData);
 
-        BRRlpData sData = rlpDecodeItemBytes (coder, items[8]);
+        BRRlpData sData = rlpDecodeItemBytesSharedDontRelease (coder, items[8]);
         assert (32 >= sData.bytesCount);
         memcpy (&transaction->signature.sig.recoverable.s[32 - sData.bytesCount],
                 sData.bytes, sData.bytesCount);
-        rlpDataRelease(sData);
 
         // :fingers-crossed:
-        transaction->sourceAddress = transactionExtractAddress(transaction, network);
+        transaction->sourceAddress = transactionExtractAddress(transaction, network, coder);
     }
-
 
     // With a SIGNED RLP encoding, we can compute the hash.
     if (SIGNATURE_TYPE_RECOVERABLE == transaction->signature.type) {
-        BRRlpData result;
-        rlpDataExtract(coder, item, &result.bytes, &result.bytesCount);
+        BRRlpData result = rlpGetDataSharedDontRelease(coder, item);
         transaction->hash = hashCreateFromData(result);
-        rlpDataRelease(result);
     }
 
 #if defined (TRANSACTION_LOG_ALLOC_COUNT)
     eth_log ("BCS", "TX RLPDecode - Count: %d", ++transactionAllocCount);
 #endif
-    return transaction;
-}
-
-
-extern BREthereumTransaction
-transactionDecodeRLP (BREthereumNetwork network,
-                      BREthereumTransactionRLPType type,
-                      BRRlpData data) {
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = rlpGetItem (coder, data);
-
-    BREthereumTransaction transaction = transactionRlpDecodeItem(item, network, type, coder);
-
-    rlpCoderRelease(coder);
     return transaction;
 }
 

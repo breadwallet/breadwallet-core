@@ -80,10 +80,10 @@ accountStateEqual (BREthereumAccountState s1,
                    BREthereumAccountState s2);
     
 extern BRRlpItem
-accountStateRlpEncodeItem (BREthereumAccountState state, BRRlpCoder coder);
+accountStateRlpEncode (BREthereumAccountState state, BRRlpCoder coder);
 
 extern BREthereumAccountState
-accountStateRlpDecodeItem (BRRlpItem item, BRRlpCoder coder);
+accountStateRlpDecode (BRRlpItem item, BRRlpCoder coder);
 
 #ifdef __cplusplus
 }

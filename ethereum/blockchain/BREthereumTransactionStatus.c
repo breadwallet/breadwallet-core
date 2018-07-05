@@ -73,7 +73,7 @@ transactionStatusEqual (BREthereumTransactionStatus ts1,
 
 
 extern BREthereumTransactionStatus
-transactionStatusRLPDecodeItem (BRRlpItem item,
+transactionStatusRLPDecode (BRRlpItem item,
                                 BRRlpCoder coder) {
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);

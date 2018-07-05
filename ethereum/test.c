@@ -884,12 +884,16 @@ void runTransactionTests1 (BREthereumAccount account, BREthereumNetwork network)
      TEST_TRANS1_NONCE);
     
     assert (1 == networkGetChainId(network));
-    BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem item = transactionRlpEncode(transaction, network, TRANSACTION_RLP_UNSIGNED, coder);
+    BRRlpData dataUnsignedTransaction;
+    rlpDataExtract(coder, item, &dataUnsignedTransaction.bytes, &dataUnsignedTransaction.bytesCount);
     
     char result[2 * dataUnsignedTransaction.bytesCount + 1];
     encodeHex(result, 2 * dataUnsignedTransaction.bytesCount + 1, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
     printf ("       Tx1 Raw (unsigned): %s\n", result);
     assert (0 == strcmp (result, TEST_TRANS1_RESULT));
+    rlpDataRelease(dataUnsignedTransaction);
 
     // Check the gasLimit margin
     assert (21000ull == transactionGetGasLimit(transaction).amountOfGas);
@@ -901,6 +905,7 @@ void runTransactionTests1 (BREthereumAccount account, BREthereumNetwork network)
 
     walletUnhandleTransaction(wallet, transaction);
     transactionRelease(transaction);
+    rlpCoderRelease(coder);
 }
 
 // https://etherscan.io/tx/0xc070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c
@@ -943,7 +948,11 @@ void runTransactionTests2 (BREthereumAccount account, BREthereumNetwork network)
      TEST_TRANS2_NONCE);
     
     assert (1 == networkGetChainId(network));
-    BRRlpData data = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
+
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem item = transactionRlpEncode(transaction, network, TRANSACTION_RLP_UNSIGNED, coder);
+    BRRlpData data;
+    rlpDataExtract(coder, item, &data.bytes, &data.bytesCount);
     
     char result[2 * data.bytesCount + 1];
     encodeHex(result, 2 * data.bytesCount + 1, data.bytes, data.bytesCount);
@@ -957,6 +966,7 @@ void runTransactionTests2 (BREthereumAccount account, BREthereumNetwork network)
 
     walletUnhandleTransaction(wallet, transaction);
     transactionRelease(transaction);
+    rlpCoderRelease(coder);
 }
 
 /*
@@ -1015,15 +1025,20 @@ void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network)
      TEST_TRANS3_NONCE);
     
     assert (1 == networkGetChainId(network));
-    BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem item = transactionRlpEncode(transaction, network, TRANSACTION_RLP_UNSIGNED, coder);
+    BRRlpData dataUnsignedTransaction;
+    rlpDataExtract(coder, item, &dataUnsignedTransaction.bytes, &dataUnsignedTransaction.bytesCount);
     
     char *rawTx = encodeHexCreate(NULL, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
     printf ("       Tx3 Raw (unsigned): %s\n", rawTx);
     assert (0 == strcasecmp(rawTx, TEST_TRANS3_UNSIGNED_TX));
     free (rawTx);
+    rlpDataRelease(dataUnsignedTransaction);
 
     walletUnhandleTransaction(wallet, transaction);
     transactionRelease(transaction);
+    rlpCoderRelease(coder);
 }
 
 #define TEST_TRANS4_SIGNED_TX "f8a90184773594008301676094dd974d5c2e2928dea5f71b9825b8b646686bd20080b844a9059cbb00000000000000000000000049f4c50d9bcc7afdbcf77e0d6e364c29d5a660df00000000000000000000000000000000000000000000000002c68af0bb14000025a09d4477bf97f638e1007d897bfd29a2053e2187a6d92c0e186ec98d81d291bf87a07f8c9e24255970b6282d3a21aa146add70b65f74a463eac54b2b11015bc37fbe"
@@ -1035,10 +1050,14 @@ void runTransactionTests4 (BREthereumAccount account, BREthereumNetwork network)
     BRRlpData data;
     data.bytes = decodeHexCreate(&data.bytesCount, TEST_TRANS4_SIGNED_TX, strlen (TEST_TRANS4_SIGNED_TX));
 
-    BREthereumTransaction tx = transactionDecodeRLP(network, TRANSACTION_RLP_SIGNED, data);
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem item = rlpGetItem(coder, data);
+    BREthereumTransaction tx = transactionRlpDecode(item, network, TRANSACTION_RLP_SIGNED, coder);
+
     assert (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual(transactionGetHash(tx), hashCreate(TEST_TRANS4_HASH))));
     rlpDataRelease(data);
     transactionRelease(tx);
+    rlpCoderRelease(coder);
 }
 
 void runTransactionTests (BREthereumAccount account, BREthereumNetwork network) {
@@ -1111,7 +1130,9 @@ void testTransactionCodingEther () {
     char *rawTx = encodeHexCreate(NULL, data.bytes, data.bytesCount);
     printf ("        Raw Transaction: 0x%s\n", rawTx);
 
-    BREthereumTransaction decodedTransaction = transactionDecodeRLP(ethereumMainnet, TRANSACTION_RLP_SIGNED, data);
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem item = rlpGetItem(coder, data);
+    BREthereumTransaction decodedTransaction = transactionRlpDecode(item, ethereumMainnet, TRANSACTION_RLP_SIGNED, coder);
 
     assert (transactionGetNonce(transaction) == transactionGetNonce(decodedTransaction));
     assert (ETHEREUM_COMPARISON_EQ == gasPriceCompare(transactionGetGasPrice(transaction),
@@ -1140,6 +1161,7 @@ void testTransactionCodingEther () {
     walletUnhandleTransaction(wallet, transaction);
     transactionRelease(transaction);
     transactionRelease(decodedTransaction);
+    rlpCoderRelease(coder);
 }
 
 void testTransactionCodingToken () {
@@ -1165,7 +1187,9 @@ void testTransactionCodingToken () {
     char *rawTx = encodeHexCreate(NULL, data.bytes, data.bytesCount);
     printf ("        Raw Transaction: 0x%s\n", rawTx);
 
-    BREthereumTransaction decodedTransaction = transactionDecodeRLP(ethereumMainnet, TRANSACTION_RLP_SIGNED, data);
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem item = rlpGetItem(coder, data);
+    BREthereumTransaction decodedTransaction = transactionRlpDecode(item, ethereumMainnet, TRANSACTION_RLP_SIGNED, coder);
 
     assert (transactionGetNonce(transaction) == transactionGetNonce(decodedTransaction));
     assert (ETHEREUM_COMPARISON_EQ == gasPriceCompare(transactionGetGasPrice(transaction),
@@ -1187,6 +1211,7 @@ void testTransactionCodingToken () {
     walletUnhandleTransaction(wallet, transaction);
     transactionRelease(transaction);
     transactionRelease(decodedTransaction);
+    rlpCoderRelease(coder);
 }
 
 
@@ -1786,16 +1811,17 @@ runBlockTest0 (void) {
     printf ("==== Block\n");
 
     BRRlpData data;
-    BRRlpData encodeData;
-
-    int typeMismatch;
+     int typeMismatch;
 
     //
     // Block
     //
     data.bytes = decodeHexCreate(&data.bytesCount, GENESIS_RLP, strlen (GENESIS_RLP));
 
-    BREthereumBlock block = blockDecodeRLP(data, ethereumMainnet);
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem blockItem = rlpGetItem(coder, data);
+
+    BREthereumBlock block = blockRlpDecode(blockItem, ethereumMainnet, coder);
 
     BREthereumBlockHeader header = blockGetHeader(block);
     BREthereumBlockHeader genesis = networkGetGenesisBlockHeader (ethereumMainnet);
@@ -1821,15 +1847,12 @@ runBlockTest0 (void) {
     assert (0 == blockGetOmmersCount(block));
     assert (0 == blockGetTransactionsCount(block));
 
-    encodeData = blockEncodeRLP(block, ethereumMainnet);
-//    assert (data.bytesCount == encodeData.bytesCount
-//            && 0 == memcmp (data.bytes, encodeData.bytes, encodeData.bytesCount));
-
-    rlpShow(data, "BlockTest");
-    rlpDataRelease(encodeData);
+    blockItem = blockRlpEncode(block, ethereumMainnet, coder);
+    rlpShowItem(coder, blockItem, "BlockTest");
     rlpDataRelease(data);
     blockRelease(block);
     blockHeaderRelease (genesis);
+    rlpCoderRelease(coder);
 }
 
 /*
@@ -1943,7 +1966,9 @@ runLogTests (void) {
     // Log
     data.bytes = decodeHexCreate(&data.bytesCount, LOG_1_RLP, strlen (LOG_1_RLP));
 
-    BREthereumLog log = logDecodeRLP(data);
+    BRRlpCoder coder  = rlpCoderCreate();
+    BRRlpItem logItem = rlpGetItem(coder, data);
+    BREthereumLog log = logRlpDecode(logItem, coder);
 
     BREthereumAddress address = logGetAddress(log);
     size_t addressBytesCount;
@@ -1955,13 +1980,17 @@ runLogTests (void) {
     // topic-0
     // topic-1
 
-    encodeData = logEncodeRLP(log);
+
+    logItem = logRlpEncode(log, coder);
+    rlpDataExtract(coder, logItem, &encodeData.bytes, &encodeData.bytesCount);
+
     assert (data.bytesCount == encodeData.bytesCount
             && 0 == memcmp (data.bytes, encodeData.bytes, encodeData.bytesCount));
 
     rlpShow(data, "LogTest");
     rlpDataRelease(encodeData);
     rlpDataRelease(data);
+    rlpCoderRelease(coder);
 }
 
 //
@@ -1986,9 +2015,9 @@ runAccountStateTests (void) {
                                                       emptyHash,
                                                       emptyHash);
     BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem encoding = accountStateRlpEncodeItem(state, coder);
+    BRRlpItem encoding = accountStateRlpEncode(state, coder);
 
-    BREthereumAccountState decodedState = accountStateRlpDecodeItem(encoding, coder);
+    BREthereumAccountState decodedState = accountStateRlpDecode(encoding, coder);
 
     assert (accountStateGetNonce(state) == accountStateGetNonce(decodedState));
     assert (ETHEREUM_BOOLEAN_IS_TRUE(etherIsEQ(accountStateGetBalance(state),

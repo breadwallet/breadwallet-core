@@ -294,8 +294,8 @@ blockHeaderHashValue (const void *h)
 
 extern int
 blockHeaderHashEqual (const void *h1, const void *h2) {
-    return hashSetEqual(&((BREthereumBlockHeader) h1)->hash,
-                        &((BREthereumBlockHeader) h2)->hash);
+    return h1 == h2 || hashSetEqual (&((BREthereumBlockHeader) h1)->hash,
+                                     &((BREthereumBlockHeader) h2)->hash);
 }
 
 extern BREthereumComparison
@@ -316,8 +316,8 @@ blockHeaderCompare (BREthereumBlockHeader h1,
 // Block Header RLP Encode / Decode
 //
 //
-static BRRlpItem
-blockHeaderRlpEncodeItem (BREthereumBlockHeader header,
+extern BRRlpItem
+blockHeaderRlpEncode (BREthereumBlockHeader header,
                           BREthereumBoolean withNonce,
                           BRRlpCoder coder) {
     BRRlpItem items[15];
@@ -345,21 +345,8 @@ blockHeaderRlpEncodeItem (BREthereumBlockHeader header,
     return rlpEncodeListItems(coder, items, itemsCount);
 }
 
-extern BRRlpData
-blockHeaderEncodeRLP (BREthereumBlockHeader header, BREthereumBoolean withNonce) {
-    BRRlpData result;
-
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem encoding = blockHeaderRlpEncodeItem(header, withNonce, coder);
-
-    rlpDataExtract(coder, encoding, &result.bytes, &result.bytesCount);
-    rlpCoderRelease(coder);
-
-    return result;
-}
-
-static BREthereumBlockHeader
-blockHeaderRlpDecodeItem (BRRlpItem item, BRRlpCoder coder) {
+extern BREthereumBlockHeader
+blockHeaderRlpDecode (BRRlpItem item, BRRlpCoder coder) {
     BREthereumBlockHeader header = (BREthereumBlockHeader) calloc (1, sizeof(struct BREthereumBlockHeaderRecord));
 
     size_t itemsCount = 0;
@@ -402,23 +389,6 @@ blockHeaderRlpDecodeItem (BRRlpItem item, BRRlpCoder coder) {
 
     return header;
 
-}
-
-extern BREthereumBlockHeader
-blockHeaderDecodeRLP (BRRlpData data) {
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = rlpGetItem (coder, data);
-
-    BREthereumBlockHeader header = blockHeaderRlpDecodeItem(item, coder);
-
-    // The BlockHeader/Block hash is the KECCAK hash of the BlockerHeader's RLP encoding for
-    // a BlockHeader with a nonce...
-    //     if (0 != header->nonce)
-    //        header->hash = hashCreateFromData (data);
-
-    rlpCoderRelease(coder);
-
-    return header;
 }
 
 //
@@ -585,14 +555,14 @@ blockGetTimestamp (BREthereumBlock block) {
 // Block RLP Encode / Decode
 //
 static BRRlpItem
-blockTransactionsRlpEncodeItem (BREthereumBlock block,
+blockTransactionsRlpEncode (BREthereumBlock block,
                                 BREthereumNetwork network,
                                 BRRlpCoder coder) {
     size_t itemsCount = array_count(block->transactions);
     BRRlpItem items[itemsCount];
 
     for (int i = 0; i < itemsCount; i++)
-        items[i] = transactionRlpEncodeItem(block->transactions[i],
+        items[i] = transactionRlpEncode(block->transactions[i],
                                             network,
                                             TRANSACTION_RLP_SIGNED,
                                             coder);
@@ -601,7 +571,7 @@ blockTransactionsRlpEncodeItem (BREthereumBlock block,
 }
 
 extern BREthereumTransaction *
-blockTransactionsRlpDecodeItem (BRRlpItem item,
+blockTransactionsRlpDecode (BRRlpItem item,
                                 BREthereumNetwork network,
                                 BRRlpCoder coder) {
     size_t itemsCount = 0;
@@ -611,7 +581,7 @@ blockTransactionsRlpDecodeItem (BRRlpItem item,
     array_new(transactions, itemsCount);
 
     for (int i = 0; i < itemsCount; i++) {
-        BREthereumTransaction transaction = transactionRlpDecodeItem(items[i],
+        BREthereumTransaction transaction = transactionRlpDecode(items[i],
                                                                      network,
                                                                      TRANSACTION_RLP_SIGNED,
                                                                      coder);
@@ -622,13 +592,13 @@ blockTransactionsRlpDecodeItem (BRRlpItem item,
 }
 
 static BRRlpItem
-blockOmmersRlpEncodeItem (BREthereumBlock block,
+blockOmmersRlpEncode (BREthereumBlock block,
                           BRRlpCoder coder) {
     size_t itemsCount = array_count(block->ommers);
     BRRlpItem items[itemsCount];
 
     for (int i = 0; i < itemsCount; i++)
-        items[i] = blockHeaderRlpEncodeItem (block->ommers[i],
+        items[i] = blockHeaderRlpEncode (block->ommers[i],
                                              ETHEREUM_BOOLEAN_TRUE,
                                              coder);
 
@@ -636,7 +606,7 @@ blockOmmersRlpEncodeItem (BREthereumBlock block,
 }
 
 extern BREthereumBlockHeader *
-blockOmmersRlpDecodeItem (BRRlpItem item,
+blockOmmersRlpDecode (BRRlpItem item,
                                 BREthereumNetwork network,
                                 BRRlpCoder coder) {
     size_t itemsCount = 0;
@@ -646,7 +616,7 @@ blockOmmersRlpDecodeItem (BRRlpItem item,
     array_new(headers, itemsCount);
 
     for (int i = 0; i < itemsCount; i++) {
-        BREthereumBlockHeader header = blockHeaderRlpDecodeItem(items[i], coder);
+        BREthereumBlockHeader header = blockHeaderRlpDecode(items[i], coder);
         array_add(headers, header);
     }
 
@@ -656,39 +626,26 @@ blockOmmersRlpDecodeItem (BRRlpItem item,
 //
 // Block Encode
 //
-static BRRlpItem
-blockRlpEncodeItem (BREthereumBlock block,
+extern BRRlpItem
+blockRlpEncode (BREthereumBlock block,
                     BREthereumNetwork network,
                     BRRlpCoder coder) {
     BRRlpItem items[3];
 
-    items[0] = blockHeaderRlpEncodeItem(block->header, ETHEREUM_BOOLEAN_TRUE, coder);
-    items[1] = blockTransactionsRlpEncodeItem(block, network, coder);
-    items[2] = blockOmmersRlpEncodeItem(block, coder);
+    items[0] = blockHeaderRlpEncode(block->header, ETHEREUM_BOOLEAN_TRUE, coder);
+    items[1] = blockTransactionsRlpEncode(block, network, coder);
+    items[2] = blockOmmersRlpEncode(block, coder);
 
     return rlpEncodeListItems(coder, items, 3);
-}
-
-extern BRRlpData
-blockEncodeRLP (BREthereumBlock block, BREthereumNetwork network) {
-    BRRlpData result;
-
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem encoding = blockRlpEncodeItem(block, network, coder);
-
-    rlpDataExtract(coder, encoding, &result.bytes, &result.bytesCount);
-    rlpCoderRelease(coder);
-
-    return result;
 }
 
 //
 // Block Decode
 //
-static BREthereumBlock
-blockRlpDecodeItem (BRRlpItem item, // network
-                    BREthereumNetwork network,
-                    BRRlpCoder coder) {
+extern BREthereumBlock
+blockRlpDecode (BRRlpItem item,
+                BREthereumNetwork network,
+                BRRlpCoder coder) {
     BREthereumBlock block = calloc (1, sizeof(struct BREthereumBlockRecord));
     memset (block, 0, sizeof(struct BREthereumBlockRecord));
 
@@ -696,9 +653,9 @@ blockRlpDecodeItem (BRRlpItem item, // network
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     assert (3 == itemsCount);
 
-    block->header = blockHeaderRlpDecodeItem(items[0], coder);
-    block->transactions = blockTransactionsRlpDecodeItem(items[1], network, coder);
-    block->ommers = blockOmmersRlpDecodeItem(items[2], network, coder);
+    block->header = blockHeaderRlpDecode(items[0], coder);
+    block->transactions = blockTransactionsRlpDecode(items[1], network, coder);
+    block->ommers = blockOmmersRlpDecode(items[2], network, coder);
 
     blockStatusInitialize(&block->status, blockHeaderGetHash(block->header));
     block->next = BLOCK_NEXT_NONE;
@@ -707,18 +664,6 @@ blockRlpDecodeItem (BRRlpItem item, // network
     eth_log ("BCS", "Block Create RLP: %d", ++blockAllocCount);
 #endif
 
-    return block;
-}
-
-extern BREthereumBlock
-blockDecodeRLP (BRRlpData data,
-                BREthereumNetwork network) {
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = rlpGetItem (coder, data);
-
-    BREthereumBlock block = blockRlpDecodeItem(item, network, coder);
-
-    rlpCoderRelease(coder);
     return block;
 }
 
@@ -733,27 +678,9 @@ blockHashValue (const void *b)
 
 extern int
 blockHashEqual (const void *b1, const void *b2) {
-    return b1 == b2 || hashSetEqual(& ((BREthereumBlock) b1)->status.hash, & ((BREthereumBlock) b2)->status.hash);
+    return b1 == b2 || hashSetEqual (& ((BREthereumBlock) b1)->status.hash,
+                                     & ((BREthereumBlock) b2)->status.hash);
 }
-
-/*
-extern size_t
-blockHeaderHashValue (const void *h)
-{
-    return hashSetValue(&((BREthereumBlockHeader) h)->hash);
-}
-
-extern int
-blockHeaderHashEqual (const void *h1, const void *h2) {
-    return hashSetEqual(&((BREthereumBlockHeader) h1)->hash,
-                        &((BREthereumBlockHeader) h2)->hash);
-}
-*/
-//extern int
-//blockHashEqual (const void *b1, const void *b2) {
-//    return hashSetEqual(&((BREthereumBlock) b1)->header->hash,
-//                        &((BREthereumBlock) b2)->header->hash);
-//}
 
 extern void
 blockReleaseForSet (void *ignore, void *item) {
@@ -808,6 +735,25 @@ blockReportStatusAccountState (BREthereumBlock block,
     assert (0 == (BLOCK_STATUS_HAS_ACCOUNT_STATE & block->status.flags));
     block->status.accountState = accountState;
     block->status.flags |= BLOCK_STATUS_HAS_ACCOUNT_STATE;
+}
+
+extern BREthereumBoolean
+blockHasStatusTransaction (BREthereumBlock block,
+                           BREthereumTransaction transaction) {
+
+    for (size_t index = 0; index < array_count(block->status.transactions); index++)
+        if (transactionHashEqual(transaction, block->status.transactions[index]))
+            return ETHEREUM_BOOLEAN_TRUE;
+    return ETHEREUM_BOOLEAN_FALSE;
+}
+
+extern BREthereumBoolean
+blockHasStatusLog (BREthereumBlock block,
+                   BREthereumLog log) {
+    for (size_t index = 0; index < array_count(block->status.logs); index++)
+        if (logHashEqual(log, block->status.logs[index]))
+            return ETHEREUM_BOOLEAN_TRUE;
+    return ETHEREUM_BOOLEAN_FALSE;
 }
 
 /* Block Headers (10)
@@ -1173,7 +1119,10 @@ ethereumMainnetCheckpoints [] = {
     { 5865000, HASH_INIT("9f573bfa8b0ffaca5210b45eb01c12e4d0f6ffc3a8c4d13bea8176b1266f5d53"),  0 }, //    1 hr 25 mins ago (Jun-27-2018 07:38:02 PM +UTC)
 
     // 2018-07-02
-    { 5893500, HASH_INIT("a8ed4df2446a09d85b5867253a7c4a0870a65d858cf43539070186e180b4f7d2"),  0 },
+//    { 5893500, HASH_INIT("a8ed4df2446a09d85b5867253a7c4a0870a65d858cf43539070186e180b4f7d2"),  0 },
+
+    // 2018-07-03
+//    { 5899000, HASH_INIT("e7b0051c152755f03e9e98b5f41540d79abee02c5770c22299b7250a2d647507"),  0 },
 
 };
 #define CHECKPOINT_MAINNET_COUNT      (sizeof (ethereumMainnetCheckpoints) / sizeof (BREthereumBlockCheckpoint))

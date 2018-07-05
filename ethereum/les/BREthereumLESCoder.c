@@ -476,10 +476,7 @@ BREthereumLESDecodeStatus ethereumLESDecodeBlockHeaders(uint8_t*rlpBytes, size_t
     array_new(headers, blocksCount);
     
     for(int i = 0; i < blocksCount; ++i){
-        BRRlpData data;
-        rlpDataExtract(coder, blocks[i], &data.bytes, &data.bytesCount);
-        array_add(headers, blockHeaderDecodeRLP(data));
-        rlpDataRelease(data);
+        array_add(headers, blockHeaderRlpDecode(blocks[i], coder));
     }
     rlpCoderRelease(coder);
     
@@ -591,8 +588,8 @@ BREthereumLESDecodeStatus ethereumLESDecodeBlockBodies(uint8_t*rlpBytes, size_t 
             return BRE_LES_CODER_UNABLE_TO_DECODE_ERROR;
         }
         
-        array_add(actualTransactions,blockTransactionsRlpDecodeItem(txtsOmmersDataItems[0],network,coder));
-        array_add(ommersHeaders, blockOmmersRlpDecodeItem(txtsOmmersDataItems[1],network,coder));
+        array_add(actualTransactions,blockTransactionsRlpDecode(txtsOmmersDataItems[0],network,coder));
+        array_add(ommersHeaders, blockOmmersRlpDecode(txtsOmmersDataItems[1],network,coder));
     }
  
     rlpCoderRelease(coder);
@@ -659,10 +656,7 @@ BREthereumLESDecodeStatus ethereumLESDecodeReceipts(uint8_t*rlpBytes, size_t rlp
         const BRRlpItem *blockReceiptItems = rlpDecodeList(coder, receiptItems[i], &blockReceiptsCount);
         array_new(receiptData,blockReceiptsCount);
         for(int j = 0; j < blockReceiptsCount; ++j){
-            BRRlpData data;
-            rlpDataExtract(coder, blockReceiptItems[j], &data.bytes, &data.bytesCount);
-            array_add(receiptData, transactionReceiptDecodeRLP(data));
-            rlpDataRelease(data);
+            array_add(receiptData, transactionReceiptRlpDecode(blockReceiptItems[j], coder));
         }
         array_add(actualReceipts, receiptData);
     }
@@ -685,7 +679,7 @@ static BRRlpData _encodeTxts(uint64_t msgId, uint64_t message_id_offset, uint64_
     BRRlpItem txtsItems[transactionsCount];
     
     for(int i = 0; i < transactionsCount; ++i){
-        txtsItems[i] = transactionRlpEncodeItem(transactions[i], network, type, coder);
+        txtsItems[i] = transactionRlpEncode(transactions[i], network, type, coder);
     }
     items[idx++] = rlpEncodeListItems(coder, txtsItems, transactionsCount);
 
@@ -757,7 +751,7 @@ BREthereumLESDecodeStatus ethereumLESDecodeTxStatus(uint8_t*rlpBytes, size_t rlp
     
     BREthereumTransactionStatus*retReplies = (BREthereumTransactionStatus*)malloc(sizeof(BREthereumTransactionStatus) * statusesCount);
     for(int i = 0; i < statusesCount; ++i){
-        retReplies[i] = transactionStatusRLPDecodeItem(statuses[i], coder);
+        retReplies[i] = transactionStatusRLPDecode(statuses[i], coder);
     }
     rlpCoderRelease(coder);
 

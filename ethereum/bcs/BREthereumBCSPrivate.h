@@ -32,9 +32,6 @@
 #include "../blockchain/BREthereumBlockChain.h"
 #include "../event/BREvent.h"
 
-#define BRSetOf(type)     BRSet*
-#define BRArrayOf(type)   type*
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -50,13 +47,7 @@ struct BREthereumBCSStruct {
     BREthereumNetwork network;
 
     /**
-     * The account
-     */
-    BREthereumAccount account;
-
-    /**
-     * The address is the account's primary address.  The 'slice' will focus on transactions
-     * and logs for this address.
+     * The address.  The 'slice' will focus on transactions and logs for this address.
      */
     BREthereumAddress address;
 

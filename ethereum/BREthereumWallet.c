@@ -294,18 +294,22 @@ walletSignTransaction(BREthereumWallet wallet,
     //assert (transactionGetNonce(transaction) + 1 == addressGetNonce(wallet->address));
     
     // RLP Encode the UNSIGNED transaction
-    BRRlpData transactionUnsignedRLP = transactionEncodeRLP
-    (transaction, wallet->network, TRANSACTION_RLP_UNSIGNED);
-    
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem item = transactionRlpEncode (transaction, wallet->network, TRANSACTION_RLP_UNSIGNED, coder);
+    BRRlpData data = rlpGetData(coder, item);
+
     // Sign the RLP Encoded bytes.
     BREthereumSignature signature = accountSignBytes
     (wallet->account,
      wallet->address,
      SIGNATURE_TYPE_RECOVERABLE,
-     transactionUnsignedRLP.bytes,
-     transactionUnsignedRLP.bytesCount,
+     data.bytes,
+     data.bytesCount,
      paperKey);
-    
+
+    rlpDataRelease(data);
+    rlpCoderRelease(coder);
+
     // Attach the signature
     transactionSign(transaction, signature);
 }
@@ -323,31 +327,39 @@ walletSignTransactionWithPrivateKey(BREthereumWallet wallet,
     //assert (transactionGetNonce(transaction) + 1 == addressGetNonce(wallet->address));
     
     // RLP Encode the UNSIGNED transaction
-    BRRlpData transactionUnsignedRLP = transactionEncodeRLP
-    (transaction, wallet->network, TRANSACTION_RLP_UNSIGNED);
-    
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem item = transactionRlpEncode (transaction, wallet->network, TRANSACTION_RLP_UNSIGNED, coder);
+    BRRlpData data = rlpGetData(coder, item);
+
     // Sign the RLP Encoded bytes.
     BREthereumSignature signature = accountSignBytesWithPrivateKey
     (wallet->account,
      wallet->address,
      SIGNATURE_TYPE_RECOVERABLE,
-     transactionUnsignedRLP.bytes,
-     transactionUnsignedRLP.bytesCount,
+     data.bytes,
+     data.bytesCount,
      privateKey);
+
+    rlpDataRelease(data);
+    rlpCoderRelease(coder);
     
     // Attach the signature
     transactionSign(transaction, signature);
-    
 }
 
 extern BRRlpData
 walletGetRawTransaction(BREthereumWallet wallet,
                         BREthereumTransaction transaction) {
-    return transactionEncodeRLP (transaction,
-                                 wallet->network,
-                                 (ETHEREUM_BOOLEAN_TRUE == transactionIsSigned(transaction)
-                                  ? TRANSACTION_RLP_SIGNED
-                                  : TRANSACTION_RLP_UNSIGNED));
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem item = transactionRlpEncode (transaction,
+                                           wallet->network,
+                                           (ETHEREUM_BOOLEAN_TRUE == transactionIsSigned(transaction)
+                                            ? TRANSACTION_RLP_SIGNED
+                                            : TRANSACTION_RLP_UNSIGNED),
+                                           coder);
+    BRRlpData data = rlpGetData(coder, item);
+    rlpCoderRelease(coder);
+    return data;
 }
 
 extern char *

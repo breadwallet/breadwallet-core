@@ -65,11 +65,6 @@ typedef struct {
 
 static BRRlpContext contextEmpty = { NULL, CODER_ITEM, 0, NULL, 0, NULL };
 
-//static int
-//contextIsEmpty (BRRlpContext context) {
-//  return NULL == context.coder;
-//}
-
 static void
 contextRelease (BRRlpContext context) {
     if (NULL != context.bytes) free (context.bytes);
@@ -530,6 +525,21 @@ rlpDecodeItemBytes (BRRlpCoder coder, BRRlpItem item) {
     return result;
 }
 
+extern BRRlpData
+rlpDecodeItemBytesSharedDontRelease (BRRlpCoder coder, BRRlpItem item) {
+    assert (coderIsValidItem(coder, item));
+    BRRlpContext context = coderLookupContext(coder, item);
+
+    uint8_t offset = 0;
+    uint64_t length = coderDecodeLength(coder, context.bytes, RLP_PREFIX_BYTES, &offset);
+
+    BRRlpData result;
+    result.bytesCount = length;
+    result.bytes = &context.bytes[offset];
+
+    return result;
+}
+
 //
 // String
 //
@@ -696,6 +706,13 @@ rlpDataExtract (BRRlpCoder coder, BRRlpItem item, uint8_t **bytes, size_t *bytes
     *bytesCount = context.bytesCount;
     *bytes = malloc (*bytesCount);
     memcpy (*bytes, context.bytes, context.bytesCount);
+}
+
+extern BRRlpData
+rlpGetData (BRRlpCoder coder, BRRlpItem item) {
+    BRRlpData data;
+    rlpDataExtract(coder, item, &data.bytes, &data.bytesCount);
+    return data;
 }
 
 extern BRRlpData

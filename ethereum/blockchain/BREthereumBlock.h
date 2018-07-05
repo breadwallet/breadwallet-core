@@ -50,11 +50,13 @@ extern BREthereumBoolean
 blockHeaderIsValid (BREthereumBlockHeader header);
 
 extern BREthereumBlockHeader
-blockHeaderDecodeRLP (BRRlpData data);
+blockHeaderRlpDecode (BRRlpItem item,
+                      BRRlpCoder coder);
 
-extern BRRlpData
-blockHeaderEncodeRLP (BREthereumBlockHeader header,
-                      BREthereumBoolean withNonce);
+extern BRRlpItem
+blockHeaderRlpEncode (BREthereumBlockHeader header,
+                      BREthereumBoolean withNonce,
+                      BRRlpCoder coder);
 
 extern BREthereumHash
 blockHeaderGetHash (BREthereumBlockHeader header);
@@ -161,14 +163,16 @@ blockGetConfirmations (BREthereumBlock block);
 extern uint64_t
 blockGetTimestamp (BREthereumBlock block);
 
-extern BRRlpData
-blockEncodeRLP (BREthereumBlock block,
-                BREthereumNetwork network);
-
+extern BRRlpItem
+blockRlpEncode (BREthereumBlock block,
+                BREthereumNetwork network,
+                BRRlpCoder coder);
+    
 extern BREthereumBlock
-blockDecodeRLP (BRRlpData data,
-                BREthereumNetwork network);
-
+blockRlpDecode (BRRlpItem item,
+                BREthereumNetwork network,
+                BRRlpCoder coder);
+    
 // Support BRSet
 extern size_t
 blockHashValue (const void *h);
@@ -252,6 +256,14 @@ extern void
 blockReportStatusAccountState (BREthereumBlock block,
                                BREthereumAccountState accountState);
 
+extern BREthereumBoolean
+blockHasStatusTransaction (BREthereumBlock block,
+                           BREthereumTransaction transaction);
+
+extern BREthereumBoolean
+blockHasStatusLog (BREthereumBlock block,
+                   BREthereumLog log);
+
 //
 // MARK: - Block Decoding for LES
 //
@@ -260,7 +272,7 @@ blockReportStatusAccountState (BREthereumBlock block,
  * Return BRArrayOf(BREthereumBlockHeader) w/ array owned by caller.
  */
 extern BREthereumBlockHeader *
-blockOmmersRlpDecodeItem (BRRlpItem item,
+blockOmmersRlpDecode (BRRlpItem item,
                           BREthereumNetwork network,
                           BRRlpCoder coder);
 
@@ -268,7 +280,7 @@ blockOmmersRlpDecodeItem (BRRlpItem item,
  * Return BRArrayOf(BREthereumTransaction) w/ array owned by caller
  */
 extern BREthereumTransaction *
-blockTransactionsRlpDecodeItem (BRRlpItem item,
+blockTransactionsRlpDecode (BRRlpItem item,
                                 BREthereumNetwork network,
                                 BRRlpCoder coder);
 //

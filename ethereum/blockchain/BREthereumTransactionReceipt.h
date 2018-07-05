@@ -60,11 +60,13 @@ transactionReceiptMatchAddress (BREthereumTransactionReceipt receipt,
                                 BREthereumAddress address);
 
 extern BREthereumTransactionReceipt
-transactionReceiptDecodeRLP (BRRlpData data);
-
-extern BRRlpData
-transactionReceiptEncodeRLP (BREthereumTransactionReceipt receipt);
-
+transactionReceiptRlpDecode (BRRlpItem item,
+                             BRRlpCoder coder);
+    
+extern BRRlpItem
+transactionReceiptRlpEncode(BREthereumTransactionReceipt receipt,
+                            BRRlpCoder coder);
+    
 extern void
 transactionReceiptRelease (BREthereumTransactionReceipt receipt);
     
