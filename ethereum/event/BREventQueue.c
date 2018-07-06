@@ -78,32 +78,24 @@ eventQueueCreate (size_t size, pthread_mutex_t *lock) {
     return queue;
 }
 
+static void
+eventFreeAll (BREvent *event) {
+    while (NULL != event) {
+        BREvent *next = event->next;
+        free (event);
+        event = next;
+    }
+}
+
 extern void
 eventQueueDestroy (BREventQueue queue) {
     pthread_mutex_lock(&queue->lock);
 
-    // Move pending to available
-    if (NULL != queue->pending) {
-        BREvent *next, *this = queue->pending;
-        while (NULL != this->next) {
-            next = this->next;
-            this->next = queue->available;
-            queue->available = this;
-            this = next;
-        }
-        queue->pending = NULL;
-    }
+    eventFreeAll (queue->pending);
+    eventFreeAll (queue->available);
 
-    // Free available
-    if (NULL != queue->available) {
-        BREvent *next, *this = queue->available;
-        while (NULL != this->next) {
-            next = this->next;
-            free (this);
-            this = next;
-        }
-        queue->available = NULL;
-    }
+    queue->pending = NULL;
+    queue->available = NULL;
 
     pthread_mutex_unlock(&queue->lock);
 
@@ -111,6 +103,7 @@ eventQueueDestroy (BREventQueue queue) {
         pthread_mutex_destroy(&queue->lock);
 
     memset (queue, 0, sizeof (struct BREventQueueRecord));
+    free (queue);
 }
 
 static void

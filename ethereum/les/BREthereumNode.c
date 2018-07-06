@@ -286,7 +286,7 @@ static BREthereumBoolean _isP2PMessage(BREthereumNode node, BRRlpCoder rlpCoder,
     switch (packetType) {
         case BRE_P2P_HELLO:
         {
-            BREthereumP2PHello remoteHello = ethereumP2PHelloDecode(rlpCoder, messageBody);
+            // Unused (but leaking memory):  BREthereumP2PHello remoteHello = ethereumP2PHelloDecode(rlpCoder, messageBody);
             //TODO: Check over capabalities of the message
             retStatus = ETHEREUM_BOOLEAN_TRUE;
         }

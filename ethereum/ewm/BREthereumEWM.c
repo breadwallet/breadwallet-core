@@ -155,14 +155,18 @@ extern void
 ewmDestroy (BREthereumEWM ewm) {
     ewmDisconnect(ewm);
     bcsDestroy(ewm->bcs);
-    
-    // wallets
-    // transactions
-    // blocks
-    // listeners
-    
+
+    for (size_t index = 0; index < array_count(ewm->wallets); index++)
+        walletRelease (ewm->wallets[index]);
+    array_free(ewm->wallets);
+
+    array_free(ewm->transactions);
+    array_free(ewm->blocks);
+    array_free(ewm->listeners);
+
     eventHandlerDestroy(ewm->handlerForListener);
     eventHandlerDestroy(ewm->handlerForMain);
+    
     free (ewm);
 }
 

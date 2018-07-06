@@ -917,6 +917,8 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
     // Having filled out `block`, ensure that it is valid.
     if (ETHEREUM_BOOLEAN_IS_FALSE(blockIsValid(block, ETHEREUM_BOOLEAN_TRUE))) {
         bcsReleaseActiveBlock(bcs, blockHash);
+
+        // TODO: Not actually safe?
         blockRelease(block);
         return;
     }

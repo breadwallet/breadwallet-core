@@ -343,9 +343,15 @@ BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fcoder,
     
     return ETHEREUM_BOOLEAN_TRUE; 
 }
-void ethereumFrameCoderRelease(BREthereumFrameCoder coder) {
 
-    free(coder);
+void ethereumFrameCoderRelease(BREthereumFrameCoder fcoder) {
+    array_free(fcoder->aesDecryptKey);
+    array_free(fcoder->aesEncryptKey);
+    array_free(fcoder->aesEncryptCipher);
+    array_free(fcoder->aesDecryptCipher);
+    array_free(fcoder->egressMac);
+    array_free(fcoder->ingressMac);
+    free(fcoder);
 }
 void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, size_t payloadSize, uint8_t** rlpBytes, size_t * rlpBytesSize) {
 
