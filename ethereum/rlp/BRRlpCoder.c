@@ -306,7 +306,7 @@ coderEncodeLength (BRRlpCoder coder, uint64_t length, uint8_t baseline) {
     }
 }
 
-static uint64_t
+static size_t
 coderDecodeLength (BRRlpCoder coder, uint8_t *bytes, uint8_t baseline, uint8_t *offset) {
     uint8_t prefix = bytes[0];
 
@@ -334,6 +334,14 @@ coderDecodeLength (BRRlpCoder coder, uint8_t *bytes, uint8_t baseline, uint8_t *
 //        memcpy (&bytesValue[8 - lengthByteCount], &bytes[1], lengthByteCount);
 //
 //        coderSwapBytesIfLittleEndian((uint8_t*)&length, bytesValue, lengthSize);
+
+        // The value of `length` is used throughout for memcpy() and releated functions; it must
+        // be a valid `size_t` type.  Ethereum RLP defines a length as a maximum of 8 bytes which
+        // for some (32-bit) architures will be larger then size_t.  On such an architecute,
+        // which is becoming ever rarer, we'll uncerimoniously fatal if `length` is too big.
+        //
+        // SIZE_MAX is 4294967295UL on a 32bit arch - no way this ever fails...
+        assert (length <= (uint64_t) SIZE_MAX);
         return length;
     }
 }
@@ -373,7 +381,7 @@ coderEncodeNumber (BRRlpCoder coder, uint8_t *source, size_t sourceCount) {
 static void
 coderDecodeNumber (BRRlpCoder coder, uint8_t *target, size_t targetCount, uint8_t *bytes, size_t bytesCount) {
     uint8_t offset = 0;
-    uint64_t length = coderDecodeLength(coder, bytes, RLP_PREFIX_BYTES, &offset);
+    size_t length = coderDecodeLength(coder, bytes, RLP_PREFIX_BYTES, &offset);
 
     convertFromBigEndian(target, targetCount, &bytes[offset], length);
 }
@@ -510,7 +518,7 @@ rlpDecodeItemBytes (BRRlpCoder coder, BRRlpItem item) {
     BRRlpContext context = coderLookupContext(coder, item);
 
     uint8_t offset = 0;
-    uint64_t length = coderDecodeLength(coder, context.bytes, RLP_PREFIX_BYTES, &offset);
+    size_t length = coderDecodeLength(coder, context.bytes, RLP_PREFIX_BYTES, &offset);
 
     BRRlpData result;
     result.bytesCount = length;
@@ -535,7 +543,7 @@ rlpDecodeItemString (BRRlpCoder coder, BRRlpItem item) {
     BRRlpContext context = coderLookupContext(coder, item);
 
     uint8_t offset = 0;
-    uint64_t length = coderDecodeLength(coder, context.bytes, RLP_PREFIX_BYTES, &offset);
+    size_t length = coderDecodeLength(coder, context.bytes, RLP_PREFIX_BYTES, &offset);
 
     char *result = malloc (length + 1);
     memcpy (result, &context.bytes[offset], length);
@@ -743,7 +751,7 @@ rlpGetItem (BRRlpCoder coder, BRRlpData data) {
         // Start of `data` encodes a list with a number of bytes.  We'll start extracting
         // sub-items after the list's length.
         uint8_t bytesOffset = 0;
-        uint64_t bytesCount = coderDecodeLength(coder, data.bytes, RLP_PREFIX_LIST, &bytesOffset);
+        size_t bytesCount = coderDecodeLength(coder, data.bytes, RLP_PREFIX_LIST, &bytesOffset);
         assert (data.bytesCount == bytesCount + bytesOffset);
 
         // Start of the first sub-item

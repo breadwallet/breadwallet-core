@@ -29,13 +29,26 @@
 #include <stdarg.h>
 #include <assert.h>
 #include "BRKey.h"
-#include "secp256k1.h"
-#include "secp256k1_ecdh.h"
-#include "secp256k1/src/hash.h"
 #include "BREthereumLESBase.h"
 #include "BREthereumBase.h"
 #include "BRCrypto.h"
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wconversion"
+#pragma clang diagnostic ignored "-Wunused-function"
+#pragma clang diagnostic ignored "-Wconditional-uninitialized"
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#pragma GCC diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+
+#include "secp256k1.h"
+#include "secp256k1_ecdh.h"
+#include "secp256k1/src/hash.h"
+
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 
 #define PRI_KEY_BYTES_SIZE 32
 #define PUB_KEY_BYTES_SIZE 65
