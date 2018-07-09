@@ -45,13 +45,6 @@ ewmPeriodicDispatcher (BREventHandler handler,
                        BREventTimeout *event);
 
 
-/* Stubbed */
-static void
-ewmBlockchainCallback (BREthereumEWM ewm,
-                       BREthereumHash headBlockHash,
-                       uint64_t headBlockNumber,
-                       uint64_t headBlockTimestamp) {}
-
 //
 // EWM Client
 //
@@ -86,6 +79,7 @@ extern BREthereumEWM
 createEWM (BREthereumNetwork network,
            BREthereumAccount account,
            BREthereumType type,
+           // serialized: headers, transactions, logs
            BREthereumSyncMode syncMode) {
     BREthereumEWM ewm = (BREthereumEWM) calloc (1, sizeof (struct BREthereumEWMRecord));
     ewm->state = LIGHT_NODE_CREATED;
@@ -94,15 +88,49 @@ createEWM (BREthereumNetwork network,
     ewm->network = network;
     ewm->account = account;
     
+    // Create the `listener` and `main` event handlers.  Do this early so that queues exist
+    // for any events/callbacks generated during initialization.  The queues won't be handled
+    // until ewmConnect().
+    ewm->handlerForListener = eventHandlerCreate(listenerEventTypes, listenerEventTypesCount);
+
+    ewm->handlerForMain = eventHandlerCreate(handlerEventTypes, handlerEventTypesCount);
+    eventHandlerSetTimeoutDispatcher(ewm->handlerForMain,
+                                     1000 * EWM_SLEEP_SECONDS,
+                                     (BREventDispatcher)ewmPeriodicDispatcher,
+                                     (void*) ewm);
+
+    array_new(ewm->wallets, DEFAULT_WALLET_CAPACITY);
+    array_new(ewm->transactions, DEFAULT_TRANSACTION_CAPACITY);
+    array_new(ewm->blocks, DEFAULT_BLOCK_CAPACITY);
+    array_new(ewm->listeners, DEFAULT_LISTENER_CAPACITY);
+
+    {
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+
+        pthread_mutex_init(&ewm->lock, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
+
+    // Create a default ETH wallet; other wallets will be created 'on demand'
+    ewm->walletHoldingEther = walletCreate(ewm->account,
+                                           ewm->network);
+    ewmInsertWallet(ewm, ewm->walletHoldingEther);
+
     BREthereumBCSListener listener = {
-        (BREthereumBCSListenerContext) ewm,
-        (BREthereumBCSListenerNonceCallback) ewmSignalNonce,
-        (BREthereumBCSListenerBalanceCallback) ewmSignalBalance,
-        (BREthereumBCSListenerTransactionCallback) ewmSignalTransaction,
-        (BREthereumBCSListenerLogCallback) ewmSignalLog,
-        (BREthereumBCSListenerBlockchainCallback) ewmBlockchainCallback
+        (BREthereumBCSCallbackContext) ewm,
+        (BREthereumBCSCallbackBlockchain) ewmSignalBlockChain,
+        (BREthereumBCSCallbackAccountState) ewmSignalAccountState,
+        (BREthereumBCSCallbackTransaction) ewmSignalTransaction,
+        (BREthereumBCSCallbackLog) ewmSignalLog,
+        (BREthereumBCSCallbackSaveBlocks) ewmSignalSaveBlocks,
+        (BREthereumBCSCallbackSavePeers) ewmSignalSavePeers,
+        (BREthereumBCSCallbackSync) ewmSignalSync
     };
 
+    // Create BCS - note: when BCS processes headers, transactions, etc callbacks will be made to
+    // the EWM listener.
     {
         BREthereumBlockHeader *headers;
         BREthereumBlockHeader lastCheckpointHeader = blockCheckpointCreatePartialBlockHeader(blockCheckpointLookupLatest(network));
@@ -110,39 +138,16 @@ createEWM (BREthereumNetwork network,
         array_new(headers, 1);
         array_add(headers, lastCheckpointHeader);
 
-        ewm->bcs = bcsCreate(network, account, headers, listener);
+        ewm->bcs = bcsCreate(network,
+                             accountGetPrimaryAddress (account),
+                             listener,
+                             headers,
+                             NULL,
+                             NULL);
 
         array_free(headers);
     }
 
-    array_new(ewm->wallets, DEFAULT_WALLET_CAPACITY);
-    array_new(ewm->transactions, DEFAULT_TRANSACTION_CAPACITY);
-    array_new(ewm->blocks, DEFAULT_BLOCK_CAPACITY);
-    array_new(ewm->listeners, DEFAULT_LISTENER_CAPACITY);
-    
-    {
-        pthread_mutexattr_t attr;
-        pthread_mutexattr_init(&attr);
-        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-        
-        pthread_mutex_init(&ewm->lock, &attr);
-        pthread_mutexattr_destroy(&attr);
-    }
-    
-    // Create and then start the eventHandler
-    ewm->handlerForListener = eventHandlerCreate(listenerEventTypes, listenerEventTypesCount);
-    
-    ewm->handlerForMain = eventHandlerCreate(handlerEventTypes, handlerEventTypesCount);
-    eventHandlerSetTimeoutDispatcher(ewm->handlerForMain,
-                                     1000 * EWM_SLEEP_SECONDS,
-                                     (BREventDispatcher)ewmPeriodicDispatcher,
-                                     (void*) ewm);
-    
-    // Create a default ETH wallet; other wallets will be created 'on demand'
-    ewm->walletHoldingEther = walletCreate(ewm->account,
-                                           ewm->network);
-    ewmInsertWallet(ewm, ewm->walletHoldingEther);
-    
     return ewm;
 }
 
@@ -324,31 +329,6 @@ ewmListenerHandleEWMEvent(BREthereumEWM ewm,
     }
 }
 
-// ==============================================================================================
-//
-// LES(BCS)/JSON_RPC Handlers
-//
-extern void
-ewmHandleBalance (BREthereumEWM ewm,
-                  BREthereumAmount amount) {
-    pthread_mutex_lock(&ewm->lock);
-    
-    BREthereumWalletId wid = (AMOUNT_ETHER == amountGetType(amount)
-                              ? ewmGetWallet(ewm)
-                              : ewmGetWalletHoldingToken(ewm, amountGetToken (amount)));
-    
-    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
-    
-    walletSetBalance(wallet, amount);
-    
-    ewmListenerSignalWalletEvent(ewm, wid, WALLET_EVENT_BALANCE_UPDATED,
-                                 SUCCESS,
-                                 NULL);
-    
-    pthread_mutex_unlock(&ewm->lock);
-    
-}
-
 extern void
 ewmHandleGasPrice (BREthereumEWM ewm,
                    BREthereumWallet wallet,
@@ -384,23 +364,63 @@ ewmHandleGasEstimate (BREthereumEWM ewm,
     
 }
 
+// ==============================================================================================
+//
+// LES(BCS)/JSON_RPC Handlers
+//
 extern void
-ewmHandleNonce (BREthereumEWM ewm,
-                uint64_t nonce) {
+ewmHandleBlockChain (BREthereumEWM ewm,
+                     BREthereumHash headBlockHash,
+                     uint64_t headBlockNumber,
+                     uint64_t headBlockTimestamp) {
+    // Don't rebort during sync.
+    if (ETHEREUM_BOOLEAN_IS_FALSE(bcsSyncInProgress(ewm->bcs)))
+        eth_log ("EWM", "BlockChain: %llu", headBlockNumber);
+}
+
+extern void
+ewmHandleAccountState (BREthereumEWM ewm,
+                       BREthereumAccountState accountState) {
     pthread_mutex_lock(&ewm->lock);
-    
-    accountSetAddressNonce(ewm->account, accountGetPrimaryAddress(ewm->account), nonce, ETHEREUM_BOOLEAN_FALSE);
-    
-    // ewmListenerAnnounce ...
+
+    eth_log("EWM", "AccountState: Nonce: %llu", accountState.nonce);
+
+    accountSetAddressNonce(ewm->account, accountGetPrimaryAddress(ewm->account),
+                           accountState.nonce,
+                           ETHEREUM_BOOLEAN_FALSE);
+
+    ewmSignalBalance(ewm, amountCreateEther(accountState.balance));
+    pthread_mutex_unlock(&ewm->lock);
+}
+
+extern void
+ewmHandleBalance (BREthereumEWM ewm,
+                  BREthereumAmount amount) {
+    pthread_mutex_lock(&ewm->lock);
+
+    BREthereumWalletId wid = (AMOUNT_ETHER == amountGetType(amount)
+                              ? ewmGetWallet(ewm)
+                              : ewmGetWalletHoldingToken(ewm, amountGetToken (amount)));
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
+
+    walletSetBalance(wallet, amount);
+
+    ewmListenerSignalWalletEvent(ewm, wid, WALLET_EVENT_BALANCE_UPDATED,
+                                 SUCCESS,
+                                 NULL);
+
     pthread_mutex_unlock(&ewm->lock);
 }
 
 extern void
 ewmHandleTransaction (BREthereumEWM ewm,
+                      BREthereumBCSCallbackTransactionType type,
                       BREthereumTransaction transaction) {
     
     pthread_mutex_lock(&ewm->lock);
-    
+
+    eth_log("EWM", "Transaction: %d", 0);
+
     // Find the wallet
     BREthereumAmount amount = transactionGetAmount(transaction);
     BREthereumToken token =  (AMOUNT_TOKEN == amountGetType(amount) ? amountGetToken(amount) : NULL);
@@ -501,9 +521,31 @@ ewmHandleTransaction (BREthereumEWM ewm,
 
 extern void
 ewmHandleLog (BREthereumEWM ewm,
-                      BREthereumLog log) {
+              BREthereumBCSCallbackLogType type,
+              BREthereumLog log) {
+    eth_log("EWM", "Log: %d", 0);
 }
 
+extern void
+ewmHandleSaveBlocks (BREthereumEWM ewm,
+                     BRArrayOf(BREthereumBlock) blocks) {
+    eth_log("EWM", "Save Blocks: %zu", array_count(blocks));
+    array_free(blocks);
+}
+
+extern void
+ewmHandleSavePeers (BREthereumEWM ewm) {
+    eth_log("EWM", "Save Peers: %d",0);
+}
+
+extern void
+ewmHandleSync (BREthereumEWM ewm,
+               BREthereumBCSCallbackSyncType type,
+               uint64_t blockNumberStart,
+               uint64_t blockNumberCurrent,
+               uint64_t blockNumberStop) {
+    eth_log ("EWM", "Sync: %d, %llu%%", type, (100 * (blockNumberCurrent - blockNumberStart) / (blockNumberStop - blockNumberStart)));
+}
 //
 // Connect // Disconnect
 //

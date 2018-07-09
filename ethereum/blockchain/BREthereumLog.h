@@ -58,7 +58,7 @@ typedef struct {
         
         /**
          * The receipt index from the transaction's contract execution for this log.  It can't
-         * possibly be the case that this number varies, can it.  Contract execution, regarding
+         * possibly be the case that this number varies, can it - contract execution, regarding
          * event generating, must be deterministic?
          */
         size_t transactionReceiptIndex;
@@ -152,8 +152,8 @@ typedef struct BREthereumLogRecord *BREthereumLog;
 
 extern void
 logInitializeStatus (BREthereumLog log,
-                 BREthereumHash transactionHash,
-                 size_t transactionReceiptIndex);
+                     BREthereumHash transactionHash,
+                     size_t transactionReceiptIndex);
 
 extern BREthereumLogStatus
 logGetStatus (BREthereumLog log);
@@ -196,20 +196,14 @@ extern int
 logHashEqual (const void *h1, const void *h2);
 
 extern BREthereumLog
-logRlpDecodeItem (BRRlpItem item,
+logRlpDecode (BRRlpItem item,
                   BRRlpCoder coder);
 /**
  * [QUASI-INTERNAL - used by BREthereumBlock]
  */
 extern BRRlpItem
-logRlpEncodeItem(BREthereumLog log,
+logRlpEncode(BREthereumLog log,
                  BRRlpCoder coder);
-
-extern BRRlpData
-logEncodeRLP (BREthereumLog log);
-
-extern BREthereumLog
-logDecodeRLP (BRRlpData data);
 
 extern void
 logRelease (BREthereumLog log);

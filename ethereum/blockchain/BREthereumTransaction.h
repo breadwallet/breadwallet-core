@@ -145,7 +145,8 @@ transactionGetSignature (BREthereumTransaction transaction);
      */
 extern BREthereumAddress
 transactionExtractAddress(BREthereumTransaction transaction,
-                          BREthereumNetwork network);
+                          BREthereumNetwork network,
+                          BRRlpCoder coder);
 //
 // Transaction RLP Encoding
 //
@@ -154,36 +155,22 @@ typedef enum {
     TRANSACTION_RLP_UNSIGNED
 } BREthereumTransactionRLPType;
 
+extern BREthereumTransaction
+transactionRlpDecode (BRRlpItem item,
+                      BREthereumNetwork network,
+                      BREthereumTransactionRLPType type,
+                      BRRlpCoder coder);
+
 /**
  * RLP encode transaction for the provided network with the specified type.  Different networks
  * have different RLP encodings - notably the network's chainId is part of the encoding.
  */
-extern BRRlpData
-transactionEncodeRLP (BREthereumTransaction transaction,
-                      BREthereumNetwork network,
-                      BREthereumTransactionRLPType type);
 
-extern BREthereumTransaction
-transactionDecodeRLP (BREthereumNetwork network,
-                      BREthereumTransactionRLPType type,
-                      BRRlpData data);
-
-/**
- * [QUASI-INTERNAL - used by BREthereumBlock]
- */
-extern BREthereumTransaction
-transactionRlpDecodeItem (BRRlpItem item,
-                          BREthereumNetwork network,
-                          BREthereumTransactionRLPType type,
-                          BRRlpCoder coder);
-/**
- * [QUASI-INTERNAL - used by BREthereumBlock]
- */
 extern BRRlpItem
-transactionRlpEncodeItem(BREthereumTransaction transaction,
-                         BREthereumNetwork network,
-                         BREthereumTransactionRLPType type,
-                         BRRlpCoder coder);
+transactionRlpEncode(BREthereumTransaction transaction,
+                     BREthereumNetwork network,
+                     BREthereumTransactionRLPType type,
+                     BRRlpCoder coder);
 
 extern void
 transactionRelease (BREthereumTransaction transaction);

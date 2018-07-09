@@ -28,7 +28,9 @@
 
 #include "../base/BREthereumBase.h"
 #include "../les/BREthereumLES.h"
-#include "../BREthereumAccount.h"
+
+#define BRSetOf(type)     BRSet*
+#define BRArrayOf(type)   type*
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,38 +41,91 @@ typedef struct BREthereumBCSStruct *BREthereumBCS;
 //
 // BCS Listener
 //
-typedef void* BREthereumBCSListenerContext;
+typedef void* BREthereumBCSCallbackContext;
+
+/**
+ * The BCS block chain has been extended.
+ */
+typedef void
+(*BREthereumBCSCallbackBlockchain) (BREthereumBCSCallbackContext context,
+                                    BREthereumHash headBlockHash,
+                                    uint64_t headBlockNumber,
+                                    uint64_t headBlockTimestamp);
+
+
+/**
+ * The BCS account state has been updated.
+ */
+typedef void
+(*BREthereumBCSCallbackAccountState) (BREthereumBCSCallbackContext context,
+                                      BREthereumAccountState accountState);
+
+/**
+ * A BCS Transaction (for `account`) have been updated.
+ */
+typedef enum {
+    BCS_CALLBACK_TRANSACTION_ADDED,
+    BCS_CALLBACK_TRANSACTION_UPDATED,
+    BCS_CALLBACK_TRANSACTION_DELETED
+} BREthereumBCSCallbackTransactionType;
 
 typedef void
-(*BREthereumBCSListenerNonceCallback) (BREthereumBCSListenerContext context,
-                                       uint64_t nonce);
+(*BREthereumBCSCallbackTransaction) (BREthereumBCSCallbackContext context,
+                                     BREthereumBCSCallbackTransactionType event,
+                                     BREthereumTransaction transaction);
+
+/**
+ * A BCS Log (for `account`) has been updated.
+ */
+typedef enum {
+    BCS_CALLBACK_LOG_ADDED,
+    BCS_CALLBACK_LOG_UPDATED,
+    BCS_CALLBACK_LOG_DELETED,
+} BREthereumBCSCallbackLogType;
 
 typedef void
-(*BREthereumBCSListenerBalanceCallback) (BREthereumBCSListenerContext context,
-                                         BREthereumAmount balance);
+(*BREthereumBCSCallbackLog) (BREthereumBCSCallbackContext context,
+                             BREthereumBCSCallbackLogType event,
+                             BREthereumLog log);
 
-    // Handle Orphan-ing
+/**
+ * Save Blocks
+ */
 typedef void
-(*BREthereumBCSListenerTransactionCallback) (BREthereumBCSListenerContext context,
-                                             BREthereumTransaction transaction);
+(*BREthereumBCSCallbackSaveBlocks) (BREthereumBCSCallbackContext context,
+                                    BRArrayOf(BREthereumBlock) blocks);
+
+/**
+ * Save Peers
+ */
+typedef void
+(*BREthereumBCSCallbackSavePeers) (BREthereumBCSCallbackContext context);
+
+/**
+ * Sync
+ */
+typedef enum {
+    BCS_CALLBACK_SYNC_STARTED,
+    BCS_CALLBACK_SYNC_UPDATE,
+    BCS_CALLBACK_SYNC_STOPPED
+} BREthereumBCSCallbackSyncType;
 
 typedef void
-(*BREthereumBCSListenerLogCallback) (BREthereumBCSListenerContext context,
-                                     BREthereumLog log);
-
-typedef void
-(*BREthereumBCSListenerBlockchainCallback) (BREthereumBCSListenerContext context,
-                                            BREthereumHash headBlockHash,
-                                            uint64_t headBlockNumber,
-                                            uint64_t headBlockTimestamp);
+(*BREthereumBCSCallbackSync) (BREthereumBCSCallbackContext context,
+                              BREthereumBCSCallbackSyncType event,
+                              uint64_t blockNumberStart,
+                              uint64_t blockNumberCurrent,
+                              uint64_t blockNumberStop);
 
 typedef struct {
-    BREthereumBCSListenerContext context;
-    BREthereumBCSListenerNonceCallback nonceCallback;
-    BREthereumBCSListenerBalanceCallback balanceCallback;
-    BREthereumBCSListenerTransactionCallback transactionCallback;
-    BREthereumBCSListenerLogCallback logCallback;
-    BREthereumBCSListenerBlockchainCallback blockChainCallback;
+    BREthereumBCSCallbackContext context;
+    BREthereumBCSCallbackBlockchain blockChainCallback;
+    BREthereumBCSCallbackAccountState accountStateCallback;
+    BREthereumBCSCallbackTransaction transactionCallback;
+    BREthereumBCSCallbackLog logCallback;
+    BREthereumBCSCallbackSaveBlocks saveBlocksCallback;
+    BREthereumBCSCallbackSavePeers savePeersCallback;
+    BREthereumBCSCallbackSync  syncCallback;
     // ...
 } BREthereumBCSListener;
 
@@ -85,12 +140,13 @@ typedef struct {
  */
 extern BREthereumBCS
 bcsCreate (BREthereumNetwork network,
-           BREthereumAccount account,
-           BREthereumBlockHeader *headers,
-           // transactions
-           // logs
+           BREthereumAddress address,
+           BREthereumBCSListener listener,
+           BRArrayOf(BREthereumBlockHeader) headers,
+           BRArrayOf(BREthereumTransaction) transactions,
+           BRArrayOf(BREthereumLog) logs
            // peers
-           BREthereumBCSListener listener);
+           );
 
 extern void
 bcsStart (BREthereumBCS bcs);
@@ -100,7 +156,7 @@ bcsStop (BREthereumBCS bcs);
 
 extern BREthereumBoolean
 bcsIsStarted (BREthereumBCS bcs);
-    
+
 extern void
 bcsDestroy (BREthereumBCS bcs);
 
@@ -111,6 +167,9 @@ bcsGetLES (BREthereumBCS bcs);
 extern void
 bcsSync (BREthereumBCS bcs,
          uint64_t blockNumber);
+
+extern BREthereumBoolean
+bcsSyncInProgress (BREthereumBCS bcs);
 
 extern void
 bcsSendTransaction (BREthereumBCS bcs,

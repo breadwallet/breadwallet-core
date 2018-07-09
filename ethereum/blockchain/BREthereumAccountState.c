@@ -77,7 +77,7 @@ accountStateCreate (uint64_t nonce,
 }
 
 extern BRRlpItem
-accountStateRlpEncodeItem(BREthereumAccountState state, BRRlpCoder coder) {
+accountStateRlpEncode(BREthereumAccountState state, BRRlpCoder coder) {
     BRRlpItem items[4];
 
     items[0] = rlpEncodeItemUInt64(coder, state.nonce, 0);
@@ -89,7 +89,7 @@ accountStateRlpEncodeItem(BREthereumAccountState state, BRRlpCoder coder) {
 }
 
 extern BREthereumAccountState
-accountStateRlpDecodeItem (BRRlpItem item, BRRlpCoder coder) {
+accountStateRlpDecode (BRRlpItem item, BRRlpCoder coder) {
     BREthereumAccountState state;
 
     size_t itemsCount = 0;

@@ -645,8 +645,8 @@ void runLEStests(void) {
     _initBlockHeaderTestData();
     
     //Run Tests on the LES messages
-    // run_GetTxStatus_Tests(les);
-     run_GetBlockHeaders_Tests(les);
+       run_GetTxStatus_Tests(les);
+    // run_GetBlockHeaders_Tests(les);
     // run_GetBlockBodies_Tests(les);
     // run_GetReceipts_Tests(les);
     //run_GetProofsV2_Tests(les);

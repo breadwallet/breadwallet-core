@@ -42,12 +42,12 @@
 // Any orphan more then AGE_OFFSET blocks in the past will be purged.
 #define BCS_ORPHAN_AGE_OFFSET  (10)
 
-#define BCS_SAVE_BLOCKS_COUNT  (300)
+#define BCS_SAVE_BLOCKS_COUNT  (2000)
 
 /**
  * When syncing, we'll request a batch of headers
  */
-#define BCS_SYNC_BLOCKS_COUNT  (100)
+#define BCS_SYNC_BLOCKS_COUNT  (150)
 
 /* Forward Declarations */
 static void
@@ -62,27 +62,117 @@ static int
 bcsLookupPendingTransaction (BREthereumBCS bcs,
                              BREthereumHash hash);
 
+static void
+bcsExtendChain (BREthereumBCS bcs,
+                BREthereumBlock block,
+                const char *message);
 /**
  */
+static void
+bcsCreateInitializeHeaders (BREthereumBCS bcs,
+                            BRArrayOf(BREthereumBlockHeader) headers) {
+    if (NULL == headers) return;
+
+    bcs->chain = bcs->chainTail = NULL;
+
+    // THIS SHOULD DUPLICATE 'NORMAL HEADER PROCESSING'
+    //    [Set chain to NULL; find the earliest; make all others orphans; handle the earliest]
+    //    [Implies looking for transactions/logs - which we don't need.]
+
+    // Iterate over `headers` to recreate `chain`.  In general we cannot assume anything about
+    // `headers` - might have gaps (missing parent/child); might have duplicates.  Likely, we must
+    // be willing to create orphans, to discard/ignore headers, and what.
+    //
+    // We'll sort `headers` ascending by {blockNumber, timestamp}. Then we'll interate and chain
+    // them together while ignoring any duplicates/orphans.
+    size_t sortedHeadersCount = array_count(headers);
+    BREthereumBlockHeader *sortedHeaders;
+    array_new(sortedHeaders, sortedHeadersCount);
+    array_add_array(sortedHeaders, headers, sortedHeadersCount);
+
+    // TODO: Sort
+
+    for (int i = 0; i < sortedHeadersCount; i++) {
+        // Skip header `i` if its blockNumber equals the blockNumber of `i+1`.
+        if (i + 1 < sortedHeadersCount &&
+            blockHeaderGetNumber(sortedHeaders[i]) == blockHeaderGetNumber(sortedHeaders[i+1]))
+            continue;
+
+        // TODO: Check for orpahns
+
+        BREthereumBlock block = blockCreate(sortedHeaders[i]);
+        BRSetAdd(bcs->blocks, block);
+        bcsExtendChain(bcs, block, "Chained (from Saved)");
+
+        if (NULL == bcs->chainTail)
+            bcs->chainTail = bcs->chain;
+    }
+}
+
+static void
+bcsCreateInitializeTransactions (BREthereumBCS bcs,
+                                 BRArrayOf(BREthereumTransaction) transactions) {
+    if (NULL == transactions) return;
+    
+    for (size_t index = 0; index < array_count(transactions); index++) {
+        BREthereumTransaction transaction = transactions[index];
+        BREthereumTransactionStatus status = transactionGetStatus(transaction);
+
+        // For now, assume all provided transactions are in a 'final state'.
+        assert (TRANSACTION_STATUS_INCLUDED == status.type ||
+                TRANSACTION_STATUS_ERRORED  == status.type ||
+                TRANSACTION_STATUS_PENDING  == status.type);
+
+        BRSetAdd(bcs->transactions, transaction);
+
+        if (TRANSACTION_STATUS_PENDING == status.type)
+            array_add (bcs->pendingTransactions, transactionGetHash(transaction));
+
+        bcs->listener.transactionCallback (bcs->listener.context,
+                                           BCS_CALLBACK_TRANSACTION_ADDED,
+                                           transaction);
+    }
+}
+
+static void
+bcsCreateInitializeLogs (BREthereumBCS bcs,
+                         BRArrayOf(BREthereumLog) logs) {
+    if (NULL == logs) return;
+
+    for (size_t index = 0; index < array_count(logs); index++) {
+        BREthereumLog log = logs[index];
+        BREthereumLogStatus status = logGetStatus(log);
+
+        // For now, assume all provided logs are in a 'final state'.
+        assert (LOG_STATUS_INCLUDED == status.type ||
+                LOG_STATUS_ERRORED  == status.type ||
+                LOG_STATUS_PENDING  == status.type);
+
+        BRSetAdd (bcs->logs, log);
+
+        if (LOG_STATUS_PENDING == status.type)
+            array_add (bcs->pendingLogs, logGetHash(log));
+
+        bcs->listener.logCallback (bcs->listener.context,
+                                   BCS_CALLBACK_LOG_ADDED,
+                                   log);
+    }
+}
+
 extern BREthereumBCS
 bcsCreate (BREthereumNetwork network,
-           BREthereumAccount account,
-           BREthereumBlockHeader *headers,
-           BREthereumBCSListener listener) {
-
-    // Stubbed, for now.
-    BREthereumTransaction *transactions = NULL;
-    array_new(transactions, 0);
-
-    BREthereumLog *logs = NULL;
-    array_new(logs, 0);
+           BREthereumAddress address,
+           BREthereumBCSListener listener,
+           BRArrayOf(BREthereumBlockHeader) headers,
+           BRArrayOf(BREthereumTransaction) transactions,
+           BRArrayOf(BREthereumLog) logs) {
+           // peers
 
     BREthereumBCS bcs = (BREthereumBCS) calloc (1, sizeof(struct BREthereumBCSStruct));
 
     bcs->network = network;
-    bcs->account = account;
+    bcs->address = address;
     bcs->accountState = accountStateCreateEmpty ();
-    bcs->address = accountGetPrimaryAddress(account);
     bcs->filterForAddressOnTransactions = bloomFilterCreateAddress(bcs->address);
     bcs->filterForAddressOnLogs = logTopicGetBloomFilterAddress(bcs->address);
 
@@ -118,6 +208,7 @@ bcsCreate (BREthereumNetwork network,
     // Initialize `pendingTransactions`
     //
     array_new (bcs->pendingTransactions, BCS_PENDING_TRANSACTION_INITIAL_CAPACITY);
+    array_new (bcs->pendingLogs, BCS_PENDING_LOGS_INITIAL_CAPACITY);
 
     // Our genesis block.
     BREthereumBlock genesis = networkGetGenesisBlock(network);
@@ -127,49 +218,6 @@ bcsCreate (BREthereumNetwork network,
     // Initialize `activeBlocks`
     array_new (bcs->activeBlocks, BCS_ACTIVE_BLOCKS_INITIAL_CAPACITY);
 
-    //
-    // Initialize `chain` - hackily.
-    //
-    bcs->chain = bcs->chainTail = genesis;
-
-    if (NULL != headers) {
-        bcs->chain = bcs->chainTail = NULL;
-
-        // THIS SHOULD DUPLICATE 'NORMAL HEADER PROCESSING'
-        //    [Set chain to NULL; find the earliest; make all others orphans; handle the earliest]
-        //    [Implies looking for transactions/logs - which we don't need.]
-
-        // Iterate over `headers` to recreate `chain`.  In general we cannot assume anything about
-        // `headers` - might have gaps (missing parent/child); might have duplicates.  Likely, we must
-        // be willing to create orphans, to discard/ignore headers, and what.
-        //
-        // We'll sort `headers` ascending by {blockNumber, timestamp}. Then we'll interate and chain
-        // them together while ignoring any duplicates/orphans.
-        size_t sortedHeadersCount = array_count(headers);
-        BREthereumBlockHeader *sortedHeaders;
-        array_new(sortedHeaders, sortedHeadersCount);
-        array_add_array(sortedHeaders, headers, sortedHeadersCount);
-
-        // TODO: Sort
-
-        for (int i = 0; i < sortedHeadersCount; i++) {
-            // Skip header `i` if its blockNumber equals the blockNumber of `i+1`.
-            if (i + 1 < sortedHeadersCount &&
-                blockHeaderGetNumber(sortedHeaders[i]) == blockHeaderGetNumber(sortedHeaders[i+1]))
-                continue;
-
-            // TODO: Check for orpahns
-
-            BREthereumBlock block = blockCreate(sortedHeaders[i]);
-            BRSetAdd(bcs->blocks, block);
-            blockSetNext(block, bcs->chain);
-            bcs->chain = block;
-
-            if (NULL == bcs->chainTail)
-                bcs->chainTail = bcs->chain;
-        }
-    }
-
     // Create but don't start the event handler.  Ensure that a fast-acting lesCreate()
     // can signal events (by queuing; they won't be handled until the event queue is started).
     bcs->handler = eventHandlerCreate(bcsEventTypes, bcsEventTypesCount);
@@ -177,6 +225,13 @@ bcsCreate (BREthereumNetwork network,
                                      1000 * BCS_TRANSACTION_CHECK_STATUS_SECONDS,
                                      (BREventDispatcher)bcsPeriodicDispatcher,
                                      (void*) bcs);
+
+    // Initialize `chain` - will be modified based on `headers`
+    bcs->chain = bcs->chainTail = genesis;
+
+    bcsCreateInitializeHeaders(bcs, headers);
+    bcsCreateInitializeTransactions(bcs, transactions);
+    bcsCreateInitializeLogs(bcs, logs);
 
     return bcs;
 }
@@ -240,30 +295,9 @@ bcsDestroy (BREthereumBCS bcs) {
     BRSetApply(bcs->logs, NULL, logReleaseForSet);
     BRSetFree(bcs->logs);
 
-    /*
-    size_t headersToFreeCount = BRSetCount(bcs->headers);
-    BREthereumBlockHeader headersToFree [headersToFreeCount];
-    BRSetAll(bcs->headers, (void**) headersToFree, headersToFreeCount);
-    BRSetFree(bcs->headers);
-    for (size_t index = 0; index < headersToFreeCount; index++)
-        if (ETHEREUM_BOOLEAN_IS_FALSE (hashEqual(genesisHash, blockHeaderGetHash(headersToFree[index]))))
-            blockHeaderRelease(headersToFree[index]);
-*/
-        /*
-    FOR_SET(BREthereumBlockHeader, header, bcs->orphans)
-        blockHeaderRelease(header);
-    BRSetFree(bcs->orphans);
-
-    FOR_SET(BREthereumTransaction, transaction, bcs->transactions)
-        transactionRelease(transaction);
-    BRSetFree(bcs->transactions);
-
-    FOR_SET(BREthereumLog, log, bcs->logs)
-        logRelease(log);
-    BRSetFree(bcs->logs);
-*/
-    // pending transactions are in bcs->transactions; thus already released.
+    // pending transactions/logs are in bcs->transactions/logs; thus already released.
     array_free(bcs->pendingTransactions);
+    array_free(bcs->pendingLogs);
 
     // Destroy the Event w/ queue
     eventHandlerDestroy(bcs->handler);
@@ -279,6 +313,11 @@ extern void
 bcsSync (BREthereumBCS bcs,
          uint64_t blockNumber) {
     bcsSyncFrom(bcs, blockNumber);
+}
+
+extern BREthereumBoolean
+bcsSyncInProgress (BREthereumBCS bcs) {
+    return AS_ETHEREUM_BOOLEAN(bcs->syncActive);
 }
 
 extern void
@@ -369,6 +408,38 @@ bcsReclaimBlock (BREthereumBCS bcs,
 }
 
 static void
+bcsSaveBlocks (BREthereumBCS bcs) {
+    // We'll save everything between bcs->chain and bcs->chainTail
+    unsigned long long blockCount = blockGetNumber(bcs->chain) - blockGetNumber(bcs->chainTail) + 1;
+
+    // We'll pass long the blocks directly, for now.  This will likely need to change because
+    // this code will lose control of the block memory.
+    //
+    // For example, we quickly hit another 'ReclaimAndSaveBlocks' point prior the the
+    // `saveBlocksCallback` completing - we'll then release memory needed by the callback handler.
+    BRArrayOf(BREthereumBlock) blocks;
+    array_new(blocks, blockCount);
+    array_set_count(blocks, blockCount);
+
+    BREthereumBlock next = bcs->chain;
+    BREthereumBlock last = bcs->chainTail;
+    unsigned long long blockIndex = blockCount - 1;
+
+    while (next != last) {
+        blocks[blockIndex--] = next;
+        next = blockGetNext(next);
+    }
+    assert (0 == blockIndex);
+    blocks[blockIndex--] = next;
+
+    bcs->listener.saveBlocksCallback (bcs->listener.context, blocks);
+    
+    eth_log("BCS", "Blocks {%llu, %llu} Saved",
+            blockGetNumber(bcs->chainTail),
+            blockGetNumber(bcs->chain));
+
+}
+static void
 bcsReclaimAndSaveBlocksIfAppropriate (BREthereumBCS bcs) {
     uint64_t chainBlockNumber = blockGetNumber(bcs->chain);
     uint64_t chainBlockLength = chainBlockNumber - blockGetNumber(bcs->chainTail);
@@ -398,16 +469,49 @@ bcsReclaimAndSaveBlocksIfAppropriate (BREthereumBCS bcs) {
                 thisBlockNumber,
                 reclaimFromBlockNumber - 1);
 
-        // We'll save everything between bcs->chain and bcs->chainTail
-        BCS_FOR_CHAIN (bcs, block) {
-            // TODO: Actually save.
-        }
-        eth_log("BCS", "Blocks {%llu, %llu} Saved",
-                blockGetNumber(bcs->chainTail),
-                blockGetNumber(bcs->chain));
+        bcsSaveBlocks(bcs);
     }
 }
 
+
+static void
+bcsExtendChain (BREthereumBCS bcs,
+                BREthereumBlock block,
+                const char *message) {
+    assert (NULL != block);
+
+    blockSetNext(block, bcs->chain);
+    bcs->chain = block;
+
+    eth_log("BCS", "Block %llu %s", blockGetNumber(block), message);
+
+    bcs->listener.blockChainCallback (bcs->listener.context,
+                                      blockGetHash(block),
+                                      blockGetNumber(block),
+                                      blockGetTimestamp(block));
+
+    // Look through pendingLogs and see if any are now included.
+    int keepLooking = 1;
+    while (keepLooking) {
+        keepLooking = 0;
+        for (size_t index = 0; index < array_count(bcs->pendingLogs); index++) {
+            BREthereumHash logHash = bcs->pendingLogs[index];
+            BREthereumLog log = BRSetGet (bcs->logs, &logHash);
+            assert (NULL != log);
+            
+            // TODO: Are we sure `block` has a filled status?
+            if (ETHEREUM_BOOLEAN_IS_TRUE (blockHasStatusLog(block, log))) {
+                BREthereumLogStatus status = logGetStatus(log);
+                logStatusUpdateIncluded(&status, blockGetHash(block), blockGetNumber(block));
+                bcs->listener.logCallback (bcs->listener.context,
+                                           BCS_CALLBACK_LOG_UPDATED,
+                                           log);
+                array_rm (bcs->pendingLogs, index);
+                keepLooking = 1;
+            }
+        }
+    }
+}
 
 /**
  * Find the minumum block number amoung orphans. I think we can use this to identify when
@@ -464,14 +568,12 @@ bcsChainOrphans (BREthereumBCS bcs) {
             if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(blockGetHash (bcs->chain),
                                                    blockHeaderGetParentHash(blockGetHeader(orphan))))) {
                 // Extend the chain.
-                blockSetNext(orphan, bcs->chain);
-                bcs->chain = orphan;
-                eth_log("BCS", "Block %llu Chained Orphan", blockGetNumber(orphan));
+                bcsExtendChain(bcs, orphan, "Chained Orphan");
 
                 // No longer an orphan
                 BRSetRemove(bcs->orphans, orphan);
-                // Our FOR_SET iteration is now broken, so ...
 
+                // With remove, our FOR_SET iteration is now broken, so ...
                 // ... skip out (of `for`) but keep looking.
                 keepLooking = 1;
                 break;
@@ -526,12 +628,31 @@ bcsSyncContinue (BREthereumBCS bcs,
     // Reqeust the next batch when the prior batch is complete
     if (bcs->syncActive && chainBlockNumber >= bcs->syncNext) {
 
+        // Progress as [Tail, Next, Head]
+        bcs->listener.syncCallback (bcs->listener.context,
+                                    BCS_CALLBACK_SYNC_UPDATE,
+                                    bcs->syncTail,
+                                    bcs->syncNext,
+                                    bcs->syncHead);
+
         uint64_t needHeadersCount = bcs->syncHead - (chainBlockNumber + 1);
         if (needHeadersCount > BCS_SYNC_BLOCKS_COUNT)
             needHeadersCount = BCS_SYNC_BLOCKS_COUNT;
 
         bcs->syncNext += needHeadersCount;
         bcsSyncSubmit(bcs, chainBlockNumber + 1, needHeadersCount);
+    }
+
+    // but if the sync is no longer active, then ...
+    else if (chainBlockNumber >= bcs->syncHead && 0 != bcs->syncHead) {
+        // ... announce that the sync is complete/stopped
+        bcs->listener.syncCallback (bcs->listener.context,
+                                    BCS_CALLBACK_SYNC_STOPPED,
+                                    bcs->syncTail,
+                                    bcs->syncHead,
+                                    bcs->syncHead);
+        // ... and clear the sync state.
+        bcs->syncTail = bcs->syncNext = bcs->syncHead = 0;
     }
 }
 
@@ -557,6 +678,12 @@ bcsSyncFrom (BREthereumBCS bcs,
         bcs->syncHead = orphanBlockNumberMinumum;
         bcs->syncNext  = chainBlockNumber + needHeadersCount;
         bcs->syncActive = 1;
+
+        bcs->listener.syncCallback (bcs->listener.context,
+                                    BCS_CALLBACK_SYNC_STARTED,
+                                    bcs->syncTail,
+                                    bcs->syncTail,
+                                    bcs->syncHead);
 
         bcsSyncSubmit(bcs, chainBlockNumber + 1, needHeadersCount);
     }
@@ -599,8 +726,6 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
 
     // We have a header that appears consistent.  Create a block and work to chain it.
     BREthereumBlock block = blockCreate(header);
-
-
     BRSetAdd(bcs->blocks, block);
 
     // Put `header` in the `chain` - HANDLE 3 CASES:
@@ -610,8 +735,8 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
     // etc from the ENDPOINT and just want to process new blocks as they are announced;
     if (NULL == bcs->chain) {
         assert (NULL == bcs->chainTail);
-        blockSetNext(block, BLOCK_NEXT_NONE);
-        bcs->chain = bcs->chainTail = block;
+        bcsExtendChain(bcs, block, "Chained");
+        bcs->chainTail = block;
     }
 
     // 2) If there is no `block` parent or if  `block` parent is an orphan, then `block` is
@@ -621,18 +746,19 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
 
         // If `block` is an orphan, then it's parent is not in bcs->chain.  That could be
         // because there is just a fork developing or that we've fallen behind.  Attempt a
-        // sync to recover (might not actually perform a sync - attempt).
+        // sync to recover (might not actually perform a sync - just attempt).
         bcsSyncFrom(bcs, blockGetNumber(bcs->chain));
         return;
     }
 
     // 3) othewise, we have a new `block` that links to a parent that is somewhere in the
-    // chain.  All headers from chain back to parent are now orphans.  In practice, there will
+    // chain.  All headers from chain back to parent are now orphans.  In practice, there might
     // be only one (or two or three) orphans.
     //
     // Can we assert that `headerParent` is in `chain` if it is not an orphan?
     else {
-        // Every header between `chain` and `blockParent` is now an orphan
+        // Every header between `chain` and `blockParent` is now an orphan.  Usually `chain` is
+        // the `blockParent` and thus there is nothing to orphan.
         while (NULL != bcs->chain && blockParent != bcs->chain) {
             // Make an orphan from an existing chain element
             bcs->chain = bcsMakeOrphan(bcs, bcs->chain);
@@ -643,11 +769,10 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
         assert (NULL != bcs->chain);
 
         // Extend the chain
-        blockSetNext(block, bcs->chain);
-        bcs->chain = block;
+        bcsExtendChain(bcs, block, "Chained");
     }
-    eth_log("BCS", "Block %llu Chained", blockHeaderGetNumber(header));
 
+    // Having extended the chain, see if we can chain some orphans.
     bcsChainThenPurgeOrphans (bcs);
 
     // Examine transactions to see if any are now orphaned; is so, make them PENDING
@@ -694,7 +819,9 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
             ETHEREUM_BOOLEAN_IS_TRUE(bcsBlockHasMatchingLogs(bcs, block))) {
             eth_log("BCS", "Block %llu Content Needed", blockGetNumber(block));
 
-            // This is now an active block.
+            // This is now an active block.  Marking `block` as `active` is critical to the
+            // asynchronous calls for block bodies and transaction receipts.  Once we've collected
+            // everything we need for `block` will go inactive.
             array_add (bcs->activeBlocks, block);
 
             lesGetBlockBodiesOne(bcs->les,
@@ -718,12 +845,30 @@ bcsHandleAccountState (BREthereumBCS bcs,
                        BREthereumHash blockHash,
                        BREthereumAddress address,
                        BREthereumAccountState state) {
-    // If the AccountState differs, then this blockHash has transactions of interest.
-    // Otherwise, we'll skip out immediately.
-    if (ETHEREUM_BOOLEAN_IS_TRUE(accountStateEqual(bcs->accountState, state))) return;
+    BREthereumBlock block = bcsLookupActiveBlock(bcs, blockHash);
+    if (NULL == block) {
+        block = BRSetGet(bcs->blocks, &blockHash);
+        eth_log ("BCS", "Active Block %llu Missed (AccountState)", (NULL == block ? -1 : blockGetNumber(block)));
+        return;
+    }
+    assert (NULL != BRSetGet (bcs->blocks, &blockHash));
 
+    BREthereumBlockStatus activeStatus = blockGetStatus(block);
+    assert (ETHEREUM_BOOLEAN_IS_FALSE(blockStatusHasFlag(&activeStatus, BLOCK_STATUS_HAS_ACCOUNT_STATE)));
 
+    blockReportStatusAccountState(block, state);
 
+    // TODO: How to update the overall, bcs account state?
+    // If block is bcs->chain then block is the latest and we should update the bcs state;
+    // however, most often, at least during a sync, the chain will have moved on by the time
+    // this account state result is available - particularly during a sync
+    //
+    // Well, eventually, we'll catch up, so ...
+    if (block == bcs->chain) {
+        bcs->accountState = state;
+        bcs->listener.accountStateCallback (bcs->listener.context,
+                                            bcs->accountState);
+    }
 }
 
 /*!
@@ -750,7 +895,7 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
     BREthereumBlock block = bcsLookupActiveBlock(bcs, blockHash);
     if (NULL == block) {
         block = BRSetGet(bcs->blocks, &blockHash);
-        eth_log ("BCS", "Active Block %llu Missed", (NULL == block ? -1 : blockGetNumber(block)));
+        eth_log ("BCS", "Active Block %llu Missed (BlockBodies)", (NULL == block ? -1 : blockGetNumber(block)));
 
         bcsReleaseOmmersAndTransactionsFully(bcs, transactions, ommers);
         return;
@@ -764,7 +909,6 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
     eth_log("BCS", "Bodies %llu Count %lu",
             blockGetNumber(block),
             array_count(transactions));
-
 
     // Update `block` with the reported ommers and transactions.  Note that generally
     // these are not used.... but we take full ownership of the memory for ommers and transactions.
@@ -976,7 +1120,9 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
                 -1 != bcsLookupPendingTransaction(bcs, transactionHash),
                 (TRANSACTION_STATUS_ERRORED == status.type ? ", Error: " : ""),
                 (TRANSACTION_STATUS_ERRORED == status.type ? status.u.errored.reason : ""));
-        bcs->listener.transactionCallback (bcs->listener.context, transaction);
+        bcs->listener.transactionCallback (bcs->listener.context,
+                                           BCS_CALLBACK_TRANSACTION_UPDATED,
+                                           transaction);
     }
 }
 
@@ -1050,7 +1196,7 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
     BREthereumBlock block = bcsLookupActiveBlock(bcs, blockHash);
     if (NULL == block) {
         block = BRSetGet (bcs->blocks, &blockHash);
-        eth_log ("BCS", "Active Block %llu Missed",
+        eth_log ("BCS", "Active Block %llu Missed (Transaction Receipts)",
                  (NULL == block ? -1 : blockGetNumber(block)));
 
         bcsReleaseReceiptsFully(bcs, receipts);
@@ -1091,7 +1237,9 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
 
                     array_add(neededLogs, log);
 
-                    bcs->listener.logCallback (bcs->listener.context, log);
+                    bcs->listener.logCallback (bcs->listener.context,
+                                               BCS_CALLBACK_LOG_UPDATED,
+                                               log);
                 }
 
                 // else are we intereted in contract matches?  To 'estimate Gas'?  If so, check
@@ -1144,7 +1292,9 @@ bcsHandleTransaction (BREthereumBCS bcs,
     // TODO: Get transactionIndex
     status.u.included.transactionIndex = 0;
 
-    bcs->listener.transactionCallback (bcs->listener.context, transaction);
+    bcs->listener.transactionCallback (bcs->listener.context,
+                                       BCS_CALLBACK_TRANSACTION_UPDATED,
+                                       transaction);
 
 }
 

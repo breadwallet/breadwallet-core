@@ -75,83 +75,83 @@ struct BREthereumEWMRecord {
      * The State
      */
     BREthereumEWMState state;
-
+    
     /**
      * The Type of this EWM
      */
     BREthereumType type;
-
+    
     /**
      * The SyncMode of this EWM
      */
     BREthereumSyncMode syncMode;
-
+    
     /**
      * The network
      */
     BREthereumNetwork network;
-
+    
     /**
      * The Client supporting this EWM
      */
     BREthereumClient client;
-
+    
     /**
      * The account
      */
     BREthereumAccount account;
-
+    
     /**
      * The wallets 'managed/handled' by this ewm.  There can be only one wallet holding ETHER;
      * all the other wallets hold TOKENs and only one wallet per TOKEN.
      */
     BREthereumWallet *wallets;  // for now
     BREthereumWallet  walletHoldingEther;
-
+    
     /**
      * The transactions seen/handled by this ewm.  These are used *solely* for the TransactionId
      * interface in EWM.  *All* transactions must be accesses through their wallet.
      */
     BREthereumTransaction *transactions; // BRSet
-
+    
     /**
      * The blocks handled by this ewm.  [This is currently just those handled for transactions
      * (both Ethererum transactions and logs.  It is unlikely that the current block is here.]
      */
     BREthereumBlock *blocks; // BRSet
-
+    
     /**
      * The BCS Interface
      */
     BREthereumBCS bcs;
-
+    
     /**
      * The BlockHeight is the largest block number seen or computed.  [Note: the blockHeight may
      * be computed from a Log event as (log block number + log confirmations).
      */
     uint64_t blockHeight;
-
+    
     /**
      * An identiifer for a LES/JSON_RPC Request
      */
     unsigned int requestId;
-
+    
     /**
      * The listeners
      */
     BREthereumEWMListener *listeners; // BRArray
-
+    
     /**
      * An EventHandler for Listeners.  All callbacks to the Listener interface occur on a
      * separate thread.
      */
     BREventHandler handlerForListener;
-
+    
     /**
      * An EventHandler for Main.  All 'announcements' (via LES (or JSON_RPC) hit here.
      */
     BREventHandler handlerForMain;
-
+    
     /**
      * The Lock ensuring single thread access to EWM state.
      */
@@ -190,7 +190,7 @@ ewmInsertTransaction (BREthereumEWM ewm,
 extern void
 ewmDeleteTransaction (BREthereumEWM ewm,
                       BREthereumTransactionId tid);
-    
+
 // =============================================================================================
 //
 // LES(BCS)/JSON_RPC Callbacks
@@ -198,26 +198,38 @@ ewmDeleteTransaction (BREthereumEWM ewm,
 extern const BREventType *handlerEventTypes[];
 extern const unsigned int handlerEventTypesCount;
 
+extern void
+ewmHandleBlockChain (BREthereumEWM ewm,
+                     BREthereumHash headBlockHash,
+                     uint64_t headBlockNumber,
+                     uint64_t headBlockTimestamp);
+
+extern void
+ewmSignalBlockChain (BREthereumEWM ewm,
+                     BREthereumHash headBlockHash,
+                     uint64_t headBlockNumber,
+                     uint64_t headBlockTimestamp);
+
 //
 // Signal/Handle Balance
 extern void
+ewmHandleAccountState (BREthereumEWM ewm,
+                       BREthereumAccountState accountState);
+
+extern void
+ewmSignalAccountState (BREthereumEWM ewm,
+                       BREthereumAccountState accountState);
+
+//
+// Signal/Handle Balance
+//
+extern void
 ewmHandleBalance (BREthereumEWM ewm,
-                  BREthereumAmount amount);
+                  BREthereumAmount balance);
 
 extern void
 ewmSignalBalance (BREthereumEWM ewm,
-                  BREthereumAmount amount);
-
-//
-// Signal/Handle Nonce
-//
-extern void
-ewmHandleNonce (BREthereumEWM ewm,
-                uint64_t nonce);
-
-extern void
-ewmSignalNonce (BREthereumEWM ewm,
-                uint64_t nonce);
+                  BREthereumAmount balance);
 
 //
 // Signal/Handle GasPrice
@@ -250,10 +262,12 @@ ewmSignalGasEstimate (BREthereumEWM ewm,
 //
 extern void
 ewmHandleTransaction (BREthereumEWM ewm,
+                      BREthereumBCSCallbackTransactionType type,
                       BREthereumTransaction transaction);
 
 extern void
 ewmSignalTransaction (BREthereumEWM ewm,
+                      BREthereumBCSCallbackTransactionType type,
                       BREthereumTransaction transaction);
 
 //
@@ -261,11 +275,51 @@ ewmSignalTransaction (BREthereumEWM ewm,
 //
 extern void
 ewmHandleLog (BREthereumEWM ewm,
+              BREthereumBCSCallbackLogType type,
               BREthereumLog log);
 
 extern void
 ewmSignalLog (BREthereumEWM ewm,
+              BREthereumBCSCallbackLogType type,
               BREthereumLog log);
+
+//
+// Save Blocks
+//
+extern void
+ewmHandleSaveBlocks (BREthereumEWM ewm,
+                     BRArrayOf(BREthereumBlock) blocks);
+
+extern void
+ewmSignalSaveBlocks (BREthereumEWM ewm,
+                     BRArrayOf(BREthereumBlock) blocks);
+
+//
+// Save Peers
+//
+extern void
+ewmHandleSavePeers (BREthereumEWM ewm);
+
+extern void
+ewmSignalSavePeers (BREthereumEWM ewm);
+
+
+//
+// Sync
+//
+extern void
+ewmHandleSync (BREthereumEWM ewm,
+               BREthereumBCSCallbackSyncType type,
+               uint64_t blockNumberStart,
+               uint64_t blockNumberCurrent,
+               uint64_t blockNumberStop);
+
+extern void
+ewmSignalSync (BREthereumEWM ewm,
+               BREthereumBCSCallbackSyncType type,
+               uint64_t blockNumberStart,
+               uint64_t blockNumberCurrent,
+               uint64_t blockNumberStop);
 
 // =============================================================================================
 //
