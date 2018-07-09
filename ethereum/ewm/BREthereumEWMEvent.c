@@ -520,10 +520,17 @@ ewmHandleSaveBlocksEventDispatcher(BREventHandler ignore,
     ewmHandleSaveBlocks(event->ewm, event->blocks);
 }
 
+static void
+ewmHandleSaveBlocksEventDestroyer (BREthereumHandleSaveBlocksEvent *event) {
+    if (NULL != event->blocks)
+        array_free(event->blocks);
+}
+
 BREventType handleSaveBlocksEventType = {
     "EWM: Handle SaveBlocks Event",
     sizeof (BREthereumHandleSaveBlocksEvent),
-    (BREventDispatcher) ewmHandleSaveBlocksEventDispatcher
+    (BREventDispatcher) ewmHandleSaveBlocksEventDispatcher,
+    (BREventDestroyer) ewmHandleSaveBlocksEventDestroyer
 };
 
 extern void
@@ -605,7 +612,6 @@ ewmSignalSync (BREthereumEWM ewm,
     eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
 }
 
-
 // ==============================================================================================
 //
 // All Handler Event Types
@@ -623,4 +629,3 @@ const BREventType *handlerEventTypes[] = {
     &handleSyncEventType
 };
 const unsigned int handlerEventTypesCount = 10;
-

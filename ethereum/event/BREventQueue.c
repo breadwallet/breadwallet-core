@@ -79,9 +79,18 @@ eventQueueCreate (size_t size, pthread_mutex_t *lock) {
 }
 
 static void
-eventFreeAll (BREvent *event) {
+eventFreeAll (BREvent *event,
+              int destroy) {
     while (NULL != event) {
+        // Save the next event so that the upcoming `free` doesn't zero it out.
         BREvent *next = event->next;
+
+        // Apply the `destroyer` if appropriate.
+        if (destroy) {
+            BREventDestroyer destroyer = event->type->eventDestroyer;
+            if (NULL != destroyer) destroyer (event);
+        }
+        // Actual free and then iterate.
         free (event);
         event = next;
     }
@@ -91,8 +100,8 @@ extern void
 eventQueueDestroy (BREventQueue queue) {
     pthread_mutex_lock(&queue->lock);
 
-    eventFreeAll (queue->pending);
-    eventFreeAll (queue->available);
+    eventFreeAll (queue->pending, 1);
+    eventFreeAll (queue->available, 0);
 
     queue->pending = NULL;
     queue->available = NULL;
