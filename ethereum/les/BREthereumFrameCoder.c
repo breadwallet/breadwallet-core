@@ -58,7 +58,7 @@ struct BREthereumFrameCoderContext {
     size_t egressMacSize;
     
     //IV for the AES-CTR
-    UInt128 iv;
+    UInt128 ivEnc, ivDec;
     
     //Encrpty Key for AES-CTR frame
     uint8_t* aesEncryptKey;
@@ -267,7 +267,8 @@ BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fcoder,
     BRKeccak256(&keyMaterial[32], keyMaterial, 64);
 
     // ase-crt iv: 1
-    memset(fcoder->iv.u8, 0, 16);
+    memset(fcoder->ivEnc.u8, 0, 16);
+    memset(fcoder->ivDec.u8, 0, 16);
     array_new(fcoder->aesDecryptKey, 32);
     array_new(fcoder->aesEncryptKey, 32);
     array_add_array(fcoder->aesDecryptKey, &keyMaterial[32], 32);
@@ -353,7 +354,7 @@ void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, si
 
     uint8_t headerCipher[HEADER_LEN];
     fCoder->aesEncryptCipherLen += HEADER_LEN;
-    BRAESCTR_OFFSET(headerCipher, HEADER_LEN, fCoder->aesEncryptKey, 32, fCoder->iv.u8, headerPlain, fCoder->aesEncryptCipherLen);
+    BRAESCTR_OFFSET(headerCipher, HEADER_LEN, fCoder->aesEncryptKey, 32, fCoder->ivEnc.u8, headerPlain, fCoder->aesEncryptCipherLen);
     
     
     // Encrypt HEADER-MAC
@@ -396,7 +397,7 @@ void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, si
     }
     
     fCoder->aesEncryptCipherLen += frameDataSize;
-    BRAESCTR_OFFSET(frameCipher, frameDataSize, fCoder->aesEncryptKey, 32, fCoder->iv.u8, frameData, fCoder->aesEncryptCipherLen);
+    BRAESCTR_OFFSET(frameCipher, frameDataSize, fCoder->aesEncryptKey, 32, fCoder->ivEnc.u8, frameData, fCoder->aesEncryptCipherLen);
     
     array_add_array(fCoder->egressMac, frameCipher, payloadSize + payloadPadding);
     fCoder->egressMacSize += (payloadPadding + payloadSize);
@@ -446,9 +447,8 @@ BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fCoder, u
     }
     
     fCoder->aesDecrptyCipherLen += HEADER_LEN;
-    BRAESCTR_OFFSET(oBytes, HEADER_LEN, fCoder->aesEncryptKey, 32, fCoder->iv.u8, headerCipher, fCoder->aesDecrptyCipherLen);
-
-
+    BRAESCTR_OFFSET(oBytes, HEADER_LEN, fCoder->aesEncryptKey, 32, fCoder->ivDec.u8, headerCipher, fCoder->aesDecrptyCipherLen);
+    
     return ETHEREUM_BOOLEAN_TRUE;
     
 }
@@ -483,7 +483,7 @@ BREthereumBoolean ethereumFrameCoderDecryptFrame(BREthereumFrameCoder fCoder, ui
     }
     
     fCoder->aesDecrptyCipherLen += (outSize - MAC_LEN);
-    BRAESCTR_OFFSET(oBytes, outSize - MAC_LEN, fCoder->aesEncryptKey, 32, fCoder->iv.u8, frameCipherText, fCoder->aesDecrptyCipherLen);
+    BRAESCTR_OFFSET(oBytes, outSize - MAC_LEN, fCoder->aesEncryptKey, 32, fCoder->ivDec.u8, frameCipherText, fCoder->aesDecrptyCipherLen);
     
     return ETHEREUM_BOOLEAN_TRUE;
 }

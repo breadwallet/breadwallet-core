@@ -190,7 +190,6 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t me
                 uint64_t requestIndexRm = 0;
                 
                 if(_findRequestId(les, reqId, &requestIndexRm)){
-                    pthread_mutex_lock(&les->lock);
 
                     BREthereumLESBlockHeadersCallback callback = les->requests[requestIndexRm].u.block_headers.callback;
                     BREthereumLESBlockHeadersContext context = les->requests[requestIndexRm].u.block_headers.context;
@@ -199,6 +198,7 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t me
                         callback(context, headers[i]);
                     }
 
+                    pthread_mutex_lock(&les->lock);
                     array_rm(les->requests, requestIndexRm);
                     pthread_mutex_unlock(&les->lock);
                 }
@@ -224,7 +224,6 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t me
                 uint64_t requestIndexRm = 0;
                 if(_findRequestId(les, reqId, &requestIndexRm)){
                 
-                    pthread_mutex_lock(&les->lock);
 
                     BREthereumLESBlockBodiesCallback callback = les->requests[requestIndexRm].u.block_bodies.callback;
                     BREthereumLESBlockBodiesContext context = les->requests[requestIndexRm].u.block_bodies.context;
@@ -234,6 +233,7 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t me
                         callback(context, blocks[i],transactions[i],ommers[i]);
                     }
                     
+                    pthread_mutex_lock(&les->lock);
                     array_free(les->requests[requestIndexRm].u.block_bodies.blocks);
                     array_rm(les->requests, requestIndexRm);
                     pthread_mutex_unlock(&les->lock);
