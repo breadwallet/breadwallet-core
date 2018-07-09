@@ -565,6 +565,25 @@ static void run_GetReceipts_Tests(BREthereumLES les){
     sleep(60);
 }
 
+
+//
+// Running a full block downloand
+//
+void _fullBlockHeaders_Calllback_Test (BREthereumLESBlockHeadersContext context,
+                                       BREthereumBlockHeader header) {
+    
+    int64_t gotBlockNumber = blockHeaderGetNumber(header);
+    eth_log("fullBlockSync", "GotBlock:%llu", gotBlockNumber);
+}
+static void run_fullBlockSync_Test1(BREthereumLES les) {
+
+    //Request block headers [0...1000]
+    for(int i = 0; i < 10000; i+= 150) {
+        assert(lesGetBlockHeaders(les, NULL, _fullBlockHeaders_Calllback_Test, i, 150, 0, ETHEREUM_BOOLEAN_FALSE) == LES_SUCCESS);
+    }
+    sleep(1800);
+}
+
 //
 // Test GetProofsV2
 //
@@ -625,14 +644,13 @@ void runLEStests(void) {
     //Initialize data needed for tests
     _initBlockHeaderTestData();
     
-    
     //Run Tests on the LES messages
     // run_GetTxStatus_Tests(les);
-    // run_GetBlockHeaders_Tests(les);
+     run_GetBlockHeaders_Tests(les);
     // run_GetBlockBodies_Tests(les);
     // run_GetReceipts_Tests(les);
-    run_GetProofsV2_Tests(les);
+    //run_GetProofsV2_Tests(les);
     //reallySendLESTransaction(les);
-    
+    //run_fullBlockSync_Test1(les);
 }
 
