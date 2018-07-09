@@ -82,6 +82,9 @@ walletCreateHoldingToken(BREthereumAccount account,
                          BREthereumNetwork network,
                          BREthereumToken token);
 
+extern void
+walletRelease (BREthereumWallet wallet);
+    
 /**
  * Estimate the transaction fee (in Ether) for transferring amount.  The estimate uses
  * the wallet's default gasPrice and the amount's default gas.

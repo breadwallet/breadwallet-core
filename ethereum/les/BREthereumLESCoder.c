@@ -322,6 +322,7 @@ static BREthereumLESDecodeStatus _decodeStatus(BRRlpCoder coder, const BRRlpItem
                  header->flowControlMRR = malloc(sizeof(uint64_t));
                 *(header->flowControlMRR) = rlpDecodeItemUInt64(coder, keyPairs[1], 1);
             }
+            free (key);
         }else {
             return BRE_LES_CODER_INVALID_STATUS_KEY_PAIR;
         }

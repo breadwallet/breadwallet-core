@@ -186,6 +186,13 @@ walletCreateHoldingToken(BREthereumAccount account,
      token);
 }
 
+extern void
+walletRelease (BREthereumWallet wallet) {
+    // TODO: Release 'transactions'
+    array_free(wallet->transactions);
+    free (wallet);
+}
+
 //
 // Transaction
 //

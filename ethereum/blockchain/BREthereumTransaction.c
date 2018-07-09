@@ -260,7 +260,7 @@ provideData (BREthereumTransaction transaction) {
     if (NULL == transaction->data) {
         switch (amountGetType (transaction->amount)) {
             case AMOUNT_ETHER:
-                transaction->data = "";
+                transaction->data = strdup("");
                 break;
             case AMOUNT_TOKEN: {
                 UInt256 value = amountGetTokenQuantity(transaction->amount).valueAsInteger;
@@ -558,7 +558,7 @@ transactionRlpDecode (BRRlpItem item,
 
 extern void
 transactionRelease (BREthereumTransaction transaction) {
-    if (NULL != transaction->data && '\0' != transaction->data[0]) free (transaction->data);
+    if (NULL != transaction->data) free (transaction->data);
 #if defined (TRANSACTION_LOG_ALLOC_COUNT)
     eth_log ("BCS", "TX Release - Count: %d", --transactionAllocCount);
 #endif

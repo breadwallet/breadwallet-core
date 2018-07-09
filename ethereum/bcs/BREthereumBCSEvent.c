@@ -108,10 +108,16 @@ bcsHandleBlockHeaderDispatcher (BREventHandler ignore,
     bcsHandleBlockHeader(event->bcs, event->header);
 }
 
+static void
+bcsHandleBlockHeaderDestroyer (BREthereumHandleBlockHeaderEvent *event) {
+    blockHeaderRelease(event->header);
+}
+
 static BREventType handleBlockHeaderEventType = {
     "BCS: Handle Block Header Event",
     sizeof (BREthereumHandleBlockHeaderEvent),
-    (BREventDispatcher) bcsHandleBlockHeaderDispatcher
+    (BREventDispatcher) bcsHandleBlockHeaderDispatcher,
+    (BREventDestroyer) bcsHandleBlockHeaderDestroyer
 };
 
 extern void
@@ -143,10 +149,26 @@ bcsHandleBlockBodiesDispatcher (BREventHandler ignore,
                          event->ommers);
 }
 
+static void
+bcsHandleBlockBodiesDestroyer (BREthereumHandleBlockBodiesEvent *event) {
+    if (NULL != event->transactions) {
+        for (size_t index = 0; index < array_count(event->transactions); index++)
+            transactionRelease(event->transactions[index]);
+        array_free(event->transactions);
+    }
+
+    if (NULL != event->ommers) {
+        for (size_t index = 0; index < array_count(event->ommers); index++)
+            blockHeaderRelease(event->ommers[index]);
+        array_free (event->ommers);
+    }
+}
+
 static BREventType handleBlockBodiesEventType = {
     "BCS: Handle Block Bodies Event",
     sizeof (BREthereumHandleBlockBodiesEvent),
-    (BREventDispatcher) bcsHandleBlockBodiesDispatcher
+    (BREventDispatcher) bcsHandleBlockBodiesDispatcher,
+    (BREventDestroyer) bcsHandleBlockBodiesDestroyer
 };
 
 extern void
@@ -243,10 +265,20 @@ bcsHandleTransactionReceiptsDispatcher(BREventHandler ignore,
     bcsHandleTransactionReceipts(event->bcs, event->blockHash, event->receipts);
 }
 
+static void
+bcsHandleTransactionReceiptsDestroyer (BREthereumHandleTransactionReceiptEvent *event) {
+    if (NULL != event->receipts) {
+        for (size_t index = 0; index < array_count(event->receipts); index++)
+            transactionReceiptRelease(event->receipts[index]);
+        array_free(event->receipts);
+    }
+}
+
 static BREventType handleTransactionReceiptEventType = {
     "BCS: Handle TransactionReceipt Event",
     sizeof (BREthereumHandleTransactionReceiptEvent),
-    (BREventDispatcher) bcsHandleTransactionReceiptsDispatcher
+    (BREventDispatcher) bcsHandleTransactionReceiptsDispatcher,
+    (BREventDestroyer) bcsHandleTransactionReceiptsDestroyer
 };
 
 extern void
