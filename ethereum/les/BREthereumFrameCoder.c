@@ -348,8 +348,6 @@ BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fcoder,
 void ethereumFrameCoderRelease(BREthereumFrameCoder fcoder) {
     array_free(fcoder->aesDecryptKey);
     array_free(fcoder->aesEncryptKey);
-    array_free(fcoder->aesEncryptCipher);
-    array_free(fcoder->aesDecryptCipher);
     array_free(fcoder->egressMac);
     array_free(fcoder->ingressMac);
     free(fcoder);
@@ -458,6 +456,8 @@ BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fCoder, u
     return ETHEREUM_BOOLEAN_TRUE;
     
 }
+
+
 BREthereumBoolean ethereumFrameCoderDecryptFrame(BREthereumFrameCoder fCoder, uint8_t * oBytes, size_t outSize) {
 
     uint8_t* frameCipherText = oBytes;
@@ -487,7 +487,12 @@ BREthereumBoolean ethereumFrameCoderDecryptFrame(BREthereumFrameCoder fCoder, ui
     if(memcmp(framMacExpected, frameMac, 16) != 0) {
         return ETHEREUM_BOOLEAN_FALSE;
     }
-    
+
+    static size_t ingressMacSize = 0;
+    if (fCoder->ingressMacSize > ingressMacSize) {
+        ingressMacSize = fCoder->ingressMacSize;
+        eth_log ("KECCAK", "Size: %zu", ingressMacSize);
+    }
     fCoder->aesDecrptyCipherLen += (outSize - MAC_LEN);
     BRAESCTR_OFFSET(oBytes, outSize - MAC_LEN, fCoder->aesEncryptKey, 32, fCoder->ivDec.u8, frameCipherText, fCoder->aesDecrptyCipherLen);
     
