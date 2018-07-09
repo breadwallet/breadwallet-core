@@ -23,11 +23,11 @@ class CoreTests: XCTestCase {
     }
 
     func testEthereum() {
-        runTests()
+ //       runTests()
     }
 
     func testLES () {
-//        runLEStests()
+        runLEStests()
     }
     
     func testPerformanceExample() {

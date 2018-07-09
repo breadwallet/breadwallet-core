@@ -338,7 +338,9 @@ static int _readMessage(BREthereumNode node) {
     //Get frame size
     uint32_t frameSize = (uint32_t)(node->header[2]) | (uint32_t)(node->header[1])<<8 | (uint32_t)(node->header[0])<<16;
     
-   /* if(frameSize > 1024){
+   /*
+   //TODO: We should check to make sure the framze size is less then 3-bytes. Geth doesn't check for that currently.
+   if(frameSize > 1024){
         eth_log(ETH_LOG_TOPIC, "%s", "Error: message frame size is too large");
         return 1;
     }*/ 
@@ -348,7 +350,7 @@ static int _readMessage(BREthereumNode node) {
     if(node->body == NULL){
       node->body = malloc(fullFrameSize);
       node->bodyCompacity = fullFrameSize;
-    }else if (node->bodyCompacity < fullFrameSize) {
+    }else if (node->bodyCompacity <= fullFrameSize) {
       node->body = realloc(node->body, fullFrameSize);
       node->bodyCompacity = fullFrameSize;
     }

@@ -1064,6 +1064,36 @@ void BRAESCTR(void *out, const void *key, size_t keyLen, const void *iv16, const
     mem_clean(k, sizeof(k));
     mem_clean(x, sizeof(x));
 }
+// aes-ctr stream cipher encrypt/decrypt
+void BRAESCTR_OFFSET(void *out, size_t outLen, const void *key, size_t keyLen, void *iv16, const void *data, size_t dataLen)
+{
+    uint8_t x[16], iv[16], k[256];
+    size_t off, i, outIdx = 0;
+    
+    assert(out != NULL);
+    assert(key != NULL);
+    assert(keyLen == 16 || keyLen == 24 || keyLen == 32);
+    assert(iv16 != NULL);
+    assert(data != NULL || dataLen == 0);
+    
+    memcpy(iv, iv16, 16);
+    _BRAESExpandKey(k, key, keyLen);
+    
+    for (off = (dataLen - outLen); off < dataLen; off++, outIdx++) {
+        if ((off % 16) == 0) { // generate xor compliment
+            memcpy(x, iv, 16);
+            _BRAESCipher(x, k, keyLen);
+            i = 16;
+            do { iv[--i]++; } while (iv[i] == 0 && i > 0); // increment iv with overflow
+        }
+        ((uint8_t *)out)[outIdx] = (((uint8_t *)data)[outIdx] ^ x[outIdx % 16]);
+    }
+    memcpy(iv16, iv, 16);
+    mem_clean(k, sizeof(k));
+    mem_clean(x, sizeof(x));
+}
+
+
 
 // dk = T1 || T2 || ... || Tdklen/hlen
 // Ti = U1 xor U2 xor ... xor Urounds

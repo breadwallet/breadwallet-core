@@ -565,6 +565,39 @@ static void run_GetReceipts_Tests(BREthereumLES les){
     sleep(60);
 }
 
+
+//
+// Running a full block downloand
+//
+static void fullSync_GetBlockBodies_Callback_Test1(BREthereumLESBlockBodiesContext context,
+                                           BREthereumHash block,
+                                           BREthereumTransaction transactions[],
+                                           BREthereumBlockHeader ommers[]){
+    
+    eth_log("fullBlockSyncBodies",  "Retrieved Block Bodie:%s", hashAsString(block));
+}
+
+void _fullBlockHeaders_Calllback_Test (BREthereumLESBlockHeadersContext context,
+                                       BREthereumBlockHeader header) {
+    
+    BREthereumLES les = (BREthereumLES)context;
+    int64_t gotBlockNumber = blockHeaderGetNumber(header);
+    BREthereumHash blockHash = blockHeaderGetHash(header);
+    eth_log("fullBlockSync", "Received GotBlock:%llu", gotBlockNumber);
+    assert(lesGetBlockBodiesOne(les, NULL, fullSync_GetBlockBodies_Callback_Test1, blockHash) == LES_SUCCESS);
+    eth_log("fullBlockSync", "Send Rquest for Block Bodie:%llu", gotBlockNumber);
+
+}
+static void run_fullBlockSync_Test1(BREthereumLES les) {
+
+    //Request block headers [0...1000]
+    for(int i = 0; i < 10000; i+= 180) {
+        assert(lesGetBlockHeaders(les, les, _fullBlockHeaders_Calllback_Test, i, 180, 0, ETHEREUM_BOOLEAN_FALSE) == LES_SUCCESS);
+        sleep(30);
+    }
+    sleep(1800);
+}
+
 //
 // Test GetProofsV2
 //
@@ -625,14 +658,13 @@ void runLEStests(void) {
     //Initialize data needed for tests
     _initBlockHeaderTestData();
     
-    
     //Run Tests on the LES messages
-    // run_GetTxStatus_Tests(les);
-    // run_GetBlockHeaders_Tests(les);
-    // run_GetBlockBodies_Tests(les);
-    // run_GetReceipts_Tests(les);
-    run_GetProofsV2_Tests(les);
+      run_GetTxStatus_Tests(les);
+   //  run_GetBlockHeaders_Tests(les);
+   //  run_GetBlockBodies_Tests(les);
+   //   run_GetReceipts_Tests(les);
+    // run_GetProofsV2_Tests(les);
     //reallySendLESTransaction(les);
-    
+     //   run_fullBlockSync_Test1(les);
 }
 
