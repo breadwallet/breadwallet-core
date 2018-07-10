@@ -558,7 +558,7 @@ static BRRlpItem
 blockTransactionsRlpEncode (BREthereumBlock block,
                                 BREthereumNetwork network,
                                 BRRlpCoder coder) {
-    size_t itemsCount = array_count(block->transactions);
+    size_t itemsCount = (NULL == block->transactions ? 0 : array_count(block->transactions));
     BRRlpItem items[itemsCount];
 
     for (int i = 0; i < itemsCount; i++)
@@ -594,7 +594,7 @@ blockTransactionsRlpDecode (BRRlpItem item,
 static BRRlpItem
 blockOmmersRlpEncode (BREthereumBlock block,
                           BRRlpCoder coder) {
-    size_t itemsCount = array_count(block->ommers);
+    size_t itemsCount = (NULL == block->ommers ? 0 : array_count(block->ommers));
     BRRlpItem items[itemsCount];
 
     for (int i = 0; i < itemsCount; i++)

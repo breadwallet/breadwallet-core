@@ -44,43 +44,41 @@ static void
 ewmPeriodicDispatcher (BREventHandler handler,
                        BREventTimeout *event);
 
-
-//
-// EWM Client
-//
-extern BREthereumClient
-ethereumClientCreate(BREthereumClientContext context,
-                     BREthereumClientHandlerGetBalance funcGetBalance,
-                     BREthereumClientHandlerGetGasPrice funcGetGasPrice,
-                     BREthereumClientHandlerEstimateGas funcEstimateGas,
-                     BREthereumClientHandlerSubmitTransaction funcSubmitTransaction,
-                     BREthereumClientHandlerGetTransactions funcGetTransactions,
-                     BREthereumClientHandlerGetLogs funcGetLogs,
-                     BREthereumClientHandlerGetBlockNumber funcGetBlockNumber,
-                     BREthereumClientHandlerGetNonce funcGetNonce) {
-    
-    BREthereumClient client;
-    client.funcContext = context;
-    client.funcGetBalance = funcGetBalance;
-    client.funcGetGasPrice = funcGetGasPrice;
-    client.funcEstimateGas = funcEstimateGas;
-    client.funcSubmitTransaction = funcSubmitTransaction;
-    client.funcGetTransactions = funcGetTransactions;
-    client.funcGetLogs = funcGetLogs;
-    client.funcGetBlockNumber = funcGetBlockNumber;
-    client.funcGetNonce = funcGetNonce;
-    return client;
-}
-
 //
 // Ethereum Wallet Manager
 //
+static BRArrayOf(BREthereumBlock)
+createEWMEnsureBlocks (BRArrayOf(BREthereumPersistData) blocksPersistData,
+                       BREthereumNetwork network) {
+    BRArrayOf(BREthereumBlock) blocks;
+
+    if (NULL == blocksPersistData || array_count(blocksPersistData) == 0) {
+        array_new(blocks, 1);
+        BREthereumBlockHeader lastCheckpointHeader = blockCheckpointCreatePartialBlockHeader(blockCheckpointLookupLatest(network));
+        array_add(blocks, blockCreate(lastCheckpointHeader));
+    }
+    else {
+        array_new(blocks, array_count(blocksPersistData));
+
+        BRRlpCoder coder = rlpCoderCreate();
+        for (size_t index = 0; index < array_count(blocksPersistData); index++) {
+            BRRlpItem item = rlpGetItem(coder, blocksPersistData[index].blob);
+            BREthereumBlock block = blockRlpDecode(item, network, coder);
+            array_insert (blocks, index, block);
+        }
+        rlpCoderRelease(coder);
+    }
+
+    return blocks;
+}
+
 extern BREthereumEWM
 createEWM (BREthereumNetwork network,
            BREthereumAccount account,
            BREthereumType type,
            // serialized: headers, transactions, logs
-           BREthereumSyncMode syncMode) {
+           BREthereumSyncMode syncMode,
+           BRArrayOf(BREthereumPersistData) blocksPersistData) {
     BREthereumEWM ewm = (BREthereumEWM) calloc (1, sizeof (struct BREthereumEWMRecord));
     ewm->state = LIGHT_NODE_CREATED;
     ewm->type = type;
@@ -131,22 +129,13 @@ createEWM (BREthereumNetwork network,
 
     // Create BCS - note: when BCS processes headers, transactions, etc callbacks will be made to
     // the EWM listener.
-    {
-        BREthereumBlockHeader *headers;
-        BREthereumBlockHeader lastCheckpointHeader = blockCheckpointCreatePartialBlockHeader(blockCheckpointLookupLatest(network));
 
-        array_new(headers, 1);
-        array_add(headers, lastCheckpointHeader);
-
-        ewm->bcs = bcsCreate(network,
-                             accountGetPrimaryAddress (account),
-                             listener,
-                             headers,
-                             NULL,
-                             NULL);
-
-        array_free(headers);
-    }
+    ewm->bcs = bcsCreate(network,
+                         accountGetPrimaryAddress (account),
+                         listener,
+                         createEWMEnsureBlocks (blocksPersistData, network),
+                         NULL,
+                         NULL);
 
     return ewm;
 }
@@ -534,7 +523,26 @@ extern void
 ewmHandleSaveBlocks (BREthereumEWM ewm,
                      BRArrayOf(BREthereumBlock) blocks) {
     eth_log("EWM", "Save Blocks: %zu", array_count(blocks));
-    array_free(blocks);
+
+    BRRlpCoder coder = rlpCoderCreate();
+
+    BRArrayOf(BREthereumPersistData) blocksToSave;
+    array_new(blocksToSave, array_count(blocks));
+    for (size_t index = 0; index < array_count(blocks); index++) {
+        BRRlpItem item = blockRlpEncode(blocks[index], ewm->network, coder);
+        BREthereumPersistData persistData = {
+            blockGetHash(blocks[index]),
+            rlpGetData(coder, item)
+        };
+        array_add (blocksToSave, persistData);
+    }
+
+    ewm->client.funcSaveBlocks (ewm->client.funcContext, ewm,
+                                blocksToSave);
+
+    array_free (blocksToSave);
+    array_free (blocks);
+    rlpCoderRelease(coder);
 }
 
 extern void
