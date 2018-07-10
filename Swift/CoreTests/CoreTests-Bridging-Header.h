@@ -3,5 +3,6 @@
 //
 
 extern int BRRunTests();
-extern void runTests (void);
+extern void runTests (int reallySend);
+extern void runSyncTest (unsigned int durationInSeconds);
 extern void runLEStests(void);
