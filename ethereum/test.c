@@ -1585,11 +1585,7 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
 
 extern void
 testReallySend (void) {
-    char buffer [1024];
-
-    // START - One Time Code Block
     JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
-
     BREthereumClient client =
     ethereumClientCreate(context,
                          clientGetBalance,
@@ -1601,19 +1597,9 @@ testReallySend (void) {
                          clientGetBlockNumber,
                          clientGetNonce);
 
-//    fputs("PaperKey: ", stdout);
-//    fgets (buffer, 1024, stdin);
-//    buffer[strlen(buffer) - 1] = '\0';
-//    char *paperKey = strdup(buffer);
-
     char *paperKey = "boring head harsh green empty clip fatal typical found crane dinner timber";
 
-//    fputs("Address: ", stdout);
-//    fgets (buffer, 1024, stdin);
-//    buffer[strlen(buffer) - 1] = '\0';
-//    char *recvAddr = strdup (buffer);
     char *recvAddr = "0x49f4c50d9bcc7afdbcf77e0d6e364c29d5a660df";
-
     char *strAmount = "0.00004"; //ETH
     uint64_t gasPrice = 2; // GWEI
     uint64_t gasLimit = 21000;
@@ -1621,8 +1607,9 @@ testReallySend (void) {
 
     printf ("PaperKey: '%s'\nAddress: '%s'\nGasLimt: %llu\nGasPrice: %llu GWEI\n", paperKey, recvAddr, gasLimit, gasPrice);
 
-
+    alarmClockCreateIfNecessary (1);
     BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
+
     // A wallet amount Ether
     BREthereumWalletId wallet = ethereumGetWallet(ewm);
     BREthereumAccount account = ewmGetAccount (ewm);
@@ -1648,14 +1635,16 @@ testReallySend (void) {
     ethereumWalletSignTransaction (ewm, wallet, tx, paperKey);
 
     ethereumConnect(ewm, client);
-#if 0 // only submit by explicit action.
+
+#if 1 // only submit by explicit action.
     printf ("***\n***\n***\n*** WAITING TO SUBMIT\n***\n");
     sleep (10);
     printf ("***\n***\n***\n*** SUBMITING\n***\n");
 
     ethereumWalletSubmitTransaction(ewm, wallet, tx);
 #endif
-    unsigned int remaining = 5 * 60;
+    // 2 minutes ?? to confirm
+    unsigned int remaining = 2 * 60;
     while (remaining) {
         printf ("***\n*** SLEEPING: %d\n", remaining);
         remaining = sleep(remaining);
@@ -1664,8 +1653,10 @@ testReallySend (void) {
     ewmDeleteTransaction(ewm, tx);
     ethereumDisconnect(ewm);
     ethereumDestroy(ewm);
+    alarmClockDestroy(alarmClock);
     return;
 }
+
 //
 //
 //
@@ -2073,12 +2064,44 @@ runTransactionReceiptTests (void) {
      */
 }
 
+extern void
+runSyncTest (unsigned int durationInSeconds) {
+    JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
+    BREthereumClient client =
+    ethereumClientCreate(context,
+                         clientGetBalance,
+                         clientGetGasPrice,
+                         clientEstimateGas,
+                         clientSubmitTransaction,
+                         clientGetTransactions,
+                         clientGetLogs,
+                         clientGetBlockNumber,
+                         clientGetNonce);
+
+    char *paperKey = "boring head harsh green empty clip fatal typical found crane dinner timber";
+    alarmClockCreateIfNecessary (1);
+
+    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
+    ethereumConnect(ewm, client);
+
+    unsigned int remaining = durationInSeconds;
+    while (remaining) {
+        printf ("***\n*** SLEEPING: %d\n", remaining);
+        remaining = sleep(remaining);
+    }
+
+    ethereumDisconnect(ewm);
+    ethereumDestroy(ewm);
+    alarmClockDestroy(alarmClock);
+    return;
+
+}
 //
 // All Tests
 //
 
 extern void
-runTests (void) {
+runTests (int reallySend) {
     installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
     // Initialize tokens
 //    tokenGet(0);
@@ -2096,14 +2119,13 @@ runTests (void) {
     runAccountStateTests();
     runTransactionStatusTests();
     runTransactionReceiptTests();
-    testReallySend();
-    alarmClockDestroy(alarmClock);
+    if (reallySend) testReallySend();
     printf ("Done\n");
 }
 
 #if defined (TEST_ETHEREUM_NEED_MAIN)
 int main(int argc, const char *argv[]) {
-    runTests();
+    runTests(0);
 }
 #endif
 
