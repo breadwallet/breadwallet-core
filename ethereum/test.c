@@ -1401,6 +1401,9 @@ clientGetNonce (BREthereumClientContext context,
     ewmAnnounceNonce(ewm, address, "0x4", rid);
 }
 
+//
+// Save Blocks
+//
 BRArrayOf(BREthereumPersistData) savedBlocks = NULL;
 
 static void
@@ -1418,6 +1421,17 @@ clientSaveBlocks (BREthereumClientContext context,
         array_add (savedBlocks, blocksToSave[index]);
 }
 
+//
+// Save Peers
+//
+BRArrayOf(BREthereumPersistData) savedPeers = NULL;
+
+static void
+clientSavePeers (BREthereumClientContext context,
+                  BREthereumEWM ewm,
+                  BRArrayOf(BREthereumPersistData) blocksToSave) {
+}
+
 static BREthereumClient client = {
     NULL,
     clientGetBalance,
@@ -1429,7 +1443,8 @@ static BREthereumClient client = {
     clientGetBlockNumber,
     clientGetNonce,
 
-    clientSaveBlocks
+    clientSavePeers,
+    clientSaveBlocks,
 };
 
 //
@@ -1507,7 +1522,7 @@ runEWM_CONNECT_test (const char *paperKey) {
     BRCoreParseStatus status;
     client.funcContext = testContextCreate();
 
-    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, NULL);
+    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, NULL, NULL);
 
     BREthereumListenerId lid = ewmAddListener(ewm,
                                                     (BREthereumListenerContext) client.funcContext,
@@ -1550,7 +1565,7 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
     // START - One Time Code Block
     client.funcContext = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
-    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, NULL);
+    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, NULL, NULL);
     // A wallet amount Ether
     BREthereumWalletId wallet = ethereumGetWallet(ewm);
     // END - One Time Code Block
@@ -1611,7 +1626,7 @@ testReallySend (void) {
     printf ("PaperKey: '%s'\nAddress: '%s'\nGasLimt: %llu\nGasPrice: %llu GWEI\n", paperKey, recvAddr, gasLimit, gasPrice);
 
     alarmClockCreateIfNecessary (1);
-    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, NULL);
+    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, NULL, NULL);
 
     // A wallet amount Ether
     BREthereumWalletId wallet = ethereumGetWallet(ewm);
@@ -1674,7 +1689,7 @@ runEWM_TOKEN_test (const char *paperKey) {
     BRCoreParseStatus status;
 
     BREthereumToken token = tokenGet(0);
-    BREthereumEWM ewm = ethereumCreate (ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, NULL);
+    BREthereumEWM ewm = ethereumCreate (ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, NULL, NULL);
     BREthereumWalletId wallet = ethereumGetWalletHoldingToken(ewm, token);
     
     BREthereumAmount amount = ethereumCreateTokenAmountString(ewm, token,
@@ -1703,11 +1718,11 @@ static void
 runEWM_PUBLIC_KEY_test (BREthereumNetwork network, const char *paperKey) {
     printf ("     PUBLIC KEY\n");
 
-    BREthereumEWM ewm1 = ethereumCreate (network, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, NULL);
+    BREthereumEWM ewm1 = ethereumCreate (network, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, NULL, NULL);
     char *addr1 = ethereumGetAccountPrimaryAddress (ewm1);
 
     BRKey publicKey = ethereumGetAccountPrimaryAddressPublicKey (ewm1);
-    BREthereumEWM ewm2 = ethereumCreateWithPublicKey (network, publicKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, NULL);
+    BREthereumEWM ewm2 = ethereumCreateWithPublicKey (network, publicKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, NULL, NULL);
     char *addr2 = ethereumGetAccountPrimaryAddress (ewm2);
 
 
@@ -2077,8 +2092,9 @@ runSyncTest (unsigned int durationInSeconds,
     alarmClockCreateIfNecessary (1);
 
     BRArrayOf(BREthereumPersistData) blocks = (restart ? savedBlocks : NULL);
-    
-    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, blocks);
+    BRArrayOf(BREthereumPersistData) peers = (restart ? savedPeers : NULL);
+
+    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, peers, blocks);
     ethereumConnect(ewm, client);
 
     unsigned int remaining = durationInSeconds;

@@ -305,8 +305,12 @@ typedef void
 
     typedef void
     (*BREthereumClientSaveBlocksCallback) (BREthereumClientContext context,
+                                           BREthereumEWM ewm,
+                                           BRArrayOf(BREthereumPersistData) persistData);
+    typedef void
+    (*BREthereumClientSavePeersCallback) (BREthereumClientContext context,
                                           BREthereumEWM ewm,
-                                          BRArrayOf(BREthereumPersistData));
+                                          BRArrayOf(BREthereumPersistData) persistData);
 
 //
 // EWM Configuration
@@ -331,8 +335,9 @@ typedef struct {
     BREthereumClientHandlerGetLogs funcGetLogs;
     BREthereumClientHandlerGetBlockNumber funcGetBlockNumber;
     BREthereumClientHandlerGetNonce funcGetNonce;
-    // savePeers
-    // saveBlocks
+
+    //
+    BREthereumClientSavePeersCallback funcSavePeers;
     BREthereumClientSaveBlocksCallback funcSaveBlocks;
     // updateLogs  (add/rem/upd)
     // updateTransactions (add/rem/upd)
@@ -388,6 +393,7 @@ ethereumCreate(BREthereumNetwork network,
                const char *paperKey,
                BREthereumType type,
                BREthereumSyncMode syncMode,
+               BRArrayOf(BREthereumPersistData) peers,
                BRArrayOf(BREthereumPersistData) blocks);
 
 /**
@@ -400,6 +406,7 @@ ethereumCreateWithPublicKey(BREthereumNetwork network,
                             const BRKey publicKey,
                             BREthereumType type,
                             BREthereumSyncMode syncMode,
+                            BRArrayOf(BREthereumPersistData) peers,
                             BRArrayOf(BREthereumPersistData) blocks);
 
 /**

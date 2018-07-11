@@ -72,12 +72,28 @@ createEWMEnsureBlocks (BRArrayOf(BREthereumPersistData) blocksPersistData,
     return blocks;
 }
 
+static BRArrayOf(BREthereumPeerConfig)
+createEWMEnsurePeers (BRArrayOf(BREthereumPersistData) peersPersistData) {
+    BRArrayOf(BREthereumPeerConfig) peers;
+
+    size_t peersCount = (NULL == peersPersistData ? 0 : array_count(peersPersistData));
+    array_new(peers, peersCount);
+
+    for (size_t index = 0; index < peersCount; index++) {
+        BREthereumPersistData persistData = peersPersistData[index];
+        persistData; // Create PeerConfig from PersistData; then array_add
+    }
+
+    return peers;
+}
+
 extern BREthereumEWM
 createEWM (BREthereumNetwork network,
            BREthereumAccount account,
            BREthereumType type,
            // serialized: headers, transactions, logs
            BREthereumSyncMode syncMode,
+           BRArrayOf(BREthereumPersistData) peersPersistData,
            BRArrayOf(BREthereumPersistData) blocksPersistData) {
     BREthereumEWM ewm = (BREthereumEWM) calloc (1, sizeof (struct BREthereumEWMRecord));
     ewm->state = LIGHT_NODE_CREATED;
@@ -133,6 +149,7 @@ createEWM (BREthereumNetwork network,
     ewm->bcs = bcsCreate(network,
                          accountGetPrimaryAddress (account),
                          listener,
+                         createEWMEnsurePeers(peersPersistData),
                          createEWMEnsureBlocks (blocksPersistData, network),
                          NULL,
                          NULL);
@@ -546,8 +563,23 @@ ewmHandleSaveBlocks (BREthereumEWM ewm,
 }
 
 extern void
-ewmHandleSavePeers (BREthereumEWM ewm) {
-    eth_log("EWM", "Save Peers: %d",0);
+ewmHandleSavePeers (BREthereumEWM ewm,
+                    BRArrayOf(BREthereumPeerConfig) peers) {
+    size_t peersCount = array_count(peers);
+
+    // Serialize BREthereumPeerConfig
+    BRArrayOf(BREthereumPersistData) peersToSave;
+    array_new(peersToSave, 0);
+    for (size_t index = 0; index < array_count(peers); index++) {
+        // Add to peersToSave
+    }
+
+    ewm->client.funcSavePeers (ewm->client.funcContext, ewm,
+                               peersToSave);
+
+    eth_log("EWM", "Save Peers: %zu", peersCount);
+
+    array_free (peers);
 }
 
 extern void

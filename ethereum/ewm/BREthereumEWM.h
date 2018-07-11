@@ -43,6 +43,7 @@ createEWM (BREthereumNetwork network,
            BREthereumAccount account,
            BREthereumType type,
            BREthereumSyncMode syncMode,
+           BRArrayOf(BREthereumPersistData) peers,
            BRArrayOf(BREthereumPersistData) blocks);
 
 extern void
