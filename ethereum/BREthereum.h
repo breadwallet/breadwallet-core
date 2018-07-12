@@ -312,6 +312,23 @@ typedef void
                                           BREthereumEWM ewm,
                                           BRArrayOf(BREthereumPersistData) persistData);
 
+    typedef enum {
+        CLIENT_CHANGE_ADD,
+        CLIENT_CHANGE_REM,
+        CLIENT_CHANGE_UPD
+    } BREthereumClientChangeType;
+
+    typedef void
+    (*BREthereumClientChangeTransaction) (BREthereumClientContext context,
+                                          BREthereumEWM ewm,
+                                          BREthereumClientChangeType type,
+                                          BREthereumPersistData persistData);
+
+    typedef void
+    (*BREthereumClientChangeLog) (BREthereumClientContext context,
+                                          BREthereumEWM ewm,
+                                          BREthereumClientChangeType type,
+                                          BREthereumPersistData persistData);
 //
 // EWM Configuration
 //
@@ -339,8 +356,8 @@ typedef struct {
     //
     BREthereumClientSavePeersCallback funcSavePeers;
     BREthereumClientSaveBlocksCallback funcSaveBlocks;
-    // updateLogs  (add/rem/upd)
-    // updateTransactions (add/rem/upd)
+    BREthereumClientChangeTransaction funcChangeTransaction;
+    BREthereumClientChangeTransaction funcChangeLog;
 } BREthereumClient;
 
 /**
@@ -394,7 +411,9 @@ ethereumCreate(BREthereumNetwork network,
                BREthereumType type,
                BREthereumSyncMode syncMode,
                BRArrayOf(BREthereumPersistData) peers,
-               BRArrayOf(BREthereumPersistData) blocks);
+               BRArrayOf(BREthereumPersistData) blocks,
+               BRArrayOf(BREthereumPersistData) transactions,
+               BRArrayOf(BREthereumPersistData) logs);
 
 /**
  * Create a EWM managing the account associated with the publicKey.  Public key is a
@@ -407,7 +426,9 @@ ethereumCreateWithPublicKey(BREthereumNetwork network,
                             BREthereumType type,
                             BREthereumSyncMode syncMode,
                             BRArrayOf(BREthereumPersistData) peers,
-                            BRArrayOf(BREthereumPersistData) blocks);
+                            BRArrayOf(BREthereumPersistData) blocks,
+                            BRArrayOf(BREthereumPersistData) transactions,
+                            BRArrayOf(BREthereumPersistData) logs);
 
 /**
  * Create an Ethereum Account using `paperKey` for BIP-32 generation of keys.  The same paper key

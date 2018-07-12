@@ -388,8 +388,9 @@ bcsHandleAnnounce (BREthereumBCS bcs,
 static BREthereumBoolean
 bcsBlockHasMatchingTransactions (BREthereumBCS bcs,
                                  BREthereumBlock block) {
+    return AS_ETHEREUM_BOOLEAN(blockGetNumber(block) < 5795675);
 //    return ETHEREUM_BOOLEAN_TRUE;
-    return ETHEREUM_BOOLEAN_FALSE;
+//    return ETHEREUM_BOOLEAN_FALSE;
 }
 
 /**
@@ -1274,6 +1275,9 @@ bcsPeriodicDispatcher (BREventHandler handler,
     if (NULL == bcs->pendingTransactions || 0 == array_count(bcs->pendingTransactions))
         return;
 
+    // TODO: Avoid-ish a race condition on bcsRelease. This is the wrong approach.
+    if (NULL == bcs->les) return;
+
     lesGetTransactionStatus (bcs->les,
                              (BREthereumLESTransactionStatusContext) bcs,
                              (BREthereumLESTransactionStatusCallback) bcsSignalTransactionStatus,
@@ -1314,6 +1318,9 @@ bcsHandleLog (BREthereumBCS bcs,
               BREthereumHash transactionHash, // transaction?
               BREthereumLog log) {
 
+    bcs->listener.logCallback (bcs->listener.context,
+                               BCS_CALLBACK_LOG_UPDATED,
+                               log);
 }
 
 extern void

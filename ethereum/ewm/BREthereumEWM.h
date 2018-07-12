@@ -44,7 +44,9 @@ createEWM (BREthereumNetwork network,
            BREthereumType type,
            BREthereumSyncMode syncMode,
            BRArrayOf(BREthereumPersistData) peers,
-           BRArrayOf(BREthereumPersistData) blocks);
+           BRArrayOf(BREthereumPersistData) blocks,
+           BRArrayOf(BREthereumPersistData) transactions,
+           BRArrayOf(BREthereumPersistData) logs);
 
 extern void
 ewmDestroy (BREthereumEWM ewm);

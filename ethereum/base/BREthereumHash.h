@@ -123,6 +123,15 @@ hashSetEqual (const BREthereumHash *hash1,
     return hash1 == hash2 || 0 == memcmp (hash1->bytes, hash2->bytes, ETHEREUM_HASH_BYTES);
 }
 
+//
+// Hash String (0x prefaced)
+//
+typedef char BREthereumHashString[2 * ETHEREUM_HASH_BYTES + 3];
+
+extern void
+hashFillString (BREthereumHash hash,
+                BREthereumHashString string);
+
 #ifdef __cplusplus
 }
 #endif

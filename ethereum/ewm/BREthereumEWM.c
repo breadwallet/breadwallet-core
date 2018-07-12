@@ -49,7 +49,8 @@ ewmPeriodicDispatcher (BREventHandler handler,
 //
 static BRArrayOf(BREthereumBlock)
 createEWMEnsureBlocks (BRArrayOf(BREthereumPersistData) blocksPersistData,
-                       BREthereumNetwork network) {
+                       BREthereumNetwork network,
+                       BRRlpCoder coder) {
     BRArrayOf(BREthereumBlock) blocks;
 
     if (NULL == blocksPersistData || array_count(blocksPersistData) == 0) {
@@ -60,31 +61,87 @@ createEWMEnsureBlocks (BRArrayOf(BREthereumPersistData) blocksPersistData,
     else {
         array_new(blocks, array_count(blocksPersistData));
 
-        BRRlpCoder coder = rlpCoderCreate();
         for (size_t index = 0; index < array_count(blocksPersistData); index++) {
             BRRlpItem item = rlpGetItem(coder, blocksPersistData[index].blob);
             BREthereumBlock block = blockRlpDecode(item, network, coder);
             array_insert (blocks, index, block);
         }
-        rlpCoderRelease(coder);
+    }
+
+    if (NULL != blocksPersistData) {
+        array_free(blocksPersistData);
     }
 
     return blocks;
 }
 
 static BRArrayOf(BREthereumPeerConfig)
-createEWMEnsurePeers (BRArrayOf(BREthereumPersistData) peersPersistData) {
+createEWMEnsurePeers (BRArrayOf(BREthereumPersistData) peersPersistData,
+                      BRRlpCoder coder) {
     BRArrayOf(BREthereumPeerConfig) peers;
 
     size_t peersCount = (NULL == peersPersistData ? 0 : array_count(peersPersistData));
     array_new(peers, peersCount);
 
     for (size_t index = 0; index < peersCount; index++) {
-        BREthereumPersistData persistData = peersPersistData[index];
-        persistData; // Create PeerConfig from PersistData; then array_add
+        //BREthereumPersistData persistData = peersPersistData[index];
+        ; // Create PeerConfig from PersistData; then array_add
+    }
+
+    if (NULL != peersPersistData) {
+        array_free (peersPersistData);
     }
 
     return peers;
+}
+
+static BRArrayOf(BREthereumTransaction)
+createEWMEnsureTransactions (BRArrayOf(BREthereumPersistData) transactionsPersistData,
+                             BREthereumNetwork network,
+                             BRRlpCoder coder) {
+    BRArrayOf(BREthereumTransaction) transactions;
+
+    size_t transactionsCount = (NULL == transactionsPersistData ? 0 : array_count(transactionsPersistData));
+    array_new(transactions, transactionsCount);
+
+    for (size_t index = 0; index < transactionsCount; index++) {
+        BRRlpItem item = rlpGetItem(coder, transactionsPersistData[index].blob);
+        BREthereumTransaction transaction = transactionRlpDecode(item, network, TRANSACTION_RLP_SIGNED, coder);
+
+        // TODO: In above, use TRANSACTION_RLP_ARCHIVE when it exists.
+        BREthereumTransactionStatus status = transactionStatusCreate(TRANSACTION_STATUS_PENDING);
+        transactionSetStatus(transaction, status);
+
+        array_insert (transactions, index, transaction);
+    }
+
+    if (NULL != transactionsPersistData) {
+        array_free(transactionsPersistData);
+    }
+
+    return transactions;
+}
+
+static BRArrayOf(BREthereumLog)
+createEWMEnsureLogs(BRArrayOf(BREthereumPersistData) logsPersistData,
+                             BREthereumNetwork network,
+                             BRRlpCoder coder) {
+    BRArrayOf(BREthereumLog) logs;
+
+    size_t logsCount = (NULL == logsPersistData ? 0 : array_count(logsPersistData));
+    array_new(logs, logsCount);
+
+    for (size_t index = 0; index < logsCount; index++) {
+        BRRlpItem item = rlpGetItem(coder, logsPersistData[index].blob);
+        BREthereumLog log = logRlpDecode(item, coder);
+        array_insert (logs, index, log);
+    }
+
+    if (NULL != logsPersistData) {
+        array_free(logsPersistData);
+    }
+
+    return logs;
 }
 
 extern BREthereumEWM
@@ -94,7 +151,9 @@ createEWM (BREthereumNetwork network,
            // serialized: headers, transactions, logs
            BREthereumSyncMode syncMode,
            BRArrayOf(BREthereumPersistData) peersPersistData,
-           BRArrayOf(BREthereumPersistData) blocksPersistData) {
+           BRArrayOf(BREthereumPersistData) blocksPersistData,
+           BRArrayOf(BREthereumPersistData) transactionsPersistData,
+           BRArrayOf(BREthereumPersistData) logsPersistData) {
     BREthereumEWM ewm = (BREthereumEWM) calloc (1, sizeof (struct BREthereumEWMRecord));
     ewm->state = LIGHT_NODE_CREATED;
     ewm->type = type;
@@ -145,14 +204,19 @@ createEWM (BREthereumNetwork network,
 
     // Create BCS - note: when BCS processes headers, transactions, etc callbacks will be made to
     // the EWM listener.
+    {
+        BRRlpCoder coder = rlpCoderCreate();
 
-    ewm->bcs = bcsCreate(network,
-                         accountGetPrimaryAddress (account),
-                         listener,
-                         createEWMEnsurePeers(peersPersistData),
-                         createEWMEnsureBlocks (blocksPersistData, network),
-                         NULL,
-                         NULL);
+        ewm->bcs = bcsCreate(network,
+                             accountGetPrimaryAddress (account),
+                             listener,
+                             createEWMEnsurePeers(peersPersistData, coder),
+                             createEWMEnsureBlocks (blocksPersistData, network, coder),
+                             createEWMEnsureTransactions(transactionsPersistData, network, coder),
+                             createEWMEnsureLogs(logsPersistData, network, coder));
+
+        rlpCoderRelease(coder);
+    }
 
     return ewm;
 }
@@ -283,6 +347,33 @@ ewmListenerHandleTransactionEvent(BREthereumEWM ewm,
                                   BREthereumTransactionEvent event,
                                   BREthereumStatus status,
                                   const char *errorDescription) {
+    BREthereumTransaction transaction = ewm->transactions[tid];
+    BREthereumHash hash = transactionGetHash(transaction);
+
+    // Transaction to 'Persist Data'
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem item = transactionRlpEncode(transaction, ewm->network, TRANSACTION_RLP_SIGNED, coder);
+    BREthereumPersistData persistData = { hash, rlpGetData(coder, item) };
+    rlpCoderRelease(coder);
+
+    BREthereumClientChangeType type = (event == TRANSACTION_EVENT_ADDED
+                                       ? CLIENT_CHANGE_ADD
+                                       : (event == TRANSACTION_EVENT_REMOVED
+                                          ? CLIENT_CHANGE_REM
+                                          : CLIENT_CHANGE_UPD));
+
+    BREthereumHashString hashString;
+    hashFillString(hash, hashString);
+    eth_log ("EWM", "Transaction: \"%s\", Change: %d", hashString, type);
+//    eth_log ("EWM", "Transaction: \"0x%c%c%c%c...\", Change: %d",
+//             _hexc (hash.bytes[0] >> 4), _hexc(hash.bytes[0]),
+//             _hexc (hash.bytes[1] >> 4), _hexc(hash.bytes[1]),
+//             type);
+
+    ewm->client.funcChangeTransaction (ewm->client.funcContext, ewm,
+                                       type,
+                                       persistData);
+
     int count = (int) array_count(ewm->listeners);
     for (int i = 0; i < count; i++) {
         if (NULL != ewm->listeners[i].transactionEventHandler)
@@ -295,6 +386,7 @@ ewmListenerHandleTransactionEvent(BREthereumEWM ewm,
              status,
              errorDescription);
     }
+
 }
 
 extern void
@@ -429,7 +521,10 @@ ewmHandleTransaction (BREthereumEWM ewm,
     
     pthread_mutex_lock(&ewm->lock);
 
-    eth_log("EWM", "Transaction: %d", 0);
+    BREthereumHash hash = transactionGetHash(transaction);
+    eth_log("EWM", "Transaction: \"0x%c%c%c%c...\", Handle",
+            _hexc (hash.bytes[0] >> 4), _hexc(hash.bytes[0]),
+            _hexc (hash.bytes[1] >> 4), _hexc(hash.bytes[1]));
 
     // Find the wallet
     BREthereumAmount amount = transactionGetAmount(transaction);
@@ -533,7 +628,11 @@ extern void
 ewmHandleLog (BREthereumEWM ewm,
               BREthereumBCSCallbackLogType type,
               BREthereumLog log) {
-    eth_log("EWM", "Log: %d", 0);
+    BREthereumHash hash = logGetHash(log);
+    
+    eth_log("EWM", "Log: \"0x%c%c%c%c...\", Handle",
+            _hexc (hash.bytes[0] >> 4), _hexc(hash.bytes[0]),
+            _hexc (hash.bytes[1] >> 4), _hexc(hash.bytes[1]));
 }
 
 extern void
@@ -588,7 +687,7 @@ ewmHandleSync (BREthereumEWM ewm,
                uint64_t blockNumberStart,
                uint64_t blockNumberCurrent,
                uint64_t blockNumberStop) {
-    eth_log ("EWM", "Sync: %d, %llu%%", type, (100 * (blockNumberCurrent - blockNumberStart) / (blockNumberStop - blockNumberStart)));
+    eth_log ("EWM", "Sync: %d, %.2f%%", type, (100.0 * (blockNumberCurrent - blockNumberStart) / (blockNumberStop - blockNumberStart)));
 }
 //
 // Connect // Disconnect

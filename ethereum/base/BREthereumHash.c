@@ -97,3 +97,11 @@ hashRlpDecode (BRRlpItem item, BRRlpCoder coder) {
 
     return hash;
 }
+
+extern void
+hashFillString (BREthereumHash hash,
+                BREthereumHashString string) {
+    string[0] = '0';
+    string[1] = 'x';
+    encodeHex(&string[2], 2 * ETHEREUM_HASH_BYTES + 1, hash.bytes, ETHEREUM_HASH_BYTES);
+}

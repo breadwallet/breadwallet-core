@@ -96,12 +96,14 @@ void _disconnectCallback(BREthereumManagerCallbackContext info, BREthereumNode n
 void _receivedMessageCallback(BREthereumManagerCallbackContext info, BREthereumNode node, uint64_t packetType, BRRlpData messageBody) {
 
     BREthereumNodeManager manager = (BREthereumNodeManager)info;
-    manager->subprotoCallbacks.messageRecFunc(manager->subprotoCallbacks.info, packetType, messageBody);
+    if (NULL != manager->subprotoCallbacks.messageRecFunc)
+        manager->subprotoCallbacks.messageRecFunc(manager->subprotoCallbacks.info, packetType, messageBody);
 }
 void _connectedCallback(BREthereumManagerCallbackContext info, BREthereumNode node, uint8_t**status, size_t* statusSize) {
 
     BREthereumNodeManager manager = (BREthereumNodeManager)info;
-    manager->subprotoCallbacks.connectedFunc(manager->subprotoCallbacks.info, status,statusSize);
+    if (NULL != manager->subprotoCallbacks.connectedFunc)
+        manager->subprotoCallbacks.connectedFunc(manager->subprotoCallbacks.info, status,statusSize);
 }
 void _networkReachableCallback(BREthereumManagerCallbackContext info, BREthereumNode node, BREthereumBoolean isReachable) {
 
@@ -122,15 +124,23 @@ BREthereumBoolean _findPeers(BREthereumNodeManager manager) {
 #if 0 // 65...
         config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "65.79.142.182", 30303, 30303);
         decodeHex (pubKey, 64, "c7f12332d767c12888da45044581d30de5a1bf383f68ef7b79c83eefd99c82adf2ebe3f37e472cbcdf839d52eddc34f270a7a3444ab6c1dd127bba1687140d93", 128);
-#elif 1 // 104...
+#elif 0 // 104...
         config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "104.197.99.24", DEFAULT_TCPPORT, DEFAULT_UDPPORT);
         decodeHex (pubKey, 64, "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851", 128);
 #elif 0 // TestNet: 35...198
         config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "35.226.161.198", 30303, 30303); //TestNet
         decodeHex (pubKey, 64, "9683a29b13c7190cfd63cccba4bcb62d7b710da0b1c4bff2c4b8bcf129127d7b3f591163a58449d7f66200db3c208d06b9e9a8bea69be4a72e1728a83d703063", 128);
-#elif 0  // 35...
+#elif 0   // 35...
         config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "35.184.255.33", 30303, 30303);
         decodeHex (pubKey, 64, "3d0bce4775635c65733b7534f1bccd48720632f5d66a44030c1d13e2e5883262d9d22cdb8365c03137e8d5fbbf5355772acf35b08d6f9b5ad69bb24ad52a20cc", 128);
+#elif 0  // public
+        // admin.addPeer("enode://3e9301c797f3863d7d0f29eec9a416f13956bd3a14eec7e0cf5eb56942841526269209edf6f57cd1315bef60c4ebbe3476bc5457bed4e479cac844c8c9e375d3@109.232.77.21:30303");
+        config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "109.232.77.21", 30303, 30303);
+        decodeHex (pubKey, 64, "3e9301c797f3863d7d0f29eec9a416f13956bd3a14eec7e0cf5eb56942841526269209edf6f57cd1315bef60c4ebbe3476bc5457bed4e479cac844c8c9e375d3", 128);
+#elif 1  // public
+        //admin.addPeer("enode://e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851@35.226.238.26:30303");
+        config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "35.226.238.26", 30303, 30303);
+        decodeHex (pubKey, 64, "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851", 128);
 #endif
 
         BRKey* remoteKey = malloc(sizeof(BRKey));
