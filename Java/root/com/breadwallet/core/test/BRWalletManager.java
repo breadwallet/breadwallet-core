@@ -400,9 +400,14 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println("        Key/Addr Sign:");
 
         key = new BRCoreKey(secret, true);
+        key.getPubKey();
 
-        byte[] messageDigest = BRCoreKey.encodeSHA256("Everything should be made as simple as possible, but not simpler.");
+        byte[] message = "Everything should be made as simple as possible, but not simpler.".getBytes();
+        byte[] messageDigest = BRCoreKey.encodeSHA256(message);
         System.out.println ("            messageDigest: " + Arrays.toString((messageDigest)));
+
+        byte[] messageDigestDouble = BRCoreKey.encodeSHA256Double(message);
+        System.out.println ("            messageDigestDouble: " + Arrays.toString((messageDigestDouble)));
 
         byte[] signature = key.sign(messageDigest);
         System.out.println ("            signature    : " + Arrays.toString((signature)));
@@ -428,6 +433,14 @@ public class BRWalletManager extends BRCoreWalletManager {
 
 
          */
+
+        // Compact Sign
+        byte[] compactSig = key.compactSign(message);
+        BRCoreKey keyCompactSigRecovered = BRCoreKey.compactSignRecoverKey(message, compactSig);
+        System.out.println ("            compact signature         : " + Arrays.toString(compactSig));
+        System.out.println ("            compact signature (I key) : " + Arrays.toString(key.getPubKey()));
+        System.out.println ("            compact signature (R key) : " + Arrays.toString(keyCompactSigRecovered.getPubKey()));
+        asserting (Arrays.equals(key.getPubKey(), keyCompactSigRecovered.getPubKey()));
     }
 
 

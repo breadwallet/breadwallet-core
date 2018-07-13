@@ -132,12 +132,24 @@ public class BRCoreKey extends BRCoreJniReference {
 
     private native boolean setSecret(byte[] secret, boolean compressed);
 
+    // Returns a compact signature (65 bytes as {v[1], r[32], s[32]}
     public native byte[] compactSign(byte[] data);
+
+    // Returns an empty compact signature (65 bytes of 0x0)
+    public static byte[] compactSignEmpty () {
+        return new byte[65];
+    }
+
+    private static native long createKeyRecoverCompactSign (byte[] data, byte[] signature);
 
     public native byte[] encryptNative(byte[] data, byte[] nonce);
 
     public native byte[] decryptNative(byte[] data, byte[] nonce);
 
+
+    public static BRCoreKey compactSignRecoverKey (byte[] data, byte[] signature) {
+        return new BRCoreKey(createKeyRecoverCompactSign (data, signature));
+    }
     //
     //
     //
@@ -177,7 +189,9 @@ public class BRCoreKey extends BRCoreJniReference {
     }
 
     /* Returns 'messageDigest (UInt256) */
-    public static native byte[] encodeSHA256 (String message);
+    public static native byte[] encodeSHA256 (byte[] message);
+
+    public static native byte[] encodeSHA256Double (byte[] message);
 
     /* Returns 'signature' */
     public native byte[] sign (byte[] messageDigest);
