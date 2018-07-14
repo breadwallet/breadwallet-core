@@ -101,8 +101,9 @@ static const BRMerkleBlock *_medianBlock(const BRMerkleBlock *b, const BRSet *bl
 static int BRBCashVerifyDifficulty(const BRMerkleBlock *block, const BRSet *blockSet)
 {
     const BRMerkleBlock *b, *first, *last;
-    uint32_t i, timespan, target, t, sz, size = 0x1d;
-    uint64_t w, work = 0;
+    int i, sz, size = 0x1d;
+    uint64_t target, t, w, work = 0;
+    int64_t timespan;
 
     assert(block != NULL);
     assert(blockSet != NULL);
@@ -118,7 +119,7 @@ static int BRBCashVerifyDifficulty(const BRMerkleBlock *block, const BRSet *bloc
         first = _medianBlock(first, blockSet);
 
         if (! first) return 1;
-        timespan = last->timestamp - first->timestamp;
+        timespan = (int64_t)last->timestamp - first->timestamp;
         if (timespan > 288*10*60) timespan = 288*10*60;
         if (timespan < 72*10*60) timespan = 72*10*60;
         
@@ -129,6 +130,7 @@ static int BRBCashVerifyDifficulty(const BRMerkleBlock *block, const BRSet *bloc
             w = (t) ? ~0ULL/t : ~0ULL;
             while (sz < size) work >>= 8, size--;
             while (size < sz) w >>= 8, sz--;
+            while (work + w < w) w >>= 8, work >>= 8, size--;
             work += w;
             
             b = BRSetGet(blockSet, &b->prevBlock);
@@ -140,7 +142,7 @@ static int BRBCashVerifyDifficulty(const BRMerkleBlock *block, const BRSet *bloc
 
         // target = (2^256/work) - 1
         while (work && ~0ULL/work < 0x8000) work >>= 8, size--;
-        target = (uint32_t)((work) ? ~0ULL/work : ~0ULL);
+        target = (work) ? ~0ULL/work : ~0ULL;
         
         while (size < 1 || target > 0x007fffff) target >>= 8, size++; // normalize target for "compact" format
         target |= size << 24;
