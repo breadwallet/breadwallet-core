@@ -126,7 +126,7 @@ static int BRBCashVerifyDifficulty(const BRMerkleBlock *block, const BRSet *bloc
             sz = b->target >> 24, t = b->target & 0x007fffff;
             
             // work += 2^256/(target + 1)
-            w = ~0ULL/t;
+            w = (t) ? ~0ULL/t : ~0ULL;
             while (sz < size) work >>= 8, size--;
             while (size < sz) w >>= 8, sz--;
             work += w;
@@ -135,11 +135,12 @@ static int BRBCashVerifyDifficulty(const BRMerkleBlock *block, const BRSet *bloc
         }
 
         // work = work*10*60/timespan
+        while (work > ~0ULL/(10*60)) work >>= 8, size--;
         work = work*10*60/timespan;
 
         // target = (2^256/work) - 1
-        while (~0ULL/work < 0x8000) work >>= 8, size--;
-        target = (uint32_t)(~0ULL/work);
+        while (work && ~0ULL/work < 0x8000) work >>= 8, size--;
+        target = (uint32_t)((work) ? ~0ULL/work : ~0ULL);
         
         while (size < 1 || target > 0x007fffff) target >>= 8, size++; // normalize target for "compact" format
         target |= size << 24;
