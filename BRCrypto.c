@@ -622,7 +622,8 @@ uint64_t BRSip64(const void *key16, const void *data, size_t dataLen)
     for (i = 0; i < 2; i++) sipround(a, b, c, d);
     a ^= x, c ^= 0xff;
     for (i = 0; i < 4; i++) sipround(a, b, c, d);
-    return le64(a ^ b ^ c ^ d);
+    x = a ^ b ^ c ^ d;
+    return le64(x);
 }
 
 // HMAC(key, data) = hash((key xor opad) || hash((key xor ipad) || data))

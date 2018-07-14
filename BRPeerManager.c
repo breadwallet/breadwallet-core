@@ -1288,6 +1288,7 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
         peer_log(peer, "chain fork reached height %"PRIu32, block->height);
         BRSetAdd(manager->blocks, block);
 
+        // TODO: calculate chain work and use that instead of block height to determine longest chain
         if (block->height > manager->lastBlock->height) { // check if fork is now longer than main chain
             b = block;
             b2 = manager->lastBlock;
