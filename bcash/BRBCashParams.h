@@ -102,7 +102,7 @@ static int BRBCashVerifyDifficulty(const BRMerkleBlock *block, const BRSet *bloc
 {
     const BRMerkleBlock *b, *first, *last;
     int i, sz, size = 0x1d;
-    uint64_t target, t, w, work = 0;
+    uint64_t t, target, w, work = 0;
     int64_t timespan;
 
     assert(block != NULL);
@@ -124,6 +124,8 @@ static int BRBCashVerifyDifficulty(const BRMerkleBlock *block, const BRSet *bloc
         if (timespan < 72*10*60) timespan = 72*10*60;
         
         for (b = last; b != first;) {
+            // target is in "compact" format, where the most significant byte is the size of the value in bytes, next
+            // bit is the sign, and the last 23 bits is the value after having been right shifted by (size - 3)*8 bits
             sz = b->target >> 24, t = b->target & 0x007fffff;
             
             // work += 2^256/(target + 1)
