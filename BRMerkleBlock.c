@@ -270,10 +270,9 @@ int BRMerkleBlockIsValid(const BRMerkleBlock *block, uint32_t currentTime)
 {
     assert(block != NULL);
     
-    // target is in "compact" format, where the most significant byte is the size of resulting value in bytes, the next
-    // bit is the sign, and the remaining 23bits is the value after having been right shifted by (size - 3)*8 bits
-    static const uint32_t maxsize = MAX_PROOF_OF_WORK >> 24, maxtarget = MAX_PROOF_OF_WORK & 0x00ffffff;
-    const uint32_t size = block->target >> 24, target = block->target & 0x00ffffff;
+    // target is in "compact" format, where the most significant byte is the size of the value in bytes, next
+    // bit is the sign, and the last 23 bits is the value after having been right shifted by (size - 3)*8 bits
+    const uint32_t size = block->target >> 24, target = block->target & 0x007fffff;
     size_t hashIdx = 0, flagIdx = 0;
     UInt256 merkleRoot = _BRMerkleBlockRootR(block, &hashIdx, &flagIdx, 0), t = UINT256_ZERO;
     int r = 1;
@@ -285,7 +284,7 @@ int BRMerkleBlockIsValid(const BRMerkleBlock *block, uint32_t currentTime)
     if (block->timestamp > currentTime + BLOCK_MAX_TIME_DRIFT) r = 0;
     
     // check if proof-of-work target is out of range
-    if (target == 0 || target & 0x00800000 || size > maxsize || (size == maxsize && target > maxtarget)) r = 0;
+    if (target == 0 || (block->target & 0x00800000) || block->target > MAX_PROOF_OF_WORK) r = 0;
     
     if (size > 3) UInt32SetLE(&t.u8[size - 3], target);
     else UInt32SetLE(t.u8, target >> (3 - size)*8);
@@ -326,7 +325,9 @@ int BRMerkleBlockContainsTxHash(const BRMerkleBlock *block, UInt256 txHash)
 // intuitively named MAX_PROOF_OF_WORK... since larger values are less difficult.
 int BRMerkleBlockVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBlock *previous, uint32_t transitionTime)
 {
-    int r = 1;
+    int size, r = 1;
+    uint64_t target;
+    int64_t timespan;
     
     assert(block != NULL);
     assert(previous != NULL);
@@ -335,12 +336,11 @@ int BRMerkleBlockVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBloc
     if (r && (block->height % BLOCK_DIFFICULTY_INTERVAL) == 0 && transitionTime == 0) r = 0;
         
     if (r && (block->height % BLOCK_DIFFICULTY_INTERVAL) == 0) {
-        // target is in "compact" format, where the most significant byte is the size of resulting value in bytes, next
-        // bit is the sign, and the remaining 23bits is the value after having been right shifted by (size - 3)*8 bits
-        static const uint32_t maxsize = MAX_PROOF_OF_WORK >> 24, maxtarget = MAX_PROOF_OF_WORK & 0x00ffffff;
-        int timespan = (int)((int64_t)previous->timestamp - (int64_t)transitionTime), size = previous->target >> 24;
-        uint64_t target = previous->target & 0x00ffffff;
-    
+        // target is in "compact" format, where the most significant byte is the size of the value in bytes, next
+        // bit is the sign, and the last 23 bits is the value after having been right shifted by (size - 3)*8 bits
+        size = previous->target >> 24, target = previous->target & 0x007fffff;
+        timespan = (int64_t)previous->timestamp - transitionTime;
+        
         // limit difficulty transition to -75% or +400%
         if (timespan < TARGET_TIMESPAN/4) timespan = TARGET_TIMESPAN/4;
         if (timespan > TARGET_TIMESPAN*4) timespan = TARGET_TIMESPAN*4;
@@ -352,11 +352,10 @@ int BRMerkleBlockVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBloc
         size--; // decrement size since we only divided by TARGET_TIMESPAN/256
     
         while (size < 1 || target > 0x007fffff) target >>= 8, size++; // normalize target for "compact" format
+        target |= size << 24;
     
-        // limit to MAX_PROOF_OF_WORK
-        if (size > maxsize || (size == maxsize && target > maxtarget)) target = maxtarget, size = maxsize;
-    
-        if (block->target != ((uint32_t)target | size << 24)) r = 0;
+        if (target > MAX_PROOF_OF_WORK) target = MAX_PROOF_OF_WORK; // limit to MAX_PROOF_OF_WORK
+        if (block->target != target) r = 0;
     }
     else if (r && block->target != previous->target) r = 0;
     
