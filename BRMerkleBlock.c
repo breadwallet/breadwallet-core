@@ -37,7 +37,7 @@
 inline static int _ceil_log2(int x)
 {
     int r = (x & (x - 1)) ? 1 : 0;
-    
+
     while ((x >>= 1) != 0) r++;
     return r;
 }
@@ -78,7 +78,7 @@ BRMerkleBlock *BRMerkleBlockNew(void)
     BRMerkleBlock *block = calloc(1, sizeof(*block));
 
     assert(block != NULL);
-    
+
     block->height = BLOCK_UNKNOWN_HEIGHT;
     return block;
 }
@@ -102,9 +102,9 @@ BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t bufLen)
 {
     BRMerkleBlock *block = (buf && 80 <= bufLen) ? BRMerkleBlockNew() : NULL;
     size_t off = 0, len = 0;
-    
+
     assert(buf != NULL || bufLen == 0);
-    
+
     if (block) {
         block->version = UInt32GetLE(&buf[off]);
         off += sizeof(uint32_t);
@@ -118,7 +118,7 @@ BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t bufLen)
         off += sizeof(uint32_t);
         block->nonce = UInt32GetLE(&buf[off]);
         off += sizeof(uint32_t);
-        
+
         if (off + sizeof(uint32_t) <= bufLen) {
             block->totalTx = UInt32GetLE(&buf[off]);
             off += sizeof(uint32_t);
@@ -134,10 +134,11 @@ BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t bufLen)
             block->flags = (off + len <= bufLen) ? malloc(len) : NULL;
             if (block->flags) memcpy(block->flags, &buf[off], len);
         }
-        
+
         BRSHA256_2(&block->blockHash, buf, 80);
+        BRScrypt(&block->powHash, sizeof(block->powHash), buf, 80, buf, 80, 1024, 1, 1);
     }
-    
+
     return block;
 }
 
@@ -145,14 +146,14 @@ BRMerkleBlock *BRMerkleBlockParse(const uint8_t *buf, size_t bufLen)
 size_t BRMerkleBlockSerialize(const BRMerkleBlock *block, uint8_t *buf, size_t bufLen)
 {
     size_t off = 0, len = 80;
-    
+
     assert(block != NULL);
-    
+
     if (block->totalTx > 0) {
         len += sizeof(uint32_t) + BRVarIntSize(block->hashesCount) + block->hashesCount*sizeof(UInt256) +
                BRVarIntSize(block->flagsLen) + block->flagsLen;
     }
-    
+
     if (buf && len <= bufLen) {
         UInt32SetLE(&buf[off], block->version);
         off += sizeof(uint32_t);
@@ -166,7 +167,7 @@ size_t BRMerkleBlockSerialize(const BRMerkleBlock *block, uint8_t *buf, size_t b
         off += sizeof(uint32_t);
         UInt32SetLE(&buf[off], block->nonce);
         off += sizeof(uint32_t);
-    
+
         if (block->totalTx > 0) {
             UInt32SetLE(&buf[off], block->totalTx);
             off += sizeof(uint32_t);
@@ -178,7 +179,7 @@ size_t BRMerkleBlockSerialize(const BRMerkleBlock *block, uint8_t *buf, size_t b
             off += block->flagsLen;
         }
     }
-    
+
     return (! buf || len <= bufLen) ? len : 0;
 }
 
@@ -186,17 +187,17 @@ static size_t _BRMerkleBlockTxHashesR(const BRMerkleBlock *block, UInt256 *txHas
                                       size_t *hashIdx, size_t *flagIdx, int depth)
 {
     uint8_t flag;
-    
+
     if (*flagIdx/8 < block->flagsLen && *hashIdx < block->hashesCount) {
         flag = (block->flags[*flagIdx/8] & (1 << (*flagIdx % 8)));
         (*flagIdx)++;
-    
+
         if (! flag || depth == _ceil_log2(block->totalTx)) {
             if (flag && *idx < hashesCount) {
                 if (txHashes) txHashes[*idx] = block->hashes[*hashIdx]; // leaf
                 (*idx)++;
             }
-        
+
             (*hashIdx)++;
         }
         else {
@@ -215,7 +216,7 @@ size_t BRMerkleBlockTxHashes(const BRMerkleBlock *block, UInt256 *txHashes, size
     size_t idx = 0, hashIdx = 0, flagIdx = 0;
 
     assert(block != NULL);
-    
+
     return _BRMerkleBlockTxHashesR(block, txHashes, (txHashes) ? hashesCount : SIZE_MAX, &idx, &hashIdx, &flagIdx, 0);
 }
 
@@ -226,7 +227,7 @@ void BRMerkleBlockSetTxHashes(BRMerkleBlock *block, const UInt256 hashes[], size
     assert(block != NULL);
     assert(hashes != NULL || hashesCount == 0);
     assert(flags != NULL || flagsLen == 0);
-    
+
     if (block->hashes) free(block->hashes);
     block->hashes = (hashesCount > 0) ? malloc(hashesCount*sizeof(UInt256)) : NULL;
     if (block->hashes) memcpy(block->hashes, hashes, hashesCount*sizeof(UInt256));
@@ -259,7 +260,7 @@ static UInt256 _BRMerkleBlockRootR(const BRMerkleBlock *block, size_t *hashIdx, 
         }
         else md = block->hashes[(*hashIdx)++]; // leaf
     }
-    
+
     return md;
 }
 
@@ -269,7 +270,7 @@ static UInt256 _BRMerkleBlockRootR(const BRMerkleBlock *block, size_t *hashIdx, 
 int BRMerkleBlockIsValid(const BRMerkleBlock *block, uint32_t currentTime)
 {
     assert(block != NULL);
-    
+
     // target is in "compact" format, where the most significant byte is the size of resulting value in bytes, the next
     // bit is the sign, and the remaining 23bits is the value after having been right shifted by (size - 3)*8 bits
     static const uint32_t maxsize = MAX_PROOF_OF_WORK >> 24, maxtarget = MAX_PROOF_OF_WORK & 0x00ffffff;
@@ -277,24 +278,24 @@ int BRMerkleBlockIsValid(const BRMerkleBlock *block, uint32_t currentTime)
     size_t hashIdx = 0, flagIdx = 0;
     UInt256 merkleRoot = _BRMerkleBlockRootR(block, &hashIdx, &flagIdx, 0), t = UINT256_ZERO;
     int r = 1;
-    
+
     // check if merkle root is correct
     if (block->totalTx > 0 && ! UInt256Eq(merkleRoot, block->merkleRoot)) r = 0;
-    
+
     // check if timestamp is too far in future
     if (block->timestamp > currentTime + BLOCK_MAX_TIME_DRIFT) r = 0;
-    
+
     // check if proof-of-work target is out of range
     if (target == 0 || target & 0x00800000 || size > maxsize || (size == maxsize && target > maxtarget)) r = 0;
-    
+
     if (size > 3) UInt32SetLE(&t.u8[size - 3], target);
     else UInt32SetLE(t.u8, target >> (3 - size)*8);
-    
+
     for (int i = sizeof(t) - 1; r && i >= 0; i--) { // check proof-of-work
         if (block->blockHash.u8[i] < t.u8[i]) break;
         if (block->blockHash.u8[i] > t.u8[i]) r = 0;
     }
-    
+
     return r;
 }
 
@@ -302,14 +303,14 @@ int BRMerkleBlockIsValid(const BRMerkleBlock *block, uint32_t currentTime)
 int BRMerkleBlockContainsTxHash(const BRMerkleBlock *block, UInt256 txHash)
 {
     int r = 0;
-    
+
     assert(block != NULL);
     assert(! UInt256IsZero(txHash));
-    
+
     for (size_t i = 0; ! r && i < block->hashesCount; i++) {
         if (UInt256Eq(block->hashes[i], txHash)) r = 1;
     }
-    
+
     return r;
 }
 
@@ -327,39 +328,39 @@ int BRMerkleBlockContainsTxHash(const BRMerkleBlock *block, UInt256 txHash)
 int BRMerkleBlockVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBlock *previous, uint32_t transitionTime)
 {
     int r = 1;
-    
+
     assert(block != NULL);
     assert(previous != NULL);
-    
+
     if (! previous || !UInt256Eq(block->prevBlock, previous->blockHash) || block->height != previous->height + 1) r = 0;
     if (r && (block->height % BLOCK_DIFFICULTY_INTERVAL) == 0 && transitionTime == 0) r = 0;
-        
+
     if (r && (block->height % BLOCK_DIFFICULTY_INTERVAL) == 0) {
         // target is in "compact" format, where the most significant byte is the size of resulting value in bytes, next
         // bit is the sign, and the remaining 23bits is the value after having been right shifted by (size - 3)*8 bits
         static const uint32_t maxsize = MAX_PROOF_OF_WORK >> 24, maxtarget = MAX_PROOF_OF_WORK & 0x00ffffff;
         int timespan = (int)((int64_t)previous->timestamp - (int64_t)transitionTime), size = previous->target >> 24;
         uint64_t target = previous->target & 0x00ffffff;
-    
+
         // limit difficulty transition to -75% or +400%
         if (timespan < TARGET_TIMESPAN/4) timespan = TARGET_TIMESPAN/4;
         if (timespan > TARGET_TIMESPAN*4) timespan = TARGET_TIMESPAN*4;
-    
+
         // TARGET_TIMESPAN happens to be a multiple of 256, and since timespan is at least TARGET_TIMESPAN/4, we don't
         // lose precision when target is multiplied by timespan and then divided by TARGET_TIMESPAN/256
         target *= timespan;
         target /= TARGET_TIMESPAN >> 8;
         size--; // decrement size since we only divided by TARGET_TIMESPAN/256
-    
+
         while (size < 1 || target > 0x007fffff) target >>= 8, size++; // normalize target for "compact" format
-    
+
         // limit to MAX_PROOF_OF_WORK
         if (size > maxsize || (size == maxsize && target > maxtarget)) target = maxtarget, size = maxsize;
-    
+
         if (block->target != ((uint32_t)target | size << 24)) r = 0;
     }
     else if (r && block->target != previous->target) r = 0;
-    
+
     return r;
 }
 
@@ -367,7 +368,7 @@ int BRMerkleBlockVerifyDifficulty(const BRMerkleBlock *block, const BRMerkleBloc
 void BRMerkleBlockFree(BRMerkleBlock *block)
 {
     assert(block != NULL);
-    
+
     if (block->hashes) free(block->hashes);
     if (block->flags) free(block->flags);
     free(block);
