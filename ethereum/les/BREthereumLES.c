@@ -494,7 +494,6 @@ extern BREthereumLESStatus
 lesSubmitTransaction (BREthereumLES les,
                       BREthereumLESTransactionStatusContext context,
                       BREthereumLESTransactionStatusCallback callback,
-                      BREthereumTransactionRLPType type,
                       BREthereumTransaction transaction) {
     
     BREthereumBoolean shouldSend;
@@ -511,14 +510,14 @@ lesSubmitTransaction (BREthereumLES les,
         
         BRRlpData sendTxtData;
         if(les->peerStatus.protocolVersion == 0x02) {
-            sendTxtData = ethereumLESSendTxtV2(les->message_id_offset, reqId, transactionArr, les->network, type);
+            sendTxtData = ethereumLESSendTxtV2(les->message_id_offset, reqId, transactionArr, les->network, RLP_TYPE_TRANSACTION_SIGNED);
             BREthereumHash* transactionHashArr;
             array_new(transactionHashArr, 1);
             array_add(transactionHashArr, transactionGetHash(transaction));
             _addTxtStatusRecord(les, context, callback, transactionHashArr, reqId);
            array_free(transactionHashArr);
         }else {
-            sendTxtData = ethereumLESSendTxt(les->message_id_offset, reqId, transactionArr, les->network, type);
+            sendTxtData = ethereumLESSendTxt(les->message_id_offset, reqId, transactionArr, les->network, RLP_TYPE_TRANSACTION_SIGNED);
         }
         BREthereumLESStatus status =  _sendMessage(les, BRE_LES_ID_SEND_TX2, sendTxtData);
         array_free(transactionArr);

@@ -887,7 +887,7 @@ void runTransactionTests1 (BREthereumAccount account, BREthereumNetwork network)
     
     assert (1 == networkGetChainId(network));
     BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = transactionRlpEncode(transaction, network, TRANSACTION_RLP_UNSIGNED, coder);
+    BRRlpItem item = transactionRlpEncode(transaction, network, RLP_TYPE_TRANSACTION_UNSIGNED, coder);
     BRRlpData dataUnsignedTransaction;
     rlpDataExtract(coder, item, &dataUnsignedTransaction.bytes, &dataUnsignedTransaction.bytesCount);
     
@@ -952,7 +952,7 @@ void runTransactionTests2 (BREthereumAccount account, BREthereumNetwork network)
     assert (1 == networkGetChainId(network));
 
     BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = transactionRlpEncode(transaction, network, TRANSACTION_RLP_UNSIGNED, coder);
+    BRRlpItem item = transactionRlpEncode(transaction, network, RLP_TYPE_TRANSACTION_UNSIGNED, coder);
     BRRlpData data;
     rlpDataExtract(coder, item, &data.bytes, &data.bytesCount);
     
@@ -1028,7 +1028,7 @@ void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network)
     
     assert (1 == networkGetChainId(network));
     BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = transactionRlpEncode(transaction, network, TRANSACTION_RLP_UNSIGNED, coder);
+    BRRlpItem item = transactionRlpEncode(transaction, network, RLP_TYPE_TRANSACTION_UNSIGNED, coder);
     BRRlpData dataUnsignedTransaction;
     rlpDataExtract(coder, item, &dataUnsignedTransaction.bytes, &dataUnsignedTransaction.bytesCount);
     
@@ -1054,7 +1054,7 @@ void runTransactionTests4 (BREthereumAccount account, BREthereumNetwork network)
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item = rlpGetItem(coder, data);
-    BREthereumTransaction tx = transactionRlpDecode(item, network, TRANSACTION_RLP_SIGNED, coder);
+    BREthereumTransaction tx = transactionRlpDecode(item, network, RLP_TYPE_TRANSACTION_SIGNED, coder);
 
     assert (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual(transactionGetHash(tx), hashCreate(TEST_TRANS4_HASH))));
     rlpDataRelease(data);
@@ -1134,7 +1134,7 @@ void testTransactionCodingEther () {
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item = rlpGetItem(coder, data);
-    BREthereumTransaction decodedTransaction = transactionRlpDecode(item, ethereumMainnet, TRANSACTION_RLP_SIGNED, coder);
+    BREthereumTransaction decodedTransaction = transactionRlpDecode(item, ethereumMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
 
     assert (transactionGetNonce(transaction) == transactionGetNonce(decodedTransaction));
     assert (ETHEREUM_COMPARISON_EQ == gasPriceCompare(transactionGetGasPrice(transaction),
@@ -1191,7 +1191,7 @@ void testTransactionCodingToken () {
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item = rlpGetItem(coder, data);
-    BREthereumTransaction decodedTransaction = transactionRlpDecode(item, ethereumMainnet, TRANSACTION_RLP_SIGNED, coder);
+    BREthereumTransaction decodedTransaction = transactionRlpDecode(item, ethereumMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
 
     assert (transactionGetNonce(transaction) == transactionGetNonce(decodedTransaction));
     assert (ETHEREUM_COMPARISON_EQ == gasPriceCompare(transactionGetGasPrice(transaction),
@@ -1895,7 +1895,7 @@ runBlockTest0 (void) {
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem blockItem = rlpGetItem(coder, data);
 
-    BREthereumBlock block = blockRlpDecode(blockItem, ethereumMainnet, coder);
+    BREthereumBlock block = blockRlpDecode(blockItem, ethereumMainnet, RLP_TYPE_NETWORK, coder);
 
     BREthereumBlockHeader header = blockGetHeader(block);
     BREthereumBlockHeader genesis = networkGetGenesisBlockHeader (ethereumMainnet);
@@ -1921,7 +1921,7 @@ runBlockTest0 (void) {
     assert (0 == blockGetOmmersCount(block));
     assert (0 == blockGetTransactionsCount(block));
 
-    blockItem = blockRlpEncode(block, ethereumMainnet, coder);
+    blockItem = blockRlpEncode(block, ethereumMainnet, RLP_TYPE_NETWORK, coder);
     rlpShowItem(coder, blockItem, "BlockTest");
     rlpDataRelease(data);
     blockRelease(block);

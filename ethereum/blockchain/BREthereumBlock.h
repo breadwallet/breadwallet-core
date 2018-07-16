@@ -51,11 +51,13 @@ blockHeaderIsValid (BREthereumBlockHeader header);
 
 extern BREthereumBlockHeader
 blockHeaderRlpDecode (BRRlpItem item,
+                      BREthereumRlpType type,
                       BRRlpCoder coder);
 
 extern BRRlpItem
 blockHeaderRlpEncode (BREthereumBlockHeader header,
                       BREthereumBoolean withNonce,
+                      BREthereumRlpType type,
                       BRRlpCoder coder);
 
 extern BREthereumHash
@@ -166,11 +168,13 @@ blockGetTimestamp (BREthereumBlock block);
 extern BRRlpItem
 blockRlpEncode (BREthereumBlock block,
                 BREthereumNetwork network,
+                BREthereumRlpType type,
                 BRRlpCoder coder);
     
 extern BREthereumBlock
 blockRlpDecode (BRRlpItem item,
                 BREthereumNetwork network,
+                BREthereumRlpType type,
                 BRRlpCoder coder);
     
 // Support BRSet
@@ -273,16 +277,18 @@ blockHasStatusLog (BREthereumBlock block,
  */
 extern BREthereumBlockHeader *
 blockOmmersRlpDecode (BRRlpItem item,
-                          BREthereumNetwork network,
-                          BRRlpCoder coder);
+                      BREthereumNetwork network,
+                      BREthereumRlpType type,
+                      BRRlpCoder coder);
 
 /**
  * Return BRArrayOf(BREthereumTransaction) w/ array owned by caller
  */
 extern BREthereumTransaction *
 blockTransactionsRlpDecode (BRRlpItem item,
-                                BREthereumNetwork network,
-                                BRRlpCoder coder);
+                            BREthereumNetwork network,
+                            BREthereumRlpType type,
+                            BRRlpCoder coder);
 //
 // MARK: Genesis Blocks
 //

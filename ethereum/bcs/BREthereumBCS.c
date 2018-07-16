@@ -345,7 +345,6 @@ bcsHandleSubmitTransaction (BREthereumBCS bcs,
     lesSubmitTransaction(bcs->les,
                          (BREthereumLESTransactionStatusContext) bcs,
                          (BREthereumLESTransactionStatusCallback) bcsSignalTransactionStatus,
-                         TRANSACTION_RLP_SIGNED,
                          transaction);
 
     switch (lesStatus) {

@@ -281,7 +281,6 @@ extern BREthereumLESStatus
 lesSubmitTransaction (BREthereumLES les,
                       BREthereumLESTransactionStatusContext context,
                       BREthereumLESTransactionStatusCallback callback,
-                      BREthereumTransactionRLPType type,
                       BREthereumTransaction transaction);
 
 

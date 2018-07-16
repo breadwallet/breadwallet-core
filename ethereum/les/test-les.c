@@ -117,7 +117,7 @@ void prepareLESTransaction (BREthereumLES les, const char *paperKey, const char 
     
     BREthereumTransaction actualTransaction = ewmLookupTransaction(ewm, transaction);
     
-    assert(lesSubmitTransaction(les, NULL, _transactionStatus, TRANSACTION_RLP_SIGNED, actualTransaction) == LES_SUCCESS);
+    assert(lesSubmitTransaction(les, NULL, _transactionStatus, actualTransaction) == LES_SUCCESS);
     
     sleep(600);
     
