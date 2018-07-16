@@ -635,6 +635,25 @@ static void run_GetProofsV2_Tests(BREthereumLES les){
     sleep(5);
 }
 
+//
+// Test GetAccountState
+//
+static void _GetAccountState_Callback_Test1 (BREthereumLESAccountStateContext context,
+                                             BREthereumLESAccountStateResult result) {
+    assert (ACCOUNT_STATE_SUCCCESS == result.status);
+    assert (result.u.success.accountState.nonce >= 0);
+}
+
+static void run_GetAccountState_Tests (BREthereumLES les){
+    BREthereumAddress address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
+    BREthereumHash block_5503921 = hashCreate("0x089a6c0b4b960261287d30ee40b1eea2da2972e7189bd381137f55540d492b2c");
+    BREthereumLESAccountStateCallback context = NULL;
+
+    lesGetAccountState(les, context, _GetAccountState_Callback_Test1, block_5503921, address);
+
+    sleep(2);
+}
+
 void runLEStests(void) {
     
     //Prepare values to be given to a LES context
@@ -664,6 +683,7 @@ void runLEStests(void) {
     //    run_GetBlockBodies_Tests(les);
     //    run_GetReceipts_Tests(les);
     run_GetProofsV2_Tests(les);
+    run_GetAccountState_Tests(les);
     //    reallySendLESTransaction(les);
     //    run_fullBlockSync_Test1(les);
 }
