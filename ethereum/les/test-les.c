@@ -80,7 +80,7 @@ static void _transactionStatus(BREthereumLESTransactionStatusContext context,
 void prepareLESTransaction (BREthereumLES les, const char *paperKey, const char *recvAddr, const uint64_t gasPrice, const uint64_t gasLimit, const uint64_t amount) {
     printf ("     Prepare Transaction\n");
     
-    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
+    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, NULL, NULL, NULL, NULL);
     // A wallet amount Ether
     BREthereumWalletId wallet = ethereumGetWallet(ewm);
     // END - One Time Code Block
@@ -632,7 +632,7 @@ static void run_GetProofsV2_Tests(BREthereumLES les){
     assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block_5503921, key, key2, 0) == LES_SUCCESS);
     
     //Wait for a little bit to get a reply back from the server.
-    sleep(60);
+    sleep(5);
 }
 
 void runLEStests(void) {
@@ -658,13 +658,13 @@ void runLEStests(void) {
     //Initialize data needed for tests
     _initBlockHeaderTestData();
     
-    //Run Tests on the LES messages
-      run_GetTxStatus_Tests(les);
-   //  run_GetBlockHeaders_Tests(les);
-   //  run_GetBlockBodies_Tests(les);
-   //   run_GetReceipts_Tests(les);
-    // run_GetProofsV2_Tests(les);
-    //reallySendLESTransaction(les);
-     //   run_fullBlockSync_Test1(les);
+    // Run Tests on the LES messages
+    run_GetTxStatus_Tests(les);
+    //    run_GetBlockHeaders_Tests(les);
+    //    run_GetBlockBodies_Tests(les);
+    //    run_GetReceipts_Tests(les);
+    run_GetProofsV2_Tests(les);
+    //    reallySendLESTransaction(les);
+    //    run_fullBlockSync_Test1(les);
 }
 

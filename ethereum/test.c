@@ -37,6 +37,8 @@
 
 #include "BRCrypto.h"
 #include "BRInt.h"
+#include "BRArray.h"
+#include "BRSet.h"
 //#include "BRKey.h"
 #include "../BRBIP39WordsEn.h"
 #include "BREthereum.h"
@@ -1224,7 +1226,7 @@ typedef struct JsonRpcTestContextRecord {
 } *JsonRpcTestContext;
 
 static JsonRpcTestContext
-createTestContext (void) {
+testContextCreate (void) {
     JsonRpcTestContext context = malloc (sizeof (struct JsonRpcTestContextRecord));
     // Create the PTHREAD CONDition variable
     {
@@ -1249,7 +1251,7 @@ createTestContext (void) {
 }
 
 static void
-freeTestContext (JsonRpcTestContext context) {
+testContextRelease (JsonRpcTestContext context) {
     pthread_cond_destroy(&context->cond);
     pthread_mutex_destroy(&context->lock);
     free (context);
@@ -1400,6 +1402,116 @@ clientGetNonce (BREthereumClientContext context,
 }
 
 //
+// Save Blocks
+//
+BRArrayOf(BREthereumPersistData) savedBlocks = NULL;
+
+static void
+clientSaveBlocks (BREthereumClientContext context,
+                 BREthereumEWM ewm,
+                 BRArrayOf(BREthereumPersistData) blocksToSave) {
+    if (NULL != savedBlocks) {
+        for (size_t item = 0; item < array_count(savedBlocks); item++)
+            rlpDataRelease(savedBlocks[item].blob);
+        array_free(savedBlocks);
+    }
+
+    array_new (savedBlocks, array_count(blocksToSave));
+    for (size_t index = 0; index < array_count(blocksToSave); index++)
+        array_add (savedBlocks, blocksToSave[index]);
+}
+
+//
+// Save Peers
+//
+BRArrayOf(BREthereumPersistData) savedPeers = NULL;
+
+static void
+clientSavePeers (BREthereumClientContext context,
+                  BREthereumEWM ewm,
+                  BRArrayOf(BREthereumPersistData) blocksToSave) {
+}
+
+//
+// Update Transactions
+//
+BRSetOf(BREthereumPersistData) savedTransactions = NULL;
+
+static void
+clientUpdateTransaction (BREthereumClientContext context,
+                         BREthereumEWM ewm,
+                         BREthereumClientChangeType type,
+                         BREthereumPersistData transactionPersistData) {
+    if (NULL == savedTransactions)
+        savedTransactions = BRSetNew(persistDataHashValue, persistDataHashEqual, 100);
+
+    BREthereumPersistData *data = malloc (sizeof (BREthereumPersistData));
+    memcpy (data, &transactionPersistData, sizeof (BREthereumPersistData));
+
+    switch (type) {
+        case CLIENT_CHANGE_ADD:
+            BRSetAdd(savedTransactions, data);
+            break;
+
+        case CLIENT_CHANGE_REM:
+            data = BRSetRemove(savedTransactions, data);
+            if (NULL != data) free (data);
+            break;
+
+        case CLIENT_CHANGE_UPD:
+            data = BRSetAdd(savedTransactions, data);
+            if (NULL != data) free (data);
+            break;
+    }
+}
+
+//
+// Update Log
+//
+BRSetOf(BREthereumPersistData) savedLogs = NULL;
+
+static void
+clientUpdateLog (BREthereumClientContext context,
+                 BREthereumEWM ewm,
+                 BREthereumClientChangeType type,
+                 BREthereumPersistData logPersistData) {
+    if (NULL == savedLogs)
+        savedLogs = BRSetNew(persistDataHashValue, persistDataHashEqual, 100);
+
+    switch (type) {
+        case CLIENT_CHANGE_ADD:
+            BRSetAdd(savedLogs, &logPersistData);
+            break;
+
+        case CLIENT_CHANGE_REM:
+            BRSetRemove(savedLogs, &logPersistData);
+            break;
+
+        case CLIENT_CHANGE_UPD:
+            BRSetAdd(savedLogs, &logPersistData);
+            break;
+    }
+
+}
+
+static BREthereumClient client = {
+    NULL,
+    clientGetBalance,
+    clientGetGasPrice,
+    clientEstimateGas,
+    clientSubmitTransaction,
+    clientGetTransactions,
+    clientGetLogs,
+    clientGetBlockNumber,
+    clientGetNonce,
+
+    clientSavePeers,
+    clientSaveBlocks,
+    clientUpdateTransaction,
+    clientUpdateLog
+};
+
+//
 // Listener
 //
 static void
@@ -1472,23 +1584,12 @@ runEWM_CONNECT_test (const char *paperKey) {
     printf ("     JSON_RCP\n");
     
     BRCoreParseStatus status;
-    JsonRpcTestContext context = createTestContext();
-    
-    BREthereumClient configuration =
-    ethereumClientCreate(context,
-                         clientGetBalance,
-                         clientGetGasPrice,
-                         clientEstimateGas,
-                         clientSubmitTransaction,
-                         clientGetTransactions,
-                         clientGetLogs,
-                         clientGetBlockNumber,
-                         clientGetNonce);
-    
-    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
+    client.funcContext = testContextCreate();
+
+    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, NULL, NULL, NULL, NULL);
 
     BREthereumListenerId lid = ewmAddListener(ewm,
-                                                    (BREthereumListenerContext) context,
+                                                    (BREthereumListenerContext) client.funcContext,
                                                     ewmEventHandler,
                                                     peerEventHandler,
                                                     walletEventHandler,
@@ -1496,10 +1597,10 @@ runEWM_CONNECT_test (const char *paperKey) {
                                                     transactionEventHandler);
     BREthereumWalletId wallet = ethereumGetWallet(ewm);
     
-    ethereumConnect(ewm, configuration);
+    ethereumConnect(ewm, client);
 
     printf ("       Waiting for Balance\n");
-    waitForBalance(context);
+    waitForBalance(client.funcContext);
 //    sleep (20);  // let connect 'take'
 
     // Callback to JSON_RPC for 'getBalanance'&
@@ -1514,6 +1615,7 @@ runEWM_CONNECT_test (const char *paperKey) {
     assert (2 == count);
 
 //    ewmUpdateTransactions(ewm);
+    testContextRelease(client.funcContext);
     ethereumDisconnect(ewm);
     ethereumDestroy(ewm);
 }
@@ -1525,20 +1627,9 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
     printf ("     Prepare Transaction\n");
 
     // START - One Time Code Block
-    JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
+    client.funcContext = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
-    BREthereumClient client =
-    ethereumClientCreate(context,
-                         clientGetBalance,
-                         clientGetGasPrice,
-                         clientEstimateGas,
-                         clientSubmitTransaction,
-                         clientGetTransactions,
-                         clientGetLogs,
-                         clientGetBlockNumber,
-                         clientGetNonce);
-
-    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
+    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, NULL, NULL, NULL, NULL);
     // A wallet amount Ether
     BREthereumWalletId wallet = ethereumGetWallet(ewm);
     // END - One Time Code Block
@@ -1574,6 +1665,7 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
 
     free (fromAddr);
     ethereumDestroy(ewm);
+    free (client.funcContext);
 }
 
 #include "BREthereumPrivate.h"
@@ -1585,17 +1677,7 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
 
 extern void
 testReallySend (void) {
-    JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
-    BREthereumClient client =
-    ethereumClientCreate(context,
-                         clientGetBalance,
-                         clientGetGasPrice,
-                         clientEstimateGas,
-                         clientSubmitTransaction,
-                         clientGetTransactions,
-                         clientGetLogs,
-                         clientGetBlockNumber,
-                         clientGetNonce);
+    client.funcContext = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
     char *paperKey = "boring head harsh green empty clip fatal typical found crane dinner timber";
 
@@ -1608,7 +1690,7 @@ testReallySend (void) {
     printf ("PaperKey: '%s'\nAddress: '%s'\nGasLimt: %llu\nGasPrice: %llu GWEI\n", paperKey, recvAddr, gasLimit, gasPrice);
 
     alarmClockCreateIfNecessary (1);
-    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
+    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, NULL, NULL, NULL, NULL);
 
     // A wallet amount Ether
     BREthereumWalletId wallet = ethereumGetWallet(ewm);
@@ -1654,6 +1736,7 @@ testReallySend (void) {
     ethereumDisconnect(ewm);
     ethereumDestroy(ewm);
     alarmClockDestroy(alarmClock);
+    free (client.funcContext);
     return;
 }
 
@@ -1670,7 +1753,7 @@ runEWM_TOKEN_test (const char *paperKey) {
     BRCoreParseStatus status;
 
     BREthereumToken token = tokenGet(0);
-    BREthereumEWM ewm = ethereumCreate (ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
+    BREthereumEWM ewm = ethereumCreate (ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, NULL, NULL, NULL, NULL);
     BREthereumWalletId wallet = ethereumGetWalletHoldingToken(ewm, token);
     
     BREthereumAmount amount = ethereumCreateTokenAmountString(ewm, token,
@@ -1699,11 +1782,11 @@ static void
 runEWM_PUBLIC_KEY_test (BREthereumNetwork network, const char *paperKey) {
     printf ("     PUBLIC KEY\n");
 
-    BREthereumEWM ewm1 = ethereumCreate (network, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
+    BREthereumEWM ewm1 = ethereumCreate (network, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, NULL, NULL, NULL, NULL);
     char *addr1 = ethereumGetAccountPrimaryAddress (ewm1);
 
     BRKey publicKey = ethereumGetAccountPrimaryAddressPublicKey (ewm1);
-    BREthereumEWM ewm2 = ethereumCreateWithPublicKey (network, publicKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
+    BREthereumEWM ewm2 = ethereumCreateWithPublicKey (network, publicKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, NULL, NULL, NULL, NULL);
     char *addr2 = ethereumGetAccountPrimaryAddress (ewm2);
 
 
@@ -2065,23 +2148,41 @@ runTransactionReceiptTests (void) {
 }
 
 extern void
-runSyncTest (unsigned int durationInSeconds) {
-    JsonRpcTestContext context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
-    BREthereumClient client =
-    ethereumClientCreate(context,
-                         clientGetBalance,
-                         clientGetGasPrice,
-                         clientEstimateGas,
-                         clientSubmitTransaction,
-                         clientGetTransactions,
-                         clientGetLogs,
-                         clientGetBlockNumber,
-                         clientGetNonce);
+runSyncTest (unsigned int durationInSeconds,
+             int restart) {
+    client.funcContext = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
     char *paperKey = "boring head harsh green empty clip fatal typical found crane dinner timber";
     alarmClockCreateIfNecessary (1);
 
-    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
+    BRArrayOf(BREthereumPersistData) blocks = (restart ? savedBlocks : NULL);
+    BRArrayOf(BREthereumPersistData) peers = (restart ? savedPeers : NULL);
+    BRArrayOf(BREthereumPersistData) transactions = NULL;
+    BRArrayOf(BREthereumPersistData) logs = NULL;
+
+    if (restart) {
+        if (NULL != savedTransactions) {
+            size_t transactionsCount = BRSetCount(savedTransactions);
+            array_new(transactions, transactionsCount);
+            for (BREthereumPersistData *data = BRSetIterate(savedTransactions, NULL);
+                 NULL != data;
+                 data = BRSetIterate(savedTransactions, data))
+                array_add (transactions, *data);
+        }
+
+        if (NULL != savedLogs) {
+            size_t logsCount = BRSetCount(savedLogs);
+            array_new(logs, logsCount);
+            BRSetAll (savedLogs, (void**)logs, logsCount);
+            array_set_count(logs, logsCount);
+        }
+    }
+
+    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN,
+                                       peers,
+                                       blocks,
+                                       transactions,
+                                       logs);
     ethereumConnect(ewm, client);
 
     unsigned int remaining = durationInSeconds;
@@ -2093,8 +2194,8 @@ runSyncTest (unsigned int durationInSeconds) {
     ethereumDisconnect(ewm);
     ethereumDestroy(ewm);
     alarmClockDestroy(alarmClock);
+    free (client.funcContext);
     return;
-
 }
 //
 // All Tests
