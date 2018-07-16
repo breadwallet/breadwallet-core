@@ -42,8 +42,8 @@ extern "C" {
 typedef enum {
     RLP_TYPE_NETWORK,
     RLP_TYPE_ARCHIVE,
+    RLP_TYPE_TRANSACTION_UNSIGNED,
     RLP_TYPE_TRANSACTION_SIGNED = RLP_TYPE_NETWORK,
-    RLP_TYPE_TRANSACTION_UNSIGNED
 } BREthereumRlpType;
 
 #ifdef __cplusplus

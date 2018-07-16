@@ -74,7 +74,7 @@ transactionStatusEqual (BREthereumTransactionStatus ts1,
 
 extern BREthereumTransactionStatus
 transactionStatusRLPDecode (BRRlpItem item,
-                                BRRlpCoder coder) {
+                            BRRlpCoder coder) {
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     assert (3 == itemsCount); // [type, [blockHash blockNumber, txIndex], error]
@@ -123,6 +123,43 @@ transactionStatusRLPDecode (BRRlpItem item,
             // Never here - these three are additions, not part of LES txStatus
             return transactionStatusCreate(type);
     }
+}
+
+extern BRRlpItem
+transactionStatusRLPEncode (BREthereumTransactionStatus status,
+                            BRRlpCoder coder) {
+    BRRlpItem items[3];
+
+    items[0] = rlpEncodeItemUInt64(coder, status.type, 0);
+
+    switch (status.type) {
+        case TRANSACTION_STATUS_UNKNOWN:
+        case TRANSACTION_STATUS_QUEUED:
+        case TRANSACTION_STATUS_PENDING:
+            // Others
+        case TRANSACTION_STATUS_CREATED:
+        case TRANSACTION_STATUS_SIGNED:
+        case TRANSACTION_STATUS_SUBMITTED:
+            items[1] = rlpEncodeList(coder, 0);
+            items[2] = rlpEncodeItemString(coder, "");
+            break;
+
+        case TRANSACTION_STATUS_INCLUDED:
+            items[1] = rlpEncodeList(coder, 3,
+                                     hashRlpEncode(status.u.included.blockHash, coder),
+                                     rlpEncodeItemUInt64(coder, status.u.included.blockNumber, 0),
+                                     rlpEncodeItemUInt64(coder, status.u.included.transactionIndex, 0));
+            items[2] = rlpEncodeItemString(coder, "");
+
+            break;
+
+        case TRANSACTION_STATUS_ERRORED:
+            items[1] = rlpEncodeList(coder, 0);
+            items[2] = rlpEncodeItemString(coder, status.u.errored.reason);
+            break;
+    }
+
+    return rlpEncodeListItems(coder, items, 3);
 }
 
 /* GETH TxStatus

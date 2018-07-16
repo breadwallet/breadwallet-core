@@ -388,7 +388,7 @@ transactionRlpEncode(BREthereumTransaction transaction,
                      BREthereumNetwork network,
                      BREthereumRlpType type,
                      BRRlpCoder coder) {
-    BRRlpItem items[10];
+    BRRlpItem items[12]; // more than enough
     size_t itemsCount = 0;
 
     items[0] = transactionEncodeNonce(transaction, transaction->nonce, coder);
@@ -418,7 +418,8 @@ transactionRlpEncode(BREthereumTransaction transaction,
             itemsCount += 3;
             break;
 
-        case RLP_TYPE_TRANSACTION_SIGNED:
+        case RLP_TYPE_TRANSACTION_SIGNED: // aka NETWORK
+        case RLP_TYPE_ARCHIVE:
             // For EIP-155, encode v with the chainID.
             items[6] = rlpEncodeItemUInt64(coder, transaction->signature.sig.recoverable.v + 8 +
                                            2 * transaction->chainId, 1);
@@ -431,6 +432,13 @@ transactionRlpEncode(BREthereumTransaction transaction,
                                            transaction->signature.sig.recoverable.s,
                                            sizeof (transaction->signature.sig.recoverable.s));
             itemsCount += 3;
+
+            // For ARCHIVE add in a few things beyond 'SIGNED / NETWORK'
+            if (RLP_TYPE_ARCHIVE == type) {
+                items[9] = hashRlpEncode(transaction->hash, coder);
+                items[10] = transactionStatusRLPEncode(transaction->status, coder);
+                itemsCount += 2;
+            }
             break;
     }
 
@@ -457,7 +465,8 @@ transactionRlpDecode (BRRlpItem item,
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
-    assert (9 == itemsCount);
+    assert (( 9 == itemsCount && (RLP_TYPE_TRANSACTION_SIGNED == type || RLP_TYPE_TRANSACTION_UNSIGNED == type)) ||
+            (11 == itemsCount && RLP_TYPE_ARCHIVE == type));
 
     // Encoded as:
     //    items[0] = transactionEncodeNonce(transaction, transaction->nonce, coder);
@@ -475,7 +484,7 @@ transactionRlpDecode (BRRlpItem item,
     transaction->amount = amountRlpDecodeAsEther(items[4], coder);
     transaction->data = rlpDecodeItemHexString (coder, items[5], "0x");
 
-#if defined (TRANSACTION_ENCODE_TOKEN)
+#if defined TRANSACTION_ENCODE_TOKEN
     char *strData = rlpDecodeItemHexString (coder, items[5], "0x");
     assert (NULL != strData);
     if ('\0' == strData[0] || 0 == strcmp (strData, "0x")) {
@@ -544,8 +553,12 @@ transactionRlpDecode (BRRlpItem item,
         transaction->sourceAddress = transactionExtractAddress(transaction, network, coder);
     }
 
+    if (RLP_TYPE_ARCHIVE == type) {
+        transaction->hash = hashRlpDecode(items[9], coder);
+        transaction->status = transactionStatusRLPDecode(items[10], coder);
+    }
     // With a SIGNED RLP encoding, we can compute the hash.
-    if (SIGNATURE_TYPE_RECOVERABLE == transaction->signature.type) {
+    else if (RLP_TYPE_TRANSACTION_SIGNED == type) {
         BRRlpData result = rlpGetDataSharedDontRelease(coder, item);
         transaction->hash = hashCreateFromData(result);
     }

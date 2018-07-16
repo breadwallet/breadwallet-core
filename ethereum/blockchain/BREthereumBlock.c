@@ -793,7 +793,7 @@ blockStatusRlpEncode (BREthereumBlockStatus status,
     items[3] = rlpEncodeItemString(coder, "");
     items[4] = accountStateRlpEncode(status.accountState, coder);
 
-    return rlpEncodeListItems(coder, items, 3);
+    return rlpEncodeListItems(coder, items, 5);
 }
 
 static BREthereumBlockStatus

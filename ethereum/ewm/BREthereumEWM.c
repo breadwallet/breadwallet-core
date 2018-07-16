@@ -133,7 +133,7 @@ createEWMEnsureLogs(BRArrayOf(BREthereumPersistData) logsPersistData,
 
     for (size_t index = 0; index < logsCount; index++) {
         BRRlpItem item = rlpGetItem(coder, logsPersistData[index].blob);
-        BREthereumLog log = logRlpDecode(item, coder);
+        BREthereumLog log = logRlpDecode(item, RLP_TYPE_ARCHIVE, coder);
         array_insert (logs, index, log);
     }
 
