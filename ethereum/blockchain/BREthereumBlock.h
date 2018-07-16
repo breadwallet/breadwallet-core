@@ -66,7 +66,7 @@ blockHeaderGetHash (BREthereumBlockHeader header);
 extern uint64_t
 blockHeaderGetNumber (BREthereumBlockHeader header);
 
-extern uint64_t
+extern UInt256
 blockHeaderGetDifficulty (BREthereumBlockHeader header);
 
 extern uint64_t

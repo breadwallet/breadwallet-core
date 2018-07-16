@@ -152,7 +152,7 @@ struct BREthereumBlockHeaderRecord {
 
     // A scalar value corresponding to the difficulty level of this block. This can be calculated
     // from the previous block’s difficulty level and the timestamp; formally Hd.
-    uint64_t difficulty;
+    UInt256 difficulty;
 
     // A scalar value equal to the number of ancestor blocks. The genesis block has a number of
     // zero; formally Hi.
@@ -262,7 +262,7 @@ blockHeaderGetTimestamp (BREthereumBlockHeader header) {
     return header->timestamp;
 }
 
-extern uint64_t
+extern UInt256
 blockHeaderGetDifficulty (BREthereumBlockHeader header) {
     return header->difficulty;
 }
@@ -339,7 +339,7 @@ blockHeaderRlpEncode (BREthereumBlockHeader header,
     items[ 4] = hashRlpEncode(header->transactionsRoot, coder);
     items[ 5] = hashRlpEncode(header->receiptsRoot, coder);
     items[ 6] = bloomFilterRlpEncode(header->logsBloom, coder);
-    items[ 7] = rlpEncodeItemUInt64(coder, header->difficulty, 0);
+    items[ 7] = rlpEncodeItemUInt256 (coder, header->difficulty, 0);
     items[ 8] = rlpEncodeItemUInt64(coder, header->number, 0);
     items[ 9] = rlpEncodeItemUInt64(coder, header->gasLimit, 0);
     items[10] = rlpEncodeItemUInt64(coder, header->gasUsed, 0);
@@ -373,7 +373,7 @@ blockHeaderRlpDecode (BRRlpItem item,
     header->transactionsRoot = hashRlpDecode(items[4], coder);
     header->receiptsRoot = hashRlpDecode(items[5], coder);
     header->logsBloom = bloomFilterRlpDecode(items[6], coder);
-    header->difficulty = rlpDecodeItemUInt64(coder, items[7], 0);
+    header->difficulty = rlpDecodeItemUInt256(coder, items[7], 0);
     header->number = rlpDecodeItemUInt64(coder, items[8], 0);
     header->gasLimit = rlpDecodeItemUInt64(coder, items[9], 0);
     header->gasUsed = rlpDecodeItemUInt64(coder, items[10], 0);
@@ -945,8 +945,8 @@ static struct BREthereumBlockHeaderRecord genesisMainnetBlockHeaderRecord = {
     // BREthereumBloomFilter logsBloom;
     EMPTY_BLOOM_FILTER_INIT,
 
-    // uint64_t difficulty;
-    1 << 17,
+    // uint256_t difficulty;
+    UINT256_INIT (1 << 17),
 
     // uint64_t number;
     0,
@@ -1057,7 +1057,7 @@ initializeGenesisBlocks (void) {
     header->transactionsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
     header->receiptsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
     header->logsBloom = bloomFilterCreateString("00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
-    header->difficulty = 0x400000000;
+    header->difficulty = createUInt256 (0x400000000);
     header->number = 0x0;
     header->gasLimit = 0x1388;
     header->gasUsed = 0x0;
@@ -1100,7 +1100,7 @@ initializeGenesisBlocks (void) {
     header->transactionsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
     header->receiptsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
     header->logsBloom = bloomFilterCreateString("00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
-    header->difficulty = 0x100000;
+    header->difficulty = createUInt256 (0x100000);
     header->number = 0x0;
     header->gasLimit = 0x1000000;
     header->gasUsed = 0x0;
@@ -1143,7 +1143,7 @@ initializeGenesisBlocks (void) {
     header->transactionsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
     header->receiptsRoot = hashCreate("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
     header->logsBloom = bloomFilterCreateString("00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
-    header->difficulty = 0x1;
+    header->difficulty = createUInt256 (0x1);
     header->number = 0x0;
     header->gasLimit = 0x47b760;
     header->gasUsed = 0x0;

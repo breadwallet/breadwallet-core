@@ -644,7 +644,7 @@ void runLEStests(void) {
     decodeHex(headHash.bytes, 32, headHashStr, strlen(headHashStr));
     
     uint64_t headNumber = 0;
-    uint64_t headTD = 0x400000000;
+    UInt256 headTD = createUInt256 (0x400000000);
     
     BREthereumHash genesisHash;
     decodeHex(genesisHash.bytes, 32, headHashStr, strlen(headHashStr));

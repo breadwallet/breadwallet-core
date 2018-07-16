@@ -362,7 +362,7 @@ lesCreate (BREthereumNetwork network,
            BREthereumLESAnnounceCallback announceCallback,
            BREthereumHash headHash,
            uint64_t headNumber,
-           uint64_t headTotalDifficulty,
+           UInt256 headTotalDifficulty,
            BREthereumHash genesisHash) {
     
     BREthereumLES les = (BREthereumLES) calloc(1,sizeof(struct BREthereumLESContext));
@@ -384,7 +384,7 @@ lesCreate (BREthereumNetwork network,
         /*** Define the status message **/
         les->statusMsg.protocolVersion = 0x02;
         les->statusMsg.chainId = networkGetChainId(network);
-        les->statusMsg.headerTd = createUInt256(headTotalDifficulty);
+        les->statusMsg.headerTd = headTotalDifficulty;
         memcpy(les->statusMsg.headHash, headHash.bytes, 32);
         les->statusMsg.headNum = headNumber;
         memcpy(les->statusMsg.genesisHash, genesisHash.bytes, 32);

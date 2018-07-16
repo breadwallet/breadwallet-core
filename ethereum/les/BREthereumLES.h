@@ -106,7 +106,7 @@ lesCreate (BREthereumNetwork network,
            BREthereumLESAnnounceCallback announceCallback,
            BREthereumHash headHash,
            uint64_t headNumber,
-           uint64_t headTotalDifficulty,
+           UInt256 headTotalDifficulty,
            BREthereumHash genesisHash);
 
 /*!
