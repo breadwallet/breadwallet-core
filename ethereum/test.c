@@ -887,7 +887,7 @@ void runTransactionTests1 (BREthereumAccount account, BREthereumNetwork network)
     
     assert (1 == networkGetChainId(network));
     BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = transactionRlpEncode(transaction, network, TRANSACTION_RLP_UNSIGNED, coder);
+    BRRlpItem item = transactionRlpEncode(transaction, network, RLP_TYPE_TRANSACTION_UNSIGNED, coder);
     BRRlpData dataUnsignedTransaction;
     rlpDataExtract(coder, item, &dataUnsignedTransaction.bytes, &dataUnsignedTransaction.bytesCount);
     
@@ -952,7 +952,7 @@ void runTransactionTests2 (BREthereumAccount account, BREthereumNetwork network)
     assert (1 == networkGetChainId(network));
 
     BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = transactionRlpEncode(transaction, network, TRANSACTION_RLP_UNSIGNED, coder);
+    BRRlpItem item = transactionRlpEncode(transaction, network, RLP_TYPE_TRANSACTION_UNSIGNED, coder);
     BRRlpData data;
     rlpDataExtract(coder, item, &data.bytes, &data.bytesCount);
     
@@ -1028,7 +1028,7 @@ void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network)
     
     assert (1 == networkGetChainId(network));
     BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = transactionRlpEncode(transaction, network, TRANSACTION_RLP_UNSIGNED, coder);
+    BRRlpItem item = transactionRlpEncode(transaction, network, RLP_TYPE_TRANSACTION_UNSIGNED, coder);
     BRRlpData dataUnsignedTransaction;
     rlpDataExtract(coder, item, &dataUnsignedTransaction.bytes, &dataUnsignedTransaction.bytesCount);
     
@@ -1054,7 +1054,7 @@ void runTransactionTests4 (BREthereumAccount account, BREthereumNetwork network)
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item = rlpGetItem(coder, data);
-    BREthereumTransaction tx = transactionRlpDecode(item, network, TRANSACTION_RLP_SIGNED, coder);
+    BREthereumTransaction tx = transactionRlpDecode(item, network, RLP_TYPE_TRANSACTION_SIGNED, coder);
 
     assert (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual(transactionGetHash(tx), hashCreate(TEST_TRANS4_HASH))));
     rlpDataRelease(data);
@@ -1134,7 +1134,7 @@ void testTransactionCodingEther () {
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item = rlpGetItem(coder, data);
-    BREthereumTransaction decodedTransaction = transactionRlpDecode(item, ethereumMainnet, TRANSACTION_RLP_SIGNED, coder);
+    BREthereumTransaction decodedTransaction = transactionRlpDecode(item, ethereumMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
 
     assert (transactionGetNonce(transaction) == transactionGetNonce(decodedTransaction));
     assert (ETHEREUM_COMPARISON_EQ == gasPriceCompare(transactionGetGasPrice(transaction),
@@ -1147,7 +1147,7 @@ void testTransactionCodingEther () {
                                                     &typeMismatch));
 
     assert (ETHEREUM_BOOLEAN_TRUE == addressEqual(transactionGetTargetAddress(transaction),
-                                                     transactionGetTargetAddress(decodedTransaction)));
+                                                  transactionGetTargetAddress(decodedTransaction)));
 
     // Signature
     assert (ETHEREUM_BOOLEAN_TRUE == signatureEqual(transactionGetSignature (transaction),
@@ -1159,6 +1159,21 @@ void testTransactionCodingEther () {
     assert (ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(transactionSourceAddress, decodedTransactionSourceAddress)));
 
     assert (ETHEREUM_BOOLEAN_IS_TRUE(accountHasAddress(account, transactionSourceAddress)));
+
+    // Archive
+    BREthereumHash someBlockHash = HASH_INIT("fc45a8c5ebb5f920931e3d5f48992f3a89b544b4e21dc2c11c5bf8165a7245d6");
+    BREthereumTransactionStatus status = transactionStatusCreateIncluded(gasCreate(0),
+                                                                         someBlockHash,
+                                                                         11592,
+                                                                         21);
+    transactionSetStatus(transaction, status);
+    item = transactionRlpEncode(transaction, ethereumMainnet, RLP_TYPE_ARCHIVE, coder);
+    BREthereumTransaction archivedTransaction = transactionRlpDecode(item, ethereumMainnet, RLP_TYPE_ARCHIVE, coder);
+    BREthereumTransactionStatus archivedStatus = transactionGetStatus(archivedTransaction);
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(transactionStatusEqual(status, archivedStatus)));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(transactionGetTargetAddress(transaction),
+                                                  transactionGetTargetAddress(archivedTransaction))));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(status.u.included.blockHash, someBlockHash)));
 
     walletUnhandleTransaction(wallet, transaction);
     transactionRelease(transaction);
@@ -1191,7 +1206,7 @@ void testTransactionCodingToken () {
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item = rlpGetItem(coder, data);
-    BREthereumTransaction decodedTransaction = transactionRlpDecode(item, ethereumMainnet, TRANSACTION_RLP_SIGNED, coder);
+    BREthereumTransaction decodedTransaction = transactionRlpDecode(item, ethereumMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
 
     assert (transactionGetNonce(transaction) == transactionGetNonce(decodedTransaction));
     assert (ETHEREUM_COMPARISON_EQ == gasPriceCompare(transactionGetGasPrice(transaction),
@@ -1895,7 +1910,7 @@ runBlockTest0 (void) {
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem blockItem = rlpGetItem(coder, data);
 
-    BREthereumBlock block = blockRlpDecode(blockItem, ethereumMainnet, coder);
+    BREthereumBlock block = blockRlpDecode(blockItem, ethereumMainnet, RLP_TYPE_NETWORK, coder);
 
     BREthereumBlockHeader header = blockGetHeader(block);
     BREthereumBlockHeader genesis = networkGetGenesisBlockHeader (ethereumMainnet);
@@ -1921,7 +1936,7 @@ runBlockTest0 (void) {
     assert (0 == blockGetOmmersCount(block));
     assert (0 == blockGetTransactionsCount(block));
 
-    blockItem = blockRlpEncode(block, ethereumMainnet, coder);
+    blockItem = blockRlpEncode(block, ethereumMainnet, RLP_TYPE_NETWORK, coder);
     rlpShowItem(coder, blockItem, "BlockTest");
     rlpDataRelease(data);
     blockRelease(block);
@@ -2042,7 +2057,7 @@ runLogTests (void) {
 
     BRRlpCoder coder  = rlpCoderCreate();
     BRRlpItem logItem = rlpGetItem(coder, data);
-    BREthereumLog log = logRlpDecode(logItem, coder);
+    BREthereumLog log = logRlpDecode(logItem, RLP_TYPE_NETWORK, coder);
 
     BREthereumAddress address = logGetAddress(log);
     size_t addressBytesCount;
@@ -2055,13 +2070,45 @@ runLogTests (void) {
     // topic-1
 
 
-    logItem = logRlpEncode(log, coder);
+    logItem = logRlpEncode(log, RLP_TYPE_NETWORK, coder);
     rlpDataExtract(coder, logItem, &encodeData.bytes, &encodeData.bytesCount);
 
     assert (data.bytesCount == encodeData.bytesCount
             && 0 == memcmp (data.bytes, encodeData.bytes, encodeData.bytesCount));
 
     rlpShow(data, "LogTest");
+
+    // Archive
+    BREthereumHash someBlockHash = HASH_INIT("fc45a8c5ebb5f920931e3d5f48992f3a89b544b4e21dc2c11c5bf8165a7245d6");
+    uint64_t someBlockNumber = 11592;
+
+    BREthereumHash someTxHash = HASH_INIT("aa2703c3ae5d0024b2c3ab77e5200bb2a8eb39a140fad01e89a495d73760297c");
+    uint64_t someTxIndex = 108;
+
+    logInitializeStatus(log, someTxHash, someTxIndex);
+
+    BREthereumLogStatus status = logGetStatus(log);
+    logStatusUpdateIncluded(&status, someBlockHash, someBlockNumber);
+    logSetStatus(log, status);
+
+    BRRlpItem item = logRlpEncode(log, RLP_TYPE_ARCHIVE, coder);
+    BREthereumLog logArchived = logRlpDecode(item, RLP_TYPE_ARCHIVE, coder);
+    BREthereumLogStatus statusArchived = logGetStatus(logArchived);
+
+    assert (status.type == statusArchived.type);
+
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(status.identifier.transactionHash, statusArchived.identifier.transactionHash)));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual (someTxHash, statusArchived.identifier.transactionHash)));
+
+    assert (status.identifier.transactionReceiptIndex == statusArchived.identifier.transactionReceiptIndex);
+    assert (someTxIndex == statusArchived.identifier.transactionReceiptIndex);
+
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(status.u.included.blockHash, statusArchived.u.included.blockHash)));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(someBlockHash, statusArchived.u.included.blockHash)));
+
+    assert (status.u.included.blockNumber == statusArchived.u.included.blockNumber);
+    assert (someBlockNumber = statusArchived.u.included.blockNumber);
+
     rlpDataRelease(encodeData);
     rlpDataRelease(data);
     rlpCoderRelease(coder);

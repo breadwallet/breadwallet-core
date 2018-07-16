@@ -63,7 +63,7 @@ createEWMEnsureBlocks (BRArrayOf(BREthereumPersistData) blocksPersistData,
 
         for (size_t index = 0; index < array_count(blocksPersistData); index++) {
             BRRlpItem item = rlpGetItem(coder, blocksPersistData[index].blob);
-            BREthereumBlock block = blockRlpDecode(item, network, coder);
+            BREthereumBlock block = blockRlpDecode(item, network, RLP_TYPE_ARCHIVE, coder);
             array_insert (blocks, index, block);
         }
     }
@@ -106,7 +106,7 @@ createEWMEnsureTransactions (BRArrayOf(BREthereumPersistData) transactionsPersis
 
     for (size_t index = 0; index < transactionsCount; index++) {
         BRRlpItem item = rlpGetItem(coder, transactionsPersistData[index].blob);
-        BREthereumTransaction transaction = transactionRlpDecode(item, network, TRANSACTION_RLP_SIGNED, coder);
+        BREthereumTransaction transaction = transactionRlpDecode(item, network, RLP_TYPE_TRANSACTION_SIGNED, coder);
 
         // TODO: In above, use TRANSACTION_RLP_ARCHIVE when it exists.
         BREthereumTransactionStatus status = transactionStatusCreate(TRANSACTION_STATUS_PENDING);
@@ -133,7 +133,7 @@ createEWMEnsureLogs(BRArrayOf(BREthereumPersistData) logsPersistData,
 
     for (size_t index = 0; index < logsCount; index++) {
         BRRlpItem item = rlpGetItem(coder, logsPersistData[index].blob);
-        BREthereumLog log = logRlpDecode(item, coder);
+        BREthereumLog log = logRlpDecode(item, RLP_TYPE_ARCHIVE, coder);
         array_insert (logs, index, log);
     }
 
@@ -352,7 +352,7 @@ ewmListenerHandleTransactionEvent(BREthereumEWM ewm,
 
     // Transaction to 'Persist Data'
     BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = transactionRlpEncode(transaction, ewm->network, TRANSACTION_RLP_SIGNED, coder);
+    BRRlpItem item = transactionRlpEncode(transaction, ewm->network, RLP_TYPE_TRANSACTION_SIGNED, coder);
     BREthereumPersistData persistData = { hash, rlpGetData(coder, item) };
     rlpCoderRelease(coder);
 
@@ -645,7 +645,7 @@ ewmHandleSaveBlocks (BREthereumEWM ewm,
     BRArrayOf(BREthereumPersistData) blocksToSave;
     array_new(blocksToSave, array_count(blocks));
     for (size_t index = 0; index < array_count(blocks); index++) {
-        BRRlpItem item = blockRlpEncode(blocks[index], ewm->network, coder);
+        BRRlpItem item = blockRlpEncode(blocks[index], ewm->network, RLP_TYPE_ARCHIVE, coder);
         BREthereumPersistData persistData = {
             blockGetHash(blocks[index]),
             rlpGetData(coder, item)

@@ -64,6 +64,14 @@ blockStatusHasFlag (BREthereumBlockStatus *status,
     return AS_ETHEREUM_BOOLEAN(0 != (flag & status->flags));
 }
 
+static BRRlpItem
+blockStatusRlpEncode (BREthereumBlockStatus status,
+                      BRRlpCoder coder);
+
+static BREthereumBlockStatus
+blockStatusRlpDecode (BRRlpItem item,
+                      BRRlpCoder coder);
+
 // GETH:
 /*
  type Header struct {
@@ -318,8 +326,9 @@ blockHeaderCompare (BREthereumBlockHeader h1,
 //
 extern BRRlpItem
 blockHeaderRlpEncode (BREthereumBlockHeader header,
-                          BREthereumBoolean withNonce,
-                          BRRlpCoder coder) {
+                      BREthereumBoolean withNonce,
+                      BREthereumRlpType type,
+                      BRRlpCoder coder) {
     BRRlpItem items[15];
     size_t itemsCount = ETHEREUM_BOOLEAN_IS_TRUE(withNonce) ? 15 : 13;
 
@@ -346,7 +355,9 @@ blockHeaderRlpEncode (BREthereumBlockHeader header,
 }
 
 extern BREthereumBlockHeader
-blockHeaderRlpDecode (BRRlpItem item, BRRlpCoder coder) {
+blockHeaderRlpDecode (BRRlpItem item,
+                      BREthereumRlpType type,
+                      BRRlpCoder coder) {
     BREthereumBlockHeader header = (BREthereumBlockHeader) calloc (1, sizeof(struct BREthereumBlockHeaderRecord));
 
     size_t itemsCount = 0;
@@ -556,24 +567,26 @@ blockGetTimestamp (BREthereumBlock block) {
 //
 static BRRlpItem
 blockTransactionsRlpEncode (BREthereumBlock block,
-                                BREthereumNetwork network,
-                                BRRlpCoder coder) {
+                            BREthereumNetwork network,
+                            BREthereumRlpType type,
+                            BRRlpCoder coder) {
     size_t itemsCount = (NULL == block->transactions ? 0 : array_count(block->transactions));
     BRRlpItem items[itemsCount];
 
     for (int i = 0; i < itemsCount; i++)
         items[i] = transactionRlpEncode(block->transactions[i],
-                                            network,
-                                            TRANSACTION_RLP_SIGNED,
-                                            coder);
+                                        network,
+                                        type,
+                                        coder);
 
     return rlpEncodeListItems(coder, items, itemsCount);
 }
 
 extern BREthereumTransaction *
 blockTransactionsRlpDecode (BRRlpItem item,
-                                BREthereumNetwork network,
-                                BRRlpCoder coder) {
+                            BREthereumNetwork network,
+                            BREthereumRlpType type,
+                            BRRlpCoder coder) {
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
 
@@ -583,7 +596,7 @@ blockTransactionsRlpDecode (BRRlpItem item,
     for (int i = 0; i < itemsCount; i++) {
         BREthereumTransaction transaction = transactionRlpDecode(items[i],
                                                                      network,
-                                                                     TRANSACTION_RLP_SIGNED,
+                                                                     type,
                                                                      coder);
         array_add(transactions, transaction);
     }
@@ -593,22 +606,25 @@ blockTransactionsRlpDecode (BRRlpItem item,
 
 static BRRlpItem
 blockOmmersRlpEncode (BREthereumBlock block,
-                          BRRlpCoder coder) {
+                      BREthereumRlpType type,
+                      BRRlpCoder coder) {
     size_t itemsCount = (NULL == block->ommers ? 0 : array_count(block->ommers));
     BRRlpItem items[itemsCount];
 
     for (int i = 0; i < itemsCount; i++)
         items[i] = blockHeaderRlpEncode (block->ommers[i],
-                                             ETHEREUM_BOOLEAN_TRUE,
-                                             coder);
+                                         ETHEREUM_BOOLEAN_TRUE,
+                                         type,
+                                         coder);
 
     return rlpEncodeListItems(coder, items, itemsCount);
 }
 
 extern BREthereumBlockHeader *
 blockOmmersRlpDecode (BRRlpItem item,
-                                BREthereumNetwork network,
-                                BRRlpCoder coder) {
+                      BREthereumNetwork network,
+                      BREthereumRlpType type,
+                      BRRlpCoder coder) {
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
 
@@ -616,7 +632,7 @@ blockOmmersRlpDecode (BRRlpItem item,
     array_new(headers, itemsCount);
 
     for (int i = 0; i < itemsCount; i++) {
-        BREthereumBlockHeader header = blockHeaderRlpDecode(items[i], coder);
+        BREthereumBlockHeader header = blockHeaderRlpDecode(items[i], type, coder);
         array_add(headers, header);
     }
 
@@ -628,15 +644,19 @@ blockOmmersRlpDecode (BRRlpItem item,
 //
 extern BRRlpItem
 blockRlpEncode (BREthereumBlock block,
-                    BREthereumNetwork network,
-                    BRRlpCoder coder) {
-    BRRlpItem items[3];
+                BREthereumNetwork network,
+                BREthereumRlpType type,
+                BRRlpCoder coder) {
+    BRRlpItem items[4];
 
-    items[0] = blockHeaderRlpEncode(block->header, ETHEREUM_BOOLEAN_TRUE, coder);
-    items[1] = blockTransactionsRlpEncode(block, network, coder);
-    items[2] = blockOmmersRlpEncode(block, coder);
+    items[0] = blockHeaderRlpEncode(block->header, ETHEREUM_BOOLEAN_TRUE, type, coder);
+    items[1] = blockTransactionsRlpEncode(block, network, RLP_TYPE_TRANSACTION_SIGNED, coder);
+    items[2] = blockOmmersRlpEncode(block, type, coder);
 
-    return rlpEncodeListItems(coder, items, 3);
+    if (RLP_TYPE_ARCHIVE == type)
+        items[3] = blockStatusRlpEncode(block->status, coder);
+
+    return rlpEncodeListItems(coder, items, (RLP_TYPE_ARCHIVE == type ? 4 : 3));
 }
 
 //
@@ -645,19 +665,25 @@ blockRlpEncode (BREthereumBlock block,
 extern BREthereumBlock
 blockRlpDecode (BRRlpItem item,
                 BREthereumNetwork network,
+                BREthereumRlpType type,
                 BRRlpCoder coder) {
     BREthereumBlock block = calloc (1, sizeof(struct BREthereumBlockRecord));
     memset (block, 0, sizeof(struct BREthereumBlockRecord));
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
-    assert (3 == itemsCount);
+    assert ((3 == itemsCount && RLP_TYPE_NETWORK == type) ||
+            (4 == itemsCount && RLP_TYPE_ARCHIVE == type));
 
-    block->header = blockHeaderRlpDecode(items[0], coder);
-    block->transactions = blockTransactionsRlpDecode(items[1], network, coder);
-    block->ommers = blockOmmersRlpDecode(items[2], network, coder);
+    block->header = blockHeaderRlpDecode(items[0], type, coder);
+    block->transactions = blockTransactionsRlpDecode(items[1], network, RLP_TYPE_TRANSACTION_SIGNED, coder);
+    block->ommers = blockOmmersRlpDecode(items[2], network, type, coder);
 
-    blockStatusInitialize(&block->status, blockHeaderGetHash(block->header));
+    if (RLP_TYPE_ARCHIVE == type)
+        block->status = blockStatusRlpDecode(items[3], coder);
+    else
+        blockStatusInitialize(&block->status, blockHeaderGetHash(block->header));
+
     block->next = BLOCK_NEXT_NONE;
 
 #if defined (BLOCK_LOG_ALLOC_COUNT)
@@ -754,6 +780,38 @@ blockHasStatusLog (BREthereumBlock block,
         if (logHashEqual(log, block->status.logs[index]))
             return ETHEREUM_BOOLEAN_TRUE;
     return ETHEREUM_BOOLEAN_FALSE;
+}
+
+static BRRlpItem
+blockStatusRlpEncode (BREthereumBlockStatus status,
+                      BRRlpCoder coder) {
+    BRRlpItem items[5];
+
+    items[0] = hashRlpEncode(status.hash, coder);
+    items[1] = rlpEncodeItemUInt64(coder, status.flags, 1);
+    items[2] = rlpEncodeItemString(coder, "");
+    items[3] = rlpEncodeItemString(coder, "");
+    items[4] = accountStateRlpEncode(status.accountState, coder);
+
+    return rlpEncodeListItems(coder, items, 5);
+}
+
+static BREthereumBlockStatus
+blockStatusRlpDecode (BRRlpItem item,
+                      BRRlpCoder coder) {
+    BREthereumBlockStatus status;
+
+    size_t itemsCount = 0;
+    const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
+    assert (5 == itemsCount);
+
+    status.hash = hashRlpDecode(items[0], coder);
+    status.flags = (uint32_t) rlpDecodeItemUInt64(coder, items[1], 1);
+    status.transactions = NULL;  // items [2]
+    status.logs = NULL; // items [3]
+    status.accountState = accountStateRlpDecode(items[4], coder);
+
+    return status;
 }
 
 /* Block Headers (10)
