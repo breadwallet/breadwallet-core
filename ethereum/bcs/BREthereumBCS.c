@@ -42,7 +42,7 @@
 // Any orphan more then AGE_OFFSET blocks in the past will be purged.
 #define BCS_ORPHAN_AGE_OFFSET  (10)
 
-#define BCS_SAVE_BLOCKS_COUNT  (2000)
+#define BCS_SAVE_BLOCKS_COUNT  (500)
 
 /**
  * When syncing, we'll request a batch of headers
@@ -69,9 +69,9 @@ bcsExtendChain (BREthereumBCS bcs,
 /**
  */
 static void
-bcsCreateInitializeHeaders (BREthereumBCS bcs,
-                            BRArrayOf(BREthereumBlockHeader) headers) {
-    if (NULL == headers) return;
+bcsCreateInitializeBlocks (BREthereumBCS bcs,
+                            BRArrayOf(BREthereumBlock) blocks) {
+    if (NULL == blocks) return;
 
     bcs->chain = bcs->chainTail = NULL;
 
@@ -79,34 +79,38 @@ bcsCreateInitializeHeaders (BREthereumBCS bcs,
     //    [Set chain to NULL; find the earliest; make all others orphans; handle the earliest]
     //    [Implies looking for transactions/logs - which we don't need.]
 
-    // Iterate over `headers` to recreate `chain`.  In general we cannot assume anything about
-    // `headers` - might have gaps (missing parent/child); might have duplicates.  Likely, we must
-    // be willing to create orphans, to discard/ignore headers, and what.
+    // Iterate over `blocks` to recreate `chain`.  In general we cannot assume anything about
+    // `blocks` - might have gaps (missing parent/child); might have duplicates.  Likely, we must
+    // be willing to create orphans, to discard/ignore blocks, and what.
     //
-    // We'll sort `headers` ascending by {blockNumber, timestamp}. Then we'll interate and chain
+    // We'll sort `blocks` ascending by {blockNumber, timestamp}. Then we'll interate and chain
     // them together while ignoring any duplicates/orphans.
-    size_t sortedHeadersCount = array_count(headers);
-    BREthereumBlockHeader *sortedHeaders;
-    array_new(sortedHeaders, sortedHeadersCount);
-    array_add_array(sortedHeaders, headers, sortedHeadersCount);
+    size_t sortedBlocksCount = array_count(blocks);
+    BREthereumBlock *sortedBlocks;
+    array_new(sortedBlocks, sortedBlocksCount);
+    array_add_array(sortedBlocks, blocks, sortedBlocksCount);
 
     // TODO: Sort
 
-    for (int i = 0; i < sortedHeadersCount; i++) {
-        // Skip header `i` if its blockNumber equals the blockNumber of `i+1`.
-        if (i + 1 < sortedHeadersCount &&
-            blockHeaderGetNumber(sortedHeaders[i]) == blockHeaderGetNumber(sortedHeaders[i+1]))
+    for (int i = 0; i < sortedBlocksCount; i++) {
+        // Skip block `i` if its blockNumber equals the blockNumber of `i+1`.
+        BREthereumBlock block = sortedBlocks[i];
+
+        if (i + 1 < sortedBlocksCount &&
+            blockGetNumber(block) == blockGetNumber(sortedBlocks[i+1]))
             continue;
 
         // TODO: Check for orpahns
 
-        BREthereumBlock block = blockCreate(sortedHeaders[i]);
         BRSetAdd(bcs->blocks, block);
         bcsExtendChain(bcs, block, "Chained (from Saved)");
 
         if (NULL == bcs->chainTail)
             bcs->chainTail = bcs->chain;
     }
+
+    array_free(sortedBlocks);
+    array_free(blocks);
 }
 
 static void
@@ -163,7 +167,8 @@ extern BREthereumBCS
 bcsCreate (BREthereumNetwork network,
            BREthereumAddress address,
            BREthereumBCSListener listener,
-           BRArrayOf(BREthereumBlockHeader) headers,
+           BRArrayOf(BREthereumPeerConfig) peers,
+           BRArrayOf(BREthereumBlock) blocks,
            BRArrayOf(BREthereumTransaction) transactions,
            BRArrayOf(BREthereumLog) logs) {
            // peers
@@ -229,10 +234,11 @@ bcsCreate (BREthereumNetwork network,
     // Initialize `chain` - will be modified based on `headers`
     bcs->chain = bcs->chainTail = genesis;
 
-    bcsCreateInitializeHeaders(bcs, headers);
+    bcsCreateInitializeBlocks(bcs, blocks);
     bcsCreateInitializeTransactions(bcs, transactions);
     bcsCreateInitializeLogs(bcs, logs);
 
+    // peers - save for bcsStart; or, better, use lesCreate() here and lesStart() later.
     return bcs;
 }
 
@@ -382,8 +388,9 @@ bcsHandleAnnounce (BREthereumBCS bcs,
 static BREthereumBoolean
 bcsBlockHasMatchingTransactions (BREthereumBCS bcs,
                                  BREthereumBlock block) {
+    return AS_ETHEREUM_BOOLEAN(blockGetNumber(block) < 5795675);
 //    return ETHEREUM_BOOLEAN_TRUE;
-    return ETHEREUM_BOOLEAN_FALSE;
+//    return ETHEREUM_BOOLEAN_FALSE;
 }
 
 /**
@@ -437,8 +444,8 @@ bcsSaveBlocks (BREthereumBCS bcs) {
     eth_log("BCS", "Blocks {%llu, %llu} Saved",
             blockGetNumber(bcs->chainTail),
             blockGetNumber(bcs->chain));
-
 }
+
 static void
 bcsReclaimAndSaveBlocksIfAppropriate (BREthereumBCS bcs) {
     uint64_t chainBlockNumber = blockGetNumber(bcs->chain);
@@ -1268,6 +1275,9 @@ bcsPeriodicDispatcher (BREventHandler handler,
     if (NULL == bcs->pendingTransactions || 0 == array_count(bcs->pendingTransactions))
         return;
 
+    // TODO: Avoid-ish a race condition on bcsRelease. This is the wrong approach.
+    if (NULL == bcs->les) return;
+
     lesGetTransactionStatus (bcs->les,
                              (BREthereumLESTransactionStatusContext) bcs,
                              (BREthereumLESTransactionStatusCallback) bcsSignalTransactionStatus,
@@ -1307,6 +1317,18 @@ bcsHandleLog (BREthereumBCS bcs,
               BREthereumHash blockHash,
               BREthereumHash transactionHash, // transaction?
               BREthereumLog log) {
+
+    bcs->listener.logCallback (bcs->listener.context,
+                               BCS_CALLBACK_LOG_UPDATED,
+                               log);
+}
+
+extern void
+bcsHandlePeers (BREthereumBCS bcs,
+                BRArrayOf(BREthereumPeerConfig) peers) {
+    size_t peersCount = array_count(peers);
+    bcs->listener.savePeersCallback (bcs->listener.context, peers);
+    eth_log("BCS", "Peers %zu Saved", peersCount);
 }
 
 //

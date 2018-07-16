@@ -594,17 +594,28 @@ rlpEncodeItemHexString (BRRlpCoder coder, char *string) {
     // Strip off "0x" if it exists
     if (0 == strncmp (string, "0x", 2))
         string = &string[2];
-    
-    if (0 == strlen(string))
+
+    size_t stringLen = strlen(string);
+    assert (0 == stringLen % 2);
+
+    // Decode Hex into BYTES; then RLP encode those bytes.  If string is sufficiently short
+    // (under 16k) then avoid some memory allocation by using the stack.
+
+    if (0 == stringLen)
         return rlpEncodeItemString(coder, string);
-    
-    // Decode Hex into (new) BYTES; then RLP encode those bytes.
-    size_t bytesCount = 0;
-    uint8_t *bytes = decodeHexCreate(&bytesCount, string, strlen(string));
-    BRRlpItem item = rlpEncodeItemBytes(coder, bytes, bytesCount);
-    free (bytes);
-    
-    return item;
+    else if (stringLen < (16 * 1024)) {
+        size_t bytesCount = stringLen / 2;
+        uint8_t bytes[bytesCount];
+        decodeHex(bytes, bytesCount, string, stringLen);
+        return rlpEncodeItemBytes(coder, bytes, bytesCount);
+    }
+    else {
+        size_t bytesCount = 0;
+        uint8_t *bytes = decodeHexCreate(&bytesCount, string, strlen(string));
+        BRRlpItem item = rlpEncodeItemBytes(coder, bytes, bytesCount);
+        free (bytes);
+        return item;
+    }
 }
 
 extern char *

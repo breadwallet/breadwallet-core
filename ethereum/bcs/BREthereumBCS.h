@@ -28,6 +28,7 @@
 
 #include "../base/BREthereumBase.h"
 #include "../les/BREthereumLES.h"
+#include "../les/BREthereumNode.h"
 
 #define BRSetOf(type)     BRSet*
 #define BRArrayOf(type)   type*
@@ -99,7 +100,8 @@ typedef void
  * Save Peers
  */
 typedef void
-(*BREthereumBCSCallbackSavePeers) (BREthereumBCSCallbackContext context);
+(*BREthereumBCSCallbackSavePeers) (BREthereumBCSCallbackContext context,
+                                   BRArrayOf(BREthereumPeerConfig) peers);
 
 /**
  * Sync
@@ -142,7 +144,8 @@ extern BREthereumBCS
 bcsCreate (BREthereumNetwork network,
            BREthereumAddress address,
            BREthereumBCSListener listener,
-           BRArrayOf(BREthereumBlockHeader) headers,
+           BRArrayOf(BREthereumPeerConfig) peers,
+           BRArrayOf(BREthereumBlock) blocks,
            BRArrayOf(BREthereumTransaction) transactions,
            BRArrayOf(BREthereumLog) logs
            // peers
