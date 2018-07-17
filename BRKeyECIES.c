@@ -31,17 +31,6 @@
 // ecies-aes128-sha256 as specified in SEC 1, 5.1: http://www.secg.org/SEC1-Ver-1.0.pdf
 // NOTE: these are not implemented using constant time algorithms
 
-static void _BRECDH(void *out32, const BRKey *privKey, BRKey *pubKey)
-{
-    uint8_t p[65];
-    size_t pLen = BRKeyPubKey(pubKey, p, sizeof(p));
-    
-    if (pLen == 65) p[0] = (p[64] % 2) ? 0x03 : 0x02; // convert to compressed pubkey format
-    BRSecp256k1PointMul((BRECPoint *)p, &privKey->secret); // calculate shared secret ec-point
-    memcpy(out32, &p[1], 32); // unpack the x coordinate
-    mem_clean(p, sizeof(p));
-}
-
 #define xt(x) (((x) << 1) ^ ((((x) >> 7) & 1)*0x1b))
 
 static void _BRAES128CTR(void *out, const void *key16, const void *iv16, const void *data, size_t dataLen)
@@ -123,7 +112,7 @@ size_t BRKeyECIESAES128SHA256Encrypt(BRKey *pubKey, void *out, size_t outLen, BR
     assert(data != NULL || dataLen == 0);
 
     // shared-secret = kdf(ecdh(ephemKey, pubKey))
-    _BRECDH(&buf[4], ephemKey, pubKey);
+    BRECDH(&buf[4], ephemKey, pubKey);
     BRSHA256(shared, buf, sizeof(buf));
     mem_clean(buf, sizeof(buf));
     encKey = shared;
@@ -160,7 +149,7 @@ size_t BRKeyECIESAES128SHA256Decrypt(BRKey *privKey, void *out, size_t outLen, c
     assert(privKey != NULL && BRKeyPrivKey(privKey, NULL, 0) > 0);
 
     // shared-secret = kdf(ecdh(privKey, pubKey))
-    _BRECDH(&buf[4], privKey, &pubKey);
+    BRECDH(&buf[4], privKey, &pubKey);
     BRSHA256(shared, buf, sizeof(buf));
     mem_clean(buf, sizeof(buf));
     encKey = shared;

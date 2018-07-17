@@ -1189,16 +1189,6 @@ void BRPaymentProtocolMessageFree(BRPaymentProtocolMessage *msg)
     free(msg);
 }
 
-static void _BRECDH(void *out32, BRKey *privKey, BRKey *pubKey)
-{
-    uint8_t p[65];
-    size_t pLen = BRKeyPubKey(pubKey, p, sizeof(p));
-    
-    if (pLen == 65) p[0] = (p[64] % 2) ? 0x03 : 0x02; // convert to compressed pubkey format
-    BRSecp256k1PointMul((BRECPoint *)p, &privKey->secret); // calculate shared secret ec-point
-    memcpy(out32, &p[1], 32); // unpack the x coordinate
-}
-
 static void _BRPaymentProtocolEncryptedMessageCEK(BRPaymentProtocolEncryptedMessage *msg, void *cek32, void *iv12,
                                                   BRKey *privKey)
 {
@@ -1209,7 +1199,7 @@ static void _BRPaymentProtocolEncryptedMessageCEK(BRPaymentProtocolEncryptedMess
            rpkLen = BRKeyPubKey(&msg->receiverPubKey, rpk, sizeof(rpk));
     BRKey *pubKey = (pkLen != rpkLen || memcmp(pk, rpk, pkLen) != 0) ? &msg->receiverPubKey : &msg->senderPubKey;
 
-    _BRECDH(secret, privKey, pubKey);
+    BRECDH(secret, privKey, pubKey);
     BRSHA512(seed, secret, sizeof(secret));
     mem_clean(secret, sizeof(secret));
     BRHMACDRBG(cek32, 32, K, V, BRSHA256, 256/8, seed, sizeof(seed), nonce, sizeof(nonce), NULL, 0);
