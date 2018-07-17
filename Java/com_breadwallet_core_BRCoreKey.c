@@ -351,7 +351,9 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreKey_createKeyRecoverComp
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_breadwallet_core_BRCoreKey_encryptNative
-        (JNIEnv *env, jobject thisObject, jbyteArray dataByteArray, jbyteArray nonceByteArray) {
+        (JNIEnv *env, jobject thisObject,
+         jbyteArray dataByteArray,
+         jbyteArray nonceByteArray) {
     BRKey *key = (BRKey *) getJNIReference(env, thisObject);
 
     jbyte *data = (*env)->GetByteArrayElements(env, dataByteArray, NULL);
@@ -385,7 +387,9 @@ Java_com_breadwallet_core_BRCoreKey_encryptNative
  */
 JNIEXPORT jbyteArray JNICALL
 Java_com_breadwallet_core_BRCoreKey_decryptNative
-        (JNIEnv *env, jobject thisObject, jbyteArray dataByteArray, jbyteArray nonceByteArray) {
+        (JNIEnv *env, jobject thisObject,
+         jbyteArray dataByteArray,
+         jbyteArray nonceByteArray) {
     BRKey *key = (BRKey *) getJNIReference(env, thisObject);
 
     jbyte *data = (*env)->GetByteArrayElements(env, dataByteArray, NULL);
@@ -413,6 +417,38 @@ Java_com_breadwallet_core_BRCoreKey_decryptNative
 
     return result;
 }
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    createSharedSecret
+ * Signature: ([B)J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreKey_createSharedSecret
+        (JNIEnv *env, jobject thisObject,
+         jbyteArray publicKeyByteArray) {
+    BRKey *privateKey = (BRKey *) getJNIReference(env, thisObject);
+    BRKey publicKey;
+
+    jbyte *publicKeyBytes = (*env)->GetByteArrayElements (env, publicKeyByteArray, NULL);
+    jsize  publicKeySize  = (*env)->GetArrayLength (env, publicKeyByteArray);
+    assert (33 == publicKeySize || 65 == publicKeySize);
+
+    BRKeySetPubKey(&publicKey, (uint8_t*) publicKeyBytes, (size_t) publicKeySize);
+    publicKey.compressed = (33 == publicKeySize);
+
+    UInt256 sharedSecret;
+    assert (32 == sizeof (sharedSecret));
+
+    BRECDH((uint8_t*) &sharedSecret, privateKey, &publicKey);
+
+    BRKey *key = (BRKey *) calloc (1, sizeof(BRKey));
+    BRKeySetSecret(key, &sharedSecret, 1);
+
+    (*env)->ReleaseByteArrayElements (env, publicKeyByteArray, publicKeyBytes, NULL);
+
+    return (jlong) key;
+}
+
 /*
  * Class:     com_breadwallet_core_BRCoreKey
  * Method:    address

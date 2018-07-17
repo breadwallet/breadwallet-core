@@ -435,12 +435,41 @@ public class BRWalletManager extends BRCoreWalletManager {
          */
 
         // Compact Sign
+        System.out.println("        Compact Sign:");
+
         byte[] compactSig = key.compactSign(message);
         BRCoreKey keyCompactSigRecovered = BRCoreKey.compactSignRecoverKey(message, compactSig);
         System.out.println ("            compact signature         : " + Arrays.toString(compactSig));
         System.out.println ("            compact signature (I key) : " + Arrays.toString(key.getPubKey()));
         System.out.println ("            compact signature (R key) : " + Arrays.toString(keyCompactSigRecovered.getPubKey()));
         asserting (Arrays.equals(key.getPubKey(), keyCompactSigRecovered.getPubKey()));
+
+        // Encrypt/Decrypt
+        System.out.println("        Encrypt/Decrypt:");
+        BRCoreKey privKey = new BRCoreKey("a1a8cae79e17cb4ddb4fb6871fcc87f3ee5cbb1049a168657d2c3493d79bfa16");
+        byte[] publicKeyBytes = BRCoreKey.decodeHex("02d404943960a71535a79679f1cf1df80e70597c05b05722839b38ebc8803af517");
+        assert (33 == publicKeyBytes.length);
+
+        byte[] sampleInputData = BRCoreKey.decodeHex ("b5647811e4472f3ebbadaa9812807785c7ebc04e36d3b6508af7494068fba174");
+        byte[] nonce  = BRCoreKey.decodeHex("abcd");
+
+        byte[] encryptedBytes = privKey.encryptNative(sampleInputData, nonce);
+        byte[] decryptedBytes = privKey.decryptNative(encryptedBytes, nonce);
+        System.out.println ("            sample    data : " + Arrays.toString(sampleInputData));
+        System.out.println ("            encrypted data : " + Arrays.toString(encryptedBytes));
+        System.out.println ("            decrypted data : " + Arrays.toString(decryptedBytes));
+        asserting (Arrays.equals(sampleInputData, decryptedBytes));
+
+        // Share Key
+        System.out.println("        Shared Key:");
+        BRCoreKey sharedKey = privKey.createSharedSecretKey(publicKeyBytes);
+        encryptedBytes = sharedKey.encryptNative(sampleInputData, nonce);
+        decryptedBytes = sharedKey.decryptNative(encryptedBytes, nonce);
+        System.out.println ("            sample    data : " + Arrays.toString(sampleInputData));
+        System.out.println ("            encrypted data : " + Arrays.toString(encryptedBytes));
+        System.out.println ("            decrypted data : " + Arrays.toString(decryptedBytes));
+        asserting (Arrays.equals(sampleInputData, decryptedBytes));
+
     }
 
 
