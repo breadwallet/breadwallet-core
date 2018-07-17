@@ -483,7 +483,7 @@ static int _BRPeerAcceptHeadersMessage(BRPeer *peer, const uint8_t *msg, size_t 
             for (size_t i = 0; r && i < count; i++) {
                 BRMerkleBlock *block = BRMerkleBlockParse(&msg[off + 81*i], 81);
                 
-                if (! BRMerkleBlockIsValid(block, (uint32_t)now)) {
+                if (! BRMerkleBlockIsValid(block, (uint32_t)now, (ctx->magicNumber == 3686187259))) {
                     peer_log(peer, "invalid block header: %s", u256hex(block->blockHash));
                     BRMerkleBlockFree(block);
                     r = 0;
@@ -699,7 +699,7 @@ static int _BRPeerAcceptMerkleblockMessage(BRPeer *peer, const uint8_t *msg, siz
         peer_log(peer, "malformed merkleblock message with length: %zu", msgLen);
         r = 0;
     }
-    else if (! BRMerkleBlockIsValid(block, (uint32_t)time(NULL))) {
+    else if (! BRMerkleBlockIsValid(block, (uint32_t)time(NULL), (ctx->magicNumber == 3686187259))) {
         peer_log(peer, "invalid merkleblock: %s", u256hex(block->blockHash));
         BRMerkleBlockFree(block);
         block = NULL;
