@@ -90,8 +90,10 @@ public class BRCoreKey extends BRCoreJniReference {
     public native byte[] getSecret ();
 
     /**
-     * Get the byte[] representation of the 65 byte public key.
-     * @return
+     * Get the byte[] representation of the 33 or 65 byte public key for `this`.  Result will have
+     * a prefix of '02' or '03' (if compressed to 32 bytes) or '04' (if uncompressed to 64 bytes).
+     *
+     * @return The public key as byte[]
      */
     public native byte[] getPubKey ();
 
@@ -132,11 +134,41 @@ public class BRCoreKey extends BRCoreJniReference {
 
     private native boolean setSecret(byte[] secret, boolean compressed);
 
+    // Returns a compact signature (65 bytes as {v[1], r[32], s[32]}
     public native byte[] compactSign(byte[] data);
+
+    // Returns an empty compact signature (65 bytes of 0x0)
+    public static byte[] compactSignEmpty () {
+        return new byte[65];
+    }
+
+    private static native long createKeyRecoverCompactSign (byte[] data, byte[] signature);
 
     public native byte[] encryptNative(byte[] data, byte[] nonce);
 
     public native byte[] decryptNative(byte[] data, byte[] nonce);
+
+
+    public static BRCoreKey compactSignRecoverKey (byte[] data, byte[] signature) {
+        return new BRCoreKey(createKeyRecoverCompactSign (data, signature));
+    }
+
+    private native long createSharedSecret (byte[] publicKey);
+
+    /**
+     * Create a 'shared secret' key from `this` as the private key and with `publicKey` as the 33
+     * or 65 byte public key.  If 33 bytes, then `publicKey` is a 02 or 03 prefaced 32 byte
+     * compressed key; if 65 bytes, then `publicKey` is a 04 prefaced uncompressed key.
+     *
+     * This method fatals if public key does not have 33 or 65 bytes.
+     *
+     * @param publicKey
+     * @return
+     */
+    public BRCoreKey createSharedSecretKey (byte[] publicKey) {
+        return new BRCoreKey(createSharedSecret(publicKey));
+
+    }
 
     //
     //
@@ -177,7 +209,9 @@ public class BRCoreKey extends BRCoreJniReference {
     }
 
     /* Returns 'messageDigest (UInt256) */
-    public static native byte[] encodeSHA256 (String message);
+    public static native byte[] encodeSHA256 (byte[] message);
+
+    public static native byte[] encodeSHA256Double (byte[] message);
 
     /* Returns 'signature' */
     public native byte[] sign (byte[] messageDigest);
