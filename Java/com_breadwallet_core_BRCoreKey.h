@@ -185,6 +185,22 @@ JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_encodeSHA256Dou
 
 /*
  * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    encodeBase58
+ * Signature: ([B)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreKey_encodeBase58
+  (JNIEnv *, jclass, jbyteArray);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    decodeBase58
+ * Signature: (Ljava/lang/String;)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_decodeBase58
+  (JNIEnv *, jclass, jstring);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
  * Method:    sign
  * Signature: ([B)[B
  */

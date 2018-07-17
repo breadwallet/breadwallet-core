@@ -543,6 +543,54 @@ JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_encodeSHA256Dou
 
 /*
  * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    encodeBase58
+ * Signature: ([B)Ljava/lang/String;
+ */
+JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreKey_encodeBase58
+        (JNIEnv *env, jclass thisClass,
+         jbyteArray messageByteArray) {
+
+    size_t messageLen = (size_t) (*env)->GetArrayLength(env, messageByteArray);
+    jbyte *message = (*env)->GetByteArrayElements(env, messageByteArray, 0);
+
+    size_t charsCount = BRBase58Encode(NULL, 0, (const uint8_t *) message, messageLen);
+
+    char chars[charsCount + 1];
+
+    BRBase58Encode(chars, charsCount, (const uint8_t *) message, messageLen);
+
+    (*env)->ReleaseByteArrayElements (env, messageByteArray, message, 0);
+
+    return (*env)->NewStringUTF (env, chars);
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    decodeBase58
+ * Signature: (Ljava/lang/String;)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_decodeBase58
+        (JNIEnv *env, jclass thisClass,
+         jstring messageString) {
+
+    const char *message = (*env)->GetStringUTFChars (env, messageString, 0);
+
+    size_t bytesCount = BRBase58Decode(NULL, 0, message);
+
+    uint8_t bytes[bytesCount];
+    BRBase58Decode(bytes, bytesCount, message);
+
+    jbyteArray result = (*env)->NewByteArray (env, (jsize) bytesCount);
+    (*env)->SetByteArrayRegion (env, result, 0, (jsize) bytesCount, (jbyte *) bytes);
+
+    (*env)->ReleaseStringUTFChars (env, messageString, message);
+
+    return result;
+}
+
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
  * Method:    sign
  * Signature: ([B)[B
  */

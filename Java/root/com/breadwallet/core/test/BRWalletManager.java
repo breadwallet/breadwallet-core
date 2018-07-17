@@ -470,6 +470,14 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println ("            decrypted data : " + Arrays.toString(decryptedBytes));
         asserting (Arrays.equals(sampleInputData, decryptedBytes));
 
+        // Base58
+        System.out.println("        Base58:");
+        String message58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+        byte[] decodedMessage = BRCoreKey.decodeBase58(message58);
+        String encodedMessage = BRCoreKey.encodeBase58(decodedMessage);
+        System.out.println ("            decoded : " + Arrays.toString(decodedMessage));
+        System.out.println ("            encoded : " + encodedMessage);
+        asserting (message58.equals(encodedMessage));
     }
 
 

@@ -213,6 +213,10 @@ public class BRCoreKey extends BRCoreJniReference {
 
     public static native byte[] encodeSHA256Double (byte[] message);
 
+    //
+    public static native String encodeBase58 (byte[] message);
+    public static native byte[] decodeBase58 (String message);
+
     /* Returns 'signature' */
     public native byte[] sign (byte[] messageDigest);
 
