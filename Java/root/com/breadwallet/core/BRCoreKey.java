@@ -182,6 +182,9 @@ public class BRCoreKey extends BRCoreJniReference {
 
     }
 
+    public native byte[] encryptUsingSharedSecret (byte[] publicKey, byte[] message, byte[] nonce);
+    public native byte[] decryptUsingSharedSecret (byte[] publicKey, byte[] bytes, byte[] nonce);
+
     //
     //
     //

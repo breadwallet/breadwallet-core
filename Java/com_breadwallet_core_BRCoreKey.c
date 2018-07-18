@@ -357,8 +357,8 @@ Java_com_breadwallet_core_BRCoreKey_encryptNative
     jsize nonceSize = (*env)->GetArrayLength(env, nonceByteArray);
     assert (12 == nonceSize);
 
-    jbyte *data = (*env)->GetByteArrayElements(env, dataByteArray, NULL);
-    jbyte *nonce = (*env)->GetByteArrayElements(env, nonceByteArray, NULL);
+    jbyte *data = (*env)->GetByteArrayElements(env, dataByteArray, 0);
+    jbyte *nonce = (*env)->GetByteArrayElements(env, nonceByteArray, 0);
 
     uint8_t out[16 + dataSize]; 
 
@@ -394,8 +394,8 @@ Java_com_breadwallet_core_BRCoreKey_decryptNative
     jsize nonceSize = (*env)->GetArrayLength(env, nonceByteArray);
     assert (12 == nonceSize);
 
-    jbyte *data = (*env)->GetByteArrayElements(env, dataByteArray, NULL);
-    jbyte *nonce = (*env)->GetByteArrayElements(env, nonceByteArray, NULL);
+    jbyte *data = (*env)->GetByteArrayElements(env, dataByteArray, 0);
+    jbyte *nonce = (*env)->GetByteArrayElements(env, nonceByteArray, 0);
 
     uint8_t out[dataSize];
 
@@ -428,7 +428,7 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreKey_createSharedSecret
     BRKey *privateKey = (BRKey *) getJNIReference(env, thisObject);
     BRKey publicKey;
 
-    jbyte *publicKeyBytes = (*env)->GetByteArrayElements (env, publicKeyByteArray, NULL);
+    jbyte *publicKeyBytes = (*env)->GetByteArrayElements (env, publicKeyByteArray, 0);
     jsize  publicKeySize  = (*env)->GetArrayLength (env, publicKeyByteArray);
     assert (33 == publicKeySize || 65 == publicKeySize);
 
@@ -443,9 +443,116 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreKey_createSharedSecret
     BRKey *key = (BRKey *) calloc (1, sizeof(BRKey));
     BRKeySetSecret(key, &sharedSecret, 1);
 
-    (*env)->ReleaseByteArrayElements (env, publicKeyByteArray, publicKeyBytes, NULL);
+    (*env)->ReleaseByteArrayElements (env, publicKeyByteArray, publicKeyBytes, 0);
 
     return (jlong) key;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    encryptUsingSharedSecret
+ * Signature: ([B[B[B)[B
+ */
+static UInt256
+createSharedSecret (JNIEnv *env, BRKey *privateKey, jbyteArray publicKeyByteArray) {
+    BRKey publicKey;
+
+    jbyte *publicKeyBytes = (*env)->GetByteArrayElements (env, publicKeyByteArray, 0);
+    jsize  publicKeySize  = (*env)->GetArrayLength (env, publicKeyByteArray);
+    assert (33 == publicKeySize || 65 == publicKeySize);
+
+    BRKeySetPubKey(&publicKey, (uint8_t*) publicKeyBytes, (size_t) publicKeySize);
+    publicKey.compressed = (33 == publicKeySize);
+    (*env)->ReleaseByteArrayElements (env, publicKeyByteArray, publicKeyBytes, 0);
+
+    UInt256 sharedSecret;
+    assert (32 == sizeof (sharedSecret));
+
+    BRKeyECDH(privateKey, (uint8_t*) &sharedSecret, &publicKey);
+
+    return sharedSecret;
+}
+
+static UInt256
+createSharedSecretHashed (JNIEnv *env, BRKey *privateKey, jbyteArray publicKeyByteArray) {
+    UInt256 sharedSecret = createSharedSecret(env, privateKey, publicKeyByteArray);
+    UInt256 sharedSecretHashed;
+    BRSHA256(&sharedSecretHashed, &sharedSecret, sizeof (sharedSecret));
+    mem_clean(&sharedSecret, sizeof(sharedSecret));
+    return sharedSecretHashed;
+}
+
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_encryptUsingSharedSecret
+        (JNIEnv *env, jobject thisObject,
+         jbyteArray publicKeyByteArray,
+         jbyteArray dataByteArray,
+         jbyteArray nonceByteArray) {
+    BRKey *privateKey = (BRKey *) getJNIReference(env, thisObject);
+    UInt256 sharedSecretHashed = createSharedSecretHashed(env, privateKey, publicKeyByteArray);
+
+    jsize dataSize = (*env)->GetArrayLength(env, dataByteArray);
+    jsize nonceSize = (*env)->GetArrayLength(env, nonceByteArray);
+    assert (12 == nonceSize);
+
+    jbyte *data = (*env)->GetByteArrayElements(env, dataByteArray, 0);
+    jbyte *nonce = (*env)->GetByteArrayElements(env, nonceByteArray, 0);
+
+    uint8_t out[16 + dataSize];
+
+    size_t outSize = BRChacha20Poly1305AEADEncrypt(out, sizeof(out), &sharedSecretHashed,
+                                                   (uint8_t *) nonce,
+                                                   (uint8_t *) data,
+                                                   (size_t) dataSize,
+                                                   NULL,
+                                                   0);
+
+    jbyteArray result = (*env)->NewByteArray(env, (jsize) outSize);
+    (*env)->SetByteArrayRegion(env, result, 0, (jsize) outSize, (const jbyte *) out);
+
+    (*env)->ReleaseByteArrayElements(env, dataByteArray, data, 0);
+    (*env)->ReleaseByteArrayElements(env, nonceByteArray, nonce, 0);
+
+    return result;
+}
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    decryptUsingSharedSecret
+ * Signature: ([B[B[B)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_decryptUsingSharedSecret
+        (JNIEnv *env, jobject thisObject,
+         jbyteArray publicKeyByteArray,
+         jbyteArray dataByteArray,
+         jbyteArray nonceByteArray) {
+    BRKey *privateKey = (BRKey *) getJNIReference(env, thisObject);
+    UInt256 sharedSecretHashed = createSharedSecretHashed(env, privateKey, publicKeyByteArray);
+
+    jsize dataSize = (*env)->GetArrayLength(env, dataByteArray);
+    jsize nonceSize = (*env)->GetArrayLength(env, nonceByteArray);
+    assert (12 == nonceSize);
+
+    jbyte *data = (*env)->GetByteArrayElements(env, dataByteArray, 0);
+    jbyte *nonce = (*env)->GetByteArrayElements(env, nonceByteArray, 0);
+
+    uint8_t out[dataSize];
+
+    size_t outSize = BRChacha20Poly1305AEADDecrypt(out, sizeof(out), &sharedSecretHashed,
+                                                   (uint8_t *) nonce,
+                                                   (uint8_t *) data,
+                                                   (size_t) (dataSize),
+                                                   NULL,
+                                                   0);
+
+    if (sizeof(out) == 0) return NULL;
+
+    jbyteArray result = (*env)->NewByteArray(env, (jsize) outSize);
+    (*env)->SetByteArrayRegion(env, result, 0, (jsize) outSize, (const jbyte *) out);
+
+    (*env)->ReleaseByteArrayElements(env, dataByteArray, data, 0);
+    (*env)->ReleaseByteArrayElements(env, nonceByteArray, nonce, 0);
+
+    return result;
 }
 
 /*
@@ -473,7 +580,7 @@ Java_com_breadwallet_core_BRCoreKey_address
 JNIEXPORT jboolean JNICALL
 Java_com_breadwallet_core_BRCoreKey_isValidBitcoinPrivateKey
         (JNIEnv *env, jclass thisClass, jstring stringObject) {
-    const char *privKey = (*env)->GetStringUTFChars(env, stringObject, NULL);
+    const char *privKey = (*env)->GetStringUTFChars(env, stringObject, 0);
     int result = BRPrivKeyIsValid(privKey);
 
     (*env)->ReleaseStringUTFChars(env, stringObject, privKey);

@@ -471,6 +471,16 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println ("            decrypted data : " + Arrays.toString(decryptedBytes));
         asserting (Arrays.equals(sampleInputData, decryptedBytes));
 
+        //
+        System.out.println("        Shared Key Encrypt/Decrypt:");
+        byte[] encryptedBytesShared = privKey.encryptUsingSharedSecret(publicKeyBytes, sampleInputData, nonce);
+        byte[] decryptedBytesShared = privKey.decryptUsingSharedSecret(publicKeyBytes, encryptedBytesShared, nonce);
+        System.out.println ("            sample    data : " + Arrays.toString(sampleInputData));
+        System.out.println ("            encrypted data : " + Arrays.toString(encryptedBytesShared));
+        System.out.println ("            decrypted data : " + Arrays.toString(decryptedBytesShared));
+        asserting (Arrays.equals(sampleInputData, decryptedBytesShared));
+
+
         // Base58
         System.out.println("        Base58:");
         String message58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
