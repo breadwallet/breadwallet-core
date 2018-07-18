@@ -387,13 +387,14 @@ bcsHandleAnnounce (BREthereumBCS bcs,
 static BREthereumBoolean
 bcsBlockHasMatchingTransactions (BREthereumBCS bcs,
                                  BREthereumBlock block) {
+    // TODO: Massive Fix Required ('massive' in importance, not size)
     return AS_ETHEREUM_BOOLEAN(blockGetNumber(block) < 5795675);
 //    return ETHEREUM_BOOLEAN_TRUE;
 //    return ETHEREUM_BOOLEAN_FALSE;
 }
 
 /**
- * The working is wrong here - if we are matching a block, then we should look at the logs.
+ * The wording is wrong here - if we are matching a block, then we should look at the logs.
  */
 static BREthereumBoolean
 bcsBlockHasMatchingLogs (BREthereumBCS bcs,
@@ -943,7 +944,7 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
         
         // If it is our transaction (as source or target), handle it.
         if (ETHEREUM_BOOLEAN_IS_TRUE(transactionHasAddress(tx, bcs->address))) {
-            eth_log("BCS", "Bodies   %llu Found Transaction at (%d)",
+            eth_log("BCS", "Bodies %llu Found Transaction at %d",
                     blockGetNumber(block), i);
 
             if (NULL == neededTransactions) array_new (neededTransactions, 3);
