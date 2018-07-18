@@ -144,8 +144,20 @@ public class BRCoreKey extends BRCoreJniReference {
 
     private static native long createKeyRecoverCompactSign (byte[] data, byte[] signature);
 
+    /**
+     *
+     * @param data
+     * @param nonce Must be 12 bytes; otherwise fatal.
+     * @return
+     */
     public native byte[] encryptNative(byte[] data, byte[] nonce);
 
+    /**
+     *
+     * @param data
+     * @param nonce Must be 12 bytes; otherwise fatal.
+     * @return
+     */
     public native byte[] decryptNative(byte[] data, byte[] nonce);
 
 

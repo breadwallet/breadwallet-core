@@ -451,7 +451,8 @@ public class BRWalletManager extends BRCoreWalletManager {
         assert (33 == publicKeyBytes.length);
 
         byte[] sampleInputData = BRCoreKey.decodeHex ("b5647811e4472f3ebbadaa9812807785c7ebc04e36d3b6508af7494068fba174");
-        byte[] nonce  = BRCoreKey.decodeHex("abcd");
+        byte[] nonce  = BRCoreKey.decodeHex("123456789012345678901234");
+        assert (12 == nonce.length);
 
         byte[] encryptedBytes = privKey.encryptNative(sampleInputData, nonce);
         byte[] decryptedBytes = privKey.decryptNative(encryptedBytes, nonce);

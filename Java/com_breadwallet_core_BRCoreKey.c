@@ -60,13 +60,10 @@ Java_com_breadwallet_core_BRCoreKey_getPubKey
     BRKey *key = (BRKey *) getJNIReference(env, thisObject);
 
     // Actually get the pubKey...
-    BRKeyPubKey(key, NULL, 0);
+    jsize pubKeyLen = (jsize) BRKeyPubKey(key, NULL, 0);
 
-    // ... now copy it.
-    size_t pubKeyLen = 65 * sizeof(uint8_t);
-    jbyteArray result = (*env)->NewByteArray(env, (jsize) pubKeyLen);
-    (*env)->SetByteArrayRegion(env, result, 0, (jsize) pubKeyLen,
-                               (const jbyte *) key->pubKey);
+    jbyteArray result = (*env)->NewByteArray(env, pubKeyLen);
+    (*env)->SetByteArrayRegion(env, result, 0, pubKeyLen, (const jbyte *) key->pubKey);
     return result;
 }
 
@@ -356,13 +353,14 @@ Java_com_breadwallet_core_BRCoreKey_encryptNative
          jbyteArray nonceByteArray) {
     BRKey *key = (BRKey *) getJNIReference(env, thisObject);
 
-    jbyte *data = (*env)->GetByteArrayElements(env, dataByteArray, NULL);
     jsize dataSize = (*env)->GetArrayLength(env, dataByteArray);
-
-    jbyte *nonce = (*env)->GetByteArrayElements(env, nonceByteArray, NULL);
     jsize nonceSize = (*env)->GetArrayLength(env, nonceByteArray);
+    assert (12 == nonceSize);
 
-    uint8_t out[16 + dataSize];
+    jbyte *data = (*env)->GetByteArrayElements(env, dataByteArray, NULL);
+    jbyte *nonce = (*env)->GetByteArrayElements(env, nonceByteArray, NULL);
+
+    uint8_t out[16 + dataSize]; 
 
     size_t outSize = BRChacha20Poly1305AEADEncrypt(out, sizeof(out), key,
                                                    (uint8_t *) nonce,
@@ -392,11 +390,12 @@ Java_com_breadwallet_core_BRCoreKey_decryptNative
          jbyteArray nonceByteArray) {
     BRKey *key = (BRKey *) getJNIReference(env, thisObject);
 
-    jbyte *data = (*env)->GetByteArrayElements(env, dataByteArray, NULL);
     jsize dataSize = (*env)->GetArrayLength(env, dataByteArray);
-
-    jbyte *nonce = (*env)->GetByteArrayElements(env, nonceByteArray, NULL);
     jsize nonceSize = (*env)->GetArrayLength(env, nonceByteArray);
+    assert (12 == nonceSize);
+
+    jbyte *data = (*env)->GetByteArrayElements(env, dataByteArray, NULL);
+    jbyte *nonce = (*env)->GetByteArrayElements(env, nonceByteArray, NULL);
 
     uint8_t out[dataSize];
 
