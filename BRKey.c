@@ -116,8 +116,8 @@ int BRSecp256k1PointMul(BRECPoint *p, const UInt256 *i)
             secp256k1_ec_pubkey_serialize(_ctx, (unsigned char *)p, &pLen, &pubkey, SECP256K1_EC_COMPRESSED));
 }
 
-// generates shared secret using ECDH using the private key and public key inputs
-void BRECDH(uint8_t *out32, const BRKey *privKey, BRKey *pubKey)
+// write a 'shared secret' for key w/ pubKey using ECDH to out32
+void BRKeyECDH(const BRKey *privKey, uint8_t *out32, BRKey *pubKey)
 {
     uint8_t p[65];
     size_t pLen = BRKeyPubKey(pubKey, p, sizeof(p));
@@ -127,7 +127,6 @@ void BRECDH(uint8_t *out32, const BRKey *privKey, BRKey *pubKey)
     memcpy(out32, &p[1], 32); // unpack the x coordinate
     mem_clean(p, sizeof(p));
 }
-
 
 // returns true if privKey is a valid private key
 // supported formats are wallet import format (WIF), mini private key format, or hex string

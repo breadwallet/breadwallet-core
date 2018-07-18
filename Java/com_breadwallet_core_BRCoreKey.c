@@ -438,7 +438,7 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreKey_createSharedSecret
     UInt256 sharedSecret;
     assert (32 == sizeof (sharedSecret));
 
-    BRECDH((uint8_t*) &sharedSecret, privateKey, &publicKey);
+    BRKeyECDH(privateKey, (uint8_t*) &sharedSecret, &publicKey);
 
     BRKey *key = (BRKey *) calloc (1, sizeof(BRKey));
     BRKeySetSecret(key, &sharedSecret, 1);
