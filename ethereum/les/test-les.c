@@ -593,7 +593,7 @@ static void run_fullBlockSync_Test1(BREthereumLES les) {
     //Request block headers [0...1000]
     for(int i = 0; i < 10000; i+= 180) {
         assert(lesGetBlockHeaders(les, les, _fullBlockHeaders_Calllback_Test, i, 180, 0, ETHEREUM_BOOLEAN_FALSE) == LES_SUCCESS);
-        sleep(30);
+        //sleep(1);
     }
     sleep(1800);
 }
@@ -659,12 +659,12 @@ void runLEStests(void) {
     _initBlockHeaderTestData();
     
     //Run Tests on the LES messages
-      run_GetTxStatus_Tests(les);
+   //    run_GetTxStatus_Tests(les);
    //  run_GetBlockHeaders_Tests(les);
    //  run_GetBlockBodies_Tests(les);
-   //   run_GetReceipts_Tests(les);
+   //  run_GetReceipts_Tests(les);
     // run_GetProofsV2_Tests(les);
-    //reallySendLESTransaction(les);
-     //   run_fullBlockSync_Test1(les);
+    // reallySendLESTransaction(les);
+       run_fullBlockSync_Test1(les);
 }
 

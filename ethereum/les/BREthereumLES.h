@@ -83,19 +83,7 @@ typedef void
  * @function lesCreate
  *
  * @abstract
- * Create an instance to handle the LES interface.  Will connect to the provided `network` and
- * begin getting block headers.
- *
- * @param network
- * The network to connect with.
- *
- * @param announceContext
- * The context to use when handling a LES 'Announce' message
- *
- * @param announceCallback
- * The callback to use when handling a LES 'Announce' message
- *
- * ...
+ * Allocated and configures all resources for a les handler
  *
  * @result
  * A new LES interface handler.
@@ -110,13 +98,75 @@ lesCreate (BREthereumNetwork network,
            BREthereumHash genesisHash);
 
 /*!
+ * @function lesStart
+ *
+ * @abstract
+ * Allows a les handler to begin handling les messages
+ *
+ * Note: This is a blocking function. This function will wait until the handler is able to begin sending/receiving messages.
+ * If the handler cannot connect to the Ethereum Network after given by the "maxWaitTime" parameter
+ *
+ * @param les
+ * The les handler
+ *
+ * @param maxWaitTime
+ * The maxiumum time (in seconds) the function should wait to allow the handler to connect to the ethereum network.
+ *
+ *
+ * @result
+ * ETHEREUM_BOOLEAN_TRUE, if the handler succesfully connected to the network, otherwise ETHEREUM_BOOLEAN_FALSE
+ *
+ */
+extern BREthereumBoolean
+ lesStart(BREthereumLES les, unsigned int maxWaitTime);
+ 
+ 
+ /*!
+ * @function lesStop
+ *
+ * @abstract
+ * Notifies the given handler that it should stop handling mesasges
+ *
+ * Note: Currently, this function does not allow message to queue up. Thus, make sure you received the necessary responses before calling this function.
+ *
+ * @param les
+ * The les handler
+ *
+ */
+extern void
+ lesStop(BREthereumLES les);
+
+
+ /*!
+ * @function lesStop
+ *
+ * @abstract
+ * Notifies the given handler that it should stop handling mesasges
+ *
+ * Note: Currently, this function does not allow message to queue up. Thus, make sure you received the necessary responses before calling this function.
+ *
+ * @param les
+ * The les handler
+ *
+ */
+extern void
+ lesStop(BREthereumLES les);
+
+
+/*!
  * @function lesRelease
  *
  * @abstract
  * Releases the les context
+ *
+ * Note: If the function "lesStop" was not called before this function then "lesRelease" calls "lesStop". This function will wait until
+ * all resources have been deallocated before returning.
+ *
  */
 extern void
 lesRelease(BREthereumLES les);
+
+
 
 
 ///////

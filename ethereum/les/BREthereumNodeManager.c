@@ -108,6 +108,21 @@ void _networkReachableCallback(BREthereumManagerCallbackContext info, BREthereum
     BREthereumNodeManager manager = (BREthereumNodeManager)info;
     manager->subprotoCallbacks.networkReachFunc(manager->subprotoCallbacks.info, isReachable);
 }
+void _addInitialPeers(BREthereumNodeManager manager, BREthereumPeerConfigInfo peers[], size_t peersCount) {
+
+    for(int i = 0; i < peersCount; i++){
+        BREthereumPeerConfig config;
+        uint8_t pubKey[64];
+        config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, peers[i].address, peers[i].tcpPort, peers[i].udpPort);
+        decodeHex (pubKey, 64, peers[i].pubKey, 128);
+        BRKey* remoteKey = malloc(sizeof(BRKey));
+        remoteKey->pubKey[0] = 0x04;
+        memcpy(&remoteKey->pubKey[1], pubKey, 64);
+        remoteKey->compressed = 0;
+        config.remoteKey = remoteKey;
+        array_add(manager->peers, config);
+    }
+}
 BREthereumBoolean _findPeers(BREthereumNodeManager manager) {
 
     //Note: This function should be called from within the lock of the les context
@@ -148,13 +163,16 @@ BREthereumBoolean _findPeers(BREthereumNodeManager manager) {
 //
 // Public Functions
 //
-BREthereumNodeManager ethereumNodeManagerCreate(BREthereumNetwork network,
-                                                BRKey* key,
-                                                BREthereumHash headHash,
-                                                uint64_t headNumber,
-                                                UInt256 headTotalDifficulty,
-                                                BREthereumHash genesisHash,
-                                                BREthereumSubProtoCallbacks  subprotoCallbacks){
+extern BREthereumNodeManager
+ethereumNodeManagerCreate(BREthereumNetwork network,
+                          BRKey* key,
+                          BREthereumHash headHash,
+                          uint64_t headNumber,
+                          UInt256 headTotalDifficulty,
+                          BREthereumHash genesisHash,
+                          BREthereumPeerConfigInfo initPeers[],
+                          size_t initPeersCount,
+                          BREthereumSubProtoCallbacks callbacks){
 
     BREthereumNodeManager manager= (BREthereumNodeManager) calloc(1, sizeof (struct BREthereumNodeManagerContext));
     
@@ -167,13 +185,14 @@ BREthereumNodeManager ethereumNodeManagerCreate(BREthereumNetwork network,
         manager->headNumber = headNumber;
         manager->headTotalDifficulty = headTotalDifficulty;
         manager->genesisHash = genesisHash;
-        manager->subprotoCallbacks = subprotoCallbacks;
+        manager->subprotoCallbacks = callbacks;
         manager->randomContext = ethereumRandomCreate(key->secret.u8, 32);
-        manager->managerCallbacks.info = manager; 
+        manager->managerCallbacks.info = manager;
         manager->managerCallbacks.connectedFuc = _connectedCallback;
         manager->managerCallbacks.disconnectFunc = _disconnectCallback;
         manager->managerCallbacks.receivedMsgFunc = _receivedMessageCallback;
         manager->managerCallbacks.networkReachableFunc = _networkReachableCallback;
+        _addInitialPeers(manager, initPeers, initPeersCount);
     }
     return manager;
 }
@@ -225,6 +244,7 @@ int ethereumNodeMangerConnect(BREthereumNodeManager manager) {
                 ethereumRandomGenUInt256(manager->randomContext, nonce);
             
                 BREthereumNode node = ethereumNodeCreate(manager->peers[peerIdx], nodeKey, nonce, ephemeralKey, manager->managerCallbacks, ETHEREUM_BOOLEAN_TRUE);
+                
                 if(ethereumNodeConnect(node))
                 {
                    //We could not connect to the remote peer so free the memory

@@ -37,6 +37,13 @@ extern "C" {
 typedef struct BREthereumNodeManagerContext* BREthereumNodeManager;
 
 
+typedef struct {
+    char pubKey[129];
+    char* address;
+    uint16_t tcpPort;
+    uint16_t udpPort;
+}BREthereumPeerConfigInfo;
+
 /**
  * Ehtereum Manager Node Connection Status - Connection states for Manager
  */
@@ -58,16 +65,7 @@ typedef struct {
     BREthereumSubProtoNetworkReachableCallback networkReachFunc;
 }BREthereumSubProtoCallbacks;
 
-/**
- * Creates a new Ethereum Node manager.
- * @post: Must be released by a calling ethereumNodeManagerRelease(manager)
- * @param network - the Ethereum network to connect to remote peers
- * @param account - The account of interest
- * @param blocks - known blocks that are of interest to the account
- * @param blocksCount - the number of blocks in the blcoks argument.
- * @param peers - known peers that are reliable and should try to connect to first
- * @param peersCount - the number of peers in the peers argument
- */
+
 extern BREthereumNodeManager
 ethereumNodeManagerCreate(BREthereumNetwork network,
                           BRKey* key,
@@ -75,6 +73,8 @@ ethereumNodeManagerCreate(BREthereumNetwork network,
                           uint64_t headNumber,
                           UInt256 headTotalDifficulty,
                           BREthereumHash genesisHash,
+                          BREthereumPeerConfigInfo initPeers[],
+                          size_t initPeersCount,
                           BREthereumSubProtoCallbacks callbacks);
     
 /**
