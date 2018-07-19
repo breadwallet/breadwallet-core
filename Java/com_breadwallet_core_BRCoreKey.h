@@ -137,11 +137,19 @@ JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_decryptNative
 
 /*
  * Class:     com_breadwallet_core_BRCoreKey
- * Method:    createSharedSecret
- * Signature: ([B)J
+ * Method:    encryptUsingSharedSecret
+ * Signature: ([B[B[B)[B
  */
-JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreKey_createSharedSecret
-  (JNIEnv *, jobject, jbyteArray);
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_encryptUsingSharedSecret
+  (JNIEnv *, jobject, jbyteArray, jbyteArray, jbyteArray);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    decryptUsingSharedSecret
+ * Signature: ([B[B[B)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_decryptUsingSharedSecret
+  (JNIEnv *, jobject, jbyteArray, jbyteArray, jbyteArray);
 
 /*
  * Class:     com_breadwallet_core_BRCoreKey

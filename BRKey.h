@@ -108,10 +108,9 @@ size_t BRKeyCompactSign(const BRKey *key, void *compactSig, size_t sigLen, UInt2
 
 // assigns pubKey recovered from compactSig to key and returns true on success
 int BRKeyRecoverPubKey(BRKey *key, UInt256 md, const void *compactSig, size_t sigLen);
-    
-// ECDH derived shared key from public/private keys
-void BRECDH(uint8_t *out32, const BRKey *privKey, BRKey *pubKey);
 
+// write a 'shared secret' for key w/ pubKey to out32
+void BRKeyECDH(const BRKey *privKey, uint8_t *out32, BRKey *pubKey);
 
 #ifdef __cplusplus
 }

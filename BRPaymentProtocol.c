@@ -1199,7 +1199,7 @@ static void _BRPaymentProtocolEncryptedMessageCEK(BRPaymentProtocolEncryptedMess
            rpkLen = BRKeyPubKey(&msg->receiverPubKey, rpk, sizeof(rpk));
     BRKey *pubKey = (pkLen != rpkLen || memcmp(pk, rpk, pkLen) != 0) ? &msg->receiverPubKey : &msg->senderPubKey;
 
-    BRECDH(secret, privKey, pubKey);
+    BRKeyECDH(privKey, secret, pubKey);
     BRSHA512(seed, secret, sizeof(secret));
     mem_clean(secret, sizeof(secret));
     BRHMACDRBG(cek32, 32, K, V, BRSHA256, 256/8, seed, sizeof(seed), nonce, sizeof(nonce), NULL, 0);

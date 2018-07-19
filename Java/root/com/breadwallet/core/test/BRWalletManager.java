@@ -451,7 +451,8 @@ public class BRWalletManager extends BRCoreWalletManager {
         assert (33 == publicKeyBytes.length);
 
         byte[] sampleInputData = BRCoreKey.decodeHex ("b5647811e4472f3ebbadaa9812807785c7ebc04e36d3b6508af7494068fba174");
-        byte[] nonce  = BRCoreKey.decodeHex("abcd");
+        byte[] nonce  = BRCoreKey.decodeHex("123456789012345678901234");
+        assert (12 == nonce.length);
 
         byte[] encryptedBytes = privKey.encryptNative(sampleInputData, nonce);
         byte[] decryptedBytes = privKey.decryptNative(encryptedBytes, nonce);
@@ -460,15 +461,15 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println ("            decrypted data : " + Arrays.toString(decryptedBytes));
         asserting (Arrays.equals(sampleInputData, decryptedBytes));
 
-        // Share Key
-        System.out.println("        Shared Key:");
-        BRCoreKey sharedKey = privKey.createSharedSecretKey(publicKeyBytes);
-        encryptedBytes = sharedKey.encryptNative(sampleInputData, nonce);
-        decryptedBytes = sharedKey.decryptNative(encryptedBytes, nonce);
+        //
+        System.out.println("        Shared Key Encrypt/Decrypt:");
+        byte[] encryptedBytesShared = privKey.encryptUsingSharedSecret(publicKeyBytes, sampleInputData, nonce);
+        byte[] decryptedBytesShared = privKey.decryptUsingSharedSecret(publicKeyBytes, encryptedBytesShared, nonce);
         System.out.println ("            sample    data : " + Arrays.toString(sampleInputData));
-        System.out.println ("            encrypted data : " + Arrays.toString(encryptedBytes));
-        System.out.println ("            decrypted data : " + Arrays.toString(decryptedBytes));
-        asserting (Arrays.equals(sampleInputData, decryptedBytes));
+        System.out.println ("            encrypted data : " + Arrays.toString(encryptedBytesShared));
+        System.out.println ("            decrypted data : " + Arrays.toString(decryptedBytesShared));
+        asserting (Arrays.equals(sampleInputData, decryptedBytesShared));
+
 
         // Base58
         System.out.println("        Base58:");
