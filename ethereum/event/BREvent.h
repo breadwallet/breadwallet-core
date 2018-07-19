@@ -43,8 +43,17 @@ typedef struct BREventRecord BREvent;
  * An EventDispatcher handles an event.  The dispatcher runs in the Handler's thread and should
  * generally be short in duration.
  */
-typedef void (*BREventDispatcher) (BREventHandler handler,
-                                   BREvent *event);
+typedef void
+(*BREventDispatcher) (BREventHandler handler,
+                      BREvent *event);
+
+/**
+ * An EventDestroyer destroys an event.  The destroyer runs only when the BREventQueue is
+ * destroyed an pending events needs to be destroyed themselves.  Specifically, there are
+ * some events the own memory; that memory needs to be freed so as to avoid memory leaks.
+ */
+typedef void
+(*BREventDestroyer) (BREvent *event);
 
 /**
  * An EventType defines the types of events that will be handled.  Each individual Event will hold
@@ -55,6 +64,7 @@ struct BREventTypeRecord{
     const char *eventName;
     size_t eventSize;
     BREventDispatcher eventDispatcher;
+    BREventDestroyer eventDestroyer;
 };
 
 /**

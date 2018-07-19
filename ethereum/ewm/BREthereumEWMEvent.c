@@ -520,10 +520,17 @@ ewmHandleSaveBlocksEventDispatcher(BREventHandler ignore,
     ewmHandleSaveBlocks(event->ewm, event->blocks);
 }
 
+static void
+ewmHandleSaveBlocksEventDestroyer (BREthereumHandleSaveBlocksEvent *event) {
+    if (NULL != event->blocks)
+        array_free(event->blocks);
+}
+
 BREventType handleSaveBlocksEventType = {
     "EWM: Handle SaveBlocks Event",
     sizeof (BREthereumHandleSaveBlocksEvent),
-    (BREventDispatcher) ewmHandleSaveBlocksEventDispatcher
+    (BREventDispatcher) ewmHandleSaveBlocksEventDispatcher,
+    (BREventDestroyer) ewmHandleSaveBlocksEventDestroyer
 };
 
 extern void
@@ -540,12 +547,13 @@ ewmSignalSaveBlocks (BREthereumEWM ewm,
 typedef struct {
     BREvent base;
     BREthereumEWM ewm;
+    BRArrayOf(BREthereumPeerConfig) peers;
 } BREthereumHandleSavePeersEvent;
 
 static void
 ewmHandleSavePeersEventDispatcher(BREventHandler ignore,
                                    BREthereumHandleSavePeersEvent *event) {
-    ewmHandleSavePeers(event->ewm);
+    ewmHandleSavePeers(event->ewm, event->peers);
 }
 
 BREventType handleSavePeersEventType = {
@@ -555,8 +563,9 @@ BREventType handleSavePeersEventType = {
 };
 
 extern void
-ewmSignalSavePeers (BREthereumEWM ewm) {
-    BREthereumHandleSavePeersEvent event = { { NULL, &handleSavePeersEventType }, ewm };
+ewmSignalSavePeers (BREthereumEWM ewm,
+                    BRArrayOf(BREthereumPeerConfig) peers) {
+    BREthereumHandleSavePeersEvent event = { { NULL, &handleSavePeersEventType }, ewm, peers };
     eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
 }
 
@@ -605,7 +614,6 @@ ewmSignalSync (BREthereumEWM ewm,
     eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
 }
 
-
 // ==============================================================================================
 //
 // All Handler Event Types
@@ -623,4 +631,3 @@ const BREventType *handlerEventTypes[] = {
     &handleSyncEventType
 };
 const unsigned int handlerEventTypesCount = 10;
-

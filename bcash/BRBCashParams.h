@@ -82,15 +82,16 @@ static const BRCheckPoint BRBCashCheckpoints[] = {
     { 443520, uint256("00000000000000000345d0c7890b2c81ab5139c6e83400e5bed00d23a1f8d239"), 1481765313, 0x18038b85 },
     { 463680, uint256("000000000000000000431a2f4619afe62357cd16589b638bb638f2992058d88e"), 1493259601, 0x18021b3e },
     { 483840, uint256("00000000000000000098963251fcfc19d0fa2ef05cf22936a182609f8d650346"), 1503802540, 0x1803c5d5 },
-    { 504000, uint256("0000000000000000006cdeece5716c9c700f34ad98cb0ed0ad2c5767bbe0bc8c"), 1510516839, 0x18021abd }
+    { 504000, uint256("0000000000000000006cdeece5716c9c700f34ad98cb0ed0ad2c5767bbe0bc8c"), 1510516839, 0x18021abd },
+    { 524160, uint256("0000000000000000003f40db0a3ed4b4d82b105e212166b2db498d5688bac60f"), 1522711454, 0x18033b64 }
 };
 
-static const BRMerkleBlock *_medianBlock(const BRMerkleBlock *b0, const BRSet *blockSet)
+static const BRMerkleBlock *_medianBlock(const BRMerkleBlock *b, const BRSet *blockSet)
 {
-    const BRMerkleBlock *b, *b1 = NULL, *b2 = NULL;
+    const BRMerkleBlock *b0 = NULL, *b1 = NULL, *b2 = b;
 
-    b1 = (b0) ? BRSetGet(blockSet, &b0->prevBlock) : NULL;
-    b2 = (b1) ? BRSetGet(blockSet, &b1->prevBlock) : NULL;
+    b1 = (b2) ? BRSetGet(blockSet, &b2->prevBlock) : NULL;
+    b0 = (b1) ? BRSetGet(blockSet, &b1->prevBlock) : NULL;
     if (b0 && b2 && b0->timestamp > b2->timestamp) b = b0, b0 = b2, b2 = b;
     if (b0 && b1 && b0->timestamp > b1->timestamp) b = b0, b0 = b1, b1 = b;
     if (b1 && b2 && b1->timestamp > b2->timestamp) b = b1, b1 = b2, b2 = b;
@@ -99,50 +100,60 @@ static const BRMerkleBlock *_medianBlock(const BRMerkleBlock *b0, const BRSet *b
 
 static int BRBCashVerifyDifficulty(const BRMerkleBlock *block, const BRSet *blockSet)
 {
-    int size, i, r = 1;
     const BRMerkleBlock *b, *first, *last;
-    uint64_t target = 0, work = 0;
-    uint32_t time;
+    int i, sz, size = 0x1d;
+    uint64_t t, target, w, work = 0;
+    int64_t timespan;
 
     assert(block != NULL);
     assert(blockSet != NULL);
     
-    if (block->height >= 504032) { // D601 hard fork height: https://reviews.bitcoinabc.org/D601
-        first = (block) ? BRSetGet(blockSet, &block->prevBlock) : NULL;
-        first = _medianBlock(first, blockSet);
-        
-        for (i = 0, last = block; last && i < 144; i++) {
-            last = BRSetGet(blockSet, &last->prevBlock);
+    if (block && block->height >= 504032) { // D601 hard fork height: https://reviews.bitcoinabc.org/D601
+        last = BRSetGet(blockSet, &block->prevBlock);
+        last = _medianBlock(last, blockSet);
+
+        for (i = 0, first = block; first && i <= 144; i++) {
+            first = BRSetGet(blockSet, &first->prevBlock);
         }
 
-        last = _medianBlock(last, blockSet);
-        time = (first && last) ? first->timestamp - last->timestamp : 0;
-        if (time > 288*10*60) time = 288*10*60;
-        if (time < 72*10*60) time = 72*10*60;
+        first = _medianBlock(first, blockSet);
 
-        for (b = first; b && b != last;) {
-            b = BRSetGet(blockSet, &b->prevBlock);
+        if (! first) return 1;
+        timespan = (int64_t)last->timestamp - first->timestamp;
+        if (timespan > 288*10*60) timespan = 288*10*60;
+        if (timespan < 72*10*60) timespan = 72*10*60;
+        
+        for (b = last; b != first;) {
+            // target is in "compact" format, where the most significant byte is the size of the value in bytes, next
+            // bit is the sign, and the last 23 bits is the value after having been right shifted by (size - 3)*8 bits
+            sz = b->target >> 24, t = b->target & 0x007fffff;
             
             // work += 2^256/(target + 1)
-            size = (b) ? b->target >> 24 : 0;
-            target = (b) ? b->target & 0x007fffff : 0;
-            work += (1ULL << (32 - size)*8) - (target + 1);
+            w = (t) ? ~0ULL/t : ~0ULL;
+            while (sz < size) work >>= 8, size--;
+            while (size < sz) w >>= 8, sz--;
+            while (work + w < w) w >>= 8, work >>= 8, size--;
+            work += w;
+            
+            b = BRSetGet(blockSet, &b->prevBlock);
         }
 
-        // work = work*10*60/time
-        work = work*10*60/time;
+        // work = work*10*60/timespan
+        while (work > ~0ULL/(10*60)) work >>= 8, size--;
+        work = work*10*60/timespan;
 
         // target = (2^256/work) - 1
-        size = 0;
-        while (((work + 1) >> size*8) != 0) size++;
-        target = (1ULL << (32 - size)*8) - (work + 1);
-        target |= ((32 - size) << 24);
+        while (work && ~0ULL/work < 0x8000) work >>= 8, size--;
+        target = (work) ? ~0ULL/work : ~0ULL;
+        
+        while (size < 1 || target > 0x007fffff) target >>= 8, size++; // normalize target for "compact" format
+        target |= size << 24;
         
         if (target > 0x1d00ffff) target = 0x1d00ffff; // max proof-of-work
-        if (first && last && block->target != target) r = 1;
+        if (target - block->target > 1) return 0;
     }
-        
-    return r;
+    
+    return 1;
 }
 
 static int BRBCashTestNetVerifyDifficulty(const BRMerkleBlock *block, const BRSet *blockSet)

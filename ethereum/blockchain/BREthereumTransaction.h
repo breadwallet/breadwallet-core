@@ -150,15 +150,10 @@ transactionExtractAddress(BREthereumTransaction transaction,
 //
 // Transaction RLP Encoding
 //
-typedef enum {
-    TRANSACTION_RLP_SIGNED,
-    TRANSACTION_RLP_UNSIGNED
-} BREthereumTransactionRLPType;
-
 extern BREthereumTransaction
 transactionRlpDecode (BRRlpItem item,
                       BREthereumNetwork network,
-                      BREthereumTransactionRLPType type,
+                      BREthereumRlpType type,
                       BRRlpCoder coder);
 
 /**
@@ -169,7 +164,7 @@ transactionRlpDecode (BRRlpItem item,
 extern BRRlpItem
 transactionRlpEncode(BREthereumTransaction transaction,
                      BREthereumNetwork network,
-                     BREthereumTransactionRLPType type,
+                     BREthereumRlpType type,
                      BRRlpCoder coder);
 
 extern void

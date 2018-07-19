@@ -22,17 +22,21 @@ class CoreTests: XCTestCase {
         BRRunTests()
     }
 
-    func testEthereum() {
- //       runTests()
+    func testEthereumBasics() {
+        runTests(0)
     }
 
     func testLES () {
         runLEStests()
     }
-    
-    func testPerformanceExample() {
-        self.measure {
-        }
+
+    func testEthereumSync () {
+        runSyncTest (5 * 60, 0);
+        runSyncTest (1 * 60, 1);
     }
     
+//    func testPerformanceExample() {
+//        self.measure {
+//        }
+//    }
 }

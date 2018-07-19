@@ -107,7 +107,7 @@ transactionReceiptLogsRlpEncode (BREthereumTransactionReceipt log,
     BRRlpItem items[itemsCount];
     
     for (int i = 0; i < itemsCount; i++)
-        items[i] = logRlpEncode(log->logs[i], coder);
+        items[i] = logRlpEncode(log->logs[i], RLP_TYPE_NETWORK, coder);
     
     return rlpEncodeListItems(coder, items, itemsCount);
 }
@@ -122,7 +122,7 @@ transactionReceiptLogsRlpDecode (BRRlpItem item,
     array_new(logs, itemsCount);
 
     for (int i = 0; i < itemsCount; i++) {
-        BREthereumLog log = logRlpDecode(items[i], coder);
+        BREthereumLog log = logRlpDecode(items[i], RLP_TYPE_NETWORK, coder);
         array_add(logs, log);
     }
 

@@ -186,6 +186,13 @@ walletCreateHoldingToken(BREthereumAccount account,
      token);
 }
 
+extern void
+walletRelease (BREthereumWallet wallet) {
+    // TODO: Release 'transactions'
+    array_free(wallet->transactions);
+    free (wallet);
+}
+
 //
 // Transaction
 //
@@ -295,7 +302,7 @@ walletSignTransaction(BREthereumWallet wallet,
     
     // RLP Encode the UNSIGNED transaction
     BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = transactionRlpEncode (transaction, wallet->network, TRANSACTION_RLP_UNSIGNED, coder);
+    BRRlpItem item = transactionRlpEncode (transaction, wallet->network, RLP_TYPE_TRANSACTION_UNSIGNED, coder);
     BRRlpData data = rlpGetData(coder, item);
 
     // Sign the RLP Encoded bytes.
@@ -328,7 +335,7 @@ walletSignTransactionWithPrivateKey(BREthereumWallet wallet,
     
     // RLP Encode the UNSIGNED transaction
     BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = transactionRlpEncode (transaction, wallet->network, TRANSACTION_RLP_UNSIGNED, coder);
+    BRRlpItem item = transactionRlpEncode (transaction, wallet->network, RLP_TYPE_TRANSACTION_UNSIGNED, coder);
     BRRlpData data = rlpGetData(coder, item);
 
     // Sign the RLP Encoded bytes.
@@ -354,8 +361,8 @@ walletGetRawTransaction(BREthereumWallet wallet,
     BRRlpItem item = transactionRlpEncode (transaction,
                                            wallet->network,
                                            (ETHEREUM_BOOLEAN_TRUE == transactionIsSigned(transaction)
-                                            ? TRANSACTION_RLP_SIGNED
-                                            : TRANSACTION_RLP_UNSIGNED),
+                                            ? RLP_TYPE_TRANSACTION_SIGNED
+                                            : RLP_TYPE_TRANSACTION_UNSIGNED),
                                            coder);
     BRRlpData data = rlpGetData(coder, item);
     rlpCoderRelease(coder);
