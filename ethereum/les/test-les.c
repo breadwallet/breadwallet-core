@@ -497,7 +497,7 @@ static void run_GetBlockBodies_Tests(BREthereumLES les){
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX].hash);
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX + 1].hash);
     
-    assert(lesGetBlockBodies(les, (void *)&_GetTxStatus_Context2, _GetBlockBodies_Callback_Test2, blockHeaders) == LES_SUCCESS);
+    assert(lesGetBlockBodies(les, (void *)&_GetBlockBodies_Context2, _GetBlockBodies_Callback_Test2, blockHeaders) == LES_SUCCESS);
     
     //Wait for a little bit to get a reply back from the server.
     sleep(60);
@@ -659,8 +659,8 @@ void runLEStests(void) {
     _initBlockHeaderTestData();
     
     // Run Tests on the LES messages
-    run_GetTxStatus_Tests(les);
-    //    run_GetBlockHeaders_Tests(les);
+     run_GetTxStatus_Tests(les);
+    // run_GetBlockHeaders_Tests(les);
     //    run_GetBlockBodies_Tests(les);
     //    run_GetReceipts_Tests(les);
     run_GetProofsV2_Tests(les);
