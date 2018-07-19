@@ -339,7 +339,7 @@ static void run_GetBlockHeaders_Tests(BREthereumLES les){
     assert(lesGetBlockHeaders(les, (void*)&_GetBlockHeaders_Context4, _GetBlockHeaders_Calllback_Test4, _blockHeaderTestData[BLOCK_4732522_IDX].blockNum, 2, 1, ETHEREUM_BOOLEAN_TRUE) == LES_SUCCESS);
     
     //Wait for a little bit to get a reply back from the server.
-    sleep(60);
+    sleep(1800);
 }
 
 //
@@ -347,6 +347,7 @@ static void run_GetBlockHeaders_Tests(BREthereumLES les){
 //
 static const int _GetTxStatus_Context1 = 1;
 static const int _GetTxStatus_Context2 = 2;
+
 static void _GetTxStatus_Test2_Callback(BREthereumLESTransactionStatusContext context,
                                         BREthereumHash transaction,
                                         BREthereumTransactionStatus status){
@@ -434,7 +435,7 @@ static void run_GetTxStatus_Tests(BREthereumLES les){
     assert(lesGetTransactionStatus(les, (void *)&_GetTxStatus_Context2, _GetTxStatus_Test2_Callback, transactions) == LES_SUCCESS);
     
     //Wait for a little bit to get a reply back from the server.
-    sleep(5);
+    sleep(20);
     
 }
 //
@@ -497,7 +498,7 @@ static void run_GetBlockBodies_Tests(BREthereumLES les){
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX].hash);
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX + 1].hash);
     
-    assert(lesGetBlockBodies(les, (void *)&_GetTxStatus_Context2, _GetBlockBodies_Callback_Test2, blockHeaders) == LES_SUCCESS);
+//    assert(lesGetBlockBodies(les, (void *)&_GetTxStatus_Context2, _GetBlockBodies_Callback_Test2, blockHeaders) == LES_SUCCESS);
     
     //Wait for a little bit to get a reply back from the server.
     sleep(60);
@@ -593,7 +594,7 @@ static void run_fullBlockSync_Test1(BREthereumLES les) {
     //Request block headers [0...1000]
     for(int i = 0; i < 10000; i+= 180) {
         assert(lesGetBlockHeaders(les, les, _fullBlockHeaders_Calllback_Test, i, 180, 0, ETHEREUM_BOOLEAN_FALSE) == LES_SUCCESS);
-        sleep(30);
+        sleep(3);
     }
     sleep(1800);
 }
@@ -656,15 +657,15 @@ void runLEStests(void) {
     sleep(3);
     
     //Initialize data needed for tests
-    _initBlockHeaderTestData();
+   // _initBlockHeaderTestData();
     
     //Run Tests on the LES messages
-      run_GetTxStatus_Tests(les);
-   //  run_GetBlockHeaders_Tests(les);
-   //  run_GetBlockBodies_Tests(les);
-   //   run_GetReceipts_Tests(les);
-    // run_GetProofsV2_Tests(les);
-    //reallySendLESTransaction(les);
-     //   run_fullBlockSync_Test1(les);
+   // run_GetTxStatus_Tests(les);
+   // run_GetBlockHeaders_Tests(les);
+   // run_GetBlockBodies_Tests(les);
+   // run_GetReceipts_Tests(les);
+   // run_GetProofsV2_Tests(les);
+   // reallySendLESTransaction(les);
+   // run_fullBlockSync_Test1(les);
 }
 

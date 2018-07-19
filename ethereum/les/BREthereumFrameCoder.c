@@ -32,6 +32,7 @@
 #include "../rlp/BRRlpCoder.h"
 #include "BRArray.h"
 #include "BRBIP38Key.h"
+#include "BRKeccak.h"
 #define UINT256_SIZE 32
 
 #define HEADER_LEN 16
@@ -46,16 +47,10 @@ struct BREthereumFrameCoderContext {
     UInt256 macSecretKey;
     
     // Ingress ciphertext
-    uint8_t* ingressMac;
-    
-    // Ingress ciphertext size
-    size_t ingressMacSize;
+    BRKeccak ingressMac;
     
     // Egress ciphertext
-    uint8_t* egressMac;
-    
-    // Egress ciphertext size
-    size_t egressMacSize;
+    BRKeccak egressMac;
     
     //IV for the AES-CTR
     UInt128 ivEnc, ivDec;
@@ -66,7 +61,6 @@ struct BREthereumFrameCoderContext {
     //AES Cipher Total Amount
     size_t aesEncryptCipherLen;
 
-    
     //Decrypty Key for AES-CTR frame
     uint8_t* aesDecryptKey;
     
@@ -325,18 +319,16 @@ BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fcoder,
     array_add_array(gressBytes, egressCipher, egressCipherLen);
     
     // egress-mac = sha3.update(mac-secret ^ initiator-nonce || auth-sent-ack)
-    array_new(fcoder->egressMac, egressBytesLen);
-    array_add_array(fcoder->egressMac, gressBytes, egressBytesLen);
-    fcoder->egressMacSize = egressBytesLen;
+    fcoder->egressMac = keccak_create256();
+    keccak_update(fcoder->egressMac, gressBytes, egressBytesLen);
     
     size_t ingressBytesLen = 32 + ingressCipherLen;
     array_insert_array(gressBytes, 0, xORMacNonceIngress.u8, 32);
     array_insert_array(gressBytes, 32, ingressCipher, ingressCipherLen);
     
     // ingress-mac = sha3.update(mac-secret ^ recipient-nonce || auth-recvd-init)
-    array_new(fcoder->ingressMac, ingressBytesLen);
-    array_add_array(fcoder->ingressMac, gressBytes, ingressBytesLen);
-    fcoder->ingressMacSize = ingressBytesLen;
+    fcoder->ingressMac = keccak_create256();
+    keccak_update(fcoder->ingressMac, gressBytes, ingressBytesLen);
     
     //Destroy secrets & nonces.
     var_clean(localNonce->u8,remoteNonce->u8, keyMaterial);
@@ -351,34 +343,32 @@ void ethereumFrameCoderRelease(BREthereumFrameCoder coder) {
 void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, size_t payloadSize, uint8_t** rlpBytes, size_t * rlpBytesSize) {
 
     uint8_t headerPlain[HEADER_LEN] = {(uint8_t)((payloadSize >> 16) & 0xff), (uint8_t)((payloadSize >> 8) & 0xff), (uint8_t)(payloadSize & 0xff), 0xc2, 0x80, 0x80, 0};
-
+    
     uint8_t headerCipher[HEADER_LEN];
     fCoder->aesEncryptCipherLen += HEADER_LEN;
     BRAESCTR_OFFSET(headerCipher, HEADER_LEN, fCoder->aesEncryptKey, 32, fCoder->ivEnc.u8, headerPlain, fCoder->aesEncryptCipherLen);
     
-    
     // Encrypt HEADER-MAC
-    UInt256 egressDigest;
-    BRKeccak256(egressDigest.u8, fCoder->egressMac , fCoder->egressMacSize);
-    
+    uint8_t egressDigest[32];
+    keccak_digest(fCoder->egressMac, egressDigest);
+
     uint8_t macSecret[HEADER_LEN];
-    memcpy(macSecret, egressDigest.u8, HEADER_LEN);
+    memcpy(macSecret, egressDigest, HEADER_LEN);
    _BRAES256ECBEncrypt(fCoder->macSecretKey.u8, macSecret);
+   
     uint8_t xORMacCipher[16];
     ethereumXORBytes(macSecret, headerCipher, xORMacCipher, 16);
-    array_add_array(fCoder->egressMac, xORMacCipher, 16);
-    fCoder->egressMacSize += 16;
+
+    keccak_update(fCoder->egressMac, xORMacCipher, 16);
     
-    BRKeccak256(egressDigest.u8, fCoder->egressMac , fCoder->egressMacSize);
+    keccak_digest(fCoder->egressMac, egressDigest);
+
     uint8_t headerMac[16];
-    memcpy(headerMac, egressDigest.u8, 16);
+    memcpy(headerMac, egressDigest, 16);
 
     //Allocate the oBytes and oBytesSize
     size_t payloadPadding = (16 - (payloadSize % 16)) % 16;
     size_t oBytesSize = 32 + payloadSize + payloadPadding + 16; // header_cipher + headerMac + payload + padding + frameMac
-   /* eth_log("FrameCoder", "Frame PayloadSize:%d", payloadSize);
-    eth_log("FrameCoder", "Frame Padding:%d", payloadPadding);
-    eth_log("FrameCoder", "Frame Total:%d", oBytesSize); */
     
     uint8_t * oBytes = (uint8_t*)malloc(oBytesSize);
 
@@ -399,20 +389,22 @@ void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, si
     fCoder->aesEncryptCipherLen += frameDataSize;
     BRAESCTR_OFFSET(frameCipher, frameDataSize, fCoder->aesEncryptKey, 32, fCoder->ivEnc.u8, frameData, fCoder->aesEncryptCipherLen);
     
-    array_add_array(fCoder->egressMac, frameCipher, payloadSize + payloadPadding);
-    fCoder->egressMacSize += (payloadPadding + payloadSize);
-
-    BRKeccak256(egressDigest.u8, fCoder->egressMac , fCoder->egressMacSize);
+    keccak_update(fCoder->egressMac, frameCipher, payloadSize + payloadPadding);
+    
+    keccak_digest(fCoder->egressMac, egressDigest);
+    
     uint8_t fmac_seed[16];
-    memcpy(fmac_seed, egressDigest.u8, 16);
-    memcpy(macSecret, egressDigest.u8, 16);
+    memcpy(fmac_seed, egressDigest, 16);
+    memcpy(macSecret, egressDigest, 16);
+    
     _BRAES256ECBEncrypt(fCoder->macSecretKey.u8, macSecret);
     ethereumXORBytes(macSecret, fmac_seed, xORMacCipher, 16);
-    array_add_array(fCoder->egressMac, xORMacCipher, 16);
-    fCoder->egressMacSize += 16;
 
-    BRKeccak256(egressDigest.u8, fCoder->egressMac , fCoder->egressMacSize);
-    memcpy(&oBytes[32 + payloadSize + payloadPadding],egressDigest.u8, 16);
+    keccak_update(fCoder->egressMac, xORMacCipher, 16);
+    
+    keccak_digest(fCoder->egressMac, egressDigest);
+
+    memcpy(&oBytes[32 + payloadSize + payloadPadding],egressDigest, 16);
     
     *rlpBytes = oBytes;
     *rlpBytesSize = oBytesSize;
@@ -427,21 +419,24 @@ BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fCoder, u
     uint8_t* headerMac = &oBytes[HEADER_LEN];
     
     uint8_t mac_secret[HEADER_LEN];
-    UInt256 ingressDigest;
-    BRKeccak256(ingressDigest.u8, fCoder->ingressMac , fCoder->ingressMacSize);
-    memcpy(mac_secret, ingressDigest.u8, HEADER_LEN);
-
+    uint8_t ingressDigest[32];
+    
+    //Digest the ingressMac and store it in mac_secret
+    keccak_digest(fCoder->ingressMac, ingressDigest);
+    memcpy(mac_secret, ingressDigest, HEADER_LEN);
+    
     _BRAES256ECBEncrypt(fCoder->macSecretKey.u8, mac_secret);
 
     uint8_t xORMacCipher[HEADER_LEN];
     ethereumXORBytes(mac_secret, headerCipher, xORMacCipher, HEADER_LEN);
-    array_add_array(fCoder->ingressMac, xORMacCipher, HEADER_LEN);
-    fCoder->ingressMacSize += HEADER_LEN;
+    
+    keccak_update(fCoder->ingressMac, xORMacCipher, HEADER_LEN);
     
     uint8_t headerMacExpected[HEADER_LEN];
-    BRKeccak256(ingressDigest.u8, fCoder->ingressMac , fCoder->ingressMacSize);
-    memcpy(headerMacExpected, ingressDigest.u8, HEADER_LEN);
     
+    keccak_digest(fCoder->ingressMac, ingressDigest);
+    memcpy(headerMacExpected, ingressDigest, HEADER_LEN);
+
     if(memcmp(headerMacExpected, headerMac, HEADER_LEN) != 0) {
         return ETHEREUM_BOOLEAN_FALSE;
     }
@@ -456,27 +451,27 @@ BREthereumBoolean ethereumFrameCoderDecryptFrame(BREthereumFrameCoder fCoder, ui
 
     uint8_t* frameCipherText = oBytes;
     uint8_t* frameMac = &oBytes[outSize - MAC_LEN];
-    array_add_array(fCoder->ingressMac, frameCipherText, outSize - MAC_LEN);
-    fCoder->ingressMacSize += (outSize - MAC_LEN);
+
+    keccak_update(fCoder->ingressMac, frameCipherText, outSize - MAC_LEN);
     
     uint8_t fmacSeed[16];
     uint8_t fmacSeedEncrypt[16];
 
-    UInt256 ingressDigest;
-    BRKeccak256(ingressDigest.u8, fCoder->ingressMac , fCoder->ingressMacSize);
-    memcpy(fmacSeed, ingressDigest.u8, 16);
-    memcpy(fmacSeedEncrypt, ingressDigest.u8, 16);
-
-     uint8_t xORMacCipher[16];
+    uint8_t ingressDigest[32];
+   
+    keccak_digest(fCoder->ingressMac, ingressDigest);
+    memcpy(fmacSeed, ingressDigest, 16);
+    memcpy(fmacSeedEncrypt, ingressDigest, 16);
+   
+    uint8_t xORMacCipher[16];
     _BRAES256ECBEncrypt(fCoder->macSecretKey.u8, fmacSeedEncrypt);
     ethereumXORBytes(fmacSeedEncrypt,fmacSeed, xORMacCipher, 16);
-    array_add_array(fCoder->ingressMac, xORMacCipher, 16);
-    fCoder->ingressMacSize += 16;
     
-
+    keccak_update(fCoder->ingressMac, xORMacCipher, 16);
+    
     uint8_t framMacExpected[16];
-    BRKeccak256(ingressDigest.u8, fCoder->ingressMac , fCoder->ingressMacSize);
-    memcpy(framMacExpected, ingressDigest.u8, 16);
+    keccak_digest(fCoder->ingressMac, ingressDigest);
+    memcpy(framMacExpected, ingressDigest, 16);
     
     if(memcmp(framMacExpected, frameMac, 16) != 0) {
         return ETHEREUM_BOOLEAN_FALSE;
@@ -501,6 +496,8 @@ BREthereumBoolean ethereumFrameCoderDecryptFrame(BREthereumFrameCoder fCoder, ui
 
 extern int testFrameCoderInitiator(BREthereumFrameCoder fCoder) {
 
+    //TODO: THIS TEST IS BROKEN NEEDS TO BE FIXED
+
     //Check to ensure AES_SECRET is valid
     uint8_t aesSecret[32];
     decodeHex(aesSecret, 32, AES_SECRET, 64);
@@ -519,17 +516,19 @@ extern int testFrameCoderInitiator(BREthereumFrameCoder fCoder) {
     //INITIAL_EGRESS_MAC
     uint8_t initialEgressMac[32];
     decodeHex(initialEgressMac, 32, INITIAL_EGRESS_MAC, 64);
-    UInt256 egressDigest;
-    BRKeccak256(egressDigest.u8, fCoder->egressMac , fCoder->egressMacSize);
-    assert(memcmp(initialEgressMac,egressDigest.u8, 32) == 0);
+    uint8_t egressDigest[32];
+    
+    keccak_digest(fCoder->egressMac, egressDigest);
+    assert(memcmp(initialEgressMac,egressDigest, 32) == 0);
     
 
     //INITIAL_INGRESS_MAC
     uint8_t initialIngressMac[32];
     decodeHex(initialIngressMac, 32, INITIAL_INGRESS_MAC, 64);
-    UInt256 ingressDigest;
-    BRKeccak256(ingressDigest.u8, fCoder->ingressMac , fCoder->ingressMacSize);
-    assert(memcmp(initialIngressMac,ingressDigest.u8, 32) == 0);
+    uint8_t ingressDigest[32];
+    keccak_digest(fCoder->ingressMac, ingressDigest);
+    
+    assert(memcmp(initialIngressMac,ingressDigest, 32) == 0);
 
     return 0;
 }
@@ -553,17 +552,17 @@ extern int testFrameCoderReceiver(BREthereumFrameCoder fCoder) {
     //INITIAL_EGRESS_MAC
     uint8_t initialEgressMac[32];
     decodeHex(initialEgressMac, 32, INITIAL_INGRESS_MAC, 64);
-    UInt256 egressDigest;
-    BRKeccak256(egressDigest.u8, fCoder->egressMac , fCoder->egressMacSize);
-    assert(memcmp(initialEgressMac,egressDigest.u8, 32) == 0);
+    uint8_t egressDigest[32];
+    keccak_digest(fCoder->egressMac, egressDigest);
+    assert(memcmp(initialEgressMac,egressDigest, 32) == 0);
     
 
     //INITIAL_INGRESS_MAC
     uint8_t initialIngressMac[32];
     decodeHex(initialIngressMac, 32, INITIAL_EGRESS_MAC, 64);
-    UInt256 ingressDigest;
-    BRKeccak256(ingressDigest.u8, fCoder->ingressMac , fCoder->ingressMacSize);
-    assert(memcmp(initialIngressMac,ingressDigest.u8, 32) == 0);
+    uint8_t ingressDigest[32];
+    keccak_digest(fCoder->ingressMac , ingressDigest);
+    assert(memcmp(initialIngressMac,ingressDigest, 32) == 0);
 
     return 0;
 }

@@ -88,6 +88,7 @@
 		3CAB613020B347B300810CE4 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB612720B347B200810CE4 /* Constants.swift */; };
 		3CAB613220B34EFF00810CE4 /* BREthereumEther.h in Headers */ = {isa = PBXBuildFile; fileRef = 3C2A53AD20AF595400C430F6 /* BREthereumEther.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		3CAB613320B3536000810CE4 /* test-les.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A538920AF595400C430F6 /* test-les.c */; };
+		CA92F7902100F9CA0015C966 /* BRKeccak.c in Sources */ = {isa = PBXBuildFile; fileRef = CA92F78F2100F9CA0015C966 /* BRKeccak.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -289,6 +290,8 @@
 		3CAB612520B347B200810CE4 /* Support.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Support.swift; path = BRCore/Support.swift; sourceTree = SOURCE_ROOT; };
 		3CAB612620B347B200810CE4 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = BRCore/Info.plist; sourceTree = SOURCE_ROOT; };
 		3CAB612720B347B200810CE4 /* Constants.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Constants.swift; path = BRCore/Constants.swift; sourceTree = SOURCE_ROOT; };
+		CA92F78E2100F9CA0015C966 /* BRKeccak.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRKeccak.h; sourceTree = "<group>"; };
+		CA92F78F2100F9CA0015C966 /* BRKeccak.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRKeccak.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -359,6 +362,8 @@
 				3C2A537C20AF595400C430F6 /* BRUtilMathParse.c */,
 				3C2A537A20AF595400C430F6 /* BRUtilHex.h */,
 				3C2A537E20AF595400C430F6 /* BRUtilHex.c */,
+				CA92F78E2100F9CA0015C966 /* BRKeccak.h */,
+				CA92F78F2100F9CA0015C966 /* BRKeccak.c */,
 			);
 			name = util;
 			path = ../../ethereum/util;
@@ -842,6 +847,7 @@
 				3C3B37FD20D82335004F9928 /* BREventAlarm.c in Sources */,
 				3CAB60CA20AF8D1A00810CE4 /* BREthereumFrameCoder.c in Sources */,
 				3CAB60CB20AF8D1A00810CE4 /* BREthereumNode.c in Sources */,
+				CA92F7902100F9CA0015C966 /* BRKeccak.c in Sources */,
 				3CAB60CC20AF8D1A00810CE4 /* BREthereumLESBase.c in Sources */,
 				3CAB60CD20AF8D1A00810CE4 /* BREthereumEWM.c in Sources */,
 				3CAB60D120AF8D1A00810CE4 /* BRRlpCoder.c in Sources */,
