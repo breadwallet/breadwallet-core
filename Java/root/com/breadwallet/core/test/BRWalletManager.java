@@ -461,16 +461,6 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println ("            decrypted data : " + Arrays.toString(decryptedBytes));
         asserting (Arrays.equals(sampleInputData, decryptedBytes));
 
-        // Share Key
-        System.out.println("        Shared Key:");
-        BRCoreKey sharedKey = privKey.createSharedSecretKey(publicKeyBytes);
-        encryptedBytes = sharedKey.encryptNative(sampleInputData, nonce);
-        decryptedBytes = sharedKey.decryptNative(encryptedBytes, nonce);
-        System.out.println ("            sample    data : " + Arrays.toString(sampleInputData));
-        System.out.println ("            encrypted data : " + Arrays.toString(encryptedBytes));
-        System.out.println ("            decrypted data : " + Arrays.toString(decryptedBytes));
-        asserting (Arrays.equals(sampleInputData, decryptedBytes));
-
         //
         System.out.println("        Shared Key Encrypt/Decrypt:");
         byte[] encryptedBytesShared = privKey.encryptUsingSharedSecret(publicKeyBytes, sampleInputData, nonce);

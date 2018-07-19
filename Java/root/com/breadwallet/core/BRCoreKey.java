@@ -144,6 +144,10 @@ public class BRCoreKey extends BRCoreJniReference {
 
     private static native long createKeyRecoverCompactSign (byte[] data, byte[] signature);
 
+    public static BRCoreKey compactSignRecoverKey (byte[] data, byte[] signature) {
+        return new BRCoreKey(createKeyRecoverCompactSign (data, signature));
+    }
+
     /**
      *
      * @param data
@@ -160,27 +164,6 @@ public class BRCoreKey extends BRCoreJniReference {
      */
     public native byte[] decryptNative(byte[] data, byte[] nonce);
 
-
-    public static BRCoreKey compactSignRecoverKey (byte[] data, byte[] signature) {
-        return new BRCoreKey(createKeyRecoverCompactSign (data, signature));
-    }
-
-    private native long createSharedSecret (byte[] publicKey);
-
-    /**
-     * Create a 'shared secret' key from `this` as the private key and with `publicKey` as the 33
-     * or 65 byte public key.  If 33 bytes, then `publicKey` is a 02 or 03 prefaced 32 byte
-     * compressed key; if 65 bytes, then `publicKey` is a 04 prefaced uncompressed key.
-     *
-     * This method fatals if public key does not have 33 or 65 bytes.
-     *
-     * @param publicKey
-     * @return
-     */
-    public BRCoreKey createSharedSecretKey (byte[] publicKey) {
-        return new BRCoreKey(createSharedSecret(publicKey));
-
-    }
 
     public native byte[] encryptUsingSharedSecret (byte[] publicKey, byte[] message, byte[] nonce);
     public native byte[] decryptUsingSharedSecret (byte[] publicKey, byte[] bytes, byte[] nonce);
