@@ -142,7 +142,7 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t me
             if(remoteStatus == BRE_LES_CODER_SUCCESS)
             {
                 eth_log(ETH_LOG_TOPIC, "%s", "Received Announce message from Remote peer");
-                les->announceFunc(les->announceCtx, hash, headNumber, headTd);
+                les->announceFunc(les->announceCtx, hash, headNumber, headTd, reorgDepth);
                 //TODO: Check to make sure peerStatus is valid after update. 
             }
         }
