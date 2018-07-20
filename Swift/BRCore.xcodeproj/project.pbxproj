@@ -77,7 +77,6 @@
 		3CAB60FF20AF936300810CE4 /* BRCore.h in Headers */ = {isa = PBXBuildFile; fileRef = 3CAB60F120AF936200810CE4 /* BRCore.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		3CAB610B20AF938E00810CE4 /* libCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CAB609B20AF8C5D00810CE4 /* libCore.a */; };
 		3CAB611D20B347A200810CE4 /* BRCore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB611B20B347A200810CE4 /* BRCore.swift */; };
-		3CAB611E20B347A200810CE4 /* BREthereum.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB611C20B347A200810CE4 /* BREthereum.swift */; };
 		3CAB612820B347B300810CE4 /* UserDefaults+Additions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB611F20B347B200810CE4 /* UserDefaults+Additions.swift */; };
 		3CAB612920B347B300810CE4 /* FeeUpdater.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB612020B347B200810CE4 /* FeeUpdater.swift */; };
 		3CAB612A20B347B300810CE4 /* Environment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB612120B347B200810CE4 /* Environment.swift */; };
@@ -89,6 +88,8 @@
 		3CAB613220B34EFF00810CE4 /* BREthereumEther.h in Headers */ = {isa = PBXBuildFile; fileRef = 3C2A53AD20AF595400C430F6 /* BREthereumEther.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		3CAB613320B3536000810CE4 /* test-les.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A538920AF595400C430F6 /* test-les.c */; };
 		CA92F7902100F9CA0015C966 /* BRKeccak.c in Sources */ = {isa = PBXBuildFile; fileRef = CA92F78F2100F9CA0015C966 /* BRKeccak.c */; };
+		3CDA7648210015A5005F4CF8 /* BREthereum.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB611C20B347A200810CE4 /* BREthereum.swift */; };
+		3CDA764B210138B3005F4CF8 /* BREthereumEWMClientEvent.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CDA764A210138B2005F4CF8 /* BREthereumEWMClientEvent.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -292,6 +293,7 @@
 		3CAB612720B347B200810CE4 /* Constants.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Constants.swift; path = BRCore/Constants.swift; sourceTree = SOURCE_ROOT; };
 		CA92F78E2100F9CA0015C966 /* BRKeccak.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRKeccak.h; sourceTree = "<group>"; };
 		CA92F78F2100F9CA0015C966 /* BRKeccak.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRKeccak.c; sourceTree = "<group>"; };
+		3CDA764A210138B2005F4CF8 /* BREthereumEWMClientEvent.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumEWMClientEvent.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -347,7 +349,6 @@
 				3C2A537F20AF595400C430F6 /* les */,
 				3C2A539E20AF595400C430F6 /* ewm */,
 				3C2A539720AF595400C430F6 /* rlp */,
-				3C2A53A620AF595400C430F6 /* test.c */,
 				3C2A537820AF595400C430F6 /* util */,
 			);
 			name = ethereum;
@@ -435,8 +436,9 @@
 				3C2A53A020AF595400C430F6 /* BREthereumEWM.h */,
 				3C2A53A320AF595400C430F6 /* BREthereumEWMPrivate.h */,
 				3C2A53A220AF595400C430F6 /* BREthereumEWM.c */,
-				3C386DD120C6F6060065E355 /* BREthereumEWMClient.c */,
 				3C386DD220C6F6070065E355 /* BREthereumEWMEvent.c */,
+				3C386DD120C6F6060065E355 /* BREthereumEWMClient.c */,
+				3CDA764A210138B2005F4CF8 /* BREthereumEWMClientEvent.c */,
 			);
 			name = ewm;
 			path = ../../ethereum/ewm;
@@ -541,6 +543,7 @@
 			isa = PBXGroup;
 			children = (
 				3C2A537620AF592300C430F6 /* ethereum */,
+				3C2A53A620AF595400C430F6 /* test.c */,
 				3C42EF512095143D000E58E0 /* module.modulemap */,
 				3C590F3B20950C720005597B /* bcash */,
 				3C590F3420950C720005597B /* BRAddress.c */,
@@ -864,6 +867,7 @@
 				3CAB60DC20AF8D1A00810CE4 /* BRBloomFilter.c in Sources */,
 				3CAB60DD20AF8D1A00810CE4 /* BRCrypto.c in Sources */,
 				3CAB60DE20AF8D1A00810CE4 /* BRKeyECIES.c in Sources */,
+				3CDA764B210138B3005F4CF8 /* BREthereumEWMClientEvent.c in Sources */,
 				3CAB60DF20AF8D1A00810CE4 /* BRKey.c in Sources */,
 				3CAB60E020AF8D1A00810CE4 /* BRMerkleBlock.c in Sources */,
 				3CAB60E120AF8D1A00810CE4 /* BRPaymentProtocol.c in Sources */,
@@ -896,8 +900,8 @@
 				3CAB612B20B347B300810CE4 /* Currency.swift in Sources */,
 				3CAB612920B347B300810CE4 /* FeeUpdater.swift in Sources */,
 				3CAB612D20B347B300810CE4 /* Strings.swift in Sources */,
-				3CAB611E20B347A200810CE4 /* BREthereum.swift in Sources */,
 				3CAB612C20B347B300810CE4 /* Rate.swift in Sources */,
+				3CDA7648210015A5005F4CF8 /* BREthereum.swift in Sources */,
 				3CAB613020B347B300810CE4 /* Constants.swift in Sources */,
 				3CAB612820B347B300810CE4 /* UserDefaults+Additions.swift in Sources */,
 				3CAB611D20B347A200810CE4 /* BRCore.swift in Sources */,

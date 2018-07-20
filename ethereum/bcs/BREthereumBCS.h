@@ -127,7 +127,7 @@ typedef struct {
     BREthereumBCSCallbackLog logCallback;
     BREthereumBCSCallbackSaveBlocks saveBlocksCallback;
     BREthereumBCSCallbackSavePeers savePeersCallback;
-    BREthereumBCSCallbackSync  syncCallback;
+    BREthereumBCSCallbackSync syncCallback;
     // ...
 } BREthereumBCSListener;
 

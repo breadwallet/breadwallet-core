@@ -56,6 +56,27 @@ typedef int32_t BREthereumBlockId;
 typedef int32_t BREthereumListenerId;
 
 //
+// Temporarily Here
+//
+typedef struct {
+    BREthereumHash hash;
+    BRRlpData blob;
+} BREthereumPersistData;
+
+static inline size_t
+persistDataHashValue (const void *t)
+{
+    return hashSetValue(&((BREthereumPersistData*) t)->hash);
+}
+
+static inline int
+persistDataHashEqual (const void *t1, const void *t2) {
+    return t1 == t2 || hashSetEqual (&((BREthereumPersistData*) t1)->hash,
+                                     &((BREthereumPersistData*) t2)->hash);
+}
+
+
+//
 // Errors - Right Up Front - 'The Emperor Has No Clothes' ??
 //
 typedef enum {
@@ -87,146 +108,13 @@ typedef enum {
 } BREthereumStatus;
 
 //
-// Ethereum Listener
-//
-// Client Code, in IOS & Andriod, will provide handlers to listen in on Core Ethereum events.
-// Such events are  signalled when notable EWM state changes.  Client code should use
-// the provide event type and data to update UI, or other, state.
-
-// Client Context - provide when adding a listener, get in every callback.
-typedef void *BREthereumListenerContext;
-
-//
-// Wallet Event
-//
-typedef enum {
-    WALLET_EVENT_CREATED = 0,
-    WALLET_EVENT_BALANCE_UPDATED,
-    WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED,
-    WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
-    WALLET_EVENT_DELETED
-} BREthereumWalletEvent;
-
-#define WALLET_NUMBER_OF_EVENTS  (1 + WALLET_EVENT_DELETED)
-
-typedef void (*BREthereumListenerWalletEventHandler)(BREthereumListenerContext context,
-                                                     BREthereumEWM ewm,
-                                                     BREthereumWalletId wid,
-                                                     BREthereumWalletEvent event,
-                                                     BREthereumStatus status,
-                                                     const char *errorDescription);
-
-//
-// Block Event
-//
-typedef enum {
-    BLOCK_EVENT_CREATED = 0,
-    // BLOCK_EVENT_SYNC_START,
-    // BLOCK_EVENT_SYNC_COMPLETE,
-    BLOCK_EVENT_DELETED
-} BREthereumBlockEvent;
-
-#define BLOCK_NUMBER_OF_EVENTS (1 + BLOCK_EVENT_DELETED)
-
-typedef void (*BREthereumListenerBlockEventHandler)(BREthereumListenerContext context,
-                                                    BREthereumEWM ewm,
-                                                    BREthereumBlockId bid,
-                                                    BREthereumBlockEvent event,
-                                                    BREthereumStatus status,
-                                                    const char *errorDescription);
-
-//
-// Transaction Event
-//
-typedef enum {
-    // Added/Removed from Wallet
-    TRANSACTION_EVENT_ADDED = 0,
-    TRANSACTION_EVENT_REMOVED,
-
-    // Transaction State
-    TRANSACTION_EVENT_CREATED,
-    TRANSACTION_EVENT_SIGNED,
-    TRANSACTION_EVENT_SUBMITTED,
-    TRANSACTION_EVENT_BLOCKED,  // aka confirmed
-    TRANSACTION_EVENT_ERRORED,
-
-
-    TRANSACTION_EVENT_GAS_ESTIMATE_UPDATED,
-    TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED
-} BREthereumTransactionEvent;
-
-#define TRANSACTION_NUMBER_OF_EVENTS (1 + TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED)
-
-typedef void (*BREthereumListenerTransactionEventHandler)(BREthereumListenerContext context,
-                                                          BREthereumEWM ewm,
-                                                          BREthereumWalletId wid,
-                                                          BREthereumTransactionId tid,
-                                                          BREthereumTransactionEvent event,
-                                                          BREthereumStatus status,
-                                                          const char *errorDescription);
-
-//
-// Peer Event
-//
-typedef enum {
-    PEER_EVENT_X,
-    PEER_EVENT_Y
-    // added/removed/updated
-} BREthereumPeerEvent;
-
-#define PEER_NUMBER_OF_EVENTS   (1 + PEER_EVENT_Y)
-
-typedef void (*BREthereumListenerPeerEventHandler)(BREthereumListenerContext context,
-                                                   BREthereumEWM ewm,
-                                                   // BREthereumWalletId wid,
-                                                   // BREthereumTransactionId tid,
-                                                   BREthereumPeerEvent event,
-                                                   BREthereumStatus status,
-                                                   const char *errorDescription);
-//
-// EWM Event
-//
-typedef enum {
-    EWM_EVENT_X,
-    EWM_EVENT_Y
-    // sync started/stopped
-    // netowrk available/unavailable
-} BREthereumEWMEvent;
-
-#define EWM_NUMBER_OF_EVENTS   (1 + EWM_EVENT_Y)
-
-typedef void (*BREthereumListenerEWMEventHandler)(BREthereumListenerContext context,
-                                                  BREthereumEWM ewm,
-                                                  // BREthereumWalletId wid,
-                                                  // BREthereumTransactionId tid,
-                                                  BREthereumEWMEvent event,
-                                                  BREthereumStatus status,
-                                                  const char *errorDescription);
-
-extern BREthereumListenerId
-ewmAddListener (BREthereumEWM ewm,
-                BREthereumListenerContext context,
-                BREthereumListenerEWMEventHandler ewmEventHandler,
-                BREthereumListenerPeerEventHandler peerEventHandler,
-                BREthereumListenerWalletEventHandler walletEventHandler,
-                BREthereumListenerBlockEventHandler blockEventHandler,
-                BREthereumListenerTransactionEventHandler transactionEventHandler);
-
-extern BREthereumBoolean
-ewmHasListener (BREthereumEWM ewm,
-                BREthereumListenerId lid);
-
-extern BREthereumBoolean
-ewmRemoveListener (BREthereumEWM ewm,
-                   BREthereumListenerId lid);
-
-
-//
 // BREthereumClient
 //
-// Type definitions for callback functions.  When configuring a EWM these functions must be
+// Type definitions for client functions.  When configuring a EWM these functions must be
 // provided.  A EWM has limited cababilities; these callbacks provide data back into the
-// EWM or request certain data be saved to reestablish EWM state on start.
+// EWM (such as with the 'gas price' or with the BRD-indexed logs for a given address) or they
+// request certain data be saved to reestablish EWM state on start or they announce events
+// signifying changes in EWM state.
 //
 typedef void *BREthereumClientContext;
 
@@ -286,49 +174,148 @@ typedef void
                                     const char *address,
                                     int rid);
 
-    typedef struct {
-        BREthereumHash hash;
-        BRRlpData blob;
-    } BREthereumPersistData;
+//
+// Save Sync (and other) State
+//
+typedef enum {
+    CLIENT_CHANGE_ADD,
+    CLIENT_CHANGE_REM,
+    CLIENT_CHANGE_UPD
+} BREthereumClientChangeType;
 
-    static inline size_t
-    persistDataHashValue (const void *t)
-    {
-        return hashSetValue(&((BREthereumPersistData*) t)->hash);
-    }
+typedef void
+(*BREthereumClientHandlerSaveBlocks) (BREthereumClientContext context,
+                                      BREthereumEWM ewm,
+                                      BRArrayOf(BREthereumPersistData) persistData);
+typedef void
+(*BREthereumClientHandlerSavePeers) (BREthereumClientContext context,
+                                     BREthereumEWM ewm,
+                                     BRArrayOf(BREthereumPersistData) persistData);
 
-    static inline int
-    persistDataHashEqual (const void *t1, const void *t2) {
-        return t1 == t2 || hashSetEqual (&((BREthereumPersistData*) t1)->hash,
-                                         &((BREthereumPersistData*) t2)->hash);
-    }
+typedef void
+(*BREthereumClientHandlerChangeTransaction) (BREthereumClientContext context,
+                                             BREthereumEWM ewm,
+                                             BREthereumClientChangeType type,
+                                             BREthereumPersistData persistData);
 
-    typedef void
-    (*BREthereumClientSaveBlocksCallback) (BREthereumClientContext context,
-                                           BREthereumEWM ewm,
-                                           BRArrayOf(BREthereumPersistData) persistData);
-    typedef void
-    (*BREthereumClientSavePeersCallback) (BREthereumClientContext context,
-                                          BREthereumEWM ewm,
-                                          BRArrayOf(BREthereumPersistData) persistData);
+typedef void
+(*BREthereumClientHandlerChangeLog) (BREthereumClientContext context,
+                                     BREthereumEWM ewm,
+                                     BREthereumClientChangeType type,
+                                     BREthereumPersistData persistData);
 
-    typedef enum {
-        CLIENT_CHANGE_ADD,
-        CLIENT_CHANGE_REM,
-        CLIENT_CHANGE_UPD
-    } BREthereumClientChangeType;
+//
+// Wallet Event
+//
+typedef enum {
+    WALLET_EVENT_CREATED = 0,
+    WALLET_EVENT_BALANCE_UPDATED,
+    WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED,
+    WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
+    WALLET_EVENT_DELETED
+} BREthereumWalletEvent;
 
-    typedef void
-    (*BREthereumClientChangeTransaction) (BREthereumClientContext context,
-                                          BREthereumEWM ewm,
-                                          BREthereumClientChangeType type,
-                                          BREthereumPersistData persistData);
+#define WALLET_NUMBER_OF_EVENTS  (1 + WALLET_EVENT_DELETED)
 
-    typedef void
-    (*BREthereumClientChangeLog) (BREthereumClientContext context,
-                                          BREthereumEWM ewm,
-                                          BREthereumClientChangeType type,
-                                          BREthereumPersistData persistData);
+typedef void (*BREthereumClientHandlerWalletEvent) (BREthereumClientContext context,
+                                                    BREthereumEWM ewm,
+                                                    BREthereumWalletId wid,
+                                                    BREthereumWalletEvent event,
+                                                    BREthereumStatus status,
+                                                    const char *errorDescription);
+
+//
+// Block Event
+//
+typedef enum {
+    BLOCK_EVENT_CREATED = 0,
+
+    BLOCK_EVENT_CHAINED,
+    BLOCK_EVENT_ORPHANED,
+
+    BLOCK_EVENT_DELETED
+} BREthereumBlockEvent;
+
+#define BLOCK_NUMBER_OF_EVENTS (1 + BLOCK_EVENT_DELETED)
+
+typedef void (*BREthereumClientHandlerBlockEvent) (BREthereumClientContext context,
+                                                   BREthereumEWM ewm,
+                                                   BREthereumBlockId bid,
+                                                   BREthereumBlockEvent event,
+                                                   BREthereumStatus status,
+                                                   const char *errorDescription);
+
+//
+// Transaction Event
+//
+typedef enum {
+    // Added/Removed from Wallet
+    TRANSACTION_EVENT_CREATED = 0,
+
+    // Transaction State
+    TRANSACTION_EVENT_SIGNED,
+    TRANSACTION_EVENT_SUBMITTED,
+    TRANSACTION_EVENT_BLOCKED,  // aka confirmed
+    TRANSACTION_EVENT_ERRORED,
+
+
+    TRANSACTION_EVENT_GAS_ESTIMATE_UPDATED,
+    TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED,
+
+    TRANSACTION_EVENT_DELETED
+
+} BREthereumTransactionEvent;
+
+#define TRANSACTION_NUMBER_OF_EVENTS (1 + TRANSACTION_EVENT_DELETED)
+
+typedef void (*BREthereumClientHandlerTransactionEvent) (BREthereumClientContext context,
+                                                         BREthereumEWM ewm,
+                                                         BREthereumWalletId wid,
+                                                         BREthereumTransactionId tid,
+                                                         BREthereumTransactionEvent event,
+                                                         BREthereumStatus status,
+                                                         const char *errorDescription);
+
+//
+// Peer Event
+//
+typedef enum {
+    PEER_EVENT_CREATED = 0,
+    PEER_EVENT_DELETED
+    // added/removed/updated
+} BREthereumPeerEvent;
+
+#define PEER_NUMBER_OF_EVENTS   (1 + PEER_EVENT_DELETED)
+
+typedef void (*BREthereumClientHandlerPeerEvent) (BREthereumClientContext context,
+                                                  BREthereumEWM ewm,
+                                                  // BREthereumWalletId wid,
+                                                  // BREthereumTransactionId tid,
+                                                  BREthereumPeerEvent event,
+                                                  BREthereumStatus status,
+                                                  const char *errorDescription);
+//
+// EWM Event
+//
+typedef enum {
+    EWM_EVENT_CREATED = 0,
+    EWM_EVENT_SYNC_STARTED,
+    EWM_EVENT_SYNC_CONTINUES,
+    EWM_EVENT_SYNC_STOPPED,
+    EWM_EVENT_NETWORK_UNAVAILABLE,
+    EWM_EVENT_DELETED
+} BREthereumEWMEvent;
+
+#define EWM_NUMBER_OF_EVENTS   (1 + EWM_EVENT_DELETED)
+
+typedef void (*BREthereumClientHandlerEWMEvent) (BREthereumClientContext context,
+                                                 BREthereumEWM ewm,
+                                                 // BREthereumWalletId wid,
+                                                 // BREthereumTransactionId tid,
+                                                 BREthereumEWMEvent event,
+                                                 BREthereumStatus status,
+                                                 const char *errorDescription);
+
 //
 // EWM Configuration
 //
@@ -337,27 +324,34 @@ typedef void
 // type.
 //
 typedef struct {
-    BREthereumClientContext funcContext;
+    BREthereumClientContext context;
+
+    // Backend Server Support - typically implemented with HTTP requests for JSON_RPC or DB
+    // queries.  All of these functions *must* callback to the EWM with a corresponding
+    // 'announce' function.
     BREthereumClientHandlerGetBalance funcGetBalance;
     BREthereumClientHandlerGetGasPrice funcGetGasPrice;
     BREthereumClientHandlerEstimateGas funcEstimateGas;
     BREthereumClientHandlerSubmitTransaction funcSubmitTransaction;
-    //
-    // announce all-at-once both transactions and logs
-    //    based on some 'DTO' (property list?  ["hash=0x....", "number=0xabc", ...]
-    //    or based on an RLP-pair [hash="0x...", data="0x<rlp>"]
-    //      with a 'helper' (values -> rlp) - enough context for 'log'??
-    //
-    BREthereumClientHandlerGetTransactions funcGetTransactions;
-    BREthereumClientHandlerGetLogs funcGetLogs;
+    BREthereumClientHandlerGetTransactions funcGetTransactions; // announce one-by-one
+    BREthereumClientHandlerGetLogs funcGetLogs; // announce one-by-one
     BREthereumClientHandlerGetBlockNumber funcGetBlockNumber;
     BREthereumClientHandlerGetNonce funcGetNonce;
 
-    //
-    BREthereumClientSavePeersCallback funcSavePeers;
-    BREthereumClientSaveBlocksCallback funcSaveBlocks;
-    BREthereumClientChangeTransaction funcChangeTransaction;
-    BREthereumClientChangeTransaction funcChangeLog;
+    // Save Sync (and other) State - required as Core does maintain and is not configured to
+    // use persistent storage (aka an sqlite DB or simply disk)
+    BREthereumClientHandlerSavePeers funcSavePeers;
+    BREthereumClientHandlerSaveBlocks funcSaveBlocks;
+    BREthereumClientHandlerChangeTransaction funcChangeTransaction;
+    BREthereumClientHandlerChangeTransaction funcChangeLog;
+
+    // Events - Announce changes to entities that normally impact the UI.
+    BREthereumClientHandlerEWMEvent funcEWMEvent;
+    BREthereumClientHandlerPeerEvent funcPeerEvent;
+    BREthereumClientHandlerWalletEvent funcWalletEvent;
+    BREthereumClientHandlerBlockEvent funcBlockEvent;
+    BREthereumClientHandlerTransactionEvent funcTransactionEvent;
+
 } BREthereumClient;
 
 /**
@@ -410,6 +404,7 @@ ethereumCreate(BREthereumNetwork network,
                const char *paperKey,
                BREthereumType type,
                BREthereumSyncMode syncMode,
+               BREthereumClient client,
                BRArrayOf(BREthereumPersistData) peers,
                BRArrayOf(BREthereumPersistData) blocks,
                BRArrayOf(BREthereumPersistData) transactions,
@@ -425,6 +420,7 @@ ethereumCreateWithPublicKey(BREthereumNetwork network,
                             const BRKey publicKey,
                             BREthereumType type,
                             BREthereumSyncMode syncMode,
+                            BREthereumClient client,
                             BRArrayOf(BREthereumPersistData) peers,
                             BRArrayOf(BREthereumPersistData) blocks,
                             BRArrayOf(BREthereumPersistData) transactions,
@@ -511,8 +507,7 @@ ethereumCoerceTokenAmountToString(BREthereumEWM ewm,
  * @return
  */
 extern BREthereumBoolean
-ethereumConnect(BREthereumEWM ewm,
-                BREthereumClient client);
+ethereumConnect(BREthereumEWM ewm);
 
 extern BREthereumBoolean
 ethereumDisconnect (BREthereumEWM ewm);
@@ -616,19 +611,19 @@ ethereumWalletCreateTransaction(BREthereumEWM ewm,
  * @param transaction
  * @param paperKey
  */
-extern void // status, error
+extern void
 ethereumWalletSignTransaction(BREthereumEWM ewm,
                               BREthereumWalletId wid,
                               BREthereumTransactionId tid,
                               const char *paperKey);
 
-extern void // status, error
+extern void
 ethereumWalletSignTransactionWithPrivateKey(BREthereumEWM ewm,
                                             BREthereumWalletId wid,
                                             BREthereumTransactionId tid,
                                             BRKey privateKey);
 
-extern void // status, error
+extern void
 ethereumWalletSubmitTransaction(BREthereumEWM ewm,
                                 BREthereumWalletId wid,
                                 BREthereumTransactionId tid);
@@ -643,7 +638,7 @@ ethereumWalletGetTransactions(BREthereumEWM ewm,
 /**
  * Returns -1 on invalid wid
  */
-extern int // TODO: What in invalid wid?
+extern int
 ethereumWalletGetTransactionCount(BREthereumEWM ewm,
                                   BREthereumWalletId wid);
 
@@ -768,52 +763,9 @@ ethereumTransactionGetFee(BREthereumEWM ewm,
                           BREthereumTransactionId tid,
                           int *overflow);
 
-// ===================================
-//
-// Temporary
-//
-//
-#if defined(SUPPORT_JSON_RPC)
-
-extern void
-ewmUpdateBlockNumber (BREthereumEWM ewm);
-
-extern void
-ewmUpdateNonce (BREthereumEWM ewm);
-
-/**
- * Update the transactions for the ewm's account.  A JSON_RPC EWM will call out to
- * BREthereumClientHandlerGetTransactions which is expected to query all transactions associated with the
- * accounts address and then the call out is to call back the 'announce transaction' callback.
- */
-extern void
-ewmUpdateTransactions (BREthereumEWM ewm);
-
-extern void
-ewmUpdateLogs (BREthereumEWM ewm,
-               BREthereumWalletId wid,
-               BREthereumContractEvent event);
-
-//
-// Wallet Updates
-//
-extern void
-ewmUpdateWalletBalance (BREthereumEWM ewm,
-                        BREthereumWalletId wid);
-
-extern void
-ewmUpdateTransactionGasEstimate (BREthereumEWM ewm,
-                                 BREthereumWalletId wid,
-                                 BREthereumTransactionId tid);
-
-extern void
-ewmUpdateWalletDefaultGasPrice (BREthereumEWM ewm,
-                                BREthereumWalletId wid);
-
-
 /**
  * Return the serialized raw data for `transaction`.  The value `*bytesPtr` points to a byte array;
- * the callee OWNs that byte array (and thus must call free).  The value `*bytesCountPtr` hold
+ * the callee OWNs that byte array (and thus must call free).  The value `*bytesCountPtr` holds
  * the size of the byte array.
  *
  * @param ewm
@@ -823,98 +775,99 @@ ewmUpdateWalletDefaultGasPrice (BREthereumEWM ewm,
  */
 
 extern void
-ewmFillTransactionRawData(BREthereumEWM ewm,
-                          BREthereumWalletId wid,
-                          BREthereumTransactionId tid,
-                          uint8_t **bytesPtr,
-                          size_t *bytesCountPtr);
+ethereumTransactionFillRawData(BREthereumEWM ewm,
+                               BREthereumWalletId wid,
+                               BREthereumTransactionId tid,
+                               uint8_t **bytesPtr,
+                               size_t *bytesCountPtr);
 
 extern const char *
-ewmGetTransactionRawDataHexEncoded(BREthereumEWM ewm,
+ethereumTransactionGetRawDataHexEncoded(BREthereumEWM ewm,
+                                        BREthereumWalletId wid,
+                                        BREthereumTransactionId tid,
+                                        const char *prefix);
+
+
+//
+// Ethereum Client - Callbacks to announce BRD endpoint data
+//
+extern BREthereumStatus
+ethereumClientAnnounceBlockNumber (BREthereumEWM ewm,
+                                   const char *blockNumber,
+                                   int rid);
+
+extern BREthereumStatus
+ethereumClientAnnounceNonce (BREthereumEWM ewm,
+                             const char *strAddress,
+                             const char *strNonce,
+                             int rid);
+
+extern BREthereumStatus
+ethereumClientAnnounceBalance (BREthereumEWM ewm,
+                               BREthereumWalletId wid,
+                               const char *balance,
+                               int rid);
+
+extern BREthereumStatus
+ethereumClientAnnounceGasPrice(BREthereumEWM ewm,
+                               BREthereumWalletId wid,
+                               const char *gasEstimate,
+                               int rid);
+
+extern BREthereumStatus
+ethereumClientAnnounceGasEstimate (BREthereumEWM ewm,
                                    BREthereumWalletId wid,
                                    BREthereumTransactionId tid,
-                                   const char *prefix);
+                                   const char *gasEstimate,
+                                   int rid);
 
-extern void
-ewmAnnounceBlockNumber (BREthereumEWM ewm,
-                        const char *blockNumber,
-                        int rid);
-
-extern void
-ewmAnnounceNonce (BREthereumEWM ewm,
-                  const char *strAddress,
-                  const char *strNonce,
-                  int rid);
-
+extern BREthereumStatus
+ethereumClientAnnounceSubmitTransaction(BREthereumEWM ewm,
+                                        BREthereumWalletId wid,
+                                        BREthereumTransactionId tid,
+                                        const char *hash,
+                                        int rid);
 
 // Some JSON_RPC call will occur to get all transactions associated with an account.  We'll
 // process these transactions into the EWM (associated with a wallet).  Thereafter
 // a 'EWM client' can get the announced transactions using non-JSON_RPC interfaces.
-extern void
-ewmAnnounceTransaction(BREthereumEWM ewm,
-                       int id,
-                       const char *hash,
-                       const char *from,
-                       const char *to,
-                       const char *contract,
-                       const char *amount, // value
-                       const char *gasLimit,
-                       const char *gasPrice,
-                       const char *data,
-                       const char *nonce,
-                       const char *gasUsed,
-                       const char *blockNumber,
-                       const char *blockHash,
-                       const char *blockConfirmations,
-                       const char *blockTransactionIndex,
-                       const char *blockTimestamp,
-                       // cumulative gas used,
-                       // confirmations
-                       // txreceipt_status
-                       const char *isError);
+extern BREthereumStatus
+ethereumClientAnnounceTransaction (BREthereumEWM ewm,
+                                   int id,
+                                   const char *hash,
+                                   const char *from,
+                                   const char *to,
+                                   const char *contract,
+                                   const char *amount, // value
+                                   const char *gasLimit,
+                                   const char *gasPrice,
+                                   const char *data,
+                                   const char *nonce,
+                                   const char *gasUsed,
+                                   const char *blockNumber,
+                                   const char *blockHash,
+                                   const char *blockConfirmations,
+                                   const char *blockTransactionIndex,
+                                   const char *blockTimestamp,
+                                   // cumulative gas used,
+                                   // confirmations
+                                   // txreceipt_status
+                                   const char *isError);
 
-extern void
-ewmAnnounceLog (BREthereumEWM ewm,
-                int id,
-                const char *strHash,
-                const char *strContract,
-                int topicCount,
-                const char **arrayTopics,
-                const char *strData,
-                const char *strGasPrice,
-                const char *strGasUsed,
-                const char *strLogIndex,
-                const char *strBlockNumber,
-                const char *strBlockTransactionIndex,
-                const char *strBlockTimestamp);
-
-extern void
-ewmAnnounceBalance (BREthereumEWM ewm,
-                    BREthereumWalletId wid,
-                    const char *balance,
-                    int rid);
-
-extern void
-ewmAnnounceGasPrice(BREthereumEWM ewm,
-                    BREthereumWalletId wid,
-                    const char *gasEstimate,
-                    int id);
-
-extern void
-ewmAnnounceGasEstimate (BREthereumEWM ewm,
-                        BREthereumWalletId wid,
-                        BREthereumTransactionId tid,
-                        const char *gasEstimate,
-                        int rid);
-
-extern void
-ewmAnnounceSubmitTransaction(BREthereumEWM ewm,
-                             BREthereumWalletId wid,
-                             BREthereumTransactionId tid,
-                             const char *hash,
-                             int rid);
-
-#endif // defined(SUPPORT_JSON_RPC)
+extern BREthereumStatus
+ethereumClientAnnounceLog (BREthereumEWM ewm,
+                           int id,
+                           const char *strHash,
+                           const char *strContract,
+                           int topicCount,
+                           const char **arrayTopics,
+                           const char *strData,
+                           const char *strGasPrice,
+                           const char *strGasUsed,
+                           const char *strLogIndex,
+                           const char *strBlockNumber,
+                           const char *strBlockTransactionIndex,
+                           const char *strBlockTimestamp);
 
 #ifdef __cplusplus
 }

@@ -22,8 +22,8 @@ class BRCore2Tests: XCTestCase {
     }
     
     func testExample() {
-        let unit = EthereumAmountUnit.ether(WEI)
-        let value = EthereumAmount.ether(createUInt256(10), WEI)
+//        let unit = EthereumAmountUnit.ether(WEI)
+//        let value = EthereumAmount.ether(createUInt256(10), WEI)
         // This is an example of a functional test case.
         // Use XCTAssert and related functions to verify your tests produce the correct results.
     }
@@ -51,7 +51,7 @@ class BRCore2Tests: XCTestCase {
 //
 //
 //
-class TestLightClient : EthereumClient, EthereumListener {
+class TestLightClient : EthereumClient {
     var network : EthereumNetwork
     var node : EthereumWalletManager?
 
@@ -61,7 +61,6 @@ class TestLightClient : EthereumClient, EthereumListener {
     init(network: EthereumNetwork, paperKey: String) {
         self.network = network
         self.node = EthereumWalletManager (client: self,
-                                           listener: self,
                                            network: network,
                                            paperKey: paperKey)
     }

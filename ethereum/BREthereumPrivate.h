@@ -129,4 +129,43 @@ eventERC20TransferDecodeUInt256 (BREthereumContractEvent event,
                                  const char *number,
                                  BRCoreParseStatus *status);
 
+//
+// Temporary (Perhaps) - Initiate Callbacks to Client
+//
+//
+extern void
+ewmUpdateBlockNumber (BREthereumEWM ewm);
+
+extern void
+ewmUpdateNonce (BREthereumEWM ewm);
+
+/**
+ * Update the transactions for the ewm's account.  A JSON_RPC EWM will call out to
+ * BREthereumClientHandlerGetTransactions which is expected to query all transactions associated with the
+ * accounts address and then the call out is to call back the 'announce transaction' callback.
+ */
+extern void
+ewmUpdateTransactions (BREthereumEWM ewm);
+
+extern void
+ewmUpdateLogs (BREthereumEWM ewm,
+               BREthereumWalletId wid,
+               BREthereumContractEvent event);
+
+//
+// Wallet Updates
+//
+extern void
+ewmUpdateWalletBalance (BREthereumEWM ewm,
+                        BREthereumWalletId wid);
+
+extern void
+ewmUpdateTransactionGasEstimate (BREthereumEWM ewm,
+                                 BREthereumWalletId wid,
+                                 BREthereumTransactionId tid);
+
+extern void
+ewmUpdateWalletDefaultGasPrice (BREthereumEWM ewm,
+                                BREthereumWalletId wid);
+
 #endif /* BR_Ethereum_Private_H */

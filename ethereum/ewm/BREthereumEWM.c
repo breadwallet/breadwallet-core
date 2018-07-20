@@ -124,8 +124,8 @@ createEWMEnsureTransactions (BRArrayOf(BREthereumPersistData) transactionsPersis
 
 static BRArrayOf(BREthereumLog)
 createEWMEnsureLogs(BRArrayOf(BREthereumPersistData) logsPersistData,
-                             BREthereumNetwork network,
-                             BRRlpCoder coder) {
+                    BREthereumNetwork network,
+                    BRRlpCoder coder) {
     BRArrayOf(BREthereumLog) logs;
 
     size_t logsCount = (NULL == logsPersistData ? 0 : array_count(logsPersistData));
@@ -150,23 +150,31 @@ createEWM (BREthereumNetwork network,
            BREthereumType type,
            // serialized: headers, transactions, logs
            BREthereumSyncMode syncMode,
+           BREthereumClient client,
            BRArrayOf(BREthereumPersistData) peersPersistData,
            BRArrayOf(BREthereumPersistData) blocksPersistData,
            BRArrayOf(BREthereumPersistData) transactionsPersistData,
            BRArrayOf(BREthereumPersistData) logsPersistData) {
     BREthereumEWM ewm = (BREthereumEWM) calloc (1, sizeof (struct BREthereumEWMRecord));
+
     ewm->state = LIGHT_NODE_CREATED;
     ewm->type = type;
     ewm->syncMode = syncMode;
     ewm->network = network;
     ewm->account = account;
+
+    // Get the client assigned early; callbacks as EWM/BCS state is re-establish, regarding
+    // blocks, peers, transactions and logs, will be invoked.
+    ewm->client = client;
     
     // Create the `listener` and `main` event handlers.  Do this early so that queues exist
     // for any events/callbacks generated during initialization.  The queues won't be handled
     // until ewmConnect().
-    ewm->handlerForListener = eventHandlerCreate(listenerEventTypes, listenerEventTypesCount);
+    ewm->handlerForClient = eventHandlerCreate(handlerForClientEventTypes, handlerForClientEventTypesCount);
 
-    ewm->handlerForMain = eventHandlerCreate(handlerEventTypes, handlerEventTypesCount);
+    // The `main` event handler has a periodic wake-up.  Used, perhaps, if the syncMode indicates
+    // that we should/might query the BRD backend services.
+    ewm->handlerForMain = eventHandlerCreate(handlerForMainEventTypes, handlerForMainEventTypesCount);
     eventHandlerSetTimeoutDispatcher(ewm->handlerForMain,
                                      1000 * EWM_SLEEP_SECONDS,
                                      (BREventDispatcher)ewmPeriodicDispatcher,
@@ -175,7 +183,6 @@ createEWM (BREthereumNetwork network,
     array_new(ewm->wallets, DEFAULT_WALLET_CAPACITY);
     array_new(ewm->transactions, DEFAULT_TRANSACTION_CAPACITY);
     array_new(ewm->blocks, DEFAULT_BLOCK_CAPACITY);
-    array_new(ewm->listeners, DEFAULT_LISTENER_CAPACITY);
 
     {
         pthread_mutexattr_t attr;
@@ -191,6 +198,7 @@ createEWM (BREthereumNetwork network,
                                            ewm->network);
     ewmInsertWallet(ewm, ewm->walletHoldingEther);
 
+    // Create the BCS listener - allows EWM to handle block, peer, transaction and log events.
     BREthereumBCSListener listener = {
         (BREthereumBCSCallbackContext) ewm,
         (BREthereumBCSCallbackBlockchain) ewmSignalBlockChain,
@@ -202,11 +210,13 @@ createEWM (BREthereumNetwork network,
         (BREthereumBCSCallbackSync) ewmSignalSync
     };
 
-    // Create BCS - note: when BCS processes headers, transactions, etc callbacks will be made to
-    // the EWM listener.
+    // Create BCS - note: when BCS processes blocks, peers, transactions, and logs, callbacks will
+    // be made to the EWM client.
     {
         BRRlpCoder coder = rlpCoderCreate();
 
+        // Might need an argument related to `syncMode` - telling BCS, for example, to use LES,
+        // or not to use LES and instead rely on `client` (or some manifestation of `client`).
         ewm->bcs = bcsCreate(network,
                              accountGetPrimaryAddress (account),
                              listener,
@@ -232,9 +242,8 @@ ewmDestroy (BREthereumEWM ewm) {
 
     array_free(ewm->transactions);
     array_free(ewm->blocks);
-    array_free(ewm->listeners);
 
-    eventHandlerDestroy(ewm->handlerForListener);
+    eventHandlerDestroy(ewm->handlerForClient);
     eventHandlerDestroy(ewm->handlerForMain);
     
     free (ewm);
@@ -250,187 +259,6 @@ ewmGetNetwork (BREthereumEWM ewm) {
     return ewm->network;
 }
 
-// ==============================================================================================
-//
-// Listener
-//
-extern BREthereumListenerId
-ewmAddListener (BREthereumEWM ewm,
-                BREthereumListenerContext context,
-                BREthereumListenerEWMEventHandler ewmEventHandler,
-                BREthereumListenerPeerEventHandler peerEventHandler,
-                BREthereumListenerWalletEventHandler walletEventHandler,
-                BREthereumListenerBlockEventHandler blockEventHandler,
-                BREthereumListenerTransactionEventHandler transactionEventHandler) {
-    BREthereumListenerId lid = -1;
-    BREthereumEWMListener listener;
-    
-    listener.context = context;
-    listener.ewmEventHandler = ewmEventHandler;
-    listener.peerEventHandler = peerEventHandler;
-    listener.walletEventHandler = walletEventHandler;
-    listener.blockEventHandler = blockEventHandler;
-    listener.transactionEventHandler = transactionEventHandler;
-    
-    pthread_mutex_lock(&ewm->lock);
-    array_add (ewm->listeners, listener);
-    lid = (BREthereumListenerId) (array_count (ewm->listeners) - 1);
-    pthread_mutex_unlock(&ewm->lock);
-    
-    return lid;
-}
-
-extern BREthereumBoolean
-ewmHasListener (BREthereumEWM ewm,
-                BREthereumListenerId lid) {
-    return (0 <= lid && lid < array_count(ewm->listeners)
-            && NULL != ewm->listeners[lid].context
-            && (NULL != ewm->listeners[lid].walletEventHandler ||
-                NULL != ewm->listeners[lid].blockEventHandler  ||
-                NULL != ewm->listeners[lid].transactionEventHandler)
-            ? ETHEREUM_BOOLEAN_TRUE
-            : ETHEREUM_BOOLEAN_FALSE);
-}
-
-extern BREthereumBoolean
-ewmRemoveListener (BREthereumEWM ewm,
-                   BREthereumListenerId lid) {
-    if (0 <= lid && lid < array_count(ewm->listeners)) {
-        memset (&ewm->listeners[lid], 0, sizeof (BREthereumEWMListener));
-        return ETHEREUM_BOOLEAN_TRUE;
-    }
-    return ETHEREUM_BOOLEAN_FALSE;
-}
-
-extern void
-ewmListenerHandleWalletEvent(BREthereumEWM ewm,
-                             BREthereumWalletId wid,
-                             BREthereumWalletEvent event,
-                             BREthereumStatus status,
-                             const char *errorDescription) {
-    int count = (int) array_count(ewm->listeners);
-    for (int i = 0; i < count; i++) {
-        if (NULL != ewm->listeners[i].walletEventHandler)
-            ewm->listeners[i].walletEventHandler
-            (ewm->listeners[i].context,
-             ewm,
-             wid,
-             event,
-             status,
-             errorDescription);
-    }
-}
-
-extern void
-ewmListenerHandleBlockEvent(BREthereumEWM ewm,
-                            BREthereumBlockId bid,
-                            BREthereumBlockEvent event,
-                            BREthereumStatus status,
-                            const char *errorDescription) {
-    int count = (int) array_count(ewm->listeners);
-    for (int i = 0; i < count; i++) {
-        if (NULL != ewm->listeners[i].blockEventHandler)
-            ewm->listeners[i].blockEventHandler
-            (ewm->listeners[i].context,
-             ewm,
-             bid,
-             event,
-             status,
-             errorDescription);
-    }
-}
-
-extern void
-ewmListenerHandleTransactionEvent(BREthereumEWM ewm,
-                                  BREthereumWalletId wid,
-                                  BREthereumTransactionId tid,
-                                  BREthereumTransactionEvent event,
-                                  BREthereumStatus status,
-                                  const char *errorDescription) {
-    BREthereumTransaction transaction = ewm->transactions[tid];
-    BREthereumHash hash = transactionGetHash(transaction);
-
-    // Transaction to 'Persist Data'
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = transactionRlpEncode(transaction, ewm->network, RLP_TYPE_TRANSACTION_SIGNED, coder);
-    BREthereumPersistData persistData = { hash, rlpGetData(coder, item) };
-    rlpCoderRelease(coder);
-
-    BREthereumClientChangeType type = (event == TRANSACTION_EVENT_ADDED
-                                       ? CLIENT_CHANGE_ADD
-                                       : (event == TRANSACTION_EVENT_REMOVED
-                                          ? CLIENT_CHANGE_REM
-                                          : CLIENT_CHANGE_UPD));
-
-    BREthereumHashString hashString;
-    hashFillString(hash, hashString);
-    eth_log ("EWM", "Transaction: \"%s\", Change: %d", hashString, type);
-//    eth_log ("EWM", "Transaction: \"0x%c%c%c%c...\", Change: %d",
-//             _hexc (hash.bytes[0] >> 4), _hexc(hash.bytes[0]),
-//             _hexc (hash.bytes[1] >> 4), _hexc(hash.bytes[1]),
-//             type);
-
-    ewm->client.funcChangeTransaction (ewm->client.funcContext, ewm,
-                                       type,
-                                       persistData);
-
-    int count = (int) array_count(ewm->listeners);
-    for (int i = 0; i < count; i++) {
-        if (NULL != ewm->listeners[i].transactionEventHandler)
-            ewm->listeners[i].transactionEventHandler
-            (ewm->listeners[i].context,
-             ewm,
-             wid,
-             tid,
-             event,
-             status,
-             errorDescription);
-    }
-
-}
-
-extern void
-ewmListenerHandlePeerEvent(BREthereumEWM ewm,
-                           // BREthereumWalletId wid,
-                           // BREthereumTransactionId tid,
-                           BREthereumPeerEvent event,
-                           BREthereumStatus status,
-                           const char *errorDescription) {
-    int count = (int) array_count(ewm->listeners);
-    for (int i = 0; i < count; i++) {
-        if (NULL != ewm->listeners[i].peerEventHandler)
-            ewm->listeners[i].peerEventHandler
-            (ewm->listeners[i].context,
-             ewm,
-             // event->wid,
-             // event->tid,
-             event,
-             status,
-             errorDescription);
-    }
-}
-
-extern void
-ewmListenerHandleEWMEvent(BREthereumEWM ewm,
-                          // BREthereumWalletId wid,
-                          // BREthereumTransactionId tid,
-                          BREthereumEWMEvent event,
-                          BREthereumStatus status,
-                          const char *errorDescription) {
-    int count = (int) array_count(ewm->listeners);
-    for (int i = 0; i < count; i++) {
-        if (NULL != ewm->listeners[i].ewmEventHandler)
-            ewm->listeners[i].ewmEventHandler
-            (ewm->listeners[i].context,
-             ewm,
-             //event->wid,
-             // event->tid,
-             event,
-             status,
-             errorDescription);
-    }
-}
-
 extern void
 ewmHandleGasPrice (BREthereumEWM ewm,
                    BREthereumWallet wallet,
@@ -439,7 +267,7 @@ ewmHandleGasPrice (BREthereumEWM ewm,
     
     walletSetDefaultGasPrice(wallet, gasPrice);
     
-    ewmListenerSignalWalletEvent(ewm,
+    ewmClientSignalWalletEvent(ewm,
                                  ewmLookupWalletId(ewm, wallet),
                                  WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
                                  SUCCESS, NULL);
@@ -456,7 +284,7 @@ ewmHandleGasEstimate (BREthereumEWM ewm,
     
     transactionSetGasEstimate(transaction, gasEstimate);
     
-    ewmListenerSignalTransactionEvent(ewm,
+    ewmClientSignalTransactionEvent(ewm,
                                       ewmLookupWalletId(ewm, wallet),
                                       ewmLookupTransactionId (ewm, transaction),
                                       TRANSACTION_EVENT_GAS_ESTIMATE_UPDATED,
@@ -507,7 +335,7 @@ ewmHandleBalance (BREthereumEWM ewm,
 
     walletSetBalance(wallet, amount);
 
-    ewmListenerSignalWalletEvent(ewm, wid, WALLET_EVENT_BALANCE_UPDATED,
+    ewmClientSignalWalletEvent(ewm, wid, WALLET_EVENT_BALANCE_UPDATED,
                                  SUCCESS,
                                  NULL);
 
@@ -551,8 +379,8 @@ ewmHandleTransaction (BREthereumEWM ewm,
         //
         //  b) announce the wallet update
         //  TODO: Need a hash here?
-        ewmListenerSignalTransactionEvent(ewm, wid, tid,
-                                          TRANSACTION_EVENT_ADDED,
+        ewmClientSignalTransactionEvent(ewm, wid, tid,
+                                          TRANSACTION_EVENT_CREATED,
                                           SUCCESS, NULL);
     }
     
@@ -564,14 +392,14 @@ ewmHandleTransaction (BREthereumEWM ewm,
         case TRANSACTION_STATUS_PENDING:
             break;
         case TRANSACTION_STATUS_INCLUDED:
-            ewmListenerSignalTransactionEvent(ewm, wid, tid,
+            ewmClientSignalTransactionEvent(ewm, wid, tid,
                                               (ewmGetBlockHeight(ewm) == status.u.included.blockNumber
                                                ? TRANSACTION_EVENT_BLOCKED
                                                : TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED),
                                               SUCCESS, NULL);
             break;
         case TRANSACTION_STATUS_ERRORED:
-            ewmListenerSignalTransactionEvent(ewm, wid, tid,
+            ewmClientSignalTransactionEvent(ewm, wid, tid,
                                               (ewmGetBlockHeight(ewm) == status.u.included.blockNumber
                                                ? TRANSACTION_EVENT_BLOCKED
                                                : TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED),
@@ -653,10 +481,10 @@ ewmHandleSaveBlocks (BREthereumEWM ewm,
         array_add (blocksToSave, persistData);
     }
 
-    ewm->client.funcSaveBlocks (ewm->client.funcContext, ewm,
+    // TODO: ewmSignalSaveBlocks(ewm, blocks)
+    ewm->client.funcSaveBlocks (ewm->client.context, ewm,
                                 blocksToSave);
 
-    array_free (blocksToSave);
     array_free (blocks);
     rlpCoderRelease(coder);
 }
@@ -673,7 +501,8 @@ ewmHandleSavePeers (BREthereumEWM ewm,
         // Add to peersToSave
     }
 
-    ewm->client.funcSavePeers (ewm->client.funcContext, ewm,
+    // TODO: ewmSignalSavePeers(ewm, peers);
+    ewm->client.funcSavePeers (ewm->client.context, ewm,
                                peersToSave);
 
     eth_log("EWM", "Save Peers: %zu", peersCount);
@@ -687,7 +516,16 @@ ewmHandleSync (BREthereumEWM ewm,
                uint64_t blockNumberStart,
                uint64_t blockNumberCurrent,
                uint64_t blockNumberStop) {
-    eth_log ("EWM", "Sync: %d, %.2f%%", type, (100.0 * (blockNumberCurrent - blockNumberStart) / (blockNumberStop - blockNumberStart)));
+    BREthereumEWMEvent event = (blockNumberCurrent == blockNumberStart
+                                ? EWM_EVENT_SYNC_STARTED
+                                : (blockNumberCurrent == blockNumberStop
+                                   ? EWM_EVENT_SYNC_STARTED
+                                   : EWM_EVENT_SYNC_CONTINUES));
+    double syncCompletePercent = 100.0 * (blockNumberCurrent - blockNumberStart) / (blockNumberStop - blockNumberStart);
+
+    ewmClientSignalEWMEvent (ewm, event, SUCCESS, NULL);
+
+    eth_log ("EWM", "Sync: %d, %.2f%%", type, syncCompletePercent);
 }
 //
 // Connect // Disconnect
@@ -721,17 +559,15 @@ ewmPeriodicDispatcher (BREventHandler handler,
 //static BREthereumClient nullClient;
 
 extern BREthereumBoolean
-ewmConnect(BREthereumEWM ewm,
-           BREthereumClient client) {
+ewmConnect(BREthereumEWM ewm) {
     if (ETHEREUM_BOOLEAN_IS_TRUE(bcsIsStarted(ewm->bcs)))
         return ETHEREUM_BOOLEAN_FALSE;
     
     // Set ewm {client,state} prior to bcs/event start.  Avoid race conditions, particularly
     // with `ewmPeriodicDispatcher`.
-    ewm->client = client;
     ewm->state = LIGHT_NODE_CONNECTED;
     bcsStart(ewm->bcs);
-    eventHandlerStart(ewm->handlerForListener);
+    eventHandlerStart(ewm->handlerForClient);
     eventHandlerStart(ewm->handlerForMain);
     return ETHEREUM_BOOLEAN_TRUE;
 }
@@ -743,7 +579,7 @@ ewmDisconnect (BREthereumEWM ewm) {
         ewm->state = LIGHT_NODE_DISCONNECTED;
         bcsStop(ewm->bcs);
         eventHandlerStop(ewm->handlerForMain);
-        eventHandlerStop(ewm->handlerForListener);
+        eventHandlerStop(ewm->handlerForClient);
     }
     return ETHEREUM_BOOLEAN_TRUE;
 }
@@ -801,7 +637,7 @@ ewmInsertWallet (BREthereumEWM ewm,
     array_add (ewm->wallets, wallet);
     wid = (BREthereumWalletId) (array_count(ewm->wallets) - 1);
     pthread_mutex_unlock(&ewm->lock);
-    ewmListenerSignalWalletEvent(ewm, wid, WALLET_EVENT_CREATED, SUCCESS, NULL);
+    ewmClientSignalWalletEvent(ewm, wid, WALLET_EVENT_CREATED, SUCCESS, NULL);
     return wid;
 }
 
@@ -855,8 +691,7 @@ ewmWalletCreateTransaction(BREthereumEWM ewm,
     
     pthread_mutex_unlock(&ewm->lock);
     
-    ewmListenerSignalTransactionEvent(ewm, wid, tid, TRANSACTION_EVENT_CREATED, SUCCESS, NULL);
-    ewmListenerSignalTransactionEvent(ewm, wid, tid, TRANSACTION_EVENT_ADDED, SUCCESS, NULL);
+    ewmClientSignalTransactionEvent(ewm, wid, tid, TRANSACTION_EVENT_CREATED, SUCCESS, NULL);
     
     return tid;
 }
@@ -867,7 +702,7 @@ ewmWalletSignTransaction(BREthereumEWM ewm,
                          BREthereumTransaction transaction,
                          BRKey privateKey) {
     walletSignTransactionWithPrivateKey(wallet, transaction, privateKey);
-    ewmListenerSignalTransactionEvent(ewm,
+    ewmClientSignalTransactionEvent(ewm,
                                       ewmLookupWalletId(ewm, wallet),
                                       ewmLookupTransactionId(ewm, transaction),
                                       TRANSACTION_EVENT_SIGNED,
@@ -881,7 +716,7 @@ ewmWalletSignTransactionWithPaperKey(BREthereumEWM ewm,
                                      BREthereumTransaction transaction,
                                      const char *paperKey) {
     walletSignTransaction(wallet, transaction, paperKey);
-    ewmListenerSignalTransactionEvent(ewm,
+    ewmClientSignalTransactionEvent(ewm,
                                       ewmLookupWalletId(ewm, wallet),
                                       ewmLookupTransactionId(ewm, transaction),
                                       TRANSACTION_EVENT_SIGNED,
@@ -903,7 +738,7 @@ ewmWalletSubmitTransaction(BREthereumEWM ewm,
             
         case NODE_TYPE_JSON_RPC: {
             ewm->client.funcSubmitTransaction
-            (ewm->client.funcContext,
+            (ewm->client.context,
              ewm,
              ewmLookupWalletId(ewm, wallet),
              ewmLookupTransactionId(ewm, transaction),
@@ -953,7 +788,7 @@ ewmWalletSetDefaultGasLimit(BREthereumEWM ewm,
                             BREthereumWallet wallet,
                             BREthereumGas gasLimit) {
     walletSetDefaultGasLimit(wallet, gasLimit);
-    ewmListenerSignalWalletEvent(ewm,
+    ewmClientSignalWalletEvent(ewm,
                                  ewmLookupWalletId(ewm, wallet),
                                  WALLET_EVENT_DEFAULT_GAS_LIMIT_UPDATED,
                                  SUCCESS,
@@ -965,7 +800,7 @@ ewmWalletSetDefaultGasPrice(BREthereumEWM ewm,
                             BREthereumWallet wallet,
                             BREthereumGasPrice gasPrice) {
     walletSetDefaultGasPrice(wallet, gasPrice);
-    ewmListenerSignalWalletEvent(ewm,
+    ewmClientSignalWalletEvent(ewm,
                                  ewmLookupWalletId(ewm, wallet),
                                  WALLET_EVENT_DEFAULT_GAS_PRICE_UPDATED,
                                  SUCCESS,
@@ -1026,7 +861,7 @@ ewmInsertBlock (BREthereumEWM ewm,
     array_add(ewm->blocks, block);
     bid = (BREthereumBlockId) (array_count(ewm->blocks) - 1);
     pthread_mutex_unlock(&ewm->lock);
-    ewmListenerSignalBlockEvent(ewm, bid, BLOCK_EVENT_CREATED, SUCCESS, NULL);
+    ewmClientSignalBlockEvent(ewm, bid, BLOCK_EVENT_CREATED, SUCCESS, NULL);
     return bid;
 }
 
@@ -1111,7 +946,7 @@ ewmDeleteTransaction (BREthereumEWM ewm,
     for (int wid = 0; wid < array_count(ewm->wallets); wid++)
         if (walletHasTransaction(ewm->wallets[wid], transaction)) {
             walletUnhandleTransaction(ewm->wallets[wid], transaction);
-            ewmListenerSignalTransactionEvent(ewm, wid, tid, TRANSACTION_EVENT_REMOVED, SUCCESS, NULL);
+            ewmClientSignalTransactionEvent(ewm, wid, tid, TRANSACTION_EVENT_DELETED, SUCCESS, NULL);
         }
     
     // Null the ewm's `tid` - MUST NOT array_rm() as all `tid` holders will be dead.
@@ -1123,10 +958,10 @@ ewmDeleteTransaction (BREthereumEWM ewm,
 #if defined(SUPPORT_JSON_RPC)
 
 extern void
-ewmFillTransactionRawData(BREthereumEWM ewm,
-                          BREthereumWalletId wid,
-                          BREthereumTransactionId transactionId,
-                          uint8_t **bytesPtr, size_t *bytesCountPtr) {
+ethereumTransactionFillRawData(BREthereumEWM ewm,
+                               BREthereumWalletId wid,
+                               BREthereumTransactionId transactionId,
+                               uint8_t **bytesPtr, size_t *bytesCountPtr) {
     BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
     BREthereumTransaction transaction = ewmLookupTransaction(ewm, transactionId);
     
@@ -1142,10 +977,10 @@ ewmFillTransactionRawData(BREthereumEWM ewm,
 }
 
 extern const char *
-ewmGetTransactionRawDataHexEncoded(BREthereumEWM ewm,
-                                   BREthereumWalletId wid,
-                                   BREthereumTransactionId transactionId,
-                                   const char *prefix) {
+ethereumTransactionGetRawDataHexEncoded(BREthereumEWM ewm,
+                                        BREthereumWalletId wid,
+                                        BREthereumTransactionId transactionId,
+                                        const char *prefix) {
     BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
     BREthereumTransaction transaction = ewmLookupTransaction(ewm, transactionId);
     

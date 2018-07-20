@@ -43,6 +43,7 @@ createEWM (BREthereumNetwork network,
            BREthereumAccount account,
            BREthereumType type,
            BREthereumSyncMode syncMode,
+           BREthereumClient client,
            BRArrayOf(BREthereumPersistData) peers,
            BRArrayOf(BREthereumPersistData) blocks,
            BRArrayOf(BREthereumPersistData) transactions,
@@ -61,8 +62,7 @@ ewmGetNetwork (BREthereumEWM ewm);
 // Connect & Disconnect
 //
 extern BREthereumBoolean
-ewmConnect(BREthereumEWM ewm,
-           BREthereumClient client);
+ewmConnect(BREthereumEWM ewm);
 
 extern BREthereumBoolean
 ewmDisconnect (BREthereumEWM ewm);

@@ -79,8 +79,9 @@ static void _transactionStatus(BREthereumLESTransactionStatusContext context,
 }
 void prepareLESTransaction (BREthereumLES les, const char *paperKey, const char *recvAddr, const uint64_t gasPrice, const uint64_t gasLimit, const uint64_t amount) {
     printf ("     Prepare Transaction\n");
-    
-    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, NULL, NULL, NULL, NULL);
+
+    BREthereumClient client = {};
+    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, client, NULL, NULL, NULL, NULL);
     // A wallet amount Ether
     BREthereumWalletId wallet = ethereumGetWallet(ewm);
     // END - One Time Code Block
@@ -102,7 +103,7 @@ void prepareLESTransaction (BREthereumLES les, const char *paperKey, const char 
     ethereumWalletSignTransaction (ewm, wallet, tx1, paperKey);
     
     const char *rawTransactionHexEncoded =
-    ewmGetTransactionRawDataHexEncoded(ewm, wallet, tx1, "0x");
+    ethereumTransactionGetRawDataHexEncoded(ewm, wallet, tx1, "0x");
     
     printf ("        Raw Transaction: %s\n", rawTransactionHexEncoded);
     

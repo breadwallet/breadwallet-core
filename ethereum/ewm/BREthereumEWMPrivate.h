@@ -38,18 +38,6 @@ extern "C" {
 #endif
 
 //
-// EWM Listener
-//
-typedef struct  {
-    BREthereumListenerContext context;
-    BREthereumListenerEWMEventHandler ewmEventHandler;
-    BREthereumListenerPeerEventHandler peerEventHandler;
-    BREthereumListenerWalletEventHandler walletEventHandler;
-    BREthereumListenerBlockEventHandler blockEventHandler;
-    BREthereumListenerTransactionEventHandler transactionEventHandler;
-} BREthereumEWMListener;
-
-//
 // EWM
 //
 
@@ -75,83 +63,78 @@ struct BREthereumEWMRecord {
      * The State
      */
     BREthereumEWMState state;
-    
+
     /**
      * The Type of this EWM
      */
     BREthereumType type;
-    
+
     /**
      * The SyncMode of this EWM
      */
     BREthereumSyncMode syncMode;
-    
+
     /**
      * The network
      */
     BREthereumNetwork network;
-    
+
     /**
      * The Client supporting this EWM
      */
     BREthereumClient client;
-    
+
     /**
      * The account
      */
     BREthereumAccount account;
-    
+
     /**
      * The wallets 'managed/handled' by this ewm.  There can be only one wallet holding ETHER;
      * all the other wallets hold TOKENs and only one wallet per TOKEN.
      */
     BREthereumWallet *wallets;  // for now
     BREthereumWallet  walletHoldingEther;
-    
+
     /**
      * The transactions seen/handled by this ewm.  These are used *solely* for the TransactionId
      * interface in EWM.  *All* transactions must be accesses through their wallet.
      */
     BREthereumTransaction *transactions; // BRSet
-    
+
     /**
      * The blocks handled by this ewm.  [This is currently just those handled for transactions
      * (both Ethererum transactions and logs.  It is unlikely that the current block is here.]
      */
     BREthereumBlock *blocks; // BRSet
-    
+
     /**
      * The BCS Interface
      */
     BREthereumBCS bcs;
-    
+
     /**
      * The BlockHeight is the largest block number seen or computed.  [Note: the blockHeight may
      * be computed from a Log event as (log block number + log confirmations).
      */
     uint64_t blockHeight;
-    
+
     /**
      * An identiifer for a LES/JSON_RPC Request
      */
     unsigned int requestId;
-    
+
     /**
-     * The listeners
-     */
-    BREthereumEWMListener *listeners; // BRArray
-    
-    /**
-     * An EventHandler for Listeners.  All callbacks to the Listener interface occur on a
+     * An EventHandler for Client.  All callbacks to/from the Client interface occur on a
      * separate thread.
      */
-    BREventHandler handlerForListener;
-    
+    BREventHandler handlerForClient;
+
     /**
      * An EventHandler for Main.  All 'announcements' (via LES (or JSON_RPC) hit here.
      */
     BREventHandler handlerForMain;
-    
+
     /**
      * The Lock ensuring single thread access to EWM state.
      */
@@ -191,13 +174,12 @@ extern void
 ewmDeleteTransaction (BREthereumEWM ewm,
                       BREthereumTransactionId tid);
 
-// =============================================================================================
+///
+/// MARK: - BCS Callback Interfaces
+///
 //
-// LES(BCS)/JSON_RPC Callbacks
+// Signal/Handle Block Chain (BCS Callback)
 //
-extern const BREventType *handlerEventTypes[];
-extern const unsigned int handlerEventTypesCount;
-
 extern void
 ewmHandleBlockChain (BREthereumEWM ewm,
                      BREthereumHash headBlockHash,
@@ -211,7 +193,8 @@ ewmSignalBlockChain (BREthereumEWM ewm,
                      uint64_t headBlockTimestamp);
 
 //
-// Signal/Handle Balance
+// Signal/Handle Balance (BCS Callback)
+//
 extern void
 ewmHandleAccountState (BREthereumEWM ewm,
                        BREthereumAccountState accountState);
@@ -221,7 +204,7 @@ ewmSignalAccountState (BREthereumEWM ewm,
                        BREthereumAccountState accountState);
 
 //
-// Signal/Handle Balance
+// Signal/Handle Balance (BCS Callback)
 //
 extern void
 ewmHandleBalance (BREthereumEWM ewm,
@@ -232,7 +215,7 @@ ewmSignalBalance (BREthereumEWM ewm,
                   BREthereumAmount balance);
 
 //
-// Signal/Handle GasPrice
+// Signal/Handle GasPrice (BCS Callback)
 //
 extern void
 ewmHandleGasPrice (BREthereumEWM ewm,
@@ -244,7 +227,7 @@ ewmSignalGasPrice (BREthereumEWM ewm,
                    BREthereumGasPrice gasPrice);
 
 //
-// Signal/Handle GasEstimate
+// Signal/Handle GasEstimate (BCS Callback)
 //
 extern void
 ewmHandleGasEstimate (BREthereumEWM ewm,
@@ -258,7 +241,7 @@ ewmSignalGasEstimate (BREthereumEWM ewm,
                       BREthereumGas gasEstimate);
 
 //
-// Signal/Handle Transaction
+// Signal/Handle Transaction (BCS Callback)
 //
 extern void
 ewmHandleTransaction (BREthereumEWM ewm,
@@ -271,7 +254,7 @@ ewmSignalTransaction (BREthereumEWM ewm,
                       BREthereumTransaction transaction);
 
 //
-// Signal/Handle Log
+// Signal/Handle Log (BCS Callback)
 //
 extern void
 ewmHandleLog (BREthereumEWM ewm,
@@ -284,7 +267,7 @@ ewmSignalLog (BREthereumEWM ewm,
               BREthereumLog log);
 
 //
-// Save Blocks
+// Signal/Handle Save Blocks (BCS Callback)
 //
 extern void
 ewmHandleSaveBlocks (BREthereumEWM ewm,
@@ -295,7 +278,7 @@ ewmSignalSaveBlocks (BREthereumEWM ewm,
                      BRArrayOf(BREthereumBlock) blocks);
 
 //
-// Save Peers
+// Signal/Handle Save Peers (BCS Callback)
 //
 extern void
 ewmHandleSavePeers (BREthereumEWM ewm,
@@ -307,7 +290,7 @@ ewmSignalSavePeers (BREthereumEWM ewm,
 
 
 //
-// Sync
+// Signal/Handle Sync (BCS Callback)
 //
 extern void
 ewmHandleSync (BREthereumEWM ewm,
@@ -323,102 +306,287 @@ ewmSignalSync (BREthereumEWM ewm,
                uint64_t blockNumberCurrent,
                uint64_t blockNumberStop);
 
-// =============================================================================================
-//
-// Listener Callbacks
-//
-extern const BREventType *listenerEventTypes[];
-extern const unsigned int listenerEventTypesCount;
+///
+/// MARK: - Handler For Main
+///
 
 //
-// Signal/Handle Wallet Event
-extern void
-ewmListenerHandleWalletEvent(BREthereumEWM ewm,
-                             BREthereumWalletId wid,
-                             BREthereumWalletEvent event,
-                             BREthereumStatus status,
-                             const char *errorDescription);
+// Handle For Main Event Types
+//
+extern const BREventType *handlerForMainEventTypes[];
+extern const unsigned int handlerForMainEventTypesCount;
 
-extern void
-ewmListenerSignalWalletEvent(BREthereumEWM ewm,
-                             BREthereumWalletId wid,
-                             BREthereumWalletEvent event,
-                             BREthereumStatus status,
-                             const char *errorDescription);
+///
+/// MARK: - Client Callbacks
+///
 
 //
-// Signal/Handle Block Event
+// Signal/Handle Announce Block Number (Client Callback)
 //
 extern void
-ewmListenerSignalBlockEvent(BREthereumEWM ewm,
-                            BREthereumBlockId bid,
-                            BREthereumBlockEvent event,
-                            BREthereumStatus status,
-                            const char *errorDescription);
+ewmClientHandleAnnounceBlockNumber (BREthereumEWM ewm,
+                                    uint64_t blockNumber,
+                                    int rid);
 
 extern void
-ewmListenerHandleBlockEvent(BREthereumEWM ewm,
-                            BREthereumBlockId bid,
-                            BREthereumBlockEvent event,
-                            BREthereumStatus status,
-                            const char *errorDescription);
+ewmClientSignalAnnounceBlockNumber (BREthereumEWM ewm,
+                                    uint64_t blockNumber,
+                                    int rid);
 
 //
-// Signal/Handle Transaction Event
+// Signal/Handle Announce Nonce (Client Callback)
 //
 extern void
-ewmListenerSignalTransactionEvent(BREthereumEWM ewm,
-                                  BREthereumWalletId wid,
-                                  BREthereumTransactionId tid,
-                                  BREthereumTransactionEvent event,
-                                  BREthereumStatus status,
-                                  const char *errorDescription);
+ewmClientHandleAnnounceNonce (BREthereumEWM ewm,
+                              BREthereumAddress address,
+                              uint64_t nonce,
+                              int rid);
 
 extern void
-ewmListenerHandleTransactionEvent(BREthereumEWM ewm,
-                                  BREthereumWalletId wid,
-                                  BREthereumTransactionId tid,
-                                  BREthereumTransactionEvent event,
-                                  BREthereumStatus status,
-                                  const char *errorDescription);
+ewmClientSignalAnnounceNonce (BREthereumEWM ewm,
+                              BREthereumAddress address,
+                              uint64_t nonce,
+                              int rid);
 
 //
-// Signal/Handle Peer Event
+// Signal/Handle Announce Balance (Client Callback)
 //
 extern void
-ewmListenerSignalPeerEvent(BREthereumEWM ewm,
-                           // BREthereumWalletId wid,
-                           // BREthereumTransactionId tid,
-                           BREthereumPeerEvent event,
+ewmClientHandleAnnounceBalance (BREthereumEWM ewm,
+                                BREthereumWallet wallet,
+                                UInt256 amount,
+                                int rid);
+
+extern void
+ewmClientSignalAnnounceBalance (BREthereumEWM ewm,
+                                BREthereumWallet wallet,
+                                UInt256 amount,
+                                int rid);
+
+//
+// Signal/Handle Announce Gas Price (Client Callback)
+//
+extern void
+ewmClientSignalAnnounceGasPrice (BREthereumEWM ewm,
+                                 BREthereumWallet wallet,
+                                 UInt256 value,
+                                 int rid);
+
+extern void
+ewmClientHandleAnnounceGasPrice (BREthereumEWM ewm,
+                                 BREthereumWallet wallet,
+                                 UInt256 value,
+                                 int rid);
+
+//
+// Signal/Handle Announce Gas Estimate (Client Callback)
+//
+extern void
+ewmClientHandleAnnounceGasEstimate (BREthereumEWM ewm,
+                                    BREthereumWallet wallet,
+                                    BREthereumTransaction transaction,
+                                    UInt256 value,
+                                    int rid);
+
+extern void
+ewmClientSignalAnnounceGasEstimate (BREthereumEWM ewm,
+                                    BREthereumWallet wallet,
+                                    BREthereumTransaction transaction,
+                                    UInt256 value,
+                                    int rid);
+
+//
+// Signal/Handle Announce Submit (Client Callback)
+//
+extern void
+ewmClientSignalAnnounceSubmitTransaction (BREthereumEWM ewm,
+                                          BREthereumWallet wallet,
+                                          BREthereumTransaction transaction,
+                                          int rid);
+
+extern void
+ewmClientHandleAnnounceSubmitTransaction (BREthereumEWM ewm,
+                                          BREthereumWallet wallet,
+                                          BREthereumTransaction transaction,
+                                          int rid);
+
+//
+// Signal/Handle Announce Transaction (Client Callback)
+//
+typedef struct {
+    BREthereumHash hash;
+    BREthereumAddress from;
+    BREthereumAddress to;
+    BREthereumAddress contract;
+    UInt256 amount;
+    uint64_t gasLimit;
+    UInt256 gasPrice;
+    char *data;
+    uint64_t nonce;
+    uint64_t gasUsed;
+    uint64_t blockNumber;
+    BREthereumHash blockHash;
+    uint64_t blockConfirmations;
+    uint64_t blockTransactionIndex;
+    uint64_t blockTimestamp;
+    BREthereumBoolean isError;
+} BREthereumEWMClientAnnounceTransactionBundle;
+
+extern void
+ewmClientHandleAnnounceTransaction(BREthereumEWM ewm,
+                                   BREthereumEWMClientAnnounceTransactionBundle *bundle,
+                                   int id);
+
+extern void
+ewmClientSignalAnnounceTransaction(BREthereumEWM ewm,
+                                   BREthereumEWMClientAnnounceTransactionBundle *bundle,
+                                   int id);
+
+//
+// Signal/Handle Announce Log (Client Callback)
+//
+typedef struct {
+    BREthereumHash hash;
+    BREthereumAddress contract;
+    int topicCount;
+    char **arrayTopics;
+    char *data;
+    UInt256 gasPrice;
+    uint64_t gasUsed;
+    uint64_t logIndex;
+    uint64_t blockNumber;
+    uint64_t blockTransactionIndex;
+    uint64_t blockTimestamp;
+} BREthereumEWMClientAnnounceLogBundle;
+
+extern void
+ewmClientSignalAnnounceLog (BREthereumEWM ewm,
+                            BREthereumEWMClientAnnounceLogBundle *bundle,
+                            int id);
+
+extern void
+ewmClientHandleAnnounceLog (BREthereumEWM ewm,
+                            BREthereumEWMClientAnnounceLogBundle *bundle,
+                            int id);
+
+//
+// Signal/Handle Announce Token (Client Callback)
+//
+typedef struct {
+    BREthereumAddress target;
+    BREthereumAddress contract;
+    char *data;
+} BREthereumEWMClientAnnounceTokenBundle;
+
+extern void
+ewmClientHandleAnnounceToken (BREthereumEWM ewm,
+                              BREthereumEWMClientAnnounceTokenBundle *bundle,
+                              int id);
+extern void
+ewmClientSignalAnnounceToken (BREthereumEWM ewm,
+                              BREthereumEWMClientAnnounceTokenBundle *bundle,
+                              int id);
+
+//
+// Signal/Handle Wallet Event (Client Callback)
+//
+extern void
+ewmClientHandleWalletEvent(BREthereumEWM ewm,
+                           BREthereumWalletId wid,
+                           BREthereumWalletEvent event,
                            BREthereumStatus status,
                            const char *errorDescription);
 
 extern void
-ewmListenerHandlePeerEvent(BREthereumEWM ewm,
-                           // BREthereumWalletId wid,
-                           // BREthereumTransactionId tid,
-                           BREthereumPeerEvent event,
+ewmClientSignalWalletEvent(BREthereumEWM ewm,
+                           BREthereumWalletId wid,
+                           BREthereumWalletEvent event,
                            BREthereumStatus status,
                            const char *errorDescription);
 
 //
-// Signal/Handle EWM Event
+// Signal/Handle Block Event (Client Callback)
 //
 extern void
-ewmListenerSignalEWMEvent(BREthereumEWM ewm,
-                          // BREthereumWalletId wid,
-                          // BREthereumTransactionId tid,
-                          BREthereumEWMEvent event,
+ewmClientSignalBlockEvent(BREthereumEWM ewm,
+                          BREthereumBlockId bid,
+                          BREthereumBlockEvent event,
                           BREthereumStatus status,
                           const char *errorDescription);
 
 extern void
-ewmListenerHandleEWMEvent(BREthereumEWM ewm,
-                          // BREthereumWalletId wid,
-                          // BREthereumTransactionId tid,
-                          BREthereumEWMEvent event,
+ewmClientHandleBlockEvent(BREthereumEWM ewm,
+                          BREthereumBlockId bid,
+                          BREthereumBlockEvent event,
                           BREthereumStatus status,
                           const char *errorDescription);
+
+//
+// Signal/Handle Transaction Event (Client Callback)
+//
+extern void
+ewmClientSignalTransactionEvent(BREthereumEWM ewm,
+                                BREthereumWalletId wid,
+                                BREthereumTransactionId tid,
+                                BREthereumTransactionEvent event,
+                                BREthereumStatus status,
+                                const char *errorDescription);
+
+extern void
+ewmClientHandleTransactionEvent(BREthereumEWM ewm,
+                                BREthereumWalletId wid,
+                                BREthereumTransactionId tid,
+                                BREthereumTransactionEvent event,
+                                BREthereumStatus status,
+                                const char *errorDescription);
+
+//
+// Signal/Handle Peer Event (Client Callback)
+//
+extern void
+ewmClientSignalPeerEvent(BREthereumEWM ewm,
+                         // BREthereumWalletId wid,
+                         // BREthereumTransactionId tid,
+                         BREthereumPeerEvent event,
+                         BREthereumStatus status,
+                         const char *errorDescription);
+
+extern void
+ewmClientHandlePeerEvent(BREthereumEWM ewm,
+                         // BREthereumWalletId wid,
+                         // BREthereumTransactionId tid,
+                         BREthereumPeerEvent event,
+                         BREthereumStatus status,
+                         const char *errorDescription);
+
+//
+// Signal/Handle EWM Event (Client Callback)
+//
+extern void
+ewmClientSignalEWMEvent(BREthereumEWM ewm,
+                        // BREthereumWalletId wid,
+                        // BREthereumTransactionId tid,
+                        BREthereumEWMEvent event,
+                        BREthereumStatus status,
+                        const char *errorDescription);
+
+extern void
+ewmClientHandleEWMEvent(BREthereumEWM ewm,
+                        // BREthereumWalletId wid,
+                        // BREthereumTransactionId tid,
+                        BREthereumEWMEvent event,
+                        BREthereumStatus status,
+                        const char *errorDescription);
+
+///
+/// MARK: - Handler For Client
+
+//
+// Handle For Client Event Types
+//
+extern const BREventType *handlerForClientEventTypes[];
+extern const unsigned int handlerForClientEventTypesCount;
+
 
 #ifdef __cplusplus
 }
