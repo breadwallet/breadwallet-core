@@ -38,7 +38,18 @@ size_t BRKeyECIESAES128SHA256Encrypt(BRKey *pubKey, void *out, size_t outLen, BR
                                      const void *data, size_t dataLen);
 
 size_t BRKeyECIESAES128SHA256Decrypt(BRKey *privKey, void *out, size_t outLen, const void *data, size_t dataLen);
+    
+    
+// Generates a pairing key using HMAC_DRBG with the local private key as entropy and SHA256(identifier) as the nonce.
+void BRKeyPigeonPairingKey(BRKey *privKey, uint8_t *out32, const void *identifier, size_t identifierSize);
 
+// chacha20-poly1305 authenticated encryption with associated data (AEAD): https://tools.ietf.org/html/rfc7539
+// with shared key derived from privKey and pubKey using ECDH
+// call with NULL out parameter to get the expected output size returned
+size_t BRKeyPigeonEncrypt(BRKey *privKey, void *out, size_t outLen, BRKey *pubKey, const void *nonce12, const void *data, size_t dataLen);
+size_t BRKeyPigeonDecrypt(BRKey *privKey, void *out, size_t outLen, BRKey *pubKey, const void *nonce12, const void *data, size_t dataLen);
+
+    
 #ifdef __cplusplus
 }
 #endif

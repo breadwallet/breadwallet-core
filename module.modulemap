@@ -11,6 +11,7 @@ module BRCore [system] [extern_c] {
     header "BRBase58.h"
     header "BRBech32.h"
     header "BRKey.h"
+    header "BRKeyECIES.h"
     header "BRBIP38Key.h"
     header "BRBIP39Mnemonic.h"
     header "BRBIP32Sequence.h"
