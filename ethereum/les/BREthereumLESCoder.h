@@ -129,8 +129,8 @@ extern BREthereumLESDecodeStatus ethereumLESDecodeStatus(uint8_t*rlpBytes, size_
 //
 // Transaction relaying and status retrieval
 //
-extern BRRlpData ethereumLESSendTxt(uint64_t message_id_offset, uint64_t reqId, BREthereumTransaction transactions[], BREthereumNetwork network, BREthereumTransactionRLPType type);
-extern BRRlpData ethereumLESSendTxtV2(uint64_t message_id_offset, uint64_t reqId, BREthereumTransaction transactions[], BREthereumNetwork network, BREthereumTransactionRLPType type);
+extern BRRlpData ethereumLESSendTxt(uint64_t message_id_offset, uint64_t reqId, BREthereumTransaction transactions[], BREthereumNetwork network, BREthereumRlpType type);
+extern BRRlpData ethereumLESSendTxtV2(uint64_t message_id_offset, uint64_t reqId, BREthereumTransaction transactions[], BREthereumNetwork network, BREthereumRlpType type);
 
 //
 // Header synchronisation

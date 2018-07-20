@@ -477,7 +477,7 @@ BREthereumLESDecodeStatus ethereumLESDecodeBlockHeaders(uint8_t*rlpBytes, size_t
     array_new(headers, blocksCount);
     
     for(int i = 0; i < blocksCount; ++i){
-        array_add(headers, blockHeaderRlpDecode(blocks[i], coder));
+        array_add(headers, blockHeaderRlpDecode(blocks[i], RLP_TYPE_NETWORK, coder));
     }
     rlpCoderRelease(coder);
     
@@ -589,8 +589,8 @@ BREthereumLESDecodeStatus ethereumLESDecodeBlockBodies(uint8_t*rlpBytes, size_t 
             return BRE_LES_CODER_UNABLE_TO_DECODE_ERROR;
         }
         
-        array_add(actualTransactions,blockTransactionsRlpDecode(txtsOmmersDataItems[0],network,coder));
-        array_add(ommersHeaders, blockOmmersRlpDecode(txtsOmmersDataItems[1],network,coder));
+        array_add(actualTransactions,blockTransactionsRlpDecode(txtsOmmersDataItems[0],network,RLP_TYPE_NETWORK,coder));
+        array_add(ommersHeaders, blockOmmersRlpDecode(txtsOmmersDataItems[1],network,RLP_TYPE_NETWORK,coder));
     }
  
     rlpCoderRelease(coder);
@@ -668,7 +668,7 @@ BREthereumLESDecodeStatus ethereumLESDecodeReceipts(uint8_t*rlpBytes, size_t rlp
 //
 // Transaction relaying and status retrieval
 //
-static BRRlpData _encodeTxts(uint64_t msgId, uint64_t message_id_offset, uint64_t reqId, BREthereumTransaction transactions[], BREthereumNetwork network, BREthereumTransactionRLPType type) {
+static BRRlpData _encodeTxts(uint64_t msgId, uint64_t message_id_offset, uint64_t reqId, BREthereumTransaction transactions[], BREthereumNetwork network, BREthereumRlpType type) {
 
     size_t transactionsCount = array_count(transactions);
     BRRlpCoder coder = rlpCoderCreate();
@@ -696,11 +696,11 @@ static BRRlpData _encodeTxts(uint64_t msgId, uint64_t message_id_offset, uint64_
     return retData;
 }
 
-BRRlpData ethereumLESSendTxt(uint64_t message_id_offset, uint64_t reqId, BREthereumTransaction transactions[], BREthereumNetwork network, BREthereumTransactionRLPType type) {
+BRRlpData ethereumLESSendTxt(uint64_t message_id_offset, uint64_t reqId, BREthereumTransaction transactions[], BREthereumNetwork network, BREthereumRlpType type) {
     
     return _encodeTxts(BRE_LES_ID_SEND_TX, message_id_offset, reqId, transactions,network,type);
 }
-BRRlpData ethereumLESSendTxtV2(uint64_t message_id_offset, uint64_t reqId, BREthereumTransaction transactions[], BREthereumNetwork network, BREthereumTransactionRLPType type) {
+BRRlpData ethereumLESSendTxtV2(uint64_t message_id_offset, uint64_t reqId, BREthereumTransaction transactions[], BREthereumNetwork network, BREthereumRlpType type) {
 
     return _encodeTxts(BRE_LES_ID_SEND_TX2,message_id_offset, reqId, transactions,network,type);
 }

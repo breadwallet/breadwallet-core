@@ -38,16 +38,32 @@ extern BREthereumEWM
 ethereumCreate(BREthereumNetwork network,
                const char *paperKey,
                BREthereumType type,
-               BREthereumSyncMode syncMode) {
-    return createEWM (network, createAccount(paperKey), type, syncMode);
+               BREthereumSyncMode syncMode,
+               BRArrayOf(BREthereumPersistData) peers,
+               BRArrayOf(BREthereumPersistData) blocks,
+               BRArrayOf(BREthereumPersistData) transactions,
+               BRArrayOf(BREthereumPersistData) logs) {
+    return createEWM (network, createAccount(paperKey), type, syncMode,
+                      peers,
+                      blocks,
+                      transactions,
+                      logs);
 }
 
 extern BREthereumEWM
 ethereumCreateWithPublicKey(BREthereumNetwork network,
                             const BRKey publicKey,      // 65 byte, 0x04-prefixed, uncompressed public key
                             BREthereumType type,
-                            BREthereumSyncMode syncMode) {
-    return createEWM (network, createAccountWithPublicKey (publicKey), type, syncMode);
+                            BREthereumSyncMode syncMode,
+                            BRArrayOf(BREthereumPersistData) peers,
+                            BRArrayOf(BREthereumPersistData) blocks,
+                            BRArrayOf(BREthereumPersistData) transactions,
+                            BRArrayOf(BREthereumPersistData) logs) {
+    return createEWM (network, createAccountWithPublicKey (publicKey), type, syncMode,
+                      peers,
+                      blocks,
+                      transactions,
+                      logs);
 }
 
 extern BREthereumBoolean

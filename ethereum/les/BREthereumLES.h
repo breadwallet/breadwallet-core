@@ -94,7 +94,7 @@ lesCreate (BREthereumNetwork network,
            BREthereumLESAnnounceCallback announceCallback,
            BREthereumHash headHash,
            uint64_t headNumber,
-           uint64_t headTotalDifficulty,
+           UInt256 headTotalDifficulty,
            BREthereumHash genesisHash);
 
 /*!
@@ -331,7 +331,6 @@ extern BREthereumLESStatus
 lesSubmitTransaction (BREthereumLES les,
                       BREthereumLESTransactionStatusContext context,
                       BREthereumLESTransactionStatusCallback callback,
-                      BREthereumTransactionRLPType type,
                       BREthereumTransaction transaction);
 
 

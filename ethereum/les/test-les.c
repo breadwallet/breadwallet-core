@@ -80,7 +80,7 @@ static void _transactionStatus(BREthereumLESTransactionStatusContext context,
 void prepareLESTransaction (BREthereumLES les, const char *paperKey, const char *recvAddr, const uint64_t gasPrice, const uint64_t gasLimit, const uint64_t amount) {
     printf ("     Prepare Transaction\n");
     
-    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN);
+    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, NULL, NULL, NULL, NULL);
     // A wallet amount Ether
     BREthereumWalletId wallet = ethereumGetWallet(ewm);
     // END - One Time Code Block
@@ -117,7 +117,7 @@ void prepareLESTransaction (BREthereumLES les, const char *paperKey, const char 
     
     BREthereumTransaction actualTransaction = ewmLookupTransaction(ewm, transaction);
     
-    assert(lesSubmitTransaction(les, NULL, _transactionStatus, TRANSACTION_RLP_SIGNED, actualTransaction) == LES_SUCCESS);
+    assert(lesSubmitTransaction(les, NULL, _transactionStatus, actualTransaction) == LES_SUCCESS);
     
     sleep(600);
     
@@ -497,7 +497,7 @@ static void run_GetBlockBodies_Tests(BREthereumLES les){
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX].hash);
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX + 1].hash);
     
-    assert(lesGetBlockBodies(les, (void *)&_GetTxStatus_Context2, _GetBlockBodies_Callback_Test2, blockHeaders) == LES_SUCCESS);
+    assert(lesGetBlockBodies(les, (void *)&_GetBlockBodies_Context2, _GetBlockBodies_Callback_Test2, blockHeaders) == LES_SUCCESS);
     
     //Wait for a little bit to get a reply back from the server.
     sleep(60);
@@ -593,7 +593,7 @@ static void run_fullBlockSync_Test1(BREthereumLES les) {
     //Request block headers [0...1000]
     for(int i = 0; i < 10000; i+= 180) {
         assert(lesGetBlockHeaders(les, les, _fullBlockHeaders_Calllback_Test, i, 180, 0, ETHEREUM_BOOLEAN_FALSE) == LES_SUCCESS);
-        //sleep(1);
+        sleep(30);
     }
     sleep(1800);
 }
@@ -632,7 +632,7 @@ static void run_GetProofsV2_Tests(BREthereumLES les){
     assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block_5503921, key, key2, 0) == LES_SUCCESS);
     
     //Wait for a little bit to get a reply back from the server.
-    sleep(60);
+    sleep(5);
 }
 
 void runLEStests(void) {
@@ -644,7 +644,7 @@ void runLEStests(void) {
     decodeHex(headHash.bytes, 32, headHashStr, strlen(headHashStr));
     
     uint64_t headNumber = 0;
-    uint64_t headTD = 0x400000000;
+    UInt256 headTD = createUInt256 (0x400000000);
     
     BREthereumHash genesisHash;
     decodeHex(genesisHash.bytes, 32, headHashStr, strlen(headHashStr));
@@ -658,13 +658,13 @@ void runLEStests(void) {
     //Initialize data needed for tests
     _initBlockHeaderTestData();
     
-    //Run Tests on the LES messages
-   //    run_GetTxStatus_Tests(les);
-   //  run_GetBlockHeaders_Tests(les);
-   //  run_GetBlockBodies_Tests(les);
-   //  run_GetReceipts_Tests(les);
-    // run_GetProofsV2_Tests(les);
-    // reallySendLESTransaction(les);
-       run_fullBlockSync_Test1(les);
+    // Run Tests on the LES messages
+     run_GetTxStatus_Tests(les);
+    // run_GetBlockHeaders_Tests(les);
+    //    run_GetBlockBodies_Tests(les);
+    //    run_GetReceipts_Tests(les);
+    run_GetProofsV2_Tests(les);
+    //    reallySendLESTransaction(les);
+    //    run_fullBlockSync_Test1(les);
 }
 

@@ -328,7 +328,7 @@ transactionExtractAddress(BREthereumTransaction transaction,
 
     int success = 1;
 
-    BRRlpItem item = transactionRlpEncode (transaction, network, TRANSACTION_RLP_UNSIGNED, coder);
+    BRRlpItem item = transactionRlpEncode (transaction, network, RLP_TYPE_TRANSACTION_UNSIGNED, coder);
     BRRlpData data = rlpGetData(coder, item);
 
     BREthereumAddress address = signatureExtractAddress(transaction->signature,
@@ -386,9 +386,9 @@ transactionDecodeNonce (BRRlpItem item,
 extern BRRlpItem
 transactionRlpEncode(BREthereumTransaction transaction,
                      BREthereumNetwork network,
-                     BREthereumTransactionRLPType type,
+                     BREthereumRlpType type,
                      BRRlpCoder coder) {
-    BRRlpItem items[10];
+    BRRlpItem items[12]; // more than enough
     size_t itemsCount = 0;
 
     items[0] = transactionEncodeNonce(transaction, transaction->nonce, coder);
@@ -410,7 +410,7 @@ transactionRlpEncode(BREthereumTransaction transaction,
     transaction->chainId = networkGetChainId(network);
 
     switch (type) {
-        case TRANSACTION_RLP_UNSIGNED:
+        case RLP_TYPE_TRANSACTION_UNSIGNED:
             // For EIP-155, encode { v, r, s } with v as the chainId and both r and s as empty.
             items[6] = rlpEncodeItemUInt64(coder, transaction->chainId, 1);
             items[7] = rlpEncodeItemString(coder, "");
@@ -418,7 +418,8 @@ transactionRlpEncode(BREthereumTransaction transaction,
             itemsCount += 3;
             break;
 
-        case TRANSACTION_RLP_SIGNED:
+        case RLP_TYPE_TRANSACTION_SIGNED: // aka NETWORK
+        case RLP_TYPE_ARCHIVE:
             // For EIP-155, encode v with the chainID.
             items[6] = rlpEncodeItemUInt64(coder, transaction->signature.sig.recoverable.v + 8 +
                                            2 * transaction->chainId, 1);
@@ -431,12 +432,19 @@ transactionRlpEncode(BREthereumTransaction transaction,
                                            transaction->signature.sig.recoverable.s,
                                            sizeof (transaction->signature.sig.recoverable.s));
             itemsCount += 3;
+
+            // For ARCHIVE add in a few things beyond 'SIGNED / NETWORK'
+            if (RLP_TYPE_ARCHIVE == type) {
+                items[9] = hashRlpEncode(transaction->hash, coder);
+                items[10] = transactionStatusRLPEncode(transaction->status, coder);
+                itemsCount += 2;
+            }
             break;
     }
 
     BRRlpItem result = rlpEncodeListItems(coder, items, itemsCount);
 
-    if (TRANSACTION_RLP_SIGNED == type) {
+    if (RLP_TYPE_TRANSACTION_SIGNED == type) {
         BRRlpData data = rlpGetDataSharedDontRelease(coder, result);
         transaction->hash = hashCreateFromData(data);
     }
@@ -450,14 +458,15 @@ transactionRlpEncode(BREthereumTransaction transaction,
 extern BREthereumTransaction
 transactionRlpDecode (BRRlpItem item,
                       BREthereumNetwork network,
-                      BREthereumTransactionRLPType type,
+                      BREthereumRlpType type,
                       BRRlpCoder coder) {
 
     BREthereumTransaction transaction = calloc (1, sizeof(struct BREthereumTransactionRecord));
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
-    assert (9 == itemsCount);
+    assert (( 9 == itemsCount && (RLP_TYPE_TRANSACTION_SIGNED == type || RLP_TYPE_TRANSACTION_UNSIGNED == type)) ||
+            (11 == itemsCount && RLP_TYPE_ARCHIVE == type));
 
     // Encoded as:
     //    items[0] = transactionEncodeNonce(transaction, transaction->nonce, coder);
@@ -475,7 +484,7 @@ transactionRlpDecode (BRRlpItem item,
     transaction->amount = amountRlpDecodeAsEther(items[4], coder);
     transaction->data = rlpDecodeItemHexString (coder, items[5], "0x");
 
-#if defined (TRANSACTION_ENCODE_TOKEN)
+#if defined TRANSACTION_ENCODE_TOKEN
     char *strData = rlpDecodeItemHexString (coder, items[5], "0x");
     assert (NULL != strData);
     if ('\0' == strData[0] || 0 == strcmp (strData, "0x")) {
@@ -517,11 +526,11 @@ transactionRlpDecode (BRRlpItem item,
     uint64_t eipChainId = rlpDecodeItemUInt64(coder, items[6], 1);
 
     if (eipChainId == transaction->chainId) {
-        // TRANSACTION_RLP_UNSIGNED
+        // RLP_TYPE_TRANSACTION_UNSIGNED
         transaction->signature.type = SIGNATURE_TYPE_RECOVERABLE;
     }
     else {
-        // TRANSACTION_RLP_SIGNED
+        // RLP_TYPE_TRANSACTION_SIGNED
         transaction->signature.type = SIGNATURE_TYPE_RECOVERABLE;
 
         // If we are RLP decoding a transactino prior to EIP-xxx, then the eipChainId will
@@ -544,8 +553,12 @@ transactionRlpDecode (BRRlpItem item,
         transaction->sourceAddress = transactionExtractAddress(transaction, network, coder);
     }
 
+    if (RLP_TYPE_ARCHIVE == type) {
+        transaction->hash = hashRlpDecode(items[9], coder);
+        transaction->status = transactionStatusRLPDecode(items[10], coder);
+    }
     // With a SIGNED RLP encoding, we can compute the hash.
-    if (SIGNATURE_TYPE_RECOVERABLE == transaction->signature.type) {
+    else if (RLP_TYPE_TRANSACTION_SIGNED == type) {
         BRRlpData result = rlpGetDataSharedDontRelease(coder, item);
         transaction->hash = hashCreateFromData(result);
     }

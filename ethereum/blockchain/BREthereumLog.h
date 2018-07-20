@@ -158,6 +158,10 @@ logInitializeStatus (BREthereumLog log,
 extern BREthereumLogStatus
 logGetStatus (BREthereumLog log);
 
+extern void
+logSetStatus (BREthereumLog log,
+              BREthereumLogStatus status);
+    
 extern BREthereumHash
 logGetHash (BREthereumLog log);
 
@@ -197,13 +201,15 @@ logHashEqual (const void *h1, const void *h2);
 
 extern BREthereumLog
 logRlpDecode (BRRlpItem item,
-                  BRRlpCoder coder);
+              BREthereumRlpType type,
+              BRRlpCoder coder);
 /**
  * [QUASI-INTERNAL - used by BREthereumBlock]
  */
 extern BRRlpItem
 logRlpEncode(BREthereumLog log,
-                 BRRlpCoder coder);
+             BREthereumRlpType type,
+             BRRlpCoder coder);
 
 extern void
 logRelease (BREthereumLog log);

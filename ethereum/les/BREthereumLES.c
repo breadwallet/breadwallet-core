@@ -486,7 +486,7 @@ lesCreate (BREthereumNetwork network,
            BREthereumLESAnnounceCallback announceCallback,
            BREthereumHash headHash,
            uint64_t headNumber,
-           uint64_t headTotalDifficulty,
+           UInt256 headTotalDifficulty,
            BREthereumHash genesisHash) {
     
     BREthereumLES les = (BREthereumLES) calloc(1,sizeof(struct BREthereumLESContext));
@@ -508,7 +508,7 @@ lesCreate (BREthereumNetwork network,
         /*** Define the status message **/
         les->statusMsg.protocolVersion = 0x02;
         les->statusMsg.chainId = networkGetChainId(network);
-        les->statusMsg.headerTd = createUInt256(headTotalDifficulty);
+        les->statusMsg.headerTd = headTotalDifficulty;
         memcpy(les->statusMsg.headHash, headHash.bytes, 32);
         les->statusMsg.headNum = headNumber;
         memcpy(les->statusMsg.genesisHash, genesisHash.bytes, 32);
@@ -637,7 +637,6 @@ extern BREthereumLESStatus
 lesSubmitTransaction (BREthereumLES les,
                       BREthereumLESTransactionStatusContext context,
                       BREthereumLESTransactionStatusCallback callback,
-                      BREthereumTransactionRLPType type,
                       BREthereumTransaction transaction) {
     
     BREthereumBoolean shouldSend;
@@ -654,14 +653,14 @@ lesSubmitTransaction (BREthereumLES les,
         
         BRRlpData sendTxtData;
         if(les->peerStatus.protocolVersion == 0x02) {
-            sendTxtData = ethereumLESSendTxtV2(les->message_id_offset, reqId, transactionArr, les->network, type);
+            sendTxtData = ethereumLESSendTxtV2(les->message_id_offset, reqId, transactionArr, les->network, RLP_TYPE_TRANSACTION_SIGNED);
             BREthereumHash* transactionHashArr;
             array_new(transactionHashArr, 1);
             array_add(transactionHashArr, transactionGetHash(transaction));
             _addTxtStatusRecord(les, context, callback, transactionHashArr, reqId);
            array_free(transactionHashArr);
         }else {
-            sendTxtData = ethereumLESSendTxt(les->message_id_offset, reqId, transactionArr, les->network, type);
+            sendTxtData = ethereumLESSendTxt(les->message_id_offset, reqId, transactionArr, les->network, RLP_TYPE_TRANSACTION_SIGNED);
         }
         BREthereumLESStatus status =  _sendMessage(les, BRE_LES_ID_SEND_TX2, sendTxtData);
         array_free(transactionArr);

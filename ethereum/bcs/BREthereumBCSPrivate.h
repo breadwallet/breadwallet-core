@@ -30,6 +30,7 @@
 #include "BRArray.h"
 #include "BREthereumBCS.h"
 #include "../blockchain/BREthereumBlockChain.h"
+#include "../les/BREthereumNode.h"
 #include "../event/BREvent.h"
 
 #ifdef __cplusplus
@@ -295,6 +296,17 @@ bcsSignalLog (BREthereumBCS bcs,
               BREthereumHash blockHash,
               BREthereumHash transactionHash,
               BREthereumLog log);
+
+//
+// Peers
+//
+extern void
+bcsHandlePeers (BREthereumBCS bcs,
+                BRArrayOf(BREthereumPeerConfig) peers);
+
+extern void
+bcsSignalPeers (BREthereumBCS bcs,
+                BRArrayOf(BREthereumPeerConfig) peers);
 
 //
 // Active Block

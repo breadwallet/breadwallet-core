@@ -362,6 +362,45 @@ bcsSignalLog (BREthereumBCS bcs,
     eventHandlerSignalEvent(bcs->handler, (BREvent *) &event);
 }
 
+// ==============================================================================================
+//
+// Signal/Handle Peers
+//
+typedef struct {
+    BREvent base;
+    BREthereumBCS bcs;
+    BRArrayOf(BREthereumPeerConfig) peers;
+} BREthereumHandlePeersEvent;
+
+static void
+bcsHandlePeersDispatcher (BREventHandler ignore,
+                          BREthereumHandlePeersEvent *event) {
+    bcsHandlePeers(event->bcs, event->peers);
+}
+
+static void
+bcsHandlePeersDestroyer (BREthereumHandlePeersEvent *event) {
+    if (NULL != event->peers) {
+        for (size_t index = 0; index < array_count(event->peers); index++)
+            ; // peersRelease(event->peers[index]);
+        array_free(event->peers);
+    }
+}
+
+static BREventType handlePeersEventType = {
+    "BCS: Handle Peers Event",
+    sizeof (BREthereumHandlePeersEvent),
+    (BREventDispatcher) bcsHandlePeersDispatcher,
+    (BREventDestroyer) bcsHandlePeersDestroyer
+};
+
+extern void
+bcsSignalPeers (BREthereumBCS bcs,
+                BRArrayOf(BREthereumPeerConfig) peers) {
+    BREthereumHandlePeersEvent event =
+    { { NULL, &handlePeersEventType}, bcs, peers};
+    eventHandlerSignalEvent (bcs->handler, (BREvent *) &event);
+}
 
 // ==============================================================================================
 //

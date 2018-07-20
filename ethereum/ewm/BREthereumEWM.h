@@ -42,7 +42,11 @@ extern BREthereumEWM
 createEWM (BREthereumNetwork network,
            BREthereumAccount account,
            BREthereumType type,
-           BREthereumSyncMode syncMode);
+           BREthereumSyncMode syncMode,
+           BRArrayOf(BREthereumPersistData) peers,
+           BRArrayOf(BREthereumPersistData) blocks,
+           BRArrayOf(BREthereumPersistData) transactions,
+           BRArrayOf(BREthereumPersistData) logs);
 
 extern void
 ewmDestroy (BREthereumEWM ewm);

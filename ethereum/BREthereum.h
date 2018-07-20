@@ -30,9 +30,13 @@
 
 #include <stdint.h>
 #include "BRKey.h"
+#include "BRSet.h"
 #include "base/BREthereumBase.h"
 #include "blockchain/BREthereumAmount.h"
 #include "blockchain/BREthereumNetwork.h"
+
+#define BRArrayOf(type)    type*
+#define BRSetOf(type)      BRSet*
 
 #ifdef __cplusplus
 extern "C" {
@@ -282,6 +286,49 @@ typedef void
                                     const char *address,
                                     int rid);
 
+    typedef struct {
+        BREthereumHash hash;
+        BRRlpData blob;
+    } BREthereumPersistData;
+
+    static inline size_t
+    persistDataHashValue (const void *t)
+    {
+        return hashSetValue(&((BREthereumPersistData*) t)->hash);
+    }
+
+    static inline int
+    persistDataHashEqual (const void *t1, const void *t2) {
+        return t1 == t2 || hashSetEqual (&((BREthereumPersistData*) t1)->hash,
+                                         &((BREthereumPersistData*) t2)->hash);
+    }
+
+    typedef void
+    (*BREthereumClientSaveBlocksCallback) (BREthereumClientContext context,
+                                           BREthereumEWM ewm,
+                                           BRArrayOf(BREthereumPersistData) persistData);
+    typedef void
+    (*BREthereumClientSavePeersCallback) (BREthereumClientContext context,
+                                          BREthereumEWM ewm,
+                                          BRArrayOf(BREthereumPersistData) persistData);
+
+    typedef enum {
+        CLIENT_CHANGE_ADD,
+        CLIENT_CHANGE_REM,
+        CLIENT_CHANGE_UPD
+    } BREthereumClientChangeType;
+
+    typedef void
+    (*BREthereumClientChangeTransaction) (BREthereumClientContext context,
+                                          BREthereumEWM ewm,
+                                          BREthereumClientChangeType type,
+                                          BREthereumPersistData persistData);
+
+    typedef void
+    (*BREthereumClientChangeLog) (BREthereumClientContext context,
+                                          BREthereumEWM ewm,
+                                          BREthereumClientChangeType type,
+                                          BREthereumPersistData persistData);
 //
 // EWM Configuration
 //
@@ -305,30 +352,13 @@ typedef struct {
     BREthereumClientHandlerGetLogs funcGetLogs;
     BREthereumClientHandlerGetBlockNumber funcGetBlockNumber;
     BREthereumClientHandlerGetNonce funcGetNonce;
-    // savePeers
-    // saveBlocks
-    // updateLogs  (add/rem/upd)
-    // updateTransactions (add/rem/upd)
+
+    //
+    BREthereumClientSavePeersCallback funcSavePeers;
+    BREthereumClientSaveBlocksCallback funcSaveBlocks;
+    BREthereumClientChangeTransaction funcChangeTransaction;
+    BREthereumClientChangeTransaction funcChangeLog;
 } BREthereumClient;
-
-
-//
-// Configuration
-//
-
-/**
- * Create a Client
- */
-extern BREthereumClient
-ethereumClientCreate(BREthereumClientContext context,
-                     BREthereumClientHandlerGetBalance funcGetBalance,
-                     BREthereumClientHandlerGetGasPrice functGetGasPrice,
-                     BREthereumClientHandlerEstimateGas funcEstimateGas,
-                     BREthereumClientHandlerSubmitTransaction funcSubmitTransaction,
-                     BREthereumClientHandlerGetTransactions funcGetTransactions,
-                     BREthereumClientHandlerGetLogs funcGetLogs,
-                     BREthereumClientHandlerGetBlockNumber funcGetBlockNumber,
-                     BREthereumClientHandlerGetNonce funcGetNonce);
 
 /**
  * Install 'wordList' as the default BIP39 Word List.  THIS IS SHARED MEMORY; DO NOT FREE wordList.
@@ -379,7 +409,11 @@ extern BREthereumEWM
 ethereumCreate(BREthereumNetwork network,
                const char *paperKey,
                BREthereumType type,
-               BREthereumSyncMode syncMode);
+               BREthereumSyncMode syncMode,
+               BRArrayOf(BREthereumPersistData) peers,
+               BRArrayOf(BREthereumPersistData) blocks,
+               BRArrayOf(BREthereumPersistData) transactions,
+               BRArrayOf(BREthereumPersistData) logs);
 
 /**
  * Create a EWM managing the account associated with the publicKey.  Public key is a
@@ -390,7 +424,11 @@ extern BREthereumEWM
 ethereumCreateWithPublicKey(BREthereumNetwork network,
                             const BRKey publicKey,
                             BREthereumType type,
-                            BREthereumSyncMode syncMode);
+                            BREthereumSyncMode syncMode,
+                            BRArrayOf(BREthereumPersistData) peers,
+                            BRArrayOf(BREthereumPersistData) blocks,
+                            BRArrayOf(BREthereumPersistData) transactions,
+                            BRArrayOf(BREthereumPersistData) logs);
 
 /**
  * Create an Ethereum Account using `paperKey` for BIP-32 generation of keys.  The same paper key

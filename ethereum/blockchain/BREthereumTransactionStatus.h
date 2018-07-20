@@ -98,8 +98,12 @@ transactionStatusEqual (BREthereumTransactionStatus ts1,
 
 extern BREthereumTransactionStatus
 transactionStatusRLPDecode (BRRlpItem item,
-                                BRRlpCoder coder);
+                            BRRlpCoder coder);
 
+
+extern BRRlpItem
+transactionStatusRLPEncode (BREthereumTransactionStatus status,
+                            BRRlpCoder coder);
 
 #ifdef __cplusplus
 }
