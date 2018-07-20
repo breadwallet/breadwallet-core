@@ -789,7 +789,11 @@ ethereumTransactionGetRawDataHexEncoded(BREthereumEWM ewm,
 
 
 //
-// Ethereum Client - Callbacks to announce BRD endpoint data
+// Ethereum Client - Callbacks to announce BRD endpoint data.  These function are called by
+// the IOS and Android (using JNI) apps in their thread/memory context.  Thus any pointer arguments,
+// typically `char*`, will only reference valid memory in the calling context.  Therefore, the
+// implementations of these functions must a) use the pointers to extract a new type, such as
+// `BREthereumHash or uint64_t, or b) deep copy the calling context pointer.
 //
 extern BREthereumStatus
 ethereumClientAnnounceBlockNumber (BREthereumEWM ewm,
@@ -828,7 +832,7 @@ ethereumClientAnnounceSubmitTransaction(BREthereumEWM ewm,
                                         const char *hash,
                                         int rid);
 
-// Some JSON_RPC call will occur to get all transactions associated with an account.  We'll
+// A JSON_RPC call will occur to get all transactions associated with an account.  We'll
 // process these transactions into the EWM (associated with a wallet).  Thereafter
 // a 'EWM client' can get the announced transactions using non-JSON_RPC interfaces.
 extern BREthereumStatus

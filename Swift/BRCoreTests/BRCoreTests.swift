@@ -9,7 +9,7 @@
 import XCTest
 @testable import BRCore
 
-class BRCore2Tests: XCTestCase {
+class BRCoreTests: XCTestCase {
     
     override func setUp() {
         super.setUp()
@@ -28,7 +28,7 @@ class BRCore2Tests: XCTestCase {
         // Use XCTAssert and related functions to verify your tests produce the correct results.
     }
 
-    func testEthereum2 () {
+    func testEthereum () {
         let client = TestLightClient (network: EthereumNetwork.testnet,
                                       paperKey: "ginger settle marine tissue robot crane night number ramp coast roast critic")
 

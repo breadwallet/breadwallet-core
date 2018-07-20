@@ -1523,7 +1523,7 @@ clientEventWallet (BREthereumClientContext context,
                     BREthereumWalletEvent event,
                     BREthereumStatus status,
                     const char *errorDescription) {
-    fprintf (stdout, "        WalletEvent: wid=%d, ev=%d\n", wid, event);
+    fprintf (stdout, "ETH: TST: WalletEvent: wid=%d, ev=%d\n", wid, event);
     switch (event) {
         case WALLET_EVENT_BALANCE_UPDATED:
             signalBalance(context);
@@ -1540,7 +1540,7 @@ clientEventBlock (BREthereumClientContext context,
                    BREthereumBlockEvent event,
                    BREthereumStatus status,
                    const char *errorDescription) {
-    fprintf (stdout, "         BlockEvent: bid=%d, ev=%d\n", bid, event);
+    fprintf (stdout, "ETH: TST: BlockEvent: bid=%d, ev=%d\n", bid, event);
 
 }
 
@@ -1552,7 +1552,7 @@ clientEventTransaction (BREthereumClientContext context,
                          BREthereumTransactionEvent event,
                          BREthereumStatus status,
                          const char *errorDescription) {
-    fprintf (stdout, "         TransEvent: tid=%d, ev=%d\n", tid, event);
+    fprintf (stdout, "ETH: TST: TransEvent: tid=%d, ev=%d\n", tid, event);
 }
 
 static void
@@ -1563,7 +1563,7 @@ clientEventPeer (BREthereumClientContext context,
                   BREthereumPeerEvent event,
                   BREthereumStatus status,
                   const char *errorDescription) {
-    fprintf (stdout, "         PeerEvent: ev=%d\n", event);
+    fprintf (stdout, "ETH: TST: PeerEvent: ev=%d\n", event);
 }
 
 static void
@@ -1574,7 +1574,7 @@ clientEventEWM (BREthereumClientContext context,
                  BREthereumEWMEvent event,
                  BREthereumStatus status,
                  const char *errorDescription) {
-    fprintf (stdout, "         EWMEvent: ev=%d\n", event);
+    fprintf (stdout, "ETH: TST: EWMEvent: ev=%d\n", event);
 }
 
 

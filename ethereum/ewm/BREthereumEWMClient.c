@@ -376,15 +376,8 @@ ewmClientHandleTransactionEvent(BREthereumEWM ewm,
                                           ? CLIENT_CHANGE_REM
                                           : CLIENT_CHANGE_UPD));
 
-    BREthereumHashString hashString;
-    hashFillString(hash, hashString);
-    eth_log ("EWM", "Transaction: \"%s\", Change: %d", hashString, type);
-    //    eth_log ("EWM", "Transaction: \"0x%c%c%c%c...\", Change: %d",
-    //             _hexc (hash.bytes[0] >> 4), _hexc(hash.bytes[0]),
-    //             _hexc (hash.bytes[1] >> 4), _hexc(hash.bytes[1]),
-    //             type);
-
-    ewm->client.funcChangeTransaction (ewm->client.context, ewm,
+    ewm->client.funcChangeTransaction
+    (ewm->client.context, ewm,
                                        type,
                                        persistData);
 
@@ -433,6 +426,14 @@ ewmClientHandleEWMEvent(BREthereumEWM ewm,
 }
 
 
+/**
+ * Handle a Client Announcement of `blockNumber`.  This will be BRD Backend's JSON_RPC result for
+ * the most recent Ethereum blockNumber
+ *
+ * @param ewm
+ * @param blockNumber
+ * @param rid
+ */
 extern void
 ewmClientHandleAnnounceBlockNumber (BREthereumEWM ewm,
                                     uint64_t blockNumber,
@@ -440,6 +441,16 @@ ewmClientHandleAnnounceBlockNumber (BREthereumEWM ewm,
     ewmUpdateBlockHeight(ewm, blockNumber);
 }
 
+
+/**
+ * Handle a Client Announcement of `nonce`.  This will be the BRD Backend's JSON_RPC result for
+ * the the address' nonce.
+ *
+ * @param ewm
+ * @param address
+ * @param nonce
+ * @param rid
+ */
 extern void
 ewmClientHandleAnnounceNonce (BREthereumEWM ewm,
                               BREthereumAddress address,
@@ -450,6 +461,16 @@ ewmClientHandleAnnounceNonce (BREthereumEWM ewm,
     accountSetAddressNonce(ewm->account, accountGetPrimaryAddress(ewm->account), nonce, ETHEREUM_BOOLEAN_FALSE);
 }
 
+
+/**
+ * Handle the Client Announcement for the balance of `wallet`.  This will be the BRD Backend's
+ * result (not necessarily a JSON_RPC result) for the balance which will be ether ETH or TOK.
+ *
+ * @param ewm
+ * @param wallet
+ * @param value
+ * @param rid
+ */
 extern void
 ewmClientHandleAnnounceBalance (BREthereumEWM ewm,
                                 BREthereumWallet wallet,

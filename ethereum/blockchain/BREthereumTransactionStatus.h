@@ -75,7 +75,7 @@ typedef struct BREthereumTransactionStatusLESRecord {
         } included;
 
         struct {
-            char reason[TRANSACTION_STATUS_REASON_BYTES];
+            char reason[TRANSACTION_STATUS_REASON_BYTES + 1];
         } errored;
     } u;
 } BREthereumTransactionStatus;

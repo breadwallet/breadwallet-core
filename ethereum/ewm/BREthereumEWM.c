@@ -259,6 +259,14 @@ ewmGetNetwork (BREthereumEWM ewm) {
     return ewm->network;
 }
 
+
+/**
+ * Handle a default `gasPrice` for `wallet`
+ *
+ * @param ewm <#ewm description#>
+ * @param wallet <#wallet description#>
+ * @param gasPrice <#gasPrice description#>
+ */
 extern void
 ewmHandleGasPrice (BREthereumEWM ewm,
                    BREthereumWallet wallet,
@@ -275,6 +283,15 @@ ewmHandleGasPrice (BREthereumEWM ewm,
     pthread_mutex_unlock(&ewm->lock);
 }
 
+
+/**
+ * Handle a `gasEstimate` for `transaction` in `wallet`
+ *
+ * @param ewm <#ewm description#>
+ * @param wallet <#wallet description#>
+ * @param transaction <#transaction description#>
+ * @param gasEstimate <#gasEstimate description#>
+ */
 extern void
 ewmHandleGasEstimate (BREthereumEWM ewm,
                       BREthereumWallet wallet,
@@ -298,6 +315,21 @@ ewmHandleGasEstimate (BREthereumEWM ewm,
 //
 // LES(BCS)/JSON_RPC Handlers
 //
+
+
+/**
+ * Handle the BCS BlockChain callback.  This should result in a 'client block event' callback.
+ * However, that callback accepts a `bid` and we don't have one (in the same sense as a tid or
+ * wid); perhaps the blockNumber is the `bid`?
+ *
+ * Additionally, this handler has no indication of the type of BCS data.  E.g is this block chained
+ * or orphaned.
+ *
+ * @param ewm
+ * @param headBlockHash
+ * @param headBlockNumber
+ * @param headBlockTimestamp
+ */
 extern void
 ewmHandleBlockChain (BREthereumEWM ewm,
                      BREthereumHash headBlockHash,
@@ -306,8 +338,16 @@ ewmHandleBlockChain (BREthereumEWM ewm,
     // Don't rebort during sync.
     if (ETHEREUM_BOOLEAN_IS_FALSE(bcsSyncInProgress(ewm->bcs)))
         eth_log ("EWM", "BlockChain: %llu", headBlockNumber);
+    // ewmClientSignalBlockEvent(<#BREthereumEWM ewm#>, <#BREthereumBlockId bid#>, <#BREthereumBlockEvent event#>, <#BREthereumStatus status#>, <#const char *errorDescription#>)
 }
 
+
+/**
+ * Handle the BCS AccountState callback.
+ *
+ * @param ewm
+ * @param accountState
+ */
 extern void
 ewmHandleAccountState (BREthereumEWM ewm,
                        BREthereumAccountState accountState) {
@@ -350,9 +390,10 @@ ewmHandleTransaction (BREthereumEWM ewm,
     pthread_mutex_lock(&ewm->lock);
 
     BREthereumHash hash = transactionGetHash(transaction);
-    eth_log("EWM", "Transaction: \"0x%c%c%c%c...\", Handle",
-            _hexc (hash.bytes[0] >> 4), _hexc(hash.bytes[0]),
-            _hexc (hash.bytes[1] >> 4), _hexc(hash.bytes[1]));
+    BREthereumHashString hashString;
+    hashFillString(hash, hashString);
+    eth_log ("EWM", "Transaction: \"%s\", Change: %s",
+             hashString, BCS_CALLBACK_TRANSACTION_TYPE_NAME(type));
 
     // Find the wallet
     BREthereumAmount amount = transactionGetAmount(transaction);
@@ -456,11 +497,27 @@ extern void
 ewmHandleLog (BREthereumEWM ewm,
               BREthereumBCSCallbackLogType type,
               BREthereumLog log) {
-    BREthereumHash hash = logGetHash(log);
+    BREthereumHash logHash = logGetHash(log);
+
+    BREthereumLogStatus status = logGetStatus(log);
+    BREthereumHash transactionHash = (status.type != LOG_STATUS_UNKNOWN
+                                      ? status.identifier.transactionHash
+                                      : hashCreateEmpty());
+
     
-    eth_log("EWM", "Log: \"0x%c%c%c%c...\", Handle",
-            _hexc (hash.bytes[0] >> 4), _hexc(hash.bytes[0]),
-            _hexc (hash.bytes[1] >> 4), _hexc(hash.bytes[1]));
+    BREthereumHashString hashString;
+    hashFillString(transactionHash, hashString);
+    eth_log ("EWM", "Log: \"%s\", Change: %s",
+             hashString, BCS_CALLBACK_TRANSACTION_TYPE_NAME(type));
+
+    // TODO: We need to be able to signal something back to the client here.  What can that
+    // TODO: be?  For Logs, the client is interested in transactions *with an amount* that
+    // TODO: includes a TOKEN currency.  A Log certainly isn't that and the originating
+    // TODO: Transaction isn't that either (the 'data' field encodes the TOKEN transfer).
+    // TODO:
+    // TODO: We have handled that with two transactions - one in the ETH wallet (for fees) and
+    // TODO: another in the TOK wallet - two transactions with the same hash, mind you.
+    
 }
 
 extern void

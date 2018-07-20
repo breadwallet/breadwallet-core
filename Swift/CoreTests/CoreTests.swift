@@ -31,8 +31,8 @@ class CoreTests: XCTestCase {
     }
 
     func testEthereumSync () {
-        runSyncTest (3 * 60, 0);
-//        runSyncTest (1 * 60, 1);
+        runSyncTest (1 * 60, 0);
+        runSyncTest (1 * 60, 1);
     }
     
 //    func testPerformanceExample() {
