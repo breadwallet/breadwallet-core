@@ -319,6 +319,32 @@ bcsSendTransaction (BREthereumBCS bcs,
 }
 
 extern void
+bcsSendTransactionRequest (BREthereumBCS bcs,
+                           BREthereumHash transactionHash,
+                           uint64_t blockNumber,
+                           uint64_t blockTransactionIndex) {
+    lesGetBlockHeaders(bcs->les,
+                       (BREthereumLESBlockHeadersContext) bcs,
+                       (BREthereumLESBlockHeadersCallback) bcsSignalBlockHeader,
+                       blockNumber, 1, 0, ETHEREUM_BOOLEAN_FALSE);
+    // How to know to get block bodies?
+    //    Well, should find the transaction (otherwise we've big problems)
+}
+
+extern void
+bcsSendLogRequest (BREthereumBCS bcs,
+                   BREthereumHash transactionHash,
+                   uint64_t blockNumber,
+                   uint64_t blockTransactionIndex) {
+    lesGetBlockHeaders(bcs->les,
+                       (BREthereumLESBlockHeadersContext) bcs,
+                       (BREthereumLESBlockHeadersCallback) bcsSignalBlockHeader,
+                       blockNumber, 1, 0, ETHEREUM_BOOLEAN_FALSE);
+    // How to know to get block bodies?
+    //    Well, should find the log (otherwise we've big problems)
+}
+
+extern void
 bcsHandleSubmitTransaction (BREthereumBCS bcs,
                             BREthereumTransaction transaction) {
 

@@ -44,28 +44,6 @@
  * 'listener' queue.
  */
 
-static void
-ewmClientAnnounceTransactionBundleRelease (BREthereumEWMClientAnnounceTransactionBundle *bundle) {
-    free (bundle->data);
-    free (bundle);
-}
-
-static void
-ewmClientAnnounceLogBundleRelease (BREthereumEWMClientAnnounceLogBundle *bundle) {
-    for (int i = 0; i < bundle->topicCount; i++)
-        free (bundle->arrayTopics[i]);
-    free (bundle->arrayTopics);
-    free (bundle->data);
-    free (bundle);
-}
-
-static void
-ewmClientAnnounceTokenBundleRelease (BREthereumEWMClientAnnounceTokenBundle *bundle) {
-    free (bundle->data);
-    free (bundle);
-}
-
-
 //
 // Wallet Event
 //

@@ -312,6 +312,12 @@ transactionGetHash (BREthereumTransaction transaction) {
     return transaction->hash;
 }
 
+extern void
+transactionSetHash (BREthereumTransaction transaction,
+                    BREthereumHash hash) {
+    transaction->hash = hash;
+}
+
 extern BREthereumSignature
 transactionGetSignature (BREthereumTransaction transaction) {
     return transaction->signature;

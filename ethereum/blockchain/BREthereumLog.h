@@ -29,6 +29,10 @@
 #include "../base/BREthereumBase.h"
 #include "BREthereumBloomFilter.h"
 
+#if ! defined (BRArrayOf)
+#define BRArrayOf(type)     type*
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -121,9 +125,21 @@ logStatusCreateHash (BREthereumLogStatus *status) {
 //
 // Log Topic
 //
+#define LOG_TOPIC_BYTES_COUNT   32
+
 typedef struct {
-    uint8_t bytes[32];
+    uint8_t bytes[LOG_TOPIC_BYTES_COUNT];
 } BREthereumLogTopic;
+
+
+/**
+ * Create a LogTopic from a 0x-prefaces, 67 (1 + 2 + 64) character string; otherwise fatal.
+ *
+ * @param string
+ * @return
+ */
+extern BREthereumLogTopic
+logTopicCreateFromString (const char *string);
 
 extern BREthereumBloomFilter
 logTopicGetBloomFilter (BREthereumLogTopic topic);
@@ -136,7 +152,7 @@ logTopicMatchesAddress (BREthereumLogTopic topic,
                         BREthereumAddress address);
 
 typedef struct {
-    char chars[67];
+    char chars[2 /* 0x */ + 2 * LOG_TOPIC_BYTES_COUNT + 1];
 } BREthereumLogTopicString;
 
 extern BREthereumLogTopicString
@@ -149,6 +165,11 @@ logTopicAsAddress (BREthereumLogTopic topic);
 // Log
 //
 typedef struct BREthereumLogRecord *BREthereumLog;
+
+extern BREthereumLog
+logCreate (BREthereumAddress address,
+           unsigned int topicsCount,
+           BREthereumLogTopic *topics);
 
 extern void
 logInitializeStatus (BREthereumLog log,

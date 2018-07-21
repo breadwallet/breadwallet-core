@@ -113,6 +113,11 @@ transactionGetNonce (BREthereumTransaction transaction);
 extern const BREthereumHash
 transactionGetHash (BREthereumTransaction transaction);
 
+// Caution
+extern void
+transactionSetHash (BREthereumTransaction transaction,
+                    BREthereumHash hash);
+
 extern const char * // no not modify the return value
 transactionGetData (BREthereumTransaction transaction);
 

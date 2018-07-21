@@ -185,6 +185,18 @@ extern void
 bcsSendTransaction (BREthereumBCS bcs,
                     BREthereumTransaction transaction);
 
+extern void
+bcsSendTransactionRequest (BREthereumBCS bcs,
+                           BREthereumHash transactionHash,
+                           uint64_t blockNumber,
+                           uint64_t blockTransactionIndex);
+
+extern void
+bcsSendLogRequest (BREthereumBCS bcs,
+                   BREthereumHash transactionHash,
+                   uint64_t blockNumber,
+                   uint64_t blockTransactionIndex);
+
 #ifdef __cplusplus
 }
 #endif
