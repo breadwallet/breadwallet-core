@@ -766,19 +766,24 @@ blockReportStatusAccountState (BREthereumBlock block,
 extern BREthereumBoolean
 blockHasStatusTransaction (BREthereumBlock block,
                            BREthereumTransaction transaction) {
+    if (0 == (block->status.flags & BLOCK_STATUS_HAS_TRANSACTIONS)) return ETHEREUM_BOOLEAN_FALSE;
 
     for (size_t index = 0; index < array_count(block->status.transactions); index++)
         if (transactionHashEqual(transaction, block->status.transactions[index]))
             return ETHEREUM_BOOLEAN_TRUE;
+
     return ETHEREUM_BOOLEAN_FALSE;
 }
 
 extern BREthereumBoolean
 blockHasStatusLog (BREthereumBlock block,
                    BREthereumLog log) {
+    if (0 == (block->status.flags & BLOCK_STATUS_HAS_LOGS)) return ETHEREUM_BOOLEAN_FALSE;
+
     for (size_t index = 0; index < array_count(block->status.logs); index++)
         if (logHashEqual(log, block->status.logs[index]))
             return ETHEREUM_BOOLEAN_TRUE;
+
     return ETHEREUM_BOOLEAN_FALSE;
 }
 
@@ -1167,10 +1172,10 @@ ethereumMainnetCheckpoints [] = {
 
     // Has three+ logs
     { 5506600, HASH_INIT("4f91cdbd4eb27b12b7959daa8b4300d88a5a88efc8256c413534fe16fe9eee2b"),  0 }, //   17 days 23 hrs ago (Jun-07-2018 10:25:41 PM +UTC)
-    { 5750000, HASH_INIT("9645ed6cd4994b1e734eb25abbc225005dce591cbbe9e083cd2587b27cfe908f"),  0 }, //   
+//    { 5750000, HASH_INIT("9645ed6cd4994b1e734eb25abbc225005dce591cbbe9e083cd2587b27cfe908f"),  0 }, //   
 
     // Has three+ eth - 5795662
-    { 5795660, HASH_INIT("5eeddeff1bfdde5859a63f47fbd3a4ff929be9dc21dd48a52a8cd08d560cc3b5"),  0 }, //   11 days 21 hrs ago (Jun-15-2018 10:43:11 PM +UTC)
+//    { 5795660, HASH_INIT("5eeddeff1bfdde5859a63f47fbd3a4ff929be9dc21dd48a52a8cd08d560cc3b5"),  0 }, //   11 days 21 hrs ago (Jun-15-2018 10:43:11 PM +UTC)
 
     // Head - 5860000
 //    { 5860000, HASH_INIT("ef888507717b8d59d3abb24f618a7809cf58d5a723d691979769a4a4cf39f63c"),  0 }, //

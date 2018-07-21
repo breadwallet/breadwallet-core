@@ -128,6 +128,19 @@ static BREthereumLogTopic empty;
 //
 // Log Topic
 //
+extern BREthereumLogTopic
+logTopicCreateFromString (const char *string) {
+    if (NULL == string) return empty;
+
+    // Ensure
+    size_t stringLen = strlen(string);
+    assert (0 == strncmp (string, "0x", 2) && (2 + 2 * LOG_TOPIC_BYTES_COUNT == stringLen));
+
+    BREthereumLogTopic topic;
+    decodeHex(topic.bytes, sizeof(BREthereumLogTopic), string, stringLen);
+    return topic;
+}
+
 static BREthereumLogTopic
 logTopicCreateAddress (BREthereumAddress raw) {
     BREthereumLogTopic topic = empty;
@@ -222,7 +235,7 @@ struct BREthereumLogRecord {
     BREthereumAddress address;
 
     // a series of 32-byte log topics, Ot;
-    BREthereumLogTopic *topics;
+    BRArrayOf(BREthereumLogTopic) topics;
 
     // and some number of bytes of data, Od
     uint8_t *data;
@@ -232,10 +245,29 @@ struct BREthereumLogRecord {
     BREthereumLogStatus status;
 };
 
+extern BREthereumLog
+logCreate (BREthereumAddress address,
+           unsigned int topicsCount,
+           BREthereumLogTopic *topics) {
+    BREthereumLog log = calloc (1, sizeof(struct BREthereumLogRecord));
+
+    log->hash = hashCreateEmpty();
+    log->address = address;
+
+    array_new(log->topics, topicsCount);
+    for (size_t index = 0; index < topicsCount; index++)
+        log->topics[index] = topics[index];
+
+    log->data = NULL;
+    log->dataCount = 0;
+
+    return log;
+}
+
 extern void
 logInitializeStatus (BREthereumLog log,
-                 BREthereumHash transactionHash,
-                 size_t transactionReceiptIndex) {
+                     BREthereumHash transactionHash,
+                     size_t transactionReceiptIndex) {
     log->status = logStatusCreate(LOG_STATUS_PENDING, transactionHash, transactionReceiptIndex);
     log->hash = logStatusCreateHash(&log->status);
 }

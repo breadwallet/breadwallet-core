@@ -70,6 +70,13 @@ typedef enum {
     BCS_CALLBACK_TRANSACTION_DELETED
 } BREthereumBCSCallbackTransactionType;
 
+#define BCS_CALLBACK_TRANSACTION_TYPE_NAME( type ) \
+  ((type) == BCS_CALLBACK_TRANSACTION_UPDATED \
+    ? "Updated" \
+    : ((type) == BCS_CALLBACK_TRANSACTION_ADDED \
+        ? "Added" \
+        : "Deleted"))
+
 typedef void
 (*BREthereumBCSCallbackTransaction) (BREthereumBCSCallbackContext context,
                                      BREthereumBCSCallbackTransactionType event,
@@ -177,6 +184,18 @@ bcsSyncInProgress (BREthereumBCS bcs);
 extern void
 bcsSendTransaction (BREthereumBCS bcs,
                     BREthereumTransaction transaction);
+
+extern void
+bcsSendTransactionRequest (BREthereumBCS bcs,
+                           BREthereumHash transactionHash,
+                           uint64_t blockNumber,
+                           uint64_t blockTransactionIndex);
+
+extern void
+bcsSendLogRequest (BREthereumBCS bcs,
+                   BREthereumHash transactionHash,
+                   uint64_t blockNumber,
+                   uint64_t blockTransactionIndex);
 
 #ifdef __cplusplus
 }
