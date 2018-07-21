@@ -190,17 +190,19 @@ bcsSignalSubmitTransaction (BREthereumBCS bcs,
 //
 // Announce (New Chain Head)
 //
-    extern void
-    bcsHandleAnnounce (BREthereumBCS bcs,
-                       BREthereumHash headHash,
-                       uint64_t headNumber,
-                       uint64_t headTotalDifficulty);
+extern void
+bcsHandleAnnounce (BREthereumBCS bcs,
+                   BREthereumHash headHash,
+                   uint64_t headNumber,
+                   UInt256 headTotalDifficulty,
+                   uint64_t reorgDepth);
 
 extern void
 bcsSignalAnnounce (BREthereumBCS bcs,
                    BREthereumHash headHash,
                    uint64_t headNumber,
-                   uint64_t headTotalDifficulty);
+                   UInt256 headTotalDifficulty,
+                   uint64_t reorgDepth);
 
 //
 // Block Headers

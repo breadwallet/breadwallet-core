@@ -380,7 +380,8 @@ extern void
 bcsHandleAnnounce (BREthereumBCS bcs,
                    BREthereumHash headHash,
                    uint64_t headNumber,
-                   uint64_t headTotalDifficulty) {
+                   UInt256 headTotalDifficulty,
+                   uint64_t reorgDepth) {
     // Request the block.
     lesGetBlockHeaders(bcs->les,
                        (BREthereumLESBlockHeadersContext) bcs,
