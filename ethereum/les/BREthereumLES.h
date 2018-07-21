@@ -76,7 +76,8 @@ typedef void
 (*BREthereumLESAnnounceCallback) (BREthereumLESAnnounceContext context,
                                   BREthereumHash headHash,
                                   uint64_t headNumber,
-                                  UInt256 headTotalDifficulty);
+                                  UInt256 headTotalDifficulty,
+                                  uint64_t reorgDepth);
 
 
 /*!

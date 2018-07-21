@@ -57,9 +57,10 @@
 void _announceCallback (BREthereumLESAnnounceContext context,
                         BREthereumHash headHash,
                         uint64_t headNumber,
-                        UInt256 headTotalDifficulty) {
+                        UInt256 headTotalDifficulty,
+                        uint64_t reorgDepth) {
     
-    printf("RECEIVED AN ANNOUNCE MESSAGE!!!!!!\n");
+    eth_log("announcCallback_test", "%s", "received an announcement of a new chain");
 }
 
 
@@ -664,8 +665,8 @@ void runLEStests(void) {
     // run_GetBlockHeaders_Tests(les);
     //    run_GetBlockBodies_Tests(les);
     //    run_GetReceipts_Tests(les);
-    run_GetProofsV2_Tests(les);
+    // run_GetProofsV2_Tests(les);
     //    reallySendLESTransaction(les);
-    //    run_fullBlockSync_Test1(les);
+        run_fullBlockSync_Test1(les);
 }
 
