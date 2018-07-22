@@ -131,6 +131,8 @@ createContextItemAppend (BRRlpCoder coder, BRRlpContext context1, BRRlpContext c
     memcpy (&context.bytes[context1.bytesCount], context2.bytes, context2.bytesCount);
     
     if (release) {
+//        assert (context2.bytes != context1.bytes || context2.bytes == NULL || context1.bytes == NULL);
+//        assert (context2.items != context1.items || context2.items == NULL || context1.items == NULL);
         contextRelease(context1);
         contextRelease(context2);
     }
