@@ -470,6 +470,11 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println ("            decrypted data : " + Arrays.toString(decryptedBytesShared));
         asserting (Arrays.equals(sampleInputData, decryptedBytesShared));
 
+        System.out.println("        Pairing Key:");
+        String identifier = "tail recursion for the win";
+        BRCoreKey pairingKey = privKey.getPairingKey(identifier.getBytes());
+        System.out.println ("            identifier: " + identifier);
+        System.out.println ("            pairingKey: " + Arrays.toString(pairingKey.getPubKey()));
 
         // Base58
         System.out.println("        Base58:");

@@ -153,6 +153,14 @@ JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_decryptUsingSha
 
 /*
  * Class:     com_breadwallet_core_BRCoreKey
+ * Method:    createPairingKey
+ * Signature: ([B)J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreKey_createPairingKey
+  (JNIEnv *, jobject, jbyteArray);
+
+/*
+ * Class:     com_breadwallet_core_BRCoreKey
  * Method:    address
  * Signature: ()Ljava/lang/String;
  */

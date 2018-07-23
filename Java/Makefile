@@ -57,6 +57,7 @@ CORE_SRCS=../BRAddress.c \
 	../BRBloomFilter.c \
 	../BRCrypto.c \
 	../BRKey.c \
+	../BRKeyECIES.c \
 	../BRMerkleBlock.c \
 	../BRPaymentProtocol.c \
 	../BRPeer.c \
