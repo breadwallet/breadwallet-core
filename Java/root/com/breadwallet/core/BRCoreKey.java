@@ -165,8 +165,12 @@ public class BRCoreKey extends BRCoreJniReference {
     public native byte[] decryptNative(byte[] data, byte[] nonce);
 
 
+    //
+    // Pigeon Message Passing
+    //
     public native byte[] encryptUsingSharedSecret (byte[] publicKey, byte[] message, byte[] nonce);
     public native byte[] decryptUsingSharedSecret (byte[] publicKey, byte[] bytes, byte[] nonce);
+    public native byte[] getPairingKey (byte[] identifier);
 
     //
     //
