@@ -170,7 +170,11 @@ public class BRCoreKey extends BRCoreJniReference {
     //
     public native byte[] encryptUsingSharedSecret (byte[] publicKey, byte[] message, byte[] nonce);
     public native byte[] decryptUsingSharedSecret (byte[] publicKey, byte[] bytes, byte[] nonce);
-    public native byte[] getPairingKey (byte[] identifier);
+    private native long createPairingKey (byte[] identifier);
+
+    public BRCoreKey getPairingKey (byte[] identifier) {
+        return new BRCoreKey(createPairingKey(identifier));
+    }
 
     //
     //

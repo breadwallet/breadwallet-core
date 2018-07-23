@@ -472,9 +472,9 @@ public class BRWalletManager extends BRCoreWalletManager {
 
         System.out.println("        Pairing Key:");
         String identifier = "tail recursion for the win";
-        byte[] pairingKey = privKey.getPairingKey(identifier.getBytes());
+        BRCoreKey pairingKey = privKey.getPairingKey(identifier.getBytes());
         System.out.println ("            identifier: " + identifier);
-        System.out.println ("            pairingKey: " + Arrays.toString(pairingKey));
+        System.out.println ("            pairingKey: " + Arrays.toString(pairingKey.getPubKey()));
 
         // Base58
         System.out.println("        Base58:");

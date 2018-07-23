@@ -520,10 +520,10 @@ JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_decryptUsingSha
 
 /*
  * Class:     com_breadwallet_core_BRCoreKey
- * Method:    getPairingKey
- * Signature: ([B)[B
+ * Method:    createPairingKey
+ * Signature: ([B)J
  */
-JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_getPairingKey
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreKey_createPairingKey
         (JNIEnv *env, jobject thisObject,
          jbyteArray identifierByteArray) {
     BRKey *privateKey = (BRKey *) getJNIReference(env, thisObject);
@@ -531,16 +531,13 @@ JNIEXPORT jbyteArray JNICALL Java_com_breadwallet_core_BRCoreKey_getPairingKey
     jsize identifierSize = (*env)->GetArrayLength (env, identifierByteArray);
     jbyte *identifierBytes = (*env)->GetByteArrayElements (env, identifierByteArray, 0);
 
-    uint8_t out32[32];
 
-    BRKeyPigeonPairingKey (privateKey, out32, identifierBytes, identifierSize);
-
-    jbyteArray result = (*env)->NewByteArray(env, (jsize) 32);
-    (*env)->SetByteArrayRegion(env, result, 0, (jsize) 32, (const jbyte *) out32);
+    BRKey *pairingKey = malloc (sizeof (BRKey));
+    BRKeyPigeonPairingKey (privateKey, pairingKey, identifierBytes, (size_t) identifierSize);
 
     (*env)->ReleaseByteArrayElements (env, identifierByteArray, identifierBytes, 0);
 
-    return result;
+    return (jlong) pairingKey;
 }
 
 
