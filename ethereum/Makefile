@@ -55,6 +55,7 @@ ETH_SRCS=./BREthereum.c \
 	./les/BREthereumRandom.c \
 	./ewm/BREthereumEWM.c \
 	./ewm/BREthereumEWMClient.c \
+	./ewm/BREthereumEWMClientEvent.c \
 	./ewm/BREthereumEWMEvent.c \
 	./event/BREvent.c \
 	./event/BREventQueue.c \
@@ -62,10 +63,23 @@ ETH_SRCS=./BREthereum.c \
 	./rlp/BRRlpCoder.c \
 	./util/BRUtilHex.c \
 	./util/BRUtilMath.c \
-	./util/BRUtilMathParse.c
+	./util/BRUtilMathParse.c \
+	./util/BRKeccak.c
 
 
 ETH_OBJS=$(ETH_SRCS:.c=.o)
+
+ETH_TST_SRCS=test.c \
+	./les/test-les.c \
+	./base/testBase.c \
+	./blockchain/testBc.c \
+	./contract/testContract.c \
+	./event/testEvent.c \
+	./util/testUtil.c \
+	./rlp/testRlp.c \
+	./ewm/testEWM.c 
+
+ETH_TST_OBJS=$(ETH_TST_SRCS:.c=.o)
 
 test:	build
 	./test
@@ -75,7 +89,7 @@ build: clean
 		-I/usr/include -I/usr/include/malloc -I/usr/include/machine -I../secp256k1 -I.. \
 		-I. -I../secp256k1/include \
 		-DDEBUG -DBITCOIN_DEBUG=1 -DTEST_ETHEREUM_NEED_MAIN \
-                $(CORE_SRCS) $(ETH_SRCS) les/test-les.c test.c -lc
+                $(CORE_SRCS) $(ETH_SRCS) $(ETH_TST_SRCS) -lc
 
 clean:
 	rm -rf $(CORE_OBJS) $(ETH_OBJS)

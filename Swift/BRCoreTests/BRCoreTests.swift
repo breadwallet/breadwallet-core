@@ -81,7 +81,7 @@ class TestLightClient : EthereumClient {
         self.node!.announceBalance (wid: wid, balance: "0xffc0", rid: rid)
     }
 
-    func getGasPrice(wid: EthereumWalletId, rid: Int32) {
+    func getGasPrice(ewm: EthereumWalletManager, wid: EthereumWalletId, rid: Int32) {
         // JSON_RPC -> JSON -> Result -> announceGasPrice()
         self.node!.announceGasPrice (wid: wid, gasPrice: "0x77", rid: rid)
     }

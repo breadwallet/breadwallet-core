@@ -32,7 +32,7 @@
 #include "../rlp/BRRlpCoder.h"
 #include "BRArray.h"
 #include "BRBIP38Key.h"
-#include "BRKeccak.h"
+#include "../util/BRKeccak.h"
 #define UINT256_SIZE 32
 
 #define HEADER_LEN 16

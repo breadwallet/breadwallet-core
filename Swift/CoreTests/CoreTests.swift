@@ -22,12 +22,39 @@ class CoreTests: XCTestCase {
         BRRunTests()
     }
 
-    func testEthereumBasics() {
-        runTests(0)
+    //
+    // Ethereum
+    //
+    func testEthereumRlp () {
+        runRlpTests();
+    }
+
+    func testEthereumUtil () {
+        runUtilTests();
+    }
+
+    func testEthereumEvent () {
+        runEventTests ();
+    }
+
+    func testEthereumBlockChain () {
+        runBcTests()
+    }
+
+    func testEthereumContract () {
+        runContractTests ();
+    }
+    
+    func testEWM () {
+        runEWMTests();
     }
 
     func testLES () {
         runLEStests()
+    }
+
+    func testEthereumBasics() {
+        runTests(0)
     }
 
     func testEthereumSync () {
