@@ -171,23 +171,25 @@ size_t BRKeyECIESAES128SHA256Decrypt(BRKey *privKey, void *out, size_t outLen, c
 
 // Pigeon Encrypted Message Exchange
 
-void BRKeyPigeonPairingKey(BRKey *privKey, uint8_t *out32, const void *identifier, size_t identifierSize)
-{
-    uint8_t nonce[32], K[32], V[32];
-    
-    BRSHA256(nonce, identifier, identifierSize);
-    BRHMACDRBG(out32, 32, K, V, BRSHA256, 32, privKey->secret.u8, 32, nonce, sizeof(nonce), NULL, 0);
-    mem_clean(nonce, sizeof(nonce));
-    mem_clean(K, sizeof(K));
-    mem_clean(V, sizeof(V));
-}
-
-void BRKeyPigeonSharedKey(BRKey *privKey, uint8_t *out32, BRKey *pubKey)
+static void BRKeyPigeonSharedKey(BRKey *privKey, uint8_t *out32, BRKey *pubKey)
 {
     uint8_t x[32];
     BRKeyECDH(privKey, x, pubKey);
     BRSHA256(out32, x, sizeof(x));
     mem_clean(x, sizeof(x));
+}
+
+void BRKeyPigeonPairingKey(BRKey *privKey, BRKey *pairingKey, const void *identifier, size_t identifierSize)
+{
+    uint8_t nonce[32], K[32], V[32];
+    UInt256 secret;
+    
+    BRSHA256(nonce, identifier, identifierSize);
+    BRHMACDRBG(&secret, sizeof(secret), K, V, BRSHA256, 32, privKey->secret.u8, 32, nonce, sizeof(nonce), NULL, 0);
+    mem_clean(nonce, sizeof(nonce));
+    mem_clean(K, sizeof(K));
+    mem_clean(V, sizeof(V));
+    BRKeySetSecret(pairingKey, &secret, 1);
 }
 
 size_t BRKeyPigeonEncrypt(BRKey *privKey, void *out, size_t outLen, BRKey *pubKey, const void *nonce12, const void *data, size_t dataLen)
