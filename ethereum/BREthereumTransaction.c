@@ -188,6 +188,32 @@ transactionCreate(BREthereumAddress sourceAddress,
     return transaction;
 }
 
+extern BREthereumTransaction
+transactionCreateGeneric(BREthereumAddress sourceAddress,
+                         BREthereumAddress targetAddress,
+                         BREthereumEther amount,
+                         BREthereumGasPrice gasPrice,
+                         BREthereumGas gasLimit,
+                         const char *data,
+                         uint64_t nonce) {
+    BREthereumTransaction transaction = calloc(1, sizeof(struct BREthereumTransactionRecord));
+
+    transactionStateCreated(&transaction->state);
+    transaction->sourceAddress = sourceAddress;
+    transaction->targetAddress = targetAddress;
+    transaction->amount = amountCreateEther(amount);
+    transaction->gasPrice = gasPrice;
+    transaction->gasLimit = gasLimit;
+    transaction->data = strdup(data); // Avoid 'provideData()'
+    transaction->nonce = nonce;
+    transaction->chainId = 0;
+    transaction->hash = hashCreateEmpty();
+
+    transaction->gasEstimate = gasLimit;
+
+    return transaction;
+}
+
 extern BREthereumAddress
 transactionGetSourceAddress(BREthereumTransaction transaction) {
     return transaction->sourceAddress;

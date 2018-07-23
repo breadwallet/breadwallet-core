@@ -50,6 +50,15 @@ transactionCreate(BREthereumAddress sourceAddress,
                   BREthereumGas gasLimit,
                   uint64_t nonce);
 
+extern BREthereumTransaction
+transactionCreateGeneric(BREthereumAddress sourceAddress,
+                         BREthereumAddress targetAddress,
+                         BREthereumEther amount,
+                         BREthereumGasPrice gasPrice,
+                         BREthereumGas gasLimit,
+                         const char *data,
+                         uint64_t nonce);
+
 extern BREthereumAddress
 transactionGetSourceAddress(BREthereumTransaction transaction);
 

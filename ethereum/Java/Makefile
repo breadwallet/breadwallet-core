@@ -50,16 +50,25 @@ CORE_SRCS=../../BRAddress.c \
 	../util/BRUtilMathParse.c \
 	../util/BRUtilHex.c \
 	../rlp/BRRlpCoder.c \
+	../event/BREvent.c \
+	../event/BREventQueue.c \
 	../BREthereumAccount.c \
+	../BREthereumAccountState.c \
 	../BREthereumAmount.c \
 	../BREthereumBlock.c \
+	../BREthereumBloomFilter.c \
 	../BREthereumContract.c \
 	../BREthereumEther.c \
 	../BREthereumGas.c \
+	../BREthereumHash.c \
 	../BREthereumLightNode.c \
+	../BREthereumLightNodeAnnounce.c \
+	../BREthereumLightNodeListen.c \
+	../BREthereumLog.c \
 	../BREthereumNetwork.c \
 	../BREthereumToken.c \
 	../BREthereumTransaction.c \
+	../BREthereumTransactionReceipt.c \
 	../BREthereumWallet.c \
 	../BREthereum.c
 

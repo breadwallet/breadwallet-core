@@ -252,6 +252,25 @@ walletCreateTransactionDetailed(BREthereumWallet wallet,
     return transaction;
 }
 
+extern BREthereumTransaction
+walletCreateTransactionGeneric(BREthereumWallet wallet,
+                               BREthereumAddress recvAddress,
+                               BREthereumEther amount,
+                               BREthereumGasPrice gasPrice,
+                               BREthereumGas gasLimit,
+                               const char *data) {
+    assert (walletGetAmountType(wallet) == AMOUNT_ETHER);
+    BREthereumTransaction transaction = transactionCreateGeneric(wallet->address,
+                                                                 recvAddress,
+                                                                 amount,
+                                                                 gasPrice,
+                                                                 gasLimit,
+                                                                 data,
+                                                                 TRANSACTION_NONCE_IS_NOT_ASSIGNED);
+    walletHandleTransaction(wallet, transaction);
+    return transaction;
+}
+
 private_extern void
 walletHandleTransaction(BREthereumWallet wallet,
                         BREthereumTransaction transaction) {

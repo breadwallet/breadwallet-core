@@ -225,6 +225,14 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_j
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniCreateTransactionGeneric
+ * Signature: (JLjava/lang/String;Ljava/lang/String;JLjava/lang/String;JLjava/lang/String;Ljava/lang/String;)J
+ */
+JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniCreateTransactionGeneric
+  (JNIEnv *, jobject, jlong, jstring, jstring, jlong, jstring, jlong, jstring, jstring);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniSignTransaction
  * Signature: (JJLjava/lang/String;)V
  */

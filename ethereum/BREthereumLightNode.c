@@ -365,6 +365,40 @@ lightNodeWalletCreateTransaction(BREthereumLightNode node,
     return tid;
 }
 
+extern BREthereumTransactionId
+lightNodeWalletCreateTransactionGeneric(BREthereumLightNode node,
+                                        BREthereumWallet wallet,
+                                        const char *recvAddress,
+                                        BREthereumEther amount,
+                                        BREthereumGasPrice gasPrice,
+                                        BREthereumGas gasLimit,
+                                        const char *data) {
+    BREthereumTransactionId tid = -1;
+    BREthereumWalletId wid = -1;
+
+    pthread_mutex_lock(&node->lock);
+
+    BREthereumTransaction transaction =
+            walletCreateTransactionGeneric(wallet,
+                                           createAddress(recvAddress),
+                                           amount,
+                                           gasPrice,
+                                           gasLimit,
+                                           data);
+
+    tid = lightNodeInsertTransaction(node, transaction);
+    wid = lightNodeLookupWalletId(node, wallet);
+
+    pthread_mutex_unlock(&node->lock);
+
+    lightNodeListenerAnnounceTransactionEvent(node, wid, tid, TRANSACTION_EVENT_CREATED, SUCCESS,
+                                              NULL);
+    lightNodeListenerAnnounceTransactionEvent(node, wid, tid, TRANSACTION_EVENT_ADDED, SUCCESS,
+                                              NULL);
+
+    return tid;
+}
+
 extern void // status, error
 lightNodeWalletSignTransaction(BREthereumLightNode node,
                                BREthereumWallet wallet,
