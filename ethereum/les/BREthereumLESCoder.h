@@ -58,6 +58,8 @@ typedef enum {
   BRE_LES_ID_PROOFS_V2 = 0x10
 }LESMessageId;
 
+extern const char *
+lesMessageGetName (LESMessageId id);
 
 typedef enum {
     BRE_LES_CODER_SUCCESS=0,
@@ -95,7 +97,8 @@ typedef struct {
     uint64_t announceType;
 }BREthereumLESStatusMessage;
 
-
+extern void
+lesStatusMessageLogFlowControl (BREthereumLESStatusMessage *message);
 
 typedef struct {
     BREthereumHash blockHash;

@@ -125,6 +125,7 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t me
                 if(ETHEREUM_BOOLEAN_IS_TRUE(les->peerStatus.txRelay) &&
                   les->peerStatus.chainId == networkGetChainId(les->network)){
                     eth_log(ETH_LOG_TOPIC, "%s", "LES Handshake complete. Start sending messages");
+                    lesStatusMessageLogFlowControl (&les->peerStatus);
                     les->startSendingMessages = ETHEREUM_BOOLEAN_TRUE;
                 }else {
                     eth_log(ETH_LOG_TOPIC, "%s", "Disconnecting from node. Does not meet the requirements for LES");
@@ -142,7 +143,7 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t me
             if(remoteStatus == BRE_LES_CODER_SUCCESS)
             {
                 eth_log(ETH_LOG_TOPIC, "%s", "Received Announce message from Remote peer");
-                les->announceFunc(les->announceCtx, hash, headNumber, headTd);
+                les->announceFunc(les->announceCtx, hash, headNumber, headTd, reorgDepth);
                 //TODO: Check to make sure peerStatus is valid after update. 
             }
         }

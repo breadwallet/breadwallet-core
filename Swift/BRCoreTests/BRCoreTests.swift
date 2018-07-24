@@ -9,7 +9,7 @@
 import XCTest
 @testable import BRCore
 
-class BRCore2Tests: XCTestCase {
+class BRCoreTests: XCTestCase {
     
     override func setUp() {
         super.setUp()
@@ -28,7 +28,7 @@ class BRCore2Tests: XCTestCase {
         // Use XCTAssert and related functions to verify your tests produce the correct results.
     }
 
-    func testEthereum2 () {
+    func testEthereum () {
         let client = TestLightClient (network: EthereumNetwork.testnet,
                                       paperKey: "ginger settle marine tissue robot crane night number ramp coast roast critic")
 
@@ -81,7 +81,7 @@ class TestLightClient : EthereumClient {
         self.node!.announceBalance (wid: wid, balance: "0xffc0", rid: rid)
     }
 
-    func getGasPrice(wid: EthereumWalletId, rid: Int32) {
+    func getGasPrice(ewm: EthereumWalletManager, wid: EthereumWalletId, rid: Int32) {
         // JSON_RPC -> JSON -> Result -> announceGasPrice()
         self.node!.announceGasPrice (wid: wid, gasPrice: "0x77", rid: rid)
     }

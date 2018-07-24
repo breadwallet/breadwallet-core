@@ -179,28 +179,30 @@ extern const unsigned int bcsEventTypesCount;
 //
 // Submit Transaction
 //
+    extern void
+    bcsHandleSubmitTransaction (BREthereumBCS bcs,
+                                BREthereumTransaction transaction);
+
 extern void
 bcsSignalSubmitTransaction (BREthereumBCS bcs,
                             BREthereumTransaction transaction);
 
-extern void
-bcsHandleSubmitTransaction (BREthereumBCS bcs,
-                            BREthereumTransaction transaction);
-
 //
-// Announce
+// Announce (New Chain Head)
 //
-extern void
-bcsSignalAnnounce (BREthereumBCS bcs,
-                   BREthereumHash headHash,
-                   uint64_t headNumber,
-                   uint64_t headTotalDifficulty);
-
 extern void
 bcsHandleAnnounce (BREthereumBCS bcs,
                    BREthereumHash headHash,
                    uint64_t headNumber,
-                   uint64_t headTotalDifficulty);
+                   UInt256 headTotalDifficulty,
+                   uint64_t reorgDepth);
+
+extern void
+bcsSignalAnnounce (BREthereumBCS bcs,
+                   BREthereumHash headHash,
+                   uint64_t headNumber,
+                   UInt256 headTotalDifficulty,
+                   uint64_t reorgDepth);
 
 //
 // Block Headers
@@ -227,19 +229,6 @@ bcsSignalBlockBodies (BREthereumBCS bcs,
                       BREthereumHash blockHash,
                       BREthereumTransaction transactions[],
                       BREthereumBlockHeader ommers[]);
-
-//
-// Transactions
-//
-extern void
-bcsHandleTransaction (BREthereumBCS bcs,
-                      BREthereumHash blockHash,
-                      BREthereumTransaction transaction);
-
-extern void
-bcsSignalTransaction (BREthereumBCS bcs,
-                      BREthereumHash blockHash,
-                      BREthereumTransaction transaction);
 
 //
 // Transaction Status
@@ -281,6 +270,20 @@ bcsSignalAccountState (BREthereumBCS bcs,
                        BREthereumHash blockHash,
                        BREthereumAddress address,
                        BREthereumAccountState state);
+
+    //
+    // Transactions
+    //
+    extern void
+    bcsHandleTransaction (BREthereumBCS bcs,
+                          BREthereumHash blockHash,
+                          BREthereumTransaction transaction);
+
+    extern void
+    bcsSignalTransaction (BREthereumBCS bcs,
+                          BREthereumHash blockHash,
+                          BREthereumTransaction transaction);
+//                          BREthereumTransactionStatus status);
 
 //
 // Logs

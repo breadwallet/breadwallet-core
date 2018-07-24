@@ -53,13 +53,51 @@
 #include "BREthereumHandshake.h"
 #include "../ewm/BREthereumEWM.h"
 
+// pthread locks/conditions and wait and signal functions
+static pthread_mutex_t _testLock;
+static pthread_cond_t _testCond;
+static int _testComplete;
+static int _numOfTests;
+
+static void _initTestState() {
+
+    // Initializes the pthread variables
+    pthread_mutex_init(&_testLock, NULL);
+    pthread_cond_init(&_testCond, NULL);
+    _testComplete = 0;
+}
+
+static void _initTest(int numOfTests) {
+    _testComplete = 0;
+    _numOfTests = numOfTests;
+}
+static void _waitForTests() {
+    //Wait for a little bit to get a reply back from the server.
+    pthread_mutex_lock(&_testLock);
+    //Wait until all the tests are complete
+    while(_testComplete < _numOfTests){
+        pthread_cond_wait(&_testCond, &_testLock);
+    }
+    pthread_mutex_unlock(&_testLock);
+}
+static void _signalTestComplete() {
+
+    //Signal to the testing thread that this test is complete
+    pthread_mutex_lock(&_testLock);
+    _testComplete++;
+    pthread_mutex_unlock(&_testLock);
+    
+    pthread_cond_signal(&_testCond);
+}
+
 // LES Tests
 void _announceCallback (BREthereumLESAnnounceContext context,
                         BREthereumHash headHash,
                         uint64_t headNumber,
-                        UInt256 headTotalDifficulty) {
+                        UInt256 headTotalDifficulty,
+                        uint64_t reorgDepth) {
     
-    printf("RECEIVED AN ANNOUNCE MESSAGE!!!!!!\n");
+    eth_log("announcCallback_test", "%s", "received an announcement of a new chain");
 }
 
 
@@ -117,6 +155,9 @@ void prepareLESTransaction (BREthereumLES les, const char *paperKey, const char 
             0 == strcmp (recvAddr, ethereumTransactionGetRecvAddress(ewm, transaction)));
     
     BREthereumTransaction actualTransaction = ewmLookupTransaction(ewm, transaction);
+    
+    //Initilize testing state
+    _initTest(1);
     
     assert(lesSubmitTransaction(les, NULL, _transactionStatus, actualTransaction) == LES_SUCCESS);
     
@@ -254,7 +295,8 @@ void _GetBlockHeaders_Calllback_Test4  (BREthereumLESBlockHeadersContext context
     _GetBlockHeaders_Context4 += 2;
     
     if(_GetBlockHeaders_Context4 == 6){
-        eth_log("run_GetBlockHeaders_Tests", "%s", "Test 4 Successful");
+        //Signal to the testing thread that this test completed successfully
+        _signalTestComplete();
     }
 }
 void _GetBlockHeaders_Calllback_Test3  (BREthereumLESBlockHeadersContext context,
@@ -275,7 +317,8 @@ void _GetBlockHeaders_Calllback_Test3  (BREthereumLESBlockHeadersContext context
     _GetBlockHeaders_Context3 -= 2;
     
     if(_GetBlockHeaders_Context3 == -2){
-        eth_log("run_GetBlockHeaders_Tests", "%s", "Test 3 Successful");
+        //Signal to the testing thread that this test completed successfully
+        _signalTestComplete();
     }
 }
 void _GetBlockHeaders_Calllback_Test2  (BREthereumLESBlockHeadersContext context,
@@ -296,10 +339,11 @@ void _GetBlockHeaders_Calllback_Test2  (BREthereumLESBlockHeadersContext context
     _GetBlockHeaders_Context2++;
     
     if(_GetBlockHeaders_Context2 == 5){
-        eth_log("run_GetBlockHeaders_Tests", "%s", "Test 2 Successful");
+        //Signal to the testing thread that this test completed successfully
+        _signalTestComplete();
     }
-}
 
+}
 void _GetBlockHeaders_Calllback_Test1  (BREthereumLESBlockHeadersContext context,
                                         BREthereumBlockHeader header) {
     
@@ -318,10 +362,14 @@ void _GetBlockHeaders_Calllback_Test1  (BREthereumLESBlockHeadersContext context
     _GetBlockHeaders_Context1--;
     
     if(_GetBlockHeaders_Context1 == -1){
-        eth_log("run_GetBlockHeaders_Tests", "%s", "Test 1 Successful");
+        //Signal to the testing thread that this test completed successfully
+        _signalTestComplete();
     }
 }
 static void run_GetBlockHeaders_Tests(BREthereumLES les){
+    
+     //Initialze test
+     _initTest(4);
     
     //Request block headers 4732522, 4732523, 4732524
     _GetBlockHeaders_Context1 = BLOCK_4732522_IDX;
@@ -339,8 +387,10 @@ static void run_GetBlockHeaders_Tests(BREthereumLES les){
     _GetBlockHeaders_Context4 = BLOCK_4732522_IDX;
     assert(lesGetBlockHeaders(les, (void*)&_GetBlockHeaders_Context4, _GetBlockHeaders_Calllback_Test4, _blockHeaderTestData[BLOCK_4732522_IDX].blockNum, 2, 1, ETHEREUM_BOOLEAN_TRUE) == LES_SUCCESS);
     
-    //Wait for a little bit to get a reply back from the server.
-    sleep(60);
+    //Wait for tests to complete
+    _waitForTests();
+    
+    eth_log("run_GetBlockHeaders_Tests", "%s", "Tests Successful");
 }
 
 //
@@ -387,7 +437,8 @@ static void _GetTxStatus_Test2_Callback(BREthereumLESTransactionStatusContext co
     assert(status.u.included.transactionIndex == expectedTransactionIndex1 ||
            status.u.included.transactionIndex == expectedTransactionIndex2 );
     
-    eth_log("run_GetTxStatus_Tests", "%s", "Test 2 Successful");
+    //Signal to the testing thread that this test completed successfully
+    _signalTestComplete();
 }
 static void _GetTxStatus_Test1_Callback(BREthereumLESTransactionStatusContext context,
                                         BREthereumHash transaction,
@@ -416,14 +467,18 @@ static void _GetTxStatus_Test1_Callback(BREthereumLESTransactionStatusContext co
     uint64_t expectedTransactionIndex = 39;
     assert(status.u.included.transactionIndex == expectedTransactionIndex);
     
-    eth_log("run_GetTxStatus_Tests", "%s", "Test 1 Successful");
-}
 
+    //Signal to the testing thread that this test completed successfully
+    _signalTestComplete();
+}
 static void run_GetTxStatus_Tests(BREthereumLES les){
     
     // Prepare values to be given to a send tranactions status message
     BREthereumHash transaction1Hash = hashCreate("0xc070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c");
     BREthereumHash transaction2Hash = hashCreate("0x78453edd2955e6ef6b200f5f9b98b3940d0d3f1528f902e7e855df56bf934cc5");
+    
+    //Initilize testing state
+    _initTest(2);
     
     assert(lesGetTransactionStatusOne(les, (void *)&_GetTxStatus_Context1, _GetTxStatus_Test1_Callback, transaction1Hash) == LES_SUCCESS);
     
@@ -434,9 +489,10 @@ static void run_GetTxStatus_Tests(BREthereumLES les){
     
     assert(lesGetTransactionStatus(les, (void *)&_GetTxStatus_Context2, _GetTxStatus_Test2_Callback, transactions) == LES_SUCCESS);
     
-    //Wait for a little bit to get a reply back from the server.
-    sleep(5);
+    //Wait for tests to complete
+    _waitForTests();
     
+    eth_log("run_GetTxStatus_Tests", "%s", "Tests Successful");
 }
 //
 //  Testing BlockBodies message
@@ -461,7 +517,8 @@ static void _GetBlockBodies_Callback_Test1(BREthereumLESBlockBodiesContext conte
     assert(array_count(transactions) == _blockHeaderTestData[_GetBlockBodies_Context1].transactionCount);
     assert(array_count(ommers) == _blockHeaderTestData[_GetBlockBodies_Context1].ommersCount);
     
-    eth_log("run_GetBlockBodies_Tests", "%s", "Test 1 Successful");
+    //Signal to the testing thread that this test completed successfully
+    _signalTestComplete();
 }
 static void _GetBlockBodies_Callback_Test2(BREthereumLESBlockBodiesContext context,
                                            BREthereumHash block,
@@ -481,11 +538,17 @@ static void _GetBlockBodies_Callback_Test2(BREthereumLESBlockBodiesContext conte
     assert(array_count(ommers) == _blockHeaderTestData[_GetBlockBodies_Context2].ommersCount);
     
     _GetBlockBodies_Context2++;
-    
-    eth_log("run_GetBlockBodies_Tests", "%s", "Test 2 Successful");
+
+    if(_GetBlockBodies_Context2 == 4) {
+       //Signal to the testing thread that this test completed successfully
+        _signalTestComplete();
+    }
 }
 
 static void run_GetBlockBodies_Tests(BREthereumLES les){
+    
+    //Initilize testing state
+    _initTest(2);
     
     //Request block bodies 4732522
     _GetBlockBodies_Context1 = BLOCK_4732522_IDX;
@@ -500,8 +563,10 @@ static void run_GetBlockBodies_Tests(BREthereumLES les){
     
     assert(lesGetBlockBodies(les, (void *)&_GetBlockBodies_Context2, _GetBlockBodies_Callback_Test2, blockHeaders) == LES_SUCCESS);
     
-    //Wait for a little bit to get a reply back from the server.
-    sleep(60);
+    //Wait for tests to complete
+    _waitForTests();
+    
+    eth_log("run_GetBlockBlodies_Tests", "%s", "Tests Successful");
 }
 
 //
@@ -525,7 +590,8 @@ static void _GetReceipts_Callback_Test1(BREthereumLESBlockBodiesContext context,
     //Check to make sure we got back the right number of transactions and ommers
     assert(array_count(receipts) == _blockHeaderTestData[_GetReceipts_Context1].transactionCount);
     
-    eth_log("run_GetReceipts_Tests", "%s", "Test 1 Successful");
+    //Signal to the testing thread that this test completed successfully
+    _signalTestComplete();
 }
 static void _GetReceipts_Callback_Test2(BREthereumLESBlockBodiesContext context,
                                         BREthereumHash block,
@@ -534,19 +600,25 @@ static void _GetReceipts_Callback_Test2(BREthereumLESBlockBodiesContext context,
     assert(context != NULL);
     int* context1 = (int *)context;
     
-    assert(*context1 == _GetBlockBodies_Context1); //Check to make sure the context is correct
+    assert(*context1 == _GetReceipts_Context2); //Check to make sure the context is correct
     
     //Check Block Hash
-    assert(hashSetEqual(&block, &_blockHeaderTestData[_GetReceipts_Context1].hash));
+    assert(hashSetEqual(&block, &_blockHeaderTestData[_GetReceipts_Context2].hash));
     
     //Check to make sure we got back the right number of transactions and ommers
-    assert(array_count(receipts) == _blockHeaderTestData[_GetReceipts_Context1].transactionCount);
+    assert(array_count(receipts) == _blockHeaderTestData[_GetReceipts_Context2].transactionCount);
     
     _GetReceipts_Context2++;
-    eth_log("run_GetReceipts_Tests", "%s", "Test 2 Successful");
+    if(_GetReceipts_Context2 == 4){
+        //Signal to the testing thread that this test completed successfully
+        _signalTestComplete();
+    }
 }
 
 static void run_GetReceipts_Tests(BREthereumLES les){
+    
+    //Initilize testing state
+    _initTest(2);
     
     //Request receipts for block 4732522
     _GetReceipts_Context1 = BLOCK_4732522_IDX;
@@ -559,47 +631,16 @@ static void run_GetReceipts_Tests(BREthereumLES les){
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX].hash);
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX + 1].hash);
     
-    assert(lesGetReceipts(les, (void *)&_GetTxStatus_Context2, _GetReceipts_Callback_Test2, blockHeaders) == LES_SUCCESS);
+    assert(lesGetReceipts(les, (void *)&_GetReceipts_Context2, _GetReceipts_Callback_Test2, blockHeaders) == LES_SUCCESS);
     
     
-    //Wait for a little bit to get a reply back from the server.
-    sleep(60);
-}
-
-
-//
-// Running a full block downloand
-//
-static void fullSync_GetBlockBodies_Callback_Test1(BREthereumLESBlockBodiesContext context,
-                                           BREthereumHash block,
-                                           BREthereumTransaction transactions[],
-                                           BREthereumBlockHeader ommers[]){
+    //Wait for tests to complete
+    _waitForTests();
     
-    eth_log("fullBlockSyncBodies",  "Retrieved Block Bodie:%s", hashAsString(block));
-}
-
-void _fullBlockHeaders_Calllback_Test (BREthereumLESBlockHeadersContext context,
-                                       BREthereumBlockHeader header) {
+    eth_log("run_GetReceipts_Tests", "%s", "Tests Successful");
     
-    BREthereumLES les = (BREthereumLES)context;
-    int64_t gotBlockNumber = blockHeaderGetNumber(header);
-    BREthereumHash blockHash = blockHeaderGetHash(header);
-    eth_log("fullBlockSync", "Received GotBlock:%llu", gotBlockNumber);
-    assert(lesGetBlockBodiesOne(les, NULL, fullSync_GetBlockBodies_Callback_Test1, blockHash) == LES_SUCCESS);
-    eth_log("fullBlockSync", "Send Rquest for Block Bodie:%llu", gotBlockNumber);
-
-}
-static void run_fullBlockSync_Test1(BREthereumLES les) {
-
-    //Request block headers [0...1000]
-    for(int i = 0; i < 10000; i+= 180) {
-        assert(lesGetBlockHeaders(les, les, _fullBlockHeaders_Calllback_Test, i, 180, 0, ETHEREUM_BOOLEAN_FALSE) == LES_SUCCESS);
-        sleep(30);
-    }
-    sleep(1800);
 }
 
-//
 // Test GetProofsV2
 //
 static int _GetProofsV2_Context1 = 0;
@@ -614,10 +655,14 @@ static void _GetProofs_Callback_Test1(BREthereumLESProofsV2Context context,
     
     assert(*context1 == _GetProofsV2_Context1); //Check to make sure the context is correct
     
-    eth_log("run_GetReceipts_Tests", "%s", "Test 2 Successful");
+    //Signal to the testing thread that this test completed successfully
+    _signalTestComplete(); 
 }
 
 static void run_GetProofsV2_Tests(BREthereumLES les){
+    
+    //Initilize testing state
+    _initTest(1);
     
     //Address to get proofs from
     BREthereumAddress address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
@@ -632,8 +677,10 @@ static void run_GetProofsV2_Tests(BREthereumLES les){
     
     assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block_5503921, key, key2, 0) == LES_SUCCESS);
     
-    //Wait for a little bit to get a reply back from the server.
-    sleep(5);
+    //Wait for tests to complete
+    _waitForTests();
+    
+    eth_log("run_GetProofsV2_Tests", "%s", "Tests Successful");
 }
 
 //
@@ -643,16 +690,22 @@ static void _GetAccountState_Callback_Test1 (BREthereumLESAccountStateContext co
                                              BREthereumLESAccountStateResult result) {
     assert (ACCOUNT_STATE_SUCCCESS == result.status);
     assert (result.u.success.accountState.nonce >= 0);
+    _signalTestComplete();
 }
 
 static void run_GetAccountState_Tests (BREthereumLES les){
+    //Initilize testing state
+    _initTest(2);
+    
+
     BREthereumAddress address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
     BREthereumHash block_5503921 = hashCreate("0x089a6c0b4b960261287d30ee40b1eea2da2972e7189bd381137f55540d492b2c");
     BREthereumLESAccountStateCallback context = NULL;
 
     lesGetAccountState(les, context, _GetAccountState_Callback_Test1, block_5503921, address);
 
-    sleep(2);
+    _waitForTests();
+    eth_log("run_GetAccopuntState_Tests", "%s", "Tests Successful");
 }
 
 void runLEStests(void) {
@@ -673,19 +726,23 @@ void runLEStests(void) {
     BREthereumLES les = lesCreate(ethereumMainnet, NULL, _announceCallback, headHash, headNumber, headTD, genesisHash);
     
     // Sleep for a little bit to allow the context to connect to the network
-    sleep(3);
+    sleep(5);
+    
+    //Initialize testing state
+    _initTestState();
     
     //Initialize data needed for tests
     _initBlockHeaderTestData();
     
     // Run Tests on the LES messages
-     run_GetTxStatus_Tests(les);
-    // run_GetBlockHeaders_Tests(les);
-    //    run_GetBlockBodies_Tests(les);
-    //    run_GetReceipts_Tests(les);
-    run_GetProofsV2_Tests(les);
-    run_GetAccountState_Tests(les);
-    //    reallySendLESTransaction(les);
-    //    run_fullBlockSync_Test1(les);
+      run_GetTxStatus_Tests(les);
+      run_GetBlockHeaders_Tests(les);
+      run_GetBlockBodies_Tests(les);
+      run_GetReceipts_Tests(les);
+ //   run_GetProofsV2_Tests(les); //NOTE: The callback function won't be called.
+      run_GetAccountState_Tests(les);
+    //reallySendLESTransaction(les);
+    
+    printf ("Done\n");
 }
 

@@ -302,8 +302,8 @@ static BREthereumLESDecodeStatus _decodeStatus(BRRlpCoder coder, const BRRlpItem
             }else if (strcmp(key, "flowControl/BL") == 0) {
                  header->flowControlBL = malloc(sizeof(uint64_t));
                 *(header->flowControlBL) = rlpDecodeItemUInt64(coder, keyPairs[1], 1);
-            }else if (strcmp(key, "flowControl/MRR") == 0) {
-                 header->flowControlMRR = malloc(sizeof(uint64_t));
+            }else if (strcmp(key, "flowControl/MRC") == 0) {
+                 //header->flowControlMRR = malloc(sizeof(uint64_t));
                  size_t mrrItemsCount  = 0;
                  const BRRlpItem* mrrItems = rlpDecodeList(coder, keyPairs[1], &mrrItemsCount);
                  BREthereumLESMRC* mrcs = NULL;
@@ -317,6 +317,8 @@ static BREthereumLESDecodeStatus _decodeStatus(BRRlpCoder coder, const BRRlpItem
                             mrcs[mrrIdx].reqCost =  rlpDecodeItemUInt64(coder, mrrElements[2], 1);
                      }
                  }
+                header->flowControlMRCCount = malloc (sizeof (size_t));
+                *header->flowControlMRCCount = mrrItemsCount;
                  header->flowControlMRC = mrcs;
             }else if (strcmp(key, "flowControl/MRR") == 0) {
                  header->flowControlMRR = malloc(sizeof(uint64_t));
@@ -355,6 +357,45 @@ BREthereumLESDecodeStatus ethereumLESDecodeStatus(uint8_t*rlpBytes, size_t rlpBy
     return retStatus;
  
 }
+
+extern const char *
+lesMessageGetName (LESMessageId id) {
+    switch (id) {
+        case BRE_LES_ID_ANNOUNCE: return "Announce";
+        case BRE_LES_ID_STATUS: return "Status";
+        case BRE_LES_ID_SEND_TX2: return "Send Tx2";
+        case BRE_LES_ID_SEND_TX: return "Send Tx";
+        case BRE_LES_ID_GET_TX_STATUS: return "Get Tx Status";
+        case BRE_LES_ID_TX_STATUS: return "Tx Status";
+        case BRE_LES_ID_GET_BLOCK_BODIES: return "Get Block Bodies";
+        case BRE_LES_ID_BLOCK_BODIES: return "Block Bodies";
+        case BRE_LES_ID_GET_BLOCK_HEADERS: return "Get Block Headers";
+        case BRE_LES_ID_BLOCK_HEADERS: return "Block Headers";
+        case BRE_LES_ID_GET_RECEIPTS: return "Get Receipts";
+        case BRE_LES_ID_RECEIPTS: return "Receipts";
+        case BRE_LES_ID_GET_PROOFS_V2: return "Get Proofs V2";
+        case BRE_LES_ID_PROOFS_V2: return "Proofs V2";
+        default: return NULL;
+    }
+}
+
+#define ETH_LOG_TOPIC "LES"
+
+extern void
+lesStatusMessageLogFlowControl (BREthereumLESStatusMessage *message) {
+    size_t count = *(message->flowControlMRCCount);
+    eth_log (ETH_LOG_TOPIC, "FlowControl/MCC%s", "");
+    for (size_t index = 0; index < count; index++) {
+        const char *label = lesMessageGetName ((LESMessageId) message->flowControlMRC[index].msgCode);
+        if (NULL != label) {
+            eth_log (ETH_LOG_TOPIC, "=== %d", (LESMessageId) message->flowControlMRC[index].msgCode);
+            eth_log (ETH_LOG_TOPIC, "    Request : %s", label);
+            eth_log (ETH_LOG_TOPIC, "    BaseCost: %llu", message->flowControlMRC[index].baseCost);
+            eth_log (ETH_LOG_TOPIC, "    ReqCost : %llu", message->flowControlMRC[index].reqCost);
+        }
+    }
+}
+
 //
 //  Header synchronisation
 //

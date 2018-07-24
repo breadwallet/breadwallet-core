@@ -432,6 +432,12 @@ typedef struct {
     BREthereumBoolean isError;
 } BREthereumEWMClientAnnounceTransactionBundle;
 
+static inline void
+ewmClientAnnounceTransactionBundleRelease (BREthereumEWMClientAnnounceTransactionBundle *bundle) {
+    free (bundle->data);
+    free (bundle);
+}
+
 extern void
 ewmClientHandleAnnounceTransaction(BREthereumEWM ewm,
                                    BREthereumEWMClientAnnounceTransactionBundle *bundle,
@@ -459,6 +465,15 @@ typedef struct {
     uint64_t blockTimestamp;
 } BREthereumEWMClientAnnounceLogBundle;
 
+static inline void
+ewmClientAnnounceLogBundleRelease (BREthereumEWMClientAnnounceLogBundle *bundle) {
+    for (int i = 0; i < bundle->topicCount; i++)
+        free (bundle->arrayTopics[i]);
+    free (bundle->arrayTopics);
+    free (bundle->data);
+    free (bundle);
+}
+
 extern void
 ewmClientSignalAnnounceLog (BREthereumEWM ewm,
                             BREthereumEWMClientAnnounceLogBundle *bundle,
@@ -477,6 +492,12 @@ typedef struct {
     BREthereumAddress contract;
     char *data;
 } BREthereumEWMClientAnnounceTokenBundle;
+
+static inline void
+ewmClientAnnounceTokenBundleRelease (BREthereumEWMClientAnnounceTokenBundle *bundle) {
+    free (bundle->data);
+    free (bundle);
+}
 
 extern void
 ewmClientHandleAnnounceToken (BREthereumEWM ewm,
