@@ -45,10 +45,33 @@ typedef struct BREthereumBlockRecord *BREthereumBlock;
 //
 extern void
 blockHeaderRelease (BREthereumBlockHeader header);
-    
+
+
+/**
+ * Check if the block header is internally consistent
+ *
+ * @param header
+ * @return ETHEREUM_BOOLEAN_TRUE if valid
+ */
 extern BREthereumBoolean
 blockHeaderIsValid (BREthereumBlockHeader header);
 
+
+/**
+ * Check if the block header is consistent with the parent.  If `parent` is NULL, then
+ * `header` is consisder consistent
+ *
+ * @param header
+ * @param parent
+ * @param parentOmmersCount
+ * @parem genesis
+ * @return ETHEREUM_BOOLEAN_TRUE if consistent
+ */
+extern BREthereumBoolean
+blockHeaderIsConsistent (BREthereumBlockHeader header,
+                         BREthereumBlockHeader parent,
+                         size_t parentOmmersCount,
+                         BREthereumBlockHeader genesis);
 extern BREthereumBlockHeader
 blockHeaderRlpDecode (BRRlpItem item,
                       BREthereumRlpType type,
@@ -165,6 +188,9 @@ blockGetConfirmations (BREthereumBlock block);
 extern uint64_t
 blockGetTimestamp (BREthereumBlock block);
 
+extern void
+blockLinkLogsWithTransactions (BREthereumBlock block);
+    
 extern BRRlpItem
 blockRlpEncode (BREthereumBlock block,
                 BREthereumNetwork network,
@@ -202,6 +228,9 @@ extern BREthereumBlock // old 'next'
 blockSetNext (BREthereumBlock block,
               BREthereumBlock next);
 
+extern BREthereumBoolean
+blockHasNext (BREthereumBlock block);
+
 static inline BREthereumBlock // old 'next'
 blockClrNext (BREthereumBlock block) {
     return blockSetNext(block, BLOCK_NEXT_NONE);
@@ -211,29 +240,54 @@ blockClrNext (BREthereumBlock block) {
 // MARK: - Block Status
 //
 
-#define BLOCK_STATUS_HAS_TRANSACTIONS   (1 << 0)
-#define BLOCK_STATUS_HAS_LOGS           (1 << 1)
-#define BLOCK_STATUS_HAS_ACCOUNT_STATE  (1 << 2)
-
-typedef uint32_t BREthereumBlockStatusFlag;
+typedef enum {
+    BLOCK_REQUEST_NOT_NEEDED,
+    BLOCK_REQEUST_PENDING,
+    BLOCK_REQUEST_COMPLETE,
+    BLOCK_REQUEST_ERROR
+} BREthereumBlockRequestState;
 
 typedef struct {
     BREthereumHash hash;
-    BREthereumBlockStatusFlag flags;
-    BREthereumTransaction *transactions;
-    BREthereumLog *logs;
-    BREthereumAccountState accountState;
-} BREthereumBlockStatus;
 
-extern BREthereumBoolean
-blockStatusHasFlag (BREthereumBlockStatus *status,
-                    BREthereumBlockStatusFlag flag);
+    BREthereumBlockRequestState transactionRequest;
+    BREthereumTransaction *transactions;
+
+    BREthereumBlockRequestState logRequest;
+    BREthereumLog *logs;
+
+    BREthereumBlockRequestState accountStateRequest;
+    BREthereumAccountState accountState;
+
+    BREthereumBoolean error;
+} BREthereumBlockStatus;
 
 /**
  * Get the block's status
  */
 extern BREthereumBlockStatus
 blockGetStatus (BREthereumBlock block);
+
+extern BREthereumBoolean
+blockHasStatusComplete (BREthereumBlock block);
+
+extern BREthereumBoolean
+blockHasStatusError (BREthereumBlock block);
+
+extern void
+blockReportStatusError (BREthereumBlock block,
+                        BREthereumBoolean error);
+
+//
+// Transaction Request
+//
+extern BREthereumBoolean
+blockHasStatusTransactionsRequest (BREthereumBlock block,
+                                   BREthereumBlockRequestState request);
+
+extern void
+blockReportStatusTransactionsRequest (BREthereumBlock block,
+                                      BREthereumBlockRequestState request);
 
 /**
  * Set the transactions in the block's status.  The transactions are
@@ -244,6 +298,17 @@ extern void
 blockReportStatusTransactions (BREthereumBlock block,
                                BREthereumTransaction *transactions);
 
+//
+// Log Request
+//
+extern BREthereumBoolean
+blockHasStatusLogsRequest (BREthereumBlock block,
+                           BREthereumBlockRequestState request);
+
+extern void
+blockReportStatusLogsRequest (BREthereumBlock block,
+                              BREthereumBlockRequestState request);
+
 /**
  * Set the logs in the block's status.  Handling of `logs` is identical to handling of
  * `transactions` - see above
@@ -253,6 +318,17 @@ blockReportStatusLogs (BREthereumBlock block,
                        BREthereumLog *log);
 
 
+//
+// Account State Reqeust
+//
+extern BREthereumBoolean
+blockHasStatusAccountStateRequest (BREthereumBlock block,
+                                   BREthereumBlockRequestState request);
+
+extern void
+blockReportStatusAccountStateRequest (BREthereumBlock block,
+                                      BREthereumBlockRequestState request);
+
 /**
  * Set the account state in the block's status.
  */
@@ -260,6 +336,9 @@ extern void
 blockReportStatusAccountState (BREthereumBlock block,
                                BREthereumAccountState accountState);
 
+    //
+    //
+    //
 extern BREthereumBoolean
 blockHasStatusTransaction (BREthereumBlock block,
                            BREthereumTransaction transaction);

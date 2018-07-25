@@ -379,8 +379,9 @@ ewmClientHandleTransactionEvent(BREthereumEWM ewm,
 
     ewm->client.funcChangeTransaction
     (ewm->client.context, ewm,
-                                       type,
-                                       persistData);
+     type,
+     persistData);
+    rlpDataRelease(persistData.blob);
 
     ewm->client.funcTransactionEvent
     (ewm->client.context,
@@ -509,7 +510,7 @@ ewmClientHandleAnnounceSubmitTransaction (BREthereumEWM ewm,
                                           int rid) {
     BREthereumTransactionStatus status = transactionStatusCreate (TRANSACTION_STATUS_PENDING);
     transactionSetStatus(transaction, status);
-    bcsSignalTransaction(ewm->bcs, hashCreateEmpty(), transaction);
+    bcsSignalTransaction(ewm->bcs, transaction);
 }
 
 extern void
@@ -550,7 +551,7 @@ ewmClientHandleAnnounceTransaction(BREthereumEWM ewm,
 
             transactionSetStatus(transaction, status);
 
-            bcsSignalTransaction(ewm->bcs, bundle->blockHash, transaction);
+            bcsSignalTransaction(ewm->bcs, transaction);
             break;
 
         case NODE_TYPE_NONE:
@@ -584,17 +585,16 @@ ewmClientHandleAnnounceLog (BREthereumEWM ewm,
             BREthereumLog log = logCreate(bundle->contract,
                                           bundle->topicCount,
                                           topics);
+            logInitializeIdentifier(log, bundle->hash, bundle->logIndex);
 
-            BREthereumLogStatus status = logStatusCreate(LOG_STATUS_INCLUDED,
-                                                         bundle->hash,
-                                                         bundle->blockTransactionIndex);
-            logStatusUpdateIncluded(&status, hashCreateEmpty(), bundle->blockNumber);
+            BREthereumTransactionStatus status =
+            transactionStatusCreateIncluded(gasCreate(0),
+                                            hashCreateEmpty(),
+                                            bundle->blockNumber,
+                                            bundle->blockTransactionIndex);
             logSetStatus(log, status);
 
-            bcsSignalLog(ewm->bcs,
-                         status.u.included.blockHash,
-                         status.identifier.transactionHash,
-                         log);
+            bcsSignalLog(ewm->bcs, log);
 
             // Do we need a transaction here?  No, if another originated this Log, then we can't ever
             // care and if we originated this Log, then we'll get the transaction (as part of the BRD

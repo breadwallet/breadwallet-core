@@ -24,6 +24,7 @@
 		3C9025F721064FF800143B69 /* testBase.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C9025F621064FF800143B69 /* testBase.c */; };
 		3C9025F92106511700143B69 /* testEwm.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C9025F82106511700143B69 /* testEwm.c */; };
 		3C9025FB2106613600143B69 /* testContract.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C9025FA2106613600143B69 /* testContract.c */; };
+		3C9025FD2108DDAE00143B69 /* BREthereumBCSSync.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C9025FC2108DDAE00143B69 /* BREthereumBCSSync.c */; };
 		3CAB60A920AF8C8500810CE4 /* CoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB60A820AF8C8500810CE4 /* CoreTests.swift */; };
 		3CAB60AB20AF8C8500810CE4 /* libCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CAB609B20AF8C5D00810CE4 /* libCore.a */; };
 		3CAB60B120AF8D1A00810CE4 /* BREthereumEther.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53B320AF595400C430F6 /* BREthereumEther.c */; };
@@ -281,6 +282,7 @@
 		3C9025F621064FF800143B69 /* testBase.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testBase.c; sourceTree = "<group>"; };
 		3C9025F82106511700143B69 /* testEwm.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testEwm.c; sourceTree = "<group>"; };
 		3C9025FA2106613600143B69 /* testContract.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testContract.c; sourceTree = "<group>"; };
+		3C9025FC2108DDAE00143B69 /* BREthereumBCSSync.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumBCSSync.c; sourceTree = "<group>"; };
 		3CA74EA920AF622D00EDF3E7 /* BRKeyECIES.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = BRKeyECIES.c; path = ../../BRKeyECIES.c; sourceTree = "<group>"; };
 		3CA74EAA20AF622D00EDF3E7 /* BRKeyECIES.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BRKeyECIES.h; path = ../../BRKeyECIES.h; sourceTree = "<group>"; };
 		3CAB609B20AF8C5D00810CE4 /* libCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -531,6 +533,7 @@
 				3C386DCE20C6F5E40065E355 /* BREthereumBCS.h */,
 				3C386DCC20C6F5E40065E355 /* BREthereumBCSPrivate.h */,
 				3C386DCA20C6F5E40065E355 /* BREthereumBCS.c */,
+				3C9025FC2108DDAE00143B69 /* BREthereumBCSSync.c */,
 				3C386DCD20C6F5E40065E355 /* BREthereumBCSEvent.c */,
 			);
 			name = bcs;
@@ -881,6 +884,7 @@
 				3CAB60D520AF8D1A00810CE4 /* BRBCashAddr.c in Sources */,
 				3CAB60D620AF8D1A00810CE4 /* BRAddress.c in Sources */,
 				3CAB60D720AF8D1A00810CE4 /* BRBase58.c in Sources */,
+				3C9025FD2108DDAE00143B69 /* BREthereumBCSSync.c in Sources */,
 				3CAB60D820AF8D1A00810CE4 /* BRBech32.c in Sources */,
 				3CAB60D920AF8D1A00810CE4 /* BRBIP32Sequence.c in Sources */,
 				3CAB60DA20AF8D1A00810CE4 /* BRBIP38Key.c in Sources */,

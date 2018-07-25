@@ -26,81 +26,6 @@
 #include "BRArray.h"
 #include "BREthereumLog.h"
 
-//
-// Log Status
-//
-extern BREthereumLogStatus
-logStatusRlpDecode (BRRlpItem item,
-                    BRRlpCoder coder) {
-    BREthereumLogStatus status;
-
-    size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
-    assert (4 == itemsCount);
-
-    status.type = (uint32_t) rlpDecodeItemUInt64(coder, items[0], 0);
-    status.identifier.transactionHash = hashRlpDecode(items[1], coder);
-    status.identifier.transactionReceiptIndex = rlpDecodeItemUInt64(coder, items[2], 0);
-
-    switch (status.type) {
-        case LOG_STATUS_UNKNOWN:
-        case LOG_STATUS_PENDING:
-            break;
-
-        case LOG_STATUS_INCLUDED: {
-            size_t othersCount = 0;
-            const BRRlpItem *others = rlpDecodeList(coder, items[3], &othersCount);
-            assert (2 == othersCount);
-
-            status.u.included.blockHash = hashRlpDecode(others[0], coder);
-            status.u.included.blockNumber = rlpDecodeItemUInt64(coder, others[1], 0);
-
-            break;
-        }
-
-        case LOG_STATUS_ERRORED: {
-            char *reason = rlpDecodeItemString(coder, items[3]);
-            strcpy(status.u.errored.reason, reason);
-            free (reason);
-            break;
-        }
-    }
-
-    return status;
-}
-
-
-extern BRRlpItem
-logStatusRlpEncode (BREthereumLogStatus status,
-                    BRRlpCoder coder) {
-
-    BRRlpItem items[4]; // more than enough
-
-    items[0] = rlpEncodeItemUInt64(coder, status.type, 0);
-    items[1] = hashRlpEncode(status.identifier.transactionHash, coder);
-    items[2] = rlpEncodeItemUInt64(coder, status.identifier.transactionReceiptIndex, 0);
-
-    switch (status.type) {
-        case LOG_STATUS_UNKNOWN:
-        case LOG_STATUS_PENDING:
-            items[3] = rlpEncodeItemString(coder, "");
-            break;
-
-        case LOG_STATUS_INCLUDED:
-            items[3] = rlpEncodeList(coder, 2,
-                                     hashRlpEncode(status.u.included.blockHash, coder),
-                                     rlpEncodeItemUInt64(coder, status.u.included.blockNumber, 0));
-            break;
-
-        case LOG_STATUS_ERRORED:
-            items[3] = rlpEncodeItemString(coder, status.u.errored.reason);
-            break;
-    }
-
-    return rlpEncodeListItems(coder, items, 4);
-}
-
-
 /**
  * A Log *cannot* be identified by its associated transaction (hash) - because one transaction
  * can result in multiple Logs (even identical Logs: address, topics, etc).
@@ -241,8 +166,24 @@ struct BREthereumLogRecord {
     uint8_t *data;
     uint8_t dataCount;
 
+    // A unique identifer - derived from the transactionHash and the transactionReceiptIndex
+    struct {
+        /**
+         * The hash of the transaction producing this log.  This value *does not* depend on
+         * which block records the Log.
+         */
+        BREthereumHash transactionHash;
+
+        /**
+         * The receipt index from the transaction's contract execution for this log.  It can't
+         * possibly be the case that this number varies, can it - contract execution, regarding
+         * event generating, must be deterministic?
+         */
+        size_t transactionReceiptIndex;
+    } identifier;
+
     // status
-    BREthereumLogStatus status;
+    BREthereumTransactionStatus status;
 };
 
 extern BREthereumLog
@@ -265,21 +206,32 @@ logCreate (BREthereumAddress address,
 }
 
 extern void
-logInitializeStatus (BREthereumLog log,
+logInitializeIdentifier (BREthereumLog log,
                      BREthereumHash transactionHash,
                      size_t transactionReceiptIndex) {
-    log->status = logStatusCreate(LOG_STATUS_PENDING, transactionHash, transactionReceiptIndex);
-    log->hash = logStatusCreateHash(&log->status);
+    log->identifier.transactionHash = transactionHash;
+    log->identifier.transactionReceiptIndex = transactionReceiptIndex;
+
+    BRRlpData data = { sizeof (log->identifier), (uint8_t*) &log->identifier };
+    log->hash = hashCreateFromData(data);
 }
 
-extern BREthereumLogStatus
+extern void
+logExtractIdentifier (BREthereumLog log,
+                      BREthereumHash *transactionHash,
+                      size_t *transactionReceiptIndex) {
+    if (NULL != transactionHash) *transactionHash = log->identifier.transactionHash;
+    if (NULL != transactionReceiptIndex) *transactionReceiptIndex = log->identifier.transactionReceiptIndex;
+}
+
+extern BREthereumTransactionStatus
 logGetStatus (BREthereumLog log) {
     return log->status;
 }
 
 extern void
 logSetStatus (BREthereumLog log,
-              BREthereumLogStatus status) {
+              BREthereumTransactionStatus status) {
     log->status = status;
 }
 
@@ -337,17 +289,14 @@ logMatchesAddress (BREthereumLog log,
 
 }
 
-extern int
-logExtractIncluded(BREthereumLog log,
-                   BREthereumHash *blockHash,
-                   uint64_t *blockNumber) {
-    if (LOG_STATUS_INCLUDED != log->status.type)
-        return 0;
+extern BREthereumBoolean
+logIsConfirmed (BREthereumLog log) {
+    return AS_ETHEREUM_BOOLEAN(TRANSACTION_STATUS_INCLUDED == log->status.type);
+}
 
-    if (NULL != blockHash) *blockHash = log->status.u.included.blockHash;
-    if (NULL != blockNumber) *blockNumber = log->status.u.included.blockNumber;
-
-    return 1;
+extern BREthereumBoolean
+logIsErrored (BREthereumLog log) {
+    return AS_ETHEREUM_BOOLEAN(TRANSACTION_STATUS_ERRORED == log->status.type);
 }
 
 // Support BRSet
@@ -428,7 +377,7 @@ logRlpDecode (BRRlpItem item,
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     assert ((3 == itemsCount && RLP_TYPE_NETWORK == type) ||
-            (4 == itemsCount && RLP_TYPE_ARCHIVE == type));
+            (6 == itemsCount && RLP_TYPE_ARCHIVE == type));
 
     log->address = addressRlpDecode(items[0], coder);
     log->topics = logTopicsRlpDecode (items[1], coder);
@@ -437,9 +386,11 @@ logRlpDecode (BRRlpItem item,
     log->data = data.bytes;
     log->dataCount = data.bytesCount;
 
-    if (RLP_TYPE_ARCHIVE == type)
-        log->status = logStatusRlpDecode(items[3], coder);
-
+    if (RLP_TYPE_ARCHIVE == type) {
+        log->identifier.transactionHash = hashRlpDecode(items[3], coder);
+        log->identifier.transactionReceiptIndex = rlpDecodeItemUInt64(coder, items[4], 0);
+        log->status = transactionStatusRLPDecode(items[5], coder);
+    }
     return log;
 }
 
@@ -451,16 +402,19 @@ logRlpEncode(BREthereumLog log,
              BREthereumRlpType type,
              BRRlpCoder coder) {
     
-    BRRlpItem items[4]; // more than enough
+    BRRlpItem items[6]; // more than enough
 
     items[0] = addressRlpEncode(log->address, coder);
     items[1] = logTopicsRlpEncode(log, coder);
     items[2] = rlpEncodeItemBytes(coder, log->data, log->dataCount);
 
-    if (RLP_TYPE_ARCHIVE == type)
-        items[3] = logStatusRlpEncode(log->status, coder);
+    if (RLP_TYPE_ARCHIVE == type) {
+        items[3] = hashRlpEncode(log->identifier.transactionHash, coder);
+        items[4] = rlpEncodeItemUInt64(coder, log->identifier.transactionReceiptIndex, 0);
+        items[5] = transactionStatusRLPEncode(log->status, coder);
+    }
 
-    return rlpEncodeListItems(coder, items, (RLP_TYPE_ARCHIVE == type ? 4 : 3));
+    return rlpEncodeListItems(coder, items, (RLP_TYPE_ARCHIVE == type ? 6 : 3));
 }
 
 /* Log (2) w/ LogTopic (3)

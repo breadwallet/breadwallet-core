@@ -57,6 +57,23 @@ transactionStatusCreateErrored (const char *reason) {
     return status;
 }
 
+extern int
+transactionStatusExtractIncluded(const BREthereumTransactionStatus *status,
+                                 BREthereumGas *gas,
+                                 BREthereumHash *blockHash,
+                                 uint64_t *blockNumber,
+                                 uint64_t *blockTransactionIndex) {
+    if (status->type != TRANSACTION_STATUS_INCLUDED)
+        return 0;
+
+    if (NULL != gas) *gas = status->u.included.gasUsed;
+    if (NULL != blockHash) *blockHash = status->u.included.blockHash;
+    if (NULL != blockNumber) *blockNumber = status->u.included.blockNumber;
+    if (NULL != blockTransactionIndex) *blockTransactionIndex = status->u.included.transactionIndex;
+
+    return 1;
+}
+
 extern BREthereumBoolean
 transactionStatusEqual (BREthereumTransactionStatus ts1,
                         BREthereumTransactionStatus ts2) {

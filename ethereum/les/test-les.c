@@ -695,7 +695,7 @@ static void _GetAccountState_Callback_Test1 (BREthereumLESAccountStateContext co
 
 static void run_GetAccountState_Tests (BREthereumLES les){
     //Initilize testing state
-    _initTest(2);
+    _initTest(1);
     
 
     BREthereumAddress address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");

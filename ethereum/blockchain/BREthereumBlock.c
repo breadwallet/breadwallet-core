@@ -27,6 +27,7 @@
 #include <string.h>
 #include <assert.h>
 #include "BRArray.h"
+#include "../base/BREthereumLogic.h"
 #include "BREthereumBlock.h"
 #include "BREthereumLog.h"
 #include "../BREthereumPrivate.h"
@@ -49,6 +50,7 @@ static void
 blockStatusInitialize (BREthereumBlockStatus *status,
                        BREthereumHash hash) {
     memset (status, 0, sizeof (BREthereumBlockStatus));
+    status->error = ETHEREUM_BOOLEAN_FALSE;
     status->hash = hash;
 }
 
@@ -56,12 +58,6 @@ static void
 blockStatusRelease (BREthereumBlockStatus *status) {
     if (NULL != status->transactions) array_free(status->transactions);
     if (NULL != status->logs) array_free(status->logs);
-}
-
-extern BREthereumBoolean
-blockStatusHasFlag (BREthereumBlockStatus *status,
-                    BREthereumBlockStatusFlag flag) {
-    return AS_ETHEREUM_BOOLEAN(0 != (flag & status->flags));
 }
 
 static BRRlpItem
@@ -126,7 +122,7 @@ struct BREthereumBlockHeaderRecord {
     // The Keccak256-bit hash of the parent block’s header, in its entirety; formally Hp.
     BREthereumHash parentHash;
 
-    // The Keccak 256-bit hash of the om- mers list portion of this block; formally Ho.
+    // The Keccak 256-bit hash of the ommers list portion of this block; formally Ho.
     BREthereumHash ommersHash;
 
     // The 160-bit address to which all fees collected from the successful mining of this block
@@ -159,10 +155,10 @@ struct BREthereumBlockHeaderRecord {
     uint64_t number;
 
     // A scalar value equal to the current limit of gas expenditure per block; formally Hl.
-    uint64_t gasLimit;
+    uint64_t gasLimit; // BREthereumGas
 
     // A scalar value equal to the total gas used in transactions in this block; formally Hg.
-    uint64_t gasUsed;
+    uint64_t gasUsed; // BREthereumGas
 
     // A scalar value equal to the reasonable output of Unix’s time() at this block’s inception;
     // formally Hs.
@@ -177,7 +173,7 @@ struct BREthereumBlockHeaderRecord {
     // computation has been carried out on this block; formally Hm.
     BREthereumHash mixHash;
 
-    // A 64-bitvaluewhich, combined with the mixHash, proves that a sufficient amount of
+    // A 64-bitvalue which, combined with the mixHash, proves that a sufficient amount of
     // computation has been carried out on this block; formally Hn.
     uint64_t nonce;
 };
@@ -239,6 +235,75 @@ blockHeaderReleaseForSet (void *ignore, void *item) {
 
 extern BREthereumBoolean
 blockHeaderIsValid (BREthereumBlockHeader header) {
+    return ETHEREUM_BOOLEAN_TRUE;
+}
+
+static int64_t max(int64_t x, int64_t y) { return x >= y ? y : x; }
+
+// See https://ethereum.github.io/yellowpaper/paper.pdf Section 4.3.3 'Block Header Validity
+static UInt256
+blockHeaderCanonicalDifficulty (BREthereumBlockHeader header,
+                                BREthereumBlockHeader parent,
+                                size_t parentOmmersCount,
+                                BREthereumBlockHeader genesis) {
+    if (0 == header->number) return genesis->difficulty;
+
+    uint32_t rem; int overflow = 0;
+    UInt256 x = divUInt256_Small(parent->difficulty, 2048, &rem);
+
+    uint64_t delay_scaled = (header->timestamp - parent->timestamp) / 9;
+    uint64_t y = parentOmmersCount == 0 ? 1 : 2;
+    int64_t sigma_2 = max (y - delay_scaled, -99);
+    assert (sigma_2 <= INT32_MAX && INT32_MIN <= sigma_2);
+    UInt256 x_sigma = mulUInt256_Small(x, (uint64_t) (sigma_2 < 0 ? -sigma_2 : sigma_2), &overflow);
+    assert (0 == overflow);
+
+    uint64_t fake_block_number = header->number > 3000000 ? (header->number - 3000000) : 0;
+    int64_t epsilon_exponent = (fake_block_number / 1000000)  - 2;
+    assert (epsilon_exponent < 256 && epsilon_exponent > -256);
+    UInt256 epsilon = createUInt256Power2(epsilon_exponent < 0 ? -epsilon_exponent : epsilon_exponent);
+
+    UInt256 r;
+    if (sigma_2 > 0)
+        r = addUInt256_Overflow(parent->difficulty, x_sigma, &overflow);
+    else
+        r = subUInt256_Negative(parent->difficulty, x_sigma, &overflow);
+
+    assert (0 == overflow);
+    if (epsilon_exponent > 0)
+        r = addUInt256_Overflow(r, epsilon, &overflow);
+    else
+        r = subUInt256_Negative(r, epsilon , &overflow);
+
+    assert (0 == overflow);
+
+    return gtUInt256(r, genesis->difficulty) ? r : genesis->difficulty;
+}
+
+// See https://ethereum.github.io/yellowpaper/paper.pdf Section 4.3.3 'Block Header Validity
+extern BREthereumBoolean
+blockHeaderIsConsistent (BREthereumBlockHeader header,
+                         BREthereumBlockHeader parent,
+                         size_t parentOmmersCount,
+                         BREthereumBlockHeader genesis) {
+    if (NULL == parent) return ETHEREUM_BOOLEAN_TRUE;
+
+//    UInt256 canonicalDifficulty = blockHeaderCanonicalDifficulty(header,
+//                                                                 parent,
+//                                                                 parentOmmersCount,
+//                                                                 genesis);
+
+//    return AS_ETHEREUM_BOOLEAN (// nonce
+//                                eqUInt256(header->difficulty, canonicalDifficulty) &&
+//                                //  difficulty -- geUInt256(header->difficulty, parent->difficulty));
+//                                header->gasUsed <= header->gasLimit &&
+//                                header->gasLimit < parent->gasLimit + (parent->gasLimit / 1024) &&
+//                                header->gasLimit > parent->gasLimit - (parent->gasLimit / 1024) &&
+//                                header->gasLimit >= 5000 &&
+//                                header->timestamp > parent->timestamp &&
+//                                header->number == 1 + parent->number &&
+//                                header->extraDataCount <= 32);
+
     return ETHEREUM_BOOLEAN_TRUE;
 }
 
@@ -405,21 +470,20 @@ blockHeaderRlpDecode (BRRlpItem item,
 //
 // An Ethereum Block
 //
-// The block in Ethereum is the collection of relevant pieces of information (known as the
-// block header), H, together with information corresponding to the comprised transactions, T,
-// and a set of other block headers U that are known to have a parent equal to the present block’s
-// parent’s parent (such blocks are known as ommers).
-//
+// The block in Ethereum is ...
 struct BREthereumBlockRecord {
     // THIS MUST BE FIRST to support BRSet operations. (its first field is BREthereumHash)
-    /**
-     *
-     */
     BREthereumBlockStatus status;
 
+    // ... the collection of relevant pieces of information (known as the block header), H,
     BREthereumBlockHeader header;
-    BREthereumBlockHeader *ommers;
+
+    // ... together with information corresponding to the comprised transactions, T,
     BREthereumTransaction *transactions;
+
+    // ... and a set of other block headers U that are known to have a parent equal to the present
+    // block’s parent’s parent (such blocks are known as ommers).
+    BREthereumBlockHeader *ommers;
 
     /**
      *
@@ -537,7 +601,7 @@ blockGetTransaction (BREthereumBlock block, size_t index) {
 
 extern unsigned long
 blockGetOmmersCount (BREthereumBlock block) {
-    return array_count(block->ommers);
+    return NULL == block->ommers ? 0 : array_count(block->ommers);
 }
 
 extern BREthereumBlockHeader
@@ -560,6 +624,24 @@ blockGetNumber (BREthereumBlock block) {
 extern uint64_t
 blockGetTimestamp (BREthereumBlock block) {
     return block->header->timestamp;
+}
+
+extern void
+blockLinkLogsWithTransactions (BREthereumBlock block) {
+    assert (ETHEREUM_BOOLEAN_IS_TRUE (blockHasStatusLogsRequest(block, BLOCK_REQUEST_COMPLETE)) &&
+            ETHEREUM_BOOLEAN_IS_TRUE (blockHasStatusTransactionsRequest(block, BLOCK_REQUEST_COMPLETE)));
+
+    size_t logsCount = array_count(block->status.logs);
+    for (size_t index = 0; index < logsCount; index++) {
+        BREthereumLog log = block->status.logs[index];
+        BREthereumTransactionStatus status = logGetStatus(log);
+        uint64_t transactionIndex; size_t logIndex;
+        assert (transactionStatusExtractIncluded(&status, NULL, NULL, NULL, &transactionIndex));
+
+        BREthereumTransaction transaction = block->transactions[transactionIndex];
+        logExtractIdentifier(log, NULL, &logIndex);
+        logInitializeIdentifier(log, transactionGetHash(transaction), logIndex);
+    }
 }
 
 //
@@ -730,6 +812,11 @@ blockSetNext (BREthereumBlock block,
     return oldNext;
 }
 
+extern BREthereumBoolean
+blockHasNext (BREthereumBlock block) {
+    return AS_ETHEREUM_BOOLEAN (BLOCK_NEXT_NONE != block->next);
+}
+
 //
 // MARK: - Block Status
 //
@@ -739,34 +826,94 @@ blockGetStatus (BREthereumBlock block) {
     return block->status;
 }
 
+extern BREthereumBoolean
+blockHasStatusComplete (BREthereumBlock block) {
+    return AS_ETHEREUM_BOOLEAN(block->status.transactionRequest != BLOCK_REQEUST_PENDING &&
+                               block->status.logRequest != BLOCK_REQEUST_PENDING &&
+                               block->status.accountStateRequest != BLOCK_REQEUST_PENDING);
+}
+
+extern BREthereumBoolean
+blockHasStatusError (BREthereumBlock block) {
+    return block->status.error;
+}
+
+extern void
+blockReportStatusError (BREthereumBlock block,
+                        BREthereumBoolean error) {
+    block->status.error = error;
+}
+
+//
+// Transaction Request
+//
+extern BREthereumBoolean
+blockHasStatusTransactionsRequest (BREthereumBlock block,
+                                   BREthereumBlockRequestState request) {
+    return AS_ETHEREUM_BOOLEAN(block->status.transactionRequest == request);
+}
+
+extern void
+blockReportStatusTransactionsRequest (BREthereumBlock block,
+                                      BREthereumBlockRequestState request) {
+    block->status.transactionRequest = request;
+}
+
 extern void
 blockReportStatusTransactions (BREthereumBlock block,
                                BREthereumTransaction *transactions) {
-    assert (0 == (BLOCK_STATUS_HAS_TRANSACTIONS & block->status.flags));
+    assert (block->status.transactionRequest == BLOCK_REQEUST_PENDING);
+    block->status.transactionRequest = BLOCK_REQUEST_COMPLETE;
     block->status.transactions = transactions;
-    block->status.flags |= BLOCK_STATUS_HAS_TRANSACTIONS;
+}
+
+//
+// Log Request
+//
+extern BREthereumBoolean
+blockHasStatusLogsRequest (BREthereumBlock block,
+                           BREthereumBlockRequestState request) {
+    return AS_ETHEREUM_BOOLEAN(block->status.logRequest == request);
+}
+
+extern void
+blockReportStatusLogsRequest (BREthereumBlock block,
+                              BREthereumBlockRequestState request) {
+    block->status.logRequest = request;
 }
 
 extern void
 blockReportStatusLogs (BREthereumBlock block,
                        BREthereumLog *logs) {
-    assert (0 == (BLOCK_STATUS_HAS_LOGS & block->status.flags));
+    assert (block->status.logRequest == BLOCK_REQEUST_PENDING);
+    block->status.logRequest = BLOCK_REQUEST_COMPLETE;
     block->status.logs = logs;
-    block->status.flags |= BLOCK_STATUS_HAS_LOGS;
+}
+
+extern BREthereumBoolean
+blockHasStatusAccountStateRequest (BREthereumBlock block,
+                                   BREthereumBlockRequestState request) {
+    return AS_ETHEREUM_BOOLEAN(block->status.accountStateRequest == request);
+}
+
+extern void
+blockReportStatusAccountStateRequest (BREthereumBlock block,
+                                      BREthereumBlockRequestState request) {
+    block->status.accountStateRequest = request;
 }
 
 extern void
 blockReportStatusAccountState (BREthereumBlock block,
                                BREthereumAccountState accountState) {
-    assert (0 == (BLOCK_STATUS_HAS_ACCOUNT_STATE & block->status.flags));
+    assert (block->status.accountStateRequest == BLOCK_REQEUST_PENDING);
+    block->status.accountStateRequest = BLOCK_REQUEST_COMPLETE;
     block->status.accountState = accountState;
-    block->status.flags |= BLOCK_STATUS_HAS_ACCOUNT_STATE;
 }
 
 extern BREthereumBoolean
 blockHasStatusTransaction (BREthereumBlock block,
                            BREthereumTransaction transaction) {
-    if (0 == (block->status.flags & BLOCK_STATUS_HAS_TRANSACTIONS)) return ETHEREUM_BOOLEAN_FALSE;
+    if (block->status.transactionRequest != BLOCK_REQUEST_COMPLETE) return ETHEREUM_BOOLEAN_FALSE;
 
     for (size_t index = 0; index < array_count(block->status.transactions); index++)
         if (transactionHashEqual(transaction, block->status.transactions[index]))
@@ -778,7 +925,7 @@ blockHasStatusTransaction (BREthereumBlock block,
 extern BREthereumBoolean
 blockHasStatusLog (BREthereumBlock block,
                    BREthereumLog log) {
-    if (0 == (block->status.flags & BLOCK_STATUS_HAS_LOGS)) return ETHEREUM_BOOLEAN_FALSE;
+    if (block->status.logRequest != BLOCK_REQUEST_COMPLETE) return ETHEREUM_BOOLEAN_FALSE;
 
     for (size_t index = 0; index < array_count(block->status.logs); index++)
         if (logHashEqual(log, block->status.logs[index]))
@@ -787,18 +934,27 @@ blockHasStatusLog (BREthereumBlock block,
     return ETHEREUM_BOOLEAN_FALSE;
 }
 
+
 static BRRlpItem
 blockStatusRlpEncode (BREthereumBlockStatus status,
                       BRRlpCoder coder) {
-    BRRlpItem items[5];
+    BRRlpItem items[6];
+
+    uint64_t flags = ((status.transactionRequest << 4) |
+                      (status.logRequest << 2) |
+                      (status.accountStateRequest << 0));
 
     items[0] = hashRlpEncode(status.hash, coder);
-    items[1] = rlpEncodeItemUInt64(coder, status.flags, 1);
+    items[1] = rlpEncodeItemUInt64(coder, flags, 1);
+
+    // TODO: Fill out
     items[2] = rlpEncodeItemString(coder, "");
     items[3] = rlpEncodeItemString(coder, "");
     items[4] = accountStateRlpEncode(status.accountState, coder);
 
-    return rlpEncodeListItems(coder, items, 5);
+    items[5] = rlpEncodeItemUInt64(coder, status.error, 0);
+
+    return rlpEncodeListItems(coder, items, 6);
 }
 
 static BREthereumBlockStatus
@@ -808,14 +964,21 @@ blockStatusRlpDecode (BRRlpItem item,
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
-    assert (5 == itemsCount);
+    assert (6 == itemsCount);
 
     status.hash = hashRlpDecode(items[0], coder);
-    status.flags = (uint32_t) rlpDecodeItemUInt64(coder, items[1], 1);
+
+    uint64_t flags = rlpDecodeItemUInt64(coder, items[1], 1);
+    status.transactionRequest = 0x3 & (flags >> 4);
+    status.logRequest = 0x3 & (flags >> 2);
+    status.accountStateRequest = 0x3 & (flags >> 0);
+
+    // TODO: Fill Out
     status.transactions = NULL;  // items [2]
     status.logs = NULL; // items [3]
     status.accountState = accountStateRlpDecode(items[4], coder);
 
+    status.error = (BREthereumBoolean) rlpDecodeItemUInt64(coder, items[5], 0);
     return status;
 }
 

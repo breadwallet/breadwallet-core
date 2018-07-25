@@ -388,8 +388,9 @@ extern uint64_t
 ethereumTransactionGetGasUsed(BREthereumEWM ewm,
                               BREthereumTransactionId tid) {
     BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
+    BREthereumTransactionStatus status = transactionGetStatus(transaction);
     BREthereumGas gasUsed;
-    return (transactionExtractIncluded(transaction, &gasUsed, NULL, NULL, NULL)
+    return (transactionStatusExtractIncluded(&status, &gasUsed, NULL, NULL, NULL)
             ? gasUsed.amountOfGas
             : 0);
 }
@@ -405,8 +406,9 @@ extern BREthereumHash
 ethereumTransactionGetBlockHash(BREthereumEWM ewm,
                                 BREthereumTransactionId tid) {
     BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
+    BREthereumTransactionStatus status = transactionGetStatus(transaction);
     BREthereumHash blockHash;
-    return (transactionExtractIncluded(transaction, NULL, &blockHash, NULL, NULL)
+    return (transactionStatusExtractIncluded(&status, NULL, &blockHash, NULL, NULL)
             ? blockHash
             : hashCreateEmpty());
 }
@@ -415,8 +417,9 @@ extern uint64_t
 ethereumTransactionGetBlockNumber(BREthereumEWM ewm,
                                   BREthereumTransactionId tid) {
     BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
+    BREthereumTransactionStatus status = transactionGetStatus(transaction);
     uint64_t blockNumber;
-    return (transactionExtractIncluded(transaction, NULL, NULL, &blockNumber, NULL)
+    return (transactionStatusExtractIncluded(&status, NULL, NULL, &blockNumber, NULL)
             ? blockNumber
             : 0);
 }
@@ -425,9 +428,9 @@ extern uint64_t
 ethereumTransactionGetBlockConfirmations(BREthereumEWM ewm,
                                          BREthereumTransactionId tid) {
     BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    
+    BREthereumTransactionStatus status = transactionGetStatus(transaction);
     uint64_t blockNumber = 0;
-    return (transactionExtractIncluded(transaction, NULL, NULL, &blockNumber, NULL)
+    return (transactionStatusExtractIncluded(&status, NULL, NULL, &blockNumber, NULL)
             ? (ewmGetBlockHeight(ewm) - blockNumber)
             : 0);
 }
