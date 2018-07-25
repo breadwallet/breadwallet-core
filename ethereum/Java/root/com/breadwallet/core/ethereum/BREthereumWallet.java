@@ -271,7 +271,28 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
                 amountUnit);
     }
 
-     /**
+    public BREthereumTransaction createTransactionGeneric(String targetAddress,
+                                                          String amount, Unit amountUnit,
+                                                          String gasPrice, Unit gasPriceUnit,
+                                                          String gasLimit,
+                                                          String data) {
+        BREthereumLightNode lightNode = node.get();
+
+        assert (!amountUnit.isTokenUnit() && !gasPriceUnit.isTokenUnit());
+
+        return new BREthereumTransaction(lightNode,
+                lightNode.jniCreateTransactionGeneric(identifier,
+                        targetAddress,
+                        amount,
+                        amountUnit.jniValue,
+                        gasPrice,
+                        gasPriceUnit.jniValue,
+                        gasLimit,
+                        data),
+                amountUnit);
+    }
+
+      /**
      * Sign a transaction with `paperKey`
      *
      * @param transaction

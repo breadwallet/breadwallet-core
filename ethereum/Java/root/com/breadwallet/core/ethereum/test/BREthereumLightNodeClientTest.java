@@ -268,17 +268,31 @@ public class BREthereumLightNodeClientTest implements
 
 
         System.out.println("Connect");
-        node.connect();
+//        node.connect();
 
+        System.out.println("\n==== Generic & Eth Transaction ====");
+        System.out.println("Trans0");
+        BREthereumTransaction trans0 = walletEther.createTransactionGeneric(
+                "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
+                "1111300000000",
+                BREthereumAmount.Unit.ETHER_WEI,
+                "20",
+                BREthereumAmount.Unit.ETHER_GWEI,
+                "100000",
+                "0x0000000000000000000000005375b3b214efb202c93d0aa4c6270eefe7aacfd300000000000000000000000000000000000000000000010c6729f52fdb1e2000");
+        asserting(-1 == trans0.getNonce());
+        asserting ("0x0000000000000000000000000000000000000000000000000000000000000000".equals(trans0.getHash()));
+
+        System.out.println("Trans1");
         BREthereumTransaction trans1 = walletEther.createTransaction(
                 "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
                 "11113000000000",
                 BREthereumAmount.Unit.ETHER_WEI);
-        asserting (-1 == trans1.getNonce());
-        asserting ("".equals(trans1.getHash()));
+        asserting(-1 == trans1.getNonce());
+        asserting ("0x0000000000000000000000000000000000000000000000000000000000000000".equals(trans1.getHash()));
 
         walletEther.sign(trans1, USABLE_PAPER_KEY);
-        walletEther.submit(trans1);
+//        walletEther.submit(trans1);
 
         asserting("11113000000000".equals(trans1.getAmount()));
         asserting("11113.000000000".equals(trans1.getAmount(ETHER_GWEI)));
@@ -291,7 +305,7 @@ public class BREthereumLightNodeClientTest implements
         asserting("10500000000000".equals(walletEther.transactionEstimatedFee("1")));
         asserting("10500.000000000".equals(walletEther.transactionEstimatedFee("1", ETHER_ETHER, ETHER_GWEI)));
 
-        System.out.println("==== Ether ====\n");
+        System.out.println("\n==== Ether ====");
         for (BREthereumTransaction transaction : walletEther.getTransactions()) {
             System.out.println("Transaction:" +
                     "\n        from: " + transaction.getSourceAddress() +
@@ -305,11 +319,11 @@ public class BREthereumLightNodeClientTest implements
                     "\n\n");
         }
 
-        System.out.println("==== Block ====\n");
+        System.out.println("\n==== Block ====");
         long currentBlockHeight = node.getBlockHeight();
-        asserting (2966234 == currentBlockHeight);  // Set getTransactions() above.
+//        asserting (2966234 == currentBlockHeight);  // Set getTransactions() above.
 
-        System.out.println("==== Token Transaction ====\n");
+        System.out.println("\n==== Token Transaction ====");
 
         BREthereumTransaction tokenTransaction1 =
                 walletToken.createTransaction(
@@ -317,9 +331,9 @@ public class BREthereumLightNodeClientTest implements
                         "1.2",
                         BREthereumAmount.Unit.TOKEN_DECIMAL);
         walletToken.sign(tokenTransaction1, USABLE_PAPER_KEY);
-        walletToken.submit(tokenTransaction1);
+//        walletToken.submit(tokenTransaction1);
 
-        System.out.println("==== Token ====\n");
+        System.out.println("\n==== Token ====");
         for (BREthereumTransaction transaction : walletToken.getTransactions()) {
             System.out.println("Transaction:" +
                     "\n    from: " + transaction.getSourceAddress() +
@@ -367,7 +381,7 @@ public class BREthereumLightNodeClientTest implements
         // Disconnect
         //
         System.out.println ("Disconnect (wait...)");
-        node.disconnect();
+//        node.disconnect();
 
         //
         // Public Key

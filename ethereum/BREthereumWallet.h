@@ -143,6 +143,14 @@ walletCreateTransactionDetailed(BREthereumWallet wallet,
                                 BREthereumGas gasLimit,
                                 uint64_t nonce);
 
+extern BREthereumTransaction
+walletCreateTransactionGeneric(BREthereumWallet wallet,
+                               BREthereumAddress recvAddress,
+                               BREthereumEther amount,
+                               BREthereumGasPrice gasPrice,
+                               BREthereumGas gasLimit,
+                               const char *data);
+
 extern void
 walletSignTransaction(BREthereumWallet wallet,
                       BREthereumTransaction transaction,

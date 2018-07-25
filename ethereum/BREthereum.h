@@ -459,6 +459,26 @@ ethereumWalletCreateTransaction(BREthereumLightNode node,
                                 BREthereumAmount amount);
 
 /**
+ * Create a transaction for generic execution, typically for a smart contract encoded in `data'
+ *
+ * @param node
+ * @param wid
+ * @param recvAddress
+ * @param amount
+ * @param gasPrice
+ * @param gasLimit
+ * @param data
+ * @return
+ */
+extern BREthereumTransactionId
+ethereumWalletCreateTransactionGeneric(BREthereumLightNode node,
+                                       BREthereumWalletId wid,
+                                       const char *recvAddress,
+                                       BREthereumEther amount,
+                                       BREthereumGasPrice gasPrice,
+                                       BREthereumGas gasLimit,
+                                       const char *data);
+/**
  * Sign the transaction using the wallet's account (for the sender's address).  The paperKey
  * is used to 'lookup' the private key.
  *
