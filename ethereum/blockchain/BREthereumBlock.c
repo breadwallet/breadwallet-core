@@ -186,7 +186,7 @@ createBlockHeaderMinimal (BREthereumHash hash, uint64_t number, uint64_t timesta
     header->hash = hash;
 
 #if defined (BLOCK_HEADER_LOG_ALLOC_COUNT)
-    eth_log ("BCS", "Block Header Create Minimal: %d", ++blockHeaderAllocCount);
+    eth_log ("MEM", "Block Header Create Minimal: %d", ++blockHeaderAllocCount);
 #endif
 
     return header;
@@ -202,7 +202,7 @@ createBlockHeader (void) {
     // transactionRoot, receiptsRoot
     //         EMPTY_TRIE_HASH = sha3(RLP.encodeElement(EMPTY_BYTE_ARRAY));
 #if defined (BLOCK_HEADER_LOG_ALLOC_COUNT)
-    eth_log ("BCS", "Block Header Create Empty: %d", ++blockHeaderAllocCount);
+    eth_log ("MEM", "Block Header Create Empty: %d", ++blockHeaderAllocCount);
 #endif
 
     return header;
@@ -213,7 +213,7 @@ blockHeaderCopy (BREthereumBlockHeader source) {
     BREthereumBlockHeader header = (BREthereumBlockHeader) calloc (1, sizeof (struct BREthereumBlockHeaderRecord));
     *header = *source;
 #if defined (BLOCK_HEADER_LOG_ALLOC_COUNT)
-    eth_log ("BCS", "Block Header Copy  %d", ++blockHeaderAllocCount);
+    eth_log ("MEM", "Block Header Copy  %d", ++blockHeaderAllocCount);
 #endif
     return header;
 }
@@ -221,7 +221,7 @@ blockHeaderCopy (BREthereumBlockHeader source) {
 extern void
 blockHeaderRelease (BREthereumBlockHeader header) {
 #if defined (BLOCK_HEADER_LOG_ALLOC_COUNT)
-    eth_log ("BCS", "Block Header Release %d", --blockHeaderAllocCount);
+    eth_log ("MEM", "Block Header Release %d", --blockHeaderAllocCount);
 #endif
     assert (ETHEREUM_BOOLEAN_IS_FALSE(hashEqual(header->hash, hashCreateEmpty())));
     memset (header, 0, sizeof(struct BREthereumBlockHeaderRecord));
@@ -456,7 +456,7 @@ blockHeaderRlpDecode (BRRlpItem item,
     }
 
 #if defined (BLOCK_HEADER_LOG_ALLOC_COUNT)
-    eth_log ("BCS", "Block Header Create RLP: %d", ++blockHeaderAllocCount);
+    eth_log ("MEM", "Block Header Create RLP: %d", ++blockHeaderAllocCount);
 #endif
 
     BRRlpData data = rlpGetDataSharedDontRelease(coder, item);
@@ -531,7 +531,7 @@ blockCreate (BREthereumBlockHeader header) {
     block->next = BLOCK_NEXT_NONE;
 
 #if defined (BLOCK_LOG_ALLOC_COUNT)
-    eth_log ("BCS", "Block Create: %d", ++blockAllocCount);
+    eth_log ("MEM", "Block Create: %d", ++blockAllocCount);
 #endif
     return block;
 }
@@ -565,7 +565,7 @@ blockRelease (BREthereumBlock block) {
     block->next = BLOCK_NEXT_NONE;
 
 #if defined (BLOCK_LOG_ALLOC_COUNT)
-    eth_log ("BCS", "Block Release: %d", --blockAllocCount);
+    eth_log ("MEM", "Block Release: %d", --blockAllocCount);
 #endif
 
     free (block);
@@ -769,7 +769,7 @@ blockRlpDecode (BRRlpItem item,
     block->next = BLOCK_NEXT_NONE;
 
 #if defined (BLOCK_LOG_ALLOC_COUNT)
-    eth_log ("BCS", "Block Create RLP: %d", ++blockAllocCount);
+    eth_log ("MEM", "Block Create RLP: %d", ++blockAllocCount);
 #endif
 
     return block;
