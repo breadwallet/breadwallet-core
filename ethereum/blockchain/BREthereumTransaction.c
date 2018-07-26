@@ -120,7 +120,7 @@ transactionCreate(BREthereumAddress sourceAddress,
     provideData(transaction);
 
 #if defined (TRANSACTION_LOG_ALLOC_COUNT)
-    eth_log ("BCS", "TX Create - Count: %d", ++transactionAllocCount);
+    eth_log ("MEM", "TX Create - Count: %d", ++transactionAllocCount);
 #endif
     return transaction;
 }
@@ -132,7 +132,7 @@ transactionCopy (BREthereumTransaction transaction) {
     copy->data = (NULL == transaction->data ? NULL : strdup(transaction->data));
 
 #if defined (TRANSACTION_LOG_ALLOC_COUNT)
-    eth_log ("BCS", "TX Copy - Count: %d", ++transactionAllocCount);
+    eth_log ("MEM", "TX Copy - Count: %d", ++transactionAllocCount);
 #endif
 
     return copy;
@@ -570,7 +570,7 @@ transactionRlpDecode (BRRlpItem item,
     }
 
 #if defined (TRANSACTION_LOG_ALLOC_COUNT)
-    eth_log ("BCS", "TX RLPDecode - Count: %d", ++transactionAllocCount);
+    eth_log ("MEM", "TX RLPDecode - Count: %d", ++transactionAllocCount);
 #endif
     return transaction;
 }
@@ -579,7 +579,7 @@ extern void
 transactionRelease (BREthereumTransaction transaction) {
     if (NULL != transaction->data) free (transaction->data);
 #if defined (TRANSACTION_LOG_ALLOC_COUNT)
-    eth_log ("BCS", "TX Release - Count: %d", --transactionAllocCount);
+    eth_log ("MEM", "TX Release - Count: %d", --transactionAllocCount);
 #endif
     free (transaction);
 }
@@ -634,22 +634,6 @@ transactionHasStatus(BREthereumTransaction transaction,
     return type == transaction->status.type;
 }
 
-extern int
-transactionExtractIncluded(BREthereumTransaction transaction,
-                          BREthereumGas *gas,
-                          BREthereumHash *blockHash,
-                          uint64_t *blockNumber,
-                          uint64_t *blockTransactionIndex) {
-    if (!transactionHasStatus(transaction, TRANSACTION_STATUS_INCLUDED))
-        return 0;
-
-    if (NULL != gas) *gas = transaction->status.u.included.gasUsed;
-    if (NULL != blockHash) *blockHash = transaction->status.u.included.blockHash;
-    if (NULL != blockNumber) *blockNumber = transaction->status.u.included.blockNumber;
-    if (NULL != blockTransactionIndex) *blockTransactionIndex = transaction->status.u.included.transactionIndex;
-
-    return 1;
-}
 
 /**
  * Compare two transactions based on their block, or if not blocked, their nonce.

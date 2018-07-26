@@ -236,6 +236,45 @@ lesGetReceiptsOne (BREthereumLES les,
                    BREthereumHash block);
 
 //
+// Account State
+//
+typedef enum  {
+    ACCOUNT_STATE_SUCCCESS,
+    ACCOUNT_STATE_ERROR_X,
+    ACCOUNT_STATE_ERROR_Y
+} BREthereumLESAccountStateStatus;
+
+#define ACCOUNT_STATE_REASON_CHARS \
+(sizeof (BREthereumHash) + sizeof (BREthereumAddress) + sizeof (BREthereumAccountState))
+
+typedef struct {
+    BREthereumLESAccountStateStatus status;
+    union {
+        struct {
+            BREthereumHash block;
+            BREthereumAddress address;
+            BREthereumAccountState accountState;
+        } success;
+        struct {
+            char reason[ACCOUNT_STATE_REASON_CHARS];
+        } error;
+    } u;
+} BREthereumLESAccountStateResult;
+
+typedef void* BREthereumLESAccountStateContext;
+
+typedef void
+(*BREthereumLESAccountStateCallback) (BREthereumLESAccountStateContext context,
+                                      BREthereumLESAccountStateResult result);
+
+extern void
+lesGetAccountState (BREthereumLES les,
+                    BREthereumLESAccountStateContext context,
+                    BREthereumLESAccountStateCallback callback,
+                    BREthereumHash block,
+                    BREthereumAddress address);
+
+//
 // Proofs
 //
 //

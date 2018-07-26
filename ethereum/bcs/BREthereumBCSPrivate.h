@@ -80,6 +80,11 @@ struct BREthereumBCSStruct {
     BREventHandler handler;
 
     /**
+     * The Genesis Block.
+     */
+    BREthereumBlock genesis;
+
+    /**
      * A BRSet holding blocks.  This is *every* block that we are interested in which will
      * be a small subset of all Ethereum block.  This set contains:
      *    - the last N blocks in `chain`
@@ -271,33 +276,26 @@ bcsSignalAccountState (BREthereumBCS bcs,
                        BREthereumAddress address,
                        BREthereumAccountState state);
 
-    //
-    // Transactions
-    //
-    extern void
-    bcsHandleTransaction (BREthereumBCS bcs,
-                          BREthereumHash blockHash,
-                          BREthereumTransaction transaction);
+//
+// Transactions
+//
+extern void
+bcsHandleTransaction (BREthereumBCS bcs,
+                      BREthereumTransaction transaction);
 
-    extern void
-    bcsSignalTransaction (BREthereumBCS bcs,
-                          BREthereumHash blockHash,
-                          BREthereumTransaction transaction);
-//                          BREthereumTransactionStatus status);
+extern void
+bcsSignalTransaction (BREthereumBCS bcs,
+                      BREthereumTransaction transaction);
 
 //
 // Logs
 //
 extern void
 bcsHandleLog (BREthereumBCS bcs,
-              BREthereumHash blockHash,
-              BREthereumHash transactionHash,
               BREthereumLog log);
 
 extern void
 bcsSignalLog (BREthereumBCS bcs,
-              BREthereumHash blockHash,
-              BREthereumHash transactionHash,
               BREthereumLog log);
 
 //
@@ -311,16 +309,51 @@ extern void
 bcsSignalPeers (BREthereumBCS bcs,
                 BRArrayOf(BREthereumPeerConfig) peers);
 
+////
+//// Active Block
+////
+//extern BREthereumBlock
+//bcsLookupActiveBlock (BREthereumBCS bcs,
+//                      BREthereumHash hash);
 //
-// Active Block
+//extern void
+//bcsReleaseActiveBlock (BREthereumBCS bcs,
+//                       BREthereumHash hash);
+
+
 //
-extern BREthereumBlock
-bcsLookupActiveBlock (BREthereumBCS bcs,
-                      BREthereumHash hash);
+// Sync
+//
+typedef struct BREthereumBCSSyncStruct *BREthereumBCSSync;
+
+typedef enum {
+    SYNC_LINEAR,
+    SYNC_BINARY
+} BREthereumBCSSyncType;
+
+typedef void* BREthereumBCSSyncContext;
+
+typedef void
+(*BREthereumBCSSyncReportBlocks) (BREthereumBCSSyncContext context,
+                                  BREthereumBCSSync sync,
+                                  BRArrayOf(BREthereumBlock) blocks,
+                                  double percentComplete);
+
+extern BREthereumBCSSync
+bcsSyncCreateLinear (BREthereumBCSSyncContext context,
+                     BREthereumBCSSyncReportBlocks callback,
+                     BREthereumLES les);
+
+extern BREthereumBCSSync
+bcsSyncCreateBinary (BREthereumBCSSyncContext context,
+                     BREthereumBCSSyncReportBlocks callback,
+                     BREthereumLES les);
 
 extern void
-bcsReleaseActiveBlock (BREthereumBCS bcs,
-                       BREthereumHash hash);
+bcsSyncRelease (BREthereumBCSSync sync);
+
+extern void
+bcsSyncStart (BREthereumBCSSync sync);
 
 #ifdef __cplusplus
 }

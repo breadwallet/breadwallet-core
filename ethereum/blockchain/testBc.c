@@ -249,23 +249,25 @@ runLogTests (void) {
     BREthereumHash someTxHash = HASH_INIT("aa2703c3ae5d0024b2c3ab77e5200bb2a8eb39a140fad01e89a495d73760297c");
     uint64_t someTxIndex = 108;
 
-    logInitializeStatus(log, someTxHash, someTxIndex);
+    logInitializeIdentifier(log, someTxHash, someTxIndex);
 
-    BREthereumLogStatus status = logGetStatus(log);
-    logStatusUpdateIncluded(&status, someBlockHash, someBlockNumber);
-    logSetStatus(log, status);
+    logSetStatus(log, transactionStatusCreateIncluded(gasCreate(0), someBlockHash, someBlockNumber, 0));
+    BREthereumTransactionStatus status = logGetStatus(log);
 
     BRRlpItem item = logRlpEncode(log, RLP_TYPE_ARCHIVE, coder);
     BREthereumLog logArchived = logRlpDecode(item, RLP_TYPE_ARCHIVE, coder);
-    BREthereumLogStatus statusArchived = logGetStatus(logArchived);
+    BREthereumTransactionStatus statusArchived = logGetStatus(logArchived);
 
     assert (status.type == statusArchived.type);
 
-    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(status.identifier.transactionHash, statusArchived.identifier.transactionHash)));
-    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual (someTxHash, statusArchived.identifier.transactionHash)));
+    BREthereumHash statusArchiveTxHash;
+    size_t statusArchiveIndex;
+    logExtractIdentifier(logArchived, &statusArchiveTxHash, &statusArchiveIndex);
+//    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(status.identifier.transactionHash, statusArchiveTxHash)));
+    assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual (someTxHash, statusArchiveTxHash)));
 
-    assert (status.identifier.transactionReceiptIndex == statusArchived.identifier.transactionReceiptIndex);
-    assert (someTxIndex == statusArchived.identifier.transactionReceiptIndex);
+//    assert (status.identifier.transactionReceiptIndex == statusArchiveIndex);
+    assert (someTxIndex == statusArchiveIndex);
 
     assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(status.u.included.blockHash, statusArchived.u.included.blockHash)));
     assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(someBlockHash, statusArchived.u.included.blockHash)));

@@ -584,6 +584,54 @@ lesGetReceiptsOne (BREthereumLES les,
     
     return status;
 }
+
+extern void
+lesGetAccountState (BREthereumLES les,
+                    BREthereumLESAccountStateContext context,
+                    BREthereumLESAccountStateCallback callback,
+                    BREthereumHash block,
+                    BREthereumAddress address) {
+    // For Parity:
+    //    // Request for proof of specific account in the state.
+    //    Request::Account {
+    //    ID: 5
+    //    Inputs:
+    //        Loose(H256) // block hash
+    //        Loose(H256) // address hash
+    //    Outputs:
+    //        [U8](U8) // merkle inclusion proof from state trie
+    //        U // nonce
+    //        U // balance
+    //        H256 reusable_as(0) // code hash
+    //        H256 reusable_as(1) // storage root
+    //    }
+
+    // For GETH:
+    //    Use GetProofs, then process 'nodes'
+
+    // For NOW: return 'success' with some random data
+    static BREthereumAccountState state = EMPTY_ACCOUNT_STATE_INIT;
+
+#define ACCOUNT_RANDOM_PERIOD 25
+    long randomValue = random ();
+    int needNonce = 1 == randomValue % ACCOUNT_RANDOM_PERIOD;
+    int needEther = 3 == randomValue % ACCOUNT_RANDOM_PERIOD;
+
+    if (needNonce) state.nonce++;
+    if (needEther) { int overflow; state.balance = etherAdd(state.balance, etherCreateNumber(1, WEI), &overflow); }
+
+    BREthereumLESAccountStateResult result = {
+        ACCOUNT_STATE_SUCCCESS,
+        { .success = {
+            block,
+            address,
+            state
+        }}
+    };
+
+    callback (context, result);
+}
+
 extern BREthereumLESStatus
 lesGetGetProofsV2One (BREthereumLES les,
                      BREthereumLESProofsV2Context context,

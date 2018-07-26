@@ -58,6 +58,12 @@ extern UInt256
 createUInt256Power (uint8_t power, int *overflow);
 
 /**
+ * Create as (expt 2 power) where power < 256
+ */
+extern UInt256
+createUInt256Power2 (uint8_t power);
+
+/**
  * Create from a string in the provided base.  The string must consist of only characters
  * in the base.  That is, avoid the '0x' prefix.  No decimal points; this is an integer parse.
  *

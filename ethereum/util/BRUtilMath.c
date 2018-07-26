@@ -54,6 +54,17 @@ createUInt256Power (uint8_t digits, int *overflow) {
 }
 
 extern UInt256
+createUInt256Power2 (uint8_t power) {
+    uint8_t word  = power / 64;
+    uint8_t shift = power % 64;
+
+    UInt256 z = UINT256_ZERO;
+    z.u64[word] = (1 << shift);
+
+    return z;
+}
+
+extern UInt256
 addUInt256_Overflow (const UInt256 y, const UInt256 x, int *overflow) {
     assert (overflow != NULL);
     

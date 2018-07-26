@@ -28,6 +28,7 @@
 
 #include "../base/BREthereumBase.h"
 #include "BREthereumBloomFilter.h"
+#include "BREthereumTransactionStatus.h"
 
 #if ! defined (BRArrayOf)
 #define BRArrayOf(type)     type*
@@ -38,92 +39,7 @@ extern "C" {
 #endif
 
 //
-// Log Status
-//
-typedef enum {
-    LOG_STATUS_UNKNOWN = 0,
-    LOG_STATUS_PENDING = 1,
-    LOG_STATUS_INCLUDED = 2,
-    LOG_STATUS_ERRORED = 3
-} BREthereumLogStatusType;
-
-#define LOG_STATUS_REASON_BYTES   \
-(sizeof (BREthereumHash) + sizeof(uint64_t))
-
-typedef struct {
-    BREthereumLogStatusType type;
-    
-    struct {
-        /**
-         * The hash of the transaction producing this log.  This value *does not* depend on
-         * which block records the Log.
-         */
-        BREthereumHash transactionHash;
-        
-        /**
-         * The receipt index from the transaction's contract execution for this log.  It can't
-         * possibly be the case that this number varies, can it - contract execution, regarding
-         * event generating, must be deterministic?
-         */
-        size_t transactionReceiptIndex;
-    } identifier;
-    
-    union {
-        struct {
-        } pending;
-        
-        struct {
-            BREthereumHash blockHash;
-            uint64_t blockNumber;
-        } included;
-        
-        struct {
-            char reason [LOG_STATUS_REASON_BYTES];
-        } errored;
-    } u;
-} BREthereumLogStatus;
-
-static inline BREthereumLogStatus
-logStatusCreate (BREthereumLogStatusType type,
-                  BREthereumHash transactionHash,
-                  size_t transactionReceiptIndex) {
-    BREthereumLogStatus status;
-    memset (&status, 0, sizeof (status));
-    status.type = type;
-    status.identifier.transactionHash = transactionHash;
-    status.identifier.transactionReceiptIndex = transactionReceiptIndex;
-    return status;
-}
-
-static inline void
-logStatusUpdateIncluded (BREthereumLogStatus *status,
-                         BREthereumHash blockHash,
-                         uint64_t blockNumber) {
-    status->type = LOG_STATUS_INCLUDED;
-    status->u.included.blockHash = blockHash;
-    status->u.included.blockNumber = blockNumber;
-}
-
-static inline void
-logStatusUpdateErrored (BREthereumLogStatus *status,
-                        const char *reason) {
-    status->type = LOG_STATUS_ERRORED;
-    strlcpy(status->u.errored.reason, reason, LOG_STATUS_REASON_BYTES);
-}
-
-static inline void
-logStatusUpdatePending (BREthereumLogStatus *status) {
-    status->type = LOG_STATUS_PENDING;
-}
-
-static inline BREthereumHash
-logStatusCreateHash (BREthereumLogStatus *status) {
-    BRRlpData data = { sizeof (status->identifier), (uint8_t*) &status->identifier };
-    return hashCreateFromData(data);
-}
-
-//
-// Log Topic
+// MARK: - Log Topic
 //
 #define LOG_TOPIC_BYTES_COUNT   32
 
@@ -162,7 +78,7 @@ extern BREthereumAddress
 logTopicAsAddress (BREthereumLogTopic topic);
 
 //
-// Log
+// MARK: - Log
 //
 typedef struct BREthereumLogRecord *BREthereumLog;
 
@@ -172,17 +88,15 @@ logCreate (BREthereumAddress address,
            BREthereumLogTopic *topics);
 
 extern void
-logInitializeStatus (BREthereumLog log,
-                     BREthereumHash transactionHash,
-                     size_t transactionReceiptIndex);
-
-extern BREthereumLogStatus
-logGetStatus (BREthereumLog log);
+logInitializeIdentifier (BREthereumLog log,
+                         BREthereumHash transactionHash,
+                         size_t transactionReceiptIndex);
 
 extern void
-logSetStatus (BREthereumLog log,
-              BREthereumLogStatus status);
-    
+logExtractIdentifier (BREthereumLog log,
+                      BREthereumHash *transactionHash,
+                      size_t *transactionReceiptIndex);
+
 extern BREthereumHash
 logGetHash (BREthereumLog log);
 
@@ -207,10 +121,18 @@ logMatchesAddress (BREthereumLog log,
                    BREthereumAddress address,
                    BREthereumBoolean topicsOnly);
 
-extern int
-logExtractIncluded(BREthereumLog log,
-                   BREthereumHash *blockHash,
-                   uint64_t *blockNumber);
+extern BREthereumTransactionStatus
+logGetStatus (BREthereumLog log);
+
+extern void
+logSetStatus (BREthereumLog log,
+              BREthereumTransactionStatus status);
+
+extern BREthereumBoolean
+logIsConfirmed (BREthereumLog log);
+
+extern BREthereumBoolean
+logIsErrored (BREthereumLog log);
 
 // Support BRSet
 extern size_t

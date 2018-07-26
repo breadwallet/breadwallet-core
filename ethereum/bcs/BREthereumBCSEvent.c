@@ -304,16 +304,13 @@ bcsSignalAccountState (BREthereumBCS bcs,
 typedef struct {
     BREvent base;
     BREthereumBCS bcs;
-    BREthereumHash blockHash;
     BREthereumTransaction transaction;
 } BREthereumHandleTransactionEvent;
 
 static void
 bcsHandleTransactionDispatcher (BREventHandler ignore,
                                 BREthereumHandleTransactionEvent *event) {
-    bcsHandleTransaction(event->bcs,
-                         event->blockHash,
-                         event->transaction);
+    bcsHandleTransaction(event->bcs, event->transaction);
 }
 
 static BREventType handleTransactionEventType = {
@@ -324,10 +321,9 @@ static BREventType handleTransactionEventType = {
 
 extern void
 bcsSignalTransaction (BREthereumBCS bcs,
-                      BREthereumHash blockHash,
                       BREthereumTransaction transaction) {
     BREthereumHandleTransactionEvent event =
-    { { NULL, &handleTransactionEventType}, bcs, blockHash, transaction };
+    { { NULL, &handleTransactionEventType}, bcs, transaction };
     eventHandlerSignalEvent(bcs->handler, (BREvent *) &event);
 }
 
@@ -338,8 +334,6 @@ bcsSignalTransaction (BREthereumBCS bcs,
 typedef struct {
     BREvent base;
     BREthereumBCS bcs;
-    BREthereumHash blockHash;
-    BREthereumHash transactionHash;
     BREthereumLog log;
 } BREthereumHandleLogEvent;
 
@@ -347,8 +341,6 @@ static void
 bcsHandleLogDispatcher (BREventHandler ignore,
                         BREthereumHandleLogEvent *event) {
     bcsHandleLog(event->bcs,
-                 event->blockHash,
-                 event->transactionHash,
                  event->log);
 }
 
@@ -360,11 +352,9 @@ static BREventType handleLogEventType = {
 
 extern void
 bcsSignalLog (BREthereumBCS bcs,
-              BREthereumHash blockHash,
-              BREthereumHash transactionHash,
               BREthereumLog log) {
     BREthereumHandleLogEvent event =
-    { { NULL, &handleLogEventType}, bcs, blockHash, transactionHash, log };
+    { { NULL, &handleLogEventType}, bcs, log };
     eventHandlerSignalEvent(bcs->handler, (BREvent *) &event);
 }
 

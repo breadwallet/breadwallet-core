@@ -38,11 +38,11 @@ extern "C" {
 /// If we get a gasEstimate we'll want the gasLimit to have a margin over the estimate
 #define GAS_LIMIT_MARGIN_PERCENT        (20)
 
-    static inline BREthereumGas
-    gasApplyLmitMargin (BREthereumGas gas) {
-        return gasCreate(((100 + GAS_LIMIT_MARGIN_PERCENT) * gas.amountOfGas) / 100);
-    }
-    
+static inline BREthereumGas
+gasApplyLmitMargin (BREthereumGas gas) {
+    return gasCreate(((100 + GAS_LIMIT_MARGIN_PERCENT) * gas.amountOfGas) / 100);
+}
+
 //
 // Transaction
 //
@@ -145,9 +145,9 @@ transactionIsSigned (BREthereumTransaction transaction);
 extern BREthereumSignature
 transactionGetSignature (BREthereumTransaction transaction);
 
-    /**
-     * Extract the signer's address.  If not signed, an empty address is returned.
-     */
+/**
+ * Extract the signer's address.  If not signed, an empty address is returned.
+ */
 extern BREthereumAddress
 transactionExtractAddress(BREthereumTransaction transaction,
                           BREthereumNetwork network,
@@ -202,12 +202,6 @@ transactionIsSubmitted (BREthereumTransaction transaction);
 extern BREthereumBoolean
 transactionIsErrored (BREthereumTransaction transaction);
 
-extern int
-transactionExtractIncluded(BREthereumTransaction transaction,
-                          BREthereumGas *gas,
-                          BREthereumHash *blockHash,
-                          uint64_t *blockNumber,
-                          uint64_t *blockTransactionIndex);
 //
 // Transaction Result
 //

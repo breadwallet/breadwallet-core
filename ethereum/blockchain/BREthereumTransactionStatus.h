@@ -92,6 +92,19 @@ transactionStatusCreateIncluded (BREthereumGas gasUsed,
 extern BREthereumTransactionStatus
 transactionStatusCreateErrored (const char *reason);
 
+static inline BREthereumBoolean
+transactionStatusHasType (const BREthereumTransactionStatus *status,
+                          BREthereumTransactionStatusType type) {
+    return AS_ETHEREUM_BOOLEAN(status->type == type);
+}
+
+extern int
+transactionStatusExtractIncluded(const BREthereumTransactionStatus *status,
+                                 BREthereumGas *gas,
+                                 BREthereumHash *blockHash,
+                                 uint64_t *blockNumber,
+                                 uint64_t *blockTransactionIndex);
+
 extern BREthereumBoolean
 transactionStatusEqual (BREthereumTransactionStatus ts1,
                         BREthereumTransactionStatus ts2);
@@ -99,7 +112,6 @@ transactionStatusEqual (BREthereumTransactionStatus ts1,
 extern BREthereumTransactionStatus
 transactionStatusRLPDecode (BRRlpItem item,
                             BRRlpCoder coder);
-
 
 extern BRRlpItem
 transactionStatusRLPEncode (BREthereumTransactionStatus status,

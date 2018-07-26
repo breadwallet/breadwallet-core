@@ -498,13 +498,10 @@ ewmHandleLog (BREthereumEWM ewm,
               BREthereumBCSCallbackLogType type,
               BREthereumLog log) {
     BREthereumHash logHash = logGetHash(log);
+    BREthereumHash transactionHash;
 
-    BREthereumLogStatus status = logGetStatus(log);
-    BREthereumHash transactionHash = (status.type != LOG_STATUS_UNKNOWN
-                                      ? status.identifier.transactionHash
-                                      : hashCreateEmpty());
+    logExtractIdentifier(log, &transactionHash, NULL);
 
-    
     BREthereumHashString hashString;
     hashFillString(transactionHash, hashString);
     eth_log ("EWM", "Log: \"%s\", Change: %s",
