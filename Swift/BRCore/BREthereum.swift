@@ -17,7 +17,7 @@ public typealias EthereumBlockId = EthereumReferenceId
 public typealias EthereumListenerId = EthereumReferenceId
 
 // Access to BRCore/BREthereum types
-public typealias BRCoreEWM = OpaquePointer
+public typealias BRCoreEWM = BREthereumEWM // OpaquePointer
 
 // MARK: Reference
 
@@ -429,6 +429,10 @@ public enum EthereumWalletEvent : Int {
     case defaultGasLimitUpdated
     case defaultGasPriceUpdated
     case deleted
+
+    init (_ event: BREthereumWalletEvent) {
+        self.init (rawValue: Int (event.rawValue))!
+    }
 }
 
 public enum EthereumBlockEvent : Int {
@@ -436,6 +440,9 @@ public enum EthereumBlockEvent : Int {
     case chained
     case orphaned
     case deleted
+    init (_ event: BREthereumBlockEvent) {
+        self.init (rawValue: Int (event.rawValue))!
+    }
 }
 
 public enum EthereumTransactionEvent : Int {
@@ -449,6 +456,10 @@ public enum EthereumTransactionEvent : Int {
     case blockConfirmationsUpdated
 
     case deleted
+
+    init (_ event: BREthereumTransactionEvent) {
+        self.init (rawValue: Int (event.rawValue))!
+    }
 }
 
 public enum EthereumPeerEvent : Int {
@@ -469,51 +480,108 @@ public enum EthereumEWMEvent : Int {
     case deleted
 
     init (_ event: BREthereumEWMEvent) {
-        self.init(rawValue: Int(event.rawValue))!
+        switch (event) {
+        case EWM_EVENT_CREATED: self = .created
+        case EWM_EVENT_SYNC_STARTED: self = .sync_started
+        case EWM_EVENT_SYNC_CONTINUES: self = .sync_continues
+        case EWM_EVENT_SYNC_STOPPED: self = .sync_stopped
+        case EWM_EVENT_NETWORK_UNAVAILABLE: self = .network_unavailable
+        case EWM_EVENT_DELETED: self = .deleted
+        default:
+            assert(false, "Uknown BREthereumEWMEvent: \(event)")
+            self = .deleted
+        }
     }
 }
 
+public enum EthereumClientChangeType {
+    case added
+    case updated
+    case deleted
+
+    init (_ event: BREthereumClientChangeType) {
+        switch (event) {
+        case CLIENT_CHANGE_ADD: self = .added
+        case CLIENT_CHANGE_UPD: self = .updated
+        case CLIENT_CHANGE_REM: self = .deleted
+        default: self = .added
+        }
+    }
+}
 ///
 /// An `EthereumClient` is a protocol defined with a set of functions that support an
 /// EthereumEWM.
 ///
 public protocol EthereumClient : class {
-    func getGasPrice (ewm: EthereumWalletManager, wid: EthereumWalletId, rid: Int32) -> Void
-    func getGasEstimate (wid: EthereumWalletId,
+    func getGasPrice (ewm: EthereumWalletManager,
+                      wid: EthereumWalletId,
+                      rid: Int32) -> Void
+
+    func getGasEstimate (ewm: EthereumWalletManager,
+                         wid: EthereumWalletId,
                          tid: EthereumTransactionId,
                          to: String,
                          amount: String,
                          data:  String,
                          rid: Int32) -> Void
 
-    func getBalance (wid: EthereumWalletId, address: String, rid: Int32) -> Void
+    func getBalance (ewm: EthereumWalletManager,
+                     wid: EthereumWalletId,
+                     address: String,
+                     rid: Int32) -> Void
     // ewm.announceBalance (...)
 
-    func submitTransaction (wid: EthereumWalletId,
+    func submitTransaction (ewm: EthereumWalletManager,
+                            wid: EthereumWalletId,
                             tid: EthereumTransactionId,
                             rawTransaction: String,
                             rid: Int32) -> Void
     // ...
-    func getTransactions (address: String, rid: Int32) -> Void
+    func getTransactions (ewm: EthereumWalletManager,
+                          address: String,
+                          rid: Int32) -> Void
 
-    func getLogs (address: String, event: String, rid: Int32) -> Void
+    func getLogs (ewm: EthereumWalletManager,
+                  address: String,
+                  event: String,
+                  rid: Int32) -> Void
+
+    func getBlockNumber (ewm: EthereumWalletManager,
+                         rid: Int32) -> Void
+
+    func getNonce (ewm: EthereumWalletManager,
+                   address: String,
+                   rid: Int32) -> Void
+
+    func savePeers (ewm: EthereumWalletManager /* data */) -> Void
+
+    func saveBlocks (ewm: EthereumWalletManager /* data */) -> Void
+
+    func changeTransaction (ewm: EthereumWalletManager,
+                            change: EthereumClientChangeType /* data */) -> Void
+
+    func changeLog (ewm: EthereumWalletManager,
+                    change: EthereumClientChangeType /* data */) -> Void
 
     // ...
-    // save
+    func handleEWMEvent (ewm: EthereumWalletManager,
+                         event: EthereumEWMEvent) -> Void
 
-    // ...
-    func handleWalletEvent (wallet: EthereumWallet,
+    func handlePeerEvent (ewm: EthereumWalletManager,
+                          event : EthereumPeerEvent) -> Void
+
+    func handleWalletEvent (ewm: EthereumWalletManager,
+                            wallet: EthereumWallet,
                             event: EthereumWalletEvent) -> Void
 
-    func handleBlockEvent (block: EthereumBlock,
+    func handleBlockEvent (ewm: EthereumWalletManager,
+                           block: EthereumBlock,
                            event: EthereumBlockEvent) -> Void
 
-    func handleTransactionEvent (wallet: EthereumWallet,
+    func handleTransactionEvent (ewm: EthereumWalletManager,
+                                 wallet: EthereumWallet,
                                  transaction: EthereumTransaction,
                                  event: EthereumTransactionEvent) -> Void
-
-    func handlePeerEvent (event : EthereumPeerEvent) -> Void
-    func handleEWMEvent (event: EthereumEWMEvent) -> Void
 }
 
 // MARK: - EWM
@@ -528,7 +596,7 @@ public class EthereumWalletManager {
     /// The OpaquePointer to the 'Core Ethereum EWM'.  We defer nearly all functions
     /// to this reference.
     ///
-    let core : BRCoreEWM //  OpaquePointer // BREthereumEWM
+    let core : BREthereumEWM //  OpaquePointer // BREthereumEWM
 
     ///
     /// The client ...
@@ -548,40 +616,45 @@ public class EthereumWalletManager {
                                 identifier: ethereumGetAccount (self.core))
     }()
 
-    private init (core: BRCoreEWM,
+    private init (core: BREthereumEWM,
                   client : EthereumClient,
                   network : EthereumNetwork) {
         self.core = core
         self.client = client
         self.network = network
-//        self.coreClient = createCoreClient ()
+        EthereumWalletManager.add(self)
     }
 
     public convenience init (client : EthereumClient,
           network : EthereumNetwork,
           paperKey : String) {
-
-        self.init (core: ethereumCreate (network.core, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN,
+        self.init (core: ethereumCreate (network.core, paperKey,
+                                         NODE_TYPE_LES,
+                                         SYNC_MODE_FULL_BLOCKCHAIN,
                                          EthereumWalletManager.createCoreClient(client: client),
                                          nil,
                                          nil,
                                          nil,
                                          nil),
-                    client: client,
-                    network: network)
+                   client: client,
+                   network: network)
     }
 
+
     public convenience init (client : EthereumClient,
-          network : EthereumNetwork,
-          publicKey : BRKey) {
-        self.init (core: ethereumCreateWithPublicKey (network.core, publicKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN,
+                      network : EthereumNetwork,
+                      publicKey : BRKey) {
+        let anyClient = AnyEthereumClient (base: client)
+        self.init (core: ethereumCreateWithPublicKey (network.core, publicKey,
+                                                      NODE_TYPE_LES,
+                                                      SYNC_MODE_FULL_BLOCKCHAIN,
                                                       EthereumWalletManager.createCoreClient(client: client),
                                                       nil,
                                                       nil,
                                                       nil,
                                                       nil),
-                    client: client,
-                    network: network)
+                   client: anyClient,
+                   network: network)
     }
 
     //
@@ -623,11 +696,9 @@ public class EthereumWalletManager {
     //
     // Connect / Disconnect
     //
-    var coreClient : BREthereumClient?
-
     public func connect () {
-            ethereumConnect (self.core);
-     }
+        ethereumConnect (self.core);
+    }
 
     public func disconnect () {
         ethereumDisconnect (self.core)
@@ -671,12 +742,12 @@ public class EthereumWalletManager {
                               blockTimestamp: String,
                               isError: String) {
         ethereumClientAnnounceTransaction (core, rid,
-                                      hash, sourceAddr, targetAddr, contractAddr,
-                                      amount, gasLimit, gasPrice,
-                                      data, nonce, gasUsed,
-                                      blockNumber, blockHash, blockConfirmations,
-                                      blockTransactionIndex, blockTimestamp,
-                                      isError)
+                                           hash, sourceAddr, targetAddr, contractAddr,
+                                           amount, gasLimit, gasPrice,
+                                           data, nonce, gasUsed,
+                                           blockNumber, blockHash, blockConfirmations,
+                                           blockTransactionIndex, blockTimestamp,
+                                           isError)
     }
 
     public func announceLog (rid: Int32,
@@ -693,16 +764,21 @@ public class EthereumWalletManager {
         var cTopics = topics.map { UnsafePointer<Int8>(strdup($0)) }
 
         ethereumClientAnnounceLog (core, rid,
-                              hash, contract, Int32(topics.count), &cTopics,
-                              data, gasPrice, gasUsed,
-                              logIndex,
-                              blockNumber, blockTransactionIndex, blockTimestamp)
+                                   hash, contract, Int32(topics.count), &cTopics,
+                                   data, gasPrice, gasUsed,
+                                   logIndex,
+                                   blockNumber, blockTransactionIndex, blockTimestamp)
         cTopics.forEach { free (UnsafeMutablePointer(mutating: $0)) }
     }
 
-    static func lookup (core: BREthereumEWM?) -> EthereumWalletManager? {
-        return nil
+    func announceBlockNumber (blockNumber: String, rid: Int32) {
+        ethereumClientAnnounceBlockNumber(core, blockNumber, rid)
     }
+
+    func announceNonce (address: String, nonce: String, rid: Int32) {
+        ethereumClientAnnounceNonce(core, address, nonce, rid)
+    }
+
     ///
     /// Create an BREthereumEWMConfiguration for a JSON_RPC client.  The configuration
     /// will invoke Client functions for EWM callbacks, implementing, for example,
@@ -712,109 +788,158 @@ public class EthereumWalletManager {
     ///
     static func createCoreClient (client: EthereumClient) -> BREthereumClient {
         let client = AnyEthereumClient (base: client)
-        return BREthereumClient (context: UnsafeMutableRawPointer (Unmanaged<AnyEthereumClient>.passUnretained(client).toOpaque()),
+        return BREthereumClient (context: UnsafeMutableRawPointer (Unmanaged<AnyEthereumClient>.passRetained(client).toOpaque()),
 
-                                 funcGetBalance: { (this, core, wid, address, rid) in
-                                    if let this = this.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }) {
-                                        this.getBalance(wid: wid, address: asUTF8String(address!), rid: rid)
+                                 funcGetBalance: { (coreClient, coreEWM, wid, address, rid) in
+                                    if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeRetainedValue() }),
+                                        let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+                                        client.getBalance(ewm: ewm,
+                                                          wid: wid,
+                                                          address: asUTF8String(address!),
+                                                          rid: rid)
                                     }},
 
-                                 funcGetGasPrice: { (this, core, wid, rid) in
-                                    if let this = this.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }),
-                                        let ewm = EthereumWalletManager.lookup(core: core) {
-                                        assert (ewm.client === this.base)
-                                        this.getGasPrice (ewm: ewm, wid: wid, rid: rid)
+                                 funcGetGasPrice: { (coreClient, coreEWM, wid, rid) in
+                                    if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeRetainedValue() }),
+                                        let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+                                        assert (ewm.client === client.base)
+                                        client.getGasPrice (ewm: ewm,
+                                                            wid: wid,
+                                                            rid: rid)
                                     }},
 
-                                 funcEstimateGas: { (this, core, wid, tid, to, amount, data, rid)  in
-                                    if let this = this.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }) {
-                                        this.getGasEstimate(wid: wid, tid: tid,
-                                                                    to: asUTF8String(to!),
-                                                                    amount: asUTF8String(amount!),
-                                                                    data: asUTF8String(data!),
-                                                                    rid: rid)
-                                    }},
-
-                                 funcSubmitTransaction: { (this, core, wid, tid, transaction, rid)  in
-                                    if let this = this.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }) {
-                                        this.submitTransaction(wid: wid, tid: tid,
-                                                                       rawTransaction: asUTF8String(transaction!),
-                                                                       rid: rid)
-                                    }},
-
-                                 funcGetTransactions: { (this, core, address, rid) in
-                                    if let this = this.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }) {
-                                        this.getTransactions(address: asUTF8String(address!), rid: rid)
-                                    }},
-
-                                 funcGetLogs: { (this, core, contract, address, event, rid) in
-                                    if let this = this.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }) {
-                                        this.getLogs (address: asUTF8String(address!),
-                                                              event: asUTF8String(event!),
+                                 funcEstimateGas: { (coreClient, coreEWM, wid, tid, to, amount, data, rid)  in
+                                    if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeRetainedValue() }),
+                                        let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+                                        client.getGasEstimate(ewm: ewm,
+                                                              wid: wid,
+                                                              tid: tid,
+                                                              to: asUTF8String(to!),
+                                                              amount: asUTF8String(amount!),
+                                                              data: asUTF8String(data!),
                                                               rid: rid)
                                     }},
 
-                                 funcGetBlockNumber: { (this, ewm, rid) in
-
-        },
-                                 funcGetNonce: { (client, ewm, nonce, rid) in
-
-        },
-                                 funcSavePeers: { (client, ewm, data) in
-
-        },
-                                 funcSaveBlocks: { (client, ewm, data) in
-
-        },
-                                 funcChangeTransaction: { (client, ewm, change, data) in
-
-        },
-                                 funcChangeLog: { (client, ewm, change, data) in
-
-        },
-                                 funcEWMEvent: { (this, core, event, status, message) in
-                                    if let this = this.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeRetainedValue() }) {
-                                        this.handleEWMEvent (event: EthereumEWMEvent (event))
-                                    }
-        },
-                                 funcPeerEvent: { (this, core, event, status, message) in
-                                    if let this = this.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeRetainedValue() }) {
-                                        this.handlePeerEvent (event: EthereumPeerEvent (event))
-                                    }
-        },
-                                 funcWalletEvent: { (this, core, wid, event, status, message) in
-                                    if let this = this.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeRetainedValue() }) {
-//                                        this.handleWalletEvent (wallet: this.findWallet(identifier: wid),
-//                                                                          event: EthereumWalletEvent (rawValue: Int(event.rawValue))!)
-
+                                 funcSubmitTransaction: { (coreClient, coreEWM, wid, tid, transaction, rid)  in
+                                    if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeRetainedValue() }),
+                                        let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+                                        client.submitTransaction(ewm: ewm,
+                                                                 wid: wid,
+                                                                 tid: tid,
+                                                                 rawTransaction: asUTF8String(transaction!),
+                                                                 rid: rid)
                                     }},
-                                    funcBlockEvent: { (this, core, bid, event, status, message) in
-                                        if let this = this.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeRetainedValue() }) {
-//                                            this.handleBlockEvent (block: this.findBlock (identifier: bid),
-//                                                                             event: EthereumBlockEvent (rawValue: Int(event.rawValue))!);
-                                        }
-                                        return },
-                                    funcTransactionEvent: { (this, core, wid, tid, event, status, message) in
-                                        if let this = this.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeRetainedValue() }) {
-//                                            this.handleTransactionEvent (wallet: this.findWallet(identifier: wid),
-//                                                                                   transaction: this.findTransaction(identifier: tid),
-//                                                                                   event: EthereumTransactionEvent(rawValue: Int(event.rawValue))!)
-                                        }
-                                        return })
+
+                                 funcGetTransactions: { (coreClient, coreEWM, address, rid) in
+                                    if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeRetainedValue() }),
+                                        let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+                                        client.getTransactions(ewm: ewm,
+                                                               address: asUTF8String(address!),
+                                                               rid: rid)
+                                    }},
+
+                                 funcGetLogs: { (coreClient, coreEWM, contract, address, event, rid) in
+                                    if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeRetainedValue() }),
+                                        let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+                                        client.getLogs (ewm: ewm,
+                                                        address: asUTF8String(address!),
+                                                        event: asUTF8String(event!),
+                                                        rid: rid)
+                                    }},
+
+                                 funcGetBlockNumber: { (coreClient, coreEWM, rid) in
+                                    if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeRetainedValue() }),
+                                        let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+                                        client.getBlockNumber(ewm: ewm, rid: rid)
+                                    }},
+
+                                 funcGetNonce: { (coreClient, coreEWM, address, rid) in
+                                    if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeRetainedValue() }),
+                                        let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+                                        client.getNonce(ewm: ewm,
+                                                        address: asUTF8String(address!),
+                                                        rid: rid)
+                                    }},
+
+                                 funcSavePeers: { (coreClient, coreEWM, data) in
+                                    if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeRetainedValue() }),
+                                        let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+                                        client.savePeers(ewm: ewm)
+                                    }},
+
+                                 funcSaveBlocks: { (coreClient, coreEWM, data) in
+                                    if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeRetainedValue() }),
+                                        let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+                                        client.saveBlocks(ewm: ewm)
+                                    }},
+
+                                 funcChangeTransaction: { (coreClient, coreEWM, change, data) in
+                                    if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeRetainedValue() }),
+                                        let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+                                        client.changeTransaction(ewm: ewm, change: EthereumClientChangeType(change))
+                                    }},
+
+                                 funcChangeLog: { (coreClient, coreEWM, change, data) in
+                                    if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeRetainedValue() }),
+                                        let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+                                        client.changeLog(ewm: ewm, change: EthereumClientChangeType(change))
+                                    }},
+
+                                 funcEWMEvent: { (coreClient, coreEWM, event, status, message) in
+//                                    if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeRetainedValue() }),
+//                                        let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+//                                        client.handleEWMEvent (ewm: ewm, event: EthereumEWMEvent (event))
+//                                    }},
+        },
+
+                                 funcPeerEvent: { (coreClient, coreEWM, event, status, message) in
+                                    if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeRetainedValue() }),
+                                        let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+                                        client.handlePeerEvent (ewm: ewm, event: EthereumPeerEvent (event))
+                                    }},
+
+                                 funcWalletEvent: { (coreClient, coreEWM, wid, event, status, message) in
+                                    if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeRetainedValue() }),
+                                        let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+                                        client.handleWalletEvent(ewm: ewm,
+                                                                 wallet: ewm.findWallet(identifier: wid),
+                                                                 event: EthereumWalletEvent (event))
+                                    }},
+
+                                 funcBlockEvent: { (coreClient, coreEWM, bid, event, status, message) in
+                                    if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeRetainedValue() }),
+                                        let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+                                        client.handleBlockEvent(ewm: ewm,
+                                                                block: ewm.findBlock(identifier: bid),
+                                                                event: EthereumBlockEvent (event))
+                                    }},
+
+                                 funcTransactionEvent: { (coreClient, coreEWM, wid, tid, event, status, message) in
+                                    if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeRetainedValue() }),
+                                        let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+                                        client.handleTransactionEvent(ewm: ewm,
+                                                                      wallet: ewm.findWallet(identifier: wid),
+                                                                      transaction: ewm.findTransaction(identifier: tid),
+                                                                      event: EthereumTransactionEvent(event))
+                                    }})
     }
 
     //
-    // Nodes
+    // All Ethereum Wallet Managers
     //
 
-    static var ewms : [EthereumWalletManager] = []
+    private static var all : [Weak<EthereumWalletManager>] = []
 
-    static func addNode (_ ewm: EthereumWalletManager) {
-        ewms.append(ewm)
+    private static func add (_ ewm: EthereumWalletManager) {
+        all.append(Weak(value: ewm))
     }
 
-    static func lookupNode (core: BRCoreEWM) -> EthereumWalletManager? {
-        return ewms.first { $0.core == core }
+    private static func lookup (core: BREthereumEWM?) -> EthereumWalletManager? {
+        guard let core = core else { return nil }
+        return all
+            .filter { nil != $0.value }
+            .map { $0.value! }
+            .first { $0.core == core }
     }
 }
 
@@ -962,60 +1087,84 @@ public enum EthereumAmount {
 //
 // Concretize protocol EthereumClient
 //
-    class AnyEthereumClient : EthereumClient {
-        let base : EthereumClient
+class AnyEthereumClient : EthereumClient {
+    let base : EthereumClient
 
-        init (base: EthereumClient) {
-            self.base = base
-        }
-
-        func getGasPrice(ewm: EthereumWalletManager, wid: EthereumWalletId, rid: Int32) {
-            base.getGasPrice(ewm: ewm, wid: wid, rid: rid)
-        }
-
-        func getGasEstimate(wid: EthereumWalletId, tid: EthereumTransactionId, to: String, amount: String, data: String, rid: Int32) {
-            base.getGasEstimate(wid: wid, tid: tid, to: to, amount: amount, data: data, rid: rid)
-        }
-
-        func getBalance(wid: EthereumWalletId, address: String, rid: Int32) {
-            base.getBalance(wid: wid, address: address, rid: rid)
-        }
-
-        func submitTransaction(wid: EthereumWalletId, tid: EthereumTransactionId, rawTransaction: String, rid: Int32) {
-            base.submitTransaction(wid: wid, tid: tid, rawTransaction: rawTransaction, rid: rid)
-        }
-
-        func getTransactions(address: String, rid: Int32) {
-            base.getTransactions(address: address, rid: rid)
-        }
-
-        func getLogs(address: String, event: String, rid: Int32) {
-            base.getLogs(address: address, event: event, rid: rid)
-        }
-
-        func handleWalletEvent(wallet: EthereumWallet, event: EthereumWalletEvent) {
-            base.handleWalletEvent(wallet: wallet, event: event)
-        }
-
-        func handleBlockEvent(block: EthereumBlock, event: EthereumBlockEvent) {
-            base.handleBlockEvent(block: block, event: event)
-        }
-
-        func handleTransactionEvent(wallet: EthereumWallet, transaction: EthereumTransaction, event: EthereumTransactionEvent) {
-            base.handleTransactionEvent(wallet: wallet, transaction: transaction, event: event)
-        }
-
-        func handlePeerEvent(event: EthereumPeerEvent) {
-            base.handlePeerEvent(event: event)
-        }
-
-        func handleEWMEvent(event: EthereumEWMEvent) {
-            base.handleEWMEvent(event: event)
-        }
+    init (base: EthereumClient) {
+        self.base = base
     }
 
+    func getGasPrice(ewm: EthereumWalletManager, wid: EthereumWalletId, rid: Int32) {
+        base.getGasPrice(ewm: ewm, wid: wid, rid: rid)
+    }
 
-    // MARK: - Support
+    func getGasEstimate(ewm: EthereumWalletManager, wid: EthereumWalletId, tid: EthereumTransactionId, to: String, amount: String, data: String, rid: Int32) {
+        base.getGasEstimate(ewm: ewm, wid: wid, tid: tid, to: to, amount: amount, data: data, rid: rid)
+    }
+
+    func getBalance(ewm: EthereumWalletManager, wid: EthereumWalletId, address: String, rid: Int32) {
+        base.getBalance(ewm: ewm, wid: wid, address: address, rid: rid)
+    }
+
+    func submitTransaction(ewm: EthereumWalletManager, wid: EthereumWalletId, tid: EthereumTransactionId, rawTransaction: String, rid: Int32) {
+        base.submitTransaction(ewm: ewm, wid: wid, tid: tid, rawTransaction: rawTransaction, rid: rid)
+    }
+
+    func getTransactions(ewm: EthereumWalletManager, address: String, rid: Int32) {
+        base.getTransactions(ewm: ewm, address: address, rid: rid)
+    }
+
+    func getLogs(ewm: EthereumWalletManager, address: String, event: String, rid: Int32) {
+        base.getLogs(ewm: ewm, address: address, event: event, rid: rid)
+    }
+
+    func getBlockNumber(ewm: EthereumWalletManager, rid: Int32) {
+        base.getBlockNumber(ewm: ewm, rid: rid)
+    }
+
+    func getNonce(ewm: EthereumWalletManager, address: String, rid: Int32) {
+        base.getNonce(ewm: ewm, address: address, rid: rid)
+    }
+
+    func savePeers(ewm: EthereumWalletManager) {
+        base.savePeers(ewm: ewm)
+    }
+
+    func saveBlocks(ewm: EthereumWalletManager) {
+        base.saveBlocks(ewm: ewm)
+    }
+
+    func changeTransaction(ewm: EthereumWalletManager, change: EthereumClientChangeType) {
+        base.changeTransaction(ewm: ewm, change: change)
+    }
+
+    func changeLog(ewm: EthereumWalletManager, change: EthereumClientChangeType) {
+        base.changeLog(ewm: ewm, change: change)
+    }
+
+    func handleEWMEvent(ewm: EthereumWalletManager, event: EthereumEWMEvent) {
+        base.handleEWMEvent(ewm: ewm, event: event)
+    }
+
+    func handlePeerEvent(ewm: EthereumWalletManager, event: EthereumPeerEvent) {
+        base.handlePeerEvent(ewm: ewm, event: event)
+    }
+
+    func handleWalletEvent(ewm: EthereumWalletManager, wallet: EthereumWallet, event: EthereumWalletEvent) {
+        base.handleWalletEvent(ewm: ewm, wallet: wallet, event: event)
+    }
+
+    func handleBlockEvent(ewm: EthereumWalletManager, block: EthereumBlock, event: EthereumBlockEvent) {
+        base.handleBlockEvent(ewm: ewm, block: block, event: event)
+    }
+
+    func handleTransactionEvent(ewm: EthereumWalletManager, wallet: EthereumWallet, transaction: EthereumTransaction, event: EthereumTransactionEvent) {
+        base.handleTransactionEvent(ewm: ewm, wallet: wallet, transaction: transaction, event: event)
+    }
+}
+
+
+// MARK: - Support
 //
 // Helpers
 //
