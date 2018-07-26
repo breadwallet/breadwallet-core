@@ -1,84 +1,25 @@
 //
-//  BRDcoreTests.swift
-//  BRDcoreTests
+//  CoreDemoEthereumClient.swift
+//  CoreDemo
 //
-//  Created by Ed Gamble on 4/28/18.
+//  Created by Ed Gamble on 7/26/18.
 //  Copyright © 2018 breadwallet. All rights reserved.
 //
 
-import XCTest
-@testable import BRDcore
-//@testable import BRDcore.Etherum
+import BRCore
 
-class BRDcoreTests: XCTestCase {
-
-    var client = TestLightClient (network: EthereumNetwork.testnet,
-                                  paperKey: "blush wear arctic fruit unique quantum because mammal entry country school curtain")
-
-    override func setUp() {
-        super.setUp()
-        client.node?.connect()
-    }
-    
-    override func tearDown() {
-        super.tearDown()
-    }
-
-    func testClient () {
-        assert (EthereumNetwork.testnet.chainId == client.network.chainId)
-    }
-
-    func testBitcoinCore() {
-        //        assert (1 == BRRunTests())
-    }
-
-    func testEthereumCore () {
-        //        runTests()
-    }
-
-    func testEthereum1 () {
-        var unit = EthereumAmountUnit.ether(WEI)
-        var value = EthereumAmount.ether(createUInt256(10), WEI)
-    }
-
-    func testEthereum2 () {
-        var client = TestLightClient (network: EthereumNetwork.testnet,
-                                      paperKey: "ginger settle marine tissue robot crane night number ramp coast roast critic")
-
-        client.node!.connect()
-
-        sleep(1000)
-        client.node!.disconnect()
-        
-    }
-
-    func testPerformanceExample() {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
-        }
-    }
-    
-}
-
-
-// MARK: - Test Client
-//
-//
-//
-class TestLightClient : EthereumClient, EthereumListener {
+class CoreDemoEthereumClient : EthereumClient {
     var network : EthereumNetwork
-    var node : EthereumEWM?
+    var node : EthereumWalletManager!
 
     //
     // Constructors
     //
     init(network: EthereumNetwork, paperKey: String) {
         self.network = network
-        self.node = EthereumEWM (client: self,
-                                 listener: self,
-                                 network: network,
-                                 paperKey: paperKey)
+        self.node = EthereumWalletManager (client: self,
+                                           network: network,
+                                           paperKey: paperKey)
     }
 
     //    required init(network: EthereumNetwork, publicKey: Data) {
@@ -97,7 +38,7 @@ class TestLightClient : EthereumClient, EthereumListener {
         self.node!.announceBalance (wid: wid, balance: "0xffc0", rid: rid)
     }
 
-    func getGasPrice(wid: EthereumWalletId, rid: Int32) {
+    func getGasPrice(ewm: EthereumWalletManager, wid: EthereumWalletId, rid: Int32) {
         // JSON_RPC -> JSON -> Result -> announceGasPrice()
         self.node!.announceGasPrice (wid: wid, gasPrice: "0x77", rid: rid)
     }
@@ -117,7 +58,7 @@ class TestLightClient : EthereumClient, EthereumListener {
         // JSON_RPC -> [JSON] -> forEach {Result -> announceSubmitTransaction()}
         self.node!.announceTransaction(rid: rid,
                                        hash: "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
-                                       sourceAddr: self.node!.address,
+                                       sourceAddr: self.node.address,
                                        targetAddr: "0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae",
                                        contractAddr: "",
                                        amount: "11113000000000",
@@ -194,4 +135,3 @@ class TestLightClient : EthereumClient, EthereumListener {
         print ("EWMEvent: \(event)")
     }
 }
-

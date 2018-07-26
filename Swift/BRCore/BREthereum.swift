@@ -63,13 +63,13 @@ public protocol EthereumReferenceWithDefaultUnit : EthereumReference {
 /// An `EthereumPointer` holds an `OpaquePointer` to Ethereum Core memory.  This is used for
 /// 'constant-like' memory references.
 ///
-public protocol EthereumPointer : Equatable {
+protocol EthereumPointer : Equatable {
     associatedtype PointerType : Equatable
 
     var core : PointerType { get }
 }
 
-public extension EthereumPointer {
+extension EthereumPointer {
     static public func == (lhs: Self, rhs: Self) -> Bool {
         return lhs.core == rhs.core
     }
@@ -118,19 +118,19 @@ public struct EthereumAccount : EthereumReference {
 /// mainnet, testnet/ropsten, rinkeby
 ///
 public struct EthereumNetwork : EthereumPointer {
-    public let core : BREthereumNetwork
+    let core : BREthereumNetwork
 
     private init (core: BREthereumNetwork) {
         self.core = core;
     }
 
-    var chainId :Int {
+    var chainId : Int {
         return Int(exactly: networkGetChainId (core))!
     }
 
-    static let mainnet = EthereumNetwork (core: ethereumMainnet)
-    static let testnet = EthereumNetwork (core: ethereumTestnet)
-    static let rinkeby = EthereumNetwork (core: ethereumRinkeby)
+    static public let mainnet = EthereumNetwork (core: ethereumMainnet)
+    static public let testnet = EthereumNetwork (core: ethereumTestnet)
+    static public let rinkeby = EthereumNetwork (core: ethereumRinkeby)
 }
 
 // MARK: - Token
@@ -538,12 +538,12 @@ public class EthereumWalletManager {
     ///
     /// The network ...
     ///
-    let network : EthereumNetwork
+    public let network : EthereumNetwork
 
     ///
     /// The account ....
     ///
-    lazy private(set) var account : EthereumAccount = {
+    public lazy private(set) var account : EthereumAccount = {
         return EthereumAccount (ewm: self,
                                 identifier: ethereumGetAccount (self.core))
     }()
@@ -557,7 +557,7 @@ public class EthereumWalletManager {
 //        self.coreClient = createCoreClient ()
     }
 
-    convenience init (client : EthereumClient,
+    public convenience init (client : EthereumClient,
           network : EthereumNetwork,
           paperKey : String) {
 
@@ -571,7 +571,7 @@ public class EthereumWalletManager {
                     network: network)
     }
 
-    convenience init (client : EthereumClient,
+    public convenience init (client : EthereumClient,
           network : EthereumNetwork,
           publicKey : BRKey) {
         self.init (core: ethereumCreateWithPublicKey (network.core, publicKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN,
@@ -625,35 +625,35 @@ public class EthereumWalletManager {
     //
     var coreClient : BREthereumClient?
 
-    func connect () {
+    public func connect () {
             ethereumConnect (self.core);
      }
 
-    func disconnect () {
+    public func disconnect () {
         ethereumDisconnect (self.core)
     }
 
-    var address : String {
+    public var address : String {
         return account.address
     }
 
-    func announceBalance (wid: EthereumWalletId, balance: String, rid: Int32) {
+    public func announceBalance (wid: EthereumWalletId, balance: String, rid: Int32) {
         ethereumClientAnnounceBalance (core, wid, balance, rid)
     }
 
-    func announceGasPrice (wid: EthereumWalletId, gasPrice: String, rid: Int32) {
+    public func announceGasPrice (wid: EthereumWalletId, gasPrice: String, rid: Int32) {
         ethereumClientAnnounceGasPrice (core, wid, gasPrice, rid)
     }
 
-    func announceGasEstimate (wid: EthereumWalletId, tid: EthereumTransactionId, gasEstimate: String, rid: Int32) {
+    public func announceGasEstimate (wid: EthereumWalletId, tid: EthereumTransactionId, gasEstimate: String, rid: Int32) {
         ethereumClientAnnounceGasEstimate (core, wid, tid, gasEstimate, rid)
     }
 
-    func announceSubmitTransaction (wid: EthereumWalletId, tid: EthereumTransactionId, hash: String, rid: Int32) {
+    public func announceSubmitTransaction (wid: EthereumWalletId, tid: EthereumTransactionId, hash: String, rid: Int32) {
         ethereumClientAnnounceSubmitTransaction (core, wid, tid, hash, rid)
     }
 
-    func announceTransaction (rid: Int32,
+    public func announceTransaction (rid: Int32,
                               hash: String,
                               sourceAddr: String,
                               targetAddr: String,
@@ -679,7 +679,7 @@ public class EthereumWalletManager {
                                       isError)
     }
 
-    func announceLog (rid: Int32,
+    public func announceLog (rid: Int32,
                       hash: String,
                       contract: String,
                       topics: [String],

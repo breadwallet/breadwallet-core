@@ -25,6 +25,15 @@
 		3C9025F92106511700143B69 /* testEwm.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C9025F82106511700143B69 /* testEwm.c */; };
 		3C9025FB2106613600143B69 /* testContract.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C9025FA2106613600143B69 /* testContract.c */; };
 		3C9025FD2108DDAE00143B69 /* BREthereumBCSSync.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C9025FC2108DDAE00143B69 /* BREthereumBCSSync.c */; };
+		3C902605210A30F100143B69 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C902604210A30F100143B69 /* AppDelegate.swift */; };
+		3C902607210A30F100143B69 /* MasterViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C902606210A30F100143B69 /* MasterViewController.swift */; };
+		3C902609210A30F100143B69 /* DetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C902608210A30F100143B69 /* DetailViewController.swift */; };
+		3C90260C210A30F100143B69 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3C90260A210A30F100143B69 /* Main.storyboard */; };
+		3C90260E210A30F400143B69 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3C90260D210A30F400143B69 /* Assets.xcassets */; };
+		3C902611210A30F400143B69 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 3C90260F210A30F400143B69 /* LaunchScreen.storyboard */; };
+		3C90261B210A313C00143B69 /* libCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CAB609B20AF8C5D00810CE4 /* libCore.a */; };
+		3C90261D210A32A000143B69 /* CoreDemoEthereumClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C90261C210A32A000143B69 /* CoreDemoEthereumClient.swift */; };
+		3C90261F210A3BBE00143B69 /* BRCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 3CAB60EF20AF936200810CE4 /* BRCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		3CAB60A920AF8C8500810CE4 /* CoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB60A820AF8C8500810CE4 /* CoreTests.swift */; };
 		3CAB60AB20AF8C8500810CE4 /* libCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3CAB609B20AF8C5D00810CE4 /* libCore.a */; };
 		3CAB60B120AF8D1A00810CE4 /* BREthereumEther.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53B320AF595400C430F6 /* BREthereumEther.c */; };
@@ -101,6 +110,20 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		3C902616210A312500143B69 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3C590F0E20950C160005597B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3CAB60EE20AF936200810CE4;
+			remoteInfo = BRCore;
+		};
+		3C902618210A312500143B69 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3C590F0E20950C160005597B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3CAB609A20AF8C5D00810CE4;
+			remoteInfo = Core;
+		};
 		3CAB60AC20AF8C8500810CE4 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 3C590F0E20950C160005597B /* Project object */;
@@ -125,6 +148,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		3C902620210A3BBE00143B69 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				3C90261F210A3BBE00143B69 /* BRCore.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		3CAB609920AF8C5D00810CE4 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -235,7 +269,6 @@
 		3C42EF512095143D000E58E0 /* module.modulemap */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
 		3C42EF8D209763AB000E58E0 /* BRDcoreTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "BRDcoreTests-Bridging-Header.h"; sourceTree = "<group>"; };
 		3C42EF8E209763AB000E58E0 /* test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = test.c; path = ../../test.c; sourceTree = "<group>"; };
-		3C590F2520950C160005597B /* BRDcoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BRDcoreTests.swift; sourceTree = "<group>"; };
 		3C590F3220950C720005597B /* BRBIP32Sequence.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = BRBIP32Sequence.c; path = ../../BRBIP32Sequence.c; sourceTree = "<group>"; };
 		3C590F3320950C720005597B /* BRBIP39Mnemonic.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BRBIP39Mnemonic.h; path = ../../BRBIP39Mnemonic.h; sourceTree = "<group>"; };
 		3C590F3420950C720005597B /* BRAddress.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = BRAddress.c; path = ../../BRAddress.c; sourceTree = "<group>"; };
@@ -283,6 +316,15 @@
 		3C9025F82106511700143B69 /* testEwm.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testEwm.c; sourceTree = "<group>"; };
 		3C9025FA2106613600143B69 /* testContract.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testContract.c; sourceTree = "<group>"; };
 		3C9025FC2108DDAE00143B69 /* BREthereumBCSSync.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumBCSSync.c; sourceTree = "<group>"; };
+		3C902602210A30F100143B69 /* CoreDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CoreDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3C902604210A30F100143B69 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		3C902606210A30F100143B69 /* MasterViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MasterViewController.swift; sourceTree = "<group>"; };
+		3C902608210A30F100143B69 /* DetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailViewController.swift; sourceTree = "<group>"; };
+		3C90260B210A30F100143B69 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		3C90260D210A30F400143B69 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		3C902610210A30F400143B69 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		3C902612210A30F400143B69 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		3C90261C210A32A000143B69 /* CoreDemoEthereumClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDemoEthereumClient.swift; sourceTree = "<group>"; };
 		3CA74EA920AF622D00EDF3E7 /* BRKeyECIES.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = BRKeyECIES.c; path = ../../BRKeyECIES.c; sourceTree = "<group>"; };
 		3CA74EAA20AF622D00EDF3E7 /* BRKeyECIES.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BRKeyECIES.h; path = ../../BRKeyECIES.h; sourceTree = "<group>"; };
 		3CAB609B20AF8C5D00810CE4 /* libCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -313,6 +355,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		3C9025FF210A30F100143B69 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3C90261B210A313C00143B69 /* libCore.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		3CAB609820AF8C5D00810CE4 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -547,6 +597,7 @@
 				3CAB60FB20AF936200810CE4 /* BRCoreTests */,
 				3C590F3120950C470005597B /* Core */,
 				3CAB60A720AF8C8500810CE4 /* CoreTests */,
+				3C902603210A30F100143B69 /* CoreDemo */,
 				3C590F1820950C160005597B /* Products */,
 				3CAB610A20AF938E00810CE4 /* Frameworks */,
 			);
@@ -559,6 +610,7 @@
 				3CAB60A620AF8C8500810CE4 /* CoreTests.xctest */,
 				3CAB60EF20AF936200810CE4 /* BRCore.framework */,
 				3CAB60F720AF936200810CE4 /* BRCoreTests.xctest */,
+				3C902602210A30F100143B69 /* CoreDemo.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -624,6 +676,21 @@
 			path = ../../bcash;
 			sourceTree = "<group>";
 		};
+		3C902603210A30F100143B69 /* CoreDemo */ = {
+			isa = PBXGroup;
+			children = (
+				3C902604210A30F100143B69 /* AppDelegate.swift */,
+				3C90261C210A32A000143B69 /* CoreDemoEthereumClient.swift */,
+				3C902606210A30F100143B69 /* MasterViewController.swift */,
+				3C902608210A30F100143B69 /* DetailViewController.swift */,
+				3C90260A210A30F100143B69 /* Main.storyboard */,
+				3C90260D210A30F400143B69 /* Assets.xcassets */,
+				3C90260F210A30F400143B69 /* LaunchScreen.storyboard */,
+				3C902612210A30F400143B69 /* Info.plist */,
+			);
+			path = CoreDemo;
+			sourceTree = "<group>";
+		};
 		3CA6431E209B56D90082B172 /* ToCompile */ = {
 			isa = PBXGroup;
 			children = (
@@ -666,7 +733,6 @@
 			isa = PBXGroup;
 			children = (
 				3C42EF8D209763AB000E58E0 /* BRDcoreTests-Bridging-Header.h */,
-				3C590F2520950C160005597B /* BRDcoreTests.swift */,
 				3CAB60FC20AF936200810CE4 /* BRCoreTests.swift */,
 				3CAB60FE20AF936200810CE4 /* Info.plist */,
 			);
@@ -695,6 +761,26 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
+		3C902601210A30F100143B69 /* CoreDemo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3C902615210A30F400143B69 /* Build configuration list for PBXNativeTarget "CoreDemo" */;
+			buildPhases = (
+				3C9025FE210A30F100143B69 /* Sources */,
+				3C9025FF210A30F100143B69 /* Frameworks */,
+				3C902600210A30F100143B69 /* Resources */,
+				3C902620210A3BBE00143B69 /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				3C902617210A312500143B69 /* PBXTargetDependency */,
+				3C902619210A312500143B69 /* PBXTargetDependency */,
+			);
+			name = CoreDemo;
+			productName = CoreDemo;
+			productReference = 3C902602210A30F100143B69 /* CoreDemo.app */;
+			productType = "com.apple.product-type.application";
+		};
 		3CAB609A20AF8C5D00810CE4 /* Core */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 3CAB609F20AF8C5D00810CE4 /* Build configuration list for PBXNativeTarget "Core" */;
@@ -773,10 +859,13 @@
 		3C590F0E20950C160005597B /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastSwiftUpdateCheck = 0930;
+				LastSwiftUpdateCheck = 0940;
 				LastUpgradeCheck = 0930;
 				ORGANIZATIONNAME = breadwallet;
 				TargetAttributes = {
+					3C902601210A30F100143B69 = {
+						CreatedOnToolsVersion = 9.4.1;
+					};
 					3CAB609A20AF8C5D00810CE4 = {
 						CreatedOnToolsVersion = 9.3.1;
 					};
@@ -797,6 +886,7 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				Base,
 			);
 			mainGroup = 3C590F0D20950C160005597B;
 			productRefGroup = 3C590F1820950C160005597B /* Products */;
@@ -807,11 +897,22 @@
 				3CAB60F620AF936200810CE4 /* BRCoreTests */,
 				3CAB609A20AF8C5D00810CE4 /* Core */,
 				3CAB60A520AF8C8500810CE4 /* CoreTests */,
+				3C902601210A30F100143B69 /* CoreDemo */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		3C902600210A30F100143B69 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3C902611210A30F400143B69 /* LaunchScreen.storyboard in Resources */,
+				3C90260E210A30F400143B69 /* Assets.xcassets in Resources */,
+				3C90260C210A30F100143B69 /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		3CAB60A420AF8C8500810CE4 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -836,6 +937,17 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		3C9025FE210A30F100143B69 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3C902609210A30F100143B69 /* DetailViewController.swift in Sources */,
+				3C902607210A30F100143B69 /* MasterViewController.swift in Sources */,
+				3C902605210A30F100143B69 /* AppDelegate.swift in Sources */,
+				3C90261D210A32A000143B69 /* CoreDemoEthereumClient.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		3CAB609720AF8C5D00810CE4 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -953,6 +1065,16 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		3C902617210A312500143B69 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3CAB60EE20AF936200810CE4 /* BRCore */;
+			targetProxy = 3C902616210A312500143B69 /* PBXContainerItemProxy */;
+		};
+		3C902619210A312500143B69 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3CAB609A20AF8C5D00810CE4 /* Core */;
+			targetProxy = 3C902618210A312500143B69 /* PBXContainerItemProxy */;
+		};
 		3CAB60AD20AF8C8500810CE4 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 3CAB609A20AF8C5D00810CE4 /* Core */;
@@ -969,6 +1091,25 @@
 			targetProxy = 3CAB610820AF938500810CE4 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		3C90260A210A30F100143B69 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				3C90260B210A30F100143B69 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		3C90260F210A30F400143B69 /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				3C902610210A30F400143B69 /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		3C590F2920950C160005597B /* Debug */ = {
@@ -1088,6 +1229,46 @@
 				VALIDATE_PRODUCT = YES;
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
+			};
+			name = Release;
+		};
+		3C902613210A30F400143B69 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 4R7S6N88W9;
+				INFOPLIST_FILE = CoreDemo/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.CoreDemo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 4.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		3C902614210A30F400143B69 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 4R7S6N88W9;
+				INFOPLIST_FILE = CoreDemo/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.CoreDemo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 4.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -1279,6 +1460,15 @@
 			buildConfigurations = (
 				3C590F2920950C160005597B /* Debug */,
 				3C590F2A20950C160005597B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		3C902615210A30F400143B69 /* Build configuration list for PBXNativeTarget "CoreDemo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3C902613210A30F400143B69 /* Debug */,
+				3C902614210A30F400143B69 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
