@@ -82,12 +82,12 @@ extern BREthereumBlock
 ewmLookupBlockByHash(BREthereumEWM ewm,
                      const BREthereumHash hash);
 
-extern BREthereumTransaction
-ewmLookupTransaction(BREthereumEWM ewm,
-                     BREthereumTransactionId tid);
+extern BREthereumTransfer
+ewmLookupTransfer(BREthereumEWM ewm,
+                     BREthereumTransferId tid);
 
-extern BREthereumTransaction
-ewmLookupTransactionByHash(BREthereumEWM ewm,
+extern BREthereumTransfer
+ewmLookupTransferByHash(BREthereumEWM ewm,
                            const BREthereumHash hash);
 
 //
@@ -100,35 +100,35 @@ extern BREthereumWalletId
 ewmGetWalletHoldingToken(BREthereumEWM ewm,
                          BREthereumToken token);
 
-extern BREthereumTransactionId
-ewmWalletCreateTransaction(BREthereumEWM ewm,
+extern BREthereumTransferId
+ewmWalletCreateTransfer(BREthereumEWM ewm,
                            BREthereumWallet wallet,
                            const char *recvAddress,
                            BREthereumAmount amount);
 
 extern void // status, error
-ewmWalletSignTransaction(BREthereumEWM ewm,
+ewmWalletSignTransfer(BREthereumEWM ewm,
                          BREthereumWallet wallet,
-                         BREthereumTransaction transaction,
+                         BREthereumTransfer transfer,
                          BRKey privateKey);
 
 extern void // status, error
-ewmWalletSignTransactionWithPaperKey(BREthereumEWM ewm,
+ewmWalletSignTransferWithPaperKey(BREthereumEWM ewm,
                                      BREthereumWallet wallet,
-                                     BREthereumTransaction transaction,
+                                  BREthereumTransfer transfer,
                                      const char *paperKey);
 
 extern void // status, error
-ewmWalletSubmitTransaction(BREthereumEWM ewm,
-                           BREthereumWallet wallet,
-                           BREthereumTransaction transaction);
+ewmWalletSubmitTransfer(BREthereumEWM ewm,
+                        BREthereumWalletId wid,
+                        BREthereumTransferId tid);
 
-extern BREthereumTransactionId *
-ewmWalletGetTransactions(BREthereumEWM ewm,
+extern BREthereumTransferId *
+ewmWalletGetTransfers(BREthereumEWM ewm,
                          BREthereumWallet wallet);
 
 extern int
-ewmWalletGetTransactionCount(BREthereumEWM ewm,
+ewmWalletGetTransferCount(BREthereumEWM ewm,
                              BREthereumWallet wallet);
 
 extern void
@@ -150,6 +150,53 @@ ewmGetBlockHeight(BREthereumEWM ewm);
 extern void
 ewmUpdateBlockHeight(BREthereumEWM ewm,
                      uint64_t blockHeight);
+
+
+
+
+
+    //
+    // Temporary (Perhaps) - Initiate Callbacks to Client
+    //
+    //
+    extern void
+    ewmUpdateBlockNumber (BREthereumEWM ewm);
+
+    extern void
+    ewmUpdateNonce (BREthereumEWM ewm);
+
+    /**
+     * Update the transactions for the ewm's account.  A JSON_RPC EWM will call out to
+     * BREthereumClientHandlerGetTransactions which is expected to query all transactions associated with the
+     * accounts address and then the call out is to call back the 'announce transaction' callback.
+     */
+    extern void
+    ewmUpdateTransactions (BREthereumEWM ewm);
+
+    extern void
+    ewmUpdateLogs (BREthereumEWM ewm,
+                   BREthereumWalletId wid,
+                   BREthereumContractEvent event);
+
+    extern void
+    ewmUpdateTokens (BREthereumEWM ewm);
+    
+    //
+    // Wallet Updates
+    //
+    extern void
+    ewmUpdateWalletBalance (BREthereumEWM ewm,
+                            BREthereumWalletId wid);
+
+    extern void
+    ewmUpdateTransferGasEstimate (BREthereumEWM ewm,
+                                  BREthereumWalletId wid,
+                                  BREthereumTransferId tid);
+
+    extern void
+    ewmUpdateWalletDefaultGasPrice (BREthereumEWM ewm,
+                                    BREthereumWalletId wid);
+
 
 #ifdef __cplusplus
 }

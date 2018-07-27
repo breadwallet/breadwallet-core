@@ -100,7 +100,7 @@ struct BREthereumEWMRecord {
      * The transactions seen/handled by this ewm.  These are used *solely* for the TransactionId
      * interface in EWM.  *All* transactions must be accesses through their wallet.
      */
-    BREthereumTransaction *transactions; // BRSet
+    BREthereumTransfer *transfers; // BRSet
 
     /**
      * The blocks handled by this ewm.  [This is currently just those handled for transactions
@@ -146,8 +146,8 @@ ewmLookupWalletId(BREthereumEWM ewm,
                   BREthereumWallet wallet);
 
 extern BREthereumWallet
-ewmLookupWalletByTransaction (BREthereumEWM ewm,
-                              BREthereumTransaction transaction);
+    ewmLookupWalletByTransfer (BREthereumEWM ewm,
+                               BREthereumTransfer transfer);
 
 extern BREthereumWalletId
 ewmInsertWallet (BREthereumEWM ewm,
@@ -161,18 +161,18 @@ extern BREthereumBlockId
 ewmInsertBlock (BREthereumEWM ewm,
                 BREthereumBlock block);
 
-extern BREthereumTransactionId
-ewmLookupTransactionId(BREthereumEWM ewm,
-                       BREthereumTransaction transaction);
+extern BREthereumTransferId
+    ewmLookupTransferId(BREthereumEWM ewm,
+                        BREthereumTransfer transfer);
 
-extern BREthereumTransactionId
-ewmInsertTransaction (BREthereumEWM ewm,
-                      BREthereumTransaction transaction);
+extern BREthereumTransferId
+    ewmInsertTransfer (BREthereumEWM ewm,
+                       BREthereumTransfer transfer);
 
 // TODO : NO, eliminate
 extern void
-ewmDeleteTransaction (BREthereumEWM ewm,
-                      BREthereumTransactionId tid);
+ewmDeleteTransfer (BREthereumEWM ewm,
+                      BREthereumTransferId tid);
 
 ///
 /// MARK: - BCS Callback Interfaces
@@ -232,12 +232,12 @@ ewmSignalGasPrice (BREthereumEWM ewm,
 extern void
 ewmHandleGasEstimate (BREthereumEWM ewm,
                       BREthereumWallet wallet,
-                      BREthereumTransaction transaction,
+                      BREthereumTransfer transfer,
                       BREthereumGas gasEstimate);
 extern void
 ewmSignalGasEstimate (BREthereumEWM ewm,
                       BREthereumWallet wallet,
-                      BREthereumTransaction transaction,
+                      BREthereumTransfer transfer,
                       BREthereumGas gasEstimate);
 
 //
@@ -384,14 +384,14 @@ ewmClientHandleAnnounceGasPrice (BREthereumEWM ewm,
 extern void
 ewmClientHandleAnnounceGasEstimate (BREthereumEWM ewm,
                                     BREthereumWallet wallet,
-                                    BREthereumTransaction transaction,
+                                    BREthereumTransfer transfer,
                                     UInt256 value,
                                     int rid);
 
 extern void
 ewmClientSignalAnnounceGasEstimate (BREthereumEWM ewm,
                                     BREthereumWallet wallet,
-                                    BREthereumTransaction transaction,
+                                    BREthereumTransfer transfer,
                                     UInt256 value,
                                     int rid);
 
@@ -399,15 +399,15 @@ ewmClientSignalAnnounceGasEstimate (BREthereumEWM ewm,
 // Signal/Handle Announce Submit (Client Callback)
 //
 extern void
-ewmClientSignalAnnounceSubmitTransaction (BREthereumEWM ewm,
+ewmClientSignalAnnounceSubmitTransfer (BREthereumEWM ewm,
                                           BREthereumWallet wallet,
-                                          BREthereumTransaction transaction,
+                                          BREthereumTransfer transfer,
                                           int rid);
 
 extern void
-ewmClientHandleAnnounceSubmitTransaction (BREthereumEWM ewm,
+ewmClientHandleAnnounceSubmitTransfer (BREthereumEWM ewm,
                                           BREthereumWallet wallet,
-                                          BREthereumTransaction transaction,
+                                          BREthereumTransfer transfer,
                                           int rid);
 
 //
@@ -488,14 +488,19 @@ ewmClientHandleAnnounceLog (BREthereumEWM ewm,
 // Signal/Handle Announce Token (Client Callback)
 //
 typedef struct {
-    BREthereumAddress target;
-    BREthereumAddress contract;
-    char *data;
+    char *address;
+    char *symbol;
+    char *name;
+    char *description;
+    unsigned int decimals;
 } BREthereumEWMClientAnnounceTokenBundle;
 
 static inline void
 ewmClientAnnounceTokenBundleRelease (BREthereumEWMClientAnnounceTokenBundle *bundle) {
-    free (bundle->data);
+    free (bundle->address);
+    free (bundle->symbol);
+    free (bundle->name);
+    free (bundle->description);
     free (bundle);
 }
 
@@ -546,18 +551,18 @@ ewmClientHandleBlockEvent(BREthereumEWM ewm,
 // Signal/Handle Transaction Event (Client Callback)
 //
 extern void
-ewmClientSignalTransactionEvent(BREthereumEWM ewm,
+ewmClientSignalTransferEvent(BREthereumEWM ewm,
                                 BREthereumWalletId wid,
-                                BREthereumTransactionId tid,
-                                BREthereumTransactionEvent event,
+                                BREthereumTransferId tid,
+                                BREthereumTransferEvent event,
                                 BREthereumStatus status,
                                 const char *errorDescription);
 
 extern void
-ewmClientHandleTransactionEvent(BREthereumEWM ewm,
+ewmClientHandleTransferEvent(BREthereumEWM ewm,
                                 BREthereumWalletId wid,
-                                BREthereumTransactionId tid,
-                                BREthereumTransactionEvent event,
+                                BREthereumTransferId tid,
+                                BREthereumTransferEvent event,
                                 BREthereumStatus status,
                                 const char *errorDescription);
 

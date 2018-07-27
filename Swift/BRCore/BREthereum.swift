@@ -289,7 +289,7 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit {
             : ethereumCreateTokenAmountString (self.ewm!.core, token!.core, amount, unit.coreForToken, &status))
         // Sure, ignore `status`
 
-        let tid = ethereumWalletCreateTransaction (self.ewm!.core,
+        let tid = ethereumWalletCreateTransfer (self.ewm!.core,
                                                    self.identifier,
                                                    recvAddress,
                                                    amount)
@@ -298,26 +298,26 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit {
 
 
     func sign (transaction : EthereumTransaction, paperKey : String) {
-        ethereumWalletSignTransaction (self.ewm!.core, self.identifier, transaction.identifier, paperKey)
+        ethereumWalletSignTransfer (self.ewm!.core, self.identifier, transaction.identifier, paperKey)
     }
 
     func sign (transaction: EthereumTransaction, privateKey: BRKey) {
-        ethereumWalletSignTransactionWithPrivateKey (self.ewm!.core, self.identifier, transaction.identifier, privateKey)
+        ethereumWalletSignTransferWithPrivateKey (self.ewm!.core, self.identifier, transaction.identifier, privateKey)
     }
 
     func submit (transaction : EthereumTransaction) {
-        ethereumWalletSubmitTransaction (self.ewm!.core, self.identifier, transaction.identifier)
+        ethereumWalletSubmitTransfer (self.ewm!.core, self.identifier, transaction.identifier)
     }
 
     var transactions : [EthereumTransaction] {
-        let count = ethereumWalletGetTransactionCount (self.ewm!.core, self.identifier)
-        let identifiers = ethereumWalletGetTransactions (self.ewm!.core, self.identifier)
+        let count = ethereumWalletGetTransferCount (self.ewm!.core, self.identifier)
+        let identifiers = ethereumWalletGetTransfers (self.ewm!.core, self.identifier)
         return UnsafeBufferPointer (start: identifiers, count: Int(exactly: count)!)
             .map { self.ewm!.findTransaction(identifier: $0) }
     }
 
     var transactionsCount : Int {
-        return Int (exactly: ethereumWalletGetTransactionCount (self.ewm!.core, self.identifier))!
+        return Int (exactly: ethereumWalletGetTransferCount (self.ewm!.core, self.identifier))!
     }
 }
 
@@ -722,7 +722,7 @@ public class EthereumWalletManager {
     }
 
     public func announceSubmitTransaction (wid: EthereumWalletId, tid: EthereumTransactionId, hash: String, rid: Int32) {
-        ethereumClientAnnounceSubmitTransaction (core, wid, tid, hash, rid)
+        ethereumClientAnnounceSubmitTransfer (core, wid, tid, hash, rid)
     }
 
     public func announceTransaction (rid: Int32,

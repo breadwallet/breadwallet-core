@@ -169,14 +169,14 @@ typedef struct {
     BREvent base;
     BREthereumEWM ewm;
     BREthereumWallet wallet;
-    BREthereumTransaction transaction;
+    BREthereumTransfer transfer;
     BREthereumGas gasEstimate;
 } BREthereumHandleGasEstimateEvent;
 
 static void
 ewmHandleGasEstimateEventDispatcher(BREventHandler ignore,
                                     BREthereumHandleGasEstimateEvent *event) {
-    ewmHandleGasEstimate(event->ewm, event->wallet, event->transaction, event->gasEstimate);
+    ewmHandleGasEstimate(event->ewm, event->wallet, event->transfer, event->gasEstimate);
 }
 
 BREventType handleGasEstimateEventType = {
@@ -188,9 +188,9 @@ BREventType handleGasEstimateEventType = {
 extern void
 ewmSignalGasEstimate (BREthereumEWM ewm,
                       BREthereumWallet wallet,
-                      BREthereumTransaction transaction,
+                      BREthereumTransfer transfer,
                       BREthereumGas gasEstimate) {
-    BREthereumHandleGasEstimateEvent event = { { NULL, &handleGasEstimateEventType }, ewm, wallet, transaction, gasEstimate };
+    BREthereumHandleGasEstimateEvent event = { { NULL, &handleGasEstimateEventType }, ewm, wallet, transfer, gasEstimate };
     eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
 }
 

@@ -133,12 +133,6 @@ transactionStatusRLPDecode (BRRlpItem item,
             free (reason);
             return status;
         }
-
-        case TRANSACTION_STATUS_CREATED:
-        case TRANSACTION_STATUS_SIGNED:
-        case TRANSACTION_STATUS_SUBMITTED:
-            // Never here - these three are additions, not part of LES txStatus
-            return transactionStatusCreate(type);
     }
 }
 
@@ -153,10 +147,6 @@ transactionStatusRLPEncode (BREthereumTransactionStatus status,
         case TRANSACTION_STATUS_UNKNOWN:
         case TRANSACTION_STATUS_QUEUED:
         case TRANSACTION_STATUS_PENDING:
-            // Others
-        case TRANSACTION_STATUS_CREATED:
-        case TRANSACTION_STATUS_SIGNED:
-        case TRANSACTION_STATUS_SUBMITTED:
             items[1] = rlpEncodeList(coder, 0);
             items[2] = rlpEncodeItemString(coder, "");
             break;

@@ -33,7 +33,7 @@
 #include "BRBase58.h"
 #include "BRBIP39WordsEn.h"
 
-#include "base/BREthereumBase.h"
+#include "../base/BREthereumBase.h"
 #include "BREthereumAccount.h"
 
 // BIP39 test vectors

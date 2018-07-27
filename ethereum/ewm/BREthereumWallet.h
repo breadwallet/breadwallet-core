@@ -26,9 +26,10 @@
 #ifndef BR_Ethereum_Wallet_H
 #define BR_Ethereum_Wallet_H
 
-#include "base/BREthereumBase.h"
-#include "blockchain/BREthereumBlockChain.h"
+#include "../base/BREthereumBase.h"
+#include "../blockchain/BREthereumBlockChain.h"
 #include "BREthereumAccount.h"
+#include "BREthereumTransfer.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,20 +59,7 @@ walletCreate(BREthereumAccount account,
              BREthereumNetwork network);
 
 /**
- * Create a wallet holding ETH; will use `address` as the wallet's address.  The provided address
- * must be owned by `account`.
- *
- * @param account
- * @param address
- * @return
- */
-extern BREthereumWallet
-walletCreateWithAddress(BREthereumAccount account,
-                        BREthereumAddress address,
-                        BREthereumNetwork network);
-
-/**
- * Create a Wallet holding Token.
+ * Create a Wallet holding Token; will use the account's primary address.
  *
  * @param account
  * @param token
@@ -86,19 +74,19 @@ extern void
 walletRelease (BREthereumWallet wallet);
     
 /**
- * Estimate the transaction fee (in Ether) for transferring amount.  The estimate uses
+ * Estimate the transfer fee (in Ether) for transferring amount.  The estimate uses
  * the wallet's default gasPrice and the amount's default gas.
  */
 extern BREthereumEther
-walletEstimateTransactionFee (BREthereumWallet wallet,
+walletEstimateTransferFee (BREthereumWallet wallet,
                               BREthereumAmount amount,
                               int *overflow);
 
 /**
- * Estimate the transaction fee (in Ether) for transferring amount.
+ * Estimate the transfer fee (in Ether) for transferring amount.
  */
 extern BREthereumEther
-walletEstimateTransactionFeeDetailed (BREthereumWallet wallet,
+walletEstimateTransferFeeDetailed (BREthereumWallet wallet,
                                       BREthereumAmount amount,
                                       BREthereumGasPrice price,
                                       BREthereumGas gas,
@@ -111,8 +99,8 @@ walletEstimateTransactionFeeDetailed (BREthereumWallet wallet,
  * @param amount
  * @return
  */
-extern BREthereumTransaction
-walletCreateTransaction(BREthereumWallet wallet,
+extern BREthereumTransfer
+walletCreateTransfer(BREthereumWallet wallet,
                         BREthereumAddress recvAddress,
                         BREthereumAmount amount);
 
@@ -121,9 +109,9 @@ walletCreateTransaction(BREthereumWallet wallet,
  * You will have all sorts of problems with `nonce`...
  
  *   1) It needs to be derived from and consistent with the wallet's address nonce.
- *         walletSignTransaction() - the first point where the nonce is used - will fatal.
- *   2) If you create a transaction, thereby using/incrementing a nonce, but then don't submit
- *         the transaction, then *all* subsequent transaction will be pended *forever*.
+ *         walletSignTransfer() - the first point where the nonce is used - will fatal.
+ *   2) If you create a transfer, thereby using/incrementing a nonce, but then don't submit
+ *         the transfer, then *all* subsequent transfer will be pended *forever*.
  *
  * @warn If you create it, you must submit it.
  *
@@ -135,46 +123,48 @@ walletCreateTransaction(BREthereumWallet wallet,
  * @param nonce
  * @return
  */
-extern BREthereumTransaction
-walletCreateTransactionDetailed(BREthereumWallet wallet,
+extern BREthereumTransfer
+walletCreateTransferDetailed(BREthereumWallet wallet,
                                 BREthereumAddress recvAddress,
-                                BREthereumAmount amount,
+                                BREthereumEther amount,
                                 BREthereumGasPrice gasPrice,
                                 BREthereumGas gasLimit,
+                                const char *data,
                                 uint64_t nonce);
 
 extern void
-walletSignTransaction(BREthereumWallet wallet,
-                      BREthereumTransaction transaction,
+walletSignTransfer(BREthereumWallet wallet,
+                      BREthereumTransfer transfer,
                       const char *paperKey);
 
 extern void
-walletSignTransactionWithPrivateKey(BREthereumWallet wallet,
-                                    BREthereumTransaction transaction,
+walletSignTransferWithPrivateKey(BREthereumWallet wallet,
+                                    BREthereumTransfer transfer,
                                     BRKey privateKey);
 
+#ifdef WALLET_NEED_RAW
 /**
- * For `transaction`, get the 'signed transaction data' suitable for use in the RPC-JSON Ethereum
- * method `eth_sendRawTransaction` (once hex-encoded).
+ * For `transfer`, get the 'signed transfer data' suitable for use in the RPC-JSON Ethereum
+ * method `eth_sendRawTransfer` (once hex-encoded).
  *
  * @param wallet
- * @param transaction
+ * @param transfer
  * @return
  */
 extern BRRlpData  // uint8_t, EthereumByteArray
-walletGetRawTransaction(BREthereumWallet wallet,
-                        BREthereumTransaction transaction);
+walletGetRawTransfer(BREthereumWallet wallet,
+                        BREthereumTransfer transfer);
 
 /**
- * For `transaction`, get the `signed transation data`, encoded in hex with an optional prefix
- * (typically "0x"), suitable for use in the RPC-JSON Ethereum method 'eth_sendRawTransaction"
+ * For `transfer`, get the `signed transation data`, encoded in hex with an optional prefix
+ * (typically "0x"), suitable for use in the RPC-JSON Ethereum method 'eth_sendRawTransfer"
  *
  */
 extern char *
-walletGetRawTransactionHexEncoded (BREthereumWallet wallet,
-                                   BREthereumTransaction transaction,
+walletGetRawTransferHexEncoded (BREthereumWallet wallet,
+                                   BREthereumTransfer transfer,
                                    const char *prefix);
-
+#endif // WALLET_NEED_RAW
 /**
  *
  */
@@ -209,7 +199,7 @@ extern BREthereumGas
 walletGetDefaultGasLimit(BREthereumWallet wallet);
 
 /**
- * Set the wallet's default Gas Limit.  When creating a transaction, unless otherwise specified,
+ * Set the wallet's default Gas Limit.  When creating a transfer, unless otherwise specified,
  * this GasLimit is used.  The default value depends on the wallet type: ETH, ERC20 Token or
  * Contract; therefore, set it carefully.
  *
@@ -238,42 +228,42 @@ extern void
 walletSetDefaultGasPrice(BREthereumWallet wallet, BREthereumGasPrice gasPrice);
 
 //
-// Transactions
+// Transfers
 //
-typedef int (*BREthereumTransactionPredicate) (void *context, BREthereumTransaction transaction, unsigned int index);
-typedef void (*BREthereumTransactionWalker) (void *context, BREthereumTransaction transaction, unsigned int index);
+typedef int (*BREthereumTransferPredicate) (void *context, BREthereumTransfer transfer, unsigned int index);
+typedef void (*BREthereumTransferWalker) (void *context, BREthereumTransfer transfer, unsigned int index);
 
 extern int
-transactionPredicateAny (void *ignore,
-                         BREthereumTransaction transaction,
+transferPredicateAny (void *ignore,
+                         BREthereumTransfer transfer,
                          unsigned int index);
 
 extern int
-transactionPredicateStatus (BREthereumTransactionStatusType type,
-                            BREthereumTransaction transaction,
+transferPredicateStatus (BREthereumTransferStatusType type,
+                            BREthereumTransfer transfer,
                             unsigned int index);
 
 extern void
-walletWalkTransactions (BREthereumWallet wallet,
+walletWalkTransfers (BREthereumWallet wallet,
                         void *context,
-                        BREthereumTransactionPredicate predicate,
-                        BREthereumTransactionWalker walker);
+                        BREthereumTransferPredicate predicate,
+                        BREthereumTransferWalker walker);
 
-extern BREthereumTransaction
-walletGetTransactionByHash (BREthereumWallet wallet,
+extern BREthereumTransfer
+walletGetTransferByHash (BREthereumWallet wallet,
                             BREthereumHash hash);
 
-extern BREthereumTransaction
-walletGetTransactionByNonce(BREthereumWallet wallet,
+extern BREthereumTransfer
+walletGetTransferByNonce(BREthereumWallet wallet,
                             BREthereumAddress sourceAddress,
                             uint64_t nonce);
 
-extern BREthereumTransaction
-walletGetTransactionByIndex(BREthereumWallet wallet,
+extern BREthereumTransfer
+walletGetTransferByIndex(BREthereumWallet wallet,
                             uint64_t index);
 
 extern unsigned long
-walletGetTransactionCount (BREthereumWallet wallet);
+walletGetTransferCount (BREthereumWallet wallet);
 
 #ifdef __cplusplus
 }

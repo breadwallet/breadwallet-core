@@ -32,7 +32,7 @@ extern "C" {
 
 #include "BRKey.h"
 #include "BRInt.h"
-#include "base/BREthereumBase.h"
+#include "../base/BREthereumBase.h"
 
 //
 // Account

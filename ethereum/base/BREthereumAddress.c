@@ -78,10 +78,18 @@ addressCreateKey (const BRKey *key) {
     return address;
 }
 
+
 extern char *
 addressGetEncodedString (BREthereumAddress address, int useChecksum) {
-    char *string = calloc (1, 43);
+    char *string = calloc (1, ADDRESS_ENCODED_CHARS);
+    addressFillEncodedString(address, useChecksum, string);
+    return string;
+}
 
+extern void
+addressFillEncodedString (BREthereumAddress address,
+                          int useChecksum,
+                          char *string) {
 
     // Fill in string
     string[0] = '0';
@@ -90,7 +98,7 @@ addressGetEncodedString (BREthereumAddress address, int useChecksum) {
     // Offset '2' into address->string and account for the '\0' terminator.
     encodeHex(&string[2], 40 + 1, address.bytes, 20);
 
-    if (!useChecksum) return string;
+    if (!useChecksum) return;
 
     // And now the 'checksum after thought'
 
@@ -143,7 +151,6 @@ addressGetEncodedString (BREthereumAddress address, int useChecksum) {
                            ? (char) tolower(checksumAddr[i])
                            : (char) toupper(checksumAddr[i]));
     }
-    return string;
 }
 
 extern BREthereumHash
@@ -168,13 +175,13 @@ addressRlpDecode (BRRlpItem item, BRRlpCoder coder) {
 
 extern BRRlpItem
 addressRlpEncode(BREthereumAddress address,
-                    BRRlpCoder coder) {
+                 BRRlpCoder coder) {
     return rlpEncodeItemBytes(coder, address.bytes, 20);
 }
 
 extern BREthereumBoolean
 addressEqual (BREthereumAddress address1,
-                 BREthereumAddress address2) {
+              BREthereumAddress address2) {
     return (0 == memcmp(address1.bytes, address2.bytes, 20)
             ? ETHEREUM_BOOLEAN_TRUE
             : ETHEREUM_BOOLEAN_FALSE);
