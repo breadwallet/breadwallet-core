@@ -124,6 +124,12 @@ extern "C" {
     extern BREthereumTransaction
     transferGetOriginatingTransaction (BREthereumTransfer transfer);
 
+    extern BREthereumTransaction
+    transferGetBasisTransaction (BREthereumTransfer transfer);
+
+    extern BREthereumLog
+    transferGetBasisLog (BREthereumTransfer transfer);
+
     extern void
     transferSign (BREthereumTransfer transfer,
                   BREthereumNetwork network,

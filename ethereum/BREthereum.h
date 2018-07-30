@@ -188,6 +188,10 @@ typedef enum {
     CLIENT_CHANGE_UPD
 } BREthereumClientChangeType;
 
+#define CLIENT_CHANGE_TYPE_NAME( ev ) \
+    (CLIENT_CHANGE_ADD == (ev) ? "Add" \
+     : (CLIENT_CHANGE_REM == (ev) ? "Rem" : "Upd"))
+
 typedef void
 (*BREthereumClientHandlerSaveBlocks) (BREthereumClientContext context,
                                       BREthereumEWM ewm,
@@ -260,14 +264,14 @@ typedef enum {
     // Transfer State
     TRANSFER_EVENT_SIGNED,
     TRANSFER_EVENT_SUBMITTED,
-    TRANSFER_EVENT_BLOCKED,  // aka confirmed
+    TRANSFER_EVENT_INCLUDED,  // aka confirmed
     TRANSFER_EVENT_ERRORED,
 
 
     TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
     TRANSFER_EVENT_BLOCK_CONFIRMATIONS_UPDATED,
 
-    TRANSACTION_EVENT_DELETED
+    TRANSFER_EVENT_DELETED
 
 } BREthereumTransferEvent;
 

@@ -247,6 +247,20 @@ transferGetOriginatingTransaction (BREthereumTransfer transfer) {
     return transfer->originatingTransaction;
 }
 
+extern BREthereumTransaction
+transferGetBasisTransaction (BREthereumTransfer transfer) {
+    return (TRANSFER_BASIS_TRANSACTION == transfer->basis.type
+            ? transfer->basis.u.transaction
+            : NULL);
+}
+
+extern BREthereumLog
+transferGetBasisLog (BREthereumTransfer transfer) {
+    return (TRANSFER_BASIS_LOG == transfer->basis.type
+            ? transfer->basis.u.log
+            : NULL);
+}
+
 extern void
 transferSign (BREthereumTransfer transfer,
               BREthereumNetwork network,

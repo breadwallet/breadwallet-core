@@ -109,13 +109,10 @@ createEWMEnsureTransactions (BRArrayOf(BREthereumPersistData) transactionsPersis
     array_new(transactions, transactionsCount);
 
     for (size_t index = 0; index < transactionsCount; index++) {
+        fprintf (stdout, "ETH: TST: EnsureTrans @ %p\n", transactionsPersistData[index].blob.bytes);
+
         BRRlpItem item = rlpGetItem(coder, transactionsPersistData[index].blob);
-        BREthereumTransaction transaction = transactionRlpDecode(item, network, RLP_TYPE_TRANSACTION_SIGNED, coder);
-
-        // TODO: In above, use TRANSACTION_RLP_ARCHIVE when it exists.
-        BREthereumTransactionStatus status = transactionStatusCreate(TRANSACTION_STATUS_PENDING);
-        transactionSetStatus(transaction, status);
-
+        BREthereumTransaction transaction = transactionRlpDecode(item, network, RLP_TYPE_ARCHIVE, coder);
         array_insert (transactions, index, transaction);
     }
 
@@ -136,6 +133,8 @@ createEWMEnsureLogs(BRArrayOf(BREthereumPersistData) logsPersistData,
     array_new(logs, logsCount);
 
     for (size_t index = 0; index < logsCount; index++) {
+        fprintf (stdout, "ETH: TST: EnsureLogs @ %p\n", logsPersistData[index].blob.bytes);
+
         BRRlpItem item = rlpGetItem(coder, logsPersistData[index].blob);
         BREthereumLog log = logRlpDecode(item, RLP_TYPE_ARCHIVE, coder);
         array_insert (logs, index, log);
@@ -388,7 +387,7 @@ ewmLookupTransferByHash (BREthereumEWM ewm,
 
     pthread_mutex_lock(&ewm->lock);
     for (int i = 0; i < array_count(ewm->transfers); i++)
-        if (ETHEREUM_COMPARISON_EQ == hashCompare(hash, transactionGetHash(ewm->transfers[i]))) {
+        if (ETHEREUM_COMPARISON_EQ == hashCompare(hash, transferGetHash(ewm->transfers[i]))) {
             transfer = ewm->transfers[i];
             break;
         }
@@ -434,36 +433,12 @@ ewmDeleteTransfer (BREthereumEWM ewm,
     for (int wid = 0; wid < array_count(ewm->wallets); wid++)
         if (walletHasTransfer(ewm->wallets[wid], transfer)) {
             walletUnhandleTransfer(ewm->wallets[wid], transfer);
-            ewmClientSignalTransferEvent(ewm, wid, tid, TRANSACTION_EVENT_DELETED, SUCCESS, NULL);
+            ewmClientSignalTransferEvent(ewm, wid, tid, TRANSFER_EVENT_DELETED, SUCCESS, NULL);
         }
 
     // Null the ewm's `tid` - MUST NOT array_rm() as all `tid` holders will be dead.
     ewm->transfers[tid] = NULL;
     transferRelease(transfer);
-}
-
-static BREthereumTransfer
-ewmCreateTransferFromTransaction (BREthereumEWM ewm,
-                                  BREthereumTransaction transaction) {
-    return NULL;
-}
-
-static BREthereumTransfer
-ewmCreateTransferFromLog (BREthereumEWM ewm,
-                          BREthereumLog log) {
-    return  NULL;
-}
-
-static BREthereumTransfer
-ewmLookupTransferByTransaction (BREthereumEWM ewm,
-                                BREthereumTransaction transaction) {
-    return NULL;
-}
-
-static BREthereumTransfer
-ewmLooupTransferByLog (BREthereumEWM ewm,
-                       BREthereumLog log) {
-    return NULL;
 }
 
 ///
@@ -666,9 +641,9 @@ ewmWalletSetDefaultGasPrice(BREthereumEWM ewm,
 /**
  * Handle a default `gasPrice` for `wallet`
  *
- * @param ewm <#ewm description#>
- * @param wallet <#wallet description#>
- * @param gasPrice <#gasPrice description#>
+ * @param ewm
+ * @param wallet
+ * @param gasPrice
  */
 extern void
 ewmHandleGasPrice (BREthereumEWM ewm,
@@ -690,10 +665,10 @@ ewmHandleGasPrice (BREthereumEWM ewm,
 /**
  * Handle a `gasEstimate` for `transaction` in `wallet`
  *
- * @param ewm <#ewm description#>
- * @param wallet <#wallet description#>
- * @param transaction <#transaction description#>
- * @param gasEstimate <#gasEstimate description#>
+ * @param ewm
+ * @param wallet
+ * @param transaction
+ * @param gasEstimate
  */
 extern void
 ewmHandleGasEstimate (BREthereumEWM ewm,
@@ -741,6 +716,9 @@ ewmHandleBlockChain (BREthereumEWM ewm,
     // Don't rebort during sync.
     if (ETHEREUM_BOOLEAN_IS_FALSE(bcsSyncInProgress(ewm->bcs)))
         eth_log ("EWM", "BlockChain: %llu", headBlockNumber);
+
+    // TODO: Need a 'block id' - or axe the need of 'block id'?
+    //
     // ewmClientSignalBlockEvent(<#BREthereumEWM ewm#>, <#BREthereumBlockId bid#>, <#BREthereumBlockEvent event#>, <#BREthereumStatus status#>, <#const char *errorDescription#>)
 }
 
@@ -823,69 +801,9 @@ ewmHandleTransaction (BREthereumEWM ewm,
 
     // TODO: Not quite
     ewmClientSignalTransferEvent(ewm, wid, tid,
-                                 TRANSFER_EVENT_BLOCKED,
+                                 TRANSFER_EVENT_INCLUDED,
                                  SUCCESS, NULL);
 }
-
-#if 0
-    BREthereumAmount amount = transactionGetAmount(transaction);
-    BREthereumToken token =  (AMOUNT_TOKEN == amountGetType(amount) ? amountGetToken(amount) : NULL);
-    
-    BREthereumWalletId wid = (NULL == token ? 0 : ewmGetWalletHoldingToken(ewm, token));
-    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
-    assert (NULL != wallet);
-    
-    BREthereumTransferId tid = ewmLookupTransferId(ewm, transaction);
-    
-    // If `transaction` is new, then add it to the EWM
-    if (-1 == tid)
-        tid = ewmInsertTransfer(ewm, transaction);
-    
-    // We have a hash?  We had a hash all along?
-    // walletTransactionSubmitted(wallet, transaction, transactionGetHash(transaction));
-    
-    // If `transaction` is not yet held in `wallet`
-    if (!walletHasTransaction(wallet, transaction)) {
-        //
-        //  a) add to the wallet
-        walletHandleTransaction(wallet, transaction);
-        //
-        //  b) announce the wallet update
-        //  TODO: Need a hash here?
-        ewmClientSignalTransferEvent(ewm, wid, tid,
-                                          TRANSACTION_EVENT_CREATED,
-                                          SUCCESS, NULL);
-    }
-    
-    BREthereumTransactionStatus status = transactionGetStatus(transaction);
-    switch (status.type) {
-        case TRANSACTION_STATUS_UNKNOWN:
-            break;
-        case TRANSACTION_STATUS_QUEUED:
-        case TRANSACTION_STATUS_PENDING:
-            break;
-        case TRANSACTION_STATUS_INCLUDED:
-            ewmClientSignalTransferEvent(ewm, wid, tid,
-                                              (ewmGetBlockHeight(ewm) == status.u.included.blockNumber
-                                               ? TRANSACTION_EVENT_BLOCKED
-                                               : TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED),
-                                              SUCCESS, NULL);
-            break;
-        case TRANSACTION_STATUS_ERRORED:
-            ewmClientSignalTransferEvent(ewm, wid, tid,
-                                              (ewmGetBlockHeight(ewm) == status.u.included.blockNumber
-                                               ? TRANSACTION_EVENT_BLOCKED
-                                               : TRANSACTION_EVENT_BLOCK_CONFIRMATIONS_UPDATED),
-                                              ERROR_TRANSACTION_SUBMISSION,
-                                              status.u.errored.reason);
-            break;
-            
-        case TRANSACTION_STATUS_CREATED:
-        case TRANSACTION_STATUS_SIGNED:
-        case TRANSACTION_STATUS_SUBMITTED:
-            break;
-    }
-#endif
 
 extern void
 ewmHandleLog (BREthereumEWM ewm,
@@ -927,7 +845,7 @@ ewmHandleLog (BREthereumEWM ewm,
 
     // TODO: Not quite
     ewmClientSignalTransferEvent(ewm, wid, tid,
-                                 TRANSFER_EVENT_BLOCKED,
+                                 TRANSFER_EVENT_INCLUDED,
                                  SUCCESS, NULL);
 }
 
@@ -995,8 +913,9 @@ ewmHandleSync (BREthereumEWM ewm,
 
     eth_log ("EWM", "Sync: %d, %.2f%%", type, syncCompletePercent);
 }
+
 //
-// Connect // Disconnect
+// Periodic Dispatcher
 //
 
 static void

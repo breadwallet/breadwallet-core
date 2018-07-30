@@ -599,35 +599,45 @@ ewmClientHandleBlockEvent(BREthereumEWM ewm,
 }
 
 extern void
-ewmClientHandleTransferEvent(BREthereumEWM ewm,
-                                BREthereumWalletId wid,
-                                BREthereumTransferId tid,
-                                BREthereumTransferEvent event,
-                                BREthereumStatus status,
-                                const char *errorDescription) {
+ewmClientHandleTransferEvent (BREthereumEWM ewm,
+                              BREthereumWalletId wid,
+                              BREthereumTransferId tid,
+                              BREthereumTransferEvent event,
+                              BREthereumStatus status,
+                              const char *errorDescription) {
 
-#if 0
-    BREthereumTransfer transaction = ewm->transfers[tid];
-    BREthereumHash hash = transactionGetHash(transaction);
+    if (TRANSFER_EVENT_GAS_ESTIMATE_UPDATED != event &&
+        TRANSFER_EVENT_BLOCK_CONFIRMATIONS_UPDATED != event) {
+        BREthereumTransfer transfer = ewm->transfers[tid];
+        BREthereumTransaction transaction = transferGetBasisTransaction (transfer);
+        BREthereumLog log = transferGetBasisLog(transfer);
+        assert (NULL == transaction || NULL == log);
 
-    // Transaction to 'Persist Data'
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = transactionRlpEncode(transaction, ewm->network, RLP_TYPE_TRANSACTION_SIGNED, coder);
-    BREthereumPersistData persistData = { hash, rlpGetData(coder, item) };
-    rlpCoderRelease(coder);
+        BREthereumClientChangeType type = (event == TRANSFER_EVENT_CREATED
+                                           ? CLIENT_CHANGE_ADD
+                                           : (event == TRANSFER_EVENT_DELETED
+                                              ? CLIENT_CHANGE_REM
+                                              : CLIENT_CHANGE_UPD));
 
-    BREthereumClientChangeType type = (event == TRANSFER_EVENT_CREATED
-                                       ? CLIENT_CHANGE_ADD
-                                       : (event == TRANSACTION_EVENT_DELETED
-                                          ? CLIENT_CHANGE_REM
-                                          : CLIENT_CHANGE_UPD));
+        BRRlpCoder coder = rlpCoderCreate();
 
-    ewm->client.funcChangeTransaction
-    (ewm->client.context, ewm,
-     type,
-     persistData);
-    rlpDataRelease(persistData.blob);
-#endif
+        BRRlpItem item = (NULL != transaction
+                          ? transactionRlpEncode (transaction, ewm->network, RLP_TYPE_ARCHIVE, coder)
+                          : logRlpEncode(log, RLP_TYPE_ARCHIVE, coder));
+
+        BREthereumHash hash = (NULL != transaction
+                               ? transactionGetHash(transaction)
+                               : logGetHash(log));
+
+        BREthereumPersistData persistData = { hash,  rlpGetData(coder, item) };
+        rlpCoderRelease(coder);
+
+        if (NULL != transaction)
+            ewm->client.funcChangeTransaction (ewm->client.context, ewm, type, persistData);
+        else
+            ewm->client.funcChangeLog (ewm->client.context, ewm, type, persistData);
+    }
+
     ewm->client.funcTransferEvent
     (ewm->client.context,
      ewm,

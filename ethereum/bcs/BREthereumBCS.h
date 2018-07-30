@@ -170,10 +170,6 @@ bcsIsStarted (BREthereumBCS bcs);
 extern void
 bcsDestroy (BREthereumBCS bcs);
 
-// Should be unneeded
-extern BREthereumLES
-bcsGetLES (BREthereumBCS bcs);
-
 extern void
 bcsSync (BREthereumBCS bcs,
          uint64_t blockNumber);
@@ -181,16 +177,38 @@ bcsSync (BREthereumBCS bcs,
 extern BREthereumBoolean
 bcsSyncInProgress (BREthereumBCS bcs);
 
+/**
+ * Submit `transaction` to the Ethereum Network
+ *
+ * @param bcs
+ * @param transaction
+ */
 extern void
 bcsSendTransaction (BREthereumBCS bcs,
                     BREthereumTransaction transaction);
 
+/**
+ * Request the status of `transaction` for the given block from the Ethereum Network
+ *
+ * @param bcs
+ * @param transactionHash
+ * @param blockNumber
+ *@param blockTransactionIndex
+ */
 extern void
 bcsSendTransactionRequest (BREthereumBCS bcs,
                            BREthereumHash transactionHash,
                            uint64_t blockNumber,
                            uint64_t blockTransactionIndex);
 
+/**
+ * Request the status of `log` for the given block from the Ethereum Network
+ *
+ * @param bcs
+ * @param transactionHash
+ * @param blockNumber
+ * @param blockTransactionIndex 
+ */
 extern void
 bcsSendLogRequest (BREthereumBCS bcs,
                    BREthereumHash transactionHash,

@@ -242,12 +242,13 @@ clientSaveBlocks (BREthereumClientContext context,
     static int count = 0;
     static int total = 0;
     total += array_count(blocksToSave);
-    eth_log("Client", "Save Blocks (%d): %d", (++count), total);
+    eth_log("TST", "Save Blocks (%d): %d", (++count), total);
 
     if (NULL != savedBlocks) {
         for (size_t item = 0; item < array_count(savedBlocks); item++)
             rlpDataRelease(savedBlocks[item].blob);
         array_free(savedBlocks);
+        savedBlocks = NULL;
     }
 
     array_new (savedBlocks, array_count(blocksToSave));
@@ -278,6 +279,8 @@ clientUpdateTransaction (BREthereumClientContext context,
                          BREthereumEWM ewm,
                          BREthereumClientChangeType type,
                          BREthereumPersistData transactionPersistData) {
+    fprintf (stdout, "ETH: TST: UpdateTransaction: ev=%s @ %p\n", CLIENT_CHANGE_TYPE_NAME(type), transactionPersistData.blob.bytes);
+
     if (NULL == savedTransactions)
         savedTransactions = BRSetNew(persistDataHashValue, persistDataHashEqual, 100);
 
@@ -291,12 +294,12 @@ clientUpdateTransaction (BREthereumClientContext context,
 
         case CLIENT_CHANGE_REM:
             data = BRSetRemove(savedTransactions, data);
-            if (NULL != data) free (data);
+            if (NULL != data) { rlpDataRelease(data->blob); free (data); }
             break;
 
         case CLIENT_CHANGE_UPD:
             data = BRSetAdd(savedTransactions, data);
-            if (NULL != data) free (data);
+            if (NULL != data) { rlpDataRelease(data->blob); free (data); }
             break;
     }
 }
@@ -311,23 +314,29 @@ clientUpdateLog (BREthereumClientContext context,
                  BREthereumEWM ewm,
                  BREthereumClientChangeType type,
                  BREthereumPersistData logPersistData) {
+    fprintf (stdout, "ETH: TST: UpdateLog: ev=%s @ %p\n", CLIENT_CHANGE_TYPE_NAME(type), logPersistData.blob.bytes);
+
     if (NULL == savedLogs)
         savedLogs = BRSetNew(persistDataHashValue, persistDataHashEqual, 100);
 
+    BREthereumPersistData *data = malloc (sizeof (BREthereumPersistData));
+    memcpy (data, &logPersistData, sizeof (BREthereumPersistData));
+
     switch (type) {
         case CLIENT_CHANGE_ADD:
-            BRSetAdd(savedLogs, &logPersistData);
+            BRSetAdd(savedLogs, data);
             break;
 
         case CLIENT_CHANGE_REM:
-            BRSetRemove(savedLogs, &logPersistData);
+            data = BRSetRemove(savedLogs, data);
+            if (NULL != data) { rlpDataRelease(data->blob); free (data); }
             break;
 
         case CLIENT_CHANGE_UPD:
-            BRSetAdd(savedLogs, &logPersistData);
+            data = BRSetAdd(savedLogs, data);
+            if (NULL != data) { rlpDataRelease(data->blob); free (data); }
             break;
     }
-
 }
 
 static void
@@ -644,6 +653,8 @@ runEWM_PUBLIC_KEY_test (BREthereumNetwork network, const char *paperKey) {
 extern void
 runSyncTest (unsigned int durationInSeconds,
              int restart) {
+    eth_log("TST", "SyncTest%s", "");
+
     client.context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
     char *paperKey = "boring head harsh green empty clip fatal typical found crane dinner timber";
@@ -667,8 +678,10 @@ runSyncTest (unsigned int durationInSeconds,
         if (NULL != savedLogs) {
             size_t logsCount = BRSetCount(savedLogs);
             array_new(logs, logsCount);
-            BRSetAll (savedLogs, (void**)logs, logsCount);
-            array_set_count(logs, logsCount);
+            for (BREthereumPersistData *data = BRSetIterate(savedLogs, NULL);
+                 NULL != data;
+                 data = BRSetIterate(savedLogs, data))
+                array_add (logs, *data);
         }
     }
 
@@ -677,6 +690,10 @@ runSyncTest (unsigned int durationInSeconds,
                                        blocks,
                                        transactions,
                                        logs);
+
+    // TODO: Hack-a-Roo
+    if (NULL != savedBlocks) savedBlocks = NULL;
+    
     ethereumConnect(ewm);
 
     unsigned int remaining = durationInSeconds;
