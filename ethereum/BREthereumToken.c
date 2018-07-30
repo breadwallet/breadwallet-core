@@ -484,6 +484,23 @@ static struct BREthereumTokenRecord tokens[] = {
     },
     
     {
+#if defined (BITCOIN_TESTNET) && 1 == BITCOIN_TESTNET
+        "0x6e67ccd648244b3b8e2f56149b40ba8de9d79b09", // testnet,
+#else
+        "0x9e3359f862b6c7f5c660cfd6d1aa6909b1d9504d", // mainnet
+#endif
+        "CCC",
+        "Container Crypto Coin",
+        "",
+        18,
+        "#95C121",
+        "#95C121",
+        { TOKEN_BRD_DEFAULT_GAS_LIMIT },
+        { { { .u64 = {TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, 0, 0, 0}}}},
+        1
+    },
+
+    {
         "0x12FEF5e57bF45873Cd9B62E9DBd7BFb99e32D73e",
         "CFI",
         "Cofound.it",
