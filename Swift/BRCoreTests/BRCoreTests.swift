@@ -34,7 +34,7 @@ class BRCoreTests: XCTestCase {
 
         client.node.connect()
 
-        sleep(1000)
+        sleep(1 * 60)
         client.node.disconnect()
     }
 
@@ -136,9 +136,28 @@ class TestLightClient : EthereumClient {
         return
     }
 
-        func getBlockNumber(ewm: EthereumWalletManager, rid: Int32) {
-            ewm.announceBlockNumber(blockNumber: "5900000", rid: rid)
-        }
+    func getTokens(ewm: EthereumWalletManager, rid: Int32) {
+        ewm.announceToken (rid: rid,
+                           address: "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6",
+                           symbol: "BRD",
+                           name: "BRD Token",
+                           description: "The BRD Token",
+                           decimals: 18)
+
+        ewm.announceToken (rid: rid,
+                           address: (ewm.network == EthereumNetwork.mainnet
+                                ? "0x9e3359f862b6c7f5c660cfd6d1aa6909b1d9504d"
+                                : "0x6e67ccd648244b3b8e2f56149b40ba8de9d79b09"),
+                           symbol: "CCC",
+                           name: "Container Crypto Coin",
+                           description: "",
+                           decimals: 18)
+    }
+
+
+    func getBlockNumber(ewm: EthereumWalletManager, rid: Int32) {
+        ewm.announceBlockNumber(blockNumber: "5900000", rid: rid)
+    }
 
     func getNonce(ewm: EthereumWalletManager, address: String, rid: Int32) {
         ewm.announceNonce(address: address, nonce: "17", rid: rid)
@@ -193,10 +212,10 @@ class TestLightClient : EthereumClient {
         }
     }
 
-    func handleTransactionEvent(ewm: EthereumWalletManager,
+    func handleTransferEvent(ewm: EthereumWalletManager,
                                 wallet: EthereumWallet,
-                                transaction: EthereumTransaction,
-                                event: EthereumTransactionEvent) {
+                                transfer: EthereumTransfer,
+                                event: EthereumTransferEvent) {
         // Get the transaction... then
         print ("TST: TransactionEvent: \(event)\n")
         switch (event) {
