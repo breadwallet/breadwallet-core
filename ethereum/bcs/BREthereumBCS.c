@@ -396,8 +396,8 @@ bcsReclaimBlock (BREthereumBCS bcs,
 
 static void
 bcsSaveBlocks (BREthereumBCS bcs) {
-    // We'll save everything between bcs->chain and bcs->chainTail
-    unsigned long long blockCount = blockGetNumber(bcs->chain) - blockGetNumber(bcs->chainTail) + 1;
+    // We'll save everything between bcs->chain->next and bcs->chainTail
+    unsigned long long blockCount = blockGetNumber(bcs->chain) - blockGetNumber(bcs->chainTail);
 
     // We'll pass long the blocks directly, for now.  This will likely need to change because
     // this code will lose control of the block memory.
@@ -408,7 +408,7 @@ bcsSaveBlocks (BREthereumBCS bcs) {
     array_new(blocks, blockCount);
     array_set_count(blocks, blockCount);
 
-    BREthereumBlock next = bcs->chain;
+    BREthereumBlock next = blockGetNext (bcs->chain);
     BREthereumBlock last = bcs->chainTail;
     unsigned long long blockIndex = blockCount - 1;
 
@@ -423,7 +423,7 @@ bcsSaveBlocks (BREthereumBCS bcs) {
     
     eth_log("BCS", "Blocks {%llu, %llu} Saved",
             blockGetNumber(bcs->chainTail),
-            blockGetNumber(bcs->chain));
+            blockGetNumber(blockGetNext(bcs->chain)));
 }
 
 static void
