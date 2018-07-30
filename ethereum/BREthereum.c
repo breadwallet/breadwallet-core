@@ -26,10 +26,10 @@
 #include <string.h>
 #include <assert.h>
 #include "BREthereum.h"
-#include "blockchain/BREthereumTransaction.h"
-#include "blockchain/BREthereumBlock.h"
-#include "ewm/BREthereumEWMPrivate.h"
 #include "BREthereumWallet.h"
+#include "BREthereumTransfer.h"
+#include "blockchain/BREthereumBlock.h"
+#include "ewm/BREthereumEWMPrivate.h" // ewmClientSignal*
 
 //
 //
@@ -140,10 +140,10 @@ ethereumWalletSetDefaultGasLimit(BREthereumEWM ewm,
 extern uint64_t
 ethereumWalletGetGasEstimate(BREthereumEWM ewm,
                              BREthereumWalletId wid,
-                             BREthereumTransactionId tid) {
+                             BREthereumTransferId tid) {
     //  BREthereumWallet wallet = lightewmLookupWallet(ewm, wid);
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    return transactionGetGasEstimate(transaction).amountOfGas;
+    BREthereumTransfer transfer = ewmLookupTransfer(ewm, tid);
+    return transferGetGasEstimate(transfer).amountOfGas;
 }
 
 extern void
@@ -195,67 +195,65 @@ ethereumWalletGetBalanceTokenQuantity(BREthereumEWM ewm,
 }
 
 extern BREthereumEther
-ethereumWalletEstimateTransactionFee(BREthereumEWM ewm,
+ethereumWalletEstimateTransferFee(BREthereumEWM ewm,
                                      BREthereumWalletId wid,
                                      BREthereumAmount amount,
                                      int *overflow) {
     BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
-    return walletEstimateTransactionFee(wallet, amount, overflow);
+    return walletEstimateTransferFee(wallet, amount, overflow);
 }
 
-extern BREthereumTransactionId
-ethereumWalletCreateTransaction(BREthereumEWM ewm,
+extern BREthereumTransferId
+ethereumWalletCreateTransfer(BREthereumEWM ewm,
                                 BREthereumWalletId wid,
                                 const char *recvAddress,
                                 BREthereumAmount amount) {
     BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
-    return ewmWalletCreateTransaction(ewm, wallet, recvAddress, amount);
+    return ewmWalletCreateTransfer(ewm, wallet, recvAddress, amount);
 }
 
 extern void // status, error
-ethereumWalletSignTransaction(BREthereumEWM ewm,
+ethereumWalletSignTransfer(BREthereumEWM ewm,
                               BREthereumWalletId wid,
-                              BREthereumTransactionId tid,
+                              BREthereumTransferId tid,
                               const char *paperKey) {
     BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    ewmWalletSignTransactionWithPaperKey(ewm, wallet, transaction, paperKey);
+    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
+    ewmWalletSignTransferWithPaperKey(ewm, wallet, transaction, paperKey);
 }
 
 extern void // status, error
-ethereumWalletSignTransactionWithPrivateKey(BREthereumEWM ewm,
+ethereumWalletSignTransferWithPrivateKey(BREthereumEWM ewm,
                                             BREthereumWalletId wid,
-                                            BREthereumTransactionId tid,
+                                            BREthereumTransferId tid,
                                             BRKey privateKey) {
     BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    ewmWalletSignTransaction(ewm, wallet, transaction, privateKey);
+    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
+    ewmWalletSignTransfer(ewm, wallet, transaction, privateKey);
 }
 
 extern void // status, error
-ethereumWalletSubmitTransaction(BREthereumEWM ewm,
+ethereumWalletSubmitTransfer(BREthereumEWM ewm,
                                 BREthereumWalletId wid,
-                                BREthereumTransactionId tid) {
-    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    ewmWalletSubmitTransaction(ewm, wallet, transaction);
+                                BREthereumTransferId tid) {
+    ewmWalletSubmitTransfer(ewm, wid, tid);
 }
 
 //
 //
 //
-extern BREthereumTransactionId *
-ethereumWalletGetTransactions(BREthereumEWM ewm,
+extern BREthereumTransferId *
+ethereumWalletGetTransfers(BREthereumEWM ewm,
                               BREthereumWalletId wid) {
     BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
-    return ewmWalletGetTransactions(ewm, wallet);
+    return ewmWalletGetTransfers(ewm, wallet);
 }
 
 extern int
-ethereumWalletGetTransactionCount(BREthereumEWM ewm,
+ethereumWalletGetTransferCount(BREthereumEWM ewm,
                                   BREthereumWalletId wid) {
     BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
-    return ewmWalletGetTransactionCount(ewm, wallet);
+    return ewmWalletGetTransferCount(ewm, wallet);
 }
 
 extern BREthereumBoolean
@@ -308,105 +306,107 @@ ethereumBlockGetHash (BREthereumEWM ewm,
 }
 
 //
-// Transaction
+// Transfer
 //
 extern char *
-ethereumTransactionGetRecvAddress(BREthereumEWM ewm,
-                                  BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    return addressGetEncodedString(transactionGetTargetAddress(transaction), 1);
+ethereumTransferGetRecvAddress(BREthereumEWM ewm,
+                                  BREthereumTransferId tid) {
+    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
+    return addressGetEncodedString(transferGetTargetAddress(transaction), 1);
 }
 
 extern char * // sender, source
-ethereumTransactionGetSendAddress(BREthereumEWM ewm,
-                                  BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    return addressGetEncodedString(transactionGetSourceAddress(transaction), 1);
+ethereumTransferGetSendAddress(BREthereumEWM ewm,
+                                  BREthereumTransferId tid) {
+    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
+    return addressGetEncodedString(transferGetSourceAddress(transaction), 1);
 }
 
 extern char *
-ethereumTransactionGetHash(BREthereumEWM ewm,
-                           BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    return hashAsString (transactionGetHash(transaction));
+ethereumTransferGetHash(BREthereumEWM ewm,
+                           BREthereumTransferId tid) {
+    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
+    return hashAsString (transferGetHash(transaction));
 }
 
 extern char *
-ethereumTransactionGetAmountEther(BREthereumEWM ewm,
-                                  BREthereumTransactionId tid,
+ethereumTransferGetAmountEther(BREthereumEWM ewm,
+                                  BREthereumTransferId tid,
                                   BREthereumEtherUnit unit) {
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    BREthereumAmount amount = transactionGetAmount(transaction);
+    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
+    BREthereumAmount amount = transferGetAmount(transaction);
     return (AMOUNT_ETHER == amountGetType(amount)
             ? etherGetValueString(amountGetEther(amount), unit)
             : "");
 }
 
 extern char *
-ethereumTransactionGetAmountTokenQuantity(BREthereumEWM ewm,
-                                          BREthereumTransactionId tid,
+ethereumTransferGetAmountTokenQuantity(BREthereumEWM ewm,
+                                          BREthereumTransferId tid,
                                           BREthereumTokenQuantityUnit unit) {
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    BREthereumAmount amount = transactionGetAmount(transaction);
+    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
+    BREthereumAmount amount = transferGetAmount(transaction);
     return (AMOUNT_TOKEN == amountGetType(amount)
             ? tokenQuantityGetValueString(amountGetTokenQuantity(amount), unit)
             : "");
 }
 
 extern BREthereumAmount
-ethereumTransactionGetAmount(BREthereumEWM ewm,
-                             BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    return transactionGetAmount(transaction);
+ethereumTransferGetAmount(BREthereumEWM ewm,
+                             BREthereumTransferId tid) {
+    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
+    return transferGetAmount(transaction);
 }
 
-extern BREthereumAmount
-ethereumTransactionGetGasPriceToo(BREthereumEWM ewm,
-                                  BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    BREthereumGasPrice gasPrice = transactionGetGasPrice(transaction);
-    return amountCreateEther (gasPrice.etherPerGas);
-}
+//extern BREthereumAmount
+//ethereumTransferGetGasPriceToo(BREthereumEWM ewm,
+//                                  BREthereumTransferId tid) {
+//    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
+//    BREthereumGasPrice gasPrice = transferGetGasPrice(transaction);
+//    return amountCreateEther (gasPrice.etherPerGas);
+//}
 
 extern char *
-ethereumTransactionGetGasPrice(BREthereumEWM ewm,
-                               BREthereumTransactionId tid,
+ethereumTransferGetGasPrice(BREthereumEWM ewm,
+                               BREthereumTransferId tid,
                                BREthereumEtherUnit unit) {
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    BREthereumGasPrice gasPrice = transactionGetGasPrice(transaction);
-    return etherGetValueString(gasPrice.etherPerGas, unit);
+    BREthereumTransfer transfer = ewmLookupTransfer(ewm, tid);
+    BREthereumFeeBasis feeBasis = transferGetFeeBasis(transfer);
+    return etherGetValueString(feeBasisGetGasPrice(feeBasis).etherPerGas, unit);
 }
 
 extern uint64_t
-ethereumTransactionGetGasLimit(BREthereumEWM ewm,
-                               BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    return transactionGetGasLimit(transaction).amountOfGas;
+ethereumTransferGetGasLimit(BREthereumEWM ewm,
+                               BREthereumTransferId tid) {
+    BREthereumTransfer transfer = ewmLookupTransfer(ewm, tid);
+    BREthereumFeeBasis feeBasis = transferGetFeeBasis(transfer);
+    return feeBasisGetGasLimit(feeBasis).amountOfGas;
 }
 
 extern uint64_t
-ethereumTransactionGetGasUsed(BREthereumEWM ewm,
-                              BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    BREthereumTransactionStatus status = transactionGetStatus(transaction);
+ethereumTransferGetNonce(BREthereumEWM ewm,
+                         BREthereumTransferId tid) {
+    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
+    return transferGetNonce(transaction);
+}
+
+#if 0
+extern uint64_t
+ethereumTransferGetGasUsed(BREthereumEWM ewm,
+                              BREthereumTransferId tid) {
+    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
+    BREthereumTransferStatus status = transferGetStatus(transaction);
     BREthereumGas gasUsed;
     return (transactionStatusExtractIncluded(&status, &gasUsed, NULL, NULL, NULL)
             ? gasUsed.amountOfGas
             : 0);
 }
 
-extern uint64_t
-ethereumTransactionGetNonce(BREthereumEWM ewm,
-                            BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    return transactionGetNonce(transaction);
-}
-
 extern BREthereumHash
-ethereumTransactionGetBlockHash(BREthereumEWM ewm,
-                                BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    BREthereumTransactionStatus status = transactionGetStatus(transaction);
+ethereumTransferGetBlockHash(BREthereumEWM ewm,
+                                BREthereumTransferId tid) {
+    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
+    BREthereumTransferStatus status = transferGetStatus(transaction);
     BREthereumHash blockHash;
     return (transactionStatusExtractIncluded(&status, NULL, &blockHash, NULL, NULL)
             ? blockHash
@@ -414,10 +414,10 @@ ethereumTransactionGetBlockHash(BREthereumEWM ewm,
 }
 
 extern uint64_t
-ethereumTransactionGetBlockNumber(BREthereumEWM ewm,
-                                  BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    BREthereumTransactionStatus status = transactionGetStatus(transaction);
+ethereumTransferGetBlockNumber(BREthereumEWM ewm,
+                                  BREthereumTransferId tid) {
+    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
+    BREthereumTransferStatus status = transferGetStatus(transaction);
     uint64_t blockNumber;
     return (transactionStatusExtractIncluded(&status, NULL, NULL, &blockNumber, NULL)
             ? blockNumber
@@ -425,56 +425,59 @@ ethereumTransactionGetBlockNumber(BREthereumEWM ewm,
 }
 
 extern uint64_t
-ethereumTransactionGetBlockConfirmations(BREthereumEWM ewm,
-                                         BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    BREthereumTransactionStatus status = transactionGetStatus(transaction);
+ethereumTransferGetBlockConfirmations(BREthereumEWM ewm,
+                                         BREthereumTransferId tid) {
+    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
+    BREthereumTransferStatus status = transferGetStatus(transaction);
     uint64_t blockNumber = 0;
     return (transactionStatusExtractIncluded(&status, NULL, NULL, &blockNumber, NULL)
             ? (ewmGetBlockHeight(ewm) - blockNumber)
             : 0);
 }
-
+#endif
 extern BREthereumBoolean
-ethereumTransactionIsConfirmed(BREthereumEWM ewm,
-                               BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    return transactionIsConfirmed(transaction);
+ethereumTransferIsConfirmed(BREthereumEWM ewm,
+                               BREthereumTransferId tid) {
+    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
+    return transferHasStatusType (transaction, TRANSFER_STATUS_INCLUDED);
 }
 
 extern BREthereumBoolean
-ethereumTransactionIsSubmitted(BREthereumEWM ewm,
-                               BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    return transactionIsSubmitted(transaction);
+ethereumTransferIsSubmitted(BREthereumEWM ewm,
+                               BREthereumTransferId tid) {
+    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
+    return AS_ETHEREUM_BOOLEAN(ETHEREUM_BOOLEAN_IS_TRUE(transferHasStatusType(transaction, TRANSFER_STATUS_SUBMITTED)) ||
+                               ETHEREUM_BOOLEAN_IS_TRUE(transferHasStatusTypeOrTwo(transaction,
+                                                                                   TRANSFER_STATUS_INCLUDED,
+                                                                                   TRANSFER_STATUS_ERRORED)));
 }
 
 extern BREthereumBoolean
-ethereumTransactionHoldsToken(BREthereumEWM ewm,
-                              BREthereumTransactionId tid,
+ethereumTransferHoldsToken(BREthereumEWM ewm,
+                              BREthereumTransferId tid,
                               BREthereumToken token) {
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
+    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
     assert (NULL != transaction);
-    return (token == transactionGetToken(transaction)
+    return (token == transferGetToken(transaction)
             ? ETHEREUM_BOOLEAN_TRUE
             : ETHEREUM_BOOLEAN_FALSE);
 }
 
 extern BREthereumToken
-ethereumTransactionGetToken(BREthereumEWM ewm,
-                            BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
+ethereumTransferGetToken(BREthereumEWM ewm,
+                            BREthereumTransferId tid) {
+    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
     assert (NULL != transaction);
-    return transactionGetToken(transaction);
+    return transferGetToken(transaction);
 }
 
 extern BREthereumEther
-ethereumTransactionGetFee(BREthereumEWM ewm,
-                          BREthereumTransactionId tid,
+ethereumTransferGetFee(BREthereumEWM ewm,
+                          BREthereumTransferId tid,
                           int *overflow) {
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    assert (NULL != transaction);
-    return transactionGetFee(transaction, overflow);
+    BREthereumTransfer transfer = ewmLookupTransfer(ewm, tid);
+    assert (NULL != transfer);
+    return transferGetFee(transfer, overflow);
 }
 
 //
@@ -523,6 +526,13 @@ ethereumCoerceTokenAmountToString(BREthereumEWM ewm,
 //
 // We parse the strings to get valid values and then pass it own to EWM.
 
+//
+// Block Number
+//
+extern void
+ethereumClientUpdateBlockNumber (BREthereumEWM ewm) {
+    ewmUpdateBlockNumber(ewm);
+}
 extern BREthereumStatus
 ethereumClientAnnounceBlockNumber (BREthereumEWM ewm,
                                    const char *strBlockNumber,
@@ -530,6 +540,14 @@ ethereumClientAnnounceBlockNumber (BREthereumEWM ewm,
     uint64_t blockNumber = strtoull(strBlockNumber, NULL, 0);
     ewmClientSignalAnnounceBlockNumber (ewm, blockNumber, rid);
     return SUCCESS;
+}
+
+//
+// Nonce
+//
+extern void
+ethereumUpdateNonce (BREthereumEWM ewm) {
+    ewmUpdateNonce(ewm);
 }
 
 extern BREthereumStatus
@@ -541,6 +559,15 @@ ethereumClientAnnounceNonce (BREthereumEWM ewm,
     uint64_t nonce = strtoull (strNonce, NULL, 0);
     ewmClientSignalAnnounceNonce(ewm, address, nonce, rid);
     return SUCCESS;
+}
+
+//
+// Balance
+//
+extern void
+ethereumUpdateWalletBalance (BREthereumEWM ewm,
+                             BREthereumWalletId wid) {
+    ewmUpdateWalletBalance(ewm, wid);
 }
 
 extern BREthereumStatus
@@ -560,6 +587,15 @@ ethereumClientAnnounceBalance (BREthereumEWM ewm,
     return SUCCESS;
 }
 
+//
+// Gas Price
+//
+extern void
+ethereumUpdateWalletDefaultGasPrice (BREthereumEWM ewm,
+                                     BREthereumWalletId wid) {
+    ewmUpdateWalletDefaultGasPrice(ewm, wid);
+}
+
 extern BREthereumStatus
 ethereumClientAnnounceGasPrice(BREthereumEWM ewm,
                                BREthereumWalletId wid,
@@ -576,16 +612,26 @@ ethereumClientAnnounceGasPrice(BREthereumEWM ewm,
     return SUCCESS;
 }
 
+//
+// Gas Estimate
+//
+extern void
+ethereumUpdateTransferGasEstimate (BREthereumEWM ewm,
+                                   BREthereumWalletId wid,
+                                   BREthereumTransferId tid) {
+    ewmUpdateTransferGasEstimate(ewm, wid, tid);
+}
+
 extern BREthereumStatus
 ethereumClientAnnounceGasEstimate (BREthereumEWM ewm,
                                    BREthereumWalletId wid,
-                                   BREthereumTransactionId tid,
+                                   BREthereumTransferId tid,
                                    const char *gasEstimate,
                                    int rid) {
     BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
     if (NULL == wallet) { return ERROR_UNKNOWN_WALLET; }
 
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
+    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
     if (NULL == transaction) { return ERROR_UNKNOWN_TRANSACTION; }
 
     BRCoreParseStatus parseStatus;
@@ -599,25 +645,36 @@ ethereumClientAnnounceGasEstimate (BREthereumEWM ewm,
     return SUCCESS;
 }
 
+//
+// Submit
+//
 extern BREthereumStatus
-ethereumClientAnnounceSubmitTransaction(BREthereumEWM ewm,
+ethereumClientAnnounceSubmitTransfer(BREthereumEWM ewm,
                                         BREthereumWalletId wid,
-                                        BREthereumTransactionId tid,
+                                        BREthereumTransferId tid,
                                         const char *strHash,
                                         int id) {
     BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
     if (NULL == wallet) { return ERROR_UNKNOWN_WALLET; }
 
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
-    if (NULL == transaction) { return ERROR_UNKNOWN_TRANSACTION; }
+    BREthereumTransfer transfer = ewmLookupTransfer(ewm, tid);
+    if (NULL == transfer) { return ERROR_UNKNOWN_TRANSACTION; }
 
     BREthereumHash hash = hashCreate(strHash);
-    if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(transactionGetHash(transaction), hashCreateEmpty()))
-        || ETHEREUM_BOOLEAN_IS_FALSE (hashEqual(transactionGetHash(transaction), hash)))
+    if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(transferGetHash(transfer), hashCreateEmpty()))
+        || ETHEREUM_BOOLEAN_IS_FALSE (hashEqual(transferGetHash(transfer), hash)))
         return ERROR_TRANSACTION_HASH_MISMATCH;
 
-    ewmClientSignalAnnounceSubmitTransaction (ewm, wallet, transaction, id);
+    ewmClientSignalAnnounceSubmitTransfer (ewm, wallet, transfer, id);
     return SUCCESS;
+}
+
+//
+// Transactions
+//
+extern void
+ethereumUpdateTransactions (BREthereumEWM ewm) {
+    ewmUpdateTransactions(ewm);
 }
 
 extern BREthereumStatus
@@ -688,6 +745,16 @@ ethereumClientAnnounceTransaction(BREthereumEWM ewm,
 //    "cumulativeGasUsed":"106535",
 //    "gasUsed":"21000",
 //    "confirmations":"339050"}
+
+//
+// Logs
+//
+extern void
+ethereumUpdateLogs (BREthereumEWM ewm,
+                    BREthereumWalletId wid,
+                    BREthereumContractEvent event) {
+    ewmUpdateLogs(ewm, wid, event);
+}
 
 extern BREthereumStatus
 ethereumClientAnnounceLog (BREthereumEWM ewm,
@@ -762,16 +829,30 @@ ethereumClientAnnounceLog (BREthereumEWM ewm,
 //              ...
 //              }
 
-static BREthereumStatus
+//
+// Tokens
+//
+extern void
+ethereumUpdateTokens (BREthereumEWM ewm) {
+    ewmUpdateTokens (ewm);
+}
+
+extern BREthereumStatus
 ethereumClientAnnounceToken (BREthereumEWM ewm,
                              int id,
-                  const char *target,
-                  const char *contract,
-                             const char *data) {
-    BRCoreParseStatus parseStatus;
+                             const char *address,
+                             const char *symbol,
+                             const char *name,
+                             const char *description,
+                             unsigned int decimals) {
     BREthereumEWMClientAnnounceTokenBundle *bundle = malloc (sizeof (BREthereumEWMClientAnnounceTokenBundle));
 
-    //
+    bundle->address = strdup (address);
+    bundle->symbol = strdup (symbol);
+    bundle->name = strdup (name);
+    bundle->description = strdup(description);
+    bundle->decimals = decimals;
+
     ewmClientSignalAnnounceToken(ewm, bundle, id);
     return SUCCESS;
 }

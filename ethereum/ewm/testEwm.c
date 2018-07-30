@@ -107,7 +107,7 @@ static void
 clientEstimateGas (BREthereumClientContext context,
                    BREthereumEWM ewm,
                    BREthereumWalletId wid,
-                   BREthereumTransactionId tid,
+                   BREthereumTransferId tid,
                    const char *to,
                    const char *amount,
                    const char *data,
@@ -119,11 +119,11 @@ static void
 clientSubmitTransaction (BREthereumClientContext context,
                          BREthereumEWM ewm,
                          BREthereumWalletId wid,
-                         BREthereumTransactionId tid,
+                         BREthereumTransferId tid,
                          const char *transaction,
                          int rid) {
     // The transaction hash
-    ethereumClientAnnounceSubmitTransaction(ewm, wid, tid, "0x123abc456def", rid);
+    ethereumClientAnnounceSubmitTransfer(ewm, wid, tid, "0x123abc456def", rid);
 }
 
 static void
@@ -217,6 +217,19 @@ clientGetNonce (BREthereumClientContext context,
     ethereumClientAnnounceNonce(ewm, address, "0x4", rid);
 }
 
+
+static void
+clientGetTokens (BREthereumClientContext context,
+                 BREthereumEWM ewm,
+                 int rid) {
+    ethereumClientAnnounceToken(ewm, rid,
+                                "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6",
+                                "BRD",
+                                "BRD Token",
+                                "BRD Token Description",
+                                18);
+}
+
 //
 // Save Blocks
 //
@@ -229,12 +242,13 @@ clientSaveBlocks (BREthereumClientContext context,
     static int count = 0;
     static int total = 0;
     total += array_count(blocksToSave);
-    eth_log("Client", "Save Blocks (%d): %d", (++count), total);
+    eth_log("TST", "Save Blocks (%d): %d", (++count), total);
 
     if (NULL != savedBlocks) {
         for (size_t item = 0; item < array_count(savedBlocks); item++)
             rlpDataRelease(savedBlocks[item].blob);
         array_free(savedBlocks);
+        savedBlocks = NULL;
     }
 
     array_new (savedBlocks, array_count(blocksToSave));
@@ -265,6 +279,8 @@ clientUpdateTransaction (BREthereumClientContext context,
                          BREthereumEWM ewm,
                          BREthereumClientChangeType type,
                          BREthereumPersistData transactionPersistData) {
+    fprintf (stdout, "ETH: TST: UpdateTransaction: ev=%s @ %p\n", CLIENT_CHANGE_TYPE_NAME(type), transactionPersistData.blob.bytes);
+
     if (NULL == savedTransactions)
         savedTransactions = BRSetNew(persistDataHashValue, persistDataHashEqual, 100);
 
@@ -278,12 +294,12 @@ clientUpdateTransaction (BREthereumClientContext context,
 
         case CLIENT_CHANGE_REM:
             data = BRSetRemove(savedTransactions, data);
-            if (NULL != data) free (data);
+            if (NULL != data) { rlpDataRelease(data->blob); free (data); }
             break;
 
         case CLIENT_CHANGE_UPD:
             data = BRSetAdd(savedTransactions, data);
-            if (NULL != data) free (data);
+            if (NULL != data) { rlpDataRelease(data->blob); free (data); }
             break;
     }
 }
@@ -298,23 +314,29 @@ clientUpdateLog (BREthereumClientContext context,
                  BREthereumEWM ewm,
                  BREthereumClientChangeType type,
                  BREthereumPersistData logPersistData) {
+    fprintf (stdout, "ETH: TST: UpdateLog: ev=%s @ %p\n", CLIENT_CHANGE_TYPE_NAME(type), logPersistData.blob.bytes);
+
     if (NULL == savedLogs)
         savedLogs = BRSetNew(persistDataHashValue, persistDataHashEqual, 100);
 
+    BREthereumPersistData *data = malloc (sizeof (BREthereumPersistData));
+    memcpy (data, &logPersistData, sizeof (BREthereumPersistData));
+
     switch (type) {
         case CLIENT_CHANGE_ADD:
-            BRSetAdd(savedLogs, &logPersistData);
+            BRSetAdd(savedLogs, data);
             break;
 
         case CLIENT_CHANGE_REM:
-            BRSetRemove(savedLogs, &logPersistData);
+            data = BRSetRemove(savedLogs, data);
+            if (NULL != data) { rlpDataRelease(data->blob); free (data); }
             break;
 
         case CLIENT_CHANGE_UPD:
-            BRSetAdd(savedLogs, &logPersistData);
+            data = BRSetAdd(savedLogs, data);
+            if (NULL != data) { rlpDataRelease(data->blob); free (data); }
             break;
     }
-
 }
 
 static void
@@ -349,8 +371,8 @@ static void
 clientEventTransaction (BREthereumClientContext context,
                         BREthereumEWM ewm,
                         BREthereumWalletId wid,
-                        BREthereumTransactionId tid,
-                        BREthereumTransactionEvent event,
+                        BREthereumTransferId tid,
+                        BREthereumTransferEvent event,
                         BREthereumStatus status,
                         const char *errorDescription) {
     fprintf (stdout, "ETH: TST: TransEvent: tid=%d, ev=%d\n", tid, event);
@@ -388,6 +410,7 @@ static BREthereumClient client = {
     clientSubmitTransaction,
     clientGetTransactions,
     clientGetLogs,
+    clientGetTokens,
     clientGetBlockNumber,
     clientGetNonce,
 
@@ -466,27 +489,27 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
     BREthereumAmount amountAmountInEther =
     ethereumCreateEtherAmountUnit(ewm, amount, WEI);
 
-    BREthereumTransactionId tx1 =
-    ethereumWalletCreateTransaction
+    BREthereumTransferId tx1 =
+    ethereumWalletCreateTransfer
     (ewm,
      wallet,
      recvAddr,
      amountAmountInEther);
 
-    ethereumWalletSignTransaction (ewm, wallet, tx1, paperKey);
+    ethereumWalletSignTransfer (ewm, wallet, tx1, paperKey);
 
     const char *rawTransactionHexEncoded =
-    ethereumTransactionGetRawDataHexEncoded(ewm, wallet, tx1, "0x");
+    ethereumTransferGetRawDataHexEncoded(ewm, wallet, tx1, "0x");
 
     printf ("        Raw Transaction: %s\n", rawTransactionHexEncoded);
 
     char *fromAddr = ethereumGetAccountPrimaryAddress(ewm);
-    BREthereumTransactionId *transactions = ethereumWalletGetTransactions(ewm, wallet);
-    assert (NULL != transactions && -1 != transactions[0]);
+    BREthereumTransferId *transfers = ethereumWalletGetTransfers(ewm, wallet);
+    assert (NULL != transfers && -1 != transfers[0]);
 
-    BREthereumTransactionId transaction = transactions[0];
-    assert (0 == strcmp (fromAddr, ethereumTransactionGetSendAddress(ewm, transaction)) &&
-            0 == strcmp (recvAddr, ethereumTransactionGetRecvAddress(ewm, transaction)));
+    BREthereumTransferId transfer = transfers[0];
+    assert (0 == strcmp (fromAddr, ethereumTransferGetSendAddress(ewm, transfer)) &&
+            0 == strcmp (recvAddr, ethereumTransferGetRecvAddress(ewm, transfer)));
 
     free (fromAddr);
     ethereumDestroy(ewm);
@@ -529,14 +552,14 @@ testReallySend (void) {
     BREthereumAmount amountAmountInEther =
     ethereumCreateEtherAmountString(ewm, strAmount, ETHER, &status);
 
-    BREthereumTransactionId tx =
-    ethereumWalletCreateTransaction
+    BREthereumTransferId tx =
+    ethereumWalletCreateTransfer
     (ewm,
      wallet,
      recvAddr,
      amountAmountInEther);
 
-    ethereumWalletSignTransaction (ewm, wallet, tx, paperKey);
+    ethereumWalletSignTransfer (ewm, wallet, tx, paperKey);
 
     ethereumConnect(ewm);
 
@@ -545,7 +568,7 @@ testReallySend (void) {
     sleep (10);
     printf ("***\n***\n***\n*** SUBMITING\n***\n");
 
-    ethereumWalletSubmitTransaction(ewm, wallet, tx);
+    ethereumWalletSubmitTransfer(ewm, wallet, tx);
 #endif
     // 2 minutes ?? to confirm
     unsigned int remaining = 2 * 60;
@@ -554,7 +577,7 @@ testReallySend (void) {
         remaining = sleep(remaining);
     }
 
-    ewmDeleteTransaction(ewm, tx);
+    ewmDeleteTransfer(ewm, tx);
     ethereumDisconnect(ewm);
     ethereumDestroy(ewm);
     alarmClockDestroy(alarmClock);
@@ -583,27 +606,27 @@ runEWM_TOKEN_test (const char *paperKey) {
 
     BREthereumToken token = tokenGet(0);
     BREthereumEWM ewm = ethereumCreate (ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, client, NULL, NULL, NULL, NULL);
-    BREthereumWalletId wallet = ethereumGetWalletHoldingToken(ewm, token);
+    BREthereumWalletId wid = ethereumGetWalletHoldingToken(ewm, token);
 
     BREthereumAmount amount = ethereumCreateTokenAmountString(ewm, token,
                                                               TEST_TRANS3_DECIMAL_AMOUNT,
                                                               TOKEN_QUANTITY_TYPE_DECIMAL,
                                                               &status);
-    BREthereumTransactionId transaction =
-    ethereumWalletCreateTransaction (ewm, wallet,
+    BREthereumTransferId tid =
+    ethereumWalletCreateTransfer (ewm, wid,
                                      TEST_TRANS3_TARGET_ADDRESS,
                                      amount);
 
-    const char *rawTxUnsigned = ethereumTransactionGetRawDataHexEncoded(ewm, wallet, transaction, "0x");
+    const char *rawTxUnsigned = ethereumTransferGetRawDataHexEncoded(ewm, wid, tid, "0x");
     printf ("        RawTx Unsigned: %s\n", rawTxUnsigned);
     // No match: nonce, gasLimit, gasPrice differ
     // assert (0 == strcasecmp(&rawTxUnsigned[2], TEST_TRANS3_UNSIGNED_TX));
 
-    ethereumWalletSignTransaction(ewm, wallet, transaction, paperKey);
-    const char *rawTxSigned = ethereumTransactionGetRawDataHexEncoded(ewm, wallet, transaction, "0x");
+    ethereumWalletSignTransfer(ewm, wid, tid, paperKey);
+    const char *rawTxSigned = ethereumTransferGetRawDataHexEncoded(ewm, wid, tid, "0x");
     printf ("        RawTx  Signed: %s\n", rawTxSigned);
 
-    ewmDeleteTransaction(ewm, transaction);
+    ewmDeleteTransfer(ewm, tid);
     ethereumDestroy(ewm);
 }
 
@@ -630,6 +653,8 @@ runEWM_PUBLIC_KEY_test (BREthereumNetwork network, const char *paperKey) {
 extern void
 runSyncTest (unsigned int durationInSeconds,
              int restart) {
+    eth_log("TST", "SyncTest%s", "");
+
     client.context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
     char *paperKey = "boring head harsh green empty clip fatal typical found crane dinner timber";
@@ -653,8 +678,10 @@ runSyncTest (unsigned int durationInSeconds,
         if (NULL != savedLogs) {
             size_t logsCount = BRSetCount(savedLogs);
             array_new(logs, logsCount);
-            BRSetAll (savedLogs, (void**)logs, logsCount);
-            array_set_count(logs, logsCount);
+            for (BREthereumPersistData *data = BRSetIterate(savedLogs, NULL);
+                 NULL != data;
+                 data = BRSetIterate(savedLogs, data))
+                array_add (logs, *data);
         }
     }
 
@@ -663,6 +690,10 @@ runSyncTest (unsigned int durationInSeconds,
                                        blocks,
                                        transactions,
                                        logs);
+
+    // TODO: Hack-a-Roo
+    if (NULL != savedBlocks) savedBlocks = NULL;
+    
     ethereumConnect(ewm);
 
     unsigned int remaining = durationInSeconds;

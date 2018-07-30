@@ -27,49 +27,49 @@
 #define BR_Ethereum_Private_H
 
 #include "BREthereum.h"
-#include "blockchain/BREthereumTransaction.h"
 #include "blockchain/BREthereumBlock.h"
+#include "BREthereumTransfer.h"
 #include "BREthereumWallet.h"
 
 // Returns Ether appropriate for encoding a transaction.  If the transaction is for a TOKEN,
 // then the returned Ether is zero (because the amount of a TOKEN transfer is encoded in the
 // contract's function call, in the transaction.data field).
 private_extern BREthereumEther
-transactionGetEffectiveAmountInEther (BREthereumTransaction transaction);
+transferGetEffectiveAmountInEther (BREthereumTransfer transfer);
 
 private_extern void
 walletSetBalance (BREthereumWallet wallet,
                   BREthereumAmount balance);
 
 private_extern void
-walletTransactionSubmitted (BREthereumWallet wallet,
-                            BREthereumTransaction transaction,
+walletTransferSubmitted (BREthereumWallet wallet,
+                            BREthereumTransfer transaction,
                             const BREthereumHash hash); // ....
 
 private_extern void
-walletTransactionIncluded(BREthereumWallet wallet,
-                          BREthereumTransaction transaction,
+walletTransferIncluded(BREthereumWallet wallet,
+                          BREthereumTransfer transaction,
                           BREthereumGas gasUsed,
                           BREthereumHash blockHash,
                           uint64_t blockNumber,
                           uint64_t blockTransactionIndex);
 
 private_extern void
-walletTransactionErrored (BREthereumWallet wallet,
-                          BREthereumTransaction transaction,
+walletTransferErrored (BREthereumWallet wallet,
+                          BREthereumTransfer transaction,
                           const char *reason);
 
 private_extern void
-walletHandleTransaction (BREthereumWallet wallet,
-                         BREthereumTransaction transaction);
+walletHandleTransfer (BREthereumWallet wallet,
+                      BREthereumTransfer transfer);
 
 private_extern void
-walletUnhandleTransaction (BREthereumWallet wallet,
-                           BREthereumTransaction transaction);
+walletUnhandleTransfer (BREthereumWallet wallet,
+                           BREthereumTransfer transaction);
 
 private_extern int
-walletHasTransaction (BREthereumWallet wallet,
-                      BREthereumTransaction transaction);
+walletHasTransfer (BREthereumWallet wallet,
+                      BREthereumTransfer transaction);
 
 //
 // Account (Primary) Address Nonce
@@ -128,44 +128,5 @@ private_extern UInt256
 eventERC20TransferDecodeUInt256 (BREthereumContractEvent event,
                                  const char *number,
                                  BRCoreParseStatus *status);
-
-//
-// Temporary (Perhaps) - Initiate Callbacks to Client
-//
-//
-extern void
-ewmUpdateBlockNumber (BREthereumEWM ewm);
-
-extern void
-ewmUpdateNonce (BREthereumEWM ewm);
-
-/**
- * Update the transactions for the ewm's account.  A JSON_RPC EWM will call out to
- * BREthereumClientHandlerGetTransactions which is expected to query all transactions associated with the
- * accounts address and then the call out is to call back the 'announce transaction' callback.
- */
-extern void
-ewmUpdateTransactions (BREthereumEWM ewm);
-
-extern void
-ewmUpdateLogs (BREthereumEWM ewm,
-               BREthereumWalletId wid,
-               BREthereumContractEvent event);
-
-//
-// Wallet Updates
-//
-extern void
-ewmUpdateWalletBalance (BREthereumEWM ewm,
-                        BREthereumWalletId wid);
-
-extern void
-ewmUpdateTransactionGasEstimate (BREthereumEWM ewm,
-                                 BREthereumWalletId wid,
-                                 BREthereumTransactionId tid);
-
-extern void
-ewmUpdateWalletDefaultGasPrice (BREthereumEWM ewm,
-                                BREthereumWalletId wid);
 
 #endif /* BR_Ethereum_Private_H */

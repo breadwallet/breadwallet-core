@@ -36,11 +36,10 @@
 extern "C" {
 #endif
 
-//
-// Address Raw (QUASI-INTERNAL - currently used for Block/Log Encoding/Decoding
-//
+#define ADDRESS_BYTES   (20)
+
 typedef struct {
-    uint8_t bytes[20];
+    uint8_t bytes[ADDRESS_BYTES];
 } BREthereumAddress;
 
 #define EMPTY_ADDRESS_INIT   { \
@@ -68,8 +67,15 @@ addressCreate (const char *address);
 extern BREthereumAddress
 addressCreateKey (const BRKey *keyWithPubKeyProvided);
 
+#define ADDRESS_ENCODED_CHARS    (2*ADDRESS_BYTES + 2 + 1)  // "0x" prefaced
+
 extern char *
 addressGetEncodedString (BREthereumAddress address, int useChecksum);
+
+extern void
+addressFillEncodedString (BREthereumAddress address,
+                          int useChecksum,
+                          char *string);
 
 extern BREthereumHash
 addressGetHash (BREthereumAddress address);

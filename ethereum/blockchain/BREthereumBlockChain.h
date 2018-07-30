@@ -27,7 +27,6 @@
 #define BR_Ethereum_Blochchain_h
 
 #include "BREthereumNetwork.h"
-#include "BREthereumAmount.h"
 #include "BREthereumAccountState.h"
 #include "BREthereumBloomFilter.h"
 #include "BREthereumLog.h"

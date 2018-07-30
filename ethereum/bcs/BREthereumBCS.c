@@ -37,11 +37,14 @@
 
 #define BCS_TRANSACTIONS_INITIAL_CAPACITY (50)
 #define BCS_LOGS_INITIAL_CAPACITY (50)
-#define BCS_ACTIVE_BLOCKS_INITIAL_CAPACITY  (5)
 
-// Any orphan more then AGE_OFFSET blocks in the past will be purged.
+// Any orphan more then AGE_OFFSET blocks in the past will be purged.  That is, if the head block
+// is N, then any orphan block we hold at (N - ARG_OFFSET) will no longer be chainable - unless
+// there is some 'giant' fork developing...
 #define BCS_ORPHAN_AGE_OFFSET  (10)
 
+// We'll save every 500 blocks.  On restart we'll expect these blocks to be passed to bcsCreate()
+// so as to initialize the chain.
 #define BCS_SAVE_BLOCKS_COUNT  (500)
 
 /**
@@ -205,10 +208,6 @@ bcsCreate (BREthereumNetwork network,
     bcs->genesis = networkGetGenesisBlock(network);
     BRSetAdd(bcs->blocks, bcs->genesis);
 
-    //
-    // Initialize `activeBlocks`
-//    array_new (bcs->activeBlocks, BCS_ACTIVE_BLOCKS_INITIAL_CAPACITY);
-
     // Create but don't start the event handler.  Ensure that a fast-acting lesCreate()
     // can signal events (by queuing; they won't be handled until the event queue is started).
     bcs->handler = eventHandlerCreate(bcsEventTypes, bcsEventTypesCount);
@@ -265,13 +264,6 @@ bcsDestroy (BREthereumBCS bcs) {
 
     // TODO: We'll need to announce things to our `listener`
 
-    // Free internal state.
-
-    // Active Block
-//    for (size_t index = 0; index < array_count(bcs->activeBlocks); index++)
-//        bcsReleaseActiveBlock(bcs, blockGetHash (bcs->activeBlocks[index]));
-//    array_free(bcs->activeBlocks);
-
     // Headers
     BRSetApply(bcs->blocks, NULL, blockReleaseForSet);
     BRSetFree(bcs->blocks);
@@ -294,11 +286,6 @@ bcsDestroy (BREthereumBCS bcs) {
     // Destroy the Event w/ queue
     eventHandlerDestroy(bcs->handler);
     free (bcs);
-}
-
-extern BREthereumLES
-bcsGetLES (BREthereumBCS bcs) {
-    return bcs->les;
 }
 
 extern void
@@ -409,8 +396,8 @@ bcsReclaimBlock (BREthereumBCS bcs,
 
 static void
 bcsSaveBlocks (BREthereumBCS bcs) {
-    // We'll save everything between bcs->chain and bcs->chainTail
-    unsigned long long blockCount = blockGetNumber(bcs->chain) - blockGetNumber(bcs->chainTail) + 1;
+    // We'll save everything between bcs->chain->next and bcs->chainTail
+    unsigned long long blockCount = blockGetNumber(bcs->chain) - blockGetNumber(bcs->chainTail);
 
     // We'll pass long the blocks directly, for now.  This will likely need to change because
     // this code will lose control of the block memory.
@@ -421,7 +408,7 @@ bcsSaveBlocks (BREthereumBCS bcs) {
     array_new(blocks, blockCount);
     array_set_count(blocks, blockCount);
 
-    BREthereumBlock next = bcs->chain;
+    BREthereumBlock next = blockGetNext (bcs->chain);
     BREthereumBlock last = bcs->chainTail;
     unsigned long long blockIndex = blockCount - 1;
 
@@ -436,7 +423,7 @@ bcsSaveBlocks (BREthereumBCS bcs) {
     
     eth_log("BCS", "Blocks {%llu, %llu} Saved",
             blockGetNumber(bcs->chainTail),
-            blockGetNumber(bcs->chain));
+            blockGetNumber(blockGetNext(bcs->chain)));
 }
 
 static void
@@ -474,6 +461,9 @@ bcsReclaimAndSaveBlocksIfAppropriate (BREthereumBCS bcs) {
 }
 
 
+/**
+ * Extend `bcs->chain` with `block`. Announce the new chain with the `blockChainCallback`
+ */
 static void
 bcsExtendChain (BREthereumBCS bcs,
                 BREthereumBlock block,
@@ -489,34 +479,6 @@ bcsExtendChain (BREthereumBCS bcs,
                                       blockGetHash(block),
                                       blockGetNumber(block),
                                       blockGetTimestamp(block));
-
-#if 0
-    // Look through pendingLogs and see if any are now included.
-    int keepLooking = 1;
-    while (keepLooking) {
-        keepLooking = 0;
-        for (size_t index = 0; index < array_count(bcs->pendingLogs); index++) {
-            BREthereumHash logHash = bcs->pendingLogs[index];
-            BREthereumLog log = BRSetGet (bcs->logs, &logHash);
-            assert (NULL != log);
-            
-            // TODO: Are we sure `block` has a filled status?
-            // TODO: The answer is 'no' - we've crashed here (until blockHasStatus was modified).
-            if (ETHEREUM_BOOLEAN_IS_TRUE (blockHasStatusLog(block, log))) {
-                BREthereumTransactionStatus status = logGetStatus(log);
-                logSetStatus(log, transactionStatusCreateIncluded(gasCreate(0),
-                                                             blockGetHash(block),
-                                                             blockGetNumber(block),
-                                                             status.u.included.transactionIndex));
-                bcs->listener.logCallback (bcs->listener.context,
-                                           BCS_CALLBACK_LOG_UPDATED,
-                                           log);
-                array_rm (bcs->pendingLogs, index);
-                keepLooking = 1;
-            }
-        }
-    }
-#endif
 }
 
 /**
@@ -562,32 +524,69 @@ bcsPurgeOrphans (BREthereumBCS bcs,
     }
 }
 
+
+/**
+ * Select between `block1` and `block2` for extending the chain. (We assume the two blocks have
+ * the same parent hash).  Selectin criteria include: totalDifficulty and timestamp.
+ */
+static BREthereumBlock
+bcsSelectPreferredBlock (BREthereumBCS bcs,
+                         BREthereumBlock block1,
+                         BREthereumBlock block2) {
+    if (NULL == block1) return block2;
+    if (NULL == block2) return block1;
+
+    // Compare
+    return block1;
+}
+
+/**
+ * Chain all possible orphans.  We'll look through `bcs-orphans` for any orphan with a parent hash
+ * pointing to `bcs->chain`. If we find one, we'll extend the chain and then look again.  Result
+ * will be `bcs->chain` being extended with N orpans (0 <= N).
+ *
+ * TODO: It is possible to have two orphans with the same parent.  Deal with it.
+ * We'll select between two orphans sharing a parent
+ */
 static void
 bcsChainOrphans (BREthereumBCS bcs) {
-    // Examine bcs->orphans looking for any with a parent that is bcs->chain.
-    // TODO: Can we have two orphans with the same parent - deal with it.
     int keepLooking = 1;
     while (keepLooking) {
         keepLooking = 0;
-        // We should look up bcs->orphans based on parentHash, see Aaron's Core code.
+
+        BREthereumBlock block = NULL;
+
+        // Select the preferred block to chain by looking through all orphans for ...
         FOR_SET(BREthereumBlock, orphan, bcs->orphans) {
+            // ... an orphan with a parent hash that matches `bcs->chain`.
             if (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(blockGetHash (bcs->chain),
-                                                   blockHeaderGetParentHash(blockGetHeader(orphan))))) {
-                // Extend the chain.
-                bcsExtendChain(bcs, orphan, "Chained Orphan");
+                                                   blockHeaderGetParentHash(blockGetHeader(orphan)))))
+                block = bcsSelectPreferredBlock(bcs, block, orphan);
+        }
 
-                // No longer an orphan
-                BRSetRemove(bcs->orphans, orphan);
+        // If we found a block, then ...
+        if (NULL != block)
+        {
+            // ... extend the chain, and ...
+            bcsExtendChain(bcs, block, "Chained Orphan");
 
-                // With remove, our FOR_SET iteration is now broken, so ...
-                // ... skip out (of `for`) but keep looking.
-                keepLooking = 1;
-                break;
-            }
+            // ... remove as an orphan, and ...
+            BRSetRemove(bcs->orphans, block);
+
+            // ... keep looking for another orphan.
+            keepLooking = 1;
         }
     }
 }
 
+
+/**
+ * Make `block` an orphan by adding `block` to `bcs->orphans` and by clearing `block->next`.  By
+ * making `block` an orphan we might have made blocks pointing to `block` orphans too - we'll
+ * have to deal with that later (we don't know what points to `block` in this function's context.)
+ *
+ * @return The value of `block->next`.
+ */
 static BREthereumBlock
 bcsMakeOrphan (BREthereumBCS bcs,
                BREthereumBlock block) {
@@ -600,44 +599,40 @@ bcsMakeOrphan (BREthereumBCS bcs,
     return blockClrNext(block);
 }
 
+/**
+ * Chain all possible orphans, which may extend the chain, and then purge any orphans that are
+ * now too old to be chained.
+ */
 static void
 bcsChainThenPurgeOrphans (BREthereumBCS bcs) {
     bcsChainOrphans(bcs);
     bcsPurgeOrphans(bcs,  blockGetNumber(bcs->chain));
 }
 
+/**
+ * Pend transactions and logs if they are `included` but reference an orphaned block.  Once
+ * pending we'll periodically reexamine them to see of they are now chained.
+ *
+ * TODO: Shouldn't we announce this 'transition' (INCLUDED->PENDIN)?
+ * Is it a real transition?  Transaction/Log status doesn't change; corresponding transfer should?
+ */
 static void
-bcsChainPurgeOrphanedTransactionsAndLogs (BREthereumBCS bcs) {
+bcsPendOrphanedTransactionsAndLogs (BREthereumBCS bcs) {
     BREthereumTransactionStatus status;
+    BREthereumHash blockHash;
 
     // Examine transactions to see if any are now orphaned; is so, make them PENDING
     FOR_SET(BREthereumTransaction, tx, bcs->transactions) {
-        BREthereumHash blockHash;
         status = transactionGetStatus(tx);
-        if (transactionStatusExtractIncluded(&status, NULL, &blockHash, NULL, NULL)) {
-            // If the transaction's blockHash is an orphan...
-            if (NULL != BRSetGet (bcs->orphans, &blockHash)) {
-                // .... then return the transaction to PENDING; we'll start requesting status again.
-                bcsHandleTransactionStatus(bcs,
-                                           transactionGetHash(tx),
-                                           transactionStatusCreate(TRANSACTION_STATUS_PENDING));
-            }
-
-            // but if the transaction's blockHash is not an orphan and instead included...
-            else if (NULL != BRSetGet (bcs->blocks, &blockHash)) {
-                // ... then is there anything to do?   The transaction's `blockHash` cannot
-                // reference a block in `headers` that was just now chained from orphans, can it?
-                // More likely the tranaction is pending; we'll get that status and see the
-                // chain now includes `blockHash` - but that isn't handled here.
-                ;
-            }
+        if (transactionStatusExtractIncluded(&status, NULL, &blockHash, NULL, NULL) &&
+            NULL != BRSetGet (bcs->orphans, &blockHash)) {
+            array_add (bcs->pendingTransactions, transactionGetHash(tx));
         }
     }
 
     // Examine logs to see if any are now orphaned.  Logs are seen if and only if they are
     // in a block; see if that block is now an orphan and if so make the log pending.
     FOR_SET(BREthereumLog, log, bcs->logs) {
-        BREthereumHash blockHash;
         status = logGetStatus(log);
         if (transactionStatusExtractIncluded(&status, NULL, &blockHash, NULL, NULL) &&
             NULL != BRSetGet (bcs->orphans, &blockHash)) {
@@ -648,6 +643,7 @@ bcsChainPurgeOrphanedTransactionsAndLogs (BREthereumBCS bcs) {
 
 }
 
+#if defined UNUSED
 /*!
  * Check if `blockHash` and `blockNumber` are in the chain.  They will be in the chain if:
  *   a) blockNumber is smaller than the chain's earliest maintained block number, or
@@ -664,19 +660,27 @@ bcsChainHasBlock (BREthereumBCS bcs,
              NULL == BRSetGet(bcs->orphans, &blockHash) &&
              NULL != BRSetGet(bcs->blocks, &blockHash)));
 }
+#endif // UNUSED
 
+/**
+ * Check if `block` is in `bcs->chain` (which include `block` being so old as to have a block
+ * number before `bcs->chainTail`.
+ */
 static int
-bcsChainHasBlockX (BREthereumBCS bcs,
+bcsHasBlockInChain (BREthereumBCS bcs,
                    BREthereumBlock block) {
     return (ETHEREUM_BOOLEAN_IS_TRUE (blockHasNext(block)) ||
             blockGetNumber(block) <= blockGetNumber(bcs->chainTail));
 }
 
+/**
+ * Extends `bcs->transactions` and `bcs->logs` with the tranactions and logs within `block`.
+ * Requires `block` to be in 'complete' and in `bcs->chain`.
+ */
 static void
-bcsChainExtendTransactionsAndLogsForBlock (BREthereumBCS bcs,
-                                           BREthereumBlock block,
-                                           int purgeOrphans) {
-    assert (bcsChainHasBlockX(bcs, block) && ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusComplete(block)));
+bcsExtendTransactionsAndLogsForBlock (BREthereumBCS bcs,
+                                           BREthereumBlock block) {
+    assert (bcsHasBlockInChain(bcs, block) && ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusComplete(block)));
 
     // `block` is chained and complete, we can process its status transactions and logs.
     BREthereumBlockStatus blockStatus = blockGetStatus(block);
@@ -691,7 +695,7 @@ bcsChainExtendTransactionsAndLogsForBlock (BREthereumBCS bcs,
         for (size_t li = 0; li < array_count(blockStatus.logs); li++)
             bcsHandleLog (bcs, blockStatus.logs[li]);
 
-    if (purgeOrphans) bcsChainPurgeOrphanedTransactionsAndLogs(bcs);
+//    if (purgeOrphans) bcsPendOrphanedTransactionsAndLogs(bcs);
 
 #if 0
     // Get the status explicitly; apparently this is the *only* way to get the gasUsed.
@@ -702,16 +706,19 @@ bcsChainExtendTransactionsAndLogsForBlock (BREthereumBCS bcs,
 #endif
 }
 
+/**
+ * Extend transactions and logs for block if and only if block is 'complete' and in bcs->chain.
+ */
 static void
-bcsChainExtendTransactionsAndLogsForBlockIfAppropriate (BREthereumBCS bcs,
+bcsExtendTransactionsAndLogsForBlockIfAppropriate (BREthereumBCS bcs,
                                            BREthereumBlock block) {
-    if (bcsChainHasBlockX(bcs, block) && ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusComplete(block)))
-        bcsChainExtendTransactionsAndLogsForBlock (bcs, block, 0);
+    if (bcsHasBlockInChain(bcs, block) && ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusComplete(block)))
+        bcsExtendTransactionsAndLogsForBlock (bcs, block);
 }
 
 static void
-bcsWorkToChain (BREthereumBCS bcs,
-                BREthereumBlock block) {
+bcsExtendChainIfPossible (BREthereumBCS bcs,
+                          BREthereumBlock block) {
     // THIS WILL BE THE FIRST TIME WE'VE SEEN BLOCK.  EVEN IF COMPLETE, NONE OF ITS LOGS NOR
     // TRANSACTIONS ARE HELD.
 
@@ -727,7 +734,7 @@ bcsWorkToChain (BREthereumBCS bcs,
                                                           blockGetHeader(bcs->genesis)))) {
 
         eth_log("BCS", "Block %llu Inconsistent", blockGetNumber(block));
-//        blockHeaderRelease(header);
+        // TODO: Can we release `block`?
         return;
     }
 
@@ -754,13 +761,14 @@ bcsWorkToChain (BREthereumBCS bcs,
         return;
     }
 
-    // NO, NO - We can be here if a/the parent to `block` is 'active', awaiting bodies, etc.
-
     // 3) othewise, we have a new `block` that links to a parent that is somewhere in the
     // chain.  All headers from chain back to parent are now orphans.  In practice, there might
     // be only one (or two or three) orphans.
     //
     // Can we assert that `headerParent` is in `chain` if it is not an orphan?
+    //
+    // TODO: We need to be selective on adopting `block` - maybe those already in place are better?
+    //
     else {
         // Every header between `chain` and `blockParent` is now an orphan.  Usually `chain` is
         // the `blockParent` and thus there is nothing to orphan.
@@ -787,38 +795,14 @@ bcsWorkToChain (BREthereumBCS bcs,
     // It is now time to extend `transactions` and `logs` based on the extended chain and orphans
     BCS_FOR_CHAIN(bcs, block) {
         if (block == blockParent) break; // done
-        if (ETHEREUM_BOOLEAN_IS_FALSE(blockHasStatusComplete(block))) continue; // avoid
+        if (ETHEREUM_BOOLEAN_IS_FALSE(blockHasStatusComplete(block))) continue;
 
-        bcsChainExtendTransactionsAndLogsForBlock(bcs, block, 0);
+        // Block is 'complete' - can find transaction and logs of interest.
+        bcsExtendTransactionsAndLogsForBlock(bcs, block);
     }
 
-    // And finally to purge any transactions and logs for orphaned blocks
-    bcsChainPurgeOrphanedTransactionsAndLogs(bcs);
-
-    BREthereumTransactionStatus status;
-
-//    // We need block bodies and transaction receipts for every matching block between bcs->chain
-//    // and blockParent - multiple blocks because we added orphans, or might have.  However,
-//    // because 99% of the time it is but one needed block, we'll use the LES interface to
-//    // request block bodies one-by-one.
-//    BCS_FOR_CHAIN(bcs, block) {
-//        if (block == blockParent) break;
-//        // If `block` has matching transactions or logs, then we'll get the block body.
-//        if (ETHEREUM_BOOLEAN_IS_TRUE(bcsBlockHasMatchingTransactions(bcs, block)) ||
-//            ETHEREUM_BOOLEAN_IS_TRUE(bcsBlockHasMatchingLogs(bcs, block))) {
-//            eth_log("BCS", "Block %llu Content Needed", blockGetNumber(block));
-//
-//            // This is now an active block.  Marking `block` as `active` is critical to the
-//            // asynchronous calls for block bodies and transaction receipts.  Once we've collected
-//            // everything we need for `block` will go inactive.
-//            array_add (bcs->activeBlocks, block);
-//
-//            lesGetBlockBodiesOne(bcs->les,
-//                                 (BREthereumLESBlockBodiesContext) bcs,
-//                                 (BREthereumLESBlockBodiesCallback) bcsSignalBlockBodies,
-//                                 blockGetHash(block));
-//        }
-//    }
+    // And finally purge any transactions and logs for orphaned blocks
+    bcsPendOrphanedTransactionsAndLogs(bcs);
 
     // Periodically reclaim 'excessive' blocks and save the latest.
     bcsReclaimAndSaveBlocksIfAppropriate (bcs);
@@ -922,10 +906,9 @@ bcsSyncFrom (BREthereumBCS bcs,
 static BREthereumBoolean
 bcsBlockHasMatchingTransactions (BREthereumBCS bcs,
                                  BREthereumBlock block) {
-
     // TODO: Massive Fix Required ('massive' in importance, not size)
     //    return AS_ETHEREUM_BOOLEAN(blockGetNumber(block) < 5795675);
-//    return ETHEREUM_BOOLEAN_TRUE;
+    //    return ETHEREUM_BOOLEAN_TRUE;
     return ETHEREUM_BOOLEAN_FALSE;
 }
 
@@ -941,7 +924,9 @@ bcsBlockHasMatchingLogs (BREthereumBCS bcs,
     return blockHeaderMatch(blockGetHeader(block), bcs->filterForAddressOnLogs);
 }
 
-
+/**
+ * Handle a (generally new) block header.
+ */
 extern void
 bcsHandleBlockHeader (BREthereumBCS bcs,
                       BREthereumBlockHeader header) {
@@ -1010,10 +995,10 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
     }
 
     // Chain 'block' - we'll do this before the block is fully constituted.  Once constituted,
-    // we'll handle the block's interesting transactions and logs; including if the block
-    // is an orphan.  Note: the `bcsWorkToChain()` function will handle a fully constituted block;
-    // however, as the above suggests, the block might be complete but likely empty.
-    bcsWorkToChain(bcs, block);
+    // we'll handle the block's interesting transactions and logs; including if the block is an
+    // orphan.  Note: the `bcsExtendChainIfAppropriate()` function will handle a fully constituted
+    // block; however, as the above suggests, the block might be complete but likely empty.
+    bcsExtendChainIfPossible(bcs, block);
 
     // If appropriate, continue an in-process sync.
     bcsSyncContinue (bcs, blockGetNumber(bcs->chain));
@@ -1022,7 +1007,6 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
 ///
 /// MARK: - Account State
 ///
-
 
 extern void
 bcsHandleAccountState (BREthereumBCS bcs,
@@ -1036,7 +1020,7 @@ bcsHandleAccountState (BREthereumBCS bcs,
         return;
     }
 
-    // If the status has some how errored, skip out with nothing more to do.
+    // If the status has somehow errored, skip out with nothing more to do.
     if (ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusError(block))) {
         eth_log ("BCS", "Block %llu In Error (Account)", blockGetNumber(block));
         return;
@@ -1064,7 +1048,7 @@ bcsHandleAccountState (BREthereumBCS bcs,
 //                                            bcs->accountState);
 //    }
 
-    bcsChainExtendTransactionsAndLogsForBlockIfAppropriate (bcs, block);
+    bcsExtendTransactionsAndLogsForBlockIfAppropriate (bcs, block);
 }
 
 ///
@@ -1171,7 +1155,7 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
         blockLinkLogsWithTransactions (block);
 
     // In the following, 'if appropriate' means complete and chained.
-    bcsChainExtendTransactionsAndLogsForBlockIfAppropriate (bcs, block);
+    bcsExtendTransactionsAndLogsForBlockIfAppropriate (bcs, block);
 }
 
 
@@ -1299,7 +1283,7 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
     }
 
     // In the following, 'if appropriate' means complete and chained.
-    bcsChainExtendTransactionsAndLogsForBlockIfAppropriate (bcs, block);
+    bcsExtendTransactionsAndLogsForBlockIfAppropriate (bcs, block);
 }
 
 ///
@@ -1345,9 +1329,6 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
     BREthereumTransactionStatus oldStatus = transactionGetStatus(transaction);
     BREthereumHash oldStatusBlockHash = EMPTY_HASH_INIT;
 
-    BREthereumHashString hashString;
-    hashFillString(transactionHash, hashString);
-
     switch (oldStatus.type) {
         case TRANSACTION_STATUS_INCLUDED:
             // Case 'b': the transaction is already in the chain.  We are only interested in
@@ -1390,6 +1371,9 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
 
     if (needSignal) bcsSignalTransaction(bcs, transaction);
 
+    BREthereumHashString hashString;
+    hashFillString(transactionHash, hashString);
+
     eth_log("BCS", "Transaction: \"%s\", Status: %d, Pending: %d%s%s",
             hashString,
             status.type,
@@ -1423,7 +1407,6 @@ bcsPeriodicDispatcher (BREventHandler handler,
 /// MARK - Handle Transaction, Log, Peers and Account(?)
 ///
 
-// TODO: Add transactionIndex
 extern void
 bcsHandleTransaction (BREthereumBCS bcs,
                       BREthereumTransaction transaction) {

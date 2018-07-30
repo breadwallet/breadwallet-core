@@ -81,6 +81,28 @@ ewmUpdateWalletBalance(BREthereumEWM ewm,
     }
 }
 
+/**
+ * Handle the Client Announcement for the balance of `wallet`.  This will be the BRD Backend's
+ * result (not necessarily a JSON_RPC result) for the balance which will be ether ETH or TOK.
+ *
+ * @param ewm
+ * @param wallet
+ * @param value
+ * @param rid
+ */
+extern void
+ewmClientHandleAnnounceBalance (BREthereumEWM ewm,
+                                BREthereumWallet wallet,
+                                UInt256 value,
+                                int rid) {
+    BREthereumAmount amount =
+    (AMOUNT_ETHER == walletGetAmountType(wallet)
+     ? amountCreateEther(etherCreate(value))
+     : amountCreateToken(createTokenQuantity(walletGetToken(wallet), value)));
+
+    ewmSignalBalance(ewm, amount);
+}
+
 // ==============================================================================================
 //
 // Default Wallet Gas Price
@@ -117,26 +139,34 @@ ewmUpdateWalletDefaultGasPrice (BREthereumEWM ewm,
     }
 }
 
+extern void
+ewmClientHandleAnnounceGasPrice (BREthereumEWM ewm,
+                                 BREthereumWallet wallet,
+                                 UInt256 amount,
+                                 int rid) {
+    ewmSignalGasPrice(ewm, wallet, gasPriceCreate(etherCreate(amount)));
+}
+
 // ==============================================================================================
 //
 // Transaction Gas Estimate
 //
 
 extern void
-ewmUpdateTransactionGasEstimate (BREthereumEWM ewm,
+ewmUpdateTransferGasEstimate (BREthereumEWM ewm,
                                  BREthereumWalletId wid,
-                                 BREthereumTransactionId tid) {
-    BREthereumTransaction transaction = ewmLookupTransaction(ewm, tid);
+                                 BREthereumTransferId tid) {
+    BREthereumTransfer transfer = ewmLookupTransfer(ewm, tid);
     
-    if (NULL == transaction) {
-        ewmClientSignalTransactionEvent(ewm, wid, tid,
-                                          TRANSACTION_EVENT_GAS_ESTIMATE_UPDATED,
+    if (NULL == transfer) {
+        ewmClientSignalTransferEvent(ewm, wid, tid,
+                                          TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
                                           ERROR_UNKNOWN_WALLET,
                                           NULL);
         
     } else if (LIGHT_NODE_CONNECTED != ewm->state) {
-        ewmClientSignalTransactionEvent(ewm, wid, tid,
-                                          TRANSACTION_EVENT_GAS_ESTIMATE_UPDATED,
+        ewmClientSignalTransferEvent(ewm, wid, tid,
+                                          TRANSFER_EVENT_GAS_ESTIMATE_UPDATED,
                                           ERROR_NODE_NOT_CONNECTED,
                                           NULL);
     } else {
@@ -144,10 +174,10 @@ ewmUpdateTransactionGasEstimate (BREthereumEWM ewm,
             case NODE_TYPE_LES:
             case NODE_TYPE_JSON_RPC: {
                 // This will be ZERO if transaction amount is in TOKEN.
-                BREthereumEther amountInEther = transactionGetEffectiveAmountInEther(transaction);
-                char *to = (char *) addressGetEncodedString(transactionGetTargetAddress(transaction), 0);
+                BREthereumEther amountInEther = transferGetEffectiveAmountInEther(transfer);
+                char *to = (char *) addressGetEncodedString(transactionGetTargetAddress(transfer), 0);
                 char *amount = coerceString(amountInEther.valueInWEI, 16);
-                char *data = (char *) transactionGetData(transaction);
+                char *data = (char *) transactionGetData(transfer);
                 
                 ewm->client.funcEstimateGas
                 (ewm->client.context,
@@ -175,6 +205,15 @@ ewmUpdateTransactionGasEstimate (BREthereumEWM ewm,
     }
 }
 
+extern void
+ewmClientHandleAnnounceGasEstimate (BREthereumEWM ewm,
+                                    BREthereumWallet wallet,
+                                    BREthereumTransfer transfer,
+                                    UInt256 value,
+                                    int rid) {
+    ewmSignalGasEstimate(ewm, wallet, transfer, gasCreate(value.u64[0]));
+}
+
 // ==============================================================================================
 //
 // Get Block Number
@@ -196,6 +235,21 @@ ewmUpdateBlockNumber (BREthereumEWM ewm) {
         case NODE_TYPE_NONE:
             break;
     }
+}
+
+/**
+ * Handle a Client Announcement of `blockNumber`.  This will be BRD Backend's JSON_RPC result for
+ * the most recent Ethereum blockNumber
+ *
+ * @param ewm
+ * @param blockNumber
+ * @param rid
+ */
+extern void
+ewmClientHandleAnnounceBlockNumber (BREthereumEWM ewm,
+                                    uint64_t blockNumber,
+                                    int rid) {
+    ewmUpdateBlockHeight(ewm, blockNumber);
 }
 
 // ==============================================================================================
@@ -224,6 +278,25 @@ ewmUpdateNonce (BREthereumEWM ewm) {
         case NODE_TYPE_NONE:
             break;
     }
+}
+
+/**
+ * Handle a Client Announcement of `nonce`.  This will be the BRD Backend's JSON_RPC result for
+ * the the address' nonce.
+ *
+ * @param ewm
+ * @param address
+ * @param nonce
+ * @param rid
+ */
+extern void
+ewmClientHandleAnnounceNonce (BREthereumEWM ewm,
+                              BREthereumAddress address,
+                              uint64_t nonce,
+                              int rid) {
+    //    BREthereumEncodedAddress address = accountGetPrimaryAddress (ewmGetAccount(ewm));
+    //    assert (ETHEREUM_BOOLEAN_IS_TRUE (addressHasString(address, strAddress)));
+    accountSetAddressNonce(ewm->account, accountGetPrimaryAddress(ewm->account), nonce, ETHEREUM_BOOLEAN_FALSE);
 }
 
 // ==============================================================================================
@@ -256,6 +329,55 @@ ewmUpdateTransactions (BREthereumEWM ewm) {
         case NODE_TYPE_NONE:
             break;
     }
+}
+
+extern void
+ewmClientHandleAnnounceTransaction(BREthereumEWM ewm,
+                                   BREthereumEWMClientAnnounceTransactionBundle *bundle,
+                                   int id) {
+    switch (ewm->type) {
+        case NODE_TYPE_LES:
+            bcsSendTransactionRequest(ewm->bcs,
+                                      bundle->hash,
+                                      bundle->blockNumber,
+                                      bundle->blockTransactionIndex);
+            break;
+
+        case NODE_TYPE_JSON_RPC: {
+            // This 'annouce' call is coming from the guaranteed BRD endpoint; thus we don't need to
+            // worry about the validity of the transaction - is is surely confirmed.  Is that true
+            // if newly submitted?
+
+            BREthereumTransaction transaction = transactionCreate(bundle->from,
+                                                                  bundle->to,
+                                                                  etherCreate(bundle->amount),
+                                                                  gasPriceCreate(etherCreate(bundle->gasPrice)),
+                                                                  gasCreate(bundle->gasLimit),
+                                                                  bundle->data,
+                                                                  bundle->nonce);
+
+            transactionSetHash(transaction, bundle->hash);
+            // No chainId / network
+            // No gasEstimate
+            // No signature
+            // No RLP data
+            // Caution on BRPersistData - will overwrite hash as there is no signature
+
+            BREthereumTransactionStatus status = transactionStatusCreateIncluded(gasCreate(bundle->gasUsed),
+                                                                                 bundle->blockHash,
+                                                                                 bundle->blockNumber,
+                                                                                 bundle->blockTransactionIndex);
+
+            transactionSetStatus(transaction, status);
+
+            bcsSignalTransaction(ewm->bcs, transaction);
+            break;
+
+        case NODE_TYPE_NONE:
+            break;
+        }
+    }
+    ewmClientAnnounceTransactionBundleRelease(bundle);
 }
 
 
@@ -309,258 +431,6 @@ ewmUpdateLogs (BREthereumEWM ewm,
     }
 }
 
-/**
- *
- *
- */
-
-
-// ==============================================================================================
-//
-// Submit Transaction
-//
-
-// ==============================================================================================
-//
-// Client
-//
-
-extern void
-ewmClientHandleWalletEvent(BREthereumEWM ewm,
-                           BREthereumWalletId wid,
-                           BREthereumWalletEvent event,
-                           BREthereumStatus status,
-                           const char *errorDescription) {
-    ewm->client.funcWalletEvent
-    (ewm->client.context,
-     ewm,
-     wid,
-     event,
-     status,
-     errorDescription);
-}
-
-extern void
-ewmClientHandleBlockEvent(BREthereumEWM ewm,
-                          BREthereumBlockId bid,
-                          BREthereumBlockEvent event,
-                          BREthereumStatus status,
-                          const char *errorDescription) {
-    ewm->client.funcBlockEvent
-    (ewm->client.context,
-     ewm,
-     bid,
-     event,
-     status,
-     errorDescription);
-}
-
-extern void
-ewmClientHandleTransactionEvent(BREthereumEWM ewm,
-                                BREthereumWalletId wid,
-                                BREthereumTransactionId tid,
-                                BREthereumTransactionEvent event,
-                                BREthereumStatus status,
-                                const char *errorDescription) {
-    BREthereumTransaction transaction = ewm->transactions[tid];
-    BREthereumHash hash = transactionGetHash(transaction);
-
-    // Transaction to 'Persist Data'
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = transactionRlpEncode(transaction, ewm->network, RLP_TYPE_TRANSACTION_SIGNED, coder);
-    BREthereumPersistData persistData = { hash, rlpGetData(coder, item) };
-    rlpCoderRelease(coder);
-
-    BREthereumClientChangeType type = (event == TRANSACTION_EVENT_CREATED
-                                       ? CLIENT_CHANGE_ADD
-                                       : (event == TRANSACTION_EVENT_DELETED
-                                          ? CLIENT_CHANGE_REM
-                                          : CLIENT_CHANGE_UPD));
-
-    ewm->client.funcChangeTransaction
-    (ewm->client.context, ewm,
-     type,
-     persistData);
-    rlpDataRelease(persistData.blob);
-
-    ewm->client.funcTransactionEvent
-    (ewm->client.context,
-     ewm,
-     wid,
-     tid,
-     event,
-     status,
-     errorDescription);
-}
-
-extern void
-ewmClientHandlePeerEvent(BREthereumEWM ewm,
-                         // BREthereumWalletId wid,
-                         // BREthereumTransactionId tid,
-                         BREthereumPeerEvent event,
-                         BREthereumStatus status,
-                         const char *errorDescription) {
-    ewm->client.funcPeerEvent
-    (ewm->client.context,
-     ewm,
-     // event->wid,
-     // event->tid,
-     event,
-     status,
-     errorDescription);
-}
-
-extern void
-ewmClientHandleEWMEvent(BREthereumEWM ewm,
-                        // BREthereumWalletId wid,
-                        // BREthereumTransactionId tid,
-                        BREthereumEWMEvent event,
-                        BREthereumStatus status,
-                        const char *errorDescription) {
-    ewm->client.funcEWMEvent
-    (ewm->client.context,
-     ewm,
-     //event->wid,
-     // event->tid,
-     event,
-     status,
-     errorDescription);
-}
-
-
-/**
- * Handle a Client Announcement of `blockNumber`.  This will be BRD Backend's JSON_RPC result for
- * the most recent Ethereum blockNumber
- *
- * @param ewm
- * @param blockNumber
- * @param rid
- */
-extern void
-ewmClientHandleAnnounceBlockNumber (BREthereumEWM ewm,
-                                    uint64_t blockNumber,
-                                    int rid) {
-    ewmUpdateBlockHeight(ewm, blockNumber);
-}
-
-
-/**
- * Handle a Client Announcement of `nonce`.  This will be the BRD Backend's JSON_RPC result for
- * the the address' nonce.
- *
- * @param ewm
- * @param address
- * @param nonce
- * @param rid
- */
-extern void
-ewmClientHandleAnnounceNonce (BREthereumEWM ewm,
-                              BREthereumAddress address,
-                              uint64_t nonce,
-                              int rid) {
-    //    BREthereumEncodedAddress address = accountGetPrimaryAddress (ewmGetAccount(ewm));
-    //    assert (ETHEREUM_BOOLEAN_IS_TRUE (addressHasString(address, strAddress)));
-    accountSetAddressNonce(ewm->account, accountGetPrimaryAddress(ewm->account), nonce, ETHEREUM_BOOLEAN_FALSE);
-}
-
-
-/**
- * Handle the Client Announcement for the balance of `wallet`.  This will be the BRD Backend's
- * result (not necessarily a JSON_RPC result) for the balance which will be ether ETH or TOK.
- *
- * @param ewm
- * @param wallet
- * @param value
- * @param rid
- */
-extern void
-ewmClientHandleAnnounceBalance (BREthereumEWM ewm,
-                                BREthereumWallet wallet,
-                                UInt256 value,
-                                int rid) {
-    BREthereumAmount amount =
-    (AMOUNT_ETHER == walletGetAmountType(wallet)
-     ? amountCreateEther(etherCreate(value))
-     : amountCreateToken(createTokenQuantity(walletGetToken(wallet), value)));
-
-    ewmSignalBalance(ewm, amount);
-}
-
-extern void
-ewmClientHandleAnnounceGasPrice (BREthereumEWM ewm,
-                                 BREthereumWallet wallet,
-                                 UInt256 amount,
-                                 int rid) {
-    ewmSignalGasPrice(ewm, wallet, gasPriceCreate(etherCreate(amount)));
-}
-
-extern void
-ewmClientHandleAnnounceGasEstimate (BREthereumEWM ewm,
-                                    BREthereumWallet wallet,
-                                    BREthereumTransaction transaction,
-                                    UInt256 value,
-                                    int rid) {
-    ewmSignalGasEstimate(ewm, wallet, transaction, gasCreate(value.u64[0]));
-}
-
-extern void
-ewmClientHandleAnnounceSubmitTransaction (BREthereumEWM ewm,
-                                          BREthereumWallet wallet,
-                                          BREthereumTransaction transaction,
-                                          int rid) {
-    BREthereumTransactionStatus status = transactionStatusCreate (TRANSACTION_STATUS_PENDING);
-    transactionSetStatus(transaction, status);
-    bcsSignalTransaction(ewm->bcs, transaction);
-}
-
-extern void
-ewmClientHandleAnnounceTransaction(BREthereumEWM ewm,
-                                   BREthereumEWMClientAnnounceTransactionBundle *bundle,
-                                   int id) {
-    switch (ewm->type) {
-        case NODE_TYPE_LES:
-            bcsSendTransactionRequest(ewm->bcs,
-                                      bundle->hash,
-                                      bundle->blockNumber,
-                                      bundle->blockTransactionIndex);
-            break;
-
-        case NODE_TYPE_JSON_RPC: {
-            // This 'annouce' call is coming from the guaranteed BRD endpoint; thus we don't need to
-            // worry about the validity of the transaction - is is surely confirmed.  Is that true
-            // if newly submitted?
-
-            BREthereumTransaction transaction = transactionCreate(bundle->from,
-                                                                  bundle->to,
-                                                                  amountCreateEther(etherCreate(bundle->amount)),
-                                                                  gasPriceCreate(etherCreate(bundle->gasPrice)),
-                                                                  gasCreate(bundle->gasLimit),
-                                                                  bundle->nonce);
-
-            transactionSetHash(transaction, bundle->hash);
-            // No chainId / network
-            // No gasEstimate
-            // No signature
-            // No RLP data
-            // Caution on BRPersistData - will overwrite hash as there is no signature
-
-            BREthereumTransactionStatus status = transactionStatusCreateIncluded(gasCreate(bundle->gasUsed),
-                                                                                 bundle->blockHash,
-                                                                                 bundle->blockNumber,
-                                                                                 bundle->blockTransactionIndex);
-
-            transactionSetStatus(transaction, status);
-
-            bcsSignalTransaction(ewm->bcs, transaction);
-            break;
-
-        case NODE_TYPE_NONE:
-            break;
-        }
-    }
-    ewmClientAnnounceTransactionBundleRelease(bundle);
-}
-
 extern void
 ewmClientHandleAnnounceLog (BREthereumEWM ewm,
                             BREthereumEWMClientAnnounceLogBundle *bundle,
@@ -611,13 +481,208 @@ ewmClientHandleAnnounceLog (BREthereumEWM ewm,
     ewmClientAnnounceLogBundleRelease(bundle);
 }
 
+// ==============================================================================================
+//
+// Submit Transaction
+//
+
+extern void // status, error
+ewmWalletSubmitTransfer(BREthereumEWM ewm,
+                        BREthereumWalletId wid,
+                        BREthereumTransferId tid) {
+                            BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
+                            BREthereumTransfer transfer = ewmLookupTransfer(ewm, tid);
+    // assert wallet-has-transfer
+    // assert signed
+
+    BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
+    BREthereumBoolean isSigned = transactionIsSigned (transaction);
+
+    switch (ewm->type) {
+        case NODE_TYPE_LES:
+            bcsSendTransaction(ewm->bcs, transaction);
+            break;
+
+        case NODE_TYPE_JSON_RPC: {
+            char *rawTransaction = transactionGetRlpHexEncoded(transaction,
+                                                               ewm->network,
+                                                               (ETHEREUM_BOOLEAN_IS_TRUE(isSigned)
+                                                                ? RLP_TYPE_TRANSACTION_SIGNED
+                                                                : RLP_TYPE_TRANSACTION_UNSIGNED),
+                                                               "0x");
+
+            ewm->client.funcSubmitTransaction
+            (ewm->client.context,
+             ewm,
+             ewmLookupWalletId(ewm, wallet),
+             ewmLookupTransferId(ewm, transfer),
+             rawTransaction,
+             ++ewm->requestId);
+
+            free(rawTransaction);
+            break;
+        }
+
+        case NODE_TYPE_NONE:
+            break;
+    }
+}
+
+
+extern void
+ewmClientHandleAnnounceSubmitTransfer (BREthereumEWM ewm,
+                                       BREthereumWallet wallet,
+                                       BREthereumTransfer transfer,
+                                       int rid) {
+    BREthereumTransaction transaction = transferGetOriginatingTransaction (transfer);
+    assert (NULL != transaction);
+
+    transactionSetStatus(transaction, transactionStatusCreate(TRANSACTION_STATUS_PENDING));
+    bcsSignalTransaction(ewm->bcs, transaction);
+}
+
+// ==============================================================================================
+//
+// Submit Transaction
+//
+extern void
+ewmUpdateTokens (BREthereumEWM ewm) {
+    ewm->client.funcGetTokens
+    (ewm->client.context,
+     ewm,
+     ++ewm->requestId);
+}
 
 extern void
 ewmClientHandleAnnounceToken (BREthereumEWM ewm,
                               BREthereumEWMClientAnnounceTokenBundle *bundle,
                               int id) {
+    // TODO: Add to tokens.
+    
     ewmClientAnnounceTokenBundleRelease(bundle);
 }
+
+
+// ==============================================================================================
+//
+// Client
+//
+
+extern void
+ewmClientHandleWalletEvent(BREthereumEWM ewm,
+                           BREthereumWalletId wid,
+                           BREthereumWalletEvent event,
+                           BREthereumStatus status,
+                           const char *errorDescription) {
+    ewm->client.funcWalletEvent
+    (ewm->client.context,
+     ewm,
+     wid,
+     event,
+     status,
+     errorDescription);
+}
+
+extern void
+ewmClientHandleBlockEvent(BREthereumEWM ewm,
+                          BREthereumBlockId bid,
+                          BREthereumBlockEvent event,
+                          BREthereumStatus status,
+                          const char *errorDescription) {
+    ewm->client.funcBlockEvent
+    (ewm->client.context,
+     ewm,
+     bid,
+     event,
+     status,
+     errorDescription);
+}
+
+extern void
+ewmClientHandleTransferEvent (BREthereumEWM ewm,
+                              BREthereumWalletId wid,
+                              BREthereumTransferId tid,
+                              BREthereumTransferEvent event,
+                              BREthereumStatus status,
+                              const char *errorDescription) {
+
+    if (TRANSFER_EVENT_GAS_ESTIMATE_UPDATED != event &&
+        TRANSFER_EVENT_BLOCK_CONFIRMATIONS_UPDATED != event) {
+        BREthereumTransfer transfer = ewm->transfers[tid];
+        BREthereumTransaction transaction = transferGetBasisTransaction (transfer);
+        BREthereumLog log = transferGetBasisLog(transfer);
+        assert (NULL == transaction || NULL == log);
+
+        BREthereumClientChangeType type = (event == TRANSFER_EVENT_CREATED
+                                           ? CLIENT_CHANGE_ADD
+                                           : (event == TRANSFER_EVENT_DELETED
+                                              ? CLIENT_CHANGE_REM
+                                              : CLIENT_CHANGE_UPD));
+
+        BRRlpCoder coder = rlpCoderCreate();
+
+        BRRlpItem item = (NULL != transaction
+                          ? transactionRlpEncode (transaction, ewm->network, RLP_TYPE_ARCHIVE, coder)
+                          : logRlpEncode(log, RLP_TYPE_ARCHIVE, coder));
+
+        BREthereumHash hash = (NULL != transaction
+                               ? transactionGetHash(transaction)
+                               : logGetHash(log));
+
+        BREthereumPersistData persistData = { hash,  rlpGetData(coder, item) };
+        rlpCoderRelease(coder);
+
+        if (NULL != transaction)
+            ewm->client.funcChangeTransaction (ewm->client.context, ewm, type, persistData);
+        else
+            ewm->client.funcChangeLog (ewm->client.context, ewm, type, persistData);
+    }
+
+    ewm->client.funcTransferEvent
+    (ewm->client.context,
+     ewm,
+     wid,
+     tid,
+     event,
+     status,
+     errorDescription);
+}
+
+extern void
+ewmClientHandlePeerEvent(BREthereumEWM ewm,
+                         // BREthereumWalletId wid,
+                         // BREthereumTransactionId tid,
+                         BREthereumPeerEvent event,
+                         BREthereumStatus status,
+                         const char *errorDescription) {
+    ewm->client.funcPeerEvent
+    (ewm->client.context,
+     ewm,
+     // event->wid,
+     // event->tid,
+     event,
+     status,
+     errorDescription);
+}
+
+extern void
+ewmClientHandleEWMEvent(BREthereumEWM ewm,
+                        // BREthereumWalletId wid,
+                        // BREthereumTransactionId tid,
+                        BREthereumEWMEvent event,
+                        BREthereumStatus status,
+                        const char *errorDescription) {
+    ewm->client.funcEWMEvent
+    (ewm->client.context,
+     ewm,
+     //event->wid,
+     // event->tid,
+     event,
+     status,
+     errorDescription);
+}
+
+
 
 #if 0 // Transaction
 BREthereumTransactionId tid = -1;

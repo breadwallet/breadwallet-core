@@ -48,17 +48,6 @@ typedef enum {
 
     // Error (4): transaction sending failed. data contains a text error message
     TRANSACTION_STATUS_ERRORED = 4,
-
-    // Internal
-
-    // Created (16): transaction created in local memory
-    TRANSACTION_STATUS_CREATED   = 0x10 | 0,
-
-    // Signed (17): transaction signed
-    TRANSACTION_STATUS_SIGNED    = 0x10 | 1,
-
-    // Submitted (18): transaction submitted
-    TRANSACTION_STATUS_SUBMITTED = 0x10 | 2,  // more than just 'sent'; in one 'mempool'; has hash
 } BREthereumTransactionStatusType;
 
 #define TRANSACTION_STATUS_REASON_BYTES   \

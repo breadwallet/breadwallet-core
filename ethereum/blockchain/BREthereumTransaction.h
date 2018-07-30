@@ -27,7 +27,7 @@
 #define BR_Ethereum_Transaction_H
 
 #include "../base/BREthereumBase.h"
-#include "BREthereumAmount.h"
+#include "../contract/BREthereumToken.h"
 #include "BREthereumNetwork.h"
 #include "BREthereumTransactionStatus.h"
 
@@ -51,14 +51,21 @@ typedef struct BREthereumTransactionRecord *BREthereumTransaction;
 extern BREthereumTransaction
 transactionCreate(BREthereumAddress sourceAddress,
                   BREthereumAddress targetAddress,
-                  BREthereumAmount amount,
+                  BREthereumEther amount,
                   BREthereumGasPrice gasPrice,
                   BREthereumGas gasLimit,
+                  const char *data,
                   uint64_t nonce);
 
 extern BREthereumTransaction
 transactionCopy (BREthereumTransaction transaction);
-    
+
+extern void
+transactionRelease (BREthereumTransaction transaction);
+
+extern void
+transactionReleaseForSet (void *ignore, void *item);
+
 extern BREthereumAddress
 transactionGetSourceAddress(BREthereumTransaction transaction);
 
@@ -69,7 +76,7 @@ extern BREthereumBoolean
 transactionHasAddress (BREthereumTransaction transaction,
                        BREthereumAddress address);
     
-extern BREthereumAmount
+extern BREthereumEther
 transactionGetAmount(BREthereumTransaction transaction);
 
 /**
@@ -100,13 +107,6 @@ extern void
 transactionSetGasLimit (BREthereumTransaction transaction,
                         BREthereumGas gasLimit);
 
-extern BREthereumGas
-transactionGetGasEstimate (BREthereumTransaction transaction);
-
-extern void
-transactionSetGasEstimate (BREthereumTransaction transaction,
-                          BREthereumGas gasEstimate);
-
 extern uint64_t
 transactionGetNonce (BREthereumTransaction transaction);
 
@@ -120,9 +120,6 @@ transactionSetHash (BREthereumTransaction transaction,
 
 extern const char * // no not modify the return value
 transactionGetData (BREthereumTransaction transaction);
-
-extern BREthereumToken // or null
-transactionGetToken (BREthereumTransaction transaction);
 
 // Support BRSet
 extern size_t
@@ -172,12 +169,11 @@ transactionRlpEncode(BREthereumTransaction transaction,
                      BREthereumRlpType type,
                      BRRlpCoder coder);
 
-extern void
-transactionRelease (BREthereumTransaction transaction);
-
-extern void
-transactionReleaseForSet (void *ignore, void *item);
-    
+extern char *
+transactionGetRlpHexEncoded (BREthereumTransaction transaction,
+                             BREthereumNetwork network,
+                             BREthereumRlpType type,
+                             const char *prefix);
 //
 // Transaction Comparison
 //

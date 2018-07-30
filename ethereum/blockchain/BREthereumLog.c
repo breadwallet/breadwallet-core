@@ -224,6 +224,43 @@ logExtractIdentifier (BREthereumLog log,
     if (NULL != transactionReceiptIndex) *transactionReceiptIndex = log->identifier.transactionReceiptIndex;
 }
 
+static inline int
+logHasStatus (BREthereumLog log,
+              BREthereumTransactionStatusType type) {
+    return type == log->status.type;
+}
+
+extern BREthereumComparison
+logCompare (BREthereumLog l1,
+            BREthereumLog l2) {
+    int t1Blocked = logHasStatus(l1, TRANSACTION_STATUS_INCLUDED);
+    int t2Blocked = logHasStatus(l2, TRANSACTION_STATUS_INCLUDED);
+
+    if (t1Blocked && t2Blocked)
+        return (l1->status.u.included.blockNumber < l2->status.u.included.blockNumber
+                ? ETHEREUM_COMPARISON_LT
+                : (l1->status.u.included.blockNumber > l2->status.u.included.blockNumber
+                   ? ETHEREUM_COMPARISON_GT
+                   : (l1->status.u.included.transactionIndex < l2->status.u.included.transactionIndex
+                      ? ETHEREUM_COMPARISON_LT
+                      : (l1->status.u.included.transactionIndex > l2->status.u.included.transactionIndex
+                         ? ETHEREUM_COMPARISON_GT
+                         : (l1->identifier.transactionReceiptIndex < l2->identifier.transactionReceiptIndex
+                            ? ETHEREUM_COMPARISON_LT
+                            : (l1->identifier.transactionReceiptIndex > l2->identifier.transactionReceiptIndex
+                               ? ETHEREUM_COMPARISON_GT
+                               : ETHEREUM_COMPARISON_EQ))))));
+
+    else if (!t1Blocked && t2Blocked)
+        return ETHEREUM_COMPARISON_GT;
+
+    else if (t1Blocked && !t2Blocked)
+        return ETHEREUM_COMPARISON_LT;
+
+    else
+        return ETHEREUM_COMPARISON_EQ;
+
+}
 extern BREthereumTransactionStatus
 logGetStatus (BREthereumLog log) {
     return log->status;

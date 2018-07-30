@@ -121,6 +121,10 @@ logMatchesAddress (BREthereumLog log,
                    BREthereumAddress address,
                    BREthereumBoolean topicsOnly);
 
+extern BREthereumComparison
+logCompare (BREthereumLog l1,
+            BREthereumLog l2);
+
 extern BREthereumTransactionStatus
 logGetStatus (BREthereumLog log);
 

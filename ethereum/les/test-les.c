@@ -131,30 +131,31 @@ void prepareLESTransaction (BREthereumLES les, const char *paperKey, const char 
     BREthereumAmount amountAmountInEther =
     ethereumCreateEtherAmountUnit(ewm, amount, WEI);
     
-    BREthereumTransactionId tx1 =
-    ethereumWalletCreateTransaction
+    BREthereumTransferId tx1 =
+    ethereumWalletCreateTransfer
     (ewm,
      wallet,
      recvAddr,
      amountAmountInEther);
     
-    ethereumWalletSignTransaction (ewm, wallet, tx1, paperKey);
+    ethereumWalletSignTransfer (ewm, wallet, tx1, paperKey);
     
     const char *rawTransactionHexEncoded =
-    ethereumTransactionGetRawDataHexEncoded(ewm, wallet, tx1, "0x");
+    ethereumTransferGetRawDataHexEncoded(ewm, wallet, tx1, "0x");
     
     printf ("        Raw Transaction: %s\n", rawTransactionHexEncoded);
     
     char *fromAddr = ethereumGetAccountPrimaryAddress(ewm);
-    BREthereumTransactionId *transactions = ethereumWalletGetTransactions(ewm, wallet);
+    BREthereumTransferId *tids = ethereumWalletGetTransfers(ewm, wallet);
     
-    assert (NULL != transactions && -1 != transactions[0]);
+    assert (NULL != tids && -1 != tids[0]);
     
-    BREthereumTransactionId transaction = transactions[0];
-    assert (0 == strcmp (fromAddr, ethereumTransactionGetSendAddress(ewm, transaction)) &&
-            0 == strcmp (recvAddr, ethereumTransactionGetRecvAddress(ewm, transaction)));
+    BREthereumTransferId tid = tids[0];
+    assert (0 == strcmp (fromAddr, ethereumTransferGetSendAddress(ewm, tid)) &&
+            0 == strcmp (recvAddr, ethereumTransferGetRecvAddress(ewm, tid)));
     
-    BREthereumTransaction actualTransaction = ewmLookupTransaction(ewm, transaction);
+    BREthereumTransfer actualTransfer = ewmLookupTransfer(ewm, tid);
+    BREthereumTransaction actualTransaction = transferGetOriginatingTransaction(actualTransfer);
     
     //Initilize testing state
     _initTest(1);
