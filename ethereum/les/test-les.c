@@ -703,7 +703,7 @@ static void run_GetAccountState_Tests (BREthereumLES les){
     BREthereumHash block_5503921 = hashCreate("0x089a6c0b4b960261287d30ee40b1eea2da2972e7189bd381137f55540d492b2c");
     BREthereumLESAccountStateCallback context = NULL;
 
-    lesGetAccountState(les, context, _GetAccountState_Callback_Test1, block_5503921, address);
+    lesGetAccountState(les, context, _GetAccountState_Callback_Test1, 5503921, block_5503921, address);
 
     _waitForTests();
     eth_log("run_GetAccopuntState_Tests", "%s", "Tests Successful");

@@ -589,7 +589,8 @@ extern void
 lesGetAccountState (BREthereumLES les,
                     BREthereumLESAccountStateContext context,
                     BREthereumLESAccountStateCallback callback,
-                    BREthereumHash block,
+                    uint64_t blockNumber,
+                    BREthereumHash blockHash,
                     BREthereumAddress address) {
     // For Parity:
     //    // Request for proof of specific account in the state.
@@ -609,25 +610,35 @@ lesGetAccountState (BREthereumLES les,
     // For GETH:
     //    Use GetProofs, then process 'nodes'
 
-    // For NOW: return 'success' with some random data
-    static BREthereumAccountState state = EMPTY_ACCOUNT_STATE_INIT;
-
-#define ACCOUNT_RANDOM_PERIOD 25
-    long randomValue = random ();
-    int needNonce = 1 == randomValue % ACCOUNT_RANDOM_PERIOD;
-    int needEther = 3 == randomValue % ACCOUNT_RANDOM_PERIOD;
-
-    if (needNonce) state.nonce++;
-    if (needEther) { int overflow; state.balance = etherAdd(state.balance, etherCreateNumber(1, WEI), &overflow); }
-
-    BREthereumLESAccountStateResult result = {
-        ACCOUNT_STATE_SUCCCESS,
-        { .success = {
-            block,
-            address,
-            state
-        }}
+    struct BlockStateMap {
+        uint64_t number;
+        BREthereumAccountState state;
     };
+
+    // Address: 0xa9de3dbD7d561e67527bC1Ecb025c59D53b9F7Ef
+    static struct BlockStateMap map[] = {
+        { 0, { 0 }},
+        { 5506602, { 1 }},
+        { 5506764, { 2 }},
+        { 5509990, { 3 }},
+        { 5511681, { 4 }},
+        { 5539808, { 5 }},
+        { 5795662, { 6 }},
+        { 5818087, { 7 }},
+        { 5819543, { 8 }},
+        { UINT64_MAX, { 8 }}
+    };
+
+    BREthereumLESAccountStateResult result = { ACCOUNT_STATE_ERROR_X };
+
+    for (int i = 0; UINT64_MAX != map[i].number; i++)
+        if (blockNumber < map[i].number) {
+            result.status = ACCOUNT_STATE_SUCCCESS;
+            result.u.success.block = blockHash;
+            result.u.success.address = address;
+            result.u.success.accountState = map [i - 1].state;
+            break;
+        }
 
     callback (context, result);
 }
