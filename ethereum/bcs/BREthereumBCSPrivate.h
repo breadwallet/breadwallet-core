@@ -340,13 +340,19 @@ typedef void* BREthereumBCSSyncContext;
 typedef void
 (*BREthereumBCSSyncReportBlocks) (BREthereumBCSSyncContext context,
                                   BREthereumBCSSync sync,
-                                  BRArrayOf(BREthereumBCSSyncResult) blocks,
-                                  double percentComplete);
+                                  BRArrayOf(BREthereumBCSSyncResult) blocks);
 
+typedef void
+(*BREthereumBCSSyncReportProgress) (BREthereumBCSSyncContext context,
+                                    BREthereumBCSSync sync,
+                                    uint64_t blockNumberBeg,
+                                    uint64_t blockNumberNow,
+                                    uint64_t blockNumberEnd);
 
 extern BREthereumBCSSync
 bcsSyncCreate (BREthereumBCSSyncContext context,
-               BREthereumBCSSyncReportBlocks callback,
+               BREthereumBCSSyncReportBlocks callbackBlocks,
+               BREthereumBCSSyncReportProgress callbackProgress,
                BREthereumAddress address,
                BREthereumLES les,
                BREventHandler handler);
@@ -359,6 +365,11 @@ bcsSyncHandler (BREthereumBCSSync sync);
 
 extern BREthereumBoolean
 bcsSyncIsActive (BREthereumBCSSync sync);
+
+extern int
+bcsSyncExtractRange (BREthereumBCSSync sync,
+                     uint64_t *blockNumberBeg,
+                     uint64_t *blockNumberEnd);
 
 extern void
 bcsSyncStart (BREthereumBCSSync sync);

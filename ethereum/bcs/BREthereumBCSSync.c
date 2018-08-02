@@ -94,7 +94,8 @@ typedef void* BREthereumBCSSyncRangeContext;
  */
 typedef void
 (*BREthereumBCSSyncRangeCallback) (BREthereumBCSSyncRangeContext context,
-                                     BREthereumBlockHeader header);
+BREthereumBlockHeader header,
+uint64_t headerNumber);
 
 /**
  * A Sync Range defines the range of block header numbers overwhich a sync is performed.  The
@@ -135,21 +136,40 @@ struct BREthereumBCSSyncRangeRecord {
     BRArrayOf(BREthereumBCSSyncRange) children;
 };
 
+static int
+syncRangeGetDepth (BREthereumBCSSyncRange range) {
+    return NULL == range->parent ? 0 : (1 + syncRangeGetDepth (range->parent));
+}
+
+static void
+syncRangeReport (BREthereumBCSSyncRange range,
+                 const char *action) {
+    int depth = syncRangeGetDepth(range);
+
+    char spaces[2 * depth + 1];
+    memset(spaces, ' ', 2 * depth);
+    spaces[2 * depth] = '\0';
+
+    eth_log ("BCS", "Sync: %s: (T:C:R:D) = ( %d : %3llu : {%llu, %llu} : %2d ) *** %s%p -> %p",
+             action,
+             range->type, range->count, range->tail, range->head, depth,
+             spaces, range, range->parent);
+}
 
 /**
  * Create a Sync Range will all the paremeters provided
  */
 static BREthereumBCSSyncRange
 syncRangeCreateDetailed (BREthereumAddress address,
-                           BREthereumLES les,
-                           BREventHandler handler,
-                           BREthereumBCSSyncRangeContext context,
-                           BREthereumBCSSyncRangeCallback callback,
-                           uint64_t tail,
-                           uint64_t head,
-                           uint64_t step,
-                           uint64_t count,
-                           BREthereumBCSSyncType type) {
+                         BREthereumLES les,
+                         BREventHandler handler,
+                         BREthereumBCSSyncRangeContext context,
+                         BREthereumBCSSyncRangeCallback callback,
+                         uint64_t tail,
+                         uint64_t head,
+                         uint64_t step,
+                         uint64_t count,
+                         BREthereumBCSSyncType type) {
     BREthereumBCSSyncRange range = calloc (1, sizeof (struct BREthereumBCSSyncRangeRecord));
 
     range->address = address;
@@ -170,10 +190,23 @@ syncRangeCreateDetailed (BREthereumAddress address,
     range->parent = NULL;
     range->children = NULL;
 
-    //    eth_log ("BCS", "Sync: Create: Type: %d; Count: %llu, Range: {%llu, %llu)",
-    //             range->type, range->count, range->tail, range->head);
-
+    // syncRangeReport(range, "Create  ");
     return range;
+}
+
+extern void
+syncRangeRelease (BREthereumBCSSyncRange range) {
+    if (NULL != range->children) {
+        for (size_t index = 0; index < array_count(range->children); index++) {
+            range->children[index]->parent = NULL;
+            syncRangeRelease (range->children[index]);
+        }
+        array_free(range->children);
+    }
+
+    // result[].header and result[].account should be gone already.
+
+    free (range);
 }
 
 /**
@@ -189,7 +222,7 @@ bcsSyncRangeGetHandler (BREthereumBCSSyncRange range) {
  */
 static int
 syncRangeLookupChild (BREthereumBCSSyncRange parent,
-                        BREthereumBCSSyncRange child) {
+                      BREthereumBCSSyncRange child) {
     if (NULL != parent->children)
         for (size_t index = 0; index < array_count(parent->children); index++)
             if (child == parent->children[index])
@@ -203,7 +236,7 @@ syncRangeLookupChild (BREthereumBCSSyncRange parent,
  */
 static void
 syncRangeAddChild (BREthereumBCSSyncRange parent,
-                     BREthereumBCSSyncRange child) {
+                   BREthereumBCSSyncRange child) {
     assert (-1 == syncRangeLookupChild(parent, child));
 
     if (NULL == parent->children)
@@ -236,23 +269,22 @@ syncRangeRemChild (BREthereumBCSSyncRange child) {
  */
 static void
 syncRangeCreateAndAddChild (BREthereumBCSSyncRange parent,
-                              uint64_t tail,
-                              uint64_t head,
-                              uint64_t step,
-                              uint64_t count,
-                              BREthereumBCSSyncType type) {
+                            uint64_t tail,
+                            uint64_t head,
+                            uint64_t step,
+                            uint64_t count,
+                            BREthereumBCSSyncType type) {
     syncRangeAddChild (parent, syncRangeCreateDetailed (parent->address,
-                                                            parent->les,
-                                                            parent->handler,
-                                                            NULL,
-                                                            NULL,
-                                                            tail,
-                                                            head,
-                                                            step,
-                                                            count,
-                                                            type));
+                                                        parent->les,
+                                                        parent->handler,
+                                                        NULL,
+                                                        NULL,
+                                                        tail,
+                                                        head,
+                                                        step,
+                                                        count,
+                                                        type));
 }
-
 
 /**
  * Create a Sync Range based on block numbers for `tail` and `head`.  The range's type will be
@@ -261,12 +293,12 @@ syncRangeCreateAndAddChild (BREthereumBCSSyncRange parent,
  */
 static BREthereumBCSSyncRange
 syncRangeCreate (BREthereumAddress address,
-                   BREthereumLES les,
-                   BREventHandler handler,
-                   BREthereumBCSSyncRangeContext context,
-                   BREthereumBCSSyncRangeContext callback,
-                   uint64_t tail,
-                   uint64_t head) { // binaryThreshold
+                 BREthereumLES les,
+                 BREventHandler handler,
+                 BREthereumBCSSyncRangeContext context,
+                 BREthereumBCSSyncRangeContext callback,
+                 uint64_t tail,
+                 uint64_t head) { // binaryThreshold
 
     uint64_t total = head - tail;
 
@@ -286,12 +318,12 @@ syncRangeCreate (BREthereumAddress address,
     }
 
     BREthereumBCSSyncRange root = syncRangeCreateDetailed (address, les, handler,
-                                                               context, callback,
-                                                               tail,
-                                                               head,
-                                                               step,
-                                                               count,
-                                                               type);
+                                                           context, callback,
+                                                           tail,
+                                                           head,
+                                                           step,
+                                                           count,
+                                                           type);
 
     switch (type) {
         case SYNC_LINEAR_SMALL:
@@ -300,27 +332,27 @@ syncRangeCreate (BREthereumAddress address,
 
         case SYNC_LINEAR_LARGE:
             syncRangeCreateAndAddChild (root,
-                                          tail,
-                                          head + SYNC_LINEAR_REQUEST_MAXIMUM - 1,
-                                          1,
-                                          SYNC_LINEAR_REQUEST_MAXIMUM,
-                                          SYNC_LINEAR_SMALL);
+                                        tail,
+                                        head + SYNC_LINEAR_REQUEST_MAXIMUM - 1,
+                                        1,
+                                        SYNC_LINEAR_REQUEST_MAXIMUM,
+                                        SYNC_LINEAR_SMALL);
             break;
 
         case SYNC_BINARY_MIXED:
             syncRangeCreateAndAddChild (root,
-                                          tail,
-                                          tail + step * count,
-                                          step,
-                                          count,
-                                          SYNC_BINARY);
+                                        tail,
+                                        tail + step * count,
+                                        step,
+                                        count,
+                                        SYNC_BINARY);
 
             syncRangeCreateAndAddChild (root,
-                                          tail + step * count,
-                                          head,
-                                          1,
-                                          head - (tail + step * count),
-                                          SYNC_LINEAR_SMALL);
+                                        tail + step * count,
+                                        head,
+                                        1,
+                                        head - (tail + step * count),
+                                        SYNC_LINEAR_SMALL);
             break;
     }
 
@@ -332,8 +364,11 @@ syncRangeCreate (BREthereumAddress address,
  */
 static void
 syncRangeDispatch (BREthereumBCSSyncRange range) {
-    eth_log ("BCS", "Sync: Dispatch: Type: %d; Count: %3llu; Range: {%llu, %llu)",
-             range->type, range->count, range->tail, range->head);
+    syncRangeReport(range, "Dispatch");
+
+    if (NULL == range->parent)
+        // Callback to announce sync start
+        range->callback (range->context, NULL, range->tail);
 
     switch (range->type) {
         case SYNC_LINEAR_SMALL:
@@ -359,6 +394,16 @@ syncRangeDispatch (BREthereumBCSSyncRange range) {
 }
 
 /**
+ * Get the root for `range`.
+ */
+static BREthereumBCSSyncRange
+syncRangeGetRoot (BREthereumBCSSyncRange range) {
+    return (NULL == range->parent
+            ? range
+            : syncRangeGetRoot(range->parent));
+}
+
+/**
  * Complete a Sync Range by a) completing the sync overall if `child` is the root, b) dispatching
  * on any remaining children of parent.
  */
@@ -366,17 +411,20 @@ static void
 syncRangeComplete (BREthereumBCSSyncRange child) {
     BREthereumBCSSyncRange parent = child->parent;
 
+    syncRangeReport (child, "Complete");
+
     // If `child` does not have a `parent`, then we are at the top-level and completely complete.
     if (NULL == parent) {
         eth_log ("BCS", "Sync: Done%s", "");
+        child->callback (child->context, NULL, child->head);
         return;
     }
 
-    eth_log ("BCS", "Sync: Complete: Type: %d; Count: %3llu; Range: {%llu, %llu)",
-             child->type, child->count, child->tail, child->head);
-
-    // If `child` does have a `parent`, then `parent` must have children, including `child`.
-    assert (NULL != parent->children);
+    // If this is a LINEAR_SMALL sync, then report (incremental) progress
+    if (SYNC_LINEAR_SMALL == child->type) {
+        BREthereumBCSSyncRange root = syncRangeGetRoot (child);
+        root->callback (root->context, NULL, child->head);
+    }
 
     // Remove the child
     syncRangeRemChild(child);
@@ -391,29 +439,18 @@ syncRangeComplete (BREthereumBCSSyncRange child) {
 }
 
 /**
- * Get the root for `range`.
- */
-static BREthereumBCSSyncRange
-syncRangeGetRoot (BREthereumBCSSyncRange range) {
-    return (NULL == range->parent
-            ? range
-            : syncRangeGetRoot(range->parent));
-}
-
-/**
  * Add a single `header` result to `range`.  If all results have been provided then: a) for a
  * BINARY range, request the account states; or b) for a LINEAR_SMALL range, invoke the callback
  * to report the header results.
  */
 static void
 syncRangeAddResultHeader (BREthereumBCSSyncRange range,
-                            BREthereumBlockHeader header) {
+                          BREthereumBlockHeader header) {
     range->result[range->resultCount].state = SYNC_RESULT_HEADER;
     range->result[range->resultCount].header = header;
     range->resultCount += 1;
 
-//    eth_log ("BCS", "Sync: Header: Type: %d; Count: %llu; Range: {%llu, %llu); Results: %llu",
-//             range->type, range->count, range->tail, range->head, range->resultCount);
+    // syncRangeReport(range, "Header  ")
 
     // If we have all requested headers, then move on.
     if (range->resultCount == 1 + range->count) {
@@ -440,8 +477,9 @@ syncRangeAddResultHeader (BREthereumBCSSyncRange range,
 
             case SYNC_LINEAR_SMALL: {
                 BREthereumBCSSyncRange root = syncRangeGetRoot(range);
+
                 for (size_t index = 0; index < range->resultCount; index++)
-                    root->callback (root->context, range->result[index].header);
+                    root->callback (root->context, range->result[index].header, 0);
 
                 syncRangeComplete (range);
                 break;
@@ -458,7 +496,7 @@ syncRangeAddResultHeader (BREthereumBCSSyncRange range,
  */
 static void
 syncRangeAddResultAccountState (BREthereumBCSSyncRange range,
-                                  BREthereumAccountState accountState) {
+                                BREthereumAccountState accountState) {
     range->result[range->resultCount].state = SYNC_RESULT_ACCOUNT;
     range->result[range->resultCount].account = accountState;
     range->resultCount += 1;
@@ -483,13 +521,13 @@ syncRangeAddResultAccountState (BREthereumBCSSyncRange range,
 
                 // ... hen we need to explore this header range, recursively.
                 syncRangeAddChild (range,
-                                     syncRangeCreate(range->address,
-                                                       range->les,
-                                                       range->handler,
-                                                       NULL,
-                                                       NULL,
-                                                       oldNumber,
-                                                       newNumber));
+                                   syncRangeCreate(range->address,
+                                                   range->les,
+                                                   range->handler,
+                                                   NULL,
+                                                   NULL,
+                                                   oldNumber,
+                                                   newNumber));
             }
         }
         
@@ -524,7 +562,8 @@ struct BREthereumBCSSyncStruct {
 
     /** Callback */
     BREthereumBCSSyncContext context;
-    BREthereumBCSSyncReportBlocks callback;
+    BREthereumBCSSyncReportBlocks callbackBlocks;
+    BREthereumBCSSyncReportProgress callbackProgress;
 
     /** The root `range`, if a sync is in progress */
     BREthereumBCSSyncRange range;
@@ -538,7 +577,8 @@ struct BREthereumBCSSyncStruct {
  */
 extern BREthereumBCSSync
 bcsSyncCreate (BREthereumBCSSyncContext context,
-               BREthereumBCSSyncReportBlocks callback,
+               BREthereumBCSSyncReportBlocks callbackBlocks,
+               BREthereumBCSSyncReportProgress callbackProgress,
                BREthereumAddress address,
                BREthereumLES les,
                BREventHandler handler) {
@@ -548,7 +588,8 @@ bcsSyncCreate (BREthereumBCSSyncContext context,
     sync->handler = handler;
 
     sync->context = context;
-    sync->callback = callback;
+    sync->callbackBlocks = callbackBlocks;
+    sync->callbackProgress = callbackProgress;
 
     sync->range = NULL;
 
@@ -582,6 +623,18 @@ bcsSyncIsActive (BREthereumBCSSync sync) {
     return AS_ETHEREUM_BOOLEAN(NULL != sync->range);
 }
 
+extern int
+bcsSyncExtractRange (BREthereumBCSSync sync,
+                     uint64_t *blockNumberBeg,
+                     uint64_t *blockNumberEnd) {
+    if (NULL == sync->range) return 0;
+
+    if (NULL != blockNumberBeg) *blockNumberBeg = sync->range->head;
+    if (NULL != blockNumberEnd) *blockNumberEnd = sync->range->tail;
+
+    return 1;
+}
+
 extern void
 bcsSyncStart (BREthereumBCSSync sync) {
     // Use LES
@@ -596,21 +649,45 @@ bcsSyncStop (BREthereumBCSSync sync) {
 
 /**
  * The callback for sync ranges.  Will add `header` to `results` and periodically invoke the
- * sync callback (to BCS, generally).
+ * sync callback (to BCS, generally).  If `header` is NULL, then we are simply announcing progress.
  */
 static void
 bcsSyncRangeCallback (BREthereumBCSSync sync,
-                        BREthereumBlockHeader header) {
-    BREthereumBCSSyncResult result = {
-        header
-    };
-    array_add (sync->results, result);
-    if (BCS_SYNC_RESULT_PERIOD == array_count(sync->results)) {
-        sync->callback (sync->context,
-                        sync,
-                        sync->results,
-                        0.0);
-        array_new (sync->results, BCS_SYNC_RESULT_PERIOD);
+                      BREthereumBlockHeader header,
+                      uint64_t headerNumber) {
+
+    // If `header` is NULL, we are reporting progress ...
+    if (NULL == header) {
+
+        // We can report an 'end' twice; avoid that
+        int rootHasChildren = NULL != sync->range->children && 0 != array_count(sync->range->children);
+
+        if (headerNumber != sync->range->head || !rootHasChildren)
+            sync->callbackProgress (sync->context,
+                                    sync,
+                                    sync->range->tail,
+                                    headerNumber,
+                                    sync->range->head);
+
+        // If done, release.
+        if (headerNumber == sync->range->head && !rootHasChildren) {
+            syncRangeRelease(sync->range);
+            sync->range = NULL;
+        }
+    }
+
+    // ... otherwise we are reporting a block
+    else {
+        BREthereumBCSSyncResult result = { header };
+
+        array_add (sync->results, result);
+        if (BCS_SYNC_RESULT_PERIOD == array_count(sync->results)) {
+            sync->callbackBlocks (sync->context,
+                                  sync,
+                                  sync->results);
+
+            array_new (sync->results, BCS_SYNC_RESULT_PERIOD);
+        }
     }
 }
 
@@ -624,36 +701,22 @@ bcsSyncContinue (BREthereumBCSSync sync,
     // Skip out if already syncing.
     if (NULL != sync->range) return;
 
+    eth_log ("BCS", "Sync: Start%s", "");
+
     sync->range = syncRangeCreate (sync->address,
-                                       sync->les,
-                                       sync->handler,
-                                       (BREthereumBCSSyncRangeContext) sync,
-                                       (BREthereumBCSSyncRangeCallback) bcsSyncRangeCallback,
-                                       chainBlockNumber /* + 1 */,
-                                       needBlockNumber);
+                                   sync->les,
+                                   sync->handler,
+                                   (BREthereumBCSSyncRangeContext) sync,
+                                   (BREthereumBCSSyncRangeCallback) bcsSyncRangeCallback,
+                                   chainBlockNumber /* + 1 */,
+                                   needBlockNumber);
+
     syncRangeDispatch(sync->range);
-
-    ////        bcs->listener.syncCallback (bcs->listener.context,
-    ////                                    BCS_CALLBACK_SYNC_STOPPED,
-    ////                                    bcs->syncTail,
-    ////                                    bcs->syncHead,
-    ////                                    bcs->syncHead);
 }
 
 ///
-/// MARK: - Sync
+/// MARK: - Sync Handle
 ///
-
-
-//
-extern double
-bcsSyncPercentComplete (BREthereumBCSSync sync) {
-    if (NULL == sync->range) return 100.00;
-
-    uint64_t needCount = sync->range->head - sync->range->tail;
-    return 0.0;
-//    return (100.0 * sync->doneCount) / needCount;
-}
 
 /** Handle a LES callback for BlockHeader */
 extern void

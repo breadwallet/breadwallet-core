@@ -60,8 +60,14 @@ bcsExtendChain (BREthereumBCS bcs,
 static void
 bcsSyncReportBlocksCallback (BREthereumBCS bcs,
                              BREthereumBCSSync sync,
-                             BRArrayOf(BREthereumBCSSyncResult) blocks,
-                             double percentComplete);
+                             BRArrayOf(BREthereumBCSSyncResult) blocks);
+
+static void
+bcsSyncReportProgressCallback (BREthereumBCS bcs,
+                               BREthereumBCSSync sync,
+                               uint64_t blockNumberBeg,
+                               uint64_t blockNumberNow,
+                               uint64_t blockNumberEnd);
 /**
  */
 static void
@@ -233,6 +239,7 @@ bcsStart (BREthereumBCS bcs) {
 
     bcs->sync = bcsSyncCreate ((BREthereumBCSSyncContext) bcs,
                                (BREthereumBCSSyncReportBlocks) bcsSyncReportBlocksCallback,
+                               (BREthereumBCSSyncReportProgress) bcsSyncReportProgressCallback,
                                bcs->address,
                                bcs->les,
                                bcs->handler);
@@ -1445,16 +1452,28 @@ bcsHandlePeers (BREthereumBCS bcs,
 static void
 bcsSyncReportBlocksCallback (BREthereumBCS bcs,
                              BREthereumBCSSync sync,
-                             BRArrayOf(BREthereumBCSSyncResult) results,
-                             double percentComplete) {
-
-//    bcs->listener.syncCallback (bcs->listener.context,
-//                                BCS_CALLBACK_SYNC_UPDATE,
-//                                0, 0, 0);
-
+                             BRArrayOf(BREthereumBCSSyncResult) results) {
     size_t resultsCount = (NULL != results ? array_count(results) : 0);
     for (size_t index = 0; index < resultsCount; index++)
         bcsHandleBlockHeader(bcs, results[index].header);
+}
+
+static void
+bcsSyncReportProgressCallback (BREthereumBCS bcs,
+                               BREthereumBCSSync sync,
+                               uint64_t blockNumberBeg,
+                               uint64_t blockNumberNow,
+                               uint64_t blockNumberEnd) {
+
+    bcs->listener.syncCallback (bcs->listener.context,
+                                (blockNumberNow == blockNumberBeg
+                                 ? BCS_CALLBACK_SYNC_STARTED
+                                 : (blockNumberNow == blockNumberEnd
+                                    ? BCS_CALLBACK_SYNC_STOPPED
+                                    : BCS_CALLBACK_SYNC_UPDATE)),
+                                blockNumberBeg,
+                                blockNumberNow,
+                                blockNumberEnd);
 }
 
 ////
