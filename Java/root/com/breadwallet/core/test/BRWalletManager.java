@@ -348,6 +348,19 @@ public class BRWalletManager extends BRCoreWalletManager {
         System.out.println("               PaperKey: " + Arrays.toString(new String(paperKeyBytes).getBytes()));
         asserting (Arrays.equals(paperKeyBytes, new String (paperKeyBytes).getBytes()));
         asserting (0 != paperKeyBytes[paperKeyBytes.length - 1]);
+
+        System.out.println("        SeedFromPhrase:");
+        for (int i = 0; i < 10; i++) {
+            byte[] seed1 = BRCoreKey.getSeedFromPhrase(paperKeyBytes);
+            byte[] seed2 = BRCoreKey.getSeedFromPhrase(paperKeyBytes);
+            if (i < 2) {
+                System.out.println("            @ " + i + " seed1: " + Arrays.toString(seed1));
+                System.out.println("            @ " + i + " seed2: " + Arrays.toString(seed2));
+            }
+            else System.out.println("            @ " + i + "...");
+            asserting(Arrays.equals(seed1, seed2));
+        }
+
         //
         //
         //
