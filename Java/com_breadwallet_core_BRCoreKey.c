@@ -115,8 +115,9 @@ Java_com_breadwallet_core_BRCoreKey_getBase58EncodedPublicKey
 
     // Encode pubKey
     size_t strLen = BRBase58Encode(NULL, 0, pubKey, len);
-    char base58string[strLen];
+    char base58string[strLen + 1];
     BRBase58Encode(base58string, strLen, pubKey, len);
+    base58string[strLen] = '\0';
 
     return (*env)->NewStringUTF (env, base58string);
 }
@@ -130,9 +131,14 @@ JNIEXPORT jbyteArray JNICALL
 Java_com_breadwallet_core_BRCoreKey_getSeedFromPhrase
         (JNIEnv *env, jclass thisClass, jbyteArray phrase) {
 
+    size_t bytePhraseLen = (size_t) (*env)->GetArrayLength (env, phrase);
     jbyte *bytePhrase = (*env)->GetByteArrayElements(env, phrase, 0);
+
+    char charPhrase[1 + bytePhraseLen];
+    memcpy (charPhrase, bytePhrase, bytePhraseLen);
+    charPhrase[bytePhraseLen] = '\0';
+
     UInt512 key = UINT512_ZERO;
-    char *charPhrase = (char *) bytePhrase;
     BRBIP39DeriveKey(key.u8, charPhrase, NULL);
 
     jbyteArray result = (*env)->NewByteArray(env, (jsize) sizeof(key));
@@ -181,8 +187,9 @@ JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreKey_getAuthPublicKeyFo
     uint8_t pubKey[len];
     BRKeyPubKey(&key, &pubKey, len);
     size_t strLen = BRBase58Encode(NULL, 0, pubKey, len);
-    char base58string[strLen];
+    char base58string[strLen + 1];
     BRBase58Encode(base58string, strLen, pubKey, len);
+    base58string[strLen] = '\0';
 
     return (*env)->NewStringUTF(env, base58string);
 }
@@ -202,9 +209,11 @@ JNIEXPORT jstring JNICALL Java_com_breadwallet_core_BRCoreKey_decryptBip38Key
     int result = BRKeySetBIP38Key(&key, rawPrivKey, rawPass);
 
     if (result) {
-        char pk[BRKeyPrivKey(&key, NULL, 0)];
+        size_t pkLen = BRKeyPrivKey(&key, NULL, 0);
+        char pk[pkLen + 1];
 
         BRKeyPrivKey(&key, pk, sizeof(pk));
+        pk[pkLen] = '\0';
         return (*env)->NewStringUTF(env, pk);
     } else return (*env)->NewStringUTF(env, "");
 }
