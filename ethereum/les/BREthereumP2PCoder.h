@@ -38,6 +38,11 @@ extern "C" {
 #endif
 
 
+
+/**
+  A BREthereumDisconnect enumerations allows for representing reasons for why a node wants to disconnect from a
+  peer
+**/
 typedef enum {
     BRE_DISCONNECT_REQUESTED = 0x00, //0x00 Disconnect requested
     BRE_TCP_ERROR,                   //0x01 TCP sub-system error
@@ -55,20 +60,27 @@ typedef enum {
 }BREthereumDisconnect;
 
 
-
-
+/**
+ * A EthereumP2PMessages enueration represents the message ids for devP2P Wire Protocol
+ */
 typedef enum {
-    BRE_P2P_HELLO      = 0x00,
-    BRE_P2P_DISCONNECT = 0x01,
-    BRE_P2P_PING       = 0x02,
-    BRE_P2P_PONG       = 0x03
+    BRE_P2P_HELLO      = 0x00, //Hello message id
+    BRE_P2P_DISCONNECT = 0x01, //Disconnect message id
+    BRE_P2P_PING       = 0x02, //Ping message id
+    BRE_P2P_PONG       = 0x03  //Ping message id
 }EthereumP2PMessages;
 
+/**
+ * The BREthereumCapabilitiesRecord is used for holding the capabilities for a node in the devp2p network.
+ */
 typedef struct BREthereumCapabilitiesRecord {
     char*cap;                 // cap Specifies a peer capability name as a length-3 ASCII string. Current supported capabilities are eth, shh.
     uint64_t capVersion;     // capVersion Specifies a peer capability version as a positive integer. Current supported versions are 34 for eth, and 1 for shh.
 }BREthereumCapabilities;
 
+/**
+ * BREthereumP2PHelloRecord holds information that will be exchanged via a Hello message to a remote peer on the p2p network.
+ */
 typedef struct BREthereumP2PHelloRecord {
       uint64_t version;                 // p2pVersion Specifies the implemented version of the P2P protocol. Now must be 1.
       char* clientId;                   // clientId Specifies the client software identity, as a human-readable string (e.g. "Ethereum(++)/1.0.0").
@@ -77,23 +89,29 @@ typedef struct BREthereumP2PHelloRecord {
       UInt512 nodeId;                   // nodeId is the Unique Identity of the node and specifies a 512-bit hash that identifies this node.
 }BREthereumP2PHello;
 
-typedef uint64_t BREthereumP2PPing;
-typedef uint64_t BREthereumP2PPong;
-
-
-//Encoded messages
+///
+/**
+ * The following functions rlp encode the data for the p2p messages.
+ */
 extern BRRlpData ethereumP2PHelloEncode(BREthereumP2PHello* message);
 extern BRRlpData ethereumP2PDisconnectEncode(BREthereumDisconnect reason);
 extern BRRlpData ethereumP2PPingEncode(void);
 extern BRRlpData ethereumP2PPongEncode(void);
+///
 
-//Decoded messages
+///
+/**
+ * The following functions rlp decode the data for the p2p messages.
+ */
 extern BREthereumP2PHello ethereumP2PHelloDecode(BRRlpCoder coder, BRRlpData data);
 extern BREthereumDisconnect ethereumP2PDisconnectDecode(BRRlpCoder coder, BRRlpData data);
 extern BRRlpData ethereumP2PPingEncode(void);
 extern BRRlpData ethereumP2PPongEncode(void);
+///
 
-//Utils
+/**
+ * Converts BREthereumDisconnect reason into a string readable text.
+ */ 
 extern char* ethereumP2PDisconnectToString(BREthereumDisconnect reason);
 
 

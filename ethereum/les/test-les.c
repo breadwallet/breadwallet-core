@@ -43,7 +43,6 @@
 #include "../base/BREthereumHash.h"
 #include "BREthereumLES.h"
 #include "BREthereumNode.h"
-#include "BREthereumNodeEventHandler.h"
 #include "BREthereumNodeManager.h"
 #include "../blockchain/BREthereumNetwork.h"
 #include "BREthereumNodeDiscovery.h"

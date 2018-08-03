@@ -61,12 +61,12 @@ typedef struct {
 /**
  * Creates a new Ethereum Node manager.
  * @post: Must be released by a calling ethereumNodeManagerRelease(manager)
- * @param network - the Ethereum network to connect to remote peers
- * @param account - The account of interest
- * @param blocks - known blocks that are of interest to the account
- * @param blocksCount - the number of blocks in the blcoks argument.
- * @param peers - known peers that are reliable and should try to connect to first
- * @param peersCount - the number of peers in the peers argument
+ * @param key - the ethereum private key that is needed to assign nodes their own public keys
+ * @param headTd - Total Difficulty of the best chain. Integer, as found in block header.
+ * @param headHash - the hash of the best (i.e. highest TD) known block.
+ * @param headNum - the number of the best (i.e. highest TD) known block.
+ * @param genesisHash - the hash of the Genesis block.
+ * @param callbacks - the context that contains the callbacks that are used when the manager receives messags from a remote node
  */
 extern BREthereumNodeManager
 ethereumNodeManagerCreate(BREthereumNetwork network,

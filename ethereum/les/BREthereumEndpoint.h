@@ -42,32 +42,42 @@ typedef struct BREthereumEndpointContext* BREthereumEndpoint;
 
 
 /**
- * Create an Endpoint
+ * Create a BREthereumEndpoint
+ * @param isIPV4Address - determines whether the endpoint address is IPV4 (ETHEREUM_BOOLEAN_TRUE), otherwise its IPV6 (ETHEREUM_BOOLEAN_FALSE)
+ * @param address - a string representing the "." address for the endpoint
+ * @param udpPort - the udp port for the endpoint
+ * @param tcpPort - the tcp port for the endpoint
+ * @return BREthereumEndpoint
  */
 extern BREthereumEndpoint ethereumEndpointCreate(BREthereumBoolean isIPV4Address, char*address, uint16_t udpPort, uint16_t tcpPort);
 
 /**
- * Release an Endpoint
+ * Releases the BREthereumEndpoint context
+ * @param endponint - the endpoint context
  */
 extern void ethereumEndpointRelease(BREthereumEndpoint endpoint);
 
 /**
  * Retrieve the tcpPort of an endpoint
+ * @param endponint - the endpoint context
  */
 extern uint16_t ethereumEndpointGetTCP(BREthereumEndpoint endpoint);
 
 /**
  * Retrieve the udport of an endpoint
+ * @param endponint - the endpoint context
  */
 extern uint16_t ethereumEndpointGetUDP(BREthereumEndpoint endpoint);
 
 /**
  * Retrieve the host address of an endpoint
+ * @param endponint - the endpoint context
  */
 extern const char* ethereumEndpointGetHost(BREthereumEndpoint endpoint);
 
 /**
  * Determines whether the endpoint contains a IPV4 address or not
+ * @param endponint - the endpoint context
  */
 extern BREthereumBoolean ethereumEndpointIsIPV4(BREthereumEndpoint endpoint);
 

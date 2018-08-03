@@ -45,7 +45,6 @@
 #include "BREthereumAccount.h"
 #include "BRKey.h"
 #include "BREthereumLESCoder.h"
-#include "BREthereumNodeEventHandler.h"
 #include "BREthereumEndpoint.h"
 #include "BREthereumFrameCoder.h"
 #include "BREthereumNodeDiscovery.h"
@@ -321,6 +320,7 @@ static int _readMessage(BREthereumNode node) {
 
     eth_log(ETH_LOG_TOPIC, "%s", "reading message from peer");
     
+    //1st. Read in the header from the remote peer' packet
     int ec = ethereumNodeReadFromPeer(node, node->header, 32, "");
     
     if(ec){
@@ -344,9 +344,10 @@ static int _readMessage(BREthereumNode node) {
         eth_log(ETH_LOG_TOPIC, "%s", "Error: message frame size is too large");
         return 1;
     }*/ 
-    
+
     uint32_t fullFrameSize = frameSize + ((16 - (frameSize % 16)) % 16) + 16;
     
+
     if(node->body == NULL){
       node->body = malloc(fullFrameSize);
       node->bodyCompacity = fullFrameSize;

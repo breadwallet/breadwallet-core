@@ -41,6 +41,13 @@
 extern "C" {
 #endif
 
+/**
+ * XOrs two uin8t arrays
+ * @post the lengths of the operands and resulting arrays should all have size the size of the "len" parameter
+ * @param op1 - the first operand of bytes
+ * @param op2 - the second operand of bytes
+ * @param result - the destination of the XOR computation
+ */
 extern void ethereumXORBytes(uint8_t * op1, uint8_t* op2, uint8_t* result, size_t len);
 
 #ifdef __cplusplus

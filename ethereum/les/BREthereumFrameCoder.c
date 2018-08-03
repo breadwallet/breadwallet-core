@@ -40,6 +40,8 @@
 /**
  *
  * The context for a frame coder
+ * More details about the fields in the frame coder context are described here:
+    https://github.com/ethereum/devp2p/blob/master/rlpx.md#encrypted-handshake
  */
 struct BREthereumFrameCoderContext {
 
@@ -166,7 +168,6 @@ static void _BRAES256ECBEncrypt(const void *key32, void *buf16)
     memcpy(buf16, buf, sizeof(buf));
     mem_clean(buf, sizeof(buf));
 }
-
 static void _BRAES256ECBDecrypt(const void *key32, void *buf16)
 {
     size_t i, j;
@@ -217,8 +218,11 @@ static void _BRAES256ECBDecrypt(const void *key32, void *buf16)
 // Public Functions
 //
 BREthereumFrameCoder ethereumFrameCoderCreate(void) {
-    
     BREthereumFrameCoder coder = (BREthereumFrameCoder) calloc (1, sizeof(struct BREthereumFrameCoderContext));
+    coder->aesDecryptKey = NULL;
+    coder->aesEncryptKey = NULL;
+    coder->egressMac = NULL;
+    coder->ingressMac = NULL;
     return coder;
 }
 BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fcoder,
@@ -232,7 +236,13 @@ BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fcoder,
                                          size_t authCipherLen,
                                          BREthereumBoolean didOriginate) {
     uint8_t keyMaterial[64];
-    
+   
+    /********
+    * The initialzation of the coder is all described here:
+    * 1. https://github.com/ethereum/devp2p/blob/master/rlpx.md#encrypted-handshake
+    * 2. https://github.com/ethereum/devp2p/blob/master/rlpx.md#framing
+    ******/
+   
     // ephemeral-shared-secret = ecdh.agree(ephemeral-privkey, remote-ephemeral-pubk)
     UInt256 ephemeralShared;
     _BRECDH(ephemeralShared.u8, localEphemeral, remoteEphemeral);
@@ -241,7 +251,6 @@ BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fcoder,
 
     UInt512 nonceMaterial;
     
-
     UInt256* lNonce = ETHEREUM_BOOLEAN_IS_TRUE(didOriginate) ? remoteNonce : localNonce;
     memcpy(nonceMaterial.u8, lNonce->u8, 32);
     
@@ -336,12 +345,20 @@ BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fcoder,
     
     return ETHEREUM_BOOLEAN_TRUE; 
 }
-
 void ethereumFrameCoderRelease(BREthereumFrameCoder fcoder) {
-    array_free(fcoder->aesDecryptKey);
-    array_free(fcoder->aesEncryptKey);
-    array_free(fcoder->egressMac);
-    array_free(fcoder->ingressMac);
+
+    if(fcoder->aesDecryptKey != NULL){
+        array_free(fcoder->aesDecryptKey);
+    }
+    if(fcoder->aesEncryptKey != NULL){
+        array_free(fcoder->aesEncryptKey);
+    }
+    if(fcoder->egressMac != NULL){
+        keccak_release(fcoder->egressMac);
+    }
+    if(fcoder->ingressMac != NULL){
+        keccak_release(fcoder->ingressMac);
+    }
     free(fcoder);
 }
 void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, size_t payloadSize, uint8_t** rlpBytes, size_t * rlpBytesSize) {
@@ -451,7 +468,6 @@ BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fCoder, u
     return ETHEREUM_BOOLEAN_TRUE;
     
 }
-
 
 BREthereumBoolean ethereumFrameCoderDecryptFrame(BREthereumFrameCoder fCoder, uint8_t * oBytes, size_t outSize) {
 

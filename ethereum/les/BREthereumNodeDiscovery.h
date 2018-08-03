@@ -36,6 +36,18 @@
 extern "C" {
 #endif
 
+/****
+TODO: Implement Node Discovery
+
+The following was a early/first attempt at implementing node discovery. Many of the below functions can be changed to interact
+better with the current state of LES module. The following can be used as references for implementing node discovery:
+
+1. PyEthTutorial provides a python implementation of Ping/Pong that I started implemented below. https://ocalog.com/post/10/
+2. You may want to also check cpp-ethereum implementaiton of Node discovery.
+
+*****/
+
+
 /**
  * Declaration for a BREthereumPingNode
  */
@@ -57,8 +69,6 @@ extern BREthereumPingNode ethereumNodeDiscoveryCreatePing(BREthereumEndpoint to,
  * Create a Endpoint Node
  */
 extern BREthereumEndpoint ethereumNodeDiscoveryCreateEndpoint(int addr_family, char*address, uint16_t udpPort, uint16_t tcpPort);
-
-
 
 /**
  * Send a Ping Packet

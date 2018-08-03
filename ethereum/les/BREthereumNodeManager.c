@@ -54,6 +54,7 @@ struct BREthereumNodeManagerContext {
     BREthereumSubProtoCallbacks  subprotoCallbacks;
     
     //The callback functions that are passed to nodes
+    //The nodes will call these functions when they receive messages from their remote peers
     BREthereumManagerCallback managerCallbacks;
     
     //The remote peers that the manager can connect to
@@ -63,6 +64,7 @@ struct BREthereumNodeManagerContext {
     BREthereumNode* connectedNodes;
 
     //The random context for generating random data
+    // We need this so we can assign the Nodes with random public keys
     BREthereumRandomContext randomContext;
 
     // A lock for the manager context
@@ -80,6 +82,11 @@ struct BREthereumNodeManagerContext {
 // Private Functions & types
 BREthereumEndpoint _brd_bootstrap_peer;
 
+////
+/***
+ *  These are the functions that are called when a node receives a message from the remote peer
+ *
+ */
 void _disconnectCallback(BREthereumManagerCallbackContext info, BREthereumNode node, BREthereumDisconnect reason) {
 
     BREthereumNodeManager manager = (BREthereumNodeManager)info;
@@ -110,6 +117,9 @@ void _networkReachableCallback(BREthereumManagerCallbackContext info, BREthereum
     BREthereumNodeManager manager = (BREthereumNodeManager)info;
     manager->subprotoCallbacks.networkReachFunc(manager->subprotoCallbacks.info, isReachable);
 }
+///////
+
+
 BREthereumBoolean _findPeers(BREthereumNodeManager manager) {
 
     //Note: This function should be called from within the lock of the les context

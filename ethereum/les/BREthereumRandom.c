@@ -34,6 +34,10 @@
 #define KECCAK_HASH_SIZE 32
 #define NONCE_SIZE 8
 
+/*
+ *
+ * BREthereumRandomRecord contains fields needed by hmac-drbg
+ */
 struct BREthereumRandomRecord {
     uint8_t k[KECCAK_HASH_SIZE];
     uint8_t v[KECCAK_HASH_SIZE];

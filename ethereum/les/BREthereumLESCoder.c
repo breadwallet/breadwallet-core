@@ -418,7 +418,6 @@ void ethereumLESAnnounce(UInt256 headHash, uint64_t headNumber, uint64_t headTd,
         BRRlpItem keyPairItem[2];
         keyPairItem[0] = rlpEncodeItemString(coder, keyPair->key);
         keyPairItem[1] = rlpEncodeItemString(coder, keyPair->key);
-       // _encodeKeyValueStatus(coder, keyPairItem,keyPair->key, keyPair->value, flowControlMRRCount);
         if (strcmp(keyPair->key, "txRelay") == 0 || strcmp(keyPair->key, "serveHeaders") == 0) {
             items[idx++] = rlpEncodeListItems(coder, keyPairItem, 1);
         }else {
@@ -474,7 +473,6 @@ BRRlpData ethereumLESGetBlockHeaders(uint64_t message_id_offset,
     BRRlpItem blockItems[4];
     int idx = 0;
     
-   // items[idx++] = rlpEncodeItemUInt64(coder, 0x02,1);
     items[idx++] = rlpEncodeItemUInt64(coder, reqId,1);
 
     blockItems[0] = rlpEncodeItemUInt64(coder, block, 1);
@@ -542,7 +540,6 @@ BRRlpData ethereumLESGetBlockBodies(uint64_t message_id_offset, uint64_t reqId, 
     BRRlpItem blockItems[array_count(blockHashes)];
     int idx = 0;
     
-   // items[idx++] = rlpEncodeItemUInt64(coder, 0x02,1);
     items[idx++] = rlpEncodeItemUInt64(coder, reqId,1);
 
     // [+0x04, reqID: P, [hash_0: B_32, hash_1: B_32, ...]]

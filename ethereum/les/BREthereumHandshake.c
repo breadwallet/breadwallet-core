@@ -77,8 +77,6 @@ struct BREthereumHandshakeContext {
         
 };
 
-
-
 //
 // Private functions
 //
@@ -125,7 +123,6 @@ void _sendAuthInitiator(BREthereumHandshake ctx){
     
     
     // S(ephemeral-privk, static-shared-secret ^ nonce)
-    
     // Determine the signature length
     size_t signatureLen = 65; BRKeyCompactSignEthereum(localEphemeral,
                                                        NULL, 0,

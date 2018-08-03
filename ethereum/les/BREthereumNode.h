@@ -33,7 +33,6 @@
 #include "../base/BREthereumBase.h"
 #include "BREthereumAccount.h"
 #include "BREthereumNodeDiscovery.h"
-#include "BREthereumNodeEventHandler.h"
 #include "BRKey.h"
 #include "BREthereumLES.h"
 #include "BREthereumP2PCoder.h"
@@ -86,7 +85,10 @@ typedef struct {
 
 /**
  * Creates an ethereum node with the remote peer information and whether the node should send
- * an auth message first. 
+ * an auth message first.
+ *
+ *
+ *
  */ 
 extern BREthereumNode ethereumNodeCreate(BREthereumPeerConfig config,
                                          BRKey* key,
@@ -97,102 +99,126 @@ extern BREthereumNode ethereumNodeCreate(BREthereumPeerConfig config,
 
 /**
  * Deletes the memory of the ethereum node
+ * @param node - the node context
  */
 extern void ethereumNodeRelease(BREthereumNode node);
 
 
 /**
  * Retrieves the status of an ethereum node
+ * @param node - the node context
  */
 extern BREthereumNodeStatus ethereumNodeStatus(BREthereumNode node);
 
 /**
  * Connects to the ethereum node to a remote node
+ * @param node - the node context
  */
 extern int ethereumNodeConnect(BREthereumNode node);
 
 /**
  * Disconnects the ethereum node from a remote node
+ * @param node - the node context
  */
 extern void ethereumNodeDisconnect(BREthereumNode node, BREthereumDisconnect reason);
 
 /**
- * Sends a message to the remote node
+ * Sends a packet (i.e. a frame) to the remote node
+ * @param node - the node context
+ * @param packetType - the id of the packet being sent to the remote ndoe
+ * @param payload - the payload to send to the remote node
  */
 extern BREthereumBoolean ethereumNodeSendMessage(BREthereumNode node, uint64_t packetType, uint8_t* payload, size_t payloadSize);
 
 /**
- * Determines if the given BREthereumNode is the same as t
+ * Determines if two nodes are the same
+ * @param node1 - the first node to compare
+ * @param node2 - the second ndoe to compare
+ * @param True, if they are same, otherwise False
  */
 extern BREthereumBoolean ethereumNodeEQ(BREthereumNode node1, BREthereumNode node2); 
 
 /**
  * Retrieves the key for this node
+ * @param node - the node context
  */
  extern BRKey* ethereumNodeGetKey(BREthereumNode node);
  
 /**
  * Retrieves the remote key that this node is connected to
+ * @param node - the node context
  */
  extern BRKey* ethereumNodeGetPeerKey(BREthereumNode node);
 
 /**
  * Retrieves the frame coder for this node
+ * @param node - the node context
+ * @return the frame coder associated with the node
  */
 extern BREthereumFrameCoder ethereumNodeGetFrameCoder(BREthereumNode node); 
 
 /**
  * Retrieves the RLP encoded status message for this node
+ * @param node - the node context
+ * @return the rlp data of the status message for this node
  */
 extern BRRlpData ethereumNodeGetStatusData(BREthereumNode node);
 
 /**
  * Determines whether this node is originating the connection
+ * @param node - the node context
+ * @return True, if the local node (the parameter "node") originated the handshake connection, otherwise false
  */
 extern BREthereumBoolean ethereumNodeDidOriginate(BREthereumNode node);
 
 /**
  * Retrieves a reference to the local ephemeral
+ * @param node - the node context
+ * @return the local emphermeral key
  */
 extern BRKey* ethereumNodeGetEphemeral(BREthereumNode node);
 
 /**
  * Retrieves a reference to the remote ephemeral
+ * @param node - the node context
+ * @return the remote empheremral key
  */
 extern BRKey* ethereumNodeGetPeerEphemeral(BREthereumNode node);
 
 /**
  * Retrieves a reference to the local nonce
+ * @param node - the node context
+ * @param the local nonce
  */
 extern UInt256* ethereumNodeGetNonce(BREthereumNode node);
 
 /**
  * Retrieves a reference to the remote nonce
+ * @param node - the node context
+ * @return the remote node's nonce
  */
 extern UInt256* ethereumNodeGetPeerNonce(BREthereumNode node);
 
 /**
  * Retrieve the Hello Message for the node
+ * @param node - the node context
+ * @return the rlp data of the p2p hello message for this node
  */
 extern BRRlpData ethereumNodeRLPP2PHello(BREthereumNode node);
 
 /**
- * Decode the Hello Message from the peer
- */
-extern BREthereumBoolean ethereumNodePeerP2PHello(BREthereumNode node);
-
-/**
- * Announces an event to the node
- */
-extern void ethereumNodeAnnounceEvent(BREthereumNode node, BREthereumNodeEvent evt);
-
-/**
  * Reads information from the peer
+ * @param node - the node context
+ * @param buff - the buffer to send to the remote peer
+ * @param bufSize - the size of the buffer to send
  */
 extern int ethereumNodeReadFromPeer(BREthereumNode node, uint8_t * buf, size_t bufSize, const char * type);
 
 /**
  * Writes information to the peer
+* @param node - the node context
+ * @param buff - the buffer to read from the remote peer
+ * @param bufSize - the size of the buffer read 
  */
 extern int ethereumNodeWriteToPeer(BREthereumNode node, uint8_t * buf, size_t bufSize, char* type);
 

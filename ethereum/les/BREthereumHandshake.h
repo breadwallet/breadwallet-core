@@ -68,7 +68,7 @@ extern BREthereumHandshake ethereumHandshakeCreate(BREthereumNode node);
  * Checks whether the state of the handhsake needs to be updated based on recieving/sending messages
  * to/from the remote peer
  *
- * @returns - the current state of the handshake after performing an update
+ * @return - the current state of the handshake after performing an update
  */
 extern BREthereumHandshakeStatus ethereumHandshakeTransition(BREthereumHandshake handshake);
 
@@ -80,6 +80,9 @@ extern BREthereumHandshakeStatus ethereumHandshakeTransition(BREthereumHandshake
 extern void ethereumHandshakeRelease(BREthereumHandshake handshake);
 
 
+//
+// TODO: These tests should really be private. 
+//
 extern int testInitatorHandshake(BREthereumHandshake ctx, BRKey*);
 extern int testReceiverHandshake(BREthereumHandshake ctx, BRKey*, BRKey*);
 

@@ -43,10 +43,9 @@
 #define MAX_HOST_NAME 1024
 
 struct BREthereumEndpointContext {
-    // BE encoded 4-byte or 16-byte address (size determines ipv4 vs ipv6)
-    int addr_family;
+    int addr_family;  //  BE encoded 4-byte or 16-byte address (size determines ipv4 vs ipv6)
     char hostname[MAX_HOST_NAME];
-    BREthereumBoolean isIPV4Address;
+    BREthereumBoolean isIPV4Address; // Determines whether the address is a IPV4 (True) or IPV6 (False)
     uint16_t udpPort; // BE encoded 16-bit unsigned
     uint16_t tcpPort; // BE encoded 16-bit unsigned
 };
@@ -59,23 +58,6 @@ extern BREthereumEndpoint ethereumEndpointCreate(BREthereumBoolean isIPV4Address
     endpoint->udpPort = udpPort;
     strcpy(endpoint->hostname, address);
     endpoint->isIPV4Address = isIPV4Address;
-    /*
-    if(ETHEREUM_BOOLEAN_IS_TRUE(isIPV4Address)){
-        endpoint->addr_family = AF_INET;
-        assert(inet_pton(AF_INET, address, endpoint->u.ipv4.address_bytes) == 1);
-        endpoint->u.ipv4.addr.sin_family = AF_INET;
-        assert(inet_pton(AF_INET, address, &(endpoint->u.ipv4.addr.sin_addr)) > 0);
-        endpoint->u.ipv4.addr.sin_port = htons(udpPort);
-        endpoint->addrSize = sizeof(struct sockaddr_in);
-    }
-    else {
-        endpoint->addr_family = AF_INET6;
-        assert(inet_pton(AF_INET6, address, endpoint->u.ipv6.address_bytes) == 1);
-        endpoint->u.ipv6.addr.sin6_family = AF_INET6;
-        inet_pton(AF_INET6, address, &(endpoint->u.ipv6.addr.sin6_addr));
-        endpoint->u.ipv6.addr.sin6_port =  htons(udpPort);
-        endpoint->addrSize = sizeof(struct sockaddr_in6);
-    }*/
     return endpoint;
 }
 extern void ethereumEndpointRelease(BREthereumEndpoint endpoint) {
