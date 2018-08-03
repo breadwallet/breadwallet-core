@@ -232,7 +232,11 @@ console.log (result)
 static struct BREthereumTokenRecord tokens[] = {
     {
         // BRD first... so we can find it.
-        "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6",
+#if defined (BITCOIN_TESTNET) && 1 == BITCOIN_TESTNET
+        "0x7108ca7c4718efa810457f228305c9c71390931a", // testnet
+#else
+        "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6", // mainnet
+#endif
         "BRD",
         "BRD Token",
         "",
