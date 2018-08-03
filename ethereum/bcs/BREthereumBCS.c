@@ -585,7 +585,7 @@ bcsChainOrphans (BREthereumBCS bcs) {
         if (NULL != block)
         {
             // ... extend the chain, and ...
-            bcsExtendChain(bcs, block, "Chained Orphan");
+            bcsExtendChain(bcs, block, "Chained (Orphan)");
 
             // ... remove as an orphan, and ...
             BRSetRemove(bcs->orphans, block);
@@ -735,7 +735,8 @@ bcsExtendTransactionsAndLogsForBlockIfAppropriate (BREthereumBCS bcs,
 
 static void
 bcsExtendChainIfPossible (BREthereumBCS bcs,
-                          BREthereumBlock block) {
+                          BREthereumBlock block,
+                          int isFromSync) {
     // THIS WILL BE THE FIRST TIME WE'VE SEEN BLOCK.  EVEN IF COMPLETE, NONE OF ITS LOGS NOR
     // TRANSACTIONS ARE HELD.
     //
@@ -770,21 +771,36 @@ bcsExtendChainIfPossible (BREthereumBCS bcs,
 
     // TODO: What about a non-linear sync?  Check if blockNumber < (CurrentBlockNumber - 10)?
 
-    // 2) If there is no `block` parent or if  `block` parent is an orphan, then `block` is
-    // an orphan too.  Add it to the set of orphans and RETURN (non-local exit);
+    // 2) If there is no `block` parent or if  `block` parent is an orphan, then ...
     else if (NULL == blockParent || NULL != BRSetGet(bcs->orphans, blockParent)) {
-        bcsMakeOrphan(bcs, block);
+        // ... if not a sync, then `block` is an orphan too.
+        if (!isFromSync) {
+            // Add it to the set of orphans and RETURN (non-local exit).
+            bcsMakeOrphan(bcs, block);
 
-        // If `block` is an orphan, then it's parent is not in bcs->chain.  That could be
-        // because there is just a fork developing or that we've fallen behind.  Attempt a
-        // sync to recover (might not actually perform a sync - just attempt).
-        uint64_t orphanBlockNumberMinumum = bcsGetOrphanBlockNumberMinimum(bcs);
-        if (UINT64_MAX != orphanBlockNumberMinumum)
-            bcsSyncContinue(bcs->sync,
-                            blockGetNumber(bcs->chain),
-                            orphanBlockNumberMinumum);
+            // If `block` is an orphan, then it's parent is not in bcs->chain.  That could be
+            // because there is just a fork developing or that we've fallen behind.  Attempt a
+            // sync to recover (might not actually perform a sync - just attempt).
+            uint64_t orphanBlockNumberMinumum = bcsGetOrphanBlockNumberMinimum(bcs);
+            if (UINT64_MAX != orphanBlockNumberMinumum)
+                bcsSyncContinue(bcs->sync,
+                                blockGetNumber(bcs->chain),
+                                orphanBlockNumberMinumum);
 
-        return;
+            return;
+        }
+
+        // ... otherwise, if in a sync, then adopt block
+        else if (blockGetNumber(block) > blockGetNumber(bcs->chain)) {
+            BREthereumBlock oldChainHead = bcs->chain;
+            BREthereumBlock oldChainTail = bcs->chainTail;
+
+            bcs->chain = bcs->chainTail = block;
+            blockClrNext(block);
+            eth_log("BCS", "Block %llu Chained (Sync)", blockGetNumber(block));
+
+            // clean up `oldChain`
+        }
     }
 
     // 3) othewise, we have a new `block` that links to a parent that is somewhere in the
@@ -862,9 +878,10 @@ bcsBlockHasMatchingLogs (BREthereumBCS bcs,
 /**
  * Handle a (generally new) block header.
  */
-extern void
-bcsHandleBlockHeader (BREthereumBCS bcs,
-                      BREthereumBlockHeader header) {
+static void
+bcsHandleBlockHeaderInternal (BREthereumBCS bcs,
+                              BREthereumBlockHeader header,
+                              int isFromSync) {
 
     // Ignore the header if we have seen it before.  Given an identical hash, *nothing*, at any
     // level (transactions, receipts, logs), could have changed and thus no processing is needed.
@@ -936,10 +953,13 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
     // block; however, as the above suggests, the block might be complete but likely empty.
     //
     // TODO: What is the header is well into the past - like during a sync?
-    bcsExtendChainIfPossible(bcs, block);
+    bcsExtendChainIfPossible(bcs, block, isFromSync);
+}
 
-    // If appropriate, continue an in-process sync.
-//    bcsSyncContinue (bcs, blockGetNumber(bcs->chain));
+extern void
+bcsHandleBlockHeader (BREthereumBCS bcs,
+                      BREthereumBlockHeader header) {
+    bcsHandleBlockHeaderInternal(bcs, header, 0);
 }
 
 ///
@@ -1455,7 +1475,7 @@ bcsSyncReportBlocksCallback (BREthereumBCS bcs,
                              BRArrayOf(BREthereumBCSSyncResult) results) {
     size_t resultsCount = (NULL != results ? array_count(results) : 0);
     for (size_t index = 0; index < resultsCount; index++)
-        bcsHandleBlockHeader(bcs, results[index].header);
+        bcsHandleBlockHeaderInternal (bcs, results[index].header, 1);
 }
 
 static void

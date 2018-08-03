@@ -43,11 +43,12 @@ computeOptimalStep (uint64_t numberOfBlocks,
  */
 typedef enum {
     SYNC_LINEAR_SMALL,      // leaf
-    SYNC_LINEAR_LARGE,      // children: SMALL + [dynamic SMALL]
-    SYNC_BINARY,            // children: [dynamic]
-    SYNC_BINARY_MIXED       // children: BINARY + SMALL
+    SYNC_LINEAR_LARGE,      // children: SMALL+
+    SYNC_BINARY,            // children: ANY+ + SMALL
+    SYNC_MIXED              // children: ANY+
 } BREthereumBCSSyncType;
 
+#define LES_GET_HEADERS_MAXIMUM        (192)
 
 /**
  * For a 'binary sync' we'll split the range (of needed blockNumbers) into sub-ranges.  We'll find
@@ -56,7 +57,7 @@ typedef enum {
  * by the maximum in LES GetBlockHeaders; the minimum is arbitrary.
  */
 #define SYNC_BINARY_REQUEST_MINIMUM     (100)
-#define SYNC_BINARY_REQUEST_MAXIMUM     (192)     // maximum number of headers in a LES request.
+#define SYNC_BINARY_REQUEST_MAXIMUM     (LES_GET_HEADERS_MAXIMUM - 1)     // maximum number of headers in a LES request.
 
 /**
  * For a 'linear sync' we'll request at most MAXIMUM headers.  The maximum is determined by the
@@ -65,8 +66,9 @@ typedef enum {
  * We'll favor a 'linear sync' over a 'binary sync' if the range (of needed blockNumbers) is less
  * than LIMIT (below)
  */
-#define SYNC_LINEAR_REQUEST_MAXIMUM     (192)
+#define SYNC_LINEAR_REQUEST_MAXIMUM     (LES_GET_HEADERS_MAXIMUM - 1)
 #define SYNC_LINEAR_LIMIT               (10 * SYNC_LINEAR_REQUEST_MAXIMUM)
+#define SYNC_LINEAR_LIMIT_IF_BINARY     (100) // 3 * SYNC_LINEAR_REQUEST_MAXIMUM)
 
 /**
  * As the sync find results (block headers, at least) we'll report them every PERIOD results.
@@ -94,8 +96,9 @@ typedef void* BREthereumBCSSyncRangeContext;
  */
 typedef void
 (*BREthereumBCSSyncRangeCallback) (BREthereumBCSSyncRangeContext context,
-BREthereumBlockHeader header,
-uint64_t headerNumber);
+                                    BREthereumBCSSyncRange range,
+                                    BREthereumBlockHeader header,
+                                    uint64_t headerNumber);
 
 /**
  * A Sync Range defines the range of block header numbers overwhich a sync is performed.  The
@@ -129,7 +132,7 @@ struct BREthereumBCSSyncRangeRecord {
         BREthereumBCSSyncResultState state;
         BREthereumBlockHeader header;
         BREthereumAccountState account;
-    } result[SYNC_BINARY_REQUEST_MAXIMUM];
+    } result[SYNC_BINARY_REQUEST_MAXIMUM + 1];
 
     /** Tree structure */
     BREthereumBCSSyncRange parent;
@@ -150,7 +153,7 @@ syncRangeReport (BREthereumBCSSyncRange range,
     memset(spaces, ' ', 2 * depth);
     spaces[2 * depth] = '\0';
 
-    eth_log ("BCS", "Sync: %s: (T:C:R:D) = ( %d : %3llu : {%llu, %llu} : %2d ) *** %s%p -> %p",
+    eth_log ("BCS", "Sync: %s: (T:C:R:D) = ( %d : %4llu : {%7llu, %7llu} : %2d ) *** %s%p -> %p",
              action,
              range->type, range->count, range->tail, range->head, depth,
              spaces, range, range->parent);
@@ -182,7 +185,7 @@ syncRangeCreateDetailed (BREthereumAddress address,
     range->tail = tail;
     range->head = head;
     range->step = step;
-    range->count = count;
+    range->count = (type == SYNC_MIXED ? 0 : count);  // count is unused for SYNC_MIXED
     range->type  = type;
 
     range->resultCount = 0;
@@ -298,7 +301,8 @@ syncRangeCreate (BREthereumAddress address,
                  BREthereumBCSSyncRangeContext context,
                  BREthereumBCSSyncRangeContext callback,
                  uint64_t tail,
-                 uint64_t head) { // binaryThreshold
+                 uint64_t head,
+                 uint64_t linearLargeLimit) {
 
     uint64_t total = head - tail;
 
@@ -308,13 +312,13 @@ syncRangeCreate (BREthereumAddress address,
     BREthereumBCSSyncType type;
 
     // Determine the type
-    if (total < SYNC_LINEAR_REQUEST_MAXIMUM) type = SYNC_LINEAR_SMALL;
-    else if (total < SYNC_LINEAR_LIMIT) type = SYNC_LINEAR_LARGE;
+    if (total <= SYNC_LINEAR_REQUEST_MAXIMUM) type = SYNC_LINEAR_SMALL;
+    else if (total <= linearLargeLimit) type = SYNC_LINEAR_LARGE;
     else {
         computeOptimalStep(total, &step, &count);
         type = (total == step * count
                 ? SYNC_BINARY
-                : SYNC_BINARY_MIXED);
+                : SYNC_MIXED);
     }
 
     BREthereumBCSSyncRange root = syncRangeCreateDetailed (address, les, handler,
@@ -331,15 +335,32 @@ syncRangeCreate (BREthereumAddress address,
             break;
 
         case SYNC_LINEAR_LARGE:
-            syncRangeCreateAndAddChild (root,
-                                        tail,
-                                        head + SYNC_LINEAR_REQUEST_MAXIMUM - 1,
-                                        1,
-                                        SYNC_LINEAR_REQUEST_MAXIMUM,
-                                        SYNC_LINEAR_SMALL);
+            // Split a large sync into small syncs w/ each one being of size SYNC_LINEAR_SMALL -
+            // except for the last 'cleanup sync' which is just right to sync through `head`
+            //
+            // Adding all these child syncs makes sense when SYNC_LINEAR_LIMIT is a smallish
+            // multiple of SYNC_LINEAR_REQUEST_MAXIMUM.  If we are doing a linear sync of
+            // 6,000,000 with a maximum of 200 - we'd be adding 30,000 children.  Actually,
+            // not that bad...
+            //
+            // TODO: Define if a large-ish SYNC_LINEAR_LIMIT is a problem.
+            while (tail < head) {
+                uint64_t next = (tail + SYNC_LINEAR_REQUEST_MAXIMUM <= head
+                                     ? tail + SYNC_LINEAR_REQUEST_MAXIMUM
+                                     : head);
+                syncRangeCreateAndAddChild (root,
+                                            tail,
+                                            next,
+                                            1,
+                                            next - tail,
+                                            SYNC_LINEAR_SMALL);
+                tail = next;
+            }
             break;
 
-        case SYNC_BINARY_MIXED:
+        case SYNC_MIXED:
+            // Split a mixed sync into a binary sync and a small 'cleanup' sync.  By design,
+            // computeOptimalStep() left the 'cleanup' sync is a small linear sync.
             syncRangeCreateAndAddChild (root,
                                         tail,
                                         tail + step * count,
@@ -368,7 +389,7 @@ syncRangeDispatch (BREthereumBCSSyncRange range) {
 
     if (NULL == range->parent)
         // Callback to announce sync start
-        range->callback (range->context, NULL, range->tail);
+        range->callback (range->context, range, NULL, range->tail);
 
     switch (range->type) {
         case SYNC_LINEAR_SMALL:
@@ -382,7 +403,7 @@ syncRangeDispatch (BREthereumBCSSyncRange range) {
                                 ETHEREUM_BOOLEAN_FALSE);
             break;
 
-        case SYNC_BINARY_MIXED:
+        case SYNC_MIXED:
         case SYNC_LINEAR_LARGE:
             assert (NULL != range->children);
             if (0 == array_count(range->children))
@@ -416,14 +437,14 @@ syncRangeComplete (BREthereumBCSSyncRange child) {
     // If `child` does not have a `parent`, then we are at the top-level and completely complete.
     if (NULL == parent) {
         eth_log ("BCS", "Sync: Done%s", "");
-        child->callback (child->context, NULL, child->head);
+        child->callback (child->context, child, NULL, child->head);
         return;
     }
 
     // If this is a LINEAR_SMALL sync, then report (incremental) progress
     if (SYNC_LINEAR_SMALL == child->type) {
         BREthereumBCSSyncRange root = syncRangeGetRoot (child);
-        root->callback (root->context, NULL, child->head);
+        root->callback (root->context, child, NULL, child->head);
     }
 
     // Remove the child
@@ -455,7 +476,7 @@ syncRangeAddResultHeader (BREthereumBCSSyncRange range,
     // If we have all requested headers, then move on.
     if (range->resultCount == 1 + range->count) {
         switch (range->type) {
-            case SYNC_BINARY_MIXED:
+            case SYNC_MIXED:
             case SYNC_LINEAR_LARGE:
                 assert (0);
                 break;
@@ -479,7 +500,7 @@ syncRangeAddResultHeader (BREthereumBCSSyncRange range,
                 BREthereumBCSSyncRange root = syncRangeGetRoot(range);
 
                 for (size_t index = 0; index < range->resultCount; index++)
-                    root->callback (root->context, range->result[index].header, 0);
+                    root->callback (root->context, range, range->result[index].header, 0);
 
                 syncRangeComplete (range);
                 break;
@@ -519,15 +540,16 @@ syncRangeAddResultAccountState (BREthereumBCSSyncRange range,
                 
                 assert (newNumber > oldNumber);
 
-                // ... hen we need to explore this header range, recursively.
+                // ... then we need to explore this header range, recursively.
                 syncRangeAddChild (range,
-                                   syncRangeCreate(range->address,
-                                                   range->les,
-                                                   range->handler,
-                                                   NULL,
-                                                   NULL,
-                                                   oldNumber,
-                                                   newNumber));
+                                   syncRangeCreate (range->address,
+                                                    range->les,
+                                                    range->handler,
+                                                    NULL,
+                                                    NULL,
+                                                    oldNumber,
+                                                    newNumber,
+                                                    SYNC_LINEAR_LIMIT_IF_BINARY));
             }
         }
         
@@ -566,7 +588,7 @@ struct BREthereumBCSSyncStruct {
     BREthereumBCSSyncReportProgress callbackProgress;
 
     /** The root `range`, if a sync is in progress */
-    BREthereumBCSSyncRange range;
+    BREthereumBCSSyncRange root;
 
     /** Accumulated sync results.  Will be periodically reported with the callback. */
     BRArrayOf(BREthereumBCSSyncResult) results;
@@ -591,7 +613,7 @@ bcsSyncCreate (BREthereumBCSSyncContext context,
     sync->callbackBlocks = callbackBlocks;
     sync->callbackProgress = callbackProgress;
 
-    sync->range = NULL;
+    sync->root = NULL;
 
     array_new (sync->results, BCS_SYNC_RESULT_PERIOD);
     return sync;
@@ -620,17 +642,17 @@ bcsSyncHandler (BREthereumBCSSync sync) {
  */
 extern BREthereumBoolean
 bcsSyncIsActive (BREthereumBCSSync sync) {
-    return AS_ETHEREUM_BOOLEAN(NULL != sync->range);
+    return AS_ETHEREUM_BOOLEAN(NULL != sync->root);
 }
 
 extern int
 bcsSyncExtractRange (BREthereumBCSSync sync,
                      uint64_t *blockNumberBeg,
                      uint64_t *blockNumberEnd) {
-    if (NULL == sync->range) return 0;
+    if (NULL == sync->root) return 0;
 
-    if (NULL != blockNumberBeg) *blockNumberBeg = sync->range->head;
-    if (NULL != blockNumberEnd) *blockNumberEnd = sync->range->tail;
+    if (NULL != blockNumberBeg) *blockNumberBeg = sync->root->head;
+    if (NULL != blockNumberEnd) *blockNumberEnd = sync->root->tail;
 
     return 1;
 }
@@ -653,41 +675,57 @@ bcsSyncStop (BREthereumBCSSync sync) {
  */
 static void
 bcsSyncRangeCallback (BREthereumBCSSync sync,
+                      BREthereumBCSSyncRange range,
                       BREthereumBlockHeader header,
                       uint64_t headerNumber) {
 
-    // If `header` is NULL, we are reporting progress ...
-    if (NULL == header) {
+    // If `header` is provided (not NULL), then we are reporting a block; we'll invoke
+    // `callbackBlocks` and then skip out
 
-        // We can report an 'end' twice; avoid that
-        int rootHasChildren = NULL != sync->range->children && 0 != array_count(sync->range->children);
-
-        if (headerNumber != sync->range->head || !rootHasChildren)
-            sync->callbackProgress (sync->context,
-                                    sync,
-                                    sync->range->tail,
-                                    headerNumber,
-                                    sync->range->head);
-
-        // If done, release.
-        if (headerNumber == sync->range->head && !rootHasChildren) {
-            syncRangeRelease(sync->range);
-            sync->range = NULL;
-        }
+    // If `header` is provided (not NULL), then add it to sync->results
+    if (NULL != header) {
+        BREthereumBCSSyncResult result = { header };
+        array_add (sync->results, result);
     }
 
-    // ... otherwise we are reporting a block
-    else {
-        BREthereumBCSSyncResult result = { header };
-
-        array_add (sync->results, result);
-        if (BCS_SYNC_RESULT_PERIOD == array_count(sync->results)) {
+    // If sync-results is now full or if range is done, then report the results
+    if (array_count (sync->results) > 0 &&
+        (BCS_SYNC_RESULT_PERIOD == array_count (sync->results) ||
+         headerNumber == range->head)) {
             sync->callbackBlocks (sync->context,
                                   sync,
                                   sync->results);
-
             array_new (sync->results, BCS_SYNC_RESULT_PERIOD);
         }
+
+    // Skip out now if header was provided
+    if (NULL != header) return;
+
+    // We are reporting progress.  The only tricky part is that we don't want to report 'end'
+    // twice.  It can be reported twice when the last child of `root` completes and then `root`
+    // itself completes
+
+    // If we are not at the end, just report it and skip out.
+    if (headerNumber != range->head) {
+        sync->callbackProgress (sync->context,
+                                sync,
+                                range->tail,
+                                headerNumber,
+                                range->head);
+        return;
+    }
+
+    // We are at the end... then report if `range` is sync->root or at an 'intermediate' range
+    if (range == sync->root || range->head != sync->root->head)
+        sync->callbackProgress (sync->context,
+                                sync,
+                                range->tail,
+                                headerNumber,
+                                range->head);
+
+    if (range == sync->root) {
+        syncRangeRelease(sync->root);
+        sync->root = NULL;
     }
 }
 
@@ -699,19 +737,64 @@ bcsSyncContinue (BREthereumBCSSync sync,
                  uint64_t chainBlockNumber,
                  uint64_t needBlockNumber) {
     // Skip out if already syncing.
-    if (NULL != sync->range) return;
+    if (NULL != sync->root) return;
+
+    uint64_t total = needBlockNumber - chainBlockNumber;
+    if (0 == total) return;
+
+    // We MUST have the last N headers be from a linear sync.  This is required to 'fill the
+    // BCS chain' and allows `needBlockNumber` is assume the head (bcs->chain) which then allows
+    // orphans to be chained.
+
+    // If total is small enough, then syncRangeCreate will produce a LINEAR sync...
+    if (total < SYNC_LINEAR_LIMIT)
+        sync->root = syncRangeCreate (sync->address,
+                                       sync->les,
+                                       sync->handler,
+                                       (BREthereumBCSSyncRangeContext) sync,
+                                       (BREthereumBCSSyncRangeCallback) bcsSyncRangeCallback,
+                                       chainBlockNumber /* + 1 */,
+                                       needBlockNumber,
+                                       SYNC_LINEAR_LIMIT);
+
+    // ... but if total is too large, then build a MIXED sync with two children.
+    else {
+        sync->root = syncRangeCreateDetailed (sync->address,
+                                               sync->les,
+                                               sync->handler,
+                                               (BREthereumBCSSyncRangeContext) sync,
+                                               (BREthereumBCSSyncRangeCallback) bcsSyncRangeCallback,
+                                               chainBlockNumber /* + 1 */,
+                                               needBlockNumber,
+                                               1,
+                                               total,
+                                               SYNC_MIXED);
+
+        uint64_t linearStartBlockNumber = needBlockNumber - SYNC_LINEAR_REQUEST_MAXIMUM; //  SYNC_LINEAR_LIMIT;
+        syncRangeAddChild(sync->root,
+                          syncRangeCreate(sync->address,
+                                          sync->les,
+                                          sync->handler,
+                                          NULL,
+                                          NULL,
+                                          chainBlockNumber,
+                                          linearStartBlockNumber,
+                                          SYNC_LINEAR_LIMIT));
+
+        syncRangeAddChild(sync->root,
+                          syncRangeCreate(sync->address,
+                                          sync->les,
+                                          sync->handler,
+                                          NULL,
+                                          NULL,
+                                          linearStartBlockNumber,
+                                          needBlockNumber,
+                                          SYNC_LINEAR_LIMIT));
+    }
 
     eth_log ("BCS", "Sync: Start%s", "");
 
-    sync->range = syncRangeCreate (sync->address,
-                                   sync->les,
-                                   sync->handler,
-                                   (BREthereumBCSSyncRangeContext) sync,
-                                   (BREthereumBCSSyncRangeCallback) bcsSyncRangeCallback,
-                                   chainBlockNumber /* + 1 */,
-                                   needBlockNumber);
-
-    syncRangeDispatch(sync->range);
+    syncRangeDispatch(sync->root);
 }
 
 ///

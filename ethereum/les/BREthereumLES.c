@@ -618,14 +618,14 @@ lesGetAccountState (BREthereumLES les,
     // Address: 0xa9de3dbD7d561e67527bC1Ecb025c59D53b9F7Ef
     static struct BlockStateMap map[] = {
         { 0, { 0 }},
-        { 5506602, { 1 }},
-        { 5506764, { 2 }},
-        { 5509990, { 3 }},
-        { 5511681, { 4 }},
-        { 5539808, { 5 }},
-        { 5795662, { 6 }},
-        { 5818087, { 7 }},
-        { 5819543, { 8 }},
+        { 5506602, { 1 }}, // <- ETH, 0xa9d8724bb9db4b5ad5a370201f7367c0f731bfaa2adf1219256c7a40a76c8096
+        { 5506764, { 2 }}, // -> KNC, 0xaca2b09703d7816753885fd1a60e65c6426f9d006ba2d8dd97f7c845e0ffa930
+        { 5509990, { 3 }}, // -> KNC, 0xe5a045bdd432a8edc345ff830641d1b75847ab5c9d8380241323fa4c9e6cee1e
+        { 5511681, { 4 }}, // -> KNC, 0x04d93a1addec69da4a0589bd84d5157a0b47369ce6084c06d66fbd0afc8591dc
+        { 5539808, { 5 }}, // -> KNC, 0x932faac9e5bf5cead0492afbe290ff0cd7d2ab5d7b351ad1bccae8aac646522b
+        { 5795662, { 6 }}, // -> ETH, 0x1429c28066e3e41073e7abece864e5ca9b0dfcef28bec90a83e6ed04d91997ac
+        { 5818087, { 7 }}, // -> ETH, 0xe606358c10f59dfbdb7ad823826881ee3915e06320f1019187af92e96201e7ed
+        { 5819543, { 8 }}, // -> ETH, 0x597595bdf79ec29e8a7079fecddd741a40471bbd8fd92e11cdfc0d78d973cb16
         { UINT64_MAX, { 8 }}
     };
 
