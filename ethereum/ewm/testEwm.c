@@ -368,14 +368,14 @@ clientEventBlock (BREthereumClientContext context,
 }
 
 static void
-clientEventTransaction (BREthereumClientContext context,
-                        BREthereumEWM ewm,
-                        BREthereumWalletId wid,
-                        BREthereumTransferId tid,
-                        BREthereumTransferEvent event,
-                        BREthereumStatus status,
-                        const char *errorDescription) {
-    fprintf (stdout, "ETH: TST: TransEvent: tid=%d, ev=%d\n", tid, event);
+clientEventTransfer (BREthereumClientContext context,
+                     BREthereumEWM ewm,
+                     BREthereumWalletId wid,
+                     BREthereumTransferId tid,
+                     BREthereumTransferEvent event,
+                     BREthereumStatus status,
+                     const char *errorDescription) {
+    fprintf (stdout, "ETH: TST: TransferEvent: tid=%d, ev=%d\n", tid, event);
 }
 
 static void
@@ -400,7 +400,6 @@ clientEventEWM (BREthereumClientContext context,
     fprintf (stdout, "ETH: TST: EWMEvent: ev=%d\n", event);
 }
 
-
 static BREthereumClient client = {
     NULL,
 
@@ -423,7 +422,7 @@ static BREthereumClient client = {
     clientEventPeer,
     clientEventWallet,
     clientEventBlock,
-    clientEventTransaction
+    clientEventTransfer
 };
 
 //

@@ -170,6 +170,9 @@ blockGetTransactionsCount (BREthereumBlock block);
 extern BREthereumTransaction
 blockGetTransaction (BREthereumBlock block, size_t index);
 
+extern BREthereumBoolean
+blockTransactionsAreValid (BREthereumBlock block);
+
 extern unsigned long
 blockGetOmmersCount (BREthereumBlock block);
 

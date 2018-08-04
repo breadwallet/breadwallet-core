@@ -360,27 +360,16 @@ bcsSyncCreate (BREthereumBCSSyncContext context,
 extern void
 bcsSyncRelease (BREthereumBCSSync sync);
 
-extern BREventHandler
-bcsSyncHandler (BREthereumBCSSync sync);
-
 extern BREthereumBoolean
 bcsSyncIsActive (BREthereumBCSSync sync);
-
-extern int
-bcsSyncExtractRange (BREthereumBCSSync sync,
-                     uint64_t *blockNumberBeg,
-                     uint64_t *blockNumberEnd);
-
-extern void
-bcsSyncStart (BREthereumBCSSync sync);
 
 extern void
 bcsSyncStop (BREthereumBCSSync sync);
 
 extern void
-bcsSyncContinue (BREthereumBCSSync sync,
-                 uint64_t thisBlockNumber,
-                 uint64_t needBlockNumber);
+bcsSyncStart (BREthereumBCSSync sync,
+              uint64_t thisBlockNumber,
+              uint64_t needBlockNumber);
 
 extern void
 bcsSyncHandleBlockHeader (BREthereumBCSSyncRange request,

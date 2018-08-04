@@ -599,6 +599,48 @@ blockGetTransaction (BREthereumBlock block, size_t index) {
             : NULL);
 }
 
+static BREthereumHash
+blockGetTransactionRootHash (BREthereumBlock block,
+                             size_t index,
+                             size_t count) {
+    assert (count > 0);
+
+    struct ConcatenatedHashPair {
+        BREthereumHash hashLeft;
+        BREthereumHash hashRight;
+    } concatenatedHashPair;
+
+    // If count is down to 1 or 2, we'll use the tranactions hashes directly, otherwise...
+    if (1 == count || 2 == count) {
+        concatenatedHashPair.hashLeft  = transactionGetHash (block->transactions [index]);
+        concatenatedHashPair.hashRight = transactionGetHash (block->transactions [index + (2 == count)]);
+    }
+
+    // ... recurse by repeatedly splitting count.
+    else {
+        size_t middleCount = count / 2;     // if count == 3, middleCount = 1
+
+        // Ensure that the 'left count' is always even.
+        if (1 == middleCount % 2) middleCount += 1;   // if count == 3; middleCount = 2
+
+        concatenatedHashPair.hashLeft  = blockGetTransactionRootHash (block, index, middleCount);
+        concatenatedHashPair.hashRight = blockGetTransactionRootHash (block,
+                                                                      index + middleCount,
+                                                                      count - middleCount);
+    }
+
+    BRRlpData concatenatedHashes = { sizeof (concatenatedHashPair), (uint8_t*) &concatenatedHashPair };
+    return hashCreateFromData(concatenatedHashes);
+
+//    return block->header->transactionsRoot;
+}
+
+extern BREthereumBoolean
+blockTransactionsAreValid (BREthereumBlock block) {
+    return hashEqual (block->header->transactionsRoot,
+                      blockGetTransactionRootHash(block, 0, array_count(block->transactions)));
+}
+
 extern unsigned long
 blockGetOmmersCount (BREthereumBlock block) {
     return NULL == block->ommers ? 0 : array_count(block->ommers);

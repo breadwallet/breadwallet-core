@@ -294,7 +294,7 @@ bcsDestroy (BREthereumBCS bcs) {
 extern void
 bcsSync (BREthereumBCS bcs,
          uint64_t blockNumber) {
-    bcsSyncContinue(bcs->sync, blockGetNumber(bcs->chain), blockNumber);
+    bcsSyncStart(bcs->sync, blockGetNumber(bcs->chain), blockNumber);
 }
 
 extern BREthereumBoolean
@@ -783,7 +783,7 @@ bcsExtendChainIfPossible (BREthereumBCS bcs,
             // sync to recover (might not actually perform a sync - just attempt).
             uint64_t orphanBlockNumberMinumum = bcsGetOrphanBlockNumberMinimum(bcs);
             if (UINT64_MAX != orphanBlockNumberMinumum)
-                bcsSyncContinue(bcs->sync,
+                bcsSyncStart(bcs->sync,
                                 blockGetNumber(bcs->chain),
                                 orphanBlockNumberMinumum);
 
