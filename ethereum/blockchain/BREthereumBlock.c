@@ -1372,28 +1372,30 @@ initializeGenesisBlocks (void) {
 static const BREthereumBlockCheckpoint
 ethereumMainnetCheckpoints [] = {
     {       0, HASH_INIT("d4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3"),  0 }, // 1061 days  6 hrs ago (Jul-30-2015 03:26:13 PM +UTC)
+#if 0
     { 5000000, HASH_INIT("7d5a4369273c723454ac137f48a4f142b097aa2779464e6505f1b1c5e37b5382"),  0 }, //  146 days  8 hrs ago (Jan-30-2018 01:41:33 PM +UTC)
     { 5500000, HASH_INIT("2d3a154eee9f90666c6e824f11e15f2d60b05323a81254f60075c34a61ef124d"),  0 }, //   61 days 22 hrs ago (Apr-24-2018 11:07:01 PM +UTC)
 
     // Has three+ logs
     { 5506600, HASH_INIT("4f91cdbd4eb27b12b7959daa8b4300d88a5a88efc8256c413534fe16fe9eee2b"),  0 }, //   17 days 23 hrs ago (Jun-07-2018 10:25:41 PM +UTC)
-//    { 5750000, HASH_INIT("9645ed6cd4994b1e734eb25abbc225005dce591cbbe9e083cd2587b27cfe908f"),  0 }, //   
+    { 5750000, HASH_INIT("9645ed6cd4994b1e734eb25abbc225005dce591cbbe9e083cd2587b27cfe908f"),  0 }, //
 
     // Has three+ eth - 5795662
-//    { 5795660, HASH_INIT("5eeddeff1bfdde5859a63f47fbd3a4ff929be9dc21dd48a52a8cd08d560cc3b5"),  0 }, //   11 days 21 hrs ago (Jun-15-2018 10:43:11 PM +UTC)
+    { 5795660, HASH_INIT("5eeddeff1bfdde5859a63f47fbd3a4ff929be9dc21dd48a52a8cd08d560cc3b5"),  0 }, //   11 days 21 hrs ago (Jun-15-2018 10:43:11 PM +UTC)
 
     // Head - 5860000
-//    { 5860000, HASH_INIT("ef888507717b8d59d3abb24f618a7809cf58d5a723d691979769a4a4cf39f63c"),  0 }, //
-//    { 5865000, HASH_INIT("9f573bfa8b0ffaca5210b45eb01c12e4d0f6ffc3a8c4d13bea8176b1266f5d53"),  0 }, //    1 hr 25 mins ago (Jun-27-2018 07:38:02 PM +UTC)
+    { 5860000, HASH_INIT("ef888507717b8d59d3abb24f618a7809cf58d5a723d691979769a4a4cf39f63c"),  0 }, //
+    { 5865000, HASH_INIT("9f573bfa8b0ffaca5210b45eb01c12e4d0f6ffc3a8c4d13bea8176b1266f5d53"),  0 }, //    1 hr 25 mins ago (Jun-27-2018 07:38:02 PM +UTC)
 
     // 2018-07-02
-//    { 5893500, HASH_INIT("a8ed4df2446a09d85b5867253a7c4a0870a65d858cf43539070186e180b4f7d2"),  0 },
+    { 5893500, HASH_INIT("a8ed4df2446a09d85b5867253a7c4a0870a65d858cf43539070186e180b4f7d2"),  0 },
 
     // 2018-07-03
-//    { 5899000, HASH_INIT("e7b0051c152755f03e9e98b5f41540d79abee02c5770c22299b7250a2d647507"),  0 },
+    { 5899000, HASH_INIT("e7b0051c152755f03e9e98b5f41540d79abee02c5770c22299b7250a2d647507"),  0 },
 
     // 2018-07-11
-//    { 5947250, HASH_INIT("8af864db3ad85a966b23841a235568312b1d06a1e51bc3e3b253722187317590"),  0 }, //
+    { 5947250, HASH_INIT("8af864db3ad85a966b23841a235568312b1d06a1e51bc3e3b253722187317590"),  0 }, //
+#endif
 };
 #define CHECKPOINT_MAINNET_COUNT      (sizeof (ethereumMainnetCheckpoints) / sizeof (BREthereumBlockCheckpoint))
 
