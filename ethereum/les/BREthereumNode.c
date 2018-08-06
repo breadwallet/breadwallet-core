@@ -39,9 +39,7 @@
 #include "BRCrypto.h"
 #include "BRKey.h"
 
-#include "BREthereumAccount.h"
 #include "../base/BREthereumBase.h"
-#include "../blockchain/BREthereumLog.h"
 
 #include "BREthereumLESBase.h"
 #include "BREthereumNode.h"

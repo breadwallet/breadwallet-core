@@ -39,9 +39,9 @@
 #include <stdio.h>
 #include "BRKey.h"
 #include "BRInt.h"
-#include "../rlp/BRRlp.h"
 #include "BRArray.h"
 #include "BRCrypto.h"
+#include "../rlp/BRRlp.h"
 #include "../util/BRUtil.h"
 #include "BREthereumNodeDiscovery.h"
 
@@ -54,7 +54,7 @@
 #define SIGNATURE_BYTES_SIZE 65
 #define PACKET_TYPE_BYTES_SIZE 1
 
-#define LOG_TOPIC "Node Discovery"
+#define LOG_TOPIC   ETH_LOG_TOPIC
 
 #define MAX_PAYLOAD_SIZE 1280
 #define CONNECTION_TIME 3  // receiver only accept packets created within the last 3 seconds (RLP Node Discovery Spec)

@@ -26,11 +26,11 @@
 #ifndef BR_Ethereum_Node_Discovery_h
 #define BR_Ethereum_Node_Discovery_h
 
+#include <inttypes.h>
 #include "BRKey.h"
 #include "BRInt.h"
 #include "BREthereumLESBase.h"
 #include "BREthereumEndpoint.h"
-#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {

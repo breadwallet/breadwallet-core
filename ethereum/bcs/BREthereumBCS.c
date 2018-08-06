@@ -215,27 +215,21 @@ bcsCreate (BREthereumNetwork network,
     // Initialize `chain` - will be modified based on `headers`
     bcs->chain = bcs->chainTail = bcs->genesis;
 
+    // Initialize blocks, transactions and logs from saved state.
     bcsCreateInitializeBlocks(bcs, blocks);
     bcsCreateInitializeTransactions(bcs, transactions);
     bcsCreateInitializeLogs(bcs, logs);
 
-    // peers - save for bcsStart; or, better, use lesCreate() here and lesStart() later.
-    return bcs;
-}
+    // Initialize LES and SYNC
+    BREthereumBlockHeader header = blockGetHeader(bcs->chain);
 
-extern void
-bcsStart (BREthereumBCS bcs) {
-    BREthereumBlockHeader genesis = blockGetHeader(bcs->genesis);
-    BREthereumBlockHeader header  = blockGetHeader(bcs->chain);
-
-    eventHandlerStart(bcs->handler);
     bcs->les = lesCreate(bcs->network,
                          (BREthereumLESAnnounceContext) bcs,
                          (BREthereumLESAnnounceCallback) bcsSignalAnnounce,
                          blockHeaderGetHash(header),
                          blockHeaderGetNumber(header),
                          blockHeaderGetDifficulty(header),
-                         blockHeaderGetHash(genesis));
+                         blockHeaderGetHash(blockGetHeader(bcs->genesis)));
 
     bcs->sync = bcsSyncCreate ((BREthereumBCSSyncContext) bcs,
                                (BREthereumBCSSyncReportBlocks) bcsSyncReportBlocksCallback,
@@ -243,20 +237,26 @@ bcsStart (BREthereumBCS bcs) {
                                bcs->address,
                                bcs->les,
                                bcs->handler);
+
+    // peers - save for bcsStart; or, better, use lesCreate() here and lesStart() later.
+    return bcs;
+}
+
+extern void
+bcsStart (BREthereumBCS bcs) {
+    eventHandlerStart(bcs->handler);
+    lesStart (bcs->les);
 }
 
 extern void
 bcsStop (BREthereumBCS bcs) {
+    lesStop (bcs->les);
     eventHandlerStop (bcs->handler);
-    if (NULL != bcs->les) {
-        lesRelease(bcs->les);
-        bcs->les = NULL;
-    }
 }
 
 extern BREthereumBoolean
 bcsIsStarted (BREthereumBCS bcs) {
-    return AS_ETHEREUM_BOOLEAN(NULL != bcs->les);
+    return AS_ETHEREUM_BOOLEAN (eventHandlerIsRunning(bcs->handler));
 }
 
 extern void
@@ -264,6 +264,8 @@ bcsDestroy (BREthereumBCS bcs) {
     // Ensure we are stopped and no longer handling events (anything submitted will pile up).
     if (ETHEREUM_BOOLEAN_IS_TRUE(bcsIsStarted(bcs)))
         bcsStop (bcs);
+
+    lesRelease(bcs->les);
 
     // TODO: We'll need to announce things to our `listener`
 

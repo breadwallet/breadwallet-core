@@ -33,8 +33,6 @@
 #include "../rlp/BRRlp.h"
 #include "../util/BRUtil.h"
 #include "../base/BREthereumBase.h"
-#include "../blockchain/BREthereumTransaction.h"
-#include "../blockchain/BREthereumNetwork.h"
 
 #include "BREthereumLESBase.h"
 #include "BREthereumNodeManager.h"
@@ -339,7 +337,7 @@ static BREthereumLESStatus _sendMessage(BREthereumLES les, uint8_t packetType, B
         else
         {
             //Retry to connect to the ethereum network
-            if(nodeMangerConnect(les->nodeManager)){
+            if(nodeManagerConnect(les->nodeManager)){
                 sleep(3); //Give it some time to see if the node manager can connect to the network again;
                 if(ETHEREUM_BOOLEAN_IS_TRUE(nodeManagerSendMessage(les->nodeManager, packetType, payload.bytes, payload.bytesCount))){
                     retStatus = LES_SUCCESS;
@@ -408,11 +406,21 @@ lesCreate (BREthereumNetwork network,
 
         les->nodeManager = nodeManagerCreate(network, les->key, headHash, headNumber, les->statusMsg.headerTd, genesisHash, les->callbacks);
         pthread_mutex_init(&les->lock, NULL);
-        nodeMangerConnect(les->nodeManager);
-        
+
     }
     return les;
 }
+
+extern void
+lesStart (BREthereumLES les) {
+    nodeManagerConnect(les->nodeManager);
+}
+
+extern void
+lesStop (BREthereumLES les) {
+    nodeManagerDisconnect(les->nodeManager);
+}
+
 extern void lesRelease(BREthereumLES les) {
     nodeManagerDisconnect(les->nodeManager); 
     nodeManagerRelease(les->nodeManager);

@@ -26,9 +26,9 @@
 #ifndef BR_Ethereum_NodeManager_h
 #define BR_Ethereum_NodeManager_h
 
-#include "BREthereumNode.h"
-#include "../blockchain/BREthereumBlockChain.h"
 #include <inttypes.h>
+#include "../blockchain/BREthereumBlockChain.h"
+#include "BREthereumNode.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -94,7 +94,7 @@ extern BREthereumLESNodeManagerStatus nodeManagerStatus(BREthereumLESNodeManager
   * Connects to the ethereum peer-to-peer network.
   * @param manager - the node manager context
   */
-extern int nodeMangerConnect(BREthereumLESNodeManager manager);
+extern int nodeManagerConnect(BREthereumLESNodeManager manager);
 
 /**
  * Disconnects from the ethereum peer-to-peer network.

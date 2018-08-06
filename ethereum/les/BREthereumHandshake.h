@@ -29,11 +29,11 @@
 
 #include <inttypes.h>
 #include "BRInt.h"
-#include "BREthereumNode.h"
 #include "BRKey.h"
 #include "../base/BREthereumBase.h"
-#include "BREthereumLES.h"
+#include "BREthereumNode.h"
 #include "BREthereumFrameCoder.h"
+#include "BREthereumLES.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -38,19 +38,20 @@
 #include <arpa/inet.h>
 #include <assert.h>
 #include <regex.h>
-#include "test-les.h"
 #include "BRInt.h"
+#include "BRCrypto.h"
 #include "../base/BREthereumHash.h"
+#include "../blockchain/BREthereumNetwork.h"
 #include "BREthereumLES.h"
 #include "BREthereumNode.h"
 #include "BREthereumNodeManager.h"
-#include "../blockchain/BREthereumNetwork.h"
 #include "BREthereumNodeDiscovery.h"
 #include "BREthereumRandom.h"
-#include "BRCrypto.h"
-#include "BREthereum.h"
 #include "BREthereumHandshake.h"
+
+#include "BREthereum.h"
 #include "../ewm/BREthereumEWM.h"
+#include "test-les.h"
 
 // pthread locks/conditions and wait and signal functions
 static pthread_mutex_t _testLock;
@@ -724,7 +725,7 @@ void runLEStests(void) {
     
     // Create an LES context
     BREthereumLES les = lesCreate(ethereumMainnet, NULL, _announceCallback, headHash, headNumber, headTD, genesisHash);
-    
+    lesStart(les);
     // Sleep for a little bit to allow the context to connect to the network
     sleep(5);
     

@@ -28,11 +28,12 @@
 
 #include <stdio.h>
 #include <inttypes.h>
-#include "../base/BREthereumBase.h"
-#include "../blockchain/BREthereumBlockChain.h"
 #include "BRKey.h"
 #include "BRInt.h"
 #include "BRArray.h"
+
+#include "../base/BREthereumBase.h"
+#include "../blockchain/BREthereumBlockChain.h"
 
 #ifdef __cplusplus
 extern "C" {

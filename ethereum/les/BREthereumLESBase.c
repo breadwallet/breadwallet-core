@@ -31,9 +31,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include "BRKey.h"
-#include "BREthereumLESBase.h"
-#include "../base/BREthereumBase.h"
 #include "BRCrypto.h"
+#include "../base/BREthereumBase.h"
+#include "BREthereumLESBase.h"
 
 //
 // TODO: Don't really need this function. We can just XOR on union data of the Big Ints

@@ -26,10 +26,10 @@
 #ifndef BR_Ethereum_Endpoint_h
 #define BR_Ethereum_Endpoint_h
 
+#include <inttypes.h>
 #include "BRKey.h"
 #include "BRInt.h"
 #include "BREthereumLESBase.h"
-#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {

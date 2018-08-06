@@ -29,24 +29,27 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include "../util/BRUtil.h"
 #include "BRInt.h"
-#include "../base/BREthereumBase.h"
 #include "BRKey.h"
 #include "BRCrypto.h"
+#include "BRArray.h"
+#include "BRKeyECIES.h"
+
+#include "../base/BREthereumBase.h"
+#include "../rlp/BRRlpCoder.h"
+#include "../util/BRUtil.h"
+
+#include "BREthereumLESBase.h"
 #include "BREthereumHandshake.h"
 #include "BREthereumNode.h"
 #include "BREthereumLESBase.h"
-#include "../rlp/BRRlpCoder.h"
-#include "BRArray.h"
-#include "BRKeyECIES.h"
 #include "BREthereumP2PCoder.h"
 
 #define SIG_SIZE_BYTES      65
 #define PUBLIC_SIZE_BYTES   64
 #define HEPUBLIC_BYTES      32
 #define NONCE_BYTES         32
-#define HANDSHAKE_LOG_TOPIC "BREthereumHandsake"
+#define HANDSHAKE_LOG_TOPIC ETH_LOG_TOPIC
 
 static const ssize_t authBufLen = SIG_SIZE_BYTES + HEPUBLIC_BYTES + PUBLIC_SIZE_BYTES + NONCE_BYTES + 1;
 static const ssize_t authCipherBufLen =  authBufLen + 65 + 16 + 32;

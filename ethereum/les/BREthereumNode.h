@@ -30,10 +30,9 @@
 #include <inttypes.h>
 #include <arpa/inet.h>
 #include "BRInt.h"
-#include "../base/BREthereumBase.h"
-#include "BREthereumAccount.h"
-#include "BREthereumNodeDiscovery.h"
 #include "BRKey.h"
+#include "../base/BREthereumBase.h"
+#include "BREthereumNodeDiscovery.h"
 #include "BREthereumLES.h"
 #include "BREthereumP2PCoder.h"
 #include "BREthereumFrameCoder.h"

@@ -26,10 +26,10 @@
 #ifndef BR_Ethereum_Random_h
 #define BR_Ethereum_Random_h
 
+#include <inttypes.h>
 #include "BRKey.h"
 #include "BRInt.h"
 #include "../base/BREthereumBase.h"
-#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {

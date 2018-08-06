@@ -239,7 +239,7 @@ BREthereumLESNodeManagerStatus nodeManagerStatus(BREthereumLESNodeManager manage
     pthread_mutex_unlock(&manager->lock);
     return retStatus;
 }
-int nodeMangerConnect(BREthereumLESNodeManager manager) {
+int nodeManagerConnect(BREthereumLESNodeManager manager) {
     assert(manager != NULL);
         
     pthread_mutex_lock(&manager->lock);

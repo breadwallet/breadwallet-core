@@ -28,10 +28,10 @@
 
 #include <stdio.h>
 #include <inttypes.h>
-#include "../base/BREthereumBase.h"
 #include "BRInt.h"
 #include "BRArray.h"
 #include "../rlp/BRRlp.h"
+#include "../base/BREthereumBase.h"
 
 #ifdef __cplusplus
 extern "C" {
