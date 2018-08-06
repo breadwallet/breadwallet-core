@@ -38,7 +38,7 @@
  *
  * BREthereumRandomRecord contains fields needed by hmac-drbg
  */
-struct BREthereumRandomRecord {
+struct BREthereumLESRandomRecord {
     uint8_t k[KECCAK_HASH_SIZE];
     uint8_t v[KECCAK_HASH_SIZE];
 };
@@ -46,9 +46,9 @@ struct BREthereumRandomRecord {
 //
 // Public functions
 //
-extern BREthereumRandomContext ethereumRandomCreate(const void *seed, size_t seedLen) {
+extern BREthereumLESRandomContext randomCreate(const void *seed, size_t seedLen) {
 
-    BREthereumRandomContext ctx = (BREthereumRandomContext) calloc(1, sizeof(struct BREthereumRandomRecord));
+    BREthereumLESRandomContext ctx = (BREthereumLESRandomContext) calloc(1, sizeof(struct BREthereumLESRandomRecord));
     
     uint32_t currTime = ((uint32_t)time(NULL));
     uint32_t curPid   = (uint32_t)getpid();
@@ -72,13 +72,13 @@ extern BREthereumRandomContext ethereumRandomCreate(const void *seed, size_t see
     
     return ctx;
 }
-extern void ethereumRandomRelease(BREthereumRandomContext ctx) {
+extern void randomRelease(BREthereumLESRandomContext ctx) {
     free(ctx);
 }
-extern void ethereumRandomGenData(BREthereumRandomContext ctx, uint8_t* data, size_t dataSize) {
+extern void randomGenData(BREthereumLESRandomContext ctx, uint8_t* data, size_t dataSize) {
     BRHMACDRBG(data, dataSize, ctx->k, ctx->v, BRKeccak256, KECCAK_HASH_SIZE, NULL, 0, NULL, 0, NULL, 0);
 }
-extern void ethereumRandomGenPriKey(BREthereumRandomContext ctx, BRKey* key) {
+extern void randomGenPriKey(BREthereumLESRandomContext ctx, BRKey* key) {
 
     assert(key != NULL);
     UInt256 secret;
@@ -86,6 +86,6 @@ extern void ethereumRandomGenPriKey(BREthereumRandomContext ctx, BRKey* key) {
     BRKeySetSecret(key, &secret, 0);
     var_clean(&secret);
 }
-extern void ethereumRandomGenUInt256(BREthereumRandomContext ctx, UInt256* out) {
+extern void randomGenUInt256(BREthereumLESRandomContext ctx, UInt256* out) {
     BRHMACDRBG(out->u8, 32, ctx->k, ctx->v, BRKeccak256, KECCAK_HASH_SIZE, NULL, 0, NULL, 0, NULL, 0);
 }

@@ -37,6 +37,8 @@
 #include "../base/BREthereumBase.h"
 #include "../blockchain/BREthereumBlockChain.h"
 
+#define ETH_LOG_TOPIC "LES"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -48,7 +50,7 @@ extern "C" {
  * @param op2 - the second operand of bytes
  * @param result - the destination of the XOR computation
  */
-extern void ethereumXORBytes(uint8_t * op1, uint8_t* op2, uint8_t* result, size_t len);
+extern void bytesXOR(uint8_t * op1, uint8_t* op2, uint8_t* result, size_t len);
 
 #ifdef __cplusplus
 }

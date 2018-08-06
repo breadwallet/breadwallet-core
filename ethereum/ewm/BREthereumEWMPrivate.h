@@ -282,11 +282,11 @@ ewmSignalSaveBlocks (BREthereumEWM ewm,
 //
 extern void
 ewmHandleSavePeers (BREthereumEWM ewm,
-                    BRArrayOf(BREthereumPeerConfig) peers);
+                    BRArrayOf(BREthereumLESPeerConfig) peers);
 
 extern void
 ewmSignalSavePeers (BREthereumEWM ewm,
-                    BRArrayOf(BREthereumPeerConfig) peers);
+                    BRArrayOf(BREthereumLESPeerConfig) peers);
 
 
 //

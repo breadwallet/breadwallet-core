@@ -49,20 +49,20 @@ typedef enum {
     BRE_HANDSHAKE_WRITEHELLO,
     BRE_HANDSHAKE_READHELLO,
     BRE_HANDSHAKE_FINISHED
-}BREthereumHandshakeStatus;
+}BREthereumLESHandshakeStatus;
 
 /**
  * The context for the ethereum handhsake
  *
  */
-typedef struct BREthereumHandshakeContext* BREthereumHandshake;
+typedef struct BREthereumLESHandshakeContext* BREthereumLESHandshake;
 
 /**
  * Creates an etheruem handshake context
  *
  * @param node - weak reference to the node performing the handshake
  */
-extern BREthereumHandshake ethereumHandshakeCreate(BREthereumNode node);
+extern BREthereumLESHandshake handshakeCreate(BREthereumLESNode node);
 
 /**
  * Checks whether the state of the handhsake needs to be updated based on recieving/sending messages
@@ -70,21 +70,21 @@ extern BREthereumHandshake ethereumHandshakeCreate(BREthereumNode node);
  *
  * @return - the current state of the handshake after performing an update
  */
-extern BREthereumHandshakeStatus ethereumHandshakeTransition(BREthereumHandshake handshake);
+extern BREthereumLESHandshakeStatus handshakeTransition(BREthereumLESHandshake handshake);
 
 /**
  * Deletes the memory of a handshake context
  *
  * @param handshakeCxt - the hande shake context information to delete
  */
-extern void ethereumHandshakeRelease(BREthereumHandshake handshake);
+extern void handshakeRelease(BREthereumLESHandshake handshake);
 
 
 //
 // TODO: These tests should really be private. 
 //
-extern int testInitatorHandshake(BREthereumHandshake ctx, BRKey*);
-extern int testReceiverHandshake(BREthereumHandshake ctx, BRKey*, BRKey*);
+extern int testInitatorHandshake(BREthereumLESHandshake ctx, BRKey*);
+extern int testReceiverHandshake(BREthereumLESHandshake ctx, BRKey*, BRKey*);
 
 
 #ifdef __cplusplus

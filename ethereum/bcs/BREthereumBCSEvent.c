@@ -361,7 +361,7 @@ bcsSignalLog (BREthereumBCS bcs,
 typedef struct {
     BREvent base;
     BREthereumBCS bcs;
-    BRArrayOf(BREthereumPeerConfig) peers;
+    BRArrayOf(BREthereumLESPeerConfig) peers;
 } BREthereumHandlePeersEvent;
 
 static void
@@ -388,7 +388,7 @@ static BREventType handlePeersEventType = {
 
 extern void
 bcsSignalPeers (BREthereumBCS bcs,
-                BRArrayOf(BREthereumPeerConfig) peers) {
+                BRArrayOf(BREthereumLESPeerConfig) peers) {
     BREthereumHandlePeersEvent event =
     { { NULL, &handlePeersEventType}, bcs, peers};
     eventHandlerSignalEvent (bcs->handler, (BREvent *) &event);

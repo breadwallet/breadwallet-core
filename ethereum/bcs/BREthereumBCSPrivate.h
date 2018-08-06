@@ -302,11 +302,11 @@ bcsSignalLog (BREthereumBCS bcs,
 //
 extern void
 bcsHandlePeers (BREthereumBCS bcs,
-                BRArrayOf(BREthereumPeerConfig) peers);
+                BRArrayOf(BREthereumLESPeerConfig) peers);
 
 extern void
 bcsSignalPeers (BREthereumBCS bcs,
-                BRArrayOf(BREthereumPeerConfig) peers);
+                BRArrayOf(BREthereumLESPeerConfig) peers);
 
 ////
 //// Active Block

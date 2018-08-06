@@ -39,15 +39,15 @@ extern "C" {
 /**
  * Opaque pointer for a Frame coder
  */
-typedef struct BREthereumFrameCoderContext* BREthereumFrameCoder;
+typedef struct BREthereumLESFrameCoderContext* BREthereumLESFrameCoder;
     
 
 /**
  * Creates a frame coder
  * @return BREthereumFrameCoder context
- * @post - this pointer needs to be released by the "ethereumFrameCoderRelease" function
+ * @post - this pointer needs to be released by the "frameCoderRelease" function
  */
-extern BREthereumFrameCoder ethereumFrameCoderCreate(void);
+extern BREthereumLESFrameCoder frameCoderCreate(void);
     
 /**
  * Initilaize a frame coder context
@@ -63,7 +63,7 @@ extern BREthereumFrameCoder ethereumFrameCoderCreate(void);
  * @param didOriginate - Determines who initiated the handshake process, ETHEREUM_BOOLEAN_TRUE if the local node initiated the
    handshake process, otherwise ETHEREUM_BOOLEAN_FALSE (remote initiated handshake).
  */
-extern BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fcoder,
+extern BREthereumBoolean frameCoderInit(BREthereumLESFrameCoder fcoder,
                                                 BRKey* remoteEphemeral,
                                                 UInt256* remoteNonce,
                                                 BRKey* localEphemeral,
@@ -78,7 +78,7 @@ extern BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fcoder,
  * Frees the memory of the frame coder
  * @param coder - the frame coder context
  */
-extern void ethereumFrameCoderRelease(BREthereumFrameCoder coder);
+extern void frameCoderRelease(BREthereumLESFrameCoder coder);
 
 /**
  * Encrypts a single packet that will be passed on the ethereum network
@@ -88,7 +88,7 @@ extern void ethereumFrameCoderRelease(BREthereumFrameCoder coder);
  * @param rlpBytes - a pointer to the destination to store the encrypted packet
  * @param rlpBytesSize - the size in bytes of the encrypted payload
  */
- extern void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, size_t payloadSize, uint8_t** rlpBytes, size_t * rlpBytesSize);
+ extern void frameCoderEncrypt(BREthereumLESFrameCoder fCoder, uint8_t* payload, size_t payloadSize, uint8_t** rlpBytes, size_t * rlpBytesSize);
 
 /**
  * Authenticates and decrypts the header from a packet
@@ -97,7 +97,7 @@ extern void ethereumFrameCoderRelease(BREthereumFrameCoder coder);
  * @param outSize - the size in bytes of the oBytes size
  * @return ETHEREUM_BOOLEAN_TRUE if the header passed authentication, otherwise ETHEREM_BOOLEAN_FALSE
  */
-extern BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fCoder, uint8_t * oBytes, size_t outSize);
+extern BREthereumBoolean frameCoderDecryptHeader(BREthereumLESFrameCoder fCoder, uint8_t * oBytes, size_t outSize);
  
 /**
  * Authenticates and decrypts the frame body from a packet
@@ -105,16 +105,16 @@ extern BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fC
  * @param outSize - the size in bytes of the oBytes size
  * @return ETHEREUM_BOOLEAN_TRUE if the frame passed authentication, otherwise ETHEREM_BOOLEAN_FALSE
  */
-extern BREthereumBoolean ethereumFrameCoderDecryptFrame(BREthereumFrameCoder fCoder, uint8_t * oBytes, size_t outSize);
+extern BREthereumBoolean frameCoderDecryptFrame(BREthereumLESFrameCoder fCoder, uint8_t * oBytes, size_t outSize);
   
   
 ///////
 /**
  * TODO: These really should be private functions for testing the frame coder
  */
-BREthereumBoolean _test(BREthereumFrameCoder fCoder, uint8_t * oBytes, size_t outSize);
-extern int testFrameCoderInitiator(BREthereumFrameCoder fCoder);
-extern int testFrameCoderReceiver(BREthereumFrameCoder fCoder);
+BREthereumBoolean _test(BREthereumLESFrameCoder fCoder, uint8_t * oBytes, size_t outSize);
+extern int testFrameCoderInitiator(BREthereumLESFrameCoder fCoder);
+extern int testFrameCoderReceiver(BREthereumLESFrameCoder fCoder);
 ///////
  
 #ifdef __cplusplus

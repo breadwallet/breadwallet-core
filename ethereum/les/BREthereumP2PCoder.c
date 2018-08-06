@@ -24,17 +24,16 @@
 //  THE SOFTWARE.
 #include "BRKey.h"
 #include "../util/BRUtil.h"
+#include "BREthereumLESBase.h"
 #include "BREthereumP2PCoder.h"
-
-#define ETH_LOG_TOPIC "BREthereumP2PCoder"
 
 //
 // Public Functions
 //
-extern BRRlpData ethereumP2PHelloEncode(BREthereumP2PHello* message) {
+extern BRRlpData p2pHelloEncode(BREthereumLESP2PHello* message) {
 
-    eth_log(ETH_LOG_TOPIC, "%s", "encoding hello message");
-    
+    eth_log(ETH_LOG_TOPIC, "Code [%13s]", "Hello");
+
     BRRlpData data;
     
     BRRlpCoder coder = rlpCoderCreate();
@@ -89,7 +88,7 @@ extern BRRlpData ethereumP2PHelloEncode(BREthereumP2PHello* message) {
     return data;
 }
 
-extern BRRlpData ethereumP2PDisconnectEncode(BREthereumDisconnect reason) {
+extern BRRlpData p2pDisconnectEncode(BREthereumLESDisconnect reason) {
 
     eth_log(ETH_LOG_TOPIC, "%s", "encoding disconnect message");
     
@@ -153,23 +152,23 @@ static BRRlpData _emptyMessage(uint64_t messageId) {
     return data;
 
 }
-extern BRRlpData ethereumP2PPingEncode(void) {
+extern BRRlpData p2pPingEncode(void) {
 
-    eth_log(ETH_LOG_TOPIC, "%s", "encoding ping message");
+    eth_log(ETH_LOG_TOPIC, "Code [%13s]", "Ping");
     
     return _emptyMessage(0x02);
 }
-extern BRRlpData ethereumP2PPongEncode(void) {
+extern BRRlpData p2pPongEncode(void) {
 
-    eth_log(ETH_LOG_TOPIC, "%s", "encoding pong message");
+    eth_log(ETH_LOG_TOPIC, "Code [%13s]", "Pong");
     
     return _emptyMessage(0x03);
 }
-extern BREthereumP2PHello ethereumP2PHelloDecode(BRRlpCoder coder, BRRlpData data) {
+extern BREthereumLESP2PHello p2pHelloDecode(BRRlpCoder coder, BRRlpData data) {
     
-    BREthereumP2PHello retHello;
+    BREthereumLESP2PHello retHello;
 
-    eth_log(ETH_LOG_TOPIC, "%s", "decoding hello message");
+    eth_log(ETH_LOG_TOPIC, "Recv [%13s]", "Hello");
     
     BRRlpItem item = rlpGetItem (coder, data);
     
@@ -186,14 +185,14 @@ extern BREthereumP2PHello ethereumP2PHelloDecode(BRRlpCoder coder, BRRlpData dat
     
     size_t capsCount;
     const BRRlpItem *capItems = rlpDecodeList(coder, items[2], &capsCount);
-    BREthereumCapabilities*caps;
+    BREthereumLESCapabilities*caps;
     
     array_new(caps, capsCount);
     
     for(int i = 0; i < capsCount; ++i){
         size_t capsItemCount;
         const BRRlpItem* capsItem = rlpDecodeList(coder, capItems[i], &capsItemCount);
-        BREthereumCapabilities cap;
+        BREthereumLESCapabilities cap;
         cap.cap = rlpDecodeItemString(coder, capsItem[0]);
         cap.capVersion = rlpDecodeItemUInt64(coder, capsItem[1], 1);
         array_add(caps, cap);
@@ -202,22 +201,22 @@ extern BREthereumP2PHello ethereumP2PHelloDecode(BRRlpCoder coder, BRRlpData dat
     
     return retHello;
 }
-extern BREthereumDisconnect ethereumP2PDisconnectDecode(BRRlpCoder coder, BRRlpData data) {
+extern BREthereumLESDisconnect p2pDisconnectDecode(BRRlpCoder coder, BRRlpData data) {
 
-    eth_log(ETH_LOG_TOPIC, "%s", "decoding disconnect message");
-    
+    eth_log(ETH_LOG_TOPIC, "Recv [%13s]", "Disconnect");
+
     BRRlpItem item = rlpGetItem (coder, data);
     
     //Set default values for optional status values
     size_t itemsCount;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
 
-    BREthereumDisconnect reason = (BREthereumDisconnect)rlpDecodeItemUInt64(coder, items[0],0);
+    BREthereumLESDisconnect reason = (BREthereumLESDisconnect)rlpDecodeItemUInt64(coder, items[0],0);
 
     return reason;
     
 }
-extern char* ethereumP2PDisconnectToString(BREthereumDisconnect reason) {
+extern char* p2pDisconnectToString(BREthereumLESDisconnect reason) {
 
     switch(reason){
     case BRE_DISCONNECT_REQUESTED:

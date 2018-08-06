@@ -34,7 +34,7 @@
 extern "C" {
 #endif
 
-typedef struct BREthereumNodeManagerContext* BREthereumNodeManager;
+typedef struct BREthereumLESNodeManagerContext* BREthereumLESNodeManager;
 
 
 /**
@@ -44,7 +44,7 @@ typedef enum {
     BRE_MANAGER_DISCONNECTED =0,  //Manager is not connected to any remote node(s)
     BRE_MANAGER_CONNECTING,    //Manager is trying to connect to remote node(s)
     BRE_MANAGER_CONNECTED      //Manager is connected to a remote node(s) 
-} BREthereumNodeManagerStatus;
+} BREthereumLESNodeManagerStatus;
 
 typedef void* BREthereumSubProtoContext;
 typedef void (*BREthereumSubProtoRecMsgCallback)(BREthereumSubProtoContext info, uint64_t messageType, BRRlpData messageBody);
@@ -60,7 +60,7 @@ typedef struct {
 
 /**
  * Creates a new Ethereum Node manager.
- * @post: Must be released by a calling ethereumNodeManagerRelease(manager)
+ * @post: Must be released by a calling nodeManagerRelease(manager)
  * @param key - the ethereum private key that is needed to assign nodes their own public keys
  * @param headTd - Total Difficulty of the best chain. Integer, as found in block header.
  * @param headHash - the hash of the best (i.e. highest TD) known block.
@@ -68,8 +68,8 @@ typedef struct {
  * @param genesisHash - the hash of the Genesis block.
  * @param callbacks - the context that contains the callbacks that are used when the manager receives messags from a remote node
  */
-extern BREthereumNodeManager
-ethereumNodeManagerCreate(BREthereumNetwork network,
+extern BREthereumLESNodeManager
+nodeManagerCreate(BREthereumNetwork network,
                           BRKey* key,
                           BREthereumHash headHash,
                           uint64_t headNumber,
@@ -81,31 +81,31 @@ ethereumNodeManagerCreate(BREthereumNetwork network,
  * Frees the memory assoicated with the given node manager.
  * @param manager - the node manager to release
  */
-extern void ethereumNodeManagerRelease(BREthereumNodeManager manager);
+extern void nodeManagerRelease(BREthereumLESNodeManager manager);
 
 /**
  * Determines whether one of the nodes is connected to a remote node
  * @param manager - the node manager
  * @return  the status of the node manager
  */
-extern BREthereumNodeManagerStatus ethereumNodeManagerStatus(BREthereumNodeManager manager);
+extern BREthereumLESNodeManagerStatus nodeManagerStatus(BREthereumLESNodeManager manager);
  
  /**
   * Connects to the ethereum peer-to-peer network.
   * @param manager - the node manager context
   */
-extern int ethereumNodeMangerConnect(BREthereumNodeManager manager);
+extern int nodeMangerConnect(BREthereumLESNodeManager manager);
 
 /**
  * Disconnects from the ethereum peer-to-peer network.
  * @param manager - the node manager context
  */
-extern void ethereumNodeManagerDisconnect(BREthereumNodeManager manager);
+extern void nodeManagerDisconnect(BREthereumLESNodeManager manager);
 
 /**
  * Sends a message to a remote node
  */
-extern BREthereumBoolean ethereumNodeManagerSendMessage(BREthereumNodeManager manager, uint64_t packetType, uint8_t* payload, size_t payloadSize);
+extern BREthereumBoolean nodeManagerSendMessage(BREthereumLESNodeManager manager, uint64_t packetType, uint8_t* payload, size_t payloadSize);
  
 
 #ifdef __cplusplus
