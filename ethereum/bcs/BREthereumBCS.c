@@ -47,28 +47,27 @@
 // so as to initialize the chain.
 #define BCS_SAVE_BLOCKS_COUNT  (500)
 
-/**
- * When syncing, we'll request a batch of headers
- */
-#define BCS_SYNC_BLOCKS_COUNT  (150)
-
 /* Forward Declarations */
 static void
 bcsPeriodicDispatcher (BREventHandler handler,
                        BREventTimeout *event);
 
 static void
-bcsSyncFrom (BREthereumBCS bcs,
-             uint64_t chainBlockNumber);
-
-static int
-bcsLookupPendingTransaction (BREthereumBCS bcs,
-                             BREthereumHash hash);
-
-static void
 bcsExtendChain (BREthereumBCS bcs,
                 BREthereumBlock block,
                 const char *message);
+
+static void
+bcsSyncReportBlocksCallback (BREthereumBCS bcs,
+                             BREthereumBCSSync sync,
+                             BRArrayOf(BREthereumBCSSyncResult) blocks);
+
+static void
+bcsSyncReportProgressCallback (BREthereumBCS bcs,
+                               BREthereumBCSSync sync,
+                               uint64_t blockNumberBeg,
+                               uint64_t blockNumberNow,
+                               uint64_t blockNumberEnd);
 /**
  */
 static void
@@ -170,9 +169,6 @@ bcsCreate (BREthereumNetwork network,
     bcs->filterForAddressOnTransactions = bloomFilterCreateAddress(bcs->address);
     bcs->filterForAddressOnLogs = logTopicGetBloomFilterAddress(bcs->address);
 
-    bcs->syncActive = 0;
-    bcs->syncHead = bcs->syncNext = bcs->syncTail = 0;
-
     bcs->listener = listener;
 
     //
@@ -240,6 +236,13 @@ bcsStart (BREthereumBCS bcs) {
                          blockHeaderGetNumber(header),
                          blockHeaderGetDifficulty(header),
                          blockHeaderGetHash(genesis));
+
+    bcs->sync = bcsSyncCreate ((BREthereumBCSSyncContext) bcs,
+                               (BREthereumBCSSyncReportBlocks) bcsSyncReportBlocksCallback,
+                               (BREthereumBCSSyncReportProgress) bcsSyncReportProgressCallback,
+                               bcs->address,
+                               bcs->les,
+                               bcs->handler);
 }
 
 extern void
@@ -291,12 +294,12 @@ bcsDestroy (BREthereumBCS bcs) {
 extern void
 bcsSync (BREthereumBCS bcs,
          uint64_t blockNumber) {
-    bcsSyncFrom(bcs, blockNumber);
+    bcsSyncStart(bcs->sync, blockGetNumber(bcs->chain), blockNumber);
 }
 
 extern BREthereumBoolean
 bcsSyncInProgress (BREthereumBCS bcs) {
-    return AS_ETHEREUM_BOOLEAN(bcs->syncActive);
+    return bcsSyncIsActive(bcs->sync);
 }
 
 extern void
@@ -498,6 +501,8 @@ bcsGetOrphanBlockNumberMinimum (BREthereumBCS bcs) {
 /**
  * Unceremoniously dump any orphans older then (`blockNumber` - AGE_OFFSET) - their time has past.
  * Expect `blockNumber` to be the blockNumber at the head of the chain.
+ *
+ * TODO: Shouldn't remove if still active!
  */
 static void
 bcsPurgeOrphans (BREthereumBCS bcs,
@@ -536,8 +541,20 @@ bcsSelectPreferredBlock (BREthereumBCS bcs,
     if (NULL == block1) return block2;
     if (NULL == block2) return block1;
 
-    // Compare
-    return block1;
+    // Gitter: "hi. when chain reorg occurs in Ethereum, the common way is first find common block, insert
+    // the block with the more total difficuty, and keep the transaction within the old chain but
+    // not within the new chain back to txpool."
+    
+    BREthereumBlockHeader header1 = blockGetHeader(block1);
+    BREthereumBlockHeader header2 = blockGetHeader(block2);
+
+    return (gtUInt256 (blockHeaderGetDifficulty(header1), blockHeaderGetDifficulty(header2))
+            ? block1
+            : (ltUInt256 (blockHeaderGetDifficulty(header1), blockHeaderGetDifficulty(header2))
+               ? block2
+               : (blockHeaderGetTimestamp(header1) <= blockHeaderGetTimestamp(header2)
+                  ? block1
+                  : block2)));
 }
 
 /**
@@ -568,7 +585,7 @@ bcsChainOrphans (BREthereumBCS bcs) {
         if (NULL != block)
         {
             // ... extend the chain, and ...
-            bcsExtendChain(bcs, block, "Chained Orphan");
+            bcsExtendChain(bcs, block, "Chained (Orphan)");
 
             // ... remove as an orphan, and ...
             BRSetRemove(bcs->orphans, block);
@@ -695,6 +712,10 @@ bcsExtendTransactionsAndLogsForBlock (BREthereumBCS bcs,
         for (size_t li = 0; li < array_count(blockStatus.logs); li++)
             bcsHandleLog (bcs, blockStatus.logs[li]);
 
+    // If not in chain and not an orphan, then reclaim
+    if (bcs->chainTail != block && NULL == blockGetNext(block) && NULL == BRSetGet(bcs->orphans, block))
+        bcsReclaimBlock(bcs, block, 0);
+
 //    if (purgeOrphans) bcsPendOrphanedTransactionsAndLogs(bcs);
 
 #if 0
@@ -718,9 +739,12 @@ bcsExtendTransactionsAndLogsForBlockIfAppropriate (BREthereumBCS bcs,
 
 static void
 bcsExtendChainIfPossible (BREthereumBCS bcs,
-                          BREthereumBlock block) {
+                          BREthereumBlock block,
+                          int isFromSync) {
     // THIS WILL BE THE FIRST TIME WE'VE SEEN BLOCK.  EVEN IF COMPLETE, NONE OF ITS LOGS NOR
     // TRANSACTIONS ARE HELD.
+    //
+    // TODO: Handle case where block is well in the past, like from a sync.
 
     // Lookup `headerParent`
     BREthereumHash blockParentHash = blockHeaderGetParentHash(blockGetHeader(block));
@@ -749,16 +773,47 @@ bcsExtendChainIfPossible (BREthereumBCS bcs,
         bcs->chainTail = block;
     }
 
-    // 2) If there is no `block` parent or if  `block` parent is an orphan, then `block` is
-    // an orphan too.  Add it to the set of orphans and RETURN (non-local exit);
-    else if (NULL == blockParent || NULL != BRSetGet(bcs->orphans, blockParent)) {
-        bcsMakeOrphan(bcs, block);
+    // TODO: What about a non-linear sync?  Check if blockNumber < (CurrentBlockNumber - 10)?
 
-        // If `block` is an orphan, then it's parent is not in bcs->chain.  That could be
-        // because there is just a fork developing or that we've fallen behind.  Attempt a
-        // sync to recover (might not actually perform a sync - just attempt).
-        bcsSyncFrom(bcs, blockGetNumber(bcs->chain));
-        return;
+    // 2) If there is no `block` parent or if  `block` parent is an orphan, then ...
+    else if (NULL == blockParent || NULL != BRSetGet(bcs->orphans, blockParent)) {
+        // ... if not a sync, then `block` is an orphan too.
+        if (!isFromSync) {
+            // Add it to the set of orphans and RETURN (non-local exit).
+            bcsMakeOrphan(bcs, block);
+
+            // If `block` is an orphan, then it's parent is not in bcs->chain.  That could be
+            // because there is just a fork developing or that we've fallen behind.  Attempt a
+            // sync to recover (might not actually perform a sync - just attempt).
+            uint64_t orphanBlockNumberMinumum = bcsGetOrphanBlockNumberMinimum(bcs);
+            if (UINT64_MAX != orphanBlockNumberMinumum)
+                bcsSyncStart(bcs->sync,
+                                blockGetNumber(bcs->chain),
+                                orphanBlockNumberMinumum);
+
+            return;
+        }
+
+        // ... otherwise, if in a sync, then adopt block
+        else if (blockGetNumber(block) > blockGetNumber(bcs->chain)) {
+            BREthereumBlock oldChainHead = bcs->chain;
+            BREthereumBlock oldChainTail = bcs->chainTail;
+            BREthereumBlock oldChainStop = (NULL == oldChainTail ? oldChainTail : blockGetNext(oldChainTail));
+
+            // Reclaim the old `chain`
+            while (oldChainHead != oldChainStop) {
+                BREthereumBlock oldChainNext = blockGetNext(oldChainHead);
+                // Never reclaim if `oldChainhead` is not complete
+                if (ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusComplete(oldChainHead)))
+                    bcsReclaimBlock(bcs, oldChainHead, 0);
+                oldChainHead = oldChainNext;
+            }
+
+            // Adopt `block` as `chain`
+            bcs->chain = bcs->chainTail = block;
+            blockClrNext(block);
+            eth_log("BCS", "Block %llu Chained (Sync)", blockGetNumber(block));
+        }
     }
 
     // 3) othewise, we have a new `block` that links to a parent that is somewhere in the
@@ -809,97 +864,6 @@ bcsExtendChainIfPossible (BREthereumBCS bcs,
 }
 
 ///
-/// MARK: - Sync
-///
-static void
-bcsSyncSubmit (BREthereumBCS bcs,
-               uint64_t blockStart,
-               uint64_t blockCount) {
-    // Make the request
-    eth_log("BCS", "Block Sync {%llu, %llu}",
-            blockStart,
-            blockStart + blockCount);
-
-    lesGetBlockHeaders(bcs->les,
-                       (BREthereumLESBlockHeadersContext) bcs,
-                       (BREthereumLESBlockHeadersCallback) bcsSignalBlockHeader,
-                       blockStart,
-                       blockCount,
-                       0,
-                       ETHEREUM_BOOLEAN_FALSE);
-}
-
-static void
-bcsSyncContinue (BREthereumBCS bcs,
-                 uint64_t chainBlockNumber) {
-    // Continue a sync if a) we are syncing and b) there is more to sync.
-    bcs->syncActive &= (chainBlockNumber < bcs->syncHead);
-
-    // Reqeust the next batch when the prior batch is complete
-    if (bcs->syncActive && chainBlockNumber >= bcs->syncNext) {
-
-        // Progress as [Tail, Next, Head]
-        bcs->listener.syncCallback (bcs->listener.context,
-                                    BCS_CALLBACK_SYNC_UPDATE,
-                                    bcs->syncTail,
-                                    bcs->syncNext,
-                                    bcs->syncHead);
-
-        uint64_t needHeadersCount = bcs->syncHead - (chainBlockNumber + 1);
-        if (needHeadersCount > BCS_SYNC_BLOCKS_COUNT)
-            needHeadersCount = BCS_SYNC_BLOCKS_COUNT;
-
-        bcs->syncNext += needHeadersCount;
-        bcsSyncSubmit(bcs, chainBlockNumber + 1, needHeadersCount);
-    }
-
-    // but if the sync is no longer active, then ...
-    else if (chainBlockNumber >= bcs->syncHead && 0 != bcs->syncHead) {
-        // ... announce that the sync is complete/stopped
-        bcs->listener.syncCallback (bcs->listener.context,
-                                    BCS_CALLBACK_SYNC_STOPPED,
-                                    bcs->syncTail,
-                                    bcs->syncHead,
-                                    bcs->syncHead);
-        // ... and clear the sync state.
-        bcs->syncTail = bcs->syncNext = bcs->syncHead = 0;
-    }
-}
-
-static void
-bcsSyncFrom (BREthereumBCS bcs,
-             uint64_t chainBlockNumber) {
-    // If we are already syncing, then continue until that completes
-    if (bcs->syncActive) {
-        bcsSyncContinue(bcs, chainBlockNumber);
-        return;
-    }
-
-    // We'll need to sync if the minimum orphan header is larger then the chain header (by
-    // more than just one).
-
-    uint64_t orphanBlockNumberMinumum = bcsGetOrphanBlockNumberMinimum(bcs);
-    if (UINT64_MAX != orphanBlockNumberMinumum && orphanBlockNumberMinumum > chainBlockNumber + 1) {
-        uint64_t needHeadersCount = orphanBlockNumberMinumum - (chainBlockNumber + 1);
-        if (needHeadersCount > BCS_SYNC_BLOCKS_COUNT)
-            needHeadersCount = BCS_SYNC_BLOCKS_COUNT;
-
-        bcs->syncTail = chainBlockNumber + 1;
-        bcs->syncHead = orphanBlockNumberMinumum;
-        bcs->syncNext  = chainBlockNumber + needHeadersCount;
-        bcs->syncActive = 1;
-
-        bcs->listener.syncCallback (bcs->listener.context,
-                                    BCS_CALLBACK_SYNC_STARTED,
-                                    bcs->syncTail,
-                                    bcs->syncTail,
-                                    bcs->syncHead);
-
-        bcsSyncSubmit(bcs, chainBlockNumber + 1, needHeadersCount);
-    }
-}
-
-///
 /// MARK: - Block Header
 ///
 
@@ -908,8 +872,8 @@ bcsBlockHasMatchingTransactions (BREthereumBCS bcs,
                                  BREthereumBlock block) {
     // TODO: Massive Fix Required ('massive' in importance, not size)
     //    return AS_ETHEREUM_BOOLEAN(blockGetNumber(block) < 5795675);
-    //    return ETHEREUM_BOOLEAN_TRUE;
-    return ETHEREUM_BOOLEAN_FALSE;
+    return ETHEREUM_BOOLEAN_TRUE;
+    // return ETHEREUM_BOOLEAN_FALSE;
 }
 
 static BREthereumBoolean
@@ -927,9 +891,10 @@ bcsBlockHasMatchingLogs (BREthereumBCS bcs,
 /**
  * Handle a (generally new) block header.
  */
-extern void
-bcsHandleBlockHeader (BREthereumBCS bcs,
-                      BREthereumBlockHeader header) {
+static void
+bcsHandleBlockHeaderInternal (BREthereumBCS bcs,
+                              BREthereumBlockHeader header,
+                              int isFromSync) {
 
     // Ignore the header if we have seen it before.  Given an identical hash, *nothing*, at any
     // level (transactions, receipts, logs), could have changed and thus no processing is needed.
@@ -989,6 +954,7 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
         lesGetAccountState(bcs->les,
                            (BREthereumLESAccountStateContext) bcs,
                            (BREthereumLESAccountStateCallback) bcsSignalAccountState,
+                           blockGetNumber(block),
                            blockGetHash(block),
                            bcs->address);
         eth_log("BCS", "Block %llu Needs AccountState", blockGetNumber(block));
@@ -998,10 +964,15 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
     // we'll handle the block's interesting transactions and logs; including if the block is an
     // orphan.  Note: the `bcsExtendChainIfAppropriate()` function will handle a fully constituted
     // block; however, as the above suggests, the block might be complete but likely empty.
-    bcsExtendChainIfPossible(bcs, block);
+    //
+    // TODO: What is the header is well into the past - like during a sync?
+    bcsExtendChainIfPossible(bcs, block, isFromSync);
+}
 
-    // If appropriate, continue an in-process sync.
-    bcsSyncContinue (bcs, blockGetNumber(bcs->chain));
+extern void
+bcsHandleBlockHeader (BREthereumBCS bcs,
+                      BREthereumBlockHeader header) {
+    bcsHandleBlockHeaderInternal(bcs, header, 0);
 }
 
 ///
@@ -1010,11 +981,9 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
 
 extern void
 bcsHandleAccountState (BREthereumBCS bcs,
-                       BREthereumHash blockHash,
-                       BREthereumAddress address,
-                       BREthereumAccountState state) {
+                       BREthereumLESAccountStateResult result) {
     // Ensure we have a Block
-    BREthereumBlock block = BRSetGet(bcs->blocks, &blockHash);
+    BREthereumBlock block = BRSetGet(bcs->blocks, &result.u.success.block);
     if (NULL == block) {
         eth_log ("BCS", "Block %llu Missed (Account)", (NULL == block ? -1 : blockGetNumber(block)));
         return;
@@ -1031,10 +1000,10 @@ bcsHandleAccountState (BREthereumBCS bcs,
 
     eth_log("BCS", "Account %llu Nonce %llu, Balance XX",
             blockGetNumber(block),
-            accountStateGetNonce(state));
+            accountStateGetNonce(result.u.success.accountState));
 
     // Report the block status - we'll flag as HAS_ACCOUNT_STATE.
-    blockReportStatusAccountState(block, state);
+    blockReportStatusAccountState(block, result.u.success.accountState);
 
 //    // TODO: How to update the overall, bcs account state?
 //    // If block is bcs->chain then block is the latest and we should update the bcs state;
@@ -1511,6 +1480,33 @@ bcsHandlePeers (BREthereumBCS bcs,
     size_t peersCount = array_count(peers);
     bcs->listener.savePeersCallback (bcs->listener.context, peers);
     eth_log("BCS", "Peers %zu Saved", peersCount);
+}
+
+static void
+bcsSyncReportBlocksCallback (BREthereumBCS bcs,
+                             BREthereumBCSSync sync,
+                             BRArrayOf(BREthereumBCSSyncResult) results) {
+    size_t resultsCount = (NULL != results ? array_count(results) : 0);
+    for (size_t index = 0; index < resultsCount; index++)
+        bcsHandleBlockHeaderInternal (bcs, results[index].header, 1);
+}
+
+static void
+bcsSyncReportProgressCallback (BREthereumBCS bcs,
+                               BREthereumBCSSync sync,
+                               uint64_t blockNumberBeg,
+                               uint64_t blockNumberNow,
+                               uint64_t blockNumberEnd) {
+
+    bcs->listener.syncCallback (bcs->listener.context,
+                                (blockNumberNow == blockNumberBeg
+                                 ? BCS_CALLBACK_SYNC_STARTED
+                                 : (blockNumberNow == blockNumberEnd
+                                    ? BCS_CALLBACK_SYNC_STOPPED
+                                    : BCS_CALLBACK_SYNC_UPDATE)),
+                                blockNumberBeg,
+                                blockNumberNow,
+                                blockNumberEnd);
 }
 
 ////

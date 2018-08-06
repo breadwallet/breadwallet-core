@@ -37,6 +37,8 @@
 extern "C" {
 #endif
 
+typedef struct BREthereumBCSSyncStruct *BREthereumBCSSync;
+
 /**
  *
  */
@@ -160,10 +162,11 @@ struct BREthereumBCSStruct {
     /**
      * Sync state
      */
-    int syncActive;
-    uint64_t syncTail;
-    uint64_t syncNext;
-    uint64_t syncHead;
+    BREthereumBCSSync sync;
+//    int syncActive;
+//    uint64_t syncTail;
+//    uint64_t syncNext;
+//    uint64_t syncHead;
 };
 
 extern const BREventType *bcsEventTypes[];
@@ -266,15 +269,11 @@ bcsSignalTransactionReceipts (BREthereumBCS bcs,
 //
 extern void
 bcsHandleAccountState (BREthereumBCS bcs,
-                       BREthereumHash blockHash,
-                       BREthereumAddress address,
-                       BREthereumAccountState state);
-    
+                       BREthereumLESAccountStateResult result);
+
 extern void
 bcsSignalAccountState (BREthereumBCS bcs,
-                       BREthereumHash blockHash,
-                       BREthereumAddress address,
-                       BREthereumAccountState state);
+                   BREthereumLESAccountStateResult result);
 
 //
 // Transactions
@@ -324,36 +323,70 @@ bcsSignalPeers (BREthereumBCS bcs,
 //
 // Sync
 //
-typedef struct BREthereumBCSSyncStruct *BREthereumBCSSync;
+typedef struct BREthereumBCSSyncRangeRecord *BREthereumBCSSyncRange;
 
-typedef enum {
-    SYNC_LINEAR,
-    SYNC_BINARY
-} BREthereumBCSSyncType;
+extern BREventHandler
+bcsSyncRangeGetHandler (BREthereumBCSSyncRange range);
+    
+typedef struct {
+    BREthereumBlockHeader header;
+    // account state
+    // needBodies
+    // needReceipts
+} BREthereumBCSSyncResult;
 
 typedef void* BREthereumBCSSyncContext;
 
 typedef void
 (*BREthereumBCSSyncReportBlocks) (BREthereumBCSSyncContext context,
                                   BREthereumBCSSync sync,
-                                  BRArrayOf(BREthereumBlock) blocks,
-                                  double percentComplete);
+                                  BRArrayOf(BREthereumBCSSyncResult) blocks);
+
+typedef void
+(*BREthereumBCSSyncReportProgress) (BREthereumBCSSyncContext context,
+                                    BREthereumBCSSync sync,
+                                    uint64_t blockNumberBeg,
+                                    uint64_t blockNumberNow,
+                                    uint64_t blockNumberEnd);
 
 extern BREthereumBCSSync
-bcsSyncCreateLinear (BREthereumBCSSyncContext context,
-                     BREthereumBCSSyncReportBlocks callback,
-                     BREthereumLES les);
-
-extern BREthereumBCSSync
-bcsSyncCreateBinary (BREthereumBCSSyncContext context,
-                     BREthereumBCSSyncReportBlocks callback,
-                     BREthereumLES les);
+bcsSyncCreate (BREthereumBCSSyncContext context,
+               BREthereumBCSSyncReportBlocks callbackBlocks,
+               BREthereumBCSSyncReportProgress callbackProgress,
+               BREthereumAddress address,
+               BREthereumLES les,
+               BREventHandler handler);
 
 extern void
 bcsSyncRelease (BREthereumBCSSync sync);
 
+extern BREthereumBoolean
+bcsSyncIsActive (BREthereumBCSSync sync);
+
 extern void
-bcsSyncStart (BREthereumBCSSync sync);
+bcsSyncStop (BREthereumBCSSync sync);
+
+extern void
+bcsSyncStart (BREthereumBCSSync sync,
+              uint64_t thisBlockNumber,
+              uint64_t needBlockNumber);
+
+extern void
+bcsSyncHandleBlockHeader (BREthereumBCSSyncRange request,
+                          BREthereumBlockHeader header);
+
+extern void
+bcsSyncSignalBlockHeader (BREthereumBCSSyncRange request,
+                          BREthereumBlockHeader header);
+
+
+extern void
+bcsSyncHandleAccountState (BREthereumBCSSyncRange request,
+                           BREthereumLESAccountStateResult result);
+
+extern void
+bcsSyncSignalAccountState (BREthereumBCSSyncRange request,
+                           BREthereumLESAccountStateResult result);
 
 #ifdef __cplusplus
 }

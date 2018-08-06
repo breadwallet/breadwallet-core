@@ -271,7 +271,8 @@ extern void
 lesGetAccountState (BREthereumLES les,
                     BREthereumLESAccountStateContext context,
                     BREthereumLESAccountStateCallback callback,
-                    BREthereumHash block,
+                    uint64_t blockNumber,  // temporary?
+                    BREthereumHash blockHash,
                     BREthereumAddress address);
 
 //

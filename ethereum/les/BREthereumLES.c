@@ -589,7 +589,8 @@ extern void
 lesGetAccountState (BREthereumLES les,
                     BREthereumLESAccountStateContext context,
                     BREthereumLESAccountStateCallback callback,
-                    BREthereumHash block,
+                    uint64_t blockNumber,
+                    BREthereumHash blockHash,
                     BREthereumAddress address) {
     // For Parity:
     //    // Request for proof of specific account in the state.
@@ -609,25 +610,35 @@ lesGetAccountState (BREthereumLES les,
     // For GETH:
     //    Use GetProofs, then process 'nodes'
 
-    // For NOW: return 'success' with some random data
-    static BREthereumAccountState state = EMPTY_ACCOUNT_STATE_INIT;
-
-#define ACCOUNT_RANDOM_PERIOD 25
-    long randomValue = random ();
-    int needNonce = 1 == randomValue % ACCOUNT_RANDOM_PERIOD;
-    int needEther = 3 == randomValue % ACCOUNT_RANDOM_PERIOD;
-
-    if (needNonce) state.nonce++;
-    if (needEther) { int overflow; state.balance = etherAdd(state.balance, etherCreateNumber(1, WEI), &overflow); }
-
-    BREthereumLESAccountStateResult result = {
-        ACCOUNT_STATE_SUCCCESS,
-        { .success = {
-            block,
-            address,
-            state
-        }}
+    struct BlockStateMap {
+        uint64_t number;
+        BREthereumAccountState state;
     };
+
+    // Address: 0xa9de3dbD7d561e67527bC1Ecb025c59D53b9F7Ef
+    static struct BlockStateMap map[] = {
+        { 0, { 0 }},
+        { 5506602, { 1 }}, // <- ETH, 0xa9d8724bb9db4b5ad5a370201f7367c0f731bfaa2adf1219256c7a40a76c8096
+        { 5506764, { 2 }}, // -> KNC, 0xaca2b09703d7816753885fd1a60e65c6426f9d006ba2d8dd97f7c845e0ffa930
+        { 5509990, { 3 }}, // -> KNC, 0xe5a045bdd432a8edc345ff830641d1b75847ab5c9d8380241323fa4c9e6cee1e
+        { 5511681, { 4 }}, // -> KNC, 0x04d93a1addec69da4a0589bd84d5157a0b47369ce6084c06d66fbd0afc8591dc
+        { 5539808, { 5 }}, // -> KNC, 0x932faac9e5bf5cead0492afbe290ff0cd7d2ab5d7b351ad1bccae8aac646522b
+        { 5795662, { 6 }}, // -> ETH, 0x1429c28066e3e41073e7abece864e5ca9b0dfcef28bec90a83e6ed04d91997ac
+        { 5818087, { 7 }}, // -> ETH, 0xe606358c10f59dfbdb7ad823826881ee3915e06320f1019187af92e96201e7ed
+        { 5819543, { 8 }}, // -> ETH, 0x597595bdf79ec29e8a7079fecddd741a40471bbd8fd92e11cdfc0d78d973cb16
+        { UINT64_MAX, { 8 }}
+    };
+
+    BREthereumLESAccountStateResult result = { ACCOUNT_STATE_ERROR_X };
+
+    for (int i = 0; UINT64_MAX != map[i].number; i++)
+        if (blockNumber < map[i].number) {
+            result.status = ACCOUNT_STATE_SUCCCESS;
+            result.u.success.block = blockHash;
+            result.u.success.address = address;
+            result.u.success.accountState = map [i - 1].state;
+            break;
+        }
 
     callback (context, result);
 }
