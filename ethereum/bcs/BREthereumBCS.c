@@ -712,6 +712,10 @@ bcsExtendTransactionsAndLogsForBlock (BREthereumBCS bcs,
         for (size_t li = 0; li < array_count(blockStatus.logs); li++)
             bcsHandleLog (bcs, blockStatus.logs[li]);
 
+    // If not in chain and not an orphan, then reclaim
+    if (bcs->chainTail != block && NULL == blockGetNext(block) && NULL == BRSetGet(bcs->orphans, block))
+        bcsReclaimBlock(bcs, block, 0);
+
 //    if (purgeOrphans) bcsPendOrphanedTransactionsAndLogs(bcs);
 
 #if 0
@@ -794,12 +798,21 @@ bcsExtendChainIfPossible (BREthereumBCS bcs,
         else if (blockGetNumber(block) > blockGetNumber(bcs->chain)) {
             BREthereumBlock oldChainHead = bcs->chain;
             BREthereumBlock oldChainTail = bcs->chainTail;
+            BREthereumBlock oldChainStop = (NULL == oldChainTail ? oldChainTail : blockGetNext(oldChainTail));
 
+            // Reclaim the old `chain`
+            while (oldChainHead != oldChainStop) {
+                BREthereumBlock oldChainNext = blockGetNext(oldChainHead);
+                // Never reclaim if `oldChainhead` is not complete
+                if (ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusComplete(oldChainHead)))
+                    bcsReclaimBlock(bcs, oldChainHead, 0);
+                oldChainHead = oldChainNext;
+            }
+
+            // Adopt `block` as `chain`
             bcs->chain = bcs->chainTail = block;
             blockClrNext(block);
             eth_log("BCS", "Block %llu Chained (Sync)", blockGetNumber(block));
-
-            // clean up `oldChain`
         }
     }
 
