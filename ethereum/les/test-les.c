@@ -712,17 +712,14 @@ static void run_GetAccountState_Tests (BREthereumLES les){
 void runLEStests(void) {
     
     //Prepare values to be given to a LES context
-    BREthereumHash headHash;
-    char headHashStr[] = "d4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3";
-    assert(32 == (strlen(headHashStr)/2));
-    decodeHex(headHash.bytes, 32, headHashStr, strlen(headHashStr));
-    
+    char headHashStr[] = "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3";
+    BREthereumHash headHash = hashCreate(headHashStr);
+
     uint64_t headNumber = 0;
     UInt256 headTD = createUInt256 (0x400000000);
     
-    BREthereumHash genesisHash;
-    decodeHex(genesisHash.bytes, 32, headHashStr, strlen(headHashStr));
-    
+    BREthereumHash genesisHash = hashCreate(headHashStr);
+
     // Create an LES context
     BREthereumLES les = lesCreate(ethereumMainnet, NULL, _announceCallback, headHash, headNumber, headTD, genesisHash);
     lesStart(les);
@@ -743,7 +740,9 @@ void runLEStests(void) {
  //   run_GetProofsV2_Tests(les); //NOTE: The callback function won't be called.
       run_GetAccountState_Tests(les);
     //reallySendLESTransaction(les);
-    
+
+    lesStop(les);
+    lesRelease(les);
     printf ("Done\n");
 }
 

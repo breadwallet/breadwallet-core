@@ -83,9 +83,11 @@ typedef struct {
     uint64_t protocolVersion;
     uint64_t chainId;
     UInt256 headerTd;
-    uint8_t headHash[32];
+    BREthereumHash headHash;
+//    uint8_t headHash[32];
     uint64_t headNum;
-    uint8_t genesisHash[32];
+    BREthereumHash genesisHash;
+//    uint8_t genesisHash[32];
     // Note: The below fields are optional LPV1
     BREthereumBoolean serveHeaders;
     uint64_t* serveChainSince;

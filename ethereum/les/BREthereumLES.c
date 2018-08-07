@@ -379,9 +379,9 @@ lesCreate (BREthereumNetwork network,
         les->statusMsg.protocolVersion = 0x02;
         les->statusMsg.chainId = networkGetChainId(network);
         les->statusMsg.headerTd = headTotalDifficulty;
-        memcpy(les->statusMsg.headHash, headHash.bytes, 32);
+        les->statusMsg.headHash = headHash;
         les->statusMsg.headNum = headNumber;
-        memcpy(les->statusMsg.genesisHash, genesisHash.bytes, 32);
+        les->statusMsg.genesisHash = genesisHash;
         les->statusMsg.serveHeaders = ETHEREUM_BOOLEAN_FALSE;
         les->statusMsg.serveChainSince = NULL;
         les->statusMsg.serveStateSince = NULL;
@@ -665,9 +665,9 @@ lesGetGetProofsV2One (BREthereumLES les,
     if(ETHEREUM_BOOLEAN_IS_TRUE(shouldSend)) {
         BREthereumLESProofsRequest* proofs;
         BREthereumLESProofsRequest request;
-        memcpy(request.blockHash.bytes, blockHash.bytes, 32);
-        memcpy(request.key2.bytes, key2.bytes, 32);
-        memcpy(request.key.bytes, key.bytes, 32);
+        request.blockHash = blockHash;
+        request.key = key;
+        request.key2 = key2;
         request.fromLevel = fromLevel;
         array_new(proofs, 1);
         array_add(proofs, request);

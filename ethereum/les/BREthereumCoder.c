@@ -144,7 +144,7 @@ static void _encodeStatus(BREthereumLESStatusMessage* status, BRRlpCoder coder, 
  
     //headHash
     keyPair[0] = rlpEncodeItemString(coder, "headHash");
-    keyPair[1] = rlpEncodeItemBytes(coder, status->headHash, sizeof(status->headHash));
+    keyPair[1] = hashRlpEncode(status->headHash, coder);
     statusItems[curIdx++] = rlpEncodeListItems(coder, keyPair, 2);
  
     //headNum
@@ -154,7 +154,7 @@ static void _encodeStatus(BREthereumLESStatusMessage* status, BRRlpCoder coder, 
  
     //genesisHash
     keyPair[0] = rlpEncodeItemString(coder, "genesisHash");
-    keyPair[1] = rlpEncodeItemBytes(coder, status->genesisHash, sizeof(status->genesisHash));
+    keyPair[1] = hashRlpEncode(status->genesisHash, coder);
     statusItems[curIdx++] = rlpEncodeListItems(coder, keyPair, 2);
  
     //serveHeaders
@@ -278,17 +278,13 @@ static BREthereumLESDecodeStatus _decodeStatus(BRRlpCoder coder, const BRRlpItem
             }else if (strcmp(key, "headTd") == 0) {
                 header->headerTd = rlpDecodeItemUInt256(coder, keyPairs[1], 1);
             }else if (strcmp(key, "headHash") == 0) {
-                BRRlpData hashData = rlpDecodeItemBytes(coder, keyPairs[1]);
-                memcpy(header->headHash, hashData.bytes, hashData.bytesCount);
-                rlpDataRelease(hashData);
+                header->headHash = hashRlpDecode(keyPairs[1], coder);
             }else if (strcmp(key, "announceType") == 0) {
                 header->announceType = rlpDecodeItemUInt64(coder, keyPairs[1], 1);
             }else if (strcmp(key, "headNum") == 0) {
                 header->headNum = rlpDecodeItemUInt64(coder, keyPairs[1], 1);
             }else if (strcmp(key, "genesisHash") == 0) {
-                BRRlpData hashData = rlpDecodeItemBytes(coder, keyPairs[1]);
-                memcpy(header->genesisHash, hashData.bytes, hashData.bytesCount);
-                rlpDataRelease(hashData);
+                header->genesisHash = hashRlpDecode(keyPairs[1], coder);
             }else if (strcmp(key, "serveHeaders") == 0) {
                 header->serveHeaders = ETHEREUM_BOOLEAN_TRUE;
             }else if (strcmp(key, "serveChainSince") == 0) {
@@ -542,7 +538,7 @@ BRRlpData coderGetBlockBodies(uint64_t message_id_offset, uint64_t reqId, BREthe
     // [+0x04, reqID: P, [hash_0: B_32, hash_1: B_32, ...]]
 
     for(int i = 0; i < array_count(blockHashes); ++i){
-        blockItems[i] = rlpEncodeItemBytes(coder, blockHashes[i].bytes, 32);
+        blockItems[i] = hashRlpEncode(blockHashes[i], coder);
     }
     items[idx++] = rlpEncodeListItems(coder, blockItems, array_count(blockHashes));
     
@@ -573,9 +569,9 @@ BRRlpData coderGetProofsV2(uint64_t message_id_offset, uint64_t reqId, BREthereu
     // [+0x08, reqID: P, [ [blockhash: B_32, key: B_32, key2: B_32, fromLevel: P], ...]]
     for(int i = 0; i < array_count(proofs); ++i){
         BRRlpItem proofItems[4];
-        proofItems[0] = rlpEncodeItemBytes(coder, proofs[i].blockHash.bytes, 32);
-        proofItems[1] = rlpEncodeItemBytes(coder, proofs[i].key.bytes, 32);
-        proofItems[2] = rlpEncodeItemBytes(coder, proofs[i].key2.bytes, 32);
+        proofItems[0] = hashRlpEncode(proofs[i].blockHash, coder);
+        proofItems[1] = hashRlpEncode(proofs[i].key, coder);
+        proofItems[2] = hashRlpEncode(proofs[i].key2, coder);
         proofItems[3] = rlpEncodeItemUInt64(coder, proofs[i].fromLevel,1);
         blockItems[i] = rlpEncodeListItems(coder, proofItems, 4);
     }
@@ -649,7 +645,7 @@ BRRlpData coderGetReceipts(uint64_t message_id_offset, uint64_t reqId, BREthereu
     // [+0x04, reqID: P, [hash_0: B_32, hash_1: B_32, ...]]
 
     for(int i = 0; i < array_count(blockHashes); ++i){
-        blockItems[i] = rlpEncodeItemBytes(coder, blockHashes[i].bytes, 32);
+        blockItems[i] = hashRlpEncode(blockHashes[i], coder);
     }
     items[idx++] = rlpEncodeListItems(coder, blockItems, array_count(blockHashes));
     
@@ -751,7 +747,7 @@ BRRlpData coderGetTxStatus(uint64_t message_id_offset, uint64_t reqId, BREthereu
 
     BRRlpItem txtsItems[transactionsCount];
     for(int i = 0; i < transactionsCount; ++i){
-        txtsItems[i] = rlpEncodeItemBytes(coder, transactions[i].bytes, sizeof(transactions[i].bytes));
+        txtsItems[i] = hashRlpEncode(transactions[i], coder);
     }
     items[idx++] = rlpEncodeListItems(coder, txtsItems, transactionsCount);
 
