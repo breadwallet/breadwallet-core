@@ -100,6 +100,12 @@ void _announceCallback (BREthereumLESAnnounceContext context,
     eth_log("announcCallback_test", "%s", "received an announcement of a new chain");
 }
 
+void _statusCallback (BREthereumLESAnnounceContext context,
+                        BREthereumHash headHash,
+                        uint64_t headNumber) {
+
+    eth_log("announcCallback_test", "%s", "received status");
+}
 
 //
 //  Testing SendTx and SendTxV2 message
@@ -721,7 +727,7 @@ void runLEStests(void) {
     BREthereumHash genesisHash = hashCreate(headHashStr);
 
     // Create an LES context
-    BREthereumLES les = lesCreate(ethereumMainnet, NULL, _announceCallback, headHash, headNumber, headTD, genesisHash);
+    BREthereumLES les = lesCreate(ethereumMainnet, NULL, _announceCallback, _statusCallback, headHash, headNumber, headTD, genesisHash);
     lesStart(les);
     // Sleep for a little bit to allow the context to connect to the network
     sleep(5);

@@ -82,6 +82,7 @@ typedef struct {
 struct BREthereumLESContext {
     BREthereumLESAnnounceContext announceCtx;
     BREthereumLESAnnounceCallback announceFunc;
+    BREthereumLESStatusCallback statusFunc;
     BREthereumLESNodeManager nodeManager;
     BRKey* key;
     BREthereumNetwork network;
@@ -130,6 +131,7 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t me
                   les->peerStatus.chainId == networkGetChainId(les->network)){
                     eth_log(ETH_LOG_TOPIC, "%s", "LES Handshake complete. Start sending messages");
                     statusMessageLogFlowControl (&les->peerStatus);
+                    les->statusFunc (les->announceCtx, les->peerStatus.headHash, les->peerStatus.headNum);
                     les->startSendingMessages = ETHEREUM_BOOLEAN_TRUE;
                 }else {
                     eth_log(ETH_LOG_TOPIC, "%s", "Disconnecting from node. Does not meet the requirements for LES");
@@ -354,6 +356,7 @@ extern BREthereumLES
 lesCreate (BREthereumNetwork network,
            BREthereumLESAnnounceContext announceContext,
            BREthereumLESAnnounceCallback announceCallback,
+           BREthereumLESStatusCallback statusCallback,
            BREthereumHash headHash,
            uint64_t headNumber,
            UInt256 headTotalDifficulty,
@@ -395,8 +398,7 @@ lesCreate (BREthereumNetwork network,
         //Assign announce information
         les->announceCtx = announceContext;
         les->announceFunc = announceCallback;
-        
-        
+        les->statusFunc = statusCallback;
 
         //Assign the message id offset for now to be 0x10 since we only support LES
         les->message_id_offset = 0x10;

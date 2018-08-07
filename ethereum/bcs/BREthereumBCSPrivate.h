@@ -213,6 +213,19 @@ bcsSignalAnnounce (BREthereumBCS bcs,
                    uint64_t reorgDepth);
 
 //
+// Status
+//
+extern void
+bcsHandleStatus (BREthereumBCS bcs,
+                 BREthereumHash headHash,
+                 uint64_t headNumber);
+
+extern void
+bcsSignalStatus (BREthereumBCS bcs,
+                 BREthereumHash headHash,
+                 uint64_t headNumber);
+
+//
 // Block Headers
 //
 extern void

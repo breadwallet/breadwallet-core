@@ -94,7 +94,41 @@ bcsSignalAnnounce (BREthereumBCS bcs,
                    UInt256 headTotalDifficulty,
                    uint64_t reorgDepth) {
     BREthereumHandleAnnounceEvent event =
-    { { NULL, &handleAnnounceEventType}, bcs, headHash, headNumber, headTotalDifficulty, reorgDepth};
+    { { NULL, &handleAnnounceEventType}, bcs, headHash, headNumber, headTotalDifficulty, reorgDepth };
+    eventHandlerSignalEvent(bcs->handler, (BREvent *) &event);
+}
+
+// ==============================================================================================
+//
+// Signal/Handle Announce
+//
+typedef struct {
+    BREvent base;
+    BREthereumBCS bcs;
+    BREthereumHash headHash;
+    uint64_t headNumber;
+} BREthereumHandleStatusEvent;
+
+static void
+bcsHandleStatusDispatcher (BREventHandler ignore,
+                             BREthereumHandleStatusEvent *event) {
+    bcsHandleStatus(event->bcs,
+                      event->headHash,
+                      event->headNumber);
+}
+
+static BREventType handleStatusEventType = {
+    "BCS: Handle Status Event",
+    sizeof (BREthereumHandleStatusEvent),
+    (BREventDispatcher) bcsHandleStatusDispatcher
+};
+
+extern void
+bcsSignalStatus (BREthereumBCS bcs,
+                   BREthereumHash headHash,
+                   uint64_t headNumber) {
+    BREthereumHandleStatusEvent event =
+    { { NULL, &handleStatusEventType}, bcs, headHash, headNumber };
     eventHandlerSignalEvent(bcs->handler, (BREvent *) &event);
 }
 
@@ -471,6 +505,7 @@ const BREventType *
 bcsEventTypes[] = {
     &handleSubmitTransactionEventType,
     &handleAnnounceEventType,
+    &handleStatusEventType,
     &handleBlockHeaderEventType,
     &handleBlockBodiesEventType,
     &handleTransactionStatusEventType,

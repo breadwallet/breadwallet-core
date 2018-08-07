@@ -226,6 +226,7 @@ bcsCreate (BREthereumNetwork network,
     bcs->les = lesCreate(bcs->network,
                          (BREthereumLESAnnounceContext) bcs,
                          (BREthereumLESAnnounceCallback) bcsSignalAnnounce,
+                         (BREthereumLESStatusCallback) bcsSignalStatus,
                          blockHeaderGetHash(header),
                          blockHeaderGetNumber(header),
                          blockHeaderGetDifficulty(header),
@@ -360,6 +361,13 @@ bcsHandleSubmitTransaction (BREthereumBCS bcs,
             break;
         }
     }
+}
+
+extern void
+bcsHandleStatus (BREthereumBCS bcs,
+                 BREthereumHash headHash,
+                 uint64_t headNumber) {
+    bcsSyncStart(bcs->sync, blockGetNumber(bcs->chain), headNumber);
 }
 
 /*!

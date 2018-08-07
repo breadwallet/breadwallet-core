@@ -80,6 +80,18 @@ typedef void
                                   uint64_t reorgDepth);
 
 
+/**
+ * The callback to use for Node/Peer status message - announces the headHash and headNumber for
+ * the peer.
+ *
+ * TODO: Might need a `peer ID` or let the NodeManager evaluate different peers.
+ *
+ */
+typedef void
+(*BREthereumLESStatusCallback) (BREthereumLESAnnounceContext context,
+                                BREthereumHash headHash,
+                                uint64_t headNumber);
+
 /*!
  * @function lesCreate
  *
@@ -105,6 +117,7 @@ extern BREthereumLES
 lesCreate (BREthereumNetwork network,
            BREthereumLESAnnounceContext announceContext,
            BREthereumLESAnnounceCallback announceCallback,
+           BREthereumLESStatusCallback statusCallback,
            BREthereumHash headHash,
            uint64_t headNumber,
            UInt256 headTotalDifficulty,
