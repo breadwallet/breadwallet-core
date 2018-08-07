@@ -218,8 +218,10 @@ static BRRlpData _encodePayloadId(BRRlpCoder coder, BRRlpData messageListData, u
 
     BRRlpData idData;
     BRRlpData retData;
-    
-    rlpDataExtract(coder, rlpEncodeItemUInt64(coder, message_id,1),&idData.bytes, &idData.bytesCount);
+
+    BRRlpItem item = rlpEncodeItemUInt64(coder, message_id,1);
+    rlpDataExtract(coder, item, &idData.bytes, &idData.bytesCount);
+    rlpReleaseItem(coder, item);
     
     uint8_t * rlpData = malloc(idData.bytesCount + messageListData.bytesCount);
     
@@ -258,7 +260,8 @@ BRRlpData coderEncodeStatus(uint64_t message_id_offset, BREthereumLESStatusMessa
     rlpDataExtract(coder, encoding, &messageListData.bytes, &messageListData.bytesCount);
     
     BRRlpData retData = _encodePayloadId(coder, messageListData, message_id_offset + BRE_LES_ID_STATUS);
-    
+
+    rlpReleaseItem(coder, encoding);
     rlpCoderRelease(coder);
     rlpDataRelease(messageListData);
 
@@ -348,6 +351,7 @@ BREthereumLESDecodeStatus coderDecodeStatus(uint8_t*rlpBytes, size_t rlpBytesSiz
     
     BREthereumLESDecodeStatus retStatus = _decodeStatus(coder, items, itemsCount, status);
 
+    rlpReleaseItem(coder, item);
     rlpCoderRelease(coder);
     
     return retStatus;
@@ -421,6 +425,7 @@ void coderAnnounce(UInt256 headHash, uint64_t headNumber, uint64_t headTd, uint6
     }
     BRRlpItem encoding = rlpEncodeListItems(coder, items, idx);
     rlpDataExtract(coder, encoding, rlpBytes, rlpBytesSize);
+    rlpReleaseItem(coder, encoding);
     rlpCoderRelease(coder);
     free(items);
 }
@@ -450,6 +455,7 @@ BREthereumLESDecodeStatus coderDecodeAnnounce(uint8_t*rlpBytes, size_t rlpBytesS
     for(int i = 0; i < keyValuesCount; ++i){
          _decodeStatus(coder, &items[4 + i], 1, status);
     }
+    rlpReleaseItem(coder, item);
     rlpCoderRelease(coder);
     
     return BRE_LES_CODER_SUCCESS;
@@ -484,7 +490,8 @@ BRRlpData coderGetBlockHeaders(uint64_t message_id_offset,
     rlpDataExtract(coder, encoding, &messageListData.bytes, &messageListData.bytesCount);
     
     BRRlpData retData = _encodePayloadId(coder, messageListData, message_id_offset + BRE_LES_ID_GET_BLOCK_HEADERS);
-    
+
+    rlpReleaseItem(coder, encoding);
     rlpCoderRelease(coder);
     rlpDataRelease(messageListData);
 
@@ -513,6 +520,7 @@ BREthereumLESDecodeStatus coderDecodeBlockHeaders(uint8_t*rlpBytes, size_t rlpBy
     for(int i = 0; i < blocksCount; ++i){
         array_add(headers, blockHeaderRlpDecode(blocks[i], RLP_TYPE_NETWORK, coder));
     }
+    rlpReleaseItem(coder, item);
     rlpCoderRelease(coder);
     
     *blockHeaders = headers;
@@ -550,6 +558,7 @@ BRRlpData coderGetBlockBodies(uint64_t message_id_offset, uint64_t reqId, BREthe
     
     BRRlpData retData = _encodePayloadId(coder, messageListData, message_id_offset + BRE_LES_ID_GET_BLOCK_BODIES);
     
+    rlpReleaseItem(coder, encoding);
     rlpCoderRelease(coder);
     rlpDataRelease(messageListData);
 
@@ -586,6 +595,7 @@ BRRlpData coderGetProofsV2(uint64_t message_id_offset, uint64_t reqId, BREthereu
     
     BRRlpData retData = _encodePayloadId(coder, messageListData, message_id_offset + BRE_LES_ID_GET_PROOFS_V2);
     
+    rlpReleaseItem(coder, encoding);
     rlpCoderRelease(coder);
     rlpDataRelease(messageListData);
 
@@ -624,6 +634,7 @@ BREthereumLESDecodeStatus coderDecodeBlockBodies(uint8_t*rlpBytes, size_t rlpByt
         array_add(ommersHeaders, blockOmmersRlpDecode(txtsOmmersDataItems[1],network,RLP_TYPE_NETWORK,coder));
     }
  
+    rlpReleaseItem(coder, item);
     rlpCoderRelease(coder);
     
     *ommers = ommersHeaders;
@@ -657,6 +668,7 @@ BRRlpData coderGetReceipts(uint64_t message_id_offset, uint64_t reqId, BREthereu
     
     BRRlpData retData = _encodePayloadId(coder, messageListData, message_id_offset + BRE_LES_ID_GET_RECEIPTS);
     
+    rlpReleaseItem(coder, encoding);
     rlpCoderRelease(coder);
     rlpDataRelease(messageListData);
 
@@ -692,6 +704,7 @@ BREthereumLESDecodeStatus coderDecodeReceipts(uint8_t*rlpBytes, size_t rlpBytesS
         }
         array_add(actualReceipts, receiptData);
     }
+    rlpReleaseItem(coder, item);
     rlpCoderRelease(coder);
     *receipts = actualReceipts;
     return BRE_LES_CODER_SUCCESS;
@@ -722,6 +735,7 @@ static BRRlpData _encodeTxts(uint64_t msgId, uint64_t message_id_offset, uint64_
     
     BRRlpData retData = _encodePayloadId(coder, messageListData, message_id_offset + msgId);
 
+    rlpReleaseItem(coder, encoding);
     rlpCoderRelease(coder);
     
     return retData;
@@ -758,6 +772,7 @@ BRRlpData coderGetTxStatus(uint64_t message_id_offset, uint64_t reqId, BREthereu
     
     BRRlpData retData = _encodePayloadId(coder, messageListData, message_id_offset + BRE_LES_ID_GET_TX_STATUS);
 
+    rlpReleaseItem(coder, encoding);
     rlpDataRelease(messageListData);
     rlpCoderRelease(coder);
     
@@ -785,6 +800,7 @@ BREthereumLESDecodeStatus coderDecodeTxStatus(uint8_t*rlpBytes, size_t rlpBytesS
     for(int i = 0; i < statusesCount; ++i){
         retReplies[i] = transactionStatusRLPDecode(statuses[i], coder);
     }
+    rlpReleaseItem(coder, item);
     rlpCoderRelease(coder);
 
     *replies = retReplies;

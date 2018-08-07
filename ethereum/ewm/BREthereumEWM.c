@@ -68,6 +68,7 @@ createEWMEnsureBlocks (BRArrayOf(BREthereumPersistData) blocksPersistData,
         for (size_t index = 0; index < array_count(blocksPersistData); index++) {
             BRRlpItem item = rlpGetItem(coder, blocksPersistData[index].blob);
             BREthereumBlock block = blockRlpDecode(item, network, RLP_TYPE_ARCHIVE, coder);
+            rlpReleaseItem(coder, item);
             array_insert (blocks, index, block);
         }
     }
@@ -113,6 +114,7 @@ createEWMEnsureTransactions (BRArrayOf(BREthereumPersistData) transactionsPersis
 
         BRRlpItem item = rlpGetItem(coder, transactionsPersistData[index].blob);
         BREthereumTransaction transaction = transactionRlpDecode(item, network, RLP_TYPE_ARCHIVE, coder);
+        rlpReleaseItem(coder, item);
         array_insert (transactions, index, transaction);
     }
 
@@ -137,6 +139,7 @@ createEWMEnsureLogs(BRArrayOf(BREthereumPersistData) logsPersistData,
 
         BRRlpItem item = rlpGetItem(coder, logsPersistData[index].blob);
         BREthereumLog log = logRlpDecode(item, RLP_TYPE_ARCHIVE, coder);
+        rlpReleaseItem(coder, item);
         array_insert (logs, index, log);
     }
 
@@ -864,6 +867,7 @@ ewmHandleSaveBlocks (BREthereumEWM ewm,
             blockGetHash(blocks[index]),
             rlpGetData(coder, item)
         };
+        rlpReleaseItem(coder, item);
         array_add (blocksToSave, persistData);
     }
 
@@ -972,6 +976,7 @@ ethereumTransferFillRawData (BREthereumEWM ewm,
     *bytesCountPtr = data.bytesCount;
     *bytesPtr = data.bytes;
 
+    rlpReleaseItem(coder, item);
     rlpCoderRelease(coder);
 }
 

@@ -457,6 +457,7 @@ static void *_nodeThreadRunFunc(void *arg) {
                         {
                             node->callbacks.receivedMsgFunc(node->callbacks.info, node, packetType, mesageBody);
                         }
+                        rlpReleaseItem(rlpCoder, item);
                         rlpCoderRelease(rlpCoder);
                     }
                 }

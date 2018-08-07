@@ -312,9 +312,11 @@ int _decryptMessageHelloFrame(BREthereumLESHandshake ctx, uint8_t* frame, size_t
             eth_log(HANDSHAKE_LOG_TOPIC, "Remote Peer requested to disconnect:%s", p2pDisconnectToString(reason));
         }
         eth_log(HANDSHAKE_LOG_TOPIC, "invalid packet type. Expected: Hello Message 0x00, got:%" PRIu64, packetTypeMsg);
+        rlpReleaseItem(rlpCoder, item);
         rlpCoderRelease(rlpCoder);
         return BRE_HANDSHAKE_ERROR;
     }
+    rlpReleaseItem(rlpCoder, item);
     rlpCoderRelease(rlpCoder);
     
     rlpCoder  = rlpCoderCreate();

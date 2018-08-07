@@ -398,6 +398,7 @@ logCopy (BREthereumLog log) {
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item = logRlpEncode(log, RLP_TYPE_ARCHIVE, coder);
     BREthereumLog copy = logRlpDecode(item, RLP_TYPE_ARCHIVE, coder);
+    rlpReleaseItem(coder, item);
     rlpCoderRelease(coder);
     return copy;
 }

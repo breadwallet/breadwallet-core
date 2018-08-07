@@ -630,6 +630,7 @@ ewmClientHandleTransferEvent (BREthereumEWM ewm,
                                : logGetHash(log));
 
         BREthereumPersistData persistData = { hash,  rlpGetData(coder, item) };
+        rlpReleaseItem(coder, item);
         rlpCoderRelease(coder);
 
         if (NULL != transaction)

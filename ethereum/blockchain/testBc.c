@@ -106,9 +106,11 @@ runBlockTest0 (void) {
      */
     assert (0 == blockGetOmmersCount(block));
     assert (0 == blockGetTransactionsCount(block));
+    rlpReleaseItem(coder, blockItem);
 
     blockItem = blockRlpEncode(block, ethereumMainnet, RLP_TYPE_NETWORK, coder);
     rlpShowItem(coder, blockItem, "BlockTest");
+    rlpReleaseItem(coder, blockItem);
     rlpDataRelease(data);
     blockRelease(block);
     blockHeaderRelease (genesis);
@@ -222,6 +224,7 @@ runLogTests (void) {
     BRRlpCoder coder  = rlpCoderCreate();
     BRRlpItem logItem = rlpGetItem(coder, data);
     BREthereumLog log = logRlpDecode(logItem, RLP_TYPE_NETWORK, coder);
+    rlpReleaseItem(coder, logItem);
 
     BREthereumAddress address = logGetAddress(log);
     size_t addressBytesCount;
@@ -236,6 +239,7 @@ runLogTests (void) {
 
     logItem = logRlpEncode(log, RLP_TYPE_NETWORK, coder);
     rlpDataExtract(coder, logItem, &encodeData.bytes, &encodeData.bytesCount);
+    rlpReleaseItem(coder, logItem);
 
     assert (data.bytesCount == encodeData.bytesCount
             && 0 == memcmp (data.bytes, encodeData.bytes, encodeData.bytesCount));
@@ -257,6 +261,7 @@ runLogTests (void) {
     BRRlpItem item = logRlpEncode(log, RLP_TYPE_ARCHIVE, coder);
     BREthereumLog logArchived = logRlpDecode(item, RLP_TYPE_ARCHIVE, coder);
     BREthereumTransactionStatus statusArchived = logGetStatus(logArchived);
+    rlpReleaseItem(coder, item);
 
     assert (status.type == statusArchived.type);
 
@@ -315,7 +320,7 @@ runAccountStateTests (void) {
     assert (ETHEREUM_BOOLEAN_IS_TRUE(hashEqual(accountStateGetCodeHash(state),
                                                accountStateGetCodeHash(decodedState))));
 
-
+    rlpReleaseItem(coder, encoding);
     rlpCoderRelease(coder);
 }
 

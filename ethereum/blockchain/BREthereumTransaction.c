@@ -303,6 +303,7 @@ transactionExtractAddress(BREthereumTransaction transaction,
                                    &success);
     
     rlpDataRelease(data);
+    rlpReleaseItem(coder, item);
     return address;
 }
 
@@ -480,6 +481,7 @@ transactionGetRlpHexEncoded (BREthereumTransaction transaction,
         encodeHex(&result[strlen(prefix)], 2 * data.bytesCount + 1, data.bytes, data.bytesCount);
     }
 
+    rlpReleaseItem(coder, item);
     rlpCoderRelease(coder);
     return result;
 }

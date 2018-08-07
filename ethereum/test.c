@@ -284,6 +284,7 @@ void runTransactionTests1 (BREthereumAccount account, BREthereumNetwork network)
 
     walletUnhandleTransfer(wallet, transfer);
     transferRelease(transfer);
+    rlpReleaseItem(coder, item);
     rlpCoderRelease(coder);
 }
 
@@ -346,6 +347,7 @@ void runTransactionTests2 (BREthereumAccount account, BREthereumNetwork network)
 
     walletUnhandleTransfer(wallet, transfer);
     transferRelease(transfer);
+    rlpReleaseItem(coder, item);
     rlpCoderRelease(coder);
 }
 
@@ -419,6 +421,7 @@ void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network)
 
     walletUnhandleTransfer(wallet, transfer);
     transferRelease(transfer);
+    rlpReleaseItem(coder, item);
     rlpCoderRelease(coder);
 }
 
@@ -438,6 +441,7 @@ void runTransactionTests4 (BREthereumAccount account, BREthereumNetwork network)
     assert (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual(transactionGetHash(tx), hashCreate(TEST_TRANS4_HASH))));
     rlpDataRelease(data);
     transactionRelease(tx);
+    rlpReleaseItem(coder, item);
     rlpCoderRelease(coder);
 }
 
@@ -518,6 +522,7 @@ void testTransactionCodingEther () {
     printf ("        Raw Transaction: 0x%s\n", rawTx);
 
     BREthereumTransaction decodedTransaction = transactionRlpDecode(item, ethereumMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
+    rlpReleaseItem(coder, item);
 
     assert (transactionGetNonce(transaction) == transactionGetNonce(decodedTransaction));
     assert (ETHEREUM_COMPARISON_EQ == gasPriceCompare(transactionGetGasPrice(transaction),
@@ -550,6 +555,7 @@ void testTransactionCodingEther () {
     transactionSetStatus(transaction, status);
     item = transactionRlpEncode(transaction, ethereumMainnet, RLP_TYPE_ARCHIVE, coder);
     BREthereumTransaction archivedTransaction = transactionRlpDecode(item, ethereumMainnet, RLP_TYPE_ARCHIVE, coder);
+    rlpReleaseItem(coder, item);
     BREthereumTransactionStatus archivedStatus = transactionGetStatus(archivedTransaction);
     assert (ETHEREUM_BOOLEAN_IS_TRUE(transactionStatusEqual(status, archivedStatus)));
     assert (ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(transactionGetTargetAddress(transaction),
@@ -594,7 +600,8 @@ void testTransactionCodingToken () {
     printf ("        Raw Transaction: 0x%s\n", rawTx);
 
     BREthereumTransaction decodedTransaction = transactionRlpDecode(item, ethereumMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
-
+    rlpReleaseItem(coder, item);
+    
     assert (transactionGetNonce(transaction) == transactionGetNonce(decodedTransaction));
     assert (ETHEREUM_COMPARISON_EQ == gasPriceCompare(transactionGetGasPrice(transaction),
                                                       transactionGetGasPrice(decodedTransaction)));

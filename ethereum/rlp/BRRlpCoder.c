@@ -39,7 +39,9 @@ rlpDecodeItemIsEmptyString (BRRlpCoder coder, BRRlpItem item);
  */
 typedef enum {
     CODER_ITEM,
-    CODER_LIST
+    CODER_LIST,
+
+    CODER_NONE
 } BRRlpItemType;
 
 /**
@@ -66,9 +68,11 @@ typedef struct {
 static BRRlpContext contextEmpty = { NULL, CODER_ITEM, 0, NULL, 0, NULL };
 
 static void
-contextRelease (BRRlpContext context) {
-    if (NULL != context.bytes) free (context.bytes);
-    if (NULL != context.items) free (context.items);
+contextRelease (BRRlpContext *context) {
+    assert (CODER_NONE != context->type);
+    if (NULL != context->bytes) free (context->bytes);
+    if (NULL != context->items) free (context->items);
+    context->type = CODER_NONE;
 }
 
 static int
@@ -133,8 +137,8 @@ createContextItemAppend (BRRlpCoder coder, BRRlpContext context1, BRRlpContext c
     if (release) {
 //        assert (context2.bytes != context1.bytes || context2.bytes == NULL || context1.bytes == NULL);
 //        assert (context2.items != context1.items || context2.items == NULL || context1.items == NULL);
-        contextRelease(context1);
-        contextRelease(context2);
+        contextRelease(&context1);
+        contextRelease(&context2);
     }
     
     return context;
@@ -166,7 +170,7 @@ rlpCoderCreate (void) {
 static void
 coderRelease (BRRlpCoder coder) {
     for (int i = 0; i < coder->contextsCount; i++) {
-        contextRelease(coder->contexts[i]);
+        assert (CODER_NONE == coder->contexts[i].type);
     }
     free (coder->contexts);
     free (coder);
@@ -689,6 +693,8 @@ rlpDecodeList (BRRlpCoder coder, BRRlpItem item, size_t *itemsCount) {
         case CODER_LIST:
             *itemsCount = context.itemsCount;
             return context.items;
+        case CODER_NONE:
+            return NULL;
     }
 }
 
@@ -869,6 +875,15 @@ rlpShowItemInternal (BRRlpCoder coder, BRRlpContext context, const char *topic, 
 }
 
 extern void
+rlpReleaseItem (BRRlpCoder coder, BRRlpItem item) {
+    assert (coderIsValidItem(coder, item));
+    BRRlpContext *context = &coder->contexts[item.indexer];
+    for (size_t index = 0; index < context->itemsCount; index++)
+        rlpReleaseItem(coder, context->items[index]);
+    contextRelease(context);
+}
+
+extern void
 rlpShowItem (BRRlpCoder coder, BRRlpItem item, const char *topic) {
     rlpShowItemInternal(coder, coderLookupContext(coder, item), topic, 0);
 }
@@ -876,7 +891,9 @@ rlpShowItem (BRRlpCoder coder, BRRlpItem item, const char *topic) {
 extern void
 rlpShow (BRRlpData data, const char *topic) {
     BRRlpCoder coder = rlpCoderCreate();
-    rlpShowItem (coder, rlpGetItem(coder, data), topic);
+    BRRlpItem item = rlpGetItem(coder, data);
+    rlpShowItem (coder, item, topic);
+    rlpReleaseItem(coder, item);
     coderRelease(coder);
 }
 

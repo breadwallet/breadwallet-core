@@ -528,6 +528,7 @@ int nodeDiscoveryPing(BRKey* nodeKey, BREthereumLESPingNode message, BREthereumL
             }
         }
         //free data
+        rlpReleaseItem(coder, encoding);
         rlpDataRelease(data);
         rlpCoderRelease(coder);
     }
