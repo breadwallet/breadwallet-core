@@ -28,10 +28,10 @@
 
 #include <stdio.h>
 #include <inttypes.h>
-#include "../base/BREthereumBase.h"
 #include "BRInt.h"
 #include "BRArray.h"
 #include "../rlp/BRRlp.h"
+#include "../base/BREthereumBase.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -57,7 +57,7 @@ typedef enum {
     BRE_ID_SAME,                     //0x0a Identity is the same as this node (i.e. connected to itself);
     BRE_TIMEOUT,                     //0x0b Timeout on receiving a message (i.e. nothing received since sending last ping);
     BRE_UNKNOWN                      //0x10 Some other reason specific to a subprotocol.
-}BREthereumDisconnect;
+} BREthereumLESDisconnect;
 
 
 /**
@@ -68,51 +68,51 @@ typedef enum {
     BRE_P2P_DISCONNECT = 0x01, //Disconnect message id
     BRE_P2P_PING       = 0x02, //Ping message id
     BRE_P2P_PONG       = 0x03  //Ping message id
-}EthereumP2PMessages;
+} BREthereumLESP2PMessages;
 
 /**
  * The BREthereumCapabilitiesRecord is used for holding the capabilities for a node in the devp2p network.
  */
-typedef struct BREthereumCapabilitiesRecord {
+typedef struct BREthereumLESCapabilitiesRecord {
     char*cap;                 // cap Specifies a peer capability name as a length-3 ASCII string. Current supported capabilities are eth, shh.
     uint64_t capVersion;     // capVersion Specifies a peer capability version as a positive integer. Current supported versions are 34 for eth, and 1 for shh.
-}BREthereumCapabilities;
+} BREthereumLESCapabilities;
 
 /**
  * BREthereumP2PHelloRecord holds information that will be exchanged via a Hello message to a remote peer on the p2p network.
  */
-typedef struct BREthereumP2PHelloRecord {
+typedef struct BREthereumLESP2PHelloRecord {
       uint64_t version;                 // p2pVersion Specifies the implemented version of the P2P protocol. Now must be 1.
       char* clientId;                   // clientId Specifies the client software identity, as a human-readable string (e.g. "Ethereum(++)/1.0.0").
-      BREthereumCapabilities * caps;    // The capabilities for this hello message
+      BREthereumLESCapabilities * caps;    // The capabilities for this hello message
       uint64_t listenPort;              // specifies the port that the client is listening on (on the interface that the present connection traverses). If 0 it indicates the client is not listening.
       UInt512 nodeId;                   // nodeId is the Unique Identity of the node and specifies a 512-bit hash that identifies this node.
-}BREthereumP2PHello;
+} BREthereumLESP2PHello;
 
 ///
 /**
  * The following functions rlp encode the data for the p2p messages.
  */
-extern BRRlpData ethereumP2PHelloEncode(BREthereumP2PHello* message);
-extern BRRlpData ethereumP2PDisconnectEncode(BREthereumDisconnect reason);
-extern BRRlpData ethereumP2PPingEncode(void);
-extern BRRlpData ethereumP2PPongEncode(void);
+extern BRRlpData p2pHelloEncode(BREthereumLESP2PHello* message);
+extern BRRlpData p2pDisconnectEncode(BREthereumLESDisconnect reason);
+extern BRRlpData p2pPingEncode(void);
+extern BRRlpData p2pPongEncode(void);
 ///
 
 ///
 /**
  * The following functions rlp decode the data for the p2p messages.
  */
-extern BREthereumP2PHello ethereumP2PHelloDecode(BRRlpCoder coder, BRRlpData data);
-extern BREthereumDisconnect ethereumP2PDisconnectDecode(BRRlpCoder coder, BRRlpData data);
-extern BRRlpData ethereumP2PPingEncode(void);
-extern BRRlpData ethereumP2PPongEncode(void);
+extern BREthereumLESP2PHello p2pHelloDecode(BRRlpCoder coder, BRRlpData data);
+extern BREthereumLESDisconnect p2pDisconnectDecode(BRRlpCoder coder, BRRlpData data);
+extern BRRlpData p2pPingEncode(void);
+extern BRRlpData p2pPongEncode(void);
 ///
 
 /**
  * Converts BREthereumDisconnect reason into a string readable text.
  */ 
-extern char* ethereumP2PDisconnectToString(BREthereumDisconnect reason);
+extern char* p2pDisconnectToString(BREthereumLESDisconnect reason);
 
 
 #ifdef __cplusplus

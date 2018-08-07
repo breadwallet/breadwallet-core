@@ -26,10 +26,10 @@
 #ifndef BR_Ethereum_Endpoint_h
 #define BR_Ethereum_Endpoint_h
 
+#include <inttypes.h>
 #include "BRKey.h"
 #include "BRInt.h"
 #include "BREthereumLESBase.h"
-#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,7 +38,7 @@ extern "C" {
 /**
  * Declaration for a BREthereumEndpoint
  */
-typedef struct BREthereumEndpointContext* BREthereumEndpoint;
+typedef struct BREthereumLESEndpointContext* BREthereumLESEndpoint;
 
 
 /**
@@ -49,37 +49,37 @@ typedef struct BREthereumEndpointContext* BREthereumEndpoint;
  * @param tcpPort - the tcp port for the endpoint
  * @return BREthereumEndpoint
  */
-extern BREthereumEndpoint ethereumEndpointCreate(BREthereumBoolean isIPV4Address, char*address, uint16_t udpPort, uint16_t tcpPort);
+extern BREthereumLESEndpoint endpointCreate(BREthereumBoolean isIPV4Address, char*address, uint16_t udpPort, uint16_t tcpPort);
 
 /**
  * Releases the BREthereumEndpoint context
  * @param endponint - the endpoint context
  */
-extern void ethereumEndpointRelease(BREthereumEndpoint endpoint);
+extern void endpointRelease(BREthereumLESEndpoint endpoint);
 
 /**
  * Retrieve the tcpPort of an endpoint
  * @param endponint - the endpoint context
  */
-extern uint16_t ethereumEndpointGetTCP(BREthereumEndpoint endpoint);
+extern uint16_t endpointGetTCP(BREthereumLESEndpoint endpoint);
 
 /**
  * Retrieve the udport of an endpoint
  * @param endponint - the endpoint context
  */
-extern uint16_t ethereumEndpointGetUDP(BREthereumEndpoint endpoint);
+extern uint16_t endpointGetUDP(BREthereumLESEndpoint endpoint);
 
 /**
  * Retrieve the host address of an endpoint
  * @param endponint - the endpoint context
  */
-extern const char* ethereumEndpointGetHost(BREthereumEndpoint endpoint);
+extern const char* endpointGetHost(BREthereumLESEndpoint endpoint);
 
 /**
  * Determines whether the endpoint contains a IPV4 address or not
  * @param endponint - the endpoint context
  */
-extern BREthereumBoolean ethereumEndpointIsIPV4(BREthereumEndpoint endpoint);
+extern BREthereumBoolean endpointIsIPV4(BREthereumLESEndpoint endpoint);
 
 
 

@@ -39,9 +39,9 @@
 #include <stdio.h>
 #include "BRKey.h"
 #include "BRInt.h"
-#include "../rlp/BRRlp.h"
 #include "BRArray.h"
 #include "BRCrypto.h"
+#include "../rlp/BRRlp.h"
 #include "../util/BRUtil.h"
 #include "BREthereumNodeDiscovery.h"
 
@@ -54,7 +54,7 @@
 #define SIGNATURE_BYTES_SIZE 65
 #define PACKET_TYPE_BYTES_SIZE 1
 
-#define LOG_TOPIC "Node Discovery"
+#define LOG_TOPIC   ETH_LOG_TOPIC
 
 #define MAX_PAYLOAD_SIZE 1280
 #define CONNECTION_TIME 3  // receiver only accept packets created within the last 3 seconds (RLP Node Discovery Spec)
@@ -77,7 +77,7 @@ typedef enum {
     BRE_PACKET_TYPE_NEIGHBORS = 0x04
 }BREthereumDiscoveryPacketType;
 
-struct BREthereumEndpointContext {
+struct BREthereumLESEndpointContext {
     // BE encoded 4-byte or 16-byte address (size determines ipv4 vs ipv6)
     int addr_family;
     char hostname[MAX_HOST_NAME];
@@ -96,15 +96,15 @@ struct BREthereumEndpointContext {
     uint16_t tcpPort; // BE encoded 16-bit unsigned
 };
 
-struct BREthereumPingNodeContext
+struct BREthereumLESPingNodeContext
 {
-    BREthereumEndpoint from;
-    BREthereumEndpoint to;
+    BREthereumLESEndpoint from;
+    BREthereumLESEndpoint to;
 };
 
-struct BREthereumPongNodeContext
+struct BREthereumLESPongNodeContext
 {
-    BREthereumEndpoint to;
+    BREthereumLESEndpoint to;
     UInt256 echo;
     uint32_t timestamp;
 };
@@ -139,7 +139,7 @@ typedef struct
     return (address.u64[0] == 0 && address.u16[4] == 0 && address.u16[5] == 0xffff) ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
 }*/
 
-static int _openUDPSocket(BREthereumEndpoint endpoint, int domain,  double timeout, int* retSocket, int *error){
+static int _openUDPSocket(BREthereumLESEndpoint endpoint, int domain,  double timeout, int* retSocket, int *error){
 
     struct sockaddr_in addr;
     struct timeval tv;
@@ -280,7 +280,7 @@ static int _openSocket(BREthereumNodeDiscoveryContext* ctx, int domain, double t
     return 0;
 }
 */
-static BRRlpItem _encodeEndpoint(BRRlpCoder coder, BREthereumEndpoint endpoint) {
+static BRRlpItem _encodeEndpoint(BRRlpCoder coder, BREthereumLESEndpoint endpoint) {
 
     BRRlpItem items[3];
     if(endpoint->addr_family == AF_INET) {
@@ -294,7 +294,7 @@ static BRRlpItem _encodeEndpoint(BRRlpCoder coder, BREthereumEndpoint endpoint) 
     return rlpEncodeListItems(coder, items, 3);
 }
 
-static int _readPacket(int sock, BREthereumEndpoint endpoint, uint8_t* bytes, size_t* bytesCount) {
+static int _readPacket(int sock, BREthereumLESEndpoint endpoint, uint8_t* bytes, size_t* bytesCount) {
 
     ssize_t n = 0;
     int error = 0;
@@ -318,7 +318,7 @@ static int _readPacket(int sock, BREthereumEndpoint endpoint, uint8_t* bytes, si
     return error;
 
 }
-static int _sendPacket(int socket, BREthereumEndpoint endpoint, uint8_t packetType, uint8_t* packetData, size_t packetDataSize) {
+static int _sendPacket(int socket, BREthereumLESEndpoint endpoint, uint8_t packetType, uint8_t* packetData, size_t packetDataSize) {
 
     ssize_t n = 0;
     struct sockaddr* destination;
@@ -347,7 +347,7 @@ static int _sendPacket(int socket, BREthereumEndpoint endpoint, uint8_t packetTy
     return error;
 }
 
-static int _decodePong(uint8_t*packet, size_t packetSize, BREthereumPongNode pongNode, BRKey* remoteKey) {
+static int _decodePong(uint8_t*packet, size_t packetSize, BREthereumLESPongNode pongNode, BRKey* remoteKey) {
 
     uint8_t* hashPtr       = packet;
     uint8_t* signaturePtr  = &packet[HASH_BYTES_SIZE];
@@ -382,7 +382,7 @@ static int _decodePong(uint8_t*packet, size_t packetSize, BREthereumPongNode pon
     
     return 0; 
 }
-static int _generateAndSendPacket(int sock, BREthereumEndpoint to, BRKey* key, uint8_t packetType, uint8_t* packetData, size_t packetDataSize){
+static int _generateAndSendPacket(int sock, BREthereumLESEndpoint to, BRKey* key, uint8_t packetType, uint8_t* packetData, size_t packetDataSize){
 
     int ec;
     uint8_t* packet;
@@ -463,9 +463,9 @@ static int _generateAndSendPacket(int sock, BREthereumEndpoint to, BRKey* key, u
 //
 // Public Functions
 //
-BREthereumEndpoint ethereumNodeDiscoveryCreateEndpoint(int addr_family, char*address, uint16_t udpPort, uint16_t tcpPort){
+BREthereumLESEndpoint nodeDiscoveryCreateEndpoint(int addr_family, char*address, uint16_t udpPort, uint16_t tcpPort){
     
-    BREthereumEndpoint endpoint = (BREthereumEndpoint)calloc(1,sizeof(struct BREthereumEndpointContext));
+    BREthereumLESEndpoint endpoint = (BREthereumLESEndpoint)calloc(1,sizeof(struct BREthereumLESEndpointContext));
     assert(endpoint != NULL);
     assert(address != NULL);
     endpoint->addr_family = addr_family;
@@ -488,15 +488,15 @@ BREthereumEndpoint ethereumNodeDiscoveryCreateEndpoint(int addr_family, char*add
     }
     return endpoint;
 }
-BREthereumPingNode ethereumNodeDiscoveryCreatePing(BREthereumEndpoint to, BREthereumEndpoint from){
+BREthereumLESPingNode nodeDiscoveryCreatePing(BREthereumLESEndpoint to, BREthereumLESEndpoint from){
 
-    BREthereumPingNode node = (BREthereumPingNode)calloc(1,sizeof(struct BREthereumPingNodeContext));
+    BREthereumLESPingNode node = (BREthereumLESPingNode)calloc(1,sizeof(struct BREthereumLESPingNodeContext));
     node->from = from;
     node->to = to;
     return node;
 }
 
-int ethereumNodeDiscoveryPing(BRKey* nodeKey, BREthereumPingNode message, BREthereumPongNode reply, BRKey* remotePubKey) {
+int nodeDiscoveryPing(BRKey* nodeKey, BREthereumLESPingNode message, BREthereumLESPongNode reply, BRKey* remotePubKey) {
 
     int error = 0, sock;
 

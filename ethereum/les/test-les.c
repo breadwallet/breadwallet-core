@@ -38,19 +38,20 @@
 #include <arpa/inet.h>
 #include <assert.h>
 #include <regex.h>
-#include "test-les.h"
 #include "BRInt.h"
+#include "BRCrypto.h"
 #include "../base/BREthereumHash.h"
+#include "../blockchain/BREthereumNetwork.h"
 #include "BREthereumLES.h"
 #include "BREthereumNode.h"
 #include "BREthereumNodeManager.h"
-#include "../blockchain/BREthereumNetwork.h"
 #include "BREthereumNodeDiscovery.h"
 #include "BREthereumRandom.h"
-#include "BRCrypto.h"
-#include "BREthereum.h"
 #include "BREthereumHandshake.h"
+
+#include "BREthereum.h"
 #include "../ewm/BREthereumEWM.h"
+#include "test-les.h"
 
 // pthread locks/conditions and wait and signal functions
 static pthread_mutex_t _testLock;
@@ -99,6 +100,12 @@ void _announceCallback (BREthereumLESAnnounceContext context,
     eth_log("announcCallback_test", "%s", "received an announcement of a new chain");
 }
 
+void _statusCallback (BREthereumLESAnnounceContext context,
+                        BREthereumHash headHash,
+                        uint64_t headNumber) {
+
+    eth_log("announcCallback_test", "%s", "received status");
+}
 
 //
 //  Testing SendTx and SendTxV2 message
@@ -711,20 +718,17 @@ static void run_GetAccountState_Tests (BREthereumLES les){
 void runLEStests(void) {
     
     //Prepare values to be given to a LES context
-    BREthereumHash headHash;
-    char headHashStr[] = "d4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3";
-    assert(32 == (strlen(headHashStr)/2));
-    decodeHex(headHash.bytes, 32, headHashStr, strlen(headHashStr));
-    
+    char headHashStr[] = "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3";
+    BREthereumHash headHash = hashCreate(headHashStr);
+
     uint64_t headNumber = 0;
     UInt256 headTD = createUInt256 (0x400000000);
     
-    BREthereumHash genesisHash;
-    decodeHex(genesisHash.bytes, 32, headHashStr, strlen(headHashStr));
-    
+    BREthereumHash genesisHash = hashCreate(headHashStr);
+
     // Create an LES context
-    BREthereumLES les = lesCreate(ethereumMainnet, NULL, _announceCallback, headHash, headNumber, headTD, genesisHash);
-    
+    BREthereumLES les = lesCreate(ethereumMainnet, NULL, _announceCallback, _statusCallback, headHash, headNumber, headTD, genesisHash);
+    lesStart(les);
     // Sleep for a little bit to allow the context to connect to the network
     sleep(5);
     
@@ -742,7 +746,9 @@ void runLEStests(void) {
  //   run_GetProofsV2_Tests(les); //NOTE: The callback function won't be called.
       run_GetAccountState_Tests(les);
     //reallySendLESTransaction(les);
-    
+
+    lesStop(les);
+    lesRelease(les);
     printf ("Done\n");
 }
 

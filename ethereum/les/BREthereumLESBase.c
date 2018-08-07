@@ -31,14 +31,14 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include "BRKey.h"
-#include "BREthereumLESBase.h"
-#include "../base/BREthereumBase.h"
 #include "BRCrypto.h"
+#include "../base/BREthereumBase.h"
+#include "BREthereumLESBase.h"
 
 //
 // TODO: Don't really need this function. We can just XOR on union data of the Big Ints
 //
-void ethereumXORBytes(uint8_t * op1, uint8_t* op2, uint8_t* result, size_t len) {
+void bytesXOR(uint8_t * op1, uint8_t* op2, uint8_t* result, size_t len) {
     for (unsigned int i = 0; i < len;  ++i) {
         result[i] = op1[i] ^ op2[i];
     }

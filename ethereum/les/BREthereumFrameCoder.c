@@ -24,15 +24,18 @@
 //  THE SOFTWARE.
 
 #include <stdlib.h>
-#include "BREthereumNode.h"
 #include "BRCrypto.h"
 #include "BRKey.h"
-#include "BREthereumFrameCoder.h"
-#include "BREthereumLESBase.h"
-#include "../rlp/BRRlpCoder.h"
 #include "BRArray.h"
 #include "BRBIP38Key.h"
+
+#include "../rlp/BRRlpCoder.h"
 #include "../util/BRKeccak.h"
+
+#include "BREthereumNode.h"
+#include "BREthereumFrameCoder.h"
+#include "BREthereumLESBase.h"
+
 #define UINT256_SIZE 32
 
 #define HEADER_LEN 16
@@ -43,7 +46,7 @@
  * More details about the fields in the frame coder context are described here:
     https://github.com/ethereum/devp2p/blob/master/rlpx.md#encrypted-handshake
  */
-struct BREthereumFrameCoderContext {
+struct BREthereumLESFrameCoderContext {
 
     //Encryption for Mac
     UInt256 macSecretKey;
@@ -217,15 +220,15 @@ static void _BRAES256ECBDecrypt(const void *key32, void *buf16)
 //
 // Public Functions
 //
-BREthereumFrameCoder ethereumFrameCoderCreate(void) {
-    BREthereumFrameCoder coder = (BREthereumFrameCoder) calloc (1, sizeof(struct BREthereumFrameCoderContext));
+BREthereumLESFrameCoder frameCoderCreate(void) {
+    BREthereumLESFrameCoder coder = (BREthereumLESFrameCoder) calloc (1, sizeof(struct BREthereumLESFrameCoderContext));
     coder->aesDecryptKey = NULL;
     coder->aesEncryptKey = NULL;
     coder->egressMac = NULL;
     coder->ingressMac = NULL;
     return coder;
 }
-BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fcoder,
+BREthereumBoolean frameCoderInit(BREthereumLESFrameCoder fcoder,
                                          BRKey* remoteEphemeral,
                                          UInt256* remoteNonce,
                                          BRKey* localEphemeral,
@@ -296,10 +299,10 @@ BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fcoder,
     // # destroy remote-nonce
     
     UInt256 xORMacNonceEgress;
-    ethereumXORBytes(fcoder->macSecretKey.u8, remoteNonce->u8, xORMacNonceEgress.u8, 32);
+    bytesXOR(fcoder->macSecretKey.u8, remoteNonce->u8, xORMacNonceEgress.u8, 32);
     
     UInt256 xORMacNonceIngress;
-    ethereumXORBytes(fcoder->macSecretKey.u8, localNonce->u8, xORMacNonceIngress.u8, 32);
+    bytesXOR(fcoder->macSecretKey.u8, localNonce->u8, xORMacNonceIngress.u8, 32);
 
     
     uint8_t* egressCipher, *ingressCipher;
@@ -345,7 +348,7 @@ BREthereumBoolean ethereumFrameCoderInit(BREthereumFrameCoder fcoder,
     
     return ETHEREUM_BOOLEAN_TRUE; 
 }
-void ethereumFrameCoderRelease(BREthereumFrameCoder fcoder) {
+void frameCoderRelease(BREthereumLESFrameCoder fcoder) {
 
     if(fcoder->aesDecryptKey != NULL){
         array_free(fcoder->aesDecryptKey);
@@ -361,7 +364,7 @@ void ethereumFrameCoderRelease(BREthereumFrameCoder fcoder) {
     }
     free(fcoder);
 }
-void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, size_t payloadSize, uint8_t** rlpBytes, size_t * rlpBytesSize) {
+void frameCoderEncrypt(BREthereumLESFrameCoder fCoder, uint8_t* payload, size_t payloadSize, uint8_t** rlpBytes, size_t * rlpBytesSize) {
 
     uint8_t headerPlain[HEADER_LEN] = {(uint8_t)((payloadSize >> 16) & 0xff), (uint8_t)((payloadSize >> 8) & 0xff), (uint8_t)(payloadSize & 0xff), 0xc2, 0x80, 0x80, 0};
     
@@ -378,7 +381,7 @@ void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, si
    _BRAES256ECBEncrypt(fCoder->macSecretKey.u8, macSecret);
    
     uint8_t xORMacCipher[16];
-    ethereumXORBytes(macSecret, headerCipher, xORMacCipher, 16);
+    bytesXOR(macSecret, headerCipher, xORMacCipher, 16);
 
     keccak_update(fCoder->egressMac, xORMacCipher, 16);
     
@@ -419,7 +422,7 @@ void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, si
     memcpy(macSecret, egressDigest, 16);
     
     _BRAES256ECBEncrypt(fCoder->macSecretKey.u8, macSecret);
-    ethereumXORBytes(macSecret, fmac_seed, xORMacCipher, 16);
+    bytesXOR(macSecret, fmac_seed, xORMacCipher, 16);
 
     keccak_update(fCoder->egressMac, xORMacCipher, 16);
     
@@ -431,7 +434,7 @@ void ethereumFrameCoderEncrypt(BREthereumFrameCoder fCoder, uint8_t* payload, si
     *rlpBytesSize = oBytesSize;
     
 }
-BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fCoder, uint8_t * oBytes, size_t outSize) {
+BREthereumBoolean frameCoderDecryptHeader(BREthereumLESFrameCoder fCoder, uint8_t * oBytes, size_t outSize) {
 
     if(outSize != HEADER_LEN + MAC_LEN) {
         return ETHEREUM_BOOLEAN_FALSE;
@@ -449,7 +452,7 @@ BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fCoder, u
     _BRAES256ECBEncrypt(fCoder->macSecretKey.u8, mac_secret);
 
     uint8_t xORMacCipher[HEADER_LEN];
-    ethereumXORBytes(mac_secret, headerCipher, xORMacCipher, HEADER_LEN);
+    bytesXOR(mac_secret, headerCipher, xORMacCipher, HEADER_LEN);
     
     keccak_update(fCoder->ingressMac, xORMacCipher, HEADER_LEN);
     
@@ -469,7 +472,7 @@ BREthereumBoolean ethereumFrameCoderDecryptHeader(BREthereumFrameCoder fCoder, u
     
 }
 
-BREthereumBoolean ethereumFrameCoderDecryptFrame(BREthereumFrameCoder fCoder, uint8_t * oBytes, size_t outSize) {
+BREthereumBoolean frameCoderDecryptFrame(BREthereumLESFrameCoder fCoder, uint8_t * oBytes, size_t outSize) {
 
     uint8_t* frameCipherText = oBytes;
     uint8_t* frameMac = &oBytes[outSize - MAC_LEN];
@@ -487,7 +490,7 @@ BREthereumBoolean ethereumFrameCoderDecryptFrame(BREthereumFrameCoder fCoder, ui
    
     uint8_t xORMacCipher[16];
     _BRAES256ECBEncrypt(fCoder->macSecretKey.u8, fmacSeedEncrypt);
-    ethereumXORBytes(fmacSeedEncrypt,fmacSeed, xORMacCipher, 16);
+    bytesXOR(fmacSeedEncrypt,fmacSeed, xORMacCipher, 16);
     
     keccak_update(fCoder->ingressMac, xORMacCipher, 16);
     
@@ -516,7 +519,7 @@ BREthereumBoolean ethereumFrameCoderDecryptFrame(BREthereumFrameCoder fCoder, ui
 #define INITIAL_EGRESS_MAC  "09771e93b1a6109e97074cbe2d2b0cf3d3878efafe68f53c41bb60c0ec49097e"
 #define INITIAL_INGRESS_MAC "75823d96e23136c89666ee025fb21a432be906512b3dd4a3049e898adb433847"
 
-extern int testFrameCoderInitiator(BREthereumFrameCoder fCoder) {
+extern int testFrameCoderInitiator(BREthereumLESFrameCoder fCoder) {
 
     //TODO: THIS TEST IS BROKEN NEEDS TO BE FIXED
 
@@ -554,7 +557,7 @@ extern int testFrameCoderInitiator(BREthereumFrameCoder fCoder) {
 
     return 0;
 }
-extern int testFrameCoderReceiver(BREthereumFrameCoder fCoder) {
+extern int testFrameCoderReceiver(BREthereumLESFrameCoder fCoder) {
 
     //Check to ensure AES_SECRET is valid
     uint8_t aesSecret[32];

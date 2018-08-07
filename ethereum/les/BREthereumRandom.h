@@ -26,10 +26,10 @@
 #ifndef BR_Ethereum_Random_h
 #define BR_Ethereum_Random_h
 
+#include <inttypes.h>
 #include "BRKey.h"
 #include "BRInt.h"
 #include "../base/BREthereumBase.h"
-#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,7 +37,7 @@ extern "C" {
 
 
 
-typedef struct BREthereumRandomRecord* BREthereumRandomContext;
+typedef struct BREthereumLESRandomRecord* BREthereumLESRandomContext;
 
 /**
  * Creates a random generator context
@@ -46,13 +46,13 @@ typedef struct BREthereumRandomRecord* BREthereumRandomContext;
  * @return BREthereumRandomContext,
  * @post - the returned BREthereumRandomContext needs to be released using ethereumRandomRelease
  */
-extern BREthereumRandomContext ethereumRandomCreate(const void *seed, size_t seedLen);
+extern BREthereumLESRandomContext randomCreate(const void *seed, size_t seedLen);
 
 /**
  * Frees the memeory associated with a random context
  * @param ctx - the random generator context
  **/
-extern void ethereumRandomRelease(BREthereumRandomContext ctx);
+extern void randomRelease(BREthereumLESRandomContext ctx);
 
 /**
  * Generates random data based on the dataSize parameter
@@ -60,21 +60,21 @@ extern void ethereumRandomRelease(BREthereumRandomContext ctx);
  * @param data - the destination location to place the random data
  * @param dataSize - determines the amount of random data to place in the data parameter
  **/
-extern void ethereumRandomGenData(BREthereumRandomContext ctx, uint8_t* data, size_t dataSize);
+extern void randomGenData(BREthereumLESRandomContext ctx, uint8_t* data, size_t dataSize);
 
 /**
  * Generates a random private key
  * @param ctx - the random generator context
  * @param key - a reference to key that will contain the random private data
  **/
-extern void ethereumRandomGenPriKey(BREthereumRandomContext ctx, BRKey* key);
+extern void randomGenPriKey(BREthereumLESRandomContext ctx, BRKey* key);
 
 /**
  * Generates a random Int2256
  * @param ctx - the random generator context
 * @param out - a reference to UInt256 that will contain the random data 
  **/
-extern void ethereumRandomGenUInt256(BREthereumRandomContext ctx, UInt256* out);
+extern void randomGenUInt256(BREthereumLESRandomContext ctx, UInt256* out);
 
 
 #ifdef __cplusplus

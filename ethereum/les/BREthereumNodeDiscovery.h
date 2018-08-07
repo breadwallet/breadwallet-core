@@ -26,11 +26,11 @@
 #ifndef BR_Ethereum_Node_Discovery_h
 #define BR_Ethereum_Node_Discovery_h
 
+#include <inttypes.h>
 #include "BRKey.h"
 #include "BRInt.h"
 #include "BREthereumLESBase.h"
 #include "BREthereumEndpoint.h"
-#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -51,29 +51,29 @@ better with the current state of LES module. The following can be used as refere
 /**
  * Declaration for a BREthereumPingNode
  */
-typedef struct BREthereumPingNodeContext* BREthereumPingNode;
+typedef struct BREthereumLESPingNodeContext* BREthereumLESPingNode;
 
 
 /**
  * Declaration for a BREthereumPongNode
  */
-typedef struct BREthereumPongNodeContext* BREthereumPongNode;
+typedef struct BREthereumLESPongNodeContext* BREthereumLESPongNode;
 
 
 /**
  * Creates a Ping Node
  */
-extern BREthereumPingNode ethereumNodeDiscoveryCreatePing(BREthereumEndpoint to, BREthereumEndpoint from);
+extern BREthereumLESPingNode nodeDiscoveryCreatePing(BREthereumLESEndpoint to, BREthereumLESEndpoint from);
 
 /**
  * Create a Endpoint Node
  */
-extern BREthereumEndpoint ethereumNodeDiscoveryCreateEndpoint(int addr_family, char*address, uint16_t udpPort, uint16_t tcpPort);
+extern BREthereumLESEndpoint nodeDiscoveryCreateEndpoint(int addr_family, char*address, uint16_t udpPort, uint16_t tcpPort);
 
 /**
  * Send a Ping Packet
  */
-extern int ethereumNodeDiscoveryPing(BRKey* nodeKey, BREthereumPingNode message, BREthereumPongNode node, BRKey* remotePubKey);
+extern int nodeDiscoveryPing(BRKey* nodeKey, BREthereumLESPingNode message, BREthereumLESPongNode node, BRKey* remotePubKey);
 
 #ifdef __cplusplus
 }

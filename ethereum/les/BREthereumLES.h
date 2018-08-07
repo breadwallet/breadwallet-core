@@ -27,10 +27,10 @@
 #define BR_Ethereum_LES_h
 
 #include <inttypes.h>
-#include "../base/BREthereumBase.h"
-#include "../blockchain/BREthereumBlockChain.h"
 #include "BRKey.h"
 #include "BRArray.h"
+#include "../base/BREthereumBase.h"
+#include "../blockchain/BREthereumBlockChain.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -55,7 +55,7 @@ typedef enum {
     LES_SUCCESS  = 0x00,            // No error was generated after submtting a message using LES
     LES_NETWORK_UNREACHABLE = 0x01, // Error is thrown when the LES context can not connect to the ethereum network
     LES_UNKNOWN_ERROR = 0x02        // Error is thrown but it's unknown what caused it.
-}BREthereumLESStatus;
+} BREthereumLESStatus;
 
 
 /*!
@@ -79,6 +79,18 @@ typedef void
                                   UInt256 headTotalDifficulty,
                                   uint64_t reorgDepth);
 
+
+/**
+ * The callback to use for Node/Peer status message - announces the headHash and headNumber for
+ * the peer.
+ *
+ * TODO: Might need a `peer ID` or let the NodeManager evaluate different peers.
+ *
+ */
+typedef void
+(*BREthereumLESStatusCallback) (BREthereumLESAnnounceContext context,
+                                BREthereumHash headHash,
+                                uint64_t headNumber);
 
 /*!
  * @function lesCreate
@@ -105,6 +117,7 @@ extern BREthereumLES
 lesCreate (BREthereumNetwork network,
            BREthereumLESAnnounceContext announceContext,
            BREthereumLESAnnounceCallback announceCallback,
+           BREthereumLESStatusCallback statusCallback,
            BREthereumHash headHash,
            uint64_t headNumber,
            UInt256 headTotalDifficulty,
@@ -119,6 +132,11 @@ lesCreate (BREthereumNetwork network,
 extern void
 lesRelease(BREthereumLES les);
 
+extern void
+lesStart (BREthereumLES les);
+
+extern void
+lesStop (BREthereumLES les);
 
 ///////
 //

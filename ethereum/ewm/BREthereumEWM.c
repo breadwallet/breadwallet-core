@@ -79,10 +79,10 @@ createEWMEnsureBlocks (BRArrayOf(BREthereumPersistData) blocksPersistData,
     return blocks;
 }
 
-static BRArrayOf(BREthereumPeerConfig)
+static BRArrayOf(BREthereumLESPeerConfig)
 createEWMEnsurePeers (BRArrayOf(BREthereumPersistData) peersPersistData,
                       BRRlpCoder coder) {
-    BRArrayOf(BREthereumPeerConfig) peers;
+    BRArrayOf(BREthereumLESPeerConfig) peers;
 
     size_t peersCount = (NULL == peersPersistData ? 0 : array_count(peersPersistData));
     array_new(peers, peersCount);
@@ -877,7 +877,7 @@ ewmHandleSaveBlocks (BREthereumEWM ewm,
 
 extern void
 ewmHandleSavePeers (BREthereumEWM ewm,
-                    BRArrayOf(BREthereumPeerConfig) peers) {
+                    BRArrayOf(BREthereumLESPeerConfig) peers) {
     size_t peersCount = array_count(peers);
 
     // Serialize BREthereumPeerConfig

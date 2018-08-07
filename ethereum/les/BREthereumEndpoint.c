@@ -37,21 +37,21 @@
 #include <arpa/inet.h>
 #include <stdio.h>
 #include "../util/BRUtil.h"
+#include "BREthereumLESBase.h"
 #include "BREthereumEndpoint.h"
 
-#define ETH_LOG_TOPIC "Endpoint"
 #define MAX_HOST_NAME 1024
 
-struct BREthereumEndpointContext {
+struct BREthereumLESEndpointContext {
     int addr_family;  //  BE encoded 4-byte or 16-byte address (size determines ipv4 vs ipv6)
     char hostname[MAX_HOST_NAME];
     BREthereumBoolean isIPV4Address; // Determines whether the address is a IPV4 (True) or IPV6 (False)
     uint16_t udpPort; // BE encoded 16-bit unsigned
     uint16_t tcpPort; // BE encoded 16-bit unsigned
 };
-extern BREthereumEndpoint ethereumEndpointCreate(BREthereumBoolean isIPV4Address, char*address, uint16_t udpPort, uint16_t tcpPort) {
+extern BREthereumLESEndpoint endpointCreate(BREthereumBoolean isIPV4Address, char*address, uint16_t udpPort, uint16_t tcpPort) {
 
-    BREthereumEndpoint endpoint = (BREthereumEndpoint)calloc(1,sizeof(struct BREthereumEndpointContext));
+    BREthereumLESEndpoint endpoint = (BREthereumLESEndpoint)calloc(1,sizeof(struct BREthereumLESEndpointContext));
     assert(endpoint != NULL);
     assert(address != NULL);
     endpoint->tcpPort = tcpPort;
@@ -60,18 +60,18 @@ extern BREthereumEndpoint ethereumEndpointCreate(BREthereumBoolean isIPV4Address
     endpoint->isIPV4Address = isIPV4Address;
     return endpoint;
 }
-extern void ethereumEndpointRelease(BREthereumEndpoint endpoint) {
+extern void endpointRelease(BREthereumLESEndpoint endpoint) {
     free(endpoint);
 }
-extern uint16_t ethereumEndpointGetTCP(BREthereumEndpoint endpoint) {
+extern uint16_t endpointGetTCP(BREthereumLESEndpoint endpoint) {
     return endpoint->tcpPort;
 }
-extern uint16_t ethereumEndpointGetUDP(BREthereumEndpoint endpoint) {
+extern uint16_t endpointGetUDP(BREthereumLESEndpoint endpoint) {
     return endpoint->udpPort;
 }
-extern const char* ethereumEndpointGetHost(BREthereumEndpoint endpoint) {
+extern const char* endpointGetHost(BREthereumLESEndpoint endpoint) {
     return endpoint->hostname;
 }
-extern BREthereumBoolean ethereumEndpointIsIPV4(BREthereumEndpoint endpoint) {
+extern BREthereumBoolean endpointIsIPV4(BREthereumLESEndpoint endpoint) {
     return endpoint->isIPV4Address;
 }

@@ -108,7 +108,7 @@ typedef void
  */
 typedef void
 (*BREthereumBCSCallbackSavePeers) (BREthereumBCSCallbackContext context,
-                                   BRArrayOf(BREthereumPeerConfig) peers);
+                                   BRArrayOf(BREthereumLESPeerConfig) peers);
 
 /**
  * Sync
@@ -151,7 +151,7 @@ extern BREthereumBCS
 bcsCreate (BREthereumNetwork network,
            BREthereumAddress address,
            BREthereumBCSListener listener,
-           BRArrayOf(BREthereumPeerConfig) peers,
+           BRArrayOf(BREthereumLESPeerConfig) peers,
            BRArrayOf(BREthereumBlock) blocks,
            BRArrayOf(BREthereumTransaction) transactions,
            BRArrayOf(BREthereumLog) logs
