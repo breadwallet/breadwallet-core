@@ -422,7 +422,7 @@ lesStop (BREthereumLES les) {
 }
 
 extern void lesRelease(BREthereumLES les) {
-    nodeManagerDisconnect(les->nodeManager); 
+    lesStop (les);
     nodeManagerRelease(les->nodeManager);
     free(les);
 }

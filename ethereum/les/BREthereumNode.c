@@ -564,6 +564,9 @@ void nodeDisconnect(BREthereumLESNode node, BREthereumLESDisconnect reason) {
     nodeWriteToPeer(node, frame, frameSize, "P2P Local Disconnect");
     node->shouldDisconnect = ETHEREUM_BOOLEAN_TRUE;
     node->disconnectReason = reason;
+
+    // TODO: Revisit. We'll explicity close the socket.  Otherwise we sit in read(), it seems.
+    _disconnect(node);
     rlpDataRelease(data);
     free(frame);
 }

@@ -11,8 +11,8 @@ extern void runUtilTests (void);
 // RLP
 extern void runRlpTests (void);
 
-    // Event
-    extern void runEventTests (void);
+// Event
+extern void runEventTests (void);
 
 // Block Chain
 extern void runBcTests (void);

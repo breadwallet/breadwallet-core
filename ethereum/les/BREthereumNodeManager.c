@@ -135,24 +135,24 @@ BREthereumBoolean _findPeers(BREthereumLESNodeManager manager) {
         uint8_t pubKey[64];
 
 #if 0 // 65...
-        config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "65.79.142.182", 30303, 30303);
+        config.endpoint = endpointCreate(ETHEREUM_BOOLEAN_TRUE, "65.79.142.182", 30303, 30303);
         decodeHex (pubKey, 64, "c7f12332d767c12888da45044581d30de5a1bf383f68ef7b79c83eefd99c82adf2ebe3f37e472cbcdf839d52eddc34f270a7a3444ab6c1dd127bba1687140d93", 128);
 #elif 1 // 104...
         config.endpoint = endpointCreate(ETHEREUM_BOOLEAN_TRUE, "104.197.99.24", DEFAULT_TCPPORT, DEFAULT_UDPPORT);
         decodeHex (pubKey, 64, "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851", 128);
 #elif 0 // TestNet: 35...198
-        config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "35.226.161.198", 30303, 30303); //TestNet
+        config.endpoint = endpointCreate(ETHEREUM_BOOLEAN_TRUE, "35.226.161.198", 30303, 30303); //TestNet
         decodeHex (pubKey, 64, "9683a29b13c7190cfd63cccba4bcb62d7b710da0b1c4bff2c4b8bcf129127d7b3f591163a58449d7f66200db3c208d06b9e9a8bea69be4a72e1728a83d703063", 128);
 #elif 0   // 35...
-        config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "35.184.255.33", 30303, 30303);
+        config.endpoint = endpointCreate(ETHEREUM_BOOLEAN_TRUE, "35.184.255.33", 30303, 30303);
         decodeHex (pubKey, 64, "3d0bce4775635c65733b7534f1bccd48720632f5d66a44030c1d13e2e5883262d9d22cdb8365c03137e8d5fbbf5355772acf35b08d6f9b5ad69bb24ad52a20cc", 128);
 #elif 0  // public
         // admin.addPeer("enode://3e9301c797f3863d7d0f29eec9a416f13956bd3a14eec7e0cf5eb56942841526269209edf6f57cd1315bef60c4ebbe3476bc5457bed4e479cac844c8c9e375d3@109.232.77.21:30303");
-        config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "109.232.77.21", 30303, 30303);
+        config.endpoint = endpointCreate(ETHEREUM_BOOLEAN_TRUE, "109.232.77.21", 30303, 30303);
         decodeHex (pubKey, 64, "3e9301c797f3863d7d0f29eec9a416f13956bd3a14eec7e0cf5eb56942841526269209edf6f57cd1315bef60c4ebbe3476bc5457bed4e479cac844c8c9e375d3", 128);
 #elif 0  // public
         //admin.addPeer("enode://e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851@35.226.238.26:30303");
-        config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "35.226.238.26", 30303, 30303);
+        config.endpoint = endpointCreate(ETHEREUM_BOOLEAN_TRUE, "35.226.238.26", 30303, 30303);
         decodeHex (pubKey, 64, "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851", 128);
 #elif 0 // parity - maybe these should work, but don't
         // enode://81863f47e9bd652585d3f78b4b2ee07b93dad603fd9bc3c293e1244250725998adc88da0cef48f1de89b15ab92b15db8f43dc2b6fb8fbd86a6f217a1dd886701@193.70.55.37:30303
@@ -161,11 +161,11 @@ BREthereumBoolean _findPeers(BREthereumLESNodeManager manager) {
         // enode://029178d6d6f9f8026fc0bc17d5d1401aac76ec9d86633bba2320b5eed7b312980c0a210b74b20c4f9a8b0b2bf884b111fa9ea5c5f916bb9bbc0e0c8640a0f56c@216.158.85.185:30303
         // enode://fdd1b9bb613cfbc200bba17ce199a9490edc752a833f88d4134bf52bb0d858aa5524cb3ec9366c7a4ef4637754b8b15b5dc913e4ed9fdb6022f7512d7b63f181@212.47.247.103:30303
 
-        config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "193.70.55.37", 30303, 30303);
+        config.endpoint = endpointCreate(ETHEREUM_BOOLEAN_TRUE, "193.70.55.37", 30303, 30303);
         decodeHex (pubKey, 64, "81863f47e9bd652585d3f78b4b2ee07b93dad603fd9bc3c293e1244250725998adc88da0cef48f1de89b15ab92b15db8f43dc2b6fb8fbd86a6f217a1dd886701", 128);
 #elif 0 // Ed's Local Parity
         // enode://8ebe6a85d46737451c8bd9423f37dcb117af7316bbce1643856feeaf9f81a792ff09029e9ab1796b193eb477f938af3465f911574c57161326b71aaf0221f341@192.168.1.105:30303
-        config.endpoint = ethereumEndpointCreate(ETHEREUM_BOOLEAN_TRUE, "192.168.1.105", 30303, 30303);
+        config.endpoint = endpointCreate(ETHEREUM_BOOLEAN_TRUE, "192.168.1.105", 30303, 30303);
         decodeHex (pubKey, 64, "8ebe6a85d46737451c8bd9423f37dcb117af7316bbce1643856feeaf9f81a792ff09029e9ab1796b193eb477f938af3465f911574c57161326b71aaf0221f341", 128);
 #endif
 

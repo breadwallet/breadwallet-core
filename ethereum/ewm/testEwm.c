@@ -458,7 +458,7 @@ runEWM_CONNECT_test (const char *paperKey) {
             && AMOUNT_ETHER == amountGetType(balance)
             && ETHEREUM_BOOLEAN_TRUE == etherIsEQ (expectedBalance, amountGetEther(balance)));
 
-    int count = ethereumWalletGetTransactionCount(ewm, wallet);
+    int count = ethereumWalletGetTransferCount(ewm, wallet);
     assert (2 == count);
 
     //    ewmUpdateTransactions(ewm);
@@ -711,8 +711,8 @@ runSyncTest (unsigned int durationInSeconds,
 extern void
 runEWMTests (void) {
     printf ("==== EWM\n");
-    //    prepareTransaction(NODE_PAPER_KEY, NODE_RECV_ADDR, TEST_TRANS2_GAS_PRICE_VALUE, GAS_LIMIT_DEFAULT, NODE_ETHER_AMOUNT);
-    //    runEWM_CONNECT_test(NODE_PAPER_KEY);
+    // prepareTransaction(NODE_PAPER_KEY, NODE_RECV_ADDR, TEST_TRANS2_GAS_PRICE_VALUE, GAS_LIMIT_DEFAULT, NODE_ETHER_AMOUNT);
+    // runEWM_CONNECT_test(NODE_PAPER_KEY);
     runEWM_TOKEN_test (NODE_PAPER_KEY);
     runEWM_PUBLIC_KEY_test (ethereumMainnet, NODE_PAPER_KEY);
     runEWM_PUBLIC_KEY_test (ethereumTestnet, "ocean robust idle system close inject bronze mutual occur scale blast year");
