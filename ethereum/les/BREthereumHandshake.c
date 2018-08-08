@@ -448,6 +448,8 @@ BREthereumLESHandshakeStatus handshakeTransition(BREthereumLESHandshake handshak
         if(ec) {
             return BRE_HANDSHAKE_ERROR;
         }
+        p2pHelloShow(&remoteHello);
+        
         handshake->nextState = BRE_HANDSHAKE_FINISHED;
     }
     return handshake->nextState;

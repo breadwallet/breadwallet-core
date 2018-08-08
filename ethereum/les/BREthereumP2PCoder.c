@@ -30,6 +30,17 @@
 //
 // Public Functions
 //
+extern void p2pHelloShow (BREthereumLESP2PHello *hello) {
+    eth_log (ETH_LOG_TOPIC, "Hello%s", "");
+    eth_log (ETH_LOG_TOPIC, "    Version     : %llu", hello->version);
+    eth_log (ETH_LOG_TOPIC, "    ClientId    : %s",   hello->clientId);
+    eth_log (ETH_LOG_TOPIC, "    ListenPort  : %llu", hello->listenPort);
+    eth_log (ETH_LOG_TOPIC, "    NodeId      : { %llu, ...}", hello->nodeId.u64[0]);
+    eth_log (ETH_LOG_TOPIC, "    Capabilities:%s", "");
+    for (size_t index = 0; index < array_count(hello->caps); index++)
+        eth_log (ETH_LOG_TOPIC, "        %s = %llu", hello->caps[index].cap, hello->caps[index].capVersion);
+}
+
 extern BRRlpData p2pHelloEncode(BREthereumLESP2PHello* message) {
 
     eth_log(ETH_LOG_TOPIC, "Code [%13s]", "Hello");

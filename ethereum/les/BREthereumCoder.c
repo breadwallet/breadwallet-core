@@ -375,6 +375,27 @@ lesMessageGetName (BREthereumLESMessageId id) {
     }
 }
 
+extern void
+statusMessageShow (BREthereumLESStatusMessage *message) {
+    eth_log (ETH_LOG_TOPIC, "StatusMessage:%s", "");
+    eth_log (ETH_LOG_TOPIC, "    ProtocolVersion: %llu", message->protocolVersion);
+    eth_log (ETH_LOG_TOPIC, "    NetworkId      : %llu", message->chainId);
+    eth_log (ETH_LOG_TOPIC, "    HeadNum        : %llu", message->headNum);
+    eth_log (ETH_LOG_TOPIC, "    ...            : %s", "");
+    eth_log (ETH_LOG_TOPIC, "    TxRelay        : %s", ETHEREUM_BOOLEAN_IS_TRUE(message->txRelay) ? "Yes" : "No");
+
+    size_t count = *(message->flowControlMRCCount);
+    eth_log (ETH_LOG_TOPIC, "    FlowControl/MCC%s", "");
+    for (size_t index = 0; index < count; index++) {
+        const char *label = lesMessageGetName ((BREthereumLESMessageId) message->flowControlMRC[index].msgCode);
+        if (NULL != label) {
+            eth_log (ETH_LOG_TOPIC, "      === %d", (BREthereumLESMessageId) message->flowControlMRC[index].msgCode);
+            eth_log (ETH_LOG_TOPIC, "        Request : %s", label);
+            eth_log (ETH_LOG_TOPIC, "        BaseCost: %llu", message->flowControlMRC[index].baseCost);
+            eth_log (ETH_LOG_TOPIC, "        ReqCost : %llu", message->flowControlMRC[index].reqCost);
+        }
+    }
+}
 
 extern void
 statusMessageLogFlowControl (BREthereumLESStatusMessage *message) {

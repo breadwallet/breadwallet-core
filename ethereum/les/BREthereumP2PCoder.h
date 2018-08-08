@@ -89,6 +89,8 @@ typedef struct BREthereumLESP2PHelloRecord {
       UInt512 nodeId;                   // nodeId is the Unique Identity of the node and specifies a 512-bit hash that identifies this node.
 } BREthereumLESP2PHello;
 
+extern void p2pHelloShow (BREthereumLESP2PHello *hello);
+
 ///
 /**
  * The following functions rlp encode the data for the p2p messages.

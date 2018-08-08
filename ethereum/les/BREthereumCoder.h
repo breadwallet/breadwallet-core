@@ -101,6 +101,9 @@ typedef struct {
 } BREthereumLESStatusMessage;
 
 extern void
+statusMessageShow (BREthereumLESStatusMessage *message);
+
+extern void
 statusMessageLogFlowControl (BREthereumLESStatusMessage *message);
 
 typedef struct {

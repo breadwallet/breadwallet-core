@@ -130,7 +130,7 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t me
                 if(ETHEREUM_BOOLEAN_IS_TRUE(les->peerStatus.txRelay) &&
                   les->peerStatus.chainId == networkGetChainId(les->network)){
                     eth_log(ETH_LOG_TOPIC, "%s", "LES Handshake complete. Start sending messages");
-                    statusMessageLogFlowControl (&les->peerStatus);
+                    statusMessageShow (&les->peerStatus);
                     les->statusFunc (les->announceCtx, les->peerStatus.headHash, les->peerStatus.headNum);
                     les->startSendingMessages = ETHEREUM_BOOLEAN_TRUE;
                 }else {
