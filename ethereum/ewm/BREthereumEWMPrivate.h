@@ -139,6 +139,11 @@ struct BREthereumEWMRecord {
      * The Lock ensuring single thread access to EWM state.
      */
     pthread_mutex_t lock;
+
+    /**
+     * The RLP Coder
+     */
+    BRRlpCoder coder;
 };
 
 extern BREthereumWalletId
@@ -146,8 +151,8 @@ ewmLookupWalletId(BREthereumEWM ewm,
                   BREthereumWallet wallet);
 
 extern BREthereumWallet
-    ewmLookupWalletByTransfer (BREthereumEWM ewm,
-                               BREthereumTransfer transfer);
+ewmLookupWalletByTransfer (BREthereumEWM ewm,
+                           BREthereumTransfer transfer);
 
 extern BREthereumWalletId
 ewmInsertWallet (BREthereumEWM ewm,
@@ -162,17 +167,17 @@ ewmInsertBlock (BREthereumEWM ewm,
                 BREthereumBlock block);
 
 extern BREthereumTransferId
-    ewmLookupTransferId(BREthereumEWM ewm,
-                        BREthereumTransfer transfer);
+ewmLookupTransferId(BREthereumEWM ewm,
+                    BREthereumTransfer transfer);
 
 extern BREthereumTransferId
-    ewmInsertTransfer (BREthereumEWM ewm,
-                       BREthereumTransfer transfer);
+ewmInsertTransfer (BREthereumEWM ewm,
+                   BREthereumTransfer transfer);
 
 // TODO : NO, eliminate
 extern void
 ewmDeleteTransfer (BREthereumEWM ewm,
-                      BREthereumTransferId tid);
+                   BREthereumTransferId tid);
 
 ///
 /// MARK: - BCS Callback Interfaces

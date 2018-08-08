@@ -449,7 +449,7 @@ static void *_nodeThreadRunFunc(void *arg) {
                         BRRlpData framePacketTypeData = {1, node->body};
                         BRRlpItem item = rlpGetItem (rlpCoder, framePacketTypeData);
     
-                        uint64_t packetType = rlpDecodeItemUInt64(rlpCoder, item, 1);
+                        uint64_t packetType = rlpDecodeUInt64(rlpCoder, item, 1);
                         BRRlpData mesageBody = {node->bodySize - 1, &node->body[1]};
                         
                         //Check if the message is a P2P message before broadcasting the message to the manager

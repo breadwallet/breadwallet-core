@@ -163,7 +163,7 @@ extern BREthereumAddress
 addressRlpDecode (BRRlpItem item, BRRlpCoder coder) {
     BREthereumAddress address = EMPTY_ADDRESS_INIT;
 
-    BRRlpData data = rlpDecodeItemBytes(coder, item);
+    BRRlpData data = rlpDecodeBytes(coder, item);
     if (0 != data.bytesCount) {
         assert (20 == data.bytesCount);
         memcpy (address.bytes, data.bytes, 20);
@@ -176,7 +176,7 @@ addressRlpDecode (BRRlpItem item, BRRlpCoder coder) {
 extern BRRlpItem
 addressRlpEncode(BREthereumAddress address,
                  BRRlpCoder coder) {
-    return rlpEncodeItemBytes(coder, address.bytes, 20);
+    return rlpEncodeBytes(coder, address.bytes, 20);
 }
 
 extern BREthereumBoolean

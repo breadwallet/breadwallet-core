@@ -216,7 +216,6 @@ runLogTests (void) {
     printf ("==== Log\n");
 
     BRRlpData data;
-    BRRlpData encodeData;
 
     // Log
     data.bytes = decodeHexCreate(&data.bytesCount, LOG_1_RLP, strlen (LOG_1_RLP));
@@ -238,7 +237,7 @@ runLogTests (void) {
 
 
     logItem = logRlpEncode(log, RLP_TYPE_NETWORK, coder);
-    rlpDataExtract(coder, logItem, &encodeData.bytes, &encodeData.bytesCount);
+    BRRlpData encodeData = rlpGetData(coder, logItem);
     rlpReleaseItem(coder, logItem);
 
     assert (data.bytesCount == encodeData.bytesCount

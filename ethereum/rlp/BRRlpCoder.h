@@ -37,7 +37,7 @@ extern "C" {
 //
 // RLP Coder
 //
-typedef struct BRRlpCoderRecord *BRRlpCoder;
+typedef void *BRRlpCoder; // placeholder
 
 extern BRRlpCoder
 rlpCoderCreate (void);
@@ -62,10 +62,7 @@ rlpDataRelease (BRRlpData data);
 //
 // RLP Item
 //
-typedef struct {
-  void *identifier;
-  unsigned long indexer;
-} BRRlpItem;
+typedef struct BRRlpItemRecord *BRRlpItem;
 
 extern void
 rlpReleaseItem (BRRlpCoder coder, BRRlpItem item);
@@ -101,32 +98,32 @@ rlpGetDataSharedDontRelease (BRRlpCoder coder, BRRlpItem item);
  * TODO: ?? Hold onto BRRlpItem 'forever'... then try to use... will fail because 'coder'
  * TODO: will not have 'context' ??
  */
-extern void
-rlpDataExtract (BRRlpCoder coder, BRRlpItem item, uint8_t **bytes, size_t *bytesCount);
+//extern void
+//rlpDataExtract (BRRlpItem item, uint8_t **bytes, size_t *bytesCount);
 
 //
 // UInt64
 //
 extern BRRlpItem
-rlpEncodeItemUInt64(BRRlpCoder coder, uint64_t value, int zeroAsEmptyString);
+rlpEncodeUInt64(BRRlpCoder coder, uint64_t value, int zeroAsEmptyString);
 
 extern uint64_t
-rlpDecodeItemUInt64(BRRlpCoder coder, BRRlpItem item, int zeroAsEmptyString);
+rlpDecodeUInt64(BRRlpCoder coder, BRRlpItem item, int zeroAsEmptyString);
 
 //
 // UInt256
 //
 extern BRRlpItem
-rlpEncodeItemUInt256(BRRlpCoder coder, UInt256 value, int zeroAsEmptyString);
+rlpEncodeUInt256(BRRlpCoder coder, UInt256 value, int zeroAsEmptyString);
 
 extern UInt256
-rlpDecodeItemUInt256(BRRlpCoder coder, BRRlpItem item, int zeroAsEmptyString);
+rlpDecodeUInt256(BRRlpCoder coder, BRRlpItem item, int zeroAsEmptyString);
 
 //
 // Bytes
 //
 extern BRRlpItem
-rlpEncodeItemBytes (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount);
+rlpEncodeBytes (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount);
 
 /**
  * Extract the `data` for `item` as the item's bytes w/o the RLP encoding of length.  Thus, if
@@ -134,31 +131,31 @@ rlpEncodeItemBytes (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount);
  * rlpDecodeItemBytes() will be `data` with exactly the same data as was encoded.
  */
 extern BRRlpData
-rlpDecodeItemBytes (BRRlpCoder coder, BRRlpItem item);
+rlpDecodeBytes (BRRlpCoder coder, BRRlpItem item);
 
 extern BRRlpData
-rlpDecodeItemBytesSharedDontRelease (BRRlpCoder coder, BRRlpItem item);
+rlpDecodeBytesSharedDontRelease (BRRlpCoder coder, BRRlpItem item);
 
 //
 // String
 //
 extern BRRlpItem
-rlpEncodeItemString (BRRlpCoder coder, char *string);
+rlpEncodeString (BRRlpCoder coder, char *string);
 
 extern char *
-rlpDecodeItemString (BRRlpCoder coder, BRRlpItem item);
+rlpDecodeString (BRRlpCoder coder, BRRlpItem item);
 
 extern int
-rlpDecodeItemIsString (BRRlpCoder coder, BRRlpItem item);
+rlpDecodeStringCheck (BRRlpCoder coder, BRRlpItem item);
 
 //
 // Hex String
 //
 extern BRRlpItem
-rlpEncodeItemHexString (BRRlpCoder coder, char *string);
+rlpEncodeHexString (BRRlpCoder coder, char *string);
 
 extern char *
-rlpDecodeItemHexString (BRRlpCoder coder, BRRlpItem item, const char *prefix);
+rlpDecodeHexString (BRRlpCoder coder, BRRlpItem item, const char *prefix);
 
 //
 // List

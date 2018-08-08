@@ -120,12 +120,12 @@ etherGetValueString(const BREthereumEther ether, BREthereumEtherUnit unit) {
 
 extern BRRlpItem
 etherRlpEncode (const BREthereumEther ether, BRRlpCoder coder) {
-    return rlpEncodeItemUInt256(coder, ether.valueInWEI, 1);
+    return rlpEncodeUInt256(coder, ether.valueInWEI, 1);
 }
 
 extern BREthereumEther
 etherRlpDecode (BRRlpItem item, BRRlpCoder coder) {
-    return etherCreate(rlpDecodeItemUInt256(coder, item, 1));
+    return etherCreate(rlpDecodeUInt256(coder, item, 1));
 }
 
 extern BREthereumEther

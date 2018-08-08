@@ -619,19 +619,16 @@ ewmClientHandleTransferEvent (BREthereumEWM ewm,
                                               ? CLIENT_CHANGE_REM
                                               : CLIENT_CHANGE_UPD));
 
-        BRRlpCoder coder = rlpCoderCreate();
-
         BRRlpItem item = (NULL != transaction
-                          ? transactionRlpEncode (transaction, ewm->network, RLP_TYPE_ARCHIVE, coder)
-                          : logRlpEncode(log, RLP_TYPE_ARCHIVE, coder));
+                          ? transactionRlpEncode (transaction, ewm->network, RLP_TYPE_ARCHIVE, ewm->coder)
+                          : logRlpEncode(log, RLP_TYPE_ARCHIVE, ewm->coder));
 
         BREthereumHash hash = (NULL != transaction
                                ? transactionGetHash(transaction)
                                : logGetHash(log));
 
-        BREthereumPersistData persistData = { hash,  rlpGetData(coder, item) };
-        rlpReleaseItem(coder, item);
-        rlpCoderRelease(coder);
+        BREthereumPersistData persistData = { hash,  rlpGetData(ewm->coder, item) };
+        rlpReleaseItem(ewm->coder, item);
 
         if (NULL != transaction)
             ewm->client.funcChangeTransaction (ewm->client.context, ewm, type, persistData);

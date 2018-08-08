@@ -99,7 +99,7 @@ transactionStatusRLPDecode (BRRlpItem item,
     // We have seen (many) cases where the `type` is `unknown` but there is an `error`.  That
     // appears to violate the LES specfication.  Anyways, if we see an `error` we'll force the
     // type to be TRANSACTION_STATUS_ERRORED.
-    char *reason = rlpDecodeItemString(coder, items[2]);
+    char *reason = rlpDecodeString(coder, items[2]);
     if (NULL != reason && 0 != strcmp (reason, "") && 0 != strcmp (reason, "0x")) {
         BREthereumTransactionStatus status = transactionStatusCreateErrored(reason);
         free (reason);
@@ -107,7 +107,7 @@ transactionStatusRLPDecode (BRRlpItem item,
     }
     if (NULL != reason) free (reason);
 
-    BREthereumTransactionStatusType type = (BREthereumTransactionStatusType) rlpDecodeItemUInt64(coder, items[0], 0);
+    BREthereumTransactionStatusType type = (BREthereumTransactionStatusType) rlpDecodeUInt64(coder, items[0], 0);
     switch (type) {
         case TRANSACTION_STATUS_UNKNOWN:
         case TRANSACTION_STATUS_QUEUED:
@@ -122,13 +122,13 @@ transactionStatusRLPDecode (BRRlpItem item,
 
             return transactionStatusCreateIncluded(gasCreate(0),
                                                    hashRlpDecode(others[0], coder),
-                                                   rlpDecodeItemUInt64(coder, others[1], 0),
-                                                   rlpDecodeItemUInt64(coder, others[2], 0));
+                                                   rlpDecodeUInt64(coder, others[1], 0),
+                                                   rlpDecodeUInt64(coder, others[2], 0));
         }
         
         case TRANSACTION_STATUS_ERRORED: {
             // We should not be here....
-            char *reason = rlpDecodeItemString(coder, items[2]);
+            char *reason = rlpDecodeString(coder, items[2]);
             BREthereumTransactionStatus status = transactionStatusCreateErrored(reason);
             free (reason);
             return status;
@@ -141,28 +141,28 @@ transactionStatusRLPEncode (BREthereumTransactionStatus status,
                             BRRlpCoder coder) {
     BRRlpItem items[3];
 
-    items[0] = rlpEncodeItemUInt64(coder, status.type, 0);
+    items[0] = rlpEncodeUInt64(coder, status.type, 0);
 
     switch (status.type) {
         case TRANSACTION_STATUS_UNKNOWN:
         case TRANSACTION_STATUS_QUEUED:
         case TRANSACTION_STATUS_PENDING:
             items[1] = rlpEncodeList(coder, 0);
-            items[2] = rlpEncodeItemString(coder, "");
+            items[2] = rlpEncodeString(coder, "");
             break;
 
         case TRANSACTION_STATUS_INCLUDED:
             items[1] = rlpEncodeList(coder, 3,
                                      hashRlpEncode(status.u.included.blockHash, coder),
-                                     rlpEncodeItemUInt64(coder, status.u.included.blockNumber, 0),
-                                     rlpEncodeItemUInt64(coder, status.u.included.transactionIndex, 0));
-            items[2] = rlpEncodeItemString(coder, "");
+                                     rlpEncodeUInt64(coder, status.u.included.blockNumber, 0),
+                                     rlpEncodeUInt64(coder, status.u.included.transactionIndex, 0));
+            items[2] = rlpEncodeString(coder, "");
 
             break;
 
         case TRANSACTION_STATUS_ERRORED:
             items[1] = rlpEncodeList(coder, 0);
-            items[2] = rlpEncodeItemString(coder, status.u.errored.reason);
+            items[2] = rlpEncodeString(coder, status.u.errored.reason);
             break;
     }
 

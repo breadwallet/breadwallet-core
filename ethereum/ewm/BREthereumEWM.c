@@ -218,22 +218,17 @@ createEWM (BREthereumNetwork network,
 
     // Create BCS - note: when BCS processes blocks, peers, transactions, and logs, callbacks will
     // be made to the EWM client.
-    {
-        BRRlpCoder coder = rlpCoderCreate();
-
-        // Might need an argument related to `syncMode` - telling BCS, for example, to use LES,
-        // or not to use LES and instead rely on `client` (or some manifestation of `client`).
-        ewm->bcs = bcsCreate(network,
-                             accountGetPrimaryAddress (account),
-                             listener,
-                             createEWMEnsurePeers(peersPersistData, coder),
-                             createEWMEnsureBlocks (blocksPersistData, network, coder),
-                             createEWMEnsureTransactions(transactionsPersistData, network, coder),
-                             createEWMEnsureLogs(logsPersistData, network, coder));
-
-        rlpCoderRelease(coder);
-    }
-
+    
+    // Might need an argument related to `syncMode` - telling BCS, for example, to use LES,
+    // or not to use LES and instead rely on `client` (or some manifestation of `client`).
+    ewm->bcs = bcsCreate(network,
+                         accountGetPrimaryAddress (account),
+                         listener,
+                         createEWMEnsurePeers(peersPersistData, ewm->coder),
+                         createEWMEnsureBlocks (blocksPersistData, network, ewm->coder),
+                         createEWMEnsureTransactions(transactionsPersistData, network, ewm->coder),
+                         createEWMEnsureLogs(logsPersistData, network, ewm->coder));
+    
     return ewm;
 }
 
@@ -857,17 +852,15 @@ ewmHandleSaveBlocks (BREthereumEWM ewm,
                      BRArrayOf(BREthereumBlock) blocks) {
     eth_log("EWM", "Save Blocks: %zu", array_count(blocks));
 
-    BRRlpCoder coder = rlpCoderCreate();
-
     BRArrayOf(BREthereumPersistData) blocksToSave;
     array_new(blocksToSave, array_count(blocks));
     for (size_t index = 0; index < array_count(blocks); index++) {
-        BRRlpItem item = blockRlpEncode(blocks[index], ewm->network, RLP_TYPE_ARCHIVE, coder);
+        BRRlpItem item = blockRlpEncode(blocks[index], ewm->network, RLP_TYPE_ARCHIVE, ewm->coder);
         BREthereumPersistData persistData = {
             blockGetHash(blocks[index]),
-            rlpGetData(coder, item)
+            rlpGetData(ewm->coder, item)
         };
-        rlpReleaseItem(coder, item);
+        rlpReleaseItem(ewm->coder, item);
         array_add (blocksToSave, persistData);
     }
 
@@ -876,7 +869,6 @@ ewmHandleSaveBlocks (BREthereumEWM ewm,
                                 blocksToSave);
 
     array_free (blocks);
-    rlpCoderRelease(coder);
 }
 
 extern void
@@ -964,20 +956,18 @@ ethereumTransferFillRawData (BREthereumEWM ewm,
     assert (NULL != transaction);
     assert (ETHEREUM_BOOLEAN_IS_TRUE (transactionIsSigned(transaction)));
 
-    BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item = transactionRlpEncode(transaction,
                                           ewm->network,
                                           (transactionIsSigned(transaction)
                                            ? RLP_TYPE_TRANSACTION_SIGNED
                                            : RLP_TYPE_TRANSACTION_UNSIGNED),
-                                          coder);
-    BRRlpData data = rlpGetData (coder, item);
+                                          ewm->coder);
+    BRRlpData data = rlpGetData (ewm->coder, item);
 
     *bytesCountPtr = data.bytesCount;
     *bytesPtr = data.bytes;
 
-    rlpReleaseItem(coder, item);
-    rlpCoderRelease(coder);
+    rlpReleaseItem(ewm->coder, item);
 }
 
 extern const char *

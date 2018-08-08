@@ -114,14 +114,14 @@ bloomFilterMatch (const BREthereumBloomFilter filter, const BREthereumBloomFilte
 //
 extern BRRlpItem
 bloomFilterRlpEncode(BREthereumBloomFilter filter, BRRlpCoder coder) {
-    return rlpEncodeItemBytes(coder, filter.bytes, 256);
+    return rlpEncodeBytes(coder, filter.bytes, 256);
 }
 
 extern BREthereumBloomFilter
 bloomFilterRlpDecode (BRRlpItem item, BRRlpCoder coder) {
     BREthereumBloomFilter filter;
 
-    BRRlpData data = rlpDecodeItemBytes(coder, item);
+    BRRlpData data = rlpDecodeBytes(coder, item);
     assert (256 == data.bytesCount);
 
     memcpy (filter.bytes, data.bytes, 256);

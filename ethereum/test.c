@@ -264,9 +264,8 @@ void runTransactionTests1 (BREthereumAccount account, BREthereumNetwork network)
     assert (1 == networkGetChainId(network));
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item = transactionRlpEncode(transaction, network, RLP_TYPE_TRANSACTION_UNSIGNED, coder);
-    BRRlpData dataUnsignedTransaction;
-    rlpDataExtract(coder, item, &dataUnsignedTransaction.bytes, &dataUnsignedTransaction.bytesCount);
-    
+    BRRlpData dataUnsignedTransaction = rlpGetData(coder, item);
+
     char result[2 * dataUnsignedTransaction.bytesCount + 1];
     encodeHex(result, 2 * dataUnsignedTransaction.bytesCount + 1, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
     printf ("       Tx1 Raw (unsigned): %s\n", result);
@@ -332,9 +331,8 @@ void runTransactionTests2 (BREthereumAccount account, BREthereumNetwork network)
 
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item = transactionRlpEncode(transaction, network, RLP_TYPE_TRANSACTION_UNSIGNED, coder);
-    BRRlpData data;
-    rlpDataExtract(coder, item, &data.bytes, &data.bytesCount);
-    
+    BRRlpData data = rlpGetData(coder, item);
+
     char result[2 * data.bytesCount + 1];
     encodeHex(result, 2 * data.bytesCount + 1, data.bytes, data.bytesCount);
     printf ("       Tx2 Raw (unsigned): %s\n", result);
@@ -411,7 +409,6 @@ void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network)
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item = transactionRlpEncode(transaction, network, RLP_TYPE_TRANSACTION_UNSIGNED, coder);
     BRRlpData dataUnsignedTransaction = rlpGetData (coder, item);
-    rlpDataExtract(coder, item, &dataUnsignedTransaction.bytes, &dataUnsignedTransaction.bytesCount);
     
     char *rawTx = encodeHexCreate(NULL, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
     printf ("       Tx3 Raw (unsigned): %s\n", rawTx);
