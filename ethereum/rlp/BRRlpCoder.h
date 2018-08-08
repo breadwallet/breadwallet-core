@@ -37,7 +37,7 @@ extern "C" {
 //
 // RLP Coder
 //
-typedef void *BRRlpCoder; // placeholder
+typedef struct BRRlpCoderRecord *BRRlpCoder;
 
 extern BRRlpCoder
 rlpCoderCreate (void);

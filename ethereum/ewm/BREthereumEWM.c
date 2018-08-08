@@ -172,7 +172,10 @@ createEWM (BREthereumNetwork network,
     // Get the client assigned early; callbacks as EWM/BCS state is re-establish, regarding
     // blocks, peers, transactions and logs, will be invoked.
     ewm->client = client;
-    
+
+    // Our one and only coder
+    ewm->coder = rlpCoderCreate();
+
     // Create the `listener` and `main` event handlers.  Do this early so that queues exist
     // for any events/callbacks generated during initialization.  The queues won't be handled
     // until ewmConnect().
@@ -246,6 +249,7 @@ ewmDestroy (BREthereumEWM ewm) {
 
     eventHandlerDestroy(ewm->handlerForClient);
     eventHandlerDestroy(ewm->handlerForMain);
+    rlpCoderRelease(ewm->coder);
     
     free (ewm);
 }

@@ -27,11 +27,17 @@
 #include <stdarg.h>
 #include <memory.h>
 #include <assert.h>
+#include <pthread.h>
 #include "BRRlpCoder.h"
 #include "../util/BRUtil.h"
 
 static int
 rlpDecodeStringEmptyCheck (BRRlpCoder coder, BRRlpItem item);
+
+static void
+coderEncodeLengthIntoBytes (BRRlpCoder coder, uint64_t length, uint8_t baseline, uint8_t *bytes9, uint8_t *bytes9Count);
+
+#define CODER_DEFAULT_ITEMS     (20)
 
 /**
  * An RLP Encoding is comprised of two types: an ITEM and a LIST (of ITEM).
@@ -53,11 +59,109 @@ struct  BRRlpItemRecord {
     uint8_t *bytes;
     uint8_t  bytesArray [ITEM_DEFAULT_BYTES_COUNT];
 
-    // If CODER_LIST, then the component items.
+    // If CODER_LIST, then reference the component items.
     size_t itemsCount;
     BRRlpItem *items;
     BRRlpItem  itemsArray [ITEM_DEFAULT_ITEMS_COUNT];
+
+    // Chain of free/busy items.
+    BRRlpItem next;
 };
+
+static void
+itemReleaseMemory (BRRlpItem item) {
+    if (item->bytesArray != item->bytes && NULL != item->bytes) free (item->bytes);
+    if (item->itemsArray != item->items && NULL != item->items) free (item->items);
+    
+    BRRlpItem next = item->next;
+    memset (item, 0, sizeof (struct BRRlpItemRecord));
+    item->next = next;
+}
+
+/**
+ *
+ */
+struct BRRlpCoderRecord {
+    BRRlpItem free;
+    BRRlpItem busy;
+    pthread_mutex_t lock;
+};
+
+extern BRRlpCoder
+rlpCoderCreate (void) {
+    BRRlpCoder coder = malloc (sizeof (struct BRRlpCoderRecord));
+    coder->free = NULL;
+    coder->busy = NULL;
+
+    {
+        pthread_mutexattr_t attr;
+        pthread_mutexattr_init(&attr);
+        pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_NORMAL);
+        pthread_mutex_init (&coder->lock, &attr);
+        pthread_mutexattr_destroy(&attr);
+    }
+
+    for (size_t index = 0; index < CODER_DEFAULT_ITEMS; index++) {
+        BRRlpItem item = calloc (1, sizeof (struct BRRlpItemRecord));
+        item->next = coder->free;
+        coder->free = item;
+    }
+
+    return coder;
+}
+
+extern void
+rlpCoderRelease (BRRlpCoder coder) {
+    BRRlpItem item;
+    pthread_mutex_lock(&coder->lock);
+    assert (NULL == coder->busy);
+
+    item = coder->free;
+    while (item != NULL) {
+        BRRlpItem next = item->next;
+        itemReleaseMemory (item);
+        item = next;
+    }
+
+    pthread_mutex_unlock(&coder->lock);
+    free (coder);
+}
+
+static BRRlpItem
+rlpCoderAcquireItem (BRRlpCoder coder) {
+    BRRlpItem item = NULL;
+    pthread_mutex_lock(&coder->lock);
+
+    if (NULL == coder->free)
+        item = calloc (1, sizeof (struct BRRlpItemRecord));
+    else {
+        item = coder->free;
+        coder->free = item->next;
+    }
+
+    item->next = coder->busy;
+    coder->busy = item;
+
+    pthread_mutex_unlock(&coder->lock);
+    return item;
+}
+
+static void
+rlpCoderReturnItem (BRRlpCoder coder, BRRlpItem item) {
+    pthread_mutex_lock(&coder->lock);
+    if (item == coder->busy)
+        coder->busy = item->next;
+    else {
+        BRRlpItem found = coder->busy;
+        while (item != found->next)
+            found = found->next;
+        found->next = item->next;
+    }
+
+    item->next = coder->free;
+    coder->free = item;
+    pthread_mutex_unlock(&coder->lock);
+}
 
 /**
  * An RLP Context holds encoding results for each of the encoding types, either ITEM or LIST.
@@ -70,8 +174,8 @@ struct  BRRlpItemRecord {
 //
 static void
 itemRelease (BRRlpCoder coder, BRRlpItem item) {
-    if (item->bytesArray != item->bytes && NULL != item->bytes) free (item->bytes);
-    if (item->itemsArray != item->items && NULL != item->items) free (item->items);
+    itemReleaseMemory(item);
+    rlpCoderReturnItem(coder, item);
 }
 
 static int
@@ -80,7 +184,38 @@ itemIsValid (BRRlpCoder coder, BRRlpItem item) {
 }
 
 static BRRlpItem
-itemCreate (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount, int takeBytes) {
+itemCreateEmpty (BRRlpCoder coder, BRRlpItemType type) {
+    BRRlpItem item = rlpCoderAcquireItem(coder); // calloc (1, sizeof (struct BRRlpItemRecord));
+    item->type = type;
+    return item;
+}
+
+static uint8_t *
+itemEnsureBytes (BRRlpCoder coder, BRRlpItem item, size_t bytesCount) {
+    assert (NULL == item->bytes);
+    item->bytesCount = bytesCount;
+    item->bytes = (item->bytesCount > ITEM_DEFAULT_BYTES_COUNT
+                   ? malloc (item->bytesCount)
+                   : item->bytesArray);
+    return item->bytes;
+}
+
+static BRRlpItem
+itemFillList (BRRlpCoder coder, BRRlpItem item, BRRlpItem *items, size_t itemsCount) {
+    item->type = CODER_LIST;
+    item->itemsCount = itemsCount;
+    item->items = (item->itemsCount > ITEM_DEFAULT_ITEMS_COUNT
+                   ? calloc (item->itemsCount, sizeof (BRRlpItem))
+                   : item->itemsArray);
+    for (int i = 0; i < itemsCount; i++)
+        item->items[i] = items[i];
+    return item;
+}
+
+#if 0
+static BRRlpItem
+itemCreate (BRRlpCoder coder,
+            uint8_t *bytes, size_t bytesCount, int takeBytes) {
     BRRlpItem item = calloc (1, sizeof (struct BRRlpItemRecord));
 
     item->type = CODER_ITEM;
@@ -100,7 +235,9 @@ itemCreate (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount, int takeBytes) 
 }
 
 static BRRlpItem
-itemCreateList (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount, int takeBytes, BRRlpItem *items, size_t itemsCount) {
+itemCreateList (BRRlpCoder coder,
+                uint8_t *bytes, size_t bytesCount, int takeBytes,
+                BRRlpItem *items, size_t itemsCount) {
     BRRlpItem item = itemCreate(coder, bytes, bytesCount, takeBytes);
     item->type = CODER_LIST;
     item->itemsCount = itemsCount;
@@ -112,6 +249,7 @@ itemCreateList (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount, int takeByt
     
     return item;
 }
+#endif
 
 /**
  * Return a new BRRlpContext by appending the two provided contexts.  Both provided contexts
@@ -121,6 +259,7 @@ itemCreateList (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount, int takeByt
  * If release is TRUE, then both the provided contexts are released; thereby freeing their memory.
  *
  */
+#if 0
 static BRRlpItem
 itemCreateAppend (BRRlpCoder coder, BRRlpItem context1, BRRlpItem context2, int release) {
     assert (CODER_ITEM == context1->type && CODER_ITEM == context2->type);
@@ -149,6 +288,7 @@ itemCreateAppend (BRRlpCoder coder, BRRlpItem context1, BRRlpItem context2, int 
     
     return item;
 }
+#endif
 
 // The largest number supported for encoding is a UInt256 - which is representable as 32 bytes.
 #define CODER_NUMBER_BYTES_LIMIT    (256/8)
@@ -186,7 +326,8 @@ swapBytesIfLittleEndian (uint8_t *target, uint8_t *source, size_t count) {
  * after `targetIndex`.
  */
 static void
-convertToBigEndianAndNormalize (uint8_t *target, uint8_t *source, size_t length, size_t *targetIndex, size_t *targetCount) {
+convertToBigEndianAndNormalize (uint8_t *target, uint8_t *source, size_t length,
+                                size_t *targetIndex, size_t *targetCount) {
     assert (length <= CODER_NUMBER_BYTES_LIMIT);
     
     swapBytesIfLittleEndian (target, source, length);
@@ -219,30 +360,45 @@ convertFromBigEndian (uint8_t *target, size_t targetCount, uint8_t *bytes, size_
 #define RLP_PREFIX_LIST   (0xc0)
 #define RLP_PREFIX_LENGTH_LIMIT  (55)
 
-static BRRlpItem
-coderEncodeLength (BRRlpCoder coder, uint64_t length, uint8_t baseline) {
+static void
+coderEncodeLengthIntoBytes (BRRlpCoder coder, uint64_t length, uint8_t baseline,
+                            uint8_t *bytes9, uint8_t *bytes9Count) {
+
     // If the length is small, simply encode a single byte as (baseline + length)
     if (length <= RLP_PREFIX_LENGTH_LIMIT) {
-        uint8_t encoding = baseline + length;
-        return itemCreate (coder, &encoding, 1, 0);
+        bytes9[0] = baseline + length;
+        *bytes9Count = 1;
+        return;
     }
     // Otherwise, encode the length as bytes.
     else {
         size_t lengthSize = sizeof (uint64_t);
-        
-        uint8_t bytes [lengthSize]; // big_endian representation of the bytes in 'length'
+
+        //uint8_t bytes [lengthSize]; // big_endian representation of the bytes in 'length'
         size_t bytesIndex;          // Index of the first non-zero byte
         size_t bytesCount;          // The number of bytes to encode (beyond index)
-        
-        convertToBigEndianAndNormalize (bytes, (uint8_t *) &length, lengthSize, &bytesIndex, &bytesCount);
-        
+
+        convertToBigEndianAndNormalize (bytes9, (uint8_t *) &length, lengthSize, &bytesIndex, &bytesCount);
+
         // The encoding - a header byte with the bytesCount and then the big_endian bytes themselves.
         uint8_t encoding [1 + bytesCount];
         encoding[0] = baseline + RLP_PREFIX_LENGTH_LIMIT + bytesCount;
-        memcpy (&encoding[1], &bytes[bytesIndex], bytesCount);
-        return itemCreate(coder, encoding, 1 + bytesCount, 0);
+        memcpy (&encoding[1], &bytes9[bytesIndex], bytesCount);
+
+        // Copy back to bytes
+        memcpy (bytes9, encoding, 1 + bytesCount);
+        *bytes9Count = 1 + bytesCount;
     }
 }
+
+#if 0
+static BRRlpItem
+coderEncodeLength (BRRlpCoder coder, uint64_t length, uint8_t baseline) {
+    uint8_t bytesCount, bytes[9];
+    coderEncodeLengthIntoBytes(coder, length, baseline, bytes, &bytesCount);
+    return itemCreate (coder, bytes, bytesCount, 0);
+}
+#endif
 
 static size_t
 coderDecodeLength (BRRlpCoder coder, uint8_t *bytes, uint8_t baseline, uint8_t *offset) {
@@ -286,18 +442,24 @@ coderDecodeLength (BRRlpCoder coder, uint8_t *bytes, uint8_t baseline, uint8_t *
 
 static BRRlpItem
 coderEncodeBytes(BRRlpCoder coder, uint8_t *bytes, size_t bytesCount) {
+    BRRlpItem item = itemCreateEmpty(coder, CODER_ITEM);
+
     // Encode a single byte directly
     if (1 == bytesCount && bytes[0] < RLP_PREFIX_BYTES) {
-        return itemCreate(coder, bytes, 1, 0);
+        uint8_t *encodedBytes = itemEnsureBytes(coder, item, 1);
+        encodedBytes[0] = bytes[0];
     }
     
     // otherwise, encode the length and then the bytes themselves
     else {
-        return itemCreateAppend(coder,
-                                coderEncodeLength(coder, bytesCount, RLP_PREFIX_BYTES),
-                                itemCreate(coder, bytes, bytesCount, 0),
-                                1);
+        uint8_t bytes9Count, bytes9[9];
+        coderEncodeLengthIntoBytes(coder, bytesCount, RLP_PREFIX_BYTES, bytes9, &bytes9Count);
+
+        uint8_t *encodedBytes = itemEnsureBytes(coder, item, bytes9Count + bytesCount);
+        memcpy(encodedBytes, bytes9, bytes9Count);
+        memcpy(&encodedBytes[bytes9Count], bytes, bytesCount);
     }
+    return item;
 }
 
 //
@@ -365,55 +527,41 @@ coderEncodeList (BRRlpCoder coder, BRRlpItem *items, size_t itemsCount) {
     for (int i = 0; i < itemsCount; i++) {
         assert (itemIsValid(coder, items[i]));
     }
-    
+
+    // Acquire an item
+    BRRlpItem item = rlpCoderAcquireItem(coder);
+
     // Eventually fill these by concatentating bytes from each of `items`
     size_t bytesCount = 0;
-    uint8_t *bytes = NULL;
-    
+
     // Determine the number of concatenated bytes...
     for (int i = 0; i < itemsCount; i++)
         bytesCount += items[i]->bytesCount;
-    
-    // ... and allocate the memory needed.
-    bytes = malloc (bytesCount);
-    
+
+    // ... given that, determine the length encoding
+    uint8_t bytes9Count, bytes9[9];
+    coderEncodeLengthIntoBytes (coder, bytesCount, RLP_PREFIX_LIST, bytes9, &bytes9Count);
+
+    // ... now allocate the memory needed as length-encoding-prefix + bytes
+    uint8_t *bytes = itemEnsureBytes (coder, item, bytes9Count + bytesCount);
+
+    // ... now fill in the length encoding
+    memcpy (bytes, bytes9, bytes9Count);
+
     // ... and concatenate the bytes from items
-    for (size_t bytesIndex = 0, i = 0; i < itemsCount; i++) {
+    for (size_t bytesIndex = bytes9Count, i = 0; i < itemsCount; i++) {
         BRRlpItem itemContext = items[i];
         memcpy (&bytes[bytesIndex], itemContext->bytes, itemContext->bytesCount);
         bytesIndex += itemContext->bytesCount;
     }
-    
-    BRRlpItem encodedBytesContext = (0 == bytesCount
-                                     ? coderEncodeLength(coder, bytesCount, RLP_PREFIX_LIST)
-                                     : itemCreateAppend (coder,
-                                                         coderEncodeLength(coder, bytesCount, RLP_PREFIX_LIST),
-                                                         itemCreate(coder, bytes, bytesCount, 1),
-                                                         1));
-    
-    BRRlpItem result = itemCreateList(coder,
-                                      encodedBytesContext->bytes,
-                                      encodedBytesContext->bytesCount,
-                                      0, //encodedBytesContext->bytes != encodedBytesContext->bytesArray,
-                                      items,
-                                      itemsCount);
-    
-    if (0 == bytesCount) free (bytes);
-    itemRelease(coder, encodedBytesContext);
-    return result;
+
+    itemFillList(coder, item, items, itemsCount);
+    return item;
 }
 
 //
 // Public Interface
 //
-extern BRRlpCoder
-rlpCoderCreate (void) {
-    return NULL;
-}
-
-extern void
-rlpCoderRelease (BRRlpCoder coder) {
-}
 
 //
 // UInt64
@@ -704,11 +852,15 @@ extern BRRlpItem
 rlpGetItem (BRRlpCoder coder, BRRlpData data) {
     assert (0 != data.bytesCount);
 
+    BRRlpItem result = rlpCoderAcquireItem (coder);
+    uint8_t *encodedBytes = itemEnsureBytes (coder, result, data.bytesCount);
+    memcpy (encodedBytes, data.bytes, data.bytesCount);
+
     uint8_t prefix = data.bytes[0];
 
     // If not a list, then we are done; just return an `item` with `data`
     if (prefix < RLP_PREFIX_LIST) {
-        return itemCreate(coder, data.bytes, data.bytesCount, 0);
+        return result;
     }
 
     // If a list, then we'll consume `data` with sub-items.
@@ -755,11 +907,11 @@ rlpGetItem (BRRlpCoder coder, BRRlpData data) {
                     items = realloc(items, itemsCount * sizeof (BRRlpItem));
             }
         }
+        itemFillList(coder, result, items, itemsIndex);
 
-        BRRlpItem result = itemCreateList(coder, data.bytes, data.bytesCount, 0, items, itemsIndex);
         if (items != itemsArray) free(items);
-        return result;
     }
+    return result;
 }
 
 //
