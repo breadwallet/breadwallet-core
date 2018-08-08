@@ -851,6 +851,14 @@ void runTransactionTests1 (BREthereumAccount account, BREthereumNetwork network)
     encodeHex(result, 2 * dataUnsignedTransaction.bytesCount + 1, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
     printf ("       Tx1 Raw (unsigned): %s\n", result);
     assert (0 == strcmp (result, TEST_TRANS1_RESULT));
+
+    // set the gas Estimate; ensure GasLimit changes to 20% more (see BREthereumTransaction.c)
+#define SOME_GAS_ESTIMATE   (100000ull)
+    transactionSetGasEstimate(transaction, gasCreate(SOME_GAS_ESTIMATE));
+    printf ("       Tx1 Gas Estimate  : %llu\n", transactionGetGasEstimate(transaction).amountOfGas);
+    printf ("       Tx1 Gas Limit     : %llu\n", transactionGetGasLimit(transaction).amountOfGas);
+    printf ("       Tx1 Gas Limit(exp): %llu\n", ((100 + GAS_LIMIT_MARGIN_PERCENT) * SOME_GAS_ESTIMATE / 100));
+    assert (((100 + GAS_LIMIT_MARGIN_PERCENT) * SOME_GAS_ESTIMATE / 100) == transactionGetGasLimit(transaction).amountOfGas);
 }
 
 // https://etherscan.io/tx/0xc070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c

@@ -38,8 +38,10 @@
 static void
 provideData (BREthereumTransaction transaction);
 
-static void
-provideGasEstimate (BREthereumTransaction transaction);
+static BREthereumGas
+gasLimitApplyMargin (BREthereumGas gas) {
+    return gasCreate(((100 + GAS_LIMIT_MARGIN_PERCENT) * gas.amountOfGas) / 100);
+}
 
 //
 // Transaction State
@@ -181,9 +183,9 @@ transactionCreate(BREthereumAddress sourceAddress,
     transaction->nonce = nonce;
     transaction->chainId = 0;
     transaction->hash = hashCreateEmpty();
+    transaction->gasEstimate = gasLimit;
 
     provideData(transaction);
-    provideGasEstimate(transaction);
 
     return transaction;
 }
@@ -208,7 +210,6 @@ transactionCreateGeneric(BREthereumAddress sourceAddress,
     transaction->nonce = nonce;
     transaction->chainId = 0;
     transaction->hash = hashCreateEmpty();
-
     transaction->gasEstimate = gasLimit;
 
     return transaction;
@@ -278,11 +279,10 @@ extern void
 transactionSetGasEstimate (BREthereumTransaction transaction,
                            BREthereumGas gasEstimate) {
     transaction->gasEstimate = gasEstimate;
-}
-
-static void
-provideGasEstimate (BREthereumTransaction transaction) {
-    transactionSetGasEstimate(transaction, amountGetGasEstimate(transaction->amount));
+    // Ensure that the gasLimit is at least 20% more than gasEstimate.
+    BREthereumGas gasLimitWithMargin = gasLimitApplyMargin (gasEstimate);
+    if (gasLimitWithMargin.amountOfGas > transaction->gasLimit.amountOfGas)
+        transaction->gasLimit = gasLimitWithMargin;
 }
 
 extern uint64_t

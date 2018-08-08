@@ -33,6 +33,9 @@
 #include "BREthereumAmount.h"
 #include "rlp/BRRlp.h"
 
+// When setting the gasEstimate, ensure gasLimit is this percent higher, at least.
+#define GAS_LIMIT_MARGIN_PERCENT        (20)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
