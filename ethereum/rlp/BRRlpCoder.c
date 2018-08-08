@@ -42,16 +42,21 @@ typedef enum {
     CODER_LIST,
 } BRRlpItemType;
 
+#define ITEM_DEFAULT_BYTES_COUNT  1024
+#define ITEM_DEFAULT_ITEMS_COUNT    25
+
 struct  BRRlpItemRecord {
     BRRlpItemType type;
 
     // The encoding
     size_t bytesCount;
     uint8_t *bytes;
+    uint8_t  bytesArray [ITEM_DEFAULT_BYTES_COUNT];
 
     // If CODER_LIST, then the component items.
     size_t itemsCount;
     BRRlpItem *items;
+    BRRlpItem  itemsArray [ITEM_DEFAULT_ITEMS_COUNT];
 };
 
 /**
@@ -65,8 +70,8 @@ struct  BRRlpItemRecord {
 //
 static void
 itemRelease (BRRlpCoder coder, BRRlpItem item) {
-    if (NULL != item->bytes) free (item->bytes);
-    if (NULL != item->items) free (item->items);
+    if (item->bytesArray != item->bytes && NULL != item->bytes) free (item->bytes);
+    if (item->itemsArray != item->items && NULL != item->items) free (item->items);
 }
 
 static int
@@ -76,16 +81,17 @@ itemIsValid (BRRlpCoder coder, BRRlpItem item) {
 
 static BRRlpItem
 itemCreate (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount, int takeBytes) {
-    BRRlpItem item = malloc (sizeof (struct BRRlpItemRecord));
+    BRRlpItem item = calloc (1, sizeof (struct BRRlpItemRecord));
 
     item->type = CODER_ITEM;
     item->bytesCount = bytesCount;
     if (takeBytes)
         item->bytes = bytes;
     else {
-        uint8_t *myBytes = malloc (bytesCount);
-        memcpy (myBytes, bytes, bytesCount);
-        item->bytes = myBytes;
+        item->bytes = (item->bytesCount > ITEM_DEFAULT_BYTES_COUNT
+                       ? malloc (item->bytesCount)
+                       : item->bytesArray);
+        memcpy (item->bytes, bytes, item->bytesCount);
     }
     item->itemsCount = 0;
     item->items = NULL;
@@ -94,12 +100,13 @@ itemCreate (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount, int takeBytes) 
 }
 
 static BRRlpItem
-itemCreateAsList (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount, int takeBytes, BRRlpItem *items, size_t itemsCount) {
+itemCreateList (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount, int takeBytes, BRRlpItem *items, size_t itemsCount) {
     BRRlpItem item = itemCreate(coder, bytes, bytesCount, takeBytes);
     item->type = CODER_LIST;
     item->itemsCount = itemsCount;
-    
-    item->items = calloc (itemsCount, sizeof (BRRlpItem));
+    item->items = (item->itemsCount > ITEM_DEFAULT_ITEMS_COUNT
+                   ? calloc (item->itemsCount, sizeof (BRRlpItem))
+                   : item->itemsArray);
     for (int i = 0; i < itemsCount; i++)
         item->items[i] = items[i];
     
@@ -118,12 +125,15 @@ static BRRlpItem
 itemCreateAppend (BRRlpCoder coder, BRRlpItem context1, BRRlpItem context2, int release) {
     assert (CODER_ITEM == context1->type && CODER_ITEM == context2->type);
 
-    BRRlpItem item = malloc (sizeof (struct BRRlpItemRecord));
+    BRRlpItem item = calloc (1, sizeof (struct BRRlpItemRecord));
 
     item->type = CODER_ITEM;
     
     item->bytesCount = context1->bytesCount + context2->bytesCount;
-    item->bytes = malloc (item->bytesCount);
+    item->bytes = (item->bytesCount > ITEM_DEFAULT_BYTES_COUNT
+                   ? malloc (item->bytesCount)
+                   : item->bytesArray);
+
     memcpy (&item->bytes[0], context1->bytes, context1->bytesCount);
     memcpy (&item->bytes[context1->bytesCount], context2->bytes, context2->bytesCount);
 
@@ -131,8 +141,8 @@ itemCreateAppend (BRRlpCoder coder, BRRlpItem context1, BRRlpItem context2, int 
     item->items = NULL;
     
     if (release) {
-//        assert (context2.bytes != context1.bytes || context2.bytes == NULL || context1.bytes == NULL);
-//        assert (context2.items != context1.items || context2.items == NULL || context1.items == NULL);
+        //        assert (context2.bytes != context1.bytes || context2.bytes == NULL || context1.bytes == NULL);
+        //        assert (context2.items != context1.items || context2.items == NULL || context1.items == NULL);
         itemRelease(coder, context1);
         itemRelease(coder, context2);
     }
@@ -256,12 +266,12 @@ coderDecodeLength (BRRlpCoder coder, uint8_t *bytes, uint8_t baseline, uint8_t *
         assert (lengthByteCount <= lengthSize);
 
         convertFromBigEndian((uint8_t*)&length, lengthSize, &bytes[1], lengthByteCount);
-//        // A big-endian byte array.
-//        uint8_t bytesValue [lengthSize];
-//        memset (bytesValue, 0, lengthSize);
-//        memcpy (&bytesValue[8 - lengthByteCount], &bytes[1], lengthByteCount);
-//
-//        coderSwapBytesIfLittleEndian((uint8_t*)&length, bytesValue, lengthSize);
+        //        // A big-endian byte array.
+        //        uint8_t bytesValue [lengthSize];
+        //        memset (bytesValue, 0, lengthSize);
+        //        memcpy (&bytesValue[8 - lengthByteCount], &bytes[1], lengthByteCount);
+        //
+        //        coderSwapBytesIfLittleEndian((uint8_t*)&length, bytesValue, lengthSize);
 
         // The value of `length` is used throughout for memcpy() and releated functions; it must
         // be a valid `size_t` type.  Ethereum RLP defines a length as a maximum of 8 bytes which
@@ -284,9 +294,9 @@ coderEncodeBytes(BRRlpCoder coder, uint8_t *bytes, size_t bytesCount) {
     // otherwise, encode the length and then the bytes themselves
     else {
         return itemCreateAppend(coder,
-                                       coderEncodeLength(coder, bytesCount, RLP_PREFIX_BYTES),
-                                       itemCreate(coder, bytes, bytesCount, 0),
-                                       1);
+                                coderEncodeLength(coder, bytesCount, RLP_PREFIX_BYTES),
+                                itemCreate(coder, bytes, bytesCount, 0),
+                                1);
     }
 }
 
@@ -356,41 +366,42 @@ coderEncodeList (BRRlpCoder coder, BRRlpItem *items, size_t itemsCount) {
         assert (itemIsValid(coder, items[i]));
     }
     
-    // Eventually fill these with concatenated item encodings.
+    // Eventually fill these by concatentating bytes from each of `items`
     size_t bytesCount = 0;
     uint8_t *bytes = NULL;
     
+    // Determine the number of concatenated bytes...
     for (int i = 0; i < itemsCount; i++)
         bytesCount += items[i]->bytesCount;
     
+    // ... and allocate the memory needed.
     bytes = malloc (bytesCount);
     
-    {
-        size_t bytesIndex = 0;
-        for (int i = 0; i < itemsCount; i++) {
-            BRRlpItem itemContext = items[i];
-            memcpy (&bytes[bytesIndex], itemContext->bytes, itemContext->bytesCount);
-            bytesIndex += itemContext->bytesCount;
-        }
+    // ... and concatenate the bytes from items
+    for (size_t bytesIndex = 0, i = 0; i < itemsCount; i++) {
+        BRRlpItem itemContext = items[i];
+        memcpy (&bytes[bytesIndex], itemContext->bytes, itemContext->bytesCount);
+        bytesIndex += itemContext->bytesCount;
     }
     
     BRRlpItem encodedBytesContext = (0 == bytesCount
-                                        ? coderEncodeLength(coder, bytesCount, RLP_PREFIX_LIST)
-                                        : itemCreateAppend (coder,
-                                                                  coderEncodeLength(coder, bytesCount, RLP_PREFIX_LIST),
-                                                                  itemCreate(coder, bytes, bytesCount, 1),
-                                                                  1));
-
-    if (0 == bytesCount) free (bytes);
+                                     ? coderEncodeLength(coder, bytesCount, RLP_PREFIX_LIST)
+                                     : itemCreateAppend (coder,
+                                                         coderEncodeLength(coder, bytesCount, RLP_PREFIX_LIST),
+                                                         itemCreate(coder, bytes, bytesCount, 1),
+                                                         1));
     
-    return itemCreateAsList(coder,
-                             encodedBytesContext->bytes,
-                             encodedBytesContext->bytesCount,
-                             1,
-                             items,
-                             itemsCount);
+    BRRlpItem result = itemCreateList(coder,
+                                      encodedBytesContext->bytes,
+                                      encodedBytesContext->bytesCount,
+                                      0, //encodedBytesContext->bytes != encodedBytesContext->bytesArray,
+                                      items,
+                                      itemsCount);
+    
+    if (0 == bytesCount) free (bytes);
+    itemRelease(coder, encodedBytesContext);
+    return result;
 }
-
 
 //
 // Public Interface
@@ -745,7 +756,7 @@ rlpGetItem (BRRlpCoder coder, BRRlpData data) {
             }
         }
 
-        BRRlpItem result = itemCreateAsList(coder, data.bytes, data.bytesCount, 0, items, itemsIndex);
+        BRRlpItem result = itemCreateList(coder, data.bytes, data.bytesCount, 0, items, itemsIndex);
         if (items != itemsArray) free(items);
         return result;
     }
@@ -817,49 +828,49 @@ rlpShow (BRRlpData data, const char *topic) {
 }
 
 /*
-def rlp_decode(input):
-  if len(input) == 0:
-    return
-  output = ''
-  (offset, dataLen, type) = decode_length(input)
-  if type is str:
-    output = instantiate_str(substr(input, offset, dataLen))
-  elif type is list:
-    output = instantiate_list(substr(input, offset, dataLen))
+ def rlp_decode(input):
+ if len(input) == 0:
+ return
+ output = ''
+ (offset, dataLen, type) = decode_length(input)
+ if type is str:
+ output = instantiate_str(substr(input, offset, dataLen))
+ elif type is list:
+ output = instantiate_list(substr(input, offset, dataLen))
 
-  output + rlp_decode(substr(input, offset + dataLen))
-  return output
+ output + rlp_decode(substr(input, offset + dataLen))
+ return output
 
-def decode_length(input):
-  length = len(input)
-  if length == 0:
-    raise Exception("input is null")
-  prefix = ord(input[0])
-  if prefix <= 0x7f:
-    return (0, 1, str)
-  elif prefix <= 0xb7 and length > prefix - 0x80:
-    strLen = prefix - 0x80
-    return (1, strLen, str)
-  elif prefix <= 0xbf and length > prefix - 0xb7 and length > prefix - 0xb7 + to_integer(substr(input, 1, prefix - 0xb7)):
-    lenOfStrLen = prefix - 0xb7
-    strLen = to_integer(substr(input, 1, lenOfStrLen))
-    return (1 + lenOfStrLen, strLen, str)
-  elif prefix <= 0xf7 and length > prefix - 0xc0:
-    listLen = prefix - 0xc0;
-    return (1, listLen, list)
-  elif prefix <= 0xff and length > prefix - 0xf7 and length > prefix - 0xf7 + to_integer(substr(input, 1, prefix - 0xf7)):
-    lenOfListLen = prefix - 0xf7
-    listLen = to_integer(substr(input, 1, lenOfListLen))
-    return (1 + lenOfListLen, listLen, list)
-  else:
-    raise Exception("input don't conform RLP encoding form")
+ def decode_length(input):
+ length = len(input)
+ if length == 0:
+ raise Exception("input is null")
+ prefix = ord(input[0])
+ if prefix <= 0x7f:
+ return (0, 1, str)
+ elif prefix <= 0xb7 and length > prefix - 0x80:
+ strLen = prefix - 0x80
+ return (1, strLen, str)
+ elif prefix <= 0xbf and length > prefix - 0xb7 and length > prefix - 0xb7 + to_integer(substr(input, 1, prefix - 0xb7)):
+ lenOfStrLen = prefix - 0xb7
+ strLen = to_integer(substr(input, 1, lenOfStrLen))
+ return (1 + lenOfStrLen, strLen, str)
+ elif prefix <= 0xf7 and length > prefix - 0xc0:
+ listLen = prefix - 0xc0;
+ return (1, listLen, list)
+ elif prefix <= 0xff and length > prefix - 0xf7 and length > prefix - 0xf7 + to_integer(substr(input, 1, prefix - 0xf7)):
+ lenOfListLen = prefix - 0xf7
+ listLen = to_integer(substr(input, 1, lenOfListLen))
+ return (1 + lenOfListLen, listLen, list)
+ else:
+ raise Exception("input don't conform RLP encoding form")
 
-def to_integer(b)
-  length = len(b)
-  if length == 0:
-    raise Exception("input is null")
-  elif length == 1:
-    return ord(b[0])
-  else:
-    return ord(substr(b, -1)) + to_integer(substr(b, 0, -1)) * 256
+ def to_integer(b)
+ length = len(b)
+ if length == 0:
+ raise Exception("input is null")
+ elif length == 1:
+ return ord(b[0])
+ else:
+ return ord(substr(b, -1)) + to_integer(substr(b, 0, -1)) * 256
  */
