@@ -175,9 +175,10 @@ ewmUpdateTransferGasEstimate (BREthereumEWM ewm,
             case NODE_TYPE_JSON_RPC: {
                 // This will be ZERO if transaction amount is in TOKEN.
                 BREthereumEther amountInEther = transferGetEffectiveAmountInEther(transfer);
-                char *to = (char *) addressGetEncodedString(transactionGetTargetAddress(transfer), 0);
+                BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
+                char *to = (char *) addressGetEncodedString(transactionGetTargetAddress(transaction), 0);
                 char *amount = coerceString(amountInEther.valueInWEI, 16);
-                char *data = (char *) transactionGetData(transfer);
+                char *data = (char *) transactionGetData(transaction);
                 
                 ewm->client.funcEstimateGas
                 (ewm->client.context,
