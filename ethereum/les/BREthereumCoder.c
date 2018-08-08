@@ -570,8 +570,8 @@ BRRlpData coderGetProofsV2(uint64_t message_id_offset, uint64_t reqId, BREthereu
     for(int i = 0; i < array_count(proofs); ++i){
         BRRlpItem proofItems[4];
         proofItems[0] = hashRlpEncode(proofs[i].blockHash, coder);
-        proofItems[1] = hashRlpEncode(proofs[i].key, coder);
-        proofItems[2] = hashRlpEncode(proofs[i].key2, coder);
+        proofItems[1] = rlpEncodeItemBytes(coder, proofs[i].key1.bytes, proofs[i].key1.bytesCount); // hashRlpEncode(proofs[i].key, coder);
+        proofItems[2] = rlpEncodeItemBytes(coder, proofs[i].key2.bytes, proofs[i].key2.bytesCount); // hashRlpEncode(proofs[i].key2, coder);
         proofItems[3] = rlpEncodeItemUInt64(coder, proofs[i].fromLevel,1);
         blockItems[i] = rlpEncodeListItems(coder, proofItems, 4);
     }

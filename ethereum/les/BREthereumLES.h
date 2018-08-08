@@ -310,8 +310,10 @@ lesGetGetProofsV2One (BREthereumLES les,
                      BREthereumLESProofsV2Context context,
                      BREthereumLESProofsV2Callback callback,
                      BREthereumHash blockHash,
-                     BREthereumHash key,
-                     BREthereumHash key2,
+                      BRRlpData key1,
+                      BRRlpData key2,
+                      //                     BREthereumHash  key,
+                      //                     BREthereumHash key2,
                      uint64_t fromLevel);
                      
 //

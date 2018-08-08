@@ -669,23 +669,127 @@ static void _GetProofs_Callback_Test1(BREthereumLESProofsV2Context context,
 static void run_GetProofsV2_Tests(BREthereumLES les){
     
     //Initilize testing state
-    _initTest(1);
-    
-    //Address to get proofs from
-    BREthereumAddress address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
-    
-    //Request the proofs for block 5503921 for address above
-    BREthereumHash block_5503921 = hashCreate("0x089a6c0b4b960261287d30ee40b1eea2da2972e7189bd381137f55540d492b2c");
-    BREthereumHash key, key2;
-    BRKeccak256(key.bytes, address.bytes, sizeof(address.bytes));
-    
-    memset(key.bytes, 0, 32);
-    memset(key2.bytes, 0, 32);
-    
-    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block_5503921, key, key2, 0) == LES_SUCCESS);
-    
+    _initTest(0);
+
+    BRRlpData key1, key2;
+
+    BREthereumHash block;
+    BREthereumAddress address ;
+    BREthereumHash addressHash;
+
+    //
+    // One of {key1, key2} is empty; other is address
+    //
+    block = hashCreate("0x089a6c0b4b960261287d30ee40b1eea2da2972e7189bd381137f55540d492b2c"); // _5503921
+    address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
+    key1 = (BRRlpData) { ADDRESS_BYTES, address.bytes};
+    key2 = (BRRlpData) { 0, NULL };
+    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+
+    key1 = (BRRlpData) { 0, NULL };
+    key2 = (BRRlpData) { ADDRESS_BYTES, address.bytes};
+    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+
+    block = hashCreate("0x204167e38efa1a4d75c996491637027bb1c8b1fe0d29e8d233160b5256cb415a"); // 6,100,000
+    address = addressCreate("0x3d0a24a19702a7336bdbf9d10bce1d4b87e222a5"); // from tx 0
+    key1 = (BRRlpData) { ADDRESS_BYTES, address.bytes};
+    key2 = (BRRlpData) { 0, NULL };
+    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+
+    key1 = (BRRlpData) { 0, NULL };
+    key2 = (BRRlpData) { ADDRESS_BYTES, address.bytes};
+    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+
+    //
+    // One of {key1, key2} is empty; other is address padded on left to 32 bytes
+    //
+    uint8_t addressBytes[32];
+    memset (addressBytes, 0, 32);
+
+    block = hashCreate("0x089a6c0b4b960261287d30ee40b1eea2da2972e7189bd381137f55540d492b2c"); // _5503921
+    address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
+    memcpy (&addressBytes[12], address.bytes, 20);
+
+    key1 = (BRRlpData) { 32, addressBytes};
+    key2 = (BRRlpData) { 0, NULL };
+    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+
+    key1 = (BRRlpData) { 0, NULL };
+    key2 = (BRRlpData) { 32, addressBytes};
+    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+
+    block = hashCreate("0x204167e38efa1a4d75c996491637027bb1c8b1fe0d29e8d233160b5256cb415a"); // 6,100,000
+    address = addressCreate("0x3d0a24a19702a7336bdbf9d10bce1d4b87e222a5"); // from tx 0
+    memcpy (&addressBytes[12], address.bytes, 20);
+
+    key1 = (BRRlpData) { 32, addressBytes};
+    key2 = (BRRlpData) { 0, NULL };
+    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+
+    key1 = (BRRlpData) { 0, NULL };
+    key2 = (BRRlpData) { 32, addressBytes};
+    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+
+
+    //
+    // One of {key1, key2} is empty; other is hash of address
+    //
+    block = hashCreate("0x089a6c0b4b960261287d30ee40b1eea2da2972e7189bd381137f55540d492b2c"); // _5503921
+    address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
+    addressHash = addressGetHash(address);
+    key1 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
+    key2 = (BRRlpData) { 0, NULL };
+    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+
+    key1 = (BRRlpData) { 0, NULL };
+    key2 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
+    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+
+    block = hashCreate("0x204167e38efa1a4d75c996491637027bb1c8b1fe0d29e8d233160b5256cb415a"); // 6,100,000
+    address = addressCreate("0x3d0a24a19702a7336bdbf9d10bce1d4b87e222a5"); // from tx 0
+    addressHash = addressGetHash(address);
+    key2 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
+    key2 = (BRRlpData) { 0, NULL };
+    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+
+    key1 = (BRRlpData) { 0, NULL };
+    key2 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
+    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+
+    //
+    // key1 == key2 as address
+    //
+    block = hashCreate("0x089a6c0b4b960261287d30ee40b1eea2da2972e7189bd381137f55540d492b2c"); // _5503921
+    address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
+    key1 = (BRRlpData) { ADDRESS_BYTES, address.bytes};
+    key2 = (BRRlpData) { ADDRESS_BYTES, address.bytes};
+    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+
+    block = hashCreate("0x204167e38efa1a4d75c996491637027bb1c8b1fe0d29e8d233160b5256cb415a"); // 6,100,000
+    address = addressCreate("0x3d0a24a19702a7336bdbf9d10bce1d4b87e222a5"); // from tx 0
+    key1 = (BRRlpData) { ADDRESS_BYTES, address.bytes};
+    key2 = (BRRlpData) { ADDRESS_BYTES, address.bytes};
+    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+
+    //
+    // key1 == key2, as hash of address
+    //
+    block = hashCreate("0x089a6c0b4b960261287d30ee40b1eea2da2972e7189bd381137f55540d492b2c"); // _5503921
+    address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
+    addressHash = addressGetHash(address);
+    key1 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
+    key2 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
+    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+
+    block = hashCreate("0x204167e38efa1a4d75c996491637027bb1c8b1fe0d29e8d233160b5256cb415a"); // 6,100,000
+    address = addressCreate("0x3d0a24a19702a7336bdbf9d10bce1d4b87e222a5"); // from tx 0
+    addressHash = addressGetHash(address);
+    key2 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
+    key2 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
+    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+
     //Wait for tests to complete
-    _waitForTests();
+    _waitForTests(); sleep (5);
     
     eth_log("run_GetProofsV2_Tests", "%s", "Tests Successful");
 }
@@ -739,15 +843,16 @@ void runLEStests(void) {
     _initBlockHeaderTestData();
     
     // Run Tests on the LES messages
-      run_GetTxStatus_Tests(les);
-      run_GetBlockHeaders_Tests(les);
-      run_GetBlockBodies_Tests(les);
-      run_GetReceipts_Tests(les);
- //   run_GetProofsV2_Tests(les); //NOTE: The callback function won't be called.
-      run_GetAccountState_Tests(les);
-    //reallySendLESTransaction(les);
+    run_GetTxStatus_Tests(les);
+    run_GetBlockHeaders_Tests(les);
+    run_GetBlockBodies_Tests(les);
+//    run_GetReceipts_Tests(les);
+    run_GetAccountState_Tests(les);
+    run_GetProofsV2_Tests(les); //NOTE: The callback function won't be called.
+                                //reallySendLESTransaction(les);
 
     lesStop(les);
+    sleep (1);
     lesRelease(les);
     printf ("Done\n");
 }

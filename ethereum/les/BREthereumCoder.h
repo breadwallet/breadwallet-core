@@ -105,8 +105,10 @@ statusMessageLogFlowControl (BREthereumLESStatusMessage *message);
 
 typedef struct {
     BREthereumHash blockHash;
-    BREthereumHash key;
-    BREthereumHash key2;
+    BRRlpData key1;
+    BRRlpData key2;
+//    BREthereumHash key;
+//    BREthereumHash key2;
     uint64_t fromLevel;
 } BREthereumLESProofsRequest;
 

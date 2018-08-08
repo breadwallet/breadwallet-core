@@ -653,8 +653,10 @@ lesGetGetProofsV2One (BREthereumLES les,
                      BREthereumLESProofsV2Context context,
                      BREthereumLESProofsV2Callback callback,
                      BREthereumHash blockHash,
-                     BREthereumHash  key,
-                     BREthereumHash key2,
+                      BRRlpData key1,
+                      BRRlpData key2,
+//                     BREthereumHash  key,
+//                     BREthereumHash key2,
                      uint64_t fromLevel) {
     
     BREthereumBoolean shouldSend;
@@ -668,7 +670,7 @@ lesGetGetProofsV2One (BREthereumLES les,
         BREthereumLESProofsRequest* proofs;
         BREthereumLESProofsRequest request;
         request.blockHash = blockHash;
-        request.key = key;
+        request.key1 = key1;
         request.key2 = key2;
         request.fromLevel = fromLevel;
         array_new(proofs, 1);
