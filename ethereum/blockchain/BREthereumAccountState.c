@@ -80,7 +80,7 @@ extern BRRlpItem
 accountStateRlpEncode(BREthereumAccountState state, BRRlpCoder coder) {
     BRRlpItem items[4];
 
-    items[0] = rlpEncodeItemUInt64(coder, state.nonce, 0);
+    items[0] = rlpEncodeUInt64(coder, state.nonce, 0);
     items[1] = etherRlpEncode(state.balance, coder);
     items[2] = hashRlpEncode(state.storageRoot, coder);
     items[3] = hashRlpEncode(state.codeHash, coder);
@@ -96,7 +96,7 @@ accountStateRlpDecode (BRRlpItem item, BRRlpCoder coder) {
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     assert (4 == itemsCount);
 
-    state.nonce = rlpDecodeItemUInt64(coder, items[0], 0);
+    state.nonce = rlpDecodeUInt64(coder, items[0], 0);
     state.balance = etherRlpDecode(items[1], coder);
     state.storageRoot = hashRlpDecode(items[2], coder);
     state.codeHash = hashRlpDecode(items[3], coder);

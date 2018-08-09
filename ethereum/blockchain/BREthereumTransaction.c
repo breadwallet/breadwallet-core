@@ -303,6 +303,7 @@ transactionExtractAddress(BREthereumTransaction transaction,
                                    &success);
     
     rlpDataRelease(data);
+    rlpReleaseItem(coder, item);
     return address;
 }
 
@@ -317,12 +318,12 @@ transactionRlpEncode(BREthereumTransaction transaction,
     BRRlpItem items[12]; // more than enough
     size_t itemsCount = 0;
 
-    items[0] = rlpEncodeItemUInt64(coder, transaction->nonce, 1);
+    items[0] = rlpEncodeUInt64(coder, transaction->nonce, 1);
     items[1] = gasPriceRlpEncode(transaction->gasPrice, coder);
     items[2] = gasRlpEncode(transaction->gasLimit, coder);
     items[3] = addressRlpEncode(transaction->targetAddress, coder);
     items[4] = etherRlpEncode(transaction->amount, coder);
-    items[5] = rlpEncodeItemHexString(coder, transaction->data);
+    items[5] = rlpEncodeHexString(coder, transaction->data);
     itemsCount = 6;
 
     // EIP-155:
@@ -338,23 +339,23 @@ transactionRlpEncode(BREthereumTransaction transaction,
     switch (type) {
         case RLP_TYPE_TRANSACTION_UNSIGNED:
             // For EIP-155, encode { v, r, s } with v as the chainId and both r and s as empty.
-            items[6] = rlpEncodeItemUInt64(coder, transaction->chainId, 1);
-            items[7] = rlpEncodeItemString(coder, "");
-            items[8] = rlpEncodeItemString(coder, "");
+            items[6] = rlpEncodeUInt64(coder, transaction->chainId, 1);
+            items[7] = rlpEncodeString(coder, "");
+            items[8] = rlpEncodeString(coder, "");
             itemsCount += 3;
             break;
 
         case RLP_TYPE_TRANSACTION_SIGNED: // aka NETWORK
         case RLP_TYPE_ARCHIVE:
             // For EIP-155, encode v with the chainID.
-            items[6] = rlpEncodeItemUInt64(coder, transaction->signature.sig.recoverable.v + 8 +
+            items[6] = rlpEncodeUInt64(coder, transaction->signature.sig.recoverable.v + 8 +
                                            2 * transaction->chainId, 1);
 
-            items[7] = rlpEncodeItemBytes (coder,
+            items[7] = rlpEncodeBytes (coder,
                                            transaction->signature.sig.recoverable.r,
                                            sizeof (transaction->signature.sig.recoverable.r));
 
-            items[8] = rlpEncodeItemBytes (coder,
+            items[8] = rlpEncodeBytes (coder,
                                            transaction->signature.sig.recoverable.s,
                                            sizeof (transaction->signature.sig.recoverable.s));
             itemsCount += 3;
@@ -402,17 +403,17 @@ transactionRlpDecode (BRRlpItem item,
     //    items[4] = amountRlpEncode(transaction->amount, coder);
     //    items[5] = transactionEncodeDataForHolding(transaction, transaction->amount, coder);
 
-    transaction->nonce = rlpDecodeItemUInt64(coder, items[0], 1);
+    transaction->nonce = rlpDecodeUInt64(coder, items[0], 1);
     transaction->gasPrice = gasPriceRlpDecode(items[1], coder);
     transaction->gasLimit = gasRlpDecode(items[2], coder);
 
     transaction->targetAddress = addressRlpDecode(items[3], coder);
     transaction->amount = etherRlpDecode(items[4], coder);
-    transaction->data = rlpDecodeItemHexString (coder, items[5], "0x");
+    transaction->data = rlpDecodeHexString (coder, items[5], "0x");
 
     transaction->chainId = networkGetChainId(network);
 
-    uint64_t eipChainId = rlpDecodeItemUInt64(coder, items[6], 1);
+    uint64_t eipChainId = rlpDecodeUInt64(coder, items[6], 1);
 
     if (eipChainId == transaction->chainId) {
         // RLP_TYPE_TRANSACTION_UNSIGNED
@@ -428,12 +429,12 @@ transactionRlpDecode (BRRlpItem item,
                                                     ? eipChainId - 8 - 2 * transaction->chainId
                                                     : eipChainId);
 
-        BRRlpData rData = rlpDecodeItemBytesSharedDontRelease (coder, items[7]);
+        BRRlpData rData = rlpDecodeBytesSharedDontRelease (coder, items[7]);
         assert (32 >= rData.bytesCount);
         memcpy (&transaction->signature.sig.recoverable.r[32 - rData.bytesCount],
                 rData.bytes, rData.bytesCount);
 
-        BRRlpData sData = rlpDecodeItemBytesSharedDontRelease (coder, items[8]);
+        BRRlpData sData = rlpDecodeBytesSharedDontRelease (coder, items[8]);
         assert (32 >= sData.bytesCount);
         memcpy (&transaction->signature.sig.recoverable.s[32 - sData.bytesCount],
                 sData.bytes, sData.bytesCount);
@@ -480,6 +481,7 @@ transactionGetRlpHexEncoded (BREthereumTransaction transaction,
         encodeHex(&result[strlen(prefix)], 2 * data.bytesCount + 1, data.bytes, data.bytesCount);
     }
 
+    rlpReleaseItem(coder, item);
     rlpCoderRelease(coder);
     return result;
 }

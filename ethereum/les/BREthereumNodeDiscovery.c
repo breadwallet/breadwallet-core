@@ -284,12 +284,12 @@ static BRRlpItem _encodeEndpoint(BRRlpCoder coder, BREthereumLESEndpoint endpoin
 
     BRRlpItem items[3];
     if(endpoint->addr_family == AF_INET) {
-        items[0] = rlpEncodeItemBytes(coder, endpoint->u.ipv4.address_bytes, 4);
+        items[0] = rlpEncodeBytes(coder, endpoint->u.ipv4.address_bytes, 4);
     }else {
-        items[0] = rlpEncodeItemBytes(coder, endpoint->u.ipv6.address_bytes, 16);
+        items[0] = rlpEncodeBytes(coder, endpoint->u.ipv6.address_bytes, 16);
     }
-    items[1] = rlpEncodeItemUInt64(coder, endpoint->udpPort, 0);
-    items[2] = rlpEncodeItemUInt64(coder, endpoint->tcpPort, 0);
+    items[1] = rlpEncodeUInt64(coder, endpoint->udpPort, 0);
+    items[2] = rlpEncodeUInt64(coder, endpoint->tcpPort, 0);
     
     return rlpEncodeListItems(coder, items, 3);
 }
@@ -504,19 +504,18 @@ int nodeDiscoveryPing(BRKey* nodeKey, BREthereumLESPingNode message, BREthereumL
     
     if(ec){
         //Encode packet data (BREthereumPingNode)
-        BRRlpData data;
         BRRlpCoder coder = rlpCoderCreate();
         BRRlpItem items[4];
         int idx = 0;
-        items[idx++] = rlpEncodeItemUInt64(coder, 0x03, 0);//rlpEncodeItemUInt256(coder, version,0);
+        items[idx++] = rlpEncodeUInt64(coder, 0x03, 0);//rlpEncodeItemUInt256(coder, version,0);
         items[idx++] = _encodeEndpoint(coder,message->from);
         items[idx++] = _encodeEndpoint(coder,message->to);
         struct timeval tv;
         gettimeofday(&tv, NULL); 
-        items[idx++] = rlpEncodeItemUInt64(coder,  (uint64_t)(tv.tv_sec + (double)tv.tv_usec/1000000 + 60), 0);
+        items[idx++] = rlpEncodeUInt64(coder,  (uint64_t)(tv.tv_sec + (double)tv.tv_usec/1000000 + 60), 0);
         //items[idx++] = rlpEncodeItemUInt64(coder, 1526904881, 0);
         BRRlpItem encoding = rlpEncodeListItems(coder, items, idx);
-        rlpDataExtract(coder, encoding, &data.bytes, &data.bytesCount);
+        BRRlpData data = rlpGetData(coder, encoding);
         
         ec = _generateAndSendPacket(sock, message->to, nodeKey, 0x01, data.bytes, data.bytesCount);
         if(!ec){
@@ -528,6 +527,7 @@ int nodeDiscoveryPing(BRKey* nodeKey, BREthereumLESPingNode message, BREthereumL
             }
         }
         //free data
+        rlpReleaseItem(coder, encoding);
         rlpDataRelease(data);
         rlpCoderRelease(coder);
     }

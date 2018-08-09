@@ -301,7 +301,7 @@ int _decryptMessageHelloFrame(BREthereumLESHandshake ctx, uint8_t* frame, size_t
     BRRlpData framePacketTypeData = {1, &frame[0]};
     BRRlpItem item = rlpGetItem (rlpCoder, framePacketTypeData);
     
-    uint64_t packetTypeMsg = rlpDecodeItemUInt64(rlpCoder, item, 0);
+    uint64_t packetTypeMsg = rlpDecodeUInt64(rlpCoder, item, 0);
 
     if(packetTypeMsg != 0x00){
         if(packetTypeMsg == 0x01) {
@@ -312,9 +312,11 @@ int _decryptMessageHelloFrame(BREthereumLESHandshake ctx, uint8_t* frame, size_t
             eth_log(HANDSHAKE_LOG_TOPIC, "Remote Peer requested to disconnect:%s", p2pDisconnectToString(reason));
         }
         eth_log(HANDSHAKE_LOG_TOPIC, "invalid packet type. Expected: Hello Message 0x00, got:%" PRIu64, packetTypeMsg);
+        rlpReleaseItem(rlpCoder, item);
         rlpCoderRelease(rlpCoder);
         return BRE_HANDSHAKE_ERROR;
     }
+    rlpReleaseItem(rlpCoder, item);
     rlpCoderRelease(rlpCoder);
     
     rlpCoder  = rlpCoderCreate();

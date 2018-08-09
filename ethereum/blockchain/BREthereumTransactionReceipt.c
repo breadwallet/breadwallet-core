@@ -142,8 +142,8 @@ transactionReceiptRlpDecode (BRRlpItem item,
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     assert (4 == itemsCount);
     
-    receipt->stateRoot = rlpDecodeItemBytes(coder, items[0]);
-    receipt->gasUsed = rlpDecodeItemUInt64(coder, items[1], 0);
+    receipt->stateRoot = rlpDecodeBytes(coder, items[0]);
+    receipt->gasUsed = rlpDecodeUInt64(coder, items[1], 0);
     receipt->bloomFilter = bloomFilterRlpDecode(items[2], coder);
     receipt->logs = transactionReceiptLogsRlpDecode(items[3], coder);
     
@@ -158,8 +158,8 @@ transactionReceiptRlpEncode(BREthereumTransactionReceipt receipt,
                             BRRlpCoder coder) {
     BRRlpItem items[4];
     
-    items[0] = rlpEncodeItemBytes(coder, receipt->stateRoot.bytes, receipt->stateRoot.bytesCount);
-    items[1] = rlpEncodeItemUInt64(coder, receipt->gasUsed, 0);
+    items[0] = rlpEncodeBytes(coder, receipt->stateRoot.bytes, receipt->stateRoot.bytesCount);
+    items[1] = rlpEncodeUInt64(coder, receipt->gasUsed, 0);
     items[2] = bloomFilterRlpEncode(receipt->bloomFilter, coder);
     items[3] = transactionReceiptLogsRlpEncode(receipt, coder);
     

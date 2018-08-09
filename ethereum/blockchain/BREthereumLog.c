@@ -127,7 +127,7 @@ logTopicRlpDecode (BRRlpItem item,
                        BRRlpCoder coder) {
     BREthereumLogTopic topic;
 
-    BRRlpData data = rlpDecodeItemBytes(coder, item);
+    BRRlpData data = rlpDecodeBytes(coder, item);
     assert (32 == data.bytesCount);
 
     memcpy (topic.bytes, data.bytes, 32);
@@ -139,7 +139,7 @@ logTopicRlpDecode (BRRlpItem item,
 static BRRlpItem
 logTopicRlpEncode(BREthereumLogTopic topic,
                       BRRlpCoder coder) {
-    return rlpEncodeItemBytes(coder, topic.bytes, 32);
+    return rlpEncodeBytes(coder, topic.bytes, 32);
 }
 
 static BREthereumLogTopic emptyTopic;
@@ -398,6 +398,7 @@ logCopy (BREthereumLog log) {
     BRRlpCoder coder = rlpCoderCreate();
     BRRlpItem item = logRlpEncode(log, RLP_TYPE_ARCHIVE, coder);
     BREthereumLog copy = logRlpDecode(item, RLP_TYPE_ARCHIVE, coder);
+    rlpReleaseItem(coder, item);
     rlpCoderRelease(coder);
     return copy;
 }
@@ -419,13 +420,13 @@ logRlpDecode (BRRlpItem item,
     log->address = addressRlpDecode(items[0], coder);
     log->topics = logTopicsRlpDecode (items[1], coder);
 
-    BRRlpData data = rlpDecodeItemBytes(coder, items[2]);
+    BRRlpData data = rlpDecodeBytes(coder, items[2]);
     log->data = data.bytes;
     log->dataCount = data.bytesCount;
 
     if (RLP_TYPE_ARCHIVE == type) {
         log->identifier.transactionHash = hashRlpDecode(items[3], coder);
-        log->identifier.transactionReceiptIndex = rlpDecodeItemUInt64(coder, items[4], 0);
+        log->identifier.transactionReceiptIndex = rlpDecodeUInt64(coder, items[4], 0);
         log->status = transactionStatusRLPDecode(items[5], coder);
     }
     return log;
@@ -443,11 +444,11 @@ logRlpEncode(BREthereumLog log,
 
     items[0] = addressRlpEncode(log->address, coder);
     items[1] = logTopicsRlpEncode(log, coder);
-    items[2] = rlpEncodeItemBytes(coder, log->data, log->dataCount);
+    items[2] = rlpEncodeBytes(coder, log->data, log->dataCount);
 
     if (RLP_TYPE_ARCHIVE == type) {
         items[3] = hashRlpEncode(log->identifier.transactionHash, coder);
-        items[4] = rlpEncodeItemUInt64(coder, log->identifier.transactionReceiptIndex, 0);
+        items[4] = rlpEncodeUInt64(coder, log->identifier.transactionReceiptIndex, 0);
         items[5] = transactionStatusRLPEncode(log->status, coder);
     }
 

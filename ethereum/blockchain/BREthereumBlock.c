@@ -404,16 +404,16 @@ blockHeaderRlpEncode (BREthereumBlockHeader header,
     items[ 4] = hashRlpEncode(header->transactionsRoot, coder);
     items[ 5] = hashRlpEncode(header->receiptsRoot, coder);
     items[ 6] = bloomFilterRlpEncode(header->logsBloom, coder);
-    items[ 7] = rlpEncodeItemUInt256 (coder, header->difficulty, 0);
-    items[ 8] = rlpEncodeItemUInt64(coder, header->number, 0);
-    items[ 9] = rlpEncodeItemUInt64(coder, header->gasLimit, 0);
-    items[10] = rlpEncodeItemUInt64(coder, header->gasUsed, 0);
-    items[11] = rlpEncodeItemUInt64(coder, header->timestamp, 0);
-    items[12] = rlpEncodeItemBytes(coder, header->extraData, header->extraDataCount);
+    items[ 7] = rlpEncodeUInt256 (coder, header->difficulty, 0);
+    items[ 8] = rlpEncodeUInt64(coder, header->number, 0);
+    items[ 9] = rlpEncodeUInt64(coder, header->gasLimit, 0);
+    items[10] = rlpEncodeUInt64(coder, header->gasUsed, 0);
+    items[11] = rlpEncodeUInt64(coder, header->timestamp, 0);
+    items[12] = rlpEncodeBytes(coder, header->extraData, header->extraDataCount);
 
     if (ETHEREUM_BOOLEAN_IS_TRUE(withNonce)) {
         items[13] = hashRlpEncode(header->mixHash, coder);
-        items[14] = rlpEncodeItemUInt64(coder, header->nonce, 0);
+        items[14] = rlpEncodeUInt64(coder, header->nonce, 0);
     }
 
     return rlpEncodeListItems(coder, items, itemsCount);
@@ -438,13 +438,13 @@ blockHeaderRlpDecode (BRRlpItem item,
     header->transactionsRoot = hashRlpDecode(items[4], coder);
     header->receiptsRoot = hashRlpDecode(items[5], coder);
     header->logsBloom = bloomFilterRlpDecode(items[6], coder);
-    header->difficulty = rlpDecodeItemUInt256(coder, items[7], 0);
-    header->number = rlpDecodeItemUInt64(coder, items[8], 0);
-    header->gasLimit = rlpDecodeItemUInt64(coder, items[9], 0);
-    header->gasUsed = rlpDecodeItemUInt64(coder, items[10], 0);
-    header->timestamp = rlpDecodeItemUInt64(coder, items[11], 0);
+    header->difficulty = rlpDecodeUInt256(coder, items[7], 0);
+    header->number = rlpDecodeUInt64(coder, items[8], 0);
+    header->gasLimit = rlpDecodeUInt64(coder, items[9], 0);
+    header->gasUsed = rlpDecodeUInt64(coder, items[10], 0);
+    header->timestamp = rlpDecodeUInt64(coder, items[11], 0);
 
-    BRRlpData extraData = rlpDecodeItemBytes(coder, items[12]);
+    BRRlpData extraData = rlpDecodeBytes(coder, items[12]);
     memset (header->extraData, 0, 32);
     memcpy (header->extraData, extraData.bytes, extraData.bytesCount);
     header->extraDataCount = extraData.bytesCount;
@@ -452,7 +452,7 @@ blockHeaderRlpDecode (BRRlpItem item,
 
     if (15 == itemsCount) {
         header->mixHash = hashRlpDecode(items[13], coder);
-        header->nonce = rlpDecodeItemUInt64(coder, items[14], 0);
+        header->nonce = rlpDecodeUInt64(coder, items[14], 0);
     }
 
 #if defined (BLOCK_HEADER_LOG_ALLOC_COUNT)
@@ -987,14 +987,14 @@ blockStatusRlpEncode (BREthereumBlockStatus status,
                       (status.accountStateRequest << 0));
 
     items[0] = hashRlpEncode(status.hash, coder);
-    items[1] = rlpEncodeItemUInt64(coder, flags, 1);
+    items[1] = rlpEncodeUInt64(coder, flags, 1);
 
     // TODO: Fill out
-    items[2] = rlpEncodeItemString(coder, "");
-    items[3] = rlpEncodeItemString(coder, "");
+    items[2] = rlpEncodeString(coder, "");
+    items[3] = rlpEncodeString(coder, "");
     items[4] = accountStateRlpEncode(status.accountState, coder);
 
-    items[5] = rlpEncodeItemUInt64(coder, status.error, 0);
+    items[5] = rlpEncodeUInt64(coder, status.error, 0);
 
     return rlpEncodeListItems(coder, items, 6);
 }
@@ -1010,7 +1010,7 @@ blockStatusRlpDecode (BRRlpItem item,
 
     status.hash = hashRlpDecode(items[0], coder);
 
-    uint64_t flags = rlpDecodeItemUInt64(coder, items[1], 1);
+    uint64_t flags = rlpDecodeUInt64(coder, items[1], 1);
     status.transactionRequest = 0x3 & (flags >> 4);
     status.logRequest = 0x3 & (flags >> 2);
     status.accountStateRequest = 0x3 & (flags >> 0);
@@ -1020,7 +1020,7 @@ blockStatusRlpDecode (BRRlpItem item,
     status.logs = NULL; // items [3]
     status.accountState = accountStateRlpDecode(items[4], coder);
 
-    status.error = (BREthereumBoolean) rlpDecodeItemUInt64(coder, items[5], 0);
+    status.error = (BREthereumBoolean) rlpDecodeUInt64(coder, items[5], 0);
     return status;
 }
 

@@ -48,8 +48,7 @@ extern BRRlpData p2pHelloEncode(BREthereumLESP2PHello* message) {
     BRRlpData data;
     
     BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem helloDataItems[5];
-    
+
     /**
             Hello 0x00 [p2pVersion: P, clientId: B, [[cap1: B_3, capVersion1: P], [cap2: B_3, capVersion2: P], ...], listenPort: P, nodeId: B_64] First packet sent over the connection, and sent once by both sides. No other messages may be sent until a Hello is received.
 
@@ -65,26 +64,29 @@ extern BRRlpData p2pHelloEncode(BREthereumLESP2PHello* message) {
     
     for(int i = 0; i < array_count(message->caps); ++i){
         BRRlpItem ethCapItems[2];
-        ethCapItems[0] = rlpEncodeItemString(coder, message->caps[i].cap);
-        ethCapItems[1] = rlpEncodeItemUInt64(coder, message->caps[i].capVersion, 0);
-        BRRlpItem etheCapItemsEncoding = rlpEncodeListItems(coder, ethCapItems, 2);
-        caps[i] = etheCapItemsEncoding;
+        ethCapItems[0] = rlpEncodeString(coder, message->caps[i].cap);
+        ethCapItems[1] = rlpEncodeUInt64(coder, message->caps[i].capVersion, 0);
+        caps[i] = rlpEncodeListItems(coder, ethCapItems, 2);
     }
     BRRlpItem capsItem = rlpEncodeListItems(coder, caps, array_count(message->caps));
     
     /** Encode the following : [p2pVersion: P, clientId: B, [[cap1: B_3, capVersion1: P], [cap2: B_3, capVersion2: P], ...], listenPort: P, nodeId: B_64] */
-    helloDataItems[0] = rlpEncodeItemUInt64(coder, message->version,0);
-    helloDataItems[1] = rlpEncodeItemString(coder, message->clientId);
+    BRRlpItem helloDataItems[5];
+    helloDataItems[0] = rlpEncodeUInt64(coder, message->version,0);
+    helloDataItems[1] = rlpEncodeString(coder, message->clientId);
     helloDataItems[2] = capsItem;
-    helloDataItems[3] = rlpEncodeItemUInt64(coder, 0x00,1);
-    helloDataItems[4] = rlpEncodeItemBytes(coder, message->nodeId.u8, 64);
+    helloDataItems[3] = rlpEncodeUInt64(coder, 0x00,1);
+    helloDataItems[4] = rlpEncodeBytes(coder, message->nodeId.u8, 64);
 
     /** Encode the following :  Hello 0x00 [p2pVersion: P, clientId: B, [[cap1: B_3, capVersion1: P], [cap2: B_3, capVersion2: P], ...], listenPort: P, nodeId: B_64] */
-    BRRlpData listData, idData;
-    rlpDataExtract(coder, rlpEncodeItemUInt64(coder, 0x00,1),&idData.bytes, &idData.bytesCount);
-    
-    rlpDataExtract(coder, rlpEncodeListItems(coder, helloDataItems, 5), &listData.bytes, &listData.bytesCount);
-    
+    BRRlpItem item = rlpEncodeUInt64(coder, 0x00,1);
+    BRRlpData idData = rlpGetData(coder, item);
+    rlpReleaseItem(coder, item);
+
+    BRRlpItem helloDataItem = rlpEncodeListItems(coder, helloDataItems, 5);
+    BRRlpData listData = rlpGetData(coder, helloDataItem);
+    rlpReleaseItem(coder, helloDataItem);
+
     uint8_t * rlpData = malloc(idData.bytesCount + listData.bytesCount);
     memcpy(rlpData, idData.bytes, idData.bytesCount);
     memcpy(&rlpData[idData.bytesCount], listData.bytes, listData.bytesCount);
@@ -110,15 +112,18 @@ extern BRRlpData p2pDisconnectEncode(BREthereumLESDisconnect reason) {
     /** Disconnect 0x01 [reason: P] */
     
     BRRlpItem reasonList[1];
-    reasonList[0] = rlpEncodeItemUInt64(coder, (uint64_t)reason, 0);
+    reasonList[0] = rlpEncodeUInt64(coder, (uint64_t)reason, 0);
     BRRlpItem reasonItem = rlpEncodeListItems(coder, reasonList, 1);
     
 
     /** Encode the following :  0x01 [reason: P]  */
-    BRRlpData listData, idData;
-    rlpDataExtract(coder, rlpEncodeItemUInt64(coder, 0x01,0),&idData.bytes, &idData.bytesCount);
-    rlpDataExtract(coder, reasonItem, &listData.bytes, &listData.bytesCount);
-    
+    BRRlpItem item = rlpEncodeUInt64(coder, 0x01,0);
+    BRRlpData idData = rlpGetData(coder, item);
+    rlpReleaseItem(coder, item);
+
+    BRRlpData listData = rlpGetData(coder, reasonItem);
+    rlpReleaseItem(coder, reasonItem);
+
     uint8_t * rlpData = malloc(idData.bytesCount + listData.bytesCount);
     memcpy(rlpData, idData.bytes, idData.bytesCount);
     memcpy(&rlpData[idData.bytesCount], listData.bytes, listData.bytesCount);
@@ -145,9 +150,9 @@ static BRRlpData _emptyMessage(uint64_t messageId) {
     
 
     /** Encode the following : 0x02 [] */
-    BRRlpData listData, idData;
-    rlpDataExtract(coder, rlpEncodeItemUInt64(coder, messageId,0),&idData.bytes, &idData.bytesCount);
-    rlpDataExtract(coder, emptyItem, &listData.bytes, &listData.bytesCount);
+    BRRlpItem messageItem = rlpEncodeUInt64(coder, messageId,0);
+    BRRlpData idData = rlpGetData(coder, messageItem);
+    BRRlpData listData = rlpGetData(coder, emptyItem);
     
     uint8_t * rlpData = malloc(idData.bytesCount + listData.bytesCount);
     memcpy(rlpData, idData.bytes, idData.bytesCount);
@@ -158,6 +163,8 @@ static BRRlpData _emptyMessage(uint64_t messageId) {
     
     rlpDataRelease(listData);
     rlpDataRelease(idData);
+    rlpReleaseItem(coder, emptyItem);
+    rlpReleaseItem(coder, messageItem);
     rlpCoderRelease(coder);
     
     return data;
@@ -187,10 +194,10 @@ extern BREthereumLESP2PHello p2pHelloDecode(BRRlpCoder coder, BRRlpData data) {
     size_t itemsCount;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
 
-    retHello.version      = rlpDecodeItemUInt64(coder, items[0],1);
-    retHello.clientId     = rlpDecodeItemString(coder,items[1]);
-    retHello.listenPort   = rlpDecodeItemUInt64(coder, items[3],1);
-    BRRlpData nodeIdBytes = rlpDecodeItemBytes(coder, items[4]);
+    retHello.version      = rlpDecodeUInt64(coder, items[0],1);
+    retHello.clientId     = rlpDecodeString(coder,items[1]);
+    retHello.listenPort   = rlpDecodeUInt64(coder, items[3],1);
+    BRRlpData nodeIdBytes = rlpDecodeBytes(coder, items[4]);
     memcpy(retHello.nodeId.u8, nodeIdBytes.bytes, nodeIdBytes.bytesCount);
     rlpDataRelease(nodeIdBytes);
     
@@ -204,12 +211,14 @@ extern BREthereumLESP2PHello p2pHelloDecode(BRRlpCoder coder, BRRlpData data) {
         size_t capsItemCount;
         const BRRlpItem* capsItem = rlpDecodeList(coder, capItems[i], &capsItemCount);
         BREthereumLESCapabilities cap;
-        cap.cap = rlpDecodeItemString(coder, capsItem[0]);
-        cap.capVersion = rlpDecodeItemUInt64(coder, capsItem[1], 1);
+        cap.cap = rlpDecodeString(coder, capsItem[0]);
+        cap.capVersion = rlpDecodeUInt64(coder, capsItem[1], 1);
         array_add(caps, cap);
     }
     retHello.caps = caps;
-    
+
+    rlpReleaseItem(coder, item);
+
     return retHello;
 }
 extern BREthereumLESDisconnect p2pDisconnectDecode(BRRlpCoder coder, BRRlpData data) {
@@ -222,8 +231,9 @@ extern BREthereumLESDisconnect p2pDisconnectDecode(BRRlpCoder coder, BRRlpData d
     size_t itemsCount;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
 
-    BREthereumLESDisconnect reason = (BREthereumLESDisconnect)rlpDecodeItemUInt64(coder, items[0],0);
+    BREthereumLESDisconnect reason = (BREthereumLESDisconnect)rlpDecodeUInt64(coder, items[0],0);
 
+    rlpReleaseItem(coder, item);
     return reason;
     
 }

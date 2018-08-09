@@ -288,6 +288,7 @@ transferSign (BREthereumTransfer transfer,
                                                       data.bytesCount,
                                                       paperKey);
     
+    rlpReleaseItem(coder, item);
     rlpDataRelease(data);
     rlpCoderRelease(coder);
     
@@ -322,6 +323,7 @@ transferSignWithKey (BREthereumTransfer transfer,
                                                                     data.bytesCount,
                                                                     privateKey);
     
+    rlpReleaseItem(coder, item);
     rlpDataRelease(data);
     rlpCoderRelease(coder);
     

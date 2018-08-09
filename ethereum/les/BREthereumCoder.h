@@ -134,46 +134,58 @@ typedef struct {
 //
 // Status Message
 //
-extern BRRlpData coderEncodeStatus(uint64_t message_id_offset, BREthereumLESStatusMessage* status);
-extern BREthereumLESDecodeStatus coderDecodeStatus(uint8_t*rlpBytes, size_t rlpBytesSize, BREthereumLESStatusMessage* status);
+extern BRRlpData coderEncodeStatus(BRRlpCoder coder, uint64_t message_id_offset, BREthereumLESStatusMessage* status);
+extern BREthereumLESDecodeStatus coderDecodeStatus(BRRlpCoder coder, uint8_t*rlpBytes, size_t rlpBytesSize, BREthereumLESStatusMessage* status);
 
 //
 // Transaction relaying and status retrieval
 //
-extern BRRlpData coderSendTx(uint64_t message_id_offset, uint64_t reqId, BREthereumTransaction transactions[], BREthereumNetwork network, BREthereumRlpType type);
-extern BRRlpData coderSendTxV2(uint64_t message_id_offset, uint64_t reqId, BREthereumTransaction transactions[], BREthereumNetwork network, BREthereumRlpType type);
+    extern BRRlpData coderSendTx(BRRlpCoder coder,
+                                 uint64_t message_id_offset, uint64_t reqId, BREthereumTransaction transactions[], BREthereumNetwork network, BREthereumRlpType type);
+    extern BRRlpData coderSendTxV2(BRRlpCoder coder,
+                                   uint64_t message_id_offset, uint64_t reqId, BREthereumTransaction transactions[], BREthereumNetwork network, BREthereumRlpType type);
 
 //
 // Header synchronisation
 //
-extern BRRlpData coderGetBlockHeaders(uint64_t message_id_offset,
+    extern BRRlpData coderGetBlockHeaders(BRRlpCoder coder,
+                                          uint64_t message_id_offset,
                                       uint64_t reqId,
                                       uint64_t block,
                                       uint64_t maxHeaders,
                                       uint64_t skip,
                                       uint64_t reverse);
 
-BREthereumLESDecodeStatus coderDecodeAnnounce(uint8_t*rlpBytes, size_t rlpBytesSize,
+    BREthereumLESDecodeStatus coderDecodeAnnounce(BRRlpCoder coder,
+                                                  uint8_t*rlpBytes, size_t rlpBytesSize,
                                                     BREthereumHash* hash,
                                                     uint64_t* headNumber, UInt256* headTd, uint64_t* reorgDepth,
                                                     BREthereumLESStatusMessage* message);
     
-BREthereumLESDecodeStatus coderDecodeBlockHeaders(uint8_t*rlpBytes, size_t rlpBytesSize,  uint64_t* reqId, uint64_t* bv,
+    BREthereumLESDecodeStatus coderDecodeBlockHeaders(BRRlpCoder coder,
+                                                      uint8_t*rlpBytes, size_t rlpBytesSize,  uint64_t* reqId, uint64_t* bv,
                                    BREthereumBlockHeader** blockHeaders);
     
  //
 // On-demand data retrieval
 //
-extern BRRlpData coderGetBlockBodies(uint64_t message_id_offset, uint64_t reqId, BREthereumHash* blockHashes);
-extern BREthereumLESDecodeStatus coderDecodeBlockBodies(uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv, BREthereumNetwork network, BREthereumBlockHeader***ommers,  BREthereumTransaction***transactions);
+    extern BRRlpData coderGetBlockBodies(BRRlpCoder coder,
+                                         uint64_t message_id_offset, uint64_t reqId, BREthereumHash* blockHashes);
+    extern BREthereumLESDecodeStatus coderDecodeBlockBodies(BRRlpCoder coder,
+                                                            uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv, BREthereumNetwork network, BREthereumBlockHeader***ommers,  BREthereumTransaction***transactions);
 
-extern BRRlpData coderGetReceipts(uint64_t message_id_offset, uint64_t reqId, BREthereumHash* blockHashes);
-extern BREthereumLESDecodeStatus coderDecodeReceipts(uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv, BREthereumTransactionReceipt***receipts);
+    extern BRRlpData coderGetReceipts(BRRlpCoder coder,
+                                      uint64_t message_id_offset, uint64_t reqId, BREthereumHash* blockHashes);
+    extern BREthereumLESDecodeStatus coderDecodeReceipts(BRRlpCoder coder,
+                                                         uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv, BREthereumTransactionReceipt***receipts);
 
-extern BRRlpData coderGetProofsV2(uint64_t message_id_offset, uint64_t reqId, BREthereumLESProofsRequest* requests);
+    extern BRRlpData coderGetProofsV2(BRRlpCoder coder,
+                                      uint64_t message_id_offset, uint64_t reqId, BREthereumLESProofsRequest* requests);
 
-extern BRRlpData coderGetTxStatus(uint64_t message_id_offset, uint64_t reqId, BREthereumHash* transactions);
-extern BREthereumLESDecodeStatus coderDecodeTxStatus(uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv, BREthereumTransactionStatus** replies, size_t* repliesCount);
+    extern BRRlpData coderGetTxStatus(BRRlpCoder coder,
+                                      uint64_t message_id_offset, uint64_t reqId, BREthereumHash* transactions);
+    extern BREthereumLESDecodeStatus coderDecodeTxStatus(BRRlpCoder coder,
+                                                         uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv, BREthereumTransactionStatus** replies, size_t* repliesCount);
 
 #ifdef __cplusplus
 }
