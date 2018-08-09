@@ -4,6 +4,7 @@
 
 // Bitcoin
 extern int BRRunTests();
+extern int BRRunTestsSync (void);
 
 // Util
 extern void runUtilTests (void);
