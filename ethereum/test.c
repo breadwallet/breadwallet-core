@@ -628,6 +628,35 @@ void testTransactionCodingToken () {
 //
 // All Tests
 //
+extern void
+runPerfTestsCoder (int repeat, int many) {
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpCoder coderSaved = coder;
+
+    BRRlpData data;
+    data.bytes = decodeHexCreate(&data.bytesCount, TEST_TRANS4_SIGNED_TX, strlen (TEST_TRANS4_SIGNED_TX));
+
+    BRRlpItem item = rlpGetItem(coder, data);
+    BREthereumTransaction transaction = transactionRlpDecode(item, ethereumMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
+
+    BRRlpItem items [100];
+
+    while (repeat-- > 0) {
+        if (many) coder = rlpCoderCreate();
+        for (int i = 0; i < 100; i++)
+            items[i] = transactionRlpEncode(transaction, ethereumMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder);
+
+        for (int i = 0; i < 100; i++)
+            transactionRelease(transactionRlpDecode(item, ethereumMainnet, RLP_TYPE_TRANSACTION_SIGNED, coder));
+
+        for (int i = 0; i < 100; i++)
+            rlpReleaseItem(coder, items[i]);
+        if (many) rlpCoderRelease(coder);
+    }
+
+    rlpReleaseItem(coderSaved, item);
+    rlpCoderRelease(coderSaved);
+}
 
 extern void
 runTests (int reallySend) {

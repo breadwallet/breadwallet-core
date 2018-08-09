@@ -30,3 +30,5 @@ extern void runLEStests(void);
 
 // Top-Level
 extern void runTests (int reallySend);
+
+extern void runPerfTestsCoder (int repeat, int many);
