@@ -8,6 +8,19 @@
 
 import BRCore
 
+protocol WalletListener {
+    func announceWalletEvent (ewm: EthereumWalletManager,
+                             wallet: EthereumWallet,
+                             event: EthereumWalletEvent)
+}
+
+protocol TransferListener {
+    func announceTransferEvent (ewm: EthereumWalletManager,
+                                wallet: EthereumWallet,
+                                transfer: EthereumTransfer,
+                                event: EthereumTransferEvent)
+}
+
 class CoreDemoEthereumClient : EthereumClient {
     var network : EthereumNetwork
     var node : EthereumWalletManager!
@@ -137,17 +150,26 @@ class CoreDemoEthereumClient : EthereumClient {
         print ("TST: PeerEvent: \(event)\n")
     }
 
+    //
+    // Wallet Event
+    //
+    var walletListeners = [WalletListener]()
+
+    func addWalletListener (listener: WalletListener) {
+        walletListeners.append(listener)
+    }
     func handleWalletEvent(ewm: EthereumWalletManager,
                            wallet: EthereumWallet,
                            event: EthereumWalletEvent) {
-        // Get the wallet... then
         print ("TST: WalletEvent: \(event)\n")
-        switch (event) {
-        default: // Never here
-            break;
+        walletListeners.forEach {
+            $0.announceWalletEvent(ewm: ewm, wallet: wallet, event: event)
         }
     }
 
+    //
+    // Block Event
+    //
     func handleBlockEvent(ewm: EthereumWalletManager,
                           block: EthereumBlock,
                           event: EthereumBlockEvent) {
@@ -158,15 +180,19 @@ class CoreDemoEthereumClient : EthereumClient {
         }
     }
 
+    var transferListeners = [EthereumWallet : TransferListener]()
+
+    func addTransferListener (wallet: EthereumWallet,
+                              listener : TransferListener) {
+        transferListeners[wallet] = listener
+    }
     func handleTransferEvent(ewm: EthereumWalletManager,
                                 wallet: EthereumWallet,
                                 transfer: EthereumTransfer,
                                 event: EthereumTransferEvent) {
-        // Get the transaction... then
         print ("TST: TransferEvent: \(event)\n")
-        switch (event) {
-        default: // Never here
-            break;
+        if let listener = transferListeners[wallet] {
+            listener.announceTransferEvent(ewm: ewm, wallet: wallet, transfer: transfer, event: event)
         }
-    }
+     }
 }

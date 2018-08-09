@@ -203,7 +203,8 @@ public struct EthereumToken : EthereumPointer {
 /// An `EthereumWallet` holds a balance with ETHER or a TOKEN and is associated with a Network
 /// and an Account on that network.  An `EthereumWallet` as a default unit.
 ///
-public struct EthereumWallet : EthereumReferenceWithDefaultUnit {
+public struct EthereumWallet : EthereumReferenceWithDefaultUnit, Hashable {
+
     public weak var ewm : EthereumWalletManager?
     public let identifier : EthereumWalletId
     public let unit : EthereumAmountUnit
@@ -211,6 +212,10 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit {
     let account : EthereumAccount
     let network : EthereumNetwork
     let token   : EthereumToken?
+
+    public var name : String {
+        return token?.symbol ?? "ETH"
+    }
 
     //
     // Gas Limit (in 'gas')
@@ -246,7 +251,7 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit {
     //
     // Balance
     //
-    var balance : EthereumAmount {
+    public var balance : EthereumAmount {
         let amount : BREthereumAmount = ethereumWalletGetBalance (self.ewm!.core, self.identifier)
         return (AMOUNT_ETHER == amount.type
             ? EthereumAmount.ether(amount.u.ether.valueInWEI, unit.coreForEther)
@@ -319,6 +324,10 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit {
     public var transfersCount : Int {
         return Int (exactly: ethereumWalletGetTransferCount (self.ewm!.core, self.identifier))!
     }
+
+    public var hashValue: Int {
+        return name.hashValue
+    }
 }
 
 // MAKR: - Block
@@ -376,15 +385,15 @@ public struct EthereumTransfer : EthereumReferenceWithDefaultUnit {
         return asUTF8String (ethereumTransferGetHash (self.ewm!.core, self.identifier), true)
     }
 
-    var sourceAddress : String {
+    public var sourceAddress : String {
         return asUTF8String (ethereumTransferGetSendAddress (self.ewm!.core, self.identifier), true)
     }
 
-    var targetAddress : String {
+    public var targetAddress : String {
         return asUTF8String (ethereumTransferGetRecvAddress (self.ewm!.core, self.identifier), true)
     }
 
-    var amount : EthereumAmount {
+    public var amount : EthereumAmount {
         let amount : BREthereumAmount = ethereumTransferGetAmount (self.ewm!.core, self.identifier)
         return (AMOUNT_ETHER == amount.type
             ? EthereumAmount.ether(amount.u.ether.valueInWEI, unit.coreForEther)
@@ -1030,35 +1039,35 @@ public enum EthereumAmount {
         }
     }
 
-    var token : EthereumToken? {
+    public var token : EthereumToken? {
         switch (self) {
         case .ether: return nil
         case let .token (_, t, _): return t;
         }
     }
 
-    var isEther : Bool {
+    public var isEther : Bool {
         switch (self) {
         case .ether: return true
         default: return false
         }
     }
 
-    var isToken : Bool {
+    public var isToken : Bool {
         switch (self) {
         case .token: return true
         default: return false
         }
     }
 
-    var amount : String {
+    public var amount : String {
         switch (self) {
         case let .ether (_, unit): return getAmountAsEther (unit: unit)
         case let .token (_, _, unit): return getAmountAsToken (unit: unit)
         }
     }
 
-    func getAmount (unit: EthereumAmountUnit) -> String? {
+    public func getAmount (unit: EthereumAmountUnit) -> String? {
         switch (self) {
         case .ether:
             if (!unit.isEther) { return nil}
