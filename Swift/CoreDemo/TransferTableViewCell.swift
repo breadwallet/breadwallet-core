@@ -41,7 +41,7 @@ class TransferTableViewCell: UITableViewCell {
             if amountLabel.text == "." || amountLabel.text == "" || amountLabel.text == "0." || amountLabel.text == ".0" {
                 amountLabel.text = "0.0"
             }
-            amountLabel.text = (address == source ? "-" : "+") + amountLabel.text! + "" + transfer.amount.symbol
+            amountLabel.text = (address == source ? "-" : "+") + amountLabel.text! + " " + transfer.amount.symbol
 
         }
     }
