@@ -63,7 +63,9 @@ class CoreTests: XCTestCase {
     }
 
     func testBitcoinSync () {
-        BRRunTestsSync ();
+        for _ in 1...10 {
+            BRRunTestsSync (1);
+        }
     }
 
     func testPerformanceExample() {
