@@ -10,7 +10,7 @@ import Core.Ethereum
 
 public typealias EthereumReferenceId = Int32
 public typealias EthereumWalletId = EthereumReferenceId
-public typealias EthereumTransactionId = EthereumReferenceId
+public typealias EthereumTransferId = EthereumReferenceId
 public typealias EthereumAccountId = EthereumReferenceId
 public typealias EthereumAddressId = EthereumReferenceId
 public typealias EthereumBlockId = EthereumReferenceId
@@ -309,14 +309,14 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit {
         ethereumWalletSubmitTransfer (self.ewm!.core, self.identifier, transfer.identifier)
     }
 
-    var transactions : [EthereumTransfer] {
+    public var transfers : [EthereumTransfer] {
         let count = ethereumWalletGetTransferCount (self.ewm!.core, self.identifier)
         let identifiers = ethereumWalletGetTransfers (self.ewm!.core, self.identifier)
         return UnsafeBufferPointer (start: identifiers, count: Int(exactly: count)!)
-            .map { self.ewm!.findTransaction(identifier: $0) }
+            .map { self.ewm!.findTransfers(identifier: $0) }
     }
 
-    var transactionsCount : Int {
+    public var transfersCount : Int {
         return Int (exactly: ethereumWalletGetTransferCount (self.ewm!.core, self.identifier))!
     }
 }
@@ -359,14 +359,14 @@ public struct EthereumTransfer : EthereumReferenceWithDefaultUnit {
     public let identifier : EthereumWalletId
     public let unit : EthereumAmountUnit
 
-    internal init (ewm : EthereumWalletManager, identifier : EthereumTransactionId) {
+    internal init (ewm : EthereumWalletManager, identifier : EthereumTransferId) {
         self.init (ewm: ewm,
                    identifier: identifier,
                    unit: EthereumAmountUnit.defaultUnit(
                     nil == ethereumTransferGetToken (ewm.core, identifier)))
     }
 
-    internal init (ewm : EthereumWalletManager, identifier : EthereumTransactionId, unit: EthereumAmountUnit) {
+    internal init (ewm : EthereumWalletManager, identifier : EthereumTransferId, unit: EthereumAmountUnit) {
         self.ewm = ewm
         self.identifier = identifier
         self.unit = unit
@@ -519,7 +519,7 @@ public protocol EthereumClient : class {
 
     func getGasEstimate (ewm: EthereumWalletManager,
                          wid: EthereumWalletId,
-                         tid: EthereumTransactionId,
+                         tid: EthereumTransferId,
                          to: String,
                          amount: String,
                          data:  String,
@@ -533,7 +533,7 @@ public protocol EthereumClient : class {
 
     func submitTransaction (ewm: EthereumWalletManager,
                             wid: EthereumWalletId,
-                            tid: EthereumTransactionId,
+                            tid: EthereumTransferId,
                             rawTransaction: String,
                             rid: Int32) -> Void
     // ...
@@ -693,7 +693,7 @@ public class EthereumWalletManager {
     //
     // Transactions
     //
-    internal func findTransaction (identifier: EthereumTransactionId) -> EthereumTransfer {
+    internal func findTransfers (identifier: EthereumTransferId) -> EthereumTransfer {
         return EthereumTransfer (ewm: self, identifier: identifier)
     }
 
@@ -720,11 +720,11 @@ public class EthereumWalletManager {
         ethereumClientAnnounceGasPrice (core, wid, gasPrice, rid)
     }
 
-    public func announceGasEstimate (wid: EthereumWalletId, tid: EthereumTransactionId, gasEstimate: String, rid: Int32) {
+    public func announceGasEstimate (wid: EthereumWalletId, tid: EthereumTransferId, gasEstimate: String, rid: Int32) {
         ethereumClientAnnounceGasEstimate (core, wid, tid, gasEstimate, rid)
     }
 
-    public func announceSubmitTransaction (wid: EthereumWalletId, tid: EthereumTransactionId, hash: String, rid: Int32) {
+    public func announceSubmitTransaction (wid: EthereumWalletId, tid: EthereumTransferId, hash: String, rid: Int32) {
         ethereumClientAnnounceSubmitTransfer (core, wid, tid, hash, rid)
     }
 
@@ -939,7 +939,7 @@ public class EthereumWalletManager {
                     let ewm = EthereumWalletManager.lookup(core: coreEWM) {
                     client.handleTransferEvent(ewm: ewm,
                                                   wallet: ewm.findWallet(identifier: wid),
-                                                  transfer: ewm.findTransaction(identifier: tid),
+                                                  transfer: ewm.findTransfers(identifier: tid),
                                                   event: EthereumTransferEvent(event))
                 }})
     }
@@ -1118,7 +1118,7 @@ class AnyEthereumClient : EthereumClient {
         base.getGasPrice(ewm: ewm, wid: wid, rid: rid)
     }
 
-    func getGasEstimate(ewm: EthereumWalletManager, wid: EthereumWalletId, tid: EthereumTransactionId, to: String, amount: String, data: String, rid: Int32) {
+    func getGasEstimate(ewm: EthereumWalletManager, wid: EthereumWalletId, tid: EthereumTransferId, to: String, amount: String, data: String, rid: Int32) {
         base.getGasEstimate(ewm: ewm, wid: wid, tid: tid, to: to, amount: amount, data: data, rid: rid)
     }
 
@@ -1126,7 +1126,7 @@ class AnyEthereumClient : EthereumClient {
         base.getBalance(ewm: ewm, wid: wid, address: address, rid: rid)
     }
 
-    func submitTransaction(ewm: EthereumWalletManager, wid: EthereumWalletId, tid: EthereumTransactionId, rawTransaction: String, rid: Int32) {
+    func submitTransaction(ewm: EthereumWalletManager, wid: EthereumWalletId, tid: EthereumTransferId, rawTransaction: String, rid: Int32) {
         base.submitTransaction(ewm: ewm, wid: wid, tid: tid, rawTransaction: rawTransaction, rid: rid)
     }
 

@@ -32,12 +32,12 @@ class CoreDemoEthereumClient : EthereumClient {
         ewm.announceGasPrice (wid: wid, gasPrice: "0x77", rid: rid)
     }
 
-    func getGasEstimate(ewm: EthereumWalletManager, wid: EthereumWalletId, tid: EthereumTransactionId, to: String, amount: String, data: String, rid: Int32) {
+    func getGasEstimate(ewm: EthereumWalletManager, wid: EthereumWalletId, tid: EthereumTransferId, to: String, amount: String, data: String, rid: Int32) {
         // JSON_RPC -> JSON -> Result -> announceGasEstimate()
         ewm.announceGasEstimate (wid: wid, tid: tid, gasEstimate: "0x21000", rid: rid)
     }
 
-    func submitTransaction(ewm: EthereumWalletManager, wid: EthereumWalletId, tid: EthereumTransactionId, rawTransaction: String, rid: Int32) {
+    func submitTransaction(ewm: EthereumWalletManager, wid: EthereumWalletId, tid: EthereumTransferId, rawTransaction: String, rid: Int32) {
         // JSON_RPC -> JSON -> Result -> announceSubmitTransaction()
         ewm.announceSubmitTransaction (wid: wid, tid: tid, hash: "0xffaabb", rid: rid)
         return
