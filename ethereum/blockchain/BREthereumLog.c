@@ -311,6 +311,11 @@ logGetData (BREthereumLog log) {
     return data;
 }
 
+extern BRRlpData
+logGetDataShared (BREthereumLog log) {
+    return (BRRlpData) { log->dataCount, log->data };
+}
+
 extern BREthereumBoolean
 logMatchesAddress (BREthereumLog log,
                    BREthereumAddress address,

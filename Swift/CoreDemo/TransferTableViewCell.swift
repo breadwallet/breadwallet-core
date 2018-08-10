@@ -37,7 +37,12 @@ class TransferTableViewCell: UITableViewCell {
             let date = "... 2018 ..."
             dateLabel.text = "\(address == source ? "Send" : "Recv"): \(date)"
             addrLabel.text = "Addr: \(address == source ? target : source)"
-            amountLabel.text = transfer.amount.amount
+            amountLabel.text = transfer.amount.amount.trimmingCharacters(in: CharacterSet (charactersIn: "0 "))
+            if amountLabel.text == "." || amountLabel.text == "" || amountLabel.text == "0." || amountLabel.text == ".0" {
+                amountLabel.text = "0.0"
+            }
+            amountLabel.text = (address == source ? "-" : "+") + amountLabel.text! + "" + transfer.amount.symbol
+
         }
     }
     @IBOutlet var dateLabel: UILabel!

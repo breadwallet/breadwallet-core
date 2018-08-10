@@ -1074,6 +1074,13 @@ public enum EthereumAmount {
         }
     }
 
+    public var symbol : String {
+        switch self {
+        case .ether: return "ETH"
+        case let .token (_, token, _): return token.symbol
+        }
+    }
+
     public func getAmount (unit: EthereumAmountUnit) -> String? {
         switch (self) {
         case .ether:

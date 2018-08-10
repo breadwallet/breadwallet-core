@@ -57,6 +57,41 @@ typedef struct BREthereumTransferStatusRecord {
     } u;
 } BREthereumTransferStatus;
 
+static BREthereumTransferStatus
+transferStatusCreate (BREthereumTransactionStatus status) {
+    BREthereumTransferStatus result;
+
+    switch (status.type) {
+        case TRANSACTION_STATUS_UNKNOWN:
+            result.type = TRANSFER_STATUS_CREATED;
+            break;
+
+        case TRANSACTION_STATUS_QUEUED:
+        case TRANSACTION_STATUS_PENDING:
+            result.type = TRANSFER_STATUS_SUBMITTED;
+            break;
+
+        case TRANSACTION_STATUS_INCLUDED:
+            result.type = TRANSFER_STATUS_INCLUDED;
+            result.u.included.gasUsed = status.u.included.gasUsed;
+            result.u.included.blockHash = status.u.included.blockHash;
+            result.u.included.blockNumber = status.u.included.blockNumber;
+            result.u.included.transactionIndex = status.u.included.transactionIndex;
+            break;
+
+        case TRANSACTION_STATUS_ERRORED:
+            result.type = TRANSFER_STATUS_ERRORED;
+            memcpy (result.u.errored.reason, 0, TRANSFER_STATUS_REASON_BYTES + 1);
+            strncpy (result.u.errored.reason, status.u.errored.reason, TRANSFER_STATUS_REASON_BYTES);
+            break;
+
+        default:
+            result.type = TRANSFER_STATUS_CREATED;
+            break;
+    }
+    return result;
+}
+
 //
 // MARK: Basis
 //
@@ -177,11 +212,18 @@ transferCreateWithLog (BREthereumLog log,
         FEE_BASIS_NONE
     };
 
-    BREthereumAddress sourceAddress = EMPTY_ADDRESS_INIT;
-    BREthereumAddress targetAddress = EMPTY_ADDRESS_INIT;
+    assert (3 == logGetTopicsCount(log));
 
-    UInt256 value = UINT256_ZERO;
-    BREthereumAmount  amount = amountCreateToken(createTokenQuantity(token, value));
+    // TODO: Is this a log of interest?
+    // BREthereumAddress contractAddress = logGetAddress(log);
+
+    BREthereumAddress sourceAddress = logTopicAsAddress(logGetTopic(log, 1));
+    BREthereumAddress targetAddress = logTopicAsAddress(logGetTopic(log, 2));
+
+    BRRlpData amountData = logGetDataShared(log);
+    UInt256 value = rlpDataDecodeUInt256(amountData);
+
+    BREthereumAmount  amount = amountCreateToken (createTokenQuantity(token, value));
 
     BREthereumTransfer transfer = transferCreateDetailed (sourceAddress,
                                                           targetAddress,
@@ -192,8 +234,8 @@ transferCreateWithLog (BREthereumLog log,
     transfer->basis.type = TRANSFER_BASIS_LOG;
     transfer->basis.u.log = log;
 
-    BREthereumTransactionStatus status = logGetStatus(log);
-    // ...
+    // Status
+    BREthereumTransferStatus transferStatus = transferStatusCreate(logGetStatus(log));
 
     return transfer;
 }
