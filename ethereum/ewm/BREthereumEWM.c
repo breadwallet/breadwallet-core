@@ -770,7 +770,6 @@ ewmHandleTransaction (BREthereumEWM ewm,
                       BREthereumBCSCallbackTransactionType type,
                       BREthereumTransaction transaction) {
     
-    pthread_mutex_lock(&ewm->lock);
 
     BREthereumHash hash = transactionGetHash(transaction);
 
