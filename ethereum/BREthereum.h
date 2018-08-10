@@ -163,10 +163,10 @@ typedef void
                                    const char *event,
                                    int rid);
 
-    typedef void
-    (*BREthereumClientHandlerGetTokens) (BREthereumClientContext context,
-                                       BREthereumEWM ewm,
-                                       int rid);
+typedef void
+(*BREthereumClientHandlerGetTokens) (BREthereumClientContext context,
+                                     BREthereumEWM ewm,
+                                     int rid);
 
 typedef void
 (*BREthereumClientHandlerGetBlockNumber) (BREthereumClientContext context,
@@ -278,12 +278,12 @@ typedef enum {
 #define TRANSACTION_NUMBER_OF_EVENTS (1 + TRANSACTION_EVENT_DELETED)
 
 typedef void (*BREthereumClientHandlerTransferEvent) (BREthereumClientContext context,
-                                                         BREthereumEWM ewm,
-                                                         BREthereumWalletId wid,
-                                                         BREthereumTransferId tid,
-                                                         BREthereumTransferEvent event,
-                                                         BREthereumStatus status,
-                                                         const char *errorDescription);
+                                                      BREthereumEWM ewm,
+                                                      BREthereumWalletId wid,
+                                                      BREthereumTransferId tid,
+                                                      BREthereumTransferEvent event,
+                                                      BREthereumStatus status,
+                                                      const char *errorDescription);
 
 //
 // Peer Event
@@ -531,6 +531,16 @@ ethereumGetNetwork (BREthereumEWM ewm);
 //
 // Wallet
 //
+
+/**
+ * Returns a -1 terminated array of wallet identifiers.
+ */
+extern BREthereumWalletId *
+ethereumGetWallets(BREthereumEWM ewm);
+
+extern unsigned int
+ethereumGetWalletsCount (BREthereumEWM ewm);
+
 /**
  * Get the wallet for `account` holding ETHER.  This wallet is created, along with the account,
  * when a EWM itself is created.
@@ -593,9 +603,9 @@ ethereumWalletGetBalanceTokenQuantity(BREthereumEWM ewm,
 
 extern BREthereumEther
 ethereumWalletEstimateTransferFee(BREthereumEWM ewm,
-                                     BREthereumWalletId wid,
-                                     BREthereumAmount amount,
-                                     int *overflow);
+                                  BREthereumWalletId wid,
+                                  BREthereumAmount amount,
+                                  int *overflow);
 
 /**
  * Create a transaction to transfer `amount` from `wallet` to `recvAddrss`.
@@ -608,9 +618,9 @@ ethereumWalletEstimateTransferFee(BREthereumEWM ewm,
  */
 extern BREthereumTransferId
 ethereumWalletCreateTransfer(BREthereumEWM ewm,
-                                BREthereumWalletId wid,
-                                const char *recvAddress,
-                                BREthereumAmount amount);
+                             BREthereumWalletId wid,
+                             const char *recvAddress,
+                             BREthereumAmount amount);
 
 /**
  * Sign the transaction using the wallet's account (for the sender's address).  The paperKey
@@ -623,34 +633,34 @@ ethereumWalletCreateTransfer(BREthereumEWM ewm,
  */
 extern void
 ethereumWalletSignTransfer(BREthereumEWM ewm,
-                              BREthereumWalletId wid,
-                              BREthereumTransferId tid,
-                              const char *paperKey);
+                           BREthereumWalletId wid,
+                           BREthereumTransferId tid,
+                           const char *paperKey);
 
 extern void
 ethereumWalletSignTransferWithPrivateKey(BREthereumEWM ewm,
-                                            BREthereumWalletId wid,
-                                            BREthereumTransferId tid,
-                                            BRKey privateKey);
+                                         BREthereumWalletId wid,
+                                         BREthereumTransferId tid,
+                                         BRKey privateKey);
 
 extern void
 ethereumWalletSubmitTransfer(BREthereumEWM ewm,
-                                BREthereumWalletId wid,
-                                BREthereumTransferId tid);
+                             BREthereumWalletId wid,
+                             BREthereumTransferId tid);
 
 /**
- * Returns a -1 terminated array of transaction identifiers.
+ * Returns a -1 terminated array of treansfer identifiers.
  */
 extern BREthereumTransferId *
 ethereumWalletGetTransfers(BREthereumEWM ewm,
-                              BREthereumWalletId wid);
+                           BREthereumWalletId wid);
 
 /**
  * Returns -1 on invalid wid
  */
 extern int
 ethereumWalletGetTransferCount(BREthereumEWM ewm,
-                                  BREthereumWalletId wid);
+                               BREthereumWalletId wid);
 
 /**
  * Token can be NULL => holds Ether
@@ -694,29 +704,29 @@ ethereumBlockGetHash (BREthereumEWM ewm,
 //
 extern char * // receiver, target
 ethereumTransferGetRecvAddress(BREthereumEWM ewm,
-                                  BREthereumTransferId tid);
+                               BREthereumTransferId tid);
 
 extern char * // sender, source
 ethereumTransferGetSendAddress(BREthereumEWM ewm,
-                                  BREthereumTransferId tid);
+                               BREthereumTransferId tid);
 
 extern char *
 ethereumTransferGetHash(BREthereumEWM ewm,
-                           BREthereumTransferId tid);
+                        BREthereumTransferId tid);
 
 extern char *
 ethereumTransferGetAmountEther(BREthereumEWM ewm,
-                                  BREthereumTransferId tid,
-                                  BREthereumEtherUnit unit);
+                               BREthereumTransferId tid,
+                               BREthereumEtherUnit unit);
 
 extern char *
 ethereumTransferGetAmountTokenQuantity(BREthereumEWM ewm,
-                                          BREthereumTransferId tid,
-                                          BREthereumTokenQuantityUnit unit);
+                                       BREthereumTransferId tid,
+                                       BREthereumTokenQuantityUnit unit);
 
 extern BREthereumAmount
 ethereumTransferGetAmount(BREthereumEWM ewm,
-                             BREthereumTransferId tid);
+                          BREthereumTransferId tid);
 
 //extern BREthereumAmount
 //ethereumTransferGetGasPriceToo(BREthereumEWM ewm,
@@ -724,54 +734,54 @@ ethereumTransferGetAmount(BREthereumEWM ewm,
 
 extern char *
 ethereumTransferGetGasPrice(BREthereumEWM ewm,
-                               BREthereumTransferId tid,
-                               BREthereumEtherUnit unit);
+                            BREthereumTransferId tid,
+                            BREthereumEtherUnit unit);
 
 extern uint64_t
 ethereumTransferGetGasLimit(BREthereumEWM ewm,
-                               BREthereumTransferId tid);
+                            BREthereumTransferId tid);
 
 extern uint64_t
 ethereumTransferGetGasUsed(BREthereumEWM ewm,
-                              BREthereumTransferId tid);
+                           BREthereumTransferId tid);
 
 extern uint64_t
 ethereumTransferGetNonce(BREthereumEWM ewm,
-                            BREthereumTransferId transaction);
+                         BREthereumTransferId transaction);
 
 extern BREthereumHash
 ethereumTransferGetBlockHash(BREthereumEWM ewm,
-                                BREthereumTransferId tid);
+                             BREthereumTransferId tid);
 
 extern uint64_t
 ethereumTransferGetBlockNumber(BREthereumEWM ewm,
-                                  BREthereumTransferId tid);
+                               BREthereumTransferId tid);
 
 extern uint64_t
 ethereumTransferGetBlockConfirmations(BREthereumEWM ewm,
-                                         BREthereumTransferId tid);
+                                      BREthereumTransferId tid);
 
 extern BREthereumBoolean
 ethereumTransferIsConfirmed(BREthereumEWM ewm,
-                               BREthereumTransferId tid);
+                            BREthereumTransferId tid);
 
 extern BREthereumBoolean
 ethereumTransferIsSubmitted(BREthereumEWM ewm,
-                               BREthereumTransferId tid);
+                            BREthereumTransferId tid);
 
 extern BREthereumBoolean
 ethereumTransferHoldsToken(BREthereumEWM ewm,
-                              BREthereumTransferId tid,
-                              BREthereumToken token);
+                           BREthereumTransferId tid,
+                           BREthereumToken token);
 
 extern BREthereumToken
 ethereumTransferGetToken(BREthereumEWM ewm,
-                            BREthereumTransferId tid);
+                         BREthereumTransferId tid);
 
 extern BREthereumEther
 ethereumTransferGetFee(BREthereumEWM ewm,
-                          BREthereumTransferId tid,
-                          int *overflow);
+                       BREthereumTransferId tid,
+                       int *overflow);
 
 /**
  * Return the serialized raw data for `transaction`.  The value `*bytesPtr` points to a byte array;
@@ -786,16 +796,16 @@ ethereumTransferGetFee(BREthereumEWM ewm,
 
 extern void
 ethereumTransferFillRawData(BREthereumEWM ewm,
-                               BREthereumWalletId wid,
-                               BREthereumTransferId tid,
-                               uint8_t **bytesPtr,
-                               size_t *bytesCountPtr);
+                            BREthereumWalletId wid,
+                            BREthereumTransferId tid,
+                            uint8_t **bytesPtr,
+                            size_t *bytesCountPtr);
 
 extern const char *
 ethereumTransferGetRawDataHexEncoded(BREthereumEWM ewm,
-                                        BREthereumWalletId wid,
-                                        BREthereumTransferId tid,
-                                        const char *prefix);
+                                     BREthereumWalletId wid,
+                                     BREthereumTransferId tid,
+                                     const char *prefix);
 
 
 //
@@ -806,26 +816,26 @@ ethereumTransferGetRawDataHexEncoded(BREthereumEWM ewm,
 // `BREthereumHash or uint64_t, or b) deep copy the calling context pointer.
 //
 
-    ///
-    /// MARK: - Client Updates and Announcements
-    ///
+///
+/// MARK: - Client Updates and Announcements
+///
 
-    //
-    // Block Number
-    //
-    extern void
-    ethereumUpdateBlockNumber (BREthereumEWM ewm);
+//
+// Block Number
+//
+extern void
+ethereumUpdateBlockNumber (BREthereumEWM ewm);
 
 extern BREthereumStatus
 ethereumClientAnnounceBlockNumber (BREthereumEWM ewm,
                                    const char *blockNumber,
                                    int rid);
 
-    //
-    // Nonce
-    //
-    extern void
-    ethereumUpdateNonce (BREthereumEWM ewm);
+//
+// Nonce
+//
+extern void
+ethereumUpdateNonce (BREthereumEWM ewm);
 
 
 extern BREthereumStatus
@@ -834,26 +844,26 @@ ethereumClientAnnounceNonce (BREthereumEWM ewm,
                              const char *strNonce,
                              int rid);
 
-    //
-    // Balance
-    //
-    extern void
-    ethereumUpdateWalletBalance (BREthereumEWM ewm,
-                                 BREthereumWalletId wid);
+//
+// Balance
+//
+extern void
+ethereumUpdateWalletBalance (BREthereumEWM ewm,
+                             BREthereumWalletId wid);
 
-    extern BREthereumStatus
+extern BREthereumStatus
 ethereumClientAnnounceBalance (BREthereumEWM ewm,
                                BREthereumWalletId wid,
                                const char *balance,
                                int rid);
 
-    //
-    // Gas Price
-    //
+//
+// Gas Price
+//
 
-    extern void
-    ethereumUpdateWalletDefaultGasPrice (BREthereumEWM ewm,
-                                         BREthereumWalletId wid);
+extern void
+ethereumUpdateWalletDefaultGasPrice (BREthereumEWM ewm,
+                                     BREthereumWalletId wid);
 
 extern BREthereumStatus
 ethereumClientAnnounceGasPrice(BREthereumEWM ewm,
@@ -861,15 +871,15 @@ ethereumClientAnnounceGasPrice(BREthereumEWM ewm,
                                const char *gasEstimate,
                                int rid);
 
-    //
-    // Gas Estimate
-    //
-    extern void
-    ethereumUpdateTransferGasEstimate (BREthereumEWM ewm,
-                                       BREthereumWalletId wid,
-                                       BREthereumTransferId tid);
+//
+// Gas Estimate
+//
+extern void
+ethereumUpdateTransferGasEstimate (BREthereumEWM ewm,
+                                   BREthereumWalletId wid,
+                                   BREthereumTransferId tid);
 
-    extern BREthereumStatus
+extern BREthereumStatus
 ethereumClientAnnounceGasEstimate (BREthereumEWM ewm,
                                    BREthereumWalletId wid,
                                    BREthereumTransferId tid,
@@ -878,22 +888,22 @@ ethereumClientAnnounceGasEstimate (BREthereumEWM ewm,
 
 extern BREthereumStatus
 ethereumClientAnnounceSubmitTransfer(BREthereumEWM ewm,
-                                        BREthereumWalletId wid,
-                                        BREthereumTransferId tid,
-                                        const char *hash,
-                                        int rid);
+                                     BREthereumWalletId wid,
+                                     BREthereumTransferId tid,
+                                     const char *hash,
+                                     int rid);
 
-    //
-    // Transactions
-    //
+//
+// Transactions
+//
 
-    /**
-     * Update the transactions for the ewm's account.  A JSON_RPC EWM will call out to
-     * BREthereumClientHandlerGetTransactions which is expected to query all transactions associated with the
-     * accounts address and then the call out is to call back the 'announce transaction' callback.
-     */
-    extern void
-    ethereumUpdateTransactions (BREthereumEWM ewm);
+/**
+ * Update the transactions for the ewm's account.  A JSON_RPC EWM will call out to
+ * BREthereumClientHandlerGetTransactions which is expected to query all transactions associated with the
+ * accounts address and then the call out is to call back the 'announce transaction' callback.
+ */
+extern void
+ethereumUpdateTransactions (BREthereumEWM ewm);
 
 extern BREthereumStatus
 ethereumClientAnnounceTransaction (BREthereumEWM ewm,
@@ -918,13 +928,13 @@ ethereumClientAnnounceTransaction (BREthereumEWM ewm,
                                    // txreceipt_status
                                    const char *isError);
 
-    //
-    // Logs
-    //
-    extern void
-    ethereumUpdateLogs (BREthereumEWM ewm,
-                        BREthereumWalletId wid,
-                        BREthereumContractEvent event);
+//
+// Logs
+//
+extern void
+ethereumUpdateLogs (BREthereumEWM ewm,
+                    BREthereumWalletId wid,
+                    BREthereumContractEvent event);
 
 extern BREthereumStatus
 ethereumClientAnnounceLog (BREthereumEWM ewm,
@@ -941,20 +951,20 @@ ethereumClientAnnounceLog (BREthereumEWM ewm,
                            const char *strBlockTransactionIndex,
                            const char *strBlockTimestamp);
 
-    //
-    // Tokens
-    //
-    extern void
-    ethereumUpdateTokens (BREthereumEWM ewm);
+//
+// Tokens
+//
+extern void
+ethereumUpdateTokens (BREthereumEWM ewm);
 
-    extern BREthereumStatus
-    ethereumClientAnnounceToken (BREthereumEWM ewm,
-                                 int id,
-                                 const char *address,
-                                 const char *symbol,
-                                 const char *name,
-                                 const char *description,
-                                 unsigned int decimals);
+extern BREthereumStatus
+ethereumClientAnnounceToken (BREthereumEWM ewm,
+                             int id,
+                             const char *address,
+                             const char *symbol,
+                             const char *name,
+                             const char *description,
+                             unsigned int decimals);
 
 #ifdef __cplusplus
 }

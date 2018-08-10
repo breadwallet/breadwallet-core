@@ -110,6 +110,15 @@ ethereumGetNetwork (BREthereumEWM ewm) {
     return ewmGetNetwork(ewm);
 }
 
+extern BREthereumWalletId *
+ethereumGetWallets(BREthereumEWM ewm) {
+    return ewmGetWallets (ewm);
+}
+
+extern unsigned int
+ethereumGetWalletsCount (BREthereumEWM ewm) {
+    return ewmGetWalletsCount (ewm);
+}
 
 extern BREthereumWalletId
 ethereumGetWallet(BREthereumEWM ewm) {

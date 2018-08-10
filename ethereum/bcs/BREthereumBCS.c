@@ -880,8 +880,6 @@ bcsExtendChainIfPossible (BREthereumBCS bcs,
 static BREthereumBoolean
 bcsBlockHasMatchingTransactions (BREthereumBCS bcs,
                                  BREthereumBlock block) {
-    // TODO: Massive Fix Required ('massive' in importance, not size)
-    //    return AS_ETHEREUM_BOOLEAN(blockGetNumber(block) < 5795675);
     return ETHEREUM_BOOLEAN_TRUE;
     // return ETHEREUM_BOOLEAN_FALSE;
 }

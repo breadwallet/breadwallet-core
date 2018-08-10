@@ -295,9 +295,9 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit, Hashable {
         // Sure, ignore `status`
 
         let tid = ethereumWalletCreateTransfer (self.ewm!.core,
-                                                   self.identifier,
-                                                   recvAddress,
-                                                   amount)
+                                                self.identifier,
+                                                recvAddress,
+                                                amount)
         return EthereumTransfer (ewm: self.ewm!, identifier: tid)
     }
 
@@ -402,26 +402,26 @@ public struct EthereumTransfer : EthereumReferenceWithDefaultUnit {
                                     unit.coreForToken))
     }
 
-//    var gasPrice : EthereumAmount {
-//        let price : BREthereumAmount = ethereumTransferGetGasPriceToo (self.ewm!.core, self.identifier)
-//        return EthereumAmount.ether (price.u.ether.valueInWEI, WEI)
-//    }
-//
-//    var gasLimit : UInt64 {
-//        return ethereumTransactionGetGasLimit(self.ewm!.core, self.identifier)
-//    }
-//
-//    var gasUsed : UInt64 {
-//        return ethereumTransactionGetGasUsed (self.ewm!.core, self.identifier)
-//    }
-//
-//    var nonce : UInt64 {
-//        return ethereumTransactionGetNonce (self.ewm!.core, self.identifier)
-//    }
-//
-//    var blockNumber : UInt64 {
-//        return ethereumTransactionGetBlockNumber (self.ewm!.core, self.identifier)
-//    }
+    //    var gasPrice : EthereumAmount {
+    //        let price : BREthereumAmount = ethereumTransferGetGasPriceToo (self.ewm!.core, self.identifier)
+    //        return EthereumAmount.ether (price.u.ether.valueInWEI, WEI)
+    //    }
+    //
+    //    var gasLimit : UInt64 {
+    //        return ethereumTransactionGetGasLimit(self.ewm!.core, self.identifier)
+    //    }
+    //
+    //    var gasUsed : UInt64 {
+    //        return ethereumTransactionGetGasUsed (self.ewm!.core, self.identifier)
+    //    }
+    //
+    //    var nonce : UInt64 {
+    //        return ethereumTransactionGetNonce (self.ewm!.core, self.identifier)
+    //    }
+    //
+    //    var blockNumber : UInt64 {
+    //        return ethereumTransactionGetBlockNumber (self.ewm!.core, self.identifier)
+    //    }
 
     // State
 }
@@ -591,9 +591,9 @@ public protocol EthereumClient : class {
                            event: EthereumBlockEvent) -> Void
 
     func handleTransferEvent (ewm: EthereumWalletManager,
-                                 wallet: EthereumWallet,
-                                 transfer: EthereumTransfer,
-                                 event: EthereumTransferEvent) -> Void
+                              wallet: EthereumWallet,
+                              transfer: EthereumTransfer,
+                              event: EthereumTransferEvent) -> Void
 }
 
 // MARK: - EWM
@@ -638,8 +638,8 @@ public class EthereumWalletManager {
     }
 
     public convenience init (client : EthereumClient,
-          network : EthereumNetwork,
-          paperKey : String) {
+                             network : EthereumNetwork,
+                             paperKey : String) {
         let anyClient = AnyEthereumClient (base: client)
         self.init (core: ethereumCreate (network.core, paperKey,
                                          NODE_TYPE_LES,
@@ -655,8 +655,8 @@ public class EthereumWalletManager {
 
 
     public convenience init (client : EthereumClient,
-                      network : EthereumNetwork,
-                      publicKey : BRKey) {
+                             network : EthereumNetwork,
+                             publicKey : BRKey) {
         let anyClient = AnyEthereumClient (base: client)
         self.init (core: ethereumCreateWithPublicKey (network.core, publicKey,
                                                       NODE_TYPE_LES,
@@ -673,11 +673,18 @@ public class EthereumWalletManager {
     //
     // Wallets
     //
-    func getWallet () -> EthereumWallet {
+    public var wallets : [EthereumWallet] {
+        let count = ethereumGetWalletsCount (self.core)
+        let identifiers = ethereumGetWallets(self.core)
+        return UnsafeBufferPointer (start: identifiers, count: Int(exactly: count)!)
+            .map { self.findWallet (identifier: $0) }
+    }
+    
+    public func getWallet () -> EthereumWallet {
         return findWallet (identifier: ethereumGetWallet (core))
     }
 
-    func getWallet (token: EthereumToken) -> EthereumWallet {
+    public func getWallet (token: EthereumToken) -> EthereumWallet {
         return findWallet (identifier: ethereumGetWalletHoldingToken (core, token.core))
     }
 
@@ -738,22 +745,22 @@ public class EthereumWalletManager {
     }
 
     public func announceTransaction (rid: Int32,
-                              hash: String,
-                              sourceAddr: String,
-                              targetAddr: String,
-                              contractAddr: String,
-                              amount: String,
-                              gasLimit: String,
-                              gasPrice: String,
-                              data: String,
-                              nonce: String,
-                              gasUsed: String,
-                              blockNumber: String,
-                              blockHash: String,
-                              blockConfirmations: String,
-                              blockTransactionIndex: String,
-                              blockTimestamp: String,
-                              isError: String) {
+                                     hash: String,
+                                     sourceAddr: String,
+                                     targetAddr: String,
+                                     contractAddr: String,
+                                     amount: String,
+                                     gasLimit: String,
+                                     gasPrice: String,
+                                     data: String,
+                                     nonce: String,
+                                     gasUsed: String,
+                                     blockNumber: String,
+                                     blockHash: String,
+                                     blockConfirmations: String,
+                                     blockTransactionIndex: String,
+                                     blockTimestamp: String,
+                                     isError: String) {
         ethereumClientAnnounceTransaction (core, rid,
                                            hash, sourceAddr, targetAddr, contractAddr,
                                            amount, gasLimit, gasPrice,
@@ -764,16 +771,16 @@ public class EthereumWalletManager {
     }
 
     public func announceLog (rid: Int32,
-                      hash: String,
-                      contract: String,
-                      topics: [String],
-                      data: String,
-                      gasPrice: String,
-                      gasUsed: String,
-                      logIndex: String,
-                      blockNumber: String,
-                      blockTransactionIndex: String,
-                      blockTimestamp: String) {
+                             hash: String,
+                             contract: String,
+                             topics: [String],
+                             data: String,
+                             gasPrice: String,
+                             gasUsed: String,
+                             logIndex: String,
+                             blockNumber: String,
+                             blockTransactionIndex: String,
+                             blockTimestamp: String) {
         var cTopics = topics.map { UnsafePointer<Int8>(strdup($0)) }
 
         ethereumClientAnnounceLog (core, rid,
@@ -947,9 +954,9 @@ public class EthereumWalletManager {
                 if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }),
                     let ewm = EthereumWalletManager.lookup(core: coreEWM) {
                     client.handleTransferEvent(ewm: ewm,
-                                                  wallet: ewm.findWallet(identifier: wid),
-                                                  transfer: ewm.findTransfers(identifier: tid),
-                                                  event: EthereumTransferEvent(event))
+                                               wallet: ewm.findWallet(identifier: wid),
+                                               transfer: ewm.findTransfers(identifier: tid),
+                                               event: EthereumTransferEvent(event))
                 }})
     }
 
