@@ -94,7 +94,7 @@ class SummaryViewController: UITableViewController, WalletListener {
                 self.tableView.insertRows (at: [path], with: .automatic)
             }
         case .balanceUpdated:
-            assert (wallets.contains(wallet))
+            guard wallets.contains(wallet) else { return }
             DispatchQueue.main.async {
                 let index = self.wallets.index(of: wallet)!
                 let path = IndexPath (row: index, section: 0)
@@ -102,7 +102,7 @@ class SummaryViewController: UITableViewController, WalletListener {
                 cell.updateView()
             }
         case .deleted:
-            assert (wallets.contains(wallet))
+            guard wallets.contains(wallet) else { return }
             DispatchQueue.main.async {
                 let index = self.wallets.index(of: wallet)!
                 self.wallets.remove(at: index)

@@ -42,6 +42,9 @@ walletSetBalance (BREthereumWallet wallet,
                   BREthereumAmount balance);
 
 private_extern void
+walletUpdateBalance (BREthereumWallet wallet);
+
+private_extern void
 walletTransferSubmitted (BREthereumWallet wallet,
                             BREthereumTransfer transaction,
                             const BREthereumHash hash); // ....

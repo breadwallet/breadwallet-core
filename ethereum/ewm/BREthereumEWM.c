@@ -813,10 +813,16 @@ ewmHandleTransaction (BREthereumEWM ewm,
         tid      = ewmInsertTransfer(ewm, transfer);
 
         walletHandleTransfer(wallet, transfer);
+        walletUpdateBalance (wallet);
 
         ewmClientSignalTransferEvent(ewm, wid, tid,
                                      TRANSFER_EVENT_CREATED,
                                      SUCCESS, NULL);
+
+        ewmClientSignalWalletEvent(ewm, wid, WALLET_EVENT_BALANCE_UPDATED,
+                                   SUCCESS,
+                                   NULL);
+
     }
     else
         tid = ewmLookupTransferId(ewm, transfer);
@@ -860,10 +866,15 @@ ewmHandleLog (BREthereumEWM ewm,
         tid      = ewmInsertTransfer(ewm, transfer);
 
         walletHandleTransfer(wallet, transfer);
+        walletUpdateBalance (wallet);
 
         ewmClientSignalTransferEvent(ewm, wid, tid,
                                      TRANSFER_EVENT_CREATED,
                                      SUCCESS, NULL);
+
+        ewmClientSignalWalletEvent(ewm, wid, WALLET_EVENT_BALANCE_UPDATED,
+                                   SUCCESS,
+                                   NULL);
     }
     else
         tid = ewmLookupTransferId(ewm, transfer);

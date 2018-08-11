@@ -706,7 +706,7 @@ bcsHasBlockInChain (BREthereumBCS bcs,
  */
 static void
 bcsExtendTransactionsAndLogsForBlock (BREthereumBCS bcs,
-                                           BREthereumBlock block) {
+                                      BREthereumBlock block) {
     assert (bcsHasBlockInChain(bcs, block) && ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusComplete(block)));
 
     // `block` is chained and complete, we can process its status transactions and logs.

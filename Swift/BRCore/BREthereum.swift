@@ -402,6 +402,12 @@ public struct EthereumTransfer : EthereumReferenceWithDefaultUnit {
                                     unit.coreForToken))
     }
 
+    public var fee : EthereumAmount {
+        var overflow : Int32 = 0
+        let fee : BREthereumEther = ethereumTransferGetFee(self.ewm!.core, self.identifier, &overflow);
+        return EthereumAmount.ether(fee.valueInWEI, unit.coreForEther)
+    }
+
     //    var gasPrice : EthereumAmount {
     //        let price : BREthereumAmount = ethereumTransferGetGasPriceToo (self.ewm!.core, self.identifier)
     //        return EthereumAmount.ether (price.u.ether.valueInWEI, WEI)

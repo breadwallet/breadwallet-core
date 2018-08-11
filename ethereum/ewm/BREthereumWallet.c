@@ -335,6 +335,43 @@ walletSetBalance (BREthereumWallet wallet,
     wallet->balance = balance;
 }
 
+private_extern void
+walletUpdateBalance (BREthereumWallet wallet) {
+    int overflow = 0, negative = 0, fee_overflow = 0;
+
+    UInt256 recv = UINT256_ZERO;
+    UInt256 sent = UINT256_ZERO;
+    UInt256 fees = UINT256_ZERO;
+
+    for (size_t index = 0; index < array_count (wallet->transfers); index++) {
+        BREthereumTransfer transfer = wallet->transfers[index];
+        BREthereumAmount   amount = transferGetAmount(transfer);
+        assert (amountGetType(wallet->balance) == amountGetType(amount));
+        UInt256 value = (AMOUNT_ETHER == amountGetType(amount)
+                         ? amountGetEther(amount).valueInWEI
+                         : amountGetTokenQuantity(amount).valueAsInteger);
+
+        if (ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(wallet->address, transferGetSourceAddress(transfer)))) {
+            sent = addUInt256_Overflow(sent, value, &overflow);
+
+            BREthereumEther fee = transferGetFee(transfer, &fee_overflow);
+            fees = addUInt256_Overflow(fees, fee.valueInWEI, &fee_overflow);
+        }
+        else
+            recv = addUInt256_Overflow(recv, value, &overflow);
+
+        assert (!overflow);
+    }
+
+    UInt256 balance = subUInt256_Negative(recv, sent, &negative);
+
+    if (AMOUNT_ETHER == amountGetType(wallet->balance)) {
+        balance = subUInt256_Negative(balance, fees, &negative);
+        wallet->balance = amountCreateEther (etherCreate(balance));
+    }
+    else
+        wallet->balance = amountCreateToken (createTokenQuantity(amountGetToken (wallet->balance), balance));
+}
 // Gas Limit
 
 extern BREthereumGas
