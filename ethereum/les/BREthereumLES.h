@@ -299,21 +299,19 @@ lesGetAccountState (BREthereumLES les,
 //
 typedef void* BREthereumLESProofsV2Context;
 
-typedef void
+typedef void // actual result is TBD
 (*BREthereumLESProofsV2Callback) (BREthereumLESProofsV2Context context,
                                   BREthereumHash blockHash,
-                                  BREthereumHash key,
-                                  BREthereumHash key2);
+                                  BRRlpData key1,
+                                  BRRlpData key2);
 
 extern BREthereumLESStatus
 lesGetGetProofsV2One (BREthereumLES les,
                      BREthereumLESProofsV2Context context,
                      BREthereumLESProofsV2Callback callback,
                      BREthereumHash blockHash,
-                      BRRlpData key1,
-                      BRRlpData key2,
-                      //                     BREthereumHash  key,
-                      //                     BREthereumHash key2,
+                      BRRlpData key1, // BREthereumHash, BREthereumAddress - what about empty (0x80)?
+                      BRRlpData key2, // BREthereumHash
                      uint64_t fromLevel);
                      
 //

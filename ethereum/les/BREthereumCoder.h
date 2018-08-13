@@ -181,6 +181,9 @@ extern BREthereumLESDecodeStatus coderDecodeStatus(BRRlpCoder coder, uint8_t*rlp
 
     extern BRRlpData coderGetProofsV2(BRRlpCoder coder,
                                       uint64_t message_id_offset, uint64_t reqId, BREthereumLESProofsRequest* requests);
+    BREthereumLESDecodeStatus coderDecodeProofs(BRRlpCoder coder,
+                                                uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv);
+
 
     extern BRRlpData coderGetTxStatus(BRRlpCoder coder,
                                       uint64_t message_id_offset, uint64_t reqId, BREthereumHash* transactions);

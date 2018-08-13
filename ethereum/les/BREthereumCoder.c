@@ -532,10 +532,6 @@ BREthereumLESDecodeStatus coderDecodeBlockHeaders(BRRlpCoder coder,
     return BRE_LES_CODER_SUCCESS;
 }
 
-void coderBlockHeaders(BRRlpCoder coder,
-                       uint64_t reqId, uint64_t bv, const BREthereumBlockHeader* blockHeader,  uint8_t**rlpBytes, size_t* rlpByesSize) {
-}
-
 //
 // On-demand data retrieval
 //
@@ -565,39 +561,12 @@ BRRlpData coderGetBlockBodies(BRRlpCoder coder,
     return retData;
 
 }
-BRRlpData coderGetProofsV2(BRRlpCoder coder,
-                           uint64_t message_id_offset, uint64_t reqId, BREthereumLESProofsRequest* proofs) {
-    BRRlpItem items[2];
-    BRRlpItem blockItems[array_count(proofs)];
-    int idx = 0;
-    
-    // items[idx++] = rlpEncodeItemUInt64(coder, 0x02,1);
-    items[idx++] = rlpEncodeUInt64(coder, reqId,1);
 
-    // [+0x08, reqID: P, [ [blockhash: B_32, key: B_32, key2: B_32, fromLevel: P], ...]]
-    for(int i = 0; i < array_count(proofs); ++i){
-        BRRlpItem proofItems[4];
-        proofItems[0] = hashRlpEncode(proofs[i].blockHash, coder);
-        proofItems[1] = rlpEncodeBytes(coder, proofs[i].key1.bytes, proofs[i].key1.bytesCount); // hashRlpEncode(proofs[i].key, coder);
-        proofItems[2] = rlpEncodeBytes(coder, proofs[i].key2.bytes, proofs[i].key2.bytesCount); // hashRlpEncode(proofs[i].key2, coder);
-        proofItems[3] = rlpEncodeUInt64(coder, proofs[i].fromLevel,1);
-        blockItems[i] = rlpEncodeListItems(coder, proofItems, 4);
-    }
-    
-    items[idx++] = rlpEncodeListItems(coder, blockItems, array_count(proofs));
-    
-    BRRlpItem encoding = rlpEncodeListItems(coder, items, idx);
-    BRRlpData messageListData = rlpGetData(coder, encoding);
-
-    BRRlpData retData = _encodePayloadId(coder, messageListData, message_id_offset + BRE_LES_ID_GET_PROOFS_V2);
-    
-    rlpReleaseItem(coder, encoding);
-    rlpDataRelease(messageListData);
-
-    return retData;
-}
 BREthereumLESDecodeStatus coderDecodeBlockBodies(BRRlpCoder coder,
-                                                 uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv, BREthereumNetwork network, BREthereumBlockHeader***ommers,  BREthereumTransaction***transactions) {
+                                                 uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv,
+                                                 BREthereumNetwork network,
+                                                 BREthereumBlockHeader***ommers,
+                                                 BREthereumTransaction***transactions) {
 
  // [+0x05, reqID: P, BV: P, [ [transactions_0, uncles_0] , ...]]
     BRRlpData frameData = {rlpBytesSize, rlpBytes};
@@ -665,7 +634,8 @@ BRRlpData coderGetReceipts(BRRlpCoder coder,
 
 }
 BREthereumLESDecodeStatus coderDecodeReceipts(BRRlpCoder coder,
-                                              uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv, BREthereumTransactionReceipt***receipts) {
+                                              uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv,
+                                              BREthereumTransactionReceipt***receipts) {
 
     // [+0x07, reqID: P, BV: P, [ [receipt_0, receipt_1, ...], ...]]
     BRRlpData frameData = {rlpBytesSize, rlpBytes};
@@ -697,6 +667,76 @@ BREthereumLESDecodeStatus coderDecodeReceipts(BRRlpCoder coder,
     *receipts = actualReceipts;
     return BRE_LES_CODER_SUCCESS;
 }
+
+BRRlpData coderGetProofsV2(BRRlpCoder coder,
+                           uint64_t message_id_offset, uint64_t reqId, BREthereumLESProofsRequest* proofs) {
+    BRRlpItem items[2];
+    BRRlpItem blockItems[array_count(proofs)];
+    int idx = 0;
+
+    // items[idx++] = rlpEncodeItemUInt64(coder, 0x02,1);
+    items[idx++] = rlpEncodeUInt64(coder, reqId,1);
+
+    // [+0x08, reqID: P, [ [blockhash: B_32, key: B_32, key2: B_32, fromLevel: P], ...]]
+    for(int i = 0; i < array_count(proofs); ++i){
+        BRRlpItem proofItems[4];
+        proofItems[0] = hashRlpEncode(proofs[i].blockHash, coder);
+        proofItems[1] = rlpEncodeBytes(coder, proofs[i].key1.bytes, proofs[i].key1.bytesCount); // hashRlpEncode(proofs[i].key, coder);
+        proofItems[2] = rlpEncodeBytes(coder, proofs[i].key2.bytes, proofs[i].key2.bytesCount); // hashRlpEncode(proofs[i].key2, coder);
+        proofItems[3] = rlpEncodeUInt64(coder, proofs[i].fromLevel,1);
+        blockItems[i] = rlpEncodeListItems(coder, proofItems, 4);
+    }
+
+    items[idx++] = rlpEncodeListItems(coder, blockItems, array_count(proofs));
+
+    BRRlpItem encoding = rlpEncodeListItems(coder, items, idx);
+    BRRlpData messageListData = rlpGetData(coder, encoding);
+
+    BRRlpData retData = _encodePayloadId(coder, messageListData, message_id_offset + BRE_LES_ID_GET_PROOFS_V2);
+
+    rlpReleaseItem(coder, encoding);
+    rlpDataRelease(messageListData);
+
+    return retData;
+}
+
+BREthereumLESDecodeStatus coderDecodeProofs(BRRlpCoder coder,
+                                            uint8_t*rlpBytes, size_t rlpBytesSize, uint64_t* reqId, uint64_t* bv) { // missing result
+
+    // [+0x07, reqID: P, BV: P, [ [receipt_0, receipt_1, ...], ...]]
+    BRRlpData frameData = {rlpBytesSize, rlpBytes};
+    BRRlpItem item = rlpGetItem (coder, frameData);
+
+    size_t itemsCount;
+    const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
+
+    *reqId = rlpDecodeUInt64(coder, items[0], 1);
+    *bv = rlpDecodeUInt64(coder, items[1], 1);
+
+    size_t nodesCount = 0;
+    const BRRlpItem *nodeItems = rlpDecodeList(coder, items[2], &nodesCount);
+
+    // TODO: If we get a nodesCount other then 0; then we NEED TO KNOW IMMEDIATELY.
+    assert (0 == nodesCount);  // If we
+
+    //    BREthereumTransactionReceipt**actualReceipts;
+    //    array_new(actualReceipts, receiptsCount);
+    //
+    //    for(int i = 0; i < receiptsCount; ++i){
+    //        BREthereumTransactionReceipt*receiptData;
+    //        size_t blockReceiptsCount = 0;
+    //        const BRRlpItem *blockReceiptItems = rlpDecodeList(coder, receiptItems[i], &blockReceiptsCount);
+    //        array_new(receiptData,blockReceiptsCount);
+    //        for(int j = 0; j < blockReceiptsCount; ++j){
+    //            array_add(receiptData, transactionReceiptRlpDecode(blockReceiptItems[j], coder));
+    //        }
+    //        array_add(actualReceipts, receiptData);
+    //    }
+    rlpReleaseItem(coder, item);
+    //    *receipts = actualReceipts;
+    return BRE_LES_CODER_SUCCESS;
+}
+
 //
 // Transaction relaying and status retrieval
 //

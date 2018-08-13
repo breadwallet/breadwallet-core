@@ -284,8 +284,8 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t me
         {
             rlpShow(messageBody, "LES-PROOFSV2");
             uint64_t reqId = 0, bv = 0;
-            BREthereumLESDecodeStatus status = BRE_LES_CODER_UNABLE_TO_DECODE_ERROR; // Call Decode once we know what is returned from the full node
-        
+            BREthereumLESDecodeStatus status = coderDecodeProofs(les->coder, messageBody.bytes, messageBody.bytesCount, &reqId, &bv); // actual return value.
+
             if(status == BRE_LES_CODER_SUCCESS)
             {                
                 uint64_t requestIndexRm = 0;
@@ -299,7 +299,8 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t me
                     BREthereumLESProofsRequest* proofRequests = les->requests[requestIndexRm].u.proofsV2.proofRequests;
                     
                     for(int i = 0; i < array_count(proofRequests); ++i){
-                        //Call the callback function once we know what we are getting back. 
+                        // Actual result is TBD
+                        callback (context, proofRequests[i].blockHash, proofRequests[i].key1, proofRequests[i].key2);
                     }
                     
                     array_free(les->requests[requestIndexRm].u.proofsV2.proofRequests);
