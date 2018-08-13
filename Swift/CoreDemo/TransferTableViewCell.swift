@@ -28,6 +28,14 @@ class TransferTableViewCell: UITableViewCell {
         // Configure the view for the selected state
     }
 
+    func canonicalAmount (_ amount: EthereumAmount, sign: String, symbol: String) -> String {
+        var result = amount.amount.trimmingCharacters(in: CharacterSet (charactersIn: "0 "))
+        if result == "." || result == "" || result == "0." || result == ".0" {
+            result = "0.0"
+        }
+        return sign + result + " " + symbol
+    }
+    
     func updateView () {
         NSLog ("Want to update transfer cell")
         if let transfer = transfer {
@@ -37,10 +45,12 @@ class TransferTableViewCell: UITableViewCell {
             let date = "... 2018 ..."
             dateLabel.text = "\(address == source ? "Send" : "Recv"): \(date)"
             addrLabel.text = "Addr: \(address == source ? target : source)"
-            amountLabel.text = transfer.amount.amount
+            amountLabel.text = canonicalAmount(transfer.amount, sign: (address == source ? "-" : "+"), symbol: transfer.amount.symbol);
+            feeLabel.text = "Fee: \(canonicalAmount(transfer.fee, sign: "", symbol: "ETH"))"
         }
     }
     @IBOutlet var dateLabel: UILabel!
     @IBOutlet var amountLabel: UILabel!
     @IBOutlet var addrLabel: UILabel!
+    @IBOutlet var feeLabel: UILabel!
 }

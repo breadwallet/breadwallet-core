@@ -504,6 +504,27 @@ ewmInsertWallet (BREthereumEWM ewm,
 //
 // Wallet (Actions)
 //
+extern BREthereumWalletId *
+ewmGetWallets (BREthereumEWM ewm) {
+    pthread_mutex_lock(&ewm->lock);
+
+    unsigned long count = array_count(ewm->wallets);
+    BREthereumWalletId *wallets = calloc (count + 1, sizeof (BREthereumWalletId));
+
+    for (BREthereumWalletId index = 0; index < count; index++) {
+        wallets [index] = index;
+    }
+    wallets[count] = -1;
+
+    pthread_mutex_unlock(&ewm->lock);
+    return wallets;
+}
+
+extern unsigned int
+ewmGetWalletsCount (BREthereumEWM ewm) {
+    return array_count(ewm->wallets);
+}
+
 extern BREthereumWalletId
 ewmGetWallet(BREthereumEWM ewm) {
     return ewmLookupWalletId (ewm, ewm->walletHoldingEther);
@@ -792,10 +813,16 @@ ewmHandleTransaction (BREthereumEWM ewm,
         tid      = ewmInsertTransfer(ewm, transfer);
 
         walletHandleTransfer(wallet, transfer);
+        walletUpdateBalance (wallet);
 
         ewmClientSignalTransferEvent(ewm, wid, tid,
                                      TRANSFER_EVENT_CREATED,
                                      SUCCESS, NULL);
+
+        ewmClientSignalWalletEvent(ewm, wid, WALLET_EVENT_BALANCE_UPDATED,
+                                   SUCCESS,
+                                   NULL);
+
     }
     else
         tid = ewmLookupTransferId(ewm, transfer);
@@ -824,6 +851,9 @@ ewmHandleLog (BREthereumEWM ewm,
     BREthereumToken token = tokenLookupByAddress(logGetAddress(log));
     if (NULL == token) return;
 
+    // TODO: Confirm LogTopic[0] is 'transfer'
+    if (3 != logGetTopicsCount(log)) return;
+
     BREthereumWalletId wid = ewmGetWalletHoldingToken(ewm, token);
     BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
     assert (NULL != wallet);
@@ -836,10 +866,15 @@ ewmHandleLog (BREthereumEWM ewm,
         tid      = ewmInsertTransfer(ewm, transfer);
 
         walletHandleTransfer(wallet, transfer);
+        walletUpdateBalance (wallet);
 
         ewmClientSignalTransferEvent(ewm, wid, tid,
                                      TRANSFER_EVENT_CREATED,
                                      SUCCESS, NULL);
+
+        ewmClientSignalWalletEvent(ewm, wid, WALLET_EVENT_BALANCE_UPDATED,
+                                   SUCCESS,
+                                   NULL);
     }
     else
         tid = ewmLookupTransferId(ewm, transfer);

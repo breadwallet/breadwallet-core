@@ -183,7 +183,17 @@ rlpShowItem (BRRlpCoder coder, BRRlpItem item, const char *topic);
 
 extern void
 rlpShow (BRRlpData data, const char *topic);
-    
+
+//
+// Decode RLPData directly to numbers
+//   (Used for logGetData -> UInt256
+//
+extern UInt256
+rlpDataDecodeUInt256 (BRRlpData data);
+
+extern uint64_t
+rlpDataDecodeUInt64 (BRRlpData data);
+
 #ifdef __cplusplus
 }
 #endif

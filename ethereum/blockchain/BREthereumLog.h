@@ -116,6 +116,9 @@ logGetTopic (BREthereumLog log, size_t index);
 extern BRRlpData
 logGetData (BREthereumLog log);
 
+extern BRRlpData
+logGetDataShared (BREthereumLog log);
+    
 extern BREthereumBoolean
 logMatchesAddress (BREthereumLog log,
                    BREthereumAddress address,

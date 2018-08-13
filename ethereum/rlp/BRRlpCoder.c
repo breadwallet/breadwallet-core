@@ -35,7 +35,7 @@ static int
 rlpDecodeStringEmptyCheck (BRRlpCoder coder, BRRlpItem item);
 
 static void
-coderEncodeLengthIntoBytes (BRRlpCoder coder, uint64_t length, uint8_t baseline, uint8_t *bytes9, uint8_t *bytes9Count);
+encodeLengthIntoBytes (uint64_t length, uint8_t baseline, uint8_t *bytes9, uint8_t *bytes9Count);
 
 #define CODER_DEFAULT_ITEMS     (20)
 
@@ -361,8 +361,8 @@ convertFromBigEndian (uint8_t *target, size_t targetCount, uint8_t *bytes, size_
 #define RLP_PREFIX_LENGTH_LIMIT  (55)
 
 static void
-coderEncodeLengthIntoBytes (BRRlpCoder coder, uint64_t length, uint8_t baseline,
-                            uint8_t *bytes9, uint8_t *bytes9Count) {
+encodeLengthIntoBytes (uint64_t length, uint8_t baseline,
+                       uint8_t *bytes9, uint8_t *bytes9Count) {
 
     // If the length is small, simply encode a single byte as (baseline + length)
     if (length <= RLP_PREFIX_LENGTH_LIMIT) {
@@ -401,7 +401,7 @@ coderEncodeLength (BRRlpCoder coder, uint64_t length, uint8_t baseline) {
 #endif
 
 static size_t
-coderDecodeLength (BRRlpCoder coder, uint8_t *bytes, uint8_t baseline, uint8_t *offset) {
+decodeLength (uint8_t *bytes, uint8_t baseline, uint8_t *offset) {
     uint8_t prefix = bytes[0];
 
     *offset = 0;
@@ -440,6 +440,29 @@ coderDecodeLength (BRRlpCoder coder, uint8_t *bytes, uint8_t baseline, uint8_t *
     }
 }
 
+// Includes RLP length encoding
+static void
+decodeNumber (uint8_t *target, size_t targetCount, uint8_t *bytes, size_t bytesCount) {
+    uint8_t offset = 0;
+    size_t length = decodeLength(bytes, RLP_PREFIX_BYTES, &offset);
+
+    convertFromBigEndian(target, targetCount, &bytes[offset], length);
+}
+
+extern UInt256
+rlpDataDecodeUInt256 (BRRlpData data) {
+    UInt256 result;
+    convertFromBigEndian(result.u8, sizeof(result), data.bytes, data.bytesCount);
+    return result;
+}
+
+extern uint64_t
+rlpDataDecodeUInt64 (BRRlpData data) {
+    uint64_t result;
+    convertFromBigEndian((uint8_t*) &result, sizeof(result), data.bytes, data.bytesCount);
+    return result;
+}
+
 static BRRlpItem
 coderEncodeBytes(BRRlpCoder coder, uint8_t *bytes, size_t bytesCount) {
     BRRlpItem item = itemCreateEmpty(coder, CODER_ITEM);
@@ -453,7 +476,7 @@ coderEncodeBytes(BRRlpCoder coder, uint8_t *bytes, size_t bytesCount) {
     // otherwise, encode the length and then the bytes themselves
     else {
         uint8_t bytes9Count, bytes9[9];
-        coderEncodeLengthIntoBytes(coder, bytesCount, RLP_PREFIX_BYTES, bytes9, &bytes9Count);
+        encodeLengthIntoBytes(bytesCount, RLP_PREFIX_BYTES, bytes9, &bytes9Count);
 
         uint8_t *encodedBytes = itemEnsureBytes(coder, item, bytes9Count + bytesCount);
         memcpy(encodedBytes, bytes9, bytes9Count);
@@ -480,10 +503,7 @@ coderEncodeNumber (BRRlpCoder coder, uint8_t *source, size_t sourceCount) {
 
 static void
 coderDecodeNumber (BRRlpCoder coder, uint8_t *target, size_t targetCount, uint8_t *bytes, size_t bytesCount) {
-    uint8_t offset = 0;
-    size_t length = coderDecodeLength(coder, bytes, RLP_PREFIX_BYTES, &offset);
-
-    convertFromBigEndian(target, targetCount, &bytes[offset], length);
+    decodeNumber(target, targetCount, bytes, bytesCount);
 }
 
 //
@@ -540,7 +560,7 @@ coderEncodeList (BRRlpCoder coder, BRRlpItem *items, size_t itemsCount) {
 
     // ... given that, determine the length encoding
     uint8_t bytes9Count, bytes9[9];
-    coderEncodeLengthIntoBytes (coder, bytesCount, RLP_PREFIX_LIST, bytes9, &bytes9Count);
+    encodeLengthIntoBytes (bytesCount, RLP_PREFIX_LIST, bytes9, &bytes9Count);
 
     // ... now allocate the memory needed as length-encoding-prefix + bytes
     uint8_t *bytes = itemEnsureBytes (coder, item, bytes9Count + bytesCount);
@@ -610,7 +630,7 @@ rlpDecodeBytes (BRRlpCoder coder, BRRlpItem item) {
     assert (itemIsValid(coder, item));
 
     uint8_t offset = 0;
-    size_t length = coderDecodeLength(coder, item->bytes, RLP_PREFIX_BYTES, &offset);
+    size_t length = decodeLength(item->bytes, RLP_PREFIX_BYTES, &offset);
 
     BRRlpData result;
     result.bytesCount = length;
@@ -625,7 +645,7 @@ rlpDecodeBytesSharedDontRelease (BRRlpCoder coder, BRRlpItem item) {
     assert (itemIsValid (coder, item));
 
     uint8_t offset = 0;
-    uint64_t length = coderDecodeLength(coder, item->bytes, RLP_PREFIX_BYTES, &offset);
+    uint64_t length = decodeLength(item->bytes, RLP_PREFIX_BYTES, &offset);
 
     BRRlpData result;
     result.bytesCount = length;
@@ -648,7 +668,7 @@ rlpDecodeString (BRRlpCoder coder, BRRlpItem item) {
     assert (itemIsValid(coder, item));
 
     uint8_t offset = 0;
-    size_t length = coderDecodeLength(coder, item->bytes, RLP_PREFIX_BYTES, &offset);
+    size_t length = decodeLength(item->bytes, RLP_PREFIX_BYTES, &offset);
 
     char *result = malloc (length + 1);
     memcpy (result, &item->bytes[offset], length);
@@ -834,7 +854,7 @@ rlpGetItem_FillData (BRRlpCoder coder, uint8_t *bytes) {
     uint8_t prefix = bytes[0];
     if (prefix >= RLP_PREFIX_BYTES) {
         uint8_t offset;
-        data.bytesCount = coderDecodeLength(coder, bytes,
+        data.bytesCount = decodeLength(bytes,
                                             (prefix < RLP_PREFIX_LIST ? RLP_PREFIX_BYTES : RLP_PREFIX_LIST),
                                             &offset);
         data.bytesCount += offset;
@@ -881,7 +901,7 @@ rlpGetItem (BRRlpCoder coder, BRRlpData data) {
         // Start of `data` encodes a list with a number of bytes.  We'll start extracting
         // sub-items after the list's length.
         uint8_t bytesOffset = 0;
-        size_t bytesCount = coderDecodeLength(coder, data.bytes, RLP_PREFIX_LIST, &bytesOffset);
+        size_t bytesCount = decodeLength(data.bytes, RLP_PREFIX_LIST, &bytesOffset);
         assert (data.bytesCount == bytesCount + bytesOffset);
 
         // Start of the first sub-item
@@ -944,7 +964,7 @@ rlpShowItemInternal (BRRlpCoder coder, BRRlpItem context, const char *topic, int
             // We'll display this as hex-encoded bytes; we could use rlpDecodeItemBytes() but
             // that allocates memory, which we don't need so critically herein.
             uint8_t offset = 0;
-            uint64_t length = coderDecodeLength(coder, context->bytes, RLP_PREFIX_BYTES, &offset);
+            uint64_t length = decodeLength(context->bytes, RLP_PREFIX_BYTES, &offset);
 
             // We'll limit the display to a string of 1024 characters.
             size_t bytesCount = length > 512 ? 512 : length;

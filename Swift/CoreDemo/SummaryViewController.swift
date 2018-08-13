@@ -21,10 +21,7 @@ class SummaryViewController: UITableViewController, WalletListener {
         // UIApplication.sharedClient.addWalletListener(listener: self)
 
         // Do any additional setup after loading the view, typically from a nib.
-        navigationItem.leftBarButtonItem = editButtonItem
 
-        let addButton = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(insertNewObject(_:)))
-        navigationItem.rightBarButtonItem = addButton
         if let split = splitViewController {
             let controllers = split.viewControllers
             detailViewController = (controllers[controllers.count-1] as! UINavigationController).topViewController as? WalletViewController
@@ -33,19 +30,13 @@ class SummaryViewController: UITableViewController, WalletListener {
 
     override func viewWillAppear(_ animated: Bool) {
         clearsSelectionOnViewWillAppear = splitViewController!.isCollapsed
+        self.wallets = UIApplication.sharedClient.node.wallets
         super.viewWillAppear(animated)
     }
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
-    }
-
-    @objc
-    func insertNewObject(_ sender: Any) {
-//        wallets.insert(NSDate(), at: 0)
-//        let indexPath = IndexPath(row: 0, section: 0)
-//        tableView.insertRows(at: [indexPath], with: .automatic)
     }
 
     // MARK: - Segues
@@ -96,14 +87,14 @@ class SummaryViewController: UITableViewController, WalletListener {
     func announceWalletEvent(ewm: EthereumWalletManager, wallet: EthereumWallet, event: EthereumWalletEvent) {
         switch event {
         case .created:
-            assert (!wallets.contains(wallet))
+            guard !wallets.contains(wallet) else { return }
             DispatchQueue.main.async {
                 self.wallets.append(wallet)
                 let path = IndexPath (row: (self.wallets.count - 1), section: 0)
                 self.tableView.insertRows (at: [path], with: .automatic)
             }
         case .balanceUpdated:
-            assert (wallets.contains(wallet))
+            guard wallets.contains(wallet) else { return }
             DispatchQueue.main.async {
                 let index = self.wallets.index(of: wallet)!
                 let path = IndexPath (row: index, section: 0)
@@ -111,7 +102,7 @@ class SummaryViewController: UITableViewController, WalletListener {
                 cell.updateView()
             }
         case .deleted:
-            assert (wallets.contains(wallet))
+            guard wallets.contains(wallet) else { return }
             DispatchQueue.main.async {
                 let index = self.wallets.index(of: wallet)!
                 self.wallets.remove(at: index)

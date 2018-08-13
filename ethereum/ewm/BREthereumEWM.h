@@ -84,15 +84,21 @@ ewmLookupBlockByHash(BREthereumEWM ewm,
 
 extern BREthereumTransfer
 ewmLookupTransfer(BREthereumEWM ewm,
-                     BREthereumTransferId tid);
+                  BREthereumTransferId tid);
 
 extern BREthereumTransfer
 ewmLookupTransferByHash(BREthereumEWM ewm,
-                           const BREthereumHash hash);
+                        const BREthereumHash hash);
 
 //
 // Wallet
 //
+extern BREthereumWalletId *
+ewmGetWallets (BREthereumEWM ewm);
+
+extern unsigned int
+ewmGetWalletsCount (BREthereumEWM ewm);
+
 extern BREthereumWalletId
 ewmGetWallet(BREthereumEWM ewm);
 
@@ -102,21 +108,21 @@ ewmGetWalletHoldingToken(BREthereumEWM ewm,
 
 extern BREthereumTransferId
 ewmWalletCreateTransfer(BREthereumEWM ewm,
-                           BREthereumWallet wallet,
-                           const char *recvAddress,
-                           BREthereumAmount amount);
+                        BREthereumWallet wallet,
+                        const char *recvAddress,
+                        BREthereumAmount amount);
 
 extern void // status, error
 ewmWalletSignTransfer(BREthereumEWM ewm,
-                         BREthereumWallet wallet,
-                         BREthereumTransfer transfer,
-                         BRKey privateKey);
+                      BREthereumWallet wallet,
+                      BREthereumTransfer transfer,
+                      BRKey privateKey);
 
 extern void // status, error
 ewmWalletSignTransferWithPaperKey(BREthereumEWM ewm,
-                                     BREthereumWallet wallet,
+                                  BREthereumWallet wallet,
                                   BREthereumTransfer transfer,
-                                     const char *paperKey);
+                                  const char *paperKey);
 
 extern void // status, error
 ewmWalletSubmitTransfer(BREthereumEWM ewm,
@@ -125,11 +131,11 @@ ewmWalletSubmitTransfer(BREthereumEWM ewm,
 
 extern BREthereumTransferId *
 ewmWalletGetTransfers(BREthereumEWM ewm,
-                         BREthereumWallet wallet);
+                      BREthereumWallet wallet);
 
 extern int
 ewmWalletGetTransferCount(BREthereumEWM ewm,
-                             BREthereumWallet wallet);
+                          BREthereumWallet wallet);
 
 extern void
 ewmWalletSetDefaultGasLimit(BREthereumEWM ewm,
@@ -155,47 +161,47 @@ ewmUpdateBlockHeight(BREthereumEWM ewm,
 
 
 
-    //
-    // Temporary (Perhaps) - Initiate Callbacks to Client
-    //
-    //
-    extern void
-    ewmUpdateBlockNumber (BREthereumEWM ewm);
+//
+// Temporary (Perhaps) - Initiate Callbacks to Client
+//
+//
+extern void
+ewmUpdateBlockNumber (BREthereumEWM ewm);
 
-    extern void
-    ewmUpdateNonce (BREthereumEWM ewm);
+extern void
+ewmUpdateNonce (BREthereumEWM ewm);
 
-    /**
-     * Update the transactions for the ewm's account.  A JSON_RPC EWM will call out to
-     * BREthereumClientHandlerGetTransactions which is expected to query all transactions associated with the
-     * accounts address and then the call out is to call back the 'announce transaction' callback.
-     */
-    extern void
-    ewmUpdateTransactions (BREthereumEWM ewm);
+/**
+ * Update the transactions for the ewm's account.  A JSON_RPC EWM will call out to
+ * BREthereumClientHandlerGetTransactions which is expected to query all transactions associated with the
+ * accounts address and then the call out is to call back the 'announce transaction' callback.
+ */
+extern void
+ewmUpdateTransactions (BREthereumEWM ewm);
 
-    extern void
-    ewmUpdateLogs (BREthereumEWM ewm,
-                   BREthereumWalletId wid,
-                   BREthereumContractEvent event);
+extern void
+ewmUpdateLogs (BREthereumEWM ewm,
+               BREthereumWalletId wid,
+               BREthereumContractEvent event);
 
-    extern void
-    ewmUpdateTokens (BREthereumEWM ewm);
-    
-    //
-    // Wallet Updates
-    //
-    extern void
-    ewmUpdateWalletBalance (BREthereumEWM ewm,
-                            BREthereumWalletId wid);
+extern void
+ewmUpdateTokens (BREthereumEWM ewm);
 
-    extern void
-    ewmUpdateTransferGasEstimate (BREthereumEWM ewm,
-                                  BREthereumWalletId wid,
-                                  BREthereumTransferId tid);
+//
+// Wallet Updates
+//
+extern void
+ewmUpdateWalletBalance (BREthereumEWM ewm,
+                        BREthereumWalletId wid);
 
-    extern void
-    ewmUpdateWalletDefaultGasPrice (BREthereumEWM ewm,
-                                    BREthereumWalletId wid);
+extern void
+ewmUpdateTransferGasEstimate (BREthereumEWM ewm,
+                              BREthereumWalletId wid,
+                              BREthereumTransferId tid);
+
+extern void
+ewmUpdateWalletDefaultGasPrice (BREthereumEWM ewm,
+                                BREthereumWalletId wid);
 
 
 #ifdef __cplusplus

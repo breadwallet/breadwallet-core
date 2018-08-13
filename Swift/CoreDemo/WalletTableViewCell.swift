@@ -32,5 +32,11 @@ class WalletTableViewCell: UITableViewCell {
         NSLog ("Want to update view")
         textLabel?.text = wallet?.name ?? "..."
         detailTextLabel?.text = wallet?.balance.amount ?? "??"
+
+        var balance : String = wallet?.balance.amount.trimmingCharacters(in: CharacterSet (charactersIn: "0 ")) ?? ""
+        if balance == "." || balance == "" || balance == "0." || balance == ".0" {
+            balance = "0.0"
+        }
+        detailTextLabel?.text = balance + " " + (wallet?.balance.symbol ?? "")
     }
 }

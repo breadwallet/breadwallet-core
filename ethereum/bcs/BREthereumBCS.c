@@ -706,7 +706,7 @@ bcsHasBlockInChain (BREthereumBCS bcs,
  */
 static void
 bcsExtendTransactionsAndLogsForBlock (BREthereumBCS bcs,
-                                           BREthereumBlock block) {
+                                      BREthereumBlock block) {
     assert (bcsHasBlockInChain(bcs, block) && ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusComplete(block)));
 
     // `block` is chained and complete, we can process its status transactions and logs.
@@ -880,8 +880,6 @@ bcsExtendChainIfPossible (BREthereumBCS bcs,
 static BREthereumBoolean
 bcsBlockHasMatchingTransactions (BREthereumBCS bcs,
                                  BREthereumBlock block) {
-    // TODO: Massive Fix Required ('massive' in importance, not size)
-    //    return AS_ETHEREUM_BOOLEAN(blockGetNumber(block) < 5795675);
     return ETHEREUM_BOOLEAN_TRUE;
     // return ETHEREUM_BOOLEAN_FALSE;
 }

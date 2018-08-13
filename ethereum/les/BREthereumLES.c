@@ -635,7 +635,8 @@ lesGetAccountState (BREthereumLES les,
         { 5795662, { 6 }}, // -> ETH, 0x1429c28066e3e41073e7abece864e5ca9b0dfcef28bec90a83e6ed04d91997ac
         { 5818087, { 7 }}, // -> ETH, 0xe606358c10f59dfbdb7ad823826881ee3915e06320f1019187af92e96201e7ed
         { 5819543, { 8 }}, // -> ETH, 0x597595bdf79ec29e8a7079fecddd741a40471bbd8fd92e11cdfc0d78d973cb16
-        { UINT64_MAX, { 8 }}
+        { 6104163, { 9 }}, // -> ETH, 0xe87d76e5a47600f70ee11816ba8d1756b9295eca12487cbe1223a80e3a603d44
+        { UINT64_MAX, { 9 }}
     };
 
     BREthereumLESAccountStateResult result = { ACCOUNT_STATE_ERROR_X };
