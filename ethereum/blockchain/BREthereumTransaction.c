@@ -253,17 +253,17 @@ transactionSign(BREthereumTransaction transaction,
     // The signature algorithm does not account for EIP-155 and thus the chainID.  We are signing
     // transactions according to EIP-155.  Thus v = CHAIN_ID * 2 + 35 or v = CHAIN_ID * 2 + 36
     // whereas the non-EIP-155 value of v is { 27, 28 }
-    assert (SIGNATURE_TYPE_RECOVERABLE == signature.type);
-    assert (27 == signature.sig.recoverable.v || 28 == signature.sig.recoverable.v);
+    assert (SIGNATURE_TYPE_RECOVERABLE_VRS_EIP == signature.type);
+    assert (27 == signature.sig.vrs.v || 28 == signature.sig.vrs.v);
 }
 
 extern BREthereumBoolean
 transactionIsSigned (BREthereumTransaction transaction) {
     switch (transaction->signature.type) {
-        case SIGNATURE_TYPE_FOO:
-            return AS_ETHEREUM_BOOLEAN (transaction->signature.sig.foo.ignore != 0);
-        case SIGNATURE_TYPE_RECOVERABLE:
-            return AS_ETHEREUM_BOOLEAN (transaction->signature.sig.recoverable.v != 0);
+        case SIGNATURE_TYPE_RECOVERABLE_VRS_EIP:
+            return AS_ETHEREUM_BOOLEAN (transaction->signature.sig.vrs.v != 0);
+        case SIGNATURE_TYPE_RECOVERABLE_RSV:
+            return AS_ETHEREUM_BOOLEAN (transaction->signature.sig.rsv.v != 0);
     }
 }
 
@@ -348,16 +348,16 @@ transactionRlpEncode(BREthereumTransaction transaction,
         case RLP_TYPE_TRANSACTION_SIGNED: // aka NETWORK
         case RLP_TYPE_ARCHIVE:
             // For EIP-155, encode v with the chainID.
-            items[6] = rlpEncodeUInt64(coder, transaction->signature.sig.recoverable.v + 8 +
+            items[6] = rlpEncodeUInt64(coder, transaction->signature.sig.vrs.v + 8 +
                                            2 * transaction->chainId, 1);
 
             items[7] = rlpEncodeBytes (coder,
-                                           transaction->signature.sig.recoverable.r,
-                                           sizeof (transaction->signature.sig.recoverable.r));
+                                           transaction->signature.sig.vrs.r,
+                                           sizeof (transaction->signature.sig.vrs.r));
 
             items[8] = rlpEncodeBytes (coder,
-                                           transaction->signature.sig.recoverable.s,
-                                           sizeof (transaction->signature.sig.recoverable.s));
+                                           transaction->signature.sig.vrs.s,
+                                           sizeof (transaction->signature.sig.vrs.s));
             itemsCount += 3;
 
             // For ARCHIVE add in a few things beyond 'SIGNED / NETWORK'
@@ -417,26 +417,26 @@ transactionRlpDecode (BRRlpItem item,
 
     if (eipChainId == transaction->chainId) {
         // RLP_TYPE_TRANSACTION_UNSIGNED
-        transaction->signature.type = SIGNATURE_TYPE_RECOVERABLE;
+        transaction->signature.type = SIGNATURE_TYPE_RECOVERABLE_VRS_EIP;
     }
     else {
         // RLP_TYPE_TRANSACTION_SIGNED
-        transaction->signature.type = SIGNATURE_TYPE_RECOVERABLE;
+        transaction->signature.type = SIGNATURE_TYPE_RECOVERABLE_VRS_EIP;
 
         // If we are RLP decoding a transactino prior to EIP-xxx, then the eipChainId will
         // not be encoded with the chainId.  In that case, just use the eipChainId
-        transaction->signature.sig.recoverable.v = (eipChainId > 30
+        transaction->signature.sig.vrs.v = (eipChainId > 30
                                                     ? eipChainId - 8 - 2 * transaction->chainId
                                                     : eipChainId);
 
         BRRlpData rData = rlpDecodeBytesSharedDontRelease (coder, items[7]);
         assert (32 >= rData.bytesCount);
-        memcpy (&transaction->signature.sig.recoverable.r[32 - rData.bytesCount],
+        memcpy (&transaction->signature.sig.vrs.r[32 - rData.bytesCount],
                 rData.bytes, rData.bytesCount);
 
         BRRlpData sData = rlpDecodeBytesSharedDontRelease (coder, items[8]);
         assert (32 >= sData.bytesCount);
-        memcpy (&transaction->signature.sig.recoverable.s[32 - sData.bytesCount],
+        memcpy (&transaction->signature.sig.vrs.s[32 - sData.bytesCount],
                 sData.bytes, sData.bytesCount);
 
         // :fingers-crossed:

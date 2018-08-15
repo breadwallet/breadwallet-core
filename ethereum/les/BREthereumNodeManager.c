@@ -25,6 +25,7 @@
 
 #include <pthread.h>
 #include <errno.h>
+#include <unistd.h>  // sleep
 
 #include "BRArray.h"
 
@@ -122,7 +123,6 @@ void _networkReachableCallback(BREthereumManagerCallbackContext info, BREthereum
 }
 ///////
 
-
 BREthereumBoolean _findPeers(BREthereumLESNodeManager manager) {
 
     //Note: This function should be called from within the lock of the les context
@@ -137,7 +137,7 @@ BREthereumBoolean _findPeers(BREthereumLESNodeManager manager) {
 #if 0 // 65...
         config.endpoint = endpointCreate(ETHEREUM_BOOLEAN_TRUE, "65.79.142.182", 30303, 30303);
         decodeHex (pubKey, 64, "c7f12332d767c12888da45044581d30de5a1bf383f68ef7b79c83eefd99c82adf2ebe3f37e472cbcdf839d52eddc34f270a7a3444ab6c1dd127bba1687140d93", 128);
-#elif 1 // 104...
+#elif 0 // 104...
         config.endpoint = endpointCreate(ETHEREUM_BOOLEAN_TRUE, "104.197.99.24", DEFAULT_TCPPORT, DEFAULT_UDPPORT);
         decodeHex (pubKey, 64, "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851", 128);
 #elif 0 // TestNet: 35...198
@@ -150,7 +150,7 @@ BREthereumBoolean _findPeers(BREthereumLESNodeManager manager) {
         // admin.addPeer("enode://3e9301c797f3863d7d0f29eec9a416f13956bd3a14eec7e0cf5eb56942841526269209edf6f57cd1315bef60c4ebbe3476bc5457bed4e479cac844c8c9e375d3@109.232.77.21:30303");
         config.endpoint = endpointCreate(ETHEREUM_BOOLEAN_TRUE, "109.232.77.21", 30303, 30303);
         decodeHex (pubKey, 64, "3e9301c797f3863d7d0f29eec9a416f13956bd3a14eec7e0cf5eb56942841526269209edf6f57cd1315bef60c4ebbe3476bc5457bed4e479cac844c8c9e375d3", 128);
-#elif 0  // public
+#elif 1  // public
         //admin.addPeer("enode://e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851@35.226.238.26:30303");
         config.endpoint = endpointCreate(ETHEREUM_BOOLEAN_TRUE, "35.226.238.26", 30303, 30303);
         decodeHex (pubKey, 64, "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851", 128);
@@ -177,6 +177,7 @@ BREthereumBoolean _findPeers(BREthereumLESNodeManager manager) {
         array_add(manager->peers, config);
         ret = ETHEREUM_BOOLEAN_TRUE;
     }
+
     return ret;
 }
 
@@ -239,9 +240,96 @@ BREthereumLESNodeManagerStatus nodeManagerStatus(BREthereumLESNodeManager manage
     pthread_mutex_unlock(&manager->lock);
     return retStatus;
 }
+
+#include "rework/BREthereumLESNode.h"
+
 int nodeManagerConnect(BREthereumLESNodeManager manager) {
     assert(manager != NULL);
-        
+#if 1
+    {
+        // Remote Endpoint
+        BRKey key;
+        key.pubKey[0] = 0x04;
+        key.compressed = 0;
+#if 0
+        decodeHex(&key.pubKey[1], 64, "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851", 128);
+        BREthereumLESNodeEndpoint remote = nodeEndpointCreate("104.197.99.24", DEFAULT_UDPPORT, DEFAULT_TCPPORT, key);
+#elif 1
+        decodeHex(&key.pubKey[1], 64, "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851", 128);
+        BREthereumLESNodeEndpoint remote = nodeEndpointCreate("35.226.238.26", 30303, 30303, key);
+#elif 0
+        decodeHex(&key.pubKey[1], 64, "a40437d2f44ae655387009d1d69ba9fd07b748b7a6ecfc958c135008a34c0497466db35049c36c8296590b4bcf9b9058f9fa2a688a2c6566654b1f1dc42417e4", 128);
+        BREthereumLESNodeEndpoint remote = nodeEndpointCreate("127.0.0.1", 30303, 30303, key);
+
+#endif
+        //
+        // Local Endpoint
+        //
+        BRKey localKey, localEphemeralKey;
+        UInt256 localNonce;
+
+        randomGenPriKey(manager->randomContext, &localKey);
+        randomGenPriKey(manager->randomContext, &localEphemeralKey);
+        randomGenUInt256(manager->randomContext, &localNonce);
+
+        BREthereumLESNodeEndpoint local  = nodeEndpointCreateRaw ("1.1.1.1", 30303, 30303,
+                                                                  localKey,
+                                                                  localEphemeralKey,
+                                                                  localNonce);
+
+        {
+            BREthereumP2PMessage hello = {
+                P2P_MESSAGE_HELLO,
+                { .hello  = {
+                    0x03,
+                    strdup ("BRD Light Client"),
+                    NULL,
+                    0,
+                }}};
+            BREthereumP2PCapability lesCap = { "les", 2 };
+            array_new (hello.u.hello.capabilities, 1);
+            array_add (hello.u.hello.capabilities, lesCap);
+
+            assert (0 == localKey.compressed);
+            uint8_t pubKey[65];
+            assert (65 == BRKeyPubKey (&localKey, pubKey, 65));
+            memcpy (hello.u.hello.nodeId.u8, &pubKey[1], 64);
+
+            nodeEndpointSetHello(&local, hello);
+        }
+
+        {
+            BREthereumLESMessage status = {
+                LES_MESSAGE_STATUS,
+                { .status = messageLESStatusCreate (0x02,
+                                                    networkGetChainId(manager->network),
+                                                    manager->headNumber,
+                                                    manager->headHash,
+                                                    manager->headTotalDifficulty,
+                                                    manager->genesisHash,
+                                                    0x01)
+                }};
+            nodeEndpointSetStatus(&local, status);
+        }
+
+        const char *dataString = "1c83e962b029ab51272b38ed7783cb3d06fbea4536dc4d8d5c4c8b40908d3b6d7259855f2ba9e7152bba05cab99196dbef8aa2b659daf7a94ef7cb6d81f0e1444401de04cb840101010182765f82765fcb847f00000182765f82765f845b8550";
+        size_t dataSize;
+        uint8_t *dataBytes = decodeHexCreate(&dataSize, dataString, strlen (dataString));
+        BRRlpData data = { dataSize, dataBytes };
+        BREthereumHash hash = hashCreateFromData(data);
+        printf ("Hash: %s\n", encodeHexCreate(&dataSize, hash.bytes, 32));
+
+        //
+        // Actual Node
+        //
+        BREthereumLESNodeX nodeX = nodeXCreate(remote, local, manager, NULL);
+        nodeXStart(nodeX);
+    }
+
+    sleep (10 * 60);
+
+    return 0;
+#endif
     pthread_mutex_lock(&manager->lock);
     int retValue = 0;
     int connectedCount = 0;

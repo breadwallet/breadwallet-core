@@ -640,18 +640,29 @@ rlpDecodeBytes (BRRlpCoder coder, BRRlpItem item) {
     return result;
 }
 
-extern BRRlpData
-rlpDecodeBytesSharedDontRelease (BRRlpCoder coder, BRRlpItem item) {
+static BRRlpData
+rlpDecodeBytesSharedDontReleaseBaseline (BRRlpCoder coder, BRRlpItem item, uint8_t baseline) {
     assert (itemIsValid (coder, item));
 
     uint8_t offset = 0;
-    uint64_t length = decodeLength(item->bytes, RLP_PREFIX_BYTES, &offset);
+    uint64_t length = decodeLength(item->bytes, baseline, &offset);
 
     BRRlpData result;
     result.bytesCount = length;
     result.bytes = &item->bytes[offset];
 
     return result;
+
+}
+
+extern BRRlpData
+rlpDecodeBytesSharedDontRelease (BRRlpCoder coder, BRRlpItem item) {
+    return rlpDecodeBytesSharedDontReleaseBaseline(coder, item, RLP_PREFIX_BYTES);
+}
+
+extern BRRlpData
+rlpDecodeListSharedDontRelease (BRRlpCoder coder, BRRlpItem item) {
+    return rlpDecodeBytesSharedDontReleaseBaseline(coder, item, RLP_PREFIX_LIST);
 }
 
 //

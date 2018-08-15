@@ -60,7 +60,7 @@ typedef enum {
 }BREthereumLESMessageId;
 
 extern const char *
-lesMessageGetName (BREthereumLESMessageId id);
+messageLESGetName (BREthereumLESMessageId id);
 
 typedef enum {
     BRE_LES_CODER_SUCCESS=0,

@@ -403,6 +403,9 @@ BREthereumLESHandshakeStatus handshakeTransition(BREthereumLESHandshake handshak
         size_t encryptedHelloSize = 0;
         
         _sendHelloMessage(handshake, &encryptedHello, &encryptedHelloSize);
+#if defined (NEED_TO_PRINT_SEND_RECV_DATA)
+        eth_log (HANDSHAKE_LOG_TOPIC, "Size: Send: Hello: EncryptedSize: %zu", encryptedHelloSize);
+#endif
         int ec = nodeWriteToPeer(node, encryptedHello, encryptedHelloSize, "hello message to remote peer");
         if(ec) {
             if(encryptedHello != NULL){
@@ -431,7 +434,9 @@ BREthereumLESHandshakeStatus handshakeTransition(BREthereumLESHandshake handshak
         }
         
         size_t frameSize = payloadSize + ((16 - (payloadSize % 16)) % 16) + 16;
-        
+#if defined (NEED_TO_PRINT_SEND_RECV_DATA)
+        eth_log (HANDSHAKE_LOG_TOPIC, "Size: Recv: Hello: PayLoad: %zu, Frame: %zu", payloadSize, frameSize);
+#endif
         uint8_t* frame;
         array_new(frame, frameSize);
         

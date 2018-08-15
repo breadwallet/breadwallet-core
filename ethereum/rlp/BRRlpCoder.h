@@ -136,6 +136,9 @@ rlpDecodeBytes (BRRlpCoder coder, BRRlpItem item);
 extern BRRlpData
 rlpDecodeBytesSharedDontRelease (BRRlpCoder coder, BRRlpItem item);
 
+extern BRRlpData
+rlpDecodeListSharedDontRelease (BRRlpCoder coder, BRRlpItem item);
+
 //
 // String
 //

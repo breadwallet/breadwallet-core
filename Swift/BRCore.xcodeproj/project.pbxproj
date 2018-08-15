@@ -17,6 +17,9 @@
 		3C386DD320C6F6070065E355 /* BREthereumEWMClient.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C386DD120C6F6060065E355 /* BREthereumEWMClient.c */; };
 		3C386DD420C6F6070065E355 /* BREthereumEWMEvent.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C386DD220C6F6070065E355 /* BREthereumEWMEvent.c */; };
 		3C3B37FD20D82335004F9928 /* BREventAlarm.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C3B37FB20D82335004F9928 /* BREventAlarm.c */; };
+		3C54A7FF2121F1D200C57B1B /* BREthereumLESMessage.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C54A7FE2121F1D200C57B1B /* BREthereumLESMessage.c */; };
+		3C54A8022122284900C57B1B /* BREthereumLESNode.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C54A8012122284900C57B1B /* BREthereumLESNode.c */; };
+		3C54A80521234C9700C57B1B /* BREthereumLESNodeEndpoint.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C54A80421234C9700C57B1B /* BREthereumLESNodeEndpoint.c */; };
 		3C67C9DA211CD4B100DFA5F9 /* WalletTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C67C9D9211CD4B100DFA5F9 /* WalletTableViewCell.swift */; };
 		3C67C9DE211CD56700DFA5F9 /* TransferTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C67C9DD211CD56700DFA5F9 /* TransferTableViewCell.swift */; };
 		3C67C9E0211CD5BD00DFA5F9 /* TransferViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C67C9DF211CD5BD00DFA5F9 /* TransferViewController.swift */; };
@@ -270,6 +273,12 @@
 		3C42EF512095143D000E58E0 /* module.modulemap */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = "sourcecode.module-map"; path = module.modulemap; sourceTree = "<group>"; };
 		3C42EF8D209763AB000E58E0 /* BRDcoreTests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "BRDcoreTests-Bridging-Header.h"; sourceTree = "<group>"; };
 		3C42EF8E209763AB000E58E0 /* test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = test.c; path = ../../test.c; sourceTree = "<group>"; };
+		3C54A7FD2121F1D200C57B1B /* BREthereumLESMessage.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumLESMessage.h; sourceTree = "<group>"; };
+		3C54A7FE2121F1D200C57B1B /* BREthereumLESMessage.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumLESMessage.c; sourceTree = "<group>"; };
+		3C54A8002122284900C57B1B /* BREthereumLESNode.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumLESNode.h; sourceTree = "<group>"; };
+		3C54A8012122284900C57B1B /* BREthereumLESNode.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumLESNode.c; sourceTree = "<group>"; };
+		3C54A80321234C9700C57B1B /* BREthereumLESNodeEndpoint.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BREthereumLESNodeEndpoint.h; sourceTree = "<group>"; };
+		3C54A80421234C9700C57B1B /* BREthereumLESNodeEndpoint.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumLESNodeEndpoint.c; sourceTree = "<group>"; };
 		3C590F3220950C720005597B /* BRBIP32Sequence.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = BRBIP32Sequence.c; path = ../../BRBIP32Sequence.c; sourceTree = "<group>"; };
 		3C590F3320950C720005597B /* BRBIP39Mnemonic.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BRBIP39Mnemonic.h; path = ../../BRBIP39Mnemonic.h; sourceTree = "<group>"; };
 		3C590F3420950C720005597B /* BRAddress.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = BRAddress.c; path = ../../BRAddress.c; sourceTree = "<group>"; };
@@ -443,6 +452,7 @@
 		3C2A537F20AF595400C430F6 /* les */ = {
 			isa = PBXGroup;
 			children = (
+				3C54A7FC2121F1A800C57B1B /* rework */,
 				3C386DBD20C6F4AE0065E355 /* BREthereumRandom.h */,
 				3C386DC120C6F4AE0065E355 /* BREthereumRandom.c */,
 				3C386DBE20C6F4AE0065E355 /* BREthereumEndpoint.h */,
@@ -596,6 +606,19 @@
 			);
 			name = bcs;
 			path = ../../ethereum/bcs;
+			sourceTree = "<group>";
+		};
+		3C54A7FC2121F1A800C57B1B /* rework */ = {
+			isa = PBXGroup;
+			children = (
+				3C54A7FD2121F1D200C57B1B /* BREthereumLESMessage.h */,
+				3C54A7FE2121F1D200C57B1B /* BREthereumLESMessage.c */,
+				3C54A80321234C9700C57B1B /* BREthereumLESNodeEndpoint.h */,
+				3C54A80421234C9700C57B1B /* BREthereumLESNodeEndpoint.c */,
+				3C54A8002122284900C57B1B /* BREthereumLESNode.h */,
+				3C54A8012122284900C57B1B /* BREthereumLESNode.c */,
+			);
+			path = rework;
 			sourceTree = "<group>";
 		};
 		3C590F0D20950C160005597B = {
@@ -1012,14 +1035,17 @@
 				3C9025FD2108DDAE00143B69 /* BREthereumBCSSync.c in Sources */,
 				3CAB60D820AF8D1A00810CE4 /* BRBech32.c in Sources */,
 				3CAB60D920AF8D1A00810CE4 /* BRBIP32Sequence.c in Sources */,
+				3C54A7FF2121F1D200C57B1B /* BREthereumLESMessage.c in Sources */,
 				3CAB60DA20AF8D1A00810CE4 /* BRBIP38Key.c in Sources */,
 				3C902623210A7E9800143B69 /* BREthereumTransfer.c in Sources */,
+				3C54A8022122284900C57B1B /* BREthereumLESNode.c in Sources */,
 				3CAB60DB20AF8D1A00810CE4 /* BRBIP39Mnemonic.c in Sources */,
 				3CAB60DC20AF8D1A00810CE4 /* BRBloomFilter.c in Sources */,
 				3CAB60DD20AF8D1A00810CE4 /* BRCrypto.c in Sources */,
 				3CAB60DE20AF8D1A00810CE4 /* BRKeyECIES.c in Sources */,
 				3CDA764B210138B3005F4CF8 /* BREthereumEWMClientEvent.c in Sources */,
 				3CAB60DF20AF8D1A00810CE4 /* BRKey.c in Sources */,
+				3C54A80521234C9700C57B1B /* BREthereumLESNodeEndpoint.c in Sources */,
 				3CAB60E020AF8D1A00810CE4 /* BRMerkleBlock.c in Sources */,
 				3CAB60E120AF8D1A00810CE4 /* BRPaymentProtocol.c in Sources */,
 				3CAB60E220AF8D1A00810CE4 /* BRPeer.c in Sources */,

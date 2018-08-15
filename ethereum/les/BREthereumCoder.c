@@ -352,7 +352,7 @@ BREthereumLESDecodeStatus coderDecodeStatus(BRRlpCoder coder, uint8_t*rlpBytes, 
 }
 
 extern const char *
-lesMessageGetName (BREthereumLESMessageId id) {
+messageLESGetName (BREthereumLESMessageId id) {
     switch (id) {
         case BRE_LES_ID_ANNOUNCE: return "Announce";
         case BRE_LES_ID_STATUS: return "Status";
@@ -384,7 +384,7 @@ statusMessageShow (BREthereumLESStatusMessage *message) {
     size_t count = *(message->flowControlMRCCount);
     eth_log (ETH_LOG_TOPIC, "    FlowControl/MCC%s", "");
     for (size_t index = 0; index < count; index++) {
-        const char *label = lesMessageGetName ((BREthereumLESMessageId) message->flowControlMRC[index].msgCode);
+        const char *label = messageLESGetName ((BREthereumLESMessageId) message->flowControlMRC[index].msgCode);
         if (NULL != label) {
             eth_log (ETH_LOG_TOPIC, "      === %d", (BREthereumLESMessageId) message->flowControlMRC[index].msgCode);
             eth_log (ETH_LOG_TOPIC, "        Request : %s", label);
@@ -399,7 +399,7 @@ statusMessageLogFlowControl (BREthereumLESStatusMessage *message) {
     size_t count = *(message->flowControlMRCCount);
     eth_log (ETH_LOG_TOPIC, "FlowControl/MCC%s", "");
     for (size_t index = 0; index < count; index++) {
-        const char *label = lesMessageGetName ((BREthereumLESMessageId) message->flowControlMRC[index].msgCode);
+        const char *label = messageLESGetName ((BREthereumLESMessageId) message->flowControlMRC[index].msgCode);
         if (NULL != label) {
             eth_log (ETH_LOG_TOPIC, "=== %d", (BREthereumLESMessageId) message->flowControlMRC[index].msgCode);
             eth_log (ETH_LOG_TOPIC, "    Request : %s", label);

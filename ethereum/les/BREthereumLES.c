@@ -119,7 +119,7 @@ static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t me
     BREthereumLES les = (BREthereumLES)info;
 
     eth_log (ETH_LOG_TOPIC, "Recv [%13s] from peer [%s]",
-             lesMessageGetName((BREthereumLESMessageId) (messageType - les->message_id_offset)),
+             messageLESGetName((BREthereumLESMessageId) (messageType - les->message_id_offset)),
              "...");
              
     switch (messageType - les->message_id_offset)

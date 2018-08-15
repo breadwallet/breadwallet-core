@@ -350,7 +350,9 @@ static int _readMessage(BREthereumLESNode node) {
 
     uint32_t fullFrameSize = frameSize + ((16 - (frameSize % 16)) % 16) + 16;
     
-
+#if defined (NEED_TO_PRINT_SEND_RECV_DATA)
+    eth_log (ETH_LOG_TOPIC, "Size: Recv: Frame: %u, FullFrame: %u", frameSize, fullFrameSize);
+#endif
     if(node->body == NULL){
       node->body = malloc(fullFrameSize);
       node->bodyCompacity = fullFrameSize;
@@ -427,6 +429,9 @@ static void *_nodeThreadRunFunc(void *arg) {
                             uint8_t* statusPayload;
                             size_t statusPayloadSize;
                             frameCoderEncrypt(node->ioCoder, status, statusSize, &statusPayload, &statusPayloadSize);
+#if defined (NEED_TO_PRINT_SEND_RECV_DATA)
+                            eth_log (ETH_LOG_TOPIC, "Size: Send: Status: PayLoad: %zu", statusPayloadSize);
+#endif
                             nodeWriteToPeer(node, statusPayload, statusPayloadSize, "status message of BRD node");
                             free(statusPayload);
                             free(status);

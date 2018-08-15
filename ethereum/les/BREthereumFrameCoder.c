@@ -233,8 +233,8 @@ BREthereumBoolean frameCoderInit(BREthereumLESFrameCoder fcoder,
                                          UInt256* remoteNonce,
                                          BRKey* localEphemeral,
                                          UInt256* localNonce,
-                                         uint8_t* aukCipher,
-                                         size_t aukCipherLen,
+                                         uint8_t* ackCipher,
+                                         size_t ackCipherLen,
                                          uint8_t* authCiper,
                                          size_t authCipherLen,
                                          BREthereumBoolean didOriginate) {
@@ -314,13 +314,13 @@ BREthereumBoolean frameCoderInit(BREthereumLESFrameCoder fcoder,
     {
         egressCipher = authCiper;
         egressCipherLen = authCipherLen;
-        ingressCipher = aukCipher;
-        ingressCipherLen = aukCipherLen;
+        ingressCipher = ackCipher;
+        ingressCipherLen = ackCipherLen;
     }
     else
     {
-        egressCipher = aukCipher;
-        egressCipherLen = aukCipherLen;
+        egressCipher = ackCipher;
+        egressCipherLen = ackCipherLen;
         ingressCipher = authCiper;
         ingressCipherLen = authCipherLen;
     }

@@ -325,7 +325,7 @@ transferSign (BREthereumTransfer transfer,
     // Sign the RLP Encoded bytes.
     BREthereumSignature signature = accountSignBytes (account,
                                                       address,
-                                                      SIGNATURE_TYPE_RECOVERABLE,
+                                                      SIGNATURE_TYPE_RECOVERABLE_VRS_EIP,
                                                       data.bytes,
                                                       data.bytesCount,
                                                       paperKey);
@@ -360,7 +360,7 @@ transferSignWithKey (BREthereumTransfer transfer,
     // Sign the RLP Encoded bytes.
     BREthereumSignature signature = accountSignBytesWithPrivateKey (account,
                                                                     address,
-                                                                    SIGNATURE_TYPE_RECOVERABLE,
+                                                                    SIGNATURE_TYPE_RECOVERABLE_VRS_EIP,
                                                                     data.bytes,
                                                                     data.bytesCount,
                                                                     privateKey);
