@@ -29,7 +29,7 @@
 #include <sys/time.h>
 #include <assert.h>
 #include "BRCrypto.h"
-#include "BREthereumRandom.h"
+#include "BREthereumLESRandom.h"
 
 #define KECCAK_HASH_SIZE 32
 #define NONCE_SIZE 8

@@ -33,7 +33,7 @@
 extern "C" {
 #endif
 
-typedef struct BREthereumLESNodeXRecord *BREthereumLESNodeX;
+typedef struct BREthereumLESNodeRecord *BREthereumLESNode;
 
 typedef enum {
     NODE_ERROR,
@@ -45,15 +45,15 @@ typedef void *BREthereumLESNodeContext;
 
 typedef void
 (*BREthereumLESNodeCallbackMessage) (BREthereumLESNodeContext context,
-                                     BREthereumLESNodeX node,
+                                     BREthereumLESNode node,
                                      BREthereumLESMessage message);
 
 // connect
 // disconnect
 // network reachable
 
-extern BREthereumLESNodeX // add 'message id offset'?
-nodeXCreate (BREthereumLESNodeEndpoint endpoint,  // remote, local ??
+extern BREthereumLESNode // add 'message id offset'?
+nodeCreate (BREthereumLESNodeEndpoint remote,  // remote, local ??
              BREthereumLESNodeEndpoint local,
              BREthereumLESNodeContext context,
              BREthereumLESNodeCallbackMessage callbackMessage
@@ -61,16 +61,16 @@ nodeXCreate (BREthereumLESNodeEndpoint endpoint,  // remote, local ??
 );
 
 extern void
-nodeXStart (BREthereumLESNodeX node);
+nodeStart (BREthereumLESNode node);
 
 extern void
-nodeXStop (BREthereumLESNodeX node);
+nodeStop (BREthereumLESNode node);
 
 extern void
-nodeXRelease (BREthereumLESNodeX node);
+nodeRelease (BREthereumLESNode node);
 
 extern void
-nodeXSend (BREthereumLESNodeX node,
+nodeSend (BREthereumLESNode node,
            BREthereumMessage message);   // BRRlpData/BRRlpItem *optionalMessageData/Item
 
 #ifdef __cplusplus

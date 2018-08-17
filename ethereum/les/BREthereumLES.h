@@ -36,6 +36,7 @@
 extern "C" {
 #endif
 
+typedef struct {} BREthereumLESPeerConfig;
 
 /*!
  * @typedef BREthereumLES
@@ -43,7 +44,7 @@ extern "C" {
  * @abstract
  * An instance to handle LES functionalty.
  */
-typedef struct BREthereumLESContext *BREthereumLES;
+typedef struct BREthereumLESRecord *BREthereumLES;
 
 /*!
  *@typedef BREthereumLESStatus
@@ -52,28 +53,29 @@ typedef struct BREthereumLESContext *BREthereumLES;
  * An enumeration for deteremining the error that occured when submitting messages using LES
  */
 typedef enum {
-    LES_SUCCESS  = 0x00,            // No error was generated after submtting a message using LES
-    LES_NETWORK_UNREACHABLE = 0x01, // Error is thrown when the LES context can not connect to the ethereum network
-    LES_UNKNOWN_ERROR = 0x02        // Error is thrown but it's unknown what caused it.
+    LES_SUCCESS                   = 0x00,  // No error was generated after submtting a message using LES
+    LES_ERROR_NETWORK_UNREACHABLE = 0x01,  // Error is thrown when the LES context can not connect to the ethereum network
+    LES_ERROR_UNKNOWN             = 0x02   // Error is thrown but it's unknown what caused it.
+                                           // NOT_CONNECTED?
 } BREthereumLESStatus;
 
 
 /*!
- * @typedef BREthereumLESAnnounceContext
+ * @typedef BREthereumLESCallbackContext
  *
  * @abstract
- * The context to use for handling a LES 'Announce' message
+ * The context to use for handling LES callbacks, such as 'announce' and 'status'
  */
-typedef void* BREthereumLESAnnounceContext;
+typedef void* BREthereumLESCallbackContext;
 
 /*!
- * @typedef BREthereumLESAnnounceCallback
+ * @typedef BREthereumLESCallbackAnnounce
  *
  * @abstract
  * The callback to use for handling a LES 'Announce' message.
  */
 typedef void
-(*BREthereumLESAnnounceCallback) (BREthereumLESAnnounceContext context,
+(*BREthereumLESCallbackAnnounce) (BREthereumLESCallbackContext context,
                                   BREthereumHash headHash,
                                   uint64_t headNumber,
                                   UInt256 headTotalDifficulty,
@@ -88,7 +90,7 @@ typedef void
  *
  */
 typedef void
-(*BREthereumLESStatusCallback) (BREthereumLESAnnounceContext context,
+(*BREthereumLESCallbackStatus) (BREthereumLESCallbackContext context,
                                 BREthereumHash headHash,
                                 uint64_t headNumber);
 
@@ -115,9 +117,9 @@ typedef void
  */
 extern BREthereumLES
 lesCreate (BREthereumNetwork network,
-           BREthereumLESAnnounceContext announceContext,
-           BREthereumLESAnnounceCallback announceCallback,
-           BREthereumLESStatusCallback statusCallback,
+           BREthereumLESCallbackContext callbackContext,
+           BREthereumLESCallbackAnnounce callbackAnnounce,
+           BREthereumLESCallbackStatus callbackStatus,
            BREthereumHash headHash,
            uint64_t headNumber,
            UInt256 headTotalDifficulty,
@@ -143,7 +145,21 @@ lesStop (BREthereumLES les);
 // LES Message functions
 //
 ////
-
+//#include "BREthereumLESMessage.h"
+//
+//    typedef struct {
+//        BREthereumLESStatus status;
+//        uint64_t reqId;
+//        union {
+//            struct {
+//                BREthereumLESMessage request;
+//                BREthereumLESMessage response;
+//            } success;
+//            struct {
+//
+//            } error;
+//        } u;
+//    } BREthereumLESResult;
 
 //
 // LES GetBlockHeaders
@@ -166,9 +182,6 @@ typedef void* BREthereumLESBlockHeadersContext;
 typedef void
 (*BREthereumLESBlockHeadersCallback) (BREthereumLESBlockHeadersContext context,
                                       BREthereumBlockHeader header);
-
-
-
 
 /*!
  * @function lesGetBlockHeaders
@@ -202,7 +215,7 @@ lesGetBlockHeaders (BREthereumLES les,
                     BREthereumLESBlockHeadersContext context,
                     BREthereumLESBlockHeadersCallback callback,
                     uint64_t blockNumber,
-                    size_t maxBlockCount,
+                    uint32_t maxBlockCount,
                     uint64_t skip,
                     BREthereumBoolean reverse);
 
@@ -304,16 +317,17 @@ typedef void // actual result is TBD
                                   BREthereumHash blockHash,
                                   BRRlpData key1,
                                   BRRlpData key2);
+                                  // BREthereumMPTNodePath path);
 
 extern BREthereumLESStatus
-lesGetGetProofsV2One (BREthereumLES les,
-                     BREthereumLESProofsV2Context context,
-                     BREthereumLESProofsV2Callback callback,
-                     BREthereumHash blockHash,
-                      BRRlpData key1, // BREthereumHash, BREthereumAddress - what about empty (0x80)?
-                      BRRlpData key2, // BREthereumHash
-                     uint64_t fromLevel);
-                     
+lesGetProofsV2One (BREthereumLES les,
+                   BREthereumLESProofsV2Context context,
+                   BREthereumLESProofsV2Callback callback,
+                   BREthereumHash blockHash,
+                   BRRlpData key1, // BREthereumHash, BREthereumAddress - what about empty (0x80)?
+                   BRRlpData key2, // BREthereumHash
+                   uint64_t fromLevel);
+
 //
 // LES GetTxStatus
 //
@@ -321,8 +335,8 @@ typedef void* BREthereumLESTransactionStatusContext;
 
 typedef void
 (*BREthereumLESTransactionStatusCallback) (BREthereumLESTransactionStatusContext context,
-                                          BREthereumHash transaction,
-                                          BREthereumTransactionStatus status);
+                                           BREthereumHash transaction,
+                                           BREthereumTransactionStatus status);
 
 extern BREthereumLESStatus
 lesGetTransactionStatus (BREthereumLES les,

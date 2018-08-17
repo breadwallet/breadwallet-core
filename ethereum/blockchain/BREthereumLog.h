@@ -30,10 +30,6 @@
 #include "BREthereumBloomFilter.h"
 #include "BREthereumTransactionStatus.h"
 
-#if ! defined (BRArrayOf)
-#define BRArrayOf(type)     type*
-#endif
-
 #ifdef __cplusplus
 extern "C" {
 #endif

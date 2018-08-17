@@ -35,7 +35,7 @@
 #include <netinet/in.h>
 #include <assert.h>
 
-#include "../../util/BRUtil.h"
+#include "../util/BRUtil.h"
 #include "BREthereumLESNodeEndpoint.h"
 
 #ifndef MSG_NOSIGNAL   // linux based systems have a MSG_NOSIGNAL send flag, useful for supressing SIGPIPE signals
@@ -95,6 +95,11 @@ nodeEndpointCreate (const char *address,
     return endpoint;
 }
 
+extern BRKey
+nodeEndpointGetKey (BREthereumLESNodeEndpoint endpoint) {
+    return endpoint.key;
+}
+
 extern void
 nodeEndpointSetHello (BREthereumLESNodeEndpoint *endpoint,
                       BREthereumP2PMessage hello) {
@@ -133,6 +138,9 @@ nodeEndpointClose (BREthereumLESNodeEndpoint *endpoint) {
     socket = endpoint->socketUDP;
     if (socket >= 0) {
         endpoint->socketUDP = -1;
+        if (shutdown (socket, SHUT_RDWR) < 0){
+            eth_log (ETH_LOG_TOPIC, "Socket UDP Shutdown Error: %s", strerror(errno));
+        }
         close (socket);
     }
 }

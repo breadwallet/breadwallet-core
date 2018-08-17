@@ -40,6 +40,8 @@ extern "C" {
 typedef struct BREthereumBlockHeaderRecord *BREthereumBlockHeader;
 typedef struct BREthereumBlockRecord *BREthereumBlock;
 
+/// MARK: - Block Header
+
 //
 // Block Header
 //
@@ -129,7 +131,9 @@ blockHeaderReleaseForSet (void *ignore, void *item);
 extern BREthereumComparison
 blockHeaderCompare (BREthereumBlockHeader h1,
                     BREthereumBlockHeader h2);
-    
+
+/// MARK: Block
+
 //
 // Block
 //
@@ -239,9 +243,17 @@ blockClrNext (BREthereumBlock block) {
     return blockSetNext(block, BLOCK_NEXT_NONE);
 }
 
-//
-// MARK: - Block Status
-//
+/// MARK: - Block Body Pair
+
+/**
+ * A Block Body Pair ...
+ */
+typedef struct {
+    BRArrayOf(BREthereumTransaction) transactions;
+    BRArrayOf(BREthereumBlockHeader) uncles;
+} BREthereumBlockBodyPair;
+
+/// MARK: - Block Status
 
 typedef enum {
     BLOCK_REQUEST_NOT_NEEDED,
@@ -371,9 +383,8 @@ blockTransactionsRlpDecode (BRRlpItem item,
                             BREthereumNetwork network,
                             BREthereumRlpType type,
                             BRRlpCoder coder);
-//
-// MARK: Genesis Blocks
-//
+
+/// MARK: - Genesis Blocks
 
 /**
  * Return a newly-allocaed block header duplicating the genesis block header for `network`.
@@ -387,9 +398,7 @@ networkGetGenesisBlockHeader (BREthereumNetwork network);
 extern BREthereumBlock
 networkGetGenesisBlock (BREthereumNetwork network);
 
-//
-// MARK: Block Checkpoint
-//
+/// MARK: - Block Checkpoint
 
 /**
  * A Block Checkpoint ...

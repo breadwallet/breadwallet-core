@@ -29,9 +29,13 @@
 #include <stdlib.h>
 #include <memory.h>
 #include "BRInt.h"
+#include "BRArray.h"
+#if ! defined (BRArrayOf)
+#define BRArrayOf( type )     type*
+#endif
+
 #include "../rlp/BRRlp.h"
 #include "BREthereumLogic.h"
-#include "BREthereumHash.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -109,6 +113,9 @@ hashRlpEncode(BREthereumHash hash, BRRlpCoder coder);
 
 extern BREthereumHash
 hashRlpDecode (BRRlpItem item, BRRlpCoder coder);
+
+extern BRRlpItem
+hashEncodeList (BRArrayOf(BREthereumHash) hashes, BRRlpCoder coder);
 
 // BRSet Support
 inline static int

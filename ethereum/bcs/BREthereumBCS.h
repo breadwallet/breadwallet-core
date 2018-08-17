@@ -28,7 +28,6 @@
 
 #include "../base/BREthereumBase.h"
 #include "../les/BREthereumLES.h"
-#include "../les/BREthereumNode.h"
 
 #define BRSetOf(type)     BRSet*
 #define BRArrayOf(type)   type*

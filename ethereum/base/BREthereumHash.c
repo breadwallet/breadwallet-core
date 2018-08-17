@@ -115,6 +115,15 @@ hashRlpDecode (BRRlpItem item, BRRlpCoder coder) {
     return hash;
 }
 
+extern BRRlpItem
+hashEncodeList (BRArrayOf (BREthereumHash) hashes, BRRlpCoder coder) {
+    size_t itemCount = array_count(hashes);
+    BRRlpItem items[itemCount];
+    for (size_t index = 0; index < itemCount; index++)
+        items[index] = hashRlpEncode(hashes[index], coder);
+    return rlpEncodeListItems (coder, items, itemCount);
+}
+
 extern void
 hashFillString (BREthereumHash hash,
                 BREthereumHashString string) {

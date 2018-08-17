@@ -31,7 +31,7 @@
 #include "BRCrypto.h"
 #include "BRKeyECIES.h"
 #include "BREthereumLESNode.h"
-#include "../BREthereumFrameCoder.h"
+#include "BREthereumLESFrameCoder.h"
 
 #define PTHREAD_STACK_SIZE (512 * 1024)
 #define PTHREAD_NULL   ((pthread_t) NULL)
@@ -63,17 +63,17 @@ static const ssize_t ackCipherBufLen =  ackBufLen + 65 + 16 + 32;
 typedef void* (*ThreadRoutine) (void*);
 
 static void *
-nodeThread (BREthereumLESNodeX node);
+nodeThread (BREthereumLESNode node);
 
 static BREthereumMessage
-nodeXRecv (BREthereumLESNodeX node, int socket);
+nodeXRecv (BREthereumLESNode node, int socket);
 
 
 //
-static void _sendAuthInitiator(BREthereumLESNodeX node);
-static void _readAuthFromInitiator(BREthereumLESNodeX node);
-static void _sendAuthAckToInitiator(BREthereumLESNodeX node);
-static void _readAuthAckFromRecipient(BREthereumLESNodeX node);
+static void _sendAuthInitiator(BREthereumLESNode node);
+static void _readAuthFromInitiator(BREthereumLESNode node);
+static void _sendAuthAckToInitiator(BREthereumLESNode node);
+static void _readAuthAckFromRecipient(BREthereumLESNode node);
 
 static void
 sleepForSure (unsigned int seconds, int print) {
@@ -110,7 +110,7 @@ typedef enum {
 //
 // MARK: - LES Node
 //
-struct BREthereumLESNodeXRecord {
+struct BREthereumLESNodeRecord {
     BREthereumLESNodeXType type;
     BREthereumLESNodeXState state;
 
@@ -154,12 +154,12 @@ struct BREthereumLESNodeXRecord {
     pthread_mutex_t lock;
 };
 
-extern BREthereumLESNodeX
-nodeXCreate (BREthereumLESNodeEndpoint remote,
+extern BREthereumLESNode
+nodeCreate (BREthereumLESNodeEndpoint remote,
              BREthereumLESNodeEndpoint local,
              BREthereumLESNodeContext context,
              BREthereumLESNodeCallbackMessage callbackMessage) {
-    BREthereumLESNodeX node = calloc (1, sizeof (struct BREthereumLESNodeXRecord));
+    BREthereumLESNode node = calloc (1, sizeof (struct BREthereumLESNodeRecord));
 
     node->type = NODE_TYPE_GETH;
     node->state = NODE_STATE_DISCONNECTED;
@@ -206,7 +206,7 @@ nodeXCreate (BREthereumLESNodeEndpoint remote,
 }
 
 extern void
-nodeXStart (BREthereumLESNodeX node) {
+nodeStart (BREthereumLESNode node) {
 //    pthread_mutex_lock(&handler->lockOnStartStop);
     if (PTHREAD_NULL == node->thread) {
         // if (0 != pthread_attr_t (...) && 0 != pthread_attr_...() && ...
@@ -222,22 +222,23 @@ nodeXStart (BREthereumLESNodeX node) {
 }
 
 extern void
-nodeXStop (BREthereumLESNodeX node) {
+nodeStop (BREthereumLESNode node) {
 //    pthread_mutex_lock(&handler->lockOnStartStop);
     if (PTHREAD_NULL != node->thread) {
         pthread_cancel(node->thread);
 //        pthread_cond_signal(&node->cond);
         pthread_join(node->thread, NULL);
         pthread_mutex_unlock(&node->lock);  // ensure this for restart.
-                                               // A mini-race here?
+                                            // A mini-race here?
+        nodeEndpointClose (&node->remote);
         node->thread = PTHREAD_NULL;
     }
 //    pthread_mutex_unlock(&handler->lockOnStartStop);
 }
 
 extern void
-nodeXRelease (BREthereumLESNodeX node) {
-    nodeXStop (node);
+nodeRelease (BREthereumLESNode node) {
+    nodeStop (node);
 
     if (NULL != node->sendDataBuffer.bytes) free (node->sendDataBuffer.bytes);
     if (NULL != node->recvDataBuffer.bytes) free (node->recvDataBuffer.bytes);
@@ -248,24 +249,18 @@ nodeXRelease (BREthereumLESNodeX node) {
     free (node);
 }
 
+#if 0
 static void
-nodeHandleP2PMessage (BREthereumLESNodeX node) {
-
-}
-
-static void
-nodeHandleETHMessage (BREthereumLESNodeX node) {
-
-}
-static void
-nodeHandleLESMessage (BREthereumLESNodeX node) {
-
-}
+nodeHandleP2PMessage (BREthereumLESNode node) {}
 
 static void
-nodeHandleDISMessage (BREthereumLESNodeX node) {
+nodeHandleETHMessage (BREthereumLESNode node) {}
+static void
+nodeHandleLESMessage (BREthereumLESNode node) {}
 
-}
+static void
+nodeHandleDISMessage (BREthereumLESNode node) {}
+#endif
 
 static BREthereumDISEndpoint
 endpointDISCreate (BREthereumLESNodeEndpoint *ne) {
@@ -308,7 +303,7 @@ endpointDISCreate (BREthereumLESNodeEndpoint *ne) {
 
 
 static void *
-nodeThread (BREthereumLESNodeX node) {
+nodeThread (BREthereumLESNode node) {
 #if defined (__ANDROID__)
     pthread_setname_np (node->thread, node->threadName);
 #else
@@ -359,7 +354,7 @@ nodeThread (BREthereumLESNodeX node) {
                     { .p2p = node->local.hello }
                 };
 
-                nodeXSend(node, message);
+                nodeSend(node, message);
 
                 // Recv a 'hello' message
                 BREthereumMessage helloReply = nodeXRecv (node, node->remote.socketTCP);
@@ -381,7 +376,7 @@ nodeThread (BREthereumLESNodeX node) {
                     { .les = node->local.status }
                 };
 
-                nodeXSend (node, message);
+                nodeSend (node, message);
 
                 // Recv a 'status' message
                 BREthereumMessage reply = nodeXRecv (node, node->remote.socketTCP);
@@ -392,6 +387,12 @@ nodeThread (BREthereumLESNodeX node) {
                 messageLESStatusShow(&reply.u.les.u.status);
                 node->remote.status = reply.u.les;
 
+                // TODO: Misplaced
+                if (node->callbackMessage)
+                    node->callbackMessage (node->callbackContext,
+                                           node,
+                                           message.u.les);
+
                 message = (BREthereumMessage) {
                     MESSAGE_DIS,
                     { .dis = {
@@ -401,7 +402,7 @@ nodeThread (BREthereumLESNodeX node) {
                                                         time(NULL) + 1000000) },
                         node->local.key }}
                 };
-                nodeXSend (node, message);
+                nodeSend (node, message);
 
                 node->state = NODE_STATE_CONNECTED;
                 break;
@@ -435,7 +436,7 @@ nodeThread (BREthereumLESNodeX node) {
                             P2P_MESSAGE_PONG,
                             {}}}
                     };
-                    nodeXSend (node, pong);
+                    nodeSend (node, pong);
                 }
 
                 // ... if this is a DIS PING message, respond immediately; otherwise ...
@@ -451,7 +452,7 @@ nodeThread (BREthereumLESNodeX node) {
                                                       time(NULL) + 1000000) },
                             node->local.key }}
                     };
-                    nodeXSend (node, pong);
+                    nodeSend (node, pong);
 
                     // ... can then send a 'findNodes'
                     BREthereumMessage findNodes = {
@@ -463,16 +464,21 @@ nodeThread (BREthereumLESNodeX node) {
                                                                time(NULL) + 1000000) },
                             node->local.key }}
                     };
-                    nodeXSend (node, findNodes);
+                    nodeSend (node, findNodes);
                 }
 
                 // .. if this is a DIS PONG message, respond immediately; otherwise ...
                 else if (messageHasIdentifiers (&message, MESSAGE_DIS, DIS_MESSAGE_PONG)) {
                 }
+
                 // ... handle the message
-                else {
+                else if (messageHasIdentifier(&message, MESSAGE_LES)) {
                     // if a les message, extends a 'reqId result' and then, if complete
                     // announce it.
+                    if (node->callbackMessage)
+                        node->callbackMessage (node->callbackContext,
+                                               node,
+                                               message.u.les);
                 }
                 break;
             }
@@ -484,7 +490,7 @@ nodeThread (BREthereumLESNodeX node) {
 }
 
 extern void
-nodeXSend (BREthereumLESNodeX node,
+nodeSend (BREthereumLESNode node,
            BREthereumMessage message) {
 
     BRRlpItem item = messageEncode (message, node->coder);
@@ -521,6 +527,7 @@ nodeXSend (BREthereumLESNodeX node,
             break;
         }
     }
+    rlpReleaseItem (node->coder, item);
 }
 
 //static uint8_t  // somehow
@@ -545,122 +552,109 @@ extractIdentifier (uint8_t value,
     }
 }
 
-static BREthereumMessage
-nodeXRecvDis (BREthereumLESNodeX node) {
-    uint8_t *bytes = node->recvDataBuffer.bytes;
-//    size_t   bytesLimit = node->recvDataBuffer.bytesCount;
-    //
-    size_t   bytesCount = 1500;
-
-    assert (0 == nodeEndpointRecvDataUDP (&node->remote, bytes, &bytesCount));
-//    assert (0 == nodeEndpointRecvData (&node->remote, NULL, bytes, bytesLimit));
-
-    // Wrap at RLP Byte
-    BRRlpItem item = rlpEncodeBytes (node->coder, bytes, bytesCount);
-
-    BREthereumMessage message = messageDecode (item, node->coder, MESSAGE_DIS, (BREthereumDISMessageIdentifier) -1);
-
-    eth_log (ETH_LOG_TOPIC, "Recv: %s, %s",
-             messageGetIdentifierName (&message),
-             messageGetAnyIdentifierName(&message));
-
-    rlpReleaseItem (node->coder, item);
-    return message;
-}
-
 static BREthereumMessage // Any message
-nodeXRecv (BREthereumLESNodeX node, int socket) {
-    if (socket == node->remote.socketUDP) {
-        return nodeXRecvDis (node);
-    }
+nodeXRecv (BREthereumLESNode node, int socket) {
     uint8_t *bytes = node->recvDataBuffer.bytes;
     size_t   bytesLimit = node->recvDataBuffer.bytesCount;
     size_t   bytesCount = 0;
-    uint32_t headerCount;
 
-    {
-        // get header, decrypt it, validate it and then determine the bytesCpount
-        uint8_t header[32];
-        memset(header, -1, 32);
+    BREthereumMessage message;
 
-        assert (0 == nodeEndpointRecvData (&node->remote, NULL, header, 32));
-        assert (ETHEREUM_BOOLEAN_IS_TRUE(frameCoderDecryptHeader(node->frameCoder, header, 32)));
-        headerCount = ((uint32_t)(header[2]) <<  0 |
-                       (uint32_t)(header[1]) <<  8 |
-                       (uint32_t)(header[0]) << 16);
+    // Faked...
+    BREthereumMessageIdentifier identifier = (socket == node->remote.socketUDP
+                                              ? MESSAGE_DIS
+                                              : MESSAGE_LES);
 
-        // ??round to 16 ?? 32 ??
-        bytesCount = headerCount + ((16 - (headerCount % 16)) % 16) + 16;
-        // bytesCount = (headerCount + 15) & ~15;
+    switch (identifier) {
+        case MESSAGE_DIS: {
+            bytesCount = 1500;
 
-        // ?? node->bodySize = headerCount; ??
-    }
+            assert (0 == nodeEndpointRecvDataUDP (&node->remote, bytes, &bytesCount));
+            //    assert (0 == nodeEndpointRecvData (&node->remote, NULL, bytes, bytesLimit));
 
-    // Given bytesCount, update recvDataBuffer if too small
-    if (bytesCount > bytesLimit) {
-        node->recvDataBuffer.bytesCount = bytesCount;
-        node->recvDataBuffer.bytes = realloc(node->recvDataBuffer.bytes, bytesCount);
-        bytes = node->recvDataBuffer.bytes;
-        bytesLimit = bytesCount;
-    }
+            // Wrap at RLP Byte
+            BRRlpItem item = rlpEncodeBytes (node->coder, bytes, bytesCount);
+
+            message = messageDecode (item, node->coder,
+                                     MESSAGE_DIS,
+                                     (BREthereumDISMessageIdentifier) -1);
+            rlpReleaseItem (node->coder, item);
+            break;
+        }
+
+        default: {
+            uint32_t headerCount;
+
+            {
+                // get header, decrypt it, validate it and then determine the bytesCpount
+                uint8_t header[32];
+                memset(header, -1, 32);
+
+                assert (0 == nodeEndpointRecvData (&node->remote, NULL, header, 32));
+                assert (ETHEREUM_BOOLEAN_IS_TRUE(frameCoderDecryptHeader(node->frameCoder, header, 32)));
+                headerCount = ((uint32_t)(header[2]) <<  0 |
+                               (uint32_t)(header[1]) <<  8 |
+                               (uint32_t)(header[0]) << 16);
+
+                // ??round to 16 ?? 32 ??
+                bytesCount = headerCount + ((16 - (headerCount % 16)) % 16) + 16;
+                // bytesCount = (headerCount + 15) & ~15;
+
+                // ?? node->bodySize = headerCount; ??
+            }
+
+            // Given bytesCount, update recvDataBuffer if too small
+            if (bytesCount > bytesLimit) {
+                node->recvDataBuffer.bytesCount = bytesCount;
+                node->recvDataBuffer.bytes = realloc(node->recvDataBuffer.bytes, bytesCount);
+                bytes = node->recvDataBuffer.bytes;
+                bytesLimit = bytesCount;
+            }
 
 #if defined (NEED_TO_PRINT_SEND_RECV_DATA)
-    eth_log (ETH_LOG_TOPIC, "Size: Recv: TCP: PayLoad: %u, Frame: %zu", headerCount, bytesCount);
+            eth_log (ETH_LOG_TOPIC, "Size: Recv: TCP: PayLoad: %u, Frame: %zu", headerCount, bytesCount);
 #endif
+            
+            // get body/frame
+            assert (0 == nodeEndpointRecvData (&node->remote, NULL, bytes, bytesCount));
+            frameCoderDecryptFrame(node->frameCoder, bytes, bytesCount);
 
-    // get body/frame
-    assert (0 == nodeEndpointRecvData (&node->remote, NULL, bytes, bytesCount));
-    frameCoderDecryptFrame(node->frameCoder, bytes, bytesCount);
+            // ?? node->bodySize = headerCount; ??
 
-    // ?? node->bodySize = headerCount; ??
+            // Identifier is at byte[0]
+            BRRlpData identifierData = { 1, &bytes[0] };
+            BRRlpItem identifierItem = rlpGetItem (node->coder, identifierData);
+            uint8_t value = (uint8_t) rlpDecodeUInt64 (node->coder, identifierItem, 1);
 
-    // Identifier is at byte[0]
-    BRRlpData identifierData = { 1, &bytes[0] };
-    BRRlpItem identifierItem = rlpGetItem (node->coder, identifierData);
-    uint8_t value = (uint8_t) rlpDecodeUInt64 (node->coder, identifierItem, 1);
+            BREthereumMessageIdentifier type;
+            BREthereumANYMessageIdentifier subtype;
 
-    BREthereumMessageIdentifier type;
-    BREthereumANYMessageIdentifier subtype;
+            extractIdentifier(value, &type, &subtype);
 
-    extractIdentifier(value, &type, &subtype);
-
-    // Actual body
-    BRRlpData data = { headerCount - 1, &bytes[1] };
-    BRRlpItem item = rlpGetItem (node->coder, data);
+            // Actual body
+            BRRlpData data = { headerCount - 1, &bytes[1] };
+            BRRlpItem item = rlpGetItem (node->coder, data);
 
 #if defined (NEED_TO_PRINT_SEND_RECV_DATA)
-    eth_log (ETH_LOG_TOPIC, "Size: Recv: TCP: Type: %u, Subtype: %d", type, subtype);
+            eth_log (ETH_LOG_TOPIC, "Size: Recv: TCP: Type: %u, Subtype: %d", type, subtype);
 #endif
-    
-    BREthereumMessage message = messageDecode (item, node->coder, type, subtype);
 
-    rlpReleaseItem (node->coder, item);
-    rlpReleaseItem (node->coder, identifierItem);
+            message = messageDecode (item, node->coder, type, subtype);
+
+            rlpReleaseItem (node->coder, item);
+            rlpReleaseItem (node->coder, identifierItem);
+
+            break;
+        }
+    }
 
     eth_log (ETH_LOG_TOPIC, "Recv: %s, %s",
              messageGetIdentifierName (&message),
              messageGetAnyIdentifierName(&message));
 
+
     return message;
-
-#if defined (EXTRACT_ONE_AS_TYPE_THEN_REST)
-    //Decode the Packet Type
-    BRRlpCoder rlpCoder = rlpCoderCreate();
-    BRRlpData framePacketTypeData = {1, node->body};
-    BRRlpItem item = rlpGetItem (rlpCoder, framePacketTypeData);
-    uint64_t packetType = rlpDecodeUInt64(rlpCoder, item, 1);
-
-    // Rest is the message
-    BRRlpData mesageBody = {node->bodySize - 1, &node->body[1]};
-
-    //Check if the message is a P2P message before broadcasting the message to the manager
-    if(ETHEREUM_BOOLEAN_IS_FALSE(_isP2PMessage(node,rlpCoder,packetType, mesageBody)))
-    {
-        node->callbacks.receivedMsgFunc(node->callbacks.info, node, packetType, mesageBody);
-    }
-#endif
 }
-
 
 static void
 bytesXOR(uint8_t * op1, uint8_t* op2, uint8_t* result, size_t len) {
@@ -684,7 +678,7 @@ _BRECDH(void *out32, const BRKey *privKey, BRKey *pubKey)
 
 
 static void
-_sendAuthInitiator(BREthereumLESNodeX node) {
+_sendAuthInitiator(BREthereumLESNode node) {
 
     // eth_log(ETH_LOG_TOPIC, "%s", "generating auth initiator");
 
@@ -741,7 +735,7 @@ _sendAuthInitiator(BREthereumLESNodeX node) {
 }
 
 static void
-_readAuthFromInitiator(BREthereumLESNodeX node) {
+_readAuthFromInitiator(BREthereumLESNode node) {
     BRKey* nodeKey = &node->local.key; // nodeGetKey(node);
     eth_log (ETH_LOG_TOPIC, "%s", "received auth from initiator");
 
@@ -777,7 +771,7 @@ _readAuthFromInitiator(BREthereumLESNodeX node) {
 
 
 static void
-_sendAuthAckToInitiator(BREthereumLESNodeX node) {
+_sendAuthAckToInitiator(BREthereumLESNode node) {
     eth_log (ETH_LOG_TOPIC, "%s", "generating auth ack for initiator");
 
     // authRecipient -> E(remote-pubk, epubK|| nonce || 0x0)
@@ -807,7 +801,7 @@ _sendAuthAckToInitiator(BREthereumLESNodeX node) {
 }
 
 static void
-_readAuthAckFromRecipient(BREthereumLESNodeX node) {
+_readAuthAckFromRecipient(BREthereumLESNode node) {
 
     BRKey* nodeKey = &node->local.key; // nodeGetKey(node);
 

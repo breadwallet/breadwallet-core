@@ -224,13 +224,13 @@ createEWM (BREthereumNetwork network,
     
     // Might need an argument related to `syncMode` - telling BCS, for example, to use LES,
     // or not to use LES and instead rely on `client` (or some manifestation of `client`).
-    ewm->bcs = bcsCreate(network,
-                         accountGetPrimaryAddress (account),
-                         listener,
-                         createEWMEnsurePeers(peersPersistData, ewm->coder),
-                         createEWMEnsureBlocks (blocksPersistData, network, ewm->coder),
-                         createEWMEnsureTransactions(transactionsPersistData, network, ewm->coder),
-                         createEWMEnsureLogs(logsPersistData, network, ewm->coder));
+    ewm->bcs = bcsCreate (network,
+                          accountGetPrimaryAddress (account),
+                          listener,
+                          createEWMEnsurePeers(peersPersistData, ewm->coder),
+                          createEWMEnsureBlocks (blocksPersistData, network, ewm->coder),
+                          createEWMEnsureTransactions(transactionsPersistData, network, ewm->coder),
+                          createEWMEnsureLogs(logsPersistData, network, ewm->coder));
     
     return ewm;
 }

@@ -166,6 +166,19 @@ transactionReceiptRlpEncode(BREthereumTransactionReceipt receipt,
     return rlpEncodeListItems(coder, items, 4);
 }
 
+extern BRArrayOf (BREthereumTransactionReceipt)
+transactionReceiptDecodeList (BRRlpItem item,
+                              BRRlpCoder coder) {
+    size_t itemCount;
+    const BRRlpItem *items = rlpDecodeList (coder, item, &itemCount);
+
+    BRArrayOf (BREthereumTransactionReceipt) receipts;
+    array_new (receipts, itemCount);
+    for (size_t index = 0; index < itemCount; index++)
+        array_add (receipts, transactionReceiptRlpDecode (items[index], coder));
+    return receipts;
+}
+
 /*  Transaction Receipts (184)
  ETH: LES-RECEIPTS:     L184: [
  ETH: LES-RECEIPTS:       L  4: [

@@ -169,6 +169,20 @@ transactionStatusRLPEncode (BREthereumTransactionStatus status,
     return rlpEncodeListItems(coder, items, 3);
 }
 
+extern BRArrayOf (BREthereumTransactionStatus)
+transactionStatusDecodeList (BRRlpItem item,
+                             BRRlpCoder coder) {
+    size_t itemCount;
+    const BRRlpItem *items = rlpDecodeList (coder, item, &itemCount);
+
+    BRArrayOf (BREthereumTransactionStatus) stati;
+    array_new (stati, itemCount);
+    for (size_t index = 0; index < itemCount; index++)
+        array_add (stati, transactionStatusRLPDecode (items[index], coder));
+
+    return stati;
+}
+
 /* GETH TxStatus
  ETH: TxtStatus: L  3: [
  ETH: TxtStatus:   I  0: 0x

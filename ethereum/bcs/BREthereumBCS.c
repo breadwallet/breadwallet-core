@@ -223,10 +223,10 @@ bcsCreate (BREthereumNetwork network,
     // Initialize LES and SYNC
     BREthereumBlockHeader header = blockGetHeader(bcs->chain);
 
-    bcs->les = lesCreate(bcs->network,
-                         (BREthereumLESAnnounceContext) bcs,
-                         (BREthereumLESAnnounceCallback) bcsSignalAnnounce,
-                         (BREthereumLESStatusCallback) bcsSignalStatus,
+    bcs->les = lesCreate (bcs->network,
+                         (BREthereumLESCallbackContext) bcs,
+                         (BREthereumLESCallbackAnnounce) bcsSignalAnnounce,
+                         (BREthereumLESCallbackStatus) bcsSignalStatus,
                          blockHeaderGetHash(header),
                          blockHeaderGetNumber(header),
                          blockHeaderGetDifficulty(header),
@@ -353,8 +353,8 @@ bcsHandleSubmitTransaction (BREthereumBCS bcs,
     switch (lesStatus) {
         case LES_SUCCESS:
             break;
-        case LES_UNKNOWN_ERROR:
-        case LES_NETWORK_UNREACHABLE: {
+        case LES_ERROR_UNKNOWN:
+        case LES_ERROR_NETWORK_UNREACHABLE: {
             bcsSignalTransactionStatus(bcs,
                                        transactionGetHash(transaction),
                                        transactionStatusCreateErrored("LES Submit Failed"));

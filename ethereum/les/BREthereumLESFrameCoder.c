@@ -28,18 +28,22 @@
 #include "BRKey.h"
 #include "BRArray.h"
 #include "BRBIP38Key.h"
-
 #include "../rlp/BRRlpCoder.h"
 #include "../util/BRKeccak.h"
-
-#include "BREthereumNode.h"
-#include "BREthereumFrameCoder.h"
-#include "BREthereumLESBase.h"
+#include "BREthereumLESFrameCoder.h"
 
 #define UINT256_SIZE 32
 
 #define HEADER_LEN 16
 #define MAC_LEN 16
+
+static void
+bytesXOR(uint8_t * op1, uint8_t* op2, uint8_t* result, size_t len) {
+    for (unsigned int i = 0; i < len;  ++i) {
+        result[i] = op1[i] ^ op2[i];
+    }
+}
+
 /**
  *
  * The context for a frame coder
@@ -228,6 +232,7 @@ BREthereumLESFrameCoder frameCoderCreate(void) {
     coder->ingressMac = NULL;
     return coder;
 }
+
 BREthereumBoolean frameCoderInit(BREthereumLESFrameCoder fcoder,
                                          BRKey* remoteEphemeral,
                                          UInt256* remoteNonce,
