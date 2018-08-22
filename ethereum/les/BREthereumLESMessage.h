@@ -37,6 +37,8 @@
 #define BRArrayOf(type)    type*
 #define BRSetOf(type)      BRSet*
 
+#define LES_LOG_TOPIC "LES"
+
 #define LES_IDENTIFIER_OFFSET_DEAL_WITH_IT   (0x10)
 
 #ifdef __cplusplus

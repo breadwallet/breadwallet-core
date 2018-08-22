@@ -126,21 +126,16 @@ nodeEndpointGetRecvDataAvailableFDSNum (BREthereumLESNodeEndpoint *endpoint);
 
 extern int
 nodeEndpointRecvData (BREthereumLESNodeEndpoint *endpoint,
-                      fd_set *readFds,
+                      int socket,
+                      uint8_t *bytes,
+                      size_t *bytesCount,
+                      int needBytesCount);
+
+extern int
+nodeEndpointSendData (BREthereumLESNodeEndpoint *endpoint,
+                      int socket,
                       uint8_t *bytes,
                       size_t bytesCount);
-
-// TMP
-extern int
-nodeEndpointRecvDataUDP (BREthereumLESNodeEndpoint *endpoint,
-                         uint8_t *bytes,
-                         size_t *bytesCount);
-
-extern int
-nodeEndpointSendData(BREthereumLESNodeEndpoint *endpoint,
-                     int socket,
-                     uint8_t *bytes,
-                     size_t bytesCount);
 
 #ifdef __cplusplus
 }

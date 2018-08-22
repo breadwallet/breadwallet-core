@@ -43,8 +43,6 @@
 #include "../event/pthread_android.h"
 #endif
 
-#define ETH_LOG_TOPIC "LXX"
-
 //
 // Frame Coder Stuff
 //
@@ -326,12 +324,14 @@ nodeThread (BREthereumLESNode node) {
             case NODE_STATE_AUTH: {
                 _sendAuthInitiator(node);
 
-                eth_log (ETH_LOG_TOPIC, "Send: WIP, Auth%s", "");
+                eth_log (LES_LOG_TOPIC, "Send: WIP, Auth%s", "");
                 nodeEndpointSendData (&node->remote, node->remote.socketTCP,
                                       node->authBufCipher, authCipherBufLen); //  "auth initiator");
 
-                nodeEndpointRecvData (&node->remote, NULL, node->ackBufCipher, ackCipherBufLen); // "auth ack from receivier"
-                eth_log (ETH_LOG_TOPIC, "Recv: WIP, Auth Ack%s", "");
+                size_t ackCipherBufCount = ackCipherBufLen;
+                nodeEndpointRecvData (&node->remote, node->remote.socketTCP, node->ackBufCipher, &ackCipherBufCount, 1); // "auth ack from receivier"
+                eth_log (LES_LOG_TOPIC, "Recv: WIP, Auth Ack%s", "");
+                assert (ackCipherBufCount == ackCipherBufLen);
 
                 _readAuthAckFromRecipient (node);
 
@@ -424,7 +424,7 @@ nodeThread (BREthereumLESNode node) {
 
                 // If this is a P2P DISCONNECT message, then disconnect; otherwise ...
                 if (messageHasIdentifiers (&message, MESSAGE_P2P, P2P_MESSAGE_DISCONNECT)) {
-                    eth_log (ETH_LOG_TOPIC, "Disconnected: %d\n", message.u.p2p.u.disconnect.reason);
+                    eth_log (LES_LOG_TOPIC, "Disconnected: %d\n", message.u.p2p.u.disconnect.reason);
                     node->state = NODE_STATE_DISCONNECTED;
                 }
 
@@ -495,7 +495,7 @@ nodeSend (BREthereumLESNode node,
 
     BRRlpItem item = messageEncode (message, node->coder);
 
-    eth_log (ETH_LOG_TOPIC, "Send: %s, %s",
+    eth_log (LES_LOG_TOPIC, "Send: %s, %s",
              messageGetIdentifierName (&message),
              messageGetAnyIdentifierName(&message));
 
@@ -503,7 +503,7 @@ nodeSend (BREthereumLESNode node,
         case MESSAGE_DIS: {
             BRRlpData data = rlpDecodeBytesSharedDontRelease (node->coder, item);
 #if defined (NEED_TO_PRINT_SEND_RECV_DATA)
-            eth_log (ETH_LOG_TOPIC, "Size: Send: UDP: PayLoad: %zu", data.bytesCount);
+            eth_log (LES_LOG_TOPIC, "Size: Send: UDP: PayLoad: %zu", data.bytesCount);
 #endif
             nodeEndpointSendData (&node->remote, node->remote.socketUDP, data.bytes, data.bytesCount);
             break;
@@ -520,7 +520,7 @@ nodeSend (BREthereumLESNode node,
                               &encryptedData.bytes, &encryptedData.bytesCount);
 
 #if defined (NEED_TO_PRINT_SEND_RECV_DATA)
-            eth_log (ETH_LOG_TOPIC, "Size: Send: TCP: PayLoad: %zu", encryptedData.bytesCount);
+            eth_log (LES_LOG_TOPIC, "Size: Send: TCP: PayLoad: %zu", encryptedData.bytesCount);
 #endif
             // Send it - which socket?
             nodeEndpointSendData (&node->remote, node->remote.socketTCP, encryptedData.bytes, encryptedData.bytesCount);
@@ -569,7 +569,7 @@ nodeXRecv (BREthereumLESNode node, int socket) {
         case MESSAGE_DIS: {
             bytesCount = 1500;
 
-            assert (0 == nodeEndpointRecvDataUDP (&node->remote, bytes, &bytesCount));
+            assert (0 == nodeEndpointRecvData (&node->remote, node->remote.socketUDP, bytes, &bytesCount, 0));
             //    assert (0 == nodeEndpointRecvData (&node->remote, NULL, bytes, bytesLimit));
 
             // Wrap at RLP Byte
@@ -583,14 +583,14 @@ nodeXRecv (BREthereumLESNode node, int socket) {
         }
 
         default: {
-            uint32_t headerCount;
+            size_t headerCount = 32;
 
             {
                 // get header, decrypt it, validate it and then determine the bytesCpount
                 uint8_t header[32];
                 memset(header, -1, 32);
 
-                assert (0 == nodeEndpointRecvData (&node->remote, NULL, header, 32));
+                assert (0 == nodeEndpointRecvData (&node->remote, node->remote.socketTCP, header, &headerCount, 1));
                 assert (ETHEREUM_BOOLEAN_IS_TRUE(frameCoderDecryptHeader(node->frameCoder, header, 32)));
                 headerCount = ((uint32_t)(header[2]) <<  0 |
                                (uint32_t)(header[1]) <<  8 |
@@ -612,11 +612,11 @@ nodeXRecv (BREthereumLESNode node, int socket) {
             }
 
 #if defined (NEED_TO_PRINT_SEND_RECV_DATA)
-            eth_log (ETH_LOG_TOPIC, "Size: Recv: TCP: PayLoad: %u, Frame: %zu", headerCount, bytesCount);
+            eth_log (LES_LOG_TOPIC, "Size: Recv: TCP: PayLoad: %u, Frame: %zu", headerCount, bytesCount);
 #endif
             
             // get body/frame
-            assert (0 == nodeEndpointRecvData (&node->remote, NULL, bytes, bytesCount));
+            assert (0 == nodeEndpointRecvData (&node->remote, node->remote.socketTCP, bytes, &bytesCount, 1));
             frameCoderDecryptFrame(node->frameCoder, bytes, bytesCount);
 
             // ?? node->bodySize = headerCount; ??
@@ -636,7 +636,7 @@ nodeXRecv (BREthereumLESNode node, int socket) {
             BRRlpItem item = rlpGetItem (node->coder, data);
 
 #if defined (NEED_TO_PRINT_SEND_RECV_DATA)
-            eth_log (ETH_LOG_TOPIC, "Size: Recv: TCP: Type: %u, Subtype: %d", type, subtype);
+            eth_log (LES_LOG_TOPIC, "Size: Recv: TCP: Type: %u, Subtype: %d", type, subtype);
 #endif
 
             message = messageDecode (item, node->coder, type, subtype);
@@ -648,7 +648,7 @@ nodeXRecv (BREthereumLESNode node, int socket) {
         }
     }
 
-    eth_log (ETH_LOG_TOPIC, "Recv: %s, %s",
+    eth_log (LES_LOG_TOPIC, "Recv: %s, %s",
              messageGetIdentifierName (&message),
              messageGetAnyIdentifierName(&message));
 
@@ -680,7 +680,7 @@ _BRECDH(void *out32, const BRKey *privKey, BRKey *pubKey)
 static void
 _sendAuthInitiator(BREthereumLESNode node) {
 
-    // eth_log(ETH_LOG_TOPIC, "%s", "generating auth initiator");
+    // eth_log(LES_LOG_TOPIC, "%s", "generating auth initiator");
 
     // authInitiator -> E(remote-pubk, S(ephemeral-privk, static-shared-secret ^ nonce) || H(ephemeral-pubk) || pubk || nonce || 0x0)
     uint8_t * authBuf = node->authBuf;
@@ -737,7 +737,7 @@ _sendAuthInitiator(BREthereumLESNode node) {
 static void
 _readAuthFromInitiator(BREthereumLESNode node) {
     BRKey* nodeKey = &node->local.key; // nodeGetKey(node);
-    eth_log (ETH_LOG_TOPIC, "%s", "received auth from initiator");
+    eth_log (LES_LOG_TOPIC, "%s", "received auth from initiator");
 
     size_t len = BRKeyECIESAES128SHA256Decrypt(nodeKey, node->authBuf, authBufLen, node->authBufCipher, authCipherBufLen);
 
@@ -772,7 +772,7 @@ _readAuthFromInitiator(BREthereumLESNode node) {
 
 static void
 _sendAuthAckToInitiator(BREthereumLESNode node) {
-    eth_log (ETH_LOG_TOPIC, "%s", "generating auth ack for initiator");
+    eth_log (LES_LOG_TOPIC, "%s", "generating auth ack for initiator");
 
     // authRecipient -> E(remote-pubk, epubK|| nonce || 0x0)
     uint8_t* ackBuf = node->ackBuf;
@@ -805,13 +805,13 @@ _readAuthAckFromRecipient(BREthereumLESNode node) {
 
     BRKey* nodeKey = &node->local.key; // nodeGetKey(node);
 
-    // eth_log (ETH_LOG_TOPIC,"%s", "received auth ack from recipient");
+    // eth_log (LES_LOG_TOPIC,"%s", "received auth ack from recipient");
 
     size_t len = BRKeyECIESAES128SHA256Decrypt(nodeKey, node->ackBuf, ackBufLen, node->ackBufCipher, ackCipherBufLen);
 
     if (len != ackBufLen) {
         //TODO: call _readAckAuthFromRecipientEIP8...
-        eth_log (ETH_LOG_TOPIC, "%s", "Something went wrong with AUK");
+        eth_log (LES_LOG_TOPIC, "%s", "Something went wrong with AUK");
         assert(1);
     }
     else {

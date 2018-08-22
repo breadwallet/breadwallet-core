@@ -33,8 +33,6 @@ static BREthereumLESMessageStatusKey lesMessageStatusKeys[] = {
     "flowControl/MRR"
 };
 
-#define ETH_LOG_TOPIC "LXX"
-
 /// MARK: - P2P (Peer-to-Peer) Messages
 
 static const char *messageP2PNames[] = { "Hello", "Disconnect", "Ping", "Pong" };
@@ -110,14 +108,14 @@ messageP2PHelloDecode (BRRlpItem item, BRRlpCoder coder) {
 
 extern void
 messageP2PHelloShow (BREthereumP2PMessageHello hello) {
-    eth_log (ETH_LOG_TOPIC, "Hello%s", "");
-    eth_log (ETH_LOG_TOPIC, "    Version     : %llu", hello.version);
-    eth_log (ETH_LOG_TOPIC, "    ClientId    : %s",   hello.clientId);
-    eth_log (ETH_LOG_TOPIC, "    ListenPort  : %llu", hello.port);
-    eth_log (ETH_LOG_TOPIC, "    NodeId      : { %llu, ...}", hello.nodeId.u64[0]);
-    eth_log (ETH_LOG_TOPIC, "    Capabilities:%s", "");
+    eth_log (LES_LOG_TOPIC, "Hello%s", "");
+    eth_log (LES_LOG_TOPIC, "    Version     : %llu", hello.version);
+    eth_log (LES_LOG_TOPIC, "    ClientId    : %s",   hello.clientId);
+    eth_log (LES_LOG_TOPIC, "    ListenPort  : %llu", hello.port);
+    eth_log (LES_LOG_TOPIC, "    NodeId      : { %llu, ...}", hello.nodeId.u64[0]);
+    eth_log (LES_LOG_TOPIC, "    Capabilities:%s", "");
     for (size_t index = 0; index < array_count(hello.capabilities); index++)
-        eth_log (ETH_LOG_TOPIC, "        %s = %u",
+        eth_log (LES_LOG_TOPIC, "        %s = %u",
                  hello.capabilities[index].name,
                  hello.capabilities[index].version);
 }
@@ -370,10 +368,10 @@ messageDISNeighborsDecode (BRRlpItem item, BRRlpCoder coder, int releaseItem) {
 
 #define NEED_TO_PRINT_DIS_NEIGHBOR_DETAILS
 #if defined (NEED_TO_PRINT_DIS_NEIGHBOR_DETAILS)
-    eth_log (ETH_LOG_TOPIC, "Neighbors: %s", "");
+    eth_log (LES_LOG_TOPIC, "Neighbors: %s", "");
     for (size_t index = 0; index < neighborsCount; index++) {
         BREthereumDISNeighbor neighbor = message.neighbors[index];
-        eth_log (ETH_LOG_TOPIC, "    IP: %3d.%3d.%3d.%3d, UDP: %6d, TCP: %6d",
+        eth_log (LES_LOG_TOPIC, "    IP: %3d.%3d.%3d.%3d, UDP: %6d, TCP: %6d",
             neighbor.node.addr.ipv4[0],
             neighbor.node.addr.ipv4[1],
             neighbor.node.addr.ipv4[2],
@@ -822,22 +820,22 @@ messageLESStatusDecode (BRRlpItem item, BRRlpCoder coder) {
 
 extern void
 messageLESStatusShow(BREthereumLESMessageStatus *message) {
-    eth_log (ETH_LOG_TOPIC, "StatusMessage:%s", "");
-    eth_log (ETH_LOG_TOPIC, "    ProtocolVersion: %llu", message->protocolVersion);
-    eth_log (ETH_LOG_TOPIC, "    NetworkId      : %llu", message->chainId);
-    eth_log (ETH_LOG_TOPIC, "    HeadNum        : %llu", message->headNum);
-    eth_log (ETH_LOG_TOPIC, "    ...            : %s", "");
-    eth_log (ETH_LOG_TOPIC, "    TxRelay        : %s", ETHEREUM_BOOLEAN_IS_TRUE(message->txRelay) ? "Yes" : "No");
+    eth_log (LES_LOG_TOPIC, "StatusMessage:%s", "");
+    eth_log (LES_LOG_TOPIC, "    ProtocolVersion: %llu", message->protocolVersion);
+    eth_log (LES_LOG_TOPIC, "    NetworkId      : %llu", message->chainId);
+    eth_log (LES_LOG_TOPIC, "    HeadNum        : %llu", message->headNum);
+    eth_log (LES_LOG_TOPIC, "    ...            : %s", "");
+    eth_log (LES_LOG_TOPIC, "    TxRelay        : %s", ETHEREUM_BOOLEAN_IS_TRUE(message->txRelay) ? "Yes" : "No");
 
     size_t count = *(message->flowControlMRCCount);
-    eth_log (ETH_LOG_TOPIC, "    FlowControl/MCC%s", "");
+    eth_log (LES_LOG_TOPIC, "    FlowControl/MCC%s", "");
     for (size_t index = 0; index < count; index++) {
         const char *label = messageLESGetIdentifierName ((BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);
         if (NULL != label) {
-            eth_log (ETH_LOG_TOPIC, "      === %d", (BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);
-            eth_log (ETH_LOG_TOPIC, "        Request : %s", label);
-            eth_log (ETH_LOG_TOPIC, "        BaseCost: %llu", message->flowControlMRC[index].baseCost);
-            eth_log (ETH_LOG_TOPIC, "        ReqCost : %llu", message->flowControlMRC[index].reqCost);
+            eth_log (LES_LOG_TOPIC, "      === %d", (BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);
+            eth_log (LES_LOG_TOPIC, "        Request : %s", label);
+            eth_log (LES_LOG_TOPIC, "        BaseCost: %llu", message->flowControlMRC[index].baseCost);
+            eth_log (LES_LOG_TOPIC, "        ReqCost : %llu", message->flowControlMRC[index].reqCost);
         }
     }
 }
