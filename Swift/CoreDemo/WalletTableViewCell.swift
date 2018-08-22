@@ -29,7 +29,6 @@ class WalletTableViewCell: UITableViewCell {
     }
 
     func updateView () {
-        NSLog ("Want to update view")
         textLabel?.text = wallet?.name ?? "..."
         detailTextLabel?.text = wallet?.balance.amount ?? "??"
 

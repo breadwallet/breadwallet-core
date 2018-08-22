@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3C2FEE00212E1544004BE30A /* TransferCreateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C2FEDFF212E1544004BE30A /* TransferCreateController.swift */; };
 		3C386DC720C6F4AF0065E355 /* BREthereumLESRandom.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C386DC120C6F4AE0065E355 /* BREthereumLESRandom.c */; };
 		3C386DCF20C6F5E40065E355 /* BREthereumBCS.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C386DCA20C6F5E40065E355 /* BREthereumBCS.c */; };
 		3C386DD020C6F5E40065E355 /* BREthereumBCSEvent.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C386DCD20C6F5E40065E355 /* BREthereumBCSEvent.c */; };
@@ -236,6 +237,7 @@
 		3C2A53CB20AF595500C430F6 /* BREthereumBlock.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BREthereumBlock.c; sourceTree = "<group>"; };
 		3C2A53CC20AF595500C430F6 /* BREthereumTransactionReceipt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BREthereumTransactionReceipt.h; sourceTree = "<group>"; };
 		3C2A53CD20AF595500C430F6 /* BREthereumAmount.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BREthereumAmount.c; sourceTree = "<group>"; };
+		3C2FEDFF212E1544004BE30A /* TransferCreateController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferCreateController.swift; sourceTree = "<group>"; };
 		3C386DBD20C6F4AE0065E355 /* BREthereumLESRandom.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BREthereumLESRandom.h; sourceTree = "<group>"; };
 		3C386DC120C6F4AE0065E355 /* BREthereumLESRandom.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BREthereumLESRandom.c; sourceTree = "<group>"; };
 		3C386DCA20C6F5E40065E355 /* BREthereumBCS.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BREthereumBCS.c; sourceTree = "<group>"; };
@@ -686,6 +688,7 @@
 				3C67C9DD211CD56700DFA5F9 /* TransferTableViewCell.swift */,
 				3C67C9DF211CD5BD00DFA5F9 /* TransferTableViewController.swift */,
 				3CC17B6A212DF03800B038C6 /* TransferViewController.swift */,
+				3C2FEDFF212E1544004BE30A /* TransferCreateController.swift */,
 				3C90260A210A30F100143B69 /* Main.storyboard */,
 				3C90260D210A30F400143B69 /* Assets.xcassets */,
 				3C90260F210A30F400143B69 /* LaunchScreen.storyboard */,
@@ -952,6 +955,7 @@
 				3C902605210A30F100143B69 /* AppDelegate.swift in Sources */,
 				3C90261D210A32A000143B69 /* CoreDemoEthereumClient.swift in Sources */,
 				3C67C9DA211CD4B100DFA5F9 /* WalletTableViewCell.swift in Sources */,
+				3C2FEE00212E1544004BE30A /* TransferCreateController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

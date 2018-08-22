@@ -58,7 +58,8 @@ class WalletViewController: UITableViewController, TransferListener {
     // MARK: - Segues
 
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if segue.identifier == "showTransfer" {
+        switch segue.identifier {
+        case "showTransfer":
             if let indexPath = tableView.indexPathForSelectedRow {
                 let transfer = transfers[indexPath.row]
                 let controller = (segue.destination as! UINavigationController).topViewController as! TransferViewController
@@ -66,6 +67,13 @@ class WalletViewController: UITableViewController, TransferListener {
                 controller.navigationItem.leftBarButtonItem = splitViewController?.displayModeButtonItem
                 controller.navigationItem.leftItemsSupplementBackButton = true
             }
+            
+        case "createTransfer":
+            let controller = (segue.destination as! UINavigationController).topViewController as! TransferCreateController
+            controller.wallet = wallet
+            
+        default:
+            break;
         }
     }
 

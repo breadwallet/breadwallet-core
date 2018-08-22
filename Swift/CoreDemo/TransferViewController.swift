@@ -46,6 +46,7 @@ class TransferViewController: UIViewController {
         recvLabel.text = transfer.targetAddress
         identifierLabel.text = transfer.hash
         confLabel.text = transfer.confirmationBlockNumber.map { "Yes @ \($0.description)" } ?? "No"
+
     }
 
     /*
@@ -57,12 +58,61 @@ class TransferViewController: UIViewController {
         // Pass the selected object to the new view controller.
     }
     */
-
     @IBOutlet var amountLabel: UILabel!
     @IBOutlet var feeLabel: UILabel!
     @IBOutlet var dateLabel: UILabel!
-    @IBOutlet var sendLabel: UILabel!
-    @IBOutlet var recvLabel: UILabel!
+    @IBOutlet var sendLabel: CopyableLabel!
+    @IBOutlet var recvLabel: CopyableLabel!
     @IBOutlet var identifierLabel: UILabel!
     @IBOutlet var confLabel: UILabel!
+}
+
+//
+//
+//
+class CopyableLabel: UILabel {
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        self.sharedInit()
+    }
+
+    required init?(coder aDecoder: NSCoder) {
+        super.init(coder: aDecoder)
+        self.sharedInit()
+    }
+
+    func sharedInit() {
+        self.isUserInteractionEnabled = true
+        self.addGestureRecognizer(UILongPressGestureRecognizer(target: self, action: #selector(self.showMenu)))
+    }
+
+    @objc func showMenu(sender: AnyObject?) {
+        self.becomeFirstResponder()
+
+        let menu = UIMenuController.shared
+
+        if !menu.isMenuVisible {
+            menu.setTargetRect(bounds, in: self)
+            menu.setMenuVisible(true, animated: true)
+        }
+    }
+
+    override func copy(_ sender: Any?) {
+        let board = UIPasteboard.general
+
+        board.string = text
+
+        let menu = UIMenuController.shared
+
+        menu.setMenuVisible(false, animated: true)
+    }
+
+    override var canBecomeFirstResponder: Bool {
+        return true
+    }
+
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        return action == #selector(UIResponderStandardEditActions.copy)
+    }
 }

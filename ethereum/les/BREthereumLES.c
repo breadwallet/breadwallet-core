@@ -62,13 +62,13 @@ struct BREtheremLESNodeEndpointSpec {
     uint32_t portTCP;
     const char *nodeId;
 } bootstrapNodeEndpointSpecs[] = {
-    {   // BRD #1
-        "104.197.99.24",
-        DEFAULT_UDPPORT,
-        DEFAULT_TCPPORT,
-        "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851"
-    },
-
+//    {   // BRD #1
+//        "104.197.99.24",
+//        DEFAULT_UDPPORT,
+//        DEFAULT_TCPPORT,
+//        "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851"
+//    },
+//
     {   // BRD #2
         "35.226.238.26",
         DEFAULT_UDPPORT,
