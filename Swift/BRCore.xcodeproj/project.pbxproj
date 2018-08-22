@@ -19,7 +19,7 @@
 		3C5F5E75212C82310038B732 /* BREthereumMPT.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C5F5E74212C82310038B732 /* BREthereumMPT.c */; };
 		3C67C9DA211CD4B100DFA5F9 /* WalletTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C67C9D9211CD4B100DFA5F9 /* WalletTableViewCell.swift */; };
 		3C67C9DE211CD56700DFA5F9 /* TransferTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C67C9DD211CD56700DFA5F9 /* TransferTableViewCell.swift */; };
-		3C67C9E0211CD5BD00DFA5F9 /* TransferViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C67C9DF211CD5BD00DFA5F9 /* TransferViewController.swift */; };
+		3C67C9E0211CD5BD00DFA5F9 /* TransferTableViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C67C9DF211CD5BD00DFA5F9 /* TransferTableViewController.swift */; };
 		3C9025EF21063AD200143B69 /* testUtil.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C9025EE21063AD200143B69 /* testUtil.c */; };
 		3C9025F121063BDC00143B69 /* testRlp.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C9025F021063BDC00143B69 /* testRlp.c */; };
 		3C9025F321064B6700143B69 /* testEvent.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C9025F221064B6700143B69 /* testEvent.c */; };
@@ -103,6 +103,7 @@
 		3CAB613020B347B300810CE4 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB612720B347B200810CE4 /* Constants.swift */; };
 		3CAB613220B34EFF00810CE4 /* BREthereumEther.h in Headers */ = {isa = PBXBuildFile; fileRef = 3C2A53AD20AF595400C430F6 /* BREthereumEther.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		3CAB613320B3536000810CE4 /* test-les.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A538920AF595400C430F6 /* test-les.c */; };
+		3CC17B6B212DF03800B038C6 /* TransferViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CC17B6A212DF03800B038C6 /* TransferViewController.swift */; };
 		3CDA7648210015A5005F4CF8 /* BREthereum.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CAB611C20B347A200810CE4 /* BREthereum.swift */; };
 		3CDA764B210138B3005F4CF8 /* BREthereumEWMClientEvent.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CDA764A210138B2005F4CF8 /* BREthereumEWMClientEvent.c */; };
 		CA92F7902100F9CA0015C966 /* BRKeccak.c in Sources */ = {isa = PBXBuildFile; fileRef = CA92F78F2100F9CA0015C966 /* BRKeccak.c */; };
@@ -299,7 +300,7 @@
 		3C5F5E74212C82310038B732 /* BREthereumMPT.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumMPT.c; sourceTree = "<group>"; };
 		3C67C9D9211CD4B100DFA5F9 /* WalletTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletTableViewCell.swift; sourceTree = "<group>"; };
 		3C67C9DD211CD56700DFA5F9 /* TransferTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferTableViewCell.swift; sourceTree = "<group>"; };
-		3C67C9DF211CD5BD00DFA5F9 /* TransferViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferViewController.swift; sourceTree = "<group>"; };
+		3C67C9DF211CD5BD00DFA5F9 /* TransferTableViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferTableViewController.swift; sourceTree = "<group>"; };
 		3C9025EE21063AD200143B69 /* testUtil.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testUtil.c; sourceTree = "<group>"; };
 		3C9025F021063BDC00143B69 /* testRlp.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testRlp.c; sourceTree = "<group>"; };
 		3C9025F221064B6700143B69 /* testEvent.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testEvent.c; sourceTree = "<group>"; };
@@ -344,6 +345,7 @@
 		3CAB612520B347B200810CE4 /* Support.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Support.swift; path = BRCore/Support.swift; sourceTree = SOURCE_ROOT; };
 		3CAB612620B347B200810CE4 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = BRCore/Info.plist; sourceTree = SOURCE_ROOT; };
 		3CAB612720B347B200810CE4 /* Constants.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; name = Constants.swift; path = BRCore/Constants.swift; sourceTree = SOURCE_ROOT; };
+		3CC17B6A212DF03800B038C6 /* TransferViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferViewController.swift; sourceTree = "<group>"; };
 		3CDA764A210138B2005F4CF8 /* BREthereumEWMClientEvent.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumEWMClientEvent.c; sourceTree = "<group>"; };
 		CA92F78E2100F9CA0015C966 /* BRKeccak.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BRKeccak.h; sourceTree = "<group>"; };
 		CA92F78F2100F9CA0015C966 /* BRKeccak.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BRKeccak.c; sourceTree = "<group>"; };
@@ -682,7 +684,8 @@
 				3C67C9D9211CD4B100DFA5F9 /* WalletTableViewCell.swift */,
 				3C902608210A30F100143B69 /* WalletViewController.swift */,
 				3C67C9DD211CD56700DFA5F9 /* TransferTableViewCell.swift */,
-				3C67C9DF211CD5BD00DFA5F9 /* TransferViewController.swift */,
+				3C67C9DF211CD5BD00DFA5F9 /* TransferTableViewController.swift */,
+				3CC17B6A212DF03800B038C6 /* TransferViewController.swift */,
 				3C90260A210A30F100143B69 /* Main.storyboard */,
 				3C90260D210A30F400143B69 /* Assets.xcassets */,
 				3C90260F210A30F400143B69 /* LaunchScreen.storyboard */,
@@ -942,8 +945,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				3C902609210A30F100143B69 /* WalletViewController.swift in Sources */,
-				3C67C9E0211CD5BD00DFA5F9 /* TransferViewController.swift in Sources */,
+				3C67C9E0211CD5BD00DFA5F9 /* TransferTableViewController.swift in Sources */,
 				3C902607210A30F100143B69 /* SummaryViewController.swift in Sources */,
+				3CC17B6B212DF03800B038C6 /* TransferViewController.swift in Sources */,
 				3C67C9DE211CD56700DFA5F9 /* TransferTableViewCell.swift in Sources */,
 				3C902605210A30F100143B69 /* AppDelegate.swift in Sources */,
 				3C90261D210A32A000143B69 /* CoreDemoEthereumClient.swift in Sources */,

@@ -391,7 +391,7 @@ nodeThread (BREthereumLESNode node) {
                 if (node->callbackMessage)
                     node->callbackMessage (node->callbackContext,
                                            node,
-                                           message.u.les);
+                                           reply.u.les);
 
                 message = (BREthereumMessage) {
                     MESSAGE_DIS,

@@ -45,8 +45,6 @@ lesMessageHandler (BREthereumLES les,
                    BREthereumLESNode node,
                    BREthereumLESMessage message);
 
-#define ETH_LOG_TOPIC "LAA"
-
 #define LES_LOCAL_ENDPOINT_ADDRESS    "1.1.1.1"
 #define LES_LOCAL_ENDPOINT_TCP_PORT   30303
 #define LES_LOCAL_ENDPOINT_UDP_PORT   30303
@@ -64,8 +62,15 @@ struct BREtheremLESNodeEndpointSpec {
     uint32_t portTCP;
     const char *nodeId;
 } bootstrapNodeEndpointSpecs[] = {
-    {   // BRD
+    {   // BRD #1
         "104.197.99.24",
+        DEFAULT_UDPPORT,
+        DEFAULT_TCPPORT,
+        "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851"
+    },
+
+    {   // BRD #2
+        "35.226.238.26",
         DEFAULT_UDPPORT,
         DEFAULT_TCPPORT,
         "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851"
@@ -76,13 +81,6 @@ struct BREtheremLESNodeEndpointSpec {
         DEFAULT_UDPPORT,
         DEFAULT_TCPPORT,
         "3e9301c797f3863d7d0f29eec9a416f13956bd3a14eec7e0cf5eb56942841526269209edf6f57cd1315bef60c4ebbe3476bc5457bed4e479cac844c8c9e375d3"
-    },
-
-    {   // Public GETH
-        "35.226.238.26",
-        DEFAULT_UDPPORT,
-        DEFAULT_TCPPORT,
-        "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851"
     },
 
     {   // Public Parity

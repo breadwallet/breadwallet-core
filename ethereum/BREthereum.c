@@ -399,14 +399,12 @@ ethereumTransferGetNonce(BREthereumEWM ewm,
     return transferGetNonce(transaction);
 }
 
-#if 0
 extern uint64_t
 ethereumTransferGetGasUsed(BREthereumEWM ewm,
                               BREthereumTransferId tid) {
-    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
-    BREthereumTransferStatus status = transferGetStatus(transaction);
+    BREthereumTransfer transfer = ewmLookupTransfer(ewm, tid);
     BREthereumGas gasUsed;
-    return (transactionStatusExtractIncluded(&status, &gasUsed, NULL, NULL, NULL)
+    return (transferExtractStatusIncluded(transfer, &gasUsed, NULL, NULL, NULL)
             ? gasUsed.amountOfGas
             : 0);
 }
@@ -414,10 +412,9 @@ ethereumTransferGetGasUsed(BREthereumEWM ewm,
 extern BREthereumHash
 ethereumTransferGetBlockHash(BREthereumEWM ewm,
                                 BREthereumTransferId tid) {
-    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
-    BREthereumTransferStatus status = transferGetStatus(transaction);
+    BREthereumTransfer transfer = ewmLookupTransfer(ewm, tid);
     BREthereumHash blockHash;
-    return (transactionStatusExtractIncluded(&status, NULL, &blockHash, NULL, NULL)
+    return (transferExtractStatusIncluded(transfer, NULL, &blockHash, NULL, NULL)
             ? blockHash
             : hashCreateEmpty());
 }
@@ -425,10 +422,9 @@ ethereumTransferGetBlockHash(BREthereumEWM ewm,
 extern uint64_t
 ethereumTransferGetBlockNumber(BREthereumEWM ewm,
                                   BREthereumTransferId tid) {
-    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
-    BREthereumTransferStatus status = transferGetStatus(transaction);
+    BREthereumTransfer transfer = ewmLookupTransfer(ewm, tid);
     uint64_t blockNumber;
-    return (transactionStatusExtractIncluded(&status, NULL, NULL, &blockNumber, NULL)
+    return (transferExtractStatusIncluded(transfer, NULL, NULL, &blockNumber, NULL)
             ? blockNumber
             : 0);
 }
@@ -436,14 +432,12 @@ ethereumTransferGetBlockNumber(BREthereumEWM ewm,
 extern uint64_t
 ethereumTransferGetBlockConfirmations(BREthereumEWM ewm,
                                          BREthereumTransferId tid) {
-    BREthereumTransfer transaction = ewmLookupTransfer(ewm, tid);
-    BREthereumTransferStatus status = transferGetStatus(transaction);
+    BREthereumTransfer transfer = ewmLookupTransfer(ewm, tid);
     uint64_t blockNumber = 0;
-    return (transactionStatusExtractIncluded(&status, NULL, NULL, &blockNumber, NULL)
+    return (transferExtractStatusIncluded(transfer, NULL, NULL, &blockNumber, NULL)
             ? (ewmGetBlockHeight(ewm) - blockNumber)
             : 0);
 }
-#endif
 extern BREthereumBoolean
 ethereumTransferIsConfirmed(BREthereumEWM ewm,
                                BREthereumTransferId tid) {

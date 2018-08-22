@@ -37,179 +37,179 @@
 extern "C" {
 #endif
 
-    typedef struct BREthereumTransferRecord *BREthereumTransfer;
+typedef struct BREthereumTransferRecord *BREthereumTransfer;
 
-    typedef enum {
-        // Created: transfer created in local memory
-        TRANSFER_STATUS_CREATED,
+typedef enum {
+    // Created: transfer created in local memory
+    TRANSFER_STATUS_CREATED,
 
-        // Signed: transfer signed
-        TRANSFER_STATUS_SIGNED,
+    // Signed: transfer signed
+    TRANSFER_STATUS_SIGNED,
 
-        // Submitted: transfer submitted
-        TRANSFER_STATUS_SUBMITTED,
+    // Submitted: transfer submitted
+    TRANSFER_STATUS_SUBMITTED,
 
-        // Included: transfer is already included in the canonical chain. data contains an
-        // RLP-encoded [blockHash: B_32, blockNumber: P, txIndex: P] structure.
-        TRANSFER_STATUS_INCLUDED,
+    // Included: transfer is already included in the canonical chain. data contains an
+    // RLP-encoded [blockHash: B_32, blockNumber: P, txIndex: P] structure.
+    TRANSFER_STATUS_INCLUDED,
 
-        // Error: transfer sending failed. data contains a text error message
-        TRANSFER_STATUS_ERRORED
+    // Error: transfer sending failed. data contains a text error message
+    TRANSFER_STATUS_ERRORED
 
-    } BREthereumTransferStatusType;
+} BREthereumTransferStatusType;
 
-    typedef enum {
-        FEE_BASIS_NONE,
-        FEE_BASIS_GAS
-    } BREthereumFeeBasisType;
+typedef enum {
+    FEE_BASIS_NONE,
+    FEE_BASIS_GAS
+} BREthereumFeeBasisType;
 
-    typedef struct {
-        BREthereumFeeBasisType type;
-        union {
-            struct {
-                BREthereumGas limit;
-                BREthereumGasPrice price;
-            } gas;
-        } u;
-    } BREthereumFeeBasis;
+typedef struct {
+    BREthereumFeeBasisType type;
+    union {
+        struct {
+            BREthereumGas limit;
+            BREthereumGasPrice price;
+        } gas;
+    } u;
+} BREthereumFeeBasis;
 
-    static inline BREthereumGas
-    feeBasisGetGasLimit (BREthereumFeeBasis basis) {
-        return (FEE_BASIS_GAS == basis.type ? basis.u.gas.limit : gasCreate(0));
-    }
+static inline BREthereumGas
+feeBasisGetGasLimit (BREthereumFeeBasis basis) {
+    return (FEE_BASIS_GAS == basis.type ? basis.u.gas.limit : gasCreate(0));
+}
 
-    static inline BREthereumGasPrice
-    feeBasisGetGasPrice (BREthereumFeeBasis basis) {
-        return (FEE_BASIS_GAS == basis.type ? basis.u.gas.price : gasPriceCreate(etherCreateZero()));
-    }
-    
-    /**
-     * Transfer Create
-     */
-    extern BREthereumTransfer
-    transferCreate (BREthereumAddress sourceAddress,
-                    BREthereumAddress targetAddress,
-                    BREthereumAmount amount,
-                    BREthereumFeeBasis feeBasis);
+static inline BREthereumGasPrice
+feeBasisGetGasPrice (BREthereumFeeBasis basis) {
+    return (FEE_BASIS_GAS == basis.type ? basis.u.gas.price : gasPriceCreate(etherCreateZero()));
+}
 
-    extern BREthereumTransfer
-    transferCreateWithTransaction (BREthereumTransaction transaction);
+/**
+ * Transfer Create
+ */
+extern BREthereumTransfer
+transferCreate (BREthereumAddress sourceAddress,
+                BREthereumAddress targetAddress,
+                BREthereumAmount amount,
+                BREthereumFeeBasis feeBasis);
 
-    extern BREthereumTransfer
-    transferCreateWithLog (BREthereumLog log,
-                           BREthereumToken token);
+extern BREthereumTransfer
+transferCreateWithTransaction (BREthereumTransaction transaction);
 
-    extern void
-    transferRelease (BREthereumTransfer transfer);
+extern BREthereumTransfer
+transferCreateWithLog (BREthereumLog log,
+                       BREthereumToken token);
 
-    extern BREthereumAddress
-    transferGetSourceAddress (BREthereumTransfer transfer);
+extern void
+transferRelease (BREthereumTransfer transfer);
 
-    extern BREthereumAddress
-    transferGetTargetAddress (BREthereumTransfer transfer);
+extern BREthereumAddress
+transferGetSourceAddress (BREthereumTransfer transfer);
 
-    extern BREthereumAmount
-    transferGetAmount (BREthereumTransfer transfer);
+extern BREthereumAddress
+transferGetTargetAddress (BREthereumTransfer transfer);
 
-    extern BREthereumFeeBasis
-    transferGetFeeBasis (BREthereumTransfer transfer);
+extern BREthereumAmount
+transferGetAmount (BREthereumTransfer transfer);
 
-    extern BREthereumGas
-    transferGetGasEstimate (BREthereumTransfer transfer);
+extern BREthereumFeeBasis
+transferGetFeeBasis (BREthereumTransfer transfer);
 
-    extern void
-    transferSetGasEstimate (BREthereumTransfer transfer,
-                            BREthereumGas gasEstimate);
+extern BREthereumGas
+transferGetGasEstimate (BREthereumTransfer transfer);
 
-    extern BREthereumTransaction
-    transferGetOriginatingTransaction (BREthereumTransfer transfer);
+extern void
+transferSetGasEstimate (BREthereumTransfer transfer,
+                        BREthereumGas gasEstimate);
 
-    extern BREthereumTransaction
-    transferGetBasisTransaction (BREthereumTransfer transfer);
+extern BREthereumTransaction
+transferGetOriginatingTransaction (BREthereumTransfer transfer);
 
-    extern BREthereumLog
-    transferGetBasisLog (BREthereumTransfer transfer);
+extern BREthereumTransaction
+transferGetBasisTransaction (BREthereumTransfer transfer);
 
-    extern void
-    transferSign (BREthereumTransfer transfer,
-                  BREthereumNetwork network,
-                  BREthereumAccount account,
-                  BREthereumAddress address,
-                  const char *paperKey);
+extern BREthereumLog
+transferGetBasisLog (BREthereumTransfer transfer);
 
-    extern void
-    transferSignWithKey (BREthereumTransfer transfer,
-                         BREthereumNetwork network,
-                         BREthereumAccount account,
-                         BREthereumAddress address,
-                         BRKey privateKey);
+extern void
+transferSign (BREthereumTransfer transfer,
+              BREthereumNetwork network,
+              BREthereumAccount account,
+              BREthereumAddress address,
+              const char *paperKey);
 
-    //
-    //
-    //
+extern void
+transferSignWithKey (BREthereumTransfer transfer,
+                     BREthereumNetwork network,
+                     BREthereumAccount account,
+                     BREthereumAddress address,
+                     BRKey privateKey);
+
+//
+//
+//
 #if defined TRANSFER_FEES_AND_STUFF
-    /**
-     * Return the maximum fee (in Ether) for transfer (as gasLimit * gasPrice).
-     */
-    extern BREthereumEther
-    transferGetFeeLimit (BREthereumTransfer transfer, int *overflow);
+/**
+ * Return the maximum fee (in Ether) for transfer (as gasLimit * gasPrice).
+ */
+extern BREthereumEther
+transferGetFeeLimit (BREthereumTransfer transfer, int *overflow);
 
-    extern BREthereumGasPrice
-    transferGetGasPrice (BREthereumTransfer transfer);
+extern BREthereumGasPrice
+transferGetGasPrice (BREthereumTransfer transfer);
 
-    extern void
-    transferSetGasPrice (BREthereumTransfer transfer,
-                         BREthereumGasPrice gasPrice);
+extern void
+transferSetGasPrice (BREthereumTransfer transfer,
+                     BREthereumGasPrice gasPrice);
 
-    extern BREthereumGas
-    transferGetGasLimit (BREthereumTransfer transfer);
+extern BREthereumGas
+transferGetGasLimit (BREthereumTransfer transfer);
 
-    extern void
-    transferSetGasLimit (BREthereumTransfer transfer,
-                         BREthereumGas gasLimit);
+extern void
+transferSetGasLimit (BREthereumTransfer transfer,
+                     BREthereumGas gasLimit);
 #endif
 
-    // TODO: If not signed? submitted?
-    extern const BREthereumHash
-    transferGetHash (BREthereumTransfer transfer);
+// TODO: If not signed? submitted?
+extern const BREthereumHash
+transferGetHash (BREthereumTransfer transfer);
 
-    // TODO: Needed?
-    extern uint64_t
-    transferGetNonce (BREthereumTransfer transfer);
+// TODO: Needed?
+extern uint64_t
+transferGetNonce (BREthereumTransfer transfer);
 
-    extern BREthereumToken
-    transferGetToken (BREthereumTransfer transfer);
+extern BREthereumToken
+transferGetToken (BREthereumTransfer transfer);
 
-    extern BREthereumEther
-    transferGetFee (BREthereumTransfer transfer, int *overflow);
+extern BREthereumEther
+transferGetFee (BREthereumTransfer transfer, int *overflow);
 
-    extern BREthereumComparison
-    transferCompare (BREthereumTransfer t1,
-                     BREthereumTransfer t2);
+extern BREthereumComparison
+transferCompare (BREthereumTransfer t1,
+                 BREthereumTransfer t2);
 
-    //
-    //
-    //
+//
+//
+//
 
-    extern BREthereumBoolean
-    transferHasStatusType (BREthereumTransfer transfer,
-                           BREthereumTransferStatusType type);
+extern BREthereumBoolean
+transferHasStatusType (BREthereumTransfer transfer,
+                       BREthereumTransferStatusType type);
 
-    extern BREthereumBoolean
-    transferHasStatusTypeOrTwo (BREthereumTransfer transfer,
-                                BREthereumTransferStatusType type1,
-                                BREthereumTransferStatusType type2);
+extern BREthereumBoolean
+transferHasStatusTypeOrTwo (BREthereumTransfer transfer,
+                            BREthereumTransferStatusType type1,
+                            BREthereumTransferStatusType type2);
 
 
-    extern int
-    transferExtractStatusIncluded (BREthereumTransfer transfer,
-                                   uint64_t *blockNumber
-                                   // ...
-    );
-
-    extern int
-    transferExtractStatusError (BREthereumTransfer transfer,
-                                char **reason);
+extern int
+transferExtractStatusIncluded (BREthereumTransfer transfer,
+                               BREthereumGas *gasUsed,
+                               BREthereumHash *blockHash,
+                               uint64_t *blockNumber,
+                               uint64_t *transactionIndex);
+extern int
+transferExtractStatusError (BREthereumTransfer transfer,
+                            char **reason);
 
 #ifdef __cplusplus
 }

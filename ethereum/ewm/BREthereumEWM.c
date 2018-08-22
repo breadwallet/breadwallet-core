@@ -740,6 +740,9 @@ ewmHandleBlockChain (BREthereumEWM ewm,
     if (ETHEREUM_BOOLEAN_IS_FALSE(bcsSyncInProgress(ewm->bcs)))
         eth_log ("EWM", "BlockChain: %llu", headBlockNumber);
 
+    // At least this - allows for: ewmGetBlockHeight
+    ewm->blockHeight = headBlockNumber;
+
     // TODO: Need a 'block id' - or axe the need of 'block id'?
     //
     // ewmClientSignalBlockEvent(<#BREthereumEWM ewm#>, <#BREthereumBlockId bid#>, <#BREthereumBlockEvent event#>, <#BREthereumStatus status#>, <#const char *errorDescription#>)
