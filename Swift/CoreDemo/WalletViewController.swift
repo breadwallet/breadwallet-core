@@ -21,6 +21,7 @@ class WalletViewController: UITableViewController, TransferListener {
     override func viewDidLoad() {
         super.viewDidLoad()
         self.tableView.rowHeight = 100
+        self.navigationItem.title = "Wallet: \(wallet.name)"
 
 
         // Uncomment the following line to preserve selection between presentations
@@ -33,6 +34,7 @@ class WalletViewController: UITableViewController, TransferListener {
     override func viewWillAppear(_ animated: Bool) {
         // clearsSelectionOnViewWillAppear = splitViewController!.isCollapsed
         self.transfers = wallet.transfers
+        self.navigationItem.title = "Wallet: \(wallet.name)"
         super.viewWillAppear(animated)
     }
 
@@ -56,7 +58,8 @@ class WalletViewController: UITableViewController, TransferListener {
     // MARK: - Segues
 
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if segue.identifier == "showTransfer" {
+        switch segue.identifier {
+        case "showTransfer":
             if let indexPath = tableView.indexPathForSelectedRow {
                 let transfer = transfers[indexPath.row]
                 let controller = (segue.destination as! UINavigationController).topViewController as! TransferViewController
@@ -64,6 +67,13 @@ class WalletViewController: UITableViewController, TransferListener {
                 controller.navigationItem.leftBarButtonItem = splitViewController?.displayModeButtonItem
                 controller.navigationItem.leftItemsSupplementBackButton = true
             }
+            
+        case "createTransfer":
+            let controller = (segue.destination as! UINavigationController).topViewController as! TransferCreateController
+            controller.wallet = wallet
+            
+        default:
+            break;
         }
     }
 

@@ -30,7 +30,7 @@
 #include "BRArray.h"
 #include "BREthereumBCS.h"
 #include "../blockchain/BREthereumBlockChain.h"
-#include "../les/BREthereumNode.h"
+//#include "../les/BREthereumNode.h"
 #include "../event/BREvent.h"
 
 #ifdef __cplusplus

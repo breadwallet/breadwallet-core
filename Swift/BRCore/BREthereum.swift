@@ -314,6 +314,19 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit, Hashable {
         ethereumWalletSubmitTransfer (self.ewm!.core, self.identifier, transfer.identifier)
     }
 
+    public func estimateFee (amount : String, unit: EthereumAmountUnit) -> EthereumAmount {
+        var overflow : Int32 = 0
+        var status : BRCoreParseStatus = CORE_PARSE_OK
+        let fee = ethereumWalletEstimateTransferFee (self.ewm!.core,
+                                                     self.identifier,
+                                                     (unit.isEther
+                                                        ? ethereumCreateEtherAmountString (self.ewm!.core, amount, unit.coreForEther, &status)
+                                                        : ethereumCreateTokenAmountString (self.ewm!.core, token!.core, amount, unit.coreForToken, &status)),
+                                                     &overflow)
+        return EthereumAmount.ether(fee.valueInWEI, unit.coreForEther)
+
+    }
+
     public var transfers : [EthereumTransfer] {
         let count = ethereumWalletGetTransferCount (self.ewm!.core, self.identifier)
         let identifiers = ethereumWalletGetTransfers (self.ewm!.core, self.identifier)
@@ -381,7 +394,7 @@ public struct EthereumTransfer : EthereumReferenceWithDefaultUnit {
         self.unit = unit
     }
 
-    var hash : String {
+    public var hash : String {
         return asUTF8String (ethereumTransferGetHash (self.ewm!.core, self.identifier), true)
     }
 
@@ -406,6 +419,16 @@ public struct EthereumTransfer : EthereumReferenceWithDefaultUnit {
         var overflow : Int32 = 0
         let fee : BREthereumEther = ethereumTransferGetFee(self.ewm!.core, self.identifier, &overflow);
         return EthereumAmount.ether(fee.valueInWEI, unit.coreForEther)
+    }
+
+    public var confirmations : UInt64? {
+        let confirmations = ethereumTransferGetBlockConfirmations(self.ewm!.core, self.identifier)
+        return confirmations > 0 ? confirmations : nil
+    }
+
+    public var confirmationBlockNumber : UInt64? {
+        let number = ethereumTransferGetBlockNumber(self.ewm!.core, self.identifier)
+        return number > 0 ? number : nil
     }
 
     //    var gasPrice : EthereumAmount {

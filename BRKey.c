@@ -351,6 +351,8 @@ void BRKeyClean(BRKey *key)
     var_clean(key);
 }
 
+// Compact Signature (w/ 'v' encoding)
+
 // Pieter Wuille's compact signature encoding used for bitcoin message signing
 // to verify a compact signature, recover a public key from the signature and verify that it matches the signer's pubkey
 size_t BRKeyCompactSign(const BRKey *key, void *compactSig, size_t sigLen, UInt256 md)
@@ -374,6 +376,37 @@ size_t BRKeyCompactSign(const BRKey *key, void *compactSig, size_t sigLen, UInt2
     
     return r;
 }
+
+// assigns pubKey recovered from compactSig to key and returns true on success
+int BRKeyRecoverPubKey(BRKey *key, UInt256 md, const void *compactSig, size_t sigLen)
+{
+    int r = 0, compressed = 0, recid = 0;
+    uint8_t pubKey[65];
+    size_t len = sizeof(pubKey);
+    secp256k1_ecdsa_recoverable_signature s;
+    secp256k1_pubkey pk;
+
+    assert(key != NULL);
+    assert(compactSig != NULL);
+    assert(sigLen == 65);
+
+    if (sigLen == 65) {
+        if (((uint8_t *)compactSig)[0] - 27 >= 4) compressed = 1;
+        recid = (((uint8_t *)compactSig)[0] - 27) % 4;
+
+        if (secp256k1_ecdsa_recoverable_signature_parse_compact(_ctx, &s, (const uint8_t *)compactSig + 1, recid) &&
+            secp256k1_ecdsa_recover(_ctx, &pk, &s, md.u8) &&
+            secp256k1_ec_pubkey_serialize(_ctx, pubKey, &len, &pk,
+                                          (compressed ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED))) {
+                r = BRKeySetPubKey(key, pubKey, len);
+            }
+    }
+
+    return r;
+}
+
+// Compact Signature (w/o 'v' encoding)
+
 // Pieter Wuille's compact signature encoding used for bitcoin message signing
 // to verify a compact signature, recover a public key from the signature and verify that it matches the signer's pubkey
 size_t BRKeyCompactSignEthereum(const BRKey *key, void *compactSig, size_t sigLen, UInt256 md)
@@ -415,33 +448,6 @@ int BRKeyRecoverPubKeyEthereum(BRKey *key, UInt256 md, const void *compactSig, s
         if (secp256k1_ecdsa_recoverable_signature_parse_compact(_ctx, &s, (const uint8_t *)compactSig, recid) &&
             secp256k1_ecdsa_recover(_ctx, &pk, &s, md.u8) &&
             secp256k1_ec_pubkey_serialize(_ctx, pubKey, &len, &pk, SECP256K1_EC_UNCOMPRESSED)) {
-            r = BRKeySetPubKey(key, pubKey, len);
-        }
-    }
-
-    return r;
-}
-// assigns pubKey recovered from compactSig to key and returns true on success
-int BRKeyRecoverPubKey(BRKey *key, UInt256 md, const void *compactSig, size_t sigLen)
-{
-    int r = 0, compressed = 0, recid = 0;
-    uint8_t pubKey[65];
-    size_t len = sizeof(pubKey);
-    secp256k1_ecdsa_recoverable_signature s;
-    secp256k1_pubkey pk;
-    
-    assert(key != NULL);
-    assert(compactSig != NULL);
-    assert(sigLen == 65);
-    
-    if (sigLen == 65) {
-        if (((uint8_t *)compactSig)[0] - 27 >= 4) compressed = 1;
-        recid = (((uint8_t *)compactSig)[0] - 27) % 4;
-        
-        if (secp256k1_ecdsa_recoverable_signature_parse_compact(_ctx, &s, (const uint8_t *)compactSig + 1, recid) &&
-            secp256k1_ecdsa_recover(_ctx, &pk, &s, md.u8) &&
-            secp256k1_ec_pubkey_serialize(_ctx, pubKey, &len, &pk,
-                                          (compressed ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED))) {
             r = BRKeySetPubKey(key, pubKey, len);
         }
     }

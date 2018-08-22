@@ -183,24 +183,7 @@ transferCreateWithTransaction (BREthereumTransaction transaction) {
     transfer->basis.u.transaction = transaction;
 
     // Status
-    BREthereumTransactionStatus status = transactionGetStatus(transaction);
-    switch (status.type) {
-        case TRANSACTION_STATUS_UNKNOWN:
-        case TRANSACTION_STATUS_QUEUED:
-        case TRANSACTION_STATUS_PENDING:
-            transfer->status.type = TRANSFER_STATUS_SUBMITTED;
-            break;
-
-        case TRANSACTION_STATUS_INCLUDED:
-            transfer->status.type = TRANSFER_STATUS_INCLUDED;
-            transactionStatusExtractIncluded(&status, NULL, NULL, &transfer->status.u.included.blockNumber, NULL);
-            break;
-
-        case TRANSACTION_STATUS_ERRORED:
-            transfer->status.type = TRANSFER_STATUS_ERRORED;
-            strncpy (transfer->status.u.errored.reason, "Unknown (for now)", TRANSFER_STATUS_REASON_BYTES);
-            break;
-    }
+    transfer->status = transferStatusCreate(transactionGetStatus(transaction));
 
     return transfer;
 }
@@ -235,7 +218,7 @@ transferCreateWithLog (BREthereumLog log,
     transfer->basis.u.log = log;
 
     // Status
-    BREthereumTransferStatus transferStatus = transferStatusCreate(logGetStatus(log));
+    transfer->status = transferStatusCreate(logGetStatus(log));
 
     return transfer;
 }
@@ -325,7 +308,7 @@ transferSign (BREthereumTransfer transfer,
     // Sign the RLP Encoded bytes.
     BREthereumSignature signature = accountSignBytes (account,
                                                       address,
-                                                      SIGNATURE_TYPE_RECOVERABLE,
+                                                      SIGNATURE_TYPE_RECOVERABLE_VRS_EIP,
                                                       data.bytes,
                                                       data.bytesCount,
                                                       paperKey);
@@ -360,7 +343,7 @@ transferSignWithKey (BREthereumTransfer transfer,
     // Sign the RLP Encoded bytes.
     BREthereumSignature signature = accountSignBytesWithPrivateKey (account,
                                                                     address,
-                                                                    SIGNATURE_TYPE_RECOVERABLE,
+                                                                    SIGNATURE_TYPE_RECOVERABLE_VRS_EIP,
                                                                     data.bytes,
                                                                     data.bytesCount,
                                                                     privateKey);
@@ -420,10 +403,16 @@ transferHasStatusTypeOrTwo (BREthereumTransfer transfer,
 
 extern int
 transferExtractStatusIncluded (BREthereumTransfer transfer,
-                               uint64_t *blockNumber) {
+                               BREthereumGas *gasUsed,
+                               BREthereumHash *blockHash,
+                               uint64_t *blockNumber,
+                               uint64_t *transactionIndex) {
     if (TRANSFER_STATUS_INCLUDED != transfer->status.type) return 0;
-    
+
+    if (NULL != gasUsed) *gasUsed = transfer->status.u.included.gasUsed;
+    if (NULL != blockHash) *blockHash = transfer->status.u.included.blockHash;
     if (NULL != blockNumber) *blockNumber = transfer->status.u.included.blockNumber;
+    if (NULL != transactionIndex) *transactionIndex = transfer->status.u.included.transactionIndex;
     
     return 1;
 }

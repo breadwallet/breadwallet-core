@@ -37,7 +37,6 @@ class TransferTableViewCell: UITableViewCell {
     }
     
     func updateView () {
-        NSLog ("Want to update transfer cell")
         if let transfer = transfer {
             let source = transfer.sourceAddress
             let target = transfer.targetAddress

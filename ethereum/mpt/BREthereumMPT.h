@@ -1,0 +1,96 @@
+//
+//  BREthereumMPT.h
+//  Core
+//
+//  Created by Ed Gamble on 8/21/18.
+//  Copyright (c) 2018 breadwallet LLC
+//
+//  Permission is hereby granted, free of charge, to any person obtaining a copy
+//  of this software and associated documentation files (the "Software"), to deal
+//  in the Software without restriction, including without limitation the rights
+//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+//  copies of the Software, and to permit persons to whom the Software is
+//  furnished to do so, subject to the following conditions:
+//
+//  The above copyright notice and this permission notice shall be included in
+//  all copies or substantial portions of the Software.
+//
+//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+//  THE SOFTWARE.
+
+#ifndef BR_Ethereum_MPT_h
+#define BR_Ethereum_MPT_h
+
+#include "BRArray.h"
+#if ! defined (BRArrayOf)
+#define BRArrayOf( type )     type*
+#endif
+
+#include "../rlp/BRRlp.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef enum {
+    // Leaf: A two-item structure whose first item corresponds to the nibbles in the key not
+    // already accounted for by the accumulation of keys and branches traversed from the root. The
+    // hex-prefix encoding method is used and the second parameter to the function is required to
+    // be true.
+    MPT_NODE_LEAF,
+    
+    // Extension: A two-item structure whose first item corresponds to a series of nibbles of size
+    // greater than one that are shared by at least two distinct keys past the accumulation of the
+    // keys of nibbles and the keys of branches as traversed from the root. The hex-prefix encoding
+    // method is used and the second parameter to the function is required to be false.
+    MPT_NODE_EXTENSION,
+    
+    // Branch: A 17-item structure whose first sixteen items correspond to each of the sixteen
+    // possible nibble values for the keys at this point in their traversal. The 17th item is used
+    // in the case of this being a terminator node and thus a key being ended at this point in
+    // its traversal.
+    MPT_NODE_BRANCH
+} BREthereumMPTNodeType;
+
+//
+//
+//
+typedef struct BREthereumMPTNodeRecord *BREthereumMPTNode;
+
+struct BREthereumMPTNodeRecord {
+    BREthereumMPTNodeType type;
+    union {
+        struct {} leaf;
+        struct {} extension;
+        struct {
+            BREthereumMPTNode nodes[16];
+            void *value; // RLPItem/Data?
+        } branch;
+    } u;
+};
+
+//
+//
+//
+typedef struct {
+    // [node_1, node_2 ...]
+} BREthereumMPTNodePath;
+
+extern BREthereumMPTNodePath
+mptProofDecode (BRRlpItem item,
+                BRRlpCoder coder);
+
+extern BRArrayOf(BREthereumMPTNodePath)
+mptProofDecodeList (BRRlpItem item,
+                    BRRlpCoder coder);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* BR_Ethereum_MPT_h */

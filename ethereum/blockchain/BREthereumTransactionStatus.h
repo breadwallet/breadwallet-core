@@ -106,6 +106,10 @@ extern BRRlpItem
 transactionStatusRLPEncode (BREthereumTransactionStatus status,
                             BRRlpCoder coder);
 
+extern BRArrayOf (BREthereumTransactionStatus)
+transactionStatusDecodeList (BRRlpItem item,
+                             BRRlpCoder coder);
+
 #ifdef __cplusplus
 }
 #endif

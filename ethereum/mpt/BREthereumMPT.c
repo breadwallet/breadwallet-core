@@ -1,8 +1,8 @@
 //
-//  BREthereumLESBase.h
-//  breadwallet-core Ethereum
+//  BREthereumMPT.c
+//  Core
 //
-//  Created by Lamont Samuels on 4/24/18.
+//  Created by Ed Gamble on 8/21/18.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,38 +23,24 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-/**
- *
- * Etheruem LES specific data structures & algorithms needed for the p2p network.
- *
- */
-#ifndef BR_Ethereum_LES_Base_h
-#define BR_Ethereum_LES_Base_h
+#include "BREthereumMPT.h"
 
-#include <inttypes.h>
-#include "BRKey.h"
-#include "BRInt.h"
-#include "../base/BREthereumBase.h"
-#include "../blockchain/BREthereumBlockChain.h"
-
-#define ETH_LOG_TOPIC "LES"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/**
- * XOrs two uin8t arrays
- * @post the lengths of the operands and resulting arrays should all have size the size of the "len" parameter
- * @param op1 - the first operand of bytes
- * @param op2 - the second operand of bytes
- * @param result - the destination of the XOR computation
- */
-extern void bytesXOR(uint8_t * op1, uint8_t* op2, uint8_t* result, size_t len);
-
-#ifdef __cplusplus
+extern BREthereumMPTNodePath
+mptProofDecode (BRRlpItem item,
+                BRRlpCoder coder) {
+    rlpShowItem (coder, item, "MPT Proof");
+    return (BREthereumMPTNodePath) {};
 }
-#endif
 
+extern BRArrayOf(BREthereumMPTNodePath)
+mptProofDecodeList (BRRlpItem item,
+                    BRRlpCoder coder) {
+    size_t itemsCount;
+    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
 
-#endif /* BR_Ethereum_LES_Base_h */
+    BRArrayOf (BREthereumMPTNodePath) proofs;
+    array_new (proofs, itemsCount);
+    for (size_t index = 0; index < itemsCount; index++)
+        array_add (proofs, mptProofDecode (items[index], coder));
+    return proofs;
+}

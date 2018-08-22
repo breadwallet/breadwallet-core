@@ -28,18 +28,22 @@
 #include "BRKey.h"
 #include "BRArray.h"
 #include "BRBIP38Key.h"
-
 #include "../rlp/BRRlpCoder.h"
 #include "../util/BRKeccak.h"
-
-#include "BREthereumNode.h"
-#include "BREthereumFrameCoder.h"
-#include "BREthereumLESBase.h"
+#include "BREthereumLESFrameCoder.h"
 
 #define UINT256_SIZE 32
 
 #define HEADER_LEN 16
 #define MAC_LEN 16
+
+static void
+bytesXOR(uint8_t * op1, uint8_t* op2, uint8_t* result, size_t len) {
+    for (unsigned int i = 0; i < len;  ++i) {
+        result[i] = op1[i] ^ op2[i];
+    }
+}
+
 /**
  *
  * The context for a frame coder
@@ -228,13 +232,14 @@ BREthereumLESFrameCoder frameCoderCreate(void) {
     coder->ingressMac = NULL;
     return coder;
 }
+
 BREthereumBoolean frameCoderInit(BREthereumLESFrameCoder fcoder,
                                          BRKey* remoteEphemeral,
                                          UInt256* remoteNonce,
                                          BRKey* localEphemeral,
                                          UInt256* localNonce,
-                                         uint8_t* aukCipher,
-                                         size_t aukCipherLen,
+                                         uint8_t* ackCipher,
+                                         size_t ackCipherLen,
                                          uint8_t* authCiper,
                                          size_t authCipherLen,
                                          BREthereumBoolean didOriginate) {
@@ -314,13 +319,13 @@ BREthereumBoolean frameCoderInit(BREthereumLESFrameCoder fcoder,
     {
         egressCipher = authCiper;
         egressCipherLen = authCipherLen;
-        ingressCipher = aukCipher;
-        ingressCipherLen = aukCipherLen;
+        ingressCipher = ackCipher;
+        ingressCipherLen = ackCipherLen;
     }
     else
     {
-        egressCipher = aukCipher;
-        egressCipherLen = aukCipherLen;
+        egressCipher = ackCipher;
+        egressCipherLen = ackCipherLen;
         ingressCipher = authCiper;
         ingressCipherLen = authCipherLen;
     }

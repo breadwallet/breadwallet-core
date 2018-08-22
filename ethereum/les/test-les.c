@@ -43,11 +43,9 @@
 #include "../base/BREthereumHash.h"
 #include "../blockchain/BREthereumNetwork.h"
 #include "BREthereumLES.h"
-#include "BREthereumNode.h"
-#include "BREthereumNodeManager.h"
-#include "BREthereumNodeDiscovery.h"
-#include "BREthereumRandom.h"
-#include "BREthereumHandshake.h"
+#include "BREthereumLESNode.h"
+//#include "BREthereumRandom.h"
+//#include "BREthereumHandshake.h"
 
 #include "BREthereum.h"
 #include "../ewm/BREthereumEWM.h"
@@ -91,7 +89,7 @@ static void _signalTestComplete() {
 }
 
 // LES Tests
-void _announceCallback (BREthereumLESAnnounceContext context,
+void _announceCallback (BREthereumLESCallbackContext context,
                         BREthereumHash headHash,
                         uint64_t headNumber,
                         UInt256 headTotalDifficulty,
@@ -100,7 +98,7 @@ void _announceCallback (BREthereumLESAnnounceContext context,
     eth_log("announcCallback_test", "%s", "received an announcement of a new chain");
 }
 
-void _statusCallback (BREthereumLESAnnounceContext context,
+void _statusCallback (BREthereumLESCallbackContext context,
                         BREthereumHash headHash,
                         uint64_t headNumber) {
 
@@ -765,7 +763,7 @@ static void run_GetProofsV2_Tests(BREthereumLES les){
 
     key1 = (BRRlpData) { 0, NULL };
     key2 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
-    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+    assert(lesGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
 
     block = hashCreate("0x204167e38efa1a4d75c996491637027bb1c8b1fe0d29e8d233160b5256cb415a"); // 6,100,000
     address = addressCreate("0x3d0a24a19702a7336bdbf9d10bce1d4b87e222a5"); // from tx 0
@@ -776,7 +774,7 @@ static void run_GetProofsV2_Tests(BREthereumLES les){
 
     key1 = (BRRlpData) { 0, NULL };
     key2 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
-    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+    assert(lesGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
 
     //
     // key1 == key2, as hash of address
@@ -786,14 +784,14 @@ static void run_GetProofsV2_Tests(BREthereumLES les){
     addressHash = addressGetHash(address);
     key1 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
     key2 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
-    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+    assert(lesGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
 
     block = hashCreate("0x204167e38efa1a4d75c996491637027bb1c8b1fe0d29e8d233160b5256cb415a"); // 6,100,000
     address = addressCreate("0x3d0a24a19702a7336bdbf9d10bce1d4b87e222a5"); // from tx 0
     addressHash = addressGetHash(address);
     key1 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
     key2 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
-    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+    assert(lesGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
 
     //Wait for tests to complete
     _waitForTests();// sleep (5);
@@ -841,7 +839,7 @@ void runLEStests(void) {
     BREthereumLES les = lesCreate(ethereumMainnet, NULL, _announceCallback, _statusCallback, headHash, headNumber, headTD, genesisHash);
     lesStart(les);
     // Sleep for a little bit to allow the context to connect to the network
-    sleep(5);
+    sleep(1);
     
     //Initialize testing state
     _initTestState();
@@ -855,7 +853,7 @@ void runLEStests(void) {
     run_GetBlockBodies_Tests(les);
     run_GetReceipts_Tests(les);
     run_GetAccountState_Tests(les);
-    run_GetProofsV2_Tests(les); //NOTE: The callback function won't be called.
+//    run_GetProofsV2_Tests(les); //NOTE: The callback function won't be called.
                                 //reallySendLESTransaction(les);
 
     lesStop(les);
