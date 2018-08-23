@@ -53,12 +53,13 @@ openSocket (BREthereumLESNodeEndpoint *endpoint, int *socket, int domain, int ty
 //
 extern BREthereumLESNodeEndpoint
 nodeEndpointCreateRaw (const char *address,
-                       uint16_t portUDP,
-                       uint16_t portTCP,
+                       uint16_t port,
+                       int domain,
+                       int type,
                        BRKey key,
                        BRKey ephemeralKey,
                        UInt256 nonce) {
-    BREthereumLESNodeEndpoint endpoint = nodeEndpointCreate(address, portUDP, portTCP, key);
+    BREthereumLESNodeEndpoint endpoint = nodeEndpointCreate(address, port, domain, type, key);
     endpoint.ephemeralKey = ephemeralKey;
     endpoint.nonce = nonce;
 
@@ -67,21 +68,20 @@ nodeEndpointCreateRaw (const char *address,
 
 extern BREthereumLESNodeEndpoint
 nodeEndpointCreate (const char *address,
-                    uint16_t portUDP,
-                    uint16_t portTCP,
+                    uint16_t port,
+                    int domain,
+                    int type,
                     BRKey key) {
     BREthereumLESNodeEndpoint endpoint;
     memset (&endpoint, 0, sizeof (BREthereumLESNodeEndpoint));
 
-    endpoint.addr_family = AF_INET; // ??
+//    endpoint.addr_family = AF_INET; // ??
     strncpy (endpoint.hostname, address, MAX_HOST_NAME);
-    endpoint.isIPV4Address = 1;
 
-    endpoint.portUDP = portUDP;
-    endpoint.socketUDP = -1;
-
-    endpoint.portTCP = portTCP;
-    endpoint.socketTCP = -1;
+    endpoint.domain = domain;
+    endpoint.type   = type;
+    endpoint.port   = port;
+    endpoint.socket = -1;
 
     endpoint.key = key;
     endpoint.nonce = UINT256_ZERO;
@@ -107,84 +107,76 @@ nodeEndpointSetStatus (BREthereumLESNodeEndpoint *endpoint,
     endpoint->status = status;
 }
 
-extern void
+extern int // errno
 nodeEndpointOpen (BREthereumLESNodeEndpoint *endpoint) {
-    int error = 0;
+    if (nodeEndpointIsOpen (endpoint)) return 0;
 
-    if (endpoint->portTCP) assert (openSocket(endpoint, &endpoint->socketTCP, PF_INET, SOCK_STREAM, CONNECTION_TIME, &error));
-    if (endpoint->portUDP) assert (openSocket(endpoint, &endpoint->socketUDP, PF_INET, SOCK_DGRAM,  CONNECTION_TIME, &error));
+    int error = 0;
+    int result = openSocket(endpoint, &endpoint->socket, endpoint->domain, endpoint->type,  CONNECTION_TIME, &error);
+
+    return result ? error : 0;
 }
 
-extern void
+extern int
 nodeEndpointClose (BREthereumLESNodeEndpoint *endpoint) {
     int socket;
 
-    // Close the TCP socket.
-    socket = endpoint->socketTCP;
+    socket = endpoint->socket;
     if (socket >= 0) {
-        endpoint->socketTCP = -1;
-        if (shutdown (socket, SHUT_RDWR) < 0){
+        endpoint->socket = -1;
+        if (shutdown (socket, SHUT_RDWR) < 0) {
             eth_log (LES_LOG_TOPIC, "Socket TCP Shutdown Error: %s", strerror(errno));
+            return errno;
         }
-        close (socket);
-    }
-
-    // Close the UDP socket
-    socket = endpoint->socketUDP;
-    if (socket >= 0) {
-        endpoint->socketUDP = -1;
-        if (shutdown (socket, SHUT_RDWR) < 0){
-            eth_log (LES_LOG_TOPIC, "Socket UDP Shutdown Error: %s", strerror(errno));
+        if (close (socket) < 0) {
+            eth_log (LES_LOG_TOPIC, "Socket Clock Error: %s", strerror(errno));
+            return errno;
         }
-        close (socket);
     }
+    return 0;
 }
 
 extern int
 nodeEndpointIsOpen (BREthereumLESNodeEndpoint *endpoint) {
-    return -1 != endpoint->socketTCP || -1 != endpoint->socketUDP;
+    return -1 != endpoint->socket;
 }
 
 extern int
 nodeEndpointHasRecvDataAvailable (BREthereumLESNodeEndpoint *endpoint,
                                   fd_set *readFds) {
     return (NULL == readFds ||
-            FD_ISSET (endpoint->socketTCP, readFds) ||
-            FD_ISSET (endpoint->socketUDP, readFds));
+            (-1 != endpoint->socket && FD_ISSET (endpoint->socket, readFds)));
 }
 
 extern void 
 nodeEndpointSetRecvDataAvailableFDS (BREthereumLESNodeEndpoint *endpoint,
                                      fd_set *readFds) {
-    FD_SET (endpoint->socketTCP, readFds);
-    FD_SET (endpoint->socketUDP, readFds);
+    if (-1 != endpoint->socket) FD_SET (endpoint->socket, readFds);
 }
 
 extern void
 nodeEndpointClrRecvDataAvailableFDS (BREthereumLESNodeEndpoint *endpoint,
                                      fd_set *readFds) {
-    FD_CLR (endpoint->socketTCP, readFds);
-    FD_CLR (endpoint->socketUDP, readFds);
+    if (-1 != endpoint->socket) FD_CLR (endpoint->socket, readFds);
 }
 
 extern int
 nodeEndpointGetRecvDataAvailableFDSNum (BREthereumLESNodeEndpoint *endpoint) {
-    return 1 + (endpoint->socketTCP > endpoint->socketUDP
-                ? endpoint->socketTCP
-                : endpoint->socketUDP);
+    return 1 + endpoint->socket;
 }
 
 /// MARK: - Recv Data
 
 extern int
 nodeEndpointRecvData (BREthereumLESNodeEndpoint *endpoint,
-                            int socket,
                             uint8_t *bytes,
                             size_t *bytesCount,
                             int needBytesCount) {
 
     ssize_t totalCount = 0;
     int error = 0;
+
+    int socket = endpoint->socket;
 
     if (socket < 0) error = ENOTCONN;
 
@@ -197,7 +189,7 @@ nodeEndpointRecvData (BREthereumLESNodeEndpoint *endpoint,
             if (!needBytesCount) break;
         }
 
-        socket = endpoint->socketTCP;
+        socket = endpoint->socket;
     }
 
     if (error)
@@ -216,13 +208,14 @@ nodeEndpointRecvData (BREthereumLESNodeEndpoint *endpoint,
 
 extern int
 nodeEndpointSendData (BREthereumLESNodeEndpoint *endpoint,
-                      int socket,
                       uint8_t *bytes,
                       size_t bytesCount) {
 
     ssize_t n = 0;
     int error = 0;
     size_t offset = 0;
+
+    int socket = endpoint->socket;
 
 #if defined (NEED_TO_PRINT_UDP_SEND_DATA)
     {
@@ -239,6 +232,7 @@ nodeEndpointSendData (BREthereumLESNodeEndpoint *endpoint,
         if (n >= 0) offset += n;
         if (n < 0 && errno != EWOULDBLOCK) error = errno;
 
+        socket = endpoint->socket;
     }
 
     if (error)
@@ -292,7 +286,7 @@ openSocket(BREthereumLESNodeEndpoint *endpoint, int *socketToAssign, int domain,
 
     if (r) {
         memset(&addr, 0, sizeof(addr));
-        uint16_t port = endpoint->portTCP; // endpointGetTCP(node->peer.endpoint);
+        uint16_t port = endpoint->port; // endpointGetTCP(node->peer.endpoint);
         const char* address = endpoint->hostname; // endpointGetHost(node->peer.endpoint);
 
         if (domain == PF_INET6) {
@@ -328,7 +322,7 @@ openSocket(BREthereumLESNodeEndpoint *endpoint, int *socketToAssign, int domain,
                 r = 0;
             }
         }
-        else if (err && domain == PF_INET && endpoint->isIPV4Address) {
+        else if (err && domain == PF_INET) { // } && endpoint->isIPV4Address) {
             if (*socketToAssign >= 0) { close (*socketToAssign); *socketToAssign = -1; }
             return openSocket(endpoint, socketToAssign, PF_INET6, type, timeout, error); // fallback to IPv4
         }

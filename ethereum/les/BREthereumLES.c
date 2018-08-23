@@ -25,7 +25,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <errno.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 
 #include "BRInt.h"
 #include "BRArray.h"
@@ -40,10 +42,24 @@
 #include "BREthereumLESNode.h"
 
 /** Forward Declarations */
+
 static void
-lesMessageHandler (BREthereumLES les,
+lesHandleLESMessage (BREthereumLES les,
+                     BREthereumLESNode node,
+                     BREthereumLESMessage message);
+static void
+lesHandleConnect (BREthereumLES les,
                    BREthereumLESNode node,
-                   BREthereumLESMessage message);
+                   BREthereumLESNodeStatus status);
+
+typedef void* (*ThreadRoutine) (void*);
+
+static void *
+lesThread (BREthereumLES les);
+
+#define LES_THREAD_NAME    "Core Ethereum LES"
+#define LES_PTHREAD_STACK_SIZE (512 * 1024)
+#define LES_PTHREAD_NULL   ((pthread_t) NULL)
 
 #define LES_LOCAL_ENDPOINT_ADDRESS    "1.1.1.1"
 #define LES_LOCAL_ENDPOINT_TCP_PORT   30303
@@ -58,35 +74,73 @@ lesMessageHandler (BREthereumLES les,
 
 struct BREtheremLESNodeEndpointSpec {
     const char *address;
-    uint32_t portUDP;
-    uint32_t portTCP;
+    uint16_t port;
+    int domain;
+    int type;
     const char *nodeId;
 } bootstrapNodeEndpointSpecs[] = {
-//    {   // BRD #1
-//        "104.197.99.24",
-//        DEFAULT_UDPPORT,
-//        DEFAULT_TCPPORT,
-//        "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851"
-//    },
-//
-    {   // BRD #2
+    {   // BRD #1 - DIS
+        "104.197.99.24",
+        DEFAULT_UDPPORT,
+        AF_INET,
+        SOCK_DGRAM,
+        "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851"
+    },
+
+    {   // BRD #1 - P2P
+        "104.197.99.24",
+        DEFAULT_TCPPORT,
+        AF_INET,
+        SOCK_STREAM,
+        "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851"
+    },
+
+    {   // EBG #1 - DIS
+        "127.0.0.1",
+        DEFAULT_UDPPORT,
+        AF_INET,
+        SOCK_DGRAM,
+        "a40437d2f44ae655387009d1d69ba9fd07b748b7a6ecfc958c135008a34c0497466db35049c36c8296590b4bcf9b9058f9fa2a688a2c6566654b1f1dc42417e4"
+    },
+
+    {   // EBG #1 - P2P
+        "127.0.0.1",
+        DEFAULT_TCPPORT,
+        AF_INET,
+        SOCK_STREAM,
+        "a40437d2f44ae655387009d1d69ba9fd07b748b7a6ecfc958c135008a34c0497466db35049c36c8296590b4bcf9b9058f9fa2a688a2c6566654b1f1dc42417e4"
+    },
+
+
+    {   // BRD #2 - DIS
         "35.226.238.26",
         DEFAULT_UDPPORT,
+        AF_INET,
+        SOCK_DGRAM,
+        "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851"
+    },
+
+    {   // BRD #2 - P2P
+        "35.226.238.26",
         DEFAULT_TCPPORT,
+        AF_INET,
+        SOCK_STREAM,
         "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851"
     },
 
     {   // Public GETH
         "109.232.77.21",
         DEFAULT_UDPPORT,
-        DEFAULT_TCPPORT,
+        AF_INET,
+        SOCK_DGRAM,
         "3e9301c797f3863d7d0f29eec9a416f13956bd3a14eec7e0cf5eb56942841526269209edf6f57cd1315bef60c4ebbe3476bc5457bed4e479cac844c8c9e375d3"
     },
 
     {   // Public Parity
         "193.70.55.37",
         DEFAULT_UDPPORT,
-        DEFAULT_TCPPORT,
+        AF_INET,
+        SOCK_DGRAM,
         "81863f47e9bd652585d3f78b4b2ee07b93dad603fd9bc3c293e1244250725998adc88da0cef48f1de89b15ab92b15db8f43dc2b6fb8fbd86a6f217a1dd886701"
     }
 };
@@ -100,7 +154,7 @@ nodeEndpointCreateFromSpec (struct BREtheremLESNodeEndpointSpec *spec) {
     key.compressed = 0;
     decodeHex(&key.pubKey[1], 64, spec->nodeId, 128);
 
-    return nodeEndpointCreate (spec->address, spec->portUDP, spec->portTCP, key);
+    return nodeEndpointCreate (spec->address, spec->port, spec->domain, spec->type, key);
 }
 
 #if 0
@@ -181,6 +235,7 @@ struct BREthereumLESRecord {
 
     uint64_t messageRequestId;
 
+    pthread_t thread;
     pthread_mutex_t lock;
 
     BRArrayOf (BREthereumLESReqeust) requests;
@@ -198,8 +253,7 @@ createLocalEndpoint (BREthereumLESRandomContext randomContext) {
     assert (0 == localKey.compressed);
 
     return nodeEndpointCreateRaw (LES_LOCAL_ENDPOINT_ADDRESS,
-                                  LES_LOCAL_ENDPOINT_UDP_PORT,
-                                  LES_LOCAL_ENDPOINT_TCP_PORT,
+                                  LES_LOCAL_ENDPOINT_UDP_PORT, 0, 0,
                                   localKey,
                                   localEphemeralKey,
                                   localNonce);
@@ -305,6 +359,7 @@ lesCreate (BREthereumNetwork network,
         pthread_mutex_init(&les->lock, &attr);
         pthread_mutexattr_destroy(&attr);
     }
+    les->thread = LES_PTHREAD_NULL;
 
     // TODO: message Request (Set)
     array_new (les->requests, 10);
@@ -316,27 +371,58 @@ lesCreate (BREthereumNetwork network,
     array_new (les->nodes, 10);
 
     BREthereumLESNodeEndpoint nodeEndpoint = nodeEndpointCreateFromSpec (&bootstrapNodeEndpointSpecs[0]);
-    BREthereumLESNode node = nodeCreate (nodeEndpoint,
+    BREthereumLESNode node = nodeCreate (NODE_PURPOSE_DISCOVERY,
+                                         nodeEndpoint,
                                          les->localEndpoint,
                                          (BREthereumLESNodeContext) les,
-                                         (BREthereumLESNodeCallbackMessage) lesMessageHandler);
-    array_add(les->nodes, node);
+                                         (BREthereumLESNodeCallbackMessage) lesHandleLESMessage,
+                                         (BREthereumLESNodeCallbackConnect) lesHandleConnect);
+    array_add (les->nodes, node);
+
+    nodeEndpoint = nodeEndpointCreateFromSpec (&bootstrapNodeEndpointSpecs[1]);
+    node = nodeCreate (NODE_PURPOSE_BLOCKCHAIN,
+                                         nodeEndpoint,
+                                         les->localEndpoint,
+                                         (BREthereumLESNodeContext) les,
+                                         (BREthereumLESNodeCallbackMessage) lesHandleLESMessage,
+                                         (BREthereumLESNodeCallbackConnect) lesHandleConnect);
+    array_add (les->nodes, node);
 
     return les;
 }
 
 extern void
 lesStart (BREthereumLES les) {
-    FOR_NODES_INDEX(les, index)
-    nodeStart (les->nodes[index]);
+//    FOR_NODES_INDEX(les, index)
+//        nodeConnect (les->nodes[index]);
+
+    pthread_mutex_lock (&les->lock);
+    if (LES_PTHREAD_NULL == les->thread) {
+        pthread_attr_t attr;
+        pthread_attr_init (&attr);
+        pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_JOINABLE);
+        pthread_attr_setstacksize (&attr, LES_PTHREAD_STACK_SIZE);
+
+        pthread_create (&les->thread, &attr, (ThreadRoutine) lesThread, les);
+        pthread_attr_destroy (&attr);
+    }
+    pthread_mutex_unlock (&les->lock);
+
 }
 
 extern void
 lesStop (BREthereumLES les) {
+//    FOR_NODES_INDEX(les, index)
+//        nodeDisconnect(les->nodes[index]);
+
     pthread_mutex_lock (&les->lock);
-    FOR_NODES_INDEX(les, index)
-        nodeStop(les->nodes[index]);
+    if (LES_PTHREAD_NULL != les->thread) {
+        pthread_cancel (les->thread);
+        pthread_join (les->thread, NULL);
+        les->thread = LES_PTHREAD_NULL;
+    }
     pthread_mutex_unlock (&les->lock);
+
 }
 
 extern void lesRelease(BREthereumLES les) {
@@ -764,9 +850,9 @@ lesSubmitTransaction (BREthereumLES les,
 /// MARK: Handle Messages
 
 static void
-lesMessageHandler (BREthereumLES les,
-                   BREthereumLESNode node,
-                   BREthereumLESMessage message) {
+lesHandleLESMessage (BREthereumLES les,
+                     BREthereumLESNode node,
+                     BREthereumLESMessage message) {
 
     switch (message.identifier) {
         case LES_MESSAGE_STATUS:
@@ -855,6 +941,354 @@ lesMessageHandler (BREthereumLES les,
         }
             break;
     }
+}
+
+static BREthereumLESNode
+lesGetPreferredDISNode (BREthereumLES les) {
+    return les->nodes[0];
+}
+
+static BREthereumLESNode
+lesGetPreferredP2PNode (BREthereumLES les) {
+    return les->nodes[0];
+}
+
+static int
+lesIsDISNodeNeeded (BREthereumLES les) {
+    return 0;
+}
+
+static int
+lesIsP2PNodeNeeded (BREthereumLES les) {
+    return 1;
+}
+
+static int
+lesIsDISPortOfInterest (BREthereumLES les, int port) {
+    return port == DEFAULT_UDPPORT;
+}
+
+static int
+lesIsP2PPortOfInterest (BREthereumLES les, int port) {
+    return port == DEFAULT_TCPPORT;
+}
+
+static BREthereumLESNode
+lesNodeCreate (BREthereumLES les,
+               BREthereumLESNodePurpose purpose,
+               BREthereumDISNeighbor neighbor) {
+    BRKey key;
+    key.compressed = 0;
+    key.pubKey[0] = 0x04;
+    memcpy (&key.pubKey[1], neighbor.nodeID.u8, sizeof (neighbor.nodeID));
+
+    int port   = (NODE_PURPOSE_BLOCKCHAIN == purpose ? neighbor.node.portTCP : neighbor.node.portUDP);
+    int type   = (NODE_PURPOSE_BLOCKCHAIN == purpose ? SOCK_STREAM           : SOCK_DGRAM);
+    int domain = (neighbor.node.isIPV4 ? AF_INET : AF_INET6);
+
+    // The function inet_ntop() converts an address *src from network format (usually a struct
+    // in_addr or some other binary form, in network byte order) to presentation format (suitable
+    // for external display purposes).  The size argument specifies the size, in bytes, of the
+    // buffer *dst.  INET_ADDRSTRLEN and INET6_ADDRSTRLEN define the maximum size required to
+    // convert an address of the respective type.  It returns NULL if a system error occurs (in
+    // which case, errno will have been set), or it returns a pointer to the destination string.
+    // This function is presently valid for AF_INET and AF_INET6.
+    char hostnameBuffer [INET6_ADDRSTRLEN + 1];
+    const char *hostname = inet_ntop(domain, &neighbor.node.addr, hostnameBuffer, INET6_ADDRSTRLEN);
+
+    return nodeCreate (purpose,
+                       nodeEndpointCreate (hostname,
+                                           port,
+                                           domain,
+                                           type,
+                                           key),
+                       les->localEndpoint,
+                       (BREthereumLESNodeContext) les,
+                       (BREthereumLESNodeCallbackMessage) lesHandleLESMessage,
+                       (BREthereumLESNodeCallbackConnect) lesHandleConnect);
+}
+
+static void
+lesHandleDISMessage (BREthereumLES les,
+                     BREthereumLESNode node,
+                     BREthereumDISMessage message) {
+    switch (message.identifier) {
+        case DIS_MESSAGE_PING: {
+            // Immediately send a pong message
+            BREthereumMessage pong = {
+                MESSAGE_DIS,
+                { .dis = {
+                    DIS_MESSAGE_PONG,
+                    { .pong =
+                        messageDISPongCreate (message.u.ping.to,
+                                              message.u.ping.hash,
+                                              time(NULL) + 1000000) },
+                    nodeGetLocalEndpoint(node)->key }}
+            };
+            nodeSend (node, pong);
+
+//            // ... can then send a 'findNodes'
+//            BREthereumMessage findNodes = {
+//                MESSAGE_DIS,
+//                { .dis = {
+//                    DIS_MESSAGE_FIND_NEIGHBORS,
+//                    { .findNeighbors =
+//                        messageDISFindNeighborsCreate (nodeGetRemoteEndpoint(node)->key,
+//                                                       time(NULL) + 1000000) },
+//                    nodeGetLocalEndpoint(node)->key }}
+//            };
+//            nodeSend (node, findNodes);
+//
+            break;
+        }
+
+        case DIS_MESSAGE_NEIGHBORS:
+            for (size_t index = 0; index < array_count (message.u.neighbors.neighbors); index++) {
+                BREthereumDISNeighbor neighbor = message.u.neighbors.neighbors[index];
+
+                if (lesIsDISPortOfInterest (les, neighbor.node.portUDP) &&
+                    lesIsDISNodeNeeded(les)) {
+                    array_add (les->nodes, lesNodeCreate (les, NODE_PURPOSE_DISCOVERY, neighbor));
+                }
+
+                if (lesIsP2PPortOfInterest (les, neighbor.node.portTCP) &&
+                    lesIsP2PNodeNeeded(les)) {
+                    array_add (les->nodes, lesNodeCreate (les, NODE_PURPOSE_BLOCKCHAIN, neighbor));
+                }
+            }
+            break;
+
+        case DIS_MESSAGE_PONG:
+            break;
+
+        case DIS_MESSAGE_FIND_NEIGHBORS:
+            break;
+    }
+}
+
+//else if (messageHasIdentifiers (&message, MESSAGE_DIS, DIS_MESSAGE_PING)) {
+//    // Send PONG so we are 'bonded' and ...
+//    BREthereumMessage pong = {
+//        MESSAGE_DIS,
+//        { .dis = {
+//            DIS_MESSAGE_PONG,
+//            { .pong =
+//                messageDISPongCreate (message.u.dis.u.ping.to,
+//                                      message.u.dis.u.ping.hash,
+//                                      time(NULL) + 1000000) },
+//            node->local.key }}
+//    };
+//    nodeSend (node, pong);
+//
+//    // ... can then send a 'findNodes'
+//    BREthereumMessage findNodes = {
+//        MESSAGE_DIS,
+//        { .dis = {
+//            DIS_MESSAGE_FIND_NEIGHBORS,
+//            { .findNeighbors =
+//                messageDISFindNeighborsCreate (node->remote.key,
+//                                               time(NULL) + 1000000) },
+//            node->local.key }}
+//    };
+//    nodeSend (node, findNodes);
+//}
+
+static void
+lesHandleP2PMessage (BREthereumLES les,
+                     BREthereumLESNode node,
+                     BREthereumP2PMessage message) {
+    switch (message.identifier) {
+        case P2P_MESSAGE_DISCONNECT:
+            nodeDisconnect(node);
+            break;
+
+        case P2P_MESSAGE_PING: {
+            BREthereumMessage pong = {
+                MESSAGE_P2P,
+                { .p2p = {
+                    P2P_MESSAGE_PONG,
+                    {}}}
+            };
+            nodeSend (node, pong);
+        }
+
+        case P2P_MESSAGE_PONG:
+            break;
+
+        case P2P_MESSAGE_HELLO:
+            break;
+    }
+}
+
+
+static void
+lesHandleConnect (BREthereumLES les,
+                   BREthereumLESNode node,
+                   BREthereumLESNodeStatus status) {
+    switch (status) {
+        case NODE_SUCCESS:
+            break;
+
+        case NODE_ERROR:
+            // remove from nodes; mark
+            break;
+    }
+}
+
+static int
+maximum (int a, int b) { return a > b ? a : b; }
+
+static void
+lesHandleNodeRead (BREthereumLES les,
+                   BREthereumLESNode node) {
+    BREthereumMessage message = nodeRecv (node);
+
+    switch (message.identifier) {
+        case MESSAGE_P2P:
+            lesHandleP2PMessage (les, node, message.u.p2p);
+            break;
+
+        case MESSAGE_DIS:
+            lesHandleDISMessage (les, node, message.u.dis);
+            break;
+
+        case MESSAGE_ETH:
+            break;
+
+        case MESSAGE_LES:
+            lesHandleLESMessage (les, node, message.u.les);
+            break;
+    }
+}
+
+static BREthereumDISEndpoint
+endpointDISCreate (BREthereumLESNodeEndpoint *ne) {
+    BREthereumDISEndpoint endpoint = {
+        1,
+        {},
+        ne->port,
+        ne->port
+    };
+    inet_pton (AF_INET, ne->hostname, endpoint.addr.ipv4);
+    return endpoint;
+}
+
+static void
+lesHandleTimeout (BREthereumLES les) {
+    // If we don't have enough connected nodes, connect some
+    BREthereumLESNode node = lesGetPreferredDISNode(les);
+    if (!nodeIsConnected(node))
+        nodeConnect(node);
+
+    static int needFindNeighbors = 0;
+
+    // If we don't have enough nodes, discover some
+    if (0 == needFindNeighbors++ % 5 && nodeIsConnected(node)) {
+
+//        BREthereumMessage message = (BREthereumMessage) {
+//            MESSAGE_DIS,
+//            { .dis = {
+//                DIS_MESSAGE_PING,
+//                { .ping = messageDISPingCreate (endpointDISCreate(nodeGetLocalEndpoint(node)),
+//                                                endpointDISCreate(nodeGetRemoteEndpoint(node)),
+//                                                time(NULL) + 1000000) },
+//                nodeGetLocalEndpoint(node)->key }}
+//        };
+//        nodeSend (node, message);
+
+        BREthereumMessage findNodes = {
+            MESSAGE_DIS,
+            { .dis = {
+                DIS_MESSAGE_FIND_NEIGHBORS,
+                { .findNeighbors =
+                    messageDISFindNeighborsCreate (nodeGetRemoteEndpoint(node)->key,
+                                                   time(NULL) + 1000000) },
+                nodeGetLocalEndpoint(node)->key }}
+        };
+        nodeSend (node, findNodes);
+    }
+}
+
+static void
+lesHandleSelectError (BREthereumLES les,
+                      int error) {
+    switch (error) {
+        case EAGAIN:
+        case EBADF:
+        case EINTR:
+        case EINVAL:
+            break;
+    }
+}
+
+static void *
+lesThread (BREthereumLES les) {
+#if defined (__ANDROID__)
+    pthread_setname_np (node->thread, LES_THREAD_NAME);
+#else
+    pthread_setname_np (LES_THREAD_NAME);
+#endif
+    pthread_setcancelstate (PTHREAD_CANCEL_ENABLE, NULL);
+    pthread_setcanceltype  (PTHREAD_CANCEL_DEFERRED, NULL);
+
+    // TODO: Don't timeout pselect(); get some 'wakeup descriptor'
+    struct timespec timeout = { 1, 0 }; // { 0, 250000000 }; // .250 seconds
+
+    //
+    fd_set readDescriptors;
+    int maximumDescriptor = -1;
+
+    // True is we need to update descriptors.
+    int updateDesciptors = 1;
+
+    pthread_mutex_lock (&les->lock);
+
+//    // connect all our discovery nodes
+//    for (int index = 0; index < NUMBER_OF_NODE_ENDPOINT_SPECS; index++)
+//        if (SOCK_DGRAM == bootstrapNodeEndpointSpecs[index].type) {
+//            BREthereumLESNode node = nodeCreate (NODE_PURPOSE_DISCOVERY,
+//                                                 nodeEndpointCreateFromSpec (&bootstrapNodeEndpointSpecs[0]),
+//                                                 les->localEndpoint,
+//                                                 (BREthereumLESNodeContext) les,
+//                                                 (BREthereumLESNodeCallbackMessage) lesMessageHandler,
+//                                                 (BREthereumLESNodeCallbackConnect) lesConnectHandler);
+//            array_add (les->nodes, node);
+//        }
+
+    while (1) {
+
+        // Update the read (and write) descriptors to include nodes that are connected.
+        if (updateDesciptors) {
+            maximumDescriptor = -1;
+            FOR_NODES_INDEX (les, index)
+                maximumDescriptor = maximum (maximumDescriptor,
+                                             nodeUpdateDescriptors(les->nodes[index], &readDescriptors, NULL));
+            updateDesciptors = 0;
+        }
+
+        int selectCount = pselect (1 + maximumDescriptor, &readDescriptors, NULL, NULL, &timeout, NULL);
+
+        // We have a node ready to process ...
+        if (selectCount > 0) {
+            FOR_NODES_INDEX (les, index) {
+                BREthereumLESNode node = les->nodes[index];
+                if (nodeCanProcess (node, &readDescriptors))
+                    lesHandleNodeRead(les, node);
+                // else if (nodeCanProcess (node, &writeDescriptors))
+            }
+        }
+
+        // or we have a timeout ...
+        else if (selectCount == 0) {
+            lesHandleTimeout(les);
+            updateDesciptors = 1;
+        }
+
+        // or we have an error.
+        else lesHandleSelectError (les, errno);
+    }
+
+    return NULL;
 }
 
 //BREthereumBoolean _findPeers(BREthereumLESNodeManager manager) {
@@ -1094,210 +1528,6 @@ lesMessageHandler (BREthereumLES les,
 //    pthread_mutex_unlock(&les->lock);
 //
 //    return ret;
-//}
-//static void _receivedMessageCallback(BREthereumSubProtoContext info, uint64_t messageType, BRRlpData messageBody) {
-//
-//    BREthereumLES les = (BREthereumLES)info;
-//
-//    eth_log (ETH_LOG_TOPIC, "Recv [%13s] from peer [%s]",
-//             messageLESGetIdentifierName ((BREthereumLESMessageIdentifier) (messageType - les->message_id_offset)),
-//             "...");
-//
-//    switch (messageType - les->message_id_offset)
-//    {
-//        case BRE_LES_ID_STATUS:
-//        {
-//            BREthereumLESDecodeStatus remoteStatus = coderDecodeStatus(les->coder, messageBody.bytes, messageBody.bytesCount, &les->peerStatus);
-//            if(remoteStatus == BRE_LES_CODER_SUCCESS)
-//            {
-//                if(ETHEREUM_BOOLEAN_IS_TRUE(les->peerStatus.txRelay) &&
-//                   les->peerStatus.chainId == networkGetChainId(les->network)){
-//                    eth_log(ETH_LOG_TOPIC, "%s", "LES Handshake complete. Start sending messages");
-//                    statusMessageShow (&les->peerStatus);
-//                    les->statusFunc (les->announceCtx, les->peerStatus.headHash, les->peerStatus.headNum);
-//                    les->startSendingMessages = ETHEREUM_BOOLEAN_TRUE;
-//                }else {
-//                    eth_log(ETH_LOG_TOPIC, "%s", "Disconnecting from node. Does not meet the requirements for LES");
-//                }
-//            }
-//        }
-//            break;
-//        case BRE_LES_ID_ANNOUNCE:
-//        {
-//            BREthereumHash hash;
-//            uint64_t headNumber;
-//            UInt256 headTd;
-//            uint64_t reorgDepth;
-//            BREthereumLESDecodeStatus remoteStatus = coderDecodeAnnounce(les->coder, messageBody.bytes, messageBody.bytesCount, &hash, &headNumber, &headTd, &reorgDepth, &les->peerStatus);
-//            if(remoteStatus == BRE_LES_CODER_SUCCESS)
-//            {
-//                les->announceFunc(les->announceCtx, hash, headNumber, headTd, reorgDepth);
-//                //TODO: Check to make sure peerStatus is valid after update.
-//            }
-//        }
-//            break;
-//        case BRE_LES_ID_TX_STATUS:
-//        {
-//            //rlpShow(messageBody, "LES-TX_STATUS");
-//            uint64_t reqId = 0, bv = 0;
-//            BREthereumTransactionStatus* replies;
-//            size_t repliesCount;
-//            BREthereumLESDecodeStatus status = coderDecodeTxStatus(les->coder, messageBody.bytes, messageBody.bytesCount, &reqId, &bv, &replies, &repliesCount);
-//
-//            if(status == BRE_LES_CODER_SUCCESS)
-//            {
-//                uint64_t requestIndexRm = 0;
-//
-//                if(_findRequestId(les, reqId, &requestIndexRm)){
-//                    pthread_mutex_lock(&les->lock);
-//                    for(int i = 0; i < repliesCount; ++i){
-//                        les->requests[requestIndexRm].u.transaction_status.callback(les->requests[requestIndexRm].u.transaction_status.ctx,
-//                                                                                    les->requests[requestIndexRm].u.transaction_status.transactions[i],
-//                                                                                    replies[i]);
-//                    }
-//                    free(les->requests[requestIndexRm].u.transaction_status.transactions);
-//                    array_rm(les->requests, requestIndexRm);
-//                    free (replies);
-//                    pthread_mutex_unlock(&les->lock);
-//                }
-//            }
-//        }
-//            break;
-//        case BRE_LES_ID_BLOCK_HEADERS:
-//        {
-//            //            rlpShow(messageBody, "LES-HEADERS");
-//            uint64_t reqId = 0, bv = 0;
-//            BREthereumBlockHeader* headers;
-//            BREthereumLESDecodeStatus status = coderDecodeBlockHeaders(les->coder, messageBody.bytes, messageBody.bytesCount, &reqId, &bv, &headers);
-//
-//            if(status == BRE_LES_CODER_SUCCESS)
-//            {
-//                uint64_t requestIndexRm = 0;
-//
-//                if(_findRequestId(les, reqId, &requestIndexRm)){
-//
-//                    BREthereumLESBlockHeadersCallback callback = les->requests[requestIndexRm].u.block_headers.callback;
-//                    BREthereumLESBlockHeadersContext context = les->requests[requestIndexRm].u.block_headers.context;
-//
-//                    for(int i = 0; i < array_count(headers); ++i){
-//                        callback(context, headers[i]);
-//                    }
-//
-//                    pthread_mutex_lock(&les->lock);
-//                    array_rm(les->requests, requestIndexRm);
-//                    pthread_mutex_unlock(&les->lock);
-//                }
-//                array_free (headers);
-//            }
-//
-//        }
-//            break;
-//        case BRE_LES_ID_BLOCK_BODIES:
-//        {
-//            // rlpShow(messageBody, "LES-BODIES");
-//            uint64_t reqId = 0, bv = 0;
-//
-//            BREthereumBlockHeader** ommers;
-//            BREthereumTransaction** transactions;
-//            BREthereumLESDecodeStatus status = coderDecodeBlockBodies(les->coder, messageBody.bytes, messageBody.bytesCount, &reqId, &bv, les->network, &ommers, &transactions);
-//
-//
-//            if(status == BRE_LES_CODER_SUCCESS)
-//            {
-//                uint64_t requestIndexRm = 0;
-//                if(_findRequestId(les, reqId, &requestIndexRm)){
-//
-//
-//                    BREthereumLESBlockBodiesCallback callback = les->requests[requestIndexRm].u.block_bodies.callback;
-//                    BREthereumLESBlockBodiesContext context = les->requests[requestIndexRm].u.block_bodies.context;
-//                    BREthereumHash* blocks = les->requests[requestIndexRm].u.block_bodies.blocks;
-//
-//                    for(int i = 0; i < array_count(blocks); ++i){
-//                        callback(context, blocks[i],transactions[i],ommers[i]);
-//                    }
-//
-//                    pthread_mutex_lock(&les->lock);
-//                    array_free(les->requests[requestIndexRm].u.block_bodies.blocks);
-//                    array_rm(les->requests, requestIndexRm);
-//                    pthread_mutex_unlock(&les->lock);
-//                }
-//                array_free (ommers);
-//                array_free (transactions);
-//            }
-//
-//        }
-//            break;
-//        case BRE_LES_ID_RECEIPTS:
-//        {
-//            // size_t len = 0;
-//            // printf("%s", encodeHexCreate(&len, messageBody.bytes, messageBody.bytesCount));
-//            // rlpShow(messageBody, "LES-RECEIPTS");
-//            uint64_t reqId = 0, bv = 0;
-//            BREthereumTransactionReceipt** receipts;
-//            BREthereumLESDecodeStatus status = coderDecodeReceipts(les->coder, messageBody.bytes, messageBody.bytesCount, &reqId, &bv, &receipts);
-//
-//            if(status == BRE_LES_CODER_SUCCESS)
-//            {
-//                uint64_t requestIndexRm = 0;
-//                _findRequestId(les, reqId, &requestIndexRm);
-//
-//                if(_findRequestId(les, reqId, &requestIndexRm)) {
-//                    pthread_mutex_lock(&les->lock);
-//
-//                    BREthereumLESReceiptsCallback callback = les->requests[requestIndexRm].u.receipts.callback;
-//                    BREthereumLESReceiptsContext context = les->requests[requestIndexRm].u.receipts.context;
-//                    BREthereumHash* blocks = les->requests[requestIndexRm].u.receipts.blocks;
-//
-//                    for(int i = 0; i < array_count(blocks); ++i){
-//                        callback(context, blocks[i],receipts[i]);
-//                    }
-//
-//                    array_free(les->requests[requestIndexRm].u.receipts.blocks);
-//                    array_rm(les->requests, requestIndexRm);
-//                    pthread_mutex_unlock(&les->lock);
-//                }
-//                array_free(receipts);
-//            }
-//
-//        }
-//            break;
-//        case BRE_LES_ID_PROOFS_V2:
-//        {
-//            rlpShow(messageBody, "LES-PROOFSV2");
-//            uint64_t reqId = 0, bv = 0;
-//            BREthereumLESDecodeStatus status = coderDecodeProofs(les->coder, messageBody.bytes, messageBody.bytesCount, &reqId, &bv); // actual return value.
-//
-//            if(status == BRE_LES_CODER_SUCCESS)
-//            {
-//                uint64_t requestIndexRm = 0;
-//                _findRequestId(les, reqId, &requestIndexRm);
-//
-//                if(_findRequestId(les, reqId, &requestIndexRm)) {
-//                    pthread_mutex_lock(&les->lock);
-//
-//                    BREthereumLESProofsV2Callback callback = les->requests[requestIndexRm].u.proofsV2.callback;
-//                    BREthereumLESProofsV2Context context = les->requests[requestIndexRm].u.proofsV2.context;
-//                    BREthereumLESProofsRequest* proofRequests = les->requests[requestIndexRm].u.proofsV2.proofRequests;
-//
-//                    for(int i = 0; i < array_count(proofRequests); ++i){
-//                        // Actual result is TBD
-//                        callback (context, proofRequests[i].blockHash, proofRequests[i].key1, proofRequests[i].key2);
-//                    }
-//
-//                    array_free(les->requests[requestIndexRm].u.proofsV2.proofRequests);
-//                    array_rm(les->requests, requestIndexRm);
-//                    pthread_mutex_unlock(&les->lock);
-//                }
-//            }
-//
-//        }
-//            break;
-//        default:
-//        {
-//            eth_log(ETH_LOG_TOPIC, "Received Message that cannot be handled, message id:%llu", messageType - les->message_id_offset);
-//        }
-//            break;
-//    }
 //}
 //
 //static void _connectedToNetworkCallback(BREthereumSubProtoContext info, uint8_t** statusBytes, size_t* statusSize){

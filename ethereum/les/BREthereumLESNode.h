@@ -48,31 +48,62 @@ typedef void
                                      BREthereumLESNode node,
                                      BREthereumLESMessage message);
 
+typedef void
+(*BREthereumLESNodeCallbackConnect) (BREthereumLESNodeContext context,
+                                     BREthereumLESNode node,
+                                     BREthereumLESNodeStatus status);
+
 // connect
 // disconnect
 // network reachable
 
+typedef enum {
+    NODE_PURPOSE_DISCOVERY,
+    NODE_PURPOSE_BLOCKCHAIN
+} BREthereumLESNodePurpose;
+
 extern BREthereumLESNode // add 'message id offset'?
-nodeCreate (BREthereumLESNodeEndpoint remote,  // remote, local ??
-             BREthereumLESNodeEndpoint local,
-             BREthereumLESNodeContext context,
-             BREthereumLESNodeCallbackMessage callbackMessage
-// ...
-);
-
-extern void
-nodeStart (BREthereumLESNode node);
-
-extern void
-nodeStop (BREthereumLESNode node);
+nodeCreate (BREthereumLESNodePurpose purpose,
+            BREthereumLESNodeEndpoint remote,  // remote, local ??
+            BREthereumLESNodeEndpoint local,
+            BREthereumLESNodeContext context,
+            BREthereumLESNodeCallbackMessage callbackMessage,
+            BREthereumLESNodeCallbackConnect callbackConnect);
 
 extern void
 nodeRelease (BREthereumLESNode node);
+
+extern BREthereumLESNodeEndpoint *
+nodeGetRemoteEndpoint (BREthereumLESNode node);
+
+extern BREthereumLESNodeEndpoint *
+nodeGetLocalEndpoint (BREthereumLESNode node);
+
+extern void
+nodeConnect (BREthereumLESNode node);
+
+extern void
+nodeDisconnect (BREthereumLESNode node);
+
+extern int
+nodeIsConnected (BREthereumLESNode node);
+
+extern int
+nodeUpdateDescriptors (BREthereumLESNode node,
+                       fd_set *read,
+                       fd_set *write);
+
+extern int
+nodeCanProcess (BREthereumLESNode node,
+                fd_set *descriptors);
 
 extern void
 nodeSend (BREthereumLESNode node,
            BREthereumMessage message);   // BRRlpData/BRRlpItem *optionalMessageData/Item
 
+extern BREthereumMessage
+nodeRecv (BREthereumLESNode node);
+    
 #ifdef __cplusplus
 }
 #endif
