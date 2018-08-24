@@ -366,7 +366,8 @@ lesCreate (BREthereumNetwork network,
     // Fill in our bootstrap nodes
     array_new (les->nodes, 10);
 
-    BREthereumLESNode node = nodeCreate (nodeEndpointCreateFromSpec (&bootstrapNodeEndpointSpecs[0], NULL),
+    BREthereumLESNode node = nodeCreate (network,
+                                         nodeEndpointCreateFromSpec (&bootstrapNodeEndpointSpecs[0], NULL),
                                          les->localEndpoint,
                                          (BREthereumLESNodeContext) les,
                                          (BREthereumLESNodeCallbackMessage) lesHandleLESMessage,
@@ -975,7 +976,8 @@ lesNodeCreate (BREthereumLES les,
     key.pubKey[0] = 0x04;
     memcpy (&key.pubKey[1], neighbor.nodeID.u8, sizeof (neighbor.nodeID));
 
-    return nodeCreate (nodeEndpointCreate(neighbor.node, key),
+    return nodeCreate (les->network,
+                       nodeEndpointCreate(neighbor.node, key),
                        les->localEndpoint,
                        (BREthereumLESNodeContext) les,
                        (BREthereumLESNodeCallbackMessage) lesHandleLESMessage,

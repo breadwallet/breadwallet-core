@@ -133,8 +133,8 @@ struct BREthereumLESNodeRecord {
     BRRlpData sendDataBuffer;
     BRRlpData recvDataBuffer;
 
-    // RLP Coder
-    BRRlpCoder coder;
+    // Message Coder
+    BREthereumMessageCoder coder;
 
     // Frame Coder
     BREthereumLESFrameCoder frameCoder;
@@ -152,7 +152,8 @@ struct BREthereumLESNodeRecord {
 };
 
 extern BREthereumLESNode
-nodeCreate (BREthereumLESNodeEndpoint remote,  // remote, local ??
+nodeCreate (BREthereumNetwork network,
+            BREthereumLESNodeEndpoint remote,  // remote, local ??
             BREthereumLESNodeEndpoint local,
             BREthereumLESNodeContext context,
             BREthereumLESNodeCallbackMessage callbackMessage,
@@ -174,7 +175,8 @@ nodeCreate (BREthereumLESNodeEndpoint remote,  // remote, local ??
     node->sendDataBuffer = (BRRlpData) { DEFAULT_SEND_DATA_BUFFER_SIZE, malloc (DEFAULT_SEND_DATA_BUFFER_SIZE) };
     node->recvDataBuffer = (BRRlpData) { DEFAULT_RECV_DATA_BUFFER_SIZE, malloc (DEFAULT_RECV_DATA_BUFFER_SIZE) };
 
-    node->coder = rlpCoderCreate();
+    node->coder.network = network;
+    node->coder.rlp = rlpCoderCreate();
 
     node->frameCoder = frameCoderCreate();
     frameCoderInit(node->frameCoder,
@@ -216,7 +218,7 @@ nodeRelease (BREthereumLESNode node) {
     if (NULL != node->sendDataBuffer.bytes) free (node->sendDataBuffer.bytes);
     if (NULL != node->recvDataBuffer.bytes) free (node->recvDataBuffer.bytes);
 
-    rlpCoderRelease(node->coder);
+    rlpCoderRelease(node->coder.rlp);
     frameCoderRelease(node->frameCoder);
 
     free (node);
@@ -620,7 +622,7 @@ nodeSend (BREthereumLESNode node,
             // Extract the `item` bytes w/o the RLP length prefix.  This ends up being
             // simply the raw bytes.  We *know* the `item` is an RLP encoding of bytes; thus we
             // use `rlpDecodeBytes` (rather than `rlpDecodeList`.  Then simply send them.
-            BRRlpData data = rlpDecodeBytesSharedDontRelease (node->coder, item);
+            BRRlpData data = rlpDecodeBytesSharedDontRelease (node->coder.rlp, item);
 
 #if defined (NEED_TO_PRINT_SEND_RECV_DATA)
             eth_log (LES_LOG_TOPIC, "Size: Send: %s: PayLoad: %zu",
@@ -633,7 +635,7 @@ nodeSend (BREthereumLESNode node,
         default: {
             // Extract the `items` bytes w/o the RLP length prefix.  We *know* the `item` is an
             // RLP encoding of a list; thus we use `rlpDecodeList`.
-            BRRlpData data = rlpDecodeListSharedDontRelease(node->coder, item);
+            BRRlpData data = rlpDecodeListSharedDontRelease(node->coder.rlp, item);
 
             // Encrypt the length-less data
             BRRlpData encryptedData;
@@ -650,7 +652,7 @@ nodeSend (BREthereumLESNode node,
             break;
         }
     }
-    rlpReleaseItem (node->coder, item);
+    rlpReleaseItem (node->coder.rlp, item);
 }
 
 //static uint8_t  // somehow
@@ -692,12 +694,12 @@ nodeRecv (BREthereumLESNode node,
             //    assert (0 == nodeEndpointRecvData (&node->remote, NULL, bytes, bytesLimit));
 
             // Wrap at RLP Byte
-            BRRlpItem item = rlpEncodeBytes (node->coder, bytes, bytesCount);
+            BRRlpItem item = rlpEncodeBytes (node->coder.rlp, bytes, bytesCount);
 
             message = messageDecode (item, node->coder,
                                      MESSAGE_DIS,
                                      (BREthereumDISMessageIdentifier) -1);
-            rlpReleaseItem (node->coder, item);
+            rlpReleaseItem (node->coder.rlp, item);
             break;
         }
 
@@ -742,8 +744,8 @@ nodeRecv (BREthereumLESNode node,
 
             // Identifier is at byte[0]
             BRRlpData identifierData = { 1, &bytes[0] };
-            BRRlpItem identifierItem = rlpGetItem (node->coder, identifierData);
-            uint8_t value = (uint8_t) rlpDecodeUInt64 (node->coder, identifierItem, 1);
+            BRRlpItem identifierItem = rlpGetItem (node->coder.rlp, identifierData);
+            uint8_t value = (uint8_t) rlpDecodeUInt64 (node->coder.rlp, identifierItem, 1);
 
             BREthereumMessageIdentifier type;
             BREthereumANYMessageIdentifier subtype;
@@ -752,7 +754,7 @@ nodeRecv (BREthereumLESNode node,
 
             // Actual body
             BRRlpData data = { headerCount - 1, &bytes[1] };
-            BRRlpItem item = rlpGetItem (node->coder, data);
+            BRRlpItem item = rlpGetItem (node->coder.rlp, data);
 
 #if defined (NEED_TO_PRINT_SEND_RECV_DATA)
             eth_log (LES_LOG_TOPIC, "Size: Recv: TCP: Type: %u, Subtype: %d", type, subtype);
@@ -760,8 +762,8 @@ nodeRecv (BREthereumLESNode node,
 
             message = messageDecode (item, node->coder, type, subtype);
 
-            rlpReleaseItem (node->coder, item);
-            rlpReleaseItem (node->coder, identifierItem);
+            rlpReleaseItem (node->coder.rlp, item);
+            rlpReleaseItem (node->coder.rlp, identifierItem);
 
             break;
         }

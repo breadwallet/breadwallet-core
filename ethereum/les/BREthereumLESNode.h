@@ -58,7 +58,8 @@ typedef void
 // network reachable
 
 extern BREthereumLESNode // add 'message id offset'?
-nodeCreate (BREthereumLESNodeEndpoint remote,  // remote, local ??
+nodeCreate (BREthereumNetwork network,
+            BREthereumLESNodeEndpoint remote,  // remote, local ??
             BREthereumLESNodeEndpoint local,
             BREthereumLESNodeContext context,
             BREthereumLESNodeCallbackMessage callbackMessage,
