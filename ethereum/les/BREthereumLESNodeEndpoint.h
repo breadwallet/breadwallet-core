@@ -26,6 +26,7 @@
 #ifndef BR_Ethereum_LES_Node_Endpoint_H
 #define BR_Ethereum_LES_Node_Endpoint_H
 
+#include <limits.h>
 #include "BRKey.h"
 #include "BRInt.h"
 #include "BREthereumLESMessage.h"
@@ -34,62 +35,60 @@
 extern "C" {
 #endif
 
-#define MAX_HOST_NAME 1024
+typedef enum {
+    NODE_ROUTE_UDP,
+    NODE_ROUTE_TCP
+} BREthereumLESNodeEndpointRoute;
+
+#define NUMBER_OF_NODE_ROUTES  (1 + NODE_ROUTE_TCP)
+
+static inline const char *
+nodeEndpointRouteGetName (BREthereumLESNodeEndpointRoute route) {
+    return (NODE_ROUTE_TCP == route ? "TCP" : "UDP");
+}
 
 //
 // Endpoint
 //
 typedef struct {
-    /** The ADDR_FAMILY (e.g. AF_INET, see <socket.h> - BE encoded (??) */
-    int addr_family;  //  BE encoded 4-byte or 16-byte address (size determines ipv4 vs ipv6)
-    
-    /** */
-    char hostname[MAX_HOST_NAME];
-    
-    /** Determines whether the address is a IPV4 (True) or IPV6 (False) */
-    int isIPV4Address;
-    
-    /** BE encoded (??) */
-    uint16_t portUDP;
-    volatile int socketUDP;
-    
-    /** BE Encoded (??) */
-    uint16_t portTCP;
-    volatile int socketTCP;
-    
+    /** An optional hostname - if not provided this will be a IP addr string */
+    char hostname[_POSIX_HOST_NAME_MAX + 1];
+
+    /** Thge 'Discovery Endpoint' */
+     BREthereumDISEndpoint dis;
+
+     /** The socket - will be -1 if not connected */
+    int sockets[NUMBER_OF_NODE_ROUTES];
+
     /** */
     uint64_t timestamp;
-    
+
     /** Public Key (for the remote peer ) */
     BRKey key;
-    
+
     /** The ephemeral public key */
     BRKey ephemeralKey;
-    
+
     /** The nonce */
     UInt256 nonce;
-    
+
     /** The Hello PSP message */
     BREthereumP2PMessage hello;     // BREthereumP2PMessageHello
-    
+
     /** The Status LES message */
     BREthereumLESMessage status;    // BREthereumLESMessageStatus
-    
+
 } BREthereumLESNodeEndpoint;
 
 // Use for 'local
 extern BREthereumLESNodeEndpoint
-nodeEndpointCreateRaw (const char *address,
-                       uint16_t portUDP,
-                       uint16_t portTCP,
-                       BRKey key,
-                       BRKey ephemeralKey,
-                       UInt256 nonce);
+nodeEndpointCreateDetailed (BREthereumDISEndpoint dis,
+                            BRKey key,
+                            BRKey ephemeralKey,
+                            UInt256 nonce);
 
 extern BREthereumLESNodeEndpoint
-nodeEndpointCreate (const char *address,
-                    uint16_t portUDP,
-                    uint16_t portTCP,
+nodeEndpointCreate (BREthereumDISEndpoint dis,
                     BRKey key);
 
 extern void
@@ -100,40 +99,43 @@ extern void
 nodeEndpointSetStatus (BREthereumLESNodeEndpoint *endpoint,
                        BREthereumLESMessage status);
 
-extern void
-nodeEndpointOpen (BREthereumLESNodeEndpoint *endpoint);
-
-extern void
-nodeEndpointClose (BREthereumLESNodeEndpoint *endpoint);
+extern int
+nodeEndpointOpen (BREthereumLESNodeEndpoint *endpoint,
+                  BREthereumLESNodeEndpointRoute route);
 
 extern int
-nodeEndpointIsOpen (BREthereumLESNodeEndpoint *endpoint);
+nodeEndpointClose (BREthereumLESNodeEndpoint *endpoint,
+                   BREthereumLESNodeEndpointRoute route);
 
 extern int
-nodeEndpointHasRecvDataAvailable (BREthereumLESNodeEndpoint *endpoint,
-                                  fd_set *readFds);
+nodeEndpointIsOpen (BREthereumLESNodeEndpoint *endpoint,
+                    BREthereumLESNodeEndpointRoute route);
 
-extern void
-nodeEndpointSetRecvDataAvailableFDS (BREthereumLESNodeEndpoint *endpoint,
-                                     fd_set *readFds);
-
-extern void
-nodeEndpointClrRecvDataAvailableFDS (BREthereumLESNodeEndpoint *endpoint,
-                                     fd_set *readFds);
-
-extern int
-nodeEndpointGetRecvDataAvailableFDSNum (BREthereumLESNodeEndpoint *endpoint);
+//extern int
+//nodeEndpointHasRecvDataAvailable (BREthereumLESNodeEndpoint *endpoint,
+//                                  fd_set *readFds);
+//
+//extern void
+//nodeEndpointSetRecvDataAvailableFDS (BREthereumLESNodeEndpoint *endpoint,
+//                                     fd_set *readFds);
+//
+//extern void
+//nodeEndpointClrRecvDataAvailableFDS (BREthereumLESNodeEndpoint *endpoint,
+//                                     fd_set *readFds);
+//
+//extern int
+//nodeEndpointGetRecvDataAvailableFDSNum (BREthereumLESNodeEndpoint *endpoint);
 
 extern int
 nodeEndpointRecvData (BREthereumLESNodeEndpoint *endpoint,
-                      int socket,
+                      BREthereumLESNodeEndpointRoute route,
                       uint8_t *bytes,
                       size_t *bytesCount,
                       int needBytesCount);
 
 extern int
 nodeEndpointSendData (BREthereumLESNodeEndpoint *endpoint,
-                      int socket,
+                      BREthereumLESNodeEndpointRoute route,
                       uint8_t *bytes,
                       size_t bytesCount);
 

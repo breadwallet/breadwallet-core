@@ -48,30 +48,65 @@ typedef void
                                      BREthereumLESNode node,
                                      BREthereumLESMessage message);
 
+typedef void
+(*BREthereumLESNodeCallbackConnect) (BREthereumLESNodeContext context,
+                                     BREthereumLESNode node,
+                                     BREthereumLESNodeStatus status);
+
 // connect
 // disconnect
 // network reachable
 
 extern BREthereumLESNode // add 'message id offset'?
 nodeCreate (BREthereumLESNodeEndpoint remote,  // remote, local ??
-             BREthereumLESNodeEndpoint local,
-             BREthereumLESNodeContext context,
-             BREthereumLESNodeCallbackMessage callbackMessage
-// ...
-);
-
-extern void
-nodeStart (BREthereumLESNode node);
-
-extern void
-nodeStop (BREthereumLESNode node);
+            BREthereumLESNodeEndpoint local,
+            BREthereumLESNodeContext context,
+            BREthereumLESNodeCallbackMessage callbackMessage,
+            BREthereumLESNodeCallbackConnect callbackConnect);
 
 extern void
 nodeRelease (BREthereumLESNode node);
 
+extern BREthereumLESNodeEndpoint *
+nodeGetRemoteEndpoint (BREthereumLESNode node);
+
+extern BREthereumLESNodeEndpoint *
+nodeGetLocalEndpoint (BREthereumLESNode node);
+
+extern void
+nodeConnect (BREthereumLESNode node,
+             BREthereumLESNodeEndpointRoute route);
+
+extern void
+nodeDisconnect (BREthereumLESNode node,
+                BREthereumLESNodeEndpointRoute route);
+
+extern int
+nodeIsConnected (BREthereumLESNode node,
+                 BREthereumLESNodeEndpointRoute route);
+
+extern int
+nodeIsConnecting (BREthereumLESNode node,
+                  BREthereumLESNodeEndpointRoute route);
+
+extern int
+nodeUpdateDescriptors (BREthereumLESNode node,
+                       fd_set *read,
+                       fd_set *write);
+
+extern int
+nodeCanProcess (BREthereumLESNode node,
+                BREthereumLESNodeEndpointRoute route,
+                fd_set *descriptors);
+
 extern void
 nodeSend (BREthereumLESNode node,
-           BREthereumMessage message);   // BRRlpData/BRRlpItem *optionalMessageData/Item
+          BREthereumLESNodeEndpointRoute route,
+          BREthereumMessage message);   // BRRlpData/BRRlpItem *optionalMessageData/Item
+
+extern BREthereumMessage
+nodeRecv (BREthereumLESNode node,
+          BREthereumLESNodeEndpointRoute route);
 
 #ifdef __cplusplus
 }

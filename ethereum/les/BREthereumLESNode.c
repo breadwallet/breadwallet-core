@@ -33,6 +33,7 @@
 #include "BREthereumLESNode.h"
 #include "BREthereumLESFrameCoder.h"
 
+// #define NEED_TO_PRINT_SEND_RECV_DATA
 #define PTHREAD_STACK_SIZE (512 * 1024)
 #define PTHREAD_NULL   ((pthread_t) NULL)
 
@@ -61,11 +62,10 @@ static const ssize_t ackCipherBufLen =  ackBufLen + 65 + 16 + 32;
 typedef void* (*ThreadRoutine) (void*);
 
 static void *
-nodeThread (BREthereumLESNode node);
+nodeThreadConnectUDP (BREthereumLESNode node);
 
-static BREthereumMessage
-nodeXRecv (BREthereumLESNode node, int socket);
-
+static void *
+nodeThreadConnectTCP (BREthereumLESNode node);
 
 //
 static void _sendAuthInitiator(BREthereumLESNode node);
@@ -73,49 +73,48 @@ static void _readAuthFromInitiator(BREthereumLESNode node);
 static void _sendAuthAckToInitiator(BREthereumLESNode node);
 static void _readAuthAckFromRecipient(BREthereumLESNode node);
 
-static void
-sleepForSure (unsigned int seconds, int print) {
-    while (seconds > 0) {
-        if (print) printf ("***\n*** SLEEPING: %d\n", seconds);
-        seconds = sleep(seconds);
-    }
-}
+//static void
+//sleepForSure (unsigned int seconds, int print) {
+//    while (seconds > 0) {
+//        if (print) printf ("***\n*** SLEEPING: %d\n", seconds);
+//        seconds = sleep(seconds);
+//    }
+//}
 
 typedef enum  {
     NODE_STATE_DISCONNECTED,
+    NODE_STATE_OPEN,
 
     NODE_STATE_AUTH,
+    NODE_STATE_AUTH_ACK,
     NODE_STATE_HELLO,
+    NODE_STATE_HELLO_ACK,
     NODE_STATE_STATUS,
+    NODE_STATE_STATUS_ACK,
 
-//    BRE_HANDSHAKE_NEW,
-//    BRE_HANDSHAKE_ACKAUTH,
-//    BRE_HANDSHAKE_WRITEHELLO,
-//    BRE_HANDSHAKE_READHELLO,
-//    BRE_HANDSHAKE_FINISHED,
+    NODE_STATE_PING,
+    NODE_STATE_PING_ACK,
 
-    NODE_STATE_CONNECTED
+    NODE_STATE_CONNECTED,
+    NODE_STATE_ERROR
     // ...
-} BREthereumLESNodeXState; // STATE: Connected, Pending Hello, ...
+} BREthereumLESNodeState;
 
 typedef enum {
     NODE_TYPE_GETH,
     NODE_TYPE_PARITY
-} BREthereumLESNodeXType; // Identifiery
-
-// LESNodeTypeSpec  -> limited
+} BREthereumLESNodeType;
 
 //
 // MARK: - LES Node
 //
 struct BREthereumLESNodeRecord {
-    BREthereumLESNodeXType type;
-    BREthereumLESNodeXState state;
+    BREthereumLESNodeType type;
+
+    BREthereumLESNodeState states[NUMBER_OF_NODE_ROUTES];
 
     BREthereumLESNodeEndpoint remote;
     BREthereumLESNodeEndpoint local;
-
-    // socket
 
     // Message Limits (e.g. 192 header, 32 account state)
 
@@ -123,12 +122,12 @@ struct BREthereumLESNodeRecord {
     uint64_t messageIdOffset;
     uint64_t credits;
 
-
     // Pending Request/Response
 
     // Callbacks
     BREthereumLESNodeContext callbackContext;
     BREthereumLESNodeCallbackMessage callbackMessage;
+    BREthereumLESNodeCallbackConnect callbackConnect;
 
     // Send/Recv Buffer
     BRRlpData sendDataBuffer;
@@ -148,19 +147,22 @@ struct BREthereumLESNodeRecord {
     // pthread
     //
     char *threadName;
-    pthread_t thread;
+    pthread_t threads[NUMBER_OF_NODE_ROUTES];
     pthread_mutex_t lock;
 };
 
 extern BREthereumLESNode
-nodeCreate (BREthereumLESNodeEndpoint remote,
-             BREthereumLESNodeEndpoint local,
-             BREthereumLESNodeContext context,
-             BREthereumLESNodeCallbackMessage callbackMessage) {
+nodeCreate (BREthereumLESNodeEndpoint remote,  // remote, local ??
+            BREthereumLESNodeEndpoint local,
+            BREthereumLESNodeContext context,
+            BREthereumLESNodeCallbackMessage callbackMessage,
+            BREthereumLESNodeCallbackConnect callbackConnect) {
     BREthereumLESNode node = calloc (1, sizeof (struct BREthereumLESNodeRecord));
 
-    node->type = NODE_TYPE_GETH;
-    node->state = NODE_STATE_DISCONNECTED;
+    node->type   = NODE_TYPE_GETH;
+
+    for (int route = 0; route < NUMBER_OF_NODE_ROUTES; route++)
+        node->states[route] = NODE_STATE_DISCONNECTED;
 
     node->remote = remote;
     node->local  = local;
@@ -184,13 +186,16 @@ nodeCreate (BREthereumLESNodeEndpoint remote,
 
     node->callbackContext = context;
     node->callbackMessage = callbackMessage;
+    node->callbackConnect = callbackConnect;
 
     {
-#define PTHREAD_NAME_BASE    "Core Ethereum Node"
+#define PTHREAD_NAME_BASE    "Core Ethereum LES"
         char threadName[4096];
-        sprintf (threadName, "%s %s", PTHREAD_NAME_BASE, "127.0.0.1");
+        sprintf (threadName, "%s %s", PTHREAD_NAME_BASE, node->remote.hostname);
         node->threadName = strdup(threadName);
-        node->thread = NULL;
+
+        for (int route = 0; route < NUMBER_OF_NODE_ROUTES; route++)
+            node->threads[route] = NULL;
 
         // The cacheLock is a normal, non-recursive lock
         pthread_mutexattr_t attr;
@@ -204,39 +209,9 @@ nodeCreate (BREthereumLESNodeEndpoint remote,
 }
 
 extern void
-nodeStart (BREthereumLESNode node) {
-//    pthread_mutex_lock(&handler->lockOnStartStop);
-    if (PTHREAD_NULL == node->thread) {
-        // if (0 != pthread_attr_t (...) && 0 != pthread_attr_...() && ...
-        pthread_attr_t attr;
-        pthread_attr_init(&attr);
-        pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_JOINABLE);
-        pthread_attr_setstacksize (&attr, PTHREAD_STACK_SIZE);
-
-        pthread_create (&node->thread, &attr, (ThreadRoutine) nodeThread, node);
-        pthread_attr_destroy(&attr);
-    }
-//    pthread_mutex_unlock(&handler->lockOnStartStop);
-}
-
-extern void
-nodeStop (BREthereumLESNode node) {
-//    pthread_mutex_lock(&handler->lockOnStartStop);
-    if (PTHREAD_NULL != node->thread) {
-        pthread_cancel(node->thread);
-//        pthread_cond_signal(&node->cond);
-        pthread_join(node->thread, NULL);
-        pthread_mutex_unlock(&node->lock);  // ensure this for restart.
-                                            // A mini-race here?
-        nodeEndpointClose (&node->remote);
-        node->thread = PTHREAD_NULL;
-    }
-//    pthread_mutex_unlock(&handler->lockOnStartStop);
-}
-
-extern void
 nodeRelease (BREthereumLESNode node) {
-    nodeStop (node);
+    nodeDisconnect (node, NODE_ROUTE_TCP);
+    nodeDisconnect (node, NODE_ROUTE_UDP);
 
     if (NULL != node->sendDataBuffer.bytes) free (node->sendDataBuffer.bytes);
     if (NULL != node->recvDataBuffer.bytes) free (node->recvDataBuffer.bytes);
@@ -247,61 +222,109 @@ nodeRelease (BREthereumLESNode node) {
     free (node);
 }
 
-#if 0
-static void
-nodeHandleP2PMessage (BREthereumLESNode node) {}
-
-static void
-nodeHandleETHMessage (BREthereumLESNode node) {}
-static void
-nodeHandleLESMessage (BREthereumLESNode node) {}
-
-static void
-nodeHandleDISMessage (BREthereumLESNode node) {}
-#endif
-
-static BREthereumDISEndpoint
-endpointDISCreate (BREthereumLESNodeEndpoint *ne) {
-    BREthereumDISEndpoint endpoint = {
-        1,
-        {},
-        ne->portUDP,
-        ne->portTCP
-    };
-    inet_pton (AF_INET, ne->hostname, endpoint.addr.ipv4);
-    return endpoint;
+extern BREthereumLESNodeEndpoint *
+nodeGetRemoteEndpoint (BREthereumLESNode node) {
+    return &node->remote;
 }
 
-//extern BREthereumDISMessagePing
-//messageDISPingCreate (BREthereumLESNodeEndpoint *local,
-//                      BREthereumLESNodeEndpoint *remote) {
-//    BREthereumDISMessagePing ping;
-//
-//    ping.version = 4;
-//    ping.from = (BREthereumDISEndpoint) {
-//        1,
-//        {},
-//        local->portUDP,
-//        local->portTCP
-//    };
-//    inet_pton (AF_INET, local->hostname, ping.from.addr.ipv4);
-//
-//    ping.to = (BREthereumDISEndpoint) {
-//        1,
-//        {},
-//        remote->portUDP,
-//        remote->portTCP
-//    };
-//    inet_pton (AF_INET, remote->hostname, ping.to.addr.ipv4);
-//
-//    ping.expiration = 1000000 + time (NULL);
-//
-//    return ping;
-//}
+extern BREthereumLESNodeEndpoint *
+nodeGetLocalEndpoint (BREthereumLESNode node) {
+    return &node->local;
+}
 
+extern void
+nodeConnect (BREthereumLESNode node,
+             BREthereumLESNodeEndpointRoute route) {
+    pthread_mutex_lock (&node->lock);
+    if (PTHREAD_NULL == node->threads[route]) {
+        pthread_attr_t attr;
+        pthread_attr_init (&attr);
+        pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_JOINABLE);
+        pthread_attr_setstacksize (&attr, PTHREAD_STACK_SIZE);
+
+        pthread_create (&node->threads[route], &attr,
+                        (ThreadRoutine) (NODE_ROUTE_TCP == route ? nodeThreadConnectTCP : nodeThreadConnectUDP),
+                        node);
+        pthread_attr_destroy (&attr);
+    }
+    pthread_mutex_unlock (&node->lock);
+}
+
+extern void
+nodeDisconnect (BREthereumLESNode node,
+                BREthereumLESNodeEndpointRoute route) {
+    pthread_mutex_lock (&node->lock);
+
+    // Cancel the thread, if it exists.
+    if (PTHREAD_NULL != node->threads[route]) {
+        pthread_cancel (node->threads[route]);
+        pthread_join (node->threads[route], NULL);
+        node->threads[route] = PTHREAD_NULL;
+    }
+
+    // Close the appropriate endpoint route
+    nodeEndpointClose (&node->remote, route);
+    node->states[route] = NODE_STATE_DISCONNECTED;
+
+    pthread_mutex_unlock (&node->lock);
+}
+
+extern int
+nodeIsConnected (BREthereumLESNode node,
+                 BREthereumLESNodeEndpointRoute route) {
+    return NODE_STATE_CONNECTED == node->states[route];
+}
+
+extern int
+nodeIsConnecting (BREthereumLESNode node,
+                  BREthereumLESNodeEndpointRoute route) {
+    return (NODE_STATE_DISCONNECTED != node->states[route] &&
+            NODE_STATE_CONNECTED    != node->states[route]);
+}
+
+static int maximum (int x, int y) { return x > y ? x : y; }
+
+extern int
+nodeUpdateDescriptors (BREthereumLESNode node,
+                       fd_set *read,
+                       fd_set *write) {
+    if (nodeIsConnected (node, NODE_ROUTE_TCP)) {
+        int socket = node->remote.sockets[NODE_ROUTE_TCP];
+        if (socket != -1 && NULL != read)  FD_SET (socket, read);
+        if (socket != -1 && NULL != write) FD_SET (socket, write);
+    }
+
+    if (nodeIsConnected (node, NODE_ROUTE_UDP)) {
+        int socket = node->remote.sockets[NODE_ROUTE_UDP];
+        if (socket != -1 && NULL != read)  FD_SET (socket, read);
+        if (socket != -1 && NULL != write) FD_SET (socket, write);
+    }
+
+    return maximum (node->remote.sockets[NODE_ROUTE_TCP],
+                    node->remote.sockets[NODE_ROUTE_UDP]);
+}
+
+extern int
+nodeCanProcess (BREthereumLESNode node,
+                BREthereumLESNodeEndpointRoute route,
+                fd_set *descriptors) {
+    return (nodeIsConnected (node, route) &&
+            NULL != descriptors &&
+            FD_ISSET (node->remote.sockets[route], descriptors));
+}
 
 static void *
-nodeThread (BREthereumLESNode node) {
+nodeFailed (BREthereumLESNode node) {
+    node->callbackConnect (node->callbackContext, node, NODE_ERROR);
+    pthread_mutex_unlock (&node->lock);
+    return NULL;
+}
+
+//
+//
+//
+static void *
+nodeThreadConnectUDP (BREthereumLESNode node) {
 #if defined (__ANDROID__)
     pthread_setname_np (node->thread, node->threadName);
 #else
@@ -310,207 +333,306 @@ nodeThread (BREthereumLESNode node) {
     pthread_setcancelstate (PTHREAD_CANCEL_ENABLE, NULL);
     pthread_setcanceltype  (PTHREAD_CANCEL_DEFERRED, NULL);
 
-//    pthread_mutex_lock(&node->lock);
+    int error = 0;
 
-    node->state = NODE_STATE_AUTH;
+    pthread_mutex_lock (&node->lock);
 
-    nodeEndpointOpen (&node->remote);
+    assert (NODE_STATE_DISCONNECTED == node->states[NODE_ROUTE_UDP]);
 
-    while (NODE_STATE_DISCONNECTED != node->state) {
-        switch (node->state) {
-            case NODE_STATE_DISCONNECTED:
-                break;
-
-            case NODE_STATE_AUTH: {
-                _sendAuthInitiator(node);
-
-                eth_log (LES_LOG_TOPIC, "Send: WIP, Auth%s", "");
-                nodeEndpointSendData (&node->remote, node->remote.socketTCP,
-                                      node->authBufCipher, authCipherBufLen); //  "auth initiator");
-
-                size_t ackCipherBufCount = ackCipherBufLen;
-                nodeEndpointRecvData (&node->remote, node->remote.socketTCP, node->ackBufCipher, &ackCipherBufCount, 1); // "auth ack from receivier"
-                eth_log (LES_LOG_TOPIC, "Recv: WIP, Auth Ack%s", "");
-                assert (ackCipherBufCount == ackCipherBufLen);
-
-                _readAuthAckFromRecipient (node);
-
-                // Initilize the frameCoder with the information from the auth
-                frameCoderInit(node->frameCoder,
-                               &node->remote.ephemeralKey, &node->remote.nonce,
-                               &node->local.ephemeralKey, &node->local.nonce,
-                               node->ackBufCipher, ackCipherBufLen,
-                               node->authBufCipher, authCipherBufLen,
-                               ETHEREUM_BOOLEAN_TRUE);
-
-                node->state = NODE_STATE_HELLO;
-                break;
-            }
-
-            case NODE_STATE_HELLO: {
-                // Send a 'hello' message
-                BREthereumMessage message = {
-                    MESSAGE_P2P,
-                    { .p2p = node->local.hello }
-                };
-
-                nodeSend(node, message);
-
-                // Recv a 'hello' message
-                BREthereumMessage helloReply = nodeXRecv (node, node->remote.socketTCP);
-                assert (MESSAGE_P2P == helloReply.identifier);
-                assert (P2P_MESSAGE_HELLO == helloReply.u.p2p.identifier);
-
-                // Save the 'hello' message received and then move on
-                messageP2PHelloShow(helloReply.u.p2p.u.hello);
-                node->remote.hello = helloReply.u.p2p;
-
-                node->state = NODE_STATE_STATUS;
-                break;
-            }
-
-            case NODE_STATE_STATUS: {
-                // Send a 'status' message
-                BREthereumMessage message = {
-                    MESSAGE_LES,
-                    { .les = node->local.status }
-                };
-
-                nodeSend (node, message);
-
-                // Recv a 'status' message
-                BREthereumMessage reply = nodeXRecv (node, node->remote.socketTCP);
-                assert (MESSAGE_LES == reply.identifier);
-                assert (LES_MESSAGE_STATUS == reply.u.les.identifier);
-
-                // Save the 'status' message received and then move on
-                messageLESStatusShow(&reply.u.les.u.status);
-                node->remote.status = reply.u.les;
-
-                // TODO: Misplaced
-                if (node->callbackMessage)
-                    node->callbackMessage (node->callbackContext,
-                                           node,
-                                           reply.u.les);
-
-                message = (BREthereumMessage) {
-                    MESSAGE_DIS,
-                    { .dis = {
-                        DIS_MESSAGE_PING,
-                        { .ping = messageDISPingCreate (endpointDISCreate(&node->local),
-                                                        endpointDISCreate(&node->remote),
-                                                        time(NULL) + 1000000) },
-                        node->local.key }}
-                };
-                nodeSend (node, message);
-
-                node->state = NODE_STATE_CONNECTED;
-                break;
-            }
-
-            case NODE_STATE_CONNECTED: {
-                fd_set readFds;
-                int numFds = nodeEndpointGetRecvDataAvailableFDSNum (&node->remote);
-
-                nodeEndpointSetRecvDataAvailableFDS (&node->remote, &readFds);
-                pselect (numFds, &readFds, NULL, NULL, NULL, NULL);
-
-                int socket = (FD_ISSET (node->remote.socketTCP, &readFds)
-                              ? node->remote.socketTCP
-                              : node->remote.socketUDP);
-                //
-                BREthereumMessage message = nodeXRecv (node, socket); // fd_set(), select() in nodeXRecv()
-
-
-                // If this is a P2P DISCONNECT message, then disconnect; otherwise ...
-                if (messageHasIdentifiers (&message, MESSAGE_P2P, P2P_MESSAGE_DISCONNECT)) {
-                    eth_log (LES_LOG_TOPIC, "Disconnected: %d\n", message.u.p2p.u.disconnect.reason);
-                    node->state = NODE_STATE_DISCONNECTED;
-                }
-
-                // ... if this is a P2P PING message, respond immediately; otherwise ...
-                else if (messageHasIdentifiers (&message, MESSAGE_P2P, P2P_MESSAGE_PING)) {
-                    BREthereumMessage pong = {
-                        MESSAGE_P2P,
-                        { .p2p = {
-                            P2P_MESSAGE_PONG,
-                            {}}}
-                    };
-                    nodeSend (node, pong);
-                }
-
-                // ... if this is a DIS PING message, respond immediately; otherwise ...
-                else if (messageHasIdentifiers (&message, MESSAGE_DIS, DIS_MESSAGE_PING)) {
-                    // Send PONG so we are 'bonded' and ...
-                    BREthereumMessage pong = {
-                        MESSAGE_DIS,
-                        { .dis = {
-                            DIS_MESSAGE_PONG,
-                            { .pong =
-                                messageDISPongCreate (message.u.dis.u.ping.to,
-                                                      message.u.dis.u.ping.hash,
-                                                      time(NULL) + 1000000) },
-                            node->local.key }}
-                    };
-                    nodeSend (node, pong);
-
-                    // ... can then send a 'findNodes'
-                    BREthereumMessage findNodes = {
-                        MESSAGE_DIS,
-                        { .dis = {
-                            DIS_MESSAGE_FIND_NEIGHBORS,
-                            { .findNeighbors =
-                                messageDISFindNeighborsCreate (node->remote.key,
-                                                               time(NULL) + 1000000) },
-                            node->local.key }}
-                    };
-                    nodeSend (node, findNodes);
-                }
-
-                // .. if this is a DIS PONG message, respond immediately; otherwise ...
-                else if (messageHasIdentifiers (&message, MESSAGE_DIS, DIS_MESSAGE_PONG)) {
-                }
-
-                // ... handle the message
-                else if (messageHasIdentifier(&message, MESSAGE_LES)) {
-                    // if a les message, extends a 'reqId result' and then, if complete
-                    // announce it.
-                    if (node->callbackMessage)
-                        node->callbackMessage (node->callbackContext,
-                                               node,
-                                               message.u.les);
-                }
-                break;
-            }
-        }
+    {
+        // OPEN
+        node->states[NODE_ROUTE_UDP] = NODE_STATE_OPEN;
+        error = nodeEndpointOpen (&node->remote, NODE_ROUTE_UDP);
+        if (error) return nodeFailed (node);
     }
 
-    nodeEndpointClose(&node->remote);
+    BREthereumMessage message;
+
+    //
+    // PING
+    //
+    node->states[NODE_ROUTE_UDP] = NODE_STATE_PING;
+    message = (BREthereumMessage) {
+        MESSAGE_DIS,
+        { .dis = {
+            DIS_MESSAGE_PING,
+            { .ping = messageDISPingCreate (node->local.dis, // endpointDISCreate(&node->local),
+                                            node->remote.dis, // endpointDISCreate(&node->remote),
+                                            time(NULL) + 1000000) },
+            node->local.key }}
+    };
+    nodeSend (node, NODE_ROUTE_UDP, message);
+
+    //
+    // PING_ACK
+    //
+    message = nodeRecv (node, NODE_ROUTE_UDP);
+    if (MESSAGE_DIS != message.identifier || DIS_MESSAGE_PONG != message.u.dis.identifier)
+        return nodeFailed (node);
+
+    message = nodeRecv (node, NODE_ROUTE_UDP);
+    if (MESSAGE_DIS != message.identifier || DIS_MESSAGE_PING != message.u.dis.identifier)
+        return nodeFailed (node);
+
+    message = (BREthereumMessage) {
+        MESSAGE_DIS,
+        { .dis = {
+            DIS_MESSAGE_PONG,
+            { .pong =
+                messageDISPongCreate (message.u.dis.u.ping.to,
+                                      message.u.dis.u.ping.hash,
+                                      time(NULL) + 1000000) },
+            nodeGetLocalEndpoint(node)->key }}
+    };
+    nodeSend (node, NODE_ROUTE_UDP, message);
+
+    //
+    // CONNECTED
+    //
+    node->states[NODE_ROUTE_UDP] = NODE_STATE_CONNECTED;
+    node->callbackConnect (node->callbackContext, node, NODE_SUCCESS);
+    pthread_mutex_unlock (&node->lock);
     return NULL;
 }
 
+//
+//
+//
+static void *
+nodeThreadConnectTCP (BREthereumLESNode node) {
+#if defined (__ANDROID__)
+    pthread_setname_np (node->thread, node->threadName);
+#else
+    pthread_setname_np (node->threadName);
+#endif
+    pthread_setcancelstate (PTHREAD_CANCEL_ENABLE, NULL);
+    pthread_setcanceltype  (PTHREAD_CANCEL_DEFERRED, NULL);
+
+    int error = 0;
+
+    pthread_mutex_lock (&node->lock);
+
+    assert (NODE_STATE_DISCONNECTED == node->states[NODE_ROUTE_TCP]);
+
+    {
+        // OPEN
+        node->states[NODE_ROUTE_TCP] = NODE_STATE_OPEN;
+        error = nodeEndpointOpen (&node->remote, NODE_ROUTE_TCP);
+        if (error) return nodeFailed (node);
+    }
+
+    BREthereumMessage message;
+
+    //
+    // AUTH
+    //
+    node->states[NODE_ROUTE_TCP] = NODE_STATE_AUTH;
+
+    _sendAuthInitiator(node);
+    eth_log (LES_LOG_TOPIC, "Send: [ WIP, %15s ] => %s", "Auth",    node->remote.hostname);
+    nodeEndpointSendData (&node->remote, NODE_ROUTE_TCP, node->authBufCipher, authCipherBufLen); //  "auth initiator");
+
+    //
+    // AUTH_ACK
+    //
+    node->states[NODE_ROUTE_TCP] = NODE_STATE_AUTH_ACK;
+    size_t ackCipherBufCount = ackCipherBufLen;
+    nodeEndpointRecvData (&node->remote, NODE_ROUTE_TCP, node->ackBufCipher, &ackCipherBufCount, 1); // "auth ack from receivier"
+    eth_log (LES_LOG_TOPIC, "Recv: [ WIP, %15s ] <= %s", "Auth Ack",    node->remote.hostname);
+    assert (ackCipherBufCount == ackCipherBufLen);
+
+    _readAuthAckFromRecipient (node);
+
+    // Initilize the frameCoder with the information from the auth
+    frameCoderInit(node->frameCoder,
+                   &node->remote.ephemeralKey, &node->remote.nonce,
+                   &node->local.ephemeralKey, &node->local.nonce,
+                   node->ackBufCipher, ackCipherBufLen,
+                   node->authBufCipher, authCipherBufLen,
+                   ETHEREUM_BOOLEAN_TRUE);
+
+    //
+    // HELLO
+    //
+    node->states[NODE_ROUTE_TCP] = NODE_STATE_HELLO;
+    nodeSend (node, NODE_ROUTE_TCP, (BREthereumMessage) {
+        MESSAGE_P2P,
+        { .p2p = node->local.hello }
+    });
+
+    //
+    // HELLO ACK
+    //
+    node->states[NODE_ROUTE_TCP] = NODE_STATE_HELLO_ACK;
+    message = nodeRecv (node, NODE_ROUTE_TCP);
+    assert (MESSAGE_P2P == message.identifier);
+    assert (P2P_MESSAGE_HELLO == message.u.p2p.identifier);
+
+    // Save the 'hello' message received and then move on
+    messageP2PHelloShow (message.u.p2p.u.hello);
+    node->remote.hello = message.u.p2p;
+
+    // A P2P message, not a LES message
+    //            if (node->callbackMessage)
+    //                node->callbackMessage (node->callbackContext,
+    //                                       node,
+    //                                       message.u.les);
+
+    //
+    // STATUS
+    //
+    node->states[NODE_ROUTE_TCP] = NODE_STATE_STATUS;
+    nodeSend (node, NODE_ROUTE_TCP, (BREthereumMessage) {
+        MESSAGE_LES,
+        { .les = node->local.status }
+    });
+
+    //
+    // STATUS_ACK
+    //
+    node->states[NODE_ROUTE_TCP] = NODE_STATE_STATUS_ACK;
+    message = nodeRecv (node, NODE_ROUTE_TCP);
+    assert (MESSAGE_LES == message.identifier);
+    assert (LES_MESSAGE_STATUS == message.u.les.identifier);
+
+    // Save the 'status' message received and then move on
+    messageLESStatusShow(&message.u.les.u.status);
+    node->remote.status = message.u.les;
+
+    if (node->callbackMessage)
+        node->callbackMessage (node->callbackContext,
+                               node,
+                               message.u.les);
+
+
+    //
+    // CONNECTED
+    //
+    node->states[NODE_ROUTE_TCP] = NODE_STATE_CONNECTED;
+    node->callbackConnect (node->callbackContext, node, NODE_SUCCESS);
+    pthread_mutex_unlock (&node->lock);
+    return NULL;
+}
+
+
+//            case NODE_STATE_CONNECTED: {
+//                fd_set readFds;
+//                int numFds = nodeEndpointGetRecvDataAvailableFDSNum (&node->remote);
+//
+//                nodeEndpointSetRecvDataAvailableFDS (&node->remote, &readFds);
+//                pselect (numFds, &readFds, NULL, NULL, NULL, NULL);
+//
+//                int socket = (-1 != node->remote.socketTCP && FD_ISSET (node->remote.socketTCP, &readFds)
+//                              ? node->remote.socketTCP
+//                              : node->remote.socketUDP);
+//                //
+//                BREthereumMessage message = nodeRecv (node); // fd_set(), select() in nodeRecv()
+//
+//
+//                // If this is a P2P DISCONNECT message, then disconnect; otherwise ...
+//                if (messageHasIdentifiers (&message, MESSAGE_P2P, P2P_MESSAGE_DISCONNECT)) {
+//                    eth_log (LES_LOG_TOPIC, "Disconnected: %d\n", message.u.p2p.u.disconnect.reason);
+//                    node->state = NODE_STATE_DISCONNECTED;
+//                }
+//
+//                // ... if this is a P2P PING message, respond immediately; otherwise ...
+//                else if (messageHasIdentifiers (&message, MESSAGE_P2P, P2P_MESSAGE_PING)) {
+//                    BREthereumMessage pong = {
+//                        MESSAGE_P2P,
+//                        { .p2p = {
+//                            P2P_MESSAGE_PONG,
+//                            {}}}
+//                    };
+//                    nodeSend (node, pong);
+//                }
+//
+//                // ... if this is a DIS PING message, respond immediately; otherwise ...
+//                else if (messageHasIdentifiers (&message, MESSAGE_DIS, DIS_MESSAGE_PING)) {
+//                    // Send PONG so we are 'bonded' and ...
+//                    BREthereumMessage pong = {
+//                        MESSAGE_DIS,
+//                        { .dis = {
+//                            DIS_MESSAGE_PONG,
+//                            { .pong =
+//                                messageDISPongCreate (message.u.dis.u.ping.to,
+//                                                      message.u.dis.u.ping.hash,
+//                                                      time(NULL) + 1000000) },
+//                            node->local.key }}
+//                    };
+//                    nodeSend (node, pong);
+//
+//                    // ... can then send a 'findNodes'
+//                    BREthereumMessage findNodes = {
+//                        MESSAGE_DIS,
+//                        { .dis = {
+//                            DIS_MESSAGE_FIND_NEIGHBORS,
+//                            { .findNeighbors =
+//                                messageDISFindNeighborsCreate (node->remote.key,
+//                                                               time(NULL) + 1000000) },
+//                            node->local.key }}
+//                    };
+//                    nodeSend (node, findNodes);
+//                }
+//
+//                // .. if this is a DIS PONG message, respond immediately; otherwise ...
+//                else if (messageHasIdentifiers (&message, MESSAGE_DIS, DIS_MESSAGE_PONG)) {
+//                }
+//
+//                // ... handle the message
+//                else if (messageHasIdentifier(&message, MESSAGE_LES)) {
+//                    // if a les message, extends a 'reqId result' and then, if complete
+//                    // announce it.
+//                    if (node->callbackMessage)
+//                        node->callbackMessage (node->callbackContext,
+//                                               node,
+//                                               message.u.les);
+//                }
+//                break;
+//            }
+
+
+/**
+ * Send `message` on `route` to `node`.  There is a consistency constraint whereby the message
+ * identifier must be MESSAGE_DIS if and only if route is UDP.
+ *
+ * @param node
+ * @param route
+ * @param message
+ */
 extern void
 nodeSend (BREthereumLESNode node,
+          BREthereumLESNodeEndpointRoute route,
            BREthereumMessage message) {
+
+    assert ((NODE_ROUTE_UDP == route && MESSAGE_DIS == message.identifier) ||
+            (NODE_ROUTE_UDP != route && MESSAGE_DIS != message.identifier));
 
     BRRlpItem item = messageEncode (message, node->coder);
 
-    eth_log (LES_LOG_TOPIC, "Send: %s, %s",
+    eth_log (LES_LOG_TOPIC, "Send: [ %s, %15s ] => %s",
              messageGetIdentifierName (&message),
-             messageGetAnyIdentifierName(&message));
+             messageGetAnyIdentifierName (&message),
+             node->remote.hostname);
 
+    // Handle DIS messages specially.
     switch (message.identifier) {
         case MESSAGE_DIS: {
+            // Extract the `item` bytes w/o the RLP length prefix.  This ends up being
+            // simply the raw bytes.  We *know* the `item` is an RLP encoding of bytes; thus we
+            // use `rlpDecodeBytes` (rather than `rlpDecodeList`.  Then simply send them.
             BRRlpData data = rlpDecodeBytesSharedDontRelease (node->coder, item);
+
 #if defined (NEED_TO_PRINT_SEND_RECV_DATA)
-            eth_log (LES_LOG_TOPIC, "Size: Send: UDP: PayLoad: %zu", data.bytesCount);
+            eth_log (LES_LOG_TOPIC, "Size: Send: %s: PayLoad: %zu",
+                     nodeEndpointRouteGetName(route),
+                     data.bytesCount);
 #endif
-            nodeEndpointSendData (&node->remote, node->remote.socketUDP, data.bytes, data.bytesCount);
+            nodeEndpointSendData (&node->remote, route, data.bytes, data.bytesCount);
             break;
         }
         default: {
-            // If we just use rlpGetData() then we get the RLP data - which includes the length
-            // We don't want the length - don't ask me, ask LES/ETH...
+            // Extract the `items` bytes w/o the RLP length prefix.  We *know* the `item` is an
+            // RLP encoding of a list; thus we use `rlpDecodeList`.
             BRRlpData data = rlpDecodeListSharedDontRelease(node->coder, item);
 
             // Encrypt the length-less data
@@ -520,10 +642,11 @@ nodeSend (BREthereumLESNode node,
                               &encryptedData.bytes, &encryptedData.bytesCount);
 
 #if defined (NEED_TO_PRINT_SEND_RECV_DATA)
-            eth_log (LES_LOG_TOPIC, "Size: Send: TCP: PayLoad: %zu", encryptedData.bytesCount);
+            eth_log (LES_LOG_TOPIC, "Size: Send: %s: PayLoad: %zu",
+                     nodeEndpointRouteGetName(route),
+                     encryptedData.bytesCount);
 #endif
-            // Send it - which socket?
-            nodeEndpointSendData (&node->remote, node->remote.socketTCP, encryptedData.bytes, encryptedData.bytesCount);
+            nodeEndpointSendData (&node->remote, route, encryptedData.bytes, encryptedData.bytesCount);
             break;
         }
     }
@@ -552,24 +675,20 @@ extractIdentifier (uint8_t value,
     }
 }
 
-static BREthereumMessage // Any message
-nodeXRecv (BREthereumLESNode node, int socket) {
+extern BREthereumMessage
+nodeRecv (BREthereumLESNode node,
+          BREthereumLESNodeEndpointRoute route) {
     uint8_t *bytes = node->recvDataBuffer.bytes;
     size_t   bytesLimit = node->recvDataBuffer.bytesCount;
     size_t   bytesCount = 0;
 
     BREthereumMessage message;
 
-    // Faked...
-    BREthereumMessageIdentifier identifier = (socket == node->remote.socketUDP
-                                              ? MESSAGE_DIS
-                                              : MESSAGE_LES);
-
-    switch (identifier) {
-        case MESSAGE_DIS: {
+    switch (route) {
+        case NODE_ROUTE_UDP: {
             bytesCount = 1500;
 
-            assert (0 == nodeEndpointRecvData (&node->remote, node->remote.socketUDP, bytes, &bytesCount, 0));
+            assert (0 == nodeEndpointRecvData (&node->remote, route, bytes, &bytesCount, 0));
             //    assert (0 == nodeEndpointRecvData (&node->remote, NULL, bytes, bytesLimit));
 
             // Wrap at RLP Byte
@@ -582,7 +701,7 @@ nodeXRecv (BREthereumLESNode node, int socket) {
             break;
         }
 
-        default: {
+        case NODE_ROUTE_TCP: {
             size_t headerCount = 32;
 
             {
@@ -590,7 +709,7 @@ nodeXRecv (BREthereumLESNode node, int socket) {
                 uint8_t header[32];
                 memset(header, -1, 32);
 
-                assert (0 == nodeEndpointRecvData (&node->remote, node->remote.socketTCP, header, &headerCount, 1));
+                assert (0 == nodeEndpointRecvData (&node->remote, route, header, &headerCount, 1));
                 assert (ETHEREUM_BOOLEAN_IS_TRUE(frameCoderDecryptHeader(node->frameCoder, header, 32)));
                 headerCount = ((uint32_t)(header[2]) <<  0 |
                                (uint32_t)(header[1]) <<  8 |
@@ -616,7 +735,7 @@ nodeXRecv (BREthereumLESNode node, int socket) {
 #endif
             
             // get body/frame
-            assert (0 == nodeEndpointRecvData (&node->remote, node->remote.socketTCP, bytes, &bytesCount, 1));
+            assert (0 == nodeEndpointRecvData (&node->remote, route, bytes, &bytesCount, 1));
             frameCoderDecryptFrame(node->frameCoder, bytes, bytesCount);
 
             // ?? node->bodySize = headerCount; ??
@@ -648,9 +767,10 @@ nodeXRecv (BREthereumLESNode node, int socket) {
         }
     }
 
-    eth_log (LES_LOG_TOPIC, "Recv: %s, %s",
+    eth_log (LES_LOG_TOPIC, "Recv: [ %s, %15s ] <= %s",
              messageGetIdentifierName (&message),
-             messageGetAnyIdentifierName(&message));
+             messageGetAnyIdentifierName (&message),
+             node->remote.hostname);
 
 
     return message;

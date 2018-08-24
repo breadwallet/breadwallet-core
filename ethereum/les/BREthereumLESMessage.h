@@ -194,12 +194,12 @@ messageDISGetIdentifierName (BREthereumDISMessageIdentifier identifier);
  * to identify the sender and, most importantly, to identify peers.
  */
 typedef struct {
-    /** isIPV4 identies the `addr` type and is ascertained from the RLP encoding as 4 or 16 */
-    int isIPV4;
+    /** The AF (Address Family) domain - one of AF_INET or AF_INET6 */
+    int domain;
 
-    /** The IPV address - 4 bytes for ivp4; 16 bytes for ivp6 */
+    /** The IP address - 4 bytes for ivp4; 16 bytes for ivp6 */
     union {
-        uint8_t ipv4[4];
+        uint8_t ipv4[4];   // struct in_addr
         uint8_t ipv6[16];
     } addr;
 

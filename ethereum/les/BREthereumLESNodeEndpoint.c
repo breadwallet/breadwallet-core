@@ -42,52 +42,51 @@
 #define MSG_NOSIGNAL 0 // set to 0 if undefined (BSD has the SO_NOSIGPIPE sockopt, and windows has no signals at all)
 #endif
 
+// #define NEED_TO_PRINT_SEND_DATA
+// #define LES_LOG_RECV
+// #define LES_LOG_SEND
+
 #define CONNECTION_TIME 3.0
 
 /** Forward Declarations */
 static int
-openSocket (BREthereumLESNodeEndpoint *endpoint, int *socket, int domain, int type, double timeout, int *error);
+openSocket (BREthereumLESNodeEndpoint *endpoint, int *socket, int port, int domain, int type, double timeout);
 
 //
 // MARK: - LES Node Endpoint
 //
 extern BREthereumLESNodeEndpoint
-nodeEndpointCreateRaw (const char *address,
-                       uint16_t portUDP,
-                       uint16_t portTCP,
-                       BRKey key,
-                       BRKey ephemeralKey,
-                       UInt256 nonce) {
-    BREthereumLESNodeEndpoint endpoint = nodeEndpointCreate(address, portUDP, portTCP, key);
+nodeEndpointCreateDetailed (BREthereumDISEndpoint dis,
+                            BRKey key,
+                            BRKey ephemeralKey,
+                            UInt256 nonce) {
+    BREthereumLESNodeEndpoint endpoint;
+    memset (&endpoint, 0, sizeof (BREthereumLESNodeEndpoint));
+
+    endpoint.dis = dis;
+
+    for (int i = 0; i < NUMBER_OF_NODE_ROUTES; i++)
+        endpoint.sockets[i] = -1;
+
+    endpoint.timestamp = 0;
+
+    endpoint.key = key;
+    endpoint.nonce = UINT256_ZERO;
     endpoint.ephemeralKey = ephemeralKey;
-    endpoint.nonce = nonce;
+
+    inet_ntop (dis.domain, (void *) &dis.addr, endpoint.hostname, _POSIX_HOST_NAME_MAX + 1);
 
     return endpoint;
 }
 
 extern BREthereumLESNodeEndpoint
-nodeEndpointCreate (const char *address,
-                    uint16_t portUDP,
-                    uint16_t portTCP,
+nodeEndpointCreate (BREthereumDISEndpoint dis,
                     BRKey key) {
-    BREthereumLESNodeEndpoint endpoint;
-    memset (&endpoint, 0, sizeof (BREthereumLESNodeEndpoint));
+    UInt256 nonce = UINT256_ZERO;
+    BRKey ephemeralKey;
+    BRKeyClean(&ephemeralKey);
 
-    endpoint.addr_family = AF_INET; // ??
-    strncpy (endpoint.hostname, address, MAX_HOST_NAME);
-    endpoint.isIPV4Address = 1;
-
-    endpoint.portUDP = portUDP;
-    endpoint.socketUDP = -1;
-
-    endpoint.portTCP = portTCP;
-    endpoint.socketTCP = -1;
-
-    endpoint.key = key;
-    endpoint.nonce = UINT256_ZERO;
-    BRKeyClean(&endpoint.ephemeralKey);
-
-    return endpoint;
+    return nodeEndpointCreateDetailed (dis, key, ephemeralKey, nonce);
 }
 
 extern BRKey
@@ -107,84 +106,63 @@ nodeEndpointSetStatus (BREthereumLESNodeEndpoint *endpoint,
     endpoint->status = status;
 }
 
-extern void
-nodeEndpointOpen (BREthereumLESNodeEndpoint *endpoint) {
-    int error = 0;
-
-    if (endpoint->portTCP) assert (openSocket(endpoint, &endpoint->socketTCP, PF_INET, SOCK_STREAM, CONNECTION_TIME, &error));
-    if (endpoint->portUDP) assert (openSocket(endpoint, &endpoint->socketUDP, PF_INET, SOCK_DGRAM,  CONNECTION_TIME, &error));
+extern int // errno
+nodeEndpointOpen (BREthereumLESNodeEndpoint *endpoint,
+                  BREthereumLESNodeEndpointRoute route) {
+    if (nodeEndpointIsOpen (endpoint, route)) return 0;
+    
+    return openSocket (endpoint,
+                       &endpoint->sockets[route],
+                       (route == NODE_ROUTE_TCP ? endpoint->dis.portTCP : endpoint->dis.portUDP),
+                       endpoint->dis.domain,
+                       (route == NODE_ROUTE_TCP ? SOCK_STREAM : SOCK_DGRAM),
+                       CONNECTION_TIME);
 }
 
-extern void
-nodeEndpointClose (BREthereumLESNodeEndpoint *endpoint) {
+extern int
+nodeEndpointClose (BREthereumLESNodeEndpoint *endpoint,
+                   BREthereumLESNodeEndpointRoute route) {
     int socket;
 
-    // Close the TCP socket.
-    socket = endpoint->socketTCP;
+    socket = endpoint->sockets[route];
     if (socket >= 0) {
-        endpoint->socketTCP = -1;
-        if (shutdown (socket, SHUT_RDWR) < 0){
-            eth_log (LES_LOG_TOPIC, "Socket TCP Shutdown Error: %s", strerror(errno));
+        endpoint->sockets[route] = -1;
+
+        if (shutdown (socket, SHUT_RDWR) < 0) {
+            eth_log (LES_LOG_TOPIC, "Socket %d (%s) Shutdown Error: %s", socket,
+                     nodeEndpointRouteGetName (route),
+                     strerror(errno));
+            return errno;
         }
-        close (socket);
-    }
-
-    // Close the UDP socket
-    socket = endpoint->socketUDP;
-    if (socket >= 0) {
-        endpoint->socketUDP = -1;
-        if (shutdown (socket, SHUT_RDWR) < 0){
-            eth_log (LES_LOG_TOPIC, "Socket UDP Shutdown Error: %s", strerror(errno));
+        if (close (socket) < 0) {
+            eth_log (LES_LOG_TOPIC, "Socket %d (%s) Close Error: %s", socket,
+                     nodeEndpointRouteGetName (route),
+                     strerror(errno));
+            return errno;
         }
-        close (socket);
     }
+    return 0;
 }
 
 extern int
-nodeEndpointIsOpen (BREthereumLESNodeEndpoint *endpoint) {
-    return -1 != endpoint->socketTCP || -1 != endpoint->socketUDP;
-}
-
-extern int
-nodeEndpointHasRecvDataAvailable (BREthereumLESNodeEndpoint *endpoint,
-                                  fd_set *readFds) {
-    return (NULL == readFds ||
-            FD_ISSET (endpoint->socketTCP, readFds) ||
-            FD_ISSET (endpoint->socketUDP, readFds));
-}
-
-extern void 
-nodeEndpointSetRecvDataAvailableFDS (BREthereumLESNodeEndpoint *endpoint,
-                                     fd_set *readFds) {
-    FD_SET (endpoint->socketTCP, readFds);
-    FD_SET (endpoint->socketUDP, readFds);
-}
-
-extern void
-nodeEndpointClrRecvDataAvailableFDS (BREthereumLESNodeEndpoint *endpoint,
-                                     fd_set *readFds) {
-    FD_CLR (endpoint->socketTCP, readFds);
-    FD_CLR (endpoint->socketUDP, readFds);
-}
-
-extern int
-nodeEndpointGetRecvDataAvailableFDSNum (BREthereumLESNodeEndpoint *endpoint) {
-    return 1 + (endpoint->socketTCP > endpoint->socketUDP
-                ? endpoint->socketTCP
-                : endpoint->socketUDP);
+nodeEndpointIsOpen (BREthereumLESNodeEndpoint *endpoint,
+                    BREthereumLESNodeEndpointRoute route) {
+    return -1 != endpoint->sockets[route];
 }
 
 /// MARK: - Recv Data
 
 extern int
 nodeEndpointRecvData (BREthereumLESNodeEndpoint *endpoint,
-                            int socket,
-                            uint8_t *bytes,
-                            size_t *bytesCount,
-                            int needBytesCount) {
+                      BREthereumLESNodeEndpointRoute route,
+                      uint8_t *bytes,
+                      size_t *bytesCount,
+                      int needBytesCount) {
 
     ssize_t totalCount = 0;
     int error = 0;
+
+    int socket = endpoint->sockets[route];
 
     if (socket < 0) error = ENOTCONN;
 
@@ -197,15 +175,20 @@ nodeEndpointRecvData (BREthereumLESNodeEndpoint *endpoint,
             if (!needBytesCount) break;
         }
 
-        socket = endpoint->socketTCP;
+        socket = endpoint->sockets[route];
     }
 
     if (error)
-        eth_log(LES_LOG_TOPIC, "[READ (TCP) FROM PEER ERROR]:%s", strerror(error));
+        eth_log (LES_LOG_TOPIC, "Recv: %s %zu bytes <= %s Error: %s",
+                 (route == NODE_ROUTE_TCP ? "TCP" : "UDP"),
+                 *bytesCount,
+                 endpoint->hostname,
+                 strerror(error));
     else {
+        // !! DON'T MISS THIS !!
         *bytesCount = totalCount;
 #if defined (LES_LOG_RECV)
-        eth_log(LES_LOG_TOPIC, "read (%zu bytes) from peer [%s], contents: %s", len, endpoint->hostname, "?");
+        eth_log (LES_LOG_TOPIC, "read (%zu bytes) from peer [%s], contents: %s", len, endpoint->hostname, "?");
 #endif
     }
 
@@ -216,15 +199,15 @@ nodeEndpointRecvData (BREthereumLESNodeEndpoint *endpoint,
 
 extern int
 nodeEndpointSendData (BREthereumLESNodeEndpoint *endpoint,
-                      int socket,
+                      BREthereumLESNodeEndpointRoute route,
                       uint8_t *bytes,
                       size_t bytesCount) {
-
-    ssize_t n = 0;
     int error = 0;
-    size_t offset = 0;
+    size_t totalCount = 0;
 
-#if defined (NEED_TO_PRINT_UDP_SEND_DATA)
+    int socket = endpoint->sockets[route];
+
+#if defined (NEED_TO_PRINT_SEND_DATA)
     {
         char hex[1 + 2 * bytesCount];
         encodeHex(hex, 1 + 2 * bytesCount, bytes, bytesCount);
@@ -234,18 +217,23 @@ nodeEndpointSendData (BREthereumLESNodeEndpoint *endpoint,
 
     if (socket < 0) error = ENOTCONN;
 
-    while (socket >= 0 && !error && offset <  bytesCount) {
-        n = send (socket, &bytes[offset], bytesCount - offset, MSG_NOSIGNAL);
-        if (n >= 0) offset += n;
+    while (socket >= 0 && !error && totalCount < bytesCount) {
+        ssize_t n = send (socket, &bytes[totalCount], bytesCount - totalCount, MSG_NOSIGNAL);
+        if (n >= 0) totalCount += n;
         if (n < 0 && errno != EWOULDBLOCK) error = errno;
 
+        socket = endpoint->sockets[route];
     }
 
     if (error)
-        eth_log(LES_LOG_TOPIC, "[WRITE TO PEER ERROR]:%s", strerror(error));
+        eth_log (LES_LOG_TOPIC, "Send: %s %zu bytes => %s Error: %s",
+                 (route == NODE_ROUTE_TCP ? "TCP" : "UDP"),
+                 bytesCount,
+                 endpoint->hostname,
+                 strerror(error));
     else {
 #if defined (LES_LOG_SEND)
-        eth_log(LES_LOG_TOPIC, "sent (%zu bytes) to peer[%s], contents: %s", offset, endpoint->hostname, "?");
+        eth_log (LES_LOG_TOPIC, "sent (%zu bytes) to peer[%s], contents: %s", totalCount, endpoint->hostname, "?");
 #endif
     }
 
@@ -256,13 +244,58 @@ nodeEndpointSendData (BREthereumLESNodeEndpoint *endpoint,
 // http://www.microhowto.info/howto/listen_for_and_receive_udp_datagrams_in_c.html
 
 
+static void
+nodeEndpointFillSockAddr (BREthereumLESNodeEndpoint *endpoint,
+                          int port,
+                          struct sockaddr_storage *addr,
+                          socklen_t *addrLen) {
+    // Clear addr
+    memset(addr, 0, sizeof(struct sockaddr_storage));
+
+    switch (endpoint->dis.domain) {
+        case AF_INET: {
+            struct sockaddr_in *addr_in4 = (struct sockaddr_in *) addr;
+
+            addr_in4->sin_family = AF_INET;
+            addr_in4->sin_port = htons(port);
+            addr_in4->sin_addr = * (struct in_addr *) endpoint->dis.addr.ipv4;
+
+            *addrLen = sizeof (struct sockaddr_in);
+            break;
+        }
+        case AF_INET6: {
+            struct sockaddr_in6 *addr_in6 = (struct sockaddr_in6 *) addr;
+
+            addr_in6->sin6_family = AF_INET6;
+            addr_in6->sin6_port = htons(port);
+            addr_in6->sin6_addr = * (struct in6_addr *) endpoint->dis.addr.ipv6;
+
+            *addrLen = sizeof (struct sockaddr_in6);
+            break;
+        }
+        default:
+            assert (0);
+    }
+}
+
+static int
+openSocketReportResult (BREthereumLESNodeEndpoint *endpoint, int port, int type, int error) {
+    eth_log (LES_LOG_TOPIC, "Open: %s @ %d => %s %s%s",
+             (type == SOCK_STREAM ? "TCP" : "UDP"),
+             port,
+             endpoint->hostname,
+             (0 == error ? "Success " : "Error: "),
+             (0 == error ? "" : strerror(error)));
+    return error;
+}
+
 /**
  * Note: This function is a direct copy of Aaron's _BRPeerOpenSocket function with a few modifications to
  * work for the Ethereum Core.
  * TODO: May want to make this more modular to work for both etheruem and bitcoin
  */
 static int
-openSocket(BREthereumLESNodeEndpoint *endpoint, int *socketToAssign, int domain, int type, double timeout, int *error)
+openSocket(BREthereumLESNodeEndpoint *endpoint, int *socketToAssign, int port, int domain, int type, double timeout)
 {
     struct sockaddr_storage addr;
     struct timeval tv;
@@ -270,81 +303,56 @@ openSocket(BREthereumLESNodeEndpoint *endpoint, int *socketToAssign, int domain,
     socklen_t addrLen, optLen;
     int count, arg = 0, err = 0, on = 1, r = 1;
 
-    *socketToAssign = socket(domain, type, 0);
+    *socketToAssign = socket (domain, type, 0);
 
-    if (*socketToAssign < 0) {
-        err = errno;
-        r = 0;
-    }
-    else {
-        tv.tv_sec = 10; // one second timeout for send/receive, so thread doesn't block for too long
-        tv.tv_usec = 0;
-        setsockopt(*socketToAssign, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-        setsockopt(*socketToAssign, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
-        setsockopt(*socketToAssign, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on));
+    if (*socketToAssign < 0) return openSocketReportResult (endpoint, port, type, errno);
+
+    tv.tv_sec = 10; // one second timeout for send/receive, so thread doesn't block for too long
+    tv.tv_usec = 0;
+    setsockopt(*socketToAssign, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    setsockopt(*socketToAssign, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+    setsockopt(*socketToAssign, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof(on));
 #ifdef SO_NOSIGPIPE // BSD based systems have a SO_NOSIGPIPE socket option to supress SIGPIPE signals
-        setsockopt(*socketToAssign, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
+    setsockopt(*socketToAssign, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
 #endif
-        arg = fcntl(*socketToAssign, F_GETFL, NULL);
-        if (arg < 0 || fcntl(*socketToAssign, F_SETFL, arg | O_NONBLOCK) < 0) r = 0; // temporarily set socket non-blocking
-        if (! r) err = errno;
+
+    // Set the socket non-blocking (temporarily).
+    arg = fcntl(*socketToAssign, F_GETFL, NULL);
+    if (arg < 0 || fcntl(*socketToAssign, F_SETFL, arg | O_NONBLOCK) < 0)
+        return openSocketReportResult (endpoint, port, type, errno);
+
+    // Fill `addr` with the remote endpoint
+    nodeEndpointFillSockAddr(endpoint, port, &addr, &addrLen);
+
+    // Attempt to connect; if success, we are done
+    if (0 == connect (*socketToAssign, (struct sockaddr *)&addr, addrLen) < 0) {
+        fcntl (*socketToAssign, F_SETFL, arg); // restore socket non-blocking status
+        return openSocketReportResult (endpoint, port, type, 0);
     }
 
-    if (r) {
-        memset(&addr, 0, sizeof(addr));
-        uint16_t port = endpoint->portTCP; // endpointGetTCP(node->peer.endpoint);
-        const char* address = endpoint->hostname; // endpointGetHost(node->peer.endpoint);
+    // If EINPROGRESS, wait until good to go and try again
+    if (errno == EINPROGRESS) {
+        err = 0;
+        optLen = sizeof(err);
+        tv.tv_sec = timeout;
+        tv.tv_usec = (long)(timeout*1000000) % 1000000;
+        FD_ZERO(&fds);
+        FD_SET(*socketToAssign, &fds);
+        count = select (*socketToAssign + 1, NULL, &fds, NULL, &tv);
 
-        if (domain == PF_INET6) {
-            struct sockaddr_in6 * addr_in6 = ((struct sockaddr_in6 *)&addr);
-            addr_in6->sin6_family = AF_INET6;
-            inet_pton(AF_INET6, address, &(addr_in6->sin6_addr));
-            addr_in6->sin6_port = htons(port);
-            addrLen = sizeof(struct sockaddr_in6);
-        }
-        else {
-            struct sockaddr_in* addr_in4 = ((struct sockaddr_in *)&addr);
-            addr_in4->sin_family = AF_INET;
-            inet_pton(AF_INET, address, &(addr_in4->sin_addr));
-            addr_in4->sin_port = htons(port);
-            addrLen = sizeof(struct sockaddr_in);
-        }
-        if (connect(*socketToAssign, (struct sockaddr *)&addr, addrLen) < 0) {
-            err = errno;
+        if (count <= 0 || getsockopt (*socketToAssign, SOL_SOCKET, SO_ERROR, &err, &optLen) < 0 || err) {
+            if (count == 0) err = ETIMEDOUT;
+            if (count < 0 || ! err) err = errno;
+            r = 0;
         }
 
-        if (err == EINPROGRESS) {
-            err = 0;
-            optLen = sizeof(err);
-            tv.tv_sec = timeout;
-            tv.tv_usec = (long)(timeout*1000000) % 1000000;
-            FD_ZERO(&fds);
-            FD_SET(*socketToAssign, &fds);
-            count = select(*socketToAssign + 1, NULL, &fds, NULL, &tv);
-
-            if (count <= 0 || getsockopt(*socketToAssign, SOL_SOCKET, SO_ERROR, &err, &optLen) < 0 || err) {
-                if (count == 0) err = ETIMEDOUT;
-                if (count < 0 || ! err) err = errno;
-                r = 0;
-            }
-        }
-        else if (err && domain == PF_INET && endpoint->isIPV4Address) {
-            if (*socketToAssign >= 0) { close (*socketToAssign); *socketToAssign = -1; }
-            return openSocket(endpoint, socketToAssign, PF_INET6, type, timeout, error); // fallback to IPv4
-        }
-        else if (err) r = 0;
-
-        if (r) {
-            eth_log(LES_LOG_TOPIC,"%s","ethereum socket TCP connected");
-        }
-        fcntl(*socketToAssign, F_SETFL, arg); // restore socket non-blocking status
+        fcntl (*socketToAssign, F_SETFL, arg);
+        return openSocketReportResult (endpoint, port, type, err);
     }
 
-    if (! r && err) {
-        eth_log( LES_LOG_TOPIC, "ethereum connect TCP error: %s", strerror(err));
-    }
-    if (error && err) *error = err;
-    return r;
+    // We've failed
+    fcntl (*socketToAssign, F_SETFL, arg);
+    return openSocketReportResult (endpoint, port, type, errno);
 }
 
 #if 0
