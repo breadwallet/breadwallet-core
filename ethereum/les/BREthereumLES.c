@@ -1136,23 +1136,9 @@ lesHandleTimeout (BREthereumLES les) {
     if (!nodeIsConnected(les->preferredLESNode, NODE_ROUTE_TCP))
         nodeConnect(les->preferredLESNode, NODE_ROUTE_TCP);
 
-    static int needFindNeighbors = 0;
-
     // If we don't have enough nodes, discover some
     BREthereumLESNode node = les->preferredDISNode;
-    if (0 == needFindNeighbors++ % 5 && nodeIsConnected(node, NODE_ROUTE_UDP)) {
-
-//        BREthereumMessage message = (BREthereumMessage) {
-//            MESSAGE_DIS,
-//            { .dis = {
-//                DIS_MESSAGE_PING,
-//                { .ping = messageDISPingCreate (endpointDISCreate(nodeGetLocalEndpoint(node)),
-//                                                endpointDISCreate(nodeGetRemoteEndpoint(node)),
-//                                                time(NULL) + 1000000) },
-//                nodeGetLocalEndpoint(node)->key }}
-//        };
-//        nodeSend (node, message);
-
+    if (array_count(les->nodes) < 10 && nodeIsConnected(node, NODE_ROUTE_UDP)) {
         BREthereumMessage findNodes = {
             MESSAGE_DIS,
             { .dis = {
@@ -1223,7 +1209,9 @@ lesThread (BREthereumLES les) {
             updateDesciptors = 0;
         }
 
+        pthread_mutex_unlock (&les->lock);
         int selectCount = pselect (1 + maximumDescriptor, &readDescriptors, NULL, NULL, &timeout, NULL);
+        pthread_mutex_lock (&les->lock);
 
         // We have a node ready to process ...
         if (selectCount > 0) {

@@ -33,6 +33,7 @@
 #include "BREthereumLESNode.h"
 #include "BREthereumLESFrameCoder.h"
 
+// #define NEED_TO_PRINT_SEND_RECV_DATA
 #define PTHREAD_STACK_SIZE (512 * 1024)
 #define PTHREAD_NULL   ((pthread_t) NULL)
 
@@ -72,13 +73,13 @@ static void _readAuthFromInitiator(BREthereumLESNode node);
 static void _sendAuthAckToInitiator(BREthereumLESNode node);
 static void _readAuthAckFromRecipient(BREthereumLESNode node);
 
-static void
-sleepForSure (unsigned int seconds, int print) {
-    while (seconds > 0) {
-        if (print) printf ("***\n*** SLEEPING: %d\n", seconds);
-        seconds = sleep(seconds);
-    }
-}
+//static void
+//sleepForSure (unsigned int seconds, int print) {
+//    while (seconds > 0) {
+//        if (print) printf ("***\n*** SLEEPING: %d\n", seconds);
+//        seconds = sleep(seconds);
+//    }
+//}
 
 typedef enum  {
     NODE_STATE_DISCONNECTED,
@@ -102,9 +103,7 @@ typedef enum  {
 typedef enum {
     NODE_TYPE_GETH,
     NODE_TYPE_PARITY
-} BREthereumLESNodeType; // Identifiery
-
-// LESNodeTypeSpec  -> limited
+} BREthereumLESNodeType;
 
 //
 // MARK: - LES Node
@@ -117,14 +116,11 @@ struct BREthereumLESNodeRecord {
     BREthereumLESNodeEndpoint remote;
     BREthereumLESNodeEndpoint local;
 
-    // socket
-
     // Message Limits (e.g. 192 header, 32 account state)
 
     uint64_t requestId;
     uint64_t messageIdOffset;
     uint64_t credits;
-
 
     // Pending Request/Response
 
@@ -280,22 +276,32 @@ nodeIsConnected (BREthereumLESNode node,
 }
 
 extern int
+nodeIsConnecting (BREthereumLESNode node,
+                  BREthereumLESNodeEndpointRoute route) {
+    return (NODE_STATE_DISCONNECTED != node->states[route] &&
+            NODE_STATE_CONNECTED    != node->states[route]);
+}
+
+static int maximum (int x, int y) { return x > y ? x : y; }
+
+extern int
 nodeUpdateDescriptors (BREthereumLESNode node,
                        fd_set *read,
                        fd_set *write) {
     if (nodeIsConnected (node, NODE_ROUTE_TCP)) {
-        if (NULL != read)  FD_SET (node->remote.socketTCP, read);
-        if (NULL != write) FD_SET (node->remote.socketTCP, write);
+        int socket = node->remote.sockets[NODE_ROUTE_TCP];
+        if (socket != -1 && NULL != read)  FD_SET (socket, read);
+        if (socket != -1 && NULL != write) FD_SET (socket, write);
     }
 
     if (nodeIsConnected (node, NODE_ROUTE_UDP)) {
-        if (NULL != read)  FD_SET (node->remote.socketUDP, read);
-        if (NULL != write) FD_SET (node->remote.socketUDP, write);
+        int socket = node->remote.sockets[NODE_ROUTE_UDP];
+        if (socket != -1 && NULL != read)  FD_SET (socket, read);
+        if (socket != -1 && NULL != write) FD_SET (socket, write);
     }
 
-    return (node->remote.socketTCP > node->remote.socketUDP
-            ? node->remote.socketTCP
-            : node->remote.socketUDP);
+    return maximum (node->remote.sockets[NODE_ROUTE_TCP],
+                    node->remote.sockets[NODE_ROUTE_UDP]);
 }
 
 extern int
@@ -304,23 +310,8 @@ nodeCanProcess (BREthereumLESNode node,
                 fd_set *descriptors) {
     return (nodeIsConnected (node, route) &&
             NULL != descriptors &&
-            FD_ISSET ((NODE_ROUTE_TCP == route ? node->remote.socketTCP : node->remote.socketUDP),
-                      descriptors));
+            FD_ISSET (node->remote.sockets[route], descriptors));
 }
-
-#if 0
-static void
-nodeHandleP2PMessage (BREthereumLESNode node) {}
-
-static void
-nodeHandleETHMessage (BREthereumLESNode node) {}
-static void
-nodeHandleLESMessage (BREthereumLESNode node) {}
-
-static void
-nodeHandleDISMessage (BREthereumLESNode node) {}
-#endif
-
 
 static void *
 nodeFailed (BREthereumLESNode node) {
@@ -438,7 +429,7 @@ nodeThreadConnectTCP (BREthereumLESNode node) {
     node->states[NODE_ROUTE_TCP] = NODE_STATE_AUTH;
 
     _sendAuthInitiator(node);
-    eth_log (LES_LOG_TOPIC, "Send: WIP, Auth%s", "");
+    eth_log (LES_LOG_TOPIC, "Send: [ WIP, %15s ] => %s", "Auth",    node->remote.hostname);
     nodeEndpointSendData (&node->remote, NODE_ROUTE_TCP, node->authBufCipher, authCipherBufLen); //  "auth initiator");
 
     //
@@ -447,7 +438,7 @@ nodeThreadConnectTCP (BREthereumLESNode node) {
     node->states[NODE_ROUTE_TCP] = NODE_STATE_AUTH_ACK;
     size_t ackCipherBufCount = ackCipherBufLen;
     nodeEndpointRecvData (&node->remote, NODE_ROUTE_TCP, node->ackBufCipher, &ackCipherBufCount, 1); // "auth ack from receivier"
-    eth_log (LES_LOG_TOPIC, "Recv: WIP, Auth Ack%s", "");
+    eth_log (LES_LOG_TOPIC, "Recv: [ WIP, %15s ] <= %s", "Auth Ack",    node->remote.hostname);
     assert (ackCipherBufCount == ackCipherBufLen);
 
     _readAuthAckFromRecipient (node);
@@ -599,29 +590,49 @@ nodeThreadConnectTCP (BREthereumLESNode node) {
 //                break;
 //            }
 
+
+/**
+ * Send `message` on `route` to `node`.  There is a consistency constraint whereby the message
+ * identifier must be MESSAGE_DIS if and only if route is UDP.
+ *
+ * @param node
+ * @param route
+ * @param message
+ */
 extern void
 nodeSend (BREthereumLESNode node,
           BREthereumLESNodeEndpointRoute route,
            BREthereumMessage message) {
 
+    assert ((NODE_ROUTE_UDP == route && MESSAGE_DIS == message.identifier) ||
+            (NODE_ROUTE_UDP != route && MESSAGE_DIS != message.identifier));
+
     BRRlpItem item = messageEncode (message, node->coder);
 
-    eth_log (LES_LOG_TOPIC, "Send: %s, %s",
+    eth_log (LES_LOG_TOPIC, "Send: [ %s, %15s ] => %s",
              messageGetIdentifierName (&message),
-             messageGetAnyIdentifierName(&message));
+             messageGetAnyIdentifierName (&message),
+             node->remote.hostname);
 
+    // Handle DIS messages specially.
     switch (message.identifier) {
         case MESSAGE_DIS: {
+            // Extract the `item` bytes w/o the RLP length prefix.  This ends up being
+            // simply the raw bytes.  We *know* the `item` is an RLP encoding of bytes; thus we
+            // use `rlpDecodeBytes` (rather than `rlpDecodeList`.  Then simply send them.
             BRRlpData data = rlpDecodeBytesSharedDontRelease (node->coder, item);
+
 #if defined (NEED_TO_PRINT_SEND_RECV_DATA)
-            eth_log (LES_LOG_TOPIC, "Size: Send: UDP: PayLoad: %zu", data.bytesCount);
+            eth_log (LES_LOG_TOPIC, "Size: Send: %s: PayLoad: %zu",
+                     nodeEndpointRouteGetName(route),
+                     data.bytesCount);
 #endif
             nodeEndpointSendData (&node->remote, route, data.bytes, data.bytesCount);
             break;
         }
         default: {
-            // If we just use rlpGetData() then we get the RLP data - which includes the length
-            // We don't want the length - don't ask me, ask LES/ETH...
+            // Extract the `items` bytes w/o the RLP length prefix.  We *know* the `item` is an
+            // RLP encoding of a list; thus we use `rlpDecodeList`.
             BRRlpData data = rlpDecodeListSharedDontRelease(node->coder, item);
 
             // Encrypt the length-less data
@@ -631,9 +642,10 @@ nodeSend (BREthereumLESNode node,
                               &encryptedData.bytes, &encryptedData.bytesCount);
 
 #if defined (NEED_TO_PRINT_SEND_RECV_DATA)
-            eth_log (LES_LOG_TOPIC, "Size: Send: TCP: PayLoad: %zu", encryptedData.bytesCount);
+            eth_log (LES_LOG_TOPIC, "Size: Send: %s: PayLoad: %zu",
+                     nodeEndpointRouteGetName(route),
+                     encryptedData.bytesCount);
 #endif
-            // Send it - which socket?
             nodeEndpointSendData (&node->remote, route, encryptedData.bytes, encryptedData.bytesCount);
             break;
         }
@@ -663,7 +675,7 @@ extractIdentifier (uint8_t value,
     }
 }
 
-extern BREthereumMessage // Any message
+extern BREthereumMessage
 nodeRecv (BREthereumLESNode node,
           BREthereumLESNodeEndpointRoute route) {
     uint8_t *bytes = node->recvDataBuffer.bytes;
@@ -671,11 +683,6 @@ nodeRecv (BREthereumLESNode node,
     size_t   bytesCount = 0;
 
     BREthereumMessage message;
-
-    // Faked...
-//    BREthereumMessageIdentifier identifier = (SOCK_DGRAM == node->remote.type
-//                                              ? MESSAGE_DIS
-//                                              : MESSAGE_LES);
 
     switch (route) {
         case NODE_ROUTE_UDP: {
@@ -760,9 +767,10 @@ nodeRecv (BREthereumLESNode node,
         }
     }
 
-    eth_log (LES_LOG_TOPIC, "Recv: %s, %s",
+    eth_log (LES_LOG_TOPIC, "Recv: [ %s, %15s ] <= %s",
              messageGetIdentifierName (&message),
-             messageGetAnyIdentifierName(&message));
+             messageGetAnyIdentifierName (&message),
+             node->remote.hostname);
 
 
     return message;

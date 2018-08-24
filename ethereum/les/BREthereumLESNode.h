@@ -86,6 +86,10 @@ nodeIsConnected (BREthereumLESNode node,
                  BREthereumLESNodeEndpointRoute route);
 
 extern int
+nodeIsConnecting (BREthereumLESNode node,
+                  BREthereumLESNodeEndpointRoute route);
+
+extern int
 nodeUpdateDescriptors (BREthereumLESNode node,
                        fd_set *read,
                        fd_set *write);

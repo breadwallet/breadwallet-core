@@ -42,6 +42,11 @@ typedef enum {
 
 #define NUMBER_OF_NODE_ROUTES  (1 + NODE_ROUTE_TCP)
 
+static inline const char *
+nodeEndpointRouteGetName (BREthereumLESNodeEndpointRoute route) {
+    return (NODE_ROUTE_TCP == route ? "TCP" : "UDP");
+}
+
 //
 // Endpoint
 //
@@ -53,8 +58,7 @@ typedef struct {
      BREthereumDISEndpoint dis;
 
      /** The socket - will be -1 if not connected */
-    int socketUDP;
-    int socketTCP;
+    int sockets[NUMBER_OF_NODE_ROUTES];
 
     /** */
     uint64_t timestamp;
