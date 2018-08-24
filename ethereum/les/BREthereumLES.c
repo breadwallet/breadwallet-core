@@ -61,100 +61,119 @@ lesThread (BREthereumLES les);
 #define LES_PTHREAD_STACK_SIZE (512 * 1024)
 #define LES_PTHREAD_NULL   ((pthread_t) NULL)
 
+#define DEFAULT_UDPPORT     (30303)
+#define DEFAULT_TCPPORT     (30303)
+
 #define LES_LOCAL_ENDPOINT_ADDRESS    "1.1.1.1"
-#define LES_LOCAL_ENDPOINT_TCP_PORT   30303
-#define LES_LOCAL_ENDPOINT_UDP_PORT   30303
+#define LES_LOCAL_ENDPOINT_TCP_PORT   DEFAULT_TCPPORT
+#define LES_LOCAL_ENDPOINT_UDP_PORT   DEFAULT_UDPPORT
 #define LES_LOCAL_ENDPOINT_NAME       "BRD Light Client"
 
 #define FOR_NODES_INDEX( les, index) \
   for (size_t index = 0; index < array_count ((les)->nodes); index++)
 
-#define DEFAULT_UDPPORT     (30303)
-#define DEFAULT_TCPPORT     (30303)
 
-struct BREtheremLESNodeEndpointSpec {
+typedef struct BREtheremLESNodeEndpointSpec {
     const char *address;
-    uint16_t port;
+    uint16_t portUDP;
+    uint16_t portTCP;
     int domain;
-    int type;
     const char *nodeId;
-} bootstrapNodeEndpointSpecs[] = {
+} BREtheremLESNodeEndpointSpec;
+
+BREtheremLESNodeEndpointSpec localNodeEndpointSpec = {
+    LES_LOCAL_ENDPOINT_ADDRESS,
+    LES_LOCAL_ENDPOINT_UDP_PORT,
+    LES_LOCAL_ENDPOINT_TCP_PORT,
+    AF_INET,
+    NULL
+};
+
+BREtheremLESNodeEndpointSpec bootstrapNodeEndpointSpecs[] = {
     {   // BRD #1 - DIS
         "104.197.99.24",
         DEFAULT_UDPPORT,
-        AF_INET,
-        SOCK_DGRAM,
-        "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851"
-    },
-
-    {   // BRD #1 - P2P
-        "104.197.99.24",
         DEFAULT_TCPPORT,
         AF_INET,
-        SOCK_STREAM,
         "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851"
     },
 
     {   // EBG #1 - DIS
         "127.0.0.1",
         DEFAULT_UDPPORT,
-        AF_INET,
-        SOCK_DGRAM,
-        "a40437d2f44ae655387009d1d69ba9fd07b748b7a6ecfc958c135008a34c0497466db35049c36c8296590b4bcf9b9058f9fa2a688a2c6566654b1f1dc42417e4"
-    },
-
-    {   // EBG #1 - P2P
-        "127.0.0.1",
         DEFAULT_TCPPORT,
         AF_INET,
-        SOCK_STREAM,
         "a40437d2f44ae655387009d1d69ba9fd07b748b7a6ecfc958c135008a34c0497466db35049c36c8296590b4bcf9b9058f9fa2a688a2c6566654b1f1dc42417e4"
     },
-
 
     {   // BRD #2 - DIS
         "35.226.238.26",
         DEFAULT_UDPPORT,
+        DEFAULT_TCPPORT,
         AF_INET,
-        SOCK_DGRAM,
         "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851"
     },
 
     {   // BRD #2 - P2P
         "35.226.238.26",
+        DEFAULT_UDPPORT,
         DEFAULT_TCPPORT,
         AF_INET,
-        SOCK_STREAM,
         "e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851"
     },
 
     {   // Public GETH
         "109.232.77.21",
         DEFAULT_UDPPORT,
+        DEFAULT_UDPPORT,
         AF_INET,
-        SOCK_DGRAM,
         "3e9301c797f3863d7d0f29eec9a416f13956bd3a14eec7e0cf5eb56942841526269209edf6f57cd1315bef60c4ebbe3476bc5457bed4e479cac844c8c9e375d3"
     },
 
     {   // Public Parity
         "193.70.55.37",
         DEFAULT_UDPPORT,
+        DEFAULT_UDPPORT,
         AF_INET,
-        SOCK_DGRAM,
         "81863f47e9bd652585d3f78b4b2ee07b93dad603fd9bc3c293e1244250725998adc88da0cef48f1de89b15ab92b15db8f43dc2b6fb8fbd86a6f217a1dd886701"
     }
 };
 #define NUMBER_OF_NODE_ENDPOINT_SPECS   (sizeof (bootstrapNodeEndpointSpecs) / sizeof (struct BREtheremLESNodeEndpointSpec))
 
 static BREthereumLESNodeEndpoint
-nodeEndpointCreateFromSpec (struct BREtheremLESNodeEndpointSpec *spec) {
-    // Remote Endpoint
-    BRKey key;
-    key.pubKey[0] = 0x04;
-    key.compressed = 0;
-    decodeHex(&key.pubKey[1], 64, spec->nodeId, 128);
+nodeEndpointCreateFromSpec (struct BREtheremLESNodeEndpointSpec *spec,
+                            BREthereumLESRandomContext randomContext) {
+    BREthereumDISEndpoint dis;
+    memset (&dis, 0, sizeof (BREthereumDISEndpoint));
 
-    return nodeEndpointCreate (spec->address, spec->port, spec->domain, spec->type, key);
+    dis.domain  = spec->domain;
+    dis.portUDP = spec->portUDP;
+    dis.portTCP = spec->portTCP;
+
+    inet_pton(dis.domain, spec->address, &dis.addr);
+
+    if (NULL != spec->nodeId) {
+        BRKey key;
+        key.pubKey[0] = 0x04;
+        key.compressed = 0;
+        decodeHex(&key.pubKey[1], 64, spec->nodeId, 128);
+
+        return nodeEndpointCreate(dis, key);
+    }
+
+    else {
+        BRKey localKey, localEphemeralKey;
+        UInt256 localNonce;
+
+        randomGenPriKey  (randomContext, &localKey);
+        randomGenPriKey  (randomContext, &localEphemeralKey);
+        randomGenUInt256 (randomContext, &localNonce);
+
+        assert (0 == localKey.compressed);
+
+        return nodeEndpointCreateDetailed (dis, localKey, localEphemeralKey, localNonce);
+
+    }
 }
 
 #if 0
@@ -217,6 +236,8 @@ struct BREthereumLESRecord {
 
     /** Array of Nodes */
     BRArrayOf(BREthereumLESNode) nodes;
+    BREthereumLESNode preferredDISNode;
+    BREthereumLESNode preferredLESNode;
 
     /** Callbacks */
     BREthereumLESCallbackContext callbackContext;
@@ -240,24 +261,6 @@ struct BREthereumLESRecord {
 
     BRArrayOf (BREthereumLESReqeust) requests;
 };
-
-static BREthereumLESNodeEndpoint
-createLocalEndpoint (BREthereumLESRandomContext randomContext) {
-    BRKey localKey, localEphemeralKey;
-    UInt256 localNonce;
-
-    randomGenPriKey  (randomContext, &localKey);
-    randomGenPriKey  (randomContext, &localEphemeralKey);
-    randomGenUInt256 (randomContext, &localNonce);
-
-    assert (0 == localKey.compressed);
-
-    return nodeEndpointCreateRaw (LES_LOCAL_ENDPOINT_ADDRESS,
-                                  LES_LOCAL_ENDPOINT_UDP_PORT, 0, 0,
-                                  localKey,
-                                  localEphemeralKey,
-                                  localNonce);
-}
 
 static void
 assignLocalEndpointHelloMessage (BREthereumLESNodeEndpoint *endpoint) {
@@ -308,22 +311,15 @@ lesCreate (BREthereumNetwork network,
 
     // Assign the generated private key.
     BRKeySetSecret(&les->key, &secret, 0);
-    // Previously the above key was generated with:
-#if 0
-    les->key = (BRKey *)malloc(sizeof(BRKey));
-    uint8_t data[32] = {3,4,5,0};
-    memcpy(les->key->secret.u8,data,32);
-    les->key->compressed = 0;
-#endif
 
     // Save the network.
     les->network = network;
 
     // Use the privateKey to create a randomContext
-    les->randomContext = randomCreate(les->key.secret.u8, 32);
+    les->randomContext = randomCreate (les->key.secret.u8, 32);
 
     // Create a local endpoint; when creating nodes we'll use this local endpoint repeatedly.
-    les->localEndpoint = createLocalEndpoint(les->randomContext);
+    les->localEndpoint = nodeEndpointCreateFromSpec (&localNodeEndpointSpec, les->randomContext);
 
     // The 'hello' message is fixed; assign it to the local endpoint
     assignLocalEndpointHelloMessage(&les->localEndpoint);
@@ -370,23 +366,14 @@ lesCreate (BREthereumNetwork network,
     // Fill in our bootstrap nodes
     array_new (les->nodes, 10);
 
-    BREthereumLESNodeEndpoint nodeEndpoint = nodeEndpointCreateFromSpec (&bootstrapNodeEndpointSpecs[0]);
-    BREthereumLESNode node = nodeCreate (NODE_PURPOSE_DISCOVERY,
-                                         nodeEndpoint,
+    BREthereumLESNode node = nodeCreate (nodeEndpointCreateFromSpec (&bootstrapNodeEndpointSpecs[0], NULL),
                                          les->localEndpoint,
                                          (BREthereumLESNodeContext) les,
                                          (BREthereumLESNodeCallbackMessage) lesHandleLESMessage,
                                          (BREthereumLESNodeCallbackConnect) lesHandleConnect);
     array_add (les->nodes, node);
-
-    nodeEndpoint = nodeEndpointCreateFromSpec (&bootstrapNodeEndpointSpecs[1]);
-    node = nodeCreate (NODE_PURPOSE_BLOCKCHAIN,
-                                         nodeEndpoint,
-                                         les->localEndpoint,
-                                         (BREthereumLESNodeContext) les,
-                                         (BREthereumLESNodeCallbackMessage) lesHandleLESMessage,
-                                         (BREthereumLESNodeCallbackConnect) lesHandleConnect);
-    array_add (les->nodes, node);
+    les->preferredDISNode = node;
+    les->preferredLESNode = node;
 
     return les;
 }
@@ -457,12 +444,19 @@ lesGetThenIncRequestId (BREthereumLES les) {
 static void
 lesSendMessage (BREthereumLES les,
                 BREthereumMessage message) {
-
-    // TODO: Node Send will write to socketTCP - don't mixup writes from multiple threads
+    // TODO: Connected?
     pthread_mutex_lock(&les->lock);
-    FOR_NODES_INDEX(les, index) {
-        if (1) // should send (is TCP, is connected
-            nodeSend(les->nodes[index], message);
+    switch (message.identifier) {
+        case MESSAGE_DIS:
+            nodeSend(les->preferredDISNode, NODE_ROUTE_UDP, message);
+            break;
+
+        default:
+            nodeSend(les->preferredLESNode, NODE_ROUTE_TCP, message);
+
+            // If sendTx, send to multiple nodes
+            break;
+
     }
     pthread_mutex_unlock(&les->lock);
 }
@@ -975,33 +969,13 @@ lesIsP2PPortOfInterest (BREthereumLES les, int port) {
 
 static BREthereumLESNode
 lesNodeCreate (BREthereumLES les,
-               BREthereumLESNodePurpose purpose,
                BREthereumDISNeighbor neighbor) {
     BRKey key;
     key.compressed = 0;
     key.pubKey[0] = 0x04;
     memcpy (&key.pubKey[1], neighbor.nodeID.u8, sizeof (neighbor.nodeID));
 
-    int port   = (NODE_PURPOSE_BLOCKCHAIN == purpose ? neighbor.node.portTCP : neighbor.node.portUDP);
-    int type   = (NODE_PURPOSE_BLOCKCHAIN == purpose ? SOCK_STREAM           : SOCK_DGRAM);
-    int domain = (neighbor.node.isIPV4 ? AF_INET : AF_INET6);
-
-    // The function inet_ntop() converts an address *src from network format (usually a struct
-    // in_addr or some other binary form, in network byte order) to presentation format (suitable
-    // for external display purposes).  The size argument specifies the size, in bytes, of the
-    // buffer *dst.  INET_ADDRSTRLEN and INET6_ADDRSTRLEN define the maximum size required to
-    // convert an address of the respective type.  It returns NULL if a system error occurs (in
-    // which case, errno will have been set), or it returns a pointer to the destination string.
-    // This function is presently valid for AF_INET and AF_INET6.
-    char hostnameBuffer [INET6_ADDRSTRLEN + 1];
-    const char *hostname = inet_ntop(domain, &neighbor.node.addr, hostnameBuffer, INET6_ADDRSTRLEN);
-
-    return nodeCreate (purpose,
-                       nodeEndpointCreate (hostname,
-                                           port,
-                                           domain,
-                                           type,
-                                           key),
+    return nodeCreate (nodeEndpointCreate(neighbor.node, key),
                        les->localEndpoint,
                        (BREthereumLESNodeContext) les,
                        (BREthereumLESNodeCallbackMessage) lesHandleLESMessage,
@@ -1025,7 +999,7 @@ lesHandleDISMessage (BREthereumLES les,
                                               time(NULL) + 1000000) },
                     nodeGetLocalEndpoint(node)->key }}
             };
-            nodeSend (node, pong);
+            nodeSend (node, NODE_ROUTE_UDP, pong);
 
 //            // ... can then send a 'findNodes'
 //            BREthereumMessage findNodes = {
@@ -1045,16 +1019,7 @@ lesHandleDISMessage (BREthereumLES les,
         case DIS_MESSAGE_NEIGHBORS:
             for (size_t index = 0; index < array_count (message.u.neighbors.neighbors); index++) {
                 BREthereumDISNeighbor neighbor = message.u.neighbors.neighbors[index];
-
-                if (lesIsDISPortOfInterest (les, neighbor.node.portUDP) &&
-                    lesIsDISNodeNeeded(les)) {
-                    array_add (les->nodes, lesNodeCreate (les, NODE_PURPOSE_DISCOVERY, neighbor));
-                }
-
-                if (lesIsP2PPortOfInterest (les, neighbor.node.portTCP) &&
-                    lesIsP2PNodeNeeded(les)) {
-                    array_add (les->nodes, lesNodeCreate (les, NODE_PURPOSE_BLOCKCHAIN, neighbor));
-                }
+                    array_add (les->nodes, lesNodeCreate (les, neighbor));
             }
             break;
 
@@ -1099,7 +1064,7 @@ lesHandleP2PMessage (BREthereumLES les,
                      BREthereumP2PMessage message) {
     switch (message.identifier) {
         case P2P_MESSAGE_DISCONNECT:
-            nodeDisconnect(node);
+            nodeDisconnect(node, NODE_ROUTE_TCP);
             break;
 
         case P2P_MESSAGE_PING: {
@@ -1109,7 +1074,7 @@ lesHandleP2PMessage (BREthereumLES les,
                     P2P_MESSAGE_PONG,
                     {}}}
             };
-            nodeSend (node, pong);
+            nodeSend (node, NODE_ROUTE_TCP, pong);
         }
 
         case P2P_MESSAGE_PONG:
@@ -1140,8 +1105,9 @@ maximum (int a, int b) { return a > b ? a : b; }
 
 static void
 lesHandleNodeRead (BREthereumLES les,
+                   BREthereumLESNodeEndpointRoute route,
                    BREthereumLESNode node) {
-    BREthereumMessage message = nodeRecv (node);
+    BREthereumMessage message = nodeRecv (node, route);
 
     switch (message.identifier) {
         case MESSAGE_P2P:
@@ -1161,29 +1127,20 @@ lesHandleNodeRead (BREthereumLES les,
     }
 }
 
-static BREthereumDISEndpoint
-endpointDISCreate (BREthereumLESNodeEndpoint *ne) {
-    BREthereumDISEndpoint endpoint = {
-        1,
-        {},
-        ne->port,
-        ne->port
-    };
-    inet_pton (AF_INET, ne->hostname, endpoint.addr.ipv4);
-    return endpoint;
-}
-
 static void
 lesHandleTimeout (BREthereumLES les) {
     // If we don't have enough connected nodes, connect some
-    BREthereumLESNode node = lesGetPreferredDISNode(les);
-    if (!nodeIsConnected(node))
-        nodeConnect(node);
+    if (!nodeIsConnected(les->preferredDISNode, NODE_ROUTE_UDP))
+        nodeConnect(les->preferredDISNode, NODE_ROUTE_UDP);
+    
+    if (!nodeIsConnected(les->preferredLESNode, NODE_ROUTE_TCP))
+        nodeConnect(les->preferredLESNode, NODE_ROUTE_TCP);
 
     static int needFindNeighbors = 0;
 
     // If we don't have enough nodes, discover some
-    if (0 == needFindNeighbors++ % 5 && nodeIsConnected(node)) {
+    BREthereumLESNode node = les->preferredDISNode;
+    if (0 == needFindNeighbors++ % 5 && nodeIsConnected(node, NODE_ROUTE_UDP)) {
 
 //        BREthereumMessage message = (BREthereumMessage) {
 //            MESSAGE_DIS,
@@ -1205,7 +1162,7 @@ lesHandleTimeout (BREthereumLES les) {
                                                    time(NULL) + 1000000) },
                 nodeGetLocalEndpoint(node)->key }}
         };
-        nodeSend (node, findNodes);
+        nodeSend (node, NODE_ROUTE_UDP, findNodes);
     }
 }
 
@@ -1272,9 +1229,13 @@ lesThread (BREthereumLES les) {
         if (selectCount > 0) {
             FOR_NODES_INDEX (les, index) {
                 BREthereumLESNode node = les->nodes[index];
-                if (nodeCanProcess (node, &readDescriptors))
-                    lesHandleNodeRead(les, node);
+                if (nodeCanProcess (node, NODE_ROUTE_UDP, &readDescriptors))
+                    lesHandleNodeRead(les, NODE_ROUTE_UDP, node);
                 // else if (nodeCanProcess (node, &writeDescriptors))
+
+                if (nodeCanProcess (node, NODE_ROUTE_TCP, &readDescriptors))
+                    lesHandleNodeRead(les, NODE_ROUTE_TCP, node);
+
             }
         }
 

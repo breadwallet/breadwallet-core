@@ -24,6 +24,7 @@
 //  THE SOFTWARE.
 
 #include <assert.h>
+#include <sys/socket.h>
 #include "BREthereumLESMessage.h"
 
 static BREthereumLESMessageStatusKey lesMessageStatusKeys[] = {
@@ -204,7 +205,7 @@ messageDISGetIdentifierName (BREthereumDISMessageIdentifier identifier) {
 static BRRlpItem
 endpointDISEncode (const BREthereumDISEndpoint *endpoint, BRRlpCoder coder) {
     return rlpEncodeList (coder, 3,
-                          (endpoint->isIPV4
+                          (endpoint->domain == AF_INET
                            ? rlpEncodeBytes (coder, (uint8_t*) endpoint->addr.ipv4, 4)
                            : rlpEncodeBytes (coder, (uint8_t*) endpoint->addr.ipv6, 16)),
                           rlpEncodeUInt64 (coder, endpoint->portUDP, 1),
@@ -221,8 +222,8 @@ endpointDISDecode (BRRlpItem item, BRRlpCoder coder) {
 
     BRRlpData addrData = rlpDecodeBytesSharedDontRelease (coder, items[0]);
     assert (4 == addrData.bytesCount || 16 == addrData.bytesCount);
-    endpoint.isIPV4 = (4 == addrData.bytesCount);
-    memcpy ((endpoint.isIPV4 ? endpoint.addr.ipv4 : endpoint.addr.ipv6),
+    endpoint.domain = (4 == addrData.bytesCount ? AF_INET : AF_INET6);
+    memcpy ((endpoint.domain == AF_INET ? endpoint.addr.ipv4 : endpoint.addr.ipv6),
             addrData.bytes,
             addrData.bytesCount);
 
@@ -247,8 +248,8 @@ neighborDISDecode (BRRlpItem item, BRRlpCoder coder) {
     // Endpoint - Somehow GETH explodes it.
     BRRlpData addrData = rlpDecodeBytesSharedDontRelease (coder, items[0]);
     assert (4 == addrData.bytesCount || 16 == addrData.bytesCount);
-    neighbor.node.isIPV4 = (4 == addrData.bytesCount);
-    memcpy ((neighbor.node.isIPV4 ? neighbor.node.addr.ipv4 : neighbor.node.addr.ipv6),
+    neighbor.node.domain = (4 == addrData.bytesCount ? AF_INET : AF_INET6);
+    memcpy ((neighbor.node.domain == AF_INET ? neighbor.node.addr.ipv4 : neighbor.node.addr.ipv6),
             addrData.bytes,
             addrData.bytesCount);
 

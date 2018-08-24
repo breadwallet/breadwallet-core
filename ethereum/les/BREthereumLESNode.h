@@ -57,14 +57,8 @@ typedef void
 // disconnect
 // network reachable
 
-typedef enum {
-    NODE_PURPOSE_DISCOVERY,
-    NODE_PURPOSE_BLOCKCHAIN
-} BREthereumLESNodePurpose;
-
 extern BREthereumLESNode // add 'message id offset'?
-nodeCreate (BREthereumLESNodePurpose purpose,
-            BREthereumLESNodeEndpoint remote,  // remote, local ??
+nodeCreate (BREthereumLESNodeEndpoint remote,  // remote, local ??
             BREthereumLESNodeEndpoint local,
             BREthereumLESNodeContext context,
             BREthereumLESNodeCallbackMessage callbackMessage,
@@ -80,13 +74,16 @@ extern BREthereumLESNodeEndpoint *
 nodeGetLocalEndpoint (BREthereumLESNode node);
 
 extern void
-nodeConnect (BREthereumLESNode node);
+nodeConnect (BREthereumLESNode node,
+             BREthereumLESNodeEndpointRoute route);
 
 extern void
-nodeDisconnect (BREthereumLESNode node);
+nodeDisconnect (BREthereumLESNode node,
+                BREthereumLESNodeEndpointRoute route);
 
 extern int
-nodeIsConnected (BREthereumLESNode node);
+nodeIsConnected (BREthereumLESNode node,
+                 BREthereumLESNodeEndpointRoute route);
 
 extern int
 nodeUpdateDescriptors (BREthereumLESNode node,
@@ -95,15 +92,18 @@ nodeUpdateDescriptors (BREthereumLESNode node,
 
 extern int
 nodeCanProcess (BREthereumLESNode node,
+                BREthereumLESNodeEndpointRoute route,
                 fd_set *descriptors);
 
 extern void
 nodeSend (BREthereumLESNode node,
-           BREthereumMessage message);   // BRRlpData/BRRlpItem *optionalMessageData/Item
+          BREthereumLESNodeEndpointRoute route,
+          BREthereumMessage message);   // BRRlpData/BRRlpItem *optionalMessageData/Item
 
 extern BREthereumMessage
-nodeRecv (BREthereumLESNode node);
-    
+nodeRecv (BREthereumLESNode node,
+          BREthereumLESNodeEndpointRoute route);
+
 #ifdef __cplusplus
 }
 #endif
