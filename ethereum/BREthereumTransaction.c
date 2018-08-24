@@ -279,6 +279,10 @@ extern void
 transactionSetGasEstimate (BREthereumTransaction transaction,
                            BREthereumGas gasEstimate) {
     transaction->gasEstimate = gasEstimate;
+
+    // Do not change the gasLimit if this is an ETH transaction.
+    if (AMOUNT_ETHER == amountGetType(transaction->amount)) return;
+
     // Ensure that the gasLimit is at least 20% more than gasEstimate.
     BREthereumGas gasLimitWithMargin = gasLimitApplyMargin (gasEstimate);
     if (gasLimitWithMargin.amountOfGas > transaction->gasLimit.amountOfGas)

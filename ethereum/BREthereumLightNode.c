@@ -838,18 +838,29 @@ lightNodeUpdateTransactionGasEstimate (BREthereumLightNode node,
                 char *amount = coerceString(amountInEther.valueInWEI, 16);
                 char *data = (char *) transactionGetData(transaction);
 
+                // Ensure `amount` is 0x-prefaced without 0x0... (see coerceString code comments...)
+                char *canonicalAmount = malloc (2 + strlen(amount) + 1);
+                strcpy (&canonicalAmount[0], "0x");
+                strcpy (&canonicalAmount[2], &amount['0' == amount[0]]);
+
+                char *canonicalData = malloc (2 + strlen(data) + 1);
+                strcpy (&canonicalData[0], "0x");
+                strcpy (&canonicalData[2], data);
+
                 node->client.funcEstimateGas
                         (node->client.funcContext,
                          node,
                          wid,
                          tid,
                          to,
-                         amount,
-                         data,
+                         canonicalAmount,
+                         canonicalData,
                          ++node->requestId);
 
                 free(to);
                 free(amount);
+                free(canonicalAmount);
+                free(canonicalData);
 
                 if (NULL != data && '\0' != data[0])
                     free(data);
