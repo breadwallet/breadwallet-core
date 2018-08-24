@@ -522,6 +522,9 @@ typedef struct {
     BRRlpData key1;
     BRRlpData key2;
     uint64_t fromLevel;
+    // Not RLP encoded
+    uint64_t blockNumber;
+    BREthereumAddress address;
 } BREthereumLESMessageGetProofsSpec;
 
 /**

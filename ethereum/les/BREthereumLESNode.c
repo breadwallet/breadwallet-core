@@ -34,6 +34,8 @@
 #include "BREthereumLESFrameCoder.h"
 
 // #define NEED_TO_PRINT_SEND_RECV_DATA
+#define NEED_TO_AVOID_PROOFS_LOGGING
+
 #define PTHREAD_STACK_SIZE (512 * 1024)
 #define PTHREAD_NULL   ((pthread_t) NULL)
 
@@ -611,6 +613,9 @@ nodeSend (BREthereumLESNode node,
 
     BRRlpItem item = messageEncode (message, node->coder);
 
+#if defined (NEED_TO_AVOID_PROOFS_LOGGING)
+    if (MESSAGE_LES != message.identifier || LES_MESSAGE_GET_PROOFS_V2 != message.u.les.identifier)
+#endif
     eth_log (LES_LOG_TOPIC, "Send: [ %s, %15s ] => %s",
              messageGetIdentifierName (&message),
              messageGetAnyIdentifierName (&message),
@@ -769,6 +774,9 @@ nodeRecv (BREthereumLESNode node,
         }
     }
 
+#if defined (NEED_TO_AVOID_PROOFS_LOGGING)
+    if (MESSAGE_LES != message.identifier || LES_MESSAGE_PROOFS_V2 != message.u.les.identifier)
+#endif
     eth_log (LES_LOG_TOPIC, "Recv: [ %s, %15s ] <= %s",
              messageGetIdentifierName (&message),
              messageGetAnyIdentifierName (&message),

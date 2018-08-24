@@ -1056,7 +1056,7 @@ messageLESGetProofsEncode (BREthereumLESMessageGetProofs message, BREthereumMess
 static BREthereumLESMessageProofs
 messageLESProofsDecode (BRRlpItem item,
                         BREthereumMessageCoder coder) {
-    rlpShowItem (coder.rlp, item, "LES Proofs");
+    // rlpShowItem (coder.rlp, item, "LES Proofs");
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
     assert (3 == itemsCount);
@@ -1095,7 +1095,7 @@ messageLESGetProofsV2Encode (BREthereumLESMessageGetProofsV2 message, BREthereum
 static BREthereumLESMessageProofsV2
 messageLESProofsV2Decode (BRRlpItem item,
                      BREthereumMessageCoder coder) {
-    rlpShowItem (coder.rlp, item, "LES ProofsV2");
+    // rlpShowItem (coder.rlp, item, "LES ProofsV2");
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
     assert (3 == itemsCount);
@@ -1237,12 +1237,12 @@ messageLESEncode (BREthereumLESMessage message,
 
         case LES_MESSAGE_GET_PROOFS:
             body = messageLESGetProofsEncode (message.u.getProofs, coder);
-            rlpShowItem (coder.rlp, body, "LES GetProofs");
+            // rlpShowItem (coder.rlp, body, "LES GetProofs");
             break;
 
         case LES_MESSAGE_GET_PROOFS_V2:
             body = messageLESGetProofsV2Encode (message.u.getProofsV2, coder);
-            rlpShowItem (coder.rlp, body, "LES GetProofsV2");
+            // rlpShowItem (coder.rlp, body, "LES GetProofsV2");
             break;
 
         case LES_MESSAGE_GET_TX_STATUS:

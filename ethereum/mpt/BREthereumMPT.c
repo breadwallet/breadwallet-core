@@ -38,6 +38,9 @@ mptProofDecodeList (BRRlpItem item,
     size_t itemsCount;
     const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
 
+    // TODO: Wrong - here to flag success!
+    assert (itemsCount == 0);
+    
     BRArrayOf (BREthereumMPTNodePath) proofs;
     array_new (proofs, itemsCount);
     for (size_t index = 0; index < itemsCount; index++)
