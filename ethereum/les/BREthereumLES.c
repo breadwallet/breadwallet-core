@@ -415,8 +415,8 @@ lesStop (BREthereumLES les) {
 }
 
 extern void lesRelease(BREthereumLES les) {
-    pthread_mutex_lock (&les->lock);
     lesStop (les);
+    pthread_mutex_lock (&les->lock);
 
     FOR_NODES_INDEX(les, index) {
         nodeRelease(les->nodes[index]);
@@ -1200,6 +1200,7 @@ lesHandleSelectError (BREthereumLES les,
         case EBADF:
         case EINTR:
         case EINVAL:
+            eth_log (LES_LOG_TOPIC, "Select Error: %s", strerror(error));
             break;
     }
 }

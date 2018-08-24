@@ -132,7 +132,11 @@ nodeEndpointClose (BREthereumLESNodeEndpoint *endpoint,
             eth_log (LES_LOG_TOPIC, "Socket %d (%s) Shutdown Error: %s", socket,
                      nodeEndpointRouteGetName (route),
                      strerror(errno));
-            return errno;
+
+            // Try to close anyways but don't lose the original error.
+            int error = errno;
+            close(socket);
+            return error;
         }
         if (close (socket) < 0) {
             eth_log (LES_LOG_TOPIC, "Socket %d (%s) Close Error: %s", socket,

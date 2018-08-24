@@ -119,8 +119,28 @@ struct BREthereumLESNodeRecord {
     BREthereumLESNodeEndpoint local;
 
     // Message Limits (e.g. 192 header, 32 account state)
+    BREthereumLESMessageSpec specs [NUMBER_OF_LES_MESSAGE_IDENTIFIERS];
 
-    uint64_t requestId;
+//    uint64_t requestId;
+
+    // The offset for LES messages.  This is determined by 'negotiating' subprotocols
+    // https://github.com/ethereum/wiki/wiki/ÐΞVp2p-Wire-Protocol
+    //
+    // "ÐΞVp2p is designed to support arbitrary sub-protocols (aka capabilities) over the basic
+    // wire protocol. Each sub-protocol is given as much of the message-ID space as it needs (all
+    // such protocols must statically specify how many message IDs they require). On connection and
+    // reception of the Hello message, both peers have equivalent information about what
+    // subprotocols they share (including versions) and are able to form consensus over the
+    // composition of message ID space.
+    //
+    // "Message IDs are assumed to be compact from ID 0x10 onwards (0x00-0x10 is reserved for
+    // ÐΞVp2p messages) and given to each shared (equal-version, equal name) sub-protocol in
+    // alphabetic order. Sub-protocols that are not shared are ignored. If multiple versions are
+    // shared of the same (equal name) sub-protocol, the numerically highest wins, others are
+    // ignored."
+    //
+    // Generally, we have one protocol specified
+
     uint64_t messageIdOffset;
     uint64_t credits;
 
@@ -170,8 +190,11 @@ nodeCreate (BREthereumNetwork network,
     node->remote = remote;
     node->local  = local;
 
-    node->requestId = 0;
-    node->messageIdOffset = 0x10;
+    for (int i = 0; i < NUMBER_OF_LES_MESSAGE_IDENTIFIERS; i++)
+        node->specs[i] = messageLESSpecs[i];
+
+    // This *must* be set by the 'P2P Hello' message.
+    node->messageIdOffset = 0;
     node->credits = 0;
 
     node->sendDataBuffer = (BRRlpData) { DEFAULT_SEND_DATA_BUFFER_SIZE, malloc (DEFAULT_SEND_DATA_BUFFER_SIZE) };
@@ -343,12 +366,10 @@ nodeThreadConnectUDP (BREthereumLESNode node) {
 
     assert (NODE_STATE_DISCONNECTED == node->states[NODE_ROUTE_UDP]);
 
-    {
-        // OPEN
-        node->states[NODE_ROUTE_UDP] = NODE_STATE_OPEN;
-        error = nodeEndpointOpen (&node->remote, NODE_ROUTE_UDP);
-        if (error) return nodeFailed (node);
-    }
+    // OPEN
+    node->states[NODE_ROUTE_UDP] = NODE_STATE_OPEN;
+    error = nodeEndpointOpen (&node->remote, NODE_ROUTE_UDP);
+    if (error) return nodeFailed (node);
 
     BREthereumMessage message;
 
@@ -418,12 +439,10 @@ nodeThreadConnectTCP (BREthereumLESNode node) {
 
     assert (NODE_STATE_DISCONNECTED == node->states[NODE_ROUTE_TCP]);
 
-    {
-        // OPEN
-        node->states[NODE_ROUTE_TCP] = NODE_STATE_OPEN;
-        error = nodeEndpointOpen (&node->remote, NODE_ROUTE_TCP);
-        if (error) return nodeFailed (node);
-    }
+    // OPEN
+    node->states[NODE_ROUTE_TCP] = NODE_STATE_OPEN;
+    error = nodeEndpointOpen (&node->remote, NODE_ROUTE_TCP);
+    if (error) return nodeFailed (node);
 
     BREthereumMessage message;
 
@@ -471,10 +490,20 @@ nodeThreadConnectTCP (BREthereumLESNode node) {
     message = nodeRecv (node, NODE_ROUTE_TCP);
     assert (MESSAGE_P2P == message.identifier);
     assert (P2P_MESSAGE_HELLO == message.u.p2p.identifier);
+    // TODO: We have seen a P2P_MESSAGE_DISCONNECT here
 
     // Save the 'hello' message received and then move on
     messageP2PHelloShow (message.u.p2p.u.hello);
     node->remote.hello = message.u.p2p;
+
+
+    // TODO: Compare node->local.hello.u.hello.capabilities
+    // TODO:     and node->remote.hello.u.hello.capabilities
+    //   remote must include every one of our cababilities.
+    //   we then sort the shared ones alphabetically and assign offsets
+
+    // Must be set before the first subprotocol (LES) message.
+    node->messageIdOffset = 0x10;
 
     // A P2P message, not a LES message
     //            if (node->callbackMessage)
@@ -499,9 +528,20 @@ nodeThreadConnectTCP (BREthereumLESNode node) {
     assert (MESSAGE_LES == message.identifier);
     assert (LES_MESSAGE_STATUS == message.u.les.identifier);
 
-    // Save the 'status' message received and then move on
+    // Save the 'status' message
     messageLESStatusShow(&message.u.les.u.status);
     node->remote.status = message.u.les;
+
+    // Extract the costs (from the status MRC data)
+    BREthereumLESMessageStatus *status = &message.u.les.u.status;
+    if (NULL != status->flowControlMRCCount)
+        for (int i = 0; i < *status->flowControlMRCCount; i++) {
+            BREthereumLESMessageStatusMRC mrc = status->flowControlMRC[i];
+            if (mrc.msgCode < NUMBER_OF_LES_MESSAGE_IDENTIFIERS) {
+                node->specs[mrc.msgCode].baseCost = mrc.baseCost;
+                node->specs[mrc.msgCode].reqCost  = mrc.reqCost;
+            }
+        }
 
     if (node->callbackMessage)
         node->callbackMessage (node->callbackContext,
@@ -765,8 +805,14 @@ nodeRecv (BREthereumLESNode node,
             eth_log (LES_LOG_TOPIC, "Size: Recv: TCP: Type: %u, Subtype: %d", type, subtype);
 #endif
 
+            // Finally, decode the message
             message = messageDecode (item, node->coder, type, subtype);
 
+            // If this is a LES response message, then it has credit information.
+            if (MESSAGE_LES == message.identifier &&
+                messageLESHasUse (&message.u.les, LES_MESSAGE_USE_RESPONSE))
+                node->credits = messageLESGetCredits (&message.u.les);
+            
             rlpReleaseItem (node->coder.rlp, item);
             rlpReleaseItem (node->coder.rlp, identifierItem);
 
@@ -785,6 +831,75 @@ nodeRecv (BREthereumLESNode node,
 
     return message;
 }
+
+/// MARK: Credits
+
+extern uint64_t
+nodeEstimateCredits (BREthereumLESNode node,
+                     BREthereumMessage message) {
+    if (MESSAGE_LES != message.identifier) return 0;
+
+    BREthereumLESMessage *lm = &message.u.les;
+    size_t count = 0;
+
+    switch (lm->identifier) {
+        case LES_MESSAGE_GET_BLOCK_HEADERS:
+            count = lm->u.getBlockHeaders.maxHeaders;
+            break;
+
+        case LES_MESSAGE_GET_BLOCK_BODIES:
+            count = array_count (lm->u.getBlockBodies.hashes);
+            break;
+
+        case LES_MESSAGE_GET_RECEIPTS:
+            count = array_count(lm->u.getReceipts.hashes);
+            break;
+
+        case LES_MESSAGE_GET_PROOFS:
+            count = array_count(lm->u.getProofs.specs);
+            break;
+
+        case LES_MESSAGE_GET_CONTRACT_CODES:
+            count = 0;
+            break;
+
+        case LES_MESSAGE_SEND_TX:
+            count = array_count(lm->u.sendTx.transactions);
+            break;
+
+        case LES_MESSAGE_GET_HEADER_PROOFS:
+            count = 0;
+            break;
+
+        case LES_MESSAGE_GET_PROOFS_V2:
+            count = array_count(lm->u.getProofsV2.specs);
+            break;
+
+        case LES_MESSAGE_GET_HELPER_TRIE_PROOFS:
+            count = 0;
+            break;
+
+        case LES_MESSAGE_SEND_TX2:
+            count = array_count(lm->u.sendTx2.transactions);
+            break;
+
+        case LES_MESSAGE_GET_TX_STATUS:
+            count = array_count(lm->u.getTxStatus.hashes);
+            break;
+
+        default:
+            count = 0;
+    }
+
+    return node->specs[lm->identifier].baseCost + count * node->specs[lm->identifier].reqCost;
+}
+
+extern uint64_t
+nodeGetCredits (BREthereumLESNode node) {
+    return node->credits;
+}
+
+/// MARK: Support
 
 static void
 bytesXOR(uint8_t * op1, uint8_t* op2, uint8_t* result, size_t len) {

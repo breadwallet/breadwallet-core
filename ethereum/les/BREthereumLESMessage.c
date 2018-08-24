@@ -27,6 +27,16 @@
 #include <sys/socket.h>
 #include "BREthereumLESMessage.h"
 
+// GETH Limits
+// MaxHeaderFetch           = 192 // Amount of block headers to be fetched per retrieval request
+// MaxBodyFetch             = 32  // Amount of block bodies to be fetched per retrieval request
+// MaxReceiptFetch          = 128 // Amount of transaction receipts to allow fetching per request
+// MaxCodeFetch             = 64  // Amount of contract codes to allow fetching per request
+// MaxProofsFetch           = 64  // Amount of merkle proofs to be fetched per retrieval request
+// MaxHelperTrieProofsFetch = 64  // Amount of merkle proofs to be fetched per retrieval request
+// MaxTxSend                = 64  // Amount of transactions to be send per request
+// MaxTxStatus              = 256 // Amount of transactions to queried per request
+
 static BREthereumLESMessageStatusKey lesMessageStatusKeys[] = {
     "protocolVersion",
     "networkId",
@@ -530,34 +540,34 @@ messageDISEncode (BREthereumDISMessage message,
 
 /// MARK: - LES (Light Ethereum Subprotocol) Messages
 
-static const char *messageLESNames[] = {
-    "Status",
-    "Announce",
-    "GetBlockHeaders",
-    "BlockHeaders",
-    "GetBlockBodies",
-    "BlockBodies",
-    "GetReceipts",
-    "Receipts",
-    "GetProofs",
-    "Proofs",
-    "GetContractCodes",
-    "ContractCodes",
-    "SendTx",
-    "GetHeaderProofs",
-    "HeaderProofs",
-    "GetProofsV2",
-    "ProofsV2",
-    "GetHelperTrieProofs",
-    "HelperTrieProofs",
-    "SendTx2",
-    "GetTxStatus",
-    "TxStatus"
+// Static
+BREthereumLESMessageSpec messageLESSpecs [NUMBER_OF_LES_MESSAGE_IDENTIFIERS] = {
+    { "Status",           LES_MESSAGE_USE_STATUS           },
+    { "Announce",         LES_MESSAGE_USE_STATUS           },
+    { "GetBlockHeaders",  LES_MESSAGE_USE_REQUEST,    192  },
+    { "BlockHeaders",     LES_MESSAGE_USE_RESPONSE         },
+    { "GetBlockBodies",   LES_MESSAGE_USE_REQUEST,     32  },
+    { "BlockBodies",      LES_MESSAGE_USE_RESPONSE         },
+    { "GetReceipts",      LES_MESSAGE_USE_REQUEST,    128  },
+    { "Receipts",         LES_MESSAGE_USE_RESPONSE         },
+    { "GetProofs",        LES_MESSAGE_USE_REQUEST,     64  },
+    { "Proofs",           LES_MESSAGE_USE_RESPONSE         },
+    { "GetContractCodes", LES_MESSAGE_USE_REQUEST,     64  },
+    { "ContractCodes",    LES_MESSAGE_USE_RESPONSE         },
+    { "SendTx",           LES_MESSAGE_USE_STATUS,      64  }, // has cost, no response
+    { "GetHeaderProofs",  LES_MESSAGE_USE_REQUEST,     64  },
+    { "HeaderProofs",     LES_MESSAGE_USE_RESPONSE         },
+    { "GetProofsV2",      LES_MESSAGE_USE_REQUEST,     64  },
+    { "ProofsV2",         LES_MESSAGE_USE_RESPONSE         },
+    { "GetHelperTrieProofs", LES_MESSAGE_USE_REQUEST,  64  },
+    { "HelperTrieProofs",    LES_MESSAGE_USE_RESPONSE      },
+    { "SendTx2",          LES_MESSAGE_USE_REQUEST,     64  },
+    { "GetTxStatus",      LES_MESSAGE_USE_REQUEST,    256  },
+    { "TxStatus",         LES_MESSAGE_USE_RESPONSE         }
 };
-
 extern const char *
 messageLESGetIdentifierName (BREthereumLESMessageIdentifier identifer) {
-    return messageLESNames [identifer];
+    return messageLESSpecs[identifer].name;
 }
 
 #if 0
@@ -829,7 +839,7 @@ messageLESStatusShow(BREthereumLESMessageStatus *message) {
     eth_log (LES_LOG_TOPIC, "    TxRelay        : %s", ETHEREUM_BOOLEAN_IS_TRUE(message->txRelay) ? "Yes" : "No");
 
     size_t count = *(message->flowControlMRCCount);
-    eth_log (LES_LOG_TOPIC, "    FlowControl/MCC%s", "");
+    eth_log (LES_LOG_TOPIC, "    FlowControl/MRC%s", "");
     for (size_t index = 0; index < count; index++) {
         const char *label = messageLESGetIdentifierName ((BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);
         if (NULL != label) {
@@ -1260,6 +1270,29 @@ messageLESEncode (BREthereumLESMessage message,
     return rlpEncodeList2 (coder.rlp,
                            rlpEncodeUInt64 (coder.rlp, message.identifier + LES_IDENTIFIER_OFFSET_DEAL_WITH_IT, 1),
                            body);
+}
+
+extern int
+messageLESHasUse (const BREthereumLESMessage *message,
+                  BREthereumLESMessageUse use) {
+    return use == messageLESSpecs[message->identifier].use;
+}
+
+// 0 if not response
+extern uint64_t
+messageLESGetCredits (const BREthereumLESMessage *message) {
+    switch (message->identifier) {
+        case LES_MESSAGE_BLOCK_HEADERS:  return message->u.blockHeaders.bv;
+        case LES_MESSAGE_BLOCK_BODIES:   return message->u.blockBodies.bv;
+        case LES_MESSAGE_RECEIPTS:       return message->u.receipts.bv;
+        case LES_MESSAGE_PROOFS:         return message->u.proofs.bv;
+        case LES_MESSAGE_CONTRACT_CODES: return 0;
+        case LES_MESSAGE_HEADER_PROOFS:  return 0;
+        case LES_MESSAGE_PROOFS_V2:      return message->u.proofsV2.bv;
+        case LES_MESSAGE_HELPER_TRIE_PROOFS: return 0;
+        case LES_MESSAGE_TX_STATUS:      return message->u.txStatus.bv;
+        default: return 0;
+    }
 }
 
 /// MARK: - Wire Protocol Messagees

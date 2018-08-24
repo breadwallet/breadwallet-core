@@ -320,7 +320,7 @@ typedef enum {
     LES_MESSAGE_GET_PROOFS         = 0x08,
     LES_MESSAGE_PROOFS             = 0x09,
     LES_MESSAGE_GET_CONTRACT_CODES = 0x0a,
-    LES_MESSAGE_CONTRACT_CODE      = 0x0b,
+    LES_MESSAGE_CONTRACT_CODES     = 0x0b,
     LES_MESSAGE_SEND_TX            = 0x0c,
     LES_MESSAGE_GET_HEADER_PROOFS  = 0x0d,
     LES_MESSAGE_HEADER_PROOFS      = 0x0e,
@@ -332,6 +332,8 @@ typedef enum {
     LES_MESSAGE_GET_TX_STATUS      = 0x14,
     LES_MESSAGE_TX_STATUS          = 0x15,
 } BREthereumLESMessageIdentifier;
+
+#define NUMBER_OF_LES_MESSAGE_IDENTIFIERS    (LES_MESSAGE_TX_STATUS + 1)
 
 extern const char *
 messageLESGetIdentifierName (BREthereumLESMessageIdentifier id);
@@ -630,6 +632,32 @@ typedef struct {
 
 /// MARK: LES Message
 
+typedef enum {
+    LES_MESSAGE_USE_STATUS,
+    LES_MESSAGE_USE_REQUEST,
+    LES_MESSAGE_USE_RESPONSE
+} BREthereumLESMessageUse;
+
+
+typedef struct {
+    /** Name (Displayable) */
+    const char *name;
+
+    /** Use */
+    BREthereumLESMessageUse use;
+
+    /** Maximum number of messages that can be sent/requested */
+    uint64_t limit;
+
+    /** Cost for 0 messages */
+    uint64_t baseCost;
+
+    /** Cost of each message */
+    uint64_t reqCost;
+} BREthereumLESMessageSpec;
+
+extern BREthereumLESMessageSpec
+messageLESSpecs [NUMBER_OF_LES_MESSAGE_IDENTIFIERS];
 /**
  * A LES Message is a union of the above LES messages
  */
@@ -685,6 +713,15 @@ messageLESDecode (BRRlpItem item,
 extern BRRlpItem
 messageLESEncode (BREthereumLESMessage message,
                   BREthereumMessageCoder coder);
+
+extern int
+messageLESHasUse (const BREthereumLESMessage *message,
+                  BREthereumLESMessageUse use);
+
+// 0 if not response
+extern uint64_t
+messageLESGetCredits (const BREthereumLESMessage *message);
+
 
 /// MARK: - Wire Protocol Messages
 

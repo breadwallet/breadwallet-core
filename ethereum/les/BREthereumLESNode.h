@@ -109,6 +109,13 @@ extern BREthereumMessage
 nodeRecv (BREthereumLESNode node,
           BREthereumLESNodeEndpointRoute route);
 
+extern uint64_t
+nodeEstimateCredits (BREthereumLESNode node,
+                     BREthereumMessage message);
+
+extern uint64_t
+nodeGetCredits (BREthereumLESNode node);
+
 #ifdef __cplusplus
 }
 #endif
