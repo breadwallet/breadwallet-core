@@ -858,7 +858,8 @@ void runTransactionTests1 (BREthereumAccount account, BREthereumNetwork network)
     printf ("       Tx1 Gas Estimate  : %llu\n", transactionGetGasEstimate(transaction).amountOfGas);
     printf ("       Tx1 Gas Limit     : %llu\n", transactionGetGasLimit(transaction).amountOfGas);
     printf ("       Tx1 Gas Limit(exp): %llu\n", ((100 + GAS_LIMIT_MARGIN_PERCENT) * SOME_GAS_ESTIMATE / 100));
-    assert (((100 + GAS_LIMIT_MARGIN_PERCENT) * SOME_GAS_ESTIMATE / 100) == transactionGetGasLimit(transaction).amountOfGas);
+    // We do not change the gasLimit for ETH transactions; no matter the estimate
+    // assert (((100 + GAS_LIMIT_MARGIN_PERCENT) * SOME_GAS_ESTIMATE / 100) == transactionGetGasLimit(transaction).amountOfGas);
 }
 
 // https://etherscan.io/tx/0xc070b1e539e9a329b14c95ec960779359a65be193137779bf2860dc239248d7c
