@@ -21,6 +21,68 @@
 		3C67C9DA211CD4B100DFA5F9 /* WalletTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C67C9D9211CD4B100DFA5F9 /* WalletTableViewCell.swift */; };
 		3C67C9DE211CD56700DFA5F9 /* TransferTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C67C9DD211CD56700DFA5F9 /* TransferTableViewCell.swift */; };
 		3C67C9E0211CD5BD00DFA5F9 /* TransferTableViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C67C9DF211CD5BD00DFA5F9 /* TransferTableViewController.swift */; };
+		3C6B172F2131CB5B003C313B /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6B172E2131CB5B003C313B /* main.c */; };
+		3C6B17382131CE12003C313B /* BREthereum.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A539B20AF595400C430F6 /* BREthereum.c */; };
+		3C6B17392131CE12003C313B /* BREthereumEther.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53B320AF595400C430F6 /* BREthereumEther.c */; };
+		3C6B173A2131CE12003C313B /* BREthereumGas.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53B520AF595400C430F6 /* BREthereumGas.c */; };
+		3C6B173B2131CE12003C313B /* BREthereumHash.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53B020AF595400C430F6 /* BREthereumHash.c */; };
+		3C6B173C2131CE12003C313B /* BREthereumAddress.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53B920AF595400C430F6 /* BREthereumAddress.c */; };
+		3C6B173D2131CE12003C313B /* BREthereumSignature.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53AE20AF595400C430F6 /* BREthereumSignature.c */; };
+		3C6B173E2131CE12003C313B /* BREthereumTransaction.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53BB20AF595500C430F6 /* BREthereumTransaction.c */; };
+		3C6B173F2131CE12003C313B /* BREthereumBloomFilter.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53BF20AF595500C430F6 /* BREthereumBloomFilter.c */; };
+		3C6B17402131CE12003C313B /* BREthereumNetwork.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53C120AF595500C430F6 /* BREthereumNetwork.c */; };
+		3C6B17412131CE12003C313B /* BREthereumTransactionReceipt.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53C220AF595500C430F6 /* BREthereumTransactionReceipt.c */; };
+		3C6B17422131CE12003C313B /* BREthereumAccountState.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53C520AF595500C430F6 /* BREthereumAccountState.c */; };
+		3C6B17432131CE12003C313B /* BREthereumLog.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53C620AF595500C430F6 /* BREthereumLog.c */; };
+		3C6B17442131CE12003C313B /* BREthereumTransactionStatus.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53C920AF595500C430F6 /* BREthereumTransactionStatus.c */; };
+		3C6B17452131CE12003C313B /* BREthereumBlock.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53CB20AF595500C430F6 /* BREthereumBlock.c */; };
+		3C6B17462131CE12003C313B /* BREthereumAmount.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53CD20AF595500C430F6 /* BREthereumAmount.c */; };
+		3C6B17472131CE12003C313B /* BREthereumAccount.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A537720AF595400C430F6 /* BREthereumAccount.c */; };
+		3C6B17482131CE12003C313B /* BREthereumWallet.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A539C20AF595400C430F6 /* BREthereumWallet.c */; };
+		3C6B17492131CE12003C313B /* BREthereumBCS.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C386DCA20C6F5E40065E355 /* BREthereumBCS.c */; };
+		3C6B174A2131CE12003C313B /* BREthereumToken.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53AA20AF595400C430F6 /* BREthereumToken.c */; };
+		3C6B174B2131CE12003C313B /* BREthereumContract.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53A920AF595400C430F6 /* BREthereumContract.c */; };
+		3C6B174C2131CE12003C313B /* BREvent.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A539220AF595400C430F6 /* BREvent.c */; };
+		3C6B174D2131CE12003C313B /* BREventQueue.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A539520AF595400C430F6 /* BREventQueue.c */; };
+		3C6B174E2131CE12003C313B /* BREthereumLES.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A538620AF595400C430F6 /* BREthereumLES.c */; };
+		3C6B174F2131CE12003C313B /* BREthereumBCSEvent.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C386DCD20C6F5E40065E355 /* BREthereumBCSEvent.c */; };
+		3C6B17502131CE12003C313B /* BREventAlarm.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C3B37FB20D82335004F9928 /* BREventAlarm.c */; };
+		3C6B17512131CE12003C313B /* BREthereumLESFrameCoder.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A538B20AF595400C430F6 /* BREthereumLESFrameCoder.c */; };
+		3C6B17522131CE12003C313B /* BRKeccak.c in Sources */ = {isa = PBXBuildFile; fileRef = CA92F78F2100F9CA0015C966 /* BRKeccak.c */; };
+		3C6B17532131CE12003C313B /* BREthereumEWM.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53A220AF595400C430F6 /* BREthereumEWM.c */; };
+		3C6B17542131CE12003C313B /* BRRlpCoder.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A539A20AF595400C430F6 /* BRRlpCoder.c */; };
+		3C6B17552131CE12003C313B /* BRUtilMath.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A537B20AF595400C430F6 /* BRUtilMath.c */; };
+		3C6B17562131CE12003C313B /* BRUtilMathParse.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A537C20AF595400C430F6 /* BRUtilMathParse.c */; };
+		3C6B17572131CE12003C313B /* BRUtilHex.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A537E20AF595400C430F6 /* BRUtilHex.c */; };
+		3C6B17582131CE12003C313B /* BRBCashAddr.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C590F3D20950C720005597B /* BRBCashAddr.c */; };
+		3C6B17592131CE12003C313B /* BRAddress.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C590F3420950C720005597B /* BRAddress.c */; };
+		3C6B175A2131CE12003C313B /* BRBase58.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C590F4A20950C730005597B /* BRBase58.c */; };
+		3C6B175B2131CE12003C313B /* BREthereumBCSSync.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C9025FC2108DDAE00143B69 /* BREthereumBCSSync.c */; };
+		3C6B175C2131CE12003C313B /* BRBech32.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C590F4420950C730005597B /* BRBech32.c */; };
+		3C6B175D2131CE12003C313B /* BRBIP32Sequence.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C590F3220950C720005597B /* BRBIP32Sequence.c */; };
+		3C6B175E2131CE12003C313B /* BREthereumLESMessage.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C54A7FE2121F1D200C57B1B /* BREthereumLESMessage.c */; };
+		3C6B175F2131CE12003C313B /* BRBIP38Key.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C590F5820950C750005597B /* BRBIP38Key.c */; };
+		3C6B17602131CE12003C313B /* BREthereumMPT.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C5F5E74212C82310038B732 /* BREthereumMPT.c */; };
+		3C6B17612131CE12003C313B /* BREthereumTransfer.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C902622210A7E9800143B69 /* BREthereumTransfer.c */; };
+		3C6B17622131CE12003C313B /* BREthereumLESNode.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C54A8012122284900C57B1B /* BREthereumLESNode.c */; };
+		3C6B17632131CE12003C313B /* BRBIP39Mnemonic.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C590F5920950C750005597B /* BRBIP39Mnemonic.c */; };
+		3C6B17642131CE12003C313B /* BRBloomFilter.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C590F4E20950C730005597B /* BRBloomFilter.c */; };
+		3C6B17652131CE12003C313B /* BRCrypto.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C590F5520950C740005597B /* BRCrypto.c */; };
+		3C6B17662131CE12003C313B /* BRKeyECIES.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CA74EA920AF622D00EDF3E7 /* BRKeyECIES.c */; };
+		3C6B17672131CE12003C313B /* BREthereumEWMClientEvent.c in Sources */ = {isa = PBXBuildFile; fileRef = 3CDA764A210138B2005F4CF8 /* BREthereumEWMClientEvent.c */; };
+		3C6B17682131CE12003C313B /* BRKey.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C590F5420950C740005597B /* BRKey.c */; };
+		3C6B17692131CE12003C313B /* BREthereumLESNodeEndpoint.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C54A80421234C9700C57B1B /* BREthereumLESNodeEndpoint.c */; };
+		3C6B176A2131CE12003C313B /* BRMerkleBlock.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C590F3520950C720005597B /* BRMerkleBlock.c */; };
+		3C6B176B2131CE12003C313B /* BRPaymentProtocol.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C590F3A20950C720005597B /* BRPaymentProtocol.c */; };
+		3C6B176C2131CE12003C313B /* BRPeer.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C590F5120950C740005597B /* BRPeer.c */; };
+		3C6B176D2131CE12003C313B /* BRPeerManager.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C590F4B20950C730005597B /* BRPeerManager.c */; };
+		3C6B176E2131CE12003C313B /* BRSet.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C590F4D20950C730005597B /* BRSet.c */; };
+		3C6B176F2131CE12003C313B /* BREthereumLESRandom.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C386DC120C6F4AE0065E355 /* BREthereumLESRandom.c */; };
+		3C6B17702131CE12003C313B /* BREthereumEWMEvent.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C386DD220C6F6070065E355 /* BREthereumEWMEvent.c */; };
+		3C6B17712131CE12003C313B /* BRTransaction.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C590F5320950C740005597B /* BRTransaction.c */; };
+		3C6B17722131CE12003C313B /* BREthereumEWMClient.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C386DD120C6F6060065E355 /* BREthereumEWMClient.c */; };
+		3C6B17732131CE12003C313B /* BRWallet.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C590F5720950C740005597B /* BRWallet.c */; };
+		3C6B177C2131CE70003C313B /* libCoreMacOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 3C6B17792131CE12003C313B /* libCoreMacOS.a */; };
 		3C9025EF21063AD200143B69 /* testUtil.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C9025EE21063AD200143B69 /* testUtil.c */; };
 		3C9025F121063BDC00143B69 /* testRlp.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C9025F021063BDC00143B69 /* testRlp.c */; };
 		3C9025F321064B6700143B69 /* testEvent.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C9025F221064B6700143B69 /* testEvent.c */; };
@@ -111,6 +173,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		3C6B177A2131CE60003C313B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3C590F0E20950C160005597B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 3C6B17362131CE12003C313B;
+			remoteInfo = CoreMacOS;
+		};
 		3C902616210A312500143B69 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 3C590F0E20950C160005597B /* Project object */;
@@ -149,6 +218,24 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		3C6B172A2131CB5B003C313B /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+		3C6B17752131CE12003C313B /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "include/$(PRODUCT_NAME)";
+			dstSubfolderSpec = 16;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		3C902620210A3BBE00143B69 /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -303,6 +390,9 @@
 		3C67C9D9211CD4B100DFA5F9 /* WalletTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletTableViewCell.swift; sourceTree = "<group>"; };
 		3C67C9DD211CD56700DFA5F9 /* TransferTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferTableViewCell.swift; sourceTree = "<group>"; };
 		3C67C9DF211CD5BD00DFA5F9 /* TransferTableViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferTableViewController.swift; sourceTree = "<group>"; };
+		3C6B172C2131CB5B003C313B /* CoreExplore */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CoreExplore; sourceTree = BUILT_PRODUCTS_DIR; };
+		3C6B172E2131CB5B003C313B /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		3C6B17792131CE12003C313B /* libCoreMacOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libCoreMacOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		3C9025EE21063AD200143B69 /* testUtil.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testUtil.c; sourceTree = "<group>"; };
 		3C9025F021063BDC00143B69 /* testRlp.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testRlp.c; sourceTree = "<group>"; };
 		3C9025F221064B6700143B69 /* testEvent.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = testEvent.c; sourceTree = "<group>"; };
@@ -354,6 +444,21 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		3C6B17292131CB5B003C313B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3C6B177C2131CE70003C313B /* libCoreMacOS.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3C6B17742131CE12003C313B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		3C9025FF210A30F100143B69 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -589,6 +694,7 @@
 				3C590F3120950C470005597B /* Core */,
 				3CAB60A720AF8C8500810CE4 /* CoreTests */,
 				3C902603210A30F100143B69 /* CoreDemo */,
+				3C6B172D2131CB5B003C313B /* CoreExplore */,
 				3C590F1820950C160005597B /* Products */,
 				3CAB610A20AF938E00810CE4 /* Frameworks */,
 			);
@@ -602,6 +708,8 @@
 				3CAB60EF20AF936200810CE4 /* BRCore.framework */,
 				3CAB60F720AF936200810CE4 /* BRCoreTests.xctest */,
 				3C902602210A30F100143B69 /* CoreDemo.app */,
+				3C6B172C2131CB5B003C313B /* CoreExplore */,
+				3C6B17792131CE12003C313B /* libCoreMacOS.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -675,6 +783,14 @@
 			);
 			name = mpt;
 			path = ../../ethereum/mpt;
+			sourceTree = "<group>";
+		};
+		3C6B172D2131CB5B003C313B /* CoreExplore */ = {
+			isa = PBXGroup;
+			children = (
+				3C6B172E2131CB5B003C313B /* main.c */,
+			);
+			path = CoreExplore;
 			sourceTree = "<group>";
 		};
 		3C902603210A30F100143B69 /* CoreDemo */ = {
@@ -767,6 +883,41 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
+		3C6B172B2131CB5B003C313B /* CoreExplore */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3C6B17322131CB5B003C313B /* Build configuration list for PBXNativeTarget "CoreExplore" */;
+			buildPhases = (
+				3C6B17282131CB5B003C313B /* Sources */,
+				3C6B17292131CB5B003C313B /* Frameworks */,
+				3C6B172A2131CB5B003C313B /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				3C6B177B2131CE60003C313B /* PBXTargetDependency */,
+			);
+			name = CoreExplore;
+			productName = CoreExplore;
+			productReference = 3C6B172C2131CB5B003C313B /* CoreExplore */;
+			productType = "com.apple.product-type.tool";
+		};
+		3C6B17362131CE12003C313B /* CoreMacOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3C6B17762131CE12003C313B /* Build configuration list for PBXNativeTarget "CoreMacOS" */;
+			buildPhases = (
+				3C6B17372131CE12003C313B /* Sources */,
+				3C6B17742131CE12003C313B /* Frameworks */,
+				3C6B17752131CE12003C313B /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CoreMacOS;
+			productName = Core;
+			productReference = 3C6B17792131CE12003C313B /* libCoreMacOS.a */;
+			productType = "com.apple.product-type.library.static";
+		};
 		3C902601210A30F100143B69 /* CoreDemo */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 3C902615210A30F400143B69 /* Build configuration list for PBXNativeTarget "CoreDemo" */;
@@ -869,6 +1020,9 @@
 				LastUpgradeCheck = 0930;
 				ORGANIZATIONNAME = breadwallet;
 				TargetAttributes = {
+					3C6B172B2131CB5B003C313B = {
+						CreatedOnToolsVersion = 9.4.1;
+					};
 					3C902601210A30F100143B69 = {
 						CreatedOnToolsVersion = 9.4.1;
 					};
@@ -904,6 +1058,8 @@
 				3CAB609A20AF8C5D00810CE4 /* Core */,
 				3CAB60A520AF8C8500810CE4 /* CoreTests */,
 				3C902601210A30F100143B69 /* CoreDemo */,
+				3C6B172B2131CB5B003C313B /* CoreExplore */,
+				3C6B17362131CE12003C313B /* CoreMacOS */,
 			);
 		};
 /* End PBXProject section */
@@ -943,6 +1099,81 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		3C6B17282131CB5B003C313B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3C6B172F2131CB5B003C313B /* main.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		3C6B17372131CE12003C313B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3C6B17382131CE12003C313B /* BREthereum.c in Sources */,
+				3C6B17392131CE12003C313B /* BREthereumEther.c in Sources */,
+				3C6B173A2131CE12003C313B /* BREthereumGas.c in Sources */,
+				3C6B173B2131CE12003C313B /* BREthereumHash.c in Sources */,
+				3C6B173C2131CE12003C313B /* BREthereumAddress.c in Sources */,
+				3C6B173D2131CE12003C313B /* BREthereumSignature.c in Sources */,
+				3C6B173E2131CE12003C313B /* BREthereumTransaction.c in Sources */,
+				3C6B173F2131CE12003C313B /* BREthereumBloomFilter.c in Sources */,
+				3C6B17402131CE12003C313B /* BREthereumNetwork.c in Sources */,
+				3C6B17412131CE12003C313B /* BREthereumTransactionReceipt.c in Sources */,
+				3C6B17422131CE12003C313B /* BREthereumAccountState.c in Sources */,
+				3C6B17432131CE12003C313B /* BREthereumLog.c in Sources */,
+				3C6B17442131CE12003C313B /* BREthereumTransactionStatus.c in Sources */,
+				3C6B17452131CE12003C313B /* BREthereumBlock.c in Sources */,
+				3C6B17462131CE12003C313B /* BREthereumAmount.c in Sources */,
+				3C6B17472131CE12003C313B /* BREthereumAccount.c in Sources */,
+				3C6B17482131CE12003C313B /* BREthereumWallet.c in Sources */,
+				3C6B17492131CE12003C313B /* BREthereumBCS.c in Sources */,
+				3C6B174A2131CE12003C313B /* BREthereumToken.c in Sources */,
+				3C6B174B2131CE12003C313B /* BREthereumContract.c in Sources */,
+				3C6B174C2131CE12003C313B /* BREvent.c in Sources */,
+				3C6B174D2131CE12003C313B /* BREventQueue.c in Sources */,
+				3C6B174E2131CE12003C313B /* BREthereumLES.c in Sources */,
+				3C6B174F2131CE12003C313B /* BREthereumBCSEvent.c in Sources */,
+				3C6B17502131CE12003C313B /* BREventAlarm.c in Sources */,
+				3C6B17512131CE12003C313B /* BREthereumLESFrameCoder.c in Sources */,
+				3C6B17522131CE12003C313B /* BRKeccak.c in Sources */,
+				3C6B17532131CE12003C313B /* BREthereumEWM.c in Sources */,
+				3C6B17542131CE12003C313B /* BRRlpCoder.c in Sources */,
+				3C6B17552131CE12003C313B /* BRUtilMath.c in Sources */,
+				3C6B17562131CE12003C313B /* BRUtilMathParse.c in Sources */,
+				3C6B17572131CE12003C313B /* BRUtilHex.c in Sources */,
+				3C6B17582131CE12003C313B /* BRBCashAddr.c in Sources */,
+				3C6B17592131CE12003C313B /* BRAddress.c in Sources */,
+				3C6B175A2131CE12003C313B /* BRBase58.c in Sources */,
+				3C6B175B2131CE12003C313B /* BREthereumBCSSync.c in Sources */,
+				3C6B175C2131CE12003C313B /* BRBech32.c in Sources */,
+				3C6B175D2131CE12003C313B /* BRBIP32Sequence.c in Sources */,
+				3C6B175E2131CE12003C313B /* BREthereumLESMessage.c in Sources */,
+				3C6B175F2131CE12003C313B /* BRBIP38Key.c in Sources */,
+				3C6B17602131CE12003C313B /* BREthereumMPT.c in Sources */,
+				3C6B17612131CE12003C313B /* BREthereumTransfer.c in Sources */,
+				3C6B17622131CE12003C313B /* BREthereumLESNode.c in Sources */,
+				3C6B17632131CE12003C313B /* BRBIP39Mnemonic.c in Sources */,
+				3C6B17642131CE12003C313B /* BRBloomFilter.c in Sources */,
+				3C6B17652131CE12003C313B /* BRCrypto.c in Sources */,
+				3C6B17662131CE12003C313B /* BRKeyECIES.c in Sources */,
+				3C6B17672131CE12003C313B /* BREthereumEWMClientEvent.c in Sources */,
+				3C6B17682131CE12003C313B /* BRKey.c in Sources */,
+				3C6B17692131CE12003C313B /* BREthereumLESNodeEndpoint.c in Sources */,
+				3C6B176A2131CE12003C313B /* BRMerkleBlock.c in Sources */,
+				3C6B176B2131CE12003C313B /* BRPaymentProtocol.c in Sources */,
+				3C6B176C2131CE12003C313B /* BRPeer.c in Sources */,
+				3C6B176D2131CE12003C313B /* BRPeerManager.c in Sources */,
+				3C6B176E2131CE12003C313B /* BRSet.c in Sources */,
+				3C6B176F2131CE12003C313B /* BREthereumLESRandom.c in Sources */,
+				3C6B17702131CE12003C313B /* BREthereumEWMEvent.c in Sources */,
+				3C6B17712131CE12003C313B /* BRTransaction.c in Sources */,
+				3C6B17722131CE12003C313B /* BREthereumEWMClient.c in Sources */,
+				3C6B17732131CE12003C313B /* BRWallet.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		3C9025FE210A30F100143B69 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1072,6 +1303,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		3C6B177B2131CE60003C313B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 3C6B17362131CE12003C313B /* CoreMacOS */;
+			targetProxy = 3C6B177A2131CE60003C313B /* PBXContainerItemProxy */;
+		};
 		3C902617210A312500143B69 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 3CAB60EE20AF936200810CE4 /* BRCore */;
@@ -1236,6 +1472,84 @@
 				VALIDATE_PRODUCT = YES;
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
+			};
+			name = Release;
+		};
+		3C6B17302131CB5B003C313B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 4R7S6N88W9;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		3C6B17312131CB5B003C313B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 4R7S6N88W9;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		3C6B17772131CE12003C313B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_COMMA = NO;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 4R7S6N88W9;
+				HEADER_SEARCH_PATHS = (
+					./,
+					../,
+					../secp256k1/,
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 11.3;
+				OTHER_CFLAGS = (
+					"-DBITCOIN_DEBUG",
+					"-DBITCOIN_TESTNET=1",
+				);
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 4.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		3C6B17782131CE12003C313B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_COMMA = NO;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 4R7S6N88W9;
+				HEADER_SEARCH_PATHS = (
+					./,
+					../,
+					../secp256k1/,
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 11.3;
+				OTHER_CFLAGS = (
+					"-DBITCOIN_DEBUG",
+					"-DBITCOIN_TESTNET=1",
+				);
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 4.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -1467,6 +1781,24 @@
 			buildConfigurations = (
 				3C590F2920950C160005597B /* Debug */,
 				3C590F2A20950C160005597B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		3C6B17322131CB5B003C313B /* Build configuration list for PBXNativeTarget "CoreExplore" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3C6B17302131CB5B003C313B /* Debug */,
+				3C6B17312131CB5B003C313B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		3C6B17762131CE12003C313B /* Build configuration list for PBXNativeTarget "CoreMacOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3C6B17772131CE12003C313B /* Debug */,
+				3C6B17782131CE12003C313B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
