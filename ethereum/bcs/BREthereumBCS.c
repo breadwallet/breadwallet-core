@@ -336,27 +336,12 @@ bcsSendLogRequest (BREthereumBCS bcs,
 extern void
 bcsHandleSubmitTransaction (BREthereumBCS bcs,
                             BREthereumTransaction transaction) {
-
     bcsSignalTransaction(bcs, transaction);
 
-    // Use LES to submit the transaction; provide our transactionStatus callback.
-    BREthereumLESStatus lesStatus =
     lesSubmitTransaction(bcs->les,
                          (BREthereumLESTransactionStatusContext) bcs,
                          (BREthereumLESTransactionStatusCallback) bcsSignalTransactionStatus,
                          transaction);
-
-    switch (lesStatus) {
-        case LES_SUCCESS:
-            break;
-        case LES_ERROR_UNKNOWN:
-        case LES_ERROR_NETWORK_UNREACHABLE: {
-            bcsSignalTransactionStatus(bcs,
-                                       transactionGetHash(transaction),
-                                       transactionStatusCreateErrored("LES Submit Failed"));
-            break;
-        }
-    }
 }
 
 extern void

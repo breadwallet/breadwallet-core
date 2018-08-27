@@ -21,7 +21,6 @@ class WalletViewController: UITableViewController, TransferListener {
     override func viewDidLoad() {
         super.viewDidLoad()
         self.tableView.rowHeight = 100
-        self.navigationItem.title = "Wallet: \(wallet.name)"
 
 
         // Uncomment the following line to preserve selection between presentations

@@ -39,23 +39,42 @@
 
 #define LES_LOG_TOPIC "LES"
 
-#define LES_IDENTIFIER_OFFSET_DEAL_WITH_IT   (0x10)
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 //
 // BREthereumMessageCoder - when RLP encoding and decoding messages, we need both the
-// RLP Coder and the Network.  The network is required for decoding transactions - where the
-// signature encodes the network's chain id.
+// RLP Coder, the Network and a LES message offset.  The network is required for decoding
+// transactions - where the signature encodes the network's chain id.  The LES message offset
+// is required to offset a LES message id (away from the P2P id space).
 //
 // We could have considered modifying BRRlpCoder to include the network - however, the RLP
-// module *absolutely does not* depend on anything...
+// module *absolutely does not* depend on anything...  So we'll use this 'MessageCoder' abstraction
+// to bundle all the LES specific needs.
 //
 typedef struct {
     BRRlpCoder rlp;
     BREthereumNetwork network;
+
+    // The offset for LES messages.  This is determined by 'negotiating' subprotocols
+    // https://github.com/ethereum/wiki/wiki/ÐΞVp2p-Wire-Protocol
+    //
+    // "ÐΞVp2p is designed to support arbitrary sub-protocols (aka capabilities) over the basic
+    // wire protocol. Each sub-protocol is given as much of the message-ID space as it needs (all
+    // such protocols must statically specify how many message IDs they require). On connection and
+    // reception of the Hello message, both peers have equivalent information about what
+    // subprotocols they share (including versions) and are able to form consensus over the
+    // composition of message ID space.
+    //
+    // "Message IDs are assumed to be compact from ID 0x10 onwards (0x00-0x10 is reserved for
+    // ÐΞVp2p messages) and given to each shared (equal-version, equal name) sub-protocol in
+    // alphabetic order. Sub-protocols that are not shared are ignored. If multiple versions are
+    // shared of the same (equal name) sub-protocol, the numerically highest wins, others are
+    // ignored."
+    //
+    // Generally, we have one protocol specified
+    uint64_t lesMessageIdOffset;
 } BREthereumMessageCoder;
 
 //
@@ -110,6 +129,13 @@ messageP2PHelloDecode (BRRlpItem item, BREthereumMessageCoder coder);
 extern void
 messageP2PHelloShow (BREthereumP2PMessageHello hello);
 
+extern BREthereumBoolean
+messageP2PCababilityEqual (const BREthereumP2PCapability *cap1,
+                           const BREthereumP2PCapability *cap2);
+
+extern BREthereumBoolean
+messageP2PHelloHasCapability (const BREthereumP2PMessageHello *hello,
+                              const BREthereumP2PCapability *capability);
 //
 // P2P Disconnect
 //
@@ -194,7 +220,9 @@ typedef struct {
 
 /**
  * Node DIScovery (apparently V4) defines four message types: PING, PONG, FIND_NEIGHBORS and
- * NEIGHBORS.
+ * NEIGHBORS.  Note that the message identifier of '0x00' is reserved.  This DIS identifier of
+ * 0x00, ..., 0x04 overlap with the P2P identifier; however, the DIS identifier are used on the
+ * UDP route (and PIP identifiers are use don the TCP route).
  */
 typedef enum {
     DIS_MESSAGE_PING           = 0x01,
@@ -203,12 +231,15 @@ typedef enum {
     DIS_MESSAGE_NEIGHBORS      = 0x04
 } BREthereumDISMessageIdentifier;
 
+#define MESSAGE_DIS_IDENTIFIER_ANY   ((BREthereumDISMessageIdentifier) 0x00)
+
 extern const char *
 messageDISGetIdentifierName (BREthereumDISMessageIdentifier identifier);
 
 /**
- * A DIS Endpoint is commonly used to identify an INET address.  Sometimes this is provided
- * to identify the sender and, most importantly, to identify peers.
+ * A DIS Endpoint is commonly used to identify an INET address.  Sometimes a DIS Endpoint is
+ * provided to identify from/to (like in the Ping/Pong mesages) and, most importantly, to identify
+ * peers (like in the Neighbor message).
  */
 typedef struct {
     /** The AF (Address Family) domain - one of AF_INET or AF_INET6 */

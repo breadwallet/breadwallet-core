@@ -121,14 +121,15 @@ nodeEndpointOpen (BREthereumLESNodeEndpoint *endpoint,
 
 extern int
 nodeEndpointClose (BREthereumLESNodeEndpoint *endpoint,
-                   BREthereumLESNodeEndpointRoute route) {
+                   BREthereumLESNodeEndpointRoute route,
+                   int needShutdown) {
     int socket;
 
     socket = endpoint->sockets[route];
     if (socket >= 0) {
         endpoint->sockets[route] = -1;
 
-        if (shutdown (socket, SHUT_RDWR) < 0) {
+        if (needShutdown && shutdown (socket, SHUT_RDWR) < 0) {
             eth_log (LES_LOG_TOPIC, "Socket %d (%s) Shutdown Error: %s", socket,
                      nodeEndpointRouteGetName (route),
                      strerror(errno));
@@ -156,7 +157,7 @@ nodeEndpointIsOpen (BREthereumLESNodeEndpoint *endpoint,
 
 /// MARK: - Recv Data
 
-extern int
+extern int // errno
 nodeEndpointRecvData (BREthereumLESNodeEndpoint *endpoint,
                       BREthereumLESNodeEndpointRoute route,
                       uint8_t *bytes,
@@ -174,6 +175,7 @@ nodeEndpointRecvData (BREthereumLESNodeEndpoint *endpoint,
         ssize_t n = recv (socket, &bytes[totalCount], *bytesCount - totalCount, 0);
         if (n == 0) error = ECONNRESET;
         else if (n < 0 && errno != EWOULDBLOCK) error = errno;
+        else if (n < 0 && errno == EWOULDBLOCK) continue;
         else {
             totalCount += n;
             if (!needBytesCount) break;
@@ -183,10 +185,11 @@ nodeEndpointRecvData (BREthereumLESNodeEndpoint *endpoint,
     }
 
     if (error)
-        eth_log (LES_LOG_TOPIC, "Recv: %s %zu bytes <= %s Error: %s",
-                 (route == NODE_ROUTE_TCP ? "TCP" : "UDP"),
-                 *bytesCount,
+        eth_log (LES_LOG_TOPIC, "Recv: %s @ %5d => %15s %s%s",
+                 nodeEndpointRouteGetName(route),
+                 (NODE_ROUTE_UDP == route ? endpoint->dis.portUDP : endpoint->dis.portTCP),
                  endpoint->hostname,
+                 "Error: ",
                  strerror(error));
     else {
         // !! DON'T MISS THIS !!
@@ -230,10 +233,11 @@ nodeEndpointSendData (BREthereumLESNodeEndpoint *endpoint,
     }
 
     if (error)
-        eth_log (LES_LOG_TOPIC, "Send: %s %zu bytes => %s Error: %s",
-                 (route == NODE_ROUTE_TCP ? "TCP" : "UDP"),
-                 bytesCount,
+        eth_log (LES_LOG_TOPIC, "Send: %s @ %5d => %15s %s%s",
+                 nodeEndpointRouteGetName(route),
+                 (NODE_ROUTE_UDP == route ? endpoint->dis.portUDP : endpoint->dis.portTCP),
                  endpoint->hostname,
+                 "Error: ",
                  strerror(error));
     else {
 #if defined (LES_LOG_SEND)
@@ -284,7 +288,7 @@ nodeEndpointFillSockAddr (BREthereumLESNodeEndpoint *endpoint,
 
 static int
 openSocketReportResult (BREthereumLESNodeEndpoint *endpoint, int port, int type, int error) {
-    eth_log (LES_LOG_TOPIC, "Open: %s @ %d => %s %s%s",
+    eth_log (LES_LOG_TOPIC, "Open: %s @ %5d => %15s %s%s",
              (type == SOCK_STREAM ? "TCP" : "UDP"),
              port,
              endpoint->hostname,

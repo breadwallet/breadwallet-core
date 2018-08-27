@@ -114,16 +114,19 @@ extern void
 rlpCoderRelease (BRRlpCoder coder) {
     BRRlpItem item;
     pthread_mutex_lock(&coder->lock);
+
+    // Every single Item must be returned!
     assert (NULL == coder->busy);
 
     item = coder->free;
     while (item != NULL) {
-        BRRlpItem next = item->next;
+        BRRlpItem next = item->next;   // save 'next' before release...
         itemReleaseMemory (item);
         item = next;
     }
 
     pthread_mutex_unlock(&coder->lock);
+    pthread_mutex_destroy(&coder->lock);
     free (coder);
 }
 

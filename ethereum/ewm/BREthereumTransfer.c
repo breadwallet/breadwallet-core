@@ -81,7 +81,7 @@ transferStatusCreate (BREthereumTransactionStatus status) {
 
         case TRANSACTION_STATUS_ERRORED:
             result.type = TRANSFER_STATUS_ERRORED;
-            memcpy (result.u.errored.reason, 0, TRANSFER_STATUS_REASON_BYTES + 1);
+            memset (result.u.errored.reason, 0, TRANSFER_STATUS_REASON_BYTES + 1);
             strncpy (result.u.errored.reason, status.u.errored.reason, TRANSFER_STATUS_REASON_BYTES);
             break;
 

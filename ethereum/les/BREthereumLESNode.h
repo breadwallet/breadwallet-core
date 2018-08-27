@@ -36,10 +36,49 @@ extern "C" {
 typedef struct BREthereumLESNodeRecord *BREthereumLESNode;
 
 typedef enum {
-    NODE_ERROR,
-    NODE_SUCCESS,
-} BREthereumLESNodeStatus;
+    NODE_AVAILABLE,
+    NODE_CONNECTING,
+    NODE_CONNECTED,
+    NODE_EXHAUSTED,
+    NODE_ERROR_UNIX,
+    NODE_ERROR_DISCONNECT,
+    NODE_ERROR_PROTOCOL
+} BREthereumLESNodeStateType;
 
+typedef enum  {
+    NODE_CONNECT_OPEN,
+
+    NODE_CONNECT_AUTH,
+    NODE_CONNECT_AUTH_ACK,
+    NODE_CONNECT_HELLO,
+    NODE_CONNECT_HELLO_ACK,
+    NODE_CONNECT_STATUS,
+    NODE_CONNECT_STATUS_ACK,
+
+    NODE_CONNECT_PING,
+    NODE_CONNECT_PING_ACK,
+} BREthereumLESNodeConnectType;
+
+typedef struct {
+    BREthereumLESNodeStateType type;
+    union {
+        struct {
+            BREthereumLESNodeConnectType type;
+        } connect;
+
+        struct {
+            uint64_t timestamp;
+        } exhausted;
+
+        struct {
+            int error;
+        } unix;
+
+        struct {
+            BREthereumP2PDisconnectReason reason;
+        } disconnect;
+    } u;
+} BREthereumLESNodeState;
 
 typedef void *BREthereumLESNodeContext;
 
@@ -49,30 +88,42 @@ typedef void
                                      BREthereumLESMessage message);
 
 typedef void
-(*BREthereumLESNodeCallbackConnect) (BREthereumLESNodeContext context,
-                                     BREthereumLESNode node,
-                                     BREthereumLESNodeStatus status);
+(*BREthereumLESNodeCallbackState) (BREthereumLESNodeContext context,
+                                   BREthereumLESNode node,
+                                   BREthereumLESNodeEndpointRoute route,
+                                   BREthereumLESNodeState state);
 
 // connect
 // disconnect
 // network reachable
 
+typedef enum {
+    NODE_TYPE_GETH,
+    NODE_TYPE_PARITY
+} BREthereumLESNodeType;
+
+/**
+ * Create a node
+ *
+ * @param network
+ * @param remote
+ * @param remote
+ * @param local
+ * @param context
+ * @param callbackMessage
+ * @param callbackStatus
+ * @return
+ */
 extern BREthereumLESNode // add 'message id offset'?
 nodeCreate (BREthereumNetwork network,
             BREthereumLESNodeEndpoint remote,  // remote, local ??
             BREthereumLESNodeEndpoint local,
             BREthereumLESNodeContext context,
             BREthereumLESNodeCallbackMessage callbackMessage,
-            BREthereumLESNodeCallbackConnect callbackConnect);
+            BREthereumLESNodeCallbackState callbackStatus);
 
 extern void
 nodeRelease (BREthereumLESNode node);
-
-extern BREthereumLESNodeEndpoint *
-nodeGetRemoteEndpoint (BREthereumLESNode node);
-
-extern BREthereumLESNodeEndpoint *
-nodeGetLocalEndpoint (BREthereumLESNode node);
 
 extern void
 nodeConnect (BREthereumLESNode node,
@@ -80,15 +131,31 @@ nodeConnect (BREthereumLESNode node,
 
 extern void
 nodeDisconnect (BREthereumLESNode node,
-                BREthereumLESNodeEndpointRoute route);
+                BREthereumLESNodeEndpointRoute route,
+                BREthereumP2PDisconnectReason reason);
+
+extern BREthereumLESNodeEndpoint *
+nodeGetRemoteEndpoint (BREthereumLESNode node);
+
+extern BREthereumLESNodeEndpoint *
+nodeGetLocalEndpoint (BREthereumLESNode node);
 
 extern int
-nodeIsConnected (BREthereumLESNode node,
-                 BREthereumLESNodeEndpointRoute route);
+nodeHasState (BREthereumLESNode node,
+              BREthereumLESNodeEndpointRoute route,
+              BREthereumLESNodeStateType type);
 
 extern int
-nodeIsConnecting (BREthereumLESNode node,
-                  BREthereumLESNodeEndpointRoute route);
+nodeHasErrorState (BREthereumLESNode node,
+                   BREthereumLESNodeEndpointRoute route);
+
+extern BREthereumLESNodeState
+nodeGetState (BREthereumLESNode node,
+              BREthereumLESNodeEndpointRoute route);
+
+extern void
+nodeSetStateErrorProtocol (BREthereumLESNode node,
+                           BREthereumLESNodeEndpointRoute route);
 
 extern int
 nodeUpdateDescriptors (BREthereumLESNode node,
@@ -100,21 +167,52 @@ nodeCanProcess (BREthereumLESNode node,
                 BREthereumLESNodeEndpointRoute route,
                 fd_set *descriptors);
 
-extern void
-nodeSend (BREthereumLESNode node,
-          BREthereumLESNodeEndpointRoute route,
-          BREthereumMessage message);   // BRRlpData/BRRlpItem *optionalMessageData/Item
-
-extern BREthereumMessage
-nodeRecv (BREthereumLESNode node,
-          BREthereumLESNodeEndpointRoute route);
-
 extern uint64_t
 nodeEstimateCredits (BREthereumLESNode node,
                      BREthereumMessage message);
 
 extern uint64_t
 nodeGetCredits (BREthereumLESNode node);
+
+extern BREthereumBoolean
+nodeGetDiscovered (BREthereumLESNode node);
+
+extern void
+nodeSetDiscovered (BREthereumLESNode node,
+                   BREthereumBoolean discovered);
+
+extern size_t
+nodeHashValue (const void *node);
+
+extern int
+nodeHashEqual (const void *node1,
+               const void *node2);
+
+typedef enum {
+    NODE_STATUS_SUCCESS,
+    NODE_STATUS_ERROR
+} BREthereumLESNodeStatus;
+
+typedef struct {
+    BREthereumLESNodeStatus status;
+    union {
+        struct {
+            BREthereumMessage message;
+        } success;
+
+        struct {
+        } error;
+    } u;
+} BREthereumLESNodeMessageResult;
+
+extern BREthereumLESNodeStatus
+nodeSend (BREthereumLESNode node,
+          BREthereumLESNodeEndpointRoute route,
+          BREthereumMessage message);   // BRRlpData/BRRlpItem *optionalMessageData/Item
+
+extern BREthereumLESNodeMessageResult
+nodeRecv (BREthereumLESNode node,
+          BREthereumLESNodeEndpointRoute route);
 
 #ifdef __cplusplus
 }

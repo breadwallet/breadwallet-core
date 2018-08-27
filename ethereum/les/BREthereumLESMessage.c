@@ -37,6 +37,8 @@
 // MaxTxSend                = 64  // Amount of transactions to be send per request
 // MaxTxStatus              = 256 // Amount of transactions to queried per request
 
+// #define NEED_TO_PRINT_DIS_NEIGHBOR_DETAILS
+
 static BREthereumLESMessageStatusKey lesMessageStatusKeys[] = {
     "protocolVersion",
     "networkId",
@@ -119,16 +121,36 @@ messageP2PHelloDecode (BRRlpItem item, BREthereumMessageCoder coder) {
 
 extern void
 messageP2PHelloShow (BREthereumP2PMessageHello hello) {
+    size_t nodeIdLen = 2 * sizeof (hello.nodeId.u8) + 1;
+    char nodeId[nodeIdLen];
+    encodeHex(nodeId, nodeIdLen, hello.nodeId.u8, sizeof (hello.nodeId.u8));
+
     eth_log (LES_LOG_TOPIC, "Hello%s", "");
     eth_log (LES_LOG_TOPIC, "    Version     : %llu", hello.version);
     eth_log (LES_LOG_TOPIC, "    ClientId    : %s",   hello.clientId);
     eth_log (LES_LOG_TOPIC, "    ListenPort  : %llu", hello.port);
-    eth_log (LES_LOG_TOPIC, "    NodeId      : { %llu, ...}", hello.nodeId.u64[0]);
+    eth_log (LES_LOG_TOPIC, "    NodeId      : 0x%s", nodeId);
     eth_log (LES_LOG_TOPIC, "    Capabilities:%s", "");
     for (size_t index = 0; index < array_count(hello.capabilities); index++)
         eth_log (LES_LOG_TOPIC, "        %s = %u",
                  hello.capabilities[index].name,
                  hello.capabilities[index].version);
+}
+
+extern BREthereumBoolean
+messageP2PCababilityEqual (const BREthereumP2PCapability *cap1,
+                           const BREthereumP2PCapability *cap2) {
+    return AS_ETHEREUM_BOOLEAN (0 == strcmp (cap1->name, cap2->name) &&
+                                cap1->version == cap2->version);
+}
+
+extern BREthereumBoolean
+messageP2PHelloHasCapability (const BREthereumP2PMessageHello *hello,
+                              const BREthereumP2PCapability *capability) {
+    for (size_t index = 0; index < array_count (hello->capabilities); index++)
+        if (ETHEREUM_BOOLEAN_IS_TRUE(messageP2PCababilityEqual(capability, &hello->capabilities[index])))
+            return ETHEREUM_BOOLEAN_TRUE;
+    return ETHEREUM_BOOLEAN_FALSE;
 }
 
 extern const char *
@@ -377,7 +399,6 @@ messageDISNeighborsDecode (BRRlpItem item, BREthereumMessageCoder coder, int rel
         array_add (message.neighbors,
                    neighborDISDecode (neighborItems[index], coder));
 
-#define NEED_TO_PRINT_DIS_NEIGHBOR_DETAILS
 #if defined (NEED_TO_PRINT_DIS_NEIGHBOR_DETAILS)
     eth_log (LES_LOG_TOPIC, "Neighbors: %s", "");
     for (size_t index = 0; index < neighborsCount; index++) {
@@ -831,24 +852,40 @@ messageLESStatusDecode (BRRlpItem item, BREthereumMessageCoder coder) {
 
 extern void
 messageLESStatusShow(BREthereumLESMessageStatus *message) {
+    BREthereumHashString headHashString, genesisHashString;
+    hashFillString (message->headHash, headHashString);
+    hashFillString (message->genesisHash, genesisHashString);
+
+    char *headTotalDifficulty = coerceString (message->headTd, 10);
+
     eth_log (LES_LOG_TOPIC, "StatusMessage:%s", "");
     eth_log (LES_LOG_TOPIC, "    ProtocolVersion: %llu", message->protocolVersion);
+    eth_log (LES_LOG_TOPIC, "    AnnounceType   : %llu", message->announceType);
     eth_log (LES_LOG_TOPIC, "    NetworkId      : %llu", message->chainId);
     eth_log (LES_LOG_TOPIC, "    HeadNum        : %llu", message->headNum);
-    eth_log (LES_LOG_TOPIC, "    ...            : %s", "");
+    eth_log (LES_LOG_TOPIC, "    HeadHash       : %s",   headHashString);
+    eth_log (LES_LOG_TOPIC, "    HeadTD         : %s",   headTotalDifficulty);
+    eth_log (LES_LOG_TOPIC, "    GenesisHash    : %s",   genesisHashString);
+    eth_log (LES_LOG_TOPIC, "    ServeHeaders   : %s", ETHEREUM_BOOLEAN_IS_TRUE(message->serveHeaders) ? "Yes" : "No");
+    eth_log (LES_LOG_TOPIC, "    ServeChainSince: %llu", (NULL != message->serveChainSince ? *message->serveChainSince : -1)) ;
+    eth_log (LES_LOG_TOPIC, "    ServeStateSince: %llu", (NULL != message->serveStateSince ? *message->serveStateSince : -1)) ;
     eth_log (LES_LOG_TOPIC, "    TxRelay        : %s", ETHEREUM_BOOLEAN_IS_TRUE(message->txRelay) ? "Yes" : "No");
+    eth_log (LES_LOG_TOPIC, "    FlowControl/BL : %llu", (NULL != message->flowControlBL  ? *message->flowControlBL  : -1));
+    eth_log (LES_LOG_TOPIC, "    FlowControl/MRR: %llu", (NULL != message->flowControlMRR ? *message->flowControlMRR : -1));
 
     size_t count = *(message->flowControlMRCCount);
-    eth_log (LES_LOG_TOPIC, "    FlowControl/MRC%s", "");
+    eth_log (LES_LOG_TOPIC, "    FlowControl/MRC:%s", "");
     for (size_t index = 0; index < count; index++) {
         const char *label = messageLESGetIdentifierName ((BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);
         if (NULL != label) {
-            eth_log (LES_LOG_TOPIC, "      === %d", (BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);
+            eth_log (LES_LOG_TOPIC, "      %2d", (BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);
             eth_log (LES_LOG_TOPIC, "        Request : %s", label);
             eth_log (LES_LOG_TOPIC, "        BaseCost: %llu", message->flowControlMRC[index].baseCost);
             eth_log (LES_LOG_TOPIC, "        ReqCost : %llu", message->flowControlMRC[index].reqCost);
         }
     }
+
+    free (headTotalDifficulty);
 }
 
 /// Mark: LES Announce
@@ -1268,7 +1305,7 @@ messageLESEncode (BREthereumLESMessage message,
     }
 
     return rlpEncodeList2 (coder.rlp,
-                           rlpEncodeUInt64 (coder.rlp, message.identifier + LES_IDENTIFIER_OFFSET_DEAL_WITH_IT, 1),
+                           rlpEncodeUInt64 (coder.rlp, message.identifier + coder.lesMessageIdOffset, 1),
                            body);
 }
 

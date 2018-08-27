@@ -123,19 +123,19 @@ class CoreDemoEthereumClient : EthereumClient {
     }
 
     func savePeers(ewm: EthereumWalletManager) {
-        print ("TST: savePeers\n")
+        print ("TST: savePeers")
     }
 
     func saveBlocks(ewm: EthereumWalletManager) {
-        print ("TST: saveBlocks\n")
+        print ("TST: saveBlocks")
     }
 
     func changeTransaction(ewm: EthereumWalletManager, change: EthereumClientChangeType) {
-        print ("TST: changeTransaction\n")
+        print ("TST: changeTransaction")
     }
 
     func changeLog(ewm: EthereumWalletManager, change: EthereumClientChangeType) {
-        print ("TST: changeLog\n")
+        print ("TST: changeLog")
     }
 
 
@@ -147,7 +147,7 @@ class CoreDemoEthereumClient : EthereumClient {
     }
 
     func handlePeerEvent(ewm: EthereumWalletManager, event: EthereumPeerEvent) {
-        print ("TST: PeerEvent: \(event)\n")
+        print ("TST: PeerEvent: \(event)")
     }
 
     //
@@ -161,7 +161,7 @@ class CoreDemoEthereumClient : EthereumClient {
     func handleWalletEvent(ewm: EthereumWalletManager,
                            wallet: EthereumWallet,
                            event: EthereumWalletEvent) {
-        print ("TST: WalletEvent: \(event)\n")
+        print ("TST: WalletEvent: \(event)")
         walletListeners.forEach {
             $0.announceWalletEvent(ewm: ewm, wallet: wallet, event: event)
         }
@@ -190,7 +190,7 @@ class CoreDemoEthereumClient : EthereumClient {
                                 wallet: EthereumWallet,
                                 transfer: EthereumTransfer,
                                 event: EthereumTransferEvent) {
-        print ("TST: TransferEvent: \(event)\n")
+        print ("TST: TransferEvent: \(event)")
         if let listener = transferListeners[wallet] {
             listener.announceTransferEvent(ewm: ewm, wallet: wallet, transfer: transfer, event: event)
         }
