@@ -266,10 +266,11 @@ typedef struct {
     BREthereumHash hash;
 
     BREthereumBlockRequestState transactionRequest;
-    BREthereumTransaction *transactions;
+    BRArrayOf (BREthereumTransaction) transactions;
+    BRArrayOf (BREthereumGas) gasUsed;
 
     BREthereumBlockRequestState logRequest;
-    BREthereumLog *logs;
+    BRArrayOf(BREthereumLog) logs;
 
     BREthereumBlockRequestState accountStateRequest;
     BREthereumAccountState accountState;
@@ -311,7 +312,11 @@ blockReportStatusTransactionsRequest (BREthereumBlock block,
  */
 extern void
 blockReportStatusTransactions (BREthereumBlock block,
-                               BREthereumTransaction *transactions);
+                               BRArrayOf(BREthereumTransaction) transactions);
+
+extern void
+blockReportStatusGasUsed (BREthereumBlock block,
+                          BRArrayOf(BREthereumGas) gasUsed);
 
 //
 // Log Request
@@ -330,7 +335,7 @@ blockReportStatusLogsRequest (BREthereumBlock block,
  */
 extern void
 blockReportStatusLogs (BREthereumBlock block,
-                       BREthereumLog *log);
+                       BRArrayOf(BREthereumLog) log);
 
 
 //

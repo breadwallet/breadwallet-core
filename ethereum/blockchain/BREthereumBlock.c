@@ -673,7 +673,23 @@ blockLinkLogsWithTransactions (BREthereumBlock block) {
     assert (ETHEREUM_BOOLEAN_IS_TRUE (blockHasStatusLogsRequest(block, BLOCK_REQUEST_COMPLETE)) &&
             ETHEREUM_BOOLEAN_IS_TRUE (blockHasStatusTransactionsRequest(block, BLOCK_REQUEST_COMPLETE)));
 
-    size_t logsCount = array_count(block->status.logs);
+    // Having both transaction and logs (from receipts):
+
+    // First, we can only now set gasUsed for each transaction;
+    size_t transactionsCount = (NULL == block->status.transactions ? 0 : array_count(block->status.transactions));
+    for (size_t index = 0; index < transactionsCount; index++) {
+        BREthereumTransaction transaction = block->status.transactions[index];
+        BREthereumTransactionStatus status =transactionGetStatus(transaction);
+
+        uint64_t transactionIndex, blockNumber;
+        if (transactionStatusExtractIncluded(&status, NULL, NULL, &blockNumber, &transactionIndex)) {
+            status.u.included.gasUsed = block->status.gasUsed[transactionIndex];
+            transactionSetStatus(transaction, status);
+        }
+    }
+
+    // Second, we get initialize the log identifier, as { transactionHash, logIndex }
+    size_t logsCount = (NULL == block->status.logs ? 0 : array_count(block->status.logs));
     for (size_t index = 0; index < logsCount; index++) {
         BREthereumLog log = block->status.logs[index];
         BREthereumTransactionStatus status = logGetStatus(log);
@@ -907,6 +923,12 @@ blockReportStatusTransactions (BREthereumBlock block,
     assert (block->status.transactionRequest == BLOCK_REQEUST_PENDING);
     block->status.transactionRequest = BLOCK_REQUEST_COMPLETE;
     block->status.transactions = transactions;
+}
+
+extern void
+blockReportStatusGasUsed (BREthereumBlock block,
+                          BRArrayOf(BREthereumGas) gasUsed) {
+    block->status.gasUsed = gasUsed;
 }
 
 //
