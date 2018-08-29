@@ -1103,7 +1103,16 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
     blockReportStatusTransactions(block, neededTransactions);
 
     if (NULL != neededTransactions) {
-        // TODO: Something interesting... Not sure what... AccountState {balance, nonce}
+        // Once we've identified a transaction we must get the receipts - because the receipts
+        // hold the cummulative gasUsed which will use to compute the gasUsed by each transaction.
+        if (ETHEREUM_BOOLEAN_IS_TRUE (blockHasStatusLogsRequest (block, BLOCK_REQUEST_NOT_NEEDED))) {
+            blockReportStatusLogsRequest (block, BLOCK_REQUEST_PENDING);
+            lesGetReceiptsOne (bcs->les,
+                               (BREthereumLESReceiptsContext) bcs,
+                               (BREthereumLESReceiptsCallback) bcsSignalTransactionReceipts,
+                               blockGetHash(block));
+        }
+        // Anything more?
     }
 
     // If we requested Receipts (for Logs) and have them, then we can process the Logs.
@@ -1219,25 +1228,42 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
             }
         }
     }
+
+    // Use the cummulative gasUsed, in each receipt, to compute the gasUsed for each transaction.
+    // Note that we compute gasUsed for each and every transaction, even if the transaction is not
+    // one of ours - simply because we can't know our transactions here.  (We do know transactions
+    // for our logs here, but only those transactions).
+    BRArrayOf(BREthereumGas) gasUsedByTransaction;
+    array_new (gasUsedByTransaction, receiptsCount);
+    for (size_t ti = 0; ti < receiptsCount; ti++) {
+        uint64_t gasUsed = (transactionReceiptGetGasUsed(receipts[ti]) -
+                            (ti == 0 ? 0 : transactionReceiptGetGasUsed(receipts[ti-1])));
+        array_add (gasUsedByTransaction, gasCreate (gasUsed));
+    }
+
     bcsReleaseReceiptsFully(bcs, receipts);
 
-    // Report the block status - we'll flat as HAS_LOGS (even if none of interest).
+    // Report the block status - we'll flag as BLOCK_REQUEST_COMPLETE (even if none of interest).
     blockReportStatusLogs(block, neededLogs);
+    // And report the gasUsed per transaction
+    blockReportStatusGasUsed(block, gasUsedByTransaction);
 
     // If we have any logs, then we'll need transactions (block bodies).  We might have them
     // already - if so, use them; if not, request them.
     if (NULL != neededLogs) {
-        if (ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusTransactionsRequest(block, BLOCK_REQUEST_COMPLETE)))
-            blockLinkLogsWithTransactions (block);
-        else if (ETHEREUM_BOOLEAN_IS_TRUE (blockHasStatusTransactionsRequest(block, BLOCK_REQUEST_NOT_NEEDED))) {
-            blockReportStatusTransactionsRequest(block, BLOCK_REQUEST_PENDING);
-            lesGetBlockBodiesOne(bcs->les,
-                                 (BREthereumLESBlockBodiesContext) bcs,
-                                 (BREthereumLESBlockBodiesCallback) bcsSignalBlockBodies,
-                                 blockGetHash(block));
+        if (ETHEREUM_BOOLEAN_IS_TRUE (blockHasStatusTransactionsRequest(block, BLOCK_REQUEST_NOT_NEEDED))) {
+            blockReportStatusTransactionsRequest (block, BLOCK_REQUEST_PENDING);
+            lesGetBlockBodiesOne (bcs->les,
+                                  (BREthereumLESBlockBodiesContext) bcs,
+                                  (BREthereumLESBlockBodiesCallback) bcsSignalBlockBodies,
+                                  blockGetHash(block));
             eth_log("BCS", "Block %llu Needs Bodies (for Logs)", blockGetNumber(block));
         }
+        // Anything else?
     }
+
+    if (ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusTransactionsRequest(block, BLOCK_REQUEST_COMPLETE)))
+        blockLinkLogsWithTransactions (block);
 
     // In the following, 'if appropriate' means complete and chained.
     bcsExtendTransactionsAndLogsForBlockIfAppropriate (bcs, block);
