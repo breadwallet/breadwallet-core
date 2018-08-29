@@ -80,6 +80,9 @@ typedef struct {
     } u;
 } BREthereumLESNodeState;
 
+extern const char *
+nodeStateDescribe (const BREthereumLESNodeState *state);
+
 typedef void *BREthereumLESNodeContext;
 
 typedef void
@@ -213,6 +216,9 @@ nodeSend (BREthereumLESNode node,
 extern BREthereumLESNodeMessageResult
 nodeRecv (BREthereumLESNode node,
           BREthereumLESNodeEndpointRoute route);
+
+extern void
+nodeShow (BREthereumLESNode node);
 
 #ifdef __cplusplus
 }

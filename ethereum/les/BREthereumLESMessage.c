@@ -153,8 +153,25 @@ messageP2PHelloHasCapability (const BREthereumP2PMessageHello *hello,
     return ETHEREUM_BOOLEAN_FALSE;
 }
 
+static const char *disconnectReasonNames[] = {
+    "Requested",
+    "TCP Error",
+    "Breach Proto",
+    "Useless Peer",
+    "Too Many Peers",
+    "Already Connected",
+    "Incompatible P2P",
+    "Null Node",
+    "Client Quit",
+    "Unexpected ID",
+    "ID Same",
+    "Timeout",
+    "Unknown"
+};
 extern const char *
-messageP2PDisconnectDescription (BREthereumP2PDisconnectReason identifier);
+messageP2PDisconnectDescription (BREthereumP2PDisconnectReason identifier) {
+    return disconnectReasonNames [identifier];
+}
 
 //
 static BREthereumP2PMessageDisconnect

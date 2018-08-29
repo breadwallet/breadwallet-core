@@ -137,6 +137,19 @@ nodeStateCreateErrorProtocol (void) {
     return nodeStateCreate (NODE_ERROR_PROTOCOL);
 }
 
+extern const char *
+nodeStateDescribe (const BREthereumLESNodeState *state) {
+    switch (state->type) {
+        case NODE_AVAILABLE: return "Available";
+        case NODE_CONNECTING: return "Connecting";
+        case NODE_CONNECTED: return "Connected";
+        case NODE_EXHAUSTED: return "Exhausted";
+        case NODE_ERROR_UNIX: return strerror (state->u.unix.error);
+        case NODE_ERROR_DISCONNECT: return messageP2PDisconnectDescription(state->u.disconnect.reason);
+        case NODE_ERROR_PROTOCOL: return "Protocol";
+    }
+}
+
 //
 // MARK: - LES Node
 //
@@ -1057,6 +1070,15 @@ extern void
 nodeSetDiscovered (BREthereumLESNode node,
                    BREthereumBoolean discovered) {
     node->discovered = discovered;
+}
+
+extern void
+nodeShow (BREthereumLESNode node) {
+    eth_log (LES_LOG_TOPIC, "Node: %15s", node->remote.hostname);
+    eth_log (LES_LOG_TOPIC, "   UDP       : %s", nodeStateDescribe (&node->states[NODE_ROUTE_UDP]));
+    eth_log (LES_LOG_TOPIC, "   TCP       : %s", nodeStateDescribe (&node->states[NODE_ROUTE_TCP]));
+    eth_log (LES_LOG_TOPIC, "   Discovered: %s", (ETHEREUM_BOOLEAN_IS_TRUE(node->discovered) ? "Yes" : "No"));
+    eth_log (LES_LOG_TOPIC, "   Credits   : %llu", node->credits);
 }
 
 /// MARK: Support
