@@ -132,6 +132,9 @@ extern BREthereumComparison
 blockHeaderCompare (BREthereumBlockHeader h1,
                     BREthereumBlockHeader h2);
 
+extern BREthereumBlockHeader
+blockHeaderCopy (BREthereumBlockHeader source);
+
 /// MARK: Block
 
 //
@@ -154,9 +157,6 @@ extern void
 blockUpdateBody (BREthereumBlock block,
                  BREthereumBlockHeader *ommers,
                  BREthereumTransaction *transactions);
-
-extern BREthereumBlockHeader
-blockHeaderCopy (BREthereumBlockHeader source);
 
 extern void
 blockRelease (BREthereumBlock block);
@@ -257,7 +257,7 @@ typedef struct {
 
 typedef enum {
     BLOCK_REQUEST_NOT_NEEDED,
-    BLOCK_REQEUST_PENDING,
+    BLOCK_REQUEST_PENDING,
     BLOCK_REQUEST_COMPLETE,
     BLOCK_REQUEST_ERROR
 } BREthereumBlockRequestState;

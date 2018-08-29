@@ -153,9 +153,7 @@ bcsCreate (BREthereumNetwork network,
            BRArrayOf(BREthereumLESPeerConfig) peers,
            BRArrayOf(BREthereumBlock) blocks,
            BRArrayOf(BREthereumTransaction) transactions,
-           BRArrayOf(BREthereumLog) logs
-           // peers
-           );
+           BRArrayOf(BREthereumLog) logs);
 
 extern void
 bcsStart (BREthereumBCS bcs);

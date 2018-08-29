@@ -353,10 +353,9 @@ blockHeaderMatch (BREthereumBlockHeader header,
 extern BREthereumBoolean
 blockHeaderMatchAddress (BREthereumBlockHeader header,
                          BREthereumAddress address) {
-    return (ETHEREUM_BOOLEAN_IS_TRUE(blockHeaderMatch(header, bloomFilterCreateAddress(address)))
-            || ETHEREUM_BOOLEAN_IS_TRUE(blockHeaderMatch(header, logTopicGetBloomFilterAddress(address)))
-            ? ETHEREUM_BOOLEAN_TRUE
-            : ETHEREUM_BOOLEAN_FALSE);
+    return AS_ETHEREUM_BOOLEAN
+    (ETHEREUM_BOOLEAN_IS_TRUE (blockHeaderMatch (header, bloomFilterCreateAddress (address))) ||
+     ETHEREUM_BOOLEAN_IS_TRUE (blockHeaderMatch (header, logTopicGetBloomFilterAddress (address))));
 }
 
 extern size_t
@@ -886,9 +885,9 @@ blockGetStatus (BREthereumBlock block) {
 
 extern BREthereumBoolean
 blockHasStatusComplete (BREthereumBlock block) {
-    return AS_ETHEREUM_BOOLEAN(block->status.transactionRequest != BLOCK_REQEUST_PENDING &&
-                               block->status.logRequest != BLOCK_REQEUST_PENDING &&
-                               block->status.accountStateRequest != BLOCK_REQEUST_PENDING);
+    return AS_ETHEREUM_BOOLEAN(block->status.transactionRequest != BLOCK_REQUEST_PENDING &&
+                               block->status.logRequest != BLOCK_REQUEST_PENDING &&
+                               block->status.accountStateRequest != BLOCK_REQUEST_PENDING);
 }
 
 extern BREthereumBoolean
@@ -920,7 +919,7 @@ blockReportStatusTransactionsRequest (BREthereumBlock block,
 extern void
 blockReportStatusTransactions (BREthereumBlock block,
                                BREthereumTransaction *transactions) {
-    assert (block->status.transactionRequest == BLOCK_REQEUST_PENDING);
+    assert (block->status.transactionRequest == BLOCK_REQUEST_PENDING);
     block->status.transactionRequest = BLOCK_REQUEST_COMPLETE;
     block->status.transactions = transactions;
 }
@@ -949,7 +948,7 @@ blockReportStatusLogsRequest (BREthereumBlock block,
 extern void
 blockReportStatusLogs (BREthereumBlock block,
                        BREthereumLog *logs) {
-    assert (block->status.logRequest == BLOCK_REQEUST_PENDING);
+    assert (block->status.logRequest == BLOCK_REQUEST_PENDING);
     block->status.logRequest = BLOCK_REQUEST_COMPLETE;
     block->status.logs = logs;
 }
@@ -969,7 +968,7 @@ blockReportStatusAccountStateRequest (BREthereumBlock block,
 extern void
 blockReportStatusAccountState (BREthereumBlock block,
                                BREthereumAccountState accountState) {
-    assert (block->status.accountStateRequest == BLOCK_REQEUST_PENDING);
+    assert (block->status.accountStateRequest == BLOCK_REQUEST_PENDING);
     block->status.accountStateRequest = BLOCK_REQUEST_COMPLETE;
     block->status.accountState = accountState;
 }

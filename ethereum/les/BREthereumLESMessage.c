@@ -27,6 +27,18 @@
 #include <sys/socket.h>
 #include "BREthereumLESMessage.h"
 
+// GETH Limits
+// MaxHeaderFetch           = 192 // Amount of block headers to be fetched per retrieval request
+// MaxBodyFetch             = 32  // Amount of block bodies to be fetched per retrieval request
+// MaxReceiptFetch          = 128 // Amount of transaction receipts to allow fetching per request
+// MaxCodeFetch             = 64  // Amount of contract codes to allow fetching per request
+// MaxProofsFetch           = 64  // Amount of merkle proofs to be fetched per retrieval request
+// MaxHelperTrieProofsFetch = 64  // Amount of merkle proofs to be fetched per retrieval request
+// MaxTxSend                = 64  // Amount of transactions to be send per request
+// MaxTxStatus              = 256 // Amount of transactions to queried per request
+
+// #define NEED_TO_PRINT_DIS_NEIGHBOR_DETAILS
+
 static BREthereumLESMessageStatusKey lesMessageStatusKeys[] = {
     "protocolVersion",
     "networkId",
@@ -47,59 +59,59 @@ messageP2PGetIdentifierName (BREthereumP2PMessageIdentifier identifier) {
 // P2P Hello
 //
 extern BRRlpItem
-messageP2PHelloEncode (BREthereumP2PMessageHello message, BRRlpCoder coder) {
+messageP2PHelloEncode (BREthereumP2PMessageHello message, BREthereumMessageCoder coder) {
     size_t capsCount = array_count(message.capabilities);
     BRRlpItem capItems[capsCount];
 
     for(int i = 0; i < capsCount; ++i)
-        capItems[i] = rlpEncodeList (coder, 2,
-                                     rlpEncodeString (coder, message.capabilities[i].name),
-                                     rlpEncodeUInt64 (coder, message.capabilities[i].version, 1));
+        capItems[i] = rlpEncodeList (coder.rlp, 2,
+                                     rlpEncodeString (coder.rlp, message.capabilities[i].name),
+                                     rlpEncodeUInt64 (coder.rlp, message.capabilities[i].version, 1));
 
-    BRRlpItem capsItem = rlpEncodeListItems(coder, capItems, capsCount);
+    BRRlpItem capsItem = rlpEncodeListItems(coder.rlp, capItems, capsCount);
 
-    return rlpEncodeList (coder, 5,
-                          rlpEncodeUInt64 (coder, message.version, 1),
-                          rlpEncodeString (coder, message.clientId),
+    return rlpEncodeList (coder.rlp, 5,
+                          rlpEncodeUInt64 (coder.rlp, message.version, 1),
+                          rlpEncodeString (coder.rlp, message.clientId),
                           capsItem,
-                          rlpEncodeUInt64 (coder, 0x00, 1),
-                          rlpEncodeBytes (coder, message.nodeId.u8, sizeof (message.nodeId.u8)));
+                          rlpEncodeUInt64 (coder.rlp, 0x00, 1),
+                          rlpEncodeBytes (coder.rlp, message.nodeId.u8, sizeof (message.nodeId.u8)));
 }
 
 extern BREthereumP2PMessageHello
-messageP2PHelloDecode (BRRlpItem item, BRRlpCoder coder) {
+messageP2PHelloDecode (BRRlpItem item, BREthereumMessageCoder coder) {
     size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
+    const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
     assert (5 == itemsCount);
 
     BREthereumP2PMessageHello message = {
-        rlpDecodeUInt64 (coder, items[0], 1),
-        rlpDecodeString (coder, items[1]),
+        rlpDecodeUInt64 (coder.rlp, items[0], 1),
+        rlpDecodeString (coder.rlp, items[1]),
         NULL,
-        rlpDecodeUInt64 (coder, items[3], 1),
+        rlpDecodeUInt64 (coder.rlp, items[3], 1),
     };
 
-    BRRlpData nodeData = rlpDecodeBytesSharedDontRelease (coder, items[4]);
+    BRRlpData nodeData = rlpDecodeBytesSharedDontRelease (coder.rlp, items[4]);
     assert (sizeof (message.nodeId.u8) == nodeData.bytesCount);
     memcpy (message.nodeId.u8, nodeData.bytes, nodeData.bytesCount);
 
     size_t capsCount = 0;
-    const BRRlpItem *capItems = rlpDecodeList (coder, items[2], &capsCount);
+    const BRRlpItem *capItems = rlpDecodeList (coder.rlp, items[2], &capsCount);
     array_new (message.capabilities, capsCount);
     
     for (size_t index = 0; index < capsCount; index++) {
         size_t capCount;
-        const BRRlpItem *caps = rlpDecodeList (coder, capItems[index], &capCount);
+        const BRRlpItem *caps = rlpDecodeList (coder.rlp, capItems[index], &capCount);
         assert (2 == capCount);
 
         BREthereumP2PCapability cap;
 
-        char *name = rlpDecodeString (coder, caps[0]);
+        char *name = rlpDecodeString (coder.rlp, caps[0]);
         assert (strlen (name) == 3);
         strncpy (cap.name, name, 3);
         cap.name[3] = '\0';
 
-        cap.version = (uint32_t) rlpDecodeUInt64 (coder, caps[1], 1);
+        cap.version = (uint32_t) rlpDecodeUInt64 (coder.rlp, caps[1], 1);
 
         array_add (message.capabilities, cap);
     }
@@ -109,11 +121,15 @@ messageP2PHelloDecode (BRRlpItem item, BRRlpCoder coder) {
 
 extern void
 messageP2PHelloShow (BREthereumP2PMessageHello hello) {
+    size_t nodeIdLen = 2 * sizeof (hello.nodeId.u8) + 1;
+    char nodeId[nodeIdLen];
+    encodeHex(nodeId, nodeIdLen, hello.nodeId.u8, sizeof (hello.nodeId.u8));
+
     eth_log (LES_LOG_TOPIC, "Hello%s", "");
     eth_log (LES_LOG_TOPIC, "    Version     : %llu", hello.version);
     eth_log (LES_LOG_TOPIC, "    ClientId    : %s",   hello.clientId);
     eth_log (LES_LOG_TOPIC, "    ListenPort  : %llu", hello.port);
-    eth_log (LES_LOG_TOPIC, "    NodeId      : { %llu, ...}", hello.nodeId.u64[0]);
+    eth_log (LES_LOG_TOPIC, "    NodeId      : 0x%s", nodeId);
     eth_log (LES_LOG_TOPIC, "    Capabilities:%s", "");
     for (size_t index = 0; index < array_count(hello.capabilities); index++)
         eth_log (LES_LOG_TOPIC, "        %s = %u",
@@ -121,19 +137,35 @@ messageP2PHelloShow (BREthereumP2PMessageHello hello) {
                  hello.capabilities[index].version);
 }
 
+extern BREthereumBoolean
+messageP2PCababilityEqual (const BREthereumP2PCapability *cap1,
+                           const BREthereumP2PCapability *cap2) {
+    return AS_ETHEREUM_BOOLEAN (0 == strcmp (cap1->name, cap2->name) &&
+                                cap1->version == cap2->version);
+}
+
+extern BREthereumBoolean
+messageP2PHelloHasCapability (const BREthereumP2PMessageHello *hello,
+                              const BREthereumP2PCapability *capability) {
+    for (size_t index = 0; index < array_count (hello->capabilities); index++)
+        if (ETHEREUM_BOOLEAN_IS_TRUE(messageP2PCababilityEqual(capability, &hello->capabilities[index])))
+            return ETHEREUM_BOOLEAN_TRUE;
+    return ETHEREUM_BOOLEAN_FALSE;
+}
+
 extern const char *
 messageP2PDisconnectDescription (BREthereumP2PDisconnectReason identifier);
 
 //
 static BREthereumP2PMessageDisconnect
-messageP2PDisconnectDecode (BRRlpItem item, BRRlpCoder coder) {
+messageP2PDisconnectDecode (BRRlpItem item, BREthereumMessageCoder coder) {
     BREthereumP2PMessageDisconnect disconnect;
 
     size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
+    const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
     assert (1 == itemsCount);
 
-    disconnect.reason = (BREthereumP2PDisconnectReason) rlpDecodeUInt64 (coder, items[0], 1);
+    disconnect.reason = (BREthereumP2PDisconnectReason) rlpDecodeUInt64 (coder.rlp, items[0], 1);
 
     return disconnect;
 }
@@ -142,7 +174,7 @@ messageP2PDisconnectDecode (BRRlpItem item, BRRlpCoder coder) {
 // P2P
 //
 extern BRRlpItem
-messageP2PEncode (BREthereumP2PMessage message, BRRlpCoder coder) {
+messageP2PEncode (BREthereumP2PMessage message, BREthereumMessageCoder coder) {
     BRRlpItem messageBody = NULL;
     switch (message.identifier) {
         case P2P_MESSAGE_HELLO:
@@ -150,19 +182,19 @@ messageP2PEncode (BREthereumP2PMessage message, BRRlpCoder coder) {
             break;
         case P2P_MESSAGE_PING:
         case P2P_MESSAGE_PONG:
-            messageBody = rlpEncodeList (coder, 0);
+            messageBody = rlpEncodeList (coder.rlp, 0);
             break;
         case P2P_MESSAGE_DISCONNECT:
-            messageBody = rlpEncodeUInt64 (coder, message.u.disconnect.reason, 1);
+            messageBody = rlpEncodeUInt64 (coder.rlp, message.u.disconnect.reason, 1);
             break;
     }
-    BRRlpItem identifierItem = rlpEncodeUInt64 (coder, message.identifier, 1);
+    BRRlpItem identifierItem = rlpEncodeUInt64 (coder.rlp, message.identifier, 1);
 
-    return rlpEncodeList2 (coder, identifierItem, messageBody);
+    return rlpEncodeList2 (coder.rlp, identifierItem, messageBody);
 }
 
 static BREthereumP2PMessage
-messageP2PDecode (BRRlpItem item, BRRlpCoder coder, BREthereumP2PMessageIdentifier identifer) {
+messageP2PDecode (BRRlpItem item, BREthereumMessageCoder coder, BREthereumP2PMessageIdentifier identifer) {
     switch (identifer) {
         case P2P_MESSAGE_HELLO:
             return (BREthereumP2PMessage) {
@@ -203,32 +235,32 @@ messageDISGetIdentifierName (BREthereumDISMessageIdentifier identifier) {
 // DIS Endpoint Encode/Decode
 //
 static BRRlpItem
-endpointDISEncode (const BREthereumDISEndpoint *endpoint, BRRlpCoder coder) {
-    return rlpEncodeList (coder, 3,
+endpointDISEncode (const BREthereumDISEndpoint *endpoint, BREthereumMessageCoder coder) {
+    return rlpEncodeList (coder.rlp, 3,
                           (endpoint->domain == AF_INET
-                           ? rlpEncodeBytes (coder, (uint8_t*) endpoint->addr.ipv4, 4)
-                           : rlpEncodeBytes (coder, (uint8_t*) endpoint->addr.ipv6, 16)),
-                          rlpEncodeUInt64 (coder, endpoint->portUDP, 1),
-                          rlpEncodeUInt64 (coder, endpoint->portTCP, 1));
+                           ? rlpEncodeBytes (coder.rlp, (uint8_t*) endpoint->addr.ipv4, 4)
+                           : rlpEncodeBytes (coder.rlp, (uint8_t*) endpoint->addr.ipv6, 16)),
+                          rlpEncodeUInt64 (coder.rlp, endpoint->portUDP, 1),
+                          rlpEncodeUInt64 (coder.rlp, endpoint->portTCP, 1));
 }
 
 static BREthereumDISEndpoint
-endpointDISDecode (BRRlpItem item, BRRlpCoder coder) {
+endpointDISDecode (BRRlpItem item, BREthereumMessageCoder coder) {
     BREthereumDISEndpoint endpoint;
 
     size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
+    const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
     assert (3 == itemsCount);
 
-    BRRlpData addrData = rlpDecodeBytesSharedDontRelease (coder, items[0]);
+    BRRlpData addrData = rlpDecodeBytesSharedDontRelease (coder.rlp, items[0]);
     assert (4 == addrData.bytesCount || 16 == addrData.bytesCount);
     endpoint.domain = (4 == addrData.bytesCount ? AF_INET : AF_INET6);
     memcpy ((endpoint.domain == AF_INET ? endpoint.addr.ipv4 : endpoint.addr.ipv6),
             addrData.bytes,
             addrData.bytesCount);
 
-    endpoint.portUDP = (uint16_t) rlpDecodeUInt64 (coder, items[1], 1);
-    endpoint.portTCP = (uint16_t) rlpDecodeUInt64 (coder, items[2], 1);
+    endpoint.portUDP = (uint16_t) rlpDecodeUInt64 (coder.rlp, items[1], 1);
+    endpoint.portTCP = (uint16_t) rlpDecodeUInt64 (coder.rlp, items[2], 1);
 
     return endpoint;
 }
@@ -237,28 +269,28 @@ endpointDISDecode (BRRlpItem item, BRRlpCoder coder) {
 // DIS Neighbor Encode/Decode
 //
 static BREthereumDISNeighbor
-neighborDISDecode (BRRlpItem item, BRRlpCoder coder) {
+neighborDISDecode (BRRlpItem item, BREthereumMessageCoder coder) {
     BREthereumDISNeighbor neighbor;
 
     size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
+    const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
     assert (4 == itemsCount);
 
     // Node ID
     // Endpoint - Somehow GETH explodes it.
-    BRRlpData addrData = rlpDecodeBytesSharedDontRelease (coder, items[0]);
+    BRRlpData addrData = rlpDecodeBytesSharedDontRelease (coder.rlp, items[0]);
     assert (4 == addrData.bytesCount || 16 == addrData.bytesCount);
     neighbor.node.domain = (4 == addrData.bytesCount ? AF_INET : AF_INET6);
     memcpy ((neighbor.node.domain == AF_INET ? neighbor.node.addr.ipv4 : neighbor.node.addr.ipv6),
             addrData.bytes,
             addrData.bytesCount);
 
-    BRRlpData nodeIDData = rlpDecodeBytesSharedDontRelease (coder, items[3]);
+    BRRlpData nodeIDData = rlpDecodeBytesSharedDontRelease (coder.rlp, items[3]);
     assert (64 == nodeIDData.bytesCount);
     memcpy (neighbor.nodeID.u8, nodeIDData.bytes, nodeIDData.bytesCount);
 
-    neighbor.node.portUDP = (uint16_t) rlpDecodeUInt64 (coder, items[1], 1);
-    neighbor.node.portTCP = (uint16_t) rlpDecodeUInt64 (coder, items[2], 1);
+    neighbor.node.portUDP = (uint16_t) rlpDecodeUInt64 (coder.rlp, items[1], 1);
+    neighbor.node.portTCP = (uint16_t) rlpDecodeUInt64 (coder.rlp, items[2], 1);
 
     return neighbor;
 }
@@ -271,30 +303,30 @@ messageDISPingCreate (BREthereumDISEndpoint to,
 }
 
 static BRRlpItem
-messageDISPingEncode (BREthereumDISMessagePing message, BRRlpCoder coder) {
-    return rlpEncodeList (coder, 4,
-                          rlpEncodeUInt64 (coder, message.version, 1),
+messageDISPingEncode (BREthereumDISMessagePing message, BREthereumMessageCoder coder) {
+    return rlpEncodeList (coder.rlp, 4,
+                          rlpEncodeUInt64 (coder.rlp, message.version, 1),
                           endpointDISEncode (&message.from, coder),
                           endpointDISEncode (&message.to, coder),
-                          rlpEncodeUInt64 (coder, message.expiration, 1));
+                          rlpEncodeUInt64 (coder.rlp, message.expiration, 1));
 }
 
 static BREthereumDISMessagePing
-messageDISPingDecode (BRRlpItem item, BRRlpCoder coder, BREthereumHash hash, int releaseItem) {
+messageDISPingDecode (BRRlpItem item, BREthereumMessageCoder coder, BREthereumHash hash, int releaseItem) {
     BREthereumDISMessagePing ping;
 
     size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
+    const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
     assert (4 == itemsCount);
 
-    ping.version = (int) rlpDecodeUInt64 (coder, items[0], 1);
+    ping.version = (int) rlpDecodeUInt64 (coder.rlp, items[0], 1);
     ping.from = endpointDISDecode (items[1], coder);
     ping.to   = endpointDISDecode (items[2], coder);
-    ping.expiration = rlpDecodeUInt64 (coder, items[3], 1);
+    ping.expiration = rlpDecodeUInt64 (coder.rlp, items[3], 1);
 
     ping.hash = hash;
 
-    if (releaseItem) rlpReleaseItem (coder, item);
+    if (releaseItem) rlpReleaseItem (coder.rlp, item);
     return ping;
 }
 
@@ -308,26 +340,26 @@ messageDISPongCreate (BREthereumDISEndpoint to,
 }
 
 static BRRlpItem
-messageDISPongEncode (BREthereumDISMessagePong message, BRRlpCoder coder) {
-    return rlpEncodeList (coder, 3,
+messageDISPongEncode (BREthereumDISMessagePong message, BREthereumMessageCoder coder) {
+    return rlpEncodeList (coder.rlp, 3,
                           endpointDISEncode (&message.to, coder),
-                          hashRlpEncode (message.pingHash, coder),
-                          rlpEncodeUInt64 (coder, message.expiration, 1));
+                          hashRlpEncode (message.pingHash, coder.rlp),
+                          rlpEncodeUInt64 (coder.rlp, message.expiration, 1));
 }
 
 static BREthereumDISMessagePong
-messageDISPongDecode (BRRlpItem item, BRRlpCoder coder, int releaseItem) {
+messageDISPongDecode (BRRlpItem item, BREthereumMessageCoder coder, int releaseItem) {
     BREthereumDISMessagePong pong;
 
     size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
+    const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
     assert (3 == itemsCount);
 
     pong.to = endpointDISDecode (items[0], coder);
-    pong.pingHash = hashRlpDecode (items[1], coder);
-    pong.expiration = rlpDecodeUInt64 (coder, items[2], 1);
+    pong.pingHash = hashRlpDecode (items[1], coder.rlp);
+    pong.expiration = rlpDecodeUInt64 (coder.rlp, items[2], 1);
 
-    if (releaseItem) rlpReleaseItem (coder, item);
+    if (releaseItem) rlpReleaseItem (coder.rlp, item);
     return pong;
 }
 
@@ -340,34 +372,33 @@ messageDISFindNeighborsCreate (BRKey target,
 }
 
 static BRRlpItem
-messageDISFindNeighborsEncode (BREthereumDISMessageFindNeighbors message, BRRlpCoder coder) {
+messageDISFindNeighborsEncode (BREthereumDISMessageFindNeighbors message, BREthereumMessageCoder coder) {
     assert (!message.target.compressed);
 
     uint8_t pubKey[65];
     BRKeyPubKey (&message.target, pubKey, 65);
 
-    return rlpEncodeList2 (coder,
-                           rlpEncodeBytes (coder, &pubKey[1], 64),
-                           rlpEncodeUInt64 (coder, message.expiration, 1));
+    return rlpEncodeList2 (coder.rlp,
+                           rlpEncodeBytes (coder.rlp, &pubKey[1], 64),
+                           rlpEncodeUInt64 (coder.rlp, message.expiration, 1));
 }
 
 static BREthereumDISMessageNeighbors
-messageDISNeighborsDecode (BRRlpItem item, BRRlpCoder coder, int releaseItem) {
+messageDISNeighborsDecode (BRRlpItem item, BREthereumMessageCoder coder, int releaseItem) {
     BREthereumDISMessageNeighbors message;
 
     size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
+    const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
     assert (2 == itemsCount);
 
     size_t neighborsCount = 0;
-    const BRRlpItem *neighborItems = rlpDecodeList (coder, items[0], &neighborsCount);
+    const BRRlpItem *neighborItems = rlpDecodeList (coder.rlp, items[0], &neighborsCount);
 
     array_new(message.neighbors, neighborsCount);
     for (size_t index = 0; index < neighborsCount; index++)
         array_add (message.neighbors,
                    neighborDISDecode (neighborItems[index], coder));
 
-#define NEED_TO_PRINT_DIS_NEIGHBOR_DETAILS
 #if defined (NEED_TO_PRINT_DIS_NEIGHBOR_DETAILS)
     eth_log (LES_LOG_TOPIC, "Neighbors: %s", "");
     for (size_t index = 0; index < neighborsCount; index++) {
@@ -382,9 +413,9 @@ messageDISNeighborsDecode (BRRlpItem item, BRRlpCoder coder, int releaseItem) {
     }
 #endif
 
-    message.expiration = rlpDecodeUInt64 (coder, items[1], 1);
+    message.expiration = rlpDecodeUInt64 (coder.rlp, items[1], 1);
 
-    if (releaseItem) rlpReleaseItem (coder, item);
+    if (releaseItem) rlpReleaseItem (coder.rlp, item);
 
     return message;
 }
@@ -408,9 +439,9 @@ static_assert (98 == sizeof (BREthereumDISMessagePacket), "BREthereumDISMessageP
 
 extern BREthereumDISMessage
 messageDISDecode (BRRlpItem item,
-                  BRRlpCoder coder) {
+                  BREthereumMessageCoder coder) {
     // ITEM is encoded bytes as (hash || signature || identifier || data)
-    BRRlpData packetData = rlpDecodeBytesSharedDontRelease (coder, item);
+    BRRlpData packetData = rlpDecodeBytesSharedDontRelease (coder.rlp, item);
 
     // Overaly packet on the packetData.  We've constructed BREthereumDISMessagePacket so as
     // to make this viable.
@@ -424,7 +455,7 @@ messageDISDecode (BRRlpItem item,
 
     // Get the rlpItem from packet->data
     BRRlpData messageData = { packetData.bytesCount - packetSize, &packetData.bytes[packetSize] };
-    BRRlpItem messageItem = rlpGetItem (coder, messageData);
+    BRRlpItem messageItem = rlpGetItem (coder.rlp, messageData);
 
     switch (identifier) {
         case DIS_MESSAGE_PONG:
@@ -452,7 +483,7 @@ messageDISDecode (BRRlpItem item,
 
 static BRRlpItem
 messageDISEncode (BREthereumDISMessage message,
-                  BRRlpCoder coder) {
+                  BREthereumMessageCoder coder) {
     BRRlpItem bodyItem;
 
     switch (message.identifier) {
@@ -473,7 +504,7 @@ messageDISEncode (BREthereumDISMessage message,
     }
     BRKey key = message.privateKeyForSigning;
 
-    BRRlpData data = rlpGetDataSharedDontRelease (coder, bodyItem);
+    BRRlpData data = rlpGetDataSharedDontRelease (coder.rlp, bodyItem);
 
     // We are producing a 'packet' which as described above is a concatenation of a header and
     // data where the header IS NOT rlp encoded but the data IS rlp encoded.  We will take the
@@ -522,86 +553,86 @@ messageDISEncode (BREthereumDISMessage message,
         printf ("PACKET: %s\n", encodeHexCreate(&ignore, packetMemory, packetSize));
     }
 #endif
-    rlpReleaseItem(coder, bodyItem);
+    rlpReleaseItem(coder.rlp, bodyItem);
 
     // Now, finally, `packet` and `packetMemory` are complete.
-    return rlpEncodeBytes (coder, packetMemory, packetSize);
+    return rlpEncodeBytes (coder.rlp, packetMemory, packetSize);
 }
 
 /// MARK: - LES (Light Ethereum Subprotocol) Messages
 
-static const char *messageLESNames[] = {
-    "Status",
-    "Announce",
-    "GetBlockHeaders",
-    "BlockHeaders",
-    "GetBlockBodies",
-    "BlockBodies",
-    "GetReceipts",
-    "Receipts",
-    "GetProofs",
-    "Proofs",
-    "GetContractCodes",
-    "ContractCodes",
-    "SendTx",
-    "GetHeaderProofs",
-    "HeaderProofs",
-    "GetProofsV2",
-    "ProofsV2",
-    "GetHelperTrieProofs",
-    "HelperTrieProofs",
-    "SendTx2",
-    "GetTxStatus",
-    "TxStatus"
+// Static
+BREthereumLESMessageSpec messageLESSpecs [NUMBER_OF_LES_MESSAGE_IDENTIFIERS] = {
+    { "Status",           LES_MESSAGE_USE_STATUS           },
+    { "Announce",         LES_MESSAGE_USE_STATUS           },
+    { "GetBlockHeaders",  LES_MESSAGE_USE_REQUEST,    192  },
+    { "BlockHeaders",     LES_MESSAGE_USE_RESPONSE         },
+    { "GetBlockBodies",   LES_MESSAGE_USE_REQUEST,     32  },
+    { "BlockBodies",      LES_MESSAGE_USE_RESPONSE         },
+    { "GetReceipts",      LES_MESSAGE_USE_REQUEST,    128  },
+    { "Receipts",         LES_MESSAGE_USE_RESPONSE         },
+    { "GetProofs",        LES_MESSAGE_USE_REQUEST,     64  },
+    { "Proofs",           LES_MESSAGE_USE_RESPONSE         },
+    { "GetContractCodes", LES_MESSAGE_USE_REQUEST,     64  },
+    { "ContractCodes",    LES_MESSAGE_USE_RESPONSE         },
+    { "SendTx",           LES_MESSAGE_USE_STATUS,      64  }, // has cost, no response
+    { "GetHeaderProofs",  LES_MESSAGE_USE_REQUEST,     64  },
+    { "HeaderProofs",     LES_MESSAGE_USE_RESPONSE         },
+    { "GetProofsV2",      LES_MESSAGE_USE_REQUEST,     64  },
+    { "ProofsV2",         LES_MESSAGE_USE_RESPONSE         },
+    { "GetHelperTrieProofs", LES_MESSAGE_USE_REQUEST,  64  },
+    { "HelperTrieProofs",    LES_MESSAGE_USE_RESPONSE      },
+    { "SendTx2",          LES_MESSAGE_USE_REQUEST,     64  },
+    { "GetTxStatus",      LES_MESSAGE_USE_REQUEST,    256  },
+    { "TxStatus",         LES_MESSAGE_USE_RESPONSE         }
 };
-
 extern const char *
 messageLESGetIdentifierName (BREthereumLESMessageIdentifier identifer) {
-    return messageLESNames [identifer];
+    return messageLESSpecs[identifer].name;
 }
 
 #if 0
-typedef BRRlpItem (*BREthereumLESMessageStatusValueRLPEncoder) (BREthereumLESMessageStatusValue value, BRRlpCoder coder);
-typedef BREthereumLESMessageStatusValue (*BREthereumLESMessageStatusValueRLPDecoder) (BRRlpItem item, BRRlpCoder coder);
+typedef BRRlpItem (*BREthereumLESMessageStatusValueRLPEncoder) (BREthereumLESMessageStatusValue value, BREthereumMessageCoder coder);
+typedef BREthereumLESMessageStatusValue (*BREthereumLESMessageStatusValueRLPDecoder) (BRRlpItem item, BREthereumMessageCoder coder);
 
 static BRRlpItem
-messageStatusValueRlpEncodeNumber (BREthereumLESMessageStatusValue value, BRRlpCoder coder) {
-    return rlpEncodeUInt64(coder, value.number, 1);
+messageStatusValueRlpEncodeNumber (BREthereumLESMessageStatusValue value, BREthereumMessageCoder coder) {
+    return rlpEncodeUInt64(coder.rlp, value.number, 1);
 }
 
 static BREthereumLESMessageStatusValue
-messageStatusValueRlpDecodeNumber (BRRlpItem item, BRRlpCoder coder) {
-    return (BREthereumLESMessageStatusValue) { .number = (uint32_t) rlpDecodeUInt64 (coder, item, 1) };
+messageStatusValueRlpDecodeNumber (BRRlpItem item, BREthereumMessageCoder coder) {
+    return (BREthereumLESMessageStatusValue) { .number = (uint32_t) rlpDecodeUInt64 (coder.rlp, item, 1) };
 }
 
 static BRRlpItem
-messageStatusValueRlpEncodeBoolean (BREthereumLESMessageStatusValue value, BRRlpCoder coder) {
-    return rlpEncodeUInt64(coder, value.boolean, 1);
+messageStatusValueRlpEncodeBoolean (BREthereumLESMessageStatusValue value, BREthereumMessageCoder coder) {
+    return rlpEncodeUInt64(coder.rlp, value.boolean, 1);
 }
 
 static BREthereumLESMessageStatusValue
-messageStatusValueRlpDecodeBoolean(BRRlpItem item, BRRlpCoder coder) {
-    return (BREthereumLESMessageStatusValue) { .boolean = (int) rlpDecodeUInt64 (coder, item, 1) };
+messageStatusValueRlpDecodeBoolean(BRRlpItem item, BREthereumMessageCoder coder) {
+    return (BREthereumLESMessageStatusValue) { .boolean = (int) rlpDecodeUInt64 (coder.rlp, item, 1) };
 }
 
 static BRRlpItem
-messageStatusValueRlpEncodeBignum (BREthereumLESMessageStatusValue value, BRRlpCoder coder) {
-    return rlpEncodeUInt256(coder, value.bignum, 1);
+messageStatusValueRlpEncodeBignum (BREthereumLESMessageStatusValue value, BREthereumMessageCoder coder) {
+    return rlpEncodeUInt256(coder.rlp, value.bignum, 1);
 }
 
 static BREthereumLESMessageStatusValue
-messageStatusValueRlpDecodeBignum(BRRlpItem item, BRRlpCoder coder) {
-    return (BREthereumLESMessageStatusValue) { .bignum = rlpDecodeUInt256 (coder, item, 1) };
+messageStatusValueRlpDecodeBignum(BRRlpItem item, BREthereumMessageCoder coder) {
+    return (BREthereumLESMessageStatusValue) { .bignum = rlpDecodeUInt256 (coder.rlp, item, 1) };
 }
 
 
 static BRRlpItem
-messageStatusValueRlpEncodeHash (BREthereumLESMessageStatusValue value, BRRlpCoder coder) {
+messageStatusValueRlpEncodeHash (BREthereumLESMessageStatusValue value, BREthereumMessageCoder coder) {
     return hashRlpEncode(value.hash, coder);
 }
 
 static BREthereumLESMessageStatusValue
-messageStatusValueRlpDecodeHash(BRRlpItem item, BRRlpCoder coder) {
+messageStatusValueRlpDecodeHash(BRRlpItem item, BREthereumMessageCoder coder) {
     return (BREthereumLESMessageStatusValue) { .hash = hashRlpDecode (item, coder) };
 }
 
@@ -619,14 +650,14 @@ struct {
     { "announceType", },
 };
 extern BRRlpItem
-messageLESStatusRLPEncode (BREthereumLESMessageStatus status, BRRlpCoder coder) {
+messageLESStatusRLPEncode (BREthereumLESMessageStatus status, BREthereumMessageCoder coder) {
     size_t itemsCount = array_count(status.pairs);
     BRRlpItem items [itemsCount];
 
     for (size_t index = 0; index < itemsCount; index++) {
         BREthereumLESMessageStatusKeyValuePair pair = status.pairs[index];
-        items[index] = rlpEncodeList2 (coder,
-                                       rlpEncodeString (coder, (char *) pair.key),
+        items[index] = rlpEncodeList2 (coder.rlp,
+                                       rlpEncodeString (coder.rlp, (char *) pair.key),
                                        foo);
     }
 }
@@ -668,57 +699,57 @@ messageLESStatusCreate (uint64_t protocolVersion,
 }
 
 extern BRRlpItem
-messageLESStatusEncode (BREthereumLESMessageStatus *status, BRRlpCoder coder) {
+messageLESStatusEncode (BREthereumLESMessageStatus *status, BREthereumMessageCoder coder) {
 
     size_t index = 0;
     BRRlpItem items[15];
 
-    items[index++] = rlpEncodeList2 (coder,
-                                      rlpEncodeString(coder, "protocolVersion"),
-                                      rlpEncodeUInt64(coder, status->protocolVersion,1));
+    items[index++] = rlpEncodeList2 (coder.rlp,
+                                      rlpEncodeString(coder.rlp, "protocolVersion"),
+                                      rlpEncodeUInt64(coder.rlp, status->protocolVersion,1));
     
-    items[index++] = rlpEncodeList2 (coder,
-                                      rlpEncodeString(coder, "networkId"),
-                                      rlpEncodeUInt64(coder, status->chainId,1));
+    items[index++] = rlpEncodeList2 (coder.rlp,
+                                      rlpEncodeString(coder.rlp, "networkId"),
+                                      rlpEncodeUInt64(coder.rlp, status->chainId,1));
 
-    items[index++] = rlpEncodeList2 (coder,
-                                      rlpEncodeString(coder, "headTd"),
-                                      rlpEncodeUInt256(coder, status->headTd,1));
+    items[index++] = rlpEncodeList2 (coder.rlp,
+                                      rlpEncodeString(coder.rlp, "headTd"),
+                                      rlpEncodeUInt256(coder.rlp, status->headTd,1));
     
-    items[index++] = rlpEncodeList2(coder,
-                                     rlpEncodeString(coder, "headHash"),
-                                     hashRlpEncode(status->headHash, coder));
+    items[index++] = rlpEncodeList2(coder.rlp,
+                                     rlpEncodeString(coder.rlp, "headHash"),
+                                     hashRlpEncode(status->headHash, coder.rlp));
     
-    items[index++] = rlpEncodeList2(coder,
-                                     rlpEncodeString(coder, "headNum"),
-                                     rlpEncodeUInt64(coder, status->headNum,1));
+    items[index++] = rlpEncodeList2(coder.rlp,
+                                     rlpEncodeString(coder.rlp, "headNum"),
+                                     rlpEncodeUInt64(coder.rlp, status->headNum,1));
     
-    items[index++] = rlpEncodeList2 (coder,
-                                      rlpEncodeString(coder, "genesisHash"),
-                                      hashRlpEncode(status->genesisHash, coder));
+    items[index++] = rlpEncodeList2 (coder.rlp,
+                                      rlpEncodeString(coder.rlp, "genesisHash"),
+                                      hashRlpEncode(status->genesisHash, coder.rlp));
     
     if(ETHEREUM_BOOLEAN_IS_TRUE(status->serveHeaders))
-        items[index++] = rlpEncodeList1 (coder,
-                                          rlpEncodeString(coder, "serveHeaders"));
+        items[index++] = rlpEncodeList1 (coder.rlp,
+                                          rlpEncodeString(coder.rlp, "serveHeaders"));
 
     if (status->serveChainSince != NULL)
-        items[index++] = rlpEncodeList2 (coder,
-                                          rlpEncodeString(coder, "serveChainSince"),
-                                          rlpEncodeUInt64(coder, *(status->serveChainSince),1));
+        items[index++] = rlpEncodeList2 (coder.rlp,
+                                          rlpEncodeString(coder.rlp, "serveChainSince"),
+                                          rlpEncodeUInt64(coder.rlp, *(status->serveChainSince),1));
 
     if (status->serveStateSince != NULL)
-        items[index++] = rlpEncodeList2 (coder,
-                                          rlpEncodeString(coder, "serveStateSince"),
-                                          rlpEncodeUInt64(coder, *(status->serveStateSince),1));
+        items[index++] = rlpEncodeList2 (coder.rlp,
+                                          rlpEncodeString(coder.rlp, "serveStateSince"),
+                                          rlpEncodeUInt64(coder.rlp, *(status->serveStateSince),1));
 
     if(ETHEREUM_BOOLEAN_IS_TRUE(status->txRelay))
-        items[index++] = rlpEncodeList1 (coder, rlpEncodeString(coder, "txRelay"));
+        items[index++] = rlpEncodeList1 (coder.rlp, rlpEncodeString(coder.rlp, "txRelay"));
 
     //flowControl/BL
     if (status->flowControlBL != NULL)
-        items[index++] = rlpEncodeList2 (coder,
-                                          rlpEncodeString(coder, "flowControl/BL"),
-                                          rlpEncodeUInt64(coder, *(status->flowControlBL),1));
+        items[index++] = rlpEncodeList2 (coder.rlp,
+                                          rlpEncodeString(coder.rlp, "flowControl/BL"),
+                                          rlpEncodeUInt64(coder.rlp, *(status->flowControlBL),1));
 
     //flowControl/MRC
     if(status->flowControlBL != NULL) {
@@ -727,83 +758,83 @@ messageLESStatusEncode (BREthereumLESMessageStatus *status, BRRlpCoder coder) {
 
         for(int idx = 0; idx < count; ++idx){
             BRRlpItem mrcElements [3];
-            mrcElements[0] = rlpEncodeUInt64(coder,status->flowControlMRC[idx].msgCode,1);
-            mrcElements[1] = rlpEncodeUInt64(coder,status->flowControlMRC[idx].baseCost,1);
-            mrcElements[2] = rlpEncodeUInt64(coder,status->flowControlMRC[idx].reqCost,1);
-            mrcItems[idx] = rlpEncodeListItems(coder, mrcElements, 3);
+            mrcElements[0] = rlpEncodeUInt64(coder.rlp,status->flowControlMRC[idx].msgCode,1);
+            mrcElements[1] = rlpEncodeUInt64(coder.rlp,status->flowControlMRC[idx].baseCost,1);
+            mrcElements[2] = rlpEncodeUInt64(coder.rlp,status->flowControlMRC[idx].reqCost,1);
+            mrcItems[idx] = rlpEncodeListItems(coder.rlp, mrcElements, 3);
         }
 
-        items[index++] = rlpEncodeList2 (coder,
-                                          rlpEncodeString(coder, "flowControl/MRC"),
-                                          rlpEncodeListItems(coder, mrcItems, count));
+        items[index++] = rlpEncodeList2 (coder.rlp,
+                                          rlpEncodeString(coder.rlp, "flowControl/MRC"),
+                                          rlpEncodeListItems(coder.rlp, mrcItems, count));
     }
     //flowControl/MRR
     if (status->flowControlMRR != NULL)
-        items[index++] = rlpEncodeList2 (coder,
-                                          rlpEncodeString(coder, "flowControl/MRR"),
-                                          rlpEncodeUInt64(coder, *(status->flowControlMRR),1));
+        items[index++] = rlpEncodeList2 (coder.rlp,
+                                          rlpEncodeString(coder.rlp, "flowControl/MRR"),
+                                          rlpEncodeUInt64(coder.rlp, *(status->flowControlMRR),1));
 
     if (status->protocolVersion == 0x02)
-        items[index++] = rlpEncodeList2 (coder,
-                                          rlpEncodeString(coder, "announceType"),
-                                          rlpEncodeUInt64(coder, status->announceType,1));
+        items[index++] = rlpEncodeList2 (coder.rlp,
+                                          rlpEncodeString(coder.rlp, "announceType"),
+                                          rlpEncodeUInt64(coder.rlp, status->announceType,1));
 
-    return rlpEncodeListItems (coder, items, index);
+    return rlpEncodeListItems (coder.rlp, items, index);
 }
 
 extern BREthereumLESMessageStatus
-messageLESStatusDecode (BRRlpItem item, BRRlpCoder coder) {
+messageLESStatusDecode (BRRlpItem item, BREthereumMessageCoder coder) {
     BREthereumLESMessageStatus status = {};
 
     size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
+    const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
 
     for(int i= 0; i < itemsCount; ++i) {
         size_t keyPairCount;
-        const BRRlpItem *keyPairs = rlpDecodeList (coder, items[i], &keyPairCount);
+        const BRRlpItem *keyPairs = rlpDecodeList (coder.rlp, items[i], &keyPairCount);
         if (keyPairCount > 0) {
-            char *key = rlpDecodeString(coder, keyPairs[0]);
+            char *key = rlpDecodeString(coder.rlp, keyPairs[0]);
 
             if (strcmp(key, "protocolVersion") == 0) {
-                status.protocolVersion = rlpDecodeUInt64(coder, keyPairs[1], 1);
+                status.protocolVersion = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1);
             } else if (strcmp(key, "networkId") == 0) {
-                status.chainId = rlpDecodeUInt64(coder, keyPairs[1], 1);
+                status.chainId = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1);
             } else if (strcmp(key, "headTd") == 0) {
-                status.headTd = rlpDecodeUInt256(coder, keyPairs[1], 1);
+                status.headTd = rlpDecodeUInt256(coder.rlp, keyPairs[1], 1);
             } else if (strcmp(key, "headHash") == 0) {
-                status.headHash = hashRlpDecode(keyPairs[1], coder);
+                status.headHash = hashRlpDecode(keyPairs[1], coder.rlp);
             } else if (strcmp(key, "announceType") == 0) {
-                status.announceType = rlpDecodeUInt64(coder, keyPairs[1], 1);
+                status.announceType = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1);
             } else if (strcmp(key, "headNum") == 0) {
-                status.headNum = rlpDecodeUInt64(coder, keyPairs[1], 1);
+                status.headNum = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1);
             } else if (strcmp(key, "genesisHash") == 0) {
-                status.genesisHash = hashRlpDecode(keyPairs[1], coder);
+                status.genesisHash = hashRlpDecode(keyPairs[1], coder.rlp);
             } else if (strcmp(key, "serveHeaders") == 0) {
                 status.serveHeaders = ETHEREUM_BOOLEAN_TRUE;
             } else if (strcmp(key, "serveChainSince") == 0) {
                 status.serveChainSince = malloc(sizeof(uint64_t));
-                *(status.serveChainSince) = rlpDecodeUInt64(coder, keyPairs[1], 1);
+                *(status.serveChainSince) = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1);
             } else if (strcmp(key, "serveStateSince") == 0) {
                 status.serveStateSince = malloc(sizeof(uint64_t));
-                *(status.serveStateSince) = rlpDecodeUInt64(coder, keyPairs[1], 1);
+                *(status.serveStateSince) = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1);
             } else if (strcmp(key, "txRelay") == 0) {
                 status.txRelay = ETHEREUM_BOOLEAN_TRUE;
             } else if (strcmp(key, "flowControl/BL") == 0) {
                 status.flowControlBL = malloc(sizeof(uint64_t));
-                *(status.flowControlBL) = rlpDecodeUInt64(coder, keyPairs[1], 1);
+                *(status.flowControlBL) = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1);
             } else if (strcmp(key, "flowControl/MRC") == 0) {
                 //status.flowControlMRR = malloc(sizeof(uint64_t));
                 size_t mrrItemsCount  = 0;
-                const BRRlpItem* mrrItems = rlpDecodeList(coder, keyPairs[1], &mrrItemsCount);
+                const BRRlpItem* mrrItems = rlpDecodeList(coder.rlp, keyPairs[1], &mrrItemsCount);
                 BREthereumLESMessageStatusMRC *mrcs = NULL;
                 if(mrrItemsCount > 0){
                     mrcs = (BREthereumLESMessageStatusMRC*) calloc (mrrItemsCount, sizeof(BREthereumLESMessageStatusMRC));
                     for(int mrrIdx = 0; mrrIdx < mrrItemsCount; ++mrrIdx){
                         size_t mrrElementsCount  = 0;
-                        const BRRlpItem* mrrElements = rlpDecodeList(coder, mrrItems[mrrIdx], &mrrElementsCount);
-                        mrcs[mrrIdx].msgCode  = rlpDecodeUInt64(coder, mrrElements[0], 1);
-                        mrcs[mrrIdx].baseCost = rlpDecodeUInt64(coder, mrrElements[1], 1);
-                        mrcs[mrrIdx].reqCost  = rlpDecodeUInt64(coder, mrrElements[2], 1);
+                        const BRRlpItem* mrrElements = rlpDecodeList(coder.rlp, mrrItems[mrrIdx], &mrrElementsCount);
+                        mrcs[mrrIdx].msgCode  = rlpDecodeUInt64(coder.rlp, mrrElements[0], 1);
+                        mrcs[mrrIdx].baseCost = rlpDecodeUInt64(coder.rlp, mrrElements[1], 1);
+                        mrcs[mrrIdx].reqCost  = rlpDecodeUInt64(coder.rlp, mrrElements[2], 1);
                     }
                 }
                 status.flowControlMRCCount = malloc (sizeof (size_t));
@@ -811,7 +842,7 @@ messageLESStatusDecode (BRRlpItem item, BRRlpCoder coder) {
                 status.flowControlMRC = mrcs;
             } else if (strcmp(key, "flowControl/MRR") == 0) {
                 status.flowControlMRR = malloc(sizeof(uint64_t));
-                *(status.flowControlMRR) = rlpDecodeUInt64(coder, keyPairs[1], 1);
+                *(status.flowControlMRR) = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1);
             }
             free (key);
         }
@@ -821,24 +852,40 @@ messageLESStatusDecode (BRRlpItem item, BRRlpCoder coder) {
 
 extern void
 messageLESStatusShow(BREthereumLESMessageStatus *message) {
+    BREthereumHashString headHashString, genesisHashString;
+    hashFillString (message->headHash, headHashString);
+    hashFillString (message->genesisHash, genesisHashString);
+
+    char *headTotalDifficulty = coerceString (message->headTd, 10);
+
     eth_log (LES_LOG_TOPIC, "StatusMessage:%s", "");
     eth_log (LES_LOG_TOPIC, "    ProtocolVersion: %llu", message->protocolVersion);
+    eth_log (LES_LOG_TOPIC, "    AnnounceType   : %llu", message->announceType);
     eth_log (LES_LOG_TOPIC, "    NetworkId      : %llu", message->chainId);
     eth_log (LES_LOG_TOPIC, "    HeadNum        : %llu", message->headNum);
-    eth_log (LES_LOG_TOPIC, "    ...            : %s", "");
+    eth_log (LES_LOG_TOPIC, "    HeadHash       : %s",   headHashString);
+    eth_log (LES_LOG_TOPIC, "    HeadTD         : %s",   headTotalDifficulty);
+    eth_log (LES_LOG_TOPIC, "    GenesisHash    : %s",   genesisHashString);
+    eth_log (LES_LOG_TOPIC, "    ServeHeaders   : %s", ETHEREUM_BOOLEAN_IS_TRUE(message->serveHeaders) ? "Yes" : "No");
+    eth_log (LES_LOG_TOPIC, "    ServeChainSince: %llu", (NULL != message->serveChainSince ? *message->serveChainSince : -1)) ;
+    eth_log (LES_LOG_TOPIC, "    ServeStateSince: %llu", (NULL != message->serveStateSince ? *message->serveStateSince : -1)) ;
     eth_log (LES_LOG_TOPIC, "    TxRelay        : %s", ETHEREUM_BOOLEAN_IS_TRUE(message->txRelay) ? "Yes" : "No");
+    eth_log (LES_LOG_TOPIC, "    FlowControl/BL : %llu", (NULL != message->flowControlBL  ? *message->flowControlBL  : -1));
+    eth_log (LES_LOG_TOPIC, "    FlowControl/MRR: %llu", (NULL != message->flowControlMRR ? *message->flowControlMRR : -1));
 
     size_t count = *(message->flowControlMRCCount);
-    eth_log (LES_LOG_TOPIC, "    FlowControl/MCC%s", "");
+    eth_log (LES_LOG_TOPIC, "    FlowControl/MRC:%s", "");
     for (size_t index = 0; index < count; index++) {
         const char *label = messageLESGetIdentifierName ((BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);
         if (NULL != label) {
-            eth_log (LES_LOG_TOPIC, "      === %d", (BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);
+            eth_log (LES_LOG_TOPIC, "      %2d", (BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);
             eth_log (LES_LOG_TOPIC, "        Request : %s", label);
             eth_log (LES_LOG_TOPIC, "        BaseCost: %llu", message->flowControlMRC[index].baseCost);
             eth_log (LES_LOG_TOPIC, "        ReqCost : %llu", message->flowControlMRC[index].reqCost);
         }
     }
+
+    free (headTotalDifficulty);
 }
 
 /// Mark: LES Announce
@@ -848,21 +895,21 @@ messageLESStatusShow(BREthereumLESMessageStatus *message) {
 //
 extern BREthereumLESMessageAnnounce
 messageLESAnnounceDecode (BRRlpItem item,
-                          BRRlpCoder coder) {
+                          BREthereumMessageCoder coder) {
     BREthereumLESMessageAnnounce message;
 
     size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
+    const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
     assert (5 == itemsCount);
 
-    message.headHash = hashRlpDecode (items[0], coder);
-    message.headNumber = rlpDecodeUInt64 (coder, items[1], 1);
-    message.headTotalDifficulty = rlpDecodeUInt256 (coder, items[2], 1);
-    message.reorgDepth = rlpDecodeUInt64 (coder, items[3], 1);
+    message.headHash = hashRlpDecode (items[0], coder.rlp);
+    message.headNumber = rlpDecodeUInt64 (coder.rlp, items[1], 1);
+    message.headTotalDifficulty = rlpDecodeUInt256 (coder.rlp, items[2], 1);
+    message.reorgDepth = rlpDecodeUInt64 (coder.rlp, items[3], 1);
 
     // TODO: Decode Keys
     size_t pairCount = 0;
-    const BRRlpItem *pairItems = rlpDecodeList (coder, items[4], &pairCount);
+    const BRRlpItem *pairItems = rlpDecodeList (coder.rlp, items[4], &pairCount);
     array_new(message.pairs, pairCount);
     for (size_t index = 0; index < pairCount; index++)
         ;
@@ -892,21 +939,21 @@ messageLESGetBlockHeadersCreate (uint64_t reqId,
 
 extern BRRlpItem
 messageLESGetBlockHeadersEncode (BREthereumLESMessageGetBlockHeaders message,
-                                 BRRlpCoder coder) {
-    return rlpEncodeList2 (coder,
-                           rlpEncodeUInt64 (coder, message.reqId, 1),
-                           rlpEncodeList (coder, 4,
+                                 BREthereumMessageCoder coder) {
+    return rlpEncodeList2 (coder.rlp,
+                           rlpEncodeUInt64 (coder.rlp, message.reqId, 1),
+                           rlpEncodeList (coder.rlp, 4,
                                           (message.useBlockNumber
-                                           ? rlpEncodeUInt64 (coder, message.block.number, 1)
-                                           : hashRlpEncode (message.block.hash, coder)),
-                                          rlpEncodeUInt64 (coder, message.maxHeaders, 1),
-                                          rlpEncodeUInt64 (coder, message.skip, 1),
-                                          rlpEncodeUInt64 (coder, message.reverse, 1)));
+                                           ? rlpEncodeUInt64 (coder.rlp, message.block.number, 1)
+                                           : hashRlpEncode (message.block.hash, coder.rlp)),
+                                          rlpEncodeUInt64 (coder.rlp, message.maxHeaders, 1),
+                                          rlpEncodeUInt64 (coder.rlp, message.skip, 1),
+                                          rlpEncodeUInt64 (coder.rlp, message.reverse, 1)));
 }
 
 extern BREthereumLESMessageGetBlockHeaders
 messageLESGetBlockHeadersDecode (BRRlpItem item,
-                                 BRRlpCoder coder) {
+                                 BREthereumMessageCoder coder) {
     assert (0);
 }
 
@@ -914,21 +961,21 @@ messageLESGetBlockHeadersDecode (BRRlpItem item,
 
 extern BREthereumLESMessageBlockHeaders
 messageLESBlockHeadersDecode (BRRlpItem item,
-                                 BRRlpCoder coder) {
+                                 BREthereumMessageCoder coder) {
     size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
+    const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
     assert (3 == itemsCount);
 
-    uint64_t reqId = rlpDecodeUInt64 (coder, items[0], 1);
-    uint64_t bv    = rlpDecodeUInt64 (coder, items[1], 1);
+    uint64_t reqId = rlpDecodeUInt64 (coder.rlp, items[0], 1);
+    uint64_t bv    = rlpDecodeUInt64 (coder.rlp, items[1], 1);
 
     size_t headerItemsCount = 0;
-    const BRRlpItem *headerItems = rlpDecodeList (coder, items[2], &headerItemsCount);
+    const BRRlpItem *headerItems = rlpDecodeList (coder.rlp, items[2], &headerItemsCount);
 
     BRArrayOf(BREthereumBlockHeader) headers;
     array_new (headers, headerItemsCount);
     for (size_t index = 0; index < headerItemsCount; index++)
-        array_add (headers, blockHeaderRlpDecode (headerItems[index], RLP_TYPE_NETWORK, coder));
+        array_add (headers, blockHeaderRlpDecode (headerItems[index], RLP_TYPE_NETWORK, coder.rlp));
 
     return (BREthereumLESMessageBlockHeaders) {
         reqId,
@@ -940,38 +987,37 @@ messageLESBlockHeadersDecode (BRRlpItem item,
 /// MARK: LES GetBlockBodies
 
 static BRRlpItem
-messageLESGetBlockBodiesEncode (BREthereumLESMessageGetBlockBodies message, BRRlpCoder coder) {
-    return rlpEncodeList2 (coder,
-                          rlpEncodeUInt64 (coder, message.reqId, 1),
-                          hashEncodeList (message.hashes, coder));
+messageLESGetBlockBodiesEncode (BREthereumLESMessageGetBlockBodies message, BREthereumMessageCoder coder) {
+    return rlpEncodeList2 (coder.rlp,
+                          rlpEncodeUInt64 (coder.rlp, message.reqId, 1),
+                          hashEncodeList (message.hashes, coder.rlp));
 }
 
 /// MARK: LES BlockBodies
 
 static BREthereumLESMessageBlockBodies
 messageLESBlockBodiesDecode (BRRlpItem item,
-                             BRRlpCoder coder) {
+                             BREthereumMessageCoder coder) {
     size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
+    const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
     assert (3 == itemsCount);
 
-    uint64_t reqId = rlpDecodeUInt64 (coder, items[0], 1);
-    uint64_t bv    = rlpDecodeUInt64 (coder, items[1], 1);
+    uint64_t reqId = rlpDecodeUInt64 (coder.rlp, items[0], 1);
+    uint64_t bv    = rlpDecodeUInt64 (coder.rlp, items[1], 1);
 
     size_t pairItemsCount = 0;
-    const BRRlpItem *pairItems = rlpDecodeList (coder, items[2], &pairItemsCount);
+    const BRRlpItem *pairItems = rlpDecodeList (coder.rlp, items[2], &pairItemsCount);
 
     BRArrayOf(BREthereumBlockBodyPair) pairs;
     array_new(pairs, pairItemsCount);
     for (size_t index = 0; index < pairItemsCount; index++) {
         size_t bodyItemsCount;
-        const BRRlpItem *bodyItems = rlpDecodeList (coder, pairItems[index], &bodyItemsCount);
+        const BRRlpItem *bodyItems = rlpDecodeList (coder.rlp, pairItems[index], &bodyItemsCount);
         assert (2 == bodyItemsCount);
 
-        printf ("Forcing MAINNET\n");
         BREthereumBlockBodyPair pair = {
-            blockTransactionsRlpDecode (bodyItems[0], ethereumMainnet, RLP_TYPE_NETWORK, coder),
-            blockOmmersRlpDecode (bodyItems[1], ethereumMainnet, RLP_TYPE_NETWORK, coder)
+            blockTransactionsRlpDecode (bodyItems[0], coder.network, RLP_TYPE_NETWORK, coder.rlp),
+            blockOmmersRlpDecode (bodyItems[1], coder.network, RLP_TYPE_NETWORK, coder.rlp)
         };
         array_add(pairs, pair);
     }
@@ -985,32 +1031,32 @@ messageLESBlockBodiesDecode (BRRlpItem item,
 /// MARK: LES GetReceipts
 
 static BRRlpItem
-messageLESGetReceiptsEncode (BREthereumLESMessageGetReceipts message, BRRlpCoder coder) {
-    return rlpEncodeList2 (coder,
-                           rlpEncodeUInt64 (coder, message.reqId, 1),
-                           hashEncodeList (message.hashes, coder));
+messageLESGetReceiptsEncode (BREthereumLESMessageGetReceipts message, BREthereumMessageCoder coder) {
+    return rlpEncodeList2 (coder.rlp,
+                           rlpEncodeUInt64 (coder.rlp, message.reqId, 1),
+                           hashEncodeList (message.hashes, coder.rlp));
 }
 
 /// MARK: LES Receipts
 
 static BREthereumLESMessageReceipts
 messageLESReceiptsDecode (BRRlpItem item,
-                          BRRlpCoder coder) {
+                          BREthereumMessageCoder coder) {
     size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
+    const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
     assert (3 == itemsCount);
 
-    uint64_t reqId = rlpDecodeUInt64 (coder, items[0], 1);
-    uint64_t bv    = rlpDecodeUInt64 (coder, items[1], 1);
+    uint64_t reqId = rlpDecodeUInt64 (coder.rlp, items[0], 1);
+    uint64_t bv    = rlpDecodeUInt64 (coder.rlp, items[1], 1);
 
     size_t arrayItemsCount = 0;
-    const BRRlpItem *arrayItems = rlpDecodeList (coder, items[2], &arrayItemsCount);
+    const BRRlpItem *arrayItems = rlpDecodeList (coder.rlp, items[2], &arrayItemsCount);
 
     BRArrayOf(BREthereumLESMessageReceiptsArray) arrays;
     array_new(arrays, arrayItemsCount);
     for (size_t index = 0; index < arrayItemsCount; index++) {
         BREthereumLESMessageReceiptsArray array = {
-            transactionReceiptDecodeList (arrayItems[index], coder)
+            transactionReceiptDecodeList (arrayItems[index], coder.rlp)
         };
         array_add (arrays, array);
     }
@@ -1025,30 +1071,30 @@ messageLESReceiptsDecode (BRRlpItem item,
 
 static BRRlpItem
 proofsSpecEncode (BREthereumLESMessageGetProofsSpec spec,
-                  BRRlpCoder coder) {
-    return rlpEncodeList (coder, 4,
-                          hashRlpEncode (spec.blockHash, coder),
-                          rlpEncodeBytes (coder, spec.key1.bytes, spec.key1.bytesCount),
-                          rlpEncodeBytes (coder, spec.key2.bytes, spec.key2.bytesCount),
-                          rlpEncodeUInt64 (coder, spec.fromLevel, 1));
+                  BREthereumMessageCoder coder) {
+    return rlpEncodeList (coder.rlp, 4,
+                          hashRlpEncode (spec.blockHash, coder.rlp),
+                          rlpEncodeBytes (coder.rlp, spec.key1.bytes, spec.key1.bytesCount),
+                          rlpEncodeBytes (coder.rlp, spec.key2.bytes, spec.key2.bytesCount),
+                          rlpEncodeUInt64 (coder.rlp, spec.fromLevel, 1));
 }
 
 static BRRlpItem
 proofsSpecEncodeList (BRArrayOf(BREthereumLESMessageGetProofsSpec) specs,
-                      BRRlpCoder coder) {
+                      BREthereumMessageCoder coder) {
     size_t itemsCount = array_count(specs);
     BRRlpItem items[itemsCount];
 
     for (size_t index = 0; index < itemsCount; index++)
         items[index] = proofsSpecEncode (specs[index], coder);
 
-    return rlpEncodeListItems (coder, items, itemsCount);
+    return rlpEncodeListItems (coder.rlp, items, itemsCount);
 }
 
 static BRRlpItem
-messageLESGetProofsEncode (BREthereumLESMessageGetProofs message, BRRlpCoder coder) {
-    return rlpEncodeList2 (coder,
-                           rlpEncodeUInt64 (coder, message.reqId, 1),
+messageLESGetProofsEncode (BREthereumLESMessageGetProofs message, BREthereumMessageCoder coder) {
+    return rlpEncodeList2 (coder.rlp,
+                           rlpEncodeUInt64 (coder.rlp, message.reqId, 1),
                            proofsSpecEncodeList(message.specs, coder));
 }
 
@@ -1056,19 +1102,19 @@ messageLESGetProofsEncode (BREthereumLESMessageGetProofs message, BRRlpCoder cod
 
 static BREthereumLESMessageProofs
 messageLESProofsDecode (BRRlpItem item,
-                        BRRlpCoder coder) {
-    rlpShowItem (coder, item, "LES Proofs");
+                        BREthereumMessageCoder coder) {
+    // rlpShowItem (coder.rlp, item, "LES Proofs");
     size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
+    const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
     assert (3 == itemsCount);
 
-    uint64_t reqId = rlpDecodeUInt64 (coder, items[0], 1);
-    uint64_t bv    = rlpDecodeUInt64 (coder, items[1], 1);
+    uint64_t reqId = rlpDecodeUInt64 (coder.rlp, items[0], 1);
+    uint64_t bv    = rlpDecodeUInt64 (coder.rlp, items[1], 1);
 
     return (BREthereumLESMessageProofs) {
         reqId,
         bv,
-        mptProofDecodeList (items[2], coder)
+        mptProofDecodeList (items[2], coder.rlp)
     };
 }
 
@@ -1085,9 +1131,9 @@ messageLESProofsDecode (BRRlpItem item,
 /// MARK: LES GetProofsV2
 
 static BRRlpItem
-messageLESGetProofsV2Encode (BREthereumLESMessageGetProofsV2 message, BRRlpCoder coder) {
-    return rlpEncodeList2 (coder,
-                           rlpEncodeUInt64 (coder, message.reqId, 1),
+messageLESGetProofsV2Encode (BREthereumLESMessageGetProofsV2 message, BREthereumMessageCoder coder) {
+    return rlpEncodeList2 (coder.rlp,
+                           rlpEncodeUInt64 (coder.rlp, message.reqId, 1),
                            proofsSpecEncodeList(message.specs, coder));
 }
 
@@ -1095,19 +1141,19 @@ messageLESGetProofsV2Encode (BREthereumLESMessageGetProofsV2 message, BRRlpCoder
 
 static BREthereumLESMessageProofsV2
 messageLESProofsV2Decode (BRRlpItem item,
-                     BRRlpCoder coder) {
-    rlpShowItem (coder, item, "LES ProofsV2");
+                     BREthereumMessageCoder coder) {
+    // rlpShowItem (coder.rlp, item, "LES ProofsV2");
     size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
+    const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
     assert (3 == itemsCount);
 
-    uint64_t reqId = rlpDecodeUInt64 (coder, items[0], 1);
-    uint64_t bv    = rlpDecodeUInt64 (coder, items[1], 1);
+    uint64_t reqId = rlpDecodeUInt64 (coder.rlp, items[0], 1);
+    uint64_t bv    = rlpDecodeUInt64 (coder.rlp, items[1], 1);
 
     return (BREthereumLESMessageProofsV2) {
         reqId,
         bv,
-        mptProofDecodeList (items[2], coder)
+        mptProofDecodeList (items[2], coder.rlp)
     };
 }
 
@@ -1118,47 +1164,46 @@ messageLESProofsV2Decode (BRRlpItem item,
 /// MARK: LES SendTx2
 
 static BRRlpItem
-messageLESSendTx2Encode (BREthereumLESMessageSendTx2 message, BRRlpCoder coder) {
+messageLESSendTx2Encode (BREthereumLESMessageSendTx2 message, BREthereumMessageCoder coder) {
     size_t itemsCount = array_count(message.transactions);
     BRRlpItem items[itemsCount];
 
-    printf ("Forcing MAINNET (Send Tx2)\n");
     for (size_t index = 0; index < itemsCount; index++)
         items[index] = transactionRlpEncode(message.transactions[index],
-                                            ethereumMainnet,
+                                            coder.network,
                                             RLP_TYPE_TRANSACTION_SIGNED,
-                                            coder);
+                                            coder.rlp);
 
-    return rlpEncodeList2 (coder,
-                           rlpEncodeUInt64 (coder, message.reqId, 1),
-                           rlpEncodeListItems (coder, items, itemsCount));
+    return rlpEncodeList2 (coder.rlp,
+                           rlpEncodeUInt64 (coder.rlp, message.reqId, 1),
+                           rlpEncodeListItems (coder.rlp, items, itemsCount));
 }
 
 /// MARK: LES GetTxStatus
 
 static BRRlpItem
-messageLESGetTxStatusEncode (BREthereumLESMessageGetTxStatus message, BRRlpCoder coder) {
-    return rlpEncodeList2 (coder,
-                           rlpEncodeUInt64 (coder, message.reqId, 1),
-                           hashEncodeList (message.hashes, coder));
+messageLESGetTxStatusEncode (BREthereumLESMessageGetTxStatus message, BREthereumMessageCoder coder) {
+    return rlpEncodeList2 (coder.rlp,
+                           rlpEncodeUInt64 (coder.rlp, message.reqId, 1),
+                           hashEncodeList (message.hashes, coder.rlp));
 }
 
 /// MARK: LES TxStatus
 
 static BREthereumLESMessageTxStatus
 messageLESTxStatusDecode (BRRlpItem item,
-                          BRRlpCoder coder) {
+                          BREthereumMessageCoder coder) {
     size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
+    const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
     assert (3 == itemsCount);
 
-    uint64_t reqId = rlpDecodeUInt64 (coder, items[0], 1);
-    uint64_t bv    = rlpDecodeUInt64 (coder, items[1], 1);
+    uint64_t reqId = rlpDecodeUInt64 (coder.rlp, items[0], 1);
+    uint64_t bv    = rlpDecodeUInt64 (coder.rlp, items[1], 1);
 
     return (BREthereumLESMessageTxStatus) {
         reqId,
         bv,
-        transactionStatusDecodeList (items[2], coder)
+        transactionStatusDecodeList (items[2], coder.rlp)
     };
 }
 
@@ -1166,7 +1211,7 @@ messageLESTxStatusDecode (BRRlpItem item,
 
 extern BREthereumLESMessage
 messageLESDecode (BRRlpItem item,
-                  BRRlpCoder coder,
+                  BREthereumMessageCoder coder,
                   BREthereumLESMessageIdentifier identifier) {
     switch (identifier) {
         case LES_MESSAGE_STATUS:
@@ -1218,7 +1263,7 @@ messageLESDecode (BRRlpItem item,
 
 extern BRRlpItem
 messageLESEncode (BREthereumLESMessage message,
-                  BRRlpCoder coder) {
+                  BREthereumMessageCoder coder) {
     BRRlpItem body = NULL;
     switch (message.identifier) {
         case LES_MESSAGE_STATUS:
@@ -1239,12 +1284,12 @@ messageLESEncode (BREthereumLESMessage message,
 
         case LES_MESSAGE_GET_PROOFS:
             body = messageLESGetProofsEncode (message.u.getProofs, coder);
-            rlpShowItem (coder, body, "LES GetProofs");
+            // rlpShowItem (coder.rlp, body, "LES GetProofs");
             break;
 
         case LES_MESSAGE_GET_PROOFS_V2:
             body = messageLESGetProofsV2Encode (message.u.getProofsV2, coder);
-            rlpShowItem (coder, body, "LES GetProofsV2");
+            // rlpShowItem (coder.rlp, body, "LES GetProofsV2");
             break;
 
         case LES_MESSAGE_GET_TX_STATUS:
@@ -1259,16 +1304,39 @@ messageLESEncode (BREthereumLESMessage message,
             assert (0);
     }
 
-    return rlpEncodeList2 (coder,
-                           rlpEncodeUInt64 (coder, message.identifier + LES_IDENTIFIER_OFFSET_DEAL_WITH_IT, 1),
+    return rlpEncodeList2 (coder.rlp,
+                           rlpEncodeUInt64 (coder.rlp, message.identifier + coder.lesMessageIdOffset, 1),
                            body);
+}
+
+extern int
+messageLESHasUse (const BREthereumLESMessage *message,
+                  BREthereumLESMessageUse use) {
+    return use == messageLESSpecs[message->identifier].use;
+}
+
+// 0 if not response
+extern uint64_t
+messageLESGetCredits (const BREthereumLESMessage *message) {
+    switch (message->identifier) {
+        case LES_MESSAGE_BLOCK_HEADERS:  return message->u.blockHeaders.bv;
+        case LES_MESSAGE_BLOCK_BODIES:   return message->u.blockBodies.bv;
+        case LES_MESSAGE_RECEIPTS:       return message->u.receipts.bv;
+        case LES_MESSAGE_PROOFS:         return message->u.proofs.bv;
+        case LES_MESSAGE_CONTRACT_CODES: return 0;
+        case LES_MESSAGE_HEADER_PROOFS:  return 0;
+        case LES_MESSAGE_PROOFS_V2:      return message->u.proofsV2.bv;
+        case LES_MESSAGE_HELPER_TRIE_PROOFS: return 0;
+        case LES_MESSAGE_TX_STATUS:      return message->u.txStatus.bv;
+        default: return 0;
+    }
 }
 
 /// MARK: - Wire Protocol Messagees
 
 extern BRRlpItem
 messageEncode (BREthereumMessage message,
-               BRRlpCoder coder) {
+               BREthereumMessageCoder coder) {
     switch (message.identifier) {
         case MESSAGE_P2P:
             return messageP2PEncode (message.u.p2p, coder);
@@ -1283,7 +1351,7 @@ messageEncode (BREthereumMessage message,
 
 extern BREthereumMessage
 messageDecode (BRRlpItem item,
-               BRRlpCoder coder,
+               BREthereumMessageCoder coder,
                BREthereumMessageIdentifier type,
                BREthereumANYMessageIdentifier subtype) {
     switch (type) {

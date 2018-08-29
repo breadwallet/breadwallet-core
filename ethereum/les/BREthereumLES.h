@@ -210,7 +210,7 @@ typedef void
  * If ETHEREUM_BOOLEAN_TRUE the returned headers will be in reverse order; otherwise the
  * first header will have `blockNumber`.
  */
-extern BREthereumLESStatus
+extern void
 lesGetBlockHeaders (BREthereumLES les,
                     BREthereumLESBlockHeadersContext context,
                     BREthereumLESBlockHeadersCallback callback,
@@ -230,13 +230,13 @@ typedef void
                                      BREthereumTransaction transactions[],
                                      BREthereumBlockHeader ommers[]);
 
-extern BREthereumLESStatus
+extern void
 lesGetBlockBodies (BREthereumLES les,
                    BREthereumLESBlockBodiesContext context,
                    BREthereumLESBlockBodiesCallback callback,
                    BREthereumHash blocks[]);
 
-extern BREthereumLESStatus
+extern void
 lesGetBlockBodiesOne (BREthereumLES les,
                       BREthereumLESBlockBodiesContext context,
                       BREthereumLESBlockBodiesCallback callback,
@@ -254,13 +254,13 @@ typedef void
                                   BREthereumHash block,
                                   BREthereumTransactionReceipt receipts[]);
 
-extern BREthereumLESStatus
+extern void
 lesGetReceipts (BREthereumLES les,
                 BREthereumLESReceiptsContext context,
                 BREthereumLESReceiptsCallback callback,
                 BREthereumHash blocks[]);
 
-extern BREthereumLESStatus
+extern void
 lesGetReceiptsOne (BREthereumLES les,
                    BREthereumLESReceiptsContext context,
                    BREthereumLESReceiptsCallback callback,
@@ -319,7 +319,7 @@ typedef void // actual result is TBD
                                   BRRlpData key2);
                                   // BREthereumMPTNodePath path);
 
-extern BREthereumLESStatus
+extern void
 lesGetProofsV2One (BREthereumLES les,
                    BREthereumLESProofsV2Context context,
                    BREthereumLESProofsV2Callback callback,
@@ -338,19 +338,19 @@ typedef void
                                            BREthereumHash transaction,
                                            BREthereumTransactionStatus status);
 
-extern BREthereumLESStatus
+extern void
 lesGetTransactionStatus (BREthereumLES les,
                          BREthereumLESTransactionStatusContext context,
                          BREthereumLESTransactionStatusCallback callback,
                          BREthereumHash transactions[]);
 
-extern BREthereumLESStatus
+extern void
 lesGetTransactionStatusOne (BREthereumLES les,
                             BREthereumLESTransactionStatusContext context,
                             BREthereumLESTransactionStatusCallback callback,
                             BREthereumHash transaction);
 
-extern BREthereumLESStatus
+extern void
 lesSubmitTransaction (BREthereumLES les,
                       BREthereumLESTransactionStatusContext context,
                       BREthereumLESTransactionStatusCallback callback,

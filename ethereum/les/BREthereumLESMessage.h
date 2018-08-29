@@ -39,12 +39,48 @@
 
 #define LES_LOG_TOPIC "LES"
 
-#define LES_IDENTIFIER_OFFSET_DEAL_WITH_IT   (0x10)
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+//
+// BREthereumMessageCoder - when RLP encoding and decoding messages, we need both the
+// RLP Coder, the Network and a LES message offset.  The network is required for decoding
+// transactions - where the signature encodes the network's chain id.  The LES message offset
+// is required to offset a LES message id (away from the P2P id space).
+//
+// We could have considered modifying BRRlpCoder to include the network - however, the RLP
+// module *absolutely does not* depend on anything...  So we'll use this 'MessageCoder' abstraction
+// to bundle all the LES specific needs.
+//
+typedef struct {
+    BRRlpCoder rlp;
+    BREthereumNetwork network;
+
+    // The offset for LES messages.  This is determined by 'negotiating' subprotocols
+    // https://github.com/ethereum/wiki/wiki/ÐΞVp2p-Wire-Protocol
+    //
+    // "ÐΞVp2p is designed to support arbitrary sub-protocols (aka capabilities) over the basic
+    // wire protocol. Each sub-protocol is given as much of the message-ID space as it needs (all
+    // such protocols must statically specify how many message IDs they require). On connection and
+    // reception of the Hello message, both peers have equivalent information about what
+    // subprotocols they share (including versions) and are able to form consensus over the
+    // composition of message ID space.
+    //
+    // "Message IDs are assumed to be compact from ID 0x10 onwards (0x00-0x10 is reserved for
+    // ÐΞVp2p messages) and given to each shared (equal-version, equal name) sub-protocol in
+    // alphabetic order. Sub-protocols that are not shared are ignored. If multiple versions are
+    // shared of the same (equal name) sub-protocol, the numerically highest wins, others are
+    // ignored."
+    //
+    // Generally, we have one protocol specified
+    uint64_t lesMessageIdOffset;
+} BREthereumMessageCoder;
+
+//
+// BREthereumMessageIdentifier - The Ethereum Wire Protocol (WIP) defines four fundamental
+// message types.  We'll explicitly handle each one.
+//
 typedef enum {
     MESSAGE_P2P   = 0x00,
     MESSAGE_ETH   = 0x01,
@@ -54,9 +90,9 @@ typedef enum {
 
 /// MARK: - P2P (Peer-to-Peer) Messages
 
-/**
- *
- */
+//
+// BREthereumP2PMessageIdentifier - The Ethereum P2P protocol defines four messages.
+//
 typedef enum {
     P2P_MESSAGE_HELLO      = 0x00,
     P2P_MESSAGE_DISCONNECT = 0x01,
@@ -85,14 +121,21 @@ typedef struct {
 } BREthereumP2PMessageHello;
 
 extern BRRlpItem
-messageP2PHelloEncode (BREthereumP2PMessageHello message, BRRlpCoder coder);
+messageP2PHelloEncode (BREthereumP2PMessageHello message, BREthereumMessageCoder coder);
 
 extern BREthereumP2PMessageHello
-messageP2PHelloDecode (BRRlpItem item, BRRlpCoder coder);
+messageP2PHelloDecode (BRRlpItem item, BREthereumMessageCoder coder);
 
 extern void
 messageP2PHelloShow (BREthereumP2PMessageHello hello);
 
+extern BREthereumBoolean
+messageP2PCababilityEqual (const BREthereumP2PCapability *cap1,
+                           const BREthereumP2PCapability *cap2);
+
+extern BREthereumBoolean
+messageP2PHelloHasCapability (const BREthereumP2PMessageHello *hello,
+                              const BREthereumP2PCapability *capability);
 //
 // P2P Disconnect
 //
@@ -145,7 +188,7 @@ typedef struct {
 
 extern BRRlpItem
 messageP2PEncode (BREthereumP2PMessage message,
-                  BRRlpCoder coder);
+                  BREthereumMessageCoder coder);
 
 /// MARK: - ETH (Ethereum) Messages
 
@@ -177,7 +220,9 @@ typedef struct {
 
 /**
  * Node DIScovery (apparently V4) defines four message types: PING, PONG, FIND_NEIGHBORS and
- * NEIGHBORS.
+ * NEIGHBORS.  Note that the message identifier of '0x00' is reserved.  This DIS identifier of
+ * 0x00, ..., 0x04 overlap with the P2P identifier; however, the DIS identifier are used on the
+ * UDP route (and PIP identifiers are use don the TCP route).
  */
 typedef enum {
     DIS_MESSAGE_PING           = 0x01,
@@ -186,12 +231,15 @@ typedef enum {
     DIS_MESSAGE_NEIGHBORS      = 0x04
 } BREthereumDISMessageIdentifier;
 
+#define MESSAGE_DIS_IDENTIFIER_ANY   ((BREthereumDISMessageIdentifier) 0x00)
+
 extern const char *
 messageDISGetIdentifierName (BREthereumDISMessageIdentifier identifier);
 
 /**
- * A DIS Endpoint is commonly used to identify an INET address.  Sometimes this is provided
- * to identify the sender and, most importantly, to identify peers.
+ * A DIS Endpoint is commonly used to identify an INET address.  Sometimes a DIS Endpoint is
+ * provided to identify from/to (like in the Ping/Pong mesages) and, most importantly, to identify
+ * peers (like in the Neighbor message).
  */
 typedef struct {
     /** The AF (Address Family) domain - one of AF_INET or AF_INET6 */
@@ -303,7 +351,7 @@ typedef enum {
     LES_MESSAGE_GET_PROOFS         = 0x08,
     LES_MESSAGE_PROOFS             = 0x09,
     LES_MESSAGE_GET_CONTRACT_CODES = 0x0a,
-    LES_MESSAGE_CONTRACT_CODE      = 0x0b,
+    LES_MESSAGE_CONTRACT_CODES     = 0x0b,
     LES_MESSAGE_SEND_TX            = 0x0c,
     LES_MESSAGE_GET_HEADER_PROOFS  = 0x0d,
     LES_MESSAGE_HEADER_PROOFS      = 0x0e,
@@ -315,6 +363,8 @@ typedef enum {
     LES_MESSAGE_GET_TX_STATUS      = 0x14,
     LES_MESSAGE_TX_STATUS          = 0x15,
 } BREthereumLESMessageIdentifier;
+
+#define NUMBER_OF_LES_MESSAGE_IDENTIFIERS    (LES_MESSAGE_TX_STATUS + 1)
 
 extern const char *
 messageLESGetIdentifierName (BREthereumLESMessageIdentifier id);
@@ -379,10 +429,10 @@ messageLESStatusCreate (uint64_t protocolVersion,
                         uint64_t announceType);
 
 extern BRRlpItem
-messageLESStatusEncode (BREthereumLESMessageStatus *status, BRRlpCoder coder);
+messageLESStatusEncode (BREthereumLESMessageStatus *status, BREthereumMessageCoder coder);
 
 extern BREthereumLESMessageStatus
-messageLESStatusDecode (BRRlpItem item, BRRlpCoder coder);
+messageLESStatusDecode (BRRlpItem item, BREthereumMessageCoder coder);
 
 extern void
 messageLESStatusShow(BREthereumLESMessageStatus *status);
@@ -429,7 +479,7 @@ messageLESGetBlockHeadersCreate (uint64_t reqId,
 // TODO: Include `reqId` or not?  Include `msgId` (w/ offset) or not?  Depends on encryption...
 extern BRRlpItem
 messageLESGetBlockHeadersEncode (BREthereumLESMessageGetBlockHeaders message,
-                                 BRRlpCoder coder);
+                                 BREthereumMessageCoder coder);
 
 /// MARK: LES Block Headers
 
@@ -446,7 +496,7 @@ typedef struct {
 // TODO: Include `reqId` or not?  Include `msgId` (w/ offset) or not?  Depends on encryption...
 extern BREthereumLESMessageBlockHeaders
 messageLESBlockHeadersDecode (BRRlpItem item,
-                              BRRlpCoder coder);
+                              BREthereumMessageCoder coder);
 
 /// MARK: LES GetBlockBodies
 
@@ -505,6 +555,9 @@ typedef struct {
     BRRlpData key1;
     BRRlpData key2;
     uint64_t fromLevel;
+    // Not RLP encoded
+    uint64_t blockNumber;
+    BREthereumAddress address;
 } BREthereumLESMessageGetProofsSpec;
 
 /**
@@ -610,6 +663,32 @@ typedef struct {
 
 /// MARK: LES Message
 
+typedef enum {
+    LES_MESSAGE_USE_STATUS,
+    LES_MESSAGE_USE_REQUEST,
+    LES_MESSAGE_USE_RESPONSE
+} BREthereumLESMessageUse;
+
+
+typedef struct {
+    /** Name (Displayable) */
+    const char *name;
+
+    /** Use */
+    BREthereumLESMessageUse use;
+
+    /** Maximum number of messages that can be sent/requested */
+    uint64_t limit;
+
+    /** Cost for 0 messages */
+    uint64_t baseCost;
+
+    /** Cost of each message */
+    uint64_t reqCost;
+} BREthereumLESMessageSpec;
+
+extern BREthereumLESMessageSpec
+messageLESSpecs [NUMBER_OF_LES_MESSAGE_IDENTIFIERS];
 /**
  * A LES Message is a union of the above LES messages
  */
@@ -651,7 +730,7 @@ typedef struct {
  */
 extern BREthereumLESMessage
 messageLESDecode (BRRlpItem item,
-                  BRRlpCoder coder,
+                  BREthereumMessageCoder coder,
                   BREthereumLESMessageIdentifier identifier);
 
 
@@ -664,7 +743,16 @@ messageLESDecode (BRRlpItem item,
  */
 extern BRRlpItem
 messageLESEncode (BREthereumLESMessage message,
-                  BRRlpCoder coder);
+                  BREthereumMessageCoder coder);
+
+extern int
+messageLESHasUse (const BREthereumLESMessage *message,
+                  BREthereumLESMessageUse use);
+
+// 0 if not response
+extern uint64_t
+messageLESGetCredits (const BREthereumLESMessage *message);
+
 
 /// MARK: - Wire Protocol Messages
 
@@ -688,11 +776,11 @@ typedef struct {
 
 extern BRRlpItem
 messageEncode (BREthereumMessage message,
-               BRRlpCoder coder);
+               BREthereumMessageCoder coder);
 
 extern BREthereumMessage
 messageDecode (BRRlpItem item,
-               BRRlpCoder coder,
+               BREthereumMessageCoder coder,
                BREthereumMessageIdentifier type,
                BREthereumANYMessageIdentifier subtype);
 

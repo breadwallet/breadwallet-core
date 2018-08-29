@@ -54,7 +54,7 @@ typedef struct {
     /** An optional hostname - if not provided this will be a IP addr string */
     char hostname[_POSIX_HOST_NAME_MAX + 1];
 
-    /** Thge 'Discovery Endpoint' */
+    /** The 'Discovery Endpoint' */
      BREthereumDISEndpoint dis;
 
      /** The socket - will be -1 if not connected */
@@ -105,7 +105,8 @@ nodeEndpointOpen (BREthereumLESNodeEndpoint *endpoint,
 
 extern int
 nodeEndpointClose (BREthereumLESNodeEndpoint *endpoint,
-                   BREthereumLESNodeEndpointRoute route);
+                   BREthereumLESNodeEndpointRoute route,
+                   int needShutdown);
 
 extern int
 nodeEndpointIsOpen (BREthereumLESNodeEndpoint *endpoint,

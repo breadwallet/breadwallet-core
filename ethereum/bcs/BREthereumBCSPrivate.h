@@ -60,7 +60,7 @@ struct BREthereumBCSStruct {
     BREthereumBloomFilter filterForAddressOnTransactions;
 
     /**
-     * A BlookFilter with address for application to logs.  For logs, the bloom filter is based
+     * A BloomFilter with address for application to logs.  For logs, the bloom filter is based
      * on matching `LogTopic` data.
      */
     BREthereumBloomFilter filterForAddressOnLogs;
@@ -155,11 +155,6 @@ struct BREthereumBCSStruct {
     BREthereumAccountState accountState;
 
     /**
-     * The Array of Active Blocks
-     */
-    BRArrayOf(BREthereumBlock) activeBlocks;
-
-    /**
      * Sync state
      */
     BREthereumBCSSync sync;
@@ -187,9 +182,9 @@ extern const unsigned int bcsEventTypesCount;
 //
 // Submit Transaction
 //
-    extern void
-    bcsHandleSubmitTransaction (BREthereumBCS bcs,
-                                BREthereumTransaction transaction);
+extern void
+bcsHandleSubmitTransaction (BREthereumBCS bcs,
+                            BREthereumTransaction transaction);
 
 extern void
 bcsSignalSubmitTransaction (BREthereumBCS bcs,

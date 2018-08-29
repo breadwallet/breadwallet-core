@@ -164,7 +164,7 @@ void prepareLESTransaction (BREthereumLES les, const char *paperKey, const char 
     //Initilize testing state
     _initTest(1);
     
-    assert(lesSubmitTransaction(les, NULL, _transactionStatus, actualTransaction) == LES_SUCCESS);
+    lesSubmitTransaction(les, NULL, _transactionStatus, actualTransaction);
     
     sleep(600);
     
@@ -378,19 +378,31 @@ static void run_GetBlockHeaders_Tests(BREthereumLES les){
     
     //Request block headers 4732522, 4732523, 4732524
     _GetBlockHeaders_Context1 = BLOCK_4732522_IDX;
-    assert(lesGetBlockHeaders(les, (void*)&_GetBlockHeaders_Context1, _GetBlockHeaders_Calllback_Test1, _blockHeaderTestData[BLOCK_4732522_IDX].blockNum, 3, 0, ETHEREUM_BOOLEAN_FALSE) == LES_SUCCESS);
+    lesGetBlockHeaders(les, (void*)&_GetBlockHeaders_Context1,
+                       _GetBlockHeaders_Calllback_Test1,
+                       _blockHeaderTestData[BLOCK_4732522_IDX].blockNum,
+                       3, 0, ETHEREUM_BOOLEAN_FALSE);
     
     //Request block headers 4732522, 4732521, 4732520
     _GetBlockHeaders_Context2 = BLOCK_4732522_IDX;
-    assert(lesGetBlockHeaders(les, (void*)&_GetBlockHeaders_Context2, _GetBlockHeaders_Calllback_Test2, _blockHeaderTestData[BLOCK_4732522_IDX].blockNum, 3, 0, ETHEREUM_BOOLEAN_TRUE) == LES_SUCCESS);
+    lesGetBlockHeaders(les, (void*)&_GetBlockHeaders_Context2,
+                       _GetBlockHeaders_Calllback_Test2,
+                       _blockHeaderTestData[BLOCK_4732522_IDX].blockNum,
+                       3, 0, ETHEREUM_BOOLEAN_TRUE);
     
     //Request block headers 4732522, 4732524
     _GetBlockHeaders_Context3 = BLOCK_4732522_IDX;
-    assert(lesGetBlockHeaders(les, (void*)&_GetBlockHeaders_Context3, _GetBlockHeaders_Calllback_Test3, _blockHeaderTestData[BLOCK_4732522_IDX].blockNum, 2, 1, ETHEREUM_BOOLEAN_FALSE) == LES_SUCCESS);
+    lesGetBlockHeaders(les, (void*)&_GetBlockHeaders_Context3,
+                       _GetBlockHeaders_Calllback_Test3,
+                       _blockHeaderTestData[BLOCK_4732522_IDX].blockNum,
+                       2, 1, ETHEREUM_BOOLEAN_FALSE);
     
     //Request block headers 4732522, 4732520
     _GetBlockHeaders_Context4 = BLOCK_4732522_IDX;
-    assert(lesGetBlockHeaders(les, (void*)&_GetBlockHeaders_Context4, _GetBlockHeaders_Calllback_Test4, _blockHeaderTestData[BLOCK_4732522_IDX].blockNum, 2, 1, ETHEREUM_BOOLEAN_TRUE) == LES_SUCCESS);
+    lesGetBlockHeaders(les, (void*)&_GetBlockHeaders_Context4,
+                       _GetBlockHeaders_Calllback_Test4,
+                       _blockHeaderTestData[BLOCK_4732522_IDX].blockNum,
+                       2, 1, ETHEREUM_BOOLEAN_TRUE) ;
     
     //Wait for tests to complete
     _waitForTests();
@@ -485,14 +497,14 @@ static void run_GetTxStatus_Tests(BREthereumLES les){
     //Initilize testing state
     _initTest(2);
     
-    assert(lesGetTransactionStatusOne(les, (void *)&_GetTxStatus_Context1, _GetTxStatus_Test1_Callback, transaction1Hash) == LES_SUCCESS);
+    lesGetTransactionStatusOne(les, (void *)&_GetTxStatus_Context1, _GetTxStatus_Test1_Callback, transaction1Hash);
     
     BREthereumHash* transactions;
     array_new(transactions, 2);
     array_add(transactions, transaction1Hash);
     array_add(transactions, transaction2Hash);
     
-    assert(lesGetTransactionStatus(les, (void *)&_GetTxStatus_Context2, _GetTxStatus_Test2_Callback, transactions) == LES_SUCCESS);
+    lesGetTransactionStatus(les, (void *)&_GetTxStatus_Context2, _GetTxStatus_Test2_Callback, transactions);
     
     //Wait for tests to complete
     _waitForTests();
@@ -557,7 +569,10 @@ static void run_GetBlockBodies_Tests(BREthereumLES les){
     
     //Request block bodies 4732522
     _GetBlockBodies_Context1 = BLOCK_4732522_IDX;
-    assert(lesGetBlockBodiesOne(les, (void *)&_GetBlockBodies_Context1, _GetBlockBodies_Callback_Test1, _blockHeaderTestData[BLOCK_4732522_IDX].hash) == LES_SUCCESS);
+    lesGetBlockBodiesOne(les,
+                         (void *)&_GetBlockBodies_Context1,
+                         _GetBlockBodies_Callback_Test1,
+                         _blockHeaderTestData[BLOCK_4732522_IDX].hash);
     
     //Request block bodies 4732522, 4732521
     _GetBlockBodies_Context2 = BLOCK_4732522_IDX;
@@ -566,7 +581,10 @@ static void run_GetBlockBodies_Tests(BREthereumLES les){
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX].hash);
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX + 1].hash);
     
-    assert(lesGetBlockBodies(les, (void *)&_GetBlockBodies_Context2, _GetBlockBodies_Callback_Test2, blockHeaders) == LES_SUCCESS);
+    lesGetBlockBodies(les,
+                      (void *)&_GetBlockBodies_Context2,
+                      _GetBlockBodies_Callback_Test2,
+                      blockHeaders);
     
     //Wait for tests to complete
     _waitForTests();
@@ -635,7 +653,10 @@ static void run_GetReceipts_Tests(BREthereumLES les){
     
     //Request receipts for block 4732522
     _GetReceipts_Context1 = BLOCK_4732522_IDX;
-    assert(lesGetReceiptsOne(les, (void *)&_GetReceipts_Context1, _GetReceipts_Callback_Test1, _blockHeaderTestData[BLOCK_4732522_IDX].hash) == LES_SUCCESS);
+    lesGetReceiptsOne(les, (
+                            void *)&_GetReceipts_Context1,
+                     _GetReceipts_Callback_Test1,
+                     _blockHeaderTestData[BLOCK_4732522_IDX].hash);
 
     //Request receipts for block 4732522, 4732521
     _GetReceipts_Context2 = BLOCK_4732522_IDX;
@@ -644,7 +665,10 @@ static void run_GetReceipts_Tests(BREthereumLES les){
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX].hash);
     array_add(blockHeaders, _blockHeaderTestData[BLOCK_4732522_IDX + 1].hash);
     
-    assert(lesGetReceipts(les, (void *)&_GetReceipts_Context2, _GetReceipts_Callback_Test2, blockHeaders) == LES_SUCCESS);
+    lesGetReceipts(les,
+                   (void *)&_GetReceipts_Context2,
+                   _GetReceipts_Callback_Test2,
+                   blockHeaders);
 
     //Wait for tests to complete
     _waitForTests();
@@ -763,7 +787,7 @@ static void run_GetProofsV2_Tests(BREthereumLES les){
 
     key1 = (BRRlpData) { 0, NULL };
     key2 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
-    assert(lesGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+    lesGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0);
 
     block = hashCreate("0x204167e38efa1a4d75c996491637027bb1c8b1fe0d29e8d233160b5256cb415a"); // 6,100,000
     address = addressCreate("0x3d0a24a19702a7336bdbf9d10bce1d4b87e222a5"); // from tx 0
@@ -774,7 +798,7 @@ static void run_GetProofsV2_Tests(BREthereumLES les){
 
     key1 = (BRRlpData) { 0, NULL };
     key2 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
-    assert(lesGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+    lesGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0);
 
     //
     // key1 == key2, as hash of address
@@ -784,14 +808,14 @@ static void run_GetProofsV2_Tests(BREthereumLES les){
     addressHash = addressGetHash(address);
     key1 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
     key2 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
-    assert(lesGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+    lesGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0);
 
     block = hashCreate("0x204167e38efa1a4d75c996491637027bb1c8b1fe0d29e8d233160b5256cb415a"); // 6,100,000
     address = addressCreate("0x3d0a24a19702a7336bdbf9d10bce1d4b87e222a5"); // from tx 0
     addressHash = addressGetHash(address);
     key1 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
     key2 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
-    assert(lesGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
+    lesGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0);
 
     //Wait for tests to complete
     _waitForTests();// sleep (5);
