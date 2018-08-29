@@ -368,18 +368,26 @@ struct BREthereumLESRecord {
     /** Thread */
     pthread_t thread;
     pthread_mutex_t lock;
+
+    /** replace with pipe() message */
+    int theTimeToQuitIsNow;
 };
 
 static void
 assignLocalEndpointHelloMessage (BREthereumLESNodeEndpoint *endpoint,
                                  BREthereumLESNodeType type) {
+    // From https://github.com/ethereum/wiki/wiki/ÐΞVp2p-Wire-Protocol on 2019 Aug 21
+    // o p2pVersion: Specifies the implemented version of the P2P protocol. Now must be 1
+    // o listenPort: specifies the port that the client is listening on (on the interface that the
+    //    present connection traverses). If 0 it indicates the client is not listening.
     BREthereumP2PMessage hello = {
         P2P_MESSAGE_HELLO,
         { .hello  = {
-            0x03,
+            0x01,
             strdup (LES_LOCAL_ENDPOINT_NAME),
-            NULL,
-            0,
+            NULL, // capabilities
+            endpoint->dis.portTCP,
+            {}
         }}};
 
     array_new (hello.u.hello.capabilities, 1);
@@ -515,6 +523,7 @@ lesCreate (BREthereumNetwork network,
 //    les->preferredDISNode = node;
 //    les->preferredLESNode = node;
 
+    les->theTimeToQuitIsNow = 0;
     return les;
 }
 
@@ -530,6 +539,7 @@ lesStart (BREthereumLES les) {
         pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_JOINABLE);
         pthread_attr_setstacksize (&attr, LES_PTHREAD_STACK_SIZE);
 
+        les->theTimeToQuitIsNow = 0;
         pthread_create (&les->thread, &attr, (ThreadRoutine) lesThread, les);
         pthread_attr_destroy (&attr);
     }
@@ -539,18 +549,10 @@ lesStart (BREthereumLES les) {
 
 extern void
 lesStop (BREthereumLES les) {
-    FOR_NODES (les, node)
-        nodeShow (node);
-
-//    FOR_NODES (les, node) {
-//        nodeDisconnect (node, NODE_ROUTE_UDP, P2P_MESSAGE_DISCONNECT_REQUESTED);
-//        nodeDisconnect (node, NODE_ROUTE_TCP, P2P_MESSAGE_DISCONNECT_REQUESTED);
-//    }
-
     pthread_mutex_lock (&les->lock);
     if (LES_PTHREAD_NULL != les->thread) {
-        pthread_cancel (les->thread);
-        // TODO: Unlock here - to avoid a deadline on lock() after pselect()
+        les->theTimeToQuitIsNow = 1;
+        // TODO: Unlock here - to avoid a deadlock on lock() after pselect()
         pthread_mutex_unlock (&les->lock);
         pthread_join (les->thread, NULL);
         les->thread = LES_PTHREAD_NULL;
@@ -1074,11 +1076,19 @@ lesHandleNodeState (BREthereumLES les,
 
     // If the callback reports an error; then disconnect that route.  But, if the error is on the
     // TCP route, also disconnect the UDP route.
-    if (nodeHasErrorState (node, route)) {
-        nodeDisconnect (node, route, /* ignore next */ P2P_MESSAGE_DISCONNECT_REQUESTED);
-        if (NODE_ROUTE_TCP == route)
-            nodeDisconnect (node, NODE_ROUTE_UDP, /* ignore next */ P2P_MESSAGE_DISCONNECT_REQUESTED);
-    }
+    //
+    // TODO: Can't do this.  This callback is called within the node thread;
+    // Effectively, can't self-kill.
+    // If we are in an error state, won't the thread just exit with the error state defined?  Or
+    // are their other callbacks to here that *didn't* set the state.
+    //
+    // Thank you, Xcode 'thread sanitizer'
+    //
+    //    if (nodeHasErrorState (node, route)) {
+    //        nodeDisconnect (node, route, /* ignore next */ P2P_MESSAGE_DISCONNECT_REQUESTED);
+    //        if (NODE_ROUTE_TCP == route)
+    //            nodeDisconnect (node, NODE_ROUTE_UDP, /* ignore next */ P2P_MESSAGE_DISCONNECT_REQUESTED);
+    //    }
 
     // If `node` is 'fully' connected (both ROUTE_UDP ad ROUTE_TCP) make it active...
     if (nodeHasState (node, NODE_ROUTE_UDP, NODE_CONNECTED) &&
@@ -1175,11 +1185,11 @@ lesThread (BREthereumLES les) {
 #else
     pthread_setname_np (LES_THREAD_NAME);
 #endif
-    pthread_setcancelstate (PTHREAD_CANCEL_ENABLE, NULL);
-    pthread_setcanceltype  (PTHREAD_CANCEL_DEFERRED, NULL);
+    pthread_setcancelstate (PTHREAD_CANCEL_DISABLE, NULL);
+    // pthread_setcanceltype  (PTHREAD_CANCEL_DEFERRED, NULL);
 
     // TODO: Don't timeout pselect(); get some 'wakeup descriptor'
-    struct timespec timeout = { 1, 0 }; // { 0, 250000000 }; // .250 seconds
+    struct timespec timeout = { 0, 250000000 }; // .250 seconds
 
     //
     fd_set readDescriptors;
@@ -1190,7 +1200,7 @@ lesThread (BREthereumLES les) {
 
     pthread_mutex_lock (&les->lock);
 
-    while (1) {
+    while (!les->theTimeToQuitIsNow) {
         // Send any/all pending requests.  Might be better to wait on a 'can write'?
         lesSendAllRequests (les);
 
@@ -1207,6 +1217,7 @@ lesThread (BREthereumLES les) {
         pthread_mutex_unlock (&les->lock);
         int selectCount = pselect (1 + maximumDescriptor, &readDescriptors, NULL, NULL, &timeout, NULL);
         pthread_mutex_lock (&les->lock);
+        if (les->theTimeToQuitIsNow) continue;
 
         // We have a node ready to process ...
         if (selectCount > 0) {
@@ -1268,7 +1279,20 @@ lesThread (BREthereumLES les) {
         }
     }
 
-    return NULL;
+    pthread_mutex_unlock (&les->lock);
+
+    eth_log (LES_LOG_TOPIC, "Stop: Nodes: %zu, Available: %zu, Connected: %zu",
+             BRSetCount(les->nodes),
+             lesNodeAvailableCount (les),
+             array_count (les->connectedNodes));
+
+    FOR_NODES (les, node) {
+        nodeShow (node);
+        nodeDisconnect (node, NODE_ROUTE_UDP, P2P_MESSAGE_DISCONNECT_REQUESTED);
+        nodeDisconnect (node, NODE_ROUTE_TCP, P2P_MESSAGE_DISCONNECT_REQUESTED);
+    }
+
+    pthread_exit (0);
 }
 
 /// ==============================================================================================

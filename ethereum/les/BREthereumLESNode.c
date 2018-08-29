@@ -28,6 +28,7 @@
 #include <sys/select.h>
 #include <pthread.h>
 #include <arpa/inet.h>
+#include <errno.h>
 #include "BRCrypto.h"
 #include "BRKeyECIES.h"
 #include "BREthereumLESNode.h"
@@ -483,6 +484,7 @@ nodeCanProcess (BREthereumLESNode node,
 static void *
 nodeConnectExit (BREthereumLESNode node) {
     //    pthread_mutex_unlock (&node->lock);
+    pthread_exit (0);
     return NULL;
 }
 
@@ -525,6 +527,13 @@ nodeThreadConnectUDP (BREthereumLESNode node) {
     error = nodeEndpointOpen (&node->remote, NODE_ROUTE_UDP);
     if (error) return nodeConnectFailed (node, NODE_ROUTE_UDP, nodeStateCreateErrorUnix(error));
 
+    int socket = node->remote.sockets[NODE_ROUTE_UDP];
+    fd_set readSet, writeSet;
+    struct timespec timeout = { 1, 0 }; // 1 second
+    FD_ZERO (&readSet); FD_ZERO (&writeSet);
+    FD_SET (socket, &readSet); FD_SET (socket, &writeSet);
+    errno = 0;
+
     //
     // PING
     //
@@ -545,6 +554,11 @@ nodeThreadConnectUDP (BREthereumLESNode node) {
     // PING_ACK
     //
     node->states[NODE_ROUTE_UDP] = nodeStateCreateConnecting(NODE_CONNECT_PING_ACK);
+
+    error = pselect (socket + 1, &readSet, NULL, NULL, &timeout, NULL);
+    if (error <= 0)
+        return nodeConnectFailed (node, NODE_ROUTE_UDP,
+                                  nodeStateCreateErrorUnix (error == 0 ? ETIMEDOUT : errno));
     result = nodeRecv (node, NODE_ROUTE_UDP);
     if (NODE_STATUS_ERROR == result.status)
         return nodeConnectExit (node);
@@ -554,6 +568,10 @@ nodeThreadConnectUDP (BREthereumLESNode node) {
     if (MESSAGE_DIS != message.identifier || DIS_MESSAGE_PONG != message.u.dis.identifier)
         return nodeConnectFailed (node, NODE_ROUTE_UDP, nodeStateCreateErrorProtocol());
 
+    error = pselect (socket + 1, &readSet, NULL, NULL, &timeout, NULL);
+    if (error <= 0)
+        return nodeConnectFailed (node, NODE_ROUTE_UDP,
+                                  nodeStateCreateErrorUnix (error == 0 ? ETIMEDOUT : errno));
     result = nodeRecv (node, NODE_ROUTE_UDP);
     if (NODE_STATUS_ERROR == result.status)
         return nodeConnectExit (node);
@@ -611,6 +629,13 @@ nodeThreadConnectTCP (BREthereumLESNode node) {
     error = nodeEndpointOpen (&node->remote, NODE_ROUTE_TCP);
     if (error) return nodeConnectFailed (node, NODE_ROUTE_TCP, nodeStateCreateErrorUnix(error));
 
+    int socket = node->remote.sockets[NODE_ROUTE_TCP];
+    fd_set readSet, writeSet;
+    struct timespec timeout = { 1, 0 }; // 1 second
+    FD_ZERO (&readSet); FD_ZERO (&writeSet);
+    FD_SET (socket, &readSet); FD_SET (socket, &writeSet);
+    errno = 0;
+
     //
     // AUTH
     //
@@ -629,6 +654,10 @@ nodeThreadConnectTCP (BREthereumLESNode node) {
     node->states[NODE_ROUTE_TCP] = nodeStateCreateConnecting(NODE_CONNECT_AUTH_ACK);
     size_t ackCipherBufCount = ackCipherBufLen;
 
+    error = pselect (socket + 1, &readSet, NULL, NULL, &timeout, NULL);
+    if (error <= 0)
+        return nodeConnectFailed (node, NODE_ROUTE_TCP,
+                                  nodeStateCreateErrorUnix (error == 0 ? ETIMEDOUT : errno));
     error = nodeEndpointRecvData (&node->remote, NODE_ROUTE_TCP, node->ackBufCipher, &ackCipherBufCount, 1); // "auth ack from receivier"
     if (error) return nodeConnectFailed (node, NODE_ROUTE_TCP, nodeStateCreateErrorUnix(error));
 
@@ -664,6 +693,10 @@ nodeThreadConnectTCP (BREthereumLESNode node) {
     // HELLO ACK
     //
     node->states[NODE_ROUTE_TCP] = nodeStateCreateConnecting(NODE_CONNECT_HELLO_ACK);
+    error = pselect (socket + 1, &readSet, NULL, NULL, &timeout, NULL);
+    if (error <= 0)
+        return nodeConnectFailed (node, NODE_ROUTE_TCP,
+                                  nodeStateCreateErrorUnix (error == 0 ? ETIMEDOUT : errno));
     result = nodeRecv (node, NODE_ROUTE_TCP);
     if (NODE_STATUS_ERROR == result.status) return NULL;
 
@@ -733,6 +766,10 @@ nodeThreadConnectTCP (BREthereumLESNode node) {
     // STATUS_ACK
     //
     node->states[NODE_ROUTE_TCP] = nodeStateCreateConnecting(NODE_CONNECT_STATUS_ACK);
+    error = pselect (socket + 1, &readSet, NULL, NULL, &timeout, NULL);
+    if (error <= 0)
+        return nodeConnectFailed (node, NODE_ROUTE_TCP,
+                                  nodeStateCreateErrorUnix (error == 0 ? ETIMEDOUT : errno));
     result = nodeRecv (node, NODE_ROUTE_TCP);
     if (NODE_STATUS_ERROR == result.status)
         return nodeConnectExit (node);
@@ -822,7 +859,9 @@ nodeSend (BREthereumLESNode node,
             // use `rlpDecodeBytes` (rather than `rlpDecodeList`.  Then simply send them.
             BRRlpData data = rlpDecodeBytesSharedDontRelease (node->coder.rlp, item);
 
+            pthread_mutex_lock (&node->lock);
             error = nodeEndpointSendData (&node->remote, route, data.bytes, data.bytesCount);
+            pthread_mutex_unlock (&node->lock);
             bytesCount = data.bytesCount;
             break;
         }
@@ -838,9 +877,9 @@ nodeSend (BREthereumLESNode node,
             frameCoderEncrypt(node->frameCoder,
                               data.bytes, data.bytesCount,
                               &encryptedData.bytes, &encryptedData.bytesCount);
-            pthread_mutex_unlock (&node->lock);
 
             error = nodeEndpointSendData (&node->remote, route, encryptedData.bytes, encryptedData.bytesCount);
+            pthread_mutex_unlock (&node->lock);
             bytesCount = encryptedData.bytesCount;
             break;
         }
