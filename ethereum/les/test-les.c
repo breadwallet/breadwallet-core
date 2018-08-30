@@ -280,11 +280,12 @@ static BREthereumBoolean _checkBlockHeader(BREthereumBlockHeader header,
     BREthereumHash gotParentHash = blockHeaderGetParentHash(header);
     
     
-    return gotBlockNumber == expectedBlockNumber &&
-    hashSetEqual(&gotHash, &expectedHash)  &&
-    gotGasUsed == expectedGasUsed &&
-    hashSetEqual(&gotParentHash, &expectedParenthash)
-    ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE;
+    return (gotBlockNumber == expectedBlockNumber &&
+            hashSetEqual(&gotHash, &expectedHash)  &&
+            gotGasUsed == expectedGasUsed &&
+            (hashSetEqual(&gotParentHash, &expectedParenthash)
+             ? ETHEREUM_BOOLEAN_TRUE
+             : ETHEREUM_BOOLEAN_FALSE));
     
 }
 void _GetBlockHeaders_Calllback_Test4  (BREthereumLESBlockHeadersContext context,
