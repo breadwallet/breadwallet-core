@@ -58,8 +58,8 @@ typedef void* (*ThreadRoutine) (void*);
 static void *
 lesThread (BREthereumLES les);
 
-static inline int
-maximum (int a, int b) { return a > b ? a : b; }
+static inline int maximum (int a, int b) { return a > b ? a : b; }
+static inline int minimum (int a, int b) { return a < b ? a : b; }
 
 #define LES_THREAD_NAME    "Core Ethereum LES"
 #define LES_PTHREAD_STACK_SIZE (512 * 1024)
@@ -75,6 +75,18 @@ maximum (int a, int b) { return a > b ? a : b; }
 #define LES_LOCAL_ENDPOINT_TCP_PORT   DEFAULT_TCPPORT
 #define LES_LOCAL_ENDPOINT_UDP_PORT   DEFAULT_UDPPORT
 #define LES_LOCAL_ENDPOINT_NAME       "BRD Light Client"
+
+#define LES_PREFERRED_NODE_INDEX     0
+
+// For a request with a nodeIndex that is not LES_PREFERRED_NODE_INDEX, the intention is to send
+// the same message multiple times.  If the message was to be sent to 3 nodes, but only two are
+// connected, how many times should the message be sent and to what nodes?  If the following,
+// LES_WRAP_SEND_WHEN_MULTIPLE_INDEX, is '1' when we'll send 3 times, including multiple times.  If
+// the following is '0' then we'll multiple times up to the number of connected nodes.
+#define LES_WRAP_SEND_WHEN_MULTIPLE_INDEX    1
+
+// Submit a transaction multiple times.
+#define LES_SUBMIT_TRANSACTION_COUNT 3
 
 // Iterate over LES nodes...
 #define FOR_NODES_INDEX( les, index ) \
@@ -256,6 +268,13 @@ typedef struct {
      */
      BREthereumLESNode node;
 
+    /**
+     * The node index to use when sending.  Most will use the PREFFERED_NODE_INDEX of 0 - which is
+     * the default node.  But, for a SendTx message, we'll send to multiple nodes,
+     * if connected.
+     */
+    size_t nodeIndex;
+
 } BREthereumLESReqeust;
 
 /**
@@ -263,10 +282,11 @@ typedef struct {
  */
 static BREthereumLESReqeust
 lesRequestCreate (BREthereumLES les,
-               uint64_t requestId,
-               void *context,
-               void (*callback) (),
-               BREthereumLESMessage message) {
+                  uint64_t requestId,
+                  void *context,
+                  void (*callback) (),
+                  BREthereumLESMessage message,
+                  size_t nodeIndex) {
 
     switch (message.identifier) {
         case LES_MESSAGE_GET_BLOCK_HEADERS:
@@ -276,7 +296,8 @@ lesRequestCreate (BREthereumLES les,
                 { .getBlockHeaders = {
                     (BREthereumLESBlockHeadersCallback) callback,
                     (BREthereumLESBlockHeadersContext) context }},
-                NULL
+                NULL,
+                nodeIndex
             };
             break;
 
@@ -288,7 +309,8 @@ lesRequestCreate (BREthereumLES les,
                     (BREthereumLESBlockBodiesCallback) callback,
                     (BREthereumLESBlockBodiesContext) context,
                     message.u.getBlockBodies.hashes }},
-                NULL
+                NULL,
+                nodeIndex
             };
             break;
 
@@ -300,7 +322,8 @@ lesRequestCreate (BREthereumLES les,
                     (BREthereumLESReceiptsCallback) callback,
                     (BREthereumLESReceiptsContext) context,
                     message.u.getReceipts.hashes }},
-                NULL
+                NULL,
+                nodeIndex
             };
             break;
 
@@ -312,10 +335,30 @@ lesRequestCreate (BREthereumLES les,
                     (BREthereumLESTransactionStatusCallback) callback,
                     (BREthereumLESTransactionStatusContext) context,
                     message.u.getTxStatus.hashes }},
-                NULL
+                NULL,
+                nodeIndex
             };
             break;
 
+        case LES_MESSAGE_SEND_TX2: {
+            // A LESv2 message of SendTx2 is sent; the response is a txStatus
+            size_t transactionsCount = array_count (message.u.sendTx2.transactions);
+            BREthereumHash hashes [transactionsCount];
+            for (size_t index = 0; index < transactionsCount; index++)
+                hashes[index] = transactionGetHash(message.u.sendTx2.transactions[index]);
+
+            return (BREthereumLESReqeust) {
+                requestId,
+                message,
+                { .getTxStatus = {
+                    (BREthereumLESTransactionStatusCallback) callback,
+                    (BREthereumLESTransactionStatusContext) context,
+                    hashes }},
+                NULL,
+                nodeIndex
+            };
+            break;
+        }
             //        case LES_MESSAGE_GET_PROOFS:
             //            request = (BREthereumLESReqeust) {
             //                requestId,
@@ -327,6 +370,7 @@ lesRequestCreate (BREthereumLES les,
             //            };
             //            break;
 
+
         case LES_MESSAGE_GET_PROOFS_V2:
             return (BREthereumLESReqeust) {
                 requestId,
@@ -335,7 +379,8 @@ lesRequestCreate (BREthereumLES les,
                     (BREthereumLESProofsV2Callback) callback,
                     (BREthereumLESProofsV2Context) context,
                     message.u.getProofs.specs }},
-                NULL
+                NULL,
+                nodeIndex
             };
             break;
 
@@ -837,9 +882,11 @@ lesAddReqeust (BREthereumLES les,
                uint64_t requestId,
                void *context,
                void (*callback) (),
-               BREthereumLESMessage message) {
+               BREthereumLESMessage message,
+               size_t nodeIndex) {
     pthread_mutex_lock (&les->lock);
-    array_add (les->requestsToSend, lesRequestCreate (les, requestId, context, callback, message));
+    array_add (les->requestsToSend,
+               lesRequestCreate (les, requestId, context, callback, message, nodeIndex));
     pthread_mutex_unlock (&les->lock);
 }
 
@@ -849,16 +896,35 @@ lesSendAllRequests (BREthereumLES les) {
     pthread_mutex_lock (&les->lock);
     // Handle all requestsToSend, if we can.
     while (array_count (les->requestsToSend) > 0) {
+        size_t connectedNodesCount = array_count (les->connectedNodes);
 
-        // If we've no connected nodes, then there is no point continuing.  I don't think this
-        // value can change while we've got the les->lock.  Anyways, 'belt-and-suspenders'
-        if (0 == array_count (les->connectedNodes)) break;
-
-        // Cache the node - again 'belt-and-suspenders'
-        BREthereumLESNode node = les->connectedNodes[0];
+        // If we've no connected nodes, then there is no point continuing.  (I don't think this
+        // value can change while we've got the les->lock.  Anyways, 'belt-and-suspenders')
+        if (0 == connectedNodesCount) break;
 
         // Get the next LES request.
         BREthereumLESReqeust request = les->requestsToSend[0];
+
+        // Get the request's desired nodeIndex.
+        size_t index = request.nodeIndex;
+
+        // If we are willing to wrap the index (by number of connected nodes), then do so.
+        // Example: connectedNodesCount = 2, index = 3 => index = 1.  Note: index = 3 implies
+        // we have four requests {0, 1, 2, 3 }; with connectedNodesCount = 2 we'll send to
+        // {0, 1, 0, 1 }.
+#if LES_WRAP_SEND_WHEN_MULTIPLE_INDEX
+        index %= connectedNodesCount;
+#endif
+
+        // If the desired index (via nodeIndex) is too large, then drop the request and continue.
+        // There is danger here - but note that we should have gotten at least on send off.
+        if (index >= connectedNodesCount) {
+            array_rm (les->requestsToSend, 0);
+            continue; // don't break; not an error.
+        }
+
+        // Cache the node - again 'belt-and-suspenders'
+        BREthereumLESNode node = les->connectedNodes[index];
 
         // And send the request's LES message
         BREthereumLESNodeStatus status = nodeSend (node,
@@ -1384,16 +1450,15 @@ lesGetBlockHeaders (BREthereumLES les,
     uint64_t requestId = lesGetThenIncRequestId (les);
 
     BREthereumLESMessage message = {
-            LES_MESSAGE_GET_BLOCK_HEADERS,
-            { .getBlockHeaders = messageLESGetBlockHeadersCreate (requestId,
-                                                                  blockNumber,
-                                                                  maxBlockCount,
-                                                                  skip,
-                                                                  ETHEREUM_BOOLEAN_IS_TRUE (reverse)) }
+        LES_MESSAGE_GET_BLOCK_HEADERS,
+        { .getBlockHeaders = messageLESGetBlockHeadersCreate (requestId,
+                                                              blockNumber,
+                                                              maxBlockCount,
+                                                              skip,
+                                                              ETHEREUM_BOOLEAN_IS_TRUE (reverse)) }
     };
-
-    // Add to requests - {context, callback, requestId
-    lesAddReqeust(les, requestId, context, callback, message);
+    
+    lesAddReqeust(les, requestId, context, callback, message, LES_PREFERRED_NODE_INDEX);
 }
 
 /// MARK: Get Block Bodies
@@ -1410,8 +1475,7 @@ lesGetBlockBodies (BREthereumLES les,
             { .getBlockBodies = { requestId, hashes }}
     };
 
-    // Add to requests - {context, callback, requestId
-    lesAddReqeust(les, requestId, context, callback, message);
+    lesAddReqeust(les, requestId, context, callback, message, LES_PREFERRED_NODE_INDEX);
 }
 
 extern void
@@ -1439,8 +1503,7 @@ lesGetReceipts (BREthereumLES les,
             { .getReceipts = { requestId, hashes }}
     };
 
-    // Add to requests - {context, callback, requestId
-    lesAddReqeust(les, requestId, context, callback, message);
+    lesAddReqeust(les, requestId, context, callback, message, LES_PREFERRED_NODE_INDEX);
 }
 
 extern void
@@ -1509,7 +1572,7 @@ lesGetAccountState (BREthereumLES les,
     };
 
     // A ProofsV2 message w/ AccountState callbacks....
-    lesAddReqeust (les, requestId, context, callback, message);
+    lesAddReqeust (les, requestId, context, callback, message, LES_PREFERRED_NODE_INDEX);
 }
 
 /// MARK: Get Proofs V2
@@ -1544,8 +1607,7 @@ lesGetProofsV2One (BREthereumLES les,
             { .getProofs = { requestId, specs }}
     };
 
-    // Add to requests - {context, callback, requestId
-    lesAddReqeust(les, requestId, context, callback, message);
+    lesAddReqeust(les, requestId, context, callback, message, LES_PREFERRED_NODE_INDEX);
 }
 
 /// MARK: Get Transaction Status
@@ -1562,8 +1624,7 @@ lesGetTransactionStatus (BREthereumLES les,
             { .getTxStatus = { requestId, transactions }}
     };
 
-    // Add to requests - {context, callback, requestId
-    lesAddReqeust(les, requestId, context, callback, message);
+    lesAddReqeust(les, requestId, context, callback, message, LES_PREFERRED_NODE_INDEX);
 }
 
 extern void
@@ -1585,18 +1646,18 @@ lesSubmitTransactions (BREthereumLES les,
                        BREthereumLESTransactionStatusContext context,
                        BREthereumLESTransactionStatusCallback callback,
                        BRArrayOf (BREthereumTransaction) transactions) {
-    uint64_t requestId = lesGetThenIncRequestId (les);
 
-    // TODO: Assumes LES v2
-    BREthereumLESMessage message = {
-            LES_MESSAGE_SEND_TX2,
-            { .sendTx2 = { requestId, transactions }}
-    };
+    // Generate LES_SUBMIT_TRANSACTION_COUNT submissions - to different nodes.
+    for (size_t nodeIndex = 0; nodeIndex < LES_SUBMIT_TRANSACTION_COUNT; nodeIndex++) {
+        uint64_t requestId = lesGetThenIncRequestId (les);
 
-    // TODO: If sendTx or sendTx2, send to multiple nodes... w/ multiple requests?
+        BREthereumLESMessage message = {
+                LES_MESSAGE_SEND_TX2,
+                { .sendTx2 = { requestId, transactions }}
+        };
 
-    // Add to requests - {context, callback, requestId
-    lesAddReqeust(les, requestId, context, callback, message);
+        lesAddReqeust(les, requestId, context, callback, message, nodeIndex);
+    }
 }
 
 extern void
