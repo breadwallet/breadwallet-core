@@ -217,6 +217,7 @@ typedef struct {
 typedef struct {
     uint64_t requestId;
     BREthereumLESMessage message;
+
     union {
         struct {
             BREthereumLESTransactionStatusCallback callback;
@@ -247,6 +248,14 @@ typedef struct {
             BREthereumLESMessageGetProofsSpec *specs;
         } getProofsV2;
     } u;
+
+    /**
+     * The node that sent this request. This will be NULL until that request has been successfully
+     * sent.  Once sent, if this request has not be received/resolved and the node is no longer
+     * connected, then we'll resend.
+     */
+     BREthereumLESNode node;
+
 } BREthereumLESReqeust;
 
 /**
@@ -266,7 +275,8 @@ lesRequestCreate (BREthereumLES les,
                 message,
                 { .getBlockHeaders = {
                     (BREthereumLESBlockHeadersCallback) callback,
-                    (BREthereumLESBlockHeadersContext) context }}
+                    (BREthereumLESBlockHeadersContext) context }},
+                NULL
             };
             break;
 
@@ -277,7 +287,8 @@ lesRequestCreate (BREthereumLES les,
                 { .getBlockBodies = {
                     (BREthereumLESBlockBodiesCallback) callback,
                     (BREthereumLESBlockBodiesContext) context,
-                    message.u.getBlockBodies.hashes }}
+                    message.u.getBlockBodies.hashes }},
+                NULL
             };
             break;
 
@@ -288,7 +299,8 @@ lesRequestCreate (BREthereumLES les,
                 { .getReceipts = {
                     (BREthereumLESReceiptsCallback) callback,
                     (BREthereumLESReceiptsContext) context,
-                    message.u.getReceipts.hashes }}
+                    message.u.getReceipts.hashes }},
+                NULL
             };
             break;
 
@@ -299,7 +311,8 @@ lesRequestCreate (BREthereumLES les,
                 { .getTxStatus = {
                     (BREthereumLESTransactionStatusCallback) callback,
                     (BREthereumLESTransactionStatusContext) context,
-                    message.u.getTxStatus.hashes }}
+                    message.u.getTxStatus.hashes }},
+                NULL
             };
             break;
 
@@ -321,7 +334,8 @@ lesRequestCreate (BREthereumLES les,
                 { .getProofsV2 = {
                     (BREthereumLESProofsV2Callback) callback,
                     (BREthereumLESProofsV2Context) context,
-                    message.u.getProofs.specs }}
+                    message.u.getProofs.specs }},
+                NULL
             };
             break;
 
@@ -840,11 +854,14 @@ lesSendAllRequests (BREthereumLES les) {
         // value can change while we've got the les->lock.  Anyways, 'belt-and-suspenders'
         if (0 == array_count (les->connectedNodes)) break;
 
+        // Cache the node - again 'belt-and-suspenders'
+        BREthereumLESNode node = les->connectedNodes[0];
+
         // Get the next LES request.
         BREthereumLESReqeust request = les->requestsToSend[0];
 
         // And send the request's LES message
-        BREthereumLESNodeStatus status = nodeSend (les->connectedNodes[0],
+        BREthereumLESNodeStatus status = nodeSend (node,
                                                    NODE_ROUTE_TCP,
                                                    (BREthereumMessage) {
                                                        MESSAGE_LES,
@@ -853,6 +870,10 @@ lesSendAllRequests (BREthereumLES les) {
         // If the send failed, then skip out to fight another day.
         if (NODE_STATUS_ERROR == status) break;
 
+        // Mark as 'sent' (request is a value type - don't forget (for upcoming array_add)).
+        request.node = node;
+
+        // Transfer from `reqeustsToSend` over to `requests(Pending)`.
         array_rm (les->requestsToSend, 0);
         array_add (les->requests, request);
     }
@@ -1272,9 +1293,29 @@ lesThread (BREthereumLES les) {
             }
         }
 
-        // or we have a timeout ...
+        // or we have a timeout ... nothing to receive; nothing to send
         else if (selectCount == 0) {
-            // If we don't have enough connectedNode, try to add one
+            // If a pending request was sent to a node that is no longer connected, then there
+            // is no response coming (we are here because 'nothing to receive').  Resend.
+            //
+            // We are going to iterate back-to-front across les->requests and add each 'orphaned'
+            // request to the front of les->requestsToSend - thereby keeping the order quasi-
+            // consistent (not that it matters, until proven otherwise).
+            for (size_t index = array_count(les->requests); index > 0; index--) {
+                BREthereumLESNode node = les->requests[index - 1].node;
+                assert (NULL != node);
+                if (!nodeHasState (node, NODE_ROUTE_TCP, NODE_CONNECTED)) {
+                    // `request` is a value type - don't forget....
+                    BREthereumLESReqeust request = les->requests[index - 1];
+                    array_rm (les->requests, (index - 1)); // safe, when going back-to-front
+                    request.node = NULL;
+                    array_insert (les->requestsToSend, 0, request); // to the front
+                    eth_log (LES_LOG_TOPIC, "Rtry: [ LES, %15s ]",
+                             messageLESGetIdentifierName (request.message.identifier));
+                }
+            }
+
+            // If we don't have enough connectedNodes, try to add one
             if (array_count(les->connectedNodes) < 5) {
                 FOR_NODES (les, node)
                     if (nodeHasState (node, NODE_ROUTE_UDP, NODE_AVAILABLE) &&
@@ -1285,7 +1326,7 @@ lesThread (BREthereumLES les) {
                         }
             }
 
-            // If we don't have enough available nodes, try to find some
+            // If we don't have enough availableNodes, try to find some
             if (lesNodeAvailableCount(les) < 25 && array_count(les->connectedNodes) > 0) {
                 // We'll ask one of our connected nodes about neighbors to other nodes
                 unsigned int remainingToAsk = 3;
