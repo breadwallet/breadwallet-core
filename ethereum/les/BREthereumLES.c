@@ -690,11 +690,11 @@ lesHandleNeighbor (BREthereumLES les,
         added = ETHEREUM_BOOLEAN_TRUE;
         // We are not interested in 'strange-ish' nodes
 
-        if (DEFAULT_TCPPORT != neighbor.node.portTCP)
-            nodeSetStateErrorProtocol (node, NODE_ROUTE_TCP);
+        if (/* DEFAULT_TCPPORT != */ 0 == neighbor.node.portTCP)
+            nodeSetStateErrorProtocol (node, NODE_ROUTE_TCP, NODE_PROTOCOL_NONSTANDARD_PORT);
 
-        if (DEFAULT_UDPPORT != neighbor.node.portUDP)
-            nodeSetStateErrorProtocol (node, NODE_ROUTE_UDP);
+        if (/* DEFAULT_UDPPORT != */ 0 == neighbor.node.portUDP)
+            nodeSetStateErrorProtocol (node, NODE_ROUTE_UDP, NODE_PROTOCOL_NONSTANDARD_PORT);
     }
     pthread_mutex_unlock (&les->lock);
     return added;

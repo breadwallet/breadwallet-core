@@ -107,7 +107,7 @@ messageP2PHelloDecode (BRRlpItem item, BREthereumMessageCoder coder) {
         BREthereumP2PCapability cap;
 
         char *name = rlpDecodeString (coder.rlp, caps[0]);
-        assert (strlen (name) == 3);
+        // We've seen 'hive' here - restrict to 3
         strncpy (cap.name, name, 3);
         cap.name[3] = '\0';
 

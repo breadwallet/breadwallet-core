@@ -59,6 +59,16 @@ typedef enum  {
     NODE_CONNECT_PING_ACK,
 } BREthereumLESNodeConnectType;
 
+typedef enum {
+    NODE_PROTOCOL_NONSTANDARD_PORT,
+    NODE_PROTOCOL_UDP_PING_PONG_MISSED,
+    NODE_PROTOCOL_UDP_EXCESSIVE_BYTE_COUNT,
+    NODE_PROTOCOL_TCP_AUTHENTICATION,
+    NODE_PROTOCOL_TCP_HELLO_MISSED,
+    NODE_PROTOCOL_TCP_STATUS_MISSED,
+    NODE_PROTOCOL_CAPABILITIES_MISMATCH
+} BREEthereumLESNodeProtocolReason;
+
 typedef struct {
     BREthereumLESNodeStateType type;
     union {
@@ -77,11 +87,17 @@ typedef struct {
         struct {
             BREthereumP2PDisconnectReason reason;
         } disconnect;
+
+        struct {
+            BREEthereumLESNodeProtocolReason reason;
+        } protocol;
     } u;
 } BREthereumLESNodeState;
 
+/** Fills description, returns description */
 extern const char *
-nodeStateDescribe (const BREthereumLESNodeState *state);
+nodeStateDescribe (const BREthereumLESNodeState *state,
+                   char description[128]);
 
 typedef void *BREthereumLESNodeContext;
 
@@ -158,7 +174,8 @@ nodeGetState (BREthereumLESNode node,
 
 extern void
 nodeSetStateErrorProtocol (BREthereumLESNode node,
-                           BREthereumLESNodeEndpointRoute route);
+                           BREthereumLESNodeEndpointRoute route,
+                           BREEthereumLESNodeProtocolReason reason);
 
 extern int
 nodeUpdateDescriptors (BREthereumLESNode node,
