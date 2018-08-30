@@ -47,6 +47,8 @@
 // so as to initialize the chain.
 #define BCS_SAVE_BLOCKS_COUNT  (500)
 
+#define BCS_REORG_LIMIT    (10)
+
 /* Forward Declarations */
 static void
 bcsPeriodicDispatcher (BREventHandler handler,
@@ -56,6 +58,10 @@ static void
 bcsExtendChain (BREthereumBCS bcs,
                 BREthereumBlock block,
                 const char *message);
+
+static void
+bcsUnwindChain (BREthereumBCS bcs,
+                uint64_t depth);
 
 static void
 bcsSyncReportBlocksCallback (BREthereumBCS bcs,
@@ -363,12 +369,21 @@ bcsHandleAnnounce (BREthereumBCS bcs,
                    uint64_t headNumber,
                    UInt256 headTotalDifficulty,
                    uint64_t reorgDepth) {
-    // Request the block.
+    // Reorg depth suggest the N blocks are wrong. We'll orphan all of them, request the next
+    // header and likely perform a sync to fill in the missing
+    if (0 != reorgDepth) {
+        if (reorgDepth < BCS_REORG_LIMIT)
+            bcsUnwindChain (bcs, reorgDepth);
+        eth_log ("BCS", "ReorgDepth: %llu", reorgDepth);
+    }
+
+    // Request the block - backup a bit if we need to reorg.  Figure it will sort itself out
+    // as old block arrive.
     lesGetBlockHeaders (bcs->les,
                         (BREthereumLESBlockHeadersContext) bcs,
                         (BREthereumLESBlockHeadersCallback) bcsSignalBlockHeader,
-                        headNumber,
-                        1,
+                        headNumber - reorgDepth,
+                        1 + reorgDepth,
                         0,
                         ETHEREUM_BOOLEAN_FALSE);
 }
@@ -646,6 +661,17 @@ bcsPendOrphanedTransactionsAndLogs (BREthereumBCS bcs) {
             NULL != BRSetGet (bcs->orphans, &blockHash)) {
             array_add(bcs->pendingLogs, logGetHash(log));
         }
+    }
+}
+
+static void
+bcsUnwindChain (BREthereumBCS bcs,
+                uint64_t depth) {
+    // Limit the depth...
+    while (depth-- > 0 && bcs->chainTail != bcs->chain) {
+        BREthereumBlock next = blockGetNext (bcs->chain);
+        bcsMakeOrphan (bcs, bcs->chain);
+        bcs->chain = next;
     }
 }
 

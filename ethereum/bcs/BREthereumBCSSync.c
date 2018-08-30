@@ -226,6 +226,8 @@ syncRangeReport (BREthereumBCSSyncRange range,
     memset(spaces, ' ', 2 * depth);
     spaces[2 * depth] = '\0';
 
+    assert (range->head > range->tail);
+
     eth_log ("BCS", "Sync: %s: (T:C:R:D) = ( %d : %4llu : {%7llu, %7llu} : %2d ) *** %s%p -> %p",
              action,
              range->type, range->count, range->tail, range->head, depth,
@@ -246,6 +248,8 @@ syncRangeCreateDetailed (BREthereumAddress address,
                          uint64_t step,
                          uint64_t count,
                          BREthereumBCSSyncType type) {
+    assert (head > tail);
+
     BREthereumBCSSyncRange range = calloc (1, sizeof (struct BREthereumBCSSyncRangeRecord));
 
     range->address = address;

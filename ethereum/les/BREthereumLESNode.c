@@ -495,6 +495,7 @@ static void *
 nodeConnectFailed (BREthereumLESNode node,
                    BREthereumLESNodeEndpointRoute route,
                    BREthereumLESNodeState state) {
+    nodeEndpointClose (&node->remote, route, 0);
     nodeStateAnnounce (node, route, state);
     return nodeConnectExit (node);
 }

@@ -890,7 +890,7 @@ messageLESStatusShow(BREthereumLESMessageStatus *message) {
     eth_log (LES_LOG_TOPIC, "    FlowControl/BL : %llu", (NULL != message->flowControlBL  ? *message->flowControlBL  : -1));
     eth_log (LES_LOG_TOPIC, "    FlowControl/MRR: %llu", (NULL != message->flowControlMRR ? *message->flowControlMRR : -1));
 
-    size_t count = *(message->flowControlMRCCount);
+    size_t count = (NULL == message->flowControlMRCCount ? 0 : *(message->flowControlMRCCount));
     eth_log (LES_LOG_TOPIC, "    FlowControl/MRC:%s", "");
     for (size_t index = 0; index < count; index++) {
         const char *label = messageLESGetIdentifierName ((BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);
