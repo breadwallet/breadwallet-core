@@ -782,6 +782,42 @@ lesNodeFindNeighborsToEndpoint (BREthereumLES les,
 
 /// MARK: Request Management
 
+/**
+ * lesSendAllRequests - Send all `requestsToSend` messages; when sent, move the request to
+ * 'pending'.
+ *
+ * Each Node has a defined amount of 'credits'.  When a message is sent, the remote Node adjusts
+ * the remaining credits (sometimes replenishing them as time goes by) and then reports the credits
+ * in the response message.  We'd like to only send a request to a node w/ enough credits to handle
+ * the reqeust successfully.
+ *
+ * Since we don't keep an estimate of our credits, the node's current credits could be way off when
+ * this function, lesSendAllRequests(), is called.  Imagine we have N requests that have already
+ * been sent but for which we've not processed a response yet (might not have arrived; might have
+ * arrived but it is still queued (in the socket's buffer)).  We'll have X1 credits here but the
+ * actual number will be X2 (< X1).
+ *
+ * We can't really tell if we have enough to send a request.  Options are:
+ *
+ * a) Only send a message if all responses have been received.  We'll then have a credit that is
+ * consistent locally and remotely.  It surely feels impractical to send message one-by-one
+ * synchronously.
+ *
+ * b) Send the message, credits be damned.  We'll move the messages to the 'pending' list and wait.
+ * The remote node will disconnect us (USELESS_PEER, BREACH_PROTO?).  Okay, we can be disconnected
+ * for lots of reasons and we need to handle all the others too.
+ *
+ * c) Track an estimate of the remaining credits - something like 'pendingCredits'.  To send a
+ * message is must be that 'actualCredits - pendingCredit' > 0.  When message is sent, we increment
+ * 'pendingCredits' and check - if good we send, if not we wait.  When a message arrives, we update
+ * 'actualCredits' and reduce 'pendingCredits'.  (Since a request keeps the message around, we can
+ * recompute the message credits by which to redcue 'pendingCredits').
+ *
+ * Conclusion: It seems that since 'b' must be handled anyways... we'll send off all requests and
+ * if we get disconnected - due to credits - we'll handle that with all the other disconnect cases.
+ *
+ */
+
 static void
 lesAddReqeust (BREthereumLES les,
                uint64_t requestId,
@@ -793,39 +829,33 @@ lesAddReqeust (BREthereumLES les,
     pthread_mutex_unlock (&les->lock);
 }
 
-static void
-lesSendNextRequest (BREthereumLES les) {
-    pthread_mutex_lock (&les->lock);
-    assert (array_count(les->connectedNodes) > 0);
-    if (array_count(les->requestsToSend) > 0) {
-        BREthereumLESReqeust request = les->requestsToSend[0];
-        array_rm (les->requestsToSend, 0);
-
-        // TODO: If sendTx or sendTx2, send to multiple nodes... w/ multiple requests?
-        nodeSend (les->connectedNodes[0],
-                  NODE_ROUTE_TCP,
-                  (BREthereumMessage) { MESSAGE_LES, { .les = request.message }});
-
-        array_add (les->requests, request);
-    }
-    pthread_mutex_unlock (&les->lock);
-}
 
 static void
 lesSendAllRequests (BREthereumLES les) {
     pthread_mutex_lock (&les->lock);
-    if (array_count(les->connectedNodes) > 0)
-        while (array_count(les->requestsToSend) > 0) {
-            BREthereumLESReqeust request = les->requestsToSend[0];
-            array_rm (les->requestsToSend, 0);
+    // Handle all requestsToSend, if we can.
+    while (array_count (les->requestsToSend) > 0) {
 
-            // TODO: If sendTx or sendTx2, send to multiple nodes... w/ multiple requests?
-            nodeSend (les->connectedNodes[0],
-                      NODE_ROUTE_TCP,
-                      (BREthereumMessage) { MESSAGE_LES, { .les = request.message }});
+        // If we've no connected nodes, then there is no point continuing.  I don't think this
+        // value can change while we've got the les->lock.  Anyways, 'belt-and-suspenders'
+        if (0 == array_count (les->connectedNodes)) break;
 
-            array_add (les->requests, request);
-        }
+        // Get the next LES request.
+        BREthereumLESReqeust request = les->requestsToSend[0];
+
+        // And send the request's LES message
+        BREthereumLESNodeStatus status = nodeSend (les->connectedNodes[0],
+                                                   NODE_ROUTE_TCP,
+                                                   (BREthereumMessage) {
+                                                       MESSAGE_LES,
+                                                       { .les = request.message }});
+
+        // If the send failed, then skip out to fight another day.
+        if (NODE_STATUS_ERROR == status) break;
+
+        array_rm (les->requestsToSend, 0);
+        array_add (les->requests, request);
+    }
     pthread_mutex_unlock (&les->lock);
 }
 
@@ -1521,6 +1551,8 @@ lesSubmitTransactions (BREthereumLES les,
             LES_MESSAGE_SEND_TX2,
             { .sendTx2 = { requestId, transactions }}
     };
+
+    // TODO: If sendTx or sendTx2, send to multiple nodes... w/ multiple requests?
 
     // Add to requests - {context, callback, requestId
     lesAddReqeust(les, requestId, context, callback, message);
