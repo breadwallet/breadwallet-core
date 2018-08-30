@@ -134,20 +134,42 @@ nodeStateCreateErrorDisconnect (BREthereumP2PDisconnectReason reason) {
 }
 
 static BREthereumLESNodeState
-nodeStateCreateErrorProtocol (void) {
-    return nodeStateCreate (NODE_ERROR_PROTOCOL);
+nodeStateCreateErrorProtocol (BREEthereumLESNodeProtocolReason reason) {
+    return (BREthereumLESNodeState) {
+        NODE_ERROR_PROTOCOL,
+        { .protocol = { reason }}
+    };
+}
+
+const char *
+nodeProtocolReasonDescription (BREEthereumLESNodeProtocolReason reason) {
+    static const char *
+    protocolReasonDescriptions [] = {
+        "Non-Standard Port",
+        "UDP Ping_Pong Missed",
+        "UDP Excessive Byte Count",
+        "TCP Authentication",
+        "TCP Hello Missed",
+        "TCP Status Missed",
+        "Capabilities Mismatch",
+    };
+    return protocolReasonDescriptions [reason];
 }
 
 extern const char *
-nodeStateDescribe (const BREthereumLESNodeState *state) {
+nodeStateDescribe (const BREthereumLESNodeState *state,
+                   char description[128]) {
     switch (state->type) {
-        case NODE_AVAILABLE: return "Available";
-        case NODE_CONNECTING: return "Connecting";
-        case NODE_CONNECTED: return "Connected";
-        case NODE_EXHAUSTED: return "Exhausted";
-        case NODE_ERROR_UNIX: return strerror (state->u.unix.error);
-        case NODE_ERROR_DISCONNECT: return messageP2PDisconnectDescription(state->u.disconnect.reason);
-        case NODE_ERROR_PROTOCOL: return "Protocol";
+        case NODE_AVAILABLE:  return strcpy (description, "Available");
+        case NODE_CONNECTING: return strcpy (description, "Connecting");
+        case NODE_CONNECTED:  return strcpy (description, "Connected");
+        case NODE_EXHAUSTED:  return strcpy (description, "Exhausted");
+        case NODE_ERROR_UNIX:       return strcat (strcpy (description, "Unix: "),
+                                                   strerror (state->u.unix.error));
+        case NODE_ERROR_DISCONNECT: return strcat (strcpy (description, "Disconnect: "),
+                                                   messageP2PDisconnectDescription(state->u.disconnect.reason));
+        case NODE_ERROR_PROTOCOL:   return strcat (strcpy (description, "Protocol: "),
+                                                   nodeProtocolReasonDescription(state->u.protocol.reason));
     }
 }
 
@@ -441,8 +463,9 @@ nodeGetState (BREthereumLESNode node,
 
 extern void
 nodeSetStateErrorProtocol (BREthereumLESNode node,
-                           BREthereumLESNodeEndpointRoute route) {
-    node->states[route] = nodeStateCreateErrorProtocol();
+                           BREthereumLESNodeEndpointRoute route,
+                           BREEthereumLESNodeProtocolReason reason) {
+    node->states[route] = nodeStateCreateErrorProtocol(reason);
 }
 
 /// MARK: Descriptors
@@ -567,7 +590,7 @@ nodeThreadConnectUDP (BREthereumLESNode node) {
     // Require a PONG message
     message = result.u.success.message;
     if (MESSAGE_DIS != message.identifier || DIS_MESSAGE_PONG != message.u.dis.identifier)
-        return nodeConnectFailed (node, NODE_ROUTE_UDP, nodeStateCreateErrorProtocol());
+        return nodeConnectFailed (node, NODE_ROUTE_UDP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_UDP_PING_PONG_MISSED));
 
     error = pselect (socket + 1, &readSet, NULL, NULL, &timeout, NULL);
     if (error <= 0)
@@ -580,7 +603,7 @@ nodeThreadConnectUDP (BREthereumLESNode node) {
     // Require a PING message
     message = result.u.success.message;
     if (MESSAGE_DIS != message.identifier || DIS_MESSAGE_PING != message.u.dis.identifier)
-        return nodeConnectFailed (node, NODE_ROUTE_UDP, nodeStateCreateErrorProtocol());
+        return nodeConnectFailed (node, NODE_ROUTE_UDP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_UDP_PING_PONG_MISSED));
 
     // Respond with PONG
     message = (BREthereumMessage) {
@@ -643,7 +666,7 @@ nodeThreadConnectTCP (BREthereumLESNode node) {
     node->states[NODE_ROUTE_TCP] = nodeStateCreateConnecting(NODE_CONNECT_AUTH);
 
     if (0 != _sendAuthInitiator(node))
-        return nodeConnectFailed (node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol());
+        return nodeConnectFailed (node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_TCP_AUTHENTICATION));
     eth_log (LES_LOG_TOPIC, "Send: [ WIP, %15s ] => %s", "Auth",    node->remote.hostname);
 
     error = nodeEndpointSendData (&node->remote, NODE_ROUTE_TCP, node->authBufCipher, authCipherBufLen); //  "auth initiator");
@@ -664,11 +687,11 @@ nodeThreadConnectTCP (BREthereumLESNode node) {
 
     eth_log (LES_LOG_TOPIC, "Recv: [ WIP, %15s ] <= %s", "Auth Ack",    node->remote.hostname);
     if (ackCipherBufCount != ackCipherBufLen)
-        return nodeConnectFailed (node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol());
+        return nodeConnectFailed (node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_TCP_AUTHENTICATION));
 
     if (0 != _readAuthAckFromRecipient (node)) {
         eth_log (LES_LOG_TOPIC, "%s", "Something went wrong with AUK");
-        return nodeConnectFailed (node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol());
+        return nodeConnectFailed (node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_TCP_AUTHENTICATION));
     }
 
     // Initilize the frameCoder with the information from the auth
@@ -709,7 +732,7 @@ nodeThreadConnectTCP (BREthereumLESNode node) {
 
     // Require a P2P Hello message.
     if (MESSAGE_P2P != message.identifier || P2P_MESSAGE_HELLO != message.u.p2p.identifier)
-        return nodeConnectFailed (node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol());
+        return nodeConnectFailed (node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_TCP_HELLO_MISSED));
 
     // Save the 'hello' message received and then move on
     messageP2PHelloShow (message.u.p2p.u.hello);
@@ -726,7 +749,7 @@ nodeThreadConnectTCP (BREthereumLESNode node) {
                                                             &localHello->capabilities[li]));
     }
     if (! capabilitiesMatch)
-        return nodeConnectFailed(node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol());
+        return nodeConnectFailed(node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_CAPABILITIES_MISMATCH));
 
     // https://github.com/ethereum/wiki/wiki/ÐΞVp2p-Wire-Protocol
     // ÐΞVp2p is designed to support arbitrary sub-protocols (aka capabilities) over the basic wire
@@ -783,7 +806,7 @@ nodeThreadConnectTCP (BREthereumLESNode node) {
 
     // Require a LES Status message.
     if (MESSAGE_LES != message.identifier || LES_MESSAGE_STATUS != message.u.les.identifier)
-        return nodeConnectFailed (node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol());
+        return nodeConnectFailed (node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_TCP_STATUS_MISSED));
 
     // Save the 'status' message
     messageLESStatusShow(&message.u.les.u.status);
@@ -925,7 +948,9 @@ nodeRecv (BREthereumLESNode node,
 
             error = nodeEndpointRecvData (&node->remote, route, bytes, &bytesCount, 0);
             if (error) return nodeRecvFailed (node, NODE_ROUTE_UDP, nodeStateCreateErrorUnix (error));
-            if (bytesCount > 1500) return nodeRecvFailed(node, NODE_ROUTE_UDP, nodeStateCreateErrorProtocol());
+            if (bytesCount > 1500)
+                return nodeRecvFailed(node, NODE_ROUTE_UDP,
+                                      nodeStateCreateErrorProtocol(NODE_PROTOCOL_UDP_EXCESSIVE_BYTE_COUNT));
 
             // Wrap at RLP Byte
             BRRlpItem item = rlpEncodeBytes (node->coder.rlp, bytes, bytesCount);
@@ -1114,9 +1139,10 @@ nodeSetDiscovered (BREthereumLESNode node,
 
 extern void
 nodeShow (BREthereumLESNode node) {
+    char descUDP[128], descTCP[128];
     eth_log (LES_LOG_TOPIC, "Node: %15s", node->remote.hostname);
-    eth_log (LES_LOG_TOPIC, "   UDP       : %s", nodeStateDescribe (&node->states[NODE_ROUTE_UDP]));
-    eth_log (LES_LOG_TOPIC, "   TCP       : %s", nodeStateDescribe (&node->states[NODE_ROUTE_TCP]));
+    eth_log (LES_LOG_TOPIC, "   UDP       : %s", nodeStateDescribe (&node->states[NODE_ROUTE_UDP], descUDP));
+    eth_log (LES_LOG_TOPIC, "   TCP       : %s", nodeStateDescribe (&node->states[NODE_ROUTE_TCP], descTCP));
     eth_log (LES_LOG_TOPIC, "   Discovered: %s", (ETHEREUM_BOOLEAN_IS_TRUE(node->discovered) ? "Yes" : "No"));
     eth_log (LES_LOG_TOPIC, "   Credits   : %llu", node->credits);
 }
