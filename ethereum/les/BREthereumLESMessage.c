@@ -153,8 +153,25 @@ messageP2PHelloHasCapability (const BREthereumP2PMessageHello *hello,
     return ETHEREUM_BOOLEAN_FALSE;
 }
 
+static const char *disconnectReasonNames[] = {
+    "Requested",
+    "TCP Error",
+    "Breach Proto",
+    "Useless Peer",
+    "Too Many Peers",
+    "Already Connected",
+    "Incompatible P2P",
+    "Null Node",
+    "Client Quit",
+    "Unexpected ID",
+    "ID Same",
+    "Timeout",
+    "Unknown"
+};
 extern const char *
-messageP2PDisconnectDescription (BREthereumP2PDisconnectReason identifier);
+messageP2PDisconnectDescription (BREthereumP2PDisconnectReason identifier) {
+    return disconnectReasonNames [identifier];
+}
 
 //
 static BREthereumP2PMessageDisconnect
@@ -873,7 +890,7 @@ messageLESStatusShow(BREthereumLESMessageStatus *message) {
     eth_log (LES_LOG_TOPIC, "    FlowControl/BL : %llu", (NULL != message->flowControlBL  ? *message->flowControlBL  : -1));
     eth_log (LES_LOG_TOPIC, "    FlowControl/MRR: %llu", (NULL != message->flowControlMRR ? *message->flowControlMRR : -1));
 
-    size_t count = *(message->flowControlMRCCount);
+    size_t count = (NULL == message->flowControlMRCCount ? 0 : *(message->flowControlMRCCount));
     eth_log (LES_LOG_TOPIC, "    FlowControl/MRC:%s", "");
     for (size_t index = 0; index < count; index++) {
         const char *label = messageLESGetIdentifierName ((BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);

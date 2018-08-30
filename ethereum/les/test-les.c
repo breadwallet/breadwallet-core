@@ -62,12 +62,17 @@ static void _initTestState() {
     // Initializes the pthread variables
     pthread_mutex_init(&_testLock, NULL);
     pthread_cond_init(&_testCond, NULL);
+    
+    pthread_mutex_lock(&_testLock);
     _testComplete = 0;
+    pthread_mutex_unlock(&_testLock);
 }
 
 static void _initTest(int numOfTests) {
+    pthread_mutex_lock(&_testLock);
     _testComplete = 0;
     _numOfTests = numOfTests;
+    pthread_mutex_unlock(&_testLock);
 }
 static void _waitForTests() {
     //Wait for a little bit to get a reply back from the server.
@@ -880,8 +885,8 @@ void runLEStests(void) {
 //    run_GetProofsV2_Tests(les); //NOTE: The callback function won't be called.
                                 //reallySendLESTransaction(les);
 
+    sleep (60);
     lesStop(les);
-    sleep (1);
     lesRelease(les);
     printf ("Done\n");
 }
