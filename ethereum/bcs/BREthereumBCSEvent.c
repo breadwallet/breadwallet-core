@@ -395,36 +395,36 @@ bcsSignalLog (BREthereumBCS bcs,
 typedef struct {
     BREvent base;
     BREthereumBCS bcs;
-    BRArrayOf(BREthereumLESPeerConfig) peers;
-} BREthereumHandlePeersEvent;
+    BRArrayOf(BREthereumLESNodeConfig) nodes;
+} BREthereumHandleNodesEvent;
 
 static void
-bcsHandlePeersDispatcher (BREventHandler ignore,
-                          BREthereumHandlePeersEvent *event) {
-    bcsHandlePeers(event->bcs, event->peers);
+bcsHandleNodesDispatcher (BREventHandler ignore,
+                          BREthereumHandleNodesEvent *event) {
+    bcsHandleNodes(event->bcs, event->nodes);
 }
 
 static void
-bcsHandlePeersDestroyer (BREthereumHandlePeersEvent *event) {
-    if (NULL != event->peers) {
-        for (size_t index = 0; index < array_count(event->peers); index++)
-            ; // peersRelease(event->peers[index]);
-        array_free(event->peers);
+bcsHandleNodesDestroyer (BREthereumHandleNodesEvent *event) {
+    if (NULL != event->nodes) {
+        for (size_t index = 0; index < array_count(event->nodes); index++)
+            lesNodeConfigRelease(event->nodes[index]);
+        array_free(event->nodes);
     }
 }
 
-static BREventType handlePeersEventType = {
-    "BCS: Handle Peers Event",
-    sizeof (BREthereumHandlePeersEvent),
-    (BREventDispatcher) bcsHandlePeersDispatcher,
-    (BREventDestroyer) bcsHandlePeersDestroyer
+static BREventType handleNodesEventType = {
+    "BCS: Handle Nodes Event",
+    sizeof (BREthereumHandleNodesEvent),
+    (BREventDispatcher) bcsHandleNodesDispatcher,
+    (BREventDestroyer) bcsHandleNodesDestroyer
 };
 
 extern void
-bcsSignalPeers (BREthereumBCS bcs,
-                BRArrayOf(BREthereumLESPeerConfig) peers) {
-    BREthereumHandlePeersEvent event =
-    { { NULL, &handlePeersEventType}, bcs, peers};
+bcsSignalNodes (BREthereumBCS bcs,
+                BRArrayOf(BREthereumLESNodeConfig) nodes) {
+    BREthereumHandleNodesEvent event =
+    { { NULL, &handleNodesEventType}, bcs, nodes};
     eventHandlerSignalEvent (bcs->handler, (BREvent *) &event);
 }
 
@@ -513,7 +513,7 @@ bcsEventTypes[] = {
     &handleAccountStateEventType,
     &handleTransactionEventType,
     &handleLogEventType,
-    &handlePeersEventType,
+    &handleNodesEventType,
     &handleSyncBlockHeaderEventType,
     &handleSyncAccountStateEventType
 };

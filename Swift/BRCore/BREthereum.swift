@@ -594,7 +594,7 @@ public protocol EthereumClient : class {
                    address: String,
                    rid: Int32) -> Void
 
-    func savePeers (ewm: EthereumWalletManager /* data */) -> Void
+    func saveNodes (ewm: EthereumWalletManager /* data */) -> Void
 
     func saveBlocks (ewm: EthereumWalletManager /* data */) -> Void
 
@@ -927,10 +927,10 @@ public class EthereumWalletManager {
                                     rid: rid)
                 }},
 
-            funcSavePeers: { (coreClient, coreEWM, data) in
+            funcSaveNodes: { (coreClient, coreEWM, data) in
                 if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }),
                     let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    client.savePeers(ewm: ewm)
+                    client.saveNodes(ewm: ewm)
                 }},
 
             funcSaveBlocks: { (coreClient, coreEWM, data) in
@@ -1202,8 +1202,8 @@ class AnyEthereumClient : EthereumClient {
         base.getNonce(ewm: ewm, address: address, rid: rid)
     }
 
-    func savePeers(ewm: EthereumWalletManager) {
-        base.savePeers(ewm: ewm)
+    func saveNodes(ewm: EthereumWalletManager) {
+        base.saveNodes(ewm: ewm)
     }
 
     func saveBlocks(ewm: EthereumWalletManager) {

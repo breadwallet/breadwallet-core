@@ -258,6 +258,12 @@ typedef struct {
     uint16_t portTCP;
 } BREthereumDISEndpoint;
 
+extern BRRlpItem
+endpointDISEncode (const BREthereumDISEndpoint *endpoint, BRRlpCoder coder);
+
+extern BREthereumDISEndpoint
+endpointDISDecode (BRRlpItem item, BRRlpCoder coder);
+
 /**
  * The DIS Ping Message.  The first four fields are RLP encoded.  We
  */

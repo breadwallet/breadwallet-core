@@ -197,7 +197,7 @@ typedef void
                                       BREthereumEWM ewm,
                                       BRArrayOf(BREthereumPersistData) persistData);
 typedef void
-(*BREthereumClientHandlerSavePeers) (BREthereumClientContext context,
+(*BREthereumClientHandlerSaveNodes) (BREthereumClientContext context,
                                      BREthereumEWM ewm,
                                      BRArrayOf(BREthereumPersistData) persistData);
 
@@ -350,7 +350,7 @@ typedef struct {
 
     // Save Sync (and other) State - required as Core does maintain and is not configured to
     // use persistent storage (aka an sqlite DB or simply disk)
-    BREthereumClientHandlerSavePeers funcSavePeers;
+    BREthereumClientHandlerSaveNodes funcSaveNodes;
     BREthereumClientHandlerSaveBlocks funcSaveBlocks;
     BREthereumClientHandlerChangeTransaction funcChangeTransaction;
     BREthereumClientHandlerChangeLog funcChangeLog;

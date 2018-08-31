@@ -122,8 +122,8 @@ class CoreDemoEthereumClient : EthereumClient {
         ewm.announceNonce(address: address, nonce: "17", rid: rid)
     }
 
-    func savePeers(ewm: EthereumWalletManager) {
-        print ("TST: savePeers")
+    func saveNodes(ewm: EthereumWalletManager) {
+        print ("TST: saveNodes")
     }
 
     func saveBlocks(ewm: EthereumWalletManager) {

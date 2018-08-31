@@ -251,33 +251,33 @@ messageDISGetIdentifierName (BREthereumDISMessageIdentifier identifier) {
 //
 // DIS Endpoint Encode/Decode
 //
-static BRRlpItem
-endpointDISEncode (const BREthereumDISEndpoint *endpoint, BREthereumMessageCoder coder) {
-    return rlpEncodeList (coder.rlp, 3,
+extern BRRlpItem
+endpointDISEncode (const BREthereumDISEndpoint *endpoint, BRRlpCoder coder) {
+    return rlpEncodeList (coder, 3,
                           (endpoint->domain == AF_INET
-                           ? rlpEncodeBytes (coder.rlp, (uint8_t*) endpoint->addr.ipv4, 4)
-                           : rlpEncodeBytes (coder.rlp, (uint8_t*) endpoint->addr.ipv6, 16)),
-                          rlpEncodeUInt64 (coder.rlp, endpoint->portUDP, 1),
-                          rlpEncodeUInt64 (coder.rlp, endpoint->portTCP, 1));
+                           ? rlpEncodeBytes (coder, (uint8_t*) endpoint->addr.ipv4, 4)
+                           : rlpEncodeBytes (coder, (uint8_t*) endpoint->addr.ipv6, 16)),
+                          rlpEncodeUInt64 (coder, endpoint->portUDP, 1),
+                          rlpEncodeUInt64 (coder, endpoint->portTCP, 1));
 }
 
-static BREthereumDISEndpoint
-endpointDISDecode (BRRlpItem item, BREthereumMessageCoder coder) {
+extern BREthereumDISEndpoint
+endpointDISDecode (BRRlpItem item, BRRlpCoder coder) {
     BREthereumDISEndpoint endpoint;
 
     size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
+    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
     assert (3 == itemsCount);
 
-    BRRlpData addrData = rlpDecodeBytesSharedDontRelease (coder.rlp, items[0]);
+    BRRlpData addrData = rlpDecodeBytesSharedDontRelease (coder, items[0]);
     assert (4 == addrData.bytesCount || 16 == addrData.bytesCount);
     endpoint.domain = (4 == addrData.bytesCount ? AF_INET : AF_INET6);
     memcpy ((endpoint.domain == AF_INET ? endpoint.addr.ipv4 : endpoint.addr.ipv6),
             addrData.bytes,
             addrData.bytesCount);
 
-    endpoint.portUDP = (uint16_t) rlpDecodeUInt64 (coder.rlp, items[1], 1);
-    endpoint.portTCP = (uint16_t) rlpDecodeUInt64 (coder.rlp, items[2], 1);
+    endpoint.portUDP = (uint16_t) rlpDecodeUInt64 (coder, items[1], 1);
+    endpoint.portTCP = (uint16_t) rlpDecodeUInt64 (coder, items[2], 1);
 
     return endpoint;
 }
@@ -323,8 +323,8 @@ static BRRlpItem
 messageDISPingEncode (BREthereumDISMessagePing message, BREthereumMessageCoder coder) {
     return rlpEncodeList (coder.rlp, 4,
                           rlpEncodeUInt64 (coder.rlp, message.version, 1),
-                          endpointDISEncode (&message.from, coder),
-                          endpointDISEncode (&message.to, coder),
+                          endpointDISEncode (&message.from, coder.rlp),
+                          endpointDISEncode (&message.to, coder.rlp),
                           rlpEncodeUInt64 (coder.rlp, message.expiration, 1));
 }
 
@@ -337,8 +337,8 @@ messageDISPingDecode (BRRlpItem item, BREthereumMessageCoder coder, BREthereumHa
     assert (4 == itemsCount);
 
     ping.version = (int) rlpDecodeUInt64 (coder.rlp, items[0], 1);
-    ping.from = endpointDISDecode (items[1], coder);
-    ping.to   = endpointDISDecode (items[2], coder);
+    ping.from = endpointDISDecode (items[1], coder.rlp);
+    ping.to   = endpointDISDecode (items[2], coder.rlp);
     ping.expiration = rlpDecodeUInt64 (coder.rlp, items[3], 1);
 
     ping.hash = hash;
@@ -359,7 +359,7 @@ messageDISPongCreate (BREthereumDISEndpoint to,
 static BRRlpItem
 messageDISPongEncode (BREthereumDISMessagePong message, BREthereumMessageCoder coder) {
     return rlpEncodeList (coder.rlp, 3,
-                          endpointDISEncode (&message.to, coder),
+                          endpointDISEncode (&message.to, coder.rlp),
                           hashRlpEncode (message.pingHash, coder.rlp),
                           rlpEncodeUInt64 (coder.rlp, message.expiration, 1));
 }
@@ -372,7 +372,7 @@ messageDISPongDecode (BRRlpItem item, BREthereumMessageCoder coder, int releaseI
     const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
     assert (3 == itemsCount);
 
-    pong.to = endpointDISDecode (items[0], coder);
+    pong.to = endpointDISDecode (items[0], coder.rlp);
     pong.pingHash = hashRlpDecode (items[1], coder.rlp);
     pong.expiration = rlpDecodeUInt64 (coder.rlp, items[2], 1);
 
