@@ -58,7 +58,7 @@ static int _testComplete;
 static int _numOfTests;
 
 static void _initTestState() {
-
+    
     // Initializes the pthread variables
     pthread_mutex_init(&_testLock, NULL);
     pthread_cond_init(&_testCond, NULL);
@@ -84,7 +84,7 @@ static void _waitForTests() {
     pthread_mutex_unlock(&_testLock);
 }
 static void _signalTestComplete() {
-
+    
     //Signal to the testing thread that this test is complete
     pthread_mutex_lock(&_testLock);
     _testComplete++;
@@ -104,9 +104,9 @@ void _announceCallback (BREthereumLESCallbackContext context,
 }
 
 void _statusCallback (BREthereumLESCallbackContext context,
-                        BREthereumHash headHash,
-                        uint64_t headNumber) {
-
+                      BREthereumHash headHash,
+                      uint64_t headNumber) {
+    
     eth_log("announcCallback_test", "%s", "received status");
 }
 
@@ -126,7 +126,7 @@ static void _transactionStatus(BREthereumLESTransactionStatusContext context,
 }
 void prepareLESTransaction (BREthereumLES les, const char *paperKey, const char *recvAddr, const uint64_t gasPrice, const uint64_t gasLimit, const uint64_t amount) {
     printf ("     Prepare Transaction\n");
-
+    
     BREthereumClient client = {};
     BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, client, NULL, NULL, NULL, NULL);
     // A wallet amount Ether
@@ -353,7 +353,7 @@ void _GetBlockHeaders_Calllback_Test2  (BREthereumLESBlockHeadersContext context
         //Signal to the testing thread that this test completed successfully
         _signalTestComplete();
     }
-
+    
 }
 void _GetBlockHeaders_Calllback_Test1  (BREthereumLESBlockHeadersContext context,
                                         BREthereumBlockHeader header) {
@@ -379,8 +379,8 @@ void _GetBlockHeaders_Calllback_Test1  (BREthereumLESBlockHeadersContext context
 }
 static void run_GetBlockHeaders_Tests(BREthereumLES les){
     
-     //Initialze test
-     _initTest(4);
+    //Initialze test
+    _initTest(4);
     
     //Request block headers 4732522, 4732523, 4732524
     _GetBlockHeaders_Context1 = BLOCK_4732522_IDX;
@@ -490,7 +490,7 @@ static void _GetTxStatus_Test1_Callback(BREthereumLESTransactionStatusContext co
     uint64_t expectedTransactionIndex = 39;
     assert(status.u.included.transactionIndex == expectedTransactionIndex);
     
-
+    
     //Signal to the testing thread that this test completed successfully
     _signalTestComplete();
 }
@@ -561,9 +561,9 @@ static void _GetBlockBodies_Callback_Test2(BREthereumLESBlockBodiesContext conte
     assert(array_count(ommers) == _blockHeaderTestData[_GetBlockBodies_Context2].ommersCount);
     
     _GetBlockBodies_Context2++;
-
+    
     if(_GetBlockBodies_Context2 == 4) {
-       //Signal to the testing thread that this test completed successfully
+        //Signal to the testing thread that this test completed successfully
         _signalTestComplete();
     }
 }
@@ -618,15 +618,15 @@ static void _GetReceipts_Callback_Test1(BREthereumLESBlockBodiesContext context,
     
     //Check to make sure we got back the right number of transactions and ommers
     assert(array_count(receipts) == _blockHeaderTestData[_GetReceipts_Context1].transactionCount);
-
-//    for (int i = 0; i < array_count(receipts); i++) {
-//        BREthereumTransactionReceipt receipt = receipts[i];
-//        uint64_t priorGasUsed = (0 == i ? 0 : transactionReceiptGetGasUsed(receipts[i - 1]));
-//        printf ("R[%d], gasUsed: %llu, logCount: %zu\n", i,
-//                transactionReceiptGetGasUsed(receipt) - priorGasUsed,
-//                transactionReceiptGetLogsCount(receipt));
-//    }
-
+    
+    //    for (int i = 0; i < array_count(receipts); i++) {
+    //        BREthereumTransactionReceipt receipt = receipts[i];
+    //        uint64_t priorGasUsed = (0 == i ? 0 : transactionReceiptGetGasUsed(receipts[i - 1]));
+    //        printf ("R[%d], gasUsed: %llu, logCount: %zu\n", i,
+    //                transactionReceiptGetGasUsed(receipt) - priorGasUsed,
+    //                transactionReceiptGetLogsCount(receipt));
+    //    }
+    
     //Signal to the testing thread that this test completed successfully
     _signalTestComplete();
 }
@@ -661,9 +661,9 @@ static void run_GetReceipts_Tests(BREthereumLES les){
     _GetReceipts_Context1 = BLOCK_4732522_IDX;
     lesGetReceiptsOne(les, (
                             void *)&_GetReceipts_Context1,
-                     _GetReceipts_Callback_Test1,
-                     _blockHeaderTestData[BLOCK_4732522_IDX].hash);
-
+                      _GetReceipts_Callback_Test1,
+                      _blockHeaderTestData[BLOCK_4732522_IDX].hash);
+    
     //Request receipts for block 4732522, 4732521
     _GetReceipts_Context2 = BLOCK_4732522_IDX;
     BREthereumHash* blockHeaders;
@@ -675,7 +675,7 @@ static void run_GetReceipts_Tests(BREthereumLES les){
                    (void *)&_GetReceipts_Context2,
                    _GetReceipts_Callback_Test2,
                    blockHeaders);
-
+    
     //Wait for tests to complete
     _waitForTests();
     
@@ -701,128 +701,41 @@ static void _GetProofs_Callback_Test1(BREthereumLESProofsV2Context context,
     _signalTestComplete(); 
 }
 
+static BREthereumHash blockHashes[] = {
+    HASH_INIT ("d4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3"), // 0
+    HASH_INIT ("88e96d4537bea4d9c05d12549907b32561d3bf31f45aae734cdc119f13406cb6"), // 1
+    HASH_INIT ("b495a1d7e6663152ae92708da4843337b958146015a2802f4193a410044698c9"), // 2
+    HASH_INIT ("373df5c980b96580d00715fac46d667b217f00b731f990c636df24a592c75015"), // 4095
+    HASH_INIT ("037a9074fc7802a0d1095e035f37bbe6ed18a340b0a2009643c6fc693eae4383"), // 4096
+    HASH_INIT ("b6700dd17c4b4881566f6ef50f60a000bba1c553553ffa910fbbf898c46d0b87"), // 4097
+    HASH_INIT ("089a6c0b4b960261287d30ee40b1eea2da2972e7189bd381137f55540d492b2c"), // 5,503,921
+    HASH_INIT ("204167e38efa1a4d75c996491637027bb1c8b1fe0d29e8d233160b5256cb415a"), // 6,100,000
+};
+static size_t blockCount = sizeof (blockHashes) / sizeof(BREthereumHash);
+
 static void run_GetProofsV2_Tests(BREthereumLES les){
     
     //Initilize testing state
-    _initTest(4);
-
-    BRRlpData key1, key2;
-
-    BREthereumHash block;
-    BREthereumAddress address ;
-    BREthereumHash addressHash;
-
+    _initTest((int) blockCount);
+    
+    BREthereumAddress address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
+    
+    BREthereumHash addr  = addressGetHash(address);
+    
+    // Have mucked with combinations of key1, key2 being: key1 empty, key2 empty, both key1 adn
+    // key2 provided.  With key1, key2 being: the addres, the hash of address.
     //
-    // One of {key1, key2} is empty; other is address
+    // Have mucked with the Go Ethereum test case - to explore the meanings of key1, key2.
     //
-    //    block = hashCreate("0x089a6c0b4b960261287d30ee40b1eea2da2972e7189bd381137f55540d492b2c"); // _5503921
-    //    address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
-    //    key1 = (BRRlpData) { ADDRESS_BYTES, address.bytes};
-    //    key2 = (BRRlpData) { 0, NULL };
-    //    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
-    //
-    //    key1 = (BRRlpData) { 0, NULL };
-    //    key2 = (BRRlpData) { ADDRESS_BYTES, address.bytes};
-    //    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
-    //
-    //    block = hashCreate("0x204167e38efa1a4d75c996491637027bb1c8b1fe0d29e8d233160b5256cb415a"); // 6,100,000
-    //    address = addressCreate("0x3d0a24a19702a7336bdbf9d10bce1d4b87e222a5"); // from tx 0
-    //    key1 = (BRRlpData) { ADDRESS_BYTES, address.bytes};
-    //    key2 = (BRRlpData) { 0, NULL };
-    //    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
-    //
-    //    key1 = (BRRlpData) { 0, NULL };
-    //    key2 = (BRRlpData) { ADDRESS_BYTES, address.bytes};
-    //    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
-
-    //
-    // One of {key1, key2} is empty; other is address padded on left to 32 bytes
-    //
-    //    uint8_t addressBytes[32];
-    //    memset (addressBytes, 0, 32);
-    //
-    //    block = hashCreate("0x089a6c0b4b960261287d30ee40b1eea2da2972e7189bd381137f55540d492b2c"); // _5503921
-    //    address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
-    //    memcpy (&addressBytes[12], address.bytes, 20);
-    //
-    //    key1 = (BRRlpData) { 32, addressBytes};
-    //    key2 = (BRRlpData) { 0, NULL };
-    //    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
-    //
-    //    key1 = (BRRlpData) { 0, NULL };
-    //    key2 = (BRRlpData) { 32, addressBytes};
-    //    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
-    //
-    //    block = hashCreate("0x204167e38efa1a4d75c996491637027bb1c8b1fe0d29e8d233160b5256cb415a"); // 6,100,000
-    //    address = addressCreate("0x3d0a24a19702a7336bdbf9d10bce1d4b87e222a5"); // from tx 0
-    //    memcpy (&addressBytes[12], address.bytes, 20);
-    //
-    //    key1 = (BRRlpData) { 32, addressBytes};
-    //    key2 = (BRRlpData) { 0, NULL };
-    //    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
-    //
-    //    key1 = (BRRlpData) { 0, NULL };
-    //    key2 = (BRRlpData) { 32, addressBytes};
-    //    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
-
-    //
-    // key1 == key2 as address
-    //
-    //    block = hashCreate("0x089a6c0b4b960261287d30ee40b1eea2da2972e7189bd381137f55540d492b2c"); // _5503921
-    //    address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
-    //    key1 = (BRRlpData) { ADDRESS_BYTES, address.bytes};
-    //    key2 = (BRRlpData) { ADDRESS_BYTES, address.bytes};
-    //    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
-    //
-    //    block = hashCreate("0x204167e38efa1a4d75c996491637027bb1c8b1fe0d29e8d233160b5256cb415a"); // 6,100,000
-    //    address = addressCreate("0x3d0a24a19702a7336bdbf9d10bce1d4b87e222a5"); // from tx 0
-    //    key1 = (BRRlpData) { ADDRESS_BYTES, address.bytes};
-    //    key2 = (BRRlpData) { ADDRESS_BYTES, address.bytes};
-    //    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
-
-
-    //
-    // One of {key1, key2} is empty; other is hash of address
-    //
-    block = hashCreate("0x089a6c0b4b960261287d30ee40b1eea2da2972e7189bd381137f55540d492b2c"); // _5503921
-    address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
-    addressHash = addressGetHash(address);
-//    key1 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
-//    key2 = (BRRlpData) { 0, NULL };
-//    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
-
-    key1 = (BRRlpData) { 0, NULL };
-    key2 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
-    lesGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0);
-
-    block = hashCreate("0x204167e38efa1a4d75c996491637027bb1c8b1fe0d29e8d233160b5256cb415a"); // 6,100,000
-    address = addressCreate("0x3d0a24a19702a7336bdbf9d10bce1d4b87e222a5"); // from tx 0
-    addressHash = addressGetHash(address);
-//    key1 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
-//    key2 = (BRRlpData) { 0, NULL };
-//    assert(lesGetGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0) == LES_SUCCESS);
-
-    key1 = (BRRlpData) { 0, NULL };
-    key2 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
-    lesGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0);
-
-    //
-    // key1 == key2, as hash of address
-    //
-    block = hashCreate("0x089a6c0b4b960261287d30ee40b1eea2da2972e7189bd381137f55540d492b2c"); // _5503921
-    address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
-    addressHash = addressGetHash(address);
-    key1 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
-    key2 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
-    lesGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0);
-
-    block = hashCreate("0x204167e38efa1a4d75c996491637027bb1c8b1fe0d29e8d233160b5256cb415a"); // 6,100,000
-    address = addressCreate("0x3d0a24a19702a7336bdbf9d10bce1d4b87e222a5"); // from tx 0
-    addressHash = addressGetHash(address);
-    key1 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
-    key2 = (BRRlpData) { ETHEREUM_HASH_BYTES, addressHash.bytes };
-    lesGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0);
-
+    
+    BRRlpData key1 = (BRRlpData) { 0, NULL };
+    BRRlpData key2 = (BRRlpData) { sizeof (addr), addr.bytes };
+    
+    for (size_t blockIndex = 0; blockIndex < blockCount; blockIndex++) {
+        BREthereumHash block = blockHashes[blockIndex];
+        lesGetProofsV2One(les, (void *)&_GetProofsV2_Context1, _GetProofs_Callback_Test1, block, key1, key2, 0);
+    }
+    
     //Wait for tests to complete
     _waitForTests();// sleep (5);
     
@@ -843,13 +756,12 @@ static void run_GetAccountState_Tests (BREthereumLES les){
     //Initilize testing state
     _initTest(1);
     
-
     BREthereumAddress address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
     BREthereumHash block_5503921 = hashCreate("0x089a6c0b4b960261287d30ee40b1eea2da2972e7189bd381137f55540d492b2c");
     BREthereumLESAccountStateCallback context = NULL;
-
+    
     lesGetAccountState(les, context, _GetAccountState_Callback_Test1, 5503921, block_5503921, address);
-
+    
     _waitForTests();
     eth_log("run_GetAccopuntState_Tests", "%s", "Tests Successful");
 }
@@ -859,12 +771,12 @@ void runLEStests(void) {
     //Prepare values to be given to a LES context
     char headHashStr[] = "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3";
     BREthereumHash headHash = hashCreate(headHashStr);
-
+    
     uint64_t headNumber = 0;
     UInt256 headTD = createUInt256 (0x400000000);
     
     BREthereumHash genesisHash = hashCreate(headHashStr);
-
+    
     // Create an LES context
     BREthereumLES les = lesCreate(ethereumMainnet, NULL, _announceCallback, _statusCallback, headHash, headNumber, headTD, genesisHash);
     lesStart(les);
@@ -883,10 +795,10 @@ void runLEStests(void) {
     run_GetBlockBodies_Tests(les);
     run_GetReceipts_Tests(les);
     run_GetAccountState_Tests(les);
-//    run_GetProofsV2_Tests(les); //NOTE: The callback function won't be called.
+    run_GetProofsV2_Tests(les); //NOTE: The callback function won't be called.
                                 //reallySendLESTransaction(les);
-
-    sleep (60);
+    
+    //    sleep (60);
     lesStop(les);
     lesRelease(les);
     printf ("Done\n");

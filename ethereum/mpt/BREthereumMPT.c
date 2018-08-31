@@ -28,7 +28,7 @@
 extern BREthereumMPTNodePath
 mptProofDecode (BRRlpItem item,
                 BRRlpCoder coder) {
-    rlpShowItem (coder, item, "MPT Proof");
+//    rlpShowItem (coder, item, "MPT Proof");
     return (BREthereumMPTNodePath) {};
 }
 
@@ -39,7 +39,7 @@ mptProofDecodeList (BRRlpItem item,
     const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
 
     // TODO: Wrong - here to flag success!
-    assert (itemsCount == 0);
+//    assert (itemsCount == 0);
     
     BRArrayOf (BREthereumMPTNodePath) proofs;
     array_new (proofs, itemsCount);
