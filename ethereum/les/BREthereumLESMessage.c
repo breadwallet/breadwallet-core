@@ -1264,7 +1264,7 @@ messageLESDecode (BRRlpItem item,
                 { .proofs = messageLESProofsDecode (item, coder)} };
 
         case LES_MESSAGE_PROOFS_V2:
-            rlpShowItem (coder.rlp, item, "LES ProofsV2");
+            // rlpShowItem (coder.rlp, item, "LES ProofsV2");
             return (BREthereumLESMessage) {
                 LES_MESSAGE_PROOFS_V2,
                 { .proofsV2 = messageLESProofsV2Decode (item, coder)} };
@@ -1307,7 +1307,7 @@ messageLESEncode (BREthereumLESMessage message,
 
         case LES_MESSAGE_GET_PROOFS_V2:
             body = messageLESGetProofsV2Encode (message.u.getProofsV2, coder);
-            rlpShowItem (coder.rlp, body, "LES GetProofsV2");
+            //rlpShowItem (coder.rlp, body, "LES GetProofsV2");
             break;
 
         case LES_MESSAGE_GET_TX_STATUS:
