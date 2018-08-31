@@ -2812,6 +2812,90 @@ int BRRunTests()
     return (fail == 0);
 }
 
+//
+// Rescan // Sync Test
+//
+static int syncDone = 0;
+
+static void testSyncStoppedX(void *info, int error) {
+    if (error) printf ("Sync: Error: %d\n", error);
+    syncDone = 1;
+}
+
+static void testSyncSaveBlocks (void *ignore1, int replace, BRMerkleBlock *blocks[], size_t blocksCount) {
+    printf ("Sync: saveBlock: %zu, Replace: %s\n", blocksCount, (replace ? "Yes" : "No"));
+    uint32_t unixTime =  (uint32_t) time (NULL);
+
+    for (int i = 0; i < blocksCount; i++) {
+        BRMerkleBlock *block = blocks[i];
+        assert (block->flagsLen < 10000);
+        assert (block->timestamp < unixTime);
+        assert (block->version == 2 || block->version == 3 || block->version == 4 ||
+                block->version == 0x60000000 ||
+                block->version == 0x3fff0000 ||
+                block->version == 0x3fffe000 ||
+                block->version == 0x30000000 ||
+                block->version == 0x20000000 ||
+                block->version == 0x20000002 ||
+                block->version == 0x20000007 ||
+                block->version == 0x2000e000 ||
+                block->version == 0x20FFF000 ||
+                0);
+        assert (BRMerkleBlockIsValid(block, unixTime));
+    }
+}
+
+extern int BRRunTestsSync (int randomKey) {
+    const BRChainParams *params = &BRTestNetParams;
+
+    char *paperKey;
+    uint32_t epoch;
+
+    if (randomKey) {
+        UInt128 entropy;
+        arc4random_buf(entropy.u64, sizeof (entropy));
+
+        size_t phraseLen = BRBIP39Encode(NULL, 0, BRBIP39WordsEn, entropy.u8, sizeof(entropy));
+        char phrase[phraseLen];
+        assert (phraseLen == BRBIP39Encode(phrase, sizeof(phrase), BRBIP39WordsEn, entropy.u8, sizeof(entropy)));
+        paperKey = strdup(phrase);
+        epoch = (uint32_t) (time (NULL) - (14 * 24 * 60 * 60));
+    }
+    else {
+        paperKey = strdup ("blush wear arctic fruit unique quantum because mammal entry country school curtain");
+        epoch = 1483228800;  // 1/1/2017 // BIP39_CREATION_TIME
+    }
+    printf ("***\n***\nPaperKey (Start): \"%s\"\n***\n***\n", paperKey);
+    UInt512 seed = UINT512_ZERO;
+    BRBIP39DeriveKey (seed.u8, paperKey, NULL);
+    BRMasterPubKey mpk = BRBIP32MasterPubKey(&seed, sizeof (seed));
+
+    BRWallet *wallet = BRWalletNew (NULL, 0, mpk);
+    // BRWalletSetCallbacks
+
+    BRPeerManager *pm = BRPeerManagerNew (params, wallet, epoch, NULL, 0, NULL, 0);
+    BRPeerManagerSetCallbacks(pm, NULL, NULL, testSyncStoppedX, NULL, testSyncSaveBlocks, NULL, NULL, NULL);
+
+    syncDone = 0;
+    BRPeerManagerConnect (pm);
+
+    int err = 0;
+    while (err == 0 && BRPeerManagerPeerCount(pm) > 0) {
+        if (syncDone) break;
+        err = sleep(1);
+    }
+
+    printf ("***\n***\nPaperKey (Done): \"%s\"\n***\n***\n", paperKey);
+    BRPeerManagerDisconnect(pm);
+    sleep (2);
+    BRPeerManagerFree(pm);
+    sleep (2);
+    BRWalletFree(wallet);
+    sleep (2);
+    free (paperKey);
+    return 1;
+}
+
 #ifndef BITCOIN_TEST_NO_MAIN
 void syncStarted(void *info)
 {
