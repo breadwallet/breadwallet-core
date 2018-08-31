@@ -559,6 +559,55 @@ transactionCompare(BREthereumTransaction t1,
                    : ETHEREUM_COMPARISON_EQ));
 }
 
+extern void
+transactionShow (BREthereumTransaction transaction, const char *topic) {
+    int overflow;
+
+    char *hash = hashAsString (transaction->hash);
+    char *source = addressGetEncodedString(transaction->sourceAddress, 1);
+    char *target = addressGetEncodedString(transactionGetTargetAddress(transaction), 1);
+    char *amount = etherGetValueString (transactionGetAmount(transaction), ETHER);
+    char *gasP   = etherGetValueString (transactionGetGasPrice(transaction).etherPerGas, GWEI);
+    char *fee    = etherGetValueString (transactionGetFee(transaction, &overflow), ETHER);
+
+    BREthereumEther totalEth = etherCreate(addUInt256_Overflow(transaction->amount.valueInWEI, transactionGetFee(transaction, &overflow).valueInWEI, &overflow));
+    char *total  = etherGetValueString (totalEth, ETHER);
+    char *totalWEI = etherGetValueString (totalEth, WEI);
+
+    eth_log (topic, "=== Transaction%s", "");
+    eth_log (topic, "    Hash  : %s", hash);
+    eth_log (topic, "    Nonce : %llu", transactionGetNonce(transaction));
+    eth_log (topic, "    Source: %s", source);
+    eth_log (topic, "    Target: %s", target);
+    eth_log (topic, "    Amount: %s ETHER", amount);
+    eth_log (topic, "    GasPrc: %s GWEI", gasP);
+    eth_log (topic, "    GasLmt: %llu", transactionGetGasLimit(transaction).amountOfGas);
+    eth_log (topic, "    Fee   : %s ETHER", fee);
+    eth_log (topic, "    Total : %s ETHER", total);
+    eth_log (topic, "    Total : %s WEI", totalWEI);
+    eth_log (topic, "    Data  : %s", transaction->data);
+
+    BREthereumContractFunction function = contractLookupFunctionForEncoding (contractERC20, transaction->data);
+    if (NULL != function && functionERC20Transfer == function) {
+        BRCoreParseStatus status;
+        UInt256 funcAmount = functionERC20TransferDecodeAmount(function, transaction->data, &status);
+        char *funcAddr   = functionERC20TransferDecodeAddress (function, transaction->data);
+        char *funcAmt    = coerceString(funcAmount, 10);
+
+        BREthereumToken token = tokenLookup(target);
+
+        eth_log (topic, "    Token : %s", (NULL == token ? "???" : tokenGetSymbol(token)));
+        eth_log (topic, "    TokFnc: %s", "erc20 transfer");
+        eth_log (topic, "    TokAmt: %s", funcAmt);
+        eth_log (topic, "    TokAdr: %s", funcAddr);
+
+        free (funcAmt); free (funcAddr);
+
+    }
+    free (totalWEI); free (total); free (fee); free (gasP);
+    free (amount); free (target); free (source); free (hash);
+
+}
 
 /*
      https://github.com/ethereum/pyethereum/blob/develop/ethereum/transactions.py#L22

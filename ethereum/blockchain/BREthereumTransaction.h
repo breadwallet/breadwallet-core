@@ -198,6 +198,9 @@ transactionIsSubmitted (BREthereumTransaction transaction);
 extern BREthereumBoolean
 transactionIsErrored (BREthereumTransaction transaction);
 
+extern void
+transactionShow (BREthereumTransaction transaction, const char *topic);
+    
 //
 // Transaction Result
 //
