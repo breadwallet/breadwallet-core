@@ -161,7 +161,7 @@ extern BREthereumBCS
 bcsCreate (BREthereumNetwork network,
            BREthereumAddress address,
            BREthereumBCSListener listener,
-           BRArrayOf(BREthereumLESPeerConfig) peers,
+           BRArrayOf(BREthereumLESNodeConfig) peers,
            BRArrayOf(BREthereumBlock) blocks,
            BRArrayOf(BREthereumTransaction) transactions,
            BRArrayOf(BREthereumLog) logs) {
@@ -234,10 +234,12 @@ bcsCreate (BREthereumNetwork network,
                           (BREthereumLESCallbackContext) bcs,
                           (BREthereumLESCallbackAnnounce) bcsSignalAnnounce,
                           (BREthereumLESCallbackStatus) bcsSignalStatus,
+                          (BREthereumLESCallbackSaveNodes) bcsSignalNodes,
                           blockHeaderGetHash(header),
                           blockHeaderGetNumber(header),
                           blockHeaderGetDifficulty(header),
-                          blockHeaderGetHash(blockGetHeader(bcs->genesis)));
+                          blockHeaderGetHash(blockGetHeader(bcs->genesis)),
+                          peers);
 
     bcs->sync = bcsSyncCreate ((BREthereumBCSSyncContext) bcs,
                                (BREthereumBCSSyncReportBlocks) bcsSyncReportBlocksCallback,
@@ -1515,8 +1517,8 @@ bcsHandleLog (BREthereumBCS bcs,
 }
 
 extern void
-bcsHandlePeers (BREthereumBCS bcs,
-                BRArrayOf(BREthereumLESPeerConfig) peers) {
+bcsHandleNodes (BREthereumBCS bcs,
+                BRArrayOf(BREthereumLESNodeConfig) peers) {
     size_t peersCount = array_count(peers);
     bcs->listener.savePeersCallback (bcs->listener.context, peers);
     eth_log("BCS", "Peers %zu Saved", peersCount);

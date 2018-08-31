@@ -205,6 +205,79 @@ nodeEndpointCreateEnode (const char *enode) {
     return nodeEndpointCreate(dis, key);
 }
 
+/// MARK: LES Node Config
+
+struct BREthereumLESNodeConfigRecord {
+    /** Hash of the public key */
+    BREthereumHash hash;
+
+    /** public key */
+    BRKey key;
+
+    /** DIS endpoint w/ IP addr and ports */
+    BREthereumDISEndpoint endpoint;
+
+    /** current state */
+    BREthereumLESNodeState state;
+};
+
+extern void
+lesNodeConfigRelease (BREthereumLESNodeConfig config) {
+    free (config);
+}
+
+extern BREthereumHash
+lesNodeConfigGetHash (BREthereumLESNodeConfig config) {
+    return config->hash;
+}
+
+extern BRRlpItem
+lesNodeConfigEncode (BREthereumLESNodeConfig config,
+                     BRRlpCoder coder) {
+    return rlpEncodeList (coder, 3,
+                          rlpEncodeBytes(coder, config->key.pubKey, 65),
+                          endpointDISEncode(&config->endpoint, coder),
+                          nodeStateEncode(&config->state, coder));
+}
+
+extern BREthereumLESNodeConfig
+lesNodeConfigDecode (BRRlpItem item,
+                     BRRlpCoder coder) {
+    BREthereumLESNodeConfig config = calloc (1, sizeof (struct BREthereumLESNodeConfigRecord));
+
+    size_t itemsCount = 0;
+    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
+    assert (3 == itemsCount);
+
+    BRRlpData keyData = rlpDecodeBytesSharedDontRelease (coder, items[0]);
+    BRKeySetPubKey(&config->key, keyData.bytes, keyData.bytesCount);
+
+    config->endpoint = endpointDISDecode(items[1], coder);
+    config->state = nodeStateDecode (items[2], coder);
+
+    return config;
+}
+
+static BREthereumLESNodeConfig
+lesNodeConfigCreate (BREthereumLESNode node) {
+    BREthereumLESNodeConfig config = calloc (1, sizeof (struct BREthereumLESNodeConfigRecord));
+
+    BREthereumLESNodeEndpoint *ne = nodeGetRemoteEndpoint(node);
+
+    config->key = ne->key;
+    config->endpoint = ne->dis;
+    config->state = nodeGetState(node, NODE_ROUTE_TCP);
+
+    config->hash = hashCreateFromData((BRRlpData) { 64, &config->key.pubKey[1] });
+
+    return config;
+}
+
+static BREthereumLESNodeEndpoint
+lesNodeConfigCreateEndpoint (BREthereumLESNodeConfig config) {
+    return nodeEndpointCreate (config->endpoint, config->key);
+}
+
 #if 0
 // Provided to Node Manager
 typedef void* BREthereumSubProtoContext;
@@ -395,6 +468,7 @@ lesRequestCreate (BREthereumLES les,
     }
 }
 
+
 /**
  * LES
  *
@@ -414,6 +488,7 @@ struct BREthereumLESRecord {
     BREthereumLESCallbackContext callbackContext;
     BREthereumLESCallbackAnnounce callbackAnnounce;
     BREthereumLESCallbackStatus callbackStatus;
+    BREthereumLESCallbackSaveNodes callbackSaveNodes;
 
     /** Our Local Endpoint. */
     BREthereumLESNodeEndpoint localEndpoint;
@@ -476,6 +551,23 @@ assignLocalEndpointHelloMessage (BREthereumLESNodeEndpoint *endpoint,
     messageP2PHelloShow (hello.u.hello);
 }
 
+static BREthereumLESNode
+lesAddNodeForEndpoint (BREthereumLES les,
+                       BREthereumLESNodeEndpoint endpoint) {
+    BREthereumLESNode node = nodeCreate (les->network,
+                                         endpoint,
+                                         les->localEndpoint,
+                                         (BREthereumLESNodeContext) les,
+                                         (BREthereumLESNodeCallbackMessage) lesHandleLESMessage,
+                                         (BREthereumLESNodeCallbackState) lesHandleNodeState);
+
+    // We expect duplicates - we'll make the first one win.
+    if (!BRSetGet(les->nodes, node))
+        BRSetAdd(les->nodes, node);
+
+    return node;
+}
+
 //
 // Public functions
 //
@@ -484,10 +576,12 @@ lesCreate (BREthereumNetwork network,
            BREthereumLESCallbackContext callbackContext,
            BREthereumLESCallbackAnnounce callbackAnnounce,
            BREthereumLESCallbackStatus callbackStatus,
+           BREthereumLESCallbackSaveNodes callbackSaveNodes,
            BREthereumHash headHash,
            uint64_t headNumber,
            UInt256 headTotalDifficulty,
-           BREthereumHash genesisHash) {
+           BREthereumHash genesisHash,
+           BRArrayOf(BREthereumLESNodeConfig) configs) {
     
     BREthereumLES les = (BREthereumLES) calloc (1, sizeof(struct BREthereumLESRecord));
     assert (NULL != les);
@@ -513,6 +607,7 @@ lesCreate (BREthereumNetwork network,
     les->callbackContext = callbackContext;
     les->callbackAnnounce = callbackAnnounce;
     les->callbackStatus = callbackStatus;
+    les->callbackSaveNodes = callbackSaveNodes;
 
     {
         // Use the privateKey to create a randomContext
@@ -571,21 +666,18 @@ lesCreate (BREthereumNetwork network,
 
     // (Prioritized) array of connected Nodes (both TCP and UDP connections)
     array_new (les->connectedNodes, LES_NODE_INITIAL_SIZE);
-    
-    // Create a node for each bootstrap node
-    for (size_t index = 0; index < NUMBER_OF_NODE_ENDPOINT_SPECS; index++) {
-        BREthereumLESNode node = nodeCreate (network,
-                                             nodeEndpointCreateEnode(bootstrapLESEnodes[index]),
-                                             les->localEndpoint,
-                                             (BREthereumLESNodeContext) les,
-                                             (BREthereumLESNodeCallbackMessage) lesHandleLESMessage,
-                                             (BREthereumLESNodeCallbackState) lesHandleNodeState);
-        // Must not be be a duplicate nodeID
-        assert (NULL == BRSetAdd (les->nodes, node));
-    }
-    
-//    les->preferredDISNode = node;
-//    les->preferredLESNode = node;
+
+    // Identify a set of initial node; use all the endpoints provided (based on `configs`) and
+    // then add in the bootstrap endpoints for good measure
+    eth_log(LES_LOG_TOPIC, "Nodes Provided: %lu", (NULL == configs ? 0 : array_count(configs)));
+    if (NULL != configs)
+        for (size_t index = 0; index < array_count(configs); index++) {
+            BREthereumLESNode node = lesAddNodeForEndpoint(les, lesNodeConfigCreateEndpoint(configs[index]));
+            nodeSetStateInitial (node, NODE_ROUTE_TCP, configs[index]->state);
+        }
+    eth_log(LES_LOG_TOPIC, "Nodes Bootstrapped: %lu", NUMBER_OF_NODE_ENDPOINT_SPECS);
+    for (size_t index = 0; index < NUMBER_OF_NODE_ENDPOINT_SPECS; index++)
+        lesAddNodeForEndpoint(les, nodeEndpointCreateEnode(bootstrapLESEnodes[index]));
 
     les->theTimeToQuitIsNow = 0;
     return les;
@@ -1427,6 +1519,14 @@ lesThread (BREthereumLES les) {
              BRSetCount(les->nodes),
              lesNodeAvailableCount (les),
              array_count (les->connectedNodes));
+
+    // Callback on Node Config
+    BRArrayOf(BREthereumLESNodeConfig) configs;
+    array_new (configs, BRSetCount(les->nodes));
+    FOR_NODES (les, node) {
+        array_add (configs, lesNodeConfigCreate(node));
+    }
+    les->callbackSaveNodes (les->callbackContext, configs);
 
     FOR_NODES (les, node) {
         nodeShow (node);

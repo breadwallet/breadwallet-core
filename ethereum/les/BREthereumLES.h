@@ -36,7 +36,21 @@
 extern "C" {
 #endif
 
-typedef struct {} BREthereumLESPeerConfig;
+typedef struct BREthereumLESNodeConfigRecord *BREthereumLESNodeConfig;
+
+extern void
+lesNodeConfigRelease (BREthereumLESNodeConfig config);
+
+extern BREthereumHash
+lesNodeConfigGetHash (BREthereumLESNodeConfig config);
+
+extern BRRlpItem
+lesNodeConfigEncode (BREthereumLESNodeConfig config,
+                     BRRlpCoder coder);
+
+extern BREthereumLESNodeConfig
+lesNodeConfigDecode (BRRlpItem item,
+                     BRRlpCoder coder);
 
 /*!
  * @typedef BREthereumLES
@@ -94,6 +108,13 @@ typedef void
                                 BREthereumHash headHash,
                                 uint64_t headNumber);
 
+/**
+ * The callback to use for saving nodes
+ */
+typedef void
+(*BREthereumLESCallbackSaveNodes) (BREthereumLESCallbackContext context,
+                                   BRArrayOf(BREthereumLESNodeConfig) nodes);
+
 /*!
  * @function lesCreate
  *
@@ -120,10 +141,12 @@ lesCreate (BREthereumNetwork network,
            BREthereumLESCallbackContext callbackContext,
            BREthereumLESCallbackAnnounce callbackAnnounce,
            BREthereumLESCallbackStatus callbackStatus,
+           BREthereumLESCallbackSaveNodes callbackSaveNodes,
            BREthereumHash headHash,
            uint64_t headNumber,
            UInt256 headTotalDifficulty,
-           BREthereumHash genesisHash);
+           BREthereumHash genesisHash,
+           BRArrayOf(BREthereumLESNodeConfig) configs);
 
 /*!
  * @function lesRelease

@@ -173,6 +173,57 @@ nodeStateDescribe (const BREthereumLESNodeState *state,
     }
 }
 
+extern BRRlpItem
+nodeStateEncode (const BREthereumLESNodeState *state,
+                 BRRlpCoder coder) {
+    BRRlpItem typeItem = rlpEncodeUInt64 (coder, state->type, 0);
+
+    switch (state->type) {
+        case NODE_AVAILABLE:
+        case NODE_CONNECTING:
+        case NODE_CONNECTED:
+        case NODE_EXHAUSTED:
+            return rlpEncodeList1 (coder, typeItem);
+        case NODE_ERROR_UNIX:
+            return rlpEncodeList2 (coder, typeItem,
+                                   rlpEncodeUInt64(coder, state->u.unix.error, 0));
+        case NODE_ERROR_DISCONNECT:
+            return rlpEncodeList2 (coder, typeItem,
+                                   rlpEncodeUInt64(coder, state->u.disconnect.reason, 0));
+        case NODE_ERROR_PROTOCOL:
+            return rlpEncodeList2 (coder, typeItem,
+                                   rlpEncodeUInt64(coder, state->u.protocol.reason, 0));
+    }
+}
+
+extern BREthereumLESNodeState
+nodeStateDecode (BRRlpItem item,
+                 BRRlpCoder coder) {
+    size_t itemsCount = 0;
+    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
+    assert (1 == itemsCount || 2 == itemsCount);
+
+    BREthereumLESNodeStateType type = (BREthereumLESNodeStateType) rlpDecodeUInt64(coder, items[0], 0);
+    switch (type) {
+        case NODE_AVAILABLE:
+        case NODE_CONNECTING:
+        case NODE_CONNECTED:
+        case NODE_EXHAUSTED:
+            return nodeStateCreate(type);
+        case NODE_ERROR_UNIX:
+            return nodeStateCreateErrorUnix
+            ((int) rlpDecodeUInt64 (coder, items[1], 0));
+
+        case NODE_ERROR_DISCONNECT:
+            return nodeStateCreateErrorDisconnect
+            ((BREthereumP2PDisconnectReason) rlpDecodeUInt64 (coder, items[1], 0));
+
+        case NODE_ERROR_PROTOCOL:
+            return nodeStateCreateErrorProtocol
+            ((BREEthereumLESNodeProtocolReason) rlpDecodeUInt64 (coder, items[1], 0));
+    }
+}
+
 //
 // MARK: - LES Node
 //
@@ -466,6 +517,40 @@ nodeSetStateErrorProtocol (BREthereumLESNode node,
                            BREthereumLESNodeEndpointRoute route,
                            BREEthereumLESNodeProtocolReason reason) {
     node->states[route] = nodeStateCreateErrorProtocol(reason);
+}
+
+extern void
+nodeSetStateInitial (BREthereumLESNode node,
+                     BREthereumLESNodeEndpointRoute route,
+                     BREthereumLESNodeState state) {
+    // Assume that the route is AVAILABLE.
+    node->states[route] = nodeStateCreate (NODE_AVAILABLE);
+
+    switch (state.type) {
+        case NODE_AVAILABLE:
+        case NODE_CONNECTING:
+        case NODE_CONNECTED:
+        case NODE_EXHAUSTED:
+        case NODE_ERROR_UNIX:
+        case NODE_ERROR_DISCONNECT:
+            break;
+
+        case NODE_ERROR_PROTOCOL:
+            switch (state.u.protocol.reason) {
+                case NODE_PROTOCOL_NONSTANDARD_PORT:
+                case NODE_PROTOCOL_CAPABILITIES_MISMATCH:
+                case NODE_PROTOCOL_UDP_EXCESSIVE_BYTE_COUNT:
+                    node->states[route] = state; // no recover; adopt the PROTOCOL error.
+                    break;
+
+                case NODE_PROTOCOL_UDP_PING_PONG_MISSED:
+                case NODE_PROTOCOL_TCP_AUTHENTICATION:
+                case NODE_PROTOCOL_TCP_HELLO_MISSED:
+                case NODE_PROTOCOL_TCP_STATUS_MISSED:
+                    break;
+            }
+            break;
+    }
 }
 
 /// MARK: Descriptors

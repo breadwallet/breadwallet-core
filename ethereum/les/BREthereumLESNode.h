@@ -99,6 +99,14 @@ extern const char *
 nodeStateDescribe (const BREthereumLESNodeState *state,
                    char description[128]);
 
+extern BRRlpItem
+nodeStateEncode (const BREthereumLESNodeState *state,
+                 BRRlpCoder coder);
+
+extern BREthereumLESNodeState
+nodeStateDecode (BRRlpItem item,
+                 BRRlpCoder coder);
+
 typedef void *BREthereumLESNodeContext;
 
 typedef void
@@ -177,6 +185,11 @@ nodeSetStateErrorProtocol (BREthereumLESNode node,
                            BREthereumLESNodeEndpointRoute route,
                            BREEthereumLESNodeProtocolReason reason);
 
+extern void
+nodeSetStateInitial (BREthereumLESNode node,
+                     BREthereumLESNodeEndpointRoute route,
+                     BREthereumLESNodeState state);
+    
 extern int
 nodeUpdateDescriptors (BREthereumLESNode node,
                        fd_set *read,

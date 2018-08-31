@@ -309,12 +309,12 @@ bcsSignalLog (BREthereumBCS bcs,
 // Peers
 //
 extern void
-bcsHandlePeers (BREthereumBCS bcs,
-                BRArrayOf(BREthereumLESPeerConfig) peers);
+bcsHandleNodes (BREthereumBCS bcs,
+                BRArrayOf(BREthereumLESNodeConfig) peers);
 
 extern void
-bcsSignalPeers (BREthereumBCS bcs,
-                BRArrayOf(BREthereumLESPeerConfig) peers);
+bcsSignalNodes (BREthereumBCS bcs,
+                BRArrayOf(BREthereumLESNodeConfig) peers);
 
 ////
 //// Active Block

@@ -51,6 +51,8 @@
 #include "../ewm/BREthereumEWM.h"
 #include "test-les.h"
 
+#define TST_LOG_TOPIC    "TST"
+
 // pthread locks/conditions and wait and signal functions
 static pthread_mutex_t _testLock;
 static pthread_cond_t _testCond;
@@ -94,20 +96,28 @@ static void _signalTestComplete() {
 }
 
 // LES Tests
-void _announceCallback (BREthereumLESCallbackContext context,
-                        BREthereumHash headHash,
-                        uint64_t headNumber,
-                        UInt256 headTotalDifficulty,
-                        uint64_t reorgDepth) {
-    
-    eth_log("announcCallback_test", "%s", "received an announcement of a new chain");
+
+static void
+_announceCallback (BREthereumLESCallbackContext context,
+                   BREthereumHash headHash,
+                   uint64_t headNumber,
+                   UInt256 headTotalDifficulty,
+                   uint64_t reorgDepth) {
+    eth_log(TST_LOG_TOPIC, "Block: %llu", headNumber);
 }
 
-void _statusCallback (BREthereumLESCallbackContext context,
-                      BREthereumHash headHash,
-                      uint64_t headNumber) {
-    
-    eth_log("announcCallback_test", "%s", "received status");
+static void
+_statusCallback (BREthereumLESCallbackContext context,
+                 BREthereumHash headHash,
+                 uint64_t headNumber) {
+    eth_log(TST_LOG_TOPIC, "Status: %llu", headNumber);
+}
+
+static void
+_saveNodesCallback (BREthereumLESCallbackContext context,
+                    BRArrayOf(BREthereumLESNodeConfig) nodes) {
+    eth_log (TST_LOG_TOPIC, "SaveNode: %zu", array_count(nodes));
+    array_free(nodes);
 }
 
 //
@@ -413,7 +423,7 @@ static void run_GetBlockHeaders_Tests(BREthereumLES les){
     //Wait for tests to complete
     _waitForTests();
     
-    eth_log("run_GetBlockHeaders_Tests", "%s", "Tests Successful");
+    eth_log(TST_LOG_TOPIC, "GetBlockHeaders: %s", "Tests Successful");
 }
 
 //
@@ -515,7 +525,7 @@ static void run_GetTxStatus_Tests(BREthereumLES les){
     //Wait for tests to complete
     _waitForTests();
     
-    eth_log("run_GetTxStatus_Tests", "%s", "Tests Successful");
+    eth_log(TST_LOG_TOPIC, "GetTxStatus: %s", "Tests Successful");
 }
 //
 //  Testing BlockBodies message
@@ -595,7 +605,7 @@ static void run_GetBlockBodies_Tests(BREthereumLES les){
     //Wait for tests to complete
     _waitForTests();
     
-    eth_log("run_GetBlockBlodies_Tests", "%s", "Tests Successful");
+    eth_log(TST_LOG_TOPIC, "GetBlockBlodies: %s", "Tests Successful");
 }
 
 //
@@ -679,7 +689,7 @@ static void run_GetReceipts_Tests(BREthereumLES les){
     //Wait for tests to complete
     _waitForTests();
     
-    eth_log("run_GetReceipts_Tests", "%s", "Tests Successful");
+    eth_log(TST_LOG_TOPIC, "GetReceipts: %s", "Tests Successful");
     
 }
 
@@ -739,7 +749,7 @@ static void run_GetProofsV2_Tests(BREthereumLES les){
     //Wait for tests to complete
     _waitForTests();// sleep (5);
     
-    eth_log("run_GetProofsV2_Tests", "%s", "Tests Successful");
+    eth_log(TST_LOG_TOPIC, "GetProofsV2: %s", "Tests Successful");
 }
 
 //
@@ -763,7 +773,7 @@ static void run_GetAccountState_Tests (BREthereumLES les){
     lesGetAccountState(les, context, _GetAccountState_Callback_Test1, 5503921, block_5503921, address);
     
     _waitForTests();
-    eth_log("run_GetAccopuntState_Tests", "%s", "Tests Successful");
+    eth_log(TST_LOG_TOPIC, "GetAccopuntState: %s", "Tests Successful");
 }
 
 void runLEStests(void) {
@@ -778,7 +788,10 @@ void runLEStests(void) {
     BREthereumHash genesisHash = hashCreate(headHashStr);
     
     // Create an LES context
-    BREthereumLES les = lesCreate(ethereumMainnet, NULL, _announceCallback, _statusCallback, headHash, headNumber, headTD, genesisHash);
+    BREthereumLES les = lesCreate(ethereumMainnet,
+                                  NULL, _announceCallback, _statusCallback, _saveNodesCallback,
+                                  headHash, headNumber, headTD, genesisHash,
+                                  NULL);
     lesStart(les);
     // Sleep for a little bit to allow the context to connect to the network
     sleep(3);

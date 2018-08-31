@@ -286,12 +286,12 @@ ewmSignalSaveBlocks (BREthereumEWM ewm,
 // Signal/Handle Save Peers (BCS Callback)
 //
 extern void
-ewmHandleSavePeers (BREthereumEWM ewm,
-                    BRArrayOf(BREthereumLESPeerConfig) peers);
+ewmHandleSaveNodes (BREthereumEWM ewm,
+                    BRArrayOf(BREthereumLESNodeConfig) peers);
 
 extern void
-ewmSignalSavePeers (BREthereumEWM ewm,
-                    BRArrayOf(BREthereumLESPeerConfig) peers);
+ewmSignalSaveNodes (BREthereumEWM ewm,
+                    BRArrayOf(BREthereumLESNodeConfig) peers);
 
 
 //

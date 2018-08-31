@@ -261,12 +261,20 @@ clientSaveBlocks (BREthereumClientContext context,
 //
 // Save Peers
 //
-BRArrayOf(BREthereumPersistData) savedPeers = NULL;
+BRArrayOf(BREthereumPersistData) savedNodes = NULL;
 
 static void
-clientSavePeers (BREthereumClientContext context,
+clientSaveNodes (BREthereumClientContext context,
                  BREthereumEWM ewm,
-                 BRArrayOf(BREthereumPersistData) blocksToSave) {
+                 BRArrayOf(BREthereumPersistData) nodesToSave) {
+    if (NULL != savedNodes) {
+        for (size_t item = 0; item < array_count(savedNodes); item++)
+            rlpDataRelease(savedNodes[item].blob);
+        array_free(savedNodes);
+        savedNodes = NULL;
+    }
+    savedNodes = nodesToSave;
+
 }
 
 //
@@ -413,7 +421,7 @@ static BREthereumClient client = {
     clientGetBlockNumber,
     clientGetNonce,
 
-    clientSavePeers,
+    clientSaveNodes,
     clientSaveBlocks,
     clientUpdateTransaction,
     clientUpdateLog,
@@ -660,7 +668,7 @@ runSyncTest (unsigned int durationInSeconds,
     alarmClockCreateIfNecessary (1);
 
     BRArrayOf(BREthereumPersistData) blocks = (restart ? savedBlocks : NULL);
-    BRArrayOf(BREthereumPersistData) peers = (restart ? savedPeers : NULL);
+    BRArrayOf(BREthereumPersistData) nodes = (restart ? savedNodes : NULL);
     BRArrayOf(BREthereumPersistData) transactions = NULL;
     BRArrayOf(BREthereumPersistData) logs = NULL;
 
@@ -685,14 +693,15 @@ runSyncTest (unsigned int durationInSeconds,
     }
 
     BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, client,
-                                       peers,
+                                       nodes,
                                        blocks,
                                        transactions,
                                        logs);
 
-    // TODO: Hack-a-Roo
-    if (NULL != savedBlocks) savedBlocks = NULL;
-    
+    // We passed on { node, block, etc } - we no longer own the memory.  Thus:
+    savedBlocks = NULL;
+    savedNodes  = NULL;
+
     ethereumConnect(ewm);
 
     unsigned int remaining = durationInSeconds;

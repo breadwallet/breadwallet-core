@@ -69,6 +69,7 @@ createEWMEnsureBlocks (BRArrayOf(BREthereumPersistData) blocksPersistData,
             BRRlpItem item = rlpGetItem(coder, blocksPersistData[index].blob);
             BREthereumBlock block = blockRlpDecode(item, network, RLP_TYPE_ARCHIVE, coder);
             rlpReleaseItem(coder, item);
+            rlpDataRelease(blocksPersistData[index].blob);
             array_insert (blocks, index, block);
         }
     }
@@ -80,24 +81,27 @@ createEWMEnsureBlocks (BRArrayOf(BREthereumPersistData) blocksPersistData,
     return blocks;
 }
 
-static BRArrayOf(BREthereumLESPeerConfig)
-createEWMEnsurePeers (BRArrayOf(BREthereumPersistData) peersPersistData,
+static BRArrayOf(BREthereumLESNodeConfig)
+createEWMEnsureNodes (BRArrayOf(BREthereumPersistData) nodesPersistData,
                       BRRlpCoder coder) {
-    BRArrayOf(BREthereumLESPeerConfig) peers;
+    BRArrayOf(BREthereumLESNodeConfig) nodes;
 
-    size_t peersCount = (NULL == peersPersistData ? 0 : array_count(peersPersistData));
-    array_new(peers, peersCount);
+    size_t peersCount = (NULL == nodesPersistData ? 0 : array_count(nodesPersistData));
+    array_new(nodes, peersCount);
 
     for (size_t index = 0; index < peersCount; index++) {
-        //BREthereumPersistData persistData = peersPersistData[index];
-        ; // Create PeerConfig from PersistData; then array_add
+        BRRlpItem item = rlpGetItem(coder, nodesPersistData[index].blob);
+        BREthereumLESNodeConfig node = lesNodeConfigDecode(item, coder);
+        rlpReleaseItem(coder, item);
+        rlpDataRelease(nodesPersistData[index].blob);
+        array_insert (nodes, index, node);
     }
 
-    if (NULL != peersPersistData) {
-        array_free (peersPersistData);
+    if (NULL != nodesPersistData) {
+        array_free (nodesPersistData);
     }
 
-    return peers;
+    return nodes;
 }
 
 static BRArrayOf(BREthereumTransaction)
@@ -115,6 +119,7 @@ createEWMEnsureTransactions (BRArrayOf(BREthereumPersistData) transactionsPersis
         BRRlpItem item = rlpGetItem(coder, transactionsPersistData[index].blob);
         BREthereumTransaction transaction = transactionRlpDecode(item, network, RLP_TYPE_ARCHIVE, coder);
         rlpReleaseItem(coder, item);
+        rlpDataRelease(transactionsPersistData[index].blob);
         array_insert (transactions, index, transaction);
     }
 
@@ -140,6 +145,7 @@ createEWMEnsureLogs(BRArrayOf(BREthereumPersistData) logsPersistData,
         BRRlpItem item = rlpGetItem(coder, logsPersistData[index].blob);
         BREthereumLog log = logRlpDecode(item, RLP_TYPE_ARCHIVE, coder);
         rlpReleaseItem(coder, item);
+        rlpDataRelease(logsPersistData[index].blob);
         array_insert (logs, index, log);
     }
 
@@ -157,7 +163,7 @@ createEWM (BREthereumNetwork network,
            // serialized: headers, transactions, logs
            BREthereumSyncMode syncMode,
            BREthereumClient client,
-           BRArrayOf(BREthereumPersistData) peersPersistData,
+           BRArrayOf(BREthereumPersistData) nodesPersistData,
            BRArrayOf(BREthereumPersistData) blocksPersistData,
            BRArrayOf(BREthereumPersistData) transactionsPersistData,
            BRArrayOf(BREthereumPersistData) logsPersistData) {
@@ -215,7 +221,7 @@ createEWM (BREthereumNetwork network,
         (BREthereumBCSCallbackTransaction) ewmSignalTransaction,
         (BREthereumBCSCallbackLog) ewmSignalLog,
         (BREthereumBCSCallbackSaveBlocks) ewmSignalSaveBlocks,
-        (BREthereumBCSCallbackSavePeers) ewmSignalSavePeers,
+        (BREthereumBCSCallbackSavePeers) ewmSignalSaveNodes,
         (BREthereumBCSCallbackSync) ewmSignalSync
     };
 
@@ -227,7 +233,7 @@ createEWM (BREthereumNetwork network,
     ewm->bcs = bcsCreate (network,
                           accountGetPrimaryAddress (account),
                           listener,
-                          createEWMEnsurePeers(peersPersistData, ewm->coder),
+                          createEWMEnsureNodes(nodesPersistData, ewm->coder),
                           createEWMEnsureBlocks (blocksPersistData, network, ewm->coder),
                           createEWMEnsureTransactions(transactionsPersistData, network, ewm->coder),
                           createEWMEnsureLogs(logsPersistData, network, ewm->coder));
@@ -913,24 +919,30 @@ ewmHandleSaveBlocks (BREthereumEWM ewm,
 }
 
 extern void
-ewmHandleSavePeers (BREthereumEWM ewm,
-                    BRArrayOf(BREthereumLESPeerConfig) peers) {
-    size_t peersCount = array_count(peers);
+ewmHandleSaveNodes (BREthereumEWM ewm,
+                    BRArrayOf(BREthereumLESNodeConfig) nodes) {
+    size_t nodesCount = array_count(nodes);
 
     // Serialize BREthereumPeerConfig
-    BRArrayOf(BREthereumPersistData) peersToSave;
-    array_new(peersToSave, 0);
-    for (size_t index = 0; index < array_count(peers); index++) {
-        // Add to peersToSave
+    BRArrayOf(BREthereumPersistData) nodesToSave;
+    array_new(nodesToSave, 0);
+    for (size_t index = 0; index < array_count(nodes); index++) {
+        BRRlpItem item = lesNodeConfigEncode(nodes[index], ewm->coder);
+        BREthereumPersistData persistData = {
+            lesNodeConfigGetHash(nodes[index]),
+            rlpGetData (ewm->coder, item)
+        };
+        rlpReleaseItem (ewm->coder, item);
+        array_add (nodesToSave, persistData);
     }
 
-    // TODO: ewmSignalSavePeers(ewm, peers);
-    ewm->client.funcSavePeers (ewm->client.context, ewm,
-                               peersToSave);
+    // TODO: ewmSignalSavenodes(ewm, nodes);
+    ewm->client.funcSaveNodes (ewm->client.context, ewm,
+                               nodesToSave);
 
-    eth_log("EWM", "Save Peers: %zu", peersCount);
+    eth_log("EWM", "Save nodes: %zu", nodesCount);
 
-    array_free (peers);
+    array_free (nodes);
 }
 
 extern void
