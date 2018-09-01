@@ -67,7 +67,7 @@ typedef enum {
     NODE_PROTOCOL_TCP_HELLO_MISSED,
     NODE_PROTOCOL_TCP_STATUS_MISSED,
     NODE_PROTOCOL_CAPABILITIES_MISMATCH
-} BREEthereumLESNodeProtocolReason;
+} BREthereumLESNodeProtocolReason;
 
 typedef struct {
     BREthereumLESNodeStateType type;
@@ -89,7 +89,7 @@ typedef struct {
         } disconnect;
 
         struct {
-            BREEthereumLESNodeProtocolReason reason;
+            BREthereumLESNodeProtocolReason reason;
         } protocol;
     } u;
 } BREthereumLESNodeState;
@@ -183,7 +183,7 @@ nodeGetState (BREthereumLESNode node,
 extern void
 nodeSetStateErrorProtocol (BREthereumLESNode node,
                            BREthereumLESNodeEndpointRoute route,
-                           BREEthereumLESNodeProtocolReason reason);
+                           BREthereumLESNodeProtocolReason reason);
 
 extern void
 nodeSetStateInitial (BREthereumLESNode node,

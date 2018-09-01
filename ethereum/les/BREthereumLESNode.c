@@ -134,7 +134,7 @@ nodeStateCreateErrorDisconnect (BREthereumP2PDisconnectReason reason) {
 }
 
 static BREthereumLESNodeState
-nodeStateCreateErrorProtocol (BREEthereumLESNodeProtocolReason reason) {
+nodeStateCreateErrorProtocol (BREthereumLESNodeProtocolReason reason) {
     return (BREthereumLESNodeState) {
         NODE_ERROR_PROTOCOL,
         { .protocol = { reason }}
@@ -142,7 +142,7 @@ nodeStateCreateErrorProtocol (BREEthereumLESNodeProtocolReason reason) {
 }
 
 const char *
-nodeProtocolReasonDescription (BREEthereumLESNodeProtocolReason reason) {
+nodeProtocolReasonDescription (BREthereumLESNodeProtocolReason reason) {
     static const char *
     protocolReasonDescriptions [] = {
         "Non-Standard Port",
@@ -220,7 +220,7 @@ nodeStateDecode (BRRlpItem item,
 
         case NODE_ERROR_PROTOCOL:
             return nodeStateCreateErrorProtocol
-            ((BREEthereumLESNodeProtocolReason) rlpDecodeUInt64 (coder, items[1], 0));
+            ((BREthereumLESNodeProtocolReason) rlpDecodeUInt64 (coder, items[1], 0));
     }
 }
 
@@ -515,7 +515,7 @@ nodeGetState (BREthereumLESNode node,
 extern void
 nodeSetStateErrorProtocol (BREthereumLESNode node,
                            BREthereumLESNodeEndpointRoute route,
-                           BREEthereumLESNodeProtocolReason reason) {
+                           BREthereumLESNodeProtocolReason reason) {
     node->states[route] = nodeStateCreateErrorProtocol(reason);
 }
 
