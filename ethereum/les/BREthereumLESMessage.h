@@ -28,6 +28,7 @@
 
 #include <stdlib.h>
 #include <memory.h>
+#include <limits.h>
 #include "BRArray.h"
 #include "BRSet.h"
 #include "../base/BREthereumBase.h"
@@ -588,10 +589,15 @@ typedef struct {
 } BREthereumLESMessageProofs;
 
 /// MARK: LES GetContractCodes
-typedef struct {} BREthereumLESMessageGetContractCodes;
+typedef struct {
+    uint64_t reqId;
+} BREthereumLESMessageGetContractCodes;
 
 /// MARK: LES ContractCodes
-typedef struct {} BREthereumLESMessageContractCodes;
+typedef struct {
+    uint64_t reqId;
+    uint64_t bv;
+} BREthereumLESMessageContractCodes;
 
 /// MARK: LES SendTx
 
@@ -605,10 +611,15 @@ typedef struct {
 } BREthereumLESMessageSendTx;
 
 /// MARK: LES GetHeaderProofs
-typedef struct {} BREthereumLESMessageGetHeaderProofs;
+typedef struct {
+    uint64_t reqId;
+} BREthereumLESMessageGetHeaderProofs;
 
 /// MARK: LES HeaderProofs
-typedef struct {} BREthereumLESMessageHeaderProofs;
+typedef struct {
+    uint64_t reqId;
+    uint64_t bv;
+} BREthereumLESMessageHeaderProofs;
 
 /// MARK: LES GetProofsV2
 typedef struct {
@@ -624,10 +635,15 @@ typedef struct {
 } BREthereumLESMessageProofsV2;
 
 /// MARK: LES GetHelperTrieProofs
-typedef struct {} BREthereumLESMessageGetHelperTrieProofs;
+typedef struct {
+    uint64_t reqId;
+} BREthereumLESMessageGetHelperTrieProofs;
 
 /// MARK: LES HelperTrieProofs
-typedef struct {} BREthereumLESMessageHelperTrieProofs;
+typedef struct {
+    uint64_t reqId;
+    uint64_t bv;
+} BREthereumLESMessageHelperTrieProofs;
 
 /// MARK: LES SendTx2
 
@@ -759,6 +775,9 @@ messageLESHasUse (const BREthereumLESMessage *message,
 extern uint64_t
 messageLESGetCredits (const BREthereumLESMessage *message);
 
+#define LES_MESSAGE_NO_REQUEST_ID    (-1)
+extern uint64_t
+messageLESGetRequestId (const BREthereumLESMessage *message);
 
 /// MARK: - Wire Protocol Messages
 

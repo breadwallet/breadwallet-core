@@ -1350,6 +1350,34 @@ messageLESGetCredits (const BREthereumLESMessage *message) {
     }
 }
 
+extern uint64_t
+messageLESGetRequestId (const BREthereumLESMessage *message) {
+    switch (message->identifier) {
+        case LES_MESSAGE_STATUS: return LES_MESSAGE_NO_REQUEST_ID;
+        case LES_MESSAGE_ANNOUNCE: return LES_MESSAGE_NO_REQUEST_ID;
+        case LES_MESSAGE_GET_BLOCK_HEADERS: return message->u.getBlockBodies.reqId;
+        case LES_MESSAGE_BLOCK_HEADERS: return message->u.blockHeaders.reqId;
+        case LES_MESSAGE_GET_BLOCK_BODIES: return message->u.getBlockBodies.reqId;
+        case LES_MESSAGE_BLOCK_BODIES: return message->u.blockBodies.reqId;
+        case LES_MESSAGE_GET_RECEIPTS: return message->u.getReceipts.reqId;
+        case LES_MESSAGE_RECEIPTS: return message->u.receipts.reqId;
+        case LES_MESSAGE_GET_PROOFS: return message->u.getProofs.reqId;
+        case LES_MESSAGE_PROOFS: return message->u.proofs.reqId;
+        case LES_MESSAGE_GET_CONTRACT_CODES: return message->u.getContractCodes.reqId;
+        case LES_MESSAGE_CONTRACT_CODES: return message->u.contractCodes.reqId;
+        case LES_MESSAGE_SEND_TX: return message->u.sendTx.reqId;
+        case LES_MESSAGE_GET_HEADER_PROOFS: return message->u.getHeaderProofs.reqId;
+        case LES_MESSAGE_HEADER_PROOFS: return message->u.headerProofs.reqId;
+        case LES_MESSAGE_GET_PROOFS_V2: return message->u.getProofsV2.reqId;
+        case LES_MESSAGE_PROOFS_V2: return message->u.proofsV2.reqId;
+        case LES_MESSAGE_GET_HELPER_TRIE_PROOFS: return message->u.getHelperTrieProofs.reqId;
+        case LES_MESSAGE_HELPER_TRIE_PROOFS: return message->u.helperTrieProofs.reqId;
+        case LES_MESSAGE_SEND_TX2: return message->u.sendTx2.reqId;
+        case LES_MESSAGE_GET_TX_STATUS: return message->u.getTxStatus.reqId;
+        case LES_MESSAGE_TX_STATUS: return message->u.txStatus.reqId;
+    }
+}
+
 /// MARK: - Wire Protocol Messagees
 
 extern BRRlpItem

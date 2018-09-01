@@ -73,7 +73,6 @@ typedef enum {
                                            // NOT_CONNECTED?
 } BREthereumLESStatus;
 
-
 /*!
  * @typedef BREthereumLESCallbackContext
  *

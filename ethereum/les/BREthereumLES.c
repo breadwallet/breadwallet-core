@@ -44,9 +44,15 @@
 /** Forward Declarations */
 
 static void
+lesHandleLESProvision (BREthereumLES les,
+                       BREthereumLESNode node,
+                       BREthereumNodeProvisionResult result);
+
+static void
 lesHandleLESMessage (BREthereumLES les,
                      BREthereumLESNode node,
                      BREthereumLESMessage message);
+
 static void
 lesHandleNodeState (BREthereumLES les,
                     BREthereumLESNode node,
@@ -559,7 +565,8 @@ lesAddNodeForEndpoint (BREthereumLES les,
                                          les->localEndpoint,
                                          (BREthereumLESNodeContext) les,
                                          (BREthereumLESNodeCallbackMessage) lesHandleLESMessage,
-                                         (BREthereumLESNodeCallbackState) lesHandleNodeState);
+                                         (BREthereumLESNodeCallbackState) lesHandleNodeState,
+                                         (BREthereumLESNodeCallbackProvide) lesHandleLESProvision);
 
     // We expect duplicates - we'll make the first one win.
     if (!BRSetGet(les->nodes, node))
@@ -769,7 +776,8 @@ lesNodeCreate (BREthereumLES les,
                        les->localEndpoint,
                        (BREthereumLESNodeContext) les,
                        (BREthereumLESNodeCallbackMessage) lesHandleLESMessage,
-                       (BREthereumLESNodeCallbackState) lesHandleNodeState);
+                       (BREthereumLESNodeCallbackState) lesHandleNodeState,
+                       (BREthereumLESNodeCallbackProvide) lesHandleLESProvision);
 }
 
 /**
@@ -1055,6 +1063,22 @@ lesLookupRequest (BREthereumLES les,
         }
     pthread_mutex_unlock(&les->lock);
     return result;
+}
+
+/// MARK: Handle Provided Results
+
+static void
+lesHandleLESProvision (BREthereumLES les,
+                       BREthereumLESNode node,
+                       BREthereumNodeProvisionResult result) {
+    // Find the callback, invoke
+    switch (result.status) {
+        case PROVISION_SUCCESS:
+            break;
+
+        case PROVISION_ERROR:
+            break;
+    }
 }
 
 /// MARK: Handle Messages

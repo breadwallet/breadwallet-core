@@ -255,6 +255,7 @@ struct BREthereumLESNodeRecord {
     BREthereumLESNodeContext callbackContext;
     BREthereumLESNodeCallbackMessage callbackMessage;
     BREthereumLESNodeCallbackState callbackStatus;
+    BREthereumLESNodeCallbackProvide callbackProvide;
 
     /** Send/Recv Buffer */
     BRRlpData sendDataBuffer;
@@ -272,6 +273,11 @@ struct BREthereumLESNodeRecord {
     uint8_t ackBuf[ackBufLen];
     uint8_t ackBufCipher[ackCipherBufLen];
 
+    // Provision
+    BREthereumNodeProvisionIdentifier provideId;
+    BRArrayOf(BREthereumMessage) pendingMessages;
+    BRArrayOf(BREthereumLESNodeProvisionPending) pendingProvisions;
+
     //
     // pthread
     //
@@ -279,7 +285,6 @@ struct BREthereumLESNodeRecord {
     pthread_t threads[NUMBER_OF_NODE_ROUTES];
     pthread_mutex_t lock;
 };
-
 
 //
 // Create
@@ -290,7 +295,8 @@ nodeCreate (BREthereumNetwork network,
             BREthereumLESNodeEndpoint local,
             BREthereumLESNodeContext context,
             BREthereumLESNodeCallbackMessage callbackMessage,
-            BREthereumLESNodeCallbackState callbackStatus) {
+            BREthereumLESNodeCallbackState callbackStatus,
+            BREthereumLESNodeCallbackProvide callbackProvide) {
     BREthereumLESNode node = calloc (1, sizeof (struct BREthereumLESNodeRecord));
 
     // Extract the identifier from the remote's public key.
@@ -334,11 +340,16 @@ nodeCreate (BREthereumNetwork network,
 
     node->callbackContext = context;
     node->callbackMessage = callbackMessage;
-    node->callbackStatus = callbackStatus;
+    node->callbackStatus  = callbackStatus;
+    node->callbackProvide = callbackProvide;
+
+    node->provideId = 0;
+    array_new (node->pendingMessages, 10);
+    array_new (node->pendingProvisions, 10);
 
     {
 #define PTHREAD_NAME_BASE    "Core Ethereum LES"
-        char threadName[4096];
+        char threadName[1024];
         sprintf (threadName, "%s %s", PTHREAD_NAME_BASE, node->remote.hostname);
         node->threadName = strdup(threadName);
 
@@ -367,6 +378,7 @@ nodeRelease (BREthereumLESNode node) {
     rlpCoderRelease(node->coder.rlp);
     frameCoderRelease(node->frameCoder);
 
+    free (node->threadName);
     free (node);
 }
 
@@ -1403,5 +1415,330 @@ _readAuthAckFromRecipient(BREthereumLESNode node) {
         memcpy(&remoteEPubKey[1], node->ackBuf, PUBLIC_SIZE_BYTES);
         BRKeySetPubKey(remoteEphemeral, remoteEPubKey, 65);
         return 0;
+    }
+}
+
+
+/// MARK: Provision
+
+static BREthereumNodeProvisionIdentifier
+nodeGetThenIncrementProvideIdentifier (BREthereumLESNode node, size_t byIncrement) {
+    BREthereumNodeProvisionIdentifier identifier;
+    pthread_mutex_lock(&node->lock);
+    identifier = node->provideId;
+    node->provideId += byIncrement;
+    pthread_mutex_unlock(&node->lock);
+    return identifier;
+}
+
+static BREthereumLESMessageIdentifier
+nodeGetLESMessageIdentifierForProvision (BREthereumLESNode node,
+                                         BREthereumNodeProvisionType type) {
+    switch (type) {
+
+        case PROVISION_BLOCK_HEADERS: return LES_MESSAGE_GET_BLOCK_HEADERS;
+        case PROVISION_BLOCK_BODIES:  return LES_MESSAGE_GET_BLOCK_BODIES;
+        case PROVISION_TRANSACTION_RECEIPTS: return LES_MESSAGE_GET_RECEIPTS;
+        case PROVISION_ACCOUNTS: return LES_MESSAGE_GET_PROOFS_V2;
+    }
+}
+
+static BREthereumLESMessageIdentifier // pip
+nodeGetPIPMessageIdentifierForProvision (BREthereumLESNode node,
+                                         BREthereumNodeProvisionType type) {
+    switch (type) {
+
+        case PROVISION_BLOCK_HEADERS: return LES_MESSAGE_GET_BLOCK_HEADERS;
+        case PROVISION_BLOCK_BODIES:  return LES_MESSAGE_GET_BLOCK_BODIES;
+        case PROVISION_TRANSACTION_RECEIPTS: return LES_MESSAGE_GET_RECEIPTS;
+        case PROVISION_ACCOUNTS: return LES_MESSAGE_GET_PROOFS_V2;
+    }
+}
+
+static size_t
+nodeGetMessageLimitForProvision (BREthereumLESNode node,
+                                 BREthereumNodeProvisionType type) {
+    switch (node->type) {
+        case NODE_TYPE_GETH: {
+            BREthereumLESMessageIdentifier id = nodeGetLESMessageIdentifierForProvision (node, type);
+            return messageLESSpecs[id].limit;
+        }
+
+        case NODE_TYPE_PARITY:
+            return 32;
+    }
+}
+
+static void
+nodeExtractMessageCounts (BREthereumLESNode node,
+                          BREthereumNodeProvisionType type,
+                          size_t provideCount,
+                          size_t *limitPerMessage,
+                          size_t *messagesCount) {
+    assert (NULL != limitPerMessage && NULL != messagesCount);
+
+    // A message of `type` is limited to this number 'requests'
+    *limitPerMessage = nodeGetMessageLimitForProvision (node, type);
+    assert (0 != limitPerMessage);
+
+    // We'll need this many messages to handle all the 'requests'
+    *messagesCount = (provideCount + *limitPerMessage - 1) / *limitPerMessage;
+}
+
+static size_t minimum (size_t x, size_t  y) { return x < y ? x : y; }
+
+
+extern BREthereumNodeProvisionIdentifier
+nodeProvideBlockHeaders (BREthereumLESNode node,
+                         uint64_t start,
+                         uint64_t skip,
+                         uint32_t count,
+                         BREthereumBoolean reverse) {
+    size_t headersPerMessage, messagesCount;
+    nodeExtractMessageCounts (node, PROVISION_BLOCK_HEADERS, count,
+                              &headersPerMessage,
+                              &messagesCount);
+    assert (0 != messagesCount);
+
+    BREthereumNodeProvisionIdentifier identifier = nodeGetThenIncrementProvideIdentifier(node, messagesCount);
+    BREthereumMessage message;
+
+    // Create the 'result' thingy
+    BREthereumLESNodeProvisionPending provision = {
+        identifier,
+        { PROVISION_BLOCK_HEADERS, { .headers = { start, skip, count, reverse, NULL }}},
+        headersPerMessage,
+        messagesCount,
+        messagesCount,
+        time (NULL)
+    };
+
+    for (size_t index = 0; index < messagesCount; index++) {
+        BREthereumNodeProvisionIdentifier messageId = identifier + index;
+
+        switch (node->type) {
+            case NODE_TYPE_GETH:
+                message = (BREthereumMessage) {
+                    MESSAGE_LES,
+                    { .les = {
+                        LES_MESSAGE_GET_BLOCK_HEADERS,
+                        { .getBlockHeaders = {
+                            messageId,
+                            1, // use 'number'
+                            { .number = start },
+                            (uint32_t) minimum (count, headersPerMessage),
+                            skip,
+                            ETHEREUM_BOOLEAN_IS_TRUE(reverse)
+                        }}}}
+                };
+                break;
+
+            case NODE_TYPE_PARITY:
+                message = (BREthereumMessage) {};
+                break;
+        }
+        // Save the messageID in the 'result' thingy
+
+        // Queue message;
+        pthread_mutex_lock(&node->lock);
+        array_add (node->pendingMessages, message);
+        pthread_mutex_unlock(&node->lock);
+
+        // Maybe
+        start += headersPerMessage;
+        count -= headersPerMessage; // Will 'roll-under' negative; but we'll be done at that point.
+    }
+
+    pthread_mutex_lock(&node->lock);
+    array_add (node->pendingProvisions, provision);
+    pthread_mutex_unlock(&node->lock);
+
+    return identifier;
+}
+
+extern BREthereumNodeProvisionIdentifier
+nodeProvideBlockBodies (BREthereumLESNode node,
+                        BRArrayOf(BREthereumHash) hashes) {
+    size_t hashesCount = array_count(hashes);
+    if (0 == hashesCount) return -1;
+
+    size_t hashesPerMessage, messagesCount;
+    nodeExtractMessageCounts (node, PROVISION_BLOCK_BODIES, hashesCount,
+                              &hashesPerMessage,
+                              &messagesCount);
+    assert (0 != messagesCount);
+
+    BREthereumNodeProvisionIdentifier identifier = nodeGetThenIncrementProvideIdentifier(node, messagesCount);
+    BREthereumMessage message;
+
+    // Create the 'result' thingy
+    BREthereumLESNodeProvisionPending provision = {
+        identifier,
+        { PROVISION_BLOCK_BODIES, { .bodies = { hashes, NULL }}},
+        hashesPerMessage,
+        messagesCount,
+        messagesCount,
+        time (NULL)
+    };
+
+    for (size_t index = 0, hashesOffset = 0; index < messagesCount; index++) {
+        BREthereumNodeProvisionIdentifier messageId = identifier + index;
+
+        // split up hashes by hashesLimitPerMessage
+        BRArrayOf(BREthereumHash) messageHashes;
+        array_new(messageHashes, hashesPerMessage);
+        for (size_t i = 0; i < minimum (hashesPerMessage, hashesCount - hashesOffset); i++)
+            array_add (messageHashes, hashes[(hashesOffset + 1)]);
+
+        switch (node->type) {
+            case NODE_TYPE_GETH:
+                message = (BREthereumMessage) {
+                    MESSAGE_LES,
+                    { .les = {
+                        LES_MESSAGE_GET_BLOCK_BODIES,
+                        { .getBlockBodies = { messageId, messageHashes }}}}
+                };
+                break;
+
+            case NODE_TYPE_PARITY:
+                message = (BREthereumMessage) {};
+                break;
+        }
+
+        // Save the messageID in the 'result' thingy
+
+        // Queue message;
+        pthread_mutex_lock(&node->lock);
+        array_add (node->pendingMessages, message);
+        pthread_mutex_unlock(&node->lock);
+
+        hashesOffset += hashesPerMessage;
+    }
+
+    pthread_mutex_lock(&node->lock);
+    array_add (node->pendingProvisions, provision);
+    pthread_mutex_unlock(&node->lock);
+
+    return identifier;
+}
+
+extern BREthereumNodeProvisionIdentifier
+nodeProvideTransactionReceipts (BREthereumLESNode node,
+                                BRArrayOf(BREthereumHash) hashes) {
+    BREthereumNodeProvisionIdentifier identifier = nodeGetThenIncrementProvideIdentifier(node,1);
+
+    size_t hashesLimitPerMessage = nodeGetMessageLimitForProvision (node, PROVISION_TRANSACTION_RECEIPTS);
+    size_t hashesCount = array_count(hashes);
+
+    BREthereumMessage message;
+
+    switch (node->type) {
+
+        case NODE_TYPE_GETH:
+            message = (BREthereumMessage) {
+                MESSAGE_LES,
+                { .les = {
+                    LES_MESSAGE_GET_RECEIPTS,
+                    { .getBlockBodies = { identifier, hashes }}}}
+            };
+            break;
+        case NODE_TYPE_PARITY:
+            break;
+    }
+    // Queue message;
+
+
+    return identifier;
+
+}
+
+extern BREthereumNodeProvisionIdentifier
+nodeProvideAccounts (BREthereumLESNode node,
+                     BREthereumAddress address,
+                     BRArrayOf(BREthereumHash) hashes) {
+    BREthereumNodeProvisionIdentifier identifier = nodeGetThenIncrementProvideIdentifier(node,1);
+
+    size_t hashesLimitPerMessage = nodeGetMessageLimitForProvision (node, PROVISION_ACCOUNTS);
+    size_t hashesCount = array_count(hashes);
+
+    BREthereumMessage message;
+
+    switch (node->type) {
+
+        case NODE_TYPE_GETH:
+            // Proofs
+            break;
+        case NODE_TYPE_PARITY:
+            break;
+    }
+    // Queue message;
+
+    return identifier;
+}
+
+extern BREthereumLESNodeProvisionPending *
+nodeLookupProvisionPending (BREthereumLESNode node,
+                     BREthereumNodeProvisionIdentifier identifier) {
+    BREthereumLESNodeProvisionPending *result = NULL;
+    pthread_mutex_lock (&node->lock);
+    for (size_t index = 0; index < array_count(node->pendingProvisions); index++) {
+        BREthereumLESNodeProvisionPending *provision = &node->pendingProvisions[index];
+        if (provision->identifier <= identifier && identifier < (provision->identifier + provision->messagesCount)) {
+            result = provision;
+            break;
+        }
+    }
+    pthread_mutex_unlock (&node->lock);
+    return result;
+}
+
+extern void
+nodeHandleMessage (BREthereumLESNode node,
+                   BREthereumMessage message) {
+    BREthereumLESNodeProvisionPending *pending = NULL;
+
+    switch (node->type) {
+        case NODE_TYPE_GETH: {
+            assert (MESSAGE_LES == message.identifier);
+            BREthereumLESMessage *reply = &message.u.les;
+            BREthereumNodeProvisionIdentifier identifier = messageLESGetRequestId (reply);
+            pending = nodeLookupProvisionPending (node, identifier);
+
+            switch (reply->identifier) {
+                case LES_MESSAGE_GET_BLOCK_HEADERS: {
+                    BRArrayOf(BREthereumBlockHeader) provisionHeaders = pending->provision.u.headers.headers;
+                    BRArrayOf(BREthereumBlockHeader) messageHeaders   = reply->u.blockHeaders.headers;
+                    size_t offset = pending->messageContentLimit * (identifier - pending->identifier);
+                    for (size_t index = 0; index < array_count(messageHeaders); index++)
+                        provisionHeaders[offset + index] = messageHeaders[index];
+
+                    break;
+                }
+                case LES_MESSAGE_GET_BLOCK_BODIES:
+                    break;
+
+                case LES_MESSAGE_GET_RECEIPTS:
+                    break;
+
+                case LES_MESSAGE_GET_PROOFS_V2:
+                    break;
+
+                default:
+                    break;
+            }
+            break;
+        }
+            
+        case NODE_TYPE_PARITY:
+            break;
+    }
+
+    if (NULL == pending) return;
+
+    // We've processes another message;
+    pending->messagesRemainingCount--;
+
+    if (0 == pending->messagesRemainingCount) {
+
     }
 }

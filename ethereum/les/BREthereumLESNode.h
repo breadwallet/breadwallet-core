@@ -28,12 +28,84 @@
 
 #include "BREthereumLESMessage.h"
 #include "BREthereumLESNodeEndpoint.h"
+#include "BREthereumLESProvision.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef struct BREthereumLESNodeRecord *BREthereumLESNode;
+
+/**
+ * A Node has a type of either GETH or PARITY.  The node's interface will be implemented
+ * according to the particulars of the type.  For GETH, we'll use the LESv2 subprotocol; for
+ * Parity we'll use PIPv1.
+ */
+typedef enum {
+    NODE_TYPE_GETH,
+    NODE_TYPE_PARITY
+} BREthereumLESNodeType;
+
+/**
+ * A Node will callback on: state changes, announcements (of block), and results.
+ * The callback includes a User context.
+ */
+typedef void *BREthereumLESNodeContext;
+
+/// MARK: LES Node Provision
+
+/**
+ * A Node identies each request with an identifier.  (This is a
+ * message reqId too....)
+ */
+typedef uint64_t BREthereumNodeProvisionIdentifier;
+
+/**
+ * A Node provides its results in a self-identifying-type union of the request types.
+ */
+typedef struct {
+    /** The provision identifier; match with the reqeust */
+    BREthereumNodeProvisionIdentifier identifier;
+
+    /** The provision as a union of {reqeust, response} for each provision type. */
+    BREthereumNodeProvision provision;
+
+    /**
+     * The limit for each message.  When constructing the 'response' from a set of messages we'll
+     * expect eash message to have this many individual responses (except for the last message
+     * which may have fewer).
+     */
+    size_t messageContentLimit;
+
+    /** Teh count of messages */
+    size_t messagesCount;
+
+    /** The count of messages remaining */
+    size_t messagesRemainingCount;
+
+    /** Time of creation */
+    long timestamp;
+
+} BREthereumLESNodeProvisionPending;
+
+/**
+ * A Node defines a `Provide Callback` type to include the context, the node, and the result.
+ */
+typedef void
+(*BREthereumLESNodeCallbackProvide) (BREthereumLESNodeContext context,
+                                     BREthereumLESNode node,
+                                     BREthereumNodeProvisionResult result);
+
+
+/// MARK: LES Node Message (Callback)
+
+typedef void
+(*BREthereumLESNodeCallbackMessage) (BREthereumLESNodeContext context,
+                                     BREthereumLESNode node,
+                                     BREthereumLESMessage message);
+
+
+/// MARK: LES Node State
 
 typedef enum {
     NODE_AVAILABLE,
@@ -107,27 +179,82 @@ extern BREthereumLESNodeState
 nodeStateDecode (BRRlpItem item,
                  BRRlpCoder coder);
 
-typedef void *BREthereumLESNodeContext;
-
-typedef void
-(*BREthereumLESNodeCallbackMessage) (BREthereumLESNodeContext context,
-                                     BREthereumLESNode node,
-                                     BREthereumLESMessage message);
-
 typedef void
 (*BREthereumLESNodeCallbackState) (BREthereumLESNodeContext context,
                                    BREthereumLESNode node,
                                    BREthereumLESNodeEndpointRoute route,
                                    BREthereumLESNodeState state);
 
+/**
+ * Provide Block Headers
+ *
+ * @abstract Produces a result with type NODE_PROVIDE_BLOCK_HEADERS
+ *
+ * @param node The node
+ * @param start The block number of the first header
+ * @param skip The block numbers to skip between headers, normally '0'
+ * @param limit The number of headers to provide
+ * @param reverse TRUE if the headers should be provided in reverse order
+ *
+ * @return the provide identifier
+ */
+extern BREthereumNodeProvisionIdentifier
+nodeProvideBlockHeaders (BREthereumLESNode node,
+                         uint64_t start,
+                         uint64_t skip,
+                         uint32_t limit,
+                         BREthereumBoolean reverse);
+
+
+/**
+ * Provide Block Bodies
+ *
+ * @abstract Produces a result with type NODE_PROVIDE_BLOCK_BODIES
+ *
+ * @param node The node
+ * @param BREthereumHash An array of hashes
+ *
+ * @return the provide identifier
+ */
+extern BREthereumNodeProvisionIdentifier
+nodeProvideBlockBodies (BREthereumLESNode node,
+                        BRArrayOf(BREthereumHash) headerHashes);
+
+
+/**
+ * Provide Transaction Receipts
+ *
+ * @abstract Produces a result with type NODE_PROVIDE_TRANSACTION_RECEIPTS
+ *
+ * @param node The node
+ * @param BREthereumHash An array of hashes
+ *
+ * @return the provide identifier
+ */
+extern BREthereumNodeProvisionIdentifier
+nodeProvideTransactionReceipts (BREthereumLESNode node,
+                                BRArrayOf(BREthereumHash) headerHashes);
+
+
+/**
+ *
+ *
+ * @abstract Produces a result with type NODE_PROVIDE_ACCOUNTS
+ *
+ * @param node The Node
+ * @param address The account's address
+ * @param BREthereumHash An array of hashes
+ *
+ * @return the provide identifier
+ */
+extern BREthereumNodeProvisionIdentifier
+nodeProvideAccounts (BREthereumLESNode node,
+                     BREthereumAddress address,
+                     BRArrayOf(BREthereumHash) headerHashes);
+
 // connect
 // disconnect
 // network reachable
-
-typedef enum {
-    NODE_TYPE_GETH,
-    NODE_TYPE_PARITY
-} BREthereumLESNodeType;
 
 /**
  * Create a node
@@ -147,7 +274,8 @@ nodeCreate (BREthereumNetwork network,
             BREthereumLESNodeEndpoint local,
             BREthereumLESNodeContext context,
             BREthereumLESNodeCallbackMessage callbackMessage,
-            BREthereumLESNodeCallbackState callbackStatus);
+            BREthereumLESNodeCallbackState callbackStatus,
+            BREthereumLESNodeCallbackProvide callbackProvide);
 
 extern void
 nodeRelease (BREthereumLESNode node);
@@ -189,7 +317,7 @@ extern void
 nodeSetStateInitial (BREthereumLESNode node,
                      BREthereumLESNodeEndpointRoute route,
                      BREthereumLESNodeState state);
-    
+
 extern int
 nodeUpdateDescriptors (BREthereumLESNode node,
                        fd_set *read,
@@ -249,6 +377,7 @@ nodeRecv (BREthereumLESNode node,
 
 extern void
 nodeShow (BREthereumLESNode node);
+
 
 #ifdef __cplusplus
 }
