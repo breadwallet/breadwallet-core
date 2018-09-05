@@ -35,12 +35,14 @@ extern "C" {
 typedef enum {
     PROVISION_SUCCESS,
     PROVISION_ERROR
-} BREthereumNodeProvisionStatus;
+} BREthereumProvisionStatus;
 
 typedef enum {
     PROVISION_ERROR_X,
     PROVISION_ERROR_Y
-} BREthereumNodeProvisionErrorReason;
+} BREthereumProvisionErrorReason;
+
+/// MARK: Provision
 
 /**
  * A Node provides four types of results, based on a corresponding request: Block Headers,
@@ -50,10 +52,16 @@ typedef enum {
     PROVISION_BLOCK_HEADERS,
     PROVISION_BLOCK_BODIES,
     PROVISION_TRANSACTION_RECEIPTS,
-    PROVISION_ACCOUNTS
-    // TRANSACTION_STATUS
-    // SUBMIT_TRANSACTION
-} BREthereumNodeProvisionType;
+    PROVISION_ACCOUNTS,
+    PROVISION_TRANSACTION_STATUSES,
+    PROVISION_SUBMIT_TRANSACTION
+} BREthereumProvisionType;
+
+extern BREthereumLESMessageIdentifier
+provisionGetMessageLESIdentifier (BREthereumProvisionType type);
+
+extern BREthereumPIPRequestType
+provisionGetMessagePIPIdentifier (BREthereumProvisionType type);
 
 /**
  * Headers
@@ -66,7 +74,7 @@ typedef struct {
     BREthereumBoolean reverse;
     // Response
     BRArrayOf(BREthereumBlockHeader) headers;
-} BREthereumNodeProvisionHeaders;
+} BREthereumProvisionHeaders;
 
 /**
  * Bodies
@@ -76,7 +84,7 @@ typedef struct {
     BRArrayOf(BREthereumHash) hashes;
     // Response
     BRArrayOf(BREthereumBlockBodyPair) pairs;
-} BREthereumNodeProvisionBodies;
+} BREthereumProvisionBodies;
 
 /**
  * Receipts
@@ -86,7 +94,7 @@ typedef struct {
     BRArrayOf(BREthereumHash) hashes;
     // Response
     BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) receipts;
-} BREthereumNodeProvisionReceipts;
+} BREthereumProvisionReceipts;
 
 /**
  * Accounts
@@ -95,41 +103,82 @@ typedef struct {
     // Request
     BREthereumAddress address;
     BRArrayOf(BREthereumHash) hashes;
+    BRArrayOf(uint64_t) numbers;    // HACK
     // Response
     BRArrayOf(BREthereumAccountState) accounts;
-} BREthereumNodeProvisionAccounts;
+} BREthereumProvisionAccounts;
+
+/**
+ *
+ */
+typedef struct {
+    // Request
+    BRArrayOf(BREthereumHash) hashes;
+    // Response
+    BRArrayOf(BREthereumTransactionStatus) statuses;
+} BREthereumProvisionStatuses;
+
+/**
+ *
+ */
+typedef struct {
+    // Request
+    BREthereumTransaction transaction;
+    // Response
+    BREthereumTransactionStatus status;
+} BREthereumProvisionSubmission;
+
+/// MARK: - Provision
+
+/**
+ * A Provision Identifer.
+ */
+typedef uint64_t BREthereumProvisionIdentifier;
+
+#define PROVISION_IDENTIFIER_UNDEFINED  ((BREthereumProvisionIdentifier) -1)
 
 /**
  * Provision
  */
 typedef struct {
-    BREthereumNodeProvisionType type;
+    BREthereumProvisionIdentifier identifier;
+    BREthereumProvisionType type;
     union {
-        BREthereumNodeProvisionHeaders headers;
-        BREthereumNodeProvisionBodies bodies;
-        BREthereumNodeProvisionReceipts receipts;
-        BREthereumNodeProvisionAccounts accounts;
+        BREthereumProvisionHeaders headers;
+        BREthereumProvisionBodies bodies;
+        BREthereumProvisionReceipts receipts;
+        BREthereumProvisionAccounts accounts;
+        BREthereumProvisionStatuses statuses;
+        BREthereumProvisionSubmission submission;
     } u;
-} BREthereumNodeProvision;
+} BREthereumProvision;
 
 /**
  * Provision Result
  */
 typedef struct {
-    BREthereumNodeProvisionStatus status;
-    BREthereumNodeProvisionType type;
+    BREthereumProvisionIdentifier identifier;
+    BREthereumProvisionType type;
+    BREthereumProvisionStatus status;
     union {
         // success - the provision
         struct {
-            BREthereumNodeProvision provision;
+            BREthereumProvision provision;
         } success;
 
         // error - the error reason
         struct {
-            BREthereumNodeProvisionErrorReason reason;
+            BREthereumProvisionErrorReason reason;
         } error;
     } u;
-} BREthereumNodeProvisionResult;
+} BREthereumProvisionResult;
+
+
+typedef void *BREthereumProvisionCallbackContext;
+
+typedef void
+(*BREthereumProvisionCallback) (BREthereumProvisionCallbackContext context,
+                                BREthereumProvisionResult result);
 
 #ifdef __cplusplus
 }

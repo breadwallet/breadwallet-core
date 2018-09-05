@@ -25,22 +25,39 @@
 
 #include "BREthereumLESMessagePIP.h"
 
-static const char *
-messagePIPNames[] = {
-    "Status",
-    "Announce",
-    "Request",
-    "Response",
-    "UpdCredit",
-    "AckCredit",
-    "RelayTx"
-};
-
 extern const char *
-messagePIPGetIdentifierName (BREthereumPIPMessageIdentifier identifer) {
-    return messagePIPNames[identifer];
+messagePIPGetRequestName (BREthereumPIPRequestType type) {
+    static const char *
+    messagePIPRequestNames[] = {
+        "Headers",
+        "Headers Proof",
+        "Tx Index",
+        "Receipts",
+        "Bodies",
+        "Accounts",
+        "Storage",
+        "Code",
+        "Execution"
+    };
+
+    return messagePIPRequestNames[type];
 }
 
+extern const char *
+messagePIPGetIdentifierName (BREthereumPIPMessageType identifer) {
+    static const char *
+    messagePIPNames[] = {
+        "Status",
+        "Announce",
+        "Request",
+        "Response",
+        "UpdCredit",
+        "AckCredit",
+        "RelayTx"
+    };
+
+    return messagePIPNames[identifer];
+}
 
 extern BRRlpItem
 messagePIPEncode (BREthereumPIPMessage message,
@@ -51,6 +68,19 @@ messagePIPEncode (BREthereumPIPMessage message,
 extern BREthereumPIPMessage
 messagePIPDecode (BRRlpItem item,
                   BREthereumMessageCoder coder,
-                  BREthereumPIPMessageIdentifier identifier) {
+                  BREthereumPIPMessageType identifier) {
     return (BREthereumPIPMessage) {};
+}
+
+extern uint64_t
+messagePIPGetRequestId (const BREthereumPIPMessage *message) {
+    switch (message->type) {
+        case PIP_MESSAGE_STATUS:   return PIP_MESSAGE_NO_REQUEST_ID;
+        case PIP_MESSAGE_ANNOUNCE: return PIP_MESSAGE_NO_REQUEST_ID;
+        case PIP_MESSAGE_REQUEST:  return message->u.request.reqId;
+        case PIP_MESSAGE_RESPONSE: return message->u.response.reqId;
+        case PIP_MESSAGE_UPDATE_CREDIT_PARAMETERS: return PIP_MESSAGE_NO_REQUEST_ID;
+        case PIP_MESSAGE_ACKNOWLEDGE_UPDATE:       return PIP_MESSAGE_NO_REQUEST_ID;
+        case PIP_MESSAGE_RELAY_TRANSACTIONS:       return PIP_MESSAGE_NO_REQUEST_ID;
+    }
 }

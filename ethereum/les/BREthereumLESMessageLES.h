@@ -254,7 +254,7 @@ typedef struct {
     BRRlpData key2;
     uint64_t fromLevel;
     // Not RLP encoded
-    uint64_t blockNumber;
+    uint64_t blockNumber;           // HACK
     BREthereumAddress address;
 } BREthereumLESMessageGetProofsSpec;
 
@@ -466,6 +466,9 @@ messageLESHasUse (const BREthereumLESMessage *message,
 // 0 if not response
 extern uint64_t
 messageLESGetCredits (const BREthereumLESMessage *message);
+
+extern uint64_t
+messageLESGetCreditsCount (const BREthereumLESMessage *message);
 
 #define LES_MESSAGE_NO_REQUEST_ID    (-1)
 extern uint64_t

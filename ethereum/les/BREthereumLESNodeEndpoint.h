@@ -30,6 +30,7 @@
 #include "BRKey.h"
 #include "BRInt.h"
 #include "BREthereumLESMessage.h"
+#include "BREthereumLESRandom.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -91,6 +92,12 @@ extern BREthereumLESNodeEndpoint
 nodeEndpointCreate (BREthereumDISEndpoint dis,
                     BRKey key);
 
+extern BREthereumLESNodeEndpoint
+nodeEndpointCreateLocal (BREthereumLESRandomContext randomContext);
+
+extern BREthereumLESNodeEndpoint
+nodeEndpointCreateEnode (const char *enode);
+
 extern void
 nodeEndpointSetHello (BREthereumLESNodeEndpoint *endpoint,
                       BREthereumP2PMessage hello);
@@ -139,6 +146,10 @@ nodeEndpointSendData (BREthereumLESNodeEndpoint *endpoint,
                       BREthereumLESNodeEndpointRoute route,
                       uint8_t *bytes,
                       size_t bytesCount);
+
+    extern const char *localLESEnode;
+    extern const char *bootstrapLESEnodes[];
+    extern size_t NUMBER_OF_NODE_ENDPOINT_SPECS;
 
 #ifdef __cplusplus
 }

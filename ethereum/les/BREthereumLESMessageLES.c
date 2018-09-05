@@ -160,7 +160,7 @@ messageLESStatusCreate (uint64_t protocolVersion,
                         BREthereumHash genesisHash,
                         uint64_t announceType) {
     return (BREthereumLESMessageStatus) {
-        protocolVersion,            // 2
+        protocolVersion,            // If protocolVersion is LESv2 ...
         chainId,
         headNum,
         headHash,
@@ -178,7 +178,7 @@ messageLESStatusCreate (uint64_t protocolVersion,
         NULL,
         NULL,
 
-        announceType                // 1
+        announceType                // then announceType is 1 ()
     };
 }
 
@@ -808,12 +808,31 @@ messageLESGetCredits (const BREthereumLESMessage *message) {
         case LES_MESSAGE_BLOCK_BODIES:   return message->u.blockBodies.bv;
         case LES_MESSAGE_RECEIPTS:       return message->u.receipts.bv;
         case LES_MESSAGE_PROOFS:         return message->u.proofs.bv;
-        case LES_MESSAGE_CONTRACT_CODES: return 0;
-        case LES_MESSAGE_HEADER_PROOFS:  return 0;
+        case LES_MESSAGE_CONTRACT_CODES: return message->u.contractCodes.bv;
+        case LES_MESSAGE_HEADER_PROOFS:  return message->u.headerProofs.bv;
         case LES_MESSAGE_PROOFS_V2:      return message->u.proofsV2.bv;
-        case LES_MESSAGE_HELPER_TRIE_PROOFS: return 0;
+        case LES_MESSAGE_HELPER_TRIE_PROOFS: return message->u.helperTrieProofs.bv;
         case LES_MESSAGE_TX_STATUS:      return message->u.txStatus.bv;
         default: return 0;
+    }
+}
+
+extern uint64_t
+messageLESGetCreditsCount (const BREthereumLESMessage *lm) {
+    switch (lm->identifier) {
+        case LES_MESSAGE_GET_BLOCK_HEADERS: return lm->u.getBlockHeaders.maxHeaders;
+        case LES_MESSAGE_GET_BLOCK_BODIES:  return array_count (lm->u.getBlockBodies.hashes);
+        case LES_MESSAGE_GET_RECEIPTS:       return array_count(lm->u.getReceipts.hashes);
+        case LES_MESSAGE_GET_PROOFS:         return array_count(lm->u.getProofs.specs);
+        case LES_MESSAGE_GET_CONTRACT_CODES: return 0;
+        case LES_MESSAGE_SEND_TX:            return array_count(lm->u.sendTx.transactions);
+        case LES_MESSAGE_GET_HEADER_PROOFS:  return 0;
+        case LES_MESSAGE_GET_PROOFS_V2:      return array_count(lm->u.getProofsV2.specs);
+        case LES_MESSAGE_GET_HELPER_TRIE_PROOFS: return 0;
+        case LES_MESSAGE_SEND_TX2:           return array_count(lm->u.sendTx2.transactions);
+        case LES_MESSAGE_GET_TX_STATUS:      return array_count(lm->u.getTxStatus.hashes);
+        default:
+            return 0;
     }
 }
 
@@ -844,5 +863,3 @@ messageLESGetRequestId (const BREthereumLESMessage *message) {
         case LES_MESSAGE_TX_STATUS: return message->u.txStatus.reqId;
     }
 }
-
-

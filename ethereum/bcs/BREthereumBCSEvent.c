@@ -100,7 +100,7 @@ bcsSignalAnnounce (BREthereumBCS bcs,
 
 // ==============================================================================================
 //
-// Signal/Handle Announce
+// Signal/Handle Status
 //
 typedef struct {
     BREvent base;
@@ -131,6 +131,47 @@ bcsSignalStatus (BREthereumBCS bcs,
     { { NULL, &handleStatusEventType}, bcs, headHash, headNumber };
     eventHandlerSignalEvent(bcs->handler, (BREvent *) &event);
 }
+
+// ==============================================================================================
+//
+// Signal/Handle Provision
+//
+typedef struct {
+    BREvent base;
+    BREthereumBCS bcs;
+    BREthereumLES les;
+    BREthereumLESNodeReference node;
+    BREthereumProvisionResult result;
+} BREthereumHandleProvisionEvent;
+
+static void
+bcsHandleProvisionDispatcher (BREventHandler ignore,
+                                BREthereumHandleProvisionEvent *event) {
+    bcsHandleProvision(event->bcs, event->les, event->node, event->result);
+}
+
+static void
+bcsHandleProvisionDestroyer (BREthereumHandleProvisionEvent *event) {
+    // provisionResultRelease(event->result);
+}
+
+static BREventType handleProvisionEventType = {
+    "BCS: Handle Provision Event",
+    sizeof (BREthereumHandleProvisionEvent),
+    (BREventDispatcher) bcsHandleProvisionDispatcher,
+    (BREventDestroyer) bcsHandleProvisionDestroyer
+};
+
+extern void
+bcsSignalProvision (BREthereumBCS bcs,
+                    BREthereumLES les,
+                    BREthereumLESNodeReference node,
+                    BREthereumProvisionResult result) {
+    BREthereumHandleProvisionEvent event =
+    { { NULL, &handleProvisionEventType}, bcs, les, node, result };
+    eventHandlerSignalEvent(bcs->handler, (BREvent *) &event);
+}
+
 
 // ==============================================================================================
 //
@@ -303,13 +344,15 @@ bcsSignalTransactionReceipts (BREthereumBCS bcs,
 typedef struct {
     BREvent base;
     BREthereumBCS bcs;
-    BREthereumLESAccountStateResult result;
+    BREthereumAddress address;
+    BREthereumHash blockHash;
+    BREthereumAccountState state;
 } BREthereumHandleAccountStateEvent;
 
 static void
 bcsHandleAccountStateDispatcher(BREventHandler ignore,
                                 BREthereumHandleAccountStateEvent *event) {
-    bcsHandleAccountState(event->bcs, event->result);
+    bcsHandleAccountState(event->bcs, event->address, event->blockHash, event->state);
 }
 
 static BREventType handleAccountStateEventType = {
@@ -320,9 +363,11 @@ static BREventType handleAccountStateEventType = {
 
 extern void
 bcsSignalAccountState (BREthereumBCS bcs,
-                       BREthereumLESAccountStateResult result) {
+                       BREthereumAddress address,
+                       BREthereumHash blockHash,
+                       BREthereumAccountState state) {
     BREthereumHandleAccountStateEvent event =
-    { { NULL, &handleAccountStateEventType }, bcs, result };
+    { { NULL, &handleAccountStateEventType }, bcs, address, blockHash, state };
     eventHandlerSignalEvent(bcs->handler, (BREvent*) &event);
 }
 
@@ -469,18 +514,20 @@ bcsSyncSignalBlockHeader (BREthereumBCSSyncRange range,
 
 // ==============================================================================================
 //
-// Suync Handle Account State
+// Sync Handle Account State
 //
 typedef struct {
     BREvent base;
     BREthereumBCSSyncRange range;
-    BREthereumLESAccountStateResult result;
+    BREthereumAddress address;
+    BREthereumHash blockHash;
+    BREthereumAccountState account;
 } BREthereumBCSSyncHandleAccountStateEvent;
 
 static void
 bcsSyncHandleAccountStateDispatcher(BREventHandler ignore,
                                     BREthereumBCSSyncHandleAccountStateEvent *event) {
-    bcsSyncHandleAccountState(event->range, event->result);
+    bcsSyncHandleAccountState(event->range, event->address, event->blockHash, event->account);
 }
 
 static BREventType handleSyncAccountStateEventType = {
@@ -491,10 +538,53 @@ static BREventType handleSyncAccountStateEventType = {
 
 extern void
 bcsSyncSignalAccountState (BREthereumBCSSyncRange range,
-                           BREthereumLESAccountStateResult result) {
+                           BREthereumAddress address,
+                           BREthereumHash blockHash,
+                           BREthereumAccountState account) {
     BREthereumBCSSyncHandleAccountStateEvent event =
-    { { NULL, &handleSyncAccountStateEventType }, range, result };
+    { { NULL, &handleSyncAccountStateEventType }, range, address, blockHash, account };
     eventHandlerSignalEvent (bcsSyncRangeGetHandler(range), (BREvent*) &event);
+}
+
+
+// ==============================================================================================
+//
+// Suync Signal/Handle Provision
+//
+typedef struct {
+    BREvent base;
+    BREthereumBCSSyncRange range;
+    BREthereumLES les;
+    BREthereumLESNodeReference node;
+    BREthereumProvisionResult result;
+} BREthereumBCSSyncHandleProvisionEvent;
+
+static void
+bcsSyncHandleProvisionDispatcher (BREventHandler ignore,
+                                  BREthereumBCSSyncHandleProvisionEvent *event) {
+    bcsSyncHandleProvision(event->range, event->les, event->node, event->result);
+}
+
+static void
+bcsSyncHandleProvisionDestroyer (BREthereumHandleProvisionEvent *event) {
+    // provisionResultRelease(event->result);
+}
+
+static BREventType handleSyncProvisionEventType = {
+    "BCS: Sync Handle Provision Event",
+    sizeof (BREthereumBCSSyncHandleProvisionEvent),
+    (BREventDispatcher) bcsSyncHandleProvisionDispatcher,
+    (BREventDestroyer) bcsSyncHandleProvisionDestroyer
+};
+
+extern void
+bcsSyncSignalProvision (BREthereumBCSSyncRange range,
+                    BREthereumLES les,
+                    BREthereumLESNodeReference node,
+                    BREthereumProvisionResult result) {
+    BREthereumBCSSyncHandleProvisionEvent event =
+    { { NULL, &handleSyncProvisionEventType }, range, les, node, result };
+    eventHandlerSignalEvent(bcsSyncRangeGetHandler(range), (BREvent *) &event);
 }
 
 // ==============================================================================================
@@ -506,6 +596,7 @@ bcsEventTypes[] = {
     &handleSubmitTransactionEventType,
     &handleAnnounceEventType,
     &handleStatusEventType,
+    &handleProvisionEventType,
     &handleBlockHeaderEventType,
     &handleBlockBodiesEventType,
     &handleTransactionStatusEventType,
@@ -515,7 +606,8 @@ bcsEventTypes[] = {
     &handleLogEventType,
     &handleNodesEventType,
     &handleSyncBlockHeaderEventType,
-    &handleSyncAccountStateEventType
+    &handleSyncAccountStateEventType,
+    &handleSyncProvisionEventType
 };
 
 const unsigned int

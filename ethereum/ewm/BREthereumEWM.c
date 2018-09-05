@@ -528,7 +528,7 @@ ewmGetWallets (BREthereumEWM ewm) {
 
 extern unsigned int
 ewmGetWalletsCount (BREthereumEWM ewm) {
-    return array_count(ewm->wallets);
+    return (unsigned int) array_count(ewm->wallets);
 }
 
 extern BREthereumWalletId

@@ -221,6 +221,21 @@ bcsSignalStatus (BREthereumBCS bcs,
                  uint64_t headNumber);
 
 //
+// Provision
+//
+extern void
+bcsHandleProvision (BREthereumBCS bcs,
+                    BREthereumLES les,
+                    BREthereumLESNodeReference node,
+                    BREthereumProvisionResult result);
+
+extern void
+bcsSignalProvision (BREthereumBCS bcs,
+                    BREthereumLES les,
+                    BREthereumLESNodeReference node,
+                    BREthereumProvisionResult result);
+
+//
 // Block Headers
 //
 extern void
@@ -277,11 +292,15 @@ bcsSignalTransactionReceipts (BREthereumBCS bcs,
 //
 extern void
 bcsHandleAccountState (BREthereumBCS bcs,
-                       BREthereumLESAccountStateResult result);
+                       BREthereumAddress address,
+                       BREthereumHash blockHash,
+                       BREthereumAccountState state);
 
 extern void
 bcsSignalAccountState (BREthereumBCS bcs,
-                   BREthereumLESAccountStateResult result);
+                       BREthereumAddress address,
+                       BREthereumHash blockHash,
+                       BREthereumAccountState state);
 
 //
 // Transactions
@@ -390,11 +409,27 @@ bcsSyncSignalBlockHeader (BREthereumBCSSyncRange request,
 
 extern void
 bcsSyncHandleAccountState (BREthereumBCSSyncRange request,
-                           BREthereumLESAccountStateResult result);
+                           BREthereumAddress address,
+                           BREthereumHash blockHash,
+                           BREthereumAccountState state);
 
 extern void
 bcsSyncSignalAccountState (BREthereumBCSSyncRange request,
-                           BREthereumLESAccountStateResult result);
+                           BREthereumAddress address,
+                           BREthereumHash blockHash,
+                           BREthereumAccountState state);
+
+extern void
+bcsSyncHandleProvision (BREthereumBCSSyncRange range,
+                        BREthereumLES les,
+                        BREthereumLESNodeReference node,
+                        BREthereumProvisionResult result);
+
+extern void
+bcsSyncSignalProvision (BREthereumBCSSyncRange range,
+                        BREthereumLES les,
+                        BREthereumLESNodeReference node,
+                        BREthereumProvisionResult result);
 
 #ifdef __cplusplus
 }

@@ -35,6 +35,9 @@ extern "C" {
 
 /// MARK: PIP Requests
 
+typedef uint64_t BREthereumPIPRequestIdentifier;
+typedef uint64_t BREthereumPIPRequestCredits;
+
 typedef enum {
     PIP_REQUEST_HEADERS           = 0x00,
     PIP_REQUEST_HEADER_PROOF      = 0x01,
@@ -45,7 +48,10 @@ typedef enum {
     PIP_REQUEST_STORAGE           = 0x06,
     PIP_REQUEST_CODE              = 0x07,
     PIP_REQUEST_EXECUTION         = 0x08
-} BREthereumPIPRequestIdentifier;
+} BREthereumPIPRequestType;
+
+extern const char *
+messagePIPGetRequestName (BREthereumPIPRequestType type);
 
 /// Headers
 
@@ -171,7 +177,7 @@ typedef struct {
 /// MARK: Request Input / Output
 
 typedef struct {
-    BREthereumPIPRequestIdentifier identifier;
+    BREthereumPIPRequestType identifier;
     union {
         BREthereumPIPRequestHeadersInput headers;
         BREthereumPIPRequestHeaderProofInput headerProof;
@@ -183,10 +189,10 @@ typedef struct {
         BREthereumPIPRequestCodeInput code;
         BREthereumPIPRequestExecutionInput execution;
     } u;
-} BREthreumPIPRequestInput;
+} BREthereumPIPRequestInput;
 
 typedef struct {
-    BREthereumPIPRequestIdentifier identifier;
+    BREthereumPIPRequestType identifier;
     union {
         BREthereumPIPRequestHeadersOutput headers;
         BREthereumPIPRequestHeaderProofOutput headerProof;
@@ -198,7 +204,7 @@ typedef struct {
         BREthereumPIPRequestCodeOutput code;
         BREthereumPIPRequestExecutionOutput execution;
     } u;
-} BREthreumPIPRequestOutput;
+} BREthereumPIPRequestOutput;
 
 /// MARK: PIP Messages
 
@@ -210,10 +216,10 @@ typedef enum {
     PIP_MESSAGE_UPDATE_CREDIT_PARAMETERS = 0x04,
     PIP_MESSAGE_ACKNOWLEDGE_UPDATE       = 0x05,
     PIP_MESSAGE_RELAY_TRANSACTIONS       = 0x06,
-} BREthereumPIPMessageIdentifier;
+} BREthereumPIPMessageType;
 
 extern const char *
-messagePIPGetIdentifierName (BREthereumPIPMessageIdentifier identifer);
+messagePIPGetIdentifierName (BREthereumPIPMessageType identifer);
 
 typedef enum {
     PIP_MESSAGE_STATUS_VALUE_INTEGER,
@@ -238,6 +244,16 @@ typedef struct {
 } BREthereumPIPStatusKeyValuePair;
 
 typedef struct {
+    // Extracted from `pairs`
+    uint64_t protocolVersion;
+    uint64_t chainId;
+
+    uint64_t headNum;
+    BREthereumHash headHash;
+    UInt256 headTd;
+    BREthereumHash genesisHash;
+
+    // Other pairs
     BRArrayOf(BREthereumPIPStatusKeyValuePair) pairs;
 } BREthereumPIPMessageStatus;
 
@@ -250,14 +266,14 @@ typedef struct {
 } BREthereumPIPMessageAnnounce;
 
 typedef struct {
-    BREthereumPIPRequestIdentifier id;
-    BRArrayOf(BREthreumPIPRequestInput) inputs;
+    BREthereumPIPRequestIdentifier reqId;
+    BRArrayOf(BREthereumPIPRequestInput) inputs;
 } BREthereumPIPMessageRequest;
 
 typedef struct {
-    BREthereumPIPRequestIdentifier id;
-    uint64_t credits;
-    BRArrayOf(BREthreumPIPRequestOutput) outputs;
+    BREthereumPIPRequestIdentifier reqId;
+    BREthereumPIPRequestCredits credits;
+    BRArrayOf(BREthereumPIPRequestOutput) outputs;
 } BREthereumPIPMessageResponse;
 
 typedef struct {
@@ -275,7 +291,7 @@ typedef struct {
  * An PIP Message is one of the above PIP message types.
  */
 typedef struct {
-    BREthereumPIPMessageIdentifier identifier;
+    BREthereumPIPMessageType type;
     union {
         BREthereumPIPMessageStatus status;
         BREthereumPIPMessageAnnounce announce;
@@ -294,7 +310,11 @@ messagePIPEncode (BREthereumPIPMessage message,
 extern BREthereumPIPMessage
 messagePIPDecode (BRRlpItem item,
                   BREthereumMessageCoder coder,
-                  BREthereumPIPMessageIdentifier identifier);
+                  BREthereumPIPMessageType identifier);
+
+#define PIP_MESSAGE_NO_REQUEST_ID    (-1)
+extern uint64_t
+messagePIPGetRequestId (const BREthereumPIPMessage *message);
 
 #ifdef __cplusplus
 }

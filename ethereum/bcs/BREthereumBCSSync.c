@@ -476,13 +476,13 @@ syncRangeDispatch (BREthereumBCSSyncRange range) {
     switch (range->type) {
         case SYNC_LINEAR_SMALL:
         case SYNC_N_ARY:
-            lesGetBlockHeaders (range->les,
-                                (BREthereumLESBlockHeadersContext) range,
-                                (BREthereumLESBlockHeadersCallback) bcsSyncSignalBlockHeader,
-                                range->tail,
-                                range->count + 1,  // both endpoints
-                                range->step - 1,   // skip
-                                ETHEREUM_BOOLEAN_FALSE);
+            lesProvideBlockHeaders (range->les,
+                                    (BREthereumLESProvisionContext) range,
+                                    (BREthereumLESProvisionCallback) bcsSyncHandleProvision,
+                                    range->tail,
+                                    (uint32_t) (range->count + 1),  // both endpoints
+                                    range->step - 1,   // skip
+                                    ETHEREUM_BOOLEAN_FALSE);
             break;
 
         case SYNC_MIXED:
@@ -573,12 +573,12 @@ syncRangeAddResultHeader (BREthereumBCSSyncRange range,
                 // TODO: Don't make `count` LES requests; make one with `count` headers.
                 for (size_t index = 0; index < count; index++) {
                     BREthereumBlockHeader header = range->result[index].header;
-                    lesGetAccountState(range->les,
-                                       (BREthereumLESAccountStateContext) range,
-                                       (BREthereumLESAccountStateCallback) bcsSyncHandleAccountState,
-                                       blockHeaderGetNumber(header),
-                                       blockHeaderGetHash (header),
-                                       range->address);
+                    lesProvideAccountStatesOne (range->les,
+                                                (BREthereumLESProvisionContext) range,
+                                                (BREthereumLESProvisionCallback) bcsSyncHandleProvision,
+                                                range->address,
+                                                blockHeaderGetHash (header),
+                                                blockHeaderGetNumber(header));
                 }
                 // We can't blockHeaderRelease() until AccountState completes...
 
@@ -905,9 +905,11 @@ bcsSyncHandleBlockHeader (BREthereumBCSSyncRange range,
 /** Handle a LES callback for Account State */
 extern void
 bcsSyncHandleAccountState (BREthereumBCSSyncRange range,
-                           BREthereumLESAccountStateResult result) {
+                           BREthereumAddress address,
+                           BREthereumHash blockHash,
+                           BREthereumAccountState account) {
     // Out-of-order arrival - in result, match with hash
-    syncRangeAddResultAccountState(range, result.u.success.accountState);
+    syncRangeAddResultAccountState(range, account);
 }
 
 /**
@@ -957,4 +959,54 @@ computeOptimalStep (uint64_t numberOfBlocks,
 uint64_t optimalStep;
 uint64_t optimalCount;
 extern void optimal (uint64_t number) { computeOptimalStep (number, &optimalStep, &optimalCount); }
+
+
+
+extern void
+bcsSyncHandleProvision (BREthereumBCSSyncRange range,
+                        BREthereumLES les,
+                        BREthereumLESNodeReference node,
+                        BREthereumProvisionResult result) {
+    assert (range->les == les);
+    switch (result.status) {
+        case PROVISION_ERROR:
+            assert (0);
+            break;
+        case PROVISION_SUCCESS: {
+            BREthereumProvision *provision = &result.u.success.provision;
+            assert (result.type == provision->type);
+            switch (result.type) {
+                case PROVISION_BLOCK_HEADERS: {
+                    BRArrayOf(BREthereumBlockHeader) headers =  provision->u.headers.headers;
+                    for (size_t index = 0; index < array_count(headers); index++)
+                        bcsSyncHandleBlockHeader(range, headers[index]);
+                    break;
+                }
+
+                case PROVISION_BLOCK_BODIES:
+                    assert (0);
+
+                case PROVISION_TRANSACTION_RECEIPTS:
+                    assert (0);
+
+                case PROVISION_ACCOUNTS: {
+                    BREthereumAddress address = provision->u.accounts.address;
+                    BRArrayOf(BREthereumHash) hashes = provision->u.accounts.hashes;
+                    BRArrayOf(BREthereumAccountState) accounts = provision->u.accounts.accounts;
+                    for (size_t index = 0; index < array_count(hashes); index++)
+                        bcsSyncHandleAccountState(range, address, hashes[index], accounts[index]);
+                    break;
+                }
+
+                case PROVISION_TRANSACTION_STATUSES:
+                    assert (0);
+
+                case PROVISION_SUBMIT_TRANSACTION:
+                    assert (0);
+            }
+            break;
+        }
+    }
+
+}
 

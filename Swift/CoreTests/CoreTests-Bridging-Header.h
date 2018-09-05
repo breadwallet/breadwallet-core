@@ -27,7 +27,11 @@ extern void runSyncTest (unsigned int durationInSeconds,
                          int restart);
 
 // LES
-extern void runLEStests(void);
+extern void
+runLEStests (void);
+
+extern void
+runNodeTests (void);
 
 // Top-Level
 extern void runTests (int reallySend);
