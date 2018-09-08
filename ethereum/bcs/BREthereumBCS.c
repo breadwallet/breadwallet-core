@@ -909,7 +909,11 @@ bcsBlockHasMatchingLogs (BREthereumBCS bcs,
 static void
 bcsHandleBlockHeaderInternal (BREthereumBCS bcs,
                               BREthereumBlockHeader header,
-                              int isFromSync) {
+                              int isFromSync,
+                              BRArrayOf(BREthereumHash) *bodiesHashes,
+                              BRArrayOf(BREthereumHash) *receiptsHashes,
+                              BRArrayOf(BREthereumHash) *accountsHashes,
+                              BRArrayOf(uint64_t) *accountsNumbers) {
 
     // Ignore the header if we have seen it before.  Given an identical hash, *nothing*, at any
     // level (transactions, receipts, logs), could have changed and thus no processing is needed.
@@ -939,39 +943,33 @@ bcsHandleBlockHeaderInternal (BREthereumBCS bcs,
     // (getting account state might allow us to avoid getting block bodies; however, the client
     // cost to get the account state is ~2.5 times more then getting block bodies so we'll just
     // get block bodies)
-    BREthereumBoolean needReceipts = bcsBlockHasMatchingLogs(bcs, block);
     BREthereumBoolean needBodies   = bcsBlockHasMatchingTransactions(bcs, block);
+    BREthereumBoolean needReceipts = bcsBlockHasMatchingLogs(bcs, block);
     BREthereumBoolean needAccount  = bcsBlockNeedsAccountState(bcs, block);
 
     // Request block bodied, if needed.
     if (ETHEREUM_BOOLEAN_IS_TRUE(needBodies)) {
         blockReportStatusTransactionsRequest(block, BLOCK_REQUEST_PENDING);
-        lesProvideBlockBodiesOne (bcs->les,
-                                  (BREthereumLESProvisionContext) bcs,
-                                  (BREthereumLESProvisionCallback) bcsSignalProvision,
-                                  blockGetHash(block));
+        if (NULL == *bodiesHashes) array_new (*bodiesHashes, 200);
+        array_add (*bodiesHashes, blockGetHash(block));
         eth_log("BCS", "Block %llu Needs Bodies", blockGetNumber(block));
     }
 
     // Request transaction receipts, if needed.
     if (ETHEREUM_BOOLEAN_IS_TRUE(needReceipts)) {
         blockReportStatusLogsRequest(block, BLOCK_REQUEST_PENDING);
-        lesProvideReceiptsOne (bcs->les,
-                               (BREthereumLESProvisionContext) bcs,
-                               (BREthereumLESProvisionCallback) bcsSignalProvision,
-                               blockGetHash(block));
+        if (NULL == *receiptsHashes) array_new (*receiptsHashes, 200);
+        array_add (*receiptsHashes, blockGetHash(block));
         eth_log("BCS", "Block %llu Needs Receipts", blockGetNumber(block));
     }
 
     // Request account state, if needed.
     if (ETHEREUM_BOOLEAN_IS_TRUE(needAccount)) {
         blockReportStatusAccountStateRequest (block, BLOCK_REQUEST_PENDING);
-        lesProvideAccountStatesOne (bcs->les,
-                                    (BREthereumLESProvisionContext) bcs,
-                                    (BREthereumLESProvisionCallback) bcsSignalProvision,
-                                    bcs->address,
-                                    blockGetHash(block),
-                                    blockGetNumber(block));
+        if (NULL == *accountsHashes ) array_new (*accountsHashes,  200);
+        if (NULL == *accountsNumbers) array_new (*accountsNumbers, 200);
+        array_add (*accountsHashes, blockGetHash(block));
+        array_add (*accountsNumbers, blockGetNumber(block));
         eth_log("BCS", "Block %llu Needs AccountState", blockGetNumber(block));
     }
 
@@ -988,8 +986,37 @@ static void
 bcsHandleBlockHeaders (BREthereumBCS bcs,
                        BRArrayOf(BREthereumBlockHeader) headers,
                        int isFromSync) {
+    BRArrayOf(BREthereumHash) bodiesHashes = NULL;
+    BRArrayOf(BREthereumHash) receiptsHashes = NULL;
+    BRArrayOf(BREthereumHash) accountsHashes = NULL;
+    BRArrayOf(uint64_t) accountsNumbers = NULL;
+
     for (size_t index = 0; index < array_count(headers); index++)
-        bcsHandleBlockHeaderInternal (bcs, headers[index], isFromSync);
+        bcsHandleBlockHeaderInternal (bcs, headers[index], isFromSync,
+                                      &bodiesHashes,
+                                      &receiptsHashes,
+                                      &accountsHashes,
+                                      &accountsNumbers);
+
+    if (NULL != bodiesHashes && array_count(bodiesHashes) > 0)
+        lesProvideBlockBodies (bcs->les,
+                               (BREthereumLESProvisionContext) bcs,
+                               (BREthereumLESProvisionCallback) bcsSignalProvision,
+                               bodiesHashes);
+
+    if (NULL != receiptsHashes && array_count(receiptsHashes) > 0)
+        lesProvideReceipts (bcs->les,
+                            (BREthereumLESProvisionContext) bcs,
+                            (BREthereumLESProvisionCallback) bcsSignalProvision,
+                            receiptsHashes);
+
+    if (NULL != accountsHashes && array_count(accountsHashes) > 0)
+        lesProvideAccountStates (bcs->les,
+                                 (BREthereumLESProvisionContext) bcs,
+                                 (BREthereumLESProvisionCallback) bcsSignalProvision,
+                                 bcs->address,
+                                 accountsHashes,
+                                 accountsNumbers);
 }
 
 ///
