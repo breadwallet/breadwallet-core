@@ -73,11 +73,6 @@ lesHandleNeighbor (BREthereumLES les,
                    BREthereumLESNode node,
                    BREthereumDISNeighbor neighbor);
 
-static void
-lesHandleLESMessage (BREthereumLES les,
-                     BREthereumLESNode node,
-                     BREthereumLESMessage message);
-
 typedef void* (*ThreadRoutine) (void*);
 
 static void *
@@ -318,8 +313,7 @@ lesAddNodeForEndpoint (BREthereumLES les,
                                          (BREthereumNodeCallbackAnnounce) lesHandleAnnounce,
                                          (BREthereumLESNodeCallbackProvide) lesHandleProvision,
                                          (BREthereumLESNodeCallbackNeighbor) lesHandleNeighbor,
-                                         (BREthereumLESNodeCallbackState) lesHandleNodeState,
-                                         (BREthereumLESNodeCallbackMessage) lesHandleLESMessage);
+                                         (BREthereumLESNodeCallbackState) lesHandleNodeState);
 
     // We expect duplicates - we'll make the first one win.
     if (!BRSetGet(les->nodes, node))
@@ -530,8 +524,7 @@ lesNodeCreate (BREthereumLES les,
                        (BREthereumNodeCallbackAnnounce) lesHandleAnnounce,
                        (BREthereumLESNodeCallbackProvide) lesHandleProvision,
                        (BREthereumLESNodeCallbackNeighbor) lesHandleNeighbor,
-                       (BREthereumLESNodeCallbackState) lesHandleNodeState,
-                       (BREthereumLESNodeCallbackMessage) lesHandleLESMessage);
+                       (BREthereumLESNodeCallbackState) lesHandleNodeState);
 }
 
 static void
@@ -678,13 +671,6 @@ lesHandleAnnounce (BREthereumLES les,
                            headNumber,
                            headTotalDifficulty,
                            reorgDepth);
-}
-
-static void
-lesHandleLESMessage (BREthereumLES les,
-                     BREthereumLESNode node,
-                     BREthereumLESMessage message) {
-    
 }
 
 /// MARK: Handle Messages

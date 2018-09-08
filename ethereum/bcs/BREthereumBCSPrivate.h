@@ -208,7 +208,7 @@ bcsSignalAnnounce (BREthereumBCS bcs,
                    uint64_t reorgDepth);
 
 //
-// Status
+// Status (of a LES Node)
 //
 extern void
 bcsHandleStatus (BREthereumBCS bcs,
@@ -221,7 +221,7 @@ bcsSignalStatus (BREthereumBCS bcs,
                  uint64_t headNumber);
 
 //
-// Provision
+// Provision (Result Data)
 //
 extern void
 bcsHandleProvision (BREthereumBCS bcs,
@@ -234,73 +234,6 @@ bcsSignalProvision (BREthereumBCS bcs,
                     BREthereumLES les,
                     BREthereumLESNodeReference node,
                     BREthereumProvisionResult result);
-
-//
-// Block Headers
-//
-extern void
-bcsHandleBlockHeader (BREthereumBCS bcs,
-                      BREthereumBlockHeader header);
-
-extern void
-bcsSignalBlockHeader (BREthereumBCS bcs,
-                      BREthereumBlockHeader header);
-
-//
-// Block Bodies
-//
-extern void
-bcsHandleBlockBodies (BREthereumBCS bcs,
-                      BREthereumHash blockHash,
-                      BREthereumTransaction transactions[],
-                      BREthereumBlockHeader ommers[]);
-
-extern void
-bcsSignalBlockBodies (BREthereumBCS bcs,
-                      BREthereumHash blockHash,
-                      BREthereumTransaction transactions[],
-                      BREthereumBlockHeader ommers[]);
-
-//
-// Transaction Status
-//
-extern void
-bcsHandleTransactionStatus (BREthereumBCS bcs,
-                            BREthereumHash transactionHash,
-                            BREthereumTransactionStatus status);
-
-extern void
-bcsSignalTransactionStatus (BREthereumBCS bcs,
-                            BREthereumHash transactionHash,
-                            BREthereumTransactionStatus status);
-
-//
-// Transaction Receipt
-//
-extern void
-bcsHandleTransactionReceipts (BREthereumBCS bcs,
-                              BREthereumHash blockHash,
-                              BREthereumTransactionReceipt receipts[]);
-
-extern void
-bcsSignalTransactionReceipts (BREthereumBCS bcs,
-                              BREthereumHash blockHash,
-                              BREthereumTransactionReceipt receipts[]);
-
-//
-// Account State
-//
-extern void
-bcsHandleAccountState (BREthereumBCS bcs,
-                       BREthereumAddress address,
-                       BREthereumHash blockHash,
-                       BREthereumAccountState state);
-
-extern void
-bcsSignalAccountState (BREthereumBCS bcs,
-                       BREthereumAddress address,
-                       BREthereumHash blockHash,
-                       BREthereumAccountState state);
 
 //
 // Transactions
@@ -334,18 +267,6 @@ bcsHandleNodes (BREthereumBCS bcs,
 extern void
 bcsSignalNodes (BREthereumBCS bcs,
                 BRArrayOf(BREthereumLESNodeConfig) peers);
-
-////
-//// Active Block
-////
-//extern BREthereumBlock
-//bcsLookupActiveBlock (BREthereumBCS bcs,
-//                      BREthereumHash hash);
-//
-//extern void
-//bcsReleaseActiveBlock (BREthereumBCS bcs,
-//                       BREthereumHash hash);
-
 
 //
 // Sync
@@ -397,27 +318,6 @@ extern void
 bcsSyncStart (BREthereumBCSSync sync,
               uint64_t thisBlockNumber,
               uint64_t needBlockNumber);
-
-extern void
-bcsSyncHandleBlockHeader (BREthereumBCSSyncRange request,
-                          BREthereumBlockHeader header);
-
-extern void
-bcsSyncSignalBlockHeader (BREthereumBCSSyncRange request,
-                          BREthereumBlockHeader header);
-
-
-extern void
-bcsSyncHandleAccountState (BREthereumBCSSyncRange request,
-                           BREthereumAddress address,
-                           BREthereumHash blockHash,
-                           BREthereumAccountState state);
-
-extern void
-bcsSyncSignalAccountState (BREthereumBCSSyncRange request,
-                           BREthereumAddress address,
-                           BREthereumHash blockHash,
-                           BREthereumAccountState state);
 
 extern void
 bcsSyncHandleProvision (BREthereumBCSSyncRange range,

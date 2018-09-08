@@ -102,12 +102,6 @@ typedef void
                                      BREthereumLESNode node,
                                      BREthereumProvisionResult result);
 
-
-typedef void
-(*BREthereumLESNodeCallbackMessage) (BREthereumLESNodeContext context,
-                                     BREthereumLESNode node,
-                                     BREthereumLESMessage message);
-
 typedef void
 (*BREthereumLESNodeCallbackNeighbor) (BREthereumLESNodeContext context,
                                       BREthereumLESNode node,
@@ -218,8 +212,7 @@ nodeCreate (BREthereumNetwork network,
             BREthereumNodeCallbackAnnounce callbackAnnounce,
             BREthereumLESNodeCallbackProvide callbackProvide,
             BREthereumLESNodeCallbackNeighbor callbackNeighbor,
-            BREthereumLESNodeCallbackState callbackState,
-            BREthereumLESNodeCallbackMessage callbackMessage);
+            BREthereumLESNodeCallbackState callbackState);
 
 extern void
 nodeRelease (BREthereumLESNode node);

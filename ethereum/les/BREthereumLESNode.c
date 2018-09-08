@@ -874,7 +874,6 @@ struct BREthereumLESNodeRecord {
     BREthereumLESNodeCallbackProvide callbackProvide;
     BREthereumLESNodeCallbackNeighbor callbackNeighbor;
     BREthereumLESNodeCallbackState callbackState;
-    BREthereumLESNodeCallbackMessage callbackMessage;
 
     /** Send/Recv Buffer */
     BRRlpData sendDataBuffer;
@@ -926,8 +925,7 @@ nodeCreate (BREthereumNetwork network,
             BREthereumNodeCallbackAnnounce callbackAnnounce,
             BREthereumLESNodeCallbackProvide callbackProvide,
             BREthereumLESNodeCallbackNeighbor callbackNeighbor,
-            BREthereumLESNodeCallbackState callbackState,
-            BREthereumLESNodeCallbackMessage callbackMessage) {
+            BREthereumLESNodeCallbackState callbackState) {
     BREthereumLESNode node = calloc (1, sizeof (struct BREthereumLESNodeRecord));
 
     // Extract the identifier from the remote's public key.
@@ -975,7 +973,6 @@ nodeCreate (BREthereumNetwork network,
     node->callbackProvide  = callbackProvide;
     node->callbackNeighbor = callbackNeighbor;
     node->callbackState    = callbackState;
-    node->callbackMessage  = callbackMessage;
 
     node->messageIdentifier = 0;
     array_new (node->provisioners, 10);

@@ -370,7 +370,7 @@ bcsHandleSubmitTransaction (BREthereumBCS bcs,
 
     lesSubmitTransaction (bcs->les,
                           (BREthereumLESProvisionContext) bcs,
-                          (BREthereumLESProvisionCallback) bcsSignalTransactionStatus,
+                          (BREthereumLESProvisionCallback) bcsSignalProvision,
                           transaction);
 }
 
@@ -1006,7 +1006,7 @@ bcsHandleBlockHeaderInternal (BREthereumBCS bcs,
     bcsExtendChainIfPossible(bcs, block, isFromSync);
 }
 
-extern void
+static void
 bcsHandleBlockHeader (BREthereumBCS bcs,
                       BREthereumBlockHeader header) {
     bcsHandleBlockHeaderInternal(bcs, header, 0);
@@ -1016,7 +1016,7 @@ bcsHandleBlockHeader (BREthereumBCS bcs,
 /// MARK: - Account State
 ///
 
-extern void
+static void
 bcsHandleAccountState (BREthereumBCS bcs,
                        BREthereumAddress address,
                        BREthereumHash blockHash,
@@ -1078,7 +1078,7 @@ bcsReleaseOmmersAndTransactionsFully (BREthereumBCS bcs,
     array_free(ommers);
 }
 
-extern void
+static void
 bcsHandleBlockBodies (BREthereumBCS bcs,
                       BREthereumHash blockHash,
                       BREthereumTransaction transactions[],
@@ -1214,7 +1214,7 @@ bcsReleaseReceiptsFully (BREthereumBCS bcs,
     array_free (receipts);
 }
 
-extern void
+static void
 bcsHandleTransactionReceipts (BREthereumBCS bcs,
                               BREthereumHash blockHash,
                               BREthereumTransactionReceipt *receipts) {
@@ -1350,7 +1350,7 @@ bcsLookupPendingTransaction (BREthereumBCS bcs,
 // In case 'b' the transaction is INCLUDED in the chain but the BlockBodies tranaction data
 // does not include `gasUsed`.  We want the 'gasUsed' value.
 //
-extern void
+static void
 bcsHandleTransactionStatus (BREthereumBCS bcs,
                             BREthereumHash transactionHash,
                             BREthereumTransactionStatus status) {

@@ -895,7 +895,7 @@ bcsSyncStop (BREthereumBCSSync sync) {
 ///
 
 /** Handle a LES callback for BlockHeader */
-extern void
+static void
 bcsSyncHandleBlockHeader (BREthereumBCSSyncRange range,
                           BREthereumBlockHeader header) {
     // Fill the range.
@@ -903,7 +903,7 @@ bcsSyncHandleBlockHeader (BREthereumBCSSyncRange range,
 }
 
 /** Handle a LES callback for Account State */
-extern void
+static void
 bcsSyncHandleAccountState (BREthereumBCSSyncRange range,
                            BREthereumAddress address,
                            BREthereumHash blockHash,
@@ -1007,6 +1007,5 @@ bcsSyncHandleProvision (BREthereumBCSSyncRange range,
             break;
         }
     }
-
 }
 
