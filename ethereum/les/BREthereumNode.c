@@ -122,6 +122,17 @@ nodeSetStateErrorProtocol (BREthereumNode node,
 //    }
 //}
 
+/// MARK: Node Type
+
+extern const char *
+nodeTypeGetName (BREthereumNodeType type) {
+    static const char *nodeTypeNames[] = {
+        "Geth",
+        "Parity"
+    };
+    return nodeTypeNames[type];
+}
+
 /// MARK: LES Node State Create ...
 
 static inline BREthereumNodeState
@@ -862,6 +873,7 @@ struct BREthereumNodeRecord {
     BREthereumNodeEndpoint remote;
 
     /** The message specs by identifier.  Includes credit params and message count limits */
+    // TODO: This should not be LES specific; applies to PIP too.
     BREthereumLESMessageSpec specs [NUMBER_OF_LES_MESSAGE_IDENTIFIERS];
 
     /** Credit remaining (if not zero) */
@@ -1627,11 +1639,25 @@ nodeThreadConnectUDP (BREthereumNode node) {
     if (NODE_STATUS_ERROR == result.status)
         return nodeConnectExit (node);
 
-    // Require a PONG message
+    // The PIND_ACK must be a PONG message
     message = result.u.success.message;
     if (MESSAGE_DIS != message.identifier || DIS_MESSAGE_PONG != message.u.dis.identifier)
         return nodeConnectFailed (node, NODE_ROUTE_UDP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_UDP_PING_PONG_MISSED));
 
+    // GETH and PARITY differ - at this point, we do not know which node type we have.  The GETH
+    // node will send a PING and require a PONG response before answering a FIND_NEIGHBORS.  By
+    // contrast, a PARITY node will not send a PING but will respond to a FIND_NEIGHBORS.
+    //
+    // Thus, if here we wait for a PING then, for a Parity node, we'll timeout as a PING is not
+    // coming.
+    //
+    // But if we send a FIND_NEIGHBORS message, a Geth node will ignore it and a Parity node will
+    // respond.  So, we'll send it and wait for a response.
+
+    // Send a FIND_NEIGHBORS.
+    nodeDiscover (node, &node->remote);
+
+    // We are waiting for a PING message or a NEIGHBORS message.
     error = pselect (socket + 1, &readSet, NULL, NULL, &timeout, NULL);
     if (error <= 0)
         return nodeConnectFailed (node, NODE_ROUTE_UDP,
@@ -1640,24 +1666,27 @@ nodeThreadConnectUDP (BREthereumNode node) {
     if (NODE_STATUS_ERROR == result.status)
         return nodeConnectExit (node);
 
-    // Require a PING message
+    // Require a PING message or a NEIGHBORS message
     message = result.u.success.message;
-    if (MESSAGE_DIS != message.identifier || DIS_MESSAGE_PING != message.u.dis.identifier)
+    if (MESSAGE_DIS != message.identifier ||
+        (DIS_MESSAGE_PING != message.u.dis.identifier && DIS_MESSAGE_NEIGHBORS != message.u.dis.identifier))
         return nodeConnectFailed (node, NODE_ROUTE_UDP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_UDP_PING_PONG_MISSED));
 
-    // Respond with PONG
-    message = (BREthereumMessage) {
-        MESSAGE_DIS,
-        { .dis = {
-            DIS_MESSAGE_PONG,
-            { .pong =
-                messageDISPongCreate (message.u.dis.u.ping.to,
-                                      message.u.dis.u.ping.hash,
-                                      time(NULL) + 1000000) },
-            nodeGetLocalEndpoint(node)->key }}
-    };
-    if (NODE_STATUS_ERROR == nodeSend (node, NODE_ROUTE_UDP, message))
-        return nodeConnectExit (node);
+    // If we got a PING message, then respond with the required PONG
+    if (DIS_MESSAGE_PING == message.u.dis.identifier) {
+        message = (BREthereumMessage) {
+            MESSAGE_DIS,
+            { .dis = {
+                DIS_MESSAGE_PONG,
+                { .pong =
+                    messageDISPongCreate (message.u.dis.u.ping.to,
+                                          message.u.dis.u.ping.hash,
+                                          time(NULL) + 1000000) },
+                nodeGetLocalEndpoint(node)->key }}
+        };
+        if (NODE_STATUS_ERROR == nodeSend (node, NODE_ROUTE_UDP, message))
+            return nodeConnectExit (node);
+    }
 
     //
     // CONNECTED
@@ -1778,18 +1807,39 @@ nodeThreadConnectTCP (BREthereumNode node) {
     messageP2PHelloShow (message.u.p2p.u.hello);
     node->remote.hello = message.u.p2p;
 
-    // Confirm that the remote has all the local capabilities.
-    int capabilitiesMatch = 1;
+    // Confirm that the remote has one and only one of the local capabilities.  It is unlikely,
+    // but possible, that a remote offers both LESv2 and PIPv1 capabilities - we aren't interested.
+    BREthereumP2PCapability *capability = NULL;
     {
+        int capabilitiesMatchCount = 0;
+
         BREthereumP2PMessageHello *localHello  = &node->local.hello.u.hello;
         BREthereumP2PMessageHello *remoteHello = &node->remote.hello.u.hello;
         for (size_t li = 0; li < array_count(localHello->capabilities); li++)
-            capabilitiesMatch &= ETHEREUM_BOOLEAN_IS_TRUE (messageP2PHelloHasCapability
-                                                           (remoteHello,
-                                                            &localHello->capabilities[li]));
+            capabilitiesMatchCount += ETHEREUM_BOOLEAN_IS_TRUE (messageP2PHelloHasCapability
+                                                                (remoteHello,
+                                                                 &localHello->capabilities[li]));
+        if (1 != capabilitiesMatchCount)
+            return nodeConnectFailed(node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_CAPABILITIES_MISMATCH));
+
+        // Find the matching capability
+        for (size_t li = 0; li < array_count(localHello->capabilities); li++) {
+            capability = &localHello->capabilities[li];
+            if (ETHEREUM_BOOLEAN_IS_TRUE (messageP2PHelloHasCapability (remoteHello, capability)))
+                break;
+        }
     }
-    if (! capabilitiesMatch)
-        return nodeConnectFailed(node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_CAPABILITIES_MISMATCH));
+
+    // Given the Capability: assign the node type...
+    if (0 == strcmp (capability->name, "les"))
+        node->type = NODE_TYPE_GETH;
+    else if (0 == strcmp (capability->name, "pip"))
+        node->type = NODE_TYPE_PARITY;
+    else assert (0);
+
+    // ... and the protocol version.
+    node->local.status.u.status.protocolVersion = capability->version;
+    messageLESStatusShow(&node->local.status.u.status);
 
     // https://github.com/ethereum/wiki/wiki/ÐΞVp2p-Wire-Protocol
     // ÐΞVp2p is designed to support arbitrary sub-protocols (aka capabilities) over the basic wire
@@ -1805,15 +1855,8 @@ nodeThreadConnectTCP (BREthereumNode node) {
     // shared of the same (equal name) sub-protocol, the numerically highest wins, others are
     // ignored
 
-    // We'll trust (but verify) that we have one and only one (LES, PIP) subprotocol.
-    assert (1 == array_count(node->local.hello.u.hello.capabilities));
+    // We'll trusted (but verified) above that we have one and only one (LES, PIP) subprotocol.
     node->coder.lesMessageIdOffset = 0x10;
-
-    // A P2P message, not a LES message
-    //            if (node->callbackMessage)
-    //                node->callbackMessage (node->callbackContext,
-    //                                       node,
-    //                                       message.u.les);
 
     //
     // STATUS
@@ -1949,6 +1992,7 @@ nodeSend (BREthereumNode node,
             error = nodeEndpointSendData (&node->remote, route, encryptedData.bytes, encryptedData.bytesCount);
             pthread_mutex_unlock (&node->lock);
             bytesCount = encryptedData.bytesCount;
+            rlpDataRelease(encryptedData);
             break;
         }
     }
@@ -2155,6 +2199,7 @@ extern void
 nodeShow (BREthereumNode node) {
     char descUDP[128], descTCP[128];
     eth_log (LES_LOG_TOPIC, "Node: %15s", node->remote.hostname);
+    eth_log (LES_LOG_TOPIC, "   Type      : %s", nodeTypeGetName(node->type));
     eth_log (LES_LOG_TOPIC, "   UDP       : %s", nodeStateDescribe (&node->states[NODE_ROUTE_UDP], descUDP));
     eth_log (LES_LOG_TOPIC, "   TCP       : %s", nodeStateDescribe (&node->states[NODE_ROUTE_TCP], descTCP));
     eth_log (LES_LOG_TOPIC, "   Discovered: %s", (ETHEREUM_BOOLEAN_IS_TRUE(node->discovered) ? "Yes" : "No"));

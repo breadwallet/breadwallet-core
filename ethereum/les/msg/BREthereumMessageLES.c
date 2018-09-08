@@ -344,28 +344,37 @@ messageLESStatusShow(BREthereumLESMessageStatus *message) {
 
     eth_log (LES_LOG_TOPIC, "StatusMessage:%s", "");
     eth_log (LES_LOG_TOPIC, "    ProtocolVersion: %llu", message->protocolVersion);
-    eth_log (LES_LOG_TOPIC, "    AnnounceType   : %llu", message->announceType);
+    if (message->protocolVersion != 1)
+        eth_log (LES_LOG_TOPIC, "    AnnounceType   : %llu", message->announceType);
     eth_log (LES_LOG_TOPIC, "    NetworkId      : %llu", message->chainId);
     eth_log (LES_LOG_TOPIC, "    HeadNum        : %llu", message->headNum);
     eth_log (LES_LOG_TOPIC, "    HeadHash       : %s",   headHashString);
-    eth_log (LES_LOG_TOPIC, "    HeadTD         : %s",   headTotalDifficulty);
+    eth_log (LES_LOG_TOPIC, "    HeadTd         : %s",   headTotalDifficulty);
     eth_log (LES_LOG_TOPIC, "    GenesisHash    : %s",   genesisHashString);
-    eth_log (LES_LOG_TOPIC, "    ServeHeaders   : %s", ETHEREUM_BOOLEAN_IS_TRUE(message->serveHeaders) ? "Yes" : "No");
-    eth_log (LES_LOG_TOPIC, "    ServeChainSince: %llu", (NULL != message->serveChainSince ? *message->serveChainSince : -1)) ;
-    eth_log (LES_LOG_TOPIC, "    ServeStateSince: %llu", (NULL != message->serveStateSince ? *message->serveStateSince : -1)) ;
-    eth_log (LES_LOG_TOPIC, "    TxRelay        : %s", ETHEREUM_BOOLEAN_IS_TRUE(message->txRelay) ? "Yes" : "No");
-    eth_log (LES_LOG_TOPIC, "    FlowControl/BL : %llu", (NULL != message->flowControlBL  ? *message->flowControlBL  : -1));
-    eth_log (LES_LOG_TOPIC, "    FlowControl/MRR: %llu", (NULL != message->flowControlMRR ? *message->flowControlMRR : -1));
+    if (ETHEREUM_BOOLEAN_IS_TRUE(message->serveHeaders))
+        eth_log (LES_LOG_TOPIC, "    ServeHeaders   : %s",  "Yes" );
+    if (NULL != message->serveChainSince)
+        eth_log (LES_LOG_TOPIC, "    ServeChainSince: %llu", *message->serveChainSince);
+    if (NULL != message->serveStateSince)
+        eth_log (LES_LOG_TOPIC, "    ServeStateSince: %llu", *message->serveStateSince) ;
+    if (ETHEREUM_BOOLEAN_IS_TRUE(message->txRelay))
+        eth_log (LES_LOG_TOPIC, "    TxRelay        : %s",  "Yes");
+    if (NULL != message->flowControlBL)
+        eth_log (LES_LOG_TOPIC, "    FlowControl/BL : %llu", *message->flowControlBL);
+    if (NULL != message->flowControlMRR)
+        eth_log (LES_LOG_TOPIC, "    FlowControl/MRR: %llu", *message->flowControlMRR);
 
     size_t count = (NULL == message->flowControlMRCCount ? 0 : *(message->flowControlMRCCount));
-    eth_log (LES_LOG_TOPIC, "    FlowControl/MRC:%s", "");
-    for (size_t index = 0; index < count; index++) {
-        const char *label = messageLESGetIdentifierName ((BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);
-        if (NULL != label) {
-            eth_log (LES_LOG_TOPIC, "      %2d", (BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);
-            eth_log (LES_LOG_TOPIC, "        Request : %s", label);
-            eth_log (LES_LOG_TOPIC, "        BaseCost: %llu", message->flowControlMRC[index].baseCost);
-            eth_log (LES_LOG_TOPIC, "        ReqCost : %llu", message->flowControlMRC[index].reqCost);
+    if (count != 0) {
+        eth_log (LES_LOG_TOPIC, "    FlowControl/MRC:%s", "");
+        for (size_t index = 0; index < count; index++) {
+            const char *label = messageLESGetIdentifierName ((BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);
+            if (NULL != label) {
+                eth_log (LES_LOG_TOPIC, "      %2d", (BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);
+                eth_log (LES_LOG_TOPIC, "        Request : %s", label);
+                eth_log (LES_LOG_TOPIC, "        BaseCost: %llu", message->flowControlMRC[index].baseCost);
+                eth_log (LES_LOG_TOPIC, "        ReqCost : %llu", message->flowControlMRC[index].reqCost);
+            }
         }
     }
 

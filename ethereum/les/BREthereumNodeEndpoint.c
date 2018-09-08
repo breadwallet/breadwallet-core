@@ -71,7 +71,7 @@ nodeEndpointCreateDetailed (BREthereumDISEndpoint dis,
     endpoint.timestamp = 0;
 
     endpoint.key = key;
-    endpoint.nonce = UINT256_ZERO;
+    endpoint.nonce = nonce;
     endpoint.ephemeralKey = ephemeralKey;
 
     inet_ntop (dis.domain, (void *) &dis.addr, endpoint.hostname, _POSIX_HOST_NAME_MAX + 1);

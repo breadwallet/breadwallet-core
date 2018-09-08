@@ -74,6 +74,9 @@ typedef enum {
     NODE_TYPE_PARITY
 } BREthereumNodeType;
 
+extern const char *
+nodeTypeGetName (BREthereumNodeType type);
+
 /**
  * A Node will callback on: state changes, announcements (of block), and results.
  * The callback includes a User context.

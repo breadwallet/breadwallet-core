@@ -76,17 +76,11 @@ typedef struct {
     /** The Hello PSP message */
     BREthereumP2PMessage hello;     // BREthereumP2PMessageHello
 
-    /** The Status LES message */
+    /** The Status LES/PIP message */
+    // TODO: Should not be LES-specific, PIP too. BREthereumPIPMessageStatus ??  BREthereumMessage ??
     BREthereumLESMessage status;    // BREthereumLESMessageStatus
 
 } BREthereumNodeEndpoint;
-
-// Use for 'local
-extern BREthereumNodeEndpoint
-nodeEndpointCreateDetailed (BREthereumDISEndpoint dis,
-                            BRKey key,
-                            BRKey ephemeralKey,
-                            UInt256 nonce);
 
 extern BREthereumNodeEndpoint
 nodeEndpointCreate (BREthereumDISEndpoint dis,

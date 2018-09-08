@@ -262,8 +262,7 @@ struct BREthereumLESRecord {
 };
 
 static void
-assignLocalEndpointHelloMessage (BREthereumNodeEndpoint *endpoint,
-                                 BREthereumNodeType type) {
+assignLocalEndpointHelloMessage (BREthereumNodeEndpoint *endpoint) {
     // From https://github.com/ethereum/wiki/wiki/ÐΞVp2p-Wire-Protocol on 2019 Aug 21
     // o p2pVersion: Specifies the implemented version of the P2P protocol. Now must be 1
     // o listenPort: specifies the port that the client is listening on (on the interface that the
@@ -278,18 +277,9 @@ assignLocalEndpointHelloMessage (BREthereumNodeEndpoint *endpoint,
             {}
         }}};
 
-    array_new (hello.u.hello.capabilities, 1);
-    switch (type) {
-        case NODE_TYPE_GETH:
-            array_add (hello.u.hello.capabilities,
-                       ((BREthereumP2PCapability) { "les", 2 }));
-            break;
-
-        case NODE_TYPE_PARITY:
-            array_add (hello.u.hello.capabilities,
-                       ((BREthereumP2PCapability) { "pip", 1 }));
-            break;
-    }
+    array_new (hello.u.hello.capabilities, 2);
+    array_add (hello.u.hello.capabilities, ((BREthereumP2PCapability) { "les", 2 }));
+    array_add (hello.u.hello.capabilities, ((BREthereumP2PCapability) { "pip", 1 }));
 
     // The NodeID is the 64-byte (uncompressed) public key
     uint8_t pubKey[65];
@@ -371,17 +361,18 @@ lesCreate (BREthereumNetwork network,
         randomRelease (randomContext);
     }
 
-    // The 'hello' message is fixed; assign it to the local endpoint. Truth be that the
-    // hello message depends on the node type, GETH or PARITY.  If we ever actually support
-    // both we either: need two local endpoints (one for GETH; one for PARITY); or perhaps we
-    // can specify the local capabilities as [ { "les", 2 }, { "pip", 1 } ] - but then require
-    // the remote to have one of the two, instead of all, like now.
-    assignLocalEndpointHelloMessage (&les->localEndpoint, NODE_TYPE_GETH);
+    // The 'hello' message is fixed; assign it to the local endpoint. We'll support local
+    // capabilities as [ { "les", 2 }, { "pip", 1 } ] - but then require the remote to have one of
+    // the two.  Depending on the shared capability, we'll assign the node type as GETH or PARITY.
+    assignLocalEndpointHelloMessage (&les->localEndpoint);
 
-    // The 'status' message MIGHT BE fixed; create one and assign it to the local endoint.  Like
-    // the 'hello' message, the status message likely depends on teh node type, GETH or PARITY.
-    // Specifically the `protocolVersion` is 2 for GETH (our expectation) and 1 for PARITY and the
-    // `announceType` is only specified for a GETH protocol of 2.
+    // The 'status' message is not fixed; create one and assign it to the local endpoint.  The
+    // status message likely depends on the node type, GETH or PARITY. Specifically the
+    // `protocolVersion` is 2 for GETH (our expectation) and 1 for PARITY ; `announceType` is only
+    // specified for a GETH protocol of 2.
+    //
+    // We'll create a 'status' message now but modify it later once the local and remote endpoints
+    // have exchanged hello messages.
     BREthereumLESMessage status = {
         LES_MESSAGE_STATUS,
         { .status = messageLESStatusCreate (0x02,  // LES v2
@@ -430,9 +421,6 @@ lesCreate (BREthereumNetwork network,
         lesAddNodeForEndpoint(les, nodeEndpointCreateEnode(bootstrapLESEnodes[index]));
 
     les->theTimeToQuitIsNow = 0;
-
-//    les->provisionIdentifier = 0;
-//    array_new (les->provisioners, 10);
 
     return les;
 }

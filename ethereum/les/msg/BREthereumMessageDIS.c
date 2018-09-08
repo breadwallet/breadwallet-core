@@ -321,7 +321,7 @@ messageDISEncode (BREthereumDISMessage message,
     // Because 'the Ethereum guys' want to save max 9 bytes (typically 2-4) over RLP consistency?
 
     // Given the data.bytesCount we can stack allocate all the bytes we'll need for the packet.
-    // Somewhere in Ethereum documentation, is states that DIS messages (using UDP) are limited to
+    // Somewhere in Ethereum documentation, it states that DIS messages (using UDP) are limited to
     // ~1500 bytes.
     assert (data.bytesCount < 8 * 1024);
 

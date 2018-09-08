@@ -88,7 +88,7 @@ typedef struct {
     BREthereumDISEndpoint to;
     uint64_t expiration;
     
-    /** The Ping hash (from the DIS header) is used in the Pong reply. We record is here */
+    /** The Ping hash (from the DIS header) is used in the Pong reply. We record it here */
     BREthereumHash hash;
 } BREthereumDISMessagePing;
 
