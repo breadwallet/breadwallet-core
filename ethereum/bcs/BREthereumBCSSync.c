@@ -478,7 +478,7 @@ syncRangeDispatch (BREthereumBCSSyncRange range) {
         case SYNC_N_ARY:
             lesProvideBlockHeaders (range->les,
                                     (BREthereumLESProvisionContext) range,
-                                    (BREthereumLESProvisionCallback) bcsSyncHandleProvision,
+                                    (BREthereumLESProvisionCallback) bcsSyncSignalProvision,
                                     range->tail,
                                     (uint32_t) (range->count + 1),  // both endpoints
                                     range->step - 1,   // skip
@@ -575,7 +575,7 @@ syncRangeAddResultHeader (BREthereumBCSSyncRange range,
                     BREthereumBlockHeader header = range->result[index].header;
                     lesProvideAccountStatesOne (range->les,
                                                 (BREthereumLESProvisionContext) range,
-                                                (BREthereumLESProvisionCallback) bcsSyncHandleProvision,
+                                                (BREthereumLESProvisionCallback) bcsSyncSignalProvision,
                                                 range->address,
                                                 blockHeaderGetHash (header),
                                                 blockHeaderGetNumber(header));

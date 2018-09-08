@@ -578,7 +578,7 @@ run_GetBlockHeaders_Tests (BREthereumLES les){
                             (void*)&_GetBlockHeaders_Context5,
                             _GetBlockHeaders_Calllback_Test5,
                             _blockHeaderTestData[BLOCK_4732522_IDX].blockNum,
-                            200, 0, ETHEREUM_BOOLEAN_TRUE) ;
+                            200, 0, ETHEREUM_BOOLEAN_FALSE) ;
 
     //Wait for tests to complete
     _waitForTests();

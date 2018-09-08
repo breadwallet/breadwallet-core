@@ -479,10 +479,17 @@ lesRelease(BREthereumLES les) {
     lesStop (les);
     pthread_mutex_lock (&les->lock);
 
-    FOR_NODES (les, node)
-        nodeRelease (node);
-
+    // Release each node; do it safely w/o mucking the les->nodes set.
+    size_t nodeCount = BRSetCount(les->nodes);
+    BREthereumLESNode nodes[nodeCount];
+    BRSetAll(les->nodes, nodes, nodeCount);
     BRSetClear(les->nodes);
+    for (size_t index = 0; index < nodeCount; index++)
+        nodeRelease (nodes[index]);
+
+//    FOR_NODES (les, node)
+//        nodeRelease (node);
+//    BRSetClear(les->nodes);
     array_free (les->connectedNodes);
 
     rlpCoderRelease(les->coder);
@@ -634,10 +641,6 @@ static void
 lesHandleProvision (BREthereumLES les,
                        BREthereumLESNode node,
                        BREthereumProvisionResult result) {
-    eth_log(LES_LOG_TOPIC, "Handle Provision: %llu", result.identifier);
-    for (size_t index = 0; index < array_count (les->requests); index++)
-        eth_log(LES_LOG_TOPIC, "Request: %llu", les->requests[index].provision.identifier);
-
     // Find the request, invoke the callbacks on result, and others.
     // TODO: On an error, should the provision be submitted to another node?
     for (size_t index = 0; index < array_count (les->requests); index++) {

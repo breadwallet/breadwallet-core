@@ -408,7 +408,7 @@ provisionerEstablishLES (BREthereumNodeProvisioner *provisioner) {
                             { .number = start },
                             (uint32_t) minimum (count, messageContentLimit),
                             provision->skip,
-                            provision->reverse
+                            ETHEREUM_BOOLEAN_IS_TRUE (provision->reverse)
                         }}}}
                 };
                 break;
@@ -491,8 +491,12 @@ provisionerEstablishLES (BREthereumNodeProvisioner *provisioner) {
                 BRArrayOf(BREthereumLESMessageGetProofsSpec) specs;
                 array_new (specs, hashesCount);
 
+                // HACK
+                BREthereumAddress *addr = malloc (sizeof (BREthereumAddress));
+                memcpy (addr, &address, sizeof (BREthereumAddress));
+
                 BRRlpData key1 = (BRRlpData) { 0, NULL };
-                BRRlpData key2 = (BRRlpData) { sizeof (address), address.bytes };
+                BRRlpData key2 = (BRRlpData) { sizeof (BREthereumAddress), addr->bytes };
 
                 for (size_t i = 0; i < minimum (messageContentLimit, hashesCount - hashesOffset); i++) {
                     BREthereumLESMessageGetProofsSpec spec = {
@@ -2367,10 +2371,11 @@ static struct BlockStateMap map[] = {
     { 6104163, { 9 }}, // -> ETH, 0xe87d76e5a47600f70ee11816ba8d1756b9295eca12487cbe1223a80e3a603d44
     { UINT64_MAX, { 9 }}
 };
+static size_t mapCount = sizeof (map) / sizeof (struct BlockStateMap);
 
 static BREthereumAccountState
 hackFakeAccountStateLESProofs (uint64_t number) {
-    for (int i = 0; UINT64_MAX != map[i].number; i++)
+    for (int i = 0; i < mapCount; i++)
         if (number < map[i].number)
             return map[i - 1].state;
     assert (0);
