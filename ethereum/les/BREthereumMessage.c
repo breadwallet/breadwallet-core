@@ -25,7 +25,7 @@
 
 #include <assert.h>
 #include <sys/socket.h>
-#include "BREthereumLESMessage.h"
+#include "BREthereumMessage.h"
 
 
 /// MARK: - Wire Protocol Messagees

@@ -1,5 +1,5 @@
 //
-//  BREthereumLESMessageP2P.h
+//  BREthereumMessageP2P.h
 //  Core
 //
 //  Created by Ed Gamble on 9/1/18.
@@ -23,8 +23,8 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_LES_Message_P2P_H
-#define BR_Ethereum_LES_Message_P2P_H
+#ifndef BR_Ethereum_Message_P2P_H
+#define BR_Ethereum_Message_P2P_H
 
 #include "BREthereumLESBase.h"
 
@@ -143,4 +143,4 @@ messageP2PDecode (BRRlpItem item,
 }
 #endif
 
-#endif /* BR_Ethereum_LES_Message_P2P_H */
+#endif /* BR_Ethereum_Message_P2P_H */

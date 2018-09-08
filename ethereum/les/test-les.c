@@ -43,7 +43,7 @@
 #include "../base/BREthereumHash.h"
 #include "../blockchain/BREthereumNetwork.h"
 #include "BREthereumLES.h"
-#include "BREthereumLESNode.h"
+#include "BREthereumNode.h"
 //#include "BREthereumRandom.h"
 //#include "BREthereumHandshake.h"
 
@@ -65,28 +65,28 @@
 /// MARK: Node Test
 
 static void
-_nodeCallbackProvide (BREthereumLESNodeContext context,
-                      BREthereumLESNode node,
+_nodeCallbackProvide (BREthereumNodeContext context,
+                      BREthereumNode node,
                       BREthereumProvisionResult result) {
 }
 
 static void
-_nodeCallbackMessage (BREthereumLESNodeContext context,
-                      BREthereumLESNode node,
+_nodeCallbackMessage (BREthereumNodeContext context,
+                      BREthereumNode node,
                       BREthereumLESMessage message) {
 }
 
 static void
-_nodeCallbackStatus (BREthereumLESNodeContext context,
-                     BREthereumLESNode node,
-                     BREthereumLESNodeEndpointRoute route,
-                     BREthereumLESNodeState state) {
+_nodeCallbackStatus (BREthereumNodeContext context,
+                     BREthereumNode node,
+                     BREthereumNodeEndpointRoute route,
+                     BREthereumNodeState state) {
 }
 
 #if 0
 static void
-assignLocalEndpointHelloMessage (BREthereumLESNodeEndpoint *endpoint,
-                                 BREthereumLESNodeType type) {
+assignLocalEndpointHelloMessage (BREthereumNodeEndpoint *endpoint,
+                                 BREthereumNodeType type) {
     // From https://github.com/ethereum/wiki/wiki/ÐΞVp2p-Wire-Protocol on 2019 Aug 21
     // o p2pVersion: Specifies the implemented version of the P2P protocol. Now must be 1
     // o listenPort: specifies the port that the client is listening on (on the interface that the
@@ -141,8 +141,8 @@ runNodeTests (void) {
 //    const char *remoteEnode =
 //    "enode://e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851@35.226.238.26:30303";
 //
-//    BREthereumLESNodeEndpoint local  = nodeEndpointCreateLocal(randomContext);
-//    BREthereumLESNodeEndpoint remote = nodeEndpointCreateEnode(remoteEnode);
+//    BREthereumNodeEndpoint local  = nodeEndpointCreateLocal(randomContext);
+//    BREthereumNodeEndpoint remote = nodeEndpointCreateEnode(remoteEnode);
 //
 //    assignLocalEndpointHelloMessage(&local, NODE_TYPE_GETH);
 //
@@ -158,7 +158,7 @@ runNodeTests (void) {
 //        }};
 //    nodeEndpointSetStatus(&local, status);
 //
-//    BREthereumLESNode node = nodeCreate(ethereumMainnet, remote, local,
+//    BREthereumNode node = nodeCreate(ethereumMainnet, remote, local,
 //                                        NULL,
 //                                        _nodeCallbackMessage,
 //                                        _nodeCallbackStatus,
@@ -167,7 +167,7 @@ runNodeTests (void) {
 //    BREthereumProvisionIdentifier identifier =
 //    nodeProvideBlockHeaders(node, 0, 0, 300, ETHEREUM_BOOLEAN_FALSE);
 //
-//    BREthereumLESNodeMessageResult result;
+//    BREthereumNodeMessageResult result;
 //    nodeConnect (node, NODE_ROUTE_TCP);
 //    sleep (1);
 //
@@ -251,7 +251,7 @@ _statusCallback (BREthereumLESCallbackContext context,
 
 static void
 _saveNodesCallback (BREthereumLESCallbackContext context,
-                    BRArrayOf(BREthereumLESNodeConfig) nodes) {
+                    BRArrayOf(BREthereumNodeConfig) nodes) {
     eth_log (TST_LOG_TOPIC, "SaveNode: %zu", array_count(nodes));
     array_free(nodes);
 }
@@ -462,7 +462,7 @@ _checkBlockHeaderWithTest (BREthereumLESProvisionContext context,
 
 void _GetBlockHeaders_Calllback_Test5 (BREthereumLESProvisionContext context,
                                        BREthereumLES les,
-                                       BREthereumLESNodeReference node,
+                                       BREthereumNodeReference node,
                                        BREthereumProvisionResult result) {
 
     assert(context != NULL);
@@ -483,7 +483,7 @@ void _GetBlockHeaders_Calllback_Test5 (BREthereumLESProvisionContext context,
 
 void _GetBlockHeaders_Calllback_Test4 (BREthereumLESProvisionContext context,
                                        BREthereumLES les,
-                                       BREthereumLESNodeReference node,
+                                       BREthereumNodeReference node,
                                        BREthereumProvisionResult result) {
     
     assert(context != NULL);
@@ -497,7 +497,7 @@ void _GetBlockHeaders_Calllback_Test4 (BREthereumLESProvisionContext context,
 
 void _GetBlockHeaders_Calllback_Test3 (BREthereumLESProvisionContext context,
                                        BREthereumLES les,
-                                       BREthereumLESNodeReference node,
+                                       BREthereumNodeReference node,
                                        BREthereumProvisionResult result) {
     
     assert(context != NULL);
@@ -510,7 +510,7 @@ void _GetBlockHeaders_Calllback_Test3 (BREthereumLESProvisionContext context,
 }
 void _GetBlockHeaders_Calllback_Test2 (BREthereumLESProvisionContext context,
                                        BREthereumLES les,
-                                       BREthereumLESNodeReference node,
+                                       BREthereumNodeReference node,
                                        BREthereumProvisionResult result) {
     
     assert(context != NULL);
@@ -524,7 +524,7 @@ void _GetBlockHeaders_Calllback_Test2 (BREthereumLESProvisionContext context,
 
 void _GetBlockHeaders_Calllback_Test1 (BREthereumLESProvisionContext context,
                                        BREthereumLES les,
-                                       BREthereumLESNodeReference node,
+                                       BREthereumNodeReference node,
                                        BREthereumProvisionResult result) {
     
     assert(context != NULL);
@@ -595,7 +595,7 @@ static const int _GetTxStatus_Context2 = 2;
 static void
 _GetTxStatus_Test2_Callback (BREthereumLESProvisionContext context,
                                         BREthereumLES les,
-                                        BREthereumLESNodeReference node,
+                                        BREthereumNodeReference node,
                                         BREthereumProvisionResult result) {
     assert (PROVISION_SUCCESS == result.status);
     assert (PROVISION_TRANSACTION_STATUSES == result.u.success.provision.type);
@@ -651,7 +651,7 @@ _GetTxStatus_Test2_Callback (BREthereumLESProvisionContext context,
 static void
 _GetTxStatus_Test1_Callback (BREthereumLESProvisionContext context,
                              BREthereumLES les,
-                             BREthereumLESNodeReference node,
+                             BREthereumNodeReference node,
                              BREthereumProvisionResult result) {
     // BREthereumHash transaction,
     // BREthereumTransactionStatus status){
@@ -743,7 +743,7 @@ static int _GetBlockBodies_Context2 = 0;
 static void
 _GetBlockBodies_Callback_Test1 (BREthereumLESProvisionContext context,
                                            BREthereumLES les,
-                                           BREthereumLESNodeReference node,
+                                           BREthereumNodeReference node,
                                            BREthereumProvisionResult result) {
     assert (PROVISION_SUCCESS == result.status);
     assert (PROVISION_BLOCK_BODIES == result.u.success.provision.type);
@@ -773,7 +773,7 @@ _GetBlockBodies_Callback_Test1 (BREthereumLESProvisionContext context,
 static void
 _GetBlockBodies_Callback_Test2 (BREthereumLESProvisionContext context,
                                 BREthereumLES les,
-                                BREthereumLESNodeReference node,
+                                BREthereumNodeReference node,
                                 BREthereumProvisionResult result) {
     assert (PROVISION_SUCCESS == result.status);
     assert (PROVISION_BLOCK_BODIES == result.u.success.provision.type);
@@ -842,7 +842,7 @@ static int _GetReceipts_Context2 = 0;
 static void
 _GetReceipts_Callback_Test1 (BREthereumLESProvisionContext context,
                              BREthereumLES les,
-                             BREthereumLESNodeReference node,
+                             BREthereumNodeReference node,
                              BREthereumProvisionResult result) {
     assert (PROVISION_SUCCESS == result.status);
     assert (PROVISION_TRANSACTION_RECEIPTS == result.u.success.provision.type);
@@ -871,7 +871,7 @@ _GetReceipts_Callback_Test1 (BREthereumLESProvisionContext context,
 static void
 _GetReceipts_Callback_Test2 (BREthereumLESProvisionContext context,
                              BREthereumLES les,
-                             BREthereumLESNodeReference node,
+                             BREthereumNodeReference node,
                              BREthereumProvisionResult result) {
 
     assert (PROVISION_SUCCESS == result.status);
@@ -999,7 +999,7 @@ static void run_GetProofsV2_Tests(BREthereumLES les){
 static int _GetAccount_Context1 = 0;
 static void _GetAccountState_Callback_Test1 (BREthereumLESProvisionContext context,
                                              BREthereumLES les,
-                                             BREthereumLESNodeReference node,
+                                             BREthereumNodeReference node,
                                              BREthereumProvisionResult result) {
 
     assert (PROVISION_SUCCESS == result.status);

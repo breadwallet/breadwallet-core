@@ -1,5 +1,5 @@
 //
-//  BREthereumLESNodeEndpoint.c
+//  BREthereumNodeEndpoint.c
 //  Core
 //
 //  Created by Ed Gamble on 8/14/18.
@@ -36,7 +36,7 @@
 #include <assert.h>
 
 #include "../util/BRUtil.h"
-#include "BREthereumLESNodeEndpoint.h"
+#include "BREthereumNodeEndpoint.h"
 
 #ifndef MSG_NOSIGNAL   // linux based systems have a MSG_NOSIGNAL send flag, useful for supressing SIGPIPE signals
 #define MSG_NOSIGNAL 0 // set to 0 if undefined (BSD has the SO_NOSIGPIPE sockopt, and windows has no signals at all)
@@ -50,18 +50,18 @@
 
 /** Forward Declarations */
 static int
-openSocket (BREthereumLESNodeEndpoint *endpoint, int *socket, int port, int domain, int type, double timeout);
+openSocket (BREthereumNodeEndpoint *endpoint, int *socket, int port, int domain, int type, double timeout);
 
 //
 // MARK: - LES Node Endpoint
 //
-extern BREthereumLESNodeEndpoint
+extern BREthereumNodeEndpoint
 nodeEndpointCreateDetailed (BREthereumDISEndpoint dis,
                             BRKey key,
                             BRKey ephemeralKey,
                             UInt256 nonce) {
-    BREthereumLESNodeEndpoint endpoint;
-    memset (&endpoint, 0, sizeof (BREthereumLESNodeEndpoint));
+    BREthereumNodeEndpoint endpoint;
+    memset (&endpoint, 0, sizeof (BREthereumNodeEndpoint));
 
     endpoint.dis = dis;
 
@@ -79,7 +79,7 @@ nodeEndpointCreateDetailed (BREthereumDISEndpoint dis,
     return endpoint;
 }
 
-extern BREthereumLESNodeEndpoint
+extern BREthereumNodeEndpoint
 nodeEndpointCreate (BREthereumDISEndpoint dis,
                     BRKey key) {
     UInt256 nonce = UINT256_ZERO;
@@ -89,7 +89,7 @@ nodeEndpointCreate (BREthereumDISEndpoint dis,
     return nodeEndpointCreateDetailed (dis, key, ephemeralKey, nonce);
 }
 
-extern BREthereumLESNodeEndpoint
+extern BREthereumNodeEndpoint
 nodeEndpointCreateLocal (BREthereumLESRandomContext randomContext) {
     BREthereumDISEndpoint dis = {
         AF_INET,
@@ -112,7 +112,7 @@ nodeEndpointCreateLocal (BREthereumLESRandomContext randomContext) {
     return nodeEndpointCreateDetailed (dis, localKey, localEphemeralKey, localNonce);
 }
 
-extern BREthereumLESNodeEndpoint
+extern BREthereumNodeEndpoint
 nodeEndpointCreateEnode (const char *enode) {
     size_t enodeLen = strlen (enode);
     assert (enodeLen < 1024);
@@ -142,25 +142,25 @@ nodeEndpointCreateEnode (const char *enode) {
 }
 
 extern BRKey
-nodeEndpointGetKey (BREthereumLESNodeEndpoint endpoint) {
+nodeEndpointGetKey (BREthereumNodeEndpoint endpoint) {
     return endpoint.key;
 }
 
 extern void
-nodeEndpointSetHello (BREthereumLESNodeEndpoint *endpoint,
+nodeEndpointSetHello (BREthereumNodeEndpoint *endpoint,
                       BREthereumP2PMessage hello) {
     endpoint->hello = hello;
 }
 
 extern void
-nodeEndpointSetStatus (BREthereumLESNodeEndpoint *endpoint,
+nodeEndpointSetStatus (BREthereumNodeEndpoint *endpoint,
                        BREthereumLESMessage status) {
     endpoint->status = status;
 }
 
 extern int // errno
-nodeEndpointOpen (BREthereumLESNodeEndpoint *endpoint,
-                  BREthereumLESNodeEndpointRoute route) {
+nodeEndpointOpen (BREthereumNodeEndpoint *endpoint,
+                  BREthereumNodeEndpointRoute route) {
     if (nodeEndpointIsOpen (endpoint, route)) return 0;
     
     return openSocket (endpoint,
@@ -172,8 +172,8 @@ nodeEndpointOpen (BREthereumLESNodeEndpoint *endpoint,
 }
 
 extern int
-nodeEndpointClose (BREthereumLESNodeEndpoint *endpoint,
-                   BREthereumLESNodeEndpointRoute route,
+nodeEndpointClose (BREthereumNodeEndpoint *endpoint,
+                   BREthereumNodeEndpointRoute route,
                    int needShutdown) {
     int socket;
 
@@ -202,16 +202,16 @@ nodeEndpointClose (BREthereumLESNodeEndpoint *endpoint,
 }
 
 extern int
-nodeEndpointIsOpen (BREthereumLESNodeEndpoint *endpoint,
-                    BREthereumLESNodeEndpointRoute route) {
+nodeEndpointIsOpen (BREthereumNodeEndpoint *endpoint,
+                    BREthereumNodeEndpointRoute route) {
     return -1 != endpoint->sockets[route];
 }
 
 /// MARK: - Recv Data
 
 extern int // errno
-nodeEndpointRecvData (BREthereumLESNodeEndpoint *endpoint,
-                      BREthereumLESNodeEndpointRoute route,
+nodeEndpointRecvData (BREthereumNodeEndpoint *endpoint,
+                      BREthereumNodeEndpointRoute route,
                       uint8_t *bytes,
                       size_t *bytesCount,
                       int needBytesCount) {
@@ -257,8 +257,8 @@ nodeEndpointRecvData (BREthereumLESNodeEndpoint *endpoint,
 /// MARK: - Send Data
 
 extern int
-nodeEndpointSendData (BREthereumLESNodeEndpoint *endpoint,
-                      BREthereumLESNodeEndpointRoute route,
+nodeEndpointSendData (BREthereumNodeEndpoint *endpoint,
+                      BREthereumNodeEndpointRoute route,
                       uint8_t *bytes,
                       size_t bytesCount) {
     int error = 0;
@@ -305,7 +305,7 @@ nodeEndpointSendData (BREthereumLESNodeEndpoint *endpoint,
 
 
 static void
-nodeEndpointFillSockAddr (BREthereumLESNodeEndpoint *endpoint,
+nodeEndpointFillSockAddr (BREthereumNodeEndpoint *endpoint,
                           int port,
                           struct sockaddr_storage *addr,
                           socklen_t *addrLen) {
@@ -339,7 +339,7 @@ nodeEndpointFillSockAddr (BREthereumLESNodeEndpoint *endpoint,
 }
 
 static int
-openSocketReportResult (BREthereumLESNodeEndpoint *endpoint, int port, int type, int error) {
+openSocketReportResult (BREthereumNodeEndpoint *endpoint, int port, int type, int error) {
     eth_log (LES_LOG_TOPIC, "Open: %s @ %5d => %15s %s%s",
              (type == SOCK_STREAM ? "TCP" : "UDP"),
              port,
@@ -355,7 +355,7 @@ openSocketReportResult (BREthereumLESNodeEndpoint *endpoint, int port, int type,
  * TODO: May want to make this more modular to work for both etheruem and bitcoin
  */
 static int
-openSocket(BREthereumLESNodeEndpoint *endpoint, int *socketToAssign, int port, int domain, int type, double timeout)
+openSocket(BREthereumNodeEndpoint *endpoint, int *socketToAssign, int port, int domain, int type, double timeout)
 {
     struct sockaddr_storage addr;
     struct timeval tv;

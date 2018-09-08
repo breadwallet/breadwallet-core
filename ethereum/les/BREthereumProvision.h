@@ -26,7 +26,7 @@
 #ifndef BR_Ethereum_LES_Provision_H
 #define BR_Ethereum_LES_Provision_H
 
-#include "BREthereumLESMessage.h"  // BRArrayOf
+#include "BREthereumMessage.h"  // BRArrayOf
 
 #ifdef __cplusplus
 extern "C" {

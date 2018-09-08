@@ -1,5 +1,5 @@
 //
-//  BREthereumLESMessage.h
+//  BREthereumMessage.h
 //  Core
 //
 //  Created by Ed Gamble on 8/13/18.
@@ -23,15 +23,15 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_LES_Message_H
-#define BR_Ethereum_LES_Message_H
+#ifndef BR_Ethereum_Message_H
+#define BR_Ethereum_Message_H
 
 #include "BREthereumLESBase.h"
-#include "BREthereumLESMessageP2P.h"
-#include "BREthereumLESMessageDIS.h"
-#include "BREthereumLESMessageETH.h"
-#include "BREthereumLESMessageLES.h"
-#include "BREthereumLESMessagePIP.h"
+#include "msg/BREthereumMessageP2P.h"
+#include "msg/BREthereumMessageDIS.h"
+#include "msg/BREthereumMessageETH.h"
+#include "msg/BREthereumMessageLES.h"
+#include "msg/BREthereumMessagePIP.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -117,4 +117,4 @@ messageGetAnyIdentifierName (BREthereumMessage *message);
 }
 #endif
 
-#endif /* BR_Ethereum_LES_Message_H */
+#endif /* BR_Ethereum_Message_H */

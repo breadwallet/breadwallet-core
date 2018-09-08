@@ -1,5 +1,5 @@
 //
-//  BREthereumLESMessagePIP.c
+//  BREthereumMessagePIP.c
 //  Core
 //
 //  Created by Ed Gamble on 9/1/18.
@@ -23,7 +23,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include "BREthereumLESMessagePIP.h"
+#include "BREthereumMessagePIP.h"
 
 extern const char *
 messagePIPGetRequestName (BREthereumPIPRequestType type) {

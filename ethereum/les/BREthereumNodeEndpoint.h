@@ -1,5 +1,5 @@
 //
-//  BREthereumLESNodeEndpoint.h
+//  BREthereumNodeEndpoint.h
 //  Core
 //
 //  Created by Ed Gamble on 8/14/18.
@@ -23,13 +23,13 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_LES_Node_Endpoint_H
-#define BR_Ethereum_LES_Node_Endpoint_H
+#ifndef BR_Ethereum_Node_Endpoint_H
+#define BR_Ethereum_Node_Endpoint_H
 
 #include <limits.h>
 #include "BRKey.h"
 #include "BRInt.h"
-#include "BREthereumLESMessage.h"
+#include "BREthereumMessage.h"
 #include "BREthereumLESRandom.h"
 
 #ifdef __cplusplus
@@ -39,12 +39,12 @@ extern "C" {
 typedef enum {
     NODE_ROUTE_UDP,
     NODE_ROUTE_TCP
-} BREthereumLESNodeEndpointRoute;
+} BREthereumNodeEndpointRoute;
 
 #define NUMBER_OF_NODE_ROUTES  (1 + NODE_ROUTE_TCP)
 
 static inline const char *
-nodeEndpointRouteGetName (BREthereumLESNodeEndpointRoute route) {
+nodeEndpointRouteGetName (BREthereumNodeEndpointRoute route) {
     return (NODE_ROUTE_TCP == route ? "TCP" : "UDP");
 }
 
@@ -79,71 +79,71 @@ typedef struct {
     /** The Status LES message */
     BREthereumLESMessage status;    // BREthereumLESMessageStatus
 
-} BREthereumLESNodeEndpoint;
+} BREthereumNodeEndpoint;
 
 // Use for 'local
-extern BREthereumLESNodeEndpoint
+extern BREthereumNodeEndpoint
 nodeEndpointCreateDetailed (BREthereumDISEndpoint dis,
                             BRKey key,
                             BRKey ephemeralKey,
                             UInt256 nonce);
 
-extern BREthereumLESNodeEndpoint
+extern BREthereumNodeEndpoint
 nodeEndpointCreate (BREthereumDISEndpoint dis,
                     BRKey key);
 
-extern BREthereumLESNodeEndpoint
+extern BREthereumNodeEndpoint
 nodeEndpointCreateLocal (BREthereumLESRandomContext randomContext);
 
-extern BREthereumLESNodeEndpoint
+extern BREthereumNodeEndpoint
 nodeEndpointCreateEnode (const char *enode);
 
 extern void
-nodeEndpointSetHello (BREthereumLESNodeEndpoint *endpoint,
+nodeEndpointSetHello (BREthereumNodeEndpoint *endpoint,
                       BREthereumP2PMessage hello);
 
 extern void
-nodeEndpointSetStatus (BREthereumLESNodeEndpoint *endpoint,
+nodeEndpointSetStatus (BREthereumNodeEndpoint *endpoint,
                        BREthereumLESMessage status);
 
 extern int
-nodeEndpointOpen (BREthereumLESNodeEndpoint *endpoint,
-                  BREthereumLESNodeEndpointRoute route);
+nodeEndpointOpen (BREthereumNodeEndpoint *endpoint,
+                  BREthereumNodeEndpointRoute route);
 
 extern int
-nodeEndpointClose (BREthereumLESNodeEndpoint *endpoint,
-                   BREthereumLESNodeEndpointRoute route,
+nodeEndpointClose (BREthereumNodeEndpoint *endpoint,
+                   BREthereumNodeEndpointRoute route,
                    int needShutdown);
 
 extern int
-nodeEndpointIsOpen (BREthereumLESNodeEndpoint *endpoint,
-                    BREthereumLESNodeEndpointRoute route);
+nodeEndpointIsOpen (BREthereumNodeEndpoint *endpoint,
+                    BREthereumNodeEndpointRoute route);
 
 //extern int
-//nodeEndpointHasRecvDataAvailable (BREthereumLESNodeEndpoint *endpoint,
+//nodeEndpointHasRecvDataAvailable (BREthereumNodeEndpoint *endpoint,
 //                                  fd_set *readFds);
 //
 //extern void
-//nodeEndpointSetRecvDataAvailableFDS (BREthereumLESNodeEndpoint *endpoint,
+//nodeEndpointSetRecvDataAvailableFDS (BREthereumNodeEndpoint *endpoint,
 //                                     fd_set *readFds);
 //
 //extern void
-//nodeEndpointClrRecvDataAvailableFDS (BREthereumLESNodeEndpoint *endpoint,
+//nodeEndpointClrRecvDataAvailableFDS (BREthereumNodeEndpoint *endpoint,
 //                                     fd_set *readFds);
 //
 //extern int
-//nodeEndpointGetRecvDataAvailableFDSNum (BREthereumLESNodeEndpoint *endpoint);
+//nodeEndpointGetRecvDataAvailableFDSNum (BREthereumNodeEndpoint *endpoint);
 
 extern int
-nodeEndpointRecvData (BREthereumLESNodeEndpoint *endpoint,
-                      BREthereumLESNodeEndpointRoute route,
+nodeEndpointRecvData (BREthereumNodeEndpoint *endpoint,
+                      BREthereumNodeEndpointRoute route,
                       uint8_t *bytes,
                       size_t *bytesCount,
                       int needBytesCount);
 
 extern int
-nodeEndpointSendData (BREthereumLESNodeEndpoint *endpoint,
-                      BREthereumLESNodeEndpointRoute route,
+nodeEndpointSendData (BREthereumNodeEndpoint *endpoint,
+                      BREthereumNodeEndpointRoute route,
                       uint8_t *bytes,
                       size_t bytesCount);
 
@@ -155,4 +155,4 @@ nodeEndpointSendData (BREthereumLESNodeEndpoint *endpoint,
 }
 #endif
 
-#endif /* BR_Ethereum_LES_Node_Endpoint_H */
+#endif /* BR_Ethereum_Node_Endpoint_H */

@@ -1,5 +1,5 @@
 //
-//  BREthereumLESMessageLES.h
+//  BREthereumMessageLES.h
 //  BRCore
 //
 //  Created by Ed Gamble on 9/1/18.
@@ -23,13 +23,13 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_LES_Message_LES_H
-#define BR_Ethereum_LES_Message_LES_H
+#ifndef BR_Ethereum_Message_LES_H
+#define BR_Ethereum_Message_LES_H
 
 #include "BREthereumLESBase.h"
-#include "../mpt/BREthereumMPT.h"
-#include "../blockchain/BREthereumBlock.h"
-#include "../blockchain/BREthereumTransactionReceipt.h"
+#include "../../mpt/BREthereumMPT.h"
+#include "../../blockchain/BREthereumBlock.h"
+#include "../../blockchain/BREthereumTransactionReceipt.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -478,4 +478,4 @@ messageLESGetRequestId (const BREthereumLESMessage *message);
 }
 #endif
 
-#endif /* BR_Ethereum_LES_Message_LES_H */
+#endif /* BR_Ethereum_Message_LES_H */

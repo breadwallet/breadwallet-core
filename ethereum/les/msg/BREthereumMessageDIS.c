@@ -1,5 +1,5 @@
 //
-//  BREthereumLESMessageDIS.c
+//  BREthereumMessageDIS.c
 //  Core
 //
 //  Created by Ed Gamble on 9/1/18.
@@ -25,8 +25,8 @@
 
 #include <sys/socket.h>
 #include "BRKey.h"
-#include "../base/BREthereumSignature.h"
-#include "BREthereumLESMessageDIS.h"
+#include "../../base/BREthereumSignature.h"
+#include "BREthereumMessageDIS.h"
 
 // #define NEED_TO_PRINT_DIS_NEIGHBOR_DETAILS
 

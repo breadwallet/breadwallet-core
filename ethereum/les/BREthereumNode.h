@@ -1,5 +1,5 @@
 //
-//  BREthereumLESNode.h
+//  BREthereumNode.h
 //  Core
 //
 //  Created by Ed Gamble on 8/13/18.
@@ -23,11 +23,11 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_LES_Node_H
-#define BR_Ethereum_LES_Node_H
+#ifndef BR_Ethereum_Node_H
+#define BR_Ethereum_Node_H
 
-#include "BREthereumLESMessage.h"
-#include "BREthereumLESNodeEndpoint.h"
+#include "BREthereumMessage.h"
+#include "BREthereumNodeEndpoint.h"
 #include "BREthereumProvision.h"
 
 #ifdef __cplusplus
@@ -62,7 +62,7 @@ extern "C" {
  * announcement can occur at any time, once connected the select() read descriptor must be
  * set.
  */
-typedef struct BREthereumLESNodeRecord *BREthereumLESNode;
+typedef struct BREthereumNodeRecord *BREthereumNode;
 
 /**
  * A Node has a type of either GETH or PARITY.  The node's interface will be implemented
@@ -72,23 +72,23 @@ typedef struct BREthereumLESNodeRecord *BREthereumLESNode;
 typedef enum {
     NODE_TYPE_GETH,
     NODE_TYPE_PARITY
-} BREthereumLESNodeType;
+} BREthereumNodeType;
 
 /**
  * A Node will callback on: state changes, announcements (of block), and results.
  * The callback includes a User context.
  */
-typedef void *BREthereumLESNodeContext;
+typedef void *BREthereumNodeContext;
 
 typedef void
-(*BREthereumNodeCallbackStatus) (BREthereumLESNodeContext context,
-                                 BREthereumLESNode node,
+(*BREthereumNodeCallbackStatus) (BREthereumNodeContext context,
+                                 BREthereumNode node,
                                  BREthereumHash headHash,
                                  uint64_t headNumber);
 
 typedef void
-(*BREthereumNodeCallbackAnnounce) (BREthereumLESNodeContext context,
-                                   BREthereumLESNode node,
+(*BREthereumNodeCallbackAnnounce) (BREthereumNodeContext context,
+                                   BREthereumNode node,
                                    BREthereumHash headHash,
                                    uint64_t headNumber,
                                    UInt256 headTotalDifficulty,
@@ -98,13 +98,13 @@ typedef void
  * A Node defines a `Provide Callback` type to include the context, the node, and the result.
  */
 typedef void
-(*BREthereumLESNodeCallbackProvide) (BREthereumLESNodeContext context,
-                                     BREthereumLESNode node,
+(*BREthereumNodeCallbackProvide) (BREthereumNodeContext context,
+                                     BREthereumNode node,
                                      BREthereumProvisionResult result);
 
 typedef void
-(*BREthereumLESNodeCallbackNeighbor) (BREthereumLESNodeContext context,
-                                      BREthereumLESNode node,
+(*BREthereumNodeCallbackNeighbor) (BREthereumNodeContext context,
+                                      BREthereumNode node,
                                       BREthereumDISNeighbor neighbor);
 
 /// MARK: LES Node State
@@ -117,7 +117,7 @@ typedef enum {
     NODE_ERROR_UNIX,
     NODE_ERROR_DISCONNECT,
     NODE_ERROR_PROTOCOL
-} BREthereumLESNodeStateType;
+} BREthereumNodeStateType;
 
 typedef enum  {
     NODE_CONNECT_OPEN,
@@ -131,7 +131,7 @@ typedef enum  {
 
     NODE_CONNECT_PING,
     NODE_CONNECT_PING_ACK,
-} BREthereumLESNodeConnectType;
+} BREthereumNodeConnectType;
 
 typedef enum {
     NODE_PROTOCOL_NONSTANDARD_PORT,
@@ -141,13 +141,13 @@ typedef enum {
     NODE_PROTOCOL_TCP_HELLO_MISSED,
     NODE_PROTOCOL_TCP_STATUS_MISSED,
     NODE_PROTOCOL_CAPABILITIES_MISMATCH
-} BREthereumLESNodeProtocolReason;
+} BREthereumNodeProtocolReason;
 
 typedef struct {
-    BREthereumLESNodeStateType type;
+    BREthereumNodeStateType type;
     union {
         struct {
-            BREthereumLESNodeConnectType type;
+            BREthereumNodeConnectType type;
         } connect;
 
         struct {
@@ -163,29 +163,29 @@ typedef struct {
         } disconnect;
 
         struct {
-            BREthereumLESNodeProtocolReason reason;
+            BREthereumNodeProtocolReason reason;
         } protocol;
     } u;
-} BREthereumLESNodeState;
+} BREthereumNodeState;
 
 /** Fills description, returns description */
 extern const char *
-nodeStateDescribe (const BREthereumLESNodeState *state,
+nodeStateDescribe (const BREthereumNodeState *state,
                    char description[128]);
 
 extern BRRlpItem
-nodeStateEncode (const BREthereumLESNodeState *state,
+nodeStateEncode (const BREthereumNodeState *state,
                  BRRlpCoder coder);
 
-extern BREthereumLESNodeState
+extern BREthereumNodeState
 nodeStateDecode (BRRlpItem item,
                  BRRlpCoder coder);
 
 typedef void
-(*BREthereumLESNodeCallbackState) (BREthereumLESNodeContext context,
-                                   BREthereumLESNode node,
-                                   BREthereumLESNodeEndpointRoute route,
-                                   BREthereumLESNodeState state);
+(*BREthereumNodeCallbackState) (BREthereumNodeContext context,
+                                   BREthereumNode node,
+                                   BREthereumNodeEndpointRoute route,
+                                   BREthereumNodeState state);
 
 // connect
 // disconnect
@@ -203,75 +203,75 @@ typedef void
  * @param callbackStatus
  * @return
  */
-extern BREthereumLESNode // add 'message id offset'?
+extern BREthereumNode // add 'message id offset'?
 nodeCreate (BREthereumNetwork network,
-            BREthereumLESNodeEndpoint remote,  // remote, local ??
-            BREthereumLESNodeEndpoint local,
-            BREthereumLESNodeContext context,
+            BREthereumNodeEndpoint remote,  // remote, local ??
+            BREthereumNodeEndpoint local,
+            BREthereumNodeContext context,
             BREthereumNodeCallbackStatus callbackStatus,
             BREthereumNodeCallbackAnnounce callbackAnnounce,
-            BREthereumLESNodeCallbackProvide callbackProvide,
-            BREthereumLESNodeCallbackNeighbor callbackNeighbor,
-            BREthereumLESNodeCallbackState callbackState);
+            BREthereumNodeCallbackProvide callbackProvide,
+            BREthereumNodeCallbackNeighbor callbackNeighbor,
+            BREthereumNodeCallbackState callbackState);
 
 extern void
-nodeRelease (BREthereumLESNode node);
+nodeRelease (BREthereumNode node);
 
 extern void
-nodeConnect (BREthereumLESNode node,
-             BREthereumLESNodeEndpointRoute route);
+nodeConnect (BREthereumNode node,
+             BREthereumNodeEndpointRoute route);
 
 extern void
-nodeDisconnect (BREthereumLESNode node,
-                BREthereumLESNodeEndpointRoute route,
+nodeDisconnect (BREthereumNode node,
+                BREthereumNodeEndpointRoute route,
                 BREthereumP2PDisconnectReason reason);
 
 extern int
-nodeUpdateDescriptors (BREthereumLESNode node,
-                       BREthereumLESNodeEndpointRoute route,
+nodeUpdateDescriptors (BREthereumNode node,
+                       BREthereumNodeEndpointRoute route,
                        fd_set *recv,   // read
                        fd_set *send);  // write
 
 extern void
-nodeProcessDescriptors (BREthereumLESNode node,
-                        BREthereumLESNodeEndpointRoute route,
+nodeProcessDescriptors (BREthereumNode node,
+                        BREthereumNodeEndpointRoute route,
                         fd_set *recv,   // read
                         fd_set *send);  // write
 
 extern void
-nodeHandleProvision (BREthereumLESNode node,
+nodeHandleProvision (BREthereumNode node,
                        BREthereumProvision provision);
 
-extern BREthereumLESNodeEndpoint *
-nodeGetRemoteEndpoint (BREthereumLESNode node);
+extern BREthereumNodeEndpoint *
+nodeGetRemoteEndpoint (BREthereumNode node);
 
-extern BREthereumLESNodeEndpoint *
-nodeGetLocalEndpoint (BREthereumLESNode node);
+extern BREthereumNodeEndpoint *
+nodeGetLocalEndpoint (BREthereumNode node);
 
 extern int
-nodeHasState (BREthereumLESNode node,
-              BREthereumLESNodeEndpointRoute route,
-              BREthereumLESNodeStateType type);
+nodeHasState (BREthereumNode node,
+              BREthereumNodeEndpointRoute route,
+              BREthereumNodeStateType type);
 
-extern BREthereumLESNodeState
-nodeGetState (BREthereumLESNode node,
-              BREthereumLESNodeEndpointRoute route);
+extern BREthereumNodeState
+nodeGetState (BREthereumNode node,
+              BREthereumNodeEndpointRoute route);
 
 extern void
-nodeSetStateInitial (BREthereumLESNode node,
-                     BREthereumLESNodeEndpointRoute route,
-                     BREthereumLESNodeState state);
+nodeSetStateInitial (BREthereumNode node,
+                     BREthereumNodeEndpointRoute route,
+                     BREthereumNodeState state);
 
 extern BREthereumBoolean
-nodeGetDiscovered (BREthereumLESNode node);
+nodeGetDiscovered (BREthereumNode node);
 
 extern void
-nodeSetDiscovered (BREthereumLESNode node,
+nodeSetDiscovered (BREthereumNode node,
                    BREthereumBoolean discovered);
 
 extern void
-nodeDiscover (BREthereumLESNode node,
-              BREthereumLESNodeEndpoint *endpoint);
+nodeDiscover (BREthereumNode node,
+              BREthereumNodeEndpoint *endpoint);
     
 extern size_t
 nodeHashValue (const void *node);
@@ -285,10 +285,10 @@ nodeHashEqual (const void *node1,
 typedef enum {
     NODE_STATUS_SUCCESS,
     NODE_STATUS_ERROR
-} BREthereumLESNodeStatus;
+} BREthereumNodeStatus;
 
 typedef struct {
-    BREthereumLESNodeStatus status;
+    BREthereumNodeStatus status;
     union {
         struct {
             BREthereumMessage message;
@@ -297,13 +297,13 @@ typedef struct {
         struct {
         } error;
     } u;
-} BREthereumLESNodeMessageResult;
+} BREthereumNodeMessageResult;
 
 extern void
-nodeShow (BREthereumLESNode node);
+nodeShow (BREthereumNode node);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* BR_Ethereum_LES_Node_H */
+#endif /* BR_Ethereum_Node_H */

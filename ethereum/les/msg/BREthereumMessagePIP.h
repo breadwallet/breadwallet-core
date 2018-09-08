@@ -1,5 +1,5 @@
 //
-//  BREthereumLESMessagePIP.h
+//  BREthereumMessagePIP.h
 //  BRCore
 //
 //  Created by Ed Gamble on 9/1/18.
@@ -23,11 +23,11 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_LES_Message_PIP_H
-#define BR_Ethereum_LES_Message_PIP_H
+#ifndef BR_Ethereum_Message_PIP_H
+#define BR_Ethereum_Message_PIP_H
 
 #include "BREthereumLESBase.h"
-#include "../blockchain/BREthereumBlockChain.h"
+#include "../../blockchain/BREthereumBlockChain.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -320,4 +320,4 @@ messagePIPGetRequestId (const BREthereumPIPMessage *message);
 }
 #endif
 
-#endif /* BR_Ethereum_LES_Message_PIP_H */
+#endif /* BR_Ethereum_Message_PIP_H */

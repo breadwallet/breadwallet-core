@@ -965,7 +965,7 @@ extern void optimal (uint64_t number) { computeOptimalStep (number, &optimalStep
 extern void
 bcsSyncHandleProvision (BREthereumBCSSyncRange range,
                         BREthereumLES les,
-                        BREthereumLESNodeReference node,
+                        BREthereumNodeReference node,
                         BREthereumProvisionResult result) {
     assert (range->les == les);
     switch (result.status) {

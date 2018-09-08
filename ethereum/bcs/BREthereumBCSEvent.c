@@ -140,7 +140,7 @@ typedef struct {
     BREvent base;
     BREthereumBCS bcs;
     BREthereumLES les;
-    BREthereumLESNodeReference node;
+    BREthereumNodeReference node;
     BREthereumProvisionResult result;
 } BREthereumHandleProvisionEvent;
 
@@ -165,7 +165,7 @@ static BREventType handleProvisionEventType = {
 extern void
 bcsSignalProvision (BREthereumBCS bcs,
                     BREthereumLES les,
-                    BREthereumLESNodeReference node,
+                    BREthereumNodeReference node,
                     BREthereumProvisionResult result) {
     BREthereumHandleProvisionEvent event =
     { { NULL, &handleProvisionEventType}, bcs, les, node, result };
@@ -240,7 +240,7 @@ bcsSignalLog (BREthereumBCS bcs,
 typedef struct {
     BREvent base;
     BREthereumBCS bcs;
-    BRArrayOf(BREthereumLESNodeConfig) nodes;
+    BRArrayOf(BREthereumNodeConfig) nodes;
 } BREthereumHandleNodesEvent;
 
 static void
@@ -267,7 +267,7 @@ static BREventType handleNodesEventType = {
 
 extern void
 bcsSignalNodes (BREthereumBCS bcs,
-                BRArrayOf(BREthereumLESNodeConfig) nodes) {
+                BRArrayOf(BREthereumNodeConfig) nodes) {
     BREthereumHandleNodesEvent event =
     { { NULL, &handleNodesEventType}, bcs, nodes};
     eventHandlerSignalEvent (bcs->handler, (BREvent *) &event);
@@ -285,7 +285,7 @@ typedef struct {
     BREvent base;
     BREthereumBCSSyncRange range;
     BREthereumLES les;
-    BREthereumLESNodeReference node;
+    BREthereumNodeReference node;
     BREthereumProvisionResult result;
 } BREthereumBCSSyncHandleProvisionEvent;
 
@@ -310,7 +310,7 @@ static BREventType handleSyncProvisionEventType = {
 extern void
 bcsSyncSignalProvision (BREthereumBCSSyncRange range,
                     BREthereumLES les,
-                    BREthereumLESNodeReference node,
+                    BREthereumNodeReference node,
                     BREthereumProvisionResult result) {
     BREthereumBCSSyncHandleProvisionEvent event =
     { { NULL, &handleSyncProvisionEventType }, range, les, node, result };

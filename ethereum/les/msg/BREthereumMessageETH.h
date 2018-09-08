@@ -1,5 +1,5 @@
 //
-//  BREthereumLESMessageETH.h
+//  BREthereumMessageETH.h
 //  BRCore
 //
 //  Created by Ed Gamble on 9/1/18.
@@ -23,8 +23,8 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_LES_Message_ETH_H
-#define BR_Ethereum_LES_Message_ETH_H
+#ifndef BR_Ethereum_Message_ETH_H
+#define BR_Ethereum_Message_ETH_H
 
 #include "BREthereumLESBase.h"
 
@@ -59,4 +59,4 @@ typedef struct {
 }
 #endif
 
-#endif /* BR_Ethereum_LES_Message_ETH_H */
+#endif /* BR_Ethereum_Message_ETH_H */

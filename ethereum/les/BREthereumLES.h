@@ -44,19 +44,19 @@ extern "C" {
  * A LES Node Config is used to save a node for use when reestablishing LES.  See the typedef
  * BREthereumLESCallbackSaveNodes.
  */
-typedef struct BREthereumLESNodeConfigRecord *BREthereumLESNodeConfig;
+typedef struct BREthereumNodeConfigRecord *BREthereumNodeConfig;
 
 extern void
-lesNodeConfigRelease (BREthereumLESNodeConfig config);
+lesNodeConfigRelease (BREthereumNodeConfig config);
 
 extern BREthereumHash
-lesNodeConfigGetHash (BREthereumLESNodeConfig config);
+lesNodeConfigGetHash (BREthereumNodeConfig config);
 
 extern BRRlpItem
-lesNodeConfigEncode (BREthereumLESNodeConfig config,
+lesNodeConfigEncode (BREthereumNodeConfig config,
                      BRRlpCoder coder);
 
-extern BREthereumLESNodeConfig
+extern BREthereumNodeConfig
 lesNodeConfigDecode (BRRlpItem item,
                      BRRlpCoder coder);
 
@@ -72,7 +72,7 @@ typedef struct BREthereumLESRecord *BREthereumLES;
  * An opaque type for a Node.  Only used in the announce callback to identify what node produced
  * the hea
  */
-typedef void *BREthereumLESNodeReference;
+typedef void *BREthereumNodeReference;
 
 /*!
  *@typedef BREthereumLESStatus
@@ -125,7 +125,7 @@ typedef void
  */
 typedef void
 (*BREthereumLESCallbackSaveNodes) (BREthereumLESCallbackContext context,
-                                   BRArrayOf(BREthereumLESNodeConfig) nodes);
+                                   BRArrayOf(BREthereumNodeConfig) nodes);
 
 /*!
  * @function lesCreate
@@ -158,7 +158,7 @@ lesCreate (BREthereumNetwork network,
            uint64_t headNumber,
            UInt256 headTotalDifficulty,
            BREthereumHash genesisHash,
-           BRArrayOf(BREthereumLESNodeConfig) configs);
+           BRArrayOf(BREthereumNodeConfig) configs);
 
 /*!
  * @function lesRelease
@@ -182,7 +182,7 @@ typedef void *BREthereumLESProvisionContext;
 typedef void
 (*BREthereumLESProvisionCallback) (BREthereumLESProvisionContext context,
                                    BREthereumLES les,
-                                   BREthereumLESNodeReference node,
+                                   BREthereumNodeReference node,
                                    BREthereumProvisionResult result);
 
 /*!

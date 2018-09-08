@@ -1,5 +1,5 @@
 //
-//  BREthereumLESMessageLES.c
+//  BREthereumMessageLES.c
 //  Core
 //
 //  Created by Ed Gamble on 9/1/18.
@@ -23,8 +23,8 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include "../blockchain/BREthereumBlockChain.h"
-#include "BREthereumLESMessageLES.h"
+#include "../../blockchain/BREthereumBlockChain.h"
+#include "BREthereumMessageLES.h"
 
 // GETH Limits
 // MaxHeaderFetch           = 192 // Amount of block headers to be fetched per retrieval request

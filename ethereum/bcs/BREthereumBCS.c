@@ -161,7 +161,7 @@ extern BREthereumBCS
 bcsCreate (BREthereumNetwork network,
            BREthereumAddress address,
            BREthereumBCSListener listener,
-           BRArrayOf(BREthereumLESNodeConfig) peers,
+           BRArrayOf(BREthereumNodeConfig) peers,
            BRArrayOf(BREthereumBlock) blocks,
            BRArrayOf(BREthereumTransaction) transactions,
            BRArrayOf(BREthereumLog) logs) {
@@ -322,7 +322,7 @@ bcsSendTransaction (BREthereumBCS bcs,
 static void
 bcsHandleProvisionResult (BREthereumBCS bcs,
                           BREthereumLES les,
-                          BREthereumLESNodeReference node,
+                          BREthereumNodeReference node,
                           BREthereumProvisionResult result) {
     switch (result.type) {
         case PROVISION_BLOCK_HEADERS:
@@ -1542,7 +1542,7 @@ bcsHandleLog (BREthereumBCS bcs,
 
 extern void
 bcsHandleNodes (BREthereumBCS bcs,
-                BRArrayOf(BREthereumLESNodeConfig) peers) {
+                BRArrayOf(BREthereumNodeConfig) peers) {
     size_t peersCount = array_count(peers);
     bcs->listener.savePeersCallback (bcs->listener.context, peers);
     eth_log("BCS", "Peers %zu Saved", peersCount);
@@ -1579,7 +1579,7 @@ bcsSyncReportProgressCallback (BREthereumBCS bcs,
 extern void
 bcsHandleProvision (BREthereumBCS bcs,
                     BREthereumLES les,
-                    BREthereumLESNodeReference node,
+                    BREthereumNodeReference node,
                     BREthereumProvisionResult result) {
     assert (bcs->les == les);
     switch (result.status) {

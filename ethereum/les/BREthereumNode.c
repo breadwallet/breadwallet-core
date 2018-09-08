@@ -1,5 +1,5 @@
 //
-//  BREthereumLESNodeX.c
+//  BREthereumNode.c
 //  Core
 //
 //  Created by Ed Gamble on 8/13/18.
@@ -31,7 +31,7 @@
 #include <errno.h>
 #include "BRCrypto.h"
 #include "BRKeyECIES.h"
-#include "BREthereumLESNode.h"
+#include "BREthereumNode.h"
 #include "BREthereumLESFrameCoder.h"
 
 static BREthereumAccountState
@@ -70,48 +70,48 @@ static const ssize_t ackCipherBufLen =  ackBufLen + 65 + 16 + 32;
 typedef void* (*ThreadRoutine) (void*);
 
 static void *
-nodeThreadConnectUDP (BREthereumLESNode node);
+nodeThreadConnectUDP (BREthereumNode node);
 
 static void *
-nodeThreadConnectTCP (BREthereumLESNode node);
+nodeThreadConnectTCP (BREthereumNode node);
 
 //
-static int _sendAuthInitiator(BREthereumLESNode node);
-static int _readAuthAckFromRecipient(BREthereumLESNode node);
+static int _sendAuthInitiator(BREthereumNode node);
+static int _readAuthAckFromRecipient(BREthereumNode node);
 
 //static inline int maximum (int x, int y) { return x > y ? x : y; }
 
-static BREthereumLESNodeType
-nodeGetType (BREthereumLESNode node);
+static BREthereumNodeType
+nodeGetType (BREthereumNode node);
 
 static uint64_t
-nodeGetThenIncrementMessageIdentifier (BREthereumLESNode node,
+nodeGetThenIncrementMessageIdentifier (BREthereumNode node,
                                        size_t byIncrement);
 
 static int
-nodeHasErrorState (BREthereumLESNode node,
-                   BREthereumLESNodeEndpointRoute route);
+nodeHasErrorState (BREthereumNode node,
+                   BREthereumNodeEndpointRoute route);
 
-static BREthereumLESNodeMessageResult
-nodeRecv (BREthereumLESNode node,
-          BREthereumLESNodeEndpointRoute route);
+static BREthereumNodeMessageResult
+nodeRecv (BREthereumNode node,
+          BREthereumNodeEndpointRoute route);
 
-static BREthereumLESNodeStatus
-nodeSend (BREthereumLESNode node,
-          BREthereumLESNodeEndpointRoute route,
+static BREthereumNodeStatus
+nodeSend (BREthereumNode node,
+          BREthereumNodeEndpointRoute route,
           BREthereumMessage message);   // BRRlpData/BRRlpItem *optionalMessageData/Item
 
 static uint64_t
-nodeEstimateCredits (BREthereumLESNode node,
+nodeEstimateCredits (BREthereumNode node,
                      BREthereumMessage message);
 
 static uint64_t
-nodeGetCredits (BREthereumLESNode node);
+nodeGetCredits (BREthereumNode node);
 
 static void
-nodeSetStateErrorProtocol (BREthereumLESNode node,
-                           BREthereumLESNodeEndpointRoute route,
-                           BREthereumLESNodeProtocolReason reason);
+nodeSetStateErrorProtocol (BREthereumNode node,
+                           BREthereumNodeEndpointRoute route,
+                           BREthereumNodeProtocolReason reason);
 
 
 //static void
@@ -124,63 +124,63 @@ nodeSetStateErrorProtocol (BREthereumLESNode node,
 
 /// MARK: LES Node State Create ...
 
-static inline BREthereumLESNodeState
-nodeStateCreate (BREthereumLESNodeStateType type) {
-    return (BREthereumLESNodeState) { type };
+static inline BREthereumNodeState
+nodeStateCreate (BREthereumNodeStateType type) {
+    return (BREthereumNodeState) { type };
 }
 
-static BREthereumLESNodeState
+static BREthereumNodeState
 nodeStateCreateAvailable (void) {
     return nodeStateCreate (NODE_AVAILABLE);
 }
 
-static BREthereumLESNodeState
-nodeStateCreateConnecting (BREthereumLESNodeConnectType type) {
-    return (BREthereumLESNodeState) {
+static BREthereumNodeState
+nodeStateCreateConnecting (BREthereumNodeConnectType type) {
+    return (BREthereumNodeState) {
         NODE_CONNECTING,
         { .connect = { type }}
     };
 }
 
-static BREthereumLESNodeState
+static BREthereumNodeState
 nodeStateCreateConnected (void) {
     return nodeStateCreate (NODE_CONNECTED);
 }
 
-static BREthereumLESNodeState
+static BREthereumNodeState
 nodeStateCreateExhausted (uint64_t timestamp) {
-    return (BREthereumLESNodeState) {
+    return (BREthereumNodeState) {
         NODE_EXHAUSTED,
         { .exhausted = { timestamp }}
     };
 }
 
-static BREthereumLESNodeState
+static BREthereumNodeState
 nodeStateCreateErrorUnix (int error) {
-    return (BREthereumLESNodeState) {
+    return (BREthereumNodeState) {
         NODE_ERROR_UNIX,
         { .connect = { error }}
     };
 }
 
-static BREthereumLESNodeState
+static BREthereumNodeState
 nodeStateCreateErrorDisconnect (BREthereumP2PDisconnectReason reason) {
-    return (BREthereumLESNodeState) {
+    return (BREthereumNodeState) {
         NODE_ERROR_DISCONNECT,
         { .disconnect = { reason }}
     };
 }
 
-static BREthereumLESNodeState
-nodeStateCreateErrorProtocol (BREthereumLESNodeProtocolReason reason) {
-    return (BREthereumLESNodeState) {
+static BREthereumNodeState
+nodeStateCreateErrorProtocol (BREthereumNodeProtocolReason reason) {
+    return (BREthereumNodeState) {
         NODE_ERROR_PROTOCOL,
         { .protocol = { reason }}
     };
 }
 
 const char *
-nodeProtocolReasonDescription (BREthereumLESNodeProtocolReason reason) {
+nodeProtocolReasonDescription (BREthereumNodeProtocolReason reason) {
     static const char *
     protocolReasonDescriptions [] = {
         "Non-Standard Port",
@@ -195,7 +195,7 @@ nodeProtocolReasonDescription (BREthereumLESNodeProtocolReason reason) {
 }
 
 extern const char *
-nodeStateDescribe (const BREthereumLESNodeState *state,
+nodeStateDescribe (const BREthereumNodeState *state,
                    char description[128]) {
     switch (state->type) {
         case NODE_AVAILABLE:  return strcpy (description, "Available");
@@ -212,7 +212,7 @@ nodeStateDescribe (const BREthereumLESNodeState *state,
 }
 
 extern BRRlpItem
-nodeStateEncode (const BREthereumLESNodeState *state,
+nodeStateEncode (const BREthereumNodeState *state,
                  BRRlpCoder coder) {
     BRRlpItem typeItem = rlpEncodeUInt64 (coder, state->type, 0);
 
@@ -234,14 +234,14 @@ nodeStateEncode (const BREthereumLESNodeState *state,
     }
 }
 
-extern BREthereumLESNodeState
+extern BREthereumNodeState
 nodeStateDecode (BRRlpItem item,
                  BRRlpCoder coder) {
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
     assert (1 == itemsCount || 2 == itemsCount);
 
-    BREthereumLESNodeStateType type = (BREthereumLESNodeStateType) rlpDecodeUInt64(coder, items[0], 0);
+    BREthereumNodeStateType type = (BREthereumNodeStateType) rlpDecodeUInt64(coder, items[0], 0);
     switch (type) {
         case NODE_AVAILABLE:
         case NODE_CONNECTING:
@@ -258,7 +258,7 @@ nodeStateDecode (BRRlpItem item,
 
         case NODE_ERROR_PROTOCOL:
             return nodeStateCreateErrorProtocol
-            ((BREthereumLESNodeProtocolReason) rlpDecodeUInt64 (coder, items[1], 0));
+            ((BREthereumNodeProtocolReason) rlpDecodeUInt64 (coder, items[1], 0));
     }
 }
 
@@ -279,7 +279,7 @@ typedef struct {
 
     /** The node handling this provision.  How the provision is completed is determined by this
      * node; notably, different messages are sent based on if the node is for GETH or PARITY */
-    BREthereumLESNode node;
+    BREthereumNode node;
 
     /** The base message identifier.  If the provision applies to multiple messages, then
      * the messages identifers will be sequential starting at this identifier */
@@ -325,11 +325,11 @@ provisionerMessageOfInterest (BREthereumNodeProvisioner *provisioner,
             messageIdentifier < (provisioner->messageIdentifier + provisioner->messagesCount));
 }
 
-static BREthereumLESNodeStatus
+static BREthereumNodeStatus
 provisionerMessageSend (BREthereumNodeProvisioner *provisioner) {
     BREthereumMessage message = provisioner->messages [provisioner->messagesCount -
                                                        provisioner->messagesRemainingCount];
-    BREthereumLESNodeStatus status = nodeSend (provisioner->node, NODE_ROUTE_TCP, message);
+    BREthereumNodeStatus status = nodeSend (provisioner->node, NODE_ROUTE_TCP, message);
     switch (message.identifier) {
         case MESSAGE_P2P:
         case MESSAGE_DIS:
@@ -793,7 +793,7 @@ provisionerHandleMessagePIP (BREthereumNodeProvisioner *provisioner,
 
 static void
 provisionerEstablish (BREthereumNodeProvisioner *provisioner,
-                          BREthereumLESNode node) {
+                          BREthereumNode node) {
     // The `node` will handle the `provisioner`
     provisioner->node = node;
 
@@ -843,7 +843,7 @@ provisionerHandleMessage (BREthereumNodeProvisioner *provisioner,
 /// MARK: - LES Node
 ///
 
-struct BREthereumLESNodeRecord {
+struct BREthereumNodeRecord {
     // Must be first to support BRSet.
     /**
      * The identifier is the 'nodeId' from the remote endpoint - which is itself the 64 byte
@@ -852,14 +852,14 @@ struct BREthereumLESNodeRecord {
     UInt512 identifier;
 
     /** The type as GETH or PARITY (only GETH supported) */
-    BREthereumLESNodeType type;
+    BREthereumNodeType type;
 
     /** The states by route; one for UDP and one for TCP */
-    BREthereumLESNodeState states[NUMBER_OF_NODE_ROUTES];
+    BREthereumNodeState states[NUMBER_OF_NODE_ROUTES];
 
     // The endpoints connected by this node
-    BREthereumLESNodeEndpoint local;
-    BREthereumLESNodeEndpoint remote;
+    BREthereumNodeEndpoint local;
+    BREthereumNodeEndpoint remote;
 
     /** The message specs by identifier.  Includes credit params and message count limits */
     BREthereumLESMessageSpec specs [NUMBER_OF_LES_MESSAGE_IDENTIFIERS];
@@ -868,12 +868,12 @@ struct BREthereumLESNodeRecord {
     uint64_t credits;
 
     /** Callbacks */
-    BREthereumLESNodeContext callbackContext;
+    BREthereumNodeContext callbackContext;
     BREthereumNodeCallbackStatus callbackStatus;
     BREthereumNodeCallbackAnnounce callbackAnnounce;
-    BREthereumLESNodeCallbackProvide callbackProvide;
-    BREthereumLESNodeCallbackNeighbor callbackNeighbor;
-    BREthereumLESNodeCallbackState callbackState;
+    BREthereumNodeCallbackProvide callbackProvide;
+    BREthereumNodeCallbackNeighbor callbackNeighbor;
+    BREthereumNodeCallbackState callbackState;
 
     /** Send/Recv Buffer */
     BRRlpData sendDataBuffer;
@@ -896,9 +896,6 @@ struct BREthereumLESNodeRecord {
     uint64_t messageIdentifier;
 
     BRArrayOf(BREthereumNodeProvisioner) provisioners;
-//    BREthereumNodeProvisionIdentifier provideId;
-//    BRArrayOf(BREthereumMessage) pendingMessages;
-//    BRArrayOf(BREthereumLESNodeProvisionPending) pendingProvisions;
 
     //
     // pthread
@@ -908,25 +905,25 @@ struct BREthereumLESNodeRecord {
     pthread_mutex_t lock;
 };
 
-static BREthereumLESNodeType
-nodeGetType (BREthereumLESNode node) {
+static BREthereumNodeType
+nodeGetType (BREthereumNode node) {
     return node->type;
 }
 
 //
 // Create
 //
-extern BREthereumLESNode
+extern BREthereumNode
 nodeCreate (BREthereumNetwork network,
-            BREthereumLESNodeEndpoint remote,  // remote, local ??
-            BREthereumLESNodeEndpoint local,
-            BREthereumLESNodeContext context,
+            BREthereumNodeEndpoint remote,  // remote, local ??
+            BREthereumNodeEndpoint local,
+            BREthereumNodeContext context,
             BREthereumNodeCallbackStatus callbackStatus,
             BREthereumNodeCallbackAnnounce callbackAnnounce,
-            BREthereumLESNodeCallbackProvide callbackProvide,
-            BREthereumLESNodeCallbackNeighbor callbackNeighbor,
-            BREthereumLESNodeCallbackState callbackState) {
-    BREthereumLESNode node = calloc (1, sizeof (struct BREthereumLESNodeRecord));
+            BREthereumNodeCallbackProvide callbackProvide,
+            BREthereumNodeCallbackNeighbor callbackNeighbor,
+            BREthereumNodeCallbackState callbackState) {
+    BREthereumNode node = calloc (1, sizeof (struct BREthereumNodeRecord));
 
     // Extract the identifier from the remote's public key.
     memcpy (node->identifier.u8, &remote.key.pubKey[1], 64);
@@ -1005,7 +1002,7 @@ nodeCreate (BREthereumNetwork network,
 }
 
 extern void
-nodeRelease (BREthereumLESNode node) {
+nodeRelease (BREthereumNode node) {
     nodeDisconnect (node, NODE_ROUTE_TCP, P2P_MESSAGE_DISCONNECT_REQUESTED);
     nodeDisconnect (node, NODE_ROUTE_UDP, P2P_MESSAGE_DISCONNECT_REQUESTED);
 
@@ -1020,8 +1017,8 @@ nodeRelease (BREthereumLESNode node) {
 }
 
 extern void
-nodeConnect (BREthereumLESNode node,
-             BREthereumLESNodeEndpointRoute route) {
+nodeConnect (BREthereumNode node,
+             BREthereumNodeEndpointRoute route) {
     pthread_mutex_lock (&node->lock);
     if (PTHREAD_NULL == node->threads[route]) {
         pthread_attr_t attr;
@@ -1038,8 +1035,8 @@ nodeConnect (BREthereumLESNode node,
 }
 
 extern void
-nodeDisconnect (BREthereumLESNode node,
-                BREthereumLESNodeEndpointRoute route,
+nodeDisconnect (BREthereumNode node,
+                BREthereumNodeEndpointRoute route,
                 BREthereumP2PDisconnectReason reason) {
     pthread_mutex_lock (&node->lock);
 
@@ -1078,8 +1075,8 @@ nodeDisconnect (BREthereumLESNode node,
 }
 
 extern int
-nodeUpdateDescriptors (BREthereumLESNode node,
-                       BREthereumLESNodeEndpointRoute route,
+nodeUpdateDescriptors (BREthereumNode node,
+                       BREthereumNodeEndpointRoute route,
                        fd_set *recv,   // read
                        fd_set *send) {  // write
     int socket = node->remote.sockets[route];
@@ -1104,16 +1101,8 @@ nodeUpdateDescriptors (BREthereumLESNode node,
     return socket;
 }
 
-//extern int
-//nodeHasProvisionerMessage (BREthereumLESNode node,
-//                           BREthereumNodeProvisioner *provisioner,
-//                           BREthereumMessage message) {
-//    return (provisioner->node == node &&
-//            provisionerMessageOfInterest (provisioner, message.identifier));
-//}
-
 static void
-nodeHandleProvisionerMessage (BREthereumLESNode node,
+nodeHandleProvisionerMessage (BREthereumNode node,
                               BREthereumNodeProvisioner *provisioner,
                               BREthereumMessage message) {
     // Let the provisioner handle the message, gathering results as warranted.
@@ -1141,8 +1130,8 @@ nodeHandleProvisionerMessage (BREthereumLESNode node,
 }
 
 static void
-nodeProcessRecvP2P (BREthereumLESNode node,
-                    BREthereumLESNodeEndpointRoute route,
+nodeProcessRecvP2P (BREthereumNode node,
+                    BREthereumNodeEndpointRoute route,
                     BREthereumP2PMessage message) {
     assert (NODE_ROUTE_TCP == route);
     switch (message.identifier) {
@@ -1171,8 +1160,8 @@ nodeProcessRecvP2P (BREthereumLESNode node,
 }
 
 static void
-nodeProcessRecvDIS (BREthereumLESNode node,
-                    BREthereumLESNodeEndpointRoute route,
+nodeProcessRecvDIS (BREthereumNode node,
+                    BREthereumNodeEndpointRoute route,
                     BREthereumDISMessage message) {
     assert (NODE_ROUTE_UDP == route);
     switch (message.identifier) {
@@ -1210,8 +1199,8 @@ nodeProcessRecvDIS (BREthereumLESNode node,
 }
 
 static void
-nodeProcessRecvLES (BREthereumLESNode node,
-                    BREthereumLESNodeEndpointRoute route,
+nodeProcessRecvLES (BREthereumNode node,
+                    BREthereumNodeEndpointRoute route,
                     BREthereumLESMessage message) {
     // eth_log (LES_LOG_TOPIC, "Recv: RequestID: %llu", messageLESGetRequestId (&message));
     assert (NODE_TYPE_GETH == node->type);
@@ -1279,8 +1268,8 @@ nodeProcessRecvLES (BREthereumLESNode node,
 }
 
 static void
-nodeProcessRecvPIP (BREthereumLESNode node,
-                    BREthereumLESNodeEndpointRoute route,
+nodeProcessRecvPIP (BREthereumNode node,
+                    BREthereumNodeEndpointRoute route,
                     BREthereumPIPMessage message) {
     assert (NODE_TYPE_PARITY == node->type);
     switch (message.type) {
@@ -1340,8 +1329,8 @@ nodeProcessRecvPIP (BREthereumLESNode node,
 }
 
 static void
-nodeProcessRecv (BREthereumLESNode node,
-                 BREthereumLESNodeEndpointRoute route,
+nodeProcessRecv (BREthereumNode node,
+                 BREthereumNodeEndpointRoute route,
                  BREthereumMessage message) {
     switch (message.identifier) {
         case MESSAGE_P2P:
@@ -1363,8 +1352,8 @@ nodeProcessRecv (BREthereumLESNode node,
 }
 
 extern void
-nodeProcessDescriptors (BREthereumLESNode node,
-                        BREthereumLESNodeEndpointRoute route,
+nodeProcessDescriptors (BREthereumNode node,
+                        BREthereumNodeEndpointRoute route,
                         fd_set *recv,   // read
                         fd_set *send) {  // write
     int socket = node->remote.sockets[route];
@@ -1380,7 +1369,7 @@ nodeProcessDescriptors (BREthereumLESNode node,
         // Look for the pending message in some provisioner
         for (size_t index = 0; index < array_count (node->provisioners); index++)
             if (provisionerSendMessagesPending (&node->provisioners[index])) {
-                BREthereumLESNodeStatus status = provisionerMessageSend(&node->provisioners[index]);
+                BREthereumNodeStatus status = provisionerMessageSend(&node->provisioners[index]);
                 // Only send one at a time - socket might be blocked
                 break;
             }
@@ -1388,7 +1377,7 @@ nodeProcessDescriptors (BREthereumLESNode node,
 
     // Recv if we can
     if (FD_ISSET (socket, recv)) {
-        BREthereumLESNodeMessageResult result = nodeRecv (node, route);
+        BREthereumNodeMessageResult result = nodeRecv (node, route);
         switch (result.status) {
             case NODE_STATUS_SUCCESS:
                 nodeProcessRecv (node, route, result.u.success.message);
@@ -1402,7 +1391,7 @@ nodeProcessDescriptors (BREthereumLESNode node,
 }
 
 extern void
-nodeHandleProvision (BREthereumLESNode node,
+nodeHandleProvision (BREthereumNode node,
                      BREthereumProvision provision) {
     BREthereumNodeProvisioner provisioner = { provision };
     array_add (node->provisioners, provisioner);
@@ -1414,7 +1403,7 @@ nodeHandleProvision (BREthereumLESNode node,
 ////////////////////
 
 static uint64_t
-nodeGetThenIncrementMessageIdentifier (BREthereumLESNode node,
+nodeGetThenIncrementMessageIdentifier (BREthereumNode node,
                                        size_t byIncrement) {
     uint64_t identifier;
     pthread_mutex_lock(&node->lock);
@@ -1424,27 +1413,27 @@ nodeGetThenIncrementMessageIdentifier (BREthereumLESNode node,
     return identifier;
 }
 
-extern BREthereumLESNodeEndpoint *
-nodeGetRemoteEndpoint (BREthereumLESNode node) {
+extern BREthereumNodeEndpoint *
+nodeGetRemoteEndpoint (BREthereumNode node) {
     return &node->remote;
 }
 
-extern BREthereumLESNodeEndpoint *
-nodeGetLocalEndpoint (BREthereumLESNode node) {
+extern BREthereumNodeEndpoint *
+nodeGetLocalEndpoint (BREthereumNode node) {
     return &node->local;
 }
 
 extern size_t
 nodeHashValue (const void *node) {
     // size_t varies by platform (32 or 64 bits).
-    return (size_t) ((BREthereumLESNode) node)->identifier.u64[0];
+    return (size_t) ((BREthereumNode) node)->identifier.u64[0];
 }
 
 extern int
 nodeHashEqual (const void *node1,
                const void *node2) {
-    return UInt512Eq (((BREthereumLESNode) node1)->identifier,
-                      ((BREthereumLESNode) node2)->identifier);
+    return UInt512Eq (((BREthereumNode) node1)->identifier,
+                      ((BREthereumNode) node2)->identifier);
 }
 
 /**
@@ -1455,7 +1444,7 @@ nodeHashEqual (const void *node1,
  * offset to deal with.
  */
 static void
-extractIdentifier (BREthereumLESNode node,
+extractIdentifier (BREthereumNode node,
                    uint8_t value,
                    BREthereumMessageIdentifier *type,
                    BREthereumANYMessageIdentifier *subtype) {
@@ -1472,23 +1461,23 @@ extractIdentifier (BREthereumLESNode node,
 /// MARK: LES Node State
 
 static void
-nodeStateAnnounce (BREthereumLESNode node,
-                   BREthereumLESNodeEndpointRoute route,
-                   BREthereumLESNodeState state) {
+nodeStateAnnounce (BREthereumNode node,
+                   BREthereumNodeEndpointRoute route,
+                   BREthereumNodeState state) {
     node->states [route] = state;
     node->callbackState (node->callbackContext, node, route, state);
 }
 
 extern int
-nodeHasState (BREthereumLESNode node,
-              BREthereumLESNodeEndpointRoute route,
-              BREthereumLESNodeStateType type) {
+nodeHasState (BREthereumNode node,
+              BREthereumNodeEndpointRoute route,
+              BREthereumNodeStateType type) {
     return type == node->states[route].type;
 }
 
 static int
-nodeHasErrorState (BREthereumLESNode node,
-                   BREthereumLESNodeEndpointRoute route) {
+nodeHasErrorState (BREthereumNode node,
+                   BREthereumNodeEndpointRoute route) {
     switch (node->states[route].type) {
         case NODE_AVAILABLE:
         case NODE_CONNECTING:
@@ -1502,23 +1491,23 @@ nodeHasErrorState (BREthereumLESNode node,
     }
 }
 
-extern BREthereumLESNodeState
-nodeGetState (BREthereumLESNode node,
-              BREthereumLESNodeEndpointRoute route) {
+extern BREthereumNodeState
+nodeGetState (BREthereumNode node,
+              BREthereumNodeEndpointRoute route) {
     return node->states[route];
 }
 
 static void
-nodeSetStateErrorProtocol (BREthereumLESNode node,
-                           BREthereumLESNodeEndpointRoute route,
-                           BREthereumLESNodeProtocolReason reason) {
+nodeSetStateErrorProtocol (BREthereumNode node,
+                           BREthereumNodeEndpointRoute route,
+                           BREthereumNodeProtocolReason reason) {
     node->states[route] = nodeStateCreateErrorProtocol(reason);
 }
 
 extern void
-nodeSetStateInitial (BREthereumLESNode node,
-                     BREthereumLESNodeEndpointRoute route,
-                     BREthereumLESNodeState state) {
+nodeSetStateInitial (BREthereumNode node,
+                     BREthereumNodeEndpointRoute route,
+                     BREthereumNodeState state) {
     // Assume that the route is AVAILABLE.
     node->states[route] = nodeStateCreate (NODE_AVAILABLE);
 
@@ -1556,7 +1545,7 @@ nodeSetStateInitial (BREthereumLESNode node,
  * Clean up any lingering state for a non-local exit.
  */
 static void *
-nodeConnectExit (BREthereumLESNode node) {
+nodeConnectExit (BREthereumNode node) {
     //    pthread_mutex_unlock (&node->lock);
     pthread_exit (0);
     return NULL;
@@ -1566,9 +1555,9 @@ nodeConnectExit (BREthereumLESNode node) {
  * Announce the state and then clean up lingering state.
  */
 static void *
-nodeConnectFailed (BREthereumLESNode node,
-                   BREthereumLESNodeEndpointRoute route,
-                   BREthereumLESNodeState state) {
+nodeConnectFailed (BREthereumNode node,
+                   BREthereumNodeEndpointRoute route,
+                   BREthereumNodeState state) {
     nodeEndpointClose (&node->remote, route, 0);
     nodeStateAnnounce (node, route, state);
     return nodeConnectExit (node);
@@ -1578,9 +1567,9 @@ nodeConnectFailed (BREthereumLESNode node,
 //
 //
 static void *
-nodeThreadConnectUDP (BREthereumLESNode node) {
+nodeThreadConnectUDP (BREthereumNode node) {
     int error = 0;
-    BREthereumLESNodeMessageResult result;
+    BREthereumNodeMessageResult result;
     BREthereumMessage message;
 
 #if defined (__ANDROID__)
@@ -1681,9 +1670,9 @@ nodeThreadConnectUDP (BREthereumLESNode node) {
 //
 //
 static void *
-nodeThreadConnectTCP (BREthereumLESNode node) {
+nodeThreadConnectTCP (BREthereumNode node) {
     int error = 0;
-    BREthereumLESNodeMessageResult result;
+    BREthereumNodeMessageResult result;
     BREthereumMessage message;
 
 #if defined (__ANDROID__)
@@ -1893,10 +1882,10 @@ nodeThreadConnectTCP (BREthereumLESNode node) {
 
 /// MARK: Send
 
-static BREthereumLESNodeStatus
-nodeSendFailed (BREthereumLESNode node,
-                BREthereumLESNodeEndpointRoute route,
-                BREthereumLESNodeState state) {
+static BREthereumNodeStatus
+nodeSendFailed (BREthereumNode node,
+                BREthereumNodeEndpointRoute route,
+                BREthereumNodeState state) {
     nodeStateAnnounce (node, route, state);
     return NODE_STATUS_ERROR;
 }
@@ -1909,9 +1898,9 @@ nodeSendFailed (BREthereumLESNode node,
  * @param route
  * @param message
  */
-static BREthereumLESNodeStatus
-nodeSend (BREthereumLESNode node,
-          BREthereumLESNodeEndpointRoute route,
+static BREthereumNodeStatus
+nodeSend (BREthereumNode node,
+          BREthereumNodeEndpointRoute route,
           BREthereumMessage message) {
 
     int error = 0;
@@ -1979,17 +1968,17 @@ nodeSend (BREthereumLESNode node,
 
 /// MARK: Recv
 
-static BREthereumLESNodeMessageResult
-nodeRecvFailed (BREthereumLESNode node,
-                BREthereumLESNodeEndpointRoute route,
-                BREthereumLESNodeState state) {
+static BREthereumNodeMessageResult
+nodeRecvFailed (BREthereumNode node,
+                BREthereumNodeEndpointRoute route,
+                BREthereumNodeState state) {
     nodeStateAnnounce (node, route, state);
-    return (BREthereumLESNodeMessageResult) { NODE_STATUS_ERROR };
+    return (BREthereumNodeMessageResult) { NODE_STATUS_ERROR };
 }
 
-static BREthereumLESNodeMessageResult
-nodeRecv (BREthereumLESNode node,
-          BREthereumLESNodeEndpointRoute route) {
+static BREthereumNodeMessageResult
+nodeRecv (BREthereumNode node,
+          BREthereumNodeEndpointRoute route) {
     uint8_t *bytes = node->recvDataBuffer.bytes;
     size_t   bytesLimit = node->recvDataBuffer.bytesCount;
     size_t   bytesCount = 0;
@@ -2108,7 +2097,7 @@ nodeRecv (BREthereumLESNode node,
              node->remote.hostname);
 
 
-    return (BREthereumLESNodeMessageResult) {
+    return (BREthereumNodeMessageResult) {
         NODE_STATUS_SUCCESS,
         { .success = { message }}
     };
@@ -2117,7 +2106,7 @@ nodeRecv (BREthereumLESNode node,
 /// MARK: Credits
 
 static uint64_t
-nodeEstimateCredits (BREthereumLESNode node,
+nodeEstimateCredits (BREthereumNode node,
                      BREthereumMessage message) {
     switch (message.identifier) {
         case MESSAGE_P2P: return 0;
@@ -2131,24 +2120,24 @@ nodeEstimateCredits (BREthereumLESNode node,
 }
 
 static uint64_t
-nodeGetCredits (BREthereumLESNode node) {
+nodeGetCredits (BREthereumNode node) {
     return node->credits;
 }
 
 extern BREthereumBoolean
-nodeGetDiscovered (BREthereumLESNode node) {
+nodeGetDiscovered (BREthereumNode node) {
     return node->discovered;
 }
 
 extern void
-nodeSetDiscovered (BREthereumLESNode node,
+nodeSetDiscovered (BREthereumNode node,
                    BREthereumBoolean discovered) {
     node->discovered = discovered;
 }
 
 extern void
-nodeDiscover (BREthereumLESNode node,
-              BREthereumLESNodeEndpoint *endpoint) {
+nodeDiscover (BREthereumNode node,
+              BREthereumNodeEndpoint *endpoint) {
     BREthereumMessage findNodes = {
         MESSAGE_DIS,
         { .dis = {
@@ -2163,7 +2152,7 @@ nodeDiscover (BREthereumLESNode node,
 }
 
 extern void
-nodeShow (BREthereumLESNode node) {
+nodeShow (BREthereumNode node) {
     char descUDP[128], descTCP[128];
     eth_log (LES_LOG_TOPIC, "Node: %15s", node->remote.hostname);
     eth_log (LES_LOG_TOPIC, "   UDP       : %s", nodeStateDescribe (&node->states[NODE_ROUTE_UDP], descUDP));
@@ -2196,7 +2185,7 @@ _BRECDH(void *out32, const BRKey *privKey, BRKey *pubKey)
 
 
 static int // 0 on success
-_sendAuthInitiator(BREthereumLESNode node) {
+_sendAuthInitiator(BREthereumNode node) {
 
     // eth_log(LES_LOG_TOPIC, "%s", "generating auth initiator");
 
@@ -2254,7 +2243,7 @@ _sendAuthInitiator(BREthereumLESNode node) {
 }
 
 //static void
-//_readAuthFromInitiator(BREthereumLESNode node) {
+//_readAuthFromInitiator(BREthereumNode node) {
 //    BRKey* nodeKey = &node->local.key; // nodeGetKey(node);
 //    eth_log (LES_LOG_TOPIC, "%s", "received auth from initiator");
 //
@@ -2289,7 +2278,7 @@ _sendAuthInitiator(BREthereumLESNode node) {
 //}
 //
 //static void
-//_sendAuthAckToInitiator(BREthereumLESNode node) {
+//_sendAuthAckToInitiator(BREthereumNode node) {
 //    eth_log (LES_LOG_TOPIC, "%s", "generating auth ack for initiator");
 //
 //    // authRecipient -> E(remote-pubk, epubK|| nonce || 0x0)
@@ -2319,7 +2308,7 @@ _sendAuthInitiator(BREthereumLESNode node) {
 //}
 
 static int // 0 on success
-_readAuthAckFromRecipient(BREthereumLESNode node) {
+_readAuthAckFromRecipient(BREthereumNode node) {
 
     BRKey* nodeKey = &node->local.key; // nodeGetKey(node);
 

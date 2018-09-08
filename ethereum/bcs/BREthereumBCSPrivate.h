@@ -226,13 +226,13 @@ bcsSignalStatus (BREthereumBCS bcs,
 extern void
 bcsHandleProvision (BREthereumBCS bcs,
                     BREthereumLES les,
-                    BREthereumLESNodeReference node,
+                    BREthereumNodeReference node,
                     BREthereumProvisionResult result);
 
 extern void
 bcsSignalProvision (BREthereumBCS bcs,
                     BREthereumLES les,
-                    BREthereumLESNodeReference node,
+                    BREthereumNodeReference node,
                     BREthereumProvisionResult result);
 
 //
@@ -262,11 +262,11 @@ bcsSignalLog (BREthereumBCS bcs,
 //
 extern void
 bcsHandleNodes (BREthereumBCS bcs,
-                BRArrayOf(BREthereumLESNodeConfig) peers);
+                BRArrayOf(BREthereumNodeConfig) peers);
 
 extern void
 bcsSignalNodes (BREthereumBCS bcs,
-                BRArrayOf(BREthereumLESNodeConfig) peers);
+                BRArrayOf(BREthereumNodeConfig) peers);
 
 //
 // Sync
@@ -322,13 +322,13 @@ bcsSyncStart (BREthereumBCSSync sync,
 extern void
 bcsSyncHandleProvision (BREthereumBCSSyncRange range,
                         BREthereumLES les,
-                        BREthereumLESNodeReference node,
+                        BREthereumNodeReference node,
                         BREthereumProvisionResult result);
 
 extern void
 bcsSyncSignalProvision (BREthereumBCSSyncRange range,
                         BREthereumLES les,
-                        BREthereumLESNodeReference node,
+                        BREthereumNodeReference node,
                         BREthereumProvisionResult result);
 
 #ifdef __cplusplus
