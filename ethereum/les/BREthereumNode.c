@@ -38,7 +38,7 @@ static BREthereumAccountState
 hackFakeAccountStateLESProofs (uint64_t number);
 
 // #define NEED_TO_PRINT_SEND_RECV_DATA
-#define NEED_TO_AVOID_PROOFS_LOGGING
+// #define NEED_TO_AVOID_PROOFS_LOGGING
 
 #define PTHREAD_STACK_SIZE (512 * 1024)
 #define PTHREAD_NULL   ((pthread_t) NULL)

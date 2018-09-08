@@ -178,26 +178,11 @@ struct BREthereumBCSSyncRangeRecord {
     uint64_t count;
 
     /**
-     * Accumlated results - Can't always request all the block headers nor all the account states
-     * at once from LES (that *will* change).  Se we are forced to accumulate them as they arrive.
-     *
-     * We can pre-allocated `result` because we know we never ask for more than:
-     * `SYNC_N_ARY_REQUEST_MAXIMUM + 1` headers and accounts.
-     *
-     * All results have been accumulted when `resultCount == 1 + count`
+     * The result headers.  Once we get a set of headers, we make/will ask for the account state
+     * at each header.  If the account state changed between two headers, we'll need to make
+     * a recusive request for headers - for that request we'll need the header block number.
      */
-    uint64_t resultCount;
-    struct {
-        /** Identifies what we have and thus what we need */
-        BREthereumBCSSyncResultState state;
-
-        /** The header */
-        BREthereumBlockHeader header;
-
-        /** The account */
-        BREthereumAccountState account;
-
-    } result[SYNC_N_ARY_REQUEST_MAXIMUM + 1];
+    BRArrayOf(BREthereumBlockHeader) headers;
 
     /** The parent of this node.  If this is NULL, then `this` is the root node. */
     BREthereumBCSSyncRange parent;
@@ -265,7 +250,7 @@ syncRangeCreateDetailed (BREthereumAddress address,
     range->count = (type == SYNC_MIXED ? 0 : count);  // count is unused for SYNC_MIXED
     range->type  = type;
 
-    range->resultCount = 0;
+    range->headers = NULL;
 
     range->parent = NULL;
     range->children = NULL;
@@ -545,136 +530,6 @@ syncRangeComplete (BREthereumBCSSyncRange child) {
         syncRangeComplete (parent);
 }
 
-/**
- * Add a single `header` result to `range`.  If all results have been provided then: a) for a
- * N_ARY range, request the account states; or b) for a LINEAR_SMALL range, invoke the callback
- * to report the header results.
- */
-static void
-syncRangeAddResultHeader (BREthereumBCSSyncRange range,
-                          BREthereumBlockHeader header) {
-    // Extend range->result with `header`
-    range->result[range->resultCount].state = SYNC_RESULT_HEADER;
-    range->result[range->resultCount].header = header;
-    range->resultCount += 1;
-
-    // If we have all requested headers, then move on.
-    if (range->resultCount == 1 + range->count) {
-        switch (range->type) {
-            case SYNC_MIXED:
-            case SYNC_LINEAR_LARGE:
-                assert (0);
-                break;
-
-            case SYNC_N_ARY: {
-                uint64_t count = range->resultCount;
-                range->resultCount = 0;
-
-                BRArrayOf(BREthereumHash) hashes;
-                BRArrayOf(uint64_t) numbers;
-                array_new (hashes, count);
-                array_new (numbers, count);
-                for (size_t index = 0; index < count; index++) {
-                    BREthereumBlockHeader header = range->result[index].header;
-                    array_add (hashes,  blockHeaderGetHash (header));
-                    array_add (numbers, blockHeaderGetNumber(header));
-                }
-                // TODO: Free range->result
-
-                lesProvideAccountStates (range->les,
-                                         (BREthereumLESProvisionContext) range,
-                                         (BREthereumLESProvisionCallback) bcsSyncSignalProvision,
-                                         range->address,
-                                         hashes,
-                                         numbers);
-                break;
-            }
-
-            case SYNC_LINEAR_SMALL: {
-                uint64_t count = range->resultCount;
-                range->resultCount = 0;
-
-                BREthereumBCSSyncRange root = syncRangeGetRoot(range);
-
-                // TODO: Don't make `count` callback invocations; amek one with `count` headers.
-                for (size_t index = 0; index < count; index++)
-                    // `header` is now owned by `root->context`.
-                    root->callback (root->context, range, range->result[index].header, 0);
-
-                syncRangeComplete (range);
-                break;
-            }
-        }
-    }
-}
-
-/**
- * Add a single `account state` to `range`.  This only applies to a N_ARY sync.  If all results
- * have been provided then compare each pair of consecutive accounts and if different create a
- * new subrange as a child to range.  Once all accounts have been compared then dispatch on the
- * first child (if any exist).
- */
-static void
-syncRangeAddResultAccountState (BREthereumBCSSyncRange range,
-                                BREthereumAccountState accountState) {
-    // Extend range->result with accountState.
-    range->result[range->resultCount].state = SYNC_RESULT_ACCOUNT;
-    range->result[range->resultCount].account = accountState;
-    range->resultCount += 1;
-
-    if (range->resultCount == 1 + range->count) {
-        assert (SYNC_N_ARY == range->type);
-
-        // We always expect at least 1 range and thus 2 results (at the boundaries).
-        assert (range->resultCount > 1);
-
-        for (size_t index = 1; index < range->resultCount; index++) {
-            BREthereumAccountState oldState = range->result[index - 1].account;
-            BREthereumAccountState newState = range->result[index].account;
-
-            // If we found an AcountState change...
-            if (ETHEREUM_BOOLEAN_IS_FALSE(accountStateEqual(oldState, newState))) {
-                BREthereumBlockHeader oldHeader = range->result[index - 1].header;
-                BREthereumBlockHeader newHeader = range->result[index].header;
-                
-                uint64_t oldNumber = blockHeaderGetNumber(oldHeader);
-                uint64_t newNumber = blockHeaderGetNumber(newHeader);
-                
-                assert (newNumber > oldNumber);
-
-                // ... then we need to explore this header range, recursively.
-                syncRangeAddChild (range,
-                                   syncRangeCreate (range->address,
-                                                    range->les,
-                                                    range->handler,
-                                                    NULL,
-                                                    NULL,
-                                                    oldNumber,
-                                                    newNumber,
-                                                    SYNC_LINEAR_LIMIT_IF_N_ARY));
-            }
-        }
-
-        // TODO: Move this to syncRangeComplete?  Switch on type for N_ARY only?
-        
-        // Release range->result.
-        for (size_t index = 0; index < range->resultCount; index++) {
-            blockHeaderRelease(range->result[index].header);
-            // Nothing for .accountState
-        }
-        range->resultCount = 0;
-
-        // If we now have children, dispatch on the first one.  As each one completes, we'll
-        // dispatch on the subsequent ones until this N_ARY range itself completes.
-        if (NULL != range->children && array_count(range->children) > 0)
-            syncRangeDispatch(range->children[0]);
-        
-        // Otherwise nothing left, completely complete here and now.
-        else
-            syncRangeComplete(range);
-    }
-}
-
 ///
 /// MARK: Sync
 ///
@@ -899,28 +754,120 @@ bcsSyncStop (BREthereumBCSSync sync) {
 /// MARK: - Sync Handle Block Header / Account State
 ///
 
-/** Handle a LES callback for BlockHeader */
+/**
+ * Given all block headers then: a) for a N_ARY range, request the account states; or b) for a
+ * LINEAR_SMALL range, invoke the callback to report the header results.
+ */
 static void
 bcsSyncHandleBlockHeaders (BREthereumBCSSyncRange range,
                            BRArrayOf(BREthereumBlockHeader) headers) {
     assert (1 + range->count == array_count(headers));
+    size_t count = array_count(headers);
 
-    for (size_t index = 0; index < array_count(headers); index++)
-        syncRangeAddResultHeader(range, headers[index]);
+    switch (range->type) {
+        case SYNC_MIXED:
+        case SYNC_LINEAR_LARGE:
+            assert (0);
+            break;
+
+        case SYNC_N_ARY: {
+            // Save the headers... for use with account states.
+            range->headers = headers;
+
+            // Setup a call to lesProvideAccountStates()
+            BRArrayOf(BREthereumHash) hashes;
+            BRArrayOf(uint64_t) numbers;
+
+            array_new (hashes, count);
+            array_new (numbers, count);
+
+            for (size_t index = 0; index < count; index++) {
+                array_add (hashes,  blockHeaderGetHash (headers[index]));
+                array_add (numbers, blockHeaderGetNumber(headers[index]));
+            }
+
+            lesProvideAccountStates (range->les,
+                                     (BREthereumLESProvisionContext) range,
+                                     (BREthereumLESProvisionCallback) bcsSyncSignalProvision,
+                                     range->address,
+                                     hashes,
+                                     numbers);
+            break;
+        }
+
+        case SYNC_LINEAR_SMALL: {
+            BREthereumBCSSyncRange root = syncRangeGetRoot(range);
+
+            // TODO: Don't make `count` callback invocations; amek one with `count` headers.
+            for (size_t index = 0; index < count; index++)
+                // `header` is now owned by `root->context`.
+                root->callback (root->context, range, headers[index], 0);
+
+            syncRangeComplete (range);
+            break;
+        }
+    }
 }
 
-/** Handle a LES callback for Account State */
-
+/**
+ * Given all the accoun states, compare each pair of consecutive accounts and if different create a
+ * new subrange as a child to range.  Once all accounts have been compared then dispatch on the
+ * first child (if any exist).
+ */
 static void
 bcsSyncHandleAccountStates (BREthereumBCSSyncRange range,
                             BREthereumAddress address,
                             BRArrayOf(BREthereumHash) hashes,
                             BRArrayOf(BREthereumAccountState) states) {
-    assert (1 + range->count == array_count(states));
-    assert (array_count(hashes) == array_count(states));
+    size_t count = array_count(states);
 
-    for (size_t index = 0; index < array_count(states); index++)
-        syncRangeAddResultAccountState (range, states[index]);
+    assert (1 + range->count == count);
+    assert (array_count(hashes) == count);
+
+    assert (SYNC_N_ARY == range->type);
+
+    for (size_t index = 1; index < count; index++) {
+        BREthereumAccountState oldState = states[index - 1];
+        BREthereumAccountState newState = states[index];
+
+        // If we found an AcountState change...
+        if (ETHEREUM_BOOLEAN_IS_FALSE(accountStateEqual(oldState, newState))) {
+            BREthereumBlockHeader oldHeader = range->headers[index - 1];
+            BREthereumBlockHeader newHeader = range->headers[index];
+
+            uint64_t oldNumber = blockHeaderGetNumber(oldHeader);
+            uint64_t newNumber = blockHeaderGetNumber(newHeader);
+
+            assert (newNumber > oldNumber);
+
+            // ... then we need to explore this header range, recursively.
+            syncRangeAddChild (range,
+                               syncRangeCreate (range->address,
+                                                range->les,
+                                                range->handler,
+                                                NULL,
+                                                NULL,
+                                                oldNumber,
+                                                newNumber,
+                                                SYNC_LINEAR_LIMIT_IF_N_ARY));
+        }
+    }
+    // TODO: Move this to syncRangeComplete?  Switch on type for N_ARY only?
+
+    // Release range->result.
+    for (size_t index = 0; index < count; index++)
+        blockHeaderRelease(range->headers[index]);
+    array_free(range->headers);
+    range->headers = NULL;
+
+    // If we now have children, dispatch on the first one.  As each one completes, we'll
+    // dispatch on the subsequent ones until this N_ARY range itself completes.
+    if (NULL != range->children && array_count(range->children) > 0)
+        syncRangeDispatch(range->children[0]);
+
+    // Otherwise nothing left, completely complete here and now.
+    else
+        syncRangeComplete(range);
 }
 
 /**
