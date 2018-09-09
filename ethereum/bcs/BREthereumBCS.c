@@ -1593,10 +1593,12 @@ bcsSyncReportBlocksCallback (BREthereumBCS bcs,
                              BRArrayOf(BREthereumBCSSyncResult) results) {
     if (NULL == results) return;
 
+    // Extract the result's header.
+    size_t count = array_count(results);
     BRArrayOf(BREthereumBlockHeader) headers;
-    array_new (headers, array_count(results));
+    array_new (headers, count);
 
-    for (size_t index = 0; index < array_count(headers); index++)
+    for (size_t index = 0; index < count; index++)
         array_add (headers, results[index].header);
     array_free(results);
     

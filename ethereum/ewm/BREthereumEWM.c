@@ -954,7 +954,7 @@ ewmHandleSync (BREthereumEWM ewm,
     BREthereumEWMEvent event = (blockNumberCurrent == blockNumberStart
                                 ? EWM_EVENT_SYNC_STARTED
                                 : (blockNumberCurrent == blockNumberStop
-                                   ? EWM_EVENT_SYNC_STARTED
+                                   ? EWM_EVENT_SYNC_STOPPED
                                    : EWM_EVENT_SYNC_CONTINUES));
     double syncCompletePercent = 100.0 * (blockNumberCurrent - blockNumberStart) / (blockNumberStop - blockNumberStart);
 

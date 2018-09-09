@@ -681,8 +681,8 @@ bcsSyncStart (BREthereumBCSSync sync,
     if (NULL != sync->root) return;
 
     // Only do something if we need something.
+    if (needBlockNumber <= chainBlockNumber) return;
     uint64_t total = needBlockNumber - chainBlockNumber;
-    if (0 == total) return;
 
     // We MUST have the last N headers be from a linear sync.  This is required to 'fill the
     // BCS chain' and allows `needBlockNumber` to be the head (bcs->chain) which then allows
@@ -783,7 +783,7 @@ bcsSyncHandleBlockHeaders (BREthereumBCSSyncRange range,
 
             for (size_t index = 0; index < count; index++) {
                 array_add (hashes,  blockHeaderGetHash (headers[index]));
-                array_add (numbers, blockHeaderGetNumber(headers[index]));
+                array_add (numbers, blockHeaderGetNumber (headers[index]));
             }
 
             lesProvideAccountStates (range->les,
@@ -798,7 +798,7 @@ bcsSyncHandleBlockHeaders (BREthereumBCSSyncRange range,
         case SYNC_LINEAR_SMALL: {
             BREthereumBCSSyncRange root = syncRangeGetRoot(range);
 
-            // TODO: Don't make `count` callback invocations; amek one with `count` headers.
+            // TODO: Don't make `count` callback invocations; make one with `count` headers.
             for (size_t index = 0; index < count; index++)
                 // `header` is now owned by `root->context`.
                 root->callback (root->context, range, headers[index], 0);
