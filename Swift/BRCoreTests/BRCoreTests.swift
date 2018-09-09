@@ -7,7 +7,7 @@
 //
 
 import XCTest
-@testable import BRCore
+import BRCore
 
 class BRCoreTests: XCTestCase {
     
@@ -223,5 +223,12 @@ class TestLightClient : EthereumClient {
             break;
         }
     }
+
+    func saveNodes(ewm: EthereumWalletManager) {
+        print ("TST: SaveNodes")
+
+    }
+
+
 }
 

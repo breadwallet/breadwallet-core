@@ -190,7 +190,7 @@ extern void
     unsigned old_tail = (8 - hashCtx->byteIndex) & 7;
 
     size_t words;
-    unsigned tail;
+    unsigned long tail;
     size_t i;
 
     const uint8_t *buf = input;

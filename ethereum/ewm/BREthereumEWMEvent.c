@@ -299,7 +299,7 @@ ewmSignalSaveBlocks (BREthereumEWM ewm,
 typedef struct {
     BREvent base;
     BREthereumEWM ewm;
-    BRArrayOf(BREthereumLESNodeConfig) nodes;
+    BRArrayOf(BREthereumNodeConfig) nodes;
 } BREthereumHandleSaveNodesEvent;
 
 static void
@@ -316,7 +316,7 @@ BREventType handleSaveNodesEventType = {
 
 extern void
 ewmSignalSaveNodes (BREthereumEWM ewm,
-                    BRArrayOf(BREthereumLESNodeConfig) nodes) {
+                    BRArrayOf(BREthereumNodeConfig) nodes) {
     BREthereumHandleSaveNodesEvent event = { { NULL, &handleSaveNodesEventType }, ewm, nodes };
     eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
 }

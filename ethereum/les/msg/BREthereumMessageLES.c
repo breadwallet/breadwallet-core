@@ -1,8 +1,8 @@
 //
-//  BREthereumLESMessage.c
+//  BREthereumMessageLES.c
 //  Core
 //
-//  Created by Ed Gamble on 8/13/18.
+//  Created by Ed Gamble on 9/1/18.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,9 +23,8 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include <assert.h>
-#include <sys/socket.h>
-#include "BREthereumLESMessage.h"
+#include "../../blockchain/BREthereumBlockChain.h"
+#include "BREthereumMessageLES.h"
 
 // GETH Limits
 // MaxHeaderFetch           = 192 // Amount of block headers to be fetched per retrieval request
@@ -37,544 +36,12 @@
 // MaxTxSend                = 64  // Amount of transactions to be send per request
 // MaxTxStatus              = 256 // Amount of transactions to queried per request
 
-// #define NEED_TO_PRINT_DIS_NEIGHBOR_DETAILS
-
 static BREthereumLESMessageStatusKey lesMessageStatusKeys[] = {
     "protocolVersion",
     "networkId",
     //...
     "flowControl/MRR"
 };
-
-/// MARK: - P2P (Peer-to-Peer) Messages
-
-static const char *messageP2PNames[] = { "Hello", "Disconnect", "Ping", "Pong" };
-
-extern const char *
-messageP2PGetIdentifierName (BREthereumP2PMessageIdentifier identifier) {
-    return messageP2PNames [identifier];
-}
-
-//
-// P2P Hello
-//
-extern BRRlpItem
-messageP2PHelloEncode (BREthereumP2PMessageHello message, BREthereumMessageCoder coder) {
-    size_t capsCount = array_count(message.capabilities);
-    BRRlpItem capItems[capsCount];
-
-    for(int i = 0; i < capsCount; ++i)
-        capItems[i] = rlpEncodeList (coder.rlp, 2,
-                                     rlpEncodeString (coder.rlp, message.capabilities[i].name),
-                                     rlpEncodeUInt64 (coder.rlp, message.capabilities[i].version, 1));
-
-    BRRlpItem capsItem = rlpEncodeListItems(coder.rlp, capItems, capsCount);
-
-    return rlpEncodeList (coder.rlp, 5,
-                          rlpEncodeUInt64 (coder.rlp, message.version, 1),
-                          rlpEncodeString (coder.rlp, message.clientId),
-                          capsItem,
-                          rlpEncodeUInt64 (coder.rlp, 0x00, 1),
-                          rlpEncodeBytes (coder.rlp, message.nodeId.u8, sizeof (message.nodeId.u8)));
-}
-
-extern BREthereumP2PMessageHello
-messageP2PHelloDecode (BRRlpItem item, BREthereumMessageCoder coder) {
-    size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
-    assert (5 == itemsCount);
-
-    BREthereumP2PMessageHello message = {
-        rlpDecodeUInt64 (coder.rlp, items[0], 1),
-        rlpDecodeString (coder.rlp, items[1]),
-        NULL,
-        rlpDecodeUInt64 (coder.rlp, items[3], 1),
-    };
-
-    BRRlpData nodeData = rlpDecodeBytesSharedDontRelease (coder.rlp, items[4]);
-    assert (sizeof (message.nodeId.u8) == nodeData.bytesCount);
-    memcpy (message.nodeId.u8, nodeData.bytes, nodeData.bytesCount);
-
-    size_t capsCount = 0;
-    const BRRlpItem *capItems = rlpDecodeList (coder.rlp, items[2], &capsCount);
-    array_new (message.capabilities, capsCount);
-    
-    for (size_t index = 0; index < capsCount; index++) {
-        size_t capCount;
-        const BRRlpItem *caps = rlpDecodeList (coder.rlp, capItems[index], &capCount);
-        assert (2 == capCount);
-
-        BREthereumP2PCapability cap;
-
-        char *name = rlpDecodeString (coder.rlp, caps[0]);
-        // We've seen 'hive' here - restrict to 3
-        strncpy (cap.name, name, 3);
-        cap.name[3] = '\0';
-
-        cap.version = (uint32_t) rlpDecodeUInt64 (coder.rlp, caps[1], 1);
-
-        array_add (message.capabilities, cap);
-    }
-
-    return message;
-}
-
-extern void
-messageP2PHelloShow (BREthereumP2PMessageHello hello) {
-    size_t nodeIdLen = 2 * sizeof (hello.nodeId.u8) + 1;
-    char nodeId[nodeIdLen];
-    encodeHex(nodeId, nodeIdLen, hello.nodeId.u8, sizeof (hello.nodeId.u8));
-
-    eth_log (LES_LOG_TOPIC, "Hello%s", "");
-    eth_log (LES_LOG_TOPIC, "    Version     : %llu", hello.version);
-    eth_log (LES_LOG_TOPIC, "    ClientId    : %s",   hello.clientId);
-    eth_log (LES_LOG_TOPIC, "    ListenPort  : %llu", hello.port);
-    eth_log (LES_LOG_TOPIC, "    NodeId      : 0x%s", nodeId);
-    eth_log (LES_LOG_TOPIC, "    Capabilities:%s", "");
-    for (size_t index = 0; index < array_count(hello.capabilities); index++)
-        eth_log (LES_LOG_TOPIC, "        %s = %u",
-                 hello.capabilities[index].name,
-                 hello.capabilities[index].version);
-}
-
-extern BREthereumBoolean
-messageP2PCababilityEqual (const BREthereumP2PCapability *cap1,
-                           const BREthereumP2PCapability *cap2) {
-    return AS_ETHEREUM_BOOLEAN (0 == strcmp (cap1->name, cap2->name) &&
-                                cap1->version == cap2->version);
-}
-
-extern BREthereumBoolean
-messageP2PHelloHasCapability (const BREthereumP2PMessageHello *hello,
-                              const BREthereumP2PCapability *capability) {
-    for (size_t index = 0; index < array_count (hello->capabilities); index++)
-        if (ETHEREUM_BOOLEAN_IS_TRUE(messageP2PCababilityEqual(capability, &hello->capabilities[index])))
-            return ETHEREUM_BOOLEAN_TRUE;
-    return ETHEREUM_BOOLEAN_FALSE;
-}
-
-static const char *disconnectReasonNames[] = {
-    "Requested",
-    "TCP Error",
-    "Breach Proto",
-    "Useless Peer",
-    "Too Many Peers",
-    "Already Connected",
-    "Incompatible P2P",
-    "Null Node",
-    "Client Quit",
-    "Unexpected ID",
-    "ID Same",
-    "Timeout",
-    "Unknown"
-};
-extern const char *
-messageP2PDisconnectDescription (BREthereumP2PDisconnectReason identifier) {
-    return disconnectReasonNames [identifier];
-}
-
-//
-static BREthereumP2PMessageDisconnect
-messageP2PDisconnectDecode (BRRlpItem item, BREthereumMessageCoder coder) {
-    BREthereumP2PMessageDisconnect disconnect;
-
-    size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
-    assert (1 == itemsCount);
-
-    disconnect.reason = (BREthereumP2PDisconnectReason) rlpDecodeUInt64 (coder.rlp, items[0], 1);
-
-    return disconnect;
-}
-
-//
-// P2P
-//
-extern BRRlpItem
-messageP2PEncode (BREthereumP2PMessage message, BREthereumMessageCoder coder) {
-    BRRlpItem messageBody = NULL;
-    switch (message.identifier) {
-        case P2P_MESSAGE_HELLO:
-            messageBody = messageP2PHelloEncode(message.u.hello, coder);
-            break;
-        case P2P_MESSAGE_PING:
-        case P2P_MESSAGE_PONG:
-            messageBody = rlpEncodeList (coder.rlp, 0);
-            break;
-        case P2P_MESSAGE_DISCONNECT:
-            messageBody = rlpEncodeUInt64 (coder.rlp, message.u.disconnect.reason, 1);
-            break;
-    }
-    BRRlpItem identifierItem = rlpEncodeUInt64 (coder.rlp, message.identifier, 1);
-
-    return rlpEncodeList2 (coder.rlp, identifierItem, messageBody);
-}
-
-static BREthereumP2PMessage
-messageP2PDecode (BRRlpItem item, BREthereumMessageCoder coder, BREthereumP2PMessageIdentifier identifer) {
-    switch (identifer) {
-        case P2P_MESSAGE_HELLO:
-            return (BREthereumP2PMessage) {
-                P2P_MESSAGE_HELLO,
-                { .hello = messageP2PHelloDecode (item, coder) }
-            };
-
-        case P2P_MESSAGE_PING:
-            return (BREthereumP2PMessage) {
-                P2P_MESSAGE_PING,
-                { .ping = {}}
-            };
-
-        case P2P_MESSAGE_PONG:
-            return (BREthereumP2PMessage) {
-                P2P_MESSAGE_PONG,
-                { .pong = {} }
-            };
-
-        case P2P_MESSAGE_DISCONNECT:
-            return (BREthereumP2PMessage) {
-                P2P_MESSAGE_DISCONNECT,
-                { .disconnect = messageP2PDisconnectDecode (item, coder) }
-            };
-    }
-}
-
-/// MARK: - DIS (Node Discovery) Messages
-
-static const char *messageDISNames[] = { NULL, "Ping", "Pong", "FindNeighbors", "Neighbors" };
-
-extern const char *
-messageDISGetIdentifierName (BREthereumDISMessageIdentifier identifier) {
-    return messageDISNames [identifier];
-}
-
-//
-// DIS Endpoint Encode/Decode
-//
-extern BRRlpItem
-endpointDISEncode (const BREthereumDISEndpoint *endpoint, BRRlpCoder coder) {
-    return rlpEncodeList (coder, 3,
-                          (endpoint->domain == AF_INET
-                           ? rlpEncodeBytes (coder, (uint8_t*) endpoint->addr.ipv4, 4)
-                           : rlpEncodeBytes (coder, (uint8_t*) endpoint->addr.ipv6, 16)),
-                          rlpEncodeUInt64 (coder, endpoint->portUDP, 1),
-                          rlpEncodeUInt64 (coder, endpoint->portTCP, 1));
-}
-
-extern BREthereumDISEndpoint
-endpointDISDecode (BRRlpItem item, BRRlpCoder coder) {
-    BREthereumDISEndpoint endpoint;
-
-    size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
-    assert (3 == itemsCount);
-
-    BRRlpData addrData = rlpDecodeBytesSharedDontRelease (coder, items[0]);
-    assert (4 == addrData.bytesCount || 16 == addrData.bytesCount);
-    endpoint.domain = (4 == addrData.bytesCount ? AF_INET : AF_INET6);
-    memcpy ((endpoint.domain == AF_INET ? endpoint.addr.ipv4 : endpoint.addr.ipv6),
-            addrData.bytes,
-            addrData.bytesCount);
-
-    endpoint.portUDP = (uint16_t) rlpDecodeUInt64 (coder, items[1], 1);
-    endpoint.portTCP = (uint16_t) rlpDecodeUInt64 (coder, items[2], 1);
-
-    return endpoint;
-}
-
-//
-// DIS Neighbor Encode/Decode
-//
-static BREthereumDISNeighbor
-neighborDISDecode (BRRlpItem item, BREthereumMessageCoder coder) {
-    BREthereumDISNeighbor neighbor;
-
-    size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
-    assert (4 == itemsCount);
-
-    // Node ID
-    // Endpoint - Somehow GETH explodes it.
-    BRRlpData addrData = rlpDecodeBytesSharedDontRelease (coder.rlp, items[0]);
-    assert (4 == addrData.bytesCount || 16 == addrData.bytesCount);
-    neighbor.node.domain = (4 == addrData.bytesCount ? AF_INET : AF_INET6);
-    memcpy ((neighbor.node.domain == AF_INET ? neighbor.node.addr.ipv4 : neighbor.node.addr.ipv6),
-            addrData.bytes,
-            addrData.bytesCount);
-
-    BRRlpData nodeIDData = rlpDecodeBytesSharedDontRelease (coder.rlp, items[3]);
-    assert (64 == nodeIDData.bytesCount);
-    memcpy (neighbor.nodeID.u8, nodeIDData.bytes, nodeIDData.bytesCount);
-
-    neighbor.node.portUDP = (uint16_t) rlpDecodeUInt64 (coder.rlp, items[1], 1);
-    neighbor.node.portTCP = (uint16_t) rlpDecodeUInt64 (coder.rlp, items[2], 1);
-
-    return neighbor;
-}
-
-extern BREthereumDISMessagePing
-messageDISPingCreate (BREthereumDISEndpoint to,
-                      BREthereumDISEndpoint from,
-                      uint64_t expiration) {
-    return (BREthereumDISMessagePing) { 4, to, from, expiration };
-}
-
-static BRRlpItem
-messageDISPingEncode (BREthereumDISMessagePing message, BREthereumMessageCoder coder) {
-    return rlpEncodeList (coder.rlp, 4,
-                          rlpEncodeUInt64 (coder.rlp, message.version, 1),
-                          endpointDISEncode (&message.from, coder.rlp),
-                          endpointDISEncode (&message.to, coder.rlp),
-                          rlpEncodeUInt64 (coder.rlp, message.expiration, 1));
-}
-
-static BREthereumDISMessagePing
-messageDISPingDecode (BRRlpItem item, BREthereumMessageCoder coder, BREthereumHash hash, int releaseItem) {
-    BREthereumDISMessagePing ping;
-
-    size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
-    assert (4 == itemsCount);
-
-    ping.version = (int) rlpDecodeUInt64 (coder.rlp, items[0], 1);
-    ping.from = endpointDISDecode (items[1], coder.rlp);
-    ping.to   = endpointDISDecode (items[2], coder.rlp);
-    ping.expiration = rlpDecodeUInt64 (coder.rlp, items[3], 1);
-
-    ping.hash = hash;
-
-    if (releaseItem) rlpReleaseItem (coder.rlp, item);
-    return ping;
-}
-
-/// MARK: DIS Pong
-
-extern BREthereumDISMessagePong
-messageDISPongCreate (BREthereumDISEndpoint to,
-                      BREthereumHash pingHash,
-                      uint64_t expiration) {
-    return (BREthereumDISMessagePong) { to, pingHash, expiration };
-}
-
-static BRRlpItem
-messageDISPongEncode (BREthereumDISMessagePong message, BREthereumMessageCoder coder) {
-    return rlpEncodeList (coder.rlp, 3,
-                          endpointDISEncode (&message.to, coder.rlp),
-                          hashRlpEncode (message.pingHash, coder.rlp),
-                          rlpEncodeUInt64 (coder.rlp, message.expiration, 1));
-}
-
-static BREthereumDISMessagePong
-messageDISPongDecode (BRRlpItem item, BREthereumMessageCoder coder, int releaseItem) {
-    BREthereumDISMessagePong pong;
-
-    size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
-    assert (3 == itemsCount);
-
-    pong.to = endpointDISDecode (items[0], coder.rlp);
-    pong.pingHash = hashRlpDecode (items[1], coder.rlp);
-    pong.expiration = rlpDecodeUInt64 (coder.rlp, items[2], 1);
-
-    if (releaseItem) rlpReleaseItem (coder.rlp, item);
-    return pong;
-}
-
-/// MARK: DIS Find Neighbors
-
-extern BREthereumDISMessageFindNeighbors
-messageDISFindNeighborsCreate (BRKey target,
-                               uint64_t expiration) {
-    return (BREthereumDISMessageFindNeighbors) { target, expiration };
-}
-
-static BRRlpItem
-messageDISFindNeighborsEncode (BREthereumDISMessageFindNeighbors message, BREthereumMessageCoder coder) {
-    assert (!message.target.compressed);
-
-    uint8_t pubKey[65];
-    BRKeyPubKey (&message.target, pubKey, 65);
-
-    return rlpEncodeList2 (coder.rlp,
-                           rlpEncodeBytes (coder.rlp, &pubKey[1], 64),
-                           rlpEncodeUInt64 (coder.rlp, message.expiration, 1));
-}
-
-static BREthereumDISMessageNeighbors
-messageDISNeighborsDecode (BRRlpItem item, BREthereumMessageCoder coder, int releaseItem) {
-    BREthereumDISMessageNeighbors message;
-
-    size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
-    assert (2 == itemsCount);
-
-    size_t neighborsCount = 0;
-    const BRRlpItem *neighborItems = rlpDecodeList (coder.rlp, items[0], &neighborsCount);
-
-    array_new(message.neighbors, neighborsCount);
-    for (size_t index = 0; index < neighborsCount; index++)
-        array_add (message.neighbors,
-                   neighborDISDecode (neighborItems[index], coder));
-
-#if defined (NEED_TO_PRINT_DIS_NEIGHBOR_DETAILS)
-    eth_log (LES_LOG_TOPIC, "Neighbors: %s", "");
-    for (size_t index = 0; index < neighborsCount; index++) {
-        BREthereumDISNeighbor neighbor = message.neighbors[index];
-        eth_log (LES_LOG_TOPIC, "    IP: %3d.%3d.%3d.%3d, UDP: %6d, TCP: %6d",
-            neighbor.node.addr.ipv4[0],
-            neighbor.node.addr.ipv4[1],
-            neighbor.node.addr.ipv4[2],
-            neighbor.node.addr.ipv4[3],
-            neighbor.node.portUDP,
-            neighbor.node.portTCP);
-    }
-#endif
-
-    message.expiration = rlpDecodeUInt64 (coder.rlp, items[1], 1);
-
-    if (releaseItem) rlpReleaseItem (coder.rlp, item);
-
-    return message;
-}
-
-// https://github.com/ethereum/devp2p/blob/master/discv4.md
-// Node discovery messages are sent as UDP datagrams. The maximum size of any packet is 1280 bytes.
-//    packet = packet-header || packet-data
-// Every packet starts with a header:
-//    packet-header = hash || signature || packet-type
-//    hash = keccak256(signature || packet-type || packet-data)
-//    signature = sign(packet-type || packet-data)
-
-typedef struct {
-    BREthereumHash hash;
-    BREthereumSignatureRSV signature;
-    uint8_t identifier;
-    uint8_t data[0];  // 'Pro Skill'
-} BREthereumDISMessagePacket;
-
-static_assert (98 == sizeof (BREthereumDISMessagePacket), "BREthereumDISMessagePacket must be 98 bytes");
-
-extern BREthereumDISMessage
-messageDISDecode (BRRlpItem item,
-                  BREthereumMessageCoder coder) {
-    // ITEM is encoded bytes as (hash || signature || identifier || data)
-    BRRlpData packetData = rlpDecodeBytesSharedDontRelease (coder.rlp, item);
-
-    // Overaly packet on the packetData.  We've constructed BREthereumDISMessagePacket so as
-    // to make this viable.
-    BREthereumDISMessagePacket *packet = (BREthereumDISMessagePacket*) packetData.bytes;
-    size_t packetSize = sizeof (BREthereumDISMessagePacket);
-
-    // TODO: Use packet->hash + packet->signature to validate the packet.
-
-    // Get the identifier and then decode the message contents
-    BREthereumDISMessageIdentifier identifier = packet->identifier;
-
-    // Get the rlpItem from packet->data
-    BRRlpData messageData = { packetData.bytesCount - packetSize, &packetData.bytes[packetSize] };
-    BRRlpItem messageItem = rlpGetItem (coder.rlp, messageData);
-
-    switch (identifier) {
-        case DIS_MESSAGE_PONG:
-            return (BREthereumDISMessage) {
-                DIS_MESSAGE_PONG,
-                { .pong = messageDISPongDecode (messageItem, coder, 1) }
-            };
-
-        case DIS_MESSAGE_NEIGHBORS:
-            return (BREthereumDISMessage) {
-                DIS_MESSAGE_NEIGHBORS,
-                { .neighbors = messageDISNeighborsDecode (messageItem, coder, 1) }
-            };
-
-        case DIS_MESSAGE_PING:
-            return (BREthereumDISMessage) {
-                DIS_MESSAGE_PING,
-                { .ping = messageDISPingDecode (messageItem, coder, packet->hash, 1) }
-            };
-
-        case DIS_MESSAGE_FIND_NEIGHBORS:
-            assert (0);
-    }
-}
-
-static BRRlpItem
-messageDISEncode (BREthereumDISMessage message,
-                  BREthereumMessageCoder coder) {
-    BRRlpItem bodyItem;
-
-    switch (message.identifier) {
-        case DIS_MESSAGE_PING:
-            bodyItem = messageDISPingEncode (message.u.ping, coder);
-            break;
-            
-        case DIS_MESSAGE_FIND_NEIGHBORS:
-            bodyItem = messageDISFindNeighborsEncode (message.u.findNeighbors, coder);
-            break;
-
-        case DIS_MESSAGE_PONG:
-            bodyItem = messageDISPongEncode (message.u.pong, coder);
-            break;
-
-        case DIS_MESSAGE_NEIGHBORS:
-            assert (0);
-    }
-    BRKey key = message.privateKeyForSigning;
-
-    BRRlpData data = rlpGetDataSharedDontRelease (coder.rlp, bodyItem);
-
-    // We are producing a 'packet' which as described above is a concatenation of a header and
-    // data where the header IS NOT rlp encoded but the data IS rlp encoded.  We will take the
-    // following approach: RLP encode the data (which is above as `bodyItem`), populate the header,
-    // concatenate the head with the data (bytes), AND THEN, RLP encode the whole thing as bytes.
-
-    // Then, like our other 'send' routines - we strip off the RLP length.  Why?  We'll all guess...
-    // Because 'the Ethereum guys' want to save max 9 bytes (typically 2-4) over RLP consistency?
-
-    // Given the data.bytesCount we can stack allocate all the bytes we'll need for the packet.
-    // Somewhere in Ethereum documentation, is states that DIS messages (using UDP) are limited to
-    // ~1500 bytes.
-    assert (data.bytesCount < 8 * 1024);
-
-    // Okay, the stack allocation.
-    size_t packetSize = sizeof (BREthereumDISMessagePacket) + data.bytesCount;
-    uint8_t packetMemory[packetSize];
-    memset (packetMemory, 0x00, packetSize);
-
-    // Overlay a packet on the packetMemory;
-    BREthereumDISMessagePacket *packet = (BREthereumDISMessagePacket*) packetMemory;
-
-    // Fill in the identifier and the data
-    memcpy (packet->data, data.bytes, data.bytesCount);
-    packet->identifier = message.identifier;
-
-    // Compute the signature over (identifier || data)
-    size_t signatureSize = 65;
-    BRRlpData signatureData = { 1 + data.bytesCount, (uint8_t *) &packet->identifier };
-    packet->signature = signatureCreate (SIGNATURE_TYPE_RECOVERABLE_RSV,
-                                         signatureData.bytes, signatureData.bytesCount,
-                                         key).sig.rsv;
-
-    // Compute the hash over ( signature || identifier || data )
-    BRRlpData hashData = { signatureSize + 1 + data.bytesCount, (uint8_t*) &packet->signature };
-    packet->hash = hashCreateFromData (hashData);
-
-#if defined (NEED_TO_PRINT_DIS_HEADER_DETAILS)
-    {
-        size_t ignore;
-        printf ("DATA     : %s\n", encodeHexCreate(&ignore, data.bytes, data.bytesCount));
-        printf ("SIG      : %s\n", encodeHexCreate(&ignore, (uint8_t*) &packet->signature, 65));
-
-        printf ("HASH DATA: %s\n", encodeHexCreate(&ignore, hashData.bytes, hashData.bytesCount));
-        printf ("HASH RSLT: %s\n", hashAsString(packet->hash));
-        printf ("PACKET: %s\n", encodeHexCreate(&ignore, packetMemory, packetSize));
-    }
-#endif
-    rlpReleaseItem(coder.rlp, bodyItem);
-
-    // Now, finally, `packet` and `packetMemory` are complete.
-    return rlpEncodeBytes (coder.rlp, packetMemory, packetSize);
-}
 
 /// MARK: - LES (Light Ethereum Subprotocol) Messages
 
@@ -693,7 +160,7 @@ messageLESStatusCreate (uint64_t protocolVersion,
                         BREthereumHash genesisHash,
                         uint64_t announceType) {
     return (BREthereumLESMessageStatus) {
-        protocolVersion,            // 2
+        protocolVersion,            // If protocolVersion is LESv2 ...
         chainId,
         headNum,
         headHash,
@@ -711,7 +178,7 @@ messageLESStatusCreate (uint64_t protocolVersion,
         NULL,
         NULL,
 
-        announceType                // 1
+        announceType                // then announceType is 1 ()
     };
 }
 
@@ -722,42 +189,42 @@ messageLESStatusEncode (BREthereumLESMessageStatus *status, BREthereumMessageCod
     BRRlpItem items[15];
 
     items[index++] = rlpEncodeList2 (coder.rlp,
-                                      rlpEncodeString(coder.rlp, "protocolVersion"),
-                                      rlpEncodeUInt64(coder.rlp, status->protocolVersion,1));
-    
-    items[index++] = rlpEncodeList2 (coder.rlp,
-                                      rlpEncodeString(coder.rlp, "networkId"),
-                                      rlpEncodeUInt64(coder.rlp, status->chainId,1));
+                                     rlpEncodeString(coder.rlp, "protocolVersion"),
+                                     rlpEncodeUInt64(coder.rlp, status->protocolVersion,1));
 
     items[index++] = rlpEncodeList2 (coder.rlp,
-                                      rlpEncodeString(coder.rlp, "headTd"),
-                                      rlpEncodeUInt256(coder.rlp, status->headTd,1));
-    
-    items[index++] = rlpEncodeList2(coder.rlp,
-                                     rlpEncodeString(coder.rlp, "headHash"),
-                                     hashRlpEncode(status->headHash, coder.rlp));
-    
-    items[index++] = rlpEncodeList2(coder.rlp,
-                                     rlpEncodeString(coder.rlp, "headNum"),
-                                     rlpEncodeUInt64(coder.rlp, status->headNum,1));
-    
+                                     rlpEncodeString(coder.rlp, "networkId"),
+                                     rlpEncodeUInt64(coder.rlp, status->chainId,1));
+
     items[index++] = rlpEncodeList2 (coder.rlp,
-                                      rlpEncodeString(coder.rlp, "genesisHash"),
-                                      hashRlpEncode(status->genesisHash, coder.rlp));
-    
+                                     rlpEncodeString(coder.rlp, "headTd"),
+                                     rlpEncodeUInt256(coder.rlp, status->headTd,1));
+
+    items[index++] = rlpEncodeList2(coder.rlp,
+                                    rlpEncodeString(coder.rlp, "headHash"),
+                                    hashRlpEncode(status->headHash, coder.rlp));
+
+    items[index++] = rlpEncodeList2(coder.rlp,
+                                    rlpEncodeString(coder.rlp, "headNum"),
+                                    rlpEncodeUInt64(coder.rlp, status->headNum,1));
+
+    items[index++] = rlpEncodeList2 (coder.rlp,
+                                     rlpEncodeString(coder.rlp, "genesisHash"),
+                                     hashRlpEncode(status->genesisHash, coder.rlp));
+
     if(ETHEREUM_BOOLEAN_IS_TRUE(status->serveHeaders))
         items[index++] = rlpEncodeList1 (coder.rlp,
-                                          rlpEncodeString(coder.rlp, "serveHeaders"));
+                                         rlpEncodeString(coder.rlp, "serveHeaders"));
 
     if (status->serveChainSince != NULL)
         items[index++] = rlpEncodeList2 (coder.rlp,
-                                          rlpEncodeString(coder.rlp, "serveChainSince"),
-                                          rlpEncodeUInt64(coder.rlp, *(status->serveChainSince),1));
+                                         rlpEncodeString(coder.rlp, "serveChainSince"),
+                                         rlpEncodeUInt64(coder.rlp, *(status->serveChainSince),1));
 
     if (status->serveStateSince != NULL)
         items[index++] = rlpEncodeList2 (coder.rlp,
-                                          rlpEncodeString(coder.rlp, "serveStateSince"),
-                                          rlpEncodeUInt64(coder.rlp, *(status->serveStateSince),1));
+                                         rlpEncodeString(coder.rlp, "serveStateSince"),
+                                         rlpEncodeUInt64(coder.rlp, *(status->serveStateSince),1));
 
     if(ETHEREUM_BOOLEAN_IS_TRUE(status->txRelay))
         items[index++] = rlpEncodeList1 (coder.rlp, rlpEncodeString(coder.rlp, "txRelay"));
@@ -765,8 +232,8 @@ messageLESStatusEncode (BREthereumLESMessageStatus *status, BREthereumMessageCod
     //flowControl/BL
     if (status->flowControlBL != NULL)
         items[index++] = rlpEncodeList2 (coder.rlp,
-                                          rlpEncodeString(coder.rlp, "flowControl/BL"),
-                                          rlpEncodeUInt64(coder.rlp, *(status->flowControlBL),1));
+                                         rlpEncodeString(coder.rlp, "flowControl/BL"),
+                                         rlpEncodeUInt64(coder.rlp, *(status->flowControlBL),1));
 
     //flowControl/MRC
     if(status->flowControlBL != NULL) {
@@ -782,19 +249,19 @@ messageLESStatusEncode (BREthereumLESMessageStatus *status, BREthereumMessageCod
         }
 
         items[index++] = rlpEncodeList2 (coder.rlp,
-                                          rlpEncodeString(coder.rlp, "flowControl/MRC"),
-                                          rlpEncodeListItems(coder.rlp, mrcItems, count));
+                                         rlpEncodeString(coder.rlp, "flowControl/MRC"),
+                                         rlpEncodeListItems(coder.rlp, mrcItems, count));
     }
     //flowControl/MRR
     if (status->flowControlMRR != NULL)
         items[index++] = rlpEncodeList2 (coder.rlp,
-                                          rlpEncodeString(coder.rlp, "flowControl/MRR"),
-                                          rlpEncodeUInt64(coder.rlp, *(status->flowControlMRR),1));
+                                         rlpEncodeString(coder.rlp, "flowControl/MRR"),
+                                         rlpEncodeUInt64(coder.rlp, *(status->flowControlMRR),1));
 
     if (status->protocolVersion == 0x02)
         items[index++] = rlpEncodeList2 (coder.rlp,
-                                          rlpEncodeString(coder.rlp, "announceType"),
-                                          rlpEncodeUInt64(coder.rlp, status->announceType,1));
+                                         rlpEncodeString(coder.rlp, "announceType"),
+                                         rlpEncodeUInt64(coder.rlp, status->announceType,1));
 
     return rlpEncodeListItems (coder.rlp, items, index);
 }
@@ -978,7 +445,7 @@ messageLESGetBlockHeadersDecode (BRRlpItem item,
 
 extern BREthereumLESMessageBlockHeaders
 messageLESBlockHeadersDecode (BRRlpItem item,
-                                 BREthereumMessageCoder coder) {
+                              BREthereumMessageCoder coder) {
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
     assert (3 == itemsCount);
@@ -1006,8 +473,8 @@ messageLESBlockHeadersDecode (BRRlpItem item,
 static BRRlpItem
 messageLESGetBlockBodiesEncode (BREthereumLESMessageGetBlockBodies message, BREthereumMessageCoder coder) {
     return rlpEncodeList2 (coder.rlp,
-                          rlpEncodeUInt64 (coder.rlp, message.reqId, 1),
-                          hashEncodeList (message.hashes, coder.rlp));
+                           rlpEncodeUInt64 (coder.rlp, message.reqId, 1),
+                           hashEncodeList (message.hashes, coder.rlp));
 }
 
 /// MARK: LES BlockBodies
@@ -1158,7 +625,7 @@ messageLESGetProofsV2Encode (BREthereumLESMessageGetProofsV2 message, BREthereum
 
 static BREthereumLESMessageProofsV2
 messageLESProofsV2Decode (BRRlpItem item,
-                     BREthereumMessageCoder coder) {
+                          BREthereumMessageCoder coder) {
     // rlpShowItem (coder.rlp, item, "LES ProofsV2");
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
@@ -1341,95 +808,58 @@ messageLESGetCredits (const BREthereumLESMessage *message) {
         case LES_MESSAGE_BLOCK_BODIES:   return message->u.blockBodies.bv;
         case LES_MESSAGE_RECEIPTS:       return message->u.receipts.bv;
         case LES_MESSAGE_PROOFS:         return message->u.proofs.bv;
-        case LES_MESSAGE_CONTRACT_CODES: return 0;
-        case LES_MESSAGE_HEADER_PROOFS:  return 0;
+        case LES_MESSAGE_CONTRACT_CODES: return message->u.contractCodes.bv;
+        case LES_MESSAGE_HEADER_PROOFS:  return message->u.headerProofs.bv;
         case LES_MESSAGE_PROOFS_V2:      return message->u.proofsV2.bv;
-        case LES_MESSAGE_HELPER_TRIE_PROOFS: return 0;
+        case LES_MESSAGE_HELPER_TRIE_PROOFS: return message->u.helperTrieProofs.bv;
         case LES_MESSAGE_TX_STATUS:      return message->u.txStatus.bv;
         default: return 0;
     }
 }
 
-/// MARK: - Wire Protocol Messagees
-
-extern BRRlpItem
-messageEncode (BREthereumMessage message,
-               BREthereumMessageCoder coder) {
-    switch (message.identifier) {
-        case MESSAGE_P2P:
-            return messageP2PEncode (message.u.p2p, coder);
-        case MESSAGE_LES:
-            return messageLESEncode (message.u.les, coder);
-        case MESSAGE_DIS:
-            return messageDISEncode (message.u.dis, coder);
-        case MESSAGE_ETH:
-            assert (0);
+extern uint64_t
+messageLESGetCreditsCount (const BREthereumLESMessage *lm) {
+    switch (lm->identifier) {
+        case LES_MESSAGE_GET_BLOCK_HEADERS: return lm->u.getBlockHeaders.maxHeaders;
+        case LES_MESSAGE_GET_BLOCK_BODIES:  return array_count (lm->u.getBlockBodies.hashes);
+        case LES_MESSAGE_GET_RECEIPTS:       return array_count(lm->u.getReceipts.hashes);
+        case LES_MESSAGE_GET_PROOFS:         return array_count(lm->u.getProofs.specs);
+        case LES_MESSAGE_GET_CONTRACT_CODES: return 0;
+        case LES_MESSAGE_SEND_TX:            return array_count(lm->u.sendTx.transactions);
+        case LES_MESSAGE_GET_HEADER_PROOFS:  return 0;
+        case LES_MESSAGE_GET_PROOFS_V2:      return array_count(lm->u.getProofsV2.specs);
+        case LES_MESSAGE_GET_HELPER_TRIE_PROOFS: return 0;
+        case LES_MESSAGE_SEND_TX2:           return array_count(lm->u.sendTx2.transactions);
+        case LES_MESSAGE_GET_TX_STATUS:      return array_count(lm->u.getTxStatus.hashes);
+        default:
+            return 0;
     }
 }
 
-extern BREthereumMessage
-messageDecode (BRRlpItem item,
-               BREthereumMessageCoder coder,
-               BREthereumMessageIdentifier type,
-               BREthereumANYMessageIdentifier subtype) {
-    switch (type) {
-        case MESSAGE_P2P:
-            return (BREthereumMessage) {
-                MESSAGE_P2P,
-                { .p2p = messageP2PDecode (item, coder, (BREthereumP2PMessageIdentifier) subtype) }
-            };
-
-        case MESSAGE_LES:
-            return (BREthereumMessage) {
-                MESSAGE_LES,
-                { .les = messageLESDecode (item, coder, (BREthereumLESMessageIdentifier) subtype) }
-            };
-
-        case MESSAGE_DIS:
-            return (BREthereumMessage) {
-                MESSAGE_DIS,
-                { .dis = messageDISDecode (item, coder) }
-            };
-
-        case MESSAGE_ETH:
-            assert (0);
-    }
-}
-
-extern int
-messageHasIdentifier (BREthereumMessage *message,
-                      BREthereumMessageIdentifier identifer) {
-    return identifer == message->identifier;
-}
-
-extern int
-messageHasIdentifiers (BREthereumMessage *message,
-                       BREthereumMessageIdentifier identifer,
-                       BREthereumANYMessageIdentifier anyIdentifier) {
-    if (identifer != message->identifier) return 0;
-
+extern uint64_t
+messageLESGetRequestId (const BREthereumLESMessage *message) {
     switch (message->identifier) {
-        case MESSAGE_P2P: return anyIdentifier == message->u.p2p.identifier;
-        case MESSAGE_DIS: return anyIdentifier == message->u.dis.identifier;
-        case MESSAGE_ETH: return anyIdentifier == message->u.eth.identifier;
-        case MESSAGE_LES: return anyIdentifier == message->u.les.identifier;
+        case LES_MESSAGE_STATUS: return LES_MESSAGE_NO_REQUEST_ID;
+        case LES_MESSAGE_ANNOUNCE: return LES_MESSAGE_NO_REQUEST_ID;
+        case LES_MESSAGE_GET_BLOCK_HEADERS: return message->u.getBlockBodies.reqId;
+        case LES_MESSAGE_BLOCK_HEADERS: return message->u.blockHeaders.reqId;
+        case LES_MESSAGE_GET_BLOCK_BODIES: return message->u.getBlockBodies.reqId;
+        case LES_MESSAGE_BLOCK_BODIES: return message->u.blockBodies.reqId;
+        case LES_MESSAGE_GET_RECEIPTS: return message->u.getReceipts.reqId;
+        case LES_MESSAGE_RECEIPTS: return message->u.receipts.reqId;
+        case LES_MESSAGE_GET_PROOFS: return message->u.getProofs.reqId;
+        case LES_MESSAGE_PROOFS: return message->u.proofs.reqId;
+        case LES_MESSAGE_GET_CONTRACT_CODES: return message->u.getContractCodes.reqId;
+        case LES_MESSAGE_CONTRACT_CODES: return message->u.contractCodes.reqId;
+        case LES_MESSAGE_SEND_TX: return message->u.sendTx.reqId;
+        case LES_MESSAGE_GET_HEADER_PROOFS: return message->u.getHeaderProofs.reqId;
+        case LES_MESSAGE_HEADER_PROOFS: return message->u.headerProofs.reqId;
+        case LES_MESSAGE_GET_PROOFS_V2: return message->u.getProofsV2.reqId;
+        case LES_MESSAGE_PROOFS_V2: return message->u.proofsV2.reqId;
+        case LES_MESSAGE_GET_HELPER_TRIE_PROOFS: return message->u.getHelperTrieProofs.reqId;
+        case LES_MESSAGE_HELPER_TRIE_PROOFS: return message->u.helperTrieProofs.reqId;
+        case LES_MESSAGE_SEND_TX2: return message->u.sendTx2.reqId;
+        case LES_MESSAGE_GET_TX_STATUS: return message->u.getTxStatus.reqId;
+        case LES_MESSAGE_TX_STATUS: return message->u.txStatus.reqId;
     }
 }
-
-static const char *messageNames[] = { "P2P", "ETH", "LES", "DIS" };
-
-const char *
-messageGetIdentifierName (BREthereumMessage *message) {
-    return messageNames [message->identifier];
-}
-
-const char *
-messageGetAnyIdentifierName (BREthereumMessage *message) {
-    switch (message->identifier) {
-        case MESSAGE_P2P: return messageP2PGetIdentifierName (message->u.p2p.identifier);
-        case MESSAGE_ETH: return "";
-        case MESSAGE_LES: return messageLESGetIdentifierName (message->u.les.identifier);
-        case MESSAGE_DIS: return messageDISGetIdentifierName (message->u.dis.identifier);
-    }
-}
-
