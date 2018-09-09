@@ -25,8 +25,7 @@
 
 #include <assert.h>
 #include <sys/socket.h>
-#include "BREthereumLESMessage.h"
-
+#include "BREthereumMessage.h"
 
 
 /// MARK: - Wire Protocol Messagees
@@ -35,16 +34,11 @@ extern BRRlpItem
 messageEncode (BREthereumMessage message,
                BREthereumMessageCoder coder) {
     switch (message.identifier) {
-        case MESSAGE_P2P:
-            return messageP2PEncode (message.u.p2p, coder);
-        case MESSAGE_DIS:
-            return messageDISEncode (message.u.dis, coder);
-        case MESSAGE_ETH:
-            assert (0);
-        case MESSAGE_LES:
-            return messageLESEncode (message.u.les, coder);
-        case MESSAGE_PIP:
-            return messagePIPEncode(message.u.pip, coder);
+        case MESSAGE_P2P: return messageP2PEncode (message.u.p2p, coder);
+        case MESSAGE_DIS: return messageDISEncode (message.u.dis, coder);
+        case MESSAGE_ETH: assert (0);
+        case MESSAGE_LES: return messageLESEncode (message.u.les, coder);
+        case MESSAGE_PIP: return messagePIPEncode(message.u.pip, coder);
     }
 }
 
@@ -78,7 +72,7 @@ messageDecode (BRRlpItem item,
         case MESSAGE_PIP:
             return (BREthereumMessage) {
                 MESSAGE_PIP,
-                { .pip = messagePIPDecode (item, coder, (BREthereumPIPMessageIdentifier) subtype) }
+                { .pip = messagePIPDecode (item, coder, (BREthereumPIPMessageType) subtype) }
             };
     }
 }
@@ -100,11 +94,11 @@ messageHasIdentifiers (BREthereumMessage *message,
         case MESSAGE_DIS: return anyIdentifier == message->u.dis.identifier;
         case MESSAGE_ETH: return anyIdentifier == message->u.eth.identifier;
         case MESSAGE_LES: return anyIdentifier == message->u.les.identifier;
-        case MESSAGE_PIP: return anyIdentifier == message->u.pip.identifier;
+        case MESSAGE_PIP: return anyIdentifier == message->u.pip.type;
     }
 }
 
-static const char *messageNames[] = { "P2P", "ETH", "LES", "DIS" };
+static const char *messageNames[] = { "P2P", "DIS", "ETH", "LES", "PIP" };
 
 const char *
 messageGetIdentifierName (BREthereumMessage *message) {
@@ -118,7 +112,7 @@ messageGetAnyIdentifierName (BREthereumMessage *message) {
         case MESSAGE_DIS: return messageDISGetIdentifierName (message->u.dis.identifier);
         case MESSAGE_ETH: return "";
         case MESSAGE_LES: return messageLESGetIdentifierName (message->u.les.identifier);
-        case MESSAGE_PIP: return messagePIPGetIdentifierName (message->u.pip.identifier);
+        case MESSAGE_PIP: return messagePIPGetIdentifierName (message->u.pip.type);
     }
 }
 

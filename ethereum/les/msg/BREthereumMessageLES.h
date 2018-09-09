@@ -1,5 +1,5 @@
 //
-//  BREthereumLESMessageLES.h
+//  BREthereumMessageLES.h
 //  BRCore
 //
 //  Created by Ed Gamble on 9/1/18.
@@ -23,13 +23,13 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_LES_Message_LES_H
-#define BR_Ethereum_LES_Message_LES_H
+#ifndef BR_Ethereum_Message_LES_H
+#define BR_Ethereum_Message_LES_H
 
 #include "BREthereumLESBase.h"
-#include "../mpt/BREthereumMPT.h"
-#include "../blockchain/BREthereumBlock.h"
-#include "../blockchain/BREthereumTransactionReceipt.h"
+#include "../../mpt/BREthereumMPT.h"
+#include "../../blockchain/BREthereumBlock.h"
+#include "../../blockchain/BREthereumTransactionReceipt.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -254,7 +254,7 @@ typedef struct {
     BRRlpData key2;
     uint64_t fromLevel;
     // Not RLP encoded
-    uint64_t blockNumber;
+    uint64_t blockNumber;           // HACK
     BREthereumAddress address;
 } BREthereumLESMessageGetProofsSpec;
 
@@ -280,10 +280,15 @@ typedef struct {
 } BREthereumLESMessageProofs;
 
 /// MARK: LES GetContractCodes
-typedef struct {} BREthereumLESMessageGetContractCodes;
+typedef struct {
+    uint64_t reqId;
+} BREthereumLESMessageGetContractCodes;
 
 /// MARK: LES ContractCodes
-typedef struct {} BREthereumLESMessageContractCodes;
+typedef struct {
+    uint64_t reqId;
+    uint64_t bv;
+} BREthereumLESMessageContractCodes;
 
 /// MARK: LES SendTx
 
@@ -297,10 +302,15 @@ typedef struct {
 } BREthereumLESMessageSendTx;
 
 /// MARK: LES GetHeaderProofs
-typedef struct {} BREthereumLESMessageGetHeaderProofs;
+typedef struct {
+    uint64_t reqId;
+} BREthereumLESMessageGetHeaderProofs;
 
 /// MARK: LES HeaderProofs
-typedef struct {} BREthereumLESMessageHeaderProofs;
+typedef struct {
+    uint64_t reqId;
+    uint64_t bv;
+} BREthereumLESMessageHeaderProofs;
 
 /// MARK: LES GetProofsV2
 typedef struct {
@@ -316,10 +326,15 @@ typedef struct {
 } BREthereumLESMessageProofsV2;
 
 /// MARK: LES GetHelperTrieProofs
-typedef struct {} BREthereumLESMessageGetHelperTrieProofs;
+typedef struct {
+    uint64_t reqId;
+} BREthereumLESMessageGetHelperTrieProofs;
 
 /// MARK: LES HelperTrieProofs
-typedef struct {} BREthereumLESMessageHelperTrieProofs;
+typedef struct {
+    uint64_t reqId;
+    uint64_t bv;
+} BREthereumLESMessageHelperTrieProofs;
 
 /// MARK: LES SendTx2
 
@@ -452,8 +467,15 @@ messageLESHasUse (const BREthereumLESMessage *message,
 extern uint64_t
 messageLESGetCredits (const BREthereumLESMessage *message);
 
+extern uint64_t
+messageLESGetCreditsCount (const BREthereumLESMessage *message);
+
+#define LES_MESSAGE_NO_REQUEST_ID    (-1)
+extern uint64_t
+messageLESGetRequestId (const BREthereumLESMessage *message);
+
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* BR_Ethereum_LES_Message_LES_H */
+#endif /* BR_Ethereum_Message_LES_H */

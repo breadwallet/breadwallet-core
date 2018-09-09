@@ -81,17 +81,17 @@ createEWMEnsureBlocks (BRArrayOf(BREthereumPersistData) blocksPersistData,
     return blocks;
 }
 
-static BRArrayOf(BREthereumLESNodeConfig)
+static BRArrayOf(BREthereumNodeConfig)
 createEWMEnsureNodes (BRArrayOf(BREthereumPersistData) nodesPersistData,
                       BRRlpCoder coder) {
-    BRArrayOf(BREthereumLESNodeConfig) nodes;
+    BRArrayOf(BREthereumNodeConfig) nodes;
 
     size_t peersCount = (NULL == nodesPersistData ? 0 : array_count(nodesPersistData));
     array_new(nodes, peersCount);
 
     for (size_t index = 0; index < peersCount; index++) {
         BRRlpItem item = rlpGetItem(coder, nodesPersistData[index].blob);
-        BREthereumLESNodeConfig node = lesNodeConfigDecode(item, coder);
+        BREthereumNodeConfig node = lesNodeConfigDecode(item, coder);
         rlpReleaseItem(coder, item);
         rlpDataRelease(nodesPersistData[index].blob);
         array_insert (nodes, index, node);
@@ -528,7 +528,7 @@ ewmGetWallets (BREthereumEWM ewm) {
 
 extern unsigned int
 ewmGetWalletsCount (BREthereumEWM ewm) {
-    return array_count(ewm->wallets);
+    return (unsigned int) array_count(ewm->wallets);
 }
 
 extern BREthereumWalletId
@@ -920,7 +920,7 @@ ewmHandleSaveBlocks (BREthereumEWM ewm,
 
 extern void
 ewmHandleSaveNodes (BREthereumEWM ewm,
-                    BRArrayOf(BREthereumLESNodeConfig) nodes) {
+                    BRArrayOf(BREthereumNodeConfig) nodes) {
     size_t nodesCount = array_count(nodes);
 
     // Serialize BREthereumPeerConfig
@@ -954,7 +954,7 @@ ewmHandleSync (BREthereumEWM ewm,
     BREthereumEWMEvent event = (blockNumberCurrent == blockNumberStart
                                 ? EWM_EVENT_SYNC_STARTED
                                 : (blockNumberCurrent == blockNumberStop
-                                   ? EWM_EVENT_SYNC_STARTED
+                                   ? EWM_EVENT_SYNC_STOPPED
                                    : EWM_EVENT_SYNC_CONTINUES));
     double syncCompletePercent = 100.0 * (blockNumberCurrent - blockNumberStart) / (blockNumberStop - blockNumberStart);
 

@@ -1,5 +1,5 @@
 //
-//  BREthereumLESMessageDIS.h
+//  BREthereumMessageDIS.h
 //  BRCore
 //
 //  Created by Ed Gamble on 9/1/18.
@@ -23,8 +23,8 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_LES_Message_DIS_H
-#define BR_Ethereum_LES_Message_DIS_H
+#ifndef BR_Ethereum_Message_DIS_H
+#define BR_Ethereum_Message_DIS_H
 
 #include "BRKey.h"
 #include "BREthereumLESBase.h"
@@ -167,4 +167,4 @@ messageDISDecode (BRRlpItem item,
 }
 #endif
 
-#endif /* BR_Ethereum_LES_Message_DIS_H */
+#endif /* BR_Ethereum_Message_DIS_H */

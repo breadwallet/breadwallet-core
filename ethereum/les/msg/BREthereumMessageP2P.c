@@ -1,5 +1,5 @@
 //
-//  BREthereumLESMessageP2P.c
+//  BREthereumMessageP2P.c
 //  Core
 //
 //  Created by Ed Gamble on 9/1/18.
@@ -23,7 +23,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#include "BREthereumLESMessageP2P.h"
+#include "BREthereumMessageP2P.h"
 
 /// MARK: - P2P (Peer-to-Peer) Messages
 

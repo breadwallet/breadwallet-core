@@ -36,8 +36,15 @@
 #define BRArrayOf(type)    type*
 #define BRSetOf(type)      BRSet*
 
-#define LES_LOG_TOPIC "LES"
+#define DEFAULT_UDPPORT     (30303)
+#define DEFAULT_TCPPORT     (30303)
 
+#define LES_LOCAL_ENDPOINT_ADDRESS    "1.1.1.1"
+#define LES_LOCAL_ENDPOINT_TCP_PORT   DEFAULT_TCPPORT
+#define LES_LOCAL_ENDPOINT_UDP_PORT   DEFAULT_UDPPORT
+#define LES_LOCAL_ENDPOINT_NAME       "BRD Light Client"
+
+#define LES_LOG_TOPIC "LES"
 
 #ifdef __cplusplus
 extern "C" {
