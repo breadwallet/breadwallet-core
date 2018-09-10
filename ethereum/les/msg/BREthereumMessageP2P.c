@@ -164,13 +164,15 @@ messageP2PDisconnectDescription (BREthereumP2PDisconnectReason identifier) {
 static BREthereumP2PMessageDisconnect
 messageP2PDisconnectDecode (BRRlpItem item, BREthereumMessageCoder coder) {
     BREthereumP2PMessageDisconnect disconnect;
-
+//#if P2P_MESSAGE_VERSION == 0x04
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
     assert (1 == itemsCount);
 
     disconnect.reason = (BREthereumP2PDisconnectReason) rlpDecodeUInt64 (coder.rlp, items[0], 1);
-
+//#elif P2P_MESSAGE_VERSION == 0x05
+//    disconnect.reason = (BREthereumP2PDisconnectReason) rlpDecodeUInt64 (coder.rlp, item, 1);
+//#endif
     return disconnect;
 }
 

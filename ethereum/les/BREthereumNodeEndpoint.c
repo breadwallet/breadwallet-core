@@ -154,7 +154,7 @@ nodeEndpointSetHello (BREthereumNodeEndpoint *endpoint,
 
 extern void
 nodeEndpointSetStatus (BREthereumNodeEndpoint *endpoint,
-                       BREthereumLESMessage status) {
+                       BREthereumMessage status) {
     endpoint->status = status;
 }
 
@@ -548,6 +548,21 @@ const char *bootstrapLESEnodes[] = {
     // Random
     "enode://3e9301c797f3863d7d0f29eec9a416f13956bd3a14eec7e0cf5eb56942841526269209edf6f57cd1315bef60c4ebbe3476bc5457bed4e479cac844c8c9e375d3@109.232.77.21:30303", // GETH
     "enode://81863f47e9bd652585d3f78b4b2ee07b93dad603fd9bc3c293e1244250725998adc88da0cef48f1de89b15ab92b15db8f43dc2b6fb8fbd86a6f217a1dd886701@193.70.55.37:30303",  // Parity
+    //
+
+    // https://www.ethernodes.org/network/1/nodes
+    
+    // Parity
+    "enode://0075a353e4f7a9ed30fe781f724a37c6167fa4ba9de8e80d623191de81e0515078b23856cd567b1d815fe3e86cb40bd37e676fae3451b85ac193d88d6888c576@75.128.116.147:53130",
+    "enode://00e7b81f07ef13cc1c4d14d34ba038eace72618ce0083db075e82241e325fdb3b9d60001dfc8a8cbdef12b84fe866006e8fb2194a9848e4ff0d60c5cf1114422@104.41.47.128:64631",
+    "enode://00f5a0b325fa46a0563a76c25eb6899d0d84e152417aa0fbc3a09a3dc409b95d78fd570952cbd1f630ec357b33904488c50ef24a41966b69d8e0d9fb907fb049@8.44.203.11:30303",
+    "enode://010d68890bac46367809d5cc163642d09f7ae90ba728b179664b6eea68255fedbec5be18560855a19c7a95be9059e3bedb20dd4edbf321107233255b30f852ce@40.117.135.93:30303",
+    "enode://012ccf34fc3d005a707f4294697400d675cfb1367cc8cfec086afbc0f393d93d76a02b7b34166c80ca56963eaa47c002eb56636f194f5a3decfed9ff4c0a88e5@172.91.106.112:62972",
+    "enode://01a856520d36e0fec0168e31d9753b1c10c387ebd8715e967c128ed4955c6ed01d263d548d258866a745b223c28377c2d4dac266ab312692aaba8461781e9153@23.108.213.121:44892",
+
+    "enode://02462fb031a06ffc218d8df5abdfdbcb4542c7ad4beec1f446f1a783d726237a8634811267129237c59196eb985416e39c5b6816a7b9de48eef3a5276569981b@98.218.48.90:30303",
+    "enode://0255c3b7a9c74559722081f62e54da9ff13534fb16863514c9d926632796e10f2509cb018a6d7ad3acbb4b0ce2edb28669fafe43b988410744ca61f427f939f0@139.99.97.122:30303",
+
 };
 
 size_t NUMBER_OF_NODE_ENDPOINT_SPECS = (sizeof (bootstrapLESEnodes) / sizeof (char *));

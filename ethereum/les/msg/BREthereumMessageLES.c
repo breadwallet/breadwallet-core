@@ -393,7 +393,7 @@ messageLESAnnounceDecode (BRRlpItem item,
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
-    assert (5 == itemsCount);
+    assert (5 == itemsCount || 4 == itemsCount);
 
     message.headHash = hashRlpDecode (items[0], coder.rlp);
     message.headNumber = rlpDecodeUInt64 (coder.rlp, items[1], 1);
@@ -401,11 +401,13 @@ messageLESAnnounceDecode (BRRlpItem item,
     message.reorgDepth = rlpDecodeUInt64 (coder.rlp, items[3], 1);
 
     // TODO: Decode Keys
-    size_t pairCount = 0;
-    const BRRlpItem *pairItems = rlpDecodeList (coder.rlp, items[4], &pairCount);
-    array_new(message.pairs, pairCount);
-    for (size_t index = 0; index < pairCount; index++)
-        ;
+    if (5 == itemsCount) {
+        size_t pairCount = 0;
+        const BRRlpItem *pairItems = rlpDecodeList (coder.rlp, items[4], &pairCount);
+        array_new(message.pairs, pairCount);
+        for (size_t index = 0; index < pairCount; index++)
+            ;
+    }
 
     return message;
 }
@@ -799,7 +801,7 @@ messageLESEncode (BREthereumLESMessage message,
     }
 
     return rlpEncodeList2 (coder.rlp,
-                           rlpEncodeUInt64 (coder.rlp, message.identifier + coder.lesMessageIdOffset, 1),
+                           rlpEncodeUInt64 (coder.rlp, message.identifier + coder.messageIdOffset, 1),
                            body);
 }
 
@@ -829,8 +831,8 @@ messageLESGetCredits (const BREthereumLESMessage *message) {
 extern uint64_t
 messageLESGetCreditsCount (const BREthereumLESMessage *lm) {
     switch (lm->identifier) {
-        case LES_MESSAGE_GET_BLOCK_HEADERS: return lm->u.getBlockHeaders.maxHeaders;
-        case LES_MESSAGE_GET_BLOCK_BODIES:  return array_count (lm->u.getBlockBodies.hashes);
+        case LES_MESSAGE_GET_BLOCK_HEADERS:  return lm->u.getBlockHeaders.maxHeaders;
+        case LES_MESSAGE_GET_BLOCK_BODIES:   return array_count (lm->u.getBlockBodies.hashes);
         case LES_MESSAGE_GET_RECEIPTS:       return array_count(lm->u.getReceipts.hashes);
         case LES_MESSAGE_GET_PROOFS:         return array_count(lm->u.getProofs.specs);
         case LES_MESSAGE_GET_CONTRACT_CODES: return 0;

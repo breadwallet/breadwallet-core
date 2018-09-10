@@ -257,9 +257,12 @@ typedef struct {
     BRArrayOf(BREthereumPIPStatusKeyValuePair) pairs;
 } BREthereumPIPMessageStatus;
 
+extern void
+messagePIPStatusShow(BREthereumPIPMessageStatus *status);
+
 typedef struct {
     BREthereumHash headHash;
-    uint64_t headNum;
+    uint64_t headNumber;
     UInt256 headTotalDifficulty;
     uint64_t reorgDepth;
     BRArrayOf(BREthereumPIPStatusKeyValuePair) pairs;
@@ -311,6 +314,12 @@ extern BREthereumPIPMessage
 messagePIPDecode (BRRlpItem item,
                   BREthereumMessageCoder coder,
                   BREthereumPIPMessageType identifier);
+
+extern uint64_t
+messagePIPGetCredits (const BREthereumPIPMessage *message);
+
+extern uint64_t
+messagePIPGetCreditsCount (const BREthereumPIPMessage *message);
 
 #define PIP_MESSAGE_NO_REQUEST_ID    (-1)
 extern uint64_t

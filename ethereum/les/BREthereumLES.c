@@ -270,7 +270,7 @@ assignLocalEndpointHelloMessage (BREthereumNodeEndpoint *endpoint) {
     BREthereumP2PMessage hello = {
         P2P_MESSAGE_HELLO,
         { .hello  = {
-            0x01,
+            P2P_MESSAGE_VERSION,
             strdup (LES_LOCAL_ENDPOINT_NAME),
             NULL, // capabilities
             endpoint->dis.portTCP,
@@ -309,6 +309,7 @@ lesAddNodeForEndpoint (BREthereumLES les,
 
     return node;
 }
+
 
 //
 // Public functions
@@ -372,17 +373,23 @@ lesCreate (BREthereumNetwork network,
     // specified for a GETH protocol of 2.
     //
     // We'll create a 'status' message now but modify it later once the local and remote endpoints
-    // have exchanged hello messages.
-    BREthereumLESMessage status = {
-        LES_MESSAGE_STATUS,
-        { .status = messageLESStatusCreate (0x02,  // LES v2
-                                            networkGetChainId(network),
-                                            headNumber,
-                                            headHash,
-                                            headTotalDifficulty,
-                                            genesisHash,
-                                            0x01) // Announce type (of LES v2)
-        }};
+    // have exchanged hello messages.  We create this as a LES message but will reassign to
+    // a PIP message if connected to a Parity node
+    //
+    // This is the only place where { headNumber, headHash, headTotalDifficult, genesitHash} are
+    // preserved.
+    BREthereumMessage status = {
+        MESSAGE_LES,
+        { .les = {
+            LES_MESSAGE_STATUS,
+            { .status = messageLESStatusCreate (0x02,  // LES v2
+                                                networkGetChainId(network),
+                                                headNumber,
+                                                headHash,
+                                                headTotalDifficulty,
+                                                genesisHash,
+                                                0x01) }}} // Announce type (of LES v2)
+    };
     nodeEndpointSetStatus(&les->localEndpoint, status);
 
     // Create the PTHREAD LOCK variable

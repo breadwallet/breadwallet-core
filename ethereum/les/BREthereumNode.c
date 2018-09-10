@@ -201,6 +201,7 @@ nodeProtocolReasonDescription (BREthereumNodeProtocolReason reason) {
         "TCP Hello Missed",
         "TCP Status Missed",
         "Capabilities Mismatch",
+        "Network Mismatch"
     };
     return protocolReasonDescriptions [reason];
 }
@@ -557,6 +558,7 @@ provisionerEstablishLES (BREthereumNodeProvisioner *provisioner) {
                 };
                 break;
             }
+                
             case PROVISION_SUBMIT_TRANSACTION: {
                 break;
             }
@@ -738,12 +740,99 @@ provisionerEstablishPIP (BREthereumNodeProvisioner *provisioner) {
                 break;
             }
             case PROVISION_TRANSACTION_RECEIPTS: {
+                BREthereumProvisionReceipts *provision = &provisioner->provision.u.receipts;
+
+                BRArrayOf(BREthereumHash) hashes = provision->hashes;
+                size_t hashesCount = array_count(hashes);
+
+                if (NULL == provision->receipts) {
+                    array_new (provision->receipts, hashesCount);
+                    array_set_count (provision->receipts, hashesCount);
+                }
+
+                size_t hashesOffset = index * messageContentLimit;
+
+                BRArrayOf(BREthereumPIPRequestInput) inputs;
+                array_new (inputs, messageContentLimit);
+                for (size_t i = 0; i < minimum (messageContentLimit, hashesCount - hashesOffset); i++) {
+                    BREthereumPIPRequestInput input = {
+                        PIP_REQUEST_BLOCK_RECEIPTS,
+                        { .blockReceipt = { hashes[hashesOffset + i]}}
+                    };
+                    array_add (inputs, input);
+                }
+
+                message = (BREthereumMessage) {
+                    MESSAGE_PIP,
+                    { .pip = {
+                        PIP_MESSAGE_REQUEST,
+                        { .request = { messageId, inputs }}}}
+                };
                 break;
             }
+
             case PROVISION_ACCOUNTS: {
+                BREthereumProvisionAccounts *provision = &provisioner->provision.u.accounts;
+
+                BREthereumHash addressHash = addressGetHash(provision->address);
+                BRArrayOf(BREthereumHash) hashes = provision->hashes;
+                size_t hashesCount = array_count(hashes);
+
+                if (NULL == provision->accounts) {
+                    array_new (provision->accounts, hashesCount);
+                    array_set_count (provision->accounts, hashesCount);
+                }
+
+                size_t hashesOffset = index * messageContentLimit;
+
+                BRArrayOf(BREthereumPIPRequestInput) inputs;
+                array_new (inputs, messageContentLimit);
+                for (size_t i = 0; i < minimum (messageContentLimit, hashesCount - hashesOffset); i++) {
+                    BREthereumPIPRequestInput input = {
+                        PIP_REQUEST_ACCOUNT,
+                        { .account = { hashes[hashesOffset + i], addressHash }}
+                    };
+                    array_add (inputs, input);
+                }
+
+                message = (BREthereumMessage) {
+                    MESSAGE_PIP,
+                    { .pip = {
+                        PIP_MESSAGE_REQUEST,
+                        { .request = { messageId, inputs }}}}
+                };
                 break;
             }
+
             case PROVISION_TRANSACTION_STATUSES: {
+                BREthereumProvisionStatuses *provision = &provisioner->provision.u.statuses;
+
+                BRArrayOf(BREthereumHash) hashes = provision->hashes;
+                size_t hashesCount = array_count(hashes);
+
+                if (NULL == provision->statuses) {
+                    array_new (provision->statuses, hashesCount);
+                    array_set_count (provision->statuses, hashesCount);
+                }
+
+                size_t hashesOffset = index * messageContentLimit;
+
+                BRArrayOf(BREthereumPIPRequestInput) inputs;
+                array_new (inputs, messageContentLimit);
+                for (size_t i = 0; i < minimum (messageContentLimit, hashesCount - hashesOffset); i++) {
+                    BREthereumPIPRequestInput input = {
+                        PIP_REQUEST_TRANSACTION_INDEX,
+                        { .transactionIndex = { hashes[hashesOffset + i]}}
+                    };
+                    array_add (inputs, input);
+                }
+
+                message = (BREthereumMessage) {
+                    MESSAGE_PIP,
+                    { .pip = {
+                        PIP_MESSAGE_REQUEST,
+                        { .request = { messageId, inputs }}}}
+                };
                 break;
             }
             case PROVISION_SUBMIT_TRANSACTION: {
@@ -784,18 +873,74 @@ provisionerHandleMessagePIP (BREthereumNodeProvisioner *provisioner,
                 provisionHeaders[offset + index] = messageHeaders[index];
             break;
         }
+
         case PROVISION_BLOCK_BODIES: {
+            BREthereumProvisionBodies *provision = &provisioner->provision.u.bodies;
+            BRArrayOf(BREthereumBlockBodyPair) provisionPairs = provision->pairs;
+
+            BREthereumProvisionIdentifier identifier = messagePIPGetRequestId(&message);
+
+            BRArrayOf(BREthereumPIPRequestOutput) messageOutputs = message.u.response.outputs;
+            //assert (array_count(provisionPairs) == array_count(messageOutputs));
+
+            size_t offset = messageContentLimit * (identifier - provisioner->messageIdentifier);
+            for (size_t index = 0; index < array_count(messageOutputs); index++) {
+                provisionPairs[offset + index].transactions = messageOutputs[index].u.blockBody.transactions;
+                provisionPairs[offset + index].uncles = messageOutputs[index].u.blockBody.headers;
+            }
             break;
         }
+
         case PROVISION_TRANSACTION_RECEIPTS: {
+            BREthereumProvisionReceipts *provision = &provisioner->provision.u.receipts;
+            BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) provisionReceiptsArray = provision->receipts;
+
+            BREthereumProvisionIdentifier identifier = messagePIPGetRequestId(&message);
+
+            BRArrayOf(BREthereumPIPRequestOutput) messageOutputs = message.u.response.outputs;
+
+            size_t offset = messageContentLimit * (identifier - provisioner->messageIdentifier);
+            for (size_t index = 0; index < array_count(messageOutputs); index++)
+                provisionReceiptsArray[offset + index]= messageOutputs[index].u.blockReceipt.receipts;
             break;
         }
+
         case PROVISION_ACCOUNTS: {
+            BREthereumProvisionAccounts *provision = &provisioner->provision.u.accounts;
+            BRArrayOf(BREthereumAccountState) provisionAccounts= provision->accounts;
+
+            BREthereumProvisionIdentifier identifier = messagePIPGetRequestId(&message);
+
+            BRArrayOf(BREthereumPIPRequestOutput) messageOutputs = message.u.response.outputs;
+
+            size_t offset = messageContentLimit * (identifier - provisioner->messageIdentifier);
+            for (size_t index = 0; index < array_count(messageOutputs); index++)
+                provisionAccounts[offset + index] =
+                accountStateCreate (messageOutputs[index].u.account.nonce,
+                                    etherCreate(messageOutputs[index].u.account.balance),
+                                    messageOutputs[index].u.account.storageRootHash,
+                                    messageOutputs[index].u.account.codeHash);
             break;
         }
+
         case PROVISION_TRANSACTION_STATUSES: {
+            BREthereumProvisionStatuses *provision = &provisioner->provision.u.statuses;
+            BRArrayOf(BREthereumTransactionStatus) provisionStatuses= provision->statuses;
+
+            BREthereumProvisionIdentifier identifier = messagePIPGetRequestId(&message);
+
+            BRArrayOf(BREthereumPIPRequestOutput) messageOutputs = message.u.response.outputs;
+
+            size_t offset = messageContentLimit * (identifier - provisioner->messageIdentifier);
+            for (size_t index = 0; index < array_count(messageOutputs); index++)
+                provisionStatuses[offset + index] =
+                transactionStatusCreateIncluded (gasCreate(0),
+                                                 messageOutputs[index].u.transactionIndex.blockHash,
+                                                 messageOutputs[index].u.transactionIndex.blockNumber,
+                                                 messageOutputs[index].u.transactionIndex.transactionIndex);
             break;
         }
+
         case PROVISION_SUBMIT_TRANSACTION: {
             break;
         }
@@ -964,7 +1109,7 @@ nodeCreate (BREthereumNetwork network,
     // Define the message coder
     node->coder.network = network;
     node->coder.rlp = rlpCoderCreate();
-    node->coder.lesMessageIdOffset = 0x00;  // Changed with 'hello' message exchange.
+    node->coder.messageIdOffset = 0x00;  // Changed with 'hello' message exchange.
 
     node->discovered = ETHEREUM_BOOLEAN_FALSE;
 
@@ -1296,7 +1441,7 @@ nodeProcessRecvPIP (BREthereumNode node,
             node->callbackAnnounce (node->callbackContext,
                                     node,
                                     message.u.announce.headHash,
-                                    message.u.announce.headNum,
+                                    message.u.announce.headNumber,
                                     message.u.announce.headTotalDifficulty,
                                     message.u.announce.reorgDepth);
             break;
@@ -1460,13 +1605,20 @@ extractIdentifier (BREthereumNode node,
                    uint8_t value,
                    BREthereumMessageIdentifier *type,
                    BREthereumANYMessageIdentifier *subtype) {
-    if (value < node->coder.lesMessageIdOffset || 0 == node->coder.lesMessageIdOffset) {
+    if (value < node->coder.messageIdOffset || 0 == node->coder.messageIdOffset) {
         *type = MESSAGE_P2P;
         *subtype = value - 0x00;
     }
     else {
-        *type = MESSAGE_LES;
-        *subtype = value - node->coder.lesMessageIdOffset;
+        switch (node->type) {
+            case NODE_TYPE_GETH:
+                *type = MESSAGE_LES;
+                break;
+            case NODE_TYPE_PARITY:
+                *type = MESSAGE_PIP;
+                break;
+        }
+        *subtype = value - node->coder.messageIdOffset;
     }
 }
 
@@ -1550,6 +1702,72 @@ nodeSetStateInitial (BREthereumNode node,
     }
 }
 
+/// MARK: Move This
+static void
+updateLocalEndpointStatusMessage (BREthereumNodeEndpoint *endpoint,
+                                  BREthereumNodeType type,
+                                  uint64_t protocolVersion) {
+    switch (type) {
+        case NODE_TYPE_GETH:
+            assert (MESSAGE_LES == endpoint->status.identifier);
+            endpoint->status.u.les.u.status.protocolVersion = protocolVersion;
+            break;
+
+        case NODE_TYPE_PARITY: {
+            assert (MESSAGE_LES == endpoint->status.identifier);
+            BREthereumLESMessageStatus *status = &endpoint->status.u.les.u.status;
+            endpoint->status = (BREthereumMessage) {
+                MESSAGE_PIP,
+                { .pip = {
+                    PIP_MESSAGE_STATUS,
+                    { .status = {
+                        protocolVersion,
+                        status->chainId,
+                        status->headNum,
+                        status->headHash,
+                        status->headTd,
+                        status->genesisHash,
+                        NULL }}}}
+            };
+            break;
+        }
+    }
+}
+
+static void
+showEndpointStatusMessage (BREthereumNodeEndpoint *endpoint) {
+    switch (endpoint->status.identifier) {
+        case MESSAGE_P2P:
+        case MESSAGE_DIS:
+        case MESSAGE_ETH:
+            assert (0);
+
+        case MESSAGE_LES:
+            messageLESStatusShow(&endpoint->status.u.les.u.status);
+            break;
+
+        case MESSAGE_PIP:
+            messagePIPStatusShow(&endpoint->status.u.pip.u.status);
+            break;
+    }
+}
+
+static uint64_t
+getEndpointChainId (BREthereumNodeEndpoint *endpoint) {
+    switch (endpoint->status.identifier) {
+        case MESSAGE_P2P:
+        case MESSAGE_DIS:
+        case MESSAGE_ETH:
+            assert (0);
+
+        case MESSAGE_LES:
+            return endpoint->status.u.les.u.status.chainId;
+
+        case MESSAGE_PIP:
+            return endpoint->status.u.pip.u.status.chainId;
+            break;
+    }
+}
 
 /// MARK: UDP & TCP Connect
 
@@ -1686,6 +1904,10 @@ nodeThreadConnectUDP (BREthereumNode node) {
         };
         if (NODE_STATUS_ERROR == nodeSend (node, NODE_ROUTE_UDP, message))
             return nodeConnectExit (node);
+    }
+
+    if (DIS_MESSAGE_NEIGHBORS == message.u.dis.identifier) {
+        nodeProcessRecvDIS (node, NODE_ROUTE_UDP, message.u.dis);
     }
 
     //
@@ -1838,8 +2060,8 @@ nodeThreadConnectTCP (BREthereumNode node) {
     else assert (0);
 
     // ... and the protocol version.
-    node->local.status.u.status.protocolVersion = capability->version;
-    messageLESStatusShow(&node->local.status.u.status);
+    updateLocalEndpointStatusMessage(&node->local, node->type, capability->version);
+    showEndpointStatusMessage (&node->local);
 
     // https://github.com/ethereum/wiki/wiki/ÐΞVp2p-Wire-Protocol
     // ÐΞVp2p is designed to support arbitrary sub-protocols (aka capabilities) over the basic wire
@@ -1856,17 +2078,13 @@ nodeThreadConnectTCP (BREthereumNode node) {
     // ignored
 
     // We'll trusted (but verified) above that we have one and only one (LES, PIP) subprotocol.
-    node->coder.lesMessageIdOffset = 0x10;
+    node->coder.messageIdOffset = 0x10;
 
     //
     // STATUS
     //
     node->states[NODE_ROUTE_TCP] = nodeStateCreateConnecting(NODE_CONNECT_STATUS);
-    message = (BREthereumMessage) {
-        MESSAGE_LES,
-        { .les = node->local.status }
-    };
-    if (NODE_STATUS_ERROR == nodeSend (node, NODE_ROUTE_TCP, message))
+    if (NODE_STATUS_ERROR == nodeSend (node, NODE_ROUTE_TCP, node->local.status))
         return nodeConnectExit (node);
 
     //
@@ -1887,13 +2105,42 @@ nodeThreadConnectTCP (BREthereumNode node) {
     if (MESSAGE_P2P == message.identifier && P2P_MESSAGE_DISCONNECT == message.u.p2p.identifier)
         return nodeConnectFailed(node, NODE_ROUTE_TCP, nodeStateCreateErrorDisconnect(message.u.p2p.u.disconnect.reason));
 
-    // Require a LES Status message.
-    if (MESSAGE_LES != message.identifier || LES_MESSAGE_STATUS != message.u.les.identifier)
+    // Handle a ping - send a PONG and then wait again for a status
+    if (MESSAGE_P2P == message.identifier && P2P_MESSAGE_PING == message.u.p2p.identifier) {
+        BREthereumMessage pong = {
+            MESSAGE_P2P,
+            { .p2p = {
+                P2P_MESSAGE_PONG,
+                {}}}
+        };
+        nodeSend (node, NODE_ROUTE_TCP, pong);
+
+        error = pselect (socket + 1, &readSet, NULL, NULL, &timeout, NULL);
+        if (error <= 0)
+            return nodeConnectFailed (node, NODE_ROUTE_TCP,
+                                      nodeStateCreateErrorUnix (error == 0 ? ETIMEDOUT : errno));
+        result = nodeRecv (node, NODE_ROUTE_TCP);
+        if (NODE_STATUS_ERROR == result.status)
+            return nodeConnectExit (node);
+
+        message = result.u.success.message;
+    }
+
+    if (MESSAGE_P2P == message.identifier && P2P_MESSAGE_DISCONNECT == message.u.p2p.identifier)
+        return nodeConnectFailed(node, NODE_ROUTE_TCP, nodeStateCreateErrorDisconnect(message.u.p2p.u.disconnect.reason));
+
+    // Require a Status message.
+    if ((MESSAGE_LES != message.identifier || LES_MESSAGE_STATUS != message.u.les.identifier) &&
+        (MESSAGE_PIP != message.identifier || PIP_MESSAGE_STATUS != message.u.pip.type))
         return nodeConnectFailed (node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_TCP_STATUS_MISSED));
 
     // Save the 'status' message
     messageLESStatusShow(&message.u.les.u.status);
-    node->remote.status = message.u.les;
+    node->remote.status = message;
+
+    // Require a matching network
+    if (getEndpointChainId(&node->remote) != getEndpointChainId(&node->local))
+        return nodeConnectFailed (node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_NETWORK_MISMATCH));
 
     // Extract the per message cost parameters (from the status MRC data)
     BREthereumLESMessageStatus *status = &message.u.les.u.status;

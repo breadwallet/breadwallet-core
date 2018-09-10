@@ -105,7 +105,7 @@ extern BREthereumDISMessagePing
 messageDISPingCreate (BREthereumDISEndpoint to,
                       BREthereumDISEndpoint from,
                       uint64_t expiration) {
-    return (BREthereumDISMessagePing) { 4, to, from, expiration };
+    return (BREthereumDISMessagePing) { P2P_MESSAGE_VERSION, to, from, expiration };
 }
 
 static BRRlpItem

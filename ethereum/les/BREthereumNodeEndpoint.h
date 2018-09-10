@@ -77,8 +77,7 @@ typedef struct {
     BREthereumP2PMessage hello;     // BREthereumP2PMessageHello
 
     /** The Status LES/PIP message */
-    // TODO: Should not be LES-specific, PIP too. BREthereumPIPMessageStatus ??  BREthereumMessage ??
-    BREthereumLESMessage status;    // BREthereumLESMessageStatus
+    BREthereumMessage status;
 
 } BREthereumNodeEndpoint;
 
@@ -98,7 +97,7 @@ nodeEndpointSetHello (BREthereumNodeEndpoint *endpoint,
 
 extern void
 nodeEndpointSetStatus (BREthereumNodeEndpoint *endpoint,
-                       BREthereumLESMessage status);
+                       BREthereumMessage status);
 
 extern int
 nodeEndpointOpen (BREthereumNodeEndpoint *endpoint,
