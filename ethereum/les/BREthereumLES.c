@@ -469,7 +469,7 @@ lesRelease(BREthereumLES les) {
     // Release each node; do it safely w/o mucking the les->nodes set.
     size_t nodeCount = BRSetCount(les->nodes);
     BREthereumNode nodes[nodeCount];
-    BRSetAll(les->nodes, nodes, nodeCount);
+    BRSetAll(les->nodes, (void**) nodes, nodeCount);
     BRSetClear(les->nodes);
     for (size_t index = 0; index < nodeCount; index++)
         nodeRelease (nodes[index]);

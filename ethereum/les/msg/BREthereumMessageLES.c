@@ -619,6 +619,22 @@ messageLESProofsDecode (BRRlpItem item,
 
 /// MARK: LES SendTx
 
+static BRRlpItem
+messageLESSendTxEncode (BREthereumLESMessageSendTx message, BREthereumMessageCoder coder) {
+    size_t itemsCount = array_count(message.transactions);
+    BRRlpItem items[itemsCount];
+
+    for (size_t index = 0; index < itemsCount; index++)
+        items[index] = transactionRlpEncode(message.transactions[index],
+                                            coder.network,
+                                            RLP_TYPE_TRANSACTION_SIGNED,
+                                            coder.rlp);
+
+    return rlpEncodeList2 (coder.rlp,
+                           rlpEncodeUInt64 (coder.rlp, message.reqId, 1),
+                           rlpEncodeListItems (coder.rlp, items, itemsCount));
+}
+
 /// MARK: LES GetHeaderProofs
 
 /// MARK: LES HeaderProofs
@@ -781,6 +797,10 @@ messageLESEncode (BREthereumLESMessage message,
         case LES_MESSAGE_GET_PROOFS:
             body = messageLESGetProofsEncode (message.u.getProofs, coder);
             // rlpShowItem (coder.rlp, body, "LES GetProofs");
+            break;
+
+        case LES_MESSAGE_SEND_TX:
+            body = messageLESSendTxEncode (message.u.sendTx, coder);
             break;
 
         case LES_MESSAGE_GET_PROOFS_V2:

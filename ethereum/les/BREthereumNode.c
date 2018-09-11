@@ -358,6 +358,7 @@ provisionerMessageSend (BREthereumNodeProvisioner *provisioner) {
 
     return status;
 }
+
 static uint64_t
 provisionerGetCount (BREthereumNodeProvisioner *provisioner) {
     switch (provisioner->provision.type) {
@@ -372,7 +373,10 @@ provisionerGetCount (BREthereumNodeProvisioner *provisioner) {
         case PROVISION_TRANSACTION_STATUSES:
             return array_count (provisioner->provision.u.statuses.hashes);
         case PROVISION_SUBMIT_TRANSACTION:
-            return 1;
+            // We'll submit the transaction and then query it's status.  We'll only expect
+            // one response.. which makes this different from all the other messages and thus
+            // see how provisioner->messagesReceivedCount is handled in `provisionerEstablish()`.
+            return 2;
     }
 }
 
@@ -386,564 +390,8 @@ provisionerGetMessageContentLimit (BREthereumNodeProvisioner *provisioner) {
             return messageLESSpecs[id].limit;
         }
         case NODE_TYPE_PARITY:
-            return SIZE_T_MAX;
-    }
-}
-
-static void
-provisionerEstablishLES (BREthereumNodeProvisioner *provisioner) {
-    BREthereumMessage message;
-    size_t messageContentLimit = provisioner->messageContentLimit;
-
-    for (size_t index = 0; index < provisioner->messagesCount; index++) {
-        uint64_t messageId = provisioner->messageIdentifier + index;
-
-        switch (provisioner->provision.type) {
-            case PROVISION_BLOCK_HEADERS: {
-                BREthereumProvisionHeaders *provision = &provisioner->provision.u.headers;
-
-                if (NULL == provision->headers) {
-                    array_new (provision->headers, provision->limit);
-                    array_set_count (provision->headers, provision->limit);
-                }
-
-                uint64_t start = provision->start + index * messageContentLimit;
-                uint64_t count = provision->limit - index * messageContentLimit;
-
-                message = (BREthereumMessage) {
-                    MESSAGE_LES,
-                    { .les = {
-                        LES_MESSAGE_GET_BLOCK_HEADERS,
-                        { .getBlockHeaders = {
-                            messageId,
-                            1, // use 'number'
-                            { .number = start },
-                            (uint32_t) minimum (count, messageContentLimit),
-                            provision->skip,
-                            ETHEREUM_BOOLEAN_IS_TRUE (provision->reverse)
-                        }}}}
-                };
-                break;
-            }
-
-            case PROVISION_BLOCK_BODIES: {
-                BREthereumProvisionBodies *provision = &provisioner->provision.u.bodies;
-
-                BRArrayOf(BREthereumHash) hashes = provision->hashes;
-                size_t hashesCount = array_count(hashes);
-
-                if (NULL == provision->pairs) {
-                    array_new (provision->pairs, hashesCount);
-                    array_set_count (provision->pairs, hashesCount);
-                }
-
-                BRArrayOf(BREthereumHash) messageHashes;
-                array_new(messageHashes, messageContentLimit);
-
-                size_t hashesOffset = index * messageContentLimit;
-
-                for (size_t i = 0; i < minimum (messageContentLimit, hashesCount - hashesOffset); i++)
-                    array_add (messageHashes, hashes[(hashesOffset + i)]);
-
-                message = (BREthereumMessage) {
-                    MESSAGE_LES,
-                    { .les = {
-                        LES_MESSAGE_GET_BLOCK_BODIES,
-                        { .getBlockBodies = { messageId, messageHashes }}}}
-                };
-                break;
-            }
-
-            case PROVISION_TRANSACTION_RECEIPTS: {
-                BREthereumProvisionReceipts *provision = &provisioner->provision.u.receipts;
-
-                BRArrayOf(BREthereumHash) hashes = provision->hashes;
-                size_t hashesCount = array_count(hashes);
-
-                if (NULL == provision->receipts) {
-                    array_new (provision->receipts, hashesCount);
-                    array_set_count (provision->receipts, hashesCount);
-                }
-
-                BRArrayOf(BREthereumHash) messageHashes;
-                array_new(messageHashes, messageContentLimit);
-
-                size_t hashesOffset = index * messageContentLimit;
-
-                for (size_t i = 0; i < minimum (messageContentLimit, hashesCount - hashesOffset); i++)
-                    array_add (messageHashes, hashes[(hashesOffset + i)]);
-
-                message = (BREthereumMessage) {
-                    MESSAGE_LES,
-                    { .les = {
-                        LES_MESSAGE_GET_RECEIPTS,
-                        { .getReceipts = { messageId, messageHashes }}}}
-                };
-                break;
-            }
-                
-            case PROVISION_ACCOUNTS: {
-                BREthereumProvisionAccounts *provision = &provisioner->provision.u.accounts;
-
-                BREthereumAddress address = provision->address;
-                BRArrayOf(BREthereumHash) hashes = provision->hashes;
-                BRArrayOf(uint64_t) numbers = provision->numbers;
-                size_t hashesCount = array_count(hashes);
-
-                if (NULL == provision->accounts) {
-                    array_new (provision->accounts, hashesCount);
-                    array_set_count (provision->accounts, hashesCount);
-                }
-
-                BRArrayOf(BREthereumHash) messageHashes;
-                array_new(messageHashes, messageContentLimit);
-
-                size_t hashesOffset = index * messageContentLimit;
-
-                BRArrayOf(BREthereumLESMessageGetProofsSpec) specs;
-                array_new (specs, hashesCount);
-
-                // HACK
-                BREthereumAddress *addr = malloc (sizeof (BREthereumAddress));
-                memcpy (addr, &address, sizeof (BREthereumAddress));
-
-                BRRlpData key1 = (BRRlpData) { 0, NULL };
-                BRRlpData key2 = (BRRlpData) { sizeof (BREthereumAddress), addr->bytes };
-
-                for (size_t i = 0; i < minimum (messageContentLimit, hashesCount - hashesOffset); i++) {
-                    BREthereumLESMessageGetProofsSpec spec = {
-                        hashes[index],
-                        key1,
-                        key2,
-                        0,
-                        numbers[index],  // HACK
-                        address
-                    };
-                    array_add (specs, spec);
-                }
-
-                message = (BREthereumMessage) {
-                    MESSAGE_LES,
-                    { .les = {
-                        LES_MESSAGE_GET_PROOFS_V2,
-                        { .getProofsV2 = { messageId, specs }}}}
-                };
-                break;
-            }
-
-            case PROVISION_TRANSACTION_STATUSES: {
-                BREthereumProvisionStatuses *provision = &provisioner->provision.u.statuses;
-
-                BRArrayOf(BREthereumHash) hashes = provision->hashes;
-                size_t hashesCount = array_count(hashes);
-
-                if (NULL == provision->statuses) {
-                    array_new (provision->statuses, hashesCount);
-                    array_set_count (provision->statuses, hashesCount);
-                }
-
-                BRArrayOf(BREthereumHash) messageHashes;
-                array_new(messageHashes, messageContentLimit);
-
-                size_t hashesOffset = index * messageContentLimit;
-
-                for (size_t i = 0; i < minimum (messageContentLimit, hashesCount - hashesOffset); i++)
-                    array_add (messageHashes, hashes[(hashesOffset + i)]);
-
-                message = (BREthereumMessage) {
-                    MESSAGE_LES,
-                    { .les = {
-                        LES_MESSAGE_GET_TX_STATUS,
-                        { .getTxStatus = { messageId, messageHashes }}}}
-                };
-                break;
-            }
-                
-            case PROVISION_SUBMIT_TRANSACTION: {
-                break;
-            }
-        }
-
-        // Queue message;
-//        pthread_mutex_lock(&node->lock);
-        array_add (provisioner->messages, message);
-//        pthread_mutex_unlock(&node->lock);
-    }
-}
-
-static void
-provisionerHandleMessageLES (BREthereumNodeProvisioner *provisioner,
-                             BREthereumLESMessage message) {
-    size_t messageContentLimit = provisioner->messageContentLimit;
-
-    switch (provisioner->provision.type) {
-        case PROVISION_BLOCK_HEADERS: {
-            assert (LES_MESSAGE_BLOCK_HEADERS == message.identifier);
-
-            BREthereumProvisionHeaders *provision = &provisioner->provision.u.headers;
-            BRArrayOf(BREthereumBlockHeader) provisionHeaders = provision->headers;
-
-            BREthereumProvisionIdentifier identifier = messageLESGetRequestId (&message);
-
-            BRArrayOf(BREthereumBlockHeader) messageHeaders  = message.u.blockHeaders.headers;
-            size_t offset = messageContentLimit * (identifier - provisioner->messageIdentifier);
-            for (size_t index = 0; index < array_count(messageHeaders); index++)
-                provisionHeaders[offset + index] = messageHeaders[index];
-            break;
-        }
-
-        case PROVISION_BLOCK_BODIES: {
-            assert (LES_MESSAGE_BLOCK_BODIES == message.identifier);
-
-            BREthereumProvisionBodies *provision = &provisioner->provision.u.bodies;
-            BRArrayOf(BREthereumBlockBodyPair) provisionPairs = provision->pairs;
-
-            BREthereumProvisionIdentifier identifier = messageLESGetRequestId (&message);
-
-            BRArrayOf(BREthereumBlockBodyPair) messagePairs = message.u.blockBodies.pairs;
-            size_t offset = messageContentLimit * (identifier - provisioner->messageIdentifier);
-            for (size_t index = 0; index < array_count(messagePairs); index++)
-                provisionPairs[offset + index] = messagePairs[index];
-            break;
-        }
-
-        case PROVISION_TRANSACTION_RECEIPTS: {
-            assert (LES_MESSAGE_RECEIPTS == message.identifier);
-
-            BREthereumProvisionReceipts *provision = &provisioner->provision.u.receipts;
-            BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) provisionPairs = provision->receipts;
-
-            BREthereumProvisionIdentifier identifier = messageLESGetRequestId (&message);
-
-            BRArrayOf(BREthereumLESMessageReceiptsArray) messagePairs = message.u.receipts.arrays;
-            size_t offset = messageContentLimit * (identifier - provisioner->messageIdentifier);
-            for (size_t index = 0; index < array_count(messagePairs); index++)
-                provisionPairs[offset + index] = messagePairs[index].receipts;
-            break;
-        }
-
-        case PROVISION_ACCOUNTS: {
-            assert (LES_MESSAGE_PROOFS_V2 == message.identifier);
-            BREthereumProvisionAccounts *provision = &provisioner->provision.u.accounts;
-            BRArrayOf(BREthereumAccountState) provisionAccounts = provision->accounts;
-
-            BREthereumProvisionIdentifier identifier = messageLESGetRequestId (&message);
-
-            // HACK: This is empty
-            BRArrayOf(BREthereumMPTNodePath) messagePaths = message.u.proofsV2.paths;
-            size_t offset = messageContentLimit * (identifier - provisioner->messageIdentifier);
-
-            for (size_t index = 0; index <  provisioner->messageContentLimit; index++) {
-                if (offset + index < array_count(provisionAccounts)) {
-                    uint64_t number = provision->numbers [offset + index];   // HACK
-                    provisionAccounts[offset + index] = hackFakeAccountStateLESProofs(number); // HACK
-                }
-            }
-            break;
-        }
-
-        case PROVISION_TRANSACTION_STATUSES: {
-            assert (LES_MESSAGE_TX_STATUS == message.identifier);
-
-            BREthereumProvisionStatuses *provision = &provisioner->provision.u.statuses;
-            BRArrayOf(BREthereumTransactionStatus) provisionPairs = provision->statuses;
-
-            BREthereumProvisionIdentifier identifier = messageLESGetRequestId (&message);
-
-            BRArrayOf(BREthereumTransactionStatus) messagePairs = message.u.txStatus.stati;
-            size_t offset = messageContentLimit * (identifier - provisioner->messageIdentifier);
-            for (size_t index = 0; index < array_count(messagePairs); index++)
-                provisionPairs[offset + index] = messagePairs[index];
-
-            break;
-        }
-        case PROVISION_SUBMIT_TRANSACTION: {
-            break;
-        }
-    }
-}
-
-static void
-provisionerEstablishPIP (BREthereumNodeProvisioner *provisioner) {
-    BREthereumMessage message;
-    size_t messageContentLimit = provisioner->messageContentLimit;
-
-    for (size_t index = 0; index < provisioner->messagesCount; index++) {
-        uint64_t messageId = provisioner->messageIdentifier + index;
-
-        switch (provisioner->provision.type) {
-            case PROVISION_BLOCK_HEADERS: {
-                BREthereumProvisionHeaders *provision = &provisioner->provision.u.headers;
-
-                if (NULL == provision->headers) {
-                    array_new (provision->headers, provision->limit);
-                    array_set_count(provision->headers, provision->limit);
-                }
-
-                uint64_t start = provision->start + index * messageContentLimit;
-                uint64_t count = provision->limit - index * messageContentLimit;
-
-                BREthereumPIPRequestInput input = {
-                    PIP_REQUEST_HEADERS,
-                    { .headers = {
-                        1,
-                        { .number = start },
-                        provision->skip,
-                        (uint32_t) minimum (count, messageContentLimit),
-                        provision->reverse }}
-                };
-
-                BRArrayOf(BREthereumPIPRequestInput) inputs;
-                array_new (inputs, 1);
-                array_add (inputs, input);
-
-                message = (BREthereumMessage) {
-                    MESSAGE_PIP,
-                    { .pip = {
-                        PIP_MESSAGE_REQUEST,
-                        { .request = { messageId, inputs }}}}
-                };
-                break;
-            }
-            case PROVISION_BLOCK_BODIES: {
-                BREthereumProvisionBodies *provision = &provisioner->provision.u.bodies;
-
-                BRArrayOf(BREthereumHash) hashes = provision->hashes;
-                size_t hashesCount = array_count(hashes);
-
-                if (NULL == provision->pairs) {
-                    array_new (provision->pairs, hashesCount);
-                    array_set_count (provision->pairs, hashesCount);
-                }
-
-                BRArrayOf(BREthereumHash) messageHashes;
-                array_new(messageHashes, messageContentLimit);
-
-                size_t hashesOffset = index * messageContentLimit;
-
-                BRArrayOf(BREthereumPIPRequestInput) inputs;
-                array_new (inputs, messageContentLimit);
-                for (size_t i = 0; i < minimum (messageContentLimit, hashesCount - hashesOffset); i++) {
-                    BREthereumPIPRequestInput input = {
-                        PIP_REQUEST_BLOCK_BODY,
-                        { .blockBody = { hashes[hashesOffset + i]}}
-                    };
-                    array_add (inputs, input);
-                }
-
-                message = (BREthereumMessage) {
-                    MESSAGE_PIP,
-                    { .pip = {
-                        PIP_MESSAGE_REQUEST,
-                        { .request = { messageId, inputs }}}}
-                };
-                break;
-            }
-            case PROVISION_TRANSACTION_RECEIPTS: {
-                BREthereumProvisionReceipts *provision = &provisioner->provision.u.receipts;
-
-                BRArrayOf(BREthereumHash) hashes = provision->hashes;
-                size_t hashesCount = array_count(hashes);
-
-                if (NULL == provision->receipts) {
-                    array_new (provision->receipts, hashesCount);
-                    array_set_count (provision->receipts, hashesCount);
-                }
-
-                size_t hashesOffset = index * messageContentLimit;
-
-                BRArrayOf(BREthereumPIPRequestInput) inputs;
-                array_new (inputs, messageContentLimit);
-                for (size_t i = 0; i < minimum (messageContentLimit, hashesCount - hashesOffset); i++) {
-                    BREthereumPIPRequestInput input = {
-                        PIP_REQUEST_BLOCK_RECEIPTS,
-                        { .blockReceipt = { hashes[hashesOffset + i]}}
-                    };
-                    array_add (inputs, input);
-                }
-
-                message = (BREthereumMessage) {
-                    MESSAGE_PIP,
-                    { .pip = {
-                        PIP_MESSAGE_REQUEST,
-                        { .request = { messageId, inputs }}}}
-                };
-                break;
-            }
-
-            case PROVISION_ACCOUNTS: {
-                BREthereumProvisionAccounts *provision = &provisioner->provision.u.accounts;
-
-                BREthereumHash addressHash = addressGetHash(provision->address);
-                BRArrayOf(BREthereumHash) hashes = provision->hashes;
-                size_t hashesCount = array_count(hashes);
-
-                if (NULL == provision->accounts) {
-                    array_new (provision->accounts, hashesCount);
-                    array_set_count (provision->accounts, hashesCount);
-                }
-
-                size_t hashesOffset = index * messageContentLimit;
-
-                BRArrayOf(BREthereumPIPRequestInput) inputs;
-                array_new (inputs, messageContentLimit);
-                for (size_t i = 0; i < minimum (messageContentLimit, hashesCount - hashesOffset); i++) {
-                    BREthereumPIPRequestInput input = {
-                        PIP_REQUEST_ACCOUNT,
-                        { .account = { hashes[hashesOffset + i], addressHash }}
-                    };
-                    array_add (inputs, input);
-                }
-
-                message = (BREthereumMessage) {
-                    MESSAGE_PIP,
-                    { .pip = {
-                        PIP_MESSAGE_REQUEST,
-                        { .request = { messageId, inputs }}}}
-                };
-                break;
-            }
-
-            case PROVISION_TRANSACTION_STATUSES: {
-                BREthereumProvisionStatuses *provision = &provisioner->provision.u.statuses;
-
-                BRArrayOf(BREthereumHash) hashes = provision->hashes;
-                size_t hashesCount = array_count(hashes);
-
-                if (NULL == provision->statuses) {
-                    array_new (provision->statuses, hashesCount);
-                    array_set_count (provision->statuses, hashesCount);
-                }
-
-                size_t hashesOffset = index * messageContentLimit;
-
-                BRArrayOf(BREthereumPIPRequestInput) inputs;
-                array_new (inputs, messageContentLimit);
-                for (size_t i = 0; i < minimum (messageContentLimit, hashesCount - hashesOffset); i++) {
-                    BREthereumPIPRequestInput input = {
-                        PIP_REQUEST_TRANSACTION_INDEX,
-                        { .transactionIndex = { hashes[hashesOffset + i]}}
-                    };
-                    array_add (inputs, input);
-                }
-
-                message = (BREthereumMessage) {
-                    MESSAGE_PIP,
-                    { .pip = {
-                        PIP_MESSAGE_REQUEST,
-                        { .request = { messageId, inputs }}}}
-                };
-                break;
-            }
-            case PROVISION_SUBMIT_TRANSACTION: {
-                break;
-            }
-        }
-
-        // Queue message;
-        //        pthread_mutex_lock(&node->lock);
-        array_add (provisioner->messages, message);
-        //        pthread_mutex_unlock(&node->lock);
-    }
-
-}
-
-static void
-provisionerHandleMessagePIP (BREthereumNodeProvisioner *provisioner,
-                             BREthereumPIPMessage message) {
-    size_t messageContentLimit = provisioner->messageContentLimit;
-
-    switch (provisioner->provision.type) {
-        case PROVISION_BLOCK_HEADERS: {
-            assert (PIP_MESSAGE_RESPONSE == message.type);
-
-            BREthereumProvisionHeaders *provision = &provisioner->provision.u.headers;
-            BRArrayOf(BREthereumBlockHeader) provisionHeaders = provision->headers;
-
-            BREthereumProvisionIdentifier identifier = messagePIPGetRequestId(&message);
-
-            // TODO: Not likely.
-            assert (1 == array_count(message.u.response.outputs));
-            BREthereumPIPRequestOutput output = message.u.response.outputs[0];
-
-            assert (PIP_REQUEST_HEADERS == output.identifier);
-            BRArrayOf(BREthereumBlockHeader) messageHeaders = output.u.headers.headers;
-            size_t offset = messageContentLimit * (identifier - provisioner->messageIdentifier);
-            for (size_t index = 0; index < array_count(messageHeaders); index++)
-                provisionHeaders[offset + index] = messageHeaders[index];
-            break;
-        }
-
-        case PROVISION_BLOCK_BODIES: {
-            BREthereumProvisionBodies *provision = &provisioner->provision.u.bodies;
-            BRArrayOf(BREthereumBlockBodyPair) provisionPairs = provision->pairs;
-
-            BREthereumProvisionIdentifier identifier = messagePIPGetRequestId(&message);
-
-            BRArrayOf(BREthereumPIPRequestOutput) messageOutputs = message.u.response.outputs;
-            //assert (array_count(provisionPairs) == array_count(messageOutputs));
-
-            size_t offset = messageContentLimit * (identifier - provisioner->messageIdentifier);
-            for (size_t index = 0; index < array_count(messageOutputs); index++) {
-                provisionPairs[offset + index].transactions = messageOutputs[index].u.blockBody.transactions;
-                provisionPairs[offset + index].uncles = messageOutputs[index].u.blockBody.headers;
-            }
-            break;
-        }
-
-        case PROVISION_TRANSACTION_RECEIPTS: {
-            BREthereumProvisionReceipts *provision = &provisioner->provision.u.receipts;
-            BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) provisionReceiptsArray = provision->receipts;
-
-            BREthereumProvisionIdentifier identifier = messagePIPGetRequestId(&message);
-
-            BRArrayOf(BREthereumPIPRequestOutput) messageOutputs = message.u.response.outputs;
-
-            size_t offset = messageContentLimit * (identifier - provisioner->messageIdentifier);
-            for (size_t index = 0; index < array_count(messageOutputs); index++)
-                provisionReceiptsArray[offset + index]= messageOutputs[index].u.blockReceipt.receipts;
-            break;
-        }
-
-        case PROVISION_ACCOUNTS: {
-            BREthereumProvisionAccounts *provision = &provisioner->provision.u.accounts;
-            BRArrayOf(BREthereumAccountState) provisionAccounts= provision->accounts;
-
-            BREthereumProvisionIdentifier identifier = messagePIPGetRequestId(&message);
-
-            BRArrayOf(BREthereumPIPRequestOutput) messageOutputs = message.u.response.outputs;
-
-            size_t offset = messageContentLimit * (identifier - provisioner->messageIdentifier);
-            for (size_t index = 0; index < array_count(messageOutputs); index++)
-                provisionAccounts[offset + index] =
-                accountStateCreate (messageOutputs[index].u.account.nonce,
-                                    etherCreate(messageOutputs[index].u.account.balance),
-                                    messageOutputs[index].u.account.storageRootHash,
-                                    messageOutputs[index].u.account.codeHash);
-            break;
-        }
-
-        case PROVISION_TRANSACTION_STATUSES: {
-            BREthereumProvisionStatuses *provision = &provisioner->provision.u.statuses;
-            BRArrayOf(BREthereumTransactionStatus) provisionStatuses= provision->statuses;
-
-            BREthereumProvisionIdentifier identifier = messagePIPGetRequestId(&message);
-
-            BRArrayOf(BREthereumPIPRequestOutput) messageOutputs = message.u.response.outputs;
-
-            size_t offset = messageContentLimit * (identifier - provisioner->messageIdentifier);
-            for (size_t index = 0; index < array_count(messageOutputs); index++)
-                provisionStatuses[offset + index] =
-                transactionStatusCreateIncluded (gasCreate(0),
-                                                 messageOutputs[index].u.transactionIndex.blockHash,
-                                                 messageOutputs[index].u.transactionIndex.blockNumber,
-                                                 messageOutputs[index].u.transactionIndex.transactionIndex);
-            break;
-        }
-
-        case PROVISION_SUBMIT_TRANSACTION: {
-            break;
-        }
+            // The Parity code seems to have this implicit limit.
+            return 256;
     }
 }
 
@@ -963,38 +411,38 @@ provisionerEstablish (BREthereumNodeProvisioner *provisioner,
     // Set the `messageIdentifier` and the `messagesRemainingCount` given the `messagesCount`
     provisioner->messageIdentifier = nodeGetThenIncrementMessageIdentifier (node, provisioner->messagesCount);
     provisioner->messagesRemainingCount = provisioner->messagesCount;
-    provisioner->messagesReceivedCount  = 0;
+
+    // For SUBMIT_TRANSACTION we send to messages but only expect on back; fake receivedCount.
+    provisioner->messagesReceivedCount  = (PROVISION_SUBMIT_TRANSACTION == provisioner->provision.type
+                                           ? 1
+                                           : 0);
 
     // Create the messages, or just one, needed to complete the provision
     array_new (provisioner->messages, provisioner->messagesCount);
 
-    switch (nodeGetType(provisioner->node)) {
-
-        case NODE_TYPE_GETH:
-            provisionerEstablishLES (provisioner);
-            break;
-        case NODE_TYPE_PARITY:
-            provisionerEstablishPIP (provisioner);
-            break;
-    }
+    // Add each message, constructed from the provision
+    for (size_t index = 0; index < provisioner->messagesCount; index++)
+        array_add (provisioner->messages, provisionCreateMessage (&provisioner->provision,
+                                                                  (NODE_TYPE_GETH == nodeGetType(node)
+                                                                   ? MESSAGE_LES
+                                                                   : MESSAGE_PIP),
+                                                                  provisioner->messageContentLimit,
+                                                                  provisioner->messageIdentifier,
+                                                                  index));
 }
 
 static void
 provisionerHandleMessage (BREthereumNodeProvisioner *provisioner,
                           BREthereumMessage message) {
-    switch (nodeGetType(provisioner->node)) {
-        case NODE_TYPE_GETH:
-            provisionerHandleMessageLES (provisioner, message.u.les);
-            break;
-
-        case NODE_TYPE_PARITY:
-            provisionerHandleMessagePIP(provisioner, message.u.pip);
-            break;
-    }
+    provisionHandleMessage (&provisioner->provision,
+                            message,
+                            provisioner->messageContentLimit,
+                            provisioner->messageIdentifier);
 
     // We've processed another message;
     provisioner->messagesReceivedCount++;
 }
+
 ///
 /// MARK: - LES Node
 ///
@@ -1688,6 +1136,7 @@ nodeSetStateInitial (BREthereumNode node,
             switch (state.u.protocol.reason) {
                 case NODE_PROTOCOL_NONSTANDARD_PORT:
                 case NODE_PROTOCOL_CAPABILITIES_MISMATCH:
+                case NODE_PROTOCOL_NETWORK_MISMATCH:
                 case NODE_PROTOCOL_UDP_EXCESSIVE_BYTE_COUNT:
                     node->states[route] = state; // no recover; adopt the PROTOCOL error.
                     break;
@@ -2628,34 +2077,4 @@ _readAuthAckFromRecipient(BREthereumNode node) {
 }
 
 
-/// MARK: HACK
-
-struct BlockStateMap {
-    uint64_t number;
-    BREthereumAccountState state;
-};
-
-// Address: 0xa9de3dbD7d561e67527bC1Ecb025c59D53b9F7Ef
-static struct BlockStateMap map[] = {
-    { 0, { 0 }},
-    { 5506602, { 1 }}, // <- ETH, 0xa9d8724bb9db4b5ad5a370201f7367c0f731bfaa2adf1219256c7a40a76c8096
-    { 5506764, { 2 }}, // -> KNC, 0xaca2b09703d7816753885fd1a60e65c6426f9d006ba2d8dd97f7c845e0ffa930
-    { 5509990, { 3 }}, // -> KNC, 0xe5a045bdd432a8edc345ff830641d1b75847ab5c9d8380241323fa4c9e6cee1e
-    { 5511681, { 4 }}, // -> KNC, 0x04d93a1addec69da4a0589bd84d5157a0b47369ce6084c06d66fbd0afc8591dc
-    { 5539808, { 5 }}, // -> KNC, 0x932faac9e5bf5cead0492afbe290ff0cd7d2ab5d7b351ad1bccae8aac646522b
-    { 5795662, { 6 }}, // -> ETH, 0x1429c28066e3e41073e7abece864e5ca9b0dfcef28bec90a83e6ed04d91997ac
-    { 5818087, { 7 }}, // -> ETH, 0xe606358c10f59dfbdb7ad823826881ee3915e06320f1019187af92e96201e7ed
-    { 5819543, { 8 }}, // -> ETH, 0x597595bdf79ec29e8a7079fecddd741a40471bbd8fd92e11cdfc0d78d973cb16
-    { 6104163, { 9 }}, // -> ETH, 0xe87d76e5a47600f70ee11816ba8d1756b9295eca12487cbe1223a80e3a603d44
-    { UINT64_MAX, { 9 }}
-};
-static size_t mapCount = sizeof (map) / sizeof (struct BlockStateMap);
-
-static BREthereumAccountState
-hackFakeAccountStateLESProofs (uint64_t number) {
-    for (int i = 0; i < mapCount; i++)
-        if (number < map[i].number)
-            return map[i - 1].state;
-    assert (0);
-}
 

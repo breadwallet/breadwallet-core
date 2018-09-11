@@ -153,6 +153,19 @@ typedef struct {
     } u;
 } BREthereumProvision;
 
+extern BREthereumMessage
+provisionCreateMessage (BREthereumProvision *provision,
+                        BREthereumMessageIdentifier type,
+                        size_t messageContentLimit,
+                        uint64_t messageIdBase,
+                        size_t index);
+
+extern void
+provisionHandleMessage (BREthereumProvision *provision,
+                        BREthereumMessage message,
+                        size_t messageContentLimit,
+                        uint64_t messageIdBase);
+
 /**
  * Provision Result
  */
