@@ -450,10 +450,9 @@ provisionerHandleMessage (BREthereumNodeProvisioner *provisioner,
 struct BREthereumNodeRecord {
     // Must be first to support BRSet.
     /**
-     * The identifier is the 'nodeId' from the remote endpoint - which is itself the 64 byte
-     * publicKey for the endpoint.
+     * The identifer is the hash of the remote node endpoing.
      */
-    UInt512 identifier;
+    BREthereumHash hash;
 
     /** The type as GETH or PARITY (only GETH supported) */
     BREthereumNodeType type;
@@ -530,8 +529,8 @@ nodeCreate (BREthereumNetwork network,
             BREthereumNodeCallbackState callbackState) {
     BREthereumNode node = calloc (1, sizeof (struct BREthereumNodeRecord));
 
-    // Extract the identifier from the remote's public key.
-    memcpy (node->identifier.u8, &remote.key.pubKey[1], 64);
+    // Identify this `node` with the remote hash.
+    node->hash = remote.hash;
 
     // Fixed the type as GETH (for now, at least).
     node->type = NODE_TYPE_GETH;
@@ -580,10 +579,10 @@ nodeCreate (BREthereumNetwork network,
     array_new (node->provisioners, 10);
 
     // A remote port (TCP or UDP) of '0' marks this node in error.
-    if (0 == remote.dis.portTCP)
+    if (0 == remote.dis.node.portTCP)
         nodeSetStateErrorProtocol (node, NODE_ROUTE_TCP, NODE_PROTOCOL_NONSTANDARD_PORT);
 
-    if (0 == remote.dis.portUDP)
+    if (0 == remote.dis.node.portUDP)
         nodeSetStateErrorProtocol (node, NODE_ROUTE_UDP, NODE_PROTOCOL_NONSTANDARD_PORT);
 
     {
@@ -780,7 +779,7 @@ nodeProcessRecvDIS (BREthereumNode node,
                         messageDISPongCreate (message.u.ping.to,
                                               message.u.ping.hash,
                                               time(NULL) + 1000000) },
-                    nodeGetLocalEndpoint(node)->key }}
+                    nodeGetLocalEndpoint(node)->dis.key }}
             };
             nodeSend (node, NODE_ROUTE_UDP, pong);
             break;
@@ -1028,17 +1027,17 @@ nodeGetLocalEndpoint (BREthereumNode node) {
     return &node->local;
 }
 
+// Support BRSet
 extern size_t
-nodeHashValue (const void *node) {
-    // size_t varies by platform (32 or 64 bits).
-    return (size_t) ((BREthereumNode) node)->identifier.u64[0];
+nodeHashValue (const void *h) {
+    return hashSetValue(&((BREthereumNode) h)->hash);
 }
 
+// Support BRSet
 extern int
-nodeHashEqual (const void *node1,
-               const void *node2) {
-    return UInt512Eq (((BREthereumNode) node1)->identifier,
-                      ((BREthereumNode) node2)->identifier);
+nodeHashEqual (const void *h1, const void *h2) {
+    return h1 == h2 || hashSetEqual (&((BREthereumNode) h1)->hash,
+                                     &((BREthereumNode) h2)->hash);
 }
 
 /**
@@ -1285,10 +1284,10 @@ nodeThreadConnectUDP (BREthereumNode node) {
         MESSAGE_DIS,
         { .dis = {
             DIS_MESSAGE_PING,
-            { .ping = messageDISPingCreate (node->local.dis, // endpointDISCreate(&node->local),
-                                            node->remote.dis, // endpointDISCreate(&node->remote),
+            { .ping = messageDISPingCreate (node->local.dis.node, // endpointDISCreate(&node->local),
+                                            node->remote.dis.node, // endpointDISCreate(&node->remote),
                                             time(NULL) + 1000000) },
-            node->local.key }}
+            node->local.dis.key }}
     };
     if (NODE_STATUS_ERROR == nodeSend (node, NODE_ROUTE_UDP, message))
         return nodeConnectExit (node);
@@ -1349,7 +1348,7 @@ nodeThreadConnectUDP (BREthereumNode node) {
                     messageDISPongCreate (message.u.dis.u.ping.to,
                                           message.u.dis.u.ping.hash,
                                           time(NULL) + 1000000) },
-                nodeGetLocalEndpoint(node)->key }}
+                nodeGetLocalEndpoint(node)->dis.key }}
         };
         if (NODE_STATUS_ERROR == nodeSend (node, NODE_ROUTE_UDP, message))
             return nodeConnectExit (node);
@@ -1883,9 +1882,9 @@ nodeDiscover (BREthereumNode node,
         { .dis = {
             DIS_MESSAGE_FIND_NEIGHBORS,
             { .findNeighbors =
-                messageDISFindNeighborsCreate (endpoint->key,
+                messageDISFindNeighborsCreate (endpoint->dis.key,
                                                time(NULL) + 1000000) },
-            nodeGetLocalEndpoint(node)->key }}
+            nodeGetLocalEndpoint(node)->dis.key }}
     };
     nodeSend (node, NODE_ROUTE_UDP, findNodes);
     eth_log (LES_LOG_TOPIC, "Neighbors: %15s", endpoint->hostname);
@@ -1938,8 +1937,8 @@ _sendAuthInitiator(BREthereumNode node) {
     uint8_t* hPubKey = &authBuf[SIG_SIZE_BYTES];
     uint8_t* pubKey = &authBuf[SIG_SIZE_BYTES + HEPUBLIC_BYTES];
     uint8_t* nonce =  &authBuf[SIG_SIZE_BYTES + HEPUBLIC_BYTES + PUBLIC_SIZE_BYTES];
-    BRKey* nodeKey   = &node->local.key;   //nodeGetKey(node);
-    BRKey* remoteKey = &node->remote.key;  // nodeGetPeerKey(node);
+    BRKey* nodeKey   = &node->local.dis.key;   //nodeGetKey(node);
+    BRKey* remoteKey = &node->remote.dis.key;  // nodeGetPeerKey(node);
 
     //static-shared-secret = ecdh.agree(privkey, remote-pubk)
     UInt256 staticSharedSecret;
@@ -2051,7 +2050,7 @@ _sendAuthInitiator(BREthereumNode node) {
 static int // 0 on success
 _readAuthAckFromRecipient(BREthereumNode node) {
 
-    BRKey* nodeKey = &node->local.key; // nodeGetKey(node);
+    BRKey* nodeKey = &node->local.dis.key; // nodeGetKey(node);
 
     // eth_log (LES_LOG_TOPIC,"%s", "received auth ack from recipient");
 

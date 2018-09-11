@@ -175,8 +175,8 @@ lesNodeConfigCreate (BREthereumNode node) {
 
     BREthereumNodeEndpoint *ne = nodeGetRemoteEndpoint(node);
 
-    config->key = ne->key;
-    config->endpoint = ne->dis;
+    config->key = ne->dis.key;
+    config->endpoint = ne->dis.node;
     config->state = nodeGetState(node, NODE_ROUTE_TCP);
 
     config->hash = hashCreateFromData((BRRlpData) { 64, &config->key.pubKey[1] });
@@ -186,7 +186,7 @@ lesNodeConfigCreate (BREthereumNode node) {
 
 static BREthereumNodeEndpoint
 lesNodeConfigCreateEndpoint (BREthereumNodeConfig config) {
-    return nodeEndpointCreate (config->endpoint, config->key);
+    return nodeEndpointCreate ((BREthereumDISNeighbor) { config->endpoint, config->key });
 }
 
 /**
@@ -273,7 +273,7 @@ assignLocalEndpointHelloMessage (BREthereumNodeEndpoint *endpoint) {
             P2P_MESSAGE_VERSION,
             strdup (LES_LOCAL_ENDPOINT_NAME),
             NULL, // capabilities
-            endpoint->dis.portTCP,
+            endpoint->dis.node.portTCP,
             {}
         }}};
 
@@ -283,7 +283,7 @@ assignLocalEndpointHelloMessage (BREthereumNodeEndpoint *endpoint) {
 
     // The NodeID is the 64-byte (uncompressed) public key
     uint8_t pubKey[65];
-    assert (65 == BRKeyPubKey (&endpoint->key, pubKey, 65));
+    assert (65 == BRKeyPubKey (&endpoint->dis.key, pubKey, 65));
     memcpy (hello.u.hello.nodeId.u8, &pubKey[1], 64);
 
     nodeEndpointSetHello (endpoint, hello);
@@ -504,13 +504,8 @@ lesRelease(BREthereumLES les) {
 static BREthereumNode
 lesNodeCreate (BREthereumLES les,
                BREthereumDISNeighbor neighbor) {
-    BRKey key;
-    key.compressed = 0;
-    key.pubKey[0] = 0x04;
-    memcpy (&key.pubKey[1], neighbor.nodeID.u8, sizeof (neighbor.nodeID));
-
     return nodeCreate (les->network,
-                       nodeEndpointCreate(neighbor.node, key),
+                       nodeEndpointCreate(neighbor),
                        les->localEndpoint,
                        (BREthereumNodeContext) les,
                        (BREthereumNodeCallbackStatus) lesHandleStatus,
@@ -588,8 +583,9 @@ lesHandleNeighbor (BREthereumLES les,
                    BREthereumNode node,
                    BREthereumDISNeighbor neighbor) {
     BREthereumBoolean added = ETHEREUM_BOOLEAN_FALSE;
+    BREthereumHash hash = messageDISNeighborHash(neighbor);
     pthread_mutex_lock (&les->lock);
-    if (NULL == BRSetGet(les->nodes, &neighbor.nodeID)) {
+    if (NULL == BRSetGet(les->nodes, &hash)) {
         BREthereumNode node = lesNodeCreate(les, neighbor);
         BRSetAdd (les->nodes, node);
         added = ETHEREUM_BOOLEAN_TRUE;

@@ -56,49 +56,48 @@ openSocket (BREthereumNodeEndpoint *endpoint, int *socket, int port, int domain,
 // MARK: - LES Node Endpoint
 //
 extern BREthereumNodeEndpoint
-nodeEndpointCreateDetailed (BREthereumDISEndpoint dis,
-                            BRKey key,
+nodeEndpointCreateDetailed (BREthereumDISNeighbor dis,
                             BRKey ephemeralKey,
                             UInt256 nonce) {
     BREthereumNodeEndpoint endpoint;
     memset (&endpoint, 0, sizeof (BREthereumNodeEndpoint));
 
     endpoint.dis = dis;
+    endpoint.hash = messageDISNeighborHash(dis);
 
     for (int i = 0; i < NUMBER_OF_NODE_ROUTES; i++)
         endpoint.sockets[i] = -1;
 
     endpoint.timestamp = 0;
 
-    endpoint.key = key;
     endpoint.nonce = nonce;
     endpoint.ephemeralKey = ephemeralKey;
 
-    inet_ntop (dis.domain, (void *) &dis.addr, endpoint.hostname, _POSIX_HOST_NAME_MAX + 1);
+    inet_ntop (dis.node.domain, (void *) &dis.node.addr, endpoint.hostname, _POSIX_HOST_NAME_MAX + 1);
 
+    endpoint.discovered = ETHEREUM_BOOLEAN_FALSE;
     return endpoint;
 }
 
 extern BREthereumNodeEndpoint
-nodeEndpointCreate (BREthereumDISEndpoint dis,
-                    BRKey key) {
+nodeEndpointCreate (BREthereumDISNeighbor dis) {
     UInt256 nonce = UINT256_ZERO;
     BRKey ephemeralKey;
     BRKeyClean(&ephemeralKey);
 
-    return nodeEndpointCreateDetailed (dis, key, ephemeralKey, nonce);
+    return nodeEndpointCreateDetailed (dis, ephemeralKey, nonce);
 }
 
 extern BREthereumNodeEndpoint
 nodeEndpointCreateLocal (BREthereumLESRandomContext randomContext) {
-    BREthereumDISEndpoint dis = {
+    BREthereumDISEndpoint disEndpoint = {
         AF_INET,
         {},
         LES_LOCAL_ENDPOINT_UDP_PORT,
         LES_LOCAL_ENDPOINT_TCP_PORT
     };
 
-    inet_pton (dis.domain, LES_LOCAL_ENDPOINT_ADDRESS, &dis.addr);
+    inet_pton (disEndpoint.domain, LES_LOCAL_ENDPOINT_ADDRESS, &disEndpoint.addr);
 
     BRKey localKey, localEphemeralKey;
     UInt256 localNonce;
@@ -109,7 +108,9 @@ nodeEndpointCreateLocal (BREthereumLESRandomContext randomContext) {
 
     assert (0 == localKey.compressed);
 
-    return nodeEndpointCreateDetailed (dis, localKey, localEphemeralKey, localNonce);
+    BREthereumDISNeighbor dis = { disEndpoint, localKey };
+
+    return nodeEndpointCreateDetailed (dis, localEphemeralKey, localNonce);
 }
 
 extern BREthereumNodeEndpoint
@@ -125,25 +126,39 @@ nodeEndpointCreateEnode (const char *enode) {
     char *pt = strsep (&buf, "@:");
     int port = atoi (pt);
 
-    BREthereumDISEndpoint dis = {
+    BREthereumDISEndpoint disEndpoint = {
         AF_INET,
         {},
         port,
         port
     };
 
-    inet_pton (dis.domain, ip, &dis.addr);
+    inet_pton (disEndpoint.domain, ip, &disEndpoint.addr);
 
     BRKey key;
     key.pubKey[0] = 0x04;
     key.compressed = 0;
     decodeHex(&key.pubKey[1], 64, id, 128);
-    return nodeEndpointCreate(dis, key);
+
+    return nodeEndpointCreate((BREthereumDISNeighbor) { disEndpoint, key });
+}
+
+// Support BRSet
+extern size_t
+nodeEndpointHashValue (const void *h) {
+    return hashSetValue(&((BREthereumNodeEndpoint*) h)->hash);
+}
+
+// Support BRSet
+extern int
+nodeEndpointHashEqual (const void *h1, const void *h2) {
+    return h1 == h2 || hashSetEqual (&((BREthereumNodeEndpoint*) h1)->hash,
+                                     &((BREthereumNodeEndpoint*) h2)->hash);
 }
 
 extern BRKey
 nodeEndpointGetKey (BREthereumNodeEndpoint endpoint) {
-    return endpoint.key;
+    return endpoint.dis.key;
 }
 
 extern void
@@ -165,8 +180,8 @@ nodeEndpointOpen (BREthereumNodeEndpoint *endpoint,
     
     return openSocket (endpoint,
                        &endpoint->sockets[route],
-                       (route == NODE_ROUTE_TCP ? endpoint->dis.portTCP : endpoint->dis.portUDP),
-                       endpoint->dis.domain,
+                       (route == NODE_ROUTE_TCP ? endpoint->dis.node.portTCP : endpoint->dis.node.portUDP),
+                       endpoint->dis.node.domain,
                        (route == NODE_ROUTE_TCP ? SOCK_STREAM : SOCK_DGRAM),
                        CONNECTION_TIME);
 }
@@ -239,7 +254,7 @@ nodeEndpointRecvData (BREthereumNodeEndpoint *endpoint,
     if (error)
         eth_log (LES_LOG_TOPIC, "Recv: %s @ %5d => %15s %s%s",
                  nodeEndpointRouteGetName(route),
-                 (NODE_ROUTE_UDP == route ? endpoint->dis.portUDP : endpoint->dis.portTCP),
+                 (NODE_ROUTE_UDP == route ? endpoint->dis.node.portUDP : endpoint->dis.node.portTCP),
                  endpoint->hostname,
                  "Error: ",
                  strerror(error));
@@ -287,7 +302,7 @@ nodeEndpointSendData (BREthereumNodeEndpoint *endpoint,
     if (error)
         eth_log (LES_LOG_TOPIC, "Send: %s @ %5d => %15s %s%s",
                  nodeEndpointRouteGetName(route),
-                 (NODE_ROUTE_UDP == route ? endpoint->dis.portUDP : endpoint->dis.portTCP),
+                 (NODE_ROUTE_UDP == route ? endpoint->dis.node.portUDP : endpoint->dis.node.portTCP),
                  endpoint->hostname,
                  "Error: ",
                  strerror(error));
@@ -312,13 +327,13 @@ nodeEndpointFillSockAddr (BREthereumNodeEndpoint *endpoint,
     // Clear addr
     memset(addr, 0, sizeof(struct sockaddr_storage));
 
-    switch (endpoint->dis.domain) {
+    switch (endpoint->dis.node.domain) {
         case AF_INET: {
             struct sockaddr_in *addr_in4 = (struct sockaddr_in *) addr;
 
             addr_in4->sin_family = AF_INET;
             addr_in4->sin_port = htons(port);
-            addr_in4->sin_addr = * (struct in_addr *) endpoint->dis.addr.ipv4;
+            addr_in4->sin_addr = * (struct in_addr *) endpoint->dis.node.addr.ipv4;
 
             *addrLen = sizeof (struct sockaddr_in);
             break;
@@ -328,7 +343,7 @@ nodeEndpointFillSockAddr (BREthereumNodeEndpoint *endpoint,
 
             addr_in6->sin6_family = AF_INET6;
             addr_in6->sin6_port = htons(port);
-            addr_in6->sin6_addr = * (struct in6_addr *) endpoint->dis.addr.ipv6;
+            addr_in6->sin6_addr = * (struct in6_addr *) endpoint->dis.node.addr.ipv6;
 
             *addrLen = sizeof (struct sockaddr_in6);
             break;
@@ -514,9 +529,9 @@ const char *bootstrapLESEnodes[] = {
 
     // START - BRD
     // Full
-    //"enode://e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851@104.197.99.24:30303",
+    "enode://e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851@104.197.99.24:30303",
     // Archival
-    "enode://e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851@35.226.238.26:30303",
+    // "enode://e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851@35.226.238.26:30303",
     // END - BRD
 
     // START -- https://gist.github.com/rfikki/e2a8c47f4460668557b1e3ec8bae9c11

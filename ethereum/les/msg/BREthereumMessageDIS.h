@@ -128,8 +128,11 @@ messageDISFindNeighborsCreate (BRKey target,
  */
 typedef struct {
     BREthereumDISEndpoint node;
-    UInt512 nodeID;     // a 64 byte public key
+    BRKey key; // a 64 byte public key
 } BREthereumDISNeighbor;
+
+extern BREthereumHash
+messageDISNeighborHash (BREthereumDISNeighbor neighbor);
 
 /**
  * The DIS Neighbors Message.

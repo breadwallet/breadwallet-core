@@ -72,7 +72,7 @@ endpointDISDecode (BRRlpItem item, BRRlpCoder coder) {
 }
 
 //
-// DIS Neighbor Encode/Decode
+// MARK: - DIS Neighbor
 //
 static BREthereumDISNeighbor
 neighborDISDecode (BRRlpItem item, BREthereumMessageCoder coder) {
@@ -93,13 +93,27 @@ neighborDISDecode (BRRlpItem item, BREthereumMessageCoder coder) {
 
     BRRlpData nodeIDData = rlpDecodeBytesSharedDontRelease (coder.rlp, items[3]);
     assert (64 == nodeIDData.bytesCount);
-    memcpy (neighbor.nodeID.u8, nodeIDData.bytes, nodeIDData.bytesCount);
+
+    // Get the 65-byte 0x04-prefaced public key.
+    uint8_t key[65] = { 0x04 };
+    memcpy (&key[1], nodeIDData.bytes, nodeIDData.bytesCount);
+
+    memset (&neighbor.key, 0, sizeof (BRKey));
+    BRKeySetPubKey(&neighbor.key, key, 65);
 
     neighbor.node.portUDP = (uint16_t) rlpDecodeUInt64 (coder.rlp, items[1], 1);
     neighbor.node.portTCP = (uint16_t) rlpDecodeUInt64 (coder.rlp, items[2], 1);
 
     return neighbor;
 }
+
+extern BREthereumHash
+messageDISNeighborHash (BREthereumDISNeighbor neighbor) {
+    BRRlpData data = { sizeof (BREthereumDISNeighbor), (uint8_t *) &neighbor };
+    return hashCreateFromData(data);
+}
+
+/// MARK: DIS Ping
 
 extern BREthereumDISMessagePing
 messageDISPingCreate (BREthereumDISEndpoint to,
