@@ -168,6 +168,20 @@ public class BREthereumLightNode extends BRCoreJniReference {
         jniAnnounceNonce(address, nonce, rid);
     }
 
+    public void announceToken (String address,
+                               String symbol,
+                               String name,
+                               String description,
+                               int decimals,
+                               String defaultGasLimit,
+                               String defaultGasPrice,
+                               int rid) {
+        jniAnnounceToken(address, symbol, name, description, decimals,
+                defaultGasLimit, defaultGasPrice,
+                rid);
+        tokens = null;
+    }
+
     //
     // Listener
     //
@@ -394,30 +408,47 @@ public class BREthereumLightNode extends BRCoreJniReference {
     //
     protected final HashMap<String, BREthereumToken> tokensByAddress = new HashMap<>();
     protected final HashMap<Long, BREthereumToken> tokensByReference = new HashMap<>();
-    public BREthereumToken[] tokens = null;
-    public BREthereumToken tokenBRD;
+    protected BREthereumToken[] tokens = null;
+    protected BREthereumToken tokenBRD;
 
     protected void initializeTokens () {
-        long[] references =  jniTokenAll ();
-        tokens = new BREthereumToken[references.length];
+        if (null == tokens) {
+            long[] references = jniTokenAll();
+            tokens = new BREthereumToken[references.length];
 
-        for (int i = 0; i < references.length; i++)
-            tokens[i] = new BREthereumToken(references[i]);
+            for (int i = 0; i < references.length; i++)
+                tokens[i] = new BREthereumToken(references[i]);
 
-        for (BREthereumToken token : tokens) {
-            System.err.println ("Token: " + token.getSymbol());
-            tokensByReference.put(token.getIdentifier(), token);
-            tokensByAddress.put (token.getAddress().toLowerCase(), token);
+            tokensByReference.clear();
+            tokensByAddress.clear();
+
+            for (BREthereumToken token : tokens) {
+                System.err.println("Token: " + token.getSymbol());
+                tokensByReference.put(token.getIdentifier(), token);
+                tokensByAddress.put(token.getAddress().toLowerCase(), token);
+            }
+
+            tokenBRD = lookupTokenByReference(jniGetTokenBRD());
         }
+    }
 
-        tokenBRD = lookupTokenByReference(jniGetTokenBRD());
+    public BREthereumToken[] getTokens () {
+        initializeTokens();
+        return tokens;
+    }
+
+    public BREthereumToken getBRDToken () {
+        initializeTokens();
+        return tokenBRD;
     }
 
      public BREthereumToken lookupToken (String address) {
+        initializeTokens();;
         return tokensByAddress.get(address.toLowerCase());
     }
 
     protected BREthereumToken lookupTokenByReference (long reference) {
+        initializeTokens();
         return tokensByReference.get(reference);
     }
 
@@ -609,6 +640,14 @@ public class BREthereumLightNode extends BRCoreJniReference {
     protected native void jniAnnounceSubmitTransaction (int wid, int tid, String hash, int rid);
     protected native void jniAnnounceBlockNumber (String blockNumber, int rid);
     protected native void jniAnnounceNonce (String address, String nonce, int rid);
+    protected native void jniAnnounceToken (String address,
+                                            String symbol,
+                                            String name,
+                                            String description,
+                                            int decimals,
+                                            String defaultGasLimit,
+                                            String defaultGasPrice,
+                                            int rid);
 
 
     // JNI: Account & Address

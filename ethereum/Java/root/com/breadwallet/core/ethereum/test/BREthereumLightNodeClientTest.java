@@ -251,6 +251,14 @@ public class BREthereumLightNodeClientTest implements
         node = new BREthereumLightNode (this, BREthereumNetwork.testnet, USABLE_PAPER_KEY, words);
         node.addListener(this);
 
+        node.announceToken("0x558ec3152e2eb2174905cd19aea4e34a23de9ad6",
+                "BRD",
+                "BRD Token",
+                "",
+                18,
+                null,
+                null,
+                0);
 
         //
         // Test body
@@ -261,7 +269,7 @@ public class BREthereumLightNodeClientTest implements
 
         asserting("0".equals(walletEther.getBalance()));
 
-        BREthereumWallet walletToken = node.getWallet(node.tokenBRD);
+        BREthereumWallet walletToken = node.getWallet(node.getBRDToken());
         asserting(null != walletToken.getToken()
                 && walletToken.getToken().getSymbol().equals("BRD"));
         walletToken.setDefaultUnit(BREthereumAmount.Unit.TOKEN_DECIMAL);
@@ -341,8 +349,8 @@ public class BREthereumLightNodeClientTest implements
                     "\n   nonce: " + transaction.getNonce() +
                     "\n\n");
         }
-        BREthereumToken t1 = node.lookupToken(node.tokenBRD.getAddress());
-        asserting (t1.getSymbol().equals(node.tokenBRD.getSymbol()));
+        BREthereumToken t1 = node.lookupToken(node.getBRDToken().getAddress());
+        asserting (t1.getSymbol().equals(node.getBRDToken().getSymbol()));
 
         // Wait until balance updates.
         String etherBalanceWEI = "4671"; // 0x123f
@@ -372,7 +380,7 @@ public class BREthereumLightNodeClientTest implements
 
         // Tokens
         //
-        for (BREthereumToken token : node.tokens)
+        for (BREthereumToken token : node.getTokens())
             System.out.println("Token: " + token.getSymbol() + ", " + token.getName() +
                     ", " + token.getAddress() +
                     ", " + token.getDecimals());

@@ -753,6 +753,50 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jn
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniAnnounceToken
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;I)V
+ */
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceToken
+        (JNIEnv *env, jobject thisObject,
+         jstring address,
+         jstring symbol,
+         jstring name,
+         jstring description,
+         jint decimals,
+         jstring defaultGasLimit,
+         jstring defaultGasPrice,
+         jint rid) {
+    BREthereumLightNode node = (BREthereumLightNode) getJNIReference(env, thisObject);
+
+    const char *strAddress  = (*env)->GetStringUTFChars (env, address, 0);
+    const char *strSymbol   = (*env)->GetStringUTFChars (env, symbol, 0);
+    const char *strName     = (*env)->GetStringUTFChars (env, name, 0);
+    const char *strDescription = (*env)->GetStringUTFChars (env, description, 0);
+    const char *strGasLimit = (*env)->IsSameObject(env, defaultGasLimit, NULL)
+                              ? NULL
+                              : (*env)->GetStringUTFChars (env, defaultGasLimit, 0);
+    const char *strGasPrice = (*env)->IsSameObject(env, defaultGasPrice, NULL)
+                              ? NULL
+                              : (*env)->GetStringUTFChars (env, defaultGasPrice, 0);
+
+    lightNodeAnnounceToken(node,
+                           strAddress, strSymbol, strName, strDescription,
+                           decimals, strGasLimit, strGasPrice,
+                           rid);
+
+    (*env)->ReleaseStringUTFChars (env, address, strAddress);
+    (*env)->ReleaseStringUTFChars (env, symbol, strSymbol);
+    (*env)->ReleaseStringUTFChars (env, name, strName);
+    (*env)->ReleaseStringUTFChars (env, description, strDescription);
+    if (!(*env)->IsSameObject(env, defaultGasLimit, NULL))
+        (*env)->ReleaseStringUTFChars (env, defaultGasLimit, strGasLimit);
+    if (!(*env)->IsSameObject(env, defaultGasPrice, NULL))
+        (*env)->ReleaseStringUTFChars (env, defaultGasPrice, strGasPrice);
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniCreateTransaction
  * Signature: (JLjava/lang/String;Ljava/lang/String;J)J
  */
