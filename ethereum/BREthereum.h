@@ -799,6 +799,17 @@ lightNodeAnnounceSubmitTransaction(BREthereumLightNode node,
                                    const char *hash,
                                    int rid);
 
+extern void
+lightNodeAnnounceToken (BREthereumLightNode node,
+                        const char *address,
+                        const char *symbol,
+                        const char *name,
+                        const char *description,
+                        int decimals,
+                        const char *defaultGasLimit,
+                        const char *defaultGasPrice,
+                        int rid);
+    
 #endif // ETHEREUM_LIGHT_NODE_USE_JSON_RPC
 
 // ==========================
