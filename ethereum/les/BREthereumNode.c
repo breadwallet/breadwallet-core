@@ -740,6 +740,7 @@ nodeProcessRecvP2P (BREthereumNode node,
     assert (NODE_ROUTE_TCP == route);
     switch (message.identifier) {
         case P2P_MESSAGE_DISCONNECT:
+            eth_log (LES_LOG_TOPIC, "Recv: General Disconnect: %s", messageP2PDisconnectDescription (message.u.disconnect.reason));
             nodeDisconnect(node, NODE_ROUTE_TCP, message.u.disconnect.reason);
             break;
 
@@ -1476,8 +1477,10 @@ nodeThreadConnectTCP (BREthereumNode node) {
     message = result.u.success.message;
 
     // Handle a disconnect request
-    if (MESSAGE_P2P == message.identifier && P2P_MESSAGE_DISCONNECT == message.u.p2p.identifier)
+    if (MESSAGE_P2P == message.identifier && P2P_MESSAGE_DISCONNECT == message.u.p2p.identifier) {
+        eth_log (LES_LOG_TOPIC, "Recv: Hello Disconnect: %s", messageP2PDisconnectDescription (message.u.p2p.u.disconnect.reason));
         return nodeConnectFailed(node, NODE_ROUTE_TCP, nodeStateCreateErrorDisconnect(message.u.p2p.u.disconnect.reason));
+    }
 
     // Require a P2P Hello message.
     if (MESSAGE_P2P != message.identifier || P2P_MESSAGE_HELLO != message.u.p2p.identifier)
@@ -1538,6 +1541,66 @@ nodeThreadConnectTCP (BREthereumNode node) {
     // We'll trusted (but verified) above that we have one and only one (LES, PIP) subprotocol.
     node->coder.messageIdOffset = 0x10;
 
+    // We handle a Parity Race Condition - We cannot send a STATUS message at this point...
+    // At this point in time Parity is constructing/sending a PING message and will be waiting for
+    // a PONG message.  If we send STATUS, Parity will see it but expected a PONG and then will
+    // instantly dump us.
+    //
+    // ... Except, apparently this is not struct as we get dumped no matter what.
+    //
+    
+    // ETH: LES: Send: [ WIP,            Auth ] => 193.70.55.37
+    // ETH: LES: Open: UDP @ 30303 =>   139.99.51.203 Success
+    // ETH: LES: Send: [ DIS,            Ping ] => 139.99.51.203
+    // ETH: LES: Recv: [ WIP,        Auth Ack ] <= 193.70.55.37
+    // ETH: LES: Send: [ P2P,           Hello ] => 193.70.55.37
+    // ETH: LES: Recv: [ P2P,           Hello ] <= 193.70.55.37
+    // ETH: LES: Hello
+    // ETH: LES:     Version     : 5
+    // ETH: LES:     ClientId    : Parity/v1.11.8-stable-c754a02-20180725/x86_64-linux-gnu/rustc1.27.2
+    // ETH: LES:     ListenPort  : 30303
+    // ETH: LES:     NodeId      : 0x81863f47e9bd652585d3f78b4b2ee07b93dad603fd9bc3c293e1244250725998adc88da0cef48f1de89b15ab92b15db8f43dc2b6fb8fbd86a6f217a1dd886701
+    // ETH: LES:     Capabilities:
+    // ETH: LES:         eth = 62
+    // ETH: LES:         eth = 63
+    // ETH: LES:         par = 1
+    // ETH: LES:         par = 2
+    // ETH: LES:         par = 3
+    // ETH: LES:         pip = 1
+    // ETH: LES: StatusMessage:
+    // ETH: LES:     ProtocolVersion: 1
+    // ETH: LES:     NetworkId      : 1
+    // ETH: LES:     HeadNum        : 0
+    // ETH: LES:     HeadHash       : 0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3
+    // ETH: LES:     HeadTd         : 0
+    // ETH: LES:     GenesisHash    : 0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3
+    // ETH: LES: Send: [ PIP,          Status ] => 193.70.55.37
+    // ETH: LES: Recv: [ P2P,            Ping ] <= 193.70.55.37
+    // ETH: LES: Send: [ P2P,            Pong ] => 193.70.55.37
+    // ETH: LES: Recv: TCP @ 30303 =>    193.70.55.37 Error: Connection reset by peer
+
+    if (NODE_TYPE_PARITY == node->type) {
+        error = pselect (socket + 1, &readSet, NULL, NULL, &timeout, NULL);
+        if (error <= 0)
+            return nodeConnectFailed (node, NODE_ROUTE_TCP,
+                                      nodeStateCreateErrorUnix (error == 0 ? ETIMEDOUT : errno));
+        result = nodeRecv (node, NODE_ROUTE_TCP);
+        if (NODE_STATUS_ERROR == result.status)
+            return nodeConnectExit (node);
+
+        message = result.u.success.message;
+
+        assert (MESSAGE_P2P == message.identifier && P2P_MESSAGE_PING == message.u.p2p.identifier);
+
+        BREthereumMessage pong = {
+            MESSAGE_P2P,
+            { .p2p = {
+                P2P_MESSAGE_PONG,
+                {}}}
+        };
+        nodeSend (node, NODE_ROUTE_TCP, pong);
+    }
+
     //
     // STATUS
     //
@@ -1560,8 +1623,10 @@ nodeThreadConnectTCP (BREthereumNode node) {
     message = result.u.success.message;
 
     // Handle a disconnect request
-    if (MESSAGE_P2P == message.identifier && P2P_MESSAGE_DISCONNECT == message.u.p2p.identifier)
+    if (MESSAGE_P2P == message.identifier && P2P_MESSAGE_DISCONNECT == message.u.p2p.identifier) {
+        eth_log (LES_LOG_TOPIC, "Recv: Status-0 Disconnect: %s", messageP2PDisconnectDescription (message.u.p2p.u.disconnect.reason));
         return nodeConnectFailed(node, NODE_ROUTE_TCP, nodeStateCreateErrorDisconnect(message.u.p2p.u.disconnect.reason));
+    }
 
     // Handle a ping - send a PONG and then wait again for a status
     if (MESSAGE_P2P == message.identifier && P2P_MESSAGE_PING == message.u.p2p.identifier) {
@@ -1584,8 +1649,10 @@ nodeThreadConnectTCP (BREthereumNode node) {
         message = result.u.success.message;
     }
 
-    if (MESSAGE_P2P == message.identifier && P2P_MESSAGE_DISCONNECT == message.u.p2p.identifier)
+    if (MESSAGE_P2P == message.identifier && P2P_MESSAGE_DISCONNECT == message.u.p2p.identifier) {
+        eth_log (LES_LOG_TOPIC, "Recv: Status-1 Disconnect: %s", messageP2PDisconnectDescription (message.u.p2p.u.disconnect.reason));
         return nodeConnectFailed(node, NODE_ROUTE_TCP, nodeStateCreateErrorDisconnect(message.u.p2p.u.disconnect.reason));
+    }
 
     // Require a Status message.
     if ((MESSAGE_LES != message.identifier || LES_MESSAGE_STATUS != message.u.les.identifier) &&

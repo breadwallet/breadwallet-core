@@ -319,19 +319,23 @@ messagePIPRequestInputEncode (BREthereumPIPRequestInput input,
             break;
             
         case PIP_REQUEST_HEADER_PROOF:
-            item = loose (coder.rlp, 0, rlpEncodeUInt64 (coder.rlp, input.u.headerProof.blockNumber, 1));
+            item = rlpEncodeList1 (coder.rlp,
+                                   loose (coder.rlp, 0, rlpEncodeUInt64 (coder.rlp, input.u.headerProof.blockNumber, 1)));
             break;
             
         case PIP_REQUEST_TRANSACTION_INDEX:
-            item = loose (coder.rlp, 0, hashRlpEncode (input.u.transactionIndex.transactionHash, coder.rlp));
+            item = rlpEncodeList1 (coder.rlp,
+                                   loose (coder.rlp, 0, hashRlpEncode (input.u.transactionIndex.transactionHash, coder.rlp)));
             break;
             
         case PIP_REQUEST_BLOCK_RECEIPTS:
-            item = loose (coder.rlp, 0, hashRlpEncode (input.u.blockReceipt.blockHash, coder.rlp));
+            item = rlpEncodeList1 (coder.rlp,
+                                   loose (coder.rlp, 0, hashRlpEncode (input.u.blockReceipt.blockHash, coder.rlp)));
             break;
             
         case PIP_REQUEST_BLOCK_BODY:
-            item = loose (coder.rlp, 0, hashRlpEncode (input.u.blockBody.blockHash, coder.rlp));
+            item = rlpEncodeList1 (coder.rlp,
+                                   loose (coder.rlp, 0, hashRlpEncode (input.u.blockBody.blockHash, coder.rlp)));
             break;
             
         case PIP_REQUEST_ACCOUNT:
@@ -424,23 +428,24 @@ messagePIPRequestOutputDecode (BRRlpItem item,
             return (BREthereumPIPRequestOutput) {
                 PIP_REQUEST_BLOCK_BODY,
                 { .blockBody = {
-                    blockOmmersRlpDecode (outputItems[0], coder.network, RLP_TYPE_NETWORK, coder.rlp),
-                    blockTransactionsRlpDecode (outputItems[1], coder.network, RLP_TYPE_NETWORK, coder.rlp) }}
+                    blockOmmersRlpDecode (outputItems[1], coder.network, RLP_TYPE_NETWORK, coder.rlp),
+                    blockTransactionsRlpDecode (outputItems[0], coder.network, RLP_TYPE_NETWORK, coder.rlp) }}
             };
         }
 
         case PIP_REQUEST_ACCOUNT: {
             size_t outputsCount;
             const BRRlpItem *outputItems = rlpDecodeList (coder.rlp, items[1], &outputsCount);
-            assert (4 == outputsCount);
+            assert (5 == outputsCount);
 
+            // TODO: Proof - outputItems[0]
             return (BREthereumPIPRequestOutput) {
                 PIP_REQUEST_ACCOUNT,
                 { .account = {
-                    rlpDecodeUInt64 (coder.rlp, outputItems[0], 1),
-                    rlpDecodeUInt256 (coder.rlp, outputItems[1], 1),
-                    hashRlpDecode (outputItems[2], coder.rlp),
-                    hashRlpDecode (outputItems[3], coder.rlp) }}
+                    rlpDecodeUInt64 (coder.rlp, outputItems[1], 1),
+                    rlpDecodeUInt256 (coder.rlp, outputItems[2], 1),
+                    hashRlpDecode (outputItems[3], coder.rlp),
+                    hashRlpDecode (outputItems[4], coder.rlp) }}
             };
         }
 

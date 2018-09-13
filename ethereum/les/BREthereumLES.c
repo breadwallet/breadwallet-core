@@ -291,24 +291,58 @@ assignLocalEndpointHelloMessage (BREthereumNodeEndpoint *endpoint) {
 }
 
 static BREthereumNode
-lesAddNodeForEndpoint (BREthereumLES les,
-                       BREthereumNodeEndpoint endpoint) {
-    BREthereumNode node = nodeCreate (les->network,
-                                         endpoint,
-                                         les->localEndpoint,
-                                         (BREthereumNodeContext) les,
-                                         (BREthereumNodeCallbackStatus) lesHandleStatus,
-                                         (BREthereumNodeCallbackAnnounce) lesHandleAnnounce,
-                                         (BREthereumNodeCallbackProvide) lesHandleProvision,
-                                         (BREthereumNodeCallbackNeighbor) lesHandleNeighbor,
-                                         (BREthereumNodeCallbackState) lesHandleNodeState);
+lesEnsureNodeForEndpoint (BREthereumLES les,
+                          BREthereumNodeEndpoint endpoint,
+                          BREthereumBoolean *added) {
+    BREthereumHash hash = endpoint.hash;
 
-    // We expect duplicates - we'll make the first one win.
-    if (!BRSetGet(les->nodes, node))
+    pthread_mutex_lock (&les->lock);
+
+    // Lookup an existing node.
+    BREthereumNode node = BRSetGet (les->nodes, &hash);
+
+    // If there is none, then note `added`...
+    if (NULL != added) *added = AS_ETHEREUM_BOOLEAN (NULL == node);
+
+    // ... and then actually add it.
+    if (NULL == node) {
+        node = nodeCreate (les->network,
+                           endpoint,
+                           les->localEndpoint,
+                           (BREthereumNodeContext) les,
+                           (BREthereumNodeCallbackStatus) lesHandleStatus,
+                           (BREthereumNodeCallbackAnnounce) lesHandleAnnounce,
+                           (BREthereumNodeCallbackProvide) lesHandleProvision,
+                           (BREthereumNodeCallbackNeighbor) lesHandleNeighbor,
+                           (BREthereumNodeCallbackState) lesHandleNodeState);
         BRSetAdd(les->nodes, node);
+    }
 
+    pthread_mutex_unlock (&les->lock);
     return node;
 }
+
+/**
+ * Create a LES node from a DIS neighbor.  The result of a DIS 'Find Neighbors' request will be
+ * a list of BREthereumDISNeighbor; we'll create and add them.
+ *
+ * @param les
+ * @param neighbor
+ * @return
+ */
+//static BREthereumNode
+//lesNodeCreate (BREthereumLES les,
+//               BREthereumDISNeighbor neighbor) {
+//    return nodeCreate (les->network,
+//                       nodeEndpointCreate(neighbor),
+//                       les->localEndpoint,
+//                       (BREthereumNodeContext) les,
+//                       (BREthereumNodeCallbackStatus) lesHandleStatus,
+//                       (BREthereumNodeCallbackAnnounce) lesHandleAnnounce,
+//                       (BREthereumNodeCallbackProvide) lesHandleProvision,
+//                       (BREthereumNodeCallbackNeighbor) lesHandleNeighbor,
+//                       (BREthereumNodeCallbackState) lesHandleNodeState);
+//}
 
 
 //
@@ -420,7 +454,7 @@ lesCreate (BREthereumNetwork network,
     eth_log(LES_LOG_TOPIC, "Nodes Provided: %lu", (NULL == configs ? 0 : array_count(configs)));
     if (NULL != configs)
         for (size_t index = 0; index < array_count(configs); index++) {
-            BREthereumNode node = lesAddNodeForEndpoint(les, lesNodeConfigCreateEndpoint(configs[index]));
+            BREthereumNode node = lesEnsureNodeForEndpoint(les, lesNodeConfigCreateEndpoint(configs[index]), NULL);
             nodeSetStateInitial (node, NODE_ROUTE_TCP, configs[index]->state);
         }
 
@@ -428,12 +462,12 @@ lesCreate (BREthereumNetwork network,
     size_t bootstrappedEndpointsCount = 0;
     for (size_t set = 0; set < NUMBER_OF_NODE_ENDPOINT_SETS; set++) {
         const char **enodes = bootstrapMainnetEnodeSets[set];
-        if (enodes == bootstrapLCLEnodes) {
+//        if (enodes == bootstrapParityEnodes) {
             for (size_t index = 0; NULL != enodes[index]; index++) {
-                lesAddNodeForEndpoint(les, nodeEndpointCreateEnode(enodes[index]));
+                lesEnsureNodeForEndpoint(les, nodeEndpointCreateEnode(enodes[index]), NULL);
                 bootstrappedEndpointsCount++;
             }
-        }
+//        }
     }
     eth_log(LES_LOG_TOPIC, "Nodes Bootstrapped: %lu", bootstrappedEndpointsCount);
 
@@ -503,28 +537,6 @@ lesRelease(BREthereumLES les) {
 
 /// MARK: Node Management
 
-/**
- * Create a LES node from a DIS neighbor.  The result of a DIS 'Find Neighbors' request will be
- * a list of BREthereumDISNeighbor; we'll create and add them.
- *
- * @param les
- * @param neighbor
- * @return
- */
-static BREthereumNode
-lesNodeCreate (BREthereumLES les,
-               BREthereumDISNeighbor neighbor) {
-    return nodeCreate (les->network,
-                       nodeEndpointCreate(neighbor),
-                       les->localEndpoint,
-                       (BREthereumNodeContext) les,
-                       (BREthereumNodeCallbackStatus) lesHandleStatus,
-                       (BREthereumNodeCallbackAnnounce) lesHandleAnnounce,
-                       (BREthereumNodeCallbackProvide) lesHandleProvision,
-                       (BREthereumNodeCallbackNeighbor) lesHandleNeighbor,
-                       (BREthereumNodeCallbackState) lesHandleNodeState);
-}
-
 static void
 lesNodeAddConnected (BREthereumLES les,
                      BREthereumNode node) {
@@ -593,14 +605,7 @@ lesHandleNeighbor (BREthereumLES les,
                    BREthereumNode node,
                    BREthereumDISNeighbor neighbor) {
     BREthereumBoolean added = ETHEREUM_BOOLEAN_FALSE;
-    BREthereumHash hash = messageDISNeighborHash(neighbor);
-    pthread_mutex_lock (&les->lock);
-    if (NULL == BRSetGet(les->nodes, &hash)) {
-        BREthereumNode node = lesNodeCreate(les, neighbor);
-        BRSetAdd (les->nodes, node);
-        added = ETHEREUM_BOOLEAN_TRUE;
-    }
-    pthread_mutex_unlock (&les->lock);
+    lesEnsureNodeForEndpoint (les, nodeEndpointCreate(neighbor), &added);
     return added;
 }
 

@@ -83,110 +83,6 @@ _nodeCallbackStatus (BREthereumNodeContext context,
                      BREthereumNodeState state) {
 }
 
-#if 0
-static void
-assignLocalEndpointHelloMessage (BREthereumNodeEndpoint *endpoint,
-                                 BREthereumNodeType type) {
-    // From https://github.com/ethereum/wiki/wiki/ÐΞVp2p-Wire-Protocol on 2019 Aug 21
-    // o p2pVersion: Specifies the implemented version of the P2P protocol. Now must be 1
-    // o listenPort: specifies the port that the client is listening on (on the interface that the
-    //    present connection traverses). If 0 it indicates the client is not listening.
-    BREthereumP2PMessage hello = {
-        P2P_MESSAGE_HELLO,
-        { .hello  = {
-            0x01,
-            strdup (LES_LOCAL_ENDPOINT_NAME),
-            NULL, // capabilities
-            endpoint->dis.portTCP,
-            {}
-        }}};
-
-    array_new (hello.u.hello.capabilities, 1);
-    switch (type) {
-        case NODE_TYPE_GETH:
-            array_add (hello.u.hello.capabilities,
-                       ((BREthereumP2PCapability) { "les", 2 }));
-            break;
-
-        case NODE_TYPE_PARITY:
-            array_add (hello.u.hello.capabilities,
-                       ((BREthereumP2PCapability) { "pip", 1 }));
-            break;
-    }
-
-    // The NodeID is the 64-byte (uncompressed) public key
-    uint8_t pubKey[65];
-    assert (65 == BRKeyPubKey (&endpoint->key, pubKey, 65));
-    memcpy (hello.u.hello.nodeId.u8, &pubKey[1], 64);
-
-    nodeEndpointSetHello (endpoint, hello);
-    messageP2PHelloShow (hello.u.hello);
-}
-#endif
-
-extern void
-runNodeTests (void) {
-//    BRKey key;
-//    UInt256 secret;
-//#if defined (__ANDROID__)
-//    assert (false);
-//#else
-//    arc4random_buf(secret.u64, sizeof (secret));
-//#endif
-//
-//    // Assign the generated private key.
-//    BRKeySetSecret(&key, &secret, 0);
-//    BREthereumLESRandomContext randomContext =  randomCreate (key.secret.u8, 32);
-//
-//    const char *remoteEnode =
-//    "enode://e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851@35.226.238.26:30303";
-//
-//    BREthereumNodeEndpoint local  = nodeEndpointCreateLocal(randomContext);
-//    BREthereumNodeEndpoint remote = nodeEndpointCreateEnode(remoteEnode);
-//
-//    assignLocalEndpointHelloMessage(&local, NODE_TYPE_GETH);
-//
-//    BREthereumLESMessage status = {
-//        LES_MESSAGE_STATUS,
-//        { .status = messageLESStatusCreate (0x02,  // LES v2
-//                                            networkGetChainId(ethereumMainnet),
-//                                            0,
-//                                            networkGetGenesisBlockHeaderHash (ethereumMainnet),
-//                                            UINT256_ZERO,
-//                                            networkGetGenesisBlockHeaderHash (ethereumMainnet),
-//                                            0x01) // Announce type (of LES v2)
-//        }};
-//    nodeEndpointSetStatus(&local, status);
-//
-//    BREthereumNode node = nodeCreate(ethereumMainnet, remote, local,
-//                                        NULL,
-//                                        _nodeCallbackMessage,
-//                                        _nodeCallbackStatus,
-//                                        _nodeCallbackProvide);
-//
-//    BREthereumProvisionIdentifier identifier =
-//    nodeProvideBlockHeaders(node, 0, 0, 300, ETHEREUM_BOOLEAN_FALSE);
-//
-//    BREthereumNodeMessageResult result;
-//    nodeConnect (node, NODE_ROUTE_TCP);
-//    sleep (1);
-//
-//    assert (nodeHasState (node, NODE_ROUTE_TCP, NODE_CONNECTED));
-//
-//    nodeDispatch (node);
-//    result = nodeRecv(node, NODE_ROUTE_TCP);
-//    assert (result.status == NODE_STATUS_SUCCESS);
-//    if (LES_MESSAGE_ANNOUNCE == result.u.success.message.identifier)
-//        result = nodeRecv(node, NODE_ROUTE_TCP);
-//    nodeHandleMessage(node, result.u.success.message);
-//
-//    nodeDispatch (node);
-//    result = nodeRecv(node, NODE_ROUTE_TCP);
-//    if (MESSAGE_P2P == result.u.success.message)
-//    assert (result.status == NODE_STATUS_SUCCESS);
-//    nodeHandleMessage(node, result.u.success.message);
-}
-
 // pthread locks/conditions and wait and signal functions
 static pthread_mutex_t _testLock;
 static pthread_cond_t _testCond;
@@ -1018,7 +914,7 @@ static void _GetAccountState_Callback_Test1 (BREthereumLESProvisionContext conte
 
     assert(*context1 == _GetAccount_Context1); //Check to make sure the context is correct
 
-    assert (3 == accountsByHash[0].nonce);
+    assert (0xcbee == accountsByHash[0].nonce);
 
     _signalTestComplete();
 }
@@ -1027,16 +923,33 @@ static void run_GetAccountState_Tests (BREthereumLES les){
     //Initilize testing state
     _initTest(1);
     
-    BREthereumAddress address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
-    BREthereumHash block_5510000 = hashCreate("0x630a6894e59938752d4c11b6dfd96bea357f794a8029e79277f0c9c3f19a2b80");
+//    BREthereumAddress address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
+//    BREthereumHash block_5510000 = hashCreate("0x630a6894e59938752d4c11b6dfd96bea357f794a8029e79277f0c9c3f19a2b80");
+//
+//    lesProvideAccountStatesOne (les,
+//                                (void*) &_GetAccount_Context1,
+//                                _GetAccountState_Callback_Test1,
+//                                address,
+//                                block_5510000,
+//                                5510000);
 
+    BREthereumAddress address = addressCreate("0x52bc44d5378309ee2abf1539bf71de1b7d7be3b5");
+    BREthereumHash block_350000 = hashCreate("0x8cd1f73a98ab1cdd65f829530a46559d3ea345f330bc04924f30fe00bcbad6f1");
     lesProvideAccountStatesOne (les,
                                 (void*) &_GetAccount_Context1,
                                 _GetAccountState_Callback_Test1,
                                 address,
-                                block_5510000,
-                                5510000);
-    
+                                block_350000,
+                                350000);
+
+    BREthereumHash block_349999 = hashCreate("0xb86a49b1589b3f8474171d35c796e27f5c20ba1db16a2d93cf67d7358122b361");
+    lesProvideAccountStatesOne (les,
+                                (void*) &_GetAccount_Context1,
+                                _GetAccountState_Callback_Test1,
+                                address,
+                                block_349999,
+                                349999);
+
     _waitForTests();
     eth_log(TST_LOG_TOPIC, "GetAccopuntState: %s", "Tests Successful");
 }
@@ -1060,7 +973,7 @@ runLEStests(void) {
                                    NULL);
     lesStart(les);
     // Sleep for a little bit to allow the context to connect to the network
-    sleep(15);
+    sleep(5);
     
     //Initialize testing state
     _initTestState();
@@ -1070,9 +983,9 @@ runLEStests(void) {
     
     // Run Tests on the LES messages
     run_GetBlockHeaders_Tests(les);
-    run_GetBlockBodies_Tests(les);
-    run_GetReceipts_Tests(les);
-    run_GetTxStatus_Tests(les);
+//    run_GetBlockBodies_Tests(les);
+//    run_GetReceipts_Tests(les);
+//    run_GetTxStatus_Tests(les);
     run_GetAccountState_Tests(les);
 //    run_GetProofsV2_Tests(les); //NOTE: The callback function won't be called.
                                 //reallySendLESTransaction(les);

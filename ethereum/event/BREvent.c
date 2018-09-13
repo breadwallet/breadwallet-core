@@ -34,7 +34,6 @@
 #include "pthread_android.h"
 #endif
 
-#include "../util/BRUtil.h"
 #include "BREvent.h"
 #include "BREventQueue.h"
 #include "BREventAlarm.h"
