@@ -423,9 +423,19 @@ lesCreate (BREthereumNetwork network,
             BREthereumNode node = lesAddNodeForEndpoint(les, lesNodeConfigCreateEndpoint(configs[index]));
             nodeSetStateInitial (node, NODE_ROUTE_TCP, configs[index]->state);
         }
-    eth_log(LES_LOG_TOPIC, "Nodes Bootstrapped: %lu", NUMBER_OF_NODE_ENDPOINT_SPECS);
-    for (size_t index = 0; index < NUMBER_OF_NODE_ENDPOINT_SPECS; index++)
-        lesAddNodeForEndpoint(les, nodeEndpointCreateEnode(bootstrapLESEnodes[index]));
+
+    // Add in bootstrap nodes.
+    size_t bootstrappedEndpointsCount = 0;
+    for (size_t set = 0; set < NUMBER_OF_NODE_ENDPOINT_SETS; set++) {
+        const char **enodes = bootstrapMainnetEnodeSets[set];
+        if (enodes == bootstrapLCLEnodes) {
+            for (size_t index = 0; NULL != enodes[index]; index++) {
+                lesAddNodeForEndpoint(les, nodeEndpointCreateEnode(enodes[index]));
+                bootstrappedEndpointsCount++;
+            }
+        }
+    }
+    eth_log(LES_LOG_TOPIC, "Nodes Bootstrapped: %lu", bootstrappedEndpointsCount);
 
     les->theTimeToQuitIsNow = 0;
 
@@ -823,16 +833,16 @@ lesThread (BREthereumLES les) {
             }
 
             // If we don't have enough availableNodes, try to find some
-            if (lesNodeAvailableCount(les) < 25 && array_count(les->connectedNodes) > 0) {
-                // We'll ask one of our connected nodes about neighbors to other nodes
-                unsigned int remainingToAsk = 3;
-                FOR_NODES (les, otherNode)
-                    if (ETHEREUM_BOOLEAN_IS_FALSE (nodeGetDiscovered (otherNode))) {
-                        if (remainingToAsk-- == 0) break; // FOR_NODES
-                        nodeDiscover (les->connectedNodes[0], nodeGetRemoteEndpoint(otherNode));
-                        nodeSetDiscovered (otherNode, ETHEREUM_BOOLEAN_TRUE);
-                    }
-            }
+//            if (lesNodeAvailableCount(les) < 25 && array_count(les->connectedNodes) > 0) {
+//                // We'll ask one of our connected nodes about neighbors to other nodes
+//                unsigned int remainingToAsk = 3;
+//                FOR_NODES (les, otherNode)
+//                    if (ETHEREUM_BOOLEAN_IS_FALSE (nodeGetDiscovered (otherNode))) {
+//                        if (remainingToAsk-- == 0) break; // FOR_NODES
+//                        nodeDiscover (les->connectedNodes[0], nodeGetRemoteEndpoint(otherNode));
+//                        nodeSetDiscovered (otherNode, ETHEREUM_BOOLEAN_TRUE);
+//                    }
+//            }
 
             updateDesciptors = 1;
 

@@ -295,6 +295,13 @@ messagePIPAnnounceDecode (BRRlpItem item,
 
 /// MARK: PIP Request
 
+static BRRlpItem
+loose (BRRlpCoder coder, int discriminant, BRRlpItem item) {
+    return rlpEncodeList2 (coder,
+                           rlpEncodeUInt64(coder, discriminant, 1),
+                           item);
+}
+
 extern BRRlpItem
 messagePIPRequestInputEncode (BREthereumPIPRequestInput input,
                               BREthereumMessageCoder coder) {
@@ -302,58 +309,58 @@ messagePIPRequestInputEncode (BREthereumPIPRequestInput input,
     switch (input.identifier) {
         case PIP_REQUEST_HEADERS:
             item = rlpEncodeList (coder.rlp, 4,
-                                  (input.u.headers.useBlockNumber
-                                   ? rlpEncodeUInt64 (coder.rlp, input.u.headers.block.number, 1)
-                                   : hashRlpEncode (input.u.headers.block.hash, coder.rlp)),
-                                  rlpEncodeUInt64 (coder.rlp, input.u.headers.max, 1),
+                                  loose(coder.rlp, 0,
+                                        (input.u.headers.useBlockNumber
+                                         ? rlpEncodeUInt64 (coder.rlp, input.u.headers.block.number, 1)
+                                         : hashRlpEncode (input.u.headers.block.hash, coder.rlp))),
                                   rlpEncodeUInt64 (coder.rlp, input.u.headers.skip, 1),
-                                  rlpEncodeUInt64 (coder.rlp, input.u.headers.reverse, 1));
+                                  rlpEncodeUInt64 (coder.rlp, input.u.headers.max, 1),
+                                  rlpEncodeUInt64 (coder.rlp, ETHEREUM_BOOLEAN_IS_TRUE (input.u.headers.reverse), 1));
             break;
-
+            
         case PIP_REQUEST_HEADER_PROOF:
-            item = rlpEncodeUInt64 (coder.rlp, input.u.headerProof.blockNumber, 1);
+            item = loose (coder.rlp, 0, rlpEncodeUInt64 (coder.rlp, input.u.headerProof.blockNumber, 1));
             break;
-
+            
         case PIP_REQUEST_TRANSACTION_INDEX:
-            item = hashRlpEncode (input.u.transactionIndex.transactionHash, coder.rlp);
+            item = loose (coder.rlp, 0, hashRlpEncode (input.u.transactionIndex.transactionHash, coder.rlp));
             break;
-
+            
         case PIP_REQUEST_BLOCK_RECEIPTS:
-            item = hashRlpEncode (input.u.blockReceipt.blockHash, coder.rlp);
+            item = loose (coder.rlp, 0, hashRlpEncode (input.u.blockReceipt.blockHash, coder.rlp));
             break;
-
+            
         case PIP_REQUEST_BLOCK_BODY:
-            item = hashRlpEncode (input.u.blockBody.blockHash, coder.rlp);
+            item = loose (coder.rlp, 0, hashRlpEncode (input.u.blockBody.blockHash, coder.rlp));
             break;
-
+            
         case PIP_REQUEST_ACCOUNT:
             item = rlpEncodeList2 (coder.rlp,
-                                   hashRlpEncode (input.u.account.blockHash, coder.rlp),
-                                   hashRlpEncode (input.u.account.addressHash, coder.rlp));
+                                   loose (coder.rlp, 0, hashRlpEncode (input.u.account.blockHash, coder.rlp)),
+                                   loose (coder.rlp, 0, hashRlpEncode (input.u.account.addressHash, coder.rlp)));
             break;
-
+            
         case PIP_REQUEST_STORAGE:
             item = rlpEncodeList (coder.rlp, 3,
-                                   hashRlpEncode (input.u.storage.blockHash, coder.rlp),
-                                   hashRlpEncode (input.u.storage.addressHash, coder.rlp),
-                                  hashRlpEncode (input.u.storage.storageRootHash, coder.rlp));
+                                  loose (coder.rlp, 0, hashRlpEncode (input.u.storage.blockHash, coder.rlp)),
+                                  loose (coder.rlp, 0, hashRlpEncode (input.u.storage.addressHash, coder.rlp)),
+                                  loose (coder.rlp, 0, hashRlpEncode (input.u.storage.storageRootHash, coder.rlp)));
             break;
-
+            
         case PIP_REQUEST_CODE:
             item = rlpEncodeList2 (coder.rlp,
-                                   hashRlpEncode (input.u.code.blockHash, coder.rlp),
-                                   hashRlpEncode (input.u.code.codeHash, coder.rlp));
+                                   loose (coder.rlp, 0, hashRlpEncode (input.u.code.blockHash, coder.rlp)),
+                                   loose (coder.rlp, 0, hashRlpEncode (input.u.code.codeHash, coder.rlp)));
             break;
-
+            
         case PIP_REQUEST_EXECUTION:
             assert (0);
             break;
     }
     return rlpEncodeList2 (coder.rlp,
                            rlpEncodeUInt64 (coder.rlp, input.identifier, 1),
-                           rlpEncodeList1 (coder.rlp, item));
+                           item);
 }
-
 
 extern BRRlpItem
 messagePIPRequestEncode (BREthereumPIPMessageRequest *request, BREthereumMessageCoder coder) {
@@ -486,7 +493,7 @@ messagePIPUpdateCreditParametersDecode (BRRlpItem item,
 extern BRRlpItem
 messagePIPAcknowledgeUpdateEncode (BREthereumPIPMessageAcknowledgeUpdate *message,
                                    BREthereumMessageCoder coder) {
-    assert (0);
+    return rlpEncodeList (coder.rlp, 0);
 }
 
 /// MARK: Relay Transaction

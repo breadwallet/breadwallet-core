@@ -1583,8 +1583,8 @@ nodeThreadConnectTCP (BREthereumNode node) {
         return nodeConnectFailed (node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_TCP_STATUS_MISSED));
 
     // Save the 'status' message
-    messageLESStatusShow(&message.u.les.u.status);
     node->remote.status = message;
+    showEndpointStatusMessage (&node->remote);
 
     // Require a matching network
     if (getEndpointChainId(&node->remote) != getEndpointChainId(&node->local))

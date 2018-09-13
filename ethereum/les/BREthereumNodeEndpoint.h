@@ -137,8 +137,14 @@ extern int
 nodeEndpointHashEqual (const void *h1, const void *h2);
 
 extern const char *localLESEnode;
+extern const char *bootstrapLCLEnodes[];
+extern const char *bootstrapBRDEnodes[];
 extern const char *bootstrapLESEnodes[];
-extern size_t NUMBER_OF_NODE_ENDPOINT_SPECS;
+extern const char *bootstrapParityEnodes[];
+extern const char *bootstrapGethEnodes[];
+
+extern const char **bootstrapMainnetEnodeSets[];
+extern size_t NUMBER_OF_NODE_ENDPOINT_SETS;
 
 #ifdef __cplusplus
 }
