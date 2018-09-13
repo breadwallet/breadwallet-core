@@ -919,9 +919,19 @@ nodeProcessRecvPIP (BREthereumNode node,
             }
             break;
 
-        case PIP_MESSAGE_UPDATE_CREDIT_PARAMETERS:
-            // TODO: Acknowledge the update
+        case PIP_MESSAGE_UPDATE_CREDIT_PARAMETERS: {
+            // TODO: Process the new credit parameters...
+
+            // ... and then, immediately acknowledge the update.
+            BREthereumMessage ack = {
+                MESSAGE_PIP,
+                { .pip = {
+                    PIP_MESSAGE_ACKNOWLEDGE_UPDATE,
+                    { .acknowledgeUpdate = {}}}}
+            };
+            nodeSend (node, NODE_ROUTE_TCP, ack);
             break;
+        }
 
         case PIP_MESSAGE_ACKNOWLEDGE_UPDATE:
         case PIP_MESSAGE_RELAY_TRANSACTIONS:
@@ -1673,6 +1683,9 @@ nodeSend (BREthereumNode node,
         }
 
         default: {
+            if (MESSAGE_PIP == message.identifier && PIP_MESSAGE_STATUS != message.u.pip.type)
+                rlpShowItem (node->coder.rlp, item, "SEND");
+            
             // Extract the `items` bytes w/o the RLP length prefix.  We *know* the `item` is an
             // RLP encoding of a list; thus we use `rlpDecodeList`.
             BRRlpData data = rlpDecodeListSharedDontRelease(node->coder.rlp, item);
@@ -1814,6 +1827,8 @@ nodeRecv (BREthereumNode node,
 
             // Finally, decode the message
             message = messageDecode (item, node->coder, type, subtype);
+            if (MESSAGE_PIP == message.identifier && PIP_MESSAGE_STATUS != message.u.pip.type)
+                rlpShowItem(node->coder.rlp, item, "RECV");
 
             // If this is a LES response message, then it has credit information.
             if (MESSAGE_LES == message.identifier &&

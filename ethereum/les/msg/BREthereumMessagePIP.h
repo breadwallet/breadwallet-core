@@ -284,6 +284,7 @@ typedef struct {
     UInt256 recharge;
     // cost table
 } BREthereumPIPMessageUpdateCreditParameters;
+
 typedef struct {} BREthereumPIPMessageAcknowledgeUpdate;
 
 typedef struct {

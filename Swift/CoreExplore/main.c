@@ -37,6 +37,22 @@ handleTrans (BRRlpCoder coder, const char *input) {
     eth_log ("EXP", "    Raw   : %s", input);
 }
 
+#define SOME_RLP "F88FD18F70726F746F636F6C56657273696F6E01CB896E6574776F726B496401CD86686561645464850400000000EA886865616448617368A0D4E56740F876AEF8C010B86A40D5F56745A118D0906A34E69AEC8CDB1CB8FA3C987686561644E756D80ED8B67656E6573697348617368A0D4E56740F876AEF8C010B86A40D5F56745A118D0906A34E69AEC8CDB1CB8FA3"
+static void
+handleRLP (BRRlpCoder coder, const char *input) {
+    BRRlpData data;
+    BRRlpItem item;
+
+    // Strip a leading "0x"
+    if (0 == strncmp (input, "0x", 2))
+        input = &input[2];
+
+    // Fill `data` and `item`
+    data.bytes = decodeHexCreate(&data.bytesCount, input, strlen (input));
+    item = rlpGetItem (coder, data);
+    rlpShow(data, "RLP:");
+}
+
 int main(int argc, const char * argv[]) {
     BRRlpCoder coder = rlpCoderCreate();
 
@@ -46,9 +62,10 @@ int main(int argc, const char * argv[]) {
         input = argv[1];
     }
 
-    handleTrans(coder, TEST_TRANS_ETH);
-    eth_log ("EXP", "\n\n\n%s", "");
-    handleTrans(coder, TEST_TRANS_BRD);
+    handleRLP (coder, SOME_RLP);
+//    handleTrans(coder, TEST_TRANS_ETH);
+//    eth_log ("EXP", "\n\n\n%s", "");
+//    handleTrans(coder, TEST_TRANS_BRD);
 
     return 0;
 }
