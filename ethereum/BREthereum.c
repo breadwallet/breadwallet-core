@@ -26,10 +26,10 @@
 #include <string.h>
 #include <assert.h>
 #include "BREthereum.h"
-#include "BREthereumWallet.h"
-#include "BREthereumTransfer.h"
 #include "blockchain/BREthereumBlock.h"
 #include "ewm/BREthereumEWMPrivate.h" // ewmClientSignal*
+#include "ewm/BREthereumWallet.h"
+#include "ewm/BREthereumTransfer.h"
 
 //
 //

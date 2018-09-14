@@ -26,7 +26,7 @@
 #ifndef BR_Ethereum_Message_PIP_H
 #define BR_Ethereum_Message_PIP_H
 
-#include "BREthereumLESBase.h"
+#include "../BREthereumLESBase.h"
 #include "../../blockchain/BREthereumBlockChain.h"
 
 #ifdef __cplusplus

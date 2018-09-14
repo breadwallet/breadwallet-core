@@ -1573,7 +1573,7 @@ nodeThreadConnectUDP (BREthereumNode node) {
     BREthereumMessage message;
 
 #if defined (__ANDROID__)
-    pthread_setname_np (node->thread, node->threadName);
+    pthread_setname_np (node->threads[NODE_ROUTE_UDP], node->threadName);
 #else
     pthread_setname_np (node->threadName);
 #endif
@@ -1676,7 +1676,7 @@ nodeThreadConnectTCP (BREthereumNode node) {
     BREthereumMessage message;
 
 #if defined (__ANDROID__)
-    pthread_setname_np (node->thread, node->threadName);
+    pthread_setname_np (node->threads[NODE_ROUTE_TCP], node->threadName);
 #else
     pthread_setname_np (node->threadName);
 #endif

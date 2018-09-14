@@ -1,8 +1,8 @@
 //
-//  BREthereumMessageETH.h
-//  BRCore
+//  com_breadwallet_core_ethereum_BREthereumNetwork
+//  breadwallet-core Ethereum
 //
-//  Created by Ed Gamble on 9/1/18.
+//  Created by Ed Gamble on 3/20/18.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,40 +23,39 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_Message_ETH_H
-#define BR_Ethereum_Message_ETH_H
+#include "com_breadwallet_core_ethereum_BREthereumNetwork.h"
+#include "blockchain/BREthereumNetwork.h"
 
-#include "../BREthereumLESBase.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-/**
- * The 'Ethereum Subprotocol' define N messages - we are 'Light Client' ...
- * ... and thus we don't need these.  Included for completeness and wholely undefined.
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumNetwork
+ * Method:    jniGetMainnet
+ * Signature: ()J
  */
-typedef enum {
-    ETH_MESSAGE_FOO = 0x01,
-    ETH_MESSAGE_BAR = 0x02
-} BREthereumETHMessageIdentifier;
-
-typedef struct {} BREthereumETHMessageFoo;
-typedef struct {} BREthereumETHMessageBar;
-
-/**
- * An ETH Message is one of the above ETH message types.
- */
-typedef struct {
-    BREthereumETHMessageIdentifier identifier;
-    union {
-        BREthereumETHMessageFoo foo;
-        BREthereumETHMessageBar bar;
-    } u;
-} BREthereumETHMessage;
-
-#ifdef __cplusplus
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumNetwork_jniGetMainnet
+        (JNIEnv *env, jclass thisClass) {
+    return (jlong) ethereumMainnet;
 }
-#endif
 
-#endif /* BR_Ethereum_Message_ETH_H */
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumNetwork
+ * Method:    jniGetTestnet
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumNetwork_jniGetTestnet
+        (JNIEnv *env, jclass thisClass) {
+    return (jlong) ethereumTestnet;
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumNetwork
+ * Method:    jniGetRinkeby
+ * Signature: ()J
+ */
+JNIEXPORT jlong JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumNetwork_jniGetRinkeby
+        (JNIEnv *env, jclass thisClass) {
+    return (jlong) ethereumRinkeby;
+}
+
