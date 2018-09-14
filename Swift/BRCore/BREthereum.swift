@@ -165,19 +165,8 @@ public struct EthereumToken : EthereumPointer {
         return Int (exactly: tokenGetDecimals (core))!
     }
 
-    var colorLeft : String {
-        return String (cString: tokenGetColorLeft (core))
-    }
-
-    var colorRight : String {
-        return String (cString: tokenGetColorRight (core))
-    }
-
-    static let BRD = EthereumToken(core: tokenBRD)
-
     static internal func lookup (core: BREthereumToken) -> EthereumToken {
-        if core == BRD.core { return BRD }
-        else { return EthereumToken (core: core) }
+        return EthereumToken (core: core)
     }
 
     static func lookup (contract: String) -> EthereumToken? {
@@ -190,10 +179,18 @@ public struct EthereumToken : EthereumPointer {
     }
 
     static var all : [EthereumToken] = {
-        let tokenIndex = Int(exactly: tokenCount())! - 1
-        return (0...tokenIndex)
-            .map { tokenGet (Int32($0)) }
-            .map { EthereumToken (core: $0) }
+        return []
+//        var refs = tokenGetAll()
+//        var tokens = refs.map {  EthereumToken (core: $0) }
+//        free (refs);
+//        return tokens
+//
+//        return  tokenGetAll().
+//        var refs = tokenGetAll()
+//        let tokenIndex = Int(exactly: tokenCount())! - 1
+//        return (0...tokenIndex)
+//            .map { tokenGet (Int32($0)) }
+//            .map { EthereumToken (core: $0) }
     }()
 }
 
@@ -826,8 +823,8 @@ public class EthereumWalletManager {
                                name: String,
                                description: String,
                                decimals: UInt32) {
-        ethereumClientAnnounceToken(core, rid,
-                                    address, symbol, name, description, decimals)
+        ethereumClientAnnounceToken(core,
+                                    address, symbol, name, description, decimals, nil, nil, rid)
     }
     
     public func announceBlockNumber (blockNumber: String, rid: Int32) {

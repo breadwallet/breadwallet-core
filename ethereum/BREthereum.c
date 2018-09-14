@@ -25,6 +25,7 @@
 
 #include <string.h>
 #include <assert.h>
+#include <errno.h>
 #include "BREthereum.h"
 #include "blockchain/BREthereumBlock.h"
 #include "ewm/BREthereumEWMPrivate.h" // ewmClientSignal*
@@ -836,28 +837,52 @@ ethereumClientAnnounceLog (BREthereumEWM ewm,
 // Tokens
 //
 extern void
-ethereumUpdateTokens (BREthereumEWM ewm) {
+ethereumClientUpdateTokens (BREthereumEWM ewm) {
     ewmUpdateTokens (ewm);
 }
 
-extern BREthereumStatus
-ethereumClientAnnounceToken (BREthereumEWM ewm,
-                             int id,
-                             const char *address,
-                             const char *symbol,
-                             const char *name,
-                             const char *description,
-                             unsigned int decimals) {
-    BREthereumEWMClientAnnounceTokenBundle *bundle = malloc (sizeof (BREthereumEWMClientAnnounceTokenBundle));
+extern void
+ethereumClientAnnounceToken(BREthereumEWM ewm,
+                            const char *address,
+                            const char *symbol,
+                            const char *name,
+                            const char *description,
+                            unsigned int decimals,
+                            const char *strDefaultGasLimit,
+                            const char *strDefaultGasPrice,
+                            int rid) {
+    char *strEndPointer = NULL;
 
-    bundle->address = strdup (address);
-    bundle->symbol = strdup (symbol);
-    bundle->name = strdup (name);
-    bundle->description = strdup(description);
-    bundle->decimals = decimals;
+    // Parse strDefaultGasLimit - as a decimal, hex or even octal string.  If the parse fails
+    // quietly fall back to the default gas limit of TOKEN_BRD_DEFAULT_GAS_LIMIT.  The parse can
+    // fail if: strDefaultGasLimit is not fully consumed (e.g. "123abc"); the parsed value is zero,
+    // the parsed value is out of range, the parse fails.
+    errno = 0;
+    unsigned long long gasLimitValue = 0;
+    if (NULL != strDefaultGasLimit)
+        gasLimitValue = strtoull(strDefaultGasLimit, &strEndPointer, 0);
+    if (gasLimitValue == 0 ||
+        errno == EINVAL || errno == ERANGE ||
+        (strEndPointer != NULL && *strEndPointer != '\0'))
+        gasLimitValue = TOKEN_BRD_DEFAULT_GAS_LIMIT;
 
-    ewmClientSignalAnnounceToken(ewm, bundle, id);
-    return SUCCESS;
+    // Parse strDefaultGasPrice - as a decimal, hex, etc - into a UInt256 representing the gasPrice
+    // in WEI.  If the parse fails, quietly fall back to using the default of
+    // TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64.
+    BRCoreParseStatus status = CORE_PARSE_STRANGE_DIGITS;
+    UInt256 gasPriceValue = UINT256_ZERO;
+    if (NULL != strDefaultGasPrice)
+        gasPriceValue = createUInt256Parse(strDefaultGasPrice, 0, &status);
+    if (status != CORE_PARSE_OK)
+        gasPriceValue = createUInt256(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64);
+
+    tokenInstall(address,
+                 symbol,
+                 name,
+                 description,
+                 decimals,
+                 gasCreate(gasLimitValue),
+                 gasPriceCreate(etherCreate(gasPriceValue)));
 }
 
 

@@ -40,8 +40,6 @@ public class BREthereumToken extends BRCoreJniReference {
     public native String getName ();
     public native String getDescription ();
     public native int getDecimals ();
-    public native String getColorLeft ();
-    public native String getColorRight ();
 
     public long getIdentifier () {
         return jniReferenceAddress;

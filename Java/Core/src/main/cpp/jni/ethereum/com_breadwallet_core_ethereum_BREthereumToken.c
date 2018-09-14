@@ -27,6 +27,12 @@
 #include "com_breadwallet_core_ethereum_BREthereumToken.h"
 #include "contract/BREthereumToken.h"
 
+#if defined (BITCOIN_TESTNET) && 1 == BITCOIN_TESTNET
+static const char *tokenBRDAddress = "0x7108ca7c4718efa810457f228305c9c71390931a"; // testnet
+#else
+static const char *tokenBRDAddress = "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"; // mainnet
+#endif
+
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumToken
  * Method:    getAddress
@@ -89,37 +95,13 @@ Java_com_breadwallet_core_ethereum_BREthereumToken_getDecimals
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumToken
- * Method:    getColorLeft
- * Signature: ()Ljava/lang/String;
- */
-JNIEXPORT jstring JNICALL
-Java_com_breadwallet_core_ethereum_BREthereumToken_getColorLeft
-        (JNIEnv *env, jobject thisObject) {
-    BREthereumToken token = (BREthereumToken) getJNIReference(env, thisObject);
-    return (*env)->NewStringUTF(env, tokenGetColorLeft(token));
-}
-
-/*
- * Class:     com_breadwallet_core_ethereum_BREthereumToken
- * Method:    getColorRight
- * Signature: ()Ljava/lang/String;
- */
-JNIEXPORT jstring JNICALL
-Java_com_breadwallet_core_ethereum_BREthereumToken_getColorRight
-        (JNIEnv *env, jobject thisObject)  {
-    BREthereumToken token = (BREthereumToken) getJNIReference(env, thisObject);
-    return (*env)->NewStringUTF(env, tokenGetColorRight(token));
-}
-
-/*
- * Class:     com_breadwallet_core_ethereum_BREthereumToken
  * Method:    jniGetTokenBRD
  * Signature: ()J
  */
 JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumToken_jniGetTokenBRD
         (JNIEnv *env, jclass thisClass) {
-    return (jlong) tokenBRD;
+    return (jlong) tokenLookup(tokenBRDAddress);
 }
 
 /*
@@ -131,12 +113,11 @@ JNIEXPORT jlongArray JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumToken_jniTokenAll
         (JNIEnv *env, jclass thisClass) {
     int count = tokenCount();
-    jlong references[count];
-
-    for (int i = 0; i < count; i++)
-        references[i] = (jlong) tokenGet (i);
+    BREthereumToken *tokens = tokenGetAll();
 
     jlongArray result = (*env)->NewLongArray (env, count);
-    (*env)->SetLongArrayRegion (env, result, 0, count, (const jlong *) references);
+    (*env)->SetLongArrayRegion (env, result, 0, count, (const jlong *) tokens);
+    free (tokens);
+
     return result;
 }

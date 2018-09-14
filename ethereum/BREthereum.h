@@ -955,16 +955,18 @@ ethereumClientAnnounceLog (BREthereumEWM ewm,
 // Tokens
 //
 extern void
-ethereumUpdateTokens (BREthereumEWM ewm);
+ethereumClientUpdateTokens (BREthereumEWM ewm);
 
-extern BREthereumStatus
-ethereumClientAnnounceToken (BREthereumEWM ewm,
-                             int id,
-                             const char *address,
-                             const char *symbol,
-                             const char *name,
-                             const char *description,
-                             unsigned int decimals);
+extern void
+ethereumClientAnnounceToken(BREthereumEWM ewm,
+                            const char *address,
+                            const char *symbol,
+                            const char *name,
+                            const char *description,
+                            unsigned int decimals,
+                            const char *strDefaultGasLimit,
+                            const char *strDefaultGasPrice,
+                            int rid);
 
 #ifdef __cplusplus
 }

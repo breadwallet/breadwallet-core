@@ -25,14 +25,6 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCrea
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
- * Method:    jniAddListener
- * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Listener;)V
- */
-JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAddListener
-  (JNIEnv *, jobject, jobject);
-
-/*
- * Class:     com_breadwallet_core_ethereum_BREthereumEWM
  * Method:    jniAnnounceTransaction
  * Signature: (ILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
  */
@@ -94,6 +86,14 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnou
  */
 JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnounceNonce
   (JNIEnv *, jobject, jstring, jstring, jint);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniAnnounceToken
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;I)V
+ */
+JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceToken
+        (JNIEnv *, jobject, jstring, jstring, jstring, jstring, jint, jstring, jstring, jint);
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM

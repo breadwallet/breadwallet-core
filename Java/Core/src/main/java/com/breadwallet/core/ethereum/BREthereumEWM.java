@@ -25,6 +25,7 @@
 package com.breadwallet.core.ethereum;
 
 import com.breadwallet.core.BRCoreJniReference;
+
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,19 +36,105 @@ import static com.breadwallet.core.ethereum.BREthereumToken.jniTokenAll;
 /**
  *
  */
+
 public class BREthereumEWM extends BRCoreJniReference {
+    public enum Status {
+        SUCCESS,
+
+        // Reference access
+        ERROR_UNKNOWN_NODE,
+        ERROR_UNKNOWN_TRANSACTION,
+        ERROR_UNKNOWN_ACCOUNT,
+        ERROR_UNKNOWN_WALLET,
+        ERROR_UNKNOWN_BLOCK,
+        ERROR_UNKNOWN_LISTENER,
+
+        // Node
+        ERROR_NODE_NOT_CONNECTED,
+
+        // Transaction
+        ERROR_TRANSACTION_X,
+
+        // Acount
+        // Wallet
+        // Block
+        // Listener
+
+        // Numeric
+        ERROR_NUMERIC_PARSE,
+    }
+
+    int NUMBER_OF_STATUS_EVENTS = 10;
+
+    //
+    // Wallet Event
+    //
+    public enum WalletEvent {
+        CREATED,
+        BALANCE_UPDATED,
+        DEFAULT_GAS_LIMIT_UPDATED,
+        DEFAULT_GAS_PRICE_UPDATED,
+        DELETED
+    }
+
+    int NUMBER_OF_WALLET_EVENTS = 5;
+
+    //
+    // Block Event
+    //
+    public enum BlockEvent {
+        CREATED,
+        DELETED
+    }
+
+    int NUMBER_OF_BLOCK_EVENT = 2;
+
+    //
+    // Transaction Event
+    //
+    public enum TransactionEvent {
+        ADDED,
+        REMOVED,
+
+        CREATED,
+        SIGNED,
+        SUBMITTED,
+        BLOCKED,  // aka confirmed
+        ERRORED,
+        GAS_ESTIMATE_UPDATED,
+        BLOCK_CONFIRMATIONS_UPDATED
+    }
+
+    int NUMBER_OF_TRANSACTION_EVENTS = 9;
+
+    //
+    // EWM Event
+    //
+    public enum EWMEvent {
+        CREATED,
+        SYNC_STARTED,
+        SYNC_CONTINUES,
+        SYNC_STOPPED,
+        NETWORK_UNAVAILABLE,
+        DELETED
+    }
+
+    int NUMBER_OF_EWM_EVENTS = 6;
+
+    //
+    // Peer Event
+    //
+    public enum PeerEvent {
+        CREATED,
+        DELETED
+    }
+
+    int NUMBER_OF_PEER_EVENTS = 2;
 
     //
     // Client
     //
     public interface Client {
-        //        typedef void (*BREthereumClientHandlerGetBalance) (BREthereumClientContext context,
-        //                                   BREthereumEWM ewm,
-        //                                   BREthereumWalletId wid,
-        //                                   const char *address,
-        //                                   int rid);
-        void getBalance(int wid, String address, int rid);
-
         //        typedef void (*BREthereumClientHandlerGetGasPrice) (BREthereumClientContext context,
         //                                    BREthereumEWM ewm,
         //                                    BREthereumWalletId wid,
@@ -64,6 +151,13 @@ public class BREthereumEWM extends BRCoreJniReference {
         //                                    int rid);
 
         void getGasEstimate(int wid, int tid, String to, String amount, String data, int rid);
+
+        //        typedef void (*BREthereumClientHandlerGetBalance) (BREthereumClientContext context,
+        //                                   BREthereumEWM ewm,
+        //                                   BREthereumWalletId wid,
+        //                                   const char *address,
+        //                                   int rid);
+        void getBalance(int wid, String address, int rid);
 
         //        typedef void (*BREthereumClientHandlerSubmitTransaction) (BREthereumClientContext context,
         //                                          BREthereumEWM ewm,
@@ -85,19 +179,51 @@ public class BREthereumEWM extends BRCoreJniReference {
         //                                const char *address,
         //                                const char *event,
         //                                int rid);
-        void getLogs (String contract, String address, String event, int rid);
+        void getLogs(String contract, String address, String event, int rid);
+
+        void getTokens(int rid);
 
         //        typedef void (*BREthereumClientHandlerGetBlockNumber) (BREthereumClientContext context,
         //                                                    BREthereumEWM ewm,
         //                                                    int rid);
-        void getBlockNumber (int rid);
+        void getBlockNumber(int rid);
 
         //        typedef void (*BREthereumClientHandlerGetNonce) (BREthereumClientContext context,
         //                                                        BREthereumEWM ewm,
         //                                                        const char *address,
         //                                                        int rid);
-        void getNonce (String address, int rid);
+        void getNonce(String address, int rid);
 
+        void saveNodes();
+
+        void saveBlocks();
+
+        void changeTransaction();
+
+        void changeLog();
+
+        //
+        void handleEWMEvent(EWMEvent event,
+                            Status status,
+                            String errorDescription);
+
+        void handlePeerEvent(PeerEvent event,
+                             Status status,
+                             String errorDescription);
+
+        void handleWalletEvent(BREthereumWallet wallet, WalletEvent event,
+                               Status status,
+                               String errorDescription);
+
+        void handleBlockEvent(BREthereumBlock block, BlockEvent event,
+                              Status status,
+                              String errorDescription);
+
+        void handleTransferEvent(BREthereumWallet wallet,
+                                 BREthereumTransaction transaction,
+                                 TransactionEvent event,
+                                 Status status,
+                                 String errorDescription);
     }
 
     //
@@ -160,115 +286,42 @@ public class BREthereumEWM extends BRCoreJniReference {
                 blockNumber, blockTransactionIndex, blockTimestamp);
     }
 
-    public void announceBlockNumber (String blockNumber, int rid) {
-        jniAnnounceBlockNumber (blockNumber, rid);
+    public void announceBlockNumber(String blockNumber, int rid) {
+        jniAnnounceBlockNumber(blockNumber, rid);
     }
 
-    public void announceNonce (String address, String nonce, int rid) {
+    public void announceNonce(String address, String nonce, int rid) {
         jniAnnounceNonce(address, nonce, rid);
     }
 
-    //
-    // Listener
-    //
-    // In the following the Event enumerations *must* match the corresponding declarations in
-    // BREthereumEWM.h - the enumerations values/indices must be identical.
-    //
-    public interface Listener {
-        enum Status {
-            SUCCESS,
-
-            // Reference access
-            ERROR_UNKNOWN_NODE,
-            ERROR_UNKNOWN_TRANSACTION,
-            ERROR_UNKNOWN_ACCOUNT,
-            ERROR_UNKNOWN_WALLET,
-            ERROR_UNKNOWN_BLOCK,
-            ERROR_UNKNOWN_LISTENER,
-
-            // Node
-            ERROR_NODE_NOT_CONNECTED,
-
-            // Transaction
-            ERROR_TRANSACTION_X,
-
-            // Acount
-            // Wallet
-            // Block
-            // Listener
-
-            // Numeric
-            ERROR_NUMERIC_PARSE,
-        }
-        int NUMBER_OF_STATUS_EVENTS = 10;
-
-        //
-        // Wallet
-        //
-        enum WalletEvent {
-            CREATED,
-            BALANCE_UPDATED,
-            DEFAULT_GAS_LIMIT_UPDATED,
-            DEFAULT_GAS_PRICE_UPDATED,
-            DELETED
-        }
-        int NUMBER_OF_WALLET_EVENTS = 5;
-
-        void handleWalletEvent(BREthereumWallet wallet, WalletEvent event,
-                               Status status,
-                               String errorDescription);
-
-        //
-        // Block
-        //
-        enum BlockEvent {
-            CREATED,
-            DELETED
-        }
-        int NUMBER_OF_BLOCK_EVENT = 2;
-
-        void handleBlockEvent(BREthereumBlock block, BlockEvent event,
-                              Status status,
-                              String errorDescription);
-
-        //
-        // Transaction
-        //
-        enum TransactionEvent {
-            ADDED,
-            REMOVED,
-
-            CREATED,
-            SIGNED,
-            SUBMITTED,
-            BLOCKED,  // aka confirmed
-            ERRORED,
-            GAS_ESTIMATE_UPDATED,
-            BLOCK_CONFIRMATIONS_UPDATED
-        }
-        int NUMBER_OF_TRANSACTION_EVENTS = 9;
-
-        void handleTransactionEvent(BREthereumWallet wallet,
-                                    BREthereumTransaction transaction,
-                                    TransactionEvent event,
-                                    Status status,
-                                    String errorDescription);
+    public void announceToken(String address,
+                              String symbol,
+                              String name,
+                              String description,
+                              int decimals,
+                              String defaultGasLimit,
+                              String defaultGasPrice,
+                              int rid) {
+        jniAnnounceToken(address, symbol, name, description, decimals,
+                defaultGasLimit, defaultGasPrice,
+                rid);
+        tokens = null;
     }
 
     //
     // EWM
     //
     WeakReference<Client> client;
-    WeakReference<Listener> listener;
 
     //
     // Network
     //
     BREthereumNetwork network;
 
-    public BREthereumNetwork getNetwork () {
+    public BREthereumNetwork getNetwork() {
         return network;
     }
+
     //
     // Account
     //
@@ -278,11 +331,11 @@ public class BREthereumEWM extends BRCoreJniReference {
         return account;
     }
 
-    public String getAddress () {
+    public String getAddress() {
         return account.getPrimaryAddress();
     }
 
-    public byte[] getAddressPublicKey () {
+    public byte[] getAddressPublicKey() {
         return account.getPrimaryAddressPublicKey();
     }
 
@@ -317,7 +370,7 @@ public class BREthereumEWM extends BRCoreJniReference {
             if (null == token) {
                 long tokenRef = jniEWMWalletGetToken(wid);
                 if (0 != tokenRef)
-                    token = lookupTokenByReference (tokenRef);
+                    token = lookupTokenByReference(tokenRef);
             }
 
             wallet = (null == token
@@ -331,9 +384,9 @@ public class BREthereumEWM extends BRCoreJniReference {
         return wallet;
     }
 
-    public BREthereumWallet getWallet () {
+    public BREthereumWallet getWallet() {
         long wid = jniEWMGetWallet();
-        return walletLookupOrCreate (wid, null);
+        return walletLookupOrCreate(wid, null);
     }
 
     public BREthereumWallet getWallet(BREthereumToken token) {
@@ -342,7 +395,7 @@ public class BREthereumEWM extends BRCoreJniReference {
     }
 
     // TODO: Remove once 'client callbacks' are EWM trampolines
-    public BREthereumWallet getWalletByIdentifier (long wid) {
+    public BREthereumWallet getWalletByIdentifier(long wid) {
         return walletLookupOrCreate(wid, null);
     }
 
@@ -375,17 +428,17 @@ public class BREthereumEWM extends BRCoreJniReference {
     //
     protected Map<Long, BREthereumBlock> blocks = new HashMap<>();
 
-    protected synchronized BREthereumBlock blockLookupOrCreate (long bid) {
+    protected synchronized BREthereumBlock blockLookupOrCreate(long bid) {
         BREthereumBlock block = blocks.get(bid);
 
         if (null == block) {
             block = new BREthereumBlock(this, bid);
-            blocks.put (bid, block);
+            blocks.put(bid, block);
         }
         return block;
     }
 
-    public long getBlockHeight () {
+    public long getBlockHeight() {
         return jniEWMGetBlockHeight();
     }
 
@@ -397,8 +450,8 @@ public class BREthereumEWM extends BRCoreJniReference {
     public BREthereumToken[] tokens = null;
     public BREthereumToken tokenBRD;
 
-    protected void initializeTokens () {
-        long[] references =  jniTokenAll ();
+    protected void initializeTokens() {
+        long[] references = jniTokenAll();
         tokens = new BREthereumToken[references.length];
 
         for (int i = 0; i < references.length; i++)
@@ -407,17 +460,17 @@ public class BREthereumEWM extends BRCoreJniReference {
         for (BREthereumToken token : tokens) {
             // System.err.println ("Token: " + token.getSymbol());
             tokensByReference.put(token.getIdentifier(), token);
-            tokensByAddress.put (token.getAddress().toLowerCase(), token);
+            tokensByAddress.put(token.getAddress().toLowerCase(), token);
         }
 
         tokenBRD = lookupTokenByReference(jniGetTokenBRD());
     }
 
-     public BREthereumToken lookupToken (String address) {
+    public BREthereumToken lookupToken(String address) {
         return tokensByAddress.get(address.toLowerCase());
     }
 
-    protected BREthereumToken lookupTokenByReference (long reference) {
+    protected BREthereumToken lookupTokenByReference(long reference) {
         return tokensByReference.get(reference);
     }
 
@@ -440,103 +493,42 @@ public class BREthereumEWM extends BRCoreJniReference {
 
         // `this` is the JNI listener, using the `trampoline` functions to invoke
         // the installed `Listener`.
-        jniAddListener(null);
-
         this.client = new WeakReference<>(client);
         this.network = network;
         this.account = new BREthereumAccount(this, jniEWMGetAccount());
-        initializeTokens ();
-    }
-
-
-    public void addListener (Listener listener) {
-        this.listener = new WeakReference<>(listener);
-    }
-
-    protected Listener getListener () {
-	return null == listener ? null : listener.get();
+        initializeTokens();
     }
 
     //
     // Connect // Disconnect
     //
-    public boolean connect () {
-        return jniEWMConnect ();
+    public boolean connect() {
+        return jniEWMConnect();
     }
-    public boolean disconnect () {
-        return jniEWMDisconnect ();
+
+    public boolean disconnect() {
+        return jniEWMDisconnect();
     }
 
     //
     // Callback Announcements
     //
-    // In the JNI Code, we had a problem directly accessing the Listener methods for the provided
-    // listener (see addListener()).  So instead we'll access these methods below and then 'bounce'
-    // to method calls for the listener.
+    // In the JNI Code, we had a problem directly accessing the Client methods.  We had to
+    // dereference the WeakReference<Client> to get at the client and then its methods.  So instead
+    // we'll access these methods below and then 'bounce' to method calls for the listener.
     //
     // These methods also give us a chance to convert the `event`, as a `long`, to the Event.
     //
-    protected void trampolineWalletEvent (int wid, int event, int status, String errorDescription) {
-        Listener l =  getListener();
-        if (null == l) return;
-        // TODO: Resolve Bug
-        if (event < 0 || event >= Listener.NUMBER_OF_WALLET_EVENTS) return;
-        if (status < 0 || status >= Listener.NUMBER_OF_STATUS_EVENTS) return;
-
-        // Lookup the wallet - this will create the wallet if it doesn't exist.  Thus, if the
-        // `event` is `create`, we get a wallet; and even, if the `event` is `delete`, we get a
-        // wallet too.
-        BREthereumWallet wallet = walletLookupOrCreate(wid, null);
-
-        // Invoke handler
-        l.handleWalletEvent(wallet,
-                Listener.WalletEvent.values()[(int) event],
-                Listener.Status.values()[(int) status],
-                errorDescription);
-    }
-
-    protected void trampolineBlockEvent (int bid, int event, int status, String errorDescription) {
-        Listener l = getListener();
-        if (null == l) return;
-        // TODO: Resolve Bug
-        if (event < 0 || event >= Listener.NUMBER_OF_BLOCK_EVENT) return;
-        if (status < 0 || status >= Listener.NUMBER_OF_STATUS_EVENTS) return;
-
-        // Nothing, at this point
-        BREthereumBlock block = blockLookupOrCreate(bid);
-
-        l.handleBlockEvent (block,
-                Listener.BlockEvent.values()[(int) event],
-                Listener.Status.values()[(int) status],
-                errorDescription);
-    }
-
-    protected void trampolineTransactionEvent (int wid, int tid, int event, int status, String errorDescription) {
-        Listener l =  getListener();
-        if (null == l) return;
-        // TODO: Resolve Bug
-        if (event < 0 || event >= Listener.NUMBER_OF_TRANSACTION_EVENTS) return;
-        if (status < 0 || status >= Listener.NUMBER_OF_STATUS_EVENTS) return;
-
-        BREthereumWallet wallet = walletLookupOrCreate(wid, null);
-        BREthereumTransaction transaction = transactionLookupOrCreate (tid);
-
-        l.handleTransactionEvent(wallet, transaction,
-                Listener.TransactionEvent.values()[(int) event],
-                Listener.Status.values()[(int) status],
-                errorDescription);
-    }
-
-     protected void trampolineGetBalance(int wid, String address, int rid) {
-        client.get().getBalance(wid, address, rid);
-    }
-
     protected void trampolineGetGasPrice(int wid, int rid) {
         client.get().getGasPrice(wid, rid);
     }
 
     protected void trampolineGetGasEstimate(int wid, int tid, String to, String amount, String data, int rid) {
         client.get().getGasEstimate(wid, tid, to, amount, data, rid);
+    }
+
+    protected void trampolineGetBalance(int wid, String address, int rid) {
+        client.get().getBalance(wid, address, rid);
     }
 
     protected void trampolineSubmitTransaction(int wid, int tid, String rawTransaction, int rid) {
@@ -547,25 +539,117 @@ public class BREthereumEWM extends BRCoreJniReference {
         client.get().getTransactions(address, rid);
     }
 
-    protected void trampolineGetLogs (String contract, String address, String event, int rid) {
+    protected void trampolineGetLogs(String contract, String address, String event, int rid) {
         client.get().getLogs(contract, address, event, rid);
     }
 
-    protected void trampolineGetBlockNumber (int rid) {
+    protected void trampolineGetTokens(int rid) {
+        client.get().getTokens(rid);
+    }
+
+    protected void trampolineGetBlockNumber(int rid) {
         client.get().getBlockNumber(rid);
     }
 
-    protected void trampolineGetNonce (String address, int rid) {
+    protected void trampolineGetNonce(String address, int rid) {
         client.get().getNonce(address, rid);
     }
+
+    protected void trampolineSaveNodes() {
+        client.get().saveNodes();
+    }
+
+    protected void trampolineSaveBlocks() {
+        client.get().saveBlocks();
+    }
+
+    protected void trampolineChangeTransaction() {
+        client.get().changeTransaction();
+    }
+
+    protected void trampolineChangeLog() {
+        client.get().changeLog();
+    }
+
+    protected void trampolineEWMEvent (int event, int status, String errorDescription) {
+        Client client = this.client.get();
+        if (null == client) return;
+
+        client.handleEWMEvent (EWMEvent.values()[event],
+                Status.values()[status],
+                errorDescription);
+    }
+
+    protected void trampolinePeerEvent (int event, int status, String errorDescription) {
+        Client client = this.client.get();
+        if (null == client) return;
+
+        client.handlePeerEvent(PeerEvent.values()[event],
+                Status.values()[status],
+                errorDescription);
+    }
+
+    protected void trampolineWalletEvent(int wid, int event, int status, String errorDescription) {
+        Client client = this.client.get();
+        if (null == client) return;
+
+        // TODO: Resolve Bug
+        if (event < 0 || event >= NUMBER_OF_WALLET_EVENTS) return;
+        if (status < 0 || status >= NUMBER_OF_STATUS_EVENTS) return;
+
+        // Lookup the wallet - this will create the wallet if it doesn't exist.  Thus, if the
+        // `event` is `create`, we get a wallet; and even, if the `event` is `delete`, we get a
+        // wallet too.
+        BREthereumWallet wallet = walletLookupOrCreate(wid, null);
+
+        // Invoke handler
+        client.handleWalletEvent(wallet,
+                WalletEvent.values()[(int) event],
+                Status.values()[(int) status],
+                errorDescription);
+    }
+
+    protected void trampolineBlockEvent(int bid, int event, int status, String errorDescription) {
+        Client client = this.client.get();
+        if (null == client) return;
+
+        // TODO: Resolve Bug
+        if (event < 0 || event >= NUMBER_OF_BLOCK_EVENT) return;
+        if (status < 0 || status >= NUMBER_OF_STATUS_EVENTS) return;
+
+        // Nothing, at this point
+        BREthereumBlock block = blockLookupOrCreate(bid);
+
+        client.handleBlockEvent(block,
+                BlockEvent.values()[(int) event],
+                Status.values()[(int) status],
+                errorDescription);
+    }
+
+    protected void trampolineTransferEvent(int wid, int tid, int event, int status, String errorDescription) {
+        Client client = this.client.get();
+        if (null == client) return;
+
+        // TODO: Resolve Bug
+        if (event < 0 || event >= NUMBER_OF_TRANSACTION_EVENTS) return;
+        if (status < 0 || status >= NUMBER_OF_STATUS_EVENTS) return;
+
+        BREthereumWallet wallet = walletLookupOrCreate(wid, null);
+        BREthereumTransaction transaction = transactionLookupOrCreate(tid);
+
+        client.handleTransferEvent(wallet, transaction,
+                TransactionEvent.values()[(int) event],
+                Status.values()[(int) status],
+                errorDescription);
+    }
+
 
     //
     // JNI: Constructors
     //
     protected static native long jniCreateEWM(Client client, long network, String paperKey, String[] wordList);
-    protected static native long jniCreateEWM_PublicKey(Client client, long network, byte[] publicKey);
 
-    protected native void jniAddListener (Listener listener);
+    protected static native long jniCreateEWM_PublicKey(Client client, long network, byte[] publicKey);
 
     //
     // JNI: Announcements
@@ -603,85 +687,122 @@ public class BREthereumEWM extends BRCoreJniReference {
                                          String blockTransactionIndex,
                                          String blockTimestamp);
 
-    protected native void jniAnnounceBalance (int wid, String balance, int rid);
-    protected native void jniAnnounceGasPrice (int wid, String gasPrice, int rid);
-    protected native void jniAnnounceGasEstimate (int wid, int tid, String gasEstimate, int rid);
-    protected native void jniAnnounceSubmitTransaction (int wid, int tid, String hash, int rid);
-    protected native void jniAnnounceBlockNumber (String blockNumber, int rid);
-    protected native void jniAnnounceNonce (String address, String nonce, int rid);
+    protected native void jniAnnounceBalance(int wid, String balance, int rid);
 
+    protected native void jniAnnounceGasPrice(int wid, String gasPrice, int rid);
+
+    protected native void jniAnnounceGasEstimate(int wid, int tid, String gasEstimate, int rid);
+
+    protected native void jniAnnounceSubmitTransaction(int wid, int tid, String hash, int rid);
+
+    protected native void jniAnnounceBlockNumber(String blockNumber, int rid);
+
+    protected native void jniAnnounceNonce(String address, String nonce, int rid);
+
+    protected native void jniAnnounceToken (String address,
+                                            String symbol,
+                                            String name,
+                                            String description,
+                                            int decimals,
+                                            String defaultGasLimit,
+                                            String defaultGasPrice,
+                                            int rid);
 
     // JNI: Account & Address
     protected native long jniEWMGetAccount();
+
     protected native String jniGetAccountPrimaryAddress(long accountId);
+
     protected native byte[] jniGetAccountPrimaryAddressPublicKey(long accountId);
+
     protected native byte[] jniGetAccountPrimaryAddressPrivateKey(long accountId, String paperKey);
 
     // JNI: Wallet
     protected native long jniEWMGetWallet();
-    protected native long jniEWMGetWalletToken (long tokenId);
-    protected native long jniEWMCreateWalletToken(long tokenId);
-    protected native long jniEWMWalletGetToken (long wid);
 
-    protected native String jniGetWalletBalance (long walletId, long unit);
-    protected native void jniEstimateWalletGasPrice (long walletId);
+    protected native long jniEWMGetWalletToken(long tokenId);
+
+    protected native long jniEWMCreateWalletToken(long tokenId);
+
+    protected native long jniEWMWalletGetToken(long wid);
+
+    protected native String jniGetWalletBalance(long walletId, long unit);
+
+    protected native void jniEstimateWalletGasPrice(long walletId);
 
     protected native void jniForceWalletBalanceUpdate(long wallet);
 
-    protected native long jniWalletGetDefaultGasPrice (long wallet);
-    protected native void jniWalletSetDefaultGasPrice (long wallet, long value);
+    protected native long jniWalletGetDefaultGasPrice(long wallet);
 
-    protected native long jniWalletGetDefaultGasLimit (long wallet);
-    protected native void jniWalletSetDefaultGasLimit (long wallet, long value);
+    protected native void jniWalletSetDefaultGasPrice(long wallet, long value);
+
+    protected native long jniWalletGetDefaultGasLimit(long wallet);
+
+    protected native void jniWalletSetDefaultGasLimit(long wallet, long value);
+
     //
     // JNI: Wallet Transactions
     //
-    protected native long jniCreateTransaction (long walletId,
-                                                String to,
-                                                String amount,
-                                                long amountUnit);
+    protected native long jniCreateTransaction(long walletId,
+                                               String to,
+                                               String amount,
+                                               long amountUnit);
 
-    protected native void jniSignTransaction (long walletId,
-                                              long transactionId,
-                                              String paperKey);
+    protected native void jniSignTransaction(long walletId,
+                                             long transactionId,
+                                             String paperKey);
 
     protected native void jniSignTransactionWithPrivateKey(long walletId,
                                                            long transactionId,
                                                            byte[] privateKey);
 
-    protected native void jniSubmitTransaction (long walletId,
-                                                long transactionId);
+    protected native void jniSubmitTransaction(long walletId,
+                                               long transactionId);
 
-    protected native long[] jniGetTransactions (long walletId);
+    protected native long[] jniGetTransactions(long walletId);
 
     protected native void jniTransactionEstimateGas(long walletId,
                                                     long transactionId);
 
-    protected native String jniTransactionEstimateFee (long walletId,
-                                                       String amount,
-                                                       long amountUnit,
-                                                       long resultUnit);
+    protected native String jniTransactionEstimateFee(long walletId,
+                                                      String amount,
+                                                      long amountUnit,
+                                                      long resultUnit);
 
     //
     // JNI: Transactions
     //
-    protected native boolean jniTransactionHasToken (long transactionId);
+    protected native boolean jniTransactionHasToken(long transactionId);
 
     protected native String jniTransactionGetAmount(long transactionId, long unit);
-    protected native String jniTransactionGetFee (long transactionId, long unit);
-    protected native String jniTransactionSourceAddress (long transactionId);
-    protected native String jniTransactionTargetAddress (long transactionId);
-    protected native String jniTransactionGetHash (long transactionId);
-    protected native String jniTransactionGetGasPrice (long transactionId, long unit);
-    protected native long jniTransactionGetGasLimit (long transactionId);
-    protected native long jniTransactionGetGasUsed (long transactionId);
-    protected native long jniTransactionGetNonce (long transactionId);
-    protected native long jniTransactionGetBlockNumber (long transactionId);
-    protected native long jniTransactionGetBlockTimestamp (long transactionId);
-    protected native long jniTransactionGetBlockConfirmations (long transactionId);
-    protected native long jniTransactionGetToken (long transactionId);
-    protected native boolean jniTransactionIsConfirmed (long transactionId);
-    protected native boolean jniTransactionIsSubmitted (long transactionId);
+
+    protected native String jniTransactionGetFee(long transactionId, long unit);
+
+    protected native String jniTransactionSourceAddress(long transactionId);
+
+    protected native String jniTransactionTargetAddress(long transactionId);
+
+    protected native String jniTransactionGetHash(long transactionId);
+
+    protected native String jniTransactionGetGasPrice(long transactionId, long unit);
+
+    protected native long jniTransactionGetGasLimit(long transactionId);
+
+    protected native long jniTransactionGetGasUsed(long transactionId);
+
+    protected native long jniTransactionGetNonce(long transactionId);
+
+    protected native long jniTransactionGetBlockNumber(long transactionId);
+
+    protected native long jniTransactionGetBlockTimestamp(long transactionId);
+
+    protected native long jniTransactionGetBlockConfirmations(long transactionId);
+
+    protected native long jniTransactionGetToken(long transactionId);
+
+    protected native boolean jniTransactionIsConfirmed(long transactionId);
+
+    protected native boolean jniTransactionIsSubmitted(long transactionId);
 
     //
     // JNI: Tokens
@@ -691,16 +812,19 @@ public class BREthereumEWM extends BRCoreJniReference {
     //
     // JNI: Block
     //
-    protected native long jniEWMGetBlockHeight ();
-    protected native long jniBlockGetNumber (long bid);
-//    protected native long jniBlockGetTimestamp (long bid);
-    protected native String jniBlockGetHash (long bid);
+    protected native long jniEWMGetBlockHeight();
+
+    protected native long jniBlockGetNumber(long bid);
+
+    //    protected native long jniBlockGetTimestamp (long bid);
+    protected native String jniBlockGetHash(long bid);
 
     //
     // JNI: Connect & Disconnect
     //
-    protected native boolean jniEWMConnect ();
-    protected native boolean jniEWMDisconnect ();
+    protected native boolean jniEWMConnect();
+
+    protected native boolean jniEWMDisconnect();
 
     // JNI: Initialize
     protected static native void initializeNative();
@@ -745,9 +869,9 @@ public class BREthereumEWM extends BRCoreJniReference {
         //
         // Constructor
         //
-        protected ReferenceWithDefaultUnit (BREthereumEWM ewm,
-                                            long identifier,
-                                            BREthereumAmount.Unit unit) {
+        protected ReferenceWithDefaultUnit(BREthereumEWM ewm,
+                                           long identifier,
+                                           BREthereumAmount.Unit unit) {
             super(ewm, identifier);
             this.defaultUnit = unit;
             this.defaultUnitUsesToken = unit.isTokenUnit();
@@ -762,7 +886,7 @@ public class BREthereumEWM extends BRCoreJniReference {
                     : (unit == BREthereumAmount.Unit.TOKEN_DECIMAL || unit == BREthereumAmount.Unit.TOKEN_INTEGER));
         }
 
-        protected void validUnitOrException (BREthereumAmount.Unit unit) {
+        protected void validUnitOrException(BREthereumAmount.Unit unit) {
             if (!validUnit(unit))
                 throw new IllegalArgumentException("Invalid Unit for instance type: " + unit.toString());
         }

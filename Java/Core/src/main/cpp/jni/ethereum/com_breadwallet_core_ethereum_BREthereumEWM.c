@@ -35,13 +35,6 @@
 // Forward Declarations
 //
 static void
-clientGetBalance(BREthereumClientContext context,
-                 BREthereumEWM node,
-                 BREthereumWalletId wid,
-                 const char *address,
-                 int id);
-
-static void
 clientGetGasPrice(BREthereumClientContext context,
                   BREthereumEWM node,
                   BREthereumWalletId wid,
@@ -56,6 +49,13 @@ clientEstimateGas(BREthereumClientContext context,
                   const char *amount,
                   const char *data,
                   int id);
+
+static void
+clientGetBalance(BREthereumClientContext context,
+                 BREthereumEWM node,
+                 BREthereumWalletId wid,
+                 const char *address,
+                 int id);
 
 static void
 clientSubmitTransaction(BREthereumClientContext context,
@@ -80,6 +80,11 @@ clientGetLogs(BREthereumClientContext context,
               int rid);
 
 static void
+clientGetTokens (BREthereumClientContext context,
+                 BREthereumEWM ewm,
+                 int rid);
+
+static void
 clientGetBlockNumber(BREthereumClientContext context,
                      BREthereumEWM node,
                      int id);
@@ -90,34 +95,67 @@ clientGetNonce(BREthereumClientContext context,
                const char *address,
                int id);
 
-//
-// Forward Declarations - Listener
-//
 static void
-listenerWalletEventHandler(BREthereumClientContext context,
+clientSaveNodes (BREthereumClientContext context,
+                 BREthereumEWM ewm,
+                 BRArrayOf(BREthereumPersistData) persistData);
+
+static void
+clientSaveBlocks (BREthereumClientContext context,
+                  BREthereumEWM ewm,
+                  BRArrayOf(BREthereumPersistData) persistData);
+
+static void
+clientChangeTransaction (BREthereumClientContext context,
+                         BREthereumEWM ewm,
+                         BREthereumClientChangeType type,
+                         BREthereumPersistData persistData);
+
+static void
+clientChangeLog (BREthereumClientContext context,
+                 BREthereumEWM ewm,
+                 BREthereumClientChangeType type,
+                 BREthereumPersistData persistData);
+
+static void
+clientEWMEventHandler (BREthereumClientContext context,
+                       BREthereumEWM ewm,
+                       BREthereumEWMEvent event,
+                       BREthereumStatus status,
+                       const char *errorDescription);
+
+static void
+clientPeerEventHandler (BREthereumClientContext context,
+                        BREthereumEWM ewm,
+                        BREthereumPeerEvent event,
+                        BREthereumStatus status,
+                        const char *errorDescription);
+
+static void
+clientWalletEventHandler(BREthereumClientContext context,
+                         BREthereumEWM node,
+                         BREthereumWalletId wid,
+                         BREthereumWalletEvent event,
+                         BREthereumStatus status,
+                         const char *errorDescription);
+
+
+static void
+clientBlockEventHandler(BREthereumClientContext context,
+                        BREthereumEWM node,
+                        BREthereumBlockId bid,
+                        BREthereumBlockEvent event,
+                        BREthereumStatus status,
+                        const char *errorDescription);
+
+static void
+clientTransferEventHandler(BREthereumClientContext context,
                            BREthereumEWM node,
                            BREthereumWalletId wid,
-                           BREthereumWalletEvent event,
+                           BREthereumTransferId tid,
+                           BREthereumTransferEvent event,
                            BREthereumStatus status,
                            const char *errorDescription);
-
-
-static void
-listenerBlockEventHandler(BREthereumClientContext context,
-                          BREthereumEWM node,
-                          BREthereumBlockId bid,
-                          BREthereumBlockEvent event,
-                          BREthereumStatus status,
-                          const char *errorDescription);
-
-static void
-listenerTransactionEventHandler(BREthereumClientContext context,
-                                BREthereumEWM node,
-                                BREthereumWalletId wid,
-                                BREthereumTransferId tid,
-                                BREthereumTransferEvent event,
-                                BREthereumStatus status,
-                                const char *errorDescription);
 
 static jstring
 asJniString(JNIEnv *env, char *string) {
@@ -129,36 +167,6 @@ asJniString(JNIEnv *env, char *string) {
 //
 // Statically Initialize Java References
 //
-//extern BREthereumListenerId
-//ewmAddListener (BREthereumEWM ewm,
-//                BREthereumListenerContext context,
-//                BREthereumListenerEWMEventHandler ewmEventHandler,
-//                BREthereumListenerPeerEventHandler peerEventHandler,
-//                BREthereumListenerWalletEventHandler walletEventHandler,
-//                BREthereumListenerBlockEventHandler blockEventHandler,
-//                BREthereumListenerTransactionEventHandler transactionEventHandler);
-
-
-/*
- * Class:     com_breadwallet_core_ethereum_BREthereumEWM
- * Method:    jniAddListener
- * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Listener;)V
- */
-JNIEXPORT void JNICALL
-Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAddListener
-        (JNIEnv *env, jobject thisObject, jobject listenerObject) {
-    BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
-
-    jobject listener = (*env)->NewGlobalRef(env, thisObject); // listenerObject);
-
-//    ewmAddListener(node,
-//		   listener,
-//		   NULL,
-//		   NULL,
-//		   listenerWalletEventHandler,
-//		   listenerBlockEventHandler,
-//		   listenerTransactionEventHandler);
-}
 
 ///*
 // * Class:     com_breadwallet_core_ethereum_BREthereumEWM
@@ -257,17 +265,39 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
     installSharedWordList((const char **) wordList, BIP39_WORDLIST_COUNT);
 
     // Get a global reference to client; ensure the client exists in callback threads.
-    jobject client = (*env)->NewGlobalRef (env, clientObject);
+    jobject clientContext = (*env)->NewGlobalRef (env, clientObject);
 
     const char *paperKey = (*env)->GetStringUTFChars (env, paperKeyString, 0);
 
-    BREthereumClient clientToo = {};
+    BREthereumClient client = {
+            clientContext,
+            clientGetBalance,
+            clientGetGasPrice,
+            clientEstimateGas,
+            clientSubmitTransaction,
+            clientGetTransactions,
+            clientGetLogs,
+            clientGetTokens,
+            clientGetBlockNumber,
+            clientGetNonce,
+
+            clientSaveNodes,
+            clientSaveBlocks,
+            clientChangeTransaction,
+            clientChangeLog,
+
+            clientEWMEventHandler,
+            clientPeerEventHandler,
+            clientWalletEventHandler,
+            clientBlockEventHandler,
+            clientTransferEventHandler
+    };
 
     BREthereumEWM node = ethereumCreate((BREthereumNetwork) network,
                                         paperKey,
                                         NODE_TYPE_LES,
                                         SYNC_MODE_FULL_BLOCKCHAIN,
-                                        clientToo,
+                                        client,
                                         NULL,
                                         NULL,
                                         NULL,
@@ -289,20 +319,42 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
     assert (65 == (*env)->GetArrayLength(env, publicKey));
 
     // Get a global reference to client; ensure the client exists in callback threads.
-    jobject client = (*env)->NewGlobalRef(env, clientObject);
+    jobject clientContext = (*env)->NewGlobalRef(env, clientObject);
 
     jbyte *publicKeyBytes = (*env)->GetByteArrayElements(env, publicKey, 0);
     BRKey key;
 
     memcpy (key.pubKey, publicKeyBytes, 65);
 
-    BREthereumClient clientToo = {};
+    BREthereumClient client = {
+            clientContext,
+            clientGetBalance,
+            clientGetGasPrice,
+            clientEstimateGas,
+            clientSubmitTransaction,
+            clientGetTransactions,
+            clientGetLogs,
+            clientGetTokens,
+            clientGetBlockNumber,
+            clientGetNonce,
+
+            clientSaveNodes,
+            clientSaveBlocks,
+            clientChangeTransaction,
+            clientChangeLog,
+
+            clientEWMEventHandler,
+            clientPeerEventHandler,
+            clientWalletEventHandler,
+            clientBlockEventHandler,
+            clientTransferEventHandler
+    };
 
     BREthereumEWM node = ethereumCreateWithPublicKey((BREthereumNetwork) network,
                                                      key,
                                                      NODE_TYPE_LES,
                                                      SYNC_MODE_FULL_BLOCKCHAIN,
-                                                     clientToo,
+                                                     client,
                                                      NULL,
                                                      NULL,
                                                      NULL,
@@ -781,6 +833,50 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_ethereum_BREthereumEWM_jniAnnou
     ethereumClientAnnounceNonce(node, strAddress, strNonce, rid);
     (*env)->ReleaseStringUTFChars(env, address, strAddress);
     (*env)->ReleaseStringUTFChars(env, nonce, strNonce);
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniAnnounceToken
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/String;Ljava/lang/String;I)V
+ */
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAnnounceToken
+        (JNIEnv *env, jobject thisObject,
+         jstring address,
+         jstring symbol,
+         jstring name,
+         jstring description,
+         jint decimals,
+         jstring defaultGasLimit,
+         jstring defaultGasPrice,
+         jint rid) {
+    BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
+
+    const char *strAddress  = (*env)->GetStringUTFChars (env, address, 0);
+    const char *strSymbol   = (*env)->GetStringUTFChars (env, symbol, 0);
+    const char *strName     = (*env)->GetStringUTFChars (env, name, 0);
+    const char *strDescription = (*env)->GetStringUTFChars (env, description, 0);
+    const char *strGasLimit = (*env)->IsSameObject(env, defaultGasLimit, NULL)
+                              ? NULL
+                              : (*env)->GetStringUTFChars (env, defaultGasLimit, 0);
+    const char *strGasPrice = (*env)->IsSameObject(env, defaultGasPrice, NULL)
+                              ? NULL
+                              : (*env)->GetStringUTFChars (env, defaultGasPrice, 0);
+
+    ethereumClientAnnounceToken(node,
+                               strAddress, strSymbol, strName, strDescription,
+                            decimals, strGasLimit, strGasPrice,
+                            rid);
+
+    (*env)->ReleaseStringUTFChars (env, address, strAddress);
+    (*env)->ReleaseStringUTFChars (env, symbol, strSymbol);
+    (*env)->ReleaseStringUTFChars (env, name, strName);
+    (*env)->ReleaseStringUTFChars (env, description, strDescription);
+    if (!(*env)->IsSameObject(env, defaultGasLimit, NULL))
+        (*env)->ReleaseStringUTFChars (env, defaultGasLimit, strGasLimit);
+    if (!(*env)->IsSameObject(env, defaultGasPrice, NULL))
+        (*env)->ReleaseStringUTFChars (env, defaultGasPrice, strGasPrice);
 }
 
 /*
@@ -1267,24 +1363,6 @@ JNIEXPORT jboolean JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumEWM_jniEWMConnect
         (JNIEnv *env, jobject thisObject) {
     BREthereumEWM node = (BREthereumEWM) getJNIReference(env, thisObject);
-
-
-    jobject context = (*env)->NewGlobalRef(env, thisObject); // listenerObject);
-
-    // If node is JSON_RPC
-//    BREthereumClient client =
-//            ethereumClientCreate
-//                    ((BREthereumClientContext) context,
-//                     clientGetBalance,
-//                     clientGetGasPrice,
-//                     clientEstimateGas,
-//                     clientSubmitTransaction,
-//                     clientGetTransactions,
-//                     clientGetLogs,
-//                     clientGetBlockNumber,
-//                     clientGetNonce);
-//
-
     return (jboolean) (ETHEREUM_BOOLEAN_TRUE == ethereumConnect(node)
                        ? JNI_TRUE
                        : JNI_FALSE);
@@ -1531,6 +1609,28 @@ clientGetLogs(BREthereumClientContext context,
 }
 
 static void
+clientGetTokens (BREthereumClientContext context,
+                 BREthereumEWM ewm,
+                 int rid) {
+    JNIEnv *env = getEnv();
+    if (NULL == env) return;
+
+    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
+    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
+
+    // void getTransactions(int id, String account);
+    jmethodID listenerMethod =
+            lookupListenerMethod(env, listener,
+                                 "trampolineGetTokens",
+                                 "(I)V");
+    assert (NULL != listenerMethod);
+
+    (*env)->CallVoidMethod(env, listener, listenerMethod,
+                           (jint) rid);
+}
+
+
+static void
 clientGetBlockNumber(BREthereumClientContext context,
                      BREthereumEWM node,
                      int id) {
@@ -1580,16 +1680,171 @@ clientGetNonce(BREthereumClientContext context,
 
 }
 
-//
-// Listener Callbacks
-//
 static void
-listenerWalletEventHandler(BREthereumClientContext context,
-                           BREthereumEWM node,
-                           BREthereumWalletId wid,
-                           BREthereumWalletEvent event,
-                           BREthereumStatus status,
-                           const char *errorDescription) {
+clientSaveNodes (BREthereumClientContext context,
+                 BREthereumEWM ewm,
+                 BRArrayOf(BREthereumPersistData) persistData) {
+    JNIEnv *env = getEnv();
+    if (NULL == env) return;
+
+    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
+    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
+
+    jmethodID listenerMethod =
+            lookupListenerMethod(env, listener,
+                                 "trampolineSaveNodes",
+                                 "()V");
+    assert (NULL != listenerMethod);
+
+
+    (*env)->CallVoidMethod(env, listener, listenerMethod);
+
+    (*env)->DeleteLocalRef(env, listener);
+}
+
+static void
+clientSaveBlocks (BREthereumClientContext context,
+                  BREthereumEWM ewm,
+                  BRArrayOf(BREthereumPersistData) persistData) {
+    JNIEnv *env = getEnv();
+    if (NULL == env) return;
+
+    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
+    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
+
+    jmethodID listenerMethod =
+            lookupListenerMethod(env, listener,
+                                 "trampolineSaveBlocks",
+                                 "()V");
+    assert (NULL != listenerMethod);
+
+
+    (*env)->CallVoidMethod(env, listener, listenerMethod);
+
+    (*env)->DeleteLocalRef(env, listener);
+}
+
+static void
+clientChangeTransaction (BREthereumClientContext context,
+                         BREthereumEWM ewm,
+                         BREthereumClientChangeType type,
+                         BREthereumPersistData persistData) {
+    JNIEnv *env = getEnv();
+    if (NULL == env) return;
+
+    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
+    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
+
+    jmethodID listenerMethod =
+            lookupListenerMethod(env, listener,
+                                 "trampolineChangeTransaction",
+                                 "()V");
+    assert (NULL != listenerMethod);
+
+    (*env)->CallVoidMethod(env, listener, listenerMethod);
+
+    (*env)->DeleteLocalRef(env, listener);
+}
+
+static void
+clientChangeLog (BREthereumClientContext context,
+                 BREthereumEWM ewm,
+                 BREthereumClientChangeType type,
+                 BREthereumPersistData persistData) {
+    JNIEnv *env = getEnv();
+    if (NULL == env) return;
+
+    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
+    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
+
+    jmethodID listenerMethod =
+            lookupListenerMethod(env, listener,
+                                 "trampolineChangeLog",
+                                 "()V");
+    assert (NULL != listenerMethod);
+
+
+    (*env)->CallVoidMethod(env, listener, listenerMethod);
+
+    (*env)->DeleteLocalRef(env, listener);
+}
+
+static void
+clientEWMEventHandler (BREthereumClientContext context,
+                       BREthereumEWM ewm,
+                       BREthereumEWMEvent event,
+                       BREthereumStatus status,
+                       const char *errorDescription) {
+    JNIEnv *env = getEnv();
+    if (NULL == env) return;
+
+    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
+    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
+
+    jmethodID listenerMethod =
+            lookupListenerMethod(env, listener,
+                                 "trampolineEWMEvent",
+                                 "(IILjava/lang/String;)V");
+    assert (NULL != listenerMethod);
+
+    jstring errorDescriptionString = (NULL == errorDescription
+                                      ? NULL
+                                      : (*env)->NewStringUTF(env, errorDescription));
+
+    // Callback
+    (*env)->CallVoidMethod(env, listener, listenerMethod,
+                           (jint) event,
+                           (jint) status,
+                           errorDescriptionString);
+
+    // Cleanup
+    if (NULL != errorDescriptionString) (*env)->DeleteLocalRef(env, errorDescriptionString);
+    (*env)->DeleteLocalRef(env, listener);
+
+
+}
+
+static void
+clientPeerEventHandler (BREthereumClientContext context,
+                        BREthereumEWM ewm,
+                        BREthereumPeerEvent event,
+                        BREthereumStatus status,
+                        const char *errorDescription) {
+    JNIEnv *env = getEnv();
+    if (NULL == env) return;
+
+    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
+    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
+
+    jmethodID listenerMethod =
+            lookupListenerMethod(env, listener,
+                                 "trampolinePeerEvent",
+                                 "(IILjava/lang/String;)V");
+    assert (NULL != listenerMethod);
+
+    jstring errorDescriptionString = (NULL == errorDescription
+                                      ? NULL
+                                      : (*env)->NewStringUTF(env, errorDescription));
+
+    // Callback
+    (*env)->CallVoidMethod(env, listener, listenerMethod,
+                           (jint) event,
+                           (jint) status,
+                           errorDescriptionString);
+
+    // Cleanup
+    if (NULL != errorDescriptionString) (*env)->DeleteLocalRef(env, errorDescriptionString);
+    (*env)->DeleteLocalRef(env, listener);
+
+}
+
+static void
+clientWalletEventHandler(BREthereumClientContext context,
+                         BREthereumEWM node,
+                         BREthereumWalletId wid,
+                         BREthereumWalletEvent event,
+                         BREthereumStatus status,
+                         const char *errorDescription) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
@@ -1620,12 +1875,12 @@ listenerWalletEventHandler(BREthereumClientContext context,
 
 
 static void
-listenerBlockEventHandler(BREthereumClientContext context,
-                          BREthereumEWM node,
-                          BREthereumBlockId bid,
-                          BREthereumBlockEvent event,
-                          BREthereumStatus status,
-                          const char *errorDescription) {
+clientBlockEventHandler(BREthereumClientContext context,
+                        BREthereumEWM node,
+                        BREthereumBlockId bid,
+                        BREthereumBlockEvent event,
+                        BREthereumStatus status,
+                        const char *errorDescription) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
@@ -1655,13 +1910,13 @@ listenerBlockEventHandler(BREthereumClientContext context,
 }
 
 static void
-listenerTransactionEventHandler(BREthereumClientContext context,
-                                BREthereumEWM node,
-                                BREthereumWalletId wid,
-                                BREthereumTransferId tid,
-                                BREthereumTransferEvent event,
-                                BREthereumStatus status,
-                                const char *errorDescription) {
+clientTransferEventHandler(BREthereumClientContext context,
+                           BREthereumEWM node,
+                           BREthereumWalletId wid,
+                           BREthereumTransferId tid,
+                           BREthereumTransferEvent event,
+                           BREthereumStatus status,
+                           const char *errorDescription) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
@@ -1670,7 +1925,7 @@ listenerTransactionEventHandler(BREthereumClientContext context,
 
     jmethodID listenerMethod =
             lookupListenerMethod(env, listener,
-                                 "trampolineTransactionEvent",
+                                 "trampolineTransferEvent",
                                  "(IIIILjava/lang/String;)V");
     assert (NULL != listenerMethod);
 
