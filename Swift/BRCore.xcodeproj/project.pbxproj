@@ -20,7 +20,6 @@
 		3C5F5E75212C82310038B732 /* BREthereumMPT.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C5F5E74212C82310038B732 /* BREthereumMPT.c */; };
 		3C67C9DA211CD4B100DFA5F9 /* WalletTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C67C9D9211CD4B100DFA5F9 /* WalletTableViewCell.swift */; };
 		3C67C9DE211CD56700DFA5F9 /* TransferTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C67C9DD211CD56700DFA5F9 /* TransferTableViewCell.swift */; };
-		3C67C9E0211CD5BD00DFA5F9 /* TransferTableViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C67C9DF211CD5BD00DFA5F9 /* TransferTableViewController.swift */; };
 		3C6B172F2131CB5B003C313B /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C6B172E2131CB5B003C313B /* main.c */; };
 		3C6B17382131CE12003C313B /* BREthereum.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A539B20AF595400C430F6 /* BREthereum.c */; };
 		3C6B17392131CE12003C313B /* BREthereumEther.c in Sources */ = {isa = PBXBuildFile; fileRef = 3C2A53B320AF595400C430F6 /* BREthereumEther.c */; };
@@ -394,7 +393,6 @@
 		3C5F5E74212C82310038B732 /* BREthereumMPT.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = BREthereumMPT.c; sourceTree = "<group>"; };
 		3C67C9D9211CD4B100DFA5F9 /* WalletTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletTableViewCell.swift; sourceTree = "<group>"; };
 		3C67C9DD211CD56700DFA5F9 /* TransferTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferTableViewCell.swift; sourceTree = "<group>"; };
-		3C67C9DF211CD5BD00DFA5F9 /* TransferTableViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferTableViewController.swift; sourceTree = "<group>"; };
 		3C6B172C2131CB5B003C313B /* CoreExplore */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = CoreExplore; sourceTree = BUILT_PRODUCTS_DIR; };
 		3C6B172E2131CB5B003C313B /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		3C6B17792131CE12003C313B /* libCoreMacOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libCoreMacOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -839,7 +837,6 @@
 				3C67C9D9211CD4B100DFA5F9 /* WalletTableViewCell.swift */,
 				3C902608210A30F100143B69 /* WalletViewController.swift */,
 				3C67C9DD211CD56700DFA5F9 /* TransferTableViewCell.swift */,
-				3C67C9DF211CD5BD00DFA5F9 /* TransferTableViewController.swift */,
 				3CC17B6A212DF03800B038C6 /* TransferViewController.swift */,
 				3C2FEDFF212E1544004BE30A /* TransferCreateController.swift */,
 				3C90260A210A30F100143B69 /* Main.storyboard */,
@@ -1216,7 +1213,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				3C902609210A30F100143B69 /* WalletViewController.swift in Sources */,
-				3C67C9E0211CD5BD00DFA5F9 /* TransferTableViewController.swift in Sources */,
 				3C902607210A30F100143B69 /* SummaryViewController.swift in Sources */,
 				3CC17B6B212DF03800B038C6 /* TransferViewController.swift in Sources */,
 				3C67C9DE211CD56700DFA5F9 /* TransferTableViewCell.swift in Sources */,

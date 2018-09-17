@@ -348,7 +348,7 @@ typedef struct {
     BREthereumClientHandlerGetBlockNumber funcGetBlockNumber;
     BREthereumClientHandlerGetNonce funcGetNonce;
 
-    // Save Sync (and other) State - required as Core does maintain and is not configured to
+    // Save Sync (and other) State - required as Core does not maintain and is not configured to
     // use persistent storage (aka an sqlite DB or simply disk)
     BREthereumClientHandlerSaveNodes funcSaveNodes;
     BREthereumClientHandlerSaveBlocks funcSaveBlocks;
