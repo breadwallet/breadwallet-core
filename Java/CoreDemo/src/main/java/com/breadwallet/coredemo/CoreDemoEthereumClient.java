@@ -3,7 +3,7 @@ package com.breadwallet.coredemo;
 import com.breadwallet.core.ethereum.BREthereumBlock;
 import com.breadwallet.core.ethereum.BREthereumEWM;
 import com.breadwallet.core.ethereum.BREthereumNetwork;
-import com.breadwallet.core.ethereum.BREthereumTransaction;
+import com.breadwallet.core.ethereum.BREthereumTransfer;
 import com.breadwallet.core.ethereum.BREthereumWallet;
 
 import java.util.ArrayList;
@@ -21,7 +21,7 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
     interface TransferListener {
         void announceTransferEvent (BREthereumEWM ewm,
                                     BREthereumWallet wallet,
-                                    BREthereumTransaction transfer,
+                                    BREthereumTransfer transfer,
                                     BREthereumEWM.TransactionEvent event);
     }
 
@@ -200,7 +200,7 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
     }
 
     @Override
-    public void handleTransferEvent(BREthereumWallet wallet, BREthereumTransaction transaction, BREthereumEWM.TransactionEvent event, BREthereumEWM.Status status, String errorDescription) {
+    public void handleTransferEvent(BREthereumWallet wallet, BREthereumTransfer transaction, BREthereumEWM.TransactionEvent event, BREthereumEWM.Status status, String errorDescription) {
         System.out.println ("TST: WalletEvent: " + event.name());
         TransferListener l = transferListenersMap.get(wallet);
         if (null != l)

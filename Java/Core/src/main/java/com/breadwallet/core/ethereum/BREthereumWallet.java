@@ -201,7 +201,7 @@ public class BREthereumWallet extends BREthereumEWM.ReferenceWithDefaultUnit {
      *
      * @param transaction
      */
-    public void estimateGas (BREthereumTransaction transaction) {
+    public void estimateGas (BREthereumTransfer transaction) {
         ewm.get().jniTransactionEstimateGas(identifier, transaction.identifier);
     }
 
@@ -256,14 +256,14 @@ public class BREthereumWallet extends BREthereumEWM.ReferenceWithDefaultUnit {
      * @param amountUnit
      * @return
      */
-    public BREthereumTransaction createTransaction(String targetAddress,
-                                                   String amount,
-                                                   Unit amountUnit) {
+    public BREthereumTransfer createTransaction(String targetAddress,
+                                                String amount,
+                                                Unit amountUnit) {
         BREthereumEWM lightNode = ewm.get();
 
         // Note: The created transaction's unit will be `amountUnit`.  This unit may differ
         // from the wallet's defaultUnit - which should not be a problem.
-        return new BREthereumTransaction(lightNode,
+        return new BREthereumTransfer(lightNode,
                 lightNode.jniCreateTransaction(identifier,
                         targetAddress,
                         amount,
@@ -277,7 +277,7 @@ public class BREthereumWallet extends BREthereumEWM.ReferenceWithDefaultUnit {
      * @param transaction
      * @param paperKey
      */
-    public void sign (BREthereumTransaction transaction,
+    public void sign (BREthereumTransfer transaction,
                       String paperKey) {
         ewm.get().jniSignTransaction(identifier, transaction.identifier, paperKey);
     }
@@ -288,7 +288,7 @@ public class BREthereumWallet extends BREthereumEWM.ReferenceWithDefaultUnit {
      * @param transaction
      * @param privateKey
      */
-    public void signWithPrivateKey (BREthereumTransaction transaction,
+    public void signWithPrivateKey (BREthereumTransfer transaction,
                                     byte[] privateKey) {
         ewm.get().jniSignTransactionWithPrivateKey(identifier, transaction.identifier, privateKey);
     }
@@ -298,7 +298,7 @@ public class BREthereumWallet extends BREthereumEWM.ReferenceWithDefaultUnit {
      *
      * @param transaction
      */
-    public void submit (BREthereumTransaction transaction) {
+    public void submit (BREthereumTransfer transaction) {
         ewm.get().jniSubmitTransaction(identifier, transaction.identifier);
     }
 
@@ -307,20 +307,20 @@ public class BREthereumWallet extends BREthereumEWM.ReferenceWithDefaultUnit {
      *
      * @return
      */
-    public BREthereumTransaction[] getTransactions () {
+    public BREthereumTransfer[] getTransactions () {
         long[] transactionIds = ewm.get().jniGetTransactions(identifier);
 
         // We don't know the length just yet; otherwise ...
-        // BREthereumTransaction[] transactions = new BREthereumTransaction[transactionIds.length];
+        // BREthereumTransfer[] transactions = new BREthereumTransfer[transactionIds.length];
 
-        List<BREthereumTransaction> transactions = new LinkedList<>();
+        List<BREthereumTransfer> transactions = new LinkedList<>();
 
         for (int i = 0; i < transactionIds.length; i++)
             if (ewm.get().jniTransactionIsSubmitted(transactionIds[i]))
                 // transaction = ewm.get().transactionLookupOrCreate (tid)
                 // transaction.setDefaultUnit (defaultUnit).
-                transactions.add(new BREthereumTransaction(ewm.get(), transactionIds[i], defaultUnit));
+                transactions.add(new BREthereumTransfer(ewm.get(), transactionIds[i], defaultUnit));
 
-        return transactions.toArray(new BREthereumTransaction[transactions.size()]);
+        return transactions.toArray(new BREthereumTransfer[transactions.size()]);
     }
   }

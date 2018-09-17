@@ -220,7 +220,7 @@ public class BREthereumEWM extends BRCoreJniReference {
                               String errorDescription);
 
         void handleTransferEvent(BREthereumWallet wallet,
-                                 BREthereumTransaction transaction,
+                                 BREthereumTransfer transaction,
                                  TransactionEvent event,
                                  Status status,
                                  String errorDescription);
@@ -404,16 +404,16 @@ public class BREthereumEWM extends BRCoreJniReference {
     //
     // We'll hold a mapping, from identifier to transaction, for all transactions.
     //
-    protected Map<Long, WeakReference<BREthereumTransaction>> transactions = new HashMap<>();
+    protected Map<Long, WeakReference<BREthereumTransfer>> transactions = new HashMap<>();
 
-    protected synchronized BREthereumTransaction transactionLookupOrCreate(long tid) {
-        WeakReference<BREthereumTransaction> transactionRef = transactions.get(tid);
+    protected synchronized BREthereumTransfer transactionLookupOrCreate(long tid) {
+        WeakReference<BREthereumTransfer> transactionRef = transactions.get(tid);
 
         if (null == transactionRef || null == transactionRef.get()) {
             long tokenReference = jniTransactionGetToken(tid);
 
             transactionRef = new WeakReference<>(
-                    new BREthereumTransaction(this, tid,
+                    new BREthereumTransfer(this, tid,
                             (0 == tokenReference
                                     ? BREthereumAmount.Unit.ETHER_ETHER
                                     : BREthereumAmount.Unit.TOKEN_DECIMAL)));
@@ -635,7 +635,7 @@ public class BREthereumEWM extends BRCoreJniReference {
         if (status < 0 || status >= NUMBER_OF_STATUS_EVENTS) return;
 
         BREthereumWallet wallet = walletLookupOrCreate(wid, null);
-        BREthereumTransaction transaction = transactionLookupOrCreate(tid);
+        BREthereumTransfer transaction = transactionLookupOrCreate(tid);
 
         client.handleTransferEvent(wallet, transaction,
                 TransactionEvent.values()[(int) event],

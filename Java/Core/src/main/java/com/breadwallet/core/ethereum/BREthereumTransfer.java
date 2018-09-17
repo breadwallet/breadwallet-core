@@ -29,7 +29,7 @@ import java.math.BigDecimal;
 /**
  *
  */
-public class BREthereumTransaction extends BREthereumEWM.ReferenceWithDefaultUnit {
+public class BREthereumTransfer extends BREthereumEWM.ReferenceWithDefaultUnit {
 
     /**
      *
@@ -38,7 +38,7 @@ public class BREthereumTransaction extends BREthereumEWM.ReferenceWithDefaultUni
      * @param unit  The transaction's unit; should be identical with that unit used to create
      *              the transaction identifier.
      */
-    protected BREthereumTransaction (BREthereumEWM ewm, long identifier, BREthereumAmount.Unit unit) {
+    protected BREthereumTransfer(BREthereumEWM ewm, long identifier, BREthereumAmount.Unit unit) {
         super(ewm, identifier, unit);
     }
 
