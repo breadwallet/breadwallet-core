@@ -26,7 +26,7 @@
 #ifndef BR_Ethereum_Message_ETH_H
 #define BR_Ethereum_Message_ETH_H
 
-#include "BREthereumLESBase.h"
+#include "../BREthereumLESBase.h"
 
 #ifdef __cplusplus
 extern "C" {

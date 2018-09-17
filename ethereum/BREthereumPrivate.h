@@ -28,8 +28,8 @@
 
 #include "BREthereum.h"
 #include "blockchain/BREthereumBlock.h"
-#include "BREthereumTransfer.h"
-#include "BREthereumWallet.h"
+#include "ewm/BREthereumTransfer.h"
+#include "ewm/BREthereumWallet.h"
 
 // Returns Ether appropriate for encoding a transaction.  If the transaction is for a TOKEN,
 // then the returned Ether is zero (because the amount of a TOKEN transfer is encoded in the

@@ -22,6 +22,7 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
+
 #include <string.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -40,6 +41,10 @@
 #include "BREthereumLESRandom.h"
 #include "BREthereumMessage.h"
 #include "BREthereumNode.h"
+
+#if defined (__ANDROID__)
+#include "../event/pthread_android.h"
+#endif
 
 /** Forward Declarations */
 
@@ -341,7 +346,7 @@ lesCreate (BREthereumNetwork network,
     // For now, create a new, random private key that is used for communication with LES nodes.
     UInt256 secret;
 #if defined (__ANDROID__)
-    assert (false);
+    assert (0);
 #else
     arc4random_buf(secret.u64, sizeof (secret));
 #endif
@@ -724,7 +729,7 @@ lesHandleSelectError (BREthereumLES les,
 static void *
 lesThread (BREthereumLES les) {
 #if defined (__ANDROID__)
-    pthread_setname_np (node->thread, LES_THREAD_NAME);
+    pthread_setname_np (les->thread, LES_THREAD_NAME);
 #else
     pthread_setname_np (LES_THREAD_NAME);
 #endif

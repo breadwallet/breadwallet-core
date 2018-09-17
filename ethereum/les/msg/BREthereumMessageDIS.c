@@ -24,6 +24,7 @@
 //  THE SOFTWARE.
 
 #include <sys/socket.h>
+#include <assert.h>
 #include "BRKey.h"
 #include "../../base/BREthereumSignature.h"
 #include "BREthereumMessageDIS.h"
@@ -241,7 +242,10 @@ typedef struct {
     uint8_t data[0];  // 'Pro Skill'
 } BREthereumDISMessagePacket;
 
+#if defined (__ANDROID__)
+#else
 static_assert (98 == sizeof (BREthereumDISMessagePacket), "BREthereumDISMessagePacket must be 98 bytes");
+#endif
 
 extern BREthereumDISMessage
 messageDISDecode (BRRlpItem item,
