@@ -179,7 +179,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
         jniAnnounceToken(address, symbol, name, description, decimals,
                 defaultGasLimit, defaultGasPrice,
                 rid);
-        tokens = null;
+        tokensNeeded = true;
     }
 
     //
@@ -410,9 +410,12 @@ public class BREthereumLightNode extends BRCoreJniReference {
     protected final HashMap<Long, BREthereumToken> tokensByReference = new HashMap<>();
     protected BREthereumToken[] tokens = null;
     protected BREthereumToken tokenBRD;
+    private boolean tokensNeeded = true;
 
-    protected void initializeTokens () {
-        if (null == tokens) {
+    protected synchronized void initializeTokens () {
+        if (tokensNeeded) {
+            tokensNeeded = false;
+
             long[] references = jniTokenAll();
             tokens = new BREthereumToken[references.length];
 
