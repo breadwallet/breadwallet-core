@@ -287,7 +287,7 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit, Hashable {
     //
     // Transaction
     //
-    func createTransaction (recvAddress: String, amount: String, unit: EthereumAmountUnit) -> EthereumTransfer {
+    public func createTransfer (recvAddress: String, amount: String, unit: EthereumAmountUnit) -> EthereumTransfer {
         var status : BRCoreParseStatus = CORE_PARSE_OK
         let amount = (unit.isEther
             ? ethereumCreateEtherAmountString (self.ewm!.core, amount, unit.coreForEther, &status)
@@ -302,15 +302,15 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit, Hashable {
     }
 
 
-    func sign (transfer : EthereumTransfer, paperKey : String) {
+    public func sign (transfer : EthereumTransfer, paperKey : String) {
         ethereumWalletSignTransfer (self.ewm!.core, self.identifier, transfer.identifier, paperKey)
     }
 
-    func sign (transfer: EthereumTransfer, privateKey: BRKey) {
+    public func sign (transfer: EthereumTransfer, privateKey: BRKey) {
         ethereumWalletSignTransferWithPrivateKey (self.ewm!.core, self.identifier, transfer.identifier, privateKey)
     }
 
-    func submit (transfer : EthereumTransfer) {
+    public func submit (transfer : EthereumTransfer) {
         ethereumWalletSubmitTransfer (self.ewm!.core, self.identifier, transfer.identifier)
     }
 
@@ -1040,8 +1040,8 @@ public enum EthereumAmountUnit {
         }
     }
 
-    static let defaultUnitEther = EthereumAmountUnit.ether (ETHER)
-    static let defaultUnitToken = EthereumAmountUnit.token (TOKEN_QUANTITY_TYPE_DECIMAL)
+    static public let defaultUnitEther = EthereumAmountUnit.ether (ETHER)
+    static public let defaultUnitToken = EthereumAmountUnit.token (TOKEN_QUANTITY_TYPE_DECIMAL)
 
     static func defaultUnit (_ forEther : Bool) -> EthereumAmountUnit {
         return forEther ? defaultUnitEther : defaultUnitToken

@@ -29,6 +29,9 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
         amountSlider.minimumValue = 0.0
         amountSlider.maximumValue = Float (wallet.balance.amount)!
         amountSlider.value = 0.0
+        recvField.text = (UIApplication.sharedClient.network == EthereumNetwork.mainnet
+            ? "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62"
+            : "0xbDFdAd139440D2Db9BA2aa3B7081C2dE39291508");
         updateView()
     }
 
@@ -46,7 +49,15 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
 
         let alert = UIAlertController (title: "Submit Transaction", message: "Are you sure?", preferredStyle: UIAlertControllerStyle.actionSheet)
         alert.addAction(UIAlertAction (title: "Yes", style: UIAlertActionStyle.destructive) { (action) in
-            NSLog ("Will Submit")
+            let transfer = self.wallet.createTransfer (recvAddress: self.recvField.text!,
+                                                             amount: self.amountSlider.value.description,
+                                                             unit: EthereumAmountUnit.defaultUnitEther);
+            self.wallet.sign(transfer: transfer,
+                             paperKey: "boring head harsh green empty clip fatal typical found crane dinner timber");
+
+            self.wallet.submit(transfer: transfer);
+            // Notify, close
+            self.dismiss(animated: true) {}
         })
         alert.addAction(UIAlertAction (title: "No", style: UIAlertActionStyle.cancel) { (action) in
             NSLog ("Will Cancel" )
