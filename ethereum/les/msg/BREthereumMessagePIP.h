@@ -218,9 +218,6 @@ typedef enum {
     PIP_MESSAGE_RELAY_TRANSACTIONS       = 0x06,
 } BREthereumPIPMessageType;
 
-extern const char *
-messagePIPGetIdentifierName (BREthereumPIPMessageType identifer);
-
 typedef enum {
     PIP_MESSAGE_STATUS_VALUE_INTEGER,
     PIP_MESSAGE_STATUS_VALUE_HASH,
@@ -325,6 +322,9 @@ messagePIPGetCreditsCount (const BREthereumPIPMessage *message);
 #define PIP_MESSAGE_NO_REQUEST_ID    (-1)
 extern uint64_t
 messagePIPGetRequestId (const BREthereumPIPMessage *message);
+
+extern const char *
+messagePIPGetIdentifierName (BREthereumPIPMessage message);
 
 #ifdef __cplusplus
 }

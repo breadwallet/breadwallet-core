@@ -44,7 +44,7 @@ messagePIPGetRequestName (BREthereumPIPRequestType type) {
 }
 
 extern const char *
-messagePIPGetIdentifierName (BREthereumPIPMessageType identifer) {
+messagePIPGetIdentifierName (BREthereumPIPMessage message) {
     static const char *
     messagePIPNames[] = {
         "Status",
@@ -56,7 +56,27 @@ messagePIPGetIdentifierName (BREthereumPIPMessageType identifer) {
         "RelayTx"
     };
 
-    return messagePIPNames[identifer];
+    switch (message.type) {
+        case PIP_MESSAGE_STATUS:
+        case PIP_MESSAGE_ANNOUNCE:
+        case PIP_MESSAGE_UPDATE_CREDIT_PARAMETERS:
+        case PIP_MESSAGE_ACKNOWLEDGE_UPDATE:
+        case PIP_MESSAGE_RELAY_TRANSACTIONS:
+            return messagePIPNames[message.type];
+
+        case PIP_MESSAGE_REQUEST: {
+            BREthereumPIPMessageRequest *request = &message.u.request;
+            return (array_count (request->inputs) > 0
+                    ? messagePIPGetRequestName(request->inputs[0].identifier)
+                    : messagePIPNames[message.type]);
+        }
+        case PIP_MESSAGE_RESPONSE: {
+            BREthereumPIPMessageResponse *response = &message.u.response;
+            return (array_count(response->outputs) > 0
+                    ? messagePIPGetRequestName(response->outputs[0].identifier)
+                    : messagePIPNames[message.type]);
+        }
+    }
 }
 
 /// MARK: PIP Status

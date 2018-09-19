@@ -34,6 +34,15 @@
 #include "BREthereumNode.h"
 #include "BREthereumLESFrameCoder.h"
 
+//#define NODE_SHOW_RLP_ITEMS
+//#define NODE_SHOW_RECV_RLP_ITEMS
+//#define NODE_SHOW_SEND_RLP_ITEMS
+
+#if defined (NODE_SHOW_RLP_ITEMS)
+#define NODE_SHOW_RECV_RLP_ITEMS
+#define NODE_SHOW_SEND_RLP_ITEMS
+#endif
+
 static BREthereumAccountState
 hackFakeAccountStateLESProofs (uint64_t number);
 
@@ -938,7 +947,7 @@ nodeProcessRecvPIP (BREthereumNode node,
         case PIP_MESSAGE_RELAY_TRANSACTIONS:
             // Nobody sends these to us.
             eth_log (LES_LOG_TOPIC, "Recv: [ PIP, %15s ] Unexpected Response",
-                     messagePIPGetIdentifierName (message.type));
+                     messagePIPGetIdentifierName (message));
             break;
     }
 }
@@ -1750,8 +1759,10 @@ nodeSend (BREthereumNode node,
         }
 
         default: {
+#if defined (NODE_SHOW_SEND_RLP_ITEMS)
             if (MESSAGE_PIP == message.identifier && PIP_MESSAGE_STATUS != message.u.pip.type)
                 rlpShowItem (node->coder.rlp, item, "SEND");
+#endif
             
             // Extract the `items` bytes w/o the RLP length prefix.  We *know* the `item` is an
             // RLP encoding of a list; thus we use `rlpDecodeList`.
@@ -1894,8 +1905,10 @@ nodeRecv (BREthereumNode node,
 
             // Finally, decode the message
             message = messageDecode (item, node->coder, type, subtype);
+#if defined (NODE_SHOW_RECV_RLP_ITEMS)
             if (MESSAGE_PIP == message.identifier && PIP_MESSAGE_STATUS != message.u.pip.type)
                 rlpShowItem(node->coder.rlp, item, "RECV");
+#endif
 
             // If this is a LES response message, then it has credit information.
             if (MESSAGE_LES == message.identifier &&
