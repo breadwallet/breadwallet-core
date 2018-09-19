@@ -115,11 +115,16 @@ JNIEXPORT jlongArray JNICALL
 Java_com_breadwallet_core_ethereum_BREthereumToken_jniTokenAll
         (JNIEnv *env, jclass thisClass) {
     int count = tokenCount();
+
+    // A uint32_t array on x86 platforms - we *require* a long array
     BREthereumToken *tokens = tokenGetAll();
 
-    jlongArray result = (*env)->NewLongArray (env, count);
-    (*env)->SetLongArrayRegion (env, result, 0, count, (const jlong *) tokens);
-    free (tokens);
+    jlong ids[count];
+    for (int i = 0; i < count; i++) ids[i] = (jlong) tokens[i];
 
+    jlongArray result = (*env)->NewLongArray (env, count);
+    (*env)->SetLongArrayRegion (env, result, 0, count, ids);
+
+    free (tokens);
     return result;
 }
