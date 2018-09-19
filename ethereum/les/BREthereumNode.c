@@ -822,8 +822,8 @@ nodeProcessRecvLES (BREthereumNode node,
         case LES_MESSAGE_STATUS:
             node->callbackStatus (node->callbackContext,
                                   node,
-                                  message.u.status.headHash,
-                                  message.u.status.headNum);
+                                  message.u.status.p2p.headHash,
+                                  message.u.status.p2p.headNum);
             break;
 
         case LES_MESSAGE_ANNOUNCE:
@@ -890,8 +890,8 @@ nodeProcessRecvPIP (BREthereumNode node,
         case PIP_MESSAGE_STATUS:
             node->callbackStatus (node->callbackContext,
                                   node,
-                                  message.u.status.headHash,
-                                  message.u.status.headNum);
+                                  message.u.status.p2p.headHash,
+                                  message.u.status.p2p.headNum);
             break;
 
         case PIP_MESSAGE_ANNOUNCE:
@@ -1178,7 +1178,7 @@ updateLocalEndpointStatusMessage (BREthereumNodeEndpoint *endpoint,
     switch (type) {
         case NODE_TYPE_GETH:
             assert (MESSAGE_LES == endpoint->status.identifier);
-            endpoint->status.u.les.u.status.protocolVersion = protocolVersion;
+            endpoint->status.u.les.u.status.p2p.protocolVersion = protocolVersion;
             break;
 
         case NODE_TYPE_PARITY: {
@@ -1190,11 +1190,11 @@ updateLocalEndpointStatusMessage (BREthereumNodeEndpoint *endpoint,
                     PIP_MESSAGE_STATUS,
                     { .status = {
                         protocolVersion,
-                        status->chainId,
-                        status->headNum,
-                        status->headHash,
-                        status->headTd,
-                        status->genesisHash,
+                        status->p2p.chainId,
+                        status->p2p.headNum,
+                        status->p2p.headHash,
+                        status->p2p.headTd,
+                        status->p2p.genesisHash,
                         NULL }}}}
             };
             break;
@@ -1229,10 +1229,10 @@ getEndpointChainId (BREthereumNodeEndpoint *endpoint) {
             assert (0);
 
         case MESSAGE_LES:
-            return endpoint->status.u.les.u.status.chainId;
+            return endpoint->status.u.les.u.status.p2p.chainId;
 
         case MESSAGE_PIP:
-            return endpoint->status.u.pip.u.status.chainId;
+            return endpoint->status.u.pip.u.status.p2p.chainId;
             break;
     }
 }
@@ -1676,6 +1676,7 @@ nodeThreadConnectTCP (BREthereumNode node) {
     if (getEndpointChainId(&node->remote) != getEndpointChainId(&node->local))
         return nodeConnectFailed (node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_NETWORK_MISMATCH));
 
+#if 0
     // Extract the per message cost parameters (from the status MRC data)
     BREthereumLESMessageStatus *status = &message.u.les.u.status;
     if (NULL != status->flowControlMRCCount)
@@ -1686,7 +1687,7 @@ nodeThreadConnectTCP (BREthereumNode node) {
                 node->specs[mrc.msgCode].reqCost  = mrc.reqCost;
             }
         }
-
+#endif
     // 'Announce' the STATUS message.
     switch (node->type) {
         case NODE_TYPE_GETH:

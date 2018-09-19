@@ -81,208 +81,23 @@ messagePIPGetIdentifierName (BREthereumPIPMessage message) {
 
 /// MARK: PIP Status
 
+extern void
+messagePIPStatusShow(BREthereumPIPMessageStatus *status) {
+    messageP2PStatusShow(&status->p2p);
+}
+
 extern BRRlpItem
 messagePIPStatusEncode (BREthereumPIPMessageStatus *status,
                         BREthereumMessageCoder coder) {
-
-    size_t index = 0;
-    BRRlpItem items[15];
-
-    items[index++] = rlpEncodeList2 (coder.rlp,
-                                     rlpEncodeString(coder.rlp, "protocolVersion"),
-                                     rlpEncodeUInt64(coder.rlp, status->protocolVersion,1));
-
-    items[index++] = rlpEncodeList2 (coder.rlp,
-                                     rlpEncodeString(coder.rlp, "networkId"),
-                                     rlpEncodeUInt64(coder.rlp, status->chainId,1));
-
-    items[index++] = rlpEncodeList2 (coder.rlp,
-                                     rlpEncodeString(coder.rlp, "headTd"),
-                                     rlpEncodeUInt256(coder.rlp, status->headTd,1));
-
-    items[index++] = rlpEncodeList2(coder.rlp,
-                                    rlpEncodeString(coder.rlp, "headHash"),
-                                    hashRlpEncode(status->headHash, coder.rlp));
-
-    items[index++] = rlpEncodeList2(coder.rlp,
-                                    rlpEncodeString(coder.rlp, "headNum"),
-                                    rlpEncodeUInt64(coder.rlp, status->headNum,1));
-
-    items[index++] = rlpEncodeList2 (coder.rlp,
-                                     rlpEncodeString(coder.rlp, "genesisHash"),
-                                     hashRlpEncode(status->genesisHash, coder.rlp));
-#if 0
-    if(ETHEREUM_BOOLEAN_IS_TRUE(status->serveHeaders))
-        items[index++] = rlpEncodeList1 (coder.rlp,
-                                         rlpEncodeString(coder.rlp, "serveHeaders"));
-
-    if (status->serveChainSince != NULL)
-        items[index++] = rlpEncodeList2 (coder.rlp,
-                                         rlpEncodeString(coder.rlp, "serveChainSince"),
-                                         rlpEncodeUInt64(coder.rlp, *(status->serveChainSince),1));
-
-    if (status->serveStateSince != NULL)
-        items[index++] = rlpEncodeList2 (coder.rlp,
-                                         rlpEncodeString(coder.rlp, "serveStateSince"),
-                                         rlpEncodeUInt64(coder.rlp, *(status->serveStateSince),1));
-
-    if(ETHEREUM_BOOLEAN_IS_TRUE(status->txRelay))
-        items[index++] = rlpEncodeList1 (coder.rlp, rlpEncodeString(coder.rlp, "txRelay"));
-
-    //flowControl/BL
-    if (status->flowControlBL != NULL)
-        items[index++] = rlpEncodeList2 (coder.rlp,
-                                         rlpEncodeString(coder.rlp, "flowControl/BL"),
-                                         rlpEncodeUInt64(coder.rlp, *(status->flowControlBL),1));
-
-    //flowControl/MRC
-    if(status->flowControlBL != NULL) {
-        size_t count = *(status->flowControlMRCCount);
-        BRRlpItem mrcItems[count];
-
-        for(int idx = 0; idx < count; ++idx){
-            BRRlpItem mrcElements [3];
-            mrcElements[0] = rlpEncodeUInt64(coder.rlp,status->flowControlMRC[idx].msgCode,1);
-            mrcElements[1] = rlpEncodeUInt64(coder.rlp,status->flowControlMRC[idx].baseCost,1);
-            mrcElements[2] = rlpEncodeUInt64(coder.rlp,status->flowControlMRC[idx].reqCost,1);
-            mrcItems[idx] = rlpEncodeListItems(coder.rlp, mrcElements, 3);
-        }
-
-        items[index++] = rlpEncodeList2 (coder.rlp,
-                                         rlpEncodeString(coder.rlp, "flowControl/MRC"),
-                                         rlpEncodeListItems(coder.rlp, mrcItems, count));
-    }
-    //flowControl/MRR
-    if (status->flowControlMRR != NULL)
-        items[index++] = rlpEncodeList2 (coder.rlp,
-                                         rlpEncodeString(coder.rlp, "flowControl/MRR"),
-                                         rlpEncodeUInt64(coder.rlp, *(status->flowControlMRR),1));
-#endif
-    return rlpEncodeListItems (coder.rlp, items, index);
+    return messageP2PStatusEncode(&status->p2p, coder);
 }
 
 extern BREthereumPIPMessageStatus
 messagePIPStatusDecode (BRRlpItem item,
                         BREthereumMessageCoder coder) {
-    BREthereumPIPMessageStatus status = {};
-
-    size_t itemsCount = 0;
-    const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
-
-    for(int i= 0; i < itemsCount; ++i) {
-        size_t keyPairCount;
-        const BRRlpItem *keyPairs = rlpDecodeList (coder.rlp, items[i], &keyPairCount);
-        if (keyPairCount > 0) {
-            char *key = rlpDecodeString(coder.rlp, keyPairs[0]);
-
-            if (strcmp(key, "protocolVersion") == 0) {
-                status.protocolVersion = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1);
-            } else if (strcmp(key, "networkId") == 0) {
-                status.chainId = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1);
-            } else if (strcmp(key, "headTd") == 0) {
-                status.headTd = rlpDecodeUInt256(coder.rlp, keyPairs[1], 1);
-            } else if (strcmp(key, "headHash") == 0) {
-                status.headHash = hashRlpDecode(keyPairs[1], coder.rlp);
-#if 0
-            } else if (strcmp(key, "announceType") == 0) {
-                status.announceType = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1);
-#endif
-            } else if (strcmp(key, "headNum") == 0) {
-                status.headNum = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1);
-            } else if (strcmp(key, "genesisHash") == 0) {
-                status.genesisHash = hashRlpDecode(keyPairs[1], coder.rlp);
-#if 0
-            } else if (strcmp(key, "serveHeaders") == 0) {
-                status.serveHeaders = ETHEREUM_BOOLEAN_TRUE;
-            } else if (strcmp(key, "serveChainSince") == 0) {
-                status.serveChainSince = malloc(sizeof(uint64_t));
-                *(status.serveChainSince) = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1);
-            } else if (strcmp(key, "serveStateSince") == 0) {
-                status.serveStateSince = malloc(sizeof(uint64_t));
-                *(status.serveStateSince) = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1);
-            } else if (strcmp(key, "txRelay") == 0) {
-                status.txRelay = ETHEREUM_BOOLEAN_TRUE;
-            } else if (strcmp(key, "flowControl/BL") == 0) {
-                status.flowControlBL = malloc(sizeof(uint64_t));
-                *(status.flowControlBL) = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1);
-            } else if (strcmp(key, "flowControl/MRC") == 0) {
-                // TODO: Wrong for PIP
-                status.flowControlMRR = malloc(sizeof(uint64_t));
-                                size_t mrrItemsCount  = 0;
-                                const BRRlpItem* mrrItems = rlpDecodeList(coder.rlp, keyPairs[1], &mrrItemsCount);
-                                BREthereumLESMessageStatusMRC *mrcs = NULL;
-                                if(mrrItemsCount > 0){
-                                    mrcs = (BREthereumLESMessageStatusMRC*) calloc (mrrItemsCount, sizeof(BREthereumLESMessageStatusMRC));
-                                    for(int mrrIdx = 0; mrrIdx < mrrItemsCount; ++mrrIdx){
-                                        size_t mrrElementsCount  = 0;
-                                        const BRRlpItem* mrrElements = rlpDecodeList(coder.rlp, mrrItems[mrrIdx], &mrrElementsCount);
-                                        mrcs[mrrIdx].msgCode  = rlpDecodeUInt64(coder.rlp, mrrElements[0], 1);
-                                        mrcs[mrrIdx].baseCost = rlpDecodeUInt64(coder.rlp, mrrElements[1], 1);
-                                        mrcs[mrrIdx].reqCost  = rlpDecodeUInt64(coder.rlp, mrrElements[2], 1);
-                                    }
-                                }
-                                status.flowControlMRCCount = malloc (sizeof (size_t));
-                                *status.flowControlMRCCount = mrrItemsCount;
-                                status.flowControlMRC = mrcs;
-            } else if (strcmp(key, "flowControl/MRR") == 0) {
-                status.flowControlMRR = malloc(sizeof(uint64_t));
-                *(status.flowControlMRR) = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1);
-#endif
-            }
-            free (key);
-        }
-    }
-    return status;
-}
-
-extern void
-messagePIPStatusShow(BREthereumPIPMessageStatus *message) {
-    BREthereumHashString headHashString, genesisHashString;
-    hashFillString (message->headHash, headHashString);
-    hashFillString (message->genesisHash, genesisHashString);
-
-    char *headTotalDifficulty = coerceString (message->headTd, 10);
-
-    eth_log (LES_LOG_TOPIC, "StatusMessage:%s", "");
-    eth_log (LES_LOG_TOPIC, "    ProtocolVersion: %llu", message->protocolVersion);
-#if 0
-    if (message->protocolVersion != 1)
-        eth_log (LES_LOG_TOPIC, "    AnnounceType   : %llu", message->announceType);
-#endif
-    eth_log (LES_LOG_TOPIC, "    NetworkId      : %llu", message->chainId);
-    eth_log (LES_LOG_TOPIC, "    HeadNum        : %llu", message->headNum);
-    eth_log (LES_LOG_TOPIC, "    HeadHash       : %s",   headHashString);
-    eth_log (LES_LOG_TOPIC, "    HeadTd         : %s",   headTotalDifficulty);
-    eth_log (LES_LOG_TOPIC, "    GenesisHash    : %s",   genesisHashString);
-#if 0
-    if (ETHEREUM_BOOLEAN_IS_TRUE(message->serveHeaders))
-        eth_log (LES_LOG_TOPIC, "    ServeHeaders   : %s",  "Yes" );
-    if (NULL != message->serveChainSince)
-        eth_log (LES_LOG_TOPIC, "    ServeChainSince: %llu", *message->serveChainSince);
-    if (NULL != message->serveStateSince)
-        eth_log (LES_LOG_TOPIC, "    ServeStateSince: %llu", *message->serveStateSince) ;
-    if (ETHEREUM_BOOLEAN_IS_TRUE(message->txRelay))
-        eth_log (LES_LOG_TOPIC, "    TxRelay        : %s",  "Yes");
-    if (NULL != message->flowControlBL)
-        eth_log (LES_LOG_TOPIC, "    FlowControl/BL : %llu", *message->flowControlBL);
-    if (NULL != message->flowControlMRR)
-        eth_log (LES_LOG_TOPIC, "    FlowControl/MRR: %llu", *message->flowControlMRR);
-
-    size_t count = (NULL == message->flowControlMRCCount ? 0 : *(message->flowControlMRCCount));
-    if (count != 0) {
-        eth_log (LES_LOG_TOPIC, "    FlowControl/MRC:%s", "");
-        for (size_t index = 0; index < count; index++) {
-            const char *label = messageLESGetIdentifierName ((BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);
-            if (NULL != label) {
-                eth_log (LES_LOG_TOPIC, "      %2d", (BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);
-                eth_log (LES_LOG_TOPIC, "        Request : %s", label);
-                eth_log (LES_LOG_TOPIC, "        BaseCost: %llu", message->flowControlMRC[index].baseCost);
-                eth_log (LES_LOG_TOPIC, "        ReqCost : %llu", message->flowControlMRC[index].reqCost);
-            }
-        }
-    }
-#endif
-    free (headTotalDifficulty);
+    return (BREthereumPIPMessageStatus) {
+        messageP2PStatusDecode(item, coder)
+    };
 }
 
 /// MARK: PIP Announce

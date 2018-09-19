@@ -28,6 +28,7 @@
 
 #include "BREthereumLESBase.h"
 #include "../../blockchain/BREthereumBlockChain.h"
+#include "BREthereumMessageP2P.h"       // BREthereumP2PMessageStatus
 
 #ifdef __cplusplus
 extern "C" {
@@ -218,40 +219,8 @@ typedef enum {
     PIP_MESSAGE_RELAY_TRANSACTIONS       = 0x06,
 } BREthereumPIPMessageType;
 
-typedef enum {
-    PIP_MESSAGE_STATUS_VALUE_INTEGER,
-    PIP_MESSAGE_STATUS_VALUE_HASH,
-    PIP_MESSAGE_STATUS_VALUE_EMPTY,
-    PIP_MESSAGE_STATUS_VALUE_COST_TABLE,
-    PIP_MESSAGE_STATUS_VALUE_RECHARGE_RATE,
-} BREthereumPIPStatusValueType;
-
 typedef struct {
-    BREthereumPIPStatusValueType type;
-    union {
-        uint64_t integer;
-        BREthereumHash hash;
-        // ...
-    } u;
-} BREthereumPIPStatusValue;
-
-typedef struct {
-    const char *key;
-    BREthereumPIPStatusValue value;
-} BREthereumPIPStatusKeyValuePair;
-
-typedef struct {
-    // Extracted from `pairs`
-    uint64_t protocolVersion;
-    uint64_t chainId;
-
-    uint64_t headNum;
-    BREthereumHash headHash;
-    UInt256 headTd;
-    BREthereumHash genesisHash;
-
-    // Other pairs
-    BRArrayOf(BREthereumPIPStatusKeyValuePair) pairs;
+    BREthereumP2PMessageStatus p2p;
 } BREthereumPIPMessageStatus;
 
 extern void
@@ -262,7 +231,7 @@ typedef struct {
     uint64_t headNumber;
     UInt256 headTotalDifficulty;
     uint64_t reorgDepth;
-    BRArrayOf(BREthereumPIPStatusKeyValuePair) pairs;
+    BRArrayOf(BREthereumP2PMessageStatusKeyValuePair) pairs;
 } BREthereumPIPMessageAnnounce;
 
 typedef struct {
