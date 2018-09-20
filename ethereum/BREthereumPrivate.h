@@ -37,6 +37,11 @@
 private_extern BREthereumEther
 transactionGetEffectiveAmountInEther (BREthereumTransaction transaction);
 
+// Return the actual transaction 'to' address.  If the transaction is for ETH, then this is
+// the `target`; if the transaction is for TOK, then this is the contract address.
+private_extern char *
+transactionGetEffectiveAddress (BREthereumTransaction transaction);
+
 private_extern void
 walletSetBalance (BREthereumWallet wallet,
                   BREthereumAmount balance);

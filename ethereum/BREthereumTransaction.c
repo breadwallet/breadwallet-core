@@ -634,6 +634,18 @@ transactionGetEffectiveAmountInEther (BREthereumTransaction transaction) {
     }
 }
 
+private_extern char *
+transactionGetEffectiveAddress (BREthereumTransaction transaction) {
+    switch (amountGetType(transaction->amount)) {
+        case AMOUNT_ETHER:
+            return addressAsString (transaction->targetAddress);
+        case AMOUNT_TOKEN: {
+            BREthereumToken token = tokenQuantityGetToken (amountGetTokenQuantity(transaction->amount));
+            return strdup (tokenGetAddress(token));
+        }
+    }
+}
+
 extern BREthereumTransactionStatus
 transactionGetStatus (BREthereumTransaction transaction) {
     return transaction->state.status;

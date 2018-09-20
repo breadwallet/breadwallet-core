@@ -892,6 +892,7 @@ void runTransactionTests1 (BREthereumAccount account, BREthereumNetwork network)
     BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
     
     assert (21000ull == transactionGetGasEstimate(transaction).amountOfGas);
+    assert (0 == strcmp (TEST_TRANS1_TARGET_ADDRESS, transactionGetEffectiveAddress(transaction)));
     
     char result[2 * dataUnsignedTransaction.bytesCount + 1];
     encodeHex(result, 2 * dataUnsignedTransaction.bytesCount + 1, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
@@ -1012,7 +1013,9 @@ void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network)
     
     assert (1 == networkGetChainId(network));
     BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
-    
+
+    assert (0 == strcmp (tokenBRDAddress, transactionGetEffectiveAddress(transaction)));
+
     char *rawTx = encodeHexCreate(NULL, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
     printf ("       Tx3 Raw (unsigned): %s\n", rawTx);
     assert (0 == strcasecmp(rawTx, TEST_TRANS3_UNSIGNED_TX));

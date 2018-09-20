@@ -834,7 +834,7 @@ lightNodeUpdateTransactionGasEstimate (BREthereumLightNode node,
             case NODE_TYPE_JSON_RPC: {
                 // This will be ZERO if transaction amount is in TOKEN.
                 BREthereumEther amountInEther = transactionGetEffectiveAmountInEther(transaction);
-                char *to = (char *) addressAsString(transactionGetTargetAddress(transaction));
+                char *to =  transactionGetEffectiveAddress(transaction);
                 char *amount = coerceString(amountInEther.valueInWEI, 16);
                 char *data = (char *) transactionGetData(transaction);
 
