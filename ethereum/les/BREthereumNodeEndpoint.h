@@ -43,6 +43,9 @@ typedef enum {
 
 #define NUMBER_OF_NODE_ROUTES  (1 + NODE_ROUTE_TCP)
 
+#define FOR_EACH_ROUTE( route ) \
+    for (BREthereumNodeEndpointRoute route = NODE_ROUTE_UDP; route <= NODE_ROUTE_TCP; route++)
+
 static inline const char *
 nodeEndpointRouteGetName (BREthereumNodeEndpointRoute route) {
     return (NODE_ROUTE_TCP == route ? "TCP" : "UDP");

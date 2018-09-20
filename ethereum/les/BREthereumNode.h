@@ -97,13 +97,10 @@ typedef void
                                    UInt256 headTotalDifficulty,
                                    uint64_t reorgDepth);
 
-/**
- * A Node defines a `Provide Callback` type to include the context, the node, and the result.
- */
 typedef void
 (*BREthereumNodeCallbackProvide) (BREthereumNodeContext context,
-                                     BREthereumNode node,
-                                     BREthereumProvisionResult result);
+                                  BREthereumNode node,
+                                  BREthereumProvisionResult result);
 
 typedef void
 (*BREthereumNodeCallbackNeighbor) (BREthereumNodeContext context,
@@ -117,29 +114,40 @@ typedef enum {
     NODE_AVAILABLE,
     NODE_CONNECTING,
     NODE_CONNECTED,
-    NODE_EXHAUSTED,
-    NODE_ERROR_UNIX,
-    NODE_ERROR_DISCONNECT,
-    NODE_ERROR_PROTOCOL
+    NODE_ERROR,
 } BREthereumNodeStateType;
+
+    typedef enum {
+        NODE_ERROR_UNIX,
+        NODE_ERROR_DISCONNECT,
+        NODE_ERROR_PROTOCOL
+    } BREthereumNodeErrorType;
 
 typedef enum  {
     NODE_CONNECT_OPEN,
 
     NODE_CONNECT_AUTH,
     NODE_CONNECT_AUTH_ACK,
+
     NODE_CONNECT_HELLO,
     NODE_CONNECT_HELLO_ACK,
+
+    NODE_CONNECT_PRE_STATUS_PING_RECV,
+    NODE_CONNECT_PRE_STATUS_PONG_SEND,
+
     NODE_CONNECT_STATUS,
     NODE_CONNECT_STATUS_ACK,
 
     NODE_CONNECT_PING,
     NODE_CONNECT_PING_ACK,
+    NODE_CONNECT_PING_ACK_DISCOVER,
+    NODE_CONNECT_PING_ACK_DISCOVER_ACK
 } BREthereumNodeConnectType;
 
 typedef enum {
+    NODE_PROTOCOL_EXHAUSTED,
     NODE_PROTOCOL_NONSTANDARD_PORT,
-    NODE_PROTOCOL_UDP_PING_PONG_MISSED,
+    NODE_PROTOCOL_PING_PONG_MISSED,
     NODE_PROTOCOL_UDP_EXCESSIVE_BYTE_COUNT,
     NODE_PROTOCOL_TCP_AUTHENTICATION,
     NODE_PROTOCOL_TCP_HELLO_MISSED,
@@ -153,23 +161,16 @@ typedef struct {
     union {
         struct {
             BREthereumNodeConnectType type;
-        } connect;
+        } connecting;
 
         struct {
-            uint64_t timestamp;
-        } exhausted;
-
-        struct {
-            int error;
-        } unix;
-
-        struct {
-            BREthereumP2PDisconnectReason reason;
-        } disconnect;
-
-        struct {
-            BREthereumNodeProtocolReason reason;
-        } protocol;
+            BREthereumNodeErrorType type;
+            union {
+                int unix;
+                BREthereumP2PDisconnectReason disconnect;
+                BREthereumNodeProtocolReason protocol;
+            } u;
+        } error;
     } u;
 } BREthereumNodeState;
 
@@ -222,11 +223,11 @@ nodeCreate (BREthereumNetwork network,
 extern void
 nodeRelease (BREthereumNode node);
 
-extern void
+extern BREthereumNodeState
 nodeConnect (BREthereumNode node,
              BREthereumNodeEndpointRoute route);
 
-extern void
+extern BREthereumNodeState
 nodeDisconnect (BREthereumNode node,
                 BREthereumNodeEndpointRoute route,
                 BREthereumP2PDisconnectReason reason);
@@ -237,11 +238,11 @@ nodeUpdateDescriptors (BREthereumNode node,
                        fd_set *recv,   // read
                        fd_set *send);  // write
 
-extern void
-nodeProcessDescriptors (BREthereumNode node,
-                        BREthereumNodeEndpointRoute route,
-                        fd_set *recv,   // read
-                        fd_set *send);  // write
+extern BREthereumNodeState
+nodeProcess (BREthereumNode node,
+             BREthereumNodeEndpointRoute route,
+             fd_set *recv,   // read
+             fd_set *send);  // write
 
 extern void
 nodeHandleProvision (BREthereumNode node,
@@ -278,10 +279,6 @@ extern void
 nodeSetDiscovered (BREthereumNode node,
                    BREthereumBoolean discovered);
 
-extern void
-nodeDiscover (BREthereumNode node,
-              BREthereumNodeEndpoint *endpoint);
-    
 extern size_t
 nodeHashValue (const void *node);
 
@@ -290,11 +287,14 @@ nodeHashEqual (const void *node1,
                const void *node2);
 
 /// MARK: Node Message Send/Recv
-    
 typedef enum {
     NODE_STATUS_SUCCESS,
     NODE_STATUS_ERROR
 } BREthereumNodeStatus;
+
+extern BREthereumNodeStatus
+nodeDiscover (BREthereumNode node,
+              BREthereumNodeEndpoint *endpoint);
 
 typedef struct {
     BREthereumNodeStatus status;

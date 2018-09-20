@@ -91,7 +91,7 @@ createEWMEnsureNodes (BRArrayOf(BREthereumPersistData) nodesPersistData,
 
     for (size_t index = 0; index < peersCount; index++) {
         BRRlpItem item = rlpGetItem(coder, nodesPersistData[index].blob);
-        BREthereumNodeConfig node = lesNodeConfigDecode(item, coder);
+        BREthereumNodeConfig node = nodeConfigDecode(item, coder);
         rlpReleaseItem(coder, item);
         rlpDataRelease(nodesPersistData[index].blob);
         array_insert (nodes, index, node);
@@ -927,9 +927,9 @@ ewmHandleSaveNodes (BREthereumEWM ewm,
     BRArrayOf(BREthereumPersistData) nodesToSave;
     array_new(nodesToSave, 0);
     for (size_t index = 0; index < array_count(nodes); index++) {
-        BRRlpItem item = lesNodeConfigEncode(nodes[index], ewm->coder);
+        BRRlpItem item = nodeConfigEncode(nodes[index], ewm->coder);
         BREthereumPersistData persistData = {
-            lesNodeConfigGetHash(nodes[index]),
+            nodeConfigGetHash(nodes[index]),
             rlpGetData (ewm->coder, item)
         };
         rlpReleaseItem (ewm->coder, item);

@@ -137,17 +137,17 @@ struct BREthereumNodeConfigRecord {
 };
 
 extern void
-lesNodeConfigRelease (BREthereumNodeConfig config) {
+nodeConfigRelease (BREthereumNodeConfig config) {
     free (config);
 }
 
 extern BREthereumHash
-lesNodeConfigGetHash (BREthereumNodeConfig config) {
+nodeConfigGetHash (BREthereumNodeConfig config) {
     return config->hash;
 }
 
 extern BRRlpItem
-lesNodeConfigEncode (BREthereumNodeConfig config,
+nodeConfigEncode (BREthereumNodeConfig config,
                      BRRlpCoder coder) {
     return rlpEncodeList (coder, 3,
                           rlpEncodeBytes(coder, config->key.pubKey, 65),
@@ -156,7 +156,7 @@ lesNodeConfigEncode (BREthereumNodeConfig config,
 }
 
 extern BREthereumNodeConfig
-lesNodeConfigDecode (BRRlpItem item,
+nodeConfigDecode (BRRlpItem item,
                      BRRlpCoder coder) {
     BREthereumNodeConfig config = calloc (1, sizeof (struct BREthereumNodeConfigRecord));
 
@@ -174,7 +174,7 @@ lesNodeConfigDecode (BRRlpItem item,
 }
 
 static BREthereumNodeConfig
-lesNodeConfigCreate (BREthereumNode node) {
+nodeConfigCreate (BREthereumNode node) {
     BREthereumNodeConfig config = calloc (1, sizeof (struct BREthereumNodeConfigRecord));
 
     BREthereumNodeEndpoint *ne = nodeGetRemoteEndpoint(node);
@@ -189,7 +189,7 @@ lesNodeConfigCreate (BREthereumNode node) {
 }
 
 static BREthereumNodeEndpoint
-lesNodeConfigCreateEndpoint (BREthereumNodeConfig config) {
+nodeConfigCreateEndpoint (BREthereumNodeConfig config) {
     return nodeEndpointCreate ((BREthereumDISNeighbor) { config->endpoint, config->key });
 }
 
@@ -254,19 +254,14 @@ struct BREthereumLESRecord {
     /** Nodes - all known */
     BRSetOf(BREthereumNode) nodes;
 
-    /** Available Nodes - subset of `nodes`, ordered by 'DIS Distance', not in `connectedNodes`.
-     * All have a TCP status of 'AVAILABLE'.  Because these are ordered, we can't just simply
-     * iterate over nodes looking for AVAILABLE.  Thus, we 'double state'. */
+    /** Available Nodes - subset of `nodes`, ordered by 'DIS Distance'.  All have a TCP status of
+     * 'AVAILABLE'; none are in `activeNodesByRoute[NODE_ROUTE_TCP]`.  Because these are ordered,
+     * we can just select to first oneo for use */
     BRArrayOf(BREthereumNode) availableNodes;
 
-    /** Connected Nodes - subset of `nodes`, not in `availableNodes`.
-     * All have a TCP status of 'CONNECTED'.  Although these are initially sorted, a nodes index
-     * may play a role when LES can select the 'preferred node'.  Thus, we 'triple state' */
-    BRArrayOf(BREthereumNode) connectedNodes;
-
-    /** Discovery Nodes - subset of `nodes` that are actively in discovery (via UDP).  When
-     * finding neighbors we'll have at most N nodes active; we keep them here. */
-    BRArrayOf(BREthereumNode) discoveryNodes;
+    /** Active Nodes - a subset of `nodes` in a state of 'CONNECTED' or 'CONNECTING'.  We actively
+     * `select()` on these nodes to hanlde send/recv needs */
+    BRArrayOf(BREthereumNode) activeNodesByRoute[NUMBER_OF_NODE_ROUTES];
 
     /** Requests - pending, have not been provisioned to a node */
     BRArrayOf (BREthereumLESRequest) requests;
@@ -298,7 +293,11 @@ assignLocalEndpointHelloMessage (BREthereumNodeEndpoint *endpoint) {
             {}
         }}};
 
+    //
+    // Extend `capabilities` with supported subprotocols: LESv2 and/or PIPv1
+    //
     array_new (hello.u.hello.capabilities, 2);
+
 #if defined (LES_SUPPORT_GETH)
     array_add (hello.u.hello.capabilities, ((BREthereumP2PCapability) { "les", 2 }));
 #endif
@@ -361,8 +360,8 @@ lesEnsureNodeForEndpoint (BREthereumLES les,
             if (ETHEREUM_BOOLEAN_IS_FALSE(inserted)) array_add (les->availableNodes, node);
         }
 
-        BREthereumDISNeighborEnode enode = neighborDISAsEnode(endpoint.dis, 1);
-        eth_log(LES_LOG_TOPIC, "Neighbor: %s", enode.chars);
+//        BREthereumDISNeighborEnode enode = neighborDISAsEnode(endpoint.dis, 1);
+//        eth_log(LES_LOG_TOPIC, "Neighbor: %s", enode.chars);
     }
 
     pthread_mutex_unlock (&les->lock);
@@ -470,21 +469,18 @@ lesCreate (BREthereumNetwork network,
                            nodeHashEqual,
                            10 * LES_NODE_INITIAL_SIZE);
 
-    // (Prioritized) array of connected Nodes (both TCP and UDP connections)
-    array_new (les->connectedNodes, LES_NODE_INITIAL_SIZE);
-
     // (Sorted by Distance) array of available Nodes
     array_new (les->availableNodes, LES_NODE_INITIAL_SIZE);
 
-    // Array of nodes in UDP discovery.
-    array_new (les->discoveryNodes, 3);
+    FOR_EACH_ROUTE (route)
+        array_new (les->activeNodesByRoute[route], LES_NODE_INITIAL_SIZE);
 
     // Identify a set of initial nodes; first, use all the endpoints provided (based on `configs`)
     eth_log(LES_LOG_TOPIC, "Nodes Provided: %lu", (NULL == configs ? 0 : array_count(configs)));
     if (NULL != configs)
         for (size_t index = 0; index < array_count(configs); index++) {
             lesEnsureNodeForEndpoint (les,
-                                      lesNodeConfigCreateEndpoint(configs[index]),
+                                      nodeConfigCreateEndpoint(configs[index]),
                                       configs[index]->state,
                                       NULL);
         }
@@ -558,7 +554,11 @@ lesRelease(BREthereumLES les) {
 //    FOR_NODES (les, node)
 //        nodeRelease (node);
 //    BRSetClear(les->nodes);
-    array_free (les->connectedNodes);
+
+    array_free (les->availableNodes);
+
+    FOR_EACH_ROUTE (route)
+        array_free (les->activeNodesByRoute[route]);
 
     rlpCoderRelease(les->coder);
 
@@ -571,92 +571,11 @@ lesRelease(BREthereumLES les) {
     free (les);
 }
 
-
-/// MARK: - Node Management (Connected, Available, Discovery)
-
-static void
-lesNodeAddConnected (BREthereumLES les,
-                     BREthereumNode node) {
-    int needLog = 0;
-    size_t count = 0;
-
-    pthread_mutex_lock (&les->lock);
-    FOR_CONNECTED_NODES_INDEX(les, index)
-        // If we already have node...
-        if (node == les->connectedNodes[index]) {
-            node = NULL;
-            break;
-        }
-    // .. avoid adding it again.
-    if (NULL != node) {
-        array_add (les->connectedNodes, node);
-        count = array_count (les->connectedNodes);
-        needLog = 1;
-    }
-    pthread_mutex_unlock (&les->lock);
-
-    if (needLog)
-        eth_log (LES_LOG_TOPIC, "Connect: (%zu): <===> %s",
-                 count,
-                 nodeGetRemoteEndpoint(node)->hostname);
-}
-
-static void
-lesNodeRemConnected (BREthereumLES les,
-                     BREthereumNode node) {
-    int needLog = 0;
-    size_t count = 0;
-    pthread_mutex_lock (&les->lock);
-    FOR_CONNECTED_NODES_INDEX(les, index)
-        if (node == les->connectedNodes[index]) {
-            array_rm (les->connectedNodes, index);
-            count = array_count(les->connectedNodes);
-            needLog = 1;
-            break;
-        }
-    pthread_mutex_unlock (&les->lock);
-    if (needLog)
-        eth_log (LES_LOG_TOPIC, "Connect: (%zu): <=|=> %s",
-                 count,
-                 nodeGetRemoteEndpoint(node)->hostname);
-
-}
-
-static size_t
-lesNodeCountAvailable (BREthereumLES les) {
-    size_t count;
-    pthread_mutex_lock (&les->lock);
-    count = array_count(les->availableNodes);
-    pthread_mutex_unlock (&les->lock);
-    return count;
-}
-
-static void
-lesNodeRemDiscovery (BREthereumLES les,
-                     BREthereumNode node) {
-    nodeDisconnect (node, NODE_ROUTE_UDP, P2P_MESSAGE_DISCONNECT_REQUESTED);
-    nodeSetDiscovered (node, ETHEREUM_BOOLEAN_TRUE);
-    size_t nodeIndex = -1;
-    for (size_t index = 0; index < array_count(les->discoveryNodes); index++)
-        if (node == les->discoveryNodes[index]) {
-            nodeIndex = index;
-            break;
-        }
-    assert (-1 != nodeIndex);
-    array_rm (les->discoveryNodes, nodeIndex);
-}
-
-static void
-lesNodeAddDiscovery (BREthereumLES les,
-                     BREthereumNode node) {
-    array_add (les->discoveryNodes, node);
-}
-
 static BREthereumNode
 lesNodeFindDiscovery (BREthereumLES les) {
-    // Look from among connected nodes
-    for (size_t index = 0; index < array_count (les->connectedNodes); index++) {
-        BREthereumNode node = les->connectedNodes[index];
+    // Look from among connected TCP nodes
+    for (size_t index = 0; index < array_count (les->activeNodesByRoute[NODE_ROUTE_TCP]); index++) {
+        BREthereumNode node = (les->activeNodesByRoute[NODE_ROUTE_TCP])[index];
         if (ETHEREUM_BOOLEAN_IS_FALSE(nodeGetDiscovered(node)) && nodeHasState(node, NODE_ROUTE_UDP, NODE_AVAILABLE))
             return node;
     }
@@ -690,6 +609,16 @@ lesNodeFindDiscovery (BREthereumLES les) {
 /// MARK: - LES Node Callbacks
 ///
 
+/**
+ * Handle a Node's Status message by invoking les->callbackStatus with the Node's head{Hash,Num}
+ *
+ * @param les LES
+ * @param node The node
+ * @param headHash The Node's Head hash.
+ * @param headNumber The Node's Head number
+ *
+ * @note This is always called from the Node's 'Connect Thread'
+ */
 static void
 lesHandleStatus (BREthereumLES les,
                  BREthereumNode node,
@@ -700,6 +629,19 @@ lesHandleStatus (BREthereumLES les,
                          headNumber);
 }
 
+/**
+ * Handle a Node's Account message by invoking the les->callbackAnnounce with the announced
+ * block's properties - head{Hash,Number,TotalDifficulty} - along with the Node's reordDepth
+ *
+ * @param les LES
+ * @param node The node
+ * @param headHash The block's head hash
+ * @param headNumber The block's head number
+ * @param headTotalDifficulty The block's total difficulty
+ * @param reorgDepth The node's reorganization depth
+ *
+ * @note This is always called from the LES 'Main Thread'
+ */
 static void
 lesHandleAnnounce (BREthereumLES les,
                    BREthereumNode node,
@@ -714,6 +656,17 @@ lesHandleAnnounce (BREthereumLES les,
                            reorgDepth);
 }
 
+
+/**
+ * Handle a Node's Provision result by invoking the result's callback.  On success, the result
+ * is everything requested from LES - such as Block Header, Block Bodies, ..., Account States.
+ *
+ * @param les LES
+ * @param node The node
+ * @param result The node's provision reslt.
+ *
+ * @note This is always called from the LES 'Main Thread'
+ */
 static void
 lesHandleProvision (BREthereumLES les,
                     BREthereumNode node,
@@ -737,6 +690,20 @@ lesHandleProvision (BREthereumLES les,
  * Check if there is already a node for neighbor.  If there is, do nothing; if there isn't then
  * create a node and add it.
  */
+
+
+/**
+ * Handle a Node's Neighbors result by adding the neighbor, if unknown, as a new node.
+ *
+ * @param les LES
+ * @param node The node
+ * @param neighbor The neighbor
+ * @param remaining The number of neighbors remaining to be handled.
+ *
+ * @return If added, TRUE; otherwise FALSE
+ *
+ * @note: This is always called from the XYZ 'Foo Thread'
+ */
 static BREthereumBoolean
 lesHandleNeighbor (BREthereumLES les,
                    BREthereumNode node,
@@ -749,7 +716,7 @@ lesHandleNeighbor (BREthereumLES les,
                               &added);
 
     if (0 == remaining)
-        lesNodeRemDiscovery (les, node);
+        ; // lesNodeRemDiscovery (les, node);
 
     return added;
 }
@@ -758,12 +725,26 @@ lesHandleNeighbor (BREthereumLES les,
  * Handle Node callbacks on state changes.  We won't actually track individual changes, generally;
  * we are only interested in 'fully' connected or not.
  */
+
+
+/**
+ * Handle a Node's state change...
+ *
+ * @param les LES
+ * @param node The Node
+ * @param route The route for the state change
+ * @param state The state change
+ *
+ * @note This called from either the Node's 'Connect Thread' or LES' 'Main Thread.'  There are
+ * notable lock/race-condition issues to deal with.
+ */
 static void
 lesHandleNodeState (BREthereumLES les,
                     BREthereumNode node,
                     BREthereumNodeEndpointRoute route,
                     BREthereumNodeState state) {
-
+    ;
+#if 0
     // If the callback reports an error; then disconnect that route.  But, if the error is on the
     // TCP route, also disconnect the UDP route.
     //
@@ -782,10 +763,14 @@ lesHandleNodeState (BREthereumLES les,
 
     switch (route) {
         case NODE_ROUTE_UDP:
-            if (nodeHasState (node, NODE_ROUTE_TCP, NODE_CONNECTED))
+            if (nodeHasState (node, NODE_ROUTE_UDP, NODE_CONNECTED)) {
                 // Send a FIND_NEIGHBORS
-                nodeDiscover (node, nodeGetLocalEndpoint(node));
-            else if (nodeHasState (node, NODE_ROUTE_TCP, NODE_CONNECTING))
+                if (ETHEREUM_BOOLEAN_IS_FALSE(nodeGetDiscovered(node)))
+                    nodeDiscover (node, nodeGetLocalEndpoint(node));
+                else
+                    nodeDisconnect(node, NODE_ROUTE_UDP, P2P_MESSAGE_DISCONNECT_REQUESTED);
+            }
+            else if (nodeHasState (node, NODE_ROUTE_UDP, NODE_CONNECTING))
                 // never this...
                 ; // assert (0);
             else
@@ -800,6 +785,7 @@ lesHandleNodeState (BREthereumLES les,
                 lesNodeRemConnected (les, node);
             break;
     }
+#endif
 }
 
 ///
@@ -841,38 +827,46 @@ lesThread (BREthereumLES les) {
 
     pthread_mutex_lock (&les->lock);
 
+    BRArrayOf(BREthereumNode) nodesToRemove;
+    array_new(nodesToRemove, 10);
+
     while (!les->theTimeToQuitIsNow) {
+
+        // Our preferredNode is an active TCP (P2P, ETH, LES, PIP) node at index 0;
+        BREthereumNode preferredNode = (array_count(les->activeNodesByRoute[NODE_ROUTE_TCP]) > 0
+                                        ? les->activeNodesByRoute[NODE_ROUTE_TCP][0]
+                                        : NULL);
+
         // Send any/all pending requests but only if we have a connected node
-        if (array_count (les->connectedNodes) > 0)
+        if (NULL != preferredNode)
             for (size_t index = 0; index < array_count (les->requests); index++)
                 // Only handle a reqeust if it hasn't been previously handled.
                 if (NULL == les->requests[index].node) {
-                    les->requests[index].node = les->connectedNodes[0];
-                    nodeHandleProvision (les->connectedNodes[0],
+                    les->requests[index].node = preferredNode;
+                    nodeHandleProvision (preferredNode,
                                          les->requests[index].provision);
                 }
+
+        // Just do it, always.
         updateDesciptors = 1;
 
-        // Update the read (and write) descriptors to include nodes that are connected.
+        // Update the read (and write) descriptors to include nodes that are 'active' on any route.
         if (updateDesciptors) {
             maximumDescriptor = -1;
             FD_ZERO (&readDescriptors);
             FD_ZERO (&writeDesciptors);
-            FOR_CONNECTED_NODES_INDEX(les, index)
-                maximumDescriptor = maximum (maximumDescriptor,
-                                             nodeUpdateDescriptors (les->connectedNodes[index],
-                                                                    NODE_ROUTE_TCP,
-                                                                    &readDescriptors,
-                                                                    &writeDesciptors));
 
-            FOR_DISCOVERY_NODES_INDEX(les, index)
-                maximumDescriptor = maximum (maximumDescriptor,
-                                             nodeUpdateDescriptors (les->discoveryNodes[index],
-                                                                    NODE_ROUTE_UDP,
-                                                                    &readDescriptors,
-                                                                    &writeDesciptors));
+            FOR_EACH_ROUTE(route) {
+                BRArrayOf(BREthereumNode) nodes = les->activeNodesByRoute[route];
+                for (size_t index = 0; index < array_count(nodes); index++)
+                    maximumDescriptor = maximum (maximumDescriptor,
+                                                 nodeUpdateDescriptors (nodes[index],
+                                                                        route,
+                                                                        &readDescriptors,
+                                                                        &writeDesciptors));
+            }
 
-            updateDesciptors = 0;
+            // updateDesciptors = 0;
         }
 
         pthread_mutex_unlock (&les->lock);
@@ -880,32 +874,52 @@ lesThread (BREthereumLES les) {
         pthread_mutex_lock (&les->lock);
         if (les->theTimeToQuitIsNow) continue;
 
-        // We have a node ready to process ...
+        // We have one or more nodes ready to process ...
         if (selectCount > 0) {
-            // ... handle 'connected' (via TCP) nodes
-            FOR_CONNECTED_NODES_INDEX (les, index) {
-                BREthereumNode node = les->connectedNodes[index];
+            FOR_EACH_ROUTE (route) {
+                BRArrayOf(BREthereumNode) nodes = les->activeNodesByRoute[route];
+                for (size_t index = 0; index < array_count(nodes); index++) {
+                    BREthereumNode node = nodes[index];
 
-                nodeProcessDescriptors (node, NODE_ROUTE_TCP, &readDescriptors, &writeDesciptors);
+                    int isConnected = nodeHasState (node, route, NODE_CONNECTED);
 
-                if (!nodeHasState (node, NODE_ROUTE_TCP, NODE_CONNECTED) &&
-                    !nodeHasState (node, NODE_ROUTE_TCP, NODE_CONNECTING)) {
-                    lesNodeRemConnected (les, node);
-                    updateDesciptors = 1;
+                    // Process the node - based on the read/write descriptors.
+                    nodeProcess (node, route, &readDescriptors, &writeDesciptors);
+
+                    // Any node that is not CONNECTING or CONNECTED is no longer active.  Note that
+                    // we can't just remove `node` at `index` because we are iterating on the array.
+                    switch (nodeGetState(node, route).type) {
+                        case NODE_AVAILABLE:
+                        case NODE_ERROR:
+                            array_add (nodesToRemove, node);
+                            break;
+
+                        case NODE_CONNECTING:
+                            break;
+
+                        case NODE_CONNECTED:
+                            if (!isConnected && NODE_ROUTE_TCP == route)
+                                eth_log (LES_LOG_TOPIC, "Connect: %s (%zu): <===> %s",
+                                         (NODE_ROUTE_TCP == route ? "TCP" : "UDP"),
+                                         array_count(les->activeNodesByRoute[route]),
+                                         nodeGetRemoteEndpoint(node)->hostname);
+                            break;
+                    }
                 }
-            }
 
-            // ... and 'discovery' (via UDP) nodes.
-            FOR_DISCOVERY_NODES_INDEX(les, index) {
-                BREthereumNode node = les->discoveryNodes[index];
-
-                nodeProcessDescriptors (node, NODE_ROUTE_UDP, &readDescriptors, &writeDesciptors);
-
-                if (!nodeHasState (node, NODE_ROUTE_UDP, NODE_CONNECTED) &&
-                    !nodeHasState (node, NODE_ROUTE_UDP, NODE_CONNECTING)) {
-                    lesNodeRemDiscovery (les, node);
-                    updateDesciptors = 1;
-                }
+                // All nodes on route have been processed; remove inactive ones
+                for (size_t ri = 0; ri < array_count(nodesToRemove); ri++)  // RemoveIndex
+                    for (size_t ni = 0; ni < array_count(nodes); ni++) // NodeIndex
+                        if (nodesToRemove[ri] == nodes[ni]) {
+                            array_rm (nodes, ni);
+                            if (NODE_ROUTE_TCP == route)
+                                eth_log (LES_LOG_TOPIC, "Connect: %s (%zu): <=|=> %s",
+                                         (NODE_ROUTE_TCP == route ? "TCP" : "UDP"),
+                                         array_count(les->activeNodesByRoute[route]),
+                                         nodeGetRemoteEndpoint(nodesToRemove[ri])->hostname);
+                            break;
+                        }
+                array_clear(nodesToRemove);
             }
         }
 
@@ -924,7 +938,7 @@ lesThread (BREthereumLES les) {
 //                assert (NULL != node);
 //                if (!nodeHasState (node, NODE_ROUTE_TCP, NODE_CONNECTED)) {
 //                    // `request` is a value type - don't forget....
-//                    BREthereumLESReqeust request = les->requests[index - 1];
+//                    BREthereumLESRequest request = les->requests[index - 1];
 //                    array_rm (les->requests, (index - 1)); // safe, when going back-to-front
 //                    request.node = NULL;
 //                    array_insert (les->requestsToSend, 0, request); // to the front
@@ -933,23 +947,59 @@ lesThread (BREthereumLES les) {
 //                }
 //            }
 
-            // If we don't have enough connectedNodes, try to add one
-            if (array_count(les->connectedNodes) < 5 && array_count(les->availableNodes) > 0) {
-                BREthereumNode node = les->availableNodes[0];
-                array_rm (les->availableNodes, 0);
-                assert (nodeHasState(node, NODE_ROUTE_TCP, NODE_AVAILABLE));
-                nodeConnect (node, NODE_ROUTE_TCP);
-            }
-
             // If we don't have enough availableNodes, try to find some
-            if (lesNodeCountAvailable(les) < 25 && array_count(les->discoveryNodes) < 3) {
-                // Race condition w/ prior add - still node discovered, pending connect
+            if (array_count(les->availableNodes) < 100 && array_count(les->activeNodesByRoute[NODE_ROUTE_UDP]) < 3) {
+
+                // Find a 'discovery' node by looking in: activeNodesByRoute[NODE_ROUTE_TCP],
+                // availableNodes and then finally allNodes.  If that fails, try harder (see
+                // details in lesNodeFindDiscovery()
                 BREthereumNode node = lesNodeFindDiscovery(les);
-                array_add (les->discoveryNodes, node);
+
+                // Try to connect...
                 nodeConnect (node, NODE_ROUTE_UDP);
+
+                // On success, make active
+                switch (nodeGetState(node, NODE_ROUTE_UDP).type) {
+                    case NODE_AVAILABLE:
+                    case NODE_ERROR:
+                        break;
+
+                    case NODE_CONNECTING:
+                        array_add(les->activeNodesByRoute[NODE_ROUTE_UDP], node);
+                        break;
+
+                    case NODE_CONNECTED:
+                        assert (0);  // how?
+                }
             }
 
-            updateDesciptors = 1;
+            // If we don't have enough connectedNodes, try to add one
+            if (array_count(les->activeNodesByRoute[NODE_ROUTE_TCP]) < 5 &&
+                array_count(les->availableNodes) > 0) {
+                BREthereumNode node = les->availableNodes[0];
+
+                nodeConnect (node, NODE_ROUTE_TCP);
+
+                switch (nodeGetState(node, NODE_ROUTE_TCP).type) {
+                    case NODE_AVAILABLE:
+                        break;
+
+                    case NODE_ERROR:
+                        // On error; no longer available
+                        array_rm (les->availableNodes, 0);
+                        break;
+
+                    case NODE_CONNECTING:
+                        array_rm (les->availableNodes, 0);
+                        array_add(les->activeNodesByRoute[NODE_ROUTE_TCP], node);
+                        break;
+
+                    case NODE_CONNECTED:
+                        assert (0);  // how?
+                }
+            }
+
+            // updateDesciptors = 1;
 
             // pipe ()
         }
@@ -959,20 +1009,25 @@ lesThread (BREthereumLES les) {
             lesHandleSelectError (les, errno);
             updateDesciptors = 1;
         }
+
+            // double check that everything has been handled.
+            assert (0 == array_count(nodesToRemove));
+
     }
 
     pthread_mutex_unlock (&les->lock);
 
-    eth_log (LES_LOG_TOPIC, "Stop: Nodes: %zu, Available: %zu, Connected: %zu",
+    eth_log (LES_LOG_TOPIC, "Stop: Nodes: %zu, Available: %zu, Connected: [%zu, %zu]",
              BRSetCount(les->nodes),
-             lesNodeCountAvailable (les),
-             array_count (les->connectedNodes));
+             array_count (les->availableNodes),
+             array_count (les->activeNodesByRoute[NODE_ROUTE_UDP]),
+             array_count (les->activeNodesByRoute[NODE_ROUTE_TCP]));
 
     // Callback on Node Config
     BRArrayOf(BREthereumNodeConfig) configs;
     array_new (configs, BRSetCount(les->nodes));
     FOR_NODES (les, node) {
-        array_add (configs, lesNodeConfigCreate(node));
+        array_add (configs, nodeConfigCreate(node));
     }
     les->callbackSaveNodes (les->callbackContext, configs);
 
