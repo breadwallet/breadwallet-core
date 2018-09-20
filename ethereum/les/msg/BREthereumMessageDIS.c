@@ -25,10 +25,65 @@
 
 #include <sys/socket.h>
 #include "BRKey.h"
+#include "BRInt.h"
 #include "../../base/BREthereumSignature.h"
 #include "BREthereumMessageDIS.h"
 
 // #define NEED_TO_PRINT_DIS_NEIGHBOR_DETAILS
+
+/// MARK: UInt512
+typedef enum {
+    INT_BITWISE_AND,
+    INT_BITWISE_OR,
+    INT_BITWISE_XOR
+} BREthereumIntBitwiseType;
+
+static UInt256
+uint256Bitwise (BREthereumIntBitwiseType type,
+                UInt256 *x,
+                UInt256 *y) {
+    UInt256 z = UINT256_ZERO;
+    for (size_t i = 0; i < sizeof(UInt256)/sizeof(uint64_t); i++)
+        switch (type) {
+            case INT_BITWISE_AND:
+                z.u64[i] = x->u64[i] & y->u64[i];
+                break;
+            case INT_BITWISE_OR:
+                z.u64[i] = x->u64[i] | y->u64[i];
+                break;
+            case INT_BITWISE_XOR:
+                z.u64[i] = x->u64[i] ^ y->u64[i];
+                break;
+        }
+    return z;
+}
+
+static int
+uint256BitOffset (UInt256 x) {
+    for (unsigned int index = 0; index < 256; index++)
+        if (0x01 & (x.u64[index/64] >> (index % 64)))
+            return index;
+    return -1;
+}
+
+#if 0
+static int
+uint64tBitCount (uint64_t val) {
+    int count = 0;
+    for (int i = 0; i < 8 * sizeof (uint64_t); i++) {
+        count += (val & 0x01);
+        val >>= 1;
+    }
+    return count;
+}
+static int
+uint512BitCount (UInt512 val) {
+    int count = 0;
+    for (size_t i = 0; i < sizeof(UInt512)/sizeof(uint64_t); i++)
+        count += uint64tBitCount(val.u64[i]);
+    return count;
+}
+#endif
 
 static const char *messageDISNames[] = { NULL, "Ping", "Pong", "FindNeighbors", "Neighbors" };
 
@@ -54,6 +109,9 @@ extern BREthereumDISEndpoint
 endpointDISDecode (BRRlpItem item, BRRlpCoder coder) {
     BREthereumDISEndpoint endpoint;
 
+    // Zero out - we'll be hashing this and don't need random, untouched memory.
+    memset (&endpoint, 0, sizeof (BREthereumDISEndpoint));
+
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
     assert (3 == itemsCount);
@@ -77,6 +135,9 @@ endpointDISDecode (BRRlpItem item, BRRlpCoder coder) {
 static BREthereumDISNeighbor
 neighborDISDecode (BRRlpItem item, BREthereumMessageCoder coder) {
     BREthereumDISNeighbor neighbor;
+
+    // Zero out - we'll be hashing this and don't need random, untouched memory.
+    memset (&neighbor, 0, sizeof (BREthereumDISNeighbor));
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
@@ -108,9 +169,64 @@ neighborDISDecode (BRRlpItem item, BREthereumMessageCoder coder) {
 }
 
 extern BREthereumHash
-messageDISNeighborHash (BREthereumDISNeighbor neighbor) {
+neighborDISHash (BREthereumDISNeighbor neighbor) {
     BRRlpData data = { sizeof (BREthereumDISNeighbor), (uint8_t *) &neighbor };
     return hashCreateFromData(data);
+}
+
+extern UInt256
+neighborDISDistance (BREthereumDISNeighbor n1,
+                     BREthereumDISNeighbor n2) {
+    UInt512 *val1 = (UInt512*) &n1.key.pubKey[1];
+    UInt512 *val2 = (UInt512*) &n2.key.pubKey[1];
+
+    // This hash is a 'Keccak256' hash.
+    BREthereumHash hash1 = hashCreateFromData((BRRlpData) { sizeof (uint8_t*), val1->u8});
+    BREthereumHash hash2 = hashCreateFromData((BRRlpData) { sizeof (uint8_t*), val2->u8});
+
+    return uint256Bitwise (INT_BITWISE_XOR,
+                           (UInt256*) hash1.bytes,
+                           (UInt256*) hash2.bytes);
+}
+
+extern BREthereumDISNeighborEnode
+neighborDISAsEnode (BREthereumDISNeighbor neighbor,
+                    int useTCP) {
+    BREthereumDISNeighborEnode enode = { '\0' };
+
+    char nodeID [129];
+    encodeHex(nodeID, 129, &neighbor.key.pubKey[1], 64);
+
+    char IP [39];
+    if (neighbor.node.domain == AF_INET)
+        sprintf (IP, "%d.%d.%d.%d",
+                 neighbor.node.addr.ipv4[0],
+                 neighbor.node.addr.ipv4[1],
+                 neighbor.node.addr.ipv4[2],
+                 neighbor.node.addr.ipv4[3]);
+    else
+        sprintf (IP, "%02d%02d:%02d%02d:%02d%02d:%02d%02d:%02d%02d:%02d%02d:%02d%02d:%02d%02d",
+                 neighbor.node.addr.ipv6[0],
+                 neighbor.node.addr.ipv6[1],
+                 neighbor.node.addr.ipv6[2],
+                 neighbor.node.addr.ipv6[3],
+                 neighbor.node.addr.ipv6[4],
+                 neighbor.node.addr.ipv6[5],
+                 neighbor.node.addr.ipv6[6],
+                 neighbor.node.addr.ipv6[7],
+                 neighbor.node.addr.ipv6[8],
+                 neighbor.node.addr.ipv6[9],
+                 neighbor.node.addr.ipv6[10],
+                 neighbor.node.addr.ipv6[11],
+                 neighbor.node.addr.ipv6[12],
+                 neighbor.node.addr.ipv6[13],
+                 neighbor.node.addr.ipv6[14],
+                 neighbor.node.addr.ipv6[15]);
+
+    sprintf (enode.chars, "enode://%s@%s:%d", nodeID, IP,
+             (useTCP ? neighbor.node.portTCP : neighbor.node.portUDP));
+
+    return enode;
 }
 
 /// MARK: DIS Ping

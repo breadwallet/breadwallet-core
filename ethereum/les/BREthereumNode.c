@@ -351,18 +351,6 @@ provisionerMessageSend (BREthereumNodeProvisioner *provisioner) {
     BREthereumMessage message = provisioner->messages [provisioner->messagesCount -
                                                        provisioner->messagesRemainingCount];
     BREthereumNodeStatus status = nodeSend (provisioner->node, NODE_ROUTE_TCP, message);
-    switch (message.identifier) {
-        case MESSAGE_P2P:
-        case MESSAGE_DIS:
-        case MESSAGE_ETH:
-            break;
-        case MESSAGE_LES:
-            // eth_log (LES_LOG_TOPIC, "Send: RequestID: %llu", messageLESGetRequestId (&message.u.les));
-            break;
-        case MESSAGE_PIP:
-            // eth_log (LES_LOG_TOPIC, "Send: RequestID: %d", 100);
-            break;
-    }
     provisioner->messagesRemainingCount--;
 
     return status;
@@ -473,6 +461,9 @@ struct BREthereumNodeRecord {
     BREthereumNodeEndpoint local;
     BREthereumNodeEndpoint remote;
 
+    // The DIS distance between local <==> remote.
+    UInt256 distance;
+
     /** The message specs by identifier.  Includes credit params and message count limits */
     // TODO: This should not be LES specific; applies to PIP too.
     BREthereumLESMessageSpec specs [NUMBER_OF_LES_MESSAGE_IDENTIFIERS];
@@ -523,6 +514,20 @@ nodeGetType (BREthereumNode node) {
     return node->type;
 }
 
+extern void
+nodeShow (BREthereumNode node) {
+    char descUDP[128], descTCP[128];
+
+    BREthereumDISNeighborEnode enode = neighborDISAsEnode (node->remote.dis, 1);
+    eth_log (LES_LOG_TOPIC, "Node: %15s", node->remote.hostname);
+    eth_log (LES_LOG_TOPIC, "   NodeID    : %s", enode.chars);
+    eth_log (LES_LOG_TOPIC, "   Type      : %s", nodeTypeGetName(node->type));
+    eth_log (LES_LOG_TOPIC, "   UDP       : %s", nodeStateDescribe (&node->states[NODE_ROUTE_UDP], descUDP));
+    eth_log (LES_LOG_TOPIC, "   TCP       : %s", nodeStateDescribe (&node->states[NODE_ROUTE_TCP], descTCP));
+    eth_log (LES_LOG_TOPIC, "   Discovered: %s", (ETHEREUM_BOOLEAN_IS_TRUE(node->discovered) ? "Yes" : "No"));
+    eth_log (LES_LOG_TOPIC, "   Credits   : %llu", node->credits);
+}
+
 //
 // Create
 //
@@ -551,6 +556,10 @@ nodeCreate (BREthereumNetwork network,
     // Save the local and remote nodes.
     node->local  = local;
     node->remote = remote;
+
+    // Compute the 'DIS Distance' between the two endpoints.  We'll favor nodes with a
+    // remote endpoint that is closer to our local endpoint.
+    node->distance = neighborDISDistance(node->local.dis, node->remote.dis);
 
     // Fill in the specs with default values (for GETH)
     for (int i = 0; i < NUMBER_OF_LES_MESSAGE_IDENTIFIERS; i++)
@@ -675,7 +684,7 @@ nodeDisconnect (BREthereumNode node,
 
         case NODE_CONNECTING:
         case NODE_CONNECTED:
-            // otherwise, return to 'available' if the disconnet is requested.
+            // otherwise, return to 'available' if the disconnect is requested.
             node->states[route] = (P2P_MESSAGE_DISCONNECT_REQUESTED == reason
                                    ? nodeStateCreateAvailable()
                                    : nodeStateCreateErrorDisconnect(reason));
@@ -686,6 +695,10 @@ nodeDisconnect (BREthereumNode node,
     }
     pthread_mutex_unlock (&node->lock);
 }
+
+///
+/// MARK: - Node Process
+///
 
 extern int
 nodeUpdateDescriptors (BREthereumNode node,
@@ -704,7 +717,7 @@ nodeUpdateDescriptors (BREthereumNode node,
     if (NULL != recv)
         FD_SET (socket, recv);
 
-    // If we have any provisioner with pending message, we are willing to send
+    // If we have any provisioner with a pending message, we are willing to send
     for (size_t index = 0; index < array_count (node->provisioners); index++)
         if (provisionerSendMessagesPending (&node->provisioners[index])) {
             if (NULL != send) FD_SET (socket, send);
@@ -749,7 +762,7 @@ nodeProcessRecvP2P (BREthereumNode node,
     assert (NODE_ROUTE_TCP == route);
     switch (message.identifier) {
         case P2P_MESSAGE_DISCONNECT:
-            eth_log (LES_LOG_TOPIC, "Recv: General Disconnect: %s", messageP2PDisconnectDescription (message.u.disconnect.reason));
+            eth_log (LES_LOG_TOPIC, "Recv: Disconnect: %s", messageP2PDisconnectDescription (message.u.disconnect.reason));
             nodeDisconnect(node, NODE_ROUTE_TCP, message.u.disconnect.reason);
             break;
 
@@ -797,10 +810,12 @@ nodeProcessRecvDIS (BREthereumNode node,
 
         case DIS_MESSAGE_NEIGHBORS: {
             // For each neighbor, callback.
-            for (size_t index = 0; index < array_count (message.u.neighbors.neighbors); index++)
+            size_t count = array_count (message.u.neighbors.neighbors);
+            for (size_t index = 0; index < count; index++)
                 node->callbackNeighbor (node->callbackContext,
                                         node,
-                                        message.u.neighbors.neighbors[index]);
+                                        message.u.neighbors.neighbors[index],
+                                        count - index - 1);
             break;
         }
 
@@ -1023,8 +1038,9 @@ nodeHandleProvision (BREthereumNode node,
     provisionerEstablish (&node->provisioners[array_count(node->provisioners) - 1], node);
 }
 
-
-////////////////////
+///
+/// MARK: - LES Node Support
+///
 
 static uint64_t
 nodeGetThenIncrementMessageIdentifier (BREthereumNode node,
@@ -1058,6 +1074,17 @@ extern int
 nodeHashEqual (const void *h1, const void *h2) {
     return h1 == h2 || hashSetEqual (&((BREthereumNode) h1)->hash,
                                      &((BREthereumNode) h2)->hash);
+}
+
+extern BREthereumComparison
+nodeNeighborCompare (BREthereumNode n1,
+                     BREthereumNode n2) {
+    switch (compareUInt256 (n1->distance, n2->distance)) {
+        case -1: return ETHEREUM_COMPARISON_LT;
+        case  0: return ETHEREUM_COMPARISON_EQ;
+        case +1: return ETHEREUM_COMPARISON_GT;
+        default: assert (0);
+    }
 }
 
 /**
@@ -1237,7 +1264,7 @@ getEndpointChainId (BREthereumNodeEndpoint *endpoint) {
     }
 }
 
-/// MARK: UDP & TCP Connect
+/// MARK: - LES Node UDP & TCP Connect
 
 /**
  * Clean up any lingering state for a non-local exit.
@@ -1705,7 +1732,7 @@ nodeThreadConnectTCP (BREthereumNode node) {
     return nodeConnectExit (node);      // pthread_mutex_unlock (&node->lock);
 }
 
-/// MARK: Send
+/// MARK: - Send / Recv
 
 static BREthereumNodeStatus
 nodeSendFailed (BREthereumNode node,
@@ -1797,8 +1824,6 @@ nodeSend (BREthereumNode node,
             : nodeSendFailed (node, route, nodeStateCreateErrorUnix (error)));
 }
 
-/// MARK: Recv
-
 static BREthereumNodeMessageResult
 nodeRecvFailed (BREthereumNode node,
                 BREthereumNodeEndpointRoute route,
@@ -1841,7 +1866,7 @@ nodeRecv (BREthereumNode node,
             size_t headerCount = 32;
 
             {
-                // get header, decrypt it, validate it and then determine the bytesCpount
+                // get header, decrypt it, validate it and then determine the bytesCount
                 uint8_t header[32];
                 memset(header, -1, 32);
 
@@ -1938,7 +1963,6 @@ nodeRecv (BREthereumNode node,
     };
 }
 
-/// MARK: Credits
 
 static uint64_t
 nodeEstimateCredits (BREthereumNode node,
@@ -1958,6 +1982,8 @@ static uint64_t
 nodeGetCredits (BREthereumNode node) {
     return node->credits;
 }
+
+/// MARK: Discovered
 
 extern BREthereumBoolean
 nodeGetDiscovered (BREthereumNode node) {
@@ -1986,18 +2012,9 @@ nodeDiscover (BREthereumNode node,
     eth_log (LES_LOG_TOPIC, "Neighbors: %15s", endpoint->hostname);
 }
 
-extern void
-nodeShow (BREthereumNode node) {
-    char descUDP[128], descTCP[128];
-    eth_log (LES_LOG_TOPIC, "Node: %15s", node->remote.hostname);
-    eth_log (LES_LOG_TOPIC, "   Type      : %s", nodeTypeGetName(node->type));
-    eth_log (LES_LOG_TOPIC, "   UDP       : %s", nodeStateDescribe (&node->states[NODE_ROUTE_UDP], descUDP));
-    eth_log (LES_LOG_TOPIC, "   TCP       : %s", nodeStateDescribe (&node->states[NODE_ROUTE_TCP], descTCP));
-    eth_log (LES_LOG_TOPIC, "   Discovered: %s", (ETHEREUM_BOOLEAN_IS_TRUE(node->discovered) ? "Yes" : "No"));
-    eth_log (LES_LOG_TOPIC, "   Credits   : %llu", node->credits);
-}
-
-/// MARK: Support
+///
+/// MARK: - Auth Support
+///
 
 static void
 bytesXOR(uint8_t * op1, uint8_t* op2, uint8_t* result, size_t len) {
@@ -2170,6 +2187,3 @@ _readAuthAckFromRecipient(BREthereumNode node) {
         return 0;
     }
 }
-
-
-

@@ -132,7 +132,35 @@ typedef struct {
 } BREthereumDISNeighbor;
 
 extern BREthereumHash
-messageDISNeighborHash (BREthereumDISNeighbor neighbor);
+neighborDISHash (BREthereumDISNeighbor neighbor);
+
+/**
+ * The DIS Neighbor Distance
+ *
+ * https://github.com/ethereum/devp2p/blob/master/discv4.md
+ * distance(n₁, n₂) = keccak256(n₁) XOR keccak256(n₂)
+ * "The 'distance' between two node IDs is the bitwise exclusive or on the hashes of the public
+ * keys, taken as the number."
+ *
+ * @param n1 The DISNeighbor, n1, w/ nodeID
+ * @param n2 The DISNeighbor, n2, w/ nodeID
+ *
+ * @return The distance as a UInt256
+ */
+extern UInt256
+neighborDISDistance (BREthereumDISNeighbor n1,
+                            BREthereumDISNeighbor n2);
+
+// enode://<nodeid>@<ip>:<port>
+#define NEIGHBOR_DIS_ENODE_STRLEN   (8 + 2 * 64 + 1 + 39 + 1 + 5 + 1)
+typedef struct {
+    char chars[NEIGHBOR_DIS_ENODE_STRLEN];
+} BREthereumDISNeighborEnode;
+
+extern BREthereumDISNeighborEnode
+neighborDISAsEnode (BREthereumDISNeighbor neighbor,
+                    int useTCP);
+
 
 /**
  * The DIS Neighbors Message.
@@ -145,7 +173,9 @@ typedef struct {
 /**
  * A DIS Message is one of four messages.  We include the `privateKeyForSigning` - although
  * it might be better to provide the key at the point when the message is serialized so that
- * the key doesn't sit here-and-there in memory
+ * the key doesn't sit here-and-there in memory.
+ *
+ * Confirm but... the `privateKeyForSigning` has NOTHING to do with the User's paperKey.
  */
 typedef struct {
     BREthereumDISMessageIdentifier identifier;

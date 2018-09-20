@@ -63,7 +63,7 @@ nodeEndpointCreateDetailed (BREthereumDISNeighbor dis,
     memset (&endpoint, 0, sizeof (BREthereumNodeEndpoint));
 
     endpoint.dis = dis;
-    endpoint.hash = messageDISNeighborHash(dis);
+    endpoint.hash = neighborDISHash(dis);
 
     for (int i = 0; i < NUMBER_OF_NODE_ROUTES; i++)
         endpoint.sockets[i] = -1;
@@ -92,7 +92,7 @@ extern BREthereumNodeEndpoint
 nodeEndpointCreateLocal (BREthereumLESRandomContext randomContext) {
     BREthereumDISEndpoint disEndpoint = {
         AF_INET,
-        {},
+        { .ipv6 = { 0,0,0,0,   0,0,0,0,   0,0,0,0,   0,0,0,0 } },
         LES_LOCAL_ENDPOINT_UDP_PORT,
         LES_LOCAL_ENDPOINT_TCP_PORT
     };
@@ -128,7 +128,7 @@ nodeEndpointCreateEnode (const char *enode) {
 
     BREthereumDISEndpoint disEndpoint = {
         AF_INET,
-        {},
+        { .ipv6 = { 0,0,0,0,   0,0,0,0,   0,0,0,0,   0,0,0,0 } },
         port,
         port
     };
@@ -520,8 +520,11 @@ const char *localLESEnode = "enode://x@1.1.1.1:30303";
 // LES/PIP Nodes hosted locally, when enabled (yes, my NodeId; not yours).
 const char *bootstrapLCLEnodes[] = {
     // Localhost - Parity
-    "enode://30af157f9105700422655d81d269575c0b1d63caeb90863f70cb2b92d89356ac4378cabaa4e2c84c9fdf1571264bcf22fd4bb6148f65f84c9e5f37dcc8a46a7f@127.0.0.1:30303",
-//    "enode://8ebe6a85d46737451c8bd9423f37dcb117af7316bbce1643856feeaf9f81a792ff09029e9ab1796b193eb477f938af3465f911574c57161326b71aaf0221f341@127.0.0.1:30303",
+//    "enode://30af157f9105700422655d81d269575c0b1d63caeb90863f70cb2b92d89356ac4378cabaa4e2c84c9fdf1571264bcf22fd4bb6148f65f84c9e5f37dcc8a46a7f@127.0.0.1:30303",  // HDD Archive
+//    "enode://9058392a81f6f3df662cd2dc5e62d3529f08bc68a69025937a831bd6734e9830bffde87485989ebb4b5588771fc877e34b7be82251cf2d48ae2a1a784b6b58fc@127.0.0.1:30303",  // SSD Full
+    "enode://4483ac6134c85ecbd31d14168f1c97b82bdc45c442e81277f52428968de41add46549f8d6c9c8c3432f3b8834b018c350ac37d87d70d67e599f42f68a96717fc@127.0.0.1:30303", // SSD Archive
+
+    //    "enode://8ebe6a85d46737451c8bd9423f37dcb117af7316bbce1643856feeaf9f81a792ff09029e9ab1796b193eb477f938af3465f911574c57161326b71aaf0221f341@127.0.0.1:30303",
     // Localhost - GETH
 //    "enode://a40437d2f44ae655387009d1d69ba9fd07b748b7a6ecfc958c135008a34c0497466db35049c36c8296590b4bcf9b9058f9fa2a688a2c6566654b1f1dc42417e4@127.0.0.1:30303",
     NULL

@@ -107,8 +107,9 @@ typedef void
 
 typedef void
 (*BREthereumNodeCallbackNeighbor) (BREthereumNodeContext context,
-                                      BREthereumNode node,
-                                      BREthereumDISNeighbor neighbor);
+                                   BREthereumNode node,
+                                   BREthereumDISNeighbor neighbor,
+                                   size_t remaining);
 
 /// MARK: LES Node State
 
@@ -252,6 +253,10 @@ nodeGetRemoteEndpoint (BREthereumNode node);
 extern BREthereumNodeEndpoint *
 nodeGetLocalEndpoint (BREthereumNode node);
 
+extern BREthereumComparison
+nodeNeighborCompare (BREthereumNode n1,
+                     BREthereumNode n2);
+    
 extern int
 nodeHasState (BREthereumNode node,
               BREthereumNodeEndpointRoute route,
