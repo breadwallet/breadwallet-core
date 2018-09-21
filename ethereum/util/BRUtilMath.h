@@ -43,6 +43,7 @@ typedef enum {
   CORE_PARSE_OVERFLOW           // too many decimals for integer
 } BRCoreParseStatus;
 
+#define UINT256_INIT(value_as_uint64)   { .u64 = { (value_as_uint64), 0, 0, 0} }
 
 /**
  * Create from a single uint64_t value.
@@ -55,6 +56,12 @@ createUInt256 (uint64_t value);
  */
 extern UInt256
 createUInt256Power (uint8_t power, int *overflow);
+
+/**
+ * Create as (expt 2 power) where power < 256
+ */
+extern UInt256
+createUInt256Power2 (uint8_t power);
 
 /**
  * Create from a string in the provided base.  The string must consist of only characters

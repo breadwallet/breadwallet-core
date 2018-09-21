@@ -1,8 +1,8 @@
 //
-//  BREthereumNode.h 
-//  breadwallet-core Ethereum
+//  BREthereumNode.h
+//  Core
 //
-//  Created by Lamont Samuels on 4/16/18.
+//  Created by Ed Gamble on 8/13/18.
 //  Copyright (c) 2018 breadwallet LLC
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,110 +23,296 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-#ifndef BR_Ethereum_Node_h
-#define BR_Ethereum_Node_h
+#ifndef BR_Ethereum_Node_H
+#define BR_Ethereum_Node_H
 
-#include <stddef.h>
-#include <inttypes.h>
-#include <arpa/inet.h>
-#include "BRInt.h"
-#include "../base/BREthereumBase.h"
-
-// Note:: Duplicated this logging code from Aaron's BRPeer.h file
-// TODO: May want to move this code into it's own library
-#define bre_peer_log(peer, ...) _bre_peer_log("%s:%"PRIu16" " _va_first(__VA_ARGS__, NULL) "\n", ethereumPeerGetHost(peer),\
-(peer)->port, _va_rest(__VA_ARGS__, NULL))
-#define _va_first(first, ...) first
-#define _va_rest(first, ...) __VA_ARGS__
-
-#if defined(TARGET_OS_MAC)
-#include <Foundation/Foundation.h>
-#define _bre_peer_log(...) NSLog(__VA_ARGS__)
-#elif defined(__ANDROID__)
-#include <android/log.h>
-#define _bre_peer_log(...) __android_log_print(ANDROID_LOG_INFO, "bread", __VA_ARGS__)
-#else
-#include <stdio.h>
-#define _bre_peer_log(...) printf(__VA_ARGS__)
-#endif
+#include "BREthereumMessage.h"
+#include "BREthereumNodeEndpoint.h"
+#include "BREthereumProvision.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * An Ethereum LES Node
+ * A Node is a proxy for an Ethereum Node.  This Core Ethereum code uses nodes to connect
+ * to Ethereum nodes supporting a light client protocol (for GETH, LESv2; for Parity, PIPv1),
+ * to send requests, and to recv respones.
  *
+ * The Node interface abstracts over the specific light client protocol (LESv2, PIPv1). Thus,
+ * the Node interface provides for Status, Block Header, Block Body, Transaction Receipt,
+ * Accounts and others - even though, for example LESv2 and PIPv1 offer very different
+ * messages interfaces to send/recv Ethereum data.
+ *
+ * A Node connects two endpoints - a local one and a remote one.    A Node is not connected
+ * unless commanded and if the handshake process succeeds - including capatibility between the
+ * local and remote nodes.  Specifically the local and remote nodes must share one of the
+ * LESv2 or PIPv1 Ethereum supprotocols.
+ *
+ * There can be two routes to the remote node - a TCP route and an UDP route; these routes are
+ * used for different message types (underlying Node interfaces) - the UDP route only supports
+ * Node Discovery; TCP supports other messages types for P2P, ETH, LES and PIP.
+ *
+ * The connection between local and remote endpoints, whether UDP or TCP, uses a Unix socket
+ * for send/recv interactions.  The Node interface allows for a select() call w/ read and write
+ * file descriptors.  For a write descriptor, the Node must know if data/messages are pending
+ * to be sent to a remote endpoint.
+ *
+ * When connected, a Node announces the extension to the Ethereum block chain.  As this
+ * announcement can occur at any time, once connected the select() read descriptor must be
+ * set.
  */
-typedef struct BREthereumNodeContext *BREthereumNode;
+typedef struct BREthereumNodeRecord *BREthereumNode;
 
 /**
- * Ehtereum Node Connection Status - Connection states for a node
+ * A Node has a type of either GETH or PARITY.  The node's interface will be implemented
+ * according to the particulars of the type.  For GETH, we'll use the LESv2 subprotocol; for
+ * Parity we'll use PIPv1.
  */
 typedef enum {
-    BRE_NODE_ERROR = -1, 
-    BRE_NODE_DISCONNECTED,
-    BRE_NODE_CONNECTING,
-    BRE_NODE_PERFORMING_HANDSHAKE,
-    BRE_NODE_CONNECTED
+    NODE_TYPE_GETH,
+    NODE_TYPE_PARITY
+} BREthereumNodeType;
+
+extern const char *
+nodeTypeGetName (BREthereumNodeType type);
+
+/**
+ * A Node will callback on: state changes, announcements (of block), and results.
+ * The callback includes a User context.
+ */
+typedef void *BREthereumNodeContext;
+
+typedef void
+(*BREthereumNodeCallbackStatus) (BREthereumNodeContext context,
+                                 BREthereumNode node,
+                                 BREthereumHash headHash,
+                                 uint64_t headNumber);
+
+typedef void
+(*BREthereumNodeCallbackAnnounce) (BREthereumNodeContext context,
+                                   BREthereumNode node,
+                                   BREthereumHash headHash,
+                                   uint64_t headNumber,
+                                   UInt256 headTotalDifficulty,
+                                   uint64_t reorgDepth);
+
+typedef void
+(*BREthereumNodeCallbackProvide) (BREthereumNodeContext context,
+                                  BREthereumNode node,
+                                  BREthereumProvisionResult result);
+
+typedef void
+(*BREthereumNodeCallbackNeighbor) (BREthereumNodeContext context,
+                                   BREthereumNode node,
+                                   BREthereumDISNeighbor neighbor,
+                                   size_t remaining);
+
+/// MARK: LES Node State
+
+typedef enum {
+    NODE_AVAILABLE,
+    NODE_CONNECTING,
+    NODE_CONNECTED,
+    NODE_ERROR,
+} BREthereumNodeStateType;
+
+    typedef enum {
+        NODE_ERROR_UNIX,
+        NODE_ERROR_DISCONNECT,
+        NODE_ERROR_PROTOCOL
+    } BREthereumNodeErrorType;
+
+typedef enum  {
+    NODE_CONNECT_OPEN,
+
+    NODE_CONNECT_AUTH,
+    NODE_CONNECT_AUTH_ACK,
+
+    NODE_CONNECT_HELLO,
+    NODE_CONNECT_HELLO_ACK,
+
+    NODE_CONNECT_PRE_STATUS_PING_RECV,
+    NODE_CONNECT_PRE_STATUS_PONG_SEND,
+
+    NODE_CONNECT_STATUS,
+    NODE_CONNECT_STATUS_ACK,
+
+    NODE_CONNECT_PING,
+    NODE_CONNECT_PING_ACK,
+    NODE_CONNECT_PING_ACK_DISCOVER,
+    NODE_CONNECT_PING_ACK_DISCOVER_ACK
+} BREthereumNodeConnectType;
+
+typedef enum {
+    NODE_PROTOCOL_EXHAUSTED,
+    NODE_PROTOCOL_NONSTANDARD_PORT,
+    NODE_PROTOCOL_PING_PONG_MISSED,
+    NODE_PROTOCOL_UDP_EXCESSIVE_BYTE_COUNT,
+    NODE_PROTOCOL_TCP_AUTHENTICATION,
+    NODE_PROTOCOL_TCP_HELLO_MISSED,
+    NODE_PROTOCOL_TCP_STATUS_MISSED,
+    NODE_PROTOCOL_CAPABILITIES_MISMATCH,
+    NODE_PROTOCOL_NETWORK_MISMATCH
+} BREthereumNodeProtocolReason;
+
+typedef struct {
+    BREthereumNodeStateType type;
+    union {
+        struct {
+            BREthereumNodeConnectType type;
+        } connecting;
+
+        struct {
+            BREthereumNodeErrorType type;
+            union {
+                int unix;
+                BREthereumP2PDisconnectReason disconnect;
+                BREthereumNodeProtocolReason protocol;
+            } u;
+        } error;
+    } u;
+} BREthereumNodeState;
+
+/** Fills description, returns description */
+extern const char *
+nodeStateDescribe (const BREthereumNodeState *state,
+                   char description[128]);
+
+extern BRRlpItem
+nodeStateEncode (const BREthereumNodeState *state,
+                 BRRlpCoder coder);
+
+extern BREthereumNodeState
+nodeStateDecode (BRRlpItem item,
+                 BRRlpCoder coder);
+
+typedef void
+(*BREthereumNodeCallbackState) (BREthereumNodeContext context,
+                                   BREthereumNode node,
+                                   BREthereumNodeEndpointRoute route,
+                                   BREthereumNodeState state);
+
+// connect
+// disconnect
+// network reachable
+
+/**
+ * Create a node
+ *
+ * @param network
+ * @param remote
+ * @param remote
+ * @param local
+ * @param context
+ * @param callbackMessage
+ * @param callbackStatus
+ * @return
+ */
+extern BREthereumNode // add 'message id offset'?
+nodeCreate (BREthereumNetwork network,
+            BREthereumNodeEndpoint remote,  // remote, local ??
+            BREthereumNodeEndpoint local,
+            BREthereumNodeContext context,
+            BREthereumNodeCallbackStatus callbackStatus,
+            BREthereumNodeCallbackAnnounce callbackAnnounce,
+            BREthereumNodeCallbackProvide callbackProvide,
+            BREthereumNodeCallbackNeighbor callbackNeighbor,
+            BREthereumNodeCallbackState callbackState);
+
+extern void
+nodeRelease (BREthereumNode node);
+
+extern BREthereumNodeState
+nodeConnect (BREthereumNode node,
+             BREthereumNodeEndpointRoute route);
+
+extern BREthereumNodeState
+nodeDisconnect (BREthereumNode node,
+                BREthereumNodeEndpointRoute route,
+                BREthereumP2PDisconnectReason reason);
+
+extern int
+nodeUpdateDescriptors (BREthereumNode node,
+                       BREthereumNodeEndpointRoute route,
+                       fd_set *recv,   // read
+                       fd_set *send);  // write
+
+extern BREthereumNodeState
+nodeProcess (BREthereumNode node,
+             BREthereumNodeEndpointRoute route,
+             fd_set *recv,   // read
+             fd_set *send);  // write
+
+extern void
+nodeHandleProvision (BREthereumNode node,
+                       BREthereumProvision provision);
+
+extern BREthereumNodeEndpoint *
+nodeGetRemoteEndpoint (BREthereumNode node);
+
+extern BREthereumNodeEndpoint *
+nodeGetLocalEndpoint (BREthereumNode node);
+
+extern BREthereumComparison
+nodeNeighborCompare (BREthereumNode n1,
+                     BREthereumNode n2);
+    
+extern int
+nodeHasState (BREthereumNode node,
+              BREthereumNodeEndpointRoute route,
+              BREthereumNodeStateType type);
+
+extern BREthereumNodeState
+nodeGetState (BREthereumNode node,
+              BREthereumNodeEndpointRoute route);
+
+extern void
+nodeSetStateInitial (BREthereumNode node,
+                     BREthereumNodeEndpointRoute route,
+                     BREthereumNodeState state);
+
+extern BREthereumBoolean
+nodeGetDiscovered (BREthereumNode node);
+
+extern void
+nodeSetDiscovered (BREthereumNode node,
+                   BREthereumBoolean discovered);
+
+extern size_t
+nodeHashValue (const void *node);
+
+extern int
+nodeHashEqual (const void *node1,
+               const void *node2);
+
+/// MARK: Node Message Send/Recv
+typedef enum {
+    NODE_STATUS_SUCCESS,
+    NODE_STATUS_ERROR
 } BREthereumNodeStatus;
 
-/**
- * BREthereumPeer - holds information about the remote peer
- */
+extern BREthereumNodeStatus
+nodeDiscover (BREthereumNode node,
+              BREthereumNodeEndpoint *endpoint);
+
 typedef struct {
+    BREthereumNodeStatus status;
+    union {
+        struct {
+            BREthereumMessage message;
+        } success;
 
-    //ipv6 address of the peer
-    UInt128 address;
-    
-    //port number of peer connection
-    uint16_t port;
-    
-    //The name for a host
-    char host[INET6_ADDRSTRLEN];
-    
-    //socket used for communicating with a peer
-    volatile int socket;
-    
-    //The public address for the remote node
-    UInt512 remoteId;
-    
-}BREthereumPeer;
+        struct {
+        } error;
+    } u;
+} BREthereumNodeMessageResult;
 
-/**
- * Creates an ethereum node with the remote peer information and whether the node should send
- * an auth message first. 
- */ 
-extern BREthereumNode  ethereumNodeCreate(BREthereumPeer peer, BREthereumBoolean originate);
-
-/**
- * Retrieves the status of an ethereum node
- */
-extern BREthereumNodeStatus ethereumNodeStatus(BREthereumNode node);
-
-/**
- * Connects to the ethereum node to a remote node
- */
-extern void ethereumNodeConnect(BREthereumNode node);
-
-/**
- * Disconnects the ethereum node from a remote node
- */
-extern void ethereumNodeDisconnect(BREthereumNode node);
-
-/**
- * Deletes the memory of the ethereum node
- */
-extern void ethereumNodeFree(BREthereumNode node);
-
-/**
- * Retrieves the string representation of the remot peer address
- */ 
-extern const char * ethereumPeerGetHost(BREthereumPeer* peer);
-
+extern void
+nodeShow (BREthereumNode node);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // BR_Ethereum_Node_h
+#endif /* BR_Ethereum_Node_H */

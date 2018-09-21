@@ -29,6 +29,11 @@
 #include "../base/BREthereumBase.h"
 #include "BREthereumContract.h"
 
+// For tokenBRD define defaults for Gas Limit and Price.  These are arguably never up to date
+// and thus should be changed in programmatically using walletSetDefaultGas{Price,Limit}().
+#define TOKEN_BRD_DEFAULT_GAS_LIMIT  92000
+#define TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64  500000000 // 0.5 GWEI
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -38,6 +43,9 @@ extern "C" {
  */
 typedef struct BREthereumTokenRecord *BREthereumToken;
 
+extern BREthereumAddress
+tokenGetAddressRaw (BREthereumToken token);
+    
 /**
  * Return the token address as a '0x'-prefixed string.  DO NOT FREE THIS.
  */
@@ -62,29 +70,33 @@ tokenGetGasLimit (BREthereumToken token);
 extern BREthereumGasPrice
 tokenGetGasPrice (BREthereumToken token);
 
-extern const char *
-tokenGetColorLeft (BREthereumToken token);
-
-extern const char *
-tokenGetColorRight (BREthereumToken token);
-
 extern BREthereumContract
 tokenGetContract (BREthereumToken token);
 
-extern const BREthereumToken tokenBRD;
-
-#if defined (BITCOIN_DEBUG)
-extern const BREthereumToken tokenTST;
-#endif
-
+extern BREthereumToken
+tokenLookupByAddress (BREthereumAddress address);
+    
 extern BREthereumToken
 tokenLookup (const char *address);
 
 extern int
 tokenCount (void);
 
-extern BREthereumToken
-tokenGet (int index);
+/**
+ * Return a newly allocated array with references to all tokens
+ */
+extern BREthereumToken *
+tokenGetAll (void);
+
+extern void
+tokenInstall (const char *address,
+              const char *symbol,
+              const char *name,
+              const char *description,
+              int decimals,
+              BREthereumGas defaultGasLimit,
+              BREthereumGasPrice defaultGasPrice);
+
 
 //
 // Token Quantity

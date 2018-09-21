@@ -30,6 +30,11 @@
 extern "C" {
 #endif
 
+#include "BRArray.h"
+#if ! defined (BRArrayOf)
+#define BRArrayOf( type )     type*
+#endif
+
 #include "../util/BRUtil.h"
 #include "../rlp/BRRlp.h"
 #include "BREthereumLogic.h"
@@ -38,6 +43,13 @@ extern "C" {
 #include "BREthereumHash.h"
 #include "BREthereumAddress.h"
 #include "BREthereumSignature.h"
+
+typedef enum {
+    RLP_TYPE_NETWORK,
+    RLP_TYPE_ARCHIVE,
+    RLP_TYPE_TRANSACTION_UNSIGNED,
+    RLP_TYPE_TRANSACTION_SIGNED = RLP_TYPE_NETWORK,
+} BREthereumRlpType;
 
 #ifdef __cplusplus
 }

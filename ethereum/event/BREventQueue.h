@@ -46,8 +46,11 @@ extern void
 eventQueueDestroy (BREventQueue queue);
 
 extern void
-eventQueueEnqueue (BREventQueue queue,
-                   const BREvent *event);
+eventQueueEnqueueTail (BREventQueue queue,
+                       const BREvent *event);
+extern void
+eventQueueEnqueueHead (BREventQueue queue,
+                       const BREvent *event);
 
 extern BREventStatus
 eventQueueDequeue (BREventQueue queue,

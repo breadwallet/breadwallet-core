@@ -28,12 +28,28 @@
 
 #include "../base/BREthereumBase.h"
 #include "BREthereumBloomFilter.h"
+#include "BREthereumLog.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/*!
+ * The Result of a LES 'GetReceipts' request
+ */
 typedef struct BREthereumTransactionReceiptRecord *BREthereumTransactionReceipt;
+
+extern uint64_t
+transactionReceiptGetGasUsed (BREthereumTransactionReceipt receipt);
+
+extern size_t
+transactionReceiptGetLogsCount (BREthereumTransactionReceipt receipt);
+
+extern BREthereumLog
+transactionReceiptGetLog (BREthereumTransactionReceipt receipt, size_t index);
+
+extern BREthereumBloomFilter
+transactionReceiptGetBloomFilter (BREthereumTransactionReceipt receipt);
 
 extern BREthereumBoolean
 transactionReceiptMatch (BREthereumTransactionReceipt receipt,
@@ -44,11 +60,20 @@ transactionReceiptMatchAddress (BREthereumTransactionReceipt receipt,
                                 BREthereumAddress address);
 
 extern BREthereumTransactionReceipt
-transactionReceiptDecodeRLP (BRRlpData data);
+transactionReceiptRlpDecode (BRRlpItem item,
+                             BRRlpCoder coder);
+    
+extern BRRlpItem
+transactionReceiptRlpEncode(BREthereumTransactionReceipt receipt,
+                            BRRlpCoder coder);
 
-extern BRRlpData
-transactionReceiptEncodeRLP (BREthereumTransactionReceipt receipt);
+extern BRArrayOf (BREthereumTransactionReceipt)
+transactionReceiptDecodeList (BRRlpItem item,
+                              BRRlpCoder coder);
 
+extern void
+transactionReceiptRelease (BREthereumTransactionReceipt receipt);
+    
 #ifdef __cplusplus
 }
 #endif

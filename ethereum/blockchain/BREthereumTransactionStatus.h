@@ -47,34 +47,68 @@ typedef enum {
     TRANSACTION_STATUS_INCLUDED = 3,
 
     // Error (4): transaction sending failed. data contains a text error message
-    TRANSACTION_STATUS_ERROR = 4,
-} BREthereumTransactionStatusLESType;
+    TRANSACTION_STATUS_ERRORED = 4,
+} BREthereumTransactionStatusType;
+
+#define TRANSACTION_STATUS_REASON_BYTES   \
+    (sizeof (BREthereumGas) + sizeof (BREthereumHash) + 2 * sizeof(uint64_t))
 
 typedef struct BREthereumTransactionStatusLESRecord {
-    BREthereumTransactionStatusLESType type;
+    BREthereumTransactionStatusType type;
     union {
         struct {
+            BREthereumGas gasUsed;      // Internal
             BREthereumHash blockHash;
             uint64_t blockNumber;
             uint64_t transactionIndex;
         } included;
 
         struct {
-            char *message;
-        } error;
+            char reason[TRANSACTION_STATUS_REASON_BYTES + 1];
+        } errored;
     } u;
-} BREthereumTransactionStatusLES;
+} BREthereumTransactionStatus;
 
-/**
- * Caution - on error need to release.  Best only be one Status struct.
- */
-extern void
-transactionStatusRelease (BREthereumTransactionStatusLES status);
+extern BREthereumTransactionStatus
+transactionStatusCreate (BREthereumTransactionStatusType type);
 
-extern BREthereumTransactionStatusLES
-transactionStatusRLPDecodeItem (BRRlpItem item,
-                                BRRlpCoder coder);
+extern BREthereumTransactionStatus
+transactionStatusCreateIncluded (BREthereumGas gasUsed,
+                                 BREthereumHash blockHash,
+                                 uint64_t blockNumber,
+                                 uint64_t transactionIndex);
 
+extern BREthereumTransactionStatus
+transactionStatusCreateErrored (const char *reason);
+
+static inline BREthereumBoolean
+transactionStatusHasType (const BREthereumTransactionStatus *status,
+                          BREthereumTransactionStatusType type) {
+    return AS_ETHEREUM_BOOLEAN(status->type == type);
+}
+
+extern int
+transactionStatusExtractIncluded(const BREthereumTransactionStatus *status,
+                                 BREthereumGas *gas,
+                                 BREthereumHash *blockHash,
+                                 uint64_t *blockNumber,
+                                 uint64_t *blockTransactionIndex);
+
+extern BREthereumBoolean
+transactionStatusEqual (BREthereumTransactionStatus ts1,
+                        BREthereumTransactionStatus ts2);
+
+extern BREthereumTransactionStatus
+transactionStatusRLPDecode (BRRlpItem item,
+                            BRRlpCoder coder);
+
+extern BRRlpItem
+transactionStatusRLPEncode (BREthereumTransactionStatus status,
+                            BRRlpCoder coder);
+
+extern BRArrayOf (BREthereumTransactionStatus)
+transactionStatusDecodeList (BRRlpItem item,
+                             BRRlpCoder coder);
 
 #ifdef __cplusplus
 }

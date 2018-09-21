@@ -28,17 +28,30 @@
 
 #include "../base/BREthereumBase.h"
 #include "BREthereumBloomFilter.h"
+#include "BREthereumTransactionStatus.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-    //
-    // Log Topic
-    //
+//
+// MARK: - Log Topic
+//
+#define LOG_TOPIC_BYTES_COUNT   32
+
 typedef struct {
-    uint8_t bytes[32];
+    uint8_t bytes[LOG_TOPIC_BYTES_COUNT];
 } BREthereumLogTopic;
+
+
+/**
+ * Create a LogTopic from a 0x-prefaces, 67 (1 + 2 + 64) character string; otherwise fatal.
+ *
+ * @param string
+ * @return
+ */
+extern BREthereumLogTopic
+logTopicCreateFromString (const char *string);
 
 extern BREthereumBloomFilter
 logTopicGetBloomFilter (BREthereumLogTopic topic);
@@ -46,13 +59,49 @@ logTopicGetBloomFilter (BREthereumLogTopic topic);
 extern BREthereumBloomFilter
 logTopicGetBloomFilterAddress (BREthereumAddress address);
 
-    //
-    // Log
-    //
+extern BREthereumBoolean
+logTopicMatchesAddress (BREthereumLogTopic topic,
+                        BREthereumAddress address);
+
+typedef struct {
+    char chars[2 /* 0x */ + 2 * LOG_TOPIC_BYTES_COUNT + 1];
+} BREthereumLogTopicString;
+
+extern BREthereumLogTopicString
+logTopicAsString (BREthereumLogTopic topic);
+
+extern BREthereumAddress
+logTopicAsAddress (BREthereumLogTopic topic);
+
+//
+// MARK: - Log
+//
 typedef struct BREthereumLogRecord *BREthereumLog;
+
+extern BREthereumLog
+logCreate (BREthereumAddress address,
+           unsigned int topicsCount,
+           BREthereumLogTopic *topics);
+
+extern void
+logInitializeIdentifier (BREthereumLog log,
+                         BREthereumHash transactionHash,
+                         size_t transactionReceiptIndex);
+
+extern void
+logExtractIdentifier (BREthereumLog log,
+                      BREthereumHash *transactionHash,
+                      size_t *transactionReceiptIndex);
+
+extern BREthereumHash
+logGetHash (BREthereumLog log);
 
 extern BREthereumAddress
 logGetAddress (BREthereumLog log);
+
+extern BREthereumBoolean
+logHasAddress (BREthereumLog log,
+               BREthereumAddress address);
 
 extern size_t
 logGetTopicsCount (BREthereumLog log);
@@ -62,22 +111,60 @@ logGetTopic (BREthereumLog log, size_t index);
 
 extern BRRlpData
 logGetData (BREthereumLog log);
+
+extern BRRlpData
+logGetDataShared (BREthereumLog log);
     
+extern BREthereumBoolean
+logMatchesAddress (BREthereumLog log,
+                   BREthereumAddress address,
+                   BREthereumBoolean topicsOnly);
+
+extern BREthereumComparison
+logCompare (BREthereumLog l1,
+            BREthereumLog l2);
+
+extern BREthereumTransactionStatus
+logGetStatus (BREthereumLog log);
+
+extern void
+logSetStatus (BREthereumLog log,
+              BREthereumTransactionStatus status);
+
+extern BREthereumBoolean
+logIsConfirmed (BREthereumLog log);
+
+extern BREthereumBoolean
+logIsErrored (BREthereumLog log);
+
+// Support BRSet
+extern size_t
+logHashValue (const void *h);
+
+// Support BRSet
+extern int
+logHashEqual (const void *h1, const void *h2);
+
 extern BREthereumLog
-logRlpDecodeItem (BRRlpItem item,
-                  BRRlpCoder coder);
+logRlpDecode (BRRlpItem item,
+              BREthereumRlpType type,
+              BRRlpCoder coder);
 /**
  * [QUASI-INTERNAL - used by BREthereumBlock]
  */
 extern BRRlpItem
-logRlpEncodeItem(BREthereumLog log,
-                 BRRlpCoder coder);
+logRlpEncode(BREthereumLog log,
+             BREthereumRlpType type,
+             BRRlpCoder coder);
 
-extern BRRlpData
-logEncodeRLP (BREthereumLog log);
+extern void
+logRelease (BREthereumLog log);
 
+extern void
+logReleaseForSet (void *ignore, void *item);
+    
 extern BREthereumLog
-logDecodeRLP (BRRlpData data);
+logCopy (BREthereumLog log);
 
 #ifdef __cplusplus
 }

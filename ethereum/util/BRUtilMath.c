@@ -28,7 +28,6 @@
 #include <string.h>
 #include <math.h>
 #include "BRUtil.h"
-#include "../rlp/BRRlp.h"
 
 #define AS_UINT64(x)  ((uint64_t) (x))
 
@@ -51,6 +50,17 @@ createUInt256Power (uint8_t digits, int *overflow) {
         *overflow = 1;
         return UINT256_ZERO;
     }
+}
+
+extern UInt256
+createUInt256Power2 (uint8_t power) {
+    uint8_t word  = power / 64;
+    uint8_t shift = power % 64;
+
+    UInt256 z = UINT256_ZERO;
+    z.u64[word] = (1 << shift);
+
+    return z;
 }
 
 extern UInt256

@@ -27,12 +27,21 @@
 #define BR_Ethereum_Transaction_H
 
 #include "../base/BREthereumBase.h"
-#include "BREthereumAmount.h"
+#include "../contract/BREthereumToken.h"
 #include "BREthereumNetwork.h"
+#include "BREthereumTransactionStatus.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/// If we get a gasEstimate we'll want the gasLimit to have a margin over the estimate
+#define GAS_LIMIT_MARGIN_PERCENT        (20)
+
+static inline BREthereumGas
+gasApplyLmitMargin (BREthereumGas gas) {
+    return gasCreate(((100 + GAS_LIMIT_MARGIN_PERCENT) * gas.amountOfGas) / 100);
+}
 
 //
 // Transaction
@@ -40,20 +49,34 @@ extern "C" {
 typedef struct BREthereumTransactionRecord *BREthereumTransaction;
 
 extern BREthereumTransaction
-transactionCreate(BREthereumEncodedAddress sourceAddress,
-                  BREthereumEncodedAddress targetAddress,
-                  BREthereumAmount amount,
+transactionCreate(BREthereumAddress sourceAddress,
+                  BREthereumAddress targetAddress,
+                  BREthereumEther amount,
                   BREthereumGasPrice gasPrice,
                   BREthereumGas gasLimit,
+                  const char *data,
                   uint64_t nonce);
 
-extern BREthereumEncodedAddress
+extern BREthereumTransaction
+transactionCopy (BREthereumTransaction transaction);
+
+extern void
+transactionRelease (BREthereumTransaction transaction);
+
+extern void
+transactionReleaseForSet (void *ignore, void *item);
+
+extern BREthereumAddress
 transactionGetSourceAddress(BREthereumTransaction transaction);
 
-extern BREthereumEncodedAddress
+extern BREthereumAddress
 transactionGetTargetAddress(BREthereumTransaction transaction);
 
-extern BREthereumAmount
+extern BREthereumBoolean
+transactionHasAddress (BREthereumTransaction transaction,
+                       BREthereumAddress address);
+    
+extern BREthereumEther
 transactionGetAmount(BREthereumTransaction transaction);
 
 /**
@@ -84,24 +107,27 @@ extern void
 transactionSetGasLimit (BREthereumTransaction transaction,
                         BREthereumGas gasLimit);
 
-extern BREthereumGas
-transactionGetGasEstimate (BREthereumTransaction transaction);
-
-extern void
-transactionSetGasEstimate (BREthereumTransaction transaction,
-                          BREthereumGas gasEstimate);
-
 extern uint64_t
 transactionGetNonce (BREthereumTransaction transaction);
 
 extern const BREthereumHash
 transactionGetHash (BREthereumTransaction transaction);
 
+// Caution
+extern void
+transactionSetHash (BREthereumTransaction transaction,
+                    BREthereumHash hash);
+
 extern const char * // no not modify the return value
 transactionGetData (BREthereumTransaction transaction);
 
-extern BREthereumToken // or null
-transactionGetToken (BREthereumTransaction transaction);
+// Support BRSet
+extern size_t
+transactionHashValue (const void *h);
+
+// Support BRSet
+extern int
+transactionHashEqual (const void *h1, const void *h2);
 
 //
 // Transaction Signing
@@ -116,51 +142,38 @@ transactionIsSigned (BREthereumTransaction transaction);
 extern BREthereumSignature
 transactionGetSignature (BREthereumTransaction transaction);
 
-    /**
-     * Extract the signer's address.  If not signed, an empty address is returned.
-     */
-extern BREthereumEncodedAddress
-transactionExtractAddress (BREthereumTransaction transaction,
-                           BREthereumNetwork network);
+/**
+ * Extract the signer's address.  If not signed, an empty address is returned.
+ */
+extern BREthereumAddress
+transactionExtractAddress(BREthereumTransaction transaction,
+                          BREthereumNetwork network,
+                          BRRlpCoder coder);
 //
 // Transaction RLP Encoding
 //
-typedef enum {
-    TRANSACTION_RLP_SIGNED,
-    TRANSACTION_RLP_UNSIGNED
-} BREthereumTransactionRLPType;
+extern BREthereumTransaction
+transactionRlpDecode (BRRlpItem item,
+                      BREthereumNetwork network,
+                      BREthereumRlpType type,
+                      BRRlpCoder coder);
 
 /**
  * RLP encode transaction for the provided network with the specified type.  Different networks
  * have different RLP encodings - notably the network's chainId is part of the encoding.
  */
-extern BRRlpData
-transactionEncodeRLP (BREthereumTransaction transaction,
-                      BREthereumNetwork network,
-                      BREthereumTransactionRLPType type);
 
-extern BREthereumTransaction
-transactionDecodeRLP (BREthereumNetwork network,
-                      BREthereumTransactionRLPType type,
-                      BRRlpData data);
-
-/**
- * [QUASI-INTERNAL - used by BREthereumBlock]
- */
-extern BREthereumTransaction
-transactionRlpDecodeItem (BRRlpItem item,
-                          BREthereumNetwork network,
-                          BREthereumTransactionRLPType type,
-                          BRRlpCoder coder);
-/**
- * [QUASI-INTERNAL - used by BREthereumBlock]
- */
 extern BRRlpItem
-transactionRlpEncodeItem(BREthereumTransaction transaction,
-                         BREthereumNetwork network,
-                         BREthereumTransactionRLPType type,
-                         BRRlpCoder coder);
+transactionRlpEncode(BREthereumTransaction transaction,
+                     BREthereumNetwork network,
+                     BREthereumRlpType type,
+                     BRRlpCoder coder);
 
+extern char *
+transactionGetRlpHexEncoded (BREthereumTransaction transaction,
+                             BREthereumNetwork network,
+                             BREthereumRlpType type,
+                             const char *prefix);
 //
 // Transaction Comparison
 //
@@ -168,20 +181,13 @@ extern BREthereumComparison
 transactionCompare (BREthereumTransaction t1,
                     BREthereumTransaction t2);
 
-//
-// Transaction Status
-//
-typedef enum {
-  TRANSACTION_CREATED,
-  TRANSACTION_SIGNED,
-  TRANSACTION_SUBMITTED,  // more than just 'sent'; in one 'mempool'; has hash
-  TRANSACTION_BLOCKED,
-  TRANSACTION_DROPPED     // not in any 'mempool'
-} BREthereumTransactionStatus;
-
 extern BREthereumTransactionStatus
 transactionGetStatus (BREthereumTransaction transaction);
 
+extern void
+transactionSetStatus (BREthereumTransaction transaction,
+                      BREthereumTransactionStatus status);
+    
 extern BREthereumBoolean
 transactionIsConfirmed (BREthereumTransaction transaction);
 
@@ -189,28 +195,12 @@ transactionIsConfirmed (BREthereumTransaction transaction);
 extern BREthereumBoolean
 transactionIsSubmitted (BREthereumTransaction transaction);
 
-extern void
-transactionAnnounceBlocked(BREthereumTransaction transaction,
-                           BREthereumGas gasUsed,
-                           uint64_t blockNumber,
-                           uint64_t blockTimestamp,
-                           uint64_t blockTransactionIndex);
+extern BREthereumBoolean
+transactionIsErrored (BREthereumTransaction transaction);
 
 extern void
-transactionAnnounceDropped (BREthereumTransaction transaction,
-                            int foo); // dropped info
-
-extern void
-transactionAnnounceSubmitted (BREthereumTransaction transaction,
-                              BREthereumHash hash); // submitted info
-
-extern int
-transactionExtractBlocked(BREthereumTransaction transaction,
-                          BREthereumGas *gas,
-                          uint64_t *blockNumber,
-                          uint64_t *blockTimestamp,
-                          uint64_t *blockTransactionIndex);
-
+transactionShow (BREthereumTransaction transaction, const char *topic);
+    
 //
 // Transaction Result
 //

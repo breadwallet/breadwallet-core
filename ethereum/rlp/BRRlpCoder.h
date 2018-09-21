@@ -62,61 +62,103 @@ rlpDataRelease (BRRlpData data);
 //
 // RLP Item
 //
-typedef struct {
-  void *identifier;
-  unsigned long indexer;
-} BRRlpItem;
+typedef struct BRRlpItemRecord *BRRlpItem;
 
+extern void
+rlpReleaseItem (BRRlpCoder coder, BRRlpItem item);
+
+/**
+ * Convet the bytes in `data` into an `item`.  If `data` represents a RLP list, then `item` will
+ * represent a list (thus `data` is 'walked' to identify subitems, including sublists).
+ */
 extern BRRlpItem
 rlpGetItem (BRRlpCoder coder, BRRlpData data);
+
+/**
+ * Return the RLP data associated with `item`.  You own this data and must call
+ * rlpDataRelese().
+ */
+extern BRRlpData
+rlpGetData (BRRlpCoder coder, BRRlpItem item);
+
+/**
+ * Return the RLP data associated with `item`.  You DO NOT own this data; you must not
+ * modify the data nor release the data nor hold the data.  [The returned data is a direct
+ * pointer into the `coder` memory and will become invalid on coder release.
+ */
+extern BRRlpData
+rlpGetDataSharedDontRelease (BRRlpCoder coder, BRRlpItem item);
+
+/**
+ * Extract the `bytes` and `bytesCount` for `item`.  The returns `bytes` will be the complete
+ * RLP encoding for `item` which includes the RLP encoding of length.  Contrast this with
+ * rlpDecodeItemBytes() which only returns the RLP encoding data w/o the length.
+ * Extract the `item` data as a copy, filling `bytes` and `bytesCount`.
+ *
+ * TODO: ?? Hold onto BRRlpItem 'forever'... then try to use... will fail because 'coder'
+ * TODO: will not have 'context' ??
+ */
+//extern void
+//rlpDataExtract (BRRlpItem item, uint8_t **bytes, size_t *bytesCount);
 
 //
 // UInt64
 //
 extern BRRlpItem
-rlpEncodeItemUInt64(BRRlpCoder coder, uint64_t value, int zeroAsEmptyString);
+rlpEncodeUInt64(BRRlpCoder coder, uint64_t value, int zeroAsEmptyString);
 
 extern uint64_t
-rlpDecodeItemUInt64(BRRlpCoder coder, BRRlpItem item, int zeroAsEmptyString);
+rlpDecodeUInt64(BRRlpCoder coder, BRRlpItem item, int zeroAsEmptyString);
 
 //
 // UInt256
 //
 extern BRRlpItem
-rlpEncodeItemUInt256(BRRlpCoder coder, UInt256 value, int zeroAsEmptyString);
+rlpEncodeUInt256(BRRlpCoder coder, UInt256 value, int zeroAsEmptyString);
 
 extern UInt256
-rlpDecodeItemUInt256(BRRlpCoder coder, BRRlpItem item, int zeroAsEmptyString);
+rlpDecodeUInt256(BRRlpCoder coder, BRRlpItem item, int zeroAsEmptyString);
 
 //
 // Bytes
 //
 extern BRRlpItem
-rlpEncodeItemBytes (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount);
+rlpEncodeBytes (BRRlpCoder coder, uint8_t *bytes, size_t bytesCount);
+
+/**
+ * Extract the `data` for `item` as the item's bytes w/o the RLP encoding of length.  Thus, if
+ * you used rlpEncodeItemBytes() to encode `bytes` and `bytesCount`, then the result of
+ * rlpDecodeItemBytes() will be `data` with exactly the same data as was encoded.
+ */
+extern BRRlpData
+rlpDecodeBytes (BRRlpCoder coder, BRRlpItem item);
 
 extern BRRlpData
-rlpDecodeItemBytes (BRRlpCoder coder, BRRlpItem item);
+rlpDecodeBytesSharedDontRelease (BRRlpCoder coder, BRRlpItem item);
+
+extern BRRlpData
+rlpDecodeListSharedDontRelease (BRRlpCoder coder, BRRlpItem item);
 
 //
 // String
 //
 extern BRRlpItem
-rlpEncodeItemString (BRRlpCoder coder, char *string);
+rlpEncodeString (BRRlpCoder coder, char *string);
 
 extern char *
-rlpDecodeItemString (BRRlpCoder coder, BRRlpItem item);
+rlpDecodeString (BRRlpCoder coder, BRRlpItem item);
 
 extern int
-rlpDecodeItemIsString (BRRlpCoder coder, BRRlpItem item);
+rlpDecodeStringCheck (BRRlpCoder coder, BRRlpItem item);
 
 //
 // Hex String
 //
 extern BRRlpItem
-rlpEncodeItemHexString (BRRlpCoder coder, char *string);
+rlpEncodeHexString (BRRlpCoder coder, char *string);
 
 extern char *
-rlpDecodeItemHexString (BRRlpCoder coder, BRRlpItem item, const char *prefix);
+rlpDecodeHexString (BRRlpCoder coder, BRRlpItem item, const char *prefix);
 
 //
 // List
@@ -136,11 +178,6 @@ rlpEncodeListItems (BRRlpCoder coder, BRRlpItem *items, size_t itemsCount);
 extern const BRRlpItem *
 rlpDecodeList (BRRlpCoder coder, BRRlpItem item, size_t *itemsCount);
     
-// Hold onto BRRlpItem 'forever'... then try to use... will fail because 'coder'
-// will not have 'context'
-extern void
-rlpDataExtract (BRRlpCoder coder, BRRlpItem item, uint8_t **bytes, size_t *bytesCount);
-
 //
 // Show
 //
@@ -149,7 +186,17 @@ rlpShowItem (BRRlpCoder coder, BRRlpItem item, const char *topic);
 
 extern void
 rlpShow (BRRlpData data, const char *topic);
-    
+
+//
+// Decode RLPData directly to numbers
+//   (Used for logGetData -> UInt256
+//
+extern UInt256
+rlpDataDecodeUInt256 (BRRlpData data);
+
+extern uint64_t
+rlpDataDecodeUInt64 (BRRlpData data);
+
 #ifdef __cplusplus
 }
 #endif

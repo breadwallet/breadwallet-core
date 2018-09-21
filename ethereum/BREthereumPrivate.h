@@ -27,59 +27,66 @@
 #define BR_Ethereum_Private_H
 
 #include "BREthereum.h"
-#include "blockchain/BREthereumTransaction.h"
 #include "blockchain/BREthereumBlock.h"
-#include "BREthereumWallet.h"
+#include "ewm/BREthereumTransfer.h"
+#include "ewm/BREthereumWallet.h"
 
 // Returns Ether appropriate for encoding a transaction.  If the transaction is for a TOKEN,
 // then the returned Ether is zero (because the amount of a TOKEN transfer is encoded in the
 // contract's function call, in the transaction.data field).
 private_extern BREthereumEther
-transactionGetEffectiveAmountInEther (BREthereumTransaction transaction);
+transferGetEffectiveAmountInEther (BREthereumTransfer transfer);
 
 private_extern void
 walletSetBalance (BREthereumWallet wallet,
                   BREthereumAmount balance);
 
 private_extern void
-walletTransactionSubmitted (BREthereumWallet wallet,
-                            BREthereumTransaction transaction,
+walletUpdateBalance (BREthereumWallet wallet);
+
+private_extern void
+walletTransferSubmitted (BREthereumWallet wallet,
+                            BREthereumTransfer transaction,
                             const BREthereumHash hash); // ....
 
 private_extern void
-walletTransactionBlocked(BREthereumWallet wallet,
-                         BREthereumTransaction transaction,
-                         BREthereumGas gasUsed,
-                         uint64_t blockNumber,
-                         uint64_t blockTimestamp,
-                         uint64_t blockTransactionIndex);
+walletTransferIncluded(BREthereumWallet wallet,
+                          BREthereumTransfer transaction,
+                          BREthereumGas gasUsed,
+                          BREthereumHash blockHash,
+                          uint64_t blockNumber,
+                          uint64_t blockTransactionIndex);
 
 private_extern void
-walletTransactionDropped (BREthereumWallet wallet,
-                          BREthereumTransaction transaction);
+walletTransferErrored (BREthereumWallet wallet,
+                          BREthereumTransfer transaction,
+                          const char *reason);
 
 private_extern void
-walletHandleTransaction (BREthereumWallet wallet,
-                         BREthereumTransaction transaction);
+walletHandleTransfer (BREthereumWallet wallet,
+                      BREthereumTransfer transfer);
 
 private_extern void
-walletUnhandleTransaction (BREthereumWallet wallet,
-                           BREthereumTransaction transaction);
+walletUnhandleTransfer (BREthereumWallet wallet,
+                           BREthereumTransfer transaction);
 
 private_extern int
-walletHasTransaction (BREthereumWallet wallet,
-                      BREthereumTransaction transaction);
+walletHasTransfer (BREthereumWallet wallet,
+                      BREthereumTransfer transaction);
 
 //
-// Address
+// Account (Primary) Address Nonce
 //
 
 private_extern void
-addressSetNonce(BREthereumEncodedAddress address,
-                uint64_t nonce);
+accountSetAddressNonce(BREthereumAccount account,
+                       BREthereumAddress address,
+                       uint64_t nonce,
+                       BREthereumBoolean force);
 
 private_extern uint64_t
-addressGetThenIncrementNonce(BREthereumEncodedAddress address);
+accountGetThenIncrementAddressNonce(BREthereumAccount account,
+                                    BREthereumAddress address);
 
 //
 // Token Lookup
@@ -98,7 +105,7 @@ blockFree (BREthereumBlock block);
 //
 private_extern void
 transactionSetNonce (BREthereumTransaction transaction,
-                    uint64_t nonce);
+                     uint64_t nonce);
 
 //
 // Contract / Function

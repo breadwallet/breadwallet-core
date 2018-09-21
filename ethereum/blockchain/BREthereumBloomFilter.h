@@ -82,6 +82,12 @@ bloomFilterCreateData (const BRRlpData data);
 extern BREthereumBloomFilter
 bloomFilterCreateAddress (const BREthereumAddress address);
 
+/**
+ * Create a BloomFilter from a hex-encoded, non-0x-prefaced string.
+ */
+extern BREthereumBloomFilter
+bloomFilterCreateString (const char *string);
+
 extern BREthereumBloomFilter
 bloomFilterOr (const BREthereumBloomFilter filter1, const BREthereumBloomFilter filter2);
 
@@ -91,6 +97,17 @@ bloomFilterOrInPlace (BREthereumBloomFilter filter1, const BREthereumBloomFilter
 extern BREthereumBoolean
 bloomFilterEqual (const BREthereumBloomFilter filter1, const BREthereumBloomFilter filter2);
 
+/**
+ * Check if `other` is contained in `filter`.  Typically `filter` would be the bloom filter
+ * for a block header and `other` would be an address (source,target,contract) of
+ * interest.
+ *
+ * @parameter filter
+ *
+ * @parameter other
+ *
+ * @returns TRUE if `other` matches `filter`; otherwise FALSE
+ */
 extern BREthereumBoolean
 bloomFilterMatch (const BREthereumBloomFilter filter, const BREthereumBloomFilter other);
 

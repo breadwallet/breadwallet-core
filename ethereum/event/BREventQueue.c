@@ -78,32 +78,33 @@ eventQueueCreate (size_t size, pthread_mutex_t *lock) {
     return queue;
 }
 
+static void
+eventFreeAll (BREvent *event,
+              int destroy) {
+    while (NULL != event) {
+        // Save the next event so that the upcoming `free` doesn't zero it out.
+        BREvent *next = event->next;
+
+        // Apply the `destroyer` if appropriate.
+        if (destroy) {
+            BREventDestroyer destroyer = event->type->eventDestroyer;
+            if (NULL != destroyer) destroyer (event);
+        }
+        // Actual free and then iterate.
+        free (event);
+        event = next;
+    }
+}
+
 extern void
 eventQueueDestroy (BREventQueue queue) {
     pthread_mutex_lock(&queue->lock);
 
-    // Move pending to available
-    if (NULL != queue->pending) {
-        BREvent *next, *this = queue->pending;
-        while (NULL != this->next) {
-            next = this->next;
-            this->next = queue->available;
-            queue->available = this;
-            this = next;
-        }
-        queue->pending = NULL;
-    }
+    eventFreeAll (queue->pending, 1);
+    eventFreeAll (queue->available, 0);
 
-    // Free available
-    if (NULL != queue->available) {
-        BREvent *next, *this = queue->available;
-        while (NULL != this->next) {
-            next = this->next;
-            free (this);
-            this = next;
-        }
-        queue->available = NULL;
-    }
+    queue->pending = NULL;
+    queue->available = NULL;
 
     pthread_mutex_unlock(&queue->lock);
 
@@ -111,11 +112,13 @@ eventQueueDestroy (BREventQueue queue) {
         pthread_mutex_destroy(&queue->lock);
 
     memset (queue, 0, sizeof (struct BREventQueueRecord));
+    free (queue);
 }
 
-extern void
+static void
 eventQueueEnqueue (BREventQueue queue,
-                   const BREvent *event) {
+                   const BREvent *event,
+                   int tail) {
     pthread_mutex_lock(&queue->lock);
 
     // Get the next available event
@@ -131,17 +134,33 @@ eventQueueEnqueue (BREventQueue queue,
     memcpy (this, event, event->type->eventSize);
     this->next = NULL;
 
-    // Add to the end of pending
+    // Nothing pending, simply add.
     if (NULL == queue->pending)
         queue->pending = this;
-    else {
+    else if (tail) {
         // Find the last event
         BREvent *last = queue->pending;
         while (NULL != last->next) last = last->next;
         last->next = this;
     }
+    else /* (head) */ {
+        this->next = queue->pending;
+        queue->pending = this;
+    }
 
     pthread_mutex_unlock(&queue->lock);
+}
+
+extern void
+eventQueueEnqueueTail (BREventQueue queue,
+                       const BREvent *event) {
+    eventQueueEnqueue (queue, event, 1);
+}
+
+extern void
+eventQueueEnqueueHead (BREventQueue queue,
+                       const BREvent *event) {
+    eventQueueEnqueue (queue, event, 0);
 }
 
 extern BREventStatus

@@ -29,6 +29,9 @@
 #include "BREthereumLog.h"
 #include "BREthereumTransactionReceipt.h"
 
+//
+// The Result of a LES 'GetReceipts' request
+//
 // The transaction receipt, R, is a tuple of four items comprising: ...
 //
 // However, there appears to be a change in interpretation for 'status code' and the
@@ -48,6 +51,28 @@ struct BREthereumTransactionReceiptRecord {
     BRRlpData stateRoot;
 };
 
+extern uint64_t
+transactionReceiptGetGasUsed (BREthereumTransactionReceipt receipt) {
+    return receipt->gasUsed;
+}
+
+extern size_t
+transactionReceiptGetLogsCount (BREthereumTransactionReceipt receipt) {
+    return array_count(receipt->logs);
+}
+
+extern BREthereumLog
+transactionReceiptGetLog (BREthereumTransactionReceipt receipt, size_t index) {
+    return (index < array_count(receipt->logs)
+            ? receipt->logs[index]
+            : NULL);
+}
+
+extern BREthereumBloomFilter
+transactionReceiptGetBloomFilter (BREthereumTransactionReceipt receipt) {
+    return receipt->bloomFilter;
+}
+
 //
 // Bloom Filter Matches
 //
@@ -63,24 +88,33 @@ transactionReceiptMatchAddress (BREthereumTransactionReceipt receipt,
     return transactionReceiptMatch(receipt, logTopicGetBloomFilterAddress(address));
 }
 
+extern void
+transactionReceiptRelease (BREthereumTransactionReceipt receipt) {
+    for (size_t index = 0; index < array_count(receipt->logs); index++)
+        logRelease(receipt->logs[index]);
+    array_free(receipt->logs);
+    rlpDataRelease(receipt->stateRoot);
+    free (receipt);
+}
+
 //
 // Transaction Receipt Logs - RLP Encode/Decode
 //
 static BRRlpItem
-transactionReceiptLogsRlpEncodeItem (BREthereumTransactionReceipt log,
-                        BRRlpCoder coder) {
+transactionReceiptLogsRlpEncode (BREthereumTransactionReceipt log,
+                                 BRRlpCoder coder) {
     size_t itemsCount = array_count(log->logs);
     BRRlpItem items[itemsCount];
-
+    
     for (int i = 0; i < itemsCount; i++)
-        items[i] = logRlpEncodeItem(log->logs[i], coder);
-
+        items[i] = logRlpEncode(log->logs[i], RLP_TYPE_NETWORK, coder);
+    
     return rlpEncodeListItems(coder, items, itemsCount);
 }
 
 static BREthereumLog *
-transactionReceiptLogsRlpDecodeItem (BRRlpItem item,
-                                     BRRlpCoder coder) {
+transactionReceiptLogsRlpDecode (BRRlpItem item,
+                                 BRRlpCoder coder) {
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
 
@@ -88,7 +122,7 @@ transactionReceiptLogsRlpDecodeItem (BRRlpItem item,
     array_new(logs, itemsCount);
 
     for (int i = 0; i < itemsCount; i++) {
-        BREthereumLog log = logRlpDecodeItem(items[i], coder);
+        BREthereumLog log = logRlpDecode(items[i], RLP_TYPE_NETWORK, coder);
         array_add(logs, log);
     }
 
@@ -98,60 +132,90 @@ transactionReceiptLogsRlpDecodeItem (BRRlpItem item,
 //
 // Transaction Receipt - RLP Decode
 //
-static BREthereumTransactionReceipt
-transactionReceiptRlpDecodeItem (BRRlpItem item,
-                                 BRRlpCoder coder) {
+extern BREthereumTransactionReceipt
+transactionReceiptRlpDecode (BRRlpItem item,
+                             BRRlpCoder coder) {
     BREthereumTransactionReceipt receipt = calloc (1, sizeof(struct BREthereumTransactionReceiptRecord));
     memset (receipt, 0, sizeof(struct BREthereumTransactionReceiptRecord));
-
+    
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     assert (4 == itemsCount);
-
-    receipt->stateRoot = rlpDecodeItemBytes(coder, items[0]);
-    receipt->gasUsed = rlpDecodeItemUInt64(coder, items[1], 0);
+    
+    receipt->stateRoot = rlpDecodeBytes(coder, items[0]);
+    receipt->gasUsed = rlpDecodeUInt64(coder, items[1], 0);
     receipt->bloomFilter = bloomFilterRlpDecode(items[2], coder);
-    receipt->logs = transactionReceiptLogsRlpDecodeItem(items[3], coder);
-
-    return receipt;
-}
-
-extern BREthereumTransactionReceipt
-transactionReceiptDecodeRLP (BRRlpData data) {
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = rlpGetItem (coder, data);
-
-    BREthereumTransactionReceipt receipt = transactionReceiptRlpDecodeItem(item, coder);
-
-    rlpCoderRelease(coder);
+    receipt->logs = transactionReceiptLogsRlpDecode(items[3], coder);
+    
     return receipt;
 }
 
 //
 // Transaction Receipt - RLP Encode
 //
-static BRRlpItem
-transactionReceiptRlpEncodeItem(BREthereumTransactionReceipt receipt,
-                                BRRlpCoder coder) {
+extern BRRlpItem
+transactionReceiptRlpEncode(BREthereumTransactionReceipt receipt,
+                            BRRlpCoder coder) {
     BRRlpItem items[4];
-
-    items[0] = rlpEncodeItemBytes(coder, receipt->stateRoot.bytes, receipt->stateRoot.bytesCount);
-    items[1] = rlpEncodeItemUInt64(coder, receipt->gasUsed, 0);
+    
+    items[0] = rlpEncodeBytes(coder, receipt->stateRoot.bytes, receipt->stateRoot.bytesCount);
+    items[1] = rlpEncodeUInt64(coder, receipt->gasUsed, 0);
     items[2] = bloomFilterRlpEncode(receipt->bloomFilter, coder);
-    items[3] = transactionReceiptLogsRlpEncodeItem(receipt, coder);
-
+    items[3] = transactionReceiptLogsRlpEncode(receipt, coder);
+    
     return rlpEncodeListItems(coder, items, 4);
 }
 
-extern BRRlpData
-transactionReceiptEncodeRLP (BREthereumTransactionReceipt receipt) {
-    BRRlpData result;
+extern BRArrayOf (BREthereumTransactionReceipt)
+transactionReceiptDecodeList (BRRlpItem item,
+                              BRRlpCoder coder) {
+    size_t itemCount;
+    const BRRlpItem *items = rlpDecodeList (coder, item, &itemCount);
 
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem encoding = transactionReceiptRlpEncodeItem(receipt, coder);
-
-    rlpDataExtract(coder, encoding, &result.bytes, &result.bytesCount);
-    rlpCoderRelease(coder);
-
-    return result;
+    BRArrayOf (BREthereumTransactionReceipt) receipts;
+    array_new (receipts, itemCount);
+    for (size_t index = 0; index < itemCount; index++)
+        array_add (receipts, transactionReceiptRlpDecode (items[index], coder));
+    return receipts;
 }
+
+/*  Transaction Receipts (184)
+ ETH: LES-RECEIPTS:     L184: [
+ ETH: LES-RECEIPTS:       L  4: [
+ ETH: LES-RECEIPTS:         I  1: 0x01
+ ETH: LES-RECEIPTS:         I  2: 0x5208
+ ETH: LES-RECEIPTS:         I256: 0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+ ETH: LES-RECEIPTS:         L  0: []
+ ETH: LES-RECEIPTS:       ]
+ ETH: LES-RECEIPTS:       L  4: [
+ ETH: LES-RECEIPTS:         I  1: 0x01
+ ETH: LES-RECEIPTS:         I  2: 0xa410
+ ETH: LES-RECEIPTS:         I256: 0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+ ETH: LES-RECEIPTS:         L  0: []
+ ETH: LES-RECEIPTS:       ]
+ ETH: LES-RECEIPTS:       L  4: [
+ ETH: LES-RECEIPTS:         I  1: 0x01
+ ETH: LES-RECEIPTS:         I  3: 0x018cc3
+ ETH: LES-RECEIPTS:         I256: 0x00000000000000000000000200000000000000000000000000000100000000000000000000000000000000080000000000000004000000000000000000200000000000000000000000000000000000000000000800000000000000000000000000000000000000000008000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004000000200000000800000001010000000000000000000000000000000000000000000000000000000000000
+ ETH: LES-RECEIPTS:         L  2: [
+ ETH: LES-RECEIPTS:           L  3: [
+ ETH: LES-RECEIPTS:             I 20: 0x96477a1c968a0e64e53b7ed01d0d6e4a311945c2
+ ETH: LES-RECEIPTS:             L  3: [
+ ETH: LES-RECEIPTS:               I 32: 0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925
+ ETH: LES-RECEIPTS:               I 32: 0x0000000000000000000000005c0f318407f37029f2a2b6b29468b79fbd178f2a
+ ETH: LES-RECEIPTS:               I 32: 0x000000000000000000000000642ae78fafbb8032da552d619ad43f1d81e4dd7c
+ ETH: LES-RECEIPTS:             ]
+ ETH: LES-RECEIPTS:             I 32: 0x00000000000000000000000000000000000000000000000006f05b59d3b20000
+ ETH: LES-RECEIPTS:           ]
+ ETH: LES-RECEIPTS:           L  3: [
+ ETH: LES-RECEIPTS:             I 20: 0xc66ea802717bfb9833400264dd12c2bceaa34a6d
+ ETH: LES-RECEIPTS:             L  3: [
+ ETH: LES-RECEIPTS:               I 32: 0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925
+ ETH: LES-RECEIPTS:               I 32: 0x0000000000000000000000005c0f318407f37029f2a2b6b29468b79fbd178f2a
+ ETH: LES-RECEIPTS:               I 32: 0x000000000000000000000000642ae78fafbb8032da552d619ad43f1d81e4dd7c
+ ETH: LES-RECEIPTS:             ]
+ ETH: LES-RECEIPTS:             I 32: 0x00000000000000000000000000000000000000000000000006f05b59d3b20000
+ ETH: LES-RECEIPTS:           ]
+ ETH: LES-RECEIPTS:         ]
+ ETH: LES-RECEIPTS:       ]
+ */

@@ -29,98 +29,40 @@
 #include "BREthereumTransaction.h"
 #include "../BREthereumPrivate.h"
 
+// #define TRANSACTION_LOG_ALLOC_COUNT
+
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
+
+#if defined (TRANSACTION_LOG_ALLOC_COUNT)
+static unsigned int transactionAllocCount = 0;
+#endif
 
 // Forward Declarations
 static void
 provideData (BREthereumTransaction transaction);
-
-static void
-provideGasEstimate (BREthereumTransaction transaction);
-
-//
-// Transaction State
-//
-typedef struct {
-    BREthereumTransactionStatus status;
-    union {
-        struct {
-            int foo;
-        } created;
-
-        struct {
-            int foo;
-        } _signed;
-
-        struct {
-            BREthereumGas gasUsed;
-            uint64_t number;
-            uint64_t timestamp;
-            uint64_t transactionIndex;
-        } blocked;
-
-        struct {
-            int foo;
-        } dropped;
-
-        struct {
-            int foo;
-        } submitted;
-    } u;
-} BREthereumTransactionState;
-
-static void
-transactionStateCreated (BREthereumTransactionState *state /* ... */) {
-    state->status = TRANSACTION_CREATED;
-}
-
-static void
-transactionStateSigned (BREthereumTransactionState *state /* ... */) {
-    state->status = TRANSACTION_SIGNED;
-}
-
-static void
-transactionStateSubmitted (BREthereumTransactionState *state /* ... */) {
-    state->status = TRANSACTION_SUBMITTED;
-}
-
-static void
-transactionStateBlocked(BREthereumTransactionState *state,
-                        BREthereumGas gasUsed,
-                        uint64_t blockNumber,
-                        uint64_t blockTimestamp,
-                         uint64_t blockTransactionIndex) {
-
-    // Ensure blockConfirmations is the maximum seen.
-
-    state->status = TRANSACTION_BLOCKED;
-    state->u.blocked.gasUsed = gasUsed;
-    state->u.blocked.number = blockNumber;
-    state->u.blocked.timestamp = blockTimestamp;
-    state->u.blocked.transactionIndex = blockTransactionIndex;
-}
-
-static void
-transactionStateDropped (BREthereumTransactionState *state /* ... */) {
-    state->status = TRANSACTION_DROPPED;
-}
-
 
 /**
  * An Ethereum Transaction ...
  *
  */
 struct BREthereumTransactionRecord {
+    // THIS MUST BE FIRST to support BRSet operations.
+
+    /**
+     * The transaction's hash.   This will be 'empty' until the transaction is submitted.
+     */
+    BREthereumHash hash;
+
 
     //
     //
     //
-    BREthereumEncodedAddress sourceAddress;
+    BREthereumAddress sourceAddress;
 
     //
     //
     //
-    BREthereumEncodedAddress targetAddress;
+    BREthereumAddress targetAddress;
 
     /**
      * The amount transferred from sourceAddress to targetAddress.  Note that this is not
@@ -128,7 +70,7 @@ struct BREthereumTransactionRecord {
      * is for TOKEN, then the RLP encoded amount is 0 and the RLP encoded data for the ERC20
      * transfer function encodes the amount.
      */
-    BREthereumAmount amount;
+    BREthereumEther amount;
     BREthereumGasPrice gasPrice;
     BREthereumGas gasLimit;
     uint64_t nonce;
@@ -140,16 +82,6 @@ struct BREthereumTransactionRecord {
     char *data;
 
     /**
-     * The transaction's hash.   This will be 'empty' until the transaction is submitted.
-     */
-    BREthereumHash hash;
-
-    /**
-     * The estimated amount of Gas needed to process this transaction.
-     */
-    BREthereumGas gasEstimate;
-
-    /**
      * The signature, if signed (signer is not NULL).  This is a 'VRS' signature.
      */
     BREthereumSignature signature;
@@ -157,45 +89,83 @@ struct BREthereumTransactionRecord {
     //
     // State
     //
-    BREthereumTransactionState state;
+    BREthereumTransactionStatus status;
 };
 
 extern BREthereumTransaction
-transactionCreate(BREthereumEncodedAddress sourceAddress,
-                  BREthereumEncodedAddress targetAddress,
-                  BREthereumAmount amount,
+transactionCreate(BREthereumAddress sourceAddress,
+                  BREthereumAddress targetAddress,
+                  BREthereumEther amount,
                   BREthereumGasPrice gasPrice,
                   BREthereumGas gasLimit,
+                  const char *data,
                   uint64_t nonce) {
     BREthereumTransaction transaction = calloc (1, sizeof (struct BREthereumTransactionRecord));
 
-    transactionStateCreated(&transaction->state);
+    transactionSetStatus(transaction, transactionStatusCreate (TRANSACTION_STATUS_UNKNOWN));
     transaction->sourceAddress = sourceAddress;
     transaction->targetAddress = targetAddress;
     transaction->amount = amount;
     transaction->gasPrice = gasPrice;
-    transaction->gasLimit = gasLimit;
+    transaction->gasLimit = gasLimit;           // Must not be changed.
+    transaction->data = strdup (data);
     transaction->nonce = nonce;
     transaction->chainId = 0;
     transaction->hash = hashCreateEmpty();
 
-    provideData(transaction);
-    provideGasEstimate(transaction);
-
+#if defined (TRANSACTION_LOG_ALLOC_COUNT)
+    eth_log ("MEM", "TX Create - Count: %d", ++transactionAllocCount);
+#endif
     return transaction;
 }
 
-extern BREthereumEncodedAddress
+extern BREthereumTransaction
+transactionCopy (BREthereumTransaction transaction) {
+    BREthereumTransaction copy = calloc (1, sizeof (struct BREthereumTransactionRecord));
+    memcpy (copy, transaction, sizeof (struct BREthereumTransactionRecord));
+    copy->data = (NULL == transaction->data ? NULL : strdup(transaction->data));
+
+#if defined (TRANSACTION_LOG_ALLOC_COUNT)
+    eth_log ("MEM", "TX Copy - Count: %d", ++transactionAllocCount);
+#endif
+
+    return copy;
+}
+
+extern void
+transactionRelease (BREthereumTransaction transaction) {
+    if (NULL != transaction->data) free (transaction->data);
+#if defined (TRANSACTION_LOG_ALLOC_COUNT)
+    eth_log ("MEM", "TX Release - Count: %d", --transactionAllocCount);
+#endif
+    free (transaction);
+}
+
+extern void
+transactionReleaseForSet (void *ignore, void *item) {
+    transactionRelease((BREthereumTransaction) item);
+}
+
+extern BREthereumAddress
 transactionGetSourceAddress(BREthereumTransaction transaction) {
     return transaction->sourceAddress;
 }
 
-extern BREthereumEncodedAddress
+extern BREthereumAddress
 transactionGetTargetAddress(BREthereumTransaction transaction) {
     return transaction->targetAddress;
 }
 
-extern BREthereumAmount
+extern BREthereumBoolean
+transactionHasAddress (BREthereumTransaction transaction,
+                       BREthereumAddress address) {
+    return (ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(address, transaction->sourceAddress))
+            || ETHEREUM_BOOLEAN_IS_TRUE(addressEqual(address, transaction->targetAddress))
+            ? ETHEREUM_BOOLEAN_TRUE
+            : ETHEREUM_BOOLEAN_FALSE);
+}
+
+extern BREthereumEther
 transactionGetAmount(BREthereumTransaction transaction) {
     return transaction->amount;
 }
@@ -205,8 +175,8 @@ transactionGetFee (BREthereumTransaction transaction, int *overflow) {
     return etherCreate
     (mulUInt256_Overflow(transaction->gasPrice.etherPerGas.valueInWEI,
                          createUInt256 (ETHEREUM_BOOLEAN_IS_TRUE(transactionIsConfirmed(transaction))
-                                        ? transaction->state.u.blocked.gasUsed.amountOfGas
-                                        : transaction->gasEstimate.amountOfGas),
+                                        ? transaction->status.u.included.gasUsed.amountOfGas
+                                        : transaction->gasLimit.amountOfGas),
                          overflow));
 }
 
@@ -240,22 +210,6 @@ transactionSetGasLimit (BREthereumTransaction transaction,
     transaction->gasLimit = gasLimit;
 }
 
-extern BREthereumGas
-transactionGetGasEstimate (BREthereumTransaction transaction) {
-    return transaction->gasEstimate;
-}
-
-extern void
-transactionSetGasEstimate (BREthereumTransaction transaction,
-                           BREthereumGas gasEstimate) {
-    transaction->gasEstimate = gasEstimate;
-}
-
-static void
-provideGasEstimate (BREthereumTransaction transaction) {
-    transactionSetGasEstimate(transaction, amountGetGasEstimate(transaction->amount));
-}
-
 extern uint64_t
 transactionGetNonce (BREthereumTransaction transaction) {
     return transaction->nonce;
@@ -267,11 +221,16 @@ transactionSetNonce (BREthereumTransaction transaction,
     transaction->nonce = nonce;
 }
 
-extern BREthereumToken
-transactionGetToken (BREthereumTransaction transaction) {
-    return (AMOUNT_ETHER == amountGetType(transaction->amount)
-            ? NULL
-            : tokenQuantityGetToken(amountGetTokenQuantity(transaction->amount)));
+extern size_t
+transactionHashValue (const void *t)
+{
+    return hashSetValue(&((BREthereumTransaction) t)->hash);
+}
+
+extern int
+transactionHashEqual (const void *t1, const void *t2) {
+    return t1 == t2 || hashSetEqual (&((BREthereumTransaction) t1)->hash,
+                                     &((BREthereumTransaction) t2)->hash);
 }
 
 //
@@ -282,55 +241,29 @@ transactionGetData (BREthereumTransaction transaction) {
     return transaction->data;
 }
 
-static void
-provideData (BREthereumTransaction transaction) {
-    if (NULL == transaction->data) {
-        switch (amountGetType (transaction->amount)) {
-            case AMOUNT_ETHER:
-                transaction->data = "";
-                break;
-            case AMOUNT_TOKEN: {
-                UInt256 value = amountGetTokenQuantity(transaction->amount).valueAsInteger;
-                const char *address = addressAsString(transaction->targetAddress);
-
-                // Data is a HEX ENCODED string
-                transaction->data = (char *) contractEncode
-                (contractERC20, functionERC20Transfer,
-                 // Address
-                 (uint8_t *) &address[2], strlen(address) - 2,
-                 // Amount
-                 (uint8_t *) &value, sizeof (UInt256),
-                 NULL);
-
-                free ((char *) address);
-            }
-        }
-    }
-}
-
 //
 // Sign
 //
 extern void
 transactionSign(BREthereumTransaction transaction,
                 BREthereumSignature signature) {
-    transactionStateSigned(&transaction->state);
+    transactionSetStatus(transaction, transactionStatusCreate (TRANSACTION_STATUS_UNKNOWN));
     transaction->signature = signature;
 
     // The signature algorithm does not account for EIP-155 and thus the chainID.  We are signing
     // transactions according to EIP-155.  Thus v = CHAIN_ID * 2 + 35 or v = CHAIN_ID * 2 + 36
     // whereas the non-EIP-155 value of v is { 27, 28 }
-    assert (SIGNATURE_TYPE_RECOVERABLE == signature.type);
-    assert (27 == signature.sig.recoverable.v || 28 == signature.sig.recoverable.v);
+    assert (SIGNATURE_TYPE_RECOVERABLE_VRS_EIP == signature.type);
+    assert (27 == signature.sig.vrs.v || 28 == signature.sig.vrs.v);
 }
 
 extern BREthereumBoolean
 transactionIsSigned (BREthereumTransaction transaction) {
     switch (transaction->signature.type) {
-        case SIGNATURE_TYPE_FOO:
-            return AS_ETHEREUM_BOOLEAN (transaction->signature.sig.foo.ignore != 0);
-        case SIGNATURE_TYPE_RECOVERABLE:
-            return AS_ETHEREUM_BOOLEAN (transaction->signature.sig.recoverable.v != 0);
+        case SIGNATURE_TYPE_RECOVERABLE_VRS_EIP:
+            return AS_ETHEREUM_BOOLEAN (transaction->signature.sig.vrs.v != 0);
+        case SIGNATURE_TYPE_RECOVERABLE_RSV:
+            return AS_ETHEREUM_BOOLEAN (transaction->signature.sig.rsv.v != 0);
     }
 }
 
@@ -339,85 +272,58 @@ transactionGetHash (BREthereumTransaction transaction) {
     return transaction->hash;
 }
 
+extern void
+transactionSetHash (BREthereumTransaction transaction,
+                    BREthereumHash hash) {
+    transaction->hash = hash;
+}
+
 extern BREthereumSignature
 transactionGetSignature (BREthereumTransaction transaction) {
     return transaction->signature;
 }
 
-extern BREthereumEncodedAddress
-transactionExtractAddress (BREthereumTransaction transaction,
-                           BREthereumNetwork network)
-{
-    if (ETHEREUM_BOOLEAN_IS_FALSE (transactionIsSigned(transaction))) return emptyAddress;
+extern BREthereumAddress
+transactionExtractAddress(BREthereumTransaction transaction,
+                          BREthereumNetwork network,
+                          BRRlpCoder coder) {
+    if (ETHEREUM_BOOLEAN_IS_FALSE (transactionIsSigned(transaction))) {
+        BREthereumAddress emptyAddress = EMPTY_ADDRESS_INIT;
+        return emptyAddress;
+    }
 
     int success = 1;
-    BRRlpData unsignedRLPData = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
 
-    return signatureExtractAddress(transaction->signature,
-                                   unsignedRLPData.bytes,
-                                   unsignedRLPData.bytesCount,
+    BRRlpItem item = transactionRlpEncode (transaction, network, RLP_TYPE_TRANSACTION_UNSIGNED, coder);
+    BRRlpData data = rlpGetData(coder, item);
+
+    BREthereumAddress address = signatureExtractAddress(transaction->signature,
+                                   data.bytes,
+                                   data.bytesCount,
                                    &success);
-}
-
-//
-// RLP Encode / Decode
-//
-static BRRlpItem
-transactionEncodeDataForHolding (BREthereumTransaction transaction,
-                                 BREthereumAmount holding,
-                                 BRRlpCoder coder) {
-    return (NULL == transaction->data || 0 == strlen(transaction->data)
-            ? rlpEncodeItemString(coder, "")
-            : rlpEncodeItemHexString(coder, transaction->data));
-}
-
-static BRRlpItem
-transactionEncodeAddressForHolding (BREthereumTransaction transaction,
-                                    BREthereumAmount holding,
-                                    BRRlpCoder coder) {
-    switch (amountGetType(holding)) {
-        case AMOUNT_ETHER:
-            return addressRlpEncode(transaction->targetAddress, coder);
-        case AMOUNT_TOKEN: {
-            BREthereumToken token = tokenQuantityGetToken (amountGetTokenQuantity(holding));
-            BREthereumEncodedAddress contractAddress = createAddress(tokenGetAddress(token));
-            BRRlpItem result = addressRlpEncode(contractAddress, coder);
-            addressFree(contractAddress);
-            return result;
-        }
-    }
-}
-
-static BRRlpItem
-transactionEncodeNonce (BREthereumTransaction transaction,
-                        uint64_t nonce,
-                        BRRlpCoder coder) {
-    return rlpEncodeItemUInt64(coder, nonce, 1);
-}
-
-static uint64_t
-transactionDecodeNonce (BRRlpItem item,
-                        BRRlpCoder coder) {
-    return rlpDecodeItemUInt64(coder, item, 1);
+    
+    rlpDataRelease(data);
+    rlpReleaseItem(coder, item);
+    return address;
 }
 
 //
 // Tranaction RLP Encode
 //
 extern BRRlpItem
-transactionRlpEncodeItem(BREthereumTransaction transaction,
-                         BREthereumNetwork network,
-                         BREthereumTransactionRLPType type,
-                         BRRlpCoder coder) {
-    BRRlpItem items[10];
+transactionRlpEncode(BREthereumTransaction transaction,
+                     BREthereumNetwork network,
+                     BREthereumRlpType type,
+                     BRRlpCoder coder) {
+    BRRlpItem items[12]; // more than enough
     size_t itemsCount = 0;
 
-    items[0] = transactionEncodeNonce(transaction, transaction->nonce, coder);
+    items[0] = rlpEncodeUInt64(coder, transaction->nonce, 1);
     items[1] = gasPriceRlpEncode(transaction->gasPrice, coder);
     items[2] = gasRlpEncode(transaction->gasLimit, coder);
-    items[3] = transactionEncodeAddressForHolding(transaction, transaction->amount, coder);
-    items[4] = amountRlpEncode(transaction->amount, coder);
-    items[5] = transactionEncodeDataForHolding(transaction, transaction->amount, coder);
+    items[3] = addressRlpEncode(transaction->targetAddress, coder);
+    items[4] = etherRlpEncode(transaction->amount, coder);
+    items[5] = rlpEncodeHexString(coder, transaction->data);
     itemsCount = 6;
 
     // EIP-155:
@@ -431,46 +337,44 @@ transactionRlpEncodeItem(BREthereumTransaction transaction,
     transaction->chainId = networkGetChainId(network);
 
     switch (type) {
-        case TRANSACTION_RLP_UNSIGNED:
+        case RLP_TYPE_TRANSACTION_UNSIGNED:
             // For EIP-155, encode { v, r, s } with v as the chainId and both r and s as empty.
-            items[6] = rlpEncodeItemUInt64(coder, transaction->chainId, 1);
-            items[7] = rlpEncodeItemString(coder, "");
-            items[8] = rlpEncodeItemString(coder, "");
+            items[6] = rlpEncodeUInt64(coder, transaction->chainId, 1);
+            items[7] = rlpEncodeString(coder, "");
+            items[8] = rlpEncodeString(coder, "");
             itemsCount += 3;
             break;
 
-        case TRANSACTION_RLP_SIGNED:
+        case RLP_TYPE_TRANSACTION_SIGNED: // aka NETWORK
+        case RLP_TYPE_ARCHIVE:
             // For EIP-155, encode v with the chainID.
-            items[6] = rlpEncodeItemUInt64(coder, transaction->signature.sig.recoverable.v + 8 +
+            items[6] = rlpEncodeUInt64(coder, transaction->signature.sig.vrs.v + 8 +
                                            2 * transaction->chainId, 1);
 
-            items[7] = rlpEncodeItemBytes (coder,
-                                           transaction->signature.sig.recoverable.r,
-                                           sizeof (transaction->signature.sig.recoverable.r));
+            items[7] = rlpEncodeBytes (coder,
+                                           transaction->signature.sig.vrs.r,
+                                           sizeof (transaction->signature.sig.vrs.r));
 
-            items[8] = rlpEncodeItemBytes (coder,
-                                           transaction->signature.sig.recoverable.s,
-                                           sizeof (transaction->signature.sig.recoverable.s));
+            items[8] = rlpEncodeBytes (coder,
+                                           transaction->signature.sig.vrs.s,
+                                           sizeof (transaction->signature.sig.vrs.s));
             itemsCount += 3;
+
+            // For ARCHIVE add in a few things beyond 'SIGNED / NETWORK'
+            if (RLP_TYPE_ARCHIVE == type) {
+                items[9] = hashRlpEncode(transaction->hash, coder);
+                items[10] = transactionStatusRLPEncode(transaction->status, coder);
+                itemsCount += 2;
+            }
             break;
     }
 
-    return rlpEncodeListItems(coder, items, itemsCount);
-}
+    BRRlpItem result = rlpEncodeListItems(coder, items, itemsCount);
 
-
-
-extern BRRlpData
-transactionEncodeRLP (BREthereumTransaction transaction,
-                      BREthereumNetwork network,
-                      BREthereumTransactionRLPType type) {
-    BRRlpData result;
-
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem encoding = transactionRlpEncodeItem(transaction, network, type, coder);
-
-    rlpDataExtract(coder, encoding, &result.bytes, &result.bytesCount);
-    rlpCoderRelease(coder);
+    if (RLP_TYPE_TRANSACTION_SIGNED == type) {
+        BRRlpData data = rlpGetDataSharedDontRelease(coder, result);
+        transaction->hash = hashCreateFromData(data);
+    }
 
     return result;
 }
@@ -479,16 +383,17 @@ transactionEncodeRLP (BREthereumTransaction transaction,
 // Tranaction RLP Decode
 //
 extern BREthereumTransaction
-transactionRlpDecodeItem (BRRlpItem item,
-                          BREthereumNetwork network,
-                          BREthereumTransactionRLPType type,
-                          BRRlpCoder coder) {
+transactionRlpDecode (BRRlpItem item,
+                      BREthereumNetwork network,
+                      BREthereumRlpType type,
+                      BRRlpCoder coder) {
 
     BREthereumTransaction transaction = calloc (1, sizeof(struct BREthereumTransactionRecord));
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
-    assert (9 == itemsCount);
+    assert (( 9 == itemsCount && (RLP_TYPE_TRANSACTION_SIGNED == type || RLP_TYPE_TRANSACTION_UNSIGNED == type)) ||
+            (11 == itemsCount && RLP_TYPE_ARCHIVE == type));
 
     // Encoded as:
     //    items[0] = transactionEncodeNonce(transaction, transaction->nonce, coder);
@@ -498,177 +403,124 @@ transactionRlpDecodeItem (BRRlpItem item,
     //    items[4] = amountRlpEncode(transaction->amount, coder);
     //    items[5] = transactionEncodeDataForHolding(transaction, transaction->amount, coder);
 
-    transaction->nonce = transactionDecodeNonce(items[0], coder);
+    transaction->nonce = rlpDecodeUInt64(coder, items[0], 1);
     transaction->gasPrice = gasPriceRlpDecode(items[1], coder);
     transaction->gasLimit = gasRlpDecode(items[2], coder);
 
-    char *strData = rlpDecodeItemHexString (coder, items[5], "0x");
-    assert (NULL != strData);
-    if ('\0' == strData[0] || 0 == strcmp (strData, "0x")) {
-        // This is a ETHER transfer
-        transaction->targetAddress = addressRlpDecode(items[3], coder);
-        transaction->amount = amountRlpDecodeAsEther(items[4], coder);
-        transaction->data = strData;
-    }
-    else {
-        // This is a TOKEN transfer.
-
-        BREthereumEncodedAddress contractAddr = addressRlpDecode(items[3], coder);
-        BREthereumToken token = tokenLookup(addressAsString (contractAddr));
-
-        // Confirm `strData` encodes functionERC20Transfer
-        BREthereumContractFunction function = contractLookupFunctionForEncoding(contractERC20, strData);
-        if (NULL == token || function != functionERC20Transfer) {
-            free (transaction);
-            return NULL;
-        }
-
-        BRCoreParseStatus status = CORE_PARSE_OK;
-        UInt256 amount = functionERC20TransferDecodeAmount (function, strData, &status);
-        char *recvAddr = functionERC20TransferDecodeAddress(function, strData);
-
-        if (CORE_PARSE_OK != status) {
-            free (transaction);
-            return NULL;
-        }
-
-        transaction->amount = amountCreateToken(createTokenQuantity(token, amount));
-        transaction->targetAddress = createAddress(recvAddr);
-
-        free (recvAddr);
-    }
+    transaction->targetAddress = addressRlpDecode(items[3], coder);
+    transaction->amount = etherRlpDecode(items[4], coder);
+    transaction->data = rlpDecodeHexString (coder, items[5], "0x");
 
     transaction->chainId = networkGetChainId(network);
 
-    uint64_t eipChainId = rlpDecodeItemUInt64(coder, items[6], 1);
+    uint64_t eipChainId = rlpDecodeUInt64(coder, items[6], 1);
 
     if (eipChainId == transaction->chainId) {
-        // TRANSACTION_RLP_UNSIGNED
-        transaction->signature.type = SIGNATURE_TYPE_RECOVERABLE;
+        // RLP_TYPE_TRANSACTION_UNSIGNED
+        transaction->signature.type = SIGNATURE_TYPE_RECOVERABLE_VRS_EIP;
     }
     else {
-        // TRANSACTION_RLP_SIGNED
-        transaction->signature.type = SIGNATURE_TYPE_RECOVERABLE;
+        // RLP_TYPE_TRANSACTION_SIGNED
+        transaction->signature.type = SIGNATURE_TYPE_RECOVERABLE_VRS_EIP;
 
         // If we are RLP decoding a transactino prior to EIP-xxx, then the eipChainId will
         // not be encoded with the chainId.  In that case, just use the eipChainId
-        transaction->signature.sig.recoverable.v = (eipChainId > 30
+        transaction->signature.sig.vrs.v = (eipChainId > 30
                                                     ? eipChainId - 8 - 2 * transaction->chainId
                                                     : eipChainId);
 
-        BRRlpData rData = rlpDecodeItemBytes (coder, items[7]);
-        assert (32 == rData.bytesCount);
-        memcpy (transaction->signature.sig.recoverable.r, rData.bytes, rData.bytesCount);
+        BRRlpData rData = rlpDecodeBytesSharedDontRelease (coder, items[7]);
+        assert (32 >= rData.bytesCount);
+        memcpy (&transaction->signature.sig.vrs.r[32 - rData.bytesCount],
+                rData.bytes, rData.bytesCount);
 
-        BRRlpData sData = rlpDecodeItemBytes (coder, items[8]);
-        assert (32 == sData.bytesCount);
-        memcpy (transaction->signature.sig.recoverable.s, sData.bytes, sData.bytesCount);
+        BRRlpData sData = rlpDecodeBytesSharedDontRelease (coder, items[8]);
+        assert (32 >= sData.bytesCount);
+        memcpy (&transaction->signature.sig.vrs.s[32 - sData.bytesCount],
+                sData.bytes, sData.bytesCount);
 
         // :fingers-crossed:
-        transaction->sourceAddress = transactionExtractAddress(transaction, network);
+        transaction->sourceAddress = transactionExtractAddress(transaction, network, coder);
     }
 
+    if (RLP_TYPE_ARCHIVE == type) {
+        transaction->hash = hashRlpDecode(items[9], coder);
+        transaction->status = transactionStatusRLPDecode(items[10], coder);
+    }
+    // With a SIGNED RLP encoding, we can compute the hash.
+    else if (RLP_TYPE_TRANSACTION_SIGNED == type) {
+        BRRlpData result = rlpGetDataSharedDontRelease(coder, item);
+        transaction->hash = hashCreateFromData(result);
+    }
+
+#if defined (TRANSACTION_LOG_ALLOC_COUNT)
+    eth_log ("MEM", "TX RLPDecode - Count: %d", ++transactionAllocCount);
+#endif
     return transaction;
 }
 
+extern char *
+transactionGetRlpHexEncoded (BREthereumTransaction transaction,
+                             BREthereumNetwork network,
+                             BREthereumRlpType type,
+                             const char *prefix) {
+    if (NULL == prefix) prefix = "";
 
-extern BREthereumTransaction
-transactionDecodeRLP (BREthereumNetwork network,
-                      BREthereumTransactionRLPType type,
-                      BRRlpData data) {
     BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = rlpGetItem (coder, data);
+    BRRlpItem item = transactionRlpEncode (transaction, network, type, coder);
+    BRRlpData data = rlpGetDataSharedDontRelease(coder, item);
 
-    BREthereumTransaction transaction = transactionRlpDecodeItem(item, network, type, coder);
+    char *result;
 
+    if (0 == data.bytesCount)
+        result = strdup (prefix);
+    else {
+        size_t resultLen = strlen(prefix) + 2 * data.bytesCount + 1;
+        result = malloc (resultLen);
+        strcpy (result, prefix);
+        encodeHex(&result[strlen(prefix)], 2 * data.bytesCount + 1, data.bytes, data.bytesCount);
+    }
+
+    rlpReleaseItem(coder, item);
     rlpCoderRelease(coder);
-    return transaction;
+    return result;
 }
 
 //
 // Private
 //
-private_extern BREthereumEther
-transactionGetEffectiveAmountInEther (BREthereumTransaction transaction) {
-    switch (amountGetType(transaction->amount)) {
-        case AMOUNT_TOKEN:
-            return etherCreate(UINT256_ZERO);
-        case AMOUNT_ETHER:
-            return transaction->amount.u.ether;
-    }
-}
-
 extern BREthereumTransactionStatus
 transactionGetStatus (BREthereumTransaction transaction) {
-    return transaction->state.status;
+    return transaction->status;
+}
+
+extern void
+transactionSetStatus (BREthereumTransaction transaction,
+                      BREthereumTransactionStatus status) {
+    transaction->status = status;
 }
 
 extern BREthereumBoolean
 transactionIsConfirmed (BREthereumTransaction transaction) {
-    return (transaction->state.status == TRANSACTION_BLOCKED
-            ? ETHEREUM_BOOLEAN_TRUE
-            : ETHEREUM_BOOLEAN_FALSE);
+    return AS_ETHEREUM_BOOLEAN (TRANSACTION_STATUS_INCLUDED == transaction->status.type);
 }
 
 extern BREthereumBoolean
 transactionIsSubmitted (BREthereumTransaction transaction) {
-    switch (transaction->state.status) {
-        case TRANSACTION_CREATED:
-            return ETHEREUM_BOOLEAN_FALSE;
-        case TRANSACTION_SIGNED:
-        case TRANSACTION_SUBMITTED:
-        case TRANSACTION_BLOCKED:
-        case TRANSACTION_DROPPED:
-            return ETHEREUM_BOOLEAN_TRUE;
-    }
+    return AS_ETHEREUM_BOOLEAN(TRANSACTION_STATUS_UNKNOWN != transaction->status.type);
 }
 
-extern void
-transactionAnnounceBlocked(BREthereumTransaction transaction,
-                           BREthereumGas gasUsed,
-                           uint64_t blockNumber,
-                           uint64_t blockTimestamp,
-                           uint64_t blockTransactionIndex) {
-    transactionStateBlocked(&transaction->state, gasUsed,
-                            blockNumber,
-                            blockTimestamp,
-                            blockTransactionIndex);
-}
-
-extern void
-transactionAnnounceDropped (BREthereumTransaction transaction,
-                            int foo) {
-    transactionStateDropped(&transaction->state);
-}
-
-extern void
-transactionAnnounceSubmitted (BREthereumTransaction transaction,
-                              BREthereumHash hash) {
-    transactionStateSubmitted(&transaction->state);
-    transaction->hash = hashCopy(hash);
+extern BREthereumBoolean
+transactionIsErrored (BREthereumTransaction transaction) {
+    return AS_ETHEREUM_BOOLEAN(TRANSACTION_STATUS_ERRORED == transaction->status.type);
 }
 
 static int
 transactionHasStatus(BREthereumTransaction transaction,
-                     BREthereumTransactionStatus status) {
-    return status == transaction->state.status;
+                     BREthereumTransactionStatusType type) {
+    return type == transaction->status.type;
 }
 
-extern int
-transactionExtractBlocked(BREthereumTransaction transaction, BREthereumGas *gas,
-                          uint64_t *blockNumber,
-                          uint64_t *blockTimestamp,
-                          uint64_t *blockTransactionIndex) {
-    if (!transactionHasStatus(transaction, TRANSACTION_BLOCKED))
-        return 0;
-
-    if (NULL != gas) *gas = transaction->state.u.blocked.gasUsed;
-    if (NULL != blockNumber) *blockNumber = transaction->state.u.blocked.number;
-    if (NULL != blockTimestamp) *blockTimestamp = transaction->state.u.blocked.timestamp;
-    if (NULL != blockTransactionIndex) *blockTransactionIndex = transaction->state.u.blocked.transactionIndex;
-
-    return 1;
-}
 
 /**
  * Compare two transactions based on their block, or if not blocked, their nonce.
@@ -679,17 +531,17 @@ transactionExtractBlocked(BREthereumTransaction transaction, BREthereumGas *gas,
 extern BREthereumComparison
 transactionCompare(BREthereumTransaction t1,
                    BREthereumTransaction t2) {
-    int t1Blocked = transactionHasStatus(t1, TRANSACTION_BLOCKED);
-    int t2Blocked = transactionHasStatus(t2, TRANSACTION_BLOCKED);
+    int t1Blocked = transactionHasStatus(t1, TRANSACTION_STATUS_INCLUDED);
+    int t2Blocked = transactionHasStatus(t2, TRANSACTION_STATUS_INCLUDED);
 
     if (t1Blocked && t2Blocked)
-        return (t1->state.u.blocked.number < t2->state.u.blocked.number
+        return (t1->status.u.included.blockNumber < t2->status.u.included.blockNumber
                 ? ETHEREUM_COMPARISON_LT
-                : (t1->state.u.blocked.number > t2->state.u.blocked.number
+                : (t1->status.u.included.blockNumber > t2->status.u.included.blockNumber
                    ? ETHEREUM_COMPARISON_GT
-                   : (t1->state.u.blocked.transactionIndex < t2->state.u.blocked.transactionIndex
+                   : (t1->status.u.included.transactionIndex < t2->status.u.included.transactionIndex
                       ? ETHEREUM_COMPARISON_LT
-                      : (t1->state.u.blocked.transactionIndex > t2->state.u.blocked.transactionIndex
+                      : (t1->status.u.included.transactionIndex > t2->status.u.included.transactionIndex
                          ? ETHEREUM_COMPARISON_GT
                          : ETHEREUM_COMPARISON_EQ))));
 
@@ -707,17 +559,55 @@ transactionCompare(BREthereumTransaction t1,
                    : ETHEREUM_COMPARISON_EQ));
 }
 
+extern void
+transactionShow (BREthereumTransaction transaction, const char *topic) {
+    int overflow;
 
-//
-// Transaction Result
-//
-struct BREthereumTransactionResult {
-    BREthereumTransaction transaction;
-    BREthereumGas gas;
-    // block hash
-    // block number
-    // transaction index
-};
+    char *hash = hashAsString (transaction->hash);
+    char *source = addressGetEncodedString(transaction->sourceAddress, 1);
+    char *target = addressGetEncodedString(transactionGetTargetAddress(transaction), 1);
+    char *amount = etherGetValueString (transactionGetAmount(transaction), ETHER);
+    char *gasP   = etherGetValueString (transactionGetGasPrice(transaction).etherPerGas, GWEI);
+    char *fee    = etherGetValueString (transactionGetFee(transaction, &overflow), ETHER);
+
+    BREthereumEther totalEth = etherCreate(addUInt256_Overflow(transaction->amount.valueInWEI, transactionGetFee(transaction, &overflow).valueInWEI, &overflow));
+    char *total  = etherGetValueString (totalEth, ETHER);
+    char *totalWEI = etherGetValueString (totalEth, WEI);
+
+    eth_log (topic, "=== Transaction%s", "");
+    eth_log (topic, "    Hash  : %s", hash);
+    eth_log (topic, "    Nonce : %llu", transactionGetNonce(transaction));
+    eth_log (topic, "    Source: %s", source);
+    eth_log (topic, "    Target: %s", target);
+    eth_log (topic, "    Amount: %s ETHER", amount);
+    eth_log (topic, "    GasPrc: %s GWEI", gasP);
+    eth_log (topic, "    GasLmt: %llu", transactionGetGasLimit(transaction).amountOfGas);
+    eth_log (topic, "    Fee   : %s ETHER", fee);
+    eth_log (topic, "    Total : %s ETHER", total);
+    eth_log (topic, "    Total : %s WEI", totalWEI);
+    eth_log (topic, "    Data  : %s", transaction->data);
+
+    BREthereumContractFunction function = contractLookupFunctionForEncoding (contractERC20, transaction->data);
+    if (NULL != function && functionERC20Transfer == function) {
+        BRCoreParseStatus status;
+        UInt256 funcAmount = functionERC20TransferDecodeAmount(function, transaction->data, &status);
+        char *funcAddr   = functionERC20TransferDecodeAddress (function, transaction->data);
+        char *funcAmt    = coerceString(funcAmount, 10);
+
+        BREthereumToken token = tokenLookup(target);
+
+        eth_log (topic, "    Token : %s", (NULL == token ? "???" : tokenGetSymbol(token)));
+        eth_log (topic, "    TokFnc: %s", "erc20 transfer");
+        eth_log (topic, "    TokAmt: %s", funcAmt);
+        eth_log (topic, "    TokAdr: %s", funcAddr);
+
+        free (funcAmt); free (funcAddr);
+
+    }
+    free (totalWEI); free (total); free (fee); free (gasP);
+    free (amount); free (target); free (source); free (hash);
+
+}
 
 /*
      https://github.com/ethereum/pyethereum/blob/develop/ethereum/transactions.py#L22
