@@ -139,6 +139,78 @@ messageP2PDecode (BRRlpItem item,
                   BREthereumMessageCoder coder,
                   BREthereumP2PMessageIdentifier identifer);
 
+/// MARK : - P2P Status Message Faker
+
+typedef enum {
+    P2P_MESSAGE_STATUS_PROTOCOL_VERSION,    // P: is 1 for the PIPV1 protocol version
+    P2P_MESSAGE_STATUS_NETWORK_ID,          // P: should be 0 for testnet, 1 for mainnet.
+    P2P_MESSAGE_STATUS_HEAD_TD,             // P: Total Difficulty of the best chain. Integer, as found in block header.
+    P2P_MESSAGE_STATUS_HEAD_HASH,           // B_32: the hash of the best (i.e. highest TD) known block.
+    P2P_MESSAGE_STATUS_HEAD_NUM,            // P: the number of the best (i.e. highest TD) known block.
+    P2P_MESSAGE_STATUS_GENESIS_HASH,        // B_32: the hash of the Genesis block
+    P2P_MESSAGE_STATUS_SERVE_HEADERS,       // (optional, no value): present if the peer can serve header chain downloads
+    P2P_MESSAGE_STATUS_SERVE_CHAIN_SINCE,   // P (optional): present if the peer can serve Body/Receipts ODR requests starting from the given block number.
+    P2P_MESSAGE_STATUS_SERVE_STATE_SINCE,   // P (optional): present if the peer can serve Proof/Code ODR requests starting from the given block number.
+    P2P_MESSAGE_STATUS_TX_RELAY,            // (optional, no value): present if the peer can relay transactions to the network.
+    P2P_MESSAGE_STATUS_FLOW_CONTROL_BL,     // P (optional): Max credits,
+    P2P_MESSAGE_STATUS_FLOW_CONTROL_MRC,    // (optional): Cost table,
+    P2P_MESSAGE_STATUS_FLOW_CONTROL_MRR,    // (optional): Rate of recharge
+    P2P_MESSAGE_STATUS_ANNOUNCE_TYPE        // LESv2
+} BREthereumP2MessageStatusKey;
+
+typedef enum {
+    P2P_MESSAGE_STATUS_VALUE_INTEGER,
+    P2P_MESSAGE_STATUS_VALUE_HASH,
+    P2P_MESSAGE_STATUS_VALUE_BOOLEAN,
+    P2P_MESSAGE_STATUS_VALUE_COST_TABLE,
+    P2P_MESSAGE_STATUS_VALUE_RECHARGE_RATE,
+} BREthereumP2PMessageStatusValueType;
+
+typedef struct {
+    BREthereumP2PMessageStatusValueType type;
+    union {
+        uint64_t integer;
+        BREthereumHash hash;
+        BREthereumBoolean boolean;
+        // ...
+    } u;
+} BREthereumP2PMessageStatusValue;
+
+typedef struct {
+    BREthereumP2MessageStatusKey key;
+    BREthereumP2PMessageStatusValue value;
+} BREthereumP2PMessageStatusKeyValuePair;
+
+typedef struct {
+    // Required key-value pairs
+    uint64_t protocolVersion;
+    uint64_t chainId;
+
+    uint64_t headNum;
+    BREthereumHash headHash;
+    UInt256 headTd;
+    BREthereumHash genesisHash;
+
+    // Optional key-value pairs
+    BRArrayOf(BREthereumP2PMessageStatusKeyValuePair) pairs;
+} BREthereumP2PMessageStatus;
+
+extern int
+messageP2PStatusExtractValue (BREthereumP2PMessageStatus *status,
+                              BREthereumP2MessageStatusKey key,
+                              BREthereumP2PMessageStatusValue *value);
+
+extern void
+messageP2PStatusShow(BREthereumP2PMessageStatus *status);
+
+extern BRRlpItem
+messageP2PStatusEncode (BREthereumP2PMessageStatus *status,
+                        BREthereumMessageCoder coder);
+
+extern BREthereumP2PMessageStatus
+messageP2PStatusDecode (BRRlpItem item,
+                        BREthereumMessageCoder coder);
+
 #ifdef __cplusplus
 }
 #endif

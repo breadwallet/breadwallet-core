@@ -253,7 +253,7 @@ static void
 bcsHandleNodesDestroyer (BREthereumHandleNodesEvent *event) {
     if (NULL != event->nodes) {
         for (size_t index = 0; index < array_count(event->nodes); index++)
-            lesNodeConfigRelease(event->nodes[index]);
+            nodeConfigRelease(event->nodes[index]);
         array_free(event->nodes);
     }
 }

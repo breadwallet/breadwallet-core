@@ -226,19 +226,26 @@ bcsCreate (BREthereumNetwork network,
     bcsCreateInitializeTransactions(bcs, transactions);
     bcsCreateInitializeLogs(bcs, logs);
 
-    // Initialize LES and SYNC
-    BREthereumBlockHeader header = blockGetHeader(bcs->chain);
+    // Initialize LES and SYNC - we must create LES from a block where the totalDifficulty is
+    // computed.  In practice, we need all the blocks from bcs->chain back to a checkpoint - and
+    // that is unlikely.  We'll at least try.
+    int totalDifficultyIsValid = 0;
+    UInt256 totalDifficulty = blockGetTotalDifficulty(bcs->chain, &totalDifficultyIsValid);
+    // assert (0 == totalDifficultyIsValid);
 
-    // TODO: Provide 'peers'
+    // Okay, we tried.  Let's assume it failed.
+    const BREthereumBlockCheckpoint *checkpoint =
+    blockCheckpointLookupByNumber (bcs->network, blockGetNumber(bcs->chain));
+
     bcs->les = lesCreate (bcs->network,
                           (BREthereumLESCallbackContext) bcs,
                           (BREthereumLESCallbackAnnounce) bcsSignalAnnounce,
                           (BREthereumLESCallbackStatus) bcsSignalStatus,
                           (BREthereumLESCallbackSaveNodes) bcsSignalNodes,
-                          blockHeaderGetHash(header),
-                          blockHeaderGetNumber(header),
-                          blockHeaderGetDifficulty(header),
-                          blockHeaderGetHash(blockGetHeader(bcs->genesis)),
+                          checkpoint->hash,
+                          checkpoint->number,
+                          checkpoint->u.td,
+                          blockGetHash(bcs->chain),
                           peers);
 
     bcs->sync = bcsSyncCreate ((BREthereumBCSSyncContext) bcs,

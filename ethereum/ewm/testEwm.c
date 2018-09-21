@@ -668,7 +668,7 @@ runSyncTest (unsigned int durationInSeconds,
 
     client.context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
-    char *paperKey = "boring head harsh green empty clip fatal typical found crane dinner timber";
+    char *paperKey = "0x8975dbc1b8f25ec994815626d070899dda896511"; // "boring head harsh green empty clip fatal typical found crane dinner timber";
     alarmClockCreateIfNecessary (1);
 
     BRArrayOf(BREthereumPersistData) blocks = (restart ? savedBlocks : NULL);
@@ -701,6 +701,10 @@ runSyncTest (unsigned int durationInSeconds,
                                        blocks,
                                        transactions,
                                        logs);
+
+    char *address = ethereumGetAccountPrimaryAddress(ewm);
+    printf ("***\n*** Address: %s\n", address);
+    free (address);
 
     // We passed on { node, block, etc } - we no longer own the memory.  Thus:
     savedBlocks = NULL;

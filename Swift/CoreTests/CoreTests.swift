@@ -54,7 +54,7 @@ class CoreTests: XCTestCase {
     }
 
     func testLESNode () {
-        runNodeTests()
+//        runNodeTests()
     }
 
     func testEthereumBasics() {
@@ -62,7 +62,7 @@ class CoreTests: XCTestCase {
     }
 
     func testEthereumSync () {
-        runSyncTest (2 * 60, 0);
+        runSyncTest (5 * 60, 0);
         runSyncTest (1 * 60, 1);
     }
 

@@ -43,6 +43,9 @@ typedef enum {
 
 #define NUMBER_OF_NODE_ROUTES  (1 + NODE_ROUTE_TCP)
 
+#define FOR_EACH_ROUTE( route ) \
+    for (BREthereumNodeEndpointRoute route = NODE_ROUTE_UDP; route <= NODE_ROUTE_TCP; route++)
+
 static inline const char *
 nodeEndpointRouteGetName (BREthereumNodeEndpointRoute route) {
     return (NODE_ROUTE_TCP == route ? "TCP" : "UDP");
@@ -52,11 +55,13 @@ nodeEndpointRouteGetName (BREthereumNodeEndpointRoute route) {
 // Endpoint
 //
 typedef struct {
+    BREthereumHash hash;
+
     /** An optional hostname - if not provided this will be a IP addr string */
     char hostname[_POSIX_HOST_NAME_MAX + 1];
 
     /** The 'Discovery Endpoint' */
-     BREthereumDISEndpoint dis;
+     BREthereumDISNeighbor dis;
 
      /** The socket - will be -1 if not connected */
     int sockets[NUMBER_OF_NODE_ROUTES];
@@ -65,7 +70,7 @@ typedef struct {
     uint64_t timestamp;
 
     /** Public Key (for the remote peer ) */
-    BRKey key;
+    // BRKey key;
 
     /** The ephemeral public key */
     BRKey ephemeralKey;
@@ -73,24 +78,18 @@ typedef struct {
     /** The nonce */
     UInt256 nonce;
 
-    /** The Hello PSP message */
+    /** The Hello P2P message */
     BREthereumP2PMessage hello;     // BREthereumP2PMessageHello
 
-    /** The Status LES message */
-    BREthereumLESMessage status;    // BREthereumLESMessageStatus
+    /** The Status LES/PIP message */
+    BREthereumMessage status;
+
+    BREthereumBoolean discovered;
 
 } BREthereumNodeEndpoint;
 
-// Use for 'local
 extern BREthereumNodeEndpoint
-nodeEndpointCreateDetailed (BREthereumDISEndpoint dis,
-                            BRKey key,
-                            BRKey ephemeralKey,
-                            UInt256 nonce);
-
-extern BREthereumNodeEndpoint
-nodeEndpointCreate (BREthereumDISEndpoint dis,
-                    BRKey key);
+nodeEndpointCreate (BREthereumDISNeighbor dis);
 
 extern BREthereumNodeEndpoint
 nodeEndpointCreateLocal (BREthereumLESRandomContext randomContext);
@@ -104,7 +103,7 @@ nodeEndpointSetHello (BREthereumNodeEndpoint *endpoint,
 
 extern void
 nodeEndpointSetStatus (BREthereumNodeEndpoint *endpoint,
-                       BREthereumLESMessage status);
+                       BREthereumMessage status);
 
 extern int
 nodeEndpointOpen (BREthereumNodeEndpoint *endpoint,
@@ -119,21 +118,6 @@ extern int
 nodeEndpointIsOpen (BREthereumNodeEndpoint *endpoint,
                     BREthereumNodeEndpointRoute route);
 
-//extern int
-//nodeEndpointHasRecvDataAvailable (BREthereumNodeEndpoint *endpoint,
-//                                  fd_set *readFds);
-//
-//extern void
-//nodeEndpointSetRecvDataAvailableFDS (BREthereumNodeEndpoint *endpoint,
-//                                     fd_set *readFds);
-//
-//extern void
-//nodeEndpointClrRecvDataAvailableFDS (BREthereumNodeEndpoint *endpoint,
-//                                     fd_set *readFds);
-//
-//extern int
-//nodeEndpointGetRecvDataAvailableFDSNum (BREthereumNodeEndpoint *endpoint);
-
 extern int
 nodeEndpointRecvData (BREthereumNodeEndpoint *endpoint,
                       BREthereumNodeEndpointRoute route,
@@ -147,9 +131,23 @@ nodeEndpointSendData (BREthereumNodeEndpoint *endpoint,
                       uint8_t *bytes,
                       size_t bytesCount);
 
-    extern const char *localLESEnode;
-    extern const char *bootstrapLESEnodes[];
-    extern size_t NUMBER_OF_NODE_ENDPOINT_SPECS;
+// Support BRSet
+extern size_t
+nodeEndpointHashValue (const void *h);
+
+// Support BRSet
+extern int
+nodeEndpointHashEqual (const void *h1, const void *h2);
+
+extern const char *localLESEnode;
+extern const char *bootstrapLCLEnodes[];
+extern const char *bootstrapBRDEnodes[];
+extern const char *bootstrapLESEnodes[];
+extern const char *bootstrapParityEnodes[];
+extern const char *bootstrapGethEnodes[];
+
+extern const char **bootstrapMainnetEnodeSets[];
+extern size_t NUMBER_OF_NODE_ENDPOINT_SETS;
 
 #ifdef __cplusplus
 }

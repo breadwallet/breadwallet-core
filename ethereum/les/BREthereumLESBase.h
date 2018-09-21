@@ -46,6 +46,13 @@
 
 #define LES_LOG_TOPIC "LES"
 
+/**
+ * The Supported P2P version - this applies to both the DIS and P2P messagging.
+ *
+ * https://github.com/ethereum/devp2p/blob/master/discv4.md
+ */
+#define P2P_MESSAGE_VERSION     0x04
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -81,7 +88,7 @@ typedef struct {
     // ignored."
     //
     // Generally, we have one protocol specified
-    uint64_t lesMessageIdOffset;
+    uint64_t messageIdOffset;
 } BREthereumMessageCoder;
 
 

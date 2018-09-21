@@ -34,6 +34,9 @@
 
 #include "BREthereumProvision.h"
 
+#define LES_SUPPORT_PARITY
+#undef  LES_SUPPORT_GETH        // not until GetProofs{V1,V2} 'works'
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -42,23 +45,23 @@ extern "C" {
 
 /**
  * A LES Node Config is used to save a node for use when reestablishing LES.  See the typedef
- * BREthereumLESCallbackSaveNodes.
+ * BREthereumLESCallbackSaveNodes.  (NO: Note: these interfaces are implemented in BREthereumNode.c)
  */
 typedef struct BREthereumNodeConfigRecord *BREthereumNodeConfig;
 
 extern void
-lesNodeConfigRelease (BREthereumNodeConfig config);
+nodeConfigRelease (BREthereumNodeConfig config);
 
 extern BREthereumHash
-lesNodeConfigGetHash (BREthereumNodeConfig config);
+nodeConfigGetHash (BREthereumNodeConfig config);
 
 extern BRRlpItem
-lesNodeConfigEncode (BREthereumNodeConfig config,
-                     BRRlpCoder coder);
+nodeConfigEncode (BREthereumNodeConfig config,
+                  BRRlpCoder coder);
 
 extern BREthereumNodeConfig
-lesNodeConfigDecode (BRRlpItem item,
-                     BRRlpCoder coder);
+nodeConfigDecode (BRRlpItem item,
+                  BRRlpCoder coder);
 
 /*!
  * @typedef BREthereumLES

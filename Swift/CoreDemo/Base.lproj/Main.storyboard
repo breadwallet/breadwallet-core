@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="14113" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="H1p-Uh-vWS">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="14313.18" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="H1p-Uh-vWS">
     <device id="retina4_7" orientation="portrait">
         <adaptation id="fullscreen"/>
     </device>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="14088"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="14283.14"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -24,9 +24,9 @@
                 </navigationController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="8fS-aE-onr" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-39" y="-630"/>
+            <point key="canvasLocation" x="-991" y="-579"/>
         </scene>
-        <!--Transfer View Controller-->
+        <!--Transfer Detail-->
         <scene sceneID="fFB-71-wSO">
             <objects>
                 <viewController id="hSS-q9-i3e" customClass="TransferViewController" customModule="CoreDemo" customModuleProvider="target" sceneMemberID="viewController">
@@ -159,7 +159,7 @@
                         </constraints>
                         <viewLayoutGuide key="safeArea" id="DSr-Cq-WjE"/>
                     </view>
-                    <navigationItem key="navigationItem" id="14w-Q2-koN"/>
+                    <navigationItem key="navigationItem" title="Transfer Detail" id="14w-Q2-koN"/>
                     <connections>
                         <outlet property="amountLabel" destination="zpy-jG-U3g" id="GVQ-jv-jtI"/>
                         <outlet property="confLabel" destination="XO7-1V-dpo" id="9hj-Tr-JTJ"/>
@@ -172,7 +172,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="bmQ-fE-d6O" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="721" y="918"/>
+            <point key="canvasLocation" x="-132" y="958"/>
         </scene>
         <!--Split View Controller-->
         <scene sceneID="Nki-YV-4Qg">
@@ -186,7 +186,7 @@
                 </splitViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="cZU-Oi-B1e" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-856" y="-330"/>
+            <point key="canvasLocation" x="-1780" y="-166"/>
         </scene>
         <!--Summary Table View (Wallets)-->
         <scene sceneID="smW-Zh-WAh">
@@ -232,11 +232,11 @@
                             <outlet property="delegate" destination="7bK-jq-Zjz" id="RA6-mI-bju"/>
                         </connections>
                     </tableView>
-                    <navigationItem key="navigationItem" title="Summary" id="Zdf-7t-Un8"/>
+                    <navigationItem key="navigationItem" title="Wallets" id="Zdf-7t-Un8"/>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="Rux-fX-hf1" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="721" y="-630"/>
+            <point key="canvasLocation" x="-132" y="-580"/>
         </scene>
         <!--Transfer Navigator (Details)-->
         <scene sceneID="r7l-gg-dq7">
@@ -252,7 +252,7 @@
                 </navigationController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="SLD-UC-DBI" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-39" y="918"/>
+            <point key="canvasLocation" x="-991" y="959"/>
         </scene>
         <!--Wallet Table View (Transfers)-->
         <scene sceneID="cnH-6q-gf9">
@@ -314,7 +314,7 @@
                             <outlet property="delegate" destination="me2-V4-1s1" id="oG7-eA-CfC"/>
                         </connections>
                     </tableView>
-                    <navigationItem key="navigationItem" title="Wallet" id="gpA-m1-7MB">
+                    <navigationItem key="navigationItem" title="Wallet Transfers" id="gpA-m1-7MB">
                         <barButtonItem key="rightBarButtonItem" style="plain" systemItem="add" id="eEO-9T-DbA">
                             <connections>
                                 <segue destination="66z-us-aMt" kind="presentation" identifier="createTransfer" id="FEb-jC-U2A"/>
@@ -324,9 +324,9 @@
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="FLc-Kl-qPp" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="720.79999999999995" y="144.3778110944528"/>
+            <point key="canvasLocation" x="-132" y="190"/>
         </scene>
-        <!--Title-->
+        <!--Create Transfer-->
         <scene sceneID="cud-6N-Xv9">
             <objects>
                 <viewController id="G47-GP-HJH" customClass="TransferCreateController" customModule="CoreDemo" customModuleProvider="target" sceneMemberID="viewController">
@@ -418,7 +418,7 @@
                         </constraints>
                         <viewLayoutGuide key="safeArea" id="tAg-Bh-B64"/>
                     </view>
-                    <navigationItem key="navigationItem" title="Title" id="5cK-Ul-PGO">
+                    <navigationItem key="navigationItem" title="Create Transfer" id="5cK-Ul-PGO">
                         <barButtonItem key="leftBarButtonItem" style="plain" systemItem="cancel" id="DKD-96-0yY">
                             <connections>
                                 <action selector="cancel:" destination="G47-GP-HJH" id="b6D-gZ-M7J"/>
@@ -442,7 +442,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="1ZC-G1-BXS" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="2324" y="144"/>
+            <point key="canvasLocation" x="1618" y="190"/>
         </scene>
         <!--Navigation Controller-->
         <scene sceneID="lSD-JJ-enw">
@@ -458,7 +458,7 @@
                 </navigationController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="N2l-qh-cmF" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="1537" y="143"/>
+            <point key="canvasLocation" x="727" y="190"/>
         </scene>
         <!--Wallet Navigator (Transfers)-->
         <scene sceneID="ELk-c9-CCc">
@@ -474,7 +474,7 @@
                 </navigationController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="eKa-tV-Nrz" userLabel="First Responder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-39" y="146"/>
+            <point key="canvasLocation" x="-991" y="191"/>
         </scene>
     </scenes>
     <inferredMetricsTieBreakers>

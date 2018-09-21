@@ -112,7 +112,7 @@ messageGetAnyIdentifierName (BREthereumMessage *message) {
         case MESSAGE_DIS: return messageDISGetIdentifierName (message->u.dis.identifier);
         case MESSAGE_ETH: return "";
         case MESSAGE_LES: return messageLESGetIdentifierName (message->u.les.identifier);
-        case MESSAGE_PIP: return messagePIPGetIdentifierName (message->u.pip.type);
+        case MESSAGE_PIP: return messagePIPGetIdentifierName (message->u.pip);
     }
 }
 

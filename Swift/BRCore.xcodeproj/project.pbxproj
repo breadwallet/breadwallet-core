@@ -1644,6 +1644,10 @@
 					../secp256k1/,
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 11.3;
+				OTHER_CFLAGS = (
+					"-DBITCOIN_DEBUG",
+					"-DDEBUG",
+				);
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1665,6 +1669,7 @@
 					../secp256k1/,
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 11.3;
+				OTHER_CFLAGS = "";
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;

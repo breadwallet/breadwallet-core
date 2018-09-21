@@ -30,7 +30,7 @@
 #include "../../mpt/BREthereumMPT.h"
 #include "../../blockchain/BREthereumBlock.h"
 #include "../../blockchain/BREthereumTransactionReceipt.h"
-
+#include "BREthereumMessageP2P.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -71,22 +71,6 @@ messageLESGetIdentifierName (BREthereumLESMessageIdentifier id);
 /// MARK: LES Status
 
 /** */
-typedef const char *BREthereumLESMessageStatusKey;
-
-typedef union {
-    uint32_t number;
-    int boolean;
-    UInt256 bignum;
-    BREthereumHash hash;
-    // flow control
-} BREthereumLESMessageStatusValue;
-
-typedef struct {
-    // int provided;
-    BREthereumLESMessageStatusKey key;
-    BREthereumLESMessageStatusValue value;
-} BREthereumLESMessageStatusKeyValuePair;
-
 typedef struct {
     uint64_t msgCode;
     uint64_t baseCost;
@@ -97,25 +81,7 @@ typedef struct {
  * A LES Status message ...
  */
 typedef struct {
-    uint64_t protocolVersion;
-    uint64_t chainId;
-    
-    uint64_t headNum;
-    BREthereumHash headHash;
-    UInt256 headTd;
-    BREthereumHash genesisHash;
-    
-    // Note: The below fields are optional LPV1
-    BREthereumBoolean serveHeaders;
-    uint64_t *serveChainSince;
-    uint64_t *serveStateSince;
-    BREthereumBoolean txRelay;
-    
-    uint64_t *flowControlBL;
-    BREthereumLESMessageStatusMRC *flowControlMRC;
-    size_t   *flowControlMRCCount;
-    uint64_t *flowControlMRR;
-    uint64_t  announceType;
+    BREthereumP2PMessageStatus p2p;
 } BREthereumLESMessageStatus;
 
 extern BREthereumLESMessageStatus
@@ -128,10 +94,12 @@ messageLESStatusCreate (uint64_t protocolVersion,
                         uint64_t announceType);
 
 extern BRRlpItem
-messageLESStatusEncode (BREthereumLESMessageStatus *status, BREthereumMessageCoder coder);
+messageLESStatusEncode (BREthereumLESMessageStatus *status,
+                        BREthereumMessageCoder coder);
 
 extern BREthereumLESMessageStatus
-messageLESStatusDecode (BRRlpItem item, BREthereumMessageCoder coder);
+messageLESStatusDecode (BRRlpItem item,
+                        BREthereumMessageCoder coder);
 
 extern void
 messageLESStatusShow(BREthereumLESMessageStatus *status);
@@ -147,7 +115,7 @@ typedef struct {
     uint64_t headNumber;
     UInt256 headTotalDifficulty;
     uint64_t reorgDepth;
-    BRArrayOf(BREthereumLESMessageStatusKeyValuePair) pairs;
+    BRArrayOf(BREthereumP2PMessageStatusKeyValuePair) pairs;
 } BREthereumLESMessageAnnounce;
 
 /// MARK: LES Get Block Headers

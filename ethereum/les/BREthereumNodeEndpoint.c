@@ -56,49 +56,48 @@ openSocket (BREthereumNodeEndpoint *endpoint, int *socket, int port, int domain,
 // MARK: - LES Node Endpoint
 //
 extern BREthereumNodeEndpoint
-nodeEndpointCreateDetailed (BREthereumDISEndpoint dis,
-                            BRKey key,
+nodeEndpointCreateDetailed (BREthereumDISNeighbor dis,
                             BRKey ephemeralKey,
                             UInt256 nonce) {
     BREthereumNodeEndpoint endpoint;
     memset (&endpoint, 0, sizeof (BREthereumNodeEndpoint));
 
     endpoint.dis = dis;
+    endpoint.hash = neighborDISHash(dis);
 
     for (int i = 0; i < NUMBER_OF_NODE_ROUTES; i++)
         endpoint.sockets[i] = -1;
 
     endpoint.timestamp = 0;
 
-    endpoint.key = key;
-    endpoint.nonce = UINT256_ZERO;
+    endpoint.nonce = nonce;
     endpoint.ephemeralKey = ephemeralKey;
 
-    inet_ntop (dis.domain, (void *) &dis.addr, endpoint.hostname, _POSIX_HOST_NAME_MAX + 1);
+    inet_ntop (dis.node.domain, (void *) &dis.node.addr, endpoint.hostname, _POSIX_HOST_NAME_MAX + 1);
 
+    endpoint.discovered = ETHEREUM_BOOLEAN_FALSE;
     return endpoint;
 }
 
 extern BREthereumNodeEndpoint
-nodeEndpointCreate (BREthereumDISEndpoint dis,
-                    BRKey key) {
+nodeEndpointCreate (BREthereumDISNeighbor dis) {
     UInt256 nonce = UINT256_ZERO;
     BRKey ephemeralKey;
     BRKeyClean(&ephemeralKey);
 
-    return nodeEndpointCreateDetailed (dis, key, ephemeralKey, nonce);
+    return nodeEndpointCreateDetailed (dis, ephemeralKey, nonce);
 }
 
 extern BREthereumNodeEndpoint
 nodeEndpointCreateLocal (BREthereumLESRandomContext randomContext) {
-    BREthereumDISEndpoint dis = {
+    BREthereumDISEndpoint disEndpoint = {
         AF_INET,
-        {},
+        { .ipv6 = { 0,0,0,0,   0,0,0,0,   0,0,0,0,   0,0,0,0 } },
         LES_LOCAL_ENDPOINT_UDP_PORT,
         LES_LOCAL_ENDPOINT_TCP_PORT
     };
 
-    inet_pton (dis.domain, LES_LOCAL_ENDPOINT_ADDRESS, &dis.addr);
+    inet_pton (disEndpoint.domain, LES_LOCAL_ENDPOINT_ADDRESS, &disEndpoint.addr);
 
     BRKey localKey, localEphemeralKey;
     UInt256 localNonce;
@@ -109,7 +108,9 @@ nodeEndpointCreateLocal (BREthereumLESRandomContext randomContext) {
 
     assert (0 == localKey.compressed);
 
-    return nodeEndpointCreateDetailed (dis, localKey, localEphemeralKey, localNonce);
+    BREthereumDISNeighbor dis = { disEndpoint, localKey };
+
+    return nodeEndpointCreateDetailed (dis, localEphemeralKey, localNonce);
 }
 
 extern BREthereumNodeEndpoint
@@ -125,25 +126,39 @@ nodeEndpointCreateEnode (const char *enode) {
     char *pt = strsep (&buf, "@:");
     int port = atoi (pt);
 
-    BREthereumDISEndpoint dis = {
+    BREthereumDISEndpoint disEndpoint = {
         AF_INET,
-        {},
+        { .ipv6 = { 0,0,0,0,   0,0,0,0,   0,0,0,0,   0,0,0,0 } },
         port,
         port
     };
 
-    inet_pton (dis.domain, ip, &dis.addr);
+    inet_pton (disEndpoint.domain, ip, &disEndpoint.addr);
 
     BRKey key;
     key.pubKey[0] = 0x04;
     key.compressed = 0;
     decodeHex(&key.pubKey[1], 64, id, 128);
-    return nodeEndpointCreate(dis, key);
+
+    return nodeEndpointCreate((BREthereumDISNeighbor) { disEndpoint, key });
+}
+
+// Support BRSet
+extern size_t
+nodeEndpointHashValue (const void *h) {
+    return hashSetValue(&((BREthereumNodeEndpoint*) h)->hash);
+}
+
+// Support BRSet
+extern int
+nodeEndpointHashEqual (const void *h1, const void *h2) {
+    return h1 == h2 || hashSetEqual (&((BREthereumNodeEndpoint*) h1)->hash,
+                                     &((BREthereumNodeEndpoint*) h2)->hash);
 }
 
 extern BRKey
 nodeEndpointGetKey (BREthereumNodeEndpoint endpoint) {
-    return endpoint.key;
+    return endpoint.dis.key;
 }
 
 extern void
@@ -154,7 +169,7 @@ nodeEndpointSetHello (BREthereumNodeEndpoint *endpoint,
 
 extern void
 nodeEndpointSetStatus (BREthereumNodeEndpoint *endpoint,
-                       BREthereumLESMessage status) {
+                       BREthereumMessage status) {
     endpoint->status = status;
 }
 
@@ -165,8 +180,8 @@ nodeEndpointOpen (BREthereumNodeEndpoint *endpoint,
     
     return openSocket (endpoint,
                        &endpoint->sockets[route],
-                       (route == NODE_ROUTE_TCP ? endpoint->dis.portTCP : endpoint->dis.portUDP),
-                       endpoint->dis.domain,
+                       (route == NODE_ROUTE_TCP ? endpoint->dis.node.portTCP : endpoint->dis.node.portUDP),
+                       endpoint->dis.node.domain,
                        (route == NODE_ROUTE_TCP ? SOCK_STREAM : SOCK_DGRAM),
                        CONNECTION_TIME);
 }
@@ -239,7 +254,7 @@ nodeEndpointRecvData (BREthereumNodeEndpoint *endpoint,
     if (error)
         eth_log (LES_LOG_TOPIC, "Recv: %s @ %5d => %15s %s%s",
                  nodeEndpointRouteGetName(route),
-                 (NODE_ROUTE_UDP == route ? endpoint->dis.portUDP : endpoint->dis.portTCP),
+                 (NODE_ROUTE_UDP == route ? endpoint->dis.node.portUDP : endpoint->dis.node.portTCP),
                  endpoint->hostname,
                  "Error: ",
                  strerror(error));
@@ -287,7 +302,7 @@ nodeEndpointSendData (BREthereumNodeEndpoint *endpoint,
     if (error)
         eth_log (LES_LOG_TOPIC, "Send: %s @ %5d => %15s %s%s",
                  nodeEndpointRouteGetName(route),
-                 (NODE_ROUTE_UDP == route ? endpoint->dis.portUDP : endpoint->dis.portTCP),
+                 (NODE_ROUTE_UDP == route ? endpoint->dis.node.portUDP : endpoint->dis.node.portTCP),
                  endpoint->hostname,
                  "Error: ",
                  strerror(error));
@@ -303,7 +318,6 @@ nodeEndpointSendData (BREthereumNodeEndpoint *endpoint,
 // https://stackoverflow.com/questions/27014955/socket-connect-vs-bind
 // http://www.microhowto.info/howto/listen_for_and_receive_udp_datagrams_in_c.html
 
-
 static void
 nodeEndpointFillSockAddr (BREthereumNodeEndpoint *endpoint,
                           int port,
@@ -312,13 +326,13 @@ nodeEndpointFillSockAddr (BREthereumNodeEndpoint *endpoint,
     // Clear addr
     memset(addr, 0, sizeof(struct sockaddr_storage));
 
-    switch (endpoint->dis.domain) {
+    switch (endpoint->dis.node.domain) {
         case AF_INET: {
             struct sockaddr_in *addr_in4 = (struct sockaddr_in *) addr;
 
             addr_in4->sin_family = AF_INET;
             addr_in4->sin_port = htons(port);
-            addr_in4->sin_addr = * (struct in_addr *) endpoint->dis.addr.ipv4;
+            addr_in4->sin_addr = * (struct in_addr *) endpoint->dis.node.addr.ipv4;
 
             *addrLen = sizeof (struct sockaddr_in);
             break;
@@ -328,7 +342,7 @@ nodeEndpointFillSockAddr (BREthereumNodeEndpoint *endpoint,
 
             addr_in6->sin6_family = AF_INET6;
             addr_in6->sin6_port = htons(port);
-            addr_in6->sin6_addr = * (struct in6_addr *) endpoint->dis.addr.ipv6;
+            addr_in6->sin6_addr = * (struct in6_addr *) endpoint->dis.node.addr.ipv6;
 
             *addrLen = sizeof (struct sockaddr_in6);
             break;
@@ -416,88 +430,86 @@ openSocket(BREthereumNodeEndpoint *endpoint, int *socketToAssign, int port, int 
 }
 
 #if 0
-func getWiFiAddress() -> String? {
-    var address : String?
+//func getWiFiAddress() -> String? {
+//    var address : String?
+//
+//    // Get list of all interfaces on the local machine:
+//    var ifaddr : UnsafeMutablePointer<ifaddrs>?
+//    guard getifaddrs(&ifaddr) == 0 else { return nil }
+//    guard let firstAddr = ifaddr else { return nil }
+//
+//    // For each interface ...
+//    for ifptr in sequence(first: firstAddr, next: { $0.pointee.ifa_next }) {
+//        let interface = ifptr.pointee
+//
+//        // Check for IPv4 or IPv6 interface:
+//        let addrFamily = interface.ifa_addr.pointee.sa_family
+//        if addrFamily == UInt8(AF_INET) || addrFamily == UInt8(AF_INET6) {
+//
+//            // Check interface name:
+//            let name = String(cString: interface.ifa_name)
+//            if  name == "en0" {
+//
+//                // Convert interface address to a human readable string:
+//                var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+//                getnameinfo(interface.ifa_addr, socklen_t(interface.ifa_addr.pointee.sa_len),
+//                            &hostname, socklen_t(hostname.count),
+//                            nil, socklen_t(0), NI_NUMERICHOST)
+//                address = String(cString: hostname)
+//            }
+//        }
+//    }
+//    freeifaddrs(ifaddr)
+//
+//    return address
+//    }
 
-    // Get list of all interfaces on the local machine:
-    var ifaddr : UnsafeMutablePointer<ifaddrs>?
-    guard getifaddrs(&ifaddr) == 0 else { return nil }
-    guard let firstAddr = ifaddr else { return nil }
-
-    // For each interface ...
-    for ifptr in sequence(first: firstAddr, next: { $0.pointee.ifa_next }) {
-        let interface = ifptr.pointee
-
-        // Check for IPv4 or IPv6 interface:
-        let addrFamily = interface.ifa_addr.pointee.sa_family
-        if addrFamily == UInt8(AF_INET) || addrFamily == UInt8(AF_INET6) {
-
-            // Check interface name:
-            let name = String(cString: interface.ifa_name)
-            if  name == "en0" {
-
-                // Convert interface address to a human readable string:
-                var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-                getnameinfo(interface.ifa_addr, socklen_t(interface.ifa_addr.pointee.sa_len),
-                            &hostname, socklen_t(hostname.count),
-                            nil, socklen_t(0), NI_NUMERICHOST)
-                address = String(cString: hostname)
-            }
-        }
-    }
-    freeifaddrs(ifaddr)
-
-    return address
-    }
-#endif
-
-
-#if 0
 #include <stdio.h>
 #include <ifaddrs.h>
 #include <arpa/inet.h>
 
-    extern int
-    main(int argc, const char **argv) {
-        struct ifaddrs *interfaces = NULL;
-        if (getifaddrs(&interfaces) == 0) {
-            printf ("%7s %10s %25s\n", "name", "family", "address");
-            for (struct ifaddrs *ifa = interfaces; ifa; ifa = ifa->ifa_next) {
-                char buf[128];
-                if (ifa->ifa_addr->sa_family == AF_INET) {
-                    inet_ntop(AF_INET, (void *)&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr,
-                              buf, sizeof(buf));
-                } else if (ifa->ifa_addr->sa_family == AF_INET6) {
-                    inet_ntop(AF_INET6, (void *)&((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr,
-                              buf, sizeof(buf));
-                } else {
-                    continue;
-                }
 
-                printf ("%7s %8u %40s\n",
-                        ifa->ifa_name,
-                        (unsigned)ifa->ifa_addr->sa_family,
-                        buf);
+extern int
+main(int argc, const char **argv) {
+    struct ifaddrs *interfaces = NULL;
+    if (getifaddrs(&interfaces) == 0) {
+        printf ("%7s %10s %25s\n", "name", "family", "address");
+        for (struct ifaddrs *ifa = interfaces; ifa; ifa = ifa->ifa_next) {
+            char buf[128];
+            if (ifa->ifa_addr->sa_family == AF_INET) {
+                inet_ntop(AF_INET, (void *)&((struct sockaddr_in *)ifa->ifa_addr)->sin_addr,
+                          buf, sizeof(buf));
+            } else if (ifa->ifa_addr->sa_family == AF_INET6) {
+                inet_ntop(AF_INET6, (void *)&((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr,
+                          buf, sizeof(buf));
+            } else {
+                continue;
             }
-        }
-        freeifaddrs(interfaces);
-        return 0;
-    }
 
-    //ebg@ebg(93)$ ./a.out
-    //  name     family                   address
-    //  lo0        2                                127.0.0.1
-    //  lo0       30                                      ::1
-    //  lo0       30                                  fe80::1
-    //  en0       30                 fe80::4a1:bcaa:1aa2:6c8e
-    //  en0        2                              172.20.10.2
-    //awdl0       30                fe80::e4ac:5fff:fed0:d48b
-    //utun0       30                fe80::c78b:cd3f:18a6:dd87
-    //utun1       30                fe80::31e2:25c9:1c31:8293
-    //utun1       30    fdc7:e48b:d7:aa3a:31e2:25c9:1c31:8293
-    //utun2       30                fe80::31e2:25c9:1c31:8293
-    //utun2       30  fdc8:3cab:5fba:b1b0:31e2:25c9:1c31:8293
-    //utun3       30                fe80::2d34:ab2e:f86b:f077
+            printf ("%7s %8u %40s\n",
+                    ifa->ifa_name,
+                    (unsigned)ifa->ifa_addr->sa_family,
+                    buf);
+        }
+    }
+    freeifaddrs(interfaces);
+    return 0;
+}
+
+//ebg@ebg(93)$ ./a.out
+//  name     family                   address
+//  lo0        2                                127.0.0.1
+//  lo0       30                                      ::1
+//  lo0       30                                  fe80::1
+//  en0       30                 fe80::4a1:bcaa:1aa2:6c8e
+//  en0        2                              172.20.10.2
+//awdl0       30                fe80::e4ac:5fff:fed0:d48b
+//utun0       30                fe80::c78b:cd3f:18a6:dd87
+//utun1       30                fe80::31e2:25c9:1c31:8293
+//utun1       30    fdc7:e48b:d7:aa3a:31e2:25c9:1c31:8293
+//utun2       30                fe80::31e2:25c9:1c31:8293
+//utun2       30  fdc8:3cab:5fba:b1b0:31e2:25c9:1c31:8293
+//utun3       30                fe80::2d34:ab2e:f86b:f077
 
 #endif
 
@@ -505,20 +517,30 @@ func getWiFiAddress() -> String? {
 
 const char *localLESEnode = "enode://x@1.1.1.1:30303";
 
-const char *bootstrapLESEnodes[] = {
+// LES/PIP Nodes hosted locally, when enabled (yes, my NodeId; not yours).
+const char *bootstrapLCLEnodes[] = {
     // Localhost - Parity
-    //    "enode://8ebe6a85d46737451c8bd9423f37dcb117af7316bbce1643856feeaf9f81a792ff09029e9ab1796b193eb477f938af3465f911574c57161326b71aaf0221f341@192.168.1.111:30303",
+//    "enode://30af157f9105700422655d81d269575c0b1d63caeb90863f70cb2b92d89356ac4378cabaa4e2c84c9fdf1571264bcf22fd4bb6148f65f84c9e5f37dcc8a46a7f@127.0.0.1:30303",  // HDD Archive
+//    "enode://9058392a81f6f3df662cd2dc5e62d3529f08bc68a69025937a831bd6734e9830bffde87485989ebb4b5588771fc877e34b7be82251cf2d48ae2a1a784b6b58fc@127.0.0.1:30303",  // SSD Full
+    "enode://4483ac6134c85ecbd31d14168f1c97b82bdc45c442e81277f52428968de41add46549f8d6c9c8c3432f3b8834b018c350ac37d87d70d67e599f42f68a96717fc@127.0.0.1:30303", // SSD Archive
 
+    //    "enode://8ebe6a85d46737451c8bd9423f37dcb117af7316bbce1643856feeaf9f81a792ff09029e9ab1796b193eb477f938af3465f911574c57161326b71aaf0221f341@127.0.0.1:30303",
     // Localhost - GETH
-    //    "enode://a40437d2f44ae655387009d1d69ba9fd07b748b7a6ecfc958c135008a34c0497466db35049c36c8296590b4bcf9b9058f9fa2a688a2c6566654b1f1dc42417e4@127.0.0.1:30303",
+//    "enode://a40437d2f44ae655387009d1d69ba9fd07b748b7a6ecfc958c135008a34c0497466db35049c36c8296590b4bcf9b9058f9fa2a688a2c6566654b1f1dc42417e4@127.0.0.1:30303",
+    NULL
+};
 
-    // START - BRD
+// LES/PIP Nodes hosted by BRD
+const char *bootstrapBRDEnodes[] = {
     // Full
-    //"enode://e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851@104.197.99.24:30303",
+    "enode://e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851@104.197.99.24:30303",
     // Archival
     "enode://e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851@35.226.238.26:30303",
-    // END - BRD
+    NULL
+};
 
+// LES/PIP Node
+const char *bootstrapLESEnodes[] = {
     // START -- https://gist.github.com/rfikki/e2a8c47f4460668557b1e3ec8bae9c11
     "enode://03f178d5d4511937933b50b7af683b467abaef8cfc5f7c2c9b271f61e228578ae192aaafc7f0d8035dfa994e734c2c2f72c229e383706be2f4fa43efbe9f94f4@163.172.149.200:30303",
     "enode://0f740f471e876020566c2ce331c81b4128b9a18f636b1d4757c4eaea7f077f4b15597a743f163280293b0a7e35092064be11c4ec199b9905541852a36be9004b@206.221.178.149:30303",
@@ -548,6 +570,67 @@ const char *bootstrapLESEnodes[] = {
     // Random
     "enode://3e9301c797f3863d7d0f29eec9a416f13956bd3a14eec7e0cf5eb56942841526269209edf6f57cd1315bef60c4ebbe3476bc5457bed4e479cac844c8c9e375d3@109.232.77.21:30303", // GETH
     "enode://81863f47e9bd652585d3f78b4b2ee07b93dad603fd9bc3c293e1244250725998adc88da0cef48f1de89b15ab92b15db8f43dc2b6fb8fbd86a6f217a1dd886701@193.70.55.37:30303",  // Parity
+    NULL
 };
 
-size_t NUMBER_OF_NODE_ENDPOINT_SPECS = (sizeof (bootstrapLESEnodes) / sizeof (char *));
+// Parity Nodes (default PIP 'on'; but not necessarily PIP 'on')
+//
+// From: https://github.com/paritytech/parity-ethereum/blob/master/ethcore/res/ethereum/foundation.json
+// Retrieved: 12 Sept 2018
+const char *bootstrapParityEnodes[] = {
+    "enode://81863f47e9bd652585d3f78b4b2ee07b93dad603fd9bc3c293e1244250725998adc88da0cef48f1de89b15ab92b15db8f43dc2b6fb8fbd86a6f217a1dd886701@193.70.55.37:30303",
+    "enode://4afb3a9137a88267c02651052cf6fb217931b8c78ee058bb86643542a4e2e0a8d24d47d871654e1b78a276c363f3c1bc89254a973b00adc359c9e9a48f140686@144.217.139.5:30303",
+    "enode://c16d390b32e6eb1c312849fe12601412313165df1a705757d671296f1ac8783c5cff09eab0118ac1f981d7148c85072f0f26407e5c68598f3ad49209fade404d@139.99.51.203:30303",
+    "enode://4faf867a2e5e740f9b874e7c7355afee58a2d1ace79f7b692f1d553a1134eddbeb5f9210dd14dc1b774a46fd5f063a8bc1fa90579e13d9d18d1f59bac4a4b16b@139.99.160.213:30303",
+    "enode://6a868ced2dec399c53f730261173638a93a40214cf299ccf4d42a76e3fa54701db410669e8006347a4b3a74fa090bb35af0320e4bc8d04cf5b7f582b1db285f5@163.172.131.191:30303",
+    "enode://66a483383882a518fcc59db6c017f9cd13c71261f13c8d7e67ed43adbbc82a932d88d2291f59be577e9425181fc08828dc916fdd053af935a9491edf9d6006ba@212.47.247.103:30303",
+    "enode://cd6611461840543d5b9c56fbf088736154c699c43973b3a1a32390cf27106f87e58a818a606ccb05f3866de95a4fe860786fea71bf891ea95f234480d3022aa3@163.172.157.114:30303",
+    "enode://1d1f7bcb159d308eb2f3d5e32dc5f8786d714ec696bb2f7e3d982f9bcd04c938c139432f13aadcaf5128304a8005e8606aebf5eebd9ec192a1471c13b5e31d49@138.201.223.35:30303",
+    "enode://a979fb575495b8d6db44f750317d0f4622bf4c2aa3365d6af7c284339968eef29b69ad0dce72a4d8db5ebb4968de0e3bec910127f134779fbcb0cb6d3331163c@52.16.188.185:30303",
+    "enode://3f1d12044546b76342d59d4a05532c14b85aa669704bfe1f864fe079415aa2c02d743e03218e57a33fb94523adb54032871a6c51b2cc5514cb7c7e35b3ed0a99@13.93.211.84:30303",
+    "enode://78de8a0916848093c73790ead81d1928bec737d565119932b98c6b100d944b7a95e94f847f689fc723399d2e31129d182f7ef3863f2b4c820abbf3ab2722344d@191.235.84.50:30303",
+    "enode://158f8aab45f6d19c6cbf4a089c2670541a8da11978a2f90dbf6a502a4a3bab80d288afdbeb7ec0ef6d92de563767f3b1ea9e8e334ca711e9f8e2df5a0385e8e6@13.75.154.138:30303",
+    "enode://1118980bf48b0a3640bdba04e0fe78b1add18e1cd99bf22d53daac1fd9972ad650df52176e7c7d89d1114cfef2bc23a2959aa54998a46afcf7d91809f0855082@52.74.57.123:30303",
+    "enode://979b7fa28feeb35a4741660a16076f1943202cb72b6af70d327f053e248bab9ba81760f39d0701ef1d8f89cc1fbd2cacba0710a12cd5314d5e0c9021aa3637f9@5.1.83.226:30303",
+    "enode://0cc5f5ffb5d9098c8b8c62325f3797f56509bff942704687b6530992ac706e2cb946b90a34f1f19548cd3c7baccbcaea354531e5983c7d1bc0dee16ce4b6440b@40.118.3.223:30305",
+    "enode://1c7a64d76c0334b0418c004af2f67c50e36a3be60b5e4790bdac0439d21603469a85fad36f2473c9a80eb043ae60936df905fa28f1ff614c3e5dc34f15dcd2dc@40.118.3.223:30308",
+    "enode://85c85d7143ae8bb96924f2b54f1b3e70d8c4d367af305325d30a61385a432f247d2c75c45c6b4a60335060d072d7f5b35dd1d4c45f76941f62a4f83b6e75daaf@40.118.3.223:30309",
+    "enode://de471bccee3d042261d52e9bff31458daecc406142b401d4cd848f677479f73104b9fdeb090af9583d3391b7f10cb2ba9e26865dd5fca4fcdc0fb1e3b723c786@54.94.239.50:30303",
+    "enode://4cd540b2c3292e17cff39922e864094bf8b0741fcc8c5dcea14957e389d7944c70278d872902e3d0345927f621547efa659013c400865485ab4bfa0c6596936f@138.201.144.135:30303",
+    "enode://01f76fa0561eca2b9a7e224378dd854278735f1449793c46ad0c4e79e8775d080c21dcc455be391e90a98153c3b05dcc8935c8440de7b56fe6d67251e33f4e3c@51.15.42.252:30303",
+    "enode://2c9059f05c352b29d559192fe6bca272d965c9f2290632a2cfda7f83da7d2634f3ec45ae3a72c54dd4204926fb8082dcf9686e0d7504257541c86fc8569bcf4b@163.172.171.38:30303",
+    "enode://efe4f2493f4aff2d641b1db8366b96ddacfe13e7a6e9c8f8f8cf49f9cdba0fdf3258d8c8f8d0c5db529f8123c8f1d95f36d54d590ca1bb366a5818b9a4ba521c@163.172.187.252:30303",
+    "enode://bcc7240543fe2cf86f5e9093d05753dd83343f8fda7bf0e833f65985c73afccf8f981301e13ef49c4804491eab043647374df1c4adf85766af88a624ecc3330e@136.243.154.244:30303",
+    "enode://ed4227681ca8c70beb2277b9e870353a9693f12e7c548c35df6bca6a956934d6f659999c2decb31f75ce217822eefca149ace914f1cbe461ed5a2ebaf9501455@88.212.206.70:30303",
+    "enode://cadc6e573b6bc2a9128f2f635ac0db3353e360b56deef239e9be7e7fce039502e0ec670b595f6288c0d2116812516ad6b6ff8d5728ff45eba176989e40dead1e@37.128.191.230:30303",
+    "enode://595a9a06f8b9bc9835c8723b6a82105aea5d55c66b029b6d44f229d6d135ac3ecdd3e9309360a961ea39d7bee7bac5d03564077a4e08823acc723370aace65ec@46.20.235.22:30303",
+    "enode://029178d6d6f9f8026fc0bc17d5d1401aac76ec9d86633bba2320b5eed7b312980c0a210b74b20c4f9a8b0b2bf884b111fa9ea5c5f916bb9bbc0e0c8640a0f56c@216.158.85.185:30303",
+    "enode://fdd1b9bb613cfbc200bba17ce199a9490edc752a833f88d4134bf52bb0d858aa5524cb3ec9366c7a4ef4637754b8b15b5dc913e4ed9fdb6022f7512d7b63f181@212.47.247.103:30303",
+    NULL
+};
+
+// GETH Nodes (default LES 'off'; but not necessarily LES 'off')
+//
+// From: https://github.com/ethereum/go-ethereum/blob/master/params/bootnodes.go
+// Retrieved: 12 Sept 2018
+const char *bootstrapGethEnodes[] = {
+    // Ethereum Foundation Go Bootnodes
+    "enode://a979fb575495b8d6db44f750317d0f4622bf4c2aa3365d6af7c284339968eef29b69ad0dce72a4d8db5ebb4968de0e3bec910127f134779fbcb0cb6d3331163c@52.16.188.185:30303", // IE
+    "enode://3f1d12044546b76342d59d4a05532c14b85aa669704bfe1f864fe079415aa2c02d743e03218e57a33fb94523adb54032871a6c51b2cc5514cb7c7e35b3ed0a99@13.93.211.84:30303",  // US-WEST
+    "enode://78de8a0916848093c73790ead81d1928bec737d565119932b98c6b100d944b7a95e94f847f689fc723399d2e31129d182f7ef3863f2b4c820abbf3ab2722344d@191.235.84.50:30303", // BR
+    "enode://158f8aab45f6d19c6cbf4a089c2670541a8da11978a2f90dbf6a502a4a3bab80d288afdbeb7ec0ef6d92de563767f3b1ea9e8e334ca711e9f8e2df5a0385e8e6@13.75.154.138:30303", // AU
+    "enode://1118980bf48b0a3640bdba04e0fe78b1add18e1cd99bf22d53daac1fd9972ad650df52176e7c7d89d1114cfef2bc23a2959aa54998a46afcf7d91809f0855082@52.74.57.123:30303",  // SG
+
+    // Ethereum Foundation C++ Bootnodes
+    "enode://979b7fa28feeb35a4741660a16076f1943202cb72b6af70d327f053e248bab9ba81760f39d0701ef1d8f89cc1fbd2cacba0710a12cd5314d5e0c9021aa3637f9@5.1.83.226:30303", // DE
+    NULL
+};
+
+const char **bootstrapMainnetEnodeSets[] = {
+    bootstrapLCLEnodes,
+    bootstrapBRDEnodes,
+    bootstrapLESEnodes,
+    bootstrapParityEnodes,
+    bootstrapGethEnodes
+};
+size_t NUMBER_OF_NODE_ENDPOINT_SETS = (sizeof (bootstrapMainnetEnodeSets) / sizeof (char **));

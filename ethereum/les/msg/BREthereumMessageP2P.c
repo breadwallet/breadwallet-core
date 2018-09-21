@@ -164,13 +164,15 @@ messageP2PDisconnectDescription (BREthereumP2PDisconnectReason identifier) {
 static BREthereumP2PMessageDisconnect
 messageP2PDisconnectDecode (BRRlpItem item, BREthereumMessageCoder coder) {
     BREthereumP2PMessageDisconnect disconnect;
-
+//#if P2P_MESSAGE_VERSION == 0x04
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
     assert (1 == itemsCount);
 
     disconnect.reason = (BREthereumP2PDisconnectReason) rlpDecodeUInt64 (coder.rlp, items[0], 1);
-
+//#elif P2P_MESSAGE_VERSION == 0x05
+//    disconnect.reason = (BREthereumP2PDisconnectReason) rlpDecodeUInt64 (coder.rlp, item, 1);
+//#endif
     return disconnect;
 }
 
@@ -224,6 +226,307 @@ messageP2PDecode (BRRlpItem item, BREthereumMessageCoder coder, BREthereumP2PMes
                 { .disconnect = messageP2PDisconnectDecode (item, coder) }
             };
     }
+}
+
+/// MARK: - P2P Message Status Faker
+
+extern int
+messageP2PStatusExtractValue (BREthereumP2PMessageStatus *status,
+                              BREthereumP2MessageStatusKey key,
+                              BREthereumP2PMessageStatusValue *value) {
+    if (NULL != status->pairs && NULL != value)
+        for (size_t index = 0; index < array_count (status->pairs); index++)
+            if (key == status->pairs[index].key) {
+                *value = status->pairs[index].value;
+                return 1;
+            }
+    return 0;
+}
+
+extern void
+messageP2PStatusShow(BREthereumP2PMessageStatus *message) {
+    BREthereumHashString headHashString, genesisHashString;
+    hashFillString (message->headHash, headHashString);
+    hashFillString (message->genesisHash, genesisHashString);
+
+    char *headTotalDifficulty = coerceString (message->headTd, 10);
+
+    BREthereumP2PMessageStatusValue value;
+
+    eth_log (LES_LOG_TOPIC, "StatusMessage:%s", "");
+    eth_log (LES_LOG_TOPIC, "    ProtocolVersion: %llu", message->protocolVersion);
+    if (messageP2PStatusExtractValue(message, P2P_MESSAGE_STATUS_ANNOUNCE_TYPE, &value))
+        eth_log (LES_LOG_TOPIC, "    announceType   : %llu", value.u.integer);
+    eth_log (LES_LOG_TOPIC, "    NetworkId      : %llu", message->chainId);
+    eth_log (LES_LOG_TOPIC, "    HeadNum        : %llu", message->headNum);
+    eth_log (LES_LOG_TOPIC, "    HeadHash       : %s",   headHashString);
+    eth_log (LES_LOG_TOPIC, "    HeadTd         : %s",   headTotalDifficulty);
+    eth_log (LES_LOG_TOPIC, "    GenesisHash    : %s",   genesisHashString);
+
+    free (headTotalDifficulty);
+
+
+    if (messageP2PStatusExtractValue(message, P2P_MESSAGE_STATUS_SERVE_HEADERS, &value))
+        eth_log (LES_LOG_TOPIC, "    ServeHeaders   : %s",
+                 (ETHEREUM_BOOLEAN_IS_TRUE(value.u.boolean) ? "Yes" : "No"));
+
+    if (messageP2PStatusExtractValue(message, P2P_MESSAGE_STATUS_SERVE_CHAIN_SINCE, &value))
+        eth_log (LES_LOG_TOPIC, "    ServeChainSince: %llu", value.u.integer);
+
+    if (messageP2PStatusExtractValue(message, P2P_MESSAGE_STATUS_SERVE_STATE_SINCE, &value))
+        eth_log (LES_LOG_TOPIC, "    ServeStateSince: %llu", value.u.integer);
+
+    if (messageP2PStatusExtractValue(message, P2P_MESSAGE_STATUS_TX_RELAY, &value))
+        eth_log (LES_LOG_TOPIC, "    TxRelay        : %s",
+                 (ETHEREUM_BOOLEAN_IS_TRUE(value.u.boolean) ? "Yes" : "No"));
+
+    if (messageP2PStatusExtractValue(message, P2P_MESSAGE_STATUS_FLOW_CONTROL_BL, &value))
+        eth_log (LES_LOG_TOPIC, "    FlowControl/BL : %llu", value.u.integer);
+
+    if (messageP2PStatusExtractValue(message, P2P_MESSAGE_STATUS_FLOW_CONTROL_MRR, &value))
+        eth_log (LES_LOG_TOPIC, "    FlowControl/MRR: %llu", value.u.integer);
+
+#if 0
+    size_t count = (NULL == message->flowControlMRCCount ? 0 : *(message->flowControlMRCCount));
+    if (count != 0) {
+        eth_log (LES_LOG_TOPIC, "    FlowControl/MRC:%s", "");
+        for (size_t index = 0; index < count; index++) {
+            const char *label = messageLESGetIdentifierName ((BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);
+            if (NULL != label) {
+                eth_log (LES_LOG_TOPIC, "      %2d", (BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);
+                eth_log (LES_LOG_TOPIC, "        Request : %s", label);
+                eth_log (LES_LOG_TOPIC, "        BaseCost: %llu", message->flowControlMRC[index].baseCost);
+                eth_log (LES_LOG_TOPIC, "        ReqCost : %llu", message->flowControlMRC[index].reqCost);
+            }
+        }
+    }
+#endif
+}
+
+extern BRRlpItem
+messageP2PStatusEncode (BREthereumP2PMessageStatus *status,
+                        BREthereumMessageCoder coder) {
+
+    size_t index = 0;
+    BRRlpItem items[15];
+
+    items[index++] = rlpEncodeList2 (coder.rlp,
+                                     rlpEncodeString(coder.rlp, "protocolVersion"),
+                                     rlpEncodeUInt64(coder.rlp, status->protocolVersion,1));
+
+    items[index++] = rlpEncodeList2 (coder.rlp,
+                                     rlpEncodeString(coder.rlp, "networkId"),
+                                     rlpEncodeUInt64(coder.rlp, status->chainId,1));
+
+    items[index++] = rlpEncodeList2 (coder.rlp,
+                                     rlpEncodeString(coder.rlp, "headTd"),
+                                     rlpEncodeUInt256(coder.rlp, status->headTd,1));
+
+    items[index++] = rlpEncodeList2(coder.rlp,
+                                    rlpEncodeString(coder.rlp, "headHash"),
+                                    hashRlpEncode(status->headHash, coder.rlp));
+
+    items[index++] = rlpEncodeList2(coder.rlp,
+                                    rlpEncodeString(coder.rlp, "headNum"),
+                                    rlpEncodeUInt64(coder.rlp, status->headNum,1));
+
+    items[index++] = rlpEncodeList2 (coder.rlp,
+                                     rlpEncodeString(coder.rlp, "genesisHash"),
+                                     hashRlpEncode(status->genesisHash, coder.rlp));
+
+    for (size_t index = 0; NULL != status->pairs && index < array_count(status->pairs); index++) {
+        BREthereumP2PMessageStatusKeyValuePair *pair = &status->pairs[index];
+        switch (pair->key) {
+            case P2P_MESSAGE_STATUS_PROTOCOL_VERSION:
+            case P2P_MESSAGE_STATUS_NETWORK_ID:
+            case P2P_MESSAGE_STATUS_HEAD_TD:
+            case P2P_MESSAGE_STATUS_HEAD_HASH:
+            case P2P_MESSAGE_STATUS_HEAD_NUM:
+            case P2P_MESSAGE_STATUS_GENESIS_HASH:
+                break;
+
+            case P2P_MESSAGE_STATUS_SERVE_HEADERS:
+                items[index++] = rlpEncodeList1 (coder.rlp,
+                                                 rlpEncodeString(coder.rlp, "serveHeaders"));
+                break;
+            case P2P_MESSAGE_STATUS_SERVE_CHAIN_SINCE:
+                items[index++] = rlpEncodeList2 (coder.rlp,
+                                                 rlpEncodeString(coder.rlp, "serveChainSince"),
+                                                 rlpEncodeUInt64(coder.rlp, pair->value.u.integer, 1));
+                break;
+            case P2P_MESSAGE_STATUS_SERVE_STATE_SINCE:
+                items[index++] = rlpEncodeList2 (coder.rlp,
+                                                 rlpEncodeString(coder.rlp, "serveStateSince"),
+                                                 rlpEncodeUInt64(coder.rlp,  pair->value.u.integer,1));
+                break;
+            case P2P_MESSAGE_STATUS_TX_RELAY:
+                items[index++] = rlpEncodeList1 (coder.rlp, rlpEncodeString(coder.rlp, "txRelay"));
+                break;
+
+            case P2P_MESSAGE_STATUS_FLOW_CONTROL_BL:
+                items[index++] = rlpEncodeList2 (coder.rlp,
+                                                 rlpEncodeString(coder.rlp, "flowControl/BL"),
+                                                 rlpEncodeUInt64(coder.rlp, pair->value.u.integer,1));
+                break;
+            case P2P_MESSAGE_STATUS_FLOW_CONTROL_MRC:
+                assert (0);
+#if 0
+                if(status->flowControlBL != NULL) {
+                    size_t count = *(status->flowControlMRCCount);
+                    BRRlpItem mrcItems[count];
+
+                    for(int idx = 0; idx < count; ++idx){
+                        BRRlpItem mrcElements [3];
+                        mrcElements[0] = rlpEncodeUInt64(coder.rlp,status->flowControlMRC[idx].msgCode,1);
+                        mrcElements[1] = rlpEncodeUInt64(coder.rlp,status->flowControlMRC[idx].baseCost,1);
+                        mrcElements[2] = rlpEncodeUInt64(coder.rlp,status->flowControlMRC[idx].reqCost,1);
+                        mrcItems[idx] = rlpEncodeListItems(coder.rlp, mrcElements, 3);
+                    }
+
+                    items[index++] = rlpEncodeList2 (coder.rlp,
+                                                     rlpEncodeString(coder.rlp, "flowControl/MRC"),
+                                                     rlpEncodeListItems(coder.rlp, mrcItems, count));
+                }
+#endif
+                break;
+
+            case P2P_MESSAGE_STATUS_FLOW_CONTROL_MRR:
+                items[index++] = rlpEncodeList2 (coder.rlp,
+                                                 rlpEncodeString(coder.rlp, "flowControl/MRR"),
+                                                 rlpEncodeUInt64(coder.rlp, pair->value.u.integer,1));
+
+                break;
+            case P2P_MESSAGE_STATUS_ANNOUNCE_TYPE:
+                items[index++] = rlpEncodeList2 (coder.rlp,
+                                                 rlpEncodeString(coder.rlp, "announceType"),
+                                                 rlpEncodeUInt64(coder.rlp, pair->value.u.integer,1));
+                break;
+        }
+    }
+
+    return rlpEncodeListItems (coder.rlp, items, index);
+}
+
+extern BREthereumP2PMessageStatus
+messageP2PStatusDecode (BRRlpItem item,
+                        BREthereumMessageCoder coder) {
+    BREthereumP2PMessageStatus status = {};
+
+    size_t itemsCount = 0;
+    const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
+
+    array_new (status.pairs, 1);
+
+    for(int i= 0; i < itemsCount; ++i) {
+        size_t keyPairCount;
+        const BRRlpItem *keyPairs = rlpDecodeList (coder.rlp, items[i], &keyPairCount);
+        if (keyPairCount > 0) {
+            char *key = rlpDecodeString(coder.rlp, keyPairs[0]);
+
+            if (strcmp(key, "protocolVersion") == 0) {
+                status.protocolVersion = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1);
+            }
+            else if (strcmp(key, "networkId") == 0) {
+                status.chainId = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1);
+            }
+            else if (strcmp(key, "headTd") == 0) {
+                status.headTd = rlpDecodeUInt256(coder.rlp, keyPairs[1], 1);
+            }
+            else if (strcmp(key, "headHash") == 0) {
+                status.headHash = hashRlpDecode(keyPairs[1], coder.rlp);
+            }
+            else if (strcmp(key, "headNum") == 0) {
+                status.headNum = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1);
+            }
+            else if (strcmp(key, "genesisHash") == 0) {
+                status.genesisHash = hashRlpDecode(keyPairs[1], coder.rlp);
+            }
+            // Optional
+
+            else if (strcmp(key, "announceType") == 0) {
+                BREthereumP2PMessageStatusKeyValuePair pair = {
+                    P2P_MESSAGE_STATUS_ANNOUNCE_TYPE,
+                    { P2P_MESSAGE_STATUS_VALUE_INTEGER,
+                        { .integer = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1) }}
+                };
+                array_add (status.pairs, pair);
+            }
+
+            else if (strcmp(key, "serveHeaders") == 0) {
+                BREthereumP2PMessageStatusKeyValuePair pair = {
+                    P2P_MESSAGE_STATUS_SERVE_HEADERS,
+                    { P2P_MESSAGE_STATUS_VALUE_BOOLEAN,
+                        { .boolean = ETHEREUM_BOOLEAN_TRUE }}
+                };
+                array_add (status.pairs, pair);
+            }
+            else if (strcmp(key, "serveChainSince") == 0) {
+                BREthereumP2PMessageStatusKeyValuePair pair = {
+                    P2P_MESSAGE_STATUS_SERVE_CHAIN_SINCE,
+                    { P2P_MESSAGE_STATUS_VALUE_INTEGER,
+                        { .integer = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1) }}
+                };
+                array_add (status.pairs, pair);
+            }
+            else if (strcmp(key, "serveStateSince") == 0) {
+                BREthereumP2PMessageStatusKeyValuePair pair = {
+                    P2P_MESSAGE_STATUS_SERVE_STATE_SINCE,
+                    { P2P_MESSAGE_STATUS_VALUE_INTEGER,
+                        { .integer = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1) }}
+                };
+                array_add (status.pairs, pair);
+            }
+            else if (strcmp(key, "txRelay") == 0) {
+                BREthereumP2PMessageStatusKeyValuePair pair = {
+                    P2P_MESSAGE_STATUS_TX_RELAY,
+                    { P2P_MESSAGE_STATUS_VALUE_BOOLEAN,
+                        { .integer = ETHEREUM_BOOLEAN_TRUE }}
+                };
+                array_add (status.pairs, pair);
+            }
+            else if (strcmp(key, "flowControl/BL") == 0) {
+                BREthereumP2PMessageStatusKeyValuePair pair = {
+                    P2P_MESSAGE_STATUS_FLOW_CONTROL_BL,
+                    { P2P_MESSAGE_STATUS_VALUE_INTEGER,
+                        { .integer = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1) }}
+                };
+                array_add (status.pairs, pair);
+
+            }
+#if 0
+            else if (strcmp(key, "flowControl/MRC") == 0) {
+                // TODO: Wrong for PIP
+                status.flowControlMRR = malloc(sizeof(uint64_t));
+                size_t mrrItemsCount  = 0;
+                const BRRlpItem* mrrItems = rlpDecodeList(coder.rlp, keyPairs[1], &mrrItemsCount);
+                BREthereumLESMessageStatusMRC *mrcs = NULL;
+                if(mrrItemsCount > 0){
+                    mrcs = (BREthereumLESMessageStatusMRC*) calloc (mrrItemsCount, sizeof(BREthereumLESMessageStatusMRC));
+                    for(int mrrIdx = 0; mrrIdx < mrrItemsCount; ++mrrIdx){
+                        size_t mrrElementsCount  = 0;
+                        const BRRlpItem* mrrElements = rlpDecodeList(coder.rlp, mrrItems[mrrIdx], &mrrElementsCount);
+                        mrcs[mrrIdx].msgCode  = rlpDecodeUInt64(coder.rlp, mrrElements[0], 1);
+                        mrcs[mrrIdx].baseCost = rlpDecodeUInt64(coder.rlp, mrrElements[1], 1);
+                        mrcs[mrrIdx].reqCost  = rlpDecodeUInt64(coder.rlp, mrrElements[2], 1);
+                    }
+                }
+                status.flowControlMRCCount = malloc (sizeof (size_t));
+                *status.flowControlMRCCount = mrrItemsCount;
+                status.flowControlMRC = mrcs;
+            }
+#endif
+            else if (strcmp(key, "flowControl/MRR") == 0) {
+                BREthereumP2PMessageStatusKeyValuePair pair = {
+                    P2P_MESSAGE_STATUS_FLOW_CONTROL_MRR,
+                    { P2P_MESSAGE_STATUS_VALUE_INTEGER,
+                        { .integer = rlpDecodeUInt64(coder.rlp, keyPairs[1], 1) }}
+                };
+                array_add (status.pairs, pair);
+            }
+            free (key);
+        }
+    }
+    return status;
 }
 
 
