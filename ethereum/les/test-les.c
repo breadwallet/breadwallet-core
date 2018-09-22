@@ -108,11 +108,12 @@ static void _initTest(int numOfTests) {
 }
 
 static void _waitForTests() {
+    struct timespec wait = { 30, 0 };
     //Wait for a little bit to get a reply back from the server.
     pthread_mutex_lock(&_testLock);
     //Wait until all the tests are complete
     while(_testComplete < _numOfTests){
-        pthread_cond_wait(&_testCond, &_testLock);
+        pthread_cond_timedwait_relative_np (&_testCond, &_testLock, &wait);
     }
     pthread_mutex_unlock(&_testLock);
 }
@@ -973,7 +974,7 @@ runLEStests(void) {
                                    NULL);
     lesStart(les);
     // Sleep for a little bit to allow the context to connect to the network
-    sleep(5);
+    sleep(30);
     
     //Initialize testing state
     _initTestState();

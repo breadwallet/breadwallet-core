@@ -45,6 +45,8 @@
 // #define NEED_TO_PRINT_SEND_DATA
 // #define LES_LOG_RECV
 // #define LES_LOG_SEND
+// #define LES_LOG_SEND_RECV_ERROR  // normally handled by the caller
+// #define LES_LOG_REPORT_OPEN_SOCKET
 
 #define CONNECTION_TIME 3.0
 
@@ -251,21 +253,23 @@ nodeEndpointRecvData (BREthereumNodeEndpoint *endpoint,
         socket = endpoint->sockets[route];
     }
 
-    if (error)
-        eth_log (LES_LOG_TOPIC, "Recv: %s @ %5d => %15s %s%s",
-                 nodeEndpointRouteGetName(route),
-                 (NODE_ROUTE_UDP == route ? endpoint->dis.node.portUDP : endpoint->dis.node.portTCP),
-                 endpoint->hostname,
-                 "Error: ",
-                 strerror(error));
-    else {
+    if (!error) {
         // !! DON'T MISS THIS !!
         *bytesCount = totalCount;
 #if defined (LES_LOG_RECV)
         eth_log (LES_LOG_TOPIC, "read (%zu bytes) from peer [%s], contents: %s", len, endpoint->hostname, "?");
 #endif
     }
-
+#if defined (LES_LOG_SEND_RECV_ERROR)
+    else {
+        eth_log (LES_LOG_TOPIC, "Recv: [ %s, %15d ] => %15s %s%s",
+                 nodeEndpointRouteGetName(route),
+                 (NODE_ROUTE_UDP == route ? endpoint->dis.node.portUDP : endpoint->dis.node.portTCP),
+                 endpoint->hostname,
+                 "Error: ",
+                 strerror(error));
+    }
+#endif
     return error;
 }
 
@@ -299,19 +303,21 @@ nodeEndpointSendData (BREthereumNodeEndpoint *endpoint,
         socket = endpoint->sockets[route];
     }
 
-    if (error)
+    if (!error) {
+#if defined (LES_LOG_SEND)
+        eth_log (LES_LOG_TOPIC, "sent (%zu bytes) to peer[%s], contents: %s", totalCount, endpoint->hostname, "?");
+#endif
+    }
+#if defined (LES_LOG_SEND_RECV_ERROR)
+    else {
         eth_log (LES_LOG_TOPIC, "Send: %s @ %5d => %15s %s%s",
                  nodeEndpointRouteGetName(route),
                  (NODE_ROUTE_UDP == route ? endpoint->dis.node.portUDP : endpoint->dis.node.portTCP),
                  endpoint->hostname,
                  "Error: ",
                  strerror(error));
-    else {
-#if defined (LES_LOG_SEND)
-        eth_log (LES_LOG_TOPIC, "sent (%zu bytes) to peer[%s], contents: %s", totalCount, endpoint->hostname, "?");
-#endif
     }
-
+#endif
     return error;
 }
 
@@ -354,12 +360,14 @@ nodeEndpointFillSockAddr (BREthereumNodeEndpoint *endpoint,
 
 static int
 openSocketReportResult (BREthereumNodeEndpoint *endpoint, int port, int type, int error) {
-    eth_log (LES_LOG_TOPIC, "Open: %s @ %5d => %15s %s%s",
+#if defined (LES_LOG_REPORT_OPEN_SOCKET)
+    eth_log (LES_LOG_TOPIC, "Open: [ %s, %15d ] => %15s %s%s",
              (type == SOCK_STREAM ? "TCP" : "UDP"),
              port,
              endpoint->hostname,
              (0 == error ? "Success " : "Error: "),
              (0 == error ? "" : strerror(error)));
+#endif
     return error;
 }
 
