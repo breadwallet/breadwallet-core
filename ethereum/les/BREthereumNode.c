@@ -185,7 +185,7 @@ nodeProtocolReasonDescription (BREthereumNodeProtocolReason reason) {
         "TCP Hello Missed",
         "TCP Status Missed",
         "Capabilities Mismatch",
-        "Network Mismatch"
+        "Status Mismatch"
     };
     return protocolReasonDescriptions [reason];
 }
@@ -1049,6 +1049,63 @@ nodeUpdateTimeoutRecv (BREthereumNode node,
     node->timeout = now + DEFAULT_NODE_TIMEOUT_IN_SECONDS_RECV;
 }
 
+static int
+nodeStatusIsSufficient (BREthereumNode node) {
+    BREthereumP2PMessageStatusValue remValue, locValue;
+
+    // Both LES or both PIP
+    assert (node->remote.status.identifier == node->local.status.identifier);
+
+    // Remote is STATUS if LES or PIP
+    assert (MESSAGE_LES != node->remote.status.identifier ||
+            LES_MESSAGE_STATUS == node->remote.status.u.les.identifier);
+    assert (MESSAGE_PIP != node->remote.status.identifier ||
+            PIP_MESSAGE_STATUS == node->remote.status.u.pip.type);
+
+    // Local is STATUS if LES or PIP
+    assert (MESSAGE_LES != node->local.status.identifier ||
+            LES_MESSAGE_STATUS == node->local.status.u.les.identifier);
+    assert (MESSAGE_PIP != node->local.status.identifier ||
+            PIP_MESSAGE_STATUS == node->local.status.u.pip.type);
+
+    BREthereumP2PMessageStatus *locStatus = (MESSAGE_LES != node->local.status.identifier
+                                              ? &node->local.status.u.les.u.status.p2p
+                                              : &node->local.status.u.pip.u.status.p2p);
+
+    BREthereumP2PMessageStatus *remStatus = (MESSAGE_LES != node->remote.status.identifier
+                                              ? &node->remote.status.u.les.u.status.p2p
+                                              : &node->remote.status.u.pip.u.status.p2p);
+
+    // Must be our network
+    if (remStatus->chainId != locStatus->chainId)
+        return 0;
+
+    if (remStatus->protocolVersion != locStatus->protocolVersion)
+        return 0;
+
+    // Must serve headers
+    if (!messageP2PStatusExtractValue(remStatus, P2P_MESSAGE_STATUS_SERVE_HEADERS, &remValue) ||
+        ETHEREUM_BOOLEAN_IS_FALSE(remValue.u.boolean))
+        return 0;
+
+    // Must Relay Tranactions
+    if (!messageP2PStatusExtractValue(remStatus, P2P_MESSAGE_STATUS_TX_RELAY, &remValue) ||
+        ETHEREUM_BOOLEAN_IS_FALSE(remValue.u.boolean))
+        return 0;
+
+    // Must serve state - archival node is '0'
+    if (!messageP2PStatusExtractValue(remStatus, P2P_MESSAGE_STATUS_SERVE_STATE_SINCE, &remValue) ||
+        remValue.u.integer < locStatus->headNum)
+        return 0;
+
+    // Must serve chain - archival node is '1'
+    if (!messageP2PStatusExtractValue(remStatus, P2P_MESSAGE_STATUS_SERVE_CHAIN_SINCE, &remValue) ||
+        remValue.u.integer < locStatus->headNum + 1)
+        return 0;
+
+    return 1;
+}
+
 extern BREthereumNodeState
 nodeProcess (BREthereumNode node,
              BREthereumNodeEndpointRoute route,
@@ -1403,9 +1460,9 @@ nodeProcess (BREthereumNode node,
                     node->remote.status = message;
                     showEndpointStatusMessage (&node->remote);
 
-                    // Require a matching network
-                    if (getEndpointChainId(&node->remote) != getEndpointChainId(&node->local))
-                        return nodeProcessFailed (node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_NETWORK_MISMATCH));
+                    // Require a sufficient remote status.
+                    if (!nodeStatusIsSufficient(node))
+                        return nodeProcessFailed (node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_STATUS_MISMATCH));
 
                     // Finally, CONNECTED
                     nodeProcessSuccess (node, NODE_ROUTE_TCP, nodeStateCreateConnected());
@@ -1687,7 +1744,7 @@ nodeSetStateInitial (BREthereumNode node,
                     switch (state.u.error.u.protocol) {
                         case NODE_PROTOCOL_NONSTANDARD_PORT:
                         case NODE_PROTOCOL_CAPABILITIES_MISMATCH:
-                        case NODE_PROTOCOL_NETWORK_MISMATCH:
+                        case NODE_PROTOCOL_STATUS_MISMATCH:
                         case NODE_PROTOCOL_UDP_EXCESSIVE_BYTE_COUNT:
                             node->states[route] = state; // no recover; adopt the PROTOCOL error.
                             break;
