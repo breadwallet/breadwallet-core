@@ -61,6 +61,12 @@ typedef struct {
 }
 
 extern BREthereumAccountState
+accountStateCreate (uint64_t nonce,
+                    BREthereumEther balance,
+                    BREthereumHash storageRoot,
+                    BREthereumHash codeHash);
+    
+extern BREthereumAccountState
 accountStateCreateEmpty (void);
     
 extern uint64_t

@@ -81,6 +81,7 @@ extern void randomGenData(BREthereumLESRandomContext ctx, uint8_t* data, size_t 
 extern void randomGenPriKey(BREthereumLESRandomContext ctx, BRKey* key) {
 
     assert(key != NULL);
+    memset (key, 0, sizeof(BRKey));
     UInt256 secret;
     BRHMACDRBG(secret.u8, 32, ctx->k, ctx->v, BRKeccak256, KECCAK_HASH_SIZE, NULL, 0, NULL, 0, NULL, 0);
     BRKeySetSecret(key, &secret, 0);

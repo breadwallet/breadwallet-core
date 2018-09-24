@@ -222,12 +222,15 @@ static void
 clientGetTokens (BREthereumClientContext context,
                  BREthereumEWM ewm,
                  int rid) {
-    ethereumClientAnnounceToken(ewm, rid,
+    ethereumClientAnnounceToken(ewm,
                                 "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6",
                                 "BRD",
                                 "BRD Token",
                                 "BRD Token Description",
-                                18);
+                                18,
+                                NULL,
+                                NULL,
+                                0);
 }
 
 //
@@ -261,12 +264,20 @@ clientSaveBlocks (BREthereumClientContext context,
 //
 // Save Peers
 //
-BRArrayOf(BREthereumPersistData) savedPeers = NULL;
+BRArrayOf(BREthereumPersistData) savedNodes = NULL;
 
 static void
-clientSavePeers (BREthereumClientContext context,
+clientSaveNodes (BREthereumClientContext context,
                  BREthereumEWM ewm,
-                 BRArrayOf(BREthereumPersistData) blocksToSave) {
+                 BRArrayOf(BREthereumPersistData) nodesToSave) {
+    if (NULL != savedNodes) {
+        for (size_t item = 0; item < array_count(savedNodes); item++)
+            rlpDataRelease(savedNodes[item].blob);
+        array_free(savedNodes);
+        savedNodes = NULL;
+    }
+    savedNodes = nodesToSave;
+
 }
 
 //
@@ -413,7 +424,7 @@ static BREthereumClient client = {
     clientGetBlockNumber,
     clientGetNonce,
 
-    clientSavePeers,
+    clientSaveNodes,
     clientSaveBlocks,
     clientUpdateTransaction,
     clientUpdateLog,
@@ -602,7 +613,7 @@ runEWM_TOKEN_test (const char *paperKey) {
     printf ("     TOKEN\n");
 
     BRCoreParseStatus status;
-
+#if 0
     BREthereumToken token = tokenGet(0);
     BREthereumEWM ewm = ethereumCreate (ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, client, NULL, NULL, NULL, NULL);
     BREthereumWalletId wid = ethereumGetWalletHoldingToken(ewm, token);
@@ -627,6 +638,7 @@ runEWM_TOKEN_test (const char *paperKey) {
 
     ewmDeleteTransfer(ewm, tid);
     ethereumDestroy(ewm);
+#endif
 }
 
 static void
@@ -656,11 +668,11 @@ runSyncTest (unsigned int durationInSeconds,
 
     client.context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
-    char *paperKey = "boring head harsh green empty clip fatal typical found crane dinner timber";
+    char *paperKey = "0x8975dbc1b8f25ec994815626d070899dda896511"; // "boring head harsh green empty clip fatal typical found crane dinner timber";
     alarmClockCreateIfNecessary (1);
 
     BRArrayOf(BREthereumPersistData) blocks = (restart ? savedBlocks : NULL);
-    BRArrayOf(BREthereumPersistData) peers = (restart ? savedPeers : NULL);
+    BRArrayOf(BREthereumPersistData) nodes = (restart ? savedNodes : NULL);
     BRArrayOf(BREthereumPersistData) transactions = NULL;
     BRArrayOf(BREthereumPersistData) logs = NULL;
 
@@ -685,14 +697,19 @@ runSyncTest (unsigned int durationInSeconds,
     }
 
     BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, client,
-                                       peers,
+                                       nodes,
                                        blocks,
                                        transactions,
                                        logs);
 
-    // TODO: Hack-a-Roo
-    if (NULL != savedBlocks) savedBlocks = NULL;
-    
+    char *address = ethereumGetAccountPrimaryAddress(ewm);
+    printf ("***\n*** Address: %s\n", address);
+    free (address);
+
+    // We passed on { node, block, etc } - we no longer own the memory.  Thus:
+    savedBlocks = NULL;
+    savedNodes  = NULL;
+
     ethereumConnect(ewm);
 
     unsigned int remaining = durationInSeconds;

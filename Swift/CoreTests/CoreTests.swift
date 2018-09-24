@@ -53,15 +53,25 @@ class CoreTests: XCTestCase {
         runLEStests()
     }
 
+    func testLESNode () {
+//        runNodeTests()
+    }
+
     func testEthereumBasics() {
         runTests(0)
     }
 
     func testEthereumSync () {
-        runSyncTest (20 * 60, 0);
-//        runSyncTest (1 * 60, 1);
+        runSyncTest (10 * 60, 0);
+        runSyncTest (1 * 60, 1);
     }
-    
+
+    func testBitcoinSync () {
+        for _ in 1...10 {
+            BRRunTestsSync (1);
+        }
+    }
+
     func testPerformanceExample() {
 //        runTests(0);
         self.measure {

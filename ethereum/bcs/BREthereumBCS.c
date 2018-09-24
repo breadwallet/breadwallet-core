@@ -161,7 +161,7 @@ extern BREthereumBCS
 bcsCreate (BREthereumNetwork network,
            BREthereumAddress address,
            BREthereumBCSListener listener,
-           BRArrayOf(BREthereumLESPeerConfig) peers,
+           BRArrayOf(BREthereumNodeConfig) peers,
            BRArrayOf(BREthereumBlock) blocks,
            BRArrayOf(BREthereumTransaction) transactions,
            BRArrayOf(BREthereumLog) logs) {
@@ -226,18 +226,27 @@ bcsCreate (BREthereumNetwork network,
     bcsCreateInitializeTransactions(bcs, transactions);
     bcsCreateInitializeLogs(bcs, logs);
 
-    // Initialize LES and SYNC
-    BREthereumBlockHeader header = blockGetHeader(bcs->chain);
+    // Initialize LES and SYNC - we must create LES from a block where the totalDifficulty is
+    // computed.  In practice, we need all the blocks from bcs->chain back to a checkpoint - and
+    // that is unlikely.  We'll at least try.
+    int totalDifficultyIsValid = 0;
+    UInt256 totalDifficulty = blockGetTotalDifficulty(bcs->chain, &totalDifficultyIsValid);
+    // assert (0 == totalDifficultyIsValid);
 
-    // TODO: Provide 'peers'
+    // Okay, we tried.  Let's assume it failed.
+    const BREthereumBlockCheckpoint *checkpoint =
+    blockCheckpointLookupByNumber (bcs->network, blockGetNumber(bcs->chain));
+
     bcs->les = lesCreate (bcs->network,
                           (BREthereumLESCallbackContext) bcs,
                           (BREthereumLESCallbackAnnounce) bcsSignalAnnounce,
                           (BREthereumLESCallbackStatus) bcsSignalStatus,
-                          blockHeaderGetHash(header),
-                          blockHeaderGetNumber(header),
-                          blockHeaderGetDifficulty(header),
-                          blockHeaderGetHash(blockGetHeader(bcs->genesis)));
+                          (BREthereumLESCallbackSaveNodes) bcsSignalNodes,
+                          checkpoint->hash,
+                          checkpoint->number,
+                          checkpoint->u.td,
+                          blockGetHash(bcs->chain),
+                          peers);
 
     bcs->sync = bcsSyncCreate ((BREthereumBCSSyncContext) bcs,
                                (BREthereumBCSSyncReportBlocks) bcsSyncReportBlocksCallback,
@@ -322,10 +331,10 @@ bcsSendTransactionRequest (BREthereumBCS bcs,
                            BREthereumHash transactionHash,
                            uint64_t blockNumber,
                            uint64_t blockTransactionIndex) {
-    lesGetBlockHeaders (bcs->les,
-                        (BREthereumLESBlockHeadersContext) bcs,
-                        (BREthereumLESBlockHeadersCallback) bcsSignalBlockHeader,
-                        blockNumber, 1, 0, ETHEREUM_BOOLEAN_FALSE);
+    lesProvideBlockHeaders (bcs->les,
+                            (BREthereumLESProvisionContext) bcs,
+                            (BREthereumLESProvisionCallback) bcsSignalProvision,
+                            blockNumber, 1, 0, ETHEREUM_BOOLEAN_FALSE);
 }
 
 extern void
@@ -333,10 +342,10 @@ bcsSendLogRequest (BREthereumBCS bcs,
                    BREthereumHash transactionHash,
                    uint64_t blockNumber,
                    uint64_t blockTransactionIndex) {
-    lesGetBlockHeaders(bcs->les,
-                       (BREthereumLESBlockHeadersContext) bcs,
-                       (BREthereumLESBlockHeadersCallback) bcsSignalBlockHeader,
-                       blockNumber, 1, 0, ETHEREUM_BOOLEAN_FALSE);
+    lesProvideBlockHeaders (bcs->les,
+                            (BREthereumLESProvisionContext) bcs,
+                            (BREthereumLESProvisionCallback) bcsSignalProvision,
+                            blockNumber, 1, 0, ETHEREUM_BOOLEAN_FALSE);
 }
 
 extern void
@@ -344,10 +353,10 @@ bcsHandleSubmitTransaction (BREthereumBCS bcs,
                             BREthereumTransaction transaction) {
     bcsSignalTransaction(bcs, transaction);
 
-    lesSubmitTransaction(bcs->les,
-                         (BREthereumLESTransactionStatusContext) bcs,
-                         (BREthereumLESTransactionStatusCallback) bcsSignalTransactionStatus,
-                         transaction);
+    lesSubmitTransaction (bcs->les,
+                          (BREthereumLESProvisionContext) bcs,
+                          (BREthereumLESProvisionCallback) bcsSignalProvision,
+                          transaction);
 }
 
 extern void
@@ -379,13 +388,13 @@ bcsHandleAnnounce (BREthereumBCS bcs,
 
     // Request the block - backup a bit if we need to reorg.  Figure it will sort itself out
     // as old block arrive.
-    lesGetBlockHeaders (bcs->les,
-                        (BREthereumLESBlockHeadersContext) bcs,
-                        (BREthereumLESBlockHeadersCallback) bcsSignalBlockHeader,
-                        headNumber - reorgDepth,
-                        1 + reorgDepth,
-                        0,
-                        ETHEREUM_BOOLEAN_FALSE);
+    lesProvideBlockHeaders (bcs->les,
+                            (BREthereumLESProvisionContext) bcs,
+                            (BREthereumLESProvisionCallback) bcsSignalProvision,
+                            headNumber - reorgDepth,
+                            1 + reorgDepth,
+                            0,
+                            ETHEREUM_BOOLEAN_FALSE);
 }
 
 ///
@@ -907,7 +916,11 @@ bcsBlockHasMatchingLogs (BREthereumBCS bcs,
 static void
 bcsHandleBlockHeaderInternal (BREthereumBCS bcs,
                               BREthereumBlockHeader header,
-                              int isFromSync) {
+                              int isFromSync,
+                              BRArrayOf(BREthereumHash) *bodiesHashes,
+                              BRArrayOf(BREthereumHash) *receiptsHashes,
+                              BRArrayOf(BREthereumHash) *accountsHashes,
+                              BRArrayOf(uint64_t) *accountsNumbers) {
 
     // Ignore the header if we have seen it before.  Given an identical hash, *nothing*, at any
     // level (transactions, receipts, logs), could have changed and thus no processing is needed.
@@ -937,39 +950,33 @@ bcsHandleBlockHeaderInternal (BREthereumBCS bcs,
     // (getting account state might allow us to avoid getting block bodies; however, the client
     // cost to get the account state is ~2.5 times more then getting block bodies so we'll just
     // get block bodies)
-    BREthereumBoolean needReceipts = bcsBlockHasMatchingLogs(bcs, block);
     BREthereumBoolean needBodies   = bcsBlockHasMatchingTransactions(bcs, block);
+    BREthereumBoolean needReceipts = bcsBlockHasMatchingLogs(bcs, block);
     BREthereumBoolean needAccount  = bcsBlockNeedsAccountState(bcs, block);
 
     // Request block bodied, if needed.
     if (ETHEREUM_BOOLEAN_IS_TRUE(needBodies)) {
         blockReportStatusTransactionsRequest(block, BLOCK_REQUEST_PENDING);
-        lesGetBlockBodiesOne (bcs->les,
-                              (BREthereumLESBlockBodiesContext) bcs,
-                              (BREthereumLESBlockBodiesCallback) bcsSignalBlockBodies,
-                              blockGetHash(block));
+        if (NULL == *bodiesHashes) array_new (*bodiesHashes, 200);
+        array_add (*bodiesHashes, blockGetHash(block));
         eth_log("BCS", "Block %llu Needs Bodies", blockGetNumber(block));
     }
 
     // Request transaction receipts, if needed.
     if (ETHEREUM_BOOLEAN_IS_TRUE(needReceipts)) {
         blockReportStatusLogsRequest(block, BLOCK_REQUEST_PENDING);
-        lesGetReceiptsOne (bcs->les,
-                           (BREthereumLESReceiptsContext) bcs,
-                           (BREthereumLESReceiptsCallback) bcsSignalTransactionReceipts,
-                           blockGetHash(block));
+        if (NULL == *receiptsHashes) array_new (*receiptsHashes, 200);
+        array_add (*receiptsHashes, blockGetHash(block));
         eth_log("BCS", "Block %llu Needs Receipts", blockGetNumber(block));
     }
 
     // Request account state, if needed.
     if (ETHEREUM_BOOLEAN_IS_TRUE(needAccount)) {
         blockReportStatusAccountStateRequest (block, BLOCK_REQUEST_PENDING);
-        lesGetAccountState (bcs->les,
-                            (BREthereumLESAccountStateContext) bcs,
-                            (BREthereumLESAccountStateCallback) bcsSignalAccountState,
-                            blockGetNumber(block),
-                            blockGetHash(block),
-                            bcs->address);
+        if (NULL == *accountsHashes ) array_new (*accountsHashes,  200);
+        if (NULL == *accountsNumbers) array_new (*accountsNumbers, 200);
+        array_add (*accountsHashes, blockGetHash(block));
+        array_add (*accountsNumbers, blockGetNumber(block));
         eth_log("BCS", "Block %llu Needs AccountState", blockGetNumber(block));
     }
 
@@ -982,21 +989,54 @@ bcsHandleBlockHeaderInternal (BREthereumBCS bcs,
     bcsExtendChainIfPossible(bcs, block, isFromSync);
 }
 
-extern void
-bcsHandleBlockHeader (BREthereumBCS bcs,
-                      BREthereumBlockHeader header) {
-    bcsHandleBlockHeaderInternal(bcs, header, 0);
+static void
+bcsHandleBlockHeaders (BREthereumBCS bcs,
+                       BRArrayOf(BREthereumBlockHeader) headers,
+                       int isFromSync) {
+    BRArrayOf(BREthereumHash) bodiesHashes = NULL;
+    BRArrayOf(BREthereumHash) receiptsHashes = NULL;
+    BRArrayOf(BREthereumHash) accountsHashes = NULL;
+    BRArrayOf(uint64_t) accountsNumbers = NULL;
+
+    for (size_t index = 0; index < array_count(headers); index++)
+        bcsHandleBlockHeaderInternal (bcs, headers[index], isFromSync,
+                                      &bodiesHashes,
+                                      &receiptsHashes,
+                                      &accountsHashes,
+                                      &accountsNumbers);
+
+    if (NULL != bodiesHashes && array_count(bodiesHashes) > 0)
+        lesProvideBlockBodies (bcs->les,
+                               (BREthereumLESProvisionContext) bcs,
+                               (BREthereumLESProvisionCallback) bcsSignalProvision,
+                               bodiesHashes);
+
+    if (NULL != receiptsHashes && array_count(receiptsHashes) > 0)
+        lesProvideReceipts (bcs->les,
+                            (BREthereumLESProvisionContext) bcs,
+                            (BREthereumLESProvisionCallback) bcsSignalProvision,
+                            receiptsHashes);
+
+    if (NULL != accountsHashes && array_count(accountsHashes) > 0)
+        lesProvideAccountStates (bcs->les,
+                                 (BREthereumLESProvisionContext) bcs,
+                                 (BREthereumLESProvisionCallback) bcsSignalProvision,
+                                 bcs->address,
+                                 accountsHashes,
+                                 accountsNumbers);
 }
 
 ///
 /// MARK: - Account State
 ///
 
-extern void
+static void
 bcsHandleAccountState (BREthereumBCS bcs,
-                       BREthereumLESAccountStateResult result) {
+                       BREthereumAddress address,
+                       BREthereumHash blockHash,
+                       BREthereumAccountState account) {
     // Ensure we have a Block
-    BREthereumBlock block = BRSetGet(bcs->blocks, &result.u.success.block);
+    BREthereumBlock block = BRSetGet(bcs->blocks, &blockHash);
     if (NULL == block) {
         eth_log ("BCS", "Block %llu Missed (Account)", (NULL == block ? -1 : blockGetNumber(block)));
         return;
@@ -1013,10 +1053,10 @@ bcsHandleAccountState (BREthereumBCS bcs,
 
     eth_log("BCS", "Account %llu Nonce %llu, Balance XX",
             blockGetNumber(block),
-            accountStateGetNonce(result.u.success.accountState));
+            accountStateGetNonce(account));
 
     // Report the block status - we'll flag as HAS_ACCOUNT_STATE.
-    blockReportStatusAccountState(block, result.u.success.accountState);
+    blockReportStatusAccountState(block, account);
 
 //    // TODO: How to update the overall, bcs account state?
 //    // If block is bcs->chain then block is the latest and we should update the bcs state;
@@ -1031,6 +1071,15 @@ bcsHandleAccountState (BREthereumBCS bcs,
 //    }
 
     bcsExtendTransactionsAndLogsForBlockIfAppropriate (bcs, block);
+}
+
+static void
+bcsHandleAccountStates (BREthereumBCS bcs,
+                        BREthereumAddress address,
+                        BRArrayOf(BREthereumHash) hashes,
+                        BRArrayOf(BREthereumAccountState) states) {
+    for (size_t index = 0; index < array_count(hashes); index++)
+        bcsHandleAccountState (bcs, address, hashes[index], states[index]);
 }
 
 ///
@@ -1052,8 +1101,8 @@ bcsReleaseOmmersAndTransactionsFully (BREthereumBCS bcs,
     array_free(ommers);
 }
 
-extern void
-bcsHandleBlockBodies (BREthereumBCS bcs,
+static void
+bcsHandleBlockBody (BREthereumBCS bcs,
                       BREthereumHash blockHash,
                       BREthereumTransaction transactions[],
                       BREthereumBlockHeader ommers[]) {
@@ -1133,10 +1182,10 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
         // hold the cummulative gasUsed which will use to compute the gasUsed by each transaction.
         if (ETHEREUM_BOOLEAN_IS_TRUE (blockHasStatusLogsRequest (block, BLOCK_REQUEST_NOT_NEEDED))) {
             blockReportStatusLogsRequest (block, BLOCK_REQUEST_PENDING);
-            lesGetReceiptsOne (bcs->les,
-                               (BREthereumLESReceiptsContext) bcs,
-                               (BREthereumLESReceiptsCallback) bcsSignalTransactionReceipts,
-                               blockGetHash(block));
+            lesProvideReceiptsOne (bcs->les,
+                                   (BREthereumLESProvisionContext) bcs,
+                                   (BREthereumLESProvisionCallback) bcsSignalProvision,
+                                   blockGetHash(block));
         }
         // Anything more?
     }
@@ -1149,6 +1198,13 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
     bcsExtendTransactionsAndLogsForBlockIfAppropriate (bcs, block);
 }
 
+static void
+bcsHandleBlockBodies (BREthereumBCS bcs,
+                      BRArrayOf(BREthereumHash) hashes,
+                      BRArrayOf(BREthereumBlockBodyPair) pairs) {
+    for (size_t index = 0; index < array_count(hashes); index++)
+        bcsHandleBlockBody (bcs, hashes[index], pairs[index].transactions, pairs[index].uncles);
+}
 
 ///
 /// MARK: - Transaction Receipts
@@ -1188,10 +1244,10 @@ bcsReleaseReceiptsFully (BREthereumBCS bcs,
     array_free (receipts);
 }
 
-extern void
+static void
 bcsHandleTransactionReceipts (BREthereumBCS bcs,
                               BREthereumHash blockHash,
-                              BREthereumTransactionReceipt *receipts) {
+                              BRArrayOf(BREthereumTransactionReceipt) receipts) {
     // Ensure we have a Block
     BREthereumBlock block = BRSetGet(bcs->blocks, &blockHash);
     if (NULL == block) {
@@ -1279,10 +1335,10 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
     if (NULL != neededLogs) {
         if (ETHEREUM_BOOLEAN_IS_TRUE (blockHasStatusTransactionsRequest(block, BLOCK_REQUEST_NOT_NEEDED))) {
             blockReportStatusTransactionsRequest (block, BLOCK_REQUEST_PENDING);
-            lesGetBlockBodiesOne (bcs->les,
-                                  (BREthereumLESBlockBodiesContext) bcs,
-                                  (BREthereumLESBlockBodiesCallback) bcsSignalBlockBodies,
-                                  blockGetHash(block));
+            lesProvideBlockBodiesOne (bcs->les,
+                                      (BREthereumLESProvisionContext) bcs,
+                                      (BREthereumLESProvisionCallback) bcsSignalProvision,
+                                      blockGetHash(block));
             eth_log("BCS", "Block %llu Needs Bodies (for Logs)", blockGetNumber(block));
         }
         // Anything else?
@@ -1293,6 +1349,14 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
 
     // In the following, 'if appropriate' means complete and chained.
     bcsExtendTransactionsAndLogsForBlockIfAppropriate (bcs, block);
+}
+
+static void
+bcsHandleTransactionReceiptsMultiple (BREthereumBCS bcs,
+                                      BRArrayOf(BREthereumHash) hashes,
+                                      BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) arrayOfReceipts) {
+    for (size_t index = 0; index < array_count(hashes); index++)
+        bcsHandleTransactionReceipts(bcs, hashes[index], arrayOfReceipts[index]);
 }
 
 ///
@@ -1324,7 +1388,7 @@ bcsLookupPendingTransaction (BREthereumBCS bcs,
 // In case 'b' the transaction is INCLUDED in the chain but the BlockBodies tranaction data
 // does not include `gasUsed`.  We want the 'gasUsed' value.
 //
-extern void
+static void
 bcsHandleTransactionStatus (BREthereumBCS bcs,
                             BREthereumHash transactionHash,
                             BREthereumTransactionStatus status) {
@@ -1391,6 +1455,14 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
             (TRANSACTION_STATUS_ERRORED == status.type ? status.u.errored.reason : ""));
 }
 
+static void
+bcsHandleTransactionStatuses (BREthereumBCS bcs,
+                              BRArrayOf(BREthereumHash) hashes,
+                              BRArrayOf(BREthereumTransactionStatus) statuses) {
+    for (size_t index = 0; index < array_count(hashes); index++)
+        bcsHandleTransactionStatus (bcs, hashes[index], statuses[index]);
+}
+
 //
 // Periodicaly get the transaction status for all pending transaction
 //
@@ -1406,10 +1478,10 @@ bcsPeriodicDispatcher (BREventHandler handler,
     // TODO: Avoid-ish a race condition on bcsRelease. This is the wrong approach.
     if (NULL == bcs->les) return;
 
-    lesGetTransactionStatus (bcs->les,
-                             (BREthereumLESTransactionStatusContext) bcs,
-                             (BREthereumLESTransactionStatusCallback) bcsSignalTransactionStatus,
-                             bcs->pendingTransactions);
+    lesProvideTransactionStatus (bcs->les,
+                                 (BREthereumLESProvisionContext) bcs,
+                                 (BREthereumLESProvisionCallback) bcsSignalProvision,
+                                 bcs->pendingTransactions);
 }
 
 ///
@@ -1515,8 +1587,8 @@ bcsHandleLog (BREthereumBCS bcs,
 }
 
 extern void
-bcsHandlePeers (BREthereumBCS bcs,
-                BRArrayOf(BREthereumLESPeerConfig) peers) {
+bcsHandleNodes (BREthereumBCS bcs,
+                BRArrayOf(BREthereumNodeConfig) peers) {
     size_t peersCount = array_count(peers);
     bcs->listener.savePeersCallback (bcs->listener.context, peers);
     eth_log("BCS", "Peers %zu Saved", peersCount);
@@ -1526,9 +1598,18 @@ static void
 bcsSyncReportBlocksCallback (BREthereumBCS bcs,
                              BREthereumBCSSync sync,
                              BRArrayOf(BREthereumBCSSyncResult) results) {
-    size_t resultsCount = (NULL != results ? array_count(results) : 0);
-    for (size_t index = 0; index < resultsCount; index++)
-        bcsHandleBlockHeaderInternal (bcs, results[index].header, 1);
+    if (NULL == results) return;
+
+    // Extract the result's header.
+    size_t count = array_count(results);
+    BRArrayOf(BREthereumBlockHeader) headers;
+    array_new (headers, count);
+
+    for (size_t index = 0; index < count; index++)
+        array_add (headers, results[index].header);
+    array_free(results);
+    
+    bcsHandleBlockHeaders (bcs, headers, 1);
 }
 
 static void
@@ -1548,3 +1629,63 @@ bcsSyncReportProgressCallback (BREthereumBCS bcs,
                                 blockNumberNow,
                                 blockNumberEnd);
 }
+
+
+extern void
+bcsHandleProvision (BREthereumBCS bcs,
+                    BREthereumLES les,
+                    BREthereumNodeReference node,
+                    BREthereumProvisionResult result) {
+    assert (bcs->les == les);
+    switch (result.status) {
+        case PROVISION_ERROR:
+            assert (0);
+            break;
+        case PROVISION_SUCCESS: {
+            BREthereumProvision *provision = &result.u.success.provision;
+            assert (result.type == provision->type);
+            switch (result.type) {
+                case PROVISION_BLOCK_HEADERS: {
+                    bcsHandleBlockHeaders (bcs,
+                                           provision->u.headers.headers,
+                                           0);
+                    break;
+                }
+
+                case PROVISION_BLOCK_BODIES: {
+                    bcsHandleBlockBodies (bcs,
+                                          provision->u.bodies.hashes,
+                                          provision->u.bodies.pairs);
+                    break;
+                }
+
+                case PROVISION_TRANSACTION_RECEIPTS: {
+                    bcsHandleTransactionReceiptsMultiple (bcs,
+                                                          provision->u.receipts.hashes,
+                                                          provision->u.receipts.receipts);
+                    break;
+                }
+
+                case PROVISION_ACCOUNTS: {
+                    bcsHandleAccountStates (bcs,
+                                            provision->u.accounts.address,
+                                            provision->u.accounts.hashes,
+                                            provision->u.accounts.accounts);
+                    break;
+                }
+
+                case PROVISION_TRANSACTION_STATUSES: {
+                    bcsHandleTransactionStatuses (bcs,
+                                                  provision->u.statuses.hashes,
+                                                  provision->u.statuses.statuses);
+                    break;
+                }
+                    
+                case PROVISION_SUBMIT_TRANSACTION:
+                    break;
+            }
+            break;
+        }
+    }
+}
+

@@ -165,19 +165,8 @@ public struct EthereumToken : EthereumPointer {
         return Int (exactly: tokenGetDecimals (core))!
     }
 
-    var colorLeft : String {
-        return String (cString: tokenGetColorLeft (core))
-    }
-
-    var colorRight : String {
-        return String (cString: tokenGetColorRight (core))
-    }
-
-    static let BRD = EthereumToken(core: tokenBRD)
-
     static internal func lookup (core: BREthereumToken) -> EthereumToken {
-        if core == BRD.core { return BRD }
-        else { return EthereumToken (core: core) }
+        return EthereumToken (core: core)
     }
 
     static func lookup (contract: String) -> EthereumToken? {
@@ -190,10 +179,18 @@ public struct EthereumToken : EthereumPointer {
     }
 
     static var all : [EthereumToken] = {
-        let tokenIndex = Int(exactly: tokenCount())! - 1
-        return (0...tokenIndex)
-            .map { tokenGet (Int32($0)) }
-            .map { EthereumToken (core: $0) }
+        return []
+//        var refs = tokenGetAll()
+//        var tokens = refs.map {  EthereumToken (core: $0) }
+//        free (refs);
+//        return tokens
+//
+//        return  tokenGetAll().
+//        var refs = tokenGetAll()
+//        let tokenIndex = Int(exactly: tokenCount())! - 1
+//        return (0...tokenIndex)
+//            .map { tokenGet (Int32($0)) }
+//            .map { EthereumToken (core: $0) }
     }()
 }
 
@@ -287,7 +284,7 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit, Hashable {
     //
     // Transaction
     //
-    func createTransaction (recvAddress: String, amount: String, unit: EthereumAmountUnit) -> EthereumTransfer {
+    public func createTransfer (recvAddress: String, amount: String, unit: EthereumAmountUnit) -> EthereumTransfer {
         var status : BRCoreParseStatus = CORE_PARSE_OK
         let amount = (unit.isEther
             ? ethereumCreateEtherAmountString (self.ewm!.core, amount, unit.coreForEther, &status)
@@ -302,15 +299,15 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit, Hashable {
     }
 
 
-    func sign (transfer : EthereumTransfer, paperKey : String) {
+    public func sign (transfer : EthereumTransfer, paperKey : String) {
         ethereumWalletSignTransfer (self.ewm!.core, self.identifier, transfer.identifier, paperKey)
     }
 
-    func sign (transfer: EthereumTransfer, privateKey: BRKey) {
+    public func sign (transfer: EthereumTransfer, privateKey: BRKey) {
         ethereumWalletSignTransferWithPrivateKey (self.ewm!.core, self.identifier, transfer.identifier, privateKey)
     }
 
-    func submit (transfer : EthereumTransfer) {
+    public func submit (transfer : EthereumTransfer) {
         ethereumWalletSubmitTransfer (self.ewm!.core, self.identifier, transfer.identifier)
     }
 
@@ -594,7 +591,7 @@ public protocol EthereumClient : class {
                    address: String,
                    rid: Int32) -> Void
 
-    func savePeers (ewm: EthereumWalletManager /* data */) -> Void
+    func saveNodes (ewm: EthereumWalletManager /* data */) -> Void
 
     func saveBlocks (ewm: EthereumWalletManager /* data */) -> Void
 
@@ -826,8 +823,8 @@ public class EthereumWalletManager {
                                name: String,
                                description: String,
                                decimals: UInt32) {
-        ethereumClientAnnounceToken(core, rid,
-                                    address, symbol, name, description, decimals)
+        ethereumClientAnnounceToken(core,
+                                    address, symbol, name, description, decimals, nil, nil, rid)
     }
     
     public func announceBlockNumber (blockNumber: String, rid: Int32) {
@@ -927,10 +924,10 @@ public class EthereumWalletManager {
                                     rid: rid)
                 }},
 
-            funcSavePeers: { (coreClient, coreEWM, data) in
+            funcSaveNodes: { (coreClient, coreEWM, data) in
                 if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }),
                     let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    client.savePeers(ewm: ewm)
+                    client.saveNodes(ewm: ewm)
                 }},
 
             funcSaveBlocks: { (coreClient, coreEWM, data) in
@@ -1040,8 +1037,8 @@ public enum EthereumAmountUnit {
         }
     }
 
-    static let defaultUnitEther = EthereumAmountUnit.ether (ETHER)
-    static let defaultUnitToken = EthereumAmountUnit.token (TOKEN_QUANTITY_TYPE_DECIMAL)
+    static public let defaultUnitEther = EthereumAmountUnit.ether (ETHER)
+    static public let defaultUnitToken = EthereumAmountUnit.token (TOKEN_QUANTITY_TYPE_DECIMAL)
 
     static func defaultUnit (_ forEther : Bool) -> EthereumAmountUnit {
         return forEther ? defaultUnitEther : defaultUnitToken
@@ -1202,8 +1199,8 @@ class AnyEthereumClient : EthereumClient {
         base.getNonce(ewm: ewm, address: address, rid: rid)
     }
 
-    func savePeers(ewm: EthereumWalletManager) {
-        base.savePeers(ewm: ewm)
+    func saveNodes(ewm: EthereumWalletManager) {
+        base.saveNodes(ewm: ewm)
     }
 
     func saveBlocks(ewm: EthereumWalletManager) {

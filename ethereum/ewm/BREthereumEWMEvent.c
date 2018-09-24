@@ -299,25 +299,25 @@ ewmSignalSaveBlocks (BREthereumEWM ewm,
 typedef struct {
     BREvent base;
     BREthereumEWM ewm;
-    BRArrayOf(BREthereumLESPeerConfig) peers;
-} BREthereumHandleSavePeersEvent;
+    BRArrayOf(BREthereumNodeConfig) nodes;
+} BREthereumHandleSaveNodesEvent;
 
 static void
 ewmHandleSavePeersEventDispatcher(BREventHandler ignore,
-                                   BREthereumHandleSavePeersEvent *event) {
-    ewmHandleSavePeers(event->ewm, event->peers);
+                                   BREthereumHandleSaveNodesEvent *event) {
+    ewmHandleSaveNodes(event->ewm, event->nodes);
 }
 
-BREventType handleSavePeersEventType = {
-    "EWM: Handle SavePeers Event",
-    sizeof (BREthereumHandleSavePeersEvent),
+BREventType handleSaveNodesEventType = {
+    "EWM: Handle SaveNodes Event",
+    sizeof (BREthereumHandleSaveNodesEvent),
     (BREventDispatcher) ewmHandleSavePeersEventDispatcher
 };
 
 extern void
-ewmSignalSavePeers (BREthereumEWM ewm,
-                    BRArrayOf(BREthereumLESPeerConfig) peers) {
-    BREthereumHandleSavePeersEvent event = { { NULL, &handleSavePeersEventType }, ewm, peers };
+ewmSignalSaveNodes (BREthereumEWM ewm,
+                    BRArrayOf(BREthereumNodeConfig) nodes) {
+    BREthereumHandleSaveNodesEvent event = { { NULL, &handleSaveNodesEventType }, ewm, nodes };
     eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
 }
 
@@ -380,7 +380,7 @@ const BREventType *handlerForMainEventTypes[] = {
     &handleTransactionEventType,
     &handleLogEventType,
     &handleSaveBlocksEventType,
-    &handleSavePeersEventType,
+    &handleSaveNodesEventType,
     &handleSyncEventType
 };
 const unsigned int handlerForMainEventTypesCount = 10;

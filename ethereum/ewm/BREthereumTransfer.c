@@ -159,7 +159,13 @@ transferCreate (BREthereumAddress sourceAddress,
                                                          NULL);
 
     transferProvideOriginatingTransaction(transfer);
-    
+
+    // Basis
+    transfer->basis.type = TRANSFER_BASIS_TRANSACTION;
+    transfer->basis.u.transaction = transfer->originatingTransaction;
+
+    // Status
+    transfer->status = transferStatusCreate(transactionGetStatus(transfer->originatingTransaction));
     return transfer;
 }
 
@@ -172,7 +178,8 @@ transferCreateWithTransaction (BREthereumTransaction transaction) {
             transactionGetGasPrice(transaction)
         }}
     };
-    
+
+    // No originating transaction
     BREthereumTransfer transfer = transferCreateDetailed (transactionGetSourceAddress(transaction),
                                                           transactionGetTargetAddress(transaction),
                                                           amountCreateEther (transactionGetAmount(transaction)),
@@ -208,6 +215,7 @@ transferCreateWithLog (BREthereumLog log,
 
     BREthereumAmount  amount = amountCreateToken (createTokenQuantity(token, value));
 
+    // No originating transaction
     BREthereumTransfer transfer = transferCreateDetailed (sourceAddress,
                                                           targetAddress,
                                                           amount,

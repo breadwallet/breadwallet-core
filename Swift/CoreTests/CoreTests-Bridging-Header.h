@@ -4,6 +4,7 @@
 
 // Bitcoin
 extern int BRRunTests();
+extern int BRRunTestsSync (int randomKey);
 
 // Util
 extern void runUtilTests (void);
@@ -26,7 +27,11 @@ extern void runSyncTest (unsigned int durationInSeconds,
                          int restart);
 
 // LES
-extern void runLEStests(void);
+extern void
+runLEStests (void);
+
+extern void
+runNodeTests (void);
 
 // Top-Level
 extern void runTests (int reallySend);

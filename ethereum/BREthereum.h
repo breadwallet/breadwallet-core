@@ -197,7 +197,7 @@ typedef void
                                       BREthereumEWM ewm,
                                       BRArrayOf(BREthereumPersistData) persistData);
 typedef void
-(*BREthereumClientHandlerSavePeers) (BREthereumClientContext context,
+(*BREthereumClientHandlerSaveNodes) (BREthereumClientContext context,
                                      BREthereumEWM ewm,
                                      BRArrayOf(BREthereumPersistData) persistData);
 
@@ -348,9 +348,9 @@ typedef struct {
     BREthereumClientHandlerGetBlockNumber funcGetBlockNumber;
     BREthereumClientHandlerGetNonce funcGetNonce;
 
-    // Save Sync (and other) State - required as Core does maintain and is not configured to
+    // Save Sync (and other) State - required as Core does not maintain and is not configured to
     // use persistent storage (aka an sqlite DB or simply disk)
-    BREthereumClientHandlerSavePeers funcSavePeers;
+    BREthereumClientHandlerSaveNodes funcSaveNodes;
     BREthereumClientHandlerSaveBlocks funcSaveBlocks;
     BREthereumClientHandlerChangeTransaction funcChangeTransaction;
     BREthereumClientHandlerChangeLog funcChangeLog;
@@ -955,16 +955,18 @@ ethereumClientAnnounceLog (BREthereumEWM ewm,
 // Tokens
 //
 extern void
-ethereumUpdateTokens (BREthereumEWM ewm);
+ethereumClientUpdateTokens (BREthereumEWM ewm);
 
-extern BREthereumStatus
-ethereumClientAnnounceToken (BREthereumEWM ewm,
-                             int id,
-                             const char *address,
-                             const char *symbol,
-                             const char *name,
-                             const char *description,
-                             unsigned int decimals);
+extern void
+ethereumClientAnnounceToken(BREthereumEWM ewm,
+                            const char *address,
+                            const char *symbol,
+                            const char *name,
+                            const char *description,
+                            unsigned int decimals,
+                            const char *strDefaultGasLimit,
+                            const char *strDefaultGasPrice,
+                            int rid);
 
 #ifdef __cplusplus
 }

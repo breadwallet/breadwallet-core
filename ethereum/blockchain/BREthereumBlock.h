@@ -195,6 +195,20 @@ blockGetConfirmations (BREthereumBlock block);
 extern uint64_t
 blockGetTimestamp (BREthereumBlock block);
 
+extern UInt256
+blockGetDifficulty (BREthereumBlock block);
+
+/*!
+ * The total difficulty is computed as an emergent property of the entire chain by summing up
+ * the difficulty for each block.  That implies, as of 2018, >6,000,000 block to sum.  However,
+ * if we can rely on checkpoints (blocks with a pre-computed totalDifficulty) then we only
+ * need to sum back to the checkpoint - but still need all the blocks to the checkpoint.
+ *
+ * Currently, we don't have enough blocks to compute the total difficulty.
+ */
+extern UInt256
+blockGetTotalDifficulty (BREthereumBlock block, int *valid);
+
 extern void
 blockLinkLogsWithTransactions (BREthereumBlock block);
     
@@ -411,6 +425,10 @@ networkGetGenesisBlock (BREthereumNetwork network);
 typedef struct {
     uint64_t number;
     BREthereumHash hash;
+    union {
+        char *std;
+        UInt256 td;
+    } u;
     uint64_t timestamp;
 } BREthereumBlockCheckpoint;
 
