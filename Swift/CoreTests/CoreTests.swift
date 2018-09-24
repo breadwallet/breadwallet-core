@@ -62,7 +62,7 @@ class CoreTests: XCTestCase {
     }
 
     func testEthereumSync () {
-        runSyncTest (5 * 60, 0);
+        runSyncTest (10 * 60, 0);
         runSyncTest (1 * 60, 1);
     }
 
