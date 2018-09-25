@@ -33,6 +33,8 @@
 
 #define GAS_LIMIT_DEFAULT 21000
 
+extern const char *tokenBRDAddress;
+
 //
 // EWM CONNECT
 //
@@ -188,7 +190,7 @@ clientGetLogs (BREthereumClientContext context,
         "0x000000000000000000000000bdfdad139440d2db9ba2aa3b7081c2de39291508"
     };
     ethereumClientAnnounceLog (ewm, rid,
-                               address,
+                               "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220", // random hash...
                                "0x722dd3f80bac40c951b51bdd28dd19d435762180",
                                3,
                                topics,
@@ -443,7 +445,6 @@ static BREthereumClient client = {
 //
 //
 //
-#if 0
 static void
 runEWM_CONNECT_test (const char *paperKey) {
     printf ("     JSON_RCP\n");
@@ -451,7 +452,7 @@ runEWM_CONNECT_test (const char *paperKey) {
     BRCoreParseStatus status;
     client.context = testContextCreate();
 
-    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, EWM_USE_LES, SYNC_MODE_FULL_BLOCKCHAIN, client, NULL, NULL, NULL, NULL);
+    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, EWM_USE_BRD, SYNC_MODE_FULL_BLOCKCHAIN, client, NULL, NULL, NULL, NULL);
 
     BREthereumWalletId wallet = ethereumGetWallet(ewm);
 
@@ -477,7 +478,7 @@ runEWM_CONNECT_test (const char *paperKey) {
     ethereumDisconnect(ewm);
     ethereumDestroy(ewm);
 }
-#endif
+
 //
 //
 //
@@ -613,8 +614,8 @@ runEWM_TOKEN_test (const char *paperKey) {
     printf ("     TOKEN\n");
 
     BRCoreParseStatus status;
-#if 0
-    BREthereumToken token = tokenGet(0);
+
+    BREthereumToken token = tokenLookup(tokenBRDAddress);
     BREthereumEWM ewm = ethereumCreate (ethereumMainnet, paperKey, EWM_USE_LES, SYNC_MODE_FULL_BLOCKCHAIN, client, NULL, NULL, NULL, NULL);
     BREthereumWalletId wid = ethereumGetWalletHoldingToken(ewm, token);
 
@@ -638,7 +639,7 @@ runEWM_TOKEN_test (const char *paperKey) {
 
     ewmDeleteTransfer(ewm, tid);
     ethereumDestroy(ewm);
-#endif
+
 }
 
 static void
@@ -726,10 +727,14 @@ runSyncTest (unsigned int durationInSeconds,
 }
 
 extern void
+installTokensForTest (void);
+
+extern void
 runEWMTests (void) {
+    installTokensForTest();
     printf ("==== EWM\n");
     // prepareTransaction(NODE_PAPER_KEY, NODE_RECV_ADDR, TEST_TRANS2_GAS_PRICE_VALUE, GAS_LIMIT_DEFAULT, NODE_ETHER_AMOUNT);
-    // runEWM_CONNECT_test(NODE_PAPER_KEY);
+    runEWM_CONNECT_test(NODE_PAPER_KEY);
     runEWM_TOKEN_test (NODE_PAPER_KEY);
     runEWM_PUBLIC_KEY_test (ethereumMainnet, NODE_PAPER_KEY);
     runEWM_PUBLIC_KEY_test (ethereumTestnet, "ocean robust idle system close inject bronze mutual occur scale blast year");

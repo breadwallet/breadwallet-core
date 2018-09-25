@@ -62,7 +62,7 @@ logTopicCreateFromString (const char *string) {
     assert (0 == strncmp (string, "0x", 2) && (2 + 2 * LOG_TOPIC_BYTES_COUNT == stringLen));
 
     BREthereumLogTopic topic;
-    decodeHex(topic.bytes, sizeof(BREthereumLogTopic), string, stringLen);
+    decodeHex(topic.bytes, sizeof(BREthereumLogTopic), &string[2], stringLen - 2);
     return topic;
 }
 

@@ -707,7 +707,9 @@ ethereumClientAnnounceTransaction(BREthereumEWM ewm,
 
     bundle->from = addressCreate(from);
     bundle->to = addressCreate(to);
-    bundle->contract = addressCreate(contract);
+    bundle->contract = (NULL == contract || '\0' == contract[0]
+                        ? EMPTY_ADDRESS_INIT
+                        : addressCreate(contract));
 
     bundle->amount = createUInt256Parse(strAmount, 0, &parseStatus);
 

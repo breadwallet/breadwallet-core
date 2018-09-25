@@ -42,9 +42,9 @@ typedef struct {
     uint8_t bytes[ADDRESS_BYTES];
 } BREthereumAddress;
 
-#define EMPTY_ADDRESS_INIT   { \
+#define EMPTY_ADDRESS_INIT   ((BREthereumAddress) { \
 0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0,   0, 0, 0, 0 \
-}
+})
 
 #define ADDRESS_INIT(s) ((BREthereumAddress) { .bytes = {\
 (_hexu((s)[ 0]) << 4) | _hexu((s)[ 1]), (_hexu((s)[ 2]) << 4) | _hexu((s)[ 3]),\
