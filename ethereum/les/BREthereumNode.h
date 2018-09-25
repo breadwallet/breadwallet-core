@@ -70,6 +70,7 @@ typedef struct BREthereumNodeRecord *BREthereumNode;
  * Parity we'll use PIPv1.
  */
 typedef enum {
+    NODE_TYPE_UNKNOWN,
     NODE_TYPE_GETH,
     NODE_TYPE_PARITY
 } BREthereumNodeType;
@@ -241,7 +242,10 @@ nodeProcess (BREthereumNode node,
 
 extern void
 nodeHandleProvision (BREthereumNode node,
-                       BREthereumProvision provision);
+                     BREthereumProvision provision);
+
+extern BRArrayOf(BREthereumProvision)
+nodeUnhandleProvisions (BREthereumNode node);
 
 extern BREthereumNodeEndpoint *
 nodeGetRemoteEndpoint (BREthereumNode node);
