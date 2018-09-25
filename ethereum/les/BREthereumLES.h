@@ -34,9 +34,6 @@
 
 #include "BREthereumProvision.h"
 
-#define LES_SUPPORT_PARITY
-#undef  LES_SUPPORT_GETH        // not until GetProofs{V1,V2} 'works'
-
 #ifdef __cplusplus
 extern "C" {
 #endif

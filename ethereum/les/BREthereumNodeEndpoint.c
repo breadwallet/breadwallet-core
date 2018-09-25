@@ -45,6 +45,8 @@
 // #define NEED_TO_PRINT_SEND_DATA
 // #define LES_LOG_RECV
 // #define LES_LOG_SEND
+// #define LES_LOG_SEND_RECV_ERROR  // normally handled by the caller
+// #define LES_LOG_REPORT_OPEN_SOCKET
 
 #define CONNECTION_TIME 3.0
 
@@ -251,21 +253,23 @@ nodeEndpointRecvData (BREthereumNodeEndpoint *endpoint,
         socket = endpoint->sockets[route];
     }
 
-    if (error)
-        eth_log (LES_LOG_TOPIC, "Recv: %s @ %5d => %15s %s%s",
-                 nodeEndpointRouteGetName(route),
-                 (NODE_ROUTE_UDP == route ? endpoint->dis.node.portUDP : endpoint->dis.node.portTCP),
-                 endpoint->hostname,
-                 "Error: ",
-                 strerror(error));
-    else {
+    if (!error) {
         // !! DON'T MISS THIS !!
         *bytesCount = totalCount;
 #if defined (LES_LOG_RECV)
         eth_log (LES_LOG_TOPIC, "read (%zu bytes) from peer [%s], contents: %s", len, endpoint->hostname, "?");
 #endif
     }
-
+#if defined (LES_LOG_SEND_RECV_ERROR)
+    else {
+        eth_log (LES_LOG_TOPIC, "Recv: [ %s, %15d ] => %15s %s%s",
+                 nodeEndpointRouteGetName(route),
+                 (NODE_ROUTE_UDP == route ? endpoint->dis.node.portUDP : endpoint->dis.node.portTCP),
+                 endpoint->hostname,
+                 "Error: ",
+                 strerror(error));
+    }
+#endif
     return error;
 }
 
@@ -299,19 +303,21 @@ nodeEndpointSendData (BREthereumNodeEndpoint *endpoint,
         socket = endpoint->sockets[route];
     }
 
-    if (error)
+    if (!error) {
+#if defined (LES_LOG_SEND)
+        eth_log (LES_LOG_TOPIC, "sent (%zu bytes) to peer[%s], contents: %s", totalCount, endpoint->hostname, "?");
+#endif
+    }
+#if defined (LES_LOG_SEND_RECV_ERROR)
+    else {
         eth_log (LES_LOG_TOPIC, "Send: %s @ %5d => %15s %s%s",
                  nodeEndpointRouteGetName(route),
                  (NODE_ROUTE_UDP == route ? endpoint->dis.node.portUDP : endpoint->dis.node.portTCP),
                  endpoint->hostname,
                  "Error: ",
                  strerror(error));
-    else {
-#if defined (LES_LOG_SEND)
-        eth_log (LES_LOG_TOPIC, "sent (%zu bytes) to peer[%s], contents: %s", totalCount, endpoint->hostname, "?");
-#endif
     }
-
+#endif
     return error;
 }
 
@@ -354,12 +360,14 @@ nodeEndpointFillSockAddr (BREthereumNodeEndpoint *endpoint,
 
 static int
 openSocketReportResult (BREthereumNodeEndpoint *endpoint, int port, int type, int error) {
-    eth_log (LES_LOG_TOPIC, "Open: %s @ %5d => %15s %s%s",
+#if defined (LES_LOG_REPORT_OPEN_SOCKET)
+    eth_log (LES_LOG_TOPIC, "Open: [ %s, %15d ] => %15s %s%s",
              (type == SOCK_STREAM ? "TCP" : "UDP"),
              port,
              endpoint->hostname,
              (0 == error ? "Success " : "Error: "),
              (0 == error ? "" : strerror(error)));
+#endif
     return error;
 }
 
@@ -375,7 +383,7 @@ openSocket(BREthereumNodeEndpoint *endpoint, int *socketToAssign, int port, int 
     struct timeval tv;
     fd_set fds;
     socklen_t addrLen, optLen;
-    int count, arg = 0, err = 0, on = 1, r = 1;
+    int count, arg = 0, err = 0, on = 1;
 
     *socketToAssign = socket (domain, type, 0);
 
@@ -417,7 +425,6 @@ openSocket(BREthereumNodeEndpoint *endpoint, int *socketToAssign, int port, int 
         if (count <= 0 || getsockopt (*socketToAssign, SOL_SOCKET, SO_ERROR, &err, &optLen) < 0 || err) {
             if (count == 0) err = ETIMEDOUT;
             if (count < 0 || ! err) err = errno;
-            r = 0;
         }
 
         fcntl (*socketToAssign, F_SETFL, arg);
@@ -517,29 +524,45 @@ main(int argc, const char **argv) {
 
 const char *localLESEnode = "enode://x@1.1.1.1:30303";
 
+//
 // LES/PIP Nodes hosted locally, when enabled (yes, my NodeId; not yours).
+//
 const char *bootstrapLCLEnodes[] = {
+#if defined (LES_SUPPORT_PARITY)
     // Localhost - Parity
-//    "enode://30af157f9105700422655d81d269575c0b1d63caeb90863f70cb2b92d89356ac4378cabaa4e2c84c9fdf1571264bcf22fd4bb6148f65f84c9e5f37dcc8a46a7f@127.0.0.1:30303",  // HDD Archive
-//    "enode://9058392a81f6f3df662cd2dc5e62d3529f08bc68a69025937a831bd6734e9830bffde87485989ebb4b5588771fc877e34b7be82251cf2d48ae2a1a784b6b58fc@127.0.0.1:30303",  // SSD Full
+    //    "enode://30af157f9105700422655d81d269575c0b1d63caeb90863f70cb2b92d89356ac4378cabaa4e2c84c9fdf1571264bcf22fd4bb6148f65f84c9e5f37dcc8a46a7f@127.0.0.1:30303",  // HDD Archive
+    //    "enode://9058392a81f6f3df662cd2dc5e62d3529f08bc68a69025937a831bd6734e9830bffde87485989ebb4b5588771fc877e34b7be82251cf2d48ae2a1a784b6b58fc@127.0.0.1:30303",  // SSD Full
     "enode://4483ac6134c85ecbd31d14168f1c97b82bdc45c442e81277f52428968de41add46549f8d6c9c8c3432f3b8834b018c350ac37d87d70d67e599f42f68a96717fc@127.0.0.1:30303", // SSD Archive
-
     //    "enode://8ebe6a85d46737451c8bd9423f37dcb117af7316bbce1643856feeaf9f81a792ff09029e9ab1796b193eb477f938af3465f911574c57161326b71aaf0221f341@127.0.0.1:30303",
+#endif
+
+#if defined (LES_SUPPORT_GETH)
     // Localhost - GETH
-//    "enode://a40437d2f44ae655387009d1d69ba9fd07b748b7a6ecfc958c135008a34c0497466db35049c36c8296590b4bcf9b9058f9fa2a688a2c6566654b1f1dc42417e4@127.0.0.1:30303",
+    //    "enode://a40437d2f44ae655387009d1d69ba9fd07b748b7a6ecfc958c135008a34c0497466db35049c36c8296590b4bcf9b9058f9fa2a688a2c6566654b1f1dc42417e4@127.0.0.1:30303",
+#endif
     NULL
 };
 
+//
 // LES/PIP Nodes hosted by BRD
+//
 const char *bootstrapBRDEnodes[] = {
+#if defined (LES_SUPPORT_PARITY)
+    // Archival
+    "enode://629d898ee7e1b3a76475977272148fb38917e4a56cd49245e284667e4dc34e57ceb46799e3ffdc70b5a3c65cb7d73d2dd98a36f28be244b8aecfcba752a7bc38@35.202.248.103:30303",
+#endif
+#if defined (LES_SUPPORT_GETH)
     // Full
     "enode://e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851@104.197.99.24:30303",
     // Archival
     "enode://e70d9a9175a2cd27b55821c29967fdbfdfaa400328679e98ed61060bc7acba2e1ddd175332ee4a651292743ffd26c9a9de8c4fce931f8d7271b8afd7d221e851@35.226.238.26:30303",
+#endif
     NULL
 };
 
-// LES/PIP Node
+//
+// LES/PIP Nodes - 'Well Known'
+//
 const char *bootstrapLESEnodes[] = {
     // START -- https://gist.github.com/rfikki/e2a8c47f4460668557b1e3ec8bae9c11
     "enode://03f178d5d4511937933b50b7af683b467abaef8cfc5f7c2c9b271f61e228578ae192aaafc7f0d8035dfa994e734c2c2f72c229e383706be2f4fa43efbe9f94f4@163.172.149.200:30303",
@@ -578,6 +601,7 @@ const char *bootstrapLESEnodes[] = {
 // From: https://github.com/paritytech/parity-ethereum/blob/master/ethcore/res/ethereum/foundation.json
 // Retrieved: 12 Sept 2018
 const char *bootstrapParityEnodes[] = {
+#if defined (LES_SUPPORT_PARITY)
     "enode://81863f47e9bd652585d3f78b4b2ee07b93dad603fd9bc3c293e1244250725998adc88da0cef48f1de89b15ab92b15db8f43dc2b6fb8fbd86a6f217a1dd886701@193.70.55.37:30303",
     "enode://4afb3a9137a88267c02651052cf6fb217931b8c78ee058bb86643542a4e2e0a8d24d47d871654e1b78a276c363f3c1bc89254a973b00adc359c9e9a48f140686@144.217.139.5:30303",
     "enode://c16d390b32e6eb1c312849fe12601412313165df1a705757d671296f1ac8783c5cff09eab0118ac1f981d7148c85072f0f26407e5c68598f3ad49209fade404d@139.99.51.203:30303",
@@ -606,14 +630,17 @@ const char *bootstrapParityEnodes[] = {
     "enode://595a9a06f8b9bc9835c8723b6a82105aea5d55c66b029b6d44f229d6d135ac3ecdd3e9309360a961ea39d7bee7bac5d03564077a4e08823acc723370aace65ec@46.20.235.22:30303",
     "enode://029178d6d6f9f8026fc0bc17d5d1401aac76ec9d86633bba2320b5eed7b312980c0a210b74b20c4f9a8b0b2bf884b111fa9ea5c5f916bb9bbc0e0c8640a0f56c@216.158.85.185:30303",
     "enode://fdd1b9bb613cfbc200bba17ce199a9490edc752a833f88d4134bf52bb0d858aa5524cb3ec9366c7a4ef4637754b8b15b5dc913e4ed9fdb6022f7512d7b63f181@212.47.247.103:30303",
+#endif
     NULL
 };
 
+//
 // GETH Nodes (default LES 'off'; but not necessarily LES 'off')
 //
 // From: https://github.com/ethereum/go-ethereum/blob/master/params/bootnodes.go
 // Retrieved: 12 Sept 2018
 const char *bootstrapGethEnodes[] = {
+#if defined (LES_SUPPORT_GETH)
     // Ethereum Foundation Go Bootnodes
     "enode://a979fb575495b8d6db44f750317d0f4622bf4c2aa3365d6af7c284339968eef29b69ad0dce72a4d8db5ebb4968de0e3bec910127f134779fbcb0cb6d3331163c@52.16.188.185:30303", // IE
     "enode://3f1d12044546b76342d59d4a05532c14b85aa669704bfe1f864fe079415aa2c02d743e03218e57a33fb94523adb54032871a6c51b2cc5514cb7c7e35b3ed0a99@13.93.211.84:30303",  // US-WEST
@@ -623,14 +650,26 @@ const char *bootstrapGethEnodes[] = {
 
     // Ethereum Foundation C++ Bootnodes
     "enode://979b7fa28feeb35a4741660a16076f1943202cb72b6af70d327f053e248bab9ba81760f39d0701ef1d8f89cc1fbd2cacba0710a12cd5314d5e0c9021aa3637f9@5.1.83.226:30303", // DE
+#endif
     NULL
 };
 
+//
+// Enode Sets - Order is important here.  Generally inserted by 'NodeID distance' except that
+// BRD and LCL nodes will be inserted so as to be connected first.
+//
 const char **bootstrapMainnetEnodeSets[] = {
-    bootstrapLCLEnodes,
-    bootstrapBRDEnodes,
     bootstrapLESEnodes,
     bootstrapParityEnodes,
-    bootstrapGethEnodes
+    bootstrapGethEnodes,
+    bootstrapBRDEnodes,
+    bootstrapLCLEnodes,
 };
 size_t NUMBER_OF_NODE_ENDPOINT_SETS = (sizeof (bootstrapMainnetEnodeSets) / sizeof (char **));
+
+// TODO: Known bad enodes - really the code should find and disable on the fly, based on the node's behavior.
+const char *bootstrapDisableEnodes[] = {
+    "enode://5de9c43e8554ea2d8451f01614fca69799c8e758d1c65bead526d4c3beec695356f5548b20bee6fb05919c463bde6486abc1c73903796b5f8f041bd8ac483711@45.63.26.208:30304",
+    NULL
+};
+

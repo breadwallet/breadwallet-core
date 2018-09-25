@@ -166,6 +166,10 @@ provisionHandleMessage (BREthereumProvision *provision,
                         size_t messageContentLimit,
                         uint64_t messageIdBase);
 
+extern BREthereumBoolean
+provisionMatches (BREthereumProvision *provision1,
+                  BREthereumProvision *provision2);
+
 /**
  * Provision Result
  */

@@ -704,6 +704,15 @@ provisionHandleMessage (BREthereumProvision *provision,
     }
 }
 
+extern BREthereumBoolean
+provisionMatches (BREthereumProvision *provision1,
+                  BREthereumProvision *provision2) {
+    return AS_ETHEREUM_BOOLEAN (provision1->type == provision2->type &&
+                                provision1->identifier == provision2->identifier
+                                // bodies?
+                                );
+}
+
 /// MARK: HACK
 
 struct BlockStateMap {

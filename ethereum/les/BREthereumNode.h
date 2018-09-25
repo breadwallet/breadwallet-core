@@ -70,6 +70,7 @@ typedef struct BREthereumNodeRecord *BREthereumNode;
  * Parity we'll use PIPv1.
  */
 typedef enum {
+    NODE_TYPE_UNKNOWN,
     NODE_TYPE_GETH,
     NODE_TYPE_PARITY
 } BREthereumNodeType;
@@ -105,8 +106,7 @@ typedef void
 typedef void
 (*BREthereumNodeCallbackNeighbor) (BREthereumNodeContext context,
                                    BREthereumNode node,
-                                   BREthereumDISNeighbor neighbor,
-                                   size_t remaining);
+                                   BRArrayOf(BREthereumDISNeighbor) neighbors);
 
 /// MARK: LES Node State
 
@@ -141,7 +141,9 @@ typedef enum  {
     NODE_CONNECT_PING,
     NODE_CONNECT_PING_ACK,
     NODE_CONNECT_PING_ACK_DISCOVER,
-    NODE_CONNECT_PING_ACK_DISCOVER_ACK
+    NODE_CONNECT_PING_ACK_DISCOVER_ACK,
+    NODE_CONNECT_DISCOVER,
+    NODE_CONNECT_DISCOVER_ACK
 } BREthereumNodeConnectType;
 
 typedef enum {
@@ -153,7 +155,7 @@ typedef enum {
     NODE_PROTOCOL_TCP_HELLO_MISSED,
     NODE_PROTOCOL_TCP_STATUS_MISSED,
     NODE_PROTOCOL_CAPABILITIES_MISMATCH,
-    NODE_PROTOCOL_NETWORK_MISMATCH
+    NODE_PROTOCOL_STATUS_MISMATCH
 } BREthereumNodeProtocolReason;
 
 typedef struct {
@@ -187,12 +189,6 @@ extern BREthereumNodeState
 nodeStateDecode (BRRlpItem item,
                  BRRlpCoder coder);
 
-typedef void
-(*BREthereumNodeCallbackState) (BREthereumNodeContext context,
-                                   BREthereumNode node,
-                                   BREthereumNodeEndpointRoute route,
-                                   BREthereumNodeState state);
-
 // connect
 // disconnect
 // network reachable
@@ -217,8 +213,7 @@ nodeCreate (BREthereumNetwork network,
             BREthereumNodeCallbackStatus callbackStatus,
             BREthereumNodeCallbackAnnounce callbackAnnounce,
             BREthereumNodeCallbackProvide callbackProvide,
-            BREthereumNodeCallbackNeighbor callbackNeighbor,
-            BREthereumNodeCallbackState callbackState);
+            BREthereumNodeCallbackNeighbor callbackNeighbor);
 
 extern void
 nodeRelease (BREthereumNode node);
@@ -241,12 +236,16 @@ nodeUpdateDescriptors (BREthereumNode node,
 extern BREthereumNodeState
 nodeProcess (BREthereumNode node,
              BREthereumNodeEndpointRoute route,
+             time_t now,
              fd_set *recv,   // read
              fd_set *send);  // write
 
 extern void
 nodeHandleProvision (BREthereumNode node,
-                       BREthereumProvision provision);
+                     BREthereumProvision provision);
+
+extern BRArrayOf(BREthereumProvision)
+nodeUnhandleProvisions (BREthereumNode node);
 
 extern BREthereumNodeEndpoint *
 nodeGetRemoteEndpoint (BREthereumNode node);
@@ -278,6 +277,11 @@ nodeGetDiscovered (BREthereumNode node);
 extern void
 nodeSetDiscovered (BREthereumNode node,
                    BREthereumBoolean discovered);
+
+extern BREthereumBoolean
+nodeHandleTime (BREthereumNode node,
+                BREthereumNodeEndpointRoute route,
+                time_t now);
 
 extern size_t
 nodeHashValue (const void *node);
