@@ -115,6 +115,7 @@ static int _readAuthAckFromRecipient(BREthereumNode node);
 extern const char *
 nodeTypeGetName (BREthereumNodeType type) {
     static const char *nodeTypeNames[] = {
+        "Unknown",
         "Geth",
         "Parity"
     };
@@ -396,6 +397,8 @@ provisionerGetMessageContentLimit (BREthereumNodeProvisioner *provisioner) {
     assert (NULL != provisioner->node);
 
     switch (nodeGetType(provisioner->node)) {
+        case NODE_TYPE_UNKNOWN:
+            assert (0);
         case NODE_TYPE_GETH: {
             BREthereumLESMessageIdentifier id = provisionGetMessageLESIdentifier(provisioner->provision.type);
             return messageLESSpecs[id].limit;
@@ -645,7 +648,7 @@ nodeCreate (BREthereumNetwork network,
     node->hash = remote.hash;
 
     // Fixed the type as GETH (for now, at least).
-    node->type = NODE_TYPE_GETH;
+    node->type = NODE_TYPE_UNKNOWN;
 
     // Make all routes as 'available'
     for (int route = 0; route < NUMBER_OF_NODE_ROUTES; route++)
@@ -796,6 +799,16 @@ nodeHandleProvision (BREthereumNode node,
     array_add (node->provisioners, provisioner);
     // Pass the proper provision reference - so we establish the actual provision
     provisionerEstablish (&node->provisioners[array_count(node->provisioners) - 1], node);
+}
+
+extern BRArrayOf(BREthereumProvision)
+nodeUnhandleProvisions (BREthereumNode node) {
+    BRArrayOf(BREthereumProvision) provisions;
+    array_new (provisions, array_count(node->provisioners));
+    for (size_t index = 0; index < array_count(node->provisioners); index++)
+        array_add (provisions, node->provisioners[index].provision);
+    array_clear(node->provisioners);
+    return provisions;
 }
 
 static void
@@ -998,7 +1011,9 @@ nodeProcessRecvPIP (BREthereumNode node,
         }
 
         case PIP_MESSAGE_RESPONSE:
-            // Find the provisioner applicable to `message`...
+            // Find the provisioner applicable to `message`... it might be (stress 'might be')
+            // that node->provisioners is empty at this point.  The node has been 'deactivated' (by
+            // LES), the provisions reassigned but still, somehow, we handle this message.
             for (size_t index = 0; index < array_count (node->provisioners); index++) {
                 BREthereumNodeProvisioner *provisioner = &node->provisioners[index];
                 // ... using the message's requestId
@@ -1280,6 +1295,18 @@ nodeProcess (BREthereumNode node,
                     messageP2PHelloShow (message.u.p2p.u.hello);
                     node->remote.hello = message.u.p2p;
 
+                    // Assign the node type even before checking capabilities.
+                    for (size_t ri = 0; ri < array_count(node->remote.hello.u.hello.capabilities); ri++) {
+                        if (0 == strcmp ("pip", node->remote.hello.u.hello.capabilities[ri].name)) {
+                            node->type = NODE_TYPE_PARITY;
+                            break;
+                        }
+                        else if (0 == strcmp ("les", node->remote.hello.u.hello.capabilities[ri].name)) {
+                            node->type = NODE_TYPE_GETH;
+                            break;
+                        }
+                    }
+
                     // Confirm that the remote has one and only one of the local capabilities.  It is unlikely,
                     // but possible, that a remote offers both LESv2 and PIPv1 capabilities - we aren't interested.
                     BREthereumP2PCapability *capability = NULL;
@@ -1303,13 +1330,6 @@ nodeProcess (BREthereumNode node,
                                 break;
                         }
                     }
-
-                    // Given the Capability: assign the node type...
-                    if (0 == strcmp (capability->name, "les"))
-                        node->type = NODE_TYPE_GETH;
-                    else if (0 == strcmp (capability->name, "pip"))
-                        node->type = NODE_TYPE_PARITY;
-                    else assert (0);
 
                     // ... and the protocol version.
                     updateLocalEndpointStatusMessage(&node->local, node->type, capability->version);
@@ -1469,6 +1489,8 @@ nodeProcess (BREthereumNode node,
 
                     // 'Announce' the STATUS message.
                     switch (node->type) {
+                        case NODE_TYPE_UNKNOWN:
+                            assert (0);
                         case NODE_TYPE_GETH:
                             nodeProcessRecvLES (node, NODE_ROUTE_TCP, message.u.les);
                             break;
@@ -1708,6 +1730,8 @@ extractIdentifier (BREthereumNode node,
     }
     else {
         switch (node->type) {
+            case NODE_TYPE_UNKNOWN:
+                assert (0);
             case NODE_TYPE_GETH:
                 *type = MESSAGE_LES;
                 break;
@@ -1768,6 +1792,8 @@ updateLocalEndpointStatusMessage (BREthereumNodeEndpoint *endpoint,
                                   BREthereumNodeType type,
                                   uint64_t protocolVersion) {
     switch (type) {
+        case NODE_TYPE_UNKNOWN:
+            assert (0);
         case NODE_TYPE_GETH:
             assert (MESSAGE_LES == endpoint->status.identifier);
             endpoint->status.u.les.u.status.p2p.protocolVersion = protocolVersion;

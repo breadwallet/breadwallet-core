@@ -78,6 +78,10 @@ lesHandleNeighbor (BREthereumLES les,
                    BREthereumNode node,
                    BRArrayOf(BREthereumDISNeighbor) neighbors);
 
+static ssize_t
+lesFindRequestForProvision (BREthereumLES les,
+                            BREthereumProvision *provision);
+
 typedef void* (*ThreadRoutine) (void*);
 
 static void *
@@ -217,7 +221,7 @@ typedef struct {
 
     /**
      * The node that sent this request. This will be NULL until that request has been successfully
-     * sent.  Once sent, if this request has not be received/resolved and the node is no longer
+     * sent.  Once sent, if this request has not been received/resolved and the node is no longer
      * connected, then we'll resend.
      */
     BREthereumNode node;
@@ -323,6 +327,7 @@ static BREthereumNode
 lesEnsureNodeForEndpoint (BREthereumLES les,
                           BREthereumNodeEndpoint endpoint,
                           BREthereumNodeState state,
+                          BREthereumBoolean preferred,
                           BREthereumBoolean *added) {
     BREthereumHash hash = endpoint.hash;
 
@@ -352,23 +357,34 @@ lesEnsureNodeForEndpoint (BREthereumLES les,
 
         // .... and then, if warranted, make it available
         if (nodeHasState(node, NODE_ROUTE_TCP, NODE_AVAILABLE)) {
-            BREthereumBoolean inserted = ETHEREUM_BOOLEAN_FALSE;
-            for (size_t index = 0; index < array_count(les->availableNodes); index++)
-                // A simple, slow, linear-sort insert.
-                if (ETHEREUM_COMPARISON_LT == nodeNeighborCompare(node, les->availableNodes[index])) {
-                    array_insert (les->availableNodes, index, node);
-                    inserted = ETHEREUM_BOOLEAN_TRUE;
-                    break;
-                }
-            if (ETHEREUM_BOOLEAN_IS_FALSE(inserted)) array_add (les->availableNodes, node);
+            if (ETHEREUM_BOOLEAN_IS_TRUE (preferred))
+                array_insert (les->availableNodes, 0, node);
+            else {
+                BREthereumBoolean inserted = ETHEREUM_BOOLEAN_FALSE;
+                for (size_t index = 0; index < array_count(les->availableNodes); index++)
+                    // A simple, slow, linear-sort insert.
+                    if (ETHEREUM_COMPARISON_LT == nodeNeighborCompare(node, les->availableNodes[index])) {
+                        array_insert (les->availableNodes, index, node);
+                        inserted = ETHEREUM_BOOLEAN_TRUE;
+                        break;
+                    }
+                if (ETHEREUM_BOOLEAN_IS_FALSE(inserted)) array_add (les->availableNodes, node);
+            }
         }
-
-//        BREthereumDISNeighborEnode enode = neighborDISAsEnode(endpoint.dis, 1);
-//        eth_log(LES_LOG_TOPIC, "Neighbor: %s", enode.chars);
     }
 
     pthread_mutex_unlock (&les->lock);
     return node;
+}
+
+extern int
+nodeEndpointIsPreferred (BREthereumNodeEndpoint *endpoint,
+                         const char *enodes[]) {
+    BREthereumDISNeighborEnode enode = neighborDISAsEnode (endpoint->dis, 1);
+    for (size_t index = 0; NULL != enodes[index]; index++)
+        if (0 == strcmp (enode.chars, enodes[index]))
+            return 1;
+    return 0;
 }
 
 //
@@ -479,14 +495,32 @@ lesCreate (BREthereumNetwork network,
         array_new (les->activeNodesByRoute[route], LES_NODE_INITIAL_SIZE);
 
     // Identify a set of initial nodes; first, use all the endpoints provided (based on `configs`)
-    eth_log(LES_LOG_TOPIC, "Nodes Provided: %lu", (NULL == configs ? 0 : array_count(configs)));
-    if (NULL != configs)
+    eth_log(LES_LOG_TOPIC, "Nodes Provided    : %lu", (NULL == configs ? 0 : array_count(configs)));
+    if (NULL != configs) {
+        BRArrayOf(BREthereumNodeEndpoint) preferredEndpoints;
+        array_new (preferredEndpoints, 5);
+
         for (size_t index = 0; index < array_count(configs); index++) {
-            lesEnsureNodeForEndpoint (les,
-                                      nodeConfigCreateEndpoint(configs[index]),
-                                      configs[index]->state,
-                                      NULL);
+            BREthereumNodeEndpoint endpoint = nodeConfigCreateEndpoint(configs[index]);
+
+            if (nodeEndpointIsPreferred (&endpoint, bootstrapLCLEnodes) ||
+                nodeEndpointIsPreferred (&endpoint, bootstrapBRDEnodes))
+                array_add (preferredEndpoints, endpoint);
+            else
+                lesEnsureNodeForEndpoint (les,
+                                          endpoint,
+                                          configs[index]->state,
+                                          ETHEREUM_BOOLEAN_FALSE,
+                                          NULL);
         }
+
+        for (size_t index = 0; index < array_count(preferredEndpoints); index++)
+            lesEnsureNodeForEndpoint (les,
+                                      preferredEndpoints[index],
+                                      (BREthereumNodeState) { NODE_AVAILABLE},
+                                      ETHEREUM_BOOLEAN_TRUE,
+                                      NULL);
+    }
 
     // ... and then add in bootstrap endpoints for good measure.  Note that in practice after the
     // first boot, *none* of these nodes will be added as they would already be in 'configs' above.
@@ -494,18 +528,22 @@ lesCreate (BREthereumNetwork network,
     BREthereumBoolean bootstrappedEndpointsAdded;
     for (size_t set = 0; set < NUMBER_OF_NODE_ENDPOINT_SETS; set++) {
         const char **enodes = bootstrapMainnetEnodeSets[set];
-        if (enodes == bootstrapLCLEnodes) {
-            for (size_t index = 0; NULL != enodes[index]; index++) {
-                lesEnsureNodeForEndpoint(les,
-                                         nodeEndpointCreateEnode(enodes[index]),
-                                         (BREthereumNodeState) { NODE_AVAILABLE },
-                                         &bootstrappedEndpointsAdded);
-                if (ETHEREUM_BOOLEAN_IS_TRUE(bootstrappedEndpointsAdded))
-                    bootstrappedEndpointsCount++;
-            }
+        for (size_t index = 0; NULL != enodes[index]; index++) {
+            lesEnsureNodeForEndpoint(les,
+                                     nodeEndpointCreateEnode(enodes[index]),
+                                     (BREthereumNodeState) { NODE_AVAILABLE },
+                                     AS_ETHEREUM_BOOLEAN (enodes == bootstrapLCLEnodes ||
+                                                          enodes == bootstrapBRDEnodes),
+                                     &bootstrappedEndpointsAdded);
+            if (ETHEREUM_BOOLEAN_IS_TRUE(bootstrappedEndpointsAdded))
+                bootstrappedEndpointsCount++;
         }
     }
     eth_log(LES_LOG_TOPIC, "Nodes Bootstrapped: %lu", bootstrappedEndpointsCount);
+    for (size_t index = 0; index < 5 && index < array_count(les->availableNodes); index++) {
+        BREthereumDISNeighborEnode enode = neighborDISAsEnode (nodeGetRemoteEndpoint (les->availableNodes[index])->dis, 1);
+        eth_log (LES_LOG_TOPIC, "  @ %zu: %s", index, enode.chars);
+    }
 
     les->theTimeToQuitIsNow = 0;
 
@@ -715,6 +753,7 @@ lesHandleNeighbor (BREthereumLES les,
         lesEnsureNodeForEndpoint (les,
                                   nodeEndpointCreate(neighbors[index]),
                                   (BREthereumNodeState) { NODE_AVAILABLE },
+                                  ETHEREUM_BOOLEAN_FALSE,
                                   NULL);
     // Sometimes we receive multiple callbacks for one FIND_NEIGHBORS - how to deal?
     nodeSetDiscovered(node, ETHEREUM_BOOLEAN_TRUE);
@@ -747,13 +786,27 @@ lesDeactivateNodes (BREthereumLES les,
                     BREthereumNodeEndpointRoute route,
                     BRArrayOf(BREthereumNode) nodesToDeactivate,
                     const char *explain) {
-    // All nodes on route have been processed; remove inactive ones
+    // Deactive nodesToDeactive from the route's activeNodes.
+    BRArrayOf(BREthereumNode) nodes = les->activeNodesByRoute[route];
     for (size_t ri = 0; ri < array_count(nodesToDeactivate); ri++) {  // RemoveIndex
-        BRArrayOf(BREthereumNode) nodes = les->activeNodesByRoute[route];
         for (size_t ni = 0; ni < array_count(nodes); ni++) // NodeIndex
             if (nodesToDeactivate[ri] == nodes[ni]) {
                 array_rm (nodes, ni);
                 lesLogNodeActivate(les, nodesToDeactivate[ri], route, explain, "<=|=>");
+
+                // Reassign provisions back as requests if this is a TCP route
+                if (NODE_ROUTE_TCP == route) {
+                    BRArrayOf(BREthereumProvision) provisions = nodeUnhandleProvisions(nodesToDeactivate[ri]);
+                    for (size_t pi = 0; pi < array_count(provisions); pi++) {
+                        ssize_t requestIndex = lesFindRequestForProvision (les, &provisions[pi]);
+                        assert (-1 != requestIndex);
+
+                        // This reestablishes the provision as needing to be assigned.
+                        les->requests[requestIndex].node = NULL;
+                    }
+                }
+
+                // A node was deactiviated (and `nodes` modified); break to deactivate another.
                 break;
             }
     }
@@ -806,7 +859,7 @@ lesThread (BREthereumLES les) {
         // node that we are actively communicating with.  In such a case the `pselect()` might
         // never timeout but all other nodes could be dead.  Catch the dead nodes up front.
         //
-        FOR_EACH_ROUTE(route) {
+        FOR_EACH_ROUTE (route) {
             BRArrayOf(BREthereumNode) nodes = les->activeNodesByRoute[route];
             for (size_t index = 0; index < array_count(nodes); index++)
                 if (ETHEREUM_BOOLEAN_IS_TRUE (nodeHandleTime (nodes[index], route, now))) {
@@ -971,6 +1024,7 @@ lesThread (BREthereumLES les) {
 
                     case NODE_ERROR:
                         // On error; no longer available
+                        lesLogNodeActivate(les, node, NODE_ROUTE_TCP, "", "<=|=>");
                         array_rm (les->availableNodes, 0);
                         break;
 
@@ -1044,6 +1098,15 @@ lesAddRequest (BREthereumLES les,
     BREthereumLESRequest request = { context, callback, provision, NULL };
     array_add (les->requests, request);
     pthread_mutex_unlock (&les->lock);
+}
+
+static ssize_t
+lesFindRequestForProvision (BREthereumLES les,
+                            BREthereumProvision *provision) {
+    for (ssize_t index = 0; index < array_count (les->requests); index++)
+        if (ETHEREUM_BOOLEAN_IS_TRUE (provisionMatches(provision, &les->requests[index].provision)))
+            return index;
+    return -1;
 }
 
 static BRArrayOf(BREthereumHash)

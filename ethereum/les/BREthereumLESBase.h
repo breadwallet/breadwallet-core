@@ -46,8 +46,14 @@
 
 #define LES_LOG_TOPIC "LES"
 
+/** */
+#define LES_SUPPORT_PARITY
+
+/** */
+#undef  LES_SUPPORT_GETH        // not until GetProofs{V1,V2} 'works'
+
 /**
- * The Supported P2P version - this applies to both the DIS and P2P messagging.
+ * The Supported P2P version - this applies to both DIS and P2P messaging.
  *
  * https://github.com/ethereum/devp2p/blob/master/discv4.md
  */
