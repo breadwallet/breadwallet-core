@@ -60,8 +60,8 @@ ewmUpdateWalletBalance(BREthereumEWM ewm,
                                      NULL);
     } else {
         switch (ewm->type) {
-            case NODE_TYPE_LES:
-            case NODE_TYPE_JSON_RPC: {
+            case EWM_USE_LES:
+            case EWM_USE_BRD: {
                 char *address = addressGetEncodedString(walletGetAddress(wallet), 0);
                 
                 ewm->client.funcGetBalance
@@ -74,9 +74,6 @@ ewmUpdateWalletBalance(BREthereumEWM ewm,
                 free(address);
                 break;
             }
-                
-            case NODE_TYPE_NONE:
-                break;
         }
     }
 }
@@ -123,8 +120,8 @@ ewmUpdateWalletDefaultGasPrice (BREthereumEWM ewm,
                                      NULL);
     } else {
         switch (ewm->type) {
-            case NODE_TYPE_LES:
-            case NODE_TYPE_JSON_RPC: {
+            case EWM_USE_LES:
+            case EWM_USE_BRD: {
                 ewm->client.funcGetGasPrice
                 (ewm->client.context,
                  ewm,
@@ -132,9 +129,6 @@ ewmUpdateWalletDefaultGasPrice (BREthereumEWM ewm,
                  ++ewm->requestId);
                 break;
             }
-                
-            case NODE_TYPE_NONE:
-                break;
         }
     }
 }
@@ -171,8 +165,8 @@ ewmUpdateTransferGasEstimate (BREthereumEWM ewm,
                                           NULL);
     } else {
         switch (ewm->type) {
-            case NODE_TYPE_LES:
-            case NODE_TYPE_JSON_RPC: {
+            case EWM_USE_LES:
+            case EWM_USE_BRD: {
                 // This will be ZERO if transaction amount is in TOKEN.
                 BREthereumEther amountInEther = transferGetEffectiveAmountInEther(transfer);
                 BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
@@ -198,10 +192,6 @@ ewmUpdateTransferGasEstimate (BREthereumEWM ewm,
                 
                 break;
             }
-                assert (0);
-                
-            case NODE_TYPE_NONE:
-                break;
         }
     }
 }
@@ -223,17 +213,14 @@ extern void
 ewmUpdateBlockNumber (BREthereumEWM ewm) {
     if (LIGHT_NODE_CONNECTED != ewm->state) return;
     switch (ewm->type) {
-        case NODE_TYPE_LES:
+        case EWM_USE_LES:
             // TODO: Fall-through on error, perhaps
             
-        case NODE_TYPE_JSON_RPC:
+        case EWM_USE_BRD:
             ewm->client.funcGetBlockNumber
             (ewm->client.context,
              ewm,
              ++ewm->requestId);
-            break;
-            
-        case NODE_TYPE_NONE:
             break;
     }
 }
@@ -261,10 +248,10 @@ extern void
 ewmUpdateNonce (BREthereumEWM ewm) {
     if (LIGHT_NODE_CONNECTED != ewm->state) return;
     switch (ewm->type) {
-        case NODE_TYPE_LES:
+        case EWM_USE_LES:
             // TODO: Fall-through on error, perhaps
             
-        case NODE_TYPE_JSON_RPC: {
+        case EWM_USE_BRD: {
             char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
             
             ewm->client.funcGetNonce
@@ -276,8 +263,6 @@ ewmUpdateNonce (BREthereumEWM ewm) {
             free (address);
             break;
         }
-        case NODE_TYPE_NONE:
-            break;
     }
 }
 
@@ -311,10 +296,10 @@ ewmUpdateTransactions (BREthereumEWM ewm) {
         return;
     }
     switch (ewm->type) {
-        case NODE_TYPE_LES:
+        case EWM_USE_LES:
             // TODO: Fall-through on error, perhaps
             
-        case NODE_TYPE_JSON_RPC: {
+        case EWM_USE_BRD: {
             char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
             
             ewm->client.funcGetTransactions
@@ -326,9 +311,6 @@ ewmUpdateTransactions (BREthereumEWM ewm) {
             free (address);
             break;
         }
-            
-        case NODE_TYPE_NONE:
-            break;
     }
 }
 
@@ -337,14 +319,14 @@ ewmClientHandleAnnounceTransaction(BREthereumEWM ewm,
                                    BREthereumEWMClientAnnounceTransactionBundle *bundle,
                                    int id) {
     switch (ewm->type) {
-        case NODE_TYPE_LES:
+        case EWM_USE_LES:
             bcsSendTransactionRequest(ewm->bcs,
                                       bundle->hash,
                                       bundle->blockNumber,
                                       bundle->blockTransactionIndex);
             break;
 
-        case NODE_TYPE_JSON_RPC: {
+        case EWM_USE_BRD: {
             // This 'annouce' call is coming from the guaranteed BRD endpoint; thus we don't need to
             // worry about the validity of the transaction - is is surely confirmed.  Is that true
             // if newly submitted?
@@ -372,9 +354,6 @@ ewmClientHandleAnnounceTransaction(BREthereumEWM ewm,
             transactionSetStatus(transaction, status);
 
             bcsSignalTransaction(ewm->bcs, transaction);
-            break;
-
-        case NODE_TYPE_NONE:
             break;
         }
     }
@@ -405,10 +384,10 @@ ewmUpdateLogs (BREthereumEWM ewm,
         return;
     }
     switch (ewm->type) {
-        case NODE_TYPE_LES:
+        case EWM_USE_LES:
             // TODO: Fall-through on error, perhaps
             
-        case NODE_TYPE_JSON_RPC: {
+        case EWM_USE_BRD: {
             char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
             char *encodedAddress =
             eventERC20TransferEncodeAddress (event, address);
@@ -426,9 +405,6 @@ ewmUpdateLogs (BREthereumEWM ewm,
             free (address);
             break;
         }
-            
-        case NODE_TYPE_NONE:
-            break;
     }
 }
 
@@ -437,14 +413,14 @@ ewmClientHandleAnnounceLog (BREthereumEWM ewm,
                             BREthereumEWMClientAnnounceLogBundle *bundle,
                             int id) {
     switch (ewm->type) {
-        case NODE_TYPE_LES:
+        case EWM_USE_LES:
             bcsSendLogRequest(ewm->bcs,
                               bundle->hash,
                               bundle->blockNumber,
                               bundle->blockTransactionIndex);
             break;
 
-        case NODE_TYPE_JSON_RPC: {
+        case EWM_USE_BRD: {
             // This 'announce' call is coming from the guaranteed BRD endpoint; thus we don't need to
             // worry about the validity of the transaction - is is surely confirmed.  Is that true
             // if newly submitted?
@@ -474,9 +450,6 @@ ewmClientHandleAnnounceLog (BREthereumEWM ewm,
             // Of course, see the comment in bcsHandleLog asking how to tell the client about a Log...
             break;
         }
-
-        case NODE_TYPE_NONE:
-            break;
     }
 
     ewmClientAnnounceLogBundleRelease(bundle);
@@ -500,11 +473,11 @@ ewmWalletSubmitTransfer(BREthereumEWM ewm,
     BREthereumBoolean isSigned = transactionIsSigned (transaction);
 
     switch (ewm->type) {
-        case NODE_TYPE_LES:
+        case EWM_USE_LES:
             bcsSendTransaction(ewm->bcs, transaction);
             break;
 
-        case NODE_TYPE_JSON_RPC: {
+        case EWM_USE_BRD: {
             char *rawTransaction = transactionGetRlpHexEncoded(transaction,
                                                                ewm->network,
                                                                (ETHEREUM_BOOLEAN_IS_TRUE(isSigned)
@@ -523,9 +496,6 @@ ewmWalletSubmitTransfer(BREthereumEWM ewm,
             free(rawTransaction);
             break;
         }
-
-        case NODE_TYPE_NONE:
-            break;
     }
 }
 

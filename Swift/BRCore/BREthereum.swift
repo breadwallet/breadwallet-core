@@ -668,7 +668,7 @@ public class EthereumWalletManager {
                              paperKey : String) {
         let anyClient = AnyEthereumClient (base: client)
         self.init (core: ethereumCreate (network.core, paperKey,
-                                         NODE_TYPE_LES,
+                                         EWM_USE_LES,
                                          SYNC_MODE_FULL_BLOCKCHAIN,
                                          EthereumWalletManager.createCoreClient(client: client),
                                          nil,
@@ -685,7 +685,7 @@ public class EthereumWalletManager {
                              publicKey : BRKey) {
         let anyClient = AnyEthereumClient (base: client)
         self.init (core: ethereumCreateWithPublicKey (network.core, publicKey,
-                                                      NODE_TYPE_LES,
+                                                      EWM_USE_LES,
                                                       SYNC_MODE_FULL_BLOCKCHAIN,
                                                       EthereumWalletManager.createCoreClient(client: client),
                                                       nil,

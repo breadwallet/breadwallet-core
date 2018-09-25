@@ -172,7 +172,7 @@ void prepareLESTransaction (BREthereumLES les, const char *paperKey, const char 
     printf ("     Prepare Transaction\n");
     
     BREthereumClient client = {};
-    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, NODE_TYPE_LES, SYNC_MODE_FULL_BLOCKCHAIN, client, NULL, NULL, NULL, NULL);
+    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, EWM_USE_LES, SYNC_MODE_FULL_BLOCKCHAIN, client, NULL, NULL, NULL, NULL);
     // A wallet amount Ether
     BREthereumWalletId wallet = ethereumGetWallet(ewm);
     // END - One Time Code Block

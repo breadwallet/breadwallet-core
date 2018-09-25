@@ -720,7 +720,7 @@ ewmHandleGasEstimate (BREthereumEWM ewm,
 
 // ==============================================================================================
 //
-// LES(BCS)/JSON_RPC Handlers
+// LES(BCS)/BRD Handlers
 //
 
 
@@ -973,7 +973,7 @@ ewmPeriodicDispatcher (BREventHandler handler,
     BREthereumEWM ewm = (BREthereumEWM) event->context;
     
     if (ewm->state != LIGHT_NODE_CONNECTED) return;
-    if (ewm->type  == NODE_TYPE_LES) return;
+    if (ewm->type  == EWM_USE_LES) return;
     
     ewmUpdateBlockNumber(ewm);
     ewmUpdateNonce(ewm);
@@ -992,7 +992,7 @@ ewmPeriodicDispatcher (BREventHandler handler,
         ewmUpdateWalletBalance (ewm, i);
 }
 
-#if defined(SUPPORT_JSON_RPC)
+#if 1 // defined(SUPPORT_JSON_RPC)
 
 extern void
 ethereumTransferFillRawData (BREthereumEWM ewm,

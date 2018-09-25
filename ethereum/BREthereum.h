@@ -26,8 +26,6 @@
 #ifndef BR_Ethereum_H
 #define BR_Ethereum_H
 
-#define SUPPORT_JSON_RPC
-
 #include <stdint.h>
 #include "BRKey.h"
 #include "BRSet.h"
@@ -328,7 +326,7 @@ typedef void (*BREthereumClientHandlerEWMEvent) (BREthereumClientContext context
 //
 // EWM Configuration
 //
-// Used to configure a EWM appropriately for JSON_RPC or LES.  Starts with a
+// Used to configure a EWM appropriately for BRD or LES.  Starts with a
 // BREthereumNetwork (one of ethereum{Mainnet,Testnet,Rinkeby} and then specifics for the
 // type.
 //
@@ -336,8 +334,8 @@ typedef struct {
     BREthereumClientContext context;
 
     // Backend Server Support - typically implemented with HTTP requests for JSON_RPC or DB
-    // queries.  All of these functions *must* callback to the EWM with a corresponding
-    // 'announce' function.
+    // queries of BRD endpoints.  All of these functions *must* callback to the EWM with a
+    // corresponding 'announce' function.
     BREthereumClientHandlerGetBalance funcGetBalance;
     BREthereumClientHandlerGetGasPrice funcGetGasPrice;
     BREthereumClientHandlerEstimateGas funcEstimateGas;
@@ -382,13 +380,12 @@ installSharedWordList (const char *wordList[], int wordListLength);
  * @typedef BREthereumType
  *
  * @abstract
- * Two types of EWM - JSON_RPC or LES (Light Ethereum Subprotocol).  For a LES EWM
+ * Two types of EWM - BRD or LES (Light Ethereum Subprotocol).  For a LES EWM
  * some of the Client callbacks will only be used as a fallback.
  */
 typedef enum {
-    NODE_TYPE_NONE,
-    NODE_TYPE_JSON_RPC,
-    NODE_TYPE_LES
+    EWM_USE_BRD,
+    EWM_USE_LES
 } BREthereumType;
 
 /*!

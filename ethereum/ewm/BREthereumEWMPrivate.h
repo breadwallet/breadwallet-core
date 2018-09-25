@@ -120,7 +120,7 @@ struct BREthereumEWMRecord {
     uint64_t blockHeight;
 
     /**
-     * An identiifer for a LES/JSON_RPC Request
+     * An identiifer for a LES/BRD Request
      */
     unsigned int requestId;
 
@@ -131,7 +131,7 @@ struct BREthereumEWMRecord {
     BREventHandler handlerForClient;
 
     /**
-     * An EventHandler for Main.  All 'announcements' (via LES (or JSON_RPC) hit here.
+     * An EventHandler for Main.  All 'announcements' (via LES (or BRD) hit here.
      */
     BREventHandler handlerForMain;
 
