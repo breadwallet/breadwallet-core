@@ -458,6 +458,27 @@ public enum EthereumStatus {
     case success
 }
 
+public enum EthereumType {
+    case les
+    case brd
+
+    init (_ type: BREthereumType) {
+        switch (type) {
+        case EWM_USE_BRD: self = .brd
+        case EWM_USE_LES: self = .les
+        default:
+            self = .les
+        }
+    }
+
+    var core : BREthereumType {
+        switch (self) {
+        case .brd: return EWM_USE_BRD;
+        case .les: return EWM_USE_LES;
+        }
+    }
+}
+
 public enum EthereumWalletEvent : Int {
     case created
     case balanceUpdated
@@ -665,10 +686,11 @@ public class EthereumWalletManager {
 
     public convenience init (client : EthereumClient,
                              network : EthereumNetwork,
+                             type: EthereumType,
                              paperKey : String) {
         let anyClient = AnyEthereumClient (base: client)
         self.init (core: ethereumCreate (network.core, paperKey,
-                                         EWM_USE_LES,
+                                         type.core,
                                          SYNC_MODE_FULL_BLOCKCHAIN,
                                          EthereumWalletManager.createCoreClient(client: client),
                                          nil,
@@ -682,10 +704,11 @@ public class EthereumWalletManager {
 
     public convenience init (client : EthereumClient,
                              network : EthereumNetwork,
+                             type: EthereumType,
                              publicKey : BRKey) {
         let anyClient = AnyEthereumClient (base: client)
         self.init (core: ethereumCreateWithPublicKey (network.core, publicKey,
-                                                      EWM_USE_LES,
+                                                      type.core,
                                                       SYNC_MODE_FULL_BLOCKCHAIN,
                                                       EthereumWalletManager.createCoreClient(client: client),
                                                       nil,
@@ -739,6 +762,13 @@ public class EthereumWalletManager {
         return EthereumTransfer (ewm: self, identifier: identifier)
     }
 
+    //
+    // Tokens
+    //
+    public func updateTokens () {
+        ethereumClientUpdateTokens(core)
+    }
+    
     //
     // Connect / Disconnect
     //

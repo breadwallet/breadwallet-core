@@ -197,7 +197,7 @@ logCreate (BREthereumAddress address,
 
     array_new(log->topics, topicsCount);
     for (size_t index = 0; index < topicsCount; index++)
-        log->topics[index] = topics[index];
+        array_add (log->topics, topics[index]);
 
     log->data = NULL;
     log->dataCount = 0;

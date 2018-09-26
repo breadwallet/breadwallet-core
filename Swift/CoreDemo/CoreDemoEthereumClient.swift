@@ -28,10 +28,11 @@ class CoreDemoEthereumClient : EthereumClient {
     //
     // Constructors
     //
-    init(network: EthereumNetwork, paperKey: String) {
+    init(network: EthereumNetwork, type: EthereumType, paperKey: String) {
         self.network = network
         self.node = EthereumWalletManager (client: self,
                                            network: network,
+                                           type: type,
                                            paperKey: paperKey)
     }
 
@@ -81,7 +82,9 @@ class CoreDemoEthereumClient : EthereumClient {
     func getLogs(ewm: EthereumWalletManager, address: String, event: String, rid: Int32) {
         ewm.announceLog(rid: rid,
                         hash: "0xa37bd8bd8b1fa2838ef65aec9f401f56a6279f99bb1cfb81fa84e923b1b60f2b",
-                        contract: "0x722dd3f80bac40c951b51bdd28dd19d435762180",
+                        contract: (ewm.network == EthereumNetwork.mainnet
+                            ? "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"
+                            : "0x7108ca7c4718efa810457f228305c9c71390931a"),
                         topics: ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
                                  "0x0000000000000000000000000000000000000000000000000000000000000000",
                                  "0x000000000000000000000000bdfdad139440d2db9ba2aa3b7081c2de39291508"],
@@ -97,7 +100,9 @@ class CoreDemoEthereumClient : EthereumClient {
 
     func getTokens(ewm: EthereumWalletManager, rid: Int32) {
         ewm.announceToken (rid: rid,
-                           address: "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6",
+                           address: (ewm.network == EthereumNetwork.mainnet
+                                ? "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"
+                                : "0x7108ca7c4718efa810457f228305c9c71390931a"),
                            symbol: "BRD",
                            name: "BRD Token",
                            description: "The BRD Token",
