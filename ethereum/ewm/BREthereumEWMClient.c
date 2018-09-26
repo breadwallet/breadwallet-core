@@ -61,6 +61,9 @@ ewmUpdateWalletBalance(BREthereumEWM ewm,
     } else {
         switch (ewm->type) {
             case EWM_USE_LES:
+                // TODO: LES Update Wallet Balance
+                break;
+
             case EWM_USE_BRD: {
                 char *address = addressGetEncodedString(walletGetAddress(wallet), 0);
                 
@@ -121,6 +124,7 @@ ewmUpdateWalletDefaultGasPrice (BREthereumEWM ewm,
     } else {
         switch (ewm->type) {
             case EWM_USE_LES:
+                // fall-through
             case EWM_USE_BRD: {
                 ewm->client.funcGetGasPrice
                 (ewm->client.context,
@@ -166,6 +170,7 @@ ewmUpdateTransferGasEstimate (BREthereumEWM ewm,
     } else {
         switch (ewm->type) {
             case EWM_USE_LES:
+                // fall-through
             case EWM_USE_BRD: {
                 // This will be ZERO if transaction amount is in TOKEN.
                 BREthereumEther amountInEther = transferGetEffectiveAmountInEther(transfer);
@@ -214,8 +219,9 @@ ewmUpdateBlockNumber (BREthereumEWM ewm) {
     if (LIGHT_NODE_CONNECTED != ewm->state) return;
     switch (ewm->type) {
         case EWM_USE_LES:
-            // TODO: Fall-through on error, perhaps
-            
+            // TODO: LES Update Block Number
+            break;
+
         case EWM_USE_BRD:
             ewm->client.funcGetBlockNumber
             (ewm->client.context,
@@ -249,8 +255,9 @@ ewmUpdateNonce (BREthereumEWM ewm) {
     if (LIGHT_NODE_CONNECTED != ewm->state) return;
     switch (ewm->type) {
         case EWM_USE_LES:
-            // TODO: Fall-through on error, perhaps
-            
+            // TODO: LES Update Nonce
+            break;
+
         case EWM_USE_BRD: {
             char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
             
@@ -297,8 +304,9 @@ ewmUpdateTransactions (BREthereumEWM ewm) {
     }
     switch (ewm->type) {
         case EWM_USE_LES:
-            // TODO: Fall-through on error, perhaps
-            
+            // TODO: LES Update Transactions
+            break;
+
         case EWM_USE_BRD: {
             char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
             
@@ -320,6 +328,7 @@ ewmClientHandleAnnounceTransaction(BREthereumEWM ewm,
                                    int id) {
     switch (ewm->type) {
         case EWM_USE_LES:
+            assert (NULL != ewm->bcs);
             bcsSendTransactionRequest(ewm->bcs,
                                       bundle->hash,
                                       bundle->blockNumber,
@@ -327,33 +336,37 @@ ewmClientHandleAnnounceTransaction(BREthereumEWM ewm,
             break;
 
         case EWM_USE_BRD: {
+            //
             // This 'annouce' call is coming from the guaranteed BRD endpoint; thus we don't need to
             // worry about the validity of the transaction - is is surely confirmed.  Is that true
             // if newly submitted?
 
-            BREthereumTransaction transaction = transactionCreate(bundle->from,
-                                                                  bundle->to,
-                                                                  etherCreate(bundle->amount),
-                                                                  gasPriceCreate(etherCreate(bundle->gasPrice)),
-                                                                  gasCreate(bundle->gasLimit),
-                                                                  bundle->data,
-                                                                  bundle->nonce);
+            // TODO: Confirm we are not repeatedly creating transactions
+            BREthereumTransaction transaction = transactionCreate (bundle->from,
+                                                                   bundle->to,
+                                                                   etherCreate(bundle->amount),
+                                                                   gasPriceCreate(etherCreate(bundle->gasPrice)),
+                                                                   gasCreate(bundle->gasLimit),
+                                                                   bundle->data,
+                                                                   bundle->nonce);
 
-            transactionSetHash(transaction, bundle->hash);
-            // No chainId / network
-            // No gasEstimate
-            // No signature
-            // No RLP data
-            // Caution on BRPersistData - will overwrite hash as there is no signature
+            // We set the transaction's hash based on the value providedin the bundle.  However,
+            // and importantly, if we attempted to compute the hash - as we normally do for a
+            // signed transaction - the computed hash would be utterly wrong.  The transaction
+            // just created does not have: network nor signature.
+            //
+            // TODO: Confirm that BRPersistData does not overwrite the transaction's hash
+            transactionSetHash (transaction, bundle->hash);
 
-            BREthereumTransactionStatus status = transactionStatusCreateIncluded(gasCreate(bundle->gasUsed),
-                                                                                 bundle->blockHash,
-                                                                                 bundle->blockNumber,
-                                                                                 bundle->blockTransactionIndex);
+            BREthereumTransactionStatus status = transactionStatusCreateIncluded (gasCreate(bundle->gasUsed),
+                                                                                  bundle->blockHash,
+                                                                                  bundle->blockNumber,
+                                                                                  bundle->blockTransactionIndex);
+            transactionSetStatus (transaction, status);
 
-            transactionSetStatus(transaction, status);
+            // If we had a `bcs` we might think about `bcsSignalTransaction(ewm->bcs, transaction);`
+            ewmSignalTransaction(ewm, BCS_CALLBACK_TRANSACTION_UPDATED, transaction);
 
-            bcsSignalTransaction(ewm->bcs, transaction);
             break;
         }
     }
@@ -385,8 +398,9 @@ ewmUpdateLogs (BREthereumEWM ewm,
     }
     switch (ewm->type) {
         case EWM_USE_LES:
-            // TODO: Fall-through on error, perhaps
-            
+            // TODO: LES Update Logs
+            break;
+
         case EWM_USE_BRD: {
             char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
             char *encodedAddress =
@@ -414,6 +428,7 @@ ewmClientHandleAnnounceLog (BREthereumEWM ewm,
                             int id) {
     switch (ewm->type) {
         case EWM_USE_LES:
+            assert (NULL != ewm->bcs);
             bcsSendLogRequest(ewm->bcs,
                               bundle->hash,
                               bundle->blockNumber,
@@ -441,7 +456,8 @@ ewmClientHandleAnnounceLog (BREthereumEWM ewm,
                                             bundle->blockTransactionIndex);
             logSetStatus(log, status);
 
-            bcsSignalLog(ewm->bcs, log);
+            // If we had a `bcs` we might think about `bcsSignalLog(ewm->bcs, log);`
+            ewmSignalLog(ewm, BCS_CALLBACK_LOG_UPDATED, log);
 
             // Do we need a transaction here?  No, if another originated this Log, then we can't ever
             // care and if we originated this Log, then we'll get the transaction (as part of the BRD
@@ -478,12 +494,12 @@ ewmWalletSubmitTransfer(BREthereumEWM ewm,
             break;
 
         case EWM_USE_BRD: {
-            char *rawTransaction = transactionGetRlpHexEncoded(transaction,
-                                                               ewm->network,
-                                                               (ETHEREUM_BOOLEAN_IS_TRUE(isSigned)
-                                                                ? RLP_TYPE_TRANSACTION_SIGNED
-                                                                : RLP_TYPE_TRANSACTION_UNSIGNED),
-                                                               "0x");
+            char *rawTransaction = transactionGetRlpHexEncoded (transaction,
+                                                                ewm->network,
+                                                                (ETHEREUM_BOOLEAN_IS_TRUE (isSigned)
+                                                                 ? RLP_TYPE_TRANSACTION_SIGNED
+                                                                 : RLP_TYPE_TRANSACTION_UNSIGNED),
+                                                                "0x");
 
             ewm->client.funcSubmitTransaction
             (ewm->client.context,
@@ -508,13 +524,21 @@ ewmClientHandleAnnounceSubmitTransfer (BREthereumEWM ewm,
     BREthereumTransaction transaction = transferGetOriginatingTransaction (transfer);
     assert (NULL != transaction);
 
-    transactionSetStatus(transaction, transactionStatusCreate(TRANSACTION_STATUS_PENDING));
-    bcsSignalTransaction(ewm->bcs, transaction);
+    switch (ewm->type) {
+        case EWM_USE_BRD:
+            assert (0);
+
+        case EWM_USE_LES:
+            transactionSetStatus (transaction, transactionStatusCreate(TRANSACTION_STATUS_PENDING));
+
+            // If we had a `bcs` we might think about `bcsSignalTransaction(ewm->bcs, transaction);`
+            ewmSignalTransaction (ewm, BCS_CALLBACK_TRANSACTION_ADDED, transaction);
+    }
 }
 
 // ==============================================================================================
 //
-// Submit Transaction
+// Update Tokens
 //
 extern void
 ewmUpdateTokens (BREthereumEWM ewm) {
@@ -528,8 +552,14 @@ extern void
 ewmClientHandleAnnounceToken (BREthereumEWM ewm,
                               BREthereumEWMClientAnnounceTokenBundle *bundle,
                               int id) {
-    // TODO: Add to tokens.
-    
+    tokenInstall (bundle->address,
+                  bundle->symbol,
+                  bundle->name,
+                  bundle->description,
+                  bundle->decimals,
+                  bundle->gasLimit,
+                  bundle->gasPrice);
+
     ewmClientAnnounceTokenBundleRelease(bundle);
 }
 

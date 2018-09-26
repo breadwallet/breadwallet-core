@@ -108,7 +108,9 @@ typedef struct {
 // Create / Destroy
 //
 extern BREventHandler
-eventHandlerCreate (const BREventType *types[], unsigned int typesCount);
+eventHandlerCreate (const char *name,
+                    const BREventType *types[],
+                    unsigned int typesCount);
 
 /**
  * Optional specify a periodic TimeoutDispatcher.  The `dispatcher` will run every

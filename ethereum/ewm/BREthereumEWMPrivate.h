@@ -109,7 +109,7 @@ struct BREthereumEWMRecord {
     BREthereumBlock *blocks; // BRSet
 
     /**
-     * The BCS Interface
+     * The BCS Interface - this will be NULL unless the type is EWM_USE_LES
      */
     BREthereumBCS bcs;
 
@@ -498,6 +498,8 @@ typedef struct {
     char *name;
     char *description;
     unsigned int decimals;
+    BREthereumGas gasLimit;
+    BREthereumGasPrice gasPrice;
 } BREthereumEWMClientAnnounceTokenBundle;
 
 static inline void

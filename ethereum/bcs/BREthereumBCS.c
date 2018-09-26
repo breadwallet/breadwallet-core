@@ -212,11 +212,14 @@ bcsCreate (BREthereumNetwork network,
 
     // Create but don't start the event handler.  Ensure that a fast-acting lesCreate()
     // can signal events (by queuing; they won't be handled until the event queue is started).
-    bcs->handler = eventHandlerCreate(bcsEventTypes, bcsEventTypesCount);
-    eventHandlerSetTimeoutDispatcher(bcs->handler,
-                                     1000 * BCS_TRANSACTION_CHECK_STATUS_SECONDS,
-                                     (BREventDispatcher)bcsPeriodicDispatcher,
-                                     (void*) bcs);
+    bcs->handler = eventHandlerCreate ("Core Ethereum BCS",
+                                       bcsEventTypes,
+                                       bcsEventTypesCount);
+    
+    eventHandlerSetTimeoutDispatcher (bcs->handler,
+                                      1000 * BCS_TRANSACTION_CHECK_STATUS_SECONDS,
+                                      (BREventDispatcher)bcsPeriodicDispatcher,
+                                      (void*) bcs);
 
     // Initialize `chain` - will be modified based on `headers`
     bcs->chain = bcs->chainTail = bcs->genesis;

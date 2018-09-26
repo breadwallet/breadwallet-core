@@ -878,13 +878,15 @@ ethereumClientAnnounceToken(BREthereumEWM ewm,
     if (status != CORE_PARSE_OK)
         gasPriceValue = createUInt256(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64);
 
-    tokenInstall(address,
-                 symbol,
-                 name,
-                 description,
-                 decimals,
-                 gasCreate(gasLimitValue),
-                 gasPriceCreate(etherCreate(gasPriceValue)));
+    BREthereumEWMClientAnnounceTokenBundle *bundle = malloc(sizeof (BREthereumEWMClientAnnounceTokenBundle));
+
+    bundle->address     = strdup (address);
+    bundle->symbol      = strdup (symbol);
+    bundle->name        = strdup (name);
+    bundle->description = strdup (description);
+    bundle->decimals    = decimals;
+    bundle->gasLimit    = gasCreate(gasLimitValue);
+    bundle->gasPrice    = gasPriceCreate(etherCreate(gasPriceValue));
+
+    ewmClientSignalAnnounceToken (ewm, bundle, rid);
 }
-
-
