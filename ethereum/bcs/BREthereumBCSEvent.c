@@ -188,10 +188,16 @@ bcsHandleTransactionDispatcher (BREventHandler ignore,
     bcsHandleTransaction(event->bcs, event->transaction);
 }
 
+static void
+bcsHandleTransactionDestroyer (BREthereumHandleTransactionEvent *event) {
+    transactionRelease(event->transaction);
+}
+
 static BREventType handleTransactionEventType = {
     "BCS: Handle Transaction Event",
     sizeof (BREthereumHandleTransactionEvent),
-    (BREventDispatcher) bcsHandleTransactionDispatcher
+    (BREventDispatcher) bcsHandleTransactionDispatcher,
+    (BREventDestroyer) bcsHandleTransactionDestroyer
 };
 
 extern void
@@ -219,10 +225,16 @@ bcsHandleLogDispatcher (BREventHandler ignore,
                  event->log);
 }
 
+static void
+bcsHandleLogDestroyer (BREthereumHandleLogEvent *event) {
+    logRelease(event->log);
+}
+
 static BREventType handleLogEventType = {
     "BCS: Handle Log Event",
     sizeof (BREthereumHandleLogEvent),
-    (BREventDispatcher) bcsHandleLogDispatcher
+    (BREventDispatcher) bcsHandleLogDispatcher,
+    (BREventDestroyer) bcsHandleLogDestroyer
 };
 
 extern void
@@ -297,6 +309,7 @@ bcsSyncHandleProvisionDispatcher (BREventHandler ignore,
 
 static void
 bcsSyncHandleProvisionDestroyer (BREthereumHandleProvisionEvent *event) {
+    // syncRangeRelease (event->range);
     // provisionResultRelease(event->result);
 }
 

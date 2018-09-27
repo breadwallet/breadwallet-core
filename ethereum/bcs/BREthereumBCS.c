@@ -117,8 +117,8 @@ bcsCreateInitializeBlocks (BREthereumBCS bcs,
             bcs->chainTail = bcs->chain;
     }
 
-    array_free(sortedBlocks);
-    array_free(blocks);
+    array_free (sortedBlocks);
+    array_free (blocks);
 }
 
 static void
@@ -135,8 +135,10 @@ bcsCreateInitializeTransactions (BREthereumBCS bcs,
                 TRANSACTION_STATUS_ERRORED  == status.type ||
                 TRANSACTION_STATUS_PENDING  == status.type);
 
-        bcsSignalTransaction(bcs, transaction);
+        bcsSignalTransaction (bcs, transaction);
     }
+
+    array_free (transactions);
 }
 
 static void
@@ -153,8 +155,10 @@ bcsCreateInitializeLogs (BREthereumBCS bcs,
                 TRANSACTION_STATUS_ERRORED  == status.type ||
                 TRANSACTION_STATUS_PENDING  == status.type);
 
-        bcsSignalLog(bcs, log);
+        bcsSignalLog (bcs, log);
     }
+
+    array_free (logs);
 }
 
 extern BREthereumBCS
