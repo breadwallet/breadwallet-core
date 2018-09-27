@@ -449,6 +449,12 @@ blockCheckpointLookupByTimestamp (BREthereumNetwork network,
 extern BREthereumBlockHeader
 blockCheckpointCreatePartialBlockHeader (const BREthereumBlockCheckpoint *checkpoint);
 
+//
+// Private
+//
+private_extern void
+blockFree (BREthereumBlock block);
+
 #ifdef __cplusplus
 }
 #endif

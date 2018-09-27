@@ -62,6 +62,7 @@ class TestLightClient : EthereumClient {
         self.network = network
         self.node = EthereumWalletManager (client: self,
                                            network: network,
+                                           type: EthereumType.brd,
                                            paperKey: paperKey)
     }
 

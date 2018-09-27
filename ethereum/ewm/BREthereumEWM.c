@@ -33,7 +33,6 @@
 #include "BRArray.h"
 #include "BRBIP39Mnemonic.h"
 
-#include "BREthereumPrivate.h"
 #include "BREthereumEWMPrivate.h"
 #include "../event/BREvent.h"
 

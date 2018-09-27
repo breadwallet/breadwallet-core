@@ -30,7 +30,6 @@
 #include "../base/BREthereumLogic.h"
 #include "BREthereumBlock.h"
 #include "BREthereumLog.h"
-#include "../BREthereumPrivate.h"
 
 //#define BLOCK_LOG_ALLOC_COUNT
 

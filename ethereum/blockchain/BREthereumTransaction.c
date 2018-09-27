@@ -27,7 +27,6 @@
 #include <string.h>
 #include <assert.h>
 #include "BREthereumTransaction.h"
-#include "../BREthereumPrivate.h"
 
 // #define TRANSACTION_LOG_ALLOC_COUNT
 

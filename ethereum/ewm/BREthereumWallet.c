@@ -27,7 +27,6 @@
 #include <string.h>
 #include <assert.h>
 #include "BRArray.h"
-#include "BREthereumPrivate.h"
 #include "BREthereumWallet.h"
 #include "BREthereumTransfer.h"
 

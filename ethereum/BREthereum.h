@@ -33,9 +33,6 @@
 #include "ewm/BREthereumAmount.h"
 #include "blockchain/BREthereumNetwork.h"
 
-#define BRArrayOf(type)    type*
-#define BRSetOf(type)      BRSet*
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -391,9 +388,9 @@ typedef enum {
 /*!
  * @typedef BREthereumSyncMode
  *
- * @abstract When starting the EWM we can prime the transaction synchronization with
- * transactions queried from the Bread endpoint or we can use a full blockchain
- * synchronization.  (After the first full sync, partial syncs are used).
+ * @abstract When starting the EWM we can prime the synchronization with transactions and logs
+ * queried from the Bread endpoint or we can use a full blockchain synchronization.  (After the
+ * first full sync, partial syncs are used).
  */
 typedef enum {
     SYNC_MODE_FULL_BLOCKCHAIN,

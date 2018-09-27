@@ -44,8 +44,6 @@
 #include "../blockchain/BREthereumNetwork.h"
 #include "BREthereumLES.h"
 #include "BREthereumNode.h"
-//#include "BREthereumRandom.h"
-//#include "BREthereumHandshake.h"
 
 #include "BREthereum.h"
 #include "../ewm/BREthereumEWM.h"

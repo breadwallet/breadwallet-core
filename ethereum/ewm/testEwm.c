@@ -11,7 +11,6 @@
 #include <assert.h>
 #include <unistd.h>
 
-#include "BREthereumPrivate.h"
 #include "BREthereumEWMPrivate.h"
 #include "../event/BREventAlarm.h"
 

@@ -31,9 +31,11 @@ extern "C" {
 #endif
 
 #include "BRArray.h"
-#if ! defined (BRArrayOf)
-#define BRArrayOf( type )     type*
-#endif
+#include "BRSet.h"
+
+#define BRArrayOf(type)    type*
+#define BRSetOf(type)      BRSet*
+
 
 #include "../util/BRUtil.h"
 #include "../rlp/BRRlp.h"

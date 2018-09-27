@@ -163,6 +163,19 @@ extern uint64_t
 accountGetAddressNonce (BREthereumAccount account,
                         BREthereumAddress address);
 
+//
+// Private
+//
+private_extern void
+accountSetAddressNonce(BREthereumAccount account,
+                       BREthereumAddress address,
+                       uint64_t nonce,
+                       BREthereumBoolean force);
+
+private_extern uint64_t
+accountGetThenIncrementAddressNonce(BREthereumAccount account,
+                                    BREthereumAddress address);
+
 #ifdef __cplusplus
 }
 #endif

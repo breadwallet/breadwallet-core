@@ -28,7 +28,6 @@
 #include <string.h>
 #include <pthread.h>
 #include "BRArray.h"
-#include "BREthereumPrivate.h"
 #include "BREthereumEWMPrivate.h"
 
 // We use private BCS interfaces to 'inject' our JSON_RPC 'announced' results as if from LES

@@ -26,7 +26,6 @@
 #include <string.h>
 #include <assert.h>
 #include "BREthereumTransfer.h"
-#include "BREthereumPrivate.h"
 #include "../blockchain/BREthereumTransaction.h"
 #include "../blockchain/BREthereumLog.h"
 

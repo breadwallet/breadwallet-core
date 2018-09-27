@@ -24,7 +24,6 @@
 //  THE SOFTWARE.
 
 #include "BRArray.h"
-#include "BREthereumPrivate.h"
 #include "BREthereumEWMPrivate.h"
 
 /*!
