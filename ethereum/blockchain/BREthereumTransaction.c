@@ -36,10 +36,6 @@
 static unsigned int transactionAllocCount = 0;
 #endif
 
-// Forward Declarations
-static void
-provideData (BREthereumTransaction transaction);
-
 /**
  * An Ethereum Transaction ...
  *

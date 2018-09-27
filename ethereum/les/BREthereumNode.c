@@ -57,9 +57,6 @@ nodeStateAnnounce (BREthereumNode node,
                    BREthereumNodeEndpointRoute route,
                    BREthereumNodeState state);
 
-static uint64_t
-getEndpointChainId (BREthereumNodeEndpoint *endpoint);
-
 static void
 showEndpointStatusMessage (BREthereumNodeEndpoint *endpoint);
 
@@ -1066,7 +1063,7 @@ nodeUpdateTimeoutRecv (BREthereumNode node,
 
 static int
 nodeStatusIsSufficient (BREthereumNode node) {
-    BREthereumP2PMessageStatusValue remValue, locValue;
+    BREthereumP2PMessageStatusValue remValue;
 
     // Both LES or both PIP
     assert (node->remote.status.identifier == node->local.status.identifier);
@@ -1834,23 +1831,6 @@ showEndpointStatusMessage (BREthereumNodeEndpoint *endpoint) {
 
         case MESSAGE_PIP:
             messagePIPStatusShow(&endpoint->status.u.pip.u.status);
-            break;
-    }
-}
-
-static uint64_t
-getEndpointChainId (BREthereumNodeEndpoint *endpoint) {
-    switch (endpoint->status.identifier) {
-        case MESSAGE_P2P:
-        case MESSAGE_DIS:
-        case MESSAGE_ETH:
-            assert (0);
-
-        case MESSAGE_LES:
-            return endpoint->status.u.les.u.status.p2p.chainId;
-
-        case MESSAGE_PIP:
-            return endpoint->status.u.pip.u.status.p2p.chainId;
             break;
     }
 }

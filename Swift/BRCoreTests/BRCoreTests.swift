@@ -139,7 +139,9 @@ class TestLightClient : EthereumClient {
 
     func getTokens(ewm: EthereumWalletManager, rid: Int32) {
         ewm.announceToken (rid: rid,
-                           address: "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6",
+                           address: (ewm.network == EthereumNetwork.mainnet
+                            ? "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"
+                            : "0x7108ca7c4718efa810457f228305c9c71390931a"),
                            symbol: "BRD",
                            name: "BRD Token",
                            description: "The BRD Token",

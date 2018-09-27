@@ -399,7 +399,7 @@ bcsHandleAnnounce (BREthereumBCS bcs,
                             (BREthereumLESProvisionContext) bcs,
                             (BREthereumLESProvisionCallback) bcsSignalProvision,
                             headNumber - reorgDepth,
-                            1 + reorgDepth,
+                            (uint32_t) (1 + reorgDepth),
                             0,
                             ETHEREUM_BOOLEAN_FALSE);
 }

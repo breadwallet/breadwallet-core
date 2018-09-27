@@ -13,9 +13,9 @@
 #include "BREthereumToken.h"
 
 #if defined (BITCOIN_TESTNET) && 1 == BITCOIN_TESTNET
-extern const char *tokenBRDAddress = "0x7108ca7c4718efa810457f228305c9c71390931a"; // testnet
+const char *tokenBRDAddress = "0x7108ca7c4718efa810457f228305c9c71390931a"; // testnet
 #else
-extern const char *tokenBRDAddress = "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"; // mainnet
+const char *tokenBRDAddress = "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"; // mainnet
 #endif
 
 #if defined (BITCOIN_DEBUG)

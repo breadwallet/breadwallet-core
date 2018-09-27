@@ -39,9 +39,6 @@ computeOptimalStep (uint64_t numberOfBlocks,
                     uint64_t *optimalStep,
                     uint64_t *optimalCount);
 
-static inline uint64_t minimum (uint64_t x, uint64_t y ) { return x <= y ? x : y; }
-static inline uint64_t maximum (uint64_t x, uint64_t y ) { return x >= y ? x : y; }
-
 /**
  * The BCS Sync Type represents the types of nodes in an N-ary tree.  We sync Ethereum blocks based
  * on a N-ary search for regions of blocks where the account state of the desired address changed.

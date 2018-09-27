@@ -133,6 +133,12 @@ public struct EthereumNetwork : EthereumPointer {
     static public let rinkeby = EthereumNetwork (core: ethereumRinkeby)
 }
 
+extension EthereumNetwork : Equatable {
+    static public func == (lhs: EthereumNetwork, rhs: EthereumNetwork) -> Bool {
+        return lhs.core == rhs.core
+    }
+}
+
 // MARK: - Token
 
 ///

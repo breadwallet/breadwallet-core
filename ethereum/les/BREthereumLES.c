@@ -54,12 +54,6 @@ lesHandleProvision (BREthereumLES les,
                     BREthereumProvisionResult result);
 
 static void
-lesHandleNodeState (BREthereumLES les,
-                    BREthereumNode node,
-                    BREthereumNodeEndpointRoute route,
-                    BREthereumNodeState state);
-
-static void
 lesHandleStatus (BREthereumLES les,
                  BREthereumNode node,
                  BREthereumHash headHash,
