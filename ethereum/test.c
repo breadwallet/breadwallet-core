@@ -54,6 +54,51 @@ showHex (uint8_t *source, size_t sourceLen) {
     printf ("}\n");
 }
 
+#if defined (BITCOIN_TESTNET) && 1 == BITCOIN_TESTNET
+static const char *tokenBRDAddress = "0x7108ca7c4718efa810457f228305c9c71390931a"; // testnet
+#else
+static const char *tokenBRDAddress = "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"; // mainnet
+#endif
+
+#if defined (BITCOIN_DEBUG)
+#  if defined (BITCOIN_TESTNET) && 1 == BITCOIN_TESTNET
+static const char *tokenTSTAddress = "0x722dd3f80bac40c951b51bdd28dd19d435762180"; // testnet,
+#  else
+static const char *tokenTSTAddress = "0x3efd578b271d034a69499e4a2d933c631d44b9ad"; // mainnet
+#  endif
+#endif
+
+static const char *tokenEOSAddress = "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0";
+
+static void
+installTokensForTest (void) {
+    BREthereumGas defaultGasLimit = gasCreate(TOKEN_BRD_DEFAULT_GAS_LIMIT);
+    BREthereumGasPrice defaultGasPrice = gasPriceCreate(etherCreateNumber(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64, WEI));
+    tokenInstall (tokenBRDAddress,
+                  "BRD",
+                  "BRD Token",
+                  "",
+                  18,
+                  defaultGasLimit,
+                  defaultGasPrice);
+#if defined (BITCOIN_DEBUG)
+    tokenInstall (tokenTSTAddress,
+                  "TST",
+                  "Test Standard Token",
+                  "TeST Standard Token (TST) for TeSTing (TST)",
+                  18,
+                  defaultGasLimit,
+                  defaultGasPrice);
+#endif
+    tokenInstall (tokenEOSAddress,
+                  "EOS",
+                  "EOS Token",
+                  "",
+                  18,
+                  defaultGasLimit,
+                  defaultGasPrice);
+}
+
 //
 // Math Tests
 //
@@ -432,11 +477,12 @@ runTokenParseTests () {
     
     //  UInt256 valueParseInt = parseTokenQuantity("5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, 18, &error);
     //  UInt256 valueParseDec = parseTokenQuantity("5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, 18, &error);
+    BREthereumToken token = tokenLookup(tokenBRDAddress);
     
-    BREthereumTokenQuantity valueInt = createTokenQuantityString(tokenBRD, "5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, &status);
+    BREthereumTokenQuantity valueInt = createTokenQuantityString(token, "5968770000000000000000", TOKEN_QUANTITY_TYPE_INTEGER, &status);
     assert (CORE_PARSE_OK == status && eqUInt256(value, valueInt.valueAsInteger));
     
-    BREthereumTokenQuantity valueDec = createTokenQuantityString(tokenBRD, "5968.77", TOKEN_QUANTITY_TYPE_DECIMAL, &status);
+    BREthereumTokenQuantity valueDec = createTokenQuantityString(token, "5968.77", TOKEN_QUANTITY_TYPE_DECIMAL, &status);
     assert (CORE_PARSE_OK == status && eqUInt256(valueInt.valueAsInteger, valueDec.valueAsInteger));
 }
 
@@ -846,6 +892,7 @@ void runTransactionTests1 (BREthereumAccount account, BREthereumNetwork network)
     BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
     
     assert (21000ull == transactionGetGasEstimate(transaction).amountOfGas);
+    assert (0 == strcmp (TEST_TRANS1_TARGET_ADDRESS, transactionGetEffectiveAddress(transaction)));
     
     char result[2 * dataUnsignedTransaction.bytesCount + 1];
     encodeHex(result, 2 * dataUnsignedTransaction.bytesCount + 1, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
@@ -951,7 +998,7 @@ void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network)
     printf ("     TEST 3\n");
     
     BRCoreParseStatus status;
-    BREthereumToken token = tokenBRD;
+    BREthereumToken token = tokenLookup(tokenBRDAddress);
     BREthereumWallet wallet = walletCreateHoldingToken (account, network, token);
     UInt256 value = createUInt256Parse ("5968770000000000000000", 10, &status);
     BREthereumAmount amount = amountCreateToken(createTokenQuantity (token, value));
@@ -966,7 +1013,9 @@ void runTransactionTests3 (BREthereumAccount account, BREthereumNetwork network)
     
     assert (1 == networkGetChainId(network));
     BRRlpData dataUnsignedTransaction = transactionEncodeRLP(transaction, network, TRANSACTION_RLP_UNSIGNED);
-    
+
+    assert (0 == strcmp (tokenBRDAddress, transactionGetEffectiveAddress(transaction)));
+
     char *rawTx = encodeHexCreate(NULL, dataUnsignedTransaction.bytes, dataUnsignedTransaction.bytesCount);
     printf ("       Tx3 Raw (unsigned): %s\n", rawTx);
     assert (0 == strcasecmp(rawTx, TEST_TRANS3_UNSIGNED_TX));
@@ -1073,6 +1122,7 @@ void testTransactionCodingToken () {
     printf ("     Coding Transaction\n");
 
     BREthereumAccount account = createAccount (NODE_PAPER_KEY);
+    BREthereumToken tokenBRD = tokenLookup(tokenBRDAddress);
     BREthereumWallet wallet = walletCreateHoldingToken(account, ethereumMainnet, tokenBRD);
 
     BREthereumAddress txRecvAddr = createAddress(NODE_RECV_ADDR);
@@ -1430,7 +1480,8 @@ runLightNode_TOKEN_test (const char *paperKey) {
     printf ("     TOKEN\n");
     
     BRCoreParseStatus status;
-    
+
+    BREthereumToken tokenBRD = tokenLookup(tokenBRDAddress);
     BREthereumLightNode node = ethereumCreate (ethereumMainnet, paperKey);
     BREthereumWalletId wallet = ethereumGetWalletHoldingToken(node, tokenBRD);
     
@@ -1451,7 +1502,54 @@ runLightNode_TOKEN_test (const char *paperKey) {
     ethereumWalletSignTransaction(node, wallet, transaction, paperKey);
     const char *rawTxSigned = lightNodeGetTransactionRawDataHexEncoded(node, wallet, transaction, "0x");
     printf ("        RawTx  Signed: %s\n", rawTxSigned);
-    
+
+    BREthereumToken token;
+    lightNodeAnnounceToken (node,
+                            "0xE41d2489571d322189246DaFA5ebDe1F4699F498",
+                            "ZRX",
+                            "0x",
+                            "",
+                            18,
+                            NULL,
+                            NULL,
+                            0);
+    token = tokenLookup("0xE41d2489571d322189246DaFA5ebDe1F4699F498");
+    assert (NULL != token);
+    assert (TOKEN_BRD_DEFAULT_GAS_LIMIT == tokenGetGasLimit(token).amountOfGas);
+    assert (TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64 == tokenGetGasPrice(token).etherPerGas.valueInWEI.u64[0]);
+
+    lightNodeAnnounceToken (node,
+                            "0xfd8971d5e8e1740ce2d0a84095fca4de729d0c16",
+                            "ZLA",
+                            "Zilla",
+                            "",
+                            18,
+                            "0x10",
+                            "0x02",
+                            0);
+    token = tokenLookup("0xfd8971d5e8e1740ce2d0a84095fca4de729d0c16");
+    assert (NULL != token);
+    assert (0x10 == tokenGetGasLimit(token).amountOfGas);
+    assert (0x02 == tokenGetGasPrice(token).etherPerGas.valueInWEI.u64[0]);
+
+    lightNodeAnnounceToken (node,
+                            "0xfd8971d5e8e1740ce2d0a84095fca4de729d0c16",
+                            "ZLA",
+                            "Zilla",
+                            "",
+                            18,
+                            "0x100",
+                            "0x020",
+                            0);
+    token = tokenLookup("0xfd8971d5e8e1740ce2d0a84095fca4de729d0c16");
+    assert (NULL != token);
+    assert (0x100 == tokenGetGasLimit(token).amountOfGas);
+    assert (0x020 == tokenGetGasPrice(token).etherPerGas.valueInWEI.u64[0]);
+
+    assert (4 == tokenCount());
+    BREthereumToken *tokens = tokenGetAll ();
+    assert (NULL != tokens[0] && NULL != tokens[1] && NULL != tokens[2] && NULL != tokens[3]);
+    free (tokens);
 }
 
 static void
@@ -1490,15 +1588,15 @@ void runTokenTests () {
 
     BREthereumToken token;
 
-    token = tokenLookup ("0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"); // BRD
+    token = tokenLookup (tokenBRDAddress); // BRD
     assert (NULL != token);
 
 #if defined (BITCOIN_DEBUG)
-    token = tokenLookup("0x3efd578b271d034a69499e4a2d933c631d44b9ad"); // TST: mainnet
+    token = tokenLookup(tokenTSTAddress); // TST: mainnet
     assert (NULL != token);
 #endif
 
-    token = tokenLookup("0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0"); // EOI
+    token = tokenLookup(tokenEOSAddress); // EOS
     assert (NULL != token);
 }
 
@@ -1789,6 +1887,8 @@ runTransactionReceiptTests (void) {
 extern void
 runTests (void) {
     installSharedWordList(BRBIP39WordsEn, BIP39_WORDLIST_COUNT);
+    installTokensForTest();
+
     runMathTests();
     runEtherParseTests();
     runTokenParseTests();

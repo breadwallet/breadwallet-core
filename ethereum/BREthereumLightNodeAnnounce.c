@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include <pthread.h>
 #include "BRArray.h"
 #include "BREthereumPrivate.h"
@@ -212,38 +213,82 @@ lightNodeAnnounceBlock(BREthereumLightNode node,
     return block;
 }
 
-static int
-lightNodeDataIsEmpty (BREthereumLightNode node, const char *data) {
-    return NULL == data || 0 == strcmp ("", data) || 0 == strcmp ("0x", data);
-}
+//static int
+//lightNodeDataIsEmpty (BREthereumLightNode node, const char *data) {
+//    return NULL == data || 0 == strcmp ("", data) || 0 == strcmp ("0x", data);
+//}
+//
+//static BREthereumToken
+//lightNodeAnnounceToken (BREthereumLightNode node,
+//                        const char *target,
+//                        const char *contract,
+//                        const char *data) {
+//    // If `data` is anything besides "0x", then we have a contract function call.  At that point
+//    // it seems we need to process `data` to extract the 'function + args' and then, if the
+//    // function is 'transfer() token' we can then and only then conclude that we have a token
+//
+//    if (lightNodeDataIsEmpty(node, data)) return NULL;
+//
+//    // There is contract data; see if it is a ERC20 function.
+//    BREthereumContractFunction function = contractLookupFunctionForEncoding(contractERC20, data);
+//
+//    // Not an ERC20 token
+//    if (NULL == function) return NULL;
+//
+//    // See if we have an existing token.
+//    BREthereumToken token = tokenLookup(target);
+//    if (NULL == token) token = tokenLookup(contract);
+//
+//    // We found a token...
+//    if (NULL != token) return token;
+//
+//    // ... we didn't find a token - we should create is dynamically.
+//    fprintf (stderr, "Ignoring transaction for unknown ERC20 token at '%s'", target);
+//    return NULL;
+//}
 
-static BREthereumToken
+extern void
 lightNodeAnnounceToken (BREthereumLightNode node,
-                        const char *target,
-                        const char *contract,
-                        const char *data) {
-    // If `data` is anything besides "0x", then we have a contract function call.  At that point
-    // it seems we need to process `data` to extract the 'function + args' and then, if the
-    // function is 'transfer() token' we can then and only then conclude that we have a token
+                        const char *address,
+                        const char *symbol,
+                        const char *name,
+                        const char *description,
+                        int decimals,
+                        const char *strDefaultGasLimit,
+                        const char *strDefaultGasPrice,
+                        int rid) {
+    char *strEndPointer = NULL;
 
-    if (lightNodeDataIsEmpty(node, data)) return NULL;
+    // Parse strDefaultGasLimit - as a decimal, hex or even octal string.  If the parse fails
+    // quietly fall back to the default gas limit of TOKEN_BRD_DEFAULT_GAS_LIMIT.  The parse can
+    // fail if: strDefaultGasLimit is not fully consumed (e.g. "123abc"); the parsed value is zero,
+    // the parsed value is out of range, the parse fails.
+    errno = 0;
+    unsigned long long gasLimitValue = 0;
+    if (NULL != strDefaultGasLimit)
+        gasLimitValue = strtoull (strDefaultGasLimit, &strEndPointer, 0);
+    if (gasLimitValue == 0 ||
+        errno == EINVAL || errno == ERANGE ||
+        (strEndPointer != NULL && *strEndPointer != '\0'))
+        gasLimitValue = TOKEN_BRD_DEFAULT_GAS_LIMIT;
 
-    // There is contract data; see if it is a ERC20 function.
-    BREthereumContractFunction function = contractLookupFunctionForEncoding(contractERC20, data);
+        // Parse strDefaultGasPrice - as a decimal, hex, etc - into a UInt256 representing the gasPrice
+    // in WEI.  If the parse fails, quietly fall back to using the default of
+    // TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64.
+    BRCoreParseStatus status = CORE_PARSE_STRANGE_DIGITS;
+    UInt256 gasPriceValue = UINT256_ZERO;
+    if (NULL != strDefaultGasPrice)
+        gasPriceValue = createUInt256Parse(strDefaultGasPrice, 0, &status);
+    if (status != CORE_PARSE_OK)
+        gasPriceValue = createUInt256 (TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64);
 
-    // Not an ERC20 token
-    if (NULL == function) return NULL;
-
-    // See if we have an existing token.
-    BREthereumToken token = tokenLookup(target);
-    if (NULL == token) token = tokenLookup(contract);
-
-    // We found a token...
-    if (NULL != token) return token;
-
-    // ... we didn't find a token - we should create is dynamically.
-    fprintf (stderr, "Ignoring transaction for unknown ERC20 token at '%s'", target);
-    return NULL;
+    tokenInstall (address,
+                  symbol,
+                  name,
+                  description,
+                  decimals,
+                  gasCreate(gasLimitValue),
+                  gasPriceCreate(etherCreate(gasPriceValue)));
 }
 
 static BREthereumWallet

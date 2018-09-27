@@ -40,8 +40,6 @@ public class BREthereumToken extends BRCoreJniReference {
     public native String getName ();
     public native String getDescription ();
     public native int getDecimals ();
-    public native String getColorLeft ();
-    public native String getColorRight ();
 
     public long getIdentifier () {
         return jniReferenceAddress;
@@ -50,6 +48,11 @@ public class BREthereumToken extends BRCoreJniReference {
 
     protected static native long jniGetTokenBRD ();
     protected static native long[] jniTokenAll ();
+
+    @Override
+    public void dispose() {
+        // avoid 'super.dispose()' and thus 'native.dispose()'
+    }
 
     @Override
     public int hashCode() {

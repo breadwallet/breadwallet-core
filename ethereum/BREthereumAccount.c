@@ -491,9 +491,10 @@ accountCreateAddress (BREthereumAccount account, UInt512 seed, uint32_t index) {
 //
 extern BREthereumBoolean
 signatureEqual (BREthereumSignature s1, BREthereumSignature s2) {
-    return (0 == memcmp(&s1, &s2, sizeof (BREthereumSignature))
-            ? ETHEREUM_BOOLEAN_TRUE
-            : ETHEREUM_BOOLEAN_FALSE);
+    return AS_ETHEREUM_BOOLEAN (s1.type == s2.type &&
+                                (s1.type == SIGNATURE_TYPE_RECOVERABLE
+                                 ? 0 == memcmp(&s1.sig.recoverable, &s2.sig.recoverable, sizeof (s1.sig.recoverable))
+                                 : s1.sig.foo.ignore == s2.sig.foo.ignore));
 }
 
 extern BREthereumAddress
