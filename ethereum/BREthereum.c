@@ -707,7 +707,9 @@ ethereumClientAnnounceTransaction(BREthereumEWM ewm,
 
     bundle->from = addressCreate(from);
     bundle->to = addressCreate(to);
-    bundle->contract = addressCreate(contract);
+    bundle->contract = (NULL == contract || '\0' == contract[0]
+                        ? EMPTY_ADDRESS_INIT
+                        : addressCreate(contract));
 
     bundle->amount = createUInt256Parse(strAmount, 0, &parseStatus);
 
@@ -834,6 +836,24 @@ ethereumClientAnnounceLog (BREthereumEWM ewm,
 //              }
 
 //
+// Blocks
+//
+extern BREthereumStatus
+ethereumClientAnnounceBlocks (BREthereumEWM ewm,
+                              int id,
+                              // const char *strBlockHash,
+                              BRArrayOf(uint64_t) blockNumbers) {  // BRArrayOf(const char *) strBlockNumbers ??
+    assert (EWM_USE_LES == ewm->type);
+    assert (NULL != ewm->bcs);
+
+    // into bcs...
+    bcsReportInterestingBlocks (ewm->bcs, blockNumbers);
+
+    return SUCCESS;
+}
+
+
+//
 // Tokens
 //
 extern void
@@ -876,13 +896,15 @@ ethereumClientAnnounceToken(BREthereumEWM ewm,
     if (status != CORE_PARSE_OK)
         gasPriceValue = createUInt256(TOKEN_BRD_DEFAULT_GAS_PRICE_IN_WEI_UINT64);
 
-    tokenInstall(address,
-                 symbol,
-                 name,
-                 description,
-                 decimals,
-                 gasCreate(gasLimitValue),
-                 gasPriceCreate(etherCreate(gasPriceValue)));
+    BREthereumEWMClientAnnounceTokenBundle *bundle = malloc(sizeof (BREthereumEWMClientAnnounceTokenBundle));
+
+    bundle->address     = strdup (address);
+    bundle->symbol      = strdup (symbol);
+    bundle->name        = strdup (name);
+    bundle->description = strdup (description);
+    bundle->decimals    = decimals;
+    bundle->gasLimit    = gasCreate(gasLimitValue);
+    bundle->gasPrice    = gasPriceCreate(etherCreate(gasPriceValue));
+
+    ewmClientSignalAnnounceToken (ewm, bundle, rid);
 }
-
-

@@ -62,7 +62,7 @@ logTopicCreateFromString (const char *string) {
     assert (0 == strncmp (string, "0x", 2) && (2 + 2 * LOG_TOPIC_BYTES_COUNT == stringLen));
 
     BREthereumLogTopic topic;
-    decodeHex(topic.bytes, sizeof(BREthereumLogTopic), string, stringLen);
+    decodeHex(topic.bytes, sizeof(BREthereumLogTopic), &string[2], stringLen - 2);
     return topic;
 }
 
@@ -197,7 +197,7 @@ logCreate (BREthereumAddress address,
 
     array_new(log->topics, topicsCount);
     for (size_t index = 0; index < topicsCount; index++)
-        log->topics[index] = topics[index];
+        array_add (log->topics, topics[index]);
 
     log->data = NULL;
     log->dataCount = 0;

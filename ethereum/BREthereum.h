@@ -26,17 +26,12 @@
 #ifndef BR_Ethereum_H
 #define BR_Ethereum_H
 
-#define SUPPORT_JSON_RPC
-
 #include <stdint.h>
 #include "BRKey.h"
 #include "BRSet.h"
 #include "base/BREthereumBase.h"
 #include "ewm/BREthereumAmount.h"
 #include "blockchain/BREthereumNetwork.h"
-
-#define BRArrayOf(type)    type*
-#define BRSetOf(type)      BRSet*
 
 #ifdef __cplusplus
 extern "C" {
@@ -179,7 +174,16 @@ typedef void
                                     const char *address,
                                     int rid);
 
-//
+typedef void
+(*BREthereumClientHandlerGetBlocks) (BREthereumClientContext context,
+                                     BREthereumEWM ewm,
+                                     const char *address,
+                                     BREthereumSyncInterestSet interests,
+                                     uint64_t blockNumberStart,
+                                     uint64_t blockNumberStop,
+                                     int rid);
+
+    //
 // Save Sync (and other) State
 //
 typedef enum {
@@ -328,7 +332,7 @@ typedef void (*BREthereumClientHandlerEWMEvent) (BREthereumClientContext context
 //
 // EWM Configuration
 //
-// Used to configure a EWM appropriately for JSON_RPC or LES.  Starts with a
+// Used to configure a EWM appropriately for BRD or LES.  Starts with a
 // BREthereumNetwork (one of ethereum{Mainnet,Testnet,Rinkeby} and then specifics for the
 // type.
 //
@@ -336,14 +340,15 @@ typedef struct {
     BREthereumClientContext context;
 
     // Backend Server Support - typically implemented with HTTP requests for JSON_RPC or DB
-    // queries.  All of these functions *must* callback to the EWM with a corresponding
-    // 'announce' function.
+    // queries of BRD endpoints.  All of these functions *must* callback to the EWM with a
+    // corresponding 'announce' function.
     BREthereumClientHandlerGetBalance funcGetBalance;
     BREthereumClientHandlerGetGasPrice funcGetGasPrice;
     BREthereumClientHandlerEstimateGas funcEstimateGas;
     BREthereumClientHandlerSubmitTransaction funcSubmitTransaction;
     BREthereumClientHandlerGetTransactions funcGetTransactions; // announce one-by-one
     BREthereumClientHandlerGetLogs funcGetLogs; // announce one-by-one
+    BREthereumClientHandlerGetBlocks funcGetBlocks;
     BREthereumClientHandlerGetTokens funcGetTokens; // announce one-by-one
     BREthereumClientHandlerGetBlockNumber funcGetBlockNumber;
     BREthereumClientHandlerGetNonce funcGetNonce;
@@ -382,26 +387,13 @@ installSharedWordList (const char *wordList[], int wordListLength);
  * @typedef BREthereumType
  *
  * @abstract
- * Two types of EWM - JSON_RPC or LES (Light Ethereum Subprotocol).  For a LES EWM
+ * Two types of EWM - BRD or LES (Light Ethereum Subprotocol).  For a LES EWM
  * some of the Client callbacks will only be used as a fallback.
  */
 typedef enum {
-    NODE_TYPE_NONE,
-    NODE_TYPE_JSON_RPC,
-    NODE_TYPE_LES
+    EWM_USE_BRD,
+    EWM_USE_LES
 } BREthereumType;
-
-/*!
- * @typedef BREthereumSyncMode
- *
- * @abstract When starting the EWM we can prime the transaction synchronization with
- * transactions queried from the Bread endpoint or we can use a full blockchain
- * synchronization.  (After the first full sync, partial syncs are used).
- */
-typedef enum {
-    SYNC_MODE_FULL_BLOCKCHAIN,
-    SYNC_MODE_PRIME_WITH_ENDPOINT
-} BREthereumSyncMode;
 
 /**
  * Create a EWM managing the account associated with the paperKey.  (The `paperKey` must
@@ -950,6 +942,15 @@ ethereumClientAnnounceLog (BREthereumEWM ewm,
                            const char *strBlockNumber,
                            const char *strBlockTransactionIndex,
                            const char *strBlockTimestamp);
+
+//
+// Blocks
+//
+extern BREthereumStatus
+ethereumClientAnnounceBlocks (BREthereumEWM ewm,
+                              int id,
+                              // const char *strBlockHash,
+                              BRArrayOf(uint64_t) blockNumbers);
 
 //
 // Tokens

@@ -287,7 +287,6 @@
 		3C2A539A20AF595400C430F6 /* BRRlpCoder.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BRRlpCoder.c; sourceTree = "<group>"; };
 		3C2A539B20AF595400C430F6 /* BREthereum.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = BREthereum.c; path = ../../ethereum/BREthereum.c; sourceTree = "<group>"; };
 		3C2A539C20AF595400C430F6 /* BREthereumWallet.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BREthereumWallet.c; sourceTree = "<group>"; };
-		3C2A539D20AF595400C430F6 /* BREthereumPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BREthereumPrivate.h; path = ../../ethereum/BREthereumPrivate.h; sourceTree = "<group>"; };
 		3C2A53A020AF595400C430F6 /* BREthereumEWM.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BREthereumEWM.h; sourceTree = "<group>"; };
 		3C2A53A220AF595400C430F6 /* BREthereumEWM.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = BREthereumEWM.c; sourceTree = "<group>"; };
 		3C2A53A320AF595400C430F6 /* BREthereumEWMPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BREthereumEWMPrivate.h; sourceTree = "<group>"; };
@@ -530,7 +529,6 @@
 				3C386DC920C6F5E40065E355 /* bcs */,
 				3C2A539E20AF595400C430F6 /* ewm */,
 				3C2A539620AF595400C430F6 /* BREthereum.h */,
-				3C2A539D20AF595400C430F6 /* BREthereumPrivate.h */,
 				3C2A539B20AF595400C430F6 /* BREthereum.c */,
 			);
 			name = ethereum;
@@ -1059,18 +1057,22 @@
 					};
 					3C902601210A30F100143B69 = {
 						CreatedOnToolsVersion = 9.4.1;
+						LastSwiftMigration = 1000;
 					};
 					3CAB609A20AF8C5D00810CE4 = {
 						CreatedOnToolsVersion = 9.3.1;
 					};
 					3CAB60A520AF8C8500810CE4 = {
 						CreatedOnToolsVersion = 9.3.1;
+						LastSwiftMigration = 1000;
 					};
 					3CAB60EE20AF936200810CE4 = {
 						CreatedOnToolsVersion = 9.3.1;
+						LastSwiftMigration = 1000;
 					};
 					3CAB60F620AF936200810CE4 = {
 						CreatedOnToolsVersion = 9.3.1;
+						LastSwiftMigration = 1000;
 					};
 				};
 			};
@@ -1606,7 +1608,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.CoreDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 4.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -1626,7 +1628,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.CoreDemo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 4.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -1695,7 +1697,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.CoreTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "CoreTests/CoreTests-Bridging-Header.h";
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 4.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -1717,7 +1719,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.CoreTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OBJC_BRIDGING_HEADER = "CoreTests/CoreTests-Bridging-Header.h";
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 4.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -1744,7 +1746,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
 				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Core/";
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 4.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -1771,7 +1773,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
 				SKIP_INSTALL = YES;
 				SWIFT_INCLUDE_PATHS = "$(SRCROOT)/Core/";
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 4.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
@@ -1791,7 +1793,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.BRCoreTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 4.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -1811,7 +1813,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.breadwallet.BRCoreTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 4.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;

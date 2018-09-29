@@ -265,6 +265,54 @@ walletGetTransferByIndex(BREthereumWallet wallet,
 extern unsigned long
 walletGetTransferCount (BREthereumWallet wallet);
 
+//
+// Private
+// TODO: Make 'static'
+//
+
+// Returns Ether appropriate for encoding a transaction.  If the transaction is for a TOKEN,
+// then the returned Ether is zero (because the amount of a TOKEN transfer is encoded in the
+// contract's function call, in the transaction.data field).
+private_extern BREthereumEther
+transferGetEffectiveAmountInEther (BREthereumTransfer transfer);
+
+private_extern void
+walletSetBalance (BREthereumWallet wallet,
+                  BREthereumAmount balance);
+
+private_extern void
+walletUpdateBalance (BREthereumWallet wallet);
+
+private_extern void
+walletTransferSubmitted (BREthereumWallet wallet,
+                         BREthereumTransfer transaction,
+                         const BREthereumHash hash); // ....
+
+private_extern void
+walletTransferIncluded(BREthereumWallet wallet,
+                       BREthereumTransfer transaction,
+                       BREthereumGas gasUsed,
+                       BREthereumHash blockHash,
+                       uint64_t blockNumber,
+                       uint64_t blockTransactionIndex);
+
+private_extern void
+walletTransferErrored (BREthereumWallet wallet,
+                       BREthereumTransfer transaction,
+                       const char *reason);
+
+private_extern void
+walletHandleTransfer (BREthereumWallet wallet,
+                      BREthereumTransfer transfer);
+
+private_extern void
+walletUnhandleTransfer (BREthereumWallet wallet,
+                        BREthereumTransfer transaction);
+
+private_extern int
+walletHasTransfer (BREthereumWallet wallet,
+                   BREthereumTransfer transaction);
+
 #ifdef __cplusplus
 }
 #endif

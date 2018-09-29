@@ -59,6 +59,7 @@ uint256Bitwise (BREthereumIntBitwiseType type,
     return z;
 }
 
+#if 0
 static int
 uint256BitOffset (UInt256 x) {
     for (unsigned int index = 0; index < 256; index++)
@@ -67,7 +68,6 @@ uint256BitOffset (UInt256 x) {
     return -1;
 }
 
-#if 0
 static int
 uint64tBitCount (uint64_t val) {
     int count = 0;

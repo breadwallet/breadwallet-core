@@ -26,7 +26,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
     var client : CoreDemoEthereumClient!
 
 
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         let splitViewController = window!.rootViewController as! UISplitViewController
 
@@ -39,7 +39,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
         let summaryController = summaryNavigationController.topViewController as! SummaryViewController
 
         client = CoreDemoEthereumClient (network: EthereumNetwork.mainnet,
-                                         paperKey: "0x8975dbc1b8f25ec994815626d070899dda896511") //  "boring head harsh green empty clip fatal typical found crane dinner timber")
+                                         type: EthereumType.brd,
+                                         paperKey: "boring head harsh green empty clip fatal typical found crane dinner timber")
+//                                         paperKey: "0x8975dbc1b8f25ec994815626d070899dda896511")
         // Mini-race - on ETH wallet create event
         UIApplication.sharedClient.addWalletListener(listener: summaryController)
 
@@ -65,6 +67,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
         // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface
         DispatchQueue.global().async {
             sleep (5)
+            self.client.node.updateTokens()
             self.client.node.connect();
         }
     }

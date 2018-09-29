@@ -133,6 +133,12 @@ public struct EthereumNetwork : EthereumPointer {
     static public let rinkeby = EthereumNetwork (core: ethereumRinkeby)
 }
 
+extension EthereumNetwork : Equatable {
+    static public func == (lhs: EthereumNetwork, rhs: EthereumNetwork) -> Bool {
+        return lhs.core == rhs.core
+    }
+}
+
 // MARK: - Token
 
 ///
@@ -458,6 +464,27 @@ public enum EthereumStatus {
     case success
 }
 
+public enum EthereumType {
+    case les
+    case brd
+
+    init (_ type: BREthereumType) {
+        switch (type) {
+        case EWM_USE_BRD: self = .brd
+        case EWM_USE_LES: self = .les
+        default:
+            self = .les
+        }
+    }
+
+    var core : BREthereumType {
+        switch (self) {
+        case .brd: return EWM_USE_BRD;
+        case .les: return EWM_USE_LES;
+        }
+    }
+}
+
 public enum EthereumWalletEvent : Int {
     case created
     case balanceUpdated
@@ -581,6 +608,13 @@ public protocol EthereumClient : class {
                   event: String,
                   rid: Int32) -> Void
 
+    func getBlocks (ewm: EthereumWalletManager,
+                    address: String,
+                    interests: UInt32,
+                    blockStart: UInt64,
+                    blockStop: UInt64,
+                    rid: Int32) -> Void
+
     func getTokens (ewm: EthereumWalletManager,
                     rid: Int32) -> Void
 
@@ -665,10 +699,11 @@ public class EthereumWalletManager {
 
     public convenience init (client : EthereumClient,
                              network : EthereumNetwork,
+                             type: EthereumType,
                              paperKey : String) {
         let anyClient = AnyEthereumClient (base: client)
         self.init (core: ethereumCreate (network.core, paperKey,
-                                         NODE_TYPE_LES,
+                                         type.core,
                                          SYNC_MODE_FULL_BLOCKCHAIN,
                                          EthereumWalletManager.createCoreClient(client: client),
                                          nil,
@@ -682,10 +717,11 @@ public class EthereumWalletManager {
 
     public convenience init (client : EthereumClient,
                              network : EthereumNetwork,
+                             type: EthereumType,
                              publicKey : BRKey) {
         let anyClient = AnyEthereumClient (base: client)
         self.init (core: ethereumCreateWithPublicKey (network.core, publicKey,
-                                                      NODE_TYPE_LES,
+                                                      type.core,
                                                       SYNC_MODE_FULL_BLOCKCHAIN,
                                                       EthereumWalletManager.createCoreClient(client: client),
                                                       nil,
@@ -739,6 +775,13 @@ public class EthereumWalletManager {
         return EthereumTransfer (ewm: self, identifier: identifier)
     }
 
+    //
+    // Tokens
+    //
+    public func updateTokens () {
+        ethereumClientUpdateTokens(core)
+    }
+    
     //
     // Connect / Disconnect
     //
@@ -815,6 +858,12 @@ public class EthereumWalletManager {
                                    logIndex,
                                    blockNumber, blockTransactionIndex, blockTimestamp)
         cTopics.forEach { free (UnsafeMutablePointer(mutating: $0)) }
+    }
+
+    public func announceBlocks (rid: Int32,
+                                blockNumbers: [UInt64]) {
+        // TODO: blocks must be BRArrayOf(uint64_t) - change to add `count`
+        ethereumClientAnnounceBlocks(core, rid, UnsafeMutablePointer<UInt64>(mutating: blockNumbers))
     }
 
     public func announceToken (rid: Int32,
@@ -902,6 +951,17 @@ public class EthereumWalletManager {
                                     address: asUTF8String(address!),
                                     event: asUTF8String(event!),
                                     rid: rid)
+                }},
+
+            funcGetBlocks: { (coreClient, coreEWM, address, interests, blockStart, blockStop, rid) in
+                if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }),
+                    let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+                    client.getBlocks (ewm: ewm,
+                                      address: asUTF8String (address!),
+                                      interests: interests,
+                                      blockStart: blockStart,
+                                      blockStop: blockStop,
+                                      rid: rid)
                 }},
 
             funcGetTokens: { (coreClient, coreEWM, rid) in
@@ -1185,6 +1245,10 @@ class AnyEthereumClient : EthereumClient {
 
     func getLogs(ewm: EthereumWalletManager, address: String, event: String, rid: Int32) {
         base.getLogs(ewm: ewm, address: address, event: event, rid: rid)
+    }
+
+    func getBlocks (ewm: EthereumWalletManager, address: String, interests: UInt32, blockStart: UInt64, blockStop: UInt64,  rid: Int32) {
+        base.getBlocks (ewm: ewm, address: address, interests: interests, blockStart: blockStart, blockStop: blockStop, rid: rid)
     }
 
     func getTokens (ewm: EthereumWalletManager, rid: Int32) {

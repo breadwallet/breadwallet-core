@@ -30,7 +30,6 @@
 #include "../base/BREthereumLogic.h"
 #include "BREthereumBlock.h"
 #include "BREthereumLog.h"
-#include "../BREthereumPrivate.h"
 
 //#define BLOCK_LOG_ALLOC_COUNT
 
@@ -255,7 +254,7 @@ blockHeaderCanonicalDifficulty (BREthereumBlockHeader header,
     uint64_t y = parentOmmersCount == 0 ? 1 : 2;
     int64_t sigma_2 = max (y - delay_scaled, -99);
     assert (sigma_2 <= INT32_MAX && INT32_MIN <= sigma_2);
-    UInt256 x_sigma = mulUInt256_Small(x, (uint64_t) (sigma_2 < 0 ? -sigma_2 : sigma_2), &overflow);
+    UInt256 x_sigma = mulUInt256_Small(x, (uint32_t) (sigma_2 < 0 ? -sigma_2 : sigma_2), &overflow);
     assert (0 == overflow);
 
     uint64_t fake_block_number = header->number > 3000000 ? (header->number - 3000000) : 0;

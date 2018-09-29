@@ -27,10 +27,10 @@
 #define BR_Ethereum_EWM_H
 
 #include <stdint.h>
-#include "BREthereum.h"
 #include "../blockchain/BREthereumTransaction.h"
 #include "../blockchain/BREthereumBlock.h"
 #include "../blockchain/BREthereumLog.h"
+#include "../BREthereum.h"
 #include "BREthereumAccount.h"
 #include "BREthereumWallet.h"
 

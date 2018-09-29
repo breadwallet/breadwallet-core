@@ -31,9 +31,11 @@ extern "C" {
 #endif
 
 #include "BRArray.h"
-#if ! defined (BRArrayOf)
-#define BRArrayOf( type )     type*
-#endif
+#include "BRSet.h"
+
+#define BRArrayOf(type)    type*
+#define BRSetOf(type)      BRSet*
+
 
 #include "../util/BRUtil.h"
 #include "../rlp/BRRlp.h"
@@ -50,6 +52,27 @@ typedef enum {
     RLP_TYPE_TRANSACTION_UNSIGNED,
     RLP_TYPE_TRANSACTION_SIGNED = RLP_TYPE_NETWORK,
 } BREthereumRlpType;
+
+typedef enum {
+    SYNC_MODE_FULL_BLOCKCHAIN,
+    SYNC_MODE_PRIME_WITH_ENDPOINT
+} BREthereumSyncMode;
+
+typedef enum {
+    CLIENT_GET_BLOCKS_NODE = 0,
+    CLIENT_GET_BLOCKS_TRANSACTIONS_AS_SOURCE = (1 << 0),
+    CLIENT_GET_BLOCKS_TRANSACTIONS_AS_TARGET = (1 << 1),
+    CLIENT_GET_BLOCKS_LOGS_AS_SOURCE = (1 << 2),
+    CLIENT_GET_BLOCKS_LOGS_AS_TARGET = (1 << 3)
+} BREthereumSyncInterest;
+
+typedef unsigned int BREthereumSyncInterestSet;
+
+static inline int
+syncInterestMatch(BREthereumSyncInterestSet interests,
+                  BREthereumSyncInterest interest) {
+    return interests & interest;
+}
 
 #ifdef __cplusplus
 }

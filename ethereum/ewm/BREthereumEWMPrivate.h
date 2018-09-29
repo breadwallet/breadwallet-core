@@ -70,11 +70,6 @@ struct BREthereumEWMRecord {
     BREthereumType type;
 
     /**
-     * The SyncMode of this EWM
-     */
-    BREthereumSyncMode syncMode;
-
-    /**
      * The network
      */
     BREthereumNetwork network;
@@ -109,7 +104,7 @@ struct BREthereumEWMRecord {
     BREthereumBlock *blocks; // BRSet
 
     /**
-     * The BCS Interface
+     * The BCS Interface - this will be NULL unless the type is EWM_USE_LES
      */
     BREthereumBCS bcs;
 
@@ -120,7 +115,7 @@ struct BREthereumEWMRecord {
     uint64_t blockHeight;
 
     /**
-     * An identiifer for a LES/JSON_RPC Request
+     * An identiifer for a LES/BRD Request
      */
     unsigned int requestId;
 
@@ -131,7 +126,7 @@ struct BREthereumEWMRecord {
     BREventHandler handlerForClient;
 
     /**
-     * An EventHandler for Main.  All 'announcements' (via LES (or JSON_RPC) hit here.
+     * An EventHandler for Main.  All 'announcements' (via LES (or BRD) hit here.
      */
     BREventHandler handlerForMain;
 
@@ -310,6 +305,22 @@ ewmSignalSync (BREthereumEWM ewm,
                uint64_t blockNumberStart,
                uint64_t blockNumberCurrent,
                uint64_t blockNumberStop);
+
+//
+// Signal/Handle Get Blocks (BCS Callback)
+//
+extern void
+ewmHandleGetBlocks (BREthereumEWM ewm,
+                    BREthereumAddress address,
+                    BREthereumSyncInterestSet interests,
+                    uint64_t blockStart,
+                    uint64_t blockStop);
+extern void
+ewmSignalGetBlocks (BREthereumEWM ewm,
+                    BREthereumAddress address,
+                    BREthereumSyncInterestSet interests,
+                    uint64_t blockStart,
+                    uint64_t blockStop);
 
 ///
 /// MARK: - Handler For Main
@@ -498,6 +509,8 @@ typedef struct {
     char *name;
     char *description;
     unsigned int decimals;
+    BREthereumGas gasLimit;
+    BREthereumGasPrice gasPrice;
 } BREthereumEWMClientAnnounceTokenBundle;
 
 static inline void

@@ -28,7 +28,7 @@
 #include <string.h>
 #include <pthread.h>
 #include "BRArray.h"
-#include "BREthereumPrivate.h"
+#include "../BREthereum.h"
 #include "BREthereumEWMPrivate.h"
 
 // We use private BCS interfaces to 'inject' our JSON_RPC 'announced' results as if from LES
@@ -467,10 +467,16 @@ ewmClientSignalAnnounceTransactionDispatcher (BREventHandler ignore,
     ewmClientHandleAnnounceTransaction(event->ewm, event->bundle, event->rid);
 }
 
+static void
+ewmClientSignalAnnounceTransactionDestroyer (BREthereumEWMClientAnnounceTransactionEvent *event) {
+    ewmClientAnnounceTransactionBundleRelease(event->bundle);
+}
+
 static BREventType ewmClientAnnounceTransactionEventType = {
     "EWM: Client Announce Transaction Event",
     sizeof (BREthereumEWMClientAnnounceTransactionEvent),
-    (BREventDispatcher) ewmClientSignalAnnounceTransactionDispatcher
+    (BREventDispatcher) ewmClientSignalAnnounceTransactionDispatcher,
+    (BREventDestroyer) ewmClientSignalAnnounceTransactionDestroyer
 };
 
 extern void
@@ -498,10 +504,16 @@ ewmClientSignalAnnounceLogDispatcher (BREventHandler ignore,
     ewmClientHandleAnnounceLog(event->ewm, event->bundle, event->rid);
 }
 
+static void
+ewmClientSignalAnnounceLogDestroyer (BREthereumEWMClientAnnounceLogEvent *event) {
+    ewmClientAnnounceLogBundleRelease(event->bundle);
+}
+
 static BREventType ewmClientAnnounceLogEventType = {
     "EWM: Client Announce Log Event",
     sizeof (BREthereumEWMClientAnnounceLogEvent),
-    (BREventDispatcher) ewmClientSignalAnnounceLogDispatcher
+    (BREventDispatcher) ewmClientSignalAnnounceLogDispatcher,
+    (BREventDestroyer) ewmClientSignalAnnounceLogDestroyer
 };
 
 extern void
@@ -529,10 +541,16 @@ ewmClientSignalAnnounceTokenDispatcher (BREventHandler ignore,
     ewmClientHandleAnnounceToken(event->ewm, event->bundle, event->rid);
 }
 
+static void
+ewmClientSignalAnnounceTokenDestroyer (BREthereumEWMClientAnnounceTokenEvent *event) {
+    ewmClientAnnounceTokenBundleRelease(event->bundle);
+}
+
 static BREventType ewmClientAnnounceTokenEventType = {
     "EWM: Client Announce Token Event",
     sizeof (BREthereumEWMClientAnnounceTokenEvent),
-    (BREventDispatcher) ewmClientSignalAnnounceTokenDispatcher
+    (BREventDispatcher) ewmClientSignalAnnounceTokenDispatcher,
+    (BREventDestroyer) ewmClientSignalAnnounceTokenDestroyer
 };
 
 extern void

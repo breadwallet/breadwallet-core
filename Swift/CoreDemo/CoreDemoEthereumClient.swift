@@ -28,10 +28,11 @@ class CoreDemoEthereumClient : EthereumClient {
     //
     // Constructors
     //
-    init(network: EthereumNetwork, paperKey: String) {
+    init(network: EthereumNetwork, type: EthereumType, paperKey: String) {
         self.network = network
         self.node = EthereumWalletManager (client: self,
                                            network: network,
+                                           type: type,
                                            paperKey: paperKey)
     }
 
@@ -81,7 +82,9 @@ class CoreDemoEthereumClient : EthereumClient {
     func getLogs(ewm: EthereumWalletManager, address: String, event: String, rid: Int32) {
         ewm.announceLog(rid: rid,
                         hash: "0xa37bd8bd8b1fa2838ef65aec9f401f56a6279f99bb1cfb81fa84e923b1b60f2b",
-                        contract: "0x722dd3f80bac40c951b51bdd28dd19d435762180",
+                        contract: (ewm.network == EthereumNetwork.mainnet
+                            ? "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"
+                            : "0x7108ca7c4718efa810457f228305c9c71390931a"),
                         topics: ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
                                  "0x0000000000000000000000000000000000000000000000000000000000000000",
                                  "0x000000000000000000000000bdfdad139440d2db9ba2aa3b7081c2de39291508"],
@@ -95,9 +98,54 @@ class CoreDemoEthereumClient : EthereumClient {
         return
     }
 
+    func getBlocks(ewm: EthereumWalletManager, address: String, interests: UInt32, blockStart: UInt64, blockStop: UInt64, rid: Int32) {
+        var blockNumbers : [UInt64] = []
+        if "0xb302B06FDB1348915599D21BD54A06832637E5E8" == address {
+            if 0 != interests & UInt32 (1 << 3) /* CLIENT_GET_BLOCKS_LOGS_AS_TARGET */ {
+                blockNumbers += [4847049,
+                                 4847152,
+                                 4894677,
+                                 4965538,
+                                 4999850,
+                                 5029844]
+            }
+            
+            if 0 != interests & UInt32 (1 << 2) /* CLIENT_GET_BLOCKS_LOGS_AS_SOURCE */ {
+                blockNumbers += [5705175]
+            }
+            
+            if 0 != interests & UInt32 (1 << 1) /* CLIENT_GET_BLOCKS_TRANSACTIONS_AS_TARGET */ {
+                blockNumbers += [4894027,
+                                 4908682,
+                                 4991227]
+            }
+            
+            if 0 != interests & UInt32 (1 << 0) /* CLIENT_GET_BLOCKS_TRANSACTIONS_AS_SOURCE */ {
+                blockNumbers += [4894330,
+                                 4894641,
+                                 4894677,
+                                 4903993,
+                                 4906377,
+                                 4997449,
+                                 4999850,
+                                 4999875,
+                                 5000000,
+                                 5705175]
+            }
+        }
+        else {
+            blockNumbers.append(contentsOf: [blockStart,
+                                             (blockStart + blockStop) / 2,
+                                             blockStop])
+        }
+        ewm.announceBlocks(rid: rid, blockNumbers: blockNumbers)
+    }
+
     func getTokens(ewm: EthereumWalletManager, rid: Int32) {
         ewm.announceToken (rid: rid,
-                           address: "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6",
+                           address: (ewm.network == EthereumNetwork.mainnet
+                                ? "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6"
+                                : "0x7108ca7c4718efa810457f228305c9c71390931a"),
                            symbol: "BRD",
                            name: "BRD Token",
                            description: "The BRD Token",

@@ -27,7 +27,6 @@
 #include <string.h>
 #include <assert.h>
 #include "BREthereumTransaction.h"
-#include "../BREthereumPrivate.h"
 
 // #define TRANSACTION_LOG_ALLOC_COUNT
 
@@ -36,10 +35,6 @@
 #if defined (TRANSACTION_LOG_ALLOC_COUNT)
 static unsigned int transactionAllocCount = 0;
 #endif
-
-// Forward Declarations
-static void
-provideData (BREthereumTransaction transaction);
 
 /**
  * An Ethereum Transaction ...

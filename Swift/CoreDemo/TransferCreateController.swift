@@ -47,8 +47,8 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
     @IBAction func submit(_ sender: UIBarButtonItem) {
         NSLog ("Want to submit")
 
-        let alert = UIAlertController (title: "Submit Transaction", message: "Are you sure?", preferredStyle: UIAlertControllerStyle.actionSheet)
-        alert.addAction(UIAlertAction (title: "Yes", style: UIAlertActionStyle.destructive) { (action) in
+        let alert = UIAlertController (title: "Submit Transaction", message: "Are you sure?", preferredStyle: UIAlertController.Style.actionSheet)
+        alert.addAction(UIAlertAction (title: "Yes", style: UIAlertAction.Style.destructive) { (action) in
             let transfer = self.wallet.createTransfer (recvAddress: self.recvField.text!,
                                                              amount: self.amountSlider.value.description,
                                                              unit: EthereumAmountUnit.defaultUnitEther);
@@ -59,7 +59,7 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
             // Notify, close
             self.dismiss(animated: true) {}
         })
-        alert.addAction(UIAlertAction (title: "No", style: UIAlertActionStyle.cancel) { (action) in
+        alert.addAction(UIAlertAction (title: "No", style: UIAlertAction.Style.cancel) { (action) in
             NSLog ("Will Cancel" )
         })
         self.present(alert, animated: true) {}

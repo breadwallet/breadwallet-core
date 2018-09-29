@@ -30,7 +30,6 @@
 #include "BRArray.h"
 #include "BREthereumBCS.h"
 #include "../blockchain/BREthereumBlockChain.h"
-//#include "../les/BREthereumNode.h"
 #include "../event/BREvent.h"
 
 #ifdef __cplusplus
@@ -54,6 +53,11 @@ struct BREthereumBCSStruct {
      */
     BREthereumAddress address;
 
+    /**
+     * The sync mode
+     */
+    BREthereumSyncMode syncMode;
+    
     /**
      * A BloomFilter with address for application to transactions
      */
@@ -114,8 +118,10 @@ struct BREthereumBCSStruct {
 
     /**
      * A BRSet of orphaned block headers.  These are block headers that 'conflict' with
-     * chained headers.  Typically (Exclusively) an orphan is a previously chained header
-     * that was replaced by a subsequently accounced header.
+     * chained headers.  An orphan is a previously chained header that was replaced by a
+     * subsequently accounced header or, importantly, a header beyond `chain` such as when
+     * a new header is announced but a sync is in progress.  Such 'beyond' headers will get chained
+     * once the sync is up-to-date.
      */
     BRSetOf(BREthereumBlock) orphans;
 
@@ -158,10 +164,6 @@ struct BREthereumBCSStruct {
      * Sync state
      */
     BREthereumBCSSync sync;
-//    int syncActive;
-//    uint64_t syncTail;
-//    uint64_t syncNext;
-//    uint64_t syncHead;
 };
 
 extern const BREventType *bcsEventTypes[];
