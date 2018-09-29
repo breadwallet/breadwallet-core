@@ -737,7 +737,7 @@ bcsSyncStart (BREthereumBCSSync sync,
                                             SYNC_LINEAR_LIMIT));
     }
 
-    // Kick of the new sync.
+    // Kick off the new sync.
     syncRangeDispatch (sync->root);
 }
 

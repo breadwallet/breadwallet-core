@@ -174,7 +174,16 @@ typedef void
                                     const char *address,
                                     int rid);
 
-//
+typedef void
+(*BREthereumClientHandlerGetBlocks) (BREthereumClientContext context,
+                                     BREthereumEWM ewm,
+                                     const char *address,
+                                     BREthereumSyncInterestSet interests,
+                                     uint64_t blockNumberStart,
+                                     uint64_t blockNumberStop,
+                                     int rid);
+
+    //
 // Save Sync (and other) State
 //
 typedef enum {
@@ -339,6 +348,7 @@ typedef struct {
     BREthereumClientHandlerSubmitTransaction funcSubmitTransaction;
     BREthereumClientHandlerGetTransactions funcGetTransactions; // announce one-by-one
     BREthereumClientHandlerGetLogs funcGetLogs; // announce one-by-one
+    BREthereumClientHandlerGetBlocks funcGetBlocks;
     BREthereumClientHandlerGetTokens funcGetTokens; // announce one-by-one
     BREthereumClientHandlerGetBlockNumber funcGetBlockNumber;
     BREthereumClientHandlerGetNonce funcGetNonce;
@@ -384,18 +394,6 @@ typedef enum {
     EWM_USE_BRD,
     EWM_USE_LES
 } BREthereumType;
-
-/*!
- * @typedef BREthereumSyncMode
- *
- * @abstract When starting the EWM we can prime the synchronization with transactions and logs
- * queried from the Bread endpoint or we can use a full blockchain synchronization.  (After the
- * first full sync, partial syncs are used).
- */
-typedef enum {
-    SYNC_MODE_FULL_BLOCKCHAIN,
-    SYNC_MODE_PRIME_WITH_ENDPOINT
-} BREthereumSyncMode;
 
 /**
  * Create a EWM managing the account associated with the paperKey.  (The `paperKey` must
@@ -944,6 +942,15 @@ ethereumClientAnnounceLog (BREthereumEWM ewm,
                            const char *strBlockNumber,
                            const char *strBlockTransactionIndex,
                            const char *strBlockTimestamp);
+
+//
+// Blocks
+//
+extern BREthereumStatus
+ethereumClientAnnounceBlocks (BREthereumEWM ewm,
+                              int id,
+                              // const char *strBlockHash,
+                              BRArrayOf(uint64_t) blockNumbers);
 
 //
 // Tokens

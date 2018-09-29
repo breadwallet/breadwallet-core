@@ -293,7 +293,7 @@ ewmSignalSaveBlocks (BREthereumEWM ewm,
 
 // ==============================================================================================
 //
-// Handle SavePeers
+// Handle GetBlocks
 //
 typedef struct {
     BREvent base;
@@ -302,7 +302,7 @@ typedef struct {
 } BREthereumHandleSaveNodesEvent;
 
 static void
-ewmHandleSavePeersEventDispatcher(BREventHandler ignore,
+ewmHandleSaveNodesEventDispatcher(BREventHandler ignore,
                                    BREthereumHandleSaveNodesEvent *event) {
     ewmHandleSaveNodes(event->ewm, event->nodes);
 }
@@ -310,7 +310,7 @@ ewmHandleSavePeersEventDispatcher(BREventHandler ignore,
 BREventType handleSaveNodesEventType = {
     "EWM: Handle SaveNodes Event",
     sizeof (BREthereumHandleSaveNodesEvent),
-    (BREventDispatcher) ewmHandleSavePeersEventDispatcher
+    (BREventDispatcher) ewmHandleSaveNodesEventDispatcher
 };
 
 extern void
@@ -365,6 +365,40 @@ ewmSignalSync (BREthereumEWM ewm,
     eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
 }
 
+// ==============================================================================================
+//
+// Handle GetBlocks
+//
+typedef struct {
+    BREvent base;
+    BREthereumEWM ewm;
+    BREthereumAddress address;
+    BREthereumSyncInterestSet interests;
+    uint64_t blockStart;
+    uint64_t blockStop;
+} BREthereumHandleGetBlocksEvent;
+
+static void
+ewmHandleGetBlocksEventDispatcher(BREventHandler ignore,
+                                  BREthereumHandleGetBlocksEvent *event) {
+    ewmHandleGetBlocks(event->ewm, event->address, event->interests, event->blockStart, event->blockStop);
+}
+
+BREventType handleGetBlocksEventType = {
+    "EWM: Handle GetBlocks Event",
+    sizeof (BREthereumHandleGetBlocksEvent),
+    (BREventDispatcher) ewmHandleGetBlocksEventDispatcher
+};
+
+extern void
+ewmSignalGetBlocks (BREthereumEWM ewm,
+                    BREthereumAddress address,
+                    BREthereumSyncInterestSet interests,
+                    uint64_t blockStart,
+                    uint64_t blockStop) {
+    BREthereumHandleGetBlocksEvent event = { { NULL, &handleGetBlocksEventType }, ewm, address, interests, blockStart, blockStop };
+    eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
+}
 
 // ==============================================================================================
 //
@@ -380,6 +414,8 @@ const BREventType *handlerForMainEventTypes[] = {
     &handleLogEventType,
     &handleSaveBlocksEventType,
     &handleSaveNodesEventType,
-    &handleSyncEventType
+    &handleSyncEventType,
+    &handleGetBlocksEventType,
+
 };
 const unsigned int handlerForMainEventTypesCount = 10;

@@ -66,12 +66,11 @@ ewmUpdateWalletBalance(BREthereumEWM ewm,
             case EWM_USE_BRD: {
                 char *address = addressGetEncodedString(walletGetAddress(wallet), 0);
                 
-                ewm->client.funcGetBalance
-                (ewm->client.context,
-                 ewm,
-                 wid,
-                 address,
-                 ++ewm->requestId);
+                ewm->client.funcGetBalance (ewm->client.context,
+                                            ewm,
+                                            wid,
+                                            address,
+                                            ++ewm->requestId);
                 
                 free(address);
                 break;
@@ -125,11 +124,10 @@ ewmUpdateWalletDefaultGasPrice (BREthereumEWM ewm,
             case EWM_USE_LES:
                 // fall-through
             case EWM_USE_BRD: {
-                ewm->client.funcGetGasPrice
-                (ewm->client.context,
-                 ewm,
-                 wid,
-                 ++ewm->requestId);
+                ewm->client.funcGetGasPrice (ewm->client.context,
+                                             ewm,
+                                             wid,
+                                             ++ewm->requestId);
                 break;
             }
         }
@@ -178,15 +176,14 @@ ewmUpdateTransferGasEstimate (BREthereumEWM ewm,
                 char *amount = coerceString(amountInEther.valueInWEI, 16);
                 char *data = (char *) transactionGetData(transaction);
                 
-                ewm->client.funcEstimateGas
-                (ewm->client.context,
-                 ewm,
-                 wid,
-                 tid,
-                 to,
-                 amount,
-                 data,
-                 ++ewm->requestId);
+                ewm->client.funcEstimateGas (ewm->client.context,
+                                             ewm,
+                                             wid,
+                                             tid,
+                                             to,
+                                             amount,
+                                             data,
+                                             ++ewm->requestId);
                 
                 free(to);
                 free(amount);
@@ -222,10 +219,9 @@ ewmUpdateBlockNumber (BREthereumEWM ewm) {
             break;
 
         case EWM_USE_BRD:
-            ewm->client.funcGetBlockNumber
-            (ewm->client.context,
-             ewm,
-             ++ewm->requestId);
+            ewm->client.funcGetBlockNumber (ewm->client.context,
+                                            ewm,
+                                            ++ewm->requestId);
             break;
     }
 }
@@ -260,11 +256,10 @@ ewmUpdateNonce (BREthereumEWM ewm) {
         case EWM_USE_BRD: {
             char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
             
-            ewm->client.funcGetNonce
-            (ewm->client.context,
-             ewm,
-             address,
-             ++ewm->requestId);
+            ewm->client.funcGetNonce (ewm->client.context,
+                                      ewm,
+                                      address,
+                                      ++ewm->requestId);
             
             free (address);
             break;
@@ -309,11 +304,10 @@ ewmUpdateTransactions (BREthereumEWM ewm) {
         case EWM_USE_BRD: {
             char *address = addressGetEncodedString(accountGetPrimaryAddress(ewm->account), 0);
             
-            ewm->client.funcGetTransactions
-            (ewm->client.context,
-             ewm,
-             address,
-             ++ewm->requestId);
+            ewm->client.funcGetTransactions (ewm->client.context,
+                                             ewm,
+                                             address,
+                                             ++ewm->requestId);
             
             free (address);
             break;
@@ -406,13 +400,12 @@ ewmUpdateLogs (BREthereumEWM ewm,
             eventERC20TransferEncodeAddress (event, address);
             const char *contract =ewmGetWalletContractAddress(ewm, wid);
             
-            ewm->client.funcGetLogs
-            (ewm->client.context,
-             ewm,
-             contract,
-             encodedAddress,
-             eventGetSelector(event),
-             ++ewm->requestId);
+            ewm->client.funcGetLogs (ewm->client.context,
+                                     ewm,
+                                     contract,
+                                     encodedAddress,
+                                     eventGetSelector(event),
+                                     ++ewm->requestId);
             
             free (encodedAddress);
             free (address);
@@ -500,13 +493,12 @@ ewmWalletSubmitTransfer(BREthereumEWM ewm,
                                                                  : RLP_TYPE_TRANSACTION_UNSIGNED),
                                                                 "0x");
 
-            ewm->client.funcSubmitTransaction
-            (ewm->client.context,
-             ewm,
-             ewmLookupWalletId(ewm, wallet),
-             ewmLookupTransferId(ewm, transfer),
-             rawTransaction,
-             ++ewm->requestId);
+            ewm->client.funcSubmitTransaction (ewm->client.context,
+                                               ewm,
+                                               ewmLookupWalletId(ewm, wallet),
+                                               ewmLookupTransferId(ewm, transfer),
+                                               rawTransaction,
+                                               ++ewm->requestId);
 
             free(rawTransaction);
             break;
@@ -589,13 +581,12 @@ ewmClientHandleBlockEvent(BREthereumEWM ewm,
                           BREthereumBlockEvent event,
                           BREthereumStatus status,
                           const char *errorDescription) {
-    ewm->client.funcBlockEvent
-    (ewm->client.context,
-     ewm,
-     bid,
-     event,
-     status,
-     errorDescription);
+    ewm->client.funcBlockEvent (ewm->client.context,
+                                ewm,
+                                bid,
+                                event,
+                                status,
+                                errorDescription);
 }
 
 extern void
@@ -636,14 +627,13 @@ ewmClientHandleTransferEvent (BREthereumEWM ewm,
             ewm->client.funcChangeLog (ewm->client.context, ewm, type, persistData);
     }
 
-    ewm->client.funcTransferEvent
-    (ewm->client.context,
-     ewm,
-     wid,
-     tid,
-     event,
-     status,
-     errorDescription);
+    ewm->client.funcTransferEvent (ewm->client.context,
+                                   ewm,
+                                   wid,
+                                   tid,
+                                   event,
+                                   status,
+                                   errorDescription);
 }
 
 extern void
@@ -653,14 +643,13 @@ ewmClientHandlePeerEvent(BREthereumEWM ewm,
                          BREthereumPeerEvent event,
                          BREthereumStatus status,
                          const char *errorDescription) {
-    ewm->client.funcPeerEvent
-    (ewm->client.context,
-     ewm,
-     // event->wid,
-     // event->tid,
-     event,
-     status,
-     errorDescription);
+    ewm->client.funcPeerEvent (ewm->client.context,
+                               ewm,
+                               // event->wid,
+                               // event->tid,
+                               event,
+                               status,
+                               errorDescription);
 }
 
 extern void
@@ -670,14 +659,13 @@ ewmClientHandleEWMEvent(BREthereumEWM ewm,
                         BREthereumEWMEvent event,
                         BREthereumStatus status,
                         const char *errorDescription) {
-    ewm->client.funcEWMEvent
-    (ewm->client.context,
-     ewm,
-     //event->wid,
-     // event->tid,
-     event,
-     status,
-     errorDescription);
+    ewm->client.funcEWMEvent (ewm->client.context,
+                              ewm,
+                              //event->wid,
+                              // event->tid,
+                              event,
+                              status,
+                              errorDescription);
 }
 
 

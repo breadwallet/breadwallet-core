@@ -170,7 +170,6 @@ createEWM (BREthereumNetwork network,
 
     ewm->state = LIGHT_NODE_CREATED;
     ewm->type = type;
-    ewm->syncMode = syncMode;
     ewm->network = network;
     ewm->account = account;
     ewm->bcs = NULL;
@@ -236,12 +235,14 @@ createEWM (BREthereumNetwork network,
                 (BREthereumBCSCallbackLog) ewmSignalLog,
                 (BREthereumBCSCallbackSaveBlocks) ewmSignalSaveBlocks,
                 (BREthereumBCSCallbackSavePeers) ewmSignalSaveNodes,
-                (BREthereumBCSCallbackSync) ewmSignalSync
+                (BREthereumBCSCallbackSync) ewmSignalSync,
+                (BREthereumBCSCallbackGetBlocks) ewmSignalGetBlocks
             };
 
             ewm->bcs = bcsCreate (network,
                                   accountGetPrimaryAddress (account),
                                   listener,
+                                  syncMode,
                                   nodes,
                                   blocks,
                                   transactions,
@@ -1000,7 +1001,8 @@ ewmHandleSaveBlocks (BREthereumEWM ewm,
     }
 
     // TODO: ewmSignalSaveBlocks(ewm, blocks)
-    ewm->client.funcSaveBlocks (ewm->client.context, ewm,
+    ewm->client.funcSaveBlocks (ewm->client.context,
+                                ewm,
                                 blocksToSave);
 
     array_free (blocks);
@@ -1025,7 +1027,8 @@ ewmHandleSaveNodes (BREthereumEWM ewm,
     }
 
     // TODO: ewmSignalSavenodes(ewm, nodes);
-    ewm->client.funcSaveNodes (ewm->client.context, ewm,
+    ewm->client.funcSaveNodes (ewm->client.context,
+                               ewm,
                                nodesToSave);
 
     eth_log("EWM", "Save nodes: %zu", nodesCount);
@@ -1039,16 +1042,36 @@ ewmHandleSync (BREthereumEWM ewm,
                uint64_t blockNumberStart,
                uint64_t blockNumberCurrent,
                uint64_t blockNumberStop) {
+    assert (EWM_USE_LES == ewm->type);
+
     BREthereumEWMEvent event = (blockNumberCurrent == blockNumberStart
                                 ? EWM_EVENT_SYNC_STARTED
                                 : (blockNumberCurrent == blockNumberStop
                                    ? EWM_EVENT_SYNC_STOPPED
                                    : EWM_EVENT_SYNC_CONTINUES));
     double syncCompletePercent = 100.0 * (blockNumberCurrent - blockNumberStart) / (blockNumberStop - blockNumberStart);
-
+    
     ewmClientSignalEWMEvent (ewm, event, SUCCESS, NULL);
 
     eth_log ("EWM", "Sync: %d, %.2f%%", type, syncCompletePercent);
+}
+
+extern void
+ewmHandleGetBlocks (BREthereumEWM ewm,
+                    BREthereumAddress address,
+                    BREthereumSyncInterestSet interests,
+                    uint64_t blockStart,
+                    uint64_t blockStop) {
+
+    char *strAddress = addressGetEncodedString(address, 0);
+
+    ewm->client.funcGetBlocks (ewm->client.context,
+                               ewm,
+                               strAddress,
+                               interests,
+                               blockStart,
+                               blockStop,
+                               ++ewm->requestId);
 }
 
 //

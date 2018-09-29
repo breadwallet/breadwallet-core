@@ -70,11 +70,6 @@ struct BREthereumEWMRecord {
     BREthereumType type;
 
     /**
-     * The SyncMode of this EWM
-     */
-    BREthereumSyncMode syncMode;
-
-    /**
      * The network
      */
     BREthereumNetwork network;
@@ -310,6 +305,22 @@ ewmSignalSync (BREthereumEWM ewm,
                uint64_t blockNumberStart,
                uint64_t blockNumberCurrent,
                uint64_t blockNumberStop);
+
+//
+// Signal/Handle Get Blocks (BCS Callback)
+//
+extern void
+ewmHandleGetBlocks (BREthereumEWM ewm,
+                    BREthereumAddress address,
+                    BREthereumSyncInterestSet interests,
+                    uint64_t blockStart,
+                    uint64_t blockStop);
+extern void
+ewmSignalGetBlocks (BREthereumEWM ewm,
+                    BREthereumAddress address,
+                    BREthereumSyncInterestSet interests,
+                    uint64_t blockStart,
+                    uint64_t blockStop);
 
 ///
 /// MARK: - Handler For Main

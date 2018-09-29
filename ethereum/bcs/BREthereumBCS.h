@@ -29,9 +29,6 @@
 #include "../base/BREthereumBase.h"
 #include "../les/BREthereumLES.h"
 
-#define BRSetOf(type)     BRSet*
-#define BRArrayOf(type)   type*
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -125,6 +122,17 @@ typedef void
                               uint64_t blockNumberCurrent,
                               uint64_t blockNumberStop);
 
+/**
+ * Get (Interesting) Blocks.  Depending on the sync-mode we may ask the BRD endpoint for blocks
+ * that contain transactions or logs of interest.
+ */
+typedef void
+(*BREthereumBCSCallbackGetBlocks) (BREthereumBCSCallbackContext context,
+                                   BREthereumAddress address,
+                                   BREthereumSyncInterestSet interests,
+                                   uint64_t blockStart,
+                                   uint64_t blockStop);
+
 typedef struct {
     BREthereumBCSCallbackContext context;
     BREthereumBCSCallbackBlockchain blockChainCallback;
@@ -134,8 +142,8 @@ typedef struct {
     BREthereumBCSCallbackSaveBlocks saveBlocksCallback;
     BREthereumBCSCallbackSavePeers savePeersCallback;
     BREthereumBCSCallbackSync syncCallback;
+    BREthereumBCSCallbackGetBlocks getBlocksCallback;
 } BREthereumBCSListener;
-
 
 /**
  * Create BCS (a 'BlockChain Slice`) providing a view of the Ethereum blockchain for `network`
@@ -149,6 +157,7 @@ extern BREthereumBCS
 bcsCreate (BREthereumNetwork network,
            BREthereumAddress address,
            BREthereumBCSListener listener,
+           BREthereumSyncMode syncMode,
            BRArrayOf(BREthereumNodeConfig) peers,
            BRArrayOf(BREthereumBlock) blocks,
            BRArrayOf(BREthereumTransaction) transactions,
@@ -210,6 +219,12 @@ bcsSendLogRequest (BREthereumBCS bcs,
                    BREthereumHash transactionHash,
                    uint64_t blockNumber,
                    uint64_t blockTransactionIndex);
+
+extern void
+bcsReportInterestingBlocks (BREthereumBCS bcs,
+                            // interest
+                            // request id
+                            BRArrayOf(uint64_t) blockNumbers);
 
 #ifdef __cplusplus
 }

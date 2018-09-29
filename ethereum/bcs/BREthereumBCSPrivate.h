@@ -54,6 +54,11 @@ struct BREthereumBCSStruct {
     BREthereumAddress address;
 
     /**
+     * The sync mode
+     */
+    BREthereumSyncMode syncMode;
+    
+    /**
      * A BloomFilter with address for application to transactions
      */
     BREthereumBloomFilter filterForAddressOnTransactions;

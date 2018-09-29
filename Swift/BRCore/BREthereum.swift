@@ -608,6 +608,13 @@ public protocol EthereumClient : class {
                   event: String,
                   rid: Int32) -> Void
 
+    func getBlocks (ewm: EthereumWalletManager,
+                    address: String,
+                    interests: UInt32,
+                    blockStart: UInt64,
+                    blockStop: UInt64,
+                    rid: Int32) -> Void
+
     func getTokens (ewm: EthereumWalletManager,
                     rid: Int32) -> Void
 
@@ -853,6 +860,12 @@ public class EthereumWalletManager {
         cTopics.forEach { free (UnsafeMutablePointer(mutating: $0)) }
     }
 
+    public func announceBlocks (rid: Int32,
+                                blockNumbers: [UInt64]) {
+        // TODO: blocks must be BRArrayOf(uint64_t) - change to add `count`
+        ethereumClientAnnounceBlocks(core, rid, UnsafeMutablePointer<UInt64>(mutating: blockNumbers))
+    }
+
     public func announceToken (rid: Int32,
                                address: String,
                                symbol: String,
@@ -938,6 +951,17 @@ public class EthereumWalletManager {
                                     address: asUTF8String(address!),
                                     event: asUTF8String(event!),
                                     rid: rid)
+                }},
+
+            funcGetBlocks: { (coreClient, coreEWM, address, interests, blockStart, blockStop, rid) in
+                if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }),
+                    let ewm = EthereumWalletManager.lookup(core: coreEWM) {
+                    client.getBlocks (ewm: ewm,
+                                      address: asUTF8String (address!),
+                                      interests: interests,
+                                      blockStart: blockStart,
+                                      blockStop: blockStop,
+                                      rid: rid)
                 }},
 
             funcGetTokens: { (coreClient, coreEWM, rid) in
@@ -1221,6 +1245,10 @@ class AnyEthereumClient : EthereumClient {
 
     func getLogs(ewm: EthereumWalletManager, address: String, event: String, rid: Int32) {
         base.getLogs(ewm: ewm, address: address, event: event, rid: rid)
+    }
+
+    func getBlocks (ewm: EthereumWalletManager, address: String, interests: UInt32, blockStart: UInt64, blockStop: UInt64,  rid: Int32) {
+        base.getBlocks (ewm: ewm, address: address, interests: interests, blockStart: blockStart, blockStop: blockStop, rid: rid)
     }
 
     func getTokens (ewm: EthereumWalletManager, rid: Int32) {

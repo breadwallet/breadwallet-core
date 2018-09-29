@@ -24,6 +24,7 @@
 //  THE SOFTWARE.
 
 #include <stdlib.h>
+#include <stdarg.h>
 #include "BRArray.h"
 #include "BRSet.h"
 #include "BREthereumBCSPrivate.h"
@@ -74,6 +75,21 @@ bcsSyncReportProgressCallback (BREthereumBCS bcs,
                                uint64_t blockNumberBeg,
                                uint64_t blockNumberNow,
                                uint64_t blockNumberEnd);
+
+static inline BREthereumSyncInterestSet
+syncInterestsCreate (int count, /* BREthereumSyncInterest*/ ...) {
+    BREthereumSyncInterestSet interests = 0;;
+
+    va_list args;
+    va_start (args, count);
+    for (int i = 0; i < count; i++)
+        interests |= va_arg (args, BREthereumSyncInterest);
+    va_end(args);
+
+    return interests;
+}
+
+
 /**
  */
 static void
@@ -165,6 +181,7 @@ extern BREthereumBCS
 bcsCreate (BREthereumNetwork network,
            BREthereumAddress address,
            BREthereumBCSListener listener,
+           BREthereumSyncMode syncMode,
            BRArrayOf(BREthereumNodeConfig) peers,
            BRArrayOf(BREthereumBlock) blocks,
            BRArrayOf(BREthereumTransaction) transactions,
@@ -176,6 +193,7 @@ bcsCreate (BREthereumNetwork network,
     bcs->network = network;
     bcs->address = address;
     bcs->accountState = accountStateCreateEmpty ();
+    bcs->syncMode = syncMode;
     bcs->filterForAddressOnTransactions = bloomFilterCreateAddress(bcs->address);
     bcs->filterForAddressOnLogs = logTopicGetBloomFilterAddress(bcs->address);
 
@@ -255,12 +273,14 @@ bcsCreate (BREthereumNetwork network,
                           blockGetHash(bcs->chain),
                           peers);
 
-    bcs->sync = bcsSyncCreate ((BREthereumBCSSyncContext) bcs,
-                               (BREthereumBCSSyncReportBlocks) bcsSyncReportBlocksCallback,
-                               (BREthereumBCSSyncReportProgress) bcsSyncReportProgressCallback,
-                               bcs->address,
-                               bcs->les,
-                               bcs->handler);
+    bcs->sync = NULL;
+    if (SYNC_MODE_FULL_BLOCKCHAIN == bcs->syncMode)
+        bcs->sync = bcsSyncCreate ((BREthereumBCSSyncContext) bcs,
+                                   (BREthereumBCSSyncReportBlocks) bcsSyncReportBlocksCallback,
+                                   (BREthereumBCSSyncReportProgress) bcsSyncReportProgressCallback,
+                                   bcs->address,
+                                   bcs->les,
+                                   bcs->handler);
 
     return bcs;
 }
@@ -316,15 +336,68 @@ bcsDestroy (BREthereumBCS bcs) {
     free (bcs);
 }
 
+static void
+bcsSyncRange (BREthereumBCS bcs,
+              uint64_t blockNumberStart,
+              uint64_t blockNumberStop) {
+    switch (bcs->syncMode) {
+        case SYNC_MODE_FULL_BLOCKCHAIN: {
+            //
+            // For a FULL_BLOCKCHAIN sync we run our 'N-Ary Search on Account Changes' algorithm
+            // which has a (current) weakness on 'ERC20 transfers w/ address as target'.  So, we
+            // exploit the BRD backend, view the `getBlocksCallback()`, to get interesting blocks.
+            //
+            assert (NULL != bcs->sync);
+            if (ETHEREUM_BOOLEAN_IS_FALSE (bcsSyncIsActive(bcs->sync))) {
+                BREthereumSyncInterestSet interests = syncInterestsCreate(1, CLIENT_GET_BLOCKS_LOGS_AS_TARGET);
+                bcs->listener.getBlocksCallback (bcs->listener.context,
+                                                 bcs->address,
+                                                 interests,
+                                                 blockNumberStart,
+                                                 blockNumberStop);
+
+                // Run the 'N-Ary Search' algorithm.
+                bcsSyncStart(bcs->sync, blockNumberStart, blockNumberStop);
+            }
+            break;
+        }
+
+        case SYNC_MODE_PRIME_WITH_ENDPOINT: {
+            //
+            // For a PRIME_WITH_ENDPOINT sync we rely 100% on the BRD backend to provide any and
+            // all blocks of interest - which is any block involving `address` in a transaction
+            // or a log.
+            //
+            BREthereumSyncInterestSet interests = syncInterestsCreate (4,
+                                                                       CLIENT_GET_BLOCKS_LOGS_AS_SOURCE,
+                                                                       CLIENT_GET_BLOCKS_LOGS_AS_TARGET,
+                                                                       CLIENT_GET_BLOCKS_TRANSACTIONS_AS_SOURCE,
+                                                                       CLIENT_GET_BLOCKS_TRANSACTIONS_AS_TARGET);
+            bcs->listener.getBlocksCallback (bcs->listener.context,
+                                             bcs->address,
+                                             interests,
+                                             blockNumberStart,
+                                             blockNumberStop);
+            break;
+        }
+    }
+}
+
 extern void
 bcsSync (BREthereumBCS bcs,
          uint64_t blockNumber) {
-    bcsSyncStart (bcs->sync, blockGetNumber(bcs->chain), blockNumber);
+    bcsSyncRange (bcs, blockGetNumber(bcs->chain), blockNumber);
 }
 
 extern BREthereumBoolean
 bcsSyncInProgress (BREthereumBCS bcs) {
-    return bcsSyncIsActive (bcs->sync);
+    switch (bcs->syncMode) {
+        case SYNC_MODE_FULL_BLOCKCHAIN:
+            assert (NULL != bcs->sync);
+            return bcsSyncIsActive (bcs->sync);
+        case SYNC_MODE_PRIME_WITH_ENDPOINT:
+            return ETHEREUM_BOOLEAN_FALSE;  // Nope
+    }
 }
 
 extern void
@@ -356,6 +429,19 @@ bcsSendLogRequest (BREthereumBCS bcs,
 }
 
 extern void
+bcsReportInterestingBlocks (BREthereumBCS bcs,
+                            // interest
+                            // request id
+                            BRArrayOf(uint64_t) blockNumbers) {
+    eth_log ("BCS", "Report Interesting Blocks: %zu", array_count(blockNumbers));
+    for (size_t index = 0; index < array_count(blockNumbers); index++)
+        lesProvideBlockHeaders (bcs->les,
+                                (BREthereumLESProvisionContext) bcs,
+                                (BREthereumLESProvisionCallback) bcsSignalProvision,
+                                blockNumbers[index], 1, 0, ETHEREUM_BOOLEAN_FALSE);
+}
+
+extern void
 bcsHandleSubmitTransaction (BREthereumBCS bcs,
                             BREthereumTransaction transaction) {
     bcsSignalTransaction(bcs, transaction);
@@ -370,7 +456,7 @@ extern void
 bcsHandleStatus (BREthereumBCS bcs,
                  BREthereumHash headHash,
                  uint64_t headNumber) {
-    bcsSyncStart(bcs->sync, blockGetNumber(bcs->chain), headNumber);
+    bcsSyncRange (bcs, blockGetNumber(bcs->chain), headNumber);
 }
 
 /*!
@@ -818,9 +904,9 @@ bcsExtendChainIfPossible (BREthereumBCS bcs,
             // sync to recover (might not actually perform a sync - just attempt).
             uint64_t orphanBlockNumberMinumum = bcsGetOrphanBlockNumberMinimum(bcs);
             if (UINT64_MAX != orphanBlockNumberMinumum)
-                bcsSyncStart(bcs->sync,
-                                blockGetNumber(bcs->chain),
-                                orphanBlockNumberMinumum);
+                bcsSyncRange (bcs,
+                              blockGetNumber(bcs->chain),
+                              orphanBlockNumberMinumum);
 
             return;
         }

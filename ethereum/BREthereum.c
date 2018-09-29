@@ -836,6 +836,24 @@ ethereumClientAnnounceLog (BREthereumEWM ewm,
 //              }
 
 //
+// Blocks
+//
+extern BREthereumStatus
+ethereumClientAnnounceBlocks (BREthereumEWM ewm,
+                              int id,
+                              // const char *strBlockHash,
+                              BRArrayOf(uint64_t) blockNumbers) {  // BRArrayOf(const char *) strBlockNumbers ??
+    assert (EWM_USE_LES == ewm->type);
+    assert (NULL != ewm->bcs);
+
+    // into bcs...
+    bcsReportInterestingBlocks (ewm->bcs, blockNumbers);
+
+    return SUCCESS;
+}
+
+
+//
 // Tokens
 //
 extern void
