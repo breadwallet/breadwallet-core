@@ -842,12 +842,16 @@ extern BREthereumStatus
 ethereumClientAnnounceBlocks (BREthereumEWM ewm,
                               int id,
                               // const char *strBlockHash,
-                              BRArrayOf(uint64_t) blockNumbers) {  // BRArrayOf(const char *) strBlockNumbers ??
+                              int blockNumbersCount,
+                              uint64_t *blockNumbers) {  // BRArrayOf(const char *) strBlockNumbers ??
     assert (EWM_USE_LES == ewm->type);
     assert (NULL != ewm->bcs);
 
     // into bcs...
-    bcsReportInterestingBlocks (ewm->bcs, blockNumbers);
+    BRArrayOf(uint64_t) numbers;
+    array_new (numbers, blockNumbersCount);
+    array_add_array(numbers, blockNumbers, blockNumbersCount);
+    bcsReportInterestingBlocks (ewm->bcs, numbers);
 
     return SUCCESS;
 }

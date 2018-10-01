@@ -28,11 +28,12 @@ class CoreDemoEthereumClient : EthereumClient {
     //
     // Constructors
     //
-    init(network: EthereumNetwork, type: EthereumType, paperKey: String) {
+    init(network: EthereumNetwork, type: EthereumType, mode: EthereumSyncMode, paperKey: String) {
         self.network = network
         self.node = EthereumWalletManager (client: self,
                                            network: network,
                                            type: type,
+                                           mode: mode,
                                            paperKey: paperKey)
     }
 
@@ -100,7 +101,8 @@ class CoreDemoEthereumClient : EthereumClient {
 
     func getBlocks(ewm: EthereumWalletManager, address: String, interests: UInt32, blockStart: UInt64, blockStop: UInt64, rid: Int32) {
         var blockNumbers : [UInt64] = []
-        if "0xb302B06FDB1348915599D21BD54A06832637E5E8" == address {
+        switch address.lowercased() {
+        case "0xb302B06FDB1348915599D21BD54A06832637E5E8".lowercased():
             if 0 != interests & UInt32 (1 << 3) /* CLIENT_GET_BLOCKS_LOGS_AS_TARGET */ {
                 blockNumbers += [4847049,
                                  4847152,
@@ -132,12 +134,36 @@ class CoreDemoEthereumClient : EthereumClient {
                                  5000000,
                                  5705175]
             }
-        }
-        else {
+
+        case "0xa9de3dbD7d561e67527bC1Ecb025c59D53b9F7Ef".lowercased():
+            if 0 != interests & UInt32 (1 << 3) /* CLIENT_GET_BLOCKS_LOGS_AS_TARGET */ {
+                blockNumbers += [5506607]
+            }
+
+            if 0 != interests & UInt32 (1 << 2) /* CLIENT_GET_BLOCKS_LOGS_AS_SOURCE */ {
+                blockNumbers += [5506764,
+                                 5509990,
+                                 5511681]
+            }
+
+            if 0 != interests & UInt32 (1 << 1) /* CLIENT_GET_BLOCKS_TRANSACTIONS_AS_TARGET */ {
+                blockNumbers += [5506602]
+            }
+
+            if 0 != interests & UInt32 (1 << 0) /* CLIENT_GET_BLOCKS_TRANSACTIONS_AS_SOURCE */ {
+                blockNumbers += [5506764,
+                                 5509990,
+                                 5511681,
+                                 5539808]
+            }
+
+        default:
             blockNumbers.append(contentsOf: [blockStart,
                                              (blockStart + blockStop) / 2,
                                              blockStop])
         }
+
+        blockNumbers = blockNumbers.filter { blockStart < $0 && $0 < blockStop }
         ewm.announceBlocks(rid: rid, blockNumbers: blockNumbers)
     }
 

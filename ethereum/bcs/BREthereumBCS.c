@@ -50,6 +50,9 @@
 
 #define BCS_REORG_LIMIT    (10)
 
+#pragma clang diagnostic ignored "-Wunused-function"
+static inline uint64_t maximum (uint64_t a, uint64_t b) { return a > b ? a : b; }
+
 /* Forward Declarations */
 static void
 bcsPeriodicDispatcher (BREventHandler handler,
@@ -273,14 +276,12 @@ bcsCreate (BREthereumNetwork network,
                           blockGetHash(bcs->chain),
                           peers);
 
-    bcs->sync = NULL;
-    if (SYNC_MODE_FULL_BLOCKCHAIN == bcs->syncMode)
-        bcs->sync = bcsSyncCreate ((BREthereumBCSSyncContext) bcs,
-                                   (BREthereumBCSSyncReportBlocks) bcsSyncReportBlocksCallback,
-                                   (BREthereumBCSSyncReportProgress) bcsSyncReportProgressCallback,
-                                   bcs->address,
-                                   bcs->les,
-                                   bcs->handler);
+    bcs->sync = bcsSyncCreate ((BREthereumBCSSyncContext) bcs,
+                               (BREthereumBCSSyncReportBlocks) bcsSyncReportBlocksCallback,
+                               (BREthereumBCSSyncReportProgress) bcsSyncReportProgressCallback,
+                               bcs->address,
+                               bcs->les,
+                               bcs->handler);
 
     return bcs;
 }
@@ -340,47 +341,50 @@ static void
 bcsSyncRange (BREthereumBCS bcs,
               uint64_t blockNumberStart,
               uint64_t blockNumberStop) {
+    // If we are in a sync already, skip out.
+    if (ETHEREUM_BOOLEAN_IS_TRUE (bcsSyncIsActive(bcs->sync))) return;
+
+    // If we don't have a valid range then skip out as well.
+    if (blockNumberStop <= blockNumberStart) return;
+
+    BREthereumSyncInterestSet interests;
+    uint64_t blockNumberStartAdjusted;
+
     switch (bcs->syncMode) {
-        case SYNC_MODE_FULL_BLOCKCHAIN: {
+        case SYNC_MODE_FULL_BLOCKCHAIN:
             //
             // For a FULL_BLOCKCHAIN sync we run our 'N-Ary Search on Account Changes' algorithm
             // which has a (current) weakness on 'ERC20 transfers w/ address as target'.  So, we
             // exploit the BRD backend, view the `getBlocksCallback()`, to get interesting blocks.
             //
-            assert (NULL != bcs->sync);
-            if (ETHEREUM_BOOLEAN_IS_FALSE (bcsSyncIsActive(bcs->sync))) {
-                BREthereumSyncInterestSet interests = syncInterestsCreate(1, CLIENT_GET_BLOCKS_LOGS_AS_TARGET);
-                bcs->listener.getBlocksCallback (bcs->listener.context,
-                                                 bcs->address,
-                                                 interests,
-                                                 blockNumberStart,
-                                                 blockNumberStop);
-
-                // Run the 'N-Ary Search' algorithm.
-                bcsSyncStart(bcs->sync, blockNumberStart, blockNumberStop);
-            }
+            interests = syncInterestsCreate(1, CLIENT_GET_BLOCKS_LOGS_AS_TARGET);
+            blockNumberStartAdjusted = blockNumberStart;
             break;
-        }
 
-        case SYNC_MODE_PRIME_WITH_ENDPOINT: {
+        case SYNC_MODE_PRIME_WITH_ENDPOINT:
             //
             // For a PRIME_WITH_ENDPOINT sync we rely 100% on the BRD backend to provide any and
             // all blocks of interest - which is any block involving `address` in a transaction
-            // or a log.
+            // or a log.  But, we do need recent blocks anyway - not for transaction and logs -
+            // but for block chain validity.
             //
-            BREthereumSyncInterestSet interests = syncInterestsCreate (4,
-                                                                       CLIENT_GET_BLOCKS_LOGS_AS_SOURCE,
-                                                                       CLIENT_GET_BLOCKS_LOGS_AS_TARGET,
-                                                                       CLIENT_GET_BLOCKS_TRANSACTIONS_AS_SOURCE,
-                                                                       CLIENT_GET_BLOCKS_TRANSACTIONS_AS_TARGET);
-            bcs->listener.getBlocksCallback (bcs->listener.context,
-                                             bcs->address,
-                                             interests,
-                                             blockNumberStart,
-                                             blockNumberStop);
+            interests = syncInterestsCreate (4,
+                                             CLIENT_GET_BLOCKS_LOGS_AS_SOURCE,
+                                             CLIENT_GET_BLOCKS_LOGS_AS_TARGET,
+                                             CLIENT_GET_BLOCKS_TRANSACTIONS_AS_SOURCE,
+                                             CLIENT_GET_BLOCKS_TRANSACTIONS_AS_TARGET);
+            blockNumberStartAdjusted = maximum (blockNumberStart, blockNumberStop - SYNC_LINEAR_LIMIT + 1);
             break;
-        }
     }
+
+    bcs->listener.getBlocksCallback (bcs->listener.context,
+                                     bcs->address,
+                                     interests,
+                                     blockNumberStart,
+                                     blockNumberStop);
+
+    // Run the 'Search' algorithm -
+    bcsSyncStart (bcs->sync, blockNumberStartAdjusted, blockNumberStop);
 }
 
 extern void
@@ -391,13 +395,7 @@ bcsSync (BREthereumBCS bcs,
 
 extern BREthereumBoolean
 bcsSyncInProgress (BREthereumBCS bcs) {
-    switch (bcs->syncMode) {
-        case SYNC_MODE_FULL_BLOCKCHAIN:
-            assert (NULL != bcs->sync);
-            return bcsSyncIsActive (bcs->sync);
-        case SYNC_MODE_PRIME_WITH_ENDPOINT:
-            return ETHEREUM_BOOLEAN_FALSE;  // Nope
-    }
+    return bcsSyncIsActive (bcs->sync);
 }
 
 extern void
@@ -904,6 +902,9 @@ bcsExtendChainIfPossible (BREthereumBCS bcs,
             // sync to recover (might not actually perform a sync - just attempt).
             uint64_t orphanBlockNumberMinumum = bcsGetOrphanBlockNumberMinimum(bcs);
             if (UINT64_MAX != orphanBlockNumberMinumum)
+                // Note: This can be an invalid range.  Say we have a old orphan that hasn't
+                // been purged yet.. might be that orphanBlockNumberMinumum is in the past.
+                // In `bcsSyncRange()` we'll check for a valid range.
                 bcsSyncRange (bcs,
                               blockGetNumber(bcs->chain),
                               orphanBlockNumberMinumum);

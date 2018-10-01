@@ -479,8 +479,30 @@ public enum EthereumType {
 
     var core : BREthereumType {
         switch (self) {
-        case .brd: return EWM_USE_BRD;
-        case .les: return EWM_USE_LES;
+        case .brd: return EWM_USE_BRD
+        case .les: return EWM_USE_LES
+        }
+    }
+}
+
+public enum EthereumSyncMode {
+    case blockchain
+    case assisted
+
+
+    init (_ mode: BREthereumSyncMode) {
+        switch mode {
+        case SYNC_MODE_FULL_BLOCKCHAIN: self = .blockchain
+        case SYNC_MODE_PRIME_WITH_ENDPOINT: self = .assisted
+        default:
+            self = .blockchain
+        }
+    }
+
+    var core : BREthereumSyncMode {
+        switch self {
+        case .blockchain: return SYNC_MODE_FULL_BLOCKCHAIN
+        case .assisted: return SYNC_MODE_PRIME_WITH_ENDPOINT
         }
     }
 }
@@ -700,11 +722,12 @@ public class EthereumWalletManager {
     public convenience init (client : EthereumClient,
                              network : EthereumNetwork,
                              type: EthereumType,
+                             mode: EthereumSyncMode,
                              paperKey : String) {
         let anyClient = AnyEthereumClient (base: client)
         self.init (core: ethereumCreate (network.core, paperKey,
                                          type.core,
-                                         SYNC_MODE_FULL_BLOCKCHAIN,
+                                         mode.core,
                                          EthereumWalletManager.createCoreClient(client: client),
                                          nil,
                                          nil,
@@ -718,11 +741,12 @@ public class EthereumWalletManager {
     public convenience init (client : EthereumClient,
                              network : EthereumNetwork,
                              type: EthereumType,
+                             mode: EthereumSyncMode,
                              publicKey : BRKey) {
         let anyClient = AnyEthereumClient (base: client)
         self.init (core: ethereumCreateWithPublicKey (network.core, publicKey,
                                                       type.core,
-                                                      SYNC_MODE_FULL_BLOCKCHAIN,
+                                                      mode.core,
                                                       EthereumWalletManager.createCoreClient(client: client),
                                                       nil,
                                                       nil,
@@ -863,7 +887,9 @@ public class EthereumWalletManager {
     public func announceBlocks (rid: Int32,
                                 blockNumbers: [UInt64]) {
         // TODO: blocks must be BRArrayOf(uint64_t) - change to add `count`
-        ethereumClientAnnounceBlocks(core, rid, UnsafeMutablePointer<UInt64>(mutating: blockNumbers))
+        ethereumClientAnnounceBlocks (core, rid,
+                                      Int32(blockNumbers.count),
+                                      UnsafeMutablePointer<UInt64>(mutating: blockNumbers))
     }
 
     public func announceToken (rid: Int32,

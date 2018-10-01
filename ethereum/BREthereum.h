@@ -950,7 +950,8 @@ extern BREthereumStatus
 ethereumClientAnnounceBlocks (BREthereumEWM ewm,
                               int id,
                               // const char *strBlockHash,
-                              BRArrayOf(uint64_t) blockNumbers);
+                              int blockNumbersCount,
+                              uint64_t *blockNumbers);
 
 //
 // Tokens
