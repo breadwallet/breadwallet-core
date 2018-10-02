@@ -82,6 +82,7 @@ itemReleaseMemory (BRRlpItem item) {
  *
  */
 struct BRRlpCoderRecord {
+    int failed;
     BRRlpItem free;
     BRRlpItem busy;
     pthread_mutex_t lock;
@@ -90,6 +91,7 @@ struct BRRlpCoderRecord {
 extern BRRlpCoder
 rlpCoderCreate (void) {
     BRRlpCoder coder = malloc (sizeof (struct BRRlpCoderRecord));
+    coder->failed = 0;
     coder->free = NULL;
     coder->busy = NULL;
 
@@ -204,6 +206,21 @@ itemFillList (BRRlpCoder coder, BRRlpItem item, BRRlpItem *items, size_t itemsCo
     for (int i = 0; i < itemsCount; i++)
         item->items[i] = items[i];
     return item;
+}
+
+extern void
+rlpCoderSetFailed (BRRlpCoder coder) {
+    coder->failed = 1;
+}
+
+extern void
+rlpCoderClrFailed (BRRlpCoder coder) {
+    coder->failed = 0;
+}
+
+extern int
+rlpCoderHasFailed (BRRlpCoder coder) {
+    return coder->failed;
 }
 
 #if 0
