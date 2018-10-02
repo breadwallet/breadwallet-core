@@ -105,24 +105,25 @@ messagePIPStatusDecode (BRRlpItem item,
 extern BREthereumPIPMessageAnnounce
 messagePIPAnnounceDecode (BRRlpItem item,
                           BREthereumMessageCoder coder) {
-    BREthereumPIPMessageAnnounce message;
+    BREthereumPIPMessageAnnounce message = {};
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
-    assert (5 == itemsCount || 4 == itemsCount);
+    if (5 != itemsCount && 4 != itemsCount) rlpCoderSetFailed (coder.rlp);
+    else {
+        message.headHash = hashRlpDecode (items[0], coder.rlp);
+        message.headNumber = rlpDecodeUInt64 (coder.rlp, items[1], 1);
+        message.headTotalDifficulty = rlpDecodeUInt256 (coder.rlp, items[2], 1);
+        message.reorgDepth = rlpDecodeUInt64 (coder.rlp, items[3], 1);
 
-    message.headHash = hashRlpDecode (items[0], coder.rlp);
-    message.headNumber = rlpDecodeUInt64 (coder.rlp, items[1], 1);
-    message.headTotalDifficulty = rlpDecodeUInt256 (coder.rlp, items[2], 1);
-    message.reorgDepth = rlpDecodeUInt64 (coder.rlp, items[3], 1);
-
-    // TODO: Decode Keys
-    if (5 == itemsCount) {
-        size_t pairCount = 0;
-        const BRRlpItem *pairItems = rlpDecodeList (coder.rlp, items[4], &pairCount);
-        array_new(message.pairs, pairCount);
-        for (size_t index = 0; index < pairCount; index++)
-            ;
+        // TODO: Decode Keys
+        if (5 == itemsCount) {
+            size_t pairCount = 0;
+            const BRRlpItem *pairItems = rlpDecodeList (coder.rlp, items[4], &pairCount);
+            array_new(message.pairs, pairCount);
+            for (size_t index = 0; index < pairCount; index++)
+                ;
+        }
     }
 
     return message;
@@ -221,7 +222,7 @@ messagePIPRequestOutputDecode (BRRlpItem item,
                                BREthereumMessageCoder coder) {
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
-    assert (2 == itemsCount);
+    if (2 != itemsCount) { rlpCoderSetFailed (coder.rlp); return (BREthereumPIPRequestOutput) {}; }
 
     BREthereumPIPRequestType type = (BREthereumPIPRequestType) rlpDecodeUInt64 (coder.rlp, items[0], 1);
     switch (type) {
@@ -237,7 +238,7 @@ messagePIPRequestOutputDecode (BRRlpItem item,
         case PIP_REQUEST_TRANSACTION_INDEX: {
             size_t outputsCount;
             const BRRlpItem *outputItems = rlpDecodeList (coder.rlp, items[1], &outputsCount);
-            assert (3 == outputsCount);
+            if (3 != outputsCount) { rlpCoderSetFailed (coder.rlp); return (BREthereumPIPRequestOutput) {}; }
 
             return (BREthereumPIPRequestOutput) {
                 PIP_REQUEST_TRANSACTION_INDEX,
@@ -258,7 +259,7 @@ messagePIPRequestOutputDecode (BRRlpItem item,
         case PIP_REQUEST_BLOCK_BODY: {
             size_t outputsCount;
             const BRRlpItem *outputItems = rlpDecodeList (coder.rlp, items[1], &outputsCount);
-            assert (2 == outputsCount);
+            if (2 != outputsCount)  { rlpCoderSetFailed (coder.rlp); return (BREthereumPIPRequestOutput) {}; }
 
             return (BREthereumPIPRequestOutput) {
                 PIP_REQUEST_BLOCK_BODY,
@@ -271,7 +272,7 @@ messagePIPRequestOutputDecode (BRRlpItem item,
         case PIP_REQUEST_ACCOUNT: {
             size_t outputsCount;
             const BRRlpItem *outputItems = rlpDecodeList (coder.rlp, items[1], &outputsCount);
-            assert (5 == outputsCount);
+            if (5 != outputsCount)  { rlpCoderSetFailed (coder.rlp); return (BREthereumPIPRequestOutput) {}; }
 
             // TODO: Proof - outputItems[0]
             return (BREthereumPIPRequestOutput) {
@@ -298,26 +299,27 @@ messagePIPRequestOutputDecode (BRRlpItem item,
 extern BREthereumPIPMessageResponse
 messagePIPResponseDecode (BRRlpItem item,
                           BREthereumMessageCoder coder) {
+    BREthereumPIPMessageResponse message = {};
+
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
-    assert (3 == itemsCount);
+    if (3 != itemsCount) rlpCoderSetFailed (coder.rlp);
+    else {
+        message.reqId   = rlpDecodeUInt64 (coder.rlp, items[0], 1);
+        message.credits = rlpDecodeUInt64 (coder.rlp, items[1], 1);
 
-    uint64_t reqId   = rlpDecodeUInt64 (coder.rlp, items[0], 1);
-    uint64_t credits = rlpDecodeUInt64 (coder.rlp, items[1], 1);
+        size_t outputsCount = 0;
+        const BRRlpItem *outputItems = rlpDecodeList (coder.rlp, items[2], &outputsCount);
+        BRArrayOf(BREthereumPIPRequestOutput) outputs;
+        array_new (outputs, outputsCount);
 
-    size_t outputsCount = 0;
-    const BRRlpItem *outputItems = rlpDecodeList (coder.rlp, items[2], &outputsCount);
-    BRArrayOf(BREthereumPIPRequestOutput) outputs;
-    array_new (outputs, outputsCount);
+        for (size_t index = 0; index < outputsCount; index++)
+            array_add (outputs, messagePIPRequestOutputDecode (outputItems[index], coder));
 
-    for (size_t index = 0; index < outputsCount; index++)
-        array_add (outputs, messagePIPRequestOutputDecode (outputItems[index], coder));
+        message.outputs = outputs;
+    }
 
-    return (BREthereumPIPMessageResponse) {
-        reqId,
-        credits,
-        outputs
-    };
+    return message;
 }
 
 /// MARK: Update Credit Parameters

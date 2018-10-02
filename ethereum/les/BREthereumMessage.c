@@ -45,14 +45,13 @@ messageEncode (BREthereumMessage message,
 extern BREthereumMessage
 messageDecode (BRRlpItem item,
                BREthereumMessageCoder coder,
-               BREthereumBoolean *failed,
                BREthereumMessageIdentifier type,
                BREthereumANYMessageIdentifier subtype) {
     switch (type) {
         case MESSAGE_P2P:
             return (BREthereumMessage) {
                 MESSAGE_P2P,
-                { .p2p = messageP2PDecode (item, coder, failed, (BREthereumP2PMessageIdentifier) subtype) }
+                { .p2p = messageP2PDecode (item, coder, (BREthereumP2PMessageIdentifier) subtype) }
             };
 
         case MESSAGE_DIS:

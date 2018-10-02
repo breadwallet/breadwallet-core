@@ -63,11 +63,10 @@ messageP2PHelloEncode (BREthereumP2PMessageHello message, BREthereumMessageCoder
 
 extern BREthereumP2PMessageHello
 messageP2PHelloDecode (BRRlpItem item,
-                       BREthereumMessageCoder coder,
-                       BREthereumBoolean *failed) {
+                       BREthereumMessageCoder coder) {
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
-    if (5 != itemsCount) { *failed = ETHEREUM_BOOLEAN_TRUE; return (BREthereumP2PMessageHello) {}; }
+    if (5 != itemsCount) { rlpCoderSetFailed(coder.rlp); return (BREthereumP2PMessageHello) {}; }
 
     BREthereumP2PMessageHello message = {
         rlpDecodeUInt64 (coder.rlp, items[0], 1),
@@ -87,7 +86,7 @@ messageP2PHelloDecode (BRRlpItem item,
     for (size_t index = 0; index < capsCount; index++) {
         size_t capCount;
         const BRRlpItem *caps = rlpDecodeList (coder.rlp, capItems[index], &capCount);
-        assert (2 == capCount);
+        if (2 != capCount) { rlpCoderSetFailed(coder.rlp); return (BREthereumP2PMessageHello) {}; }
 
         BREthereumP2PCapability cap;
 
@@ -165,16 +164,18 @@ messageP2PDisconnectDescription (BREthereumP2PDisconnectReason identifier) {
 //
 static BREthereumP2PMessageDisconnect
 messageP2PDisconnectDecode (BRRlpItem item, BREthereumMessageCoder coder) {
-    BREthereumP2PMessageDisconnect disconnect;
+    BREthereumP2PMessageDisconnect disconnect = {};
 //#if P2P_MESSAGE_VERSION == 0x04
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
-    assert (1 == itemsCount);
-
-    disconnect.reason = (BREthereumP2PDisconnectReason) rlpDecodeUInt64 (coder.rlp, items[0], 1);
+    if (1 != itemsCount) rlpCoderSetFailed(coder.rlp);
+    else {
+        disconnect.reason = (BREthereumP2PDisconnectReason) rlpDecodeUInt64 (coder.rlp, items[0], 1);
 //#elif P2P_MESSAGE_VERSION == 0x05
 //    disconnect.reason = (BREthereumP2PDisconnectReason) rlpDecodeUInt64 (coder.rlp, item, 1);
 //#endif
+    }
+
     return disconnect;
 }
 
@@ -204,13 +205,12 @@ messageP2PEncode (BREthereumP2PMessage message, BREthereumMessageCoder coder) {
 extern BREthereumP2PMessage
 messageP2PDecode (BRRlpItem item,
                   BREthereumMessageCoder coder,
-                  BREthereumBoolean *failed,
                   BREthereumP2PMessageIdentifier identifer) {
     switch (identifer) {
         case P2P_MESSAGE_HELLO:
             return (BREthereumP2PMessage) {
                 P2P_MESSAGE_HELLO,
-                { .hello = messageP2PHelloDecode (item, coder, failed) }
+                { .hello = messageP2PHelloDecode (item, coder) }
             };
 
         case P2P_MESSAGE_PING:

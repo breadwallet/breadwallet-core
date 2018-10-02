@@ -69,8 +69,7 @@ messageP2PHelloEncode (BREthereumP2PMessageHello message, BREthereumMessageCoder
 
 extern BREthereumP2PMessageHello
 messageP2PHelloDecode (BRRlpItem item,
-                       BREthereumMessageCoder coder,
-                       BREthereumBoolean *failed);
+                       BREthereumMessageCoder coder);
 
 extern void
 messageP2PHelloShow (BREthereumP2PMessageHello hello);
@@ -139,7 +138,6 @@ messageP2PEncode (BREthereumP2PMessage message,
 extern BREthereumP2PMessage
 messageP2PDecode (BRRlpItem item,
                   BREthereumMessageCoder coder,
-                  BREthereumBoolean *failed,
                   BREthereumP2PMessageIdentifier identifer);
 
 /// MARK : - P2P Status Message Faker

@@ -183,7 +183,8 @@ nodeProtocolReasonDescription (BREthereumNodeProtocolReason reason) {
         "TCP Hello Missed",
         "TCP Status Missed",
         "Capabilities Mismatch",
-        "Status Mismatch"
+        "Status Mismatch",
+        "RLP Parse"
     };
     return protocolReasonDescriptions [reason];
 }
@@ -1159,9 +1160,8 @@ nodeProcess (BREthereumNode node,
                 // Recv if we can.  Get a result for the provided route; on success dispatch to
                 // a protocol-specific (P2P, DIS, ETH, LES and PIP) handler.
                 BREthereumNodeMessageResult result = nodeRecv (node, route);
-                if (NODE_STATUS_ERROR == result.status) {
-                    assert (0);
-                }
+                if (NODE_STATUS_ERROR == result.status)
+                    return nodeProcessFailed (node, route, nodeStateCreateErrorProtocol (NODE_PROTOCOL_RLP_PARSE));
 
                 BREthereumMessage message = result.u.success.message;
 
@@ -1952,7 +1952,8 @@ nodeRecv (BREthereumNode node,
     int error;
 
     BREthereumMessage message;
-    BREthereumBoolean failed = ETHEREUM_BOOLEAN_FALSE;
+
+    rlpCoderClrFailed (node->coder.rlp);
 
     switch (route) {
         case NODE_ROUTE_UDP: {
@@ -1967,7 +1968,7 @@ nodeRecv (BREthereumNode node,
             // Wrap at RLP Byte
             BRRlpItem item = rlpEncodeBytes (node->coder.rlp, bytes, bytesCount);
 
-            message = messageDecode (item, node->coder, &failed,
+            message = messageDecode (item, node->coder,
                                      MESSAGE_DIS,
                                      MESSAGE_DIS_IDENTIFIER_ANY);
             rlpReleaseItem (node->coder.rlp, item);
@@ -2042,16 +2043,17 @@ nodeRecv (BREthereumNode node,
 #endif
 
             // Finally, decode the message
-            message = messageDecode (item, node->coder, &failed, type, subtype);
+            message = messageDecode (item, node->coder, type, subtype);
 #if defined (NODE_SHOW_RECV_RLP_ITEMS)
-            if (THEREUM_BOOLEAN_IS_FALSE(failed) &&
+            if (!rlpCoderHasFailed(node->coder.rlp) &&
                 MESSAGE_PIP == message.identifier &&
                 PIP_MESSAGE_STATUS != message.u.pip.type)
                 rlpShowItem(node->coder.rlp, item, "RECV");
 #endif
 
             // If this is a LES response message, then it has credit information.
-            if (ETHEREUM_BOOLEAN_IS_FALSE(failed) && MESSAGE_LES == message.identifier &&
+            if (!rlpCoderHasFailed(node->coder.rlp) &&
+                MESSAGE_LES == message.identifier &&
                 messageLESHasUse (&message.u.les, LES_MESSAGE_USE_RESPONSE))
                 node->credits = messageLESGetCredits (&message.u.les);
             
@@ -2062,7 +2064,7 @@ nodeRecv (BREthereumNode node,
         }
     }
 
-    if (ETHEREUM_BOOLEAN_IS_FALSE(failed)) {
+    if (!rlpCoderHasFailed(node->coder.rlp) ) {
         char disconnect[64] = { '\0' };
 
         if (MESSAGE_P2P == message.identifier && P2P_MESSAGE_DISCONNECT == message.u.p2p.identifier)
@@ -2076,10 +2078,13 @@ nodeRecv (BREthereumNode node,
     }
 
 
-    return (BREthereumNodeMessageResult) {
-        (ETHEREUM_BOOLEAN_IS_TRUE(failed) ? NODE_STATUS_SUCCESS : NODE_STATUS_ERROR),
-        { .success = { message }}
-    };
+    return (rlpCoderHasFailed(node->coder.rlp)
+            ? (BREthereumNodeMessageResult) {
+                NODE_STATUS_ERROR,
+                { .error = {}}}
+            : (BREthereumNodeMessageResult) {
+                NODE_STATUS_SUCCESS,
+                { .success = { message }}});
 }
 
 

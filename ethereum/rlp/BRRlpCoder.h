@@ -45,6 +45,15 @@ rlpCoderCreate (void);
 extern void
 rlpCoderRelease (BRRlpCoder coder);
 
+extern void
+rlpCoderSetFailed (BRRlpCoder coder);
+
+extern void
+rlpCoderClrFailed (BRRlpCoder coder);
+
+extern int
+rlpCoderHasFailed (BRRlpCoder coder);
+
 //
 // RLP Data
 //

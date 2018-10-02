@@ -78,7 +78,6 @@ messageEncode (BREthereumMessage message,
 extern BREthereumMessage
 messageDecode (BRRlpItem item,
                BREthereumMessageCoder coder,
-               BREthereumBoolean *failed,
                BREthereumMessageIdentifier type,
                BREthereumANYMessageIdentifier subtype);
 

@@ -250,19 +250,19 @@ messageDISPingEncode (BREthereumDISMessagePing message, BREthereumMessageCoder c
 
 static BREthereumDISMessagePing
 messageDISPingDecode (BRRlpItem item, BREthereumMessageCoder coder, BREthereumHash hash, int releaseItem) {
-    BREthereumDISMessagePing ping;
+    BREthereumDISMessagePing ping = {};
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
-    assert (4 == itemsCount);
+    if (4 != itemsCount) rlpCoderSetFailed (coder.rlp);
+    else {
+        ping.version = (int) rlpDecodeUInt64 (coder.rlp, items[0], 1);
+        ping.from = endpointDISDecode (items[1], coder.rlp);
+        ping.to   = endpointDISDecode (items[2], coder.rlp);
+        ping.expiration = rlpDecodeUInt64 (coder.rlp, items[3], 1);
 
-    ping.version = (int) rlpDecodeUInt64 (coder.rlp, items[0], 1);
-    ping.from = endpointDISDecode (items[1], coder.rlp);
-    ping.to   = endpointDISDecode (items[2], coder.rlp);
-    ping.expiration = rlpDecodeUInt64 (coder.rlp, items[3], 1);
-
-    ping.hash = hash;
-
+        ping.hash = hash;
+    }
     if (releaseItem) rlpReleaseItem (coder.rlp, item);
     return ping;
 }
@@ -286,15 +286,16 @@ messageDISPongEncode (BREthereumDISMessagePong message, BREthereumMessageCoder c
 
 static BREthereumDISMessagePong
 messageDISPongDecode (BRRlpItem item, BREthereumMessageCoder coder, int releaseItem) {
-    BREthereumDISMessagePong pong;
+    BREthereumDISMessagePong pong = {};
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
-    assert (3 == itemsCount);
-
-    pong.to = endpointDISDecode (items[0], coder.rlp);
-    pong.pingHash = hashRlpDecode (items[1], coder.rlp);
-    pong.expiration = rlpDecodeUInt64 (coder.rlp, items[2], 1);
+    if (3 != itemsCount) rlpCoderSetFailed(coder.rlp);
+    else {
+        pong.to = endpointDISDecode (items[0], coder.rlp);
+        pong.pingHash = hashRlpDecode (items[1], coder.rlp);
+        pong.expiration = rlpDecodeUInt64 (coder.rlp, items[2], 1);
+    }
 
     if (releaseItem) rlpReleaseItem (coder.rlp, item);
     return pong;
@@ -322,35 +323,36 @@ messageDISFindNeighborsEncode (BREthereumDISMessageFindNeighbors message, BREthe
 
 static BREthereumDISMessageNeighbors
 messageDISNeighborsDecode (BRRlpItem item, BREthereumMessageCoder coder, int releaseItem) {
-    BREthereumDISMessageNeighbors message;
+    BREthereumDISMessageNeighbors message = {};
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList (coder.rlp, item, &itemsCount);
-    assert (2 == itemsCount);
+    if (2 != itemsCount) rlpCoderSetFailed(coder.rlp);
+    else {
+        size_t neighborsCount = 0;
+        const BRRlpItem *neighborItems = rlpDecodeList (coder.rlp, items[0], &neighborsCount);
 
-    size_t neighborsCount = 0;
-    const BRRlpItem *neighborItems = rlpDecodeList (coder.rlp, items[0], &neighborsCount);
-
-    array_new(message.neighbors, neighborsCount);
-    for (size_t index = 0; index < neighborsCount; index++)
-        array_add (message.neighbors,
-                   neighborDISDecode (neighborItems[index], coder));
+        array_new(message.neighbors, neighborsCount);
+        for (size_t index = 0; index < neighborsCount; index++)
+            array_add (message.neighbors,
+                       neighborDISDecode (neighborItems[index], coder));
 
 #if defined (NEED_TO_PRINT_DIS_NEIGHBOR_DETAILS)
-    eth_log (LES_LOG_TOPIC, "Neighbors: %s", "");
-    for (size_t index = 0; index < neighborsCount; index++) {
-        BREthereumDISNeighbor neighbor = message.neighbors[index];
-        eth_log (LES_LOG_TOPIC, "    IP: %3d.%3d.%3d.%3d, UDP: %6d, TCP: %6d",
-                 neighbor.node.addr.ipv4[0],
-                 neighbor.node.addr.ipv4[1],
-                 neighbor.node.addr.ipv4[2],
-                 neighbor.node.addr.ipv4[3],
-                 neighbor.node.portUDP,
-                 neighbor.node.portTCP);
-    }
+        eth_log (LES_LOG_TOPIC, "Neighbors: %s", "");
+        for (size_t index = 0; index < neighborsCount; index++) {
+            BREthereumDISNeighbor neighbor = message.neighbors[index];
+            eth_log (LES_LOG_TOPIC, "    IP: %3d.%3d.%3d.%3d, UDP: %6d, TCP: %6d",
+                     neighbor.node.addr.ipv4[0],
+                     neighbor.node.addr.ipv4[1],
+                     neighbor.node.addr.ipv4[2],
+                     neighbor.node.addr.ipv4[3],
+                     neighbor.node.portUDP,
+                     neighbor.node.portTCP);
+        }
 #endif
 
-    message.expiration = rlpDecodeUInt64 (coder.rlp, items[1], 1);
+        message.expiration = rlpDecodeUInt64 (coder.rlp, items[1], 1);
+    }
 
     if (releaseItem) rlpReleaseItem (coder.rlp, item);
 
