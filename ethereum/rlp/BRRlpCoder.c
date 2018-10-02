@@ -166,15 +166,6 @@ rlpCoderReturnItem (BRRlpCoder coder, BRRlpItem item) {
     pthread_mutex_unlock(&coder->lock);
 }
 
-/**
- * An RLP Context holds encoding results for each of the encoding types, either ITEM or LIST.
- * The ITEM type holds the bytes directly; the LIST type holds a list/array of ITEMS.
- *
- * The upcoming RLP Coder is going to hold multiple Contexts.  The public interface for RLP Item
- * holds an 'indexer' which is the index to a Context in the Coder.
- */
-//static BRRlpContext contextEmpty = { NULL, CODER_ITEM, 0, NULL, 0, NULL };
-//
 static void
 itemRelease (BRRlpCoder coder, BRRlpItem item) {
     itemReleaseMemory(item);

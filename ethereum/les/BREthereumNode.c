@@ -40,8 +40,8 @@
 ///
 
 // #define NODE_SHOW_RLP_ITEMS
-//#define NODE_SHOW_RECV_RLP_ITEMS
-//#define NODE_SHOW_SEND_RLP_ITEMS
+// #define NODE_SHOW_RECV_RLP_ITEMS
+// #define NODE_SHOW_SEND_RLP_ITEMS
 
 // #define NEED_TO_PRINT_SEND_RECV_DATA
 // #define NEED_TO_AVOID_PROOFS_LOGGING
@@ -1092,7 +1092,14 @@ nodeStatusIsSufficient (BREthereumNode node) {
     if (remStatus->chainId != locStatus->chainId)
         return 0;
 
+    // Must be our protocol - doesn't this cause problems?  PIPv1 vs LESV2.  Didn't we check
+    // the protocol version when matching capabilities?  Our local node has a 'status' but we
+    // can be PIPv1 or LESv2 - do we need two status messages?
     if (remStatus->protocolVersion != locStatus->protocolVersion)
+        return 0;
+
+    // Must have blocks in the future
+    if (remStatus->headNum <= locStatus->headNum)
         return 0;
 
     // Must serve headers
@@ -1791,6 +1798,7 @@ updateLocalEndpointStatusMessage (BREthereumNodeEndpoint *endpoint,
     switch (type) {
         case NODE_TYPE_UNKNOWN:
             assert (0);
+            
         case NODE_TYPE_GETH:
             assert (MESSAGE_LES == endpoint->status.identifier);
             endpoint->status.u.les.u.status.p2p.protocolVersion = protocolVersion;

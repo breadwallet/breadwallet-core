@@ -54,10 +54,25 @@ typedef enum {
 } BREthereumRlpType;
 
 typedef enum {
+    //
+    // We'll be willing to do a complete block chain sync, even starting at block zero.  We'll
+    // use our 'N-ary Search on Account Changes' to perform the sync effectively.  We'll use the
+    // BRD endpoint to augment the 'N-Ary Search' to find TOK transfers where our address is the
+    // SOURCE.
+    //
     SYNC_MODE_FULL_BLOCKCHAIN,
+    
+    //
+    // We'll use the BRD endpoint to identiy blocks of interest based on ETH and TOK transfer
+    // where our addres is the SOURCE or TARGET. We'll only process blocks from the last N (~ 2000)
+    // blocks in the chain.
+    //
     SYNC_MODE_PRIME_WITH_ENDPOINT
 } BREthereumSyncMode;
 
+//
+// Sync Interest
+//
 typedef enum {
     CLIENT_GET_BLOCKS_NODE = 0,
     CLIENT_GET_BLOCKS_TRANSACTIONS_AS_SOURCE = (1 << 0),
@@ -66,9 +81,12 @@ typedef enum {
     CLIENT_GET_BLOCKS_LOGS_AS_TARGET = (1 << 3)
 } BREthereumSyncInterest;
 
+//
+// Sync Interest Set
+//
 typedef unsigned int BREthereumSyncInterestSet;
 
-static inline int
+static inline int // 1 if match; 0 if not
 syncInterestMatch(BREthereumSyncInterestSet interests,
                   BREthereumSyncInterest interest) {
     return interests & interest;

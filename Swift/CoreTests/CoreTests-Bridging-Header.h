@@ -1,6 +1,7 @@
 //
 //  Use this file to import your target's public headers that you would like to expose to Swift.
 //
+#include "BREthereum.h"
 
 // Bitcoin
 extern int BRRunTests();
@@ -23,7 +24,10 @@ extern void runContractTests (void);
 
 // EWM
 extern void runEWMTests (void);
-extern void runSyncTest (unsigned int durationInSeconds,
+
+extern void runSyncTest (BREthereumType type,
+                         BREthereumSyncMode mode,
+                         unsigned int durationInSeconds,
                          int restart);
 
 // LES

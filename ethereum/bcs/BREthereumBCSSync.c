@@ -68,42 +68,6 @@ typedef enum {
     SYNC_MIXED              // children: ANY+
 } BREthereumBCSSyncType;
 
-#define LES_GET_HEADERS_MAXIMUM        (192)
-
-/**
- * For a 'N_ARY sync' we'll split the range (of needed blockNumbers) into sub-ranges.  We'll find
- * the optimum number of subranges (such that the subranges exactly span the parent range). We'll
- * limit the number of subranges to between MINIMUM and MAXIMUM (below).  The maximum is determined
- * by the maximum in LES GetBlockHeaders; the minimum is arbitrary.
- *
- * Say we have 6,000,0xx headers and the request minimum/maximum are 100/200.  We'll find the
- * highest request count with the minimum remainder.  For 100 and 200 the remainder is 'xx'; we'd
- * choose 200 as it is the highest.  (The actual request count will depend on 'xx' - e.g for
- * headers of 6083022, the optimal count is 159).  For the remainder, we'll do a SYNC_LINEAR_SMALL.
- *
- * With 200, we'll issue GetAccountState at the 201 headers, each header 30,000 apart.  If the
- * AccountState change, we'll recurse.  The highest minimal remainder is again 200 with blocks
- * spaced 150 apart.
- */
-#define SYNC_N_ARY_REQUEST_MINIMUM     (100)
-#define SYNC_N_ARY_REQUEST_MAXIMUM     (LES_GET_HEADERS_MAXIMUM - 1)
-
-/**
- * For a 'linear sync' we'll request at most MAXIMUM headers.  The maximum is determined by the
- * maximum in LES GetBlockHeaders.
- *
- * We'll favor a 'linear sync' over a 'N_ARY sync' if the range (of needed blockNumbers) is less
- * than LIMIT (below)
- */
-#define SYNC_LINEAR_REQUEST_MAXIMUM     (LES_GET_HEADERS_MAXIMUM - 1)
-#define SYNC_LINEAR_LIMIT               (10 * SYNC_LINEAR_REQUEST_MAXIMUM)
-#define SYNC_LINEAR_LIMIT_IF_N_ARY      (100) // 3 * SYNC_LINEAR_REQUEST_MAXIMUM)
-
-/**
- * As the sync find results (block headers, at least) we'll report them every PERIOD results.
- */
-#define BCS_SYNC_RESULT_PERIOD  250
-
 /**
  * The Sync Result State identifies the current state of the sync processing.  Depending on the
  * Sync Type we may require a LES request for headers and account state.  We mark our progess

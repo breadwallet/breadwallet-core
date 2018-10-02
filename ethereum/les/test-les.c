@@ -982,10 +982,10 @@ runLEStests(void) {
     
     // Run Tests on the LES messages
     run_GetBlockHeaders_Tests(les);
-//    run_GetBlockBodies_Tests(les);
-//    run_GetReceipts_Tests(les);
-//    run_GetTxStatus_Tests(les);
+    run_GetBlockBodies_Tests(les);
+    run_GetReceipts_Tests(les);
     run_GetAccountState_Tests(les);
+    run_GetTxStatus_Tests(les);
 //    run_GetProofsV2_Tests(les); //NOTE: The callback function won't be called.
                                 //reallySendLESTransaction(les);
     
