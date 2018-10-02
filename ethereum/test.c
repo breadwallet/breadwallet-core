@@ -68,7 +68,10 @@ extern void runLEStests(void);
 
 // EWM
 extern void runEWMTests (void);
-extern void runSyncTest (unsigned int durationInSeconds,
+
+extern void runSyncTest (BREthereumType type,
+                         BREthereumSyncMode mode,
+                         unsigned int durationInSeconds,
                          int restart);
 
 extern const char *tokenBRDAddress;

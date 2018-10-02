@@ -258,7 +258,13 @@ clientGetBlocks (BREthereumClientContext context,
         array_add (blockNumbers, blockNumberStop);
     }
 
-    ethereumClientAnnounceBlocks (ewm, rid, blockNumbers);
+    // Remote block numbers out of range.
+    for (size_t index = array_count(blockNumbers); index > 0; index--)
+        if (blockNumbers[index - 1] < blockNumberStart ||
+            blockNumbers[index - 1] > blockNumberStop)
+            array_rm (blockNumbers, index - 1);
+
+    ethereumClientAnnounceBlocks (ewm, rid, array_count(blockNumbers), blockNumbers);
 }
 
 static void
@@ -763,7 +769,9 @@ runEWM_PUBLIC_KEY_test (BREthereumNetwork network, const char *paperKey) {
 }
 
 extern void
-runSyncTest (unsigned int durationInSeconds,
+runSyncTest (BREthereumType type,
+             BREthereumSyncMode mode,
+             unsigned int durationInSeconds,
              int restart) {
     eth_log("TST", "SyncTest%s", "");
 
@@ -799,7 +807,7 @@ runSyncTest (unsigned int durationInSeconds,
         }
     }
 
-    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, EWM_USE_LES, SYNC_MODE_PRIME_WITH_ENDPOINT, client,
+    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, type, mode, client,
                                        nodes,
                                        blocks,
                                        transactions,

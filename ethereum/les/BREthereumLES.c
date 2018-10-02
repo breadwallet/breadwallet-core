@@ -864,6 +864,23 @@ lesThread (BREthereumLES les) {
             lesDeactivateNodes(les, route, nodesToRemove, "TIMEDOUT");
             array_clear (nodesToRemove);
         }
+        //
+        // We may have deactivated a node and thus have a new preferred node.  We might have
+        // pending requests - like to get info on blockNumber 'N'.  Does the new preferred node
+        // serve blockNumber 'N'?  We've seen cases when we start at block 0, sync up to block N,
+        // get a disconnect and then swap to a node only up to M (< N).  [We crash at that point
+        // which is the wrong behavior but clearly illustrates the problem]
+        //
+        // In addition, the activeNodes have evolved.  Maybe we made them active 3 hours ago and
+        // now they are 3 * 60 * 4 blocks ahead.
+        //
+        // Hmmm, thoughts:
+        //   o I think we have a set active nodes that we use to submit transactions - but only
+        //     submit transactions.
+        //   o We update a nodes 'status' when it announced a new block
+        //   o We disconnect a node if it doesn't announce w/i some period
+        //   o Unless we reliably connect to multiple nodes - we might not know the chain head.
+        //
 
         //
         // Our preferredNode is an active TCP (P2P, ETH, LES, PIP) node at index 0;
@@ -957,28 +974,6 @@ lesThread (BREthereumLES les) {
         //
         else if (selectCount == 0) {
 
-            // If a pending request was sent to a node that is no longer connected, then there
-            // is no response coming (we are here because 'nothing to receive').  Resend.
-            //
-            // We are going to iterate back-to-front across les->requests and add each 'orphaned'
-            // request to the front of les->requestsToSend - thereby keeping the order quasi-
-            // consistent (not that it matters, until proven otherwise).
-
-            // TODO: Retry
-//            for (size_t index = array_count(les->requests); index > 0; index--) {
-//                BREthereumNode node = les->requests[index - 1].node;
-//                assert (NULL != node);
-//                if (!nodeHasState (node, NODE_ROUTE_TCP, NODE_CONNECTED)) {
-//                    // `request` is a value type - don't forget....
-//                    BREthereumLESRequest request = les->requests[index - 1];
-//                    array_rm (les->requests, (index - 1)); // safe, when going back-to-front
-//                    request.node = NULL;
-//                    array_insert (les->requestsToSend, 0, request); // to the front
-//                    eth_log (LES_LOG_TOPIC, "Rtry: [ LES, %15s ]",
-//                             messageLESGetIdentifierName (request.message.identifier));
-//                }
-//            }
-
             // If we don't have enough availableNodes, try to find some
             if (array_count(les->availableNodes) < 100 && array_count(les->activeNodesByRoute[NODE_ROUTE_UDP]) < 3) {
 
@@ -1006,7 +1001,12 @@ lesThread (BREthereumLES les) {
                 }
             }
 
-            // If we don't have enough connectedNodes, try to add one
+            // If we don't have enough connectedNodes, try to add one.  Note: when we created
+            // the node (as part of UDP discovery) we give it our endpoint info (like headNum).
+            // But now that is likely out of date as we've synced/progressed/chained.  I think the
+            // upcoming `nodeConnect()` needs a new `status` - but how do we update the status as
+            // only BCS knows where we are?
+
             if (array_count(les->activeNodesByRoute[NODE_ROUTE_TCP]) < 5 &&
                 array_count(les->availableNodes) > 0) {
                 BREthereumNode node = les->availableNodes[0];
