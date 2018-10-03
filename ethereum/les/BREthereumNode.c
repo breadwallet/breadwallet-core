@@ -52,6 +52,12 @@
 #define NODE_SHOW_SEND_RLP_ITEMS
 #endif
 
+#undef NODE_DEBUG_SOCKETS
+
+#if defined (NODE_DEBUG_SOCKETS)
+static int socketOpenCount = 0;
+#endif
+
 static BREthereumNodeState
 nodeStateAnnounce (BREthereumNode node,
                    BREthereumNodeEndpointRoute route,
@@ -717,8 +723,8 @@ nodeCreate (BREthereumNetwork network,
 
 extern void
 nodeRelease (BREthereumNode node) {
-    nodeDisconnect (node, NODE_ROUTE_TCP, P2P_MESSAGE_DISCONNECT_REQUESTED);
-    nodeDisconnect (node, NODE_ROUTE_UDP, P2P_MESSAGE_DISCONNECT_REQUESTED);
+    nodeDisconnect (node, NODE_ROUTE_TCP, nodeStateCreate (NODE_AVAILABLE), ETHEREUM_BOOLEAN_FALSE);
+    nodeDisconnect (node, NODE_ROUTE_UDP, nodeStateCreate (NODE_AVAILABLE), ETHEREUM_BOOLEAN_FALSE);
 
     if (NULL != node->sendDataBuffer.bytes) free (node->sendDataBuffer.bytes);
     if (NULL != node->recvDataBuffer.bytes) free (node->recvDataBuffer.bytes);
@@ -734,8 +740,7 @@ static BREthereumNodeState
 nodeProcessFailed (BREthereumNode node,
                    BREthereumNodeEndpointRoute route,
                    BREthereumNodeState state) {
-    nodeEndpointClose (&node->remote, route, 0);
-    return nodeStateAnnounce (node, route, state);
+    return nodeDisconnect (node, route, state, ETHEREUM_BOOLEAN_FALSE);
 }
 
 static BREthereumNodeState
@@ -754,6 +759,12 @@ nodeConnect (BREthereumNode node,
     if (!nodeHasState (node, route, NODE_AVAILABLE))
         return node->states[route];
 
+#if defined (NODE_DEBUG_SOCKETS)
+    // Increment here; on failure we'll decrement.
+    eth_log(LES_LOG_TOPIC, "Sockets: %d (Open)", ++socketOpenCount);
+#endif
+
+
     // Actually open the endpoint connection/port
     error = nodeEndpointOpen (&node->remote, route);
     if (error)
@@ -768,23 +779,24 @@ nodeConnect (BREthereumNode node,
 extern BREthereumNodeState
 nodeDisconnect (BREthereumNode node,
                 BREthereumNodeEndpointRoute route,
-                BREthereumP2PDisconnectReason reason) {
+                BREthereumNodeState stateToAnnounce,
+                BREthereumBoolean returnToAvailable) {
+
+    nodeStateAnnounce (node, route, stateToAnnounce);
+
+#if defined (NODE_DEBUG_SOCKETS)
     // Close the appropriate endpoint route
-    nodeEndpointClose (&node->remote, route,
-                       (P2P_MESSAGE_DISCONNECT_REQUESTED == reason &&
-                        !nodeHasErrorState(node, route)));
+    int failed = nodeEndpointClose (&node->remote, route, !nodeHasErrorState (node, route));
+    if (!failed) eth_log(LES_LOG_TOPIC, "Sockets: %d (Closed)", --socketOpenCount);
+#else
+    nodeEndpointClose (&node->remote, route, !nodeHasErrorState (node, route));
+#endif
 
-    switch (node->states[route].type) {
-        case NODE_AVAILABLE:
-        case NODE_ERROR:
-            return node->states[route];
 
-        case NODE_CONNECTING:
-        case NODE_CONNECTED:
-            return nodeStateAnnounce(node, route, (P2P_MESSAGE_DISCONNECT_REQUESTED == reason
-                                                   ? nodeStateCreate(NODE_AVAILABLE)
-                                                   : nodeStateCreateErrorDisconnect(reason)));
-    }
+    if (ETHEREUM_BOOLEAN_IS_TRUE(returnToAvailable))
+        nodeStateAnnounce(node, route, nodeStateCreate (NODE_AVAILABLE));
+
+    return node->states[route];
 }
 
 ///
@@ -845,7 +857,7 @@ nodeProcessRecvP2P (BREthereumNode node,
     switch (message.identifier) {
         case P2P_MESSAGE_DISCONNECT:
             eth_log (LES_LOG_TOPIC, "Recv: Disconnect: %s", messageP2PDisconnectDescription (message.u.disconnect.reason));
-            nodeDisconnect(node, NODE_ROUTE_TCP, message.u.disconnect.reason);
+            nodeDisconnect(node, NODE_ROUTE_TCP, nodeStateCreateErrorDisconnect(message.u.disconnect.reason), ETHEREUM_BOOLEAN_FALSE);
             break;
 
         case P2P_MESSAGE_PING: {
@@ -1205,7 +1217,6 @@ nodeProcess (BREthereumNode node,
                         break;
                 }
             }
-
 
             return node->states[route];
 
@@ -1606,7 +1617,9 @@ nodeProcess (BREthereumNode node,
                         nodeSetDiscovered (node, ETHEREUM_BOOLEAN_TRUE);
                         nodeProcessSuccess (node, NODE_ROUTE_UDP, nodeStateCreateConnected());
                         nodeProcessRecvDIS (node, NODE_ROUTE_UDP, message.u.dis);
-                        return nodeProcessSuccess (node, NODE_ROUTE_UDP, nodeStateCreate(NODE_AVAILABLE));
+
+                        // This is success...
+                        return nodeDisconnect(node, NODE_ROUTE_UDP, nodeStateCreate(NODE_AVAILABLE), ETHEREUM_BOOLEAN_FALSE);
                     }
 
                     return nodeProcessSuccess (node, route, nodeStateCreateConnecting (NODE_CONNECT_DISCOVER));
@@ -1639,7 +1652,10 @@ nodeProcess (BREthereumNode node,
                     nodeSetDiscovered (node, ETHEREUM_BOOLEAN_TRUE);
                     nodeProcessSuccess (node, NODE_ROUTE_UDP, nodeStateCreateConnected());
                     nodeProcessRecvDIS (node, NODE_ROUTE_UDP, message.u.dis);
-                    return nodeProcessSuccess (node, NODE_ROUTE_UDP, nodeStateCreate(NODE_AVAILABLE));
+
+                    // Tjhis is success...
+                    return nodeDisconnect(node, NODE_ROUTE_UDP, nodeStateCreate(NODE_AVAILABLE), ETHEREUM_BOOLEAN_FALSE);
+
             }
             break;
 
@@ -2143,7 +2159,7 @@ nodeHandleTime (BREthereumNode node,
         node->timeout != (time_t) -1 &&
         now >= node->timeout) {
 
-        nodeStateAnnounce(node, route, nodeStateCreateErrorUnix(ETIMEDOUT));
+        nodeDisconnect (node, route, nodeStateCreateErrorDisconnect (P2P_MESSAGE_DISCONNECT_TIMEOUT), ETHEREUM_BOOLEAN_FALSE);
         return ETHEREUM_BOOLEAN_TRUE;
     }
     return ETHEREUM_BOOLEAN_FALSE;

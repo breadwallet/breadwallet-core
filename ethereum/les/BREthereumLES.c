@@ -858,6 +858,7 @@ lesThread (BREthereumLES les) {
             BRArrayOf(BREthereumNode) nodes = les->activeNodesByRoute[route];
             for (size_t index = 0; index < array_count(nodes); index++)
                 if (ETHEREUM_BOOLEAN_IS_TRUE (nodeHandleTime (nodes[index], route, now))) {
+                    // Note: `nodeHandleTime()` will have disconnected.
                     array_add (nodesToRemove, nodes[index]);
                     // TODO: Reassign provisions
                 }
@@ -1070,8 +1071,8 @@ lesThread (BREthereumLES les) {
 
     FOR_NODES (les, node) {
         nodeShow (node);
-        nodeDisconnect (node, NODE_ROUTE_UDP, P2P_MESSAGE_DISCONNECT_REQUESTED);
-        nodeDisconnect (node, NODE_ROUTE_TCP, P2P_MESSAGE_DISCONNECT_REQUESTED);
+        nodeDisconnect (node, NODE_ROUTE_UDP, (BREthereumNodeState) { NODE_AVAILABLE }, ETHEREUM_BOOLEAN_FALSE);
+        nodeDisconnect (node, NODE_ROUTE_TCP, (BREthereumNodeState) { NODE_AVAILABLE }, ETHEREUM_BOOLEAN_FALSE);
     }
 
     pthread_exit (0);
