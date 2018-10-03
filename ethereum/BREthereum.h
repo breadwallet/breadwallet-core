@@ -28,7 +28,6 @@
 
 #include <stdint.h>
 #include "BRKey.h"
-#include "BRSet.h"
 #include "base/BREthereumBase.h"
 #include "ewm/BREthereumAmount.h"
 #include "blockchain/BREthereumNetwork.h"
@@ -49,27 +48,6 @@ typedef int32_t BREthereumAccountId;
 typedef int32_t BREthereumWalletId;
 typedef int32_t BREthereumBlockId;
 typedef int32_t BREthereumListenerId;
-
-//
-// Temporarily Here
-//
-typedef struct {
-    BREthereumHash hash;
-    BRRlpData blob;
-} BREthereumPersistData;
-
-static inline size_t
-persistDataHashValue (const void *t)
-{
-    return hashSetValue(&((BREthereumPersistData*) t)->hash);
-}
-
-static inline int
-persistDataHashEqual (const void *t1, const void *t2) {
-    return t1 == t2 || hashSetEqual (&((BREthereumPersistData*) t1)->hash,
-                                     &((BREthereumPersistData*) t2)->hash);
-}
-
 
 //
 // Errors - Right Up Front - 'The Emperor Has No Clothes' ??
@@ -183,7 +161,7 @@ typedef void
                                      uint64_t blockNumberStop,
                                      int rid);
 
-    //
+///
 // Save Sync (and other) State
 //
 typedef enum {

@@ -36,13 +36,33 @@ extern "C" {
 #define BRArrayOf(type)    type*
 #define BRSetOf(type)      BRSet*
 
+#define FOR_SET(type,var,set) \
+  for (type var = BRSetIterate(set, NULL); \
+       NULL != var; \
+       var = BRSetIterate(set, var))
 
-#include "../util/BRUtil.h"
+typedef void
+(*BRSetItemFree) (void *item);
+
+static inline void
+BRSetFreeAll (BRSet *set, BRSetItemFree itemFree) {
+    size_t itemsCount = BRSetCount (set);
+    void  *itemsAll [itemsCount];
+
+    BRSetAll (set, itemsAll,  itemsCount);
+    for (size_t index = 0; index < itemsCount; index++)
+        itemFree (itemsAll[index]);
+    BRSetClear (set);
+    BRSetFree  (set);
+}
+
+#include "../util/BRUtil.h"         // "BRInt.h"
 #include "../rlp/BRRlp.h"
 #include "BREthereumLogic.h"
 #include "BREthereumEther.h"
 #include "BREthereumGas.h"
 #include "BREthereumHash.h"
+#include "BREthereumData.h"
 #include "BREthereumAddress.h"
 #include "BREthereumSignature.h"
 
@@ -53,6 +73,10 @@ typedef enum {
     RLP_TYPE_TRANSACTION_SIGNED = RLP_TYPE_NETWORK,
 } BREthereumRlpType;
 
+
+//
+// Sync Mode
+//
 typedef enum {
     //
     // We'll be willing to do a complete block chain sync, even starting at block zero.  We'll

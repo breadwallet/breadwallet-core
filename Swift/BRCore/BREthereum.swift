@@ -19,7 +19,9 @@ public typealias EthereumListenerId = EthereumReferenceId
 // Access to BRCore/BREthereum types
 public typealias BRCoreEWM = BREthereumEWM // OpaquePointer
 
-// MARK: Reference
+///
+/// MARK: Reference
+///
 
 ///
 /// Core Ethereum *does not* allow direct access to Core 'C' Memory; instead we use references
@@ -57,7 +59,9 @@ public protocol EthereumReferenceWithDefaultUnit : EthereumReference {
     var unit : EthereumAmountUnit { get }
 }
 
-// MARK: - Pointer
+///
+/// MARK: - Pointer
+///
 
 ///
 /// An `EthereumPointer` holds an `OpaquePointer` to Ethereum Core memory.  This is used for
@@ -75,7 +79,9 @@ extension EthereumPointer {
     }
 }
 
-// MARK: - Account
+///
+/// MARK: - Account
+///
 
 ///
 /// An `EthereumAccount` is an `EthereumReference` for the User's account - with address,
@@ -111,7 +117,9 @@ public struct EthereumAccount : EthereumReference {
     }
 }
 
-// MARK: - Network
+///
+/// MARK: - Network
+///
 
 ///
 /// An `EthereumNetwork` represents one of a handful of Ethereum (Blockchain) Networks such as:
@@ -139,7 +147,9 @@ extension EthereumNetwork : Equatable {
     }
 }
 
-// MARK: - Token
+///
+/// MARK: - Token
+///
 
 ///
 /// An `Ethereum`Token` is a defined instantiation of an ERC20 Contract.
@@ -200,7 +210,124 @@ public struct EthereumToken : EthereumPointer {
     }()
 }
 
-// MARK: - Wallet
+
+// MAKR: - Block
+
+///
+/// An `EthereumBlock` represents a  ...
+//
+public struct EthereumBlock : EthereumReference {
+    public weak var ewm : EthereumWalletManager?
+    public let identifier : EthereumWalletId
+
+    init (ewm: EthereumWalletManager, identifier: EthereumAccountId) {
+        self.ewm = ewm
+        self.identifier = identifier
+    }
+
+    var number : UInt64 {
+        return ethereumBlockGetNumber (self.ewm!.core, identifier)
+    }
+
+    var timestamp : UInt64 {
+        return ethereumBlockGetTimestamp (self.ewm!.core, identifier)
+    }
+
+    var hash : String {
+        return asUTF8String(ethereumBlockGetHash (self.ewm!.core, identifier))
+    }
+}
+
+///
+/// MARK: - Transfer
+///
+
+///
+/// An `EthereumTransaction` represents a transfer of ETHER or a specific TOKEN between two
+/// accounts.
+///
+public struct EthereumTransfer : EthereumReferenceWithDefaultUnit {
+    public weak var ewm : EthereumWalletManager?
+    public let identifier : EthereumWalletId
+    public let unit : EthereumAmountUnit
+
+    internal init (ewm : EthereumWalletManager, identifier : EthereumTransferId) {
+        self.init (ewm: ewm,
+                   identifier: identifier,
+                   unit: EthereumAmountUnit.defaultUnit(
+                    nil == ethereumTransferGetToken (ewm.core, identifier)))
+    }
+
+    internal init (ewm : EthereumWalletManager, identifier : EthereumTransferId, unit: EthereumAmountUnit) {
+        self.ewm = ewm
+        self.identifier = identifier
+        self.unit = unit
+    }
+
+    public var hash : String {
+        return asUTF8String (ethereumTransferGetHash (self.ewm!.core, self.identifier), true)
+    }
+
+    public var sourceAddress : String {
+        return asUTF8String (ethereumTransferGetSendAddress (self.ewm!.core, self.identifier), true)
+    }
+
+    public var targetAddress : String {
+        return asUTF8String (ethereumTransferGetRecvAddress (self.ewm!.core, self.identifier), true)
+    }
+
+    public var amount : EthereumAmount {
+        let amount : BREthereumAmount = ethereumTransferGetAmount (self.ewm!.core, self.identifier)
+        return (AMOUNT_ETHER == amount.type
+            ? EthereumAmount.ether(amount.u.ether.valueInWEI, unit.coreForEther)
+            : EthereumAmount.token (amount.u.tokenQuantity.valueAsInteger,
+                                    EthereumToken.lookup (core: amount.u.tokenQuantity.token),
+                                    unit.coreForToken))
+    }
+
+    public var fee : EthereumAmount {
+        var overflow : Int32 = 0
+        let fee : BREthereumEther = ethereumTransferGetFee(self.ewm!.core, self.identifier, &overflow);
+        return EthereumAmount.ether(fee.valueInWEI, unit.coreForEther)
+    }
+
+    public var confirmations : UInt64? {
+        let confirmations = ethereumTransferGetBlockConfirmations(self.ewm!.core, self.identifier)
+        return confirmations > 0 ? confirmations : nil
+    }
+
+    public var confirmationBlockNumber : UInt64? {
+        let number = ethereumTransferGetBlockNumber(self.ewm!.core, self.identifier)
+        return number > 0 ? number : nil
+    }
+
+    //    var gasPrice : EthereumAmount {
+    //        let price : BREthereumAmount = ethereumTransferGetGasPriceToo (self.ewm!.core, self.identifier)
+    //        return EthereumAmount.ether (price.u.ether.valueInWEI, WEI)
+    //    }
+    //
+    //    var gasLimit : UInt64 {
+    //        return ethereumTransactionGetGasLimit(self.ewm!.core, self.identifier)
+    //    }
+    //
+    //    var gasUsed : UInt64 {
+    //        return ethereumTransactionGetGasUsed (self.ewm!.core, self.identifier)
+    //    }
+    //
+    //    var nonce : UInt64 {
+    //        return ethereumTransactionGetNonce (self.ewm!.core, self.identifier)
+    //    }
+    //
+    //    var blockNumber : UInt64 {
+    //        return ethereumTransactionGetBlockNumber (self.ewm!.core, self.identifier)
+    //    }
+
+    // State
+}
+
+///
+/// MARK: - Wallet
+///
 
 ///
 /// An `EthereumWallet` holds a balance with ETHER or a TOKEN and is associated with a Network
@@ -288,7 +415,7 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit, Hashable {
     }
 
     //
-    // Transaction
+    // Transfer
     //
     public func createTransfer (recvAddress: String, amount: String, unit: EthereumAmountUnit) -> EthereumTransfer {
         var status : BRCoreParseStatus = CORE_PARSE_OK
@@ -346,119 +473,9 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit, Hashable {
     }
 }
 
-// MAKR: - Block
-
 ///
-/// An `EthereumBlock` represents a  ...
-//
-public struct EthereumBlock : EthereumReference {
-    public weak var ewm : EthereumWalletManager?
-    public let identifier : EthereumWalletId
-
-    init (ewm: EthereumWalletManager, identifier: EthereumAccountId) {
-        self.ewm = ewm
-        self.identifier = identifier
-    }
-
-    var number : UInt64 {
-        return ethereumBlockGetNumber (self.ewm!.core, identifier)
-    }
-
-    var timestamp : UInt64 {
-        return ethereumBlockGetTimestamp (self.ewm!.core, identifier)
-    }
-
-    var hash : String {
-        return asUTF8String(ethereumBlockGetHash (self.ewm!.core, identifier))
-    }
-}
-
-// MARK: - Transaction
-
+/// MARK: - Client
 ///
-/// An `EthereumTransaction` represents a transfer of ETHER or a specific TOKEN between two
-/// accounts.
-///
-public struct EthereumTransfer : EthereumReferenceWithDefaultUnit {
-    public weak var ewm : EthereumWalletManager?
-    public let identifier : EthereumWalletId
-    public let unit : EthereumAmountUnit
-
-    internal init (ewm : EthereumWalletManager, identifier : EthereumTransferId) {
-        self.init (ewm: ewm,
-                   identifier: identifier,
-                   unit: EthereumAmountUnit.defaultUnit(
-                    nil == ethereumTransferGetToken (ewm.core, identifier)))
-    }
-
-    internal init (ewm : EthereumWalletManager, identifier : EthereumTransferId, unit: EthereumAmountUnit) {
-        self.ewm = ewm
-        self.identifier = identifier
-        self.unit = unit
-    }
-
-    public var hash : String {
-        return asUTF8String (ethereumTransferGetHash (self.ewm!.core, self.identifier), true)
-    }
-
-    public var sourceAddress : String {
-        return asUTF8String (ethereumTransferGetSendAddress (self.ewm!.core, self.identifier), true)
-    }
-
-    public var targetAddress : String {
-        return asUTF8String (ethereumTransferGetRecvAddress (self.ewm!.core, self.identifier), true)
-    }
-
-    public var amount : EthereumAmount {
-        let amount : BREthereumAmount = ethereumTransferGetAmount (self.ewm!.core, self.identifier)
-        return (AMOUNT_ETHER == amount.type
-            ? EthereumAmount.ether(amount.u.ether.valueInWEI, unit.coreForEther)
-            : EthereumAmount.token (amount.u.tokenQuantity.valueAsInteger,
-                                    EthereumToken.lookup (core: amount.u.tokenQuantity.token),
-                                    unit.coreForToken))
-    }
-
-    public var fee : EthereumAmount {
-        var overflow : Int32 = 0
-        let fee : BREthereumEther = ethereumTransferGetFee(self.ewm!.core, self.identifier, &overflow);
-        return EthereumAmount.ether(fee.valueInWEI, unit.coreForEther)
-    }
-
-    public var confirmations : UInt64? {
-        let confirmations = ethereumTransferGetBlockConfirmations(self.ewm!.core, self.identifier)
-        return confirmations > 0 ? confirmations : nil
-    }
-
-    public var confirmationBlockNumber : UInt64? {
-        let number = ethereumTransferGetBlockNumber(self.ewm!.core, self.identifier)
-        return number > 0 ? number : nil
-    }
-
-    //    var gasPrice : EthereumAmount {
-    //        let price : BREthereumAmount = ethereumTransferGetGasPriceToo (self.ewm!.core, self.identifier)
-    //        return EthereumAmount.ether (price.u.ether.valueInWEI, WEI)
-    //    }
-    //
-    //    var gasLimit : UInt64 {
-    //        return ethereumTransactionGetGasLimit(self.ewm!.core, self.identifier)
-    //    }
-    //
-    //    var gasUsed : UInt64 {
-    //        return ethereumTransactionGetGasUsed (self.ewm!.core, self.identifier)
-    //    }
-    //
-    //    var nonce : UInt64 {
-    //        return ethereumTransactionGetNonce (self.ewm!.core, self.identifier)
-    //    }
-    //
-    //    var blockNumber : UInt64 {
-    //        return ethereumTransactionGetBlockNumber (self.ewm!.core, self.identifier)
-    //    }
-
-    // State
-}
-
-// MARK: - Client
 
 public enum EthereumStatus {
     case success
@@ -647,15 +664,19 @@ public protocol EthereumClient : class {
                    address: String,
                    rid: Int32) -> Void
 
-    func saveNodes (ewm: EthereumWalletManager /* data */) -> Void
+    func saveNodes (ewm: EthereumWalletManager,
+                    data: Dictionary<String, String>) -> Void
 
-    func saveBlocks (ewm: EthereumWalletManager /* data */) -> Void
+    func saveBlocks (ewm: EthereumWalletManager,
+                     data: Dictionary<String, String>) -> Void
 
     func changeTransaction (ewm: EthereumWalletManager,
-                            change: EthereumClientChangeType /* data */) -> Void
+                            change: EthereumClientChangeType,
+                            data: Dictionary<String, String>) -> Void
 
     func changeLog (ewm: EthereumWalletManager,
-                    change: EthereumClientChangeType /* data */) -> Void
+                    change: EthereumClientChangeType,
+                    data: Dictionary<String, String>) -> Void
 
     // ...
     func handleEWMEvent (ewm: EthereumWalletManager,
@@ -1013,25 +1034,25 @@ public class EthereumWalletManager {
             funcSaveNodes: { (coreClient, coreEWM, data) in
                 if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }),
                     let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    client.saveNodes(ewm: ewm)
+                    client.saveNodes(ewm: ewm, data: [:])
                 }},
 
             funcSaveBlocks: { (coreClient, coreEWM, data) in
                 if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }),
                     let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    client.saveBlocks(ewm: ewm)
+                    client.saveBlocks(ewm: ewm, data: [:])
                 }},
 
             funcChangeTransaction: { (coreClient, coreEWM, change, data) in
                 if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }),
                     let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    client.changeTransaction(ewm: ewm, change: EthereumClientChangeType(change))
+                    client.changeTransaction(ewm: ewm, change: EthereumClientChangeType(change), data: [:])
                 }},
 
             funcChangeLog: { (coreClient, coreEWM, change, data) in
                 if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }),
                     let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    client.changeLog(ewm: ewm, change: EthereumClientChangeType(change))
+                    client.changeLog(ewm: ewm, change: EthereumClientChangeType(change), data: [:])
                 }},
 
             funcEWMEvent: { (coreClient, coreEWM, event, status, message) in
@@ -1289,20 +1310,26 @@ class AnyEthereumClient : EthereumClient {
         base.getNonce(ewm: ewm, address: address, rid: rid)
     }
 
-    func saveNodes(ewm: EthereumWalletManager) {
-        base.saveNodes(ewm: ewm)
+    func saveNodes(ewm: EthereumWalletManager,
+                   data: Dictionary<String, String>) {
+        base.saveNodes(ewm: ewm, data: data)
     }
 
-    func saveBlocks(ewm: EthereumWalletManager) {
-        base.saveBlocks(ewm: ewm)
+    func saveBlocks(ewm: EthereumWalletManager,
+                    data: Dictionary<String, String>) {
+        base.saveBlocks(ewm: ewm, data: data)
     }
 
-    func changeTransaction(ewm: EthereumWalletManager, change: EthereumClientChangeType) {
-        base.changeTransaction(ewm: ewm, change: change)
+    func changeTransaction(ewm: EthereumWalletManager,
+                           change: EthereumClientChangeType,
+                           data: Dictionary<String, String>) {
+        base.changeTransaction(ewm: ewm, change: change, data: data)
     }
 
-    func changeLog(ewm: EthereumWalletManager, change: EthereumClientChangeType) {
-        base.changeLog(ewm: ewm, change: change)
+    func changeLog(ewm: EthereumWalletManager,
+                   change: EthereumClientChangeType,
+                   data: Dictionary<String, String>) {
+        base.changeLog (ewm: ewm, change: change, data: data)
     }
 
     func handleEWMEvent(ewm: EthereumWalletManager, event: EthereumEWMEvent) {

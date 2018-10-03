@@ -196,19 +196,25 @@ class CoreDemoEthereumClient : EthereumClient {
         ewm.announceNonce(address: address, nonce: "17", rid: rid)
     }
 
-    func saveNodes(ewm: EthereumWalletManager) {
+    func saveNodes(ewm: EthereumWalletManager,
+                   data: Dictionary<String, String>) {
         print ("TST: saveNodes")
     }
 
-    func saveBlocks(ewm: EthereumWalletManager) {
+    func saveBlocks(ewm: EthereumWalletManager,
+                    data: Dictionary<String, String>) {
         print ("TST: saveBlocks")
     }
 
-    func changeTransaction(ewm: EthereumWalletManager, change: EthereumClientChangeType) {
+    func changeTransaction(ewm: EthereumWalletManager,
+                           change: EthereumClientChangeType,
+                           data: Dictionary<String, String>) {
         print ("TST: changeTransaction")
     }
 
-    func changeLog(ewm: EthereumWalletManager, change: EthereumClientChangeType) {
+    func changeLog(ewm: EthereumWalletManager,
+                   change: EthereumClientChangeType,
+                   data: Dictionary<String, String>) {
         print ("TST: changeLog")
     }
 

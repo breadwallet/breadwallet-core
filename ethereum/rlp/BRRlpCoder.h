@@ -63,7 +63,7 @@ typedef struct {
 } BRRlpData;
 
 extern BRRlpData
-createRlpDataEmpty (void);
+rlpDataCopy (BRRlpData data);
 
 extern void
 rlpDataRelease (BRRlpData data);

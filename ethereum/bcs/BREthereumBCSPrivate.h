@@ -26,8 +26,6 @@
 #ifndef BR_Ethereum_BCS_Private_h
 #define BR_Ethereum_BCS_Private_h
 
-#include "BRSet.h"
-#include "BRArray.h"
 #include "BREthereumBCS.h"
 #include "../blockchain/BREthereumBlockChain.h"
 #include "../event/BREvent.h"
@@ -215,11 +213,6 @@ struct BREthereumBCSStruct {
 
 extern const BREventType *bcsEventTypes[];
 extern const unsigned int bcsEventTypesCount;
-
-#define FOR_SET(type,var,set) \
-    for (type var = BRSetIterate(set, NULL); \
-         NULL != var; \
-         var = BRSetIterate(set, var))
 
 #define BCS_FOR_BLOCK(block)  FOR_SET(BREthereumBlock, block, bcs->blocks)
 

@@ -823,14 +823,17 @@ rlpDecodeList (BRRlpCoder coder, BRRlpItem item, size_t *itemsCount) {
 }
 
 //
-// Data
+// RLP Data
 //
 extern BRRlpData
-createRlpDataEmpty (void) {
-    BRRlpData data;
-    data.bytesCount = 0;
-    data.bytes = NULL;
-    return data;
+rlpDataCopy (BRRlpData data) {
+    uint8_t *bytesCopy = NULL;
+    if (NULL != data.bytes) {
+        bytesCopy = malloc (data.bytesCount);
+        memcpy (bytesCopy, data.bytes, data.bytesCount);
+    }
+
+    return (BRRlpData) { data.bytesCount, bytesCopy };
 }
 
 extern void
