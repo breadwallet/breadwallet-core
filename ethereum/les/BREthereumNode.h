@@ -226,7 +226,8 @@ nodeConnect (BREthereumNode node,
 extern BREthereumNodeState
 nodeDisconnect (BREthereumNode node,
                 BREthereumNodeEndpointRoute route,
-                BREthereumP2PDisconnectReason reason);
+                BREthereumNodeState stateToAnnounce,
+                BREthereumBoolean returnToAvailable);
 
 extern int
 nodeUpdateDescriptors (BREthereumNode node,

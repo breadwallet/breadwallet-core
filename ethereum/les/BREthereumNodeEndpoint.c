@@ -196,6 +196,7 @@ nodeEndpointClose (BREthereumNodeEndpoint *endpoint,
 
     socket = endpoint->sockets[route];
     if (socket >= 0) {
+        // TOOO: Only assign -1 if closer is successful?
         endpoint->sockets[route] = -1;
 
         if (needShutdown && shutdown (socket, SHUT_RDWR) < 0) {
@@ -203,10 +204,11 @@ nodeEndpointClose (BREthereumNodeEndpoint *endpoint,
                      nodeEndpointRouteGetName (route),
                      strerror(errno));
 
-            // Try to close anyways but don't lose the original error.
+            // Save the error
             int error = errno;
-            close(socket);
-            return error;
+
+            // Try to close anyways; if unsuccessful return the original error.
+            return 0 == close (socket) ? 0 : error;
         }
         if (close (socket) < 0) {
             eth_log (LES_LOG_TOPIC, "Socket %d (%s) Close Error: %s", socket,
