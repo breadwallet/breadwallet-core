@@ -34,7 +34,7 @@ class CoreDemoEthereumClient : EthereumClient {
                                            network: network,
                                            type: type,
                                            mode: mode,
-                                           paperKey: paperKey)
+                                           key: EthereumKey.paperKey(paperKey))
     }
 
     func getBalance(ewm: EthereumWalletManager, wid: EthereumWalletId, address: String, rid: Int32) {
@@ -196,19 +196,27 @@ class CoreDemoEthereumClient : EthereumClient {
         ewm.announceNonce(address: address, nonce: "17", rid: rid)
     }
 
-    func saveNodes(ewm: EthereumWalletManager) {
+    func saveNodes(ewm: EthereumWalletManager,
+                   data: Dictionary<String, String>) {
         print ("TST: saveNodes")
     }
 
-    func saveBlocks(ewm: EthereumWalletManager) {
+    func saveBlocks(ewm: EthereumWalletManager,
+                    data: Dictionary<String, String>) {
         print ("TST: saveBlocks")
     }
 
-    func changeTransaction(ewm: EthereumWalletManager, change: EthereumClientChangeType) {
+    func changeTransaction (ewm: EthereumWalletManager,
+                            change: EthereumClientChangeType,
+                            hash: String,
+                            data: String) {
         print ("TST: changeTransaction")
     }
 
-    func changeLog(ewm: EthereumWalletManager, change: EthereumClientChangeType) {
+    func changeLog (ewm: EthereumWalletManager,
+                    change: EthereumClientChangeType,
+                    hash: String,
+                    data: String) {
         print ("TST: changeLog")
     }
 

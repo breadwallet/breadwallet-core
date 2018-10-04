@@ -50,106 +50,105 @@ ewmPeriodicDispatcher (BREventHandler handler,
 ///
 /// MARK: - Create EWM
 ///
-static BRArrayOf(BREthereumBlock)
-createEWMEnsureBlocks (BRArrayOf(BREthereumPersistData) blocksPersistData,
+static BRSetOf(BREthereumBlock)
+createEWMEnsureBlocks (BRSetOf(BREthereumHashDataPair) blocksPersistData,
                        BREthereumNetwork network,
                        BRRlpCoder coder) {
-    BRArrayOf(BREthereumBlock) blocks;
+    size_t blocksCount = (NULL == blocksPersistData ? 0 : BRSetCount (blocksPersistData));
 
-    if (NULL == blocksPersistData || array_count(blocksPersistData) == 0) {
-        array_new(blocks, 1);
+    BRSetOf(BREthereumBlock) blocks = BRSetNew (blockHashValue,
+                                                blockHashEqual,
+                                                blocksCount);
+
+    if (0 == blocksCount) {
         BREthereumBlockHeader lastCheckpointHeader = blockCheckpointCreatePartialBlockHeader(blockCheckpointLookupLatest(network));
-        array_add(blocks, blockCreate(lastCheckpointHeader));
+        BRSetAdd (blocks, blockCreate(lastCheckpointHeader));
     }
     else {
-        array_new(blocks, array_count(blocksPersistData));
-
-        for (size_t index = 0; index < array_count(blocksPersistData); index++) {
-            BRRlpItem item = rlpGetItem(coder, blocksPersistData[index].blob);
-            BREthereumBlock block = blockRlpDecode(item, network, RLP_TYPE_ARCHIVE, coder);
+        FOR_SET (BREthereumHashDataPair, pair, blocksPersistData) {
+            BRRlpItem item = rlpGetItem (coder, dataAsRlpData (hashDataPairGetData (pair)));
+            BREthereumBlock block = blockRlpDecode (item, network, RLP_TYPE_ARCHIVE, coder);
             rlpReleaseItem(coder, item);
-            rlpDataRelease(blocksPersistData[index].blob);
-            array_insert (blocks, index, block);
+            BRSetAdd (blocks, block);
         }
-    }
 
-    if (NULL != blocksPersistData) {
-        array_free(blocksPersistData);
+        if (NULL != blocksPersistData)
+            hashDataPairSetRelease(blocksPersistData);
     }
 
     return blocks;
 }
 
-static BRArrayOf(BREthereumNodeConfig)
-createEWMEnsureNodes (BRArrayOf(BREthereumPersistData) nodesPersistData,
+static BRSetOf(BREthereumNodeConfig)
+createEWMEnsureNodes (BRSetOf(BREthereumHashDataPair) nodesPersistData,
                       BRRlpCoder coder) {
-    BRArrayOf(BREthereumNodeConfig) nodes;
 
-    size_t peersCount = (NULL == nodesPersistData ? 0 : array_count(nodesPersistData));
-    array_new(nodes, peersCount);
-
-    for (size_t index = 0; index < peersCount; index++) {
-        BRRlpItem item = rlpGetItem(coder, nodesPersistData[index].blob);
-        BREthereumNodeConfig node = nodeConfigDecode(item, coder);
-        rlpReleaseItem(coder, item);
-        rlpDataRelease(nodesPersistData[index].blob);
-        array_insert (nodes, index, node);
-    }
+    BRSetOf (BREthereumNodeConfig) nodes =
+    BRSetNew (nodeConfigHashValue,
+              nodeConfigHashEqual,
+              (NULL == nodesPersistData ? 0 : BRSetCount(nodesPersistData)));
 
     if (NULL != nodesPersistData) {
-        array_free (nodesPersistData);
+        FOR_SET (BREthereumHashDataPair, pair, nodesPersistData) {
+            BRRlpItem item = rlpGetItem (coder, dataAsRlpData (hashDataPairGetData (pair)));
+            BREthereumNodeConfig node = nodeConfigDecode(item, coder);
+            rlpReleaseItem(coder, item);
+            BRSetAdd (nodes, node);
+        }
+
+        hashDataPairSetRelease(nodesPersistData);
     }
 
     return nodes;
 }
 
-static BRArrayOf(BREthereumTransaction)
-createEWMEnsureTransactions (BRArrayOf(BREthereumPersistData) transactionsPersistData,
+static BRSetOf(BREthereumTransaction)
+createEWMEnsureTransactions (BRSetOf(BREthereumHashDataPair) transactionsPersistData,
                              BREthereumNetwork network,
                              BRRlpCoder coder) {
-    BRArrayOf(BREthereumTransaction) transactions;
-
-    size_t transactionsCount = (NULL == transactionsPersistData ? 0 : array_count(transactionsPersistData));
-    array_new(transactions, transactionsCount);
-
-    for (size_t index = 0; index < transactionsCount; index++) {
-        fprintf (stdout, "ETH: TST: EnsureTrans @ %p\n", transactionsPersistData[index].blob.bytes);
-
-        BRRlpItem item = rlpGetItem(coder, transactionsPersistData[index].blob);
-        BREthereumTransaction transaction = transactionRlpDecode(item, network, RLP_TYPE_ARCHIVE, coder);
-        rlpReleaseItem(coder, item);
-        rlpDataRelease(transactionsPersistData[index].blob);
-        array_insert (transactions, index, transaction);
-    }
+    BRSetOf(BREthereumTransaction) transactions =
+    BRSetNew (transactionHashValue,
+              transactionHashEqual,
+              (NULL == transactionsPersistData ? 0 : BRSetCount (transactionsPersistData)));
 
     if (NULL != transactionsPersistData) {
-        array_free(transactionsPersistData);
+        FOR_SET (BREthereumHashDataPair, pair, transactionsPersistData) {
+            fprintf (stdout, "ETH: TST: EnsureTrans @ %p\n", hashDataPairGetData(pair).bytes);
+
+            BRRlpItem item = rlpGetItem (coder, dataAsRlpData (hashDataPairGetData (pair)));
+            BREthereumTransaction transaction = transactionRlpDecode(item, network, RLP_TYPE_ARCHIVE, coder);
+            rlpReleaseItem (coder, item);
+            BRSetAdd (transactions, transaction);
+        }
+
+        hashDataPairSetRelease(transactionsPersistData);
     }
 
     return transactions;
 }
 
-static BRArrayOf(BREthereumLog)
-createEWMEnsureLogs(BRArrayOf(BREthereumPersistData) logsPersistData,
+static BRSetOf(BREthereumLog)
+createEWMEnsureLogs(BRSetOf(BREthereumHashDataPair) logsPersistData,
                     BREthereumNetwork network,
                     BRRlpCoder coder) {
-    BRArrayOf(BREthereumLog) logs;
-
-    size_t logsCount = (NULL == logsPersistData ? 0 : array_count(logsPersistData));
-    array_new(logs, logsCount);
-
-    for (size_t index = 0; index < logsCount; index++) {
-        fprintf (stdout, "ETH: TST: EnsureLogs @ %p\n", logsPersistData[index].blob.bytes);
-
-        BRRlpItem item = rlpGetItem(coder, logsPersistData[index].blob);
-        BREthereumLog log = logRlpDecode(item, RLP_TYPE_ARCHIVE, coder);
-        rlpReleaseItem(coder, item);
-        rlpDataRelease(logsPersistData[index].blob);
-        array_insert (logs, index, log);
-    }
+    BRSetOf(BREthereumLog) logs =
+    BRSetNew (logHashValue,
+              logHashEqual,
+              (NULL == logsPersistData ? 0 : BRSetCount(logsPersistData)));
 
     if (NULL != logsPersistData) {
-        array_free(logsPersistData);
+
+        FOR_SET (BREthereumHashDataPair, pair, logsPersistData) {
+            fprintf (stdout, "ETH: TST: EnsureLogs @ %p\n", hashDataPairGetData(pair).bytes);
+            BRRlpItem item = rlpGetItem (coder, dataAsRlpData (hashDataPairGetData (pair)));
+
+            BREthereumLog log = logRlpDecode(item, RLP_TYPE_ARCHIVE, coder);
+            rlpReleaseItem(coder, item);
+
+            BRSetAdd (logs, log);
+        }
+
+        hashDataPairSetRelease (logsPersistData);
     }
 
     return logs;
@@ -162,10 +161,10 @@ createEWM (BREthereumNetwork network,
            // serialized: headers, transactions, logs
            BREthereumSyncMode syncMode,
            BREthereumClient client,
-           BRArrayOf(BREthereumPersistData) nodesPersistData,
-           BRArrayOf(BREthereumPersistData) blocksPersistData,
-           BRArrayOf(BREthereumPersistData) transactionsPersistData,
-           BRArrayOf(BREthereumPersistData) logsPersistData) {
+           BRSetOf(BREthereumHashDataPair) nodesPersistData,
+           BRSetOf(BREthereumHashDataPair) blocksPersistData,
+           BRSetOf(BREthereumHashDataPair) transactionsPersistData,
+           BRSetOf(BREthereumHashDataPair) logsPersistData) {
     BREthereumEWM ewm = (BREthereumEWM) calloc (1, sizeof (struct BREthereumEWMRecord));
 
     ewm->state = LIGHT_NODE_CREATED;
@@ -214,10 +213,10 @@ createEWM (BREthereumNetwork network,
 
     // Extract the provided persist data.  We'll use these when configuring BCS (if EWM_USE_LES)
     // or EWM (if EWM_USE_BRD).
-    BRArrayOf(BREthereumNodeConfig)  nodes        = createEWMEnsureNodes(nodesPersistData, ewm->coder);
-    BRArrayOf(BREthereumBlock)       blocks       = createEWMEnsureBlocks (blocksPersistData, network, ewm->coder);
-    BRArrayOf(BREthereumTransaction) transactions = createEWMEnsureTransactions(transactionsPersistData, network, ewm->coder);
-    BRArrayOf(BREthereumLog)         logs         = createEWMEnsureLogs(logsPersistData, network, ewm->coder);
+    BRSetOf(BREthereumNodeConfig)  nodes        = createEWMEnsureNodes(nodesPersistData, ewm->coder);
+    BRSetOf(BREthereumBlock)       blocks       = createEWMEnsureBlocks (blocksPersistData, network, ewm->coder);
+    BRSetOf(BREthereumTransaction) transactions = createEWMEnsureTransactions(transactionsPersistData, network, ewm->coder);
+    BRSetOf(BREthereumLog)         logs         = createEWMEnsureLogs(logsPersistData, network, ewm->coder);
 
     // Support the requested type
     switch (ewm->type) {
@@ -252,29 +251,30 @@ createEWM (BREthereumNetwork network,
 
         case EWM_USE_BRD: {
             // Announce all the provided transactions...
-            for (size_t index = 0; index < array_count(transactions); index++)
-                ewmSignalTransaction (ewm, BCS_CALLBACK_TRANSACTION_ADDED, transactions[index]);
+            FOR_SET (BREthereumTransaction, transaction, transactions)
+                ewmSignalTransaction (ewm, BCS_CALLBACK_TRANSACTION_ADDED, transaction);
 
             // ... as well as the provided logs...
-            for (size_t index = 0; index < array_count(logs); index++)
-                ewmSignalLog (ewm, BCS_CALLBACK_LOG_ADDED, logs[index]);
+            FOR_SET (BREthereumLog, log, logs)
+                ewmSignalLog (ewm, BCS_CALLBACK_LOG_ADDED, log);
 
             // ... and then the latest block.
-            BREthereumBlock block = NULL;
-            for (size_t index = 0; index < array_count(blocks); index++)
-                if (NULL == block || blockGetNumber(block) < blockGetNumber(blocks[index]))
-                    block = blocks[index];
+            BREthereumBlock lastBlock = NULL;
+            FOR_SET (BREthereumBlock, block, blocks)
+                if (NULL == lastBlock || blockGetNumber(lastBlock) < blockGetNumber(block))
+                    lastBlock = block;
             ewmSignalBlockChain (ewm,
-                                 blockGetHash(block),
-                                 blockGetNumber(block),
-                                 blockGetTimestamp(block));
+                                 blockGetHash( lastBlock),
+                                 blockGetNumber (lastBlock),
+                                 blockGetTimestamp (lastBlock));
 
             // ... and then ignore nodes
 
-            array_free (nodes);
-            array_free (blocks);
-            array_free(transactions);
-            array_free(logs);
+            // TODO: What items to free?
+            BRSetFree (nodes);
+            BRSetFree (blocks);
+            BRSetFree (transactions);
+            BRSetFree (logs);
 
             // Add ewmPeriodicDispatcher to handlerForMain.
             eventHandlerSetTimeoutDispatcher(ewm->handlerForMain,
@@ -888,8 +888,6 @@ extern void
 ewmHandleTransaction (BREthereumEWM ewm,
                       BREthereumBCSCallbackTransactionType type,
                       BREthereumTransaction transaction) {
-    
-
     BREthereumHash hash = transactionGetHash(transaction);
 
     BREthereumHashString hashString;
@@ -988,16 +986,14 @@ ewmHandleSaveBlocks (BREthereumEWM ewm,
                      BRArrayOf(BREthereumBlock) blocks) {
     eth_log("EWM", "Save Blocks: %zu", array_count(blocks));
 
-    BRArrayOf(BREthereumPersistData) blocksToSave;
-    array_new(blocksToSave, array_count(blocks));
+    BRSetOf(BREthereumHashDataPair) blocksToSave = hashDataPairSetCreateEmpty (array_count (blocks));
+
     for (size_t index = 0; index < array_count(blocks); index++) {
         BRRlpItem item = blockRlpEncode(blocks[index], ewm->network, RLP_TYPE_ARCHIVE, ewm->coder);
-        BREthereumPersistData persistData = {
-            blockGetHash(blocks[index]),
-            rlpGetData(ewm->coder, item)
-        };
+        BRSetAdd (blocksToSave,
+                  hashDataPairCreate (blockGetHash(blocks[index]),
+                                      dataCreateFromRlpData (rlpGetData (ewm->coder, item), 1)));
         rlpReleaseItem(ewm->coder, item);
-        array_add (blocksToSave, persistData);
     }
 
     // TODO: ewmSignalSaveBlocks(ewm, blocks)
@@ -1013,17 +1009,14 @@ ewmHandleSaveNodes (BREthereumEWM ewm,
                     BRArrayOf(BREthereumNodeConfig) nodes) {
     size_t nodesCount = array_count(nodes);
 
-    // Serialize BREthereumPeerConfig
-    BRArrayOf(BREthereumPersistData) nodesToSave;
-    array_new(nodesToSave, 0);
+    BRSetOf(BREthereumHashDataPair) nodesToSave = hashDataPairSetCreateEmpty (array_count (nodes));
+
     for (size_t index = 0; index < array_count(nodes); index++) {
         BRRlpItem item = nodeConfigEncode(nodes[index], ewm->coder);
-        BREthereumPersistData persistData = {
-            nodeConfigGetHash(nodes[index]),
-            rlpGetData (ewm->coder, item)
-        };
+        BRSetAdd (nodesToSave,
+                  hashDataPairCreate (nodeConfigGetHash(nodes[index]),
+                                      dataCreateFromRlpData (rlpGetData (ewm->coder, item), 1)));
         rlpReleaseItem (ewm->coder, item);
-        array_add (nodesToSave, persistData);
     }
 
     // TODO: ewmSignalSavenodes(ewm, nodes);

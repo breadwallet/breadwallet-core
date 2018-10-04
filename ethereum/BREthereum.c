@@ -41,10 +41,10 @@ ethereumCreate(BREthereumNetwork network,
                BREthereumType type,
                BREthereumSyncMode syncMode,
                BREthereumClient client,
-               BRArrayOf(BREthereumPersistData) peers,
-               BRArrayOf(BREthereumPersistData) blocks,
-               BRArrayOf(BREthereumPersistData) transactions,
-               BRArrayOf(BREthereumPersistData) logs) {
+               BRSetOf(BREthereumHashDataPair) peers,
+               BRSetOf(BREthereumHashDataPair) blocks,
+               BRSetOf(BREthereumHashDataPair) transactions,
+               BRSetOf(BREthereumHashDataPair) logs) {
     return createEWM (network, createAccount(paperKey), type, syncMode, client,
                       peers,
                       blocks,
@@ -58,10 +58,10 @@ ethereumCreateWithPublicKey(BREthereumNetwork network,
                             BREthereumType type,
                             BREthereumSyncMode syncMode,
                             BREthereumClient client,
-                            BRArrayOf(BREthereumPersistData) peers,
-                            BRArrayOf(BREthereumPersistData) blocks,
-                            BRArrayOf(BREthereumPersistData) transactions,
-                            BRArrayOf(BREthereumPersistData) logs) {
+                            BRSetOf(BREthereumHashDataPair) peers,
+                            BRSetOf(BREthereumHashDataPair) blocks,
+                            BRSetOf(BREthereumHashDataPair) transactions,
+                            BRSetOf(BREthereumHashDataPair) logs) {
     return createEWM (network, createAccountWithPublicKey (publicKey), type, syncMode, client,
                       peers,
                       blocks,
@@ -911,4 +911,29 @@ ethereumClientAnnounceToken(BREthereumEWM ewm,
     bundle->gasPrice    = gasPriceCreate(etherCreate(gasPriceValue));
 
     ewmClientSignalAnnounceToken (ewm, bundle, rid);
+}
+
+///
+/// MARK: - Hash Data Pair
+///
+extern BRSetOf(BREthereumHashDataPair)
+ethereumHashDataPairSetCreate (void) {
+    return hashDataPairSetCreateEmpty (5);
+}
+
+extern void
+ethereumHashDataPairAdd (BRSetOf(BREthereumHashDataPair) set,
+                         const char *hash,
+                         const char *data) {
+    BRSetAdd (set, hashDataPairCreateFromString(hash, data));
+}
+
+extern char *
+ethereumHashDataPairGetHash (BREthereumHashDataPair pair) {
+    return hashDataPairGetHashAsString(pair);
+}
+
+extern char *
+ethereumHashDataPairGetData (BREthereumHashDataPair pair) {
+    return hashDataPairGetDataAsString(pair);
 }

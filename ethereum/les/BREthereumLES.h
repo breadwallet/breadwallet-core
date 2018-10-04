@@ -60,6 +60,15 @@ extern BREthereumNodeConfig
 nodeConfigDecode (BRRlpItem item,
                   BRRlpCoder coder);
 
+// Support BRSet
+extern size_t
+nodeConfigHashValue (const void *h);
+
+// Support BRSet
+extern int
+nodeConfigHashEqual (const void *h1, const void *h2);
+
+
 /*!
  * @typedef BREthereumLES
  *
@@ -158,7 +167,7 @@ lesCreate (BREthereumNetwork network,
            uint64_t headNumber,
            UInt256 headTotalDifficulty,
            BREthereumHash genesisHash,
-           BRArrayOf(BREthereumNodeConfig) configs);
+           BRSetOf(BREthereumNodeConfig) configs);
 
 /*!
  * @function lesRelease

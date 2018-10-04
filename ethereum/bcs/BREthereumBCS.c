@@ -97,7 +97,7 @@ syncInterestsCreate (int count, /* BREthereumSyncInterest*/ ...) {
  */
 static void
 bcsCreateInitializeBlocks (BREthereumBCS bcs,
-                            BRArrayOf(BREthereumBlock) blocks) {
+                           BRSetOf(BREthereumBlock) blocks) {
     if (NULL == blocks) return;
 
     bcs->chain = bcs->chainTail = NULL;
@@ -112,10 +112,9 @@ bcsCreateInitializeBlocks (BREthereumBCS bcs,
     //
     // We'll sort `blocks` ascending by {blockNumber, timestamp}. Then we'll interate and chain
     // them together while ignoring any duplicates/orphans.
-    size_t sortedBlocksCount = array_count(blocks);
-    BREthereumBlock *sortedBlocks;
-    array_new(sortedBlocks, sortedBlocksCount);
-    array_add_array(sortedBlocks, blocks, sortedBlocksCount);
+    size_t sortedBlocksCount = BRSetCount(blocks);
+    BREthereumBlock sortedBlocks[sortedBlocksCount];
+    BRSetAll(blocks, (void**) sortedBlocks, sortedBlocksCount);
 
     // TODO: Sort
 
@@ -136,17 +135,15 @@ bcsCreateInitializeBlocks (BREthereumBCS bcs,
             bcs->chainTail = bcs->chain;
     }
 
-    array_free (sortedBlocks);
-    array_free (blocks);
+    BRSetFree (blocks);
 }
 
 static void
 bcsCreateInitializeTransactions (BREthereumBCS bcs,
-                                 BRArrayOf(BREthereumTransaction) transactions) {
+                                 BRSetOf(BREthereumTransaction) transactions) {
     if (NULL == transactions) return;
-    
-    for (size_t index = 0; index < array_count(transactions); index++) {
-        BREthereumTransaction transaction = transactions[index];
+
+    FOR_SET (BREthereumTransaction, transaction, transactions) {
         BREthereumTransactionStatus status = transactionGetStatus(transaction);
 
         // For now, assume all provided transactions are in a 'final state'.
@@ -157,16 +154,15 @@ bcsCreateInitializeTransactions (BREthereumBCS bcs,
         bcsSignalTransaction (bcs, transaction);
     }
 
-    array_free (transactions);
+    BRSetFree (transactions);
 }
 
 static void
 bcsCreateInitializeLogs (BREthereumBCS bcs,
-                         BRArrayOf(BREthereumLog) logs) {
+                         BRSetOf(BREthereumLog) logs) {
     if (NULL == logs) return;
 
-    for (size_t index = 0; index < array_count(logs); index++) {
-        BREthereumLog log = logs[index];
+    FOR_SET (BREthereumLog, log, logs) {
         BREthereumTransactionStatus status = logGetStatus(log);
 
         // For now, assume all provided logs are in a 'final state'.
@@ -177,7 +173,7 @@ bcsCreateInitializeLogs (BREthereumBCS bcs,
         bcsSignalLog (bcs, log);
     }
 
-    array_free (logs);
+    BRSetFree (logs);
 }
 
 extern BREthereumBCS
@@ -185,10 +181,10 @@ bcsCreate (BREthereumNetwork network,
            BREthereumAddress address,
            BREthereumBCSListener listener,
            BREthereumSyncMode syncMode,
-           BRArrayOf(BREthereumNodeConfig) peers,
-           BRArrayOf(BREthereumBlock) blocks,
-           BRArrayOf(BREthereumTransaction) transactions,
-           BRArrayOf(BREthereumLog) logs) {
+           BRSetOf(BREthereumNodeConfig) peers,
+           BRSetOf(BREthereumBlock) blocks,
+           BRSetOf(BREthereumTransaction) transactions,
+           BRSetOf(BREthereumLog) logs) {
            // peers
 
     BREthereumBCS bcs = (BREthereumBCS) calloc (1, sizeof(struct BREthereumBCSStruct));
