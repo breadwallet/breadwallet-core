@@ -96,6 +96,9 @@ extern BREthereumData
 dataCreateFromRlpData (BRRlpData rlp,
                        int takeBytes);
 
+extern BREthereumData // invert dataAsString()
+dataCreateFromString (const char *string) ;
+
 extern BREthereumData
 dataCopy (BREthereumData data);
 
@@ -105,6 +108,9 @@ dataRelease (BREthereumData data);
 // hex-encoded data; you own this.
 extern char *
 dataAsString (BREthereumData data);
+
+extern BRRlpData
+dataAsRlpData (BREthereumData data);
 
 ///
 /// MARK: - Hash Data Pair
@@ -125,6 +131,10 @@ typedef struct BREthereumHashDataPairRecord *BREthereumHashDataPair;
 extern BREthereumHashDataPair
 hashDataPairCreate (BREthereumHash hash,
                     BREthereumData data);
+
+extern BREthereumHashDataPair
+hashDataPairCreateFromString (const char *hashString,
+                              const char *dataString);
 
 extern void
 hashDataPairRelease (BREthereumHashDataPair pair);

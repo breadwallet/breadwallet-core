@@ -196,6 +196,19 @@ nodeConfigCreateEndpoint (BREthereumNodeConfig config) {
     return nodeEndpointCreate ((BREthereumDISNeighbor) { config->endpoint, config->key });
 }
 
+extern size_t
+nodeConfigHashValue (const void *t)
+{
+    return hashSetValue(&((BREthereumNodeConfig) t)->hash);
+}
+
+extern int
+nodeConfigHashEqual (const void *t1, const void *t2) {
+    return t1 == t2 || hashSetEqual (&((BREthereumNodeConfig) t1)->hash,
+                                     &((BREthereumNodeConfig) t2)->hash);
+}
+
+
 /**
  * A LES Request is a LES Message with associated callbacks.  We'll send the message (once we have
  * connected to a LES node) and then wait for a response with the corresponding `requestId`.  Once

@@ -60,6 +60,15 @@ extern BREthereumNodeConfig
 nodeConfigDecode (BRRlpItem item,
                   BRRlpCoder coder);
 
+// Support BRSet
+extern size_t
+nodeConfigHashValue (const void *h);
+
+// Support BRSet
+extern int
+nodeConfigHashEqual (const void *h1, const void *h2);
+
+
 /*!
  * @typedef BREthereumLES
  *

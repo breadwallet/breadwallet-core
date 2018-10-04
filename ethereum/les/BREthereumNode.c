@@ -1790,6 +1790,7 @@ nodeSetStateInitial (BREthereumNode node,
                         case NODE_PROTOCOL_CAPABILITIES_MISMATCH:
                         case NODE_PROTOCOL_STATUS_MISMATCH:
                         case NODE_PROTOCOL_UDP_EXCESSIVE_BYTE_COUNT:
+                        case NODE_PROTOCOL_RLP_PARSE:
                             node->states[route] = state; // no recover; adopt the PROTOCOL error.
                             break;
 

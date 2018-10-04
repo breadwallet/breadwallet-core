@@ -50,6 +50,13 @@ dataCreateFromRlpData (BRRlpData rlp,
 }
 
 extern BREthereumData
+dataCreateFromString (const char *string) {
+    BREthereumData data;
+    data.bytes = decodeHexCreate(&data.count, string, strlen (string));
+    return data;
+}
+
+extern BREthereumData
 dataCopy (BREthereumData data) {
     return dataCreateFromBytes (data.count, data.bytes, 1);
 }
@@ -63,6 +70,14 @@ extern char *
 dataAsString (BREthereumData data) {
     return encodeHexCreate (NULL, data.bytes, data.count);
 }
+
+extern BRRlpData
+dataAsRlpData (BREthereumData data) {
+    BRRlpData rlp = { data.count, malloc (data.count) };
+    memcpy (rlp.bytes, data.bytes, data.count);
+    return rlp;
+}
+
 
 ///
 /// MARK: - Hash Data Pair
@@ -82,6 +97,13 @@ hashDataPairCreate (BREthereumHash hash,
     pair->data = data;
 
     return pair;
+}
+
+extern BREthereumHashDataPair
+hashDataPairCreateFromString (const char *hashString,
+                              const char *dataString) {
+    return hashDataPairCreate (hashCreate (hashString),
+                               dataCreateFromString (dataString));
 }
 
 extern void
