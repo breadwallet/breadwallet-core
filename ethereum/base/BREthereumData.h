@@ -44,40 +44,6 @@
 extern "C" {
 #endif
 
-/**
- * Persist Data
- */
-typedef struct {
-    BREthereumHash hash;
-    BRRlpData blob;
-} BREthereumPersistData;
-
-static inline size_t
-persistDataHashValue (const void *t)
-{
-    return hashSetValue(&((BREthereumPersistData*) t)->hash);
-}
-
-static inline int
-persistDataHashEqual (const void *t1, const void *t2) {
-    return t1 == t2 || hashSetEqual (&((BREthereumPersistData*) t1)->hash,
-                                     &((BREthereumPersistData*) t2)->hash);
-}
-
-static inline void
-persistDateRelease (BREthereumPersistData data) {
-    data.hash = hashCreateEmpty();
-    rlpDataRelease (data.blob);
-}
-
-static inline BREthereumPersistData
-persistDataCopy (BREthereumPersistData data) {
-    return (BREthereumPersistData) {
-        data.hash,
-        rlpDataCopy(data.blob)
-    };
-}
-
 ///
 /// MARK: - Data
 ///

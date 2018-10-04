@@ -618,13 +618,14 @@ ewmClientHandleTransferEvent (BREthereumEWM ewm,
                                ? transactionGetHash(transaction)
                                : logGetHash(log));
 
-        BREthereumPersistData persistData = { hash,  rlpGetData(ewm->coder, item) };
+        BREthereumHashDataPair data = hashDataPairCreate (hash,
+                                                          dataCreateFromRlpData(rlpGetData(ewm->coder, item), 1));
         rlpReleaseItem(ewm->coder, item);
 
         if (NULL != transaction)
-            ewm->client.funcChangeTransaction (ewm->client.context, ewm, type, persistData);
+            ewm->client.funcChangeTransaction (ewm->client.context, ewm, type, data);
         else
-            ewm->client.funcChangeLog (ewm->client.context, ewm, type, persistData);
+            ewm->client.funcChangeLog (ewm->client.context, ewm, type, data);
     }
 
     ewm->client.funcTransferEvent (ewm->client.context,

@@ -408,7 +408,7 @@ lesCreate (BREthereumNetwork network,
            uint64_t headNumber,
            UInt256 headTotalDifficulty,
            BREthereumHash genesisHash,
-           BRArrayOf(BREthereumNodeConfig) configs) {
+           BRSetOf(BREthereumNodeConfig) configs) {
     
     BREthereumLES les = (BREthereumLES) calloc (1, sizeof(struct BREthereumLESRecord));
     assert (NULL != les);
@@ -508,8 +508,8 @@ lesCreate (BREthereumNetwork network,
         BRArrayOf(BREthereumNodeEndpoint) preferredEndpoints;
         array_new (preferredEndpoints, 5);
 
-        for (size_t index = 0; index < array_count(configs); index++) {
-            BREthereumNodeEndpoint endpoint = nodeConfigCreateEndpoint(configs[index]);
+        FOR_SET (BREthereumNodeConfig, config, configs) {
+            BREthereumNodeEndpoint endpoint = nodeConfigCreateEndpoint(config);
 
             if (nodeEndpointIsPreferred (&endpoint, bootstrapLCLEnodes) ||
                 nodeEndpointIsPreferred (&endpoint, bootstrapBRDEnodes))
@@ -517,7 +517,7 @@ lesCreate (BREthereumNetwork network,
             else
                 lesEnsureNodeForEndpoint (les,
                                           endpoint,
-                                          configs[index]->state,
+                                          config->state,
                                           ETHEREUM_BOOLEAN_FALSE,
                                           NULL);
         }

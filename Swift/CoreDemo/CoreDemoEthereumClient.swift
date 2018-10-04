@@ -34,7 +34,7 @@ class CoreDemoEthereumClient : EthereumClient {
                                            network: network,
                                            type: type,
                                            mode: mode,
-                                           paperKey: paperKey)
+                                           key: EthereumKey.paperKey(paperKey))
     }
 
     func getBalance(ewm: EthereumWalletManager, wid: EthereumWalletId, address: String, rid: Int32) {
@@ -206,15 +206,17 @@ class CoreDemoEthereumClient : EthereumClient {
         print ("TST: saveBlocks")
     }
 
-    func changeTransaction(ewm: EthereumWalletManager,
-                           change: EthereumClientChangeType,
-                           data: Dictionary<String, String>) {
+    func changeTransaction (ewm: EthereumWalletManager,
+                            change: EthereumClientChangeType,
+                            hash: String,
+                            data: String) {
         print ("TST: changeTransaction")
     }
 
-    func changeLog(ewm: EthereumWalletManager,
-                   change: EthereumClientChangeType,
-                   data: Dictionary<String, String>) {
+    func changeLog (ewm: EthereumWalletManager,
+                    change: EthereumClientChangeType,
+                    hash: String,
+                    data: String) {
         print ("TST: changeLog")
     }
 

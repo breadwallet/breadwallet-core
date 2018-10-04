@@ -672,11 +672,13 @@ public protocol EthereumClient : class {
 
     func changeTransaction (ewm: EthereumWalletManager,
                             change: EthereumClientChangeType,
-                            data: Dictionary<String, String>) -> Void
+                            hash: String,
+                            data: String) -> Void
 
     func changeLog (ewm: EthereumWalletManager,
                     change: EthereumClientChangeType,
-                    data: Dictionary<String, String>) -> Void
+                    hash: String,
+                    data: String) -> Void
 
     // ...
     func handleEWMEvent (ewm: EthereumWalletManager,
@@ -700,6 +702,11 @@ public protocol EthereumClient : class {
 }
 
 // MARK: - EWM
+
+public enum EthereumKey {
+    case paperKey (String)
+    case publicKey (BRKey)
+}
 
 ///
 /// An `EthereumEWM` is a SPV/LES (Simplified Payment Verification / Light Ethereum
@@ -744,35 +751,52 @@ public class EthereumWalletManager {
                              network : EthereumNetwork,
                              type: EthereumType,
                              mode: EthereumSyncMode,
-                             paperKey : String) {
-        let anyClient = AnyEthereumClient (base: client)
-        self.init (core: ethereumCreate (network.core, paperKey,
-                                         type.core,
-                                         mode.core,
-                                         EthereumWalletManager.createCoreClient(client: client),
-                                         nil,
-                                         nil,
-                                         nil,
-                                         nil),
-                   client: anyClient,
-                   network: network)
+                             key: EthereumKey) {
+        self.init (client: client,
+                   network: network,
+                   type: type,
+                   mode: mode,
+                   key: key,
+                   peers: [:],
+                   blocks: [:],
+                   transactions: [:],
+                   logs: [:])
     }
-
 
     public convenience init (client : EthereumClient,
                              network : EthereumNetwork,
                              type: EthereumType,
                              mode: EthereumSyncMode,
-                             publicKey : BRKey) {
+                             key: EthereumKey,
+                             peers: Dictionary<String,String>,
+                             blocks: Dictionary<String,String>,
+                             transactions: Dictionary<String,String>,
+                             logs: Dictionary<String,String>) {
         let anyClient = AnyEthereumClient (base: client)
-        self.init (core: ethereumCreateWithPublicKey (network.core, publicKey,
-                                                      type.core,
-                                                      mode.core,
-                                                      EthereumWalletManager.createCoreClient(client: client),
-                                                      nil,
-                                                      nil,
-                                                      nil,
-                                                      nil),
+        var core : BREthereumEWM
+
+        switch key {
+        case let .paperKey(key):
+            core = ethereumCreate (network.core, key,
+                                   type.core,
+                                   mode.core,
+                                   EthereumWalletManager.createCoreClient(client: client),
+                                   EthereumWalletManager.asPairs (peers),
+                                   EthereumWalletManager.asPairs (blocks),
+                                   EthereumWalletManager.asPairs (transactions),
+                                   EthereumWalletManager.asPairs (logs))
+        case let .publicKey(key):
+            core = ethereumCreateWithPublicKey (network.core, key,
+                                                type.core,
+                                                mode.core,
+                                                EthereumWalletManager.createCoreClient(client: client),
+                                                EthereumWalletManager.asPairs (peers),
+                                                EthereumWalletManager.asPairs (blocks),
+                                                EthereumWalletManager.asPairs (transactions),
+                                                EthereumWalletManager.asPairs (logs))
+        }
+
+        self.init (core: core,
                    client: anyClient,
                    network: network)
     }
@@ -1034,25 +1058,43 @@ public class EthereumWalletManager {
             funcSaveNodes: { (coreClient, coreEWM, data) in
                 if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }),
                     let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    client.saveNodes(ewm: ewm, data: [:])
+                    client.saveNodes(ewm: ewm, data: EthereumWalletManager.asDictionary(data!))
                 }},
 
             funcSaveBlocks: { (coreClient, coreEWM, data) in
                 if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }),
                     let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    client.saveBlocks(ewm: ewm, data: [:])
+                    client.saveBlocks(ewm: ewm, data: EthereumWalletManager.asDictionary(data!))
                 }},
 
             funcChangeTransaction: { (coreClient, coreEWM, change, data) in
                 if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }),
                     let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    client.changeTransaction(ewm: ewm, change: EthereumClientChangeType(change), data: [:])
+
+                    let cStrHash = ethereumHashDataPairGetHash (data)!
+                    let cStrData = ethereumHashDataPairGetData (data)!
+
+                    client.changeTransaction (ewm: ewm,
+                                              change: EthereumClientChangeType(change),
+                                              hash: String (cString: cStrHash),
+                                              data: String (cString: cStrData))
+
+                    free (cStrHash); free (cStrData)
                 }},
 
             funcChangeLog: { (coreClient, coreEWM, change, data) in
                 if let client = coreClient.map ({ Unmanaged<AnyEthereumClient>.fromOpaque($0).takeUnretainedValue() }),
                     let ewm = EthereumWalletManager.lookup(core: coreEWM) {
-                    client.changeLog(ewm: ewm, change: EthereumClientChangeType(change), data: [:])
+
+                    let cStrHash = ethereumHashDataPairGetHash (data)!
+                    let cStrData = ethereumHashDataPairGetData (data)!
+
+                    client.changeLog (ewm: ewm,
+                                      change: EthereumClientChangeType(change),
+                                      hash: String (cString: cStrHash),
+                                      data: String (cString: cStrData))
+
+                    free (cStrHash); free (cStrData)
                 }},
 
             funcEWMEvent: { (coreClient, coreEWM, event, status, message) in
@@ -1109,6 +1151,35 @@ public class EthereumWalletManager {
             .filter { nil != $0.value }
             .map { $0.value! }
             .first { $0.core == core }
+    }
+
+    //
+    // Hash Data Pair Set
+    //
+    private static func asPairs (_ set: Dictionary<String,String>) -> OpaquePointer {
+        let pairs = ethereumHashDataPairSetCreate()!
+        set.forEach { (hash: String, data: String) in
+            ethereumHashDataPairAdd (pairs, hash, data)
+        }
+        return pairs
+    }
+
+    private static func asDictionary (_ set: OpaquePointer) -> Dictionary<String,String> {
+        var dict : [String:String] = [:]
+
+        var pair : BREthereumHashDataPair? = nil
+        while let p = OpaquePointer.init (BRSetIterate (set, &pair)) {
+            let cStrHash = ethereumHashDataPairGetHash (p)!
+            let cStrData = ethereumHashDataPairGetData (p)!
+
+            dict [String (cString: cStrHash)] = String (cString: cStrData)
+
+            free (cStrHash); free (cStrData)
+
+            pair = p
+        }
+
+        return dict
     }
 }
 
@@ -1322,14 +1393,16 @@ class AnyEthereumClient : EthereumClient {
 
     func changeTransaction(ewm: EthereumWalletManager,
                            change: EthereumClientChangeType,
-                           data: Dictionary<String, String>) {
-        base.changeTransaction(ewm: ewm, change: change, data: data)
+                           hash: String,
+                           data: String) {
+        base.changeTransaction(ewm: ewm, change: change, hash: hash, data: data)
     }
 
     func changeLog(ewm: EthereumWalletManager,
                    change: EthereumClientChangeType,
-                   data: Dictionary<String, String>) {
-        base.changeLog (ewm: ewm, change: change, data: data)
+                   hash: String,
+                   data: String) {
+        base.changeLog (ewm: ewm, change: change, hash: hash, data: data)
     }
 
     func handleEWMEvent(ewm: EthereumWalletManager, event: EthereumEWMEvent) {

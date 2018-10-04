@@ -64,16 +64,9 @@ class TestLightClient : EthereumClient {
         self.node = EthereumWalletManager (client: self,
                                            network: network,
                                            type: EthereumType.brd,
-                                           paperKey: paperKey)
+                                           mode: EthereumSyncMode.blockchain,
+                                           key: EthereumKey.paperKey (paperKey))
     }
-
-    //    required init(network: EthereumNetwork, publicKey: Data) {
-    //        self.network = network
-    //        self.node = EthereumEWM.JSON_RPC (client: self,
-    //                                                listener: self,
-    //                                                network: network,
-    //                                                publicKey: publicKey)
-    //    }
 
     //
     // Client Protocol - JSON_RPC
@@ -218,23 +211,31 @@ class TestLightClient : EthereumClient {
 
     func getNonce(ewm: EthereumWalletManager, address: String, rid: Int32) {
         ewm.announceNonce(address: address, nonce: "17", rid: rid)
-        }
+    }
 
-        func savePeers(ewm: EthereumWalletManager) {
-            print ("TST: savePeers\n")
-        }
+    func saveNodes (ewm: EthereumWalletManager,
+                    data: Dictionary<String, String>) {
+        print ("TST: savePeers\n")
+    }
 
-        func saveBlocks(ewm: EthereumWalletManager) {
-            print ("TST: saveBlocks\n")
-        }
+    func saveBlocks (ewm: EthereumWalletManager,
+                     data: Dictionary<String, String>) {
+        print ("TST: saveBlocks\n")
+    }
 
-        func changeTransaction(ewm: EthereumWalletManager, change: EthereumClientChangeType) {
-            print ("TST: changeTransaction\n")
-        }
+    func changeTransaction (ewm: EthereumWalletManager,
+                            change: EthereumClientChangeType,
+                            hash: String,
+                            data: String) {
+        print ("TST: changeTransactionXXX\n")
+    }
 
-        func changeLog(ewm: EthereumWalletManager, change: EthereumClientChangeType) {
-            print ("TST: changeLog\n")
-        }
+    func changeLog (ewm: EthereumWalletManager,
+                    change: EthereumClientChangeType,
+                    hash: String,
+                    data: String) {
+        print ("TST: changeLogXXX\n")
+    }
 
 
     //
@@ -280,12 +281,5 @@ class TestLightClient : EthereumClient {
             break;
         }
     }
-
-    func saveNodes(ewm: EthereumWalletManager) {
-        print ("TST: SaveNodes")
-
-    }
-
-
 }
 

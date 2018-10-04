@@ -264,7 +264,7 @@ clientGetBlocks (BREthereumClientContext context,
             blockNumbers[index - 1] > blockNumberStop)
             array_rm (blockNumbers, index - 1);
 
-    ethereumClientAnnounceBlocks (ewm, rid, array_count(blockNumbers), blockNumbers);
+    ethereumClientAnnounceBlocks (ewm, rid, (int) array_count(blockNumbers), blockNumbers);
 }
 
 static void
@@ -343,81 +343,70 @@ clientGetTokens (BREthereumClientContext context,
 //
 // Save Blocks
 //
-BRArrayOf(BREthereumPersistData) savedBlocks = NULL;
+BRSetOf(BREthereumHashDataPair) savedBlocks = NULL;
 
 static void
 clientSaveBlocks (BREthereumClientContext context,
                   BREthereumEWM ewm,
-                  BRArrayOf(BREthereumPersistData) blocksToSave) {
+                  BRSetOf(BREthereumHashDataPair) blocksToSave) {
     static int count = 0;
     static int total = 0;
-    total += array_count(blocksToSave);
+    total += BRSetCount(blocksToSave);
     eth_log("TST", "Save Blocks (%d): %d", (++count), total);
 
-    if (NULL != savedBlocks) {
-        for (size_t item = 0; item < array_count(savedBlocks); item++)
-            rlpDataRelease(savedBlocks[item].blob);
-        array_free(savedBlocks);
-        savedBlocks = NULL;
-    }
+    if (NULL == savedBlocks)
+        savedBlocks = hashDataPairSetCreateEmpty (BRSetCount(blocksToSave));
 
-    array_new (savedBlocks, array_count(blocksToSave));
-    for (size_t index = 0; index < array_count(blocksToSave); index++)
-        array_add (savedBlocks, blocksToSave[index]);
-
-    array_free (blocksToSave);
+    BRSetUnion (savedBlocks, blocksToSave);
+    BRSetFree (blocksToSave);
 }
 
 //
 // Save Peers
 //
-BRArrayOf(BREthereumPersistData) savedNodes = NULL;
+BRSetOf(BREthereumHashDataPair) savedNodes = NULL;
 
 static void
 clientSaveNodes (BREthereumClientContext context,
                  BREthereumEWM ewm,
-                 BRArrayOf(BREthereumPersistData) nodesToSave) {
-    if (NULL != savedNodes) {
-        for (size_t item = 0; item < array_count(savedNodes); item++)
-            rlpDataRelease(savedNodes[item].blob);
-        array_free(savedNodes);
-        savedNodes = NULL;
-    }
-    savedNodes = nodesToSave;
+                 BRSetOf(BREthereumHashDataPair) nodesToSave) {
+    if (NULL != savedNodes)
+        savedNodes = hashDataPairSetCreateEmpty (BRSetCount(nodesToSave));
 
+    BRSetUnion (savedNodes, nodesToSave);
+    BRSetFree (nodesToSave);
 }
 
 //
 // Update Transactions
 //
-BRSetOf(BREthereumPersistData) savedTransactions = NULL;
+BRSetOf(BREthereumHashDataPair) savedTransactions = NULL;
 
 static void
 clientUpdateTransaction (BREthereumClientContext context,
                          BREthereumEWM ewm,
                          BREthereumClientChangeType type,
-                         BREthereumPersistData transactionPersistData) {
-    fprintf (stdout, "ETH: TST: UpdateTransaction: ev=%s @ %p\n", CLIENT_CHANGE_TYPE_NAME(type), transactionPersistData.blob.bytes);
+                         BREthereumHashDataPair data) {
+    fprintf (stdout, "ETH: TST: UpdateTransaction: ev=%s @ %p\n",
+             CLIENT_CHANGE_TYPE_NAME(type),
+             hashDataPairGetData(data).bytes);
 
     if (NULL == savedTransactions)
-        savedTransactions = BRSetNew(persistDataHashValue, persistDataHashEqual, 100);
-
-    BREthereumPersistData *data = malloc (sizeof (BREthereumPersistData));
-    memcpy (data, &transactionPersistData, sizeof (BREthereumPersistData));
+        savedTransactions = hashDataPairSetCreateEmpty (100);
 
     switch (type) {
         case CLIENT_CHANGE_ADD:
-            BRSetAdd(savedTransactions, data);
+            BRSetAdd (savedTransactions, data);
             break;
 
         case CLIENT_CHANGE_REM:
             data = BRSetRemove(savedTransactions, data);
-            if (NULL != data) { rlpDataRelease(data->blob); free (data); }
+            if (NULL != data) hashDataPairRelease(data);
             break;
 
         case CLIENT_CHANGE_UPD:
             data = BRSetAdd(savedTransactions, data);
-            if (NULL != data) { rlpDataRelease(data->blob); free (data); }
+            if (NULL != data) hashDataPairRelease(data);
             break;
     }
 }
@@ -431,28 +420,27 @@ static void
 clientUpdateLog (BREthereumClientContext context,
                  BREthereumEWM ewm,
                  BREthereumClientChangeType type,
-                 BREthereumPersistData logPersistData) {
-    fprintf (stdout, "ETH: TST: UpdateLog: ev=%s @ %p\n", CLIENT_CHANGE_TYPE_NAME(type), logPersistData.blob.bytes);
+                 BREthereumHashDataPair data) {
+    fprintf (stdout, "ETH: TST: UpdateLog: ev=%s @ %p\n",
+             CLIENT_CHANGE_TYPE_NAME(type),
+             hashDataPairGetData(data).bytes);
 
-    if (NULL == savedLogs)
-        savedLogs = BRSetNew(persistDataHashValue, persistDataHashEqual, 100);
-
-    BREthereumPersistData *data = malloc (sizeof (BREthereumPersistData));
-    memcpy (data, &logPersistData, sizeof (BREthereumPersistData));
+    if (NULL == savedTransactions)
+        savedTransactions = hashDataPairSetCreateEmpty (100);
 
     switch (type) {
         case CLIENT_CHANGE_ADD:
-            BRSetAdd(savedLogs, data);
+            BRSetAdd (savedTransactions, data);
             break;
 
         case CLIENT_CHANGE_REM:
-            data = BRSetRemove(savedLogs, data);
-            if (NULL != data) { rlpDataRelease(data->blob); free (data); }
+            data = BRSetRemove(savedTransactions, data);
+            if (NULL != data) hashDataPairRelease(data);
             break;
 
         case CLIENT_CHANGE_UPD:
-            data = BRSetAdd(savedLogs, data);
-            if (NULL != data) { rlpDataRelease(data->blob); free (data); }
+            data = BRSetAdd(savedTransactions, data);
+            if (NULL != data) hashDataPairRelease(data);
             break;
     }
 }
@@ -782,28 +770,20 @@ runSyncTest (BREthereumType type,
     char *paperKey = "0xb302B06FDB1348915599D21BD54A06832637E5E8";
     alarmClockCreateIfNecessary (1);
 
-    BRArrayOf(BREthereumPersistData) blocks = (restart ? savedBlocks : NULL);
-    BRArrayOf(BREthereumPersistData) nodes = (restart ? savedNodes : NULL);
-    BRArrayOf(BREthereumPersistData) transactions = NULL;
-    BRArrayOf(BREthereumPersistData) logs = NULL;
+    BRSetOf(BREthereumHashDataPair) blocks = (restart ? savedBlocks : NULL);
+    BRSetOf(BREthereumHashDataPair) nodes = (restart ? savedNodes : NULL);
+    BRSetOf(BREthereumHashDataPair) transactions = NULL;
+    BRSetOf(BREthereumHashDataPair) logs = NULL;
 
     if (restart) {
         if (NULL != savedTransactions) {
-            size_t transactionsCount = BRSetCount(savedTransactions);
-            array_new(transactions, transactionsCount);
-            for (BREthereumPersistData *data = BRSetIterate(savedTransactions, NULL);
-                 NULL != data;
-                 data = BRSetIterate(savedTransactions, data))
-                array_add (transactions, *data);
+            transactions = BRSetNew (transactionHashValue, transactionHashEqual, BRSetCount (savedTransactions));
+            BRSetUnion (transactions, savedTransactions); // copy
         }
 
         if (NULL != savedLogs) {
-            size_t logsCount = BRSetCount(savedLogs);
-            array_new(logs, logsCount);
-            for (BREthereumPersistData *data = BRSetIterate(savedLogs, NULL);
-                 NULL != data;
-                 data = BRSetIterate(savedLogs, data))
-                array_add (logs, *data);
+            logs = BRSetNew (logHashValue, logHashEqual, BRSetCount(savedLogs));
+            BRSetUnion (logs, savedLogs); // copy
         }
     }
 

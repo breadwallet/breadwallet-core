@@ -177,23 +177,24 @@ typedef enum {
 typedef void
 (*BREthereumClientHandlerSaveBlocks) (BREthereumClientContext context,
                                       BREthereumEWM ewm,
-                                      BRArrayOf(BREthereumPersistData) persistData);
+                                      BRSetOf(BREthereumHashDataPair) data);
+
 typedef void
 (*BREthereumClientHandlerSaveNodes) (BREthereumClientContext context,
                                      BREthereumEWM ewm,
-                                     BRArrayOf(BREthereumPersistData) persistData);
+                                     BRSetOf(BREthereumHashDataPair) data);
 
 typedef void
 (*BREthereumClientHandlerChangeTransaction) (BREthereumClientContext context,
                                              BREthereumEWM ewm,
                                              BREthereumClientChangeType type,
-                                             BREthereumPersistData persistData);
+                                             BREthereumHashDataPair data);
 
 typedef void
 (*BREthereumClientHandlerChangeLog) (BREthereumClientContext context,
                                      BREthereumEWM ewm,
                                      BREthereumClientChangeType type,
-                                     BREthereumPersistData persistData);
+                                     BREthereumHashDataPair data);
 
 //
 // Wallet Event
@@ -385,10 +386,10 @@ ethereumCreate(BREthereumNetwork network,
                BREthereumType type,
                BREthereumSyncMode syncMode,
                BREthereumClient client,
-               BRArrayOf(BREthereumPersistData) peers,
-               BRArrayOf(BREthereumPersistData) blocks,
-               BRArrayOf(BREthereumPersistData) transactions,
-               BRArrayOf(BREthereumPersistData) logs);
+               BRSetOf(BREthereumPersistData) peers,
+               BRSetOf(BREthereumPersistData) blocks,
+               BRSetOf(BREthereumPersistData) transactions,
+               BRSetOf(BREthereumPersistData) logs);
 
 /**
  * Create a EWM managing the account associated with the publicKey.  Public key is a
@@ -401,10 +402,10 @@ ethereumCreateWithPublicKey(BREthereumNetwork network,
                             BREthereumType type,
                             BREthereumSyncMode syncMode,
                             BREthereumClient client,
-                            BRArrayOf(BREthereumPersistData) peers,
-                            BRArrayOf(BREthereumPersistData) blocks,
-                            BRArrayOf(BREthereumPersistData) transactions,
-                            BRArrayOf(BREthereumPersistData) logs);
+                            BRSetOf(BREthereumPersistData) peers,
+                            BRSetOf(BREthereumPersistData) blocks,
+                            BRSetOf(BREthereumPersistData) transactions,
+                            BRSetOf(BREthereumPersistData) logs);
 
 /**
  * Create an Ethereum Account using `paperKey` for BIP-32 generation of keys.  The same paper key
@@ -947,6 +948,23 @@ ethereumClientAnnounceToken(BREthereumEWM ewm,
                             const char *strDefaultGasLimit,
                             const char *strDefaultGasPrice,
                             int rid);
+
+//
+// Hash Data Pair
+//
+extern BRSetOf(BREthereumHashDataPair)
+ethereumHashDataPairSetCreate (void);
+
+extern void
+ethereumHashDataPairAdd (BRSetOf(BREthereumHashDataPair) set,
+                         const char *hash,
+                         const char *data);
+
+extern char *
+ethereumHashDataPairGetHash (BREthereumHashDataPair pair);
+
+extern char *
+ethereumHashDataPairGetData (BREthereumHashDataPair pair);
 
 #ifdef __cplusplus
 }
