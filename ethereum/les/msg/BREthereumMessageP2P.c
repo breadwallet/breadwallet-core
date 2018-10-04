@@ -261,7 +261,7 @@ messageP2PStatusShow(BREthereumP2PMessageStatus *message) {
     eth_log (LES_LOG_TOPIC, "StatusMessage:%s", "");
     eth_log (LES_LOG_TOPIC, "    ProtocolVersion: %llu", message->protocolVersion);
     if (messageP2PStatusExtractValue(message, P2P_MESSAGE_STATUS_ANNOUNCE_TYPE, &value))
-        eth_log (LES_LOG_TOPIC, "    announceType   : %llu", value.u.integer);
+        eth_log (LES_LOG_TOPIC, "    AnnounceType   : %llu", value.u.integer);
     eth_log (LES_LOG_TOPIC, "    NetworkId      : %llu", message->chainId);
     eth_log (LES_LOG_TOPIC, "    HeadNum        : %llu", message->headNum);
     eth_log (LES_LOG_TOPIC, "    HeadHash       : %s",   headHashString);
@@ -339,8 +339,8 @@ messageP2PStatusEncode (BREthereumP2PMessageStatus *status,
                                      rlpEncodeString(coder.rlp, "genesisHash"),
                                      hashRlpEncode(status->genesisHash, coder.rlp));
 
-    for (size_t index = 0; NULL != status->pairs && index < array_count(status->pairs); index++) {
-        BREthereumP2PMessageStatusKeyValuePair *pair = &status->pairs[index];
+    for (size_t pi = 0; NULL != status->pairs && pi < array_count(status->pairs); pi++) { // Pair-Index
+        BREthereumP2PMessageStatusKeyValuePair *pair = &status->pairs[pi];
         switch (pair->key) {
             case P2P_MESSAGE_STATUS_PROTOCOL_VERSION:
             case P2P_MESSAGE_STATUS_NETWORK_ID:

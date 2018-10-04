@@ -539,6 +539,7 @@ const char *bootstrapLCLEnodes[] = {
 #endif
 
 #if defined (LES_SUPPORT_GETH)
+    "enode://4e20dfea1fc4f7d63db2bea2626501d819dbbc21f1829bfae897f9c298d9d07a8e7ab3d7a5a5b07118e9fda0c0ccfb07c2cc71c64caddb648952d3e3da5e6b55@127.0.0.1:30304",
     // Localhost - GETH
     //    "enode://a40437d2f44ae655387009d1d69ba9fd07b748b7a6ecfc958c135008a34c0497466db35049c36c8296590b4bcf9b9058f9fa2a688a2c6566654b1f1dc42417e4@127.0.0.1:30303",
 #endif

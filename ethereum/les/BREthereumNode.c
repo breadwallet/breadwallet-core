@@ -1132,7 +1132,7 @@ nodeStatusIsSufficient (BREthereumNode node) {
 
     // Must serve chain - archival node is '1'
     if (!messageP2PStatusExtractValue(remStatus, P2P_MESSAGE_STATUS_SERVE_CHAIN_SINCE, &remValue) ||
-        remValue.u.integer < locStatus->headNum + 1)
+        remValue.u.integer < locStatus->headNum + (node->type == NODE_TYPE_PARITY ? 1 : 0))
         return 0;
 
     return 1;
@@ -1916,7 +1916,8 @@ nodeSend (BREthereumNode node,
 
         default: {
 #if defined (NODE_SHOW_SEND_RLP_ITEMS)
-            if (MESSAGE_PIP == message.identifier && PIP_MESSAGE_STATUS != message.u.pip.type)
+            if ((MESSAGE_PIP == message.identifier && PIP_MESSAGE_STATUS != message.u.pip.type) ||
+                (MESSAGE_LES == message.identifier && LES_MESSAGE_STATUS != message.u.les.identifier))
                 rlpShowItem (node->coder.rlp, item, "SEND");
 #endif
             
@@ -2063,8 +2064,8 @@ nodeRecv (BREthereumNode node,
             message = messageDecode (item, node->coder, type, subtype);
 #if defined (NODE_SHOW_RECV_RLP_ITEMS)
             if (!rlpCoderHasFailed(node->coder.rlp) &&
-                MESSAGE_PIP == message.identifier &&
-                PIP_MESSAGE_STATUS != message.u.pip.type)
+                ((MESSAGE_PIP == message.identifier && PIP_MESSAGE_STATUS != message.u.pip.type) ||
+                 (MESSAGE_LES == message.identifier && LES_MESSAGE_STATUS != message.u.les.identifier)))
                 rlpShowItem(node->coder.rlp, item, "RECV");
 #endif
 
