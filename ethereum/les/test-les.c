@@ -933,6 +933,8 @@ static void run_GetAccountState_Tests (BREthereumLES les){
 //                                5510000);
 
     BREthereumAddress address = addressCreate("0x52bc44d5378309ee2abf1539bf71de1b7d7be3b5");
+
+    // 6458875 - 0x8771a9d4d4cc72c00582afbd1d95eb9ff81a60f15588aed0e09aadb45691c6b3
     BREthereumHash block_350000 = hashCreate("0x8cd1f73a98ab1cdd65f829530a46559d3ea345f330bc04924f30fe00bcbad6f1");
     lesProvideAccountStatesOne (les,
                                 (void*) &_GetAccount_Context1,
@@ -972,7 +974,7 @@ runLEStests(void) {
                                    NULL);
     lesStart(les);
     // Sleep for a little bit to allow the context to connect to the network
-    sleep(30);
+    sleep(10);
     
     //Initialize testing state
     _initTestState();

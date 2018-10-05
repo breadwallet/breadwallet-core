@@ -290,7 +290,7 @@ typedef struct {
 typedef struct {
     uint64_t reqId;
     uint64_t bv;
-    BRArrayOf(BREthereumMPTNodePath) paths;
+    BREthereumMPTNodePath path;
 } BREthereumLESMessageProofsV2;
 
 /// MARK: LES GetHelperTrieProofs

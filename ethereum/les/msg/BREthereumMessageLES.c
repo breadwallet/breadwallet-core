@@ -372,8 +372,8 @@ proofsSpecEncode (BREthereumLESMessageGetProofsSpec spec,
                   BREthereumMessageCoder coder) {
     return rlpEncodeList (coder.rlp, 4,
                           hashRlpEncode (spec.blockHash, coder.rlp),
-                          hashRlpEncode(addressGetHash(spec.address), coder.rlp),
                           rlpEncodeBytes(coder.rlp, NULL, 0),
+                          hashRlpEncode(addressGetHash(spec.address), coder.rlp),
                           rlpEncodeUInt64 (coder.rlp, spec.fromLevel, 1));
 }
 
@@ -409,10 +409,18 @@ messageLESProofsDecode (BRRlpItem item,
     uint64_t reqId = rlpDecodeUInt64 (coder.rlp, items[0], 1);
     uint64_t bv    = rlpDecodeUInt64 (coder.rlp, items[1], 1);
 
+    size_t pathsCount = 0;
+    const BRRlpItem *pathsItems = rlpDecodeList (coder.rlp, items[2], &pathsCount);
+
+    BRArrayOf(BREthereumMPTNodePath) paths;
+    array_new (paths, pathsCount);
+    for (size_t index = 0; index < pathsCount; index++)
+        array_add (paths, mptNodePathDecode (pathsItems[index], coder.rlp));
+
     return (BREthereumLESMessageProofs) {
         reqId,
         bv,
-        mptProofDecodeList (items[2], coder.rlp)
+        paths
     };
 }
 
@@ -464,10 +472,11 @@ messageLESProofsV2Decode (BRRlpItem item,
     uint64_t reqId = rlpDecodeUInt64 (coder.rlp, items[0], 1);
     uint64_t bv    = rlpDecodeUInt64 (coder.rlp, items[1], 1);
 
+    // TODO: See GetProofs - should be an array of PATHS
     return (BREthereumLESMessageProofsV2) {
         reqId,
         bv,
-        mptProofDecodeList (items[2], coder.rlp)
+        mptNodePathDecode (items[2], coder.rlp)
     };
 }
 

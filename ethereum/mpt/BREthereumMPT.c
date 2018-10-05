@@ -25,29 +25,489 @@
 
 #include "BREthereumMPT.h"
 
-extern BREthereumMPTNodePath
-mptProofDecode (BRRlpItem item,
-                BRRlpCoder coder) {
-//    rlpShowItem (coder, item, "MPT Proof");
-    return (BREthereumMPTNodePath) {};
+///
+/// MARK: - MPT Node
+///
+
+typedef struct BREthereumMPTNodeRecord *BREthereumMPTNode;
+
+struct BREthereumMPTNodeRecord {
+    BREthereumMPTNodeType type;
+    union {
+        struct {
+            BREthereumData path;  // data w/ each byte a nibble a/ preface stripped!
+            BRRlpData value;
+        } leaf;
+
+        struct {
+            BREthereumData path;  // data w/ each byte a nibble a/ preface stripped!
+            BREthereumHash key;
+        } extension;
+
+        struct {
+            BREthereumHash keys[16];
+            BRRlpData value;
+        } branch;
+    } u;
+};
+
+static BREthereumMPTNode
+mptNodeCreate (BREthereumMPTNodeType type) {
+    BREthereumMPTNode node = calloc (1, sizeof (struct BREthereumMPTNodeRecord));
+    node->type = type;
+    return node;
 }
 
-extern BRArrayOf(BREthereumMPTNodePath)
-mptProofDecodeList (BRRlpItem item,
+static void
+mptNodeRelease (BREthereumMPTNode node) {
+    switch (node->type) {
+        case MPT_NODE_LEAF:
+            dataRelease(node->u.leaf.path);
+            rlpDataRelease(node->u.leaf.value);
+            break;
+
+        case MPT_NODE_EXTENSION:
+            dataRelease (node->u.extension.path);
+            break;
+
+        case MPT_NODE_BRANCH:
+            rlpDataRelease (node->u.branch.value);
+            break;
+    }
+    free (node);
+}
+
+static BRRlpData
+mptNodeGetValue (BREthereumMPTNode node,
+                 BREthereumBoolean *found) {
+    switch (node->type) {
+        case MPT_NODE_LEAF:
+            *found = ETHEREUM_BOOLEAN_TRUE;
+            return node->u.leaf.value;
+
+        case MPT_NODE_EXTENSION:
+            *found = ETHEREUM_BOOLEAN_TRUE;
+            return (BRRlpData) { 0, NULL };
+
+        case MPT_NODE_BRANCH:
+            *found = ETHEREUM_BOOLEAN_TRUE;
+            return node->u.branch.value;
+    }
+}
+
+static BREthereumData
+mptNodeGetPath (BREthereumMPTNode node) {
+    switch (node->type) {
+        case MPT_NODE_LEAF:      return node->u.leaf.path;
+        case MPT_NODE_EXTENSION: return node->u.extension.path;
+        case MPT_NODE_BRANCH:    assert (0);
+    }
+}
+
+static size_t
+mptNodeConsume (BREthereumMPTNode node, uint8_t *key) {
+    switch (node->type) {
+        case MPT_NODE_LEAF:
+        case MPT_NODE_EXTENSION: {
+            BREthereumData path = mptNodeGetPath(node);
+            for (size_t index = 0; index < path.count; index++)
+                if (key[index] != path.bytes[index])
+                    return 0;
+            return path.count;
+        }
+
+        case MPT_NODE_BRANCH: {
+            // We'll consume one byte if the node's key is not an empty hash
+            return (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual (node->u.branch.keys[key[0]],
+                                                         (BREthereumHash) EMPTY_HASH_INIT))
+                    ? 0
+                    : 1);
+        }
+    }
+}
+
+#define NIBBLE_UPPER(x)     (0x0f & ((x) >> 4))
+#define NIBBLE_LOWER(x)     (0x0f & ((x) >> 0))
+
+#define NIBBLE_GET(x, upper) (0x0f & ((x) >> (upper ? 4 : 0)))
+
+static BREthereumMPTNode
+mptNodeDecode (BRRlpItem item,
+               BRRlpCoder coder) {
+    BREthereumMPTNode node = NULL;
+
+    size_t itemsCount = 0;
+    const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
+    if (17 != itemsCount && 2 != itemsCount) { rlpCoderSetFailed (coder); return NULL; }
+
+    switch (itemsCount) {
+        case 2: {
+            BRRlpData pathData = rlpGetDataSharedDontRelease(coder, items[0]);
+            assert (0 != pathData.bytesCount);
+
+            // Extract the nodeType nibble; determine `type` and `padded`
+            uint8_t nodeTypeNibble = NIBBLE_UPPER(pathData.bytes[0]);
+
+            BREthereumMPTNodeType type = (nodeTypeNibble < 2
+                                          ? MPT_NODE_EXTENSION
+                                          : MPT_NODE_LEAF);
+            int padded = 0 == (nodeTypeNibble & 0x01);
+
+            // Fill the encoded path
+            size_t   pathCount = 2 * pathData.bytesCount - 1 - padded;
+            uint8_t *pathBytes = malloc (pathCount);
+
+            BREthereumData path = { pathCount, pathBytes };
+
+            /*
+             > [ 1, 2, 3, 4, 5, ...]
+             '11 23 45'
+             > [ 0, 1, 2, 3, 4, 5, ...]
+             '00 01 23 45'
+             > [ 0, f, 1, c, b, 8, 10]
+             '20 0f 1c b8'
+             > [ f, 1, c, b, 8, 10]
+             '3f 1c b8'
+             */
+
+            if (!padded) *pathBytes++ = NIBBLE_GET(pathData.bytes[0], 0);
+
+            for (size_t index = 1; index < pathData.bytesCount; index++) {
+                uint8_t byte = pathData.bytes[index];
+                *pathBytes++ = NIBBLE_GET (byte, padded);
+                *pathBytes++ = NIBBLE_GET (byte, !padded);
+            }
+
+            node = mptNodeCreate(type);
+            switch (type) {
+                case MPT_NODE_LEAF:
+                    node->u.leaf.path = path;
+                    node->u.leaf.value = rlpGetData (coder, items[1]);
+                    break;
+
+                case MPT_NODE_EXTENSION:
+                    node->u.extension.path = path;
+                    node->u.extension.key = hashRlpDecode (items[2], coder);
+                    break;
+
+                case MPT_NODE_BRANCH:
+                    assert (0);
+            }
+            break;
+        }
+
+        case 17: {
+            node = mptNodeCreate(MPT_NODE_BRANCH);
+            for (size_t index = 0; index < 16; index++) {
+                BRRlpData data = rlpGetDataSharedDontRelease (coder, items[index]);
+                // Either a hash (0x<32 bytes>) or empty (0x)
+                node->u.branch.keys[index] = (0 == data.bytesCount || 1 == data.bytesCount
+                                              ? (BREthereumHash) EMPTY_HASH_INIT
+                                              : hashRlpDecode(items[index], coder));
+            }
+            node->u.branch.value = rlpGetData (coder, items[16]);
+            break;
+        }
+    }
+    return node;
+}
+
+///
+/// MARK: - MPT Node Path
+///
+struct BREthereumMPTNodePathRecord {
+    BRArrayOf(BREthereumMPTNode) nodes;
+};
+
+static BREthereumMPTNodePath
+mptNodePathCreate (BRArrayOf(BREthereumMPTNode) nodes) {
+    BREthereumMPTNodePath path = malloc (sizeof (struct BREthereumMPTNodePathRecord));
+    path->nodes = nodes;
+    return path;
+}
+
+extern void
+mptNodePathRelease (BREthereumMPTNodePath path) {
+    for (size_t index = 0; index < array_count (path->nodes); index++)
+        mptNodeRelease (path->nodes[index]);
+    array_free (path->nodes);
+    free (path);
+}
+
+extern BREthereumMPTNodePath
+mptNodePathDecode (BRRlpItem item,
                     BRRlpCoder coder) {
     size_t itemsCount;
     const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
 
-    // TODO: Wrong - here to flag success!
-//    assert (itemsCount == 0);
-    
-    BRArrayOf (BREthereumMPTNodePath) proofs;
-    array_new (proofs, itemsCount);
+    BRArrayOf (BREthereumMPTNode) nodes;
+    array_new (nodes, itemsCount);
     for (size_t index = 0; index < itemsCount; index++)
-        array_add (proofs, mptProofDecode (items[index], coder));
-    return proofs;
+        array_add (nodes, mptNodeDecode (items[index], coder));
+
+    return mptNodePathCreate(nodes);
 }
 
+extern BRRlpData
+mptNodePathGetValueX (BREthereumMPTNodePath path,
+                     BREthereumBoolean *found) {
+    if (0 == array_count(path->nodes)) { *found = ETHEREUM_BOOLEAN_FALSE; return (BRRlpData) { 0, NULL };}
+
+    BREthereumMPTNode node = path->nodes[array_count(path->nodes) - 1];
+    *found = ETHEREUM_BOOLEAN_TRUE;
+
+    switch (node->type) {
+        case MPT_NODE_LEAF:
+            return rlpDataCopy (node->u.leaf.value);
+
+        case MPT_NODE_EXTENSION:
+            *found = ETHEREUM_BOOLEAN_FALSE;
+            return (BRRlpData) { 0, NULL };
+
+        case MPT_NODE_BRANCH:
+            return rlpDataCopy (node->u.branch.value);
+    }
+}
+
+extern BREthereumBoolean
+mptNodePathIsValid (BREthereumMPTNodePath path,
+                    BREthereumHash key) {
+    // TODO: Well, do this.
+    return ETHEREUM_BOOLEAN_TRUE;
+}
+
+extern BRRlpData
+mptNodePathGetValue (BREthereumMPTNodePath path,
+                      BREthereumHash key,
+                      BREthereumBoolean *found) {
+    size_t  keyEncodedCount = 2 * sizeof(key.bytes);
+    uint8_t keyEncoded [keyEncodedCount];
+
+    // Fill the key
+    for (size_t index = 0; index < sizeof (key.bytes); index++) {
+        uint8_t byte = key.bytes[index];
+        keyEncoded [2 * index + 0] = NIBBLE_UPPER(byte);
+        keyEncoded [2 * index + 1] = NIBBLE_LOWER(byte);
+    }
+
+    uint8_t keyEncodedIndex = 0;
+
+    for (size_t index = 0; index < array_count (path->nodes); index++) {
+        BREthereumMPTNode node = path->nodes[index];
+        size_t keyEncodedIncrement = mptNodeConsume (node, &keyEncoded[keyEncodedIndex]);
+
+        // // definitively node found
+        if (0 == keyEncodedIncrement)
+            break;
+
+        keyEncodedIndex += keyEncodedIncrement;
+
+        // If all of key is consumed, then done.
+        if (keyEncodedCount == keyEncodedIndex)
+            return mptNodeGetValue (node, found);
+    }
+
+    *found = ETHEREUM_BOOLEAN_FALSE;
+    return (BRRlpData) { 0, NULL };
+}
+
+/*
+ https://github.com/ethereum/wiki/wiki/Patricia-Tree
+
+ When traversing paths in nibbles, we may end up with an odd number of nibbles to traverse, but
+ because all data is stored in bytes format, it is not possible to differentiate between, for
+ instance, the nibble 1, and the nibbles 01 (both must be stored as <01>). To specify odd length,
+ the partial path is prefixed with a flag.
+
+ The flagging of both odd vs. even remaining partial path length and leaf vs. extension node as
+ described above reside in the first nibble of the partial path of any 2-item node. They result
+ in the following:
+
+ hex char    bits    |    node type partial     path length
+ ----------------------------------------------------------
+ 0        0000    |       extension              even
+ 1        0001    |       extension              odd
+ 2        0010    |   terminating (leaf)         even
+ 3        0011    |   terminating (leaf)         odd
+
+ For even remaining path length (0 or 2), another 0 "padding" nibble will always follow.
+ */
+
+
+/*
+ ETH: LES: Send: [ LES,     GetProofsV2 ] =>  35.193.192.189
+ ETH: SEND: L  2: [
+ ETH: SEND:   I  1: 0x1f
+ ETH: SEND:   L  2: [
+ ETH: SEND:     I  0: 0x
+ ETH: SEND:     L  1: [
+ ETH: SEND:       L  4: [
+ ETH: SEND:         I 32: 0x93965e97196014f11f29352c501bd583ea9619cd0b965643f52c8c5bc179d2a7
+ ETH: SEND:         I  0: 0x
+ ETH: SEND:         I 32: 0x1372c6cc9ad4698bc90e4f827e36bf3930b9a02aa2d626d71dddbf3b9e9eb9d4
+ ETH: SEND:         I  0: 0x
+ ETH: SEND:       ]
+ ETH: SEND:     ]
+ ETH: SEND:   ]
+ ETH: SEND: ]
+ ETH: RECV: L  3: [
+ ETH: RECV:   I  0: 0x
+ ETH: RECV:   I  4: 0x11aaf191
+ ETH: RECV:   L  8: [
+ ETH: RECV:     L 17: [
+ ETH: RECV:       I 32: 0xdd6eff5bf9d98c967b5197f4a258bc4d3b469ea88af6ba130c1ecd491ea823b5
+ ETH: RECV:**1    I 32: 0x280d5fd8f2381aed8dedeb1954c37677109b940a7feb546c809baf7b2a052028
+ ETH: RECV:       I 32: 0xff123f796cbaccd33bdba5c1d48de48cc5e1bbef5d38cbb890664b71f86c8247
+ ETH: RECV:       I 32: 0xfc287d9f867579881a77a157f131c2d1b0c48a28b974c031bba2f1ca4cc01d38
+ ETH: RECV:       I 32: 0x395126bce7d8a7fdd1c866c0036274468ad09026c682899230f1186a909efb31
+ ETH: RECV:       I 32: 0x47ddae583d54b14722bc8c63ccb2443e66d395ede99f3429e14ef7bc547d67b8
+ ETH: RECV:       I 32: 0xf334802bafcb8e4da1ac141b573897ca58b4c72a6487b19758aa5ff692baba20
+ ETH: RECV:       I 32: 0x92a062685557210b35ac0a4de0aab3193c7c6d212bac0f2fddacb8192e51aabc
+ ETH: RECV:       I 32: 0xf450bae353e730b673a0b41cb6f6773df7aedde2906bead65880cb71ff6fa18f
+ ETH: RECV:       I 32: 0xd71396b65e93f142991cc0297d34c8723a66a2a6b82346e2e836b0f57f068581
+ ETH: RECV:       I 32: 0xfed94dba13754a742e02b6ac67683e4cb171e4a5ebd69d7ebbd0e977c07d6fe5
+ ETH: RECV:       I 32: 0x1450605214f4e90cb3483df9322bc8e549a5934c5990ee046d0085324731fd03
+ ETH: RECV:       I 32: 0x46ab678a43a561a35dd8af40d2d58d5e62935f09b405a0436e5778ff68a113c5
+ ETH: RECV:       I 32: 0x65ff2172374bb1d712d1cf617d23109dc62a163dc5b64aa954b07e4dfc77497d
+ ETH: RECV:       I 32: 0x09b21bc2e432a98747c7427b50511a667dcd2789597daad4eb5ae4de4bbd3571
+ ETH: RECV:       I 32: 0x36e2a8a40173ff12b0cbecb915ab3a86d4adbc55e5e9f3a9107be86bc13513e3
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:     ]
+ ETH: RECV:     L 17: [
+ ETH: RECV:       I 32: 0x290ce85ae46fca97bcfdec7cd41e95aeffe5f408146202db8d3dc429824164c8
+ ETH: RECV:       I 32: 0x63bfa3d4f9305fffc7544f29a88890f0bf012ec5dd1597a7cbd70c842a48fab4
+ ETH: RECV:       I 32: 0x9a1fbd7fceb14c9705d0ea26f5981a90a9589536775c669a32bace9f1ee48285
+ ETH: RECV:**3    I 32: 0x16305c47a2a7414a908ee25bfe112169b03120699f8ff5111fbff02a72501726
+ ETH: RECV:       I 32: 0x1058cf2f0fdf61fc7a4ab9f0f706f58c0e135beb28c2ac1a1cdd8f7f9c1accbc
+ ETH: RECV:       I 32: 0x4debabcf8077ddbd4b1c8a206a086ee8d247fb58bb38c258b790ec210557e7dd
+ ETH: RECV:       I 32: 0x7588ae630049af5a828993f57a1343f94704fb9340503a0d3cdeb58d8e173906
+ ETH: RECV:       I 32: 0xa3d965771b674f4ccd038979b70ad1e48c1ef456134c32e247ab10f581c0c3d4
+ ETH: RECV:       I 32: 0xdd123c7c5d9d1858c16bbb77e152a03ddd66223777d77a31927e2dcec0bb241d
+ ETH: RECV:       I 32: 0x4be8ec0544e342c1d0d4e03c5429eb2b0d0766868c96d2f320f494c0f15db0a9
+ ETH: RECV:       I 32: 0xd887f01ccadefe38583fe6b3030a1761871ae74459d3aebc6c85e01a0d407516
+ ETH: RECV:       I 32: 0x9e5ba2892879d982fd270c8e033b7f34b70ef084bb9e36f50663b5c41f1ffae0
+ ETH: RECV:       I 32: 0xdbe63816fb0f7f8afd1e2c1f6223af3b8f484610bafa71cb95a1d8afeaff13aa
+ ETH: RECV:       I 32: 0xf7d9b01b899f371a4a48993534dd1d4930398ef2545a7ed29beaed196def106f
+ ETH: RECV:       I 32: 0x502b8ef8659d0a9aef5113ffc9cc94cba8593ceaa3be7ce871bdc301082158ee
+ ETH: RECV:       I 32: 0xe07f7605684f98daeedc3786eaeaaf429b6f725a7f0ce06bde257cd78a7ceef3
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:     ]
+ ETH: RECV:     L 17: [
+ ETH: RECV:       I 32: 0xde69cf9c15cf55722a811849350960c5563d7fd156328e39fad3106fa489c660
+ ETH: RECV:       I 32: 0x0967f38ee819d15e17048c555832a8e2e982a9bc1ede890c7f44b409b1efc790
+ ETH: RECV:       I 32: 0xfc8a8c8727585c092c13043be610c01924685bca6adc0696cec95c58d8bc4ac2
+ ETH: RECV:       I 32: 0xc7e9c79e3428243ee4d0f06fe8b67ed779144a34e2e017b90b05f8ccf94ee467
+ ETH: RECV:       I 32: 0x0bef20ea19c1d3b6224bbf7e2a1d8ce3086563809eb307608d1360266188b7e9
+ ETH: RECV:       I 32: 0x1ffb84eac0e3cacd30141a4f3b4ed56c33b75b78cc9729659ec144a81b28054f
+ ETH: RECV:       I 32: 0xa4e2e72db5b43c5082f21ffd5b6f3663462240d922b3dabd1196c805c92c4bce
+ ETH: RECV:**7    I 32: 0x5fca8fc71ec38dc819a5f4ec7883d5b7a1a7eab94e2344402e369750ae86834d
+ ETH: RECV:       I 32: 0x45f80cd4d65959136419b7b47466534885ca26cb08121829f90fd91e498aaf42
+ ETH: RECV:       I 32: 0xcd0ad7a624c753367a255340ba36f13ba3f9baa07c88b5a06fe8929927e72606
+ ETH: RECV:       I 32: 0xf42281c3894dc21260668d6a9e065ade947787c6edd2263aa7d7d8ebc3838fbe
+ ETH: RECV:       I 32: 0xaead52abfc99345c6bb335f1498c9396fcb45faa1074e1d1df1a244c7ef2f2da
+ ETH: RECV:       I 32: 0xac5998b87d06eee5bfd167ef20229cc1582bd803c3a959d69fad3235fbe62a3a
+ ETH: RECV:       I 32: 0xd5ed6649af10e9debac991e96db67350ae6ff1cb27ae49511e86b429b8fd6153
+ ETH: RECV:       I 32: 0x6ace648aea9d2077eae34a9565b4f6d368427edaa89bc0baad98ccf6fa5a502f
+ ETH: RECV:       I 32: 0x46b71eb22d8442f7e3094fdb88a0b24f2ef812a1bd5c1640ccc88cfa8de68444
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:     ]
+ ETH: RECV:     L 17: [
+ ETH: RECV:       I 32: 0x06753f029b4b21bc1f7e8c6bad6c926fe87f296988e2cf3a1233afb43786348c
+ ETH: RECV:       I 32: 0xa5d0cf84d42025a93c505cf4a9632415892d6baee20a9477701fd9d679e579b3
+ ETH: RECV:**2    I 32: 0x25397d3307bde96e8ad6bd8ddbacd8c1102bff0e07aaf9ac602c94846d9f5682
+ ETH: RECV:       I 32: 0x5356dd9f157c2920df3eae2b5ae955da537c5018c2dc3d6e2bc459e35591ec92
+ ETH: RECV:       I 32: 0x92e0aeaefb95e79fd41829ec95e5c628d68dc862ab269728289f8dfe8b70dbe8
+ ETH: RECV:       I 32: 0x858f488e2b2461bdb839c32ecfd89ea1f878528696acf8c155b73dc6e64e0fa7
+ ETH: RECV:       I 32: 0xca2e644bec8edbe10f76136e6c84056ed082f1da3c69147427b22e880e161352
+ ETH: RECV:       I 32: 0x0b8bfeb600800e18b5e1d4570ca18dc3959d8172441777d62302357a2d44ede9
+ ETH: RECV:       I 32: 0xa41012a113990d9cbef6f07f2bfd792c8bc4a9fbc05337bfb1ac63f3ffff1087
+ ETH: RECV:       I 32: 0x7d233b18801335ecb39a560fb967e637c1e999b8d742465a11d12f97f735fbdb
+ ETH: RECV:       I 32: 0xc6f10427f96a6903eaf665406b2a719b4520d03be784d4cbbd9bfe2f6562cad3
+ ETH: RECV:       I 32: 0x448bd863a4cda22d2cbed808ab020f5447dd45a583bf77375d5b6b7afad54097
+ ETH: RECV:       I 32: 0xdef270d10d8617f5e899b1b9f1a62dafd0ad48868bacc8ceb7ced07c17c54697
+ ETH: RECV:       I 32: 0x17e1768d2bc884118f3ec7d97a298ca2cffcc6e8a7bc4e8293d20874074db200
+ ETH: RECV:       I 32: 0x58e5abe652f47523ee3bc18ce58f40464a203e6cc96dd863506a27d47467de46
+ ETH: RECV:       I 32: 0x9a5600b669210456cf1e2358a1fe9a473c33dbd816b4fbaf5828fca3eef835ff
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:     ]
+ ETH: RECV:     L 17: [
+ ETH: RECV:       I 32: 0x9cdf2203e7eda12b627627f4687cbc002f312d8c1bd17a281ef8d3678f281a32
+ ETH: RECV:       I 32: 0x3e51c209678c3f2a0b7b64a412158cbff7391692c8cc014c8121a5f6afd2443b
+ ETH: RECV:       I 32: 0x6c2ce2b52bf85e495024f48e59881500699ad5a58445f96376135d156e1ba7f0
+ ETH: RECV:       I 32: 0x95dc080a615fca9085adb6f2d16ef92ffb4c27c442af84a1aed8eaa8ab70f9b4
+ ETH: RECV:       I 32: 0x148b62f0f41ce5228b4b11f041a2a9b6693e1cdba1c246f39ae1a03eabbc93ee
+ ETH: RECV:       I 32: 0x298d2364f62757cf0d4f8ae9686c58c2482cf9e8aa34f1f7a9f9b59e87a86145
+ ETH: RECV:       I 32: 0x8caea577e7cc28122d9b2c526340f3914ac923f29d24ad5c0428a2394b1c1140
+ ETH: RECV:       I 32: 0x4854cbb18c08eb5251cbb1c17826c3277abef94a5de9fc5687b5229da0326d6a
+ ETH: RECV:       I 32: 0x99001c2a7c32b145973904355a84cc71b40cb2f887de8041813b89a88a2b990b
+ ETH: RECV:       I 32: 0xb251e6b1b65c7538ee7615e30b5964ae60bfebee7cbf8589eac02697b9dddacf
+ ETH: RECV:       I 32: 0x9183cbf190f0e4d70d0148545dc25a0b1df34663f4e063d0df02056780203dfc
+ ETH: RECV:       I 32: 0x5be7c9e6dbac94404d87ea9a676f37d39cf97e9944114880d3a13a14f52289e7
+ ETH: RECV:**c    I 32: 0x8ab1efb6d773f47dcda4982986eca88956caa4e8a81fd4f027135bb6228ba42b
+ ETH: RECV:       I 32: 0x491ed0a89e230e8ef3c0ddab98163214759cfc4b737d972a3014658ba632ab6c
+ ETH: RECV:       I 32: 0xbe9dffb80a362ad2403f9cbee548d5390b1c0abfbe61b09d688386230aaaf10c
+ ETH: RECV:       I 32: 0x257e2eb58f23d241d9969109b1632f7993b97648599ab60e73e2066950935300
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:     ]
+ ETH: RECV:     L 17: [
+ ETH: RECV:       I 32: 0xe7edd9aff5b2109a69f8ed1cdd523e5d5d1b59df110a0fccc7af1566c5c9fa8b
+ ETH: RECV:       I 32: 0x164597143946910b4bcc17f19d81dab88a90ccfb9254c3d6277f2fcc9903aa2e
+ ETH: RECV:       I 32: 0xf9f07aaeec5e1a176a9a71cc71f6219f3b9d319a71bae258d41249d2b453cb52
+ ETH: RECV:       I 32: 0x042b6e9daa7719f9491ce1726668a94db6b5238e0a4cc2d268ab0c1e4c8e00dd
+ ETH: RECV:       I 32: 0xbd953830cc0ff4b93b57fbab4b70c650d109791df641e21632caa1bcc6d398c0
+ ETH: RECV:       I 32: 0x43a0e24544ad42fd72903c1d57a1bc1e6cd5f37aac3ca092f17d458d6c54c686
+ ETH: RECV:**6    I 32: 0xd7bc384edef1bf427c3dad9365457ed2c644fc7dfac225e46dfe084ec77d7897
+ ETH: RECV:       I 32: 0x282c0c06cb3dc2030d921761c049d5ddec7044feb462f80d6690cafa82e7afb1
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:       I 32: 0x12bf9ae36e08f3f358aeb54c05cfdf725e69aad6f19304b6abc69ba8da62d8a1
+ ETH: RECV:       I 32: 0x93db5a4c1301033e646af15b6578a964613ac4627c6e847c32fe1879384f450a
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:       I 32: 0xe49b00e39761840d8bb21d193c6ecc3a755baabf29a89ae49832bbecfd800c54
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:       I 32: 0xda8497fb6744831483f47e1ba328e7658b7e5934945d58cb38e143f8e76e6fcc
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:     ]
+ ETH: RECV:     L 17: [
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:       I 32: 0xfcfec2196926949d5cef47ae745cb1135eaec85548082294f8aa22f198913aff
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:       I 32: 0xa4913664739f14eb83bddf15b83a62bca266a408acea51576f78dc651cbe77d9
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:**c    I 32: 0x29454f481919e9d1695a970375fde90beefc08d6b9a610feaed78129b1d48e60
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:       I  0: 0x
+ ETH: RECV:     ]
+ ETH: RECV:     L  2: [
+ ETH: RECV:       I 29: 0x3, c9ad4698bc90e4f827e36bf3930b9a02aa2d626d71dddbf3b9e9eb9d4
+ ETH: RECV:       I 83: 0xf851839272128a01beb53ab3f8d9767867a056e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421a0c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470
+ ETH: RECV:     ]
+ ETH: RECV:   ]
+ ETH: RECV: ]
+ ETH: LES: Recv: [ LES,        ProofsV2 ] <=  35.193.192.189
+
+
+ 0x1372c6c==c9ad4698bc90e4f827e36bf3930b9a02aa2d626d71dddbf3b9e9eb9d4
+
+
+ 0xf851839272128a01beb53ab3f8d9767867a056e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421a0c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470
+ ETH: RLP:: L  4: [
+ ETH: RLP::   I  3: 0x927212
+ ETH: RLP::   I 10: 0x01beb53ab3f8d9767867
+ ETH: RLP::   I 32: 0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421
+ ETH: RLP::   I 32: 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470
+ ETH: RLP:: ]
+
+ */
 /*
  // A Parity 'Acount Response' - first of 5 list elements is the 'proof.
  ETH: RECV: L  3: [

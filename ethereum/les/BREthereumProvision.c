@@ -174,8 +174,8 @@ provisionCreateMessageLES (BREthereumProvision *provisionMulti,
             return (BREthereumMessage) {
                 MESSAGE_LES,
                 { .les = {
-                    LES_MESSAGE_GET_PROOFS_V2,
-                    { .getProofsV2 = { messageId, specs }}}}
+                    LES_MESSAGE_GET_PROOFS,
+                    { .getProofs = { messageId, specs }}}}
             };
         }
 
@@ -293,22 +293,52 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
         }
 
         case PROVISION_ACCOUNTS: {
-            assert (LES_MESSAGE_PROOFS_V2 == message.identifier);
+            assert (LES_MESSAGE_PROOFS == message.identifier);
             BREthereumProvisionAccounts *provision = &provisionMulti->u.accounts;
+            BREthereumHash key = addressGetHash(provision->address);
+
+            // We'll fill this - at the proper index if a multiple provision.
             BRArrayOf(BREthereumAccountState) provisionAccounts = provision->accounts;
 
             BREthereumProvisionIdentifier identifier = messageLESGetRequestId (&message);
 
-            // HACK: This is empty
-            BRArrayOf(BREthereumMPTNodePath) messagePaths = message.u.proofsV2.paths;
+            BRArrayOf(BREthereumMPTNodePath) messagePaths = message.u.proofs.paths;
             size_t offset = messageContentLimit * (identifier - messageIdBase);
+
+            // We need a coder to RLP decode the proof's RLP data into an AccountState.  We could,
+            // and probably should, pass the coder for LES all the way down here.  It is a long
+            // way done... so we'll create one.  In fact, this is insufficient, because the LES
+            // coder has network and perhaps other context.
+            //
+            // We could add a coder to the BREthereumProvisionAccounts... yes, probably should.
+            BRRlpCoder coder = rlpCoderCreate();
 
             for (size_t index = 0; index <  messageContentLimit; index++) {
                 if (offset + index < array_count(provisionAccounts)) {
-                    uint64_t number = provision->numbers [offset + index];   // HACK
-                    provisionAccounts[offset + index] = hackFakeAccountStateLESProofs(number); // HACK
+                    // We expect, require, one path for each index.  A common 'GetProofs' error
+                    // is be have an empty array for messagePaths - that is, no proofs and no
+                    // non-proofs.  That is surely an error (boot the node), but...
+                    if (index < array_count (messagePaths)) {
+                        BREthereumMPTNodePath path = messagePaths[index];
+                        BREthereumBoolean foundValue = ETHEREUM_BOOLEAN_FALSE;
+                        BRRlpData data = mptNodePathGetValue (path, key, &foundValue);
+                        if (ETHEREUM_BOOLEAN_IS_TRUE(foundValue)) {
+                            BRRlpItem item = rlpGetItem (coder, data);
+                            provisionAccounts[offset + index] = accountStateRlpDecode (item, coder);
+                            rlpReleaseItem (coder, item);
+                        }
+                        else
+                            provisionAccounts[offset + index] = accountStateCreateEmpty();
+                    }
+
+                    // ... Hack: If we got an empty result, use some hack data.
+                    else {
+                        uint64_t number = provision->numbers [offset + index];   // HACK
+                        provisionAccounts[offset + index] = hackFakeAccountStateLESProofs(number); // HACK
+                    }
                 }
             }
+            rlpCoderRelease(coder);
             break;
         }
 
