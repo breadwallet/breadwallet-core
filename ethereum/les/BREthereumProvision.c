@@ -156,29 +156,17 @@ provisionCreateMessageLES (BREthereumProvision *provisionMulti,
                 array_set_count (provision->accounts, hashesCount);
             }
 
-            BRArrayOf(BREthereumHash) messageHashes;
-            array_new(messageHashes, messageContentLimit);
-
             size_t hashesOffset = index * messageContentLimit;
 
             BRArrayOf(BREthereumLESMessageGetProofsSpec) specs;
             array_new (specs, hashesCount);
 
-            // HACK
-            BREthereumAddress *addr = malloc (sizeof (BREthereumAddress));
-            memcpy (addr, &address, sizeof (BREthereumAddress));
-
-            BRRlpData key1 = (BRRlpData) { 0, NULL };
-            BRRlpData key2 = (BRRlpData) { sizeof (BREthereumAddress), addr->bytes };
-
             for (size_t i = 0; i < minimum (messageContentLimit, hashesCount - hashesOffset); i++) {
                 BREthereumLESMessageGetProofsSpec spec = {
                     hashes[index],
-                    key1,
-                    key2,
+                    address,
                     0,
                     numbers[index],  // HACK
-                    address
                 };
                 array_add (specs, spec);
             }
