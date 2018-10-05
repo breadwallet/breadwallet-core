@@ -82,6 +82,7 @@ typedef struct {
  */
 typedef struct {
     BREthereumP2PMessageStatus p2p;
+    BREthereumLESMessageStatusMRC costs[NUMBER_OF_LES_MESSAGE_IDENTIFIERS];
 } BREthereumLESMessageStatus;
 
 extern BREthereumLESMessageStatus

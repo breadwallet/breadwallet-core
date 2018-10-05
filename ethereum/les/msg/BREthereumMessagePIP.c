@@ -96,7 +96,7 @@ extern BREthereumPIPMessageStatus
 messagePIPStatusDecode (BRRlpItem item,
                         BREthereumMessageCoder coder) {
     return (BREthereumPIPMessageStatus) {
-        messageP2PStatusDecode(item, coder)
+        messageP2PStatusDecode(item, coder, NULL)
     };
 }
 

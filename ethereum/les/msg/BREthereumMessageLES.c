@@ -75,20 +75,18 @@ messageLESGetIdentifierName (BREthereumLESMessageIdentifier identifer) {
 extern void
 messageLESStatusShow(BREthereumLESMessageStatus *status) {
     messageP2PStatusShow(&status->p2p);
-#if 0
-    size_t count = (NULL == message->flowControlMRCCount ? 0 : *(message->flowControlMRCCount));
-    if (count != 0) {
-        eth_log (LES_LOG_TOPIC, "    FlowControl/MRC:%s", "");
-        for (size_t index = 0; index < count; index++) {
-            const char *label = messageLESGetIdentifierName ((BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);
+
+    eth_log (LES_LOG_TOPIC, "    FlowControl/MRC:%s", "");
+    for (size_t index = 0; index < NUMBER_OF_LES_MESSAGE_IDENTIFIERS; index++)
+        if (index == status->costs[index].msgCode) {
+            const char *label = messageLESGetIdentifierName ((BREthereumLESMessageIdentifier) status->costs[index].msgCode);
             if (NULL != label) {
-                eth_log (LES_LOG_TOPIC, "      %2d", (BREthereumLESMessageIdentifier) message->flowControlMRC[index].msgCode);
-                eth_log (LES_LOG_TOPIC, "        Request : %s", label);
-                eth_log (LES_LOG_TOPIC, "        BaseCost: %llu", message->flowControlMRC[index].baseCost);
-                eth_log (LES_LOG_TOPIC, "        ReqCost : %llu", message->flowControlMRC[index].reqCost);
+                eth_log (LES_LOG_TOPIC, "        Request : %llu (%s)", status->costs[index].msgCode, label);
+                eth_log (LES_LOG_TOPIC, "        BaseCost: %llu", status->costs[index].baseCost);
+                eth_log (LES_LOG_TOPIC, "        ReqCost : %llu", status->costs[index].reqCost);
+                eth_log (LES_LOG_TOPIC, "%s", "");
             }
         }
-#endif
 }
 
 extern BRRlpItem
@@ -119,29 +117,39 @@ messageLESStatusEncode (BREthereumLESMessageStatus *status,
 extern BREthereumLESMessageStatus
 messageLESStatusDecode (BRRlpItem item,
                         BREthereumMessageCoder coder) {
-    return (BREthereumLESMessageStatus) {
-        messageP2PStatusDecode(item, coder)
+    BRRlpItem costItems = NULL;
+
+    // Get the LES Status filled with the baseline P2P Status
+    BREthereumLESMessageStatus status = {
+        messageP2PStatusDecode(item, coder, &costItems)
     };
-#if 0
-} else if (strcmp(key, "flowControl/MRC") == 0) {
-    //status.flowControlMRR = malloc(sizeof(uint64_t));
-    size_t mrrItemsCount  = 0;
-    const BRRlpItem* mrrItems = rlpDecodeList(coder.rlp, keyPairs[1], &mrrItemsCount);
-    BREthereumLESMessageStatusMRC *mrcs = NULL;
-    if(mrrItemsCount > 0){
-        mrcs = (BREthereumLESMessageStatusMRC*) calloc (mrrItemsCount, sizeof(BREthereumLESMessageStatusMRC));
-        for(int mrrIdx = 0; mrrIdx < mrrItemsCount; ++mrrIdx){
-            size_t mrrElementsCount  = 0;
-            const BRRlpItem* mrrElements = rlpDecodeList(coder.rlp, mrrItems[mrrIdx], &mrrElementsCount);
-            mrcs[mrrIdx].msgCode  = rlpDecodeUInt64(coder.rlp, mrrElements[0], 1);
-            mrcs[mrrIdx].baseCost = rlpDecodeUInt64(coder.rlp, mrrElements[1], 1);
-            mrcs[mrrIdx].reqCost  = rlpDecodeUInt64(coder.rlp, mrrElements[2], 1);
+
+    memset (&status.costs, 0, sizeof (status.costs));
+
+    if (NULL != costItems) {
+
+        // Get the individual cost items.
+        size_t count;
+        const BRRlpItem* items = rlpDecodeList(coder.rlp, costItems, &count);
+
+        // process each cost items
+        for (size_t index = 0; index < count; index++) {
+            // get the individual cost
+            size_t elementCount = 0;
+            const BRRlpItem* elements = rlpDecodeList (coder.rlp, items[index], &elementCount);
+
+            // Ignore if RLP decode fails
+            if (3 != elementCount) break;
+
+            // fill in status.
+            size_t msgCode = rlpDecodeUInt64(coder.rlp, elements[0], 1);
+            status.costs[msgCode].msgCode = msgCode;
+            status.costs[msgCode].baseCost = rlpDecodeUInt64(coder.rlp, elements[1], 1);
+            status.costs[msgCode].reqCost  = rlpDecodeUInt64(coder.rlp, elements[2], 1);
         }
     }
-    status.flowControlMRCCount = malloc (sizeof (size_t));
-    *status.flowControlMRCCount = mrrItemsCount;
-    status.flowControlMRC = mrcs;
-#endif
+
+    return status;
 }
 
 extern BREthereumLESMessageStatus

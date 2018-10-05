@@ -210,7 +210,8 @@ messageP2PStatusEncode (BREthereumP2PMessageStatus *status,
 
 extern BREthereumP2PMessageStatus
 messageP2PStatusDecode (BRRlpItem item,
-                        BREthereumMessageCoder coder);
+                        BREthereumMessageCoder coder,
+                        BRRlpItem *costItem);
 
 #ifdef __cplusplus
 }

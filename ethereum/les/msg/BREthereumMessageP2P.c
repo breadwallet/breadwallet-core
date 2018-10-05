@@ -414,7 +414,8 @@ messageP2PStatusEncode (BREthereumP2PMessageStatus *status,
 
 extern BREthereumP2PMessageStatus
 messageP2PStatusDecode (BRRlpItem item,
-                        BREthereumMessageCoder coder) {
+                        BREthereumMessageCoder coder,
+                        BRRlpItem *costItem) {
     BREthereumP2PMessageStatus status = {};
 
     size_t itemsCount = 0;
@@ -498,8 +499,9 @@ messageP2PStatusDecode (BRRlpItem item,
                 array_add (status.pairs, pair);
 
             }
+            else if (strcmp(key, "flowControl/MRC") == 0 && NULL != costItem) {
+                *costItem = keyPairs[1];
 #if 0
-            else if (strcmp(key, "flowControl/MRC") == 0) {
                 // TODO: Wrong for PIP
                 status.flowControlMRR = malloc(sizeof(uint64_t));
                 size_t mrrItemsCount  = 0;
@@ -518,8 +520,8 @@ messageP2PStatusDecode (BRRlpItem item,
                 status.flowControlMRCCount = malloc (sizeof (size_t));
                 *status.flowControlMRCCount = mrrItemsCount;
                 status.flowControlMRC = mrcs;
-            }
 #endif
+            }
             else if (strcmp(key, "flowControl/MRR") == 0) {
                 BREthereumP2PMessageStatusKeyValuePair pair = {
                     P2P_MESSAGE_STATUS_FLOW_CONTROL_MRR,
