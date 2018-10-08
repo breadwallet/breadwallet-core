@@ -38,6 +38,7 @@ handleTrans (BRRlpCoder coder, const char *input) {
 }
 
 #define SOME_RLP "F88FD18F70726F746F636F6C56657273696F6E01CB896E6574776F726B496401CD86686561645464850400000000EA886865616448617368A0D4E56740F876AEF8C010B86A40D5F56745A118D0906A34E69AEC8CDB1CB8FA3C987686561644E756D80ED8B67656E6573697348617368A0D4E56740F876AEF8C010B86A40D5F56745A118D0906A34E69AEC8CDB1CB8FA3"
+
 static void
 handleRLP (BRRlpCoder coder, const char *input) {
     BRRlpData data;
@@ -53,6 +54,79 @@ handleRLP (BRRlpCoder coder, const char *input) {
     rlpShow(data, "RLP:");
 }
 
+///
+/// MARK: - Handle RLP Huge
+///
+#if 0
+// Use in BREthereumNode recv() to write RLP data to file.
+if (bytesCount > 2 * 1024 * 1024) {
+    eth_log (LES_LOG_TOPIC, "XTRA: Large TCP item: %zu", bytesCount);
+    FILE *foo = fopen ("/Users/ebg/les-item.txt", "w");
+
+    BRRlpData data = rlpGetDataSharedDontRelease (node->coder.rlp, item);
+    char *dataAsHex = encodeHexCreate(NULL, data.bytes, data.bytesCount);
+
+    size_t written = fwrite (dataAsHex , sizeof(char), strlen(dataAsHex), foo);
+    assert (strlen(dataAsHex) == written);
+    fclose (foo);
+}
+#endif
+
+static void
+handleRLPHuge (BRRlpCoder coder, const char *filename) {
+    BRRlpData data;
+    BRRlpItem item;
+
+    FILE *file = fopen (filename, "r");
+    char *input = malloc (10 * 1024  *1024);
+    size_t inputCount = fread (input, sizeof (char), 10 * 1024 * 1024, file);
+    input[inputCount] = '\0';
+
+    // Strip a leading "0x"
+    if (0 == strncmp (input, "0x", 2))
+        input = &input[2];
+
+    // Fill `data` and `item`
+    data.bytes = decodeHexCreate(&data.bytesCount, input, strlen (input));
+    item = rlpGetItem (coder, data);
+
+#if 0
+    // use to debug sub-itens
+    size_t l1Count = 0;
+    const BRRlpItem *l1Items = rlpDecodeList (coder, item, &l1Count);
+    assert (3 == l1Count);
+
+    size_t l2Count = 0;
+    const BRRlpItem *l2Items = rlpDecodeList (coder, l1Items[2], &l2Count); // 192 'block bodies'
+    for (size_t index = 0; index < l2Count; index++) {
+        eth_log("EXP", "L2: %zu", index);
+        rlpReleaseItem (coder, l2Items[index]);
+    }
+
+    size_t l3Count = 0;
+    const BRRlpItem *l3Items = rlpDecodeList(coder, l2Items[0], &l3Count);
+
+    size_t l4Count = 0;
+    const BRRlpItem *l4Items = rlpDecodeList(coder, l3Items[1], &l4Count); // bodies
+    for (size_t index = 0; index < l4Count; index++) {
+        eth_log("EXP", "L4: %zu", index);
+       rlpReleaseItem (coder, l4Items[index]);
+    }
+
+    size_t l5Count = 0;
+    const BRRlpItem *l5Items = rlpDecodeList (coder, l4Items[0], &l5Count); // N transactions
+        for (size_t index = 0; index < l5Count; index++) {
+            eth_log("EXP", "L5: %zu", index);
+            rlpReleaseItem (coder, l5Items[index]);
+        }
+
+    eth_log("EXP", "L6...%s", "");
+#endif
+    //    rlpShow(data, "RLP:");
+    rlpReleaseItem(coder, item);
+    eth_log("EXP", "released%s", "");
+}
+
 int main(int argc, const char * argv[]) {
     BRRlpCoder coder = rlpCoderCreate();
 
@@ -62,6 +136,7 @@ int main(int argc, const char * argv[]) {
         input = argv[1];
     }
 
+//    handleRLPHuge(coder, "/Users/ebg/les-item-2.txt");
     handleRLP (coder, SOME_RLP);
 //    handleTrans(coder, TEST_TRANS_ETH);
 //    eth_log ("EXP", "\n\n\n%s", "");
