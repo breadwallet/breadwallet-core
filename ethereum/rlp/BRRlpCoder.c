@@ -37,7 +37,7 @@ rlpDecodeStringEmptyCheck (BRRlpCoder coder, BRRlpItem item);
 static void
 encodeLengthIntoBytes (uint64_t length, uint8_t baseline, uint8_t *bytes9, uint8_t *bytes9Count);
 
-#define CODER_DEFAULT_ITEMS     (20)
+#define CODER_DEFAULT_ITEMS     (2000)
 
 /**
  * An RLP Encoding is comprised of two types: an ITEM and a LIST (of ITEM).
@@ -49,7 +49,7 @@ typedef enum {
 } BRRlpItemType;
 
 #define ITEM_DEFAULT_BYTES_COUNT  1024
-#define ITEM_DEFAULT_ITEMS_COUNT    25
+#define ITEM_DEFAULT_ITEMS_COUNT    15
 
 struct  BRRlpItemRecord {
     BRRlpItemType type;
@@ -64,27 +64,52 @@ struct  BRRlpItemRecord {
     BRRlpItem *items;
     BRRlpItem  itemsArray [ITEM_DEFAULT_ITEMS_COUNT];
 
-    // Chain of free/busy items.
-    BRRlpItem next;
+    // double linked-list of free/busy items.
+    BRRlpItem next, prev;
 };
 
 static void
 itemReleaseMemory (BRRlpItem item) {
     if (item->bytesArray != item->bytes && NULL != item->bytes) free (item->bytes);
     if (item->itemsArray != item->items && NULL != item->items) free (item->items);
-    
-    BRRlpItem next = item->next;
+
     memset (item, 0, sizeof (struct BRRlpItemRecord));
-    item->next = next;
 }
 
 /**
  *
  */
 struct BRRlpCoderRecord {
+    /**
+     * A boolean to indicate that some coder failed.
+     */
     int failed;
+
+    /**
+     * A singly-link list of available RLP items.  When a RLP item is released we'll clear out
+     * the RLP item and then add it to `free`.
+     */
     BRRlpItem free;
+
+    /**
+     * A doubly-linked list of busy RLP items.  Fact is, we don't need to keep this list - you
+     * acquire an item and you best be sure to release it and if you don't you've leaked memory.
+     *
+     * Well, in order to ensure that memory is not leaked, we keep a `busy` list and then on
+     * `rlpCoderRelease()` we assert that there a no busy items - ensuring all are releaded.
+     *
+     * This busy list caused a problem (see bugfix/CORE-152).  It was singly linked and thus to
+     * remove an item we were forced to traverse the list to find the just-prior item and then
+     * set prev->next = item->next.  When we had an RLP item with ~300,000 sub-items the
+     * traversal was computationally unmanageable.  Thus we changed to a doubly-linked list.  Fact
+     * is we probaby don't need `busy`.
+     */
     BRRlpItem busy;
+
+    /**
+     * It is not likely that this lock is actually needed, base on current `BRRlpCoder` use - coders
+     * are only used in one thread.  However, that use my not be generally true - so lock/unlock.
+     */
     pthread_mutex_t lock;
 };
 
@@ -132,19 +157,31 @@ rlpCoderRelease (BRRlpCoder coder) {
     free (coder);
 }
 
+extern int
+rlpCoderBusyCount (BRRlpCoder coder) {
+    int count = 0;
+    for (BRRlpItem found = coder->busy; NULL != found; found = found->next)
+        count++;
+    return count;
+}
+
 static BRRlpItem
 rlpCoderAcquireItem (BRRlpCoder coder) {
     BRRlpItem item = NULL;
     pthread_mutex_lock(&coder->lock);
 
-    if (NULL == coder->free)
-        item = calloc (1, sizeof (struct BRRlpItemRecord));
-    else {
+    // Get `item` from `coder->free` or `calloc`
+    if (NULL != coder->free) {
         item = coder->free;
         coder->free = item->next;
     }
+    else item = calloc (1, sizeof (struct BRRlpItemRecord));
 
+    // Doubly-link `item` to `busy`
+    if (NULL != coder->busy) coder->busy->prev = item;
     item->next = coder->busy;
+
+    // Update `coder` to show `item` as busy.
     coder->busy = item;
 
     pthread_mutex_unlock(&coder->lock);
@@ -152,26 +189,36 @@ rlpCoderAcquireItem (BRRlpCoder coder) {
 }
 
 static void
-rlpCoderReturnItem (BRRlpCoder coder, BRRlpItem item) {
+rlpCoderReturnItem (BRRlpCoder coder, BRRlpItem prev, BRRlpItem item, BRRlpItem next) {
     pthread_mutex_lock(&coder->lock);
+    // If `item` is a the head of our `busy` list, then just move `busy`
     if (item == coder->busy)
         coder->busy = item->next;
+
+    // If `item` is not at the head of our `busy` list, then splice out `item` by
+    // linking as `prev` <==> `next`
     else {
-        BRRlpItem found = coder->busy;
-        while (item != found->next)
-            found = found->next;
-        found->next = item->next;
+        if (NULL != prev) prev->next = next;
+        if (NULL != next) next->prev = prev;
     }
 
+    // The `item` is no longer busy.  Singly link to `free`.
+    item->prev = NULL;
     item->next = coder->free;
+
+    // Update `coder` to show `item` as free.
     coder->free = item;
+
     pthread_mutex_unlock(&coder->lock);
 }
 
 static void
 itemRelease (BRRlpCoder coder, BRRlpItem item) {
+    BRRlpItem prev = item->prev;
+    BRRlpItem next = item->next;
+
     itemReleaseMemory(item);
-    rlpCoderReturnItem(coder, item);
+    rlpCoderReturnItem(coder, prev, item, next);
 }
 
 static int
