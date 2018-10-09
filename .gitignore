@@ -31,11 +31,11 @@
 # Debug files
 *.dSYM/
 
-# IDE files
-xcuserdata/
+# Xcode (see Swift/.gitignore)
+# xcuserdata/
 
-
-.idea/
+# Android Studio / IntelliJ (see Java/.gitignore)
+#.idea/
 
 test
 .git-re*

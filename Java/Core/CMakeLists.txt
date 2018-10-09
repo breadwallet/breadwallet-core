@@ -74,6 +74,38 @@ target_sources (core
                 src/main/cpp/core/BRBech32.c
                 src/main/cpp/core/BRBech32.h)
 
+# Core JNI
+target_sources (core
+                PUBLIC
+                src/main/cpp/jni/BRCoreJni.h
+                src/main/cpp/jni/BRCoreJni.c
+                src/main/cpp/jni/com_breadwallet_core_BRCoreJniReference.c
+                src/main/cpp/jni/com_breadwallet_core_BRCoreJniReference.h
+                src/main/cpp/jni/com_breadwallet_core_BRCoreAddress.c
+                src/main/cpp/jni/com_breadwallet_core_BRCoreAddress.h
+                src/main/cpp/jni/com_breadwallet_core_BRCoreChainParams.c
+                src/main/cpp/jni/com_breadwallet_core_BRCoreChainParams.h
+                src/main/cpp/jni/com_breadwallet_core_BRCorePeer.c
+                src/main/cpp/jni/com_breadwallet_core_BRCorePeer.h
+                src/main/cpp/jni/com_breadwallet_core_BRCoreMasterPubKey.c
+                src/main/cpp/jni/com_breadwallet_core_BRCoreMasterPubKey.h
+                src/main/cpp/jni/com_breadwallet_core_BRCoreKey.h
+                src/main/cpp/jni/com_breadwallet_core_BRCoreKey.c
+                src/main/cpp/jni/com_breadwallet_core_BRCoreMerkleBlock.c
+                src/main/cpp/jni/com_breadwallet_core_BRCoreMerkleBlock.h
+                src/main/cpp/jni/com_breadwallet_core_BRCorePeerManager.c
+                src/main/cpp/jni/com_breadwallet_core_BRCorePeerManager.h
+                src/main/cpp/jni/com_breadwallet_core_BRCoreTransaction.c
+                src/main/cpp/jni/com_breadwallet_core_BRCoreTransaction.h
+                src/main/cpp/jni/com_breadwallet_core_BRCoreTransactionInput.c
+                src/main/cpp/jni/com_breadwallet_core_BRCoreTransactionInput.h
+                src/main/cpp/jni/com_breadwallet_core_BRCoreTransactionOutput.c
+                src/main/cpp/jni/com_breadwallet_core_BRCoreTransactionOutput.h
+                src/main/cpp/jni/com_breadwallet_core_BRCorePaymentProtocol.c
+                src/main/cpp/jni/com_breadwallet_core_BRCorePaymentProtocol.h
+                src/main/cpp/jni/com_breadwallet_core_BRCoreWallet.c
+                src/main/cpp/jni/com_breadwallet_core_BRCoreWallet.h)
+
 # Core Ethereum
 target_sources (core
                 PUBLIC
@@ -81,7 +113,6 @@ target_sources (core
                 #
                 src/main/cpp/core/ethereum/BREthereum.h
                 src/main/cpp/core/ethereum/BREthereum.c
-                src/main/cpp/core/ethereum/BREthereumPrivate.h
 
                 # Util
                 src/main/cpp/core/ethereum/util/BRKeccak.c
@@ -120,6 +151,8 @@ target_sources (core
                 src/main/cpp/core/ethereum/base/BREthereumGas.h
                 src/main/cpp/core/ethereum/base/BREthereumHash.c
                 src/main/cpp/core/ethereum/base/BREthereumHash.h
+                src/main/cpp/core/ethereum/base/BREthereumData.c
+                src/main/cpp/core/ethereum/base/BREthereumData.h
                 src/main/cpp/core/ethereum/base/BREthereumLogic.h
                 src/main/cpp/core/ethereum/base/BREthereumSignature.c
                 src/main/cpp/core/ethereum/base/BREthereumSignature.h
@@ -183,8 +216,15 @@ target_sources (core
                 src/main/cpp/core/ethereum/les/BREthereumNodeEndpoint.h
                 src/main/cpp/core/ethereum/les/BREthereumProvision.c
                 src/main/cpp/core/ethereum/les/BREthereumProvision.h
-                src/main/cpp/core/ethereum/les/msg
-                src/main/cpp/core/ethereum/les/support
+                src/main/cpp/core/ethereum/les/msg/BREthereumMessageP2P.h
+                src/main/cpp/core/ethereum/les/msg/BREthereumMessageP2P.c
+                src/main/cpp/core/ethereum/les/msg/BREthereumMessageDIS.h
+                src/main/cpp/core/ethereum/les/msg/BREthereumMessageDIS.c
+                src/main/cpp/core/ethereum/les/msg/BREthereumMessageETH.h
+                src/main/cpp/core/ethereum/les/msg/BREthereumMessageLES.h
+                src/main/cpp/core/ethereum/les/msg/BREthereumMessageLES.c
+                src/main/cpp/core/ethereum/les/msg/BREthereumMessagePIP.h
+                src/main/cpp/core/ethereum/les/msg/BREthereumMessagePIP.c
 #                src/main/cpp/core/ethereum/les/test-les.c
 #                src/main/cpp/core/ethereum/les/test-les.h
 
@@ -201,51 +241,18 @@ target_sources (core
                 src/main/cpp/core/ethereum/ewm/BREthereumAccount.h
                 src/main/cpp/core/ethereum/ewm/BREthereumAmount.c
                 src/main/cpp/core/ethereum/ewm/BREthereumAmount.h
+                src/main/cpp/core/ethereum/ewm/BREthereumTransfer.c
+                src/main/cpp/core/ethereum/ewm/BREthereumTransfer.h
+                src/main/cpp/core/ethereum/ewm/BREthereumWallet.c
+                src/main/cpp/core/ethereum/ewm/BREthereumWallet.h
                 src/main/cpp/core/ethereum/ewm/BREthereumEWM.c
                 src/main/cpp/core/ethereum/ewm/BREthereumEWM.h
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMClient.c
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMClientEvent.c
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMEvent.c
                 src/main/cpp/core/ethereum/ewm/BREthereumEWMPrivate.h
-                src/main/cpp/core/ethereum/ewm/BREthereumTransfer.c
-                src/main/cpp/core/ethereum/ewm/BREthereumTransfer.h
-                src/main/cpp/core/ethereum/ewm/BREthereumTransferStuff.c
-                src/main/cpp/core/ethereum/ewm/BREthereumWallet.c
-                src/main/cpp/core/ethereum/ewm/BREthereumWallet.h
 #                src/main/cpp/core/ethereum/ewm/testEwm.c
                 )
-
-# Core JNI
-target_sources (core
-                PUBLIC
-                src/main/cpp/jni/BRCoreJni.h
-                src/main/cpp/jni/BRCoreJni.c
-                src/main/cpp/jni/com_breadwallet_core_BRCoreJniReference.c
-                src/main/cpp/jni/com_breadwallet_core_BRCoreJniReference.h
-                src/main/cpp/jni/com_breadwallet_core_BRCoreAddress.c
-                src/main/cpp/jni/com_breadwallet_core_BRCoreAddress.h
-                src/main/cpp/jni/com_breadwallet_core_BRCoreChainParams.c
-                src/main/cpp/jni/com_breadwallet_core_BRCoreChainParams.h
-                src/main/cpp/jni/com_breadwallet_core_BRCorePeer.c
-                src/main/cpp/jni/com_breadwallet_core_BRCorePeer.h
-                src/main/cpp/jni/com_breadwallet_core_BRCoreMasterPubKey.c
-                src/main/cpp/jni/com_breadwallet_core_BRCoreMasterPubKey.h
-                src/main/cpp/jni/com_breadwallet_core_BRCoreKey.h
-                src/main/cpp/jni/com_breadwallet_core_BRCoreKey.c
-                src/main/cpp/jni/com_breadwallet_core_BRCoreMerkleBlock.c
-                src/main/cpp/jni/com_breadwallet_core_BRCoreMerkleBlock.h
-                src/main/cpp/jni/com_breadwallet_core_BRCorePeerManager.c
-                src/main/cpp/jni/com_breadwallet_core_BRCorePeerManager.h
-                src/main/cpp/jni/com_breadwallet_core_BRCoreTransaction.c
-                src/main/cpp/jni/com_breadwallet_core_BRCoreTransaction.h
-                src/main/cpp/jni/com_breadwallet_core_BRCoreTransactionInput.c
-                src/main/cpp/jni/com_breadwallet_core_BRCoreTransactionInput.h
-                src/main/cpp/jni/com_breadwallet_core_BRCoreTransactionOutput.c
-                src/main/cpp/jni/com_breadwallet_core_BRCoreTransactionOutput.h
-                src/main/cpp/jni/com_breadwallet_core_BRCorePaymentProtocol.c
-                src/main/cpp/jni/com_breadwallet_core_BRCorePaymentProtocol.h
-                src/main/cpp/jni/com_breadwallet_core_BRCoreWallet.c
-                src/main/cpp/jni/com_breadwallet_core_BRCoreWallet.h)
 
 # Core Ethereum JNI
 target_sources (core
