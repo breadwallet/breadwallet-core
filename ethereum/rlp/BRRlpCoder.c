@@ -1043,7 +1043,7 @@ rlpShowItemInternal (BRRlpCoder coder, BRRlpItem context, const char *topic, int
             char string[1024 + 1];
             encodeHex(string, 2 * bytesCount + 1, &context->bytes[offset], bytesCount);
 
-            eth_log(topic, "%sI%3llu: 0x%s%s", spaces, length, string,
+            eth_log(topic, "%sI%3" PRIu64 ": 0x%s%s", spaces, length, string,
                     (bytesCount == length ? "" : "..."));
             break;
         }

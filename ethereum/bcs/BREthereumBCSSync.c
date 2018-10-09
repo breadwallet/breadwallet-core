@@ -174,7 +174,7 @@ syncRangeReport (BREthereumBCSSyncRange range,
 
     assert (range->head > range->tail);
 
-    eth_log ("BCS", "Sync: %s: (T:C:R:D) = ( %d : %4llu : {%7llu, %7llu} : %2d ) *** %s%p -> %p",
+    eth_log ("BCS", "Sync: %s: (T:C:R:D) = ( %d : %4" PRIu64 " : {%7" PRIu64 ", %7" PRIu64 "} : %2d ) *** %s%p -> %p",
              action,
              range->type, range->count, range->tail, range->head, depth,
              spaces, range, range->parent);

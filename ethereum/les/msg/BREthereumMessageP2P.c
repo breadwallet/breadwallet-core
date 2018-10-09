@@ -110,9 +110,9 @@ messageP2PHelloShow (BREthereumP2PMessageHello hello) {
     encodeHex(nodeId, nodeIdLen, hello.nodeId.u8, sizeof (hello.nodeId.u8));
 
     eth_log (LES_LOG_TOPIC, "Hello%s", "");
-    eth_log (LES_LOG_TOPIC, "    Version     : %llu", hello.version);
+    eth_log (LES_LOG_TOPIC, "    Version     : %" PRIu64, hello.version);
     eth_log (LES_LOG_TOPIC, "    ClientId    : %s",   hello.clientId);
-    eth_log (LES_LOG_TOPIC, "    ListenPort  : %llu", hello.port);
+    eth_log (LES_LOG_TOPIC, "    ListenPort  : %" PRIu64, hello.port);
     eth_log (LES_LOG_TOPIC, "    NodeId      : 0x%s", nodeId);
     eth_log (LES_LOG_TOPIC, "    Capabilities:%s", "");
     for (size_t index = 0; index < array_count(hello.capabilities); index++)
@@ -259,11 +259,11 @@ messageP2PStatusShow(BREthereumP2PMessageStatus *message) {
     BREthereumP2PMessageStatusValue value;
 
     eth_log (LES_LOG_TOPIC, "StatusMessage:%s", "");
-    eth_log (LES_LOG_TOPIC, "    ProtocolVersion: %llu", message->protocolVersion);
+    eth_log (LES_LOG_TOPIC, "    ProtocolVersion: %" PRIu64, message->protocolVersion);
     if (messageP2PStatusExtractValue(message, P2P_MESSAGE_STATUS_ANNOUNCE_TYPE, &value))
-        eth_log (LES_LOG_TOPIC, "    AnnounceType   : %llu", value.u.integer);
-    eth_log (LES_LOG_TOPIC, "    NetworkId      : %llu", message->chainId);
-    eth_log (LES_LOG_TOPIC, "    HeadNum        : %llu", message->headNum);
+        eth_log (LES_LOG_TOPIC, "    AnnounceType   : %" PRIu64, value.u.integer);
+    eth_log (LES_LOG_TOPIC, "    NetworkId      : %" PRIu64, message->chainId);
+    eth_log (LES_LOG_TOPIC, "    HeadNum        : %" PRIu64, message->headNum);
     eth_log (LES_LOG_TOPIC, "    HeadHash       : %s",   headHashString);
     eth_log (LES_LOG_TOPIC, "    HeadTd         : %s",   headTotalDifficulty);
     eth_log (LES_LOG_TOPIC, "    GenesisHash    : %s",   genesisHashString);
@@ -276,20 +276,20 @@ messageP2PStatusShow(BREthereumP2PMessageStatus *message) {
                  (ETHEREUM_BOOLEAN_IS_TRUE(value.u.boolean) ? "Yes" : "No"));
 
     if (messageP2PStatusExtractValue(message, P2P_MESSAGE_STATUS_SERVE_CHAIN_SINCE, &value))
-        eth_log (LES_LOG_TOPIC, "    ServeChainSince: %llu", value.u.integer);
+        eth_log (LES_LOG_TOPIC, "    ServeChainSince: %" PRIu64, value.u.integer);
 
     if (messageP2PStatusExtractValue(message, P2P_MESSAGE_STATUS_SERVE_STATE_SINCE, &value))
-        eth_log (LES_LOG_TOPIC, "    ServeStateSince: %llu", value.u.integer);
+        eth_log (LES_LOG_TOPIC, "    ServeStateSince: %" PRIu64, value.u.integer);
 
     if (messageP2PStatusExtractValue(message, P2P_MESSAGE_STATUS_TX_RELAY, &value))
         eth_log (LES_LOG_TOPIC, "    TxRelay        : %s",
                  (ETHEREUM_BOOLEAN_IS_TRUE(value.u.boolean) ? "Yes" : "No"));
 
     if (messageP2PStatusExtractValue(message, P2P_MESSAGE_STATUS_FLOW_CONTROL_BL, &value))
-        eth_log (LES_LOG_TOPIC, "    FlowControl/BL : %llu", value.u.integer);
+        eth_log (LES_LOG_TOPIC, "    FlowControl/BL : %" PRIu64, value.u.integer);
 
     if (messageP2PStatusExtractValue(message, P2P_MESSAGE_STATUS_FLOW_CONTROL_MRR, &value))
-        eth_log (LES_LOG_TOPIC, "    FlowControl/MRR: %llu", value.u.integer);
+        eth_log (LES_LOG_TOPIC, "    FlowControl/MRR: %" PRIu64, value.u.integer);
 
 #if 0
     size_t count = (NULL == message->flowControlMRCCount ? 0 : *(message->flowControlMRCCount));

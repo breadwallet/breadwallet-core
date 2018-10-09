@@ -81,9 +81,9 @@ messageLESStatusShow(BREthereumLESMessageStatus *status) {
         if (index == status->costs[index].msgCode) {
             const char *label = messageLESGetIdentifierName ((BREthereumLESMessageIdentifier) status->costs[index].msgCode);
             if (NULL != label) {
-                eth_log (LES_LOG_TOPIC, "        Request : %llu (%s)", status->costs[index].msgCode, label);
-                eth_log (LES_LOG_TOPIC, "        BaseCost: %llu", status->costs[index].baseCost);
-                eth_log (LES_LOG_TOPIC, "        ReqCost : %llu", status->costs[index].reqCost);
+                eth_log (LES_LOG_TOPIC, "        Request : %" PRIu64 " (%s)", status->costs[index].msgCode, label);
+                eth_log (LES_LOG_TOPIC, "        BaseCost: %" PRIu64, status->costs[index].baseCost);
+                eth_log (LES_LOG_TOPIC, "        ReqCost : %" PRIu64, status->costs[index].reqCost);
                 eth_log (LES_LOG_TOPIC, "%s", "");
             }
         }

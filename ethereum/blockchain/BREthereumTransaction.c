@@ -571,12 +571,12 @@ transactionShow (BREthereumTransaction transaction, const char *topic) {
 
     eth_log (topic, "=== Transaction%s", "");
     eth_log (topic, "    Hash  : %s", hash);
-    eth_log (topic, "    Nonce : %llu", transactionGetNonce(transaction));
+    eth_log (topic, "    Nonce : %" PRIu64, transactionGetNonce(transaction));
     eth_log (topic, "    Source: %s", source);
     eth_log (topic, "    Target: %s", target);
     eth_log (topic, "    Amount: %s ETHER", amount);
     eth_log (topic, "    GasPrc: %s GWEI", gasP);
-    eth_log (topic, "    GasLmt: %llu", transactionGetGasLimit(transaction).amountOfGas);
+    eth_log (topic, "    GasLmt: %" PRIu64, transactionGetGasLimit(transaction).amountOfGas);
     eth_log (topic, "    Fee   : %s ETHER", fee);
     eth_log (topic, "    Total : %s ETHER", total);
     eth_log (topic, "    Total : %s WEI", totalWEI);
