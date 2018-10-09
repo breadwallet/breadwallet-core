@@ -95,6 +95,11 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
     }
 
     @Override
+    public void getBlocks (String address, int interests, long blockNumberStart, long blockNumberStop, int rid) {
+
+    }
+
+    @Override
     public void getTokens(int rid) {
         ewm.announceToken(
                 "0x558ec3152e2eb2174905cd19aea4e34a23de9ad6",
@@ -129,27 +134,30 @@ public class CoreDemoEthereumClient implements BREthereumEWM.Client {
     }
 
     @Override
-    public void saveNodes() {
+    public void saveNodes (Map<String,String> data) {
         System.out.println ("TST: saveNodes");
     }
 
     @Override
-    public void saveBlocks() {
+    public void saveBlocks(Map<String,String> data) {
         System.out.println ("TST: saveBlocks");
-
     }
 
     @Override
-    public void changeTransaction() {
+    public void changeTransaction(int changeType,
+                           String hash,
+                           String data) {
         System.out.println ("TST: changeTransaction");
-
     }
 
     @Override
-    public void changeLog() {
+    public void changeLog (int changeType,
+                    String hash,
+                    String data) {
         System.out.println ("TST: changeLog");
-
     }
+
+
 
     @Override
     public void handleEWMEvent(BREthereumEWM.EWMEvent event, BREthereumEWM.Status status, String errorDescription) {

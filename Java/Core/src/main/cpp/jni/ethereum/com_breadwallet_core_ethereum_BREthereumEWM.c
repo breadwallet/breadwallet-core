@@ -96,26 +96,35 @@ clientGetNonce(BREthereumClientContext context,
                int id);
 
 static void
+clientGetBlocks (BREthereumClientContext context,
+                 BREthereumEWM ewm,
+                 const char *address,
+                 BREthereumSyncInterestSet interests,
+                 uint64_t blockNumberStart,
+                 uint64_t blockNumberStop,
+                 int rid);
+
+static void
 clientSaveNodes (BREthereumClientContext context,
                  BREthereumEWM ewm,
-                 BRArrayOf(BREthereumPersistData) persistData);
+                 BRSetOf(BREthereumHashDataPair) data);
 
 static void
 clientSaveBlocks (BREthereumClientContext context,
                   BREthereumEWM ewm,
-                  BRArrayOf(BREthereumPersistData) persistData);
+                  BRSetOf(BREthereumHashDataPair) data);
 
 static void
 clientChangeTransaction (BREthereumClientContext context,
                          BREthereumEWM ewm,
                          BREthereumClientChangeType type,
-                         BREthereumPersistData persistData);
+                         BREthereumHashDataPair dagta);
 
 static void
 clientChangeLog (BREthereumClientContext context,
                  BREthereumEWM ewm,
                  BREthereumClientChangeType type,
-                 BREthereumPersistData persistData);
+                 BREthereumHashDataPair data);
 
 static void
 clientEWMEventHandler (BREthereumClientContext context,
@@ -277,6 +286,7 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
             clientSubmitTransaction,
             clientGetTransactions,
             clientGetLogs,
+            clientGetBlocks,
             clientGetTokens,
             clientGetBlockNumber,
             clientGetNonce,
@@ -295,7 +305,7 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
 
     BREthereumEWM node = ethereumCreate((BREthereumNetwork) network,
                                         paperKey,
-                                        NODE_TYPE_LES,
+                                        EWM_USE_LES,
                                         SYNC_MODE_FULL_BLOCKCHAIN,
                                         client,
                                         NULL,
@@ -334,6 +344,7 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
             clientSubmitTransaction,
             clientGetTransactions,
             clientGetLogs,
+            clientGetBlocks,
             clientGetTokens,
             clientGetBlockNumber,
             clientGetNonce,
@@ -352,7 +363,7 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
 
     BREthereumEWM node = ethereumCreateWithPublicKey((BREthereumNetwork) network,
                                                      key,
-                                                     NODE_TYPE_LES,
+                                                     EWM_USE_LES,
                                                      SYNC_MODE_FULL_BLOCKCHAIN,
                                                      client,
                                                      NULL,
@@ -1609,6 +1620,16 @@ clientGetLogs(BREthereumClientContext context,
 }
 
 static void
+clientGetBlocks (BREthereumClientContext context,
+                 BREthereumEWM ewm,
+                 const char *address,
+                 BREthereumSyncInterestSet interests,
+                 uint64_t blockNumberStart,
+                 uint64_t blockNumberStop,
+                 int rid) {
+}
+
+static void
 clientGetTokens (BREthereumClientContext context,
                  BREthereumEWM ewm,
                  int rid) {
@@ -1683,7 +1704,7 @@ clientGetNonce(BREthereumClientContext context,
 static void
 clientSaveNodes (BREthereumClientContext context,
                  BREthereumEWM ewm,
-                 BRArrayOf(BREthereumPersistData) persistData) {
+                 BRSetOf(BREthereumHashDataPair) data) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
@@ -1705,7 +1726,7 @@ clientSaveNodes (BREthereumClientContext context,
 static void
 clientSaveBlocks (BREthereumClientContext context,
                   BREthereumEWM ewm,
-                  BRArrayOf(BREthereumPersistData) persistData) {
+                  BRSetOf(BREthereumHashDataPair) data) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
@@ -1728,7 +1749,7 @@ static void
 clientChangeTransaction (BREthereumClientContext context,
                          BREthereumEWM ewm,
                          BREthereumClientChangeType type,
-                         BREthereumPersistData persistData) {
+                         BREthereumHashDataPair data) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
@@ -1750,7 +1771,7 @@ static void
 clientChangeLog (BREthereumClientContext context,
                  BREthereumEWM ewm,
                  BREthereumClientChangeType type,
-                 BREthereumPersistData persistData) {
+                 BREthereumHashDataPair data) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 

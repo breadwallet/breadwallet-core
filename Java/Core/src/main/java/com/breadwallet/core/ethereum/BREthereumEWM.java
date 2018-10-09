@@ -181,6 +181,17 @@ public class BREthereumEWM extends BRCoreJniReference {
         //                                int rid);
         void getLogs(String contract, String address, String event, int rid);
 
+
+        //typedef void
+        //(*BREthereumClientHandlerGetBlocks) (BREthereumClientContext context,
+        //                                     BREthereumEWM ewm,
+        //                                     const char *address,
+        //                                     BREthereumSyncInterestSet interests,
+        //                                     uint64_t blockNumberStart,
+        //                                     uint64_t blockNumberStop,
+        //                                     int rid);
+        void getBlocks (String address, int interests, long blockNumberStart, long blockNumberStop, int rid);
+
         void getTokens(int rid);
 
         //        typedef void (*BREthereumClientHandlerGetBlockNumber) (BREthereumClientContext context,
@@ -194,13 +205,17 @@ public class BREthereumEWM extends BRCoreJniReference {
         //                                                        int rid);
         void getNonce(String address, int rid);
 
-        void saveNodes();
+        void saveNodes (Map<String,String> data);
 
-        void saveBlocks();
+        void saveBlocks(Map<String,String> data);
 
-        void changeTransaction();
+        void changeTransaction(int changeType,
+                               String hash,
+                               String data);
 
-        void changeLog();
+        void changeLog (int changeType,
+                        String hash,
+                        String data);
 
         //
         void handleEWMEvent(EWMEvent event,
@@ -543,6 +558,10 @@ public class BREthereumEWM extends BRCoreJniReference {
         client.get().getLogs(contract, address, event, rid);
     }
 
+    protected void trampolineGetBlocks (String address, int interests, long blockNumberStart, long blockNumberStop, int rid) {
+        client.get().getBlocks(address, interests, blockNumberStart, blockNumberStop, rid);
+    }
+
     protected void trampolineGetTokens(int rid) {
         client.get().getTokens(rid);
     }
@@ -555,20 +574,24 @@ public class BREthereumEWM extends BRCoreJniReference {
         client.get().getNonce(address, rid);
     }
 
-    protected void trampolineSaveNodes() {
-        client.get().saveNodes();
+    protected void trampolineSaveNodes(Map<String, String> data) {
+        client.get().saveNodes(data);
     }
 
-    protected void trampolineSaveBlocks() {
-        client.get().saveBlocks();
+    protected void trampolineSaveBlocks(Map<String, String> data) {
+        client.get().saveBlocks(data);
     }
 
-    protected void trampolineChangeTransaction() {
-        client.get().changeTransaction();
+    protected void trampolineChangeTransaction (int changeType,
+                                                String hash,
+                                                String data) {
+        client.get().changeTransaction(changeType, hash, data);
     }
 
-    protected void trampolineChangeLog() {
-        client.get().changeLog();
+    protected void trampolineChangeLog (int changeType,
+                                        String hash,
+                                        String data) {
+        client.get().changeLog (changeType, hash, data);
     }
 
     protected void trampolineEWMEvent (int event, int status, String errorDescription) {
