@@ -103,7 +103,7 @@ size_t BRAddressFromWitness(char *addr, size_t addrLen, const uint8_t *witness, 
 
 // writes the bech32 pay-to-witness-pubkey-hash address for a hash160 to addr
 // returns the number of bytes written, or addrLen needed if addr is NULL
-size_t BRAddressFromHash160(char *addr, size_t addrLen, void *md20);
+size_t BRAddressFromHash160(char *addr, size_t addrLen, const void *md20);
 
 // writes the scriptPubKey for addr to script
 // returns the number of bytes written, or scriptLen needed if script is NULL

@@ -26,6 +26,7 @@
 #define BRChainParams_h
 
 #include "BRMerkleBlock.h"
+#include "BRPeer.h"
 #include "BRSet.h"
 #include "BRPeer.h"
 #include <assert.h>
@@ -86,7 +87,8 @@ static const BRCheckPoint BRMainNetCheckpoints[] = {
     { 463680, uint256("000000000000000000431a2f4619afe62357cd16589b638bb638f2992058d88e"), 1493259601, 0x18021b3e },
     { 483840, uint256("0000000000000000008e5d72027ef42ca050a0776b7184c96d0d4b300fa5da9e"), 1504704195, 0x1801310b },
     { 504000, uint256("0000000000000000006cd44d7a940c79f94c7c272d159ba19feb15891aa1ea54"), 1515827554, 0x177e578c },
-    { 524160, uint256("00000000000000000009d1e9bee76d334347060c6a2985d6cbc5c22e48f14ed2"), 1527168053, 0x17415a49 }
+    { 524160, uint256("00000000000000000009d1e9bee76d334347060c6a2985d6cbc5c22e48f14ed2"), 1527168053, 0x17415a49 },
+    //{ 544320, , , }
 };
 
 static const BRCheckPoint BRTestNetCheckpoints[] = {
