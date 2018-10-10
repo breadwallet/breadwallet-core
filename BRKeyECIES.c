@@ -31,17 +31,6 @@
 // ecies-aes128-sha256 as specified in SEC 1, 5.1: http://www.secg.org/SEC1-Ver-1.0.pdf
 // NOTE: these are not implemented using constant time algorithms
 
-static void _BRECDH(void *out32, const BRKey *privKey, BRKey *pubKey)
-{
-    uint8_t p[65];
-    size_t pLen = BRKeyPubKey(pubKey, p, sizeof(p));
-    
-    if (pLen == 65) p[0] = (p[64] % 2) ? 0x03 : 0x02; // convert to compressed pubkey format
-    BRSecp256k1PointMul((BRECPoint *)p, &privKey->secret); // calculate shared secret ec-point
-    memcpy(out32, &p[1], 32); // unpack the x coordinate
-    mem_clean(p, sizeof(p));
-}
-
 size_t BRKeyECIESAES128SHA256Encrypt(BRKey *pubKey, void *out, size_t outLen, BRKey *ephemKey,
                                      const void *data, size_t dataLen)
 {
