@@ -313,30 +313,19 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
             // We could add a coder to the BREthereumProvisionAccounts... yes, probably should.
             BRRlpCoder coder = rlpCoderCreate();
 
-            for (size_t index = 0; index <  messageContentLimit; index++) {
-                if (offset + index < array_count(provisionAccounts)) {
-                    // We expect, require, one path for each index.  A common 'GetProofs' error
-                    // is be have an empty array for messagePaths - that is, no proofs and no
-                    // non-proofs.  That is surely an error (boot the node), but...
-                    if (index < array_count (messagePaths)) {
-                        BREthereumMPTNodePath path = messagePaths[index];
-                        BREthereumBoolean foundValue = ETHEREUM_BOOLEAN_FALSE;
-                        BRRlpData data = mptNodePathGetValue (path, key, &foundValue);
-                        if (ETHEREUM_BOOLEAN_IS_TRUE(foundValue)) {
-                            BRRlpItem item = rlpGetItem (coder, data);
-                            provisionAccounts[offset + index] = accountStateRlpDecode (item, coder);
-                            rlpReleaseItem (coder, item);
-                        }
-                        else
-                            provisionAccounts[offset + index] = accountStateCreateEmpty();
-                    }
-
-                    // ... Hack: If we got an empty result, use some hack data.
-                    else {
-                        uint64_t number = provision->numbers [offset + index];   // HACK
-                        provisionAccounts[offset + index] = hackFakeAccountStateLESProofs(number); // HACK
-                    }
+            for (size_t index = 0; index < array_count(messagePaths); index++) {
+                // We expect, require, one path for each index.  A common 'GetProofs' error
+                // is be have an empty array for messagePaths - that is, no proofs and no
+                // non-proofs.  That is surely an error (boot the node), but...
+                BREthereumMPTNodePath path = messagePaths[index];
+                BREthereumBoolean foundValue = ETHEREUM_BOOLEAN_FALSE;
+                BRRlpData data = mptNodePathGetValue (path, key, &foundValue);
+                if (ETHEREUM_BOOLEAN_IS_TRUE(foundValue)) {
+                    BRRlpItem item = rlpGetItem (coder, data);
+                    provisionAccounts[offset + index] = accountStateRlpDecode (item, coder);
+                    rlpReleaseItem (coder, item);
                 }
+                else provisionAccounts[offset + index] = accountStateCreateEmpty();
             }
             rlpCoderRelease(coder);
             break;

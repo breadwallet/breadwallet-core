@@ -142,7 +142,8 @@ mptNodeDecode (BRRlpItem item,
 
     switch (itemsCount) {
         case 2: {
-            BRRlpData pathData = rlpGetDataSharedDontRelease(coder, items[0]);
+            // Decode, skipping to the bytes (w/o the RLP length prefix)
+            BRRlpData pathData = rlpDecodeBytes(coder, items[0]);
             assert (0 != pathData.bytesCount);
 
             // Extract the nodeType nibble; determine `type` and `padded`
@@ -182,7 +183,7 @@ mptNodeDecode (BRRlpItem item,
             switch (type) {
                 case MPT_NODE_LEAF:
                     node->u.leaf.path = path;
-                    node->u.leaf.value = rlpGetData (coder, items[1]);
+                    node->u.leaf.value = rlpDecodeBytes (coder, items[1]);
                     break;
 
                 case MPT_NODE_EXTENSION:
