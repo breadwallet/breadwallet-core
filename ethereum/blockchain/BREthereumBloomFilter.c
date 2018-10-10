@@ -164,6 +164,8 @@ bloomFilterSetBit (BREthereumBloomFilter *filter, unsigned int index) {
     filter->bytes[byteIndex] |= (1 << bitIndex);
 }
 
+#pragma clang diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-function"
 static void
 bloomFilterClrBit (BREthereumBloomFilter *filter, unsigned int index) {
     unsigned int byteIndex;
@@ -171,6 +173,8 @@ bloomFilterClrBit (BREthereumBloomFilter *filter, unsigned int index) {
     bloomFilterExtractLocation(index, &byteIndex, &bitIndex);
     filter->bytes[byteIndex] &= ~(1 << bitIndex);
 }
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 
 #define ETHERUM_BLOOM_FILTER_BITS_MASK  (ETHEREUM_BLOOM_FILTER_BITS - 1)
 

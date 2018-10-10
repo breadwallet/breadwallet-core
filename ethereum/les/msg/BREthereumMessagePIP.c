@@ -117,13 +117,13 @@ messagePIPAnnounceDecode (BRRlpItem item,
         message.reorgDepth = rlpDecodeUInt64 (coder.rlp, items[3], 1);
 
         // TODO: Decode Keys
-        if (5 == itemsCount) {
-            size_t pairCount = 0;
-            const BRRlpItem *pairItems = rlpDecodeList (coder.rlp, items[4], &pairCount);
-            array_new(message.pairs, pairCount);
-            for (size_t index = 0; index < pairCount; index++)
-                ;
-        }
+//        if (5 == itemsCount) {
+//            size_t pairCount = 0;
+//            const BRRlpItem *pairItems = rlpDecodeList (coder.rlp, items[4], &pairCount);
+//            array_new(message.pairs, pairCount);
+//            for (size_t index = 0; index < pairCount; index++)
+//                ;
+//        }
     }
 
     return message;

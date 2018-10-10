@@ -62,6 +62,8 @@
 
 /// MARK: Node Test
 
+#pragma clang diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-function"
 static void
 _nodeCallbackProvide (BREthereumNodeContext context,
                       BREthereumNode node,
@@ -80,6 +82,8 @@ _nodeCallbackStatus (BREthereumNodeContext context,
                      BREthereumNodeEndpointRoute route,
                      BREthereumNodeState state) {
 }
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 
 // pthread locks/conditions and wait and signal functions
 static pthread_mutex_t _testLock;
