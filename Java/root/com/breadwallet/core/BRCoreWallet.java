@@ -90,6 +90,10 @@ public class BRCoreWallet extends BRCoreJniReference
     // BRAddress BRWalletReceiveAddress(BRWallet *wallet);
     public native BRCoreAddress getReceiveAddress ();
 
+    // returns the first unused external address (legacy pay-to-pubkey-hash)
+    // BRAddress BRWalletLegacyAddress(BRWallet *wallet);
+    public native BRCoreAddress getLegacyAddress ();
+
     // writes all addresses previously genereated with BRWalletUnusedAddrs() to addrs
     // returns the number addresses written, or total number available if addrs is NULL
     public native BRCoreAddress[] getAllAddresses ();

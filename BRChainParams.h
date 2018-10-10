@@ -27,6 +27,7 @@
 
 #include "BRMerkleBlock.h"
 #include "BRSet.h"
+#include "BRPeer.h"
 #include <assert.h>
 
 typedef struct {
@@ -131,7 +132,7 @@ static const BRChainParams BRMainNetParams = {
     BRMainNetDNSSeeds,
     8333,                  // standardPort
     0xd9b4bef9,            // magicNumber
-    SERIVCES_NODE_WITNESS, // services
+    SERVICES_NODE_WITNESS, // services
     BRMainNetVerifyDifficulty,
     BRMainNetCheckpoints,
     sizeof(BRMainNetCheckpoints)/sizeof(*BRMainNetCheckpoints)
@@ -141,7 +142,7 @@ static const BRChainParams BRTestNetParams = {
     BRTestNetDNSSeeds,
     18333,                 // standardPort
     0x0709110b,            // magicNumber
-    SERIVCES_NODE_WITNESS, // services
+    SERVICES_NODE_WITNESS, // services
     BRTestNetVerifyDifficulty,
     BRTestNetCheckpoints,
     sizeof(BRTestNetCheckpoints)/sizeof(*BRTestNetCheckpoints)
