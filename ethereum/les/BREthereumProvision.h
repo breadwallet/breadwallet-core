@@ -103,7 +103,6 @@ typedef struct {
     // Request
     BREthereumAddress address;
     BRArrayOf(BREthereumHash) hashes;
-    BRArrayOf(uint64_t) numbers;    // HACK
     // Response
     BRArrayOf(BREthereumAccountState) accounts;
 } BREthereumProvisionAccounts;

@@ -737,22 +737,17 @@ bcsSyncHandleBlockHeaders (BREthereumBCSSyncRange range,
 
             // Setup a call to lesProvideAccountStates()
             BRArrayOf(BREthereumHash) hashes;
-            BRArrayOf(uint64_t) numbers;
 
             array_new (hashes, count);
-            array_new (numbers, count);
 
-            for (size_t index = 0; index < count; index++) {
+            for (size_t index = 0; index < count; index++)
                 array_add (hashes,  blockHeaderGetHash (headers[index]));
-                array_add (numbers, blockHeaderGetNumber (headers[index]));
-            }
 
             lesProvideAccountStates (range->les,
                                      (BREthereumLESProvisionContext) range,
                                      (BREthereumLESProvisionCallback) bcsSyncSignalProvision,
                                      range->address,
-                                     hashes,
-                                     numbers);
+                                     hashes);
             break;
         }
 

@@ -959,30 +959,24 @@ static void run_GetAccountState_Tests (BREthereumLES les){
                                 (void*) &_GetAccount_Context1,
                                 _GetAccountState_Callback_Test1,
                                 address,
-                                block_350000,
-                                350000);
+                                block_350000);
 
     BREthereumHash block_349999 = hashCreate("0xb86a49b1589b3f8474171d35c796e27f5c20ba1db16a2d93cf67d7358122b361");
     lesProvideAccountStatesOne (les,
                                 (void*) &_GetAccount_Context1,
                                 _GetAccountState_Callback_Test1,
                                 address,
-                                block_349999,
-                                349999);
+                                block_349999);
 
     BRArrayOf(BREthereumHash) hashes;
-    BRArrayOf(uint64_t) numbers;
     array_new (hashes, 2);
-    array_new (numbers, 2);
 
     array_add (hashes, block_350000); array_add (hashes, block_349999);
-    array_add (numbers, 350000); array_add (numbers, 349999);
     lesProvideAccountStates (les,
                              (void*) &_GetAccount_Context1,
                              _GetAccountState_Callback_Test2,
                              address,
-                             hashes,
-                             numbers);
+                             hashes);
 
     _waitForTests();
     eth_log(TST_LOG_TOPIC, "GetAccopuntState: %s", "Tests Successful");

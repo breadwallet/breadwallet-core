@@ -222,8 +222,6 @@ typedef struct {
     BREthereumHash blockHash;
     BREthereumAddress address;
     uint64_t fromLevel;
-    // Not RLP encoded
-    uint64_t blockNumber;           // HACK
 } BREthereumLESMessageGetProofsSpec;
 
 /**

@@ -285,16 +285,14 @@ lesProvideAccountStates (BREthereumLES les,
                          BREthereumLESProvisionContext context,
                          BREthereumLESProvisionCallback callback,
                          BREthereumAddress address,
-                         BRArrayOf(BREthereumHash) blockHashes,
-                         BRArrayOf(uint64_t) blockNumbers);  // HACK
+                         BRArrayOf(BREthereumHash) blockHashes);
 
 extern void
 lesProvideAccountStatesOne (BREthereumLES les,
                             BREthereumLESProvisionContext context,
                             BREthereumLESProvisionCallback callback,
                             BREthereumAddress address,
-                            BREthereumHash blockHash,
-                            uint64_t blockNumber);  // HACK
+                            BREthereumHash blockHash);
 
 /**
  * @function lesProvideTransactionStauts
