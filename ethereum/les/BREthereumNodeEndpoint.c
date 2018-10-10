@@ -532,16 +532,12 @@ const char *localLESEnode = "enode://x@1.1.1.1:30303";
 const char *bootstrapLCLEnodes[] = {
 #if defined (LES_SUPPORT_PARITY)
     // Localhost - Parity
-    //    "enode://30af157f9105700422655d81d269575c0b1d63caeb90863f70cb2b92d89356ac4378cabaa4e2c84c9fdf1571264bcf22fd4bb6148f65f84c9e5f37dcc8a46a7f@127.0.0.1:30303",  // HDD Archive
-    //    "enode://9058392a81f6f3df662cd2dc5e62d3529f08bc68a69025937a831bd6734e9830bffde87485989ebb4b5588771fc877e34b7be82251cf2d48ae2a1a784b6b58fc@127.0.0.1:30303",  // SSD Full
     "enode://4483ac6134c85ecbd31d14168f1c97b82bdc45c442e81277f52428968de41add46549f8d6c9c8c3432f3b8834b018c350ac37d87d70d67e599f42f68a96717fc@127.0.0.1:30303", // SSD Archive
-    //    "enode://8ebe6a85d46737451c8bd9423f37dcb117af7316bbce1643856feeaf9f81a792ff09029e9ab1796b193eb477f938af3465f911574c57161326b71aaf0221f341@127.0.0.1:30303",
 #endif
 
 #if defined (LES_SUPPORT_GETH)
-    "enode://4e20dfea1fc4f7d63db2bea2626501d819dbbc21f1829bfae897f9c298d9d07a8e7ab3d7a5a5b07118e9fda0c0ccfb07c2cc71c64caddb648952d3e3da5e6b55@127.0.0.1:30304",
     // Localhost - GETH
-    //    "enode://a40437d2f44ae655387009d1d69ba9fd07b748b7a6ecfc958c135008a34c0497466db35049c36c8296590b4bcf9b9058f9fa2a688a2c6566654b1f1dc42417e4@127.0.0.1:30303",
+    "enode://654580048e9de8f7743ca38035c7ab7fbf2d59b6acd5b92cc031e4571b2c441fe9fc5bb261ada112fb39ca32c1ac7716d91a211b992693c9472ad6af42c5302a@127.0.0.1:30304",
 #endif
     NULL
 };
@@ -554,6 +550,7 @@ const char *bootstrapBRDEnodes[] = {
     // Archival
     "enode://629d898ee7e1b3a76475977272148fb38917e4a56cd49245e284667e4dc34e57ceb46799e3ffdc70b5a3c65cb7d73d2dd98a36f28be244b8aecfcba752a7bc38@35.202.248.103:30303",
 #endif
+
 #if defined (LES_SUPPORT_GETH)
     // Archival
     "enode://3d0bce4775635c65733b7534f1bccd48720632f5d66a44030c1d13e2e5883262d9d22cdb8365c03137e8d5fbbf5355772acf35b08d6f9b5ad69bb24ad52a20cc@35.184.255.33:30303",

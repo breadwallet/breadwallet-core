@@ -27,9 +27,6 @@
 
 static size_t minimum (size_t x, size_t  y) { return x < y ? x : y; }
 
-static BREthereumAccountState
-hackFakeAccountStateLESProofs (uint64_t number);
-
 extern BREthereumLESMessageIdentifier
 provisionGetMessageLESIdentifier (BREthereumProvisionType type) {
     switch (type) {
@@ -148,7 +145,6 @@ provisionCreateMessageLES (BREthereumProvision *provisionMulti,
 
             BREthereumAddress address = provision->address;
             BRArrayOf(BREthereumHash) hashes = provision->hashes;
-            BRArrayOf(uint64_t) numbers = provision->numbers;
             size_t hashesCount = array_count(hashes);
 
             if (NULL == provision->accounts) {
@@ -156,29 +152,16 @@ provisionCreateMessageLES (BREthereumProvision *provisionMulti,
                 array_set_count (provision->accounts, hashesCount);
             }
 
-            BRArrayOf(BREthereumHash) messageHashes;
-            array_new(messageHashes, messageContentLimit);
-
             size_t hashesOffset = index * messageContentLimit;
 
             BRArrayOf(BREthereumLESMessageGetProofsSpec) specs;
             array_new (specs, hashesCount);
 
-            // HACK
-            BREthereumAddress *addr = malloc (sizeof (BREthereumAddress));
-            memcpy (addr, &address, sizeof (BREthereumAddress));
-
-            BRRlpData key1 = (BRRlpData) { 0, NULL };
-            BRRlpData key2 = (BRRlpData) { sizeof (BREthereumAddress), addr->bytes };
-
             for (size_t i = 0; i < minimum (messageContentLimit, hashesCount - hashesOffset); i++) {
                 BREthereumLESMessageGetProofsSpec spec = {
                     hashes[index],
-                    key1,
-                    key2,
+                    address,
                     0,
-                    numbers[index],  // HACK
-                    address
                 };
                 array_add (specs, spec);
             }
@@ -186,8 +169,8 @@ provisionCreateMessageLES (BREthereumProvision *provisionMulti,
             return (BREthereumMessage) {
                 MESSAGE_LES,
                 { .les = {
-                    LES_MESSAGE_GET_PROOFS_V2,
-                    { .getProofsV2 = { messageId, specs }}}}
+                    LES_MESSAGE_GET_PROOFS,
+                    { .getProofs = { messageId, specs }}}}
             };
         }
 
@@ -305,22 +288,41 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
         }
 
         case PROVISION_ACCOUNTS: {
-            assert (LES_MESSAGE_PROOFS_V2 == message.identifier);
+            assert (LES_MESSAGE_PROOFS == message.identifier);
             BREthereumProvisionAccounts *provision = &provisionMulti->u.accounts;
+            BREthereumHash key = addressGetHash(provision->address);
+
+            // We'll fill this - at the proper index if a multiple provision.
             BRArrayOf(BREthereumAccountState) provisionAccounts = provision->accounts;
 
             BREthereumProvisionIdentifier identifier = messageLESGetRequestId (&message);
 
-            // HACK: This is empty
-            BRArrayOf(BREthereumMPTNodePath) messagePaths = message.u.proofsV2.paths;
+            BRArrayOf(BREthereumMPTNodePath) messagePaths = message.u.proofs.paths;
             size_t offset = messageContentLimit * (identifier - messageIdBase);
 
-            for (size_t index = 0; index <  messageContentLimit; index++) {
-                if (offset + index < array_count(provisionAccounts)) {
-                    uint64_t number = provision->numbers [offset + index];   // HACK
-                    provisionAccounts[offset + index] = hackFakeAccountStateLESProofs(number); // HACK
+            // We need a coder to RLP decode the proof's RLP data into an AccountState.  We could,
+            // and probably should, pass the coder for LES all the way down here.  It is a long
+            // way done... so we'll create one.  In fact, this is insufficient, because the LES
+            // coder has network and perhaps other context.
+            //
+            // We could add a coder to the BREthereumProvisionAccounts... yes, probably should.
+            BRRlpCoder coder = rlpCoderCreate();
+
+            for (size_t index = 0; index < array_count(messagePaths); index++) {
+                // We expect, require, one path for each index.  A common 'GetProofs' error
+                // is be have an empty array for messagePaths - that is, no proofs and no
+                // non-proofs.  That is surely an error (boot the node), but...
+                BREthereumMPTNodePath path = messagePaths[index];
+                BREthereumBoolean foundValue = ETHEREUM_BOOLEAN_FALSE;
+                BRRlpData data = mptNodePathGetValue (path, key, &foundValue);
+                if (ETHEREUM_BOOLEAN_IS_TRUE(foundValue)) {
+                    BRRlpItem item = rlpGetItem (coder, data);
+                    provisionAccounts[offset + index] = accountStateRlpDecode (item, coder);
+                    rlpReleaseItem (coder, item);
                 }
+                else provisionAccounts[offset + index] = accountStateCreateEmpty();
             }
+            rlpCoderRelease(coder);
             break;
         }
 
@@ -712,35 +714,3 @@ provisionMatches (BREthereumProvision *provision1,
                                 // bodies?
                                 );
 }
-
-/// MARK: HACK
-
-struct BlockStateMap {
-    uint64_t number;
-    BREthereumAccountState state;
-};
-
-// Address: 0xa9de3dbD7d561e67527bC1Ecb025c59D53b9F7Ef
-static struct BlockStateMap map[] = {
-    { 0, { 0 }},
-    { 5506602, { 1 }}, // <- ETH, 0xa9d8724bb9db4b5ad5a370201f7367c0f731bfaa2adf1219256c7a40a76c8096
-    { 5506764, { 2 }}, // -> KNC, 0xaca2b09703d7816753885fd1a60e65c6426f9d006ba2d8dd97f7c845e0ffa930
-    { 5509990, { 3 }}, // -> KNC, 0xe5a045bdd432a8edc345ff830641d1b75847ab5c9d8380241323fa4c9e6cee1e
-    { 5511681, { 4 }}, // -> KNC, 0x04d93a1addec69da4a0589bd84d5157a0b47369ce6084c06d66fbd0afc8591dc
-    { 5539808, { 5 }}, // -> KNC, 0x932faac9e5bf5cead0492afbe290ff0cd7d2ab5d7b351ad1bccae8aac646522b
-    { 5795662, { 6 }}, // -> ETH, 0x1429c28066e3e41073e7abece864e5ca9b0dfcef28bec90a83e6ed04d91997ac
-    { 5818087, { 7 }}, // -> ETH, 0xe606358c10f59dfbdb7ad823826881ee3915e06320f1019187af92e96201e7ed
-    { 5819543, { 8 }}, // -> ETH, 0x597595bdf79ec29e8a7079fecddd741a40471bbd8fd92e11cdfc0d78d973cb16
-    { 6104163, { 9 }}, // -> ETH, 0xe87d76e5a47600f70ee11816ba8d1756b9295eca12487cbe1223a80e3a603d44
-    { UINT64_MAX, { 9 }}
-};
-static size_t mapCount = sizeof (map) / sizeof (struct BlockStateMap);
-
-static BREthereumAccountState
-hackFakeAccountStateLESProofs (uint64_t number) {
-    for (int i = 0; i < mapCount; i++)
-        if (number < map[i].number)
-            return map[i - 1].state;
-    assert (0);
-}
-

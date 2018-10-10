@@ -32,6 +32,7 @@
 #endif
 
 #include "../rlp/BRRlp.h"
+#include "../base/BREthereumData.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -60,33 +61,25 @@ typedef enum {
 //
 //
 //
-typedef struct BREthereumMPTNodeRecord *BREthereumMPTNode;
+//
+//
+//
+typedef struct BREthereumMPTNodePathRecord *BREthereumMPTNodePath;
 
-struct BREthereumMPTNodeRecord {
-    BREthereumMPTNodeType type;
-    union {
-        struct {} leaf;
-        struct {} extension;
-        struct {
-            BREthereumMPTNode nodes[16];
-            void *value; // RLPItem/Data?
-        } branch;
-    } u;
-};
+extern void
+mptNodePathRelease (BREthereumMPTNodePath path);
 
-//
-//
-//
-typedef struct {
-    // [node_1, node_2 ...]
-} BREthereumMPTNodePath;
+extern BRRlpData
+mptNodePathGetValue (BREthereumMPTNodePath path,
+                     BREthereumHash key,
+                     BREthereumBoolean *found);
+
+extern BREthereumBoolean
+mptNodePathIsValid (BREthereumMPTNodePath path,
+                    BREthereumHash key);
 
 extern BREthereumMPTNodePath
-mptProofDecode (BRRlpItem item,
-                BRRlpCoder coder);
-
-extern BRArrayOf(BREthereumMPTNodePath)
-mptProofDecodeList (BRRlpItem item,
+mptNodePathDecode (BRRlpItem item,
                     BRRlpCoder coder);
 
 #ifdef __cplusplus

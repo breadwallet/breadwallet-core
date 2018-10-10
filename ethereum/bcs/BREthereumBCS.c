@@ -1009,8 +1009,7 @@ bcsHandleBlockHeaderInternal (BREthereumBCS bcs,
                               int isFromSync,
                               BRArrayOf(BREthereumHash) *bodiesHashes,
                               BRArrayOf(BREthereumHash) *receiptsHashes,
-                              BRArrayOf(BREthereumHash) *accountsHashes,
-                              BRArrayOf(uint64_t) *accountsNumbers) {
+                              BRArrayOf(BREthereumHash) *accountsHashes) {
 
     // Ignore the header if we have seen it before.  Given an identical hash, *nothing*, at any
     // level (transactions, receipts, logs), could have changed and thus no processing is needed.
@@ -1064,9 +1063,7 @@ bcsHandleBlockHeaderInternal (BREthereumBCS bcs,
     if (ETHEREUM_BOOLEAN_IS_TRUE(needAccount)) {
         blockReportStatusAccountStateRequest (block, BLOCK_REQUEST_PENDING);
         if (NULL == *accountsHashes ) array_new (*accountsHashes,  200);
-        if (NULL == *accountsNumbers) array_new (*accountsNumbers, 200);
         array_add (*accountsHashes, blockGetHash(block));
-        array_add (*accountsNumbers, blockGetNumber(block));
         eth_log("BCS", "Block %llu Needs AccountState", blockGetNumber(block));
     }
 
@@ -1086,14 +1083,12 @@ bcsHandleBlockHeaders (BREthereumBCS bcs,
     BRArrayOf(BREthereumHash) bodiesHashes = NULL;
     BRArrayOf(BREthereumHash) receiptsHashes = NULL;
     BRArrayOf(BREthereumHash) accountsHashes = NULL;
-    BRArrayOf(uint64_t) accountsNumbers = NULL;
 
     for (size_t index = 0; index < array_count(headers); index++)
         bcsHandleBlockHeaderInternal (bcs, headers[index], isFromSync,
                                       &bodiesHashes,
                                       &receiptsHashes,
-                                      &accountsHashes,
-                                      &accountsNumbers);
+                                      &accountsHashes);
 
     if (NULL != bodiesHashes && array_count(bodiesHashes) > 0)
         lesProvideBlockBodies (bcs->les,
@@ -1112,8 +1107,7 @@ bcsHandleBlockHeaders (BREthereumBCS bcs,
                                  (BREthereumLESProvisionContext) bcs,
                                  (BREthereumLESProvisionCallback) bcsSignalProvision,
                                  bcs->address,
-                                 accountsHashes,
-                                 accountsNumbers);
+                                 accountsHashes);
 }
 
 ///

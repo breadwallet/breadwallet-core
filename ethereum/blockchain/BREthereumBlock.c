@@ -191,6 +191,8 @@ createBlockHeaderMinimal (BREthereumHash hash, uint64_t number, uint64_t timesta
     return header;
 }
 
+#pragma clang diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-function"
 static BREthereumBlockHeader
 createBlockHeader (void) {
     BREthereumBlockHeader header = (BREthereumBlockHeader) calloc (1, sizeof (struct BREthereumBlockHeaderRecord));
@@ -206,6 +208,8 @@ createBlockHeader (void) {
 
     return header;
 }
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 
 extern BREthereumBlockHeader
 blockHeaderCopy (BREthereumBlockHeader source) {

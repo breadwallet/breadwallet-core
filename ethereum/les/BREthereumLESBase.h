@@ -50,7 +50,7 @@
 #define LES_SUPPORT_PARITY
 
 /** */
-#undef  LES_SUPPORT_GETH        // not until GetProofs{V1,V2} 'works'
+#define LES_SUPPORT_GETH        // not until GetProofs{V1,V2} 'works'
 
 /**
  * The Supported P2P version - this applies to both DIS and P2P messaging.

@@ -2106,6 +2106,8 @@ nodeRecv (BREthereumNode node,
 }
 
 
+#pragma clang diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-function"
 static uint64_t
 nodeEstimateCredits (BREthereumNode node,
                      BREthereumMessage message) {
@@ -2124,6 +2126,8 @@ static uint64_t
 nodeGetCredits (BREthereumNode node) {
     return node->credits;
 }
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 
 /// MARK: Discovered
 

@@ -490,6 +490,8 @@ walletInsertTransferSorted (BREthereumWallet wallet,
     array_insert(wallet->transfers, index, transfer);
 }
 
+#pragma clang diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-function"
 static void
 walletUpdateTransferSorted (BREthereumWallet wallet,
                                BREthereumTransfer transfer) {
@@ -499,6 +501,8 @@ walletUpdateTransferSorted (BREthereumWallet wallet,
     array_rm(wallet->transfers, index);
     walletInsertTransferSorted(wallet, transfer);
 }
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 
 extern unsigned long
 walletGetTransferCount (BREthereumWallet wallet) {

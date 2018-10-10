@@ -1192,13 +1192,12 @@ lesProvideAccountStates (BREthereumLES les,
                          BREthereumLESProvisionContext context,
                          BREthereumLESProvisionCallback callback,
                          BREthereumAddress address,
-                         BRArrayOf(BREthereumHash) blockHashes,
-                         BRArrayOf(uint64_t) blockNumbers) {
+                         BRArrayOf(BREthereumHash) blockHashes) {
     lesAddRequest (les, context, callback,
                    (BREthereumProvision) {
                        PROVISION_IDENTIFIER_UNDEFINED,
                        PROVISION_ACCOUNTS,
-                       { .accounts = { address, blockHashes, blockNumbers, NULL }}
+                       { .accounts = { address, blockHashes, NULL }}
                    });
 }
 
@@ -1207,14 +1206,9 @@ lesProvideAccountStatesOne (BREthereumLES les,
                             BREthereumLESProvisionContext context,
                             BREthereumLESProvisionCallback callback,
                             BREthereumAddress address,
-                            BREthereumHash blockHash,
-                            uint64_t blockNumber) {
-    BRArrayOf(uint64_t) blockNumbers;
-    array_new (blockNumbers, 1);
-    array_add (blockNumbers, blockNumber);
+                            BREthereumHash blockHash) {
     lesProvideAccountStates (les, context, callback, address,
-                             lesCreateHashArray(les, blockHash),
-                             blockNumbers);
+                             lesCreateHashArray(les, blockHash));
 }
 
 extern void

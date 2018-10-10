@@ -220,12 +220,8 @@ typedef struct {
 
 typedef struct {
     BREthereumHash blockHash;
-    BRRlpData key1;
-    BRRlpData key2;
-    uint64_t fromLevel;
-    // Not RLP encoded
-    uint64_t blockNumber;           // HACK
     BREthereumAddress address;
+    uint64_t fromLevel;
 } BREthereumLESMessageGetProofsSpec;
 
 /**
@@ -292,7 +288,7 @@ typedef struct {
 typedef struct {
     uint64_t reqId;
     uint64_t bv;
-    BRArrayOf(BREthereumMPTNodePath) paths;
+    BREthereumMPTNodePath path;
 } BREthereumLESMessageProofsV2;
 
 /// MARK: LES GetHelperTrieProofs

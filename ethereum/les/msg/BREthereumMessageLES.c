@@ -192,26 +192,26 @@ messageLESStatusCreate (uint64_t protocolVersion,
 extern BREthereumLESMessageAnnounce
 messageLESAnnounceDecode (BRRlpItem item,
                           BREthereumMessageCoder coder) {
-    BREthereumLESMessageAnnounce message = {};
+    BREthereumLESMessageAnnounce message;
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
-    if (5 != itemsCount && 4 != itemsCount) rlpCoderSetFailed (coder.rlp);
-    else {
-        message.headHash = hashRlpDecode (items[0], coder.rlp);
-        message.headNumber = rlpDecodeUInt64 (coder.rlp, items[1], 1);
-        message.headTotalDifficulty = rlpDecodeUInt256 (coder.rlp, items[2], 1);
-        message.reorgDepth = rlpDecodeUInt64 (coder.rlp, items[3], 1);
+    assert (5 == itemsCount || 4 == itemsCount);
 
-        // TODO: Decode Keys
-        if (5 == itemsCount) {
-            size_t pairCount = 0;
-            const BRRlpItem *pairItems = rlpDecodeList (coder.rlp, items[4], &pairCount);
-            array_new(message.pairs, pairCount);
-            for (size_t index = 0; index < pairCount; index++)
-                ;
-        }
-    }
+    message.headHash = hashRlpDecode (items[0], coder.rlp);
+    message.headNumber = rlpDecodeUInt64 (coder.rlp, items[1], 1);
+    message.headTotalDifficulty = rlpDecodeUInt256 (coder.rlp, items[2], 1);
+    message.reorgDepth = rlpDecodeUInt64 (coder.rlp, items[3], 1);
+
+    // TODO: Decode Keys
+//    if (5 == itemsCount) {
+//        size_t pairCount = 0;
+//        const BRRlpItem *pairItems = rlpDecodeList (coder.rlp, items[4], &pairCount);
+//        array_new(message.pairs, pairCount);
+//        for (size_t index = 0; index < pairCount; index++)
+//            ;
+//    }
+
     return message;
 }
 
@@ -260,26 +260,26 @@ messageLESGetBlockHeadersDecode (BRRlpItem item,
 extern BREthereumLESMessageBlockHeaders
 messageLESBlockHeadersDecode (BRRlpItem item,
                               BREthereumMessageCoder coder) {
-    BREthereumLESMessageBlockHeaders message = {};
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
-    if (3 != itemsCount) rlpCoderSetFailed (coder.rlp);
-    else {
-        message.reqId = rlpDecodeUInt64 (coder.rlp, items[0], 1);
-        message.bv    = rlpDecodeUInt64 (coder.rlp, items[1], 1);
+    assert (3 == itemsCount);
 
-        size_t headerItemsCount = 0;
-        const BRRlpItem *headerItems = rlpDecodeList (coder.rlp, items[2], &headerItemsCount);
+    uint64_t reqId = rlpDecodeUInt64 (coder.rlp, items[0], 1);
+    uint64_t bv    = rlpDecodeUInt64 (coder.rlp, items[1], 1);
 
-        BRArrayOf(BREthereumBlockHeader) headers;
-        array_new (headers, headerItemsCount);
-        for (size_t index = 0; index < headerItemsCount; index++)
-            array_add (headers, blockHeaderRlpDecode (headerItems[index], RLP_TYPE_NETWORK, coder.rlp));
+    size_t headerItemsCount = 0;
+    const BRRlpItem *headerItems = rlpDecodeList (coder.rlp, items[2], &headerItemsCount);
 
-        message.headers = headers;
-    }
+    BRArrayOf(BREthereumBlockHeader) headers;
+    array_new (headers, headerItemsCount);
+    for (size_t index = 0; index < headerItemsCount; index++)
+        array_add (headers, blockHeaderRlpDecode (headerItems[index], RLP_TYPE_NETWORK, coder.rlp));
 
-    return message;
+    return (BREthereumLESMessageBlockHeaders) {
+        reqId,
+        bv,
+        headers
+    };
 }
 
 /// MARK: LES GetBlockBodies
@@ -296,37 +296,34 @@ messageLESGetBlockBodiesEncode (BREthereumLESMessageGetBlockBodies message, BREt
 static BREthereumLESMessageBlockBodies
 messageLESBlockBodiesDecode (BRRlpItem item,
                              BREthereumMessageCoder coder) {
-    BREthereumLESMessageBlockBodies message = {};
-
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
-    if (3 != itemsCount) rlpCoderSetFailed (coder.rlp);
-    else {
-        message.reqId = rlpDecodeUInt64 (coder.rlp, items[0], 1);
-        message.bv    = rlpDecodeUInt64 (coder.rlp, items[1], 1);
+    assert (3 == itemsCount);
 
-        size_t pairItemsCount = 0;
-        const BRRlpItem *pairItems = rlpDecodeList (coder.rlp, items[2], &pairItemsCount);
+    uint64_t reqId = rlpDecodeUInt64 (coder.rlp, items[0], 1);
+    uint64_t bv    = rlpDecodeUInt64 (coder.rlp, items[1], 1);
 
-        BRArrayOf(BREthereumBlockBodyPair) pairs;
-        array_new(pairs, pairItemsCount);
-        for (size_t index = 0; index < pairItemsCount; index++) {
-            size_t bodyItemsCount;
-            const BRRlpItem *bodyItems = rlpDecodeList (coder.rlp, pairItems[index], &bodyItemsCount);
-            if (2 != bodyItemsCount) { rlpCoderSetFailed (coder.rlp); break /* for */; }
-            else {
-                BREthereumBlockBodyPair pair = {
-                    blockTransactionsRlpDecode (bodyItems[0], coder.network, RLP_TYPE_NETWORK, coder.rlp),
-                    blockOmmersRlpDecode (bodyItems[1], coder.network, RLP_TYPE_NETWORK, coder.rlp)
-                };
-                array_add(pairs, pair);
-            }
-        }
+    size_t pairItemsCount = 0;
+    const BRRlpItem *pairItems = rlpDecodeList (coder.rlp, items[2], &pairItemsCount);
 
-        message.pairs = pairs;
+    BRArrayOf(BREthereumBlockBodyPair) pairs;
+    array_new(pairs, pairItemsCount);
+    for (size_t index = 0; index < pairItemsCount; index++) {
+        size_t bodyItemsCount;
+        const BRRlpItem *bodyItems = rlpDecodeList (coder.rlp, pairItems[index], &bodyItemsCount);
+        assert (2 == bodyItemsCount);
+
+        BREthereumBlockBodyPair pair = {
+            blockTransactionsRlpDecode (bodyItems[0], coder.network, RLP_TYPE_NETWORK, coder.rlp),
+            blockOmmersRlpDecode (bodyItems[1], coder.network, RLP_TYPE_NETWORK, coder.rlp)
+        };
+        array_add(pairs, pair);
     }
-
-    return message;
+    return (BREthereumLESMessageBlockBodies) {
+        reqId,
+        bv,
+        pairs
+    };
 }
 
 /// MARK: LES GetReceipts
@@ -343,31 +340,29 @@ messageLESGetReceiptsEncode (BREthereumLESMessageGetReceipts message, BREthereum
 static BREthereumLESMessageReceipts
 messageLESReceiptsDecode (BRRlpItem item,
                           BREthereumMessageCoder coder) {
-    BREthereumLESMessageReceipts message = {};
-
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
-    if (3 != itemsCount) rlpCoderSetFailed (coder.rlp);
-    else {
-        message.reqId = rlpDecodeUInt64 (coder.rlp, items[0], 1);
-        message.bv    = rlpDecodeUInt64 (coder.rlp, items[1], 1);
+    assert (3 == itemsCount);
 
-        size_t arrayItemsCount = 0;
-        const BRRlpItem *arrayItems = rlpDecodeList (coder.rlp, items[2], &arrayItemsCount);
+    uint64_t reqId = rlpDecodeUInt64 (coder.rlp, items[0], 1);
+    uint64_t bv    = rlpDecodeUInt64 (coder.rlp, items[1], 1);
 
-        BRArrayOf(BREthereumLESMessageReceiptsArray) arrays;
-        array_new(arrays, arrayItemsCount);
-        for (size_t index = 0; index < arrayItemsCount; index++) {
-            BREthereumLESMessageReceiptsArray array = {
-                transactionReceiptDecodeList (arrayItems[index], coder.rlp)
-            };
-            array_add (arrays, array);
-        }
+    size_t arrayItemsCount = 0;
+    const BRRlpItem *arrayItems = rlpDecodeList (coder.rlp, items[2], &arrayItemsCount);
 
-        message.arrays = arrays;
+    BRArrayOf(BREthereumLESMessageReceiptsArray) arrays;
+    array_new(arrays, arrayItemsCount);
+    for (size_t index = 0; index < arrayItemsCount; index++) {
+        BREthereumLESMessageReceiptsArray array = {
+            transactionReceiptDecodeList (arrayItems[index], coder.rlp)
+        };
+        array_add (arrays, array);
     }
-
-    return message;
+    return (BREthereumLESMessageReceipts) {
+        reqId,
+        bv,
+        arrays
+    };
 }
 
 /// MARK: LES GetProofs
@@ -377,8 +372,8 @@ proofsSpecEncode (BREthereumLESMessageGetProofsSpec spec,
                   BREthereumMessageCoder coder) {
     return rlpEncodeList (coder.rlp, 4,
                           hashRlpEncode (spec.blockHash, coder.rlp),
-                          rlpEncodeBytes (coder.rlp, spec.key1.bytes, spec.key1.bytesCount),
-                          rlpEncodeBytes (coder.rlp, spec.key2.bytes, spec.key2.bytesCount),
+                          rlpEncodeBytes(coder.rlp, NULL, 0),
+                          hashRlpEncode(addressGetHash(spec.address), coder.rlp),
                           rlpEncodeUInt64 (coder.rlp, spec.fromLevel, 1));
 }
 
@@ -406,18 +401,27 @@ messageLESGetProofsEncode (BREthereumLESMessageGetProofs message, BREthereumMess
 static BREthereumLESMessageProofs
 messageLESProofsDecode (BRRlpItem item,
                         BREthereumMessageCoder coder) {
-    BREthereumLESMessageProofs message = {};
     // rlpShowItem (coder.rlp, item, "LES Proofs");
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
-    if (3 != itemsCount) rlpCoderSetFailed (coder.rlp);
-    else {
-        message.reqId = rlpDecodeUInt64 (coder.rlp, items[0], 1);
-        message.bv    = rlpDecodeUInt64 (coder.rlp, items[1], 1);
-        message.paths = mptProofDecodeList (items[2], coder.rlp);
-    }
+    assert (3 == itemsCount);
 
-    return message;
+    uint64_t reqId = rlpDecodeUInt64 (coder.rlp, items[0], 1);
+    uint64_t bv    = rlpDecodeUInt64 (coder.rlp, items[1], 1);
+
+    size_t pathsCount = 0;
+    const BRRlpItem *pathsItems = rlpDecodeList (coder.rlp, items[2], &pathsCount);
+
+    BRArrayOf(BREthereumMPTNodePath) paths;
+    array_new (paths, pathsCount);
+    for (size_t index = 0; index < pathsCount; index++)
+        array_add (paths, mptNodePathDecode (pathsItems[index], coder.rlp));
+
+    return (BREthereumLESMessageProofs) {
+        reqId,
+        bv,
+        paths
+    };
 }
 
 /// MARK: LES GetContractCodes
@@ -468,10 +472,11 @@ messageLESProofsV2Decode (BRRlpItem item,
     uint64_t reqId = rlpDecodeUInt64 (coder.rlp, items[0], 1);
     uint64_t bv    = rlpDecodeUInt64 (coder.rlp, items[1], 1);
 
+    // TODO: See GetProofs - should be an array of PATHS
     return (BREthereumLESMessageProofsV2) {
         reqId,
         bv,
-        mptProofDecodeList (items[2], coder.rlp)
+        mptNodePathDecode (items[2], coder.rlp)
     };
 }
 
@@ -511,18 +516,18 @@ messageLESGetTxStatusEncode (BREthereumLESMessageGetTxStatus message, BREthereum
 static BREthereumLESMessageTxStatus
 messageLESTxStatusDecode (BRRlpItem item,
                           BREthereumMessageCoder coder) {
-    BREthereumLESMessageTxStatus message = {};
-
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder.rlp, item, &itemsCount);
-    if (3 != itemsCount) rlpCoderSetFailed (coder.rlp);
-    else {
-        message.reqId = rlpDecodeUInt64 (coder.rlp, items[0], 1);
-        message.bv    = rlpDecodeUInt64 (coder.rlp, items[1], 1);
-        message.stati = transactionStatusDecodeList (items[2], coder.rlp);
-    }
+    assert (3 == itemsCount);
 
-    return message;
+    uint64_t reqId = rlpDecodeUInt64 (coder.rlp, items[0], 1);
+    uint64_t bv    = rlpDecodeUInt64 (coder.rlp, items[1], 1);
+
+    return (BREthereumLESMessageTxStatus) {
+        reqId,
+        bv,
+        transactionStatusDecodeList (items[2], coder.rlp)
+    };
 }
 
 /// MARK: LES Messages

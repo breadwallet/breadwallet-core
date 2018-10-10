@@ -62,6 +62,8 @@
 
 /// MARK: Node Test
 
+#pragma clang diagnostic ignored "-Wunused-function"
+#pragma GCC diagnostic ignored "-Wunused-function"
 static void
 _nodeCallbackProvide (BREthereumNodeContext context,
                       BREthereumNode node,
@@ -80,6 +82,8 @@ _nodeCallbackStatus (BREthereumNodeContext context,
                      BREthereumNodeEndpointRoute route,
                      BREthereumNodeState state) {
 }
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
 
 // pthread locks/conditions and wait and signal functions
 static pthread_mutex_t _testLock;
@@ -900,10 +904,11 @@ static void _GetAccountState_Callback_Test1 (BREthereumLESProvisionContext conte
     assert (PROVISION_SUCCESS == result.status);
     assert (PROVISION_ACCOUNTS == result.u.success.provision.type);
 
-    BREthereumAddress address = result.u.success.provision.u.accounts.address;
     BRArrayOf(BREthereumHash) hashes = result.u.success.provision.u.accounts.hashes;
-    BRArrayOf(uint64_t) numbers = result.u.success.provision.u.accounts.numbers;
     BRArrayOf(BREthereumAccountState) accountsByHash = result.u.success.provision.u.accounts.accounts;
+
+    //    BREthereumAddress address = result.u.success.provision.u.accounts.address;
+    //    BRArrayOf(uint64_t) numbers = result.u.success.provision.u.accounts.numbers;
 
     assert (1 == array_count(hashes));
     assert (1 == array_count(accountsByHash));
@@ -918,36 +923,64 @@ static void _GetAccountState_Callback_Test1 (BREthereumLESProvisionContext conte
     _signalTestComplete();
 }
 
+static void _GetAccountState_Callback_Test2 (BREthereumLESProvisionContext context,
+                                             BREthereumLES les,
+                                             BREthereumNodeReference node,
+                                             BREthereumProvisionResult result) {
+
+
+    assert (PROVISION_SUCCESS == result.status);
+    assert (PROVISION_ACCOUNTS == result.u.success.provision.type);
+
+    BRArrayOf(BREthereumHash) hashes = result.u.success.provision.u.accounts.hashes;
+    BRArrayOf(BREthereumAccountState) accountsByHash = result.u.success.provision.u.accounts.accounts;
+
+    //    BREthereumAddress address = result.u.success.provision.u.accounts.address;
+    //    BRArrayOf(uint64_t) numbers = result.u.success.provision.u.accounts.numbers;
+
+    assert (2 == array_count(hashes));
+    assert (2 == array_count(accountsByHash));
+
+    assert(context != NULL);
+    int* context1 = (int *)context;
+
+    assert(*context1 == _GetAccount_Context1); //Check to make sure the context is correct
+
+    assert (0xcbee == accountsByHash[0].nonce);
+    assert (0xcbee == accountsByHash[1].nonce);
+
+    _signalTestComplete();
+}
+
 static void run_GetAccountState_Tests (BREthereumLES les){
     //Initilize testing state
-    _initTest(1);
-    
-//    BREthereumAddress address = addressCreate("0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF");
-//    BREthereumHash block_5510000 = hashCreate("0x630a6894e59938752d4c11b6dfd96bea357f794a8029e79277f0c9c3f19a2b80");
-//
-//    lesProvideAccountStatesOne (les,
-//                                (void*) &_GetAccount_Context1,
-//                                _GetAccountState_Callback_Test1,
-//                                address,
-//                                block_5510000,
-//                                5510000);
+    _initTest(3);
 
     BREthereumAddress address = addressCreate("0x52bc44d5378309ee2abf1539bf71de1b7d7be3b5");
+
     BREthereumHash block_350000 = hashCreate("0x8cd1f73a98ab1cdd65f829530a46559d3ea345f330bc04924f30fe00bcbad6f1");
     lesProvideAccountStatesOne (les,
                                 (void*) &_GetAccount_Context1,
                                 _GetAccountState_Callback_Test1,
                                 address,
-                                block_350000,
-                                350000);
+                                block_350000);
 
     BREthereumHash block_349999 = hashCreate("0xb86a49b1589b3f8474171d35c796e27f5c20ba1db16a2d93cf67d7358122b361");
     lesProvideAccountStatesOne (les,
                                 (void*) &_GetAccount_Context1,
                                 _GetAccountState_Callback_Test1,
                                 address,
-                                block_349999,
-                                349999);
+                                block_349999);
+
+    BRArrayOf(BREthereumHash) hashes;
+    array_new (hashes, 2);
+
+    array_add (hashes, block_350000); array_add (hashes, block_349999);
+    lesProvideAccountStates (les,
+                             (void*) &_GetAccount_Context1,
+                             _GetAccountState_Callback_Test2,
+                             address,
+                             hashes);
 
     _waitForTests();
     eth_log(TST_LOG_TOPIC, "GetAccopuntState: %s", "Tests Successful");
@@ -972,7 +1005,7 @@ runLEStests(void) {
                                    NULL);
     lesStart(les);
     // Sleep for a little bit to allow the context to connect to the network
-    sleep(30);
+    sleep(2);
     
     //Initialize testing state
     _initTestState();
@@ -986,8 +1019,8 @@ runLEStests(void) {
     run_GetReceipts_Tests(les);
     run_GetAccountState_Tests(les);
     run_GetTxStatus_Tests(les);
-//    run_GetProofsV2_Tests(les); //NOTE: The callback function won't be called.
-                                //reallySendLESTransaction(les);
+    //    run_GetProofsV2_Tests(les); //NOTE: The callback function won't be called.
+    //    reallySendLESTransaction(les);
     
     //    sleep (60);
     lesStop(les);
