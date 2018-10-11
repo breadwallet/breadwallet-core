@@ -188,7 +188,7 @@ mptNodeDecode (BRRlpItem item,
 
                 case MPT_NODE_EXTENSION:
                     node->u.extension.path = path;
-                    node->u.extension.key = hashRlpDecode (items[2], coder);
+                    node->u.extension.key = hashRlpDecode (items[1], coder);
                     break;
 
                 case MPT_NODE_BRANCH:

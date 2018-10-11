@@ -17,9 +17,9 @@ extern void runSyncTest (BREthereumType type,
 
 int main(int argc, const char * argv[]) {
     BREthereumType type = EWM_USE_LES;
-    BREthereumSyncMode mode = SYNC_MODE_PRIME_WITH_ENDPOINT;
+    BREthereumSyncMode mode = SYNC_MODE_FULL_BLOCKCHAIN;
 
-    runSyncTest (type, mode, 5 * 60, 0);
+    runSyncTest (type, mode, 2 * 60, 0);
 
     return 0;
 }
