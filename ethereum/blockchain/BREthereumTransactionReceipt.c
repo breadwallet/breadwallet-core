@@ -179,6 +179,16 @@ transactionReceiptDecodeList (BRRlpItem item,
     return receipts;
 }
 
+extern void
+transactionReceiptsRelease (BRArrayOf(BREthereumTransactionReceipt) receipts) {
+    if (NULL != receipts) {
+        size_t count = array_count(receipts);
+        for (size_t index = 0; index < count; index++)
+            transactionReceiptRelease (receipts[index]);
+        array_free (receipts);
+    }
+}
+
 /*  Transaction Receipts (184)
  ETH: LES-RECEIPTS:     L184: [
  ETH: LES-RECEIPTS:       L  4: [

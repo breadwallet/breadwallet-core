@@ -370,7 +370,7 @@ static void
 clientSaveNodes (BREthereumClientContext context,
                  BREthereumEWM ewm,
                  BRSetOf(BREthereumHashDataPair) nodesToSave) {
-    if (NULL != savedNodes)
+    if (NULL == savedNodes)
         savedNodes = hashDataPairSetCreateEmpty (BRSetCount(nodesToSave));
 
     BRSetUnion (savedNodes, nodesToSave);

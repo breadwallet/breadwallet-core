@@ -53,7 +53,7 @@ provisionGetMessagePIPIdentifier (BREthereumProvisionType type) {
 
 /// MARK: - LES
 
-extern BREthereumMessage
+static BREthereumMessage
 provisionCreateMessageLES (BREthereumProvision *provisionMulti,
                            size_t messageContentLimit,
                            uint64_t messageIdBase,
@@ -236,7 +236,7 @@ provisionCreateMessageLES (BREthereumProvision *provisionMulti,
     }
 }
 
-extern void
+static void
 provisionHandleMessageLES (BREthereumProvision *provisionMulti,
                            BREthereumLESMessage message,
                            size_t messageContentLimit,
@@ -353,7 +353,7 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
 
 /// MARK: PIP
 
-extern BREthereumMessage
+static BREthereumMessage
 provisionCreateMessagePIP (BREthereumProvision *provisionMulti,
                            size_t messageContentLimit,
                            uint64_t messageIdBase,
@@ -562,7 +562,7 @@ provisionCreateMessagePIP (BREthereumProvision *provisionMulti,
     }
 }
 
-extern void
+static void
 provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
                            BREthereumPIPMessage message,
                            size_t messageContentLimit,
@@ -686,6 +686,105 @@ provisionCreateMessage (BREthereumProvision *provision,
 }
 
 extern void
+provisionRelease (BREthereumProvision *provision,
+                  BREthereumBoolean releaseResults) {
+    switch (provision->type) {
+
+        case PROVISION_BLOCK_HEADERS:
+            if (ETHEREUM_BOOLEAN_IS_TRUE(releaseResults) && NULL != provision->u.headers.headers)
+                blockHeadersRelease(provision->u.headers.headers);
+            break;
+
+        case PROVISION_BLOCK_BODIES:
+            if (NULL != provision->u.bodies.hashes)
+                array_free (provision->u.bodies.hashes);
+            if (ETHEREUM_BOOLEAN_IS_TRUE(releaseResults) && NULL != provision->u.bodies.pairs)
+                blockBodyPairsRelease(provision->u.bodies.pairs);
+            break;
+
+        case PROVISION_TRANSACTION_RECEIPTS:
+            if (NULL != provision->u.receipts.hashes)
+                array_free (provision->u.receipts.hashes);
+            if (ETHEREUM_BOOLEAN_IS_TRUE(releaseResults) && NULL != provision->u.receipts.receipts) {
+                size_t count = array_count(provision->u.receipts.receipts);
+                for (size_t index = 0; index < count; index++)
+                    transactionReceiptsRelease (provision->u.receipts.receipts[index]);
+                array_free (provision->u.receipts.receipts);
+            }
+            break;
+
+        case PROVISION_ACCOUNTS:
+            if (NULL != provision->u.accounts.hashes)
+                array_free (provision->u.accounts.hashes);
+            if (ETHEREUM_BOOLEAN_IS_TRUE(releaseResults) && NULL != provision->u.accounts.accounts)
+                array_free (provision->u.accounts.accounts);
+            break;
+
+        case PROVISION_TRANSACTION_STATUSES:
+            if (NULL != provision->u.statuses.hashes)
+                array_free (provision->u.statuses.hashes);
+            if (ETHEREUM_BOOLEAN_IS_TRUE(releaseResults) && NULL != provision->u.statuses.statuses)
+                array_free (provision->u.statuses.statuses);
+            break;
+
+        case PROVISION_SUBMIT_TRANSACTION:
+            if (NULL != provision->u.submission.transaction)
+                transactionRelease (provision->u.submission.transaction);
+            break;
+    }
+}
+
+extern void
+provisionHeadersConsume (BREthereumProvisionHeaders *provision,
+                          BRArrayOf(BREthereumBlockHeader) *headers) {
+    if (NULL != headers) {
+        *headers = provision->headers;
+        provision->headers = NULL;
+    }
+}
+
+extern void
+provisionBodiesConsume (BREthereumProvisionBodies *provision,
+                        BRArrayOf(BREthereumHash) *hashes,
+                        BRArrayOf(BREthereumBlockBodyPair) *pairs) {
+    if (NULL != hashes) { *hashes = provision->hashes; provision->hashes = NULL; }
+    if (NULL != pairs ) { *pairs  = provision->pairs;  provision->pairs  = NULL; }
+}
+
+extern void
+provisionReceiptsConsume (BREthereumProvisionReceipts *provision,
+                          BRArrayOf(BREthereumHash) *hashes,
+                          BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) *receipts) {
+    if (NULL != hashes)   { *hashes   = provision->hashes;   provision->hashes   = NULL; }
+    if (NULL != receipts) { *receipts = provision->receipts; provision->receipts = NULL; }
+}
+
+extern void
+provisionAccountsConsume (BREthereumProvisionAccounts *provision,
+                          BRArrayOf(BREthereumHash) *hashes,
+                          BRArrayOf(BREthereumAccountState) *accounts) {
+    if (NULL != hashes)   { *hashes   = provision->hashes;   provision->hashes   = NULL; }
+    if (NULL != accounts) { *accounts = provision->accounts; provision->accounts = NULL; }
+}
+
+
+extern void
+provisionStatusesConsume (BREthereumProvisionStatuses *provision,
+                          BRArrayOf(BREthereumHash) *hashes,
+                          BRArrayOf(BREthereumTransactionStatus) *statuses) {
+    if (NULL != hashes)   { *hashes   = provision->hashes;   provision->hashes   = NULL; }
+    if (NULL != statuses) { *statuses = provision->statuses; provision->statuses = NULL; }
+}
+
+extern void
+provisionSubmissionConsume (BREthereumProvisionSubmission *provision,
+                            BREthereumTransaction *transaction,
+                            BREthereumTransactionStatus *status) {
+    if (NULL != transaction) { *transaction = provision->transaction; provision->transaction = NULL; }
+    if (NULL != status)      { *status      = provision->status; }
+}
+
+extern void
 provisionHandleMessage (BREthereumProvision *provision,
                         BREthereumMessage message,
                         size_t messageContentLimit,
@@ -713,4 +812,16 @@ provisionMatches (BREthereumProvision *provision1,
                                 provision1->identifier == provision2->identifier
                                 // bodies?
                                 );
+}
+
+extern void
+provisionResultRelease (BREthereumProvisionResult *result) {
+    switch (result->status) {
+        case PROVISION_SUCCESS:
+            provisionRelease (&result->u.success.provision, ETHEREUM_BOOLEAN_TRUE);
+            break;
+
+        case PROVISION_ERROR:
+             break;
+    }
 }

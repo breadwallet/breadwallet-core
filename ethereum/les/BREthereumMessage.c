@@ -116,3 +116,37 @@ messageGetAnyIdentifierName (BREthereumMessage *message) {
     }
 }
 
+extern void
+messageRelease (BREthereumMessage *message) {
+    switch (message->identifier) {
+        case MESSAGE_P2P:
+            messageP2PRelease (&message->u.p2p);
+            break;
+
+        case MESSAGE_DIS:
+            messageDISRelease (&message->u.dis);
+            break;
+
+        case MESSAGE_ETH:
+            break;
+
+        case MESSAGE_LES:
+            messageLESRelease (&message->u.les);
+            break;
+
+        case MESSAGE_PIP:
+            messagePIPRelease (&message->u.pip);
+            break;
+    }
+}
+
+extern void
+messagesRelease (BRArrayOf(BREthereumMessage) messages) {
+    if (NULL != messages) {
+        size_t count = array_count(messages);
+        for (size_t index = 0; index < count; index++)
+            messageRelease (&messages[index]);
+        array_free (messages);
+    }
+}
+

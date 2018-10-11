@@ -501,3 +501,13 @@ messageDISEncode (BREthereumDISMessage message,
     return rlpEncodeBytes (coder.rlp, packetMemory, packetSize);
 }
 
+extern void
+messageDISRelease (BREthereumDISMessage *message) {
+    switch (message->identifier) {
+        case DIS_MESSAGE_PING:
+        case DIS_MESSAGE_PONG:
+        case DIS_MESSAGE_FIND_NEIGHBORS:
+        case DIS_MESSAGE_NEIGHBORS:
+            break;
+    }
+}

@@ -233,6 +233,20 @@ messageP2PDecode (BRRlpItem item,
     }
 }
 
+extern void
+messageP2PRelease (BREthereumP2PMessage *message) {
+    switch (message->identifier) {
+        case P2P_MESSAGE_HELLO:
+            array_free (message->u.hello.clientId);
+            array_free (message->u.hello.capabilities);
+            break;
+
+        case P2P_MESSAGE_DISCONNECT:
+        case P2P_MESSAGE_PING:
+        case P2P_MESSAGE_PONG:
+            break;
+    }
+}
 /// MARK: - P2P Message Status Faker
 
 extern int
@@ -537,3 +551,7 @@ messageP2PStatusDecode (BRRlpItem item,
 }
 
 
+extern void
+messageP2PStatusRelease (BREthereumP2PMessageStatus *status) {
+    array_free (status->pairs);
+}

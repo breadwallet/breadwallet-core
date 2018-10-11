@@ -141,7 +141,6 @@ createEWMEnsureLogs(BRSetOf(BREthereumHashDataPair) logsPersistData,
         FOR_SET (BREthereumHashDataPair, pair, logsPersistData) {
             fprintf (stdout, "ETH: TST: EnsureLogs @ %p\n", hashDataPairGetData(pair).bytes);
             BRRlpItem item = rlpGetItem (coder, dataAsRlpData (hashDataPairGetData (pair)));
-
             BREthereumLog log = logRlpDecode(item, RLP_TYPE_ARCHIVE, coder);
             rlpReleaseItem(coder, item);
 

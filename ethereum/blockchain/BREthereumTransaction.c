@@ -604,6 +604,16 @@ transactionShow (BREthereumTransaction transaction, const char *topic) {
 
 }
 
+extern void
+transactionsRelease (BRArrayOf(BREthereumTransaction) transactions) {
+    if (NULL != transactions) {
+        size_t count = array_count(transactions);
+        for (size_t index = 0; index < count; index++)
+            transactionRelease(transactions[index]);
+        array_free (transactions);
+    }
+}
+
 /*
      https://github.com/ethereum/pyethereum/blob/develop/ethereum/transactions.py#L22
      https://github.com/ethereum/pyrlp/blob/develop/rlp/sedes/lists.py#L135

@@ -461,6 +461,15 @@ provisionerHandleMessage (BREthereumNodeProvisioner *provisioner,
     provisioner->messagesReceivedCount++;
 }
 
+static void
+provisionerRelease (BREthereumNodeProvisioner *provisioner,
+                    BREthereumBoolean releaseProvision,
+                    BREthereumBoolean releaseProvisionResults) {
+    messagesRelease(provisioner->messages);
+    if (ETHEREUM_BOOLEAN_IS_TRUE(releaseProvision))
+        provisionRelease (&provisioner->provision, releaseProvisionResults);
+}
+
 ///
 /// MARK: - LES Node
 ///

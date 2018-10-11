@@ -202,6 +202,50 @@ messagePIPRequestInputEncode (BREthereumPIPRequestInput input,
                            item);
 }
 
+static void
+messagePIPRequestInputRelease (BREthereumPIPRequestInput *input) {
+    switch (input->identifier) {
+        case PIP_REQUEST_HEADERS:
+            break;
+
+        case PIP_REQUEST_HEADER_PROOF:
+            break;
+
+        case PIP_REQUEST_TRANSACTION_INDEX:
+            break;
+
+        case PIP_REQUEST_BLOCK_RECEIPTS:
+            break;
+
+        case PIP_REQUEST_BLOCK_BODY:
+            break;
+
+        case PIP_REQUEST_ACCOUNT:
+            break;
+
+        case PIP_REQUEST_STORAGE:
+            break;
+
+        case PIP_REQUEST_CODE:
+            break;
+
+        case PIP_REQUEST_EXECUTION:
+            if (NULL != input->u.execution.callData)
+                array_free (input->u.execution.callData);
+            break;
+    }
+}
+
+static void
+messagePIPRequestInputsRelease (BRArrayOf(BREthereumPIPRequestInput) inputs) {
+    if (NULL != inputs) {
+        size_t count = array_count(inputs);
+        for (size_t index = 0; index < count; index++)
+            messagePIPRequestInputRelease (&inputs[index]);
+        array_free (inputs);
+    }
+}
+
 extern BRRlpItem
 messagePIPRequestEncode (BREthereumPIPMessageRequest *request, BREthereumMessageCoder coder) {
     size_t itemsCount = array_count (request->inputs);
@@ -215,7 +259,9 @@ messagePIPRequestEncode (BREthereumPIPMessageRequest *request, BREthereumMessage
                            rlpEncodeListItems (coder.rlp, items, itemsCount));
 }
 
-/// MARK: Response Decode
+///
+/// MARK: Response
+///
 
 extern BREthereumPIPRequestOutput
 messagePIPRequestOutputDecode (BRRlpItem item,
@@ -296,6 +342,54 @@ messagePIPRequestOutputDecode (BRRlpItem item,
     }
 }
 
+static void
+messagePIPRequestOutputRelease (BREthereumPIPRequestOutput *output) {
+    switch (output->identifier) {
+        case PIP_REQUEST_HEADERS:
+            blockHeadersRelease (output->u.headers.headers);
+            break;
+
+        case PIP_REQUEST_HEADER_PROOF:
+            break;
+
+        case PIP_REQUEST_TRANSACTION_INDEX:
+            break;
+
+        case PIP_REQUEST_BLOCK_RECEIPTS:
+            transactionReceiptsRelease (output->u.blockReceipt.receipts);
+            break;
+
+        case PIP_REQUEST_BLOCK_BODY:
+            blockHeadersRelease (output->u.blockBody.headers);
+            transactionsRelease (output->u.blockBody.transactions);
+            break;
+
+        case PIP_REQUEST_ACCOUNT:
+            break;
+
+        case PIP_REQUEST_STORAGE:
+            break;
+
+        case PIP_REQUEST_CODE:
+            if (NULL != output->u.code.bytecode)
+                array_free (output->u.code.bytecode);
+            break;
+
+        case PIP_REQUEST_EXECUTION:
+            break;
+    }
+}
+
+static void
+messagePIPRequestOutputsRelease (BRArrayOf(BREthereumPIPRequestOutput) outputs) {
+    if (NULL != outputs) {
+        size_t count = array_count(outputs);
+        for (size_t index = 0; index < count; index++)
+            messagePIPRequestOutputRelease (&outputs[index]);
+        array_free (outputs);
+    }
+}
+
 extern BREthereumPIPMessageResponse
 messagePIPResponseDecode (BRRlpItem item,
                           BREthereumMessageCoder coder) {
@@ -320,6 +414,17 @@ messagePIPResponseDecode (BRRlpItem item,
     }
 
     return message;
+}
+extern void
+messagePIPResponseConsume (BREthereumPIPMessageResponse *message,
+                           BRArrayOf(BREthereumPIPRequestOutput) *outputs) {
+    if (NULL != outputs) { *outputs = message->outputs; message->outputs = NULL; }
+}
+
+extern void // special case - only 'output' with allocated memory.
+messagePIPRequestHeadersOutputConsume (BREthereumPIPRequestHeadersOutput *output,
+                                       BRArrayOf(BREthereumBlockHeader) *headers) {
+    if (NULL != headers) { *headers = output->headers; output->headers = NULL; }
 }
 
 /// MARK: Update Credit Parameters
@@ -432,6 +537,38 @@ messagePIPEncode (BREthereumPIPMessage message,
     return rlpEncodeList2 (coder.rlp,
                            rlpEncodeUInt64 (coder.rlp, message.type + coder.messageIdOffset, 1),
                            body);
+}
+
+extern void
+messagePIPRelease (BREthereumPIPMessage *message) {
+    switch (message->type) {
+        case PIP_MESSAGE_STATUS:
+            messageP2PStatusRelease (&message->u.status.p2p);
+            break;
+
+        case PIP_MESSAGE_ANNOUNCE:
+            if (NULL != message->u.announce.pairs)
+                array_free (message->u.announce.pairs);
+            break;
+
+        case PIP_MESSAGE_REQUEST:
+            messagePIPRequestInputsRelease (message->u.request.inputs);
+            break;
+
+        case PIP_MESSAGE_RESPONSE:
+            messagePIPRequestOutputsRelease (message->u.response.outputs);
+            break;
+
+        case PIP_MESSAGE_UPDATE_CREDIT_PARAMETERS:
+            break;
+
+        case PIP_MESSAGE_ACKNOWLEDGE_UPDATE:
+            break;
+
+        case PIP_MESSAGE_RELAY_TRANSACTIONS:
+            transactionsRelease (message->u.relayTransactions.transactions);
+            break;
+    }
 }
 
 extern uint64_t

@@ -73,7 +73,10 @@ transactionReceiptDecodeList (BRRlpItem item,
 
 extern void
 transactionReceiptRelease (BREthereumTransactionReceipt receipt);
-    
+
+extern void
+transactionReceiptsRelease (BRArrayOf(BREthereumTransactionReceipt) receipts);
+
 #ifdef __cplusplus
 }
 #endif

@@ -140,6 +140,9 @@ messageP2PDecode (BRRlpItem item,
                   BREthereumMessageCoder coder,
                   BREthereumP2PMessageIdentifier identifer);
 
+extern void
+messageP2PRelease (BREthereumP2PMessage *message);
+
 /// MARK : - P2P Status Message Faker
 
 typedef enum {
@@ -212,6 +215,9 @@ extern BREthereumP2PMessageStatus
 messageP2PStatusDecode (BRRlpItem item,
                         BREthereumMessageCoder coder,
                         BRRlpItem *costItem);
+
+extern void
+messageP2PStatusRelease (BREthereumP2PMessageStatus *status);
 
 #ifdef __cplusplus
 }

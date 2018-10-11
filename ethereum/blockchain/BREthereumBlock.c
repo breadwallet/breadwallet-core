@@ -222,6 +222,16 @@ blockHeaderCopy (BREthereumBlockHeader source) {
 }
 
 extern void
+blockHeadersRelease (BRArrayOf(BREthereumBlockHeader) headers) {
+    if (NULL != headers) {
+        size_t count = array_count(headers);
+        for (size_t index = 0; index < count; index++)
+            blockHeaderRelease(headers[index]);
+        array_free (headers);
+    }
+}
+
+extern void
 blockHeaderRelease (BREthereumBlockHeader header) {
 #if defined (BLOCK_HEADER_LOG_ALLOC_COUNT)
     eth_log ("MEM", "Block Header Release %d", --blockHeaderAllocCount);
@@ -886,6 +896,26 @@ blockSetNext (BREthereumBlock block,
 extern BREthereumBoolean
 blockHasNext (BREthereumBlock block) {
     return AS_ETHEREUM_BOOLEAN (BLOCK_NEXT_NONE != block->next);
+}
+
+///
+/// MARK: Block Body Pair
+///
+
+extern void
+blockBodyPairRelease (BREthereumBlockBodyPair *pair) {
+    blockHeadersRelease (pair->uncles);
+    transactionsRelease (pair->transactions);
+}
+
+extern void
+blockBodyPairsRelease (BRArrayOf(BREthereumBlockBodyPair) pairs) {
+    if (NULL != pairs) {
+        size_t count = array_count(pairs);
+        for (size_t index = 0; index < count; index++)
+            blockBodyPairRelease(&pairs[index]);
+        array_free (pairs);
+    }
 }
 
 //

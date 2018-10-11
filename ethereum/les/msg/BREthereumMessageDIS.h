@@ -149,7 +149,7 @@ neighborDISHash (BREthereumDISNeighbor neighbor);
  */
 extern UInt256
 neighborDISDistance (BREthereumDISNeighbor n1,
-                            BREthereumDISNeighbor n2);
+                     BREthereumDISNeighbor n2);
 
 // enode://<nodeid>@<ip>:<port>
 #define NEIGHBOR_DIS_ENODE_STRLEN   (8 + 2 * 64 + 1 + 39 + 1 + 5 + 1)
@@ -195,6 +195,9 @@ messageDISEncode (BREthereumDISMessage message,
 extern BREthereumDISMessage
 messageDISDecode (BRRlpItem item,
                   BREthereumMessageCoder coder);
+
+extern void
+messageDISRelease (BREthereumDISMessage *message);
 
 #ifdef __cplusplus
 }

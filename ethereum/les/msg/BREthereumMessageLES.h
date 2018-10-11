@@ -119,7 +119,15 @@ typedef struct {
     BRArrayOf(BREthereumP2PMessageStatusKeyValuePair) pairs;
 } BREthereumLESMessageAnnounce;
 
-/// MARK: LES Get Block Headers
+extern void
+messageLESAnnounceConsume (BREthereumLESMessageAnnounce *message,
+                           BRArrayOf(BREthereumP2PMessageStatusKeyValuePair) *pairs);
+//    {
+//        if (NULL == pairs) array_free (message->pairs);
+//            else *pairs = message->pairs;
+//    }
+
+    /// MARK: LES Get Block Headers
 
 /**
  * A LES Get Block Headers Message ...
@@ -161,6 +169,10 @@ typedef struct {
     BRArrayOf(BREthereumBlockHeader) headers;
 } BREthereumLESMessageBlockHeaders;
 
+extern void
+messageLESBlockHeadersConsume (BREthereumLESMessageBlockHeaders *message,
+                               BRArrayOf(BREthereumBlockHeader) *headers);
+
 // TODO: Include `reqId` or not?  Include `msgId` (w/ offset) or not?  Depends on encryption...
 extern BREthereumLESMessageBlockHeaders
 messageLESBlockHeadersDecode (BRRlpItem item,
@@ -189,6 +201,10 @@ typedef struct {
     BRArrayOf(BREthereumBlockBodyPair) pairs;
 } BREthereumLESMessageBlockBodies;
 
+extern void
+messageLESBlockBodiesConsume (BREthereumLESMessageBlockBodies *message,
+                              BRArrayOf(BREthereumBlockBodyPair) *pairs);
+
 /// MARK: LES GetReceipts
 
 /**
@@ -215,6 +231,10 @@ typedef struct {
     uint64_t bv;
     BRArrayOf (BREthereumLESMessageReceiptsArray) arrays;
 } BREthereumLESMessageReceipts;
+
+extern void
+messageLESReceiptsConsume (BREthereumLESMessageReceipts *receipts,
+                            BRArrayOf (BREthereumLESMessageReceiptsArray) *arrays);
 
 /// MARK: LES GetProofs
 
@@ -244,6 +264,10 @@ typedef struct {
     uint64_t bv;
     BRArrayOf(BREthereumMPTNodePath) paths;
 } BREthereumLESMessageProofs;
+
+extern void
+messageLESProofsConsume (BREthereumLESMessageProofs *message,
+                         BRArrayOf(BREthereumMPTNodePath) *paths);
 
 /// MARK: LES GetContractCodes
 typedef struct {
@@ -291,6 +315,7 @@ typedef struct {
     BREthereumMPTNodePath path;
 } BREthereumLESMessageProofsV2;
 
+
 /// MARK: LES GetHelperTrieProofs
 typedef struct {
     uint64_t reqId;
@@ -335,6 +360,10 @@ typedef struct {
     uint64_t bv;
     BRArrayOf(BREthereumTransactionStatus) stati;
 } BREthereumLESMessageTxStatus;
+
+extern void
+messageLESTxStatusConsume (BREthereumLESMessageTxStatus *message,
+                           BRArrayOf(BREthereumTransactionStatus) *stati);
 
 //
 // ...
@@ -425,10 +454,12 @@ extern BRRlpItem
 messageLESEncode (BREthereumLESMessage message,
                   BREthereumMessageCoder coder);
 
+extern void
+messageLESRelease (BREthereumLESMessage *message);
+
 extern int
 messageLESHasUse (const BREthereumLESMessage *message,
                   BREthereumLESMessageUse use);
-
 // 0 if not response
 extern uint64_t
 messageLESGetCredits (const BREthereumLESMessage *message);

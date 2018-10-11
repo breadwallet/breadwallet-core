@@ -135,6 +135,9 @@ blockHeaderCompare (BREthereumBlockHeader h1,
 extern BREthereumBlockHeader
 blockHeaderCopy (BREthereumBlockHeader source);
 
+extern void
+blockHeadersRelease (BRArrayOf(BREthereumBlockHeader) headers);
+
 /// MARK: Block
 
 //
@@ -267,6 +270,12 @@ typedef struct {
     BRArrayOf(BREthereumBlockHeader) uncles;
 } BREthereumBlockBodyPair;
 
+extern void
+blockBodyPairRelease (BREthereumBlockBodyPair *pair);
+
+extern void
+blockBodyPairsRelease (BRArrayOf(BREthereumBlockBodyPair) pairs);
+
 /// MARK: - Block Status
 
 typedef enum {
@@ -388,7 +397,7 @@ blockHasStatusLog (BREthereumBlock block,
 /**
  * Return BRArrayOf(BREthereumBlockHeader) w/ array owned by caller.
  */
-extern BREthereumBlockHeader *
+extern BRArrayOf(BREthereumBlockHeader)
 blockOmmersRlpDecode (BRRlpItem item,
                       BREthereumNetwork network,
                       BREthereumRlpType type,
@@ -397,7 +406,7 @@ blockOmmersRlpDecode (BRRlpItem item,
 /**
  * Return BRArrayOf(BREthereumTransaction) w/ array owned by caller
  */
-extern BREthereumTransaction *
+extern BRArrayOf(BREthereumTransaction)
 blockTransactionsRlpDecode (BRRlpItem item,
                             BREthereumNetwork network,
                             BREthereumRlpType type,

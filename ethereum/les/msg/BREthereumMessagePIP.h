@@ -71,6 +71,10 @@ typedef struct {
     BRArrayOf(BREthereumBlockHeader) headers;
 } BREthereumPIPRequestHeadersOutput;
 
+extern void
+messagePIPRequestHeadersOutputConsume (BREthereumPIPRequestHeadersOutput *output,
+                                       BRArrayOf(BREthereumBlockHeader) *headers);
+
 /// Header Proof
 
 typedef struct {
@@ -245,6 +249,14 @@ typedef struct {
     BRArrayOf(BREthereumPIPRequestOutput) outputs;
 } BREthereumPIPMessageResponse;
 
+    /**
+     * Consume the `message` `outputs`.  Modify message so that a subsequent `messagePIPRelease()`
+     * recognizes the `outputs` are now owned elsewhere.
+     */
+extern void
+messagePIPResponseConsume (BREthereumPIPMessageResponse *message,
+                           BRArrayOf(BREthereumPIPRequestOutput) *outputs);
+
 typedef struct {
     UInt256 max;
     UInt256 recharge;
@@ -281,6 +293,9 @@ extern BREthereumPIPMessage
 messagePIPDecode (BRRlpItem item,
                   BREthereumMessageCoder coder,
                   BREthereumPIPMessageType identifier);
+
+extern void
+messagePIPRelease (BREthereumPIPMessage *message);
 
 extern uint64_t
 messagePIPGetCredits (const BREthereumPIPMessage *message);
