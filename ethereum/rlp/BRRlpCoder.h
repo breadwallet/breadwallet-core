@@ -45,6 +45,13 @@ rlpCoderCreate (void);
 extern void
 rlpCoderRelease (BRRlpCoder coder);
 
+/**
+ * Reclaim coder memory. A coder can hold memory to avoid repeated free/malloc calls.  If
+ * desired one can reclaim coder memory that is unused.
+ */
+extern void
+rlpCoderReclaim (BRRlpCoder coder);
+
 extern void
 rlpCoderSetFailed (BRRlpCoder coder);
 

@@ -990,6 +990,7 @@ lesThread (BREthereumLES les) {
         //
         else if (selectCount == 0) {
 
+#if !defined (LES_DISABLE_DISCOVERY)
             // If we don't have enough availableNodes, try to find some
             if (array_count(les->availableNodes) < 100 && array_count(les->activeNodesByRoute[NODE_ROUTE_UDP]) < 3) {
 
@@ -1016,7 +1017,7 @@ lesThread (BREthereumLES les) {
                         assert (0);  // how?
                 }
             }
-
+#endif
             // If we don't have enough connectedNodes, try to add one.  Note: when we created
             // the node (as part of UDP discovery) we give it our endpoint info (like headNum).
             // But now that is likely out of date as we've synced/progressed/chained.  I think the

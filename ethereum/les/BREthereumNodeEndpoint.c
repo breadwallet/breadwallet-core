@@ -527,7 +527,7 @@ main(int argc, const char **argv) {
 const char *localLESEnode = "enode://x@1.1.1.1:30303";
 
 //
-// LES/PIP Nodes hosted locally, when enabled (yes, my NodeId; not yours).
+// LES/PIP Nodes hosted locally, when enabled (these are my NodeId; not yours).
 //
 const char *bootstrapLCLEnodes[] = {
 #if defined (LES_SUPPORT_PARITY)
@@ -562,7 +562,7 @@ const char *bootstrapBRDEnodes[] = {
 };
 
 //
-// LES/PIP Nodes - 'Well Known'
+// LES/PIP Nodes - 'Well Known', a mixture of PIP and LES nodes.
 //
 const char *bootstrapLESEnodes[] = {
     // START -- https://gist.github.com/rfikki/e2a8c47f4460668557b1e3ec8bae9c11
@@ -655,16 +655,57 @@ const char *bootstrapGethEnodes[] = {
     NULL
 };
 
+///
+/// MARK: Enode Sets
+///
+
+//
+// Determine which of the above enodes to boot with.
+//
+#if defined(LES_SUPPORT_PARITY) && !defined(LES_BOOTSTRAP_LCL_ONLY) && !defined(LES_BOOTSTRAP_BRD_ONLY)
+#define LES_BOOTSTRAP_PARITY
+#endif
+
+#if defined(LES_SUPPORT_GETH) && !defined(LES_BOOTSTRAP_LCL_ONLY) && !defined(LES_BOOTSTRAP_BRD_ONLY)
+#define LES_BOOTSTRAP_GETH
+#endif
+
+#if !defined(LES_BOOTSTRAP_LCL_ONLY) && !defined(LES_BOOTSTRAP_BRD_ONLY)
+#define LES_BOOTSTRAP_COMMON
+#endif
+
+#if !defined (LES_BOOTSTRAP_BRD_ONLY) || defined (LES_BOOTSTRAP_LCL_ONLY)
+#define LES_BOOTSTRAP_LCL
+#endif
+
+#if !defined (LES_BOOTSTRAP_LCL_ONLY) || defined (LES_BOOTSTRAP_BRD_ONLY)
+#define LES_BOOTSTRAP_BRD
+#endif
+
 //
 // Enode Sets - Order is important here.  Generally inserted by 'NodeID distance' except that
 // BRD and LCL nodes will be inserted so as to be connected first.
 //
 const char **bootstrapMainnetEnodeSets[] = {
+#if defined (LES_BOOTSTRAP_COMMON)
     bootstrapLESEnodes,
+#endif
+
+#if defined (LES_BOOTSTRAP_PARITY)
     bootstrapParityEnodes,
+#endif
+
+#if defined (LES_BOOTSTRAP_GETH)
     bootstrapGethEnodes,
+#endif
+
+#if defined (LES_BOOTSTRAP_BRD)
     bootstrapBRDEnodes,
+#endif
+
+#if defined (LES_BOOTSTRAP_LCL)
     bootstrapLCLEnodes,
+#endif
 };
 size_t NUMBER_OF_NODE_ENDPOINT_SETS = (sizeof (bootstrapMainnetEnodeSets) / sizeof (char **));
 

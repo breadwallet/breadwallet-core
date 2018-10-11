@@ -50,10 +50,39 @@
 #define LES_SUPPORT_PARITY
 
 /** */
-#define LES_SUPPORT_GETH        // not until GetProofs{V1,V2} 'works'
+#define LES_SUPPORT_GETH
 
 /**
- * The Supported P2P version - this applies to both DIS and P2P messaging.
+ * We can optionally only bootstrap from a BRD server.  Setting this overrides the subsequent
+ * LES_BOOTSTRAP_LCL_ONLY
+ */
+#undef LES_BOOTSTRAP_BRD_ONLY
+
+/**
+ * For debugging only, we can optionally only bootstrap from a LCL (local) server.
+ */
+#define LES_BOOTSTRAP_LCL_ONLY
+
+#if defined (LES_BOOTSTRAP_BRD_ONLY) || defined (NDEBUG) || !defined (DEBUG)
+#undef LES_BOOTSTRAP_LCL_ONLY
+#endif
+
+/**
+ * For debugging only, we can optionall disable P2P Node Discovery.  This is very useful for
+ * performance and memory allocation/leak analysis
+ */
+#define LES_DISABLE_DISCOVERY
+
+#if defined (NDEBUG) || !defined (DEBUG)
+#undef LES_DISABLE_DISCOVERY
+#endif
+
+
+/**
+ * The Supported P2P version - this applies to both DIS and P2P messaging.  There is a V5
+ * discovery protocol (at least in Geth) that is defined so as to facilitate discovery of LES
+ * nodes... fact is, if we need to explore one node to find a LES node, then we might as well
+ * explore N nodes.  And, if Geth wants to faclitate LES nodes, then just turn on LES by default.
  *
  * https://github.com/ethereum/devp2p/blob/master/discv4.md
  */
