@@ -1475,7 +1475,7 @@ void BRPeerSendGetdata(BRPeer *peer, const UInt256 txHashes[], size_t txCount, c
         off += BRVarIntSet(&msg[off], (off <= msgLen ? msgLen - off : 0), count);
         
         for (i = 0; i < txCount; i++) {
-            UInt32SetLE(&msg[off], inv_tx);
+            UInt32SetLE(&msg[off], inv_witness_tx);
             off += sizeof(uint32_t);
             UInt256Set(&msg[off], txHashes[i]);
             off += sizeof(UInt256);
