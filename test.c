@@ -1970,11 +1970,10 @@ static void walletTxDeleted(void *info, UInt256 txHash, int notifyUser, int reco
 int BRWalletTests()
 {
     int r = 1;
-    const char *phrase = "a random seed";                     // ""
+    const char *phrase = "a random seed";
     UInt512 seed;
 
-    BRBIP39DeriveKey(&seed, phrase, NULL); //
-
+    BRBIP39DeriveKey(&seed, phrase, NULL);
 
     BRMasterPubKey mpk = BRBIP32MasterPubKey(&seed, sizeof(seed));
     BRWallet *w = BRWalletNew(NULL, 0, mpk);

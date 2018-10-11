@@ -271,15 +271,22 @@ static size_t _BRTransactionWitnessData(const BRTransaction *tx, uint8_t *data, 
 static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t dataLen, size_t index, int hashType)
 {
     BRTxInput input;
-    int anyoneCanPay = (hashType & SIGHASH_ANYONECANPAY), sigHash = (hashType & 0x1f);
-    size_t i, off = 0;
+    int anyoneCanPay = (hashType & SIGHASH_ANYONECANPAY), sigHash = (hashType & 0x1f), witnessFlag = 0;
+    size_t count, i, off = 0;
     
     if (hashType & SIGHASH_FORKID) return _BRTransactionWitnessData(tx, data, dataLen, index, hashType);
     if (anyoneCanPay && index >= tx->inCount) return 0;
+    
+    for (i = 0; index == SIZE_MAX && ! witnessFlag && i < tx->inCount; i++) {
+        if (tx->inputs[i].witLen > 0) witnessFlag = 1;
+    }
+    
     if (data && off + sizeof(uint32_t) <= dataLen) UInt32SetLE(&data[off], tx->version); // tx version
     off += sizeof(uint32_t);
     
     if (! anyoneCanPay) {
+        if (witnessFlag && data && off + 2 <= dataLen) data[off] = 0, data[off + 1] = witnessFlag;
+        if (witnessFlag) off += 2;
         off += BRVarIntSet((data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0), tx->inCount);
         
         for (i = 0; i < tx->inCount; i++) { // inputs
@@ -325,6 +332,14 @@ static size_t _BRTransactionData(const BRTransaction *tx, uint8_t *data, size_t 
         off += _BRTransactionOutputData(tx, (data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0), index);
     }
     else off += BRVarIntSet((data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0), 0); //SIGHASH_NONE outputs
+    
+    for (i = 0; witnessFlag && i < tx->inCount; i++) {
+        input = tx->inputs[i];
+        count = BRScriptElements(NULL, 0, input.witness, input.witLen);
+        off += BRVarIntSet((data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0), count);
+        if (data && off + input.witLen <= dataLen) memcpy(&data[off], input.witness, input.witLen);
+        off += input.witLen;
+    }
     
     if (data && off + sizeof(uint32_t) <= dataLen) UInt32SetLE(&data[off], tx->lockTime); // locktime
     off += sizeof(uint32_t);
@@ -654,8 +669,8 @@ int BRTransactionSign(BRTransaction *tx, int forkId, BRKey keys[], size_t keysCo
         UInt256 md = UINT256_ZERO;
         
         if (elemsCount == 2 && *elems[0] == OP_0 && *elems[1] == 20) { // pay-to-witness-pubkey-hash
-            uint8_t data[_BRTransactionWitnessData(tx, NULL, 0, i, SIGHASH_ALL)];
-            size_t dataLen = _BRTransactionWitnessData(tx, data, sizeof(data), i, SIGHASH_ALL);
+            uint8_t data[_BRTransactionWitnessData(tx, NULL, 0, i, forkId | SIGHASH_ALL)];
+            size_t dataLen = _BRTransactionWitnessData(tx, data, sizeof(data), i, forkId | SIGHASH_ALL);
             
             BRSHA256_2(&md, data, dataLen);
             sigLen = BRKeySign(&keys[j], sig, sizeof(sig) - 1, md);
@@ -691,11 +706,12 @@ int BRTransactionSign(BRTransaction *tx, int forkId, BRKey keys[], size_t keysCo
     }
     
     if (tx && BRTransactionIsSigned(tx)) {
-        uint8_t data[_BRTransactionData(tx, NULL, 0, SIZE_MAX, 0)];
-        size_t len = _BRTransactionData(tx, data, sizeof(data), SIZE_MAX, 0);
+        uint8_t data[BRTransactionSerialize(tx, NULL, 0)];
+        size_t len = BRTransactionSerialize(tx, data, sizeof(data));
+        BRTransaction *t = BRTransactionParse(data, len);
         
-        BRSHA256_2(&tx->txHash, data, len);
-        tx->wtxHash = tx->txHash;
+        if (t) tx->txHash = t->txHash, tx->wtxHash = t->wtxHash;
+        if (t) BRTransactionFree(t);
         return 1;
     }
     else return 0;
