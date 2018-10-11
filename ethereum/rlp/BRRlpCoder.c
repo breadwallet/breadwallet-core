@@ -789,8 +789,8 @@ rlpDecodeStringEmptyCheck (BRRlpCoder coder, BRRlpItem item) {
 //
 extern BRRlpItem
 rlpEncodeHexString (BRRlpCoder coder, char *string) {
-    if (NULL == string)
-        return rlpEncodeString(coder, string);
+    if (NULL == string || string[0] == '\0')
+        return rlpEncodeString(coder, "");
     
     // Strip off "0x" if it exists
     if (0 == strncmp (string, "0x", 2))

@@ -550,8 +550,8 @@ blockCreate (BREthereumBlockHeader header) {
 
 extern void
 blockUpdateBody (BREthereumBlock block,
-                 BREthereumBlockHeader *ommers,
-                 BREthereumTransaction *transactions) {
+                 BRArrayOf(BREthereumBlockHeader) ommers,
+                 BRArrayOf(BREthereumTransaction) transactions) {
     block->ommers = ommers;
     block->transactions = transactions;
 }
@@ -560,19 +560,12 @@ extern void
 blockRelease (BREthereumBlock block) {
     blockHeaderRelease(block->header);
 
-    if (NULL != block->ommers) {
-        for (size_t index = 0; index < array_count(block->ommers); index++)
-            blockHeaderRelease(block->ommers[index]);
-        array_free(block->ommers);
-        block->ommers = NULL;
-    }
+    blockHeadersRelease (block->ommers);
+    block->ommers = NULL;
 
-    if (NULL != block->transactions) {
-        for (size_t index = 0; index < array_count(block->transactions); index++)
-            transactionRelease(block->transactions[index]);
-        array_free(block->transactions);
-        block->transactions = NULL;
-    }
+    transactionsRelease (block->transactions);
+    block->transactions = NULL;
+
     blockStatusRelease(&block->status);
     block->next = BLOCK_NEXT_NONE;
 
@@ -711,7 +704,7 @@ blockLinkLogsWithTransactions (BREthereumBlock block) {
         }
     }
 
-    // Second, we get initialize the log identifier, as { transactionHash, logIndex }
+    // Second, we can initialize the log identifier, as { transactionHash, logIndex }
     size_t logsCount = (NULL == block->status.logs ? 0 : array_count(block->status.logs));
     for (size_t index = 0; index < logsCount; index++) {
         BREthereumLog log = block->status.logs[index];

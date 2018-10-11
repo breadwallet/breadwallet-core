@@ -610,18 +610,20 @@ static void
 bcsPurgeOrphans (BREthereumBCS bcs,
                  uint64_t blockNumber) {
     // If blockNumber is below AGE_OFFSET, then there is nothing to do.  Said another way,
-    // don't orphans when we are syncing from the genesis block.
+    // don't orphan when we are syncing from the genesis block.
     if (blockNumber <= BCS_ORPHAN_AGE_OFFSET) return;
 
     // Modify blockNumber for comparision with orphans
     blockNumber -= BCS_ORPHAN_AGE_OFFSET;
 
-    // Look through all the orphans; remove those with old/small block numbers
+    // Look through all the orphans; remove those with old/small block numbers.  But, don't purge
+    // any block this is pending blocks/receipts.
     int keepLooking = 1;
     while (keepLooking) {
         keepLooking = 0;
-        FOR_SET(BREthereumBlock, orphan, bcs->orphans)
-            if (blockGetNumber(orphan) < blockNumber) {
+        FOR_SET (BREthereumBlock, orphan, bcs->orphans)
+            if (blockGetNumber(orphan) < blockNumber &&
+                ETHEREUM_BOOLEAN_IS_TRUE (blockHasStatusComplete(orphan))) {
                 BRSetRemove(bcs->orphans, orphan);
                 eth_log("BCS", "Block %llu Purged Orphan", blockGetNumber(orphan));
                 blockRelease(orphan); // TODO: Pending Requests... crash?
@@ -1174,22 +1176,17 @@ bcsHandleAccountStates (BREthereumBCS bcs,
  */
 static void
 bcsReleaseOmmersAndTransactionsFully (BREthereumBCS bcs,
-                                      BREthereumTransaction *transactions,
-                                      BREthereumBlockHeader *ommers) {
-    for (size_t index = 0; index < array_count(transactions); index++)
-        transactionRelease(transactions[index]);
-    array_free(transactions);
-
-    for (size_t index = 0; index < array_count(ommers); index++)
-        blockHeaderRelease(ommers[index]);
-    array_free(ommers);
+                                      BRArrayOf(BREthereumTransaction) transactions,
+                                      BRArrayOf(BREthereumBlockHeader) ommers) {
+    transactionsRelease(transactions);
+    blockHeadersRelease(ommers);
 }
 
 static void
 bcsHandleBlockBody (BREthereumBCS bcs,
-                      BREthereumHash blockHash,
-                      BREthereumTransaction transactions[],
-                      BREthereumBlockHeader ommers[]) {
+                    BREthereumHash blockHash,
+                    BRArrayOf(BREthereumTransaction) transactions,
+                    BRArrayOf(BREthereumBlockHeader) ommers) {
     // Ensure we have a Block
     BREthereumBlock block = BRSetGet(bcs->blocks, &blockHash);
     if (NULL == block) {
@@ -1211,8 +1208,9 @@ bcsHandleBlockBody (BREthereumBCS bcs,
     // We must be in a 'bodies needed' status
     assert (ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusTransactionsRequest(block, BLOCK_REQUEST_PENDING)));
 
-    eth_log("BCS", "Bodies %llu Count %lu",
+    eth_log("BCS", "Bodies %llu O:%2lu, T:%3lu",
             blockGetNumber(block),
+            array_count(ommers),
             array_count(transactions));
 
     // Update `block` with the reported ommers and transactions.  Note that generally
@@ -1577,6 +1575,8 @@ bcsHandleTransaction (BREthereumBCS bcs,
                       BREthereumTransaction transaction) {
     int needUpdated = 1;
 
+    // TODO: Who owns transaction?
+
     // See if we have an existing transaction...
     BREthereumTransaction oldTransaction = BRSetGet(bcs->transactions, transaction);
 
@@ -1605,7 +1605,8 @@ bcsHandleTransaction (BREthereumBCS bcs,
                 bcs->listener.transactionCallback (bcs->listener.context,
                                                    BCS_CALLBACK_TRANSACTION_DELETED,
                                                    transaction);
-                transactionRelease(transaction);
+                // TODO: Why release - we just passed to BCS and we use it later
+ //               transactionRelease(transaction);
                 needUpdated = 0;
             }
             break;
@@ -1628,6 +1629,8 @@ extern void
 bcsHandleLog (BREthereumBCS bcs,
               BREthereumLog log) {
     int needUpdate = 1;
+
+    // TODO: Who own log?
 
     BREthereumLog oldLog = BRSetGet(bcs->logs, log);
 
@@ -1654,7 +1657,8 @@ bcsHandleLog (BREthereumBCS bcs,
                 bcs->listener.logCallback (bcs->listener.context,
                                            BCS_CALLBACK_LOG_DELETED,
                                            log);
-                logRelease(log);
+                // TODO: Why release - we just passed to BCS and we use it later
+//                logRelease(log);
                 needUpdate = 0;
             }
             break;

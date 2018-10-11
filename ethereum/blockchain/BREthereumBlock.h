@@ -158,8 +158,8 @@ blockCreate (BREthereumBlockHeader header);
 
 extern void
 blockUpdateBody (BREthereumBlock block,
-                 BREthereumBlockHeader *ommers,
-                 BREthereumTransaction *transactions);
+                 BRArrayOf(BREthereumBlockHeader) ommers,
+                 BRArrayOf(BREthereumTransaction) transactions);
 
 extern void
 blockRelease (BREthereumBlock block);
