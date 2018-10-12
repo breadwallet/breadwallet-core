@@ -1630,7 +1630,7 @@ bcsHandleLog (BREthereumBCS bcs,
               BREthereumLog log) {
     int needUpdate = 1;
 
-    // TODO: Who own log?
+    // TODO: Who owns log?
 
     BREthereumLog oldLog = BRSetGet(bcs->logs, log);
 

@@ -137,7 +137,8 @@ class CoreDemoEthereumClient : EthereumClient {
 
         case "0xa9de3dbD7d561e67527bC1Ecb025c59D53b9F7Ef".lowercased():
             if 0 != interests & UInt32 (1 << 3) /* CLIENT_GET_BLOCKS_LOGS_AS_TARGET */ {
-                blockNumbers += [5506607]
+                blockNumbers += [5506607,
+                                 5877545]
             }
 
             if 0 != interests & UInt32 (1 << 2) /* CLIENT_GET_BLOCKS_LOGS_AS_SOURCE */ {

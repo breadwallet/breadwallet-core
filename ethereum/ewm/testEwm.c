@@ -252,6 +252,31 @@ clientGetBlocks (BREthereumClientContext context,
             array_add (blockNumbers, 5705175);
         }
     }
+
+    else if (0 == strcasecmp (address, "0xa9de3dbD7d561e67527bC1Ecb025c59D53b9F7Ef")) {
+        if (syncInterestMatch(interests, CLIENT_GET_BLOCKS_LOGS_AS_TARGET)) {
+            array_add (blockNumbers, 5506607);
+            array_add (blockNumbers, 5877545);
+        }
+
+        if (syncInterestMatch(interests, CLIENT_GET_BLOCKS_LOGS_AS_SOURCE)) {
+            array_add (blockNumbers, 5509990);
+            array_add (blockNumbers, 5509990);
+            array_add (blockNumbers, 5511681);
+        }
+
+        if (syncInterestMatch(interests, CLIENT_GET_BLOCKS_TRANSACTIONS_AS_TARGET)) {
+            array_add (blockNumbers, 5506602);
+        }
+
+        if (syncInterestMatch(interests, CLIENT_GET_BLOCKS_TRANSACTIONS_AS_SOURCE)) {
+            array_add (blockNumbers, 5506764);
+            array_add (blockNumbers, 5509990);
+            array_add (blockNumbers, 5511681);
+            array_add (blockNumbers, 5539808);
+        }
+    }
+
     else {
         array_add (blockNumbers, blockNumberStart);
         array_add (blockNumbers, (blockNumberStart + blockNumberStop) / 2);
