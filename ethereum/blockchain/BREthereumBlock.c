@@ -55,6 +55,7 @@ blockStatusInitialize (BREthereumBlockStatus *status,
 
 static void
 blockStatusRelease (BREthereumBlockStatus *status) {
+    // release transaction and log?
     if (NULL != status->transactions) array_free(status->transactions);
     if (NULL != status->logs) array_free(status->logs);
 }
@@ -869,6 +870,16 @@ blockReleaseForSet (void *ignore, void *item) {
     blockRelease((BREthereumBlock) item);
 }
 
+extern void
+blocksRelease (OwnershipGiven BRArrayOf(BREthereumBlock) blocks) {
+    if (NULL != blocks) {
+        size_t count = array_count(blocks);
+        for (size_t index = 0; index < count; index++)
+            blockRelease(blocks[index]);
+        array_free (blocks);
+    }
+}
+
 //
 // MARK: - Block Next (Chaining)
 //
@@ -963,7 +974,7 @@ blockReportStatusTransactions (BREthereumBlock block,
 
 extern void
 blockReportStatusGasUsed (BREthereumBlock block,
-                          BRArrayOf(BREthereumGas) gasUsed) {
+                          OwnershipGiven BRArrayOf(BREthereumGas) gasUsed) {
     block->status.gasUsed = gasUsed;
 }
 
@@ -984,7 +995,7 @@ blockReportStatusLogsRequest (BREthereumBlock block,
 
 extern void
 blockReportStatusLogs (BREthereumBlock block,
-                       BREthereumLog *logs) {
+                       OwnershipGiven BRArrayOf(BREthereumLog) logs) {
     assert (block->status.logRequest == BLOCK_REQUEST_PENDING);
     block->status.logRequest = BLOCK_REQUEST_COMPLETE;
     block->status.logs = logs;

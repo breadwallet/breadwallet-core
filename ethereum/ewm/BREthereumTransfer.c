@@ -195,7 +195,7 @@ transferCreateWithTransaction (BREthereumTransaction transaction) {
 }
 
 extern BREthereumTransfer
-transferCreateWithLog (BREthereumLog log,
+transferCreateWithLog (OwnershipGiven BREthereumLog log,
                        BREthereumToken token) {
     BREthereumFeeBasis feeBasis = {
         FEE_BASIS_NONE
@@ -519,4 +519,13 @@ transferCompare (BREthereumTransfer t1,
 }
 
 
+extern void
+transfersRelease (OwnershipGiven BRArrayOf(BREthereumTransfer) transfers) {
+    if (NULL != transfers) {
+        size_t count = array_count (transfers);
+        for (size_t index = 0; index < count; index++)
+            transferRelease(transfers[index]);
+        array_free (transfers);
+    }
+}
 

@@ -219,6 +219,11 @@ nodeCreate (BREthereumNetwork network,
 extern void
 nodeRelease (BREthereumNode node);
 
+static inline void
+nodeReleaseForSet (void *ignore, void *item) {
+    nodeRelease ((BREthereumNode) item);
+}
+
 extern BREthereumNodeState
 nodeConnect (BREthereumNode node,
              BREthereumNodeEndpointRoute route);

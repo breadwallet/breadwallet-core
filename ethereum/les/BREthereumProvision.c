@@ -427,6 +427,7 @@ provisionCreateMessagePIP (BREthereumProvision *provisionMulti,
                     { .request = { messageId, inputs }}}}
             };
         }
+
         case PROVISION_TRANSACTION_RECEIPTS: {
             BREthereumProvisionReceipts *provision = &provisionMulti->u.receipts;
 

@@ -145,6 +145,12 @@ nodeEndpointCreateEnode (const char *enode) {
     return nodeEndpointCreate((BREthereumDISNeighbor) { disEndpoint, key });
 }
 
+extern void
+nodeEndpointRelease (BREthereumNodeEndpoint endpoint) {
+    messageP2PRelease(&endpoint.hello);
+    messageRelease(&endpoint.status);
+}
+
 // Support BRSet
 extern size_t
 nodeEndpointHashValue (const void *h) {

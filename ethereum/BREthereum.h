@@ -155,7 +155,7 @@ typedef void
 typedef void
 (*BREthereumClientHandlerGetBlocks) (BREthereumClientContext context,
                                      BREthereumEWM ewm,
-                                     const char *address,
+                                     const char *address, // disappears immediately
                                      BREthereumSyncInterestSet interests,
                                      uint64_t blockNumberStart,
                                      uint64_t blockNumberStop,

@@ -415,7 +415,7 @@ provisionerGetMessageContentLimit (BREthereumNodeProvisioner *provisioner) {
 
 static void
 provisionerEstablish (BREthereumNodeProvisioner *provisioner,
-                          BREthereumNode node) {
+                      BREthereumNode node) {
     // The `node` will handle the `provisioner`
     provisioner->node = node;
 
@@ -693,12 +693,6 @@ nodeCreate (BREthereumNetwork network,
     node->discovered = ETHEREUM_BOOLEAN_FALSE;
 
     node->frameCoder = frameCoderCreate();
-    frameCoderInit(node->frameCoder,
-                   &remote.ephemeralKey, &remote.nonce,
-                   &local.ephemeralKey,  &local.nonce,
-                   node->ackBufCipher, ackCipherBufLen,
-                   node->authBufCipher, authCipherBufLen,
-                   ETHEREUM_BOOLEAN_TRUE);
 
     node->callbackContext  = context;
     node->callbackStatus   = callbackStatus;
@@ -734,6 +728,12 @@ extern void
 nodeRelease (BREthereumNode node) {
     nodeDisconnect (node, NODE_ROUTE_TCP, nodeStateCreate (NODE_AVAILABLE), ETHEREUM_BOOLEAN_FALSE);
     nodeDisconnect (node, NODE_ROUTE_UDP, nodeStateCreate (NODE_AVAILABLE), ETHEREUM_BOOLEAN_FALSE);
+
+    nodeEndpointRelease(node->remote);
+
+    for (size_t index = 0; index < array_count(node->provisioners); index++)
+        provisionRelease (&node->provisioners[index].provision , ETHEREUM_BOOLEAN_TRUE);
+    array_free (node->provisioners);
 
     if (NULL != node->sendDataBuffer.bytes) free (node->sendDataBuffer.bytes);
     if (NULL != node->recvDataBuffer.bytes) free (node->recvDataBuffer.bytes);
@@ -851,7 +851,9 @@ nodeHandleProvisionerMessage (BREthereumNode node,
         // ... and remove the provisioner
         for (size_t index = 0; index < array_count (node->provisioners); index++)
             if (provisioner == &node->provisioners[index]) {
-                // TODO: Memory clean
+                // Release the provision, including its messages.  But, do not release
+                // the provision as it was passed on to `node->callbackProvide`.
+                provisionerRelease(provisioner, ETHEREUM_BOOLEAN_FALSE, ETHEREUM_BOOLEAN_FALSE);
                 array_rm (node->provisioners, index);
                 break;
             }

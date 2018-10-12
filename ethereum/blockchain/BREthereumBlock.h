@@ -238,6 +238,9 @@ blockHashEqual (const void *h1, const void *h2);
 extern void
 blockReleaseForSet (void *ignore, void *item);
 
+extern void
+blocksRelease (OwnershipGiven BRArrayOf(BREthereumBlock) blocks);
+
 
 //
 // MARK: - Block Next (Chaining)

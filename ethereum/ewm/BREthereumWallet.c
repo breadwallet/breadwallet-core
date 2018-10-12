@@ -175,6 +175,17 @@ walletRelease (BREthereumWallet wallet) {
     free (wallet);
 }
 
+
+extern void
+walletsRelease (OwnershipGiven BRArrayOf(BREthereumWallet) wallets) {
+    if (NULL != wallets) {
+        size_t count = array_count(wallets);
+        for (size_t index = 0; index < count; index++)
+            walletRelease(wallets[index]);
+        array_free(wallets);
+    }
+}
+
 //
 // Transfer
 //

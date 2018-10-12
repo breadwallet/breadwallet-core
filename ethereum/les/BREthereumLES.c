@@ -76,6 +76,12 @@ static ssize_t
 lesFindRequestForProvision (BREthereumLES les,
                             BREthereumProvision *provision);
 
+static void
+lesDeactivateNode (BREthereumLES les,
+                   BREthereumNodeEndpointRoute route,
+                   BREthereumNode node,
+                   const char *explain);
+
 typedef void* (*ThreadRoutine) (void*);
 
 static void *
@@ -208,6 +214,10 @@ nodeConfigHashEqual (const void *t1, const void *t2) {
                                      &((BREthereumNodeConfig) t2)->hash);
 }
 
+static inline void
+nodeConfigReleaseForSet (void *ignore, void *item) {
+    nodeConfigRelease ((BREthereumNodeConfig) item);
+}
 
 /**
  * A LES Request is a LES Message with associated callbacks.  We'll send the message (once we have
@@ -242,6 +252,19 @@ typedef struct {
 //    size_t nodeIndex;
 } BREthereumLESRequest;
 
+static void
+requestRelease (BREthereumLESRequest *request) {
+    provisionRelease(&request->provision, ETHEREUM_BOOLEAN_TRUE);
+}
+
+static void
+requestsRelease (OwnershipGiven BRArrayOf(BREthereumLESRequest) requests) {
+    if (NULL != requests) {
+        for (size_t index = 0; index < array_count(requests); index++)
+            requestRelease(&requests[index]);
+        array_free(requests);
+    }
+}
 /// MARK: - LES
 
 /**
@@ -408,7 +431,7 @@ lesCreate (BREthereumNetwork network,
            uint64_t headNumber,
            UInt256 headTotalDifficulty,
            BREthereumHash genesisHash,
-           BRSetOf(BREthereumNodeConfig) configs) {
+           OwnershipGiven BRSetOf(BREthereumNodeConfig) configs) {
     
     BREthereumLES les = (BREthereumLES) calloc (1, sizeof(struct BREthereumLESRecord));
     assert (NULL != les);
@@ -522,12 +545,18 @@ lesCreate (BREthereumNetwork network,
                                           NULL);
         }
 
+        // As owner, release.
+        BRSetApply (configs, NULL, nodeConfigReleaseForSet);
+        BRSetFree  (configs);
+
         for (size_t index = 0; index < array_count(preferredEndpoints); index++)
             lesEnsureNodeForEndpoint (les,
                                       preferredEndpoints[index],
                                       (BREthereumNodeState) { NODE_AVAILABLE},
                                       ETHEREUM_BOOLEAN_TRUE,
                                       NULL);
+
+        array_free (preferredEndpoints);
     }
 
     // ... and then add in bootstrap endpoints for good measure.  Note that in practice after the
@@ -592,22 +621,19 @@ lesRelease(BREthereumLES les) {
     lesStop (les);
     pthread_mutex_lock (&les->lock);
 
-    // Release each node; do it safely w/o mucking the les->nodes set.
-    size_t nodeCount = BRSetCount(les->nodes);
-    BREthereumNode nodes[nodeCount];
-    BRSetAll(les->nodes, (void**) nodes, nodeCount);
-    BRSetClear(les->nodes);
-    for (size_t index = 0; index < nodeCount; index++)
-        nodeRelease (nodes[index]);
-
-//    FOR_NODES (les, node)
-//        nodeRelease (node);
-//    BRSetClear(les->nodes);
-
+    // Release `availableNodes` - nodes themselves later
     array_free (les->availableNodes);
 
+    // Release `activeNodesByRoute`  -nodes themselves later.
     FOR_EACH_ROUTE (route)
         array_free (les->activeNodesByRoute[route]);
+
+    BRSetApply(les->nodes, NULL, nodeReleaseForSet);
+    BRSetFree(les->nodes);
+
+    nodeEndpointRelease (les->localEndpoint);
+
+    requestsRelease(les->requests);
 
     rlpCoderRelease(les->coder);
 
@@ -724,15 +750,44 @@ lesHandleProvision (BREthereumLES les,
     // TODO: On an error, should the provision be submitted to another node?
     for (size_t index = 0; index < array_count (les->requests); index++) {
         BREthereumLESRequest *request = &les->requests[index];
-        if (result.identifier == request->provision.identifier) {
-            request->callback (request->context,
-                               les,
-                               node,
-                               result);
-            array_rm (les->requests, index);
-            break;
-        }
+        // Find the request; there must be one...
+        if (result.identifier == request->provision.identifier)
+            switch (result.status) {
+                case PROVISION_SUCCESS:
+                    // On success, invoke `request->callback`
+                    //
+                    // We've passed ownership of the provision, in result.  We can simply
+                    // remove the request (which releases the result but we passed a copy,
+                    // w/ provision and w/ provision references (to hashes, etc)).
+
+                    request->callback (request->context,
+                                       les,
+                                       node,
+                                       result);
+
+
+                    array_rm (les->requests, index);
+                    return;
+
+                case PROVISION_ERROR: {
+                    // The node failed to handle the provision.  We'll deactivate the node
+                    // which will reschedule the provision with another node.
+                    //
+                    // We've taken ownership of the provision, we retain the provision as it will
+                    // be reassigned to another node.
+
+                    char explanation[256];
+                    sprintf (explanation, "Provision Error: %d, Type: %d",
+                             result.u.error.reason,
+                             result.type);
+                    lesDeactivateNode (les, NODE_ROUTE_TCP, node, explanation);
+                    return;
+                }
+            }
     }
+
+    // We totally missed the request for result
+    assert (0);
 }
 
 /**
@@ -782,44 +837,51 @@ lesLogNodeActivate (BREthereumLES les,
     char desc[128];
 
     BREthereumNodeState state = nodeGetState(node, route);
-    eth_log (LES_LOG_TOPIC, "Conn: [ %s @ %3zu, %9s ]    %15s (%s)",
+    eth_log (LES_LOG_TOPIC, "Conn: [ %s @ %3zu, %9s ]    %15s (%s)%s%s",
              (NODE_ROUTE_TCP == route ? "TCP" : "UDP"),
              array_count(les->activeNodesByRoute[route]),
              path,
              nodeGetRemoteEndpoint(node)->hostname,
-//             explain,
-             nodeStateDescribe (&state, desc));
+             nodeStateDescribe (&state, desc),
+             (NULL == explain ? "" : " - "),
+             (NULL == explain ? "" : explain));
+}
+
+static void
+lesDeactivateNode (BREthereumLES les,
+                   BREthereumNodeEndpointRoute route,
+                   BREthereumNode node,
+                   const char *explain) {
+    BRArrayOf(BREthereumNode) nodes = les->activeNodesByRoute[route];
+    for (size_t ni = 0; ni < array_count(nodes); ni++) // NodeIndex
+        if (node== nodes[ni]) {
+            array_rm (nodes, ni);
+            lesLogNodeActivate(les, node, route, explain, "<=|=>");
+
+            // Reassign provisions back as requests if this is a TCP route
+            if (NODE_ROUTE_TCP == route) {
+                BRArrayOf(BREthereumProvision) provisions = nodeUnhandleProvisions(node);
+                for (size_t pi = 0; pi < array_count(provisions); pi++) {
+                    ssize_t requestIndex = lesFindRequestForProvision (les, &provisions[pi]);
+                    assert (-1 != requestIndex);
+
+                    // This reestablishes the provision as needing to be assigned.
+                    les->requests[requestIndex].node = NULL;
+                }
+            }
+
+            // A node was deactiviated (and `nodes` modified); skip out.
+            break;
+        }
 }
 
 static void
 lesDeactivateNodes (BREthereumLES les,
                     BREthereumNodeEndpointRoute route,
-                    BRArrayOf(BREthereumNode) nodesToDeactivate,
+                    OwnershipKept BRArrayOf(BREthereumNode) nodesToDeactivate,
                     const char *explain) {
-    // Deactive nodesToDeactive from the route's activeNodes.
-    BRArrayOf(BREthereumNode) nodes = les->activeNodesByRoute[route];
-    for (size_t ri = 0; ri < array_count(nodesToDeactivate); ri++) {  // RemoveIndex
-        for (size_t ni = 0; ni < array_count(nodes); ni++) // NodeIndex
-            if (nodesToDeactivate[ri] == nodes[ni]) {
-                array_rm (nodes, ni);
-                lesLogNodeActivate(les, nodesToDeactivate[ri], route, explain, "<=|=>");
-
-                // Reassign provisions back as requests if this is a TCP route
-                if (NODE_ROUTE_TCP == route) {
-                    BRArrayOf(BREthereumProvision) provisions = nodeUnhandleProvisions(nodesToDeactivate[ri]);
-                    for (size_t pi = 0; pi < array_count(provisions); pi++) {
-                        ssize_t requestIndex = lesFindRequestForProvision (les, &provisions[pi]);
-                        assert (-1 != requestIndex);
-
-                        // This reestablishes the provision as needing to be assigned.
-                        les->requests[requestIndex].node = NULL;
-                    }
-                }
-
-                // A node was deactiviated (and `nodes` modified); break to deactivate another.
-                break;
-            }
-    }
+    for (size_t ri = 0; ri < array_count(nodesToDeactivate); ri++)
+        lesDeactivateNode (les, route, nodesToDeactivate[ri], explain);
 }
 
 static void

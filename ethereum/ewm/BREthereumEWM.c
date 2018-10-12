@@ -297,12 +297,11 @@ ewmDestroy (BREthereumEWM ewm) {
     if (NULL != ewm->bcs)
         bcsDestroy(ewm->bcs);
 
-    for (size_t index = 0; index < array_count(ewm->wallets); index++)
-        walletRelease (ewm->wallets[index]);
-    array_free(ewm->wallets);
+    walletsRelease (ewm->wallets);
+    ewm->wallets = NULL;
 
-    array_free(ewm->transfers);
-    array_free(ewm->blocks);
+    array_free (ewm->transfers);   // released by wallets: transfersRelease(ewm->transfers);
+    blocksRelease(ewm->blocks);
 
     eventHandlerDestroy(ewm->handlerForClient);
     eventHandlerDestroy(ewm->handlerForMain);
@@ -931,7 +930,7 @@ ewmHandleTransaction (BREthereumEWM ewm,
 extern void
 ewmHandleLog (BREthereumEWM ewm,
               BREthereumBCSCallbackLogType type,
-              BREthereumLog log) {
+              OwnershipGiven BREthereumLog log) {
     BREthereumHash logHash = logGetHash(log);
 
     BREthereumHash transactionHash;
@@ -971,8 +970,11 @@ ewmHandleLog (BREthereumEWM ewm,
                                    SUCCESS,
                                    NULL);
     }
-    else
+    else {
         tid = ewmLookupTransferId(ewm, transfer);
+        if (log != transferGetBasisLog(transfer))
+            logRelease(log);
+    }
 
     // TODO: Not quite
     ewmClientSignalTransferEvent(ewm, wid, tid,
@@ -1064,6 +1066,8 @@ ewmHandleGetBlocks (BREthereumEWM ewm,
                                blockStart,
                                blockStop,
                                ++ewm->requestId);
+
+    free (strAddress);
 }
 
 //

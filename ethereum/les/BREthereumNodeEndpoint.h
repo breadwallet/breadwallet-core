@@ -91,6 +91,9 @@ typedef struct {
 extern BREthereumNodeEndpoint
 nodeEndpointCreate (BREthereumDISNeighbor dis);
 
+extern void
+nodeEndpointRelease (BREthereumNodeEndpoint endpoint);
+
 extern BREthereumNodeEndpoint
 nodeEndpointCreateLocal (BREthereumLESRandomContext randomContext);
 

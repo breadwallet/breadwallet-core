@@ -181,10 +181,10 @@ bcsCreate (BREthereumNetwork network,
            BREthereumAddress address,
            BREthereumBCSListener listener,
            BREthereumSyncMode syncMode,
-           BRSetOf(BREthereumNodeConfig) peers,
-           BRSetOf(BREthereumBlock) blocks,
-           BRSetOf(BREthereumTransaction) transactions,
-           BRSetOf(BREthereumLog) logs) {
+           OwnershipGiven BRSetOf(BREthereumNodeConfig) peers,
+           OwnershipGiven BRSetOf(BREthereumBlock) blocks,
+           OwnershipGiven BRSetOf(BREthereumTransaction) transactions,
+           OwnershipGiven BRSetOf(BREthereumLog) logs) {
            // peers
 
     BREthereumBCS bcs = (BREthereumBCS) calloc (1, sizeof(struct BREthereumBCSStruct));
@@ -310,7 +310,7 @@ bcsDestroy (BREthereumBCS bcs) {
     // TODO: We'll need to announce things to our `listener`
 
     // Headers
-    BRSetApply(bcs->blocks, NULL, blockReleaseForSet);
+//    BRSetApply(bcs->blocks, NULL, blockReleaseForSet);
     BRSetFree(bcs->blocks);
 
     // Orphans (All are in 'headers')
@@ -433,6 +433,7 @@ bcsReportInterestingBlocks (BREthereumBCS bcs,
                                 (BREthereumLESProvisionContext) bcs,
                                 (BREthereumLESProvisionCallback) bcsSignalProvision,
                                 blockNumbers[index], 1, 0, ETHEREUM_BOOLEAN_FALSE);
+    array_free (blockNumbers);
 }
 
 extern void
@@ -825,6 +826,8 @@ bcsExtendTransactionsAndLogsForBlock (BREthereumBCS bcs,
         for (size_t li = 0; li < array_count(blockStatus.logs); li++)
             bcsHandleLog (bcs, blockStatus.logs[li]);
 
+    // TODO: {Transactions,Logs} have been transfered via bcsHandeLog().  Clear `blockStatus`?
+
     // If not in chain and not an orphan, then reclaim
     if (bcs->chainTail != block && NULL == blockGetNext(block) && NULL == BRSetGet(bcs->orphans, block))
         bcsReclaimBlock(bcs, block, 0);
@@ -1007,7 +1010,7 @@ bcsBlockHasMatchingLogs (BREthereumBCS bcs,
  */
 static void
 bcsHandleBlockHeaderInternal (BREthereumBCS bcs,
-                              BREthereumBlockHeader header,
+                              OwnershipGiven BREthereumBlockHeader header,
                               int isFromSync,
                               BRArrayOf(BREthereumHash) *bodiesHashes,
                               BRArrayOf(BREthereumHash) *receiptsHashes,
@@ -1031,7 +1034,8 @@ bcsHandleBlockHeaderInternal (BREthereumBCS bcs,
 
     // ?? Other checks ??
 
-    // We have a header that appears consistent.  Create a block and work to fill it out.
+    // We have a header that appears consistent.  Create a block and work to fill it out. Note
+    // that `header` memory ownership is transferred to `block`
     BREthereumBlock block = blockCreate(header);
     BRSetAdd(bcs->blocks, block);
 
@@ -1087,6 +1091,7 @@ bcsHandleBlockHeaders (BREthereumBCS bcs,
     BRArrayOf(BREthereumHash) accountsHashes = NULL;
 
     for (size_t index = 0; index < array_count(headers); index++)
+        // Each `headers[index]` has 'OwnershipGiven'
         bcsHandleBlockHeaderInternal (bcs, headers[index], isFromSync,
                                       &bodiesHashes,
                                       &receiptsHashes,
@@ -1288,6 +1293,7 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
                       OwnershipGiven BRArrayOf(BREthereumHash) hashes,
                       OwnershipGiven BRArrayOf(BREthereumBlockBodyPair) pairs) {
     for (size_t index = 0; index < array_count(hashes); index++)
+        // Transactions and Uncles have 'OwnershipGiven'
         bcsHandleBlockBody (bcs, hashes[index], pairs[index].transactions, pairs[index].uncles);
     array_free (hashes);
     array_free (pairs);
@@ -1413,6 +1419,7 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
     bcsReleaseReceiptsFully(bcs, receipts);
 
     // Report the block status - we'll flag as BLOCK_REQUEST_COMPLETE (even if none of interest).
+    // The `block` now owners `neededLogs`
     blockReportStatusLogs(block, neededLogs);
     // And report the gasUsed per transaction
     blockReportStatusGasUsed(block, gasUsedByTransaction);
@@ -1443,6 +1450,7 @@ bcsHandleTransactionReceiptsMultiple (BREthereumBCS bcs,
                                       OwnershipGiven BRArrayOf(BREthereumHash) hashes,
                                       OwnershipGiven BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) arrayOfReceipts) {
     for (size_t index = 0; index < array_count(hashes); index++)
+        // Each `arrayOfReceipts[index]` has 'OwnershipGiven'
         bcsHandleTransactionReceipts(bcs, hashes[index], arrayOfReceipts[index]);
     array_free (hashes);
     array_free (arrayOfReceipts);
@@ -1581,16 +1589,17 @@ bcsPeriodicDispatcher (BREventHandler handler,
 
 extern void
 bcsHandleTransaction (BREthereumBCS bcs,
-                      BREthereumTransaction transaction) {
+                      OwnershipGiven BREthereumTransaction transaction) {
     int needUpdated = 1;
 
-    // TODO: Who owns transaction?
+    // We own transaction... but we pass it to transactionCallback.
 
     // See if we have an existing transaction...
     BREthereumTransaction oldTransaction = BRSetGet(bcs->transactions, transaction);
 
     // ... if we don't, then add it and announce it as `ADDED`
     if (NULL == oldTransaction) {
+        // We copy here as we are passing `transaction` to callback.
         BRSetAdd(bcs->transactions, transactionCopy(transaction));
         bcs->listener.transactionCallback (bcs->listener.context,
                                            BCS_CALLBACK_TRANSACTION_ADDED,
@@ -1636,7 +1645,7 @@ bcsHandleTransaction (BREthereumBCS bcs,
  */
 extern void
 bcsHandleLog (BREthereumBCS bcs,
-              BREthereumLog log) {
+              OwnershipGiven BREthereumLog log) {
     int needUpdate = 1;
 
     // TODO: Who owns log?
@@ -1644,7 +1653,7 @@ bcsHandleLog (BREthereumBCS bcs,
     BREthereumLog oldLog = BRSetGet(bcs->logs, log);
 
     if (NULL == oldLog) {
-        BRSetAdd(bcs->logs, log);
+        BRSetAdd(bcs->logs, logCopy(log));
         bcs->listener.logCallback (bcs->listener.context,
                                    BCS_CALLBACK_LOG_ADDED,
                                    log);

@@ -290,6 +290,7 @@ clientGetBlocks (BREthereumClientContext context,
             array_rm (blockNumbers, index - 1);
 
     ethereumClientAnnounceBlocks (ewm, rid, (int) array_count(blockNumbers), blockNumbers);
+    array_free (blockNumbers);
 }
 
 static void
