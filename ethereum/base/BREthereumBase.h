@@ -56,6 +56,9 @@ BRSetFreeAll (BRSet *set, BRSetItemFree itemFree) {
     BRSetFree  (set);
 }
 
+#define OwnershipGiven
+#define OwnershipKept
+
 #include "../util/BRUtil.h"         // "BRInt.h"
 #include "../rlp/BRRlp.h"
 #include "BREthereumLogic.h"

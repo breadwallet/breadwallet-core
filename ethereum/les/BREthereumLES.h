@@ -238,13 +238,13 @@ lesProvideBlockHeaders (BREthereumLES les,
  * @param les
  * @param context
  * @param callback
- * @param BREthereumHash
+ * @param blockHashes - OwnershipGiven
  */
 extern void
 lesProvideBlockBodies (BREthereumLES les,
                        BREthereumLESProvisionContext context,
                        BREthereumLESProvisionCallback callback,
-                       BRArrayOf(BREthereumHash) blockHashes);
+                       OwnershipGiven BRArrayOf(BREthereumHash) blockHashes);
 
 extern void
 lesProvideBlockBodiesOne (BREthereumLES les,
@@ -264,7 +264,7 @@ extern void
 lesProvideReceipts (BREthereumLES les,
                     BREthereumLESProvisionContext context,
                     BREthereumLESProvisionCallback callback,
-                    BRArrayOf(BREthereumHash) blockHashes);
+                    OwnershipGiven BRArrayOf(BREthereumHash) blockHashes);
 extern void
 lesProvideReceiptsOne (BREthereumLES les,
                        BREthereumLESProvisionContext context,
@@ -285,7 +285,7 @@ lesProvideAccountStates (BREthereumLES les,
                          BREthereumLESProvisionContext context,
                          BREthereumLESProvisionCallback callback,
                          BREthereumAddress address,
-                         BRArrayOf(BREthereumHash) blockHashes);
+                         OwnershipGiven BRArrayOf(BREthereumHash) blockHashes);
 
 extern void
 lesProvideAccountStatesOne (BREthereumLES les,
@@ -306,7 +306,7 @@ extern void
 lesProvideTransactionStatus (BREthereumLES les,
                              BREthereumLESProvisionContext context,
                              BREthereumLESProvisionCallback callback,
-                             BRArrayOf(BREthereumHash) transactionHashes);
+                             OwnershipGiven BRArrayOf(BREthereumHash) transactionHashes);
 
 extern void
 lesProvideTransactionStatusOne (BREthereumLES les,
@@ -326,7 +326,7 @@ extern void
 lesSubmitTransaction (BREthereumLES les,
                       BREthereumLESProvisionContext context,
                       BREthereumLESProvisionCallback callback,
-                      BREthereumTransaction transaction);
+                      OwnershipGiven BREthereumTransaction transaction);
 
 #ifdef __cplusplus
 }

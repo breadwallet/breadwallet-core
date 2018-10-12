@@ -1080,7 +1080,7 @@ bcsHandleBlockHeaderInternal (BREthereumBCS bcs,
 
 static void
 bcsHandleBlockHeaders (BREthereumBCS bcs,
-                       BRArrayOf(BREthereumBlockHeader) headers,
+                       OwnershipGiven BRArrayOf(BREthereumBlockHeader) headers,
                        int isFromSync) {
     BRArrayOf(BREthereumHash) bodiesHashes = NULL;
     BRArrayOf(BREthereumHash) receiptsHashes = NULL;
@@ -1091,6 +1091,7 @@ bcsHandleBlockHeaders (BREthereumBCS bcs,
                                       &bodiesHashes,
                                       &receiptsHashes,
                                       &accountsHashes);
+    array_free(headers);
 
     if (NULL != bodiesHashes && array_count(bodiesHashes) > 0)
         lesProvideBlockBodies (bcs->les,
@@ -1162,10 +1163,12 @@ bcsHandleAccountState (BREthereumBCS bcs,
 static void
 bcsHandleAccountStates (BREthereumBCS bcs,
                         BREthereumAddress address,
-                        BRArrayOf(BREthereumHash) hashes,
-                        BRArrayOf(BREthereumAccountState) states) {
+                        OwnershipGiven BRArrayOf(BREthereumHash) hashes,
+                        OwnershipGiven BRArrayOf(BREthereumAccountState) states) {
     for (size_t index = 0; index < array_count(hashes); index++)
         bcsHandleAccountState (bcs, address, hashes[index], states[index]);
+    array_free (hashes);
+    array_free (states);
 }
 
 ///
@@ -1176,8 +1179,8 @@ bcsHandleAccountStates (BREthereumBCS bcs,
  */
 static void
 bcsReleaseOmmersAndTransactionsFully (BREthereumBCS bcs,
-                                      BRArrayOf(BREthereumTransaction) transactions,
-                                      BRArrayOf(BREthereumBlockHeader) ommers) {
+                                      OwnershipGiven BRArrayOf(BREthereumTransaction) transactions,
+                                      OwnershipGiven BRArrayOf(BREthereumBlockHeader) ommers) {
     transactionsRelease(transactions);
     blockHeadersRelease(ommers);
 }
@@ -1185,8 +1188,8 @@ bcsReleaseOmmersAndTransactionsFully (BREthereumBCS bcs,
 static void
 bcsHandleBlockBody (BREthereumBCS bcs,
                     BREthereumHash blockHash,
-                    BRArrayOf(BREthereumTransaction) transactions,
-                    BRArrayOf(BREthereumBlockHeader) ommers) {
+                    OwnershipGiven BRArrayOf(BREthereumTransaction) transactions,
+                    OwnershipGiven BRArrayOf(BREthereumBlockHeader) ommers) {
     // Ensure we have a Block
     BREthereumBlock block = BRSetGet(bcs->blocks, &blockHash);
     if (NULL == block) {
@@ -1282,10 +1285,12 @@ bcsHandleBlockBody (BREthereumBCS bcs,
 
 static void
 bcsHandleBlockBodies (BREthereumBCS bcs,
-                      BRArrayOf(BREthereumHash) hashes,
-                      BRArrayOf(BREthereumBlockBodyPair) pairs) {
+                      OwnershipGiven BRArrayOf(BREthereumHash) hashes,
+                      OwnershipGiven BRArrayOf(BREthereumBlockBodyPair) pairs) {
     for (size_t index = 0; index < array_count(hashes); index++)
         bcsHandleBlockBody (bcs, hashes[index], pairs[index].transactions, pairs[index].uncles);
+    array_free (hashes);
+    array_free (pairs);
 }
 
 ///
@@ -1320,7 +1325,7 @@ bcsHandleLogExtractInterest (BREthereumBCS bcs,
  */
 static void
 bcsReleaseReceiptsFully (BREthereumBCS bcs,
-                         BREthereumTransactionReceipt *receipts) {
+                         OwnershipGiven BRArrayOf(BREthereumTransactionReceipt) receipts) {
     for (size_t index = 0; index < array_count(receipts); index++)
         transactionReceiptRelease(receipts[index]);
     array_free (receipts);
@@ -1329,7 +1334,7 @@ bcsReleaseReceiptsFully (BREthereumBCS bcs,
 static void
 bcsHandleTransactionReceipts (BREthereumBCS bcs,
                               BREthereumHash blockHash,
-                              BRArrayOf(BREthereumTransactionReceipt) receipts) {
+                              OwnershipGiven BRArrayOf(BREthereumTransactionReceipt) receipts) {
     // Ensure we have a Block
     BREthereumBlock block = BRSetGet(bcs->blocks, &blockHash);
     if (NULL == block) {
@@ -1435,10 +1440,12 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
 
 static void
 bcsHandleTransactionReceiptsMultiple (BREthereumBCS bcs,
-                                      BRArrayOf(BREthereumHash) hashes,
-                                      BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) arrayOfReceipts) {
+                                      OwnershipGiven BRArrayOf(BREthereumHash) hashes,
+                                      OwnershipGiven BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) arrayOfReceipts) {
     for (size_t index = 0; index < array_count(hashes); index++)
         bcsHandleTransactionReceipts(bcs, hashes[index], arrayOfReceipts[index]);
+    array_free (hashes);
+    array_free (arrayOfReceipts);
 }
 
 ///
@@ -1539,10 +1546,12 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
 
 static void
 bcsHandleTransactionStatuses (BREthereumBCS bcs,
-                              BRArrayOf(BREthereumHash) hashes,
-                              BRArrayOf(BREthereumTransactionStatus) statuses) {
+                              OwnershipGiven BRArrayOf(BREthereumHash) hashes,
+                              OwnershipGiven BRArrayOf(BREthereumTransactionStatus) statuses) {
     for (size_t index = 0; index < array_count(hashes); index++)
         bcsHandleTransactionStatus (bcs, hashes[index], statuses[index]);
+    array_free (hashes);
+    array_free (statuses);
 }
 
 //
@@ -1723,7 +1732,7 @@ extern void
 bcsHandleProvision (BREthereumBCS bcs,
                     BREthereumLES les,
                     BREthereumNodeReference node,
-                    BREthereumProvisionResult result) {
+                    OwnershipGiven BREthereumProvisionResult result) {
     assert (bcs->les == les);
     switch (result.status) {
         case PROVISION_ERROR:
@@ -1734,38 +1743,44 @@ bcsHandleProvision (BREthereumBCS bcs,
             assert (result.type == provision->type);
             switch (result.type) {
                 case PROVISION_BLOCK_HEADERS: {
-                    bcsHandleBlockHeaders (bcs,
-                                           provision->u.headers.headers,
-                                           0);
+                    BRArrayOf(BREthereumBlockHeader) headers;
+                    provisionHeadersConsume (&provision->u.headers, &headers);
+                    bcsHandleBlockHeaders (bcs, headers, 0);
                     break;
                 }
 
                 case PROVISION_BLOCK_BODIES: {
-                    bcsHandleBlockBodies (bcs,
-                                          provision->u.bodies.hashes,
-                                          provision->u.bodies.pairs);
+                    BRArrayOf(BREthereumHash) hashes;
+                    BRArrayOf(BREthereumBlockBodyPair) pairs;
+                    provisionBodiesConsume (&provision->u.bodies, &hashes, &pairs);
+                    bcsHandleBlockBodies (bcs, hashes, pairs);
                     break;
                 }
 
                 case PROVISION_TRANSACTION_RECEIPTS: {
-                    bcsHandleTransactionReceiptsMultiple (bcs,
-                                                          provision->u.receipts.hashes,
-                                                          provision->u.receipts.receipts);
+                    BRArrayOf(BREthereumHash) hashes;
+                    BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) receipts;
+                    provisionReceiptsConsume(&provision->u.receipts, &hashes, &receipts);
+                    bcsHandleTransactionReceiptsMultiple (bcs, hashes, receipts);
                     break;
                 }
 
                 case PROVISION_ACCOUNTS: {
+                    BRArrayOf(BREthereumHash) hashes;
+                    BRArrayOf(BREthereumAccountState) accounts;
+                    provisionAccountsConsume (&provision->u.accounts, &hashes, &accounts);
                     bcsHandleAccountStates (bcs,
                                             provision->u.accounts.address,
-                                            provision->u.accounts.hashes,
-                                            provision->u.accounts.accounts);
+                                            hashes,
+                                            accounts);
                     break;
                 }
 
                 case PROVISION_TRANSACTION_STATUSES: {
-                    bcsHandleTransactionStatuses (bcs,
-                                                  provision->u.statuses.hashes,
-                                                  provision->u.statuses.statuses);
+                    BRArrayOf(BREthereumHash) hashes;
+                    BRArrayOf(BREthereumTransactionStatus) statuses;
+                    provisionStatusesConsume (&provision->u.statuses, &hashes, &statuses);
+                    bcsHandleTransactionStatuses (bcs, hashes, statuses);
                     break;
                 }
                     
@@ -1775,5 +1790,9 @@ bcsHandleProvision (BREthereumBCS bcs,
             break;
         }
     }
+
+    // We won result and have finished with it.  Must release - which will release the
+    // included provision.
+    provisionResultRelease (&result);
 }
 

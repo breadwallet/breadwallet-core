@@ -719,8 +719,8 @@ lesHandleAnnounce (BREthereumLES les,
 static void
 lesHandleProvision (BREthereumLES les,
                     BREthereumNode node,
-                    BREthereumProvisionResult result) {
-    // Find the request, invoke the callbacks on result, and others.
+                    OwnershipGiven BREthereumProvisionResult result) {
+    // Find the request, invoke the callback on result.
     // TODO: On an error, should the provision be submitted to another node?
     for (size_t index = 0; index < array_count (les->requests); index++) {
         BREthereumLESRequest *request = &les->requests[index];
@@ -915,6 +915,16 @@ lesThread (BREthereumLES les) {
                     // What about a 'multiple request', like a TxRelay, that is supposed to
                     // be sent/provisioned by multiple nodes?
                     les->requests[index].node = preferredNode;
+
+                    // We hold the requests[index] provision in requests.  In the following call
+                    // we pass of copy of that provision - both provisions share memory pointers
+                    // to, for example, BRArrayOf(BREthereumHash).
+                    //
+                    // If we pass the copy but then later release requests[index], then we will
+                    // mistakenly free the shared memory pointers.  We could 'consume' the
+                    // provision to avoid holding the shared memory, but then we'd lose references
+                    // needed to resubmit a failed request.
+
                     nodeHandleProvision (preferredNode,
                                          les->requests[index].provision);
                 }
@@ -1098,11 +1108,21 @@ lesThread (BREthereumLES les) {
 /// MARK: - (Public) Provide (Headers, ...)
 ///
 
+
+/**
+ * Use `provision` it define a new LES request.  The request will be dispatched to the preferred
+ * node, when appropriate.
+ *
+ * @param les
+ * @param context
+ * @param callback
+ * @param provision request's provision - OwnershipGiven to LES
+ */
 static void
 lesAddRequest (BREthereumLES les,
                BREthereumLESProvisionContext context,
                BREthereumLESProvisionCallback callback,
-               BREthereumProvision provision) {
+               OwnershipGiven BREthereumProvision provision) {
     pthread_mutex_lock (&les->lock);
 
     provision.identifier = les->requestsIdentifier++;
@@ -1150,7 +1170,7 @@ extern void
 lesProvideBlockBodies (BREthereumLES les,
                        BREthereumLESProvisionContext context,
                        BREthereumLESProvisionCallback callback,
-                       BRArrayOf(BREthereumHash) blockHashes) {
+                       OwnershipGiven BRArrayOf(BREthereumHash) blockHashes) {
     lesAddRequest (les, context, callback,
                    (BREthereumProvision) {
                        PROVISION_IDENTIFIER_UNDEFINED,
@@ -1172,7 +1192,7 @@ extern void
 lesProvideReceipts (BREthereumLES les,
                     BREthereumLESProvisionContext context,
                     BREthereumLESProvisionCallback callback,
-                    BRArrayOf(BREthereumHash) blockHashes) {
+                    OwnershipGiven BRArrayOf(BREthereumHash) blockHashes) {
     lesAddRequest (les, context, callback,
                    (BREthereumProvision) {
                        PROVISION_IDENTIFIER_UNDEFINED,
@@ -1195,7 +1215,7 @@ lesProvideAccountStates (BREthereumLES les,
                          BREthereumLESProvisionContext context,
                          BREthereumLESProvisionCallback callback,
                          BREthereumAddress address,
-                         BRArrayOf(BREthereumHash) blockHashes) {
+                         OwnershipGiven BRArrayOf(BREthereumHash) blockHashes) {
     lesAddRequest (les, context, callback,
                    (BREthereumProvision) {
                        PROVISION_IDENTIFIER_UNDEFINED,
@@ -1218,7 +1238,7 @@ extern void
 lesProvideTransactionStatus (BREthereumLES les,
                              BREthereumLESProvisionContext context,
                              BREthereumLESProvisionCallback callback,
-                             BRArrayOf(BREthereumHash) transactionHashes) {
+                             OwnershipGiven BRArrayOf(BREthereumHash) transactionHashes) {
     lesAddRequest (les, context, callback,
                    (BREthereumProvision) {
                        PROVISION_IDENTIFIER_UNDEFINED,
@@ -1240,7 +1260,7 @@ extern void
 lesSubmitTransaction (BREthereumLES les,
                       BREthereumLESProvisionContext context,
                       BREthereumLESProvisionCallback callback,
-                      BREthereumTransaction transaction) {
+                      OwnershipGiven BREthereumTransaction transaction) {
     lesAddRequest (les, context, callback,
                    (BREthereumProvision) {
                        PROVISION_IDENTIFIER_UNDEFINED,
