@@ -34,6 +34,9 @@
 
 extern const char *tokenBRDAddress;
 
+extern void
+installTokensForTest (void);
+
 //
 // EWM CONNECT
 //
@@ -789,6 +792,8 @@ runSyncTest (BREthereumType type,
              int restart) {
     eth_log("TST", "SyncTest%s", "");
 
+    installTokensForTest();
+    
     client.context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
 //    char *paperKey = "boring head harsh green empty clip fatal typical found crane dinner timber";
@@ -842,9 +847,6 @@ runSyncTest (BREthereumType type,
     free (client.context);
     return;
 }
-
-extern void
-installTokensForTest (void);
 
 extern void
 runEWMTests (void) {

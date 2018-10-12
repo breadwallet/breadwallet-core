@@ -187,6 +187,13 @@ class CoreDemoEthereumClient : EthereumClient {
                            description: "",
                            decimals: 18)
 
+        ewm.announceToken (rid: rid,
+                           address: "0xdd974d5c2e2928dea5f71b9825b8b646686bd200",
+                           symbol: "KNC",
+                           name: "KNC Token",
+                           description: "",
+                           decimals: 18)
+
     }
 
     func getBlockNumber(ewm: EthereumWalletManager, rid: Int32) {
