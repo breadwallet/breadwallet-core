@@ -185,7 +185,6 @@ bcsCreate (BREthereumNetwork network,
            BRSetOf(BREthereumBlock) blocks,
            BRSetOf(BREthereumTransaction) transactions,
            BRSetOf(BREthereumLog) logs) {
-           // peers
 
     BREthereumBCS bcs = (BREthereumBCS) calloc (1, sizeof(struct BREthereumBCSStruct));
 

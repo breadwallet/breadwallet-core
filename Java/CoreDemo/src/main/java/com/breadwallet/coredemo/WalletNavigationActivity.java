@@ -17,7 +17,6 @@ public class WalletNavigationActivity extends AppCompatActivity {
         client = new CoreDemoEthereumClient(BREthereumNetwork.mainnet,
             "boring head harsh green empty clip fatal typical found crane dinner timber");
 
-        // This will lead to a failure - on a WalletEvent.
         client.ewm.connect();
 
         super.onCreate(savedInstanceState);

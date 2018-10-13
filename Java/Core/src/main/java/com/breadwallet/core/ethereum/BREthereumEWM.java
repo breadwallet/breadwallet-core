@@ -64,7 +64,7 @@ public class BREthereumEWM extends BRCoreJniReference {
         ERROR_NUMERIC_PARSE,
     }
 
-    int NUMBER_OF_STATUS_EVENTS = 10;
+    static int NUMBER_OF_STATUS_EVENTS = 10;
 
     //
     // Wallet Event
@@ -77,7 +77,7 @@ public class BREthereumEWM extends BRCoreJniReference {
         DELETED
     }
 
-    int NUMBER_OF_WALLET_EVENTS = 5;
+    static int NUMBER_OF_WALLET_EVENTS = 5;
 
     //
     // Block Event
@@ -87,7 +87,7 @@ public class BREthereumEWM extends BRCoreJniReference {
         DELETED
     }
 
-    int NUMBER_OF_BLOCK_EVENT = 2;
+    static int NUMBER_OF_BLOCK_EVENT = 2;
 
     //
     // Transaction Event
@@ -105,7 +105,7 @@ public class BREthereumEWM extends BRCoreJniReference {
         BLOCK_CONFIRMATIONS_UPDATED
     }
 
-    int NUMBER_OF_TRANSACTION_EVENTS = 9;
+    static int NUMBER_OF_TRANSACTION_EVENTS = 9;
 
     //
     // EWM Event
@@ -119,7 +119,7 @@ public class BREthereumEWM extends BRCoreJniReference {
         DELETED
     }
 
-    int NUMBER_OF_EWM_EVENTS = 6;
+    static int NUMBER_OF_EWM_EVENTS = 6;
 
     //
     // Peer Event
@@ -129,7 +129,7 @@ public class BREthereumEWM extends BRCoreJniReference {
         DELETED
     }
 
-    int NUMBER_OF_PEER_EVENTS = 2;
+    static int NUMBER_OF_PEER_EVENTS = 2;
 
     //
     // Client
@@ -503,8 +503,10 @@ public class BREthereumEWM extends BRCoreJniReference {
                 client, network);
     }
 
+
     private BREthereumEWM(long identifier, Client client, BREthereumNetwork network) {
         super(identifier);
+        ewmMap.put(identifier, new WeakReference<BREthereumEWM> (this));
 
         // `this` is the JNI listener, using the `trampoline` functions to invoke
         // the installed `Listener`.
@@ -524,148 +526,6 @@ public class BREthereumEWM extends BRCoreJniReference {
     public boolean disconnect() {
         return jniEWMDisconnect();
     }
-
-    //
-    // Callback Announcements
-    //
-    // In the JNI Code, we had a problem directly accessing the Client methods.  We had to
-    // dereference the WeakReference<Client> to get at the client and then its methods.  So instead
-    // we'll access these methods below and then 'bounce' to method calls for the listener.
-    //
-    // These methods also give us a chance to convert the `event`, as a `long`, to the Event.
-    //
-    protected void trampolineGetGasPrice(int wid, int rid) {
-        client.get().getGasPrice(wid, rid);
-    }
-
-    protected void trampolineGetGasEstimate(int wid, int tid, String to, String amount, String data, int rid) {
-        client.get().getGasEstimate(wid, tid, to, amount, data, rid);
-    }
-
-    protected void trampolineGetBalance(int wid, String address, int rid) {
-        client.get().getBalance(wid, address, rid);
-    }
-
-    protected void trampolineSubmitTransaction(int wid, int tid, String rawTransaction, int rid) {
-        client.get().submitTransaction(wid, tid, rawTransaction, rid);
-    }
-
-    protected void trampolineGetTransactions(String address, int rid) {
-        client.get().getTransactions(address, rid);
-    }
-
-    protected void trampolineGetLogs(String contract, String address, String event, int rid) {
-        client.get().getLogs(contract, address, event, rid);
-    }
-
-    protected void trampolineGetBlocks (String address, int interests, long blockNumberStart, long blockNumberStop, int rid) {
-        client.get().getBlocks(address, interests, blockNumberStart, blockNumberStop, rid);
-    }
-
-    protected void trampolineGetTokens(int rid) {
-        client.get().getTokens(rid);
-    }
-
-    protected void trampolineGetBlockNumber(int rid) {
-        client.get().getBlockNumber(rid);
-    }
-
-    protected void trampolineGetNonce(String address, int rid) {
-        client.get().getNonce(address, rid);
-    }
-
-    protected void trampolineSaveNodes(Map<String, String> data) {
-        client.get().saveNodes(data);
-    }
-
-    protected void trampolineSaveBlocks(Map<String, String> data) {
-        client.get().saveBlocks(data);
-    }
-
-    protected void trampolineChangeTransaction (int changeType,
-                                                String hash,
-                                                String data) {
-        client.get().changeTransaction(changeType, hash, data);
-    }
-
-    protected void trampolineChangeLog (int changeType,
-                                        String hash,
-                                        String data) {
-        client.get().changeLog (changeType, hash, data);
-    }
-
-    protected void trampolineEWMEvent (int event, int status, String errorDescription) {
-        Client client = this.client.get();
-        if (null == client) return;
-
-        client.handleEWMEvent (EWMEvent.values()[event],
-                Status.values()[status],
-                errorDescription);
-    }
-
-    protected void trampolinePeerEvent (int event, int status, String errorDescription) {
-        Client client = this.client.get();
-        if (null == client) return;
-
-        client.handlePeerEvent(PeerEvent.values()[event],
-                Status.values()[status],
-                errorDescription);
-    }
-
-    protected void trampolineWalletEvent(int wid, int event, int status, String errorDescription) {
-        Client client = this.client.get();
-        if (null == client) return;
-
-        // TODO: Resolve Bug
-        if (event < 0 || event >= NUMBER_OF_WALLET_EVENTS) return;
-        if (status < 0 || status >= NUMBER_OF_STATUS_EVENTS) return;
-
-        // Lookup the wallet - this will create the wallet if it doesn't exist.  Thus, if the
-        // `event` is `create`, we get a wallet; and even, if the `event` is `delete`, we get a
-        // wallet too.
-        BREthereumWallet wallet = walletLookupOrCreate(wid, null);
-
-        // Invoke handler
-        client.handleWalletEvent(wallet,
-                WalletEvent.values()[(int) event],
-                Status.values()[(int) status],
-                errorDescription);
-    }
-
-    protected void trampolineBlockEvent(int bid, int event, int status, String errorDescription) {
-        Client client = this.client.get();
-        if (null == client) return;
-
-        // TODO: Resolve Bug
-        if (event < 0 || event >= NUMBER_OF_BLOCK_EVENT) return;
-        if (status < 0 || status >= NUMBER_OF_STATUS_EVENTS) return;
-
-        // Nothing, at this point
-        BREthereumBlock block = blockLookupOrCreate(bid);
-
-        client.handleBlockEvent(block,
-                BlockEvent.values()[(int) event],
-                Status.values()[(int) status],
-                errorDescription);
-    }
-
-    protected void trampolineTransferEvent(int wid, int tid, int event, int status, String errorDescription) {
-        Client client = this.client.get();
-        if (null == client) return;
-
-        // TODO: Resolve Bug
-        if (event < 0 || event >= NUMBER_OF_TRANSACTION_EVENTS) return;
-        if (status < 0 || status >= NUMBER_OF_STATUS_EVENTS) return;
-
-        BREthereumWallet wallet = walletLookupOrCreate(wid, null);
-        BREthereumTransfer transaction = transactionLookupOrCreate(tid);
-
-        client.handleTransferEvent(wallet, transaction,
-                TransactionEvent.values()[(int) event],
-                Status.values()[(int) status],
-                errorDescription);
-    }
-
 
     //
     // JNI: Constructors
@@ -913,5 +773,216 @@ public class BREthereumEWM extends BRCoreJniReference {
             if (!validUnit(unit))
                 throw new IllegalArgumentException("Invalid Unit for instance type: " + unit.toString());
         }
+    }
+
+    //
+    // Map EID -> BREthereumEWM
+    //
+    static protected Map<Long, WeakReference<BREthereumEWM>> ewmMap = new HashMap<>();
+
+    static BREthereumEWM lookupEWM (long eid) {
+        WeakReference<BREthereumEWM> ewm = ewmMap.get(eid);
+        return (null== ewm ? null : ewm.get());
+    }
+
+    static Client lookupClient (BREthereumEWM ewm) {
+        return (null == ewm ? null : ewm.client.get());
+    }
+
+    //
+    // Callback Announcements :: JNI
+    //
+    // In the JNI Code, we had a problem directly accessing the Client methods.  We had to
+    // dereference the WeakReference<Client> to get at the client and then its methods.  So instead
+    // we'll access these methods below and then 'bounce' to method calls for the listener.
+    //
+    // These methods also give us a chance to convert the `event`, as a `long`, to the Event.
+    //
+    static protected void trampolineGetGasPrice(long eid, int wid, int rid) {
+        BREthereumEWM ewm = lookupEWM(eid);
+        Client client = lookupClient (ewm);
+        if (null == client) return;
+
+        client.getGasPrice(wid, rid);
+    }
+
+    static protected void trampolineGetGasEstimate(long eid, int wid, int tid, String to, String amount, String data, int rid) {
+        BREthereumEWM ewm = lookupEWM(eid);
+        Client client = lookupClient (ewm);
+        if (null == client) return;
+
+        client.getGasEstimate(wid, tid, to, amount, data, rid);
+    }
+
+    static protected void trampolineGetBalance(long eid, int wid, String address, int rid) {
+        BREthereumEWM ewm = lookupEWM(eid);
+        Client client = lookupClient (ewm);
+        if (null == client) return;
+
+        client.getBalance(wid, address, rid);
+    }
+
+    static protected void trampolineSubmitTransaction(long eid, int wid, int tid, String rawTransaction, int rid) {
+        BREthereumEWM ewm = lookupEWM(eid);
+        Client client = lookupClient (ewm);
+        if (null == client) return;
+
+        client.submitTransaction(wid, tid, rawTransaction, rid);
+    }
+
+    static protected void trampolineGetTransactions(long eid, String address, int rid) {
+        BREthereumEWM ewm = lookupEWM(eid);
+        Client client = lookupClient (ewm);
+        if (null == client) return;
+
+        client.getTransactions(address, rid);
+    }
+
+    static protected void trampolineGetLogs(long eid, String contract, String address, String event, int rid) {
+        BREthereumEWM ewm = lookupEWM(eid);
+        Client client = lookupClient (ewm);
+        if (null == client) return;
+
+        client.getLogs(contract, address, event, rid);
+    }
+
+    static protected void trampolineGetBlocks (long eid, String address, int interests, long blockNumberStart, long blockNumberStop, int rid) {
+        BREthereumEWM ewm = lookupEWM(eid);
+        Client client = lookupClient (ewm);
+        if (null == client) return;
+        client.getBlocks(address, interests, blockNumberStart, blockNumberStop, rid);
+    }
+
+    static protected void trampolineGetTokens(long eid, int rid) {
+        BREthereumEWM ewm = lookupEWM(eid);
+        Client client = lookupClient (ewm);
+        if (null == client) return;
+
+        client.getTokens(rid);
+    }
+
+    static protected void trampolineGetBlockNumber(long eid, int rid) {
+        BREthereumEWM ewm = lookupEWM(eid);
+        Client client = lookupClient (ewm);
+        if (null == client) return;
+
+        client.getBlockNumber(rid);
+    }
+
+    static protected void trampolineGetNonce(long eid, String address, int rid) {
+        BREthereumEWM ewm = lookupEWM(eid);
+        Client client = lookupClient (ewm);
+        if (null == client) return;
+
+        client.getNonce(address, rid);
+    }
+
+    static protected void trampolineSaveNodes(long eid, Map<String, String> data) {
+        BREthereumEWM ewm = lookupEWM(eid);
+        Client client = lookupClient (ewm);
+        if (null == client) return;
+
+        client.saveNodes(data);
+    }
+
+    static protected void trampolineSaveBlocks(long eid, Map<String, String> data) {
+        BREthereumEWM ewm = lookupEWM(eid);
+        Client client = lookupClient (ewm);
+        if (null == client) return;
+
+        client.saveBlocks(data);
+    }
+
+    static protected void trampolineChangeTransaction (long eid, int changeType, String hash, String data) {
+        BREthereumEWM ewm = lookupEWM(eid);
+        Client client = lookupClient (ewm);
+        if (null == client) return;
+
+        client.changeTransaction(changeType, hash, data);
+    }
+
+    static protected void trampolineChangeLog (long eid, int changeType, String hash, String data) {
+        BREthereumEWM ewm = lookupEWM(eid);
+        Client client = lookupClient (ewm);
+        if (null == client) return;
+
+        client.changeLog (changeType, hash, data);
+    }
+
+    static protected void trampolineEWMEvent (long eid, int event, int status, String errorDescription) {
+        BREthereumEWM ewm = lookupEWM(eid);
+        Client client = lookupClient (ewm);
+        if (null == client) return;
+
+        client.handleEWMEvent (EWMEvent.values()[event],
+                Status.values()[status],
+                errorDescription);
+    }
+
+    static protected void trampolinePeerEvent (long eid, int event, int status, String errorDescription) {
+        BREthereumEWM ewm = lookupEWM(eid);
+        Client client = lookupClient (ewm);
+        if (null == client) return;
+
+        client.handlePeerEvent(PeerEvent.values()[event],
+                Status.values()[status],
+                errorDescription);
+    }
+
+    static protected void trampolineWalletEvent(long eid, int wid, int event, int status, String errorDescription) {
+        BREthereumEWM ewm = lookupEWM(eid);
+        Client client = lookupClient (ewm);
+        if (null == client) return;
+
+        // TODO: Resolve Bug
+        if (event < 0 || event >= NUMBER_OF_WALLET_EVENTS) return;
+        if (status < 0 || status >= NUMBER_OF_STATUS_EVENTS) return;
+
+        // Lookup the wallet - this will create the wallet if it doesn't exist.  Thus, if the
+        // `event` is `create`, we get a wallet; and even, if the `event` is `delete`, we get a
+        // wallet too.
+        BREthereumWallet wallet = ewm.walletLookupOrCreate(wid, null);
+
+        // Invoke handler
+        client.handleWalletEvent(wallet,
+                WalletEvent.values()[(int) event],
+                Status.values()[(int) status],
+                errorDescription);
+    }
+
+    static protected void trampolineBlockEvent(long eid, int bid, int event, int status, String errorDescription) {
+        BREthereumEWM ewm = lookupEWM(eid);
+        Client client = lookupClient (ewm);
+        if (null == client) return;
+
+        // TODO: Resolve Bug
+        if (event < 0 || event >= NUMBER_OF_BLOCK_EVENT) return;
+        if (status < 0 || status >= NUMBER_OF_STATUS_EVENTS) return;
+
+        // Nothing, at this point
+        BREthereumBlock block = ewm.blockLookupOrCreate(bid);
+
+        client.handleBlockEvent(block,
+                BlockEvent.values()[(int) event],
+                Status.values()[(int) status],
+                errorDescription);
+    }
+
+    static protected void trampolineTransferEvent(long eid, int wid, int tid, int event, int status, String errorDescription) {
+        BREthereumEWM ewm = lookupEWM(eid);
+        Client client = lookupClient (ewm);
+        if (null == client) return;
+
+        // TODO: Resolve Bug
+        if (event < 0 || event >= NUMBER_OF_TRANSACTION_EVENTS) return;
+        if (status < 0 || status >= NUMBER_OF_STATUS_EVENTS) return;
+
+        BREthereumWallet wallet = ewm.walletLookupOrCreate(wid, null);
+        BREthereumTransfer transaction = ewm.transactionLookupOrCreate(tid);
+
+        client.handleTransferEvent(wallet, transaction,
+                TransactionEvent.values()[(int) event],
+                Status.values()[(int) status],
+                errorDescription);
     }
 }

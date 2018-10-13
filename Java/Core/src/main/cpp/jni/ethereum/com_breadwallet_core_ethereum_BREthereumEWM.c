@@ -32,7 +32,7 @@
 #include "com_breadwallet_core_ethereum_BREthereumEWM.h"
 
 //
-// Forward Declarations
+// Forward Declarations - Client Interface
 //
 static void
 clientGetGasPrice(BREthereumClientContext context,
@@ -174,74 +174,82 @@ asJniString(JNIEnv *env, char *string) {
 }
 
 //
-// Statically Initialize Java References
+// Trampoline (C -> Java) Methods
 //
+static jclass trampolineClass = NULL;
+static jmethodID trampolineGetGasPrice = NULL;
+static jmethodID trampolineGetGasEstimate = NULL;
+static jmethodID trampolineGetBalance = NULL;
+static jmethodID trampolineSubmitTransaction = NULL;
+static jmethodID trampolineGetTransactions = NULL;
+static jmethodID trampolineGetLogs = NULL;
+static jmethodID trampolineGetBlocks = NULL;
+static jmethodID trampolineGetTokens = NULL;
+static jmethodID trampolineGetBlockNumber = NULL;
+static jmethodID trampolineGetNonce = NULL;
+static jmethodID trampolineSaveNodes = NULL;
+static jmethodID trampolineSaveBlocks = NULL;
+static jmethodID trampolineChangeTransaction = NULL;
+static jmethodID trampolineChangeLog = NULL;
+static jmethodID trampolineEWMEvent = NULL;
+static jmethodID trampolinePeerEvent = NULL;
+static jmethodID trampolineWalletEvent = NULL;
+static jmethodID trampolineBlockEvent = NULL;
+static jmethodID trampolineTransferEvent = NULL;
 
-///*
-// * Class:     com_breadwallet_core_ethereum_BREthereumEWM
-// * Method:    jniCreateEWMLES
-// * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;JLjava/lang/String;[Ljava/lang/String;)J
-// */
-//JNIEXPORT jlong JNICALL
-//Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWMLES
-//        (JNIEnv *env, jclass thisClass,
-//         jobject clientObject,
-//         jlong network,
-//         jstring paperKeyString,
-//         jobjectArray wordsArrayObject) {
+static jmethodID
+trampolineOrFatal (JNIEnv *env, const char *name, const char *signature) {
+    jmethodID method = (*env)->GetStaticMethodID (env, trampolineClass, name, signature);
+    assert (NULL != method);
+    return method;
+}
+
 //
-//    // Install the wordList
-//    int wordsCount = (*env)->GetArrayLength(env, wordsArrayObject);
-//    assert (BIP39_WORDLIST_COUNT == wordsCount);
-//    char *wordList[wordsCount];
+// Hash Map
 //
-//    for (int i = 0; i < wordsCount; i++) {
-//        jstring string = (jstring) (*env)->GetObjectArrayElement(env, wordsArrayObject, i);
-//        const char *rawString = (*env)->GetStringUTFChars(env, string, 0);
-//
-//        wordList[i] = strdup (rawString);
-//
-//        (*env)->ReleaseStringUTFChars(env, string, rawString);
-//        (*env)->DeleteLocalRef(env, string);
-//    }
-//
-//    installSharedWordList((const char **) wordList, BIP39_WORDLIST_COUNT);
-//
-//    const char *paperKey = (*env)->GetStringUTFChars (env, paperKeyString, 0);
-//
-//    BREthereumConfiguration configuration =
-//            ethereumConfigurationCreateLES((BREthereumNetwork) network, 0);
-//
-//    BREthereumEWM node = ethereumCreate(configuration, paperKey);
-//
-//    (*env)->ReleaseStringUTFChars (env, paperKeyString, paperKey);
-//    return (jlong) node;
-//}
-//
-///*
-// * Class:     com_breadwallet_core_ethereum_BREthereumEWM
-// * Method:    jniCreateEWMLES_PublicKey
-// * Signature: (Lcom/breadwallet/core/ethereum/BREthereumEWM/Client;J[B)J
-// */
-//JNIEXPORT jlong JNICALL
-//Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWMLES_1PublicKey
-//        (JNIEnv *env, jclass thisClass, jobject clientObject, jlong network, jbyteArray publicKey) {
-//
-//    assert (65 == (*env)->GetArrayLength(env, publicKey));
-//
-//     BREthereumConfiguration configuration =
-//             ethereumConfigurationCreateLES((BREthereumNetwork) network, 0);
-//
-//    jbyte *publicKeyBytes = (*env)->GetByteArrayElements(env, publicKey, 0);
-//    BRKey key;
-//
-//    memcpy (key.pubKey, publicKeyBytes, 65);
-//    BREthereumEWM node =
-//            ethereumCreateWithPublicKey(configuration, key);
-//
-//    (*env)->ReleaseByteArrayElements(env, publicKey, publicKeyBytes, 0);
-//    return (jlong) node;
-//}
+static jclass hashMapClass = NULL;
+static jmethodID hashMapInit = NULL;
+static jmethodID hashMapPut  = NULL;
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumEWM
+ * Method:    initializeNative
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL
+Java_com_breadwallet_core_ethereum_BREthereumEWM_initializeNative
+        (JNIEnv *env, jclass thisClass) {
+    if (NULL != trampolineClass) return;
+    trampolineClass = (*env)->NewGlobalRef(env, thisClass);
+
+    trampolineGetGasPrice       = trampolineOrFatal (env, "trampolineGetGasPrice",       "(JII)V");
+    trampolineGetGasEstimate    = trampolineOrFatal (env, "trampolineGetGasEstimate",    "(JIILjava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V");
+    trampolineGetBalance        = trampolineOrFatal (env, "trampolineGetBalance",        "(JILjava/lang/String;I)V");
+    trampolineSubmitTransaction = trampolineOrFatal (env, "trampolineSubmitTransaction", "(JIILjava/lang/String;I)V");
+    trampolineGetTransactions   = trampolineOrFatal (env, "trampolineGetTransactions",   "(JLjava/lang/String;I)V");
+    trampolineGetLogs           = trampolineOrFatal (env, "trampolineGetLogs",           "(JLjava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V");
+    trampolineGetBlocks         = trampolineOrFatal (env, "trampolineGetBlocks",         "(JLjava/lang/String;IJJI)V");
+    trampolineGetTokens         = trampolineOrFatal (env, "trampolineGetTokens",         "(JI)V");
+    trampolineGetBlockNumber    = trampolineOrFatal (env, "trampolineGetBlockNumber",    "(JI)V");
+    trampolineGetNonce          = trampolineOrFatal (env, "trampolineGetNonce",          "(JLjava/lang/String;I)V");
+    trampolineSaveNodes         = trampolineOrFatal (env, "trampolineSaveNodes",         "(JLjava/util/Map;)V");
+    trampolineSaveBlocks        = trampolineOrFatal (env, "trampolineSaveBlocks",        "(JLjava/util/Map;)V");
+    trampolineChangeTransaction = trampolineOrFatal (env, "trampolineChangeTransaction", "(JILjava/lang/String;Ljava/lang/String;)V");
+    trampolineChangeLog         = trampolineOrFatal (env, "trampolineChangeLog",         "(JILjava/lang/String;Ljava/lang/String;)V");
+    trampolineEWMEvent          = trampolineOrFatal (env, "trampolineEWMEvent",          "(JIILjava/lang/String;)V");
+    trampolinePeerEvent         = trampolineOrFatal (env, "trampolinePeerEvent",         "(JIILjava/lang/String;)V");
+    trampolineWalletEvent       = trampolineOrFatal (env, "trampolineWalletEvent",       "(JIIILjava/lang/String;)V");
+    trampolineBlockEvent        = trampolineOrFatal (env, "trampolineBlockEvent",        "(JIIILjava/lang/String;)V");
+    trampolineTransferEvent     = trampolineOrFatal (env, "trampolineTransferEvent",     "(JIIIILjava/lang/String;)V");
+
+    jclass mapClass = (*env)->FindClass(env, "java/util/HashMap");
+    assert (NULL != mapClass);
+
+    hashMapClass = (*env)->NewGlobalRef (env, mapClass);
+    hashMapInit  = (*env)->GetMethodID(env, hashMapClass, "<init>", "(I)V");
+    hashMapPut   = (*env)->GetMethodID(env, hashMapClass, "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+    assert (NULL != hashMapInit && NULL != hashMapPut);
+}
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumEWM
@@ -273,13 +281,10 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM
 
     installSharedWordList((const char **) wordList, BIP39_WORDLIST_COUNT);
 
-    // Get a global reference to client; ensure the client exists in callback threads.
-    jobject clientContext = (*env)->NewGlobalRef (env, clientObject);
-
     const char *paperKey = (*env)->GetStringUTFChars (env, paperKeyString, 0);
 
     BREthereumClient client = {
-            clientContext,
+            NULL,
             clientGetBalance,
             clientGetGasPrice,
             clientEstimateGas,
@@ -328,16 +333,13 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniCreateEWM_1PublicKey
 
     assert (65 == (*env)->GetArrayLength(env, publicKey));
 
-    // Get a global reference to client; ensure the client exists in callback threads.
-    jobject clientContext = (*env)->NewGlobalRef(env, clientObject);
-
     jbyte *publicKeyBytes = (*env)->GetByteArrayElements(env, publicKey, 0);
     BRKey key;
 
     memcpy (key.pubKey, publicKeyBytes, 65);
 
     BREthereumClient client = {
-            clientContext,
+            NULL,
             clientGetBalance,
             clientGetGasPrice,
             clientEstimateGas,
@@ -1395,62 +1397,22 @@ Java_com_breadwallet_core_ethereum_BREthereumEWM_jniEWMDisconnect
     return (jboolean) (ETHEREUM_BOOLEAN_TRUE == ethereumDisconnect(node) ? JNI_TRUE : JNI_FALSE);
 }
 
-/*
- * Class:     com_breadwallet_core_ethereum_BREthereumEWM
- * Method:    initializeNative
- * Signature: ()V
- */
-JNIEXPORT void JNICALL 
-Java_com_breadwallet_core_ethereum_BREthereumEWM_initializeNative
-  (JNIEnv *env, jclass thisClass) {
-}
-
 //
 // JSON RPC Callback
 //
-static jmethodID
-lookupListenerMethod (JNIEnv *env, jobject listener, char *name, char *type) {
-    // Class with desired method.
-    jclass listenerClass = (*env)->GetObjectClass(env, listener);
+//static jmethodID
+//lookupListenerMethod (JNIEnv *env, jobject listener, char *name, char *type) {
+//    // Class with desired method.
+//    jclass listenerClass = (*env)->GetObjectClass(env, listener);
+//
+//    // Method, if found.
+//    jmethodID listenerMethod = (*env)->GetMethodID(env, listenerClass, name, type);
+//
+//    // Clean up and return.
+//    (*env)->DeleteLocalRef (env, listenerClass);
+//    return listenerMethod;
+//}
 
-    // Method, if found.
-    jmethodID listenerMethod = (*env)->GetMethodID(env, listenerClass, name, type);
-
-    // Clean up and return.
-    (*env)->DeleteLocalRef (env, listenerClass);
-    return listenerMethod;
-}
-
-
-static void
-clientGetBalance(BREthereumClientContext context,
-                 BREthereumEWM node,
-                 BREthereumWalletId wid,
-                 const char *account,
-                 int id) {
-    JNIEnv *env = getEnv();
-    if (NULL == env) return;
-
-    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
-    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
-
-    // String getBalance (int id, String account);
-    jmethodID listenerMethod =
-            lookupListenerMethod(env, listener,
-                                 "trampolineGetBalance",
-                                 "(ILjava/lang/String;I)V");
-    assert (NULL != listenerMethod);
-
-    jobject accountObject = (*env)->NewStringUTF(env, account);
-
-    (*env)->CallVoidMethod(env, listener, listenerMethod,
-                           (jint) wid,
-                           accountObject,
-                           (jint) id);
-
-    (*env)->DeleteLocalRef(env, listener);
-    (*env)->DeleteLocalRef(env, accountObject);
-}
 
 static void
 clientGetGasPrice(BREthereumClientContext context,
@@ -1460,60 +1422,58 @@ clientGetGasPrice(BREthereumClientContext context,
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
-    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
-
-    //String getGasPrice (int id);
-    jmethodID listenerMethod =
-            lookupListenerMethod(env, listener,
-                                 "trampolineGetGasPrice",
-                                 "(II)V");
-    assert (NULL != listenerMethod);
-
-    (*env)->CallVoidMethod(env, listener, listenerMethod,
-                           (jint) wid,
-                           (jint) id);
-
-    (*env)->DeleteLocalRef(env, listener);
+    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineGetGasPrice,
+                                 (jlong) node,
+                                 (jint) wid,
+                                 (jint) id);
 }
 
 static void
 clientEstimateGas(BREthereumClientContext context, BREthereumEWM node,
                   BREthereumWalletId wid,
                   BREthereumTransferId tid,
-                  const char *to,
-                  const char *amount,
-                  const char *data,
+                  const char *toStr,
+                  const char *amountStr,
+                  const char *dataStr,
                   int id) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
-    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
+    jobject to = (*env)->NewStringUTF(env, toStr);
+    jobject amount = (*env)->NewStringUTF(env, amountStr);
+    jobject data = (*env)->NewStringUTF(env, dataStr);
 
-    // String getGasEstimate (int id, String to, String amount, String data);
-    jmethodID listenerMethod =
-            lookupListenerMethod(env, listener,
-                                 "trampolineGetGasEstimate",
-                                 "(IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V");
-    assert (NULL != listenerMethod);
+    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineGetGasEstimate,
+                                 (jint) wid,
+                                 (jint) tid,
+                                 to,
+                                 amount,
+                                 data,
+                                 (jint) id);
 
-    jobject toObject = (*env)->NewStringUTF(env, to);
-    jobject amountObject = (*env)->NewStringUTF(env, amount);
-    jobject dataObject = (*env)->NewStringUTF(env, data);
+    (*env)->DeleteLocalRef(env, data);
+    (*env)->DeleteLocalRef(env, amount);
+    (*env)->DeleteLocalRef(env, to);
+}
 
-    (*env)->CallVoidMethod(env, listener, listenerMethod,
-                           (jint) wid,
-                           (jint) tid,
-                           toObject,
-                           amountObject,
-                           dataObject,
-                           (jint) id);
+static void
+clientGetBalance(BREthereumClientContext context,
+                 BREthereumEWM node,
+                 BREthereumWalletId wid,
+                 const char *accountStr,
+                 int id) {
+    JNIEnv *env = getEnv();
+    if (NULL == env) return;
 
-    (*env)->DeleteLocalRef(env, dataObject);
-    (*env)->DeleteLocalRef(env, amountObject);
-    (*env)->DeleteLocalRef(env, toObject);
-    (*env)->DeleteLocalRef(env, listener);
+    jobject account = (*env)->NewStringUTF(env, accountStr);
+
+    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineGetBalance,
+                                 (jlong) node,
+                                 (jint) wid,
+                                 account,
+                                 (jint) id);
+
+    (*env)->DeleteLocalRef(env, account);
 }
 
 static void
@@ -1521,66 +1481,39 @@ clientSubmitTransaction(BREthereumClientContext context,
                         BREthereumEWM node,
                         BREthereumWalletId wid,
                         BREthereumTransferId tid,
-                        const char *transaction,
+                        const char *transactionStr,
                         int id) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
-    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
+    jobject transaction = (*env)->NewStringUTF(env, transactionStr);
 
-    // String submitTransaction (int id, String rawTransaction);
-    jmethodID listenerMethod =
-            lookupListenerMethod(env, listener,
-                                 "trampolineSubmitTransaction",
-                                 "(IILjava/lang/String;I)V");
-    assert (NULL != listenerMethod);
+    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineSubmitTransaction,
+                                 (jlong) node,
+                                 (jint) wid,
+                                 (jint) tid,
+                                 transaction,
+                                 (jint) id);
 
-    jobject transactionObject = (*env)->NewStringUTF(env, transaction);
-
-    (*env)->CallVoidMethod(env, listener, listenerMethod,
-                           (jint) wid,
-                           (jint) tid,
-                           transactionObject,
-                           (jint) id);
-
-    (*env)->DeleteLocalRef(env, transactionObject);
-    (*env)->DeleteLocalRef(env, listener);
+    (*env)->DeleteLocalRef(env, transaction);
 }
 
 static void
 clientGetTransactions(BREthereumClientContext context,
                       BREthereumEWM node,
-                      const char *address,
+                      const char *addressStr,
                       int id) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
-    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
+    jobject address = (*env)->NewStringUTF(env, addressStr);
 
-//    jmethodID assignNodeMethod =
-//            lookupListenerMethod(env, listener,
-//            "assignNode",
-//            "(Lcom/breadwallet/core/ethereum/BREthereumEWM;)V");
-//    assert (NULL != assignNodeMethod);
-////    (*env)->CallVoidMethod (env, listener, assignNodeMethod, damn);
+    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineGetTransactions,
+                                 (jlong) node,
+                                 address,
+                                 (jint) id);
 
-    // void getTransactions(int id, String account);
-    jmethodID listenerMethod =
-            lookupListenerMethod(env, listener,
-                                 "trampolineGetTransactions",
-                                 "(Ljava/lang/String;I)V");
-    assert (NULL != listenerMethod);
-
-    jobject addressObject = (*env)->NewStringUTF(env, address);
-
-    (*env)->CallVoidMethod(env, listener, listenerMethod,
-                           addressObject,
-                           (jint) id);
-
-    (*env)->DeleteLocalRef(env, addressObject);
-    (*env)->DeleteLocalRef(env, listener);
+    (*env)->DeleteLocalRef(env, address);
 }
 
 static void
@@ -1593,61 +1526,57 @@ clientGetLogs(BREthereumClientContext context,
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
-    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
-
-    // void getTransactions(int id, String account);
-    jmethodID listenerMethod =
-            lookupListenerMethod(env, listener,
-                                 "trampolineGetLogs",
-                                 "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V");
-    assert (NULL != listenerMethod);
-
     jobject contractObject = (*env)->NewStringUTF(env, contract);
     jobject addressObject = (*env)->NewStringUTF(env, address);
     jobject eventObject = (*env)->NewStringUTF(env, event);
 
-    (*env)->CallVoidMethod(env, listener, listenerMethod,
-                           contractObject,
-                           addressObject,
-                           eventObject,
-                           (jint) rid);
+    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineGetLogs,
+                                 (jlong) node,
+                                 contractObject,
+                                 addressObject,
+                                 eventObject,
+                                 (jint) rid);
 
     (*env)->DeleteLocalRef(env, eventObject);
     (*env)->DeleteLocalRef(env, addressObject);
     (*env)->DeleteLocalRef(env, contractObject);
-    (*env)->DeleteLocalRef(env, listener);
 }
 
 static void
-clientGetBlocks (BREthereumClientContext context,
-                 BREthereumEWM ewm,
-                 const char *address,
-                 BREthereumSyncInterestSet interests,
-                 uint64_t blockNumberStart,
-                 uint64_t blockNumberStop,
-                 int rid) {
-}
-
-static void
-clientGetTokens (BREthereumClientContext context,
-                 BREthereumEWM ewm,
-                 int rid) {
+clientGetBlocks(BREthereumClientContext context,
+                BREthereumEWM ewm,
+                const char *addressStr,
+                BREthereumSyncInterestSet interests,
+                uint64_t blockNumberStart,
+                uint64_t blockNumberStop,
+                int rid) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
-    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
+    jobject address = (*env)->NewStringUTF(env, addressStr);
 
-    // void getTransactions(int id, String account);
-    jmethodID listenerMethod =
-            lookupListenerMethod(env, listener,
-                                 "trampolineGetTokens",
-                                 "(I)V");
-    assert (NULL != listenerMethod);
+    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineGetBlocks,
+                                 (jlong) ewm,
+                                 address,
+                                 (jint) interests,
+                                 (jlong) blockNumberStart,
+                                 (jlong) blockNumberStop,
+                                 (jint) rid);
 
-    (*env)->CallVoidMethod(env, listener, listenerMethod,
-                           (jint) rid);
+    (*env)->DeleteLocalRef(env, address);
+}
+
+static void
+clientGetTokens(BREthereumClientContext context,
+                BREthereumEWM ewm,
+                int rid) {
+    JNIEnv *env = getEnv();
+    if (NULL == env) return;
+
+
+    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineGetTokens,
+                                 (jlong) ewm,
+                                 (jint) rid);
 }
 
 
@@ -1658,19 +1587,9 @@ clientGetBlockNumber(BREthereumClientContext context,
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
-    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
-
-    jmethodID listenerMethod =
-            lookupListenerMethod(env, listener,
-                                 "trampolineGetBlockNumber",
-                                 "(I)V");
-    assert (NULL != listenerMethod);
-
-    (*env)->CallVoidMethod(env, listener, listenerMethod,
-                            (jint) id);
-
-    (*env)->DeleteLocalRef(env, listener);
+    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineGetBlockNumber,
+                                 (jlong) node,
+                                 (jint) id);
 }
 
 static void
@@ -1681,182 +1600,170 @@ clientGetNonce(BREthereumClientContext context,
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
-    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
-
-    jmethodID listenerMethod =
-            lookupListenerMethod(env, listener,
-                                 "trampolineGetNonce",
-                                 "(Ljava/lang/String;I)V");
-    assert (NULL != listenerMethod);
-
     jobject addressObject = (*env)->NewStringUTF(env, address);
 
-    (*env)->CallVoidMethod(env, listener, listenerMethod,
-                           addressObject,
-                           (jint) id);
+    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineGetNonce,
+                                 (jlong) node,
+                                 addressObject,
+                                 (jint) id);
 
     (*env)->DeleteLocalRef(env, addressObject);
-    (*env)->DeleteLocalRef(env, listener);
+}
 
+static jobject
+createHashDataPairMap (JNIEnv *env,
+                       BRSetOf(BREthereumHashDataPair) pairSet) {
+    char *hashStr, *dataStr;
+
+    jobject map = (*env)->NewObject (env, hashMapClass, hashMapInit, BRSetCount (pairSet));
+    FOR_SET (BREthereumHashDataPair, pair, pairSet){
+        hashDataPairExtractStrings (pair, &hashStr, &dataStr);
+
+        jstring hash = (*env)->NewStringUTF(env, hashStr);
+        jstring data = (*env)->NewStringUTF(env, dataStr);
+
+        (*env)->CallObjectMethod (env, map, hashMapPut, hash, data);
+
+        (*env)->DeleteLocalRef(env, data);
+        (*env)->DeleteLocalRef(env, hash);
+
+        free(dataStr);
+        free(hashStr);
+    }
+
+    return map;
 }
 
 static void
-clientSaveNodes (BREthereumClientContext context,
+clientSaveNodes(BREthereumClientContext context,
+                BREthereumEWM ewm,
+                BRSetOf(BREthereumHashDataPair) pairSet) {
+    JNIEnv *env = getEnv();
+    if (NULL == env) return;
+
+    jobject map = createHashDataPairMap (env, pairSet);
+
+    (*env)->CallStaticVoidMethod (env, trampolineClass, trampolineSaveNodes,
+                                  (jlong) ewm,
+                                  map);
+
+    (*env)->DeleteLocalRef(env, map);
+}
+
+static void
+clientSaveBlocks(BREthereumClientContext context,
                  BREthereumEWM ewm,
-                 BRSetOf(BREthereumHashDataPair) data) {
+                 BRSetOf(BREthereumHashDataPair) pairSet) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
-    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
+    jobject map = createHashDataPairMap (env, pairSet);
 
-    jmethodID listenerMethod =
-            lookupListenerMethod(env, listener,
-                                 "trampolineSaveNodes",
-                                 "()V");
-    assert (NULL != listenerMethod);
+    (*env)->CallStaticVoidMethod (env, trampolineClass, trampolineSaveBlocks,
+                                  (jlong) ewm,
+                                  map);
 
-
-    (*env)->CallVoidMethod(env, listener, listenerMethod);
-
-    (*env)->DeleteLocalRef(env, listener);
+    (*env)->DeleteLocalRef(env, map);
 }
 
 static void
-clientSaveBlocks (BREthereumClientContext context,
-                  BREthereumEWM ewm,
-                  BRSetOf(BREthereumHashDataPair) data) {
+clientChangeTransaction(BREthereumClientContext context,
+                        BREthereumEWM ewm,
+                        BREthereumClientChangeType type,
+                        BREthereumHashDataPair pair) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
-    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
+    char *hashStr = hashDataPairGetHashAsString(pair);
+    jstring hash = (*env)->NewStringUTF(env, hashStr);
 
-    jmethodID listenerMethod =
-            lookupListenerMethod(env, listener,
-                                 "trampolineSaveBlocks",
-                                 "()V");
-    assert (NULL != listenerMethod);
+    char *dataStr = hashDataPairGetHashAsString(pair);
+    jstring data = (*env)->NewStringUTF(env, dataStr);
 
+    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineChangeTransaction,
+                                 (jlong) ewm,
+                                 (jint) type,
+                                 hash,
+                                 data);
 
-    (*env)->CallVoidMethod(env, listener, listenerMethod);
-
-    (*env)->DeleteLocalRef(env, listener);
+    (*env)->DeleteLocalRef(env, data);
+    free(dataStr);
+    (*env)->DeleteLocalRef(env, hash);
+    free(hashStr);
 }
 
 static void
-clientChangeTransaction (BREthereumClientContext context,
-                         BREthereumEWM ewm,
-                         BREthereumClientChangeType type,
-                         BREthereumHashDataPair data) {
+clientChangeLog(BREthereumClientContext context,
+                BREthereumEWM ewm,
+                BREthereumClientChangeType type,
+                BREthereumHashDataPair pair) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
-    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
+    char *hashStr = hashDataPairGetHashAsString(pair);
+    jstring hash = (*env)->NewStringUTF(env, hashStr);
 
-    jmethodID listenerMethod =
-            lookupListenerMethod(env, listener,
-                                 "trampolineChangeTransaction",
-                                 "()V");
-    assert (NULL != listenerMethod);
+    char *dataStr = hashDataPairGetHashAsString(pair);
+    jstring data = (*env)->NewStringUTF(env, dataStr);
 
-    (*env)->CallVoidMethod(env, listener, listenerMethod);
+    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineChangeLog,
+                                 (jlong) ewm,
+                                 (jint) type,
+                                 hash,
+                                 data);
 
-    (*env)->DeleteLocalRef(env, listener);
+    (*env)->DeleteLocalRef(env, data);
+    free(dataStr);
+    (*env)->DeleteLocalRef(env, hash);
+    free(hashStr);
 }
 
 static void
-clientChangeLog (BREthereumClientContext context,
-                 BREthereumEWM ewm,
-                 BREthereumClientChangeType type,
-                 BREthereumHashDataPair data) {
+clientEWMEventHandler(BREthereumClientContext context,
+                      BREthereumEWM ewm,
+                      BREthereumEWMEvent event,
+                      BREthereumStatus status,
+                      const char *errorDescription) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
-    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
+    jstring errorDescriptionString = (NULL == errorDescription
+                                      ? NULL
+                                      : (*env)->NewStringUTF(env, errorDescription));
 
-    jmethodID listenerMethod =
-            lookupListenerMethod(env, listener,
-                                 "trampolineChangeLog",
-                                 "()V");
-    assert (NULL != listenerMethod);
+    // Callback
+    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineEWMEvent,
+                                 (jlong) ewm,
+                                 (jint) event,
+                                 (jint) status,
+                                 errorDescriptionString);
 
-
-    (*env)->CallVoidMethod(env, listener, listenerMethod);
-
-    (*env)->DeleteLocalRef(env, listener);
+    // Cleanup
+    if (NULL != errorDescriptionString) (*env)->DeleteLocalRef(env, errorDescriptionString);
 }
 
 static void
-clientEWMEventHandler (BREthereumClientContext context,
+clientPeerEventHandler(BREthereumClientContext context,
                        BREthereumEWM ewm,
-                       BREthereumEWMEvent event,
+                       BREthereumPeerEvent event,
                        BREthereumStatus status,
                        const char *errorDescription) {
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
-    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
-
-    jmethodID listenerMethod =
-            lookupListenerMethod(env, listener,
-                                 "trampolineEWMEvent",
-                                 "(IILjava/lang/String;)V");
-    assert (NULL != listenerMethod);
-
     jstring errorDescriptionString = (NULL == errorDescription
                                       ? NULL
                                       : (*env)->NewStringUTF(env, errorDescription));
 
     // Callback
-    (*env)->CallVoidMethod(env, listener, listenerMethod,
-                           (jint) event,
-                           (jint) status,
-                           errorDescriptionString);
+    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolinePeerEvent,
+                                 (jlong) ewm,
+                                 (jint) event,
+                                 (jint) status,
+                                 errorDescriptionString);
 
     // Cleanup
     if (NULL != errorDescriptionString) (*env)->DeleteLocalRef(env, errorDescriptionString);
-    (*env)->DeleteLocalRef(env, listener);
-
-
-}
-
-static void
-clientPeerEventHandler (BREthereumClientContext context,
-                        BREthereumEWM ewm,
-                        BREthereumPeerEvent event,
-                        BREthereumStatus status,
-                        const char *errorDescription) {
-    JNIEnv *env = getEnv();
-    if (NULL == env) return;
-
-    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
-    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
-
-    jmethodID listenerMethod =
-            lookupListenerMethod(env, listener,
-                                 "trampolinePeerEvent",
-                                 "(IILjava/lang/String;)V");
-    assert (NULL != listenerMethod);
-
-    jstring errorDescriptionString = (NULL == errorDescription
-                                      ? NULL
-                                      : (*env)->NewStringUTF(env, errorDescription));
-
-    // Callback
-    (*env)->CallVoidMethod(env, listener, listenerMethod,
-                           (jint) event,
-                           (jint) status,
-                           errorDescriptionString);
-
-    // Cleanup
-    if (NULL != errorDescriptionString) (*env)->DeleteLocalRef(env, errorDescriptionString);
-    (*env)->DeleteLocalRef(env, listener);
-
 }
 
 static void
@@ -1869,29 +1776,18 @@ clientWalletEventHandler(BREthereumClientContext context,
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
-    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
-
-    jmethodID listenerMethod =
-            lookupListenerMethod(env, listener,
-                                 "trampolineWalletEvent",
-                                 "(IIILjava/lang/String;)V");
-    assert (NULL != listenerMethod);
-
     jstring errorDescriptionString = (NULL == errorDescription
                                       ? NULL
                                       : (*env)->NewStringUTF(env, errorDescription));
 
-    // Callback
-    (*env)->CallVoidMethod(env, listener, listenerMethod,
-                           (jint) wid,
-                           (jint) event,
-                           (jint) status,
-                           errorDescriptionString);
+    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineWalletEvent,
+                                 (jlong) node,
+                                 (jint) wid,
+                                 (jint) event,
+                                 (jint) status,
+                                 errorDescriptionString);
 
-    // Cleanup
     if (NULL != errorDescriptionString) (*env)->DeleteLocalRef(env, errorDescriptionString);
-    (*env)->DeleteLocalRef(env, listener);
 }
 
 
@@ -1905,29 +1801,20 @@ clientBlockEventHandler(BREthereumClientContext context,
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
-    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
-
-    jmethodID listenerMethod =
-            lookupListenerMethod(env, listener,
-                                 "trampolineBlockEvent",
-                                 "(IIILjava/lang/String;)V");
-    assert (NULL != listenerMethod);
-
     jstring errorDescriptionString = (NULL == errorDescription
                                       ? NULL
                                       : (*env)->NewStringUTF(env, errorDescription));
 
     // Callback
-    (*env)->CallVoidMethod(env, listener, listenerMethod,
-                           (jint) bid,
-                           (jint) event,
-                           (jint) status,
-                           errorDescriptionString);
+    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineBlockEvent,
+                                 (jlong) node,
+                                 (jint) bid,
+                                 (jint) event,
+                                 (jint) status,
+                                 errorDescriptionString);
 
     // Cleanup
     if (NULL != errorDescriptionString) (*env)->DeleteLocalRef(env, errorDescriptionString);
-    (*env)->DeleteLocalRef(env, listener);
 }
 
 static void
@@ -1941,28 +1828,19 @@ clientTransferEventHandler(BREthereumClientContext context,
     JNIEnv *env = getEnv();
     if (NULL == env) return;
 
-    jobject listener = (*env)->NewLocalRef(env, (jobject) context);
-    if ((*env)->IsSameObject(env, listener, NULL)) return; // GC reclaimed
-
-    jmethodID listenerMethod =
-            lookupListenerMethod(env, listener,
-                                 "trampolineTransferEvent",
-                                 "(IIIILjava/lang/String;)V");
-    assert (NULL != listenerMethod);
-
     jstring errorDescriptionString = (NULL == errorDescription
                                       ? NULL
                                       : (*env)->NewStringUTF(env, errorDescription));
 
     // Callback
-    (*env)->CallVoidMethod(env, listener, listenerMethod,
-                           (jint) wid,
-                           (jint) tid,
-                           (jint) event,
-                           (jint) status,
-                           errorDescriptionString);
+    (*env)->CallStaticVoidMethod(env, trampolineClass, trampolineTransferEvent,
+                                 (jlong) node,
+                                 (jint) wid,
+                                 (jint) tid,
+                                 (jint) event,
+                                 (jint) status,
+                                 errorDescriptionString);
 
     // Cleanup
     if (NULL != errorDescriptionString) (*env)->DeleteLocalRef(env, errorDescriptionString);
-    (*env)->DeleteLocalRef(env, listener);
 }

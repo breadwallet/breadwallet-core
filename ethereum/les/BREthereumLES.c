@@ -499,7 +499,7 @@ lesCreate (BREthereumNetwork network,
         array_new (les->activeNodesByRoute[route], LES_NODE_INITIAL_SIZE);
 
     // Identify a set of initial nodes; first, use all the endpoints provided (based on `configs`)
-    eth_log(LES_LOG_TOPIC, "Nodes Provided    : %lu", (NULL == configs ? 0 : array_count(configs)));
+    eth_log(LES_LOG_TOPIC, "Nodes Provided    : %lu", (NULL == configs ? 0 : BRSetCount(configs)));
     if (NULL != configs) {
         BRArrayOf(BREthereumNodeEndpoint) preferredEndpoints;
         array_new (preferredEndpoints, 5);
