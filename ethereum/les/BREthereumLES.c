@@ -415,11 +415,7 @@ lesCreate (BREthereumNetwork network,
 
     // For now, create a new, random private key that is used for communication with LES nodes.
     UInt256 secret;
-#if defined (__ANDROID__)
-    assert (0);
-#else
     arc4random_buf(secret.u64, sizeof (secret));
-#endif
 
     // Assign the generated private key.
     BRKeySetSecret(&les->key, &secret, 0);
