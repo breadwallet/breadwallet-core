@@ -64,6 +64,7 @@ installTokensForTest (void) {
     tokenInstall (tokenKNCAddress,
                   "KNC",
                   "KNC token",
+                  "",
                   18,
                   defaultGasLimit,
                   defaultGasPrice);

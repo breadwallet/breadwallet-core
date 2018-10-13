@@ -451,7 +451,7 @@ provisionerEstablish (BREthereumNodeProvisioner *provisioner,
 
 static void
 provisionerHandleMessage (BREthereumNodeProvisioner *provisioner,
-                          BREthereumMessage message) {
+                          OwnershipGiven BREthereumMessage message) {
     provisionHandleMessage (&provisioner->provision,
                             message,
                             provisioner->messageContentLimit,
@@ -833,9 +833,9 @@ nodeUnhandleProvisions (BREthereumNode node) {
 static void
 nodeHandleProvisionerMessage (BREthereumNode node,
                               BREthereumNodeProvisioner *provisioner,
-                              BREthereumMessage message) {
+                              OwnershipGiven BREthereumMessage message) {
     // Let the provisioner handle the message, gathering results as warranted.
-    provisionerHandleMessage (provisioner, message);
+    provisionerHandleMessage (provisioner, message); // `message` is OwnershipGiven
 
     // If all messages have been received...
     if (!provisionerRecvMessagesPending(provisioner)) {
@@ -1003,10 +1003,15 @@ nodeProcessRecvLES (BREthereumNode node,
 static void
 nodeProcessRecvPIP (BREthereumNode node,
                     BREthereumNodeEndpointRoute route,
-                    BREthereumPIPMessage message) {
+                    OwnershipGiven BREthereumPIPMessage message) {
     assert (NODE_TYPE_PARITY == node->type);
+
+    // We'll release the message by default.  However, in the case of a RESPONSE we'll
+    // transfer ownership and won't release here.
+    int mustReleaseMessage = 1;
     switch (message.type) {
         case PIP_MESSAGE_STATUS:
+            // Note: Nothing to consume
             node->callbackStatus (node->callbackContext,
                                   node,
                                   message.u.status.p2p.headHash,
@@ -1014,6 +1019,7 @@ nodeProcessRecvPIP (BREthereumNode node,
             break;
 
         case PIP_MESSAGE_ANNOUNCE:
+            // Note: Nothing to consume
             node->callbackAnnounce (node->callbackContext,
                                     node,
                                     message.u.announce.headHash,
@@ -1039,6 +1045,7 @@ nodeProcessRecvPIP (BREthereumNode node,
                 BREthereumNodeProvisioner *provisioner = &node->provisioners[index];
                 // ... using the message's requestId
                 if (provisionerMessageOfInterest (provisioner, messagePIPGetRequestId (&message))) {
+                    mustReleaseMessage = 0;
                     // When found, handle it.
                     nodeHandleProvisionerMessage (node, provisioner,
                                                   (BREthereumMessage) {
@@ -1071,6 +1078,8 @@ nodeProcessRecvPIP (BREthereumNode node,
                      messagePIPGetIdentifierName (message));
             break;
     }
+
+    if (mustReleaseMessage) messageRelease (&message);
 }
 
 static inline void
@@ -1205,6 +1214,7 @@ nodeProcess (BREthereumNode node,
                         nodeProcessRecvPIP (node, route, message.u.pip);
                         break;
                 }
+                // No release for `message` - it has be OwnershipGiven in the above
             }
 
             if (FD_ISSET (socket, send)) {
