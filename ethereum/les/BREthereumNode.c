@@ -934,9 +934,10 @@ nodeProcessRecvDIS (BREthereumNode node,
 static void
 nodeProcessRecvLES (BREthereumNode node,
                     BREthereumNodeEndpointRoute route,
-                    BREthereumLESMessage message) {
-    // eth_log (LES_LOG_TOPIC, "Recv: RequestID: %llu", messageLESGetRequestId (&message));
+                    OwnershipGiven BREthereumLESMessage message) {
     assert (NODE_TYPE_GETH == node->type);
+
+    int mustReleaseMessage = 1;
     switch (message.identifier) {
         case LES_MESSAGE_STATUS:
             node->callbackStatus (node->callbackContext,
@@ -987,6 +988,7 @@ nodeProcessRecvLES (BREthereumNode node,
                 BREthereumNodeProvisioner *provisioner = &node->provisioners[index];
                 // ... using the message's requestId
                 if (provisionerMessageOfInterest (provisioner, messageLESGetRequestId (&message))) {
+                    mustReleaseMessage = 0;
                     // When found, handle it.
                     nodeHandleProvisionerMessage (node, provisioner,
                                                   (BREthereumMessage) {
@@ -998,6 +1000,8 @@ nodeProcessRecvLES (BREthereumNode node,
             }
             break;
     }
+    if (mustReleaseMessage) messageRelease (&message);
+
 }
 
 static void
@@ -2116,6 +2120,8 @@ nodeRecv (BREthereumNode node,
                  disconnect);
     }
 
+    if (rlpCoderHasFailed(node->coder.rlp))
+        messageRelease(&message);
 
     return (rlpCoderHasFailed(node->coder.rlp)
             ? (BREthereumNodeMessageResult) {

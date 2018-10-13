@@ -256,6 +256,8 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
             size_t offset = messageContentLimit * (identifier - messageIdBase);
             for (size_t index = 0; index < array_count(messageHeaders); index++)
                 provisionHeaders[offset + index] = messageHeaders[index];
+
+            array_free (messageHeaders);
             break;
         }
 
@@ -273,6 +275,8 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
             size_t offset = messageContentLimit * (identifier - messageIdBase);
             for (size_t index = 0; index < array_count(messagePairs); index++)
                 provisionPairs[offset + index] = messagePairs[index];
+
+            array_free (messagePairs);
             break;
         }
 
@@ -290,6 +294,8 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
             size_t offset = messageContentLimit * (identifier - messageIdBase);
             for (size_t index = 0; index < array_count(messagePairs); index++)
                 provisionPairs[offset + index] = messagePairs[index].receipts;
+
+            array_free (messagePairs);
             break;
         }
 
@@ -328,8 +334,11 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
                     rlpReleaseItem (coder, item);
                 }
                 else provisionAccounts[offset + index] = accountStateCreateEmpty();
+                rlpDataRelease(data);
             }
             rlpCoderRelease(coder);
+
+            mptNodePathsRelease(messagePaths);
             break;
         }
 
@@ -348,6 +357,7 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
             for (size_t index = 0; index < array_count(messagePairs); index++)
                 provisionPairs[offset + index] = messagePairs[index];
 
+            array_free (messagePairs);
             break;
         }
         case PROVISION_SUBMIT_TRANSACTION: {

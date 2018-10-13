@@ -143,7 +143,7 @@ mptNodeDecode (BRRlpItem item,
     switch (itemsCount) {
         case 2: {
             // Decode, skipping to the bytes (w/o the RLP length prefix)
-            BRRlpData pathData = rlpDecodeBytes(coder, items[0]);
+            BRRlpData pathData = rlpDecodeBytesSharedDontRelease(coder, items[0]);
             assert (0 != pathData.bytesCount);
 
             // Extract the nodeType nibble; determine `type` and `padded`
@@ -233,6 +233,16 @@ mptNodePathRelease (BREthereumMPTNodePath path) {
         mptNodeRelease (path->nodes[index]);
     array_free (path->nodes);
     free (path);
+}
+
+extern void
+mptNodePathsRelease (BRArrayOf(BREthereumMPTNodePath) paths) {
+    if (NULL != paths) {
+        size_t count = array_count(paths);
+        for (size_t index = 0; index < count; index++)
+            mptNodePathRelease(paths[index]);
+        array_free (paths);
+    }
 }
 
 extern BREthereumMPTNodePath

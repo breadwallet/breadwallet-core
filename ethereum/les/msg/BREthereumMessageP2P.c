@@ -86,7 +86,11 @@ messageP2PHelloDecode (BRRlpItem item,
     for (size_t index = 0; index < capsCount; index++) {
         size_t capCount;
         const BRRlpItem *caps = rlpDecodeList (coder.rlp, capItems[index], &capCount);
-        if (2 != capCount) { rlpCoderSetFailed(coder.rlp); return (BREthereumP2PMessageHello) {}; }
+        if (2 != capCount) {
+            rlpCoderSetFailed(coder.rlp);
+            array_free (message.capabilities);
+            return (BREthereumP2PMessageHello) {};
+        }
 
         BREthereumP2PCapability cap;
 
@@ -97,6 +101,7 @@ messageP2PHelloDecode (BRRlpItem item,
 
         cap.version = (uint32_t) rlpDecodeUInt64 (coder.rlp, caps[1], 1);
 
+        free (name);
         array_add (message.capabilities, cap);
     }
 

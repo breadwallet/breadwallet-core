@@ -69,6 +69,9 @@ typedef struct BREthereumMPTNodePathRecord *BREthereumMPTNodePath;
 extern void
 mptNodePathRelease (BREthereumMPTNodePath path);
 
+extern void
+mptNodePathsRelease (BRArrayOf(BREthereumMPTNodePath) paths);
+
 extern BRRlpData
 mptNodePathGetValue (BREthereumMPTNodePath path,
                      BREthereumHash key,
