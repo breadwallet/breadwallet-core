@@ -554,7 +554,7 @@ const char *bootstrapLCLEnodes[] = {
 const char *bootstrapBRDEnodes[] = {
 #if defined (LES_SUPPORT_PARITY)
     // Archival
-    "enode://629d898ee7e1b3a76475977272148fb38917e4a56cd49245e284667e4dc34e57ceb46799e3ffdc70b5a3c65cb7d73d2dd98a36f28be244b8aecfcba752a7bc38@35.202.248.103:30303",
+    "enode://b253e581a0d9e515164c9bf9a62db85ccc8893fd9a2b6968fac4910bd7dfe334072d4d9eb5a14a53d4647b87c0164e32d80c2f387d6d2c54e8437062a2a5855d@35.202.248.103:30303",
 #endif
 
 #if defined (LES_SUPPORT_GETH)

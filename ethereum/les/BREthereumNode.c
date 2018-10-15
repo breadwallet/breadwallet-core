@@ -863,11 +863,12 @@ nodeHandleProvisionerMessage (BREthereumNode node,
 static void
 nodeProcessRecvP2P (BREthereumNode node,
                     BREthereumNodeEndpointRoute route,
-                    BREthereumP2PMessage message) {
+                    OwnershipGiven BREthereumP2PMessage message) {
     assert (NODE_ROUTE_TCP == route);
+
+    int mustReleaseMessage = 1;
     switch (message.identifier) {
         case P2P_MESSAGE_DISCONNECT:
-            eth_log (LES_LOG_TOPIC, "Recv: Disconnect: %s", messageP2PDisconnectDescription (message.u.disconnect.reason));
             nodeDisconnect(node, NODE_ROUTE_TCP, nodeStateCreateErrorDisconnect(message.u.disconnect.reason), ETHEREUM_BOOLEAN_FALSE);
             break;
 
@@ -890,13 +891,16 @@ nodeProcessRecvP2P (BREthereumNode node,
                      messageP2PGetIdentifierName (message.identifier));
             break;
     }
+    if (mustReleaseMessage) messageP2PRelease (&message);
 }
 
 static void
 nodeProcessRecvDIS (BREthereumNode node,
                     BREthereumNodeEndpointRoute route,
-                    BREthereumDISMessage message) {
+                    OwnershipGiven BREthereumDISMessage message) {
     assert (NODE_ROUTE_UDP == route);
+
+    int mustReleaseMessage = 1;
     switch (message.identifier) {
         case DIS_MESSAGE_PING: {
             // Immediately send a pong message
@@ -929,6 +933,7 @@ nodeProcessRecvDIS (BREthereumNode node,
                      messageDISGetIdentifierName (message.identifier));
             break;
     }
+    if (mustReleaseMessage) messageDISRelease (&message);
 }
 
 static void
@@ -1000,7 +1005,7 @@ nodeProcessRecvLES (BREthereumNode node,
             }
             break;
     }
-    if (mustReleaseMessage) messageRelease (&message);
+    if (mustReleaseMessage) messageLESRelease (&message);
 
 }
 
@@ -1083,7 +1088,7 @@ nodeProcessRecvPIP (BREthereumNode node,
             break;
     }
 
-    if (mustReleaseMessage) messageRelease (&message);
+    if (mustReleaseMessage) messagePIPRelease (&message);
 }
 
 static inline void
@@ -1678,7 +1683,7 @@ nodeProcess (BREthereumNode node,
                     nodeProcessSuccess (node, NODE_ROUTE_UDP, nodeStateCreateConnected());
                     nodeProcessRecvDIS (node, NODE_ROUTE_UDP, message.u.dis);
 
-                    // Tjhis is success...
+                    // This is success...
                     return nodeDisconnect(node, NODE_ROUTE_UDP, nodeStateCreate(NODE_AVAILABLE), ETHEREUM_BOOLEAN_FALSE);
 
             }

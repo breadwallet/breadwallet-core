@@ -242,8 +242,10 @@ extern void
 messageP2PRelease (BREthereumP2PMessage *message) {
     switch (message->identifier) {
         case P2P_MESSAGE_HELLO:
-            free (message->u.hello.clientId);
-            array_free (message->u.hello.capabilities);
+            if (NULL != message->u.hello.clientId)
+                free (message->u.hello.clientId);
+            if (NULL != message->u.hello.capabilities)
+                array_free (message->u.hello.capabilities);
             break;
 
         case P2P_MESSAGE_DISCONNECT:
