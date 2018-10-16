@@ -208,8 +208,8 @@ nodeStateDecode (BRRlpItem item,
  */
 extern BREthereumNode // add 'message id offset'?
 nodeCreate (BREthereumNetwork network,
-            BREthereumNodeEndpoint remote,  // remote, local ??
-            BREthereumNodeEndpoint local,
+            OwnershipKept const BREthereumNodeEndpoint local,
+            OwnershipGiven BREthereumNodeEndpoint remote,
             BREthereumNodeContext context,
             BREthereumNodeCallbackStatus callbackStatus,
             BREthereumNodeCallbackAnnounce callbackAnnounce,
@@ -254,10 +254,10 @@ nodeHandleProvision (BREthereumNode node,
 extern BRArrayOf(BREthereumProvision)
 nodeUnhandleProvisions (BREthereumNode node);
 
-extern BREthereumNodeEndpoint *
+extern const BREthereumNodeEndpoint
 nodeGetRemoteEndpoint (BREthereumNode node);
 
-extern BREthereumNodeEndpoint *
+extern const BREthereumNodeEndpoint
 nodeGetLocalEndpoint (BREthereumNode node);
 
 extern BREthereumComparison
@@ -305,7 +305,7 @@ typedef enum {
 
 extern BREthereumNodeStatus
 nodeDiscover (BREthereumNode node,
-              BREthereumNodeEndpoint *endpoint);
+              const BREthereumNodeEndpoint endpoint);
 
 typedef struct {
     BREthereumNodeStatus status;

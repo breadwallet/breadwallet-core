@@ -48,9 +48,12 @@
 
 /** */
 #define LES_SUPPORT_PARITY
+#define LES_SUPPORT_PARITY_VERSION      (1)
 
 /** */
 #define LES_SUPPORT_GETH
+#define LES_SUPPORT_GETH_VERSION        (2)
+#define LES_SUPPORT_GETH_ANNOUNCE_TYPE  (1)
 
 /**
  * We can optionally only bootstrap from a BRD server.  Setting this overrides the subsequent
@@ -77,6 +80,11 @@
 #undef LES_DISABLE_DISCOVERY
 #endif
 
+/**
+ * We we attempt to open a socket to a node endpoint and the socket reports EINPROGRESS, we'll
+ * select() on the socket with this timeout.
+ */
+#define NODE_ENDPOINT_OPEN_SOCKET_TIMEOUT 3.0
 
 /**
  * The Supported P2P version - this applies to both DIS and P2P messaging.  There is a V5

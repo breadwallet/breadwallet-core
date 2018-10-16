@@ -152,37 +152,37 @@ messageLESStatusDecode (BRRlpItem item,
     return status;
 }
 
-extern BREthereumLESMessageStatus
-messageLESStatusCreate (uint64_t protocolVersion,
-                        uint64_t chainId,
-                        uint64_t headNum,
-                        BREthereumHash headHash,
-                        UInt256 headTd,
-                        BREthereumHash genesisHash,
-                        uint64_t announceType) {
-    BRArrayOf(BREthereumP2PMessageStatusKeyValuePair) pairs;
-    BREthereumP2PMessageStatusKeyValuePair pair = {
-        P2P_MESSAGE_STATUS_ANNOUNCE_TYPE,
-        {
-            P2P_MESSAGE_STATUS_VALUE_INTEGER,
-            announceType
-        }
-    };
-
-    array_new (pairs, 1);
-    array_add (pairs, pair);
-
-    return (BREthereumLESMessageStatus) {
-        protocolVersion,            // If protocolVersion is LESv2 ...
-        chainId,
-        headNum,
-        headHash,
-        headTd,
-        genesisHash,
-
-        pairs
-    };
-}
+//extern BREthereumLESMessageStatus
+//messageLESStatusCreate (uint64_t protocolVersion,
+//                        uint64_t chainId,
+//                        uint64_t headNum,
+//                        BREthereumHash headHash,
+//                        UInt256 headTd,
+//                        BREthereumHash genesisHash,
+//                        uint64_t announceType) {
+//    BRArrayOf(BREthereumP2PMessageStatusKeyValuePair) pairs;
+//    BREthereumP2PMessageStatusKeyValuePair pair = {
+//        P2P_MESSAGE_STATUS_ANNOUNCE_TYPE,
+//        {
+//            P2P_MESSAGE_STATUS_VALUE_INTEGER,
+//            announceType
+//        }
+//    };
+//
+//    array_new (pairs, 1);
+//    array_add (pairs, pair);
+//
+//    return (BREthereumLESMessageStatus) {
+//        protocolVersion,            // If protocolVersion is LESv2 ...
+//        chainId,
+//        headNum,
+//        headHash,
+//        headTd,
+//        genesisHash,
+//
+//        pairs
+//    };
+//}
 
 /// Mark: LES Announce
 

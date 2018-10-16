@@ -186,10 +186,10 @@ static BREthereumNodeConfig
 nodeConfigCreate (BREthereumNode node) {
     BREthereumNodeConfig config = calloc (1, sizeof (struct BREthereumNodeConfigRecord));
 
-    BREthereumNodeEndpoint *ne = nodeGetRemoteEndpoint(node);
+    BREthereumNodeEndpoint ne = nodeGetRemoteEndpoint(node);
 
-    config->key = ne->dis.key;
-    config->endpoint = ne->dis.node;
+    config->key = nodeEndpointGetDISNeighbor(ne).key;
+    config->endpoint = nodeEndpointGetDISNeighbor(ne).node;
     config->state = nodeGetState(node, NODE_ROUTE_TCP);
 
     config->hash = hashCreateFromData((BRRlpData) { 64, &config->key.pubKey[1] });
@@ -316,51 +316,13 @@ struct BREthereumLESRecord {
     int theTimeToQuitIsNow;
 };
 
-static void
-assignLocalEndpointHelloMessage (BREthereumNodeEndpoint *endpoint) {
-    // From https://github.com/ethereum/wiki/wiki/ÐΞVp2p-Wire-Protocol on 2019 Aug 21
-    // o p2pVersion: Specifies the implemented version of the P2P protocol. Now must be 1
-    // o listenPort: specifies the port that the client is listening on (on the interface that the
-    //    present connection traverses). If 0 it indicates the client is not listening.
-    BREthereumP2PMessage hello = {
-        P2P_MESSAGE_HELLO,
-        { .hello  = {
-            P2P_MESSAGE_VERSION,
-            strdup (LES_LOCAL_ENDPOINT_NAME),
-            NULL, // capabilities
-            endpoint->dis.node.portTCP,
-            {}
-        }}};
-
-    //
-    // Extend `capabilities` with supported subprotocols: LESv2 and/or PIPv1
-    //
-    array_new (hello.u.hello.capabilities, 2);
-
-#if defined (LES_SUPPORT_GETH)
-    array_add (hello.u.hello.capabilities, ((BREthereumP2PCapability) { "les", 2 }));
-#endif
-
-#if defined (LES_SUPPORT_PARITY)
-    array_add (hello.u.hello.capabilities, ((BREthereumP2PCapability) { "pip", 1 }));
-#endif
-
-    // The NodeID is the 64-byte (uncompressed) public key
-    uint8_t pubKey[65];
-    assert (65 == BRKeyPubKey (&endpoint->dis.key, pubKey, 65));
-    memcpy (hello.u.hello.nodeId.u8, &pubKey[1], 64);
-
-    nodeEndpointSetHello (endpoint, hello);
-    messageP2PHelloShow (hello.u.hello);
-}
-
 static BREthereumNode
 lesEnsureNodeForEndpoint (BREthereumLES les,
-                          BREthereumNodeEndpoint endpoint,
+                          OwnershipGiven BREthereumNodeEndpoint endpoint,
                           BREthereumNodeState state,
                           BREthereumBoolean preferred,
                           BREthereumBoolean *added) {
-    BREthereumHash hash = endpoint.hash;
+    BREthereumHash hash = nodeEndpointGetHash(endpoint);
 
     pthread_mutex_lock (&les->lock);
 
@@ -374,8 +336,8 @@ lesEnsureNodeForEndpoint (BREthereumLES les,
     if (NULL == node) {
         // This endpoint is new so we'll create a node and then ...
         node = nodeCreate (les->network,
-                           endpoint,
                            les->localEndpoint,
+                           endpoint,
                            (BREthereumNodeContext) les,
                            (BREthereumNodeCallbackStatus) lesHandleStatus,
                            (BREthereumNodeCallbackAnnounce) lesHandleAnnounce,
@@ -408,10 +370,10 @@ lesEnsureNodeForEndpoint (BREthereumLES les,
     return node;
 }
 
-extern int
-nodeEndpointIsPreferred (BREthereumNodeEndpoint *endpoint,
+static int
+nodeEndpointIsPreferred (const BREthereumNodeEndpoint endpoint,
                          const char *enodes[]) {
-    BREthereumDISNeighborEnode enode = neighborDISAsEnode (endpoint->dis, 1);
+    BREthereumDISNeighborEnode enode = neighborDISAsEnode (nodeEndpointGetDISNeighbor(endpoint), 1);
     for (size_t index = 0; NULL != enodes[index]; index++)
         if (0 == strcmp (enode.chars, enodes[index]))
             return 1;
@@ -459,6 +421,19 @@ lesCreate (BREthereumNetwork network,
     les->callbackStatus = callbackStatus;
     les->callbackSaveNodes = callbackSaveNodes;
 
+    // Our P2P capabilities - support subprotocols: LESv2 and/or PIPv1
+    BRArrayOf (BREthereumP2PCapability) capabilities;
+    array_new (capabilities, 2);
+
+#if defined (LES_SUPPORT_GETH)
+    array_add (capabilities, ((BREthereumP2PCapability) { "les", LES_SUPPORT_GETH_VERSION }));
+#endif
+
+#if defined (LES_SUPPORT_PARITY)
+    array_add (capabilities, ((BREthereumP2PCapability) { "pip", LES_SUPPORT_PARITY_VERSION }));
+#endif
+
+    // Create the localEndpoint
     {
         // Use the privateKey to create a randomContext
         BREthereumLESRandomContext randomContext =  randomCreate (les->key.secret.u8, 32);
@@ -472,7 +447,8 @@ lesCreate (BREthereumNetwork network,
     // The 'hello' message is fixed; assign it to the local endpoint. We'll support local
     // capabilities as [ { "les", 2 }, { "pip", 1 } ] - but then require the remote to have one of
     // the two.  Depending on the shared capability, we'll assign the node type as GETH or PARITY.
-    assignLocalEndpointHelloMessage (&les->localEndpoint);
+    nodeEndpointDefineHello (les->localEndpoint, LES_LOCAL_ENDPOINT_NAME, capabilities);
+    nodeEndpointShowHello   (les->localEndpoint);
 
     // The 'status' message is not fixed; create one and assign it to the local endpoint.  The
     // status message likely depends on the node type, GETH or PARITY. Specifically the
@@ -485,19 +461,14 @@ lesCreate (BREthereumNetwork network,
     //
     // This is the only place where { headNumber, headHash, headTotalDifficult, genesitHash} are
     // preserved.
-    BREthereumMessage status = {
-        MESSAGE_LES,
-        { .les = {
-            LES_MESSAGE_STATUS,
-            { .status = messageLESStatusCreate (0x02,  // LES v2
-                                                networkGetChainId(network),
-                                                headNumber,
-                                                headHash,
-                                                headTotalDifficulty,
-                                                genesisHash,
-                                                0x01) }}} // Announce type (of LES v2)
-    };
-    nodeEndpointSetStatus(&les->localEndpoint, status);
+    nodeEndpointSetStatus (les->localEndpoint,
+                           messageP2PStatusCreate (0x00,  // ignored
+                                                   networkGetChainId(network),
+                                                   headNumber,
+                                                   headHash,
+                                                   headTotalDifficulty,
+                                                   genesisHash,
+                                                   LES_SUPPORT_GETH_ANNOUNCE_TYPE));
 
     // Create the PTHREAD LOCK variable
     {
@@ -534,8 +505,8 @@ lesCreate (BREthereumNetwork network,
         FOR_SET (BREthereumNodeConfig, config, configs) {
             BREthereumNodeEndpoint endpoint = nodeConfigCreateEndpoint(config);
 
-            if (nodeEndpointIsPreferred (&endpoint, bootstrapLCLEnodes) ||
-                nodeEndpointIsPreferred (&endpoint, bootstrapBRDEnodes))
+            if (nodeEndpointIsPreferred (endpoint, bootstrapLCLEnodes) ||
+                nodeEndpointIsPreferred (endpoint, bootstrapBRDEnodes))
                 array_add (preferredEndpoints, endpoint);
             else
                 lesEnsureNodeForEndpoint (les,
@@ -578,7 +549,7 @@ lesCreate (BREthereumNetwork network,
     }
     eth_log(LES_LOG_TOPIC, "Nodes Bootstrapped: %lu", bootstrappedEndpointsCount);
     for (size_t index = 0; index < 5 && index < array_count(les->availableNodes); index++) {
-        BREthereumDISNeighborEnode enode = neighborDISAsEnode (nodeGetRemoteEndpoint (les->availableNodes[index])->dis, 1);
+        BREthereumDISNeighborEnode enode = neighborDISAsEnode (nodeEndpointGetDISNeighbor (nodeGetRemoteEndpoint (les->availableNodes[index])), 1);
         eth_log (LES_LOG_TOPIC, "  @ %zu: %s", index, enode.chars);
     }
 
@@ -841,7 +812,7 @@ lesLogNodeActivate (BREthereumLES les,
              (NODE_ROUTE_TCP == route ? "TCP" : "UDP"),
              array_count(les->activeNodesByRoute[route]),
              path,
-             nodeGetRemoteEndpoint(node)->hostname,
+             nodeEndpointGetHostname (nodeGetRemoteEndpoint(node)),
              nodeStateDescribe (&state, desc),
              (NULL == explain ? "" : " - "),
              (NULL == explain ? "" : explain));

@@ -42,42 +42,72 @@
 #define MSG_NOSIGNAL 0 // set to 0 if undefined (BSD has the SO_NOSIGPIPE sockopt, and windows has no signals at all)
 #endif
 
-// #define NEED_TO_PRINT_SEND_DATA
-// #define LES_LOG_RECV
-// #define LES_LOG_SEND
-// #define LES_LOG_SEND_RECV_ERROR  // normally handled by the caller
-// #define LES_LOG_REPORT_OPEN_SOCKET
-
-#define CONNECTION_TIME 3.0
-
 /** Forward Declarations */
 static int
-openSocket (BREthereumNodeEndpoint *endpoint, int *socket, int port, int domain, int type, double timeout);
+openSocket (BREthereumNodeEndpoint endpoint, int *socket, int port, int domain, int type, double timeout);
 
 //
-// MARK: - LES Node Endpoint
+// Endpoint
 //
+struct BREthereumNodeEndpointRecord {
+    /** The hash used to identify this Node Endpoint as a BRSet item */
+    BREthereumHash hash;
+
+    /** An optional hostname - if not provided this will be a IP addr string */
+    char hostname[_POSIX_HOST_NAME_MAX + 1];
+
+    /** The 'Discovery Endpoint' */
+    BREthereumDISNeighbor dis;
+
+    /** The sockets - will be -1 if not connected */
+    int sockets[NUMBER_OF_NODE_ROUTES];
+
+    /** */
+    uint64_t timestamp;
+
+    /** Public Key (for the remote peer ) */
+    // BRKey key;
+
+    /** The ephemeral public key */
+    BRKey ephemeralKey;
+
+    /** The nonce */
+    UInt256 nonce;
+
+    /** The Hello P2P message */
+    BREthereumP2PMessageHello hello;
+
+    /** The Status P2P message */
+    BREthereumP2PMessageStatus status;
+
+    /** */
+    BREthereumBoolean discovered;
+};
+
+///
+/// MARK: - Create/Release
+///
+
 extern BREthereumNodeEndpoint
 nodeEndpointCreateDetailed (BREthereumDISNeighbor dis,
                             BRKey ephemeralKey,
                             UInt256 nonce) {
-    BREthereumNodeEndpoint endpoint;
-    memset (&endpoint, 0, sizeof (BREthereumNodeEndpoint));
+    BREthereumNodeEndpoint endpoint = calloc (1, sizeof (struct BREthereumNodeEndpointRecord));
 
-    endpoint.dis = dis;
-    endpoint.hash = neighborDISHash(dis);
+    endpoint->dis = dis;
+    endpoint->hash = neighborDISHash(dis);
 
     for (int i = 0; i < NUMBER_OF_NODE_ROUTES; i++)
-        endpoint.sockets[i] = -1;
+        endpoint->sockets[i] = -1;
 
-    endpoint.timestamp = 0;
+    endpoint->timestamp = 0;
 
-    endpoint.nonce = nonce;
-    endpoint.ephemeralKey = ephemeralKey;
+    endpoint->nonce = nonce;
+    endpoint->ephemeralKey = ephemeralKey;
 
-    inet_ntop (dis.node.domain, (void *) &dis.node.addr, endpoint.hostname, _POSIX_HOST_NAME_MAX + 1);
+    inet_ntop (dis.node.domain, (void *) &dis.node.addr, endpoint->hostname, _POSIX_HOST_NAME_MAX + 1);
 
-    endpoint.discovered = ETHEREUM_BOOLEAN_FALSE;
+    endpoint->discovered = ETHEREUM_BOOLEAN_FALSE;
     return endpoint;
 }
 
@@ -147,42 +177,179 @@ nodeEndpointCreateEnode (const char *enode) {
 
 extern void
 nodeEndpointRelease (BREthereumNodeEndpoint endpoint) {
-    messageP2PRelease(&endpoint.hello);
-    messageRelease(&endpoint.status);
+    // If we where unable to communicate w/ this endpoint - and certainly if we couldn't exchange
+    // status messages - then one or both of `hello` and `status` will never have been assigned.
+
+    messageP2PHelloRelease (&endpoint->hello);
+    messageP2PStatusRelease (&endpoint->status);
+    free (endpoint);
+}
+
+///
+/// MARK: - Getters/Setters
+///
+
+extern BREthereumHash
+nodeEndpointGetHash (BREthereumNodeEndpoint endpoint) {
+    return endpoint->hash;
+}
+
+extern const char *
+nodeEndpointGetHostname (BREthereumNodeEndpoint endpoint) {
+    return endpoint->hostname;
+}
+
+extern int // remote.dis.node.portTCP)
+nodeEndpointGetPort (BREthereumNodeEndpoint endpoint,
+                     BREthereumNodeEndpointRoute route) {
+    switch (route) {
+        case NODE_ROUTE_UDP: return endpoint->dis.node.portUDP;
+        case NODE_ROUTE_TCP: return endpoint->dis.node.portTCP;
+    }
+}
+
+extern int
+nodeEndpointGetSocket (BREthereumNodeEndpoint endpoint,
+                       BREthereumNodeEndpointRoute route) {
+    return endpoint->sockets[route];
+}
+
+extern BREthereumDISNeighbor
+nodeEndpointGetDISNeighbor (BREthereumNodeEndpoint endpoint) {
+    return endpoint->dis;
+}
+
+extern BRKey *
+nodeEndpointGetKey (BREthereumNodeEndpoint endpoint) {
+    return &endpoint->dis.key;
+}
+
+extern BRKey *
+nodeEndpointGetEphemeralKey (BREthereumNodeEndpoint endpoint) {
+    return &endpoint->ephemeralKey;
+}
+
+extern UInt256 *
+nodeEndpointGetNonce (BREthereumNodeEndpoint endpoint) {
+    return &endpoint->nonce;
 }
 
 // Support BRSet
 extern size_t
 nodeEndpointHashValue (const void *h) {
-    return hashSetValue(&((BREthereumNodeEndpoint*) h)->hash);
+    return hashSetValue(&((BREthereumNodeEndpoint) h)->hash);
 }
 
 // Support BRSet
 extern int
 nodeEndpointHashEqual (const void *h1, const void *h2) {
-    return h1 == h2 || hashSetEqual (&((BREthereumNodeEndpoint*) h1)->hash,
-                                     &((BREthereumNodeEndpoint*) h2)->hash);
+    return h1 == h2 || hashSetEqual (&((BREthereumNodeEndpoint) h1)->hash,
+                                     &((BREthereumNodeEndpoint) h2)->hash);
 }
 
-extern BRKey
-nodeEndpointGetKey (BREthereumNodeEndpoint endpoint) {
-    return endpoint.dis.key;
+///
+/// MARK: - Hello
+///
+extern BREthereumP2PMessageHello
+nodeEndpointGetHello (const BREthereumNodeEndpoint endpoint) {
+    return endpoint->hello;
 }
 
 extern void
-nodeEndpointSetHello (BREthereumNodeEndpoint *endpoint,
-                      BREthereumP2PMessage hello) {
+nodeEndpointSetHello (BREthereumNodeEndpoint endpoint,
+                      OwnershipGiven BREthereumP2PMessageHello hello) {
     endpoint->hello = hello;
 }
 
 extern void
-nodeEndpointSetStatus (BREthereumNodeEndpoint *endpoint,
-                       BREthereumMessage status) {
+nodeEndpointDefineHello (BREthereumNodeEndpoint endpoint,
+                         const char *name,
+                         OwnershipGiven BRArrayOf(BREthereumP2PCapability) capabilities) {
+    assert (NULL == endpoint->hello.capabilities);
+    assert (NULL == endpoint->hello.clientId);
+
+    endpoint->hello = (BREthereumP2PMessageHello) {
+        P2P_MESSAGE_VERSION,
+        strdup (name),
+        capabilities,
+        endpoint->dis.node.portTCP,
+        {} // UInt512 nodeId
+    };
+
+    // The NodeID is the 64-byte (uncompressed) public key
+    uint8_t pubKey[65];
+    assert (65 == BRKeyPubKey (&endpoint->dis.key, pubKey, 65));
+    memcpy (endpoint->hello.nodeId.u8, &pubKey[1], 64);
+}
+
+extern void
+nodeEndpointShowHello (BREthereumNodeEndpoint endpoint) {
+    messageP2PHelloShow (&endpoint->hello);
+}
+
+extern BREthereumBoolean
+nodeEndpointHasHelloCapability (BREthereumNodeEndpoint endpoint,
+                                const char *name) {
+    FOR_ARRAY (BREthereumP2PCapability, capability, endpoint->hello.capabilities)
+        if (0 == strcmp (name, capability->name))
+            return ETHEREUM_BOOLEAN_TRUE;
+    return ETHEREUM_BOOLEAN_FALSE;
+}
+
+extern const BREthereumP2PCapability *
+nodeEndpointHasHelloMatchingCapability (BREthereumNodeEndpoint source,
+                                        BREthereumNodeEndpoint target) {
+    FOR_ARRAY (BREthereumP2PCapability, scap, source->hello.capabilities)
+        if (ETHEREUM_BOOLEAN_IS_TRUE (nodeEndpointHasHelloCapability (target, scap->name)))
+            return scap;
+    return NULL;
+}
+
+///
+/// MARK: - Status
+///
+extern BREthereumP2PMessageStatus
+nodeEndpointGetStatus (const BREthereumNodeEndpoint endpoint) {
+    return endpoint->status;
+}
+
+extern void
+nodeEndpointSetStatus (BREthereumNodeEndpoint endpoint,
+                       OwnershipGiven BREthereumP2PMessageStatus status) {
     endpoint->status = status;
 }
 
+//extern void
+//nodeEndpointDefineStatus (BREthereumNodeEndpoint endpoint,
+//                          uint64_t protocolVersion,
+//                           uint64_t chainId,
+//                           uint64_t headNum,
+//                           BREthereumHash headHash,
+//                           UInt256 headTd,
+//                           BREthereumHash genesisHash,
+//                          uint64_t announceType) {
+//
+//    endpoint->status = (BREthereumP2PMessageStatus) {
+//        protocolVersion,
+//        chainId,
+//        headNum,
+//        headHash,
+//        headTd,
+//        genesisHash,
+//        NULL
+//    };
+//}
+
+extern void
+nodeEndpointShowStatus (BREthereumNodeEndpoint endpoint) {
+    messageP2PStatusShow (&endpoint->status);
+}
+
+///
+/// MARK: - Open/Close
+///
 extern int // errno
-nodeEndpointOpen (BREthereumNodeEndpoint *endpoint,
+nodeEndpointOpen (BREthereumNodeEndpoint endpoint,
                   BREthereumNodeEndpointRoute route) {
     if (nodeEndpointIsOpen (endpoint, route)) return 0;
     
@@ -191,11 +358,11 @@ nodeEndpointOpen (BREthereumNodeEndpoint *endpoint,
                        (route == NODE_ROUTE_TCP ? endpoint->dis.node.portTCP : endpoint->dis.node.portUDP),
                        endpoint->dis.node.domain,
                        (route == NODE_ROUTE_TCP ? SOCK_STREAM : SOCK_DGRAM),
-                       CONNECTION_TIME);
+                       NODE_ENDPOINT_OPEN_SOCKET_TIMEOUT);
 }
 
 extern int
-nodeEndpointClose (BREthereumNodeEndpoint *endpoint,
+nodeEndpointClose (BREthereumNodeEndpoint endpoint,
                    BREthereumNodeEndpointRoute route,
                    int needShutdown) {
     int socket;
@@ -227,15 +394,17 @@ nodeEndpointClose (BREthereumNodeEndpoint *endpoint,
 }
 
 extern int
-nodeEndpointIsOpen (BREthereumNodeEndpoint *endpoint,
+nodeEndpointIsOpen (BREthereumNodeEndpoint endpoint,
                     BREthereumNodeEndpointRoute route) {
     return -1 != endpoint->sockets[route];
 }
 
-/// MARK: - Recv Data
+///
+/// MARK: - Recv/Send Data
+///
 
 extern int // errno
-nodeEndpointRecvData (BREthereumNodeEndpoint *endpoint,
+nodeEndpointRecvData (BREthereumNodeEndpoint endpoint,
                       BREthereumNodeEndpointRoute route,
                       uint8_t *bytes,
                       size_t *bytesCount,
@@ -281,10 +450,8 @@ nodeEndpointRecvData (BREthereumNodeEndpoint *endpoint,
     return error;
 }
 
-/// MARK: - Send Data
-
 extern int
-nodeEndpointSendData (BREthereumNodeEndpoint *endpoint,
+nodeEndpointSendData (BREthereumNodeEndpoint endpoint,
                       BREthereumNodeEndpointRoute route,
                       uint8_t *bytes,
                       size_t bytesCount) {
@@ -333,7 +500,7 @@ nodeEndpointSendData (BREthereumNodeEndpoint *endpoint,
 // http://www.microhowto.info/howto/listen_for_and_receive_udp_datagrams_in_c.html
 
 static void
-nodeEndpointFillSockAddr (BREthereumNodeEndpoint *endpoint,
+nodeEndpointFillSockAddr (BREthereumNodeEndpoint endpoint,
                           int port,
                           struct sockaddr_storage *addr,
                           socklen_t *addrLen) {
@@ -367,7 +534,7 @@ nodeEndpointFillSockAddr (BREthereumNodeEndpoint *endpoint,
 }
 
 static int
-openSocketReportResult (BREthereumNodeEndpoint *endpoint, int port, int type, int error) {
+openSocketReportResult (BREthereumNodeEndpoint endpoint, int port, int type, int error) {
 #if defined (LES_LOG_REPORT_OPEN_SOCKET)
     eth_log (LES_LOG_TOPIC, "Open: [ %s, %15d ] => %15s %s%s",
              (type == SOCK_STREAM ? "TCP" : "UDP"),
@@ -385,7 +552,7 @@ openSocketReportResult (BREthereumNodeEndpoint *endpoint, int port, int type, in
  * TODO: May want to make this more modular to work for both etheruem and bitcoin
  */
 static int
-openSocket(BREthereumNodeEndpoint *endpoint, int *socketToAssign, int port, int domain, int type, double timeout)
+openSocket(BREthereumNodeEndpoint endpoint, int *socketToAssign, int port, int domain, int type, double timeout)
 {
     struct sockaddr_storage addr;
     struct timeval tv;
@@ -444,7 +611,7 @@ openSocket(BREthereumNodeEndpoint *endpoint, int *socketToAssign, int port, int 
     return openSocketReportResult (endpoint, port, type, errno);
 }
 
-#if 0
+#if defined (GET_WIFI_ADDRESS) // never defined
 //func getWiFiAddress() -> String? {
 //    var address : String?
 //
@@ -526,11 +693,11 @@ main(int argc, const char **argv) {
 //utun2       30  fdc8:3cab:5fba:b1b0:31e2:25c9:1c31:8293
 //utun3       30                fe80::2d34:ab2e:f86b:f077
 
-#endif
+#endif // defined (GET_WIFI_ADDRESS)
 
-/// MARK: Local/Bootstrap Enodes
-
-const char *localLESEnode = "enode://x@1.1.1.1:30303";
+///
+/// MARK: - Local/Bootstrap Enodes
+///
 
 //
 // LES/PIP Nodes hosted locally, when enabled (these are my NodeId; not yours).

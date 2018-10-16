@@ -56,6 +56,12 @@ BRSetFreeAll (BRSet *set, BRSetItemFree itemFree) {
     BRSetFree  (set);
 }
 
+#define FOR_ARRAY(type, var, array) \
+  for (type * var = (array), * __varEnd = var + array_count(var); var < __varEnd; var++)
+
+#define REPEAT(index, count) \
+  for (size_t index = 0, __indexLimit = (size_t) (count); index < __indexLimit; index++)
+
 #define OwnershipGiven
 #define OwnershipKept
 
