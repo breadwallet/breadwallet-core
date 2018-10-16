@@ -177,24 +177,24 @@ typedef enum {
 typedef void
 (*BREthereumClientHandlerSaveBlocks) (BREthereumClientContext context,
                                       BREthereumEWM ewm,
-                                      BRSetOf(BREthereumHashDataPair) data);
+                                      OwnershipGiven BRSetOf(BREthereumHashDataPair) data);
 
 typedef void
 (*BREthereumClientHandlerSaveNodes) (BREthereumClientContext context,
                                      BREthereumEWM ewm,
-                                     BRSetOf(BREthereumHashDataPair) data);
+                                     OwnershipGiven BRSetOf(BREthereumHashDataPair) data);
 
 typedef void
 (*BREthereumClientHandlerChangeTransaction) (BREthereumClientContext context,
                                              BREthereumEWM ewm,
                                              BREthereumClientChangeType type,
-                                             BREthereumHashDataPair data);
+                                             OwnershipGiven  BREthereumHashDataPair data);
 
 typedef void
 (*BREthereumClientHandlerChangeLog) (BREthereumClientContext context,
                                      BREthereumEWM ewm,
                                      BREthereumClientChangeType type,
-                                     BREthereumHashDataPair data);
+                                     OwnershipGiven  BREthereumHashDataPair data);
 
 //
 // Wallet Event

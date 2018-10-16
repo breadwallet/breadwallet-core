@@ -129,11 +129,13 @@ transactionCopy (BREthereumTransaction transaction) {
 
 extern void
 transactionRelease (BREthereumTransaction transaction) {
-    if (NULL != transaction->data) free (transaction->data);
+    if (NULL != transaction) {
+        if (NULL != transaction->data) free (transaction->data);
 #if defined (TRANSACTION_LOG_ALLOC_COUNT)
-    eth_log ("MEM", "TX Release - Count: %d", --transactionAllocCount);
+        eth_log ("MEM", "TX Release - Count: %d", --transactionAllocCount);
 #endif
-    free (transaction);
+        free (transaction);
+    }
 }
 
 extern void

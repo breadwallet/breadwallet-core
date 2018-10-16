@@ -107,6 +107,25 @@ typedef struct {
     } u;
 } BREthereumTransferBasis;
 
+static void
+transferBasisRelease (BREthereumTransferBasis *basis) {
+    switch (basis->type) {
+        case TRANSFER_BASIS_TRANSACTION:
+            if (NULL != basis->u.transaction) {
+                transactionRelease (basis->u.transaction);
+                basis->u.transaction = NULL;
+            }
+            break;
+
+        case TRANSFER_BASIS_LOG:
+            if (NULL != basis->u.log) {
+                logRelease (basis->u.log);
+                basis->u.log = NULL;
+            }
+            break;
+    }
+}
+
 //
 //
 //
@@ -233,6 +252,9 @@ transferCreateWithLog (OwnershipGiven BREthereumLog log,
 
 extern void
 transferRelease (BREthereumTransfer transfer) {
+    if (NULL != transfer->originatingTransaction)
+        transactionRelease(transfer->originatingTransaction);
+    transferBasisRelease(&transfer->basis);
     free (transfer);
 }
 

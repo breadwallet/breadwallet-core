@@ -170,11 +170,12 @@ walletCreateHoldingToken(BREthereumAccount account,
 
 extern void
 walletRelease (BREthereumWallet wallet) {
-    // TODO: Release 'transfers' - tell EWM?
+    // TODO: Announce to EWM listener/client?
+    for (size_t index = 0; index < array_count(wallet->transfers); index++)
+        transferRelease (wallet->transfers[index]);
     array_free(wallet->transfers);
     free (wallet);
 }
-
 
 extern void
 walletsRelease (OwnershipGiven BRArrayOf(BREthereumWallet) wallets) {

@@ -64,6 +64,9 @@ typedef struct {
     UInt512  nodeId;
 } BREthereumP2PMessageHello;
 
+extern BREthereumP2PMessageHello
+messageP2PHelloCopy (BREthereumP2PMessageHello *message);
+
 extern void
 messageP2PHelloRelease (BREthereumP2PMessageHello *message);
 

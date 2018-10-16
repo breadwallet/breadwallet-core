@@ -300,7 +300,10 @@ ewmDestroy (BREthereumEWM ewm) {
     walletsRelease (ewm->wallets);
     ewm->wallets = NULL;
 
-    array_free (ewm->transfers);   // released by wallets: transfersRelease(ewm->transfers);
+    // All `ewm->transfers` are in `emw->wallets`; they are released there.
+    array_free (ewm->transfers);
+
+    //
     blocksRelease(ewm->blocks);
 
     eventHandlerDestroy(ewm->handlerForClient);
@@ -885,7 +888,7 @@ ewmHandleBalance (BREthereumEWM ewm,
 extern void
 ewmHandleTransaction (BREthereumEWM ewm,
                       BREthereumBCSCallbackTransactionType type,
-                      BREthereumTransaction transaction) {
+                      OwnershipGiven BREthereumTransaction transaction) {
     BREthereumHash hash = transactionGetHash(transaction);
 
     BREthereumHashString hashString;
@@ -902,6 +905,7 @@ ewmHandleTransaction (BREthereumEWM ewm,
     BREthereumTransfer transfer = walletGetTransferByHash(wallet, hash);
     BREthereumTransferId tid = -1;
 
+    // If we've no transfer, then create one and save `transaction` as the basis
     if (NULL == transfer) {
         transfer = transferCreateWithTransaction(transaction);
         tid      = ewmInsertTransfer(ewm, transfer);
@@ -918,8 +922,11 @@ ewmHandleTransaction (BREthereumEWM ewm,
                                    NULL);
 
     }
-    else
+    else {
         tid = ewmLookupTransferId(ewm, transfer);
+        if (transaction != transferGetBasisTransaction(transfer))
+            transactionRelease(transaction);
+    }
 
     // TODO: Not quite
     ewmClientSignalTransferEvent(ewm, wid, tid,
@@ -955,6 +962,7 @@ ewmHandleLog (BREthereumEWM ewm,
     BREthereumTransfer transfer = walletGetTransferByHash(wallet, logHash);
     BREthereumTransferId tid = -1;
 
+    // If we've no transfer, then create one and save `log` as the basis
     if (NULL == transfer) {
         transfer = transferCreateWithLog (log, token);
         tid      = ewmInsertTransfer(ewm, transfer);
@@ -984,7 +992,7 @@ ewmHandleLog (BREthereumEWM ewm,
 
 extern void
 ewmHandleSaveBlocks (BREthereumEWM ewm,
-                     BRArrayOf(BREthereumBlock) blocks) {
+                     OwnershipGiven BRArrayOf(BREthereumBlock) blocks) {
     eth_log("EWM", "Save Blocks: %zu", array_count(blocks));
 
     BRSetOf(BREthereumHashDataPair) blocksToSave = hashDataPairSetCreateEmpty (array_count (blocks));
@@ -1007,7 +1015,7 @@ ewmHandleSaveBlocks (BREthereumEWM ewm,
 
 extern void
 ewmHandleSaveNodes (BREthereumEWM ewm,
-                    BRArrayOf(BREthereumNodeConfig) nodes) {
+                    OwnershipGiven BRArrayOf(BREthereumNodeConfig) nodes) {
     size_t nodesCount = array_count(nodes);
 
     BRSetOf(BREthereumHashDataPair) nodesToSave = hashDataPairSetCreateEmpty (array_count (nodes));

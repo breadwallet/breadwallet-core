@@ -538,6 +538,7 @@ provisionCreateMessagePIP (BREthereumProvision *provisionMulti,
                     { .request = { messageId, inputs }}}}
             };
         }
+            
         case PROVISION_SUBMIT_TRANSACTION: {
             BREthereumProvisionSubmission *provision = &provisionMulti->u.submission;
 
@@ -647,7 +648,7 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
             size_t offset = messageContentLimit * (identifier - messageIdBase);
             for (size_t index = 0; index < array_count(outputs); index++) {
                 assert (PIP_REQUEST_BLOCK_RECEIPTS == outputs[index].identifier);
-                provisionReceiptsArray[offset + index]= outputs[index].u.blockReceipt.receipts;
+                provisionReceiptsArray[offset + index] = outputs[index].u.blockReceipt.receipts;
             }
 
             array_free (outputs);
@@ -737,6 +738,7 @@ provisionRelease (BREthereumProvision *provision,
 
         case PROVISION_BLOCK_HEADERS:
             if (ETHEREUM_BOOLEAN_IS_TRUE(releaseResults) && NULL != provision->u.headers.headers)
+                // Sometimes the headers will be NULL - because we preallocated the response.
                 blockHeadersRelease(provision->u.headers.headers);
             break;
 

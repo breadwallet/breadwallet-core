@@ -254,7 +254,11 @@ typedef struct {
 
 static void
 requestRelease (BREthereumLESRequest *request) {
-    provisionRelease(&request->provision, ETHEREUM_BOOLEAN_TRUE);
+    // TODO: Figure out 'request/node provisions sharing memory'.
+
+    // Don't release a provision if it is 'owned' by a `node` - the node will release it.
+    if (NULL == request->node)
+        provisionRelease(&request->provision, ETHEREUM_BOOLEAN_TRUE);
 }
 
 static void

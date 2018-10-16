@@ -394,6 +394,16 @@ logRelease (BREthereumLog log) {
 }
 
 extern void
+logsRelease (BRArrayOf(BREthereumLog) logs) {
+    if (NULL != logs) {
+        size_t count = array_count(logs);
+        for (size_t index = 0; index < count; index++)
+            logRelease (logs[index]);
+        array_free(logs);
+    }
+}
+
+extern void
 logReleaseForSet (void *ignore, void *item) {
     logRelease((BREthereumLog) item);
 }

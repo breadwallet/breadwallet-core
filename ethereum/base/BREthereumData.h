@@ -105,6 +105,11 @@ hashDataPairCreateFromString (const char *hashString,
 extern void
 hashDataPairRelease (BREthereumHashDataPair pair);
 
+static inline void
+hashDataPairReleaseForSet (void *ignore, void *item) {
+    hashDataPairRelease((BREthereumHashDataPair) item);
+}
+
 extern BREthereumHash
 hashDataPairGetHash (BREthereumHashDataPair pair);
 

@@ -90,11 +90,13 @@ transactionReceiptMatchAddress (BREthereumTransactionReceipt receipt,
 
 extern void
 transactionReceiptRelease (BREthereumTransactionReceipt receipt) {
-    for (size_t index = 0; index < array_count(receipt->logs); index++)
-        logRelease(receipt->logs[index]);
-    array_free(receipt->logs);
-    rlpDataRelease(receipt->stateRoot);
-    free (receipt);
+    if (NULL != receipt) {
+        for (size_t index = 0; index < array_count(receipt->logs); index++)
+            logRelease(receipt->logs[index]);
+        array_free(receipt->logs);
+        rlpDataRelease(receipt->stateRoot);
+        free (receipt);
+    }
 }
 
 //

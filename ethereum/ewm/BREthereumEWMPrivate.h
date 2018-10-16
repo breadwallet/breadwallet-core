@@ -246,12 +246,12 @@ ewmSignalGasEstimate (BREthereumEWM ewm,
 extern void
 ewmHandleTransaction (BREthereumEWM ewm,
                       BREthereumBCSCallbackTransactionType type,
-                      BREthereumTransaction transaction);
+                      OwnershipGiven BREthereumTransaction transaction);
 
 extern void
 ewmSignalTransaction (BREthereumEWM ewm,
                       BREthereumBCSCallbackTransactionType type,
-                      BREthereumTransaction transaction);
+                      OwnershipGiven BREthereumTransaction transaction);
 
 //
 // Signal/Handle Log (BCS Callback)
@@ -259,34 +259,34 @@ ewmSignalTransaction (BREthereumEWM ewm,
 extern void
 ewmHandleLog (BREthereumEWM ewm,
               BREthereumBCSCallbackLogType type,
-              BREthereumLog log);
+              OwnershipGiven BREthereumLog log);
 
 extern void
 ewmSignalLog (BREthereumEWM ewm,
               BREthereumBCSCallbackLogType type,
-              BREthereumLog log);
+              OwnershipGiven BREthereumLog log);
 
 //
 // Signal/Handle Save Blocks (BCS Callback)
 //
 extern void
 ewmHandleSaveBlocks (BREthereumEWM ewm,
-                     BRArrayOf(BREthereumBlock) blocks);
+                     OwnershipGiven BRArrayOf(BREthereumBlock) blocks);
 
 extern void
 ewmSignalSaveBlocks (BREthereumEWM ewm,
-                     BRArrayOf(BREthereumBlock) blocks);
+                     OwnershipGiven BRArrayOf(BREthereumBlock) blocks);
 
 //
 // Signal/Handle Save Peers (BCS Callback)
 //
 extern void
 ewmHandleSaveNodes (BREthereumEWM ewm,
-                    BRArrayOf(BREthereumNodeConfig) peers);
+                    OwnershipGiven BRArrayOf(BREthereumNodeConfig) peers);
 
 extern void
 ewmSignalSaveNodes (BREthereumEWM ewm,
-                    BRArrayOf(BREthereumNodeConfig) peers);
+                    OwnershipGiven BRArrayOf(BREthereumNodeConfig) peers);
 
 
 //

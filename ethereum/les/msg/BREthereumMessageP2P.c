@@ -41,6 +41,15 @@ messageP2PGetIdentifierName (BREthereumP2PMessageIdentifier identifier) {
 //
 // P2P Hello
 //
+extern BREthereumP2PMessageHello
+messageP2PHelloCopy (BREthereumP2PMessageHello *message) {
+    BREthereumP2PMessageHello copy = *message;
+    copy.clientId = strdup (message->clientId);
+    array_new (copy.capabilities, array_count (message->capabilities));
+    array_add_array(copy.capabilities, message->capabilities, array_count(message->capabilities));
+    return copy;
+}
+
 extern void
 messageP2PHelloRelease (BREthereumP2PMessageHello *message) {
     // Note: we might be releasing a message that was never actually constituted.  The following

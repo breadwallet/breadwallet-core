@@ -161,6 +161,9 @@ extern void
 logRelease (BREthereumLog log);
 
 extern void
+logsRelease (BRArrayOf(BREthereumLog) logs);
+
+extern void
 logReleaseForSet (void *ignore, void *item);
     
 extern BREthereumLog

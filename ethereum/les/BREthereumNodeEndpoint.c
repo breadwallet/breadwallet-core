@@ -290,8 +290,8 @@ nodeEndpointShowHello (BREthereumNodeEndpoint endpoint) {
 extern BREthereumBoolean
 nodeEndpointHasHelloCapability (BREthereumNodeEndpoint endpoint,
                                 const char *name) {
-    FOR_ARRAY (BREthereumP2PCapability, capability, endpoint->hello.capabilities)
-        if (0 == strcmp (name, capability->name))
+    for (size_t index = 0; index < array_count(endpoint->hello.capabilities); index++)
+        if (0 == strcmp (name, endpoint->hello.capabilities[index].name))
             return ETHEREUM_BOOLEAN_TRUE;
     return ETHEREUM_BOOLEAN_FALSE;
 }
@@ -299,9 +299,11 @@ nodeEndpointHasHelloCapability (BREthereumNodeEndpoint endpoint,
 extern const BREthereumP2PCapability *
 nodeEndpointHasHelloMatchingCapability (BREthereumNodeEndpoint source,
                                         BREthereumNodeEndpoint target) {
-    FOR_ARRAY (BREthereumP2PCapability, scap, source->hello.capabilities)
+    for (size_t index = 0; index < array_count(source->hello.capabilities); index++) {
+        BREthereumP2PCapability *scap = &source->hello.capabilities[index];
         if (ETHEREUM_BOOLEAN_IS_TRUE (nodeEndpointHasHelloCapability (target, scap->name)))
             return scap;
+    }
     return NULL;
 }
 

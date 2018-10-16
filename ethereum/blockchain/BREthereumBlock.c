@@ -53,13 +53,6 @@ blockStatusInitialize (BREthereumBlockStatus *status,
     status->hash = hash;
 }
 
-static void
-blockStatusRelease (BREthereumBlockStatus *status) {
-    // release transaction and log?
-    if (NULL != status->transactions) array_free(status->transactions);
-    if (NULL != status->logs) array_free(status->logs);
-}
-
 static BRRlpItem
 blockStatusRlpEncode (BREthereumBlockStatus status,
                       BRRlpCoder coder);
@@ -234,12 +227,14 @@ blockHeadersRelease (BRArrayOf(BREthereumBlockHeader) headers) {
 
 extern void
 blockHeaderRelease (BREthereumBlockHeader header) {
+    if (NULL != header) {
 #if defined (BLOCK_HEADER_LOG_ALLOC_COUNT)
-    eth_log ("MEM", "Block Header Release %d", --blockHeaderAllocCount);
+        eth_log ("MEM", "Block Header Release %d", --blockHeaderAllocCount);
 #endif
-    assert (ETHEREUM_BOOLEAN_IS_FALSE(hashEqual(header->hash, hashCreateEmpty())));
-    memset (header, 0, sizeof(struct BREthereumBlockHeaderRecord));
-    free (header);
+        assert (ETHEREUM_BOOLEAN_IS_FALSE(hashEqual(header->hash, hashCreateEmpty())));
+        memset (header, 0, sizeof(struct BREthereumBlockHeaderRecord));
+        free (header);
+    }
 }
 
 extern void
@@ -567,7 +562,7 @@ blockRelease (BREthereumBlock block) {
     transactionsRelease (block->transactions);
     block->transactions = NULL;
 
-    blockStatusRelease(&block->status);
+    blockReleaseStatus (block, ETHEREUM_BOOLEAN_TRUE, ETHEREUM_BOOLEAN_TRUE);
     block->next = BLOCK_NEXT_NONE;
 
 #if defined (BLOCK_LOG_ALLOC_COUNT)
@@ -1045,6 +1040,32 @@ blockHasStatusLog (BREthereumBlock block,
     return ETHEREUM_BOOLEAN_FALSE;
 }
 
+extern void
+blockReleaseStatus (BREthereumBlock block,
+                    BREthereumBoolean releaseTransactions,
+                    BREthereumBoolean releaseLogs) {
+    // We might be releasing before the status is complete.  That happens if BCS/LES shuts down
+    // and started releasing blocks - and that is okay.  But, if status is released while the
+    // block is being completed - then that is problem.
+
+    // Transactions
+    if (ETHEREUM_BOOLEAN_IS_TRUE(releaseTransactions))
+        transactionsRelease(block->status.transactions);
+    else if (NULL != block->status.transactions)
+        array_free (block->status.transactions);
+    block->status.transactions = NULL;
+
+    // Logs
+    if (ETHEREUM_BOOLEAN_IS_TRUE(releaseLogs))
+        logsRelease(block->status.logs);
+    else if (NULL != block->status.logs)
+        array_free (block->status.logs);
+    block->status.logs = NULL;
+
+    if (NULL != block->status.gasUsed)
+        array_free (block->status.gasUsed);
+    block->status.gasUsed = NULL;
+}
 
 static BRRlpItem
 blockStatusRlpEncode (BREthereumBlockStatus status,

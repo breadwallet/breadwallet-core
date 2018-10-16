@@ -219,7 +219,7 @@ BREventType handleTransactionEventType = {
 extern void
 ewmSignalTransaction (BREthereumEWM ewm,
                       BREthereumBCSCallbackTransactionType type,
-                      BREthereumTransaction transaction) {
+                      OwnershipGiven BREthereumTransaction transaction) {
     BREthereumHandleTransactionEvent event = { { NULL, &handleTransactionEventType }, ewm, type, transaction };
     eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
 }
@@ -250,7 +250,7 @@ BREventType handleLogEventType = {
 extern void
 ewmSignalLog (BREthereumEWM ewm,
               BREthereumBCSCallbackLogType type,
-              BREthereumLog log) {
+              OwnershipGiven BREthereumLog log) {
     BREthereumHandleLogEvent event = { { NULL, &handleLogEventType }, ewm, type, log };
     eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
 }
@@ -286,14 +286,14 @@ BREventType handleSaveBlocksEventType = {
 
 extern void
 ewmSignalSaveBlocks (BREthereumEWM ewm,
-                     BRArrayOf(BREthereumBlock) blocks) {
+                     OwnershipGiven BRArrayOf(BREthereumBlock) blocks) {
     BREthereumHandleSaveBlocksEvent event = { { NULL, &handleSaveBlocksEventType }, ewm, blocks };
     eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
 }
 
 // ==============================================================================================
 //
-// Handle GetBlocks
+// Handle SaveNodes
 //
 typedef struct {
     BREvent base;
@@ -315,12 +315,10 @@ BREventType handleSaveNodesEventType = {
 
 extern void
 ewmSignalSaveNodes (BREthereumEWM ewm,
-                    BRArrayOf(BREthereumNodeConfig) nodes) {
+                    OwnershipGiven BRArrayOf(BREthereumNodeConfig) nodes) {
     BREthereumHandleSaveNodesEvent event = { { NULL, &handleSaveNodesEventType }, ewm, nodes };
     eventHandlerSignalEvent(ewm->handlerForMain, (BREvent*) &event);
 }
-
-
 
 // ==============================================================================================
 //

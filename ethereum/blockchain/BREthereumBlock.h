@@ -393,6 +393,11 @@ extern BREthereumBoolean
 blockHasStatusLog (BREthereumBlock block,
                    BREthereumLog log);
 
+extern void
+blockReleaseStatus (BREthereumBlock block,
+                    BREthereumBoolean releaseTransactions,
+                    BREthereumBoolean releaseLogs);
+
 //
 // MARK: - Block Decoding for LES
 //

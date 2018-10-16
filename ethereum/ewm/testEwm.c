@@ -443,7 +443,7 @@ clientUpdateTransaction (BREthereumClientContext context,
 //
 // Update Log
 //
-BRSetOf(BREthereumPersistData) savedLogs = NULL;
+BRSetOf(BREthereumHashDataPair) savedLogs = NULL;
 
 static void
 clientUpdateLog (BREthereumClientContext context,
@@ -535,6 +535,21 @@ clientEventEWM (BREthereumClientContext context,
     fprintf (stdout, "ETH: TST: EWMEvent: ev=%d\n", event);
 }
 
+static void
+clientRelease (void) {
+    BRSetApply(savedBlocks, NULL, hashDataPairReleaseForSet);
+    BRSetFree(savedBlocks);
+
+    BRSetApply(savedNodes, NULL, hashDataPairReleaseForSet);
+    BRSetFree(savedNodes);
+
+    BRSetApply(savedTransactions, NULL, hashDataPairReleaseForSet);
+    BRSetFree(savedTransactions);
+
+    BRSetApply(savedLogs, NULL, hashDataPairReleaseForSet);
+    BRSetFree(savedLogs);
+}
+
 static BREthereumClient client = {
     NULL,
 
@@ -598,6 +613,7 @@ runEWM_CONNECT_test (const char *paperKey) {
 
     //    ewmUpdateTransactions(ewm);
     testContextRelease(client.context);
+    clientRelease();
     ethereumDisconnect(ewm);
     ethereumDestroy(ewm);
 }
