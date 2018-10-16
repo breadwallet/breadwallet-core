@@ -383,7 +383,7 @@ BRTransaction *BRTransactionCopy(const BRTransaction *tx)
         BRTransactionAddInput(cpy, tx->inputs[i].txHash, tx->inputs[i].index, tx->inputs[i].amount,
                               tx->inputs[i].script, tx->inputs[i].scriptLen,
                               tx->inputs[i].signature, tx->inputs[i].sigLen,
-                              tx->inputs[i].witness, tx->inputs[1].witLen, tx->inputs[i].sequence);
+                              tx->inputs[i].witness, tx->inputs[i].witLen, tx->inputs[i].sequence);
     }
     
     for (size_t i = 0; i < tx->outCount; i++) {
