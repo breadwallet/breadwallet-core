@@ -45,6 +45,9 @@ typedef struct BRPeerManagerStruct BRPeerManager;
 BRPeerManager *BRPeerManagerNew(const BRChainParams *params, BRWallet *wallet, uint32_t earliestKeyTime,
                                 BRMerkleBlock *blocks[], size_t blocksCount, const BRPeer peers[], size_t peersCount);
 
+BRPeerManager *BRPeerManagerFileNew(const BRChainParams *params, BRWallet *wallet, uint32_t earliestKeyTime,
+                                const char *blocksFileName, const char *peersFileName);
+
 // not thread-safe, set callbacks once before calling BRPeerManagerConnect()
 // info is a void pointer that will be passed along with each callback call
 // void syncStarted(void *) - called when blockchain syncing starts

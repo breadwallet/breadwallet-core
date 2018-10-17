@@ -27,6 +27,7 @@
 #include "BRSet.h"
 #include "BRArray.h"
 #include "BRInt.h"
+#include "BRMerkleBlock.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <inttypes.h>
@@ -165,6 +166,158 @@ inline static int _BRBlockHeightEq(const void *block, const void *otherBlock)
 {
     return (((const BRMerkleBlock *)block)->height == ((const BRMerkleBlock *)otherBlock)->height);
 }
+
+int BRsavePeers(const BRPeer peers[], uint32_t count)
+{
+    char peersFileName[] = "/sdcard/corePeers";
+
+    FILE *peersFile = fopen (peersFileName, "w");
+    if(!peersFile) {
+        return 0;
+    }
+
+    // the total number of peers is first in the file
+    if(fwrite(&count, sizeof(uint32_t), 1, peersFile) != 1) {
+        return 0;
+    }
+
+    for(int i = 0; i < count; i++) {
+        if(fwrite(&peers[i], sizeof(BRPeer), 1, peersFile) != 1) {
+            return 0;
+        }
+    }
+
+    fclose(peersFile);
+
+    return 1;
+}
+
+// returns a pointer to an array of BRPeer structures and a count of number of peers.
+// BRPeer will return NULL if a failure has occured.
+// allocates memory for BRPeer* return value, which must be freed.
+BRPeer* BRloadPeers(uint32_t *count)
+{
+    const char peersFileName[] = "/sdcard/corePeers";
+    BRPeer *peers = NULL;
+    int failure = 0;
+
+    FILE *peersFile = fopen(peersFileName, "r");
+    if(peersFile) {
+        // the number of peers is stored first
+        if(fread(count, sizeof(*count), 1, peersFile) != 1)
+            failure = 1;
+
+        peers = (BRPeer *) calloc(*count, sizeof(BRPeer));
+
+        for(int i = 0; i < *count; i++) {
+            if(fread(&peers[i], sizeof(BRPeer), 1, peersFile) != 1)
+                failure = 1;
+        }
+
+        fclose(peersFile);
+    }
+    else {
+        failure = 0;
+    }
+
+    if(failure) {
+        if(peers)
+            free(peers);
+        peers = NULL;
+    }
+
+    return peers;
+}
+
+int BRsaveBlocks(BRMerkleBlock *blocks[], uint32_t count)
+{
+    uint32_t blockSize = 0;
+    char blocksFileName[] = "/sdcard/coreBlocks";
+    uint8_t *buf = NULL;
+
+    FILE *blocksFile = fopen (blocksFileName, "w");
+    if(!blocksFile) {
+        return 0;
+    }
+
+    // the total number of blocks is first in the file
+    if(fwrite(&count, sizeof(uint32_t), 1, blocksFile) != 1) {
+        return 0;
+    }
+
+    // serialize each individual block and write it to file
+    for(int i = 0; i < count; i++) {
+        blockSize = BRMerkleBlockSerialize(blocks[i], NULL, 0);
+
+        // write the size of the serialized block first
+        fwrite(&blockSize, sizeof(blockSize), 1, blocksFile);
+        // we need to write the block height separately, as it is not serialized
+        fwrite(&blocks[i]->height, sizeof(blocks[i]->height), 1, blocksFile);
+        // last write the block
+        uint8_t buf[blockSize];
+        BRMerkleBlockSerialize(blocks[i], buf, blockSize);
+        fwrite(buf, blockSize, 1, blocksFile);
+    }
+
+    fclose(blocksFile);
+
+    return 1;
+}
+
+// returns a pointer to an array of BRMerkleBlock structures and a count of number of peers.
+// BRPeer will return NULL if a failure has occured.
+// allocates memory for BRPeer* return value, which must be freed.
+BRMerkleBlock** BRloadBlocks(uint32_t *count)
+{
+    const char blocksFileName[] = "/sdcard/coreBlocks";
+    BRMerkleBlock **blocks = NULL;
+    uint32_t blockSize = 0;
+    int failure = 0;
+
+    FILE *blocksFile = fopen(blocksFileName, "r");
+    if(blocksFile) {
+        // the number of blocks is stored first
+        if(fread(count, sizeof(*count), 1, blocksFile) != 1)
+            failure = 1;
+
+        blocks = (BRMerkleBlock **) calloc(*count, sizeof(BRMerkleBlock *));
+        for(int i = 0; i < *count; i++) {
+            // first read the size of each serialized block
+            if(fread(&blockSize, sizeof(blockSize), 1, blocksFile) != 1)
+                failure = 1;
+
+            // next read the block height
+            uint32_t height;
+            if(fread(&height, sizeof(height), 1, blocksFile) != 1)
+                failure = 1;
+
+            // last read the block and de-serialize
+            uint8_t buf[blockSize];
+            if(fread(buf, 1, blockSize, blocksFile) != blockSize)
+                failure = 1;
+
+            BRMerkleBlock *block = BRMerkleBlockParse(buf, blockSize);
+            block->height = height;
+
+            blocks[i] = block;
+
+        }
+        fclose(blocksFile);
+    }
+    else {
+        failure = 0;
+    }
+
+    if(failure) {
+        if(blocks)
+            free(blocks);
+        blocks = NULL;
+    }
+
+    return blocks;
+
+}
+
 
 struct BRPeerManagerStruct {
     const BRChainParams *params;
@@ -879,6 +1032,7 @@ static void _peerDisconnected(void *info, int error)
     }
     
     if (willSave && manager->savePeers) manager->savePeers(manager->info, 1, NULL, 0);
+    if (willSave) BRsavePeers(NULL, 0);
     if (willSave && manager->syncStopped) manager->syncStopped(manager->info, error);
     if (willReconnect) BRPeerManagerConnect(manager); // try connecting to another peer
     if (manager->txStatusUpdate) manager->txStatusUpdate(manager->info);
@@ -910,8 +1064,11 @@ static void _peerRelayedPeers(void *info, const BRPeer peers[], size_t peersCoun
     pthread_mutex_unlock(&manager->lock);
     
     // peer relaying is complete when we receive <1000
-    if (peersCount > 1 && peersCount < 1000 &&
-        manager->savePeers) manager->savePeers(manager->info, 1, save, peersCount);
+    if (peersCount > 1 && peersCount < 1000 && manager->savePeers) {
+        // replace this call
+        manager->savePeers(manager->info, 1, save, peersCount);
+        BRsavePeers(save, peersCount);
+    }
 }
 
 static void _peerRelayedTx(void *info, BRTransaction *tx)
@@ -1516,6 +1673,33 @@ BRPeerManager *BRPeerManagerNew(const BRChainParams *params, BRWallet *wallet, u
     manager->threadCleanup = _dummyThreadCleanup;
     return manager;
 }
+
+// returns a newly allocated BRPeerManager struct that must be freed by calling BRPeerManagerFree().
+// this function accepts a path to block storage and path to the peer storage, which are both located
+// in the local file system.
+BRPeerManager *BRPeerManagerFileNew(const BRChainParams *params, BRWallet *wallet, uint32_t earliestKeyTime,
+                                const char *blocksFileName, const char *peersFileName)
+{
+    uint32_t peerCount = 0;
+    BRPeer *peers = NULL;
+    uint32_t blockCount = 0;
+    BRMerkleBlock **blocks;
+
+    peers = BRloadPeers(&peerCount);
+    blocks = BRloadBlocks(&blockCount);
+
+    BRPeerManager *manager = BRPeerManagerNew(params, wallet, earliestKeyTime,
+            NULL /*blocks*/, blockCount, peers, peerCount);
+
+    if(peers)
+        free(peers);
+
+    if(blocks)
+        free(blocks);
+
+    return manager;
+}
+
 
 // not thread-safe, set callbacks once before calling BRPeerManagerConnect()
 // info is a void pointer that will be passed along with each callback call
