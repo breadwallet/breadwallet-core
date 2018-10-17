@@ -1739,17 +1739,26 @@ bcsSyncReportProgressCallback (BREthereumBCS bcs,
                                uint64_t blockNumberNow,
                                uint64_t blockNumberEnd) {
 
+    BREthereumBCSCallbackSyncType type = (blockNumberNow == blockNumberBeg
+                                          ? BCS_CALLBACK_SYNC_STARTED
+                                          : (blockNumberNow == blockNumberEnd
+                                             ? BCS_CALLBACK_SYNC_STOPPED
+                                             : BCS_CALLBACK_SYNC_UPDATE));
     bcs->listener.syncCallback (bcs->listener.context,
-                                (blockNumberNow == blockNumberBeg
-                                 ? BCS_CALLBACK_SYNC_STARTED
-                                 : (blockNumberNow == blockNumberEnd
-                                    ? BCS_CALLBACK_SYNC_STOPPED
-                                    : BCS_CALLBACK_SYNC_UPDATE)),
+                                type,
                                 blockNumberBeg,
                                 blockNumberNow,
                                 blockNumberEnd);
-}
 
+    switch (type) {
+        case BCS_CALLBACK_SYNC_UPDATE:
+            break;
+        case BCS_CALLBACK_SYNC_STARTED:
+        case BCS_CALLBACK_SYNC_STOPPED:
+            lesClean (bcs->les);
+            break;
+    }
+}
 
 extern void
 bcsHandleProvision (BREthereumBCS bcs,
