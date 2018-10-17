@@ -398,7 +398,7 @@ BRSetOf(BREthereumHashDataPair) savedNodes = NULL;
 static void
 clientSaveNodes (BREthereumClientContext context,
                  BREthereumEWM ewm,
-                 BRSetOf(BREthereumHashDataPair) nodesToSave) {
+                 OwnershipGiven BRSetOf(BREthereumHashDataPair) nodesToSave) {
     if (NULL == savedNodes)
         savedNodes = hashDataPairSetCreateEmpty (BRSetCount(nodesToSave));
 
@@ -415,29 +415,18 @@ static void
 clientUpdateTransaction (BREthereumClientContext context,
                          BREthereumEWM ewm,
                          BREthereumClientChangeType type,
-                         BREthereumHashDataPair data) {
+                         OwnershipGiven BREthereumHashDataPair new) {
     fprintf (stdout, "ETH: TST: UpdateTransaction: ev=%s @ %p\n",
              CLIENT_CHANGE_TYPE_NAME(type),
-             hashDataPairGetData(data).bytes);
+             hashDataPairGetData(new).bytes);
 
     if (NULL == savedTransactions)
         savedTransactions = hashDataPairSetCreateEmpty (100);
 
-    switch (type) {
-        case CLIENT_CHANGE_ADD:
-            BRSetAdd (savedTransactions, data);
-            break;
+    BREthereumHashDataPair old = BRSetRemove (savedTransactions, new);
+    if (NULL != old) hashDataPairRelease(old);
 
-        case CLIENT_CHANGE_REM:
-            data = BRSetRemove(savedTransactions, data);
-            if (NULL != data) hashDataPairRelease(data);
-            break;
-
-        case CLIENT_CHANGE_UPD:
-            data = BRSetAdd(savedTransactions, data);
-            if (NULL != data) hashDataPairRelease(data);
-            break;
-    }
+    BRSetAdd(savedTransactions, new);
 }
 
 //
@@ -449,29 +438,18 @@ static void
 clientUpdateLog (BREthereumClientContext context,
                  BREthereumEWM ewm,
                  BREthereumClientChangeType type,
-                 BREthereumHashDataPair data) {
+                 OwnershipGiven BREthereumHashDataPair new) {
     fprintf (stdout, "ETH: TST: UpdateLog: ev=%s @ %p\n",
              CLIENT_CHANGE_TYPE_NAME(type),
-             hashDataPairGetData(data).bytes);
+             hashDataPairGetData(new).bytes);
 
-    if (NULL == savedTransactions)
-        savedTransactions = hashDataPairSetCreateEmpty (100);
+    if (NULL == savedLogs)
+        savedLogs = hashDataPairSetCreateEmpty (100);
 
-    switch (type) {
-        case CLIENT_CHANGE_ADD:
-            BRSetAdd (savedTransactions, data);
-            break;
+    BREthereumHashDataPair old = BRSetRemove (savedLogs, new);
+    if (NULL != old) hashDataPairRelease(old);
 
-        case CLIENT_CHANGE_REM:
-            data = BRSetRemove(savedTransactions, data);
-            if (NULL != data) hashDataPairRelease(data);
-            break;
-
-        case CLIENT_CHANGE_UPD:
-            data = BRSetAdd(savedTransactions, data);
-            if (NULL != data) hashDataPairRelease(data);
-            break;
-    }
+    BRSetAdd (savedLogs, new);
 }
 
 static void

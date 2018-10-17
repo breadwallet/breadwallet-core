@@ -93,10 +93,10 @@ transferCreate (BREthereumAddress sourceAddress,
                 BREthereumFeeBasis feeBasis);
 
 extern BREthereumTransfer
-transferCreateWithTransaction (BREthereumTransaction transaction);
+transferCreateWithTransaction (OwnershipGiven BREthereumTransaction transaction);
 
 extern BREthereumTransfer
-transferCreateWithLog (BREthereumLog log,
+transferCreateWithLog (OwnershipGiven BREthereumLog log,
                        BREthereumToken token);
 
 extern void

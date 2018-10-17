@@ -305,6 +305,7 @@ bcsDestroy (BREthereumBCS bcs) {
         bcsStop (bcs);
 
     lesRelease (bcs->les);
+    bcsSyncRelease(bcs->sync);
 
     // TODO: We'll need to announce things to our `listener`
 
@@ -327,6 +328,8 @@ bcsDestroy (BREthereumBCS bcs) {
     array_free (bcs->pendingTransactions);
     array_free (bcs->pendingLogs);
 
+    bcs->genesis = NULL;
+    
     // Destroy the Event w/ queue
     eventHandlerDestroy(bcs->handler);
     free (bcs);
@@ -1717,7 +1720,7 @@ bcsHandleNodes (BREthereumBCS bcs,
 static void
 bcsSyncReportBlocksCallback (BREthereumBCS bcs,
                              BREthereumBCSSync sync,
-                             BRArrayOf(BREthereumBCSSyncResult) results) {
+                             OwnershipGiven BRArrayOf(BREthereumBCSSyncResult) results) {
     if (NULL == results) return;
 
     // Extract the result's header.
@@ -1727,6 +1730,7 @@ bcsSyncReportBlocksCallback (BREthereumBCS bcs,
 
     for (size_t index = 0; index < count; index++)
         array_add (headers, results[index].header);
+
     array_free(results);
     
     bcsHandleBlockHeaders (bcs, headers, 1);

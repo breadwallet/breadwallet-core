@@ -1133,6 +1133,8 @@ lesThread (BREthereumLES les) {
 
     pthread_mutex_unlock (&les->lock);
 
+    array_free (nodesToRemove);
+
     eth_log (LES_LOG_TOPIC, "Stop: Nodes: %zu, Available: %zu, Connected: [%zu, %zu]",
              BRSetCount(les->nodes),
              array_count (les->availableNodes),

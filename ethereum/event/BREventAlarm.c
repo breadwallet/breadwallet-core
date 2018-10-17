@@ -246,6 +246,7 @@ alarmClockDestroy (BREventAlarmClock clock) {
 
     array_free (clock->alarms);
     if (clock == alarmClock)
+        free (alarmClock);
         alarmClock = NULL;
 }
 

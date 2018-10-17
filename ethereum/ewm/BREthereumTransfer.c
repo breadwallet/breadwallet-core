@@ -188,7 +188,7 @@ transferCreate (BREthereumAddress sourceAddress,
 }
 
 extern BREthereumTransfer
-transferCreateWithTransaction (BREthereumTransaction transaction) {
+transferCreateWithTransaction (OwnershipGiven BREthereumTransaction transaction) {
     BREthereumFeeBasis feeBasis = {
         FEE_BASIS_GAS,
         { .gas = {

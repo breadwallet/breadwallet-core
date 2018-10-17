@@ -1000,7 +1000,7 @@ ewmHandleSaveBlocks (BREthereumEWM ewm,
     for (size_t index = 0; index < array_count(blocks); index++) {
         BRRlpItem item = blockRlpEncode(blocks[index], ewm->network, RLP_TYPE_ARCHIVE, ewm->coder);
         BRSetAdd (blocksToSave,
-                  hashDataPairCreate (blockGetHash(blocks[index]),
+                  hashDataPairCreate (blockGetHash(blocks[index]), // notice '1'; don't relese data
                                       dataCreateFromRlpData (rlpGetData (ewm->coder, item), 1)));
         rlpReleaseItem(ewm->coder, item);
     }
@@ -1017,23 +1017,26 @@ extern void
 ewmHandleSaveNodes (BREthereumEWM ewm,
                     OwnershipGiven BRArrayOf(BREthereumNodeConfig) nodes) {
     size_t nodesCount = array_count(nodes);
+    eth_log("EWM", "Save nodes: %zu", nodesCount);
 
     BRSetOf(BREthereumHashDataPair) nodesToSave = hashDataPairSetCreateEmpty (array_count (nodes));
 
     for (size_t index = 0; index < array_count(nodes); index++) {
         BRRlpItem item = nodeConfigEncode(nodes[index], ewm->coder);
+
         BRSetAdd (nodesToSave,
-                  hashDataPairCreate (nodeConfigGetHash(nodes[index]),
+                  hashDataPairCreate (nodeConfigGetHash(nodes[index]), // notice '1'; don't relese data
                                       dataCreateFromRlpData (rlpGetData (ewm->coder, item), 1)));
+
         rlpReleaseItem (ewm->coder, item);
+
+        nodeConfigRelease(nodes[index]);
     }
 
     // TODO: ewmSignalSavenodes(ewm, nodes);
     ewm->client.funcSaveNodes (ewm->client.context,
                                ewm,
                                nodesToSave);
-
-    eth_log("EWM", "Save nodes: %zu", nodesCount);
 
     array_free (nodes);
 }

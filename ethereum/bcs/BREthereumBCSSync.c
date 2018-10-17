@@ -557,6 +557,12 @@ bcsSyncRelease (BREthereumBCSSync sync) {
     // TODO: Recursively release `root`; ensure that pending LES callbacks don't crash.
     if (NULL != sync->root) syncRangeRelease(sync->root);
 
+    if (NULL != sync->results) {
+        for (size_t index = 0; index < array_count(sync->results); index++)
+            blockHeaderRelease(sync->results[index].header);
+        array_free(sync->results);
+    }
+
     memset (sync, 0, sizeof (struct BREthereumBCSSyncStruct));
     free (sync);
 }
