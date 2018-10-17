@@ -162,6 +162,7 @@ rlpCoderReclaimInternal (BRRlpCoder coder) {
         free (item);
         item = next;
     }
+    coder->free = NULL;
 }
 
 extern void

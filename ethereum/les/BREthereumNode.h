@@ -224,6 +224,9 @@ nodeReleaseForSet (void *ignore, void *item) {
     nodeRelease ((BREthereumNode) item);
 }
 
+extern void
+nodeClean (BREthereumNode node);
+    
 extern BREthereumNodeState
 nodeConnect (BREthereumNode node,
              BREthereumNodeEndpointRoute route);

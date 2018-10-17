@@ -184,6 +184,9 @@ lesStart (BREthereumLES les);
 extern void
 lesStop (BREthereumLES les);
 
+extern void
+lesClean (BREthereumLES les);
+    
 /// MARK: LES Provision Callbacks
 
 typedef void *BREthereumLESProvisionContext;

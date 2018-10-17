@@ -318,6 +318,7 @@ struct BREthereumLESRecord {
 
     /** replace with pipe() message */
     int theTimeToQuitIsNow;
+    int theTimeToCleanIsNow;
 };
 
 static BREthereumNode
@@ -554,6 +555,7 @@ lesCreate (BREthereumNetwork network,
     }
 
     les->theTimeToQuitIsNow = 0;
+    les->theTimeToCleanIsNow = 0;
 
     return les;
 }
@@ -615,6 +617,13 @@ lesRelease(BREthereumLES les) {
     pthread_mutex_unlock (&les->lock);
     pthread_mutex_destroy (&les->lock);
     free (les);
+}
+
+extern void
+lesClean (BREthereumLES les) {
+    pthread_mutex_lock (&les->lock);
+    les->theTimeToCleanIsNow = 1;
+    pthread_mutex_unlock (&les->lock);
 }
 
 static BREthereumNode
@@ -990,6 +999,16 @@ lesThread (BREthereumLES les) {
         int selectCount = pselect (1 + maximumDescriptor, &readDescriptors, &writeDesciptors, NULL, &timeout, NULL);
         pthread_mutex_lock (&les->lock);
         if (les->theTimeToQuitIsNow) continue;
+
+        // We've been asked to 'clean' - which means 'reclaim memory if possible'.  We'll ask
+        // all nodes to clean up; but, only the active ones will have much to do.
+        if (les->theTimeToCleanIsNow) {
+            eth_log (LES_LOG_TOPIC, "Cleaning%s", "");
+            FOR_NODES(les, node)
+                nodeClean(node);
+            rlpCoderReclaim(les->coder);
+            les->theTimeToCleanIsNow = 0;
+        }
 
         //
         // We have one or more nodes ready to process ...

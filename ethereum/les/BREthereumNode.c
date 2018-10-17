@@ -739,6 +739,11 @@ nodeRelease (BREthereumNode node) {
     free (node);
 }
 
+extern void
+nodeClean (BREthereumNode node) {
+    rlpCoderReclaim(node->coder.rlp);
+}
+
 static BREthereumNodeState
 nodeProcessFailure (BREthereumNode node,
                     BREthereumNodeEndpointRoute route,
