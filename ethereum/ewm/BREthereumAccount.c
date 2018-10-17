@@ -167,7 +167,7 @@ static void
 addressDetailFillRaw (BREthereumAddressDetail *address, const char *string) {
     address->index = 0;
     address->nonce = 0;
-    strlcpy (&address->string[0], string, 42);
+    strlcpy (&address->string[0], string, 43);
     address->raw = addressCreate(string);
 }
 

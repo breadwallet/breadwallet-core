@@ -211,6 +211,9 @@ extern int
 transferExtractStatusError (BREthereumTransfer transfer,
                             char **reason);
 
+extern void
+transfersRelease (OwnershipGiven BRArrayOf(BREthereumTransfer) transfers);
+    
 #ifdef __cplusplus
 }
 #endif

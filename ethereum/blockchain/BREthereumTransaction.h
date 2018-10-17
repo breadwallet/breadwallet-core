@@ -204,7 +204,10 @@ transactionIsErrored (BREthereumTransaction transaction);
 
 extern void
 transactionShow (BREthereumTransaction transaction, const char *topic);
-    
+
+extern void
+transactionsRelease (BRArrayOf(BREthereumTransaction) transactions);
+
 //
 // Transaction Result
 //

@@ -34,6 +34,9 @@
 
 extern const char *tokenBRDAddress;
 
+extern void
+installTokensForTest (void);
+
 //
 // EWM CONNECT
 //
@@ -252,6 +255,31 @@ clientGetBlocks (BREthereumClientContext context,
             array_add (blockNumbers, 5705175);
         }
     }
+
+    else if (0 == strcasecmp (address, "0xa9de3dbD7d561e67527bC1Ecb025c59D53b9F7Ef")) {
+        if (syncInterestMatch(interests, CLIENT_GET_BLOCKS_LOGS_AS_TARGET)) {
+            array_add (blockNumbers, 5506607);
+            array_add (blockNumbers, 5877545);
+        }
+
+        if (syncInterestMatch(interests, CLIENT_GET_BLOCKS_LOGS_AS_SOURCE)) {
+            array_add (blockNumbers, 5509990);
+            array_add (blockNumbers, 5509990);
+            array_add (blockNumbers, 5511681);
+        }
+
+        if (syncInterestMatch(interests, CLIENT_GET_BLOCKS_TRANSACTIONS_AS_TARGET)) {
+            array_add (blockNumbers, 5506602);
+        }
+
+        if (syncInterestMatch(interests, CLIENT_GET_BLOCKS_TRANSACTIONS_AS_SOURCE)) {
+            array_add (blockNumbers, 5506764);
+            array_add (blockNumbers, 5509990);
+            array_add (blockNumbers, 5511681);
+            array_add (blockNumbers, 5539808);
+        }
+    }
+
     else {
         array_add (blockNumbers, blockNumberStart);
         array_add (blockNumbers, (blockNumberStart + blockNumberStop) / 2);
@@ -265,6 +293,7 @@ clientGetBlocks (BREthereumClientContext context,
             array_rm (blockNumbers, index - 1);
 
     ethereumClientAnnounceBlocks (ewm, rid, (int) array_count(blockNumbers), blockNumbers);
+    array_free (blockNumbers);
 }
 
 static void
@@ -370,7 +399,7 @@ static void
 clientSaveNodes (BREthereumClientContext context,
                  BREthereumEWM ewm,
                  BRSetOf(BREthereumHashDataPair) nodesToSave) {
-    if (NULL != savedNodes)
+    if (NULL == savedNodes)
         savedNodes = hashDataPairSetCreateEmpty (BRSetCount(nodesToSave));
 
     BRSetUnion (savedNodes, nodesToSave);
@@ -414,7 +443,7 @@ clientUpdateTransaction (BREthereumClientContext context,
 //
 // Update Log
 //
-BRSetOf(BREthereumPersistData) savedLogs = NULL;
+BRSetOf(BREthereumHashDataPair) savedLogs = NULL;
 
 static void
 clientUpdateLog (BREthereumClientContext context,
@@ -506,6 +535,21 @@ clientEventEWM (BREthereumClientContext context,
     fprintf (stdout, "ETH: TST: EWMEvent: ev=%d\n", event);
 }
 
+static void
+clientRelease (void) {
+    BRSetApply(savedBlocks, NULL, hashDataPairReleaseForSet);
+    BRSetFree(savedBlocks);
+
+    BRSetApply(savedNodes, NULL, hashDataPairReleaseForSet);
+    BRSetFree(savedNodes);
+
+    BRSetApply(savedTransactions, NULL, hashDataPairReleaseForSet);
+    BRSetFree(savedTransactions);
+
+    BRSetApply(savedLogs, NULL, hashDataPairReleaseForSet);
+    BRSetFree(savedLogs);
+}
+
 static BREthereumClient client = {
     NULL,
 
@@ -569,6 +613,7 @@ runEWM_CONNECT_test (const char *paperKey) {
 
     //    ewmUpdateTransactions(ewm);
     testContextRelease(client.context);
+    clientRelease();
     ethereumDisconnect(ewm);
     ethereumDestroy(ewm);
 }
@@ -763,11 +808,17 @@ runSyncTest (BREthereumType type,
              int restart) {
     eth_log("TST", "SyncTest%s", "");
 
+    installTokensForTest();
+    
     client.context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
-//    char *paperKey = "boring head harsh green empty clip fatal typical found crane dinner timber";
+#if ! defined (DEBUG)
+    char *paperKey = "boring head harsh green empty clip fatal typical found crane dinner timber";
+#else
+    char *paperKey = "0xa9de3dbd7d561e67527bc1ecb025c59d53b9f7ef";
 //    char *paperKey = "0x8975dbc1b8f25ec994815626d070899dda896511";
-    char *paperKey = "0xb302B06FDB1348915599D21BD54A06832637E5E8";
+//    char *paperKey = "0xb302B06FDB1348915599D21BD54A06832637E5E8";
+#endif
     alarmClockCreateIfNecessary (1);
 
     BRSetOf(BREthereumHashDataPair) blocks = (restart ? savedBlocks : NULL);
@@ -815,9 +866,6 @@ runSyncTest (BREthereumType type,
     free (client.context);
     return;
 }
-
-extern void
-installTokensForTest (void);
 
 extern void
 runEWMTests (void) {

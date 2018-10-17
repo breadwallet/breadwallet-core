@@ -76,6 +76,10 @@ typedef struct {
     BRArrayOf(BREthereumBlockHeader) headers;
 } BREthereumProvisionHeaders;
 
+extern void
+provisionHeadersConsume (BREthereumProvisionHeaders *provision,
+                         BRArrayOf(BREthereumBlockHeader) *headers);
+
 /**
  * Bodies
  */
@@ -86,6 +90,11 @@ typedef struct {
     BRArrayOf(BREthereumBlockBodyPair) pairs;
 } BREthereumProvisionBodies;
 
+extern void
+provisionBodiesConsume (BREthereumProvisionBodies *provision,
+                        BRArrayOf(BREthereumHash) *hashes,
+                        BRArrayOf(BREthereumBlockBodyPair) *pairs);
+
 /**
  * Receipts
  */
@@ -95,6 +104,11 @@ typedef struct {
     // Response
     BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) receipts;
 } BREthereumProvisionReceipts;
+
+extern void
+provisionReceiptsConsume (BREthereumProvisionReceipts *provision,
+                          BRArrayOf(BREthereumHash) *hashes,
+                          BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) *receipts);
 
 /**
  * Accounts
@@ -107,6 +121,11 @@ typedef struct {
     BRArrayOf(BREthereumAccountState) accounts;
 } BREthereumProvisionAccounts;
 
+extern void
+provisionAccountsConsume (BREthereumProvisionAccounts *provision,
+                          BRArrayOf(BREthereumHash) *hashes,
+                          BRArrayOf(BREthereumAccountState) *accounts);
+
 /**
  *
  */
@@ -117,6 +136,11 @@ typedef struct {
     BRArrayOf(BREthereumTransactionStatus) statuses;
 } BREthereumProvisionStatuses;
 
+extern void
+provisionStatusesConsume (BREthereumProvisionStatuses *provision,
+                          BRArrayOf(BREthereumHash) *hashes,
+                          BRArrayOf(BREthereumTransactionStatus) *statuses);
+
 /**
  *
  */
@@ -126,6 +150,11 @@ typedef struct {
     // Response
     BREthereumTransactionStatus status;
 } BREthereumProvisionSubmission;
+
+extern void
+provisionSubmissionConsume (BREthereumProvisionSubmission *provision,
+                            BREthereumTransaction *transaction,
+                            BREthereumTransactionStatus *status);
 
 /// MARK: - Provision
 
@@ -160,6 +189,10 @@ provisionCreateMessage (BREthereumProvision *provision,
                         size_t index);
 
 extern void
+provisionRelease (BREthereumProvision *provision,
+                  BREthereumBoolean releaseResults);
+
+extern void
 provisionHandleMessage (BREthereumProvision *provision,
                         BREthereumMessage message,
                         size_t messageContentLimit,
@@ -189,6 +222,8 @@ typedef struct {
     } u;
 } BREthereumProvisionResult;
 
+extern void
+provisionResultRelease (BREthereumProvisionResult *result);
 
 typedef void *BREthereumProvisionCallbackContext;
 

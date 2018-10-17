@@ -64,15 +64,22 @@ typedef struct {
     UInt512  nodeId;
 } BREthereumP2PMessageHello;
 
+extern BREthereumP2PMessageHello
+messageP2PHelloCopy (BREthereumP2PMessageHello *message);
+
+extern void
+messageP2PHelloRelease (BREthereumP2PMessageHello *message);
+
 extern BRRlpItem
-messageP2PHelloEncode (BREthereumP2PMessageHello message, BREthereumMessageCoder coder);
+messageP2PHelloEncode (BREthereumP2PMessageHello message,
+                       BREthereumMessageCoder coder);
 
 extern BREthereumP2PMessageHello
 messageP2PHelloDecode (BRRlpItem item,
                        BREthereumMessageCoder coder);
 
 extern void
-messageP2PHelloShow (BREthereumP2PMessageHello hello);
+messageP2PHelloShow (const BREthereumP2PMessageHello *hello);
 
 extern BREthereumBoolean
 messageP2PCababilityEqual (const BREthereumP2PCapability *cap1,
@@ -140,6 +147,9 @@ messageP2PDecode (BRRlpItem item,
                   BREthereumMessageCoder coder,
                   BREthereumP2PMessageIdentifier identifer);
 
+extern void
+messageP2PRelease (BREthereumP2PMessage *message);
+
 /// MARK : - P2P Status Message Faker
 
 typedef enum {
@@ -196,6 +206,18 @@ typedef struct {
     BRArrayOf(BREthereumP2PMessageStatusKeyValuePair) pairs;
 } BREthereumP2PMessageStatus;
 
+extern BREthereumP2PMessageStatus
+messageP2PStatusCreate (uint64_t protocolVersion,
+                        uint64_t chainId,
+                        uint64_t headNum,
+                        BREthereumHash headHash,
+                        UInt256 headTd,
+                        BREthereumHash genesisHash,
+                        uint64_t announceType);
+
+extern BREthereumP2PMessageStatus
+messageP2PStatusCopy (BREthereumP2PMessageStatus *status);
+
 extern int
 messageP2PStatusExtractValue (BREthereumP2PMessageStatus *status,
                               BREthereumP2MessageStatusKey key,
@@ -212,6 +234,9 @@ extern BREthereumP2PMessageStatus
 messageP2PStatusDecode (BRRlpItem item,
                         BREthereumMessageCoder coder,
                         BRRlpItem *costItem);
+
+extern void
+messageP2PStatusRelease (BREthereumP2PMessageStatus *status);
 
 #ifdef __cplusplus
 }

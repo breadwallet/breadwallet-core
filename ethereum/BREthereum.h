@@ -155,7 +155,7 @@ typedef void
 typedef void
 (*BREthereumClientHandlerGetBlocks) (BREthereumClientContext context,
                                      BREthereumEWM ewm,
-                                     const char *address,
+                                     const char *address, // disappears immediately
                                      BREthereumSyncInterestSet interests,
                                      uint64_t blockNumberStart,
                                      uint64_t blockNumberStop,
@@ -177,24 +177,24 @@ typedef enum {
 typedef void
 (*BREthereumClientHandlerSaveBlocks) (BREthereumClientContext context,
                                       BREthereumEWM ewm,
-                                      BRSetOf(BREthereumHashDataPair) data);
+                                      OwnershipGiven BRSetOf(BREthereumHashDataPair) data);
 
 typedef void
 (*BREthereumClientHandlerSaveNodes) (BREthereumClientContext context,
                                      BREthereumEWM ewm,
-                                     BRSetOf(BREthereumHashDataPair) data);
+                                     OwnershipGiven BRSetOf(BREthereumHashDataPair) data);
 
 typedef void
 (*BREthereumClientHandlerChangeTransaction) (BREthereumClientContext context,
                                              BREthereumEWM ewm,
                                              BREthereumClientChangeType type,
-                                             BREthereumHashDataPair data);
+                                             OwnershipGiven  BREthereumHashDataPair data);
 
 typedef void
 (*BREthereumClientHandlerChangeLog) (BREthereumClientContext context,
                                      BREthereumEWM ewm,
                                      BREthereumClientChangeType type,
-                                     BREthereumHashDataPair data);
+                                     OwnershipGiven  BREthereumHashDataPair data);
 
 //
 // Wallet Event

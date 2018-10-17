@@ -135,6 +135,9 @@ blockHeaderCompare (BREthereumBlockHeader h1,
 extern BREthereumBlockHeader
 blockHeaderCopy (BREthereumBlockHeader source);
 
+extern void
+blockHeadersRelease (BRArrayOf(BREthereumBlockHeader) headers);
+
 /// MARK: Block
 
 //
@@ -155,8 +158,8 @@ blockCreate (BREthereumBlockHeader header);
 
 extern void
 blockUpdateBody (BREthereumBlock block,
-                 BREthereumBlockHeader *ommers,
-                 BREthereumTransaction *transactions);
+                 BRArrayOf(BREthereumBlockHeader) ommers,
+                 BRArrayOf(BREthereumTransaction) transactions);
 
 extern void
 blockRelease (BREthereumBlock block);
@@ -235,6 +238,9 @@ blockHashEqual (const void *h1, const void *h2);
 extern void
 blockReleaseForSet (void *ignore, void *item);
 
+extern void
+blocksRelease (OwnershipGiven BRArrayOf(BREthereumBlock) blocks);
+
 
 //
 // MARK: - Block Next (Chaining)
@@ -266,6 +272,12 @@ typedef struct {
     BRArrayOf(BREthereumTransaction) transactions;
     BRArrayOf(BREthereumBlockHeader) uncles;
 } BREthereumBlockBodyPair;
+
+extern void
+blockBodyPairRelease (BREthereumBlockBodyPair *pair);
+
+extern void
+blockBodyPairsRelease (BRArrayOf(BREthereumBlockBodyPair) pairs);
 
 /// MARK: - Block Status
 
@@ -381,6 +393,11 @@ extern BREthereumBoolean
 blockHasStatusLog (BREthereumBlock block,
                    BREthereumLog log);
 
+extern void
+blockReleaseStatus (BREthereumBlock block,
+                    BREthereumBoolean releaseTransactions,
+                    BREthereumBoolean releaseLogs);
+
 //
 // MARK: - Block Decoding for LES
 //
@@ -388,7 +405,7 @@ blockHasStatusLog (BREthereumBlock block,
 /**
  * Return BRArrayOf(BREthereumBlockHeader) w/ array owned by caller.
  */
-extern BREthereumBlockHeader *
+extern BRArrayOf(BREthereumBlockHeader)
 blockOmmersRlpDecode (BRRlpItem item,
                       BREthereumNetwork network,
                       BREthereumRlpType type,
@@ -397,7 +414,7 @@ blockOmmersRlpDecode (BRRlpItem item,
 /**
  * Return BRArrayOf(BREthereumTransaction) w/ array owned by caller
  */
-extern BREthereumTransaction *
+extern BRArrayOf(BREthereumTransaction)
 blockTransactionsRlpDecode (BRRlpItem item,
                             BREthereumNetwork network,
                             BREthereumRlpType type,

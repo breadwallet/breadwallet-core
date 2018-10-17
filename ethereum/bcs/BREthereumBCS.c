@@ -181,10 +181,10 @@ bcsCreate (BREthereumNetwork network,
            BREthereumAddress address,
            BREthereumBCSListener listener,
            BREthereumSyncMode syncMode,
-           BRSetOf(BREthereumNodeConfig) peers,
-           BRSetOf(BREthereumBlock) blocks,
-           BRSetOf(BREthereumTransaction) transactions,
-           BRSetOf(BREthereumLog) logs) {
+           OwnershipGiven BRSetOf(BREthereumNodeConfig) peers,
+           OwnershipGiven BRSetOf(BREthereumBlock) blocks,
+           OwnershipGiven BRSetOf(BREthereumTransaction) transactions,
+           OwnershipGiven BRSetOf(BREthereumLog) logs) {
 
     BREthereumBCS bcs = (BREthereumBCS) calloc (1, sizeof(struct BREthereumBCSStruct));
 
@@ -304,28 +304,28 @@ bcsDestroy (BREthereumBCS bcs) {
     if (ETHEREUM_BOOLEAN_IS_TRUE(bcsIsStarted(bcs)))
         bcsStop (bcs);
 
-    lesRelease(bcs->les);
+    lesRelease (bcs->les);
 
     // TODO: We'll need to announce things to our `listener`
 
     // Headers
-    BRSetApply(bcs->blocks, NULL, blockReleaseForSet);
-    BRSetFree(bcs->blocks);
+    BRSetApply (bcs->blocks, NULL, blockReleaseForSet);
+    BRSetFree (bcs->blocks);
 
-    // Orphans (All are in 'headers')
-    BRSetFree(bcs->orphans);
+    // Orphans (All are in 'blocks') so don't release the block.
+    BRSetFree (bcs->orphans);
 
     // Transaction
-    BRSetApply(bcs->transactions, NULL, transactionReleaseForSet);
-    BRSetFree(bcs->transactions);
+    BRSetApply (bcs->transactions, NULL, transactionReleaseForSet);
+    BRSetFree (bcs->transactions);
 
     // Logs
-    BRSetApply(bcs->logs, NULL, logReleaseForSet);
-    BRSetFree(bcs->logs);
+    BRSetApply (bcs->logs, NULL, logReleaseForSet);
+    BRSetFree (bcs->logs);
 
     // pending transactions/logs are in bcs->transactions/logs; thus already released.
-    array_free(bcs->pendingTransactions);
-    array_free(bcs->pendingLogs);
+    array_free (bcs->pendingTransactions);
+    array_free (bcs->pendingLogs);
 
     // Destroy the Event w/ queue
     eventHandlerDestroy(bcs->handler);
@@ -432,6 +432,7 @@ bcsReportInterestingBlocks (BREthereumBCS bcs,
                                 (BREthereumLESProvisionContext) bcs,
                                 (BREthereumLESProvisionCallback) bcsSignalProvision,
                                 blockNumbers[index], 1, 0, ETHEREUM_BOOLEAN_FALSE);
+    array_free (blockNumbers);
 }
 
 extern void
@@ -490,10 +491,11 @@ static void
 bcsReclaimBlock (BREthereumBCS bcs,
                  BREthereumBlock block,
                  int useLog) {
-    BRSetRemove(bcs->blocks, block);
+    BRSetRemove (bcs->orphans, block);  // needed, or overly cautious?
+    BRSetRemove (bcs->blocks,  block);
     if (useLog) eth_log("BCS", "Block %llu Reclaimed", blockGetNumber(block));
 
-    // TODO: Avoid dangling references
+    // TODO: Avoid dangling references - need to identify one/some first.
 
     blockRelease(block);
 }
@@ -609,21 +611,25 @@ static void
 bcsPurgeOrphans (BREthereumBCS bcs,
                  uint64_t blockNumber) {
     // If blockNumber is below AGE_OFFSET, then there is nothing to do.  Said another way,
-    // don't orphans when we are syncing from the genesis block.
+    // don't orphan when we are syncing from the genesis block.
     if (blockNumber <= BCS_ORPHAN_AGE_OFFSET) return;
 
     // Modify blockNumber for comparision with orphans
     blockNumber -= BCS_ORPHAN_AGE_OFFSET;
 
-    // Look through all the orphans; remove those with old/small block numbers
+    // Look through all the orphans; remove those with old/small block numbers.  But, don't purge
+    // any block this is pending blocks/receipts.
     int keepLooking = 1;
     while (keepLooking) {
         keepLooking = 0;
-        FOR_SET(BREthereumBlock, orphan, bcs->orphans)
-            if (blockGetNumber(orphan) < blockNumber) {
+        FOR_SET (BREthereumBlock, orphan, bcs->orphans)
+            if (blockGetNumber(orphan) < blockNumber &&
+                ETHEREUM_BOOLEAN_IS_TRUE (blockHasStatusComplete(orphan))) {
                 BRSetRemove(bcs->orphans, orphan);
                 eth_log("BCS", "Block %llu Purged Orphan", blockGetNumber(orphan));
-                blockRelease(orphan); // TODO: Pending Requests... crash?
+
+                // TODO: Don't release `orphan` if it is in `bcs->blocks`
+//                blockRelease(orphan);
                 keepLooking = 1;
                 break; // FOR_SET
             }
@@ -754,7 +760,7 @@ bcsPendOrphanedTransactionsAndLogs (BREthereumBCS bcs) {
         status = logGetStatus(log);
         if (transactionStatusExtractIncluded(&status, NULL, &blockHash, NULL, NULL) &&
             NULL != BRSetGet (bcs->orphans, &blockHash)) {
-            array_add(bcs->pendingLogs, logGetHash(log));
+            array_add (bcs->pendingLogs, logGetHash(log));
         }
     }
 }
@@ -821,6 +827,10 @@ bcsExtendTransactionsAndLogsForBlock (BREthereumBCS bcs,
     if (NULL != blockStatus.logs)
         for (size_t li = 0; li < array_count(blockStatus.logs); li++)
             bcsHandleLog (bcs, blockStatus.logs[li]);
+
+    // Clear the status but don't touch {Transactions,Logs} (they have OwnershipGiven by the
+    // above calls to bcsHandle{Transaction,Log}()).
+    blockReleaseStatus (block, ETHEREUM_BOOLEAN_FALSE, ETHEREUM_BOOLEAN_FALSE);
 
     // If not in chain and not an orphan, then reclaim
     if (bcs->chainTail != block && NULL == blockGetNext(block) && NULL == BRSetGet(bcs->orphans, block))
@@ -1004,7 +1014,7 @@ bcsBlockHasMatchingLogs (BREthereumBCS bcs,
  */
 static void
 bcsHandleBlockHeaderInternal (BREthereumBCS bcs,
-                              BREthereumBlockHeader header,
+                              OwnershipGiven BREthereumBlockHeader header,
                               int isFromSync,
                               BRArrayOf(BREthereumHash) *bodiesHashes,
                               BRArrayOf(BREthereumHash) *receiptsHashes,
@@ -1028,7 +1038,8 @@ bcsHandleBlockHeaderInternal (BREthereumBCS bcs,
 
     // ?? Other checks ??
 
-    // We have a header that appears consistent.  Create a block and work to fill it out.
+    // We have a header that appears consistent.  Create a block and work to fill it out. Note
+    // that `header` memory ownership is transferred to `block`
     BREthereumBlock block = blockCreate(header);
     BRSetAdd(bcs->blocks, block);
 
@@ -1042,7 +1053,7 @@ bcsHandleBlockHeaderInternal (BREthereumBCS bcs,
     BREthereumBoolean needReceipts = bcsBlockHasMatchingLogs(bcs, block);
     BREthereumBoolean needAccount  = bcsBlockNeedsAccountState(bcs, block);
 
-    // Request block bodied, if needed.
+    // Request block bodies, if needed.
     if (ETHEREUM_BOOLEAN_IS_TRUE(needBodies)) {
         blockReportStatusTransactionsRequest(block, BLOCK_REQUEST_PENDING);
         if (NULL == *bodiesHashes) array_new (*bodiesHashes, 200);
@@ -1077,17 +1088,19 @@ bcsHandleBlockHeaderInternal (BREthereumBCS bcs,
 
 static void
 bcsHandleBlockHeaders (BREthereumBCS bcs,
-                       BRArrayOf(BREthereumBlockHeader) headers,
+                       OwnershipGiven BRArrayOf(BREthereumBlockHeader) headers,
                        int isFromSync) {
     BRArrayOf(BREthereumHash) bodiesHashes = NULL;
     BRArrayOf(BREthereumHash) receiptsHashes = NULL;
     BRArrayOf(BREthereumHash) accountsHashes = NULL;
 
     for (size_t index = 0; index < array_count(headers); index++)
+        // Each `headers[index]` has 'OwnershipGiven'
         bcsHandleBlockHeaderInternal (bcs, headers[index], isFromSync,
                                       &bodiesHashes,
                                       &receiptsHashes,
                                       &accountsHashes);
+    array_free(headers);
 
     if (NULL != bodiesHashes && array_count(bodiesHashes) > 0)
         lesProvideBlockBodies (bcs->les,
@@ -1159,10 +1172,12 @@ bcsHandleAccountState (BREthereumBCS bcs,
 static void
 bcsHandleAccountStates (BREthereumBCS bcs,
                         BREthereumAddress address,
-                        BRArrayOf(BREthereumHash) hashes,
-                        BRArrayOf(BREthereumAccountState) states) {
+                        OwnershipGiven BRArrayOf(BREthereumHash) hashes,
+                        OwnershipGiven BRArrayOf(BREthereumAccountState) states) {
     for (size_t index = 0; index < array_count(hashes); index++)
         bcsHandleAccountState (bcs, address, hashes[index], states[index]);
+    array_free (hashes);
+    array_free (states);
 }
 
 ///
@@ -1173,22 +1188,17 @@ bcsHandleAccountStates (BREthereumBCS bcs,
  */
 static void
 bcsReleaseOmmersAndTransactionsFully (BREthereumBCS bcs,
-                                      BREthereumTransaction *transactions,
-                                      BREthereumBlockHeader *ommers) {
-    for (size_t index = 0; index < array_count(transactions); index++)
-        transactionRelease(transactions[index]);
-    array_free(transactions);
-
-    for (size_t index = 0; index < array_count(ommers); index++)
-        blockHeaderRelease(ommers[index]);
-    array_free(ommers);
+                                      OwnershipGiven BRArrayOf(BREthereumTransaction) transactions,
+                                      OwnershipGiven BRArrayOf(BREthereumBlockHeader) ommers) {
+    transactionsRelease(transactions);
+    blockHeadersRelease(ommers);
 }
 
 static void
 bcsHandleBlockBody (BREthereumBCS bcs,
-                      BREthereumHash blockHash,
-                      BREthereumTransaction transactions[],
-                      BREthereumBlockHeader ommers[]) {
+                    BREthereumHash blockHash,
+                    OwnershipGiven BRArrayOf(BREthereumTransaction) transactions,
+                    OwnershipGiven BRArrayOf(BREthereumBlockHeader) ommers) {
     // Ensure we have a Block
     BREthereumBlock block = BRSetGet(bcs->blocks, &blockHash);
     if (NULL == block) {
@@ -1210,8 +1220,9 @@ bcsHandleBlockBody (BREthereumBCS bcs,
     // We must be in a 'bodies needed' status
     assert (ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusTransactionsRequest(block, BLOCK_REQUEST_PENDING)));
 
-    eth_log("BCS", "Bodies %llu Count %lu",
+    eth_log("BCS", "Bodies %llu O:%2lu, T:%3lu",
             blockGetNumber(block),
+            array_count(ommers),
             array_count(transactions));
 
     // Update `block` with the reported ommers and transactions.  Note that generally
@@ -1283,10 +1294,13 @@ bcsHandleBlockBody (BREthereumBCS bcs,
 
 static void
 bcsHandleBlockBodies (BREthereumBCS bcs,
-                      BRArrayOf(BREthereumHash) hashes,
-                      BRArrayOf(BREthereumBlockBodyPair) pairs) {
+                      OwnershipGiven BRArrayOf(BREthereumHash) hashes,
+                      OwnershipGiven BRArrayOf(BREthereumBlockBodyPair) pairs) {
     for (size_t index = 0; index < array_count(hashes); index++)
+        // Transactions and Uncles have 'OwnershipGiven'
         bcsHandleBlockBody (bcs, hashes[index], pairs[index].transactions, pairs[index].uncles);
+    array_free (hashes);
+    array_free (pairs);
 }
 
 ///
@@ -1321,16 +1335,14 @@ bcsHandleLogExtractInterest (BREthereumBCS bcs,
  */
 static void
 bcsReleaseReceiptsFully (BREthereumBCS bcs,
-                         BREthereumTransactionReceipt *receipts) {
-    for (size_t index = 0; index < array_count(receipts); index++)
-        transactionReceiptRelease(receipts[index]);
-    array_free (receipts);
+                         OwnershipGiven BRArrayOf(BREthereumTransactionReceipt) receipts) {
+    transactionReceiptsRelease(receipts);
 }
 
 static void
 bcsHandleTransactionReceipts (BREthereumBCS bcs,
                               BREthereumHash blockHash,
-                              BRArrayOf(BREthereumTransactionReceipt) receipts) {
+                              OwnershipGiven BRArrayOf(BREthereumTransactionReceipt) receipts) {
     // Ensure we have a Block
     BREthereumBlock block = BRSetGet(bcs->blocks, &blockHash);
     if (NULL == block) {
@@ -1409,6 +1421,7 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
     bcsReleaseReceiptsFully(bcs, receipts);
 
     // Report the block status - we'll flag as BLOCK_REQUEST_COMPLETE (even if none of interest).
+    // The `block` now owners `neededLogs`
     blockReportStatusLogs(block, neededLogs);
     // And report the gasUsed per transaction
     blockReportStatusGasUsed(block, gasUsedByTransaction);
@@ -1428,7 +1441,7 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
     }
 
     if (ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusTransactionsRequest(block, BLOCK_REQUEST_COMPLETE)))
-        blockLinkLogsWithTransactions (block);
+        blockLinkLogsWithTransactions (block); // gasUsedByTransaction has been used; still in status
 
     // In the following, 'if appropriate' means complete and chained.
     bcsExtendTransactionsAndLogsForBlockIfAppropriate (bcs, block);
@@ -1436,10 +1449,13 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
 
 static void
 bcsHandleTransactionReceiptsMultiple (BREthereumBCS bcs,
-                                      BRArrayOf(BREthereumHash) hashes,
-                                      BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) arrayOfReceipts) {
+                                      OwnershipGiven BRArrayOf(BREthereumHash) hashes,
+                                      OwnershipGiven BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) arrayOfReceipts) {
     for (size_t index = 0; index < array_count(hashes); index++)
+        // Each `arrayOfReceipts[index]` has 'OwnershipGiven'
         bcsHandleTransactionReceipts(bcs, hashes[index], arrayOfReceipts[index]);
+    array_free (hashes);
+    array_free (arrayOfReceipts);
 }
 
 ///
@@ -1540,10 +1556,12 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
 
 static void
 bcsHandleTransactionStatuses (BREthereumBCS bcs,
-                              BRArrayOf(BREthereumHash) hashes,
-                              BRArrayOf(BREthereumTransactionStatus) statuses) {
+                              OwnershipGiven BRArrayOf(BREthereumHash) hashes,
+                              OwnershipGiven BRArrayOf(BREthereumTransactionStatus) statuses) {
     for (size_t index = 0; index < array_count(hashes); index++)
         bcsHandleTransactionStatus (bcs, hashes[index], statuses[index]);
+    array_free (hashes);
+    array_free (statuses);
 }
 
 //
@@ -1573,20 +1591,28 @@ bcsPeriodicDispatcher (BREventHandler handler,
 
 extern void
 bcsHandleTransaction (BREthereumBCS bcs,
-                      BREthereumTransaction transaction) {
+                      OwnershipGiven BREthereumTransaction transaction) {
     int needUpdated = 1;
+    int needRelease = 1;
+
+    // We own transaction... but we pass it to transactionCallback. And we might pass it
+    // up to three full times (actually at most two times, based on the detailed logic).
 
     // See if we have an existing transaction...
     BREthereumTransaction oldTransaction = BRSetGet(bcs->transactions, transaction);
 
     // ... if we don't, then add it and announce it as `ADDED`
     if (NULL == oldTransaction) {
-        BRSetAdd(bcs->transactions, transactionCopy(transaction));
+        // We copy here as we are passing `transaction` to callback.
+        BRSetAdd(bcs->transactions, transaction);
+        needRelease = 0;
+
         bcs->listener.transactionCallback (bcs->listener.context,
                                            BCS_CALLBACK_TRANSACTION_ADDED,
-                                           transaction);
+                                           transactionCopy(transaction));
         needUpdated = 0;
     }
+
     // otherwise, it is already known and we'll update it's status
     else {
         transactionSetStatus(oldTransaction, transactionGetStatus(transaction));
@@ -1603,8 +1629,7 @@ bcsHandleTransaction (BREthereumBCS bcs,
                 BRSetRemove(bcs->transactions, transaction);
                 bcs->listener.transactionCallback (bcs->listener.context,
                                                    BCS_CALLBACK_TRANSACTION_DELETED,
-                                                   transaction);
-                transactionRelease(transaction);
+                                                   transactionCopy(transaction));
                 needUpdated = 0;
             }
             break;
@@ -1618,25 +1643,35 @@ bcsHandleTransaction (BREthereumBCS bcs,
     if (needUpdated)
         bcs->listener.transactionCallback (bcs->listener.context,
                                            BCS_CALLBACK_TRANSACTION_UPDATED,
-                                           transaction);
+                                           transactionCopy(transaction));
+
+    if (needRelease)
+        transactionRelease (transaction);
 }
+
 
 /*!
  */
 extern void
 bcsHandleLog (BREthereumBCS bcs,
-              BREthereumLog log) {
-    int needUpdate = 1;
+              OwnershipGiven BREthereumLog log) {
+    int needUpdate  = 1;
+    int needRelease = 1;
 
     BREthereumLog oldLog = BRSetGet(bcs->logs, log);
 
+    // If log is not in bcs->logs, then we need to add it.
     if (NULL == oldLog) {
         BRSetAdd(bcs->logs, log);
+        needRelease = 0;
+
         bcs->listener.logCallback (bcs->listener.context,
                                    BCS_CALLBACK_LOG_ADDED,
-                                   log);
+                                   logCopy(log));
         needUpdate = 0;
     }
+
+    // but if log is in bcs->logs, then update the old log's status to match `log`.
     else
         logSetStatus(oldLog, logGetStatus(log));
 
@@ -1652,8 +1687,7 @@ bcsHandleLog (BREthereumBCS bcs,
                 BRSetRemove(bcs->logs, log);
                 bcs->listener.logCallback (bcs->listener.context,
                                            BCS_CALLBACK_LOG_DELETED,
-                                           log);
-                logRelease(log);
+                                           logCopy(log));
                 needUpdate = 0;
             }
             break;
@@ -1666,7 +1700,10 @@ bcsHandleLog (BREthereumBCS bcs,
     if (needUpdate)
         bcs->listener.logCallback (bcs->listener.context,
                                    BCS_CALLBACK_LOG_UPDATED,
-                                   log);
+                                   logCopy(log));
+
+    if (needRelease)
+        logRelease(log);
 }
 
 extern void
@@ -1718,7 +1755,7 @@ extern void
 bcsHandleProvision (BREthereumBCS bcs,
                     BREthereumLES les,
                     BREthereumNodeReference node,
-                    BREthereumProvisionResult result) {
+                    OwnershipGiven BREthereumProvisionResult result) {
     assert (bcs->les == les);
     switch (result.status) {
         case PROVISION_ERROR:
@@ -1729,38 +1766,44 @@ bcsHandleProvision (BREthereumBCS bcs,
             assert (result.type == provision->type);
             switch (result.type) {
                 case PROVISION_BLOCK_HEADERS: {
-                    bcsHandleBlockHeaders (bcs,
-                                           provision->u.headers.headers,
-                                           0);
+                    BRArrayOf(BREthereumBlockHeader) headers;
+                    provisionHeadersConsume (&provision->u.headers, &headers);
+                    bcsHandleBlockHeaders (bcs, headers, 0);
                     break;
                 }
 
                 case PROVISION_BLOCK_BODIES: {
-                    bcsHandleBlockBodies (bcs,
-                                          provision->u.bodies.hashes,
-                                          provision->u.bodies.pairs);
+                    BRArrayOf(BREthereumHash) hashes;
+                    BRArrayOf(BREthereumBlockBodyPair) pairs;
+                    provisionBodiesConsume (&provision->u.bodies, &hashes, &pairs);
+                    bcsHandleBlockBodies (bcs, hashes, pairs);
                     break;
                 }
 
                 case PROVISION_TRANSACTION_RECEIPTS: {
-                    bcsHandleTransactionReceiptsMultiple (bcs,
-                                                          provision->u.receipts.hashes,
-                                                          provision->u.receipts.receipts);
+                    BRArrayOf(BREthereumHash) hashes;
+                    BRArrayOf(BRArrayOf(BREthereumTransactionReceipt)) receipts;
+                    provisionReceiptsConsume(&provision->u.receipts, &hashes, &receipts);
+                    bcsHandleTransactionReceiptsMultiple (bcs, hashes, receipts);
                     break;
                 }
 
                 case PROVISION_ACCOUNTS: {
+                    BRArrayOf(BREthereumHash) hashes;
+                    BRArrayOf(BREthereumAccountState) accounts;
+                    provisionAccountsConsume (&provision->u.accounts, &hashes, &accounts);
                     bcsHandleAccountStates (bcs,
                                             provision->u.accounts.address,
-                                            provision->u.accounts.hashes,
-                                            provision->u.accounts.accounts);
+                                            hashes,
+                                            accounts);
                     break;
                 }
 
                 case PROVISION_TRANSACTION_STATUSES: {
-                    bcsHandleTransactionStatuses (bcs,
-                                                  provision->u.statuses.hashes,
-                                                  provision->u.statuses.statuses);
+                    BRArrayOf(BREthereumHash) hashes;
+                    BRArrayOf(BREthereumTransactionStatus) statuses;
+                    provisionStatusesConsume (&provision->u.statuses, &hashes, &statuses);
+                    bcsHandleTransactionStatuses (bcs, hashes, statuses);
                     break;
                 }
                     
@@ -1770,5 +1813,9 @@ bcsHandleProvision (BREthereumBCS bcs,
             break;
         }
     }
+
+    // We won result and have finished with it.  Must release - which will release the
+    // included provision.
+    provisionResultRelease (&result);
 }
 

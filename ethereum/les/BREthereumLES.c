@@ -76,6 +76,12 @@ static ssize_t
 lesFindRequestForProvision (BREthereumLES les,
                             BREthereumProvision *provision);
 
+static void
+lesDeactivateNode (BREthereumLES les,
+                   BREthereumNodeEndpointRoute route,
+                   BREthereumNode node,
+                   const char *explain);
+
 typedef void* (*ThreadRoutine) (void*);
 
 static void *
@@ -180,10 +186,10 @@ static BREthereumNodeConfig
 nodeConfigCreate (BREthereumNode node) {
     BREthereumNodeConfig config = calloc (1, sizeof (struct BREthereumNodeConfigRecord));
 
-    BREthereumNodeEndpoint *ne = nodeGetRemoteEndpoint(node);
+    BREthereumNodeEndpoint ne = nodeGetRemoteEndpoint(node);
 
-    config->key = ne->dis.key;
-    config->endpoint = ne->dis.node;
+    config->key = nodeEndpointGetDISNeighbor(ne).key;
+    config->endpoint = nodeEndpointGetDISNeighbor(ne).node;
     config->state = nodeGetState(node, NODE_ROUTE_TCP);
 
     config->hash = hashCreateFromData((BRRlpData) { 64, &config->key.pubKey[1] });
@@ -208,6 +214,10 @@ nodeConfigHashEqual (const void *t1, const void *t2) {
                                      &((BREthereumNodeConfig) t2)->hash);
 }
 
+static inline void
+nodeConfigReleaseForSet (void *ignore, void *item) {
+    nodeConfigRelease ((BREthereumNodeConfig) item);
+}
 
 /**
  * A LES Request is a LES Message with associated callbacks.  We'll send the message (once we have
@@ -242,6 +252,23 @@ typedef struct {
 //    size_t nodeIndex;
 } BREthereumLESRequest;
 
+static void
+requestRelease (BREthereumLESRequest *request) {
+    // TODO: Figure out 'request/node provisions sharing memory'.
+
+    // Don't release a provision if it is 'owned' by a `node` - the node will release it.
+    if (NULL == request->node)
+        provisionRelease(&request->provision, ETHEREUM_BOOLEAN_TRUE);
+}
+
+static void
+requestsRelease (OwnershipGiven BRArrayOf(BREthereumLESRequest) requests) {
+    if (NULL != requests) {
+        for (size_t index = 0; index < array_count(requests); index++)
+            requestRelease(&requests[index]);
+        array_free(requests);
+    }
+}
 /// MARK: - LES
 
 /**
@@ -293,51 +320,13 @@ struct BREthereumLESRecord {
     int theTimeToQuitIsNow;
 };
 
-static void
-assignLocalEndpointHelloMessage (BREthereumNodeEndpoint *endpoint) {
-    // From https://github.com/ethereum/wiki/wiki/ÐΞVp2p-Wire-Protocol on 2019 Aug 21
-    // o p2pVersion: Specifies the implemented version of the P2P protocol. Now must be 1
-    // o listenPort: specifies the port that the client is listening on (on the interface that the
-    //    present connection traverses). If 0 it indicates the client is not listening.
-    BREthereumP2PMessage hello = {
-        P2P_MESSAGE_HELLO,
-        { .hello  = {
-            P2P_MESSAGE_VERSION,
-            strdup (LES_LOCAL_ENDPOINT_NAME),
-            NULL, // capabilities
-            endpoint->dis.node.portTCP,
-            {}
-        }}};
-
-    //
-    // Extend `capabilities` with supported subprotocols: LESv2 and/or PIPv1
-    //
-    array_new (hello.u.hello.capabilities, 2);
-
-#if defined (LES_SUPPORT_GETH)
-    array_add (hello.u.hello.capabilities, ((BREthereumP2PCapability) { "les", 2 }));
-#endif
-
-#if defined (LES_SUPPORT_PARITY)
-    array_add (hello.u.hello.capabilities, ((BREthereumP2PCapability) { "pip", 1 }));
-#endif
-
-    // The NodeID is the 64-byte (uncompressed) public key
-    uint8_t pubKey[65];
-    assert (65 == BRKeyPubKey (&endpoint->dis.key, pubKey, 65));
-    memcpy (hello.u.hello.nodeId.u8, &pubKey[1], 64);
-
-    nodeEndpointSetHello (endpoint, hello);
-    messageP2PHelloShow (hello.u.hello);
-}
-
 static BREthereumNode
 lesEnsureNodeForEndpoint (BREthereumLES les,
-                          BREthereumNodeEndpoint endpoint,
+                          OwnershipGiven BREthereumNodeEndpoint endpoint,
                           BREthereumNodeState state,
                           BREthereumBoolean preferred,
                           BREthereumBoolean *added) {
-    BREthereumHash hash = endpoint.hash;
+    BREthereumHash hash = nodeEndpointGetHash(endpoint);
 
     pthread_mutex_lock (&les->lock);
 
@@ -351,8 +340,8 @@ lesEnsureNodeForEndpoint (BREthereumLES les,
     if (NULL == node) {
         // This endpoint is new so we'll create a node and then ...
         node = nodeCreate (les->network,
-                           endpoint,
                            les->localEndpoint,
+                           endpoint,
                            (BREthereumNodeContext) les,
                            (BREthereumNodeCallbackStatus) lesHandleStatus,
                            (BREthereumNodeCallbackAnnounce) lesHandleAnnounce,
@@ -385,10 +374,10 @@ lesEnsureNodeForEndpoint (BREthereumLES les,
     return node;
 }
 
-extern int
-nodeEndpointIsPreferred (BREthereumNodeEndpoint *endpoint,
+static int
+nodeEndpointIsPreferred (const BREthereumNodeEndpoint endpoint,
                          const char *enodes[]) {
-    BREthereumDISNeighborEnode enode = neighborDISAsEnode (endpoint->dis, 1);
+    BREthereumDISNeighborEnode enode = neighborDISAsEnode (nodeEndpointGetDISNeighbor(endpoint), 1);
     for (size_t index = 0; NULL != enodes[index]; index++)
         if (0 == strcmp (enode.chars, enodes[index]))
             return 1;
@@ -408,7 +397,7 @@ lesCreate (BREthereumNetwork network,
            uint64_t headNumber,
            UInt256 headTotalDifficulty,
            BREthereumHash genesisHash,
-           BRSetOf(BREthereumNodeConfig) configs) {
+           OwnershipGiven BRSetOf(BREthereumNodeConfig) configs) {
     
     BREthereumLES les = (BREthereumLES) calloc (1, sizeof(struct BREthereumLESRecord));
     assert (NULL != les);
@@ -432,6 +421,19 @@ lesCreate (BREthereumNetwork network,
     les->callbackStatus = callbackStatus;
     les->callbackSaveNodes = callbackSaveNodes;
 
+    // Our P2P capabilities - support subprotocols: LESv2 and/or PIPv1
+    BRArrayOf (BREthereumP2PCapability) capabilities;
+    array_new (capabilities, 2);
+
+#if defined (LES_SUPPORT_GETH)
+    array_add (capabilities, ((BREthereumP2PCapability) { "les", LES_SUPPORT_GETH_VERSION }));
+#endif
+
+#if defined (LES_SUPPORT_PARITY)
+    array_add (capabilities, ((BREthereumP2PCapability) { "pip", LES_SUPPORT_PARITY_VERSION }));
+#endif
+
+    // Create the localEndpoint
     {
         // Use the privateKey to create a randomContext
         BREthereumLESRandomContext randomContext =  randomCreate (les->key.secret.u8, 32);
@@ -445,7 +447,8 @@ lesCreate (BREthereumNetwork network,
     // The 'hello' message is fixed; assign it to the local endpoint. We'll support local
     // capabilities as [ { "les", 2 }, { "pip", 1 } ] - but then require the remote to have one of
     // the two.  Depending on the shared capability, we'll assign the node type as GETH or PARITY.
-    assignLocalEndpointHelloMessage (&les->localEndpoint);
+    nodeEndpointDefineHello (les->localEndpoint, LES_LOCAL_ENDPOINT_NAME, capabilities);
+    nodeEndpointShowHello   (les->localEndpoint);
 
     // The 'status' message is not fixed; create one and assign it to the local endpoint.  The
     // status message likely depends on the node type, GETH or PARITY. Specifically the
@@ -458,19 +461,14 @@ lesCreate (BREthereumNetwork network,
     //
     // This is the only place where { headNumber, headHash, headTotalDifficult, genesitHash} are
     // preserved.
-    BREthereumMessage status = {
-        MESSAGE_LES,
-        { .les = {
-            LES_MESSAGE_STATUS,
-            { .status = messageLESStatusCreate (0x02,  // LES v2
-                                                networkGetChainId(network),
-                                                headNumber,
-                                                headHash,
-                                                headTotalDifficulty,
-                                                genesisHash,
-                                                0x01) }}} // Announce type (of LES v2)
-    };
-    nodeEndpointSetStatus(&les->localEndpoint, status);
+    nodeEndpointSetStatus (les->localEndpoint,
+                           messageP2PStatusCreate (0x00,  // ignored
+                                                   networkGetChainId(network),
+                                                   headNumber,
+                                                   headHash,
+                                                   headTotalDifficulty,
+                                                   genesisHash,
+                                                   LES_SUPPORT_GETH_ANNOUNCE_TYPE));
 
     // Create the PTHREAD LOCK variable
     {
@@ -507,8 +505,8 @@ lesCreate (BREthereumNetwork network,
         FOR_SET (BREthereumNodeConfig, config, configs) {
             BREthereumNodeEndpoint endpoint = nodeConfigCreateEndpoint(config);
 
-            if (nodeEndpointIsPreferred (&endpoint, bootstrapLCLEnodes) ||
-                nodeEndpointIsPreferred (&endpoint, bootstrapBRDEnodes))
+            if (nodeEndpointIsPreferred (endpoint, bootstrapLCLEnodes) ||
+                nodeEndpointIsPreferred (endpoint, bootstrapBRDEnodes))
                 array_add (preferredEndpoints, endpoint);
             else
                 lesEnsureNodeForEndpoint (les,
@@ -518,12 +516,18 @@ lesCreate (BREthereumNetwork network,
                                           NULL);
         }
 
+        // As owner, release.
+        BRSetApply (configs, NULL, nodeConfigReleaseForSet);
+        BRSetFree  (configs);
+
         for (size_t index = 0; index < array_count(preferredEndpoints); index++)
             lesEnsureNodeForEndpoint (les,
                                       preferredEndpoints[index],
                                       (BREthereumNodeState) { NODE_AVAILABLE},
                                       ETHEREUM_BOOLEAN_TRUE,
                                       NULL);
+
+        array_free (preferredEndpoints);
     }
 
     // ... and then add in bootstrap endpoints for good measure.  Note that in practice after the
@@ -545,7 +549,7 @@ lesCreate (BREthereumNetwork network,
     }
     eth_log(LES_LOG_TOPIC, "Nodes Bootstrapped: %lu", bootstrappedEndpointsCount);
     for (size_t index = 0; index < 5 && index < array_count(les->availableNodes); index++) {
-        BREthereumDISNeighborEnode enode = neighborDISAsEnode (nodeGetRemoteEndpoint (les->availableNodes[index])->dis, 1);
+        BREthereumDISNeighborEnode enode = neighborDISAsEnode (nodeEndpointGetDISNeighbor (nodeGetRemoteEndpoint (les->availableNodes[index])), 1);
         eth_log (LES_LOG_TOPIC, "  @ %zu: %s", index, enode.chars);
     }
 
@@ -588,22 +592,19 @@ lesRelease(BREthereumLES les) {
     lesStop (les);
     pthread_mutex_lock (&les->lock);
 
-    // Release each node; do it safely w/o mucking the les->nodes set.
-    size_t nodeCount = BRSetCount(les->nodes);
-    BREthereumNode nodes[nodeCount];
-    BRSetAll(les->nodes, (void**) nodes, nodeCount);
-    BRSetClear(les->nodes);
-    for (size_t index = 0; index < nodeCount; index++)
-        nodeRelease (nodes[index]);
-
-//    FOR_NODES (les, node)
-//        nodeRelease (node);
-//    BRSetClear(les->nodes);
-
+    // Release `availableNodes` - nodes themselves later
     array_free (les->availableNodes);
 
+    // Release `activeNodesByRoute`  -nodes themselves later.
     FOR_EACH_ROUTE (route)
         array_free (les->activeNodesByRoute[route]);
+
+    BRSetApply(les->nodes, NULL, nodeReleaseForSet);
+    BRSetFree(les->nodes);
+
+    nodeEndpointRelease (les->localEndpoint);
+
+    requestsRelease(les->requests);
 
     rlpCoderRelease(les->coder);
 
@@ -715,20 +716,49 @@ lesHandleAnnounce (BREthereumLES les,
 static void
 lesHandleProvision (BREthereumLES les,
                     BREthereumNode node,
-                    BREthereumProvisionResult result) {
-    // Find the request, invoke the callbacks on result, and others.
+                    OwnershipGiven BREthereumProvisionResult result) {
+    // Find the request, invoke the callback on result.
     // TODO: On an error, should the provision be submitted to another node?
     for (size_t index = 0; index < array_count (les->requests); index++) {
         BREthereumLESRequest *request = &les->requests[index];
-        if (result.identifier == request->provision.identifier) {
-            request->callback (request->context,
-                               les,
-                               node,
-                               result);
-            array_rm (les->requests, index);
-            break;
-        }
+        // Find the request; there must be one...
+        if (result.identifier == request->provision.identifier)
+            switch (result.status) {
+                case PROVISION_SUCCESS:
+                    // On success, invoke `request->callback`
+                    //
+                    // We've passed ownership of the provision, in result.  We can simply
+                    // remove the request (which releases the result but we passed a copy,
+                    // w/ provision and w/ provision references (to hashes, etc)).
+
+                    request->callback (request->context,
+                                       les,
+                                       node,
+                                       result);
+
+
+                    array_rm (les->requests, index);
+                    return;
+
+                case PROVISION_ERROR: {
+                    // The node failed to handle the provision.  We'll deactivate the node
+                    // which will reschedule the provision with another node.
+                    //
+                    // We've taken ownership of the provision, we retain the provision as it will
+                    // be reassigned to another node.
+
+                    char explanation[256];
+                    sprintf (explanation, "Provision Error: %d, Type: %d",
+                             result.u.error.reason,
+                             result.type);
+                    lesDeactivateNode (les, NODE_ROUTE_TCP, node, explanation);
+                    return;
+                }
+            }
     }
+
+    // We totally missed the request for result
+    assert (0);
 }
 
 /**
@@ -759,6 +789,8 @@ lesHandleNeighbor (BREthereumLES les,
                                   (BREthereumNodeState) { NODE_AVAILABLE },
                                   ETHEREUM_BOOLEAN_FALSE,
                                   NULL);
+    // array_free (neighbors);
+
     // Sometimes we receive multiple callbacks for one FIND_NEIGHBORS - how to deal?
     nodeSetDiscovered(node, ETHEREUM_BOOLEAN_TRUE);
 }
@@ -776,44 +808,51 @@ lesLogNodeActivate (BREthereumLES les,
     char desc[128];
 
     BREthereumNodeState state = nodeGetState(node, route);
-    eth_log (LES_LOG_TOPIC, "Conn: [ %s @ %3zu, %9s ]    %15s (%s)",
+    eth_log (LES_LOG_TOPIC, "Conn: [ %s @ %3zu, %9s ]    %15s (%s)%s%s",
              (NODE_ROUTE_TCP == route ? "TCP" : "UDP"),
              array_count(les->activeNodesByRoute[route]),
              path,
-             nodeGetRemoteEndpoint(node)->hostname,
-//             explain,
-             nodeStateDescribe (&state, desc));
+             nodeEndpointGetHostname (nodeGetRemoteEndpoint(node)),
+             nodeStateDescribe (&state, desc),
+             (NULL == explain ? "" : " - "),
+             (NULL == explain ? "" : explain));
+}
+
+static void
+lesDeactivateNode (BREthereumLES les,
+                   BREthereumNodeEndpointRoute route,
+                   BREthereumNode node,
+                   const char *explain) {
+    BRArrayOf(BREthereumNode) nodes = les->activeNodesByRoute[route];
+    for (size_t ni = 0; ni < array_count(nodes); ni++) // NodeIndex
+        if (node== nodes[ni]) {
+            array_rm (nodes, ni);
+            lesLogNodeActivate(les, node, route, explain, "<=|=>");
+
+            // Reassign provisions back as requests if this is a TCP route
+            if (NODE_ROUTE_TCP == route) {
+                BRArrayOf(BREthereumProvision) provisions = nodeUnhandleProvisions(node);
+                for (size_t pi = 0; pi < array_count(provisions); pi++) {
+                    ssize_t requestIndex = lesFindRequestForProvision (les, &provisions[pi]);
+                    assert (-1 != requestIndex);
+
+                    // This reestablishes the provision as needing to be assigned.
+                    les->requests[requestIndex].node = NULL;
+                }
+            }
+
+            // A node was deactiviated (and `nodes` modified); skip out.
+            break;
+        }
 }
 
 static void
 lesDeactivateNodes (BREthereumLES les,
                     BREthereumNodeEndpointRoute route,
-                    BRArrayOf(BREthereumNode) nodesToDeactivate,
+                    OwnershipKept BRArrayOf(BREthereumNode) nodesToDeactivate,
                     const char *explain) {
-    // Deactive nodesToDeactive from the route's activeNodes.
-    BRArrayOf(BREthereumNode) nodes = les->activeNodesByRoute[route];
-    for (size_t ri = 0; ri < array_count(nodesToDeactivate); ri++) {  // RemoveIndex
-        for (size_t ni = 0; ni < array_count(nodes); ni++) // NodeIndex
-            if (nodesToDeactivate[ri] == nodes[ni]) {
-                array_rm (nodes, ni);
-                lesLogNodeActivate(les, nodesToDeactivate[ri], route, explain, "<=|=>");
-
-                // Reassign provisions back as requests if this is a TCP route
-                if (NODE_ROUTE_TCP == route) {
-                    BRArrayOf(BREthereumProvision) provisions = nodeUnhandleProvisions(nodesToDeactivate[ri]);
-                    for (size_t pi = 0; pi < array_count(provisions); pi++) {
-                        ssize_t requestIndex = lesFindRequestForProvision (les, &provisions[pi]);
-                        assert (-1 != requestIndex);
-
-                        // This reestablishes the provision as needing to be assigned.
-                        les->requests[requestIndex].node = NULL;
-                    }
-                }
-
-                // A node was deactiviated (and `nodes` modified); break to deactivate another.
-                break;
-            }
-    }
+    for (size_t ri = 0; ri < array_count(nodesToDeactivate); ri++)
+        lesDeactivateNode (les, route, nodesToDeactivate[ri], explain);
 }
 
 static void
@@ -909,6 +948,16 @@ lesThread (BREthereumLES les) {
                     // What about a 'multiple request', like a TxRelay, that is supposed to
                     // be sent/provisioned by multiple nodes?
                     les->requests[index].node = preferredNode;
+
+                    // We hold the requests[index] provision in requests.  In the following call
+                    // we pass of copy of that provision - both provisions share memory pointers
+                    // to, for example, BRArrayOf(BREthereumHash).
+                    //
+                    // If we pass the copy but then later release requests[index], then we will
+                    // mistakenly free the shared memory pointers.  We could 'consume' the
+                    // provision to avoid holding the shared memory, but then we'd lose references
+                    // needed to resubmit a failed request.
+
                     nodeHandleProvision (preferredNode,
                                          les->requests[index].provision);
                 }
@@ -984,6 +1033,7 @@ lesThread (BREthereumLES les) {
         //
         else if (selectCount == 0) {
 
+#if !defined (LES_DISABLE_DISCOVERY)
             // If we don't have enough availableNodes, try to find some
             if (array_count(les->availableNodes) < 100 && array_count(les->activeNodesByRoute[NODE_ROUTE_UDP]) < 3) {
 
@@ -1010,7 +1060,7 @@ lesThread (BREthereumLES les) {
                         assert (0);  // how?
                 }
             }
-
+#endif
             // If we don't have enough connectedNodes, try to add one.  Note: when we created
             // the node (as part of UDP discovery) we give it our endpoint info (like headNum).
             // But now that is likely out of date as we've synced/progressed/chained.  I think the
@@ -1091,11 +1141,21 @@ lesThread (BREthereumLES les) {
 /// MARK: - (Public) Provide (Headers, ...)
 ///
 
+
+/**
+ * Use `provision` it define a new LES request.  The request will be dispatched to the preferred
+ * node, when appropriate.
+ *
+ * @param les
+ * @param context
+ * @param callback
+ * @param provision request's provision - OwnershipGiven to LES
+ */
 static void
 lesAddRequest (BREthereumLES les,
                BREthereumLESProvisionContext context,
                BREthereumLESProvisionCallback callback,
-               BREthereumProvision provision) {
+               OwnershipGiven BREthereumProvision provision) {
     pthread_mutex_lock (&les->lock);
 
     provision.identifier = les->requestsIdentifier++;
@@ -1143,7 +1203,7 @@ extern void
 lesProvideBlockBodies (BREthereumLES les,
                        BREthereumLESProvisionContext context,
                        BREthereumLESProvisionCallback callback,
-                       BRArrayOf(BREthereumHash) blockHashes) {
+                       OwnershipGiven BRArrayOf(BREthereumHash) blockHashes) {
     lesAddRequest (les, context, callback,
                    (BREthereumProvision) {
                        PROVISION_IDENTIFIER_UNDEFINED,
@@ -1165,7 +1225,7 @@ extern void
 lesProvideReceipts (BREthereumLES les,
                     BREthereumLESProvisionContext context,
                     BREthereumLESProvisionCallback callback,
-                    BRArrayOf(BREthereumHash) blockHashes) {
+                    OwnershipGiven BRArrayOf(BREthereumHash) blockHashes) {
     lesAddRequest (les, context, callback,
                    (BREthereumProvision) {
                        PROVISION_IDENTIFIER_UNDEFINED,
@@ -1188,7 +1248,7 @@ lesProvideAccountStates (BREthereumLES les,
                          BREthereumLESProvisionContext context,
                          BREthereumLESProvisionCallback callback,
                          BREthereumAddress address,
-                         BRArrayOf(BREthereumHash) blockHashes) {
+                         OwnershipGiven BRArrayOf(BREthereumHash) blockHashes) {
     lesAddRequest (les, context, callback,
                    (BREthereumProvision) {
                        PROVISION_IDENTIFIER_UNDEFINED,
@@ -1211,7 +1271,7 @@ extern void
 lesProvideTransactionStatus (BREthereumLES les,
                              BREthereumLESProvisionContext context,
                              BREthereumLESProvisionCallback callback,
-                             BRArrayOf(BREthereumHash) transactionHashes) {
+                             OwnershipGiven BRArrayOf(BREthereumHash) transactionHashes) {
     lesAddRequest (les, context, callback,
                    (BREthereumProvision) {
                        PROVISION_IDENTIFIER_UNDEFINED,
@@ -1233,7 +1293,7 @@ extern void
 lesSubmitTransaction (BREthereumLES les,
                       BREthereumLESProvisionContext context,
                       BREthereumLESProvisionCallback callback,
-                      BREthereumTransaction transaction) {
+                      OwnershipGiven BREthereumTransaction transaction) {
     lesAddRequest (les, context, callback,
                    (BREthereumProvision) {
                        PROVISION_IDENTIFIER_UNDEFINED,

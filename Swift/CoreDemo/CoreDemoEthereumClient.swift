@@ -137,7 +137,8 @@ class CoreDemoEthereumClient : EthereumClient {
 
         case "0xa9de3dbD7d561e67527bC1Ecb025c59D53b9F7Ef".lowercased():
             if 0 != interests & UInt32 (1 << 3) /* CLIENT_GET_BLOCKS_LOGS_AS_TARGET */ {
-                blockNumbers += [5506607]
+                blockNumbers += [5506607,
+                                 5877545]
             }
 
             if 0 != interests & UInt32 (1 << 2) /* CLIENT_GET_BLOCKS_LOGS_AS_SOURCE */ {
@@ -183,6 +184,13 @@ class CoreDemoEthereumClient : EthereumClient {
                             : "0x6e67ccd648244b3b8e2f56149b40ba8de9d79b09"),
                            symbol: "CCC",
                            name: "Container Crypto Coin",
+                           description: "",
+                           decimals: 18)
+
+        ewm.announceToken (rid: rid,
+                           address: "0xdd974d5c2e2928dea5f71b9825b8b646686bd200",
+                           symbol: "KNC",
+                           name: "KNC Token",
                            description: "",
                            decimals: 18)
 

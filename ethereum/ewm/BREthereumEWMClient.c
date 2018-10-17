@@ -174,23 +174,18 @@ ewmUpdateTransferGasEstimate (BREthereumEWM ewm,
                 BREthereumTransaction transaction = transferGetOriginatingTransaction(transfer);
                 char *to = (char *) addressGetEncodedString(transactionGetTargetAddress(transaction), 0);
                 char *amount = coerceString(amountInEther.valueInWEI, 16);
-                char *data = (char *) transactionGetData(transaction);
-                
+
                 ewm->client.funcEstimateGas (ewm->client.context,
                                              ewm,
                                              wid,
                                              tid,
                                              to,
                                              amount,
-                                             data,
+                                             transactionGetData(transaction),
                                              ++ewm->requestId);
                 
                 free(to);
                 free(amount);
-                
-                if (NULL != data && '\0' != data[0])
-                    free(data);
-                
                 break;
             }
         }

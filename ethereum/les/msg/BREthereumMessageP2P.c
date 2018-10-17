@@ -41,6 +41,26 @@ messageP2PGetIdentifierName (BREthereumP2PMessageIdentifier identifier) {
 //
 // P2P Hello
 //
+extern BREthereumP2PMessageHello
+messageP2PHelloCopy (BREthereumP2PMessageHello *message) {
+    BREthereumP2PMessageHello copy = *message;
+    copy.clientId = strdup (message->clientId);
+    array_new (copy.capabilities, array_count (message->capabilities));
+    array_add_array(copy.capabilities, message->capabilities, array_count(message->capabilities));
+    return copy;
+}
+
+extern void
+messageP2PHelloRelease (BREthereumP2PMessageHello *message) {
+    // Note: we might be releasing a message that was never actually constituted.  The following
+    // could fail if, when allocated, 'hello' was not zeroed out.  The `decode` function does
+    // the proper initialization; but that function is not always used.
+    if (NULL != message->clientId)
+        free (message->clientId);
+    if (NULL != message->capabilities)
+        array_free (message->capabilities);
+}
+
 extern BRRlpItem
 messageP2PHelloEncode (BREthereumP2PMessageHello message, BREthereumMessageCoder coder) {
     size_t capsCount = array_count(message.capabilities);
@@ -86,7 +106,11 @@ messageP2PHelloDecode (BRRlpItem item,
     for (size_t index = 0; index < capsCount; index++) {
         size_t capCount;
         const BRRlpItem *caps = rlpDecodeList (coder.rlp, capItems[index], &capCount);
-        if (2 != capCount) { rlpCoderSetFailed(coder.rlp); return (BREthereumP2PMessageHello) {}; }
+        if (2 != capCount) {
+            rlpCoderSetFailed(coder.rlp);
+            array_free (message.capabilities);
+            return (BREthereumP2PMessageHello) {};
+        }
 
         BREthereumP2PCapability cap;
 
@@ -97,6 +121,7 @@ messageP2PHelloDecode (BRRlpItem item,
 
         cap.version = (uint32_t) rlpDecodeUInt64 (coder.rlp, caps[1], 1);
 
+        free (name);
         array_add (message.capabilities, cap);
     }
 
@@ -104,21 +129,21 @@ messageP2PHelloDecode (BRRlpItem item,
 }
 
 extern void
-messageP2PHelloShow (BREthereumP2PMessageHello hello) {
-    size_t nodeIdLen = 2 * sizeof (hello.nodeId.u8) + 1;
+messageP2PHelloShow (const BREthereumP2PMessageHello *hello) {
+    size_t nodeIdLen = 2 * sizeof (hello->nodeId.u8) + 1;
     char nodeId[nodeIdLen];
-    encodeHex(nodeId, nodeIdLen, hello.nodeId.u8, sizeof (hello.nodeId.u8));
+    encodeHex(nodeId, nodeIdLen, hello->nodeId.u8, sizeof (hello->nodeId.u8));
 
     eth_log (LES_LOG_TOPIC, "Hello%s", "");
-    eth_log (LES_LOG_TOPIC, "    Version     : %" PRIu64, hello.version);
-    eth_log (LES_LOG_TOPIC, "    ClientId    : %s",   hello.clientId);
-    eth_log (LES_LOG_TOPIC, "    ListenPort  : %" PRIu64, hello.port);
+    eth_log (LES_LOG_TOPIC, "    Version     : %" PRIu64, hello->version);
+    eth_log (LES_LOG_TOPIC, "    ClientId    : %s",   hello->clientId);
+    eth_log (LES_LOG_TOPIC, "    ListenPort  : %" PRIu64, hello->port);
     eth_log (LES_LOG_TOPIC, "    NodeId      : 0x%s", nodeId);
     eth_log (LES_LOG_TOPIC, "    Capabilities:%s", "");
-    for (size_t index = 0; index < array_count(hello.capabilities); index++)
+    for (size_t index = 0; index < array_count(hello->capabilities); index++)
         eth_log (LES_LOG_TOPIC, "        %s = %u",
-                 hello.capabilities[index].name,
-                 hello.capabilities[index].version);
+                 hello->capabilities[index].name,
+                 hello->capabilities[index].version);
 }
 
 extern BREthereumBoolean
@@ -233,7 +258,62 @@ messageP2PDecode (BRRlpItem item,
     }
 }
 
+extern void
+messageP2PRelease (BREthereumP2PMessage *message) {
+    switch (message->identifier) {
+        case P2P_MESSAGE_HELLO:
+            messageP2PHelloRelease (&message->u.hello);
+            break;
+
+        case P2P_MESSAGE_DISCONNECT:
+        case P2P_MESSAGE_PING:
+        case P2P_MESSAGE_PONG:
+            break;
+    }
+}
+
+///
 /// MARK: - P2P Message Status Faker
+///
+extern BREthereumP2PMessageStatus
+messageP2PStatusCreate (uint64_t protocolVersion,
+                        uint64_t chainId,
+                        uint64_t headNum,
+                        BREthereumHash headHash,
+                        UInt256 headTd,
+                        BREthereumHash genesisHash,
+                        uint64_t announceType) {
+
+    BRArrayOf(BREthereumP2PMessageStatusKeyValuePair) pairs;
+    BREthereumP2PMessageStatusKeyValuePair pair = {
+        P2P_MESSAGE_STATUS_ANNOUNCE_TYPE,            // If protocolVersion is LESv2 ...
+        {
+            P2P_MESSAGE_STATUS_VALUE_INTEGER,
+            announceType
+        }
+    };
+
+    array_new (pairs, 1);
+    array_add (pairs, pair);
+
+    return (BREthereumP2PMessageStatus) {
+        protocolVersion,
+        chainId,
+        headNum,
+        headHash,
+        headTd,
+        genesisHash,
+        pairs
+    };
+}
+
+extern BREthereumP2PMessageStatus
+messageP2PStatusCopy (BREthereumP2PMessageStatus *status) {
+    BREthereumP2PMessageStatus copy = *status;
+    array_new (copy.pairs, array_count (status->pairs));
+    array_add_array(copy.pairs, status->pairs, array_count(status->pairs));
+    return copy;
+}
 
 extern int
 messageP2PStatusExtractValue (BREthereumP2PMessageStatus *status,
@@ -537,3 +617,9 @@ messageP2PStatusDecode (BRRlpItem item,
 }
 
 
+extern void
+messageP2PStatusRelease (BREthereumP2PMessageStatus *status) {
+    // This status message might have never been fully constituted.  Exercise a bit of caution.
+    if (NULL != status->pairs)
+        array_free (status->pairs);
+}

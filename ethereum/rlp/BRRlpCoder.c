@@ -31,6 +31,9 @@
 #include "BRRlpCoder.h"
 #include "../util/BRUtil.h"
 
+static void
+rlpCoderReclaimInternal (BRRlpCoder coder) ;
+
 static int
 rlpDecodeStringEmptyCheck (BRRlpCoder coder, BRRlpItem item);
 
@@ -127,34 +130,45 @@ rlpCoderCreate (void) {
         pthread_mutex_init (&coder->lock, &attr);
         pthread_mutexattr_destroy(&attr);
     }
-
+#if 0
     for (size_t index = 0; index < CODER_DEFAULT_ITEMS; index++) {
         BRRlpItem item = calloc (1, sizeof (struct BRRlpItemRecord));
         item->next = coder->free;
         coder->free = item;
     }
-
+#endif
     return coder;
 }
 
 extern void
 rlpCoderRelease (BRRlpCoder coder) {
-    BRRlpItem item;
     pthread_mutex_lock(&coder->lock);
 
     // Every single Item must be returned!
     assert (NULL == coder->busy);
-
-    item = coder->free;
-    while (item != NULL) {
-        BRRlpItem next = item->next;   // save 'next' before release...
-        itemReleaseMemory (item);
-        item = next;
-    }
+    rlpCoderReclaimInternal (coder);
 
     pthread_mutex_unlock(&coder->lock);
     pthread_mutex_destroy(&coder->lock);
     free (coder);
+}
+
+static void
+rlpCoderReclaimInternal (BRRlpCoder coder) {
+    BRRlpItem item = coder->free;
+    while (item != NULL) {
+        BRRlpItem next = item->next;   // save 'next' before release...
+        itemReleaseMemory (item);
+        free (item);
+        item = next;
+    }
+}
+
+extern void
+rlpCoderReclaim (BRRlpCoder coder) {
+    pthread_mutex_lock(&coder->lock);
+    rlpCoderReclaimInternal (coder);
+    pthread_mutex_unlock(&coder->lock);
 }
 
 extern int
@@ -174,8 +188,12 @@ rlpCoderAcquireItem (BRRlpCoder coder) {
     if (NULL != coder->free) {
         item = coder->free;
         coder->free = item->next;
+        item->next = NULL;
     }
     else item = calloc (1, sizeof (struct BRRlpItemRecord));
+
+    assert (NULL == item->next       && NULL == item->prev &&
+            0    == item->bytesCount && 0    == item->itemsCount);
 
     // Doubly-link `item` to `busy`
     if (NULL != coder->busy) coder->busy->prev = item;
@@ -191,9 +209,12 @@ rlpCoderAcquireItem (BRRlpCoder coder) {
 static void
 rlpCoderReturnItem (BRRlpCoder coder, BRRlpItem prev, BRRlpItem item, BRRlpItem next) {
     pthread_mutex_lock(&coder->lock);
+    assert (NULL == item->next       && NULL == item->prev &&
+            0    == item->bytesCount && 0    == item->itemsCount);
+
     // If `item` is a the head of our `busy` list, then just move `busy`
     if (item == coder->busy)
-        coder->busy = item->next;
+        coder->busy = next;
 
     // If `item` is not at the head of our `busy` list, then splice out `item` by
     // linking as `prev` <==> `next`
@@ -202,7 +223,7 @@ rlpCoderReturnItem (BRRlpCoder coder, BRRlpItem prev, BRRlpItem item, BRRlpItem 
         if (NULL != next) next->prev = prev;
     }
 
-    // The `item` is no longer busy.  Singly link to `free`.
+    // The `item` is no longer busy.  Singlely link to `free`.
     item->prev = NULL;
     item->next = coder->free;
 
@@ -768,8 +789,8 @@ rlpDecodeStringEmptyCheck (BRRlpCoder coder, BRRlpItem item) {
 //
 extern BRRlpItem
 rlpEncodeHexString (BRRlpCoder coder, char *string) {
-    if (NULL == string)
-        return rlpEncodeString(coder, string);
+    if (NULL == string || string[0] == '\0')
+        return rlpEncodeString(coder, "");
     
     // Strip off "0x" if it exists
     if (0 == strncmp (string, "0x", 2))

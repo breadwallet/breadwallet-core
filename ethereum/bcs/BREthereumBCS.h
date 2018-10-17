@@ -76,7 +76,7 @@ typedef enum {
 typedef void
 (*BREthereumBCSCallbackTransaction) (BREthereumBCSCallbackContext context,
                                      BREthereumBCSCallbackTransactionType event,
-                                     BREthereumTransaction transaction);
+                                     OwnershipGiven BREthereumTransaction transaction);
 
 /**
  * A BCS Log (for `account`) has been updated.
@@ -90,21 +90,21 @@ typedef enum {
 typedef void
 (*BREthereumBCSCallbackLog) (BREthereumBCSCallbackContext context,
                              BREthereumBCSCallbackLogType event,
-                             BREthereumLog log);
+                             OwnershipGiven BREthereumLog log);
 
 /**
  * Save Blocks
  */
 typedef void
 (*BREthereumBCSCallbackSaveBlocks) (BREthereumBCSCallbackContext context,
-                                    BRArrayOf(BREthereumBlock) blocks);
+                                    OwnershipGiven BRArrayOf(BREthereumBlock) blocks);
 
 /**
  * Save Peers
  */
 typedef void
 (*BREthereumBCSCallbackSavePeers) (BREthereumBCSCallbackContext context,
-                                   BRArrayOf(BREthereumNodeConfig) peers);
+                                   OwnershipGiven BRArrayOf(BREthereumNodeConfig) peers);
 
 /**
  * Sync

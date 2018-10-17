@@ -166,7 +166,7 @@ extern void
 bcsSignalProvision (BREthereumBCS bcs,
                     BREthereumLES les,
                     BREthereumNodeReference node,
-                    BREthereumProvisionResult result) {
+                    OwnershipGiven BREthereumProvisionResult result) {
     BREthereumHandleProvisionEvent event =
     { { NULL, &handleProvisionEventType}, bcs, les, node, result };
     eventHandlerSignalEvent(bcs->handler, (BREvent *) &event);

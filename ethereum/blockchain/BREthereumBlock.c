@@ -53,12 +53,6 @@ blockStatusInitialize (BREthereumBlockStatus *status,
     status->hash = hash;
 }
 
-static void
-blockStatusRelease (BREthereumBlockStatus *status) {
-    if (NULL != status->transactions) array_free(status->transactions);
-    if (NULL != status->logs) array_free(status->logs);
-}
-
 static BRRlpItem
 blockStatusRlpEncode (BREthereumBlockStatus status,
                       BRRlpCoder coder);
@@ -222,13 +216,25 @@ blockHeaderCopy (BREthereumBlockHeader source) {
 }
 
 extern void
+blockHeadersRelease (BRArrayOf(BREthereumBlockHeader) headers) {
+    if (NULL != headers) {
+        size_t count = array_count(headers);
+        for (size_t index = 0; index < count; index++)
+            blockHeaderRelease(headers[index]);
+        array_free (headers);
+    }
+}
+
+extern void
 blockHeaderRelease (BREthereumBlockHeader header) {
+    if (NULL != header) {
 #if defined (BLOCK_HEADER_LOG_ALLOC_COUNT)
-    eth_log ("MEM", "Block Header Release %d", --blockHeaderAllocCount);
+        eth_log ("MEM", "Block Header Release %d", --blockHeaderAllocCount);
 #endif
-    assert (ETHEREUM_BOOLEAN_IS_FALSE(hashEqual(header->hash, hashCreateEmpty())));
-    memset (header, 0, sizeof(struct BREthereumBlockHeaderRecord));
-    free (header);
+        assert (ETHEREUM_BOOLEAN_IS_FALSE(hashEqual(header->hash, hashCreateEmpty())));
+        memset (header, 0, sizeof(struct BREthereumBlockHeaderRecord));
+        free (header);
+    }
 }
 
 extern void
@@ -540,8 +546,8 @@ blockCreate (BREthereumBlockHeader header) {
 
 extern void
 blockUpdateBody (BREthereumBlock block,
-                 BREthereumBlockHeader *ommers,
-                 BREthereumTransaction *transactions) {
+                 BRArrayOf(BREthereumBlockHeader) ommers,
+                 BRArrayOf(BREthereumTransaction) transactions) {
     block->ommers = ommers;
     block->transactions = transactions;
 }
@@ -550,20 +556,13 @@ extern void
 blockRelease (BREthereumBlock block) {
     blockHeaderRelease(block->header);
 
-    if (NULL != block->ommers) {
-        for (size_t index = 0; index < array_count(block->ommers); index++)
-            blockHeaderRelease(block->ommers[index]);
-        array_free(block->ommers);
-        block->ommers = NULL;
-    }
+    blockHeadersRelease (block->ommers);
+    block->ommers = NULL;
 
-    if (NULL != block->transactions) {
-        for (size_t index = 0; index < array_count(block->transactions); index++)
-            transactionRelease(block->transactions[index]);
-        array_free(block->transactions);
-        block->transactions = NULL;
-    }
-    blockStatusRelease(&block->status);
+    transactionsRelease (block->transactions);
+    block->transactions = NULL;
+
+    blockReleaseStatus (block, ETHEREUM_BOOLEAN_TRUE, ETHEREUM_BOOLEAN_TRUE);
     block->next = BLOCK_NEXT_NONE;
 
 #if defined (BLOCK_LOG_ALLOC_COUNT)
@@ -701,7 +700,7 @@ blockLinkLogsWithTransactions (BREthereumBlock block) {
         }
     }
 
-    // Second, we get initialize the log identifier, as { transactionHash, logIndex }
+    // Second, we can initialize the log identifier, as { transactionHash, logIndex }
     size_t logsCount = (NULL == block->status.logs ? 0 : array_count(block->status.logs));
     for (size_t index = 0; index < logsCount; index++) {
         BREthereumLog log = block->status.logs[index];
@@ -866,6 +865,16 @@ blockReleaseForSet (void *ignore, void *item) {
     blockRelease((BREthereumBlock) item);
 }
 
+extern void
+blocksRelease (OwnershipGiven BRArrayOf(BREthereumBlock) blocks) {
+    if (NULL != blocks) {
+        size_t count = array_count(blocks);
+        for (size_t index = 0; index < count; index++)
+            blockRelease(blocks[index]);
+        array_free (blocks);
+    }
+}
+
 //
 // MARK: - Block Next (Chaining)
 //
@@ -886,6 +895,26 @@ blockSetNext (BREthereumBlock block,
 extern BREthereumBoolean
 blockHasNext (BREthereumBlock block) {
     return AS_ETHEREUM_BOOLEAN (BLOCK_NEXT_NONE != block->next);
+}
+
+///
+/// MARK: Block Body Pair
+///
+
+extern void
+blockBodyPairRelease (BREthereumBlockBodyPair *pair) {
+    blockHeadersRelease (pair->uncles);
+    transactionsRelease (pair->transactions);
+}
+
+extern void
+blockBodyPairsRelease (BRArrayOf(BREthereumBlockBodyPair) pairs) {
+    if (NULL != pairs) {
+        size_t count = array_count(pairs);
+        for (size_t index = 0; index < count; index++)
+            blockBodyPairRelease(&pairs[index]);
+        array_free (pairs);
+    }
 }
 
 //
@@ -940,7 +969,7 @@ blockReportStatusTransactions (BREthereumBlock block,
 
 extern void
 blockReportStatusGasUsed (BREthereumBlock block,
-                          BRArrayOf(BREthereumGas) gasUsed) {
+                          OwnershipGiven BRArrayOf(BREthereumGas) gasUsed) {
     block->status.gasUsed = gasUsed;
 }
 
@@ -961,7 +990,7 @@ blockReportStatusLogsRequest (BREthereumBlock block,
 
 extern void
 blockReportStatusLogs (BREthereumBlock block,
-                       BREthereumLog *logs) {
+                       OwnershipGiven BRArrayOf(BREthereumLog) logs) {
     assert (block->status.logRequest == BLOCK_REQUEST_PENDING);
     block->status.logRequest = BLOCK_REQUEST_COMPLETE;
     block->status.logs = logs;
@@ -1011,6 +1040,32 @@ blockHasStatusLog (BREthereumBlock block,
     return ETHEREUM_BOOLEAN_FALSE;
 }
 
+extern void
+blockReleaseStatus (BREthereumBlock block,
+                    BREthereumBoolean releaseTransactions,
+                    BREthereumBoolean releaseLogs) {
+    // We might be releasing before the status is complete.  That happens if BCS/LES shuts down
+    // and started releasing blocks - and that is okay.  But, if status is released while the
+    // block is being completed - then that is problem.
+
+    // Transactions
+    if (ETHEREUM_BOOLEAN_IS_TRUE(releaseTransactions))
+        transactionsRelease(block->status.transactions);
+    else if (NULL != block->status.transactions)
+        array_free (block->status.transactions);
+    block->status.transactions = NULL;
+
+    // Logs
+    if (ETHEREUM_BOOLEAN_IS_TRUE(releaseLogs))
+        logsRelease(block->status.logs);
+    else if (NULL != block->status.logs)
+        array_free (block->status.logs);
+    block->status.logs = NULL;
+
+    if (NULL != block->status.gasUsed)
+        array_free (block->status.gasUsed);
+    block->status.gasUsed = NULL;
+}
 
 static BRRlpItem
 blockStatusRlpEncode (BREthereumBlockStatus status,

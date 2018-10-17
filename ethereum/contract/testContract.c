@@ -27,6 +27,7 @@ static const char *tokenTSTAddress = "0x3efd578b271d034a69499e4a2d933c631d44b9ad
 #endif
 
 static const char *tokenEOSAddress = "0x86fa049857e0209aa7d9e616f7eb3b3b78ecfdb0";
+static const char *tokenKNCAddress = "0xdd974d5c2e2928dea5f71b9825b8b646686bd200";
 
 extern void
 installTokensForTest (void) {
@@ -55,6 +56,14 @@ installTokensForTest (void) {
     tokenInstall (tokenEOSAddress,
                   "EOS",
                   "EOS Token",
+                  "",
+                  18,
+                  defaultGasLimit,
+                  defaultGasPrice);
+
+    tokenInstall (tokenKNCAddress,
+                  "KNC",
+                  "KNC token",
                   "",
                   18,
                   defaultGasLimit,

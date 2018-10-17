@@ -107,6 +107,25 @@ typedef struct {
     } u;
 } BREthereumTransferBasis;
 
+static void
+transferBasisRelease (BREthereumTransferBasis *basis) {
+    switch (basis->type) {
+        case TRANSFER_BASIS_TRANSACTION:
+            if (NULL != basis->u.transaction) {
+                transactionRelease (basis->u.transaction);
+                basis->u.transaction = NULL;
+            }
+            break;
+
+        case TRANSFER_BASIS_LOG:
+            if (NULL != basis->u.log) {
+                logRelease (basis->u.log);
+                basis->u.log = NULL;
+            }
+            break;
+    }
+}
+
 //
 //
 //
@@ -195,7 +214,7 @@ transferCreateWithTransaction (BREthereumTransaction transaction) {
 }
 
 extern BREthereumTransfer
-transferCreateWithLog (BREthereumLog log,
+transferCreateWithLog (OwnershipGiven BREthereumLog log,
                        BREthereumToken token) {
     BREthereumFeeBasis feeBasis = {
         FEE_BASIS_NONE
@@ -233,6 +252,9 @@ transferCreateWithLog (BREthereumLog log,
 
 extern void
 transferRelease (BREthereumTransfer transfer) {
+    if (NULL != transfer->originatingTransaction)
+        transactionRelease(transfer->originatingTransaction);
+    transferBasisRelease(&transfer->basis);
     free (transfer);
 }
 
@@ -519,4 +541,13 @@ transferCompare (BREthereumTransfer t1,
 }
 
 
+extern void
+transfersRelease (OwnershipGiven BRArrayOf(BREthereumTransfer) transfers) {
+    if (NULL != transfers) {
+        size_t count = array_count (transfers);
+        for (size_t index = 0; index < count; index++)
+            transferRelease(transfers[index]);
+        array_free (transfers);
+    }
+}
 

@@ -81,6 +81,12 @@ messageDecode (BRRlpItem item,
                BREthereumMessageIdentifier type,
                BREthereumANYMessageIdentifier subtype);
 
+extern void
+messageRelease (BREthereumMessage *message);
+
+extern void
+messagesRelease (BRArrayOf(BREthereumMessage) messages);
+
 /**
  * Check if `message` has the provided `identifier`
  *

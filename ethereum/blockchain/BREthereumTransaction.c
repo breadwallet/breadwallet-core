@@ -129,11 +129,13 @@ transactionCopy (BREthereumTransaction transaction) {
 
 extern void
 transactionRelease (BREthereumTransaction transaction) {
-    if (NULL != transaction->data) free (transaction->data);
+    if (NULL != transaction) {
+        if (NULL != transaction->data) free (transaction->data);
 #if defined (TRANSACTION_LOG_ALLOC_COUNT)
-    eth_log ("MEM", "TX Release - Count: %d", --transactionAllocCount);
+        eth_log ("MEM", "TX Release - Count: %d", --transactionAllocCount);
 #endif
-    free (transaction);
+        free (transaction);
+    }
 }
 
 extern void
@@ -602,6 +604,16 @@ transactionShow (BREthereumTransaction transaction, const char *topic) {
     free (totalWEI); free (total); free (fee); free (gasP);
     free (amount); free (target); free (source); free (hash);
 
+}
+
+extern void
+transactionsRelease (BRArrayOf(BREthereumTransaction) transactions) {
+    if (NULL != transactions) {
+        size_t count = array_count(transactions);
+        for (size_t index = 0; index < count; index++)
+            transactionRelease(transactions[index]);
+        array_free (transactions);
+    }
 }
 
 /*

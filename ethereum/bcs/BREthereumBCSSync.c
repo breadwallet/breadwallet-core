@@ -721,7 +721,7 @@ bcsSyncStop (BREthereumBCSSync sync) {
  */
 static void
 bcsSyncHandleBlockHeaders (BREthereumBCSSyncRange range,
-                           BRArrayOf(BREthereumBlockHeader) headers) {
+                           OwnershipGiven BRArrayOf(BREthereumBlockHeader) headers) {
     assert (1 + range->count == array_count(headers));
     size_t count = array_count(headers);
 
@@ -773,8 +773,8 @@ bcsSyncHandleBlockHeaders (BREthereumBCSSyncRange range,
 static void
 bcsSyncHandleAccountStates (BREthereumBCSSyncRange range,
                             BREthereumAddress address,
-                            BRArrayOf(BREthereumHash) hashes,
-                            BRArrayOf(BREthereumAccountState) states) {
+                            OwnershipGiven BRArrayOf(BREthereumHash) hashes,
+                            OwnershipGiven BRArrayOf(BREthereumAccountState) states) {
     size_t count = array_count(states);
 
     assert (1 + range->count == count);
@@ -810,10 +810,11 @@ bcsSyncHandleAccountStates (BREthereumBCSSyncRange range,
     }
     // TODO: Move this to syncRangeComplete?  Switch on type for N_ARY only?
 
+    array_free (hashes);
+    array_free (states);
+
     // Release range->result.
-    for (size_t index = 0; index < count; index++)
-        blockHeaderRelease(range->headers[index]);
-    array_free(range->headers);
+    blockHeadersRelease(range->headers);
     range->headers = NULL;
 
     // If we now have children, dispatch on the first one.  As each one completes, we'll
@@ -880,7 +881,7 @@ extern void
 bcsSyncHandleProvision (BREthereumBCSSyncRange range,
                         BREthereumLES les,
                         BREthereumNodeReference node,
-                        BREthereumProvisionResult result) {
+                        OwnershipGiven BREthereumProvisionResult result) {
     assert (range->les == les);
     switch (result.status) {
         case PROVISION_ERROR:
@@ -890,9 +891,12 @@ bcsSyncHandleProvision (BREthereumBCSSyncRange range,
             BREthereumProvision *provision = &result.u.success.provision;
             assert (result.type == provision->type);
             switch (result.type) {
-                case PROVISION_BLOCK_HEADERS:
-                    bcsSyncHandleBlockHeaders (range, provision->u.headers.headers);
+                case PROVISION_BLOCK_HEADERS: {
+                    BRArrayOf(BREthereumBlockHeader) headers;
+                    provisionHeadersConsume (&provision->u.headers, &headers);
+                    bcsSyncHandleBlockHeaders (range, headers);
                     break;
+                }
 
                 case PROVISION_BLOCK_BODIES:
                     assert (0);
@@ -900,12 +904,16 @@ bcsSyncHandleProvision (BREthereumBCSSyncRange range,
                 case PROVISION_TRANSACTION_RECEIPTS:
                     assert (0);
 
-                case PROVISION_ACCOUNTS:
+                case PROVISION_ACCOUNTS: {
+                    BRArrayOf(BREthereumHash) hashes;
+                    BRArrayOf(BREthereumAccountState) accounts;
+                    provisionAccountsConsume (&provision->u.accounts, &hashes, &accounts);
                     bcsSyncHandleAccountStates (range,
-                                                provision->u.accounts.address,
-                                                provision->u.accounts.hashes,
-                                                provision->u.accounts.accounts);
+                                            provision->u.accounts.address,
+                                            hashes,
+                                            accounts);
                     break;
+                }
 
                 case PROVISION_TRANSACTION_STATUSES:
                     assert (0);
@@ -916,5 +924,6 @@ bcsSyncHandleProvision (BREthereumBCSSyncRange range,
             break;
         }
     }
+    provisionResultRelease (&result);
 }
 

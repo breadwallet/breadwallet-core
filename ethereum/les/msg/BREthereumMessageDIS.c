@@ -178,12 +178,19 @@ neighborDISHash (BREthereumDISNeighbor neighbor) {
 extern UInt256
 neighborDISDistance (BREthereumDISNeighbor n1,
                      BREthereumDISNeighbor n2) {
-    UInt512 *val1 = (UInt512*) &n1.key.pubKey[1];
-    UInt512 *val2 = (UInt512*) &n2.key.pubKey[1];
+    // For each `n` we could perform:
+    //   UInt512 *val1 = (UInt512*) &n1.key.pubKey[1];
+    // but that produces a 'misaligned address error.  So, instead, we'll do something that is
+    // clear and correct but a little tiny bit inefficient.
+    UInt512 val1, val2;
+
+    assert (64 == sizeof(UInt512));
+    memcpy (val1.u8, &n1.key.pubKey[1], 64);
+    memcpy (val2.u8, &n2.key.pubKey[1], 64);
 
     // This hash is a 'Keccak256' hash.
-    BREthereumHash hash1 = hashCreateFromData((BRRlpData) { sizeof (uint8_t*), val1->u8});
-    BREthereumHash hash2 = hashCreateFromData((BRRlpData) { sizeof (uint8_t*), val2->u8});
+    BREthereumHash hash1 = hashCreateFromData((BRRlpData) { 64, val1.u8});
+    BREthereumHash hash2 = hashCreateFromData((BRRlpData) { 64, val2.u8});
 
     return uint256Bitwise (INT_BITWISE_XOR,
                            (UInt256*) hash1.bytes,
@@ -501,3 +508,13 @@ messageDISEncode (BREthereumDISMessage message,
     return rlpEncodeBytes (coder.rlp, packetMemory, packetSize);
 }
 
+extern void
+messageDISRelease (BREthereumDISMessage *message) {
+    switch (message->identifier) {
+        case DIS_MESSAGE_PING:
+        case DIS_MESSAGE_PONG:
+        case DIS_MESSAGE_FIND_NEIGHBORS:
+        case DIS_MESSAGE_NEIGHBORS:
+            break;
+    }
+}

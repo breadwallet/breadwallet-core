@@ -152,37 +152,37 @@ messageLESStatusDecode (BRRlpItem item,
     return status;
 }
 
-extern BREthereumLESMessageStatus
-messageLESStatusCreate (uint64_t protocolVersion,
-                        uint64_t chainId,
-                        uint64_t headNum,
-                        BREthereumHash headHash,
-                        UInt256 headTd,
-                        BREthereumHash genesisHash,
-                        uint64_t announceType) {
-    BRArrayOf(BREthereumP2PMessageStatusKeyValuePair) pairs;
-    BREthereumP2PMessageStatusKeyValuePair pair = {
-        P2P_MESSAGE_STATUS_ANNOUNCE_TYPE,
-        {
-            P2P_MESSAGE_STATUS_VALUE_INTEGER,
-            announceType
-        }
-    };
-
-    array_new (pairs, 1);
-    array_add (pairs, pair);
-
-    return (BREthereumLESMessageStatus) {
-        protocolVersion,            // If protocolVersion is LESv2 ...
-        chainId,
-        headNum,
-        headHash,
-        headTd,
-        genesisHash,
-
-        pairs
-    };
-}
+//extern BREthereumLESMessageStatus
+//messageLESStatusCreate (uint64_t protocolVersion,
+//                        uint64_t chainId,
+//                        uint64_t headNum,
+//                        BREthereumHash headHash,
+//                        UInt256 headTd,
+//                        BREthereumHash genesisHash,
+//                        uint64_t announceType) {
+//    BRArrayOf(BREthereumP2PMessageStatusKeyValuePair) pairs;
+//    BREthereumP2PMessageStatusKeyValuePair pair = {
+//        P2P_MESSAGE_STATUS_ANNOUNCE_TYPE,
+//        {
+//            P2P_MESSAGE_STATUS_VALUE_INTEGER,
+//            announceType
+//        }
+//    };
+//
+//    array_new (pairs, 1);
+//    array_add (pairs, pair);
+//
+//    return (BREthereumLESMessageStatus) {
+//        protocolVersion,            // If protocolVersion is LESv2 ...
+//        chainId,
+//        headNum,
+//        headHash,
+//        headTd,
+//        genesisHash,
+//
+//        pairs
+//    };
+//}
 
 /// Mark: LES Announce
 
@@ -257,6 +257,12 @@ messageLESGetBlockHeadersDecode (BRRlpItem item,
 
 /// MARK: BlockHeaders
 
+extern void
+messageLESBlockHeadersConsume (BREthereumLESMessageBlockHeaders *message,
+                               BRArrayOf(BREthereumBlockHeader) *headers) {
+    if (NULL != headers) { *headers = message->headers; message->headers = NULL; }
+}
+
 extern BREthereumLESMessageBlockHeaders
 messageLESBlockHeadersDecode (BRRlpItem item,
                               BREthereumMessageCoder coder) {
@@ -292,6 +298,12 @@ messageLESGetBlockBodiesEncode (BREthereumLESMessageGetBlockBodies message, BREt
 }
 
 /// MARK: LES BlockBodies
+
+extern void
+messageLESBlockBodiesConsume (BREthereumLESMessageBlockBodies *message,
+                              BRArrayOf(BREthereumBlockBodyPair) *pairs) {
+    if (NULL != pairs) { *pairs = message->pairs; message->pairs = NULL; }
+}
 
 static BREthereumLESMessageBlockBodies
 messageLESBlockBodiesDecode (BRRlpItem item,
@@ -336,6 +348,12 @@ messageLESGetReceiptsEncode (BREthereumLESMessageGetReceipts message, BREthereum
 }
 
 /// MARK: LES Receipts
+
+extern void
+messageLESReceiptsConsume (BREthereumLESMessageReceipts *receipts,
+                           BRArrayOf (BREthereumLESMessageReceiptsArray) *arrays) {
+    if (NULL != arrays) { *arrays = receipts->arrays; receipts->arrays = NULL; }
+}
 
 static BREthereumLESMessageReceipts
 messageLESReceiptsDecode (BRRlpItem item,
@@ -397,6 +415,12 @@ messageLESGetProofsEncode (BREthereumLESMessageGetProofs message, BREthereumMess
 }
 
 /// MARK: LES Proofs
+
+extern void
+messageLESProofsConsume (BREthereumLESMessageProofs *message,
+                         BRArrayOf(BREthereumMPTNodePath) *paths) {
+    if (NULL != paths) { *paths = message->paths; message->paths = NULL; }
+}
 
 static BREthereumLESMessageProofs
 messageLESProofsDecode (BRRlpItem item,
@@ -512,6 +536,12 @@ messageLESGetTxStatusEncode (BREthereumLESMessageGetTxStatus message, BREthereum
 }
 
 /// MARK: LES TxStatus
+
+extern void
+messageLESTxStatusConsume (BREthereumLESMessageTxStatus *message,
+                           BRArrayOf(BREthereumTransactionStatus) *stati) {
+    if (NULL != stati) { *stati = message->stati; message->stati = NULL; }
+}
 
 static BREthereumLESMessageTxStatus
 messageLESTxStatusDecode (BRRlpItem item,
@@ -635,6 +665,101 @@ messageLESEncode (BREthereumLESMessage message,
     return rlpEncodeList2 (coder.rlp,
                            rlpEncodeUInt64 (coder.rlp, message.identifier + coder.messageIdOffset, 1),
                            body);
+}
+
+extern void
+messageLESRelease (BREthereumLESMessage *message) {
+    switch (message->identifier) {
+        case LES_MESSAGE_STATUS:
+            messageP2PStatusRelease (&message->u.status.p2p);
+            break;
+
+        case LES_MESSAGE_ANNOUNCE:
+            if (NULL != message->u.announce.pairs)
+                array_free (message->u.announce.pairs);
+            break;
+
+        case LES_MESSAGE_GET_BLOCK_HEADERS:
+            break;
+
+        case LES_MESSAGE_BLOCK_HEADERS:
+            blockHeadersRelease (message->u.blockHeaders.headers);
+            break;
+
+        case LES_MESSAGE_GET_BLOCK_BODIES:
+            if (NULL != message->u.getBlockBodies.hashes)
+                array_free (message->u.getBlockBodies.hashes);
+            break;
+
+        case LES_MESSAGE_BLOCK_BODIES:
+            blockBodyPairsRelease (message->u.blockBodies.pairs);
+            break;
+
+        case LES_MESSAGE_GET_RECEIPTS:
+            if (NULL != message->u.getReceipts.hashes)
+                array_free (message->u.getReceipts.hashes);
+            break;
+
+        case LES_MESSAGE_RECEIPTS:
+            if (NULL != message->u.receipts.arrays) {
+                for (size_t index = 0; index < array_count (message->u.receipts.arrays); index++)
+                    transactionReceiptsRelease (message->u.receipts.arrays[index].receipts);
+                array_free (message->u.receipts.arrays);
+            }
+            break;
+
+        case LES_MESSAGE_GET_PROOFS:
+            // TODO: Geth
+            // for specs:  key1, key2
+            if (NULL != message->u.getProofs.specs)
+                array_free (message->u.getProofs.specs);
+            break;
+
+        case LES_MESSAGE_PROOFS:
+            // TODO: Geth
+            break;
+
+        case LES_MESSAGE_GET_CONTRACT_CODES:
+        case LES_MESSAGE_CONTRACT_CODES:
+            break;
+
+        case LES_MESSAGE_SEND_TX:
+            transactionsRelease (message->u.sendTx.transactions);
+            break;
+
+        case LES_MESSAGE_GET_HEADER_PROOFS:
+        case LES_MESSAGE_HEADER_PROOFS:
+            break;
+
+        case LES_MESSAGE_GET_PROOFS_V2:
+            // TODO: Geth
+            // for specs:  key1, key2
+            if (NULL != message->u.getProofsV2.specs)
+                array_free (message->u.getProofsV2.specs);
+            break;
+
+        case LES_MESSAGE_PROOFS_V2:
+            // TODO: Geth
+            break;
+
+        case LES_MESSAGE_GET_HELPER_TRIE_PROOFS:
+        case LES_MESSAGE_HELPER_TRIE_PROOFS:
+            break;
+
+        case LES_MESSAGE_SEND_TX2:
+            transactionsRelease (message->u.sendTx2.transactions);
+            break;
+
+        case LES_MESSAGE_GET_TX_STATUS:
+            if (NULL != message->u.getTxStatus.hashes)
+                array_free (message->u.getTxStatus.hashes);
+            break;
+
+        case LES_MESSAGE_TX_STATUS:
+            if (NULL != message->u.txStatus.stati)
+                array_free (message->u.txStatus.stati);
+            break;
+    }
 }
 
 extern int

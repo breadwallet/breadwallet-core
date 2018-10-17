@@ -56,6 +56,12 @@ BRSetFreeAll (BRSet *set, BRSetItemFree itemFree) {
     BRSetFree  (set);
 }
 
+#define REPEAT(index, count) \
+  for (size_t index = 0, __indexLimit = (size_t) (count); index < __indexLimit; index++)
+
+#define OwnershipGiven
+#define OwnershipKept
+
 #include "../util/BRUtil.h"         // "BRInt.h"
 #include "../rlp/BRRlp.h"
 #include "BREthereumLogic.h"
