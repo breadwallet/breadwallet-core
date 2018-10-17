@@ -83,7 +83,7 @@ nodeSend (BREthereumNode node,
 #define DEFAULT_RECV_DATA_BUFFER_SIZE    (1 * 1024 * 1024)
 
 #define DEFAULT_NODE_TIMEOUT_IN_SECONDS       (10)
-#define DEFAULT_NODE_TIMEOUT_IN_SECONDS_RECV  (10 * 60)
+#define DEFAULT_NODE_TIMEOUT_IN_SECONDS_RECV  (60)
 
 //
 // Frame Coder Stuff
@@ -1306,7 +1306,7 @@ nodeProcess (BREthereumNode node,
             }
 
             if (FD_ISSET (socket, send)) {
-                nodeUpdateTimeout(node, now);   // override prior timeout; expect a response.
+                nodeUpdateTimeoutRecv(node, now);   // override prior timeout; expect a response.
 
                 // Send if we can.  Really only applies to provision messages, for PIP and LES, using
                 // the TCP route.  We might have multiple provisiones to deal with but we'll send them
