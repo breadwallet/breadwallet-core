@@ -79,6 +79,17 @@ extern const char *
 nodeTypeGetName (BREthereumNodeType type);
 
 /**
+ * A Node has a priority as one of LCL, BRD or DIS.  When comparing nodes, such as for the LES
+ * ordering of available nodes, we'll bias the ordering based on this priority.  LCL > BRD > DIS.
+ * Note: higher priority corresponds to a lower enum value.
+ */
+typedef enum {
+    NODE_PRIORITY_LCL,
+    NODE_PRIORITY_BRD,
+    NODE_PRIORITY_DIS,
+} BREthereumNodePriority;
+
+/**
  * A Node will callback on: state changes, announcements (of block), and results.
  * The callback includes a User context.
  */
@@ -117,11 +128,11 @@ typedef enum {
     NODE_ERROR,
 } BREthereumNodeStateType;
 
-    typedef enum {
-        NODE_ERROR_UNIX,
-        NODE_ERROR_DISCONNECT,
-        NODE_ERROR_PROTOCOL
-    } BREthereumNodeErrorType;
+typedef enum {
+    NODE_ERROR_UNIX,
+    NODE_ERROR_DISCONNECT,
+    NODE_ERROR_PROTOCOL
+} BREthereumNodeErrorType;
 
 typedef enum  {
     NODE_CONNECT_OPEN,
@@ -208,7 +219,8 @@ nodeStateDecode (BRRlpItem item,
  * @return
  */
 extern BREthereumNode // add 'message id offset'?
-nodeCreate (BREthereumNetwork network,
+nodeCreate (BREthereumNodePriority priority,
+            BREthereumNetwork network,
             OwnershipKept const BREthereumNodeEndpoint local,
             OwnershipGiven BREthereumNodeEndpoint remote,
             BREthereumNodeContext context,
@@ -227,7 +239,14 @@ nodeReleaseForSet (void *ignore, void *item) {
 
 extern void
 nodeClean (BREthereumNode node);
-    
+
+extern BREthereumBoolean
+nodeUpdatedLocalStatus (BREthereumNode node,
+                        BREthereumNodeEndpointRoute route);
+
+extern BREthereumNodePriority
+nodeGetPriority (BREthereumNode node);
+
 extern BREthereumNodeState
 nodeConnect (BREthereumNode node,
              BREthereumNodeEndpointRoute route);
@@ -264,10 +283,11 @@ nodeGetRemoteEndpoint (BREthereumNode node);
 extern const BREthereumNodeEndpoint
 nodeGetLocalEndpoint (BREthereumNode node);
 
+/** Compare nodes based on their priority and DIS neighbor distance */
 extern BREthereumComparison
-nodeNeighborCompare (BREthereumNode n1,
-                     BREthereumNode n2);
-    
+nodeCompare (BREthereumNode node1,
+             BREthereumNode node2);
+
 extern int
 nodeHasState (BREthereumNode node,
               BREthereumNodeEndpointRoute route,
