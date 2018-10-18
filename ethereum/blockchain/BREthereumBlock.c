@@ -31,6 +31,10 @@
 #include "BREthereumBlock.h"
 #include "BREthereumLog.h"
 
+// When looking for a block checkpoint based on a timestamp, back up by this much to ensure
+// we don't miss the account's initial block.
+#define BLOCK_CHECKPOINT_TIMESTAMP_SAFETY      (2 * 7 * 24 * 60 * 60)  // two weeks
+
 //#define BLOCK_LOG_ALLOC_COUNT
 
 #if defined (BLOCK_LOG_ALLOC_COUNT)
@@ -173,11 +177,12 @@ struct BREthereumBlockHeaderRecord {
 };
 
 static BREthereumBlockHeader
-createBlockHeaderMinimal (BREthereumHash hash, uint64_t number, uint64_t timestamp) {
+createBlockHeaderMinimal (BREthereumHash hash, uint64_t number, uint64_t timestamp, UInt256 difficulty) {
     BREthereumBlockHeader header = (BREthereumBlockHeader) calloc (1, sizeof (struct BREthereumBlockHeaderRecord));
     header->number = number;
     header->timestamp = timestamp;
     header->hash = hash;
+    header->difficulty = difficulty;
 
 #if defined (BLOCK_HEADER_LOG_ALLOC_COUNT)
     eth_log ("MEM", "Block Header Create Minimal: %d", ++blockHeaderAllocCount);
@@ -495,6 +500,9 @@ struct BREthereumBlockRecord {
     // Also, see: https://ethereum.stackexchange.com/questions/34/what-is-an-uncle-ommer-block
     BREthereumBlockHeader *ommers;
 
+    // ... the totalDifficulty as a) zero or b) the header difficulty + next's totalDifficulty
+    UInt256 totalDifficulty;
+
     /**
      *
      */
@@ -504,8 +512,9 @@ struct BREthereumBlockRecord {
 extern BREthereumBlock
 blockCreateMinimal(BREthereumHash hash,
                    uint64_t number,
-                   uint64_t timestamp) {
-    return blockCreate(createBlockHeaderMinimal(hash, number, timestamp));
+                   uint64_t timestamp,
+                   UInt256 difficulty) {
+    return blockCreate(createBlockHeaderMinimal(hash, number, timestamp, difficulty));
 }
 
 extern BREthereumBlock
@@ -536,6 +545,7 @@ blockCreate (BREthereumBlockHeader header) {
     block->header = header;
     block->ommers = NULL;
     block->transactions = NULL;
+    block->totalDifficulty = UINT256_ZERO;
 
     blockStatusInitialize(&block->status, blockHeaderGetHash(block->header));
     block->next = BLOCK_NEXT_NONE;
@@ -676,10 +686,40 @@ blockGetDifficulty (BREthereumBlock block) {
 }
 
 extern UInt256
-blockGetTotalDifficulty (BREthereumBlock block, int *valid) {
-    assert (NULL != valid);
-    *valid = 0;
-    return UINT256_ZERO;
+blockGetTotalDifficulty (BREthereumBlock block) {
+    return block->totalDifficulty;
+}
+
+extern  void
+blockSetTotalDifficulty (BREthereumBlock block,
+                         UInt256 totalDifficulty) {
+    block->totalDifficulty = totalDifficulty;
+}
+
+extern void
+blockClrTotalDifficulty (BREthereumBlock block) {
+    block->totalDifficulty = UINT256_ZERO;
+}
+
+extern BREthereumBoolean
+blockHasTotalDifficulty (BREthereumBlock block) {
+    return AS_ETHEREUM_BOOLEAN (!UInt256Eq (block->totalDifficulty, UINT256_ZERO));
+}
+
+extern UInt256
+blockRecursivelyPropagateTotalDifficulty (BREthereumBlock block) {
+    // If we don't have a total difficulty then compute it
+    if (UInt256Eq (block->totalDifficulty, UINT256_ZERO)) {
+        int overflow;
+
+        // Note: on overflow the return value is UINT256_ZERO
+        block->totalDifficulty = (NULL != block->next
+                                  ? addUInt256_Overflow (blockGetDifficulty (block),
+                                                         blockRecursivelyPropagateTotalDifficulty (block->next),
+                                                         &overflow)
+                                  : UINT256_ZERO);
+    }
+    return block->totalDifficulty;
 }
 
 extern void
@@ -801,16 +841,18 @@ blockRlpEncode (BREthereumBlock block,
                 BREthereumNetwork network,
                 BREthereumRlpType type,
                 BRRlpCoder coder) {
-    BRRlpItem items[4];
+    BRRlpItem items[5];
 
     items[0] = blockHeaderRlpEncode(block->header, ETHEREUM_BOOLEAN_TRUE, type, coder);
     items[1] = blockTransactionsRlpEncode(block, network, RLP_TYPE_TRANSACTION_SIGNED, coder);
     items[2] = blockOmmersRlpEncode(block, type, coder);
 
-    if (RLP_TYPE_ARCHIVE == type)
-        items[3] = blockStatusRlpEncode(block->status, coder);
+    if (RLP_TYPE_ARCHIVE == type) {
+        items[3] = rlpEncodeUInt256 (coder, block->totalDifficulty, 0);
+        items[4] = blockStatusRlpEncode(block->status, coder);
+    }
 
-    return rlpEncodeListItems(coder, items, (RLP_TYPE_ARCHIVE == type ? 4 : 3));
+    return rlpEncodeListItems(coder, items, (RLP_TYPE_ARCHIVE == type ? 5 : 3));
 }
 
 //
@@ -822,21 +864,24 @@ blockRlpDecode (BRRlpItem item,
                 BREthereumRlpType type,
                 BRRlpCoder coder) {
     BREthereumBlock block = calloc (1, sizeof(struct BREthereumBlockRecord));
-    memset (block, 0, sizeof(struct BREthereumBlockRecord));
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
     assert ((3 == itemsCount && RLP_TYPE_NETWORK == type) ||
-            (4 == itemsCount && RLP_TYPE_ARCHIVE == type));
+            (5 == itemsCount && RLP_TYPE_ARCHIVE == type));
 
     block->header = blockHeaderRlpDecode(items[0], type, coder);
     block->transactions = blockTransactionsRlpDecode(items[1], network, RLP_TYPE_TRANSACTION_SIGNED, coder);
     block->ommers = blockOmmersRlpDecode(items[2], network, type, coder);
 
-    if (RLP_TYPE_ARCHIVE == type)
-        block->status = blockStatusRlpDecode(items[3], coder);
-    else
-        blockStatusInitialize(&block->status, blockHeaderGetHash(block->header));
+    if (RLP_TYPE_ARCHIVE == type) {
+        block->totalDifficulty = rlpDecodeUInt256 (coder, items[3], 0);
+        block->status = blockStatusRlpDecode (items[4], coder);
+    }
+    else {
+        blockClrTotalDifficulty (block);
+        blockStatusInitialize (&block->status, blockHeaderGetHash(block->header));
+    }
 
     block->next = BLOCK_NEXT_NONE;
 
@@ -1313,7 +1358,9 @@ networkGetGenesisBlockHeader (BREthereumNetwork network) {
 
 extern BREthereumBlock
 networkGetGenesisBlock (BREthereumNetwork network) {
-    return blockCreate(networkGetGenesisBlockHeader(network));
+    BREthereumBlock block = blockCreate(networkGetGenesisBlockHeader(network));
+    blockSetTotalDifficulty (block, blockGetDifficulty(block));
+    return block;
 }
 
 static void
@@ -1463,45 +1510,25 @@ initializeGenesisBlocks (void) {
 
 static BREthereumBlockCheckpoint
 ethereumMainnetCheckpoints [] = {
-    {       0, HASH_INIT("d4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3"),  { .std = "17179869184" },  0 }, // 1061 days  6 hrs ago (Jul-30-2015 03:26:13 PM +UTC)
-#if 0
-    { 5000000, HASH_INIT("7d5a4369273c723454ac137f48a4f142b097aa2779464e6505f1b1c5e37b5382"),  0 }, //  146 days  8 hrs ago (Jan-30-2018 01:41:33 PM +UTC)
-    { 5500000, HASH_INIT("2d3a154eee9f90666c6e824f11e15f2d60b05323a81254f60075c34a61ef124d"),  0 }, //   61 days 22 hrs ago (Apr-24-2018 11:07:01 PM +UTC)
-
-    // Has three+ logs
-    { 5506600, HASH_INIT("4f91cdbd4eb27b12b7959daa8b4300d88a5a88efc8256c413534fe16fe9eee2b"),  0 }, //   17 days 23 hrs ago (Jun-07-2018 10:25:41 PM +UTC)
-    { 5750000, HASH_INIT("9645ed6cd4994b1e734eb25abbc225005dce591cbbe9e083cd2587b27cfe908f"),  0 }, //
-
-    // Has three+ eth - 5795662
-    { 5795660, HASH_INIT("5eeddeff1bfdde5859a63f47fbd3a4ff929be9dc21dd48a52a8cd08d560cc3b5"),  0 }, //   11 days 21 hrs ago (Jun-15-2018 10:43:11 PM +UTC)
-
-    // Head - 5860000
-    { 5860000, HASH_INIT("ef888507717b8d59d3abb24f618a7809cf58d5a723d691979769a4a4cf39f63c"),  0 }, //
-    { 5865000, HASH_INIT("9f573bfa8b0ffaca5210b45eb01c12e4d0f6ffc3a8c4d13bea8176b1266f5d53"),  0 }, //    1 hr 25 mins ago (Jun-27-2018 07:38:02 PM +UTC)
-
-    // 2018-07-02
-    { 5893500, HASH_INIT("a8ed4df2446a09d85b5867253a7c4a0870a65d858cf43539070186e180b4f7d2"),  0 },
-
-    // 2018-07-03
-    { 5899000, HASH_INIT("e7b0051c152755f03e9e98b5f41540d79abee02c5770c22299b7250a2d647507"),  0 },
-
-    // 2018-07-11
-    { 5947250, HASH_INIT("8af864db3ad85a966b23841a235568312b1d06a1e51bc3e3b253722187317590"),  0 }, //
-#endif
+    {       0, HASH_INIT("d4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3"), { .std = "17179869184"              },          0 },
+    { 4000000, HASH_INIT("b8a3f7f5cfc1748f91a684f20fe89031202cbadcd15078c49b85ec2a57f43853"), { .std = "469024977881526938386"    }, 1499633567 },
+    { 4500000, HASH_INIT("43340a6d232532c328211d8a8c0fa84af658dbff1f4906ab7a7d4e41f82fe3a3"), { .std = "1386905480746946772236"   }, 1509953783 },
+    { 5000000, HASH_INIT("7d5a4369273c723454ac137f48a4f142b097aa2779464e6505f1b1c5e37b5382"), { .std = "2285199027754071740498"   }, 1517319693 },
+    { 5500000, HASH_INIT("2d3a154eee9f90666c6e824f11e15f2d60b05323a81254f60075c34a61ef124d"), { .std = "3825806101695195923560"   }, 1524611221 },
+    { 6000000, HASH_INIT("be847be2bceb74e660daf96b3f0669d58f59dc9101715689a00ef864a5408f43"), { .std = "5484495551037046114587"   }, 1532118564 },
+    { 6500000, HASH_INIT("70c81c3cb256b5b930f05b244d095cb4845e9808c48d881e3cc31d18ae4c3ae5"), { .std = "7174074700595750315193"   }, 1539330275 },
 };
 #define CHECKPOINT_MAINNET_COUNT      (sizeof (ethereumMainnetCheckpoints) / sizeof (BREthereumBlockCheckpoint))
 
 static BREthereumBlockCheckpoint
 ethereumTestnetCheckpoints [] = {
     {       0, HASH_INIT("41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d"), { .std = "0x100000" },  0 }, // 1061 days  6 hrs ago (Jul-30-2015 03:26:13 PM +UTC)
-//    { 3500000, HASH_INIT("afeb3a16e527470f325a0d152db7779c90490788fb2485d4e87d4eda41e93574"),  0 }, //    1 day 14 hrs ago (Jun-24-2018 08:02:44 AM +UTC)
 };
 #define CHECKPOINT_TESTNET_COUNT      (sizeof (ethereumTestnetCheckpoints) / sizeof (BREthereumBlockCheckpoint))
 
 static BREthereumBlockCheckpoint
 ethereumRinkebyCheckpoints [] = {
     {       0, HASH_INIT("6341fd3daf94b748c72ced5a5b26028f2474f5f00d824504e4fa37a75767e177"), { .std = "0x01" },  0x58ee40ba }, //  439 days  6 hrs ago (Apr-12-2017 03:20:50 PM +UTC)
-//    { 2500000, HASH_INIT("40ecdd747a7a2c39eed10991af78f3d294c3aee778cd171550042d84d6cb3b7a"),  0x58ee40ba }, //    4 days 13 hrs ago (Jun-21-2018 08:34:46 AM +UTC)
 };
 #define CHECKPOINT_RINKEBY_COUNT      (sizeof (ethereumRinkebyCheckpoints) / sizeof (BREthereumBlockCheckpoint))
 
@@ -1580,6 +1607,11 @@ extern const BREthereumBlockCheckpoint *
 blockCheckpointLookupByTimestamp (BREthereumNetwork network,
                                   uint64_t timestamp) {
     blockCheckpointInitialize();
+
+    // Backup the timestamp.
+    if (timestamp >= BLOCK_CHECKPOINT_TIMESTAMP_SAFETY)
+        timestamp -= BLOCK_CHECKPOINT_TIMESTAMP_SAFETY;
+
     size_t count;
     const BREthereumBlockCheckpoint *checkpoints = blockCheckpointFindForNetwork(network, &count);
     for (size_t index = count; index > 0; index--)
@@ -1590,5 +1622,5 @@ blockCheckpointLookupByTimestamp (BREthereumNetwork network,
 
 extern BREthereumBlockHeader
 blockCheckpointCreatePartialBlockHeader (const BREthereumBlockCheckpoint *checkpoint) {
-    return createBlockHeaderMinimal (checkpoint->hash, checkpoint->number, checkpoint->timestamp);
+    return createBlockHeaderMinimal (checkpoint->hash, checkpoint->number, checkpoint->timestamp, UINT256_ZERO);
 }

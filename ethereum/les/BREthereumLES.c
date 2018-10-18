@@ -487,6 +487,7 @@ lesCreate (BREthereumNetwork network,
                                                    les->head.totalDifficulty,
                                                    les->genesisHash,
                                                    LES_SUPPORT_GETH_ANNOUNCE_TYPE));
+    nodeEndpointShowStatus (les->localEndpoint);
 
     // Create the PTHREAD LOCK variable
     {

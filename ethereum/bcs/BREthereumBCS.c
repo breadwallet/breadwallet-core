@@ -97,7 +97,7 @@ syncInterestsCreate (int count, /* BREthereumSyncInterest*/ ...) {
  */
 static void
 bcsCreateInitializeBlocks (BREthereumBCS bcs,
-                           BRSetOf(BREthereumBlock) blocks) {
+                           OwnershipGiven BRSetOf(BREthereumBlock) blocks) {
     if (NULL == blocks) return;
 
     bcs->chain = bcs->chainTail = NULL;
@@ -241,7 +241,7 @@ bcsCreate (BREthereumNetwork network,
                                       (BREventDispatcher)bcsPeriodicDispatcher,
                                       (void*) bcs);
 
-    // Initialize `chain` - will be modified based on `headers`
+    // Initialize `chain` - will be modified based on `blocks`
     bcs->chain = bcs->chainTail = bcs->genesis;
 
     // Initialize blocks, transactions and logs from saved state.
@@ -252,24 +252,31 @@ bcsCreate (BREthereumNetwork network,
     // Initialize LES and SYNC - we must create LES from a block where the totalDifficulty is
     // computed.  In practice, we need all the blocks from bcs->chain back to a checkpoint - and
     // that is unlikely.  We'll at least try.
-    int totalDifficultyIsValid = 0;
-    UInt256 totalDifficulty = blockGetTotalDifficulty(bcs->chain, &totalDifficultyIsValid);
-    // assert (0 == totalDifficultyIsValid);
+    UInt256 totalDifficulty = blockRecursivelyPropagateTotalDifficulty (bcs->chain);
+    BREthereumBlockHeader chainHeader = blockGetHeader (bcs->chain);
 
-    // Okay, we tried.  Let's assume it failed.
-    const BREthereumBlockCheckpoint *checkpoint =
-    blockCheckpointLookupByNumber (bcs->network, blockGetNumber(bcs->chain));
+    // Okay, we tried to get totalDifficulty - if it failed, fallback to a checkpoint.
+    if (ETHEREUM_BOOLEAN_IS_FALSE (blockHasTotalDifficulty(bcs->chain))) {
+        const BREthereumBlockCheckpoint *checkpoint =
+        blockCheckpointLookupByNumber (bcs->network, blockGetNumber(bcs->chain));
+
+        totalDifficulty = checkpoint->u.td;
+        chainHeader = blockCheckpointCreatePartialBlockHeader(checkpoint);
+    }
 
     bcs->les = lesCreate (bcs->network,
                           (BREthereumLESCallbackContext) bcs,
                           (BREthereumLESCallbackAnnounce) bcsSignalAnnounce,
                           (BREthereumLESCallbackStatus) bcsSignalStatus,
                           (BREthereumLESCallbackSaveNodes) bcsSignalNodes,
-                          checkpoint->hash,
-                          checkpoint->number,
-                          checkpoint->u.td,
-                          blockGetHash(bcs->chain),
+                          blockHeaderGetHash(chainHeader),
+                          blockHeaderGetNumber(chainHeader),
+                          totalDifficulty,
+                          blockGetHash (bcs->genesis),
                           peers);
+
+    if (chainHeader != blockGetHeader(bcs->chain))
+        blockHeaderRelease(chainHeader);
 
     bcs->sync = bcsSyncCreate ((BREthereumBCSSyncContext) bcs,
                                (BREthereumBCSSyncReportBlocks) bcsSyncReportBlocksCallback,

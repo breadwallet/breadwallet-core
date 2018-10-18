@@ -65,7 +65,8 @@ class TestLightClient : EthereumClient {
                                            network: network,
                                            type: EthereumType.brd,
                                            mode: EthereumSyncMode.blockchain,
-                                           key: EthereumKey.paperKey (paperKey))
+                                           key: EthereumKey.paperKey (paperKey),
+                                           timestamp: 0)
     }
 
     //

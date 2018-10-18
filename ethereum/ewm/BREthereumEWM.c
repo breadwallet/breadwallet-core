@@ -51,8 +51,9 @@ ewmPeriodicDispatcher (BREventHandler handler,
 /// MARK: - Create EWM
 ///
 static BRSetOf(BREthereumBlock)
-createEWMEnsureBlocks (BRSetOf(BREthereumHashDataPair) blocksPersistData,
+createEWMEnsureBlocks (OwnershipGiven BRSetOf(BREthereumHashDataPair) blocksPersistData,
                        BREthereumNetwork network,
+                       BREthereumTimestamp timestamp,
                        BRRlpCoder coder) {
     size_t blocksCount = (NULL == blocksPersistData ? 0 : BRSetCount (blocksPersistData));
 
@@ -61,8 +62,10 @@ createEWMEnsureBlocks (BRSetOf(BREthereumHashDataPair) blocksPersistData,
                                                 blocksCount);
 
     if (0 == blocksCount) {
-        BREthereumBlockHeader lastCheckpointHeader = blockCheckpointCreatePartialBlockHeader(blockCheckpointLookupLatest(network));
-        BRSetAdd (blocks, blockCreate(lastCheckpointHeader));
+        const BREthereumBlockCheckpoint *checkpoint = blockCheckpointLookupByTimestamp (network, timestamp);
+        BREthereumBlock block = blockCreate (blockCheckpointCreatePartialBlockHeader (checkpoint));
+        blockSetTotalDifficulty (block, checkpoint->u.td);
+        BRSetAdd (blocks, block);
     }
     else {
         FOR_SET (BREthereumHashDataPair, pair, blocksPersistData) {
@@ -80,7 +83,7 @@ createEWMEnsureBlocks (BRSetOf(BREthereumHashDataPair) blocksPersistData,
 }
 
 static BRSetOf(BREthereumNodeConfig)
-createEWMEnsureNodes (BRSetOf(BREthereumHashDataPair) nodesPersistData,
+createEWMEnsureNodes (OwnershipGiven BRSetOf(BREthereumHashDataPair) nodesPersistData,
                       BRRlpCoder coder) {
 
     BRSetOf (BREthereumNodeConfig) nodes =
@@ -103,7 +106,7 @@ createEWMEnsureNodes (BRSetOf(BREthereumHashDataPair) nodesPersistData,
 }
 
 static BRSetOf(BREthereumTransaction)
-createEWMEnsureTransactions (BRSetOf(BREthereumHashDataPair) transactionsPersistData,
+createEWMEnsureTransactions (OwnershipGiven BRSetOf(BREthereumHashDataPair) transactionsPersistData,
                              BREthereumNetwork network,
                              BRRlpCoder coder) {
     BRSetOf(BREthereumTransaction) transactions =
@@ -128,9 +131,9 @@ createEWMEnsureTransactions (BRSetOf(BREthereumHashDataPair) transactionsPersist
 }
 
 static BRSetOf(BREthereumLog)
-createEWMEnsureLogs(BRSetOf(BREthereumHashDataPair) logsPersistData,
-                    BREthereumNetwork network,
-                    BRRlpCoder coder) {
+createEWMEnsureLogs (OwnershipGiven BRSetOf(BREthereumHashDataPair) logsPersistData,
+                     BREthereumNetwork network,
+                     BRRlpCoder coder) {
     BRSetOf(BREthereumLog) logs =
     BRSetNew (logHashValue,
               logHashEqual,
@@ -156,8 +159,8 @@ createEWMEnsureLogs(BRSetOf(BREthereumHashDataPair) logsPersistData,
 extern BREthereumEWM
 createEWM (BREthereumNetwork network,
            BREthereumAccount account,
+           BREthereumTimestamp accountTimestamp,
            BREthereumType type,
-           // serialized: headers, transactions, logs
            BREthereumSyncMode syncMode,
            BREthereumClient client,
            BRSetOf(BREthereumHashDataPair) nodesPersistData,
@@ -213,7 +216,7 @@ createEWM (BREthereumNetwork network,
     // Extract the provided persist data.  We'll use these when configuring BCS (if EWM_USE_LES)
     // or EWM (if EWM_USE_BRD).
     BRSetOf(BREthereumNodeConfig)  nodes        = createEWMEnsureNodes(nodesPersistData, ewm->coder);
-    BRSetOf(BREthereumBlock)       blocks       = createEWMEnsureBlocks (blocksPersistData, network, ewm->coder);
+    BRSetOf(BREthereumBlock)       blocks       = createEWMEnsureBlocks (blocksPersistData, network, accountTimestamp, ewm->coder);
     BRSetOf(BREthereumTransaction) transactions = createEWMEnsureTransactions(transactionsPersistData, network, ewm->coder);
     BRSetOf(BREthereumLog)         logs         = createEWMEnsureLogs(logsPersistData, network, ewm->coder);
 

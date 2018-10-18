@@ -383,6 +383,7 @@ typedef enum {
 extern BREthereumEWM
 ethereumCreate(BREthereumNetwork network,
                const char *paperKey,
+               BREthereumTimestamp paperKeyTimestamp,
                BREthereumType type,
                BREthereumSyncMode syncMode,
                BREthereumClient client,
@@ -399,7 +400,8 @@ ethereumCreate(BREthereumNetwork network,
 extern BREthereumEWM
 ethereumCreateWithPublicKey(BREthereumNetwork network,
                             const BRKey publicKey,
-                            BREthereumType type,
+                            BREthereumTimestamp publicKeyTimestamp,
+                           BREthereumType type,
                             BREthereumSyncMode syncMode,
                             BREthereumClient client,
                             BRSetOf(BREthereumPersistData) peers,

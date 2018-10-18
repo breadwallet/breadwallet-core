@@ -41,6 +41,7 @@ extern "C" {
 extern BREthereumEWM
 createEWM (BREthereumNetwork network,
            BREthereumAccount account,
+           BREthereumTimestamp accountTimestamp,
            BREthereumType type,
            BREthereumSyncMode syncMode,
            BREthereumClient client,

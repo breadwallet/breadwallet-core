@@ -34,7 +34,8 @@ class CoreDemoEthereumClient : EthereumClient {
                                            network: network,
                                            type: type,
                                            mode: mode,
-                                           key: EthereumKey.paperKey(paperKey))
+                                           key: EthereumKey.paperKey(paperKey),
+                                           timestamp: 0)
     }
 
     func getBalance(ewm: EthereumWalletManager, wid: EthereumWalletId, address: String, rid: Int32) {

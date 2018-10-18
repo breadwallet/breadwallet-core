@@ -146,7 +146,8 @@ blockHeadersRelease (BRArrayOf(BREthereumBlockHeader) headers);
 extern BREthereumBlock
 blockCreateMinimal(BREthereumHash hash,
                    uint64_t number,
-                   uint64_t timestamp);
+                   uint64_t timestamp,
+                   UInt256 difficulty);
 
 extern BREthereumBlock
 blockCreateFull (BREthereumBlockHeader header,
@@ -210,7 +211,28 @@ blockGetDifficulty (BREthereumBlock block);
  * Currently, we don't have enough blocks to compute the total difficulty.
  */
 extern UInt256
-blockGetTotalDifficulty (BREthereumBlock block, int *valid);
+blockGetTotalDifficulty (BREthereumBlock block);
+
+extern  void
+blockSetTotalDifficulty (BREthereumBlock block,
+                         UInt256 totalDifficulty);
+
+extern void
+blockClrTotalDifficulty (BREthereumBlock block);
+
+extern BREthereumBoolean
+blockHasTotalDifficulty (BREthereumBlock block);
+
+/**
+ * Update the totalDifficulty for `block` by recusively updating the totalDifficutly for
+ * block->next until block->next is NULL or block->next already has a totalDifficulty.
+ *
+ * Note: this is not a tail recursive algorithm and may overflow stack memory.  In practice we
+ * never have block chains more than several thousand (and would never be updating the entire
+ * chain all at once anyways) and thus *will* be okay.
+ */
+extern UInt256
+blockRecursivelyPropagateTotalDifficulty (BREthereumBlock block);
 
 extern void
 blockLinkLogsWithTransactions (BREthereumBlock block);
