@@ -141,6 +141,7 @@ struct BREthereumBlockHeaderRecord {
 
     // A scalar value corresponding to the difficulty level of this block. This can be calculated
     // from the previous block’s difficulty level and the timestamp; formally Hd.
+    // Also see: https://ethereum.stackexchange.com/questions/7068/difficulty-and-total-difficulty
     UInt256 difficulty;
 
     // A scalar value equal to the number of ancestor blocks. The genesis block has a number of
@@ -491,6 +492,7 @@ struct BREthereumBlockRecord {
 
     // ... and a set of other block headers U that are known to have a parent equal to the present
     // block’s parent’s parent (such blocks are known as ommers).
+    // Also, see: https://ethereum.stackexchange.com/questions/34/what-is-an-uncle-ommer-block
     BREthereumBlockHeader *ommers;
 
     /**

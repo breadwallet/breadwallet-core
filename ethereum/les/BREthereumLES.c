@@ -143,6 +143,9 @@ struct BREthereumNodeConfigRecord {
 
     /** current state */
     BREthereumNodeState state;
+
+    /** the priority */
+    BREthereumNodePriority priority;
 };
 
 extern void
@@ -158,10 +161,11 @@ nodeConfigGetHash (BREthereumNodeConfig config) {
 extern BRRlpItem
 nodeConfigEncode (BREthereumNodeConfig config,
                      BRRlpCoder coder) {
-    return rlpEncodeList (coder, 3,
+    return rlpEncodeList (coder, 4,
                           rlpEncodeBytes(coder, config->key.pubKey, 65),
                           endpointDISEncode(&config->endpoint, coder),
-                          nodeStateEncode(&config->state, coder));
+                          nodeStateEncode(&config->state, coder),
+                          rlpEncodeUInt64(coder, config->priority, 0));
 }
 
 extern BREthereumNodeConfig
@@ -171,13 +175,14 @@ nodeConfigDecode (BRRlpItem item,
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
-    assert (3 == itemsCount);
+    assert (4 == itemsCount);
 
     BRRlpData keyData = rlpDecodeBytesSharedDontRelease (coder, items[0]);
     BRKeySetPubKey(&config->key, keyData.bytes, keyData.bytesCount);
 
     config->endpoint = endpointDISDecode(items[1], coder);
-    config->state = nodeStateDecode (items[2], coder);
+    config->state    = nodeStateDecode (items[2], coder);
+    config->priority = (BREthereumNodePriority) rlpDecodeUInt64(coder, items[3], 0);
 
     return config;
 }
@@ -191,6 +196,7 @@ nodeConfigCreate (BREthereumNode node) {
     config->key = nodeEndpointGetDISNeighbor(ne).key;
     config->endpoint = nodeEndpointGetDISNeighbor(ne).node;
     config->state = nodeGetState(node, NODE_ROUTE_TCP);
+    config->priority = nodeGetPriority (node);
 
     config->hash = hashCreateFromData((BRRlpData) { 64, &config->key.pubKey[1] });
 
@@ -299,7 +305,7 @@ struct BREthereumLESRecord {
 
     /** Available Nodes - subset of `nodes`, ordered by 'DIS Distance'.  All have a TCP status of
      * 'AVAILABLE'; none are in `activeNodesByRoute[NODE_ROUTE_TCP]`.  Because these are ordered,
-     * we can just select to first oneo for use */
+     * we can just select the first one for use */
     BRArrayOf(BREthereumNode) availableNodes;
 
     /** Active Nodes - a subset of `nodes` in a state of 'CONNECTED' or 'CONNECTING'.  We actively
@@ -321,11 +327,27 @@ struct BREthereumLESRecord {
     int theTimeToCleanIsNow;
 };
 
+static void
+lesInsertNodeAsAvailable (BREthereumLES les,
+                          BREthereumNode node) {
+    assert (nodeHasState(node, NODE_ROUTE_TCP, NODE_AVAILABLE));
+
+    BREthereumBoolean inserted = ETHEREUM_BOOLEAN_FALSE;
+    for (size_t index = 0; index < array_count(les->availableNodes); index++)
+        // A simple, slow, linear-sort insert.
+        if (ETHEREUM_COMPARISON_LT == nodeCompare(node, les->availableNodes[index])) {
+            array_insert (les->availableNodes, index, node);
+            inserted = ETHEREUM_BOOLEAN_TRUE;
+            break;
+        }
+    if (ETHEREUM_BOOLEAN_IS_FALSE(inserted)) array_add (les->availableNodes, node);
+}
+
 static BREthereumNode
 lesEnsureNodeForEndpoint (BREthereumLES les,
                           OwnershipGiven BREthereumNodeEndpoint endpoint,
                           BREthereumNodeState state,
-                          BREthereumBoolean preferred,
+                          BREthereumNodePriority priority,
                           BREthereumBoolean *added) {
     BREthereumHash hash = nodeEndpointGetHash(endpoint);
 
@@ -340,7 +362,8 @@ lesEnsureNodeForEndpoint (BREthereumLES les,
     // ... and then actually add it.
     if (NULL == node) {
         // This endpoint is new so we'll create a node and then ...
-        node = nodeCreate (les->network,
+        node = nodeCreate (priority,
+                           les->network,
                            les->localEndpoint,
                            endpoint,
                            (BREthereumNodeContext) les,
@@ -354,35 +377,12 @@ lesEnsureNodeForEndpoint (BREthereumLES les,
         BRSetAdd(les->nodes, node);
 
         // .... and then, if warranted, make it available
-        if (nodeHasState(node, NODE_ROUTE_TCP, NODE_AVAILABLE)) {
-            if (ETHEREUM_BOOLEAN_IS_TRUE (preferred))
-                array_insert (les->availableNodes, 0, node);
-            else {
-                BREthereumBoolean inserted = ETHEREUM_BOOLEAN_FALSE;
-                for (size_t index = 0; index < array_count(les->availableNodes); index++)
-                    // A simple, slow, linear-sort insert.
-                    if (ETHEREUM_COMPARISON_LT == nodeNeighborCompare(node, les->availableNodes[index])) {
-                        array_insert (les->availableNodes, index, node);
-                        inserted = ETHEREUM_BOOLEAN_TRUE;
-                        break;
-                    }
-                if (ETHEREUM_BOOLEAN_IS_FALSE(inserted)) array_add (les->availableNodes, node);
-            }
-        }
+        if (nodeHasState(node, NODE_ROUTE_TCP, NODE_AVAILABLE))
+            lesInsertNodeAsAvailable(les, node);
     }
 
     pthread_mutex_unlock (&les->lock);
     return node;
-}
-
-static int
-nodeEndpointIsPreferred (const BREthereumNodeEndpoint endpoint,
-                         const char *enodes[]) {
-    BREthereumDISNeighborEnode enode = neighborDISAsEnode (nodeEndpointGetDISNeighbor(endpoint), 1);
-    for (size_t index = 0; NULL != enodes[index]; index++)
-        if (0 == strcmp (enode.chars, enodes[index]))
-            return 1;
-    return 0;
 }
 
 //
@@ -499,37 +499,14 @@ lesCreate (BREthereumNetwork network,
 
     // Identify a set of initial nodes; first, use all the endpoints provided (based on `configs`)
     eth_log(LES_LOG_TOPIC, "Nodes Provided    : %lu", (NULL == configs ? 0 : BRSetCount(configs)));
-    if (NULL != configs) {
-        BRArrayOf(BREthereumNodeEndpoint) preferredEndpoints;
-        array_new (preferredEndpoints, 5);
-
+    if (NULL != configs)
         FOR_SET (BREthereumNodeConfig, config, configs) {
-            BREthereumNodeEndpoint endpoint = nodeConfigCreateEndpoint(config);
-
-            if (nodeEndpointIsPreferred (endpoint, bootstrapLCLEnodes) ||
-                nodeEndpointIsPreferred (endpoint, bootstrapBRDEnodes))
-                array_add (preferredEndpoints, endpoint);
-            else
-                lesEnsureNodeForEndpoint (les,
-                                          endpoint,
-                                          config->state,
-                                          ETHEREUM_BOOLEAN_FALSE,
-                                          NULL);
-        }
-
-        // As owner, release.
-        BRSetApply (configs, NULL, nodeConfigReleaseForSet);
-        BRSetFree  (configs);
-
-        for (size_t index = 0; index < array_count(preferredEndpoints); index++)
             lesEnsureNodeForEndpoint (les,
-                                      preferredEndpoints[index],
-                                      (BREthereumNodeState) { NODE_AVAILABLE},
-                                      ETHEREUM_BOOLEAN_TRUE,
+                                      nodeConfigCreateEndpoint(config),
+                                      config->state,
+                                      config->priority,
                                       NULL);
-
-        array_free (preferredEndpoints);
-    }
+        }
 
     // ... and then add in bootstrap endpoints for good measure.  Note that in practice after the
     // first boot, *none* of these nodes will be added as they would already be in 'configs' above.
@@ -541,8 +518,11 @@ lesCreate (BREthereumNetwork network,
             lesEnsureNodeForEndpoint(les,
                                      nodeEndpointCreateEnode(enodes[index]),
                                      (BREthereumNodeState) { NODE_AVAILABLE },
-                                     AS_ETHEREUM_BOOLEAN (enodes == bootstrapLCLEnodes ||
-                                                          enodes == bootstrapBRDEnodes),
+                                     (enodes == bootstrapLCLEnodes
+                                      ? NODE_PRIORITY_LCL
+                                      : (enodes == bootstrapBRDEnodes
+                                         ? NODE_PRIORITY_BRD
+                                         : NODE_PRIORITY_DIS)),
                                      &bootstrappedEndpointsAdded);
             if (ETHEREUM_BOOLEAN_IS_TRUE(bootstrappedEndpointsAdded))
                 bootstrappedEndpointsCount++;
@@ -796,7 +776,7 @@ lesHandleNeighbor (BREthereumLES les,
         lesEnsureNodeForEndpoint (les,
                                   nodeEndpointCreate(neighbors[index]),
                                   (BREthereumNodeState) { NODE_AVAILABLE },
-                                  ETHEREUM_BOOLEAN_FALSE,
+                                  NODE_PRIORITY_DIS,
                                   NULL);
     // array_free (neighbors);
 

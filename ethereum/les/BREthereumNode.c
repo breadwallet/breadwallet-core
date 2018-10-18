@@ -476,6 +476,9 @@ struct BREthereumNodeRecord {
     /** The type as GETH or PARITY (only GETH supported) */
     BREthereumNodeType type;
 
+    /** The priority as DIS, BRD or LCL */
+    BREthereumNodePriority priority;
+
     /** The states by route; one for UDP and one for TCP */
     BREthereumNodeState states[NUMBER_OF_NODE_ROUTES];
 
@@ -560,7 +563,7 @@ nodeGetLocalEndpoint (BREthereumNode node) {
 }
 
 
-extern BREthereumComparison
+static BREthereumComparison
 nodeNeighborCompare (BREthereumNode n1,
                      BREthereumNode n2) {
     switch (compareUInt256 (n1->distance, n2->distance)) {
@@ -569,6 +572,16 @@ nodeNeighborCompare (BREthereumNode n1,
         case +1: return ETHEREUM_COMPARISON_GT;
         default: assert (0);
     }
+}
+
+extern BREthereumComparison
+nodeCompare (BREthereumNode node1,
+             BREthereumNode node2) {
+    return (node1->priority < node2->priority
+            ? ETHEREUM_COMPARISON_LT
+            : (node1->priority > node2->priority
+               ? ETHEREUM_COMPARISON_GT
+               : nodeNeighborCompare(node1, node2)));
 }
 
 static uint64_t
@@ -640,7 +653,8 @@ nodeHashEqual (const void *h1, const void *h2) {
 // Create
 //
 extern BREthereumNode
-nodeCreate (BREthereumNetwork network,
+nodeCreate (BREthereumNodePriority priority,
+            BREthereumNetwork network,
             OwnershipKept const BREthereumNodeEndpoint local,
             OwnershipGiven BREthereumNodeEndpoint remote,  // remote, local ??
             BREthereumNodeContext context,
@@ -653,8 +667,11 @@ nodeCreate (BREthereumNetwork network,
     // Identify this `node` with the remote hash.
     node->hash = nodeEndpointGetHash(remote);
 
-    // Fixed the type as GETH (for now, at least).
+    // Fix the type as UNKNOWN (for now, at least).
     node->type = NODE_TYPE_UNKNOWN;
+
+    // Fix the priority.
+    node->priority = priority;
 
     // Make all routes as 'available'
     for (int route = 0; route < NUMBER_OF_NODE_ROUTES; route++)
@@ -742,6 +759,11 @@ nodeRelease (BREthereumNode node) {
 extern void
 nodeClean (BREthereumNode node) {
     rlpCoderReclaim(node->coder.rlp);
+}
+
+extern BREthereumNodePriority
+nodeGetPriority (BREthereumNode node) {
+    return node->priority;
 }
 
 static BREthereumNodeState
