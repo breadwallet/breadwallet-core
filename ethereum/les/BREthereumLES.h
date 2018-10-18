@@ -186,7 +186,13 @@ lesStop (BREthereumLES les);
 
 extern void
 lesClean (BREthereumLES les);
-    
+
+extern void
+lesUpdateBlockHead (BREthereumLES les,
+                    BREthereumHash headHash,
+                    uint64_t headNumber,
+                    UInt256 headTotalDifficulty);
+
 /// MARK: LES Provision Callbacks
 
 typedef void *BREthereumLESProvisionContext;

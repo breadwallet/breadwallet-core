@@ -318,6 +318,17 @@ struct BREthereumLESRecord {
     /** Unique request identifier */
     BREthereumProvisionIdentifier requestsIdentifier;
 
+    /** The block head, that we know about.  This is also represented in the `localEndpoint`
+     * status, except that their might be a lag (block head is updated by BCS through the LES
+     * interface, but the localEndpoint's status is updated as a 'safe point' in LES */
+    struct {
+        BREthereumHash hash;
+        uint64_t number;
+        UInt256 totalDifficulty;
+    } head;
+
+    BREthereumHash genesisHash;
+
     /** Thread */
     pthread_t thread;
     pthread_mutex_t lock;
@@ -325,6 +336,7 @@ struct BREthereumLESRecord {
     /** replace with pipe() message */
     int theTimeToQuitIsNow;
     int theTimeToCleanIsNow;
+    int theTimeToUpdateBlockHeadIsNow;
 };
 
 static void
@@ -422,6 +434,11 @@ lesCreate (BREthereumNetwork network,
     les->callbackStatus = callbackStatus;
     les->callbackSaveNodes = callbackSaveNodes;
 
+    les->head.hash = headHash;
+    les->head.number = headNumber;
+    les->head.totalDifficulty = headTotalDifficulty;
+    les->genesisHash = genesisHash;
+
     // Our P2P capabilities - support subprotocols: LESv2 and/or PIPv1
     BRArrayOf (BREthereumP2PCapability) capabilities;
     array_new (capabilities, 2);
@@ -465,10 +482,10 @@ lesCreate (BREthereumNetwork network,
     nodeEndpointSetStatus (les->localEndpoint,
                            messageP2PStatusCreate (0x00,  // ignored
                                                    networkGetChainId(network),
-                                                   headNumber,
-                                                   headHash,
-                                                   headTotalDifficulty,
-                                                   genesisHash,
+                                                   les->head.number,
+                                                   les->head.hash,
+                                                   les->head.totalDifficulty,
+                                                   les->genesisHash,
                                                    LES_SUPPORT_GETH_ANNOUNCE_TYPE));
 
     // Create the PTHREAD LOCK variable
@@ -536,6 +553,7 @@ lesCreate (BREthereumNetwork network,
 
     les->theTimeToQuitIsNow = 0;
     les->theTimeToCleanIsNow = 0;
+    les->theTimeToUpdateBlockHeadIsNow = 0;
 
     return les;
 }
@@ -603,6 +621,19 @@ extern void
 lesClean (BREthereumLES les) {
     pthread_mutex_lock (&les->lock);
     les->theTimeToCleanIsNow = 1;
+    pthread_mutex_unlock (&les->lock);
+}
+
+extern void
+lesUpdateBlockHead (BREthereumLES les,
+                    BREthereumHash headHash,
+                    uint64_t headNumber,
+                    UInt256 headTotalDifficulty) {
+    pthread_mutex_lock (&les->lock);
+    les->head.hash = headHash;
+    les->head.number = headNumber;
+    les->head.totalDifficulty = headTotalDifficulty;
+    les->theTimeToUpdateBlockHeadIsNow = 1;
     pthread_mutex_unlock (&les->lock);
 }
 
@@ -988,6 +1019,34 @@ lesThread (BREthereumLES les) {
                 nodeClean(node);
             rlpCoderReclaim(les->coder);
             les->theTimeToCleanIsNow = 0;
+        }
+
+        // The block head has updated (presumably a fully validated block head - it must have
+        // a valid total difficutly and it is non-trivial to have a valid total difficulty).  The
+        // new, valid blcok head impacts our local 'status' (message).  When connecting to peer
+        // nodes, we can confidently report a 'status' as the new block header - rather than as
+        // the genesis block, or other checkpoint we maintain.
+        if (les->theTimeToUpdateBlockHeadIsNow) {
+            eth_log (LES_LOG_TOPIC, "Updating Status%s", "");
+
+            BREthereumP2PMessageStatus status = nodeEndpointGetStatus(les->localEndpoint);
+            // Nothing can be holding the localEndpoint's status directly; all 'holders' are
+            // nodes holding through localEndpoint.  The status itself includes possible references
+            // to allocated memory.  We modify the above status and then set is in the local
+            // endpoint - this 'status' safely owns any memory references; the old status is gone.
+            status.headHash = les->head.hash;
+            status.headNum  = les->head.number;
+            status.headTd   = les->head.totalDifficulty;
+            nodeEndpointSetStatus (les->localEndpoint, status);
+
+            // This will possibly change the state of nodes are are not available by making them
+            // available and inserting them, prioritized in `availableNodes`.  Importantly,
+            // `connectedNodes` does not change.
+            FOR_NODES (les, node)
+                if (ETHEREUM_BOOLEAN_IS_TRUE (nodeUpdatedLocalStatus(node, NODE_ROUTE_TCP)))
+                    lesInsertNodeAsAvailable (les, node);
+
+            les->theTimeToUpdateBlockHeadIsNow = 0;
         }
 
         //

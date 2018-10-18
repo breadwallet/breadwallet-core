@@ -239,7 +239,11 @@ nodeReleaseForSet (void *ignore, void *item) {
 
 extern void
 nodeClean (BREthereumNode node);
-    
+
+extern BREthereumBoolean
+nodeUpdatedLocalStatus (BREthereumNode node,
+                        BREthereumNodeEndpointRoute route);
+
 extern BREthereumNodePriority
 nodeGetPriority (BREthereumNode node);
 

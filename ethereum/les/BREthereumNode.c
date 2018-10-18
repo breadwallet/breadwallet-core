@@ -761,6 +761,21 @@ nodeClean (BREthereumNode node) {
     rlpCoderReclaim(node->coder.rlp);
 }
 
+extern BREthereumBoolean
+nodeUpdatedLocalStatus (BREthereumNode node,
+                        BREthereumNodeEndpointRoute route) {
+    // If any route has a error state of NODE_PROTOCOL_STATUS_MISMATCH, then return that
+    // route's state to NODE_AVAILABLE.  That makes this node once again available for
+    // the LES handshake - which might succeed with the new status.
+    if (NODE_ERROR == node->states[route].type &&
+        NODE_ERROR_PROTOCOL == node->states[route].u.error.type &&
+        NODE_PROTOCOL_STATUS_MISMATCH == node->states[route].u.error.u.protocol) {
+        node->states[route].type = NODE_AVAILABLE;
+        return ETHEREUM_BOOLEAN_TRUE;
+        }
+    return ETHEREUM_BOOLEAN_FALSE;
+}
+
 extern BREthereumNodePriority
 nodeGetPriority (BREthereumNode node) {
     return node->priority;
