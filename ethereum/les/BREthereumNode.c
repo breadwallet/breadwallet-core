@@ -1727,6 +1727,7 @@ nodeProcess (BREthereumNode node,
                     return nodeProcessSuccess (node, route, NULL, nodeStateCreateConnecting (NODE_CONNECT_DISCOVER_ACK));
 
                 case NODE_CONNECT_DISCOVER_ACK:
+                case NODE_CONNECT_DISCOVER_ACK_TOO:
                     assert (NODE_ROUTE_UDP == route);
                     if (!FD_ISSET (socket, recv)) return node->states[route];
                     nodeUpdateTimeout(node, now);
@@ -1735,17 +1736,21 @@ nodeProcess (BREthereumNode node,
                     if (NODE_STATUS_ERROR == result.status)
                         return nodeProcessFailure (node, NODE_ROUTE_UDP, NULL, nodeStateCreateErrorProtocol(NODE_PROTOCOL_PING_PONG_MISSED));
 
-                    // Require a PING message or a NEIGHBORS message
+                    // Require a NEIGHBORS message
                     message = result.u.success.message;
                     if (MESSAGE_DIS != message.identifier || DIS_MESSAGE_NEIGHBORS != message.u.dis.identifier)
                         return nodeProcessFailure (node, NODE_ROUTE_UDP, &message, nodeStateCreateErrorProtocol(NODE_PROTOCOL_PING_PONG_MISSED));
 
                     nodeSetDiscovered (node, ETHEREUM_BOOLEAN_TRUE);
-                    nodeProcessSuccess (node, NODE_ROUTE_UDP, NULL, nodeStateCreateConnected());
                     nodeProcessRecvDIS (node, NODE_ROUTE_UDP, message.u.dis); // pass ownership
 
-                    // This is success...
-                    return nodeDisconnect(node, NODE_ROUTE_UDP, nodeStateCreate(NODE_AVAILABLE), ETHEREUM_BOOLEAN_FALSE);
+                    if (NODE_CONNECT_DISCOVER_ACK == node->states[route].u.connecting.type)
+                        return nodeProcessSuccess (node, route, NULL, nodeStateCreateConnecting (NODE_CONNECT_DISCOVER_ACK_TOO));
+                    else {
+                        nodeProcessSuccess (node, NODE_ROUTE_UDP, NULL, nodeStateCreateConnected());
+                        // This is success...
+                        return nodeDisconnect(node, NODE_ROUTE_UDP, nodeStateCreate(NODE_AVAILABLE), ETHEREUM_BOOLEAN_FALSE);
+                    }
 
             }
             break;
@@ -1807,6 +1812,7 @@ nodeUpdateDescriptors (BREthereumNode node,
                 case NODE_CONNECT_PING_ACK:
                 case NODE_CONNECT_PING_ACK_DISCOVER_ACK:
                 case NODE_CONNECT_DISCOVER_ACK:
+                case NODE_CONNECT_DISCOVER_ACK_TOO:
                     if (NULL != recv) FD_SET (socket, recv);
                     break;
             }
