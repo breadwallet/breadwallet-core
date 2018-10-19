@@ -157,7 +157,7 @@ JNIEXPORT void JNICALL Java_com_breadwallet_core_BRCorePeerManager_testSavePeers
  * Signature: (Lcom/breadwallet/core/BRCoreChainParams;Lcom/breadwallet/core/BRCoreWallet;D[Lcom/breadwallet/core/BRCoreMerkleBlock;[Lcom/breadwallet/core/BRCorePeer;)J
  */
 JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCorePeerManager_createCorePeerManager
-  (JNIEnv *, jclass, jobject, jobject, jdouble, jobjectArray, jobjectArray);
+  (JNIEnv *, jclass, jobject, jobject, jdouble, jstring, jstring);
 
 /*
  * Class:     com_breadwallet_core_BRCorePeerManager

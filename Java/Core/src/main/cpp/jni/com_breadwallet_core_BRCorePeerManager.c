@@ -361,51 +361,18 @@ Java_com_breadwallet_core_BRCorePeerManager_createCorePeerManager
          jobject objParams,
          jobject objWallet,
          jdouble dblEarliestKeyTime,
-         jobjectArray objBlocksArray,
-         jobjectArray objPeersArray) {
+         jstring blocksFilePath,
+         jstring peersFilePath) {
 
     BRChainParams *params = (BRChainParams *) getJNIReference(env, objParams);
     BRWallet *wallet = (BRWallet *) getJNIReference(env, objWallet);
     uint32_t earliestKeyTime = (uint32_t) dblEarliestKeyTime;
 
-    // Blocks
-    size_t blocksCount = (size_t) (*env)->GetArrayLength(env, objBlocksArray);
-    BRMerkleBlock **blocks = (0 == blocksCount ? NULL : (BRMerkleBlock **) calloc(blocksCount, sizeof(BRMerkleBlock *)));
+    const char *peersFile = (*env)->GetStringUTFChars (env, peersFilePath, 0);
+    const char *blocksFile = (*env)->GetStringUTFChars (env, blocksFilePath, 0);
 
-    // The upcoming call to BRPeerManagerNew() assumes that the blocks provided have their memory
-    // ownership transferred to the Core.  Thus, we'll deep copy each block
-    for (int index = 0; index < blocksCount; index++) {
-        jobject objBlock = (*env)->GetObjectArrayElement (env, objBlocksArray, index);
-        assert (!(*env)->IsSameObject (env, objBlock, NULL));
-
-        BRMerkleBlock *block = (BRMerkleBlock *) getJNIReference(env, objBlock);
-        assert (NULL != block);
-
-        blocks[index] = BRMerkleBlockCopy(block);
-        (*env)->DeleteLocalRef (env, objBlock);
-    }
-
-    // Peers
-    size_t peersCount = (size_t) (*env)->GetArrayLength(env, objPeersArray);
-    BRPeer *peers = (0 == peersCount ? NULL : (BRPeer *) calloc(peersCount, sizeof(BRPeer)));
-
-    for (int index =0; index < peersCount; index++) {
-        jobject objPeer = (*env)->GetObjectArrayElement (env, objPeersArray, index);
-        assert (!(*env)->IsSameObject (env, objPeer, NULL));
-
-        BRPeer *peer = getJNIReference(env, objPeer);
-        assert (NULL != peer);
-
-        peers[index] = *peer; // block assignment
-        (*env)->DeleteLocalRef (env, objPeer);
-    }
-
-    BRPeerManager *result = BRPeerManagerNew(params, wallet, earliestKeyTime,
-                                             blocks, blocksCount,
-                                             peers, peersCount);
-
-    if (NULL != blocks) free(blocks);
-    if (NULL != peers ) free(peers);
+    BRPeerManager *result = BRPeerManagerFileNew(params, wallet, earliestKeyTime,
+                                                 blocksFile, peersFile);
 
     return (jlong) result;
 }
@@ -429,8 +396,6 @@ JNICALL Java_com_breadwallet_core_BRCorePeerManager_installListener
                                syncStarted,
                                syncStopped,
                                txStatusUpdate,
-                               saveBlocks,
-                               savePeers,
                                networkIsReachable,
                                threadCleanup);
 }

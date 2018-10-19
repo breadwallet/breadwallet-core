@@ -60,12 +60,12 @@ public class BRCoreWallet extends BRCoreJniReference
     //
     //
     //
-    public BRCoreWallet(BRCoreTransaction[] transactions,
+    public BRCoreWallet(String transactionsFilePath,
                         BRCoreMasterPubKey masterPubKey,
                         Listener listener)
         throws WalletExecption
     {
-        super (createJniCoreWallet(transactions, masterPubKey));
+        super (createJniCoreWallet(transactionsFilePath, masterPubKey));
 
         // If we don't have a proper Core Wallet, raise an exception
         if (0 == this.jniReferenceAddress)
@@ -75,13 +75,9 @@ public class BRCoreWallet extends BRCoreJniReference
         this.listener = new WeakReference<>(listener);
 
         installListener (listener);
-
-        // All `transactions` are effectively registered - now 'owned' by wallet
-        for (BRCoreTransaction transaction : transactions)
-            transaction.isRegistered = true;
     }
 
-    protected static native long createJniCoreWallet (BRCoreTransaction[] transactions,
+    protected static native long createJniCoreWallet (String transactionsFilePath,
                                                       BRCoreMasterPubKey masterPubKey);
 
     protected native void installListener (Listener listener);

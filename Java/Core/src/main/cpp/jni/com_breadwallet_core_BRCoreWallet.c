@@ -70,25 +70,14 @@ static jmethodID transactionConstructor;
 JNIEXPORT jlong JNICALL
 Java_com_breadwallet_core_BRCoreWallet_createJniCoreWallet
         (JNIEnv *env, jclass thisClass,
-         jobjectArray objTransactionsArray,
+         jstring transactionsFilePath,
          jobject objMasterPubKey) {
 
     BRMasterPubKey *masterPubKey = (BRMasterPubKey *) getJNIReference(env, objMasterPubKey);
 
-    // Transactions
-    size_t transactionsCount = (*env)->GetArrayLength(env, objTransactionsArray);
-    BRTransaction **transactions = (BRTransaction **) calloc (transactionsCount, sizeof (BRTransaction *));
+    const char *filePath = (*env)->GetStringUTFChars (env, transactionsFilePath, 0);
 
-    for (int index = 0; index < transactionsCount; index++) {
-        jobject objTransaction = (*env)->GetObjectArrayElement (env, objTransactionsArray, index);
-        // TODO: Transaction Copy?  Confirm isRegistered.
-        transactions[index] = (BRTransaction *) getJNIReference(env, objTransaction);
-        (*env)->DeleteLocalRef (env, objTransaction);
-    }
-
-    BRWallet *wallet = BRWalletNew(transactions, transactionsCount, *masterPubKey);
-
-    if (NULL != transactions) free (transactions);
+    BRWallet *wallet = BRWalletFileNew(filePath, *masterPubKey);
 
     return (jlong) wallet;
 }

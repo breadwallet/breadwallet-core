@@ -38,6 +38,10 @@ public class BRCoreWalletManager implements
 
     static { System.loadLibrary("core"); }
 
+    protected static final String coreTransactionsFilePath = "/sdcard/coreTransactions";
+    protected static final String coreBlocksFilePath = "/sdcard/coreTransactions";
+    protected static final String corePeersFilePath = "/sdcard/coreTransactions";
+
     protected static boolean SHOW_CALLBACK = true;
     protected static boolean SHOW_CALLBACK_DETAIL = false;
 
@@ -85,7 +89,7 @@ public class BRCoreWalletManager implements
 
     protected BRCoreWallet createWallet () {
         try {
-            return new BRCoreWallet(loadTransactions(), masterPubKey,
+            return new BRCoreWallet(coreTransactionsFilePath, masterPubKey,
                     createWalletListener());
         }
         catch (BRCoreWallet.WalletExecption ex) {
@@ -143,7 +147,7 @@ public class BRCoreWalletManager implements
      * @return A BRCorePeerManager for the provided wallet.
      */
     protected BRCorePeerManager createPeerManager (BRCoreWallet wallet) {
-        return new BRCorePeerManager(chainParams, wallet, earliestPeerTime, loadBlocks(), loadPeers(),
+        return new BRCorePeerManager(chainParams, wallet, earliestPeerTime, coreBlocksFilePath, corePeersFilePath,
                 createPeerManagerListener());
     }
 

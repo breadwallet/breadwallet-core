@@ -167,11 +167,9 @@ inline static int _BRBlockHeightEq(const void *block, const void *otherBlock)
     return (((const BRMerkleBlock *)block)->height == ((const BRMerkleBlock *)otherBlock)->height);
 }
 
-int BRsavePeers(const BRPeer peers[], uint32_t count)
+int BRsavePeers(const BRPeer peers[], uint32_t count, const char *fileName)
 {
-    char peersFileName[] = "/sdcard/corePeers";
-
-    FILE *peersFile = fopen (peersFileName, "w");
+    FILE *peersFile = fopen (fileName, "w");
     if(!peersFile) {
         return 0;
     }
@@ -195,13 +193,12 @@ int BRsavePeers(const BRPeer peers[], uint32_t count)
 // returns a pointer to an array of BRPeer structures and a count of number of peers.
 // BRPeer will return NULL if a failure has occured.
 // allocates memory for BRPeer* return value, which must be freed.
-BRPeer* BRloadPeers(uint32_t *count)
+BRPeer* BRloadPeers(uint32_t *count, const char *fileName)
 {
-    const char peersFileName[] = "/sdcard/corePeers";
     BRPeer *peers = NULL;
     int failure = 0;
 
-    FILE *peersFile = fopen(peersFileName, "r");
+    FILE *peersFile = fopen(fileName, "r");
     if(peersFile) {
         // the number of peers is stored first
         if(fread(count, sizeof(*count), 1, peersFile) != 1)
@@ -229,52 +226,53 @@ BRPeer* BRloadPeers(uint32_t *count)
     return peers;
 }
 
-int BRsaveBlocks(BRMerkleBlock *blocks[], uint32_t count)
+int BRsaveBlocks(BRMerkleBlock *blocks[], uint32_t count, const char *fileName)
 {
+    int retVal = 1;
     uint32_t blockSize = 0;
-    char blocksFileName[] = "/sdcard/coreBlocks";
-    uint8_t *buf = NULL;
 
-    FILE *blocksFile = fopen (blocksFileName, "w");
-    if(!blocksFile) {
-        return 0;
+    FILE *blocksFile = fopen (fileName, "w");
+    if(blocksFile) {
+        // the total number of blocks is first in the file
+        if (fwrite(&count, sizeof(uint32_t), 1, blocksFile) != 1) {
+            retVal = 0;
+        }
+
+        // serialize each individual block and write it to file
+        for (int i = 0; i < count; i++) {
+            blockSize = BRMerkleBlockSerialize(blocks[i], NULL, 0);
+
+            // write the size of the serialized block first
+            if(fwrite(&blockSize, sizeof(blockSize), 1, blocksFile) != 1)
+                retVal = 0;
+            // we need to write the block height separately, as it is not serialized
+            if(fwrite(&blocks[i]->height, sizeof(blocks[i]->height), 1, blocksFile) != 1)
+                retVal = 0;
+            // last write the block
+            uint8_t buf[blockSize];
+            BRMerkleBlockSerialize(blocks[i], buf, blockSize);
+            if(fwrite(buf, blockSize, 1, blocksFile) != 0)
+                retVal = 0;
+        }
+        fclose(blocksFile);
+    }
+    else {
+        retVal = 0;
     }
 
-    // the total number of blocks is first in the file
-    if(fwrite(&count, sizeof(uint32_t), 1, blocksFile) != 1) {
-        return 0;
-    }
-
-    // serialize each individual block and write it to file
-    for(int i = 0; i < count; i++) {
-        blockSize = BRMerkleBlockSerialize(blocks[i], NULL, 0);
-
-        // write the size of the serialized block first
-        fwrite(&blockSize, sizeof(blockSize), 1, blocksFile);
-        // we need to write the block height separately, as it is not serialized
-        fwrite(&blocks[i]->height, sizeof(blocks[i]->height), 1, blocksFile);
-        // last write the block
-        uint8_t buf[blockSize];
-        BRMerkleBlockSerialize(blocks[i], buf, blockSize);
-        fwrite(buf, blockSize, 1, blocksFile);
-    }
-
-    fclose(blocksFile);
-
-    return 1;
+    return retVal;
 }
 
 // returns a pointer to an array of BRMerkleBlock structures and a count of number of peers.
 // BRPeer will return NULL if a failure has occured.
 // allocates memory for BRPeer* return value, which must be freed.
-BRMerkleBlock** BRloadBlocks(uint32_t *count)
+BRMerkleBlock** BRloadBlocks(uint32_t *count, const char* fileName)
 {
-    const char blocksFileName[] = "/sdcard/coreBlocks";
     BRMerkleBlock **blocks = NULL;
     uint32_t blockSize = 0;
     int failure = 0;
 
-    FILE *blocksFile = fopen(blocksFileName, "r");
+    FILE *blocksFile = fopen(fileName, "r");
     if(blocksFile) {
         // the number of blocks is stored first
         if(fread(count, sizeof(*count), 1, blocksFile) != 1)
@@ -334,11 +332,11 @@ struct BRPeerManagerStruct {
     BRPublishedTx *publishedTx;
     UInt256 *publishedTxHashes;
     void *info;
+    char *peerStorageFilePath;
+    char *blockStorageFilePath;
     void (*syncStarted)(void *info);
     void (*syncStopped)(void *info, int error);
     void (*txStatusUpdate)(void *info);
-    void (*saveBlocks)(void *info, int replace, BRMerkleBlock *blocks[], size_t blocksCount);
-    void (*savePeers)(void *info, int replace, const BRPeer peers[], size_t peersCount);
     int (*networkIsReachable)(void *info);
     void (*threadCleanup)(void *info);
     pthread_mutex_t lock;
@@ -1031,8 +1029,7 @@ static void _peerDisconnected(void *info, int error)
         pubTx[i].callback(pubTx[i].info, txError);
     }
     
-    if (willSave && manager->savePeers) manager->savePeers(manager->info, 1, NULL, 0);
-    if (willSave) BRsavePeers(NULL, 0);
+    if (willSave) BRsavePeers(NULL, 0, manager->peerStorageFilePath);
     if (willSave && manager->syncStopped) manager->syncStopped(manager->info, error);
     if (willReconnect) BRPeerManagerConnect(manager); // try connecting to another peer
     if (manager->txStatusUpdate) manager->txStatusUpdate(manager->info);
@@ -1064,10 +1061,8 @@ static void _peerRelayedPeers(void *info, const BRPeer peers[], size_t peersCoun
     pthread_mutex_unlock(&manager->lock);
     
     // peer relaying is complete when we receive <1000
-    if (peersCount > 1 && peersCount < 1000 && manager->savePeers) {
-        // replace this call
-        manager->savePeers(manager->info, 1, save, peersCount);
-        BRsavePeers(save, peersCount);
+    if (peersCount > 1 && peersCount < 1000) {
+        BRsavePeers(save, peersCount, manager->peerStorageFilePath);
     }
 }
 
@@ -1510,7 +1505,8 @@ static void _peerRelayedBlock(void *info, BRMerkleBlock *block)
     if (j > 0) i -= (i > BLOCK_DIFFICULTY_INTERVAL - j) ? BLOCK_DIFFICULTY_INTERVAL - j : i;
     assert(i == 0 || (saveBlocks[i - 1]->height % BLOCK_DIFFICULTY_INTERVAL) == 0);
     pthread_mutex_unlock(&manager->lock);
-    if (i > 0 && manager->saveBlocks) manager->saveBlocks(manager->info, (i > 1 ? 1 : 0), saveBlocks, i);
+    if (i > 0)
+        BRsaveBlocks(saveBlocks, i, manager->blockStorageFilePath);
     
     if (block && block->height != BLOCK_UNKNOWN_HEIGHT && block->height >= BRPeerLastBlock(peer) &&
         manager->txStatusUpdate) {
@@ -1678,18 +1674,28 @@ BRPeerManager *BRPeerManagerNew(const BRChainParams *params, BRWallet *wallet, u
 // this function accepts a path to block storage and path to the peer storage, which are both located
 // in the local file system.
 BRPeerManager *BRPeerManagerFileNew(const BRChainParams *params, BRWallet *wallet, uint32_t earliestKeyTime,
-                                const char *blocksFileName, const char *peersFileName)
-{
+                                const char *blocksFileName, const char *peersFileName) {
     uint32_t peerCount = 0;
     BRPeer *peers = NULL;
     uint32_t blockCount = 0;
     BRMerkleBlock **blocks;
 
-    peers = BRloadPeers(&peerCount);
-    blocks = BRloadBlocks(&blockCount);
+    peers = BRloadPeers(&peerCount, peersFileName);
+    blocks = BRloadBlocks(&blockCount, blocksFileName);
 
     BRPeerManager *manager = BRPeerManagerNew(params, wallet, earliestKeyTime,
-            NULL /*blocks*/, blockCount, peers, peerCount);
+                                              blocks, blockCount, peers, peerCount);
+
+    if(peersFileName && manager) {
+        char *peersFile = malloc(strlen(peersFileName));
+        strcpy(peersFile, peersFileName);
+        manager->peerStorageFilePath = peersFile;
+    }
+    if(blocksFileName && manager) {
+        char *blocksFile = malloc(strlen(blocksFileName));
+        strcpy(blocksFile, blocksFileName);
+        manager->blockStorageFilePath = blocksFile;
+    }
 
     if(peers)
         free(peers);
@@ -1706,18 +1712,12 @@ BRPeerManager *BRPeerManagerFileNew(const BRChainParams *params, BRWallet *walle
 // void syncStarted(void *) - called when blockchain syncing starts
 // void syncStopped(void *, int) - called when blockchain syncing stops, error is an errno.h code
 // void txStatusUpdate(void *) - called when transaction status may have changed such as when a new block arrives
-// void saveBlocks(void *, int, BRMerkleBlock *[], size_t) - called when blocks should be saved to the persistent store
-// - if replace is true, remove any previously saved blocks first
-// void savePeers(void *, int, const BRPeer[], size_t) - called when peers should be saved to the persistent store
-// - if replace is true, remove any previously saved peers first
 // int networkIsReachable(void *) - must return true when networking is available, false otherwise
 // void threadCleanup(void *) - called before a thread terminates to faciliate any needed cleanup
 void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
                                void (*syncStarted)(void *info),
                                void (*syncStopped)(void *info, int error),
                                void (*txStatusUpdate)(void *info),
-                               void (*saveBlocks)(void *info, int replace, BRMerkleBlock *blocks[], size_t blocksCount),
-                               void (*savePeers)(void *info, int replace, const BRPeer peers[], size_t peersCount),
                                int (*networkIsReachable)(void *info),
                                void (*threadCleanup)(void *info))
 {
@@ -1726,8 +1726,6 @@ void BRPeerManagerSetCallbacks(BRPeerManager *manager, void *info,
     manager->syncStarted = syncStarted;
     manager->syncStopped = syncStopped;
     manager->txStatusUpdate = txStatusUpdate;
-    manager->saveBlocks = saveBlocks;
-    manager->savePeers = savePeers;
     manager->networkIsReachable = networkIsReachable;
     manager->threadCleanup = (threadCleanup) ? threadCleanup : _dummyThreadCleanup;
 }

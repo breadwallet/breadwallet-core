@@ -13,7 +13,7 @@ extern "C" {
  * Signature: ([Lcom/breadwallet/core/BRCoreTransaction;Lcom/breadwallet/core/BRCoreMasterPubKey;)J
  */
 JNIEXPORT jlong JNICALL Java_com_breadwallet_core_BRCoreWallet_createJniCoreWallet
-  (JNIEnv *, jclass, jobjectArray, jobject);
+  (JNIEnv *, jclass, jstring, jobject);
 
 /*
  * Class:     com_breadwallet_core_BRCoreWallet

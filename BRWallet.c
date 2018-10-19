@@ -26,6 +26,7 @@
 #include "BRSet.h"
 #include "BRAddress.h"
 #include "BRArray.h"
+#include "BRTransaction.h"
 #include <stdlib.h>
 #include <inttypes.h>
 #include <limits.h>
@@ -41,6 +42,7 @@ struct BRWalletStruct {
     BRMasterPubKey masterPubKey;
     BRAddress *internalChain, *externalChain;
     BRSet *allTx, *invalidTx, *pendingTx, *spentOutputs, *usedAddrs, *allAddrs;
+    char *transactionsFilePath;
     void *callbackInfo;
     void (*balanceChanged)(void *info, uint64_t balance);
     void (*txAdded)(void *info, BRTransaction *tx);
@@ -244,6 +246,111 @@ static void _BRWalletUpdateBalance(BRWallet *wallet)
     wallet->balance = balance;
 }
 
+int BRWalletSaveTransactions(BRWallet *wallet)
+{
+    int retVal = 1;
+    uint32_t transSize = 0;
+
+    pthread_mutex_lock(&wallet->lock);
+    uint32_t count = array_count(wallet->transactions);
+
+    FILE *transFile = fopen (wallet->transactionsFilePath, "w");
+    if(transFile) {
+        // the total number of blocks is first in the file
+        if (fwrite(&count, sizeof(uint32_t), 1, transFile) != 1) {
+            retVal = 0;
+        }
+
+        // serialize each individual block and write it to file
+        for (int i = 0; i < count; i++) {
+            transSize = BRTransactionSerialize(wallet->transactions[i], NULL, 0);
+
+            // write the size of the serialized transaction first
+            if (fwrite(&transSize, sizeof(transSize), 1, transFile) != 1)
+                retVal = 0;
+
+            // we need to write the transaction blockHeight and timestamp separately, as they are not serialized
+            if (fwrite(&wallet->transactions[i]->blockHeight,
+                       sizeof(wallet->transactions[i]->blockHeight), 1, transFile) != 1)
+                retVal = 0;
+            if (fwrite(&wallet->transactions[i]->timestamp,
+                       sizeof(wallet->transactions[i]->timestamp), 1, transFile) != 1)
+                retVal = 0;
+
+            // last write the block
+            uint8_t buf[transSize];
+            BRTransactionSerialize(wallet->transactions[i], buf, transSize);
+            if (fwrite(buf, transSize, 1, transFile) != 1)
+                retVal = 0;
+        }
+
+        fclose(transFile);
+    } else {
+        retVal = 0;
+    }
+
+    pthread_mutex_unlock(&wallet->lock);
+
+    return retVal;
+}
+
+// returns a pointer to an array of BRTransaction structures and a count of number of transactions.
+// BRWalletLoadTransactions will return NULL if a failure has occurred.  Allocates memory
+// for BRTransaction* return value, which must be freed. This functions is not thread safe.
+BRTransaction** BRWalletLoadTransactions(uint32_t *count, const char *fileName)
+{
+    BRTransaction **transactions = NULL;
+    uint32_t blockSize = 0;
+    int failure = 0;
+
+    FILE *transFile = fopen(fileName, "r");
+    if(transFile) {
+        // the number of blocks is stored first
+        if(fread(count, sizeof(*count), 1, transFile) != 1)
+            failure = 1;
+
+        transactions = (BRTransaction **) calloc(*count, sizeof(BRTransaction *));
+        for(int i = 0; i < *count; i++) {
+            // first read the size of each serialized block
+            if(fread(&blockSize, sizeof(blockSize), 1, transFile) != 1)
+                failure = 1;
+
+            // next read the transaction blockHeight and timestamp
+            uint32_t height = 0;
+            if(fread(&height, sizeof(height), 1, transFile) != 1)
+                failure = 1;
+
+            uint32_t timeStamp = 0;
+            if(fread(&timeStamp, sizeof(timeStamp), 1, transFile) != 1)
+                failure = 1;
+
+            // last read the block and de-serialize
+            uint8_t buf[blockSize];
+            if(fread(buf, 1, blockSize, transFile) != blockSize)
+                failure = 1;
+
+            BRTransaction *transaction = BRTransactionParse(buf, blockSize);
+            transaction->blockHeight = height;
+            transaction->timestamp = timeStamp;
+
+            transactions[i] = transaction;
+
+        }
+        fclose(transFile);
+    }
+    else {
+        failure = 0;
+    }
+
+    if(failure) {
+        if(transactions)
+            free(transactions);
+        transactions = NULL;
+    }
+
+    return transactions;
+}
+
 // allocates and populates a BRWallet struct which must be freed by calling BRWalletFree()
 BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPubKey mpk)
 {
@@ -288,6 +395,29 @@ BRWallet *BRWalletNew(BRTransaction *transactions[], size_t txCount, BRMasterPub
         wallet = NULL;
     }
     
+    return wallet;
+}
+
+// allocates and populates a BRWallet struct which must be freed by calling BRWalletFree()
+// takes a path to a file where the transactions can be loaded from.
+BRWallet *BRWalletFileNew(const char *fileName, BRMasterPubKey mpk)
+{
+    uint32_t count = 0;
+    BRTransaction **transactions = NULL;
+
+    transactions = BRWalletLoadTransactions(&count, fileName);
+
+    BRWallet *wallet = BRWalletNew(transactions, count, mpk);
+
+    if(fileName && wallet) {
+        char *transactionsFile = malloc(strlen(fileName));
+        strcpy(transactionsFile, fileName);
+        wallet->transactionsFilePath = transactionsFile;
+    }
+
+    if(transactions)
+        free(transactions);
+
     return wallet;
 }
 
@@ -748,6 +878,7 @@ int BRWalletRegisterTransaction(BRWallet *wallet, BRTransaction *tx)
         BRWalletUnusedAddrs(wallet, NULL, SEQUENCE_GAP_LIMIT_INTERNAL, 1);
         if (wallet->balanceChanged) wallet->balanceChanged(wallet->callbackInfo, wallet->balance);
         if (wallet->txAdded) wallet->txAdded(wallet->callbackInfo, tx);
+        BRWalletSaveTransactions(wallet);  //save all transactions, still send the callback event to the GUI
     }
 
     return r;
@@ -813,6 +944,7 @@ void BRWalletRemoveTransaction(BRWallet *wallet, UInt256 txHash)
 
             if (wallet->balanceChanged) wallet->balanceChanged(wallet->callbackInfo, wallet->balance);
             if (wallet->txDeleted) wallet->txDeleted(wallet->callbackInfo, txHash, notifyUser, recommendRescan);
+            BRWalletSaveTransactions(wallet);  //save all transactions, still send the callback event to the GUI
         }
         
         array_free(hashes);
@@ -965,7 +1097,10 @@ void BRWalletUpdateTransactions(BRWallet *wallet, const UInt256 txHashes[], size
     
     if (needsUpdate) _BRWalletUpdateBalance(wallet);
     pthread_mutex_unlock(&wallet->lock);
-    if (j > 0 && wallet->txUpdated) wallet->txUpdated(wallet->callbackInfo, hashes, j, blockHeight, timestamp);
+    if (j > 0) {
+        if(wallet->txUpdated) wallet->txUpdated(wallet->callbackInfo, hashes, j, blockHeight, timestamp);
+        BRWalletSaveTransactions(wallet);  //save all transactions, still send the callback event to the GUI
+    }
 }
 
 // marks all transactions confirmed after blockHeight as unconfirmed (useful for chain re-orgs)
@@ -989,7 +1124,10 @@ void BRWalletSetTxUnconfirmedAfter(BRWallet *wallet, uint32_t blockHeight)
     
     if (count > 0) _BRWalletUpdateBalance(wallet);
     pthread_mutex_unlock(&wallet->lock);
-    if (count > 0 && wallet->txUpdated) wallet->txUpdated(wallet->callbackInfo, hashes, count, TX_UNCONFIRMED, 0);
+    if (count > 0) {
+        if(wallet->txUpdated) wallet->txUpdated(wallet->callbackInfo, hashes, count, TX_UNCONFIRMED, 0);
+        BRWalletSaveTransactions(wallet);  //save all transactions, still send the callback event to the GUI
+    }
 }
 
 // returns the amount received by the wallet from the transaction (total outputs to change and/or receive addresses)
