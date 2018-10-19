@@ -144,6 +144,14 @@ logTopicRlpEncode(BREthereumLogTopic topic,
 
 static BREthereumLogTopic emptyTopic;
 
+static BRArrayOf(BREthereumLogTopic)
+logTopicsCopy (BRArrayOf(BREthereumLogTopic) topics) {
+    BRArrayOf(BREthereumLogTopic) copy;
+    array_new(copy, array_count(topics));
+    array_add_array(copy, topics, array_count(topics));
+    return copy;
+}
+
 //
 // Ethereum Log
 //
@@ -410,11 +418,18 @@ logReleaseForSet (void *ignore, void *item) {
 
 extern BREthereumLog
 logCopy (BREthereumLog log) {
-    BRRlpCoder coder = rlpCoderCreate();
-    BRRlpItem item = logRlpEncode(log, RLP_TYPE_ARCHIVE, coder);
-    BREthereumLog copy = logRlpDecode(item, RLP_TYPE_ARCHIVE, coder);
-    rlpReleaseItem(coder, item);
-    rlpCoderRelease(coder);
+    BREthereumLog copy = calloc (1, sizeof(struct BREthereumLogRecord));
+    memcpy (copy, log, sizeof(struct BREthereumLogRecord));
+
+    // Copy the topics
+    copy->topics = logTopicsCopy(log->topics);
+
+    // Copy the data
+    BRRlpData oldData = (BRRlpData) { log->dataCount, log->data };
+    BRRlpData newData = rlpDataCopy(oldData);
+    copy->data = newData.bytes;
+    copy->dataCount = newData.bytesCount;
+
     return copy;
 }
 

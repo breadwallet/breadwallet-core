@@ -855,9 +855,20 @@ bcsExtendTransactionsAndLogsForBlock (BREthereumBCS bcs,
  */
 static void
 bcsExtendTransactionsAndLogsForBlockIfAppropriate (BREthereumBCS bcs,
-                                           BREthereumBlock block) {
-    if (bcsHasBlockInChain(bcs, block) && ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusComplete(block)))
-        bcsExtendTransactionsAndLogsForBlock (bcs, block);
+                                                   BREthereumBlock block) {
+    if (ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusComplete(block))) {
+        if (bcsHasBlockInChain(bcs, block))
+            bcsExtendTransactionsAndLogsForBlock (bcs, block);
+        else {
+            // TODO: Are we about to loose this block?
+
+            // The block is complete, but it is not linked.  What happens next?  This is not
+            // some random block as having STATUS_COMPLETE means the block has something
+            // interesting in it.  Do we 'orphan' it and then get it linked/handled as part
+            // of chaining?
+            eth_log ("BCS", "Block %llu completed, not chained", blockGetNumber(block));
+        }
+    }
 }
 
 static void
