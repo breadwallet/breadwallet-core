@@ -51,7 +51,7 @@
 #define LES_SUPPORT_PARITY_VERSION      (1)
 
 /** */
-#define LES_SUPPORT_GETH
+#undef LES_SUPPORT_GETH
 #define LES_SUPPORT_GETH_VERSION        (2)
 #define LES_SUPPORT_GETH_ANNOUNCE_TYPE  (1)
 
@@ -71,7 +71,7 @@
 #endif
 
 /**
- * For debugging only, we can optionall disable P2P Node Discovery.  This is very useful for
+ * For debugging only, we can optionally disable P2P Node Discovery.  This is very useful for
  * performance and memory allocation/leak analysis
  */
 #define LES_DISABLE_DISCOVERY

@@ -31,6 +31,7 @@ extern BREthereumLESMessageIdentifier
 provisionGetMessageLESIdentifier (BREthereumProvisionType type) {
     switch (type) {
         case PROVISION_BLOCK_HEADERS:        return LES_MESSAGE_GET_BLOCK_HEADERS;
+        case PROVISION_BLOCK_PROOFS:         return -1;
         case PROVISION_BLOCK_BODIES:         return LES_MESSAGE_GET_BLOCK_BODIES;
         case PROVISION_TRANSACTION_RECEIPTS: return LES_MESSAGE_GET_RECEIPTS;
         case PROVISION_ACCOUNTS:             return LES_MESSAGE_GET_PROOFS_V2;
@@ -43,6 +44,7 @@ extern BREthereumPIPRequestType
 provisionGetMessagePIPIdentifier (BREthereumProvisionType type) {
     switch (type) {
         case PROVISION_BLOCK_HEADERS:        return PIP_REQUEST_HEADERS;
+        case PROVISION_BLOCK_PROOFS:         return PIP_REQUEST_HEADER_PROOF;
         case PROVISION_BLOCK_BODIES:         return PIP_REQUEST_BLOCK_BODY;
         case PROVISION_TRANSACTION_RECEIPTS: return PIP_REQUEST_BLOCK_RECEIPTS;
         case PROVISION_ACCOUNTS:             return PIP_REQUEST_ACCOUNT;
@@ -84,6 +86,10 @@ provisionCreateMessageLES (BREthereumProvision *provisionMulti,
                         ETHEREUM_BOOLEAN_IS_TRUE (provision->reverse)
                     }}}}
             };
+        }
+
+        case PROVISION_BLOCK_PROOFS: {
+            assert (0);
         }
 
         case PROVISION_BLOCK_BODIES: {
@@ -261,6 +267,10 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
             break;
         }
 
+        case PROVISION_BLOCK_PROOFS: {
+            assert (0);
+        }
+
         case PROVISION_BLOCK_BODIES: {
             assert (LES_MESSAGE_BLOCK_BODIES == message.identifier);
 
@@ -405,6 +415,38 @@ provisionCreateMessagePIP (BREthereumProvision *provisionMulti,
             BRArrayOf(BREthereumPIPRequestInput) inputs;
             array_new (inputs, 1);
             array_add (inputs, input);
+
+            return (BREthereumMessage) {
+                MESSAGE_PIP,
+                { .pip = {
+                    PIP_MESSAGE_REQUEST,
+                    { .request = { messageId, inputs }}}}
+            };
+        }
+
+        case PROVISION_BLOCK_PROOFS: {
+            BREthereumProvisionProofs *provision = &provisionMulti->u.proofs;
+
+            BRArrayOf(uint64_t) numbers = provision->numbers;
+            size_t numbersCount = array_count(numbers);
+
+            if (NULL == provision->proofs) {
+                array_new (provision->proofs, numbersCount);
+                array_set_count (provision->proofs, numbersCount);
+            }
+
+            size_t numbersOffset = index * messageContentLimit;
+
+            BRArrayOf(BREthereumPIPRequestInput) inputs;
+            array_new (inputs, messageContentLimit);
+
+            for (size_t i = 0; i < minimum (messageContentLimit, numbersCount - numbersOffset); i++) {
+                BREthereumPIPRequestInput input = {
+                    PIP_REQUEST_HEADER_PROOF,
+                    { .headerProof = { numbers[numbersOffset + i]}}
+                };
+                array_add (inputs, input);
+            }
 
             return (BREthereumMessage) {
                 MESSAGE_PIP,
@@ -613,6 +655,26 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
             break;
         }
 
+        case PROVISION_BLOCK_PROOFS: {
+            BREthereumProvisionProofs *provision = &provisionMulti->u.proofs;
+            BRArrayOf(BREthereumBlockHeaderProof) provisionProofs = provision->proofs;
+
+            BREthereumProvisionIdentifier identifier = messagePIPGetRequestId(&message);
+
+            BRArrayOf(BREthereumPIPRequestOutput) outputs = NULL;
+            messagePIPResponseConsume (&message.u.response, &outputs);
+
+            size_t offset = messageContentLimit * (identifier - messageIdBase);
+            for (size_t index = 0; index < array_count(outputs); index++) {
+                assert (PIP_REQUEST_HEADER_PROOF == outputs[index].identifier);
+                provisionProofs[offset + index].hash = outputs[index].u.headerProof.blockHash;
+                provisionProofs[offset + index].totalDifficulty = outputs[index].u.headerProof.blockTotalDifficulty;
+            }
+
+            array_free (outputs);
+            break;
+        }
+
         case PROVISION_BLOCK_BODIES: {
             BREthereumProvisionBodies *provision = &provisionMulti->u.bodies;
             BRArrayOf(BREthereumBlockBodyPair) provisionPairs = provision->pairs;
@@ -742,6 +804,13 @@ provisionRelease (BREthereumProvision *provision,
                 blockHeadersRelease(provision->u.headers.headers);
             break;
 
+        case PROVISION_BLOCK_PROOFS:
+            if (NULL != provision->u.proofs.numbers)
+                array_free (provision->u.proofs.numbers);
+            if (ETHEREUM_BOOLEAN_IS_TRUE(releaseResults) && NULL != provision->u.proofs.proofs)
+                array_free (provision->u.proofs.proofs);
+            break;
+            
         case PROVISION_BLOCK_BODIES:
             if (NULL != provision->u.bodies.hashes)
                 array_free (provision->u.bodies.hashes);
@@ -788,6 +857,14 @@ provisionHeadersConsume (BREthereumProvisionHeaders *provision,
         *headers = provision->headers;
         provision->headers = NULL;
     }
+}
+
+extern void
+provisionProofsConsume (BREthereumProvisionProofs *provision,
+                        BRArrayOf(uint64_t) *numbers,
+                        BRArrayOf(BREthereumBlockHeaderProof) *proofs) {
+    if (NULL != numbers) { *numbers = provision->numbers; provision->numbers = NULL; }
+    if (NULL != proofs ) { *proofs  = provision->proofs ; provision->proofs  = NULL; }
 }
 
 extern void

@@ -372,6 +372,8 @@ provisionerGetCount (BREthereumNodeProvisioner *provisioner) {
     switch (provisioner->provision.type) {
         case PROVISION_BLOCK_HEADERS:
             return provisioner->provision.u.headers.limit;
+        case PROVISION_BLOCK_PROOFS:
+            return array_count (provisioner->provision.u.proofs.numbers);
         case PROVISION_BLOCK_BODIES:
             return array_count (provisioner->provision.u.bodies.hashes);
         case PROVISION_TRANSACTION_RECEIPTS:

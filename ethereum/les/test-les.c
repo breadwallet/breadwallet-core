@@ -486,6 +486,52 @@ run_GetBlockHeaders_Tests (BREthereumLES les){
 }
 
 //
+// Testing GetBlockProofs message
+//
+static const int _GetBlockProofs_Context1 = 1;
+
+void _GetBlockProofs_Calllback_Test1 (BREthereumLESProvisionContext context,
+                                      BREthereumLES les,
+                                      BREthereumNodeReference node,
+                                      BREthereumProvisionResult result) {
+    assert(context != NULL);
+    int* context1 = (int *)context;
+
+    assert (PROVISION_BLOCK_PROOFS == result.type);
+    assert (PROVISION_SUCCESS == result.status);
+    BRArrayOf(BREthereumBlockHeaderProof) proofs = result.u.success.provision.u.proofs.proofs;
+
+    assert (1 == array_count (proofs));
+
+    BREthereumHash hash = proofs[0].hash;
+    UInt256 totalDifficulty = proofs[0].totalDifficulty;
+
+    if (*context1 == _GetBlockProofs_Context1) {  // 6000000
+        BRCoreParseStatus status;
+        assert (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual(hash, HASH_INIT("be847be2bceb74e660daf96b3f0669d58f59dc9101715689a00ef864a5408f43"))));
+        assert (UInt256Eq (totalDifficulty, createUInt256Parse ("5484495551037046114587", 0, &status)));
+    }
+
+    //    assert(context1 == &_GetBlockHeaders_Context1); //Check to make sure the context is correct
+//
+//    _checkBlockHeaderWithTest (context, result, &_blockHeaderTestData[_GetBlockHeaders_Context1], 3);
+    _signalTestComplete();
+}
+
+static void
+run_GetBlookProofs_Tests (BREthereumLES les) {
+    _initTest(1);
+
+    lesProvideBlockProofsOne (les,
+                           (void*)&_GetBlockProofs_Context1,
+                           _GetBlockProofs_Calllback_Test1,
+                              6000000);
+    _waitForTests();
+
+    eth_log(TST_LOG_TOPIC, "GetBlockProofs: %s", "Tests Successful");
+}
+
+//
 // Testing GetTxtStatus message
 //
 static const int _GetTxStatus_Context1 = 1;
@@ -1014,11 +1060,13 @@ runLEStests(void) {
     _initBlockHeaderTestData();
     
     // Run Tests on the LES messages
-    run_GetBlockHeaders_Tests(les);
-    run_GetBlockBodies_Tests(les);
-    run_GetReceipts_Tests(les);
-    run_GetAccountState_Tests(les);
-    run_GetTxStatus_Tests(les);
+//    run_GetBlockHeaders_Tests(les);
+    run_GetBlookProofs_Tests(les);
+//    run_GetBlockBodies_Tests(les);
+//    run_GetReceipts_Tests(les);
+//    run_GetAccountState_Tests(les);
+//    run_GetTxStatus_Tests(les);
+
     //    run_GetProofsV2_Tests(les); //NOTE: The callback function won't be called.
     //    reallySendLESTransaction(les);
     

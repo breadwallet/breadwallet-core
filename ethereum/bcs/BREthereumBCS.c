@@ -1314,6 +1314,24 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
 }
 
 ///
+/// MARK: - Header Proofs
+///
+static void
+bcsHandleBlockProof (BREthereumBCS bcs,
+                     uint64_t number,
+                     BREthereumBlockHeaderProof proof) {
+}
+static void
+bcsHandleBlockProofs (BREthereumBCS bcs,
+                      OwnershipGiven BRArrayOf(uint64_t) numbers,
+                      OwnershipGiven BRArrayOf(BREthereumBlockHeaderProof) proofs) {
+    for (size_t index = 0; index < array_count(numbers); index++)
+        bcsHandleBlockProof (bcs, numbers[index], proofs[index]);
+    array_free (numbers);
+    array_free (proofs);
+}
+
+///
 /// MARK: - Transaction Receipts
 ///
 
@@ -1792,6 +1810,13 @@ bcsHandleProvision (BREthereumBCS bcs,
                     break;
                 }
 
+                case PROVISION_BLOCK_PROOFS: {
+                    BRArrayOf(uint64_t) numbers;
+                    BRArrayOf(BREthereumBlockHeaderProof) proofs;
+                    provisionProofsConsume (&provision->u.proofs, &numbers, &proofs);
+                    bcsHandleBlockProofs (bcs, numbers, proofs);
+                }
+                    
                 case PROVISION_BLOCK_BODIES: {
                     BRArrayOf(BREthereumHash) hashes;
                     BRArrayOf(BREthereumBlockBodyPair) pairs;

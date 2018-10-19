@@ -278,8 +278,20 @@ messagePIPRequestOutputDecode (BRRlpItem item,
                 { .headers = { blockOmmersRlpDecode (items[1], coder.network, RLP_TYPE_NETWORK, coder.rlp) } }
             };
 
-        case PIP_REQUEST_HEADER_PROOF:
-            assert (0);
+        case PIP_REQUEST_HEADER_PROOF: {
+            size_t outputsCount;
+            const BRRlpItem *outputItems = rlpDecodeList (coder.rlp, items[1], &outputsCount);
+            if (3 != outputsCount) { rlpCoderSetFailed (coder.rlp); return (BREthereumPIPRequestOutput) {}; }
+
+            return (BREthereumPIPRequestOutput) {
+                PIP_REQUEST_HEADER_PROOF,
+                { .headerProof = {
+                    // Merkle Proof
+                    hashRlpDecode(outputItems[1], coder.rlp),
+                    rlpDecodeUInt256 (coder.rlp, outputItems[2], 1)
+                }}
+            };
+        }
 
         case PIP_REQUEST_TRANSACTION_INDEX: {
             size_t outputsCount;
