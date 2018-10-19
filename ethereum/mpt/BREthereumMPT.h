@@ -83,7 +83,15 @@ mptNodePathIsValid (BREthereumMPTNodePath path,
 
 extern BREthereumMPTNodePath
 mptNodePathDecode (BRRlpItem item,
-                    BRRlpCoder coder);
+                   BRRlpCoder coder);
+
+/**
+ * Decode a MPT from an RLP item that is a RLP list of bytes.  This is unlike the above which
+ * is an RLP List of RLP List of ...
+ */
+extern BREthereumMPTNodePath
+mptNodePathDecodeFromBytes (BRRlpItem item,
+                            BRRlpCoder coder);
 
 #ifdef __cplusplus
 }

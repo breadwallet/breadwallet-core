@@ -523,8 +523,8 @@ run_GetBlookProofs_Tests (BREthereumLES les) {
     _initTest(1);
 
     lesProvideBlockProofsOne (les,
-                           (void*)&_GetBlockProofs_Context1,
-                           _GetBlockProofs_Calllback_Test1,
+                              (void*)&_GetBlockProofs_Context1,
+                              _GetBlockProofs_Calllback_Test1,
                               6000000);
     _waitForTests();
 
@@ -1060,12 +1060,12 @@ runLEStests(void) {
     _initBlockHeaderTestData();
     
     // Run Tests on the LES messages
-//    run_GetBlockHeaders_Tests(les);
+    run_GetBlockHeaders_Tests(les);
     run_GetBlookProofs_Tests(les);
-//    run_GetBlockBodies_Tests(les);
-//    run_GetReceipts_Tests(les);
-//    run_GetAccountState_Tests(les);
-//    run_GetTxStatus_Tests(les);
+    run_GetBlockBodies_Tests(les);
+    run_GetReceipts_Tests(les);
+    run_GetAccountState_Tests(les);
+    run_GetTxStatus_Tests(les);
 
     //    run_GetProofsV2_Tests(les); //NOTE: The callback function won't be called.
     //    reallySendLESTransaction(les);
