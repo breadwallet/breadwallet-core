@@ -240,14 +240,16 @@ bcsHandleAnnounce (BREthereumBCS bcs,
                    BREthereumHash headHash,
                    uint64_t headNumber,
                    UInt256 headTotalDifficulty,
-                   uint64_t reorgDepth);
+                   uint64_t reorgDepth,
+                   BREthereumNodeReference node);
 
 extern void
 bcsSignalAnnounce (BREthereumBCS bcs,
                    BREthereumHash headHash,
                    uint64_t headNumber,
                    UInt256 headTotalDifficulty,
-                   uint64_t reorgDepth);
+                   uint64_t reorgDepth,
+                   BREthereumNodeReference node);
 
 //
 // Status (of a LES Node)

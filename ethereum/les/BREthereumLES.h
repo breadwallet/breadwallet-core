@@ -115,7 +115,8 @@ typedef void
                                   BREthereumHash headHash,
                                   uint64_t headNumber,
                                   UInt256 headTotalDifficulty,
-                                  uint64_t reorgDepth);
+                                  uint64_t reorgDepth,
+                                  BREthereumNodeReference node);
 
 /**
  * The callback to use for Node/Peer status message - announces the headHash and headNumber for
@@ -192,6 +193,10 @@ lesUpdateBlockHead (BREthereumLES les,
                     BREthereumHash headHash,
                     uint64_t headNumber,
                     UInt256 headTotalDifficulty);
+
+extern void
+lesNodePrefer (BREthereumLES les,
+               BREthereumNodeReference nodeReference);
 
 /// MARK: LES Provision Callbacks
 

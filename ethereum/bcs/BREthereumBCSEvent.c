@@ -69,6 +69,7 @@ typedef struct {
     uint64_t headNumber;
     UInt256  headTotalDifficulty;
     uint64_t reorgDepth;
+    BREthereumNodeReference node;
 } BREthereumHandleAnnounceEvent;
 
 static void
@@ -78,7 +79,8 @@ bcsHandleAnnounceDispatcher (BREventHandler ignore,
                       event->headHash,
                       event->headNumber,
                       event->headTotalDifficulty,
-                      event->reorgDepth);
+                      event->reorgDepth,
+                      event->node);
 }
 
 static BREventType handleAnnounceEventType = {
@@ -92,9 +94,10 @@ bcsSignalAnnounce (BREthereumBCS bcs,
                    BREthereumHash headHash,
                    uint64_t headNumber,
                    UInt256 headTotalDifficulty,
-                   uint64_t reorgDepth) {
+                   uint64_t reorgDepth,
+                   BREthereumNodeReference node) {
     BREthereumHandleAnnounceEvent event =
-    { { NULL, &handleAnnounceEventType}, bcs, headHash, headNumber, headTotalDifficulty, reorgDepth };
+    { { NULL, &handleAnnounceEventType}, bcs, headHash, headNumber, headTotalDifficulty, reorgDepth, node };
     eventHandlerSignalEvent(bcs->handler, (BREvent *) &event);
 }
 

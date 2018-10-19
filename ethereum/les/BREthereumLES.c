@@ -671,6 +671,27 @@ lesNodeFindDiscovery (BREthereumLES les) {
     return lesNodeFindDiscovery (les);
 }
 
+extern void
+lesNodePrefer (BREthereumLES les,
+               BREthereumNodeReference nodeReference) {
+    BREthereumNode node = (BREthereumNode) nodeReference;
+
+    pthread_mutex_lock (&les->lock);
+//
+//    // Only think about using `node` if it is connected.
+//    FOR_CONNECTED_NODES_INDEX(les, index) {
+//        if (node == les->connectedNodes[index]) {
+//            if (0 != index) {
+//                les->connectedNodes[index] = les->connectedNodes[0];
+//                les->connectedNodes[0] = node;
+//            }
+//            // index != 0 or not, done.
+//            break;
+//        }
+//    }
+    pthread_mutex_unlock (&les->lock);
+}
+
 ///
 /// MARK: - LES Node Callbacks
 ///
@@ -719,7 +740,8 @@ lesHandleAnnounce (BREthereumLES les,
                            headHash,
                            headNumber,
                            headTotalDifficulty,
-                           reorgDepth);
+                           reorgDepth,
+                           (BREthereumNodeReference) node);
 }
 
 

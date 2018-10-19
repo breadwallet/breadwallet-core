@@ -467,17 +467,25 @@ bcsHandleAnnounce (BREthereumBCS bcs,
                    BREthereumHash headHash,
                    uint64_t headNumber,
                    UInt256 headTotalDifficulty,
-                   uint64_t reorgDepth) {
-    // Reorg depth suggest the N blocks are wrong. We'll orphan all of them, request the next
-    // header and likely perform a sync to fill in the missing
+                   uint64_t reorgDepth,
+                   BREthereumNodeReference node) {
+    // If we are in the middle of a sync, we won't be reorganizing anything.
+    if (ETHEREUM_BOOLEAN_IS_TRUE (bcsSyncIsActive(bcs->sync)) && 0 != reorgDepth) {
+        reorgDepth = 0;
+        eth_log ("BCS", "ReorgDepth: %llu @ %llu: Ignored, in Sync", reorgDepth, headNumber);
+    }
+
+    // Reorg depth suggests that N blocks are wrong. We'll orphan all of them, request the next
+    // block headers back in history by reorgDepth, and likely perform a sync to fill in the
+    // missing headers.
     if (0 != reorgDepth) {
         if (reorgDepth < BCS_REORG_LIMIT)
             bcsUnwindChain (bcs, reorgDepth);
-        eth_log ("BCS", "ReorgDepth: %llu", reorgDepth);
+        eth_log ("BCS", "ReorgDepth: %llu @ %llu", reorgDepth, headNumber);
     }
 
     // Request the block - backup a bit if we need to reorg.  Figure it will sort itself out
-    // as old block arrive.
+    // as old blocks arrive.
     lesProvideBlockHeaders (bcs->les,
                             (BREthereumLESProvisionContext) bcs,
                             (BREthereumLESProvisionCallback) bcsSignalProvision,
