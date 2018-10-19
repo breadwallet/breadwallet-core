@@ -64,6 +64,7 @@ target_sources (core
                 src/main/cpp/core/BRTransaction.h
                 src/main/cpp/core/BRWallet.c
                 src/main/cpp/core/BRWallet.h
+                src/main/cpp/core/test.c
 
                 # BCash files
                 src/main/cpp/core/bcash/BRBCashAddr.c
@@ -104,7 +105,9 @@ target_sources (core
                 src/main/cpp/jni/com_breadwallet_core_BRCorePaymentProtocol.c
                 src/main/cpp/jni/com_breadwallet_core_BRCorePaymentProtocol.h
                 src/main/cpp/jni/com_breadwallet_core_BRCoreWallet.c
-                src/main/cpp/jni/com_breadwallet_core_BRCoreWallet.h)
+                src/main/cpp/jni/com_breadwallet_core_BRCoreWallet.h
+                src/main/cpp/jni/com_breadwallet_core_BRCoreTest.c
+                src/main/cpp/jni/com_breadwallet_core_BRCoreTest.h)
 
 # Core Ethereum
 target_sources (core

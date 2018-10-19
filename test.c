@@ -2750,10 +2750,214 @@ int BRPeerTests()
     return r;
 }
 
+extern int BRsavePeers(const BRPeer peers[], size_t count, const char* fileName);
+extern BRPeer* BRloadPeers(uint32_t *count, const char* fileName);
+
+int BRSavePeersTest()
+{
+    int retVal = 1;
+    BRPeer peers[10];
+    BRPeer *peers2 = NULL;
+    uint32_t count;
+
+    for(int i = 0; i < 10; i++){
+        peers[i].port = i;
+        peers[i].flags = i;
+    }
+
+    if(!BRsavePeers(peers, 10, "/sdcard/corePeers"))
+        retVal = 0;
+
+    peers2 = BRloadPeers(&count, "/sdcard/corePeers");
+    if(peers2 == NULL)
+        retVal = 0;
+
+    if(count != 10)
+        retVal = 0;
+
+    for(int i = 0; i < 10; i++) {
+        if(!UInt128Eq(peers[i].address, peers2[i].address))
+            retVal = 0;
+        if(peers[i].services != peers2[i].services)
+            retVal = 0;
+        if(peers[i].timestamp != peers2[i].timestamp)
+            retVal = 0;
+        if(peers[i].flags != peers2[i].flags)
+            retVal = 0;
+    }
+
+    if(peers2)
+        free(peers2);
+
+    return retVal;
+}
+
+extern int BRsaveBlocks(BRMerkleBlock *blocks[], size_t count, const char *fileName);
+extern BRMerkleBlock** BRloadBlocks(uint32_t *count, const char* fileName);
+
+int BRSaveBlocksTest()
+{
+    int retVal = 1;
+    int r = 1;
+    char block[] = // block 10001 filtered to include only transactions 0, 1, 2, and 6
+            "\x01\x00\x00\x00\x06\xe5\x33\xfd\x1a\xda\x86\x39\x1f\x3f\x6c\x34\x32\x04\xb0\xd2\x78\xd4\xaa\xec\x1c"
+            "\x0b\x20\xaa\x27\xba\x03\x00\x00\x00\x00\x00\x6a\xbb\xb3\xeb\x3d\x73\x3a\x9f\xe1\x89\x67\xfd\x7d\x4c\x11\x7e\x4c"
+            "\xcb\xba\xc5\xbe\xc4\xd9\x10\xd9\x00\xb3\xae\x07\x93\xe7\x7f\x54\x24\x1b\x4d\x4c\x86\x04\x1b\x40\x89\xcc\x9b\x0c"
+            "\x00\x00\x00\x08\x4c\x30\xb6\x3c\xfc\xdc\x2d\x35\xe3\x32\x94\x21\xb9\x80\x5e\xf0\xc6\x56\x5d\x35\x38\x1c\xa8\x57"
+            "\x76\x2e\xa0\xb3\xa5\xa1\x28\xbb\xca\x50\x65\xff\x96\x17\xcb\xcb\xa4\x5e\xb2\x37\x26\xdf\x64\x98\xa9\xb9\xca\xfe"
+            "\xd4\xf5\x4c\xba\xb9\xd2\x27\xb0\x03\x5d\xde\xfb\xbb\x15\xac\x1d\x57\xd0\x18\x2a\xae\xe6\x1c\x74\x74\x3a\x9c\x4f"
+            "\x78\x58\x95\xe5\x63\x90\x9b\xaf\xec\x45\xc9\xa2\xb0\xff\x31\x81\xd7\x77\x06\xbe\x8b\x1d\xcc\x91\x11\x2e\xad\xa8"
+            "\x6d\x42\x4e\x2d\x0a\x89\x07\xc3\x48\x8b\x6e\x44\xfd\xa5\xa7\x4a\x25\xcb\xc7\xd6\xbb\x4f\xa0\x42\x45\xf4\xac\x8a"
+            "\x1a\x57\x1d\x55\x37\xea\xc2\x4a\xdc\xa1\x45\x4d\x65\xed\xa4\x46\x05\x54\x79\xaf\x6c\x6d\x4d\xd3\xc9\xab\x65\x84"
+            "\x48\xc1\x0b\x69\x21\xb7\xa4\xce\x30\x21\xeb\x22\xed\x6b\xb6\xa7\xfd\xe1\xe5\xbc\xc4\xb1\xdb\x66\x15\xc6\xab\xc5"
+            "\xca\x04\x21\x27\xbf\xaf\x9f\x44\xeb\xce\x29\xcb\x29\xc6\xdf\x9d\x05\xb4\x7f\x35\xb2\xed\xff\x4f\x00\x64\xb5\x78"
+            "\xab\x74\x1f\xa7\x82\x76\x22\x26\x51\x20\x9f\xe1\xa2\xc4\xc0\xfa\x1c\x58\x51\x0a\xec\x8b\x09\x0d\xd1\xeb\x1f\x82"
+            "\xf9\xd2\x61\xb8\x27\x3b\x52\x5b\x02\xff\x1a";
+    BRMerkleBlock *b;
+
+    b = BRMerkleBlockParse((uint8_t *)block, sizeof(block) - 1);
+
+    b->height = 1000;
+
+    BRMerkleBlock *c = BRMerkleBlockCopy(b);
+    BRMerkleBlock *d = BRMerkleBlockCopy(b);
+    BRMerkleBlock *e = BRMerkleBlockCopy(b);
+
+    BRMerkleBlock *saveBlocks[4];
+
+    saveBlocks[0] = b;
+    saveBlocks[1] = c;
+    saveBlocks[2] = d;
+    saveBlocks[3] = e;
+
+    BRsaveBlocks(saveBlocks, 4, "/sdcard/coreBlocks");
+
+    uint32_t count = 0;
+    BRMerkleBlock** blocks = BRloadBlocks(&count, "/sdcard/coreBlocks");
+
+    for(int i = 0; i < count; i++)
+    {
+        if (!BRMerkleBlockEqual(saveBlocks[i], blocks[i]))
+            retVal = 0;
+    }
+
+    for (int i = 0; i < count; i++)
+    {
+        if(saveBlocks[i])
+            BRMerkleBlockFree(saveBlocks[i]);
+        if(blocks[i])
+            BRMerkleBlockFree(blocks[i]);
+    }
+
+    return retVal;
+}
+
+extern int BRWalletSaveTransactions(BRWallet *wallet);
+extern BRTransaction** BRWalletLoadTransactions(uint32_t *count, const char *fileName);
+struct BRWalletStruct {
+    uint64_t balance, totalSent, totalReceived, feePerKb, *balanceHist;
+    uint32_t blockHeight;
+    BRUTXO *utxos;
+    BRTransaction **transactions;
+    BRMasterPubKey masterPubKey;
+    BRAddress *internalChain, *externalChain;
+    BRSet *allTx, *invalidTx, *pendingTx, *spentOutputs, *usedAddrs, *allAddrs;
+    void *callbackInfo;
+    void (*balanceChanged)(void *info, uint64_t balance);
+    void (*txAdded)(void *info, BRTransaction *tx);
+    void (*txUpdated)(void *info, const UInt256 txHashes[], size_t txCount, uint32_t blockHeight, uint32_t timestamp);
+    void (*txDeleted)(void *info, UInt256 txHash, int notifyUser, int recommendRescan);
+    pthread_mutex_t lock;
+};
+
+int BRSaveTransactionsTest()
+{
+    int retVal = 1;
+    const char *phrase = "a random seed";
+    UInt512 seed;
+
+    BRBIP39DeriveKey(&seed, phrase, NULL);
+
+    BRMasterPubKey mpk = BRBIP32MasterPubKey(&seed, sizeof(seed));
+    remove("/sdcard/coreTransactions");
+    BRWallet *w = BRWalletFileNew("/sdcard/coreTransactions", mpk);
+    UInt256 secret = uint256("0000000000000000000000000000000000000000000000000000000000000001"),
+            inHash = uint256("0000000000000000000000000000000000000000000000000000000000000001");
+    BRKey k;
+    BRAddress addr, recvAddr = BRWalletReceiveAddress(w);
+    BRTransaction *tx;
+
+    printf("\n");
+
+    BRWalletSetCallbacks(w, w, walletBalanceChanged, walletTxAdded, walletTxUpdated, walletTxDeleted);
+    BRKeySetSecret(&k, &secret, 1);
+    BRKeyAddress(&k, addr.s, sizeof(addr));
+
+    tx = BRWalletCreateTransaction(w, 1, addr.s);
+
+    tx = BRWalletCreateTransaction(w, SATOSHIS, addr.s);
+
+    uint8_t inScript[BRAddressScriptPubKey(NULL, 0, addr.s)];
+    size_t inScriptLen = BRAddressScriptPubKey(inScript, sizeof(inScript), addr.s);
+    uint8_t outScript[BRAddressScriptPubKey(NULL, 0, recvAddr.s)];
+    size_t outScriptLen = BRAddressScriptPubKey(outScript, sizeof(outScript), recvAddr.s);
+
+    tx = BRTransactionNew();
+    BRTransactionAddInput(tx, inHash, 0, 1, inScript, inScriptLen, NULL, 0, TXIN_SEQUENCE);
+    BRTransactionAddOutput(tx, SATOSHIS, outScript, outScriptLen);
+    BRTransactionSign(tx, 0, &k, 1);
+    BRWalletRegisterTransaction(w, tx);
+
+    tx = BRTransactionNew();
+    BRTransactionAddInput(tx, inHash, 1, 1, inScript, inScriptLen, NULL, 0, TXIN_SEQUENCE - 1);
+    BRTransactionAddOutput(tx, SATOSHIS, outScript, outScriptLen);
+    tx->lockTime = 1000;
+    BRTransactionSign(tx, 0, &k, 1);
+    BRWalletRegisterTransaction(w, tx); // test adding tx with future lockTime
+
+    // test serialization/de-serialization before saving to file
+//    uint32_t transSize = BRTransactionSerialize(w->transactions[0], NULL, 0);
+//    uint8_t buffer[transSize];
+//    BRTransactionSerialize(w->transactions[0], buffer, transSize);
+//    BRTransaction *compare = BRTransactionParse(buffer, transSize);
+//    compare->blockHeight = w->transactions[0]->blockHeight;
+//    compare->timestamp = w->transactions[0]->timestamp;
+//
+//    if(!BRTransactionEqual(w->transactions[0], compare))
+//        retVal = 0;
+    // test serialization/de-serialization before saving to file
+
+    BRWalletSaveTransactions(w);
+    uint32_t count = 0;
+    BRTransaction **fileTransactions = BRWalletLoadTransactions(&count, "/sdcard/coreTransactions");
+
+    BRTransaction *walletTransactions[2];
+    BRWalletTransactions(w, walletTransactions, 2);
+
+    for(int i = 0; i < 2; i++)
+    {
+        if(!BRTransactionEqual(walletTransactions[i], fileTransactions[i]))
+            retVal = 0;
+
+    }
+
+    BRTransactionFree(tx);
+    BRWalletFree(w);
+
+    return retVal;
+}
+
+
 int BRRunTests()
 {
     int fail = 0;
 
+    printf("BRSaveTransactionsTest...           ");
+    printf("%s\n", (BRSaveTransactionsTest()) ? "success" : (fail++, "***FAIL***"));
+    printf("BRSaveBlocksTest...                 ");
+    printf("%s\n", (BRSaveBlocksTest()) ? "success" : (fail++, "***FAIL***"));
+    printf("BRSavePeersTest...                  ");
+    printf("%s\n", (BRSavePeersTest()) ? "success" : (fail++, "***FAIL***"));
     printf("BRIntsTests...                      ");
     printf("%s\n", (BRIntsTests()) ? "success" : (fail++, "***FAIL***"));
     printf("BRArrayTests...                     ");
@@ -2870,11 +3074,15 @@ extern int BRRunTestsSync (int randomKey) {
     BRBIP39DeriveKey (seed.u8, paperKey, NULL);
     BRMasterPubKey mpk = BRBIP32MasterPubKey(&seed, sizeof (seed));
 
-    BRWallet *wallet = BRWalletNew (NULL, 0, mpk);
+//    BRWallet *wallet = BRWalletNew (NULL, 0, mpk);
+//    BRWallet *wallet = BRWalletFileNew ("/sdcard/coreTransactions", mpk);
+    BRWallet *wallet = BRWalletFileNew (NULL, mpk);
     // BRWalletSetCallbacks
 
-    BRPeerManager *pm = BRPeerManagerNew (params, wallet, epoch, NULL, 0, NULL, 0);
-    BRPeerManagerSetCallbacks(pm, NULL, NULL, testSyncStoppedX, NULL, testSyncSaveBlocks, NULL, NULL, NULL);
+//    BRPeerManager *pm = BRPeerManagerNew (params, wallet, epoch, NULL, 0, NULL, 0);
+//    BRPeerManager *pm = BRPeerManagerFileNew (params, wallet, epoch, "/sdcard/coreBlocks", "/sdcard/corePeers");
+    BRPeerManager *pm = BRPeerManagerFileNew (params, wallet, epoch, NULL, NULL);
+    BRPeerManagerSetCallbacks(pm, NULL, NULL, testSyncStoppedX, NULL, NULL, NULL);
 
     syncDone = 0;
     BRPeerManagerConnect (pm);
