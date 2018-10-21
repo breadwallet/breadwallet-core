@@ -65,22 +65,22 @@ bcsSignalSubmitTransaction (BREthereumBCS bcs,
 typedef struct {
     BREvent base;
     BREthereumBCS bcs;
+    BREthereumNodeReference node;
     BREthereumHash headHash;
     uint64_t headNumber;
     UInt256  headTotalDifficulty;
     uint64_t reorgDepth;
-    BREthereumNodeReference node;
 } BREthereumHandleAnnounceEvent;
 
 static void
 bcsHandleAnnounceDispatcher (BREventHandler ignore,
                              BREthereumHandleAnnounceEvent *event) {
     bcsHandleAnnounce(event->bcs,
+                      event->node,
                       event->headHash,
                       event->headNumber,
                       event->headTotalDifficulty,
-                      event->reorgDepth,
-                      event->node);
+                      event->reorgDepth);
 }
 
 static BREventType handleAnnounceEventType = {
@@ -91,13 +91,13 @@ static BREventType handleAnnounceEventType = {
 
 extern void
 bcsSignalAnnounce (BREthereumBCS bcs,
+                   BREthereumNodeReference node,
                    BREthereumHash headHash,
                    uint64_t headNumber,
                    UInt256 headTotalDifficulty,
-                   uint64_t reorgDepth,
-                   BREthereumNodeReference node) {
+                   uint64_t reorgDepth) {
     BREthereumHandleAnnounceEvent event =
-    { { NULL, &handleAnnounceEventType}, bcs, headHash, headNumber, headTotalDifficulty, reorgDepth, node };
+    { { NULL, &handleAnnounceEventType}, bcs, node, headHash, headNumber, headTotalDifficulty, reorgDepth };
     eventHandlerSignalEvent(bcs->handler, (BREvent *) &event);
 }
 
@@ -108,16 +108,18 @@ bcsSignalAnnounce (BREthereumBCS bcs,
 typedef struct {
     BREvent base;
     BREthereumBCS bcs;
+    BREthereumNodeReference node;
     BREthereumHash headHash;
     uint64_t headNumber;
 } BREthereumHandleStatusEvent;
 
 static void
 bcsHandleStatusDispatcher (BREventHandler ignore,
-                             BREthereumHandleStatusEvent *event) {
-    bcsHandleStatus(event->bcs,
-                      event->headHash,
-                      event->headNumber);
+                           BREthereumHandleStatusEvent *event) {
+    bcsHandleStatus (event->bcs,
+                     event->node,
+                     event->headHash,
+                     event->headNumber);
 }
 
 static BREventType handleStatusEventType = {
@@ -128,10 +130,11 @@ static BREventType handleStatusEventType = {
 
 extern void
 bcsSignalStatus (BREthereumBCS bcs,
-                   BREthereumHash headHash,
-                   uint64_t headNumber) {
+                 BREthereumNodeReference node,
+                 BREthereumHash headHash,
+                 uint64_t headNumber) {
     BREthereumHandleStatusEvent event =
-    { { NULL, &handleStatusEventType}, bcs, headHash, headNumber };
+    { { NULL, &handleStatusEventType}, bcs, node, headHash, headNumber };
     eventHandlerSignalEvent(bcs->handler, (BREvent *) &event);
 }
 

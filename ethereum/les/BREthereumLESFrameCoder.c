@@ -358,6 +358,7 @@ BREthereumBoolean frameCoderInit(BREthereumLESFrameCoder fcoder,
     
     return ETHEREUM_BOOLEAN_TRUE; 
 }
+
 void frameCoderRelease(BREthereumLESFrameCoder fcoder) {
 
     if(fcoder->aesDecryptKey != NULL){
@@ -374,6 +375,7 @@ void frameCoderRelease(BREthereumLESFrameCoder fcoder) {
     }
     free(fcoder);
 }
+
 void frameCoderEncrypt(BREthereumLESFrameCoder fCoder, uint8_t* payload, size_t payloadSize, uint8_t** rlpBytes, size_t * rlpBytesSize) {
 
     uint8_t headerPlain[HEADER_LEN] = {(uint8_t)((payloadSize >> 16) & 0xff), (uint8_t)((payloadSize >> 8) & 0xff), (uint8_t)(payloadSize & 0xff), 0xc2, 0x80, 0x80, 0};
@@ -444,6 +446,7 @@ void frameCoderEncrypt(BREthereumLESFrameCoder fCoder, uint8_t* payload, size_t 
     *rlpBytesSize = oBytesSize;
     
 }
+
 BREthereumBoolean frameCoderDecryptHeader(BREthereumLESFrameCoder fCoder, uint8_t * oBytes, size_t outSize) {
 
     if(outSize != HEADER_LEN + MAC_LEN) {
