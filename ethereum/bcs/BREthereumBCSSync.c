@@ -109,6 +109,9 @@ struct BREthereumBCSSyncRangeRecord {
     /** LES for Node interactions */
     BREthereumLES les;
 
+    /** LES Node we sync to */
+    BREthereumNodeReference node;
+
     /** Event query handling our events */
     BREventHandler handler;
 
@@ -186,6 +189,7 @@ syncRangeReport (BREthereumBCSSyncRange range,
 static BREthereumBCSSyncRange
 syncRangeCreateDetailed (BREthereumAddress address,
                          BREthereumLES les,
+                         BREthereumNodeReference node,
                          BREventHandler handler,
                          BREthereumBCSSyncRangeContext context,
                          BREthereumBCSSyncRangeCallback callback,
@@ -199,7 +203,8 @@ syncRangeCreateDetailed (BREthereumAddress address,
     BREthereumBCSSyncRange range = calloc (1, sizeof (struct BREthereumBCSSyncRangeRecord));
 
     range->address = address;
-    range->les = les;
+    range->les  = les;
+    range->node = node;
     range->handler = handler;
 
     range->context = context;
@@ -304,6 +309,7 @@ syncRangeCreateAndAddChild (BREthereumBCSSyncRange parent,
                             BREthereumBCSSyncType type) {
     syncRangeAddChild (parent, syncRangeCreateDetailed (parent->address,
                                                         parent->les,
+                                                        parent->node,
                                                         parent->handler,
                                                         NULL,
                                                         NULL,
@@ -322,6 +328,7 @@ syncRangeCreateAndAddChild (BREthereumBCSSyncRange parent,
 static BREthereumBCSSyncRange
 syncRangeCreate (BREthereumAddress address,
                  BREthereumLES les,
+                 BREthereumNodeReference node,
                  BREventHandler handler,
                  BREthereumBCSSyncRangeContext context,
                  BREthereumBCSSyncRangeContext callback,
@@ -346,7 +353,7 @@ syncRangeCreate (BREthereumAddress address,
                 : SYNC_MIXED);       // Not exact, add a LINEAR_SMALL node
     }
 
-    BREthereumBCSSyncRange root = syncRangeCreateDetailed (address, les, handler,
+    BREthereumBCSSyncRange root = syncRangeCreateDetailed (address, les, node, handler,
                                                            context, callback,
                                                            tail,
                                                            head,
@@ -422,7 +429,7 @@ syncRangeDispatch (BREthereumBCSSyncRange range) {
     switch (range->type) {
         case SYNC_LINEAR_SMALL:
         case SYNC_N_ARY:
-            lesProvideBlockHeaders (range->les,
+            lesProvideBlockHeaders (range->les, range->node,
                                     (BREthereumLESProvisionContext) range,
                                     (BREthereumLESProvisionCallback) bcsSyncSignalProvision,
                                     range->tail,
@@ -601,6 +608,7 @@ bcsSyncRangeCallback (BREthereumBCSSync sync,
          headerNumber == range->head)) {
             sync->callbackBlocks (sync->context,
                                   sync,
+                                  range->node,
                                   sync->results);
             array_new (sync->results, BCS_SYNC_RESULT_PERIOD);
         }
@@ -616,6 +624,7 @@ bcsSyncRangeCallback (BREthereumBCSSync sync,
     if (headerNumber != range->head) {
         sync->callbackProgress (sync->context,
                                 sync,
+                                range->node,
                                 sync->root->tail,
                                 headerNumber,
                                 sync->root->head);
@@ -626,6 +635,7 @@ bcsSyncRangeCallback (BREthereumBCSSync sync,
     if (range == sync->root || range->head != sync->root->head)
         sync->callbackProgress (sync->context,
                                 sync,
+                                range->node,
                                 sync->root->tail,
                                 headerNumber,
                                 sync->root->head);
@@ -642,6 +652,7 @@ bcsSyncRangeCallback (BREthereumBCSSync sync,
  */
 extern void
 bcsSyncStart (BREthereumBCSSync sync,
+              BREthereumNodeReference node,
               uint64_t chainBlockNumber,
               uint64_t needBlockNumber) {
     // Skip out if already syncing.
@@ -651,6 +662,16 @@ bcsSyncStart (BREthereumBCSSync sync,
     if (needBlockNumber <= chainBlockNumber) return;
     uint64_t total = needBlockNumber - chainBlockNumber;
 
+    // If `node` is generic, we need to find LES's preferred node.
+    if (NODE_REFERENCE_IS_GENERIC (node)) {
+        node = lesGetNodePrefer (sync->les);
+        // If still 'generic' (specifically NIL), skip this sync.
+        if (NODE_REFERENCE_NIL == node) {
+            eth_log ("BCS", "Sync: Start Skipped: No suitable nodes%s", "");
+            return;
+        }
+    }
+
     // We MUST have the last N headers be from a linear sync.  This is required to 'fill the
     // BCS chain' and allows `needBlockNumber` to be the head (bcs->chain) which then allows
     // orphans to be chained.
@@ -659,6 +680,7 @@ bcsSyncStart (BREthereumBCSSync sync,
     if (total < SYNC_LINEAR_LIMIT)
         sync->root = syncRangeCreate (sync->address,
                                       sync->les,
+                                      node,
                                       sync->handler,
                                       (BREthereumBCSSyncRangeContext) sync,
                                       (BREthereumBCSSyncRangeCallback) bcsSyncRangeCallback,
@@ -672,6 +694,7 @@ bcsSyncStart (BREthereumBCSSync sync,
     else {
         sync->root = syncRangeCreateDetailed (sync->address,
                                               sync->les,
+                                              node,
                                               sync->handler,
                                               (BREthereumBCSSyncRangeContext) sync,
                                               (BREthereumBCSSyncRangeCallback) bcsSyncRangeCallback,
@@ -688,6 +711,7 @@ bcsSyncStart (BREthereumBCSSync sync,
         syncRangeAddChild (sync->root,
                            syncRangeCreate (sync->address,
                                             sync->les,
+                                            node,
                                             sync->handler,
                                             NULL,
                                             NULL,
@@ -699,6 +723,7 @@ bcsSyncStart (BREthereumBCSSync sync,
         syncRangeAddChild (sync->root,
                            syncRangeCreate (sync->address,
                                             sync->les,
+                                            node,
                                             sync->handler,
                                             NULL,
                                             NULL,
@@ -727,6 +752,7 @@ bcsSyncStop (BREthereumBCSSync sync) {
  */
 static void
 bcsSyncHandleBlockHeaders (BREthereumBCSSyncRange range,
+                           BREthereumNodeReference node,
                            OwnershipGiven BRArrayOf(BREthereumBlockHeader) headers) {
     assert (1 + range->count == array_count(headers));
     size_t count = array_count(headers);
@@ -749,7 +775,7 @@ bcsSyncHandleBlockHeaders (BREthereumBCSSyncRange range,
             for (size_t index = 0; index < count; index++)
                 array_add (hashes,  blockHeaderGetHash (headers[index]));
 
-            lesProvideAccountStates (range->les,
+            lesProvideAccountStates (range->les, node,
                                      (BREthereumLESProvisionContext) range,
                                      (BREthereumLESProvisionCallback) bcsSyncSignalProvision,
                                      range->address,
@@ -778,6 +804,7 @@ bcsSyncHandleBlockHeaders (BREthereumBCSSyncRange range,
  */
 static void
 bcsSyncHandleAccountStates (BREthereumBCSSyncRange range,
+                            BREthereumNodeReference node,
                             BREthereumAddress address,
                             OwnershipGiven BRArrayOf(BREthereumHash) hashes,
                             OwnershipGiven BRArrayOf(BREthereumAccountState) states) {
@@ -806,6 +833,7 @@ bcsSyncHandleAccountStates (BREthereumBCSSyncRange range,
             syncRangeAddChild (range,
                                syncRangeCreate (range->address,
                                                 range->les,
+                                                range->node,
                                                 range->handler,
                                                 NULL,
                                                 NULL,
@@ -900,7 +928,7 @@ bcsSyncHandleProvision (BREthereumBCSSyncRange range,
                 case PROVISION_BLOCK_HEADERS: {
                     BRArrayOf(BREthereumBlockHeader) headers;
                     provisionHeadersConsume (&provision->u.headers, &headers);
-                    bcsSyncHandleBlockHeaders (range, headers);
+                    bcsSyncHandleBlockHeaders (range, node, headers);
                     break;
                 }
 
@@ -914,10 +942,10 @@ bcsSyncHandleProvision (BREthereumBCSSyncRange range,
                     BRArrayOf(BREthereumHash) hashes;
                     BRArrayOf(BREthereumAccountState) accounts;
                     provisionAccountsConsume (&provision->u.accounts, &hashes, &accounts);
-                    bcsSyncHandleAccountStates (range,
-                                            provision->u.accounts.address,
-                                            hashes,
-                                            accounts);
+                    bcsSyncHandleAccountStates (range, node,
+                                                provision->u.accounts.address,
+                                                hashes,
+                                                accounts);
                     break;
                 }
 

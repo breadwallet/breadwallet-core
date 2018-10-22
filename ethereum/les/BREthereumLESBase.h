@@ -51,7 +51,7 @@
 #define LES_SUPPORT_PARITY_VERSION      (1)
 
 /** */
-#define LES_SUPPORT_GETH
+#undef LES_SUPPORT_GETH
 #define LES_SUPPORT_GETH_VERSION        (2)
 #define LES_SUPPORT_GETH_ANNOUNCE_TYPE  (1)
 
