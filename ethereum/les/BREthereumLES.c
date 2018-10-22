@@ -1341,10 +1341,11 @@ lesProvideBlockHeaders (BREthereumLES les,
 
 extern void
 lesProvideBlockProofs (BREthereumLES les,
+                       BREthereumNodeReference node,
                        BREthereumLESProvisionContext context,
                        BREthereumLESProvisionCallback callback,
                        OwnershipGiven BRArrayOf(uint64_t) blockNumbers) {
-    lesAddRequest (les, context, callback,
+    lesAddRequest (les, node, context, callback,
                    (BREthereumProvision) {
                        PROVISION_IDENTIFIER_UNDEFINED,
                        PROVISION_BLOCK_PROOFS,
@@ -1354,13 +1355,14 @@ lesProvideBlockProofs (BREthereumLES les,
 
 extern void
 lesProvideBlockProofsOne (BREthereumLES les,
+                          BREthereumNodeReference node,
                           BREthereumLESProvisionContext context,
                           BREthereumLESProvisionCallback callback,
                           uint64_t blockNumber) {
     BRArrayOf(uint64_t) blockNumbers;
     array_new (blockNumbers, 1);
     array_add (blockNumbers, blockNumber);
-    lesProvideBlockProofs (les, context, callback, blockNumbers);
+    lesProvideBlockProofs (les, node, context, callback, blockNumbers);
 }
 
 extern void

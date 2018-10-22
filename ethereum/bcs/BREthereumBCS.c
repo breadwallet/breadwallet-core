@@ -1347,15 +1347,17 @@ bcsHandleBlockBodies (BREthereumBCS bcs,
 ///
 static void
 bcsHandleBlockProof (BREthereumBCS bcs,
+                     BREthereumNodeReference node,
                      uint64_t number,
                      BREthereumBlockHeaderProof proof) {
 }
 static void
 bcsHandleBlockProofs (BREthereumBCS bcs,
+                      BREthereumNodeReference node,
                       OwnershipGiven BRArrayOf(uint64_t) numbers,
                       OwnershipGiven BRArrayOf(BREthereumBlockHeaderProof) proofs) {
     for (size_t index = 0; index < array_count(numbers); index++)
-        bcsHandleBlockProof (bcs, numbers[index], proofs[index]);
+        bcsHandleBlockProof (bcs, node, numbers[index], proofs[index]);
     array_free (numbers);
     array_free (proofs);
 }
@@ -1850,7 +1852,7 @@ bcsHandleProvision (BREthereumBCS bcs,
                     BRArrayOf(uint64_t) numbers;
                     BRArrayOf(BREthereumBlockHeaderProof) proofs;
                     provisionProofsConsume (&provision->u.proofs, &numbers, &proofs);
-                    bcsHandleBlockProofs (bcs, numbers, proofs);
+                    bcsHandleBlockProofs (bcs, node, numbers, proofs);
                 }
                     
                 case PROVISION_BLOCK_BODIES: {

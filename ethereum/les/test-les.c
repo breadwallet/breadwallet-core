@@ -524,7 +524,7 @@ static void
 run_GetBlookProofs_Tests (BREthereumLES les) {
     _initTest(1);
 
-    lesProvideBlockProofsOne (les,
+    lesProvideBlockProofsOne (les, NODE_REFERENCE_ANY,
                               (void*)&_GetBlockProofs_Context1,
                               _GetBlockProofs_Calllback_Test1,
                               6000000);
