@@ -281,7 +281,7 @@ class CoreDemoEthereumClient : EthereumClient {
                                 wallet: EthereumWallet,
                                 transfer: EthereumTransfer,
                                 event: EthereumTransferEvent) {
-        print ("TST: TransferEvent: \(event)")
+        print ("TST: TransferEvent: \(event), Wallet: \(transfer.amount.symbol), Hash: \(transfer.hash)")
         if let listener = transferListeners[wallet] {
             listener.announceTransferEvent(ewm: ewm, wallet: wallet, transfer: transfer, event: event)
         }

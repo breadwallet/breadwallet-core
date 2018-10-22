@@ -2098,7 +2098,10 @@ nodeRecv (BREthereumNode node,
                 if (error) return nodeRecvFailed (node, NODE_ROUTE_TCP, nodeStateCreateErrorUnix (error));
 
                 pthread_mutex_lock (&node->lock);
-                assert (ETHEREUM_BOOLEAN_IS_TRUE(frameCoderDecryptHeader(node->frameCoder, header, 32)));
+                if (ETHEREUM_BOOLEAN_IS_FALSE(frameCoderDecryptHeader(node->frameCoder, header, 32))) {
+                    pthread_mutex_unlock (&node->lock);
+                    return nodeRecvFailed (node, NODE_ROUTE_TCP, nodeStateCreateErrorProtocol(NODE_PROTOCOL_TCP_AUTHENTICATION));
+                }
                 pthread_mutex_unlock (&node->lock);
                 headerCount = ((uint32_t)(header[2]) <<  0 |
                                (uint32_t)(header[1]) <<  8 |

@@ -65,7 +65,8 @@ bcsExtendChain (BREthereumBCS bcs,
 
 static void
 bcsUnwindChain (BREthereumBCS bcs,
-                uint64_t depth);
+                uint64_t depth,
+                uint64_t headNumber);
 
 static void
 bcsSyncReportBlocksCallback (BREthereumBCS bcs,
@@ -497,9 +498,9 @@ bcsHandleAnnounce (BREthereumBCS bcs,
     // block headers back in history by reorgDepth, and likely perform a sync to fill in the
     // missing headers.
     if (0 != reorgDepth) {
-        if (reorgDepth < BCS_REORG_LIMIT)
-            bcsUnwindChain (bcs, reorgDepth);
         eth_log ("BCS", "ReorgDepth: %llu @ %llu", reorgDepth, headNumber);
+        if (reorgDepth < BCS_REORG_LIMIT)
+            bcsUnwindChain (bcs, reorgDepth, headNumber);
     }
 
     // Request the block - backup a bit if we need to reorg.  Figure it will sort itself out
@@ -797,13 +798,55 @@ bcsPendOrphanedTransactionsAndLogs (BREthereumBCS bcs) {
 
 static void
 bcsUnwindChain (BREthereumBCS bcs,
-                uint64_t depth) {
-    // Limit the depth...
-    while (depth-- > 0 && bcs->chainTail != bcs->chain) {
-        BREthereumBlock next = blockGetNext (bcs->chain);
-        bcsMakeOrphan (bcs, bcs->chain);
-        bcs->chain = next;
+                uint64_t depth,
+                uint64_t headNumber) {
+    // If nothing to unwind, return
+    if (NULL == bcs->chain || depth > headNumber) return;
+
+    // Any chained block with a number at or over `badHeadNumber` needs to be orphaned
+    uint64_t badHeadNumber = headNumber - depth;
+
+    // Unwind the chain, making orphans as we go.
+    while (depth-- > 0 && bcs->chainTail != bcs->chain)
+        if (blockGetNumber (bcs->chain) >= badHeadNumber) {
+            BREthereumBlock next = blockGetNext (bcs->chain);
+            bcsMakeOrphan (bcs, bcs->chain);
+            bcs->chain = next;
+        }
+
+    // Until bcsMakeOrphan() pends transactions and logs, we'll do it here.
+    bcsPendOrphanedTransactionsAndLogs (bcs);
+}
+
+static void
+bcsShowBlockForChain (BREthereumBCS bcs,
+                      BREthereumBlock block,
+                      const char *preface) {
+    BREthereumHashString parent, hash;
+    hashFillString (blockGetHash(block), hash);
+    hashFillString (blockHeaderGetParentHash(blockGetHeader(block)), parent);
+    eth_log ("BCS", "%s: %llu, Hash: %s, Parent: %s",
+             preface,
+             blockGetNumber (block),
+             hash,
+             parent);
+}
+extern void
+bcsOrphansShow (BREthereumBCS bcs,
+                BREthereumBoolean showChain) {
+//    BRArrayOf(BREthereumBlock) orphans;
+//    array_new (orphans, BRSetCount(bcs->orphans));
+
+    eth_log ("BCS", "Orphans%s", "");
+    if (ETHEREUM_BOOLEAN_IS_TRUE (showChain) && NULL != bcs->chain) {
+        BREthereumBlock next = blockGetNext(bcs->chain);
+        if (NULL != next)
+            bcsShowBlockForChain(bcs, next, "block1");
+        bcsShowBlockForChain(bcs, bcs->chain, "block0");
     }
+
+    FOR_SET(BREthereumBlock, orphan, bcs->orphans)
+        bcsShowBlockForChain (bcs, orphan, "Orphan");
 }
 
 #if defined UNUSED
@@ -882,9 +925,20 @@ bcsExtendTransactionsAndLogsForBlock (BREthereumBCS bcs,
  */
 static void
 bcsExtendTransactionsAndLogsForBlockIfAppropriate (BREthereumBCS bcs,
-                                           BREthereumBlock block) {
-    if (bcsHasBlockInChain(bcs, block) && ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusComplete(block)))
-        bcsExtendTransactionsAndLogsForBlock (bcs, block);
+                                                   BREthereumBlock block) {
+    if (ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusComplete(block))) {
+        if (bcsHasBlockInChain(bcs, block))
+            bcsExtendTransactionsAndLogsForBlock (bcs, block);
+        else {
+            // TODO: Are we about to loose this block?
+
+            // The block is complete, but it is not linked.  What happens next?  This is not
+            // some random block as having STATUS_COMPLETE means the block has something
+            // interesting in it.  Do we 'orphan' it and then get it linked/handled as part
+            // of chaining?
+            eth_log ("BCS", "Block %llu completed, not chained", blockGetNumber(block));
+        }
+    }
 }
 
 static void
@@ -930,6 +984,10 @@ bcsExtendChainIfPossible (BREthereumBCS bcs,
     else if (NULL == blockParent || NULL != BRSetGet(bcs->orphans, blockParent)) {
         // ... if not a sync, then `block` is an orphan too.
         if (!isFromSync) {
+            // try to chain.
+            eth_log ("BCS", "Chain Try%s", "");
+            bcsChainThenPurgeOrphans (bcs);
+
             // Add it to the set of orphans and RETURN (non-local exit).
             bcsMakeOrphan(bcs, block);
 
@@ -938,6 +996,8 @@ bcsExtendChainIfPossible (BREthereumBCS bcs,
             // sync to recover (might not actually perform a sync - just attempt).
             uint64_t orphanBlockNumberMinumum = bcsGetOrphanBlockNumberMinimum(bcs);
             if (UINT64_MAX != orphanBlockNumberMinumum)
+                if (ETHEREUM_BOOLEAN_IS_FALSE (bcsSyncIsActive(bcs->sync)))
+                    bcsOrphansShow (bcs, ETHEREUM_BOOLEAN_TRUE);
                 // Note: This can be an invalid range.  Say we have a old orphan that hasn't
                 // been purged yet.. might be that orphanBlockNumberMinumum is in the past.
                 // In `bcsSyncRange()` we'll check for a valid range.
@@ -996,6 +1056,8 @@ bcsExtendChainIfPossible (BREthereumBCS bcs,
 
     // Having extended the chain, see if we can chain some orphans.
     bcsChainThenPurgeOrphans (bcs);
+    if (ETHEREUM_BOOLEAN_IS_FALSE (bcsSyncIsActive(bcs->sync)))
+        bcsOrphansShow (bcs, ETHEREUM_BOOLEAN_TRUE);
 
     // We have now extended the chain from blockParent, with possibly multiple blocks, to
     // bcs->chain.  We also have updated bcs->orphans with all orphans (but we don't know which of
