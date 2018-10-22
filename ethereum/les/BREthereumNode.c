@@ -372,6 +372,8 @@ provisionerGetCount (BREthereumNodeProvisioner *provisioner) {
     switch (provisioner->provision.type) {
         case PROVISION_BLOCK_HEADERS:
             return provisioner->provision.u.headers.limit;
+        case PROVISION_BLOCK_PROOFS:
+            return array_count (provisioner->provision.u.proofs.numbers);
         case PROVISION_BLOCK_BODIES:
             return array_count (provisioner->provision.u.bodies.hashes);
         case PROVISION_TRANSACTION_RECEIPTS:
@@ -1272,14 +1274,14 @@ nodeStatusIsSufficient (BREthereumNode node) {
         ETHEREUM_BOOLEAN_IS_FALSE(remValue.u.boolean))
         return 0;
 
-    // Must serve state - archival node is '0'
+    // Must serve state (archival node is '0') from no later than locStatus.headNum
     if (!messageP2PStatusExtractValue (&remStatus, P2P_MESSAGE_STATUS_SERVE_STATE_SINCE, &remValue) ||
-        remValue.u.integer < locStatus.headNum)
+        remValue.u.integer > locStatus.headNum)
         return 0;
 
-    // Must serve chain - archival node is '1'
+    // Must serve chain (archival node is '1') from no later then locStatus.headNum
     if (!messageP2PStatusExtractValue (&remStatus, P2P_MESSAGE_STATUS_SERVE_CHAIN_SINCE, &remValue) ||
-        remValue.u.integer < locStatus.headNum + (node->type == NODE_TYPE_PARITY ? 1 : 0))
+        remValue.u.integer - (node->type == NODE_TYPE_PARITY ? 1 : 0) > locStatus.headNum)
         return 0;
     return 1;
 }
@@ -1359,8 +1361,14 @@ nodeProcess (BREthereumNode node,
                         for (size_t index = 0; index < array_count (node->provisioners); index++)
                             if (provisionerSendMessagesPending (&node->provisioners[index])) {
                                 BREthereumNodeStatus status = provisionerMessageSend(&node->provisioners[index]);
+                                switch (status) {
+                                    case NODE_STATUS_SUCCESS:
+                                        break;
+                                    case NODE_STATUS_ERROR:
+                                        break;
+                                }
                                 // Only send one at a time - socket might be blocked
-                                break;
+                                break; // from for node->provisioners
                             }
                         break;
                 }

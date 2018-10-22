@@ -568,7 +568,9 @@ runEWM_CONNECT_test (const char *paperKey) {
     BRCoreParseStatus status;
     client.context = testContextCreate();
 
-    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, EWM_USE_BRD, SYNC_MODE_FULL_BLOCKCHAIN, client, NULL, NULL, NULL, NULL);
+    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
+                                       EWM_USE_BRD, SYNC_MODE_FULL_BLOCKCHAIN,
+                                       client, NULL, NULL, NULL, NULL);
 
     BREthereumWalletId wallet = ethereumGetWallet(ewm);
 
@@ -605,7 +607,9 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
     // START - One Time Code Block
     client.context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
-    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, EWM_USE_LES, SYNC_MODE_FULL_BLOCKCHAIN, client, NULL, NULL, NULL, NULL);
+    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
+                                       EWM_USE_LES, SYNC_MODE_FULL_BLOCKCHAIN,
+                                       client, NULL, NULL, NULL, NULL);
     // A wallet amount Ether
     BREthereumWalletId wallet = ethereumGetWallet(ewm);
     // END - One Time Code Block
@@ -663,7 +667,9 @@ testReallySend (void) {
     printf ("PaperKey: '%s'\nAddress: '%s'\nGasLimt: %llu\nGasPrice: %llu GWEI\n", paperKey, recvAddr, gasLimit, gasPrice);
 
     alarmClockCreateIfNecessary (1);
-    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, EWM_USE_LES, SYNC_MODE_FULL_BLOCKCHAIN, client, NULL, NULL, NULL, NULL);
+    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
+                                       EWM_USE_LES, SYNC_MODE_FULL_BLOCKCHAIN,
+                                       client, NULL, NULL, NULL, NULL);
 
     // A wallet amount Ether
     BREthereumWalletId wallet = ethereumGetWallet(ewm);
@@ -733,7 +739,9 @@ runEWM_TOKEN_test (const char *paperKey) {
     BRCoreParseStatus status;
 
     BREthereumToken token = tokenLookup(tokenBRDAddress);
-    BREthereumEWM ewm = ethereumCreate (ethereumMainnet, paperKey, EWM_USE_LES, SYNC_MODE_FULL_BLOCKCHAIN, client, NULL, NULL, NULL, NULL);
+    BREthereumEWM ewm = ethereumCreate (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
+                                        EWM_USE_LES, SYNC_MODE_FULL_BLOCKCHAIN,
+                                        client, NULL, NULL, NULL, NULL);
     BREthereumWalletId wid = ethereumGetWalletHoldingToken(ewm, token);
 
     BREthereumAmount amount = ethereumCreateTokenAmountString(ewm, token,
@@ -763,11 +771,15 @@ static void
 runEWM_PUBLIC_KEY_test (BREthereumNetwork network, const char *paperKey) {
     printf ("     PUBLIC KEY\n");
 
-    BREthereumEWM ewm1 = ethereumCreate (network, paperKey, EWM_USE_LES, SYNC_MODE_FULL_BLOCKCHAIN, client, NULL, NULL, NULL, NULL);
+    BREthereumEWM ewm1 = ethereumCreate (network, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
+                                         EWM_USE_LES, SYNC_MODE_FULL_BLOCKCHAIN,
+                                         client, NULL, NULL, NULL, NULL);
     char *addr1 = ethereumGetAccountPrimaryAddress (ewm1);
 
     BRKey publicKey = ethereumGetAccountPrimaryAddressPublicKey (ewm1);
-    BREthereumEWM ewm2 = ethereumCreateWithPublicKey (network, publicKey, EWM_USE_LES, SYNC_MODE_FULL_BLOCKCHAIN, client, NULL, NULL, NULL, NULL);
+    BREthereumEWM ewm2 = ethereumCreateWithPublicKey (network, publicKey, ETHEREUM_TIMESTAMP_UNKNOWN,
+                                                      EWM_USE_LES, SYNC_MODE_FULL_BLOCKCHAIN,
+                                                      client, NULL, NULL, NULL, NULL);
     char *addr2 = ethereumGetAccountPrimaryAddress (ewm2);
 
 
@@ -782,6 +794,7 @@ runEWM_PUBLIC_KEY_test (BREthereumNetwork network, const char *paperKey) {
 extern void
 runSyncTest (BREthereumType type,
              BREthereumSyncMode mode,
+             BREthereumTimestamp accountTimestamp,
              unsigned int durationInSeconds,
              int restart) {
     eth_log("TST", "SyncTest%s", "");
@@ -816,14 +829,15 @@ runSyncTest (BREthereumType type,
         }
     }
 
-    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, type, mode, client,
+    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, accountTimestamp,
+                                       type, mode, client,
                                        nodes,
                                        blocks,
                                        transactions,
                                        logs);
 
     char *address = ethereumGetAccountPrimaryAddress(ewm);
-    printf ("***\n*** Address: %s\n", address);
+    printf ("ETH: TST:\nETH: TST: Address: %s\nETH: TST:\n", address);
     free (address);
 
     // We passed on { node, block, etc } - we no longer own the memory.  Thus:
@@ -834,7 +848,7 @@ runSyncTest (BREthereumType type,
 
     unsigned int remaining = durationInSeconds;
     while (remaining) {
-        printf ("***\n*** SLEEPING: %d\n", remaining);
+        printf ("ETH: TST:\nETH: TST: sleeping: %d\nETH: TST:\n", remaining);
         remaining = sleep(remaining);
     }
 

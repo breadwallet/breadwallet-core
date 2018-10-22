@@ -64,9 +64,10 @@ class CoreTests: XCTestCase {
     func testEthereumSync () {
         let type = EWM_USE_LES
         let mode = SYNC_MODE_PRIME_WITH_ENDPOINT
+        let timestamp : UInt64 = 0
 
-        runSyncTest (type, mode, 10 * 60, 0);
-        runSyncTest (type, mode,  1 * 60, 1);
+        runSyncTest (type, mode, timestamp, 10 * 60, 0);
+        runSyncTest (type, mode, timestamp,  1 * 60, 1);
     }
 
     func testBitcoinSync () {

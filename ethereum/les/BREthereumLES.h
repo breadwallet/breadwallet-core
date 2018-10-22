@@ -254,6 +254,28 @@ lesProvideBlockHeaders (BREthereumLES les,
                         uint64_t skip,
                         BREthereumBoolean reverse);
 
+/**
+ * @function lesProvideBlockProofs
+ *
+ * @param les
+ * @param context
+ * @param callback
+ * @param uint64_t
+ */
+extern void
+lesProvideBlockProofs (BREthereumLES les,
+                       BREthereumNodeReference node,
+                       BREthereumLESProvisionContext context,
+                       BREthereumLESProvisionCallback callback,
+                       OwnershipGiven BRArrayOf(uint64_t) blockNumbers);
+
+extern void
+lesProvideBlockProofsOne (BREthereumLES les,
+                          BREthereumNodeReference node,
+                          BREthereumLESProvisionContext context,
+                          BREthereumLESProvisionCallback callback,
+                          uint64_t blockNumber);
+
 /*!
  * @function lesProvdeBlockBodies
  *

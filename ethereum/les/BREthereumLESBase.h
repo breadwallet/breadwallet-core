@@ -71,7 +71,7 @@
 #endif
 
 /**
- * For debugging only, we can optionall disable P2P Node Discovery.  This is very useful for
+ * For debugging only, we can optionally disable P2P Node Discovery.  This is very useful for
  * performance and memory allocation/leak analysis
  */
 #define LES_DISABLE_DISCOVERY

@@ -487,6 +487,7 @@ lesCreate (BREthereumNetwork network,
                                                    les->head.totalDifficulty,
                                                    les->genesisHash,
                                                    LES_SUPPORT_GETH_ANNOUNCE_TYPE));
+    nodeEndpointShowStatus (les->localEndpoint);
 
     // Create the PTHREAD LOCK variable
     {
@@ -1336,6 +1337,32 @@ lesProvideBlockHeaders (BREthereumLES les,
                        PROVISION_BLOCK_HEADERS,
                        { .headers = { start, skip, limit, reverse, NULL }}
                    });
+}
+
+extern void
+lesProvideBlockProofs (BREthereumLES les,
+                       BREthereumNodeReference node,
+                       BREthereumLESProvisionContext context,
+                       BREthereumLESProvisionCallback callback,
+                       OwnershipGiven BRArrayOf(uint64_t) blockNumbers) {
+    lesAddRequest (les, node, context, callback,
+                   (BREthereumProvision) {
+                       PROVISION_IDENTIFIER_UNDEFINED,
+                       PROVISION_BLOCK_PROOFS,
+                       { .proofs = { blockNumbers, NULL }}
+                   });
+}
+
+extern void
+lesProvideBlockProofsOne (BREthereumLES les,
+                          BREthereumNodeReference node,
+                          BREthereumLESProvisionContext context,
+                          BREthereumLESProvisionCallback callback,
+                          uint64_t blockNumber) {
+    BRArrayOf(uint64_t) blockNumbers;
+    array_new (blockNumbers, 1);
+    array_add (blockNumbers, blockNumber);
+    lesProvideBlockProofs (les, node, context, callback, blockNumbers);
 }
 
 extern void

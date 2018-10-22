@@ -12,14 +12,16 @@
 
 extern void runSyncTest (BREthereumType type,
                          BREthereumSyncMode mode,
+                         BREthereumTimestamp timestamp,
                          unsigned int durationInSeconds,
                          int restart);
 
 int main(int argc, const char * argv[]) {
     BREthereumType type = EWM_USE_LES;
     BREthereumSyncMode mode = SYNC_MODE_FULL_BLOCKCHAIN;
+    BREthereumTimestamp timestamp = 1539330275; // ETHEREUM_TIMESTAMP_UNKNOWN;
 
-    runSyncTest (type, mode, 2 * 60, 0);
+    runSyncTest (type, mode, timestamp,  2 * 60, 0);
 
     return 0;
 }

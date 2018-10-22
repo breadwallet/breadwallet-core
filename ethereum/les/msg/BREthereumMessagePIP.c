@@ -24,6 +24,7 @@
 //  THE SOFTWARE.
 
 #include "BREthereumMessagePIP.h"
+#include "../../mpt/BREthereumMPT.h"
 
 extern const char *
 messagePIPGetRequestName (BREthereumPIPRequestType type) {
@@ -278,8 +279,24 @@ messagePIPRequestOutputDecode (BRRlpItem item,
                 { .headers = { blockOmmersRlpDecode (items[1], coder.network, RLP_TYPE_NETWORK, coder.rlp) } }
             };
 
-        case PIP_REQUEST_HEADER_PROOF:
-            assert (0);
+        case PIP_REQUEST_HEADER_PROOF: {
+            size_t outputsCount;
+            const BRRlpItem *outputItems = rlpDecodeList (coder.rlp, items[1], &outputsCount);
+            if (3 != outputsCount) { rlpCoderSetFailed (coder.rlp); return (BREthereumPIPRequestOutput) {}; }
+
+            // The MerkleProof, in outputItems[0] is an RLP list of bytes w/ the bytes being
+            // individual RLP encodings of a MPT (w/ leafs, extensions, and branches).
+            BREthereumMPTNodePath path = mptNodePathDecodeFromBytes (outputItems[0], coder.rlp);
+
+            return (BREthereumPIPRequestOutput) {
+                PIP_REQUEST_HEADER_PROOF,
+                { .headerProof = {
+                    // After all the above... we don't use the `path`
+                    hashRlpDecode(outputItems[1], coder.rlp),
+                    rlpDecodeUInt256 (coder.rlp, outputItems[2], 1)
+                }}
+            };
+        }
 
         case PIP_REQUEST_TRANSACTION_INDEX: {
             size_t outputsCount;

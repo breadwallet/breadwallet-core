@@ -751,12 +751,14 @@ public class EthereumWalletManager {
                              network : EthereumNetwork,
                              type: EthereumType,
                              mode: EthereumSyncMode,
-                             key: EthereumKey) {
+                             key: EthereumKey,
+                             timestamp: UInt64) {
         self.init (client: client,
                    network: network,
                    type: type,
                    mode: mode,
                    key: key,
+                   timestamp: timestamp,
                    peers: [:],
                    blocks: [:],
                    transactions: [:],
@@ -768,6 +770,7 @@ public class EthereumWalletManager {
                              type: EthereumType,
                              mode: EthereumSyncMode,
                              key: EthereumKey,
+                             timestamp: UInt64,
                              peers: Dictionary<String,String>,
                              blocks: Dictionary<String,String>,
                              transactions: Dictionary<String,String>,
@@ -777,7 +780,7 @@ public class EthereumWalletManager {
 
         switch key {
         case let .paperKey(key):
-            core = ethereumCreate (network.core, key,
+            core = ethereumCreate (network.core, key, timestamp,
                                    type.core,
                                    mode.core,
                                    EthereumWalletManager.createCoreClient(client: client),
@@ -786,7 +789,7 @@ public class EthereumWalletManager {
                                    EthereumWalletManager.asPairs (transactions),
                                    EthereumWalletManager.asPairs (logs))
         case let .publicKey(key):
-            core = ethereumCreateWithPublicKey (network.core, key,
+            core = ethereumCreateWithPublicKey (network.core, key, timestamp,
                                                 type.core,
                                                 mode.core,
                                                 EthereumWalletManager.createCoreClient(client: client),

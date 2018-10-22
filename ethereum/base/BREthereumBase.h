@@ -72,6 +72,9 @@ BRSetFreeAll (BRSet *set, BRSetItemFree itemFree) {
 #include "BREthereumAddress.h"
 #include "BREthereumSignature.h"
 
+typedef uint64_t BREthereumTimestamp;  // A Unix time
+#define ETHEREUM_TIMESTAMP_UNKNOWN    (0)
+
 typedef enum {
     RLP_TYPE_NETWORK,
     RLP_TYPE_ARCHIVE,

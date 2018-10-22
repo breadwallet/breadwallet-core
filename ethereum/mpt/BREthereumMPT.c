@@ -247,7 +247,7 @@ mptNodePathsRelease (BRArrayOf(BREthereumMPTNodePath) paths) {
 
 extern BREthereumMPTNodePath
 mptNodePathDecode (BRRlpItem item,
-                    BRRlpCoder coder) {
+                   BRRlpCoder coder) {
     size_t itemsCount;
     const BRRlpItem *items = rlpDecodeList (coder, item, &itemsCount);
 
@@ -259,25 +259,24 @@ mptNodePathDecode (BRRlpItem item,
     return mptNodePathCreate(nodes);
 }
 
-extern BRRlpData
-mptNodePathGetValueX (BREthereumMPTNodePath path,
-                     BREthereumBoolean *found) {
-    if (0 == array_count(path->nodes)) { *found = ETHEREUM_BOOLEAN_FALSE; return (BRRlpData) { 0, NULL };}
+extern BREthereumMPTNodePath
+mptNodePathDecodeFromBytes (BRRlpItem item,
+                            BRRlpCoder coder) {
+    size_t itemsCount = 0;
+    BRRlpItem *items = (BRRlpItem *) rlpDecodeList(coder, item, &itemsCount);
 
-    BREthereumMPTNode node = path->nodes[array_count(path->nodes) - 1];
-    *found = ETHEREUM_BOOLEAN_TRUE;
-
-    switch (node->type) {
-        case MPT_NODE_LEAF:
-            return rlpDataCopy (node->u.leaf.value);
-
-        case MPT_NODE_EXTENSION:
-            *found = ETHEREUM_BOOLEAN_FALSE;
-            return (BRRlpData) { 0, NULL };
-
-        case MPT_NODE_BRANCH:
-            return rlpDataCopy (node->u.branch.value);
+    BRArrayOf (BREthereumMPTNode) nodes;
+    array_new (nodes, itemsCount);
+    for (size_t index = 0; index < itemsCount; index++) {
+        // items[index] holds bytes as the RLP encoding of MPT nodes.  We'll decode the bytes
+        // and then RLP encode the bytes (but this time as RLP items.... got it??).
+        BRRlpData data = rlpDecodeBytesSharedDontRelease (coder, items[index]);
+        BRRlpItem item = rlpGetItem(coder, data);
+        array_add (nodes, mptNodeDecode (item, coder));
+        rlpReleaseItem (coder, item);
     }
+
+    return mptNodePathCreate(nodes);
 }
 
 extern BREthereumBoolean

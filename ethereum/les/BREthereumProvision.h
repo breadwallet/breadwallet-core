@@ -49,6 +49,7 @@ typedef enum {
  */
 typedef enum {
     PROVISION_BLOCK_HEADERS,
+    PROVISION_BLOCK_PROOFS,
     PROVISION_BLOCK_BODIES,
     PROVISION_TRANSACTION_RECEIPTS,
     PROVISION_ACCOUNTS,
@@ -78,6 +79,27 @@ typedef struct {
 extern void
 provisionHeadersConsume (BREthereumProvisionHeaders *provision,
                          BRArrayOf(BREthereumBlockHeader) *headers);
+
+/**
+ * Proofs
+ */
+typedef struct {
+    // Merkle inclusion proof from CHT
+    BREthereumHash hash;
+    UInt256 totalDifficulty;
+} BREthereumBlockHeaderProof;
+
+typedef struct {
+    // Request
+    BRArrayOf(uint64_t) numbers;
+    // Response
+    BRArrayOf(BREthereumBlockHeaderProof) proofs;
+} BREthereumProvisionProofs;
+
+extern void
+provisionProofsConsume (BREthereumProvisionProofs *provision,
+                        BRArrayOf(uint64_t) *numbers,
+                        BRArrayOf(BREthereumBlockHeaderProof) *proofs);
 
 /**
  * Bodies
@@ -172,6 +194,7 @@ typedef struct {
     BREthereumProvisionType type;
     union {
         BREthereumProvisionHeaders headers;
+        BREthereumProvisionProofs proofs;
         BREthereumProvisionBodies bodies;
         BREthereumProvisionReceipts receipts;
         BREthereumProvisionAccounts accounts;

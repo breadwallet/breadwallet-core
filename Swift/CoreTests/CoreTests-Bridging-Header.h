@@ -27,6 +27,7 @@ extern void runEWMTests (void);
 
 extern void runSyncTest (BREthereumType type,
                          BREthereumSyncMode mode,
+                         uint64_t timestamp,
                          unsigned int durationInSeconds,
                          int restart);
 
