@@ -737,8 +737,30 @@ bcsSyncStart (BREthereumBCSSync sync,
 }
 
 extern void
-bcsSyncStop (BREthereumBCSSync sync) {
+bcsSyncStopInternal (BREthereumBCSSync sync,
+                     const char *reason) {
+    assert (NULL != sync->root);
 
+    eth_log ("BCS", "Sync: Stopped%s%s",
+             (NULL != reason ? ": " : ""),
+             (NULL != reason ? reason : ""));
+
+    // Callback as if all is good.
+    sync->callbackProgress (sync->context,
+                            sync,
+                            sync->root->node,
+                            sync->root->tail,
+                            sync->root->head,
+                            sync->root->head);
+
+    syncRangeRelease(sync->root);
+    sync->root = NULL;
+}
+
+extern void
+bcsSyncStop (BREthereumBCSSync sync) {
+    if (NULL != sync->root)
+        bcsSyncStopInternal (sync, NULL);
 }
 
 
@@ -918,9 +940,11 @@ bcsSyncHandleProvision (BREthereumBCSSyncRange range,
                         OwnershipGiven BREthereumProvisionResult result) {
     assert (range->les == les);
     switch (result.status) {
-        case PROVISION_ERROR:
-            assert (0);
+        case PROVISION_ERROR: {
+            BREthereumBCSSyncRange root = syncRangeGetRoot (range);
+            bcsSyncStopInternal((BREthereumBCSSync) root->context, "provision failed");
             break;
+        }
         case PROVISION_SUCCESS: {
             BREthereumProvision *provision = &result.u.success.provision;
             assert (result.type == provision->type);
