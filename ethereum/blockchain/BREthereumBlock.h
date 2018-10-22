@@ -138,6 +138,31 @@ blockHeaderCopy (BREthereumBlockHeader source);
 extern void
 blockHeadersRelease (BRArrayOf(BREthereumBlockHeader) headers);
 
+    ///
+    /// MARK: CHT Root (Number)
+    ///
+/**
+ * From Parity:
+
+ * " Get the nth CHT root, if it's been computed.
+ *
+ *  CHT root 0 is from block `1..2048`.
+ *  CHT root 1 is from block `2049..4096`
+ *  and so on.
+ *
+ *  This is because it's assumed that the genesis hash is known,
+ *  so including it within a CHT would be redundant."
+ */
+extern uint64_t
+blockHeaderGetCHTRootNumber (BREthereumBlockHeader header);
+
+extern uint64_t
+chtRootNumberGetFromNumber (uint64_t number);
+
+
+#define BLOCK_HEADER_CHT_ROOT_INTERVAL          (2048)
+#define BLOCK_HEADER_CHT_ROOT_INTERVAL_SHIFT    (11)          // 2048 == (1 << 11)
+
 /// MARK: Block
 
 //
