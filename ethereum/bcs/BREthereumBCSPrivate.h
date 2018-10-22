@@ -237,6 +237,7 @@ bcsSignalSubmitTransaction (BREthereumBCS bcs,
 //
 extern void
 bcsHandleAnnounce (BREthereumBCS bcs,
+                   BREthereumNodeReference node,
                    BREthereumHash headHash,
                    uint64_t headNumber,
                    UInt256 headTotalDifficulty,
@@ -244,6 +245,7 @@ bcsHandleAnnounce (BREthereumBCS bcs,
 
 extern void
 bcsSignalAnnounce (BREthereumBCS bcs,
+                   BREthereumNodeReference node,
                    BREthereumHash headHash,
                    uint64_t headNumber,
                    UInt256 headTotalDifficulty,
@@ -254,11 +256,13 @@ bcsSignalAnnounce (BREthereumBCS bcs,
 //
 extern void
 bcsHandleStatus (BREthereumBCS bcs,
+                 BREthereumNodeReference node,
                  BREthereumHash headHash,
                  uint64_t headNumber);
 
 extern void
 bcsSignalStatus (BREthereumBCS bcs,
+                 BREthereumNodeReference node,
                  BREthereumHash headHash,
                  uint64_t headNumber);
 
@@ -330,11 +334,13 @@ typedef void* BREthereumBCSSyncContext;
 typedef void
 (*BREthereumBCSSyncReportBlocks) (BREthereumBCSSyncContext context,
                                   BREthereumBCSSync sync,
+                                  BREthereumNodeReference node,
                                   BRArrayOf(BREthereumBCSSyncResult) blocks);
 
 typedef void
 (*BREthereumBCSSyncReportProgress) (BREthereumBCSSyncContext context,
                                     BREthereumBCSSync sync,
+                                    BREthereumNodeReference node,
                                     uint64_t blockNumberBeg,
                                     uint64_t blockNumberNow,
                                     uint64_t blockNumberEnd);
@@ -358,6 +364,7 @@ bcsSyncStop (BREthereumBCSSync sync);
 
 extern void
 bcsSyncStart (BREthereumBCSSync sync,
+              BREthereumNodeReference node,
               uint64_t thisBlockNumber,
               uint64_t needBlockNumber);
 
@@ -372,6 +379,7 @@ bcsSyncSignalProvision (BREthereumBCSSyncRange range,
                         BREthereumLES les,
                         BREthereumNodeReference node,
                         BREthereumProvisionResult result);
+
 
 #ifdef __cplusplus
 }

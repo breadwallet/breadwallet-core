@@ -230,32 +230,29 @@ nodeConfigReleaseForSet (void *ignore, void *item) {
  * connected to a LES node) and then wait for a response with the corresponding `requestId`.  Once
  * the response is fully constituted, we'll invoke the `callback` w/ `context` and w/ data from
  * both the request and response.
- *
- * Eventually the union subtype fields, like `BREthereumHash* transactions1` will disappear
- * because that data is held in `message`.
- *
- * Eventually the individual types for Callback+Context must disappear...
  */
 typedef struct {
-//    uint64_t requestId;
 
     BREthereumLESProvisionContext context;
     BREthereumLESProvisionCallback callback;
     BREthereumProvision provision;
 
     /**
+     * The node that should handle this reqeust or a GENERIC node (NIL, ANY, ALL).  If non-generic
+     * we'll *must* use it when handling the provion - if we use any other node, it might not have
+     * a suitable block-chain state.  If generic, we'll select some active node.
+     */
+    BREthereumNodeReference nodeReference;
+
+    /**
      * The node that sent this request. This will be NULL until that request has been successfully
      * sent.  Once sent, if this request has not been received/resolved and the node is no longer
      * connected, then we'll resend.
+     *
+     * TODO: If resending, better continue to respect nodeReference.
      */
     BREthereumNode node;
-//
-//    /**
-//     * The node index to use when sending.  Most will use the PREFFERED_NODE_INDEX of 0 - which is
-//     * the default node.  But, for a SendTx message, we'll send to multiple nodes,
-//     * if connected.
-//     */
-//    size_t nodeIndex;
+
 } BREthereumLESRequest;
 
 static void
@@ -275,7 +272,10 @@ requestsRelease (OwnershipGiven BRArrayOf(BREthereumLESRequest) requests) {
         array_free(requests);
     }
 }
+
+///
 /// MARK: - LES
+///
 
 /**
  * LES
@@ -672,6 +672,38 @@ lesNodeFindDiscovery (BREthereumLES les) {
     return lesNodeFindDiscovery (les);
 }
 
+extern BREthereumNodeReference
+lesGetNodePrefer (BREthereumLES les) {
+    BREthereumNodeReference node = NODE_REFERENCE_NIL;
+    pthread_mutex_lock (&les->lock);
+    // Our preferredNode is an active TCP (P2P, ETH, LES, PIP) node at index 0;
+    if (array_count(les->activeNodesByRoute[NODE_ROUTE_TCP]) > 0)
+        node = (BREthereumNodeReference) les->activeNodesByRoute[NODE_ROUTE_TCP][0];
+    pthread_mutex_unlock (&les->lock);
+    return node;
+}
+
+extern void
+lesSetNodePrefer (BREthereumLES les,
+               BREthereumNodeReference nodeReference) {
+    BREthereumNode node = (BREthereumNode) nodeReference;
+
+    pthread_mutex_lock (&les->lock);
+//
+//    // Only think about using `node` if it is connected.
+//    FOR_CONNECTED_NODES_INDEX(les, index) {
+//        if (node == les->connectedNodes[index]) {
+//            if (0 != index) {
+//                les->connectedNodes[index] = les->connectedNodes[0];
+//                les->connectedNodes[0] = node;
+//            }
+//            // index != 0 or not, done.
+//            break;
+//        }
+//    }
+    pthread_mutex_unlock (&les->lock);
+}
+
 ///
 /// MARK: - LES Node Callbacks
 ///
@@ -692,6 +724,7 @@ lesHandleStatus (BREthereumLES les,
                  BREthereumHash headHash,
                  uint64_t headNumber) {
     les->callbackStatus (les->callbackContext,
+                         (BREthereumNodeReference) node,
                          headHash,
                          headNumber);
 }
@@ -717,6 +750,7 @@ lesHandleAnnounce (BREthereumLES les,
                    UInt256 headTotalDifficulty,
                    uint64_t reorgDepth) {
     les->callbackAnnounce (les->callbackContext,
+                           (BREthereumNodeReference) node,
                            headHash,
                            headNumber,
                            headTotalDifficulty,
@@ -747,7 +781,7 @@ lesHandleProvision (BREthereumLES les,
             switch (result.status) {
                 case PROVISION_SUCCESS:
                     // On success, invoke `request->callback`
-                    //
+
                     // We've passed ownership of the provision, in result.  We can simply
                     // remove the request (which releases the result but we passed a copy,
                     // w/ provision and w/ provision references (to hashes, etc)).
@@ -934,54 +968,97 @@ lesThread (BREthereumLES les) {
             lesDeactivateNodes(les, route, nodesToRemove, "TIMEDOUT");
             array_clear (nodesToRemove);
         }
+
+        // We may have deactivate a node. Thus, a request with a `nodeRequest` might now be
+        // referencing an inactive node.  For example, if we had a 'announce' (with a new chain
+        // head) and have requests to fill out the bodies+receipts using the same node, then those
+        // requests should fail.  Probably.
         //
-        // We may have deactivated a node and thus have a new preferred node.  We might have
-        // pending requests - like to get info on blockNumber 'N'.  Does the new preferred node
-        // serve blockNumber 'N'?  We've seen cases when we start at block 0, sync up to block N,
-        // get a disconnect and then swap to a node only up to M (< N).  [We crash at that point
-        // which is the wrong behavior but clearly illustrates the problem]
+        // In the case of an `announce` it is not such a big deal - another active node will
+        // announce and we'll get the bodies+recepts then.  Even if the other node announced a
+        // different, subsequent block, our sync will go back to get the missed block's data.
         //
-        // In addition, the activeNodes have evolved.  Maybe we made them active 3 hours ago and
-        // now they are 3 * 60 * 4 blocks ahead.
-        //
-        // Hmmm, thoughts:
-        //   o I think we have a set active nodes that we use to submit transactions - but only
-        //     submit transactions.
-        //   o We update a nodes 'status' when it announced a new block
-        //   o We disconnect a node if it doesn't announce w/i some period
-        //   o Unless we reliably connect to multiple nodes - we might not know the chain head.
-        //
+        // In the case of an `sync` we'll need fail the sync and let is restart.
+
 
         //
-        // Our preferredNode is an active TCP (P2P, ETH, LES, PIP) node at index 0;
+        // Our preferredNode is an active TCP (P2P, ETH, LES, PIP) node at index 0; any request w/
+        // a GENERIC reference will get assigned the preferred node.
         //
         BREthereumNode preferredNode = (array_count(les->activeNodesByRoute[NODE_ROUTE_TCP]) > 0
                                         ? les->activeNodesByRoute[NODE_ROUTE_TCP][0]
                                         : NULL);
 
         //
-        // Handle any/all pending requests by 'establishing a provision' in the preferred node.
+        // Handle any/all pending requests by 'establishing a provision' in the requested node.  If
+        // the requested node is not connected the request must fail.
         //
-        if (NULL != preferredNode && nodeHasState(preferredNode, NODE_ROUTE_TCP, NODE_CONNECTED))
-            for (size_t index = 0; index < array_count (les->requests); index++)
-                // Only handle a reqeust if it hasn't been previously handled.
-                if (NULL == les->requests[index].node) {
-                    // What about a 'multiple request', like a TxRelay, that is supposed to
-                    // be sent/provisioned by multiple nodes?
-                    les->requests[index].node = preferredNode;
+        size_t requestsToFailCount = 0;
+        size_t requestsToFail [array_count (les->requests)];
+
+        for (size_t index = 0; index < array_count (les->requests); index++)
+            // Only handle a reqeust if it hasn't been previously handled.
+            if (NULL == les->requests[index].node) {
+                // If this request's node is a 'generic node', give it the preferred node
+                // otherwise use the requested node
+                BREthereumNode nodeToUse = (NODE_REFERENCE_IS_GENERIC(les->requests[index].nodeReference)
+                                            ? preferredNode
+                                            : (BREthereumNode) les->requests[index].nodeReference);
+
+                // Only handle the request if `nodeToUse` is connected.
+                if (NULL != nodeToUse && nodeHasState (nodeToUse, NODE_ROUTE_TCP, NODE_CONNECTED)) {
+
+                    les->requests[index].node = nodeToUse;
 
                     // We hold the requests[index] provision in requests.  In the following call
                     // we pass of copy of that provision - both provisions share memory pointers
                     // to, for example, BRArrayOf(BREthereumHash).
                     //
-                    // If we pass the copy but then later release requests[index], then we will
-                    // mistakenly free the shared memory pointers.  We could 'consume' the
+                    // If we pass the copy, then we might mistakenly free the shared memory
+                    // pointers if we release requests[index] now.  We could 'consume' the
                     // provision to avoid holding the shared memory, but then we'd lose references
                     // needed to resubmit a failed request.
+                    //
+                    // We'll pass the copy and not touch the provision; thereby letting the
+                    // provision callbacks, on error or success, release the shared memory.
 
-                    nodeHandleProvision (preferredNode,
+                    // Make `node` handle `provision`.  This simply establishes the provision (by
+                    // defining the messages needed to provide the data) and adding it to the
+                    // node's list of provisions.  Later, we'll select() on this node to send the
+                    // messages and to recv results.
+                    nodeHandleProvision (les->requests[index].node,
                                          les->requests[index].provision);
                 }
+
+                // If not connected and we requsted the node, then the request must fail.
+                else if (nodeToUse == (BREthereumNode) les->requests[index].nodeReference)
+                    requestsToFail[requestsToFailCount++] = index;
+
+                // TODO: What about a 'multiple request', like a TxRelay?
+                // It is supposed to be sent/provisioned by multiple nodes?
+
+                // TODO: fail the provision if `nodeRefernce` is not connected.
+
+            }
+
+        // We've requests to fail because the requested node is not connected.  Invoke the
+        // request's callback with PROVISION_ERROR.
+        for (size_t index = 0; index < requestsToFailCount; index++) {
+            size_t reqeustIndex = requestsToFail[index];
+            BREthereumLESRequest request = les->requests[reqeustIndex];
+
+            request.callback (request.context,
+                              les,
+                              request.nodeReference,
+                              (BREthereumProvisionResult) {
+                                  request.provision.identifier,
+                                  request.provision.type,
+                                  PROVISION_ERROR,
+                                  { .error = { PROVISION_ERROR_NODE_INACTIVE }}
+                              });
+            provisionRelease (&request.provision, ETHEREUM_BOOLEAN_FALSE);
+            array_rm (les->requests, requestsToFail[index]);
+        }
 
         // Just do it, always.
         updateDesciptors = 1;
@@ -1214,6 +1291,7 @@ lesThread (BREthereumLES les) {
  */
 static void
 lesAddRequest (BREthereumLES les,
+               BREthereumNodeReference node,
                BREthereumLESProvisionContext context,
                BREthereumLESProvisionCallback callback,
                OwnershipGiven BREthereumProvision provision) {
@@ -1221,7 +1299,7 @@ lesAddRequest (BREthereumLES les,
 
     provision.identifier = les->requestsIdentifier++;
 
-    BREthereumLESRequest request = { context, callback, provision, NULL };
+    BREthereumLESRequest request = { context, callback, provision, node, NULL };
     array_add (les->requests, request);
     pthread_mutex_unlock (&les->lock);
 }
@@ -1246,13 +1324,14 @@ lesCreateHashArray (BREthereumLES les,
 
 extern void
 lesProvideBlockHeaders (BREthereumLES les,
+                        BREthereumNodeReference node,
                         BREthereumLESProvisionContext context,
                         BREthereumLESProvisionCallback callback,
                         uint64_t start,  // Block Number
                         uint32_t limit,
                         uint64_t skip,
                         BREthereumBoolean reverse) {
-    lesAddRequest (les, context, callback,
+    lesAddRequest (les, node, context, callback,
                    (BREthereumProvision) {
                        PROVISION_IDENTIFIER_UNDEFINED,
                        PROVISION_BLOCK_HEADERS,
@@ -1286,10 +1365,11 @@ lesProvideBlockProofsOne (BREthereumLES les,
 
 extern void
 lesProvideBlockBodies (BREthereumLES les,
+                       BREthereumNodeReference node,
                        BREthereumLESProvisionContext context,
                        BREthereumLESProvisionCallback callback,
                        OwnershipGiven BRArrayOf(BREthereumHash) blockHashes) {
-    lesAddRequest (les, context, callback,
+    lesAddRequest (les, node, context, callback,
                    (BREthereumProvision) {
                        PROVISION_IDENTIFIER_UNDEFINED,
                        PROVISION_BLOCK_BODIES,
@@ -1299,19 +1379,21 @@ lesProvideBlockBodies (BREthereumLES les,
 
 extern void
 lesProvideBlockBodiesOne (BREthereumLES les,
+                          BREthereumNodeReference node,
                           BREthereumLESProvisionContext context,
                           BREthereumLESProvisionCallback callback,
                           BREthereumHash blockHash) {
-    lesProvideBlockBodies (les, context, callback,
+    lesProvideBlockBodies (les, node, context, callback,
                            lesCreateHashArray (les, blockHash));
 }
 
 extern void
 lesProvideReceipts (BREthereumLES les,
+                    BREthereumNodeReference node,
                     BREthereumLESProvisionContext context,
                     BREthereumLESProvisionCallback callback,
                     OwnershipGiven BRArrayOf(BREthereumHash) blockHashes) {
-    lesAddRequest (les, context, callback,
+    lesAddRequest (les, node, context, callback,
                    (BREthereumProvision) {
                        PROVISION_IDENTIFIER_UNDEFINED,
                        PROVISION_TRANSACTION_RECEIPTS,
@@ -1321,20 +1403,22 @@ lesProvideReceipts (BREthereumLES les,
 
 extern void
 lesProvideReceiptsOne (BREthereumLES les,
+                       BREthereumNodeReference node,
                        BREthereumLESProvisionContext context,
                        BREthereumLESProvisionCallback callback,
                        BREthereumHash blockHash) {
-    lesProvideReceipts (les, context, callback,
+    lesProvideReceipts (les, node, context, callback,
                         lesCreateHashArray(les, blockHash));
 }
 
 extern void
 lesProvideAccountStates (BREthereumLES les,
+                         BREthereumNodeReference node,
                          BREthereumLESProvisionContext context,
                          BREthereumLESProvisionCallback callback,
                          BREthereumAddress address,
                          OwnershipGiven BRArrayOf(BREthereumHash) blockHashes) {
-    lesAddRequest (les, context, callback,
+    lesAddRequest (les, node, context, callback,
                    (BREthereumProvision) {
                        PROVISION_IDENTIFIER_UNDEFINED,
                        PROVISION_ACCOUNTS,
@@ -1344,20 +1428,22 @@ lesProvideAccountStates (BREthereumLES les,
 
 extern void
 lesProvideAccountStatesOne (BREthereumLES les,
+                            BREthereumNodeReference node,
                             BREthereumLESProvisionContext context,
                             BREthereumLESProvisionCallback callback,
                             BREthereumAddress address,
                             BREthereumHash blockHash) {
-    lesProvideAccountStates (les, context, callback, address,
+    lesProvideAccountStates (les, node, context, callback, address,
                              lesCreateHashArray(les, blockHash));
 }
 
 extern void
 lesProvideTransactionStatus (BREthereumLES les,
+                             BREthereumNodeReference node,
                              BREthereumLESProvisionContext context,
                              BREthereumLESProvisionCallback callback,
                              OwnershipGiven BRArrayOf(BREthereumHash) transactionHashes) {
-    lesAddRequest (les, context, callback,
+    lesAddRequest (les, node, context, callback,
                    (BREthereumProvision) {
                        PROVISION_IDENTIFIER_UNDEFINED,
                        PROVISION_TRANSACTION_STATUSES,
@@ -1367,19 +1453,21 @@ lesProvideTransactionStatus (BREthereumLES les,
 
 extern void
 lesProvideTransactionStatusOne (BREthereumLES les,
+                                BREthereumNodeReference node,
                                 BREthereumLESProvisionContext context,
                                 BREthereumLESProvisionCallback callback,
                                 BREthereumHash transactionHash) {
-    lesProvideTransactionStatus (les, context, callback,
+    lesProvideTransactionStatus (les, node, context, callback,
                                  lesCreateHashArray(les, transactionHash));
 }
 
 extern void
 lesSubmitTransaction (BREthereumLES les,
+                      BREthereumNodeReference node,
                       BREthereumLESProvisionContext context,
                       BREthereumLESProvisionCallback callback,
                       OwnershipGiven BREthereumTransaction transaction) {
-    lesAddRequest (les, context, callback,
+    lesAddRequest (les, node, context, callback,
                    (BREthereumProvision) {
                        PROVISION_IDENTIFIER_UNDEFINED,
                        PROVISION_SUBMIT_TRANSACTION,

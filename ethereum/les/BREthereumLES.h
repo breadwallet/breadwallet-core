@@ -82,7 +82,13 @@ typedef struct BREthereumLESRecord *BREthereumLES;
  * the hea
  */
 typedef void *BREthereumNodeReference;
+#define NODE_REFERENCE_NIL    ((BREthereumNodeReference) 0)
+#define NODE_REFERENCE_ANY    ((BREthereumNodeReference) 1)
+#define NODE_REFERENCE_ALL    ((BREthereumNodeReference) 2)
 
+#define NODE_REFERENCE_IS_GENERIC(n)                       \
+  (NODE_REFERENCE_NIL <= ((BREthereumNodeReference) n) &&  \
+   ((BREthereumNodeReference) n) <= NODE_REFERENCE_ALL)
 /*!
  *@typedef BREthereumLESStatus
  *
@@ -112,6 +118,7 @@ typedef void* BREthereumLESCallbackContext;
  */
 typedef void
 (*BREthereumLESCallbackAnnounce) (BREthereumLESCallbackContext context,
+                                  BREthereumNodeReference node,
                                   BREthereumHash headHash,
                                   uint64_t headNumber,
                                   UInt256 headTotalDifficulty,
@@ -126,6 +133,7 @@ typedef void
  */
 typedef void
 (*BREthereumLESCallbackStatus) (BREthereumLESCallbackContext context,
+                                BREthereumNodeReference node,
                                 BREthereumHash headHash,
                                 uint64_t headNumber);
 
@@ -193,6 +201,13 @@ lesUpdateBlockHead (BREthereumLES les,
                     uint64_t headNumber,
                     UInt256 headTotalDifficulty);
 
+extern void
+lesSetNodePrefer (BREthereumLES les,
+               BREthereumNodeReference nodeReference);
+
+extern BREthereumNodeReference
+lesGetNodePrefer (BREthereumLES les);
+
 /// MARK: LES Provision Callbacks
 
 typedef void *BREthereumLESProvisionContext;
@@ -231,6 +246,7 @@ typedef void
  */
 extern void
 lesProvideBlockHeaders (BREthereumLES les,
+                        BREthereumNodeReference node,
                         BREthereumLESProvisionContext context,
                         BREthereumLESProvisionCallback callback,
                         uint64_t blockNumber,
@@ -271,12 +287,14 @@ lesProvideBlockProofsOne (BREthereumLES les,
  */
 extern void
 lesProvideBlockBodies (BREthereumLES les,
+                       BREthereumNodeReference node,
                        BREthereumLESProvisionContext context,
                        BREthereumLESProvisionCallback callback,
                        OwnershipGiven BRArrayOf(BREthereumHash) blockHashes);
 
 extern void
 lesProvideBlockBodiesOne (BREthereumLES les,
+                          BREthereumNodeReference node,
                           BREthereumLESProvisionContext context,
                           BREthereumLESProvisionCallback callback,
                           BREthereumHash blockHash);
@@ -291,11 +309,13 @@ lesProvideBlockBodiesOne (BREthereumLES les,
  */
 extern void
 lesProvideReceipts (BREthereumLES les,
+                    BREthereumNodeReference node,
                     BREthereumLESProvisionContext context,
                     BREthereumLESProvisionCallback callback,
                     OwnershipGiven BRArrayOf(BREthereumHash) blockHashes);
 extern void
 lesProvideReceiptsOne (BREthereumLES les,
+                       BREthereumNodeReference node,
                        BREthereumLESProvisionContext context,
                        BREthereumLESProvisionCallback callback,
                        BREthereumHash blockHash);
@@ -311,6 +331,7 @@ lesProvideReceiptsOne (BREthereumLES les,
  */
 extern void
 lesProvideAccountStates (BREthereumLES les,
+                         BREthereumNodeReference node,
                          BREthereumLESProvisionContext context,
                          BREthereumLESProvisionCallback callback,
                          BREthereumAddress address,
@@ -318,6 +339,7 @@ lesProvideAccountStates (BREthereumLES les,
 
 extern void
 lesProvideAccountStatesOne (BREthereumLES les,
+                            BREthereumNodeReference node,
                             BREthereumLESProvisionContext context,
                             BREthereumLESProvisionCallback callback,
                             BREthereumAddress address,
@@ -333,12 +355,14 @@ lesProvideAccountStatesOne (BREthereumLES les,
  */
 extern void
 lesProvideTransactionStatus (BREthereumLES les,
+                             BREthereumNodeReference node,
                              BREthereumLESProvisionContext context,
                              BREthereumLESProvisionCallback callback,
                              OwnershipGiven BRArrayOf(BREthereumHash) transactionHashes);
 
 extern void
 lesProvideTransactionStatusOne (BREthereumLES les,
+                                BREthereumNodeReference node,
                                 BREthereumLESProvisionContext context,
                                 BREthereumLESProvisionCallback callback,
                                 BREthereumHash transactionHash);
@@ -353,6 +377,7 @@ lesProvideTransactionStatusOne (BREthereumLES les,
  */
 extern void
 lesSubmitTransaction (BREthereumLES les,
+                      BREthereumNodeReference node,
                       BREthereumLESProvisionContext context,
                       BREthereumLESProvisionCallback callback,
                       OwnershipGiven BREthereumTransaction transaction);
