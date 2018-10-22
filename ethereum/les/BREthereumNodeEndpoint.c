@@ -887,6 +887,9 @@ size_t NUMBER_OF_NODE_ENDPOINT_SETS = (sizeof (bootstrapMainnetEnodeSets) / size
 // TODO: Known bad enodes - really the code should find and disable on the fly, based on the node's behavior.
 const char *bootstrapDisableEnodes[] = {
     "enode://5de9c43e8554ea2d8451f01614fca69799c8e758d1c65bead526d4c3beec695356f5548b20bee6fb05919c463bde6486abc1c73903796b5f8f041bd8ac483711@45.63.26.208:30304",
+
+    // Futuristic block numbes
+    "enode://1b1a26ebe85c34469ba25893053cc8249d59ec9916eed8c8b7de21f12edb92dd550b704f326b49bed679b521525c948be4f6c5477839da23d88d2090d549d6bd@34.201.251.249:30303",
     NULL
 };
 

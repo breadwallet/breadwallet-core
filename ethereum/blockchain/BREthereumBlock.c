@@ -243,6 +243,17 @@ blockHeaderReleaseForSet (void *ignore, void *item) {
     blockHeaderRelease ((BREthereumBlockHeader) item);
 }
 
+
+extern uint64_t
+chtRootNumberGetFromNumber (uint64_t number) {
+    return (0 == number ? 0 : ((number - 1) >> BLOCK_HEADER_CHT_ROOT_INTERVAL_SHIFT));
+}
+
+extern uint64_t
+blockHeaderGetCHTRootNumber (BREthereumBlockHeader header) {
+    return chtRootNumberGetFromNumber (blockHeaderGetNumber(header));
+}
+
 extern BREthereumBoolean
 blockHeaderIsValid (BREthereumBlockHeader header) {
     return ETHEREUM_BOOLEAN_TRUE;

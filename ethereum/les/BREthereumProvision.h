@@ -38,8 +38,7 @@ typedef enum {
 } BREthereumProvisionStatus;
 
 typedef enum {
-    PROVISION_ERROR_X,
-    PROVISION_ERROR_Y
+    PROVISION_ERROR_NODE_INACTIVE,
 } BREthereumProvisionErrorReason;
 
 /// MARK: Provision
@@ -127,7 +126,7 @@ provisionAccountsConsume (BREthereumProvisionAccounts *provision,
                           BRArrayOf(BREthereumAccountState) *accounts);
 
 /**
- *
+ * Transaction Statuses
  */
 typedef struct {
     // Request
@@ -142,7 +141,7 @@ provisionStatusesConsume (BREthereumProvisionStatuses *provision,
                           BRArrayOf(BREthereumTransactionStatus) *statuses);
 
 /**
- *
+ * Transaction Submission
  */
 typedef struct {
     // Request

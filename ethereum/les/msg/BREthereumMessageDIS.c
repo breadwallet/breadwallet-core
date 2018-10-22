@@ -426,7 +426,11 @@ messageDISDecode (BRRlpItem item,
             };
 
         case DIS_MESSAGE_FIND_NEIGHBORS:
-            assert (0);
+            // We never expect this message - node sending will get disconnected
+            return (BREthereumDISMessage) {
+                DIS_MESSAGE_FIND_NEIGHBORS,
+                { .findNeighbors = {} }
+            };
     }
 }
 

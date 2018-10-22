@@ -299,11 +299,11 @@ nodeStateDecode (BRRlpItem item,
 
 /**
  * A Node Provisioner completes a Provision by dispatching messages, possibly multiple
- * messages, to fill the provision.  The number of messages dispatch depends on type of the message
- * and the content requests.  For example, if 192 block bodies are requested but a block bodies'
- * LES message only accepts at most 64 hashes, then 3 messages will be created, each with 64
- * hashes, to complete the provision of 192 headers.  Only when all 192 headers are received will
- * the provisioner be complete.
+ * messages, to fill the provision.  The number of messages dispatched depends on type of the
+ * message and the content requests.  For example, if 192 block bodies are requested but a block
+ * bodies' LES message only accepts at most 64 hashes, then 3 messages will be created, each with
+ * 64 hashes, to complete the provision of 192 headers.  Only when all 192 headers are received
+ * will the provisioner be complete.
  */
 typedef struct {
     /** The provision as a union of {reqeust, response} for each provision type. */
@@ -894,6 +894,8 @@ nodeHandleProvisionerMessage (BREthereumNode node,
                 // Release the provision, including its messages.  But, do not release
                 // the provision as it was passed on to `node->callbackProvide`.
                 provisionerRelease(provisioner, ETHEREUM_BOOLEAN_FALSE, ETHEREUM_BOOLEAN_FALSE);
+
+                // Remove but be sure to `break`.
                 array_rm (node->provisioners, index);
                 break;
             }
@@ -1941,42 +1943,9 @@ nodeSetStateInitial (BREthereumNode node,
     }
 }
 
-/// MARK: Move This
-//static void
-//updateLocalEndpointStatusMessage (BREthereumNodeEndpoint endpoint,
-//                                  BREthereumNodeType type,
-//                                  uint64_t protocolVersion) {
-//    switch (type) {
-//        case NODE_TYPE_UNKNOWN:
-//            assert (0);
-//
-//        case NODE_TYPE_GETH:
-//            assert (MESSAGE_LES == endpoint->status.identifier);
-//            endpoint->status.u.les.u.status.p2p.protocolVersion = protocolVersion;
-//            break;
-//
-//        case NODE_TYPE_PARITY: {
-//            assert (MESSAGE_LES == endpoint->status.identifier);
-//            BREthereumLESMessageStatus *status = &endpoint->status.u.les.u.status;
-//            endpoint->status = (BREthereumMessage) {
-//                MESSAGE_PIP,
-//                { .pip = {
-//                    PIP_MESSAGE_STATUS,
-//                    { .status = {
-//                        protocolVersion,
-//                        status->p2p.chainId,
-//                        status->p2p.headNum,
-//                        status->p2p.headHash,
-//                        status->p2p.headTd,
-//                        status->p2p.genesisHash,
-//                        NULL }}}}
-//            };
-//            break;
-//        }
-//    }
-//}
-//
+///
 /// MARK: - Send / Recv
+///
 
 static BREthereumNodeStatus
 nodeSendFailed (BREthereumNode node,
