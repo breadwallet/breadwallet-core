@@ -670,6 +670,30 @@ ewmWalletCreateTransfer(BREthereumEWM ewm,
     return tid;
 }
 
+extern BREthereumTransferId
+ewmWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
+                                    BREthereumWallet wallet,
+                                     const char *recvAddress,
+                                     BREthereumAmount amount,
+                                     BREthereumFeeBasis feeBasis) {
+    BREthereumTransferId tid = -1;
+    BREthereumWalletId wid = -1;
+
+    pthread_mutex_lock(&ewm->lock);
+
+    BREthereumTransfer transaction = walletCreateTransferWithFeeBasis (wallet, addressCreate(recvAddress), amount, feeBasis);
+
+    tid = ewmInsertTransfer(ewm, transaction);
+    wid = ewmLookupWalletId(ewm, wallet);
+
+    pthread_mutex_unlock(&ewm->lock);
+
+    ewmClientSignalTransferEvent(ewm, wid, tid, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
+
+    return tid;
+}
+
+
 extern void // status, error
 ewmWalletSignTransfer(BREthereumEWM ewm,
                       BREthereumWallet wallet,
@@ -931,10 +955,20 @@ ewmHandleTransaction (BREthereumEWM ewm,
             transactionRelease(transaction);
     }
 
-    // TODO: Not quite
-    ewmClientSignalTransferEvent(ewm, wid, tid,
-                                 TRANSFER_EVENT_INCLUDED,
-                                 SUCCESS, NULL);
+    if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatusType (transfer, TRANSFER_STATUS_INCLUDED)))
+        ewmClientSignalTransferEvent(ewm, wid, tid,
+                                     TRANSFER_EVENT_INCLUDED,
+                                     SUCCESS, NULL);
+
+    else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatusType (transfer, TRANSFER_STATUS_ERRORED))) {
+        char *reason = NULL;
+        transferExtractStatusError (transfer, &reason);
+        ewmClientSignalTransferEvent(ewm, wid, tid,
+                                     TRANSFER_EVENT_ERRORED,
+                                     ERROR_TRANSACTION_SUBMISSION,
+                                     (NULL == reason ? "" : reason));
+        // free (reason)
+    }
 }
 
 extern void
@@ -987,10 +1021,21 @@ ewmHandleLog (BREthereumEWM ewm,
             logRelease(log);
     }
 
-    // TODO: Not quite
-    ewmClientSignalTransferEvent(ewm, wid, tid,
-                                 TRANSFER_EVENT_INCLUDED,
-                                 SUCCESS, NULL);
+
+    if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatusType (transfer, TRANSFER_STATUS_INCLUDED)))
+        ewmClientSignalTransferEvent(ewm, wid, tid,
+                                     TRANSFER_EVENT_INCLUDED,
+                                     SUCCESS, NULL);
+
+    else if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatusType (transfer, TRANSFER_STATUS_ERRORED))) {
+        char *reason = NULL;
+        transferExtractStatusError (transfer, &reason);
+        ewmClientSignalTransferEvent(ewm, wid, tid,
+                                     TRANSFER_EVENT_ERRORED,
+                                     ERROR_TRANSACTION_SUBMISSION,
+                                     (NULL == reason ? "" : reason));
+        // free (reason)
+    }
 }
 
 extern void

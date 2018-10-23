@@ -113,6 +113,13 @@ ewmWalletCreateTransfer(BREthereumEWM ewm,
                         const char *recvAddress,
                         BREthereumAmount amount);
 
+extern BREthereumTransferId
+ewmWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
+                                     BREthereumWallet wallet,
+                                     const char *recvAddress,
+                                     BREthereumAmount amount,
+                                     BREthereumFeeBasis feeBasis);
+
 extern void // status, error
 ewmWalletSignTransfer(BREthereumEWM ewm,
                       BREthereumWallet wallet,

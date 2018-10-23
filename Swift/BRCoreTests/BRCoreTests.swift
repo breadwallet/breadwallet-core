@@ -30,7 +30,7 @@ class BRCoreTests: XCTestCase {
 
     func testEthereum () {
         let client = TestLightClient (network: EthereumNetwork.mainnet,
-                                      paperKey: "ginger settle marine tissue robot crane night number ramp coast roast critic")
+                                      paperKey: "ginger ...")
 
         client.node.updateTokens()
         client.node.connect()

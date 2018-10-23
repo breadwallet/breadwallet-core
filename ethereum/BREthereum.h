@@ -483,6 +483,17 @@ ethereumCoerceTokenAmountToString(BREthereumEWM ewm,
                                   BREthereumTokenQuantity token,
                                   BREthereumTokenQuantityUnit unit);
 
+//
+// Gas Price / Limit
+//
+
+extern BREthereumGasPrice
+ethereumCreateGasPrice (uint64_t value,
+                        BREthereumEtherUnit unit);
+
+extern BREthereumGas
+ethereumCreateGas (uint64_t value);
+
 /**
  * Connect to the Ethereum Network;
  *
@@ -594,6 +605,14 @@ ethereumWalletCreateTransfer(BREthereumEWM ewm,
                              BREthereumWalletId wid,
                              const char *recvAddress,
                              BREthereumAmount amount);
+
+extern BREthereumTransferId
+ethereumWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
+                                          BREthereumWalletId wid,
+                                          const char *recvAddress,
+                                          BREthereumAmount amount,
+                                          BREthereumGasPrice gasPrice,
+                                          BREthereumGas gasLimit);
 
 /**
  * Sign the transaction using the wallet's account (for the sender's address).  The paperKey

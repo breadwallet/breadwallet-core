@@ -107,6 +107,12 @@ walletCreateTransfer(BREthereumWallet wallet,
                         BREthereumAddress recvAddress,
                         BREthereumAmount amount);
 
+extern BREthereumTransfer
+walletCreateTransferWithFeeBasis (BREthereumWallet wallet,
+                                  BREthereumAddress recvAddress,
+                                  BREthereumAmount amount,
+                                  BREthereumFeeBasis feeBasis);
+
 /**
  *
  * You will have all sorts of problems with `nonce`...

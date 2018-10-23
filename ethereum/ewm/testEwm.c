@@ -17,7 +17,7 @@
 //
 // EWM Tests
 //
-#define NODE_PAPER_KEY "ginger settle marine tissue robot crane night number ramp coast roast critic"
+#define NODE_PAPER_KEY "ginger ..."
 #define NODE_NONCE              TEST_TRANS2_NONCE // 1
 #define NODE_GAS_PRICE_VALUE    TEST_TRANS2_GAS_PRICE_VALUE // 20 GWEI
 #define NODE_GAS_PRICE_UNIT     TEST_TRANS2_GAS_PRICE_UNIT // WEI
@@ -656,7 +656,7 @@ extern void
 testReallySend (void) {
     client.context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
-    char *paperKey = "boring head harsh green empty clip fatal typical found crane dinner timber";
+    char *paperKey = "boring ...";
 
     char *recvAddr = "0x49f4c50d9bcc7afdbcf77e0d6e364c29d5a660df";
     char *strAmount = "0.00004"; //ETH
@@ -804,7 +804,7 @@ runSyncTest (BREthereumType type,
     client.context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
 #if ! defined (DEBUG)
-    char *paperKey = "boring head harsh green empty clip fatal typical found crane dinner timber";
+    char *paperKey = "boring ...";
 #else
     char *paperKey = "0xa9de3dbd7d561e67527bc1ecb025c59d53b9f7ef";
 //    char *paperKey = "0x8975dbc1b8f25ec994815626d070899dda896511";
@@ -867,5 +867,4 @@ runEWMTests (void) {
     runEWM_CONNECT_test(NODE_PAPER_KEY);
     runEWM_TOKEN_test (NODE_PAPER_KEY);
     runEWM_PUBLIC_KEY_test (ethereumMainnet, NODE_PAPER_KEY);
-    runEWM_PUBLIC_KEY_test (ethereumTestnet, "ocean robust idle system close inject bronze mutual occur scale blast year");
 }

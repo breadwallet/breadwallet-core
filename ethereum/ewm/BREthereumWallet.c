@@ -219,21 +219,27 @@ walletEstimateTransferFeeDetailed (BREthereumWallet wallet,
 // Transfer Creation
 //
 extern BREthereumTransfer
+walletCreateTransferWithFeeBasis (BREthereumWallet wallet,
+                                  BREthereumAddress recvAddress,
+                                  BREthereumAmount amount,
+                                  BREthereumFeeBasis feeBasis) {
+    BREthereumTransfer transfer = transferCreate (wallet->address, recvAddress, amount, feeBasis);
+    walletHandleTransfer(wallet, transfer);
+    return transfer;
+}
+
+extern BREthereumTransfer
 walletCreateTransfer(BREthereumWallet wallet,
                         BREthereumAddress recvAddress,
                         BREthereumAmount amount) {
 
-    BREthereumFeeBasis feeBasis = {
-        FEE_BASIS_GAS,
-        { .gas = {
-        wallet->defaultGasLimit,
-        wallet->defaultGasPrice
-        }}
-    };
-
-    BREthereumTransfer transfer = transferCreate (wallet->address, recvAddress, amount, feeBasis);
-    walletHandleTransfer(wallet, transfer);
-    return transfer;
+    return walletCreateTransferWithFeeBasis(wallet, recvAddress, amount,
+                                            (BREthereumFeeBasis) {
+                                                FEE_BASIS_GAS,
+                                                { .gas = {
+                                                    wallet->defaultGasLimit,
+                                                    wallet->defaultGasPrice
+                                                }}});
 }
 
 #ifdef WALLET_CREATE_TRANSACTION_DIRECTLY
