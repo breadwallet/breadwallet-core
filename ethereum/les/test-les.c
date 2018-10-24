@@ -1082,7 +1082,8 @@ runLEStests(void) {
 
     //    run_GetProofsV2_Tests(les); //NOTE: The callback function won't be called.
 
-    run_SendTransaction_Tests(les);
+    // Requires paperKey
+    //    run_SendTransaction_Tests(les);
     
     //    sleep (60);
     lesStop(les);
