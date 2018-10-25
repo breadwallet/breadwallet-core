@@ -140,6 +140,9 @@ public class BREthereumLightNode extends BRCoreJniReference {
                                     // confirmations
                                     // txreceipt_status
                                     String isError) {
+        ensureValidAddress(from);
+        ensureValidAddress(to);
+        if (null != contract && !contract.isEmpty()) ensureValidAddress(contract);
         jniAnnounceTransaction(id, hash, from, to, contract, amount, gasLimit, gasPrice, data, nonce, gasUsed,
                 blockNumber, blockHash, blockConfirmations, blockTransactionIndex, blockTimestamp,
                 isError);
@@ -156,6 +159,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
                             String blockNumber,
                             String blockTransactionIndex,
                             String blockTimestamp) {
+        ensureValidAddress(contract);
         jniAnnounceLog(id, hash, contract, topics, data, gasPrice, gasUsed, logIndex,
                 blockNumber, blockTransactionIndex, blockTimestamp);
     }
@@ -165,6 +169,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     }
 
     public void announceNonce (String address, String nonce, int rid) {
+        ensureValidAddress(address);
         jniAnnounceNonce(address, nonce, rid);
     }
 
@@ -176,6 +181,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
                                String defaultGasLimit,
                                String defaultGasPrice,
                                int rid) {
+        ensureValidAddress(address);
         jniAnnounceToken(address, symbol, name, description, decimals,
                 defaultGasLimit, defaultGasPrice,
                 rid);
@@ -446,6 +452,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
     }
 
      public BREthereumToken lookupToken (String address) {
+        ensureValidAddress(address);
         initializeTokens();;
         return tokensByAddress.get(address.toLowerCase());
     }
@@ -593,11 +600,22 @@ public class BREthereumLightNode extends BRCoreJniReference {
         client.get().getNonce(address, rid);
     }
 
+    static boolean addressIsValid (String address) {
+        assert (null != address);
+        return jniAddressIsValid(address);
+    }
+
+    static void ensureValidAddress (String address) {
+        if (!addressIsValid(address))
+            throw new RuntimeException ("Invalid Ethereum Address");
+    }
     //
     // JNI: Constructors
     //
     protected static native long jniCreateLightNode(Client client, long network, String paperKey, String[] wordList);
     protected static native long jniCreateLightNode_PublicKey(Client client, long network, byte[] publicKey);
+
+    protected static native boolean jniAddressIsValid (String address);
 
     protected native void jniAddListener (Listener listener);
 

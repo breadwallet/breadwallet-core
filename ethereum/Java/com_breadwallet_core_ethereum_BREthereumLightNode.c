@@ -28,6 +28,7 @@
 #include <BRBIP39Mnemonic.h>
 #include <BRKey.h>
 #include <BREthereum.h>
+#include <BREthereumAccount.h>
 
 #include "com_breadwallet_core_ethereum_BREthereumLightNode.h"
 
@@ -123,6 +124,24 @@ static jstring
 asJniString(JNIEnv *env, char *string) {
     jstring result = (*env)->NewStringUTF(env, string);
     free(string);
+    return result;
+}
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniAddressIsValid
+ * Signature: (Ljava/lang/String;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAddressIsValid
+        (JNIEnv *env, jclass thisClass, jstring addressObject) {
+
+    const char *address = (*env)->GetStringUTFChars(env, addressObject, 0);
+
+    jboolean result = ETHEREUM_BOOLEAN_IS_TRUE (validateAddressString(address))
+                      ? JNI_TRUE
+                      : JNI_FALSE;
+
+    (*env)->ReleaseStringUTFChars(env, addressObject, address);
     return result;
 }
 
