@@ -431,6 +431,28 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit, Hashable {
         return EthereumTransfer (ewm: self.ewm!, identifier: tid)
     }
 
+    public func createTransfer (recvAddress: String,
+                                amount: String, unit: EthereumAmountUnit,
+                                gasPrice: UInt64, gasPriceUnit: EthereumAmountUnit,
+                                gasLimit: UInt64) -> EthereumTransfer {
+        var status : BRCoreParseStatus = CORE_PARSE_OK
+        let amount = (unit.isEther
+            ? ethereumCreateEtherAmountString (self.ewm!.core, amount, unit.coreForEther, &status)
+            : ethereumCreateTokenAmountString (self.ewm!.core, token!.core, amount, unit.coreForToken, &status))
+        // Sure, ignore `status`
+
+        let gasPrice = ethereumCreateGasPrice (gasPrice, gasPriceUnit.coreForEther)
+        let gasLimit = ethereumCreateGas (gasLimit)
+
+        let tid = ethereumWalletCreateTransferWithFeeBasis (self.ewm!.core,
+                                                            self.identifier,
+                                                            recvAddress,
+                                                            amount,
+                                                            gasPrice,
+                                                            gasLimit);
+        return EthereumTransfer (ewm: self.ewm!, identifier: tid)
+    }
+
 
     public func sign (transfer : EthereumTransfer, paperKey : String) {
         ethereumWalletSignTransfer (self.ewm!.core, self.identifier, transfer.identifier, paperKey)
@@ -1220,6 +1242,8 @@ public enum EthereumAmountUnit {
 
     static public let defaultUnitEther = EthereumAmountUnit.ether (ETHER)
     static public let defaultUnitToken = EthereumAmountUnit.token (TOKEN_QUANTITY_TYPE_DECIMAL)
+
+    static public let etherGWEI = EthereumAmountUnit.ether (GWEI);
 
     static func defaultUnit (_ forEther : Bool) -> EthereumAmountUnit {
         return forEther ? defaultUnitEther : defaultUnitToken

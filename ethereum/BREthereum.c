@@ -228,6 +228,24 @@ ethereumWalletCreateTransfer(BREthereumEWM ewm,
     return ewmWalletCreateTransfer(ewm, wallet, recvAddress, amount);
 }
 
+extern BREthereumTransferId
+ethereumWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
+                                          BREthereumWalletId wid,
+                                          const char *recvAddress,
+                                          BREthereumAmount amount,
+                                          BREthereumGasPrice gasPrice,
+                                          BREthereumGas gasLimit) {
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
+    return ewmWalletCreateTransferWithFeeBasis(ewm, wallet, recvAddress, amount,
+                                               (BREthereumFeeBasis) {
+                                                   FEE_BASIS_GAS,
+                                                   { .gas = {
+                                                       gasLimit,
+                                                       gasPrice
+                                                   }}});
+
+}
+
 extern void // status, error
 ethereumWalletSignTransfer(BREthereumEWM ewm,
                               BREthereumWalletId wid,
@@ -529,6 +547,20 @@ ethereumCoerceTokenAmountToString(BREthereumEWM ewm,
                                   BREthereumTokenQuantity token,
                                   BREthereumTokenQuantityUnit unit) {
     return tokenQuantityGetValueString(token, unit);
+}
+
+//
+// Gas Price // Gas Limit
+//
+extern BREthereumGasPrice
+ethereumCreateGasPrice (uint64_t value,
+                        BREthereumEtherUnit unit) {
+    return gasPriceCreate(etherCreateNumber(value, unit));
+}
+
+extern BREthereumGas
+ethereumCreateGas (uint64_t value) {
+    return gasCreate(value);
 }
 
 //

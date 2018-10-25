@@ -157,94 +157,6 @@ _saveNodesCallback (BREthereumLESCallbackContext context,
     array_free(nodes);
 }
 
-//
-//  Testing SendTx and SendTxV2 message
-//
-#if 0
-#define GAS_PRICE_20_GWEI       2000000000
-#define GAS_PRICE_10_GWEI       1000000000
-#define GAS_PRICE_5_GWEI         500000000
-#define GAS_LIMIT_DEFAULT 21000
-
-static void _transactionStatus(BREthereumLESTransactionStatusContext context,
-                               BREthereumHash transaction,
-                               BREthereumTransactionStatus status){
-    
-    printf("RECEIVED AN TRANSACTION STATUS");
-}
-void prepareLESTransaction (BREthereumLES les, const char *paperKey, const char *recvAddr, const uint64_t gasPrice, const uint64_t gasLimit, const uint64_t amount) {
-    printf ("     Prepare Transaction\n");
-    
-    BREthereumClient client = {};
-    BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, EWM_USE_LES, SYNC_MODE_FULL_BLOCKCHAIN, client, NULL, NULL, NULL, NULL);
-    // A wallet amount Ether
-    BREthereumWalletId wallet = ethereumGetWallet(ewm);
-    // END - One Time Code Block
-    
-    // Optional - will provide listNodeWalletCreateTransactionDetailed.
-    ethereumWalletSetDefaultGasPrice(ewm, wallet, WEI, gasPrice);
-    ethereumWalletSetDefaultGasLimit(ewm, wallet, gasLimit);
-    
-    BREthereumAmount amountAmountInEther =
-    ethereumCreateEtherAmountUnit(ewm, amount, WEI);
-    
-    BREthereumTransferId tx1 =
-    ethereumWalletCreateTransfer
-    (ewm,
-     wallet,
-     recvAddr,
-     amountAmountInEther);
-    
-    ethereumWalletSignTransfer (ewm, wallet, tx1, paperKey);
-    
-    const char *rawTransactionHexEncoded =
-    ethereumTransferGetRawDataHexEncoded(ewm, wallet, tx1, "0x");
-    
-    printf ("        Raw Transaction: %s\n", rawTransactionHexEncoded);
-    
-    char *fromAddr = ethereumGetAccountPrimaryAddress(ewm);
-    BREthereumTransferId *tids = ethereumWalletGetTransfers(ewm, wallet);
-    
-    assert (NULL != tids && -1 != tids[0]);
-    
-    BREthereumTransferId tid = tids[0];
-    assert (0 == strcmp (fromAddr, ethereumTransferGetSendAddress(ewm, tid)) &&
-            0 == strcmp (recvAddr, ethereumTransferGetRecvAddress(ewm, tid)));
-    
-    BREthereumTransfer actualTransfer = ewmLookupTransfer(ewm, tid);
-    BREthereumTransaction actualTransaction = transferGetOriginatingTransaction(actualTransfer);
-    
-    //Initilize testing state
-    _initTest(1);
-    
-    lesSubmitTransaction(les, NULL, _transactionStatus, actualTransaction);
-    
-    sleep(600);
-    
-    free (fromAddr);
-    ethereumDestroy(ewm);
-}
-
-extern void
-reallySendLESTransaction(BREthereumLES les) {
-    
-    char paperKey[] = "biology just ridge kidney random donkey master employ poverty remind panel twenty";
-    char recvAddress[] = "0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF";
-    /*
-     fputs("PaperKey: ", stdout);
-     fgets (paperKey, 1024, stdin);
-     paperKey[strlen(paperKey) - 1] = '\0';
-     
-     fputs("Address: ", stdout);
-     fgets (recvAddress, 1024, stdin);
-     recvAddress[strlen(recvAddress) - 1] = '\0';
-     */
-    printf ("PaperKey: '%s'\nAddress: '%s'\n", paperKey, recvAddress);
-    
-    // 0.001/2 ETH
-    prepareLESTransaction(les, paperKey, recvAddress, GAS_PRICE_5_GWEI, GAS_LIMIT_DEFAULT, 1000000000000000000 / 1000 / 2);
-}
-#endif
 
 //
 //  Testing BlockHeaders message
@@ -1034,6 +946,105 @@ static void run_GetAccountState_Tests (BREthereumLES les){
     eth_log(TST_LOG_TOPIC, "GetAccopuntState: %s", "Tests Successful");
 }
 
+
+//
+//  Testing SendTx and SendTxV2 message
+//
+#define GAS_PRICE_20_GWEI       2000000000
+#define GAS_PRICE_10_GWEI       1000000000
+#define GAS_PRICE_5_GWEI         500000000
+#define GAS_LIMIT_DEFAULT 21000
+
+static void
+_SendTransaction_Callback_Test1 (BREthereumLESProvisionContext context,
+                                             BREthereumLES les,
+                                             BREthereumNodeReference node,
+                                             BREthereumProvisionResult result) {
+    assert (NULL == context);
+    assert (PROVISION_SUCCESS == result.status);
+    assert (PROVISION_SUBMIT_TRANSACTION == result.u.success.provision.type);
+
+    BREthereumTransaction transaction  = result.u.success.provision.u.submission.transaction;
+    BREthereumTransactionStatus status = result.u.success.provision.u.submission.status;
+
+    _signalTestComplete();
+}
+
+static void
+run_SendTransaction_Tests(BREthereumLES les) {
+
+    char *paperKey   = "boring ...";
+    char *sourceAddr = "0xa9de3dbd7d561e67527bc1ecb025c59d53b9f7ef";
+    char *targetAddr = "0x49f4C50d9BcC7AfdbCF77e0d6e364C29D5a660DF";
+
+    _initTest(1);
+
+
+    BRCoreParseStatus status;
+    BREthereumEther amount = etherCreateString("0.001", ETHER, &status);
+    BREthereumGasPrice gasPrice = gasPriceCreate (etherCreateString("5.0", GWEI, &status));
+    BREthereumGas gasLimit = gasCreate(21000);
+
+    uint64_t nonce = 9;
+
+    BREthereumTransaction transaction = transactionCreate (addressCreate(sourceAddr),
+                                                           addressCreate(targetAddr),
+                                                           amount,
+                                                           gasPrice,
+                                                           gasLimit,
+                                                           "",
+                                                           nonce);
+
+    // Sign the transaction
+    BREthereumAccount account = createAccount (paperKey);
+
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem item = transactionRlpEncode (transaction,
+                                           ethereumMainnet,
+                                           RLP_TYPE_TRANSACTION_UNSIGNED,
+                                           coder);
+    BRRlpData data = rlpGetData(coder, item);
+
+    // Sign the RLP Encoded bytes.
+    BREthereumSignature signature = accountSignBytes (account,
+                                                      addressCreate(sourceAddr),
+                                                      SIGNATURE_TYPE_RECOVERABLE_VRS_EIP,
+                                                      data.bytes,
+                                                      data.bytesCount,
+                                                      paperKey);
+
+    transactionSign (transaction, signature);
+    rlpReleaseItem(coder, item);
+    rlpDataRelease(data);
+
+    item = transactionRlpEncode (transaction,
+                                           ethereumMainnet,
+                                           RLP_TYPE_TRANSACTION_SIGNED,
+                                           coder);
+    rlpReleaseItem(coder, item);
+
+    //Request block headers 4732522, 4732523, 4732524
+    lesSubmitTransaction (les, NODE_REFERENCE_ANY,
+                          NULL,
+                          _SendTransaction_Callback_Test1,
+                          transaction);
+
+    /*
+     fputs("PaperKey: ", stdout);
+     fgets (paperKey, 1024, stdin);
+     paperKey[strlen(paperKey) - 1] = '\0';
+
+     fputs("Address: ", stdout);
+     fgets (recvAddress, 1024, stdin);
+     recvAddress[strlen(recvAddress) - 1] = '\0';
+     */
+    //printf ("PaperKey: '%s'\nAddress: '%s'\n", paperKey, recvAddress);
+
+    _waitForTests();
+    eth_log(TST_LOG_TOPIC, "SendTransaction: %s", "Tests Successful");
+
+}
+
 extern void
 runLEStests(void) {
     
@@ -1070,7 +1081,9 @@ runLEStests(void) {
     run_GetTxStatus_Tests(les);
 
     //    run_GetProofsV2_Tests(les); //NOTE: The callback function won't be called.
-    //    reallySendLESTransaction(les);
+
+    // Requires paperKey
+    //    run_SendTransaction_Tests(les);
     
     //    sleep (60);
     lesStop(les);

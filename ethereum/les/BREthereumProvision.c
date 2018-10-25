@@ -584,6 +584,8 @@ provisionCreateMessagePIP (BREthereumProvision *provisionMulti,
         case PROVISION_SUBMIT_TRANSACTION: {
             BREthereumProvisionSubmission *provision = &provisionMulti->u.submission;
 
+            // We have two messages to submit a transaction, but only one response.  The response
+            // needs the proper messageIdentifier in order to be pair with this provision.
             switch (index) {
                 case 0: {
                     BRArrayOf(BREthereumTransaction) transactions;
@@ -764,6 +766,28 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
         }
 
         case PROVISION_SUBMIT_TRANSACTION: {
+            BREthereumProvisionSubmission *provision = &provisionMulti->u.submission;
+
+            BRArrayOf(BREthereumPIPRequestOutput) outputs = NULL;
+            messagePIPResponseConsume(&message.u.response, &outputs);
+
+            switch (array_count(outputs)) {
+                case 0:
+                    // TODO: probably 'unknown'
+                    provision->status = transactionStatusCreate (TRANSACTION_STATUS_QUEUED);
+                    break;
+
+                case 1:
+                    provision->status =
+                    transactionStatusCreateIncluded (gasCreate(0),
+                                                     outputs[0].u.transactionIndex.blockHash,
+                                                     outputs[0].u.transactionIndex.blockNumber,
+                                                     outputs[0].u.transactionIndex.transactionIndex);
+                default:
+                    assert(0);
+            }
+
+            array_free (outputs);
             break;
         }
     }

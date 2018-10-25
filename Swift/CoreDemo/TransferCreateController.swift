@@ -15,7 +15,6 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
         // Do any additional setup after loading the view.
     }
 
@@ -27,7 +26,7 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated);
         amountSlider.minimumValue = 0.0
-        amountSlider.maximumValue = Float (wallet.balance.amount)!
+        amountSlider.maximumValue = 0.01  //  Float (wallet.balance.amount)!
         amountSlider.value = 0.0
         recvField.text = (UIApplication.sharedClient.network == EthereumNetwork.mainnet
             ? "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62"
@@ -49,11 +48,15 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
 
         let alert = UIAlertController (title: "Submit Transaction", message: "Are you sure?", preferredStyle: UIAlertController.Style.actionSheet)
         alert.addAction(UIAlertAction (title: "Yes", style: UIAlertAction.Style.destructive) { (action) in
-            let transfer = self.wallet.createTransfer (recvAddress: self.recvField.text!,
-                                                             amount: self.amountSlider.value.description,
-                                                             unit: EthereumAmountUnit.defaultUnitEther);
+            let transfer = self.wallet.createTransfer(recvAddress: self.recvField.text!,
+                                                      amount: self.amountSlider.value.description,
+                                                      unit: EthereumAmountUnit.defaultUnitEther,
+                                                      gasPrice: self.gasPrice(),
+                                                      gasPriceUnit: EthereumAmountUnit.etherGWEI,
+                                                      gasLimit: self.gasLimit())
+
             self.wallet.sign(transfer: transfer,
-                             paperKey: "boring head harsh green empty clip fatal typical found crane dinner timber");
+                             paperKey: "boring ...");
 
             self.wallet.submit(transfer: transfer);
             // Notify, close
@@ -79,9 +82,9 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
 
     func updateView () {
         let amount = amountSlider.value
-        feeLabel.text = canonicalAmount (wallet.estimateFee(amount: amount.description, unit: wallet.unit),
-                                         sign: "",
-                                         symbol: "ETH")
+
+        let fee = Double (gasPrice() * gasLimit()) / 1e9
+        feeLabel.text = "\(fee) ETH"
 
         amountMinLabel.text = amountSlider.minimumValue.description
         amountMaxLabel.text = amountSlider.maximumValue.description
@@ -94,7 +97,33 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
         amountLabel.text = amountSlider.value.description
         submitButton.isEnabled = (0.0 != amountSlider.value && recvField.text != "")
     }
-    
+
+    func gasPrice () -> UInt64 {
+        switch (gasPriceSegmentedController.selectedSegmentIndex) {
+        case 0: return  15
+        case 1: return 5
+        case 2: return 0
+        default: return 5
+        }
+    }
+
+    @IBAction func gasPriceChanged(_ sender: UISegmentedControl) {
+        updateView()
+    }
+
+    func gasLimit () -> UInt64 {
+        switch (gasLimitSegmentedController.selectedSegmentIndex) {
+        case 0: return 42000
+        case 1: return 21000
+        case 2: return  1000
+        default: return 21000
+        }
+    }
+
+    @IBAction func gasLimitChanged(_ sender: UISegmentedControl) {
+        updateView()
+    }
+
     @IBOutlet var submitButton: UIBarButtonItem!
     @IBOutlet var feeLabel: UILabel!
     @IBOutlet var amountSlider: UISlider!
@@ -102,4 +131,6 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
     @IBOutlet var amountMinLabel: UILabel!
     @IBOutlet var amountMaxLabel: UILabel!
     @IBOutlet var amountLabel: UILabel!
+    @IBOutlet var gasPriceSegmentedController: UISegmentedControl!
+    @IBOutlet var gasLimitSegmentedController: UISegmentedControl!
 }

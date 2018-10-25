@@ -2862,7 +2862,7 @@ extern int BRRunTestsSync (int randomKey) {
         epoch = (uint32_t) (time (NULL) - (14 * 24 * 60 * 60));
     }
     else {
-        paperKey = strdup ("blush wear arctic fruit unique quantum because mammal entry country school curtain");
+        paperKey = strdup ("blush ...");
         epoch = 1483228800;  // 1/1/2017 // BIP39_CREATION_TIME
     }
     printf ("***\n***\nPaperKey (Start): \"%s\"\n***\n***\n", paperKey);
