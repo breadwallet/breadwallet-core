@@ -1034,6 +1034,54 @@ static void run_GetAccountState_Tests (BREthereumLES les){
     eth_log(TST_LOG_TOPIC, "GetAccopuntState: %s", "Tests Successful");
 }
 
+void _GetBlockHeaders_0_1 (BREthereumLESProvisionContext context,
+                                       BREthereumLES les,
+                                       BREthereumNodeReference node,
+                                       BREthereumProvisionResult result) {
+    assert (PROVISION_SUCCESS == result.status);
+
+    BRArrayOf(BREthereumBlockHeader) headers = result.u.success.provision.u.headers.headers;
+    assert (2 == array_count(headers));
+
+    BREthereumBlockHeader header_0 = headers[0];
+    BREthereumBlockHeader header_1 = headers[1];
+
+    BRRlpCoder coder = rlpCoderCreate();
+
+    BRRlpItem item;
+    BRRlpData data;
+    char *hex;
+
+    item = blockHeaderRlpEncode (header_0, ETHEREUM_BOOLEAN_TRUE, RLP_TYPE_NETWORK, coder);
+    data = rlpGetDataSharedDontRelease(coder, item);
+    hex = encodeHexCreate(NULL, data.bytes, data.bytesCount);
+    rlpShowItem(coder, item, "BLOCK_0");
+    printf ("Block_0: %s\n", hex);
+
+    free (hex); rlpReleaseItem (coder, item);
+
+    item = blockHeaderRlpEncode (header_1, ETHEREUM_BOOLEAN_TRUE, RLP_TYPE_NETWORK, coder);
+    data = rlpGetDataSharedDontRelease(coder, item);
+    hex = encodeHexCreate(NULL, data.bytes, data.bytesCount);
+    rlpShowItem(coder, item, "BLOCK_1");
+    printf ("Block_1: %s\n", hex);
+
+    free (hex); rlpReleaseItem (coder, item);
+
+    _signalTestComplete();
+}
+
+static void
+run_GetSomeHeaders (BREthereumLES les) {
+    _initTest(1);
+    lesProvideBlockHeaders (les, NODE_REFERENCE_ANY,
+                            (void*)NULL,
+                            _GetBlockHeaders_0_1,
+                            1,
+                            2, 0, ETHEREUM_BOOLEAN_FALSE);
+    _waitForTests();
+}
+
 extern void
 runLEStests(void) {
     
@@ -1071,6 +1119,9 @@ runLEStests(void) {
 
     //    run_GetProofsV2_Tests(les); //NOTE: The callback function won't be called.
     //    reallySendLESTransaction(les);
+
+    //
+    // run_GetSomeHeaders (les);
     
     //    sleep (60);
     lesStop(les);

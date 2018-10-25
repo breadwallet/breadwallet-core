@@ -58,6 +58,12 @@ blockHeaderRelease (BREthereumBlockHeader header);
 extern BREthereumBoolean
 blockHeaderIsValid (BREthereumBlockHeader header);
 
+extern BREthereumBoolean
+blockHeaderIsValidFull (BREthereumBlockHeader header,
+                        BREthereumBlockHeader parent,
+                        size_t parentOmmersCount,
+                        BREthereumBlockHeader genesis,
+                        void *d);
 
 /**
  * Check if the block header is consistent with the parent.  If `parent` is NULL, then
