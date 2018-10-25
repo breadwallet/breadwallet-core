@@ -38,13 +38,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
 
         let summaryController = summaryNavigationController.topViewController as! SummaryViewController
 
+        let paperKey = (CommandLine.argc > 1
+            ? CommandLine.arguments[1]
+            : "0xa9de3dbd7d561e67527bc1ecb025c59d53b9f7ef");
+        //                                         paperKey: "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62")
+        //                                         paperKey: "0x8975dbc1b8f25ec994815626d070899dda896511")
+        //                                         paperKey: "0xb302B06FDB1348915599D21BD54A06832637E5E8")
+
         client = CoreDemoEthereumClient (network: EthereumNetwork.mainnet,
                                          type: EthereumType.les,
                                          mode: EthereumSyncMode.blockchain,
-                                         paperKey: "boring head harsh green empty clip fatal typical found crane dinner timber")
-//                                         paperKey: "0xa9de3dbd7d561e67527bc1ecb025c59d53b9f7ef")
-//                                         paperKey: "0x8975dbc1b8f25ec994815626d070899dda896511")
-//                                         paperKey: "0xb302B06FDB1348915599D21BD54A06832637E5E8")
+                                         paperKey:  paperKey)
 
         // Mini-race - on ETH wallet create event
         UIApplication.sharedClient.addWalletListener(listener: summaryController)

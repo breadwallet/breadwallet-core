@@ -1953,8 +1953,16 @@ bcsHandleProvision (BREthereumBCS bcs,
                     break;
                 }
                     
-                case PROVISION_SUBMIT_TRANSACTION:
+                case PROVISION_SUBMIT_TRANSACTION: {
+                    BREthereumTransaction transaction;
+                    BREthereumTransactionStatus status;
+                    provisionSubmissionConsume (&provision->u.submission, &transaction, &status);
+                    bcsHandleTransactionStatus (bcs, node,
+                                                transactionGetHash(transaction),
+                                                status);
+                    transactionRelease(transaction);
                     break;
+                }
             }
             break;
         }

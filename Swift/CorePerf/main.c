@@ -10,7 +10,8 @@
 #include <unistd.h>
 #include "BREthereum.h"
 
-extern void runSyncTest (BREthereumType type,
+extern void runSyncTest (const char *paperKey,
+                         BREthereumType type,
                          BREthereumSyncMode mode,
                          BREthereumTimestamp timestamp,
                          unsigned int durationInSeconds,
@@ -21,7 +22,7 @@ int main(int argc, const char * argv[]) {
     BREthereumSyncMode mode = SYNC_MODE_FULL_BLOCKCHAIN;
     BREthereumTimestamp timestamp = 1539330275; // ETHEREUM_TIMESTAMP_UNKNOWN;
 
-    runSyncTest (type, mode, timestamp,  2 * 60, 0);
+    runSyncTest (NULL, type, mode, timestamp,  2 * 60, 0);
 
     return 0;
 }

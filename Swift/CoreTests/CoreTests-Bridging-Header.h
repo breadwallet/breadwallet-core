@@ -25,7 +25,8 @@ extern void runContractTests (void);
 // EWM
 extern void runEWMTests (void);
 
-extern void runSyncTest (BREthereumType type,
+extern void runSyncTest (const char *paperKey,
+                         BREthereumType type,
                          BREthereumSyncMode mode,
                          uint64_t timestamp,
                          unsigned int durationInSeconds,

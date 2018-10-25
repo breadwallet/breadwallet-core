@@ -418,13 +418,16 @@ provisionerEstablish (BREthereumNodeProvisioner *provisioner,
     assert (0 != provisioner->messageContentLimit);
 
     // We'll need this many messages to handle all the 'requests'
-    provisioner->messagesCount = (provisionerGetCount (provisioner) + provisioner->messageContentLimit - 1) / provisioner->messageContentLimit;
+    provisioner->messagesCount = (PROVISION_SUBMIT_TRANSACTION == provisioner->provision.type
+                                  ? provisionerGetCount (provisioner)
+                                  : (provisionerGetCount (provisioner) + provisioner->messageContentLimit - 1) / provisioner->messageContentLimit);
 
     // Set the `messageIdentifier` and the `messagesRemainingCount` given the `messagesCount`
     provisioner->messageIdentifier = nodeGetThenIncrementMessageIdentifier (node, provisioner->messagesCount);
     provisioner->messagesRemainingCount = provisioner->messagesCount;
 
-    // For SUBMIT_TRANSACTION we send two messages but only expect one back; fake receivedCount.
+    // For SUBMIT_TRANSACTION we send two messages but only expect one back; so, we increment
+    // received count it make it look like one already arrived.
     provisioner->messagesReceivedCount  = (PROVISION_SUBMIT_TRANSACTION == provisioner->provision.type
                                            ? 1
                                            : 0);

@@ -62,12 +62,16 @@ class CoreTests: XCTestCase {
     }
 
     func testEthereumSync () {
+        let paperKey = (CommandLine.argc > 1 && !CommandLine.arguments[1].starts(with: "-")
+            ? CommandLine.arguments[1]
+            : "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62");
+
         let type = EWM_USE_LES
         let mode = SYNC_MODE_PRIME_WITH_ENDPOINT
         let timestamp : UInt64 = 0
 
-        runSyncTest (type, mode, timestamp, 10 * 60, 0);
-        runSyncTest (type, mode, timestamp,  1 * 60, 1);
+        runSyncTest (paperKey, type, mode, timestamp, 10 * 60, 0);
+        runSyncTest (paperKey, type, mode, timestamp,  1 * 60, 1);
     }
 
     func testBitcoinSync () {
