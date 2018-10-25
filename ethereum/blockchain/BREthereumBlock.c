@@ -427,49 +427,6 @@ blockHeaderProofOfWork (BREthereumBlockHeader this,
     *mixHashResult = this->mixHash;
 }
 
-// See https://ethereum.github.io/yellowpaper/paper.pdf Section 4.3.3 'Block Header Validity
-extern BREthereumBoolean
-blockHeaderIsConsistent (BREthereumBlockHeader header,
-                         BREthereumBlockHeader parent,
-                         size_t parentOmmersCount,
-                         BREthereumBlockHeader genesis) {
-    if (NULL == parent) return ETHEREUM_BOOLEAN_TRUE;
-
-//    UInt256 canonicalDifficulty = blockHeaderCanonicalDifficulty(header,
-//                                                                 parent,
-//                                                                 parentOmmersCount,
-//                                                                 genesis);
-
-//    return AS_ETHEREUM_BOOLEAN (// nonce
-//                                eqUInt256(header->difficulty, canonicalDifficulty) &&
-//                                //  difficulty -- geUInt256(header->difficulty, parent->difficulty));
-//                                header->gasUsed <= header->gasLimit &&
-//                                header->gasLimit < parent->gasLimit + (parent->gasLimit / 1024) &&
-//                                header->gasLimit > parent->gasLimit - (parent->gasLimit / 1024) &&
-//                                header->gasLimit >= 5000 &&
-//                                header->timestamp > parent->timestamp &&
-//                                header->number == 1 + parent->number &&
-//                                header->extraDataCount <= 32);
-
-    return ETHEREUM_BOOLEAN_TRUE;
-}
-
-//    UInt256 canonicalDifficulty = blockHeaderCanonicalDifficulty(header,
-//                                                                 parent,
-//                                                                 parentOmmersCount,
-//                                                                 genesis);
-
-//    return AS_ETHEREUM_BOOLEAN (// nonce
-//                                eqUInt256(header->difficulty, canonicalDifficulty) &&
-//                                //  difficulty -- geUInt256(header->difficulty, parent->difficulty));
-//                                header->gasUsed <= header->gasLimit &&
-//                                header->gasLimit < parent->gasLimit + (parent->gasLimit / 1024) &&
-//                                header->gasLimit > parent->gasLimit - (parent->gasLimit / 1024) &&
-//                                header->gasLimit >= 5000 &&
-//                                header->timestamp > parent->timestamp &&
-//                                header->number == 1 + parent->number &&
-//                                header->extraDataCount <= 32);
-
 static int
 blockHeaderValidateTimestamp (BREthereumBlockHeader this,
                               BREthereumBlockHeader parent) {
@@ -567,6 +524,17 @@ blockHeaderIsValidFull (BREthereumBlockHeader header,
     return AS_ETHEREUM_BOOLEAN (blockHeaderValidateAll (header, parent, parentOmmersCount, genesis, d));
 }
 
+// See https://ethereum.github.io/yellowpaper/paper.pdf Section 4.3.3 'Block Header Validity
+extern BREthereumBoolean
+blockHeaderIsConsistent (BREthereumBlockHeader header,
+                         BREthereumBlockHeader parent,
+                         size_t parentOmmersCount,
+                         BREthereumBlockHeader genesis) {
+    // TODO: Use blockHeaderValidateAll
+    if (NULL == parent) return ETHEREUM_BOOLEAN_TRUE;
+    return ETHEREUM_BOOLEAN_TRUE;
+}
+
 //
 // Block Header RLP Encode / Decode
 //
@@ -648,6 +616,10 @@ blockHeaderRlpDecode (BRRlpItem item,
     return header;
 
 }
+
+///
+/// MARK: - Block
+///
 
 //
 // An Ethereum Block
@@ -780,46 +752,68 @@ blockGetTransaction (BREthereumBlock block, size_t index) {
             : NULL);
 }
 
+// This has minimal bearing on Ethereum
 static BREthereumHash
-blockGetTransactionRootHash (BREthereumBlock block,
-                             size_t index,
-                             size_t count) {
-    assert (count > 0);
+blockGetTransactionMerkleRootRecurse (BREthereumHash *hashes,
+                                    size_t count) {
+    // If no hash, return the hash of <something> (we know the hash).
+    if (0 == count) return hashCreate ("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
 
+    // If one hash, we are done.
+    if (1 == count) return hashes[0];
+
+    // If count is odd, increment it and duplicate the last hash
+    if (1 == count % 2) {
+        hashes[count] = hashes[count-1];
+        count++;
+    };
+    // count is now surely even
+    assert (0 == count % 2);
+
+    // We'll pair two consecutive hashes together and then has the pair.
     struct ConcatenatedHashPair {
         BREthereumHash hashLeft;
         BREthereumHash hashRight;
     } concatenatedHashPair;
 
-    // If count is down to 1 or 2, we'll use the tranactions hashes directly, otherwise...
-    if (1 == count || 2 == count) {
-        concatenatedHashPair.hashLeft  = transactionGetHash (block->transactions [index]);
-        concatenatedHashPair.hashRight = transactionGetHash (block->transactions [index + (2 == count)]);
-    }
-
-    // ... recurse by repeatedly splitting count.
-    else {
-        size_t middleCount = count / 2;     // if count == 3, middleCount = 1
-
-        // Ensure that the 'left count' is always even.
-        if (1 == middleCount % 2) middleCount += 1;   // if count == 3; middleCount = 2
-
-        concatenatedHashPair.hashLeft  = blockGetTransactionRootHash (block, index, middleCount);
-        concatenatedHashPair.hashRight = blockGetTransactionRootHash (block,
-                                                                      index + middleCount,
-                                                                      count - middleCount);
-    }
-
     BRRlpData concatenatedHashes = { sizeof (concatenatedHashPair), (uint8_t*) &concatenatedHashPair };
-    return hashCreateFromData(concatenatedHashes);
 
-//    return block->header->transactionsRoot;
+    for (size_t index = 0; index < count; index += 2) {
+        concatenatedHashPair.hashLeft  = hashes [index];
+        concatenatedHashPair.hashRight = hashes [index + 1];
+
+        // Hash over the pair AND reassign into hashes (at a 'safe' index) - double hash?
+        hashes[index] = hashCreateFromData(concatenatedHashes);
+    }
+
+    return blockGetTransactionMerkleRootRecurse(hashes, count / 2);
+}
+
+// This has minimal bearing on Ethereum
+static BREthereumHash
+blockGetTransactionMerkleRoot (BREthereumBlock block) {
+    size_t count = array_count (block->transactions);
+    // Note: count can be 0.
+
+    // Ensure hashes has an even length at least as large a transactions.
+    BREthereumHash hashes[0 == count % 2 ? count : (count + 1)];
+
+    // Copy in the transaction hashes.
+    for (size_t index = 0; index < count; index++)
+        hashes[index] = transactionGetHash (block->transactions[index]);
+
+    return blockGetTransactionMerkleRootRecurse (hashes, count);
+}
+
+static BREthereumHash
+blockGetTransactionTrieRoot (BREthereumBlock block) {
+    // TODO: Implement...
+    return block->header->transactionsRoot;  // assume correct.
 }
 
 extern BREthereumBoolean
 blockTransactionsAreValid (BREthereumBlock block) {
-    return hashEqual (block->header->transactionsRoot,
-                      blockGetTransactionRootHash(block, 0, array_count(block->transactions)));
+    return (hashCompare(block->header->transactionsRoot, blockGetTransactionTrieRoot(block)));
 }
 
 extern unsigned long

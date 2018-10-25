@@ -1082,6 +1082,70 @@ run_GetSomeHeaders (BREthereumLES les) {
     _waitForTests();
 }
 
+typedef struct {
+    BREthereumBlockHeader header;
+    BRArrayOf (BREthereumTransaction) transactions;
+    BRArrayOf (BREthereumBlockHeader) ommwers;
+} SomeHeaderData;
+
+static void
+_GetSomeBlocks_Bodies (BREthereumLESProvisionContext context,
+                       BREthereumLES les,
+                       BREthereumNodeReference node,
+                       BREthereumProvisionResult result) {
+    SomeHeaderData *data = (SomeHeaderData*) context;
+    assert (PROVISION_SUCCESS == result.status);
+
+    data->ommwers = result.u.success.provision.u.bodies.pairs[0].uncles;
+    data->transactions = result.u.success.provision.u.bodies.pairs[0].transactions;
+
+    _signalTestComplete();
+}
+
+static void
+_GetSomeBlocks_Header (BREthereumLESProvisionContext context,
+                       BREthereumLES les,
+                       BREthereumNodeReference node,
+                       BREthereumProvisionResult result) {
+    SomeHeaderData *data = (SomeHeaderData*) context;
+
+    assert (PROVISION_SUCCESS == result.status);
+    data->header = result.u.success.provision.u.headers.headers[0];
+
+    lesProvideBlockBodiesOne (les, NODE_REFERENCE_ANY,
+                              context,
+                              _GetSomeBlocks_Bodies,
+                              blockHeaderGetHash (data->header));
+
+    _signalTestComplete();
+
+}
+static void
+run_GetSomeBlocks (BREthereumLES les) {
+    SomeHeaderData block_data;
+
+    _initTest(2);
+
+    lesProvideBlockHeaders (les, NODE_REFERENCE_ALL,
+                            (void*) &block_data,
+                            _GetSomeBlocks_Header,
+                            6000000, 1, 0, ETHEREUM_BOOLEAN_FALSE);
+
+    _waitForTests();
+
+    BREthereumBlock block = blockCreate(block_data.header);
+    blockUpdateBody (block, block_data.ommwers, block_data.transactions);
+
+    BRRlpCoder coder = rlpCoderCreate();
+    BRRlpItem item = blockRlpEncode (block, ethereumMainnet, RLP_TYPE_NETWORK, coder);
+    BRRlpData data = rlpGetDataSharedDontRelease(coder, item);
+    char      *hex = encodeHexCreate(NULL, data.bytes, data.bytesCount);
+    printf ("Block: %s\n", hex);
+    rlpShowItem(coder, item, "BLOCK");
+
+    free (hex); rlpReleaseItem (coder, item);
+}
+
 extern void
 runLEStests(void) {
     
@@ -1122,6 +1186,7 @@ runLEStests(void) {
 
     //
     // run_GetSomeHeaders (les);
+    // run_GetSomeBlocks(les);
     
     //    sleep (60);
     lesStop(les);
