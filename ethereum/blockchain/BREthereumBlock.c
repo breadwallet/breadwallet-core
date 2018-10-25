@@ -47,6 +47,8 @@ static unsigned int blockAllocCount = 0;
 static unsigned int blockHeaderAllocCount = 0;
 #endif
 
+#define BYZANTIUM_FORK_BLOCK_NUMBER   (4370000)
+#define HOMESTEAD_FORK_BLOCK_NUMBER   (1150000)
 // MARK: - Block Status
 
 static void
@@ -248,91 +250,6 @@ blockHeaderReleaseForSet (void *ignore, void *item) {
     blockHeaderRelease ((BREthereumBlockHeader) item);
 }
 
-
-extern uint64_t
-chtRootNumberGetFromNumber (uint64_t number) {
-    return (0 == number ? 0 : ((number - 1) >> BLOCK_HEADER_CHT_ROOT_INTERVAL_SHIFT));
-}
-
-extern uint64_t
-blockHeaderGetCHTRootNumber (BREthereumBlockHeader header) {
-    return chtRootNumberGetFromNumber (blockHeaderGetNumber(header));
-}
-
-extern BREthereumBoolean
-blockHeaderIsValid (BREthereumBlockHeader header) {
-    return ETHEREUM_BOOLEAN_TRUE;
-}
-
-static int64_t max(int64_t x, int64_t y) { return x >= y ? y : x; }
-
-// See https://ethereum.github.io/yellowpaper/paper.pdf Section 4.3.3 'Block Header Validity
-static UInt256
-blockHeaderCanonicalDifficulty (BREthereumBlockHeader header,
-                                BREthereumBlockHeader parent,
-                                size_t parentOmmersCount,
-                                BREthereumBlockHeader genesis) {
-    if (0 == header->number) return genesis->difficulty;
-
-    uint32_t rem; int overflow = 0;
-    UInt256 x = divUInt256_Small(parent->difficulty, 2048, &rem);
-
-    uint64_t delay_scaled = (header->timestamp - parent->timestamp) / 9;
-    uint64_t y = parentOmmersCount == 0 ? 1 : 2;
-    int64_t sigma_2 = max (y - delay_scaled, -99);
-    assert (sigma_2 <= INT32_MAX && INT32_MIN <= sigma_2);
-    UInt256 x_sigma = mulUInt256_Small(x, (uint32_t) (sigma_2 < 0 ? -sigma_2 : sigma_2), &overflow);
-    assert (0 == overflow);
-
-    uint64_t fake_block_number = header->number > 3000000 ? (header->number - 3000000) : 0;
-    int64_t epsilon_exponent = (fake_block_number / 1000000)  - 2;
-    assert (epsilon_exponent < 256 && epsilon_exponent > -256);
-    UInt256 epsilon = createUInt256Power2(epsilon_exponent < 0 ? -epsilon_exponent : epsilon_exponent);
-
-    UInt256 r;
-    if (sigma_2 > 0)
-        r = addUInt256_Overflow(parent->difficulty, x_sigma, &overflow);
-    else
-        r = subUInt256_Negative(parent->difficulty, x_sigma, &overflow);
-
-    assert (0 == overflow);
-    if (epsilon_exponent > 0)
-        r = addUInt256_Overflow(r, epsilon, &overflow);
-    else
-        r = subUInt256_Negative(r, epsilon , &overflow);
-
-    assert (0 == overflow);
-
-    return gtUInt256(r, genesis->difficulty) ? r : genesis->difficulty;
-}
-
-// See https://ethereum.github.io/yellowpaper/paper.pdf Section 4.3.3 'Block Header Validity
-extern BREthereumBoolean
-blockHeaderIsConsistent (BREthereumBlockHeader header,
-                         BREthereumBlockHeader parent,
-                         size_t parentOmmersCount,
-                         BREthereumBlockHeader genesis) {
-    if (NULL == parent) return ETHEREUM_BOOLEAN_TRUE;
-
-//    UInt256 canonicalDifficulty = blockHeaderCanonicalDifficulty(header,
-//                                                                 parent,
-//                                                                 parentOmmersCount,
-//                                                                 genesis);
-
-//    return AS_ETHEREUM_BOOLEAN (// nonce
-//                                eqUInt256(header->difficulty, canonicalDifficulty) &&
-//                                //  difficulty -- geUInt256(header->difficulty, parent->difficulty));
-//                                header->gasUsed <= header->gasLimit &&
-//                                header->gasLimit < parent->gasLimit + (parent->gasLimit / 1024) &&
-//                                header->gasLimit > parent->gasLimit - (parent->gasLimit / 1024) &&
-//                                header->gasLimit >= 5000 &&
-//                                header->timestamp > parent->timestamp &&
-//                                header->number == 1 + parent->number &&
-//                                header->extraDataCount <= 32);
-
-    return ETHEREUM_BOOLEAN_TRUE;
-}
-
 extern BREthereumHash
 blockHeaderGetHash (BREthereumBlockHeader header) {
     return header->hash;
@@ -363,25 +280,9 @@ blockHeaderGetGasUsed (BREthereumBlockHeader header) {
     return header->gasUsed;
 }
 
-// ...
-
 extern uint64_t
 blockHeaderGetNonce (BREthereumBlockHeader header) {
     return header->nonce;
-}
-
-extern BREthereumBoolean
-blockHeaderMatch (BREthereumBlockHeader header,
-                  BREthereumBloomFilter filter) {
-    return bloomFilterMatch(header->logsBloom, filter);
-}
-
-extern BREthereumBoolean
-blockHeaderMatchAddress (BREthereumBlockHeader header,
-                         BREthereumAddress address) {
-    return AS_ETHEREUM_BOOLEAN
-    (ETHEREUM_BOOLEAN_IS_TRUE (blockHeaderMatch (header, bloomFilterCreateAddress (address))) ||
-     ETHEREUM_BOOLEAN_IS_TRUE (blockHeaderMatch (header, logTopicGetBloomFilterAddress (address))));
 }
 
 extern size_t
@@ -408,6 +309,230 @@ blockHeaderCompare (BREthereumBlockHeader h1,
                   : (h1->timestamp > h2->timestamp
                      ? ETHEREUM_COMPARISON_GT
                      : ETHEREUM_COMPARISON_EQ))));
+}
+
+extern BREthereumBoolean
+blockHeaderMatch (BREthereumBlockHeader header,
+                  BREthereumBloomFilter filter) {
+    return bloomFilterMatch(header->logsBloom, filter);
+}
+
+extern BREthereumBoolean
+blockHeaderMatchAddress (BREthereumBlockHeader header,
+                         BREthereumAddress address) {
+    return AS_ETHEREUM_BOOLEAN
+    (ETHEREUM_BOOLEAN_IS_TRUE (blockHeaderMatch (header, bloomFilterCreateAddress (address))) ||
+     ETHEREUM_BOOLEAN_IS_TRUE (blockHeaderMatch (header, logTopicGetBloomFilterAddress (address))));
+}
+
+extern uint64_t
+chtRootNumberGetFromNumber (uint64_t number) {
+    return (0 == number ? 0 : ((number - 1) >> BLOCK_HEADER_CHT_ROOT_INTERVAL_SHIFT));
+}
+
+extern uint64_t
+blockHeaderGetCHTRootNumber (BREthereumBlockHeader header) {
+    return chtRootNumberGetFromNumber (blockHeaderGetNumber(header));
+}
+
+static int64_t max(int64_t x, int64_t y) { return x >= y ? x : y; }
+static uint64_t xbs(int64_t x) { return x < 0 ? -x : x; }
+
+static int64_t
+blockHeaderCanonicalDifficulty_GetSigma2 (uint64_t number,
+                                          uint64_t headerTimestamp,
+                                          uint64_t parentTimestamp,
+                                          uint64_t parentOmmersCount) {
+    // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2.md
+    if (number < HOMESTEAD_FORK_BLOCK_NUMBER)
+        return (headerTimestamp - parentTimestamp < 13 ? 1 : -1);
+    else if (number < BYZANTIUM_FORK_BLOCK_NUMBER)
+        return max (1 - ((headerTimestamp - parentTimestamp) / 10), -99);
+    else {
+        // y = { 1 if parentOmmersCount is zero; otherwise 2 }
+        uint64_t y = parentOmmersCount == 0 ? 1 : 2;
+        return max (y - ((headerTimestamp - parentTimestamp) / 9), -99);
+    }
+}
+
+static uint64_t
+blockHeaderCanonicalDifficulty_GetFakeBlockNumber (uint64_t number) {
+    // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-649.md
+    // fake_block_number = max(0, block.number - 3_000_000) if block.number >= BYZANTIUM_FORK_BLKNUM else block.number
+    return (number >= BYZANTIUM_FORK_BLOCK_NUMBER
+            ? (number > 3000000 ? (number - 3000000) : 0)
+            : number);
+}
+// See https://ethereum.github.io/yellowpaper/paper.pdf Section 4.3.3 'Block Header Validity
+static UInt256
+blockHeaderCanonicalDifficulty (BREthereumBlockHeader header,
+                                BREthereumBlockHeader parent,
+                                size_t parentOmmersCount,
+                                BREthereumBlockHeader genesis) {
+    UInt256 Dzero = genesis->difficulty;
+
+    if (0 == header->number) return Dzero;
+
+    uint32_t rem; int overflow = 0;
+
+    // z = P(H)_Hd / 2048
+    UInt256 x = divUInt256_Small(parent->difficulty, 2048, &rem);
+
+    int64_t sigma_2 = blockHeaderCanonicalDifficulty_GetSigma2 (header->number,
+                                                                header->timestamp,
+                                                                parent->timestamp,
+                                                                parentOmmersCount);
+    assert (INT32_MIN <= sigma_2 && sigma_2 <= INT32_MAX);
+
+    // H-prime_i = max (Hi - 3000000 , 0)
+    uint64_t fake_block_number = blockHeaderCanonicalDifficulty_GetFakeBlockNumber (header->number);
+
+    // epsilon_exponent = (H-prime_i / 1000000) - 2
+    int64_t epsilon_exponent = (fake_block_number / 100000) - 2;
+    assert (-256 < epsilon_exponent && epsilon_exponent < 256);
+
+    // epsilon = floor (2 ^ epsilon_exponent)
+     UInt256 epsilon = (epsilon_exponent < 0
+                        ? UINT256_ZERO
+                        : createUInt256Power2 (epsilon_exponent));
+
+    // D(H) = P(H)d + x * sigma_2 + epsilon
+
+    UInt256 x_sigma = mulUInt256_Small(x, (uint32_t) xbs (sigma_2), &overflow);
+    assert (0 == overflow);
+
+    UInt256 r = (sigma_2 >= 0
+                 ? addUInt256_Overflow (parent->difficulty, x_sigma, &overflow)
+                 : subUInt256_Negative( parent->difficulty, x_sigma, &overflow));
+    assert (0 == overflow);
+
+    r = addUInt256_Overflow(r, epsilon, &overflow);
+    assert (0 == overflow);
+
+    return gtUInt256 (r, Dzero) ? r : Dzero;
+}
+
+static void
+blockHeaderProofOfWork (BREthereumBlockHeader this,
+                        void *d,
+                        uint64_t *nonceResult,
+                        BREthereumHash *mixHashResult) {
+    assert (NULL != nonceResult && NULL != mixHashResult);
+
+    // H-mixless is H less nonce and maxHash
+
+
+    // TODO: Faked, totally; actually implement?
+    *nonceResult = this->nonce;
+    *mixHashResult = this->mixHash;
+}
+
+static int
+blockHeaderValidateTimestamp (BREthereumBlockHeader this,
+                              BREthereumBlockHeader parent) {
+    return this->timestamp > parent->timestamp;
+}
+
+static int
+blockHeaderValidateNumber (BREthereumBlockHeader this,
+                           BREthereumBlockHeader parent) {
+    return this->number == 1 + parent->number;
+}
+
+static int
+blockHeaderValidateGasLimit (BREthereumBlockHeader this,
+                             BREthereumBlockHeader parent) {
+    return (this->gasLimit < parent->gasLimit + (parent->gasLimit / 1024) &&
+            this->gasLimit > parent->gasLimit - (parent->gasLimit / 1024) &&
+            this->gasLimit >= 5000);
+}
+
+static int
+blockHeaderValidateGasUsed (BREthereumBlockHeader this,
+                            BREthereumBlockHeader parent) {
+    return this->gasUsed <= this->gasLimit;
+}
+
+static int
+blockHeaderValidateExtraData (BREthereumBlockHeader this,
+                              BREthereumBlockHeader parent) {
+    return this->extraDataCount <= 32;
+}
+
+static int
+blockHeaderValidateDifficulty (BREthereumBlockHeader this,
+                               BREthereumBlockHeader parent,
+                               size_t parentOmmersCount,
+                               BREthereumBlockHeader genesis) {
+    return eqUInt256 (this->difficulty,
+                      blockHeaderCanonicalDifficulty (this, parent, parentOmmersCount, genesis));
+}
+
+static int
+blockHeaderValidateNonceWithDifficulty (uint64_t nonce,
+                                        UInt256 difficulty) {
+    // validate as nonce <= 2^256 / difficulty
+
+    // We'll compute as: `nonce * difficulty <= 2^256` and notice that 2^256 is the smallest
+    // 512-bit number.  Thus we'll just multiple nonce and difficulty and look for overflow.
+
+    int overflow = 0;
+    mulUInt256_Overflow (createUInt256(nonce), difficulty, &overflow);
+    return 0 == overflow;
+}
+
+static int
+blockHeaderValidateNonce (BREthereumBlockHeader this,
+                          BREthereumBlockHeader parent,
+                          void *d) {
+    uint64_t nonce;
+    BREthereumHash mixHash;
+
+    blockHeaderProofOfWork (this, d, &nonce, &mixHash);
+
+    // n <= 2^256/Hd && m == Hm
+    return (ETHEREUM_BOOLEAN_IS_TRUE (hashEqual(mixHash, this->mixHash)) &&
+            blockHeaderValidateNonceWithDifficulty (nonce, this->difficulty));
+}
+
+static int
+blockHeaderValidateAll (BREthereumBlockHeader this,
+                        BREthereumBlockHeader parent,
+                        size_t parentOmmersCount,
+                        BREthereumBlockHeader genesis,
+                        void *d) {
+    return (blockHeaderValidateTimestamp  (this, parent) &&
+            blockHeaderValidateNumber     (this, parent) &&
+            blockHeaderValidateGasLimit   (this, parent) &&
+            blockHeaderValidateGasUsed    (this, parent) &&
+            blockHeaderValidateExtraData  (this, parent) &&
+            blockHeaderValidateDifficulty (this, parent, parentOmmersCount, genesis) &&
+            blockHeaderValidateNonce      (this, parent, d));
+}
+
+extern BREthereumBoolean
+blockHeaderIsValid (BREthereumBlockHeader header) {
+    return ETHEREUM_BOOLEAN_TRUE;
+}
+
+extern BREthereumBoolean
+blockHeaderIsValidFull (BREthereumBlockHeader header,
+                        BREthereumBlockHeader parent,
+                        size_t parentOmmersCount,
+                        BREthereumBlockHeader genesis,
+                        void *d) {
+    return AS_ETHEREUM_BOOLEAN (blockHeaderValidateAll (header, parent, parentOmmersCount, genesis, d));
+}
+
+// See https://ethereum.github.io/yellowpaper/paper.pdf Section 4.3.3 'Block Header Validity
+extern BREthereumBoolean
+blockHeaderIsConsistent (BREthereumBlockHeader header,
+                         BREthereumBlockHeader parent,
+                         size_t parentOmmersCount,
+                         BREthereumBlockHeader genesis) {
+    // TODO: Use blockHeaderValidateAll
+    if (NULL == parent) return ETHEREUM_BOOLEAN_TRUE;
+    return ETHEREUM_BOOLEAN_TRUE;
 }
 
 //
@@ -491,6 +616,10 @@ blockHeaderRlpDecode (BRRlpItem item,
     return header;
 
 }
+
+///
+/// MARK: - Block
+///
 
 //
 // An Ethereum Block
@@ -623,46 +752,68 @@ blockGetTransaction (BREthereumBlock block, size_t index) {
             : NULL);
 }
 
+// This has minimal bearing on Ethereum
 static BREthereumHash
-blockGetTransactionRootHash (BREthereumBlock block,
-                             size_t index,
-                             size_t count) {
-    assert (count > 0);
+blockGetTransactionMerkleRootRecurse (BREthereumHash *hashes,
+                                    size_t count) {
+    // If no hash, return the hash of <something> (we know the hash).
+    if (0 == count) return hashCreate ("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421");
 
+    // If one hash, we are done.
+    if (1 == count) return hashes[0];
+
+    // If count is odd, increment it and duplicate the last hash
+    if (1 == count % 2) {
+        hashes[count] = hashes[count-1];
+        count++;
+    };
+    // count is now surely even
+    assert (0 == count % 2);
+
+    // We'll pair two consecutive hashes together and then has the pair.
     struct ConcatenatedHashPair {
         BREthereumHash hashLeft;
         BREthereumHash hashRight;
     } concatenatedHashPair;
 
-    // If count is down to 1 or 2, we'll use the tranactions hashes directly, otherwise...
-    if (1 == count || 2 == count) {
-        concatenatedHashPair.hashLeft  = transactionGetHash (block->transactions [index]);
-        concatenatedHashPair.hashRight = transactionGetHash (block->transactions [index + (2 == count)]);
-    }
-
-    // ... recurse by repeatedly splitting count.
-    else {
-        size_t middleCount = count / 2;     // if count == 3, middleCount = 1
-
-        // Ensure that the 'left count' is always even.
-        if (1 == middleCount % 2) middleCount += 1;   // if count == 3; middleCount = 2
-
-        concatenatedHashPair.hashLeft  = blockGetTransactionRootHash (block, index, middleCount);
-        concatenatedHashPair.hashRight = blockGetTransactionRootHash (block,
-                                                                      index + middleCount,
-                                                                      count - middleCount);
-    }
-
     BRRlpData concatenatedHashes = { sizeof (concatenatedHashPair), (uint8_t*) &concatenatedHashPair };
-    return hashCreateFromData(concatenatedHashes);
 
-//    return block->header->transactionsRoot;
+    for (size_t index = 0; index < count; index += 2) {
+        concatenatedHashPair.hashLeft  = hashes [index];
+        concatenatedHashPair.hashRight = hashes [index + 1];
+
+        // Hash over the pair AND reassign into hashes (at a 'safe' index) - double hash?
+        hashes[index] = hashCreateFromData(concatenatedHashes);
+    }
+
+    return blockGetTransactionMerkleRootRecurse(hashes, count / 2);
+}
+
+// This has minimal bearing on Ethereum
+static BREthereumHash
+blockGetTransactionMerkleRoot (BREthereumBlock block) {
+    size_t count = array_count (block->transactions);
+    // Note: count can be 0.
+
+    // Ensure hashes has an even length at least as large a transactions.
+    BREthereumHash hashes[0 == count % 2 ? count : (count + 1)];
+
+    // Copy in the transaction hashes.
+    for (size_t index = 0; index < count; index++)
+        hashes[index] = transactionGetHash (block->transactions[index]);
+
+    return blockGetTransactionMerkleRootRecurse (hashes, count);
+}
+
+static BREthereumHash
+blockGetTransactionTrieRoot (BREthereumBlock block) {
+    // TODO: Implement...
+    return block->header->transactionsRoot;  // assume correct.
 }
 
 extern BREthereumBoolean
 blockTransactionsAreValid (BREthereumBlock block) {
-    return hashEqual (block->header->transactionsRoot,
-                      blockGetTransactionRootHash(block, 0, array_count(block->transactions)));
+    return (hashCompare(block->header->transactionsRoot, blockGetTransactionTrieRoot(block)));
 }
 
 extern unsigned long
@@ -766,6 +917,7 @@ blockLinkLogsWithTransactions (BREthereumBlock block) {
         logInitializeIdentifier(log, transactionGetHash(transaction), logIndex);
     }
 }
+
 
 //
 // Block RLP Encode / Decode
