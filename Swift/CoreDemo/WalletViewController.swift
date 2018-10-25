@@ -32,8 +32,10 @@ class WalletViewController: UITableViewController, TransferListener {
 
     override func viewWillAppear(_ animated: Bool) {
         // clearsSelectionOnViewWillAppear = splitViewController!.isCollapsed
-        self.transfers = wallet.transfers
-        self.navigationItem.title = "Wallet: \(wallet.name)"
+        if wallet != nil { // here on UI changes, like rotation before initialization of sharedClient.
+            self.transfers = wallet.transfers;
+            self.navigationItem.title = "Wallet: \(wallet.name)"
+        }
         super.viewWillAppear(animated)
     }
 

@@ -69,8 +69,10 @@ extern void runLEStests(void);
 // EWM
 extern void runEWMTests (void);
 
-extern void runSyncTest (BREthereumType type,
+extern void runSyncTest (const char *paperKey,
+                         BREthereumType type,
                          BREthereumSyncMode mode,
+                         BREthereumTimestamp accountTimestamp,
                          unsigned int durationInSeconds,
                          int restart);
 

@@ -792,7 +792,8 @@ runEWM_PUBLIC_KEY_test (BREthereumNetwork network, const char *paperKey) {
 }
 
 extern void
-runSyncTest (BREthereumType type,
+runSyncTest (const char *paperKey,
+             BREthereumType type,
              BREthereumSyncMode mode,
              BREthereumTimestamp accountTimestamp,
              unsigned int durationInSeconds,
@@ -803,13 +804,6 @@ runSyncTest (BREthereumType type,
     
     client.context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
-#if ! defined (DEBUG)
-    char *paperKey = "boring ...";
-#else
-    char *paperKey = "0xa9de3dbd7d561e67527bc1ecb025c59d53b9f7ef";
-//    char *paperKey = "0x8975dbc1b8f25ec994815626d070899dda896511";
-//    char *paperKey = "0xb302B06FDB1348915599D21BD54A06832637E5E8";
-#endif
     alarmClockCreateIfNecessary (1);
 
     BRSetOf(BREthereumHashDataPair) blocks = (restart ? savedBlocks : NULL);
