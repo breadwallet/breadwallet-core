@@ -1091,15 +1091,21 @@ bcsBlockHasMatchingTransactions (BREthereumBCS bcs,
 }
 
 static BREthereumBoolean
+bcsBlockHasMatchingLogs (BREthereumBCS bcs,
+                         BREthereumBlock block) {
+    return blockHeaderMatch (blockGetHeader (block), bcs->filterForAddressOnLogs);
+}
+
+static BREthereumBoolean
 bcsBlockNeedsAccountState (BREthereumBCS bcs,
                            BREthereumBlock block) {
     return ETHEREUM_BOOLEAN_FALSE;
 }
 
 static BREthereumBoolean
-bcsBlockHasMatchingLogs (BREthereumBCS bcs,
-                         BREthereumBlock block) {
-    return blockHeaderMatch (blockGetHeader (block), bcs->filterForAddressOnLogs);
+bcsBlockNeedsHeaderProof (BREthereumBCS bcs,
+                          BREthereumBlock block) {
+    return blockHeaderIsCHTRoot (blockGetHeader (block));
 }
 
 /**
@@ -1112,7 +1118,8 @@ bcsHandleBlockHeaderInternal (BREthereumBCS bcs,
                               int isFromSync,
                               BRArrayOf(BREthereumHash) *bodiesHashes,
                               BRArrayOf(BREthereumHash) *receiptsHashes,
-                              BRArrayOf(BREthereumHash) *accountsHashes) {
+                              BRArrayOf(BREthereumHash) *accountsHashes,
+                              BRArrayOf(uint64_t) *proofNumbers) {
 
     // Ignore the header if we have seen it before.  Given an identical hash, *nothing*, at any
     // level (transactions, receipts, logs), could have changed and thus no processing is needed.
@@ -1146,6 +1153,7 @@ bcsHandleBlockHeaderInternal (BREthereumBCS bcs,
     BREthereumBoolean needBodies   = bcsBlockHasMatchingTransactions(bcs, block);
     BREthereumBoolean needReceipts = bcsBlockHasMatchingLogs(bcs, block);
     BREthereumBoolean needAccount  = bcsBlockNeedsAccountState(bcs, block);
+    BREthereumBoolean needProof    = bcsBlockNeedsHeaderProof(bcs, block);
 
     // Request block bodies, if needed.
     if (ETHEREUM_BOOLEAN_IS_TRUE(needBodies)) {
@@ -1171,6 +1179,13 @@ bcsHandleBlockHeaderInternal (BREthereumBCS bcs,
         eth_log("BCS", "Block %llu Needs AccountState", blockGetNumber(block));
     }
 
+    if (ETHEREUM_BOOLEAN_IS_TRUE (needProof)) {
+        blockReportStatusHeaderProofRequest (block, BLOCK_REQUEST_PENDING);
+        if (NULL == *proofNumbers) array_new (*proofNumbers, 20);
+        array_add (*proofNumbers, blockGetNumber(block));
+        eth_log("BCS", "Blook %llu Needs HeaderProof", blockGetNumber(block));
+    }
+
     // Chain 'block' - we'll do this before the block is fully constituted.  Once constituted,
     // we'll handle the block's interesting transactions and logs; including if the block is an
     // orphan.  Note: the `bcsExtendChainIfAppropriate()` function will handle a fully constituted
@@ -1188,6 +1203,7 @@ bcsHandleBlockHeaders (BREthereumBCS bcs,
     BRArrayOf(BREthereumHash) bodiesHashes = NULL;
     BRArrayOf(BREthereumHash) receiptsHashes = NULL;
     BRArrayOf(BREthereumHash) accountsHashes = NULL;
+    BRArrayOf(uint64_t) proofNumbers = NULL;
 
     for (size_t index = 0; index < array_count(headers); index++)
         // Each `headers[index]` has 'OwnershipGiven'
@@ -1196,7 +1212,9 @@ bcsHandleBlockHeaders (BREthereumBCS bcs,
                                       isFromSync,
                                       &bodiesHashes,
                                       &receiptsHashes,
-                                      &accountsHashes);
+                                      &accountsHashes,
+                                      &proofNumbers);
+
     array_free(headers);
 
     if (NULL != bodiesHashes && array_count(bodiesHashes) > 0)
@@ -1217,6 +1235,12 @@ bcsHandleBlockHeaders (BREthereumBCS bcs,
                                  (BREthereumLESProvisionCallback) bcsSignalProvision,
                                  bcs->address,
                                  accountsHashes);
+
+    if (NULL != proofNumbers && array_count(proofNumbers) > 0)
+        lesProvideBlockProofs (bcs->les, node,
+                               (BREthereumLESProvisionContext) bcs,
+                               (BREthereumLESProvisionCallback) bcsSignalProvision,
+                               proofNumbers);
 }
 
 ///
@@ -1372,8 +1396,10 @@ bcsHandleBlockBody (BREthereumBCS bcs,
     blockReportStatusTransactions(block, neededTransactions);
 
     if (NULL != neededTransactions) {
-        // Once we've identified a transaction we must get the receipts - because the receipts
-        // hold the cummulative gasUsed which will use to compute the gasUsed by each transaction.
+        // Once we've identified a transaction we must get additional information:
+
+        // 1) Get the receipts - because the receipts hold the cummulative gasUsed which will use
+        //    to compute the gasUsed by each transaction.
         if (ETHEREUM_BOOLEAN_IS_TRUE (blockHasStatusLogsRequest (block, BLOCK_REQUEST_NOT_NEEDED))) {
             blockReportStatusLogsRequest (block, BLOCK_REQUEST_PENDING);
             lesProvideReceiptsOne (bcs->les, node,
@@ -1381,7 +1407,15 @@ bcsHandleBlockBody (BREthereumBCS bcs,
                                    (BREthereumLESProvisionCallback) bcsSignalProvision,
                                    blockGetHash(block));
         }
-        // Anything more?
+
+        // 2) We want a header proof too; to ensure a valid block w/ transaction.
+        if (ETHEREUM_BOOLEAN_IS_TRUE (blockHasStatusHeaderProofRequest(block, BLOCK_REQUEST_NOT_NEEDED))) {
+            blockReportStatusHeaderProofRequest (block, BLOCK_REQUEST_PENDING);
+            lesProvideBlockProofsOne (bcs->les, node,
+                                      (BREthereumLESProvisionContext) bcs,
+                                      (BREthereumLESProvisionCallback) bcsSignalProvision,
+                                      blockGetNumber(block));
+        }
     }
 
     // If we requested Receipts (for Logs) and have them, then we can process the Logs.
@@ -1412,7 +1446,45 @@ bcsHandleBlockProof (BREthereumBCS bcs,
                      BREthereumNodeReference node,
                      uint64_t number,
                      BREthereumBlockHeaderProof proof) {
+    // If the proof failed, we've nothing to do.  Worse, we've no way to lookup the block
+    // from number.  Probably need to add the hash - as we should have it.  However, if we get to
+    // the point of CHT handling, maybe we won't
+    //
+    // We really, realy need to find the block and mark the block.  Can be multiple blocks...
+    if (1 == eqUInt256 (proof.totalDifficulty, UINT256_ZERO)) {
+        eth_log ("BCS", "Block %llu Proof Failed", number);
+        return;
+    }
+
+    BREthereumHash blockHash = proof.hash;
+
+    BREthereumBlock block = BRSetGet(bcs->blocks, &blockHash);
+    if (NULL == block) {
+        eth_log ("BCS", "Block %llu Missed (Proof)", number);
+        return;
+    }
+
+    // Report the block status - we'll flag as HAS_ACCOUNT_STATE.
+    blockReportStatusHeaderProof( block, proof);
+
+    //
+    // We might not need to do the following here... wait until all the 'statuses' (transactions,
+    // logs, etc) are complete and then process
+
+    // If block has no totalDifficulty, assign it...
+    if (0 == eqUInt256 (blockGetTotalDifficulty (block), UINT256_ZERO)) {
+        eth_log ("BCS", "Block %llu Assign Difficulty (Proof)", number);
+        blockSetTotalDifficulty (block, proof.totalDifficulty);
+    }
+    // ... otherwise, if the difficulties do not match
+    else if (0 != eqUInt256 (blockGetTotalDifficulty (block), proof.totalDifficulty)) {
+        // TODO: This SHOULD indicate a problem...
+        eth_log ("BCS", "Block %llu Overwrite Difficulty (Proof)", number);
+        blockSetTotalDifficulty (block, proof.totalDifficulty);
+    }
+    // ... otherwise, nothing to do
 }
+
 static void
 bcsHandleBlockProofs (BREthereumBCS bcs,
                       BREthereumNodeReference node,
@@ -1548,18 +1620,28 @@ bcsHandleTransactionReceipts (BREthereumBCS bcs,
     // And report the gasUsed per transaction
     blockReportStatusGasUsed(block, gasUsedByTransaction);
 
-    // If we have any logs, then we'll need transactions (block bodies).  We might have them
-    // already - if so, use them; if not, request them.
     if (NULL != neededLogs) {
+        // If we have any logs, then we'll need additional data:
+
+        // 1) get transactions (block bodies).  We might have them already - if so, use them; if
+        //    not, request them.
         if (ETHEREUM_BOOLEAN_IS_TRUE (blockHasStatusTransactionsRequest(block, BLOCK_REQUEST_NOT_NEEDED))) {
             blockReportStatusTransactionsRequest (block, BLOCK_REQUEST_PENDING);
             lesProvideBlockBodiesOne (bcs->les, node,
                                       (BREthereumLESProvisionContext) bcs,
                                       (BREthereumLESProvisionCallback) bcsSignalProvision,
                                       blockGetHash(block));
-            eth_log("BCS", "Block %llu Needs Bodies (for Logs)", blockGetNumber(block));
+            // eth_log("BCS", "Block %llu Needs Bodies (for Logs)", blockGetNumber(block));
         }
-        // Anything else?
+
+        // 2) We want a header proof too; to ensure a valid block w/ transactions + logs.
+        if (ETHEREUM_BOOLEAN_IS_TRUE (blockHasStatusHeaderProofRequest(block, BLOCK_REQUEST_NOT_NEEDED))) {
+            blockReportStatusHeaderProofRequest (block, BLOCK_REQUEST_PENDING);
+            lesProvideBlockProofsOne (bcs->les, node,
+                                      (BREthereumLESProvisionContext) bcs,
+                                      (BREthereumLESProvisionCallback) bcsSignalProvision,
+                                      blockGetNumber(block));
+        }
     }
 
     if (ETHEREUM_BOOLEAN_IS_TRUE(blockHasStatusTransactionsRequest(block, BLOCK_REQUEST_COMPLETE)))
@@ -1915,6 +1997,7 @@ bcsHandleProvision (BREthereumBCS bcs,
                     BRArrayOf(BREthereumBlockHeaderProof) proofs;
                     provisionProofsConsume (&provision->u.proofs, &numbers, &proofs);
                     bcsHandleBlockProofs (bcs, node, numbers, proofs);
+                    break;
                 }
                     
                 case PROVISION_BLOCK_BODIES: {

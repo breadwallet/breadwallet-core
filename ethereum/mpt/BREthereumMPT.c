@@ -25,6 +25,8 @@
 
 #include "BREthereumMPT.h"
 
+#undef MPT_SHOW_PROOF_NODES
+
 ///
 /// MARK: - MPT Node
 ///
@@ -130,7 +132,7 @@ mptNodeConsume (BREthereumMPTNode node, uint8_t *key) {
 #define NIBBLE_UPPER(x)     (0x0f & ((x) >> 4))
 #define NIBBLE_LOWER(x)     (0x0f & ((x) >> 0))
 
-#define NIBBLE_GET(x, upper) (0x0f & ((x) >> (upper ? 4 : 0)))
+#define NIBBLE_GET(x, upper) (0x0f & ((x) >> ((upper) ? 4 : 0)))
 
 static BREthereumMPTNode
 mptNodeDecode (BRRlpItem item,
@@ -153,6 +155,7 @@ mptNodeDecode (BRRlpItem item,
             BREthereumMPTNodeType type = (nodeTypeNibble < 2
                                           ? MPT_NODE_EXTENSION
                                           : MPT_NODE_LEAF);
+            // we are 'padded' if the nodeTypeNibble is even
             int padded = 0 == (nodeTypeNibble & 0x01);
 
             // Fill the encoded path
@@ -172,12 +175,12 @@ mptNodeDecode (BRRlpItem item,
              '3f 1c b8'
              */
 
-            if (!padded) *pathBytes++ = NIBBLE_GET(pathData.bytes[0], 0);
+            if (!padded) *pathBytes++ = NIBBLE_LOWER(pathData.bytes[0]);
 
             for (size_t index = 1; index < pathData.bytesCount; index++) {
                 uint8_t byte = pathData.bytes[index];
-                *pathBytes++ = NIBBLE_GET (byte, padded);
-                *pathBytes++ = NIBBLE_GET (byte, !padded);
+                *pathBytes++ = NIBBLE_UPPER (byte); // padded);
+                *pathBytes++ = NIBBLE_LOWER (byte); // !padded);
             }
 
             node = mptNodeCreate(type);
@@ -274,6 +277,9 @@ mptNodePathDecodeFromBytes (BRRlpItem item,
         BRRlpData data = rlpDecodeBytesSharedDontRelease (coder, items[index]);
         BRRlpItem item = rlpGetItem(coder, data);
         array_add (nodes, mptNodeDecode (item, coder));
+#if defined (MPT_SHOW_PROOF_NODES)
+        rlpShowItem (coder, item, "MPTN");
+#endif
         rlpReleaseItem (coder, item);
     }
 
