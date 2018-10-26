@@ -47,8 +47,14 @@ static unsigned int blockAllocCount = 0;
 static unsigned int blockHeaderAllocCount = 0;
 #endif
 
-#define BYZANTIUM_FORK_BLOCK_NUMBER   (4370000)
+// Mainnet Only
 #define HOMESTEAD_FORK_BLOCK_NUMBER   (1150000)
+#define DAO_FORK_BLOCK_NUMBER         (1920000)
+#define EIP150_FORK_BLOCK_NUMBER      (2463000)
+#define EIP155_FORK_BLOCK_NUMBER      (2675000)
+#define EIP158_FORK_BLOCK_NUMBER      (2675000)
+#define BYZANTIUM_FORK_BLOCK_NUMBER   (4370000)
+
 // MARK: - Block Status
 
 static void

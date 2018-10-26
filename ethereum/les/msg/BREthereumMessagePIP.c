@@ -285,13 +285,14 @@ messagePIPRequestOutputDecode (BRRlpItem item,
             if (3 != outputsCount) { rlpCoderSetFailed (coder.rlp); return (BREthereumPIPRequestOutput) {}; }
 
             // The MerkleProof, in outputItems[0] is an RLP list of bytes w/ the bytes being
-            // individual RLP encodings of a MPT (w/ leafs, extensions, and branches).
+            // individual RLP encodings of a MPT (w/ leafs, extensions, and branches).  [The
+            // format is different between Partiy & Geth - here we 'DecodeFromBytes']
             BREthereumMPTNodePath path = mptNodePathDecodeFromBytes (outputItems[0], coder.rlp);
 
             return (BREthereumPIPRequestOutput) {
                 PIP_REQUEST_HEADER_PROOF,
                 { .headerProof = {
-                    // After all the above... we don't use the `path`
+                    path,
                     hashRlpDecode(outputItems[1], coder.rlp),
                     rlpDecodeUInt256 (coder.rlp, outputItems[2], 1)
                 }}
@@ -367,6 +368,8 @@ messagePIPRequestOutputRelease (BREthereumPIPRequestOutput *output) {
             break;
 
         case PIP_REQUEST_HEADER_PROOF:
+            if (NULL != output->u.headerProof.path)
+                mptNodePathRelease (output->u.headerProof.path);
             break;
 
         case PIP_REQUEST_TRANSACTION_INDEX:
@@ -442,6 +445,18 @@ extern void // special case - only 'output' with allocated memory.
 messagePIPRequestHeadersOutputConsume (BREthereumPIPRequestHeadersOutput *output,
                                        BRArrayOf(BREthereumBlockHeader) *headers) {
     if (NULL != headers) { *headers = output->headers; output->headers = NULL; }
+}
+
+extern void // special case - only 'output' with allocated memory.
+messagePIPRequestHeadersProofOutputConsume (BREthereumPIPRequestHeadersOutput *output,
+                                       BRArrayOf(BREthereumBlockHeader) *headers) {
+    if (NULL != headers) { *headers = output->headers; output->headers = NULL; }
+}
+
+extern void
+messagePIPRequestHeaderProofOutputConsume (BREthereumPIPRequestHeaderProofOutput *output,
+                                           BREthereumMPTNodePath *path) {
+    if (NULL != path) { *path = output->path; output->path = NULL; }
 }
 
 /// MARK: Update Credit Parameters
