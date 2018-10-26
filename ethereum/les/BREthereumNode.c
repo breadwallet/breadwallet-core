@@ -1468,10 +1468,17 @@ nodeProcess (BREthereumNode node,
                     nodeEndpointShowHello (node->remote);
 
                     // Assign the node type even before checking capabilities.
-                    if (ETHEREUM_BOOLEAN_IS_TRUE (nodeEndpointHasHelloCapability (node->remote, "pip")))
+                    if (ETHEREUM_BOOLEAN_IS_TRUE (nodeEndpointHasHelloCapability (node->remote, "pip", LES_SUPPORT_PARITY_VERSION)))
                         node->type = NODE_TYPE_PARITY;
-                    else if (ETHEREUM_BOOLEAN_IS_TRUE (nodeEndpointHasHelloCapability (node->remote, "les")))
+                    else if (ETHEREUM_BOOLEAN_IS_TRUE (nodeEndpointHasHelloCapability (node->remote, "les", LES_SUPPORT_GETH_VERSION)))
                         node->type = NODE_TYPE_GETH;
+
+                    // Confirm that the remote supports ETH.  We've seen a node announce support for
+                    // PIPv1 and being 200,000 blocks into the future.  Perhaps we avoid connecting
+                    // to such a node - but will still have to handle rogue nodes.
+                    if (ETHEREUM_BOOLEAN_IS_FALSE(nodeEndpointHasHelloCapability (node->remote, "eth", 62)) ||
+                        ETHEREUM_BOOLEAN_IS_FALSE(nodeEndpointHasHelloCapability (node->remote, "eth", 63)))
+                        return nodeProcessFailure (node, NODE_ROUTE_TCP, &message, nodeStateCreateErrorProtocol(NODE_PROTOCOL_CAPABILITIES_MISMATCH));
 
                     // Confirm that the remote has one and only one of the local capabilities.  It is unlikely,
                     // but possible, that a remote offers both LESv2 and PIPv1 capabilities - we aren't interested.
@@ -1481,10 +1488,6 @@ nodeProcess (BREthereumNode node,
 
                     if (NULL == capability)
                         return nodeProcessFailure(node, NODE_ROUTE_TCP, &message, nodeStateCreateErrorProtocol(NODE_PROTOCOL_CAPABILITIES_MISMATCH));
-
-                    // ... and the protocol version.
-//                    updateLocalEndpointStatusMessage(node->local, node->type, capability->version);
-//                    nodeEndpointShowStatus (node->local);
 
                     // https://github.com/ethereum/wiki/wiki/ÐΞVp2p-Wire-Protocol
                     // ÐΞVp2p is designed to support arbitrary sub-protocols (aka capabilities) over the basic wire
