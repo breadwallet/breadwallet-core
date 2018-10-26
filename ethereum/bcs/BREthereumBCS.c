@@ -48,7 +48,10 @@
 // so as to initialize the chain.
 #define BCS_SAVE_BLOCKS_COUNT  (500)
 
+// We really can't set this limit; we've seen 15 before.  But, what about a rogue node?
 #define BCS_REORG_LIMIT    (10)
+
+#undef BCS_SHOW_ORPHANS
 
 #pragma clang diagnostic ignored "-Wunused-function"
 static inline uint64_t maximum (uint64_t a, uint64_t b) { return a > b ? a : b; }
@@ -996,8 +999,10 @@ bcsExtendChainIfPossible (BREthereumBCS bcs,
             // sync to recover (might not actually perform a sync - just attempt).
             uint64_t orphanBlockNumberMinumum = bcsGetOrphanBlockNumberMinimum(bcs);
             if (UINT64_MAX != orphanBlockNumberMinumum)
+#if defined (BCS_SHOW_ORPHANS)
                 if (ETHEREUM_BOOLEAN_IS_FALSE (bcsSyncIsActive(bcs->sync)))
                     bcsOrphansShow (bcs, ETHEREUM_BOOLEAN_TRUE);
+#endif
                 // Note: This can be an invalid range.  Say we have a old orphan that hasn't
                 // been purged yet.. might be that orphanBlockNumberMinumum is in the past.
                 // In `bcsSyncRange()` we'll check for a valid range.
