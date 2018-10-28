@@ -59,7 +59,7 @@ createAddress (const char *string);
  * Validate `string` as an Ethereum address.  The validation is minimal - based solely on the
  * `string` content.  Said another way, the Ethereum Network is not used for validation.
  *
- * At a minimum `string` must start with "0x", have a total of 42 characters and by a 'hex' string
+ * At a minimum `string` must start with "0x", have a total of 42 characters and be a 'hex' string
  * (as if a result of encodeHex(); containing characters [0-9,a-f])
  *
  * @param string

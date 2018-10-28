@@ -259,6 +259,8 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
     public BREthereumTransaction createTransaction(String targetAddress,
                                                    String amount,
                                                    Unit amountUnit) {
+        BREthereumLightNode.ensureValidAddress (targetAddress);
+
         BREthereumLightNode lightNode = node.get();
 
         // Note: The created transaction's unit will be `amountUnit`.  This unit may differ
@@ -276,6 +278,8 @@ public class BREthereumWallet extends BREthereumLightNode.ReferenceWithDefaultUn
                                                           String gasPrice, Unit gasPriceUnit,
                                                           String gasLimit,
                                                           String data) {
+        BREthereumLightNode.ensureValidAddress (targetAddress);
+
         BREthereumLightNode lightNode = node.get();
 
         assert (!amountUnit.isTokenUnit() && !gasPriceUnit.isTokenUnit());

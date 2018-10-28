@@ -25,6 +25,14 @@ JNIEXPORT jlong JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_j
 
 /*
  * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
+ * Method:    jniAddressIsValid
+ * Signature: (Ljava/lang/String;)Z
+ */
+JNIEXPORT jboolean JNICALL Java_com_breadwallet_core_ethereum_BREthereumLightNode_jniAddressIsValid
+  (JNIEnv *, jclass, jstring);
+
+/*
+ * Class:     com_breadwallet_core_ethereum_BREthereumLightNode
  * Method:    jniAddListener
  * Signature: (Lcom/breadwallet/core/ethereum/BREthereumLightNode/Listener;)V
  */
