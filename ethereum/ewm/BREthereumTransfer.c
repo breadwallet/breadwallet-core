@@ -332,7 +332,7 @@ transferSign (BREthereumTransfer transfer,
                                            network,
                                            RLP_TYPE_TRANSACTION_UNSIGNED,
                                            coder);
-    BRRlpData data = rlpGetData(coder, item);
+    BRRlpData data = rlpGetDataSharedDontRelease(coder, item);
     
     // Sign the RLP Encoded bytes.
     BREthereumSignature signature = accountSignBytes (account,
@@ -343,11 +343,19 @@ transferSign (BREthereumTransfer transfer,
                                                       paperKey);
     
     rlpReleaseItem(coder, item);
-    rlpDataRelease(data);
-    rlpCoderRelease(coder);
-    
+
     // Attach the signature
     transactionSign (transfer->originatingTransaction, signature);
+    // Compute the hash
+    item = transactionRlpEncode (transfer->originatingTransaction,
+                                 network,
+                                 RLP_TYPE_TRANSACTION_SIGNED,
+                                 coder);
+    transactionSetHash (transfer->originatingTransaction,
+                        hashCreateFromData (rlpGetDataSharedDontRelease (coder, item)));
+
+    rlpReleaseItem(coder, item);
+    rlpCoderRelease(coder);
 }
 
 extern void
@@ -367,7 +375,7 @@ transferSignWithKey (BREthereumTransfer transfer,
                                            network,
                                            RLP_TYPE_TRANSACTION_UNSIGNED,
                                            coder);
-    BRRlpData data = rlpGetData(coder, item);
+    BRRlpData data = rlpGetDataSharedDontRelease (coder, item);
     
     // Sign the RLP Encoded bytes.
     BREthereumSignature signature = accountSignBytesWithPrivateKey (account,
@@ -378,11 +386,20 @@ transferSignWithKey (BREthereumTransfer transfer,
                                                                     privateKey);
     
     rlpReleaseItem(coder, item);
-    rlpDataRelease(data);
-    rlpCoderRelease(coder);
-    
+
     // Attach the signature
     transactionSign(transfer->originatingTransaction, signature);
+
+    // Compute the hash
+    item = transactionRlpEncode (transfer->originatingTransaction,
+                                 network,
+                                 RLP_TYPE_TRANSACTION_SIGNED,
+                                 coder);
+    transactionSetHash (transfer->originatingTransaction,
+                        hashCreateFromData (rlpGetDataSharedDontRelease (coder, item)));
+
+    rlpReleaseItem(coder, item);
+    rlpCoderRelease(coder);
 }
 
 extern const BREthereumHash

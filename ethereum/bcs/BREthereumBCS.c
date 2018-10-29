@@ -470,8 +470,10 @@ bcsReportInterestingBlocks (BREthereumBCS bcs,
 extern void
 bcsHandleSubmitTransaction (BREthereumBCS bcs,
                             BREthereumTransaction transaction) {
-    bcsSignalTransaction(bcs, transaction);
+    // Signal a create/signed/submitted transaction.
+    bcsSignalTransaction(bcs, transactionCopy (transaction));
 
+    // Actually submit... and get status once included.
     lesSubmitTransaction (bcs->les,
                           NODE_REFERENCE_ALL,
                           (BREthereumLESProvisionContext) bcs,
