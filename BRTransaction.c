@@ -207,8 +207,8 @@ static size_t _BRTransactionWitnessData(const BRTransaction *tx, uint8_t *data, 
     BRTxInput input;
     int anyoneCanPay = (hashType & SIGHASH_ANYONECANPAY), sigHash = (hashType & 0x1f);
     size_t i, off = 0;
-    uint8_t scriptCode[] = { 0x19, 0x76, 0xa9, 0x14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                             0x88, 0xac };
+    uint8_t scriptCode[] = { 25, OP_DUP, OP_HASH160, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                             OP_EQUALVERIFY, OP_CHECKSIG };
 
     if (index >= tx->inCount) return 0;
     if (data && off + sizeof(uint32_t) <= dataLen) UInt32SetLE(&data[off], tx->version); // tx version
@@ -241,7 +241,7 @@ static size_t _BRTransactionWitnessData(const BRTransaction *tx, uint8_t *data, 
     input.signature = input.script; // TODO: handle OP_CODESEPARATOR
     input.sigLen = input.scriptLen;
 
-    if (input.scriptLen == 22 && input.script[0] == OP_0 && input.script[1] == 20) {
+    if (input.scriptLen == 22 && input.script[0] == OP_0 && input.script[1] == 20) { // P2WPKH scriptCode
         memcpy(&scriptCode[4], &input.script[2], 20);
         input.signature = scriptCode;
         input.sigLen = sizeof(scriptCode);
