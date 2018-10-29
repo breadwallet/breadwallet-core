@@ -139,7 +139,7 @@ _announceCallback (BREthereumLESCallbackContext context,
                    uint64_t headNumber,
                    UInt256 headTotalDifficulty,
                    uint64_t reorgDepth) {
-    eth_log(TST_LOG_TOPIC, "Block: %llu", headNumber);
+    eth_log(TST_LOG_TOPIC, "Block: %" PRIu64, headNumber);
 }
 
 static void
@@ -147,7 +147,7 @@ _statusCallback (BREthereumLESCallbackContext context,
                  BREthereumNodeReference node,
                  BREthereumHash headHash,
                  uint64_t headNumber) {
-    eth_log(TST_LOG_TOPIC, "Status: %llu", headNumber);
+    eth_log(TST_LOG_TOPIC, "Status: %" PRIu64, headNumber);
 }
 
 static void

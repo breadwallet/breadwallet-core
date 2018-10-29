@@ -63,8 +63,7 @@ class TestLightClient : EthereumClient {
         self.network = network
         self.node = EthereumWalletManager (client: self,
                                            network: network,
-                                           type: EthereumType.brd,
-                                           mode: EthereumSyncMode.blockchain,
+                                           mode: EthereumMode.p2p_only,
                                            key: EthereumKey.paperKey (paperKey),
                                            timestamp: 0)
     }

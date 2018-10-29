@@ -42,8 +42,7 @@ extern BREthereumEWM
 createEWM (BREthereumNetwork network,
            BREthereumAccount account,
            BREthereumTimestamp accountTimestamp,
-           BREthereumType type,
-           BREthereumSyncMode syncMode,
+           BREthereumMode mode,
            BREthereumClient client,
            BRSetOf(BREthereumPersistData) peers,
            BRSetOf(BREthereumPersistData) blocks,
@@ -67,6 +66,9 @@ ewmConnect(BREthereumEWM ewm);
 
 extern BREthereumBoolean
 ewmDisconnect (BREthereumEWM ewm);
+
+extern BREthereumBoolean
+ewmIsConnected (BREthereumEWM ewm);
 
 //
 // {Wallet, Block, Transaction} Lookup

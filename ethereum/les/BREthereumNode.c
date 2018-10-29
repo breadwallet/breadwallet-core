@@ -554,7 +554,7 @@ nodeShow (BREthereumNode node) {
     eth_log (LES_LOG_TOPIC, "   UDP       : %s", nodeStateDescribe (&node->states[NODE_ROUTE_UDP], descUDP));
     eth_log (LES_LOG_TOPIC, "   TCP       : %s", nodeStateDescribe (&node->states[NODE_ROUTE_TCP], descTCP));
     eth_log (LES_LOG_TOPIC, "   Discovered: %s", (ETHEREUM_BOOLEAN_IS_TRUE(node->discovered) ? "Yes" : "No"));
-    eth_log (LES_LOG_TOPIC, "   Credits   : %llu", node->credits);
+    eth_log (LES_LOG_TOPIC, "   Credits   : %" PRIu64, node->credits);
 }
 
 extern const BREthereumNodeEndpoint

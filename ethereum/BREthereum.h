@@ -362,18 +362,6 @@ installSharedWordList (const char *wordList[], int wordListLength);
 // Ethereum Wallet Manager
 //
 
-/*!
- * @typedef BREthereumType
- *
- * @abstract
- * Two types of EWM - BRD or LES (Light Ethereum Subprotocol).  For a LES EWM
- * some of the Client callbacks will only be used as a fallback.
- */
-typedef enum {
-    EWM_USE_BRD,
-    EWM_USE_LES
-} BREthereumType;
-
 /**
  * Create a EWM managing the account associated with the paperKey.  (The `paperKey` must
  * use words from the defaul wordList (Use installSharedWordList).  The `paperKey` is used for
@@ -384,8 +372,7 @@ extern BREthereumEWM
 ethereumCreate(BREthereumNetwork network,
                const char *paperKey,
                BREthereumTimestamp paperKeyTimestamp,
-               BREthereumType type,
-               BREthereumSyncMode syncMode,
+               BREthereumMode mode,
                BREthereumClient client,
                BRSetOf(BREthereumPersistData) peers,
                BRSetOf(BREthereumPersistData) blocks,
@@ -401,8 +388,7 @@ extern BREthereumEWM
 ethereumCreateWithPublicKey(BREthereumNetwork network,
                             const BRKey publicKey,
                             BREthereumTimestamp publicKeyTimestamp,
-                           BREthereumType type,
-                            BREthereumSyncMode syncMode,
+                            BREthereumMode syncMode,
                             BREthereumClient client,
                             BRSetOf(BREthereumPersistData) peers,
                             BRSetOf(BREthereumPersistData) blocks,

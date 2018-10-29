@@ -503,45 +503,29 @@ public enum EthereumStatus {
     case success
 }
 
-public enum EthereumType {
-    case les
-    case brd
+public enum EthereumMode {
+    case brd_only
+    case brd_with_p2p_send
+    case p2p_with_brd_sync
+    case p2p_only
 
-    init (_ type: BREthereumType) {
-        switch (type) {
-        case EWM_USE_BRD: self = .brd
-        case EWM_USE_LES: self = .les
+    init (_ mode: BREthereumMode) {
+        switch (mode) {
+        case BRD_ONLY: self = .brd_only
+        case BRD_WITH_P2P_SEND: self = .brd_with_p2p_send
+        case P2P_WITH_BRD_SYNC: self = .p2p_with_brd_sync
+        case P2P_ONLY: self = .p2p_only
         default:
-            self = .les
+            self = .p2p_only
         }
     }
 
-    var core : BREthereumType {
+    var core : BREthereumMode {
         switch (self) {
-        case .brd: return EWM_USE_BRD
-        case .les: return EWM_USE_LES
-        }
-    }
-}
-
-public enum EthereumSyncMode {
-    case blockchain
-    case assisted
-
-
-    init (_ mode: BREthereumSyncMode) {
-        switch mode {
-        case SYNC_MODE_FULL_BLOCKCHAIN: self = .blockchain
-        case SYNC_MODE_PRIME_WITH_ENDPOINT: self = .assisted
-        default:
-            self = .blockchain
-        }
-    }
-
-    var core : BREthereumSyncMode {
-        switch self {
-        case .blockchain: return SYNC_MODE_FULL_BLOCKCHAIN
-        case .assisted: return SYNC_MODE_PRIME_WITH_ENDPOINT
+        case .brd_only: return BRD_ONLY
+        case .brd_with_p2p_send: return BRD_WITH_P2P_SEND
+        case .p2p_with_brd_sync: return P2P_WITH_BRD_SYNC
+        case .p2p_only: return P2P_ONLY
         }
     }
 }
@@ -771,13 +755,11 @@ public class EthereumWalletManager {
 
     public convenience init (client : EthereumClient,
                              network : EthereumNetwork,
-                             type: EthereumType,
-                             mode: EthereumSyncMode,
+                             mode: EthereumMode,
                              key: EthereumKey,
                              timestamp: UInt64) {
         self.init (client: client,
                    network: network,
-                   type: type,
                    mode: mode,
                    key: key,
                    timestamp: timestamp,
@@ -789,8 +771,7 @@ public class EthereumWalletManager {
 
     public convenience init (client : EthereumClient,
                              network : EthereumNetwork,
-                             type: EthereumType,
-                             mode: EthereumSyncMode,
+                             mode: EthereumMode,
                              key: EthereumKey,
                              timestamp: UInt64,
                              peers: Dictionary<String,String>,
@@ -803,7 +784,6 @@ public class EthereumWalletManager {
         switch key {
         case let .paperKey(key):
             core = ethereumCreate (network.core, key, timestamp,
-                                   type.core,
                                    mode.core,
                                    EthereumWalletManager.createCoreClient(client: client),
                                    EthereumWalletManager.asPairs (peers),
@@ -812,7 +792,6 @@ public class EthereumWalletManager {
                                    EthereumWalletManager.asPairs (logs))
         case let .publicKey(key):
             core = ethereumCreateWithPublicKey (network.core, key, timestamp,
-                                                type.core,
                                                 mode.core,
                                                 EthereumWalletManager.createCoreClient(client: client),
                                                 EthereumWalletManager.asPairs (peers),

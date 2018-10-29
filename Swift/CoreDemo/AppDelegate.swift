@@ -46,8 +46,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UISplitViewControllerDele
         //                                         paperKey: "0xb302B06FDB1348915599D21BD54A06832637E5E8")
 
         client = CoreDemoEthereumClient (network: EthereumNetwork.mainnet,
-                                         type: EthereumType.les,
-                                         mode: EthereumSyncMode.blockchain,
+                                         mode: EthereumMode.p2p_only,
                                          paperKey:  paperKey)
 
         // Mini-race - on ETH wallet create event

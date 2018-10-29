@@ -208,6 +208,10 @@ lesSetNodePrefer (BREthereumLES les,
 extern BREthereumNodeReference
 lesGetNodePrefer (BREthereumLES les);
 
+extern const char *
+lesGetNodeHostname (BREthereumLES les,
+                    BREthereumNodeReference node);
+
 /// MARK: LES Provision Callbacks
 
 typedef void *BREthereumLESProvisionContext;

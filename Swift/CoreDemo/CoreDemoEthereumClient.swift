@@ -28,11 +28,10 @@ class CoreDemoEthereumClient : EthereumClient {
     //
     // Constructors
     //
-    init(network: EthereumNetwork, type: EthereumType, mode: EthereumSyncMode, paperKey: String) {
+    init(network: EthereumNetwork, mode: EthereumMode, paperKey: String) {
         self.network = network
         self.node = EthereumWalletManager (client: self,
                                            network: network,
-                                           type: type,
                                            mode: mode,
                                            key: EthereumKey.paperKey(paperKey),
                                            timestamp: 0)

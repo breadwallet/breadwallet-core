@@ -39,15 +39,14 @@ extern BREthereumEWM
 ethereumCreate(BREthereumNetwork network,
                const char *paperKey,
                BREthereumTimestamp paperKeyTimestamp,
-               BREthereumType type,
-               BREthereumSyncMode syncMode,
+               BREthereumMode mode,
                BREthereumClient client,
                BRSetOf(BREthereumHashDataPair) peers,
                BRSetOf(BREthereumHashDataPair) blocks,
                BRSetOf(BREthereumHashDataPair) transactions,
                BRSetOf(BREthereumHashDataPair) logs) {
     return createEWM (network, createAccount(paperKey), paperKeyTimestamp,
-                      type, syncMode,
+                      mode,
                       client,
                       peers,
                       blocks,
@@ -59,15 +58,14 @@ extern BREthereumEWM
 ethereumCreateWithPublicKey(BREthereumNetwork network,
                             const BRKey publicKey,      // 65 byte, 0x04-prefixed, uncompressed public key
                             BREthereumTimestamp publicKeyTimestamp,
-                            BREthereumType type,
-                            BREthereumSyncMode syncMode,
+                            BREthereumMode mode,
                             BREthereumClient client,
                             BRSetOf(BREthereumHashDataPair) peers,
                             BRSetOf(BREthereumHashDataPair) blocks,
                             BRSetOf(BREthereumHashDataPair) transactions,
                             BRSetOf(BREthereumHashDataPair) logs) {
     return createEWM (network, createAccountWithPublicKey (publicKey), publicKeyTimestamp,
-                      type, syncMode,
+                      mode,
                       client,
                       peers,
                       blocks,
@@ -882,8 +880,7 @@ ethereumClientAnnounceBlocks (BREthereumEWM ewm,
                               // const char *strBlockHash,
                               int blockNumbersCount,
                               uint64_t *blockNumbers) {  // BRArrayOf(const char *) strBlockNumbers ??
-    assert (EWM_USE_LES == ewm->type);
-    assert (NULL != ewm->bcs);
+    assert (P2P_ONLY == ewm->mode || P2P_WITH_BRD_SYNC == ewm->mode);
 
     // into bcs...
     BRArrayOf(uint64_t) numbers;
