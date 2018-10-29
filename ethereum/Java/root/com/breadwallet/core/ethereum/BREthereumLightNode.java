@@ -600,7 +600,7 @@ public class BREthereumLightNode extends BRCoreJniReference {
         client.get().getNonce(address, rid);
     }
 
-    static boolean addressIsValid (String address) {
+    public static boolean addressIsValid (String address) {
         assert (null != address);
         return jniAddressIsValid(address);
     }
