@@ -704,6 +704,11 @@ lesSetNodePrefer (BREthereumLES les,
     pthread_mutex_unlock (&les->lock);
 }
 
+extern const char *
+lesGetNodeHostname (BREthereumLES les,
+                    BREthereumNodeReference node) {
+    return nodeEndpointGetHostname (nodeGetRemoteEndpoint ((BREthereumNode) node));
+}
 ///
 /// MARK: - LES Node Callbacks
 ///

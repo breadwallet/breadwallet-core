@@ -66,12 +66,11 @@ class CoreTests: XCTestCase {
             ? CommandLine.arguments[1]
             : "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62");
 
-        let type = EWM_USE_LES
-        let mode = SYNC_MODE_PRIME_WITH_ENDPOINT
+        let mode = P2P_WITH_BRD_SYNC
         let timestamp : UInt64 = 0
 
-        runSyncTest (paperKey, type, mode, timestamp, 10 * 60, 0);
-        runSyncTest (paperKey, type, mode, timestamp,  1 * 60, 1);
+        runSyncTest (paperKey, mode, timestamp, 10 * 60, 0);
+        runSyncTest (paperKey, mode, timestamp,  1 * 60, 1);
     }
 
     func testBitcoinSync () {

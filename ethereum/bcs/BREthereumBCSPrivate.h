@@ -101,7 +101,7 @@ struct BREthereumBCSStruct {
     /**
      * The sync mode
      */
-    BREthereumSyncMode syncMode;
+    BREthereumMode mode;
     
     /**
      * A BloomFilter with address for application to transactions
