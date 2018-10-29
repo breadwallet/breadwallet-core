@@ -200,7 +200,6 @@ static size_t _BRTransactionOutputData(const BRTransaction *tx, uint8_t *data, s
 
 // writes the BIP143 witness program data that needs to be hashed and signed for the tx input at index
 // https://github.com/bitcoin/bips/blob/master/bip-0143.mediawiki
-// an index of SIZE_MAX will write the entire signed transaction
 // returns number of bytes written, or total len needed if data is NULL
 static size_t _BRTransactionWitnessData(const BRTransaction *tx, uint8_t *data, size_t dataLen, size_t index,
                                         int hashType)
@@ -208,7 +207,9 @@ static size_t _BRTransactionWitnessData(const BRTransaction *tx, uint8_t *data, 
     BRTxInput input;
     int anyoneCanPay = (hashType & SIGHASH_ANYONECANPAY), sigHash = (hashType & 0x1f);
     size_t i, off = 0;
-    
+    uint8_t scriptCode[] = { 0x19, 0x76, 0xa9, 0x14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                             0x88, 0xac };
+
     if (index >= tx->inCount) return 0;
     if (data && off + sizeof(uint32_t) <= dataLen) UInt32SetLE(&data[off], tx->version); // tx version
     off += sizeof(uint32_t);
@@ -239,6 +240,13 @@ static size_t _BRTransactionWitnessData(const BRTransaction *tx, uint8_t *data, 
     input = tx->inputs[index];
     input.signature = input.script; // TODO: handle OP_CODESEPARATOR
     input.sigLen = input.scriptLen;
+
+    if (input.scriptLen == 22 && input.script[0] == OP_0 && input.script[1] == 20) {
+        memcpy(&scriptCode[4], &input.script[2], 20);
+        input.signature = scriptCode;
+        input.sigLen = sizeof(scriptCode);
+    }
+
     off += _BRTxInputData(&input, (data ? &data[off] : NULL), (off <= dataLen ? dataLen - off : 0));
     
     if (sigHash != SIGHASH_SINGLE && sigHash != SIGHASH_NONE) {
@@ -655,9 +663,8 @@ int BRTransactionSign(BRTransaction *tx, int forkId, BRKey keys[], size_t keysCo
         BRTxInput *input = &tx->inputs[i];
         const uint8_t *hash = BRScriptPKH(input->script, input->scriptLen);
         
-        if (! hash) continue;
         j = 0;
-        while (j < keysCount && ! UInt160Eq(pkh[j], UInt160Get(hash))) j++;
+        while (j < keysCount && (! hash || ! UInt160Eq(pkh[j], UInt160Get(hash)))) j++;
         if (j >= keysCount) continue;
         
         const uint8_t *elems[BRScriptElements(NULL, 0, input->script, input->scriptLen)];
