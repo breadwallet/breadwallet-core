@@ -572,7 +572,7 @@ static BRRlpItem
 coderEncodeNumber (BRRlpCoder coder, uint8_t *source, size_t sourceCount) {
     // Encode a number by converting the number to a big_endian representation and then simply
     // encoding those bytes.
-    uint8_t bytes [sourceCount]; // big_endian representation of the bytes in 'length'
+    uint8_t bytes [sourceCount]; // big_endian representation of the bytes in 'source'
     size_t bytesIndex;           // Index of the first non-zero byte
     size_t bytesCount;           // The number of bytes to encode
     

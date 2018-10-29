@@ -22,7 +22,9 @@ int main(int argc, const char * argv[]) {
     BREthereumSyncMode mode = SYNC_MODE_FULL_BLOCKCHAIN;
     BREthereumTimestamp timestamp = 1539330275; // ETHEREUM_TIMESTAMP_UNKNOWN;
 
-    runSyncTest (NULL, type, mode, timestamp,  2 * 60, 0);
+    const char *paperKey = (argc > 1 ? argv[1] : "0xa9de3dbd7d561e67527bc1ecb025c59d53b9f7ef");
+
+    runSyncTest (paperKey, type, mode, timestamp,  5 * 60, 0);
 
     return 0;
 }

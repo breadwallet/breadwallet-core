@@ -109,6 +109,9 @@ blockHeaderGetTimestamp (BREthereumBlockHeader header);
 extern BREthereumHash
 blockHeaderGetParentHash (BREthereumBlockHeader header);
 
+extern BREthereumBoolean
+blockHeaderIsCHTRoot (BREthereumBlockHeader header);
+
 // ...
 
 extern uint64_t
@@ -332,7 +335,18 @@ blockBodyPairRelease (BREthereumBlockBodyPair *pair);
 extern void
 blockBodyPairsRelease (BRArrayOf(BREthereumBlockBodyPair) pairs);
 
+///
+/// MARK: - Block Header Proof
+///
+
+typedef struct {
+    BREthereumHash hash;
+    UInt256 totalDifficulty;
+} BREthereumBlockHeaderProof;
+
+///
 /// MARK: - Block Status
+///
 
 typedef enum {
     BLOCK_REQUEST_NOT_NEEDED,
@@ -353,6 +367,9 @@ typedef struct {
 
     BREthereumBlockRequestState accountStateRequest;
     BREthereumAccountState accountState;
+
+    BREthereumBlockRequestState headerProofRequest;
+    BREthereumBlockHeaderProof headerProof;
 
     BREthereumBoolean error;
 } BREthereumBlockStatus;
@@ -435,6 +452,21 @@ extern void
 blockReportStatusAccountState (BREthereumBlock block,
                                BREthereumAccountState accountState);
 
+//
+// Header Proof Request
+//
+extern BREthereumBoolean
+blockHasStatusHeaderProofRequest (BREthereumBlock block,
+                                  BREthereumBlockRequestState request);
+
+extern void
+blockReportStatusHeaderProofRequest (BREthereumBlock block,
+                                     BREthereumBlockRequestState request);
+
+extern void
+blockReportStatusHeaderProof (BREthereumBlock block,
+                              BREthereumBlockHeaderProof proof);
+    
     //
     //
     //

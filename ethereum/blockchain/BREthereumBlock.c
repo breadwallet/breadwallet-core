@@ -47,8 +47,14 @@ static unsigned int blockAllocCount = 0;
 static unsigned int blockHeaderAllocCount = 0;
 #endif
 
-#define BYZANTIUM_FORK_BLOCK_NUMBER   (4370000)
+// Mainnet Only
 #define HOMESTEAD_FORK_BLOCK_NUMBER   (1150000)
+#define DAO_FORK_BLOCK_NUMBER         (1920000)
+#define EIP150_FORK_BLOCK_NUMBER      (2463000)
+#define EIP155_FORK_BLOCK_NUMBER      (2675000)
+#define EIP158_FORK_BLOCK_NUMBER      (2675000)
+#define BYZANTIUM_FORK_BLOCK_NUMBER   (4370000)
+
 // MARK: - Block Status
 
 static void
@@ -327,12 +333,18 @@ blockHeaderMatchAddress (BREthereumBlockHeader header,
 
 extern uint64_t
 chtRootNumberGetFromNumber (uint64_t number) {
-    return (0 == number ? 0 : ((number - 1) >> BLOCK_HEADER_CHT_ROOT_INTERVAL_SHIFT));
+    assert (0 != number);
+    return (number - 1) >> BLOCK_HEADER_CHT_ROOT_INTERVAL_SHIFT;
 }
 
 extern uint64_t
 blockHeaderGetCHTRootNumber (BREthereumBlockHeader header) {
     return chtRootNumberGetFromNumber (blockHeaderGetNumber(header));
+}
+
+extern BREthereumBoolean
+blockHeaderIsCHTRoot (BREthereumBlockHeader header) {
+    return AS_ETHEREUM_BOOLEAN (0 == (header->number - 1) % BLOCK_HEADER_CHT_ROOT_INTERVAL);
 }
 
 static int64_t max(int64_t x, int64_t y) { return x >= y ? x : y; }
@@ -1138,9 +1150,10 @@ blockGetStatus (BREthereumBlock block) {
 
 extern BREthereumBoolean
 blockHasStatusComplete (BREthereumBlock block) {
-    return AS_ETHEREUM_BOOLEAN(block->status.transactionRequest != BLOCK_REQUEST_PENDING &&
-                               block->status.logRequest != BLOCK_REQUEST_PENDING &&
-                               block->status.accountStateRequest != BLOCK_REQUEST_PENDING);
+    return AS_ETHEREUM_BOOLEAN (block->status.transactionRequest  != BLOCK_REQUEST_PENDING &&
+                                block->status.logRequest          != BLOCK_REQUEST_PENDING &&
+                                block->status.accountStateRequest != BLOCK_REQUEST_PENDING &&
+                                block->status.headerProofRequest  != BLOCK_REQUEST_PENDING);
 }
 
 extern BREthereumBoolean
@@ -1177,6 +1190,21 @@ blockReportStatusTransactions (BREthereumBlock block,
     block->status.transactions = transactions;
 }
 
+extern BREthereumBoolean
+blockHasStatusTransaction (BREthereumBlock block,
+                           BREthereumTransaction transaction) {
+    if (block->status.transactionRequest != BLOCK_REQUEST_COMPLETE) return ETHEREUM_BOOLEAN_FALSE;
+
+    for (size_t index = 0; index < array_count(block->status.transactions); index++)
+        if (transactionHashEqual(transaction, block->status.transactions[index]))
+            return ETHEREUM_BOOLEAN_TRUE;
+
+    return ETHEREUM_BOOLEAN_FALSE;
+}
+
+//
+// Gas Used
+//
 extern void
 blockReportStatusGasUsed (BREthereumBlock block,
                           OwnershipGiven BRArrayOf(BREthereumGas) gasUsed) {
@@ -1207,6 +1235,21 @@ blockReportStatusLogs (BREthereumBlock block,
 }
 
 extern BREthereumBoolean
+blockHasStatusLog (BREthereumBlock block,
+                   BREthereumLog log) {
+    if (block->status.logRequest != BLOCK_REQUEST_COMPLETE) return ETHEREUM_BOOLEAN_FALSE;
+
+    for (size_t index = 0; index < array_count(block->status.logs); index++)
+        if (logHashEqual(log, block->status.logs[index]))
+            return ETHEREUM_BOOLEAN_TRUE;
+
+    return ETHEREUM_BOOLEAN_FALSE;
+}
+
+//
+// Account State Request
+//
+extern BREthereumBoolean
 blockHasStatusAccountStateRequest (BREthereumBlock block,
                                    BREthereumBlockRequestState request) {
     return AS_ETHEREUM_BOOLEAN(block->status.accountStateRequest == request);
@@ -1226,29 +1269,29 @@ blockReportStatusAccountState (BREthereumBlock block,
     block->status.accountState = accountState;
 }
 
+//
+// Header Proof
+//
 extern BREthereumBoolean
-blockHasStatusTransaction (BREthereumBlock block,
-                           BREthereumTransaction transaction) {
-    if (block->status.transactionRequest != BLOCK_REQUEST_COMPLETE) return ETHEREUM_BOOLEAN_FALSE;
-
-    for (size_t index = 0; index < array_count(block->status.transactions); index++)
-        if (transactionHashEqual(transaction, block->status.transactions[index]))
-            return ETHEREUM_BOOLEAN_TRUE;
-
-    return ETHEREUM_BOOLEAN_FALSE;
+blockHasStatusHeaderProofRequest (BREthereumBlock block,
+                                  BREthereumBlockRequestState request) {
+    return AS_ETHEREUM_BOOLEAN (block->status.headerProofRequest == request);
 }
 
-extern BREthereumBoolean
-blockHasStatusLog (BREthereumBlock block,
-                   BREthereumLog log) {
-    if (block->status.logRequest != BLOCK_REQUEST_COMPLETE) return ETHEREUM_BOOLEAN_FALSE;
-
-    for (size_t index = 0; index < array_count(block->status.logs); index++)
-        if (logHashEqual(log, block->status.logs[index]))
-            return ETHEREUM_BOOLEAN_TRUE;
-
-    return ETHEREUM_BOOLEAN_FALSE;
+extern void
+blockReportStatusHeaderProofRequest (BREthereumBlock block,
+                                     BREthereumBlockRequestState request) {
+    block->status.headerProofRequest = request;
 }
+
+extern void
+blockReportStatusHeaderProof (BREthereumBlock block,
+                              BREthereumBlockHeaderProof proof) {
+    assert (block->status.headerProofRequest == BLOCK_REQUEST_PENDING);
+    block->status.headerProofRequest = BLOCK_REQUEST_COMPLETE;
+    block->status.headerProof = proof;
+}
+
 
 extern void
 blockReleaseStatus (BREthereumBlock block,
@@ -1272,31 +1315,38 @@ blockReleaseStatus (BREthereumBlock block,
         array_free (block->status.logs);
     block->status.logs = NULL;
 
+    // Gas Used
     if (NULL != block->status.gasUsed)
         array_free (block->status.gasUsed);
     block->status.gasUsed = NULL;
+
+    // Account State
+    // Header Proof
 }
 
 static BRRlpItem
 blockStatusRlpEncode (BREthereumBlockStatus status,
                       BRRlpCoder coder) {
-    BRRlpItem items[6];
+    BRRlpItem items[8];
 
-    uint64_t flags = ((status.transactionRequest << 4) |
-                      (status.logRequest << 2) |
-                      (status.accountStateRequest << 0));
+    uint64_t flags = ((status.transactionRequest << 6) |
+                      (status.logRequest << 4) |
+                      (status.accountStateRequest << 2) |
+                      (status.headerProofRequest << 0));
 
     items[0] = hashRlpEncode(status.hash, coder);
     items[1] = rlpEncodeUInt64(coder, flags, 1);
 
     // TODO: Fill out
-    items[2] = rlpEncodeString(coder, "");
-    items[3] = rlpEncodeString(coder, "");
-    items[4] = accountStateRlpEncode(status.accountState, coder);
+    items[2] = rlpEncodeString(coder, "");   // transactions
+    items[3] = rlpEncodeString(coder, "");   // logs
+    items[4] = rlpEncodeString(coder, "");   // gasUsed
+    items[5] = accountStateRlpEncode(status.accountState, coder);
+    items[6] = rlpEncodeString(coder, "");   // headerProof
 
-    items[5] = rlpEncodeUInt64(coder, status.error, 0);
+    items[7] = rlpEncodeUInt64(coder, status.error, 0);
 
-    return rlpEncodeListItems(coder, items, 6);
+    return rlpEncodeListItems(coder, items, 8);
 }
 
 static BREthereumBlockStatus
@@ -1306,21 +1356,24 @@ blockStatusRlpDecode (BRRlpItem item,
 
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
-    assert (6 == itemsCount);
+    assert (8 == itemsCount);
 
     status.hash = hashRlpDecode(items[0], coder);
 
     uint64_t flags = rlpDecodeUInt64(coder, items[1], 1);
-    status.transactionRequest = 0x3 & (flags >> 4);
-    status.logRequest = 0x3 & (flags >> 2);
-    status.accountStateRequest = 0x3 & (flags >> 0);
+    status.transactionRequest  = 0x3 & (flags >> 6);
+    status.logRequest          = 0x3 & (flags >> 4);
+    status.accountStateRequest = 0x3 & (flags >> 2);
+    status.headerProofRequest  = 0x3 & (flags >> 0);
 
     // TODO: Fill Out
     status.transactions = NULL;  // items [2]
     status.logs = NULL; // items [3]
-    status.accountState = accountStateRlpDecode(items[4], coder);
+    status.gasUsed = NULL; // items [4]
+    status.accountState = accountStateRlpDecode(items[5], coder);
+    status.headerProof = (BREthereumBlockHeaderProof) { EMPTY_HASH_INIT, UINT256_ZERO }; // items[6]
 
-    status.error = (BREthereumBoolean) rlpDecodeUInt64(coder, items[5], 0);
+    status.error = (BREthereumBoolean) rlpDecodeUInt64(coder, items[7], 0);
     return status;
 }
 

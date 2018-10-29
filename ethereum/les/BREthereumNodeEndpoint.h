@@ -130,7 +130,8 @@ nodeEndpointShowHello (BREthereumNodeEndpoint endpoint);
  */
 extern BREthereumBoolean
 nodeEndpointHasHelloCapability (BREthereumNodeEndpoint endpoint,
-                                const char *name);
+                                const char *name,
+                                uint32_t version);
 
 /**
  * Return the first `source` capability matched by `target`
