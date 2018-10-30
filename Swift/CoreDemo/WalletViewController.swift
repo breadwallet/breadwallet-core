@@ -134,11 +134,13 @@ class WalletViewController: UITableViewController, TransferListener {
     func announceTransferEvent(ewm: EthereumWalletManager, wallet: EthereumWallet, transfer: EthereumTransfer, event: EthereumTransferEvent) {
         switch event {
         case .created:
-            assert (!transfers.contains(transfer))
+//            assert (!transfers.contains(transfer))
             DispatchQueue.main.async {
-                self.transfers.append(transfer)
-                let path = IndexPath (row: (self.transfers.count - 1), section: 0)
-                self.tableView.insertRows (at: [path], with: .automatic)
+                if !self.transfers.contains(transfer) {
+                    self.transfers.append(transfer)
+                    let path = IndexPath (row: (self.transfers.count - 1), section: 0)
+                    self.tableView.insertRows (at: [path], with: .automatic)
+                }
             }
         case .blocked:
             break

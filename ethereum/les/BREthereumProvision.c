@@ -214,12 +214,15 @@ provisionCreateMessageLES (BREthereumProvision *provisionMulti,
                 case 0: {
                     BRArrayOf(BREthereumTransaction) transactions;
                     array_new (transactions, 1);
-                    array_add (transactions, provision->transaction);
+
+                    // TODO: We don't have a way to avoid consuming 'transactions' - so copy
+                    // the transaction thereby allow a complete release.
+                    array_add (transactions, transactionCopy (provision->transaction));
 
                     return (BREthereumMessage) {
                         MESSAGE_LES,
                         { .les = {
-                            LES_MESSAGE_SEND_TX,
+                            LES_MESSAGE_SEND_TX2,
                             { .sendTx2 = { messageId, transactions }}}}
                     };
                 }
@@ -591,7 +594,10 @@ provisionCreateMessagePIP (BREthereumProvision *provisionMulti,
                 case 0: {
                     BRArrayOf(BREthereumTransaction) transactions;
                     array_new (transactions, 1);
-                    array_add (transactions, provision->transaction);
+
+                    // TODO: We don't have a way to avoid consuming 'transactions' - so copy
+                    // the transaction thereby allow a complete release.
+                    array_add (transactions, transactionCopy (provision->transaction));
 
                     return (BREthereumMessage) {
                         MESSAGE_PIP,
