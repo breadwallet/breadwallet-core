@@ -1818,11 +1818,18 @@ bcsPeriodicDispatcher (BREventHandler handler,
     // TODO: Avoid-ish a race condition on bcsRelease. This is the wrong approach.
     if (NULL == bcs->les) return;
 
+    // We'll request status for each `pendingTransaction`.  Because lesProvideTransactionStatus
+    // takes ownership of the transaction hashes, we'll need a copy.
+    BRArrayOf(BREthereumHash) hashes;
+
+    array_new (hashes, array_count(bcs->pendingTransactions));
+    array_add_array (hashes, bcs->pendingTransactions, array_count(bcs->pendingTransactions));
+
     lesProvideTransactionStatus (bcs->les,
                                  NODE_REFERENCE_ANY,
                                  (BREthereumLESProvisionContext) bcs,
                                  (BREthereumLESProvisionCallback) bcsSignalProvision,
-                                 bcs->pendingTransactions);
+                                 hashes);
 }
 
 ///
