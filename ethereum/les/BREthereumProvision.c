@@ -222,8 +222,8 @@ provisionCreateMessageLES (BREthereumProvision *provisionMulti,
                     return (BREthereumMessage) {
                         MESSAGE_LES,
                         { .les = {
-                            LES_MESSAGE_SEND_TX,
-                            { .sendTx = { messageId, transactions }}}}
+                            LES_MESSAGE_SEND_TX2,
+                            { .sendTx2 = { messageId, transactions }}}}
                     };
                 }
                 case 1: {
