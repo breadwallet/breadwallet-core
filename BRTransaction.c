@@ -207,7 +207,7 @@ static size_t _BRTransactionWitnessData(const BRTransaction *tx, uint8_t *data, 
     BRTxInput input;
     int anyoneCanPay = (hashType & SIGHASH_ANYONECANPAY), sigHash = (hashType & 0x1f);
     size_t i, off = 0;
-    uint8_t scriptCode[] = { 25, OP_DUP, OP_HASH160, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    uint8_t scriptCode[] = { OP_DUP, OP_HASH160, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                              OP_EQUALVERIFY, OP_CHECKSIG };
 
     if (index >= tx->inCount) return 0;
@@ -242,7 +242,7 @@ static size_t _BRTransactionWitnessData(const BRTransaction *tx, uint8_t *data, 
     input.sigLen = input.scriptLen;
 
     if (input.scriptLen == 22 && input.script[0] == OP_0 && input.script[1] == 20) { // P2WPKH scriptCode
-        memcpy(&scriptCode[4], &input.script[2], 20);
+        memcpy(&scriptCode[3], &input.script[2], 20);
         input.signature = scriptCode;
         input.sigLen = sizeof(scriptCode);
     }
