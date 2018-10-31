@@ -26,10 +26,10 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated);
         amountSlider.minimumValue = 0.0
-        amountSlider.maximumValue = 0.01  //  Float (wallet.balance.amount)!
+        amountSlider.maximumValue = 0.001  //  Float (wallet.balance.amount)!
         amountSlider.value = 0.0
         recvField.text = (UIApplication.sharedClient.network == EthereumNetwork.mainnet
-            ? "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62"
+            ? "0x19454a70538bfbdbd7abf3ac8d274d5cb2514056" /* "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62" */ 
             : "0xbDFdAd139440D2Db9BA2aa3B7081C2dE39291508");
         updateView()
     }
@@ -56,7 +56,7 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
                                                       gasLimit: self.gasLimit())
 
             self.wallet.sign(transfer: transfer,
-                             paperKey: "boring ...");
+                             paperKey: UIApplication.sharedClient.paperKey);
 
             self.wallet.submit(transfer: transfer);
             // Notify, close

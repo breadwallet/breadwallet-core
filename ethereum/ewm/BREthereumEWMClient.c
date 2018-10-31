@@ -488,8 +488,8 @@ extern void // status, error
 ewmWalletSubmitTransfer(BREthereumEWM ewm,
                         BREthereumWalletId wid,
                         BREthereumTransferId tid) {
-                            BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
-                            BREthereumTransfer transfer = ewmLookupTransfer(ewm, tid);
+    BREthereumWallet wallet = ewmLookupWallet(ewm, wid);
+    BREthereumTransfer transfer = ewmLookupTransfer(ewm, tid);
     // assert wallet-has-transfer
     // assert signed
 

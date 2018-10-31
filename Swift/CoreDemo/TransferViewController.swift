@@ -46,7 +46,34 @@ class TransferViewController: UIViewController {
         recvLabel.text = transfer.targetAddress
         identifierLabel.text = transfer.hash
         confLabel.text = transfer.confirmationBlockNumber.map { "Yes @ \($0.description)" } ?? "No"
+        if let errorReason = transfer.stateErrorReason {
+            stateLabel.text = "\(transfer.state.description): \(errorReason)"
+        }
+        else { stateLabel.text = transfer.state.description }
 
+        switch transfer.state {
+        case .errored:
+            cancelButton.isEnabled = true
+            resubmitButton.isEnabled = true
+        default:
+            cancelButton.isEnabled = false
+            resubmitButton.isEnabled = false
+       }
+
+        nonceLabel.text = transfer.nonce.description
+    }
+
+    @IBAction func doResubmit(_ sender: UIButton) {
+        NSLog ("Want to Resubmit")
+    }
+
+    /*
+     * Canceling means generating a 0 ETH transaction to Your Own Address with the purpose of
+     * preventing a previous transaction from "going through" / "being mined" / "being included in
+     * the blockchain" / "being stuck"
+     */
+    @IBAction func doCancel(_ sender: UIButton) {
+        NSLog ("Want to Cancel")
     }
 
     /*
@@ -65,6 +92,10 @@ class TransferViewController: UIViewController {
     @IBOutlet var recvLabel: CopyableLabel!
     @IBOutlet var identifierLabel: UILabel!
     @IBOutlet var confLabel: UILabel!
+    @IBOutlet var stateLabel: UILabel!
+    @IBOutlet var cancelButton: UIButton!
+    @IBOutlet var resubmitButton: UIButton!
+    @IBOutlet var nonceLabel: UILabel!
 }
 
 //

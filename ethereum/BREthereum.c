@@ -461,6 +461,14 @@ ethereumTransferGetBlockConfirmations(BREthereumEWM ewm,
             ? (ewmGetBlockHeight(ewm) - blockNumber)
             : 0);
 }
+
+extern BREthereumTransferStatusType
+ethereumTransferGetStatus (BREthereumEWM ewm,
+                           BREthereumTransferId tid) {
+    BREthereumTransfer transfer = ewmLookupTransfer(ewm, tid);
+    return transferGetStatusType(transfer);
+}
+
 extern BREthereumBoolean
 ethereumTransferIsConfirmed(BREthereumEWM ewm,
                                BREthereumTransferId tid) {
@@ -476,6 +484,19 @@ ethereumTransferIsSubmitted(BREthereumEWM ewm,
                                ETHEREUM_BOOLEAN_IS_TRUE(transferHasStatusTypeOrTwo(transaction,
                                                                                    TRANSFER_STATUS_INCLUDED,
                                                                                    TRANSFER_STATUS_ERRORED)));
+}
+
+extern char *
+ethereumTransferStatusGetError (BREthereumEWM ewm,
+                                BREthereumTransferId tid) {
+    BREthereumTransfer transfer = ewmLookupTransfer(ewm, tid);
+
+    if (TRANSFER_STATUS_ERRORED == transferGetStatusType(transfer)) {
+        char *reason;
+        transferExtractStatusError (transfer, &reason);
+        return reason;
+    }
+    else return NULL;
 }
 
 extern BREthereumBoolean

@@ -35,6 +35,7 @@ class WalletViewController: UITableViewController, TransferListener {
         if wallet != nil { // here on UI changes, like rotation before initialization of sharedClient.
             self.transfers = wallet.transfers;
             self.navigationItem.title = "Wallet: \(wallet.name)"
+            self.tableView.reloadData()
         }
         super.viewWillAppear(animated)
     }

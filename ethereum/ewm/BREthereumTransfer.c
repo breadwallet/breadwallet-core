@@ -56,7 +56,7 @@ typedef struct BREthereumTransferStatusRecord {
     } u;
 } BREthereumTransferStatus;
 
-static BREthereumTransferStatus
+extern BREthereumTransferStatus
 transferStatusCreate (BREthereumTransactionStatus status) {
     BREthereumTransferStatus result;
 
@@ -416,7 +416,9 @@ extern uint64_t
 transferGetNonce (BREthereumTransfer transfer) {
     return (NULL != transfer->originatingTransaction
             ? transactionGetNonce(transfer->originatingTransaction)
-            : TRANSACTION_NONCE_IS_NOT_ASSIGNED);
+            : (TRANSFER_BASIS_TRANSACTION == transfer->basis.type && NULL != transfer->basis.u.transaction
+               ? transactionGetNonce(transfer->basis.u.transaction)
+               : TRANSACTION_NONCE_IS_NOT_ASSIGNED));
 }
 
 extern BREthereumEther
@@ -433,6 +435,26 @@ transferGetFee (BREthereumTransfer transfer, int *overflow) {
 ///
 /// MARK: - Status
 ///
+extern void
+transferUpdateStatus (BREthereumTransfer transfer,
+                      BREthereumTransactionStatus status) {
+    switch (transfer->basis.type){
+        case TRANSFER_BASIS_TRANSACTION:
+            transactionSetStatus (transfer->basis.u.transaction, status);
+            break;
+        case TRANSFER_BASIS_LOG:
+            logSetStatus (transfer->basis.u.log, status);
+            break;
+    }
+
+    transfer->status = transferStatusCreate(status);
+}
+
+extern BREthereumTransferStatusType
+transferGetStatusType (BREthereumTransfer transfer) {
+    return transfer->status.type;
+}
+
 extern BREthereumBoolean
 transferHasStatusType (BREthereumTransfer transfer,
                        BREthereumTransferStatusType type) {
