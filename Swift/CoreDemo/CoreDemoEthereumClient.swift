@@ -77,6 +77,7 @@ class CoreDemoEthereumClient : EthereumClient {
         // JSON_RPC -> [JSON] -> forEach {Result -> announceSubmitTransaction()}
         switch address.lowercased() {
         case "0xb0F225defEc7625C6B5E43126bdDE398bD90eF62".lowercased():
+            /*
             ewm.announceTransaction(rid: rid,
                                     hash: "0xaa6dd4bc0c4411cc83778a1258c8c9f1a2a5e131cc50ddd2d4145a21564a8d0c",
                                     sourceAddr: "0x19454a70538bfbdbd7abf3ac8d274d5cb2514056",
@@ -112,6 +113,8 @@ class CoreDemoEthereumClient : EthereumClient {
                                     blockTransactionIndex: "38",
                                     blockTimestamp: "1516477482",
                                     isError: "0")
+ */
+            break
         default:
             ewm.announceTransaction(rid: rid,
                                     hash: "0x4f992a47727f5753a9272abba36512c01e748f586f6aef7aed07ae37e737d220",
@@ -291,7 +294,7 @@ class CoreDemoEthereumClient : EthereumClient {
     }
 
     func getNonce(ewm: EthereumWalletManager, address: String, rid: Int32) {
-        ewm.announceNonce(address: address, nonce: "5", rid: rid)
+        ewm.announceNonce(address: address, nonce: "8", rid: rid)
     }
 
     func saveNodes(ewm: EthereumWalletManager,

@@ -1783,13 +1783,14 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
             // Case 'c.2': If the newStatus is UNKNONW and the oldStatus was not - then the
             // transaction got unceremoniously dropped.
             // https://github.com/ethereum/go-ethereum/issues/18013
-//            else if (TRANSACTION_STATUS_UNKNOWN == status.type &&
-//                     TRANSACTION_STATUS_UNKNOWN != oldStatus.type) {
-//                transactionSetStatus (transaction, transactionStatusCreateErrored("unceremoniously dropped"));
-//                if (-1 != pendingIndex) array_rm(bcs->pendingTransactions, pendingIndex);
-//                needSignal = 1;
-//                pendingIndex = -1;
-//            }
+            else if (TRANSACTION_STATUS_UNKNOWN == status.type &&
+                     TRANSACTION_STATUS_UNKNOWN != oldStatus.type) {
+                transactionSetStatus (transaction, transactionStatusCreateErrored (TRANSACTION_ERROR_DROPPED,
+                                                                                   "unceremoniously dropped"));
+                if (-1 != pendingIndex) array_rm(bcs->pendingTransactions, pendingIndex);
+                needSignal = 1;
+                pendingIndex = -1;
+            }
 
             // Case 'c.3': If the oldStatus and newStatus differ, update the transaction and
             // report the 'progress'
@@ -1808,7 +1809,9 @@ bcsHandleTransactionStatus (BREthereumBCS bcs,
             status.type,
             -1 != pendingIndex,
             (TRANSACTION_STATUS_ERRORED == status.type ? ", Error: " : ""),
-            (TRANSACTION_STATUS_ERRORED == status.type ? status.u.errored.reason : ""));
+            (TRANSACTION_STATUS_ERRORED == status.type ? transactionGetErrorName(status.u.errored.type) : "")
+//            (TRANSACTION_STATUS_ERRORED == status.type ? status.u.errored.detail : ""));
+            );
 
     if (needSignal) bcsSignalTransaction(bcs, transactionCopy(transaction));
 }

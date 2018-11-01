@@ -542,6 +542,18 @@ messageLESTxStatusConsume (BREthereumLESMessageTxStatus *message,
     if (NULL != stati) { *stati = message->stati; message->stati = NULL; }
 }
 
+const char *lesTransactionErrorPreface[] = {
+    "invalid sender",
+    "nonce too low",
+    "insufficient funds for gas * price + value",
+    "transaction underpriced",
+    "intrinsic gas too low",
+    "replacement transaction underpriced",
+    "____", // dropped
+    "unknown"
+};
+
+
 static BREthereumLESMessageTxStatus
 messageLESTxStatusDecode (BRRlpItem item,
                           BREthereumMessageCoder coder) {
@@ -555,7 +567,7 @@ messageLESTxStatusDecode (BRRlpItem item,
     return (BREthereumLESMessageTxStatus) {
         reqId,
         bv,
-        transactionStatusDecodeList (items[2], coder.rlp)
+        transactionStatusDecodeList (items[2], lesTransactionErrorPreface, coder.rlp)
     };
 }
 

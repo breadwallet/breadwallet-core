@@ -42,18 +42,15 @@ class WalletViewController: UITableViewController, TransferListener {
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
     }
 
     // MARK: - Table view data source
 
     override func numberOfSections(in tableView: UITableView) -> Int {
-        // #warning Incomplete implementation, return the number of sections
         return 1
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        // #warning Incomplete implementation, return the number of rows
         return transfers.count
     }
 
@@ -84,6 +81,7 @@ class WalletViewController: UITableViewController, TransferListener {
         let transfer = transfers[indexPath.row];
 
         cell.transfer = transfer
+        cell.updateView()
         return cell
      }
 
@@ -143,12 +141,24 @@ class WalletViewController: UITableViewController, TransferListener {
                     self.tableView.insertRows (at: [path], with: .automatic)
                 }
             }
-        case .blocked:
-            break
+
         case .deleted:
-            break
+            DispatchQueue.main.async {
+                if let index = self.transfers.firstIndex(of: transfer) {
+                    self.transfers.remove(at: index)
+                    let path = IndexPath (row: index, section: 0)
+                    self.tableView.deleteRows(at: [path], with: .automatic)
+                }
+            }
+
         default:
-            break
+            DispatchQueue.main.async {
+                self.tableView.reloadData()
+//                if let index = self.transfers.firstIndex(of: transfer) {
+//                    let path = IndexPath (row: index, section: 0)
+//                    self.tableView.reloadRows(at: [path], with: .automatic)
+//                }
+            }
         }
     }
 }

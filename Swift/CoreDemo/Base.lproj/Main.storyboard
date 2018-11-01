@@ -187,6 +187,15 @@
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" lineBreakMode="middleTruncation" baselineAdjustment="alignBaselines" adjustsLetterSpacingToFitWidth="YES" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="W6B-wc-UDS">
+                                <rect key="frame" x="16" y="576" width="343" height="17"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="17" id="bXz-lE-ih8"/>
+                                </constraints>
+                                <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                             <button opaque="NO" contentMode="scaleToFill" enabled="NO" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="x5c-ne-Y7v">
                                 <rect key="frame" x="16" y="515" width="156" height="30"/>
                                 <constraints>
@@ -209,15 +218,11 @@
                                     <action selector="doResubmit:" destination="hSS-q9-i3e" eventType="touchUpInside" id="mVK-Zi-SZz"/>
                                 </connections>
                             </button>
-                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Label" lineBreakMode="middleTruncation" baselineAdjustment="alignBaselines" adjustsLetterSpacingToFitWidth="YES" adjustsFontForContentSizeCategory="YES" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="W6B-wc-UDS">
-                                <rect key="frame" x="16" y="576" width="343" height="17"/>
-                                <constraints>
-                                    <constraint firstAttribute="height" constant="17" id="bXz-lE-ih8"/>
-                                </constraints>
-                                <fontDescription key="fontDescription" type="system" pointSize="14"/>
-                                <nil key="textColor"/>
-                                <nil key="highlightedColor"/>
-                            </label>
+                            <view contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="rRL-RR-uWP" customClass="Dot" customModule="CoreDemo" customModuleProvider="target">
+                                <rect key="frame" x="334" y="439" width="25" height="25"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                            </view>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <constraints>
@@ -281,6 +286,7 @@
                         <outlet property="cancelButton" destination="x5c-ne-Y7v" id="CrQ-79-1Yn"/>
                         <outlet property="confLabel" destination="XO7-1V-dpo" id="9hj-Tr-JTJ"/>
                         <outlet property="dateLabel" destination="pSY-xF-fdu" id="4jQ-c0-xwD"/>
+                        <outlet property="dotView" destination="rRL-RR-uWP" id="RU8-2b-0ua"/>
                         <outlet property="feeLabel" destination="mx1-cF-5NT" id="GJC-ou-ksC"/>
                         <outlet property="identifierLabel" destination="MLN-bC-1fP" id="Uap-5B-543"/>
                         <outlet property="nonceLabel" destination="W6B-wc-UDS" id="G3z-Dp-UgD"/>
@@ -418,12 +424,18 @@
                                             <nil key="textColor"/>
                                             <nil key="highlightedColor"/>
                                         </label>
+                                        <view contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Mg6-h1-KR3" customClass="Dot" customModule="CoreDemo" customModuleProvider="target">
+                                            <rect key="frame" x="308" y="37" width="25" height="25"/>
+                                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                            <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                        </view>
                                     </subviews>
                                 </tableViewCellContentView>
                                 <connections>
                                     <outlet property="addrLabel" destination="JGa-uw-4AK" id="xwR-l9-pDz"/>
                                     <outlet property="amountLabel" destination="bHi-Q7-GbW" id="VeB-6F-hw3"/>
                                     <outlet property="dateLabel" destination="Vs6-WF-YpN" id="L0O-vA-Jgj"/>
+                                    <outlet property="dotView" destination="Mg6-h1-KR3" id="sNK-Wp-cie"/>
                                     <outlet property="feeLabel" destination="V9e-PD-cFx" id="Gkb-Ja-aen"/>
                                     <segue destination="vC3-pB-5Vb" kind="showDetail" identifier="showTransfer" id="hpU-Dg-py6"/>
                                 </connections>
@@ -546,7 +558,7 @@
                                 <segments>
                                     <segment title="15"/>
                                     <segment title="5"/>
-                                    <segment title="0"/>
+                                    <segment title="1"/>
                                 </segments>
                                 <connections>
                                     <action selector="gasPriceChanged:" destination="G47-GP-HJH" eventType="valueChanged" id="wim-Pz-cBg"/>

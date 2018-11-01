@@ -37,7 +37,7 @@ transferProvideOriginatingTransaction (BREthereumTransfer transfer);
 //
 // MARK: - Status
 //
-#define TRANSFER_STATUS_REASON_BYTES   \
+#define TRANSFER_STATUS_DETAIL_BYTES   \
 (sizeof (BREthereumGas) + sizeof (BREthereumHash) + 2 * sizeof(uint64_t))
 
 typedef struct BREthereumTransferStatusRecord {
@@ -51,7 +51,8 @@ typedef struct BREthereumTransferStatusRecord {
         } included;
         
         struct {
-            char reason[TRANSFER_STATUS_REASON_BYTES + 1];
+            BREthereumTransactionErrorType type;
+            char detail[TRANSFER_STATUS_DETAIL_BYTES + 1];
         } errored;
     } u;
 } BREthereumTransferStatus;
@@ -80,8 +81,9 @@ transferStatusCreate (BREthereumTransactionStatus status) {
 
         case TRANSACTION_STATUS_ERRORED:
             result.type = TRANSFER_STATUS_ERRORED;
-            memset (result.u.errored.reason, 0, TRANSFER_STATUS_REASON_BYTES + 1);
-            strncpy (result.u.errored.reason, status.u.errored.reason, TRANSFER_STATUS_REASON_BYTES);
+            result.u.errored.type = status.u.errored.type;
+            memset (result.u.errored.detail, 0, TRANSFER_STATUS_DETAIL_BYTES + 1);
+            strncpy (result.u.errored.detail, status.u.errored.detail, TRANSFER_STATUS_DETAIL_BYTES);
             break;
 
         default:
@@ -490,7 +492,7 @@ transferExtractStatusError (BREthereumTransfer transfer,
                             char **reason) {
     if (TRANSFER_STATUS_ERRORED != transfer->status.type) return 0;
     
-    if (NULL != reason) *reason = strdup (transfer->status.u.errored.reason);
+    if (NULL != reason) *reason = strdup (transactionGetErrorName (transfer->status.u.errored.type));
     
     return 1;
 }

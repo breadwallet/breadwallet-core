@@ -52,7 +52,7 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
                                                       amount: self.amountSlider.value.description,
                                                       unit: EthereumAmountUnit.defaultUnitEther,
                                                       gasPrice: self.gasPrice(),
-                                                      gasPriceUnit: EthereumAmountUnit.etherGWEI,
+                                                      gasPriceUnit: EthereumAmountUnit.etherWEI,
                                                       gasLimit: self.gasLimit())
 
             self.wallet.sign(transfer: transfer,
@@ -83,7 +83,7 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
     func updateView () {
         let amount = amountSlider.value
 
-        let fee = Double (gasPrice() * gasLimit()) / 1e9
+        let fee = Double (gasPrice() * gasLimit()) / 1e18
         feeLabel.text = "\(fee) ETH"
 
         amountMinLabel.text = amountSlider.minimumValue.description
@@ -98,11 +98,12 @@ class TransferCreateController: UIViewController, UITextViewDelegate {
         submitButton.isEnabled = (0.0 != amountSlider.value && recvField.text != "")
     }
 
+    // In WEI
     func gasPrice () -> UInt64 {
         switch (gasPriceSegmentedController.selectedSegmentIndex) {
-        case 0: return  15
-        case 1: return 5
-        case 2: return 0
+        case 0: return   15 * 1000000000 // 15    GWEI
+        case 1: return    5 * 1000000000 //  5    GWEI
+        case 2: return 1001 *    1000000 // 1.001 GWEI
         default: return 5
         }
     }

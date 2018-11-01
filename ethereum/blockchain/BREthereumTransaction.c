@@ -442,7 +442,7 @@ transactionRlpDecode (BRRlpItem item,
 
     if (RLP_TYPE_ARCHIVE == type) {
         transaction->hash = hashRlpDecode(items[9], coder);
-        transaction->status = transactionStatusRLPDecode(items[10], coder);
+        transaction->status = transactionStatusRLPDecode(items[10], NULL, coder);
     }
     // With a SIGNED RLP encoding, we can compute the hash.
     else if (RLP_TYPE_TRANSACTION_SIGNED == type) {

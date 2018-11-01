@@ -27,6 +27,22 @@
 #include <assert.h>
 #include "BREthereumTransactionStatus.h"
 
+const char *
+transactionGetErrorName (BREthereumTransactionErrorType type) {
+    static const char *names[] = {
+        "* invalid signature",
+        "* nonce too low",
+        "* balance too low",
+        "* gas price too low",
+        "* gas too low",
+        "* replacement under-pricesd",
+        "* dropped",
+        "* unknown"
+    };
+
+    return names[type];
+}
+
 extern BREthereumTransactionStatus
 transactionStatusCreate (BREthereumTransactionStatusType type) {
     assert (TRANSACTION_STATUS_INCLUDED != type && TRANSACTION_STATUS_ERRORED != type);
@@ -50,10 +66,12 @@ transactionStatusCreateIncluded (BREthereumGas gasUsed,
 }
 
 extern BREthereumTransactionStatus
-transactionStatusCreateErrored (const char *reason) {
+transactionStatusCreateErrored (BREthereumTransactionErrorType type,
+                                const char *detail) {
     BREthereumTransactionStatus status;
     status.type = TRANSACTION_STATUS_ERRORED;
-    strlcpy (status.u.errored.reason, reason, TRANSACTION_STATUS_REASON_BYTES);
+    status.u.errored.type = type;
+    strlcpy (status.u.errored.detail, detail, TRANSACTION_STATUS_DETAIL_BYTES);
     return status;
 }
 
@@ -85,12 +103,29 @@ transactionStatusEqual (BREthereumTransactionStatus ts1,
                                  ts1.u.included.blockNumber == ts2.u.included.blockNumber &&
                                  ts1.u.included.transactionIndex == ts2.u.included.transactionIndex) ||
                                 (TRANSACTION_STATUS_ERRORED == ts1.type &&
-                                 0 == strcmp (ts1.u.errored.reason, ts2.u.errored.reason))));
+                                 ts1.u.errored.type == ts2.u.errored.type &&
+                                 0 == strcmp (ts1.u.errored.detail, ts2.u.errored.detail))));
 }
 
 
+static BREthereumTransactionErrorType
+lookupTransactionErrorType (const char *reasons[],
+                            const char *reason) {
+    for (BREthereumTransactionErrorType type = TRANSACTION_ERROR_INVALID_SIGNATURE;
+         type <= TRANSACTION_ERROR_UNKNOWN;
+         type++) {
+        if (0 == strncmp (reason, reasons[type], strlen(reasons[type])))
+            return type;
+    }
+    return TRANSACTION_ERROR_UNKNOWN;
+}
+
+//
+// NOTE: THIS IS LES SPECIFIC
+//
 extern BREthereumTransactionStatus
 transactionStatusRLPDecode (BRRlpItem item,
+                            const char *reasons[],
                             BRRlpCoder coder) {
     size_t itemsCount = 0;
     const BRRlpItem *items = rlpDecodeList(coder, item, &itemsCount);
@@ -101,7 +136,8 @@ transactionStatusRLPDecode (BRRlpItem item,
     // type to be TRANSACTION_STATUS_ERRORED.
     char *reason = rlpDecodeString(coder, items[2]);
     if (NULL != reason && 0 != strcmp (reason, "") && 0 != strcmp (reason, "0x")) {
-        BREthereumTransactionStatus status = transactionStatusCreateErrored(reason);
+        BREthereumTransactionErrorType type = lookupTransactionErrorType (reasons, reason);
+        BREthereumTransactionStatus status = transactionStatusCreateErrored (type, reason);
         free (reason);
         return status;
     }
@@ -129,13 +165,17 @@ transactionStatusRLPDecode (BRRlpItem item,
         case TRANSACTION_STATUS_ERRORED: {
             // We should not be here....
             char *reason = rlpDecodeString(coder, items[2]);
-            BREthereumTransactionStatus status = transactionStatusCreateErrored(reason);
+            BREthereumTransactionErrorType type = lookupTransactionErrorType (reasons, reason);
+            BREthereumTransactionStatus status = transactionStatusCreateErrored (type, reason);
             free (reason);
             return status;
         }
     }
 }
 
+//
+// NOTE: THIS IS LES SPECIFIC
+//
 extern BRRlpItem
 transactionStatusRLPEncode (BREthereumTransactionStatus status,
                             BRRlpCoder coder) {
@@ -162,7 +202,7 @@ transactionStatusRLPEncode (BREthereumTransactionStatus status,
 
         case TRANSACTION_STATUS_ERRORED:
             items[1] = rlpEncodeList(coder, 0);
-            items[2] = rlpEncodeString(coder, status.u.errored.reason);
+            items[2] = rlpEncodeString(coder, status.u.errored.detail);
             break;
     }
 
@@ -171,6 +211,7 @@ transactionStatusRLPEncode (BREthereumTransactionStatus status,
 
 extern BRArrayOf (BREthereumTransactionStatus)
 transactionStatusDecodeList (BRRlpItem item,
+                             const char *reasons[],
                              BRRlpCoder coder) {
     size_t itemCount;
     const BRRlpItem *items = rlpDecodeList (coder, item, &itemCount);
@@ -178,7 +219,7 @@ transactionStatusDecodeList (BRRlpItem item,
     BRArrayOf (BREthereumTransactionStatus) stati;
     array_new (stati, itemCount);
     for (size_t index = 0; index < itemCount; index++)
-        array_add (stati, transactionStatusRLPDecode (items[index], coder));
+        array_add (stati, transactionStatusRLPDecode (items[index], reasons, coder));
 
     return stati;
 }

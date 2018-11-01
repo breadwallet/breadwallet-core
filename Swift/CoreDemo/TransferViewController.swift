@@ -28,6 +28,17 @@ class TransferViewController: UIViewController {
         // Dispose of any resources that can be recreated.
     }
 
+    func colorForState() -> UIColor {
+        guard let state = transfer?.state else { return UIColor.black }
+        switch state {
+        case .created: return UIColor.gray
+        case .signed: return UIColor.blue
+        case .submitted: return UIColor.yellow
+        case .included: return UIColor.green
+        case .errored:  return UIColor.red
+        }
+    }
+
     func canonicalAmount (_ amount: EthereumAmount, sign: String, symbol: String) -> String {
         var result = amount.amount.trimmingCharacters(in: CharacterSet (charactersIn: "0 "))
         if result == "." || result == "" || result == "0." || result == ".0" {
@@ -61,6 +72,7 @@ class TransferViewController: UIViewController {
        }
 
         nonceLabel.text = transfer.nonce.description
+        dotView.mainColor = colorForState()
     }
 
     @IBAction func doResubmit(_ sender: UIButton) {
@@ -96,54 +108,6 @@ class TransferViewController: UIViewController {
     @IBOutlet var cancelButton: UIButton!
     @IBOutlet var resubmitButton: UIButton!
     @IBOutlet var nonceLabel: UILabel!
+    @IBOutlet var dotView: Dot!
 }
 
-//
-//
-//
-class CopyableLabel: UILabel {
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        self.sharedInit()
-    }
-
-    required init?(coder aDecoder: NSCoder) {
-        super.init(coder: aDecoder)
-        self.sharedInit()
-    }
-
-    func sharedInit() {
-        self.isUserInteractionEnabled = true
-        self.addGestureRecognizer(UILongPressGestureRecognizer(target: self, action: #selector(self.showMenu)))
-    }
-
-    @objc func showMenu(sender: AnyObject?) {
-        self.becomeFirstResponder()
-
-        let menu = UIMenuController.shared
-
-        if !menu.isMenuVisible {
-            menu.setTargetRect(bounds, in: self)
-            menu.setMenuVisible(true, animated: true)
-        }
-    }
-
-    override func copy(_ sender: Any?) {
-        let board = UIPasteboard.general
-
-        board.string = text
-
-        let menu = UIMenuController.shared
-
-        menu.setMenuVisible(false, animated: true)
-    }
-
-    override var canBecomeFirstResponder: Bool {
-        return true
-    }
-
-    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
-        return action == #selector(UIResponderStandardEditActions.copy)
-    }
-}

@@ -1266,6 +1266,7 @@ public enum EthereumAmountUnit {
     static public let defaultUnitToken = EthereumAmountUnit.token (TOKEN_QUANTITY_TYPE_DECIMAL)
 
     static public let etherGWEI = EthereumAmountUnit.ether (GWEI);
+    static public let etherWEI  = EthereumAmountUnit.ether (WEI);
 
     static func defaultUnit (_ forEther : Bool) -> EthereumAmountUnit {
         return forEther ? defaultUnitEther : defaultUnitToken
