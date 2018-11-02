@@ -918,6 +918,13 @@ lesHandleSelectError (BREthereumLES les,
     }
 }
 
+static int
+lesNodeHandlesProvisionType (BREthereumLES les,
+                             BREthereumNode node,
+                             BREthereumProvisionType type) {
+    return 1;
+}
+
 static void *
 lesThread (BREthereumLES les) {
 #if defined (__ANDROID__)
@@ -964,26 +971,6 @@ lesThread (BREthereumLES les) {
             array_clear (nodesToRemove);
         }
 
-        // We may have deactivate a node. Thus, a request with a `nodeRequest` might now be
-        // referencing an inactive node.  For example, if we had a 'announce' (with a new chain
-        // head) and have requests to fill out the bodies+receipts using the same node, then those
-        // requests should fail.  Probably.
-        //
-        // In the case of an `announce` it is not such a big deal - another active node will
-        // announce and we'll get the bodies+recepts then.  Even if the other node announced a
-        // different, subsequent block, our sync will go back to get the missed block's data.
-        //
-        // In the case of an `sync` we'll need fail the sync and let is restart.
-
-
-        //
-        // Our preferredNode is an active TCP (P2P, ETH, LES, PIP) node at index 0; any request w/
-        // a GENERIC reference will get assigned the preferred node.
-        //
-        BREthereumNode preferredNode = (array_count(les->activeNodesByRoute[NODE_ROUTE_TCP]) > 0
-                                        ? les->activeNodesByRoute[NODE_ROUTE_TCP][0]
-                                        : NULL);
-
         //
         // Handle any/all pending requests by 'establishing a provision' in the requested node.  If
         // the requested node is not connected the request must fail.
@@ -991,14 +978,45 @@ lesThread (BREthereumLES les) {
         size_t requestsToFailCount = 0;
         size_t requestsToFail [array_count (les->requests)];
 
+        //
+        // Look at every request one-by-one.  If it has not been previously handled and a node is
+        // available for handling it, then handle the request's provision
+        //
         for (size_t index = 0; index < array_count (les->requests); index++)
+
             // Only handle a reqeust if it hasn't been previously handled.
             if (NULL == les->requests[index].node) {
-                // If this request's node is a 'generic node', give it the preferred node
-                // otherwise use the requested node
-                BREthereumNode nodeToUse = (NODE_REFERENCE_IS_GENERIC(les->requests[index].nodeReference)
-                                            ? preferredNode
+                BREthereumNodeReference nodeRef = les->requests[index].nodeReference;
+
+                // We require all arbitary references to have been resolved when the
+                // provision was added as a request.  An `arbitary` reference is something like
+                // NODE_REFERENCE_{ANY,ALL} where the request did not specify a specific node
+                assert (!NODE_REFERENCE_IS_ARBITRARY(nodeRef));
+
+                // The request will be handled based on the `nodeReference` - if the reference is
+                // 'generic' we'll get a node from `activeNodesByRoute`; otherwise we'll use the
+                // specific node.
+
+#define ACTIVE_NODE(ref)                                                 \
+    (((int)(ref)) < array_count(les->activeNodesByRoute[NODE_ROUTE_TCP]) \
+     ? les->activeNodesByRoute[NODE_ROUTE_TCP][(int)(ref)]               \
+     : NULL)
+
+                BREthereumNode nodeToUse = (NODE_REFERENCE_IS_GENERIC (nodeRef)
+                                            ? ACTIVE_NODE (nodeRef)
                                             : (BREthereumNode) les->requests[index].nodeReference);
+#undef ACTIVE_NODE
+
+                // Sadly, not all nodes handle all provisions.  This owing to differences in the
+                // LESv2 and PIPv1 interfaces or the server, Geth or Parity, implementations.
+                if (NULL != nodeToUse &&
+                    !lesNodeHandlesProvisionType (les, nodeToUse, les->requests[index].provision.type)) {
+                    // TODO: ?? Fail the request - but we shouldn't mark the node is failed...
+                    eth_log (LES_LOG_TOPIC, "Node is Insufficient: %s, Type: %s, Provision: %s",
+                             nodeEndpointGetHostname (nodeGetRemoteEndpoint(nodeToUse)),
+                             nodeTypeGetName(nodeGetType(nodeToUse)),
+                             provisionGetTypeName(les->requests[index].provision.type));
+                }
 
                 // Only handle the request if `nodeToUse` is connected.
                 if (NULL != nodeToUse && nodeHasState (nodeToUse, NODE_ROUTE_TCP, NODE_CONNECTED)) {
@@ -1025,15 +1043,11 @@ lesThread (BREthereumLES les) {
                                          les->requests[index].provision);
                 }
 
-                // If not connected and we requsted the node, then the request must fail.
+                // ... but if `nodeToUse` is not connected and it was explicitly requested, then
+                // we must fail the request.  This is the case whereby: node 'X' announced a new
+                // block; we requested bodes; the node got disconnected - literally nothing to do.
                 else if (nodeToUse == (BREthereumNode) les->requests[index].nodeReference)
                     requestsToFail[requestsToFailCount++] = index;
-
-                // TODO: What about a 'multiple request', like a TxRelay?
-                // It is supposed to be sent/provisioned by multiple nodes?
-
-                // TODO: fail the provision if `nodeRefernce` is not connected.
-
             }
 
         // We've requests to fail because the requested node is not connected.  Invoke the
@@ -1274,6 +1288,16 @@ lesThread (BREthereumLES les) {
 /// MARK: - (Public) Provide (Headers, ...)
 ///
 
+static void
+lesAddRequestSpecifically (BREthereumLES les,
+                           BREthereumNodeReference node,
+                           BREthereumLESProvisionContext context,
+                           BREthereumLESProvisionCallback callback,
+                           OwnershipGiven BREthereumProvision provision) {
+    provision.identifier = les->requestsIdentifier++;
+    BREthereumLESRequest request = { context, callback, provision, node, NULL };
+    array_add (les->requests, request);
+}
 
 /**
  * Use `provision` it define a new LES request.  The request will be dispatched to the preferred
@@ -1290,12 +1314,21 @@ lesAddRequest (BREthereumLES les,
                BREthereumLESProvisionContext context,
                BREthereumLESProvisionCallback callback,
                OwnershipGiven BREthereumProvision provision) {
+    assert (PROVISION_IDENTIFIER_UNDEFINED == provision.identifier);
+
+    if (NODE_REFERENCE_NIL == node) node = NODE_REFERENCE_0;
+    if (NODE_REFERENCE_ANY == node) node = NODE_REFERENCE_0;
+
     pthread_mutex_lock (&les->lock);
-
-    provision.identifier = les->requestsIdentifier++;
-
-    BREthereumLESRequest request = { context, callback, provision, node, NULL };
-    array_add (les->requests, request);
+    if (NODE_REFERENCE_ALL != node)
+        lesAddRequestSpecifically (les, node, context, callback, provision);
+    else {
+        for (BREthereumNodeReference ns = NODE_REFERENCE_0; ns <= NODE_REFERENCE_4; ns++)
+            lesAddRequestSpecifically (les, ns, context, callback,
+                                       provisionCopy (&provision, ETHEREUM_BOOLEAN_FALSE));
+        // Handle `OwnershipGiven`
+        provisionRelease (&provision, ETHEREUM_BOOLEAN_TRUE);
+    }
     pthread_mutex_unlock (&les->lock);
 }
 

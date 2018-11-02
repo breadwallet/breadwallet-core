@@ -1850,7 +1850,7 @@ bcsPeriodicDispatcher (BREventHandler handler,
     array_add_array (hashes, bcs->pendingTransactions, array_count(bcs->pendingTransactions));
 
     lesProvideTransactionStatus (bcs->les,
-                                 NODE_REFERENCE_ANY,
+                                 NODE_REFERENCE_ALL,
                                  (BREthereumLESProvisionContext) bcs,
                                  (BREthereumLESProvisionCallback) bcsSignalProvision,
                                  hashes);
