@@ -65,9 +65,9 @@ struct BREthereumEWMRecord {
     BREthereumEWMState state;
 
     /**
-     * The Type of this EWM
+     * The Mode of this EWM
      */
-    BREthereumType type;
+    BREthereumMode mode;
 
     /**
      * The network

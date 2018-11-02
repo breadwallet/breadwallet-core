@@ -160,8 +160,7 @@ extern BREthereumEWM
 createEWM (BREthereumNetwork network,
            BREthereumAccount account,
            BREthereumTimestamp accountTimestamp,
-           BREthereumType type,
-           BREthereumSyncMode syncMode,
+           BREthereumMode mode,
            BREthereumClient client,
            BRSetOf(BREthereumHashDataPair) nodesPersistData,
            BRSetOf(BREthereumHashDataPair) blocksPersistData,
@@ -170,7 +169,7 @@ createEWM (BREthereumNetwork network,
     BREthereumEWM ewm = (BREthereumEWM) calloc (1, sizeof (struct BREthereumEWMRecord));
 
     ewm->state = LIGHT_NODE_CREATED;
-    ewm->type = type;
+    ewm->mode = mode;
     ewm->network = network;
     ewm->account = account;
     ewm->bcs = NULL;
@@ -189,7 +188,7 @@ createEWM (BREthereumNetwork network,
                                                 handlerForClientEventTypes,
                                                 handlerForClientEventTypesCount);
 
-    // The `main` event handler has a periodic wake-up.  Used, perhaps, if the syncMode indicates
+    // The `main` event handler has a periodic wake-up.  Used, perhaps, if the mode indicates
     // that we should/might query the BRD backend services.
     ewm->handlerForMain = eventHandlerCreate ("Core Ethereum EWM",
                                               handlerForMainEventTypes,
@@ -220,38 +219,38 @@ createEWM (BREthereumNetwork network,
     BRSetOf(BREthereumTransaction) transactions = createEWMEnsureTransactions(transactionsPersistData, network, ewm->coder);
     BRSetOf(BREthereumLog)         logs         = createEWMEnsureLogs(logsPersistData, network, ewm->coder);
 
-    // Support the requested type
-    switch (ewm->type) {
-        case EWM_USE_LES: {
-            // Create BCS - note: when BCS processes blocks, peers, transactions, and logs there
-            // will be callbacks made to the EWM client.  Because we've defined `handlerForMain`
-            // any callbacks will be queued and then handled when EWM actually starts
+    // Create the BCS listener - allows EWM to handle block, peer, transaction and log events.
+    BREthereumBCSListener listener = {
+        (BREthereumBCSCallbackContext) ewm,
+        (BREthereumBCSCallbackBlockchain) ewmSignalBlockChain,
+        (BREthereumBCSCallbackAccountState) ewmSignalAccountState,
+        (BREthereumBCSCallbackTransaction) ewmSignalTransaction,
+        (BREthereumBCSCallbackLog) ewmSignalLog,
+        (BREthereumBCSCallbackSaveBlocks) ewmSignalSaveBlocks,
+        (BREthereumBCSCallbackSavePeers) ewmSignalSaveNodes,
+        (BREthereumBCSCallbackSync) ewmSignalSync,
+        (BREthereumBCSCallbackGetBlocks) ewmSignalGetBlocks
+    };
 
-            // Create the BCS listener - allows EWM to handle block, peer, transaction and log events.
-            BREthereumBCSListener listener = {
-                (BREthereumBCSCallbackContext) ewm,
-                (BREthereumBCSCallbackBlockchain) ewmSignalBlockChain,
-                (BREthereumBCSCallbackAccountState) ewmSignalAccountState,
-                (BREthereumBCSCallbackTransaction) ewmSignalTransaction,
-                (BREthereumBCSCallbackLog) ewmSignalLog,
-                (BREthereumBCSCallbackSaveBlocks) ewmSignalSaveBlocks,
-                (BREthereumBCSCallbackSavePeers) ewmSignalSaveNodes,
-                (BREthereumBCSCallbackSync) ewmSignalSync,
-                (BREthereumBCSCallbackGetBlocks) ewmSignalGetBlocks
-            };
+    // Create BCS - note: when BCS processes blocks, peers, transactions, and logs there
+    // will be callbacks made to the EWM client.  Because we've defined `handlerForMain`
+    // any callbacks will be queued and then handled when EWM actually starts
+    //
 
+    // Support the requested mode
+    switch (ewm->mode) {
+        case BRD_ONLY:
+        case BRD_WITH_P2P_SEND: {
+            // Note: We'll create BCS even for the mode where we don't use it (BRD_ONLY).
             ewm->bcs = bcsCreate (network,
                                   accountGetPrimaryAddress (account),
                                   listener,
-                                  syncMode,
+                                  mode,
                                   nodes,
-                                  blocks,
-                                  transactions,
-                                  logs);
-            break;
-        }
+                                  NULL,
+                                  NULL,
+                                  NULL);
 
-        case EWM_USE_BRD: {
             // Announce all the provided transactions...
             FOR_SET (BREthereumTransaction, transaction, transactions)
                 ewmSignalTransaction (ewm, BCS_CALLBACK_TRANSACTION_ADDED, transaction);
@@ -286,19 +285,31 @@ createEWM (BREthereumNetwork network,
 
             break;
         }
+
+        case P2P_WITH_BRD_SYNC:
+        case P2P_ONLY: {
+            ewm->bcs = bcsCreate (network,
+                                  accountGetPrimaryAddress (account),
+                                  listener,
+                                  mode,
+                                  nodes,
+                                  blocks,
+                                  transactions,
+                                  logs);
+            break;
+        }
     }
+
+    // mark as 'sync in progress' - we can't sent transactions until we have the nonce.
 
     return ewm;
 }
 
 extern void
 ewmDestroy (BREthereumEWM ewm) {
-    assert (ewm->type == (NULL == ewm->bcs ? EWM_USE_BRD : EWM_USE_LES));
-
     ewmDisconnect(ewm);
 
-    if (NULL != ewm->bcs)
-        bcsDestroy(ewm->bcs);
+    bcsDestroy(ewm->bcs);
 
     walletsRelease (ewm->wallets);
     ewm->wallets = NULL;
@@ -319,13 +330,6 @@ ewmDestroy (BREthereumEWM ewm) {
 ///
 /// MARK: - Connect / Disconnect
 ///
-static BREthereumBoolean
-ewmIsConnected (BREthereumEWM ewm) {
-    switch (ewm->type) {
-        case EWM_USE_LES: return bcsIsStarted (ewm->bcs);
-        case EWM_USE_BRD: return AS_ETHEREUM_BOOLEAN (LIGHT_NODE_CONNECTED == ewm->state);
-    }
-}
 
 /**
  * ewmConnect() - Start EWM.  Returns TRUE if started, FALSE if is currently stated (TRUE
@@ -333,7 +337,6 @@ ewmIsConnected (BREthereumEWM ewm) {
  */
 extern BREthereumBoolean
 ewmConnect(BREthereumEWM ewm) {
-    assert (ewm->type == (NULL == ewm->bcs ? EWM_USE_BRD : EWM_USE_LES));
 
     // Nothing to do if already connected
     if (ETHEREUM_BOOLEAN_IS_TRUE (ewmIsConnected(ewm)))
@@ -343,8 +346,15 @@ ewmConnect(BREthereumEWM ewm) {
     // with `ewmPeriodicDispatcher`.
     ewm->state = LIGHT_NODE_CONNECTED;
 
-    if (NULL != ewm->bcs)
-        bcsStart(ewm->bcs);
+    switch (ewm->mode) {
+        case BRD_ONLY:
+            break;
+        case BRD_WITH_P2P_SEND:
+        case P2P_WITH_BRD_SYNC:
+        case P2P_ONLY:
+            bcsStart(ewm->bcs);
+            break;
+    }
 
     eventHandlerStart(ewm->handlerForClient);
     eventHandlerStart(ewm->handlerForMain);
@@ -360,7 +370,6 @@ ewmConnect(BREthereumEWM ewm) {
  */
 extern BREthereumBoolean
 ewmDisconnect (BREthereumEWM ewm) {
-    assert (ewm->type == (NULL == ewm->bcs ? EWM_USE_BRD : EWM_USE_LES));
 
     if (ETHEREUM_BOOLEAN_IS_FALSE (ewmIsConnected(ewm)))
         return ETHEREUM_BOOLEAN_FALSE;
@@ -368,8 +377,15 @@ ewmDisconnect (BREthereumEWM ewm) {
     // Set ewm->state thereby stopping handlers (in a race with bcs/event calls).
     ewm->state = LIGHT_NODE_DISCONNECTED;
 
-    if (NULL != ewm->bcs)
-        bcsStop(ewm->bcs);
+    switch (ewm->mode) {
+        case BRD_ONLY:
+            break;
+        case BRD_WITH_P2P_SEND:
+        case P2P_WITH_BRD_SYNC:
+        case P2P_ONLY:
+            bcsStop(ewm->bcs);
+            break;
+    }
 
     eventHandlerStop(ewm->handlerForMain);
     eventHandlerStop(ewm->handlerForClient);
@@ -377,6 +393,20 @@ ewmDisconnect (BREthereumEWM ewm) {
     return ETHEREUM_BOOLEAN_TRUE;
 }
 
+extern BREthereumBoolean
+ewmIsConnected (BREthereumEWM ewm) {
+    if (LIGHT_NODE_CONNECTED != ewm->state) return ETHEREUM_BOOLEAN_FALSE;
+
+    switch (ewm->mode) {
+        case BRD_ONLY:
+            return ETHEREUM_BOOLEAN_TRUE;
+
+        case BRD_WITH_P2P_SEND:
+        case P2P_WITH_BRD_SYNC:
+        case P2P_ONLY:
+            return bcsIsStarted (ewm->bcs);
+    }
+}
 
 extern BREthereumAccount
 ewmGetAccount (BREthereumEWM ewm) {
@@ -665,14 +695,16 @@ ewmWalletCreateTransfer(BREthereumEWM ewm,
 
     pthread_mutex_unlock(&ewm->lock);
 
-    ewmClientSignalTransferEvent(ewm, wid, tid, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
+    // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
+    // wallet and can be display, in order, w/o the hash
+    ewmClientSignalTransferEvent (ewm, wid, tid, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
 
     return tid;
 }
 
 extern BREthereumTransferId
 ewmWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
-                                    BREthereumWallet wallet,
+                                     BREthereumWallet wallet,
                                      const char *recvAddress,
                                      BREthereumAmount amount,
                                      BREthereumFeeBasis feeBasis) {
@@ -680,19 +712,37 @@ ewmWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
     BREthereumWalletId wid = -1;
 
     pthread_mutex_lock(&ewm->lock);
-
-    BREthereumTransfer transaction = walletCreateTransferWithFeeBasis (wallet, addressCreate(recvAddress), amount, feeBasis);
-
-    tid = ewmInsertTransfer(ewm, transaction);
-    wid = ewmLookupWalletId(ewm, wallet);
-
+    {
+        BREthereumTransfer transaction = walletCreateTransferWithFeeBasis (wallet, addressCreate(recvAddress), amount, feeBasis);
+        tid = ewmInsertTransfer(ewm, transaction);
+        wid = ewmLookupWalletId(ewm, wallet);
+    }
     pthread_mutex_unlock(&ewm->lock);
 
-    ewmClientSignalTransferEvent(ewm, wid, tid, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
+    // Transfer DOES NOT have a hash yet because it is not signed; but it is inserted in the
+    // wallet and can be display, in order, w/o the hash
+    ewmClientSignalTransferEvent (ewm, wid, tid, TRANSFER_EVENT_CREATED, SUCCESS, NULL);
 
     return tid;
 }
 
+
+static void
+ewmWalletSignTransferAnnounce (BREthereumEWM ewm,
+                               BREthereumWallet wallet,
+                               BREthereumTransfer transfer) {
+    BREthereumTransferId tid = -1;
+    BREthereumWalletId wid = -1;
+
+    pthread_mutex_lock(&ewm->lock);
+    {
+        tid = ewmLookupTransferId (ewm, transfer);
+        wid = ewmLookupWalletId(ewm, wallet);
+    }
+    pthread_mutex_unlock(&ewm->lock);
+
+    ewmClientSignalTransferEvent (ewm, wid, tid, TRANSFER_EVENT_SIGNED,  SUCCESS, NULL);
+}
 
 extern void // status, error
 ewmWalletSignTransfer(BREthereumEWM ewm,
@@ -700,12 +750,7 @@ ewmWalletSignTransfer(BREthereumEWM ewm,
                       BREthereumTransfer transfer,
                       BRKey privateKey) {
     walletSignTransferWithPrivateKey (wallet, transfer, privateKey);
-    ewmClientSignalTransferEvent (ewm,
-                                  ewmLookupWalletId(ewm, wallet),
-                                  ewmLookupTransferId(ewm, transfer),
-                                  TRANSFER_EVENT_SIGNED,
-                                  SUCCESS,
-                                  NULL);
+    ewmWalletSignTransferAnnounce (ewm, wallet, transfer);
 }
 
 extern void // status, error
@@ -714,12 +759,7 @@ ewmWalletSignTransferWithPaperKey(BREthereumEWM ewm,
                                   BREthereumTransfer transfer,
                                   const char *paperKey) {
     walletSignTransfer (wallet, transfer, paperKey);
-    ewmClientSignalTransferEvent (ewm,
-                                  ewmLookupWalletId(ewm, wallet),
-                                  ewmLookupTransferId(ewm, transfer),
-                                  TRANSFER_EVENT_SIGNED,
-                                  SUCCESS,
-                                  NULL);
+    ewmWalletSignTransferAnnounce (ewm, wallet, transfer);
 }
 
 extern BREthereumTransferId *
@@ -854,11 +894,9 @@ ewmHandleBlockChain (BREthereumEWM ewm,
                      BREthereumHash headBlockHash,
                      uint64_t headBlockNumber,
                      uint64_t headBlockTimestamp) {
-    assert (ewm->type == (NULL == ewm->bcs ? EWM_USE_BRD : EWM_USE_LES));
-
     // Don't report during BCS sync.
-    if (NULL == ewm->bcs || ETHEREUM_BOOLEAN_IS_FALSE(bcsSyncInProgress (ewm->bcs)))
-        eth_log ("EWM", "BlockChain: %llu", headBlockNumber);
+    if (BRD_ONLY == ewm->mode || ETHEREUM_BOOLEAN_IS_FALSE(bcsSyncInProgress (ewm->bcs)))
+        eth_log ("EWM", "BlockChain: %" PRIu64, headBlockNumber);
 
     // At least this - allows for: ewmGetBlockHeight
     ewm->blockHeight = headBlockNumber;
@@ -883,7 +921,7 @@ ewmHandleAccountState (BREthereumEWM ewm,
                        BREthereumAccountState accountState) {
     pthread_mutex_lock(&ewm->lock);
 
-    eth_log("EWM", "AccountState: Nonce: %llu", accountState.nonce);
+    eth_log("EWM", "AccountState: Nonce: %" PRIu64, accountState.nonce);
 
     accountSetAddressNonce(ewm->account, accountGetPrimaryAddress(ewm->account),
                            accountState.nonce,
@@ -951,9 +989,11 @@ ewmHandleTransaction (BREthereumEWM ewm,
     }
     else {
         tid = ewmLookupTransferId(ewm, transfer);
-        if (transaction != transferGetBasisTransaction(transfer))
-            transactionRelease(transaction);
+//        if (transaction != transferGetBasisTransaction(transfer))
+//            transactionRelease(transaction);
     }
+
+    transferUpdateStatus (transfer, transactionGetStatus(transaction));
 
     if (ETHEREUM_BOOLEAN_IS_TRUE (transferHasStatusType (transfer, TRANSFER_STATUS_INCLUDED)))
         ewmClientSignalTransferEvent(ewm, wid, tid,
@@ -1095,7 +1135,7 @@ ewmHandleSync (BREthereumEWM ewm,
                uint64_t blockNumberStart,
                uint64_t blockNumberCurrent,
                uint64_t blockNumberStop) {
-    assert (EWM_USE_LES == ewm->type);
+    assert (P2P_ONLY == ewm->mode || P2P_WITH_BRD_SYNC == ewm->mode);
 
     BREthereumEWMEvent event = (blockNumberCurrent == blockNumberStart
                                 ? EWM_EVENT_SYNC_STARTED
@@ -1139,8 +1179,8 @@ ewmPeriodicDispatcher (BREventHandler handler,
     BREthereumEWM ewm = (BREthereumEWM) event->context;
     
     if (ewm->state != LIGHT_NODE_CONNECTED) return;
-    if (ewm->type  == EWM_USE_LES) return;
-    
+    if (P2P_ONLY == ewm->mode || P2P_WITH_BRD_SYNC == ewm->mode) return;
+
     ewmUpdateBlockNumber(ewm);
     ewmUpdateNonce(ewm);
     

@@ -58,6 +58,12 @@ blockHeaderRelease (BREthereumBlockHeader header);
 extern BREthereumBoolean
 blockHeaderIsValid (BREthereumBlockHeader header);
 
+extern BREthereumBoolean
+blockHeaderIsValidFull (BREthereumBlockHeader header,
+                        BREthereumBlockHeader parent,
+                        size_t parentOmmersCount,
+                        BREthereumBlockHeader genesis,
+                        void *d);
 
 /**
  * Check if the block header is consistent with the parent.  If `parent` is NULL, then
@@ -102,6 +108,9 @@ blockHeaderGetTimestamp (BREthereumBlockHeader header);
 
 extern BREthereumHash
 blockHeaderGetParentHash (BREthereumBlockHeader header);
+
+extern BREthereumBoolean
+blockHeaderIsCHTRoot (BREthereumBlockHeader header);
 
 // ...
 
@@ -326,7 +335,18 @@ blockBodyPairRelease (BREthereumBlockBodyPair *pair);
 extern void
 blockBodyPairsRelease (BRArrayOf(BREthereumBlockBodyPair) pairs);
 
+///
+/// MARK: - Block Header Proof
+///
+
+typedef struct {
+    BREthereumHash hash;
+    UInt256 totalDifficulty;
+} BREthereumBlockHeaderProof;
+
+///
 /// MARK: - Block Status
+///
 
 typedef enum {
     BLOCK_REQUEST_NOT_NEEDED,
@@ -347,6 +367,9 @@ typedef struct {
 
     BREthereumBlockRequestState accountStateRequest;
     BREthereumAccountState accountState;
+
+    BREthereumBlockRequestState headerProofRequest;
+    BREthereumBlockHeaderProof headerProof;
 
     BREthereumBoolean error;
 } BREthereumBlockStatus;
@@ -429,6 +452,21 @@ extern void
 blockReportStatusAccountState (BREthereumBlock block,
                                BREthereumAccountState accountState);
 
+//
+// Header Proof Request
+//
+extern BREthereumBoolean
+blockHasStatusHeaderProofRequest (BREthereumBlock block,
+                                  BREthereumBlockRequestState request);
+
+extern void
+blockReportStatusHeaderProofRequest (BREthereumBlock block,
+                                     BREthereumBlockRequestState request);
+
+extern void
+blockReportStatusHeaderProof (BREthereumBlock block,
+                              BREthereumBlockHeaderProof proof);
+    
     //
     //
     //

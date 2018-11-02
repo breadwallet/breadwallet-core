@@ -101,7 +101,7 @@ struct BREthereumBCSStruct {
     /**
      * The sync mode
      */
-    BREthereumSyncMode syncMode;
+    BREthereumMode mode;
     
     /**
      * A BloomFilter with address for application to transactions
@@ -226,11 +226,11 @@ extern const unsigned int bcsEventTypesCount;
 //
 extern void
 bcsHandleSubmitTransaction (BREthereumBCS bcs,
-                            BREthereumTransaction transaction);
+                            OwnershipGiven BREthereumTransaction transaction);
 
 extern void
 bcsSignalSubmitTransaction (BREthereumBCS bcs,
-                            BREthereumTransaction transaction);
+                            OwnershipGiven BREthereumTransaction transaction);
 
 //
 // Announce (New Chain Head)
@@ -286,11 +286,11 @@ bcsSignalProvision (BREthereumBCS bcs,
 //
 extern void
 bcsHandleTransaction (BREthereumBCS bcs,
-                      BREthereumTransaction transaction);
+                      OwnershipGiven BREthereumTransaction transaction);
 
 extern void
 bcsSignalTransaction (BREthereumBCS bcs,
-                      BREthereumTransaction transaction);
+                      OwnershipGiven BREthereumTransaction transaction);
 
 //
 // Logs

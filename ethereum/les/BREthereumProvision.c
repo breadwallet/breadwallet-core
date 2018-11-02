@@ -214,12 +214,15 @@ provisionCreateMessageLES (BREthereumProvision *provisionMulti,
                 case 0: {
                     BRArrayOf(BREthereumTransaction) transactions;
                     array_new (transactions, 1);
-                    array_add (transactions, provision->transaction);
+
+                    // TODO: We don't have a way to avoid consuming 'transactions' - so copy
+                    // the transaction thereby allow a complete release.
+                    array_add (transactions, transactionCopy (provision->transaction));
 
                     return (BREthereumMessage) {
                         MESSAGE_LES,
                         { .les = {
-                            LES_MESSAGE_SEND_TX,
+                            LES_MESSAGE_SEND_TX2,
                             { .sendTx2 = { messageId, transactions }}}}
                     };
                 }
@@ -312,7 +315,8 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
         case PROVISION_ACCOUNTS: {
             assert (LES_MESSAGE_PROOFS == message.identifier);
             BREthereumProvisionAccounts *provision = &provisionMulti->u.accounts;
-            BREthereumHash key = addressGetHash(provision->address);
+            BREthereumHash hash = addressGetHash(provision->address);
+            BREthereumData key  = { sizeof(BREthereumHash), hash.bytes };
 
             // We'll fill this - at the proper index if a multiple provision.
             BRArrayOf(BREthereumAccountState) provisionAccounts = provision->accounts;
@@ -324,8 +328,8 @@ provisionHandleMessageLES (BREthereumProvision *provisionMulti,
 
             // We need a coder to RLP decode the proof's RLP data into an AccountState.  We could,
             // and probably should, pass the coder for LES all the way down here.  It is a long
-            // way done... so we'll create one.  In fact, this is insufficient, because the LES
-            // coder has network and perhaps other context.
+            // way down... so we'll create one.  In fact, this is insufficient, because the LES
+            // coder has network and perhaps other context - although that is not needed here.
             //
             // We could add a coder to the BREthereumProvisionAccounts... yes, probably should.
             BRRlpCoder coder = rlpCoderCreate();
@@ -590,7 +594,10 @@ provisionCreateMessagePIP (BREthereumProvision *provisionMulti,
                 case 0: {
                     BRArrayOf(BREthereumTransaction) transactions;
                     array_new (transactions, 1);
-                    array_add (transactions, provision->transaction);
+
+                    // TODO: We don't have a way to avoid consuming 'transactions' - so copy
+                    // the transaction thereby allow a complete release.
+                    array_add (transactions, transactionCopy (provision->transaction));
 
                     return (BREthereumMessage) {
                         MESSAGE_PIP,
@@ -666,14 +673,35 @@ provisionHandleMessagePIP (BREthereumProvision *provisionMulti,
             BRArrayOf(BREthereumPIPRequestOutput) outputs = NULL;
             messagePIPResponseConsume (&message.u.response, &outputs);
 
+            BRRlpCoder coder = rlpCoderCreate();
+
             size_t offset = messageContentLimit * (identifier - messageIdBase);
             for (size_t index = 0; index < array_count(outputs); index++) {
                 assert (PIP_REQUEST_HEADER_PROOF == outputs[index].identifier);
-                provisionProofs[offset + index].hash = outputs[index].u.headerProof.blockHash;
-                provisionProofs[offset + index].totalDifficulty = outputs[index].u.headerProof.blockTotalDifficulty;
-            }
 
+                // The MPT 'key' is the RLP encoding of the block number
+                BRRlpItem item = rlpEncodeUInt64(coder, provision->numbers[index], 0);
+                BRRlpData data = rlpGetDataSharedDontRelease (coder, item);
+                BREthereumData key = { data.bytesCount, data.bytes };
+
+                BREthereumMPTNodePath path; // = outputs[index].u.headerProof.path;
+
+                messagePIPRequestHeaderProofOutputConsume (&outputs[index].u.headerProof, &path);
+
+                if (ETHEREUM_BOOLEAN_IS_TRUE (mptNodePathIsValid (path, key))) {
+                    provisionProofs[offset + index].hash = outputs[index].u.headerProof.blockHash;
+                    provisionProofs[offset + index].totalDifficulty = outputs[index].u.headerProof.blockTotalDifficulty;
+                }
+                else {
+                    provisionProofs[offset + index].hash = (BREthereumHash) EMPTY_HASH_INIT;
+                    provisionProofs[offset + index].totalDifficulty = UINT256_ZERO;
+                }
+
+                rlpReleaseItem (coder, item);
+                mptNodePathRelease (path);
+            }
             array_free (outputs);
+            rlpCoderRelease(coder);
             break;
         }
 

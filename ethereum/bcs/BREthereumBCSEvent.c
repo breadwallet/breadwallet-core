@@ -51,7 +51,7 @@ static BREventType handleSubmitTransactionEventType = {
 
 extern void
 bcsSignalSubmitTransaction (BREthereumBCS bcs,
-                            BREthereumTransaction transaction) {
+                            OwnershipGiven BREthereumTransaction transaction) {
     BREthereumHandleSubmitTransactionEvent event =
     { { NULL, &handleSubmitTransactionEventType}, bcs, transaction };
     eventHandlerSignalEvent(bcs->handler, (BREvent *) &event);
@@ -208,7 +208,7 @@ static BREventType handleTransactionEventType = {
 
 extern void
 bcsSignalTransaction (BREthereumBCS bcs,
-                      BREthereumTransaction transaction) {
+                      OwnershipGiven BREthereumTransaction transaction) {
     BREthereumHandleTransactionEvent event =
     { { NULL, &handleTransactionEventType}, bcs, transaction };
     eventHandlerSignalEvent(bcs->handler, (BREvent *) &event);

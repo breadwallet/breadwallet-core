@@ -704,6 +704,11 @@ lesSetNodePrefer (BREthereumLES les,
     pthread_mutex_unlock (&les->lock);
 }
 
+extern const char *
+lesGetNodeHostname (BREthereumLES les,
+                    BREthereumNodeReference node) {
+    return nodeEndpointGetHostname (nodeGetRemoteEndpoint ((BREthereumNode) node));
+}
 ///
 /// MARK: - LES Node Callbacks
 ///
@@ -1010,7 +1015,7 @@ lesThread (BREthereumLES les) {
 
                     les->requests[index].node = nodeToUse;
 
-                    // We hold the requests[index] provision in requests.  In the following call
+                    // We hold the requests[index]'s provision in requests.  In the following call
                     // we pass of copy of that provision - both provisions share memory pointers
                     // to, for example, BRArrayOf(BREthereumHash).
                     //

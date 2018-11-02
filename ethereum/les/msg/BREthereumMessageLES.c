@@ -465,9 +465,8 @@ messageLESSendTxEncode (BREthereumLESMessageSendTx message, BREthereumMessageCod
                                             RLP_TYPE_TRANSACTION_SIGNED,
                                             coder.rlp);
 
-    return rlpEncodeList2 (coder.rlp,
-                           rlpEncodeUInt64 (coder.rlp, message.reqId, 1),
-                           rlpEncodeListItems (coder.rlp, items, itemsCount));
+    // SEND_TX is like no other 'request' - there is no `requestId`,
+    return rlpEncodeListItems (coder.rlp, items, itemsCount);
 }
 
 /// MARK: LES GetHeaderProofs
@@ -543,6 +542,18 @@ messageLESTxStatusConsume (BREthereumLESMessageTxStatus *message,
     if (NULL != stati) { *stati = message->stati; message->stati = NULL; }
 }
 
+const char *lesTransactionErrorPreface[] = {
+    "invalid sender",
+    "nonce too low",
+    "insufficient funds for gas * price + value",
+    "transaction underpriced",
+    "intrinsic gas too low",
+    "replacement transaction underpriced",
+    "____", // dropped
+    "unknown"
+};
+
+
 static BREthereumLESMessageTxStatus
 messageLESTxStatusDecode (BRRlpItem item,
                           BREthereumMessageCoder coder) {
@@ -556,7 +567,7 @@ messageLESTxStatusDecode (BRRlpItem item,
     return (BREthereumLESMessageTxStatus) {
         reqId,
         bv,
-        transactionStatusDecodeList (items[2], coder.rlp)
+        transactionStatusDecodeList (items[2], lesTransactionErrorPreface, coder.rlp)
     };
 }
 
@@ -642,6 +653,13 @@ messageLESEncode (BREthereumLESMessage message,
             break;
 
         case LES_MESSAGE_SEND_TX:
+            // SEND_TX is like no other 'request' - there is no `requestId`, there is no response,
+            // the message is encoded as follows:
+            //      SendTx [+0x0c, txdata_1, txdata_2, ...]
+            // as a straight list prepended with the message id.  However, in fact, the
+            // accepted encoding is:
+            //      SendTx [+0x0c, [txdata_1, txdata_2, ...]]
+            // See: https://github.com/ethereum/go-ethereum/issues/18006
             body = messageLESSendTxEncode (message.u.sendTx, coder);
             break;
 

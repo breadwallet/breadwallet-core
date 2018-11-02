@@ -37,7 +37,7 @@ transferProvideOriginatingTransaction (BREthereumTransfer transfer);
 //
 // MARK: - Status
 //
-#define TRANSFER_STATUS_REASON_BYTES   \
+#define TRANSFER_STATUS_DETAIL_BYTES   \
 (sizeof (BREthereumGas) + sizeof (BREthereumHash) + 2 * sizeof(uint64_t))
 
 typedef struct BREthereumTransferStatusRecord {
@@ -51,12 +51,13 @@ typedef struct BREthereumTransferStatusRecord {
         } included;
         
         struct {
-            char reason[TRANSFER_STATUS_REASON_BYTES + 1];
+            BREthereumTransactionErrorType type;
+            char detail[TRANSFER_STATUS_DETAIL_BYTES + 1];
         } errored;
     } u;
 } BREthereumTransferStatus;
 
-static BREthereumTransferStatus
+extern BREthereumTransferStatus
 transferStatusCreate (BREthereumTransactionStatus status) {
     BREthereumTransferStatus result;
 
@@ -80,8 +81,9 @@ transferStatusCreate (BREthereumTransactionStatus status) {
 
         case TRANSACTION_STATUS_ERRORED:
             result.type = TRANSFER_STATUS_ERRORED;
-            memset (result.u.errored.reason, 0, TRANSFER_STATUS_REASON_BYTES + 1);
-            strncpy (result.u.errored.reason, status.u.errored.reason, TRANSFER_STATUS_REASON_BYTES);
+            result.u.errored.type = status.u.errored.type;
+            memset (result.u.errored.detail, 0, TRANSFER_STATUS_DETAIL_BYTES + 1);
+            strncpy (result.u.errored.detail, status.u.errored.detail, TRANSFER_STATUS_DETAIL_BYTES);
             break;
 
         default:
@@ -332,7 +334,7 @@ transferSign (BREthereumTransfer transfer,
                                            network,
                                            RLP_TYPE_TRANSACTION_UNSIGNED,
                                            coder);
-    BRRlpData data = rlpGetData(coder, item);
+    BRRlpData data = rlpGetDataSharedDontRelease(coder, item);
     
     // Sign the RLP Encoded bytes.
     BREthereumSignature signature = accountSignBytes (account,
@@ -343,11 +345,19 @@ transferSign (BREthereumTransfer transfer,
                                                       paperKey);
     
     rlpReleaseItem(coder, item);
-    rlpDataRelease(data);
-    rlpCoderRelease(coder);
-    
+
     // Attach the signature
     transactionSign (transfer->originatingTransaction, signature);
+    // Compute the hash
+    item = transactionRlpEncode (transfer->originatingTransaction,
+                                 network,
+                                 RLP_TYPE_TRANSACTION_SIGNED,
+                                 coder);
+    transactionSetHash (transfer->originatingTransaction,
+                        hashCreateFromData (rlpGetDataSharedDontRelease (coder, item)));
+
+    rlpReleaseItem(coder, item);
+    rlpCoderRelease(coder);
 }
 
 extern void
@@ -367,7 +377,7 @@ transferSignWithKey (BREthereumTransfer transfer,
                                            network,
                                            RLP_TYPE_TRANSACTION_UNSIGNED,
                                            coder);
-    BRRlpData data = rlpGetData(coder, item);
+    BRRlpData data = rlpGetDataSharedDontRelease (coder, item);
     
     // Sign the RLP Encoded bytes.
     BREthereumSignature signature = accountSignBytesWithPrivateKey (account,
@@ -378,11 +388,20 @@ transferSignWithKey (BREthereumTransfer transfer,
                                                                     privateKey);
     
     rlpReleaseItem(coder, item);
-    rlpDataRelease(data);
-    rlpCoderRelease(coder);
-    
+
     // Attach the signature
     transactionSign(transfer->originatingTransaction, signature);
+
+    // Compute the hash
+    item = transactionRlpEncode (transfer->originatingTransaction,
+                                 network,
+                                 RLP_TYPE_TRANSACTION_SIGNED,
+                                 coder);
+    transactionSetHash (transfer->originatingTransaction,
+                        hashCreateFromData (rlpGetDataSharedDontRelease (coder, item)));
+
+    rlpReleaseItem(coder, item);
+    rlpCoderRelease(coder);
 }
 
 extern const BREthereumHash
@@ -399,7 +418,9 @@ extern uint64_t
 transferGetNonce (BREthereumTransfer transfer) {
     return (NULL != transfer->originatingTransaction
             ? transactionGetNonce(transfer->originatingTransaction)
-            : TRANSACTION_NONCE_IS_NOT_ASSIGNED);
+            : (TRANSFER_BASIS_TRANSACTION == transfer->basis.type && NULL != transfer->basis.u.transaction
+               ? transactionGetNonce(transfer->basis.u.transaction)
+               : TRANSACTION_NONCE_IS_NOT_ASSIGNED));
 }
 
 extern BREthereumEther
@@ -416,6 +437,26 @@ transferGetFee (BREthereumTransfer transfer, int *overflow) {
 ///
 /// MARK: - Status
 ///
+extern void
+transferUpdateStatus (BREthereumTransfer transfer,
+                      BREthereumTransactionStatus status) {
+    switch (transfer->basis.type){
+        case TRANSFER_BASIS_TRANSACTION:
+            transactionSetStatus (transfer->basis.u.transaction, status);
+            break;
+        case TRANSFER_BASIS_LOG:
+            logSetStatus (transfer->basis.u.log, status);
+            break;
+    }
+
+    transfer->status = transferStatusCreate(status);
+}
+
+extern BREthereumTransferStatusType
+transferGetStatusType (BREthereumTransfer transfer) {
+    return transfer->status.type;
+}
+
 extern BREthereumBoolean
 transferHasStatusType (BREthereumTransfer transfer,
                        BREthereumTransferStatusType type) {
@@ -451,7 +492,7 @@ transferExtractStatusError (BREthereumTransfer transfer,
                             char **reason) {
     if (TRANSFER_STATUS_ERRORED != transfer->status.type) return 0;
     
-    if (NULL != reason) *reason = strdup (transfer->status.u.errored.reason);
+    if (NULL != reason) *reason = strdup (transactionGetErrorName (transfer->status.u.errored.type));
     
     return 1;
 }

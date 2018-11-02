@@ -569,7 +569,7 @@ runEWM_CONNECT_test (const char *paperKey) {
     client.context = testContextCreate();
 
     BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
-                                       EWM_USE_BRD, SYNC_MODE_FULL_BLOCKCHAIN,
+                                       P2P_ONLY,
                                        client, NULL, NULL, NULL, NULL);
 
     BREthereumWalletId wallet = ethereumGetWallet(ewm);
@@ -608,7 +608,7 @@ void prepareTransaction (const char *paperKey, const char *recvAddr, const uint6
     client.context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
     BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
-                                       EWM_USE_LES, SYNC_MODE_FULL_BLOCKCHAIN,
+                                       P2P_ONLY,
                                        client, NULL, NULL, NULL, NULL);
     // A wallet amount Ether
     BREthereumWalletId wallet = ethereumGetWallet(ewm);
@@ -664,11 +664,11 @@ testReallySend (void) {
     uint64_t gasLimit = 21000;
     uint64_t nonce = 7;                  // Careful
 
-    printf ("PaperKey: '%s'\nAddress: '%s'\nGasLimt: %llu\nGasPrice: %llu GWEI\n", paperKey, recvAddr, gasLimit, gasPrice);
+    printf ("PaperKey: '%s'\nAddress: '%s'\nGasLimt: %" PRIu64 "\nGasPrice: %" PRIu64 " GWEI\n", paperKey, recvAddr, gasLimit, gasPrice);
 
     alarmClockCreateIfNecessary (1);
     BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
-                                       EWM_USE_LES, SYNC_MODE_FULL_BLOCKCHAIN,
+                                       P2P_ONLY,
                                        client, NULL, NULL, NULL, NULL);
 
     // A wallet amount Ether
@@ -740,7 +740,7 @@ runEWM_TOKEN_test (const char *paperKey) {
 
     BREthereumToken token = tokenLookup(tokenBRDAddress);
     BREthereumEWM ewm = ethereumCreate (ethereumMainnet, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
-                                        EWM_USE_LES, SYNC_MODE_FULL_BLOCKCHAIN,
+                                        P2P_ONLY,
                                         client, NULL, NULL, NULL, NULL);
     BREthereumWalletId wid = ethereumGetWalletHoldingToken(ewm, token);
 
@@ -772,13 +772,13 @@ runEWM_PUBLIC_KEY_test (BREthereumNetwork network, const char *paperKey) {
     printf ("     PUBLIC KEY\n");
 
     BREthereumEWM ewm1 = ethereumCreate (network, paperKey, ETHEREUM_TIMESTAMP_UNKNOWN,
-                                         EWM_USE_LES, SYNC_MODE_FULL_BLOCKCHAIN,
+                                         P2P_ONLY,
                                          client, NULL, NULL, NULL, NULL);
     char *addr1 = ethereumGetAccountPrimaryAddress (ewm1);
 
     BRKey publicKey = ethereumGetAccountPrimaryAddressPublicKey (ewm1);
     BREthereumEWM ewm2 = ethereumCreateWithPublicKey (network, publicKey, ETHEREUM_TIMESTAMP_UNKNOWN,
-                                                      EWM_USE_LES, SYNC_MODE_FULL_BLOCKCHAIN,
+                                                      P2P_ONLY,
                                                       client, NULL, NULL, NULL, NULL);
     char *addr2 = ethereumGetAccountPrimaryAddress (ewm2);
 
@@ -792,8 +792,8 @@ runEWM_PUBLIC_KEY_test (BREthereumNetwork network, const char *paperKey) {
 }
 
 extern void
-runSyncTest (BREthereumType type,
-             BREthereumSyncMode mode,
+runSyncTest (const char *paperKey,
+             BREthereumMode mode,
              BREthereumTimestamp accountTimestamp,
              unsigned int durationInSeconds,
              int restart) {
@@ -803,13 +803,6 @@ runSyncTest (BREthereumType type,
     
     client.context = (JsonRpcTestContext) calloc (1, sizeof (struct JsonRpcTestContextRecord));
 
-#if ! defined (DEBUG)
-    char *paperKey = "boring ...";
-#else
-    char *paperKey = "0xa9de3dbd7d561e67527bc1ecb025c59d53b9f7ef";
-//    char *paperKey = "0x8975dbc1b8f25ec994815626d070899dda896511";
-//    char *paperKey = "0xb302B06FDB1348915599D21BD54A06832637E5E8";
-#endif
     alarmClockCreateIfNecessary (1);
 
     BRSetOf(BREthereumHashDataPair) blocks = (restart ? savedBlocks : NULL);
@@ -830,7 +823,7 @@ runSyncTest (BREthereumType type,
     }
 
     BREthereumEWM ewm = ethereumCreate(ethereumMainnet, paperKey, accountTimestamp,
-                                       type, mode, client,
+                                       mode, client,
                                        nodes,
                                        blocks,
                                        transactions,

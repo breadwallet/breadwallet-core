@@ -28,6 +28,17 @@ class TransferViewController: UIViewController {
         // Dispose of any resources that can be recreated.
     }
 
+    func colorForState() -> UIColor {
+        guard let state = transfer?.state else { return UIColor.black }
+        switch state {
+        case .created: return UIColor.gray
+        case .signed: return UIColor.blue
+        case .submitted: return UIColor.yellow
+        case .included: return UIColor.green
+        case .errored:  return UIColor.red
+        }
+    }
+
     func canonicalAmount (_ amount: EthereumAmount, sign: String, symbol: String) -> String {
         var result = amount.amount.trimmingCharacters(in: CharacterSet (charactersIn: "0 "))
         if result == "." || result == "" || result == "0." || result == ".0" {
@@ -46,7 +57,35 @@ class TransferViewController: UIViewController {
         recvLabel.text = transfer.targetAddress
         identifierLabel.text = transfer.hash
         confLabel.text = transfer.confirmationBlockNumber.map { "Yes @ \($0.description)" } ?? "No"
+        if let errorReason = transfer.stateErrorReason {
+            stateLabel.text = "\(transfer.state.description): \(errorReason)"
+        }
+        else { stateLabel.text = transfer.state.description }
 
+        switch transfer.state {
+        case .errored:
+            cancelButton.isEnabled = true
+            resubmitButton.isEnabled = true
+        default:
+            cancelButton.isEnabled = false
+            resubmitButton.isEnabled = false
+       }
+
+        nonceLabel.text = transfer.nonce.description
+        dotView.mainColor = colorForState()
+    }
+
+    @IBAction func doResubmit(_ sender: UIButton) {
+        NSLog ("Want to Resubmit")
+    }
+
+    /*
+     * Canceling means generating a 0 ETH transaction to Your Own Address with the purpose of
+     * preventing a previous transaction from "going through" / "being mined" / "being included in
+     * the blockchain" / "being stuck"
+     */
+    @IBAction func doCancel(_ sender: UIButton) {
+        NSLog ("Want to Cancel")
     }
 
     /*
@@ -65,54 +104,10 @@ class TransferViewController: UIViewController {
     @IBOutlet var recvLabel: CopyableLabel!
     @IBOutlet var identifierLabel: UILabel!
     @IBOutlet var confLabel: UILabel!
+    @IBOutlet var stateLabel: UILabel!
+    @IBOutlet var cancelButton: UIButton!
+    @IBOutlet var resubmitButton: UIButton!
+    @IBOutlet var nonceLabel: UILabel!
+    @IBOutlet var dotView: Dot!
 }
 
-//
-//
-//
-class CopyableLabel: UILabel {
-
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        self.sharedInit()
-    }
-
-    required init?(coder aDecoder: NSCoder) {
-        super.init(coder: aDecoder)
-        self.sharedInit()
-    }
-
-    func sharedInit() {
-        self.isUserInteractionEnabled = true
-        self.addGestureRecognizer(UILongPressGestureRecognizer(target: self, action: #selector(self.showMenu)))
-    }
-
-    @objc func showMenu(sender: AnyObject?) {
-        self.becomeFirstResponder()
-
-        let menu = UIMenuController.shared
-
-        if !menu.isMenuVisible {
-            menu.setTargetRect(bounds, in: self)
-            menu.setMenuVisible(true, animated: true)
-        }
-    }
-
-    override func copy(_ sender: Any?) {
-        let board = UIPasteboard.general
-
-        board.string = text
-
-        let menu = UIMenuController.shared
-
-        menu.setMenuVisible(false, animated: true)
-    }
-
-    override var canBecomeFirstResponder: Bool {
-        return true
-    }
-
-    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
-        return action == #selector(UIResponderStandardEditActions.copy)
-    }
-}

@@ -301,6 +301,21 @@ public struct EthereumTransfer : EthereumReferenceWithDefaultUnit {
         return number > 0 ? number : nil
     }
 
+    public var state : State {
+        return State (ethereumTransferGetStatus(self.ewm!.core, self.identifier))
+    }
+
+    public var stateErrorReason : String? {
+        if let coreReason = ethereumTransferStatusGetError(self.ewm!.core, self.identifier) {
+            return asUTF8String(coreReason, true)
+        }
+        return nil
+    }
+
+    public var nonce : UInt64 {
+        return ethereumTransferGetNonce(self.ewm!.core, self.identifier)
+    }
+    
     //    var gasPrice : EthereumAmount {
     //        let price : BREthereumAmount = ethereumTransferGetGasPriceToo (self.ewm!.core, self.identifier)
     //        return EthereumAmount.ether (price.u.ether.valueInWEI, WEI)
@@ -323,6 +338,34 @@ public struct EthereumTransfer : EthereumReferenceWithDefaultUnit {
     //    }
 
     // State
+    public enum State : CustomStringConvertible {
+        case created
+        case signed
+        case submitted
+        case included
+        case errored
+
+        init (_ event: BREthereumTransferStatusType) {
+            switch (event) {
+            case TRANSFER_STATUS_CREATED: self = .created
+            case TRANSFER_STATUS_SIGNED: self = .signed
+            case TRANSFER_STATUS_SUBMITTED: self = .submitted
+            case TRANSFER_STATUS_INCLUDED: self = .included
+            case TRANSFER_STATUS_ERRORED: self = .errored
+            default: self = .created
+            }
+        }
+
+        public var description: String {
+            switch self {
+            case .created: return "created"
+            case .signed:  return "signed"
+            case .submitted: return "submitted"
+            case .included:  return "included"
+            case .errored:   return "errored"
+            }
+        }
+    }
 }
 
 ///
@@ -503,45 +546,29 @@ public enum EthereumStatus {
     case success
 }
 
-public enum EthereumType {
-    case les
-    case brd
+public enum EthereumMode {
+    case brd_only
+    case brd_with_p2p_send
+    case p2p_with_brd_sync
+    case p2p_only
 
-    init (_ type: BREthereumType) {
-        switch (type) {
-        case EWM_USE_BRD: self = .brd
-        case EWM_USE_LES: self = .les
+    init (_ mode: BREthereumMode) {
+        switch (mode) {
+        case BRD_ONLY: self = .brd_only
+        case BRD_WITH_P2P_SEND: self = .brd_with_p2p_send
+        case P2P_WITH_BRD_SYNC: self = .p2p_with_brd_sync
+        case P2P_ONLY: self = .p2p_only
         default:
-            self = .les
+            self = .p2p_only
         }
     }
 
-    var core : BREthereumType {
+    var core : BREthereumMode {
         switch (self) {
-        case .brd: return EWM_USE_BRD
-        case .les: return EWM_USE_LES
-        }
-    }
-}
-
-public enum EthereumSyncMode {
-    case blockchain
-    case assisted
-
-
-    init (_ mode: BREthereumSyncMode) {
-        switch mode {
-        case SYNC_MODE_FULL_BLOCKCHAIN: self = .blockchain
-        case SYNC_MODE_PRIME_WITH_ENDPOINT: self = .assisted
-        default:
-            self = .blockchain
-        }
-    }
-
-    var core : BREthereumSyncMode {
-        switch self {
-        case .blockchain: return SYNC_MODE_FULL_BLOCKCHAIN
-        case .assisted: return SYNC_MODE_PRIME_WITH_ENDPOINT
+        case .brd_only: return BRD_ONLY
+        case .brd_with_p2p_send: return BRD_WITH_P2P_SEND
+        case .p2p_with_brd_sync: return P2P_WITH_BRD_SYNC
+        case .p2p_only: return P2P_ONLY
         }
     }
 }
@@ -771,13 +798,11 @@ public class EthereumWalletManager {
 
     public convenience init (client : EthereumClient,
                              network : EthereumNetwork,
-                             type: EthereumType,
-                             mode: EthereumSyncMode,
+                             mode: EthereumMode,
                              key: EthereumKey,
                              timestamp: UInt64) {
         self.init (client: client,
                    network: network,
-                   type: type,
                    mode: mode,
                    key: key,
                    timestamp: timestamp,
@@ -789,8 +814,7 @@ public class EthereumWalletManager {
 
     public convenience init (client : EthereumClient,
                              network : EthereumNetwork,
-                             type: EthereumType,
-                             mode: EthereumSyncMode,
+                             mode: EthereumMode,
                              key: EthereumKey,
                              timestamp: UInt64,
                              peers: Dictionary<String,String>,
@@ -803,7 +827,6 @@ public class EthereumWalletManager {
         switch key {
         case let .paperKey(key):
             core = ethereumCreate (network.core, key, timestamp,
-                                   type.core,
                                    mode.core,
                                    EthereumWalletManager.createCoreClient(client: client),
                                    EthereumWalletManager.asPairs (peers),
@@ -812,7 +835,6 @@ public class EthereumWalletManager {
                                    EthereumWalletManager.asPairs (logs))
         case let .publicKey(key):
             core = ethereumCreateWithPublicKey (network.core, key, timestamp,
-                                                type.core,
                                                 mode.core,
                                                 EthereumWalletManager.createCoreClient(client: client),
                                                 EthereumWalletManager.asPairs (peers),
@@ -844,7 +866,7 @@ public class EthereumWalletManager {
         return findWallet (identifier: ethereumGetWalletHoldingToken (core, token.core))
     }
 
-    internal func findWallet (identifier: EthereumWalletId) -> EthereumWallet {
+    public func findWallet (identifier: EthereumWalletId) -> EthereumWallet {
         let token = ethereumWalletGetToken (core, identifier)
         return (nil == token
             ? EthereumWallet (ewm: self, wid: identifier)
@@ -1244,6 +1266,7 @@ public enum EthereumAmountUnit {
     static public let defaultUnitToken = EthereumAmountUnit.token (TOKEN_QUANTITY_TYPE_DECIMAL)
 
     static public let etherGWEI = EthereumAmountUnit.ether (GWEI);
+    static public let etherWEI  = EthereumAmountUnit.ether (WEI);
 
     static func defaultUnit (_ forEther : Bool) -> EthereumAmountUnit {
         return forEther ? defaultUnitEther : defaultUnitToken

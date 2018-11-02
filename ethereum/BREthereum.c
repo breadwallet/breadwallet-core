@@ -39,15 +39,14 @@ extern BREthereumEWM
 ethereumCreate(BREthereumNetwork network,
                const char *paperKey,
                BREthereumTimestamp paperKeyTimestamp,
-               BREthereumType type,
-               BREthereumSyncMode syncMode,
+               BREthereumMode mode,
                BREthereumClient client,
                BRSetOf(BREthereumHashDataPair) peers,
                BRSetOf(BREthereumHashDataPair) blocks,
                BRSetOf(BREthereumHashDataPair) transactions,
                BRSetOf(BREthereumHashDataPair) logs) {
     return createEWM (network, createAccount(paperKey), paperKeyTimestamp,
-                      type, syncMode,
+                      mode,
                       client,
                       peers,
                       blocks,
@@ -59,15 +58,14 @@ extern BREthereumEWM
 ethereumCreateWithPublicKey(BREthereumNetwork network,
                             const BRKey publicKey,      // 65 byte, 0x04-prefixed, uncompressed public key
                             BREthereumTimestamp publicKeyTimestamp,
-                            BREthereumType type,
-                            BREthereumSyncMode syncMode,
+                            BREthereumMode mode,
                             BREthereumClient client,
                             BRSetOf(BREthereumHashDataPair) peers,
                             BRSetOf(BREthereumHashDataPair) blocks,
                             BRSetOf(BREthereumHashDataPair) transactions,
                             BRSetOf(BREthereumHashDataPair) logs) {
     return createEWM (network, createAccountWithPublicKey (publicKey), publicKeyTimestamp,
-                      type, syncMode,
+                      mode,
                       client,
                       peers,
                       blocks,
@@ -463,6 +461,14 @@ ethereumTransferGetBlockConfirmations(BREthereumEWM ewm,
             ? (ewmGetBlockHeight(ewm) - blockNumber)
             : 0);
 }
+
+extern BREthereumTransferStatusType
+ethereumTransferGetStatus (BREthereumEWM ewm,
+                           BREthereumTransferId tid) {
+    BREthereumTransfer transfer = ewmLookupTransfer(ewm, tid);
+    return transferGetStatusType(transfer);
+}
+
 extern BREthereumBoolean
 ethereumTransferIsConfirmed(BREthereumEWM ewm,
                                BREthereumTransferId tid) {
@@ -478,6 +484,19 @@ ethereumTransferIsSubmitted(BREthereumEWM ewm,
                                ETHEREUM_BOOLEAN_IS_TRUE(transferHasStatusTypeOrTwo(transaction,
                                                                                    TRANSFER_STATUS_INCLUDED,
                                                                                    TRANSFER_STATUS_ERRORED)));
+}
+
+extern char *
+ethereumTransferStatusGetError (BREthereumEWM ewm,
+                                BREthereumTransferId tid) {
+    BREthereumTransfer transfer = ewmLookupTransfer(ewm, tid);
+
+    if (TRANSFER_STATUS_ERRORED == transferGetStatusType(transfer)) {
+        char *reason;
+        transferExtractStatusError (transfer, &reason);
+        return reason;
+    }
+    else return NULL;
 }
 
 extern BREthereumBoolean
@@ -882,8 +901,7 @@ ethereumClientAnnounceBlocks (BREthereumEWM ewm,
                               // const char *strBlockHash,
                               int blockNumbersCount,
                               uint64_t *blockNumbers) {  // BRArrayOf(const char *) strBlockNumbers ??
-    assert (EWM_USE_LES == ewm->type);
-    assert (NULL != ewm->bcs);
+    assert (P2P_ONLY == ewm->mode || P2P_WITH_BRD_SYNC == ewm->mode);
 
     // into bcs...
     BRArrayOf(uint64_t) numbers;

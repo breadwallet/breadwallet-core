@@ -84,12 +84,6 @@ provisionHeadersConsume (BREthereumProvisionHeaders *provision,
  * Proofs
  */
 typedef struct {
-    // Merkle inclusion proof from CHT
-    BREthereumHash hash;
-    UInt256 totalDifficulty;
-} BREthereumBlockHeaderProof;
-
-typedef struct {
     // Request
     BRArrayOf(uint64_t) numbers;
     // Response

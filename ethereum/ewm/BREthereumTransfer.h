@@ -40,25 +40,6 @@ extern "C" {
 typedef struct BREthereumTransferRecord *BREthereumTransfer;
 
 typedef enum {
-    // Created: transfer created in local memory
-    TRANSFER_STATUS_CREATED,
-
-    // Signed: transfer signed
-    TRANSFER_STATUS_SIGNED,
-
-    // Submitted: transfer submitted
-    TRANSFER_STATUS_SUBMITTED,
-
-    // Included: transfer is already included in the canonical chain. data contains an
-    // RLP-encoded [blockHash: B_32, blockNumber: P, txIndex: P] structure.
-    TRANSFER_STATUS_INCLUDED,
-
-    // Error: transfer sending failed. data contains a text error message
-    TRANSFER_STATUS_ERRORED
-
-} BREthereumTransferStatusType;
-
-typedef enum {
     FEE_BASIS_NONE,
     FEE_BASIS_GAS
 } BREthereumFeeBasisType;
@@ -190,6 +171,12 @@ transferCompare (BREthereumTransfer t1,
 //
 //
 //
+extern void
+transferUpdateStatus (BREthereumTransfer transfer,
+                      BREthereumTransactionStatus status);
+
+extern BREthereumTransferStatusType
+transferGetStatusType (BREthereumTransfer transfer);
 
 extern BREthereumBoolean
 transferHasStatusType (BREthereumTransfer transfer,

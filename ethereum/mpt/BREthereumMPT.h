@@ -74,12 +74,15 @@ mptNodePathsRelease (BRArrayOf(BREthereumMPTNodePath) paths);
 
 extern BRRlpData
 mptNodePathGetValue (BREthereumMPTNodePath path,
-                     BREthereumHash key,
+                     BREthereumData key,
                      BREthereumBoolean *found);
 
+extern BREthereumData
+mptNodePathGetKeyFragment (BREthereumMPTNodePath path);
+    
 extern BREthereumBoolean
 mptNodePathIsValid (BREthereumMPTNodePath path,
-                    BREthereumHash key);
+                    BREthereumData key);
 
 extern BREthereumMPTNodePath
 mptNodePathDecode (BRRlpItem item,
