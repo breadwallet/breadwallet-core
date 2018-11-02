@@ -12,6 +12,7 @@ import BRCore
 class TransferViewController: UIViewController {
 
     var transfer : EthereumTransfer!
+    var wallet  : EthereumWallet!
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -77,6 +78,55 @@ class TransferViewController: UIViewController {
 
     @IBAction func doResubmit(_ sender: UIButton) {
         NSLog ("Want to Resubmit")
+        if let error = transfer.stateError {
+            switch error {
+            case .nonceTooLow:
+                let alert = UIAlertController (title: "Resubmit",
+                                               message: "Okay to update nonce and resubmit?",
+                                               preferredStyle: UIAlertController.Style.alert)
+                alert.addAction (UIAlertAction (title: "Yes", style: UIAlertAction.Style.default) { (action) in
+                    let replacement = self.wallet.createTransferToReplace (transfer: self.transfer,
+                                                                           updateNonce: true)
+
+                    self.wallet.sign(transfer: replacement,
+                                     paperKey: UIApplication.sharedClient.paperKey);
+
+                    self.wallet.submit(transfer: replacement);
+
+                    alert.dismiss(animated: true) {}
+               })
+
+                alert.addAction(UIAlertAction (title: "No", style: UIAlertAction.Style.cancel) { (action) in
+                })
+
+                self.present (alert, animated: true) {}
+                break;
+
+            case .invalidSignature,
+                 .gasPriceTooLow,
+                 .gasTooLow,
+                 .replacementUnderPriced:
+                let alert = UIAlertController (title: "Resubmit",
+                                               message: "Unsupported error",
+                                               preferredStyle: UIAlertController.Style.alert)
+                alert.addAction (UIAlertAction (title: "Okay", style: UIAlertAction.Style.default) { (action) in
+                    alert.dismiss(animated: true) {}
+                })
+
+                self.present (alert, animated: true) {}
+                break;
+
+            case .balanceTooLow,  // money arrived?
+                 .dropped,
+                 .unknown:
+
+
+                // simply resubmit
+                self.wallet.submit(transfer: transfer);
+            }
+        }
+//        wallet.submitAgain (transfer: transfer,
+//                            paperKey: UIApplication.sharedClient.paperKey);
     }
 
     /*
@@ -86,6 +136,27 @@ class TransferViewController: UIViewController {
      */
     @IBAction func doCancel(_ sender: UIButton) {
         NSLog ("Want to Cancel")
+        let alert = UIAlertController (title: "Cancel Transaction for <small-fee> ETH",
+                                       message: "Are you sure?",
+                                       preferredStyle: UIAlertController.Style.actionSheet)
+
+        alert.addAction(UIAlertAction (title: "Yes", style: UIAlertAction.Style.destructive) { (action) in
+            let replacement = self.wallet.createTransferToCancel(transfer: self.transfer);
+
+            self.wallet.sign(transfer: replacement,
+                             paperKey: UIApplication.sharedClient.paperKey);
+
+            self.wallet.submit(transfer: replacement);
+
+//            self.wallet.submitCancel (transfer: self.transfer,
+//                                      paperKey: UIApplication.sharedClient.paperKey);
+
+            self.dismiss(animated: true) {}
+        })
+
+        alert.addAction(UIAlertAction (title: "No", style: UIAlertAction.Style.cancel) { (action) in
+        })
+        self.present(alert, animated: true) {}
     }
 
     /*

@@ -74,6 +74,9 @@ transferCreate (BREthereumAddress sourceAddress,
                 BREthereumFeeBasis feeBasis);
 
 extern BREthereumTransfer
+transferCreateWithTransactionOriginating (OwnershipGiven BREthereumTransaction transaction);
+
+extern BREthereumTransfer
 transferCreateWithTransaction (OwnershipGiven BREthereumTransaction transaction);
 
 extern BREthereumTransfer
@@ -197,6 +200,10 @@ transferExtractStatusIncluded (BREthereumTransfer transfer,
 extern int
 transferExtractStatusError (BREthereumTransfer transfer,
                             char **reason);
+    
+extern int
+transferExtractStatusErrorType (BREthereumTransfer transfer,
+                                BREthereumTransactionErrorType *type);
 
 extern void
 transfersRelease (OwnershipGiven BRArrayOf(BREthereumTransfer) transfers);

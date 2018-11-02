@@ -245,23 +245,23 @@ walletCreateTransfer(BREthereumWallet wallet,
 #ifdef WALLET_CREATE_TRANSACTION_DIRECTLY
 extern BREthereumTransfer
 walletCreateTransferDetailed(BREthereumWallet wallet,
-                                BREthereumAddress recvAddress,
-                                BREthereumEther amount,
-                                BREthereumGasPrice gasPrice,
-                                BREthereumGas gasLimit,
-                                const char *data,
-                                uint64_t nonce) {
+                             BREthereumAddress recvAddress,
+                             BREthereumEther amount,
+                             BREthereumGasPrice gasPrice,
+                             BREthereumGas gasLimit,
+                             const char *data,
+                             uint64_t nonce) {
     assert (walletGetAmountType(wallet) == amountGetType(amount));
     assert (AMOUNT_ETHER == amountGetType(amount)
             || (wallet->token == tokenQuantityGetToken (amountGetTokenQuantity(amount))));
     
     BREthereumTransfer transfer = transferCreate(wallet->address,
-                                                          recvAddress,
-                                                          amount,
-                                                          gasPrice,
-                                                          gasLimit,
-                                                          data,
-                                                          nonce);
+                                                 recvAddress,
+                                                 amount,
+                                                 gasPrice,
+                                                 gasLimit,
+                                                 data,
+                                                 nonce);
     walletHandleTransfer(wallet, transfer);
     return transfer;
 }

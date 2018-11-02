@@ -688,9 +688,9 @@ ewmWalletCreateTransfer(BREthereumEWM ewm,
 
     pthread_mutex_lock(&ewm->lock);
 
-    BREthereumTransfer transaction = walletCreateTransfer(wallet, addressCreate(recvAddress), amount);
+    BREthereumTransfer transfer = walletCreateTransfer(wallet, addressCreate(recvAddress), amount);
 
-    tid = ewmInsertTransfer(ewm, transaction);
+    tid = ewmInsertTransfer(ewm, transfer);
     wid = ewmLookupWalletId(ewm, wallet);
 
     pthread_mutex_unlock(&ewm->lock);

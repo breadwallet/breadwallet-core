@@ -139,6 +139,31 @@ ewmWalletSubmitTransfer(BREthereumEWM ewm,
                         BREthereumWalletId wid,
                         BREthereumTransferId tid);
 
+extern BREthereumTransferId // status, error
+ewmWalletCreateTransferToCancel(BREthereumEWM ewm,
+                                BREthereumWalletId wid,
+                                BREthereumTransferId tid);
+    
+extern BREthereumTransferId // status, error
+ewmWalletCreateTransferToReplace(BREthereumEWM ewm,
+                                 BREthereumWalletId wid,
+                                 BREthereumTransferId tid,
+                                 // ...
+                                 BREthereumBoolean updateNonce);
+
+
+//extern void // status, error
+//ewmWalletSubmitTransferCancel(BREthereumEWM ewm,
+//                              BREthereumWalletId wid,
+//                              BREthereumTransferId tid,
+//                              const char *paperKey);
+//
+//extern void // status, error
+//ewmWalletSubmitTransferAgain(BREthereumEWM ewm,
+//                             BREthereumWalletId wid,
+//                             BREthereumTransferId tid,
+//                             const char *paperKey);
+
 extern BREthereumTransferId *
 ewmWalletGetTransfers(BREthereumEWM ewm,
                       BREthereumWallet wallet);

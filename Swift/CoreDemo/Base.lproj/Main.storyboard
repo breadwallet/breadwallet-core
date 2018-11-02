@@ -585,6 +585,20 @@
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
+                            <segmentedControl opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="left" contentVerticalAlignment="top" segmentControlStyle="plain" selectedSegmentIndex="1" translatesAutoresizingMaskIntoConstraints="NO" id="bB9-1V-BAr">
+                                <rect key="frame" x="127" y="196" width="121" height="29"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="121" id="196-Pn-gZQ"/>
+                                    <constraint firstAttribute="height" constant="28" id="Nzf-Sk-sQf"/>
+                                </constraints>
+                                <segments>
+                                    <segment title="1 ETH"/>
+                                    <segment title="Slider"/>
+                                </segments>
+                                <connections>
+                                    <action selector="amountOneEther:" destination="G47-GP-HJH" eventType="valueChanged" id="xuQ-Hi-Ayq"/>
+                                </connections>
+                            </segmentedControl>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                         <constraints>
@@ -594,8 +608,10 @@
                             <constraint firstItem="yp6-WN-DAw" firstAttribute="top" secondItem="7yV-yu-opg" secondAttribute="bottom" constant="1" id="CnH-GZ-J66"/>
                             <constraint firstItem="bXx-vx-ztK" firstAttribute="leading" secondItem="tAg-Bh-B64" secondAttribute="leading" constant="16" id="DmM-xn-b3o"/>
                             <constraint firstItem="xan-Ll-ueq" firstAttribute="top" secondItem="OwR-mh-elN" secondAttribute="bottom" constant="45" id="EuX-As-9j3"/>
+                            <constraint firstItem="bB9-1V-BAr" firstAttribute="top" secondItem="7yV-yu-opg" secondAttribute="bottom" constant="1" id="G1K-hs-UyJ"/>
                             <constraint firstItem="o0n-ua-kSq" firstAttribute="top" secondItem="KQa-c8-4Vd" secondAttribute="bottom" constant="2" id="Hw9-sn-LMM"/>
                             <constraint firstItem="tAg-Bh-B64" firstAttribute="trailing" secondItem="7yV-yu-opg" secondAttribute="trailing" constant="16" id="K3d-ZX-Ib4"/>
+                            <constraint firstItem="bB9-1V-BAr" firstAttribute="centerX" secondItem="tAg-Bh-B64" secondAttribute="centerX" id="KJM-88-f5j"/>
                             <constraint firstItem="tAg-Bh-B64" firstAttribute="trailing" secondItem="AgX-H5-eTy" secondAttribute="trailing" constant="16" id="L3t-Re-n7U"/>
                             <constraint firstItem="o0n-ua-kSq" firstAttribute="leading" secondItem="tAg-Bh-B64" secondAttribute="leading" constant="16" id="LE0-kV-Wv5"/>
                             <constraint firstItem="Pmn-IU-P5U" firstAttribute="leading" secondItem="rOL-bT-Hlg" secondAttribute="trailing" constant="8" id="LZE-sU-R8P"/>
@@ -643,6 +659,7 @@
                         <outlet property="feeLabel" destination="o0n-ua-kSq" id="qcX-Yd-biB"/>
                         <outlet property="gasLimitSegmentedController" destination="Ei5-pP-B3a" id="LhE-90-DQR"/>
                         <outlet property="gasPriceSegmentedController" destination="bXx-vx-ztK" id="9SQ-29-uN6"/>
+                        <outlet property="oneEtherButton" destination="bB9-1V-BAr" id="l4b-Xp-Y8T"/>
                         <outlet property="recvField" destination="VoM-Ph-d6j" id="ynX-HL-dCh"/>
                         <outlet property="submitButton" destination="z7e-Wy-2UJ" id="z3E-lh-cRu"/>
                     </connections>

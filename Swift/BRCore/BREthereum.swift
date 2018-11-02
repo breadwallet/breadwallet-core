@@ -305,6 +305,11 @@ public struct EthereumTransfer : EthereumReferenceWithDefaultUnit {
         return State (ethereumTransferGetStatus(self.ewm!.core, self.identifier))
     }
 
+    public var stateError : Error? {
+        let type = ethereumTransferStatusGetErrorType(self.ewm!.core, self.identifier)
+        return -1 != type ? Error (type) : nil
+    }
+
     public var stateErrorReason : String? {
         if let coreReason = ethereumTransferStatusGetError(self.ewm!.core, self.identifier) {
             return asUTF8String(coreReason, true)
@@ -366,6 +371,34 @@ public struct EthereumTransfer : EthereumReferenceWithDefaultUnit {
             }
         }
     }
+
+    public enum Error {
+        case invalidSignature
+        case nonceTooLow
+        case balanceTooLow
+        case gasPriceTooLow
+        case gasTooLow
+        case replacementUnderPriced
+        case dropped
+        case unknown
+
+        init (_ error: Int32) {
+            switch error {
+            case 0: self = .invalidSignature
+            case 1: self = .nonceTooLow
+            case 2: self = .balanceTooLow
+            case 3: self = .gasPriceTooLow
+            case 4: self = .gasTooLow
+            case 5: self = .replacementUnderPriced
+            case 6: self = .dropped
+            case 7: self = .unknown
+            default:
+                self = .unknown
+            }
+        }
+    }
+
+
 }
 
 ///
@@ -509,6 +542,37 @@ public struct EthereumWallet : EthereumReferenceWithDefaultUnit, Hashable {
         ethereumWalletSubmitTransfer (self.ewm!.core, self.identifier, transfer.identifier)
     }
 
+//    public func submitCancel (transfer : EthereumTransfer, paperKey: String) {
+//        ethereumWalletSubmitTransferCancel(self.ewm!.core, self.identifier, transfer.identifier, paperKey)
+//    }
+
+//    public func submitAgain(transfer : EthereumTransfer, paperKey: String) {
+//        ethereumWalletSubmitTransferAgain(self.ewm!.core, self.identifier, transfer.identifier, paperKey)
+//    }
+
+    public func createTransferToCancel (transfer: EthereumTransfer) -> EthereumTransfer {
+        let tid = ethereumWalletCreateTransferToCancel (self.ewm!.core, self.identifier, transfer.identifier);
+        return EthereumTransfer (ewm: self.ewm!, identifier: tid)
+    }
+
+    public func createTransferToReplace (transfer: EthereumTransfer,
+                                         updateNonce: Bool = false,
+                                         updateRecvAddress: String? = nil,
+                                         updateAmount: EthereumAmount? = nil,
+                                         updateGasPrice: EthereumAmount? = nil,
+                                         updateGasLimit: UInt64? = nil) -> EthereumTransfer {
+
+        let tid = ethereumWalletCreateTransferToReplace (self.ewm!.core,
+                                                         self.identifier,
+                                                         transfer.identifier,
+//                                                         updateRecvAddress ?? transfer.targetAddress,
+//                                                         updateAmount ?? transfer.amount,
+//                                                         updateGasPrice ?? transfer.gasPrice,
+//                                                         updateGasLimit ?? transfer.gasLimit,
+                                                         (updateNonce ? ETHEREUM_BOOLEAN_TRUE : ETHEREUM_BOOLEAN_FALSE))
+        return EthereumTransfer (ewm: self.ewm!, identifier: tid)
+    }
+
     public func estimateFee (amount : String, unit: EthereumAmountUnit) -> EthereumAmount {
         var overflow : Int32 = 0
         var status : BRCoreParseStatus = CORE_PARSE_OK
@@ -606,6 +670,9 @@ public enum EthereumTransferEvent : Int {
     case blockConfirmationsUpdated
 
     case deleted
+
+    // case cancelled
+    // case replaced
 
     init (_ event: BREthereumTransferEvent) {
         self.init (rawValue: Int (event.rawValue))!

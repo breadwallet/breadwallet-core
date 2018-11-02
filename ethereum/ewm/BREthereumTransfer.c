@@ -190,6 +190,32 @@ transferCreate (BREthereumAddress sourceAddress,
 }
 
 extern BREthereumTransfer
+transferCreateWithTransactionOriginating (OwnershipGiven BREthereumTransaction transaction) {
+    BREthereumFeeBasis feeBasis = {
+        FEE_BASIS_GAS,
+        { .gas = {
+            transactionGetGasLimit(transaction),
+            transactionGetGasPrice(transaction)
+        }}
+    };
+
+    // No originating transaction
+    BREthereumTransfer transfer = transferCreateDetailed (transactionGetSourceAddress(transaction),
+                                                          transactionGetTargetAddress(transaction),
+                                                          amountCreateEther (transactionGetAmount(transaction)),
+                                                          feeBasis,
+                                                          transaction);
+    // Basis
+    transfer->basis.type = TRANSFER_BASIS_TRANSACTION;
+    transfer->basis.u.transaction = transaction;
+
+    // Status
+    transfer->status = transferStatusCreate(transactionGetStatus(transaction));
+
+    return transfer;
+}
+
+extern BREthereumTransfer
 transferCreateWithTransaction (OwnershipGiven BREthereumTransaction transaction) {
     BREthereumFeeBasis feeBasis = {
         FEE_BASIS_GAS,
@@ -494,6 +520,16 @@ transferExtractStatusError (BREthereumTransfer transfer,
     
     if (NULL != reason) *reason = strdup (transactionGetErrorName (transfer->status.u.errored.type));
     
+    return 1;
+}
+
+extern int
+transferExtractStatusErrorType (BREthereumTransfer transfer,
+                                BREthereumTransactionErrorType *type) {
+    if (TRANSFER_STATUS_ERRORED != transfer->status.type) return 0;
+
+    if (NULL != type) *type = transfer->status.u.errored.type;
+
     return 1;
 }
 

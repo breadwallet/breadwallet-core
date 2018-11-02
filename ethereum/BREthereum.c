@@ -241,7 +241,25 @@ ethereumWalletCreateTransferWithFeeBasis (BREthereumEWM ewm,
                                                        gasLimit,
                                                        gasPrice
                                                    }}});
+}
 
+extern BREthereumTransferId
+ethereumWalletCreateTransferToCancel (BREthereumEWM ewm,
+                                      BREthereumWalletId wid,
+                                      BREthereumTransferId tid) {
+    return ewmWalletCreateTransferToCancel(ewm, wid, tid);
+}
+
+extern BREthereumTransferId
+ethereumWalletCreateTransferToReplace (BREthereumEWM ewm,
+                                       BREthereumWalletId wid,
+                                       BREthereumTransferId tid,
+//                                       const char *recvAddress,
+//                                       BREthereumAmount amount,
+//                                       BREthereumGasPrice gasPrice,
+//                                       BREthereumGas gasLimit,
+                                       BREthereumBoolean updateNonce) {
+    return ewmWalletCreateTransferToReplace (ewm, wid, tid, updateNonce);
 }
 
 extern void // status, error
@@ -270,6 +288,23 @@ ethereumWalletSubmitTransfer(BREthereumEWM ewm,
                                 BREthereumTransferId tid) {
     ewmWalletSubmitTransfer(ewm, wid, tid);
 }
+
+//extern void
+//ethereumWalletSubmitTransferCancel (BREthereumEWM ewm,
+//                                    BREthereumWalletId wid,
+//                                    BREthereumTransferId tid,
+//                                    const char *paperKey) {
+//    ewmWalletSubmitTransferCancel(ewm, wid, tid, paperKey);
+//
+//}
+//
+//extern void
+//ethereumWalletSubmitTransferAgain (BREthereumEWM ewm,
+//                                   BREthereumWalletId wid,
+//                                   BREthereumTransferId tid,
+//                                   const char *paperKey) {
+//    ewmWalletSubmitTransferAgain(ewm, wid, tid, paperKey);
+//}
 
 //
 //
@@ -497,6 +532,18 @@ ethereumTransferStatusGetError (BREthereumEWM ewm,
         return reason;
     }
     else return NULL;
+}
+
+extern int
+ethereumTransferStatusGetErrorType (BREthereumEWM ewm,
+                                    BREthereumTransferId tid) {
+    BREthereumTransfer transfer = ewmLookupTransfer(ewm, tid);
+
+    BREthereumTransactionErrorType type;
+
+    return (transferExtractStatusErrorType (transfer, &type)
+            ? type
+            : (int ) -1);
 }
 
 extern BREthereumBoolean
